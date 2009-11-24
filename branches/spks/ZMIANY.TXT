@@ -1,0 +1,9 @@
+ai_driver.pas:
+dodano logowanie SHP i czuwak
+
+zapis 					z
+SecuritySystem.status			mover.pas
+
+
+
+

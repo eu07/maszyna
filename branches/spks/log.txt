@@ -1,0 +1,457 @@
+No texture compression
+Starting MaSzyna rail vehicle simulator.
+Compilation 210408 - UNOFFICIAL <wersja niepubliczna>
+Online documentation and additional files on http://www.eu07.pl
+Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx_EU, OLO_EU, Bart, Quark-t, ShaXbee, Oli_EU, youBy, KURS90 and others
+Renderer:
+GeForce 9800 GTX+/PCI/SSE2
+Vendor:
+NVIDIA Corporation
+OpenGL Version:
+2.1.2
+Supported Extensions:
+GL_ARB_color_buffer_float GL_ARB_depth_texture GL_ARB_draw_buffers GL_ARB_fragment_program GL_ARB_fragment_program_shadow GL_ARB_fragment_shader GL_ARB_half_float_pixel GL_ARB_imaging GL_ARB_multisample GL_ARB_multitexture GL_ARB_occlusion_query GL_ARB_pixel_buffer_object GL_ARB_point_parameters GL_ARB_point_sprite GL_ARB_shadow GL_ARB_shader_objects GL_ARB_shading_language_100 GL_ARB_texture_border_clamp GL_ARB_texture_compression GL_ARB_texture_cube_map GL_ARB_texture_env_add GL_ARB_texture_env_combine GL_ARB_texture_env_dot3 GL_ARB_texture_float GL_ARB_texture_mirrored_repeat GL_ARB_texture_non_power_of_two GL_ARB_texture_rectangle GL_ARB_transpose_matrix GL_ARB_vertex_buffer_object GL_ARB_vertex_program GL_ARB_vertex_shader GL_ARB_window_pos GL_ATI_draw_buffers GL_ATI_texture_float GL_ATI_texture_mirror_once GL_S3_s3tc GL_EXT_texture_env_add GL_EXT_abgr GL_EXT_bgra GL_EXT_blend_color GL_EXT_blend_equation_separate GL_EXT_blend_func_separate GL_EXT_blend_minmax GL_EXT_blend_subtract GL_EXT_compiled_vertex_array GL_EXT_Cg_shader GL_EXT_bindable_uniform GL_EXT_depth_bounds_test GL_EXT_draw_buffers2 GL_EXT_draw_instanced GL_EXT_draw_range_elements GL_EXT_fog_coord GL_EXT_framebuffer_blit GL_EXT_framebuffer_multisample GL_EXT_framebuffer_object GL_EXTX_framebuffer_mixed_formats GL_EXT_framebuffer_sRGB GL_EXT_geometry_shader4 GL_EXT_gpu_program_parameters GL_EXT_gpu_shader4 GL_EXT_multi_draw_arrays GL_EXT_packed_depth_stencil GL_EXT_packed_float GL_EXT_packed_pixels GL_EXT_pixel_buffer_object GL_EXT_point_parameters GL_EXT_rescale_normal GL_EXT_secondary_color GL_EXT_separate_specular_color GL_EXT_shadow_funcs GL_EXT_stencil_two_side GL_EXT_stencil_wrap GL_EXT_texture3D GL_EXT_texture_array GL_EXT_texture_buffer_object GL_EXT_texture_compression_latc GL_EXT_texture_compression_rgtc GL_EXT_texture_compression_s3tc GL_EXT_texture_cube_map GL_EXT_texture_edge_clamp GL_EXT_texture_env_combine GL_EXT_texture_env_dot3 GL_EXT_texture_filter_anisotropic GL_EXT_texture_integer GL_EXT_texture_lod GL_EXT_texture_lod_bias GL_EXT_texture_mirror_clamp GL_EXT_texture_object GL_EXT_texture_sRGB GL_EXT_texture_shared_exponent GL_EXT_timer_query GL_EXT_vertex_array GL_IBM_rasterpos_clip GL_IBM_texture_mirrored_repeat GL_KTX_buffer_region GL_NV_blend_square GL_NV_copy_depth_to_color GL_NV_depth_buffer_float GL_NV_conditional_render GL_NV_depth_clamp GL_NV_fence GL_NV_float_buffer GL_NV_fog_distance GL_NV_fragment_program GL_NV_fragment_program_option GL_NV_fragment_program2 GL_NV_framebuffer_multisample_coverage GL_NV_geometry_shader4 GL_NV_gpu_program4 GL_NV_half_float GL_NV_light_max_exponent GL_NV_multisample_coverage GL_NV_multisample_filter_hint GL_NV_occlusion_query GL_NV_packed_depth_stencil GL_NV_parameter_buffer_object GL_NV_pixel_data_range GL_NV_point_sprite GL_NV_primitive_restart GL_NV_register_combiners GL_NV_register_combiners2 GL_NV_texgen_reflection GL_NV_texture_compression_vtc GL_NV_texture_env_combine4 GL_NV_texture_expand_normal GL_NV_texture_rectangle GL_NV_texture_shader GL_NV_texture_shader2 GL_NV_texture_shader3 GL_NV_transform_feedback GL_NV_vertex_array_range GL_NV_vertex_array_range2 GL_NV_vertex_program GL_NV_vertex_program1_1 GL_NV_vertex_program2 GL_NV_vertex_program2_option GL_NV_vertex_program3 GL_NVX_conditional_render GL_SGIS_generate_mipmap GL_SGIS_texture_lod GL_SGIX_depth_texture GL_SGIX_shadow GL_SUN_slice_accum GL_WIN_swap_hint WGL_EXT_swap_control 
+glClearColor (FogColor[0], FogColor[1], FogColor[2], 0.0); 
+glFogfv(GL_FOG_COLOR, FogColor);
+glClearDepth(1.0f);  
+glEnable(GL_TEXTURE_2D);
+glShadeModel(GL_SMOOTH);
+glEnable(GL_DEPTH_TEST);
+glEnable(GL_ALPHA_TEST);
+glEnable(GL_ALPHA_TEST);
+glAlphaFunc(GL_GREATER,0.04);
+glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+glDepthFunc(GL_LEQUAL);
+glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+glPolygonMode(GL_FRONT, GL_FILL);
+glFrontFace(GL_CCW);
+glEnable(GL_CULL_FACE);	
+glLineWidth(1.0f);
+glPointSize(2.0f);
+glLightModelfv(GL_LIGHT_MODEL_AMBIENT,ambientLight);
+glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
+glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
+glLightfv(GL_LIGHT0,GL_POSITION,lightPos);
+glEnable(GL_LIGHT0);
+glEnable(GL_COLOR_MATERIAL);
+glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+glMaterialfv( GL_FRONT, GL_AMBIENT_AND_DIFFUSE, whiteLight );
+glEnable(GL_LIGHTING);
+glFogi(GL_FOG_MODE, GL_LINEAR);
+glFogfv(GL_FOG_COLOR, FogColor);
+glFogf(GL_FOG_START, 1000.0f);
+glFogf(GL_FOG_END, 2000.0f);
+glEnable(GL_FOG);
+Font init
+Font init OK
+Sound Init
+textures\logo.bmp
+OK
+Sound Init OK
+Textures init
+Textures init OK
+Models init
+Models init OK
+Ground init
+Scenery atmo definition
+Scenery light definition
+Scenery camera definition
+normal
+textures\rail_screw_used1.bmp
+OK
+textures\tpbps-new2.tex
+OK
+start
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+tor2k
+normal
+zwr02
+switch
+textures\wzp.bmp
+OK
+Loading - text model: models\wza.t3d
+metal\metalfrictionpattern1.tga
+OK
+textures\zwrot34r300pods-new.tex
+OK
+normal
+normal
+koniec
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+tr\slup_beton1.bmp
+OK
+Loading - text model: models\tr/stb1.t3d
+tr\wys-ni-d.tga
+OK
+Loading - text model: models\tr/-3pd.t3d
+test_zwr01
+switch
+textures\wzl.bmp
+OK
+tor2p
+normal
+normal
+normal
+tor1p
+normal
+aistart
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+normal
+tor1k
+normal
+tr\kotwa_teownikrurowe.bmp
+OK
+Loading - text model: models\tr/stb1-kotwa-napr14.t3d
+tr\#izol-sekcja.bmp
+OK
+tr\odciag1.tga
+OK
+tr\ciezarbeton3.bmp
+OK
+textures\grassgreen1.tga
+OK
+InitNormals
+InitNormals OK
+InitTracks
+InitTracks OK
+InitEvents
+InitEvents OK
+InitLaunchers
+InitLaunchers OK
+InitGlobalTime
+InitGlobalTime OK
+Loading - text model: dynamic\pkp\et22_v1\201e.t3d
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+dynamic\pkp\et22_v1\metalfrictionpattern1.tga
+OK
+dynamic\pkp\et22_v1\#sprzeg.tga
+OK
+dynamic\pkp\et22_v1\woz_et22.bmp
+OK
+dynamic\pkp\et22_v1\kolo_et22.bmp
+OK
+dynamic\pkp\et22_v1\panto-a.bmp
+OK
+dynamic\pkp\et22_v1\cien201e.tga
+OK
+dynamic\pkp\et22_v1\201e-135.dds
+OK
+1
+init
+Ground init OK
+Player train init: et22-135
+Loading - text model: dynamic\pkp\et22_v1\kabinaa.t3d
+dynamic\pkp\et22_v1\podloga.bmp
+OK
+dynamic\pkp\et22_v1\sciana_laminat_bok.bmp
+OK
+dynamic\pkp\et22_v1\scianab.bmp
+OK
+dynamic\pkp\et22_v1\pulpit_z.bmp
+OK
+dynamic\pkp\et22_v1\blacha_pod_z.bmp
+OK
+dynamic\pkp\et22_v1\podkran2_z.bmp
+OK
+dynamic\pkp\et22_v1\ampery_pulpit_z.bmp
+OK
+dynamic\pkp\et22_v1\wskamp.tga
+OK
+dynamic\pkp\et22_v1\ampery_z.bmp
+OK
+dynamic\pkp\et22_v1\ampery_sw.tga
+OK
+dynamic\pkp\et22_v1\manowskz.tga
+OK
+dynamic\pkp\et22_v1\mano_z.bmp
+OK
+dynamic\pkp\et22_v1\mano1.tga
+OK
+dynamic\pkp\et22_v1\kran.bmp
+OK
+dynamic\pkp\et22_v1\oerlikon.bmp
+OK
+dynamic\pkp\et22_v1\kran_zasadniczy_z.bmp
+OK
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+dynamic\pkp\et22_v1\n3.bmp
+OK
+dynamic\pkp\et22_v1\n1.bmp
+OK
+dynamic\pkp\et22_v1\tarcze.bmp
+OK
+dynamic\pkp\et22_v1\n2.bmp
+OK
+dynamic\pkp\et22_v1\przyc_cz.bmp
+OK
+dynamic\pkp\et22_v1\przyc_ziel.bmp
+OK
+dynamic\pkp\et22_v1\kontra.bmp
+OK
+dynamic\pkp\et22_v1\lampka_on.bmp
+OK
+dynamic\pkp\et22_v1\lampka_off.bmp
+OK
+dynamic\pkp\et22_v1\lampkas_off.bmp
+OK
+dynamic\pkp\et22_v1\lampkas_on.bmp
+OK
+dynamic\pkp\et22_v1\podpisy.bmp
+OK
+dynamic\pkp\et22_v1\podpisiki2.bmp
+OK
+dynamic\pkp\et22_v1\przelacznik.bmp
+OK
+dynamic\pkp\et22_v1\pod.bmp
+OK
+dynamic\pkp\et22_v1\przel_ham.tga
+OK
+dynamic\pkp\et22_v1\rozruch.tga
+OK
+dynamic\pkp\et22_v1\pulpit_pion.bmp
+OK
+dynamic\pkp\et22_v1\pod2_z.bmp
+OK
+dynamic\pkp\et22_v1\podkran.bmp
+OK
+dynamic\pkp\et22_v1\pionpod_z.bmp
+OK
+dynamic\pkp\et22_v1\nastawnik.bmp
+OK
+dynamic\pkp\et22_v1\ob_sh.bmp
+OK
+dynamic\pkp\et22_v1\fotel.bmp
+OK
+dynamic\pkp\et22_v1\przel.bmp
+OK
+dynamic\pkp\et22_v1\rama.bmp
+OK
+dynamic\pkp\et22_v1\ogrz.bmp
+OK
+dynamic\pkp\et22_v1\szybaa.tga
+OK
+dynamic\pkp\et22_v1\szybaav.tga
+OK
+dynamic\pkp\et22_v1\radio.bmp
+OK
+dynamic\pkp\et22_v1\pulp.bmp
+OK
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+dynamic\pkp\et22_v1\czerwony.bmp
+OK
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+dynamic\pkp\et22_v1\sciana_laminat.bmp
+OK
+dynamic\pkp\et22_v1\eu07sufit_j.bmp
+OK
+dynamic\pkp\et22_v1\gora.bmp
+OK
+dynamic\pkp\et22_v1\grzejniki.bmp
+OK
+dynamic\pkp\et22_v1\wyc.bmp
+OK
+dynamic\pkp\et22_v1\kontakt.bmp
+OK
+dynamic\pkp\et22_v1\ramao.bmp
+OK
+dynamic\pkp\et22_v1\listewka_stara-z.bmp
+OK
+dynamic\pkp\et22_v1\szyba.tga
+OK
+dynamic\pkp\et22_v1\scianaa.bmp
+OK
+dynamic\pkp\et22_v1\rdst.bmp
+OK
+dynamic\pkp\et22_v1\rozklad.bmp
+OK
+dynamic\pkp\et22_v1\wycierx.tga
+OK
+dynamic\pkp\et22_v1\wycierb1x.tga
+OK
+dynamic\pkp\et22_v1\oslona_pss.bmp
+OK
+dynamic\pkp\et22_v1\radyjko.bmp
+OK
+dynamic\pkp\et22_v1\rt9.tga
+OK
+dynamic\pkp\et22_v1\rt9_tarcza.bmp
+OK
+dynamic\pkp\et22_v1\rt9_tarcza_sw.tga
+OK
+dynamic\pkp\et22_v1\wskzeg.tga
+OK
+dynamic\pkp\et22_v1\wskpr.tga
+OK
+dynamic\pkp\et22_v1\szybaob1.tga
+OK
+dynamic\pkp\et22_v1\szybaob.tga
+OK
+Player train init OK
+textures\smuga.tga
+Failed

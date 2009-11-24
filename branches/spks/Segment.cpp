@@ -1,0 +1,531 @@
+//---------------------------------------------------------------------------
+
+#include    "system.hpp"
+#include    "classes.hpp"
+#pragma hdrstop
+
+#include "Segment.h"
+#include "Usefull.h"
+
+#define Precision 10000
+
+
+__fastcall TSegment::TSegment()
+{
+    Point1=CPointOut=CPointIn=Point2= vector3(0.0f,0.0f,0.0f);
+    fLength= 0;
+    fRoll1= 0;
+    fRoll2= 0;
+    fTsBuffer= NULL;
+    fStep= 0;
+}
+
+
+bool __fastcall TSegment::Init(vector3 NewPoint1, vector3 NewPoint2, double fNewStep,
+                                double fNewRoll1, double fNewRoll2)
+{
+    vector3 dir;
+    dir= Normalize(NewPoint2-NewPoint1);
+    return (TSegment::Init(NewPoint1,dir,
+                        -dir,NewPoint2,
+                        fNewStep,fNewRoll1,fNewRoll2,false));
+}
+
+bool __fastcall TSegment::Init(vector3 NewPoint1, vector3 NewCPointOut,
+                               vector3 NewCPointIn, vector3 NewPoint2, double fNewStep,
+                               double fNewRoll1, double fNewRoll2, bool bIsCurve)
+{
+    Point1= NewPoint1;
+    CPointOut= NewCPointOut;
+    CPointIn= NewCPointIn;
+    Point2= NewPoint2;
+    bCurve= bIsCurve;
+    if (bCurve)
+        fLength= ComputeLength(Point1,CPointOut,CPointIn,Point2);
+    else
+        fLength= (Point1-Point2).Length();
+    fRoll1= fNewRoll1;
+    fRoll2= fNewRoll2;
+    fStep= fNewStep;
+
+    if (fLength<=0)
+    {
+//                          if(DebugModeFlag)   //uetam
+        MessageBox(0,"Length<=0","TSegment::Init",MB_OK);
+        return false;
+    }
+
+    SafeDeleteArray(fTsBuffer);
+    if ((bCurve) && (fStep>0))
+    {
+        double s=0;
+        int i=0;
+        fTsBuffer= new double[ceil(fLength/fStep)+1];
+        fTsBuffer[0]= 0;               /* TODO : fix fTsBuffer */
+
+        while (s<fLength)
+        {
+            i++;
+            s+= fStep;
+            if (s>fLength)
+                s= fLength;
+            fTsBuffer[i]= GetTFromS(s);
+        }
+    }
+
+
+//    return true;
+
+    if (fLength>500)
+    {
+//                          if(DebugModeFlag)   //uetam
+        MessageBox(0,"Length>500","TSegment::Init",MB_OK);
+        return false;
+    }
+
+    return true;
+}
+
+
+vector3 __fastcall TSegment::GetFirstDerivative(double fTime)
+{
+
+    double fOmTime = 1.0 - fTime;
+    double fPowTime = fTime;
+    vector3 kResult = fOmTime*(CPointOut-Point1);
+
+    int iDegreeM1 = 3 - 1;
+
+    double fCoeff = 2*fPowTime;
+    kResult = (kResult+fCoeff*(CPointIn-CPointOut))*fOmTime;
+    fPowTime *= fTime;
+
+    kResult += fPowTime*(Point2-CPointIn);
+    kResult *= 3;
+
+    return kResult;
+}
+
+double __fastcall TSegment::RombergIntegral(double fA, double fB)
+{
+    double fH = fB - fA;
+
+    const int ms_iOrder= 5;
+
+    double ms_apfRom[2][ms_iOrder];
+
+    ms_apfRom[0][0] = 0.5*fH*((GetFirstDerivative(fA).Length())+(GetFirstDerivative(fB).Length()));
+    for (int i0 = 2, iP0 = 1; i0 <= ms_iOrder; i0++, iP0 *= 2, fH *= 0.5)
+    {
+        // approximations via the trapezoid rule
+        double fSum = 0.0;
+        int i1;
+        for (i1 = 1; i1 <= iP0; i1++)
+            fSum += (GetFirstDerivative(fA + fH*(i1-0.5)).Length());
+
+        // Richardson extrapolation
+        ms_apfRom[1][0] = 0.5*(ms_apfRom[0][0] + fH*fSum);
+        for (int i2 = 1, iP2 = 4; i2 < i0; i2++, iP2 *= 4)
+        {
+            ms_apfRom[1][i2] =
+                (iP2*ms_apfRom[1][i2-1] - ms_apfRom[0][i2-1])/(iP2-1);
+        }
+
+        for (i1 = 0; i1 < i0; i1++)
+            ms_apfRom[0][i1] = ms_apfRom[1][i1];
+    }
+
+    return ms_apfRom[0][ms_iOrder-1];
+}
+
+double __fastcall TSegment::GetTFromS(double s)
+{
+    // initial guess for Newton's method
+    int it=0;
+    double fTolerance= 0.001;
+    double fRatio = s/RombergIntegral(0,1);
+    double fOmRatio = 1.0 - fRatio;
+    double fTime = fOmRatio*0 + fRatio*1;
+
+//    for (int i = 0; i < iIterations; i++)
+    while (true)
+    {
+        it++;
+        if (it>10)
+        {
+//                          if(DebugModeFlag)   //uetam
+            MessageBox(0,"Too many iterations","GetTFromS",MB_OK);
+            return fTime;
+        }
+
+        double fDifference = RombergIntegral(0,fTime) - s;
+        if ( ( fDifference>0 ? fDifference : -fDifference) < fTolerance )
+            return fTime;
+
+        fTime -= fDifference/GetFirstDerivative(fTime).Length();
+    }
+
+    // Newton's method failed.  If this happens, increase iterations or
+    // tolerance or integration accuracy.
+    return -1;
+
+}
+
+double __fastcall TSegment::ComputeLength(vector3 p1, vector3 cp1, vector3 cp2, vector3 p2)  //McZapkie-150503: dlugosc miedzy punktami krzywej
+{
+    double t,l=0;
+    vector3 tmp,last= p1;
+    for (int i=1; i<=Precision; i++)
+    {
+        t= double(i)/double(Precision);
+        tmp= Interpolate(t,p1,cp1,cp2,p2);
+        t= vector3(tmp-last).Length();
+        l+= t;
+        last= tmp;
+    }
+    return (l);
+}
+
+const double fDirectionOffset= 0.1;
+
+vector3 __fastcall TSegment::GetDirection(double fDistance)
+{
+    double t1= GetTFromS(fDistance-fDirectionOffset);
+    if (t1<0)
+        return (CPointOut-Point1);
+    double t2= GetTFromS(fDistance+fDirectionOffset);
+    if (t2>1)
+        return (Point1-CPointIn);
+    return (FastGetPoint(t2)-FastGetPoint(t1));
+}
+
+vector3 __fastcall TSegment::FastGetDirection(double fDistance, double fOffset)
+{
+    double t1= fDistance-fOffset;
+    if (t1<0)
+        return (CPointOut-Point1);
+    double t2= fDistance+fOffset;
+    if (t2>1)
+        return (Point2-CPointIn);
+    return (FastGetPoint(t2)-FastGetPoint(t1));
+}
+
+vector3 __fastcall TSegment::GetPoint(double fDistance)
+{
+    if (bCurve)
+    {
+        double t= GetTFromS(fDistance);
+        return  Interpolate(t,Point1,CPointOut,CPointIn,Point2);
+    }
+    else
+    {
+        double t= fDistance/fLength;
+        return  ((1-t)*Point1+(t)*Point2);
+    }
+
+}
+
+vector3 __fastcall TSegment::FastGetPoint(double t)
+{
+    return  (bCurve ? Interpolate(t,Point1,CPointOut,CPointIn,Point2) : ((1-t)*Point1+(t)*Point2) );
+}
+
+bool __fastcall TSegment::RenderLoft(const vector3 *ShapePoints, int iNumShapePoints,
+        double fTextureLength, int iSkip, int iQualityFactor)
+{
+    if (iQualityFactor<1) iQualityFactor= 1;
+//    iQualityFactor= 1;
+    vector3 pos1,pos2,dir,parallel1,parallel2,pt;
+    double s,step,fOffset,tv1,tv2,t;
+    int i,j ;
+    if (bCurve)
+    {
+            tv1=0;
+            step= fStep*iQualityFactor;
+            s= fStep*iSkip;
+            i= iSkip;
+            t= fTsBuffer[i];
+//            step= fStep/fLength;
+            fOffset= 0.1/fLength;
+            pos1= FastGetPoint( t );
+//            dir= GetDirection1();
+            dir= FastGetDirection( t, fOffset );
+            parallel1= Normalize(CrossProduct(dir,vector3(0,1,0)));
+
+
+
+            while (s<fLength)
+            {
+//                step= SquareMagnitude(Global::GetCameraPosition()+pos);
+                i+= iQualityFactor;
+                s+= step;
+
+                if (s>fLength)
+                {
+                    step-= (s-fLength);
+                    s= fLength;
+                    i= fLength/fStep+1;
+                }
+
+                while (tv1>1)
+                {
+                    tv1-= 1.0f;
+                }
+
+                tv2=tv1+step/fTextureLength;
+
+                t= fTsBuffer[i];//GetTFromS(s);
+                pos2= FastGetPoint( t );
+                dir= FastGetDirection( t, fOffset );
+                parallel2= Normalize(CrossProduct(dir,vector3(0,1,0)));
+
+
+            glBegin(GL_TRIANGLE_STRIP);
+                for (j=0; j<iNumShapePoints; j++)
+                {
+                pt= parallel1*ShapePoints[j].x+pos1;
+                pt.y+= ShapePoints[j].y;
+                glNormal3f(0.0f,1.0f,0.0f);
+                glTexCoord2f(ShapePoints[j].z,tv1);
+                glVertex3f(pt.x,pt.y,pt.z);
+
+                pt= parallel2*ShapePoints[j].x+pos2;
+                pt.y+= ShapePoints[j].y;
+                glNormal3f(0.0f,1.0f,0.0f);
+                glTexCoord2f(ShapePoints[j].z,tv2);
+                glVertex3f(pt.x,pt.y,pt.z);
+                }
+            glEnd();
+                pos1= pos2;
+                parallel1= parallel2;
+                tv1= tv2;
+            }
+    }
+    else
+    {
+            pos1= FastGetPoint( (fStep*iSkip)/fLength );
+            pos2= FastGetPoint( 1.0f );
+            dir= GetDirection();
+            parallel1= Normalize(CrossProduct(dir,vector3(0,1,0)));
+
+            glBegin(GL_TRIANGLE_STRIP);
+                for (j=0; j<iNumShapePoints; j++)
+                {
+                pt= parallel1*ShapePoints[j].x+pos1;
+                pt.y+= ShapePoints[j].y;
+                glNormal3f(0.0f,1.0f,0.0f);
+                glTexCoord2f(ShapePoints[j].z,0);
+                glVertex3f(pt.x,pt.y,pt.z);
+
+                pt= parallel1*ShapePoints[j].x+pos2;
+                pt.y+= ShapePoints[j].y;
+                glNormal3f(0.0f,1.0f,0.0f);
+                glTexCoord2f(ShapePoints[j].z,fLength/fTextureLength);
+                glVertex3f(pt.x,pt.y,pt.z);
+                }
+            glEnd();
+    }
+};
+
+bool __fastcall TSegment::RenderSwitchRail(const vector3 *ShapePoints1, const vector3 *ShapePoints2,
+                            int iNumShapePoints,double fTextureLength, int iSkip, double fOffsetX)
+{
+    vector3 pos1,pos2,dir,parallel1,parallel2,pt;
+    double a1,a2,s,step,offset,tv1,tv2,t,t2,t2step,oldt2,sp,oldsp;
+    int i,j ;
+    if (bCurve)
+    {
+            t2= 0;
+            t2step= 1/double(iSkip);
+            oldt2= 1;
+            tv1=0;
+            step= fStep;
+            s= 0;
+            i= 0;
+            t= fTsBuffer[i];
+            a1= 0;
+//            step= fStep/fLength;
+            offset= 0.1/fLength;
+            pos1= FastGetPoint( t );
+//            dir= GetDirection1();
+            dir= FastGetDirection( t, offset );
+            parallel1= Normalize(CrossProduct(dir,vector3(0,1,0)));
+
+
+
+            while (s<fLength && i<iSkip)
+            {
+//                step= SquareMagnitude(Global::GetCameraPosition()+pos);
+                t2= oldt2+t2step;
+                i++;
+                s+= step;
+
+                if (s>fLength)
+                {
+                    step-= (s-fLength);
+                    s= fLength;
+                }
+
+                while (tv1>1)
+                {
+                    tv1-= 1.0f;
+                }
+
+                tv2=tv1+step/fTextureLength;
+
+                t= fTsBuffer[i];
+                pos2= FastGetPoint( t );
+                dir= FastGetDirection( t, offset );
+                parallel2= Normalize(CrossProduct(dir,vector3(0,1,0)));
+
+                a2= double(i)/(iSkip);
+                glBegin(GL_TRIANGLE_STRIP);
+                    for (j=0; j<iNumShapePoints; j++)
+                    {
+                        pt= parallel1*(ShapePoints1[j].x*a1+(ShapePoints2[j].x-fOffsetX)*(1-a1))+pos1;
+                        pt.y+= ShapePoints1[j].y*a1+ShapePoints2[j].y*(1-a1);
+                        glNormal3f(0.0f,1.0f,0.0f);
+                        glTexCoord2f((ShapePoints1[j].z),tv1);
+                        glVertex3f(pt.x,pt.y,pt.z);
+
+                        pt= parallel2*(ShapePoints1[j].x*a2+(ShapePoints2[j].x-fOffsetX)*(1-a2))+pos2;
+                        pt.y+= ShapePoints1[j].y*a2+ShapePoints2[j].y*(1-a2);
+                        glNormal3f(0.0f,1.0f,0.0f);
+                        glTexCoord2f(ShapePoints1[j].z,tv2);
+                        glVertex3f(pt.x,pt.y,pt.z);
+                    }
+                glEnd();
+                pos1= pos2;
+                parallel1= parallel2;
+                tv1= tv2;
+                a1= a2;
+            }
+    }
+    else
+    {
+            tv1=0;
+            s= 0;
+            i= 0;
+//            pos1= FastGetPoint( (5*iSkip)/fLength );
+            pos1= FastGetPoint( 0 );
+            dir= GetDirection();
+            parallel1= CrossProduct(dir,vector3(0,1,0));
+            step= 5;
+            a1= 0;
+
+            while (i<iSkip)
+            {
+//                step= SquareMagnitude(Global::GetCameraPosition()+pos);
+                i++;
+                s+= step;
+
+                if (s>fLength)
+                {
+                    step-= (s-fLength);
+                    s= fLength;
+                }
+
+                while (tv1>1)
+                {
+                    tv1-= 1.0f;
+                }
+
+                tv2=tv1+step/fTextureLength;
+
+                t= s/fLength;
+                pos2= FastGetPoint( t );
+
+                a2= double(i)/(iSkip);
+                glBegin(GL_TRIANGLE_STRIP);
+                    for (j=0; j<iNumShapePoints; j++)
+                    {
+                        pt= parallel1*(ShapePoints1[j].x*a1+(ShapePoints2[j].x-fOffsetX)*(1-a1))+pos1;
+                        pt.y+= ShapePoints1[j].y*a1+ShapePoints2[j].y*(1-a1);
+                        glNormal3f(0.0f,1.0f,0.0f);
+                        glTexCoord2f((ShapePoints1[j].z),tv1);
+                        glVertex3f(pt.x,pt.y,pt.z);
+
+                        pt= parallel1*(ShapePoints1[j].x*a2+(ShapePoints2[j].x-fOffsetX)*(1-a2))+pos2;
+                        pt.y+= ShapePoints1[j].y*a2+ShapePoints2[j].y*(1-a2);
+                        glNormal3f(0.0f,1.0f,0.0f);
+                        glTexCoord2f(ShapePoints1[j].z,tv2);
+                        glVertex3f(pt.x,pt.y,pt.z);
+                    }
+                glEnd();
+                pos1= pos2;
+                tv1= tv2;
+                a1= a2;
+            }
+/*
+            glBegin(GL_TRIANGLE_STRIP);
+                for (j=0; j<iNumShapePoints; j++)
+                {
+                pt= parallel1*ShapePoints1[j].x+pos1;
+                pt.y+= ShapePoints1[j].y;
+                glNormal3f(0.0f,1.0f,0.0f);
+                glTexCoord2f(ShapePoints1[j].z,0);
+                glVertex3f(pt.x,pt.y,pt.z);
+
+                pt= parallel1*ShapePoints1[j].x+pos2;
+                pt.y+= ShapePoints1[j].y;
+                glNormal3f(0.0f,1.0f,0.0f);
+                glTexCoord2f(ShapePoints1[j].z,fLength/fTextureLength);
+                glVertex3f(pt.x,pt.y,pt.z);
+                }
+            glEnd();*/
+    }
+};
+
+bool __fastcall TSegment::Render()
+{
+        vector3 pt;
+        glBindTexture(GL_TEXTURE_2D, 0);
+        int i=0;
+            if (bCurve)
+            {
+                glColor3f(0,0,1.0f);
+                glBegin(GL_LINE_STRIP);
+                    glVertex3f(Point1.x,Point1.y,Point1.z);
+                    glVertex3f(CPointOut.x,CPointOut.y,CPointOut.z);
+                glEnd();
+
+                glBegin(GL_LINE_STRIP);
+                    glVertex3f(Point2.x,Point2.y,Point2.z);
+                    glVertex3f(CPointIn.x,CPointIn.y,CPointIn.z);
+                glEnd();
+
+                glColor3f(1.0f,0,0);
+                glBegin(GL_LINE_STRIP);
+                    for (int i=0; i<=8; i++)
+                    {
+                        pt= FastGetPoint(double(i)/8.0f);
+                        glVertex3f(pt.x,pt.y,pt.z);
+                    }
+                 glEnd();
+            }
+            else
+            {
+                glColor3f(0,0,1.0f);
+                glBegin(GL_LINE_STRIP);
+                    glVertex3f(Point1.x,Point1.y,Point1.z);
+                    glVertex3f(Point1.x+CPointOut.x,Point1.y+CPointOut.y,Point1.z+CPointOut.z);
+                glEnd();
+
+                glBegin(GL_LINE_STRIP);
+                    glVertex3f(Point2.x,Point2.y,Point2.z);
+                    glVertex3f(Point2.x+CPointIn.x,Point2.y+CPointIn.y,Point2.z+CPointIn.z);
+                glEnd();
+
+                glColor3f(0.5f,0,0);
+                glBegin(GL_LINE_STRIP);
+                    glVertex3f(Point1.x+CPointOut.x,Point1.y+CPointOut.y,Point1.z+CPointOut.z);
+                    glVertex3f(Point2.x+CPointIn.x,Point2.y+CPointIn.y,Point2.z+CPointIn.z);
+                glEnd();
+            }
+
+}
+
+
+//---------------------------------------------------------------------------
+
+#pragma package(smart_init)
