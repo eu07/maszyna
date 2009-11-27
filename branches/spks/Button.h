@@ -3,6 +3,7 @@
 #ifndef ButtonH
 #define ButtonH
 
+#include "QueryParserComp.hpp"
 #include "Model3d.h"
 
 //typedef enum { gt_Unknown, gt_Rotate, gt_Move } TButtonType;

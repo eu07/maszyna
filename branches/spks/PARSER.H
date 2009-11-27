@@ -29,11 +29,21 @@ public:
 	virtual ~cParser();
 
 // methods:
-	virtual bool	getTokens( int Count = 1, bool ToLower = true, const char* Break = "\n\t ,;" );
-	virtual int		getProgress() const;	// percentage of file processed.
+    template <typename OutputT>
+    inline void getToken(OutputT& output) { getTokens(); *this >> output; };
+
+    inline void ignoreToken() { readToken(); };
+    inline void ignoreTokens(int count) { getTokens(count); };
+
+    inline bool expectToken(std::string value) { return readToken() == value; };
+
+    bool eof() { return mStream->eof(); };
+
+    bool getTokens( int Count = 1, bool ToLower = true, const char* Break = "\n\t ,;" );
+	int	getProgress() const;	// percentage of file processed.
 
 // load traction?
-        bool LoadTraction;
+    bool LoadTraction;
 
 protected:
 // methods:
