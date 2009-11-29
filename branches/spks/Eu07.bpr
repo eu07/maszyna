@@ -27,7 +27,7 @@
     <DEBUGLIBPATH value="$(BCB)\lib\debug"/>
     <RELEASELIBPATH value="$(BCB)\lib\release"/>
     <LINKER value="tlink32"/>
-    <USERDEFINES value="_DEBUG;GLEW_STATIC"/>
+    <USERDEFINES value="_DEBUG;GLEW_STATIC;USE_VERTEX_ARRAYS"/>
     <SYSDEFINES value="_RTLDLL;NO_STRICT"/>
     <MAINSOURCE value="EU07.cpp"/>
     <INCLUDEPATH value="devil\include;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
@@ -37,7 +37,7 @@
   <OPTIONS>
     <IDLCFLAGS value="-Idevil\include -INewScenery -Ig:\Borland\CBuilder5\Projects\. -IMcZapkie 
       -I$(BCB)\include -I$(BCB)\include\vcl -src_suffix cpp -D_DEBUG 
-      -DGLEW_STATIC -boa"/>
+      -DGLEW_STATIC -DUSE_VERTEX_ARRAYS -boa"/>
     <CFLAG1 value="-Od -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a4 -6 -b- -k -y -v -vi- 
       -c -tW -tWM"/>
     <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
@@ -129,9 +129,10 @@ Item0=c:\lang\borland\cbuilder5\source\vcl;D:\USER\MCZAPKIE\PROGRAMY\rail\symul\
 Item1=$(BCB)\source\vcl
 
 [HistoryLists\hlConditionals]
-Count=2
-Item0=_DEBUG;GLEW_STATIC
-Item1=_DEBUG
+Count=3
+Item0=_DEBUG;GLEW_STATIC;USE_VERTEX_ARRAYS
+Item1=_DEBUG;GLEW_STATIC
+Item2=_DEBUG
 
 [HistoryLists\hlIntOutputDir]
 Count=2
@@ -148,7 +149,7 @@ DebugSourceDirs=c:\lang\borland\cbuilder5\source\vcl;D:\USER\MCZAPKIE\PROGRAMY\r
 
 [Parameters]
 RunParams=
-HostApplication=
+HostApplication=D:\Projects\eu07-old\spks\EU07.exe
 RemoteHost=
 RemotePath=
 RemoteDebug=0

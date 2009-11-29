@@ -3,9 +3,9 @@
 #define Model3dH
 
 
-#include "opengl/glew.h"
+#include <gl/gl.h>
 #include "geometry.h"
-#include "PARSER.h"
+#include "QueryParserComp.hpp"
 #include "dumb3d.h"
 using namespace Math3D;
 
@@ -13,7 +13,7 @@ struct GLVERTEX
 {
     vector3 Point;
     vector3 Normal;
-    float tu,tv;
+    double tu,tv;
 };
 
 class TMaterialColor
@@ -129,27 +129,18 @@ class TSubModel
       TAnimType b_Anim, b_aAnim;
 
       bool Visible;
-      std::string Name;
+      AnsiString Name;
 
       __fastcall TSubModel();
       __fastcall FirstInit();
       __fastcall ~TSubModel();
-
-      void __fastcall Load(cParser& Parser, int NIndex, TModel3d *Model);
-
-//      void LoadFromTextFile(cParser& parser);
-//      void LoadFromBinaryFile(std::istream& stream);
-
-      void SaveToBinaryFile(std::ostream& stream);
-
-//      void DeleteVertices();
-      
+      void __fastcall Load(TQueryParserComp *Parser, int NIndex, TModel3d *Model);
       void __fastcall AddChild(TSubModel *SubModel);
       void __fastcall AddNext(TSubModel *SubModel);
       void __fastcall SetRotate(vector3 vNewRotateAxis, double fNewAngle);
       void __fastcall SetRotateXYZ(vector3 vNewAngles);
       void __fastcall SetTranslate(vector3 vNewTransVector);
-      TSubModel* __fastcall GetFromName(std::string search);
+      TSubModel* __fastcall GetFromName(char *sName);
       void __fastcall Render(GLuint ReplacableSkinId);
       void __fastcall RenderAlpha(GLuint ReplacableSkinId);      
       inline matrix4x4* __fastcall GetMatrix() { return &Matrix; };
@@ -176,15 +167,12 @@ public:
     inline TSubModel* __fastcall GetSMRoot() {return(Root);};
     int SubModelsCount;
     double Radius;
-
-    std::ostream ostream;
-    
     __fastcall TModel3d();
     __fastcall TModel3d(char *FileName);
     __fastcall ~TModel3d();
-    TSubModel* __fastcall GetFromName(const char *sName);
+    TSubModel* __fastcall GetFromName(char *sName);
 //    TMaterial* __fastcall GetMaterialFromName(char *sName);
-    bool __fastcall AddTo(const char *Name, TSubModel *SubModel);
+    bool __fastcall AddTo(char *Name, TSubModel *SubModel);
     bool __fastcall LoadFromTextFile(char *FileName);
     bool __fastcall LoadFromFile(char *FileName);
     void __fastcall SaveToFile(char *FileName);
