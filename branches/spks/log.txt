@@ -63,28 +63,30 @@ OK
 textures\wzp.bmp
 OK
 Loading - text model: models\wza.t3d
-metal\metalfrictionpattern1.tga
+metal\metalfrictionpattern1.dds
 Failed
 textures\zwrot34r300pods-new.tex
 OK
-tr\slup_beton1.bmp
+tr\betonrelief1.bmp
 OK
 Loading - text model: models\tr/stb1.t3d
-tr\wys-ni-d.tga
+tr\wys-ni-d-p.dds
 OK
 Loading - text model: models\tr/-3pd.t3d
 textures\wzl.bmp
 OK
-tr\kotwa_teownikrurowe.bmp
-OK
 Loading - text model: models\tr/stb1-kotwa-napr14.t3d
+tr\kotwa_teownikrurowe.dds
+OK
 tr\#izol-sekcja.bmp
 OK
-tr\odciag1.tga
+tr\odciag1.dds
 OK
-tr\ciezarbeton3.bmp
+tr\ciezarbeton3.dds
 OK
-textures\grassgreen1.tga
+tr\slup_beton1.dds
+OK
+textures\grassgreen1.dds
 OK
 InitNormals
 InitNormals OK
@@ -130,56 +132,56 @@ Degenerated triangle found
 Degenerated triangle found
 Degenerated triangle found
 Degenerated triangle found
-dynamic\pkp\et22_v1\metalfrictionpattern1.tga
+dynamic\pkp\et22_v1\metalfrictionpattern1.dds
 OK
-dynamic\pkp\et22_v1\#sprzeg.tga
+dynamic\pkp\et22_v1\#sprzeg.dds
 OK
-dynamic\pkp\et22_v1\woz_et22.bmp
+dynamic\pkp\et22_v1\woz_et22.dds
 OK
 dynamic\pkp\et22_v1\kolo_et22.bmp
 OK
-dynamic\pkp\et22_v1\panto-a.bmp
+dynamic\pkp\et22_v1\panto-a.dds
 OK
-dynamic\pkp\et22_v1\cien201e.tga
+dynamic\pkp\et22_v1\cien201e.dds
 OK
-dynamic\pkp\et22_v1\201e-135.tga
+dynamic\pkp\et22_v1\201e-135.dds
 OK
 1
 init
 Ground init OK
 Player train init: et22-135
 Loading - text model: dynamic\pkp\et22_v1\kabinaa.t3d
-dynamic\pkp\et22_v1\podloga.bmp
+dynamic\pkp\et22_v1\podloga.dds
 OK
-dynamic\pkp\et22_v1\sciana_laminat_bok.bmp
+dynamic\pkp\et22_v1\sciana_laminat_bok.dds
 OK
-dynamic\pkp\et22_v1\scianab.bmp
+dynamic\pkp\et22_v1\scianab.dds
 OK
-dynamic\pkp\et22_v1\pulpit_z.bmp
+dynamic\pkp\et22_v1\pulpit_z.dds
 OK
-dynamic\pkp\et22_v1\blacha_pod_z.bmp
+dynamic\pkp\et22_v1\blacha_pod_z.dds
 OK
-dynamic\pkp\et22_v1\podkran2_z.bmp
+dynamic\pkp\et22_v1\podkran2_z.dds
 OK
-dynamic\pkp\et22_v1\ampery_pulpit_z.bmp
+dynamic\pkp\et22_v1\ampery_pulpit_z.dds
 OK
-dynamic\pkp\et22_v1\wskamp.tga
+dynamic\pkp\et22_v1\wskamp.dds
 OK
-dynamic\pkp\et22_v1\ampery_z.bmp
+dynamic\pkp\et22_v1\ampery_z.dds
 OK
-dynamic\pkp\et22_v1\ampery_sw.tga
+dynamic\pkp\et22_v1\ampery_sw.dds
 OK
-dynamic\pkp\et22_v1\manowskz.tga
+dynamic\pkp\et22_v1\manowskz.dds
 OK
-dynamic\pkp\et22_v1\mano_z.bmp
+dynamic\pkp\et22_v1\mano_z.dds
 OK
-dynamic\pkp\et22_v1\mano1.tga
+dynamic\pkp\et22_v1\mano1.dds
 OK
-dynamic\pkp\et22_v1\kran.bmp
+dynamic\pkp\et22_v1\kran.dds
 OK
-dynamic\pkp\et22_v1\oerlikon.bmp
+dynamic\pkp\et22_v1\oerlikon.dds
 OK
-dynamic\pkp\et22_v1\kran_zasadniczy_z.bmp
+dynamic\pkp\et22_v1\kran_zasadniczy_z.dds
 OK
 Degenerated triangle found
 Degenerated triangle found
@@ -211,89 +213,67 @@ Degenerated triangle found
 Degenerated triangle found
 Degenerated triangle found
 Degenerated triangle found
-dynamic\pkp\et22_v1\n3.bmp
+dynamic\pkp\et22_v1\n3.dds
 OK
-dynamic\pkp\et22_v1\n1.bmp
+dynamic\pkp\et22_v1\n1.dds
 OK
-dynamic\pkp\et22_v1\tarcze.bmp
+dynamic\pkp\et22_v1\tarcze.dds
 OK
-dynamic\pkp\et22_v1\n2.bmp
+dynamic\pkp\et22_v1\n2.dds
 OK
-dynamic\pkp\et22_v1\przyc_cz.bmp
+dynamic\pkp\et22_v1\przyc_cz.dds
 OK
-dynamic\pkp\et22_v1\przyc_ziel.bmp
+dynamic\pkp\et22_v1\przyc_ziel.dds
 OK
-dynamic\pkp\et22_v1\kontra.bmp
+dynamic\pkp\et22_v1\kontra.dds
 OK
-dynamic\pkp\et22_v1\lampka_on.bmp
+dynamic\pkp\et22_v1\lampka_on.dds
 OK
-dynamic\pkp\et22_v1\lampka_off.bmp
+dynamic\pkp\et22_v1\lampka_off.dds
 OK
-dynamic\pkp\et22_v1\lampkas_off.bmp
+dynamic\pkp\et22_v1\lampkas_off.dds
 OK
-dynamic\pkp\et22_v1\lampkas_on.bmp
+dynamic\pkp\et22_v1\lampkas_on.dds
 OK
-dynamic\pkp\et22_v1\podpisy.bmp
+dynamic\pkp\et22_v1\podpisy.dds
 OK
-dynamic\pkp\et22_v1\podpisiki2.bmp
+dynamic\pkp\et22_v1\podpisiki2.dds
 OK
 dynamic\pkp\et22_v1\przelacznik.bmp
 OK
-dynamic\pkp\et22_v1\pod.bmp
+dynamic\pkp\et22_v1\pod.dds
 OK
-dynamic\pkp\et22_v1\przel_ham.tga
+dynamic\pkp\et22_v1\przel_ham.dds
 OK
-dynamic\pkp\et22_v1\rozruch.tga
+dynamic\pkp\et22_v1\rozruch.dds
 OK
-dynamic\pkp\et22_v1\pulpit_pion.bmp
+dynamic\pkp\et22_v1\pulpit_pion.dds
 OK
-dynamic\pkp\et22_v1\pod2_z.bmp
+dynamic\pkp\et22_v1\pod2_z.dds
 OK
-dynamic\pkp\et22_v1\podkran.bmp
+dynamic\pkp\et22_v1\podkran.dds
 OK
-dynamic\pkp\et22_v1\pionpod_z.bmp
+dynamic\pkp\et22_v1\pionpod_z.dds
 OK
-dynamic\pkp\et22_v1\nastawnik.bmp
+dynamic\pkp\et22_v1\nastawnik.dds
 OK
-dynamic\pkp\et22_v1\ob_sh.bmp
+dynamic\pkp\et22_v1\ob_sh.dds
 OK
-dynamic\pkp\et22_v1\fotel.bmp
+dynamic\pkp\et22_v1\fotel.dds
 OK
-dynamic\pkp\et22_v1\przel.bmp
+dynamic\pkp\et22_v1\przel.dds
 OK
-dynamic\pkp\et22_v1\rama.bmp
+dynamic\pkp\et22_v1\rama.dds
 OK
-dynamic\pkp\et22_v1\ogrz.bmp
+dynamic\pkp\et22_v1\ogrz.dds
 OK
-dynamic\pkp\et22_v1\szybaa.tga
+dynamic\pkp\et22_v1\szybaa.dds
 OK
-dynamic\pkp\et22_v1\szybaav.tga
+dynamic\pkp\et22_v1\szybaav.dds
 OK
-dynamic\pkp\et22_v1\radio.bmp
+dynamic\pkp\et22_v1\radio.dds
 OK
-dynamic\pkp\et22_v1\pulp.bmp
-OK
-Degenerated triangle found
-Degenerated triangle found
-Degenerated triangle found
-Degenerated triangle found
-Degenerated triangle found
-Degenerated triangle found
-Degenerated triangle found
-Degenerated triangle found
-Degenerated triangle found
-Degenerated triangle found
-Degenerated triangle found
-Degenerated triangle found
-Degenerated triangle found
-Degenerated triangle found
-Degenerated triangle found
-Degenerated triangle found
-Degenerated triangle found
-Degenerated triangle found
-Degenerated triangle found
-Degenerated triangle found
-dynamic\pkp\et22_v1\czerwony.bmp
+dynamic\pkp\et22_v1\pulp.dds
 OK
 Degenerated triangle found
 Degenerated triangle found
@@ -311,51 +291,73 @@ Degenerated triangle found
 Degenerated triangle found
 Degenerated triangle found
 Degenerated triangle found
-dynamic\pkp\et22_v1\sciana_laminat.bmp
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+dynamic\pkp\et22_v1\czerwony.dds
+OK
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+Degenerated triangle found
+dynamic\pkp\et22_v1\sciana_laminat.dds
 OK
 dynamic\pkp\et22_v1\eu07sufit_j.bmp
 OK
-dynamic\pkp\et22_v1\gora.bmp
+dynamic\pkp\et22_v1\gora.dds
 OK
-dynamic\pkp\et22_v1\grzejniki.bmp
+dynamic\pkp\et22_v1\grzejniki.dds
 OK
-dynamic\pkp\et22_v1\wyc.bmp
+dynamic\pkp\et22_v1\wyc.dds
 OK
-dynamic\pkp\et22_v1\kontakt.bmp
+dynamic\pkp\et22_v1\kontakt.dds
 OK
-dynamic\pkp\et22_v1\ramao.bmp
+dynamic\pkp\et22_v1\ramao.dds
 OK
-dynamic\pkp\et22_v1\listewka_stara-z.bmp
+dynamic\pkp\et22_v1\listewka_stara-z.dds
 OK
-dynamic\pkp\et22_v1\szyba.tga
+dynamic\pkp\et22_v1\szyba.dds
 OK
-dynamic\pkp\et22_v1\scianaa.bmp
+dynamic\pkp\et22_v1\scianaa.dds
 OK
-dynamic\pkp\et22_v1\rdst.bmp
+dynamic\pkp\et22_v1\rdst.dds
 OK
-dynamic\pkp\et22_v1\rozklad.bmp
+dynamic\pkp\et22_v1\rozklad.dds
 OK
-dynamic\pkp\et22_v1\wycierx.tga
+dynamic\pkp\et22_v1\wycierx.dds
 OK
-dynamic\pkp\et22_v1\wycierb1x.tga
+dynamic\pkp\et22_v1\wycierb1x.dds
 OK
-dynamic\pkp\et22_v1\oslona_pss.bmp
+dynamic\pkp\et22_v1\oslona_pss.dds
 OK
-dynamic\pkp\et22_v1\radyjko.bmp
+dynamic\pkp\et22_v1\radyjko.dds
 OK
-dynamic\pkp\et22_v1\rt9.tga
+dynamic\pkp\et22_v1\rt9.dds
 OK
-dynamic\pkp\et22_v1\rt9_tarcza.bmp
+dynamic\pkp\et22_v1\rt9_tarcza.dds
 OK
-dynamic\pkp\et22_v1\rt9_tarcza_sw.tga
+dynamic\pkp\et22_v1\rt9_tarcza_sw.dds
 OK
-dynamic\pkp\et22_v1\wskzeg.tga
+dynamic\pkp\et22_v1\wskzeg.dds
 OK
-dynamic\pkp\et22_v1\wskpr.tga
+dynamic\pkp\et22_v1\wskpr.dds
 OK
-dynamic\pkp\et22_v1\szybaob1.tga
+dynamic\pkp\et22_v1\szybaob1.dds
 OK
-dynamic\pkp\et22_v1\szybaob.tga
+dynamic\pkp\et22_v1\szybaob.dds
 OK
 Player train init OK
 textures\smuga.tga
