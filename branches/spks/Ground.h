@@ -42,7 +42,7 @@ struct TGroundVertex
 {
     vector3 Point;
     vector3 Normal;
-    double tu,tv;
+    float tu,tv;
 };
 
 class TGroundNode

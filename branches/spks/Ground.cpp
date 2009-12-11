@@ -419,16 +419,16 @@ bool __fastcall TGroundNode::Render()
         if (!TexAlpha || !Global::bRenderAlpha)      //McZapkie-250403
          {
            glColor3ub(Diffuse[0],Diffuse[1],Diffuse[2]);
-           if (Global::bWireFrame)
-           {
-               glBindTexture(GL_TEXTURE_2D, 0);
-               glBegin(GL_LINE_STRIP);
-           }
-           else
-           {
-               glBindTexture(GL_TEXTURE_2D, TextureID);
-               glBegin(iType);
-           }
+           glBindTexture(GL_TEXTURE_2D, Global::bWireFrame ? 0 : TextureID);
+
+#ifdef USE_VERTEX_ARRAYS
+           glVertexPointer(3, GL_DOUBLE, sizeof(TGroundVertex), &Vertices[0].Point.x);
+           glNormalPointer(GL_DOUBLE, sizeof(TGroundVertex), &Vertices[0].Normal.x);
+           glTexCoordPointer(2, GL_FLOAT, sizeof(TGroundVertex), &Vertices[0].tu);
+
+           glDrawArrays(Global::bWireFrame ? GL_LINE_STRIP : iType, 0, iNumVerts)
+#else
+           glBegin(Global::bWireFrame ? GL_LINE_STRIP : iType);
 
            for (int i=0; i<iNumVerts; i++)
            {
@@ -437,6 +437,7 @@ bool __fastcall TGroundNode::Render()
                glVertex3dv(&Vertices[i].Point.x);
            }
            glEnd();
+#endif
          }
     }
 
@@ -495,16 +496,16 @@ bool __fastcall TGroundNode::RenderAlpha()
         if (TexAlpha && Global::bRenderAlpha)      //McZapkie-250403 - teren z przezroczystoscia
          {
            glColor3ub(Diffuse[0],Diffuse[1],Diffuse[2]);
-           if (Global::bWireFrame)
-           {
-               glBindTexture(GL_TEXTURE_2D, 0);
-               glBegin(GL_LINE_STRIP);
-           }
-           else
-           {
-               glBindTexture(GL_TEXTURE_2D, TextureID);
-               glBegin(iType);
-           }
+           glBindTexture(GL_TEXTURE_2D, Global::bWireFrame ? 0 : TextureID);
+
+#ifdef USE_VERTEX_ARRAYS
+           glVertexPointer(3, GL_DOUBLE, sizeof(TGroundVertex), &Vertices[0].Point.x);
+           glNormalPointer(GL_DOUBLE, sizeof(TGroundVertex), &Vertices[0].Normal.x);
+           glTexCoordPointer(2, GL_FLOAT, sizeof(TGroundVertex), &Vertices[0].tu);
+
+           glDrawArrays(Global::bWireFrame ? GL_LINE_STRIP : iType, 0, iNumVerts)
+#else
+           glBegin(Global::bWireFrame ? GL_LINE_STRIP : iType);
 
            for (int i=0; i<iNumVerts; i++)
            {
@@ -513,6 +514,7 @@ bool __fastcall TGroundNode::RenderAlpha()
                glVertex3dv(&Vertices[i].Point.x);
            }
            glEnd();
+#endif
          }
     }
 
