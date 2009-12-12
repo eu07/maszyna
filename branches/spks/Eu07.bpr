@@ -128,12 +128,13 @@ Item0=c:\lang\borland\cbuilder5\source\vcl;D:\USER\MCZAPKIE\PROGRAMY\rail\symul\
 Item1=$(BCB)\source\vcl
 
 [HistoryLists\hlConditionals]
-Count=5
+Count=6
 Item0=GLEW_STATIC;USE_VERTEX_ARRAYS
-Item1=GLEW_STATIC
-Item2=_DEBUG;GLEW_STATIC;USE_VERTEX_ARRAYS
-Item3=_DEBUG;GLEW_STATIC
-Item4=_DEBUG
+Item1=GLEW_STATIC;USE_VERTEX_ARRAYS;_DEBUG
+Item2=GLEW_STATIC
+Item3=_DEBUG;GLEW_STATIC;USE_VERTEX_ARRAYS
+Item4=_DEBUG;GLEW_STATIC
+Item5=_DEBUG
 
 [HistoryLists\hlIntOutputDir]
 Count=2
@@ -150,7 +151,7 @@ DebugSourceDirs=c:\lang\borland\cbuilder5\source\vcl;D:\USER\MCZAPKIE\PROGRAMY\r
 
 [Parameters]
 RunParams=
-HostApplication=D:\Projects\eu07-old\spks\EU07.exe
+HostApplication=D:\Projects\eu07-full-2009\eu07.exe
 RemoteHost=
 RemotePath=
 RemoteDebug=0
