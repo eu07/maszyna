@@ -21,9 +21,10 @@
 
 #include    "system.hpp"
 #include    "classes.hpp"
-#include <gl/glu.h>
+
+#include "opengl/glew.h"
 #include "opengl/glut.h"
-#include <gl/gl.h>
+
 #pragma hdrstop
 
 #include "TrkFoll.h"

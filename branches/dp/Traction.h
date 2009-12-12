@@ -3,8 +3,7 @@
 #ifndef TractionH
 #define TractionH
 
-#include <gl/gl.h>
-#include <gl/glu.h>
+#include "opengl/glew.h"
 #include "opengl/glut.h"
 
 #include "Geometry.h"
