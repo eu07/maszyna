@@ -2,8 +2,7 @@
 
 #include    "system.hpp"
 #include    "classes.hpp"
-#include <gl/gl.h>
-#include <gl/glu.h>
+#include "opengl/glew.h"
 #include "opengl/glut.h"
 #pragma hdrstop
 

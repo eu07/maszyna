@@ -253,7 +253,7 @@ TAnimContainer* __fastcall TAnimModel::GetContainer(char *pName)
 {
     TAnimContainer *pCurrent;
     for (pCurrent= pRoot; pCurrent!=NULL; pCurrent=pCurrent->pNext)
-        if (pCurrent->GetName()==AnsiString(pName))
+        if (pCurrent->GetName()==pName)
             return pCurrent;
     return AddContainer(pName);
 }

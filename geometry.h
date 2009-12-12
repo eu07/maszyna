@@ -2,7 +2,7 @@
 #ifndef GeometryH
 #define GeometryH
 
-#include <gl/gl.h>
+#include "opengl/glew.h"
 #include "dumb3d.h"
 using namespace Math3D;
 //---------------------------------------------------------------------------

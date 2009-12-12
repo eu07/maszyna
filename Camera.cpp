@@ -2,6 +2,9 @@
 #include    "system.hpp"
 #include    "classes.hpp"
 
+#include "opengl/glew.h"
+#include "opengl/glut.h"
+
 #pragma hdrstop
 
 #include "Camera.h"
@@ -11,9 +14,6 @@
 
 //TViewPyramid TCamera::OrgViewPyramid;
 //={vector3(-1,1,1),vector3(1,1,1),vector3(-1,-1,1),vector3(1,-1,1),vector3(0,0,0)};
-#include <gl/gl.h>
-#include <gl/glu.h>
-#include "opengl/glut.h"
 
 const vector3 OrgCrossPos= vector3(0,-10,0);
 
