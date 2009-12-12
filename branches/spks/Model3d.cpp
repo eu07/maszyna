@@ -187,16 +187,24 @@ void __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model)
             Error("Model light parse failure!");
 
         parser.getToken(fNearAttenStart);
+
+        parser.ignoreToken();
         parser.getToken(fNearAttenEnd);
-      
+
         parser.ignoreToken();
         bUseNearAtten = parser.expectToken("true");
 
+        parser.ignoreToken();
         parser.getToken(iFarAttenDecay);
+
+        parser.ignoreToken();
         parser.getToken(fFarDecayRadius);
 
+        parser.ignoreToken();
         parser.getToken(fcosFalloffAngle);
         fcosFalloffAngle = cos(fcosFalloffAngle * M_PI / 90);
+
+        parser.ignoreToken();
         parser.getToken(fcosHotspotAngle); 
         fcosHotspotAngle = cos(fcosHotspotAngle * M_PI / 90);
 
@@ -334,52 +342,26 @@ void __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model)
 
     if(eType==smt_Mesh)
     {
-        glEnableClientState(GL_VERTEX_ARRAY);
-        glEnableClientState(GL_NORMAL_ARRAY);
-        glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
-#ifdef USE_VERTEX_ARRAYS
+        // ShaXbee-121209: przekazywanie wierzcholkow hurtem
         glVertexPointer(3, GL_DOUBLE, sizeof(GLVERTEX), &Vertices[0].Point.x);
         glNormalPointer(GL_DOUBLE, sizeof(GLVERTEX), &Vertices[0].Normal.x);
         glTexCoordPointer(2, GL_FLOAT, sizeof(GLVERTEX), &Vertices[0].tu);
-#endif
 
         uiDisplayList= glGenLists(1);
         glNewList(uiDisplayList,GL_COMPILE);
 
-//McZapkie-221002: zwykla tekstura tu, zmienialna w render:
-//        if ((TextureID!=-1))
-//         glBindTexture(GL_TEXTURE_2D, TextureID);
-//        glColorMaterial(GL_FRONT, GL_DIFFUSE);
-//        glEnable(GL_COLOR_MATERIAL);
         glColor3f(Diffuse[0],Diffuse[1],Diffuse[2]);   //McZapkie-240702: zamiast ub
-//        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT,Ambient);
-//        glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE,Diffuse);
-//        glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR,Specular);   //McZapkie-240702: definicje wlasnosci materialu
         glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE,Diffuse);
-//        glMaterialfv(GL_FRONT, GL_SHININESS, low_shininess);
 
         if (bLight)
             glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,Diffuse);  //zeny swiecilo na kolorowo
-//            glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm1);
 
-	// ShaXbee: todo: przerobic na glDrawRangeElements
-#ifdef USE_VERTEX_ARRAYS
         glDrawArrays(GL_TRIANGLES, 0, iNumVerts);
-#else
-        glBegin(GL_TRIANGLES);
-            for (int i=0; i<iNumVerts; i++)
-            {
-                glNormal3f(Vertices[i].Normal.x,Vertices[i].Normal.y,Vertices[i].Normal.z);
-                glTexCoord2f(Vertices[i].tu,Vertices[i].tv);
-                glVertex3f(Vertices[i].Point.x,Vertices[i].Point.y,Vertices[i].Point.z);
-            }
-        glEnd();
-#endif
 
         if (bLight)
             glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
-//        glDisable(GL_COLOR_MATERIAL); //MC
+            
         glEndList();
     }
     else
@@ -498,10 +480,9 @@ TSubModel* __fastcall TSubModel::GetFromName(std::string search)
 
     while(ret)
     {
-        TSubModel *tmp = ret->GetFromName(search);
-        if(tmp)
-            return tmp;
-
+        TSubModel* result = ret->GetFromName(search);
+        if(result)
+            return result;
         ret = ret->Next;
     };
 

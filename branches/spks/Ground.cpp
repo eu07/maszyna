@@ -417,28 +417,16 @@ bool __fastcall TGroundNode::Render()
         break;
         default:
         if (!TexAlpha || !Global::bRenderAlpha)      //McZapkie-250403
-         {
+        {
            glColor3ub(Diffuse[0],Diffuse[1],Diffuse[2]);
            glBindTexture(GL_TEXTURE_2D, Global::bWireFrame ? 0 : TextureID);
 
-#ifdef USE_VERTEX_ARRAYS
            glVertexPointer(3, GL_DOUBLE, sizeof(TGroundVertex), &Vertices[0].Point.x);
            glNormalPointer(GL_DOUBLE, sizeof(TGroundVertex), &Vertices[0].Normal.x);
            glTexCoordPointer(2, GL_FLOAT, sizeof(TGroundVertex), &Vertices[0].tu);
 
-           glDrawArrays(Global::bWireFrame ? GL_LINE_STRIP : iType, 0, iNumVerts)
-#else
-           glBegin(Global::bWireFrame ? GL_LINE_STRIP : iType);
-
-           for (int i=0; i<iNumVerts; i++)
-           {
-               glNormal3d(Vertices[i].Normal.x,Vertices[i].Normal.y,Vertices[i].Normal.z);
-               glTexCoord2f(Vertices[i].tu,Vertices[i].tv);
-               glVertex3dv(&Vertices[i].Point.x);
-           }
-           glEnd();
-#endif
-         }
+           glDrawArrays(Global::bWireFrame ? GL_LINE_STRIP : iType, 0, iNumVerts);
+        }
     }
 
 }
@@ -503,7 +491,7 @@ bool __fastcall TGroundNode::RenderAlpha()
            glNormalPointer(GL_DOUBLE, sizeof(TGroundVertex), &Vertices[0].Normal.x);
            glTexCoordPointer(2, GL_FLOAT, sizeof(TGroundVertex), &Vertices[0].tu);
 
-           glDrawArrays(Global::bWireFrame ? GL_LINE_STRIP : iType, 0, iNumVerts)
+           glDrawArrays(Global::bWireFrame ? GL_LINE_STRIP : iType, 0, iNumVerts);
 #else
            glBegin(Global::bWireFrame ? GL_LINE_STRIP : iType);
 
@@ -515,7 +503,7 @@ bool __fastcall TGroundNode::RenderAlpha()
            }
            glEnd();
 #endif
-         }
+         };
     }
 
 }

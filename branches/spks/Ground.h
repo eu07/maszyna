@@ -81,6 +81,7 @@ public:
     double fSquareRadius;
     double fSquareMinRadius;
     GLuint TextureID;
+    GLuint DisplayListID;
     bool TexAlpha;
     float fLineThickness; //McZapkie-120702: grubosc linii
 //    int Status;  //McZapkie-170303: status dzwieku
@@ -113,6 +114,8 @@ public:
     void __fastcall MoveMe(vector3 pPosition);
 
     bool __fastcall GetTraction();
+
+    bool Compile(); // ShaXbee 12-12-2009
     bool __fastcall Render();
     bool __fastcall RenderAlpha(); //McZapkie-131202: dwuprzebiegowy rendering
 };

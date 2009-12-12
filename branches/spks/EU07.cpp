@@ -91,6 +91,13 @@ int InitGL(GLvoid)										// All Setup For OpenGL Goes Here
 {
     AllocConsole();
     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),FOREGROUND_GREEN);
+
+#ifdef USE_VERTEX_ARRAYS
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_NORMAL_ARRAY);
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+#endif
+
     World.Init(hWnd,hDC);
 //	if (!LoadGLTextures())								// Jump To Texture Loading Routine
 	{
