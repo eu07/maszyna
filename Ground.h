@@ -24,6 +24,7 @@
 //#include "Geom.h"
 
 #include "parser.h" //Tolaris-010603
+#include "ResourceManager.h"
 
 const int TP_MODEL= 1000;
 const int TP_SEMAPHORE= 1002;
@@ -45,7 +46,7 @@ struct TGroundVertex
     float tu,tv;
 };
 
-class TGroundNode
+class TGroundNode: public Resource
 {
 private:
 public:
@@ -81,6 +82,7 @@ public:
     double fSquareRadius;
     double fSquareMinRadius;
     GLuint TextureID;
+    GLuint DisplayListID;
     bool TexAlpha;
     float fLineThickness; //McZapkie-120702: grubosc linii
 //    int Status;  //McZapkie-170303: status dzwieku
@@ -109,6 +111,9 @@ public:
             if (Next) return Next->Find(asNameToFind,iNodeType);
         return NULL;
     };
+
+    void Compile();
+    void Release();
 
     bool __fastcall GetTraction();
     bool __fastcall Render();

@@ -67,6 +67,7 @@ USEUNIT("parser.cpp");
 USEUNIT("sky.cpp");
 USEUNIT("AirCoupler.cpp");
 USEUNIT("glew.c");
+USEUNIT("ResourceManager.cpp");
 
 #include "World.h"
 

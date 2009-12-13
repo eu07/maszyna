@@ -126,9 +126,11 @@ __fastcall TGroundNode::TGroundNode()
     Vertices= NULL;
     Next=Next2= NULL;
     pCenter= vector3(0,0,0);
-    fAngle= 0;
-    iNumVerts= 0;
+    fAngle = 0;
+    iNumVerts = 0;
+    iNumPts = 0;
     TextureID= 0;
+    DisplayListID = 0;
     TexAlpha= false;
     Pointer= NULL;
     iType= GL_POINTS;
@@ -319,42 +321,85 @@ bool __fastcall TGroundNode::Render()
 
         }
         break;
-        case GL_LINES:
-        case GL_LINE_STRIP:
-        case GL_LINE_LOOP:
-          if ((!Global::bRenderAlpha) || (fLineThickness<0))
-          {
-            //  glDisable(GL_LIGHTING);  //a czemu? a po ciemku to co???
-            glBindTexture(GL_TEXTURE_2D, 0);
+
+    };
+
+    // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
+    if(
+        (iNumVerts && !Global::bRenderAlpha && !TexAlpha) ||
+        (iNumPts && (!Global::bRenderAlpha || fLineThickness < 0)))
+    {
+
+        if(!DisplayListID)
+        {
+            Compile();
+            ResourceManager::Register(this);
+        };
+
+        // GL_LINE, GL_LINE_STRIP, GL_LINE_LOOP
+        if(iNumPts)
+        {
             r=Diffuse[0]*Global::ambientDayLight[0];  //w zaleznosci od koloru swiatla
             g=Diffuse[1]*Global::ambientDayLight[1];
             b=Diffuse[2]*Global::ambientDayLight[2];
-            glBegin(iType);
-            i=0;
             glColor4ub(r,g,b,1.0);
-            for (int i=0; i<iNumPts; i++)
-            {
-               glVertex3f(Points[i].x,Points[i].y,Points[i].z);
-            }
-            glEnd();
-//      	    glEnable(GL_LIGHTING);
-          }
-        break;
-        default:
-        if (!TexAlpha || !Global::bRenderAlpha)      //McZapkie-250403
-        {
-           glColor3ub(Diffuse[0],Diffuse[1],Diffuse[2]);
-           glBindTexture(GL_TEXTURE_2D, Global::bWireFrame ? 0 : TextureID);
-
-           glVertexPointer(3, GL_DOUBLE, sizeof(TGroundVertex), &Vertices[0].Point.x);
-           glNormalPointer(GL_DOUBLE, sizeof(TGroundVertex), &Vertices[0].Normal.x);
-           glTexCoordPointer(2, GL_FLOAT, sizeof(TGroundVertex), &Vertices[0].tu);
-
-           glDrawArrays(Global::bWireFrame ? GL_LINE_STRIP : iType, 0, iNumVerts);
+            glCallList(DisplayListID);
         }
-    }
+        // GL_TRIANGLE etc
+        else
+        {
+            glCallList(DisplayListID);
+        };
 
-}
+        SetLastUsage(Timer::GetSimulationTime());
+
+    };
+
+};
+
+void TGroundNode::Compile()
+{
+
+    DisplayListID = glGenLists(1);
+
+    if(iType == GL_LINES || iType == GL_LINE_STRIP || iType == GL_LINE_LOOP)
+    {
+
+        glVertexPointer(3, GL_DOUBLE, sizeof(vector3), &Points[0].x);
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        glNewList(DisplayListID, GL_COMPILE);
+        glDrawArrays(iType, 0, iNumPts);
+        glEndList();
+
+    }
+    else
+    {
+
+        glNewList(DisplayListID, GL_COMPILE);
+
+        glColor3ub(Diffuse[0],Diffuse[1],Diffuse[2]);
+        glBindTexture(GL_TEXTURE_2D, Global::bWireFrame ? 0 : TextureID);
+
+        glVertexPointer(3, GL_DOUBLE, sizeof(TGroundVertex), &Vertices[0].Point.x);
+        glNormalPointer(GL_DOUBLE, sizeof(TGroundVertex), &Vertices[0].Normal.x);
+        glTexCoordPointer(2, GL_FLOAT, sizeof(TGroundVertex), &Vertices[0].tu);
+
+        glDrawArrays(Global::bWireFrame ? GL_LINE_STRIP : iType, 0, iNumVerts);
+
+        glEndList();
+
+    };
+
+};
+
+void TGroundNode::Release()
+{
+
+    glDeleteLists(DisplayListID, 1);
+    DisplayListID = 0;
+
+};
 
 bool __fastcall TGroundNode::RenderAlpha()
 {
@@ -379,56 +424,44 @@ bool __fastcall TGroundNode::RenderAlpha()
         case TP_TRACK:
            pTrack->RenderAlpha();
         break;
-        case GL_LINES:
-        case GL_LINE_STRIP:
-        case GL_LINE_LOOP:
-          if ((Global::bRenderAlpha) && (fLineThickness>0))
-          {
-            //            glDisable(GL_LIGHTING);  //a czemu?
-            glBindTexture(GL_TEXTURE_2D, 0);
+    };
+
+    // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
+    if(
+        (iNumVerts && Global::bRenderAlpha && TexAlpha) ||
+        (iNumPts && (Global::bRenderAlpha || fLineThickness > 0)))
+    {
+
+        if(!DisplayListID)
+        {
+            Compile();
+            ResourceManager::Register(this);
+        };
+
+        // GL_LINE, GL_LINE_STRIP, GL_LINE_LOOP
+        if(iNumPts)
+        {
             float linealpha=255000*fLineThickness/(mgn+1.0);
             if (linealpha>255)
               linealpha= 255;
+
             r=Diffuse[0]*Global::ambientDayLight[0];  //w zaleznosci od koloru swiatla
             g=Diffuse[1]*Global::ambientDayLight[1];
             b=Diffuse[2]*Global::ambientDayLight[2];
-            glBegin(iType);
-            glColor4ub(r,g,b,linealpha); //przezroczystosc dalekiej linii
-            i=0;
-            for (int i=0; i<iNumPts; i++)
-            {
-//                mgn= SquareMagnitude(Points[i]-Global::pCameraPosition);
-               glVertex3f(Points[i].x,Points[i].y,Points[i].z);
-//              }
-            }
-            glEnd();
-// glEnable(GL_LIGHTING);
-          }
-        break;
-        default:
-        if (TexAlpha && Global::bRenderAlpha)      //McZapkie-250403 - teren z przezroczystoscia
-         {
-           glColor3ub(Diffuse[0],Diffuse[1],Diffuse[2]);
-           if (Global::bWireFrame)
-           {
-               glBindTexture(GL_TEXTURE_2D, 0);
-               glBegin(GL_LINE_STRIP);
-           }
-           else
-           {
-               glBindTexture(GL_TEXTURE_2D, TextureID);
-               glBegin(iType);
-           }
 
-           for (int i=0; i<iNumVerts; i++)
-           {
-               glNormal3d(Vertices[i].Normal.x,Vertices[i].Normal.y,Vertices[i].Normal.z);
-               glTexCoord2f(Vertices[i].tu,Vertices[i].tv);
-               glVertex3dv(&Vertices[i].Point.x);
-           }
-           glEnd();
-         }
-    }
+            glColor4ub(r,g,b,linealpha); //przezroczystosc dalekiej linii
+
+            glCallList(DisplayListID);
+        }
+        // GL_TRIANGLE etc
+        else
+        {
+            glCallList(DisplayListID);
+        };
+
+        SetLastUsage(Timer::GetSimulationTime());
+
+    };
 
 }
 

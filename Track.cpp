@@ -84,6 +84,7 @@ __fastcall TTrack::TTrack()
 //    Flags.Reset();
     iNumDynamics= 0;
     ScannedFlag=false;
+    DisplayListID = 0;
 }
 
 __fastcall TTrack::~TTrack()
@@ -676,65 +677,59 @@ bool __fastcall TTrack::AddDynamicObject(TDynamicObject *Dynamic)
 const int numPts= 4;
 const int nnumPts= 12;
 
-bool __fastcall TTrack::Render()
+void TTrack::Compile()
 {
-//    int i;
-  //  double s,step,invLength,fOffset;
-    //vector3 pos1,pos2,dir,parallel1,parallel2,pt;
-    double v,dist;
-//    Segment->Render();
+
+    DisplayListID = glGenLists(1);
+    glNewList(DisplayListID, GL_COMPILE);
+
     glColor3f(1.0f,1.0f,1.0f);
-//McZapkie-310702: zmiana oswietlenia w tunelu, wykopie
-    GLfloat  ambientLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
-    GLfloat  diffuseLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
-    GLfloat  specularLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
+
+    //McZapkie-310702: zmiana oswietlenia w tunelu, wykopie
+    GLfloat  ambientLight[4]  = {0.5f, 0.5f, 0.5f, 1.0f};
+    GLfloat  diffuseLight[4]  = {0.5f, 0.5f, 0.5f, 1.0f};
+    GLfloat  specularLight[4] = {0.5f, 0.5f, 0.5f, 1.0f};
+
     switch (eEnvironment)
     {
-     case e_canyon:
-      {
-        for (int li=0; li<3; li++)
-         {
-           ambientLight[li]= Global::ambientDayLight[li]*0.7;
-           diffuseLight[li]= Global::diffuseDayLight[li]*0.3;
-           specularLight[li]= Global::specularDayLight[li]*0.4;
-         }
-        glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
-	glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
-      }
-     break;
-     case e_tunnel:
-      {
-        for (int li=0; li<3; li++)
-         {
-           ambientLight[li]= Global::ambientDayLight[li]*0.2;
-           diffuseLight[li]= Global::diffuseDayLight[li]*0.1;
-           specularLight[li]= Global::specularDayLight[li]*0.2;
-         }
-	glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
-	glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
-	glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
-      }
-     break;
+        case e_canyon:
+
+            for(int li=0; li<3; li++)
+            {
+                ambientLight[li]= Global::ambientDayLight[li]*0.7;
+                diffuseLight[li]= Global::diffuseDayLight[li]*0.3;
+                specularLight[li]= Global::specularDayLight[li]*0.4;
+            }
+
+            glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
+	        glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
+
+        break;
+
+        case e_tunnel:
+
+            for(int li=0; li<3; li++)
+            {
+                ambientLight[li]= Global::ambientDayLight[li]*0.2;
+                diffuseLight[li]= Global::diffuseDayLight[li]*0.1;
+                specularLight[li]= Global::specularDayLight[li]*0.2;
+            }
+
+            glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
+            glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
+            glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
+
+        break;
     }
+
     double fHTW=fTrackWidth/2;
     float rozp=fabs(fTexWidth)+fabs(fTexSlope);
     switch (iCategoryFlag)
     {
      case 1:   //tor
       {
-/* staraszyna
-// zwykla szyna:
-        vector3 rpts1[numPts]= { vector3(fHTW+0.07,0.0,0.0),vector3(fHTW+0.07,0.18,0.33),
-                                 vector3(fHTW,0.18,0.67),vector3(fHTW,0.0,1.0) };
-        vector3 rpts2[numPts]= { vector3(-fHTW,0.0,1.0),vector3(-fHTW,0.18,0.67),
-                                 vector3(-fHTW-0.07,0.18,0.33),vector3(-fHTW-0.07,0.0,0.0) };
-// szyna dla zwrotnicy:
-        vector3 rpts3[numPts]= { vector3(fHTW+0.05,0.0,0.0),vector3(fHTW+0.05,0.18,0.33),
-                                 vector3(fHTW+0.05,0.0,0.67),vector3(fHTW-0.05,0.0,1.0) };
-        vector3 rpts4[numPts]= { vector3(-fHTW+0.05,0.0,1.0),vector3(-fHTW-0.05,0.0,0.67),
-                                 vector3(-fHTW-0.05,0.18,0.33),vector3(-fHTW-0.05,0.0,0.0) };
-//*/
-// zwykla szyna:
+
+      // zwykla szyna:
         vector3 rpts1[nnumPts]= { vector3(fHTW+0.111,0.0,0.0),vector3(fHTW+0.045,0.025,0.15),
                                  vector3(fHTW+0.045,0.11,0.25),vector3(fHTW+0.073,0.14,0.35),
                                  vector3(fHTW+0.072,0.17,0.4),vector3(fHTW+0.052,0.18,0.45),
@@ -764,40 +759,34 @@ bool __fastcall TTrack::Render()
                                   vector3(-fHTW-0.01,0.025,0.15),vector3(-fHTW-0.01,0.0,0.0) };
 
 // podsypka z podkladami:
-          vector3 bpts1[numPts]= { vector3(fHTW+rozp,-fTexHeight,0.0),
-                                   vector3(fHTW+fTexWidth,0.0,0.33),
-                                   vector3(-fHTW-fTexWidth,0.0,0.67),
-                                   vector3(-fHTW-rozp,-fTexHeight,1.0) };
+        vector3 bpts1[numPts]= { vector3(fHTW+rozp,-fTexHeight,0.0),
+                                 vector3(fHTW+fTexWidth,0.0,0.33),
+                                 vector3(-fHTW-fTexWidth,0.0,0.67),
+                                 vector3(-fHTW-rozp,-fTexHeight,1.0) };
 
-        dist= SquareMagnitude(Global::pCameraPosition-Segment->FastGetPoint(0.5));
         switch (eType)
         {
             case tt_Normal:
-                if (bVisible && (dist<810000))
-                {
 // podsypka z podkladami:
-                  if (TextureID2!=0)
-                 {
-                   glBindTexture(GL_TEXTURE_2D, TextureID2);
-                   Segment->RenderLoft(bpts1,numPts,fTexLength,0,Min0R(1,dist/10000));
-//                   Segment->RenderLoft(bpts1,numPts,fTexLength,0,dist/10000);
-                          //                                 ^^^^^^^^^^
-                  }
+                if (TextureID2)
+                {
+                    glBindTexture(GL_TEXTURE_2D, TextureID2);
+                    Segment->RenderLoft(bpts1,numPts,fTexLength);
+                }
 // szyny
-                  if ((dist<90000) && TextureID1!=0)
-                   {
+                if (TextureID1)
+                {
                     glBindTexture(GL_TEXTURE_2D, TextureID1);
                     Segment->RenderLoft(rpts1,nnumPts,fTexLength);
                     Segment->RenderLoft(rpts2,nnumPts,fTexLength);
-                   }
                 }
             break;
             case tt_Switch:
 
-                if (bVisible && (dist<90000) && TextureID1!=0)
+                if (TextureID1)
                 {
                     SwitchExtension->fDesiredOffset1;
-                    v= (SwitchExtension->fDesiredOffset1-SwitchExtension->fOffset1);
+                    double v = (SwitchExtension->fDesiredOffset1-SwitchExtension->fOffset1);
                     SwitchExtension->fOffset1+= sign(v)*Timer::GetDeltaTime()*0.1;
                     if (SwitchExtension->fOffset1<=0.01)
                         SwitchExtension->fOffset1= 0.01;
@@ -819,82 +808,83 @@ bool __fastcall TTrack::Render()
       }
      break;
      case 2:   //McZapkie-260302 - droga - rendering
-      {
 //McZapkie:240702-zmieniony zakres widzialnosci
-       if (bVisible && (SquareMagnitude(Global::pCameraPosition-Segment->FastGetPoint(0.5)))<90000*(fHTW+fabs(fTexWidth+fTexSlope)+1))
-       {
-         if (TextureID1!=0)
-          {
-/*
-            vector3 bpts1[numPts]= { vector3(fHTW+rozp,-fTexHeight,0.0),
-                                     vector3(fHTW+fTexWidth,0.0,0.33),
-                                     vector3(-fHTW-fTexWidth,0.0,0.67),
-                                     vector3(-fHTW-rozp,-fTexHeight,1.0) };
-            glBindTexture(GL_TEXTURE_2D, TextureID1);
-            Segment->RenderLoft(bpts1,numPts,fTexLength);
-*/
-            vector3 bpts1[2]= { vector3(fHTW,0.0,0.0),
-                                vector3(-fHTW,0.0,1.0) };
-            glBindTexture(GL_TEXTURE_2D, TextureID1);      //nawierzchnia szosy
-            Segment->RenderLoft(bpts1,2,fTexLength);
-          }
-         if (TextureID2!=0)
-          {
-/*
-            vector3 bpts1[numPts]= { vector3(fHTW+rozp,-fTexHeight,0.0),
-                                     vector3(fHTW+fTexWidth,0.0,0.33),
-                                     vector3(-fHTW-fTexWidth,0.0,0.67),
-                                     vector3(-fHTW-rozp,-fTexHeight,1.0) };
-            glBindTexture(GL_TEXTURE_2D, TextureID1);
-            Segment->RenderLoft(bpts1,numPts,fTexLength);
-*/
-            vector3 rpts1[3]= { vector3(fHTW+rozp,-fTexHeight,0.0),
-                                vector3(fHTW+fTexWidth,0.0,0.5),
-                                vector3(fHTW,0.0,1.0) };
-            vector3 rpts2[3]= { vector3(-fHTW,0.0,1.0),
-                                vector3(-fHTW-fTexWidth,0.0,0.5),
-                                vector3(-fHTW-rozp,-fTexHeight,0.1) };
-            glBindTexture(GL_TEXTURE_2D, TextureID2);      //pobocze drogi
-            Segment->RenderLoft(rpts1,3,fTexLength);
-            Segment->RenderLoft(rpts2,3,fTexLength);
-          }
-       }
-      }
+         if (TextureID1)
+         {
+             vector3 bpts1[2]= { vector3(fHTW,0.0,0.0),
+                                 vector3(-fHTW,0.0,1.0) };
+             glBindTexture(GL_TEXTURE_2D, TextureID1);      //nawierzchnia szosy
+             Segment->RenderLoft(bpts1,2,fTexLength);
+         }
+
+         if (TextureID2)
+         {
+             vector3 rpts1[3]= { vector3(fHTW+rozp,-fTexHeight,0.0),
+                                 vector3(fHTW+fTexWidth,0.0,0.5),
+                                 vector3(fHTW,0.0,1.0) };
+             vector3 rpts2[3]= { vector3(-fHTW,0.0,1.0),
+                                 vector3(-fHTW-fTexWidth,0.0,0.5),
+                                 vector3(-fHTW-rozp,-fTexHeight,0.1) };
+             glBindTexture(GL_TEXTURE_2D, TextureID2);      //pobocze drogi
+             Segment->RenderLoft(rpts1,3,fTexLength);
+             Segment->RenderLoft(rpts2,3,fTexLength);
+         }
      break;
      case 4:   //McZapkie-260302 - rzeka- rendering
-      {
-       vector3 bpts1[numPts]= { vector3(fHTW,0.0,0.0),vector3(fHTW,0.2,0.33),
+         vector3 bpts1[numPts]= { vector3(fHTW,0.0,0.0),vector3(fHTW,0.2,0.33),
                                 vector3(-fHTW,0.0,0.67),vector3(-fHTW,0.0,1.0) };
-//McZapkie:240702-zmieniony zakres widzialnosci
-       if (bVisible && (SquareMagnitude(Global::pCameraPosition-Segment->FastGetPoint(0.5)))<90000*(fHTW+fabs(fTexWidth+fTexSlope)+1))
-       {
-// powierzchnia wody:
-         if (TextureID1!=0)
-          {
-            glBindTexture(GL_TEXTURE_2D, TextureID1);
-            Segment->RenderLoft(bpts1,numPts,fTexLength);
-             if (TextureID2!=0)
-              {
-                vector3 rpts1[3]= { vector3(fHTW+rozp,fTexHeight,0.0),
-                                    vector3(fHTW+fTexWidth,0.0,0.5),
-                                    vector3(fHTW,0.0,1.0) };
-                vector3 rpts2[3]= { vector3(-fHTW,0.0,1.0),
-                                    vector3(-fHTW-fTexWidth,0.0,0.5),
-                                    vector3(-fHTW-rozp,fTexHeight,0.1) };
-                glBindTexture(GL_TEXTURE_2D, TextureID2);      //brzeg rzeki
-                Segment->RenderLoft(rpts1,3,fTexLength);
-                Segment->RenderLoft(rpts2,3,fTexLength);
-              }
-          }
-       }
-      }
-     break;
+
+         if(TextureID1)
+         {
+             glBindTexture(GL_TEXTURE_2D, TextureID1);
+             Segment->RenderLoft(bpts1,numPts,fTexLength);
+             if(TextureID2)
+             {
+                 vector3 rpts1[3]= { vector3(fHTW+rozp,fTexHeight,0.0),
+                                     vector3(fHTW+fTexWidth,0.0,0.5),
+                                     vector3(fHTW,0.0,1.0) };
+                 vector3 rpts2[3]= { vector3(-fHTW,0.0,1.0),
+                                     vector3(-fHTW-fTexWidth,0.0,0.5),
+                                     vector3(-fHTW-rozp,fTexHeight,0.1) };
+                 glBindTexture(GL_TEXTURE_2D, TextureID2);      //brzeg rzeki
+                 Segment->RenderLoft(rpts1,3,fTexLength);
+                 Segment->RenderLoft(rpts2,3,fTexLength);
+             }
+         }
+         break;
     }
 
+    glEndList();
+
+};
+
+void TTrack::Release()
+{
+
+    glDeleteLists(DisplayListID, 1);
+    DisplayListID = 0;
+
+};
+
+bool __fastcall TTrack::Render()
+{
+
+    if(bVisible && SquareMagnitude(Global::pCameraPosition-Segment->FastGetPoint(0.5)) < 810000)
+    {
+
+        if(!DisplayListID)
+        {
+            Compile();
+            ResourceManager::Register(this);
+        };
+
+        SetLastUsage(Timer::GetSimulationTime());
+        glCallList(DisplayListID);
+        
+    };
 
     for (int i=0; i<iNumDynamics; i++)
     {
-        //if(SquareMagnitude(Global::pCameraPosition-Dynamics[i]->GetPosition())<20000)
         Dynamics[i]->Render();
     }
 #ifdef _DEBUG
