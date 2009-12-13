@@ -8,6 +8,9 @@
 #include "Globals.h"
 
 #include <stdio.h>
+#include <iostream>
+
+std::ofstream output;
 
 bool first= true;
 char endstring[10]= "\n";
@@ -50,17 +53,13 @@ void __fastcall WriteLog(char *str)
   {
     if (str)
     {
-        FILE *stream=NULL;
-        if (first)
-        {
-            stream = fopen("log.txt", "w");
-            first= false;
-        }
-        else
-            stream = fopen("log.txt", "a+");
-        fprintf(stream, str);
-        fprintf(stream, "\n");
-        fclose(stream);
+
+        if(!output)
+            output.open("log.txt", std::ios::trunc);
+
+        output << str << "\n";
+        output.flush();
+
         WriteConsoleOnly(str);
     }
   };

@@ -32,6 +32,8 @@
 #include "logs.h"
 #include "Globals.h"
 #include "Camera.h"
+#include "ResourceManager.h"
+
 #define TEXTURE_FILTER_CONTROL_EXT      0x8500
 #define TEXTURE_LOD_BIAS_EXT            0x8501
 
@@ -1176,6 +1178,8 @@ if(Global::detonatoryOK)
 //    glRasterPos2f(-0.25f, 0.17f);
 //    glPrint(OutText4.c_str());
   	glEnable(GL_LIGHTING);
+
+    ResourceManager::Sweep(Timer::GetSimulationTime());
 
     return (true);
 };
