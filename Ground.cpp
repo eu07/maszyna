@@ -326,7 +326,7 @@ bool __fastcall TGroundNode::Render()
 
     // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
     if(
-        (iNumVerts && !Global::bRenderAlpha && !TexAlpha) ||
+        (iNumVerts && (!Global::bRenderAlpha || !TexAlpha)) ||
         (iNumPts && (!Global::bRenderAlpha || fLineThickness < 0)))
     {
 

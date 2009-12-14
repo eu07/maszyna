@@ -8,9 +8,9 @@
 
 #include "Geometry.h"
 #include "AnimModel.h"
+#include "ResourceManager.h"
 
-
-class TTraction //: public TNode
+class TTraction: public Resource //: public TNode
 {
 private:
     vector3 vUp,vFront,vLeft;
@@ -37,7 +37,8 @@ public:
 //    bool bVisible;
 //    DWORD dwFlags;
 
-    void __fastcall TTraction::Optimize();
+    void Compile();
+    void Release();
 
     TTraction();
     virtual ~TTraction();
