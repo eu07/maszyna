@@ -97,6 +97,9 @@ public:
     bool __fastcall Init(int n);
     __fastcall InitCenter();
     __fastcall InitNormals();
+
+    void __fastcall MoveMe(vector3 pPosition);
+
     bool __fastcall Disable();
     inline TGroundNode* __fastcall Find( AnsiString asNameToFind)
     {
@@ -191,6 +194,7 @@ public:
     TGroundNode* __fastcall GetVisible( AnsiString asName );
     TGroundNode* __fastcall GetNode( AnsiString asName );
     bool __fastcall AddDynamic(TGroundNode *Node);
+    void __fastcall MoveGroundNode(vector3 pPosition);
     bool __fastcall Update(double dt, int iter);
     bool __fastcall AddToQuery(TEvent *Event, TDynamicObject *Node);
     bool __fastcall GetTraction(vector3 pPosition, TDynamicObject *model);

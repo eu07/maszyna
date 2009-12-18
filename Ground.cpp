@@ -256,7 +256,83 @@ __fastcall TGroundNode::InitNormals()
     }
 }
 
+void __fastcall TGroundNode::MoveMe(vector3 pPosition)
+{
+    pCenter+=pPosition;
+    switch (iType)
+    {
 
+        case TP_TRACTION:
+//            if (!Global::bRenderAlpha && bVisible && Global::bLoadTraction)
+//              Traction->Render(mgn);
+           {
+            Traction->pPoint1+=pPosition;
+            Traction->pPoint2+=pPosition;
+            Traction->pPoint3+=pPosition;
+            Traction->pPoint4+=pPosition;
+            Traction->Optimize();
+           }
+        break;
+        case TP_MODEL:
+        case TP_DYNAMIC:
+        case TP_MEMCELL:
+        case TP_EVLAUNCH:
+        break;
+        case TP_TRACK:
+           {
+            pTrack->MoveMe(pPosition);
+           }
+        break;
+        case TP_SOUND:
+//McZapkie - dzwiek zapetlony w zaleznosci od odleglosci
+             pStaticSound->vSoundPosition+=pPosition;
+        break;
+        break;
+        case GL_LINES:
+        case GL_LINE_STRIP:
+        case GL_LINE_LOOP:
+            for (int i=0; i<iNumPts; i++)
+               Points[i]+=pPosition;
+            ResourceManager::Unregister(this);
+        break;
+        default:
+            for (int i=0; i<iNumVerts; i++)
+               Vertices[i].Point+=pPosition;
+            ResourceManager::Unregister(this);
+     }
+
+}
+
+void __fastcall TGround::MoveGroundNode(vector3 pPosition)
+{
+    TGroundNode *Current;
+    for (Current= RootNode; Current!=NULL; Current= Current->Next)
+        Current->MoveMe(pPosition);
+
+
+    TGroundRect *Rectx = new TGroundRect;
+
+    for(int i=0;i<iNumRects;i++)
+    for(int j=0;j<iNumRects;j++)
+    {
+      Rects[i][j]= *Rectx;
+    }
+    delete Rectx;
+    for (Current= RootNode; Current!=NULL; Current= Current->Next)
+        {
+            if (Current->iType!=TP_DYNAMIC)
+                GetSubRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
+        }
+    for (Current= RootDynamic; Current!=NULL; Current= Current->Next)
+        {
+            Current->pCenter+=pPosition;
+            Current->DynamicObject->UpdatePos();
+        }
+    for (Current= RootDynamic; Current!=NULL; Current= Current->Next)
+        {
+            Current->DynamicObject->MoverParameters->Physic_ReActivation();
+        }
+}
 
 bool __fastcall TGroundNode::Disable()
 {
@@ -359,6 +435,9 @@ bool __fastcall TGroundNode::Render()
 
 void TGroundNode::Compile()
 {
+
+    if(DisplayListID)
+        Release();
 
     DisplayListID = glGenLists(1);
 

@@ -91,6 +91,8 @@ LRESULT	CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);	// Declaration For WndProc
 
 int InitGL(GLvoid)										// All Setup For OpenGL Goes Here
 {
+    glewInit();
+
     AllocConsole();
     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),FOREGROUND_GREEN);
 

@@ -11,6 +11,16 @@ void ResourceManager::Register(Resource* resource)
     _resources.push_back(resource);
 };
 
+void ResourceManager::Unregister(Resource* resource)
+{
+    Resources::iterator iter = std::find(_resources.begin(), _resources.end(), resource);
+
+    if(iter != _resources.end())
+        _resources.erase(iter);
+
+    resource->Release();
+};
+
 class ResourceExpired
 {
 public:

@@ -528,6 +528,38 @@ void __fastcall TWorld::OnMouseMove(double x, double y)
 
 bool __fastcall TWorld::Update()
 {
+
+    vector3 tmpvector;
+    if (!FreeFlyModeFlag)
+      tmpvector=Global::GetCameraPosition();
+    else
+      tmpvector=vector3(0,0,0);
+
+    if (tmpvector.x>10000)
+    {
+     Ground.MoveGroundNode(vector3(-10000,0,0));
+    }
+    if (tmpvector.x<-10000)
+    {
+     Ground.MoveGroundNode(vector3(10000,0,0));
+    }
+    if (tmpvector.y>10000)
+    {
+     Ground.MoveGroundNode(vector3(0,-10000,0));
+    }
+    if (tmpvector.y<-10000)
+    {
+     Ground.MoveGroundNode(vector3(0,10000,0));
+    }
+    if (tmpvector.z>10000)
+    {
+     Ground.MoveGroundNode(vector3(0,0,-10000));
+    }
+    if (tmpvector.z<-10000)
+    {
+     Ground.MoveGroundNode(vector3(0,0,10000));
+    }
+
     if (GetFPS()<12)
           {  Global::slowmotion=true;  }
        else

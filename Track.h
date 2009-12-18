@@ -173,6 +173,9 @@ public:
         Error("Cannot remove dynamic from track");
         return false;
     }
+
+    void MoveMe(vector3 pPosition);
+
     void Release();
     void Compile();
     

@@ -26,6 +26,8 @@ class ResourceManager
 
 public:
     static void Register(Resource* resource);
+    static void Unregister(Resource* resource);
+
     static void Sweep(double currentTime);
     static void SetExpiry(double expiry) { _expiry = expiry; }
 

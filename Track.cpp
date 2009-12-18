@@ -673,6 +673,23 @@ bool __fastcall TTrack::AddDynamicObject(TDynamicObject *Dynamic)
         }
     };
 
+void TTrack::MoveMe(vector3 pPosition)
+{
+    if(SwitchExtension)
+    {
+        SwitchExtension->Segments[0].MoveMe(1*pPosition);
+        SwitchExtension->Segments[1].MoveMe(1*pPosition);
+        SwitchExtension->Segments[2].MoveMe(3*pPosition);
+        SwitchExtension->Segments[3].MoveMe(4*pPosition);
+    }
+    else
+    {
+        Segment->MoveMe(pPosition);
+    }
+
+    ResourceManager::Unregister(this);
+
+};
 
 const int numPts= 4;
 const int nnumPts= 12;
