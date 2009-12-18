@@ -42,7 +42,6 @@ char* __fastcall TTraction::GetTypeName()
 
 TTraction::TTraction()//:TNode()
 {
-    uiDisplayList = 0;
     pPoint1=pPoint2=pPoint3=pPoint4= vector3(0,0,0);
     vFront= vector3(0,0,1);
     vUp= vector3(0,1,0);
@@ -52,6 +51,7 @@ TTraction::TTraction()//:TNode()
 //    dwFlags= 0;
     Wires= 2;
 //    fU=fR= 0;
+    uiDisplayList= glGenLists(1);
     glNewList(uiDisplayList,GL_COMPILE);
     asPowerSupplyName="";
 //    mdPole= NULL;
@@ -63,15 +63,8 @@ TTraction::~TTraction()
     glDeleteLists(uiDisplayList,1);
 }
 
-void TTraction::Release()
+void __fastcall TTraction::Optimize()
 {
-    glDeleteLists(uiDisplayList,1);
-    uiDisplayList = 0;
-};
-
-void TTraction::Compile()
-{
-    uiDisplayList= glGenLists(1);
     glNewList(uiDisplayList,GL_COMPILE);
 
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -174,22 +167,32 @@ void __fastcall TTraction::SelectedRender()
 void __fastcall TTraction::Render(float mgn)   //McZapkie: mgn to odleglosc od obserwatora
 {
 
-
-    //McZapkie: ustalanie przezroczystosci i koloru linii:
+//McZapkie: automatyczne rysowanie slupow (na szlaku) ABANDONED!
+/*
+    if (mdPole!=NULL)
+     {
+       vFront= pPoint1-pPoint2;
+       vFront.Normalize();
+       vLeft= PoleSide*CrossProduct(vUp,vFront);
+//       vUp= CrossProduct(vFront,vLeft);
+       matrix4x4 mat;
+       mat.Identity();
+       mat.BasisChange(vLeft,vUp,vFront);
+       mMatrix= Inverse(mat);
+       glPushMatrix ( );
+       glMultMatrixd(mMatrix.getArray());
+       glTranslatef(pPoint1.x,pPoint1.y,pPoint1.z);
+       mdPole->Render(mgn,ReplacableSkinID);
+       glPopMatrix ( );
+     }
+*/
+  //McZapkie: ustalanie przezroczystosci i koloru linii:
     if (Wires!=0 && !TestFlag(DamageFlag,128))  //rysuj jesli sa druty i nie zerwana
     {
-
-        if(!uiDisplayList)
-        {
-            Compile();
-            ResourceManager::Register(this);
-        };
-
-        glColor4f(0,0,0,1);  //jak nieznany kolor to czarne nieprzezroczyste
-        float linealpha=1000*WireThickness*WireThickness/(mgn+1.0);
-        if(linealpha>1.0)
-            linealpha= 1.0;
-
+      glColor4f(0,0,0,1);  //jak nieznany kolor to czarne nieprzezroczyste
+      float linealpha=1000*WireThickness*WireThickness/(mgn+1.0);
+       if (linealpha>1.0)
+         linealpha= 1.0;
       //McZapkie-261102: kolor zalezy od materialu i zasniedzenia
       float r,g,b;
       switch (Material)
@@ -228,8 +231,6 @@ void __fastcall TTraction::Render(float mgn)   //McZapkie: mgn to odleglosc od o
       b=b*Global::ambientDayLight[2];
       glColor4f(r,g,b,linealpha);
       glCallList(uiDisplayList);
-
-      SetLastUsage(Timer::GetSimulationTime());
     }
 }
 

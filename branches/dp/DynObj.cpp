@@ -1757,6 +1757,13 @@ double __fastcall TDynamicObject::ComputeRadius()
 }
 */
 
+void __fastcall TDynamicObject::UpdatePos()
+{
+  MoverParameters->Loc.X= -GetPosition().x;
+  MoverParameters->Loc.Y=  GetPosition().z;
+  MoverParameters->Loc.Z=  GetPosition().y;
+}
+
 bool __fastcall TDynamicObject::Update(double dt, double dt1)
 {
 #ifdef _DEBUG
