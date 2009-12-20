@@ -191,8 +191,16 @@ void __fastcall TTraction::Render(float mgn)   //McZapkie: mgn to odleglosc od o
     {
       glColor4f(0,0,0,1);  //jak nieznany kolor to czarne nieprzezroczyste
       float linealpha=1000*WireThickness*WireThickness/(mgn+1.0);
-       if (linealpha>1.0)
-         linealpha= 1.0;
+
+      if(linealpha > 1.5)
+          linealpha = 1.5;
+
+      glEnable(GL_LINE_SMOOTH);
+      glLineWidth(linealpha);
+
+      if(linealpha > 1.0)
+          linealpha = 1.0;
+
       //McZapkie-261102: kolor zalezy od materialu i zasniedzenia
       float r,g,b;
       switch (Material)
@@ -231,6 +239,7 @@ void __fastcall TTraction::Render(float mgn)   //McZapkie: mgn to odleglosc od o
       b=b*Global::ambientDayLight[2];
       glColor4f(r,g,b,linealpha);
       glCallList(uiDisplayList);
+      glLineWidth(1.0);
     }
 }
 

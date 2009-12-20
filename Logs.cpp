@@ -15,7 +15,7 @@ std::ofstream output;
 bool first= true;
 char endstring[10]= "\n";
 
-void __fastcall WriteConsoleOnly(char *str, double value)
+void __fastcall WriteConsoleOnly(const char* str, double value)
 {
     char buf[255];
     sprintf(buf,"%s %f \n",str,value);
@@ -26,7 +26,7 @@ void __fastcall WriteConsoleOnly(char *str, double value)
     //WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE),endstring,strlen(endstring),&wr,NULL);
 }
 
-void __fastcall WriteConsoleOnly(char *str)
+void __fastcall WriteConsoleOnly(const char* str)
 {
 //    printf("%n ffafaf /n",str);
     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),FOREGROUND_GREEN);
@@ -35,7 +35,7 @@ void __fastcall WriteConsoleOnly(char *str)
     WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE),endstring,strlen(endstring),&wr,NULL);
 }
 
-void __fastcall WriteLog(char *str, double value)
+void __fastcall WriteLog(const char* str, double value)
 {
  if (Global::bWriteLogEnabled)
   {
@@ -47,7 +47,7 @@ void __fastcall WriteLog(char *str, double value)
     }
   };
 }
-void __fastcall WriteLog(char *str)
+void __fastcall WriteLog(const char* str)
 {
  if (Global::bWriteLogEnabled)
   {

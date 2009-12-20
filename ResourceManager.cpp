@@ -1,6 +1,8 @@
 #include "ResourceManager.h"
 #include "Logs.h"
 
+#include <sstream>
+
 ResourceManager::Resources ResourceManager::_resources;
 double ResourceManager::_expiry = 10.0f;
 double ResourceManager::_lastUpdate = 0.0f;
@@ -46,13 +48,19 @@ void ResourceManager::Sweep(double currentTime)
         (*iter)->Release();
 
     if(begin != _resources.end())
-        WriteLog("Released resources: ", _resources.end() - begin);
+    {
+        std::ostringstream msg;
+        msg << "Released resources: " << (_resources.end() - begin);
+        WriteLog(msg.str().c_str());
+    };
 
     _resources.erase(begin, _resources.end());
 
     if(currentTime - _lastReport > 30.0f)
     {
-        WriteLog("Resources count: ", _resources.size());
+        std::ostringstream msg;
+        msg << "Resources count: " << _resources.size();
+        WriteLog(msg.str().c_str());
         _lastReport = currentTime;
     };
 

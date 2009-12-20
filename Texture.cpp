@@ -37,7 +37,6 @@ TTexturesManager::Names TTexturesManager::_names;
 
 void TTexturesManager::Init()
 {
-    glCompressedTexImage2DARB = (PFNGLCOMPRESSEDTEXIMAGE2DARBPROC)wglGetProcAddress("glCompressedTexImage2DARB");
 };
 
 TTexturesManager::Names::iterator TTexturesManager::LoadFromFile(std::string fileName)
