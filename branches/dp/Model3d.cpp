@@ -460,25 +460,24 @@ struct ToLower
 
 TSubModel* __fastcall TSubModel::GetFromName(std::string search)
 {
-    TSubModel *ret = this;
 
     std::transform(search.begin(), search.end(), search.begin(), ToLower());
 
-    while(ret)
+    if(search == Name)
+        return this;
+
+    for(TSubModel* current = Next; current = current->Next; current != NULL)
     {
-        if(ret->Name == search)
-           return ret;
-        ret = ret->Next;
+        TSubModel* result = current->GetFromName(search);
+        if(result)
+           return result;
     };
 
-    ret = Child;
-
-    while(ret)
+    for(TSubModel* current = Child; current = current->Next; current != NULL)
     {
-        TSubModel* result = ret->GetFromName(search);
+        TSubModel* result = current->GetFromName(search);
         if(result)
             return result;
-        ret = ret->Next;
     };
 
     return NULL;
