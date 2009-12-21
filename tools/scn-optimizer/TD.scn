@@ -1,0 +1,2241 @@
+//$i TD.jpg
+
+node 1000 0 none track normal 100.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+0.396825 0.2 36.1111  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+0.396825 0.2 136.111  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 start track normal 100.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+0.396825 0.2 136.111  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+0.396825 0.2 236.111  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 none track normal 100.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+0.396825 0.2 236.111  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+0.396825 0.2 336.111  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 none track normal 100.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+0.396825 0.2 436.111  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+0.396825 0.2 536.111  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 none track normal 100.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+0.396825 0.2 536.111  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+0.396825 0.2 636.111  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 none track normal 100.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+0.396825 0.2 636.111  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+0.396825 0.2 736.111  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 none track normal 100.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+0.396825 0.2 736.111  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+0.396825 0.2 836.111  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 none track normal 100.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+0.396825 0.2 836.111  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+0.396825 0.2 936.111  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 none track normal 100.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+0.396825 0.2 936.111  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+0.396825 0.2 1036.11  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 none track normal 100.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+0.396825 0.2 1036.11  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+0.396825 0.2 1136.11  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 none track normal 100.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+0.396825 0.2 1136.11  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+0.396825 0.2 1236.11  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 none track normal 100.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+0.396825 0.2 1236.11  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+0.396825 0.2 1336.11  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 tor2k track normal 66.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+0.396825 0.2 1402.11  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+0.396825 0.2 1336.11  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 zwr02 track switch 34.0 1.435 0.24 15.0 20 2 flat vis 
+ Rail_screw_used1 4 Rail_screw_used1 0.2 2.75 2.5 
+0.396825 0.2 1436.11  0.1  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+0.396825 0.2 1402.11  -0.1  //point 2
+0 
+0.396825 0.2 1436.11  0  //point 1
+0.0 0.0 -11.3348  //control vector 1
+-1.28186 0.0 11.2622  //control vector 2
+2.32142 0.2 1402.18  0  //point 2
+-300.0 
+endtrack
+// additional:
+include;ZwrP34R300.inc;zwr02;0.396825;0.0;1436.11;180.0;zwrot34R300pods-new.tex;end
+
+node 1000 0 none track normal 100.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+0.396825 0.2 1436.11  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+0.396825 0.2 1536.11  0.0  //point 2
+0 
+endtrack
+
+
+node 1000 0 none track normal 94.2475 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+114.65 0.2 1888.32  0.0  //point 1
+18.4481 0.0 25.4431  //control vector 1
+-22.5031 0.0 -22.5031  //control vector 2
+176.133 0.2 1960.38  0.0  //point 2
+600.0 
+endtrack
+
+node 1000 0 koniec track normal 94.2475 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+0.396851 0.2 1536.11  0.0  //point 1
+0.0 0.0 31.8242  //control vector 1
+-4.94623 0.0 -31.0358  //control vector 2
+7.87189 0.2 1630.54  0.0  //point 2
+600.0 
+endtrack
+
+node 1000 0 none track normal 94.2475 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+7.87189 0.2 1630.54  0.0  //point 1
+4.94623 0.0 31.0358  //control vector 1
+-9.66962 0.0 -29.7095  //control vector 2
+29.8514 0.2 1721.79  0.0  //point 2
+600.0 
+endtrack
+
+node 1000 0 none track normal 94.2475 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+29.8514 0.2 1721.79  0.0  //point 1
+9.66968 0.0 29.7095  //control vector 1
+-14.1703 0.0 -27.8453  //control vector 2
+65.667 0.2 1808.25  0.0  //point 2
+600.0 
+endtrack
+
+node 1000 0 none track normal 94.2475 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+65.667 0.2 1808.25  0.0  //point 1
+14.1703 0.0 27.8452  //control vector 1
+-18.4481 0.0 -25.4431  //control vector 2
+114.65 0.2 1888.32  0.0  //point 2
+600.0 
+endtrack
+
+node 1000 0 none track normal 94.2475 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+505.973 0.2 2128.64  0.0  //point 1
+31.0358 0.0 4.94629  //control vector 1
+-31.8242 0.0 0.000244141  //control vector 2
+600.397 0.2 2136.11  0.0  //point 2
+600.0 
+endtrack
+
+node 1000 0 none track normal 94.2475 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+176.133 0.2 1960.38  0.0  //point 1
+22.5031 0.0 22.5031  //control vector 1
+-25.4431 0.0 -18.448  //control vector 2
+248.187 0.2 2021.86  0.0  //point 2
+600.0 
+endtrack
+
+node 1000 0 none track normal 94.2475 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+248.187 0.2 2021.86  0.0  //point 1
+25.4431 0.0 18.4481  //control vector 1
+-27.8452 0.0 -14.1704  //control vector 2
+328.254 0.2 2070.84  0.0  //point 2
+600.0 
+endtrack
+
+node 1000 0 none track normal 94.2475 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+328.254 0.2 2070.84  0.0  //point 1
+27.8452 0.0 14.1702  //control vector 1
+-29.7094 0.0 -9.66968  //control vector 2
+414.72 0.2 2106.66  0.0  //point 2
+600.0 
+endtrack
+
+node 1000 0 none track normal 94.2475 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+414.72 0.2 2106.66  0.0  //point 1
+29.7095 0.0 9.66943  //control vector 1
+-31.0358 0.0 -4.94604  //control vector 2
+505.973 0.2 2128.64  0.0  //point 2
+600.0 
+endtrack
+
+node 1000 0 none track normal 94.2475 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+952.606 0.2 2021.85  0.0  //point 1
+25.443 0.0 -18.4484  //control vector 1
+-22.5029 0.0 22.5032  //control vector 2
+1024.66 0.2 1960.37  0.0  //point 2
+600.0 
+endtrack
+
+node 1000 0 none track normal 94.2475 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+600.397 0.2 2136.11  0.0  //point 1
+31.8242 0.0 -0.000244141  //control vector 1
+-31.0357 0.0 4.94629  //control vector 2
+694.821 0.2 2128.63  0.0  //point 2
+600.0 
+endtrack
+
+node 1000 0 none track normal 94.2475 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+694.821 0.2 2128.63  0.0  //point 1
+31.0358 0.0 -4.94653  //control vector 1
+-29.7094 0.0 9.66992  //control vector 2
+786.073 0.2 2106.65  0.0  //point 2
+600.0 
+endtrack
+
+node 1000 0 none track normal 94.2475 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+786.073 0.2 2106.65  0.0  //point 1
+29.7094 0.0 -9.66968  //control vector 1
+-27.8451 0.0 14.1707  //control vector 2
+872.54 0.2 2070.84  0.0  //point 2
+600.0 
+endtrack
+
+node 1000 0 none track normal 94.2475 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+872.54 0.2 2070.84  0.0  //point 1
+27.8451 0.0 -14.1704  //control vector 1
+-25.443 0.0 18.4482  //control vector 2
+952.606 0.2 2021.85  0.0  //point 2
+600.0 
+endtrack
+
+node 1000 0 none track normal 94.2475 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+1192.92 0.2 1630.53  0.0  //point 1
+4.94604 0.0 -31.0359  //control vector 1
+0.000244141 0.0 31.8242  //control vector 2
+1200.39 0.2 1536.11  0.0  //point 2
+600.0 
+endtrack
+
+node 1000 0 none track normal 94.2475 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+1024.66 0.2 1960.37  0.0  //point 1
+22.5029 0.0 -22.5033  //control vector 1
+-18.4479 0.0 25.4432  //control vector 2
+1086.14 0.2 1888.32  0.0  //point 2
+600.0 
+endtrack
+
+node 1000 0 none track normal 94.2475 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+1086.14 0.2 1888.32  0.0  //point 1
+18.448 0.0 -25.4432  //control vector 1
+-14.17 0.0 27.8453  //control vector 2
+1135.12 0.2 1808.25  0.0  //point 2
+600.0 
+endtrack
+
+node 1000 0 none track normal 94.2475 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+1135.12 0.2 1808.25  0.0  //point 1
+14.1702 0.0 -27.8452  //control vector 1
+-9.66943 0.0 29.7095  //control vector 2
+1170.94 0.2 1721.78  0.0  //point 2
+600.0 
+endtrack
+
+node 1000 0 none track normal 94.2475 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+1170.94 0.2 1721.78  0.0  //point 1
+9.66956 0.0 -29.7096  //control vector 1
+-4.94604 0.0 31.0358  //control vector 2
+1192.92 0.2 1630.53  0.0  //point 2
+600.0 
+endtrack
+
+node 1000 0 none track normal 94.2476 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+114.65 0.2 -316.099  0.0  //point 1
+18.4481 0.0 -25.4431  //control vector 1
+-22.5031 0.0 22.5031  //control vector 2
+176.133 0.2 -388.153  0.0  //point 2
+-600.0 
+endtrack
+
+node 1000 0 none track normal 94.2476 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+0.396851 0.2 36.1112  0.0  //point 1
+0.0 0.0 -31.8242  //control vector 1
+-4.94623 0.0 31.0358  //control vector 2
+7.87189 0.2 -58.3133  0.0  //point 2
+-600.0 
+endtrack
+
+node 1000 0 none track normal 94.2476 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+7.87189 0.2 -58.3133  0.0  //point 1
+4.94623 0.0 -31.0358  //control vector 1
+-9.66962 0.0 29.7094  //control vector 2
+29.8514 0.2 -149.566  0.0  //point 2
+-600.0 
+endtrack
+
+node 1000 0 none track normal 94.2476 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+29.8514 0.2 -149.566  0.0  //point 1
+9.66968 0.0 -29.7095  //control vector 1
+-14.1703 0.0 27.8453  //control vector 2
+65.667 0.2 -236.032  0.0  //point 2
+-600.0 
+endtrack
+
+node 1000 0 none track normal 94.2476 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+65.667 0.2 -236.032  0.0  //point 1
+14.1702 0.0 -27.8452  //control vector 1
+-18.4481 0.0 25.4431  //control vector 2
+114.65 0.2 -316.099  0.0  //point 2
+-600.0 
+endtrack
+
+node 1000 0 none track normal 94.2475 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+505.972 0.2 -556.414  0.0  //point 1
+31.0358 0.0 -4.94623  //control vector 1
+-31.8242 0.0 0.0  //control vector 2
+600.397 0.2 -563.889  0.0  //point 2
+-600.0 
+endtrack
+
+node 1000 0 none track normal 94.2475 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+176.133 0.2 -388.153  0.0  //point 1
+22.5031 0.0 -22.5031  //control vector 1
+-25.4431 0.0 18.4481  //control vector 2
+248.187 0.2 -449.636  0.0  //point 2
+-600.0 
+endtrack
+
+node 1000 0 none track normal 94.2475 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+248.187 0.2 -449.636  0.0  //point 1
+25.4431 0.0 -18.4481  //control vector 1
+-27.8452 0.0 14.1703  //control vector 2
+328.254 0.2 -498.619  0.0  //point 2
+-600.0 
+endtrack
+
+node 1000 0 none track normal 94.2475 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+328.254 0.2 -498.619  0.0  //point 1
+27.8452 0.0 -14.1703  //control vector 1
+-29.7095 0.0 9.66968  //control vector 2
+414.72 0.2 -534.435  0.0  //point 2
+-600.0 
+endtrack
+
+node 1000 0 none track normal 94.2475 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+414.72 0.2 -534.435  0.0  //point 1
+29.7094 0.0 -9.66968  //control vector 1
+-31.0358 0.0 4.94623  //control vector 2
+505.972 0.2 -556.414  0.0  //point 2
+-600.0 
+endtrack
+
+node 1000 0 none track normal 94.2475 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+952.607 0.2 -449.636  0.0  //point 1
+25.4431 0.0 18.4481  //control vector 1
+-22.5032 0.0 -22.5031  //control vector 2
+1024.66 0.2 -388.153  0.0  //point 2
+-600.0 
+endtrack
+
+node 1000 0 none track normal 94.2475 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+600.397 0.2 -563.889  0.0  //point 1
+31.8242 0.0 0.0  //control vector 1
+-31.0358 0.0 -4.94623  //control vector 2
+694.821 0.2 -556.414  0.0  //point 2
+-600.0 
+endtrack
+
+node 1000 0 none track normal 94.2475 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+694.821 0.2 -556.414  0.0  //point 1
+31.0358 0.0 4.94623  //control vector 1
+-29.7094 0.0 -9.66962  //control vector 2
+786.074 0.2 -534.435  0.0  //point 2
+-600.0 
+endtrack
+
+node 1000 0 none track normal 94.2475 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+786.074 0.2 -534.435  0.0  //point 1
+29.7094 0.0 9.66968  //control vector 1
+-27.8453 0.0 -14.1703  //control vector 2
+872.54 0.2 -498.619  0.0  //point 2
+-600.0 
+endtrack
+
+node 1000 0 none track normal 94.2475 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+872.54 0.2 -498.619  0.0  //point 1
+27.8452 0.0 14.1702  //control vector 1
+-25.4431 0.0 -18.4481  //control vector 2
+952.607 0.2 -449.636  0.0  //point 2
+-600.0 
+endtrack
+
+node 1000 0 none track normal 94.2476 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+1192.92 0.2 -58.3139  0.0  //point 1
+4.94617 0.0 31.0358  //control vector 1
+-0.00012207 0.0 -31.8242  //control vector 2
+1200.4 0.2 36.1105  0.0  //point 2
+-600.0 
+endtrack
+
+node 1000 0 none track normal 94.2476 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+1024.66 0.2 -388.153  0.0  //point 1
+22.5032 0.0 22.5031  //control vector 1
+-18.4482 0.0 -25.4431  //control vector 2
+1086.14 0.2 -316.1  0.0  //point 2
+-600.0 
+endtrack
+
+node 1000 0 none track normal 94.2476 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+1086.14 0.2 -316.1  0.0  //point 1
+18.448 0.0 25.4431  //control vector 1
+-14.1704 0.0 -27.8452  //control vector 2
+1135.13 0.2 -236.033  0.0  //point 2
+-600.0 
+endtrack
+
+node 1000 0 none track normal 94.2476 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+1135.13 0.2 -236.033  0.0  //point 1
+14.1702 0.0 27.8452  //control vector 1
+-9.66968 0.0 -29.7094  //control vector 2
+1170.94 0.2 -149.566  0.0  //point 2
+-600.0 
+endtrack
+
+node 1000 0 none track normal 94.2476 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+1170.94 0.2 -149.566  0.0  //point 1
+9.66968 0.0 29.7094  //control vector 1
+-4.94629 0.0 -31.0358  //control vector 2
+1192.92 0.2 -58.3139  0.0  //point 2
+-600.0 
+endtrack
+
+node 1000 0 none track normal 100.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+1200.4 0.2 36.1105  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+1200.4 0.2 136.111  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 none track normal 100.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+1200.4 0.2 136.111  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+1200.4 0.2 236.111  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 none track normal 100.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+1200.4 0.2 236.111  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+1200.4 0.2 336.111  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 none track normal 100.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+1200.4 0.2 336.111  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+1200.4 0.2 436.111  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 none track normal 100.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+1200.4 0.2 436.111  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+1200.4 0.2 536.111  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 none track normal 100.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+1200.4 0.2 536.111  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+1200.4 0.2 636.111  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 none track normal 100.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+1200.4 0.2 636.111  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+1200.4 0.2 736.111  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 none track normal 100.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+1200.4 0.2 736.111  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+1200.4 0.2 836.111  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 none track normal 100.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+1200.4 0.2 836.111  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+1200.4 0.2 936.111  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 none track normal 50.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+1200.4 0.2 986.111  0.0  //point 1
+0.00012207 0.0 16.6666  //control vector 1
+0.0 0.0 -16.6667  //control vector 2
+1200.4 0.2 1036.11  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 none track normal 50.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+1200.4 0.2 936.111  0.0  //point 1
+0.00012207 0.0 16.6667  //control vector 1
+0.0 0.0 -16.6667  //control vector 2
+1200.4 0.2 986.111  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 none track normal 100.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+1200.4 0.2 1036.11  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+1200.4 0.2 1136.11  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 none track normal 100.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+1200.4 0.2 1136.11  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+1200.4 0.2 1236.11  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 none track normal 100.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+1200.4 0.2 1236.11  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+1200.4 0.2 1336.11  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 none track normal 100.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+1200.4 0.2 1336.11  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+1200.4 0.2 1436.11  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 none track normal 100.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+1200.4 0.2 1436.11  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+1200.4 0.2 1536.11  0.0  //point 2
+0 
+endtrack
+
+                         
+include tr/P-STB1-3pD.inc 0.38723;5.8;100.247 0.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+0.387223 5.8 100.247
+0.387223 5.8 170.247
+0.387223 7.5 100.247
+0.387223 7.5 170.247
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 0.387222;5.8;170.247 0.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+0.387223 5.8 170.247
+0.387223 5.8 240.247
+0.387223 7.5 170.247
+0.387223 7.5 240.247
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 0.387206;5.8;240.247 0.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+0.387223 5.8 240.247
+0.387223 5.8 310.247
+0.387223 7.5 240.247
+0.387223 7.5 310.247
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 0.387215;5.8;310.247 0.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+0.387223 5.8 310.247
+0.387223 5.8 380.247
+0.387223 7.5 310.247
+0.387223 7.5 380.247
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 0.387218;5.8;380.247 0.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+0.387223 5.8 380.247
+0.387223 5.8 450.247
+0.387223 7.5 380.247
+0.387223 7.5 450.247
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 0.387225;5.8;450.247 0.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+0.387223 5.8 450.247
+0.387223 5.8 520.247
+0.387223 7.5 450.247
+0.387223 7.5 520.247
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 0.387225;5.8;520.247 0.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+0.387223 5.8 520.247
+0.387223 5.8 590.247
+0.387223 7.5 520.247
+0.387223 7.5 590.247
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 0.387232;5.8;590.247 0.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+0.387223 5.8 590.247
+0.387223 5.8 660.247
+0.387223 7.5 590.247
+0.387223 7.5 660.247
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 0.387208;5.8;660.247 0.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+0.387223 5.8 660.247
+0.387223 5.8 730.247
+0.387223 7.5 660.247
+0.387223 7.5 730.247
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 0.387206;5.8;730.247 0.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+0.387223 5.8 730.247
+0.387223 5.8 800.247
+0.387223 7.5 730.247
+0.387223 7.5 800.247
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 0.387234;5.8;800.247 0.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+0.387223 5.8 800.247
+0.387223 5.8 870.247
+0.387223 7.5 800.247
+0.387223 7.5 870.247
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 0.387216;5.8;870.247 0.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+0.387223 5.8 870.247
+0.387223 5.8 940.247
+0.387223 7.5 870.247
+0.387223 7.5 940.247
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 0.387235;5.8;940.247 0.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+0.387223 5.8 940.247
+0.387223 5.8 1010.25
+0.387223 7.5 940.247
+0.387223 7.5 1010.25
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 0.387231;5.8;1010.25 0.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+0.387223 5.8 1010.25
+0.387223 5.8 1080.25
+0.387223 7.5 1010.25
+0.387223 7.5 1080.25
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 0.387208;5.8;1080.25 0.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+0.387223 5.8 1080.25
+0.387223 5.8 1150.25
+0.387223 7.5 1080.25
+0.387223 7.5 1150.25
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 0.38722;5.8;1150.25 0.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+0.387223 5.8 1150.25
+0.387223 5.8 1220.25
+0.387223 7.5 1150.25
+0.387223 7.5 1220.25
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 0.387235;5.8;1220.25 0.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+0.387223 5.8 1220.25
+0.387223 5.8 1290.25
+0.387223 7.5 1220.25
+0.387223 7.5 1290.25
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 0.387226;5.8;1290.25 0.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+0.387223 5.8 1290.25
+0.387223 5.8 1360.25
+0.387223 7.5 1290.25
+0.387223 7.5 1360.25
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 0.387224;5.8;1360.25 0.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+0.387223 5.8 1360.25
+0.387223 5.8 1430.25
+0.387223 7.5 1360.25
+0.387223 7.5 1430.25
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 0.387219;5.8;1430.25 0.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+0.387223 5.8 1430.25
+0.387223 5.8 1500.25
+0.387223 7.5 1430.25
+0.387223 7.5 1500.25
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 0.387232;5.8;1500.25 0.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+0.387223 5.8 1500.25
+1.36457 5.8 1570.24
+0.387223 7.5 1500.25
+1.36457 7.5 1570.24
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1.36456;5.8;1570.24 0.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1.36457 5.8 1570.24
+8.80306 5.8 1639.84
+1.36457 7.5 1570.24
+8.80306 7.5 1639.84
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 8.80307;5.8;1639.84 10.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+8.80306 5.8 1639.84
+25.0254 5.8 1707.94
+8.80306 7.5 1639.84
+25.0254 7.5 1707.94
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 25.0251;5.8;1707.94 13.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+25.0254 5.8 1707.94
+48.852 5.8 1773.76
+25.0254 7.5 1707.94
+48.852 7.5 1773.76
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 48.852;5.8;1773.76 22.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+48.852 5.8 1773.76
+79.9765 5.8 1836.46
+48.852 7.5 1773.76
+79.9765 7.5 1836.46
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 79.9764;5.8;1836.46 31.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+79.9765 5.8 1836.46
+118.714 5.8 1894.76
+79.9765 7.5 1836.46
+118.714 7.5 1894.76
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 118.714;5.8;1894.76 40.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+118.714 5.8 1894.76
+163.615 5.8 1948.46
+118.714 7.5 1894.76
+163.615 7.5 1948.46
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 163.615;5.8;1948.46 49.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+163.615 5.8 1948.46
+214.643 5.8 1996.38
+163.615 7.5 1948.46
+214.643 7.5 1996.38
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 214.641;5.8;1996.38 60.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+214.643 5.8 1996.38
+270.84 5.8 2038.12
+214.643 7.5 1996.38
+270.84 7.5 2038.12
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 270.839;5.8;2038.12 61.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+270.84 5.8 2038.12
+331.462 5.8 2073.12
+270.84 7.5 2038.12
+331.462 7.5 2073.12
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 331.462;5.8;2073.12 67.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+331.462 5.8 2073.12
+395.85 5.8 2100.58
+331.462 7.5 2073.12
+395.85 7.5 2100.58
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 395.845;5.8;2100.58 75.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+395.845 5.8 2100.58
+462.858 5.8 2120.81
+395.845 7.5 2100.58
+462.858 7.5 2120.81
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 462.857;5.8;2120.81 84.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+462.858 5.8 2120.81
+531.836 5.8 2132.73
+462.858 7.5 2120.81
+531.836 7.5 2132.73
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 531.834;5.8;2132.73 89.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+531.836 5.8 2132.73
+601.727 5.8 2136.64
+531.836 7.5 2132.73
+601.727 7.5 2136.64
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 601.726;5.8;2136.64 91.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+601.726 5.8 2136.64
+671.603 5.8 2132.48
+601.726 7.5 2136.64
+671.603 7.5 2132.48
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 671.602;5.8;2132.48 90.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+671.602 5.8 2132.48
+740.496 5.8 2120.09
+671.602 7.5 2132.48
+740.496 7.5 2120.09
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 740.493;5.8;2120.09 96.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+740.496 5.8 2120.09
+807.473 5.8 2099.74
+740.496 7.5 2120.09
+807.473 7.5 2099.74
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 807.47;5.8;2099.74 104.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+807.473 5.8 2099.74
+871.716 5.8 2071.94
+807.473 7.5 2099.74
+871.716 7.5 2071.94
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 871.715;5.8;2071.94 114.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+871.715 5.8 2071.94
+932.152 5.8 2036.62
+871.715 7.5 2071.94
+932.152 7.5 2036.62
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 932.151;5.8;2036.62 121.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+932.152 5.8 2036.62
+988.13 5.8 1994.59
+932.152 7.5 2036.62
+988.13 7.5 1994.59
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 988.13;5.8;1994.59 129.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+988.13 5.8 1994.59
+1038.91 5.8 1946.41
+988.13 7.5 1994.59
+1038.91 7.5 1946.41
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1038.91;5.8;1946.41 137.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1038.91 5.8 1946.41
+1083.62 5.8 1892.55
+1038.91 7.5 1946.41
+1083.62 7.5 1892.55
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1083.62;5.8;1892.55 145.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1083.62 5.8 1892.55
+1121.85 5.8 1833.91
+1083.62 7.5 1892.55
+1121.85 7.5 1833.91
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1121.85;5.8;1833.91 154.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1121.85 5.8 1833.91
+1152.97 5.8 1771.21
+1121.85 7.5 1833.91
+1152.97 7.5 1771.21
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1152.97;5.8;1771.21 163.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1152.97 5.8 1771.21
+1176.45 5.8 1705.27
+1152.97 7.5 1771.21
+1176.45 7.5 1705.27
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1176.45;5.8;1705.27 170.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1176.45 5.8 1705.27
+1192.32 5.8 1637.09
+1176.45 7.5 1705.27
+1192.32 7.5 1637.09
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1192.32;5.8;1637.09 170.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1192.32 5.8 1637.09
+1200.0 5.8 1567.51
+1192.32 7.5 1637.09
+1200.0 7.5 1567.51
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1200.0;5.8;1567.51 170.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1200.0 5.8 1567.51
+1200.41 5.8 1497.51
+1200.0 7.5 1567.51
+1200.41 7.5 1497.51
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1200.41;5.8;1497.51 180.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1200.41 5.8 1497.51
+1200.41 5.8 1427.51
+1200.41 7.5 1497.51
+1200.41 7.5 1427.51
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1200.41;5.8;1427.51 180.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1200.41 5.8 1427.51
+1200.41 5.8 1357.51
+1200.41 7.5 1427.51
+1200.41 7.5 1357.51
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1200.41;5.8;1357.51 180.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1200.41 5.8 1357.51
+1200.41 5.8 1287.51
+1200.41 7.5 1357.51
+1200.41 7.5 1287.51
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1200.41;5.8;1287.51 180.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1200.41 5.8 1287.51
+1200.41 5.8 1217.51
+1200.41 7.5 1287.51
+1200.41 7.5 1217.51
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1200.41;5.8;1217.51 180.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1200.41 5.8 1217.51
+1200.41 5.8 1147.51
+1200.41 7.5 1217.51
+1200.41 7.5 1147.51
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1200.41;5.8;1147.51 180.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1200.41 5.8 1147.51
+1200.41 5.8 1077.51
+1200.41 7.5 1147.51
+1200.41 7.5 1077.51
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1200.41;5.8;1077.51 180.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1200.41 5.8 1077.51
+1200.41 5.8 1007.51
+1200.41 7.5 1077.51
+1200.41 7.5 1007.51
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1200.41;5.8;1007.51 180.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1200.41 5.8 1007.51
+1200.41 5.8 937.513
+1200.41 7.5 1007.51
+1200.41 7.5 937.513
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1200.41;5.8;937.513 180.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1200.41 5.8 937.513
+1200.41 5.8 867.513
+1200.41 7.5 937.513
+1200.41 7.5 867.513
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1200.41;5.8;867.513 180.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1200.41 5.8 867.513
+1200.41 5.80012 797.513
+1200.41 7.5 867.513
+1200.41 7.50012 797.513
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1200.41;5.8;797.513 180.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1200.41 5.80012 797.513
+1200.41 5.80012 727.513
+1200.41 7.50012 797.513
+1200.41 7.50012 727.513
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1200.41;5.8;727.513 180.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1200.41 5.80012 727.513
+1200.41 5.80012 657.513
+1200.41 7.50012 727.513
+1200.41 7.50012 657.513
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1200.41;5.8;657.513 180.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1200.41 5.80012 657.513
+1200.41 5.80012 587.513
+1200.41 7.50012 657.513
+1200.41 7.50012 587.513
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1200.41;5.8;587.513 180.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1200.41 5.80012 587.513
+1200.4 5.80012 517.513
+1200.41 7.50012 587.513
+1200.4 7.50012 517.513
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1200.4;5.8;517.513 180.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1200.4 5.80012 517.513
+1200.41 5.80012 447.513
+1200.4 7.50012 517.513
+1200.41 7.50012 447.513
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1200.41;5.8;447.513 180.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1200.41 5.80012 447.513
+1200.41 5.80012 377.513
+1200.41 7.50012 447.513
+1200.41 7.50012 377.513
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1200.41;5.8;377.513 180.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1200.41 5.80012 377.513
+1200.41 5.80012 307.513
+1200.41 7.50012 377.513
+1200.41 7.50012 307.513
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1200.41;5.8;307.513 180.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1200.41 5.80012 307.513
+1200.41 5.80012 237.513
+1200.41 7.50012 307.513
+1200.41 7.50012 237.513
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1200.41;5.8;237.513 180.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1200.41 5.80012 237.513
+1200.41 5.80012 167.513
+1200.41 7.50012 237.513
+1200.41 7.50012 167.513
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1200.41;5.8;167.513 180.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1200.41 5.80012 167.513
+1200.41 5.80012 97.5127
+1200.41 7.50012 167.513
+1200.41 7.50012 97.5127
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1200.41;5.8;97.5127 180.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1200.41 5.80012 97.5127
+1200.31 5.80012 27.5128
+1200.41 7.50012 97.5127
+1200.31 7.50012 27.5128
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1200.31;5.8;27.5128 180.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1200.31 5.80012 27.5128
+1195.93 5.80012 -42.3503
+1200.31 7.50012 27.5128
+1195.93 7.50012 -42.3503
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1195.93;5.8;-42.3503 180.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1195.93 5.80012 -42.3503
+1182.47 5.80012 -111.044
+1195.93 7.50012 -42.3503
+1182.47 7.50012 -111.044
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1182.47;5.8;-111.044 192.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1182.47 5.80012 -111.044
+1161.44 5.80012 -177.81
+1182.47 7.50012 -111.044
+1161.44 7.50012 -177.81
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1161.44;5.8;-177.81 200.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1161.44 5.80012 -177.81
+1132.76 5.80012 -241.666
+1161.44 7.50012 -177.81
+1132.76 7.50012 -241.666
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1132.76;5.8;-241.664 209.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1132.76 5.80012 -241.666
+1096.94 5.80012 -301.803
+1132.76 7.50012 -241.666
+1096.94 7.50012 -301.803
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1096.94;5.8;-301.803 220.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1096.94 5.80012 -301.803
+1054.14 5.80012 -357.199
+1096.94 7.50012 -301.803
+1054.14 7.50012 -357.199
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1054.14;5.8;-357.198 229.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1054.14 5.80012 -357.199
+1005.27 5.80012 -407.311
+1054.14 7.50012 -357.199
+1005.27 7.50012 -407.311
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 1005.27;5.8;-407.31 238.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+1005.27 5.80012 -407.311
+950.955 5.80012 -451.472
+1005.27 7.50012 -407.311
+950.955 7.50012 -451.472
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 950.955;5.8;-451.472 242.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+950.955 5.80012 -451.472
+891.797 5.80012 -488.892
+950.955 7.50012 -451.472
+891.797 7.50012 -488.892
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 891.797;5.8;-488.892 247.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+891.797 5.80012 -488.892
+828.729 5.80012 -519.265
+891.797 7.50012 -488.892
+828.729 7.50012 -519.265
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 828.73;5.8;-519.264 253.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+828.729 5.80012 -519.265
+762.589 5.80012 -542.188
+828.729 7.50012 -519.265
+762.589 7.50012 -542.188
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 762.589;5.8;-542.188 259.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+762.589 5.80012 -542.188
+694.2 5.80012 -557.118
+762.589 7.50012 -542.188
+694.2 7.50012 -557.118
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 694.201;5.8;-557.117 265.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+694.2 5.80012 -557.118
+624.535 5.80012 -563.967
+694.2 7.50012 -557.118
+624.535 7.50012 -563.967
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 624.535;5.8;-563.967 271.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+624.535 5.80012 -563.967
+554.548 5.80012 -562.641
+624.535 7.50012 -563.967
+554.548 7.50012 -562.641
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 554.548;5.8;-562.641 277.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+554.548 5.80012 -562.641
+485.161 5.80012 -553.402
+554.548 7.50012 -562.641
+485.161 7.50012 -553.402
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 485.161;5.8;-553.402 283.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+485.161 5.80012 -553.402
+417.386 5.80012 -535.893
+485.161 7.50012 -553.402
+417.386 7.50012 -535.893
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 417.385;5.8;-535.893 289.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+417.386 5.80012 -535.893
+352.072 5.80012 -510.71
+417.386 7.50012 -535.893
+352.072 7.50012 -510.71
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 352.029;5.8;-510.824 295.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+352.028 5.80012 -510.824
+290.156 5.80012 -478.085
+352.028 7.50012 -510.824
+290.156 7.50012 -478.085
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 290.157;5.8;-478.086 301.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+290.156 5.80012 -478.085
+232.388 5.80012 -438.552
+290.156 7.50012 -478.085
+232.388 7.50012 -438.552
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 232.388;5.8;-438.552 307.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+232.388 5.80012 -438.552
+179.707 5.80012 -392.458
+232.388 7.50012 -438.552
+179.707 7.50012 -392.458
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 179.626;5.8;-392.55 313.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+179.627 5.80012 -392.55
+132.683 5.80012 -340.624
+179.627 7.50012 -392.55
+132.683 7.50012 -340.624
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 132.683;5.8;-340.624 319.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+132.683 5.80012 -340.624
+92.019 5.80012 -283.646
+132.683 7.50012 -340.624
+92.019 7.50012 -283.646
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 92.0188;5.8;-283.647 325.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+92.019 5.80012 -283.646
+58.2801 5.80012 -222.314
+92.019 7.50012 -283.646
+58.2801 7.50012 -222.314
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 58.2803;5.8;-222.316 331.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+58.2801 5.80012 -222.314
+31.8143 5.80012 -157.51
+58.2801 7.50012 -222.314
+31.8143 7.50012 -157.51
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 31.8144;5.8;-157.511 337.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+31.8143 5.80012 -157.51
+13.2077 5.80012 -90.028
+31.8143 7.50012 -157.51
+13.2077 7.50012 -90.028
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 13.2076;5.8;-90.0282 343.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+13.2077 5.80012 -90.028
+2.35986 5.80012 -20.8737
+13.2077 7.50012 -90.028
+2.35986 7.50012 -20.8737
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 2.36038;5.8;-20.8742 349.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+2.35986 5.80012 -20.8737
+0.0206653 5.80012 49.0872
+2.35986 7.50012 -20.8737
+0.0206653 7.50012 49.0872
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/P-STB1-3pD.inc 0.0195053;5.8;49.0861 355.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+0.0206653 5.80012 49.0872
+0.363347 5.80012 100.086
+0.0206653 7.50012 49.0872
+0.363347 7.50012 100.086
+0.4 4.0 3 0.04 vis 
+endtraction
+
+node 1000 0 Test_zwr01 track switch 34.0 1.435 0.24 15.0 20 2 flat vis 
+ Rail_screw_used1 4 Rail_screw_used1 0.2 2.75 2.5 
+0.396825 0.2 336.111  0.1  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+0.396825 0.2 370.111  -0.1  //point 2
+0 
+0.396825 0.2 336.111  0  //point 1
+0.0 0.0 11.3349  //control vector 1
+-1.28186 0.0 -11.2622  //control vector 2
+2.32142 0.2 370.038  0  //point 2
+300.0 
+endtrack
+// additional:
+include;ZwrL34R300.inc;Test_zwr01;0.396825;0.0;336.111;0.0;zwrot34R300pods-new.tex;end
+
+node 1000 0 tor2p track normal 66.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+0.396825 0.2 370.111  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+0.396825 0.2 436.111  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 none track normal 15.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+2.32142 0.2 370.038  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+4.01776 0.2 384.942  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 none track normal 15.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+4.01776 0.2 384.942  0.0  //point 1
+0.565216 0.0 4.96591  //control vector 1
+0.00360107 0.0 -4.98798  //control vector 2
+5.04489 0.2 398.998  0.0  //point 2
+-300.0 
+endtrack
+
+
+node 1000 0 tor1p track normal 66.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+5.04488 0.2 398.998  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+5.04488 0.2 464.998  0.0  //point 2
+0 
+endtrack
+
+
+node 1000 0 AIstart track normal 100.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+5.04488 0.2 464.998  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+5.04488 0.2 564.998  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 none track normal 100.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+5.04488 0.2 564.998  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+5.04488 0.2 664.998  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 none track normal 100.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+5.04488 0.2 764.998  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+5.04488 0.2 864.998  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 none track normal 100.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+5.04488 0.2 664.998  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+5.04488 0.2 764.998  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 none track normal 100.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+5.04488 0.2 864.998  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+5.04488 0.2 964.998  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 none track normal 100.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+5.04488 0.2 964.998  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+5.04488 0.2 1065.0  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 none track normal 100.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+5.04488 0.2 1065.0  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+5.04488 0.2 1165.0  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 none track normal 100.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+5.04488 0.2 1165.0  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+5.04488 0.2 1265.0  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 none track normal 15.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+2.32142 0.2 1402.18  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+4.01776 0.2 1387.28  0.0  //point 2
+0 
+endtrack
+
+node 1000 0 none track normal 23.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+4.01776 0.2 1387.28  0.0  //point 1
+0.866882 0.0 -7.61633  //control vector 1
+0.00622559 0.0 7.66028  //control vector 2
+5.04486 0.2 1365.0  0.0  //point 2
+300.0 
+endtrack
+
+node 1000 0 tor1k track normal 100.0 1.435 0.25 25.0 20 0 Flat vis 
+ Rail_screw_used1 4 TpBpS-new2.tex 0.2 0.5 1.1 
+5.04488 0.2 1265.0  0.0  //point 1
+0.0 0.0 0.0  //control vector 1
+0.0 0.0 0.0  //control vector 2
+5.04488 0.2 1365.0  0.0  //point 2
+0 
+endtrack
+
+include tr/L-STB1-3pD.inc 0.387216;5.8;346.268 20.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+0.387216 5.8 346.268
+5.30353 5.8 406.066
+0.387216 7.5 346.268
+5.30353 7.5 406.066
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/L-STB1-3pD.inc 5.29961;5.8;406.067 10.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+5.29894 5.8 406.067
+5.0546 5.8 476.066
+5.29894 7.5 406.067
+5.0546 7.5 476.066
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/L-STB1-3pD.inc 5.05459;5.8;476.066 0.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+5.0546 5.8 476.066
+5.0546 5.8 546.066
+5.0546 7.5 476.066
+5.0546 7.5 546.066
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/L-STB1-3pD.inc 5.05458;5.8;546.066 0.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+5.0546 5.8 546.066
+5.0546 5.8 616.066
+5.0546 7.5 546.066
+5.0546 7.5 616.066
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/L-STB1-3pD.inc 5.05459;5.8;616.066 0.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+5.0546 5.8 616.066
+5.0546 5.8 686.066
+5.0546 7.5 616.066
+5.0546 7.5 686.066
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/L-STB1-3pD.inc 5.05461;5.8;686.066 0.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+5.0546 5.8 686.066
+5.0546 5.8 756.066
+5.0546 7.5 686.066
+5.0546 7.5 756.066
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/L-STB1-3pD.inc 5.0546;5.8;756.066 0.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+5.0546 5.8 756.066
+5.0546 5.8 826.066
+5.0546 7.5 756.066
+5.0546 7.5 826.066
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/L-STB1-3pD.inc 5.0546;5.8;826.066 0.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+5.0546 5.8 826.066
+5.0546 5.8 896.066
+5.0546 7.5 826.066
+5.0546 7.5 896.066
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/L-STB1-3pD.inc 5.05459;5.8;896.066 0.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+5.0546 5.8 896.066
+5.0546 5.8 966.066
+5.0546 7.5 896.066
+5.0546 7.5 966.066
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/L-STB1-3pD.inc 5.05458;5.8;966.066 0.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+5.0546 5.8 966.066
+5.0546 5.8 1036.07
+5.0546 7.5 966.066
+5.0546 7.5 1036.07
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/L-STB1-3pD.inc 5.0546;5.8;1036.07 0.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+5.0546 5.8 1036.07
+5.0546 5.8 1106.07
+5.0546 7.5 1036.07
+5.0546 7.5 1106.07
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/L-STB1-3pD.inc 5.05461;5.8;1106.07 0.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+5.0546 5.8 1106.07
+5.0546 5.8 1176.07
+5.0546 7.5 1106.07
+5.0546 7.5 1176.07
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/L-STB1-3pD.inc 5.05458;5.8;1176.07 0.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+5.0546 5.8 1176.07
+5.0546 5.8 1246.07
+5.0546 7.5 1176.07
+5.0546 7.5 1246.07
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/L-STB1-3pD.inc 5.05461;5.8;1246.07 0.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+5.0546 5.8 1246.07
+5.0546 5.8 1316.07
+5.0546 7.5 1246.07
+5.0546 7.5 1316.07
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/L-STB1-3pD.inc 5.0546;5.8;1316.07 0.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+5.0546 5.8 1316.07
+4.96506 5.8 1373.07
+5.0546 7.5 1316.07
+4.96506 7.5 1373.07
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/L-STB1-3pD.inc 4.96507;5.8;1373.07 0.0 BetonRelief1 end
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+4.96506 5.8 1373.07
+0.447189 5.8 1425.87
+4.96506 7.5 1373.07
+0.447189 7.5 1425.87
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/L-STB1-3pD.inc 0.447138;5.8;1425.87 -13.0 BetonRelief1 end
+
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+0.445985 5.8 1425.88
+2.79976 5.8 1455.79
+0.445985 7.5 1425.88
+2.79976 6.62 1455.79
+0.4 4.0 3 0.04 vis 
+endtraction
+
+include tr/STB1-kotwaK-napr14.inc 2.79841;5.8;1455.79 6.0 BetonRelief1 end
+include tr/STB1-kotwaK-napr14.inc 4.4466;5.8;306.49 -186.0 BetonRelief1 end
+
+node 1000 0  none traction pwr01 3500 4500 0.01 Cu 3.0 1
+0.404336 5.8 346.284
+4.44662 5.8 306.489
+0.404336 7.5 346.284
+4.44662 6.62 306.489
+0.4 4.0 3 0.04 vis 
+endtraction
+
+//-------------------------------------------------
+// Object01
+//-------------------------------------------------
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+1349.94 0.0 830.446 	0.0 1.0 0.0  550.887 1130.69 end
+1668.69 0.0 802.989 	0.0 2.0 0.0  335.016 1116.46 end
+1668.69 0.0 273.227 	0.0 1.0 0.0  335.016 841.902 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+1341.25 0.0 -264.612 	0.0 1.0 0.0  556.772 563.162 end
+1668.69 0.0 273.227 	0.0 1.0 0.0  335.016 841.902 end
+2126.55 0.0 451.83 	0.0 2.0 0.0  24.9345 934.465 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+2126.55 0.0 451.83 	0.0 2.0 0.0  24.9345 934.465 end
+1668.69 0.0 802.989 	0.0 2.0 0.0  335.016 1116.46 end
+2161.73 0.0 2047.13 	0.0 1.0 0.0  1.10943 1761.25 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+1668.69 0.0 802.989 	0.0 2.0 0.0  335.016 1116.46 end
+2126.55 0.0 451.83 	0.0 2.0 0.0  24.9345 934.465 end
+1668.69 0.0 273.227 	0.0 1.0 0.0  335.016 841.902 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+1341.25 0.0 -264.612 	0.0 1.0 0.0  556.772 563.162 end
+1097.9 0.0 65.6434 	0.0228053 0.999731 -0.00420518  721.579 734.32 end
+1349.94 0.0 830.446 	0.0 1.0 0.0  550.887 1130.69 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+1341.25 0.0 -264.612 	0.0 1.0 0.0  556.772 563.162 end
+2126.55 0.0 451.83 	0.0 2.0 0.0  24.9345 934.465 end
+1643.98 0.0 -1349.11 	0.0 2.0 0.0  351.75 1.10943 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+1643.98 0.0 -1349.11 	0.0 2.0 0.0  351.75 1.10943 end
+962.337 0.0 -1015.86 	0.0 1.0 0.0  813.388 173.82 end
+1150.05 0.0 -733.923 	0.0 1.0 0.0  686.261 319.937 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+962.337 0.0 -1015.86 	0.0 1.0 0.0  813.388 173.82 end
+1643.98 0.0 -1349.11 	0.0 2.0 0.0  351.75 1.10943 end
+467.892 0.0 -980.543 	0.0 1.0 0.0  1148.25 192.124 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+628.591 0.0 -481.886 	0.034685 2.99896 -0.0297299  1039.42 450.558 end
+1097.9 0.0 65.6434 	0.0228053 0.999731 -0.00420518  721.579 734.32 end
+1341.25 0.0 -264.612 	0.0 1.0 0.0  556.772 563.162 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+962.337 0.0 -1015.86 	0.0 1.0 0.0  813.388 173.82 end
+467.892 0.0 -980.543 	0.0 1.0 0.0  1148.25 192.124 end
+1150.05 0.0 -733.923 	0.0 1.0 0.0  686.261 319.937 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+1668.69 0.0 273.227 	0.0 1.0 0.0  335.016 841.902 end
+1341.25 0.0 -264.612 	0.0 1.0 0.0  556.772 563.162 end
+1349.94 0.0 830.446 	0.0 1.0 0.0  550.887 1130.69 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+1341.25 0.0 -264.612 	0.0 1.0 0.0  556.772 563.162 end
+1150.05 0.0 -733.923 	0.0 1.0 0.0  686.261 319.937 end
+628.591 0.0 -481.886 	0.034685 2.99896 -0.0297299  1039.42 450.558 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+167.971 0.0 -620.941 	0.0 1.0 0.0  1351.37 378.491 end
+1150.05 0.0 -733.923 	0.0 1.0 0.0  686.261 319.937 end
+467.892 0.0 -980.543 	0.0 1.0 0.0  1148.25 192.124 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+1150.05 0.0 -733.923 	0.0 1.0 0.0  686.261 319.937 end
+1341.25 0.0 -264.612 	0.0 1.0 0.0  556.772 563.162 end
+1643.98 0.0 -1349.11 	0.0 2.0 0.0  351.75 1.10943 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+579.25 23.7858 1273.68 	0.0562867 0.998405 0.00450754  1072.83 1360.4 end
+1097.9 0.0 65.6434 	0.0228053 0.999731 -0.00420518  721.579 734.32 end
+602.69 26.5057 378.517 	-0.00698621 0.999914 -0.011066  1056.96 896.47 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+2161.73 0.0 2047.13 	0.0 1.0 0.0  1.10943 1761.25 end
+1580.39 0.0 1862.51 	0.0 1.0 0.0  394.817 1665.56 end
+1456.78 0.0 2233.35 	0.0 1.0 0.0  478.531 1857.75 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+2161.73 0.0 2047.13 	0.0 1.0 0.0  1.10943 1761.25 end
+1668.69 0.0 802.989 	0.0 2.0 0.0  335.016 1116.46 end
+1580.39 0.0 1862.51 	0.0 1.0 0.0  394.817 1665.56 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+1773.05 0.0 2932.1 	0.0 1.0 0.0  264.341 2219.89 end
+1456.78 0.0 2233.35 	0.0 1.0 0.0  478.531 1857.75 end
+1150.05 0.0 2290.52 	0.0 1.0 0.0  686.261 1887.38 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+1456.78 0.0 2233.35 	0.0 1.0 0.0  478.531 1857.75 end
+1773.05 0.0 2932.1 	0.0 1.0 0.0  264.341 2219.89 end
+2161.73 0.0 2047.13 	0.0 1.0 0.0  1.10943 1761.25 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+1580.39 0.0 1862.51 	0.0 1.0 0.0  394.817 1665.56 end
+1332.56 0.0 1777.76 	0.0 1.0 0.0  562.658 1621.64 end
+1456.78 0.0 2233.35 	0.0 1.0 0.0  478.531 1857.75 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+1349.94 0.0 830.446 	0.0 1.0 0.0  550.887 1130.69 end
+1097.9 0.0 1708.23 	0.011174 0.999926 0.00489723  721.579 1585.61 end
+1332.56 0.0 1777.76 	0.0 1.0 0.0  562.658 1621.64 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+1097.9 0.0 65.6434 	0.0228053 0.999731 -0.00420518  721.579 734.32 end
+1097.9 0.0 1708.23 	0.011174 0.999926 0.00489723  721.579 1585.61 end
+1349.94 0.0 830.446 	0.0 1.0 0.0  550.887 1130.69 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+1097.9 0.0 1708.23 	0.011174 0.999926 0.00489723  721.579 1585.61 end
+1150.05 0.0 2290.52 	0.0 1.0 0.0  686.261 1887.38 end
+1332.56 0.0 1777.76 	0.0 1.0 0.0  562.658 1621.64 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+628.591 0.0 2047.18 	-0.000651891 0.999924 0.0123355  1039.42 1761.27 end
+133.208 0.0 2281.83 	0.0 1.0 0.0  1374.91 1882.88 end
+1150.05 0.0 2290.52 	0.0 1.0 0.0  686.261 1887.38 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+1150.05 0.0 2290.52 	0.0 1.0 0.0  686.261 1887.38 end
+715.115 0.0 2515.89 	0.0 1.0 0.0  980.818 2004.18 end
+1773.05 0.0 2932.1 	0.0 1.0 0.0  264.341 2219.89 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+1332.56 0.0 1777.76 	0.0 1.0 0.0  562.658 1621.64 end
+1150.05 0.0 2290.52 	0.0 1.0 0.0  686.261 1887.38 end
+1456.78 0.0 2233.35 	0.0 1.0 0.0  478.531 1857.75 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+1150.05 0.0 2290.52 	0.0 1.0 0.0  686.261 1887.38 end
+1097.9 0.0 1708.23 	0.011174 0.999926 0.00489723  721.579 1585.61 end
+628.591 0.0 2047.18 	-0.000651891 0.999924 0.0123355  1039.42 1761.27 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+1332.56 0.0 1777.76 	0.0 1.0 0.0  562.658 1621.64 end
+1580.39 0.0 1862.51 	0.0 1.0 0.0  394.817 1665.56 end
+1668.69 0.0 802.989 	0.0 2.0 0.0  335.016 1116.46 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+1349.94 0.0 830.446 	0.0 1.0 0.0  550.887 1130.69 end
+1332.56 0.0 1777.76 	0.0 1.0 0.0  562.658 1621.64 end
+1668.69 0.0 802.989 	0.0 2.0 0.0  335.016 1116.46 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+1773.05 0.0 2932.1 	0.0 1.0 0.0  264.341 2219.89 end
+715.115 0.0 2515.89 	0.0 1.0 0.0  980.818 2004.18 end
+334.243 0.0 2932.1 	0.0 1.0 0.0  1238.76 2219.89 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+602.69 26.5057 378.517 	-0.00698621 0.999914 -0.011066  1056.96 896.47 end
+1097.9 0.0 65.6434 	0.0228053 0.999731 -0.00420518  721.579 734.32 end
+628.591 0.0 -481.886 	0.034685 2.99896 -0.0297299  1039.42 450.558 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+98.4439 0.0 -38.6479 	-0.0131148 0.9999 -0.00530902  1398.45 680.27 end
+628.591 0.0 -481.886 	0.034685 2.99896 -0.0297299  1039.42 450.558 end
+167.971 0.0 -620.941 	0.0 1.0 0.0  1351.37 378.491 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+167.971 0.0 -620.941 	0.0 1.0 0.0  1351.37 378.491 end
+467.892 0.0 -980.543 	0.0 1.0 0.0  1148.25 192.124 end
+-336.731 0.0 -1345.23 	0.0 1.0 0.0  1693.17 3.11905 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+-249.194 0.0 769.609 	0.0 1.0 0.0  1633.89 1099.16 end
+89.753 0.0 1638.7 	-0.0177113 0.999831 0.00483222  1404.34 1549.57 end
+98.4439 0.0 -38.6479 	-0.0131148 0.9999 -0.00530902  1398.45 680.27 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+602.69 26.5057 378.517 	-0.00698621 0.999914 -0.011066  1056.96 896.47 end
+628.591 0.0 -481.886 	0.034685 2.99896 -0.0297299  1039.42 450.558 end
+98.4439 0.0 -38.6479 	-0.0131148 0.9999 -0.00530902  1398.45 680.27 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+167.971 0.0 -620.941 	0.0 1.0 0.0  1351.37 378.491 end
+-223.121 0.0 -203.776 	0.0 1.0 0.0  1616.23 594.691 end
+98.4439 0.0 -38.6479 	-0.0131148 0.9999 -0.00530902  1398.45 680.27 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+1150.05 0.0 -733.923 	0.0 1.0 0.0  686.261 319.937 end
+167.971 0.0 -620.941 	0.0 1.0 0.0  1351.37 378.491 end
+628.591 0.0 -481.886 	0.034685 2.99896 -0.0297299  1039.42 450.558 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+-249.194 0.0 769.609 	0.0 1.0 0.0  1633.89 1099.16 end
+-223.121 0.0 -203.776 	0.0 1.0 0.0  1616.23 594.691 end
+-847.418 0.0 -52.8535 	0.0 1.0 0.0  2039.03 672.908 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+-223.121 0.0 -203.776 	0.0 1.0 0.0  1616.23 594.691 end
+-336.731 0.0 -1345.23 	0.0 1.0 0.0  1693.17 3.11905 end
+-847.418 0.0 -52.8535 	0.0 1.0 0.0  2039.03 672.908 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+-249.194 0.0 769.609 	0.0 1.0 0.0  1633.89 1099.16 end
+-847.418 0.0 -52.8535 	0.0 1.0 0.0  2039.03 672.908 end
+-450.362 0.0 1085.53 	0.0 1.0 0.0  1770.13 1262.89 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+98.4439 0.0 -38.6479 	-0.0131148 0.9999 -0.00530902  1398.45 680.27 end
+-223.121 0.0 -203.776 	0.0 1.0 0.0  1616.23 594.691 end
+-249.194 0.0 769.609 	0.0 1.0 0.0  1633.89 1099.16 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+-450.362 0.0 1085.53 	0.0 1.0 0.0  1770.13 1262.89 end
+-847.418 0.0 -52.8535 	0.0 1.0 0.0  2039.03 672.908 end
+-1114.47 0.0 2742.46 	0.0 1.0 0.0  2219.89 2121.61 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+89.753 0.0 1638.7 	-0.0177113 0.999831 0.00483222  1404.34 1549.57 end
+602.69 26.5057 378.517 	-0.00698621 0.999914 -0.011066  1056.96 896.47 end
+98.4439 0.0 -38.6479 	-0.0131148 0.9999 -0.00530902  1398.45 680.27 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+-223.121 0.0 -203.776 	0.0 1.0 0.0  1616.23 594.691 end
+167.971 0.0 -620.941 	0.0 1.0 0.0  1351.37 378.491 end
+-336.731 0.0 -1345.23 	0.0 1.0 0.0  1693.17 3.11905 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+467.892 0.0 -980.543 	0.0 1.0 0.0  1148.25 192.124 end
+1643.98 0.0 -1349.11 	0.0 2.0 0.0  351.75 1.10943 end
+-336.731 0.0 -1345.23 	0.0 1.0 0.0  1693.17 3.11905 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+-450.362 0.0 1085.53 	0.0 1.0 0.0  1770.13 1262.89 end
+-450.362 0.0 1456.36 	0.0 1.0 0.0  1770.13 1455.07 end
+-249.194 0.0 769.609 	0.0 1.0 0.0  1633.89 1099.16 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+133.208 0.0 2281.83 	0.0 1.0 0.0  1374.91 1882.88 end
+414.916 0.0 2498.23 	0.0 1.0 0.0  1184.13 1995.03 end
+715.115 0.0 2515.89 	0.0 1.0 0.0  980.818 2004.18 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+628.591 0.0 2047.18 	-0.000651891 0.999924 0.0123355  1039.42 1761.27 end
+1097.9 0.0 1708.23 	0.011174 0.999926 0.00489723  721.579 1585.61 end
+579.25 23.7858 1273.68 	0.0562867 0.998405 0.00450754  1072.83 1360.4 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+414.916 0.0 2498.23 	0.0 1.0 0.0  1184.13 1995.03 end
+334.243 0.0 2932.1 	0.0 1.0 0.0  1238.76 2219.89 end
+715.115 0.0 2515.89 	0.0 1.0 0.0  980.818 2004.18 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+133.208 0.0 2281.83 	0.0 1.0 0.0  1374.91 1882.88 end
+334.243 0.0 2932.1 	0.0 1.0 0.0  1238.76 2219.89 end
+414.916 0.0 2498.23 	0.0 1.0 0.0  1184.13 1995.03 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+89.753 0.0 1638.7 	-0.0177113 0.999831 0.00483222  1404.34 1549.57 end
+628.591 0.0 2047.18 	-0.000651891 0.999924 0.0123355  1039.42 1761.27 end
+579.25 23.7858 1273.68 	0.0562867 0.998405 0.00450754  1072.83 1360.4 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+715.115 0.0 2515.89 	0.0 1.0 0.0  980.818 2004.18 end
+1150.05 0.0 2290.52 	0.0 1.0 0.0  686.261 1887.38 end
+133.208 0.0 2281.83 	0.0 1.0 0.0  1374.91 1882.88 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+-197.048 0.0 1838.59 	0.0 1.0 0.0  1598.57 1653.17 end
+89.753 0.0 1638.7 	-0.0177113 0.999831 0.00483222  1404.34 1549.57 end
+-249.194 0.0 769.609 	0.0 1.0 0.0  1633.89 1099.16 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+602.69 26.5057 378.517 	-0.00698621 0.999914 -0.011066  1056.96 896.47 end
+89.753 0.0 1638.7 	-0.0177113 0.999831 0.00483222  1404.34 1549.57 end
+579.25 23.7858 1273.68 	0.0562867 0.998405 0.00450754  1072.83 1360.4 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+133.208 0.0 2281.83 	0.0 1.0 0.0  1374.91 1882.88 end
+-197.048 0.0 1838.59 	0.0 1.0 0.0  1598.57 1653.17 end
+-1114.47 0.0 2742.46 	0.0 1.0 0.0  2219.89 2121.61 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+-197.048 0.0 1838.59 	0.0 1.0 0.0  1598.57 1653.17 end
+133.208 0.0 2281.83 	0.0 1.0 0.0  1374.91 1882.88 end
+89.753 0.0 1638.7 	-0.0177113 0.999831 0.00483222  1404.34 1549.57 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+-1114.47 0.0 2742.46 	0.0 1.0 0.0  2219.89 2121.61 end
+-197.048 0.0 1838.59 	0.0 1.0 0.0  1598.57 1653.17 end
+-450.362 0.0 1456.36 	0.0 1.0 0.0  1770.13 1455.07 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+133.208 0.0 2281.83 	0.0 1.0 0.0  1374.91 1882.88 end
+-1114.47 0.0 2742.46 	0.0 1.0 0.0  2219.89 2121.61 end
+334.243 0.0 2932.1 	0.0 1.0 0.0  1238.76 2219.89 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+-450.362 0.0 1456.36 	0.0 1.0 0.0  1770.13 1455.07 end
+-450.362 0.0 1085.53 	0.0 1.0 0.0  1770.13 1262.89 end
+-1114.47 0.0 2742.46 	0.0 1.0 0.0  2219.89 2121.61 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+89.753 0.0 1638.7 	-0.0177113 0.999831 0.00483222  1404.34 1549.57 end
+133.208 0.0 2281.83 	0.0 1.0 0.0  1374.91 1882.88 end
+628.591 0.0 2047.18 	-0.000651891 0.999924 0.0123355  1039.42 1761.27 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+-197.048 0.0 1838.59 	0.0 1.0 0.0  1598.57 1653.17 end
+-249.194 0.0 769.609 	0.0 1.0 0.0  1633.89 1099.16 end
+-450.362 0.0 1456.36 	0.0 1.0 0.0  1770.13 1455.07 
+endtri
+
+node 1000 0 none triangles material ambient: 0.0 0.0 0.0 diffuse: 149.94 149.94 149.94 specular: 229.5 229.5 229.5  endmaterial GrassGreen1.tga
+1097.9 0.0 65.6434 	0.0228053 0.999731 -0.00420518  721.579 734.32 end
+579.25 23.7858 1273.68 	0.0562867 0.998405 0.00450754  1072.83 1360.4 end
+1097.9 0.0 1708.23 	0.011174 0.999926 0.00489723  721.579 1585.61 
+endtri
+
+event KeyCtrl01 multiple 0.1 none Test_zwr01- endevent
+event KeyCtrl02 multiple 0.1 none Test_zwr01+ endevent
+event KeyCtrl03 multiple 0.1 none zwr02- endevent
+event KeyCtrl04 multiple 0.1 none zwr02+ endevent
+
+sky cgskj_sunset024.t3d endsky    
+atmo 0 0 0 0 4000 0.514 0.322 0.114 endatmo
+light -2000 200 -4000 0.173 0.173 0.173 0.98 0.569 0.227 0.729 0.541 0.106 endlight
+
+FirstInit
+
+trainset none start 0.0 0.0
+//$o Tor doœwiadczalny 
+//node 1000 0 EN57-082ra dynamic PKP\en57_v1 EN57-082ra.tga 6baII 0.0 connected 55 0 enddynamic
+//node 1000 0 EN57-082s dynamic PKP\en57_v1 EN57-082s.tga 6bsII 0.0 connected 55 0 enddynamic
+//node 1000 0 EN57-082rb dynamic PKP\en57_v1 EN57-082rb.tga 6bbII 0.0 reardriver 0 0 enddynamic
+
+node 800 0 ET22-135 dynamic PKP\ET22_v1 201E-135.tga 201E 0.0 headdriver 3 0 enddynamic
+node 800 0 163-048-2 dynamic CD\163_v1 163.bmp 163 0.0 nobody 0 0 enddynamic
+endtrainset
+
+
+
+        
+
