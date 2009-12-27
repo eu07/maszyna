@@ -466,14 +466,14 @@ TSubModel* __fastcall TSubModel::GetFromName(std::string search)
     if(search == Name)
         return this;
 
-    for(TSubModel* current = Next; current = current->Next; current != NULL)
+    if(Next)
     {
-        TSubModel* result = current->GetFromName(search);
+        TSubModel* result = Next->GetFromName(search);
         if(result)
-           return result;
+            return result;
     };
 
-    for(TSubModel* current = Child; current = current->Next; current != NULL)
+    for(TSubModel* current = Child; current != NULL; current = current->Next)
     {
         TSubModel* result = current->GetFromName(search);
         if(result)
