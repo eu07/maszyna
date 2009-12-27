@@ -94,7 +94,7 @@ __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 {
     Global::detonatoryOK=true;
     WriteLog("Starting MaSzyna rail vehicle simulator.");
-    WriteLog("Compilation 140904v13 - UNOFFICIAL <wersja niepubliczna>");
+    WriteLog("Compilation 26-12-2009");
     WriteLog("Online documentation and additional files on http://www.eu07.pl");
     WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx_EU, OLO_EU, Bart, Quark-t, ShaXbee, Oli_EU, youBy and others");
     WriteLog("Renderer:");
@@ -497,7 +497,7 @@ __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
     ident2.Identity();
 
 //  glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);  //{Texture blends with object background}
-  light= TTexturesManager::GetTextureID("smuga.tga");
+  light= TTexturesManager::GetTextureID("smuga.dds");
 
 //    Camera.Reset();
     ResetTimers();
