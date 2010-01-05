@@ -461,6 +461,8 @@ struct ToLower
 TSubModel* __fastcall TSubModel::GetFromName(std::string search)
 {
 
+    TSubModel* result = NULL;
+
     std::transform(search.begin(), search.end(), search.begin(), ToLower());
 
     if(search == Name)
@@ -468,19 +470,20 @@ TSubModel* __fastcall TSubModel::GetFromName(std::string search)
 
     if(Next)
     {
-        TSubModel* result = Next->GetFromName(search);
+        result = Next->GetFromName(search);
         if(result)
             return result;
     };
 
-    for(TSubModel* current = Child; current != NULL; current = current->Next)
+    if(Child)
     {
-        TSubModel* result = current->GetFromName(search);
+        result = Child->GetFromName(search);
         if(result)
             return result;
     };
 
     return NULL;
+    
 };
 
 WORD hbIndices[18]= {3,0,1,5,4,2,1,0,4,1,5,3,2,3,5,2,4,0};
