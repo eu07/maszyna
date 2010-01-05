@@ -684,8 +684,8 @@ void TTrack::MoveMe(vector3 pPosition)
     }
     else
     {
-        Segment->MoveMe(pPosition);
-    }
+       Segment->MoveMe(pPosition);
+    };
 
     ResourceManager::Unregister(this);
 

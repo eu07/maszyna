@@ -44,13 +44,16 @@ void ResourceManager::Sweep(double currentTime)
 
     Resources::iterator begin = std::remove_if(_resources.begin(), _resources.end(), ResourceExpired(currentTime - _expiry));
 
+    if(begin != _resources.end())
+        WriteLog("Releasing resources");
+
     for(Resources::iterator iter = begin; iter != _resources.end(); iter++)
         (*iter)->Release();
 
     if(begin != _resources.end())
     {
         std::ostringstream msg;
-        msg << "Released resources: " << (_resources.end() - begin);
+        msg << "Released " << (_resources.end() - begin) << " resources";
         WriteLog(msg.str().c_str());
     };
 
