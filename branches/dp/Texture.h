@@ -31,6 +31,7 @@ private:
     static AlphaValue LoadTGA(std::string fileName);
     static AlphaValue LoadDDS(std::string fileName);
 
+    static void SetFiltering(bool alpha, bool hash);
     static GLuint CreateTexture(char *buff, int bpp, int width, int Height, bool bHasAlpha, bool bHash) ;
 
     static Names _names;

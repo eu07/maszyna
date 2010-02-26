@@ -105,7 +105,10 @@ GLuint TTexturesManager::GetTextureID(std::string fileName)
         fileName.insert(0, szDefaultTexturePath);
 
     if(fileName.find('.') == std::string::npos)
-        fileName.append(szDefaultTextureExt);
+    {
+        fileName.append(".");
+        fileName.append(Global::szDefaultExt);
+    };
 
     Names::iterator iter = _names.find(fileName);
 
@@ -480,8 +483,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadDDS(std::string fileName)
     glGenTextures(1, &id);
     glBindTexture(GL_TEXTURE_2D, id);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    SetFiltering(true, fileName.find('#') != std::string::npos);
 
     GLuint size;
     GLuint offset = 0;
@@ -509,21 +511,14 @@ TTexturesManager::AlphaValue TTexturesManager::LoadDDS(std::string fileName)
 
 };
 
-///////////////////////////////////////////////////////////////////////////////
-GLuint TTexturesManager::CreateTexture(char *buff, int bpp, int width, int Height, bool bHasAlpha, bool bHash)
+void TTexturesManager::SetFiltering(bool alpha, bool hash)
 {
 
-    GLuint ID;
-    glGenTextures(1,&ID);
-    glBindTexture(GL_TEXTURE_2D, ID);
-    glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-    if ( bHasAlpha || bHash )
-     {
-      if (bHasAlpha) // przezroczystosc: nie wlaczac mipmapingu
+    if ( alpha || hash )
+    {
+      if (alpha) // przezroczystosc: nie wlaczac mipmapingu
        {
-         if (bHash) // #: calkowity brak filtracji
+         if (hash) // #: calkowity brak filtracji
           {
            glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_NEAREST);
            glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -545,6 +540,20 @@ GLuint TTexturesManager::CreateTexture(char *buff, int bpp, int width, int Heigh
        glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_LINEAR);
        glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
      }
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
+GLuint TTexturesManager::CreateTexture(char *buff, int bpp, int width, int Height, bool bHasAlpha, bool bHash)
+{
+
+    GLuint ID;
+    glGenTextures(1,&ID);
+    glBindTexture(GL_TEXTURE_2D, ID);
+    glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    SetFiltering(bHasAlpha, bHash);
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);

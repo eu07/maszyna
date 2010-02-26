@@ -340,10 +340,12 @@ void __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model)
     if(eType==smt_Mesh)
     {
 
+#ifdef USE_VERTEX_ARRAYS
         // ShaXbee-121209: przekazywanie wierzcholkow hurtem
         glVertexPointer(3, GL_DOUBLE, sizeof(GLVERTEX), &Vertices[0].Point.x);
         glNormalPointer(GL_DOUBLE, sizeof(GLVERTEX), &Vertices[0].Normal.x);
         glTexCoordPointer(2, GL_FLOAT, sizeof(GLVERTEX), &Vertices[0].tu);
+#endif
 
         uiDisplayList= glGenLists(1);
         glNewList(uiDisplayList,GL_COMPILE);
@@ -354,7 +356,18 @@ void __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model)
         if (bLight)
             glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,Diffuse);  //zeny swiecilo na kolorowo
 
+#ifdef USE_VERTEX_ARRAYS
         glDrawArrays(GL_TRIANGLES, 0, iNumVerts);
+#else
+        glBegin(GL_TRIANGLES);
+        for(int i=0; i<iNumVerts; i++)
+        {
+               glNormal3d(Vertices[i].Normal.x,Vertices[i].Normal.y,Vertices[i].Normal.z);
+               glTexCoord2f(Vertices[i].tu,Vertices[i].tv);
+               glVertex3dv(&Vertices[i].Point.x);
+        };
+        glEnd();
+#endif
 
         if (bLight)
             glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);

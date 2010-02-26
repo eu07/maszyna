@@ -132,6 +132,7 @@ public:
     static double fFogStart;
     static double fFogEnd;
     static TGround *pGround;
+    static std::string szDefaultExt;
     static char szSceneryFile[256];
     static char CreatorName1[20];
     static char CreatorName2[20];

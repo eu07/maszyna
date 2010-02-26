@@ -356,10 +356,6 @@ bool __fastcall TGroundNode::Render()
     switch (iType)
     {
 
-        case TP_TRACTION:
-            if (!Global::bRenderAlpha && bVisible && Global::bLoadTraction)
-              Traction->Render(mgn);
-        break;
         case TP_TRACK:
             pTrack->Render();
         break;
@@ -406,6 +402,9 @@ bool __fastcall TGroundNode::Render()
         (iNumPts && (!Global::bRenderAlpha || fLineThickness < 0)))
     {
 
+#ifdef USE_VBO
+        if(!VboID)
+#endif
         if(!DisplayListID)
         {
             Compile();
@@ -424,7 +423,10 @@ bool __fastcall TGroundNode::Render()
         // GL_TRIANGLE etc
         else
         {
+#ifdef USE_VBO
+#else
             glCallList(DisplayListID);
+#endif
         };
 
         SetLastUsage(Timer::GetSimulationTime());
@@ -443,28 +445,51 @@ void TGroundNode::Compile()
 
     if(iType == GL_LINES || iType == GL_LINE_STRIP || iType == GL_LINE_LOOP)
     {
-
+#ifdef USE_VERTEX_ARRAYS
         glVertexPointer(3, GL_DOUBLE, sizeof(vector3), &Points[0].x);
+#endif
+
         glBindTexture(GL_TEXTURE_2D, 0);
 
         glNewList(DisplayListID, GL_COMPILE);
+#ifdef USE_VERTEX_ARRAYS
         glDrawArrays(iType, 0, iNumPts);
+#else
+        glBegin(iType);
+        for(int i=0; i<iNumPts; i++)
+               glVertex3dv(&Points[i].x);
+        glEnd();
+#endif
+
         glEndList();
 
     }
     else
     {
 
+#ifdef USE_VERTEX_ARRAYS
+        glVertexPointer(3, GL_DOUBLE, sizeof(TGroundVertex), &Vertices[0].Point.x);
+        glNormalPointer(GL_DOUBLE, sizeof(TGroundVertex), &Vertices[0].Normal.x);
+        glTexCoordPointer(2, GL_FLOAT, sizeof(TGroundVertex), &Vertices[0].tu);
+#endif
+
         glNewList(DisplayListID, GL_COMPILE);
 
         glColor3ub(Diffuse[0],Diffuse[1],Diffuse[2]);
         glBindTexture(GL_TEXTURE_2D, Global::bWireFrame ? 0 : TextureID);
 
-        glVertexPointer(3, GL_DOUBLE, sizeof(TGroundVertex), &Vertices[0].Point.x);
-        glNormalPointer(GL_DOUBLE, sizeof(TGroundVertex), &Vertices[0].Normal.x);
-        glTexCoordPointer(2, GL_FLOAT, sizeof(TGroundVertex), &Vertices[0].tu);
-
+#ifdef USE_VERTEX_ARRAYS
         glDrawArrays(Global::bWireFrame ? GL_LINE_STRIP : iType, 0, iNumVerts);
+#else
+        glBegin(iType);
+        for(int i=0; i<iNumVerts; i++)
+        {
+               glNormal3d(Vertices[i].Normal.x,Vertices[i].Normal.y,Vertices[i].Normal.z);
+               glTexCoord2f(Vertices[i].tu,Vertices[i].tv);
+               glVertex3dv(&Vertices[i].Point.x);
+        };
+        glEnd();
+#endif
 
         glEndList();
 
@@ -493,9 +518,9 @@ bool __fastcall TGroundNode::RenderAlpha()
     int i,a;
     switch (iType)
     {
-         case TP_TRACTION:
-            if (Global::bRenderAlpha && bVisible && Global::bLoadTraction)
-              Traction->Render(mgn);
+        case TP_TRACTION:
+           if(Global::bRenderAlpha && bVisible && Global::bLoadTraction)
+               Traction->Render(mgn);
         break;
         case TP_MODEL:
            Model->RenderAlpha(pCenter,fAngle);

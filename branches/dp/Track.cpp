@@ -697,6 +697,9 @@ const int nnumPts= 12;
 void TTrack::Compile()
 {
 
+    if(DisplayListID)
+        Release();
+
     DisplayListID = glGenLists(1);
     glNewList(DisplayListID, GL_COMPILE);
 
