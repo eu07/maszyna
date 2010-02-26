@@ -237,7 +237,7 @@ void __fastcall TTraction::Render(float mgn)   //McZapkie: mgn to odleglosc od o
       r=r*Global::ambientDayLight[0];  //w zaleznosci od koloru swiatla
       g=g*Global::ambientDayLight[1];
       b=b*Global::ambientDayLight[2];
-      glColor4f(r,g,b,linealpha);
+      glColor3f(r,g,b); // linealpha);
       glCallList(uiDisplayList);
       glLineWidth(1.0);
     }

@@ -69,6 +69,7 @@ TGround *Global::pGround= NULL;
 //char Global::CreatorName4[30]= "Arkadiusz Slusarczyk <Winger>";
 //char Global::CreatorName5[30]= "Lukasz Kirchner <Nbmx>";
 char Global::szSceneryFile[256]= "scene.scn";
+std::string Global::szDefaultExt("dds");
 AnsiString Global::asCurrentSceneryPath= "scenery/";
 AnsiString Global::asHumanCtrlVehicle= "EU07-424";
 AnsiString Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath);
@@ -204,6 +205,10 @@ bool __fastcall Global::LoadIniFile(AnsiString asFileName)
           if (Parser->GetNextSymbol().LowerCase()==AnsiString("yes"))
           { asSky="1"; } else { asSky="0"; }
          }
+
+// ShaXbee - domyslne rozszerzenie tekstur
+        if (str==AnsiString("defaultext"))
+            szDefaultExt = std::string(Parser->GetNextSymbol().LowerCase().c_str());
 
         if (str==AnsiString("newaircouplers"))
          bnewAirCouplers=true;

@@ -532,16 +532,18 @@ bool __fastcall TWorld::Update()
     vector3 tmpvector = Global::GetCameraPosition();
 
     tmpvector = vector3(
-        int(tmpvector.x) - int(tmpvector.x) % 10000,
-        int(tmpvector.y) - int(tmpvector.y) % 10000,
-        int(tmpvector.z) - int(tmpvector.z) % 10000);
+        - int(tmpvector.x) + int(tmpvector.x) % 10000,
+        - int(tmpvector.y) + int(tmpvector.y) % 10000,
+        - int(tmpvector.z) + int(tmpvector.z) % 10000);
 
+#ifdef USE_SCENERY_MOVING
     if(tmpvector.x || tmpvector.y || tmpvector.z)
     {
         WriteLog("Moving scenery");
         Ground.MoveGroundNode(tmpvector);
         WriteLog("Scenery moved");
     };
+#endif
 
     if (GetFPS()<12)
           {  Global::slowmotion=true;  }
@@ -1194,8 +1196,6 @@ if(Global::detonatoryOK)
 //    glPrint(OutText4.c_str());
   	glEnable(GL_LIGHTING);
 
-    ResourceManager::Sweep(Timer::GetSimulationTime());
-
     return (true);
 };
 
@@ -1278,6 +1278,9 @@ bool __fastcall TWorld::Render()
 //     if (Controlled)
 //        Train->RenderAlpha();
     glFlush();
+
+    ResourceManager::Sweep(Timer::GetSimulationTime());
+        
     return true;
 };
 
