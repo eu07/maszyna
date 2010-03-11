@@ -92,6 +92,10 @@ TDynamicObject *Controlled= NULL;
 
 __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 {
+
+    _clear87();
+    _control87(MCW_EM, MCW_EM);
+
     Global::detonatoryOK=true;
     WriteLog("Starting MaSzyna rail vehicle simulator.");
     WriteLog("Compilation 26-12-2009");
