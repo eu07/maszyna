@@ -1350,7 +1350,7 @@ bool __fastcall TGround::Init(AnsiString asFile)
                ||(TrainSetNode->DynamicObject->EndSignalsLight1oldActive()))
                 TrainSetNode->DynamicObject->MoverParameters->HeadSignalsFlag=2+32;
               else
-                TrainSetNode->DynamicObject->MoverParameters->HeadSignalsFlag=64;
+                TrainSetNode->DynamicObject->MoverParameters->EndSignalsFlag=64;
             }
             bTrainSet= false;
             fTrainSetVel= 0;

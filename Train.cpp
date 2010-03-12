@@ -2648,6 +2648,19 @@ else
         }
      }
 
+     // Odskakiwanie hamulce EP
+     if (( !Pressed(Global::Keys[k_DecBrakeLevel]) )&&( !Pressed(Global::Keys[k_WaveBrake]) )&&(DynamicObject->MoverParameters->BrakeCtrlPos==-1)&&(DynamicObject->MoverParameters->BrakeSubsystem==Oerlikon)&&(DynamicObject->MoverParameters->BrakeSystem==ElectroPneumatic)&&(DynamicObject->Controller!= AIdriver))
+     {
+     //DynamicObject->MoverParameters->BrakeCtrlPos=(DynamicObject->MoverParameters->BrakeCtrlPos)+1;
+     DynamicObject->MoverParameters->IncBrakeLevel();
+     keybrakecount = 0;
+       if ((DynamicObject->MoverParameters->TrainType=="ezt")&&(DynamicObject->MoverParameters->Mains)&&(DynamicObject->MoverParameters->ActiveDir!=0))
+       {
+       dsbPneumaticSwitch->SetVolume(-10);
+       dsbPneumaticSwitch->Play( 0, 0, 0 );
+       }
+     }
+
 
 //    bool kEP;
 //    kEP=(DynamicObject->MoverParameters->BrakeSubsystem==Knorr)||(DynamicObject->MoverParameters->BrakeSubsystem==Hik)||(DynamicObject->MoverParameters->BrakeSubsystem==Kk);
