@@ -60,8 +60,8 @@ IncludeVerInfo=1
 AutoIncBuild=1
 MajorVer=1
 MinorVer=2
-Release=0
-Build=1
+Release=1
+Build=7
 Debug=0
 PreRelease=1
 Special=0
@@ -72,8 +72,8 @@ CodePage=1250
 
 [Version Info Keys]
 CompanyName=EU07 Team
-FileDescription=
-FileVersion=1.2.0.1
+FileDescription=PC2009 SP1
+FileVersion=1.2.1.7
 InternalName=hammer
 LegalCopyright=
 LegalTrademarks=
@@ -81,9 +81,6 @@ OriginalFilename=eu07.exe
 ProductName=MaSzyna EU07-424
 ProductVersion=1.1.1.0
 Comments=
-
-[Excluded Packages]
-$(BCB)\Bin\dclmid50.bpl=Borland MIDAS Components
 
 [HistoryLists\hlIncludePath]
 Count=8
