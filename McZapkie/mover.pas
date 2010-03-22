@@ -5109,9 +5109,9 @@ begin
      end;
   case bcmsno of
    1: BCMFlag:=bcmss;
-   2: if (TotalMass>(MaxLoad+Mass)*0.6) then BCMFlag:=bcmss+1 else BCMFlag:=bcmss;
-   3: if (TotalMass>(MaxLoad+Mass)*0.6) then BCMFlag:=bcmss+2 else if (TotalMass>(MaxLoad+Mass)*0.3) then BCMFlag:=bcmss+1 else BCMFlag:=bcmss;
-   4: if (TotalMass>(MaxLoad+Mass)*0.6) then BCMFlag:=bcmss+3 else if (TotalMass>(MaxLoad+Mass)*0.4) then BCMFlag:=bcmss+2 else if (TotalMass>(MaxLoad+Mass)*0.2) then BCMFlag:=bcmss+1 else BCMFlag:=bcmss;
+   2: if (Load>(MaxLoad)*0.55) then BCMFlag:=bcmss+1 else BCMFlag:=bcmss;
+   3: if (Load>(MaxLoad*1000+Mass)*0.7) then BCMFlag:=bcmss+2 else if (Load>(MaxLoad*0.35) then BCMFlag:=bcmss+1 else BCMFlag:=bcmss;
+   4: if (Load>(MaxLoad*1000+Mass)*0.8) then BCMFlag:=bcmss+3 else if (Load>(MaxLoad*0.55) then BCMFlag:=bcmss+2 else if (Load>(MaxLoad*0.3) then BCMFlag:=bcmss+1 else BCMFlag:=bcmss;
   end;
    P2FTrans:=1000*Pi*SQR(BrakeCylRadius)*BrakeCylMult[BCMFlag]; {w kN/MPa}
 
