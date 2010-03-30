@@ -126,6 +126,7 @@ public:
     static bool bEnableTraction;
     static bool bLoadTraction;
     static bool bLiveTraction;
+    static bool bManageModels;
 //    bool WFreeFly;
     static float Global::fMouseXScale;
     static float Global::fMouseYScale;

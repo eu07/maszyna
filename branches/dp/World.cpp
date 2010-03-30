@@ -93,9 +93,6 @@ TDynamicObject *Controlled= NULL;
 __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 {
 
-    _clear87();
-    _control87(MCW_EM, MCW_EM);
-
     Global::detonatoryOK=true;
     WriteLog("Starting MaSzyna rail vehicle simulator.");
     WriteLog("Compilation 26-12-2009");
@@ -1235,6 +1232,11 @@ double __fastcall ABuAcos(vector3 calc_temp)
 
 bool __fastcall TWorld::Render()
 {
+
+
+	int saved8087cw = Default8087CW;
+    Set8087CW(0x133f);    
+
     glColor3b(255, 255, 255);
 //    glColor3b(255, 0, 255);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -1282,6 +1284,8 @@ bool __fastcall TWorld::Render()
 //     if (Controlled)
 //        Train->RenderAlpha();
     glFlush();
+
+	Set8087CW(saved8087cw);
 
     ResourceManager::Sweep(Timer::GetSimulationTime());
         
