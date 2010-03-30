@@ -61,7 +61,7 @@ AutoIncBuild=1
 MajorVer=1
 MinorVer=2
 Release=1
-Build=7
+Build=11
 Debug=0
 PreRelease=1
 Special=0
@@ -73,7 +73,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=PC2009 SP1
-FileVersion=1.2.1.7
+FileVersion=1.2.1.11
 InternalName=hammer
 LegalCopyright=
 LegalTrademarks=
