@@ -2504,7 +2504,9 @@ if (renderme)
                else
                 vol=0;
              }
-            else
+            else if (MoverParameters->EngineType==DieselElectric)
+             vol=rsSilnik.AM*(MoverParameters->EnginePower/1000/MoverParameters->Power)+0.2*(MoverParameters->enrot*60)/(MoverParameters->DElist[MoverParameters->MainCtrlPosNo].RPM)+rsSilnik.AA;
+            else 
              vol=rsSilnik.AM*(MoverParameters->EnginePower/1000+fabs(MoverParameters->enrot)*60.0)+rsSilnik.AA;
 //            McZapkie-250302 - natezenie zalezne od obrotow i mocy
             if ((vol<1) && (MoverParameters->EngineType==ElectricSeriesMotor) && (MoverParameters->EnginePower<100))
@@ -2517,16 +2519,16 @@ if (renderme)
             {
                 case e_tunnel:
                  {
-                  vol*=2;
+                  vol+=0.1;
                  }
                 break;
                 case e_canyon:
                  {
-                  vol*=1.1;
+                  vol+=0.05;
                  }
                 break;
             }
-            if (enginevolume>0.05)
+            if (enginevolume>0.0001)
               if (MoverParameters->EngineType!=DieselElectric)
                { rsSilnik.Play(enginevolume,DSBPLAY_LOOPING,MechInside,GetPosition()); }
               else
