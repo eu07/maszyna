@@ -47,6 +47,7 @@ bool Global::bAdjustScreenFreq= true;
 bool Global::bEnableTraction= true;
 bool Global::bLoadTraction= true;
 bool Global::bLiveTraction= true;
+bool Global::bManageModels = false;
 bool Global::bnewAirCouplers= false;
 //bool Global::WFreeFly= false;
 float Global::fMouseXScale=3.2;
@@ -206,13 +207,18 @@ bool __fastcall Global::LoadIniFile(AnsiString asFileName)
           { asSky="1"; } else { asSky="0"; }
          }
 
+        if(str==AnsiString("managemodels"))
+        {
+            bManageModels = (Parser->GetNextSymbol().LowerCase() == AnsiString("yes"));
+        }
+
 // ShaXbee - domyslne rozszerzenie tekstur
         if (str==AnsiString("defaultext"))
             szDefaultExt = std::string(Parser->GetNextSymbol().LowerCase().c_str());
 
         if (str==AnsiString("newaircouplers"))
          bnewAirCouplers=true;
-                  
+
     }
 
 }

@@ -35,7 +35,13 @@ __fastcall TSubModel::TSubModel()
 {
     FirstInit();
     eType= smt_Unknown;
-    uiDisplayList= 0;
+    uiDisplayList = 0;
+
+    Vertices = NULL;
+    iNumVerts = -1;
+    Ambient[0] = 1; Ambient[1] = 1; Ambient[2] = 1; Ambient[3] = 1;
+    Diffuse[0] = 1; Diffuse[1] = 1; Diffuse[2] = 1; Diffuse[3] = 1;
+    Specular[0] = 0; Specular[1] = 0; Specular[2] = 0; Specular[3] = 1;
 };
 
 __fastcall TSubModel::FirstInit()
@@ -85,13 +91,15 @@ __fastcall TSubModel::FirstInit()
 
     fSquareMaxDist= 10000;
     fSquareMinDist= 0;
+
 };
 
 //#define SafeDelete(x) if (x!=NULL) delete (x)
 
 __fastcall TSubModel::~TSubModel()
 {
-    glDeleteLists(uiDisplayList,1);
+    if(uiDisplayList)
+        glDeleteLists(uiDisplayList,1);
 //    SafeDeleteArray(Indices);
     SafeDelete(Next);
     SafeDelete(Child);
@@ -140,13 +148,7 @@ inline void readMatrix(cParser& parser, matrix4x4& matrix)
 
 void __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model)
 {
-    GLVERTEX *Vertices= NULL;
-    int iNumVerts= -1;
-    bool bLight;
-//    TMaterialColorf Ambient,Diffuse,Specular;
-    float Ambient[] = { 1,1,1,1 };
-    float Diffuse[] = { 1,1,1,1 };
-    float Specular[] = { 0,0,0,1 };
+
 //    GLuint TextureID;
 //    char *extName;
 
@@ -335,30 +337,31 @@ void __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model)
         delete[] sg;
     };
 
-    int d;
+    if(!Global::bManageModels)
+    {
+        Compile();
+        SafeDeleteArray(Vertices);
+    };
+
+    Visible= true;
+};
+
+void TSubModel::Compile()
+{
+
+    uiDisplayList = glGenLists(1);
+    glNewList(uiDisplayList,GL_COMPILE);
+    glColor3f(Diffuse[0],Diffuse[1],Diffuse[2]);    
 
     if(eType==smt_Mesh)
     {
-
-#ifdef USE_VERTEX_ARRAYS
-        // ShaXbee-121209: przekazywanie wierzcholkow hurtem
-        glVertexPointer(3, GL_DOUBLE, sizeof(GLVERTEX), &Vertices[0].Point.x);
-        glNormalPointer(GL_DOUBLE, sizeof(GLVERTEX), &Vertices[0].Normal.x);
-        glTexCoordPointer(2, GL_FLOAT, sizeof(GLVERTEX), &Vertices[0].tu);
-#endif
-
-        uiDisplayList= glGenLists(1);
-        glNewList(uiDisplayList,GL_COMPILE);
 
         glColor3f(Diffuse[0],Diffuse[1],Diffuse[2]);   //McZapkie-240702: zamiast ub
         glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE,Diffuse);
 
         if (bLight)
-            glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,Diffuse);  //zeny swiecilo na kolorowo
+            glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,Diffuse);  // zeny swiecilo na kolorowo
 
-#ifdef USE_VERTEX_ARRAYS
-        glDrawArrays(GL_TRIANGLES, 0, iNumVerts);
-#else
         glBegin(GL_TRIANGLES);
         for(int i=0; i<iNumVerts; i++)
         {
@@ -367,27 +370,14 @@ void __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model)
                glVertex3dv(&Vertices[i].Point.x);
         };
         glEnd();
-#endif
 
         if (bLight)
             glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
-
-        glEndList();
     }
     else
     {
-        uiDisplayList= glGenLists(1);
-        glNewList(uiDisplayList,GL_COMPILE);
-
         glBindTexture(GL_TEXTURE_2D, 0);
-//        if (eType==smt_FreeSpotLight)
-//         {
-//          if (iFarAttenDecay==0)
-//            glColor3f(Diffuse[0],Diffuse[1],Diffuse[2]);
-//         }
-//         else
-//TODO: poprawic zeby dzialalo
-         glColor3f(Diffuse[0],Diffuse[1],Diffuse[2]);
+
         glColorMaterial(GL_FRONT_AND_BACK,GL_EMISSION);
         glDisable( GL_LIGHTING );  //Tolaris-030603: bo mu punkty swiecace sie blendowaly
         glBegin(GL_POINTS);
@@ -397,13 +387,27 @@ void __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model)
         glColorMaterial(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE);
         glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
 
-        glEndList();
-
     }
 
-    SafeDeleteArray(Vertices);
-    Visible= true;
+    glEndList();    
+
 };
+
+void TSubModel::Release()
+{
+
+    if(Child)
+        Child->Release();
+
+    if(Next)
+        Next->Release();
+
+    if(uiDisplayList)
+        glDeleteLists(uiDisplayList, 1);
+
+    uiDisplayList = 0;
+    
+}
 
 void __fastcall TSubModel::AddChild(TSubModel *SubModel)
 {
@@ -509,6 +513,10 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId)
 
     if (Visible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
     {
+
+      if(!uiDisplayList)
+          Compile();
+
       glPushMatrix();
       glMultMatrixd(Matrix.getArray());
 
@@ -599,6 +607,10 @@ void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId)
 
     if (Visible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
     {
+
+      if(!uiDisplayList)
+          Compile();
+          
       glPushMatrix();
       glMultMatrixd(Matrix.getArray());
       if (b_aAnim==at_Rotate)
@@ -654,6 +666,7 @@ __fastcall TModel3d::TModel3d()
 //    MaterialsCount= 0;
     Root= NULL;
     SubModelsCount= 0;
+    bRegistered = 0;
 //    ReplacableSkinID = 0;
 };
 
@@ -768,6 +781,14 @@ void __fastcall TModel3d::BreakHierarhy()
 
 void __fastcall TModel3d::Render(vector3 pPosition, double fAngle, GLuint ReplacableSkinId)
 {
+
+    if(Global::bManageModels)
+    {
+        if(!bRegistered)
+            ResourceManager::Register(this);
+
+        SetLastUsage(Timer::GetSimulationTime());
+    };
 //    glColor3f(1.0f,1.0f,1.0f);
 //    glColor3f(0.0f,0.0f,0.0f);
     glPushMatrix();
@@ -785,7 +806,7 @@ void __fastcall TModel3d::Render(vector3 pPosition, double fAngle, GLuint Replac
     pos= CurrentMatrix*pos;
     fSquareDist= SquareMagnitude(pos);
   */
-    fSquareDist= SquareMagnitude(pPosition-Global::GetCameraPosition());
+    fSquareDist = SquareMagnitude(pPosition-Global::GetCameraPosition());
 
 #ifdef _DEBUG
     if (Root)
@@ -821,6 +842,12 @@ void __fastcall TModel3d::RenderAlpha(vector3 pPosition, double fAngle, GLuint R
     Root->RenderAlpha(ReplacableSkinId);
 #endif
     glPopMatrix();
+};
+
+void TModel3d::Release()
+{
+    if(Root)
+        Root->Release();
 };
 
 void __fastcall TModel3d::RenderAlpha(double fSquareDistance, GLuint ReplacableSkinId)
