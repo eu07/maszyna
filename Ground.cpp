@@ -442,7 +442,11 @@ void TGroundNode::Compile()
     if(DisplayListID)
         Release();
 
-    DisplayListID = glGenLists(1);
+    if(Global::bManageNodes)
+    {
+        DisplayListID = glGenLists(1);
+        glNewList(DisplayListID, GL_COMPILE);
+    };
 
     if(iType == GL_LINES || iType == GL_LINE_STRIP || iType == GL_LINE_LOOP)
     {
@@ -452,7 +456,6 @@ void TGroundNode::Compile()
 
         glBindTexture(GL_TEXTURE_2D, 0);
 
-        glNewList(DisplayListID, GL_COMPILE);
 #ifdef USE_VERTEX_ARRAYS
         glDrawArrays(iType, 0, iNumPts);
 #else
@@ -461,9 +464,6 @@ void TGroundNode::Compile()
                glVertex3dv(&Points[i].x);
         glEnd();
 #endif
-
-        glEndList();
-
     }
     else
     {
@@ -473,8 +473,6 @@ void TGroundNode::Compile()
         glNormalPointer(GL_DOUBLE, sizeof(TGroundVertex), &Vertices[0].Normal.x);
         glTexCoordPointer(2, GL_FLOAT, sizeof(TGroundVertex), &Vertices[0].tu);
 #endif
-
-        glNewList(DisplayListID, GL_COMPILE);
 
         glColor3ub(Diffuse[0],Diffuse[1],Diffuse[2]);
         glBindTexture(GL_TEXTURE_2D, Global::bWireFrame ? 0 : TextureID);
@@ -491,10 +489,10 @@ void TGroundNode::Compile()
         };
         glEnd();
 #endif
-
-        glEndList();
-
     };
+
+    if(Global::bManageNodes)
+        glEndList();
 
 };
 

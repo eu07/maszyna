@@ -700,8 +700,11 @@ void TTrack::Compile()
     if(DisplayListID)
         Release();
 
-    DisplayListID = glGenLists(1);
-    glNewList(DisplayListID, GL_COMPILE);
+    if(Global::bManageNodes)
+    {
+        DisplayListID = glGenLists(1);
+        glNewList(DisplayListID, GL_COMPILE);
+    };
 
     glColor3f(1.0f,1.0f,1.0f);
 
@@ -874,7 +877,8 @@ void TTrack::Compile()
          break;
     }
 
-    glEndList();
+    if(Global::bManageNodes)
+        glEndList();
 
 };
 
