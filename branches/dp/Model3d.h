@@ -6,9 +6,6 @@
 #include "geometry.h"
 #include "Parser.h"
 #include "dumb3d.h"
-
-#include "ResourceManager.h"
-
 using namespace Math3D;
 
 struct GLVERTEX
@@ -121,12 +118,6 @@ class TSubModel
       vector3 v_DesiredTransVector, v_aDesiredTransVector;
       double f_TranslateSpeed, f_aTranslateSpeed;
 
-      GLVERTEX* Vertices;
-      int iNumVerts;
-      bool bLight;
-      float Ambient[4];
-      float Diffuse[4];
-      float Specular[4];
 
       TSubModel *Next;
       TSubModel *Child;
@@ -154,10 +145,6 @@ class TSubModel
       inline matrix4x4* __fastcall GetMatrix() { return &Matrix; };
       matrix4x4* __fastcall GetTransform();
       inline void __fastcall Hide() { Visible= false; };
-
-      void Compile();
-      void Release();
-      
   } ;
   /*
   class TSolid
@@ -168,13 +155,12 @@ class TSubModel
   } */
 
 
-class TModel3d: public Resource
+class TModel3d
 {
 private:
 //    TMaterial *Materials;
     int MaterialsCount;
     bool TractionPart;
-    bool bRegistered;
     TSubModel *Root;
 public:
     inline TSubModel* __fastcall GetSMRoot() {return(Root);};
@@ -195,8 +181,6 @@ public:
     void __fastcall RenderAlpha( vector3 pPosition, double fAngle= 0, GLuint ReplacableSkinId= 0);
     void __fastcall RenderAlpha( double fSquareDistance, GLuint ReplacableSkinId= 0);
     inline int __fastcall GetSubModelsCount() { return (SubModelsCount); };
-
-    virtual void Release();
 };
 
 typedef TModel3d *PModel3d;

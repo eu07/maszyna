@@ -1233,10 +1233,6 @@ double __fastcall ABuAcos(vector3 calc_temp)
 bool __fastcall TWorld::Render()
 {
 
-
-	int saved8087cw = Default8087CW;
-    Set8087CW(0x133f);    
-
     glColor3b(255, 255, 255);
 //    glColor3b(255, 0, 255);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -1285,10 +1281,8 @@ bool __fastcall TWorld::Render()
 //        Train->RenderAlpha();
     glFlush();
 
-	Set8087CW(saved8087cw);
-
     ResourceManager::Sweep(Timer::GetSimulationTime());
-        
+
     return true;
 };
 

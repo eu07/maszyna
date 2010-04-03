@@ -47,7 +47,7 @@ bool Global::bAdjustScreenFreq= true;
 bool Global::bEnableTraction= true;
 bool Global::bLoadTraction= true;
 bool Global::bLiveTraction= true;
-bool Global::bManageModels = false;
+bool Global::bManageNodes = true;
 bool Global::bnewAirCouplers= false;
 //bool Global::WFreeFly= false;
 float Global::fMouseXScale=3.2;
@@ -207,9 +207,9 @@ bool __fastcall Global::LoadIniFile(AnsiString asFileName)
           { asSky="1"; } else { asSky="0"; }
          }
 
-        if(str==AnsiString("managemodels"))
+        if(str==AnsiString("managenodes"))
         {
-            bManageModels = (Parser->GetNextSymbol().LowerCase() == AnsiString("yes"));
+            bManageNodes = (Parser->GetNextSymbol().LowerCase() == AnsiString("yes"));
         }
 
 // ShaXbee - domyslne rozszerzenie tekstur
