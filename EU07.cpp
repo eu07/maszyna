@@ -91,6 +91,10 @@ LRESULT	CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);	// Declaration For WndProc
 
 int InitGL(GLvoid)										// All Setup For OpenGL Goes Here
 {
+
+    _clear87();
+    _control87(MCW_EM, MCW_EM);
+
     glewInit();
 
     AllocConsole();

@@ -408,7 +408,8 @@ bool __fastcall TGroundNode::Render()
         if(!DisplayListID)
         {
             Compile();
-            ResourceManager::Register(this);
+            if(Global::bManageNodes)
+                ResourceManager::Register(this);
         };
 
         // GL_LINE, GL_LINE_STRIP, GL_LINE_LOOP
@@ -539,7 +540,8 @@ bool __fastcall TGroundNode::RenderAlpha()
         if(!DisplayListID)
         {
             Compile();
-            ResourceManager::Register(this);
+            if(Global::bManageNodes)
+                ResourceManager::Register(this);
         };
 
         // GL_LINE, GL_LINE_STRIP, GL_LINE_LOOP

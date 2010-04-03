@@ -895,7 +895,8 @@ bool __fastcall TTrack::Render()
         if(!DisplayListID)
         {
             Compile();
-            ResourceManager::Register(this);
+            if(Global::bManageNodes)
+                ResourceManager::Register(this);
         };
 
         SetLastUsage(Timer::GetSimulationTime());
