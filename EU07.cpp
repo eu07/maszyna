@@ -68,7 +68,7 @@ USEUNIT("sky.cpp");
 USEUNIT("AirCoupler.cpp");
 USEUNIT("glew.c");
 USEUNIT("ResourceManager.cpp");
-
+USEUNIT("TextureDDS.cpp");
 #include "World.h"
 
 HDC		hDC=NULL;			// Private GDI Device Context
