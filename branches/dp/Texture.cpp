@@ -29,6 +29,8 @@
 
 #include "Usefull.h"
 #include "Texture.h"
+#include "TextureDDS.h"
+
 #include "logs.h"
 #include "Globals.h"
 
@@ -396,17 +398,6 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTEX(std::string fileName)
 
 };
 
-struct DDS_IMAGE_DATA
-{
-    GLsizei  width;
-    GLsizei  height;
-    GLint    components;
-    GLenum   format;
-    GLuint   blockSize;
-    int      numMipMaps;
-    GLubyte *pixels;
-};
-
 TTexturesManager::AlphaValue TTexturesManager::LoadDDS(std::string fileName)
 {
 
@@ -485,7 +476,6 @@ TTexturesManager::AlphaValue TTexturesManager::LoadDDS(std::string fileName)
 
     SetFiltering(true, fileName.find('#') != std::string::npos);
 
-    GLuint size;
     GLuint offset = 0;
 
     // Load the mip-map levels
@@ -494,10 +484,32 @@ TTexturesManager::AlphaValue TTexturesManager::LoadDDS(std::string fileName)
         if(!data.width) data.width = 1;
         if(!data.height) data.height = 1;
 
-        size = ((data.width + 3) / 4) * ((data.height+3)/4) * data.blockSize;
+        GLuint size = ((data.width + 3) / 4) * ((data.height+3)/4) * data.blockSize;
 
-        glCompressedTexImage2D(GL_TEXTURE_2D, i, data.format, data.width,
-            data.height, 0, size, data.pixels + offset);
+        if(Global::bDecompressDDS)
+        {
+            GLuint decomp_size = data.width * data.height * 4;
+            GLubyte* output = new GLubyte[decomp_size];
+            DecompressDXT(data, data.pixels + offset, output);
+
+            glTexImage2D(GL_TEXTURE_2D, i, GL_RGBA, data.width, data.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, output);
+
+            delete[] output;
+        }
+        else
+        {
+            glCompressedTexImage2D(
+                GL_TEXTURE_2D,
+                i,
+                data.format,
+                data.width,
+                data.height,
+                0,
+                size,
+                data.pixels + offset
+            );
+
+        }
 
         offset += size;
 
