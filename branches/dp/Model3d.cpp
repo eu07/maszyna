@@ -335,11 +335,6 @@ void __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model)
         delete[] sg;
     };
 
-<<<<<<< .mine
-=======
-    int d;
-
->>>>>>> .r28
     if(eType==smt_Mesh)
     {
 
@@ -771,15 +766,6 @@ void __fastcall TModel3d::BreakHierarhy()
 
 void __fastcall TModel3d::Render(vector3 pPosition, double fAngle, GLuint ReplacableSkinId)
 {
-<<<<<<< .mine
-
-    if(!bRegistered)
-        ResourceManager::Register(this);
-
-    SetLastUsage(Timer::GetSimulationTime());
-
-=======
->>>>>>> .r28
 //    glColor3f(1.0f,1.0f,1.0f);
 //    glColor3f(0.0f,0.0f,0.0f);
     glPushMatrix();

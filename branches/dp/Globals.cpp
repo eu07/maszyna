@@ -47,6 +47,7 @@ bool Global::bAdjustScreenFreq= true;
 bool Global::bEnableTraction= true;
 bool Global::bLoadTraction= true;
 bool Global::bLiveTraction= true;
+bool Global::bManageNodes = true;
 bool Global::bnewAirCouplers= false;
 bool Global::bDecompressDDS = true;
 //bool Global::WFreeFly= false;
@@ -206,6 +207,11 @@ bool __fastcall Global::LoadIniFile(AnsiString asFileName)
           if (Parser->GetNextSymbol().LowerCase()==AnsiString("yes"))
           { asSky="1"; } else { asSky="0"; }
          }
+
+        if(str==AnsiString("managenodes"))
+        {
+            bManageNodes = (Parser->GetNextSymbol().LowerCase() == AnsiString("yes"));
+        }
 
         if(str==AnsiString("decompressdds"))
         {
