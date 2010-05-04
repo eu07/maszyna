@@ -486,7 +486,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadDDS(std::string fileName)
 
         GLuint size = ((data.width + 3) / 4) * ((data.height+3)/4) * data.blockSize;
 
-        if(Global::bDecompressDDS)
+        if((Global::bDecompressDDS)&&(i==(data.numMipMaps-1)))
         {
             GLuint decomp_size = data.width * data.height * 4;
             GLubyte* output = new GLubyte[decomp_size];
