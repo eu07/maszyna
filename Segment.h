@@ -39,11 +39,11 @@ public:
         s/= fLength;
         return ((1-s)*fRoll1+(s)*fRoll2);
     }
-    bool __fastcall RenderLoft(const vector3 *ShapePoints, int iNumShapePoints,
+    void __fastcall RenderLoft(const vector3 *ShapePoints, int iNumShapePoints,
         double fTextureLength, int iSkip=0, int iQualityFactor=1);
-    bool __fastcall RenderSwitchRail(const vector3 *ShapePoints1, const vector3 *ShapePoints2,
+    void __fastcall RenderSwitchRail(const vector3 *ShapePoints1, const vector3 *ShapePoints2,
                             int iNumShapePoints,double fTextureLength, int iSkip=0, double fOffsetX=0.0f);
-    bool __fastcall Render();
+    void __fastcall Render();
     inline double __fastcall GetLength() { return fLength; };
     void __fastcall MoveMe(vector3 pPosition) { Point1+=pPosition; Point2+=pPosition; if(bCurve) {CPointIn+=pPosition; CPointOut+=pPosition;}}    
 };

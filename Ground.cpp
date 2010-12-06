@@ -69,9 +69,9 @@ __fastcall TSubRect::AddNode(TGroundNode *Node)
    Node->Next2= pRootNode; pRootNode= Node;
 };*/
 
+/*
 bool __fastcall Include(TQueryParserComp *Parser)
 {
-/*
     TFileStream *fs;
     AnsiString str,asFileName,Token;
     int size,ParamPos;
@@ -116,8 +116,8 @@ bool __fastcall Include(TQueryParserComp *Parser)
 //            Parser->First();
 
             delete fs;
-*/
 }
+*/
 
 //TGround *pGround= NULL;
 
@@ -182,16 +182,17 @@ bool __fastcall TGroundNode::Init(int n)
     bVisible= false;
     iNumVerts= n;
     Vertices= new TGroundVertex[iNumVerts];
+    return true;
 }
 
-__fastcall TGroundNode::InitCenter()
+void __fastcall TGroundNode::InitCenter()
 {
     for (int i=0; i<iNumVerts; i++)
         pCenter+= Vertices[i].Point;
     pCenter/= iNumVerts;
 }
 
-__fastcall TGroundNode::InitNormals()
+void __fastcall TGroundNode::InitNormals()
 {
     vector3 v1,v2,v3,v4,v5,n1,n2,n3,n4;
     int i;
@@ -287,7 +288,6 @@ void __fastcall TGroundNode::MoveMe(vector3 pPosition)
 //McZapkie - dzwiek zapetlony w zaleznosci od odleglosci
              pStaticSound->vSoundPosition+=pPosition;
         break;
-        break;
         case GL_LINES:
         case GL_LINE_STRIP:
         case GL_LINE_LOOP:
@@ -334,13 +334,13 @@ void __fastcall TGround::MoveGroundNode(vector3 pPosition)
         }
 }
 
-bool __fastcall TGroundNode::Disable()
+/*bool __fastcall TGroundNode::Disable()
 {
 //    bRenderable= false;
 //    if ((iType==TP_EVENT) && Event)
 //        Event->bEnabled= false;
 
-}
+}*/
 
 bool __fastcall TGroundNode::Render()
 {
@@ -433,7 +433,7 @@ bool __fastcall TGroundNode::Render()
         SetLastUsage(Timer::GetSimulationTime());
 
     };
-
+ return true;
 };
 
 void TGroundNode::Compile()
@@ -566,7 +566,7 @@ bool __fastcall TGroundNode::RenderAlpha()
         SetLastUsage(Timer::GetSimulationTime());
 
     };
-
+ return true;
 }
 
 
@@ -594,7 +594,7 @@ __fastcall TGround::~TGround()
     Free();
 }
 
-bool __fastcall TGround::Free()
+void __fastcall TGround::Free()
 {
     TEvent *tmp;
     for (TEvent *Current=RootEvent; Current!=NULL; )
@@ -1823,6 +1823,7 @@ bool __fastcall TGround::InitEvents()
         if (Current->fDelay<0)
             AddToQuery(Current,NULL);
     }
+ return true;   
 }
 
 bool __fastcall TGround::InitTracks()
@@ -1965,6 +1966,7 @@ bool __fastcall TGround::InitLaunchers()
            EventLauncher->Event2= (EventLauncher->asEvent2Name!=AnsiString("none")) ? FindEvent(EventLauncher->asEvent2Name) : NULL;
          }
     }
+ return true;   
 }
 
 TGroundNode* __fastcall TGround::FindTrack(vector3 Point, int &iConnection, TGroundNode *Exclude= NULL)
@@ -2076,6 +2078,7 @@ bool __fastcall TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
             QueryRootEvent= Event;
         }
     }
+ return true;
 }
 
 bool __fastcall TGround::CheckQuery()
@@ -2174,7 +2177,7 @@ if (QueryRootEvent)
                 if (QueryRootEvent->Params[9].asModel)
                     for (i=0; i<iMaxNumLights; i++)
                         if (QueryRootEvent->Params[i].asInt>=0)
-                            QueryRootEvent->Params[9].asModel->lsLights[i]= QueryRootEvent->Params[i].asInt;
+                            QueryRootEvent->Params[9].asModel->lsLights[i]=(TLightState)QueryRootEvent->Params[i].asInt;
             break;
             case tp_Velocity :
                 Error("Not implemented yet :(");
@@ -2182,7 +2185,6 @@ if (QueryRootEvent)
             case tp_Exit :
                 MessageBox(0,QueryRootEvent->asNodeName.c_str()," THE END ",MB_OK);
                 return false;
-            break;
             case tp_Sound :
               { if (QueryRootEvent->Params[0].asInt==0)
                   QueryRootEvent->Params[9].asRealSound->Stop();
@@ -2371,6 +2373,7 @@ bool __fastcall TGround::Update(double dt, int iter)
          }
       }
    }
+ return true;  
 }
 
 //Winger 170204 - szukanie trakcji nad pantografami

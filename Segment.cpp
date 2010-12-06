@@ -9,6 +9,7 @@
 
 #define Precision 10000
 
+//101206 Ra: trapezoidalne drogi (proste)
 
 __fastcall TSegment::TSegment()
 {
@@ -23,7 +24,7 @@ __fastcall TSegment::TSegment()
 
 bool __fastcall TSegment::Init(vector3 NewPoint1, vector3 NewPoint2, double fNewStep,
                                 double fNewRoll1, double fNewRoll2)
-{
+{//wersja dla prostego - wyliczanie punktów kontrolnych
     vector3 dir;
     dir= Normalize(NewPoint2-NewPoint1);
     return (TSegment::Init(NewPoint1,dir,
@@ -56,7 +57,7 @@ bool __fastcall TSegment::Init(vector3 NewPoint1, vector3 NewCPointOut,
 
     SafeDeleteArray(fTsBuffer);
     if ((bCurve) && (fStep>0))
-    {
+    {//Ra: prosty dostanie podzia³, jak ma wpisane kontrolne :(
         double s=0;
         int i=0;
         fTsBuffer= new double[ceil(fLength/fStep)+1];
@@ -92,7 +93,7 @@ vector3 __fastcall TSegment::GetFirstDerivative(double fTime)
     double fPowTime = fTime;
     vector3 kResult = fOmTime*(CPointOut-Point1);
 
-    int iDegreeM1 = 3 - 1;
+    //int iDegreeM1 = 3 - 1;
 
     double fCoeff = 2*fPowTime;
     kResult = (kResult+fCoeff*(CPointIn-CPointOut))*fOmTime;
@@ -164,7 +165,7 @@ double __fastcall TSegment::GetTFromS(double s)
 
     // Newton's method failed.  If this happens, increase iterations or
     // tolerance or integration accuracy.
-    return -1;
+    //return -1; //Ra: tu nigdy nie dojdzie
 
 }
 
@@ -227,7 +228,7 @@ vector3 __fastcall TSegment::FastGetPoint(double t)
     return  (bCurve ? Interpolate(t,Point1,CPointOut,CPointIn,Point2) : ((1-t)*Point1+(t)*Point2) );
 }
 
-bool __fastcall TSegment::RenderLoft(const vector3 *ShapePoints, int iNumShapePoints,
+void __fastcall TSegment::RenderLoft(const vector3 *ShapePoints, int iNumShapePoints,
         double fTextureLength, int iSkip, int iQualityFactor)
 {
     if (iQualityFactor<1) iQualityFactor= 1;
@@ -235,6 +236,8 @@ bool __fastcall TSegment::RenderLoft(const vector3 *ShapePoints, int iNumShapePo
     vector3 pos1,pos2,dir,parallel1,parallel2,pt;
     double s,step,fOffset,tv1,tv2,t;
     int i,j ;
+    bool trapez=iNumShapePoints<0; //sygnalizacja trapezowatoœci
+    iNumShapePoints=abs(iNumShapePoints);
     if (bCurve)
     {
             tv1=0;
@@ -299,13 +302,29 @@ bool __fastcall TSegment::RenderLoft(const vector3 *ShapePoints, int iNumShapePo
             }
     }
     else
-    {
+    {//gdy prosty
             pos1= FastGetPoint( (fStep*iSkip)/fLength );
             pos2= FastGetPoint( 1.0f );
             dir= GetDirection();
             parallel1= Normalize(CrossProduct(dir,vector3(0,1,0)));
 
             glBegin(GL_TRIANGLE_STRIP);
+            if (trapez)
+                for (j=0; j<iNumShapePoints; j++)
+                {
+                pt= parallel1*ShapePoints[j].x+pos1;
+                pt.y+= ShapePoints[j].y;
+                glNormal3f(0.0f,1.0f,0.0f);
+                glTexCoord2f(ShapePoints[j].z,0);
+                glVertex3f(pt.x,pt.y,pt.z);
+                //dla trapezu drugi koniec ma inne wspó³rzêdne
+                pt= parallel1*ShapePoints[j+iNumShapePoints].x+pos2; //odsuniêcie
+                pt.y+= ShapePoints[j+iNumShapePoints].y; //wysokoœæ
+                glNormal3f(0.0f,1.0f,0.0f);
+                glTexCoord2f(ShapePoints[j+iNumShapePoints].z,fLength/fTextureLength);
+                glVertex3f(pt.x,pt.y,pt.z);
+                }
+            else
                 for (j=0; j<iNumShapePoints; j++)
                 {
                 pt= parallel1*ShapePoints[j].x+pos1;
@@ -324,7 +343,7 @@ bool __fastcall TSegment::RenderLoft(const vector3 *ShapePoints, int iNumShapePo
     }
 };
 
-bool __fastcall TSegment::RenderSwitchRail(const vector3 *ShapePoints1, const vector3 *ShapePoints2,
+void __fastcall TSegment::RenderSwitchRail(const vector3 *ShapePoints1, const vector3 *ShapePoints2,
                             int iNumShapePoints,double fTextureLength, int iSkip, double fOffsetX)
 {
     vector3 pos1,pos2,dir,parallel1,parallel2,pt;
@@ -332,7 +351,7 @@ bool __fastcall TSegment::RenderSwitchRail(const vector3 *ShapePoints1, const ve
     int i,j ;
     if (bCurve)
     {
-            t2= 0;
+            //t2= 0;
             t2step= 1/double(iSkip);
             oldt2= 1;
             tv1=0;
@@ -353,7 +372,7 @@ bool __fastcall TSegment::RenderSwitchRail(const vector3 *ShapePoints1, const ve
             while (s<fLength && i<iSkip)
             {
 //                step= SquareMagnitude(Global::GetCameraPosition()+pos);
-                t2= oldt2+t2step;
+                //t2= oldt2+t2step;
                 i++;
                 s+= step;
 
@@ -473,11 +492,11 @@ bool __fastcall TSegment::RenderSwitchRail(const vector3 *ShapePoints1, const ve
     }
 };
 
-bool __fastcall TSegment::Render()
+void __fastcall TSegment::Render()
 {
         vector3 pt;
         glBindTexture(GL_TEXTURE_2D, 0);
-        int i=0;
+        int i;
             if (bCurve)
             {
                 glColor3f(0,0,1.0f);
