@@ -170,7 +170,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
 {
 
   bool isEztOer;
-  isEztOer=(DynamicObject->MoverParameters->TrainType=="ezt")&&(DynamicObject->MoverParameters->Mains)&&(DynamicObject->MoverParameters->BrakeSubsystem==Oerlikon)&&(DynamicObject->MoverParameters->ActiveDir!=0);
+  isEztOer=(DynamicObject->MoverParameters->TrainType==dt_EZT)&&(DynamicObject->MoverParameters->Mains)&&(DynamicObject->MoverParameters->BrakeSubsystem==Oerlikon)&&(DynamicObject->MoverParameters->ActiveDir!=0);
 
   if (GetAsyncKeyState(VK_SHIFT)<0)
    {
@@ -940,7 +940,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
        if (!FreeFlyModeFlag)
         {
          if((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)||(DynamicObject->MoverParameters->EngineType==DieselElectric))
-          if(DynamicObject->MoverParameters->TrainType!="ezt")
+          if(DynamicObject->MoverParameters->TrainType!=dt_EZT)
            if (DynamicObject->MoverParameters->BrakeCtrlPosNo>0)
             {
              ReleaserButtonGauge.PutValue(1);
@@ -1394,7 +1394,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else
       if (cKey==Global::Keys[k_StLinOff])   //Winger 110904: wylacznik st. liniowych
       {
-         if(DynamicObject->MoverParameters->TrainType!="ezt")
+         if(DynamicObject->MoverParameters->TrainType!=dt_EZT)
           {
                    FuseButtonGauge.PutValue(1);
                    dsbSwitch->SetVolume(DSBVOLUME_MAX);
@@ -1860,11 +1860,11 @@ else
    TDynamicObject *tmp;
    tmp=NULL;
    if (DynamicObject->NextConnected)
-      if ((DynamicObject->NextConnected->MoverParameters->TrainType=="ET41")
+      if ((DynamicObject->NextConnected->MoverParameters->TrainType==dt_ET41)
          && TestFlag(DynamicObject->MoverParameters->Couplers[1].CouplingFlag,ctrain_controll))
          tmp=DynamicObject->NextConnected;
    if (DynamicObject->PrevConnected)
-      if ((DynamicObject->PrevConnected->MoverParameters->TrainType=="ET41")
+      if ((DynamicObject->PrevConnected->MoverParameters->TrainType==dt_ET41)
          && TestFlag(DynamicObject->MoverParameters->Couplers[0].CouplingFlag,ctrain_controll))
          tmp=DynamicObject->PrevConnected;
    //tmp=DynamicObject->NextConnected;
@@ -2061,7 +2061,7 @@ else
       else
         {
          int x;
-         if((DynamicObject->MoverParameters->TrainType=="et42")&&(DynamicObject->MoverParameters->Imax==DynamicObject->MoverParameters->ImaxHi))
+         if((DynamicObject->MoverParameters->TrainType==dt_ET42)&&(DynamicObject->MoverParameters->Imax==DynamicObject->MoverParameters->ImaxHi))
          x=1;else x=2;
          if (DynamicObject->MoverParameters->RList[DynamicObject->MoverParameters->MainCtrlActualPos].Mn>0)
           { EngineVoltage.UpdateValue((x*(DynamicObject->MoverParameters->RunningTraction.TractionVoltage-DynamicObject->MoverParameters->RList[DynamicObject->MoverParameters->MainCtrlActualPos].R*abs(DynamicObject->MoverParameters->Im))/DynamicObject->MoverParameters->RList[DynamicObject->MoverParameters->MainCtrlActualPos].Mn)); }
@@ -2282,9 +2282,9 @@ else
 } //**************************************************** */
 
     if ((DynamicObject->MoverParameters->BrakePress>=0.05f*DynamicObject->MoverParameters->MaxBrakePress) || (DynamicObject->MoverParameters->DynamicBrakeFlag))
-     { btLampkaHamienie.TurnOn(); }
+       btLampkaHamienie.TurnOn();
     else
-     { btLampkaHamienie.TurnOff(); }
+       btLampkaHamienie.TurnOff();
 
 // NBMX wrzesien 2003 - drzwi oraz sygnal odjazdu
     if (DynamicObject->MoverParameters->DoorLeftOpened)
@@ -2313,14 +2313,14 @@ else
        MainCtrlActGauge.UpdateValue(double(DynamicObject->MoverParameters->MainCtrlActualPos));
       MainCtrlActGauge.Update();
      }
-    if (ScndCtrlGauge.SubModel!=NULL)
+    if (!ScndCtrlGauge.SubModel)
      {
-      ScndCtrlGauge.UpdateValue(double(DynamicObject->MoverParameters->ScndCtrlPos-(DynamicObject->MoverParameters->TrainType=="et42"&&DynamicObject->MoverParameters->DynamicBrakeFlag)));
+      ScndCtrlGauge.UpdateValue(double(DynamicObject->MoverParameters->ScndCtrlPos-(DynamicObject->MoverParameters->TrainType==dt_ET42&&DynamicObject->MoverParameters->DynamicBrakeFlag)));
       ScndCtrlGauge.Update();
      }
-    if (DirKeyGauge.SubModel!=NULL)
+    if (!DirKeyGauge.SubModel)
      {
-      if (DynamicObject->MoverParameters->TrainType!="ezt")
+      if (DynamicObject->MoverParameters->TrainType!=dt_EZT)
         DirKeyGauge.UpdateValue(double(DynamicObject->MoverParameters->ActiveDir));
       else
         DirKeyGauge.UpdateValue(double(DynamicObject->MoverParameters->ActiveDir)+
@@ -2353,23 +2353,21 @@ else
 
 // NBMX wrzesien 2003 - drzwi
     if (DoorLeftButtonGauge.SubModel!=NULL)
-     {
-     if (DynamicObject->MoverParameters->DoorLeftOpened)
-       {
-         DoorLeftButtonGauge.PutValue(1);
-       }
-     else DoorLeftButtonGauge.PutValue(0);
+    {
+      if (DynamicObject->MoverParameters->DoorLeftOpened)
+        DoorLeftButtonGauge.PutValue(1);
+      else
+        DoorLeftButtonGauge.PutValue(0);
       DoorLeftButtonGauge.Update();
-     }
+    }
     if (DoorRightButtonGauge.SubModel!=NULL)
-     {
-     if (DynamicObject->MoverParameters->DoorRightOpened)
-       {
-         DoorRightButtonGauge.PutValue(1);
-       }
-     else DoorRightButtonGauge.PutValue(0);
+    {
+      if (DynamicObject->MoverParameters->DoorRightOpened)
+        DoorRightButtonGauge.PutValue(1);
+      else
+        DoorRightButtonGauge.PutValue(0);
       DoorRightButtonGauge.Update();
-     }
+    }
     if (DepartureSignalButtonGauge.SubModel!=NULL)
      {
 //      DepartureSignalButtonGauge.UpdateValue(double());
@@ -2380,35 +2378,23 @@ else
     if (CompressorButtonGauge.SubModel!=NULL)
      {
      if (DynamicObject->MoverParameters->CompressorAllow)
-       {
-         CompressorButtonGauge.PutValue(1);
-       }
-     else CompressorButtonGauge.PutValue(0);
+        CompressorButtonGauge.PutValue(1);
+     else
+        CompressorButtonGauge.PutValue(0);
       CompressorButtonGauge.Update();
      }
-
     if (MainButtonGauge.SubModel!=NULL)
-     {
-      MainButtonGauge.Update();
-     }
-
+       MainButtonGauge.Update();
     if (RadioButtonGauge.SubModel!=NULL)
      {
       RadioButtonGauge.PutValue(1);
       RadioButtonGauge.Update();
      }
-
     if (ConverterButtonGauge.SubModel!=NULL)
-     {
       ConverterButtonGauge.Update();
-     }
     if (ConverterOffButtonGauge.SubModel!=NULL)
-     {
       ConverterOffButtonGauge.Update();
-     }
-
-
-     if(((DynamicObject->MoverParameters->HeadSignalsFlag)==0)
+    if(((DynamicObject->MoverParameters->HeadSignalsFlag)==0)
       &&((DynamicObject->MoverParameters->EndSignalsFlag)==0))
      {
         RightLightButtonGauge.PutValue(0);
@@ -2455,7 +2441,7 @@ else
           PantFrontButtonGauge.PutValue(1);
       else
           PantFrontButtonGauge.PutValue(0);
-    PantFrontButtonGauge.Update();
+      PantFrontButtonGauge.Update();
     }
     if (PantRearButtonGauge.SubModel!=NULL)
     {
@@ -2654,7 +2640,7 @@ else
      //DynamicObject->MoverParameters->BrakeCtrlPos=(DynamicObject->MoverParameters->BrakeCtrlPos)+1;
      DynamicObject->MoverParameters->IncBrakeLevel();
      keybrakecount = 0;
-       if ((DynamicObject->MoverParameters->TrainType=="ezt")&&(DynamicObject->MoverParameters->Mains)&&(DynamicObject->MoverParameters->ActiveDir!=0))
+       if ((DynamicObject->MoverParameters->TrainType==dt_EZT)&&(DynamicObject->MoverParameters->Mains)&&(DynamicObject->MoverParameters->ActiveDir!=0))
        {
        dsbPneumaticSwitch->SetVolume(-10);
        dsbPneumaticSwitch->Play( 0, 0, 0 );

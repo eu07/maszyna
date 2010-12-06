@@ -202,7 +202,7 @@ begin
      IncBrake;
     if ActiveDir=testd then
      VelforDriver:=-1;
-     if (ActiveDir<>0) and (TrainType='ezt') then Imin:=IminHi;
+     if (ActiveDir<>0) and (TrainType=dt_EZT) then Imin:=IminHi;
    end;
   OrderDirectionChange:=Trunc(VelforDriver);
 end;
@@ -279,7 +279,7 @@ begin
   ReactionTime:=PrepareTime;
   with Controlling^ do
    begin
-   if ((EnginePowerSource.SourceType=CurrentCollector) or (TrainType='ezt')) then
+   if ((EnginePowerSource.SourceType=CurrentCollector) or (TrainType=dt_EZT)) then
      begin
        if(GetTrainsetVoltage) then
           begin
@@ -309,14 +309,14 @@ begin
 //   end
    else
       //if EnginePowerSource.SourceType<>CurrentCollector then
-      if TrainType<>'ezt' then
+      if TrainType<>dt_EZT then
        voltfront:=true;
      if EnginePowerSource.SourceType=CurrentCollector then
       begin
        PantFront(true);
        PantRear(true);
       end;
-     if TrainType='ezt' then
+     if TrainType=dt_EZT then
       begin
        PantFront(true);
        PantRear(true);
@@ -330,7 +330,7 @@ if (PantFrontVolt or PantRearVolt or voltfront or voltrear) then
   begin
      if not Mains then
        begin
-       //if TrainType='SN61' then
+       //if TrainType=dt_SN61 then
        //   begin
        //      OK:=(OrderDirectionChange(ChangeDir,Controlling)=-1);
        //      OK:=IncMainCtrl(1);

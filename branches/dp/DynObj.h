@@ -231,12 +231,12 @@ public:
     __fastcall ~TDynamicObject();
     bool __fastcall TDynamicObject::Init(AnsiString Name, AnsiString BaseDir, AnsiString asReplacableSkin, AnsiString Type_Name,
                                      TTrack *Track, double fDist, AnsiString DriverType, double fVel, AnsiString TrainName, int Load, AnsiString LoadType);
-    bool __fastcall AttachPrev(TDynamicObject *Object, int iType= 1);
+    void __fastcall AttachPrev(TDynamicObject *Object, int iType= 1);
     bool __fastcall UpdateForce(double dt, double dt1, bool FullVer);
     bool __fastcall Update(double dt, double dt1);
     bool __fastcall FastUpdate(double dt);
-    bool __fastcall Move(double fDistance);
-    bool __fastcall FastMove(double fDistance);
+    void __fastcall Move(double fDistance);
+    void __fastcall FastMove(double fDistance);
     bool __fastcall Render();
     bool __fastcall RenderAlpha();
     vector3 inline __fastcall GetPosition();
@@ -254,7 +254,7 @@ public:
     AnsiString asTrack;
 
     //McZapkie-260202
-    bool __fastcall LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName, AnsiString ReplacableSkin);
+    void __fastcall LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName, AnsiString ReplacableSkin);
 
     inline double __fastcall ABuGetDirection() //ABu.
            {

@@ -95,12 +95,12 @@ public:
     __fastcall TGroundNode();
     __fastcall ~TGroundNode();
     bool __fastcall Init(int n);
-    __fastcall InitCenter();
-    __fastcall InitNormals();
+    void __fastcall InitCenter();
+    void __fastcall InitNormals();
 
     void __fastcall MoveMe(vector3 pPosition);
 
-    bool __fastcall Disable();
+    //bool __fastcall Disable();
     inline TGroundNode* __fastcall Find( AnsiString asNameToFind)
     {
         if (asNameToFind==asName) return this; else if (Next) return Next->Find(asNameToFind);
@@ -131,7 +131,7 @@ public:
     __fastcall TSubRect() { pRootNode=NULL; };
     __fastcall ~TSubRect() {  };
 //    __fastcall ~TSubRect() { SafeDelete(pRootNode); };   /* TODO -cBUG : Attention, remember to delete those nodes */
-    __fastcall AddNode(TGroundNode *Node) { Node->Next2= pRootNode; pRootNode= Node; };
+    void __fastcall AddNode(TGroundNode *Node) { Node->Next2= pRootNode; pRootNode= Node; };
 //    __fastcall Render() { if (pRootNode) pRootNode->Render(); };
 };
 
@@ -141,7 +141,7 @@ class TGroundRect
 {
 private:
     TSubRect *pSubRects;
-    __fastcall Init() { pSubRects= new TSubRect[iNumSubRects*iNumSubRects]; };
+    void __fastcall Init() { pSubRects= new TSubRect[iNumSubRects*iNumSubRects]; };
 
 public:
     __fastcall TGroundRect() { pSubRects=NULL; };
@@ -171,7 +171,7 @@ public:
 
     __fastcall TGround();
     __fastcall ~TGround();
-    bool __fastcall Free();
+    void __fastcall Free();
     bool __fastcall Init(AnsiString asFile);
     bool __fastcall InitEvents();
     bool __fastcall InitTracks();
