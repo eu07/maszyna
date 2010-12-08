@@ -57,11 +57,12 @@ private:
     GLuint TextureID1; //tekstura szyn
     float fTexLength;
     GLuint TextureID2; //tekstura automatycznej podsypki
-    float fTexHeight;
+    float fTexHeight; //wysokoœ brzegu wzglêdem trajektorii
     float fTexWidth;
     float fTexSlope;
     vector3 *HelperPts;
     double fRadiusTable[2]; //dwa promienie, drugi dla zwrotnicy
+    int iTrapezoid; //0-standard, 1-przechy³ka, 2-trapez, 3-oba
 public:
     int iNumDynamics;
     TDynamicObject *Dynamics[iMaxNumDynamics];
@@ -92,7 +93,6 @@ public:
     TEnvironmentType eEnvironment; //dŸwiêk i oœwietlenie
     bool bVisible; //czy rysowany
     double fVelocity; //prêdkoœæ dla AI (powy¿ej roœnie prawdopowobieñstwo wykolejenia)
-    bool bTrapezoid; //czy ró¿nica wymiarów z nastêpnym
 //McZapkie-100502:
     double fTrackLength; //d³ugoœæ z wpisu, nigdzie nie u¿ywana
     double fRadius; //promieñ, dla zwrotnicy kopiowany z tabeli
