@@ -37,7 +37,11 @@ public:
     inline double __fastcall GetRoll(double s)
     {
         s/= fLength;
-        return ((1-s)*fRoll1+(s)*fRoll2);
+        return RadToDeg((1-s)*fRoll1+s*fRoll2);
+    }
+    void __fastcall GetRolls(double &r1,double &r2)
+    {//pobranie przechy³ek (do generowania trójk¹tów) 
+        r1=fRoll1; r2=fRoll2;
     }
     void __fastcall RenderLoft(const vector3 *ShapePoints, int iNumShapePoints,
         double fTextureLength, int iSkip=0, int iQualityFactor=1);
