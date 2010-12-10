@@ -34,6 +34,7 @@ public:
     bool bPrevSwitchDirection[2];
     int CurrentIndex;
     double fOffset1, fOffset2, fDesiredOffset1, fDesiredOffset2;
+    bool RightSwitch; //czy w prawo
 private:
 };
 

@@ -477,6 +477,18 @@ void __fastcall TTrack::Load(cParser *parser, vector3 pOrigin)
 
             Switch(0); //na sta³e w po³o¿eniu 0 - nie ma pocz¹tkowego stanu zwrotnicy we wpisie
 
+            //Ra: zamieniæ póŸniej na iloczyn wektorowy
+            {vector3 v1,v2;
+             double a1,a2;
+             v1=SwitchExtension->Segments[0].FastGetPoint(1)-SwitchExtension->Segments[0].FastGetPoint(0);
+             v2=SwitchExtension->Segments[1].FastGetPoint(1)-SwitchExtension->Segments[1].FastGetPoint(0);
+             a1=atan2(v1.x,v1.z);
+             a2=atan2(v2.x,v2.z);
+             a2=a2-a1;
+             while (a2>M_PI) a2=a2-2*M_PI;
+             while (a2<-M_PI) a2=a2+2*M_PI;
+             SwitchExtension->RightSwitch =a2>0;
+            }
         break;
         case tt_Cross: //skrzy¿owanie dróg
         //Ra: do przemyœlenia i zrobienia
@@ -808,10 +820,10 @@ void TTrack::Compile()
      rozp2=fHTW2+side2+fabs(pNext->fTexSlope);
      fTexHeight2=pNext->fTexHeight;
      //zabezpieczenia przed zawieszeniem - logowaæ to?
-     if (fHTW2>5*fHTW) {fHTW2=fHTW; WriteLog("niedopasowanie 1");};
-     if (side2>5*side) {side2=side; WriteLog("niedopasowanie 2");};
-     if (rozp2>5*rozp) {rozp2=rozp; WriteLog("niedopasowanie 3");};
-     if (fabs(fTexHeight2)>5*fabs(fTexHeight)) {fTexHeight2=fTexHeight; WriteLog("niedopasowanie 4");};
+     if (fHTW2>5.0*fHTW) {fHTW2=fHTW; WriteLog("niedopasowanie 1");};
+     if (side2>5.0*side) {side2=side; WriteLog("niedopasowanie 2");};
+     if (rozp2>5.0*rozp) {rozp2=rozp; WriteLog("niedopasowanie 3");};
+     if (fabs(fTexHeight2)>5.0*fabs(fTexHeight)) {fTexHeight2=fTexHeight; WriteLog("niedopasowanie 4");};
     }
     else //gdy nie ma nastêpnego albo jest nieodpowiednim koñcem podpiêty
     {fHTW2=fHTW; side2=side; rozp2=rozp; fTexHeight2=fTexHeight;}
@@ -920,6 +932,7 @@ void TTrack::Compile()
          if (SwitchExtension->fOffset1>=fMaxOffset-0.01)
           SwitchExtension->fOffset1= fMaxOffset-0.01;
 //McZapkie-130302 - poprawione rysowanie szyn
+/* //stara wersja - dziwne prawe zwrotnice
          glBindTexture(GL_TEXTURE_2D, TextureID1);
          SwitchExtension->Segments[0].RenderLoft(rpts1,nnumPts,fTexLength); //lewa szyna normalna ca³a
          SwitchExtension->Segments[0].RenderLoft(rpts2,nnumPts,fTexLength,2); //prawa szyna za iglic¹
@@ -928,6 +941,29 @@ void TTrack::Compile()
          SwitchExtension->Segments[1].RenderLoft(rpts1,nnumPts,fTexLength,2); //lewa szyna za iglic¹
          SwitchExtension->Segments[1].RenderSwitchRail(rpts1,rpts3,nnumPts,fTexLength,2,fMaxOffset-SwitchExtension->fOffset1); //lewa iglica
          SwitchExtension->Segments[1].RenderLoft(rpts2,nnumPts,fTexLength); //prawa szyna normalnie ca³a
+*/
+         if (SwitchExtension->RightSwitch)
+         {//nowa wersja z SPKS
+          glBindTexture(GL_TEXTURE_2D, TextureID1);
+          SwitchExtension->Segments[0].RenderLoft(rpts1,nnumPts,fTexLength); //lewa szyna normalna ca³a
+          SwitchExtension->Segments[0].RenderLoft(rpts2,nnumPts,fTexLength,2); //prawa szyna za iglic¹
+          SwitchExtension->Segments[0].RenderSwitchRail(rpts2,rpts4,nnumPts,fTexLength,2,-SwitchExtension->fOffset1); //prawa iglica
+          glBindTexture(GL_TEXTURE_2D, TextureID2);
+          SwitchExtension->Segments[1].RenderLoft(rpts1,nnumPts,fTexLength,2); //lewa szyna za iglic¹
+          SwitchExtension->Segments[1].RenderSwitchRail(rpts1,rpts3,nnumPts,fTexLength,2,fMaxOffset-SwitchExtension->fOffset1); //lewa iglica
+          SwitchExtension->Segments[1].RenderLoft(rpts2,nnumPts,fTexLength); //prawa szyna normalnie ca³a
+         }
+         else
+         {
+          glBindTexture(GL_TEXTURE_2D, TextureID2);
+          SwitchExtension->Segments[1].RenderLoft(rpts1,nnumPts,fTexLength);
+          SwitchExtension->Segments[1].RenderLoft(rpts2,nnumPts,fTexLength,2);
+          SwitchExtension->Segments[1].RenderSwitchRail(rpts2,rpts4,nnumPts,fTexLength,2,-fMaxOffset+SwitchExtension->fOffset1);
+          glBindTexture(GL_TEXTURE_2D, TextureID1);
+          SwitchExtension->Segments[0].RenderLoft(rpts1,nnumPts,fTexLength,2);
+          SwitchExtension->Segments[0].RenderSwitchRail(rpts1,rpts3,nnumPts,fTexLength,2,SwitchExtension->fOffset1);
+          SwitchExtension->Segments[0].RenderLoft(rpts2,nnumPts,fTexLength);
+         }
         }
         break;
       }
@@ -1037,7 +1073,7 @@ bool __fastcall TTrack::Render()
 
         SetLastUsage(Timer::GetSimulationTime());
         glCallList(DisplayListID);
-        
+
     };
 
     for (int i=0; i<iNumDynamics; i++)

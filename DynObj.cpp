@@ -717,7 +717,7 @@ TDynamicObject* TDynamicObject::ABuScanNearestObject(TTrack *Track, double ScanD
 //ABu 01.11.04 poczatek wyliczania przechylow pudla **********************
 void __fastcall TDynamicObject::ABuModelRoll()
 {
-   double modelRoll=(Axle1.GetRoll()+Axle4.GetRoll())/2;
+   double modelRoll=RadToDeg((Axle1.GetRoll()+Axle4.GetRoll())/2); //Ra: tu nie by³o DegToRad
 //   if (ABuGetDirection()<0) modelRoll=-modelRoll;
    mdModel->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
    if (mdKabina)
@@ -1823,7 +1823,7 @@ if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
 //    ts.R=ComputeRadius(Axle1.pPosition,Axle2.pPosition,Axle3.pPosition,Axle4.pPosition);
     ts.Len= Max0R(MoverParameters->BDist,MoverParameters->ADist);
     ts.dHtrack= Axle1.pPosition.y-Axle4.pPosition.y;
-    ts.dHrail= (DegToRad(Axle1.GetRoll())+DegToRad(Axle4.GetRoll()))*0.5f;
+    ts.dHrail= ((Axle1.GetRoll())+(Axle4.GetRoll()))*0.5f;
     //TTrackParam tp;
     tp.Width= MyTrack->fTrackWidth;
 //McZapkie-250202
@@ -2271,7 +2271,7 @@ bool __fastcall TDynamicObject::FastUpdate(double dt)
     //ts.R=MyTrack->fRadius;
     //ts.Len= Max0R(MoverParameters->BDist,MoverParameters->ADist);
     //ts.dHtrack= Axle1.pPosition.y-Axle4.pPosition.y;
-    //ts.dHrail= (DegToRad(Axle1.GetRoll())+DegToRad(Axle4.GetRoll()))*0.5f;
+    //ts.dHrail= ((Axle1.GetRoll())+(Axle4.GetRoll()))*0.5f;
     //tp.Width= MyTrack->fTrackWidth;
     //McZapkie-250202
     //tp.friction= MyTrack->fFriction;
