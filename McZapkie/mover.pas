@@ -4798,7 +4798,7 @@ begin
   DynamicBrakeType:=0;
   ASBType:=0;
   AutoRelayType:=0;
-  for b:=1 to 2 do
+  for b:=0 to 1 do //Ra: kto tu zrobi³ "for b:=1 to 2 do" ???
    with Couplers[b] do
     begin
       CouplerType:=NoCoupler;

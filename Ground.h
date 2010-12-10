@@ -65,8 +65,8 @@ public:
         TMemCell *MemCell;
         TEventLauncher *EvLaunch;
         TTraction *Traction;
-        TTractionPowerSource *TractionPowerSource;        
-        TRealSound *pStaticSound;        
+        TTractionPowerSource *TractionPowerSource;
+        TRealSound *pStaticSound;
 //        TGeometry *pGeometry;
     };
     AnsiString asName;
@@ -76,7 +76,7 @@ public:
         int iNumPts;
         int iState;
     };
-    vector3 pCenter;
+    vector3 pCenter; //œrodek do przydzielenia sektora
 
     double fAngle;
     double fSquareRadius;
@@ -90,8 +90,8 @@ public:
     bool bVisible;
     bool bStatic;
     bool bAllocated;
-    TGroundNode *Next;//,*Prev;
-    TGroundNode *Next2;
+    TGroundNode *Next; //lista wszystkich, ostatni na koñcu
+    TGroundNode *Next2; //lista w sektorze
     __fastcall TGroundNode();
     __fastcall ~TGroundNode();
     bool __fastcall Init(int n);
@@ -263,13 +263,14 @@ public:
     int __fastcall GetColFromX(double x) { return (x/fSubRectSize+fHalfTotalNumSubRects); };
     TEvent* __fastcall FindEvent(AnsiString asEventName);
 private:
-    TGroundNode *RootNode;
+    TGroundNode *RootNode; //lista wêz³ów
 //    TGroundNode *FirstVisible,*LastVisible;
-    TGroundNode *RootDynamic;
+    TGroundNode *RootDynamic; //lista pojazdów
 
-    TGroundRect Rects[iNumRects][iNumRects];
+    TGroundRect Rects[iNumRects][iNumRects]; //mapa kwadratów kilometrowych
 
-    TEvent *RootEvent,*QueryRootEvent,*tmpEvent,*tmp2Event,*OldQRE;
+    TEvent *RootEvent; //lista zdarzeñ
+    TEvent *QueryRootEvent,*tmpEvent,*tmp2Event,*OldQRE;
 
     void __fastcall OpenGLUpdate(HDC hDC);
 //    TWorld World;
@@ -277,7 +278,7 @@ private:
     int iNumNodes;
     vector3 pOrigin;
     vector3 aRotate;
-
+    bool bInitDone;
 };
 //---------------------------------------------------------------------------
 #endif

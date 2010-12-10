@@ -74,12 +74,12 @@ void __fastcall TTraction::Optimize()
 //    glPushMatrix();
 //    glTranslatef(pPosition.x,pPosition.y,pPosition.z);
 
-  if (Wires != 0)
+  if (Wires!=0)
   {
       //Dlugosc odcinka trakcji 'Winger
-      double ddp= sqrt((pPoint2.x-pPoint1.x)*(pPoint2.x-pPoint1.x) + (pPoint2.z-pPoint1.z)*(pPoint2.z-pPoint1.z));
+      double ddp=hypot(pPoint2.x-pPoint1.x,pPoint2.z-pPoint1.z);
 
-      if (Wires == 2) WireOffset= 0;
+      if (Wires==2) WireOffset=0;
 
       //Przewoz jezdny 1 'Marcin
       glBegin(GL_LINE_STRIP);
