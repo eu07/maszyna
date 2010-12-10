@@ -25,11 +25,23 @@ __fastcall TSegment::TSegment()
 bool __fastcall TSegment::Init(vector3 NewPoint1, vector3 NewPoint2, double fNewStep,
                                 double fNewRoll1, double fNewRoll2)
 {//wersja dla prostego - wyliczanie punktów kontrolnych
-    vector3 dir;
-    dir= Normalize(NewPoint2-NewPoint1);
-    return (TSegment::Init(NewPoint1,dir,
-                        -dir,NewPoint2,
-                        fNewStep,fNewRoll1,fNewRoll2,false));
+ vector3 dir;
+ if (fNewRoll1==fNewRoll2)
+ {//faktyczny prosty
+  dir=Normalize(NewPoint2-NewPoint1); //Ra: to chyba jakoœ inaczej jest u¿ywane
+  return TSegment::Init(
+   NewPoint1,dir,-dir,NewPoint2,
+   fNewStep,fNewRoll1,fNewRoll2,
+   false);
+ }
+ else
+ {//prosty ze zmienn¹ przechy³k¹ musi byæ segmentowany jak krzywe
+  dir=(NewPoint2-NewPoint1)/3; //punkty kontrolne prostego s¹ w 1/3 d³ugoœci
+  return TSegment::Init(
+   NewPoint1,NewPoint1+dir,NewPoint2-dir,NewPoint2,
+   fNewStep,fNewRoll1,fNewRoll2,
+   true);
+ }
 }
 
 bool __fastcall TSegment::Init(vector3 NewPoint1, vector3 NewCPointOut,
@@ -230,13 +242,12 @@ vector3 __fastcall TSegment::FastGetPoint(double t)
 
 void __fastcall TSegment::RenderLoft(const vector3 *ShapePoints, int iNumShapePoints,
         double fTextureLength, int iSkip, int iQualityFactor)
-{//generowanie trójk¹tów dla odcinka toru
+{//generowanie trójk¹tów dla odcinka trajektorii ruchu
  //standardowo tworzy triangle_strip dla prostego albo ich zestaw dla ³uku
  //po modyfikacji - dla ujemnego (iNumShapePoints) w dodatkowych polach tabeli
- //wyliczane s¹ wektory dla ka¿dego segmentu ³uku
- //podsypka toru jest robiona za pomoc¹ 6 punktów, drogi i rzeki na 3+2+3
-    if (iQualityFactor<1) iQualityFactor= 1;
-//    iQualityFactor= 1;
+ // podany jest przekrój koñcowy
+ //podsypka toru jest robiona za pomoc¹ 6 punktów, szyna 12, drogi i rzeki na 3+2+3
+    if (iQualityFactor<1) iQualityFactor= 1; //co który segment ma byæ uwzglêdniony
     vector3 pos1,pos2,dir,parallel1,parallel2,pt;
     double s,step,fOffset,tv1,tv2,t;
     int i,j ;

@@ -97,7 +97,7 @@ public:
 	void __fastcall First(void);
 	void __fastcall FirstToken(void);
 	void __fastcall NextToken(void);
-	AnsiString __fastcall GetNextSymbol();
+	AnsiString __fastcall GetNextSymbol(void);
 	__property bool EndOfFile = {read=FEOF, nodefault};
 	__property bool Comment = {read=FComment, nodefault};
 	__property AnsiString Token = {read=FToken};
