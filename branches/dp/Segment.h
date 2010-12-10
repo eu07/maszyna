@@ -37,7 +37,7 @@ public:
     inline double __fastcall GetRoll(double s)
     {
         s/= fLength;
-        return RadToDeg((1-s)*fRoll1+s*fRoll2);
+        return ((1.0-s)*fRoll1+s*fRoll2);
     }
     void __fastcall GetRolls(double &r1,double &r2)
     {//pobranie przechy³ek (do generowania trójk¹tów) 

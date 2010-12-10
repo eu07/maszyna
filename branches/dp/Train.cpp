@@ -1464,11 +1464,11 @@ bool __fastcall TTrain::UpdateMechPosition(double dt)
     matrix4x4 mat;
 
     double a1,a2,atmp;
-    a1= DegToRad(DynamicObject->Axle1.GetRoll());
-    a2= DegToRad(DynamicObject->Axle4.GetRoll());
+    a1= (DynamicObject->Axle1.GetRoll());
+    a2= (DynamicObject->Axle4.GetRoll());
     atmp=(a1+a2);
 //    if (DynamicObject->ABuGetDirection()<0) atmp=-atmp;
-//    mat.Rotation( (DegToRad(Axle1.GetRoll()+Axle4.GetRoll()))*0.5f, vFront );
+//    mat.Rotation( ((Axle1.GetRoll()+Axle4.GetRoll()))*0.5f, vFront );
     mat.Rotation( atmp*0.5f, DynamicObject->vFront );
 
     DynamicObject->vUp= mat*DynamicObject->vUp;

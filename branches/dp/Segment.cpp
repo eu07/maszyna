@@ -36,7 +36,7 @@ bool __fastcall TSegment::Init(vector3 NewPoint1, vector3 NewPoint2, double fNew
  }
  else
  {//prosty ze zmienn¹ przechy³k¹ musi byæ segmentowany jak krzywe
-  dir=(NewPoint2-NewPoint1)/3; //punkty kontrolne prostego s¹ w 1/3 d³ugoœci
+  dir=(NewPoint2-NewPoint1)/3.0; //punkty kontrolne prostego s¹ w 1/3 d³ugoœci
   return TSegment::Init(
    NewPoint1,NewPoint1+dir,NewPoint2-dir,NewPoint2,
    fNewStep,fNewRoll1,fNewRoll2,
@@ -230,14 +230,14 @@ vector3 __fastcall TSegment::GetPoint(double fDistance)
     else
     {
         double t= fDistance/fLength;
-        return  ((1-t)*Point1+(t)*Point2);
+        return  ((1.0-t)*Point1+(t)*Point2);
     }
 
 }
 
 vector3 __fastcall TSegment::FastGetPoint(double t)
 {
-    return  (bCurve ? Interpolate(t,Point1,CPointOut,CPointIn,Point2) : ((1-t)*Point1+(t)*Point2) );
+    return  (bCurve ? Interpolate(t,Point1,CPointOut,CPointIn,Point2) : ((1.0-t)*Point1+(t)*Point2) );
 }
 
 void __fastcall TSegment::RenderLoft(const vector3 *ShapePoints, int iNumShapePoints,
@@ -427,14 +427,14 @@ void __fastcall TSegment::RenderSwitchRail(const vector3 *ShapePoints1, const ve
                 glBegin(GL_TRIANGLE_STRIP);
                     for (j=0; j<iNumShapePoints; j++)
                     {
-                        pt= parallel1*(ShapePoints1[j].x*a1+(ShapePoints2[j].x-fOffsetX)*(1-a1))+pos1;
-                        pt.y+= ShapePoints1[j].y*a1+ShapePoints2[j].y*(1-a1);
+                        pt= parallel1*(ShapePoints1[j].x*a1+(ShapePoints2[j].x-fOffsetX)*(1.0-a1))+pos1;
+                        pt.y+= ShapePoints1[j].y*a1+ShapePoints2[j].y*(1.0-a1);
                         glNormal3f(0.0f,1.0f,0.0f);
                         glTexCoord2f((ShapePoints1[j].z),tv1);
                         glVertex3f(pt.x,pt.y,pt.z);
 
-                        pt= parallel2*(ShapePoints1[j].x*a2+(ShapePoints2[j].x-fOffsetX)*(1-a2))+pos2;
-                        pt.y+= ShapePoints1[j].y*a2+ShapePoints2[j].y*(1-a2);
+                        pt= parallel2*(ShapePoints1[j].x*a2+(ShapePoints2[j].x-fOffsetX)*(1.0-a2))+pos2;
+                        pt.y+= ShapePoints1[j].y*a2+ShapePoints2[j].y*(1.0-a2);
                         glNormal3f(0.0f,1.0f,0.0f);
                         glTexCoord2f(ShapePoints1[j].z,tv2);
                         glVertex3f(pt.x,pt.y,pt.z);
@@ -484,14 +484,14 @@ void __fastcall TSegment::RenderSwitchRail(const vector3 *ShapePoints1, const ve
                 glBegin(GL_TRIANGLE_STRIP);
                     for (j=0; j<iNumShapePoints; j++)
                     {
-                        pt= parallel1*(ShapePoints1[j].x*a1+(ShapePoints2[j].x-fOffsetX)*(1-a1))+pos1;
-                        pt.y+= ShapePoints1[j].y*a1+ShapePoints2[j].y*(1-a1);
+                        pt= parallel1*(ShapePoints1[j].x*a1+(ShapePoints2[j].x-fOffsetX)*(1.0-a1))+pos1;
+                        pt.y+= ShapePoints1[j].y*a1+ShapePoints2[j].y*(1.0-a1);
                         glNormal3f(0.0f,1.0f,0.0f);
                         glTexCoord2f((ShapePoints1[j].z),tv1);
                         glVertex3f(pt.x,pt.y,pt.z);
 
-                        pt= parallel1*(ShapePoints1[j].x*a2+(ShapePoints2[j].x-fOffsetX)*(1-a2))+pos2;
-                        pt.y+= ShapePoints1[j].y*a2+ShapePoints2[j].y*(1-a2);
+                        pt= parallel1*(ShapePoints1[j].x*a2+(ShapePoints2[j].x-fOffsetX)*(1.0-a2))+pos2;
+                        pt.y+= ShapePoints1[j].y*a2+ShapePoints2[j].y*(1.0-a2);
                         glNormal3f(0.0f,1.0f,0.0f);
                         glTexCoord2f(ShapePoints1[j].z,tv2);
                         glVertex3f(pt.x,pt.y,pt.z);
