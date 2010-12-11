@@ -32,11 +32,15 @@ public:
     TTrack *pPrevs[2];
     bool bNextSwitchDirection[2];
     bool bPrevSwitchDirection[2];
-    int CurrentIndex;
+    int CurrentIndex; //dla zwrotnicy
     double fOffset1, fDesiredOffset1; //ruch od strony punktu 1
     double fOffset2, fDesiredOffset2; //ruch od strony punktu 2 nie obs³ugiwany
-    bool RightSwitch; //czy w prawo
-    bool bMovement; //czy w trakcie animacji 
+    union
+    {bool RightSwitch; //czy zwrotnica w prawo
+     //TAnimContainer *pAnim; //animator modelu dla obrotnicy
+     TAnimModel *pModel; //na razie model
+    };
+    bool bMovement; //czy w trakcie animacji
 private:
 };
 
@@ -66,6 +70,8 @@ private:
     //vector3 *HelperPts; //Ra: nie u¿ywane
     double fRadiusTable[2]; //dwa promienie, drugi dla zwrotnicy
     int iTrapezoid; //0-standard, 1-przechy³ka, 2-trapez, 3-oba
+private:
+    GLuint DisplayListID;
 public:
     int iNumDynamics;
     TDynamicObject *Dynamics[iMaxNumDynamics];
@@ -134,7 +140,8 @@ public:
     inline bool __fastcall Switch(int i)
     {
         if (SwitchExtension)
-        {
+         if (eType==tt_Switch)
+         {//przek³adanie zwrotnicy jak zwykle
             SwitchExtension->fDesiredOffset1= fMaxOffset*double(NextMask[i]); //od punktu 1
             SwitchExtension->fDesiredOffset2= fMaxOffset*double(PrevMask[i]); //od punktu 2
             SwitchExtension->CurrentIndex= i;
@@ -143,14 +150,17 @@ public:
             pPrev= SwitchExtension->pPrevs[PrevMask[i]];
             bNextSwitchDirection= SwitchExtension->bNextSwitchDirection[NextMask[i]];
             bPrevSwitchDirection= SwitchExtension->bPrevSwitchDirection[PrevMask[i]];
-            //McZapkie: wybor promienia toru:
-            fRadius= fRadiusTable[i];
+            fRadius= fRadiusTable[i]; //McZapkie: wybor promienia toru
             if (DisplayListID) //jeœli istnieje siatka renderu
              SwitchExtension->bMovement=true; //bêdzie animacja
             else
              SwitchExtension->fOffset1=SwitchExtension->fDesiredOffset1; //nie ma siê co bawiæ
             return true;
-        }
+         }
+         else
+         {//blokowanie (1, szuka torów) lub odblokowanie (0, roz³¹cza) obrotnicy
+          SwitchExtension->CurrentIndex=i; //zapamiêtanie stanu zablokowania
+         }
         Error("Cannot switch normal track");
         return false;
     };
@@ -170,9 +180,8 @@ public:
     bool __fastcall RenderAlpha();
     bool __fastcall InMovement(); //czy w trakcie animacji?
 
-private:
-    GLuint DisplayListID;
-
+    void __fastcall ModelAssign(TAnimContainer *p);
+    void __fastcall ModelAssign(TAnimModel *p);
 };
 
 //---------------------------------------------------------------------------

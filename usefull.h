@@ -41,6 +41,10 @@ void __fastcall Error(AnsiString asMessage)
     MessageBox(NULL,asMessage.c_str(),"EU07-424",MB_OK);
     WriteLog(asMessage.c_str());
 }
+void __fastcall WriteLog(AnsiString str)
+{//Ra: wersja z AnsiString jest zamienna z Error()
+ WriteLog(str.c_str());
+};
 
 #define DevelopTime     //FIXME
 //#define EditorMode

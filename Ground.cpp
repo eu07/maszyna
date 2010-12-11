@@ -1812,7 +1812,7 @@ bool __fastcall TGround::InitEvents()
                         delete Current->Params[i].asText;
                         Current->Params[i].asEvent= FindEvent(buff);
                         if (!Current->Params[i].asEvent)
-                            Error(AnsiString("Event \"")+AnsiString(buff)+AnsiString("\" does not exist"));
+                         Error(AnsiString("Event \"")+AnsiString(buff)+AnsiString("\" does not exist"));
                      }
                 }
 
@@ -1844,6 +1844,14 @@ bool __fastcall TGround::InitTracks()
                 ( (Track->asEventall2Name!=AnsiString("")) ? FindEvent(Track->asEventall2Name) : NULL ) ); //MC-280503
             switch (Track->eType)
             {
+                case tt_Turn: //obrotnicy nie ³¹czymy na starcie z innymi torami
+                 tmp=FindGroundNode(Current->asName,TP_MODEL); //szukamy modelu o tej samej nazwie
+                 if (tmp) //mamy model, trzeba zapamiêtaæ wskaŸnik do jego animacji
+                 {//jak coœ pójdzie Ÿle, to robimy z tego normalny tor
+                  //Track->ModelAssign(tmp->Model->GetContainer(NULL)); //wi¹zanie toru z modelem obrotnicy
+                  Track->ModelAssign(tmp->Model); //wi¹zanie toru z modelem obrotnicy
+                  //break; //jednak po³¹czê z s¹siednim, jak ma siê wysypywaæ null track
+                 }
                 case tt_Normal :
                     if (Track->CurrentPrev()==NULL)
                     {
