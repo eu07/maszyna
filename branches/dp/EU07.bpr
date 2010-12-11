@@ -29,7 +29,7 @@
     <DEBUGLIBPATH value="$(BCB)\lib\debug"/>
     <RELEASELIBPATH value="$(BCB)\lib\release"/>
     <LINKER value="tlink32"/>
-    <USERDEFINES value="GLEW_STATIC"/>
+    <USERDEFINES value="GLEW_STATIC;_DEBUG"/>
     <SYSDEFINES value="_RTLDLL;NO_STRICT"/>
     <MAINSOURCE value="EU07.cpp"/>
     <INCLUDEPATH value="McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
@@ -38,12 +38,13 @@
   </MACROS>
   <OPTIONS>
     <IDLCFLAGS value="-IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl -src_suffix cpp 
-      -DGLEW_STATIC -boa"/>
-    <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -a4 -6 -b- -k- -vi -c -tW -tWM"/>
-    <PFLAGS value="-$Y- -$R -$Q -$L- -$D- -v -JPHNE -M"/>
+      -DGLEW_STATIC -D_DEBUG -boa"/>
+    <CFLAG1 value="-Od -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a4 -6 -b- -k -y -v -vi- 
+      -c -tW -tWM"/>
+    <PFLAGS value="-$Y+ -$W -$R -$Q -$O- -v -JPHNE -M"/>
     <RFLAGS value=""/>
-    <AFLAGS value="/ml /w2 /zn"/>
-    <LFLAGS value="-D&quot;&quot; -aa -Tpe -x"/>
+    <AFLAGS value="/ml /w2 /zi"/>
+    <LFLAGS value="-D&quot;&quot; -aa -Tpe -x -v"/>
   </OPTIONS>
   <LINKER>
     <ALLOBJ value="c0w32.obj Memmgr.Lib sysinit.obj $(OBJFILES)"/>
@@ -56,8 +57,8 @@ IncludeVerInfo=1
 AutoIncBuild=1
 MajorVer=1
 MinorVer=2
-Release=35
-Build=53
+Release=37
+Build=54
 Debug=0
 PreRelease=0
 Special=0
@@ -69,7 +70,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=PC2009 SP1
-FileVersion=1.2.35.53
+FileVersion=1.2.37.54
 InternalName=hammer
 LegalCopyright=
 LegalTrademarks=
@@ -127,8 +128,8 @@ Item2=$(BCB)\source\vcl
 
 [HistoryLists\hlConditionals]
 Count=3
-Item0=GLEW_STATIC
-Item1=GLEW_STATIC;_DEBUG
+Item0=GLEW_STATIC;_DEBUG
+Item1=GLEW_STATIC
 Item2=_DEBUG
 
 [HistoryLists\hlFinalOutputDir]

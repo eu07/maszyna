@@ -37,19 +37,15 @@
 __fastcall TSwitchExtension::TSwitchExtension()
 {//na pocz¹tku wszystko puste
     CurrentIndex=0;
-    pNexts[0]= NULL;
-    pNexts[1]= NULL;
-    pPrevs[0]= NULL;
-    pPrevs[1]= NULL;
-    fOffset1=fOffset2=fDesiredOffset1=fDesiredOffset2=0.0;
-    bMovement=false; //nie potrzeba animowaæ
+    pNexts[0]=NULL; //wskaŸniki do kolejnych odcinków ruchu
+    pNexts[1]=NULL;
+    pPrevs[0]=NULL;
+    pPrevs[1]=NULL;
+    fOffset1=fOffset2=fDesiredOffset1=fDesiredOffset2=0.0; //po³o¿enie zasadnicze 
+    bMovement=false; //nie potrzeba przeliczaæ fOffset1
 }
 __fastcall TSwitchExtension::~TSwitchExtension()
 {
-//    SafeDelete(pNexts[0]);
-//    SafeDelete(pNexts[1]);
-//    SafeDelete(pPrevs[0]);
-//    SafeDelete(pPrevs[1]);
 }
 
 __fastcall TTrack::TTrack()
@@ -60,10 +56,10 @@ __fastcall TTrack::TTrack()
     TextureID1= 0;
     fTexLength= 4.0;
     TextureID2= 0;
-    fTexHeight= 0.2;
+    fTexHeight= 0.6; //nowy profil podsypki ;)
     fTexWidth= 0.9;
-    fTexSlope= 1.1;
-    //HelperPts= NULL;
+    fTexSlope= 0.9;
+    //HelperPts= NULL; //nie potrzebne, ale niech zostanie
     iCategoryFlag= 1;
     fTrackWidth= 1.435;
     fFriction= 0.15;
@@ -97,6 +93,8 @@ __fastcall TTrack::~TTrack()
         case tt_Switch:
             SafeDelete(SwitchExtension);
         break;
+        case tt_Turn: //oba usuwane
+            SafeDelete(SwitchExtension);
         case tt_Normal:
             SafeDelete(Segment);
         break;
@@ -111,6 +109,10 @@ void __fastcall TTrack::Init()
             SwitchExtension= new TSwitchExtension();
         break;
         case tt_Normal:
+            Segment= new TSegment();
+        break;
+        case tt_Turn: //oba potrzebne
+            SwitchExtension= new TSwitchExtension();
             Segment= new TSegment();
         break;
     }
@@ -135,14 +137,15 @@ void __fastcall TTrack::ConnectPrevNext(TTrack *pTrack)
         bPrevSwitchDirection= false;
         pTrack->pNext= this;
         pTrack->bNextSwitchDirection= false;
-        if (pTrack->bVisible)
-         if (eType==tt_Normal) //jeœli ³¹czone s¹ dwa normalne
-          if (pTrack->eType==tt_Normal)
-           if ((fTrackWidth!=pTrack->fTrackWidth) //Ra: jeœli kolejny ma inne wymiary
-            || (fTexHeight!=pTrack->fTexWidth)
-            || (fTexWidth!=pTrack->fTexWidth)
-            || (fTexSlope!=pTrack->fTexSlope))
-            pTrack->iTrapezoid|=2; //to rysujemy potworka
+        if (bVisible)
+         if (pTrack->bVisible)
+          if (eType==tt_Normal) //jeœli ³¹czone s¹ dwa normalne
+           if (pTrack->eType==tt_Normal)
+            if ((fTrackWidth!=pTrack->fTrackWidth) //Ra: jeœli kolejny ma inne wymiary
+             || (fTexHeight!=pTrack->fTexWidth)
+             || (fTexWidth!=pTrack->fTexWidth)
+             || (fTexSlope!=pTrack->fTexSlope))
+             pTrack->iTrapezoid|=2; //to rysujemy potworka
     }
 }
 
@@ -155,13 +158,14 @@ void __fastcall TTrack::ConnectNextPrev(TTrack *pTrack)
         pTrack->pPrev= this;
         pTrack->bPrevSwitchDirection= false;
         if (bVisible)
-         if (eType==tt_Normal) //jeœli ³¹czone s¹ dwa normalne
-          if (pTrack->eType==tt_Normal)
-           if ((fTrackWidth!=pTrack->fTrackWidth) //Ra: jeœli kolejny ma inne wymiary
-            || (fTexHeight!=pTrack->fTexWidth)
-            || (fTexWidth!=pTrack->fTexWidth)
-            || (fTexSlope!=pTrack->fTexSlope))
-            iTrapezoid|=2; //to rysujemy potworka
+         if (pTrack->bVisible)
+          if (eType==tt_Normal) //jeœli ³¹czone s¹ dwa normalne
+           if (pTrack->eType==tt_Normal)
+            if ((fTrackWidth!=pTrack->fTrackWidth) //Ra: jeœli kolejny ma inne wymiary
+             || (fTexHeight!=pTrack->fTexWidth)
+             || (fTexWidth!=pTrack->fTexWidth)
+             || (fTexSlope!=pTrack->fTexSlope))
+             iTrapezoid|=2; //to rysujemy potworka
     }
 }
 
@@ -433,6 +437,10 @@ void __fastcall TTrack::Load(cParser *parser, vector3 pOrigin)
             else
              Segment->Init(p1,cp1+p1,cp2+p2,p2,segsize,r1,r2); //gdy ³uk (ustawia bCurve=true)
             if ((r1!=0)||(r2!=0)) iTrapezoid=1; //s¹ przechy³ki do uwzglêdniania w rysowaniu
+            if (eType==tt_Turn) //obrotnica ma doklejkê
+            {SwitchExtension= new TSwitchExtension(); //zwrotnica ma doklejkê
+             SwitchExtension->Segments->Init(p1,p2,segsize); //kopia oryginalnego toru
+            }
         break;
 
         case tt_Switch:
@@ -567,7 +575,7 @@ bool __fastcall TTrack::AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEven
         }
         else
         {
-            if (asEvent0Name!=AnsiString(""))
+            if (!asEvent0Name.IsEmpty())
             {
                 Error(AnsiString("Event0 \"")+asEvent0Name+AnsiString("\" does not exist"));
                 bError= true;
@@ -589,9 +597,9 @@ bool __fastcall TTrack::AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEven
         }
         else
         {
-            if (asEvent1Name!=AnsiString(""))
-            {
-                Error(AnsiString("Event1 \"")+asEvent1Name+AnsiString("\" does not exist"));
+            if (!asEvent0Name.IsEmpty())
+            {//Ra: tylko w logu informacja
+                WriteLog(AnsiString("Event1 \"")+asEvent1Name+AnsiString("\" does not exist").c_str());
                 bError= true;
             }
         }
@@ -611,9 +619,9 @@ bool __fastcall TTrack::AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEven
         }
         else
         {
-            if (asEvent2Name!=AnsiString(""))
-            {
-                Error(AnsiString("Event2 \"")+asEvent2Name+AnsiString("\" does not exist"));
+            if (!asEvent0Name.IsEmpty())
+            {//Ra: tylko w logu informacja
+                WriteLog(AnsiString("Event2 \"")+asEvent2Name+AnsiString("\" does not exist"));
                 bError= true;
             }
         }
@@ -638,7 +646,7 @@ bool __fastcall TTrack::AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TE
         }
         else
         {
-            if (asEventall0Name!=AnsiString(""))
+            if (!asEvent0Name.IsEmpty())
             {
                 Error(AnsiString("Eventall 0 \"")+asEventall0Name+AnsiString("\" does not exist"));
                 bError= true;
@@ -660,9 +668,9 @@ bool __fastcall TTrack::AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TE
         }
         else
         {
-            if (asEventall1Name!=AnsiString(""))
-            {
-                Error(AnsiString("Eventall 1 \"")+asEventall1Name+AnsiString("\" does not exist"));
+            if (!asEvent0Name.IsEmpty())
+            {//Ra: tylko w logu informacja
+                WriteLog(AnsiString("Eventall 1 \"")+asEventall1Name+AnsiString("\" does not exist"));
                 bError= true;
             }
         }
@@ -682,9 +690,9 @@ bool __fastcall TTrack::AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TE
         }
         else
         {
-            if (asEventall2Name!=AnsiString(""))
-            {
-                Error(AnsiString("Eventall 2 \"")+asEventall2Name+AnsiString("\" does not exist"));
+            if (!asEvent0Name.IsEmpty())
+            {//Ra: tylko w logu informacja
+                WriteLog(AnsiString("Eventall 2 \"")+asEventall2Name+AnsiString("\" does not exist"));
                 bError= true;
             }
         }
@@ -847,38 +855,20 @@ void TTrack::Compile()
        {rpts1[12+i]=vector3((fHTW2+szyna[i].x)*cos2+szyna[i].y*sin2,-(fHTW2+szyna[i].x)*sin2+szyna[i].y*cos2,szyna[i].z);
         rpts2[23-i]=vector3((-fHTW2-szyna[i].x)*cos2+szyna[i].y*sin2,-(-fHTW2-szyna[i].x)*sin2+szyna[i].y*cos2,szyna[i].z);
        }
-/*
-        vector3 = { vector3( fHTW+0.111,0.000,0.00),vector3( fHTW+0.045,0.025,0.15), //lewa
-                    vector3( fHTW+0.045,0.110,0.25),vector3( fHTW+0.073,0.140,0.35),
-                    vector3( fHTW+0.072,0.170,0.40),vector3( fHTW+0.052,0.180,0.45),
-                    vector3( fHTW+0.020,0.180,0.55),vector3( fHTW      ,0.170,0.60),
-                    vector3( fHTW+0.001,0.140,0.65),vector3( fHTW+0.027,0.110,0.75),
-                    vector3( fHTW+0.027,0.025,0.85),vector3( fHTW-0.039,0.000,1.00) };
-
-        vector3 = { vector3(-fHTW+0.039,0.000,1.00),vector3(-fHTW-0.027,0.025,0.85), //prawa
-                    vector3(-fHTW-0.027,0.110,0.75),vector3(-fHTW-0.001,0.140,0.65),
-                    vector3(-fHTW      ,0.170,0.60),vector3(-fHTW-0.020,0.180,0.55),
-                    vector3(-fHTW-0.052,0.180,0.45),vector3(-fHTW-0.072,0.170,0.40),
-                    vector3(-fHTW-0.073,0.140,0.35),vector3(-fHTW-0.045,0.110,0.25),
-                    vector3(-fHTW-0.045,0.025,0.15),vector3(-fHTW-0.111,0.000,0.00) };
-
-        vector3 = { vector3( fHTW+0.010,0.000,0.00),vector3( fHTW+0.010,0.025,0.15), //pocz¹tek iglicy lewej
-                    vector3( fHTW+0.010,0.110,0.25),vector3( fHTW+0.010,0.140,0.35),
-                    vector3( fHTW+0.010,0.170,0.40),vector3( fHTW+0.010,0.180,0.45),
-                    vector3( fHTW      ,0.180,0.55),vector3( fHTW      ,0.170,0.60),
-                    vector3( fHTW      ,0.140,0.65),vector3( fHTW      ,0.110,0.75),
-                    vector3( fHTW      ,0.025,0.85),vector3( fHTW-0.040,0.000,1.00) };
-
-        vector3 = { vector3(-fHTW+0.040,0.000,1.00),vector3(-fHTW      ,0.025,0.85), //pocz¹tek iglicy prawej
-                    vector3(-fHTW      ,0.110,0.75),vector3(-fHTW      ,0.140,0.65),
-                    vector3(-fHTW      ,0.170,0.60),vector3(-fHTW      ,0.180,0.55),
-                    vector3(-fHTW-0.010,0.180,0.45),vector3(-fHTW-0.010,0.170,0.40),
-                    vector3(-fHTW-0.010,0.140,0.35),vector3(-fHTW-0.010,0.110,0.25),
-                    vector3(-fHTW-0.010,0.025,0.15),vector3(-fHTW-0.010,0.000,0.00) };
-*/
-
-      switch (eType)
+      switch (eType) //dalej zale¿nie od typu
       {
+       case tt_Turn: //obrotnica jak zwyk³y tor, tylko animacja dochodzi
+        if (InMovement()) //jeœli siê krêci
+        {//wyznaczamy wspó³rzêdne koñców, przy za³o¿eniu sta³ego œródka i d³ugoœci
+         double hlen=0.5*SwitchExtension->Segments->GetLength(); //po³owa d³ugoœci
+         //SwitchExtension->fOffset1=SwitchExtension->pAnim?SwitchExtension->pAnim->AngleGet():0.0; //pobranie k¹ta z modelu
+         TAnimContainer *ac=SwitchExtension->pModel?SwitchExtension->pModel->GetContainer(NULL):NULL;
+         if (ac)
+          SwitchExtension->fOffset1=ac?ac->AngleGet():0.0; //pobranie k¹ta z modelu
+         double sina=hlen*sin(DegToRad(SwitchExtension->fOffset1)),cosa=hlen*cos(DegToRad(SwitchExtension->fOffset1));
+         vector3 middle=SwitchExtension->Segments->FastGetPoint(0.5);
+         Segment->Init(middle+vector3(sina,0.0,cosa),middle-vector3(sina,0.0,cosa),5.0);
+        }
        case tt_Normal:
         if (TextureID2)
         {//podsypka z podk³adami jest tylko dla zwyk³ego toru
@@ -1189,9 +1179,30 @@ bool __fastcall TTrack::RemoveDynamicObject(TDynamicObject *Dynamic)
 }
 
 bool __fastcall TTrack::InMovement()
-{
- return SwitchExtension?SwitchExtension->bMovement:false;
+{//tory animowane (zwrotnica, obrotnica) maj¹ SwitchExtension
+ if (SwitchExtension)
+ {if (eType==tt_Switch)
+   return SwitchExtension->bMovement; //ze zwrotnic¹ ³atwiej
+  if (eType==tt_Turn)
+   if (SwitchExtension->pModel)
+   {//if (!SwitchExtension->CurrentIndex) return false; //zablokowana siê nie animuje
+    //trzeba ka¿dorazowo porównywaæ z k¹tem modelu
+    TAnimContainer *ac=SwitchExtension->pModel?SwitchExtension->pModel->GetContainer(NULL):NULL;
+    return ac?(ac->AngleGet()!=SwitchExtension->fOffset1):false;
+    //return true; //jeœli jest taki obiekt
+   }
+ }
+ return false;
 };
+void __fastcall TTrack::ModelAssign(TAnimContainer *p)
+{//Ra: wi¹zanie toru z modelem obrotnicy
+ //if (eType==tt_Turn) SwitchExtension->pAnim=p;
+};
+void __fastcall TTrack::ModelAssign(TAnimModel *p)
+{//Ra: wi¹zanie toru z modelem obrotnicy
+ if (eType==tt_Turn) SwitchExtension->pModel=p;
+};
+
 
 //---------------------------------------------------------------------------
 
