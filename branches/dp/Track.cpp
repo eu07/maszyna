@@ -41,7 +41,8 @@ __fastcall TSwitchExtension::TSwitchExtension()
     pNexts[1]= NULL;
     pPrevs[0]= NULL;
     pPrevs[1]= NULL;
-    fOffset1=fOffset2=fDesiredOffset1=fDesiredOffset2=0;
+    fOffset1=fOffset2=fDesiredOffset1=fDesiredOffset2=0.0;
+    bMovement=false; //nie potrzeba animowaæ
 }
 __fastcall TSwitchExtension::~TSwitchExtension()
 {
@@ -55,14 +56,14 @@ __fastcall TTrack::TTrack()
 {//tworzenie nowego odcinka ruchu
     pNext=pPrev= NULL;
     Segment= NULL;
-    SwitchExtension= NULL;
+    SwitchExtension=NULL;
     TextureID1= 0;
     fTexLength= 4.0;
     TextureID2= 0;
     fTexHeight= 0.2;
     fTexWidth= 0.9;
     fTexSlope= 1.1;
-    HelperPts= NULL;
+    //HelperPts= NULL;
     iCategoryFlag= 1;
     fTrackWidth= 1.435;
     fFriction= 0.15;
@@ -84,13 +85,13 @@ __fastcall TTrack::TTrack()
     fRadiusTable[1]= 0;
     iNumDynamics= 0;
     ScannedFlag=false;
-    DisplayListID = 0;
+    DisplayListID=0;
     iTrapezoid=0; //parametry kszta³tu: 0-standard, 1-przechy³ka, 2-trapez, 3-oba
 }
 
 __fastcall TTrack::~TTrack()
 {
-    SafeDeleteArray(HelperPts);
+    //SafeDeleteArray(HelperPts);
     switch (eType)
     {
         case tt_Switch:
@@ -487,7 +488,7 @@ void __fastcall TTrack::Load(cParser *parser, vector3 pOrigin)
              a2=a2-a1;
              while (a2>M_PI) a2=a2-2*M_PI;
              while (a2<-M_PI) a2=a2+2*M_PI;
-             SwitchExtension->RightSwitch =a2>0;
+             SwitchExtension->RightSwitch=a2<0; //lustrzany uk³ad OXY...
             }
         break;
         case tt_Cross: //skrzy¿owanie dróg
@@ -714,7 +715,7 @@ bool __fastcall TTrack::AddDynamicObject(TDynamicObject *Dynamic)
         }
     };
 
-void TTrack::MoveMe(vector3 pPosition)
+void __fastcall TTrack::MoveMe(vector3 pPosition)
 {
     if(SwitchExtension)
     {
@@ -761,7 +762,7 @@ const vector3 iglica[nnumPts]= //iglica - vextor3(x,y,mapowanie tekstury)
  vector3( 0.000,0.140,0.65),
  vector3( 0.000,0.110,0.75),
  vector3( 0.000,0.025,0.85),
- vector3(-0.039,0.000,1.00)
+ vector3(-0.040,0.000,1.00) //1mm wiêcej, ¿eby nie nachodzi³y tekstury?
 };
 
 
@@ -773,8 +774,8 @@ void TTrack::Compile()
 
     if(Global::bManageNodes)
     {
-        DisplayListID = glGenLists(1); //otwarcie nowej listy
-        glNewList(DisplayListID, GL_COMPILE);
+        DisplayListID=glGenLists(1); //otwarcie nowej listy
+        glNewList(DisplayListID,GL_COMPILE);
     };
 
     glColor3f(1.0f,1.0f,1.0f);
@@ -924,13 +925,20 @@ void TTrack::Compile()
           {rpts3[12+i]=vector3((fHTW2+iglica[i].x)*cos2+iglica[i].y*sin2,-(fHTW2+iglica[i].x)*sin2+iglica[i].y*cos2,iglica[i].z);
            rpts4[23-i]=vector3((-fHTW2-iglica[i].x)*cos2+iglica[i].y*sin2,-(-fHTW2-iglica[i].x)*sin2+iglica[i].y*cos2,iglica[i].z);
           }
-         SwitchExtension->fDesiredOffset1;
-         double v = (SwitchExtension->fDesiredOffset1-SwitchExtension->fOffset1);
-         SwitchExtension->fOffset1+= sign(v)*Timer::GetDeltaTime()*0.1;
-         if (SwitchExtension->fOffset1<=0.01)
-          SwitchExtension->fOffset1= 0.01;
-         if (SwitchExtension->fOffset1>=fMaxOffset-0.01)
-          SwitchExtension->fOffset1= fMaxOffset-0.01;
+         if (InMovement())
+         {//Ra: trochê bez sensu, ¿e tu jest animacja
+          double v=SwitchExtension->fDesiredOffset1-SwitchExtension->fOffset1;
+          SwitchExtension->fOffset1+=sign(v)*Timer::GetDeltaTime()*0.1;
+          //Ra: trzeba daæ to do klasy...
+          if (SwitchExtension->fOffset1<=0.01)
+          {SwitchExtension->fOffset1=0.01; //1cm?
+           SwitchExtension->bMovement=false; //koniec animacji
+          }
+          if (SwitchExtension->fOffset1>=fMaxOffset-0.01)
+          {SwitchExtension->fOffset1=fMaxOffset-0.01; //maksimum-1cm?
+           SwitchExtension->bMovement=false; //koniec animacji
+          }
+         }
 //McZapkie-130302 - poprawione rysowanie szyn
 /* //stara wersja - dziwne prawe zwrotnice
          glBindTexture(GL_TEXTURE_2D, TextureID1);
@@ -943,7 +951,19 @@ void TTrack::Compile()
          SwitchExtension->Segments[1].RenderLoft(rpts2,nnumPts,fTexLength); //prawa szyna normalnie ca³a
 */
          if (SwitchExtension->RightSwitch)
-         {//nowa wersja z SPKS
+         {//nowa wersja z SPKS, ale odwrotnie lewa/prawa
+          glBindTexture(GL_TEXTURE_2D, TextureID1);
+          SwitchExtension->Segments[0].RenderLoft(rpts1,nnumPts,fTexLength,2);
+          SwitchExtension->Segments[0].RenderSwitchRail(rpts1,rpts3,nnumPts,fTexLength,2,SwitchExtension->fOffset1);
+          SwitchExtension->Segments[0].RenderLoft(rpts2,nnumPts,fTexLength);
+          glBindTexture(GL_TEXTURE_2D, TextureID2);
+          SwitchExtension->Segments[1].RenderLoft(rpts1,nnumPts,fTexLength);
+          SwitchExtension->Segments[1].RenderLoft(rpts2,nnumPts,fTexLength,2);
+          SwitchExtension->Segments[1].RenderSwitchRail(rpts2,rpts4,nnumPts,fTexLength,2,-fMaxOffset+SwitchExtension->fOffset1);
+          //WriteLog("Kompilacja prawej"); WriteLog(AnsiString(SwitchExtension->fOffset1).c_str());
+         }
+         else
+         {//lewa dzia³a lepiej ni¿ prawa
           glBindTexture(GL_TEXTURE_2D, TextureID1);
           SwitchExtension->Segments[0].RenderLoft(rpts1,nnumPts,fTexLength); //lewa szyna normalna ca³a
           SwitchExtension->Segments[0].RenderLoft(rpts2,nnumPts,fTexLength,2); //prawa szyna za iglic¹
@@ -952,17 +972,7 @@ void TTrack::Compile()
           SwitchExtension->Segments[1].RenderLoft(rpts1,nnumPts,fTexLength,2); //lewa szyna za iglic¹
           SwitchExtension->Segments[1].RenderSwitchRail(rpts1,rpts3,nnumPts,fTexLength,2,fMaxOffset-SwitchExtension->fOffset1); //lewa iglica
           SwitchExtension->Segments[1].RenderLoft(rpts2,nnumPts,fTexLength); //prawa szyna normalnie ca³a
-         }
-         else
-         {
-          glBindTexture(GL_TEXTURE_2D, TextureID2);
-          SwitchExtension->Segments[1].RenderLoft(rpts1,nnumPts,fTexLength);
-          SwitchExtension->Segments[1].RenderLoft(rpts2,nnumPts,fTexLength,2);
-          SwitchExtension->Segments[1].RenderSwitchRail(rpts2,rpts4,nnumPts,fTexLength,2,-fMaxOffset+SwitchExtension->fOffset1);
-          glBindTexture(GL_TEXTURE_2D, TextureID1);
-          SwitchExtension->Segments[0].RenderLoft(rpts1,nnumPts,fTexLength,2);
-          SwitchExtension->Segments[0].RenderSwitchRail(rpts1,rpts3,nnumPts,fTexLength,2,SwitchExtension->fOffset1);
-          SwitchExtension->Segments[0].RenderLoft(rpts2,nnumPts,fTexLength);
+          //WriteLog("Kompilacja lewej"); WriteLog(AnsiString(SwitchExtension->fOffset1).c_str());
          }
         }
         break;
@@ -1053,8 +1063,8 @@ void TTrack::Compile()
 void TTrack::Release()
 {
 
-    glDeleteLists(DisplayListID, 1);
-    DisplayListID = 0;
+    glDeleteLists(DisplayListID,1);
+    DisplayListID=0;
 
 };
 
@@ -1063,17 +1073,15 @@ bool __fastcall TTrack::Render()
 
     if(bVisible && SquareMagnitude(Global::pCameraPosition-Segment->FastGetPoint(0.5)) < 810000)
     {
-
         if(!DisplayListID)
         {
             Compile();
             if(Global::bManageNodes)
                 ResourceManager::Register(this);
         };
-
         SetLastUsage(Timer::GetSimulationTime());
         glCallList(DisplayListID);
-
+        if (InMovement()) Release(); //zwrotnica w trakcie animacji do odrysowania
     };
 
     for (int i=0; i<iNumDynamics; i++)
@@ -1153,9 +1161,37 @@ bool __fastcall TTrack::RenderAlpha()
    glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
    glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
    return true;
-
 }
 
+bool __fastcall TTrack::CheckDynamicObject(TDynamicObject *Dynamic)
+{
+    for (int i=0; i<iNumDynamics; i++)
+        if (Dynamic==Dynamics[i])
+            return true;
+    return false;
+};
+
+bool __fastcall TTrack::RemoveDynamicObject(TDynamicObject *Dynamic)
+{
+    for (int i=0; i<iNumDynamics; i++)
+    {
+        if (Dynamic==Dynamics[i])
+        {
+            iNumDynamics--;
+            for (i; i<iNumDynamics; i++)
+                Dynamics[i]= Dynamics[i+1];
+            return true;
+
+        }
+    }
+    Error("Cannot remove dynamic from track");
+    return false;
+}
+
+bool __fastcall TTrack::InMovement()
+{
+ return SwitchExtension?SwitchExtension->bMovement:false;
+};
 
 //---------------------------------------------------------------------------
 

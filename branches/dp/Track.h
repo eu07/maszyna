@@ -19,7 +19,7 @@ typedef enum { e_unknown, e_flat, e_mountains, e_canyon, e_tunnel, e_bridge, e_b
 
 class TTrack;
 
-const double fMaxOffset= 0.1f;
+static const double fMaxOffset=0.1f;
 
 class TSwitchExtension
 {//dodatkowe dane do toru, który jest zwrotnic¹
@@ -33,15 +33,17 @@ public:
     bool bNextSwitchDirection[2];
     bool bPrevSwitchDirection[2];
     int CurrentIndex;
-    double fOffset1, fOffset2, fDesiredOffset1, fDesiredOffset2;
+    double fOffset1, fDesiredOffset1; //ruch od strony punktu 1
+    double fOffset2, fDesiredOffset2; //ruch od strony punktu 2 nie obs³ugiwany
     bool RightSwitch; //czy w prawo
+    bool bMovement; //czy w trakcie animacji 
 private:
 };
 
 const int iMaxNumDynamics= 40; //McZapkie-100303
 
-const int NextMask[4]= {0,1,0,1};
-const int PrevMask[4]= {0,0,1,1};
+const int NextMask[4]= {0,1,0,1}; //tor nastêpny dla stanów 0, 1, 2, 3
+const int PrevMask[4]= {0,0,1,1}; //tor poprzedni dla stanów 0, 1, 2, 3
 
 class TTrack: public Resource
 {
@@ -61,7 +63,7 @@ private:
     float fTexHeight; //wysokoœ brzegu wzglêdem trajektorii
     float fTexWidth;
     float fTexSlope;
-    vector3 *HelperPts;
+    //vector3 *HelperPts; //Ra: nie u¿ywane
     double fRadiusTable[2]; //dwa promienie, drugi dla zwrotnicy
     int iTrapezoid; //0-standard, 1-przechy³ka, 2-trapez, 3-oba
 public:
@@ -133,16 +135,20 @@ public:
     {
         if (SwitchExtension)
         {
-            SwitchExtension->fDesiredOffset1= fMaxOffset*double(NextMask[i]);
-            SwitchExtension->fDesiredOffset2= fMaxOffset*double(PrevMask[i]);
+            SwitchExtension->fDesiredOffset1= fMaxOffset*double(NextMask[i]); //od punktu 1
+            SwitchExtension->fDesiredOffset2= fMaxOffset*double(PrevMask[i]); //od punktu 2
             SwitchExtension->CurrentIndex= i;
-            Segment= SwitchExtension->Segments+i;
-            pNext= SwitchExtension->pNexts[NextMask[i]];
+            Segment= SwitchExtension->Segments+i; //wybranie aktywnej drogi
+            pNext= SwitchExtension->pNexts[NextMask[i]]; //prze³¹czenie koñców
             pPrev= SwitchExtension->pPrevs[PrevMask[i]];
             bNextSwitchDirection= SwitchExtension->bNextSwitchDirection[NextMask[i]];
             bPrevSwitchDirection= SwitchExtension->bPrevSwitchDirection[PrevMask[i]];
             //McZapkie: wybor promienia toru:
             fRadius= fRadiusTable[i];
+            if (DisplayListID) //jeœli istnieje siatka renderu
+             SwitchExtension->bMovement=true; //bêdzie animacja
+            else
+             SwitchExtension->fOffset1=SwitchExtension->fDesiredOffset1; //nie ma siê co bawiæ
             return true;
         }
         Error("Cannot switch normal track");
@@ -152,38 +158,17 @@ public:
     void __fastcall Load(cParser *parser, vector3 pOrigin);
     bool __fastcall AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2);
     bool __fastcall AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2);
-    bool __fastcall CheckDynamicObject(TDynamicObject *Dynamic)
-    {
-        for (int i=0; i<iNumDynamics; i++)
-            if (Dynamic==Dynamics[i])
-                return true;
-        return false;
-    };
+    bool __fastcall CheckDynamicObject(TDynamicObject *Dynamic);
     bool __fastcall AddDynamicObject(TDynamicObject *Dynamic);
-    bool __fastcall RemoveDynamicObject(TDynamicObject *Dynamic)
-    {
-        for (int i=0; i<iNumDynamics; i++)
-        {
-            if (Dynamic==Dynamics[i])
-            {
-                iNumDynamics--;
-                for (i; i<iNumDynamics; i++)
-                    Dynamics[i]= Dynamics[i+1];
-                return true;
-
-            }
-        }
-        Error("Cannot remove dynamic from track");
-        return false;
-    }
-
-    void MoveMe(vector3 pPosition);
+    bool __fastcall RemoveDynamicObject(TDynamicObject *Dynamic);
+    void __fastcall MoveMe(vector3 pPosition);
 
     void Release();
     void Compile();
 
     bool __fastcall Render();
     bool __fastcall RenderAlpha();
+    bool __fastcall InMovement(); //czy w trakcie animacji?
 
 private:
     GLuint DisplayListID;

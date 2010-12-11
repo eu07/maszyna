@@ -339,9 +339,10 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName)
     file.close();
 
     bool alpha = (bpp == 32);
-    bool hash = (fileName.find('#') != std::string::npos);
+    bool hash = (fileName.find('#') != std::string::npos); //true gdy w nazwie jest "#"
+    bool dollar = (fileName.find('$') != std::string::npos); //true gdy w nazwie jest "$"
 
-    GLuint id = CreateTexture(imageData, bytesPerPixel, width, height, alpha, hash);
+    GLuint id=CreateTexture(imageData,bytesPerPixel,width,height,alpha,hash,dollar);
     delete[] imageData;
 
 	return std::make_pair(id, alpha);
@@ -530,7 +531,7 @@ void TTexturesManager::SetFiltering(bool alpha, bool hash)
     {
       if (alpha) // przezroczystosc: nie wlaczac mipmapingu
        {
-         if (hash) // #: calkowity brak filtracji
+         if (hash) // #: calkowity brak filtracji - pikseloza
           {
            glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_NEAREST);
            glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -547,7 +548,7 @@ void TTexturesManager::SetFiltering(bool alpha, bool hash)
          glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_LINEAR);
        }
      }
-    else // filtruj wszystko
+    else // filtruj wszystko - brzydko siê zlewa
      {
        glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_LINEAR);
        glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -556,7 +557,7 @@ void TTexturesManager::SetFiltering(bool alpha, bool hash)
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-GLuint TTexturesManager::CreateTexture(char *buff, int bpp, int width, int Height, bool bHasAlpha, bool bHash)
+GLuint TTexturesManager::CreateTexture(char *buff, int bpp, int width, int Height, bool bHasAlpha, bool bHash, bool bDollar)
 {
 
     GLuint ID;
@@ -565,7 +566,7 @@ GLuint TTexturesManager::CreateTexture(char *buff, int bpp, int width, int Heigh
     glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-    SetFiltering(bHasAlpha, bHash);
+    SetFiltering(bHasAlpha||!bDollar,bHash);
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
