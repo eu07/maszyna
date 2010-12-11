@@ -32,7 +32,7 @@ private:
     static AlphaValue LoadDDS(std::string fileName);
 
     static void SetFiltering(bool alpha, bool hash);
-    static GLuint CreateTexture(char *buff, int bpp, int width, int Height, bool bHasAlpha, bool bHash) ;
+    static GLuint CreateTexture(char *buff, int bpp, int width, int Height, bool bHasAlpha, bool bHash, bool bDollar=false);
 
     static Names _names;
     static Alphas _alphas;
