@@ -3,9 +3,7 @@
 #ifndef TrackH
 #define TrackH
 
-//#include "DynObj.h"
 #include "Segment.h"
-//#include "QueryParserComp.hpp"
 #include "parser.h"
 #include "Event.h"
 #include "Flags.h"
@@ -18,6 +16,7 @@ typedef enum { tt_Unknown, tt_Normal, tt_Switch, tt_Turn, tt_Cross } TTrackType;
 typedef enum { e_unknown, e_flat, e_mountains, e_canyon, e_tunnel, e_bridge, e_bank } TEnvironmentType;
 
 class TTrack;
+class TGroundNode;
 
 static const double fMaxOffset=0.1f;
 
@@ -26,15 +25,17 @@ class TSwitchExtension
 public:
     __fastcall TSwitchExtension();
     __fastcall ~TSwitchExtension();
-//    vector3 p00,p01,p02,p03,p04,p05,p06,p07,p08,p09,p10,p11;
-    TSegment Segments[4]; //dwa tory zwrotnicy, a pozosta³e dwa?
+    TSegment Segments[4]; //dwa tory od punktu 1, pozosta³e dwa od 2?
     TTrack *pNexts[2];
     TTrack *pPrevs[2];
     bool bNextSwitchDirection[2];
     bool bPrevSwitchDirection[2];
     int CurrentIndex; //dla zwrotnicy
     double fOffset1, fDesiredOffset1; //ruch od strony punktu 1
-    double fOffset2, fDesiredOffset2; //ruch od strony punktu 2 nie obs³ugiwany
+    union
+    {double fOffset2, fDesiredOffset2; //ruch od strony punktu 2 nie obs³ugiwany
+     TGroundNode *pMyNode; //dla obrotnicy do wtórnego pod³¹czania torów
+    };
     union
     {bool RightSwitch; //czy zwrotnica w prawo
      //TAnimContainer *pAnim; //animator modelu dla obrotnicy
@@ -53,13 +54,9 @@ class TTrack: public Resource
 {
 private:
     TSwitchExtension *SwitchExtension; //dodatkowe dane do toru, który jest zwrotnic¹
-//    TFlags32 Flags;
-//    TSegment Segments[2];
     TSegment *Segment;
     TTrack *pNext; //odcinek od strony punktu 2
-//    TTrack *pNext1;
     TTrack *pPrev; //odcinek od strony punktu 1
-//    TTrack *pNext2;
 //McZapkie-070402: dodalem zmienne opisujace rozmiary tekstur
     GLuint TextureID1; //tekstura szyn
     float fTexLength;
@@ -67,7 +64,7 @@ private:
     float fTexHeight; //wysokoœ brzegu wzglêdem trajektorii
     float fTexWidth;
     float fTexSlope;
-    //vector3 *HelperPts; //Ra: nie u¿ywane
+    //vector3 *HelperPts; //Ra: nie u¿ywane, na razie niech zostanie
     double fRadiusTable[2]; //dwa promienie, drugi dla zwrotnicy
     int iTrapezoid; //0-standard, 1-przechy³ka, 2-trapez, 3-oba
 private:
@@ -137,33 +134,7 @@ public:
         Error("Cannot set connections");
         return false;
     }
-    inline bool __fastcall Switch(int i)
-    {
-        if (SwitchExtension)
-         if (eType==tt_Switch)
-         {//przek³adanie zwrotnicy jak zwykle
-            SwitchExtension->fDesiredOffset1= fMaxOffset*double(NextMask[i]); //od punktu 1
-            SwitchExtension->fDesiredOffset2= fMaxOffset*double(PrevMask[i]); //od punktu 2
-            SwitchExtension->CurrentIndex= i;
-            Segment= SwitchExtension->Segments+i; //wybranie aktywnej drogi
-            pNext= SwitchExtension->pNexts[NextMask[i]]; //prze³¹czenie koñców
-            pPrev= SwitchExtension->pPrevs[PrevMask[i]];
-            bNextSwitchDirection= SwitchExtension->bNextSwitchDirection[NextMask[i]];
-            bPrevSwitchDirection= SwitchExtension->bPrevSwitchDirection[PrevMask[i]];
-            fRadius= fRadiusTable[i]; //McZapkie: wybor promienia toru
-            if (DisplayListID) //jeœli istnieje siatka renderu
-             SwitchExtension->bMovement=true; //bêdzie animacja
-            else
-             SwitchExtension->fOffset1=SwitchExtension->fDesiredOffset1; //nie ma siê co bawiæ
-            return true;
-         }
-         else
-         {//blokowanie (1, szuka torów) lub odblokowanie (0, roz³¹cza) obrotnicy
-          SwitchExtension->CurrentIndex=i; //zapamiêtanie stanu zablokowania
-         }
-        Error("Cannot switch normal track");
-        return false;
-    };
+    bool __fastcall Switch(int i);
     inline int __fastcall GetSwitchState() { return (SwitchExtension?SwitchExtension->CurrentIndex:-1); };
     void __fastcall Load(cParser *parser, vector3 pOrigin);
     bool __fastcall AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2);
@@ -180,8 +151,8 @@ public:
     bool __fastcall RenderAlpha();
     bool __fastcall InMovement(); //czy w trakcie animacji?
 
-    void __fastcall ModelAssign(TAnimContainer *p);
-    void __fastcall ModelAssign(TAnimModel *p);
+    void __fastcall Assign(TGroundNode *gn,TAnimContainer *ac);
+    void __fastcall Assign(TGroundNode *gn,TAnimModel *am);
 };
 
 //---------------------------------------------------------------------------

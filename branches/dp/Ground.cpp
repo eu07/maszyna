@@ -1849,7 +1849,7 @@ bool __fastcall TGround::InitTracks()
                  if (tmp) //mamy model, trzeba zapamiêtaæ wskaŸnik do jego animacji
                  {//jak coœ pójdzie Ÿle, to robimy z tego normalny tor
                   //Track->ModelAssign(tmp->Model->GetContainer(NULL)); //wi¹zanie toru z modelem obrotnicy
-                  Track->ModelAssign(tmp->Model); //wi¹zanie toru z modelem obrotnicy
+                  Track->Assign(Current,tmp->Model); //wi¹zanie toru z modelem obrotnicy
                   //break; //jednak po³¹czê z s¹siednim, jak ma siê wysypywaæ null track
                  }
                 case tt_Normal :
@@ -1942,6 +1942,30 @@ bool __fastcall TGround::InitTracks()
         }
     }
     return true;
+}
+
+void __fastcall TGround::TrackJoin(TGroundNode *Current)
+{//wyszukiwanie s¹siednich torów do pod³¹czenia (wydzielone dla obrotnicy)
+ TTrack *Track=Current->pTrack;
+ TGroundNode *tmp;
+ int iConnection;
+ if (!Track->CurrentPrev())
+ {tmp=FindTrack(Track->CurrentSegment()->FastGetPoint(0),iConnection,Current); //Current do pominiêcia
+  switch (iConnection)
+  {
+   case 0: Track->ConnectPrevPrev(tmp->pTrack); break;
+   case 1: Track->ConnectPrevNext(tmp->pTrack); break;
+  }
+ }
+ if (!Track->CurrentNext())
+ {
+  tmp= FindTrack(Track->CurrentSegment()->FastGetPoint(1),iConnection,Current);
+  switch (iConnection)
+  {
+   case 0: Track->ConnectNextPrev(tmp->pTrack); break;
+   case 1: Track->ConnectNextNext(tmp->pTrack); break;
+  }
+ }
 }
 
 //McZapkie-070602: wyzwalacze zdarzen

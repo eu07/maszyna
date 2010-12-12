@@ -262,6 +262,7 @@ public:
     int __fastcall GetRowFromZ(double z) { return (z/fSubRectSize+fHalfTotalNumSubRects); };
     int __fastcall GetColFromX(double x) { return (x/fSubRectSize+fHalfTotalNumSubRects); };
     TEvent* __fastcall FindEvent(AnsiString asEventName);
+    void __fastcall TrackJoin(TGroundNode *Current);
 private:
     TGroundNode *RootNode; //lista wêz³ów
 //    TGroundNode *FirstVisible,*LastVisible;

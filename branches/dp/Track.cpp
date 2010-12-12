@@ -31,6 +31,7 @@
 #include "usefull.h"
 #include "Globals.h"
 #include "Track.h"
+#include "Ground.h"
 
 //101206 Ra: trapezoidalne drogi i tory
 
@@ -864,7 +865,7 @@ void TTrack::Compile()
          //SwitchExtension->fOffset1=SwitchExtension->pAnim?SwitchExtension->pAnim->AngleGet():0.0; //pobranie k¹ta z modelu
          TAnimContainer *ac=SwitchExtension->pModel?SwitchExtension->pModel->GetContainer(NULL):NULL;
          if (ac)
-          SwitchExtension->fOffset1=ac?ac->AngleGet():0.0; //pobranie k¹ta z modelu
+          SwitchExtension->fOffset1=ac?180+ac->AngleGet():0.0; //pobranie k¹ta z modelu
          double sina=hlen*sin(DegToRad(SwitchExtension->fOffset1)),cosa=hlen*cos(DegToRad(SwitchExtension->fOffset1));
          vector3 middle=SwitchExtension->Segments->FastGetPoint(0.5);
          Segment->Init(middle+vector3(sina,0.0,cosa),middle-vector3(sina,0.0,cosa),5.0);
@@ -1185,7 +1186,7 @@ bool __fastcall TTrack::InMovement()
    return SwitchExtension->bMovement; //ze zwrotnic¹ ³atwiej
   if (eType==tt_Turn)
    if (SwitchExtension->pModel)
-   {//if (!SwitchExtension->CurrentIndex) return false; //zablokowana siê nie animuje
+   {if (!SwitchExtension->CurrentIndex) return false; //0=zablokowana siê nie animuje
     //trzeba ka¿dorazowo porównywaæ z k¹tem modelu
     TAnimContainer *ac=SwitchExtension->pModel?SwitchExtension->pModel->GetContainer(NULL):NULL;
     return ac?(ac->AngleGet()!=SwitchExtension->fOffset1):false;
@@ -1194,15 +1195,67 @@ bool __fastcall TTrack::InMovement()
  }
  return false;
 };
-void __fastcall TTrack::ModelAssign(TAnimContainer *p)
+void __fastcall TTrack::Assign(TGroundNode *gn,TAnimContainer *ac)
 {//Ra: wi¹zanie toru z modelem obrotnicy
  //if (eType==tt_Turn) SwitchExtension->pAnim=p;
 };
-void __fastcall TTrack::ModelAssign(TAnimModel *p)
+void __fastcall TTrack::Assign(TGroundNode *gn,TAnimModel *am)
 {//Ra: wi¹zanie toru z modelem obrotnicy
- if (eType==tt_Turn) SwitchExtension->pModel=p;
+ if (eType==tt_Turn)
+ {SwitchExtension->pModel=am;
+  SwitchExtension->pMyNode=gn;
+ }
 };
 
+bool __fastcall TTrack::Switch(int i)
+{
+    if (SwitchExtension)
+     if (eType==tt_Switch)
+     {//przek³adanie zwrotnicy jak zwykle
+        SwitchExtension->fDesiredOffset1= fMaxOffset*double(NextMask[i]); //od punktu 1
+        SwitchExtension->fDesiredOffset2= fMaxOffset*double(PrevMask[i]); //od punktu 2
+        SwitchExtension->CurrentIndex= i;
+        Segment= SwitchExtension->Segments+i; //wybranie aktywnej drogi
+        pNext= SwitchExtension->pNexts[NextMask[i]]; //prze³¹czenie koñców
+        pPrev= SwitchExtension->pPrevs[PrevMask[i]];
+        bNextSwitchDirection= SwitchExtension->bNextSwitchDirection[NextMask[i]];
+        bPrevSwitchDirection= SwitchExtension->bPrevSwitchDirection[PrevMask[i]];
+        fRadius= fRadiusTable[i]; //McZapkie: wybor promienia toru
+        if (DisplayListID) //jeœli istnieje siatka renderu
+         SwitchExtension->bMovement=true; //bêdzie animacja
+        else
+         SwitchExtension->fOffset1=SwitchExtension->fDesiredOffset1; //nie ma siê co bawiæ
+        return true;
+     }
+     else
+     {//blokowanie (0, szuka torów) lub odblokowanie (1, roz³¹cza) obrotnicy
+      SwitchExtension->CurrentIndex=i; //zapamiêtanie stanu zablokowania
+      if (i)
+      {//roz³¹czenie obrotnicy od s¹siednich torów
+       if (pPrev)
+        if (bPrevSwitchDirection)
+         pPrev->pPrev=NULL;
+        else
+         pPrev->pNext=NULL;
+       if (pNext)
+        if (bPrevSwitchDirection)
+         pNext->pNext=NULL;
+        else
+         pNext->pPrev=NULL;
+       pNext=pPrev=NULL;
+       fVelocity=0.0; //AI, nie ruszaj siê!
+      }
+      else
+      {//zablokowanie pozycji i po³¹czenie do s¹siednich torów
+       Global::pGround->TrackJoin(SwitchExtension->pMyNode);
+       if (pNext||pPrev)
+        fVelocity=6.0; //jazda dozwolona
+      }
+      return true;
+     }
+    Error("Cannot switch normal track");
+    return false;
+};
 
 //---------------------------------------------------------------------------
 

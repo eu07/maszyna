@@ -283,8 +283,8 @@ bool __fastcall TEvent::Load(cParser* parser)
 
             while (str!=AnsiString("endevent") && str!=AnsiString("condition"))
             {
-                if (str!=AnsiString("none"))
-                {
+                if (str.SubString(1,5)!="none_")
+                {//eventy rozpoczynaj¹ce siê od "none_" s¹ ignorowane
                     if (i<8)
                     {
                         Params[i].asText= new char[255];
