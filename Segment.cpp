@@ -28,7 +28,7 @@ bool __fastcall TSegment::Init(vector3 NewPoint1, vector3 NewPoint2, double fNew
  vector3 dir;
  if (fNewRoll1==fNewRoll2)
  {//faktyczny prosty
-  dir=Normalize(NewPoint2-NewPoint1); //Ra: to chyba jakoœ inaczej jest u¿ywane
+  dir=Normalize(NewPoint2-NewPoint1); //wektor kierunku o d³ugoœci 1
   return TSegment::Init(
    NewPoint1,dir,-dir,NewPoint2,
    fNewStep,fNewRoll1,fNewRoll2,
@@ -256,12 +256,12 @@ void __fastcall TSegment::RenderLoft(const vector3 *ShapePoints, int iNumShapePo
     if (bCurve)
     {
        double m1,jmm1,m2,jmm2; //pozycje wzglêdne na odcinku 0...1 (ale nie parametr Beziera)
-       tv1=0;
+       tv1=0; //Ra: to by mo¿na by³o wyliczaæ dla odcinka, wygl¹da³o by lepiej
        step= fStep*iQualityFactor;
        s= fStep*iSkip; //iSkip - ile odcinków z pocz¹tku pomin¹æ
        i= iSkip; //domyœlnie 0
        t= fTsBuffer[i]; //tabela wattoœci t dla segmentów
-       fOffset= 0.1/fLength;
+       fOffset= 0.1/fLength; //pierwsze 10cm
        pos1= FastGetPoint( t ); //wektor pocz¹tku segmentu
        dir= FastGetDirection( t, fOffset ); //wektor kierunku
        parallel1= Normalize(CrossProduct(dir,vector3(0,1,0))); //wektor prostopad³y
@@ -270,27 +270,27 @@ void __fastcall TSegment::RenderLoft(const vector3 *ShapePoints, int iNumShapePo
        while (s<fLength)
        {
 //           step= SquareMagnitude(Global::GetCameraPosition()+pos);
-           i+= iQualityFactor;
+           i+= iQualityFactor; //kolejny punkt ³amanej
            s+= step; //koñcowa pozycja segmentu [m]
 
            m1=m2; jmm1=jmm2; //stara pozycja
            m2=s/fLength; jmm2=1.0-m2; //nowa pozycja
 
-           if (s>fLength-0.5) //-0.5 ¿eby nie robi³o cieniasa na koñcu
+           if (s>fLength-0.5) //Ra: -0.5 ¿eby nie robi³o cieniasa na koñcu
            {//gdy przekroczyliœmy koniec - st¹d dziury w torach...
-               step-= (s-fLength);
-               s= fLength;
-               i= fLength/fStep+1;
+               step-=(s-fLength); //jeszcze do wyliczenia mapowania potrzebny
+               s=fLength;
+               i=ceil(fLength/fStep); //20/5 ma dawaæ 4
                m2=1.0; jmm2=0.0;
            }
 
            while (tv1>1) tv1-= 1.0f;
 
-           tv2=tv1+step/fTextureLength;
+           tv2=tv1+step/fTextureLength; //mapowanie na koñcu segmentu
 
-           t= fTsBuffer[i];//GetTFromS(s);
+           t= fTsBuffer[i]; //szybsze od GetTFromS(s);
            pos2= FastGetPoint( t );
-           dir= FastGetDirection( t, fOffset ); //nowy wektor kirunku
+           dir= FastGetDirection( t, fOffset ); //nowy wektor kierunku
            parallel2= Normalize(CrossProduct(dir,vector3(0,1,0)));
 
 
