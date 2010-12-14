@@ -414,24 +414,26 @@ void __fastcall TTrack::Load(cParser *parser, vector3 pOrigin)
       WriteLog("unvis");
      }
     Init();
-    double segsize=5.0f;
+    double segsize=0.5f; //Ra: 5m przy ma³ych promieniach 5m Ÿle wygl¹da (drogi, tramwaje)
     switch (eType)
-    {
+    {//Ra: ³uki by³y segmentowane co 5m albo 314-k¹tem foremnym
+     //Ra: zmieni³em na minimum 0.5m, za to 209-k¹t
         case tt_Turn: //obrotnica jest prawie jak zwyk³y tor
         case tt_Normal:
             p1= LoadPoint(parser)+pOrigin; //pobranie wspó³rzêdnych P1
             parser->getTokens();
             *parser >> r1; //pobranie przechy³ki w P1
-
             cp1= LoadPoint(parser); //pobranie wspó³rzêdnych punktów kontrolnych
             cp2= LoadPoint(parser);
-
             p2= LoadPoint(parser)+pOrigin; //pobranie wspó³rzêdnych P2
             parser->getTokens(2);
             *parser >> r2 >> fRadius; //pobranie przechy³ki w P1 i promienia
 
             if (fRadius!=0) //gdy podany promieñ
-               segsize=Min0R(5.0,0.2+fabs(fRadius)*0.02); //do 250m - 5, potem 1 co 50m
+               segsize=Min0R(0.5,0.3+fabs(fRadius)*0.03); //do 250m - 5, potem 1 co 50m
+
+            if ((((p1+p1+p2)/3.0-p1-cp1).Length()<0.02)||(((p1+p2+p2)/3.0-p2+cp1).Length()<0.02))
+             cp1=cp2=vector3(0,0,0); //"prostowanie" prostych z kontrolnymi, dok³adnoœæ 2cm
 
             if ((cp1==vector3(0,0,0)) && (cp2==vector3(0,0,0))) //Ra: hm, czasem dla prostego s¹ podane...
              Segment->Init(p1,p2,segsize,r1,r2); //gdy prosty, kontrolne wyliczane przy zmiennej przechy³ce
@@ -444,7 +446,8 @@ void __fastcall TTrack::Load(cParser *parser, vector3 pOrigin)
             }
         break;
 
-        case tt_Switch:
+        case tt_Cross: //skrzy¿owanie dróg - 4 punkty z wektorami kontrolnymi
+        case tt_Switch: //zwrotnica
             //state=0; // Parser->GetNextSymbol().ToInt();
 
             SwitchExtension= new TSwitchExtension(); //zwrotnica ma doklejkê
@@ -459,7 +462,7 @@ void __fastcall TTrack::Load(cParser *parser, vector3 pOrigin)
             *parser >> r2 >> fRadiusTable[0];
 
             if (fRadiusTable[0]!=0)
-               segsize=Min0R(5.0,0.2+fabs(fRadiusTable[0])*0.02);
+               segsize=Min0R(0.5,0.3+fabs(fRadiusTable[0])*0.03);
 
             if (!(cp1==vector3(0,0,0)) && !(cp2==vector3(0,0,0)))
                 SwitchExtension->Segments[0].Init(p1,cp1+p1,cp2+p2,p2,segsize,r1,r2);
@@ -476,7 +479,7 @@ void __fastcall TTrack::Load(cParser *parser, vector3 pOrigin)
             *parser >> r2 >> fRadiusTable[1];
 
             if (fRadiusTable[1]>0)
-               segsize=Min0R(5.0,0.2+fRadiusTable[1]*0.02);
+               segsize=Min0R(0.5,0.3+fRadiusTable[1]*0.03);
             else
                segsize=5.0;
 
@@ -490,8 +493,8 @@ void __fastcall TTrack::Load(cParser *parser, vector3 pOrigin)
             //Ra: zamieniæ póŸniej na iloczyn wektorowy
             {vector3 v1,v2;
              double a1,a2;
-             v1=SwitchExtension->Segments[0].FastGetPoint(1)-SwitchExtension->Segments[0].FastGetPoint(0);
-             v2=SwitchExtension->Segments[1].FastGetPoint(1)-SwitchExtension->Segments[1].FastGetPoint(0);
+             v1=SwitchExtension->Segments[0].FastGetPoint_1()-SwitchExtension->Segments[0].FastGetPoint_0();
+             v2=SwitchExtension->Segments[1].FastGetPoint_1()-SwitchExtension->Segments[1].FastGetPoint_0();
              a1=atan2(v1.x,v1.z);
              a2=atan2(v2.x,v2.z);
              a2=a2-a1;
@@ -499,9 +502,6 @@ void __fastcall TTrack::Load(cParser *parser, vector3 pOrigin)
              while (a2<-M_PI) a2=a2+2*M_PI;
              SwitchExtension->RightSwitch=a2<0; //lustrzany uk³ad OXY...
             }
-        break;
-        case tt_Cross: //skrzy¿owanie dróg
-        //Ra: do przemyœlenia i zrobienia
         break;
     }
     parser->getTokens();
@@ -1088,9 +1088,9 @@ bool __fastcall TTrack::Render()
               glColor3ub(255,0,0);
               glBindTexture(GL_TEXTURE_2D, 0);
               glBegin(GL_LINE_STRIP);
-                  pos1= Segment->FastGetPoint(0);
+                  pos1= Segment->FastGetPoint_0();
                   pos2= Segment->FastGetPoint(0.5);
-                  pos3= Segment->FastGetPoint(1);
+                  pos3= Segment->FastGetPoint_1();
                   glVertex3f(pos1.x,pos1.y,pos1.z);
                   glVertex3f(pos2.x,pos2.y+10,pos2.z);
                   glVertex3f(pos3.x,pos3.y,pos3.z);

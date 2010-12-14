@@ -232,7 +232,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
               int CouplNr=-2;
               if (!FreeFlyModeFlag)
               {
-                  if(DynamicObject->MoverParameters->BrakeDelaySwitch(0))
+                  if (DynamicObject->MoverParameters->BrakeDelaySwitch(0))
                    {
                        dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
                        dsbPneumaticRelay->Play( 0, 0, 0 );
@@ -247,7 +247,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                     CouplNr=-2;
                     temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1, 500, CouplNr));
                  }
-                 if (temp!=NULL)
+                 if (temp)
                  {
                     if (temp->MoverParameters->BrakeDelaySwitch(0))
                      {
@@ -261,7 +261,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       if (cKey==Global::Keys[k_Converter])   //NBMX 14-09-2003: przetwornica wl
       {
         if ((DynamicObject->MoverParameters->PantFrontVolt) || (DynamicObject->MoverParameters->PantRearVolt) || (DynamicObject->MoverParameters->EnginePowerSource.SourceType!=CurrentCollector) || (!Global::bLiveTraction))
-           if(DynamicObject->MoverParameters->ConverterSwitch(true))
+           if (DynamicObject->MoverParameters->ConverterSwitch(true))
            {
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
                dsbSwitch->Play( 0, 0, 0 );
@@ -271,7 +271,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       if (cKey==Global::Keys[k_Compressor])   //NBMX 14-09-2003: sprezarka wl
       {
         if ((DynamicObject->MoverParameters->ConverterFlag) || (DynamicObject->MoverParameters->CompressorPower<2))
-           if(DynamicObject->MoverParameters->CompressorSwitch(true))
+           if (DynamicObject->MoverParameters->CompressorSwitch(true))
            {
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
                dsbSwitch->Play( 0, 0, 0 );
@@ -280,7 +280,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else
       if (cKey==Global::Keys[k_SmallCompressor])   //Winger 160404: mala sprezarka wl
       {
-//           if(DynamicObject->MoverParameters->CompressorSwitch(true))
+//           if (DynamicObject->MoverParameters->CompressorSwitch(true))
 //           {
                DynamicObject->MoverParameters->PantCompFlag= true;
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
@@ -309,14 +309,14 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                DynamicObject->MoverParameters->ShuntMode=True;
            }
 
-           if(DynamicObject->MoverParameters->MaxCurrentSwitch(true))
+           if (DynamicObject->MoverParameters->MaxCurrentSwitch(true))
            {
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
                dsbSwitch->Play( 0, 0, 0 );
            }
 
-           if(DynamicObject->MoverParameters->TypeName!="ezt")
-             if(DynamicObject->MoverParameters->MinCurrentSwitch(true))
+           if (DynamicObject->MoverParameters->TypeName!="ezt")
+             if (DynamicObject->MoverParameters->MinCurrentSwitch(true))
              {
                  dsbSwitch->SetVolume(DSBVOLUME_MAX);
                  dsbSwitch->Play( 0, 0, 0 );
@@ -325,7 +325,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else
       if (cKey==Global::Keys[k_CurrentAutoRelay])  //McZapkie-241002: G - wlaczanie PSR
       {
-           if(DynamicObject->MoverParameters->AutoRelaySwitch(true))
+           if (DynamicObject->MoverParameters->AutoRelaySwitch(true))
            {
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
                dsbSwitch->Play( 0, 0, 0 );
@@ -334,7 +334,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else
       if (cKey==Global::Keys[k_FailedEngineCutOff])  //McZapkie-060103: E - wylaczanie sekcji silnikow
       {
-           if(DynamicObject->MoverParameters->CutOffEngine())
+           if (DynamicObject->MoverParameters->CutOffEngine())
            {
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
                dsbSwitch->Play( 0, 0, 0 );
@@ -344,7 +344,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       if (cKey==Global::Keys[k_OpenLeft])   //NBMX 17-09-2003: otwieranie drzwi
       {
          if (DynamicObject->MoverParameters->DoorOpenCtrl==1)
-           if(DynamicObject->MoverParameters->CabNo<0?DynamicObject->MoverParameters->DoorRight(true):DynamicObject->MoverParameters->DoorLeft(true))
+           if (DynamicObject->MoverParameters->CabNo<0?DynamicObject->MoverParameters->DoorRight(true):DynamicObject->MoverParameters->DoorLeft(true))
              {
                  dsbSwitch->SetVolume(DSBVOLUME_MAX);
                  dsbSwitch->Play( 0, 0, 0 );
@@ -356,7 +356,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       if (cKey==Global::Keys[k_OpenRight])   //NBMX 17-09-2003: otwieranie drzwi
       {
          if (DynamicObject->MoverParameters->DoorCloseCtrl==1)
-           if(DynamicObject->MoverParameters->CabNo<0?DynamicObject->MoverParameters->DoorLeft(true):DynamicObject->MoverParameters->DoorRight(true))
+           if (DynamicObject->MoverParameters->CabNo<0?DynamicObject->MoverParameters->DoorLeft(true):DynamicObject->MoverParameters->DoorRight(true))
            {
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
                dsbSwitch->Play( 0, 0, 0 );
@@ -368,7 +368,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       if (cKey==Global::Keys[k_PantFrontUp])   //Winger 160204: podn. przedn. pantografu
       {
            DynamicObject->MoverParameters->PantFrontSP=false;
-           if(DynamicObject->MoverParameters->PantFront(true))
+           if (DynamicObject->MoverParameters->PantFront(true))
             if (DynamicObject->MoverParameters->PantFrontStart!=1)
             {
                 dsbSwitch->SetVolume(DSBVOLUME_MAX);
@@ -379,8 +379,8 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       if (cKey==Global::Keys[k_PantRearUp])   //Winger 160204: podn. tyln. pantografu
       {
            DynamicObject->MoverParameters->PantRearSP=false;
-           if(DynamicObject->MoverParameters->PantRear(true))
-            if(DynamicObject->MoverParameters->PantRearStart!=1)
+           if (DynamicObject->MoverParameters->PantRear(true))
+            if (DynamicObject->MoverParameters->PantRearStart!=1)
             {
                 dsbSwitch->SetVolume(DSBVOLUME_MAX);
                 dsbSwitch->Play( 0, 0, 0 );
@@ -389,7 +389,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else
 //      if (cKey==Global::Keys[k_Active])   //yB 300407: przelacznik rozrzadu
 //      {
-//        if(DynamicObject->MoverParameters->CabActivisation())
+//        if (DynamicObject->MoverParameters->CabActivisation())
 //           {
 //            dsbSwitch->SetVolume(DSBVOLUME_MAX);
 //            dsbSwitch->Play( 0, 0, 0 );
@@ -417,7 +417,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                     CouplNr=-2;
                     temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1, 500, CouplNr));
                  }
-                 if (temp!=NULL)
+                 if (temp)
                  {
                     if (temp->MoverParameters->IncBrakeMult())
                      {
@@ -433,19 +433,19 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       {
          if ((1+DynamicObject->MoverParameters->ActiveCab)==0)
          { //kabina 0
-            if(((DynamicObject->MoverParameters->HeadSignalsFlag)&3)==0)
+            if (((DynamicObject->MoverParameters->HeadSignalsFlag)&3)==0)
             {
                DynamicObject->MoverParameters->HeadSignalsFlag|=1;
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
                dsbSwitch->Play( 0, 0, 0 );
                LeftLightButtonGauge.PutValue(1);
             }
-            if(((DynamicObject->MoverParameters->HeadSignalsFlag)&3)==2)
+            if (((DynamicObject->MoverParameters->HeadSignalsFlag)&3)==2)
             {
                DynamicObject->MoverParameters->HeadSignalsFlag&=(255-2);
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
                dsbSwitch->Play( 0, 0, 0 );
-               if(LeftEndLightButtonGauge.SubModel!=NULL)
+               if (LeftEndLightButtonGauge.SubModel)
                {
                   LeftEndLightButtonGauge.PutValue(0);
                   LeftLightButtonGauge.PutValue(0);
@@ -456,19 +456,19 @@ void __fastcall TTrain::OnKeyPress(int cKey)
          }
          else
          { //kabina 1
-            if(((DynamicObject->MoverParameters->EndSignalsFlag)&3)==0)
+            if (((DynamicObject->MoverParameters->EndSignalsFlag)&3)==0)
             {
                DynamicObject->MoverParameters->EndSignalsFlag|=1;
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
                dsbSwitch->Play( 0, 0, 0 );
                LeftLightButtonGauge.PutValue(1);
             }
-            if(((DynamicObject->MoverParameters->EndSignalsFlag)&3)==2)
+            if (((DynamicObject->MoverParameters->EndSignalsFlag)&3)==2)
             {
                DynamicObject->MoverParameters->EndSignalsFlag&=(255-2);
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
                dsbSwitch->Play( 0, 0, 0 );
-               if(LeftEndLightButtonGauge.SubModel!=NULL)
+               if (LeftEndLightButtonGauge.SubModel)
                {
                   LeftEndLightButtonGauge.PutValue(0);
                   LeftLightButtonGauge.PutValue(0);
@@ -483,7 +483,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       {
          if ((1+DynamicObject->MoverParameters->ActiveCab)==0)
          { //kabina 0
-            if(((DynamicObject->MoverParameters->HeadSignalsFlag)&12)==0)
+            if (((DynamicObject->MoverParameters->HeadSignalsFlag)&12)==0)
             {
                DynamicObject->MoverParameters->HeadSignalsFlag|=4;
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
@@ -493,7 +493,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
          }
          else
          { //kabina 1
-            if(((DynamicObject->MoverParameters->EndSignalsFlag)&12)==0)
+            if (((DynamicObject->MoverParameters->EndSignalsFlag)&12)==0)
             {
                DynamicObject->MoverParameters->EndSignalsFlag|=4;
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
@@ -507,19 +507,19 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       {
          if ((1+DynamicObject->MoverParameters->ActiveCab)==0)
          { //kabina 0
-            if(((DynamicObject->MoverParameters->HeadSignalsFlag)&48)==0)
+            if (((DynamicObject->MoverParameters->HeadSignalsFlag)&48)==0)
             {
                DynamicObject->MoverParameters->HeadSignalsFlag|=16;
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
                dsbSwitch->Play( 0, 0, 0 );
                RightLightButtonGauge.PutValue(1);
             }
-            if(((DynamicObject->MoverParameters->HeadSignalsFlag)&48)==32)
+            if (((DynamicObject->MoverParameters->HeadSignalsFlag)&48)==32)
             {
                DynamicObject->MoverParameters->HeadSignalsFlag&=(255-32);
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
                dsbSwitch->Play( 0, 0, 0 );
-               if(RightEndLightButtonGauge.SubModel!=NULL)
+               if (RightEndLightButtonGauge.SubModel)
                {
                   RightEndLightButtonGauge.PutValue(0);
                   RightLightButtonGauge.PutValue(0);
@@ -530,19 +530,19 @@ void __fastcall TTrain::OnKeyPress(int cKey)
          }
          else
          { //kabina 1
-            if(((DynamicObject->MoverParameters->EndSignalsFlag)&48)==0)
+            if (((DynamicObject->MoverParameters->EndSignalsFlag)&48)==0)
             {
                DynamicObject->MoverParameters->EndSignalsFlag|=16;
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
                dsbSwitch->Play( 0, 0, 0 );
                RightLightButtonGauge.PutValue(1);
             }
-            if(((DynamicObject->MoverParameters->EndSignalsFlag)&48)==32)
+            if (((DynamicObject->MoverParameters->EndSignalsFlag)&48)==32)
             {
                DynamicObject->MoverParameters->EndSignalsFlag&=(255-32);
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
                dsbSwitch->Play( 0, 0, 0 );
-               if(RightEndLightButtonGauge.SubModel!=NULL)
+               if (RightEndLightButtonGauge.SubModel)
                {
                   RightEndLightButtonGauge.PutValue(0);
                   RightLightButtonGauge.PutValue(0);
@@ -559,11 +559,11 @@ void __fastcall TTrain::OnKeyPress(int cKey)
          tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), 1, 500, CouplNr);
          if (tmp==NULL)
             tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 500, CouplNr);
-         if ((tmp!=NULL)&&(CouplNr!=-1))
+         if (tmp&&(CouplNr!=-1))
          {
-            if(CouplNr==0)
+            if (CouplNr==0)
             {
-               if(((tmp->MoverParameters->HeadSignalsFlag)&64)==0)
+               if (((tmp->MoverParameters->HeadSignalsFlag)&64)==0)
                {
                   tmp->MoverParameters->HeadSignalsFlag|=64;
                   dsbSwitch->SetVolume(DSBVOLUME_MAX);
@@ -572,7 +572,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
             }
             else
             {
-               if(((tmp->MoverParameters->EndSignalsFlag)&64)==0)
+               if (((tmp->MoverParameters->EndSignalsFlag)&64)==0)
                {
                   tmp->MoverParameters->EndSignalsFlag|=64;
                   dsbSwitch->SetVolume(DSBVOLUME_MAX);
@@ -613,7 +613,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else
       if (cKey==Global::Keys[k_IncScndCtrl])
 //        if (MoverParameters->ScndCtrlPos<MoverParameters->ScndCtrlPosNo)
-//         if(DynamicObject->MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
+//         if (DynamicObject->MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
           if (DynamicObject->MoverParameters->ShuntMode)
           {
             DynamicObject->MoverParameters->AnPos += (GetDeltaTime()/0.85f);
@@ -629,7 +629,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
          else;
       else
       if (cKey==Global::Keys[k_DecScndCtrl])
-  //       if(DynamicObject->MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
+  //       if (DynamicObject->MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
           if (DynamicObject->MoverParameters->ShuntMode)
           {
             DynamicObject->MoverParameters->AnPos -= (GetDeltaTime()/0.55f);
@@ -664,7 +664,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                     CouplNr=-2;
                     temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1, 500, CouplNr));
                  }
-                 if (temp!=NULL)
+                 if (temp)
                  {
                     if (temp->MoverParameters->IncLocalBrakeLevelFAST())
                     {
@@ -693,7 +693,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                     CouplNr=-2;
                     temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1, 500, CouplNr));
                  }
-                 if (temp!=NULL)
+                 if (temp)
                  {
                     if (temp->MoverParameters->DecLocalBrakeLevelFAST())
                     {
@@ -854,7 +854,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       if (cKey==Global::Keys[k_Main])
       {
         MainOffButtonGauge.PutValue(1);
-        if(DynamicObject->MoverParameters->MainSwitch(false))
+        if (DynamicObject->MoverParameters->MainSwitch(false))
            {
               dsbNastawnik->Play( 0, 0, 0 );
            }
@@ -862,7 +862,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else
 //      if (cKey==Global::Keys[k_Active])   //yB 300407: przelacznik rozrzadu
 //      {
-//        if(DynamicObject->MoverParameters->CabDeactivisation())
+//        if (DynamicObject->MoverParameters->CabDeactivisation())
 //           {
 //            dsbSwitch->SetVolume(DSBVOLUME_MAX);
 //            dsbSwitch->Play( 0, 0, 0 );
@@ -875,14 +875,14 @@ void __fastcall TTrain::OnKeyPress(int cKey)
               if (!FreeFlyModeFlag)
               {
                   if (GetAsyncKeyState(VK_CONTROL)<0)
-                   if(DynamicObject->MoverParameters->BrakeDelaySwitch(2))
+                   if (DynamicObject->MoverParameters->BrakeDelaySwitch(2))
                      {
                        dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
                        dsbPneumaticRelay->Play( 0, 0, 0 );
                      }
                    else;
                   else
-                   if(DynamicObject->MoverParameters->BrakeDelaySwitch(1))
+                   if (DynamicObject->MoverParameters->BrakeDelaySwitch(1))
                      {
                        dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
                        dsbPneumaticRelay->Play( 0, 0, 0 );
@@ -897,7 +897,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                     CouplNr=-2;
                     temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1, 500, CouplNr));
                  }
-                 if (temp!=NULL)
+                 if (temp)
                  {
                   if (GetAsyncKeyState(VK_CONTROL)<0)
                     if (temp->MoverParameters->BrakeDelaySwitch(2))
@@ -919,7 +919,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else
       if (cKey==Global::Keys[k_Converter])       //NBMX wyl przetwornicy
       {
-           if(DynamicObject->MoverParameters->ConverterSwitch(false))
+           if (DynamicObject->MoverParameters->ConverterSwitch(false))
            {
             dsbSwitch->SetVolume(DSBVOLUME_MAX);
             dsbSwitch->Play( 0, 0, 0 );;
@@ -928,7 +928,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else
       if (cKey==Global::Keys[k_Compressor])       //NBMX wyl sprezarka
       {
-           if(DynamicObject->MoverParameters->CompressorSwitch(false))
+           if (DynamicObject->MoverParameters->CompressorSwitch(false))
            {
             dsbSwitch->SetVolume(DSBVOLUME_MAX);
             dsbSwitch->Play( 0, 0, 0 );;
@@ -939,8 +939,8 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       {
        if (!FreeFlyModeFlag)
         {
-         if((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)||(DynamicObject->MoverParameters->EngineType==DieselElectric))
-          if(DynamicObject->MoverParameters->TrainType!=dt_EZT)
+         if ((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)||(DynamicObject->MoverParameters->EngineType==DieselElectric))
+          if (DynamicObject->MoverParameters->TrainType!=dt_EZT)
            if (DynamicObject->MoverParameters->BrakeCtrlPosNo>0)
             {
              ReleaserButtonGauge.PutValue(1);
@@ -961,7 +961,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
             CouplNr=-2;
             temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1, 500, CouplNr));
           }
-         if (temp!=NULL)
+         if (temp)
           {
            if (temp->MoverParameters->BrakeReleaser())
             {
@@ -986,14 +986,14 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                DynamicObject->MoverParameters->ShuntMode=False;
            }
 
-           if(DynamicObject->MoverParameters->MaxCurrentSwitch(false))
+           if (DynamicObject->MoverParameters->MaxCurrentSwitch(false))
            {
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
                dsbSwitch->Play( 0, 0, 0 );
 
            }
-           if(DynamicObject->MoverParameters->TypeName!="ezt")
-             if(DynamicObject->MoverParameters->MinCurrentSwitch(false))
+           if (DynamicObject->MoverParameters->TypeName!="ezt")
+             if (DynamicObject->MoverParameters->MinCurrentSwitch(false))
              {
                  dsbSwitch->SetVolume(DSBVOLUME_MAX);
                  dsbSwitch->Play( 0, 0, 0 );
@@ -1002,7 +1002,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else
       if (cKey==Global::Keys[k_CurrentAutoRelay])  //McZapkie-241002: g - wylaczanie PSR
       {
-           if(DynamicObject->MoverParameters->AutoRelaySwitch(false))
+           if (DynamicObject->MoverParameters->AutoRelaySwitch(false))
            {
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
                dsbSwitch->Play( 0, 0, 0 );
@@ -1079,7 +1079,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
             tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), 1, 500, CouplNr);
             if (tmp==NULL)
             tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 500, CouplNr);
-            if ((tmp!=NULL)&&(CouplNr!=-1))
+            if (tmp&&(CouplNr!=-1))
             {
               if (tmp->MoverParameters->Couplers[CouplNr].CouplingFlag==0)        //hak
               {
@@ -1128,9 +1128,9 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else
       if (cKey==Global::Keys[k_DeCouple])
       { //ABu051104: male zmiany, zeby mozna bylo rozlaczac odlegle wagony
-        if(iCabn>0)
+        if (iCabn>0)
         {
-          if(!FreeFlyModeFlag) //tryb 'kabinowy'
+          if (!FreeFlyModeFlag) //tryb 'kabinowy'
           {
             if (DynamicObject->MoverParameters->Couplers[iCabn-1].CouplingFlag>0)
             {
@@ -1149,7 +1149,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
             tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), 1, 500, CouplNr);
             if (tmp==NULL)
             tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 500, CouplNr);
-            if ((tmp!=NULL)&&(CouplNr!=-1))
+            if (tmp&&(CouplNr!=-1))
             {
               if (tmp->MoverParameters->Couplers[CouplNr].CouplingFlag>0)
               {
@@ -1167,8 +1167,8 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else
       if (cKey==Global::Keys[k_CloseLeft])   //NBMX 17-09-2003: zamykanie drzwi
       {
-           if(DynamicObject->MoverParameters->CabNo<0?DynamicObject->MoverParameters->DoorRight(false):DynamicObject->MoverParameters->DoorLeft(false))
-//           if(DynamicObject->MoverParameters->DoorLeft(false))
+           if (DynamicObject->MoverParameters->CabNo<0?DynamicObject->MoverParameters->DoorRight(false):DynamicObject->MoverParameters->DoorLeft(false))
+//           if (DynamicObject->MoverParameters->DoorLeft(false))
            {
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
                dsbSwitch->Play( 0, 0, 0 );
@@ -1178,8 +1178,8 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       }
       if (cKey==Global::Keys[k_CloseRight])   //NBMX 17-09-2003: zamykanie drzwi
       {
-           if(DynamicObject->MoverParameters->CabNo<0?DynamicObject->MoverParameters->DoorLeft(false):DynamicObject->MoverParameters->DoorRight(false))
-//           if(DynamicObject->MoverParameters->DoorRight(false))
+           if (DynamicObject->MoverParameters->CabNo<0?DynamicObject->MoverParameters->DoorLeft(false):DynamicObject->MoverParameters->DoorRight(false))
+//           if (DynamicObject->MoverParameters->DoorRight(false))
            {
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
                dsbSwitch->Play( 0, 0, 0 );
@@ -1227,7 +1227,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                     CouplNr=-2;
                     temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1, 500, CouplNr));
                  }
-                 if (temp!=NULL)
+                 if (temp)
                  {
                     if (temp->MoverParameters->DecBrakeMult())
                      {
@@ -1243,12 +1243,12 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       {
          if ((1+DynamicObject->MoverParameters->ActiveCab)==0)
          { //kabina 0
-            if(((DynamicObject->MoverParameters->HeadSignalsFlag)&3)==0)
+            if (((DynamicObject->MoverParameters->HeadSignalsFlag)&3)==0)
             {
                DynamicObject->MoverParameters->HeadSignalsFlag|=2;
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
                dsbSwitch->Play( 0, 0, 0 );
-               if(LeftEndLightButtonGauge.SubModel!=NULL)
+               if (LeftEndLightButtonGauge.SubModel)
                {
                   LeftEndLightButtonGauge.PutValue(1);
                   LeftLightButtonGauge.PutValue(0);
@@ -1256,7 +1256,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                else
                   LeftLightButtonGauge.PutValue(-1);
             }
-            if(((DynamicObject->MoverParameters->HeadSignalsFlag)&3)==1)
+            if (((DynamicObject->MoverParameters->HeadSignalsFlag)&3)==1)
             {
                DynamicObject->MoverParameters->HeadSignalsFlag&=(255-1);
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
@@ -1266,12 +1266,12 @@ void __fastcall TTrain::OnKeyPress(int cKey)
          }
          else
          { //kabina 1
-            if(((DynamicObject->MoverParameters->EndSignalsFlag)&3)==0)
+            if (((DynamicObject->MoverParameters->EndSignalsFlag)&3)==0)
             {
                DynamicObject->MoverParameters->EndSignalsFlag|=2;
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
                dsbSwitch->Play( 0, 0, 0 );
-               if(LeftEndLightButtonGauge.SubModel!=NULL)
+               if (LeftEndLightButtonGauge.SubModel)
                {
                   LeftEndLightButtonGauge.PutValue(1);
                   LeftLightButtonGauge.PutValue(0);
@@ -1279,7 +1279,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                else
                   LeftLightButtonGauge.PutValue(-1);
             }
-            if(((DynamicObject->MoverParameters->EndSignalsFlag)&3)==1)
+            if (((DynamicObject->MoverParameters->EndSignalsFlag)&3)==1)
             {
                DynamicObject->MoverParameters->EndSignalsFlag&=(255-1);
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
@@ -1293,7 +1293,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       {
          if ((1+DynamicObject->MoverParameters->ActiveCab)==0)
          { //kabina 0
-            if(((DynamicObject->MoverParameters->HeadSignalsFlag)&12)==4)
+            if (((DynamicObject->MoverParameters->HeadSignalsFlag)&12)==4)
             {
                DynamicObject->MoverParameters->HeadSignalsFlag&=(255-4);
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
@@ -1303,7 +1303,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
          }
          else
          { //kabina 1
-            if(((DynamicObject->MoverParameters->EndSignalsFlag)&12)==4)
+            if (((DynamicObject->MoverParameters->EndSignalsFlag)&12)==4)
             {
                DynamicObject->MoverParameters->EndSignalsFlag&=(255-4);
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
@@ -1320,11 +1320,11 @@ void __fastcall TTrain::OnKeyPress(int cKey)
          tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), 1, 500, CouplNr);
          if (tmp==NULL)
             tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 500, CouplNr);
-         if ((tmp!=NULL)&&(CouplNr!=-1))
+         if (tmp&&(CouplNr!=-1))
          {
-            if(CouplNr==0)
+            if (CouplNr==0)
             {
-               if(((tmp->MoverParameters->HeadSignalsFlag)&64)==64)
+               if (((tmp->MoverParameters->HeadSignalsFlag)&64)==64)
                {
                   tmp->MoverParameters->HeadSignalsFlag&=(255-64);
                   dsbSwitch->SetVolume(DSBVOLUME_MAX);
@@ -1333,7 +1333,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
             }
             else
             {
-               if(((tmp->MoverParameters->EndSignalsFlag)&64)==64)
+               if (((tmp->MoverParameters->EndSignalsFlag)&64)==64)
                {
                   tmp->MoverParameters->EndSignalsFlag&=(255-64);
                   dsbSwitch->SetVolume(DSBVOLUME_MAX);
@@ -1346,12 +1346,12 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       {
          if ((1+DynamicObject->MoverParameters->ActiveCab)==0)
          { //kabina 0
-            if(((DynamicObject->MoverParameters->HeadSignalsFlag)&48)==0)
+            if (((DynamicObject->MoverParameters->HeadSignalsFlag)&48)==0)
             {
                DynamicObject->MoverParameters->HeadSignalsFlag|=32;
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
                dsbSwitch->Play( 0, 0, 0 );
-               if(RightEndLightButtonGauge.SubModel!=NULL)
+               if (RightEndLightButtonGauge.SubModel)
                {
                   RightEndLightButtonGauge.PutValue(1);
                   RightLightButtonGauge.PutValue(0);
@@ -1359,7 +1359,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
             else
                RightLightButtonGauge.PutValue(-1);
             }
-            if(((DynamicObject->MoverParameters->HeadSignalsFlag)&48)==16)
+            if (((DynamicObject->MoverParameters->HeadSignalsFlag)&48)==16)
             {
                DynamicObject->MoverParameters->HeadSignalsFlag&=(255-16);
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
@@ -1369,12 +1369,12 @@ void __fastcall TTrain::OnKeyPress(int cKey)
          }
          else
          { //kabina 1
-            if(((DynamicObject->MoverParameters->EndSignalsFlag)&48)==0)
+            if (((DynamicObject->MoverParameters->EndSignalsFlag)&48)==0)
             {
                DynamicObject->MoverParameters->EndSignalsFlag|=32;
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
                dsbSwitch->Play( 0, 0, 0 );
-               if(RightEndLightButtonGauge.SubModel!=NULL)
+               if (RightEndLightButtonGauge.SubModel)
                {
                   RightEndLightButtonGauge.PutValue(1);
                   RightLightButtonGauge.PutValue(0);
@@ -1382,7 +1382,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
             else
                RightLightButtonGauge.PutValue(-1);
             }
-            if(((DynamicObject->MoverParameters->EndSignalsFlag)&48)==16)
+            if (((DynamicObject->MoverParameters->EndSignalsFlag)&48)==16)
             {
                DynamicObject->MoverParameters->EndSignalsFlag&=(255-16);
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
@@ -1394,7 +1394,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else
       if (cKey==Global::Keys[k_StLinOff])   //Winger 110904: wylacznik st. liniowych
       {
-         if(DynamicObject->MoverParameters->TrainType!=dt_EZT)
+         if (DynamicObject->MoverParameters->TrainType!=dt_EZT)
           {
                    FuseButtonGauge.PutValue(1);
                    dsbSwitch->SetVolume(DSBVOLUME_MAX);
@@ -1813,42 +1813,42 @@ bool __fastcall TTrain::Update()
 //McZapkie-030402: poprawione i uzupelnione amperomierze
 if (!ShowNextCurrent)
 {
-    if (I1Gauge.SubModel!=NULL)
+    if (I1Gauge.SubModel)
      {
       I1Gauge.UpdateValue(DynamicObject->MoverParameters->ShowCurrent(1));
       I1Gauge.Update();
      }
-    if (I2Gauge.SubModel!=NULL)
+    if (I2Gauge.SubModel)
      {
       I2Gauge.UpdateValue(DynamicObject->MoverParameters->ShowCurrent(2));
       I2Gauge.Update();
      }
-    if (I3Gauge.SubModel!=NULL)
+    if (I3Gauge.SubModel)
      {
       I3Gauge.UpdateValue(DynamicObject->MoverParameters->ShowCurrent(3));
       I3Gauge.Update();
      }
-    if (ItotalGauge.SubModel!=NULL)
+    if (ItotalGauge.SubModel)
      {
       ItotalGauge.UpdateValue(DynamicObject->MoverParameters->ShowCurrent(0));
       ItotalGauge.Update();
      }
-     if (I1GaugeB.SubModel!=NULL)
+     if (I1GaugeB.SubModel)
      {
       I1GaugeB.UpdateValue(DynamicObject->MoverParameters->ShowCurrent(1));
       I1GaugeB.Update();
      }
-    if (I2GaugeB.SubModel!=NULL)
+    if (I2GaugeB.SubModel)
      {
       I2GaugeB.UpdateValue(DynamicObject->MoverParameters->ShowCurrent(2));
       I2GaugeB.Update();
      }
-    if (I3GaugeB.SubModel!=NULL)
+    if (I3GaugeB.SubModel)
      {
       I3GaugeB.UpdateValue(DynamicObject->MoverParameters->ShowCurrent(3));
       I3GaugeB.Update();
      }
-    if (ItotalGaugeB.SubModel!=NULL)
+    if (ItotalGaugeB.SubModel)
      {
       ItotalGaugeB.UpdateValue(DynamicObject->MoverParameters->ShowCurrent(0));
       ItotalGaugeB.Update();
@@ -1868,44 +1868,44 @@ else
          && TestFlag(DynamicObject->MoverParameters->Couplers[0].CouplingFlag,ctrain_controll))
          tmp=DynamicObject->PrevConnected;
    //tmp=DynamicObject->NextConnected;
-   if(tmp!=NULL)
+   if (tmp)
    {
-      if (I1Gauge.SubModel!=NULL)
+      if (I1Gauge.SubModel)
       {
          I1Gauge.UpdateValue(tmp->MoverParameters->ShowCurrent(1)*1.05);
          I1Gauge.Update();
       }
-      if (I2Gauge.SubModel!=NULL)
+      if (I2Gauge.SubModel)
       {
          I2Gauge.UpdateValue(tmp->MoverParameters->ShowCurrent(2)*1.05);
          I2Gauge.Update();
       }
-      if (I3Gauge.SubModel!=NULL)
+      if (I3Gauge.SubModel)
       {
          I3Gauge.UpdateValue(tmp->MoverParameters->ShowCurrent(3)*1.05);
          I3Gauge.Update();
       }
-      if (ItotalGauge.SubModel!=NULL)
+      if (ItotalGauge.SubModel)
       {
          ItotalGauge.UpdateValue(tmp->MoverParameters->ShowCurrent(0)*1.05);
          ItotalGauge.Update();
       }
-      if (I1GaugeB.SubModel!=NULL)
+      if (I1GaugeB.SubModel)
       {
          I1GaugeB.UpdateValue(tmp->MoverParameters->ShowCurrent(1)*1.05);
          I1GaugeB.Update();
       }
-      if (I2GaugeB.SubModel!=NULL)
+      if (I2GaugeB.SubModel)
       {
          I2GaugeB.UpdateValue(tmp->MoverParameters->ShowCurrent(2)*1.05);
          I2GaugeB.Update();
       }
-      if (I3GaugeB.SubModel!=NULL)
+      if (I3GaugeB.SubModel)
       {
          I3GaugeB.UpdateValue(tmp->MoverParameters->ShowCurrent(3)*1.05);
          I3GaugeB.Update();
       }
-      if (ItotalGaugeB.SubModel!=NULL)
+      if (ItotalGaugeB.SubModel)
       {
          ItotalGaugeB.UpdateValue(tmp->MoverParameters->ShowCurrent(0)*1.05);
          ItotalGaugeB.Update();
@@ -1913,42 +1913,42 @@ else
    }
    else
    {
-      if (I1Gauge.SubModel!=NULL)
+      if (I1Gauge.SubModel)
       {
          I1Gauge.UpdateValue(0);
          I1Gauge.Update();
       }
-      if (I2Gauge.SubModel!=NULL)
+      if (I2Gauge.SubModel)
       {
          I2Gauge.UpdateValue(0);
          I2Gauge.Update();
       }
-      if (I3Gauge.SubModel!=NULL)
+      if (I3Gauge.SubModel)
       {
          I3Gauge.UpdateValue(0);
          I3Gauge.Update();
       }
-      if (ItotalGauge.SubModel!=NULL)
+      if (ItotalGauge.SubModel)
       {
          ItotalGauge.UpdateValue(0);
          ItotalGauge.Update();
       }
-      if (I1GaugeB.SubModel!=NULL)
+      if (I1GaugeB.SubModel)
       {
          I1GaugeB.UpdateValue(0);
          I1GaugeB.Update();
       }
-      if (I2GaugeB.SubModel!=NULL)
+      if (I2GaugeB.SubModel)
       {
          I2GaugeB.UpdateValue(0);
          I2GaugeB.Update();
       }
-      if (I3GaugeB.SubModel!=NULL)
+      if (I3GaugeB.SubModel)
       {
          I3GaugeB.UpdateValue(0);
          I3GaugeB.Update();
       }
-      if (ItotalGaugeB.SubModel!=NULL)
+      if (ItotalGaugeB.SubModel)
       {
          ItotalGaugeB.UpdateValue(0);
          ItotalGaugeB.Update();
@@ -1967,25 +1967,25 @@ else
       if ((TestFlag(DynamicObject->MoverParameters->Couplers[0].CouplingFlag,ctrain_controll)) && (DynamicObject->MoverParameters->ActiveCab==-1))
          tmp=DynamicObject->PrevConnected;
    //tmp=DynamicObject->NextConnected;
-   if(tmp!=NULL)
+   if (tmp)
     if (tmp->MoverParameters->Power>0)
      {
-      if (I1BGauge.SubModel!=NULL)
+      if (I1BGauge.SubModel)
       {
          I1BGauge.UpdateValue(tmp->MoverParameters->ShowCurrent(1));
          I1BGauge.Update();
       }
-      if (I2BGauge.SubModel!=NULL)
+      if (I2BGauge.SubModel)
       {
          I2BGauge.UpdateValue(tmp->MoverParameters->ShowCurrent(2));
          I2BGauge.Update();
       }
-      if (I3BGauge.SubModel!=NULL)
+      if (I3BGauge.SubModel)
       {
          I3BGauge.UpdateValue(tmp->MoverParameters->ShowCurrent(3));
          I3BGauge.Update();
       }
-      if (ItotalBGauge.SubModel!=NULL)
+      if (ItotalBGauge.SubModel)
       {
          ItotalBGauge.UpdateValue(tmp->MoverParameters->ShowCurrent(0));
          ItotalBGauge.Update();
@@ -1993,18 +1993,18 @@ else
      }
 }
 //McZapkie-240302    VelocityGauge.UpdateValue(DynamicObject->GetVelocity());
-    if (VelocityGauge.SubModel!=NULL)
+    if (VelocityGauge.SubModel)
      {
       VelocityGauge.UpdateValue(fTachoVelocity);
       VelocityGauge.Update();
      }
-    if (VelocityGaugeB.SubModel!=NULL)
+    if (VelocityGaugeB.SubModel)
      {
       VelocityGaugeB.UpdateValue(fTachoVelocity);
       VelocityGaugeB.Update();
      }
 //McZapkie-300302: zegarek
-    if (ClockMInd.SubModel!=NULL)
+    if (ClockMInd.SubModel)
      {
       ClockMInd.UpdateValue(GlobalTime->mm);
       ClockMInd.Update();
@@ -2012,39 +2012,39 @@ else
       ClockHInd.Update();
      }
 
-    if (CylHamGauge.SubModel!=NULL)
+    if (CylHamGauge.SubModel)
      {
       CylHamGauge.UpdateValue(DynamicObject->MoverParameters->BrakePress);
       CylHamGauge.Update();
      }
-    if (CylHamGaugeB.SubModel!=NULL)
+    if (CylHamGaugeB.SubModel)
      {
       CylHamGaugeB.UpdateValue(DynamicObject->MoverParameters->BrakePress);
       CylHamGaugeB.Update();
      }
-    if (PrzGlGauge.SubModel!=NULL)
+    if (PrzGlGauge.SubModel)
      {
       PrzGlGauge.UpdateValue(DynamicObject->MoverParameters->PipePress);
       PrzGlGauge.Update();
      }
-    if (PrzGlGaugeB.SubModel!=NULL)
+    if (PrzGlGaugeB.SubModel)
      {
       PrzGlGaugeB.UpdateValue(DynamicObject->MoverParameters->PipePress);
       PrzGlGaugeB.Update();
      }
 // McZapkie! - zamiast pojemnosci cisnienie
-    if (ZbGlGauge.SubModel!=NULL)
+    if (ZbGlGauge.SubModel)
      {
       ZbGlGauge.UpdateValue(DynamicObject->MoverParameters->Compressor);
       ZbGlGauge.Update();
      }
-    if (ZbGlGaugeB.SubModel!=NULL)
+    if (ZbGlGaugeB.SubModel)
      {
       ZbGlGaugeB.UpdateValue(DynamicObject->MoverParameters->Compressor);
       ZbGlGaugeB.Update();
      }
      
-    if (HVoltageGauge.SubModel!=NULL)
+    if (HVoltageGauge.SubModel)
      {
       if (DynamicObject->MoverParameters->EngineType!=DieselElectric)
         HVoltageGauge.UpdateValue(DynamicObject->MoverParameters->RunningTraction.TractionVoltage); //Winger czy to nie jest zle? *DynamicObject->MoverParameters->Mains);
@@ -2054,14 +2054,14 @@ else
      }
 
 //youBy - napiecie na silnikach
-    if (EngineVoltage.SubModel!=NULL)
+    if (EngineVoltage.SubModel)
      {
       if (DynamicObject->MoverParameters->DynamicBrakeFlag)
        { EngineVoltage.UpdateValue(abs(DynamicObject->MoverParameters->Im*5)); }
       else
         {
          int x;
-         if((DynamicObject->MoverParameters->TrainType==dt_ET42)&&(DynamicObject->MoverParameters->Imax==DynamicObject->MoverParameters->ImaxHi))
+         if ((DynamicObject->MoverParameters->TrainType==dt_ET42)&&(DynamicObject->MoverParameters->Imax==DynamicObject->MoverParameters->ImaxHi))
          x=1;else x=2;
          if (DynamicObject->MoverParameters->RList[DynamicObject->MoverParameters->MainCtrlActualPos].Mn>0)
           { EngineVoltage.UpdateValue((x*(DynamicObject->MoverParameters->RunningTraction.TractionVoltage-DynamicObject->MoverParameters->RList[DynamicObject->MoverParameters->MainCtrlActualPos].R*abs(DynamicObject->MoverParameters->Im))/DynamicObject->MoverParameters->RList[DynamicObject->MoverParameters->MainCtrlActualPos].Mn)); }
@@ -2071,7 +2071,7 @@ else
      }
 
 //Winger 140404 - woltomierz NN
-    if (LVoltageGauge.SubModel!=NULL)
+    if (LVoltageGauge.SubModel)
      {
       LVoltageGauge.UpdateValue(DynamicObject->MoverParameters->BatteryVoltage);
       LVoltageGauge.Update();
@@ -2079,27 +2079,27 @@ else
 
     if (DynamicObject->MoverParameters->EngineType==DieselElectric)
      {
-      if (enrot1mGauge.SubModel!=NULL)
+      if (enrot1mGauge.SubModel)
        {
         enrot1mGauge.UpdateValue(DynamicObject->MoverParameters->ShowEngineRotation(1));
         enrot1mGauge.Update();
        }
-      if (enrot2mGauge.SubModel!=NULL)
+      if (enrot2mGauge.SubModel)
        {
         enrot2mGauge.UpdateValue(DynamicObject->MoverParameters->ShowEngineRotation(2));
         enrot2mGauge.Update();
        }
-      if (I1Gauge.SubModel!=NULL)
+      if (I1Gauge.SubModel)
        {
         I1Gauge.UpdateValue(abs(DynamicObject->MoverParameters->Im));
         I1Gauge.Update();
        }
-      if (I2Gauge.SubModel!=NULL)
+      if (I2Gauge.SubModel)
        {
         I2Gauge.UpdateValue(abs(DynamicObject->MoverParameters->Im));
         I2Gauge.Update();
        }
-      if (HVoltageGauge.SubModel!=NULL)
+      if (HVoltageGauge.SubModel)
        {
         HVoltageGauge.UpdateValue(DynamicObject->MoverParameters->Voltage);
         HVoltageGauge.Update();
@@ -2111,28 +2111,28 @@ else
 
     if (DynamicObject->MoverParameters->EngineType==DieselEngine)
      {
-      if (enrot1mGauge.SubModel!=NULL)
+      if (enrot1mGauge.SubModel)
        {
         enrot1mGauge.UpdateValue(DynamicObject->MoverParameters->ShowEngineRotation(1));
         enrot1mGauge.Update();
        }
-      if (enrot2mGauge.SubModel!=NULL)
+      if (enrot2mGauge.SubModel)
          {
           enrot2mGauge.UpdateValue(DynamicObject->MoverParameters->ShowEngineRotation(2));
           enrot2mGauge.Update();
          }
-      if (enrot3mGauge.SubModel!=NULL)
-       if (DynamicObject->MoverParameters->Couplers[1].Connected!=NULL)
+      if (enrot3mGauge.SubModel)
+       if (DynamicObject->MoverParameters->Couplers[1].Connected)
          {
           enrot3mGauge.UpdateValue(DynamicObject->MoverParameters->ShowEngineRotation(3));
           enrot3mGauge.Update();
          }
-      if (engageratioGauge.SubModel!=NULL)
+      if (engageratioGauge.SubModel)
        {
         engageratioGauge.UpdateValue(DynamicObject->MoverParameters->dizel_engage);
         engageratioGauge.Update();
        }
-      if (maingearstatusGauge.SubModel!=NULL)
+      if (maingearstatusGauge.SubModel)
        {
         if (DynamicObject->MoverParameters->Mains)
          maingearstatusGauge.UpdateValue(1.1-fabs(DynamicObject->MoverParameters->dizel_automaticgearstatus));
@@ -2140,7 +2140,7 @@ else
          maingearstatusGauge.UpdateValue(0);
         maingearstatusGauge.Update();
        }
-      if (IgnitionKeyGauge.SubModel!=NULL)
+      if (IgnitionKeyGauge.SubModel)
        {
         IgnitionKeyGauge.UpdateValue(DynamicObject->MoverParameters->dizel_enginestart);
         IgnitionKeyGauge.Update();
@@ -2245,7 +2245,7 @@ else
    if ((TestFlag(DynamicObject->MoverParameters->Couplers[0].CouplingFlag,ctrain_controll)) && (DynamicObject->MoverParameters->ActiveCab<0))
       tmp=DynamicObject->PrevConnected;
 
-   if(tmp!=NULL)
+   if (tmp)
     if ( tmp->MoverParameters->Mains )
       {
         btLampkaWylSzybkiB.TurnOn();
@@ -2273,7 +2273,7 @@ else
         btLampkaSprezarkaB.TurnOff();
       }
 
-   if(tmp!=NULL)
+   if (tmp)
     if (tmp->MoverParameters->ConverterFlag==true)
         btLampkaNadmPrzetwB.TurnOff();
     else
@@ -2297,7 +2297,7 @@ else
     else
       btLampkaDoorRight.TurnOff();
 //McZapkie-080602: obroty (albo translacje) regulatorow
-    if (MainCtrlGauge.SubModel!=NULL)
+    if (MainCtrlGauge.SubModel)
      {
       if (DynamicObject->MoverParameters->CoupledCtrl)
        MainCtrlGauge.UpdateValue(double(DynamicObject->MoverParameters->MainCtrlPos+DynamicObject->MoverParameters->ScndCtrlPos));
@@ -2305,7 +2305,7 @@ else
        MainCtrlGauge.UpdateValue(double(DynamicObject->MoverParameters->MainCtrlPos));
       MainCtrlGauge.Update();
      }
-    if (MainCtrlActGauge.SubModel!=NULL)
+    if (MainCtrlActGauge.SubModel)
      {
       if (DynamicObject->MoverParameters->CoupledCtrl)
        MainCtrlActGauge.UpdateValue(double(DynamicObject->MoverParameters->MainCtrlActualPos+DynamicObject->MoverParameters->ScndCtrlActualPos));
@@ -2313,12 +2313,12 @@ else
        MainCtrlActGauge.UpdateValue(double(DynamicObject->MoverParameters->MainCtrlActualPos));
       MainCtrlActGauge.Update();
      }
-    if (!ScndCtrlGauge.SubModel)
-     {
-      ScndCtrlGauge.UpdateValue(double(DynamicObject->MoverParameters->ScndCtrlPos-(DynamicObject->MoverParameters->TrainType==dt_ET42&&DynamicObject->MoverParameters->DynamicBrakeFlag)));
+    if (ScndCtrlGauge.SubModel)
+     {//Ra: od byte odejmowane boolean i konwertowane potem na double?
+      ScndCtrlGauge.UpdateValue(double(DynamicObject->MoverParameters->ScndCtrlPos-((DynamicObject->MoverParameters->TrainType==dt_ET42)&&DynamicObject->MoverParameters->DynamicBrakeFlag)));
       ScndCtrlGauge.Update();
      }
-    if (!DirKeyGauge.SubModel)
+    if (DirKeyGauge.SubModel)
      {
       if (DynamicObject->MoverParameters->TrainType!=dt_EZT)
         DirKeyGauge.UpdateValue(double(DynamicObject->MoverParameters->ActiveDir));
@@ -2328,31 +2328,31 @@ else
                                        DynamicObject->MoverParameters->IminHi));
       DirKeyGauge.Update();
      }
-    if (BrakeCtrlGauge.SubModel!=NULL)
+    if (BrakeCtrlGauge.SubModel)
      {
       BrakeCtrlGauge.UpdateValue(double(DynamicObject->MoverParameters->BrakeCtrlPos));
       BrakeCtrlGauge.Update();
      }
-    if (LocalBrakeGauge.SubModel!=NULL)
+    if (LocalBrakeGauge.SubModel)
      {
       LocalBrakeGauge.UpdateValue(double(DynamicObject->MoverParameters->LocalBrakePos));
       LocalBrakeGauge.Update();
      }
 
-    if (BrakeProfileCtrlGauge.SubModel!=NULL)
+    if (BrakeProfileCtrlGauge.SubModel)
      {
       BrakeProfileCtrlGauge.UpdateValue(double(DynamicObject->MoverParameters->BrakeDelayFlag==2?0.5:DynamicObject->MoverParameters->BrakeDelayFlag));
       BrakeProfileCtrlGauge.Update();
      }
 
-    if (MaxCurrentCtrlGauge.SubModel!=NULL)
+    if (MaxCurrentCtrlGauge.SubModel)
      {
       MaxCurrentCtrlGauge.UpdateValue(double(DynamicObject->MoverParameters->Imax==DynamicObject->MoverParameters->ImaxHi));
       MaxCurrentCtrlGauge.Update();
      }
 
 // NBMX wrzesien 2003 - drzwi
-    if (DoorLeftButtonGauge.SubModel!=NULL)
+    if (DoorLeftButtonGauge.SubModel)
     {
       if (DynamicObject->MoverParameters->DoorLeftOpened)
         DoorLeftButtonGauge.PutValue(1);
@@ -2360,7 +2360,7 @@ else
         DoorLeftButtonGauge.PutValue(0);
       DoorLeftButtonGauge.Update();
     }
-    if (DoorRightButtonGauge.SubModel!=NULL)
+    if (DoorRightButtonGauge.SubModel)
     {
       if (DynamicObject->MoverParameters->DoorRightOpened)
         DoorRightButtonGauge.PutValue(1);
@@ -2368,14 +2368,14 @@ else
         DoorRightButtonGauge.PutValue(0);
       DoorRightButtonGauge.Update();
     }
-    if (DepartureSignalButtonGauge.SubModel!=NULL)
+    if (DepartureSignalButtonGauge.SubModel)
      {
 //      DepartureSignalButtonGauge.UpdateValue(double());
       DepartureSignalButtonGauge.Update();
      }
 
 //NBMX dzwignia sprezarki
-    if (CompressorButtonGauge.SubModel!=NULL)
+    if (CompressorButtonGauge.SubModel)
      {
      if (DynamicObject->MoverParameters->CompressorAllow)
         CompressorButtonGauge.PutValue(1);
@@ -2383,18 +2383,18 @@ else
         CompressorButtonGauge.PutValue(0);
       CompressorButtonGauge.Update();
      }
-    if (MainButtonGauge.SubModel!=NULL)
+    if (MainButtonGauge.SubModel)
        MainButtonGauge.Update();
-    if (RadioButtonGauge.SubModel!=NULL)
+    if (RadioButtonGauge.SubModel)
      {
       RadioButtonGauge.PutValue(1);
       RadioButtonGauge.Update();
      }
-    if (ConverterButtonGauge.SubModel!=NULL)
+    if (ConverterButtonGauge.SubModel)
       ConverterButtonGauge.Update();
-    if (ConverterOffButtonGauge.SubModel!=NULL)
+    if (ConverterOffButtonGauge.SubModel)
       ConverterOffButtonGauge.Update();
-    if(((DynamicObject->MoverParameters->HeadSignalsFlag)==0)
+    if (((DynamicObject->MoverParameters->HeadSignalsFlag)==0)
       &&((DynamicObject->MoverParameters->EndSignalsFlag)==0))
      {
         RightLightButtonGauge.PutValue(0);
@@ -2403,19 +2403,19 @@ else
         RightEndLightButtonGauge.PutValue(0);
         LeftEndLightButtonGauge.PutValue(0);
      }
-     if(((DynamicObject->MoverParameters->HeadSignalsFlag&1)==1)
+     if (((DynamicObject->MoverParameters->HeadSignalsFlag&1)==1)
       ||((DynamicObject->MoverParameters->EndSignalsFlag&1)==1))
         LeftLightButtonGauge.PutValue(1);
-     if(((DynamicObject->MoverParameters->HeadSignalsFlag&16)==16)
+     if (((DynamicObject->MoverParameters->HeadSignalsFlag&16)==16)
       ||((DynamicObject->MoverParameters->EndSignalsFlag&16)==16))
         RightLightButtonGauge.PutValue(1);
-     if(((DynamicObject->MoverParameters->HeadSignalsFlag&4)==4)
+     if (((DynamicObject->MoverParameters->HeadSignalsFlag&4)==4)
       ||((DynamicObject->MoverParameters->EndSignalsFlag&4)==4))
         UpperLightButtonGauge.PutValue(1);
 
-     if(((DynamicObject->MoverParameters->HeadSignalsFlag&2)==2)
+     if (((DynamicObject->MoverParameters->HeadSignalsFlag&2)==2)
       ||((DynamicObject->MoverParameters->EndSignalsFlag&2)==2))
-        if(LeftEndLightButtonGauge.SubModel!=NULL)
+        if (LeftEndLightButtonGauge.SubModel)
         {
            LeftEndLightButtonGauge.PutValue(1);
            LeftLightButtonGauge.PutValue(0);
@@ -2423,9 +2423,9 @@ else
         else
            LeftLightButtonGauge.PutValue(-1);
 
-     if(((DynamicObject->MoverParameters->HeadSignalsFlag&32)==32)
+     if (((DynamicObject->MoverParameters->HeadSignalsFlag&32)==32)
       ||((DynamicObject->MoverParameters->EndSignalsFlag&32)==32))
-        if(RightEndLightButtonGauge.SubModel!=NULL)
+        if (RightEndLightButtonGauge.SubModel)
         {
            RightEndLightButtonGauge.PutValue(1);
            RightLightButtonGauge.PutValue(0);
@@ -2435,7 +2435,7 @@ else
 
 
 //Winger 010304 - pantografy
-    if (PantFrontButtonGauge.SubModel!=NULL)
+    if (PantFrontButtonGauge.SubModel)
     {
       if (DynamicObject->MoverParameters->PantFrontUp)
           PantFrontButtonGauge.PutValue(1);
@@ -2443,7 +2443,7 @@ else
           PantFrontButtonGauge.PutValue(0);
       PantFrontButtonGauge.Update();
     }
-    if (PantRearButtonGauge.SubModel!=NULL)
+    if (PantRearButtonGauge.SubModel)
     {
       if (DynamicObject->MoverParameters->PantRearUp)
           PantRearButtonGauge.PutValue(1);
@@ -2451,12 +2451,12 @@ else
           PantRearButtonGauge.PutValue(0);
      PantRearButtonGauge.Update();
      }
-    if (PantFrontButtonOffGauge.SubModel!=NULL)
+    if (PantFrontButtonOffGauge.SubModel)
     {
      PantFrontButtonOffGauge.Update();
     }
 //Winger 020304 - ogrzewanie
-    if (TrainHeatingButtonGauge.SubModel!=NULL)
+    if (TrainHeatingButtonGauge.SubModel)
     {
       if (DynamicObject->MoverParameters->Heating)
           {
@@ -2529,21 +2529,21 @@ else
          {
          SetFlag(DynamicObject->MoverParameters->WarningSignal,2);
          DynamicObject->MoverParameters->WarningSignal&=(255-1);
-         if (HornButtonGauge.SubModel!=NULL)
+         if (HornButtonGauge.SubModel)
             HornButtonGauge.UpdateValue(1);
          }
       else
          {
          SetFlag(DynamicObject->MoverParameters->WarningSignal,1);
          DynamicObject->MoverParameters->WarningSignal&=(255-2);
-         if (HornButtonGauge.SubModel!=NULL)
+         if (HornButtonGauge.SubModel)
             HornButtonGauge.UpdateValue(-1);
          }
      }
     else
      {
         DynamicObject->MoverParameters->WarningSignal=0;
-        if (HornButtonGauge.SubModel!=NULL)
+        if (HornButtonGauge.SubModel)
            HornButtonGauge.UpdateValue(0);
      }
 
@@ -2557,7 +2557,7 @@ else
      {
         if (!DebugModeFlag)
         {
-           if(Universal1ButtonGauge.SubModel!=NULL)
+           if (Universal1ButtonGauge.SubModel)
            if (Pressed(VK_SHIFT))
            {
               Universal1ButtonGauge.IncValue(dt/2);
@@ -2572,7 +2572,7 @@ else
      {
         if (!DebugModeFlag)
         {
-           if(Universal2ButtonGauge.SubModel!=NULL)
+           if (Universal2ButtonGauge.SubModel)
            if (Pressed(VK_SHIFT))
            {
               Universal2ButtonGauge.IncValue(dt/2);
@@ -2585,43 +2585,43 @@ else
      }
      if ( Pressed(Global::Keys[k_Univ3]) )
      {
-        if(Universal3ButtonGauge.SubModel!=NULL)
+        if (Universal3ButtonGauge.SubModel)
         if (Pressed(VK_SHIFT))
         {
            Universal3ButtonGauge.UpdateValue(1);
-           if(btLampkaUniversal3.Active())
+           if (btLampkaUniversal3.Active())
               LampkaUniversal3_st=true;
         }
         else
         {
            Universal3ButtonGauge.UpdateValue(0);
-           if(btLampkaUniversal3.Active())
+           if (btLampkaUniversal3.Active())
               LampkaUniversal3_st=false;
         }
      }
      //ABu030405 obsluga lampki uniwersalnej:
-     if((LampkaUniversal3_st)&&(btLampkaUniversal3.Active()))
+     if ((LampkaUniversal3_st)&&(btLampkaUniversal3.Active()))
      {
-        if(LampkaUniversal3_typ==0)
+        if (LampkaUniversal3_typ==0)
            btLampkaUniversal3.TurnOn();
         else
-        if((LampkaUniversal3_typ==1)&&(DynamicObject->MoverParameters->Mains==true))
+        if ((LampkaUniversal3_typ==1)&&(DynamicObject->MoverParameters->Mains==true))
            btLampkaUniversal3.TurnOn();
         else
-        if((LampkaUniversal3_typ==2)&&(DynamicObject->MoverParameters->ConverterFlag==true))
+        if ((LampkaUniversal3_typ==2)&&(DynamicObject->MoverParameters->ConverterFlag==true))
            btLampkaUniversal3.TurnOn();
         else
            btLampkaUniversal3.TurnOff();
      }
      else
      {
-        if(btLampkaUniversal3.Active())
+        if (btLampkaUniversal3.Active())
            btLampkaUniversal3.TurnOff();
      }
 
      if ( Pressed(Global::Keys[k_Univ4]) )
      {
-        if(Universal4ButtonGauge.SubModel!=NULL)
+        if (Universal4ButtonGauge.SubModel)
         if (Pressed(VK_SHIFT))
         {
            ActiveUniversal4=true;
@@ -2655,7 +2655,7 @@ else
 //     if (GetAsyncKeyState(VK_RETURN)<0)
       {
        AntiSlipButtonGauge.UpdateValue(1);
-       if(DynamicObject->MoverParameters->SwitchEPBrake(1))
+       if (DynamicObject->MoverParameters->SwitchEPBrake(1))
         {
          dsbPneumaticSwitch->SetVolume(-10);
          dsbPneumaticSwitch->Play( 0, 0, 0 );
@@ -2663,13 +2663,13 @@ else
       }
      else
       {
-       if(DynamicObject->MoverParameters->SwitchEPBrake(0))
+       if (DynamicObject->MoverParameters->SwitchEPBrake(0))
         {
          dsbPneumaticSwitch->SetVolume(-10);
          dsbPneumaticSwitch->Play( 0, 0, 0 );
         }
       }
-     
+
     if ( Pressed(Global::Keys[k_DepartureSignal]) )
      {
       DepartureSignalButtonGauge.PutValue(1);
@@ -2711,9 +2711,9 @@ if ( Pressed(Global::Keys[k_Main]) )                //[]
 
 if ( Pressed(Global::Keys[k_CurrentNext]))
    {
-      if(ShowNextCurrent==false)
+      if (ShowNextCurrent==false)
       {
-         if(NextCurrentButtonGauge.SubModel!=NULL)
+         if (NextCurrentButtonGauge.SubModel)
          {
             NextCurrentButtonGauge.UpdateValue(1);
             dsbSwitch->SetVolume(DSBVOLUME_MAX);
@@ -2724,9 +2724,9 @@ if ( Pressed(Global::Keys[k_CurrentNext]))
    }
 else
    {
-      if(ShowNextCurrent==true)
+      if (ShowNextCurrent==true)
       {
-         if(NextCurrentButtonGauge.SubModel!=NULL)
+         if (NextCurrentButtonGauge.SubModel)
          {
             NextCurrentButtonGauge.UpdateValue(0);
             dsbSwitch->SetVolume(DSBVOLUME_MAX);
@@ -3155,7 +3155,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
       {
         //ABu: wstawione warunki, wczesniej tylko to:
         //   str= Parser->GetNextSymbol().LowerCase();
-        if(parse)
+        if (parse)
         {
            str= Parser->GetNextSymbol().LowerCase();
         }

@@ -27,7 +27,7 @@ public:
     void __fastcall UpdateModel();
     TAnimContainer *pNext;
     bool __fastcall InMovement(); //czy w trakcie animacji?
-    double _fastcall AngleGet() {return vRotateAngles.y;}; //jednak œrodkowa
+    double _fastcall AngleGet() {return vRotateAngles.z;}; //jednak ostatnia, T3D ma inny uk³ad
 };
 
 class TAnimModel

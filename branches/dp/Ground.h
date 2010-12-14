@@ -101,12 +101,12 @@ public:
     void __fastcall MoveMe(vector3 pPosition);
 
     //bool __fastcall Disable();
-    inline TGroundNode* __fastcall Find( AnsiString asNameToFind)
+    inline TGroundNode* __fastcall Find(const AnsiString &asNameToFind)
     {
         if (asNameToFind==asName) return this; else if (Next) return Next->Find(asNameToFind);
         return NULL;
     };
-    inline TGroundNode* __fastcall Find( AnsiString asNameToFind, TGroundNodeType iNodeType )
+    inline TGroundNode* __fastcall Find(const AnsiString &asNameToFind, TGroundNodeType iNodeType )
     {
         if ((iNodeType==iType) && (asNameToFind==asName))
             return this;
@@ -208,7 +208,7 @@ public:
     int __fastcall GetSubRowFromZ(double z) { return (z/fSubRectSize+fHalfNumSubRects); };
    int __fastcall GetSubColFromX(double x) { return (x/fSubRectSize+fHalfNumSubRects); };
    */
-    inline TGroundNode* __fastcall FindGroundNode( AnsiString asNameToFind )
+    inline TGroundNode* __fastcall FindGroundNode(const AnsiString &asNameToFind )
     {
         if (RootNode)
             return (RootNode->Find( asNameToFind ));

@@ -50,7 +50,7 @@ public:
     inline bool __fastcall Get(int bit) { return(GetFlag(Flags,bit)); };
     inline void __fastcall TurnOn(int bit) { FlagOn(Flags,bit); };
     inline void __fastcall TurnOff(int bit) { FlagOff(Flags,bit); };
-    AnsiString __fastcall AsString() { AnsiString ret; ret.IntToHex(Flags,8); return(ret); };
+    AnsiString __fastcall AsString() { return IntToHex(Flags,8); };
 };
 
 #endif

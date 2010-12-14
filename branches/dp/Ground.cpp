@@ -855,9 +855,9 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
 //            str= Parser->GetNextSymbol().LowerCase();
   //          str= Parser->GetNextSymbol().LowerCase();
     //        str= Parser->GetNextSymbol().LowerCase();
-            tmp->pCenter= ( tmp->pTrack->CurrentSegment()->FastGetPoint(0)+
+            tmp->pCenter= ( tmp->pTrack->CurrentSegment()->FastGetPoint_0()+
                             tmp->pTrack->CurrentSegment()->FastGetPoint(0.5)+
-                            tmp->pTrack->CurrentSegment()->FastGetPoint(1) ) * 0.33333f;
+                            tmp->pTrack->CurrentSegment()->FastGetPoint_1() ) * 0.33333f;
 
 
         break;
@@ -1811,8 +1811,8 @@ bool __fastcall TGround::InitEvents()
                         strcpy(buff,Current->Params[i].asText);
                         delete Current->Params[i].asText;
                         Current->Params[i].asEvent= FindEvent(buff);
-                        if (!Current->Params[i].asEvent)
-                         Error(AnsiString("Event \"")+AnsiString(buff)+AnsiString("\" does not exist"));
+                        if (!Current->Params[i].asEvent) //Ra: tylko w logu informacja o braku
+                         WriteLog(AnsiString("Event \"")+AnsiString(buff)+AnsiString("\" does not exist"));
                      }
                 }
 
@@ -1855,7 +1855,7 @@ bool __fastcall TGround::InitTracks()
                 case tt_Normal :
                     if (Track->CurrentPrev()==NULL)
                     {
-                        tmp= FindTrack(Track->CurrentSegment()->FastGetPoint(0),iConnection,Current);
+                        tmp= FindTrack(Track->CurrentSegment()->FastGetPoint_0(),iConnection,Current);
                         switch (iConnection)
                         {
                             case -1: break;
@@ -1897,7 +1897,7 @@ bool __fastcall TGround::InitTracks()
                     }
                     if (Track->CurrentNext()==NULL)
                     {
-                        tmp= FindTrack(Track->CurrentSegment()->FastGetPoint(1),iConnection,Current);
+                        tmp= FindTrack(Track->CurrentSegment()->FastGetPoint_1(),iConnection,Current);
                         switch (iConnection)
                         {
                             case -1: break;
@@ -1950,7 +1950,7 @@ void __fastcall TGround::TrackJoin(TGroundNode *Current)
  TGroundNode *tmp;
  int iConnection;
  if (!Track->CurrentPrev())
- {tmp=FindTrack(Track->CurrentSegment()->FastGetPoint(0),iConnection,Current); //Current do pominiêcia
+ {tmp=FindTrack(Track->CurrentSegment()->FastGetPoint_0(),iConnection,Current); //Current do pominiêcia
   switch (iConnection)
   {
    case 0: Track->ConnectPrevPrev(tmp->pTrack); break;
@@ -1959,7 +1959,7 @@ void __fastcall TGround::TrackJoin(TGroundNode *Current)
  }
  if (!Track->CurrentNext())
  {
-  tmp= FindTrack(Track->CurrentSegment()->FastGetPoint(1),iConnection,Current);
+  tmp= FindTrack(Track->CurrentSegment()->FastGetPoint_1(),iConnection,Current);
   switch (iConnection)
   {
    case 0: Track->ConnectNextPrev(tmp->pTrack); break;
@@ -2014,14 +2014,14 @@ TGroundNode* __fastcall TGround::FindTrack(vector3 Point, int &iConnection, TGro
             {
                 case tt_Normal :
                     if (Track->CurrentPrev()==NULL)
-                        if (Equal(Track->CurrentSegment()->FastGetPoint(0),Point))
+                        if (Equal(Track->CurrentSegment()->FastGetPoint_0(),Point))
                         {
 
                             iConnection= 0;
                             return Current;
                         }
                     if (Track->CurrentNext()==NULL)
-                        if (Equal(Track->CurrentSegment()->FastGetPoint(1),Point))
+                        if (Equal(Track->CurrentSegment()->FastGetPoint_1(),Point))
                         {
                             iConnection= 1;
                             return Current;
@@ -2033,14 +2033,14 @@ TGroundNode* __fastcall TGround::FindTrack(vector3 Point, int &iConnection, TGro
                     Track->Switch(0);
 
                     if (Track->CurrentPrev()==NULL)
-                        if (Equal(Track->CurrentSegment()->FastGetPoint(0),Point))
+                        if (Equal(Track->CurrentSegment()->FastGetPoint_0(),Point))
                         {
                             iConnection= 2;
                             Track->Switch(state);
                             return Current;
                         }
                     if (Track->CurrentNext()==NULL)
-                        if (Equal(Track->CurrentSegment()->FastGetPoint(1),Point))
+                        if (Equal(Track->CurrentSegment()->FastGetPoint_1(),Point))
                         {
                             iConnection= 3;
                             Track->Switch(state);
@@ -2048,14 +2048,14 @@ TGroundNode* __fastcall TGround::FindTrack(vector3 Point, int &iConnection, TGro
                         }
                     Track->Switch(1);
                     if (Track->CurrentPrev()==NULL)
-                        if (Equal(Track->CurrentSegment()->FastGetPoint(0),Point))
+                        if (Equal(Track->CurrentSegment()->FastGetPoint_0(),Point))
                         {
                             iConnection= 4;
                             Track->Switch(state);
                             return Current;
                         }
                     if (Track->CurrentNext()==NULL)
-                        if (Equal(Track->CurrentSegment()->FastGetPoint(1),Point))
+                        if (Equal(Track->CurrentSegment()->FastGetPoint_1(),Point))
                         {
                             iConnection= 5;
                             Track->Switch(state);

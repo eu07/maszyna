@@ -9,11 +9,12 @@
 
 using namespace Math3D;
 
-const int k_IncMainCtrl= 0;
-const int k_IncMainCtrlFAST= 1;
-const int k_DecMainCtrl= 2;
-const int k_DecMainCtrlFAST= 3;
-const int k_IncScndCtrl= 4;
+//definicje klawiszy
+const int k_IncMainCtrl= 0; //[Num+]
+const int k_IncMainCtrlFAST= 1; //[Num+] [Shift]
+const int k_DecMainCtrl= 2; //[Num-]
+const int k_DecMainCtrlFAST= 3; //[Num-] [Shift]
+const int k_IncScndCtrl= 4; //[Num/]
 const int k_IncScndCtrlFAST= 5;
 const int k_DecScndCtrl= 6;
 const int k_DecScndCtrlFAST= 7;
@@ -108,7 +109,7 @@ public:
 //    double Global::tSinceStart;
     static int Keys[MaxKeys];
     static vector3 pCameraPosition;
-    static double pCameraRotation;      
+    static double pCameraRotation;
     static vector3 pFreeCameraInit;
     static vector3 pFreeCameraInitAngle;
     static int iWindowWidth;
