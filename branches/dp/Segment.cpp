@@ -333,7 +333,7 @@ void __fastcall TSegment::RenderLoft(const vector3 *ShapePoints, int iNumShapePo
     else
     {//gdy prosty
             pos1= FastGetPoint( (fStep*iSkip)/fLength );
-            pos2= FastGetPoint( 1.0f );
+            pos2= FastGetPoint_1();
             dir= GetDirection();
             parallel1= Normalize(CrossProduct(dir,vector3(0,1,0)));
 
@@ -374,29 +374,27 @@ void __fastcall TSegment::RenderLoft(const vector3 *ShapePoints, int iNumShapePo
 
 void __fastcall TSegment::RenderSwitchRail(const vector3 *ShapePoints1, const vector3 *ShapePoints2,
                             int iNumShapePoints,double fTextureLength, int iSkip, double fOffsetX)
-{
+{//tworzenie siatki trójk¹tów dla iglicy
     vector3 pos1,pos2,dir,parallel1,parallel2,pt;
     double a1,a2,s,step,offset,tv1,tv2,t,t2,t2step,oldt2,sp,oldsp;
     int i,j ;
     if (bCurve)
-    {
+    {//dla toru odchylonego
             //t2= 0;
-            t2step= 1/double(iSkip);
+            t2step= 1/double(iSkip); //przesuniêcie tekstury?
             oldt2= 1;
             tv1=0;
-            step= fStep;
+            step= fStep; //d³ugœæ segmentu
             s= 0;
             i= 0;
-            t= fTsBuffer[i];
+            t= fTsBuffer[i]; //wartoœæ t krzywej Beziera dla pocz¹tku
             a1= 0;
 //            step= fStep/fLength;
-            offset= 0.1/fLength;
-            pos1= FastGetPoint( t );
+            offset= 0.1/fLength; //oko³o 10cm w sensie parametru t
+            pos1= FastGetPoint( t ); //wspó³rzêdne dla parmatru t
 //            dir= GetDirection1();
-            dir= FastGetDirection( t, offset );
-            parallel1= Normalize(CrossProduct(dir,vector3(0,1,0)));
-
-
+            dir= FastGetDirection( t, offset ); //wektor wzd³u¿ny
+            parallel1= Normalize(CrossProduct(dir,vector3(0,1,0))); //poprzeczny?
 
             while (s<fLength && i<iSkip)
             {
@@ -447,12 +445,12 @@ void __fastcall TSegment::RenderSwitchRail(const vector3 *ShapePoints1, const ve
             }
     }
     else
-    {
+    {//dla toru prostego
             tv1=0;
             s= 0;
             i= 0;
 //            pos1= FastGetPoint( (5*iSkip)/fLength );
-            pos1= FastGetPoint( 0 );
+            pos1= FastGetPoint_0();
             dir= GetDirection();
             parallel1= CrossProduct(dir,vector3(0,1,0));
             step= 5;

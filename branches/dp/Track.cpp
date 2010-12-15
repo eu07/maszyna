@@ -395,13 +395,13 @@ void __fastcall TTrack::Load(cParser *parser, vector3 pOrigin)
       parser->getTokens();
       *parser >> token;
       str= AnsiString(token.c_str());   //railtex
-      TextureID1= (str=="none"?0:TTexturesManager::GetTextureID(str.c_str()));
+      TextureID1= (str=="none"?0:TTexturesManager::GetTextureID(str.c_str(),(iCategoryFlag==1)?Global::iRailProFiltering:Global::iBallastFiltering));
       parser->getTokens();
       *parser >> fTexLength; //tex tile length
       parser->getTokens();
       *parser >> token;
       str= AnsiString(token.c_str());   //sub || railtex
-      TextureID2= (str=="none"?0:TTexturesManager::GetTextureID(str.c_str()));
+      TextureID2= (str=="none"?0:TTexturesManager::GetTextureID(str.c_str(),(eType==tt_Normal)?Global::iBallastFiltering:Global::iRailProFiltering));
       parser->getTokens(3);
       *parser >> fTexHeight >> fTexWidth >> fTexSlope;
 //      fTexHeight= Parser->GetNextSymbol().ToDouble(); //tex sub height
@@ -448,7 +448,10 @@ void __fastcall TTrack::Load(cParser *parser, vector3 pOrigin)
 
         case tt_Cross: //skrzy¿owanie dróg - 4 punkty z wektorami kontrolnymi
         case tt_Switch: //zwrotnica
-            //state=0; // Parser->GetNextSymbol().ToInt();
+            //problemy z animacj¹ iglic powstaje, gdzy odcinek prosty ma zmienn¹ przechy³ê
+            //wtedy dzieli sie na dodatkowe odcinki (po 0.2m, bo R=0) i animacjê diabli bior¹
+            //Ra: na razie nie podejmujê siê przerabiania iglic
+            //Init w TSegment ignoruje przechy³ki o sumie mniejszej od 0.21°
 
             SwitchExtension= new TSwitchExtension(); //zwrotnica ma doklejkê
 
@@ -461,8 +464,10 @@ void __fastcall TTrack::Load(cParser *parser, vector3 pOrigin)
             parser->getTokens(2);
             *parser >> r2 >> fRadiusTable[0];
 
-            if (fRadiusTable[0]!=0)
-               segsize=Min0R(0.5,0.3+fabs(fRadiusTable[0])*0.03);
+            if (fRadiusTable[0]>0)
+               segsize=Min0R(5.0,0.2+fRadiusTable[0]*0.02);
+            else
+            {cp1=(p1+p1+p2)/3.0-p1; cp2=(p1+p2+p2)/3.0-p2; segsize=5.0;} //u³omny prosty
 
             if (!(cp1==vector3(0,0,0)) && !(cp2==vector3(0,0,0)))
                 SwitchExtension->Segments[0].Init(p1,cp1+p1,cp2+p2,p2,segsize,r1,r2);
@@ -479,7 +484,7 @@ void __fastcall TTrack::Load(cParser *parser, vector3 pOrigin)
             *parser >> r2 >> fRadiusTable[1];
 
             if (fRadiusTable[1]>0)
-               segsize=Min0R(0.5,0.3+fRadiusTable[1]*0.03);
+               segsize=Min0R(5.0,0.2+fRadiusTable[1]*0.02);
             else
                segsize=5.0;
 
@@ -921,12 +926,12 @@ void TTrack::Compile()
           double v=SwitchExtension->fDesiredOffset1-SwitchExtension->fOffset1;
           SwitchExtension->fOffset1+=sign(v)*Timer::GetDeltaTime()*0.1;
           //Ra: trzeba daæ to do klasy...
-          if (SwitchExtension->fOffset1<=0.01)
-          {SwitchExtension->fOffset1=0.01; //1cm?
+          if (SwitchExtension->fOffset1<=0.00)
+          {SwitchExtension->fOffset1; //1cm?
            SwitchExtension->bMovement=false; //koniec animacji
           }
-          if (SwitchExtension->fOffset1>=fMaxOffset-0.01)
-          {SwitchExtension->fOffset1=fMaxOffset-0.01; //maksimum-1cm?
+          if (SwitchExtension->fOffset1>=fMaxOffset)
+          {SwitchExtension->fOffset1=fMaxOffset; //maksimum-1cm?
            SwitchExtension->bMovement=false; //koniec animacji
           }
          }
@@ -1213,7 +1218,7 @@ bool __fastcall TTrack::Switch(int i)
      if (eType==tt_Switch)
      {//przek³adanie zwrotnicy jak zwykle
         SwitchExtension->fDesiredOffset1= fMaxOffset*double(NextMask[i]); //od punktu 1
-        SwitchExtension->fDesiredOffset2= fMaxOffset*double(PrevMask[i]); //od punktu 2
+        //SwitchExtension->fDesiredOffset2= fMaxOffset*double(PrevMask[i]); //od punktu 2
         SwitchExtension->CurrentIndex= i;
         Segment= SwitchExtension->Segments+i; //wybranie aktywnej drogi
         pNext= SwitchExtension->pNexts[NextMask[i]]; //prze³¹czenie koñców

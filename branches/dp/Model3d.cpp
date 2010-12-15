@@ -156,16 +156,18 @@ void __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model)
     {
         std::string type;
         parser.getToken(type);
-        
-        if(type == "mesh")
+
+        if (type == "mesh")
             eType = smt_Mesh;
-        else if(type == "point")
+        else if (type == "point")
             eType = smt_Point;
-        else if(type == "freespotlight")
+        else if (type == "freespotlight")
             eType = smt_FreeSpotLight;
+        else if (type == "text")
+            eType = smt_Text; //wyœwietlacz tekstowy (generator napisów)
     };
 
-    parser.ignoreToken(); 
+    parser.ignoreToken();
     parser.getToken(Name);
 
     if(parser.expectToken("anim:"))
@@ -202,7 +204,7 @@ void __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model)
         fcosFalloffAngle = cos(fcosFalloffAngle * M_PI / 90);
 
         parser.ignoreToken();
-        parser.getToken(fcosHotspotAngle); 
+        parser.getToken(fcosHotspotAngle);
         fcosHotspotAngle = cos(fcosHotspotAngle * M_PI / 90);
 
     };

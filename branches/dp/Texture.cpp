@@ -41,7 +41,7 @@ void TTexturesManager::Init()
 {
 };
 
-TTexturesManager::Names::iterator TTexturesManager::LoadFromFile(std::string fileName)
+TTexturesManager::Names::iterator TTexturesManager::LoadFromFile(std::string fileName,int filter)
 {
 
     std::string message("Loading - texture: ");
@@ -63,13 +63,13 @@ TTexturesManager::Names::iterator TTexturesManager::LoadFromFile(std::string fil
 
     AlphaValue texinfo;
 
-    if(ext == "tga")
-        texinfo = LoadTGA(realFileName);
-    else if(ext == "tex")
+    if (ext == "tga")
+        texinfo = LoadTGA(realFileName,filter);
+    else if (ext == "tex")
         texinfo = LoadTEX(realFileName);
-    else if(ext == "bmp")
+    else if (ext == "bmp")
         texinfo = LoadBMP(realFileName);
-    else if(ext == "dds")
+    else if (ext == "dds")
         texinfo = LoadDDS(realFileName);
 
     _alphas.insert(texinfo);
@@ -97,16 +97,16 @@ struct ReplaceSlash
     }
 };
 
-GLuint TTexturesManager::GetTextureID(std::string fileName)
+GLuint TTexturesManager::GetTextureID(std::string fileName,int filter)
 {
 
     std::transform(fileName.begin(), fileName.end(), fileName.begin(), ReplaceSlash());
 
     // jesli biezaca sciezka do tekstur nie zostala dodana to dodajemy defaultowa
-    if(fileName.find('\\') == std::string::npos)
+    if (fileName.find('\\') == std::string::npos)
         fileName.insert(0, szDefaultTexturePath);
 
-    if(fileName.find('.') == std::string::npos)
+    if (fileName.find('.') == std::string::npos)
     {
         fileName.append(".");
         fileName.append(Global::szDefaultExt);
@@ -114,8 +114,8 @@ GLuint TTexturesManager::GetTextureID(std::string fileName)
 
     Names::iterator iter = _names.find(fileName);
 
-    if(iter == _names.end())
-        iter = LoadFromFile(fileName);
+    if (iter == _names.end())
+        iter = LoadFromFile(fileName,filter);
 
     return (iter != _names.end() ? iter->second : 0);
 
@@ -204,7 +204,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadBMP(std::string fileName)
     
 };
 
-TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName)
+TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName,int filter)
 {
 
     AlphaValue fail(0, false);
@@ -340,15 +340,16 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName)
 
     bool alpha = (bpp == 32);
     bool hash = (fileName.find('#') != std::string::npos); //true gdy w nazwie jest "#"
-    bool dollar = (fileName.find('$') != std::string::npos); //true gdy w nazwie jest "$"
-    int filter=-1; //numer filtra
+    bool dollar = (fileName.find('$') == std::string::npos); //true gdy w nazwie nie ma "$"
     size_t pos=fileName.rfind('%'); //ostatni % w nazwie
     if (pos!=std::string::npos)
      if (pos<fileName.size())
      {filter=(int)fileName[pos+1]-'0'; //zamiana cyfry za % na liczbê
       if ((filter<0)||(filter>10)) filter=-1; //jeœli nie jest cyfr¹
      }
-    GLuint id=CreateTexture(imageData,bytesPerPixel,width,height,alpha,hash,dollar);
+    if (!alpha&&!hash&&dollar&&(filter<0))
+     filter=Global::iDefaultFiltering; //dotyczy tekstur TGA bez kana³u alfa
+    GLuint id=CreateTexture(imageData,bytesPerPixel,width,height,alpha,hash,dollar,filter);
     delete[] imageData;
 
 	return std::make_pair(id, alpha);
@@ -600,7 +601,7 @@ GLuint TTexturesManager::CreateTexture(char *buff,int bpp,int width,int Height,b
     if (filter>=0)
      SetFiltering(filter); //cyfra po % w nazwie
     else
-     SetFiltering(bHasAlpha||!bDollar,bHash); //znaki #, $ i kana³ alfa w nazwie 
+     SetFiltering(bHasAlpha&&bDollar,bHash); //znaki #, $ i kana³ alfa w nazwie
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);

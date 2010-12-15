@@ -50,6 +50,7 @@ bool Global::bLiveTraction= true;
 bool Global::bManageNodes = true;
 bool Global::bnewAirCouplers= false;
 bool Global::bDecompressDDS = true;
+
 //bool Global::WFreeFly= false;
 float Global::fMouseXScale=3.2;
 float Global::fMouseYScale=0.5;
@@ -80,6 +81,9 @@ bool Global::changeDynObj; //info o zmianie pojazdu
 bool Global::detonatoryOK; //info o nowych detonatorach
 double Global::ABuDebug=0;
 AnsiString Global::asSky= "1";
+int Global::iDefaultFiltering=5; //domyœlne rozmywanie tekstur TGA
+int Global::iBallastFiltering=5; //domyœlne rozmywanie tekstury podsypki
+int Global::iRailProFiltering=5; //domyœlne rozmywanie tekstury szyn
 
 
 
@@ -201,30 +205,35 @@ bool __fastcall Global::LoadIniFile(AnsiString asFileName)
           if (bLoadTraction==false)
            bLiveTraction=false;
          }
-//youBy - niebo              
-        if (str==AnsiString("skyenabled"))
+//youBy - niebo
+        else if (str==AnsiString("skyenabled"))
          {
           if (Parser->GetNextSymbol().LowerCase()==AnsiString("yes"))
           { asSky="1"; } else { asSky="0"; }
          }
 
-        if(str==AnsiString("managenodes"))
+        else if (str==AnsiString("managenodes"))
         {
             bManageNodes = (Parser->GetNextSymbol().LowerCase() == AnsiString("yes"));
         }
 
-        if(str==AnsiString("decompressdds"))
+        else if (str==AnsiString("decompressdds"))
         {
             bDecompressDDS = (Parser->GetNextSymbol().LowerCase() == AnsiString("yes"));
         }
 
 // ShaXbee - domyslne rozszerzenie tekstur
-        if (str==AnsiString("defaultext"))
+        else if (str==AnsiString("defaultext"))
             szDefaultExt = std::string(Parser->GetNextSymbol().LowerCase().c_str());
 
-        if (str==AnsiString("newaircouplers"))
+        else if (str==AnsiString("newaircouplers"))
          bnewAirCouplers=true;
-
+        else if (str==AnsiString("defaultfiltering"))
+         iDefaultFiltering=Parser->GetNextSymbol().ToIntDef(-1);
+        else if (str==AnsiString("ballastfiltering"))
+         iBallastFiltering=Parser->GetNextSymbol().ToIntDef(-1);
+        else if (str==AnsiString("railprofiltering"))
+         iRailProFiltering=Parser->GetNextSymbol().ToIntDef(-1);
     }
 
 }
