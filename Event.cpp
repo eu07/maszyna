@@ -48,12 +48,12 @@ __fastcall TEvent::~TEvent()
         SafeDeleteArray(Params[0].asText);
 }
 
-bool __fastcall TEvent::Init()
+void __fastcall TEvent::Init()
 {
 
 }
 
-bool __fastcall TEvent::Load(cParser* parser)
+void __fastcall TEvent::Load(cParser* parser)
 {
     int i;
     int ti;
@@ -283,15 +283,14 @@ bool __fastcall TEvent::Load(cParser* parser)
 
             while (str!=AnsiString("endevent") && str!=AnsiString("condition"))
             {
-                if (str.SubString(1,5)!="none_")
+                if ((str.SubString(1,5)!="none_")?(i<8):false)
                 {//eventy rozpoczynaj¹ce siê od "none_" s¹ ignorowane
-                    if (i<8)
-                    {
-                        Params[i].asText= new char[255];
-                        strcpy(Params[i].asText,str.c_str());
-                    }
-                    i++;
-                };
+                 Params[i].asText= new char[255];
+                 strcpy(Params[i].asText,str.c_str());
+                 i++;
+                }
+                else
+                 WriteLog("Event \""+str+"\" ignored in multiple!");
                parser->getTokens();
                *parser >> token;
                str= AnsiString(token.c_str());

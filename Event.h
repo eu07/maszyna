@@ -79,8 +79,8 @@ public:
 
     __fastcall TEvent();
     __fastcall ~TEvent();
-    bool __fastcall Init();
-    bool __fastcall Load(cParser* parser);
+    void __fastcall Init();
+    void __fastcall Load(cParser* parser);
     void __fastcall AddToQuery(TEvent *Event);
 
 };
