@@ -424,17 +424,17 @@ void __fastcall TSegment::RenderSwitchRail(const vector3 *ShapePoints1, const ve
                 a2= double(i)/(iSkip);
                 glBegin(GL_TRIANGLE_STRIP);
                     for (j=0; j<iNumShapePoints; j++)
-                    {
+                    {//po dwa punkty trapezu
                         pt= parallel1*(ShapePoints1[j].x*a1+(ShapePoints2[j].x-fOffsetX)*(1.0-a1))+pos1;
                         pt.y+= ShapePoints1[j].y*a1+ShapePoints2[j].y*(1.0-a1);
                         glNormal3f(0.0f,1.0f,0.0f);
-                        glTexCoord2f((ShapePoints1[j].z),tv1);
+                        glTexCoord2f(ShapePoints1[j].z*a1+ShapePoints2[j].z*(1.0-a1),tv1);
                         glVertex3f(pt.x,pt.y,pt.z);
 
                         pt= parallel2*(ShapePoints1[j].x*a2+(ShapePoints2[j].x-fOffsetX)*(1.0-a2))+pos2;
                         pt.y+= ShapePoints1[j].y*a2+ShapePoints2[j].y*(1.0-a2);
                         glNormal3f(0.0f,1.0f,0.0f);
-                        glTexCoord2f(ShapePoints1[j].z,tv2);
+                        glTexCoord2f(ShapePoints1[j].z*a2+ShapePoints2[j].z*(1.0-a2),tv2);
                         glVertex3f(pt.x,pt.y,pt.z);
                     }
                 glEnd();
@@ -491,7 +491,7 @@ void __fastcall TSegment::RenderSwitchRail(const vector3 *ShapePoints1, const ve
                         pt= parallel1*(ShapePoints1[j].x*a2+(ShapePoints2[j].x-fOffsetX)*(1.0-a2))+pos2;
                         pt.y+= ShapePoints1[j].y*a2+ShapePoints2[j].y*(1.0-a2);
                         glNormal3f(0.0f,1.0f,0.0f);
-                        glTexCoord2f(ShapePoints1[j].z,tv2);
+                        glTexCoord2f(ShapePoints2[j].z,tv2);
                         glVertex3f(pt.x,pt.y,pt.z);
                     }
                 glEnd();

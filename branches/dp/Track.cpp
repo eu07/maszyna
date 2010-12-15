@@ -980,13 +980,15 @@ void TTrack::Compile()
      {vector3 bpts1[4]; //punkty g³ównej p³aszczyzny przydaj¹ siê do robienia boków
       if (TextureID1||TextureID2) //punkty siê przydadz¹, nawet jeœli nawierzchni nie ma
        if (iTrapezoid) //trapez albo przechy³ki
-       {//nawierzchnia trapezowata - zmienic ewentualnie mapowanie tekstury z wê¿szej strony
+       {//nawierzchnia trapezowata
         Segment->GetRolls(roll1,roll2);
-        //double sin1=sin(roll1),cos1=cos(roll1),sin2=sin(roll2),cos2=cos(roll2);
-        bpts1[0]=vector3(fHTW*cos(roll1),-fHTW*sin(roll1),0.0); //lewy brzeg pocz¹tku
-        bpts1[1]=vector3(-bpts1[0].x,-bpts1[0].y,1.0); //prawy brzeg pocz¹tku symetrycznie
-        bpts1[2]=vector3(fHTW2*cos(roll2),-fHTW2*sin(roll2),0.0); //lewy brzeg koñca
-        bpts1[3]=vector3(-bpts1[2].x,-bpts1[2].y,1.0); //prawy brzeg pocz¹tku symetrycznie
+        double max=2.0*(fHTW>fHTW2?fHTW:fHTW2); //z szerszej strony jest 100%
+        double map1=max>0.0?fHTW/max:0.0; //obciêcie tekstury od strony 1
+        double map2=max>0.0?fHTW2/max:0.0; //obciêcie tekstury od strony 2
+        bpts1[0]=vector3(fHTW*cos(roll1),-fHTW*sin(roll1),0.5-map1); //lewy brzeg pocz¹tku
+        bpts1[1]=vector3(-bpts1[0].x,-bpts1[0].y,0.5+map1); //prawy brzeg pocz¹tku symetrycznie
+        bpts1[2]=vector3(fHTW2*cos(roll2),-fHTW2*sin(roll2),0.5-map2); //lewy brzeg koñca
+        bpts1[3]=vector3(-bpts1[2].x,-bpts1[2].y,0.5+map2); //prawy brzeg pocz¹tku symetrycznie
        }
        else
        {bpts1[0]=vector3(fHTW,0.0,0.0); //zawsze standardowe mapowanie
