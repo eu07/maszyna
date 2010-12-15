@@ -144,8 +144,8 @@ __fastcall TAnimModel::TAnimModel()
     ReplacableSkinId= 0;
     for (int i=0; i<iMaxNumLights; i++)
     {
-        LightsOn[i]=LightsOff[i]= NULL;
-        lsLights[i]= ls_Off;
+        LightsOn[i]=LightsOff[i]=NULL; //normalnie nie ma
+        lsLights[i]=ls_Off; //a jeœli s¹, to wy³¹czone
     }
 }
 
@@ -204,16 +204,9 @@ bool __fastcall TAnimModel::Load(cParser *parser)
     LightsOff[6]= pModel->GetFromName("Light_Off06");
     LightsOff[7]= pModel->GetFromName("Light_Off07");
 
-    for (int i=0; i<iMaxNumLights; i++)
-    {
-        if (LightsOn[i] && LightsOff[i]);
-//            lsSwiatla[i]= ls_Off;
-        else
-        {
-            iNumLights= i;
-            break;
-        }
-    }
+    for (int i=0; i<iMaxNumLights;++i)
+     if (LightsOn[i]||LightsOff[i]) //Ra: zlikwidowa³em wymóg istnienia obu
+      iNumLights=i+1;
 
     int i=0;
     int ti;
@@ -276,13 +269,17 @@ bool __fastcall TAnimModel::Render(vector3 pPosition, double fAngle)
 //        if (LightsOn[i])
             if (lsLights[i]==ls_Blink)
             {
-                LightsOn[i]->Visible= (fBlinkTimer<fOnTime);
-                LightsOff[i]->Visible= !(fBlinkTimer<fOnTime);
+                if (LightsOn[i])
+                 LightsOn[i]->Visible=(fBlinkTimer<fOnTime);
+                if (LightsOff[i])
+                 LightsOff[i]->Visible=!(fBlinkTimer<fOnTime);
             }
             else
             {
-                LightsOn[i]->Visible= (lsLights[i]==ls_On);
-                LightsOff[i]->Visible= (lsLights[i]==ls_Off);
+                if (LightsOn[i])
+                 LightsOn[i]->Visible= (lsLights[i]==ls_On);
+                if (LightsOff[i])
+                 LightsOff[i]->Visible= (lsLights[i]==ls_Off);
             }
 
     TAnimContainer *pCurrent;
@@ -302,13 +299,17 @@ bool __fastcall TAnimModel::Render(double fSquareDistance)
 //        if (LightsOn[i])
             if (lsLights[i]==ls_Blink)
             {
-                LightsOn[i]->Visible= (fBlinkTimer<fOnTime);
-                LightsOff[i]->Visible= !(fBlinkTimer<fOnTime);
+                if (LightsOn[i])
+                 LightsOn[i]->Visible=(fBlinkTimer<fOnTime);
+                if (LightsOff[i])
+                 LightsOff[i]->Visible=!(fBlinkTimer<fOnTime);
             }
             else
             {
-                LightsOn[i]->Visible= (lsLights[i]==ls_On);
-                LightsOff[i]->Visible= (lsLights[i]==ls_Off);
+                if (LightsOn[i])
+                 LightsOn[i]->Visible= (lsLights[i]==ls_On);
+                if (LightsOff[i])
+                 LightsOff[i]->Visible= (lsLights[i]==ls_Off);
             }
 
     TAnimContainer *pCurrent;
@@ -328,13 +329,17 @@ bool __fastcall TAnimModel::RenderAlpha(double fSquareDistance)
 //        if (LightsOn[i])
             if (lsLights[i]==ls_Blink)
             {
-                LightsOn[i]->Visible= (fBlinkTimer<fOnTime);
-                LightsOff[i]->Visible= !(fBlinkTimer<fOnTime);
+                if (LightsOn[i])
+                 LightsOn[i]->Visible=(fBlinkTimer<fOnTime);
+                if (LightsOff[i])
+                 LightsOff[i]->Visible= !(fBlinkTimer<fOnTime);
             }
             else
             {
-                LightsOn[i]->Visible= (lsLights[i]==ls_On);
-                LightsOff[i]->Visible= (lsLights[i]==ls_Off);
+                if (LightsOn[i])
+                 LightsOn[i]->Visible= (lsLights[i]==ls_On);
+                if (LightsOff[i])
+                 LightsOff[i]->Visible= (lsLights[i]==ls_Off);
             }
 
     TAnimContainer *pCurrent;
@@ -354,13 +359,17 @@ bool __fastcall TAnimModel::RenderAlpha(vector3 pPosition, double fAngle)
 //        if (LightsOn[i])
             if (lsLights[i]==ls_Blink)
             {
-                LightsOn[i]->Visible= (fBlinkTimer<fOnTime);
-                LightsOff[i]->Visible= !(fBlinkTimer<fOnTime);
+                if (LightsOn[i])
+                 LightsOn[i]->Visible= (fBlinkTimer<fOnTime);
+                if (LightsOff[i])
+                 LightsOff[i]->Visible= !(fBlinkTimer<fOnTime);
             }
             else
             {
-                LightsOn[i]->Visible= (lsLights[i]==ls_On);
-                LightsOff[i]->Visible= (lsLights[i]==ls_Off);
+                if (LightsOn[i])
+                 LightsOn[i]->Visible= (lsLights[i]==ls_On);
+                if (LightsOff[i])
+                 LightsOff[i]->Visible= (lsLights[i]==ls_Off);
             }
 
     TAnimContainer *pCurrent;

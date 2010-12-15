@@ -74,7 +74,7 @@ struct THitBoxContainer
     };
 };
 
-typedef enum { smt_Unknown, smt_Mesh, smt_Point, smt_FreeSpotLight} TSubModelType;
+typedef enum { smt_Unknown, smt_Mesh, smt_Point, smt_FreeSpotLight, smt_Text} TSubModelType;
 
 typedef enum { at_None, at_Rotate, at_RotateXYZ } TAnimType;
 

@@ -1866,32 +1866,34 @@ bool __fastcall TGround::InitTracks()
                                 Track->ConnectPrevNext(tmp->pTrack);
                             break;
                             case 2: //Ra:zwrotnice nie maj¹ stanu pocz¹tkowego we wpisie
-                                state= tmp->pTrack->GetSwitchState();
-                                tmp->pTrack->Switch(0);
+                                //state= tmp->pTrack->GetSwitchState();
+                                //tmp->pTrack->Switch(0);
                                 Track->ConnectPrevPrev(tmp->pTrack);
                                 tmp->pTrack->SetConnections(0);
-                                tmp->pTrack->Switch(state);
+                                //tmp->pTrack->Switch(state);
                             break;
                             case 3:
-                                state= tmp->pTrack->GetSwitchState();
-                                tmp->pTrack->Switch(0);
+                                //state= tmp->pTrack->GetSwitchState();
+                                //tmp->pTrack->Switch(0);
                                 Track->ConnectPrevNext(tmp->pTrack);
                                 tmp->pTrack->SetConnections(0);
-                                tmp->pTrack->Switch(state);
+                                //tmp->pTrack->Switch(state);
                             break;
                             case 4:
-                                state= tmp->pTrack->GetSwitchState();
+                                //state= tmp->pTrack->GetSwitchState();
                                 tmp->pTrack->Switch(1);
                                 Track->ConnectPrevPrev(tmp->pTrack);
                                 tmp->pTrack->SetConnections(1);
-                                tmp->pTrack->Switch(state);
+                                //tmp->pTrack->Switch(state);
+                                tmp->pTrack->Switch(0);
                             break;
                             case 5:
-                                state= tmp->pTrack->GetSwitchState();
+                                //state= tmp->pTrack->GetSwitchState();
                                 tmp->pTrack->Switch(1);
                                 Track->ConnectPrevNext(tmp->pTrack);
                                 tmp->pTrack->SetConnections(1);
-                                tmp->pTrack->Switch(state);
+                                //tmp->pTrack->Switch(state);
+                                tmp->pTrack->Switch(0);
                             break;
                         }
                     }
@@ -1908,32 +1910,34 @@ bool __fastcall TGround::InitTracks()
                                 Track->ConnectNextNext(tmp->pTrack);
                             break;
                             case 2:
-                                state= tmp->pTrack->GetSwitchState();
-                                tmp->pTrack->Switch(0);
+                                //state= tmp->pTrack->GetSwitchState();
+                                //tmp->pTrack->Switch(0);
                                 Track->ConnectNextPrev(tmp->pTrack);
                                 tmp->pTrack->SetConnections(0);
-                                tmp->pTrack->Switch(state);
+                                //tmp->pTrack->Switch(state);
                             break;
                             case 3:
-                                state= tmp->pTrack->GetSwitchState();
-                                tmp->pTrack->Switch(0);
+                                //state= tmp->pTrack->GetSwitchState();
+                                //tmp->pTrack->Switch(0);
                                 Track->ConnectNextNext(tmp->pTrack);
                                 tmp->pTrack->SetConnections(0);
-                                tmp->pTrack->Switch(state);
+                                //tmp->pTrack->Switch(state);
                             break;
                             case 4:
-                                state= tmp->pTrack->GetSwitchState();
+                                //state= tmp->pTrack->GetSwitchState();
                                 tmp->pTrack->Switch(1);
                                 Track->ConnectNextPrev(tmp->pTrack);
                                 tmp->pTrack->SetConnections(1);
-                                tmp->pTrack->Switch(state);
+                                //tmp->pTrack->Switch(state);
+                                tmp->pTrack->Switch(0);
                             break;
                             case 5:
-                                state= tmp->pTrack->GetSwitchState();
+                                //state= tmp->pTrack->GetSwitchState();
                                 tmp->pTrack->Switch(1);
                                 Track->ConnectNextNext(tmp->pTrack);
                                 tmp->pTrack->SetConnections(1);
-                                tmp->pTrack->Switch(state);
+                                //tmp->pTrack->Switch(state);
+                                tmp->pTrack->Switch(0);
                             break;
                         }
                     }

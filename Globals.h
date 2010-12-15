@@ -168,6 +168,9 @@ public:
     static bool detonatoryOK;
     static AnsiString asSky;
     static bool bnewAirCouplers;
+    static int iDefaultFiltering; //domyœlne rozmywanie tekstur TGA
+    static int iBallastFiltering; //domyœlne rozmywanie tekstury podsypki
+    static int iRailProFiltering; //domyœlne rozmywanie tekstury szyn
 };
 
 //---------------------------------------------------------------------------
