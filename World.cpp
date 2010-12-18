@@ -498,7 +498,7 @@ __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
     ident2.Identity();
 
 //  glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);  //{Texture blends with object background}
-  light= TTexturesManager::GetTextureID("smuga");
+  light= TTexturesManager::GetTextureID("smuga.tga");
 
 //    Camera.Reset();
     ResetTimers();
@@ -974,7 +974,7 @@ bool __fastcall TWorld::Update()
     if (Pressed(VK_F12))
     {
        //Takie male info :)
-       OutText1= AnsiString("Online documentation (PL, ENG, DE, soon CZ): http://www.eu07.pl");
+       OutText1= AnsiString("Online documentation (PL, ENG, DE, soon CZ): http://eu07.pl");
     }
 
     if (Pressed(VK_F2))

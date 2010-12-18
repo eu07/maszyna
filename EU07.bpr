@@ -20,8 +20,11 @@
     <LIBFILES value="opengl\glut32.lib DirectX\Dsound.lib"/>
     <LIBRARIES value="VCLX50.lib bcbsmp50.lib Vcl50.lib"/>
     <SPARELIBS value="Vcl50.lib bcbsmp50.lib VCLX50.lib"/>
-    <PACKAGES value="Vcl50.bpi Vclx50.bpi Vcldb50.bpi vclie50.bpi Inetdb50.bpi Inet50.bpi 
-      NMFast50.bpi webmid50.bpi bcbie50.bpi dclocx50.bpi bcb2kaxserver50.bpi"/>
+    <PACKAGES value="Vcl50.bpi Vclx50.bpi bcbsmp50.bpi Vcldb50.bpi vclado50.bpi ibsmp50.bpi 
+      VCLBDE50.bpi vcldbx50.bpi Qrpt50.bpi TeeUI50.bpi TeeDB50.bpi Tee50.bpi 
+      Dss50.bpi TeeQR50.bpi VCLIB50.bpi Vclmid50.bpi vclie50.bpi Inetdb50.bpi 
+      Inet50.bpi NMFast50.bpi webmid50.bpi bcbie50.bpi dclocx50.bpi 
+      bcb2kaxserver50.bpi"/>
     <PATHCPP value=".;"/>
     <PATHPAS value=".;McZapkie"/>
     <PATHRC value=".;"/>
@@ -32,19 +35,20 @@
     <USERDEFINES value="GLEW_STATIC"/>
     <SYSDEFINES value="_RTLDLL;NO_STRICT"/>
     <MAINSOURCE value="EU07.cpp"/>
-    <INCLUDEPATH value="McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
-    <LIBPATH value="McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
+    <INCLUDEPATH value="&quot;C:\Program Files\Borland\CBuilder5\Projects\&quot;;&quot;d:\program files\CBuilder5\Projects\&quot;;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
+    <LIBPATH value="&quot;C:\Program Files\Borland\CBuilder5\Projects\&quot;;&quot;d:\program files\CBuilder5\Projects\&quot;;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
     <WARNINGS value="-w-par"/>
   </MACROS>
   <OPTIONS>
-    <IDLCFLAGS value="-IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl -src_suffix cpp 
-      -DGLEW_STATIC -boa"/>
-    <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -ff -X- -a4 -6 -b- -k- -vi -c -tW 
-      -tWM"/>
-    <PFLAGS value="-$Y- -$R -$Q -$L- -$D- -v -JPHNE -M"/>
+    <IDLCFLAGS value="-I&quot;C:\Program Files\Borland\CBuilder5\Projects\.&quot; 
+      -I&quot;d:\program files\CBuilder5\Projects\.&quot; -INewScenery 
+      -Ig:\Borland\CBuilder5\Projects\. -IMcZapkie -I$(BCB)\include 
+      -I$(BCB)\include\vcl -src_suffix cpp -DGLEW_STATIC -boa"/>
+    <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -a4 -6 -b- -k- -vi -c -tW -tWM"/>
+    <PFLAGS value="-$Y- -$L- -$D- -v -JPHNE -M"/>
     <RFLAGS value=""/>
-    <AFLAGS value="/ml /w2 /zn"/>
-    <LFLAGS value="-D&quot;&quot; -aa -Tpe -x"/>
+    <AFLAGS value="/mx /w2 /zn"/>
+    <LFLAGS value="-D&quot;&quot; -aa -Tpe -x -Gn"/>
   </OPTIONS>
   <LINKER>
     <ALLOBJ value="c0w32.obj Memmgr.Lib sysinit.obj $(OBJFILES)"/>
@@ -57,10 +61,10 @@ IncludeVerInfo=1
 AutoIncBuild=1
 MajorVer=1
 MinorVer=2
-Release=42
-Build=65
+Release=43
+Build=70
 Debug=0
-PreRelease=1
+PreRelease=0
 Special=0
 Private=0
 DLL=0
@@ -70,7 +74,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=PC2009 SP1
-FileVersion=1.2.42.65
+FileVersion=1.2.43.70
 InternalName=hammer
 LegalCopyright=
 LegalTrademarks=
@@ -79,52 +83,36 @@ ProductName=MaSzyna EU07-424
 ProductVersion=1.2
 Comments=
 
-[Excluded Packages]
-$(BCB)\Bin\bcbsmp50.bpl=Borland C++ Sample Components
-$(BCB)\Bin\dclado50.bpl=Borland ADO DB Components
-$(BCB)\Bin\dcldb50.bpl=Borland Database Components
-C:\WINDOWS\system32\ibsmp50.bpl=Borland C++ InterBase Alerter Component
-$(BCB)\Bin\dclbde50.bpl=Borland BDE DB Components
-$(BCB)\Bin\dclqrt50.bpl=QuickReport Components
-$(BCB)\Bin\dcltee50.bpl=TeeChart 5.0 Components
-$(BCB)\Bin\dcldss50.bpl=Borland Decision Cube Components
-$(BCB)\Bin\applet50.bpl=Borland Control Panel Applet Package
-$(BCB)\Bin\dcltqr50.bpl=TeeChart 5.0 for QuickReport Components Design Package
-$(BCB)\Bin\DCLIB50.bpl=InterBase Data Access Components
-$(BCB)\Bin\dclsmpedit50.bpl=Borland Editor Script Enhancements
-$(BCB)\Bin\dclmid50.bpl=Borland MIDAS Components
-$(BCB)\Bin\DBWEBXPRT.BPL=Borland Web Wizard Package
-
 [HistoryLists\hlIncludePath]
 Count=10
-Item0=McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item1=McZapkie;$(BCB)\include;$(BCB)\include\vcl;C:\Ra\dp
-Item2=C:\Program Files\Borland\CBuilder5\Projects;d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item3=d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item4=d:\program files\CBuilder5\Projects;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item5=NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item6=NewScenery;g:\Borland\CBuilder5\Projects;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item0=C:\Program Files\Borland\CBuilder5\Projects\;d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item1=C:\Program Files\Borland\CBuilder5\Projects;d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item2=d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item3=d:\program files\CBuilder5\Projects;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item4=NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item5=NewScenery;g:\Borland\CBuilder5\Projects;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item6=McZapkie;$(BCB)\include;$(BCB)\include\vcl
 Item7=$(BCB)\include;$(BCB)\include\vcl
 Item8=triangle;gpc231;G:\Borland\CBuilder5\Examples\OpenGL\Rotate\;$(BCB)\include;$(BCB)\include\vcl
 Item9=G:\Borland\CBuilder5\Examples\OpenGL\Rotate\;$(BCB)\include;$(BCB)\include\vcl
 
 [HistoryLists\hlLibraryPath]
-Count=9
-Item0=McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Count=10
+Item0=C:\Program Files\Borland\CBuilder5\Projects\;d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
 Item1=C:\Program Files\Borland\CBuilder5\Projects;d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
 Item2=d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
 Item3=d:\program files\CBuilder5\Projects;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
 Item4=NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
 Item5=NewScenery;g:\Borland\CBuilder5\Projects;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item6=$(BCB)\lib\obj;$(BCB)\lib
-Item7=triangle;gpc231;G:\Borland\CBuilder5\Examples\OpenGL\Rotate\;$(BCB)\lib\obj;$(BCB)\lib
-Item8=G:\Borland\CBuilder5\Examples\OpenGL\Rotate\;$(BCB)\lib\obj;$(BCB)\lib
+Item6=McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item7=$(BCB)\lib\obj;$(BCB)\lib
+Item8=triangle;gpc231;G:\Borland\CBuilder5\Examples\OpenGL\Rotate\;$(BCB)\lib\obj;$(BCB)\lib
+Item9=G:\Borland\CBuilder5\Examples\OpenGL\Rotate\;$(BCB)\lib\obj;$(BCB)\lib
 
 [HistoryLists\hlDebugSourcePath]
-Count=3
-Item0=c:\ProgsWin\cbuilder5\source\vcl
-Item1=c:\lang\borland\cbuilder5\source\vcl;D:\USER\MCZAPKIE\PROGRAMY\rail\symul\source\zmiany\McZapkie\;D:\USER\MCZAPKIE\PROGRAMY\rail\symul\source\zmiany\
-Item2=$(BCB)\source\vcl
+Count=2
+Item0=c:\lang\borland\cbuilder5\source\vcl;D:\USER\MCZAPKIE\PROGRAMY\rail\symul\source\zmiany\McZapkie\;D:\USER\MCZAPKIE\PROGRAMY\rail\symul\source\zmiany\
+Item1=$(BCB)\source\vcl
 
 [HistoryLists\hlConditionals]
 Count=3
@@ -138,7 +126,7 @@ Item0=C:\EU07\
 Item1=C:\EU07
 
 [Debugging]
-DebugSourceDirs=c:\ProgsWin\cbuilder5\source\vcl
+DebugSourceDirs=c:\lang\borland\cbuilder5\source\vcl;D:\USER\MCZAPKIE\PROGRAMY\rail\symul\source\zmiany\McZapkie\;D:\USER\MCZAPKIE\PROGRAMY\rail\symul\source\zmiany\
 
 [Parameters]
 RunParams=

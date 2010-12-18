@@ -121,7 +121,10 @@ void __fastcall TEvent::Load(cParser* parser)
     str= AnsiString(token.c_str());
 
     if (str!=AnsiString("none"))
-        asNodeName= str;
+        asNodeName=str;
+
+    if (asName.SubString(1,5)=="none_")
+     Type= tp_Unknown; //Ra: takie s¹ ignorowane
 
     switch (Type)
     {
@@ -283,17 +286,17 @@ void __fastcall TEvent::Load(cParser* parser)
 
             while (str!=AnsiString("endevent") && str!=AnsiString("condition"))
             {
-                if ((str.SubString(1,5)!="none_")?(i<8):false)
-                {//eventy rozpoczynaj¹ce siê od "none_" s¹ ignorowane
-                 Params[i].asText= new char[255];
-                 strcpy(Params[i].asText,str.c_str());
-                 i++;
-                }
-                else
-                 WriteLog("Event \""+str+"\" ignored in multiple!");
-               parser->getTokens();
-               *parser >> token;
-               str= AnsiString(token.c_str());
+             if ((str.SubString(1,5)!="none_")?(i<8):false)
+             {//eventy rozpoczynaj¹ce siê od "none_" s¹ ignorowane
+              Params[i].asText=new char[255];
+              strcpy(Params[i].asText,str.c_str());
+              i++;
+             }
+             else
+              WriteLog("Event \""+str+"\" ignored in multiple \""+asName+"\"!");
+             parser->getTokens();
+             *parser >> token;
+             str=AnsiString(token.c_str());
             }
             if (str==AnsiString("condition"))
             {
@@ -343,9 +346,14 @@ void __fastcall TEvent::Load(cParser* parser)
 
             }
         break;
-        case tp_Unknown:
-                    parser->getTokens(); *parser >> token;
-             break;
+        case tp_Unknown: //ignorowanie reszty
+         do
+         {parser->getTokens();
+          *parser >> token;
+          str= AnsiString(token.c_str());
+         } while (str!="endevent");
+         WriteLog("Event \""+asName+"\" is ignored.");
+         break;
     }
 }
 
