@@ -979,21 +979,23 @@ void TTrack::Compile()
 //McZapkie:240702-zmieniony zakres widzialnosci
      {vector3 bpts1[4]; //punkty g³ównej p³aszczyzny przydaj¹ siê do robienia boków
       if (TextureID1||TextureID2) //punkty siê przydadz¹, nawet jeœli nawierzchni nie ma
+      {//double max=2.0*(fHTW>fHTW2?fHTW:fHTW2); //z szerszej strony jest 100%
+       double max=0.5*fTexLength; //test: szerokoœæ proporcjonalna do d³ugoœci
+       double map1=max>0.0?fHTW/max:0.0; //obciêcie tekstury od strony 1
+       double map2=max>0.0?fHTW2/max:0.0; //obciêcie tekstury od strony 2
        if (iTrapezoid) //trapez albo przechy³ki
        {//nawierzchnia trapezowata
         Segment->GetRolls(roll1,roll2);
-        double max=2.0*(fHTW>fHTW2?fHTW:fHTW2); //z szerszej strony jest 100%
-        double map1=max>0.0?fHTW/max:0.0; //obciêcie tekstury od strony 1
-        double map2=max>0.0?fHTW2/max:0.0; //obciêcie tekstury od strony 2
         bpts1[0]=vector3(fHTW*cos(roll1),-fHTW*sin(roll1),0.5-map1); //lewy brzeg pocz¹tku
         bpts1[1]=vector3(-bpts1[0].x,-bpts1[0].y,0.5+map1); //prawy brzeg pocz¹tku symetrycznie
         bpts1[2]=vector3(fHTW2*cos(roll2),-fHTW2*sin(roll2),0.5-map2); //lewy brzeg koñca
         bpts1[3]=vector3(-bpts1[2].x,-bpts1[2].y,0.5+map2); //prawy brzeg pocz¹tku symetrycznie
        }
        else
-       {bpts1[0]=vector3(fHTW,0.0,0.0); //zawsze standardowe mapowanie
-        bpts1[1]=vector3(-fHTW,0.0,1.0);
+       {bpts1[0]=vector3( fHTW,0.0,0.5-map1); //zawsze standardowe mapowanie
+        bpts1[1]=vector3(-fHTW,0.0,0.5+map1);
        }
+      }
       if (TextureID1) //jeœli podana by³a tekstura, generujemy trójk¹ty
       {//tworzenie trójk¹tów nawierzchni szosy
        glBindTexture(GL_TEXTURE_2D, TextureID1);

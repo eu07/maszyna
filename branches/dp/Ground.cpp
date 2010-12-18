@@ -1361,7 +1361,12 @@ bool __fastcall TGround::Init(AnsiString asFile)
             tmp= RootEvent;
             RootEvent= new TEvent();
             RootEvent->Load(&parser);
-            RootEvent->Next2= tmp;
+            if (RootEvent->Type==tp_Unknown)
+            {delete RootEvent;
+             RootEvent=tmp; //przywrócenie z pominiêciem
+            }
+            else
+             RootEvent->Next2= tmp;
         }
 //        else
 //        if (str==AnsiString("include"))  //Tolaris to zrobil wewnatrz parsera
