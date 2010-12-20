@@ -980,9 +980,9 @@ void TTrack::Compile()
      {vector3 bpts1[4]; //punkty g³ównej p³aszczyzny przydaj¹ siê do robienia boków
       if (TextureID1||TextureID2) //punkty siê przydadz¹, nawet jeœli nawierzchni nie ma
       {//double max=2.0*(fHTW>fHTW2?fHTW:fHTW2); //z szerszej strony jest 100%
-       double max=0.5*fTexLength; //test: szerokoœæ proporcjonalna do d³ugoœci
-       double map1=max>0.0?fHTW/max:0.0; //obciêcie tekstury od strony 1
-       double map2=max>0.0?fHTW2/max:0.0; //obciêcie tekstury od strony 2
+       double max=fTexLength; //test: szerokoœæ proporcjonalna do d³ugoœci
+       double map1=max>0.0?fHTW/max:0.5; //obciêcie tekstury od strony 1
+       double map2=max>0.0?fHTW2/max:0.5; //obciêcie tekstury od strony 2
        if (iTrapezoid) //trapez albo przechy³ki
        {//nawierzchnia trapezowata
         Segment->GetRolls(roll1,roll2);
