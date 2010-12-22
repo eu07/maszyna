@@ -3,7 +3,7 @@
 <PROJECT>
   <MACROS>
     <VERSION value="BCB.05.03"/>
-    <PROJECT value="C:\EU07\EU07.exe"/>
+    <PROJECT value="G:\EU07\EU07.exe"/>
     <OBJFILES value="McZapkie\mover.obj McZapkie\ai_driver.obj QueryParserComp.obj EU07.obj 
       dumb3d.obj Camera.obj Texture.obj World.obj Model3d.obj geometry.obj 
       MdlMngr.obj Train.obj wavread.obj Timer.obj Event.obj MemCell.obj Logs.obj 
@@ -32,23 +32,21 @@
     <DEBUGLIBPATH value="$(BCB)\lib\debug"/>
     <RELEASELIBPATH value="$(BCB)\lib\release"/>
     <LINKER value="tlink32"/>
-    <USERDEFINES value="GLEW_STATIC"/>
+    <USERDEFINES value="GLEW_STATIC;USE_VERTEX_ARRAYS"/>
     <SYSDEFINES value="_RTLDLL;NO_STRICT"/>
     <MAINSOURCE value="EU07.cpp"/>
-    <INCLUDEPATH value="&quot;C:\Program Files\Borland\CBuilder5\Projects\&quot;;&quot;d:\program files\CBuilder5\Projects\&quot;;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
-    <LIBPATH value="&quot;C:\Program Files\Borland\CBuilder5\Projects\&quot;;&quot;d:\program files\CBuilder5\Projects\&quot;;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
+    <INCLUDEPATH value="McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
+    <LIBPATH value="McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
     <WARNINGS value="-w-par"/>
   </MACROS>
   <OPTIONS>
-    <IDLCFLAGS value="-I&quot;C:\Program Files\Borland\CBuilder5\Projects\.&quot; 
-      -I&quot;d:\program files\CBuilder5\Projects\.&quot; -INewScenery 
-      -Ig:\Borland\CBuilder5\Projects\. -IMcZapkie -I$(BCB)\include 
-      -I$(BCB)\include\vcl -src_suffix cpp -DGLEW_STATIC -boa"/>
+    <IDLCFLAGS value="-IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl -src_suffix cpp 
+      -DGLEW_STATIC -DUSE_VERTEX_ARRAYS -boa"/>
     <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -a4 -6 -b- -k- -vi -c -tW -tWM"/>
     <PFLAGS value="-$Y- -$L- -$D- -v -JPHNE -M"/>
     <RFLAGS value=""/>
     <AFLAGS value="/mx /w2 /zn"/>
-    <LFLAGS value="-D&quot;&quot; -aa -Tpe -x -Gn"/>
+    <LFLAGS value="-D&quot;&quot; -aa -Tpe -x"/>
   </OPTIONS>
   <LINKER>
     <ALLOBJ value="c0w32.obj Memmgr.Lib sysinit.obj $(OBJFILES)"/>
@@ -61,11 +59,11 @@ IncludeVerInfo=1
 AutoIncBuild=1
 MajorVer=1
 MinorVer=2
-Release=44
-Build=71
+Release=46
+Build=74
 Debug=0
 PreRelease=0
-Special=0
+Special=1
 Private=0
 DLL=0
 Locale=1045
@@ -74,7 +72,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=PC2009 SP1
-FileVersion=1.2.44.71
+FileVersion=1.2.46.74
 InternalName=hammer
 LegalCopyright=
 LegalTrademarks=
@@ -82,30 +80,31 @@ OriginalFilename=eu07.exe
 ProductName=MaSzyna EU07-424
 ProductVersion=1.2
 Comments=
+SpecialBuild=
 
 [HistoryLists\hlIncludePath]
 Count=10
-Item0=C:\Program Files\Borland\CBuilder5\Projects\;d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item1=C:\Program Files\Borland\CBuilder5\Projects;d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item2=d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item3=d:\program files\CBuilder5\Projects;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item4=NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item5=NewScenery;g:\Borland\CBuilder5\Projects;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item6=McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item0=McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item1=C:\Program Files\Borland\CBuilder5\Projects\;d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item2=C:\Program Files\Borland\CBuilder5\Projects;d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item3=d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item4=d:\program files\CBuilder5\Projects;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item5=NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item6=NewScenery;g:\Borland\CBuilder5\Projects;McZapkie;$(BCB)\include;$(BCB)\include\vcl
 Item7=$(BCB)\include;$(BCB)\include\vcl
 Item8=triangle;gpc231;G:\Borland\CBuilder5\Examples\OpenGL\Rotate\;$(BCB)\include;$(BCB)\include\vcl
 Item9=G:\Borland\CBuilder5\Examples\OpenGL\Rotate\;$(BCB)\include;$(BCB)\include\vcl
 
 [HistoryLists\hlLibraryPath]
 Count=10
-Item0=C:\Program Files\Borland\CBuilder5\Projects\;d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item1=C:\Program Files\Borland\CBuilder5\Projects;d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item2=d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item3=d:\program files\CBuilder5\Projects;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item4=NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item5=NewScenery;g:\Borland\CBuilder5\Projects;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item6=McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item7=$(BCB)\lib\obj;$(BCB)\lib
+Item0=McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item1=$(BCB)\lib\obj;$(BCB)\lib
+Item2=C:\Program Files\Borland\CBuilder5\Projects\;d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item3=C:\Program Files\Borland\CBuilder5\Projects;d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item4=d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item5=d:\program files\CBuilder5\Projects;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item6=NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item7=NewScenery;g:\Borland\CBuilder5\Projects;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
 Item8=triangle;gpc231;G:\Borland\CBuilder5\Examples\OpenGL\Rotate\;$(BCB)\lib\obj;$(BCB)\lib
 Item9=G:\Borland\CBuilder5\Examples\OpenGL\Rotate\;$(BCB)\lib\obj;$(BCB)\lib
 
@@ -115,18 +114,21 @@ Item0=c:\lang\borland\cbuilder5\source\vcl;D:\USER\MCZAPKIE\PROGRAMY\rail\symul\
 Item1=$(BCB)\source\vcl
 
 [HistoryLists\hlConditionals]
-Count=3
-Item0=GLEW_STATIC
-Item1=GLEW_STATIC;_DEBUG
-Item2=_DEBUG
+Count=5
+Item0=GLEW_STATIC;USE_VERTEX_ARRAYS
+Item1=GLEW_STATIC;_DEBUG;USE_VERTEX_ARRAYS
+Item2=GLEW_STATIC;_DEBUG
+Item3=GLEW_STATIC
+Item4=_DEBUG
 
 [HistoryLists\hlFinalOutputDir]
-Count=2
-Item0=C:\EU07\
-Item1=C:\EU07
+Count=3
+Item0=G:\EU07\
+Item1=C:\EU07\
+Item2=C:\EU07
 
 [Debugging]
-DebugSourceDirs=c:\lang\borland\cbuilder5\source\vcl;D:\USER\MCZAPKIE\PROGRAMY\rail\symul\source\zmiany\McZapkie\;D:\USER\MCZAPKIE\PROGRAMY\rail\symul\source\zmiany\
+DebugSourceDirs=
 
 [Parameters]
 RunParams=
@@ -138,10 +140,16 @@ RemoteDebug=0
 [Compiler]
 ShowInfoMsgs=0
 LinkDebugVcl=0
+LinkCGLIB=0
 
 [CORBA]
 AddServerUnit=1
 AddClientUnit=1
 PrecompiledHeaders=1
+
+[Language]
+ActiveLang=
+ProjectLang=
+RootDir=
   </IDEOPTIONS>
 </PROJECT>

@@ -783,10 +783,10 @@ const vector3 iglica[nnumPts]= //iglica - vextor3(x,y,mapowanie tekstury)
 
 void TTrack::Compile()
 {//przygotowanie trójk¹tów do wyœwielenia - model proceduralny
-    if(DisplayListID)
+    if (DisplayListID)
         Release(); //zwolnienie zasobów
 
-    if(Global::bManageNodes)
+    if (Global::bManageNodes)
     {
         DisplayListID=glGenLists(1); //otwarcie nowej listy
         glNewList(DisplayListID,GL_COMPILE);

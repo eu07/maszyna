@@ -3726,7 +3726,7 @@ const MaxDist=405.0; {ustawione + 5 m, bo skanujemy do 400 m }
       MaxCount=1500;
 begin
   CF:=0;
-  distDelta:=0;
+  //distDelta:=0; //Ra: value never used
   CNext:=CouplerNr[CouplerN];
 {  if Couplers[CouplerN].CForce=0 then  {nie bylo uzgadniane wiec policz}
    with Couplers[CouplerN] do
