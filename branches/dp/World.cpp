@@ -95,8 +95,8 @@ __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 
     Global::detonatoryOK=true;
     WriteLog("Starting MaSzyna rail vehicle simulator.");
-    WriteLog("Compilation 2010-12-15");
-    WriteLog("Online documentation and additional files on http://www.eu07.pl");
+    WriteLog("Compilation 2010-12-22");
+    WriteLog("Online documentation and additional files on http://eu07.pl");
     WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx_EU, OLO_EU, Bart, Quark-t, ShaXbee, Oli_EU, youBy and others");
     WriteLog("Renderer:");
     WriteLog( (char*) glGetString(GL_RENDERER));
@@ -121,6 +121,12 @@ __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
        Global::detonatoryOK=true;
     WriteLog("Supported Extensions:");
     WriteLog( (char*) glGetString(GL_EXTENSIONS));
+    if (glewGetExtension("GL_ARB_vertex_buffer_object")) //czy jest VBO w karcie graficznej
+    {Global::bUseVBO=true;
+     WriteLog("Ra: mo¿na u¿yæ VBO.");
+    }
+    else
+     WriteLog("Ra: VBO nie znalezione.");
 
 /*-----------------------Render Initialization----------------------*/
         glTexEnvf(TEXTURE_FILTER_CONTROL_EXT,TEXTURE_LOD_BIAS_EXT,-1);
@@ -129,7 +135,7 @@ __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	// Clear screen and depth buffer
     glLoadIdentity();
 
-    WriteLog("glClearColor (FogColor[0], FogColor[1], FogColor[2], 0.0); ");
+//    WriteLog("glClearColor (FogColor[0], FogColor[1], FogColor[2], 0.0); ");
 //    glClearColor (1.0, 0.0, 0.0, 0.0);                  // Background Color
 //    glClearColor (FogColor[0], FogColor[1], FogColor[2], 0.0);                  // Background Color
     glClearColor (0.2, 0.4, 0.33, 1.0);                  // Background Color
@@ -1272,7 +1278,6 @@ bool __fastcall TWorld::Render()
        if (!Ground.RenderAlpha(Camera.Pos))
           return false;
     }
-
 //    if (Camera.Type==tp_Follow)
     if (Controlled)
         Train->Update();
@@ -1280,6 +1285,7 @@ bool __fastcall TWorld::Render()
 //     if (Controlled)
 //        Train->RenderAlpha();
     glFlush();
+    Global::bReCompile=false; //Ra: ju¿ zrobiona rekompilacja
 
     ResourceManager::Sweep(Timer::GetSimulationTime());
 

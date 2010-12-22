@@ -451,6 +451,7 @@ LRESULT CALLBACK WndProc(	HWND	hWnd,			// Handle For This Window
             {
                 case VK_F7:
                     Global::bWireFrame= !Global::bWireFrame;
+                    Global::bReCompile=true; //czy odœwie¿yæ siatki
                 break;
             }
 			return 0;								// Jump Back

@@ -148,6 +148,7 @@ __fastcall TGroundNode::TGroundNode()
        Specular[i]= Global::noLight[i]*255;
      }
     bAllocated= true;
+    pTriGroup=NULL; //sam siê wyœwietla
 }
 
 __fastcall TGroundNode::~TGroundNode()
@@ -340,7 +341,7 @@ void __fastcall TGround::MoveGroundNode(vector3 pPosition)
 
 bool __fastcall TGroundNode::Render()
 {
-
+    if (pTriGroup) if (pTriGroup!=this) return false; //wyœwietla go inny obiekt
     double mgn= SquareMagnitude(pCenter-Global::pCameraPosition);
     float r,g,b;
   //  if (mgn<fSquareMinRadius)
@@ -353,14 +354,15 @@ bool __fastcall TGroundNode::Render()
     {
 
         case TP_TRACK:
-            pTrack->Render();
-        break;
+            return pTrack->Render();
+        //break;
         case TP_MODEL:
-            Model->Render(pCenter,fAngle);
-        break;
+            return Model->Render(pCenter,fAngle);
+        //break;
         case TP_DYNAMIC:
             Error("Cannot render dynamic from TGroundNode::Render()");
-        break;
+            return true;
+        //break;
         case TP_SOUND:
 //McZapkie - dzwiek zapetlony w zaleznosci od odleglosci
           if ((pStaticSound->GetStatus()&DSBSTATUS_PLAYING)==DSBPLAY_LOOPING)
@@ -368,9 +370,11 @@ bool __fastcall TGroundNode::Render()
              pStaticSound->Play(1,DSBPLAY_LOOPING,true,pStaticSound->vSoundPosition);
              pStaticSound->AdjFreq(1.0, Timer::GetDeltaTime());
            }
-        break;
+           return true;
+        //break;
         case TP_MEMCELL:
-        break;
+           return true;
+        //break;
         case TP_EVLAUNCH:
         {
          if (EvLaunch->Render())
@@ -388,7 +392,8 @@ bool __fastcall TGroundNode::Render()
            }
 
         }
-        break;
+           return true;
+        //break;
 
     };
 
@@ -399,17 +404,17 @@ bool __fastcall TGroundNode::Render()
     {
 
 #ifdef USE_VBO
-        if(!VboID)
+        if (!VboID)
 #endif
-        if(!DisplayListID)
+        if (!DisplayListID) //||Global::bReCompile) //Ra: wymuszenie rekompilacji
         {
             Compile();
-            if(Global::bManageNodes)
+            if (Global::bManageNodes)
                 ResourceManager::Register(this);
         };
 
         // GL_LINE, GL_LINE_STRIP, GL_LINE_LOOP
-        if(iNumPts)
+        if (iNumPts)
         {
             r=Diffuse[0]*Global::ambientDayLight[0];  //w zaleznosci od koloru swiatla
             g=Diffuse[1]*Global::ambientDayLight[1];
@@ -432,62 +437,66 @@ bool __fastcall TGroundNode::Render()
  return true;
 };
 
-void TGroundNode::Compile()
+void __fastcall TGroundNode::Compile()
 {
 
-    if(DisplayListID)
+    if (DisplayListID)
         Release();
 
-    if(Global::bManageNodes)
+    if (Global::bManageNodes)
     {
-        DisplayListID = glGenLists(1);
-        glNewList(DisplayListID, GL_COMPILE);
+        DisplayListID=glGenLists(1);
+        glNewList(DisplayListID,GL_COMPILE);
     };
 
-    if(iType == GL_LINES || iType == GL_LINE_STRIP || iType == GL_LINE_LOOP)
+    if (iType == GL_LINES || iType == GL_LINE_STRIP || iType == GL_LINE_LOOP)
     {
 #ifdef USE_VERTEX_ARRAYS
-        glVertexPointer(3, GL_DOUBLE, sizeof(vector3), &Points[0].x);
+        glVertexPointer(3,GL_DOUBLE,sizeof(vector3),&Points[0].x);
 #endif
-
-        glBindTexture(GL_TEXTURE_2D, 0);
-
+        glBindTexture(GL_TEXTURE_2D,0);
 #ifdef USE_VERTEX_ARRAYS
-        glDrawArrays(iType, 0, iNumPts);
+        glDrawArrays(iType,0,iNumPts);
 #else
         glBegin(iType);
-        for(int i=0; i<iNumPts; i++)
-               glVertex3dv(&Points[i].x);
+        for (int i=0;i<iNumPts;i++)
+         glVertex3dv(&Points[i].x);
         glEnd();
 #endif
     }
     else
-    {
-
+    {//jak nie linie, to trójk¹ty
+      TGroundNode *tri=this;
+      do
+      {//pêtla po obiektach w grupie w celu po³¹czenia siatek
 #ifdef USE_VERTEX_ARRAYS
-        glVertexPointer(3, GL_DOUBLE, sizeof(TGroundVertex), &Vertices[0].Point.x);
-        glNormalPointer(GL_DOUBLE, sizeof(TGroundVertex), &Vertices[0].Normal.x);
-        glTexCoordPointer(2, GL_FLOAT, sizeof(TGroundVertex), &Vertices[0].tu);
+        glVertexPointer(3, GL_DOUBLE, sizeof(TGroundVertex), &tri->Vertices[0].Point.x);
+        glNormalPointer(GL_DOUBLE, sizeof(TGroundVertex), &tri->Vertices[0].Normal.x);
+        glTexCoordPointer(2, GL_FLOAT, sizeof(TGroundVertex), &tri->Vertices[0].tu);
 #endif
-
-        glColor3ub(Diffuse[0],Diffuse[1],Diffuse[2]);
-        glBindTexture(GL_TEXTURE_2D, Global::bWireFrame ? 0 : TextureID);
-
+        glColor3ub(tri->Diffuse[0],tri->Diffuse[1],tri->Diffuse[2]);
+        glBindTexture(GL_TEXTURE_2D,Global::bWireFrame?0:tri->TextureID);
 #ifdef USE_VERTEX_ARRAYS
-        glDrawArrays(Global::bWireFrame ? GL_LINE_STRIP : iType, 0, iNumVerts);
+        glDrawArrays(Global::bWireFrame?GL_LINE_STRIP:tri->iType,0,tri->iNumVerts);
 #else
-        glBegin(iType);
-        for(int i=0; i<iNumVerts; i++)
+        glBegin(tri->iType);
+        for (int i=0;i<tri->iNumVerts;i++)
         {
-               glNormal3d(Vertices[i].Normal.x,Vertices[i].Normal.y,Vertices[i].Normal.z);
-               glTexCoord2f(Vertices[i].tu,Vertices[i].tv);
-               glVertex3dv(&Vertices[i].Point.x);
+         glNormal3d(tri->Vertices[i].Normal.x,tri->Vertices[i].Normal.y,tri->Vertices[i].Normal.z);
+         glTexCoord2f(tri->Vertices[i].tu,tri->Vertices[i].tv);
+         glVertex3dv(&tri->Vertices[i].Point.x);
         };
         glEnd();
 #endif
+        if (tri->pTriGroup) //jeœli z grupy
+        {tri=tri->Next2; //nastêpny w sektorze
+         while (tri?!tri->pTriGroup:false) tri=tri->Next2; //szukamy kolejnego nale¿¹cego do grupy
+        }
+        else tri=NULL; //a jak nie, to koniec
+      } while (tri);
     };
 
-    if(Global::bManageNodes)
+    if (Global::bManageNodes)
         glEndList();
 
 };
@@ -502,6 +511,7 @@ void TGroundNode::Release()
 
 bool __fastcall TGroundNode::RenderAlpha()
 {
+    if (pTriGroup) if (pTriGroup!=this) return false; //wyœwietla go inny obiekt
 
     double mgn= SquareMagnitude(pCenter-Global::pCameraPosition);
     float r,g,b;
@@ -531,15 +541,15 @@ bool __fastcall TGroundNode::RenderAlpha()
         (iNumPts && (Global::bRenderAlpha || fLineThickness > 0)))
     {
 
-        if(!DisplayListID)
+        if (!DisplayListID) //||Global::bReCompile) //Ra: wymuszenie rekompilacji
         {
             Compile();
-            if(Global::bManageNodes)
+            if (Global::bManageNodes)
                 ResourceManager::Register(this);
         };
 
         // GL_LINE, GL_LINE_STRIP, GL_LINE_LOOP
-        if(iNumPts)
+        if (iNumPts)
         {
             float linealpha=255000*fLineThickness/(mgn+1.0);
             if (linealpha>255)
@@ -1151,7 +1161,6 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
 
 //        tmp->fSquareRadius= 2000*2000+r;
         tmp->fSquareRadius+= r;
-
         break;
 
         case GL_LINES :

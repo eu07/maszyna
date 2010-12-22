@@ -84,7 +84,8 @@ AnsiString Global::asSky= "1";
 int Global::iDefaultFiltering=5; //domyœlne rozmywanie tekstur TGA
 int Global::iBallastFiltering=5; //domyœlne rozmywanie tekstury podsypki
 int Global::iRailProFiltering=5; //domyœlne rozmywanie tekstury szyn
-
+bool Global::bReCompile=false; //czy odœwie¿yæ siatki
+bool Global::bUseVBO=false; //czy jest VBO w karcie graficznej
 
 
 bool __fastcall Global::LoadIniFile(AnsiString asFileName)

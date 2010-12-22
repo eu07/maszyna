@@ -53,15 +53,15 @@ public:
     TDynamicObject *NearestDynObj;
     double DistToDynObj;
 
-    TGroundNodeType iType;
+    TGroundNodeType iType; //typ obiektu
     union
     {
         void *Pointer;
         TAnimModel *Model;
         TDynamicObject *DynamicObject;
-        vector3 *Points;
+        vector3 *Points; //punkty dla linii
         TTrack *pTrack;
-        TGroundVertex *Vertices;
+        TGroundVertex *Vertices; //wierzcho³ki dla trójk¹tów
         TMemCell *MemCell;
         TEventLauncher *EvLaunch;
         TTraction *Traction;
@@ -72,24 +72,25 @@ public:
     AnsiString asName;
     union
     {
-        int iNumVerts;
-        int iNumPts;
-        int iState;
+        int iNumVerts; //dla trójk¹tów
+        int iNumPts; //dla linii
+        //int iState; //Ra: nie u¿ywane - dŸwiêki zapêtlone
     };
     vector3 pCenter; //œrodek do przydzielenia sektora
 
     double fAngle;
-    double fSquareRadius;
-    double fSquareMinRadius;
-    GLuint TextureID;
-    GLuint DisplayListID;
+    double fSquareRadius; //kwadrat widocznoœci do
+    double fSquareMinRadius; //kwadrat widocznoœci od
+    TGroundNode *pTriGroup; //Ra: obiekt grupuj¹cy trójk¹ty w TSubRect (ogranicza iloœæ DisplayList)
+    GLuint DisplayListID; //numer siatki
+    GLuint TextureID; //jedna tekstura na obiekt
     bool TexAlpha;
     float fLineThickness; //McZapkie-120702: grubosc linii
 //    int Status;  //McZapkie-170303: status dzwieku
-    int Ambient[4],Diffuse[4],Specular[4];
+    int Ambient[4],Diffuse[4],Specular[4]; //oœwietlenie
     bool bVisible;
-    bool bStatic;
-    bool bAllocated;
+    bool bStatic; //czy nie jest pojazdem
+    bool bAllocated; //Ra: zawsze true
     TGroundNode *Next; //lista wszystkich, ostatni na koñcu
     TGroundNode *Next2; //lista w sektorze
     __fastcall TGroundNode();
@@ -115,7 +116,7 @@ public:
         return NULL;
     };
 
-    void Compile();
+    void __fastcall Compile();
     void Release();
 
     bool __fastcall GetTraction();
@@ -127,15 +128,33 @@ class TSubRect
 {
 private:
 public:
-    TGroundNode* pRootNode;
-    __fastcall TSubRect() { pRootNode=NULL; };
+    TGroundNode *pRootNode;
+    TGroundNode *pTriGroup; //Ra: obiekt grupuj¹cy trójk¹ty (ogranicza iloœæ DisplayList)
+    __fastcall TSubRect() { pRootNode=pTriGroup=NULL; };
     __fastcall ~TSubRect() {  };
 //    __fastcall ~TSubRect() { SafeDelete(pRootNode); };   /* TODO -cBUG : Attention, remember to delete those nodes */
-    void __fastcall AddNode(TGroundNode *Node) { Node->Next2= pRootNode; pRootNode= Node; };
+    void __fastcall AddNode(TGroundNode *Node)
+    {//przyczepienie obiektu do sektora, kwalifikacja trójk¹tów do ³¹czenia
+     Node->Next2=pRootNode;
+     pRootNode=Node;
+     if ((Node->iType==GL_TRIANGLE_STRIP)||(Node->iType==GL_TRIANGLE_FAN)||(Node->iType==GL_TRIANGLES))
+      if (Node->fSquareMinRadius==0.0) //znikaj¹ce z bliska nie mog¹ byæ optymalizowane
+       if (Node->fSquareRadius>=160000.0) //tak od 400m to ju¿ normalne trójk¹ty musz¹ byæ
+        if (!Node->TexAlpha) //i nieprzezroczysty
+        {if (pTriGroup) //je¿eli by³ ju¿ jakiœ grupuj¹cy
+         {if (pTriGroup->fSquareRadius>Node->fSquareRadius) //i mia³ wiêkszy zasiêg
+           Node->fSquareRadius=pTriGroup->fSquareRadius; //zwiêkszenie zakresu widocznoœci grupuj¹cego
+          pTriGroup->pTriGroup=Node; //poprzedniemu doczepiamy nowy
+         }
+         Node->pTriGroup=Node; //nowy lider ma siê sam wyœwietlaæ - wskaŸnik na siebie
+         pTriGroup=Node; //zapamiêtanie lidera
+        }
+    };
+    //void __fastcall RaGroupAdd(TGroundNode *Node) {if (pTriGroup) Node->pTriGroup=pTriGroup; else pTriGroup=Node;};
 //    __fastcall Render() { if (pRootNode) pRootNode->Render(); };
 };
 
-const int iNumSubRects= 10;
+const int iNumSubRects= 10; //Ra: trzeba sprawdziæ wydajnoœæ siatki
 
 class TGroundRect
 {

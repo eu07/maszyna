@@ -171,6 +171,8 @@ public:
     static int iDefaultFiltering; //domyœlne rozmywanie tekstur TGA
     static int iBallastFiltering; //domyœlne rozmywanie tekstury podsypki
     static int iRailProFiltering; //domyœlne rozmywanie tekstury szyn
+    static bool bReCompile; //czy odœwie¿yæ siatki
+    static bool bUseVBO; //czy jest VBO w karcie graficznej
 };
 
 //---------------------------------------------------------------------------
