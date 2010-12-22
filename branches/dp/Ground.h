@@ -46,6 +46,54 @@ struct TGroundVertex
     float tu,tv;
 };
 
+class TGroundNode;
+
+class CVert         // Klasa wierzcho³ka
+{
+public:
+ double x;         // Sk³adowa X
+ double y;         // Sk³adowa Y
+ double z;         // Sk³adowa Z
+};
+class CVec         // Klasa wektora normalnego
+{
+public:
+ float x;         // Sk³adowa X
+ float y;         // Sk³adowa Y
+ float z;         // Sk³adowa Z
+};
+//typedef CVert CVec;         // Obie nazwy s¹ synonimami
+class CTexCoord         // Klasa wspó³rzêdnych tekstur
+{
+public:
+ float u;         // Sk³adowa U
+ float v;         // Sk³adowa V
+};
+class CMesh
+{
+public:
+ // Dane siatki
+ int m_nVertexCount;         // Iloœæ wierzcho³ków
+ CVert *m_pVertices;         // Dane wierzcho³ków
+ CVec *m_pNormals;         // Dane wierzcho³ków
+ CTexCoord *m_pTexCoords;         // Wspó³rzêdne tekstur
+ unsigned int m_nTextureId;         // Identyfikator tekstury
+ // Nazwy dla obiektów VBO
+ unsigned int m_nVBOVertices;         // Nazwa VBO z wierzcho³kami
+ unsigned int m_nVBONormals;
+ unsigned int m_nVBOTexCoords;         // Nazwa VBO z koordynatami tekstur
+ unsigned int m_nType;
+ int m_nDiffuse[3];
+ // Dane tymczasowe
+ //AUX_RGBImageRec* m_pTextureImage;         // Dane mapy wysokoœci
+public:
+ __fastcall CMesh();         // Konstruktor
+ __fastcall ~CMesh();         // Destruktor
+ void __fastcall Load(TGroundNode *Node);
+ void __fastcall BuildVBOs();
+ void __fastcall Draw();
+};
+
 class TGroundNode: public Resource
 {
 private:
@@ -83,6 +131,7 @@ public:
     double fSquareMinRadius; //kwadrat widocznoœci od
     TGroundNode *pTriGroup; //Ra: obiekt grupuj¹cy trójk¹ty w TSubRect (ogranicza iloœæ DisplayList)
     GLuint DisplayListID; //numer siatki
+    CMesh *pVBO; //dane siatki VBO
     GLuint TextureID; //jedna tekstura na obiekt
     bool TexAlpha;
     float fLineThickness; //McZapkie-120702: grubosc linii
@@ -117,6 +166,7 @@ public:
     };
 
     void __fastcall Compile();
+    void __fastcall CompileVBO();
     void Release();
 
     bool __fastcall GetTraction();
@@ -137,6 +187,7 @@ public:
     {//przyczepienie obiektu do sektora, kwalifikacja trójk¹tów do ³¹czenia
      Node->Next2=pRootNode;
      pRootNode=Node;
+/* //Ra: na razie wy³¹czone do testów VBO
      if ((Node->iType==GL_TRIANGLE_STRIP)||(Node->iType==GL_TRIANGLE_FAN)||(Node->iType==GL_TRIANGLES))
       if (Node->fSquareMinRadius==0.0) //znikaj¹ce z bliska nie mog¹ byæ optymalizowane
        if (Node->fSquareRadius>=160000.0) //tak od 400m to ju¿ normalne trójk¹ty musz¹ byæ
@@ -149,6 +200,7 @@ public:
          Node->pTriGroup=Node; //nowy lider ma siê sam wyœwietlaæ - wskaŸnik na siebie
          pTriGroup=Node; //zapamiêtanie lidera
         }
+*/        
     };
     //void __fastcall RaGroupAdd(TGroundNode *Node) {if (pTriGroup) Node->pTriGroup=pTriGroup; else pTriGroup=Node;};
 //    __fastcall Render() { if (pRootNode) pRootNode->Render(); };

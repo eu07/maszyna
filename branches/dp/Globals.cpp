@@ -88,7 +88,7 @@ bool Global::bReCompile=false; //czy odœwie¿yæ siatki
 bool Global::bUseVBO=false; //czy jest VBO w karcie graficznej
 
 
-bool __fastcall Global::LoadIniFile(AnsiString asFileName)
+void __fastcall Global::LoadIniFile(AnsiString asFileName)
 {
     TFileStream *fs;
     fs= new TFileStream(asFileName , fmOpenRead	| fmShareCompat	);
@@ -239,7 +239,7 @@ bool __fastcall Global::LoadIniFile(AnsiString asFileName)
 
 }
 
-bool __fastcall Global::InitKeys(AnsiString asFileName)
+void __fastcall Global::InitKeys(AnsiString asFileName)
 {
 //    if (FileExists(asFileName))
 //    {
