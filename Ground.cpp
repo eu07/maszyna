@@ -149,6 +149,7 @@ __fastcall TGroundNode::TGroundNode()
      }
     bAllocated= true;
     pTriGroup=NULL; //sam siê wyœwietla
+    pVBO=NULL;
 }
 
 __fastcall TGroundNode::~TGroundNode()
@@ -176,6 +177,7 @@ __fastcall TGroundNode::~TGroundNode()
         if (iType==GL_TRIANGLE_STRIP || iType==GL_TRIANGLE_FAN || iType==GL_TRIANGLES )
             SafeDeleteArray(Vertices);
     }
+    delete pVBO;
 }
 
 bool __fastcall TGroundNode::Init(int n)
@@ -403,16 +405,16 @@ bool __fastcall TGroundNode::Render()
         (iNumPts && (!Global::bRenderAlpha || fLineThickness < 0)))
     {
 
-#ifdef USE_VBO
-        if (!VboID)
-#endif
-        if (!DisplayListID) //||Global::bReCompile) //Ra: wymuszenie rekompilacji
+        if ( (!DisplayListID&&!pVBO) || Global::bReCompile) //Ra: wymuszenie rekompilacji
         {
             Compile();
             if (Global::bManageNodes)
                 ResourceManager::Register(this);
         };
 
+        if (pVBO)
+         pVBO->Draw();
+        else
         // GL_LINE, GL_LINE_STRIP, GL_LINE_LOOP
         if (iNumPts)
         {
@@ -425,10 +427,7 @@ bool __fastcall TGroundNode::Render()
         // GL_TRIANGLE etc
         else
         {
-#ifdef USE_VBO
-#else
             glCallList(DisplayListID);
-#endif
         };
 
         SetLastUsage(Timer::GetSimulationTime());
@@ -437,9 +436,200 @@ bool __fastcall TGroundNode::Render()
  return true;
 };
 
+bool __fastcall TGroundNode::RenderAlpha()
+{
+    if (pTriGroup) if (pTriGroup!=this) return false; //wyœwietla go inny obiekt
+
+    double mgn= SquareMagnitude(pCenter-Global::pCameraPosition);
+    float r,g,b;
+    if (mgn<fSquareMinRadius)
+        return false;
+    if (mgn>fSquareRadius)
+        return false;
+//    glMaterialfv( GL_FRONT, GL_DIFFUSE, Global::whiteLight );
+    int i,a;
+    switch (iType)
+    {
+        case TP_TRACTION:
+           if(Global::bRenderAlpha && bVisible && Global::bLoadTraction)
+               Traction->Render(mgn);
+        break;
+        case TP_MODEL:
+           Model->RenderAlpha(pCenter,fAngle);
+        break;
+        case TP_TRACK:
+           pTrack->RenderAlpha();
+        break;
+    };
+
+    // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
+    if(
+        (iNumVerts && Global::bRenderAlpha && TexAlpha) ||
+        (iNumPts && (Global::bRenderAlpha || fLineThickness > 0)))
+    {
+
+        if ( (!DisplayListID&&!pVBO) || Global::bReCompile) //Ra: wymuszenie rekompilacji
+        {
+            Compile();
+            if (Global::bManageNodes)
+                ResourceManager::Register(this);
+        };
+
+        if (pVBO)
+         pVBO->Draw();
+        else
+        // GL_LINE, GL_LINE_STRIP, GL_LINE_LOOP
+        if (iNumPts)
+        {
+            float linealpha=255000*fLineThickness/(mgn+1.0);
+            if (linealpha>255)
+              linealpha= 255;
+
+            r=Diffuse[0]*Global::ambientDayLight[0];  //w zaleznosci od koloru swiatla
+            g=Diffuse[1]*Global::ambientDayLight[1];
+            b=Diffuse[2]*Global::ambientDayLight[2];
+
+            glColor4ub(r,g,b,linealpha); //przezroczystosc dalekiej linii
+
+            glCallList(DisplayListID);
+        }
+        // GL_TRIANGLE etc
+        else
+        {
+            glCallList(DisplayListID);
+        };
+
+        SetLastUsage(Timer::GetSimulationTime());
+
+    };
+ return true;
+}
+
+__fastcall CMesh::CMesh()
+{
+	// Set Pointers To NULL
+	//m_pTextureImage = NULL;
+	m_pVertices = NULL;
+	m_pTexCoords = NULL;
+	m_nVertexCount = 0;
+	m_nVBOVertices = m_nVBOTexCoords = m_nTextureId = 0;
+}
+
+__fastcall CMesh::~CMesh()
+{
+  // Delete VBOs
+  if (Global::bUseVBO)
+  {
+   unsigned int nBuffers[3]={m_nVBOVertices,m_nVBONormals,m_nVBOTexCoords};
+   glDeleteBuffersARB(3,nBuffers);						// Free The Memory
+  }
+  // Delete Data
+  delete [] m_pVertices; m_pVertices = NULL;
+  delete [] m_pNormals; m_pNormals = NULL;
+  delete [] m_pTexCoords; m_pTexCoords = NULL;
+}
+
+void __fastcall CMesh::Load(TGroundNode *Node)
+{//utworzenie odpowiednich tablic z danych obiektu
+ //TGroundNode *tri=this;
+ m_nTextureId=Global::bWireFrame?0:Node->TextureID;
+ m_nType=Global::bWireFrame?GL_LINE_STRIP:Node->iType;
+ m_nDiffuse[0]=Node->Diffuse[0];
+ m_nDiffuse[1]=Node->Diffuse[1];
+ m_nDiffuse[2]=Node->Diffuse[2];
+ m_nVertexCount=Node->iNumVerts;
+ m_pVertices=new CVert[m_nVertexCount];         // Przydzielenie pamiêci dla wierzcho³ków
+ m_pNormals=new CVec[m_nVertexCount];         // Przydzielenie pamiêci dla normalnych
+ m_pTexCoords=new CTexCoord[m_nVertexCount];         // Przydzielenie pamiêci dla wspó³rzêdnych
+ for (int i=0;i<m_nVertexCount;++i)
+ {m_pVertices[i].x=Node->Vertices[i].Point.x;
+  m_pVertices[i].y=Node->Vertices[i].Point.y;
+  m_pVertices[i].z=Node->Vertices[i].Point.z;
+  m_pNormals[i].x=Node->Vertices[i].Normal.x;
+  m_pNormals[i].y=Node->Vertices[i].Normal.y;
+  m_pNormals[i].z=Node->Vertices[i].Normal.z;
+  // Rozci¹gniêcie tekstury na ca³¹ siatkê
+  m_pTexCoords[i].u=Node->Vertices[i].tu;
+  m_pTexCoords[i].v=Node->Vertices[i].tv;
+ }
+ /*
+        if (tri->pTriGroup) //jeœli z grupy
+        {tri=tri->Next2; //nastêpny w sektorze
+         while (tri?!tri->pTriGroup:false) tri=tri->Next2; //szukamy kolejnego nale¿¹cego do grupy
+        }
+        else tri=NULL; //a jak nie, to koniec
+      } while (tri);
+*/
+}
+
+void __fastcall CMesh::BuildVBOs()
+{//tworzenie VBO i kasowanie ju¿ niepotrzebnych tablic
+ // Wygeneruj nazwê dla VBO oraz ustaw go jako aktywny
+ glGenBuffersARB(1,&m_nVBOVertices);         // Pobierz poprawn¹ nazwê
+ glBindBufferARB(GL_ARRAY_BUFFER_ARB,m_nVBOVertices );         // Ustaw bufor jako aktualny
+ glBufferDataARB(GL_ARRAY_BUFFER_ARB,m_nVertexCount*3*sizeof(double), m_pVertices, GL_STATIC_DRAW_ARB );
+ // Wygeneruj nazwê dla VBO oraz ustaw go jako aktywny
+ glGenBuffersARB(1,&m_nVBONormals);         // Pobierz poprawn¹ nazwê
+ glBindBufferARB(GL_ARRAY_BUFFER_ARB,m_nVBONormals);         // Ustaw bufor jako aktualny
+ glBufferDataARB(GL_ARRAY_BUFFER_ARB,m_nVertexCount*3*sizeof(float), m_pNormals, GL_STATIC_DRAW_ARB );
+ // Wygeneruj nazwê oraz ustaw jako aktywny VBO dla wspó³rzêdnych tekstur
+ glGenBuffersARB(1,&m_nVBOTexCoords);         // Pobierz poprawn¹ nazwê
+ glBindBufferARB(GL_ARRAY_BUFFER_ARB,m_nVBOTexCoords );         // Ustaw bufor jako aktualny
+ glBufferDataARB(GL_ARRAY_BUFFER_ARB,m_nVertexCount*2*sizeof(float), m_pTexCoords, GL_STATIC_DRAW_ARB );
+ // Nasze lokalne kopie danych nie s¹ d³u¿ej potrzebne, wszystko jest ju¿ w karcie graficznej.
+ delete [] m_pVertices; m_pVertices = NULL;
+ delete [] m_pNormals; m_pNormals = NULL;
+ delete [] m_pTexCoords; m_pTexCoords = NULL;
+};
+
+void __fastcall CMesh::Draw()
+{
+ //glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);         // Wyczyœæ bufor kolorów oraz bufor g³êbi
+ glEnableClientState(GL_VERTEX_ARRAY);         // W³¹cz strumieñ z pozycjami
+ glEnableClientState(GL_NORMAL_ARRAY);
+ glEnableClientState(GL_TEXTURE_COORD_ARRAY);         // W³¹cz strumieñ ze wspó³rzêdnymi tekstur
+ // Za³aduj odpowiednie dane
+ if (false&&Global::bUseVBO)
+ {
+  glBindBufferARB(GL_ARRAY_BUFFER_ARB,m_nVBOVertices);
+  glVertexPointer(3,GL_DOUBLE,0,NULL);         // Za³aduj VBO z pozycjami
+  glBindBufferARB(GL_ARRAY_BUFFER_ARB,m_nVBONormals);
+  glNormalPointer(GL_FLOAT,0,NULL);         // Za³aduj VBO z pozycjami
+  glBindBufferARB(GL_ARRAY_BUFFER_ARB,m_nVBOTexCoords);
+  glTexCoordPointer(2,GL_FLOAT,0,NULL);         // Za³aduj VBO ze wspó³rzêdnymi tekstur
+ }
+ else
+ {
+  glVertexPointer(3,GL_DOUBLE,0,m_pVertices);         // Za³aduj bufor z pozycjami
+  glNormalPointer(GL_FLOAT,0,m_pNormals);
+  glTexCoordPointer(2,GL_FLOAT,0,m_pTexCoords);         // Za³aduj bufor ze wspó³rzêdnymi tekstur
+ }
+ // Renderuj
+ glColor3ub(m_nDiffuse[0],m_nDiffuse[1],m_nDiffuse[2]);
+ glBindTexture(GL_TEXTURE_2D,m_nTextureId);         // Ustaw aktywn¹ teksturê
+ glDrawArrays(m_nType,0,m_nVertexCount);         // Narysuj naraz wszystkie trójk¹ty
+ // Disable Pointers
+ glDisableClientState(GL_VERTEX_ARRAY);					// Disable Vertex Arrays
+ glDisableClientState(GL_NORMAL_ARRAY);
+ glDisableClientState(GL_TEXTURE_COORD_ARRAY);				// Disable Texture Coord Arrays
+ glBindBufferARB(GL_ARRAY_BUFFER_ARB,0);
+ //glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB,0);
+}
+
+void __fastcall TGroundNode::CompileVBO()
+{//tworzenie VBO
+ pVBO=new CMesh();
+ pVBO->Load(this);
+ //pVBO->BuildVBOs();
+};
 void __fastcall TGroundNode::Compile()
 {
-
+  if ( iType==GL_TRIANGLE_STRIP || iType==GL_TRIANGLE_FAN || iType==GL_TRIANGLES )
+   if (Global::bUseVBO)
+   {Release();
+    CompileVBO();
+    return;
+   }
     if (DisplayListID)
         Release();
 
@@ -503,77 +693,15 @@ void __fastcall TGroundNode::Compile()
 
 void TGroundNode::Release()
 {
-
-    glDeleteLists(DisplayListID, 1);
+    if (pVBO)
+    {//zwolniæ w karcie
+     delete pVBO;
+     pVBO=NULL;
+    }
+    if (DisplayListID) glDeleteLists(DisplayListID,1);
     DisplayListID = 0;
 
 };
-
-bool __fastcall TGroundNode::RenderAlpha()
-{
-    if (pTriGroup) if (pTriGroup!=this) return false; //wyœwietla go inny obiekt
-
-    double mgn= SquareMagnitude(pCenter-Global::pCameraPosition);
-    float r,g,b;
-    if (mgn<fSquareMinRadius)
-        return false;
-    if (mgn>fSquareRadius)
-        return false;
-//    glMaterialfv( GL_FRONT, GL_DIFFUSE, Global::whiteLight );
-    int i,a;
-    switch (iType)
-    {
-        case TP_TRACTION:
-           if(Global::bRenderAlpha && bVisible && Global::bLoadTraction)
-               Traction->Render(mgn);
-        break;
-        case TP_MODEL:
-           Model->RenderAlpha(pCenter,fAngle);
-        break;
-        case TP_TRACK:
-           pTrack->RenderAlpha();
-        break;
-    };
-
-    // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
-    if(
-        (iNumVerts && Global::bRenderAlpha && TexAlpha) ||
-        (iNumPts && (Global::bRenderAlpha || fLineThickness > 0)))
-    {
-
-        if (!DisplayListID) //||Global::bReCompile) //Ra: wymuszenie rekompilacji
-        {
-            Compile();
-            if (Global::bManageNodes)
-                ResourceManager::Register(this);
-        };
-
-        // GL_LINE, GL_LINE_STRIP, GL_LINE_LOOP
-        if (iNumPts)
-        {
-            float linealpha=255000*fLineThickness/(mgn+1.0);
-            if (linealpha>255)
-              linealpha= 255;
-
-            r=Diffuse[0]*Global::ambientDayLight[0];  //w zaleznosci od koloru swiatla
-            g=Diffuse[1]*Global::ambientDayLight[1];
-            b=Diffuse[2]*Global::ambientDayLight[2];
-
-            glColor4ub(r,g,b,linealpha); //przezroczystosc dalekiej linii
-
-            glCallList(DisplayListID);
-        }
-        // GL_TRIANGLE etc
-        else
-        {
-            glCallList(DisplayListID);
-        };
-
-        SetLastUsage(Timer::GetSimulationTime());
-
-    };
- return true;
-}
 
 
 //---------------------------------------------------------------------------
@@ -2654,7 +2782,7 @@ bool __fastcall TGround::Render(vector3 pPosition)
     TGroundNode *node,*oldnode;
 
     glColor3f(1.0f,1.0f,1.0f);
-    int n= 20; //iloœæ kwadratów hektometrowych mapy do wyœwietlenia
+    int n= 2+2*(iNumSubRects-1); //iloœæ sektorów mapy do wyœwietlenia
     int c= GetColFromX(pPosition.x);
     int r= GetRowFromZ(pPosition.z);
     TSubRect *tmp,*tmp2;
@@ -2704,7 +2832,7 @@ bool __fastcall TGround::RenderAlpha(vector3 pPosition)
     int tr,tc;
     TGroundNode *node,*oldnode;
     glColor4f(1.0f,1.0f,1.0f,1.0f);
-    int n= 20; //iloœæ kwadratów hektometrowych mapy do wyœwietlenia
+    int n= 2+2*(iNumSubRects-1); //iloœæ sektorów mapy do wyœwietlenia
     int c= GetColFromX(pPosition.x);
     int r= GetRowFromZ(pPosition.z);
     TSubRect *tmp,*tmp2;
