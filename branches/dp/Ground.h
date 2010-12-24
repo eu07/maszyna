@@ -51,9 +51,12 @@ class TGroundNode;
 class CVert         // Klasa wierzcho³ka
 {
 public:
- double x;         // Sk³adowa X
- double y;         // Sk³adowa Y
- double z;         // Sk³adowa Z
+ float x;         // Sk³adowa X
+ float y;         // Sk³adowa Y
+ float z;         // Sk³adowa Z
+ //double x;         // Sk³adowa X
+ //double y;         // Sk³adowa Y
+ //double z;         // Sk³adowa Z
 };
 class CVec         // Klasa wektora normalnego
 {
@@ -69,32 +72,10 @@ public:
  float u;         // Sk³adowa U
  float v;         // Sk³adowa V
 };
-class CMesh
-{
-public:
- // Dane siatki
- int m_nVertexCount;         // Iloœæ wierzcho³ków
- CVert *m_pVertices;         // Dane wierzcho³ków
- CVec *m_pNormals;         // Dane wierzcho³ków
- CTexCoord *m_pTexCoords;         // Wspó³rzêdne tekstur
- unsigned int m_nTextureId;         // Identyfikator tekstury
- // Nazwy dla obiektów VBO
- unsigned int m_nVBOVertices;         // Nazwa VBO z wierzcho³kami
- unsigned int m_nVBONormals;
- unsigned int m_nVBOTexCoords;         // Nazwa VBO z koordynatami tekstur
- unsigned int m_nType;
- int m_nDiffuse[3];
- // Dane tymczasowe
- //AUX_RGBImageRec* m_pTextureImage;         // Dane mapy wysokoœci
-public:
- __fastcall CMesh();         // Konstruktor
- __fastcall ~CMesh();         // Destruktor
- void __fastcall Load(TGroundNode *Node);
- void __fastcall BuildVBOs();
- void __fastcall Draw();
-};
 
-class TGroundNode: public Resource
+class TSubRect;
+
+class TGroundNode : public Resource
 {
 private:
 public:
@@ -131,7 +112,8 @@ public:
     double fSquareMinRadius; //kwadrat widocznoœci od
     TGroundNode *pTriGroup; //Ra: obiekt grupuj¹cy trójk¹ty w TSubRect (ogranicza iloœæ DisplayList)
     GLuint DisplayListID; //numer siatki
-    CMesh *pVBO; //dane siatki VBO
+    //CMesh *pVBO; //dane siatki VBO
+    int iVboPtr; //indeks w buforze VBO
     GLuint TextureID; //jedna tekstura na obiekt
     bool TexAlpha;
     float fLineThickness; //McZapkie-120702: grubosc linii
@@ -142,6 +124,7 @@ public:
     bool bAllocated; //Ra: zawsze true
     TGroundNode *Next; //lista wszystkich, ostatni na koñcu
     TGroundNode *Next2; //lista w sektorze
+    static TSubRect *pOwner; //tymczasowo w³aœciciel
     __fastcall TGroundNode();
     __fastcall ~TGroundNode();
     bool __fastcall Init(int n);
@@ -166,23 +149,38 @@ public:
     };
 
     void __fastcall Compile();
-    void __fastcall CompileVBO();
     void Release();
 
     bool __fastcall GetTraction();
     bool __fastcall Render();
     bool __fastcall RenderAlpha(); //McZapkie-131202: dwuprzebiegowy rendering
+    void __fastcall RenderVBO();
 };
+TSubRect *TGroundNode::pOwner=NULL; //tymczasowo w³aœciciel
 
-class TSubRect
+class TSubRect : public Resource
 {
 private:
+ int m_nVertexCount;         // Iloœæ wierzcho³ków
+ // Dane siatki
+ CVert *m_pVertices;         // Dane wierzcho³ków
+ CVec *m_pNormals;         // Dane wierzcho³ków
+ CTexCoord *m_pTexCoords;         // Wspó³rzêdne tekstur
+ // Nazwy dla obiektów VBO
+ unsigned int m_nVBOVertices;         // Nazwa VBO z wierzcho³kami
+ unsigned int m_nVBONormals;
+ unsigned int m_nVBOTexCoords;         // Nazwa VBO z koordynatami tekstur
+ unsigned int m_nType;
+ void __fastcall BuildVBOs(); //zamiana tablic na VBO
 public:
+ void __fastcall LoadNodes();
+private:
+public:
+    //CMesh *pVBO; //dane siatki VBO
     TGroundNode *pRootNode;
     TGroundNode *pTriGroup; //Ra: obiekt grupuj¹cy trójk¹ty (ogranicza iloœæ DisplayList)
-    __fastcall TSubRect() { pRootNode=pTriGroup=NULL; };
-    __fastcall ~TSubRect() {  };
-//    __fastcall ~TSubRect() { SafeDelete(pRootNode); };   /* TODO -cBUG : Attention, remember to delete those nodes */
+    __fastcall TSubRect();
+    __fastcall ~TSubRect();
     void __fastcall AddNode(TGroundNode *Node)
     {//przyczepienie obiektu do sektora, kwalifikacja trójk¹tów do ³¹czenia
      Node->Next2=pRootNode;
@@ -200,10 +198,12 @@ public:
          Node->pTriGroup=Node; //nowy lider ma siê sam wyœwietlaæ - wskaŸnik na siebie
          pTriGroup=Node; //zapamiêtanie lidera
         }
-*/        
+*/
     };
-    //void __fastcall RaGroupAdd(TGroundNode *Node) {if (pTriGroup) Node->pTriGroup=pTriGroup; else pTriGroup=Node;};
 //    __fastcall Render() { if (pRootNode) pRootNode->Render(); };
+ void Release() {};
+ bool StartVBO();
+ void EndVBO();
 };
 
 const int iNumSubRects= 10; //Ra: trzeba sprawdziæ wydajnoœæ siatki

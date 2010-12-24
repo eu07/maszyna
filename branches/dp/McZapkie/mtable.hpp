@@ -59,7 +59,7 @@ public:
 	double LastStationLatency;
 	int Direction;
 	double __fastcall CheckTrainLatency(void);
-	AnsiString __fastcall ShowRelation(void);
+	AnsiString __fastcall ShowRelation();
 	double __fastcall WatchMTable(double DistCounter);
 	bool __fastcall UpdateMTable(double hh, double mm, AnsiString NewName);
 	__fastcall TTrainParameters(AnsiString NewTrainName);
