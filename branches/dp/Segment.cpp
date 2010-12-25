@@ -72,7 +72,9 @@ bool __fastcall TSegment::Init(vector3 NewPoint1, vector3 NewCPointOut,
     {//Ra: prosty dostanie podzia³, jak ma wpisane kontrolne :(
         double s=0;
         int i=0;
-        fTsBuffer= new double[ceil(fLength/fStep)+1];
+        iSegCount=ceil(fLength/fStep); //potrzebne do VBO
+        //fStep=fLength/(double)iSegCount; //wyrównanie podzia³u
+        fTsBuffer= new double[iSegCount+1];
         fTsBuffer[0]= 0;               /* TODO : fix fTsBuffer */
 
         while (s<fLength)
@@ -276,11 +278,11 @@ void __fastcall TSegment::RenderLoft(const vector3 *ShapePoints, int iNumShapePo
            m1=m2; jmm1=jmm2; //stara pozycja
            m2=s/fLength; jmm2=1.0-m2; //nowa pozycja
 
-           if (s>fLength-0.5) //Ra: -0.5 ¿eby nie robi³o cieniasa na koñcu
+           if (s>fLength-0.1) //Ra: -0.1 ¿eby nie robi³o cieniasa na koñcu
            {//gdy przekroczyliœmy koniec - st¹d dziury w torach...
                step-=(s-fLength); //jeszcze do wyliczenia mapowania potrzebny
                s=fLength;
-               i=ceil(fLength/fStep); //20/5 ma dawaæ 4
+               i=iSegCount; //20/5 ma dawaæ 4
                m2=1.0; jmm2=0.0;
            }
 
@@ -567,6 +569,156 @@ void __fastcall TSegment::Render()
             }
 
 }
+
+void __fastcall TSegment::RaRenderLoft(CVert* &Vert,CVec* &Norm,CTexCoord* &Tex,
+ const vector3 *ShapePoints, int iNumShapePoints, double fTextureLength, int iSkip)
+{//generowanie trójk¹tów dla odcinka trajektorii ruchu
+ //standardowo tworzy triangle_strip dla prostego albo ich zestaw dla ³uku
+ //po modyfikacji - dla ujemnego (iNumShapePoints) w dodatkowych polach tabeli
+ // podany jest przekrój koñcowy
+ //podsypka toru jest robiona za pomoc¹ 6 punktów, szyna 12, drogi i rzeki na 3+2+3
+ //na u¿ytek VBO strip dla ³uków jest tworzony wzd³u¿
+ vector3 pos1,pos2,dir,parallel1,parallel2,pt;
+ double s,step,fOffset,tv1,tv2,t;
+ int i,j ;
+ bool trapez=iNumShapePoints<0; //sygnalizacja trapezowatoœci
+ iNumShapePoints=abs(iNumShapePoints);
+ if (bCurve)
+ {
+  double m1,jmm1,m2,jmm2; //pozycje wzglêdne na odcinku 0...1 (ale nie parametr Beziera)
+  step=fStep;
+  tv1=0; //Ra: to by mo¿na by³o wyliczaæ dla odcinka, wygl¹da³o by lepiej
+  s=fStep*iSkip; //iSkip - ile odcinków z pocz¹tku pomin¹æ
+  i=iSkip; //domyœlnie 0
+  t=fTsBuffer[i]; //tabela wattoœci t dla segmentów
+  fOffset=0.1/fLength; //pierwsze 10cm
+  pos1=FastGetPoint(t); //wektor pocz¹tku segmentu
+  dir=FastGetDirection(t,fOffset); //wektor kierunku
+  parallel1=Normalize(CrossProduct(dir,vector3(0,1,0))); //wektor prostopad³y
+  m2=s/fLength; jmm2=1.0-m2;
+  while (s<fLength)
+  {
+   ++i; //kolejny punkt ³amanej
+   s+=step; //koñcowa pozycja segmentu [m]
+   m1=m2; jmm1=jmm2; //stara pozycja
+   m2=s/fLength; jmm2=1.0-m2; //nowa pozycja
+   if (s>fLength-0.1) //Ra: -0.1 ¿eby nie robi³o cieniasa na koñcu
+   {//gdy przekroczyliœmy koniec - st¹d dziury w torach...
+    step-=(s-fLength); //jeszcze do wyliczenia mapowania potrzebny
+    s=fLength;
+    i=iSegCount; //20/5 ma dawaæ 4
+    m2=1.0; jmm2=0.0;
+   }
+   while (tv1>1) tv1-= 1.0f;
+   tv2=tv1+step/fTextureLength; //mapowanie na koñcu segmentu
+   t=fTsBuffer[i]; //szybsze od GetTFromS(s);
+   pos2=FastGetPoint(t);
+   dir=FastGetDirection(t,fOffset); //nowy wektor kierunku
+   parallel2=Normalize(CrossProduct(dir,vector3(0,1,0)));
+   if (trapez)
+    for (j=0; j<iNumShapePoints; j++)
+    {//strip wzd³u¿ powinien siê wyœwietlaæ szybciej
+     pt=parallel1*(jmm1*ShapePoints[j].x+m1*ShapePoints[j+iNumShapePoints].x)+pos1;
+     pt.y+=jmm1*ShapePoints[j].y+m1*ShapePoints[j+iNumShapePoints].y;
+     Norm->x=0.0; //niekoniecznie tak
+     Norm->y=1.0;
+     Norm->z=0.0;
+     Tex->u=jmm1*ShapePoints[j].z+m1*ShapePoints[j+iNumShapePoints].z;
+     Tex->v=tv1;
+     Vert->x=pt.x; Vert->y=pt.y; Vert->z=pt.z; //punkt na pocz¹tku odcinka
+     Vert++; Norm++; Tex++;
+     //dla trapezu drugi koniec ma inne wspó³rzêdne
+     pt=parallel2*(jmm2*ShapePoints[j].x+m2*ShapePoints[j+iNumShapePoints].x)+pos2;
+     pt.y+=jmm2*ShapePoints[j].y+m2*ShapePoints[j+iNumShapePoints].y;
+     Norm->x=0.0; //niekoniecznie tak
+     Norm->y=1.0;
+     Norm->z=0.0;
+     Tex->u=jmm2*ShapePoints[j].z+m2*ShapePoints[j+iNumShapePoints].z;
+     Tex->v=tv2;
+     Vert->x=pt.x; Vert->y=pt.y; Vert->z=pt.z; //punkt na koñcu odcinka
+     Vert++; Norm++; Tex++;
+   }
+   else
+    for (j=0;j<iNumShapePoints;j++)
+    {//strip wzd³u¿ powinien siê wyœwietlaæ szybciej
+     pt=parallel1*ShapePoints[j].x+pos1;
+     pt.y+=ShapePoints[j].y;
+     Norm->x=0.0; //niekoniecznie tak
+     Norm->y=1.0;
+     Norm->z=0.0;
+     Tex->u=ShapePoints[j].z;
+     Tex->v=tv1;
+     Vert->x=pt.x; Vert->y=pt.y; Vert->z=pt.z; //punkt na pocz¹tku odcinka
+     Vert++; Norm++; Tex++;
+     pt=parallel2*ShapePoints[j].x+pos2;
+     pt.y+=ShapePoints[j].y;
+     Norm->x=0.0; //niekoniecznie tak
+     Norm->y=1.0;
+     Norm->z=0.0;
+     Tex->u=ShapePoints[j].z;
+     Tex->v=tv2;
+     Vert->x=pt.x; Vert->y=pt.y; Vert->z=pt.z; //punkt na koñcu odcinka
+     Vert++; Norm++; Tex++;
+    }
+   pos1=pos2;
+   parallel1=parallel2;
+   tv1=tv2;
+  }
+ }
+ else
+ {//gdy prosty
+  pos1=FastGetPoint((fStep*iSkip)/fLength);
+  pos2=FastGetPoint_1();
+  dir=GetDirection();
+  parallel1=Normalize(CrossProduct(dir,vector3(0,1,0)));
+  if (trapez)
+   for (j=0;j<iNumShapePoints;j++)
+   {
+    pt=parallel1*ShapePoints[j].x+pos1;
+    pt.y+=ShapePoints[j].y;
+    Norm->x=0.0; //niekoniecznie tak
+    Norm->y=1.0;
+    Norm->z=0.0;
+    Tex->u=ShapePoints[j].z;
+    Tex->v=0;
+    Vert->x=pt.x; Vert->y=pt.y; Vert->z=pt.z; //punkt na pocz¹tku odcinka
+    Vert++; Norm++; Tex++;
+    //dla trapezu drugi koniec ma inne wspó³rzêdne
+    pt=parallel1*ShapePoints[j+iNumShapePoints].x+pos2; //odsuniêcie
+    pt.y+=ShapePoints[j+iNumShapePoints].y; //wysokoœæ
+    Norm->x=0.0; //niekoniecznie tak
+    Norm->z=1.0;
+    Norm->z=0.0;
+    Tex->u=ShapePoints[j+iNumShapePoints].z;
+    Tex->v=fLength/fTextureLength;
+    Vert->x=pt.x; Vert->y=pt.y; Vert->z=pt.z; //punkt na koñcu odcinka
+    Vert++; Norm++; Tex++;
+  }
+  else
+   for (j=0;j<iNumShapePoints;j++)
+   {
+    pt=parallel1*ShapePoints[j].x+pos1;
+    pt.y+=ShapePoints[j].y;
+    Norm->x=0.0; //niekoniecznie tak
+    Norm->y=1.0;
+    Norm->z=0.0;
+    Tex->u=ShapePoints[j].z;
+    Tex->v=0;
+    Vert->x=pt.x; Vert->y=pt.y; Vert->z=pt.z; //punkt na pocz¹tku odcinka
+    Vert++; Norm++; Tex++;
+    pt=parallel1*ShapePoints[j].x+pos2;
+    pt.y+=ShapePoints[j].y;
+    Norm->x=0.0; //niekoniecznie tak
+    Norm->y=1.0;
+    Norm->z=0.0;
+    Tex->u=ShapePoints[j].z;
+    Tex->v=fLength/fTextureLength;
+    Vert->x=pt.x; Vert->y=pt.y; Vert->z=pt.z; //punkt na koñcu odcinka
+    Vert++; Norm++; Tex++;
+   }
+ }
+};
+
 
 
 //---------------------------------------------------------------------------

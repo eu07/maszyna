@@ -347,15 +347,11 @@ bool __fastcall TGroundNode::Render()
     if ((mgn>fSquareRadius || (mgn<fSquareMinRadius)) && (iType!=TP_EVLAUNCH)) //McZapkie-070602: nie rysuj odleglych obiektow ale sprawdzaj wyzwalacz zdarzen
         return false;
 //    glMaterialfv( GL_FRONT, GL_DIFFUSE, Global::whiteLight );
-    if (iVboPtr>=0)
-    {RenderVBO();
-     return true;
-    }
     int i,a;
     switch (iType)
     {
-     case TP_TRACK: return pTrack->Render();
-     case TP_MODEL: return Model->Render(pCenter,fAngle);
+     case TP_TRACK: if (iNumVerts) pTrack->RaRenderVBO(iVboPtr); return true;
+     case TP_MODEL: return true; //Model->Render(pCenter,fAngle);
      case TP_DYNAMIC:
          Error("Cannot render dynamic from TGroundNode::Render()");
          return true;
@@ -378,8 +374,13 @@ bool __fastcall TGroundNode::Render()
           Global::pGround->AddToQuery(EvLaunch->Event1,NULL);
        }
       return true;
-    };
+     default:
+      if (iVboPtr>=0)
+       RenderVBO();
+      return true;
 
+    };
+/* Ra: trójk¹ty i linie renderuj¹ siê z VBO sektora
     // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
     if(
         (iNumVerts && (!Global::bRenderAlpha || !TexAlpha)) ||
@@ -411,12 +412,13 @@ bool __fastcall TGroundNode::Render()
         SetLastUsage(Timer::GetSimulationTime());
 
     };
- return true;
+*/
+ //return true;
 };
 
 bool __fastcall TGroundNode::RenderAlpha()
 {
-    if (pTriGroup) if (pTriGroup!=this) return false; //wyœwietla go inny obiekt
+    //if (pTriGroup) if (pTriGroup!=this) return false; //wyœwietla go inny obiekt
 
     double mgn=SquareMagnitude(pCenter-Global::pCameraPosition);
     float r,g,b;
@@ -444,6 +446,7 @@ bool __fastcall TGroundNode::RenderAlpha()
         break;
     };
 
+/* Ra: trójk¹ty i linie renderuj¹ siê z VBO sektora
     // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
     if(
         (iNumVerts && Global::bRenderAlpha && TexAlpha) ||
@@ -481,6 +484,7 @@ bool __fastcall TGroundNode::RenderAlpha()
         SetLastUsage(Timer::GetSimulationTime());
 
     };
+*/
  return true;
 }
 
@@ -488,35 +492,42 @@ __fastcall TSubRect::TSubRect()
 {
  pRootNode=pTriGroup=NULL;
  m_pVertices=NULL;
+ m_pNormals=NULL;
  m_pTexCoords=NULL;
  m_nVertexCount=-1;
- m_nVBOVertices=m_nVBOTexCoords=0;
+ m_nVBOVertices=m_nVBONormals=m_nVBOTexCoords=0; //nie zarezerwowane
 }
 
 __fastcall TSubRect::~TSubRect()
 {
-  // Delete VBOs
-  if (Global::bUseVBO)
-  {
-   unsigned int nBuffers[3]={m_nVBOVertices,m_nVBONormals,m_nVBOTexCoords};
-   glDeleteBuffersARB(3,nBuffers);						// Free The Memory
-  }
-  // Delete Data
-  delete [] m_pVertices;
-  delete [] m_pNormals;
-  delete [] m_pTexCoords;
+ ResourceManager::Unregister(this); //wyrejestrowanie ze sprz¹tacza
+ Release(); //zwolnienie zasobów
 }
 
 void __fastcall TSubRect::LoadNodes()
 {//utworzenie siatek dla wszystkich node w sektorze
- if (m_nVertexCount==0) return; //obiekty by³y sprawdzone i nie ma ¿adnych do obs³u¿enia przez VBO
+ if (m_nVertexCount>=0) return; //obiekty by³y ju¿ sprawdzone
  m_nVertexCount=0; //-1 oznacza, ¿e nie sprawdzono listy obiektów
  if (!pRootNode) return;
  TGroundNode *n=pRootNode;
  while (n)
- {if ((n->iType==GL_TRIANGLE_STRIP)||(n->iType==GL_TRIANGLE_FAN)||(n->iType==GL_TRIANGLES))
-  {n->iVboPtr=m_nVertexCount;
-   m_nVertexCount+=n->iNumVerts;
+ {switch (n->iType)
+  {case GL_TRIANGLE_STRIP:
+   case GL_TRIANGLE_FAN:
+   case GL_TRIANGLES:
+    n->iVboPtr=m_nVertexCount;
+    m_nVertexCount+=n->iNumVerts;
+    break;
+   case GL_LINES:
+   case GL_LINE_STRIP:
+   case GL_LINE_LOOP:
+    n->iVboPtr=m_nVertexCount;
+    m_nVertexCount+=n->iNumPts; //miejsce w tablicach normalnych i teksturowania siê zmarnuje...
+    break;
+   case TP_TRACK:
+    n->iVboPtr=m_nVertexCount;
+    n->iNumVerts=n->pTrack->RaArraysPrepare(); //zliczenie wierzcho³ków
+    m_nVertexCount+=n->iNumVerts;
   }
   n=n->Next2;
  }
@@ -528,22 +539,41 @@ void __fastcall TSubRect::LoadNodes()
  int i;
  while (n)
  {if (n->iVboPtr>=0)
-  {for (i=0;i<n->iNumVerts;++i)
-   {m_pVertices[n->iVboPtr+i].x=n->Vertices[i].Point.x;
-    m_pVertices[n->iVboPtr+i].y=n->Vertices[i].Point.y;
-    m_pVertices[n->iVboPtr+i].z=n->Vertices[i].Point.z;
-    m_pNormals[n->iVboPtr+i].x=n->Vertices[i].Normal.x;
-    m_pNormals[n->iVboPtr+i].y=n->Vertices[i].Normal.y;
-    m_pNormals[n->iVboPtr+i].z=n->Vertices[i].Normal.z;
-    m_pTexCoords[n->iVboPtr+i].u=n->Vertices[i].tu;
-    m_pTexCoords[n->iVboPtr+i].v=n->Vertices[i].tv;
+   switch (n->iType)
+   {case GL_TRIANGLE_STRIP:
+    case GL_TRIANGLE_FAN:
+    case GL_TRIANGLES:
+     for (i=0;i<n->iNumVerts;++i)
+     {m_pVertices[n->iVboPtr+i].x=n->Vertices[i].Point.x;
+      m_pVertices[n->iVboPtr+i].y=n->Vertices[i].Point.y;
+      m_pVertices[n->iVboPtr+i].z=n->Vertices[i].Point.z;
+      m_pNormals[n->iVboPtr+i].x=n->Vertices[i].Normal.x;
+      m_pNormals[n->iVboPtr+i].y=n->Vertices[i].Normal.y;
+      m_pNormals[n->iVboPtr+i].z=n->Vertices[i].Normal.z;
+      m_pTexCoords[n->iVboPtr+i].u=n->Vertices[i].tu;
+      m_pTexCoords[n->iVboPtr+i].v=n->Vertices[i].tv;
+     }
+     break;
+    case GL_LINES:
+    case GL_LINE_STRIP:
+    case GL_LINE_LOOP:
+     for (i=0;i<n->iNumPts;++i)
+     {m_pVertices[n->iVboPtr+i].x=n->Points[i].x;
+      m_pVertices[n->iVboPtr+i].y=n->Points[i].y;
+      m_pVertices[n->iVboPtr+i].z=n->Points[i].z;
+      //miejsce w tablicach normalnych i teksturowania siê zmarnuje...
+     }
+     break;
+    case TP_TRACK:
+     if (n->iNumVerts) //tory zabezpieczaj¹ce s¹ niewidoczne
+      n->pTrack->RaArraysFill(m_pVertices+n->iVboPtr,m_pNormals+n->iVboPtr,m_pTexCoords+n->iVboPtr);
    }
-  }
   n=n->Next2;
  }
- if (false) //prze³¹cznik VBO
  if (Global::bUseVBO)
   BuildVBOs();
+ if (Global::bManageNodes)
+  ResourceManager::Register(this); //dodanie do automatu zwalniaj¹cego pamiêæ
 }
 
 /*
@@ -574,22 +604,20 @@ void __fastcall TSubRect::BuildVBOs()
  glBindBufferARB(GL_ARRAY_BUFFER_ARB,m_nVBOTexCoords);         // Ustaw bufor jako aktualny
  glBufferDataARB(GL_ARRAY_BUFFER_ARB,m_nVertexCount*sizeof(CTexCoord),m_pTexCoords,GL_STATIC_DRAW_ARB);
  // Nasze lokalne kopie danych nie s¹ d³u¿ej potrzebne, wszystko jest ju¿ w karcie graficznej.
- //delete [] m_pVertices;  m_pVertices=NULL;
- //delete [] m_pNormals;   m_pNormals=NULL;
- //delete [] m_pTexCoords; m_pTexCoords=NULL;
- WriteLog("Numery VBO:"+AnsiString(m_nVBOVertices)+", "+AnsiString(m_nVBONormals)+", "+AnsiString(m_nVBOTexCoords));
- //if (m_nVBOTexCoords==669)
- // m_nVBOTexCoords=1*m_nVBOTexCoords;
+ delete [] m_pVertices;  m_pVertices=NULL;
+ delete [] m_pNormals;   m_pNormals=NULL;
+ delete [] m_pTexCoords; m_pTexCoords=NULL;
+ WriteLog("Przydzielone VBO: "+AnsiString(m_nVBOVertices)+", "+AnsiString(m_nVBONormals)+", "+AnsiString(m_nVBOTexCoords)+", punktów: "+AnsiString(m_nVertexCount));
 };
 
-bool TSubRect::StartVBO()
+bool __fastcall TSubRect::StartVBO()
 {//pocz¹tek rysowania elementów z VBO w sektorze
  if (m_nVertexCount<=0) return false; //nie ma nic do rysowania w ten sposób
  glEnableClientState(GL_VERTEX_ARRAY);         // W³¹cz strumieñ z pozycjami
  glEnableClientState(GL_NORMAL_ARRAY);
  glEnableClientState(GL_TEXTURE_COORD_ARRAY);         // W³¹cz strumieñ ze wspó³rzêdnymi tekstur
  // Za³aduj odpowiednie dane
- if (false&&Global::bUseVBO) //false&& //prze³¹cznik VBO
+ if (Global::bUseVBO)
  {
   glBindBufferARB(GL_ARRAY_BUFFER_ARB,m_nVBOVertices);
   //glVertexPointer(3,GL_DOUBLE,0,NULL);         // Za³aduj VBO z pozycjami
@@ -606,24 +634,43 @@ bool TSubRect::StartVBO()
   glNormalPointer(GL_FLOAT,0,m_pNormals);
   glTexCoordPointer(2,GL_FLOAT,0,m_pTexCoords);         // Za³aduj bufor ze wspó³rzêdnymi tekstur
  }
+ SetLastUsage(Timer::GetSimulationTime());
  return true; //mo¿na rysowaæ w ten sposób
 };
 
-void TSubRect::EndVBO()
+void __fastcall TSubRect::EndVBO()
 {//koniec u¿ycia VBO w sektorze
  // Disable Pointers
- glDisableClientState(GL_VERTEX_ARRAY);					// Disable Vertex Arrays
+ glDisableClientState(GL_VERTEX_ARRAY); // Disable Vertex Arrays
  glDisableClientState(GL_NORMAL_ARRAY);
- glDisableClientState(GL_TEXTURE_COORD_ARRAY);				// Disable Texture Coord Arrays
+ glDisableClientState(GL_TEXTURE_COORD_ARRAY); // Disable Texture Coord Arrays
  glBindBufferARB(GL_ARRAY_BUFFER_ARB,0);
  glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB,0);
 };
 
+void TSubRect::Release()
+{//zwolnienie zasobów przez sprz¹tacz albo destruktor
+ if (Global::bUseVBO)
+  if (m_nVBOVertices) //jeœli by³o coœ rezerwowane
+  {
+   unsigned int nBuffers[3]={m_nVBOVertices,m_nVBONormals,m_nVBOTexCoords};
+   glDeleteBuffersARB(3,nBuffers); // Free The Memory
+   WriteLog("Zwolnione VBO: "+AnsiString(m_nVBOVertices)+", "+AnsiString(m_nVBONormals)+", "+AnsiString(m_nVBOTexCoords));
+  }
+ m_nVBOVertices=m_nVBONormals=m_nVBOTexCoords=0;
+ m_nVertexCount=-1; //do ponownego zliczenia
+ //usuwanie tablic, gdy by³y u¿yte do Vertex Array
+ delete [] m_pVertices;  m_pVertices=NULL;
+ delete [] m_pNormals;   m_pNormals=NULL;
+ delete [] m_pTexCoords; m_pTexCoords=NULL;
+};
 
 void __fastcall TGroundNode::Compile()
 {
-  if ( iType==GL_TRIANGLE_STRIP || iType==GL_TRIANGLE_FAN || iType==GL_TRIANGLES )
-   if (Global::bUseVBO)
+/* Ra: linie i trójk¹ty s¹ ju¿ przez VBO na poziomie sektora
+  if (Global::bUseVBO)
+   if ( iType==GL_TRIANGLE_STRIP || iType==GL_TRIANGLE_FAN || iType==GL_TRIANGLES
+    || iType == GL_LINES || iType == GL_LINE_STRIP || iType == GL_LINE_LOOP)
     return;
   if (DisplayListID) Release();
 
@@ -682,7 +729,7 @@ void __fastcall TGroundNode::Compile()
 
     if (Global::bManageNodes)
         glEndList();
-
+*/
 };
 
 void TGroundNode::Release()
@@ -754,8 +801,8 @@ AnsiString asTrainName= "";
 int iTrainSetWehicleNumber= 0;
 TGroundNode *TrainSetNode= NULL;
 
-vector3 TempVecs[100];
-vector3 TempNorm[20];
+//vector3 TempVecs[100];
+//vector3 TempNorm[20];
 TGroundVertex TempVerts[100];
 Byte TempConnectionType[200];
 
@@ -2786,8 +2833,8 @@ bool __fastcall TGround::Render(vector3 pPosition)
       if (node->iVboPtr>=0) node->Render();
      tmp->EndVBO();
     }
-    for (node= tmp->pRootNode; node!=NULL; node=node->Next2)
-     if (node->iVboPtr<0) node->Render();
+    //for (node= tmp->pRootNode; node!=NULL; node=node->Next2)
+    // if (node->iVboPtr<0) node->Render();
 /*
     for (node= tmp->pRootNode; node!=NULL; node=node->Next2)
     {
@@ -2841,8 +2888,8 @@ bool __fastcall TGround::RenderAlpha(vector3 pPosition)
       if (node->iVboPtr>=0) node->RenderAlpha();
      tmp->EndVBO();
     }
-    for (node= tmp->pRootNode; node!=NULL; node=node->Next2)
-     if (node->iVboPtr<0) node->RenderAlpha();
+    //for (node= tmp->pRootNode; node!=NULL; node=node->Next2)
+    // if (node->iVboPtr<0) node->RenderAlpha();
    }
   }
  return true;
