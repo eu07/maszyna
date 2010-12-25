@@ -33,6 +33,8 @@
 #include "Track.h"
 #include "Ground.h"
 
+#pragma package(smart_init)
+
 //101206 Ra: trapezoidalne drogi i tory
 
 __fastcall TSwitchExtension::TSwitchExtension()
@@ -414,10 +416,9 @@ void __fastcall TTrack::Load(cParser *parser, vector3 pOrigin)
       WriteLog("unvis");
      }
     Init();
-    double segsize=0.5f; //Ra: 5m przy ma³ych promieniach 5m Ÿle wygl¹da (drogi, tramwaje)
+    double segsize=5.0f; //Ra: 5m przy ma³ych promieniach 5m Ÿle wygl¹da (drogi, tramwaje)
     switch (eType)
-    {//Ra: ³uki by³y segmentowane co 5m albo 314-k¹tem foremnym
-     //Ra: zmieni³em na minimum 0.5m, za to 209-k¹t
+    {//Ra: ³uki segmentowane co 5m albo 314-k¹tem foremnym
         case tt_Turn: //obrotnica jest prawie jak zwyk³y tor
         case tt_Normal:
             p1= LoadPoint(parser)+pOrigin; //pobranie wspó³rzêdnych P1
@@ -430,7 +431,7 @@ void __fastcall TTrack::Load(cParser *parser, vector3 pOrigin)
             *parser >> r2 >> fRadius; //pobranie przechy³ki w P1 i promienia
 
             if (fRadius!=0) //gdy podany promieñ
-               segsize=Min0R(0.5,0.3+fabs(fRadius)*0.03); //do 250m - 5, potem 1 co 50m
+               segsize=Min0R(5.0,0.3+fabs(fRadius)*0.03); //do 250m - 5, potem 1 co 50m
 
             if ((((p1+p1+p2)/3.0-p1-cp1).Length()<0.02)||(((p1+p2+p2)/3.0-p2+cp1).Length()<0.02))
              cp1=cp2=vector3(0,0,0); //"prostowanie" prostych z kontrolnymi, dok³adnoœæ 2cm
@@ -1266,6 +1267,336 @@ bool __fastcall TTrack::Switch(int i)
     return false;
 };
 
+int __fastcall TTrack::RaArraysPrepare()
+{//przygotowanie tablic do skopiowania do VBO (zliczanie wierzcho³ków)
+ if (bVisible) //o ile w ogóle widaæ
+  switch (iCategoryFlag)
+  {
+   case 1: //tor
+    if (eType==tt_Switch) //dla zwrotnicy tylko szyny
+     return 48*((TextureID1?SwitchExtension->Segments[0].RaSegCount():0)+(TextureID2?SwitchExtension->Segments[1].RaSegCount():0));
+    else //dla toru podsypka plus szyny
+     return (Segment->RaSegCount())*((TextureID1?48:0)+(TextureID2?8:0));
+   case 2: //droga
+    return (Segment->RaSegCount())*((TextureID1?4:0)+(TextureID2?12:0));
+   case 3: //rzeki do przemyœlenia
+    return (Segment->RaSegCount())*((TextureID1?8:0)+(TextureID2?12:0));
+  }
+ return 0;
+};
+
+void  __fastcall TTrack::RaArraysFill(CVert *Vert,CVec *Norm,CTexCoord *Tex)
+{//wype³nianie tablic VBO
+ //if (eType!=tt_Normal) return;
+ //if (iCategoryFlag!=1) return;
+ double fHTW=0.5*fabs(fTrackWidth);
+ double side=fabs(fTexWidth); //szerokœæ podsypki na zewn¹trz szyny albo pobocza
+ double rozp=fHTW+side+fabs(fTexSlope); //brzeg zewnêtrzny
+ double fHTW2,side2,rozp2,fTexHeight2;
+ if (iTrapezoid&2) //ten bit oznacza, ¿e istnieje odpowiednie pNext
+ {//Ra: na tym siê lubi wieszaæ, ciekawe co za œmieci siê pod³¹czaj¹...
+  fHTW2=0.5*fabs(pNext->fTrackWidth); //po³owa rozstawu/nawierzchni
+  side2=fabs(pNext->fTexWidth);
+  rozp2=fHTW2+side2+fabs(pNext->fTexSlope);
+  fTexHeight2=pNext->fTexHeight;
+  //zabezpieczenia przed zawieszeniem - logowaæ to?
+  if (fHTW2>5.0*fHTW) {fHTW2=fHTW; WriteLog("niedopasowanie 1");};
+  if (side2>5.0*side) {side2=side; WriteLog("niedopasowanie 2");};
+  if (rozp2>5.0*rozp) {rozp2=rozp; WriteLog("niedopasowanie 3");};
+  if (fabs(fTexHeight2)>5.0*fabs(fTexHeight)) {fTexHeight2=fTexHeight; WriteLog("niedopasowanie 4");};
+ }
+ else //gdy nie ma nastêpnego albo jest nieodpowiednim koñcem podpiêty
+ {fHTW2=fHTW; side2=side; rozp2=rozp; fTexHeight2=fTexHeight;}
+ double roll1,roll2;
+ switch (iCategoryFlag)
+ {
+  case 1:   //tor
+  {
+   Segment->GetRolls(roll1,roll2);
+   double sin1=sin(roll1),cos1=cos(roll1),sin2=sin(roll2),cos2=cos(roll2);
+   // zwykla szyna: //Ra: czemu g³ówki s¹ asymetryczne na wysokoœci 0.140?
+   vector3 rpts1[24],rpts2[24],rpts3[24],rpts4[24];
+   int i;
+   for (i=0;i<12;++i)
+   {rpts1[i]=vector3((fHTW+szyna[i].x)*cos1+szyna[i].y*sin1,-(fHTW+szyna[i].x)*sin1+szyna[i].y*cos1,szyna[i].z);
+    rpts2[11-i]=vector3((-fHTW-szyna[i].x)*cos1+szyna[i].y*sin1,-(-fHTW-szyna[i].x)*sin1+szyna[i].y*cos1,szyna[i].z);
+   }
+   if (iTrapezoid) //trapez albo przechy³ki, to oddzielne punkty na koñcu
+    for (i=0;i<12;++i)
+    {rpts1[12+i]=vector3((fHTW2+szyna[i].x)*cos2+szyna[i].y*sin2,-(fHTW2+szyna[i].x)*sin2+szyna[i].y*cos2,szyna[i].z);
+     rpts2[23-i]=vector3((-fHTW2-szyna[i].x)*cos2+szyna[i].y*sin2,-(-fHTW2-szyna[i].x)*sin2+szyna[i].y*cos2,szyna[i].z);
+    }
+   switch (eType) //dalej zale¿nie od typu
+   {
+    case tt_Turn: //obrotnica jak zwyk³y tor, tylko animacja dochodzi
+     if (InMovement()) //jeœli siê krêci
+     {//wyznaczamy wspó³rzêdne koñców, przy za³o¿eniu sta³ego œródka i d³ugoœci
+      double hlen=0.5*SwitchExtension->Segments->GetLength(); //po³owa d³ugoœci
+      //SwitchExtension->fOffset1=SwitchExtension->pAnim?SwitchExtension->pAnim->AngleGet():0.0; //pobranie k¹ta z modelu
+      TAnimContainer *ac=SwitchExtension->pModel?SwitchExtension->pModel->GetContainer(NULL):NULL;
+      if (ac)
+       SwitchExtension->fOffset1=ac?180+ac->AngleGet():0.0; //pobranie k¹ta z modelu
+      double sina=hlen*sin(DegToRad(SwitchExtension->fOffset1)),cosa=hlen*cos(DegToRad(SwitchExtension->fOffset1));
+      vector3 middle=SwitchExtension->Segments->FastGetPoint(0.5);
+      Segment->Init(middle+vector3(sina,0.0,cosa),middle-vector3(sina,0.0,cosa),5.0);
+     }
+    case tt_Normal:
+     if (TextureID2)
+     {//podsypka z podk³adami jest tylko dla zwyk³ego toru
+      vector3 bpts1[8]; //punkty g³ównej p³aszczyzny nie przydaj¹ siê do robienia boków
+      if (iTrapezoid) //trapez albo przechy³ki
+      {//podsypka z podkladami trapezowata
+       //ewentualnie poprawiæ mapowanie, ¿eby œrodek mapowa³ siê na 1.435/4.671 ((0.3464,0.6536)
+       //bo siê tekstury podsypki rozje¿d¿aj¹ po zmianie proporcji profilu
+       bpts1[0]=vector3(rozp,-fTexHeight,0.0); //lewy brzeg
+       bpts1[1]=vector3((fHTW+side)*cos1,-(fHTW+side)*sin1,0.33); //krawêdŸ za³amania
+       bpts1[2]=vector3(-bpts1[1].x,-bpts1[1].y,0.67); //prawy brzeg pocz¹tku symetrycznie
+       bpts1[3]=vector3(-rozp,-fTexHeight,1.0); //prawy skos
+       bpts1[4]=vector3(rozp2,-fTexHeight2,0.0); //lewy brzeg
+       bpts1[5]=vector3((fHTW2+side2)*cos2,-(fHTW2+side2)*sin2,0.33); //krawêdŸ za³amania
+       bpts1[6]=vector3(-bpts1[5].x,-bpts1[5].y,0.67); //prawy brzeg pocz¹tku symetrycznie
+       bpts1[7]=vector3(-rozp2,-fTexHeight2,1.0); //prawy skos
+      }
+      else
+      {bpts1[0]=vector3(rozp,-fTexHeight,0.0); //lewy brzeg
+       bpts1[1]=vector3(fHTW+side,0.0,0.33); //krawêdŸ za³amania
+       bpts1[2]=vector3(-fHTW-side,0.0,0.67); //druga
+       bpts1[3]=vector3(-rozp,-fTexHeight,1.0); //prawy skos
+      }
+      Segment->RaRenderLoft(Vert,Norm,Tex,bpts1,iTrapezoid?-4:4,fTexLength);
+     }
+     if (TextureID1)
+     {// szyny
+      Segment->RaRenderLoft(Vert,Norm,Tex,rpts1,iTrapezoid?-nnumPts:nnumPts,fTexLength);
+      Segment->RaRenderLoft(Vert,Norm,Tex,rpts2,iTrapezoid?-nnumPts:nnumPts,fTexLength);
+     }
+     break;
+    case tt_Switch: //dla zwrotnicy dwa razy szyny
+     if (TextureID1)
+     {//iglice liczone tylko dla zwrotnic
+      vector3 rpts3[24],rpts4[24];
+      for (i=0;i<12;++i)
+      {rpts3[i]=vector3((fHTW+iglica[i].x)*cos1+iglica[i].y*sin1,-(fHTW+iglica[i].x)*sin1+iglica[i].y*cos1,iglica[i].z);
+       rpts4[11-i]=vector3((-fHTW-iglica[i].x)*cos1+iglica[i].y*sin1,-(-fHTW-iglica[i].x)*sin1+iglica[i].y*cos1,iglica[i].z);
+      }
+      if (iTrapezoid) //trapez albo przechy³ki, to oddzielne punkty na koñcu
+       for (i=0;i<12;++i)
+       {rpts3[12+i]=vector3((fHTW2+iglica[i].x)*cos2+iglica[i].y*sin2,-(fHTW2+iglica[i].x)*sin2+iglica[i].y*cos2,iglica[i].z);
+        rpts4[23-i]=vector3((-fHTW2-iglica[i].x)*cos2+iglica[i].y*sin2,-(-fHTW2-iglica[i].x)*sin2+iglica[i].y*cos2,iglica[i].z);
+       }
+      if (InMovement())
+      {//Ra: trochê bez sensu, ¿e tu jest animacja
+       double v=SwitchExtension->fDesiredOffset1-SwitchExtension->fOffset1;
+       SwitchExtension->fOffset1+=sign(v)*Timer::GetDeltaTime()*0.1;
+       //Ra: trzeba daæ to do klasy...
+       if (SwitchExtension->fOffset1<=0.00)
+       {SwitchExtension->fOffset1; //1cm?
+        SwitchExtension->bMovement=false; //koniec animacji
+       }
+       if (SwitchExtension->fOffset1>=fMaxOffset)
+       {SwitchExtension->fOffset1=fMaxOffset; //maksimum-1cm?
+        SwitchExtension->bMovement=false; //koniec animacji
+       }
+      }
+      if (SwitchExtension->RightSwitch)
+      {//nowa wersja z SPKS, ale odwrotnie lewa/prawa
+       SwitchExtension->Segments[0].RaRenderLoft(Vert,Norm,Tex,rpts1,nnumPts,fTexLength,0);
+       //SwitchExtension->Segments[0].RaRenderSwitchRail(rpts1,rpts3,nnumPts,fTexLength,2,SwitchExtension->fOffset1);
+       SwitchExtension->Segments[0].RaRenderLoft(Vert,Norm,Tex,rpts2,nnumPts,fTexLength);
+       SwitchExtension->Segments[1].RaRenderLoft(Vert,Norm,Tex,rpts1,nnumPts,fTexLength);
+       SwitchExtension->Segments[1].RaRenderLoft(Vert,Norm,Tex,rpts2,nnumPts,fTexLength,0);
+       //SwitchExtension->Segments[1].RaRenderSwitchRail(rpts2,rpts4,nnumPts,fTexLength,2,-fMaxOffset+SwitchExtension->fOffset1);
+      }
+      else
+      {//lewa dzia³a lepiej ni¿ prawa
+       SwitchExtension->Segments[0].RaRenderLoft(Vert,Norm,Tex,rpts1,nnumPts,fTexLength); //lewa szyna normalna ca³a
+       SwitchExtension->Segments[0].RaRenderLoft(Vert,Norm,Tex,rpts2,nnumPts,fTexLength,0); //prawa szyna za iglic¹
+       //SwitchExtension->Segments[0].RaRenderSwitchRail(rpts2,rpts4,nnumPts,fTexLength,2,-SwitchExtension->fOffset1); //prawa iglica
+       SwitchExtension->Segments[1].RaRenderLoft(Vert,Norm,Tex,rpts1,nnumPts,fTexLength,0); //lewa szyna za iglic¹
+       //SwitchExtension->Segments[1].RaRenderSwitchRail(rpts1,rpts3,nnumPts,fTexLength,2,fMaxOffset-SwitchExtension->fOffset1); //lewa iglica
+       SwitchExtension->Segments[1].RaRenderLoft(Vert,Norm,Tex,rpts2,nnumPts,fTexLength); //prawa szyna normalnie ca³a
+      }
+     }
+     break;
+   }
+  } //koniec obs³ugi torów
+  break;
+  case 2:   //McZapkie-260302 - droga - rendering
+//McZapkie:240702-zmieniony zakres widzialnosci
+  {vector3 bpts1[4]; //punkty g³ównej p³aszczyzny przydaj¹ siê do robienia boków
+   if (TextureID1||TextureID2) //punkty siê przydadz¹, nawet jeœli nawierzchni nie ma
+   {//double max=2.0*(fHTW>fHTW2?fHTW:fHTW2); //z szerszej strony jest 100%
+    double max=fTexLength; //test: szerokoœæ proporcjonalna do d³ugoœci
+    double map1=max>0.0?fHTW/max:0.5; //obciêcie tekstury od strony 1
+    double map2=max>0.0?fHTW2/max:0.5; //obciêcie tekstury od strony 2
+    if (iTrapezoid) //trapez albo przechy³ki
+    {//nawierzchnia trapezowata
+     Segment->GetRolls(roll1,roll2);
+     bpts1[0]=vector3(fHTW*cos(roll1),-fHTW*sin(roll1),0.5-map1); //lewy brzeg pocz¹tku
+     bpts1[1]=vector3(-bpts1[0].x,-bpts1[0].y,0.5+map1); //prawy brzeg pocz¹tku symetrycznie
+     bpts1[2]=vector3(fHTW2*cos(roll2),-fHTW2*sin(roll2),0.5-map2); //lewy brzeg koñca
+     bpts1[3]=vector3(-bpts1[2].x,-bpts1[2].y,0.5+map2); //prawy brzeg pocz¹tku symetrycznie
+    }
+    else
+    {bpts1[0]=vector3( fHTW,0.0,0.5-map1); //zawsze standardowe mapowanie
+     bpts1[1]=vector3(-fHTW,0.0,0.5+map1);
+    }
+   }
+   if (TextureID1) //jeœli podana by³a tekstura, generujemy trójk¹ty
+   {//tworzenie trójk¹tów nawierzchni szosy
+    Segment->RaRenderLoft(Vert,Norm,Tex,bpts1,iTrapezoid?-2:2,fTexLength);
+   }
+   if (TextureID2)
+   {//pobocze drogi - poziome przy przechy³ce (a mo¿e krawê¿nik i chodnik zrobiæ jak w Midtown Madness 2?)
+    vector3 rpts1[6],rpts2[6]; //wspó³rzêdne przekroju i mapowania dla prawej i lewej strony
+    rpts1[0]=vector3(rozp,-fTexHeight,0.0); //lewy brzeg podstawy
+    rpts1[1]=vector3(bpts1[0].x+side,bpts1[0].y,0.5), //lewa krawêdŸ za³amania
+    rpts1[2]=vector3(bpts1[0].x,bpts1[0].y,1.0); //lewy brzeg pobocza (mapowanie mo¿e byæ inne
+    rpts2[0]=vector3(bpts1[1].x,bpts1[1].y,1.0); //prawy brzeg pobocza
+    rpts2[1]=vector3(bpts1[1].x-side,bpts1[1].y,0.5); //prawa krawêdŸ za³amania
+    rpts2[2]=vector3(-rozp,-fTexHeight,0.0); //prawy brzeg podstawy
+    if (iTrapezoid) //trapez albo przechy³ki
+    {//pobocza do trapezowatej nawierzchni - dodatkowe punkty z drugiej strony odcinka
+     rpts1[3]=vector3(rozp2,-fTexHeight2,0.0); //lewy brzeg lewego pobocza
+     rpts1[4]=vector3(bpts1[2].x+side2,bpts1[2].y,0.5); //krawêdŸ za³amania
+     rpts1[5]=vector3(bpts1[2].x,bpts1[2].y,1.0); //brzeg pobocza
+     rpts2[3]=vector3(bpts1[3].x,bpts1[3].y,1.0);
+     rpts2[4]=vector3(bpts1[3].x-side2,bpts1[3].y,0.5);
+     rpts2[5]=vector3(-rozp2,-fTexHeight2,0.0); //prawy brzeg prawego pobocza
+     Segment->RaRenderLoft(Vert,Norm,Tex,rpts1,-3,fTexLength);
+     Segment->RaRenderLoft(Vert,Norm,Tex,rpts2,-3,fTexLength);
+    }
+    else
+    {//pobocza zwyk³e, brak przechy³ki
+     Segment->RaRenderLoft(Vert,Norm,Tex,rpts1,3,fTexLength);
+     Segment->RaRenderLoft(Vert,Norm,Tex,rpts2,3,fTexLength);
+    }
+   }
+  }
+  break;
+  case 4:   //McZapkie-260302 - rzeka- rendering
+   //Ra: rzeki na razie bez zmian, przechy³ki na pewno nie maj¹
+      vector3 bpts1[numPts]= { vector3(fHTW,0.0,0.0),vector3(fHTW,0.2,0.33),
+                             vector3(-fHTW,0.0,0.67),vector3(-fHTW,0.0,1.0) };
+      //Ra: dziwnie ten kszta³t wygl¹da
+      if(TextureID1)
+      {
+          Segment->RaRenderLoft(Vert,Norm,Tex,bpts1,numPts,fTexLength);
+          if(TextureID2)
+          {//brzegi rzeki prawie jak pobocze derogi, tylko inny znak ma wysokoœæ
+              vector3 rpts1[3]= { vector3(rozp,fTexHeight,0.0),
+                                  vector3(fHTW+side,0.0,0.5),
+                                  vector3(fHTW,0.0,1.0) };
+              vector3 rpts2[3]= { vector3(-fHTW,0.0,1.0),
+                                  vector3(-fHTW-side,0.0,0.5),
+                                  vector3(-rozp,fTexHeight,0.1) }; //Ra: po kiego 0.1?
+              Segment->RaRenderLoft(Vert,Norm,Tex,rpts1,3,fTexLength);
+              Segment->RaRenderLoft(Vert,Norm,Tex,rpts2,3,fTexLength);
+          }
+      }
+      break;
+ }
+};
+
+void  __fastcall TTrack::RaRenderVBO(int iPtr)
+{//renderowanie z u¿yciem VBO
+ glColor3f(1.0f,1.0f,1.0f);
+ //McZapkie-310702: zmiana oswietlenia w tunelu, wykopie
+ GLfloat ambientLight[4] ={0.5f,0.5f,0.5f,1.0f};
+ GLfloat diffuseLight[4] ={0.5f,0.5f,0.5f,1.0f};
+ GLfloat specularLight[4]={0.5f,0.5f,0.5f,1.0f};
+ switch (eEnvironment)
+ {//modyfikacje oœwietlenia zale¿nie od œrodowiska
+  case e_canyon: //wykop
+   for (int li=0;li<3;li++)
+   {
+    ambientLight[li]= Global::ambientDayLight[li]*0.7;
+    diffuseLight[li]= Global::diffuseDayLight[li]*0.3;
+    specularLight[li]=Global::specularDayLight[li]*0.4;
+   }
+   glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
+   glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
+   glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
+  break;
+  case e_tunnel: //tunel
+   for (int li=0;li<3;li++)
+   {
+    ambientLight[li]= Global::ambientDayLight[li]*0.2;
+    diffuseLight[li]= Global::diffuseDayLight[li]*0.1;
+    specularLight[li]=Global::specularDayLight[li]*0.2;
+   }
+   glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
+   glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
+   glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
+  break;
+ }
+ int seg;
+ int i;
+ switch (iCategoryFlag)
+ {
+  case 1: //tor
+   if (eType==tt_Switch) //dla zwrotnicy tylko szyny
+   {if (TextureID1)
+     if ((seg=SwitchExtension->Segments[0].RaSegCount())>0)
+     {glBindTexture(GL_TEXTURE_2D,TextureID1); //szyny +
+      for (i=0;i<seg;++i)
+       glDrawArrays(GL_TRIANGLE_STRIP,iPtr+24*i,24);
+      iPtr+=24*seg; //pominiêcie lewej szyny
+      for (i=0;i<seg;++i)
+       glDrawArrays(GL_TRIANGLE_STRIP,iPtr+24*i,24);
+      iPtr+=24*seg; //pominiêcie prawej szyny
+     }
+    if (TextureID2)
+     if ((seg=SwitchExtension->Segments[1].RaSegCount())>0)
+     {glBindTexture(GL_TEXTURE_2D,TextureID2); //szyny -
+      for (i=0;i<seg;++i)
+       glDrawArrays(GL_TRIANGLE_STRIP,iPtr+24*i,24);
+      iPtr+=24*seg; //pominiêcie lewej szyny
+      for (i=0;i<seg;++i)
+       glDrawArrays(GL_TRIANGLE_STRIP,iPtr+24*i,24);
+     }
+   }
+   else //dla toru podsypka plus szyny
+   {if ((seg=Segment->RaSegCount())>0)
+    {if (TextureID2)
+     {glBindTexture(GL_TEXTURE_2D,TextureID2); //podsypka
+      for (i=0;i<seg;++i)
+       glDrawArrays(GL_TRIANGLE_STRIP,iPtr+8*i,8);
+      iPtr+=8*seg; //pominiêcie podsypki
+     }
+     if (TextureID1)
+     {glBindTexture(GL_TEXTURE_2D,TextureID1); //szyny
+      for (i=0;i<seg;++i)
+       glDrawArrays(GL_TRIANGLE_STRIP,iPtr+24*i,24);
+      iPtr+=24*seg; //pominiêcie lewej szyny
+      for (i=0;i<seg;++i)
+       glDrawArrays(GL_TRIANGLE_STRIP,iPtr+24*i,24);
+     }
+    }
+   }
+   return;// (Segment->RaSegCount()+1)*((TextureID1?24:0)+(TextureID2?6:0));
+  case 2: //droga
+   if ((seg=Segment->RaSegCount())>0)
+   {if (TextureID1)
+    {glBindTexture(GL_TEXTURE_2D,TextureID1); //nawierzchnia
+     for (i=0;i<seg;++i)
+     {glDrawArrays(GL_TRIANGLE_STRIP,iPtr,4); iPtr+=4;}
+    }
+    if (TextureID2)
+    {glBindTexture(GL_TEXTURE_2D,TextureID2); //pobocze
+     for (i=0;i<seg;++i)
+      glDrawArrays(GL_TRIANGLE_STRIP,iPtr+6*i,6);
+     iPtr+=6*seg; //pominiêcie lewego pobocza
+     for (i=0;i<seg;++i)
+      glDrawArrays(GL_TRIANGLE_STRIP,iPtr+6*i,6);
+    }
+   }
+   return;// (Segment->RaSegCount()+1)*((TextureID1?2:0)+(TextureID2?6:0));
+  case 3: //rzeki do przemyœlenia
+   return;// (Segment->RaSegCount()+1)*((TextureID1?4:0)+(TextureID2?6:0));
+ }
+};
+
 //---------------------------------------------------------------------------
 
-#pragma package(smart_init)
+

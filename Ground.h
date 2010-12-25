@@ -25,6 +25,7 @@
 
 #include "parser.h" //Tolaris-010603
 #include "ResourceManager.h"
+#include "VBO.h"
 
 const int TP_MODEL= 1000;
 const int TP_SEMAPHORE= 1002;
@@ -47,31 +48,6 @@ struct TGroundVertex
 };
 
 class TGroundNode;
-
-class CVert         // Klasa wierzcho³ka
-{
-public:
- float x;         // Sk³adowa X
- float y;         // Sk³adowa Y
- float z;         // Sk³adowa Z
- //double x;         // Sk³adowa X
- //double y;         // Sk³adowa Y
- //double z;         // Sk³adowa Z
-};
-class CVec         // Klasa wektora normalnego
-{
-public:
- float x;         // Sk³adowa X
- float y;         // Sk³adowa Y
- float z;         // Sk³adowa Z
-};
-//typedef CVert CVec;         // Obie nazwy s¹ synonimami
-class CTexCoord         // Klasa wspó³rzêdnych tekstur
-{
-public:
- float u;         // Sk³adowa U
- float v;         // Sk³adowa V
-};
 
 class TSubRect;
 
@@ -201,9 +177,9 @@ public:
 */
     };
 //    __fastcall Render() { if (pRootNode) pRootNode->Render(); };
- void Release() {};
- bool StartVBO();
- void EndVBO();
+ void Release();
+ bool __fastcall StartVBO();
+ void __fastcall EndVBO();
 };
 
 const int iNumSubRects= 10; //Ra: trzeba sprawdziæ wydajnoœæ siatki
