@@ -3,7 +3,6 @@
 #ifndef GlobalsH
 #define GlobalsH
 
-#include "dumb3d.h"
 #include "ground.h"
 #include "Logs.h"
 

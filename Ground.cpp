@@ -351,7 +351,7 @@ bool __fastcall TGroundNode::Render()
     switch (iType)
     {
      case TP_TRACK: if (iNumVerts) pTrack->RaRenderVBO(iVboPtr); return true;
-     case TP_MODEL: return true; //Model->Render(pCenter,fAngle);
+     case TP_MODEL: Model->Render(pCenter,fAngle); return true;
      case TP_DYNAMIC:
          Error("Cannot render dynamic from TGroundNode::Render()");
          return true;
@@ -427,24 +427,21 @@ bool __fastcall TGroundNode::RenderAlpha()
     if (mgn>fSquareRadius)
         return false;
 //    glMaterialfv( GL_FRONT, GL_DIFFUSE, Global::whiteLight );
+    int i,a;
+  switch (iType)
+  {
+   case TP_TRACTION:
+    //if(Global::bRenderAlpha && bVisible && Global::bLoadTraction) Traction->Render(mgn);
+    return true;
+   case TP_MODEL:
+    Model->RenderAlpha(pCenter,fAngle); return true;
+   case TP_TRACK: pTrack->RaRenderAlpha(); return true; //pojazdy
+   default:
     if (iVboPtr>=0)
     {RenderVBO();
      return true;
     }
-    int i,a;
-    switch (iType)
-    {
-        case TP_TRACTION:
-           if(Global::bRenderAlpha && bVisible && Global::bLoadTraction)
-               Traction->Render(mgn);
-        break;
-        case TP_MODEL:
-           Model->RenderAlpha(pCenter,fAngle);
-        break;
-        case TP_TRACK:
-           pTrack->RenderAlpha();
-        break;
-    };
+  };
 
 /* Ra: trójk¹ty i linie renderuj¹ siê z VBO sektora
     // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
@@ -491,17 +488,19 @@ bool __fastcall TGroundNode::RenderAlpha()
 __fastcall TSubRect::TSubRect()
 {
  pRootNode=pTriGroup=NULL;
+/*
  m_pVertices=NULL;
  m_pNormals=NULL;
  m_pTexCoords=NULL;
  m_nVertexCount=-1;
  m_nVBOVertices=m_nVBONormals=m_nVBOTexCoords=0; //nie zarezerwowane
+*/
 }
 
 __fastcall TSubRect::~TSubRect()
 {
- ResourceManager::Unregister(this); //wyrejestrowanie ze sprz¹tacza
- Release(); //zwolnienie zasobów
+ if (Global::bManageNodes) //Ra: tu siê coœ sypie
+  ResourceManager::Unregister(this); //wyrejestrowanie ze sprz¹tacza
 }
 
 void __fastcall TSubRect::LoadNodes()
@@ -532,9 +531,7 @@ void __fastcall TSubRect::LoadNodes()
   n=n->Next2;
  }
  if (!m_nVertexCount) return; //jeœli nie ma obiektów do wyœwietlenia z VBO, to koniec
- m_pVertices=new CVert[m_nVertexCount];         // Przydzielenie pamiêci dla wierzcho³ków
- m_pNormals=new CVec[m_nVertexCount];         // Przydzielenie pamiêci dla normalnych
- m_pTexCoords=new CTexCoord[m_nVertexCount];         // Przydzielenie pamiêci dla wspó³rzêdnych
+ MakeArrays(m_nVertexCount);
  n=pRootNode;
  int i;
  while (n)
@@ -544,7 +541,8 @@ void __fastcall TSubRect::LoadNodes()
     case GL_TRIANGLE_FAN:
     case GL_TRIANGLES:
      for (i=0;i<n->iNumVerts;++i)
-     {m_pVertices[n->iVboPtr+i].x=n->Vertices[i].Point.x;
+     {//Ra: trójk¹ty mo¿na od razu wczytywaæ do takich tablic... to mo¿e poczekaæ
+      m_pVertices[n->iVboPtr+i].x=n->Vertices[i].Point.x;
       m_pVertices[n->iVboPtr+i].y=n->Vertices[i].Point.y;
       m_pVertices[n->iVboPtr+i].z=n->Vertices[i].Point.z;
       m_pNormals[n->iVboPtr+i].x=n->Vertices[i].Normal.x;
@@ -565,7 +563,7 @@ void __fastcall TSubRect::LoadNodes()
      }
      break;
     case TP_TRACK:
-     if (n->iNumVerts) //tory zabezpieczaj¹ce s¹ niewidoczne
+     if (n->iNumVerts) //bo tory zabezpieczaj¹ce s¹ niewidoczne
       n->pTrack->RaArraysFill(m_pVertices+n->iVboPtr,m_pNormals+n->iVboPtr,m_pTexCoords+n->iVboPtr);
    }
   n=n->Next2;
@@ -589,80 +587,15 @@ void __fastcall TSubRect::Load(TGroundNode *Node)
 }
 */
 
-void __fastcall TSubRect::BuildVBOs()
-{//tworzenie VBO i kasowanie ju¿ niepotrzebnych tablic
- // Wygeneruj nazwê dla VBO oraz ustaw go jako aktywny
- glGenBuffersARB(1,&m_nVBOVertices);         // Pobierz poprawn¹ nazwê
- glBindBufferARB(GL_ARRAY_BUFFER_ARB,m_nVBOVertices);         // Ustaw bufor jako aktualny
- glBufferDataARB(GL_ARRAY_BUFFER_ARB,m_nVertexCount*sizeof(CVert),m_pVertices,GL_STATIC_DRAW_ARB);
- // Wygeneruj nazwê dla VBO oraz ustaw go jako aktywny
- glGenBuffersARB(1,&m_nVBONormals);         // Pobierz poprawn¹ nazwê
- glBindBufferARB(GL_ARRAY_BUFFER_ARB,m_nVBONormals);         // Ustaw bufor jako aktualny
- glBufferDataARB(GL_ARRAY_BUFFER_ARB,m_nVertexCount*sizeof(CVec),m_pNormals,GL_STATIC_DRAW_ARB);
- // Wygeneruj nazwê oraz ustaw jako aktywny VBO dla wspó³rzêdnych tekstur
- glGenBuffersARB(1,&m_nVBOTexCoords);         // Pobierz poprawn¹ nazwê
- glBindBufferARB(GL_ARRAY_BUFFER_ARB,m_nVBOTexCoords);         // Ustaw bufor jako aktualny
- glBufferDataARB(GL_ARRAY_BUFFER_ARB,m_nVertexCount*sizeof(CTexCoord),m_pTexCoords,GL_STATIC_DRAW_ARB);
- // Nasze lokalne kopie danych nie s¹ d³u¿ej potrzebne, wszystko jest ju¿ w karcie graficznej.
- delete [] m_pVertices;  m_pVertices=NULL;
- delete [] m_pNormals;   m_pNormals=NULL;
- delete [] m_pTexCoords; m_pTexCoords=NULL;
- WriteLog("Przydzielone VBO: "+AnsiString(m_nVBOVertices)+", "+AnsiString(m_nVBONormals)+", "+AnsiString(m_nVBOTexCoords)+", punktów: "+AnsiString(m_nVertexCount));
-};
-
 bool __fastcall TSubRect::StartVBO()
 {//pocz¹tek rysowania elementów z VBO w sektorze
- if (m_nVertexCount<=0) return false; //nie ma nic do rysowania w ten sposób
- glEnableClientState(GL_VERTEX_ARRAY);         // W³¹cz strumieñ z pozycjami
- glEnableClientState(GL_NORMAL_ARRAY);
- glEnableClientState(GL_TEXTURE_COORD_ARRAY);         // W³¹cz strumieñ ze wspó³rzêdnymi tekstur
- // Za³aduj odpowiednie dane
- if (Global::bUseVBO)
- {
-  glBindBufferARB(GL_ARRAY_BUFFER_ARB,m_nVBOVertices);
-  //glVertexPointer(3,GL_DOUBLE,0,NULL);         // Za³aduj VBO z pozycjami
-  glVertexPointer(3,GL_FLOAT,0,NULL);         // Za³aduj VBO z pozycjami
-  glBindBufferARB(GL_ARRAY_BUFFER_ARB,m_nVBONormals);
-  glNormalPointer(GL_FLOAT,0,NULL);
-  glBindBufferARB(GL_ARRAY_BUFFER_ARB,m_nVBOTexCoords);
-  glTexCoordPointer(2,GL_FLOAT,0,NULL);         // Za³aduj VBO ze wspó³rzêdnymi tekstur
- }
- else
- {
-  //glVertexPointer(3,GL_DOUBLE,0,m_pVertices);         // Za³aduj bufor z pozycjami
-  glVertexPointer(3,GL_FLOAT,0,m_pVertices);         // Za³aduj bufor z pozycjami
-  glNormalPointer(GL_FLOAT,0,m_pNormals);
-  glTexCoordPointer(2,GL_FLOAT,0,m_pTexCoords);         // Za³aduj bufor ze wspó³rzêdnymi tekstur
- }
  SetLastUsage(Timer::GetSimulationTime());
- return true; //mo¿na rysowaæ w ten sposób
-};
-
-void __fastcall TSubRect::EndVBO()
-{//koniec u¿ycia VBO w sektorze
- // Disable Pointers
- glDisableClientState(GL_VERTEX_ARRAY); // Disable Vertex Arrays
- glDisableClientState(GL_NORMAL_ARRAY);
- glDisableClientState(GL_TEXTURE_COORD_ARRAY); // Disable Texture Coord Arrays
- glBindBufferARB(GL_ARRAY_BUFFER_ARB,0);
- glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB,0);
+ return CMesh::StartVBO();
 };
 
 void TSubRect::Release()
 {//zwolnienie zasobów przez sprz¹tacz albo destruktor
- if (Global::bUseVBO)
-  if (m_nVBOVertices) //jeœli by³o coœ rezerwowane
-  {
-   unsigned int nBuffers[3]={m_nVBOVertices,m_nVBONormals,m_nVBOTexCoords};
-   glDeleteBuffersARB(3,nBuffers); // Free The Memory
-   WriteLog("Zwolnione VBO: "+AnsiString(m_nVBOVertices)+", "+AnsiString(m_nVBONormals)+", "+AnsiString(m_nVBOTexCoords));
-  }
- m_nVBOVertices=m_nVBONormals=m_nVBOTexCoords=0;
- m_nVertexCount=-1; //do ponownego zliczenia
- //usuwanie tablic, gdy by³y u¿yte do Vertex Array
- delete [] m_pVertices;  m_pVertices=NULL;
- delete [] m_pNormals;   m_pNormals=NULL;
- delete [] m_pTexCoords; m_pTexCoords=NULL;
+ CMesh::Release();
 };
 
 void __fastcall TGroundNode::Compile()
@@ -2833,8 +2766,8 @@ bool __fastcall TGround::Render(vector3 pPosition)
       if (node->iVboPtr>=0) node->Render();
      tmp->EndVBO();
     }
-    //for (node= tmp->pRootNode; node!=NULL; node=node->Next2)
-    // if (node->iVboPtr<0) node->Render();
+    for (node= tmp->pRootNode; node!=NULL; node=node->Next2)
+     if (node->iVboPtr<0) node->Render();
 /*
     for (node= tmp->pRootNode; node!=NULL; node=node->Next2)
     {
@@ -2888,8 +2821,8 @@ bool __fastcall TGround::RenderAlpha(vector3 pPosition)
       if (node->iVboPtr>=0) node->RenderAlpha();
      tmp->EndVBO();
     }
-    //for (node= tmp->pRootNode; node!=NULL; node=node->Next2)
-    // if (node->iVboPtr<0) node->RenderAlpha();
+    for (node= tmp->pRootNode; node!=NULL; node=node->Next2)
+     if (node->iVboPtr<0) node->RenderAlpha();
    }
   }
  return true;

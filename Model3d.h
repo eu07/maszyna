@@ -6,6 +6,7 @@
 #include "geometry.h"
 #include "Parser.h"
 #include "dumb3d.h"
+#include "VBO.h"
 using namespace Math3D;
 
 struct GLVERTEX
@@ -76,7 +77,7 @@ struct THitBoxContainer
 
 typedef enum { smt_Unknown, smt_Mesh, smt_Point, smt_FreeSpotLight, smt_Text} TSubModelType;
 
-typedef enum { at_None, at_Rotate, at_RotateXYZ } TAnimType;
+typedef enum { at_None, at_Rotate, at_RotateXYZ, at_Translate } TAnimType;
 
 class TModel3d;
 
@@ -87,7 +88,7 @@ class TSubModel
       GLuint TextureID;
       bool TexAlpha;        //McZapkie-141202: zeby bylo wiadomo czy sortowac ze wzgledu na przezroczystosc
 //      bool TexHash;
-      GLuint uiDisplayList;
+      //GLuint uiDisplayList;
       double Transparency;
       bool bWire;
       double fWireSize;
@@ -123,6 +124,10 @@ class TSubModel
       TSubModel *Child;
   //    vector3 HitBoxPts[6];
       int __fastcall SeekFaceNormal(DWORD *Masks, int f, DWORD dwMask, vector3 pt, GLVERTEX *Vertices, int iNumVerts);
+
+      int iNumVerts; //potrzebne do VBO
+      int iVboPtr;
+      GLVERTEX *Vertices; //do VBO
   public:
 
       TAnimType b_Anim, b_aAnim;
@@ -133,7 +138,7 @@ class TSubModel
       __fastcall TSubModel();
       __fastcall FirstInit();
       __fastcall ~TSubModel();
-      void __fastcall Load(cParser& Parser, int NIndex, TModel3d *Model);
+      int __fastcall Load(cParser& Parser, int NIndex, TModel3d *Model,int Pos);
       void __fastcall AddChild(TSubModel *SubModel);
       void __fastcall AddNext(TSubModel *SubModel);
       void __fastcall SetRotate(vector3 vNewRotateAxis, double fNewAngle);
@@ -145,6 +150,7 @@ class TSubModel
       inline matrix4x4* __fastcall GetMatrix() { return &Matrix; };
       matrix4x4* __fastcall GetTransform();
       inline void __fastcall Hide() { Visible= false; };
+      void  __fastcall RaArraysFill(CVert *Vert,CVec *Norm,CTexCoord *Tex);
   } ;
   /*
   class TSolid
@@ -155,7 +161,7 @@ class TSubModel
   } */
 
 
-class TModel3d
+class TModel3d : public CMesh
 {
 private:
 //    TMaterial *Materials;
@@ -172,7 +178,7 @@ public:
     TSubModel* __fastcall GetFromName(const char *sName);
 //    TMaterial* __fastcall GetMaterialFromName(char *sName);
     bool __fastcall AddTo(const char *Name, TSubModel *SubModel);
-    bool __fastcall LoadFromTextFile(char *FileName);
+    void __fastcall LoadFromTextFile(char *FileName);
     bool __fastcall LoadFromFile(char *FileName);
     void __fastcall SaveToFile(char *FileName);
     void __fastcall BreakHierarhy();

@@ -156,6 +156,7 @@ public:
     int __fastcall RaArraysPrepare();
     void  __fastcall RaArraysFill(CVert *Vert,CVec *Norm,CTexCoord *Tex);
     void  __fastcall RaRenderVBO(int iPtr);
+    void  __fastcall RaRenderAlpha(); //pojazdy
 };
 
 //---------------------------------------------------------------------------

@@ -34,8 +34,11 @@ double fSquareDist= 0;
 __fastcall TSubModel::TSubModel()
 {
     FirstInit();
-    eType= smt_Unknown;
-    uiDisplayList= 0;
+    eType=smt_Unknown;
+    //uiDisplayList=0;
+    Vertices=NULL;
+    iNumVerts=-1; //do sprawdzenia
+    iVboPtr=-1;
 };
 
 __fastcall TSubModel::FirstInit()
@@ -91,10 +94,11 @@ __fastcall TSubModel::FirstInit()
 
 __fastcall TSubModel::~TSubModel()
 {
-    glDeleteLists(uiDisplayList,1);
+    //glDeleteLists(uiDisplayList,1);
 //    SafeDeleteArray(Indices);
     SafeDelete(Next);
     SafeDelete(Child);
+    delete[] Vertices;
 };
 
 int __fastcall TSubModel::SeekFaceNormal(DWORD *Masks, int f, DWORD dwMask, vector3 pt, GLVERTEX *Vertices, int iNumVerts)
@@ -138,10 +142,11 @@ inline void readMatrix(cParser& parser, matrix4x4& matrix)
             parser.getToken(matrix(x)[y]);
 };
 
-void __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model)
-{
-    GLVERTEX *Vertices= NULL;
-    int iNumVerts= -1;
+int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int Pos)
+{//Ra: VBO tworzone na poziomie modelu, a nie submodeli
+    //GLVERTEX *Vertices=NULL; //
+    iVboPtr=Pos; //pozycja w VBO
+    iNumVerts= -1;
     bool bLight;
 //    TMaterialColorf Ambient,Diffuse,Specular;
     float Ambient[] = { 1,1,1,1 };
@@ -273,7 +278,7 @@ void __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model)
         {
             iNumVerts= 0;
             Error("Mesh error, iNumVertices%3!=0");
-            return;
+            return 0;
         }
 
         Vertices= new GLVERTEX[iNumVerts];
@@ -337,9 +342,9 @@ void __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model)
         delete[] sg;
     };
 
+/* Ra: przy VBO to siê nie przyda
     if(eType==smt_Mesh)
     {
-
 #ifdef USE_VERTEX_ARRAYS
         // ShaXbee-121209: przekazywanie wierzcholkow hurtem
         glVertexPointer(3, GL_DOUBLE, sizeof(GLVERTEX), &Vertices[0].Point.x);
@@ -400,9 +405,10 @@ void __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model)
         glEndList();
 
     }
-
-    SafeDeleteArray(Vertices);
-    Visible= true;
+    SafeDeleteArray(Vertices); //musz¹ zostaæ do za³adowania ca³ego modelu
+*/
+    Visible=true;
+ return iNumVerts; //do okreœlenia wielkoœci VBO   
 };
 
 void __fastcall TSubModel::AddChild(TSubModel *SubModel)
@@ -448,10 +454,10 @@ void __fastcall TSubModel::SetTranslate(vector3 vNewTransVector)
 {
     f_TranslateSpeed= 0;
     v_TransVector= vNewTransVector;
-    b_Anim= true;
+    b_Anim= at_Translate;
     f_aTranslateSpeed= 0;
     v_aTransVector= vNewTransVector;
-    b_aAnim= true;
+    b_aAnim= at_Translate;
 }
 /*
 void __fastcall TSubModel::SetRotateAnim(vector3 vNewRotateAxis, double fNewDesiredAngle, double fNewRotateSpeed, bool bResetAngle)
@@ -502,58 +508,53 @@ TSubModel* __fastcall TSubModel::GetFromName(std::string search)
 WORD hbIndices[18]= {3,0,1,5,4,2,1,0,4,1,5,3,2,3,5,2,4,0};
 
 void __fastcall TSubModel::Render(GLuint ReplacableSkinId)
-{
-    float Distdimm=0;
-    if (Next!=NULL)
-        Next->Render(ReplacableSkinId);
-
-    if (Visible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
-    {
-      glPushMatrix();
-      glMultMatrixd(Matrix.getArray());
-
-      if (b_Anim==at_Rotate)   //czy to potrzebne tu czy moze nizej?
-      {
-          glRotatef(f_Angle,v_RotateAxis.x,v_RotateAxis.y,v_RotateAxis.z);
-          glTranslatef(v_TransVector.x,v_TransVector.y,v_TransVector.z);
+{//g³ówna procedura renderowania
+ float Distdimm=0;
+ if (Next!=NULL)
+  Next->Render(ReplacableSkinId); //dalsze rekurencyjnie
+ if (Visible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
+ {
+  glPushMatrix();
+  glMultMatrixd(Matrix.getArray());
+  if (b_Anim==at_Rotate)   //czy to potrzebne tu czy moze nizej?
+  {
+   glRotatef(f_Angle,v_RotateAxis.x,v_RotateAxis.y,v_RotateAxis.z);
+   glTranslatef(v_TransVector.x,v_TransVector.y,v_TransVector.z);
 
   //        vRotateAxis= vector3(0,0,0);
     //      vTransVector= vector3(0,0,0);
-          f_Angle= 0;
-          b_Anim= at_None;
+   f_Angle=0;
+   b_Anim=at_None;
   //        bAnim= false;
-      }
-      else
-      if (b_Anim==at_RotateXYZ)
-      {
-          glTranslatef(v_TransVector.x,v_TransVector.y,v_TransVector.z);
-          glRotatef(v_Angles.y,0.0,1.0,0.0);
-          glRotatef(v_Angles.x,1.0,0.0,0.0);
-          glRotatef(v_Angles.z,0.0,0.0,1.0);
-          v_Angles.x=v_Angles.y=v_Angles.z= 0;
-          b_Anim= at_None;
-      }
-
-      //zmienialne skory
-      if ((TextureID==-1)) // && (ReplacableSkinId!=0))
-       {
-        glBindTexture(GL_TEXTURE_2D, ReplacableSkinId);
-        if (ReplacableSkinId>0)
-          TexAlpha= TTexturesManager::GetAlpha(ReplacableSkinId); //malo eleganckie ale narazie niech bedzie
-       }
-      else
-       {
-        glBindTexture(GL_TEXTURE_2D, TextureID);
-       }
-      if (!TexAlpha || !Global::bRenderAlpha)  //rysuj gdy nieprzezroczyste lub # albo gdy zablokowane alpha
-      {
-        if (eType==smt_FreeSpotLight)
-        {
-            matrix4x4 mat;
-            glGetDoublev(GL_MODELVIEW_MATRIX,mat.getArray());
-            fCosViewAngle=DotProduct(Normalize(mat*vector3(0,0,1)-mat*vector3(0,0,0)),vector3(0,0,1));
-            if (fCosViewAngle>fcosFalloffAngle)  // kat wiekszy niz max stozek swiatla
-            {
+  }
+  else
+   if (b_Anim==at_RotateXYZ)
+   {
+    glTranslatef(v_TransVector.x,v_TransVector.y,v_TransVector.z);
+    glRotatef(v_Angles.y,0.0,1.0,0.0);
+    glRotatef(v_Angles.x,1.0,0.0,0.0);
+    glRotatef(v_Angles.z,0.0,0.0,1.0);
+    v_Angles.x=v_Angles.y=v_Angles.z=0;
+    b_Anim= at_None;
+   }
+  //zmienialne skory
+  if ((TextureID==-1)) // && (ReplacableSkinId!=0))
+  {
+   glBindTexture(GL_TEXTURE_2D,ReplacableSkinId);
+   if (ReplacableSkinId>0)
+    TexAlpha=TTexturesManager::GetAlpha(ReplacableSkinId); //malo eleganckie ale narazie niech bedzie
+  }
+  else
+   glBindTexture(GL_TEXTURE_2D, TextureID);
+  if (!TexAlpha || !Global::bRenderAlpha)  //rysuj gdy nieprzezroczyste lub # albo gdy zablokowane alpha
+  {
+   if (eType==smt_FreeSpotLight)
+   {
+    matrix4x4 mat;
+    glGetDoublev(GL_MODELVIEW_MATRIX,mat.getArray());
+    fCosViewAngle=DotProduct(Normalize(mat*vector3(0,0,1)-mat*vector3(0,0,0)),vector3(0,0,1));
+    if (fCosViewAngle>fcosFalloffAngle)  // kat wiekszy niz max stozek swiatla
+    {
 /*   TODO: poprawic to zeby dzialalo
               if (iFarAttenDecay>0)
                switch (iFarAttenDecay)
@@ -570,23 +571,21 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId)
               glColor3f(Diffuse[0]*Distdimm,Diffuse[1]*Distdimm,Diffuse[2]*Distdimm);
 */
               glPopMatrix();
-              return;
-            }
-        }
-
-        glCallList(uiDisplayList);
-      }
-      if (Child!=NULL)
-          Child->Render(ReplacableSkinId);
-
-      glPopMatrix();
+     return;
     }
+   }
+   //glCallList(uiDisplayList); //Ra: to zamieniæ na VBO
+   glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);         // Narysuj naraz wszystkie trójk¹ty
+  }
+  if (Child!=NULL)
+   Child->Render(ReplacableSkinId);
+  glPopMatrix();
+ }
 };       //Render
 
 void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId)
 {
-    if (Next!=NULL)
-        Next->RenderAlpha(ReplacableSkinId);
+ if (Next) Next->RenderAlpha(ReplacableSkinId);
 
     if (eType==smt_FreeSpotLight)
     {
@@ -631,7 +630,8 @@ void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId)
        }
       if (TexAlpha && Global::bRenderAlpha)  //mozna rysowac bo przezroczyste i nie ma #
       {
-        glCallList(uiDisplayList);
+   glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);         // Narysuj naraz wszystkie trójk¹ty
+   //glCallList(uiDisplayList);
       }
       if (Child!=NULL)
           Child->RenderAlpha(ReplacableSkinId);
@@ -644,6 +644,22 @@ matrix4x4* __fastcall TSubModel::GetTransform()
 {
 //    Anim= true;
 //    return &Transform;
+};
+
+void  __fastcall TSubModel::RaArraysFill(CVert *Vert,CVec *Norm,CTexCoord *Tex)
+{//wype³nianie tablic VBO
+ if (Next) Next->RaArraysFill(Vert,Norm,Tex);
+ if (Child) Child->RaArraysFill(Vert,Norm,Tex);
+ for (int i=0;i<iNumVerts;++i)
+ {Vert[iVboPtr+i].x=Vertices[i].Point.x;
+  Vert[iVboPtr+i].y=Vertices[i].Point.y;
+  Vert[iVboPtr+i].z=Vertices[i].Point.z;
+  Norm[iVboPtr+i].x=Vertices[i].Normal.x;
+  Norm[iVboPtr+i].y=Vertices[i].Normal.y;
+  Norm[iVboPtr+i].z=Vertices[i].Normal.z;
+  Tex[iVboPtr+i].u=Vertices[i].tu;
+  Tex[iVboPtr+i].v=Vertices[i].tv;
+ }
 };
 //---------------------------------------------------------------------------
 
@@ -710,48 +726,40 @@ TMaterial* __fastcall TModel3d::GetMaterialFromName(char *sName)
 }
 */
 
-bool __fastcall TModel3d::LoadFromTextFile(char *FileName)
+void __fastcall TModel3d::LoadFromTextFile(char *FileName)
 {
-
-    WriteLog(AnsiString("Loading - text model: "+AnsiString(FileName)).c_str());
-
-    cParser parser(FileName, cParser::buffer_FILE);
-
-    TSubModel *SubModel= NULL;
-
-    std::string token;
-    parser.getToken(token);
-
-    while (token != "" || parser.eof())
-    {
-        std::string parent;
-        parser.getToken(parent);
-
-        if(parent == "")
-            break;
-
-        SubModel= new TSubModel();
-        SubModel->Load(parser,SubModelsCount,this);
-        if (!AddTo(parent.c_str(),SubModel))
-            SafeDelete(SubModel);
-        SubModelsCount++;
-        
-        parser.getToken(token);
-    }
-//    DecimalSeparator= ',';
-
-    matrix4x4 *mat,tmp;
-    if (Root)
-    {
-        mat= Root->GetMatrix();
-        tmp.Identity();
-        tmp.Rotation(M_PI/2,vector3(1,0,0));
-        (*mat)= tmp*(*mat);
-        tmp.Identity();
-        tmp.Rotation(M_PI,vector3(0,0,1));
-        (*mat)= tmp*(*mat);
-    }
-
+ WriteLog("Loading - text model: "+AnsiString(FileName));
+ cParser parser(FileName,cParser::buffer_FILE);
+ TSubModel *SubModel=NULL;
+ std::string token;
+ parser.getToken(token);
+ int totalverts=0;
+ while (token != "" || parser.eof())
+ {
+  std::string parent;
+  parser.getToken(parent);
+  if (parent=="") break;
+  SubModel= new TSubModel();
+  totalverts+=SubModel->Load(parser,SubModelsCount,this,totalverts);
+  if (!AddTo(parent.c_str(),SubModel)) SafeDelete(SubModel);
+  SubModelsCount++;
+  parser.getToken(token);
+ }
+ matrix4x4 *mat,tmp;
+ if (Root)
+ {
+  mat= Root->GetMatrix();
+  tmp.Identity();
+  tmp.Rotation(M_PI/2,vector3(1,0,0));
+  (*mat)= tmp*(*mat);
+  tmp.Identity();
+  tmp.Rotation(M_PI,vector3(0,0,1));
+  (*mat)= tmp*(*mat);
+  if (totalverts)
+  {MakeArrays(totalverts); //tworzenie tablic dla VBO
+   Root->RaArraysFill(m_pVertices,m_pNormals,m_pTexCoords); //wype³nianie tablic
+  }
+ }
 }
 
 
@@ -770,7 +778,7 @@ void __fastcall TModel3d::Render(vector3 pPosition, double fAngle, GLuint Replac
 {
 //    glColor3f(1.0f,1.0f,1.0f);
 //    glColor3f(0.0f,0.0f,0.0f);
-    glPushMatrix();
+    glPushMatrix(); //zapamiêtanie matrycy przekszta³cenia
 
     glTranslated(pPosition.x,pPosition.y,pPosition.z);
     if (fAngle!=0)
@@ -789,11 +797,13 @@ void __fastcall TModel3d::Render(vector3 pPosition, double fAngle, GLuint Replac
 
 #ifdef _DEBUG
     if (Root)
-        Root->Render(ReplacableSkinId);
-#else
-    Root->Render(ReplacableSkinId);
+     //   Root->Render(ReplacableSkinId);
 #endif
-    glPopMatrix();
+    if (StartVBO())
+    {Root->Render(ReplacableSkinId);
+     EndVBO();
+    }
+    glPopMatrix(); //przywrócenie ustawieñ przekszta³cenia
 };
 
 void __fastcall TModel3d::Render(double fSquareDistance, GLuint ReplacableSkinId)
@@ -801,10 +811,12 @@ void __fastcall TModel3d::Render(double fSquareDistance, GLuint ReplacableSkinId
     fSquareDist= fSquareDistance;
 #ifdef _DEBUG
     if (Root)
-        Root->Render(ReplacableSkinId);
-#else
-    Root->Render(ReplacableSkinId);
+    //    Root->Render(ReplacableSkinId);
 #endif
+    if (StartVBO())
+    {Root->Render(ReplacableSkinId);
+     EndVBO();
+    }
 };
 
 void __fastcall TModel3d::RenderAlpha(vector3 pPosition, double fAngle, GLuint ReplacableSkinId)
@@ -816,10 +828,12 @@ void __fastcall TModel3d::RenderAlpha(vector3 pPosition, double fAngle, GLuint R
     fSquareDist= SquareMagnitude(pPosition-Global::GetCameraPosition());
 #ifdef _DEBUG
     if (Root)
-        Root->RenderAlpha(ReplacableSkinId);
-#else
-    Root->RenderAlpha(ReplacableSkinId);
+    //    Root->RenderAlpha(ReplacableSkinId);
 #endif
+    if (StartVBO())
+    {Root->RenderAlpha(ReplacableSkinId);
+     EndVBO();
+    }
     glPopMatrix();
 };
 
@@ -828,10 +842,12 @@ void __fastcall TModel3d::RenderAlpha(double fSquareDistance, GLuint ReplacableS
     fSquareDist= fSquareDistance;
 #ifdef _DEBUG
     if (Root)
-        Root->RenderAlpha(ReplacableSkinId);
-#else
-    Root->RenderAlpha(ReplacableSkinId);
+    //    Root->RenderAlpha(ReplacableSkinId);
 #endif
+    if (StartVBO())
+    {Root->RenderAlpha(ReplacableSkinId);
+     EndVBO();
+    }
 };
 
 

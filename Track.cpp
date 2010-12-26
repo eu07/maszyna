@@ -409,6 +409,8 @@ void __fastcall TTrack::Load(cParser *parser, vector3 pOrigin)
 //      fTexHeight= Parser->GetNextSymbol().ToDouble(); //tex sub height
 //      fTexWidth= Parser->GetNextSymbol().ToDouble(); //tex sub width
 //      fTexSlope= Parser->GetNextSymbol().ToDouble(); //tex sub slope width
+      if (iCategoryFlag==4)
+       fTexHeight=-fTexHeight; //rzeki maj¹ wysokoœæ odwrotnie ni¿ drogi
      }
     else
      {
@@ -1069,6 +1071,7 @@ void TTrack::Release()
 
 };
 
+
 bool __fastcall TTrack::Render()
 {
 
@@ -1116,6 +1119,7 @@ bool __fastcall TTrack::Render()
    return true;
 
 }
+
 
 bool __fastcall TTrack::RenderAlpha()
 {
@@ -1287,8 +1291,6 @@ int __fastcall TTrack::RaArraysPrepare()
 
 void  __fastcall TTrack::RaArraysFill(CVert *Vert,CVec *Norm,CTexCoord *Tex)
 {//wype³nianie tablic VBO
- //if (eType!=tt_Normal) return;
- //if (iCategoryFlag!=1) return;
  double fHTW=0.5*fabs(fTrackWidth);
  double side=fabs(fTexWidth); //szerokœæ podsypki na zewn¹trz szyny albo pobocza
  double rozp=fHTW+side+fabs(fTexSlope); //brzeg zewnêtrzny
@@ -1421,8 +1423,8 @@ void  __fastcall TTrack::RaArraysFill(CVert *Vert,CVec *Norm,CTexCoord *Tex)
    }
   } //koniec obs³ugi torów
   break;
-  case 2:   //McZapkie-260302 - droga - rendering
-//McZapkie:240702-zmieniony zakres widzialnosci
+  case 2: //McZapkie-260302 - droga - rendering
+  case 4: //Ra: rzeki na razie jak drogi, przechy³ki na pewno nie maj¹
   {vector3 bpts1[4]; //punkty g³ównej p³aszczyzny przydaj¹ siê do robienia boków
    if (TextureID1||TextureID2) //punkty siê przydadz¹, nawet jeœli nawierzchni nie ma
    {//double max=2.0*(fHTW>fHTW2?fHTW:fHTW2); //z szerszej strony jest 100%
@@ -1474,27 +1476,6 @@ void  __fastcall TTrack::RaArraysFill(CVert *Vert,CVec *Norm,CTexCoord *Tex)
    }
   }
   break;
-  case 4:   //McZapkie-260302 - rzeka- rendering
-   //Ra: rzeki na razie bez zmian, przechy³ki na pewno nie maj¹
-      vector3 bpts1[numPts]= { vector3(fHTW,0.0,0.0),vector3(fHTW,0.2,0.33),
-                             vector3(-fHTW,0.0,0.67),vector3(-fHTW,0.0,1.0) };
-      //Ra: dziwnie ten kszta³t wygl¹da
-      if(TextureID1)
-      {
-          Segment->RaRenderLoft(Vert,Norm,Tex,bpts1,numPts,fTexLength);
-          if(TextureID2)
-          {//brzegi rzeki prawie jak pobocze derogi, tylko inny znak ma wysokoœæ
-              vector3 rpts1[3]= { vector3(rozp,fTexHeight,0.0),
-                                  vector3(fHTW+side,0.0,0.5),
-                                  vector3(fHTW,0.0,1.0) };
-              vector3 rpts2[3]= { vector3(-fHTW,0.0,1.0),
-                                  vector3(-fHTW-side,0.0,0.5),
-                                  vector3(-rozp,fTexHeight,0.1) }; //Ra: po kiego 0.1?
-              Segment->RaRenderLoft(Vert,Norm,Tex,rpts1,3,fTexLength);
-              Segment->RaRenderLoft(Vert,Norm,Tex,rpts2,3,fTexLength);
-          }
-      }
-      break;
  }
 };
 
@@ -1574,8 +1555,9 @@ void  __fastcall TTrack::RaRenderVBO(int iPtr)
      }
     }
    }
-   return;// (Segment->RaSegCount()+1)*((TextureID1?24:0)+(TextureID2?6:0));
+   break;// (Segment->RaSegCount()+1)*((TextureID1?24:0)+(TextureID2?6:0));
   case 2: //droga
+  case 4: //rzeki - jeszcze do przemyœlenia
    if ((seg=Segment->RaSegCount())>0)
    {if (TextureID1)
     {glBindTexture(GL_TEXTURE_2D,TextureID1); //nawierzchnia
@@ -1591,9 +1573,49 @@ void  __fastcall TTrack::RaRenderVBO(int iPtr)
       glDrawArrays(GL_TRIANGLE_STRIP,iPtr+6*i,6);
     }
    }
-   return;// (Segment->RaSegCount()+1)*((TextureID1?2:0)+(TextureID2?6:0));
-  case 3: //rzeki do przemyœlenia
-   return;// (Segment->RaSegCount()+1)*((TextureID1?4:0)+(TextureID2?6:0));
+   break;// (Segment->RaSegCount()+1)*((TextureID1?2:0)+(TextureID2?6:0));
+   //return;// (Segment->RaSegCount()+1)*((TextureID1?4:0)+(TextureID2?6:0));
+ }
+ for (int i=0; i<iNumDynamics; i++)
+ {
+  //Dynamics[i]->Render(); //zmieni kontekst VBO!
+ }
+};
+void  __fastcall TTrack::RaRenderAlpha()
+{//renderowanie pojazdów
+ glColor3f(1.0f,1.0f,1.0f);
+ //McZapkie-310702: zmiana oswietlenia w tunelu, wykopie
+ GLfloat ambientLight[4] ={0.5f,0.5f,0.5f,1.0f};
+ GLfloat diffuseLight[4] ={0.5f,0.5f,0.5f,1.0f};
+ GLfloat specularLight[4]={0.5f,0.5f,0.5f,1.0f};
+ switch (eEnvironment)
+ {//modyfikacje oœwietlenia zale¿nie od œrodowiska
+  case e_canyon: //wykop
+   for (int li=0;li<3;li++)
+   {
+    ambientLight[li]= Global::ambientDayLight[li]*0.7;
+    diffuseLight[li]= Global::diffuseDayLight[li]*0.3;
+    specularLight[li]=Global::specularDayLight[li]*0.4;
+   }
+   glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
+   glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
+   glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
+  break;
+  case e_tunnel: //tunel
+   for (int li=0;li<3;li++)
+   {
+    ambientLight[li]= Global::ambientDayLight[li]*0.2;
+    diffuseLight[li]= Global::diffuseDayLight[li]*0.1;
+    specularLight[li]=Global::specularDayLight[li]*0.2;
+   }
+   glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
+   glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
+   glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
+  break;
+ }
+ for (int i=0;i<iNumDynamics;i++)
+ {//Dynamics[i]->Render(); //zmieni kontekst VBO!
+  //Dynamics[i]->RenderAlpha();
  }
 };
 
