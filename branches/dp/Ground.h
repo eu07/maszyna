@@ -3,16 +3,14 @@
 #ifndef groundH
 #define groundH
 
-#include    "system.hpp"
-#include    "classes.hpp"
+#include "system.hpp"
+#include "classes.hpp"
 
 
-//#include "Track.h"
 #include "dumb3d.h"
 #include "Geometry.h"
 #include "QueryParserComp.hpp"
 #include "AnimModel.h"
-//#include "Semaphore.h"
 #include "DynObj.h"
 #include "Train.h"
 #include "Sound.h"
@@ -21,7 +19,6 @@
 #include "EvLaunch.h"
 #include "TractionPower.h"
 #include "mtable.hpp"
-//#include "Geom.h"
 
 #include "parser.h" //Tolaris-010603
 #include "ResourceManager.h"
@@ -134,20 +131,8 @@ public:
 };
 TSubRect *TGroundNode::pOwner=NULL; //tymczasowo w³aœciciel
 
-class TSubRect : public Resource
+class TSubRect : public Resource, public CMesh
 {
-private:
- int m_nVertexCount;         // Iloœæ wierzcho³ków
- // Dane siatki
- CVert *m_pVertices;         // Dane wierzcho³ków
- CVec *m_pNormals;         // Dane wierzcho³ków
- CTexCoord *m_pTexCoords;         // Wspó³rzêdne tekstur
- // Nazwy dla obiektów VBO
- unsigned int m_nVBOVertices;         // Nazwa VBO z wierzcho³kami
- unsigned int m_nVBONormals;
- unsigned int m_nVBOTexCoords;         // Nazwa VBO z koordynatami tekstur
- unsigned int m_nType;
- void __fastcall BuildVBOs(); //zamiana tablic na VBO
 public:
  void __fastcall LoadNodes();
 private:
@@ -179,7 +164,6 @@ public:
 //    __fastcall Render() { if (pRootNode) pRootNode->Render(); };
  void Release();
  bool __fastcall StartVBO();
- void __fastcall EndVBO();
 };
 
 const int iNumSubRects= 10; //Ra: trzeba sprawdziæ wydajnoœæ siatki

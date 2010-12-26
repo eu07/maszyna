@@ -73,7 +73,7 @@ bool __fastcall TSegment::Init(vector3 NewPoint1, vector3 NewCPointOut,
         double s=0;
         int i=0;
         iSegCount=ceil(fLength/fStep); //potrzebne do VBO
-        //fStep=fLength/(double)iSegCount; //wyrównanie podzia³u
+        //fStep=fLength/(double)(iSegCount-1); //wyrównanie podzia³u
         fTsBuffer= new double[iSegCount+1];
         fTsBuffer[0]= 0;               /* TODO : fix fTsBuffer */
 
@@ -596,13 +596,13 @@ void __fastcall TSegment::RaRenderLoft(CVert* &Vert,CVec* &Norm,CTexCoord* &Tex,
   dir=FastGetDirection(t,fOffset); //wektor kierunku
   parallel1=Normalize(CrossProduct(dir,vector3(0,1,0))); //wektor prostopad³y
   m2=s/fLength; jmm2=1.0-m2;
-  while (s<fLength)
+  while (i<iSegCount)
   {
    ++i; //kolejny punkt ³amanej
    s+=step; //koñcowa pozycja segmentu [m]
    m1=m2; jmm1=jmm2; //stara pozycja
    m2=s/fLength; jmm2=1.0-m2; //nowa pozycja
-   if (s>fLength-0.1) //Ra: -0.1 ¿eby nie robi³o cieniasa na koñcu
+   if (i==iSegCount)
    {//gdy przekroczyliœmy koniec - st¹d dziury w torach...
     step-=(s-fLength); //jeszcze do wyliczenia mapowania potrzebny
     s=fLength;

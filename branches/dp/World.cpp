@@ -60,12 +60,12 @@ __fastcall TWorld::TWorld()
 
 __fastcall TWorld::~TWorld()
 {
+ Global::bManageNodes=false; //Ra: wy³¹czenie wyrejestrowania, bo siê sypie
     SafeDelete(Train);
     TSoundsManager::Free();
     TModelsManager::Free();
     TTexturesManager::Free();
     glDeleteLists(base, 96);
-
 }
 
 GLvoid __fastcall TWorld::glPrint(const char *fmt)					// Custom GL "Print" Routine
@@ -95,7 +95,7 @@ __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 
     Global::detonatoryOK=true;
     WriteLog("Starting MaSzyna rail vehicle simulator.");
-    WriteLog("Compilation 2010-12-25");
+    WriteLog("Compilation 2010-12-26");
     WriteLog("Online documentation and additional files on http://eu07.pl");
     WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx_EU, OLO_EU, Bart, Quark-t, ShaXbee, Oli_EU, youBy and others");
     WriteLog("Renderer:");
@@ -806,8 +806,8 @@ bool __fastcall TWorld::Update()
       glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseCabLight);
       glLightfv(GL_LIGHT0,GL_SPECULAR,specularCabLight);
 
-      //Train->DynamicObject->mdKabina->Render(SquareMagnitude(Global::pCameraPosition-pos),0);
-      //Train->DynamicObject->mdKabina->RenderAlpha(SquareMagnitude(Global::pCameraPosition-pos),0);
+      Train->DynamicObject->mdKabina->Render(SquareMagnitude(Global::pCameraPosition-pos),0);
+      Train->DynamicObject->mdKabina->RenderAlpha(SquareMagnitude(Global::pCameraPosition-pos),0);
 //smierdzi
 //      mdModel->Render(SquareMagnitude(Global::pCameraPosition-pos),0);
 
