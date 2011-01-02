@@ -130,7 +130,7 @@ __fastcall TGroundNode::TGroundNode()
     iNumVerts = 0;
     iNumPts = 0;
     TextureID= 0;
-    DisplayListID = 0;
+    //DisplayListID = 0;
     TexAlpha= false;
     Pointer= NULL;
     iType= GL_POINTS;
@@ -142,11 +142,11 @@ __fastcall TGroundNode::TGroundNode()
 //    Color= TMaterialColor(1);
     fLineThickness= 1.0; //mm
     for (int i=0; i<3; i++)
-     {
-       Ambient[i]= Global::whiteLight[i]*255;
-       Diffuse[i]= Global::whiteLight[i]*255;
-       Specular[i]= Global::noLight[i]*255;
-     }
+    {
+     Ambient[i]= Global::whiteLight[i]*255;
+     Diffuse[i]= Global::whiteLight[i]*255;
+     Specular[i]= Global::noLight[i]*255;
+    }
     bAllocated= true;
     pTriGroup=NULL; //sam siê wyœwietla
     iVboPtr=-1; //indeks w VBO sektora
@@ -261,6 +261,7 @@ void __fastcall TGroundNode::InitNormals()
 
 void __fastcall TGroundNode::MoveMe(vector3 pPosition)
 {
+/*
     pCenter+=pPosition;
     switch (iType)
     {
@@ -302,7 +303,7 @@ void __fastcall TGroundNode::MoveMe(vector3 pPosition)
                Vertices[i].Point+=pPosition;
             ResourceManager::Unregister(this);
      }
-
+*/
 }
 
 void __fastcall TGround::MoveGroundNode(vector3 pPosition)
@@ -335,7 +336,8 @@ void __fastcall TGround::MoveGroundNode(vector3 pPosition)
 void __fastcall TGroundNode::RenderVBO()
 {//renderowanie z bufora VBO (VertexArray gdy brak)
  glColor3ub(Diffuse[0],Diffuse[1],Diffuse[2]);
- glBindTexture(GL_TEXTURE_2D,TextureID);         // Ustaw aktywn¹ teksturê
+ if (TextureID)
+  glBindTexture(GL_TEXTURE_2D,TextureID);         // Ustaw aktywn¹ teksturê
  glDrawArrays(iType,iVboPtr,iNumVerts);         // Narysuj naraz wszystkie trójk¹ty
 }
 
@@ -435,7 +437,7 @@ bool __fastcall TGroundNode::RenderAlpha()
     return true;
    case TP_MODEL:
     Model->RenderAlpha(pCenter,fAngle); return true;
-   case TP_TRACK: pTrack->RaRenderAlpha(); return true; //pojazdy
+   case TP_TRACK: /*pTrack->RaRenderAlpha();*/ return true; //pojazdy
    default:
     if (iVboPtr>=0)
     {RenderVBO();
@@ -667,8 +669,8 @@ void __fastcall TGroundNode::Compile()
 
 void TGroundNode::Release()
 {
- if (DisplayListID) glDeleteLists(DisplayListID,1);
- DisplayListID = 0;
+ //if (DisplayListID) glDeleteLists(DisplayListID,1);
+ //DisplayListID = 0;
 };
 
 
@@ -1109,7 +1111,6 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
            tmp->bStatic= false;
         break;
         case TP_MODEL :
-
             parser->getTokens(3);
             *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
 
@@ -2716,8 +2717,8 @@ bool __fastcall TGround::GetTraction(vector3 pPosition, TDynamicObject *model)
     }
     if (nty1<0)
     nty1=-nty1;
-if ((nty1<10)&&(nty1>0))
-    model->PantTraction1= nty1;
+    if ((nty1<10)&&(nty1>0))
+     model->PantTraction1= nty1;
     wsp1wb=nty2-6.039;
     if (wsp1wb<0)
     wsp1wb=-wsp1wb;
@@ -2733,8 +2734,8 @@ if ((nty1<10)&&(nty1>0))
     }
     if (nty2<0)
     nty2=-nty2;
-if ((nty2<10)&&(nty2>0))
-    model->PantTraction2= nty2;
+    if ((nty2<10)&&(nty2>0))
+     model->PantTraction2= nty2;
     if ((np1wy==1000) && (np2wy==1000))
      {
      model->PantTraction1= 5.8171;
@@ -2748,19 +2749,17 @@ bool __fastcall TGround::Render(vector3 pPosition)
 {
  int tr,tc;
  TGroundNode *node,*oldnode;
-
  glColor3f(1.0f,1.0f,1.0f);
- int n= 2*iNumSubRects; //iloœæ sektorów mapy do wyœwietlenia
- int c= GetColFromX(pPosition.x);
- int r= GetRowFromZ(pPosition.z);
+ int n=3*iNumSubRects; //iloœæ sektorów mapy do wyœwietlenia
+ int c=GetColFromX(pPosition.x);
+ int r=GetRowFromZ(pPosition.z);
  TSubRect *tmp,*tmp2;
- for (int j= r-n; j<r+n; j++)
-  for (int i= c-n; i<c+n; i++)
+ for (int j=r-n;j<r+n;j++)
+  for (int i=c-n;i<c+n;i++)
   {
    if ((tmp=FastGetSubRect(i,j))!=NULL)
    {
     tmp->LoadNodes();
-    TGroundNode::pOwner=tmp;
     if (tmp->StartVBO())
     {for (node= tmp->pRootNode; node!=NULL; node=node->Next2)
       if (node->iVboPtr>=0) node->Render();
@@ -2804,17 +2803,17 @@ bool __fastcall TGround::RenderAlpha(vector3 pPosition)
 {
  TGroundNode *node;
  glColor4f(1.0f,1.0f,1.0f,1.0f);
- int n= 2*iNumSubRects; //iloœæ sektorów mapy do wyœwietlenia
- int c= GetColFromX(pPosition.x);
- int r= GetRowFromZ(pPosition.z);
+ int n=3*iNumSubRects; //iloœæ sektorów mapy do wyœwietlenia
+ int c=GetColFromX(pPosition.x);
+ int r=GetRowFromZ(pPosition.z);
  TSubRect *tmp;
- for (int j= r-n; j<r+n; j++)
-  for (int i= c-n; i<c+n; i++)
+ //Ra: 3/4 terenu jest niepotrzebnie renderowane
+ for (int j=r-n;j<r+n;j++)
+  for (int i=c-n;i<c+n;i++)
   {
    if ((tmp=FastGetSubRect(i,j))!=NULL)
    {
     tmp->LoadNodes();
-    TGroundNode::pOwner=tmp;
     tmp->StartVBO();
     if (tmp->StartVBO())
     {for (node= tmp->pRootNode; node!=NULL; node=node->Next2)
@@ -2823,6 +2822,8 @@ bool __fastcall TGround::RenderAlpha(vector3 pPosition)
     }
     for (node= tmp->pRootNode; node!=NULL; node=node->Next2)
      if (node->iVboPtr<0) node->RenderAlpha();
+    for (node= tmp->pRootNode; node!=NULL; node=node->Next2)
+     if (node->iType==TP_TRACK) node->pTrack->RaRenderDynamic();
    }
   }
  return true;

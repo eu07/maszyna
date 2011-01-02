@@ -50,8 +50,8 @@ const int iMaxNumDynamics= 40; //McZapkie-100303
 const int NextMask[4]= {0,1,0,1}; //tor nastêpny dla stanów 0, 1, 2, 3
 const int PrevMask[4]= {0,0,1,1}; //tor poprzedni dla stanów 0, 1, 2, 3
 
-class TTrack: public Resource
-{
+class TTrack
+{//jest elementem sektora i razem z nim jest usuwane
 private:
     TSwitchExtension *SwitchExtension; //dodatkowe dane do toru, który jest zwrotnic¹
     TSegment *Segment;
@@ -68,7 +68,7 @@ private:
     double fRadiusTable[2]; //dwa promienie, drugi dla zwrotnicy
     int iTrapezoid; //0-standard, 1-przechy³ka, 2-trapez, 3-oba
 private:
-    GLuint DisplayListID;
+    //GLuint DisplayListID;
 public:
     int iNumDynamics;
     TDynamicObject *Dynamics[iMaxNumDynamics];
@@ -144,8 +144,8 @@ public:
     bool __fastcall RemoveDynamicObject(TDynamicObject *Dynamic);
     void __fastcall MoveMe(vector3 pPosition);
 
-    void Release();
-    void Compile();
+    //void Release();
+    //void Compile();
 
     bool __fastcall Render();
     bool __fastcall RenderAlpha();
@@ -156,7 +156,7 @@ public:
     int __fastcall RaArraysPrepare();
     void  __fastcall RaArraysFill(CVert *Vert,CVec *Norm,CTexCoord *Tex);
     void  __fastcall RaRenderVBO(int iPtr);
-    void  __fastcall RaRenderAlpha(); //pojazdy
+    void  __fastcall RaRenderDynamic(); //pojazdy
 };
 
 //---------------------------------------------------------------------------

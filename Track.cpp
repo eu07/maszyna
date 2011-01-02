@@ -84,7 +84,7 @@ __fastcall TTrack::TTrack()
     fRadiusTable[1]= 0;
     iNumDynamics= 0;
     ScannedFlag=false;
-    DisplayListID=0;
+    //DisplayListID=0;
     iTrapezoid=0; //parametry kszta³tu: 0-standard, 1-przechy³ka, 2-trapez, 3-oba
 }
 
@@ -746,7 +746,7 @@ void __fastcall TTrack::MoveMe(vector3 pPosition)
        Segment->MoveMe(pPosition);
     };
 
-    ResourceManager::Unregister(this);
+    //ResourceManager::Unregister(this);
 
 };
 
@@ -784,6 +784,7 @@ const vector3 iglica[nnumPts]= //iglica - vextor3(x,y,mapowanie tekstury)
 
 
 
+/* Ra: nie potrzebne
 void TTrack::Compile()
 {//przygotowanie trójk¹tów do wyœwielenia - model proceduralny
     if (DisplayListID)
@@ -938,6 +939,7 @@ void TTrack::Compile()
            SwitchExtension->bMovement=false; //koniec animacji
           }
          }
+*/
 //McZapkie-130302 - poprawione rysowanie szyn
 /* //stara wersja - dziwne prawe zwrotnice
          glBindTexture(GL_TEXTURE_2D, TextureID1);
@@ -949,6 +951,7 @@ void TTrack::Compile()
          SwitchExtension->Segments[1].RenderSwitchRail(rpts1,rpts3,nnumPts,fTexLength,2,fMaxOffset-SwitchExtension->fOffset1); //lewa iglica
          SwitchExtension->Segments[1].RenderLoft(rpts2,nnumPts,fTexLength); //prawa szyna normalnie ca³a
 */
+/*
          if (SwitchExtension->RightSwitch)
          {//nowa wersja z SPKS, ale odwrotnie lewa/prawa
           glBindTexture(GL_TEXTURE_2D, TextureID1);
@@ -1060,7 +1063,6 @@ void TTrack::Compile()
 
     if(Global::bManageNodes)
         glEndList();
-
 };
 
 void TTrack::Release()
@@ -1070,22 +1072,24 @@ void TTrack::Release()
     DisplayListID=0;
 
 };
+*/
 
 
 bool __fastcall TTrack::Render()
 {
 
     if(bVisible && SquareMagnitude(Global::pCameraPosition-Segment->FastGetPoint(0.5)) < 810000)
-    {
+    {/*
         if(!DisplayListID)
         {
             Compile();
             if(Global::bManageNodes)
                 ResourceManager::Register(this);
         };
-        SetLastUsage(Timer::GetSimulationTime());
-        glCallList(DisplayListID);
+        //SetLastUsage(Timer::GetSimulationTime());
+        //glCallList(DisplayListID);
         if (InMovement()) Release(); //zwrotnica w trakcie animacji do odrysowania
+      */  
     };
 
     for (int i=0; i<iNumDynamics; i++)
@@ -1235,10 +1239,10 @@ bool __fastcall TTrack::Switch(int i)
         bNextSwitchDirection= SwitchExtension->bNextSwitchDirection[NextMask[i]];
         bPrevSwitchDirection= SwitchExtension->bPrevSwitchDirection[PrevMask[i]];
         fRadius= fRadiusTable[i]; //McZapkie: wybor promienia toru
-        if (DisplayListID) //jeœli istnieje siatka renderu
-         SwitchExtension->bMovement=true; //bêdzie animacja
-        else
-         SwitchExtension->fOffset1=SwitchExtension->fDesiredOffset1; //nie ma siê co bawiæ
+        //if (DisplayListID) //jeœli istnieje siatka renderu
+        // SwitchExtension->bMovement=true; //bêdzie animacja
+        //else
+        // SwitchExtension->fOffset1=SwitchExtension->fDesiredOffset1; //nie ma siê co bawiæ
         return true;
      }
      else
@@ -1283,8 +1287,8 @@ int __fastcall TTrack::RaArraysPrepare()
      return (Segment->RaSegCount())*((TextureID1?48:0)+(TextureID2?8:0));
    case 2: //droga
     return (Segment->RaSegCount())*((TextureID1?4:0)+(TextureID2?12:0));
-   case 3: //rzeki do przemyœlenia
-    return (Segment->RaSegCount())*((TextureID1?8:0)+(TextureID2?12:0));
+   case 4: //rzeki do przemyœlenia
+    return (Segment->RaSegCount())*((TextureID1?4:0)+(TextureID2?12:0));
   }
  return 0;
 };
@@ -1581,7 +1585,8 @@ void  __fastcall TTrack::RaRenderVBO(int iPtr)
   //Dynamics[i]->Render(); //zmieni kontekst VBO!
  }
 };
-void  __fastcall TTrack::RaRenderAlpha()
+
+void  __fastcall TTrack::RaRenderDynamic()
 {//renderowanie pojazdów
  glColor3f(1.0f,1.0f,1.0f);
  //McZapkie-310702: zmiana oswietlenia w tunelu, wykopie
@@ -1614,8 +1619,8 @@ void  __fastcall TTrack::RaRenderAlpha()
   break;
  }
  for (int i=0;i<iNumDynamics;i++)
- {//Dynamics[i]->Render(); //zmieni kontekst VBO!
-  //Dynamics[i]->RenderAlpha();
+ {Dynamics[i]->Render(); //zmieni kontekst VBO!
+  Dynamics[i]->RenderAlpha();
  }
 };
 

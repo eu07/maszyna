@@ -38,7 +38,7 @@ TModel3d* __fastcall TMdlContainer::LoadModel(char *newName)
     Name= new char[strlen(newName)+1];
     strcpy(Name,newName);
     Model= new TModel3d();
-    Model->LoadFromTextFile(Name);
+    Model->LoadFromTextFile(Name); //np. "models\\pkp/head1-y.t3d"
     return Model;
 };
 
