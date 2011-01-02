@@ -48,35 +48,34 @@ class TGroundNode;
 
 class TSubRect;
 
-class TGroundNode : public Resource
+class TGroundNode
 {
 private:
 public:
-    TDynamicObject *NearestDynObj;
-    double DistToDynObj;
+    //TDynamicObject *NearestDynObj;
+    //double DistToDynObj;
 
     TGroundNodeType iType; //typ obiektu
     union
     {
-        void *Pointer;
-        TAnimModel *Model;
-        TDynamicObject *DynamicObject;
-        vector3 *Points; //punkty dla linii
-        TTrack *pTrack;
-        TGroundVertex *Vertices; //wierzcho³ki dla trójk¹tów
-        TMemCell *MemCell;
-        TEventLauncher *EvLaunch;
-        TTraction *Traction;
-        TTractionPowerSource *TractionPowerSource;
-        TRealSound *pStaticSound;
-//        TGeometry *pGeometry;
+     void *Pointer; //do przypisywania NULL
+     TAnimModel *Model;
+     TDynamicObject *DynamicObject;
+     vector3 *Points; //punkty dla linii
+     TTrack *pTrack;
+     TGroundVertex *Vertices; //wierzcho³ki dla trójk¹tów
+     TMemCell *MemCell;
+     TEventLauncher *EvLaunch;
+     TTraction *Traction;
+     TTractionPowerSource *TractionPowerSource;
+     TRealSound *pStaticSound;
     };
     AnsiString asName;
     union
     {
-        int iNumVerts; //dla trójk¹tów
-        int iNumPts; //dla linii
-        //int iState; //Ra: nie u¿ywane - dŸwiêki zapêtlone
+     int iNumVerts; //dla trójk¹tów
+     int iNumPts; //dla linii
+     //int iState; //Ra: nie u¿ywane - dŸwiêki zapêtlone
     };
     vector3 pCenter; //œrodek do przydzielenia sektora
 
@@ -97,10 +96,10 @@ public:
     bool bAllocated; //Ra: zawsze true
     TGroundNode *Next; //lista wszystkich, ostatni na koñcu
     TGroundNode *Next2; //lista w sektorze
-    static TSubRect *pOwner; //tymczasowo w³aœciciel
+    //static TSubRect *pOwner; //tymczasowo w³aœciciel
     __fastcall TGroundNode();
     __fastcall ~TGroundNode();
-    bool __fastcall Init(int n);
+    void __fastcall Init(int n);
     void __fastcall InitCenter();
     void __fastcall InitNormals();
 
@@ -121,15 +120,15 @@ public:
         return NULL;
     };
 
-    void __fastcall Compile();
-    void Release();
+    //void __fastcall Compile();
+    //void Release();
 
     bool __fastcall GetTraction();
     bool __fastcall Render();
     bool __fastcall RenderAlpha(); //McZapkie-131202: dwuprzebiegowy rendering
     void __fastcall RenderVBO();
 };
-TSubRect *TGroundNode::pOwner=NULL; //tymczasowo w³aœciciel
+//TSubRect *TGroundNode::pOwner=NULL; //tymczasowo w³aœciciel
 
 class TSubRect : public Resource, public CMesh
 {
