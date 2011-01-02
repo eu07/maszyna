@@ -101,7 +101,7 @@ __fastcall TSubModel::~TSubModel()
     delete[] Vertices;
 };
 
-int __fastcall TSubModel::SeekFaceNormal(DWORD *Masks, int f, DWORD dwMask, vector3 pt, GLVERTEX *Vertices, int iNumVerts)
+int __fastcall TSubModel::SeekFaceNormal(DWORD *Masks, int f, DWORD dwMask, vector3 pt, GLVERTEX *Vertices)
 {
     int iNumFaces= iNumVerts/3;
 
@@ -146,12 +146,12 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
 {//Ra: VBO tworzone na poziomie modelu, a nie submodeli
     //GLVERTEX *Vertices=NULL; //
     iVboPtr=Pos; //pozycja w VBO
-    iNumVerts= -1;
-    bool bLight;
+    iNumVerts=0;
+    //bool bLight;
 //    TMaterialColorf Ambient,Diffuse,Specular;
-    float Ambient[] = { 1,1,1,1 };
-    float Diffuse[] = { 1,1,1,1 };
-    float Specular[] = { 0,0,0,1 };
+    f4Ambient[0]=f4Ambient[1]=f4Ambient[2]=f4Ambient[3]=1.0; //{1,1,1,1};
+    f4Diffuse[0]=f4Diffuse[1]=f4Diffuse[2]=f4Diffuse[3]=1.0; //{1,1,1,1};
+    f4Specular[0]=f4Specular[1]=f4Specular[2]=0.0; f4Specular[3]=1.0; //{0,0,0,1};
 //    GLuint TextureID;
 //    char *extName;
 
@@ -162,14 +162,14 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
         std::string type;
         parser.getToken(type);
 
-        if (type == "mesh")
-            eType = smt_Mesh;
-        else if (type == "point")
-            eType = smt_Point;
-        else if (type == "freespotlight")
-            eType = smt_FreeSpotLight;
-        else if (type == "text")
-            eType = smt_Text; //wyœwietlacz tekstowy (generator napisów)
+        if (type=="mesh")
+            eType=smt_Mesh;
+        else if (type=="point")
+            eType=smt_Point;
+        else if (type=="freespotlight")
+            eType=smt_FreeSpotLight;
+        else if (type=="text")
+            eType=smt_Text; //wyœwietlacz tekstowy (generator napisów)
     };
 
     parser.ignoreToken();
@@ -178,16 +178,16 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
     if(parser.expectToken("anim:"))
         parser.ignoreTokens(2);
 
-    if(eType == smt_Mesh) readColor(parser, Ambient);
-    readColor(parser, Diffuse);
-    if(eType == smt_Mesh) readColor(parser, Specular);
+    if (eType==smt_Mesh) readColor(parser,f4Ambient);
+    readColor(parser,f4Diffuse);
+    if (eType==smt_Mesh) readColor(parser,f4Specular);
 
     bLight = parser.expectToken("true");
 
-    if(eType == smt_FreeSpotLight)
+    if (eType==smt_FreeSpotLight)
     {
 
-        if(!parser.expectToken("nearattenstart:"))
+        if (!parser.expectToken("nearattenstart:"))
             Error("Model light parse failure!");
 
         parser.getToken(fNearAttenStart);
@@ -206,12 +206,12 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
 
         parser.ignoreToken();
         parser.getToken(fcosFalloffAngle);
-        fcosFalloffAngle = cos(fcosFalloffAngle * M_PI / 90);
+        fcosFalloffAngle=cos(fcosFalloffAngle * M_PI / 90);
 
         parser.ignoreToken();
         parser.getToken(fcosHotspotAngle);
-        fcosHotspotAngle = cos(fcosHotspotAngle * M_PI / 90);
-
+        fcosHotspotAngle=cos(fcosHotspotAngle * M_PI / 90);
+        iNumVerts=1;
     };
 
     if (eType == smt_Mesh)
@@ -226,20 +226,20 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
         parser.ignoreToken();
         Transparency = readIntAsDouble(parser, 100.0f);
 
-        if(!parser.expectToken("map:"))
+        if (!parser.expectToken("map:"))
             Error("Model map parse failure!");
 
         std::string texture;
         parser.getToken(texture);
 
-        if(texture == "none")
+        if (texture=="none")
         {
             TextureID= 0;
         }
         else
         {
 // McZapkie-060702: zmienialne skory modelu
-            if (texture.find("replacableskin") != texture.npos)
+            if (texture.find("replacableskin")!=texture.npos)
             {
                 TextureID= -1;
             }
@@ -269,12 +269,12 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
     int iNumFaces;
     DWORD *sg;
 
-    if(eType == smt_Mesh)
+    if (eType==smt_Mesh)
     {
         parser.ignoreToken();
         parser.getToken(iNumVerts);
 
-        if(iNumVerts % 3)
+        if (iNumVerts % 3)
         {
             iNumVerts= 0;
             Error("Mesh error, iNumVertices%3!=0");
@@ -285,7 +285,7 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
         iNumFaces= iNumVerts/3;
         sg = new DWORD[iNumFaces];
 
-        for(int i=0; i<iNumVerts; i++)
+        for (int i=0;i<iNumVerts;i++)
         {
 
             if(i % 3 == 0)
@@ -318,21 +318,21 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
             {
                 norm= vector3(0,0,0);
 
-                f= SeekFaceNormal(sg,0,sg[i],Vertices[v].Point,Vertices,iNumVerts);
-                norm= vector3(0,0,0);
+                f=SeekFaceNormal(sg,0,sg[i],Vertices[v].Point,Vertices);
+                norm=vector3(0,0,0);
                 while (f>=0)
                 {
-                    norm += SafeNormalize(CrossProduct( Vertices[f*3].Point-Vertices[f*3+1].Point,
+                    norm+=SafeNormalize(CrossProduct( Vertices[f*3].Point-Vertices[f*3+1].Point,
                                                Vertices[f*3].Point-Vertices[f*3+2].Point ));
-                    f= SeekFaceNormal(sg,f+1,sg[i],Vertices[v].Point,Vertices,iNumVerts);
+                    f=SeekFaceNormal(sg,f+1,sg[i],Vertices[v].Point,Vertices);
                 }
 
                 if (norm.Length()==0)
-                    norm += SafeNormalize(CrossProduct( Vertices[i*3].Point-Vertices[i*3+1].Point,
+                    norm+=SafeNormalize(CrossProduct( Vertices[i*3].Point-Vertices[i*3+1].Point,
                                                Vertices[i*3].Point-Vertices[i*3+2].Point ));
 
                 if (norm.Length()>0)
-                    Vertices[v].Normal= Normalize(norm);
+                    Vertices[v].Normal=Normalize(norm);
                 else
                     f=0;
                 v++;
@@ -484,17 +484,17 @@ TSubModel* __fastcall TSubModel::GetFromName(std::string search)
 
     std::transform(search.begin(), search.end(), search.begin(), ToLower());
 
-    if(search == Name)
+    if (search == Name)
         return this;
 
-    if(Next)
+    if (Next)
     {
         result = Next->GetFromName(search);
         if(result)
             return result;
     };
 
-    if(Child)
+    if (Child)
     {
         result = Child->GetFromName(search);
         if(result)
@@ -545,7 +545,7 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId)
     TexAlpha=TTexturesManager::GetAlpha(ReplacableSkinId); //malo eleganckie ale narazie niech bedzie
   }
   else
-   glBindTexture(GL_TEXTURE_2D, TextureID);
+   glBindTexture(GL_TEXTURE_2D,TextureID);
   if (!TexAlpha || !Global::bRenderAlpha)  //rysuj gdy nieprzezroczyste lub # albo gdy zablokowane alpha
   {
    if (eType==smt_FreeSpotLight)
@@ -574,8 +574,40 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId)
      return;
     }
    }
-   //glCallList(uiDisplayList); //Ra: to zamieniæ na VBO
-   glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);         // Narysuj naraz wszystkie trójk¹ty
+   if (eType==smt_Mesh)
+   {
+    glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);   //McZapkie-240702: zamiast ub
+    glMaterialfv(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE,f4Diffuse);
+    if (bLight)
+     glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
+    glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie trójk¹ty z VBO
+    if (bLight)
+     glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
+   }
+/*Ra: tu coœ jest bez sensu...    
+    else
+    {
+     glBindTexture(GL_TEXTURE_2D, 0);
+//        if (eType==smt_FreeSpotLight)
+//         {
+//          if (iFarAttenDecay==0)
+//            glColor3f(Diffuse[0],Diffuse[1],Diffuse[2]);
+//         }
+//         else
+//TODO: poprawic zeby dzialalo
+     glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
+     glColorMaterial(GL_FRONT_AND_BACK,GL_EMISSION);
+     glDisable(GL_LIGHTING);  //Tolaris-030603: bo mu punkty swiecace sie blendowaly
+     //glBegin(GL_POINTS);
+     glDrawArrays(GL_POINTS,iVboPtr,iNumVerts);  //narysuj wierzcho³ek z VBO
+     //       glVertex3f(0,0,0);
+     //glEnd();
+     glEnable(GL_LIGHTING);
+     glColorMaterial(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE);
+     glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
+     //glEndList();
+    }
+*/
   }
   if (Child!=NULL)
    Child->Render(ReplacableSkinId);
@@ -617,10 +649,11 @@ void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId)
           v_aAngles.x=v_aAngles.y=v_aAngles.z= 0;
           b_aAnim= at_None;
       }
+     glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
     //zmienialne skory
       if ((TextureID==-1)) // && (ReplacableSkinId!=0))
        {
-        glBindTexture(GL_TEXTURE_2D, ReplacableSkinId);
+        glBindTexture(GL_TEXTURE_2D,ReplacableSkinId);
         if (ReplacableSkinId>0)
           TexAlpha= TTexturesManager::GetAlpha(ReplacableSkinId); //malo eleganckie ale narazie niech bedzie
        }
@@ -630,7 +663,7 @@ void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId)
        }
       if (TexAlpha && Global::bRenderAlpha)  //mozna rysowac bo przezroczyste i nie ma #
       {
-   glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);         // Narysuj naraz wszystkie trójk¹ty
+   glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts); //narysuj naraz wszystkie trójk¹ty z VBO
    //glCallList(uiDisplayList);
       }
       if (Child!=NULL)
@@ -650,16 +683,19 @@ void  __fastcall TSubModel::RaArraysFill(CVert *Vert,CVec *Norm,CTexCoord *Tex)
 {//wype³nianie tablic VBO
  if (Next) Next->RaArraysFill(Vert,Norm,Tex);
  if (Child) Child->RaArraysFill(Vert,Norm,Tex);
- for (int i=0;i<iNumVerts;++i)
- {Vert[iVboPtr+i].x=Vertices[i].Point.x;
-  Vert[iVboPtr+i].y=Vertices[i].Point.y;
-  Vert[iVboPtr+i].z=Vertices[i].Point.z;
-  Norm[iVboPtr+i].x=Vertices[i].Normal.x;
-  Norm[iVboPtr+i].y=Vertices[i].Normal.y;
-  Norm[iVboPtr+i].z=Vertices[i].Normal.z;
-  Tex[iVboPtr+i].u=Vertices[i].tu;
-  Tex[iVboPtr+i].v=Vertices[i].tv;
- }
+ if (eType==smt_Mesh)
+  for (int i=0;i<iNumVerts;++i)
+  {Vert[iVboPtr+i].x=Vertices[i].Point.x;
+   Vert[iVboPtr+i].y=Vertices[i].Point.y;
+   Vert[iVboPtr+i].z=Vertices[i].Point.z;
+   Norm[iVboPtr+i].x=Vertices[i].Normal.x;
+   Norm[iVboPtr+i].y=Vertices[i].Normal.y;
+   Norm[iVboPtr+i].z=Vertices[i].Normal.z;
+   Tex[iVboPtr+i].u=Vertices[i].tu;
+   Tex[iVboPtr+i].v=Vertices[i].tv;
+  }
+ else if (eType==smt_FreeSpotLight)
+  Vert[iVboPtr].x=Vert[iVboPtr].y=Vert[iVboPtr].z=0.0;
 };
 //---------------------------------------------------------------------------
 

@@ -63,7 +63,8 @@ bool __fastcall TSegment::Init(vector3 NewPoint1, vector3 NewCPointOut,
 
     if (fLength<=0)
     {
-        MessageBox(0,"Length<=0","TSegment::Init",MB_OK);
+        WriteLog("Length <= 0 in TSegment::Init");
+        //MessageBox(0,"Length<=0","TSegment::Init",MB_OK);
         return false;
     }
 
@@ -520,7 +521,7 @@ void __fastcall TSegment::RenderSwitchRail(const vector3 *ShapePoints1, const ve
             glEnd();*/
     }
 };
-
+/*
 void __fastcall TSegment::Render()
 {
         vector3 pt;
@@ -569,7 +570,7 @@ void __fastcall TSegment::Render()
             }
 
 }
-
+*/
 void __fastcall TSegment::RaRenderLoft(CVert* &Vert,CVec* &Norm,CTexCoord* &Tex,
  const vector3 *ShapePoints, int iNumShapePoints, double fTextureLength, int iSkip)
 {//generowanie trójk¹tów dla odcinka trajektorii ruchu

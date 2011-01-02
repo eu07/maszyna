@@ -51,8 +51,8 @@ TTraction::TTraction()//:TNode()
 //    dwFlags= 0;
     Wires= 2;
 //    fU=fR= 0;
-    uiDisplayList= glGenLists(1);
-    glNewList(uiDisplayList,GL_COMPILE);
+    //uiDisplayList= glGenLists(1);
+    //glNewList(uiDisplayList,GL_COMPILE);
     asPowerSupplyName="";
 //    mdPole= NULL;
 //    ReplacableSkinID= 0;
@@ -65,10 +65,11 @@ TTraction::~TTraction()
 
 void __fastcall TTraction::Optimize()
 {
+/*
     glNewList(uiDisplayList,GL_COMPILE);
 
     glBindTexture(GL_TEXTURE_2D, 0);
-
+*/
 //    glColor3ub(0,0,0); McZapkie: to do render
 
 //    glPushMatrix();
@@ -80,13 +81,13 @@ void __fastcall TTraction::Optimize()
       double ddp=hypot(pPoint2.x-pPoint1.x,pPoint2.z-pPoint1.z);
 
       if (Wires==2) WireOffset=0;
-
+/*
       //Przewoz jezdny 1 'Marcin
       glBegin(GL_LINE_STRIP);
           glVertex3f(pPoint1.x-(pPoint2.z/ddp-pPoint1.z/ddp)*WireOffset,pPoint1.y,pPoint1.z-(-pPoint2.x/ddp+pPoint1.x/ddp)*WireOffset);
           glVertex3f(pPoint2.x-(pPoint2.z/ddp-pPoint1.z/ddp)*WireOffset,pPoint2.y,pPoint2.z-(-pPoint2.x/ddp+pPoint1.x/ddp)*WireOffset);
       glEnd();
-
+*/
       //Nie wiem co 'Marcin
       vector3 pt1,pt2,pt3,pt4,v1,v2;
       v1= pPoint4-pPoint3;
@@ -101,6 +102,7 @@ void __fastcall TTraction::Optimize()
       //Przewod nosny 'Marcin
       if (Wires != 1)
       {
+/*
        glBegin(GL_LINE_STRIP);
            glVertex3f(pPoint3.x,pPoint3.y,pPoint3.z);
            for (int i=0; i<iNumSections-1; i++)
@@ -112,15 +114,18 @@ void __fastcall TTraction::Optimize()
            }
            glVertex3f(pPoint4.x,pPoint4.y,pPoint4.z);
        glEnd();
+*/
        }
 
       //Drugi przewod jezdny 'Winger
       if (Wires == 3)
       {
+/*
       glBegin(GL_LINE_STRIP);
           glVertex3f(pPoint1.x+(pPoint2.z/ddp-pPoint1.z/ddp)*WireOffset,pPoint1.y,pPoint1.z+(-pPoint2.x/ddp+pPoint1.x/ddp)*WireOffset);
           glVertex3f(pPoint2.x+(pPoint2.z/ddp-pPoint1.z/ddp)*WireOffset,pPoint2.y,pPoint2.z+(-pPoint2.x/ddp+pPoint1.x/ddp)*WireOffset);
       glEnd();
+*/
       }
 
       f= step;
@@ -128,6 +133,7 @@ void __fastcall TTraction::Optimize()
       //Przewody pionowe (wieszaki) 'Marcin, poprawki na 2 przewody jezdne 'Winger
       if (Wires != 1)
       {
+/*
        glBegin(GL_LINES);
            for (int i=0; i<iNumSections-1; i++)
            {
@@ -149,8 +155,9 @@ void __fastcall TTraction::Optimize()
 
            }
        glEnd();
+*/
       }
-      glEndList();
+      //glEndList();
   }
 }
 /*
@@ -237,9 +244,11 @@ void __fastcall TTraction::Render(float mgn)   //McZapkie: mgn to odleglosc od o
       r=r*Global::ambientDayLight[0];  //w zaleznosci od koloru swiatla
       g=g*Global::ambientDayLight[1];
       b=b*Global::ambientDayLight[2];
+/* Ra: tymczasowo zablokowane
       glColor3f(r,g,b); // linealpha);
       glCallList(uiDisplayList);
       glLineWidth(1.0);
+*/
     }
 }
 

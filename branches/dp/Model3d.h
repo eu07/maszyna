@@ -83,10 +83,15 @@ class TModel3d;
 
 class TSubModel
 {
-  private:
+private:
       TSubModelType eType;
       GLuint TextureID;
       bool TexAlpha;        //McZapkie-141202: zeby bylo wiadomo czy sortowac ze wzgledu na przezroczystosc
+      bool bLight; //selfillum
+      float f4Ambient[4];
+      float f4Diffuse[4];
+      float f4Specular[4];
+
 //      bool TexHash;
       //GLuint uiDisplayList;
       double Transparency;
@@ -123,12 +128,12 @@ class TSubModel
       TSubModel *Next;
       TSubModel *Child;
   //    vector3 HitBoxPts[6];
-      int __fastcall SeekFaceNormal(DWORD *Masks, int f, DWORD dwMask, vector3 pt, GLVERTEX *Vertices, int iNumVerts);
+      int __fastcall SeekFaceNormal(DWORD *Masks, int f, DWORD dwMask, vector3 pt, GLVERTEX *Vertices);
 
       int iNumVerts; //potrzebne do VBO
       int iVboPtr;
       GLVERTEX *Vertices; //do VBO
-  public:
+public:
 
       TAnimType b_Anim, b_aAnim;
 
@@ -151,15 +156,7 @@ class TSubModel
       matrix4x4* __fastcall GetTransform();
       inline void __fastcall Hide() { Visible= false; };
       void  __fastcall RaArraysFill(CVert *Vert,CVec *Norm,CTexCoord *Tex);
-  } ;
-  /*
-  class TSolid
-  {
-  public:
-      virtual void __fastcall Render();
-
-  } */
-
+} ;
 
 class TModel3d : public CMesh
 {

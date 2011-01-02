@@ -3,7 +3,7 @@
 <PROJECT>
   <MACROS>
     <VERSION value="BCB.05.03"/>
-    <PROJECT value="G:\EU07\EU07.exe"/>
+    <PROJECT value="M:\aEU07\EU07-2006\EU07.exe"/>
     <OBJFILES value="McZapkie\mover.obj McZapkie\ai_driver.obj QueryParserComp.obj EU07.obj 
       dumb3d.obj Camera.obj Texture.obj World.obj Model3d.obj geometry.obj 
       MdlMngr.obj Train.obj wavread.obj Timer.obj Event.obj MemCell.obj Logs.obj 
@@ -59,10 +59,10 @@ IncludeVerInfo=1
 AutoIncBuild=1
 MajorVer=1
 MinorVer=2
-Release=50
-Build=83
-Debug=0
-PreRelease=1
+Release=51
+Build=84
+Debug=1
+PreRelease=0
 Special=0
 Private=0
 DLL=0
@@ -72,7 +72,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=PC2009 SP1
-FileVersion=1.2.50.83
+FileVersion=1.2.51.84
 InternalName=hammer
 LegalCopyright=
 LegalTrademarks=
@@ -126,10 +126,13 @@ Item4=GLEW_STATIC;_DEBUG;USE_VERTEX_ARRAYS
 Item5=_DEBUG
 
 [HistoryLists\hlFinalOutputDir]
-Count=3
-Item0=G:\EU07\
-Item1=C:\EU07\
-Item2=C:\EU07
+Count=6
+Item0=M:\aEU07\EU07-2006\
+Item1=M:\aEU07\EU07\
+Item2=M:\aEU07\EU07
+Item3=G:\EU07\
+Item4=C:\EU07\
+Item5=C:\EU07
 
 [Debugging]
 DebugSourceDirs=

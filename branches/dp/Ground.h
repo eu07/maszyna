@@ -84,7 +84,7 @@ public:
     double fSquareRadius; //kwadrat widocznoœci do
     double fSquareMinRadius; //kwadrat widocznoœci od
     TGroundNode *pTriGroup; //Ra: obiekt grupuj¹cy trójk¹ty w TSubRect (ogranicza iloœæ DisplayList)
-    GLuint DisplayListID; //numer siatki
+    //GLuint DisplayListID; //numer siatki
     //CMesh *pVBO; //dane siatki VBO
     int iVboPtr; //indeks w buforze VBO
     GLuint TextureID; //jedna tekstura na obiekt
@@ -166,7 +166,7 @@ public:
  bool __fastcall StartVBO();
 };
 
-const int iNumSubRects= 10; //Ra: trzeba sprawdziæ wydajnoœæ siatki
+const int iNumSubRects=5; //Ra: trzeba sprawdziæ wydajnoœæ siatki
 
 class TGroundRect
 {
