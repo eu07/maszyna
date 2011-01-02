@@ -555,7 +555,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       if (cKey==Global::Keys[k_EndSign])
       {
          int CouplNr=-1;
-         TDynamicObject *tmp=NULL;
+         TDynamicObject *tmp;
          tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), 1, 500, CouplNr);
          if (tmp==NULL)
             tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 500, CouplNr);
@@ -1075,7 +1075,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
           else
           { //tryb freefly
             int CouplNr=-1;
-            TDynamicObject *tmp=NULL;
+            TDynamicObject *tmp;
             tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), 1, 500, CouplNr);
             if (tmp==NULL)
             tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 500, CouplNr);
@@ -1145,7 +1145,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
           else
           { //tryb freefly
             int CouplNr=-1;
-            TDynamicObject *tmp=NULL;
+            TDynamicObject *tmp;
             tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), 1, 500, CouplNr);
             if (tmp==NULL)
             tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 500, CouplNr);
@@ -1316,7 +1316,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       if (cKey==Global::Keys[k_EndSign])   //ABu 060205: koncowki - sciagniecie
       {
          int CouplNr=-1;
-         TDynamicObject *tmp=NULL;
+         TDynamicObject *tmp;
          tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), 1, 500, CouplNr);
          if (tmp==NULL)
             tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 500, CouplNr);
@@ -1580,7 +1580,7 @@ bool __fastcall TTrain::Update()
 
     double vol=0;
 //    int freq=1;
-    double dfreq=1.0;
+    double dfreq;
 
 //McZapkie-280302 - syczenie
       if (rsHiss.AM!=0)

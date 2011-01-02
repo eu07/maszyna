@@ -50,7 +50,7 @@ struct TMaterial
     GLuint TextureID;
 };
 */
-
+/*
 struct THitBoxContainer
 {
     TPlane Planes[6];
@@ -74,6 +74,7 @@ struct THitBoxContainer
         return(Hit);
     };
 };
+*/
 
 typedef enum { smt_Unknown, smt_Mesh, smt_Point, smt_FreeSpotLight, smt_Text} TSubModelType;
 

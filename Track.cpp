@@ -39,537 +39,409 @@
 
 __fastcall TSwitchExtension::TSwitchExtension()
 {//na pocz¹tku wszystko puste
-    CurrentIndex=0;
-    pNexts[0]=NULL; //wskaŸniki do kolejnych odcinków ruchu
-    pNexts[1]=NULL;
-    pPrevs[0]=NULL;
-    pPrevs[1]=NULL;
-    fOffset1=fOffset2=fDesiredOffset1=fDesiredOffset2=0.0; //po³o¿enie zasadnicze 
-    bMovement=false; //nie potrzeba przeliczaæ fOffset1
+ CurrentIndex=0;
+ pNexts[0]=NULL; //wskaŸniki do kolejnych odcinków ruchu
+ pNexts[1]=NULL;
+ pPrevs[0]=NULL;
+ pPrevs[1]=NULL;
+ fOffset1=fOffset2=fDesiredOffset1=fDesiredOffset2=0.0; //po³o¿enie zasadnicze
+ bMovement=false; //nie potrzeba przeliczaæ fOffset1
 }
 __fastcall TSwitchExtension::~TSwitchExtension()
-{
+{//nie ma nic do usuwania
 }
 
 __fastcall TTrack::TTrack()
 {//tworzenie nowego odcinka ruchu
-    pNext=pPrev= NULL;
-    Segment= NULL;
-    SwitchExtension=NULL;
-    TextureID1= 0;
-    fTexLength= 4.0;
-    TextureID2= 0;
-    fTexHeight= 0.6; //nowy profil podsypki ;)
-    fTexWidth= 0.9;
-    fTexSlope= 0.9;
-    //HelperPts= NULL; //nie potrzebne, ale niech zostanie
-    iCategoryFlag= 1;
-    fTrackWidth= 1.435;
-    fFriction= 0.15;
-    fSoundDistance= -1;
-    iQualityFlag= 20;
-    iDamageFlag= 0;
-    eEnvironment= e_flat;
-    bVisible= true;
-    Event0= NULL;
-    Event1= NULL;
-    Event2= NULL;
-    Eventall0= NULL;
-    Eventall1= NULL;
-    Eventall2= NULL;
-    fVelocity= -1;
-    fTrackLength= 100.0;
-    fRadius= 0; //promieñ wybranego toru zwrotnicy
-    fRadiusTable[0]= 0; //dwa promienie nawet dla prostego
-    fRadiusTable[1]= 0;
-    iNumDynamics= 0;
-    ScannedFlag=false;
-    //DisplayListID=0;
-    iTrapezoid=0; //parametry kszta³tu: 0-standard, 1-przechy³ka, 2-trapez, 3-oba
+ pNext=pPrev=NULL; //s¹siednie
+ Segment=NULL; //dane odcinka
+ SwitchExtension=NULL; //dodatkowe parametry zwrotnicy i obrotnicy
+ TextureID1=0; //tekstura szyny
+ fTexLength=4.0; //powtarzanie tekstury
+ TextureID2=0; //tekstura podsypki albo drugiego toru zwrotnicy
+ fTexHeight=0.6; //nowy profil podsypki ;)
+ fTexWidth=0.9;
+ fTexSlope=0.9;
+ //HelperPts= NULL; //nie potrzebne, ale niech zostanie
+ iCategoryFlag=1; //1-tor, 2-droga, 4-rzeka, 8-samolot?
+ fTrackWidth=1.435; //rozstaw toru, szerokoœæ nawierzchni
+ fFriction=0.15; //wspó³czynnik tarcia
+ fSoundDistance=-1;
+ iQualityFlag=20;
+ iDamageFlag=0;
+ eEnvironment=e_flat;
+ bVisible=true;
+ Event0=NULL;
+ Event1=NULL;
+ Event2=NULL;
+ Eventall0=NULL;
+ Eventall1=NULL;
+ Eventall2=NULL;
+ fVelocity=-1; //ograniczenie prêdkoœci
+ fTrackLength=100.0;
+ fRadius=0; //promieñ wybranego toru zwrotnicy
+ fRadiusTable[0]= 0; //dwa promienie nawet dla prostego
+ fRadiusTable[1]= 0;
+ iNumDynamics= 0;
+ ScannedFlag=false;
+ //DisplayListID=0;
+ iTrapezoid=0; //parametry kszta³tu: 0-standard, 1-przechy³ka, 2-trapez, 3-oba
 }
 
 __fastcall TTrack::~TTrack()
-{
-    //SafeDeleteArray(HelperPts);
-    switch (eType)
-    {
-        case tt_Switch:
-            SafeDelete(SwitchExtension);
-        break;
-        case tt_Turn: //oba usuwane
-            SafeDelete(SwitchExtension);
-        case tt_Normal:
-            SafeDelete(Segment);
-        break;
-    }
+{//likwidacja odcinka
+ //SafeDeleteArray(HelperPts);
+ SafeDelete(SwitchExtension);
+ SafeDelete(Segment);
 }
 
 void __fastcall TTrack::Init()
-{
-    switch (eType)
-    {
-        case tt_Switch:
-            SwitchExtension= new TSwitchExtension();
-        break;
-        case tt_Normal:
-            Segment= new TSegment();
-        break;
-        case tt_Turn: //oba potrzebne
-            SwitchExtension= new TSwitchExtension();
-            Segment= new TSegment();
-        break;
-    }
+{//tworzenie pomocniczych danych
+ switch (eType)
+ {
+  case tt_Switch:
+   SwitchExtension=new TSwitchExtension();
+  break;
+  case tt_Normal:
+   Segment=new TSegment();
+  break;
+  case tt_Turn: //oba potrzebne
+   SwitchExtension=new TSwitchExtension();
+   Segment=new TSegment();
+  break;
+ }
 }
 
 void __fastcall TTrack::ConnectPrevPrev(TTrack *pTrack)
-{
-    if (pTrack)
-    {
-        pPrev= pTrack;
-        bPrevSwitchDirection= true;
-        pTrack->pPrev= this;
-        pTrack->bPrevSwitchDirection= true;
-    }
+{//³aczenie torów
+ if (pTrack)
+ {
+  pPrev= pTrack;
+  bPrevSwitchDirection= true;
+  pTrack->pPrev= this;
+  pTrack->bPrevSwitchDirection= true;
+ }
 }
-
 void __fastcall TTrack::ConnectPrevNext(TTrack *pTrack)
 {
-    if (pTrack)
-    {
-        pPrev= pTrack;
-        bPrevSwitchDirection= false;
-        pTrack->pNext= this;
-        pTrack->bNextSwitchDirection= false;
-        if (bVisible)
-         if (pTrack->bVisible)
-          if (eType==tt_Normal) //jeœli ³¹czone s¹ dwa normalne
-           if (pTrack->eType==tt_Normal)
-            if ((fTrackWidth!=pTrack->fTrackWidth) //Ra: jeœli kolejny ma inne wymiary
-             || (fTexHeight!=pTrack->fTexWidth)
-             || (fTexWidth!=pTrack->fTexWidth)
-             || (fTexSlope!=pTrack->fTexSlope))
-             pTrack->iTrapezoid|=2; //to rysujemy potworka
-    }
+ if (pTrack)
+ {
+  pPrev= pTrack;
+  bPrevSwitchDirection= false;
+  pTrack->pNext= this;
+  pTrack->bNextSwitchDirection= false;
+  if (bVisible)
+   if (pTrack->bVisible)
+    if (eType==tt_Normal) //jeœli ³¹czone s¹ dwa normalne
+     if (pTrack->eType==tt_Normal)
+      if ((fTrackWidth!=pTrack->fTrackWidth) //Ra: jeœli kolejny ma inne wymiary
+       || (fTexHeight!=pTrack->fTexWidth)
+       || (fTexWidth!=pTrack->fTexWidth)
+       || (fTexSlope!=pTrack->fTexSlope))
+       pTrack->iTrapezoid|=2; //to rysujemy potworka
+ }
 }
-
 void __fastcall TTrack::ConnectNextPrev(TTrack *pTrack)
 {
-    if (pTrack)
-    {
-        pNext= pTrack;
-        bNextSwitchDirection= false;
-        pTrack->pPrev= this;
-        pTrack->bPrevSwitchDirection= false;
-        if (bVisible)
-         if (pTrack->bVisible)
-          if (eType==tt_Normal) //jeœli ³¹czone s¹ dwa normalne
-           if (pTrack->eType==tt_Normal)
-            if ((fTrackWidth!=pTrack->fTrackWidth) //Ra: jeœli kolejny ma inne wymiary
-             || (fTexHeight!=pTrack->fTexWidth)
-             || (fTexWidth!=pTrack->fTexWidth)
-             || (fTexSlope!=pTrack->fTexSlope))
-             iTrapezoid|=2; //to rysujemy potworka
-    }
+ if (pTrack)
+ {
+  pNext= pTrack;
+  bNextSwitchDirection= false;
+  pTrack->pPrev= this;
+  pTrack->bPrevSwitchDirection= false;
+  if (bVisible)
+   if (pTrack->bVisible)
+    if (eType==tt_Normal) //jeœli ³¹czone s¹ dwa normalne
+     if (pTrack->eType==tt_Normal)
+      if ((fTrackWidth!=pTrack->fTrackWidth) //Ra: jeœli kolejny ma inne wymiary
+       || (fTexHeight!=pTrack->fTexWidth)
+       || (fTexWidth!=pTrack->fTexWidth)
+       || (fTexSlope!=pTrack->fTexSlope))
+       iTrapezoid|=2; //to rysujemy potworka
+ }
 }
-
 void __fastcall TTrack::ConnectNextNext(TTrack *pTrack)
 {
-    if (pTrack)
-    {
-        pNext= pTrack;
-        bNextSwitchDirection= true;
-        pTrack->pNext= this;
-        pTrack->bNextSwitchDirection= true;
-    }
+ if (pTrack)
+ {
+  pNext= pTrack;
+  bNextSwitchDirection= true;
+  pTrack->pNext= this;
+  pTrack->bNextSwitchDirection= true;
+ }
 }
 
-/*
-bool __fastcall TTrack::ConnectNext1(TTrack *pNewNext)
-{
-    if (pNewNext)
-    {
-        if (pNext1)
-            pNext1->pPrev= NULL;
-        pNext1= pNewNext;
-        pNext1->pPrev= this;
-        return true;
-    }
-    return false;
-}
-
-bool __fastcall TTrack::ConnectNext2(TTrack *pNewNext)
-{
-    if (pNewNext)
-    {
-        if (pNext2)
-            pNext2->pPrev= NULL;
-        pNext2= pNewNext;
-        pNext2->pPrev= this;
-        return true;
-    }
-    return false;
-}
-
-bool __fastcall TTrack::ConnectPrev1(TTrack *pNewPrev)
-{
-    if (pNewPrev)
-    {
-        if (pPrev)
-        {
-            if (pPrev->pNext1==this)
-                pPrev->pNext1= NULL;
-            if (pPrev->pNext2==this)
-                pPrev->pNext2= NULL;
-        }
-        pPrev= pNewPrev;
-        pPrev->pNext1= this;
-        return true;
-    }
-    return false;
-}
-
-bool __fastcall TTrack::ConnectPrev2(TTrack *pNewPrev)
-{
-    if (pNewPrev)
-    {
-        if (pPrev)
-        {
-            if (pPrev->pNext1==this)
-                pPrev->pNext1= NULL;
-            if (pPrev->pNext2==this)
-                pPrev->pNext2= NULL;
-        }
-        pPrev= pNewPrev;
-        pPrev->pNext2= this;
-        return true;
-    }
-    return false;
-}
-*/
 vector3 __fastcall MakeCPoint(vector3 p, double d, double a1, double a2)
 {
-    vector3 cp= vector3(0,0,1);
-    cp.RotateX(DegToRad(a2));
-    cp.RotateY(DegToRad(a1));
-    cp= cp*d+p;
-
-    return cp;
-
+ vector3 cp=vector3(0,0,1);
+ cp.RotateX(DegToRad(a2));
+ cp.RotateY(DegToRad(a1));
+ cp=cp*d+p;
+ return cp;
 }
 
 vector3 __fastcall LoadPoint(cParser *parser)
 {//pobranie wspó³rzêdnych punktu
-    vector3 p;
-    std::string token;
-    parser->getTokens(3);
-    *parser >> p.x >> p.y >> p.z;
-    return p;
+ vector3 p;
+ std::string token;
+ parser->getTokens(3);
+ *parser >> p.x >> p.y >> p.z;
+ return p;
 }
-
-/* Ra: to siê niczym nie ró¿ni od powy¿szego
-vector3 __fastcall LoadCPoint(cParser *parser)
-{//pobranie wspó³rzêdnych wektora kontrolnego
-    vector3 cp;
-    std::string token;
-    parser->getTokens(3);
-    *parser >> cp.x >> cp.y >> cp.z;
-    return cp;
-}
-*/
-
-/* Ra: to chyba kiedyœ by³a zwrotnica...
-const vector3 sw1pts[]= { vector3(1.378,0.0,25.926),vector3(0.378,0.0,16.926),
-                          vector3(0.0,0.0,26.0), vector3(0.0,0.0,26.0),
-                          vector3(0.0,0.0,6.0) };
-
-const vector3 sw1pt1= vector3(0.0,0.0,26.0);
-const vector3 sw1cpt1= vector3(0.0,0.0,26.0);
-const vector3 sw1pt2= vector3(1.378,0.0,25.926);
-const vector3 sw1cpt2= vector3(0.378,0.0,16.926);
-const vector3 sw1pt3= vector3(0.0,0.0,0.0);
-const vector3 sw1cpt3= vector3(0.0,0.0,6.0);
-*/
 
 void __fastcall TTrack::Load(cParser *parser, vector3 pOrigin)
 {//pobranie obiektu trajektorii ruchu
-    vector3 pt,vec,p1,p2,cp1,cp2,p3,cp3,p4,cp4,p5,cp5,swpt[3],swcp[3],dir;
-    double a1,a2,r1,r2,d1,d2,a;
-    AnsiString str;
-    bool bCurve;
-    int i;//,state; //Ra: teraz ju¿ nie ma pocz¹tkowego stanu zwrotnicy we wpisie
-    std::string token;
+ vector3 pt,vec,p1,p2,cp1,cp2;
+ double a1,a2,r1,r2,d1,d2,a;
+ AnsiString str;
+ bool bCurve;
+ int i;//,state; //Ra: teraz ju¿ nie ma pocz¹tkowego stanu zwrotnicy we wpisie
+ std::string token;
 
-    parser->getTokens();
-    *parser >> token;
-    str= AnsiString(token.c_str());
+ parser->getTokens();
+ *parser >> token;
+ str= AnsiString(token.c_str());
 
-    if (str=="normal")
-     {
-        eType= tt_Normal;
-        iCategoryFlag= 1;
-     }
-    else
-    if (str=="switch")
-     {
-        eType= tt_Switch;
-        iCategoryFlag= 1;
-     }
-    else
-    if (str=="turn")
-     {//Ra: to bêdzie obrotnica
-        eType= tt_Turn;
-        iCategoryFlag= 1;
-     }
-    else
-    if (str=="road")
-     {
-        eType= tt_Normal;
-        iCategoryFlag= 2;
-     }
-    else
-    if (str=="cross")
-     {//Ra: to bêdzie skrzy¿owanie dróg
-        eType= tt_Cross;
-        iCategoryFlag= 2;
-     }
-    else
-    if (str=="river")
-     {
-        eType= tt_Normal;
-        iCategoryFlag= 4;
-     }
-    else
-       eType= tt_Unknown;
-    if (DebugModeFlag)
-     WriteLog(str.c_str());
-    parser->getTokens(4);
-    *parser >> fTrackLength >> fTrackWidth >> fFriction >> fSoundDistance;
+ if (str=="normal")
+ {
+  eType=tt_Normal;
+  iCategoryFlag=1;
+ }
+ else if (str=="switch")
+ {
+  eType=tt_Switch;
+  iCategoryFlag=1;
+ }
+ else if (str=="turn")
+ {//Ra: to jest obrotnica
+  eType=tt_Turn;
+  iCategoryFlag=1;
+ }
+ else if (str=="road")
+ {
+  eType=tt_Normal;
+  iCategoryFlag=2;
+ }
+ else if (str=="cross")
+ {//Ra: to bêdzie skrzy¿owanie dróg
+  eType=tt_Cross;
+  iCategoryFlag= 2;
+ }
+ else if (str=="river")
+ {eType=tt_Normal;
+  iCategoryFlag=4;
+ }
+ else
+  eType=tt_Unknown;
+ if (DebugModeFlag)
+  WriteLog(str.c_str());
+ parser->getTokens(4);
+ *parser >> fTrackLength >> fTrackWidth >> fFriction >> fSoundDistance;
 //    fTrackLength= Parser->GetNextSymbol().ToDouble();                       //track length 100502
 //    fTrackWidth= Parser->GetNextSymbol().ToDouble();                        //track width
 //    fFriction= Parser->GetNextSymbol().ToDouble();                          //friction coeff.
 //    fSoundDistance= Parser->GetNextSymbol().ToDouble();   //snd
-    parser->getTokens(2);
-    *parser >> iQualityFlag >> iDamageFlag;
+ parser->getTokens(2);
+ *parser >> iQualityFlag >> iDamageFlag;
 //    iQualityFlag= Parser->GetNextSymbol().ToInt();   //McZapkie: qualityflag
 //    iDamageFlag= Parser->GetNextSymbol().ToInt();   //damage
-    parser->getTokens();
-    *parser >> token;
-    str= AnsiString(token.c_str());  //environment
-    if (str=="flat")
-     {
-       eEnvironment= e_flat;
-     }
-    else
-    if (str=="mountains" || str=="mountain")
-     {
-       eEnvironment= e_mountains;
-     }
-    else
-    if (str=="canyon")
-     {
-       eEnvironment= e_canyon;
-     }
-    else
-    if (str=="tunnel")
-     {
-       eEnvironment= e_tunnel;
-     }
-    else
-    if (str=="bridge")
-     {
-       eEnvironment= e_bridge;
-     }
-    else
-    if (str=="bank")
-     {
-       eEnvironment= e_bank;
-     }
-    else
-       {
-        eEnvironment= e_unknown;
-        Error("Unknown track environment: \""+str+"\"");
-       }
-    parser->getTokens();
-    *parser >> token;
-    bVisible= (token.compare( "vis" ) == 0 );   //visible
-    if (bVisible)
-     {
-      parser->getTokens();
-      *parser >> token;
-      str= AnsiString(token.c_str());   //railtex
-      TextureID1= (str=="none"?0:TTexturesManager::GetTextureID(str.c_str(),(iCategoryFlag==1)?Global::iRailProFiltering:Global::iBallastFiltering));
-      parser->getTokens();
-      *parser >> fTexLength; //tex tile length
-      parser->getTokens();
-      *parser >> token;
-      str= AnsiString(token.c_str());   //sub || railtex
-      TextureID2= (str=="none"?0:TTexturesManager::GetTextureID(str.c_str(),(eType==tt_Normal)?Global::iBallastFiltering:Global::iRailProFiltering));
-      parser->getTokens(3);
-      *parser >> fTexHeight >> fTexWidth >> fTexSlope;
+ parser->getTokens();
+ *parser >> token;
+ str= AnsiString(token.c_str());  //environment
+ if (str=="flat")
+  eEnvironment= e_flat;
+ else if (str=="mountains" || str=="mountain")
+  eEnvironment= e_mountains;
+ else if (str=="canyon")
+  eEnvironment= e_canyon;
+ else if (str=="tunnel")
+  eEnvironment= e_tunnel;
+ else if (str=="bridge")
+  eEnvironment= e_bridge;
+ else if (str=="bank")
+  eEnvironment=e_bank;
+ else
+ {
+  eEnvironment=e_unknown;
+  Error("Unknown track environment: \""+str+"\"");
+ }
+ parser->getTokens();
+ *parser >> token;
+ bVisible= (token.compare( "vis" ) == 0 );   //visible
+ if (bVisible)
+  {
+   parser->getTokens();
+   *parser >> token;
+   str= AnsiString(token.c_str());   //railtex
+   TextureID1=(str=="none"?0:TTexturesManager::GetTextureID(str.c_str(),(iCategoryFlag==1)?Global::iRailProFiltering:Global::iBallastFiltering));
+   parser->getTokens();
+   *parser >> fTexLength; //tex tile length
+   parser->getTokens();
+   *parser >> token;
+   str= AnsiString(token.c_str());   //sub || railtex
+   TextureID2=(str=="none"?0:TTexturesManager::GetTextureID(str.c_str(),(eType==tt_Normal)?Global::iBallastFiltering:Global::iRailProFiltering));
+   parser->getTokens(3);
+   *parser >> fTexHeight >> fTexWidth >> fTexSlope;
 //      fTexHeight= Parser->GetNextSymbol().ToDouble(); //tex sub height
 //      fTexWidth= Parser->GetNextSymbol().ToDouble(); //tex sub width
 //      fTexSlope= Parser->GetNextSymbol().ToDouble(); //tex sub slope width
-      if (iCategoryFlag==4)
-       fTexHeight=-fTexHeight; //rzeki maj¹ wysokoœæ odwrotnie ni¿ drogi
-     }
-    else
-     {
-     if (DebugModeFlag)
-      WriteLog("unvis");
-     }
-    Init();
-    double segsize=5.0f; //Ra: 5m przy ma³ych promieniach 5m Ÿle wygl¹da (drogi, tramwaje)
-    switch (eType)
-    {//Ra: ³uki segmentowane co 5m albo 314-k¹tem foremnym
-        case tt_Turn: //obrotnica jest prawie jak zwyk³y tor
-        case tt_Normal:
-            p1= LoadPoint(parser)+pOrigin; //pobranie wspó³rzêdnych P1
-            parser->getTokens();
-            *parser >> r1; //pobranie przechy³ki w P1
-            cp1= LoadPoint(parser); //pobranie wspó³rzêdnych punktów kontrolnych
-            cp2= LoadPoint(parser);
-            p2= LoadPoint(parser)+pOrigin; //pobranie wspó³rzêdnych P2
-            parser->getTokens(2);
-            *parser >> r2 >> fRadius; //pobranie przechy³ki w P1 i promienia
+   if (iCategoryFlag==4)
+    fTexHeight=-fTexHeight; //rzeki maj¹ wysokoœæ odwrotnie ni¿ drogi
+  }
+ else
+  if (DebugModeFlag) WriteLog("unvis");
+ Init();
+ double segsize=5.0f; //d³ugoœæ odcinka segmentowania
+ switch (eType)
+ {//Ra: ³uki segmentowane co 5m albo 314-k¹tem foremnym
+  case tt_Turn: //obrotnica jest prawie jak zwyk³y tor
+  case tt_Normal:
+   p1= LoadPoint(parser)+pOrigin; //pobranie wspó³rzêdnych P1
+   parser->getTokens();
+   *parser >> r1; //pobranie przechy³ki w P1
+   cp1= LoadPoint(parser); //pobranie wspó³rzêdnych punktów kontrolnych
+   cp2= LoadPoint(parser);
+   p2= LoadPoint(parser)+pOrigin; //pobranie wspó³rzêdnych P2
+   parser->getTokens(2);
+   *parser >> r2 >> fRadius; //pobranie przechy³ki w P1 i promienia
 
-            if (fRadius!=0) //gdy podany promieñ
-               segsize=Min0R(5.0,0.3+fabs(fRadius)*0.03); //do 250m - 5, potem 1 co 50m
+   if (fRadius!=0) //gdy podany promieñ
+      segsize=Min0R(5.0,0.3+fabs(fRadius)*0.03); //do 250m - 5, potem 1 co 50m
 
-            if ((((p1+p1+p2)/3.0-p1-cp1).Length()<0.02)||(((p1+p2+p2)/3.0-p2+cp1).Length()<0.02))
-             cp1=cp2=vector3(0,0,0); //"prostowanie" prostych z kontrolnymi, dok³adnoœæ 2cm
+   if ((((p1+p1+p2)/3.0-p1-cp1).Length()<0.02)||(((p1+p2+p2)/3.0-p2+cp1).Length()<0.02))
+    cp1=cp2=vector3(0,0,0); //"prostowanie" prostych z kontrolnymi, dok³adnoœæ 2cm
 
-            if ((cp1==vector3(0,0,0)) && (cp2==vector3(0,0,0))) //Ra: hm, czasem dla prostego s¹ podane...
-             Segment->Init(p1,p2,segsize,r1,r2); //gdy prosty, kontrolne wyliczane przy zmiennej przechy³ce
-            else
-             Segment->Init(p1,cp1+p1,cp2+p2,p2,segsize,r1,r2); //gdy ³uk (ustawia bCurve=true)
-            if ((r1!=0)||(r2!=0)) iTrapezoid=1; //s¹ przechy³ki do uwzglêdniania w rysowaniu
-            if (eType==tt_Turn) //obrotnica ma doklejkê
-            {SwitchExtension= new TSwitchExtension(); //zwrotnica ma doklejkê
-             SwitchExtension->Segments->Init(p1,p2,segsize); //kopia oryginalnego toru
-            }
-        break;
+   if ((cp1==vector3(0,0,0)) && (cp2==vector3(0,0,0))) //Ra: hm, czasem dla prostego s¹ podane...
+    Segment->Init(p1,p2,segsize,r1,r2); //gdy prosty, kontrolne wyliczane przy zmiennej przechy³ce
+   else
+    Segment->Init(p1,cp1+p1,cp2+p2,p2,segsize,r1,r2); //gdy ³uk (ustawia bCurve=true)
+   if ((r1!=0)||(r2!=0)) iTrapezoid=1; //s¹ przechy³ki do uwzglêdniania w rysowaniu
+   if (eType==tt_Turn) //obrotnica ma doklejkê
+   {SwitchExtension= new TSwitchExtension(); //zwrotnica ma doklejkê
+    SwitchExtension->Segments->Init(p1,p2,segsize); //kopia oryginalnego toru
+   }
+  break;
 
-        case tt_Cross: //skrzy¿owanie dróg - 4 punkty z wektorami kontrolnymi
-        case tt_Switch: //zwrotnica
-            //problemy z animacj¹ iglic powstaje, gdzy odcinek prosty ma zmienn¹ przechy³ê
-            //wtedy dzieli sie na dodatkowe odcinki (po 0.2m, bo R=0) i animacjê diabli bior¹
-            //Ra: na razie nie podejmujê siê przerabiania iglic
-            //Init w TSegment ignoruje przechy³ki o sumie mniejszej od 0.21°
+  case tt_Cross: //skrzy¿owanie dróg - 4 punkty z wektorami kontrolnymi
+  case tt_Switch: //zwrotnica
+   //problemy z animacj¹ iglic powstaje, gdzy odcinek prosty ma zmienn¹ przechy³kê
+   //wtedy dzieli siê na dodatkowe odcinki (po 0.2m, bo R=0) i animacjê diabli bior¹
+   //Ra: na razie nie podejmujê siê przerabiania iglic
 
-            SwitchExtension= new TSwitchExtension(); //zwrotnica ma doklejkê
+   SwitchExtension= new TSwitchExtension(); //zwrotnica ma doklejkê
 
-            p1= LoadPoint(parser)+pOrigin; //pobranie wspó³rzêdnych P1
-            parser->getTokens();
-            *parser >> r1;
-            cp1= LoadPoint(parser);
-            cp2= LoadPoint(parser);
-            p2= LoadPoint(parser)+pOrigin; //pobranie wspó³rzêdnych P2
-            parser->getTokens(2);
-            *parser >> r2 >> fRadiusTable[0];
+   p1= LoadPoint(parser)+pOrigin; //pobranie wspó³rzêdnych P1
+   parser->getTokens();
+   *parser >> r1;
+   cp1= LoadPoint(parser);
+   cp2= LoadPoint(parser);
+   p2= LoadPoint(parser)+pOrigin; //pobranie wspó³rzêdnych P2
+   parser->getTokens(2);
+   *parser >> r2 >> fRadiusTable[0];
 
-            if (fRadiusTable[0]>0)
-               segsize=Min0R(5.0,0.2+fRadiusTable[0]*0.02);
-            else
-            {cp1=(p1+p1+p2)/3.0-p1; cp2=(p1+p2+p2)/3.0-p2; segsize=5.0;} //u³omny prosty
+   if (fRadiusTable[0]>0)
+      segsize=Min0R(5.0,0.2+fRadiusTable[0]*0.02);
+   else
+   {cp1=(p1+p1+p2)/3.0-p1; cp2=(p1+p2+p2)/3.0-p2; segsize=5.0;} //u³omny prosty
 
-            if (!(cp1==vector3(0,0,0)) && !(cp2==vector3(0,0,0)))
-                SwitchExtension->Segments[0].Init(p1,cp1+p1,cp2+p2,p2,segsize,r1,r2);
-            else
-                SwitchExtension->Segments[0].Init(p1,p2,segsize,r1,r2);
+   if (!(cp1==vector3(0,0,0)) && !(cp2==vector3(0,0,0)))
+       SwitchExtension->Segments[0].Init(p1,cp1+p1,cp2+p2,p2,segsize,r1,r2);
+   else
+       SwitchExtension->Segments[0].Init(p1,p2,segsize,r1,r2);
 
-            p1= LoadPoint(parser)+pOrigin; //pobranie wspó³rzêdnych P3
-            parser->getTokens();
-            *parser >> r1;
-            cp1= LoadPoint(parser);
-            cp2= LoadPoint(parser);
-            p2= LoadPoint(parser)+pOrigin; //pobranie wspó³rzêdnych P4
-            parser->getTokens(2);
-            *parser >> r2 >> fRadiusTable[1];
+   p1= LoadPoint(parser)+pOrigin; //pobranie wspó³rzêdnych P3
+   parser->getTokens();
+   *parser >> r1;
+   cp1= LoadPoint(parser);
+   cp2= LoadPoint(parser);
+   p2= LoadPoint(parser)+pOrigin; //pobranie wspó³rzêdnych P4
+   parser->getTokens(2);
+   *parser >> r2 >> fRadiusTable[1];
 
-            if (fRadiusTable[1]>0)
-               segsize=Min0R(5.0,0.2+fRadiusTable[1]*0.02);
-            else
-               segsize=5.0;
+   if (fRadiusTable[1]>0)
+      segsize=Min0R(5.0,0.2+fRadiusTable[1]*0.02);
+   else
+      segsize=5.0;
 
-            if (!(cp1==vector3(0,0,0)) && !(cp2==vector3(0,0,0)))
-                SwitchExtension->Segments[1].Init(p1,cp1+p1,cp2+p2,p2,segsize,r1,r2);
-            else
-                SwitchExtension->Segments[1].Init(p1,p2,segsize,r1,r2);
+   if (!(cp1==vector3(0,0,0)) && !(cp2==vector3(0,0,0)))
+       SwitchExtension->Segments[1].Init(p1,cp1+p1,cp2+p2,p2,segsize,r1,r2);
+   else
+       SwitchExtension->Segments[1].Init(p1,p2,segsize,r1,r2);
 
-            Switch(0); //na sta³e w po³o¿eniu 0 - nie ma pocz¹tkowego stanu zwrotnicy we wpisie
+   Switch(0); //na sta³e w po³o¿eniu 0 - nie ma pocz¹tkowego stanu zwrotnicy we wpisie
 
-            //Ra: zamieniæ póŸniej na iloczyn wektorowy
-            {vector3 v1,v2;
-             double a1,a2;
-             v1=SwitchExtension->Segments[0].FastGetPoint_1()-SwitchExtension->Segments[0].FastGetPoint_0();
-             v2=SwitchExtension->Segments[1].FastGetPoint_1()-SwitchExtension->Segments[1].FastGetPoint_0();
-             a1=atan2(v1.x,v1.z);
-             a2=atan2(v2.x,v2.z);
-             a2=a2-a1;
-             while (a2>M_PI) a2=a2-2*M_PI;
-             while (a2<-M_PI) a2=a2+2*M_PI;
-             SwitchExtension->RightSwitch=a2<0; //lustrzany uk³ad OXY...
-            }
-        break;
-    }
-    parser->getTokens();
-    *parser >> token;
-    str= AnsiString(token.c_str());
-    while (str!="endtrack")
-    {
-        if (str=="event0")
-         {
-            parser->getTokens();
-            *parser >> token;
-            asEvent0Name= AnsiString(token.c_str());
-         }
-        else
-        if (str=="event1")
-         {
-            parser->getTokens();
-            *parser >> token;
-            asEvent1Name= AnsiString(token.c_str());
-         }
-        else
-        if (str=="event2")
-         {
-            parser->getTokens();
-            *parser >> token;
-            asEvent2Name= AnsiString(token.c_str());
-         }
-        else
-        if (str=="eventall0")
-         {
-            parser->getTokens();
-            *parser >> token;
-            asEventall0Name= AnsiString(token.c_str());
-         }
-        else
-        if (str=="eventall1")
-         {
-            parser->getTokens();
-            *parser >> token;
-            asEventall1Name= AnsiString(token.c_str());
-         }
-        else
-        if (str=="eventall2")
-         {
-            parser->getTokens();
-            *parser >> token;
-            asEventall2Name= AnsiString(token.c_str());
-         }
-        else
-        if (str=="velocity")
-         {
-           parser->getTokens();
-           *parser >> fVelocity;
-//            fVelocity= Parser->GetNextSymbol().ToDouble(); //*0.28; McZapkie-010602
-         }
-        else
-            Error("Unknown track property: \""+str+"\"");
-       parser->getTokens(); *parser >> token;
-       str= AnsiString(token.c_str());
-    }
+   //Ra: zamieniæ póŸniej na iloczyn wektorowy
+   {vector3 v1,v2;
+    double a1,a2;
+    v1=SwitchExtension->Segments[0].FastGetPoint_1()-SwitchExtension->Segments[0].FastGetPoint_0();
+    v2=SwitchExtension->Segments[1].FastGetPoint_1()-SwitchExtension->Segments[1].FastGetPoint_0();
+    a1=atan2(v1.x,v1.z);
+    a2=atan2(v2.x,v2.z);
+    a2=a2-a1;
+    while (a2>M_PI) a2=a2-2*M_PI;
+    while (a2<-M_PI) a2=a2+2*M_PI;
+    SwitchExtension->RightSwitch=a2<0; //lustrzany uk³ad OXY...
+   }
+  break;
+ }
+ parser->getTokens();
+ *parser >> token;
+ str= AnsiString(token.c_str());
+ while (str!="endtrack")
+ {
+  if (str=="event0")
+   {
+      parser->getTokens();
+      *parser >> token;
+      asEvent0Name= AnsiString(token.c_str());
+   }
+  else
+  if (str=="event1")
+   {
+      parser->getTokens();
+      *parser >> token;
+      asEvent1Name= AnsiString(token.c_str());
+   }
+  else
+  if (str=="event2")
+   {
+      parser->getTokens();
+      *parser >> token;
+      asEvent2Name= AnsiString(token.c_str());
+   }
+  else
+  if (str=="eventall0")
+   {
+      parser->getTokens();
+      *parser >> token;
+      asEventall0Name= AnsiString(token.c_str());
+   }
+  else
+  if (str=="eventall1")
+   {
+      parser->getTokens();
+      *parser >> token;
+      asEventall1Name= AnsiString(token.c_str());
+   }
+  else
+  if (str=="eventall2")
+   {
+      parser->getTokens();
+      *parser >> token;
+      asEventall2Name= AnsiString(token.c_str());
+   }
+  else
+  if (str=="velocity")
+   {
+     parser->getTokens();
+     *parser >> fVelocity;
+//         fVelocity= Parser->GetNextSymbol().ToDouble(); //*0.28; McZapkie-010602
+   }
+  else
+   Error("Unknown track property: \""+str+"\"");
+  parser->getTokens(); *parser >> token;
+  str= AnsiString(token.c_str());
+ }
 }
 
 bool __fastcall TTrack::AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2)
