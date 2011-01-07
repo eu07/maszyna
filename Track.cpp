@@ -1099,52 +1099,52 @@ void __fastcall TTrack::Assign(TGroundNode *gn,TAnimModel *am)
 
 bool __fastcall TTrack::Switch(int i)
 {
-    if (SwitchExtension)
-     if (eType==tt_Switch)
-     {//przek³adanie zwrotnicy jak zwykle
-        SwitchExtension->fDesiredOffset1= fMaxOffset*double(NextMask[i]); //od punktu 1
-        //SwitchExtension->fDesiredOffset2= fMaxOffset*double(PrevMask[i]); //od punktu 2
-        SwitchExtension->CurrentIndex= i;
-        Segment= SwitchExtension->Segments+i; //wybranie aktywnej drogi
-        pNext= SwitchExtension->pNexts[NextMask[i]]; //prze³¹czenie koñców
-        pPrev= SwitchExtension->pPrevs[PrevMask[i]];
-        bNextSwitchDirection= SwitchExtension->bNextSwitchDirection[NextMask[i]];
-        bPrevSwitchDirection= SwitchExtension->bPrevSwitchDirection[PrevMask[i]];
-        fRadius= fRadiusTable[i]; //McZapkie: wybor promienia toru
-        //if (DisplayListID) //jeœli istnieje siatka renderu
-        // SwitchExtension->bMovement=true; //bêdzie animacja
-        //else
-        // SwitchExtension->fOffset1=SwitchExtension->fDesiredOffset1; //nie ma siê co bawiæ
-        return true;
-     }
+ if (SwitchExtension)
+  if (eType==tt_Switch)
+  {//przek³adanie zwrotnicy jak zwykle
+   SwitchExtension->fDesiredOffset1= fMaxOffset*double(NextMask[i]); //od punktu 1
+   //SwitchExtension->fDesiredOffset2= fMaxOffset*double(PrevMask[i]); //od punktu 2
+   SwitchExtension->CurrentIndex= i;
+   Segment= SwitchExtension->Segments+i; //wybranie aktywnej drogi
+   pNext= SwitchExtension->pNexts[NextMask[i]]; //prze³¹czenie koñców
+   pPrev= SwitchExtension->pPrevs[PrevMask[i]];
+   bNextSwitchDirection= SwitchExtension->bNextSwitchDirection[NextMask[i]];
+   bPrevSwitchDirection= SwitchExtension->bPrevSwitchDirection[PrevMask[i]];
+   fRadius= fRadiusTable[i]; //McZapkie: wybor promienia toru
+   //if (DisplayListID) //jeœli istnieje siatka renderu
+   // SwitchExtension->bMovement=true; //bêdzie animacja
+   //else
+   // SwitchExtension->fOffset1=SwitchExtension->fDesiredOffset1; //nie ma siê co bawiæ
+   return true;
+  }
+  else
+  {//blokowanie (0, szuka torów) lub odblokowanie (1, roz³¹cza) obrotnicy
+   SwitchExtension->CurrentIndex=i; //zapamiêtanie stanu zablokowania
+   if (i)
+   {//roz³¹czenie obrotnicy od s¹siednich torów
+    if (pPrev)
+     if (bPrevSwitchDirection)
+      pPrev->pPrev=NULL;
      else
-     {//blokowanie (0, szuka torów) lub odblokowanie (1, roz³¹cza) obrotnicy
-      SwitchExtension->CurrentIndex=i; //zapamiêtanie stanu zablokowania
-      if (i)
-      {//roz³¹czenie obrotnicy od s¹siednich torów
-       if (pPrev)
-        if (bPrevSwitchDirection)
-         pPrev->pPrev=NULL;
-        else
-         pPrev->pNext=NULL;
-       if (pNext)
-        if (bPrevSwitchDirection)
-         pNext->pNext=NULL;
-        else
-         pNext->pPrev=NULL;
-       pNext=pPrev=NULL;
-       fVelocity=0.0; //AI, nie ruszaj siê!
-      }
-      else
-      {//zablokowanie pozycji i po³¹czenie do s¹siednich torów
-       Global::pGround->TrackJoin(SwitchExtension->pMyNode);
-       if (pNext||pPrev)
-        fVelocity=6.0; //jazda dozwolona
-      }
-      return true;
-     }
-    Error("Cannot switch normal track");
-    return false;
+      pPrev->pNext=NULL;
+    if (pNext)
+     if (bPrevSwitchDirection)
+      pNext->pNext=NULL;
+     else
+      pNext->pPrev=NULL;
+    pNext=pPrev=NULL;
+    fVelocity=0.0; //AI, nie ruszaj siê!
+   }
+   else
+   {//zablokowanie pozycji i po³¹czenie do s¹siednich torów
+    Global::pGround->TrackJoin(SwitchExtension->pMyNode);
+    if (pNext||pPrev)
+     fVelocity=6.0; //jazda dozwolona
+   }
+   return true;
+  }
+ Error("Cannot switch normal track");
+ return false;
 };
 
 int __fastcall TTrack::RaArraysPrepare()
@@ -1246,7 +1246,8 @@ void  __fastcall TTrack::RaArraysFill(CVert *Vert,CVec *Norm,CTexCoord *Tex)
      if (TextureID1)
      {// szyny
       Segment->RaRenderLoft(Vert,Norm,Tex,rpts1,iTrapezoid?-nnumPts:nnumPts,fTexLength);
-      Segment->RaRenderLoft(Vert,Norm,Tex,rpts2,iTrapezoid?-nnumPts:nnumPts,fTexLength);
+      if (fHTW!=0.0) //Ra: mo¿e byæ jedna szyna
+       Segment->RaRenderLoft(Vert,Norm,Tex,rpts2,iTrapezoid?-nnumPts:nnumPts,fTexLength);
      }
      break;
     case tt_Switch: //dla zwrotnicy dwa razy szyny
@@ -1357,6 +1358,7 @@ void  __fastcall TTrack::RaArraysFill(CVert *Vert,CVec *Norm,CTexCoord *Tex)
 
 void  __fastcall TTrack::RaRenderVBO(int iPtr)
 {//renderowanie z u¿yciem VBO
+ glDisable(GL_LIGHTING); //Ra: do testów
  glColor3f(1.0f,1.0f,1.0f);
  //McZapkie-310702: zmiana oswietlenia w tunelu, wykopie
  GLfloat ambientLight[4] ={0.5f,0.5f,0.5f,1.0f};
@@ -1452,10 +1454,15 @@ void  __fastcall TTrack::RaRenderVBO(int iPtr)
    break;// (Segment->RaSegCount()+1)*((TextureID1?2:0)+(TextureID2?6:0));
    //return;// (Segment->RaSegCount()+1)*((TextureID1?4:0)+(TextureID2?6:0));
  }
- for (int i=0; i<iNumDynamics; i++)
- {
-  //Dynamics[i]->Render(); //zmieni kontekst VBO!
+ switch (eEnvironment)
+ {//przywrócenie globalnych ustawieñ œwiat³a
+  case e_canyon: //wykop
+  case e_tunnel: //tunel
+   glLightModelfv(GL_LIGHT_MODEL_AMBIENT,Global::ambientDayLight);
+   glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
+   glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
  }
+ glEnable(GL_LIGHTING); //Ra: do testów
 };
 
 void  __fastcall TTrack::RaRenderDynamic()
@@ -1493,6 +1500,14 @@ void  __fastcall TTrack::RaRenderDynamic()
  for (int i=0;i<iNumDynamics;i++)
  {Dynamics[i]->Render(); //zmieni kontekst VBO!
   Dynamics[i]->RenderAlpha();
+ }
+ switch (eEnvironment)
+ {//przywrócenie globalnych ustawieñ œwiat³a
+  case e_canyon: //wykop
+  case e_tunnel: //tunel
+   glLightModelfv(GL_LIGHT_MODEL_AMBIENT,Global::ambientDayLight);
+   glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
+   glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
  }
 };
 

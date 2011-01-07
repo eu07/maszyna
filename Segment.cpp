@@ -610,7 +610,7 @@ void __fastcall TSegment::RaRenderLoft(CVert* &Vert,CVec* &Norm,CTexCoord* &Tex,
     i=iSegCount; //20/5 ma dawaæ 4
     m2=1.0; jmm2=0.0;
    }
-   while (tv1>1) tv1-= 1.0f;
+   while (tv1>1) tv1-=1.0f;
    tv2=tv1+step/fTextureLength; //mapowanie na koñcu segmentu
    t=fTsBuffer[i]; //szybsze od GetTFromS(s);
    pos2=FastGetPoint(t);

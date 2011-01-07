@@ -95,7 +95,7 @@ __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 
     Global::detonatoryOK=true;
     WriteLog("Starting MaSzyna rail vehicle simulator.");
-    WriteLog("Compilation 2011-01-01");
+    WriteLog("Compilation 2011-01-06");
     WriteLog("Online documentation and additional files on http://eu07.pl");
     WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx_EU, OLO_EU, Bart, Quark-t, ShaXbee, Oli_EU, youBy and others");
     WriteLog("Renderer:");
@@ -1178,7 +1178,7 @@ bool __fastcall TWorld::Update()
 
 //ABu 150205: prosty help, zeby sie na forum nikt nie pytal, jak ma ruszyc :)
 
-if(Global::detonatoryOK)
+if (Global::detonatoryOK)
 {
    if (Pressed(VK_F9)) ShowHints();
 

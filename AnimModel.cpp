@@ -120,33 +120,31 @@ void __fastcall TAnimContainer::UpdateModel()
             while (vRotateAngles.z<-360) vRotateAngles.z+= 360;
 
             pSubModel->SetRotateXYZ(vRotateAngles);
-            //if (!anim) fRotateSpeed=0.0; //nie potrzeba przeliczaæ ju¿
+            //if (!anim) fRotateSpeed=0.0; //Ra: nie potrzeba przeliczaæ ju¿ - nie, to jakoœ dziwnie dzia³a...
         }
 
     }
-//    if (pNext)
-  //      pNext->UpdateModel();
 }
 
 bool __fastcall TAnimContainer::InMovement()
 {//czy trwa animacja - informacja dla obrotnicy
- return fRotateSpeed!=0.0;
+ return fRotateSpeed!=0.0; //Ra: to nie jest w³aœciwy warunek, ale obrotnica jest zepsuta...
 }
 
 //---------------------------------------------------------------------------
 
 __fastcall TAnimModel::TAnimModel()
 {
-    pRoot= NULL;
-    pModel= NULL;
-    iNumLights= 0;
-    fBlinkTimer= 0;
-    ReplacableSkinId= 0;
-    for (int i=0; i<iMaxNumLights; i++)
-    {
-        LightsOn[i]=LightsOff[i]=NULL; //normalnie nie ma
-        lsLights[i]=ls_Off; //a jeœli s¹, to wy³¹czone
-    }
+ pRoot=NULL;
+ pModel=NULL;
+ iNumLights=0;
+ fBlinkTimer=0;
+ ReplacableSkinId=0;
+ for (int i=0;i<iMaxNumLights;i++)
+ {
+  LightsOn[i]=LightsOff[i]=NULL; //normalnie nie ma
+  lsLights[i]=ls_Off; //a jeœli s¹, to wy³¹czone
+ }
 }
 
 __fastcall TAnimModel::~TAnimModel()

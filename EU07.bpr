@@ -3,7 +3,7 @@
 <PROJECT>
   <MACROS>
     <VERSION value="BCB.05.03"/>
-    <PROJECT value="C:\EU07\EU07.exe"/>
+    <PROJECT value="M:\aEU07\EU07\EU07.exe"/>
     <OBJFILES value="McZapkie\mover.obj McZapkie\ai_driver.obj QueryParserComp.obj EU07.obj 
       dumb3d.obj Camera.obj Texture.obj World.obj Model3d.obj geometry.obj 
       MdlMngr.obj Train.obj wavread.obj Timer.obj Event.obj MemCell.obj Logs.obj 
@@ -32,7 +32,7 @@
     <DEBUGLIBPATH value="$(BCB)\lib\debug"/>
     <RELEASELIBPATH value="$(BCB)\lib\release"/>
     <LINKER value="tlink32"/>
-    <USERDEFINES value="GLEW_STATIC"/>
+    <USERDEFINES value="GLEW_STATIC;_DEBUG"/>
     <SYSDEFINES value="_RTLDLL;NO_STRICT"/>
     <MAINSOURCE value="EU07.cpp"/>
     <INCLUDEPATH value="F:\ProgsWin\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
@@ -41,12 +41,13 @@
   </MACROS>
   <OPTIONS>
     <IDLCFLAGS value="-IF:\ProgsWin\CBuilder5\Projects\. -IMcZapkie -I$(BCB)\include 
-      -I$(BCB)\include\vcl -src_suffix cpp -DGLEW_STATIC -boa"/>
-    <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -a4 -6 -b- -k- -vi -c -tW -tWM"/>
-    <PFLAGS value="-$Y- -$L- -$D- -v -JPHNE -M"/>
+      -I$(BCB)\include\vcl -src_suffix cpp -DGLEW_STATIC -D_DEBUG -boa"/>
+    <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a4 -6 -b- -k -y -v -vi- 
+      -c -tW -tWM"/>
+    <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
     <RFLAGS value=""/>
-    <AFLAGS value="/mx /w2 /zn"/>
-    <LFLAGS value="-D&quot;&quot; -aa -Tpe -x"/>
+    <AFLAGS value="/mx /w2 /zi"/>
+    <LFLAGS value="-D&quot;&quot; -aa -Tpe -x -v"/>
   </OPTIONS>
   <LINKER>
     <ALLOBJ value="c0w32.obj Memmgr.Lib sysinit.obj $(OBJFILES)"/>
@@ -59,8 +60,8 @@ IncludeVerInfo=1
 AutoIncBuild=1
 MajorVer=1
 MinorVer=2
-Release=52
-Build=85
+Release=53
+Build=86
 Debug=1
 PreRelease=0
 Special=0
@@ -72,7 +73,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=PC2009 SP1
-FileVersion=1.2.52.85
+FileVersion=1.2.53.86
 InternalName=hammer
 LegalCopyright=
 LegalTrademarks=
@@ -118,8 +119,8 @@ Item1=$(BCB)\source\vcl
 
 [HistoryLists\hlConditionals]
 Count=6
-Item0=GLEW_STATIC
-Item1=GLEW_STATIC;_DEBUG
+Item0=GLEW_STATIC;_DEBUG
+Item1=GLEW_STATIC
 Item2=GLEW_STATIC;USE_VERTEX_ARRAYS;_DEBUG
 Item3=GLEW_STATIC;USE_VERTEX_ARRAYS
 Item4=GLEW_STATIC;_DEBUG;USE_VERTEX_ARRAYS
@@ -127,9 +128,9 @@ Item5=_DEBUG
 
 [HistoryLists\hlFinalOutputDir]
 Count=6
-Item0=C:\EU07\
+Item0=M:\aEU07\EU07\
 Item1=M:\aEU07\EU07-2006\
-Item2=M:\aEU07\EU07\
+Item2=C:\EU07\
 Item3=M:\aEU07\EU07
 Item4=G:\EU07\
 Item5=C:\EU07
@@ -147,10 +148,16 @@ RemoteDebug=0
 [Compiler]
 ShowInfoMsgs=0
 LinkDebugVcl=0
+LinkCGLIB=0
 
 [CORBA]
 AddServerUnit=1
 AddClientUnit=1
 PrecompiledHeaders=1
+
+[Language]
+ActiveLang=
+ProjectLang=
+RootDir=
   </IDEOPTIONS>
 </PROJECT>

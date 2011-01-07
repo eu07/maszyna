@@ -242,12 +242,12 @@ void __fastcall TEvent::Load(cParser* parser)
         case tp_Animation:
             parser->getTokens();
             *parser >> token;
-            Params[0].asInt= 0;
+            Params[0].asInt=0; //nieznany typ
             if ( token.compare( "rotate" ) == 0 )
             {
                 parser->getTokens();
                 *parser >> token;
-                Params[9].asText= new char[255];
+                Params[9].asText=new char[255]; //nazwa modelu
                 strcpy(Params[9].asText,token.c_str());
                 Params[0].asInt= 1;
                 parser->getTokens(4);
@@ -256,6 +256,10 @@ void __fastcall TEvent::Load(cParser* parser)
             else
             if ( token.compare( "translate" ) == 0 )
             {
+                parser->getTokens();
+                *parser >> token;
+                Params[9].asText=new char[255]; //nazwa modelu
+                strcpy(Params[9].asText,token.c_str());
                 Params[0].asInt= 2;
                 parser->getTokens(4);
                 *parser >> Params[1].asdouble >> Params[2].asdouble >> Params[3].asdouble >> Params[4].asdouble;
