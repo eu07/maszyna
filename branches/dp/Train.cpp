@@ -1396,7 +1396,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       {
          if (DynamicObject->MoverParameters->TrainType!=dt_EZT)
           {
-                   FuseButtonGauge.PutValue(1);
+                   StLinOffButtonGauge.PutValue(1); //Ra: by³o Fuse...
                    dsbSwitch->SetVolume(DSBVOLUME_MAX);
                    dsbSwitch->Play( 0, 0, 0 );
                 if (DynamicObject->MoverParameters->MainCtrlPosNo>0)
@@ -2481,9 +2481,9 @@ else
     if (DynamicObject->MoverParameters->SecuritySystem.Status>0)
      {
        if (fBlinkTimer>fCzuwakBlink)
-           fBlinkTimer= -fCzuwakBlink;
+           fBlinkTimer=-fCzuwakBlink;
        else
-           fBlinkTimer+= dt;
+           fBlinkTimer+=dt;
        if (TestFlag(DynamicObject->MoverParameters->SecuritySystem.Status,s_aware))
         {
          if (fBlinkTimer>0)
@@ -3257,7 +3257,9 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
            btLampkaWentZaluzje.Clear();
            btLampkaOgrzewanieSkladu.Clear();
            btLampkaSHP.Clear();
+           btLampkaSHP.FeedbackBitSet(0);
            btLampkaCzuwaka.Clear();
+           btLampkaCzuwaka.FeedbackBitSet(1);
            btLampkaDoorLeft.Clear();
            btLampkaDoorRight.Clear();
            btLampkaDepartureSignal.Clear();

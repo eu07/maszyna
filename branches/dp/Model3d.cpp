@@ -516,27 +516,26 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId)
  {
   glPushMatrix();
   glMultMatrixd(Matrix.getArray());
-  if (b_Anim==at_Rotate)   //czy to potrzebne tu czy moze nizej?
-  {
-   glRotatef(f_Angle,v_RotateAxis.x,v_RotateAxis.y,v_RotateAxis.z);
-   glTranslatef(v_TransVector.x,v_TransVector.y,v_TransVector.z);
-
-  //        vRotateAxis= vector3(0,0,0);
-    //      vTransVector= vector3(0,0,0);
-   f_Angle=0;
-   b_Anim=at_None;
-  //        bAnim= false;
-  }
-  else
-   if (b_Anim==at_RotateXYZ)
-   {
+  switch (b_Anim)
+  {case at_Rotate:   //czy to potrzebne tu czy moze nizej?
+   case at_Translate: //Ra: by³o "true"
+    glRotatef(f_Angle,v_RotateAxis.x,v_RotateAxis.y,v_RotateAxis.z);
+    glTranslatef(v_TransVector.x,v_TransVector.y,v_TransVector.z);
+    //vRotateAxis= vector3(0,0,0);
+    //vTransVector= vector3(0,0,0);
+    f_Angle=0;
+    b_Anim=at_None;
+    //bAnim= false;
+    break;
+   case at_RotateXYZ:
     glTranslatef(v_TransVector.x,v_TransVector.y,v_TransVector.z);
     glRotatef(v_Angles.y,0.0,1.0,0.0);
     glRotatef(v_Angles.x,1.0,0.0,0.0);
     glRotatef(v_Angles.z,0.0,0.0,1.0);
     v_Angles.x=v_Angles.y=v_Angles.z=0;
     b_Anim= at_None;
-   }
+    break;
+  }
   //zmienialne skory
   if ((TextureID==-1)) // && (ReplacableSkinId!=0))
   {
@@ -632,22 +631,22 @@ void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId)
     {
       glPushMatrix();
       glMultMatrixd(Matrix.getArray());
-      if (b_aAnim==at_Rotate)
-      {
-          glRotatef(f_aAngle,v_aRotateAxis.x,v_aRotateAxis.y,v_aRotateAxis.z);
-          glTranslatef(v_aTransVector.x,v_aTransVector.y,v_aTransVector.z);
-          f_aAngle= 0;
-          b_aAnim= at_None;
-      }
-      else
-      if (b_aAnim==at_RotateXYZ)
-      {
-          glTranslatef(v_TransVector.x,v_TransVector.y,v_TransVector.z);
-          glRotatef(v_aAngles.y,0.0,1.0,0.0);
-          glRotatef(v_aAngles.x,1.0,0.0,0.0);
-          glRotatef(v_aAngles.z,0.0,0.0,1.0);
-          v_aAngles.x=v_aAngles.y=v_aAngles.z= 0;
-          b_aAnim= at_None;
+      switch (b_aAnim)
+      {case at_Rotate:
+       case at_Translate:
+        glRotatef(f_aAngle,v_aRotateAxis.x,v_aRotateAxis.y,v_aRotateAxis.z);
+        glTranslatef(v_aTransVector.x,v_aTransVector.y,v_aTransVector.z);
+        f_aAngle=0;
+        b_aAnim=at_None;
+        break;
+       case at_RotateXYZ:
+        glTranslatef(v_TransVector.x,v_TransVector.y,v_TransVector.z);
+        glRotatef(v_aAngles.y,0.0,1.0,0.0);
+        glRotatef(v_aAngles.x,1.0,0.0,0.0);
+        glRotatef(v_aAngles.z,0.0,0.0,1.0);
+        v_aAngles.x=v_aAngles.y=v_aAngles.z=0;
+        b_aAnim=at_None;
+        break;
       }
      glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
     //zmienialne skory
@@ -655,11 +654,11 @@ void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId)
        {
         glBindTexture(GL_TEXTURE_2D,ReplacableSkinId);
         if (ReplacableSkinId>0)
-          TexAlpha= TTexturesManager::GetAlpha(ReplacableSkinId); //malo eleganckie ale narazie niech bedzie
+          TexAlpha=TTexturesManager::GetAlpha(ReplacableSkinId); //malo eleganckie ale narazie niech bedzie
        }
       else
        {
-        glBindTexture(GL_TEXTURE_2D, TextureID);
+        glBindTexture(GL_TEXTURE_2D,TextureID);
        }
       if (TexAlpha && Global::bRenderAlpha)  //mozna rysowac bo przezroczyste i nie ma #
       {

@@ -348,8 +348,10 @@ bool __fastcall TGroundNode::Render()
      return false;
 //    glMaterialfv( GL_FRONT, GL_DIFFUSE, Global::whiteLight );
  int i,a;
+ try{
  switch (iType)
  {
+  case TP_TRACTION: return true;
   case TP_TRACK: if (iNumVerts) pTrack->RaRenderVBO(iVboPtr); return true;
   case TP_MODEL: Model->Render(pCenter,fAngle); return true;
   case TP_DYNAMIC:
@@ -393,6 +395,7 @@ bool __fastcall TGroundNode::Render()
     RenderVBO();
    return true;
  };
+ }catch(...) {WriteLog("!!! B³¹d w TGroundNode::Render() dla "+AnsiString(iType));}
 /* Ra: trójk¹ty i linie renderuj¹ siê z VBO sektora
     // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
     if(
@@ -426,7 +429,7 @@ bool __fastcall TGroundNode::Render()
 
     };
 */
- //return true;
+ return true;
 };
 
 bool __fastcall TGroundNode::RenderAlpha()
@@ -438,10 +441,12 @@ bool __fastcall TGroundNode::RenderAlpha()
  if (mgn>fSquareRadius) return false;
 //    glMaterialfv( GL_FRONT, GL_DIFFUSE, Global::whiteLight );
  int i,a;
+ try{
  switch (iType)
  {
   case TP_TRACTION:
-   //if(Global::bRenderAlpha && bVisible && Global::bLoadTraction) Traction->Render(mgn);
+   if (Global::bRenderAlpha && bVisible && Global::bLoadTraction)
+    Traction->RaRenderVBO(mgn,iVboPtr);
    return true;
   case TP_MODEL:
    Model->RenderAlpha(pCenter,fAngle); return true;
@@ -465,7 +470,7 @@ bool __fastcall TGroundNode::RenderAlpha()
     return true;
    }
  };
-
+ }catch(...) {WriteLog("!!! B³¹d w TGroundNode::RenderAlpha() dla "+AnsiString(iType));}
 /* Ra: trójk¹ty i linie renderuj¹ siê z VBO sektora
     // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
     if(
@@ -543,6 +548,12 @@ void __fastcall TSubRect::LoadNodes()
     n->iVboPtr=m_nVertexCount;
     n->iNumVerts=n->pTrack->RaArraysPrepare(); //zliczenie wierzcho³ków
     m_nVertexCount+=n->iNumVerts;
+    break;
+   case TP_TRACTION:
+    n->iVboPtr=m_nVertexCount;
+    n->iNumVerts=n->Traction->RaArraysPrepare(); //zliczenie wierzcho³ków
+    m_nVertexCount+=n->iNumVerts;
+    break;
   }
   n=n->Next2;
  }
@@ -581,6 +592,11 @@ void __fastcall TSubRect::LoadNodes()
     case TP_TRACK:
      if (n->iNumVerts) //bo tory zabezpieczaj¹ce s¹ niewidoczne
       n->pTrack->RaArraysFill(m_pVertices+n->iVboPtr,m_pNormals+n->iVboPtr,m_pTexCoords+n->iVboPtr);
+     break;
+    case TP_TRACTION:
+     if (n->iNumVerts) //druty mog¹ byæ niewidoczne...?
+      n->Traction->RaArraysFill(m_pVertices+n->iVboPtr,m_pNormals+n->iVboPtr,m_pTexCoords+n->iVboPtr);
+     break;
    }
   n=n->Next2;
  }
@@ -2781,7 +2797,7 @@ bool __fastcall TGround::Render(vector3 pPosition)
     }
     for (node= tmp->pRootNode; node!=NULL; node=node->Next2)
      if (node->iVboPtr<0) node->Render();
-/*
+/* Ra: to by³o wy³¹czone
     for (node= tmp->pRootNode; node!=NULL; node=node->Next2)
     {
                     if (node->iType==TP_TRACTION)

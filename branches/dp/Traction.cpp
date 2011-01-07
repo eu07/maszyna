@@ -27,32 +27,22 @@
 #include "mctools.hpp"
 #include "Globals.h"
 
-/*
-static char szTypeName[]="TRACTION";
+//---------------------------------------------------------------------------
 
-DWORD __fastcall TTraction::GetType()
-{
-    return TP_TRACTION;
-}
-
-char* __fastcall TTraction::GetTypeName()
-{
-    return szTypeName;
-} */
+#pragma package(smart_init)
 
 TTraction::TTraction()//:TNode()
 {
     pPoint1=pPoint2=pPoint3=pPoint4= vector3(0,0,0);
-    vFront= vector3(0,0,1);
-    vUp= vector3(0,1,0);
-    vLeft= vector3(1,0,0);
-    fHeightDifference= 0;
-    iNumSections= 0;
+    vFront=vector3(0,0,1);
+    vUp=vector3(0,1,0);
+    vLeft=vector3(1,0,0);
+    fHeightDifference=0;
+    iNumSections=0;
+    iLines=0;
 //    dwFlags= 0;
-    Wires= 2;
+    Wires=2;
 //    fU=fR= 0;
-    //uiDisplayList= glGenLists(1);
-    //glNewList(uiDisplayList,GL_COMPILE);
     asPowerSupplyName="";
 //    mdPole= NULL;
 //    ReplacableSkinID= 0;
@@ -65,11 +55,10 @@ TTraction::~TTraction()
 
 void __fastcall TTraction::Optimize()
 {
-/*
+/* Ra: tymczasowo zablokowane
     glNewList(uiDisplayList,GL_COMPILE);
 
     glBindTexture(GL_TEXTURE_2D, 0);
-*/
 //    glColor3ub(0,0,0); McZapkie: to do render
 
 //    glPushMatrix();
@@ -81,13 +70,11 @@ void __fastcall TTraction::Optimize()
       double ddp=hypot(pPoint2.x-pPoint1.x,pPoint2.z-pPoint1.z);
 
       if (Wires==2) WireOffset=0;
-/*
       //Przewoz jezdny 1 'Marcin
       glBegin(GL_LINE_STRIP);
           glVertex3f(pPoint1.x-(pPoint2.z/ddp-pPoint1.z/ddp)*WireOffset,pPoint1.y,pPoint1.z-(-pPoint2.x/ddp+pPoint1.x/ddp)*WireOffset);
           glVertex3f(pPoint2.x-(pPoint2.z/ddp-pPoint1.z/ddp)*WireOffset,pPoint2.y,pPoint2.z-(-pPoint2.x/ddp+pPoint1.x/ddp)*WireOffset);
       glEnd();
-*/
       //Nie wiem co 'Marcin
       vector3 pt1,pt2,pt3,pt4,v1,v2;
       v1= pPoint4-pPoint3;
@@ -102,7 +89,6 @@ void __fastcall TTraction::Optimize()
       //Przewod nosny 'Marcin
       if (Wires != 1)
       {
-/*
        glBegin(GL_LINE_STRIP);
            glVertex3f(pPoint3.x,pPoint3.y,pPoint3.z);
            for (int i=0; i<iNumSections-1; i++)
@@ -114,18 +100,15 @@ void __fastcall TTraction::Optimize()
            }
            glVertex3f(pPoint4.x,pPoint4.y,pPoint4.z);
        glEnd();
-*/
        }
 
       //Drugi przewod jezdny 'Winger
       if (Wires == 3)
       {
-/*
       glBegin(GL_LINE_STRIP);
           glVertex3f(pPoint1.x+(pPoint2.z/ddp-pPoint1.z/ddp)*WireOffset,pPoint1.y,pPoint1.z+(-pPoint2.x/ddp+pPoint1.x/ddp)*WireOffset);
           glVertex3f(pPoint2.x+(pPoint2.z/ddp-pPoint1.z/ddp)*WireOffset,pPoint2.y,pPoint2.z+(-pPoint2.x/ddp+pPoint1.x/ddp)*WireOffset);
       glEnd();
-*/
       }
 
       f= step;
@@ -133,7 +116,6 @@ void __fastcall TTraction::Optimize()
       //Przewody pionowe (wieszaki) 'Marcin, poprawki na 2 przewody jezdne 'Winger
       if (Wires != 1)
       {
-/*
        glBegin(GL_LINES);
            for (int i=0; i<iNumSections-1; i++)
            {
@@ -155,10 +137,10 @@ void __fastcall TTraction::Optimize()
 
            }
        glEnd();
-*/
       }
       //glEndList();
   }
+*/
 }
 /*
 void __fastcall TTraction::InitCenter(vector3 Angles, vector3 pOrigin)
@@ -166,33 +148,10 @@ void __fastcall TTraction::InitCenter(vector3 Angles, vector3 pOrigin)
     pPosition= (pPoint2+pPoint1)*0.5f;
     fSquaredRadius= SquareMagnitude((pPoint2-pPoint1)*0.5f);
 } */
-/*
-void __fastcall TTraction::SelectedRender()
-{
-} */
 
 void __fastcall TTraction::Render(float mgn)   //McZapkie: mgn to odleglosc od obserwatora
 {
-
-//McZapkie: automatyczne rysowanie slupow (na szlaku) ABANDONED!
-/*
-    if (mdPole!=NULL)
-     {
-       vFront= pPoint1-pPoint2;
-       vFront.Normalize();
-       vLeft= PoleSide*CrossProduct(vUp,vFront);
-//       vUp= CrossProduct(vFront,vLeft);
-       matrix4x4 mat;
-       mat.Identity();
-       mat.BasisChange(vLeft,vUp,vFront);
-       mMatrix= Inverse(mat);
-       glPushMatrix ( );
-       glMultMatrixd(mMatrix.getArray());
-       glTranslatef(pPoint1.x,pPoint1.y,pPoint1.z);
-       mdPole->Render(mgn,ReplacableSkinID);
-       glPopMatrix ( );
-     }
-*/
+/* Ra: tymczasowo zablokowane
   //McZapkie: ustalanie przezroczystosci i koloru linii:
     if (Wires!=0 && !TestFlag(DamageFlag,128))  //rysuj jesli sa druty i nie zerwana
     {
@@ -244,16 +203,166 @@ void __fastcall TTraction::Render(float mgn)   //McZapkie: mgn to odleglosc od o
       r=r*Global::ambientDayLight[0];  //w zaleznosci od koloru swiatla
       g=g*Global::ambientDayLight[1];
       b=b*Global::ambientDayLight[2];
-/* Ra: tymczasowo zablokowane
       glColor3f(r,g,b); // linealpha);
       glCallList(uiDisplayList);
       glLineWidth(1.0);
-*/
     }
+*/
 }
 
+int __fastcall TTraction::RaArraysPrepare()
+{//przygotowanie tablic do skopiowania do VBO (zliczanie wierzcho³ków)
+ //if (bVisible) //o ile w ogóle widaæ
+  switch (Wires)
+  {
+   case 1: iLines=2; break;
+   case 2: iLines=iNumSections?4*(iNumSections)-2+2:4; break;
+   case 3: iLines=iNumSections?4*(iNumSections)-2+4:6; break;
+   case 4: iLines=iNumSections?4*(iNumSections)-2+6:8; break;
+   default: iLines=0;
+  }
+ return iLines;
+};
 
-//---------------------------------------------------------------------------
+void  __fastcall TTraction::RaArraysFill(CVert *Vert,CVec *Norm,CTexCoord *Tex)
+{//wype³nianie tablic VBO
+ CVert *old=Vert;
+ double ddp=hypot(pPoint2.x-pPoint1.x,pPoint2.z-pPoint1.z);
+ if (Wires==2) WireOffset=0;
+ //jezdny
+ Vert->x=pPoint1.x-(pPoint2.z/ddp-pPoint1.z/ddp)*WireOffset;
+ Vert->y=pPoint1.y;
+ Vert->z=pPoint1.z-(-pPoint2.x/ddp+pPoint1.x/ddp)*WireOffset;
+ ++Vert;
+ Vert->x=pPoint2.x-(pPoint2.z/ddp-pPoint1.z/ddp)*WireOffset;
+ Vert->y=pPoint2.y;
+ Vert->z=pPoint2.z-(-pPoint2.x/ddp+pPoint1.x/ddp)*WireOffset;
+ ++Vert;
+ //Nie wiem co 'Marcin
+ vector3 pt1,pt2,pt3,pt4,v1,v2;
+ v1=pPoint4-pPoint3;
+ v2=pPoint2-pPoint1;
+ float step= 0;
+ if (iNumSections>0)
+  step=1.0f/(float)iNumSections;
+ float f=step;
+ float mid=0.5;
+ float t;
+ //Przewod nosny 'Marcin
+ if (Wires>1)
+ {//lina noœna w kawa³kach
+  Vert->x=pPoint3.x;
+  Vert->y=pPoint3.y;
+  Vert->z=pPoint3.z;
+  ++Vert;
+  for (int i=0;i<iNumSections-1;i++)
+  {
+   pt3=pPoint3+v1*f;
+   t=(1-fabs(f-mid)*2);
+   Vert->x=pt3.x;
+   Vert->y=pt3.y-sqrt(t)*fHeightDifference;
+   Vert->z=pt3.z;
+   ++Vert;
+   Vert->x=pt3.x; //drugi raz, bo nie jest line_strip
+   Vert->y=pt3.y-sqrt(t)*fHeightDifference;
+   Vert->z=pt3.z;
+   ++Vert;
+   f+=step;
+  }
+  Vert->x=pPoint4.x;
+  Vert->y=pPoint4.y;
+  Vert->z=pPoint4.z;
+  ++Vert;
+ }
+ //Drugi przewod jezdny 'Winger
+ if (Wires==3)
+ {
+  Vert->x=pPoint1.x+(pPoint2.z/ddp-pPoint1.z/ddp)*WireOffset;
+  Vert->y=pPoint1.y;
+  Vert->z=pPoint1.z+(-pPoint2.x/ddp+pPoint1.x/ddp)*WireOffset;
+  ++Vert;
+  Vert->x=pPoint2.x+(pPoint2.z/ddp-pPoint1.z/ddp)*WireOffset;
+  Vert->y=pPoint2.y;
+  Vert->z=pPoint2.z+(-pPoint2.x/ddp+pPoint1.x/ddp)*WireOffset;
+  ++Vert;
+ }
+ f=step;
+ //Przewody pionowe (wieszaki) 'Marcin, poprawki na 2 przewody jezdne 'Winger
+ if (Wires>1)
+ {
+  for (int i=0;i<iNumSections-1;i++)
+  {
+   pt3=pPoint3+v1*f;
+   pt4=pPoint1+v2*f;
+   t=(1-fabs(f-mid)*2);
+   Vert->x=pt3.x;
+   Vert->y=pt3.y-sqrt(t)*fHeightDifference;
+   Vert->z=pt3.z;
+   ++Vert;
+   if ((i%2)==0)
+   {
+    Vert->x=pt4.x-(pPoint2.z/ddp-pPoint1.z/ddp)*WireOffset;
+    Vert->y=pt4.y;
+    Vert->z=pt4.z-(-pPoint2.x/ddp+pPoint1.x/ddp)*WireOffset;
+   }
+   else
+   {
+    Vert->x=pt4.x+(pPoint2.z/ddp-pPoint1.z/ddp)*WireOffset;
+    Vert->y=pt4.y;
+    Vert->z=pt4.z+(-pPoint2.x/ddp+pPoint1.x/ddp)*WireOffset;
+   }
+   ++Vert;
+   f+=step;
+  }
+ }
+ if ((Vert-old)!=iLines)
+  WriteLog("!!! Wygenerowano punktów "+AnsiString(Vert-old)+", powinno byæ "+AnsiString(iLines));
+};
 
-#pragma package(smart_init)
+void  __fastcall TTraction::RaRenderVBO(float mgn,int iPtr)
+{//renderowanie z u¿yciem VBO
+ if (Wires!=0 && !TestFlag(DamageFlag,128))  //rysuj jesli sa druty i nie zerwana
+ {
+  glBindTexture(GL_TEXTURE_2D,0);
+  glDisable(GL_LIGHTING); //Ra: do testów
+  glColor4f(0,0,0,1);  //jak nieznany kolor to czarne nieprzezroczyste
+  float linealpha=1000*WireThickness*WireThickness/(mgn+1.0);
+  if (linealpha>1.5) linealpha = 1.5;
+  glEnable(GL_LINE_SMOOTH);
+  glLineWidth(linealpha);
+  if (linealpha>1.0) linealpha=1.0;
+  //McZapkie-261102: kolor zalezy od materialu i zasniedzenia
+  float r,g,b;
+  switch (Material)
+  {
+   case 1:
+    if (TestFlag(DamageFlag,1))
+    {
+     r=0.2; g=0.6; b=0.3;  //zielona miedz
+    }
+    else
+    {
+     r=0.6; g=0.2; b=0.1;  //czerwona miedz
+    }
+   break;
+   case 2:
+    if (TestFlag(DamageFlag,1))
+    {
+     r=0.2; g=0.2; b=0.2;  //czarne Al
+    }
+    else
+    {
+     r=0.5; g=0.5; b=0.5;  //srebrne Al
+    }
+   break;
+  }
+  r=r*Global::ambientDayLight[0];  //w zaleznosci od koloru swiatla
+  g=g*Global::ambientDayLight[1];
+  b=b*Global::ambientDayLight[2];
+  glColor3f(r,g,b); // linealpha);
+  glDrawArrays(GL_LINES,iPtr,iLines);
+  glLineWidth(1.0);
+  glEnable(GL_LIGHTING); //Ra: do testów
+ }
+};
 

@@ -22,6 +22,7 @@ public:
   //  int iCategory,iMaterial,iDamageFlag;
 //    float fU,fR,fMaxI,fWireThickness;
     int iNumSections;
+    int iLines; //ilosc linii dla VBO
     float NominalVoltage;
     float MaxCurrent;
     float Resistivity;
@@ -31,9 +32,6 @@ public:
     int Wires;
     float WireOffset;
     AnsiString asPowerSupplyName; //McZapkie: nazwa podstacji trakcyjnej
-//    TModel3d *mdPole;
-//    GLuint ReplacableSkinID;  //McZapkie:zmienialna tekstura slupa
-//    int PoleSide;             //przy automatycznym rysowaniu slupow: lewy/prawy
 //    bool bVisible;
 //    DWORD dwFlags;
 
@@ -47,7 +45,9 @@ public:
   //  virtual bool __fastcall Move(double dx, double dy, double dz) { return false; };
 //    virtual void __fastcall SelectedRender();
     virtual void __fastcall Render(float mgn);
-
+    int __fastcall RaArraysPrepare();
+    void  __fastcall RaArraysFill(CVert *Vert,CVec *Norm,CTexCoord *Tex);
+    void  __fastcall RaRenderVBO(float mgn,int iPtr);
 };
 //---------------------------------------------------------------------------
 #endif
