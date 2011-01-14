@@ -379,13 +379,12 @@ bool __fastcall TGroundNode::Render()
   case GL_LINES:
   case GL_LINE_STRIP:
   case GL_LINE_LOOP:
-    // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
    if (iNumPts)
    {float linealpha=255000*fLineThickness/(mgn+1.0);
     if (linealpha>255) linealpha=255;
-    r=Diffuse[0]*Global::ambientDayLight[0];  //w zaleznosci od koloru swiatla
-    g=Diffuse[1]*Global::ambientDayLight[1];
-    b=Diffuse[2]*Global::ambientDayLight[2];
+    r=floor(Diffuse[0]*Global::ambientDayLight[0]);  //w zaleznosci od koloru swiatla
+    g=floor(Diffuse[1]*Global::ambientDayLight[1]);
+    b=floor(Diffuse[2]*Global::ambientDayLight[2]);
     glColor4ub(r,g,b,linealpha); //przezroczystosc dalekiej linii
     glDrawArrays(iType,iVboPtr,iNumPts); //rysowanie linii
    }
@@ -546,19 +545,19 @@ void __fastcall TSubRect::LoadNodes()
     break;
    case TP_TRACK:
     n->iVboPtr=m_nVertexCount;
-    n->iNumVerts=n->pTrack->RaArraysPrepare(); //zliczenie wierzcho³ków
+    n->iNumVerts=n->pTrack->RaArrayPrepare(); //zliczenie wierzcho³ków
     m_nVertexCount+=n->iNumVerts;
     break;
    case TP_TRACTION:
     n->iVboPtr=m_nVertexCount;
-    n->iNumVerts=n->Traction->RaArraysPrepare(); //zliczenie wierzcho³ków
+    n->iNumVerts=n->Traction->RaArrayPrepare(); //zliczenie wierzcho³ków
     m_nVertexCount+=n->iNumVerts;
     break;
   }
   n=n->Next2;
  }
  if (!m_nVertexCount) return; //jeœli nie ma obiektów do wyœwietlenia z VBO, to koniec
- MakeArrays(m_nVertexCount);
+ MakeArray(m_nVertexCount);
  n=pRootNode;
  int i;
  while (n)
@@ -569,33 +568,34 @@ void __fastcall TSubRect::LoadNodes()
     case GL_TRIANGLES:
      for (i=0;i<n->iNumVerts;++i)
      {//Ra: trójk¹ty mo¿na od razu wczytywaæ do takich tablic... to mo¿e poczekaæ
-      m_pVertices[n->iVboPtr+i].x=n->Vertices[i].Point.x;
-      m_pVertices[n->iVboPtr+i].y=n->Vertices[i].Point.y;
-      m_pVertices[n->iVboPtr+i].z=n->Vertices[i].Point.z;
-      m_pNormals[n->iVboPtr+i].x=n->Vertices[i].Normal.x;
-      m_pNormals[n->iVboPtr+i].y=n->Vertices[i].Normal.y;
-      m_pNormals[n->iVboPtr+i].z=n->Vertices[i].Normal.z;
-      m_pTexCoords[n->iVboPtr+i].u=n->Vertices[i].tu;
-      m_pTexCoords[n->iVboPtr+i].v=n->Vertices[i].tv;
+      m_pVNT[n->iVboPtr+i].x=n->Vertices[i].Point.x;
+      m_pVNT[n->iVboPtr+i].y=n->Vertices[i].Point.y;
+      m_pVNT[n->iVboPtr+i].z=n->Vertices[i].Point.z;
+      m_pVNT[n->iVboPtr+i].nx=n->Vertices[i].Normal.x;
+      m_pVNT[n->iVboPtr+i].ny=n->Vertices[i].Normal.y;
+      m_pVNT[n->iVboPtr+i].nz=n->Vertices[i].Normal.z;
+      m_pVNT[n->iVboPtr+i].u=n->Vertices[i].tu;
+      m_pVNT[n->iVboPtr+i].v=n->Vertices[i].tv;
      }
      break;
     case GL_LINES:
     case GL_LINE_STRIP:
     case GL_LINE_LOOP:
      for (i=0;i<n->iNumPts;++i)
-     {m_pVertices[n->iVboPtr+i].x=n->Points[i].x;
-      m_pVertices[n->iVboPtr+i].y=n->Points[i].y;
-      m_pVertices[n->iVboPtr+i].z=n->Points[i].z;
+     {
+      m_pVNT[n->iVboPtr+i].x=n->Points[i].x;
+      m_pVNT[n->iVboPtr+i].y=n->Points[i].y;
+      m_pVNT[n->iVboPtr+i].z=n->Points[i].z;
       //miejsce w tablicach normalnych i teksturowania siê zmarnuje...
      }
      break;
     case TP_TRACK:
      if (n->iNumVerts) //bo tory zabezpieczaj¹ce s¹ niewidoczne
-      n->pTrack->RaArraysFill(m_pVertices+n->iVboPtr,m_pNormals+n->iVboPtr,m_pTexCoords+n->iVboPtr);
+      n->pTrack->RaArrayFill(m_pVNT+n->iVboPtr);
      break;
     case TP_TRACTION:
      if (n->iNumVerts) //druty mog¹ byæ niewidoczne...?
-      n->Traction->RaArraysFill(m_pVertices+n->iVboPtr,m_pNormals+n->iVboPtr,m_pTexCoords+n->iVboPtr);
+      n->Traction->RaArrayFill(m_pVNT+n->iVboPtr);
      break;
    }
   n=n->Next2;

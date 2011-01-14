@@ -142,8 +142,8 @@ public:
       std::string Name;
 
       __fastcall TSubModel();
-      __fastcall FirstInit();
       __fastcall ~TSubModel();
+      void __fastcall FirstInit();
       int __fastcall Load(cParser& Parser, int NIndex, TModel3d *Model,int Pos);
       void __fastcall AddChild(TSubModel *SubModel);
       void __fastcall AddNext(TSubModel *SubModel);
@@ -156,7 +156,7 @@ public:
       inline matrix4x4* __fastcall GetMatrix() { return &Matrix; };
       matrix4x4* __fastcall GetTransform();
       inline void __fastcall Hide() { Visible= false; };
-      void  __fastcall RaArraysFill(CVert *Vert,CVec *Norm,CTexCoord *Tex);
+      void  __fastcall RaArrayFill(CVertNormTex *Vert);
 } ;
 
 class TModel3d : public CMesh

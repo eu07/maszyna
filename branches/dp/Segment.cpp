@@ -571,7 +571,8 @@ void __fastcall TSegment::Render()
 
 }
 */
-void __fastcall TSegment::RaRenderLoft(CVert* &Vert,CVec* &Norm,CTexCoord* &Tex,
+
+void __fastcall TSegment::RaRenderLoft(CVertNormTex* &Vert,
  const vector3 *ShapePoints, int iNumShapePoints, double fTextureLength, int iSkip)
 {//generowanie trójk¹tów dla odcinka trajektorii ruchu
  //standardowo tworzy triangle_strip dla prostego albo ich zestaw dla ³uku
@@ -621,45 +622,45 @@ void __fastcall TSegment::RaRenderLoft(CVert* &Vert,CVec* &Norm,CTexCoord* &Tex,
     {//strip wzd³u¿ powinien siê wyœwietlaæ szybciej
      pt=parallel1*(jmm1*ShapePoints[j].x+m1*ShapePoints[j+iNumShapePoints].x)+pos1;
      pt.y+=jmm1*ShapePoints[j].y+m1*ShapePoints[j+iNumShapePoints].y;
-     Norm->x=0.0; //niekoniecznie tak
-     Norm->y=1.0;
-     Norm->z=0.0;
-     Tex->u=jmm1*ShapePoints[j].z+m1*ShapePoints[j+iNumShapePoints].z;
-     Tex->v=tv1;
+     Vert->nx=0.0; //niekoniecznie tak
+     Vert->ny=1.0;
+     Vert->nz=0.0;
+     Vert->u=jmm1*ShapePoints[j].z+m1*ShapePoints[j+iNumShapePoints].z;
+     Vert->v=tv1;
      Vert->x=pt.x; Vert->y=pt.y; Vert->z=pt.z; //punkt na pocz¹tku odcinka
-     Vert++; Norm++; Tex++;
+     Vert++;
      //dla trapezu drugi koniec ma inne wspó³rzêdne
      pt=parallel2*(jmm2*ShapePoints[j].x+m2*ShapePoints[j+iNumShapePoints].x)+pos2;
      pt.y+=jmm2*ShapePoints[j].y+m2*ShapePoints[j+iNumShapePoints].y;
-     Norm->x=0.0; //niekoniecznie tak
-     Norm->y=1.0;
-     Norm->z=0.0;
-     Tex->u=jmm2*ShapePoints[j].z+m2*ShapePoints[j+iNumShapePoints].z;
-     Tex->v=tv2;
+     Vert->nx=0.0; //niekoniecznie tak
+     Vert->ny=1.0;
+     Vert->nz=0.0;
+     Vert->u=jmm2*ShapePoints[j].z+m2*ShapePoints[j+iNumShapePoints].z;
+     Vert->v=tv2;
      Vert->x=pt.x; Vert->y=pt.y; Vert->z=pt.z; //punkt na koñcu odcinka
-     Vert++; Norm++; Tex++;
+     Vert++;
    }
    else
     for (j=0;j<iNumShapePoints;j++)
     {//strip wzd³u¿ powinien siê wyœwietlaæ szybciej
      pt=parallel1*ShapePoints[j].x+pos1;
      pt.y+=ShapePoints[j].y;
-     Norm->x=0.0; //niekoniecznie tak
-     Norm->y=1.0;
-     Norm->z=0.0;
-     Tex->u=ShapePoints[j].z;
-     Tex->v=tv1;
+     Vert->nx=0.0; //niekoniecznie tak
+     Vert->ny=1.0;
+     Vert->nz=0.0;
+     Vert->u=ShapePoints[j].z;
+     Vert->v=tv1;
      Vert->x=pt.x; Vert->y=pt.y; Vert->z=pt.z; //punkt na pocz¹tku odcinka
-     Vert++; Norm++; Tex++;
+     Vert++;
      pt=parallel2*ShapePoints[j].x+pos2;
      pt.y+=ShapePoints[j].y;
-     Norm->x=0.0; //niekoniecznie tak
-     Norm->y=1.0;
-     Norm->z=0.0;
-     Tex->u=ShapePoints[j].z;
-     Tex->v=tv2;
+     Vert->nx=0.0; //niekoniecznie tak
+     Vert->ny=1.0;
+     Vert->nz=0.0;
+     Vert->u=ShapePoints[j].z;
+     Vert->v=tv2;
      Vert->x=pt.x; Vert->y=pt.y; Vert->z=pt.z; //punkt na koñcu odcinka
-     Vert++; Norm++; Tex++;
+     Vert++;
     }
    pos1=pos2;
    parallel1=parallel2;
@@ -677,49 +678,48 @@ void __fastcall TSegment::RaRenderLoft(CVert* &Vert,CVec* &Norm,CTexCoord* &Tex,
    {
     pt=parallel1*ShapePoints[j].x+pos1;
     pt.y+=ShapePoints[j].y;
-    Norm->x=0.0; //niekoniecznie tak
-    Norm->y=1.0;
-    Norm->z=0.0;
-    Tex->u=ShapePoints[j].z;
-    Tex->v=0;
+    Vert->nx=0.0; //niekoniecznie tak
+    Vert->ny=1.0;
+    Vert->nz=0.0;
+    Vert->u=ShapePoints[j].z;
+    Vert->v=0;
     Vert->x=pt.x; Vert->y=pt.y; Vert->z=pt.z; //punkt na pocz¹tku odcinka
-    Vert++; Norm++; Tex++;
+    Vert++;
     //dla trapezu drugi koniec ma inne wspó³rzêdne
     pt=parallel1*ShapePoints[j+iNumShapePoints].x+pos2; //odsuniêcie
     pt.y+=ShapePoints[j+iNumShapePoints].y; //wysokoœæ
-    Norm->x=0.0; //niekoniecznie tak
-    Norm->z=1.0;
-    Norm->z=0.0;
-    Tex->u=ShapePoints[j+iNumShapePoints].z;
-    Tex->v=fLength/fTextureLength;
+    Vert->nx=0.0; //niekoniecznie tak
+    Vert->ny=1.0;
+    Vert->nz=0.0;
+    Vert->u=ShapePoints[j+iNumShapePoints].z;
+    Vert->v=fLength/fTextureLength;
     Vert->x=pt.x; Vert->y=pt.y; Vert->z=pt.z; //punkt na koñcu odcinka
-    Vert++; Norm++; Tex++;
+    Vert++;
   }
   else
    for (j=0;j<iNumShapePoints;j++)
    {
     pt=parallel1*ShapePoints[j].x+pos1;
     pt.y+=ShapePoints[j].y;
-    Norm->x=0.0; //niekoniecznie tak
-    Norm->y=1.0;
-    Norm->z=0.0;
-    Tex->u=ShapePoints[j].z;
-    Tex->v=0;
+    Vert->nx=0.0; //niekoniecznie tak
+    Vert->ny=1.0;
+    Vert->nz=0.0;
+    Vert->u=ShapePoints[j].z;
+    Vert->v=0;
     Vert->x=pt.x; Vert->y=pt.y; Vert->z=pt.z; //punkt na pocz¹tku odcinka
-    Vert++; Norm++; Tex++;
+    Vert++;
     pt=parallel1*ShapePoints[j].x+pos2;
     pt.y+=ShapePoints[j].y;
-    Norm->x=0.0; //niekoniecznie tak
-    Norm->y=1.0;
-    Norm->z=0.0;
-    Tex->u=ShapePoints[j].z;
-    Tex->v=fLength/fTextureLength;
+    Vert->nx=0.0; //niekoniecznie tak
+    Vert->ny=1.0;
+    Vert->nz=0.0;
+    Vert->u=ShapePoints[j].z;
+    Vert->v=fLength/fTextureLength;
     Vert->x=pt.x; Vert->y=pt.y; Vert->z=pt.z; //punkt na koñcu odcinka
-    Vert++; Norm++; Tex++;
+    Vert++;
    }
  }
 };
-
 
 
 //---------------------------------------------------------------------------

@@ -153,8 +153,8 @@ public:
 
     void __fastcall Assign(TGroundNode *gn,TAnimContainer *ac);
     void __fastcall Assign(TGroundNode *gn,TAnimModel *am);
-    int __fastcall RaArraysPrepare();
-    void  __fastcall RaArraysFill(CVert *Vert,CVec *Norm,CTexCoord *Tex);
+    int __fastcall RaArrayPrepare();
+    void  __fastcall RaArrayFill(CVertNormTex *Vert);    
     void  __fastcall RaRenderVBO(int iPtr);
     void  __fastcall RaRenderDynamic(); //pojazdy
 };

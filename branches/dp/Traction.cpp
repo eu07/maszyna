@@ -210,7 +210,7 @@ void __fastcall TTraction::Render(float mgn)   //McZapkie: mgn to odleglosc od o
 */
 }
 
-int __fastcall TTraction::RaArraysPrepare()
+int __fastcall TTraction::RaArrayPrepare()
 {//przygotowanie tablic do skopiowania do VBO (zliczanie wierzcho³ków)
  //if (bVisible) //o ile w ogóle widaæ
   switch (Wires)
@@ -224,9 +224,9 @@ int __fastcall TTraction::RaArraysPrepare()
  return iLines;
 };
 
-void  __fastcall TTraction::RaArraysFill(CVert *Vert,CVec *Norm,CTexCoord *Tex)
+void  __fastcall TTraction::RaArrayFill(CVertNormTex *Vert)
 {//wype³nianie tablic VBO
- CVert *old=Vert;
+ CVertNormTex *old=Vert;
  double ddp=hypot(pPoint2.x-pPoint1.x,pPoint2.z-pPoint1.z);
  if (Wires==2) WireOffset=0;
  //jezdny

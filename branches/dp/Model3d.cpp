@@ -41,7 +41,7 @@ __fastcall TSubModel::TSubModel()
     iVboPtr=-1;
 };
 
-__fastcall TSubModel::FirstInit()
+void __fastcall TSubModel::FirstInit()
 {
     Index= -1;
     v_RotateAxis= vector3(0,0,0);
@@ -127,7 +127,7 @@ inline double readIntAsDouble(cParser& parser, int base = 255)
 };
 
 template <typename ColorT>
-inline void readColor(cParser& parser, ColorT& color)
+inline void readColor(cParser& parser, ColorT* color)
 {
     color[0] = readIntAsDouble(parser);
     color[1] = readIntAsDouble(parser);
@@ -175,7 +175,7 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
     parser.ignoreToken();
     parser.getToken(Name);
 
-    if(parser.expectToken("anim:"))
+    if (parser.expectToken("anim:"))
         parser.ignoreTokens(2);
 
     if (eType==smt_Mesh) readColor(parser,f4Ambient);
@@ -678,20 +678,22 @@ matrix4x4* __fastcall TSubModel::GetTransform()
 //    return &Transform;
 };
 
-void  __fastcall TSubModel::RaArraysFill(CVert *Vert,CVec *Norm,CTexCoord *Tex)
+//---------------------------------------------------------------------------
+
+void  __fastcall TSubModel::RaArrayFill(CVertNormTex *Vert)
 {//wype³nianie tablic VBO
- if (Next) Next->RaArraysFill(Vert,Norm,Tex);
- if (Child) Child->RaArraysFill(Vert,Norm,Tex);
+ if (Next) Next->RaArrayFill(Vert);
+ if (Child) Child->RaArrayFill(Vert);
  if (eType==smt_Mesh)
   for (int i=0;i<iNumVerts;++i)
-  {Vert[iVboPtr+i].x=Vertices[i].Point.x;
-   Vert[iVboPtr+i].y=Vertices[i].Point.y;
-   Vert[iVboPtr+i].z=Vertices[i].Point.z;
-   Norm[iVboPtr+i].x=Vertices[i].Normal.x;
-   Norm[iVboPtr+i].y=Vertices[i].Normal.y;
-   Norm[iVboPtr+i].z=Vertices[i].Normal.z;
-   Tex[iVboPtr+i].u=Vertices[i].tu;
-   Tex[iVboPtr+i].v=Vertices[i].tv;
+  {Vert[iVboPtr+i].x =Vertices[i].Point.x;
+   Vert[iVboPtr+i].y =Vertices[i].Point.y;
+   Vert[iVboPtr+i].z =Vertices[i].Point.z;
+   Vert[iVboPtr+i].nx=Vertices[i].Normal.x;
+   Vert[iVboPtr+i].ny=Vertices[i].Normal.y;
+   Vert[iVboPtr+i].nz=Vertices[i].Normal.z;
+   Vert[iVboPtr+i].u =Vertices[i].tu;
+   Vert[iVboPtr+i].v =Vertices[i].tv;
   }
  else if (eType==smt_FreeSpotLight)
   Vert[iVboPtr].x=Vert[iVboPtr].y=Vert[iVboPtr].z=0.0;
@@ -791,8 +793,11 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName)
   tmp.Rotation(M_PI,vector3(0,0,1));
   (*mat)= tmp*(*mat);
   if (totalverts)
-  {MakeArrays(totalverts); //tworzenie tablic dla VBO
-   Root->RaArraysFill(m_pVertices,m_pNormals,m_pTexCoords); //wype³nianie tablic
+  {MakeArray(totalverts); //tworzenie tablic dla VBO
+   Root->RaArrayFill(m_pVNT); //wype³nianie tablicy
+   //MakeArrays(totalverts); //tworzenie tablic dla VBO
+   //Root->RaArraysFill(m_pVertices,m_pNormals,m_pTexCoords); //wype³nianie tablic
+   if (Global::bUseVBO) BuildVBOs();
   }
  }
 }

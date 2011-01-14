@@ -55,7 +55,7 @@ public:
     inline double __fastcall GetLength() { return fLength; };
     void __fastcall MoveMe(vector3 pPosition) { Point1+=pPosition; Point2+=pPosition; if(bCurve) {CPointIn+=pPosition; CPointOut+=pPosition;}}
     int __fastcall RaSegCount() {return fTsBuffer?iSegCount:1;};
-    void __fastcall RaRenderLoft(CVert* &Vert,CVec* &Norm,CTexCoord* &Tex,const vector3 *ShapePoints, int iNumShapePoints,
+    void __fastcall RaRenderLoft(CVertNormTex* &Vert,const vector3 *ShapePoints, int iNumShapePoints,
         double fTextureLength, int iSkip=0);
 };
 
