@@ -40,7 +40,7 @@ __fastcall TCab::TCab()
   intlitlow_r=intlitlow_g=intlitlow_b= 0;
 }
 
-__fastcall TCab::Init(double Initx1,double Inity1,double Initz1,double Initx2,double Inity2,double Initz2,bool InitEnabled,bool InitOccupied)
+void __fastcall TCab::Init(double Initx1,double Inity1,double Initz1,double Initx2,double Inity2,double Initz2,bool InitEnabled,bool InitOccupied)
 {
   CabPos1.x=Initx1; CabPos1.y=Inity1; CabPos1.z=Initz1;
   CabPos2.x=Initx2; CabPos2.y=Inity2; CabPos2.z=Initz2;
@@ -48,7 +48,7 @@ __fastcall TCab::Init(double Initx1,double Inity1,double Initz1,double Initx2,do
   bOccupied=InitOccupied;
 }
 
-__fastcall TCab::Load(TQueryParserComp *Parser)
+void __fastcall TCab::Load(TQueryParserComp *Parser)
 {
   AnsiString str=Parser->GetNextSymbol().LowerCase();
   if (str==AnsiString("cablight"))
@@ -1452,7 +1452,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
 }
 
 
-bool __fastcall TTrain::UpdateMechPosition(double dt)
+void __fastcall TTrain::UpdateMechPosition(double dt)
 {
 
     DynamicObject->vFront= DynamicObject->GetDirection();
@@ -1545,12 +1545,6 @@ bool __fastcall TTrain::UpdateMechPosition(double dt)
       }
     pMechPosition= DynamicObject->mMatrix*pNewMechPosition;
     pMechPosition+= DynamicObject->GetPosition();
-
-
-
-
-
-
 }
 
 //#include "dbgForm.h"
@@ -1810,10 +1804,11 @@ bool __fastcall TTrain::Update()
 
     // McZapkie! - koniec obslugi dzwiekow z mover.pas
 
+//if (!DebugModeFlag) try{//podobno to tutaj sypie DDS //trykacz i tak nie dzia³a
+
 //McZapkie-030402: poprawione i uzupelnione amperomierze
 if (!ShowNextCurrent)
-{
-    if (I1Gauge.SubModel)
+{   if (I1Gauge.SubModel)
      {
       I1Gauge.UpdateValue(DynamicObject->MoverParameters->ShowCurrent(1));
       I1Gauge.Update();
@@ -1992,6 +1987,9 @@ else
       }
      }
 }
+
+//}catch(...){WriteLog("!!!! Problem z amperomierzami");}; //trykacz i tak nie dzia³a
+
 //McZapkie-240302    VelocityGauge.UpdateValue(DynamicObject->GetVelocity());
     if (VelocityGauge.SubModel)
      {
@@ -3252,6 +3250,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
            btLampkaNadmWent.Clear();
            btLampkaNadmSpr.Clear();
            btLampkaOpory.Clear();
+           btLampkaOpory.FeedbackBitSet(2);
            btLampkaWysRozr.Clear();
            btLampkaUniversal3.Clear();
            btLampkaWentZaluzje.Clear();

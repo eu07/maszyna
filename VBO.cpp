@@ -12,11 +12,9 @@
 
 __fastcall CMesh::CMesh()
 {
- m_pVertices=NULL;
- m_pNormals=NULL;
- m_pTexCoords=NULL;
+ m_pVNT=NULL;
  m_nVertexCount=-1;
- m_nVBOVertices=m_nVBONormals=m_nVBOTexCoords=0; //nie zarezerwowane
+ m_nVBOVertices=0; //nie zarezerwowane
 
 };
 __fastcall CMesh::~CMesh()
@@ -24,49 +22,36 @@ __fastcall CMesh::~CMesh()
  Release(); //zwolnienie zasobów
 };
 
-void __fastcall CMesh::MakeArrays(int n)
+void __fastcall CMesh::MakeArray(int n)
 {//tworzenie tablic
  m_nVertexCount=n;
- m_pVertices=new CVert[m_nVertexCount];       // Przydzielenie pamiêci dla wierzcho³ków
- m_pNormals=new CVec[m_nVertexCount];         // Przydzielenie pamiêci dla normalnych
- m_pTexCoords=new CTexCoord[m_nVertexCount];  // Przydzielenie pamiêci dla wspó³rzêdnych
+ m_pVNT=new CVertNormTex[m_nVertexCount]; // przydzielenie pamiêci dla tablicy
 };
+
 
 void __fastcall CMesh::BuildVBOs()
 {//tworzenie VBO i kasowanie ju¿ niepotrzebnych tablic
- // Wygeneruj nazwê dla VBO oraz ustaw go jako aktywny
- glGenBuffersARB(1,&m_nVBOVertices);         // Pobierz poprawn¹ nazwê
+ //pobierz numer VBO oraz ustaw go jako aktywny
+ glGenBuffersARB(1,&m_nVBOVertices);         //pobierz numer
  glBindBufferARB(GL_ARRAY_BUFFER_ARB,m_nVBOVertices);         // Ustaw bufor jako aktualny
- glBufferDataARB(GL_ARRAY_BUFFER_ARB,m_nVertexCount*sizeof(CVert),m_pVertices,GL_STATIC_DRAW_ARB);
- // Wygeneruj nazwê dla VBO oraz ustaw go jako aktywny
- glGenBuffersARB(1,&m_nVBONormals);         // Pobierz poprawn¹ nazwê
- glBindBufferARB(GL_ARRAY_BUFFER_ARB,m_nVBONormals);         // Ustaw bufor jako aktualny
- glBufferDataARB(GL_ARRAY_BUFFER_ARB,m_nVertexCount*sizeof(CVec),m_pNormals,GL_STATIC_DRAW_ARB);
- // Wygeneruj nazwê oraz ustaw jako aktywny VBO dla wspó³rzêdnych tekstur
- glGenBuffersARB(1,&m_nVBOTexCoords);         // Pobierz poprawn¹ nazwê
- glBindBufferARB(GL_ARRAY_BUFFER_ARB,m_nVBOTexCoords);         // Ustaw bufor jako aktualny
- glBufferDataARB(GL_ARRAY_BUFFER_ARB,m_nVertexCount*sizeof(CTexCoord),m_pTexCoords,GL_STATIC_DRAW_ARB);
- // Nasze lokalne kopie danych nie s¹ d³u¿ej potrzebne, wszystko jest ju¿ w karcie graficznej.
- delete [] m_pVertices;  m_pVertices=NULL;
- delete [] m_pNormals;   m_pNormals=NULL;
- delete [] m_pTexCoords; m_pTexCoords=NULL;
- WriteLog("Przydzielone VBO: "+AnsiString(m_nVBOVertices)+", "+AnsiString(m_nVBONormals)+", "+AnsiString(m_nVBOTexCoords)+", punktów: "+AnsiString(m_nVertexCount));
+ glBufferDataARB(GL_ARRAY_BUFFER_ARB,m_nVertexCount*sizeof(CVertNormTex),m_pVNT,GL_STATIC_DRAW_ARB);
+ WriteLog("Przydzielone VBO: "+AnsiString(m_nVBOVertices)+", punktów: "+AnsiString(m_nVertexCount));
+ delete [] m_pVNT;  m_pVNT=NULL;
 };
 
 void __fastcall CMesh::Release()
 {//zwolnienie zasobów przez sprz¹tacz albo destruktor
  if (m_nVBOVertices) //jeœli by³o coœ rezerwowane
  {
-  unsigned int nBuffers[3]={m_nVBOVertices,m_nVBONormals,m_nVBOTexCoords};
-  glDeleteBuffersARB(3,nBuffers); // Free The Memory
-  WriteLog("Zwolnione VBO: "+AnsiString(m_nVBOVertices)+", "+AnsiString(m_nVBONormals)+", "+AnsiString(m_nVBOTexCoords));
+  unsigned int nBuffers[1]={m_nVBOVertices};
+  glDeleteBuffersARB(1,nBuffers); // Free The Memory
+  WriteLog("Zwolnione VBO: "+AnsiString(m_nVBOVertices));
  }
- m_nVBOVertices=m_nVBONormals=m_nVBOTexCoords=0;
+ m_nVBOVertices=0;
  m_nVertexCount=-1; //do ponownego zliczenia
  //usuwanie tablic, gdy by³y u¿yte do Vertex Array
- delete [] m_pVertices;  m_pVertices=NULL;
- delete [] m_pNormals;   m_pNormals=NULL;
- delete [] m_pTexCoords; m_pTexCoords=NULL;
+ delete [] m_pVNT;
+ m_pVNT=NULL;
 };
 
 bool __fastcall CMesh::StartVBO()
@@ -75,23 +60,12 @@ bool __fastcall CMesh::StartVBO()
  glEnableClientState(GL_VERTEX_ARRAY);         // W³¹cz strumieñ z pozycjami
  glEnableClientState(GL_NORMAL_ARRAY);
  glEnableClientState(GL_TEXTURE_COORD_ARRAY);         // W³¹cz strumieñ ze wspó³rzêdnymi tekstur
- // Za³aduj odpowiednie dane
  if (m_nVBOVertices)
  {
   glBindBufferARB(GL_ARRAY_BUFFER_ARB,m_nVBOVertices);
-  //glVertexPointer(3,GL_DOUBLE,0,NULL);         // Za³aduj VBO z pozycjami
-  glVertexPointer(3,GL_FLOAT,0,NULL);         // Za³aduj VBO z pozycjami
-  glBindBufferARB(GL_ARRAY_BUFFER_ARB,m_nVBONormals);
-  glNormalPointer(GL_FLOAT,0,NULL);
-  glBindBufferARB(GL_ARRAY_BUFFER_ARB,m_nVBOTexCoords);
-  glTexCoordPointer(2,GL_FLOAT,0,NULL);         // Za³aduj VBO ze wspó³rzêdnymi tekstur
- }
- else
- {
-  //glVertexPointer(3,GL_DOUBLE,0,m_pVertices);         // Za³aduj bufor z pozycjami
-  glVertexPointer(3,GL_FLOAT,0,m_pVertices);         // Za³aduj bufor z pozycjami
-  glNormalPointer(GL_FLOAT,0,m_pNormals);
-  glTexCoordPointer(2,GL_FLOAT,0,m_pTexCoords);         // Za³aduj bufor ze wspó³rzêdnymi tekstur
+  glVertexPointer(3,GL_FLOAT,sizeof(CVertNormTex),NULL);             //pozycje
+  glNormalPointer(GL_FLOAT,sizeof(CVertNormTex),((char*)NULL)+12);     //normalne
+  glTexCoordPointer(2,GL_FLOAT,sizeof(CVertNormTex),((char*)NULL)+24); //wierzcho³ki
  }
  return true; //mo¿na rysowaæ w ten sposób
 };
@@ -102,6 +76,7 @@ void __fastcall CMesh::EndVBO()
  glDisableClientState(GL_VERTEX_ARRAY); // Disable Vertex Arrays
  glDisableClientState(GL_NORMAL_ARRAY);
  glDisableClientState(GL_TEXTURE_COORD_ARRAY); // Disable Texture Coord Arrays
+ glBindBuffer(GL_ARRAY_BUFFER,0); 
  glBindBufferARB(GL_ARRAY_BUFFER_ARB,0);
  glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB,0);
 };

@@ -81,9 +81,9 @@ bool Global::changeDynObj; //info o zmianie pojazdu
 bool Global::detonatoryOK; //info o nowych detonatorach
 double Global::ABuDebug=0;
 AnsiString Global::asSky= "1";
-int Global::iDefaultFiltering=5; //domyœlne rozmywanie tekstur TGA
-int Global::iBallastFiltering=5; //domyœlne rozmywanie tekstury podsypki
-int Global::iRailProFiltering=5; //domyœlne rozmywanie tekstury szyn
+int Global::iDefaultFiltering=6; //domyœlne rozmywanie tekstur TGA
+int Global::iBallastFiltering=6; //domyœlne rozmywanie tekstury podsypki
+int Global::iRailProFiltering=6; //domyœlne rozmywanie tekstury szyn
 bool Global::bReCompile=false; //czy odœwie¿yæ siatki
 bool Global::bUseVBO=false; //czy jest VBO w karcie graficznej
 

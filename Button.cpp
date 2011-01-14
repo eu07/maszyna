@@ -97,6 +97,8 @@ void __fastcall TButton::Update()
    {iFeedback|=iFeedbackBit; //zapalanie
     if (iFeedbackBit&3) //gdy SHP albo CA
      SetLedState(ktCapsLock,iFeedback&3);
+    else if (iFeedbackBit==4)
+     SetLedState(ktScrollLock,iFeedback&4);
    }
   }
   else //zgaszenie
@@ -104,6 +106,8 @@ void __fastcall TButton::Update()
    {iFeedback&=~iFeedbackBit; //gaszenie
     if (iFeedbackBit&3) //gdy SHP albo CA
      SetLedState(ktCapsLock,iFeedback&3);
+    else if (iFeedbackBit==4)
+     SetLedState(ktScrollLock,iFeedback&4);
    }
  }
 }

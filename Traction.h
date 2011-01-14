@@ -45,8 +45,8 @@ public:
   //  virtual bool __fastcall Move(double dx, double dy, double dz) { return false; };
 //    virtual void __fastcall SelectedRender();
     virtual void __fastcall Render(float mgn);
-    int __fastcall RaArraysPrepare();
-    void  __fastcall RaArraysFill(CVert *Vert,CVec *Norm,CTexCoord *Tex);
+    int __fastcall RaArrayPrepare();
+    void  __fastcall RaArrayFill(CVertNormTex *Vert);
     void  __fastcall RaRenderVBO(float mgn,int iPtr);
 };
 //---------------------------------------------------------------------------

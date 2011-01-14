@@ -1147,7 +1147,7 @@ bool __fastcall TTrack::Switch(int i)
  return false;
 };
 
-int __fastcall TTrack::RaArraysPrepare()
+int __fastcall TTrack::RaArrayPrepare()
 {//przygotowanie tablic do skopiowania do VBO (zliczanie wierzcho³ków)
  if (bVisible) //o ile w ogóle widaæ
   switch (iCategoryFlag)
@@ -1165,7 +1165,7 @@ int __fastcall TTrack::RaArraysPrepare()
  return 0;
 };
 
-void  __fastcall TTrack::RaArraysFill(CVert *Vert,CVec *Norm,CTexCoord *Tex)
+void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert)
 {//wype³nianie tablic VBO
  double fHTW=0.5*fabs(fTrackWidth);
  double side=fabs(fTexWidth); //szerokœæ podsypki na zewn¹trz szyny albo pobocza
@@ -1241,13 +1241,13 @@ void  __fastcall TTrack::RaArraysFill(CVert *Vert,CVec *Norm,CTexCoord *Tex)
        bpts1[2]=vector3(-fHTW-side,0.0,0.67); //druga
        bpts1[3]=vector3(-rozp,-fTexHeight,1.0); //prawy skos
       }
-      Segment->RaRenderLoft(Vert,Norm,Tex,bpts1,iTrapezoid?-4:4,fTexLength);
+      Segment->RaRenderLoft(Vert,bpts1,iTrapezoid?-4:4,fTexLength);
      }
      if (TextureID1)
      {// szyny
-      Segment->RaRenderLoft(Vert,Norm,Tex,rpts1,iTrapezoid?-nnumPts:nnumPts,fTexLength);
+      Segment->RaRenderLoft(Vert,rpts1,iTrapezoid?-nnumPts:nnumPts,fTexLength);
       if (fHTW!=0.0) //Ra: mo¿e byæ jedna szyna
-       Segment->RaRenderLoft(Vert,Norm,Tex,rpts2,iTrapezoid?-nnumPts:nnumPts,fTexLength);
+       Segment->RaRenderLoft(Vert,rpts2,iTrapezoid?-nnumPts:nnumPts,fTexLength);
      }
      break;
     case tt_Switch: //dla zwrotnicy dwa razy szyny
@@ -1279,21 +1279,21 @@ void  __fastcall TTrack::RaArraysFill(CVert *Vert,CVec *Norm,CTexCoord *Tex)
       }
       if (SwitchExtension->RightSwitch)
       {//nowa wersja z SPKS, ale odwrotnie lewa/prawa
-       SwitchExtension->Segments[0].RaRenderLoft(Vert,Norm,Tex,rpts1,nnumPts,fTexLength,0);
+       SwitchExtension->Segments[0].RaRenderLoft(Vert,rpts1,nnumPts,fTexLength,0);
        //SwitchExtension->Segments[0].RaRenderSwitchRail(rpts1,rpts3,nnumPts,fTexLength,2,SwitchExtension->fOffset1);
-       SwitchExtension->Segments[0].RaRenderLoft(Vert,Norm,Tex,rpts2,nnumPts,fTexLength);
-       SwitchExtension->Segments[1].RaRenderLoft(Vert,Norm,Tex,rpts1,nnumPts,fTexLength);
-       SwitchExtension->Segments[1].RaRenderLoft(Vert,Norm,Tex,rpts2,nnumPts,fTexLength,0);
+       SwitchExtension->Segments[0].RaRenderLoft(Vert,rpts2,nnumPts,fTexLength);
+       SwitchExtension->Segments[1].RaRenderLoft(Vert,rpts1,nnumPts,fTexLength);
+       SwitchExtension->Segments[1].RaRenderLoft(Vert,rpts2,nnumPts,fTexLength,0);
        //SwitchExtension->Segments[1].RaRenderSwitchRail(rpts2,rpts4,nnumPts,fTexLength,2,-fMaxOffset+SwitchExtension->fOffset1);
       }
       else
       {//lewa dzia³a lepiej ni¿ prawa
-       SwitchExtension->Segments[0].RaRenderLoft(Vert,Norm,Tex,rpts1,nnumPts,fTexLength); //lewa szyna normalna ca³a
-       SwitchExtension->Segments[0].RaRenderLoft(Vert,Norm,Tex,rpts2,nnumPts,fTexLength,0); //prawa szyna za iglic¹
+       SwitchExtension->Segments[0].RaRenderLoft(Vert,rpts1,nnumPts,fTexLength); //lewa szyna normalna ca³a
+       SwitchExtension->Segments[0].RaRenderLoft(Vert,rpts2,nnumPts,fTexLength,0); //prawa szyna za iglic¹
        //SwitchExtension->Segments[0].RaRenderSwitchRail(rpts2,rpts4,nnumPts,fTexLength,2,-SwitchExtension->fOffset1); //prawa iglica
-       SwitchExtension->Segments[1].RaRenderLoft(Vert,Norm,Tex,rpts1,nnumPts,fTexLength,0); //lewa szyna za iglic¹
+       SwitchExtension->Segments[1].RaRenderLoft(Vert,rpts1,nnumPts,fTexLength,0); //lewa szyna za iglic¹
        //SwitchExtension->Segments[1].RaRenderSwitchRail(rpts1,rpts3,nnumPts,fTexLength,2,fMaxOffset-SwitchExtension->fOffset1); //lewa iglica
-       SwitchExtension->Segments[1].RaRenderLoft(Vert,Norm,Tex,rpts2,nnumPts,fTexLength); //prawa szyna normalnie ca³a
+       SwitchExtension->Segments[1].RaRenderLoft(Vert,rpts2,nnumPts,fTexLength); //prawa szyna normalnie ca³a
       }
      }
      break;
@@ -1323,7 +1323,7 @@ void  __fastcall TTrack::RaArraysFill(CVert *Vert,CVec *Norm,CTexCoord *Tex)
    }
    if (TextureID1) //jeœli podana by³a tekstura, generujemy trójk¹ty
    {//tworzenie trójk¹tów nawierzchni szosy
-    Segment->RaRenderLoft(Vert,Norm,Tex,bpts1,iTrapezoid?-2:2,fTexLength);
+    Segment->RaRenderLoft(Vert,bpts1,iTrapezoid?-2:2,fTexLength);
    }
    if (TextureID2)
    {//pobocze drogi - poziome przy przechy³ce (a mo¿e krawê¿nik i chodnik zrobiæ jak w Midtown Madness 2?)
@@ -1342,13 +1342,13 @@ void  __fastcall TTrack::RaArraysFill(CVert *Vert,CVec *Norm,CTexCoord *Tex)
      rpts2[3]=vector3(bpts1[3].x,bpts1[3].y,1.0);
      rpts2[4]=vector3(bpts1[3].x-side2,bpts1[3].y,0.5);
      rpts2[5]=vector3(-rozp2,-fTexHeight2,0.0); //prawy brzeg prawego pobocza
-     Segment->RaRenderLoft(Vert,Norm,Tex,rpts1,-3,fTexLength);
-     Segment->RaRenderLoft(Vert,Norm,Tex,rpts2,-3,fTexLength);
+     Segment->RaRenderLoft(Vert,rpts1,-3,fTexLength);
+     Segment->RaRenderLoft(Vert,rpts2,-3,fTexLength);
     }
     else
     {//pobocza zwyk³e, brak przechy³ki
-     Segment->RaRenderLoft(Vert,Norm,Tex,rpts1,3,fTexLength);
-     Segment->RaRenderLoft(Vert,Norm,Tex,rpts2,3,fTexLength);
+     Segment->RaRenderLoft(Vert,rpts1,3,fTexLength);
+     Segment->RaRenderLoft(Vert,rpts2,3,fTexLength);
     }
    }
   }
@@ -1358,7 +1358,7 @@ void  __fastcall TTrack::RaArraysFill(CVert *Vert,CVec *Norm,CTexCoord *Tex)
 
 void  __fastcall TTrack::RaRenderVBO(int iPtr)
 {//renderowanie z u¿yciem VBO
- glDisable(GL_LIGHTING); //Ra: do testów
+ //glDisable(GL_LIGHTING); //Ra: do testów
  glColor3f(1.0f,1.0f,1.0f);
  //McZapkie-310702: zmiana oswietlenia w tunelu, wykopie
  GLfloat ambientLight[4] ={0.5f,0.5f,0.5f,1.0f};
@@ -1462,7 +1462,7 @@ void  __fastcall TTrack::RaRenderVBO(int iPtr)
    glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
    glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
  }
- glEnable(GL_LIGHTING); //Ra: do testów
+ //glEnable(GL_LIGHTING); //Ra: do testów
 };
 
 void  __fastcall TTrack::RaRenderDynamic()

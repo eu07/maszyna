@@ -35,8 +35,8 @@ class TCab
  public:
   __fastcall TCab();
   __fastcall ~TCab();
-  __fastcall Init(double Initx1,double Inity1,double Initz1,double Initx2,double Inity2,double Initz2,bool InitEnabled,bool InitOccupied);
-  __fastcall Load(TQueryParserComp *Parser);
+  void __fastcall Init(double Initx1,double Inity1,double Initz1,double Initx2,double Inity2,double Initz2,bool InitEnabled,bool InitOccupied);
+  void __fastcall Load(TQueryParserComp *Parser);
   vector3 CabPos1;
   vector3 CabPos2;
   bool bEnabled;
@@ -67,7 +67,7 @@ public:
 
     inline vector3 __fastcall GetDirection() { return DynamicObject->GetDirection(); };
     inline vector3 __fastcall GetUp() { return DynamicObject->vUp; };
-    virtual bool __fastcall UpdateMechPosition(double dt);
+    virtual void __fastcall UpdateMechPosition(double dt);
     virtual bool __fastcall Update();
 //    virtual bool __fastcall RenderAlpha();
 //McZapkie-310302: ladowanie parametrow z pliku
