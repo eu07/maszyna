@@ -82,9 +82,7 @@ public:
     double fAngle;
     double fSquareRadius; //kwadrat widocznoœci do
     double fSquareMinRadius; //kwadrat widocznoœci od
-    TGroundNode *pTriGroup; //Ra: obiekt grupuj¹cy trójk¹ty w TSubRect (ogranicza iloœæ DisplayList)
     //GLuint DisplayListID; //numer siatki
-    //CMesh *pVBO; //dane siatki VBO
     int iVboPtr; //indeks w buforze VBO
     GLuint TextureID; //jedna tekstura na obiekt
     bool TexAlpha;
@@ -96,7 +94,7 @@ public:
     bool bAllocated; //Ra: zawsze true
     TGroundNode *Next; //lista wszystkich, ostatni na koñcu
     TGroundNode *Next2; //lista w sektorze
-    //static TSubRect *pOwner; //tymczasowo w³aœciciel
+    TGroundNode *pNext3; //lista obiektów podobnych, generowanych grupowo
     __fastcall TGroundNode();
     __fastcall ~TGroundNode();
     void __fastcall Init(int n);
@@ -136,36 +134,20 @@ public:
  void __fastcall LoadNodes();
 private:
 public:
-    //CMesh *pVBO; //dane siatki VBO
-    TGroundNode *pRootNode;
-    TGroundNode *pTriGroup; //Ra: obiekt grupuj¹cy trójk¹ty (ogranicza iloœæ DisplayList)
-    __fastcall TSubRect();
-    __fastcall ~TSubRect();
-    void __fastcall AddNode(TGroundNode *Node)
-    {//przyczepienie obiektu do sektora, kwalifikacja trójk¹tów do ³¹czenia
-     Node->Next2=pRootNode;
-     pRootNode=Node;
-/* //Ra: na razie wy³¹czone do testów VBO
-     if ((Node->iType==GL_TRIANGLE_STRIP)||(Node->iType==GL_TRIANGLE_FAN)||(Node->iType==GL_TRIANGLES))
-      if (Node->fSquareMinRadius==0.0) //znikaj¹ce z bliska nie mog¹ byæ optymalizowane
-       if (Node->fSquareRadius>=160000.0) //tak od 400m to ju¿ normalne trójk¹ty musz¹ byæ
-        if (!Node->TexAlpha) //i nieprzezroczysty
-        {if (pTriGroup) //je¿eli by³ ju¿ jakiœ grupuj¹cy
-         {if (pTriGroup->fSquareRadius>Node->fSquareRadius) //i mia³ wiêkszy zasiêg
-           Node->fSquareRadius=pTriGroup->fSquareRadius; //zwiêkszenie zakresu widocznoœci grupuj¹cego
-          pTriGroup->pTriGroup=Node; //poprzedniemu doczepiamy nowy
-         }
-         Node->pTriGroup=Node; //nowy lider ma siê sam wyœwietlaæ - wskaŸnik na siebie
-         pTriGroup=Node; //zapamiêtanie lidera
-        }
-*/
-    };
-//    __fastcall Render() { if (pRootNode) pRootNode->Render(); };
+ TGroundNode *pRootNode; //lista grup renderowanych
+ //TGroundNode *pRenderVBO; //lista grup renderowanych ze wsp³nego VBO
+ //TGroundNode *pRenderAlphaVBO; //lista grup renderowanych ze wsp³nego VBO
+ //TGroundNode *pRender; //lista grup renderowanych z w³asnych VBO
+ //TGroundNode *pRenderAlpha; //lista grup renderowanych z w³asnych VBO
+ TGroundNode *pHidden; //lista obiektów niewidocznych, "renderowanych" równie¿ z ty³u
+ __fastcall TSubRect();
+ __fastcall ~TSubRect();
+ void __fastcall AddNode(TGroundNode *Node);
  void Release();
  bool __fastcall StartVBO();
 };
 
-const int iNumSubRects=5; //Ra: trzeba sprawdziæ wydajnoœæ siatki
+const int iNumSubRects=10; //Ra: trzeba sprawdziæ wydajnoœæ siatki
 
 class TGroundRect
 {

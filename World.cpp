@@ -95,7 +95,7 @@ __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 
     Global::detonatoryOK=true;
     WriteLog("Starting MaSzyna rail vehicle simulator.");
-    WriteLog("Compilation 2011-01-06");
+    WriteLog("Compilation 2011-01-15");
     WriteLog("Online documentation and additional files on http://eu07.pl");
     WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx_EU, OLO_EU, Bart, Quark-t, ShaXbee, Oli_EU, youBy and others");
     WriteLog("Renderer:");
@@ -161,7 +161,7 @@ __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 //McZapkie:261102-uruchomienie polprzezroczystosci (na razie linie) pod kierunkiem Marcina
     if (Global::bRenderAlpha)
     {
-      WriteLog("glEnable(GL_ALPHA_TEST);");
+      WriteLog("glEnable(GL_BLEND);");
       glEnable(GL_BLEND);
       WriteLog("glEnable(GL_ALPHA_TEST);");
       glEnable(GL_ALPHA_TEST);

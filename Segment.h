@@ -47,16 +47,18 @@ public:
     {//pobranie przechy³ek (do generowania trójk¹tów)
         r1=fRoll1; r2=fRoll2;
     }
-    void __fastcall RenderLoft(const vector3 *ShapePoints, int iNumShapePoints,
-        double fTextureLength, int iSkip=0, int iQualityFactor=1);
-    void __fastcall RenderSwitchRail(const vector3 *ShapePoints1, const vector3 *ShapePoints2,
-                            int iNumShapePoints,double fTextureLength, int iSkip=0, double fOffsetX=0.0f);
-    void __fastcall Render();
+    //void __fastcall RenderLoft(const vector3 *ShapePoints, int iNumShapePoints,
+    //    double fTextureLength, int iSkip=0, int iQualityFactor=1);
+    //void __fastcall RenderSwitchRail(const vector3 *ShapePoints1, const vector3 *ShapePoints2,
+    //                        int iNumShapePoints,double fTextureLength, int iSkip=0, double fOffsetX=0.0f);
+    //void __fastcall Render();
     inline double __fastcall GetLength() { return fLength; };
     void __fastcall MoveMe(vector3 pPosition) { Point1+=pPosition; Point2+=pPosition; if(bCurve) {CPointIn+=pPosition; CPointOut+=pPosition;}}
     int __fastcall RaSegCount() {return fTsBuffer?iSegCount:1;};
     void __fastcall RaRenderLoft(CVertNormTex* &Vert,const vector3 *ShapePoints, int iNumShapePoints,
-        double fTextureLength, int iSkip=0);
+        double fTextureLength, int iSkip=0,int iEnd=0,double fOffsetX=0.0);
+    void __fastcall RaAnim(CVertNormTex* &Vert,const vector3 *ShapePoints, int iNumShapePoints,
+        double fTextureLength, int iSkip=0,int iEnd=0,double fOffsetX=0.0);
 };
 
 //---------------------------------------------------------------------------

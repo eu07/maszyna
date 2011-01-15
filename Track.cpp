@@ -1167,6 +1167,7 @@ int __fastcall TTrack::RaArrayPrepare()
 
 void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert)
 {//wype³nianie tablic VBO
+ CVertNormTex *start; //do wyliczenia indeksów iglic
  double fHTW=0.5*fabs(fTrackWidth);
  double side=fabs(fTexWidth); //szerokœæ podsypki na zewn¹trz szyny albo pobocza
  double rozp=fHTW+side+fabs(fTexSlope); //brzeg zewnêtrzny
@@ -1190,7 +1191,10 @@ void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert)
  {
   case 1:   //tor
   {
-   Segment->GetRolls(roll1,roll2);
+   if (Segment)
+    Segment->GetRolls(roll1,roll2);
+   else
+    roll1=roll2=0.0; //dla zwrotnic
    double sin1=sin(roll1),cos1=cos(roll1),sin2=sin(roll2),cos2=cos(roll2);
    // zwykla szyna: //Ra: czemu g³ówki s¹ asymetryczne na wysokoœci 0.140?
    vector3 rpts1[24],rpts2[24],rpts3[24],rpts4[24];
@@ -1246,23 +1250,21 @@ void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert)
      if (TextureID1)
      {// szyny
       Segment->RaRenderLoft(Vert,rpts1,iTrapezoid?-nnumPts:nnumPts,fTexLength);
-      if (fHTW!=0.0) //Ra: mo¿e byæ jedna szyna
-       Segment->RaRenderLoft(Vert,rpts2,iTrapezoid?-nnumPts:nnumPts,fTexLength);
+      //if (fHTW!=0.0) //Ra: mo¿e byæ jedna szyna
+      Segment->RaRenderLoft(Vert,rpts2,iTrapezoid?-nnumPts:nnumPts,fTexLength);
      }
      break;
     case tt_Switch: //dla zwrotnicy dwa razy szyny
-     if (TextureID1)
+     if (TextureID1) //Ra: !!!! tu jest do poprawienia
      {//iglice liczone tylko dla zwrotnic
       vector3 rpts3[24],rpts4[24];
       for (i=0;i<12;++i)
-      {rpts3[i]=vector3((fHTW+iglica[i].x)*cos1+iglica[i].y*sin1,-(fHTW+iglica[i].x)*sin1+iglica[i].y*cos1,iglica[i].z);
+      {rpts3[i]   =vector3((fHTW+iglica[i].x)*cos1+iglica[i].y*sin1,-(fHTW+iglica[i].x)*sin1+iglica[i].y*cos1,iglica[i].z);
+       rpts3[i+12]=vector3((fHTW2+szyna[i].x)*cos2+szyna[i].y*sin2,-(fHTW2+szyna[i].x)*sin2+iglica[i].y*cos2,szyna[i].z);
        rpts4[11-i]=vector3((-fHTW-iglica[i].x)*cos1+iglica[i].y*sin1,-(-fHTW-iglica[i].x)*sin1+iglica[i].y*cos1,iglica[i].z);
+       rpts4[23-i]=vector3((-fHTW2-szyna[i].x)*cos2+szyna[i].y*sin2,-(-fHTW2-szyna[i].x)*sin2+iglica[i].y*cos2,szyna[i].z);
       }
-      if (iTrapezoid) //trapez albo przechy³ki, to oddzielne punkty na koñcu
-       for (i=0;i<12;++i)
-       {rpts3[12+i]=vector3((fHTW2+iglica[i].x)*cos2+iglica[i].y*sin2,-(fHTW2+iglica[i].x)*sin2+iglica[i].y*cos2,iglica[i].z);
-        rpts4[23-i]=vector3((-fHTW2-iglica[i].x)*cos2+iglica[i].y*sin2,-(-fHTW2-iglica[i].x)*sin2+iglica[i].y*cos2,iglica[i].z);
-       }
+/* to w tym miejscu nic nie da
       if (InMovement())
       {//Ra: trochê bez sensu, ¿e tu jest animacja
        double v=SwitchExtension->fDesiredOffset1-SwitchExtension->fOffset1;
@@ -1277,22 +1279,27 @@ void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert)
         SwitchExtension->bMovement=false; //koniec animacji
        }
       }
+*/
       if (SwitchExtension->RightSwitch)
       {//nowa wersja z SPKS, ale odwrotnie lewa/prawa
-       SwitchExtension->Segments[0].RaRenderLoft(Vert,rpts1,nnumPts,fTexLength,0);
-       //SwitchExtension->Segments[0].RaRenderSwitchRail(rpts1,rpts3,nnumPts,fTexLength,2,SwitchExtension->fOffset1);
+       SwitchExtension->iLeftVBO=Vert-start; //indeks lewej iglicy
+       SwitchExtension->Segments[0].RaRenderLoft(Vert,rpts3,-nnumPts,fTexLength,0,2,SwitchExtension->fOffset1);
+       SwitchExtension->Segments[0].RaRenderLoft(Vert,rpts1,nnumPts,fTexLength,2);
        SwitchExtension->Segments[0].RaRenderLoft(Vert,rpts2,nnumPts,fTexLength);
        SwitchExtension->Segments[1].RaRenderLoft(Vert,rpts1,nnumPts,fTexLength);
-       SwitchExtension->Segments[1].RaRenderLoft(Vert,rpts2,nnumPts,fTexLength,0);
-       //SwitchExtension->Segments[1].RaRenderSwitchRail(rpts2,rpts4,nnumPts,fTexLength,2,-fMaxOffset+SwitchExtension->fOffset1);
+       SwitchExtension->iRightVBO=Vert-start; //indeks prawej iglicy
+       SwitchExtension->Segments[1].RaRenderLoft(Vert,rpts4,-nnumPts,fTexLength,0,2,-fMaxOffset+SwitchExtension->fOffset1);
+       SwitchExtension->Segments[1].RaRenderLoft(Vert,rpts2,nnumPts,fTexLength,2);
       }
       else
       {//lewa dzia³a lepiej ni¿ prawa
        SwitchExtension->Segments[0].RaRenderLoft(Vert,rpts1,nnumPts,fTexLength); //lewa szyna normalna ca³a
-       SwitchExtension->Segments[0].RaRenderLoft(Vert,rpts2,nnumPts,fTexLength,0); //prawa szyna za iglic¹
-       //SwitchExtension->Segments[0].RaRenderSwitchRail(rpts2,rpts4,nnumPts,fTexLength,2,-SwitchExtension->fOffset1); //prawa iglica
-       SwitchExtension->Segments[1].RaRenderLoft(Vert,rpts1,nnumPts,fTexLength,0); //lewa szyna za iglic¹
-       //SwitchExtension->Segments[1].RaRenderSwitchRail(rpts1,rpts3,nnumPts,fTexLength,2,fMaxOffset-SwitchExtension->fOffset1); //lewa iglica
+       SwitchExtension->iLeftVBO=Vert-start; //indeks lewej iglicy
+       SwitchExtension->Segments[0].RaRenderLoft(Vert,rpts4,-nnumPts,fTexLength,0,2,-SwitchExtension->fOffset1); //prawa iglica
+       SwitchExtension->Segments[0].RaRenderLoft(Vert,rpts2,nnumPts,fTexLength,2); //prawa szyna za iglic¹
+       SwitchExtension->iRightVBO=Vert-start; //indeks prawej iglicy
+       SwitchExtension->Segments[1].RaRenderLoft(Vert,rpts3,-nnumPts,fTexLength,0,2,fMaxOffset-SwitchExtension->fOffset1); //lewa iglica
+       SwitchExtension->Segments[1].RaRenderLoft(Vert,rpts1,nnumPts,fTexLength,2); //lewa szyna za iglic¹
        SwitchExtension->Segments[1].RaRenderLoft(Vert,rpts2,nnumPts,fTexLength); //prawa szyna normalnie ca³a
       }
      }
@@ -1305,7 +1312,7 @@ void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert)
   {vector3 bpts1[4]; //punkty g³ównej p³aszczyzny przydaj¹ siê do robienia boków
    if (TextureID1||TextureID2) //punkty siê przydadz¹, nawet jeœli nawierzchni nie ma
    {//double max=2.0*(fHTW>fHTW2?fHTW:fHTW2); //z szerszej strony jest 100%
-    double max=fTexLength; //test: szerokoœæ proporcjonalna do d³ugoœci
+    double max=(iCategoryFlag==4)?0.0:fTexLength; //test: szerokoœæ dróg proporcjonalna do d³ugoœci
     double map1=max>0.0?fHTW/max:0.5; //obciêcie tekstury od strony 1
     double map2=max>0.0?fHTW2/max:0.5; //obciêcie tekstury od strony 2
     if (iTrapezoid) //trapez albo przechy³ki
@@ -1358,7 +1365,6 @@ void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert)
 
 void  __fastcall TTrack::RaRenderVBO(int iPtr)
 {//renderowanie z u¿yciem VBO
- //glDisable(GL_LIGHTING); //Ra: do testów
  glColor3f(1.0f,1.0f,1.0f);
  //McZapkie-310702: zmiana oswietlenia w tunelu, wykopie
  GLfloat ambientLight[4] ={0.5f,0.5f,0.5f,1.0f};
@@ -1395,7 +1401,51 @@ void  __fastcall TTrack::RaRenderVBO(int iPtr)
  {
   case 1: //tor
    if (eType==tt_Switch) //dla zwrotnicy tylko szyny
-   {if (TextureID1)
+   {if (InMovement())
+    {//Ra: trochê chyba bez sensu, ¿e tu jest animacja, nie?
+     double v=SwitchExtension->fDesiredOffset1-SwitchExtension->fOffset1;
+     SwitchExtension->fOffset1+=sign(v)*Timer::GetDeltaTime()*0.1;
+     //Ra: trzeba daæ to do klasy...
+     if (SwitchExtension->fOffset1<=0.00)
+     {SwitchExtension->fOffset1; //1cm?
+      SwitchExtension->bMovement=false; //koniec animacji
+     }
+     if (SwitchExtension->fOffset1>=fMaxOffset)
+     {SwitchExtension->fOffset1=fMaxOffset; //maksimum-1cm?
+      SwitchExtension->bMovement=false; //koniec animacji
+     }
+     if (TextureID1) //Ra: !!!! tu jest do poprawienia
+     {//iglice liczone tylko dla zwrotnic
+      vector3 rpts3[24],rpts4[24];
+      double fHTW=0.5*fabs(fTrackWidth);
+      double fHTW2=fHTW; //Ra: na razie niech tak bêdzie
+      double cos1=1.0,sin1=0.0,cos2=1.0,sin2=0.0; //Ra: ...
+      for (i=0;i<12;++i)
+      {rpts3[i]   =vector3((fHTW+iglica[i].x)*cos1+iglica[i].y*sin1,-(fHTW+iglica[i].x)*sin1+iglica[i].y*cos1,iglica[i].z);
+       rpts3[i+12]=vector3((fHTW2+szyna[i].x)*cos2+szyna[i].y*sin2,-(fHTW2+szyna[i].x)*sin2+iglica[i].y*cos2,szyna[i].z);
+       rpts4[11-i]=vector3((-fHTW-iglica[i].x)*cos1+iglica[i].y*sin1,-(-fHTW-iglica[i].x)*sin1+iglica[i].y*cos1,iglica[i].z);
+       rpts4[23-i]=vector3((-fHTW2-szyna[i].x)*cos2+szyna[i].y*sin2,-(-fHTW2-szyna[i].x)*sin2+iglica[i].y*cos2,szyna[i].z);
+      }
+      //tu by trzeba by³o pobraæ bufor VBO, ale nie mo¿na, bo jest ustawiony do wyœwietlania
+/*
+      if (SwitchExtension->RightSwitch)
+      {//nowa wersja z SPKS, ale odwrotnie lewa/prawa
+       SwitchExtension->iLeftVBO=Vert-start; //indeks lewej iglicy
+       SwitchExtension->Segments[0].RaRenderLoft(Vert,rpts3,-nnumPts,fTexLength,0,2,SwitchExtension->fOffset1);
+       SwitchExtension->iRightVBO=Vert-start; //indeks prawej iglicy
+       SwitchExtension->Segments[1].RaRenderLoft(Vert,rpts4,-nnumPts,fTexLength,0,2,-fMaxOffset+SwitchExtension->fOffset1);
+      }
+      else
+      {//lewa dzia³a lepiej ni¿ prawa
+       SwitchExtension->iLeftVBO=Vert-start; //indeks lewej iglicy
+       SwitchExtension->Segments[0].RaRenderLoft(Vert,rpts4,-nnumPts,fTexLength,0,2,-SwitchExtension->fOffset1); //prawa iglica
+       SwitchExtension->iRightVBO=Vert-start; //indeks prawej iglicy
+       SwitchExtension->Segments[1].RaRenderLoft(Vert,rpts3,-nnumPts,fTexLength,0,2,fMaxOffset-SwitchExtension->fOffset1); //lewa iglica
+      }
+*/
+     }
+    }
+    if (TextureID1)
      if ((seg=SwitchExtension->Segments[0].RaSegCount())>0)
      {glBindTexture(GL_TEXTURE_2D,TextureID1); //szyny +
       for (i=0;i<seg;++i)
@@ -1452,7 +1502,6 @@ void  __fastcall TTrack::RaRenderVBO(int iPtr)
     }
    }
    break;// (Segment->RaSegCount()+1)*((TextureID1?2:0)+(TextureID2?6:0));
-   //return;// (Segment->RaSegCount()+1)*((TextureID1?4:0)+(TextureID2?6:0));
  }
  switch (eEnvironment)
  {//przywrócenie globalnych ustawieñ œwiat³a
@@ -1462,7 +1511,6 @@ void  __fastcall TTrack::RaRenderVBO(int iPtr)
    glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
    glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
  }
- //glEnable(GL_LIGHTING); //Ra: do testów
 };
 
 void  __fastcall TTrack::RaRenderDynamic()
