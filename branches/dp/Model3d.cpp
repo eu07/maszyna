@@ -39,6 +39,7 @@ __fastcall TSubModel::TSubModel()
     Vertices=NULL;
     iNumVerts=-1; //do sprawdzenia
     iVboPtr=-1;
+    bLight=false;
 };
 
 void __fastcall TSubModel::FirstInit()
@@ -502,7 +503,7 @@ TSubModel* __fastcall TSubModel::GetFromName(std::string search)
     };
 
     return NULL;
-    
+
 };
 
 WORD hbIndices[18]= {3,0,1,5,4,2,1,0,4,1,5,3,2,3,5,2,4,0};
@@ -525,15 +526,15 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId)
     //vTransVector= vector3(0,0,0);
     f_Angle=0;
     b_Anim=at_None;
-    //bAnim= false;
     break;
    case at_RotateXYZ:
     glTranslatef(v_TransVector.x,v_TransVector.y,v_TransVector.z);
-    glRotatef(v_Angles.y,0.0,1.0,0.0);
     glRotatef(v_Angles.x,1.0,0.0,0.0);
+    glRotatef(v_Angles.y,0.0,1.0,0.0);
     glRotatef(v_Angles.z,0.0,0.0,1.0);
     v_Angles.x=v_Angles.y=v_Angles.z=0;
-    b_Anim= at_None;
+    b_Anim=at_None;
+    //WriteLog("Animacja: "+AnsiString(Name.c_str()));
     break;
   }
   //zmienialne skory
@@ -583,7 +584,7 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId)
     if (bLight)
      glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
    }
-/*Ra: tu coœ jest bez sensu...    
+/*Ra: tu coœ jest bez sensu...
     else
     {
      glBindTexture(GL_TEXTURE_2D, 0);
@@ -662,8 +663,12 @@ void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId)
        }
       if (TexAlpha && Global::bRenderAlpha)  //mozna rysowac bo przezroczyste i nie ma #
       {
-   glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts); //narysuj naraz wszystkie trójk¹ty z VBO
-   //glCallList(uiDisplayList);
+       glMaterialfv(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE,f4Diffuse);
+       if (bLight)
+        glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
+       glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie trójk¹ty z VBO
+       if (bLight)
+        glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
       }
       if (Child!=NULL)
           Child->RenderAlpha(ReplacableSkinId);

@@ -23,25 +23,26 @@ static const double fMaxOffset=0.1f;
 class TSwitchExtension
 {//dodatkowe dane do toru, który jest zwrotnic¹
 public:
-    __fastcall TSwitchExtension();
-    __fastcall ~TSwitchExtension();
-    TSegment Segments[4]; //dwa tory od punktu 1, pozosta³e dwa od 2?
-    TTrack *pNexts[2];
-    TTrack *pPrevs[2];
-    bool bNextSwitchDirection[2];
-    bool bPrevSwitchDirection[2];
-    int CurrentIndex; //dla zwrotnicy
-    double fOffset1, fDesiredOffset1; //ruch od strony punktu 1
-    union
-    {double fOffset2, fDesiredOffset2; //ruch od strony punktu 2 nie obs³ugiwany
-     TGroundNode *pMyNode; //dla obrotnicy do wtórnego pod³¹czania torów
-    };
-    union
-    {bool RightSwitch; //czy zwrotnica w prawo
-     //TAnimContainer *pAnim; //animator modelu dla obrotnicy
-     TAnimModel *pModel; //na razie model
-    };
-    bool bMovement; //czy w trakcie animacji
+ __fastcall TSwitchExtension();
+ __fastcall ~TSwitchExtension();
+ TSegment Segments[4]; //dwa tory od punktu 1, pozosta³e dwa od 2?
+ TTrack *pNexts[2];
+ TTrack *pPrevs[2];
+ bool bNextSwitchDirection[2];
+ bool bPrevSwitchDirection[2];
+ int CurrentIndex; //dla zwrotnicy
+ double fOffset1, fDesiredOffset1; //ruch od strony punktu 1
+ union
+ {double fOffset2, fDesiredOffset2; //ruch od strony punktu 2 nie obs³ugiwany
+  TGroundNode *pMyNode; //dla obrotnicy do wtórnego pod³¹czania torów
+ };
+ union
+ {bool RightSwitch; //czy zwrotnica w prawo
+  //TAnimContainer *pAnim; //animator modelu dla obrotnicy
+  TAnimModel *pModel; //na razie model
+ };
+ bool bMovement; //czy w trakcie animacji
+ int iLeftVBO,iRightVBO; //indeksy iglic w VBO
 private:
 };
 

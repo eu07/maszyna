@@ -69,55 +69,6 @@ __fastcall TSubRect::AddNode(TGroundNode *Node)
    Node->Next2= pRootNode; pRootNode= Node;
 };*/
 
-/*
-bool __fastcall Include(TQueryParserComp *Parser)
-{
-    TFileStream *fs;
-    AnsiString str,asFileName,Token;
-    int size,ParamPos;
-
-            asFileName= Parser->GetNextSymbol();
-
-//            Parser->StringStream->Position;
-//            AnsiString dir= ExtractFileDir(asFile);
-//            fs= new TFileStream("..//"+asFileName , fmOpenRead	| fmShareCompat	);
-            WriteLog(asFileName.c_str());
-            fs= new TFileStream("scenery//"+asFileName , fmOpenRead	| fmShareCompat	);
-            size= fs->Size;
-            str= "";
-            str.SetLength(size);
-            fs->Read(str.c_str(),size);
-            str+= " ";
-
-            int ParamCount= 0;
-            while (!Parser->EndOfFile)
-            {
-                Token= Parser->GetNextSymbol().LowerCase();
-                if (Token=="end")
-                    break;
-                else
-                {
-                    ParamCount++;
-                    while ((ParamPos=str.AnsiPos(AnsiString("(p")+ParamCount+AnsiString(")")))>0)
-                    {
-                        str.Delete(ParamPos,3+AnsiString(ParamCount).Length());
-                        str.Insert(Token, ParamPos);
-                    }
-                }
-
-            }
-
-//            str+= Parser->TextToParse.SubString(Parser->StringStream->Position+1,Parser->TextToParse.Length()) ;
-//            Parser->TextToParse+= " "+str;
-//            Parser->StringStream->DataString+= " "+str;
-            Parser->StringStream->DataString.Insert(" "+str,Parser->StringStream->Position+1);
-
-//            Parser->TextToParse+= " "+str;
-//            Parser->First();
-
-            delete fs;
-}
-*/
 
 //TGround *pGround= NULL;
 
@@ -148,7 +99,7 @@ __fastcall TGroundNode::TGroundNode()
      Specular[i]= Global::noLight[i]*255;
     }
     bAllocated= true;
-    pTriGroup=NULL; //sam siê wyœwietla
+    pNext3=NULL; //sam siê wyœwietla
     iVboPtr=-1; //indeks w VBO sektora
 }
 
@@ -341,7 +292,6 @@ void __fastcall TGroundNode::RenderVBO()
 
 bool __fastcall TGroundNode::Render()
 {
- //if (pTriGroup) if (pTriGroup!=this) return false; //wyœwietla go inny obiekt
  double mgn= SquareMagnitude(pCenter-Global::pCameraPosition);
  float r,g,b;
  if ((mgn>fSquareRadius || (mgn<fSquareMinRadius)) && (iType!=TP_EVLAUNCH)) //McZapkie-070602: nie rysuj odleglych obiektow ale sprawdzaj wyzwalacz zdarzen
@@ -386,7 +336,9 @@ bool __fastcall TGroundNode::Render()
     g=floor(Diffuse[1]*Global::ambientDayLight[1]);
     b=floor(Diffuse[2]*Global::ambientDayLight[2]);
     glColor4ub(r,g,b,linealpha); //przezroczystosc dalekiej linii
+    glDisable(GL_LIGHTING); //nie powinny œwieciæ
     glDrawArrays(iType,iVboPtr,iNumPts); //rysowanie linii
+    glEnable(GL_LIGHTING);
    }
    return true;
   default:
@@ -433,7 +385,6 @@ bool __fastcall TGroundNode::Render()
 
 bool __fastcall TGroundNode::RenderAlpha()
 {
- //if (pTriGroup) if (pTriGroup!=this) return false; //wyœwietla go inny obiekt
  double mgn=SquareMagnitude(pCenter-Global::pCameraPosition);
  float r,g,b;
  if (mgn<fSquareMinRadius) return false;
@@ -460,7 +411,9 @@ bool __fastcall TGroundNode::RenderAlpha()
     g=Diffuse[1]*Global::ambientDayLight[1];
     b=Diffuse[2]*Global::ambientDayLight[2];
     glColor4ub(r,g,b,linealpha); //przezroczystosc dalekiej linii
+    glDisable(GL_LIGHTING); //nie powinny œwieciæ
     glDrawArrays(iType,iVboPtr,iNumPts); //rysowanie linii
+    glEnable(GL_LIGHTING);
    }
    return true;
   default:
@@ -512,16 +465,49 @@ bool __fastcall TGroundNode::RenderAlpha()
  return true;
 }
 
+//------------------------------------------------------------------------------
 __fastcall TSubRect::TSubRect()
 {
- pRootNode=pTriGroup=NULL;
+ pRootNode=pHidden=NULL;
 }
-
 __fastcall TSubRect::~TSubRect()
 {
  if (Global::bManageNodes) //Ra: tu siê coœ sypie
   ResourceManager::Unregister(this); //wyrejestrowanie ze sprz¹tacza
 }
+void __fastcall TSubRect::AddNode(TGroundNode *Node)
+{//przyczepienie obiektu do sektora, kwalifikacja trójk¹tów do ³¹czenia
+ //Ra: trzeba zrobiæ sortowanie obiektów na grupy:
+ //pRenderVBO      - lista grup renderowanych ze wsp³nego VBO
+ //pRenderAlphaVBO - lista grup renderowanych ze wsp³nego VBO z przezroczystoœci¹
+ //pRender         - lista grup renderowanych z w³asnych VBO
+ //pRenderAlpha    - lista grup renderowanych z w³asnych VBO z przezroczystoœci¹
+ //pHidden         - lista obiektów niewidocznych, "renderowanych" równie¿ z ty³u
+ switch (Node->iType)
+ {case TP_SOUND: //te obiekty s¹ sprawdzanie niezale¿nie od kierunku patrzenia
+  case TP_MEMCELL:
+  case TP_EVLAUNCH:
+  case TP_TRACTIONPOWERSOURCE:
+   //Node->Next2=pHidden; pHidden=Node;
+   break;
+ }
+ Node->Next2=pRootNode; //na razie bez zmian
+ pRootNode=Node;
+/* //Ra: na razie wy³¹czone do testów VBO
+ if ((Node->iType==GL_TRIANGLE_STRIP)||(Node->iType==GL_TRIANGLE_FAN)||(Node->iType==GL_TRIANGLES))
+  if (Node->fSquareMinRadius==0.0) //znikaj¹ce z bliska nie mog¹ byæ optymalizowane
+   if (Node->fSquareRadius>=160000.0) //tak od 400m to ju¿ normalne trójk¹ty musz¹ byæ
+    if (!Node->TexAlpha) //i nieprzezroczysty
+    {if (pTriGroup) //je¿eli by³ ju¿ jakiœ grupuj¹cy
+     {if (pTriGroup->fSquareRadius>Node->fSquareRadius) //i mia³ wiêkszy zasiêg
+       Node->fSquareRadius=pTriGroup->fSquareRadius; //zwiêkszenie zakresu widocznoœci grupuj¹cego
+      pTriGroup->pTriGroup=Node; //poprzedniemu doczepiamy nowy
+     }
+     Node->pTriGroup=Node; //nowy lider ma siê sam wyœwietlaæ - wskaŸnik na siebie
+     pTriGroup=Node; //zapamiêtanie lidera
+    }
+*/
+};
 
 void __fastcall TSubRect::LoadNodes()
 {//utworzenie siatek dla wszystkich node w sektorze
@@ -2780,7 +2766,7 @@ bool __fastcall TGround::Render(vector3 pPosition)
  int tr,tc;
  TGroundNode *node,*oldnode;
  glColor3f(1.0f,1.0f,1.0f);
- int n=3*iNumSubRects; //iloœæ sektorów mapy do wyœwietlenia
+ int n=2*iNumSubRects; //iloœæ sektorów mapy do wyœwietlenia
  int c=GetColFromX(pPosition.x);
  int r=GetRowFromZ(pPosition.z);
  TSubRect *tmp,*tmp2;
@@ -2833,7 +2819,7 @@ bool __fastcall TGround::RenderAlpha(vector3 pPosition)
 {
  TGroundNode *node;
  glColor4f(1.0f,1.0f,1.0f,1.0f);
- int n=3*iNumSubRects; //iloœæ sektorów mapy do wyœwietlenia
+ int n=2*iNumSubRects; //iloœæ sektorów mapy do wyœwietlenia
  int c=GetColFromX(pPosition.x);
  int r=GetRowFromZ(pPosition.z);
  TSubRect *tmp;
