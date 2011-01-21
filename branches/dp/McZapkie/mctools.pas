@@ -94,6 +94,7 @@ function Horiz(X:real):longint;
 
 function Vert(Y:real):longint;
 
+procedure ClearPendingExceptions;
 
 {------------------------------------------------}
 Implementation
@@ -487,5 +488,10 @@ begin
         else Vert:= -MaxInt
 end;
 
+procedure ClearPendingExceptions;
+//resetuje b³êdy FPU, wymagane dla Trunc()
+asm
+  FNCLEX
+end;
 
 end.

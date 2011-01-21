@@ -2696,6 +2696,7 @@ end;
 function TMoverParameters.ShowCurrent(AmpN:byte): integer;
 var b,Bn:byte;
 begin
+  ClearPendingExceptions;
   ShowCurrent:=0;
   Bn:=RList[MainCtrlActualPos].Bn;
   if (DynamicBrakeType=dbrake_automatic) and (DynamicBrakeFlag) then
@@ -2721,6 +2722,7 @@ end;
 function TMoverParameters.ShowEngineRotation(VehN:byte): integer;
 var b:Byte; //,Bn:byte;
 begin
+  ClearPendingExceptions;
   ShowEngineRotation:=0;
   case VehN of
    1: ShowEngineRotation:=Trunc(Abs(enrot));
@@ -3922,6 +3924,7 @@ end;
 function TMoverParameters.LoadingDone(LSpeed:real; LoadInit:string): boolean;
 var LoadChange:longint;
 begin
+  ClearPendingExceptions;
   LoadingDone:=False;
   if (LoadInit<>'') then
    begin
@@ -4056,6 +4059,7 @@ var b:byte;
     Vprev,AccSprev:real;
 const Vepsilon=1e-5; Aepsilon=1e-3; ASBSpeed=0.8;
 begin
+  ClearPendingExceptions;
   if not TestFlag(DamageFlag,dtrain_out) then
    begin
      RunningShape:=Shape;
@@ -4243,6 +4247,7 @@ var b:byte;
     Vprev,AccSprev:real;
 const Vepsilon=1e-5; Aepsilon=1e-3; ASBSpeed=0.8;
 begin
+  ClearPendingExceptions;
   Loc:=NewLoc;
   Rot:=NewRot;
   with NewRot do begin Rx:=0; Ry:=0; Rz:=0; end;
@@ -4419,6 +4424,7 @@ var OK:boolean; testload:string;
 Begin
 {$B+} {cholernie mi sie nie podoba ta dyrektywa!!!}
   OK:=False;
+  ClearPendingExceptions();
 
   {test komend sterowania ukrotnionego}
   if command='MainCtrl' then

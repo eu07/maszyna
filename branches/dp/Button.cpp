@@ -98,7 +98,9 @@ void __fastcall TButton::Update()
     if (iFeedbackBit&3) //gdy SHP albo CA
      SetLedState(ktCapsLock,iFeedback&3);
     else if (iFeedbackBit==4)
-     SetLedState(ktScrollLock,iFeedback&4);
+    {SetLedState(ktScrollLock,true);
+     SetLedState(ktScrollLock,false);
+    }
    }
   }
   else //zgaszenie
@@ -107,7 +109,9 @@ void __fastcall TButton::Update()
     if (iFeedbackBit&3) //gdy SHP albo CA
      SetLedState(ktCapsLock,iFeedback&3);
     else if (iFeedbackBit==4)
-     SetLedState(ktScrollLock,iFeedback&4);
+    {SetLedState(ktScrollLock,true);
+     SetLedState(ktScrollLock,false);
+    }
    }
  }
 }

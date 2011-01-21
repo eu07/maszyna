@@ -81,6 +81,7 @@ extern PACKAGE double __fastcall Xhor(double h);
 extern PACKAGE double __fastcall Yver(double v);
 extern PACKAGE int __fastcall Horiz(double X);
 extern PACKAGE int __fastcall Vert(double Y);
+extern PACKAGE void __fastcall ClearPendingExceptions(void);
 
 }	/* namespace Mctools */
 #if !defined(NO_IMPLICIT_NAMESPACE_USE)
