@@ -176,7 +176,7 @@ begin
     Jump_to_first_order: Order2Str:='Jump_to_first_order';
    else
     Order2Str:='Undefined!';
-  end;   
+  end;
 end;
 
 function TController.OrderDirectionChange(newdir:integer; Vehicle:PMoverParameters):integer;
@@ -204,7 +204,7 @@ begin
      VelforDriver:=-1;
      if (ActiveDir<>0) and (TrainType=dt_EZT) then Imin:=IminHi;
    end;
-  OrderDirectionChange:=Trunc(VelforDriver);
+  OrderDirectionChange:=Round(VelforDriver);
 end;
 
 procedure TController.SetVelocity(NewVel,NewVelNext: real);
@@ -428,6 +428,7 @@ end;
 function TController.IncBrake: boolean;
 var OK:boolean;
 begin
+  ClearPendingExceptions;
   OK:=False;
   with Controlling^ do
    begin
@@ -479,6 +480,7 @@ end;
 function TController.DecBrake: boolean;
 var OK:boolean;
 begin
+  ClearPendingExceptions;
   OK:=False;
  with Controlling^ do
    begin
@@ -513,6 +515,7 @@ end;
 function TController.IncSpeed: boolean;
 var OK:boolean;
 begin
+  ClearPendingExceptions;
   OK:=True;
    with Controlling^ do
    begin
@@ -624,6 +627,7 @@ end;
 procedure TController.RecognizeCommand;
 var OK:boolean; Order:TOrders;
 begin
+  ClearPendingExceptions;
   OK:=True;
   Order:=OrderList[OrderPos];
   with Controlling^.CommandIn do

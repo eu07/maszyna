@@ -76,7 +76,7 @@ void __fastcall CMesh::EndVBO()
  glDisableClientState(GL_VERTEX_ARRAY); // Disable Vertex Arrays
  glDisableClientState(GL_NORMAL_ARRAY);
  glDisableClientState(GL_TEXTURE_COORD_ARRAY); // Disable Texture Coord Arrays
- glBindBuffer(GL_ARRAY_BUFFER,0); 
+ //glBindBuffer(GL_ARRAY_BUFFER,0); 
  glBindBufferARB(GL_ARRAY_BUFFER_ARB,0);
  glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB,0);
 };

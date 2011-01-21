@@ -426,7 +426,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadDDS(std::string fileName)
     GLuint bufferSize = (ddsd.dwMipMapCount > 1 ? ddsd.dwLinearSize * factor : ddsd.dwLinearSize);
 
     data.pixels = new GLubyte[bufferSize];
-    file.read((char*) data.pixels, bufferSize);
+    file.read((char*)data.pixels,bufferSize);
 
     file.close();
 
@@ -434,7 +434,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadDDS(std::string fileName)
     data.height     = ddsd.dwHeight;
     data.numMipMaps = ddsd.dwMipMapCount;
 
-    if(ddsd.ddpfPixelFormat.dwFourCC == FOURCC_DXT1)
+    if (ddsd.ddpfPixelFormat.dwFourCC == FOURCC_DXT1)
         data.components = 3;
     else
         data.components = 4;
@@ -450,14 +450,14 @@ TTexturesManager::AlphaValue TTexturesManager::LoadDDS(std::string fileName)
     GLuint offset = 0;
 
     // Load the mip-map levels
-    for(int i = 0; i < data.numMipMaps; i++)
+    for (int i = 0; i < data.numMipMaps; i++)
     {
-        if(!data.width) data.width = 1;
-        if(!data.height) data.height = 1;
+        if (!data.width) data.width = 1;
+        if (!data.height) data.height = 1;
 
         GLuint size = ((data.width + 3) / 4) * ((data.height+3)/4) * data.blockSize;
 
-        if((Global::bDecompressDDS)&&(i==1))  //should be i==0 but then problem with "glBindTexture()"
+        if ((Global::bDecompressDDS)&&(i==1))  //should be i==0 but then problem with "glBindTexture()"
         {
             GLuint decomp_size = data.width * data.height * 4;
             GLubyte* output = new GLubyte[decomp_size];
