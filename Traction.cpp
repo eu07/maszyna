@@ -326,11 +326,10 @@ void  __fastcall TTraction::RaRenderVBO(float mgn,int iPtr)
   glBindTexture(GL_TEXTURE_2D,0);
   glDisable(GL_LIGHTING); //Ra: do testów
   glColor4f(0,0,0,1);  //jak nieznany kolor to czarne nieprzezroczyste
+  //Ra: glEnable(GL_LINE_SMOOTH) kiepsko wygl¹da
   float linealpha=1000*WireThickness*WireThickness/(mgn+1.0);
-  if (linealpha>1.5) linealpha = 1.5;
-  glEnable(GL_LINE_SMOOTH);
+  if (linealpha>1.2) linealpha=1.2; //za grube nie s¹ dobre
   glLineWidth(linealpha);
-  if (linealpha>1.0) linealpha=1.0;
   //McZapkie-261102: kolor zalezy od materialu i zasniedzenia
   float r,g,b;
   switch (Material)

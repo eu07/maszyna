@@ -35,23 +35,20 @@ void __fastcall CMesh::BuildVBOs()
  glGenBuffersARB(1,&m_nVBOVertices);         //pobierz numer
  glBindBufferARB(GL_ARRAY_BUFFER_ARB,m_nVBOVertices);         // Ustaw bufor jako aktualny
  glBufferDataARB(GL_ARRAY_BUFFER_ARB,m_nVertexCount*sizeof(CVertNormTex),m_pVNT,GL_STATIC_DRAW_ARB);
- WriteLog("Przydzielone VBO: "+AnsiString(m_nVBOVertices)+", punktów: "+AnsiString(m_nVertexCount));
- delete [] m_pVNT;  m_pVNT=NULL;
+ WriteLog("Assigned VBO numer "+AnsiString(m_nVBOVertices)+", vertices: "+AnsiString(m_nVertexCount));
+ SafeDeleteArray(m_pVNT);
 };
 
 void __fastcall CMesh::Release()
 {//zwolnienie zasobów przez sprz¹tacz albo destruktor
  if (m_nVBOVertices) //jeœli by³o coœ rezerwowane
  {
-  unsigned int nBuffers[1]={m_nVBOVertices};
-  glDeleteBuffersARB(1,nBuffers); // Free The Memory
-  WriteLog("Zwolnione VBO: "+AnsiString(m_nVBOVertices));
+  glDeleteBuffersARB(1,&m_nVBOVertices); // Free The Memory
+  WriteLog("Released VBO number "+AnsiString(m_nVBOVertices));
  }
  m_nVBOVertices=0;
  m_nVertexCount=-1; //do ponownego zliczenia
- //usuwanie tablic, gdy by³y u¿yte do Vertex Array
- delete [] m_pVNT;
- m_pVNT=NULL;
+ SafeDeleteArray(m_pVNT); //usuwanie tablic, gdy by³y u¿yte do Vertex Array
 };
 
 bool __fastcall CMesh::StartVBO()

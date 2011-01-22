@@ -139,7 +139,9 @@ public:
  //TGroundNode *pRenderAlphaVBO; //lista grup renderowanych ze wsp³nego VBO
  //TGroundNode *pRender; //lista grup renderowanych z w³asnych VBO
  //TGroundNode *pRenderAlpha; //lista grup renderowanych z w³asnych VBO
- TGroundNode *pHidden; //lista obiektów niewidocznych, "renderowanych" równie¿ z ty³u
+ TGroundNode *pRootHidden; //lista obiektów niewidocznych, "renderowanych" równie¿ z ty³u
+ TGroundNode *pRootSkip; //lista obiektów nie renerowanych wcale
+ TGroundNode *pAnim; //obiekty do przeliczenia animacji
  __fastcall TSubRect();
  __fastcall ~TSubRect();
  void __fastcall AddNode(TGroundNode *Node);
@@ -147,14 +149,20 @@ public:
  bool __fastcall StartVBO();
 };
 
-const int iNumSubRects=10; //Ra: trzeba sprawdziæ wydajnoœæ siatki
+//Ra: trzeba sprawdziæ wydajnoœæ siatki
+const int iNumSubRects=5; //na ile dzielimy kilometr
+const int iNumRects=500;
+const double fHalfNumRects=iNumRects/2; //po³owa do wyznaczenia œrodka
+const int iTotalNumSubRects=iNumRects*iNumSubRects;
+const double fHalfTotalNumSubRects=iTotalNumSubRects/2;
+const double fSubRectSize=1000.0/iNumSubRects;
+const double fRectSize=fSubRectSize*iNumSubRects;
 
-class TGroundRect
+class TGroundRect //: public TSubRect
 {
 private:
     TSubRect *pSubRects;
     void __fastcall Init() { pSubRects= new TSubRect[iNumSubRects*iNumSubRects]; };
-
 public:
     __fastcall TGroundRect() { pSubRects=NULL; };
     __fastcall ~TGroundRect() { SafeDeleteArray(pSubRects); };
@@ -163,14 +171,6 @@ public:
     TSubRect* __fastcall FastGetRect( int iCol, int iRow) { return ( pSubRects ? pSubRects+iRow*iNumSubRects+iCol : NULL ); };
 };
 
-const int iNumRects= 500;
-const double fHalfNumRects= iNumRects/2;
-
-const int iTotalNumSubRects= iNumRects*iNumSubRects;
-const double fHalfTotalNumSubRects= iTotalNumSubRects/2;
-
-const double fSubRectSize= 100.0f;
-const double fRectSize= fSubRectSize*iNumSubRects;
 
 
 class TGround
@@ -187,7 +187,7 @@ public:
     bool __fastcall Init(AnsiString asFile);
     bool __fastcall InitEvents();
     bool __fastcall InitTracks();
-    bool __fastcall InitLaunchers();    
+    bool __fastcall InitLaunchers();
     TGroundNode* __fastcall FindTrack(vector3 Point, int &iConnection, TGroundNode *Exclude);
     TGroundNode* __fastcall CreateGroundNode();
     TGroundNode* __fastcall AddGroundNode(cParser* parser);

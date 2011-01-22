@@ -32,7 +32,7 @@
     <DEBUGLIBPATH value="$(BCB)\lib\debug"/>
     <RELEASELIBPATH value="$(BCB)\lib\release"/>
     <LINKER value="tlink32"/>
-    <USERDEFINES value="GLEW_STATIC;_DEBUG"/>
+    <USERDEFINES value="GLEW_STATIC;_DEBUG;_USE_OLD_RW_STL"/>
     <SYSDEFINES value="_RTLDLL;NO_STRICT"/>
     <MAINSOURCE value="EU07.cpp"/>
     <INCLUDEPATH value="McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
@@ -41,7 +41,7 @@
   </MACROS>
   <OPTIONS>
     <IDLCFLAGS value="-IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl -src_suffix cpp 
-      -DGLEW_STATIC -D_DEBUG -boa"/>
+      -DGLEW_STATIC -D_DEBUG -D_USE_OLD_RW_STL -boa"/>
     <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a4 -6 -b- -k -y -v -vi- 
       -c -tW -tWM"/>
     <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
@@ -60,7 +60,7 @@ IncludeVerInfo=1
 AutoIncBuild=1
 MajorVer=1
 MinorVer=2
-Release=56
+Release=57
 Build=94
 Debug=1
 PreRelease=0
@@ -73,7 +73,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=PC2009 SP1
-FileVersion=1.2.56.94
+FileVersion=1.2.57.94
 InternalName=hammer
 LegalCopyright=
 LegalTrademarks=
@@ -118,13 +118,14 @@ Item0=c:\lang\borland\cbuilder5\source\vcl;D:\USER\MCZAPKIE\PROGRAMY\rail\symul\
 Item1=$(BCB)\source\vcl
 
 [HistoryLists\hlConditionals]
-Count=6
-Item0=GLEW_STATIC;_DEBUG
-Item1=GLEW_STATIC
-Item2=GLEW_STATIC;USE_VERTEX_ARRAYS;_DEBUG
-Item3=GLEW_STATIC;USE_VERTEX_ARRAYS
-Item4=GLEW_STATIC;_DEBUG;USE_VERTEX_ARRAYS
-Item5=_DEBUG
+Count=7
+Item0=GLEW_STATIC;_DEBUG;_USE_OLD_RW_STL
+Item1=GLEW_STATIC;_DEBUG
+Item2=GLEW_STATIC
+Item3=GLEW_STATIC;USE_VERTEX_ARRAYS;_DEBUG
+Item4=GLEW_STATIC;USE_VERTEX_ARRAYS
+Item5=GLEW_STATIC;_DEBUG;USE_VERTEX_ARRAYS
+Item6=_DEBUG
 
 [HistoryLists\hlFinalOutputDir]
 Count=7

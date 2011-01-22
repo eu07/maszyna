@@ -70,37 +70,34 @@ __fastcall TSubRect::AddNode(TGroundNode *Node)
 };*/
 
 
-//TGround *pGround= NULL;
-
 __fastcall TGroundNode::TGroundNode()
-{
-    Vertices= NULL;
-    Next=Next2= NULL;
-    pCenter= vector3(0,0,0);
-    fAngle = 0;
-    iNumVerts = 0;
-    iNumPts = 0;
-    TextureID= 0;
-    //DisplayListID = 0;
-    TexAlpha= false;
-    Pointer= NULL;
-    iType= GL_POINTS;
-    bVisible= false;
-    bStatic= true;
-    fSquareRadius= 2000*2000;
-    fSquareMinRadius= 0;
-    asName= "";
-//    Color= TMaterialColor(1);
-    fLineThickness= 1.0; //mm
-    for (int i=0; i<3; i++)
-    {
-     Ambient[i]= Global::whiteLight[i]*255;
-     Diffuse[i]= Global::whiteLight[i]*255;
-     Specular[i]= Global::noLight[i]*255;
-    }
-    bAllocated= true;
-    pNext3=NULL; //sam siê wyœwietla
-    iVboPtr=-1; //indeks w VBO sektora
+{//nowy obiekt terenu - pusty
+ Vertices=NULL;
+ Next=Next2=pNext3=NULL;
+ pCenter=vector3(0,0,0);
+ fAngle=0;
+ iNumVerts=0; //wierzcho³ków w trójk¹cie
+ iNumPts=0; //punktów w linii
+ TextureID=0;
+ TexAlpha=false;
+ Pointer=NULL; //zerowanie wskaŸnika kontekstowego
+ iType=GL_POINTS;
+ bVisible=false; //czy widoczny
+ bStatic=true;
+ fSquareRadius=2000*2000;
+ fSquareMinRadius=0;
+ asName="";
+ //Color= TMaterialColor(1);
+ fLineThickness=1.0; //mm
+ for (int i=0;i<3;i++)
+ {
+  Ambient[i]=Global::whiteLight[i]*255;
+  Diffuse[i]=Global::whiteLight[i]*255;
+  Specular[i]=Global::noLight[i]*255;
+ }
+ bAllocated=true; //zawsze true
+ pNext3=NULL; //sam siê wyœwietla
+ iVboPtr=-1; //indeks w VBO sektora (-1: nie u¿ywa VBO)
 }
 
 __fastcall TGroundNode::~TGroundNode()
@@ -119,8 +116,6 @@ __fastcall TGroundNode::~TGroundNode()
             SafeDelete(pTrack);
         if (iType==TP_DYNAMIC)
             SafeDelete(DynamicObject);
-    //    if (iType==TP_SEMAPHORE)
-      //      SafeDelete(Semaphore);
         if (iType==TP_MODEL)
             SafeDelete(Model);
         if (iType==GL_LINES || iType==GL_LINE_STRIP || iType==GL_LINE_LOOP )
@@ -138,14 +133,14 @@ void __fastcall TGroundNode::Init(int n)
 }
 
 void __fastcall TGroundNode::InitCenter()
-{
-    for (int i=0; i<iNumVerts; i++)
-        pCenter+= Vertices[i].Point;
-    pCenter/= iNumVerts;
+{//obliczenie œrodka ciê¿koœci obiektu
+ for (int i=0;i<iNumVerts;i++)
+  pCenter+=Vertices[i].Point;
+ pCenter/=iNumVerts;
 }
 
 void __fastcall TGroundNode::InitNormals()
-{
+{//obliczenie wektorów normalnych
     vector3 v1,v2,v3,v4,v5,n1,n2,n3,n4;
     int i;
     float tu,tv;
@@ -283,16 +278,16 @@ void __fastcall TGround::MoveGroundNode(vector3 pPosition)
 }
 
 void __fastcall TGroundNode::RenderVBO()
-{//renderowanie z bufora VBO (VertexArray gdy brak)
+{//renderowanie z bufora VBO (Vertex Array gdy brak VBO)
  glColor3ub(Diffuse[0],Diffuse[1],Diffuse[2]);
  if (TextureID)
-  glBindTexture(GL_TEXTURE_2D,TextureID);         // Ustaw aktywn¹ teksturê
- glDrawArrays(iType,iVboPtr,iNumVerts);         // Narysuj naraz wszystkie trójk¹ty
+  glBindTexture(GL_TEXTURE_2D,TextureID); // Ustaw aktywn¹ teksturê
+ glDrawArrays(iType,iVboPtr,iNumVerts);   // Narysuj naraz wszystkie trójk¹ty
 }
 
 bool __fastcall TGroundNode::Render()
 {
- double mgn= SquareMagnitude(pCenter-Global::pCameraPosition);
+ double mgn=SquareMagnitude(pCenter-Global::pCameraPosition);
  float r,g,b;
  if ((mgn>fSquareRadius || (mgn<fSquareMinRadius)) && (iType!=TP_EVLAUNCH)) //McZapkie-070602: nie rysuj odleglych obiektow ale sprawdzaj wyzwalacz zdarzen
      return false;
@@ -468,7 +463,7 @@ bool __fastcall TGroundNode::RenderAlpha()
 //------------------------------------------------------------------------------
 __fastcall TSubRect::TSubRect()
 {
- pRootNode=pHidden=NULL;
+ pRootNode=pRootHidden=pRootSkip=pAnim=NULL;
 }
 __fastcall TSubRect::~TSubRect()
 {
