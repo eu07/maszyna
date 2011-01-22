@@ -95,7 +95,7 @@ __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 
     Global::detonatoryOK=true;
     WriteLog("Starting MaSzyna rail vehicle simulator.");
-    WriteLog("Compilation 2011-01-21");
+    WriteLog("Compilation 2011-01-22");
     WriteLog("Online documentation and additional files on http://eu07.pl");
     WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx_EU, OLO_EU, Bart, Quark-t, ShaXbee, Oli_EU, youBy and others");
     WriteLog("Renderer:");
@@ -126,7 +126,7 @@ __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
      WriteLog("Ra: The VBO is found and will be used.");
     }
     else
-     WriteLog("Ra: VBO not found - >> buy a new graphic card << .");
+     WriteLog("Ra: VBO not found - >>> buy a new graphic card <<< .");
 
 /*-----------------------Render Initialization----------------------*/
         glTexEnvf(TEXTURE_FILTER_CONTROL_EXT,TEXTURE_LOD_BIAS_EXT,-1);
@@ -277,6 +277,10 @@ __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 	glFogf(GL_FOG_END, 200.0f);							// Fog End Depth
     WriteLog("glEnable(GL_FOG);");
 	glEnable(GL_FOG);									// Enables GL_FOG
+
+    //Ra: ustawienia testowe
+    //glHint(GL_LINE_SMOOTH_HINT,GL_NICEST);
+    //glHint(GL_POLYGON_SMOOTH_HINT,GL_NICEST);
 
 /*--------------------Render Initialization End---------------------*/
 

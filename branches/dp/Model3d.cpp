@@ -35,7 +35,6 @@ __fastcall TSubModel::TSubModel()
 {
     FirstInit();
     eType=smt_Unknown;
-    //uiDisplayList=0;
     Vertices=NULL;
     iNumVerts=-1; //do sprawdzenia
     iVboPtr=-1;
@@ -95,7 +94,6 @@ void __fastcall TSubModel::FirstInit()
 
 __fastcall TSubModel::~TSubModel()
 {
-    //glDeleteLists(uiDisplayList,1);
 //    SafeDeleteArray(Indices);
     SafeDelete(Next);
     SafeDelete(Child);
@@ -146,9 +144,8 @@ inline void readMatrix(cParser& parser, matrix4x4& matrix)
 int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int Pos)
 {//Ra: VBO tworzone na poziomie modelu, a nie submodeli
     //GLVERTEX *Vertices=NULL; //
-    iVboPtr=Pos; //pozycja w VBO
     iNumVerts=0;
-    //bool bLight;
+    iVboPtr=Pos; //pozycja w VBO
 //    TMaterialColorf Ambient,Diffuse,Specular;
     f4Ambient[0]=f4Ambient[1]=f4Ambient[2]=f4Ambient[3]=1.0; //{1,1,1,1};
     f4Diffuse[0]=f4Diffuse[1]=f4Diffuse[2]=f4Diffuse[3]=1.0; //{1,1,1,1};
@@ -207,11 +204,11 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
 
         parser.ignoreToken();
         parser.getToken(fcosFalloffAngle);
-        fcosFalloffAngle=cos(fcosFalloffAngle * M_PI / 90);
+        fcosFalloffAngle=cos(fcosFalloffAngle * M_PI / 180);
 
         parser.ignoreToken();
         parser.getToken(fcosHotspotAngle);
-        fcosHotspotAngle=cos(fcosHotspotAngle * M_PI / 90);
+        fcosHotspotAngle=cos(fcosHotspotAngle * M_PI / 180);
         iNumVerts=1;
     };
 
@@ -546,37 +543,11 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId)
   }
   else
    glBindTexture(GL_TEXTURE_2D,TextureID);
-  if (!TexAlpha || !Global::bRenderAlpha)  //rysuj gdy nieprzezroczyste lub # albo gdy zablokowane alpha
+  glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);   //McZapkie-240702: zamiast ub
+  if (eType==smt_Mesh)
   {
-   if (eType==smt_FreeSpotLight)
+   if (!TexAlpha || !Global::bRenderAlpha)  //rysuj gdy nieprzezroczyste lub # albo gdy zablokowane alpha
    {
-    matrix4x4 mat;
-    glGetDoublev(GL_MODELVIEW_MATRIX,mat.getArray());
-    fCosViewAngle=DotProduct(Normalize(mat*vector3(0,0,1)-mat*vector3(0,0,0)),vector3(0,0,1));
-    if (fCosViewAngle>fcosFalloffAngle)  // kat wiekszy niz max stozek swiatla
-    {
-/*   TODO: poprawic to zeby dzialalo
-              if (iFarAttenDecay>0)
-               switch (iFarAttenDecay)
-               {
-                case 1:
-                    Distdimm=fFarDecayRadius/(1+sqrt(fSquareDist));  //dorobic od kata
-                break;
-                case 2:
-                    Distdimm=fFarDecayRadius/(1+fSquareDist);  //dorobic od kata
-                break;
-               }
-              if (Distdimm>1)
-               Distdimm=1;
-              glColor3f(Diffuse[0]*Distdimm,Diffuse[1]*Distdimm,Diffuse[2]*Distdimm);
-*/
-              glPopMatrix();
-     return;
-    }
-   }
-   if (eType==smt_Mesh)
-   {
-    glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);   //McZapkie-240702: zamiast ub
     glMaterialfv(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE,f4Diffuse);
     if (bLight)
      glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
@@ -584,6 +555,54 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId)
     if (bLight)
      glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
    }
+  }
+  else if (eType==smt_FreeSpotLight)
+  {
+   matrix4x4 mat;
+   glGetDoublev(GL_MODELVIEW_MATRIX,mat.getArray());
+   //k¹t miêdzy kierunkiem œwiat³a a wspó³rzêdnymi kamery
+   vector3 gdzie=mat*vector3(0,0,0); //pozycja wzglêdna punktu œwiec¹cego
+   fCosViewAngle=DotProduct(Normalize(mat*vector3(0,0,1)-gdzie),Normalize(gdzie));
+   //(by³o miêdzy kierunkiem œwiat³a a k¹tem kamery)
+   //fCosViewAngle=DotProduct(Normalize(mat*vector3(0,0,1)-mat*vector3(0,0,0)),vector3(0,0,1));
+   if (fCosViewAngle>fcosFalloffAngle)  // kat wiekszy niz max stozek swiatla
+   {
+/*  TODO: poprawic to zeby dzialalo
+
+2- Inverse (Applies inverse decay. The formula is luminance=R0/R, where R0 is
+ the radial source of the light if no attenuation is used, or the Near End
+ value of the light if Attenuation is used. R is the radial distance of the
+  illuminated surface from R0.)
+
+3- Inverse Square (Applies inverse-square decay. The formula for this is (R0/R)^2.
+ This is actually the "real-world" decay of light, but you might find it too dim
+ in the world of computer graphics.)
+
+<light>.DecayRadius -- The distance over which the decay occurs.
+
+             if (iFarAttenDecay>0)
+              switch (iFarAttenDecay)
+              {
+               case 1:
+                   Distdimm=fFarDecayRadius/(1+sqrt(fSquareDist));  //dorobic od kata
+               break;
+               case 2:
+                   Distdimm=fFarDecayRadius/(1+fSquareDist);  //dorobic od kata
+               break;
+              }
+             if (Distdimm>1)
+              Distdimm=1;
+             glColor3f(Diffuse[0]*Distdimm,Diffuse[1]*Distdimm,Diffuse[2]*Distdimm);
+*/
+    //glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
+    glColorMaterial(GL_FRONT_AND_BACK,GL_EMISSION);
+    glDisable(GL_LIGHTING);  //Tolaris-030603: bo mu punkty swiecace sie blendowaly
+    glDrawArrays(GL_POINTS,iVboPtr,iNumVerts);  //narysuj wierzcho³ek z VBO
+    glEnable(GL_LIGHTING);
+    glColorMaterial(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE);
+    glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
+   }
+  }
 /*Ra: tu coœ jest bez sensu...
     else
     {
@@ -608,7 +627,6 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId)
      //glEndList();
     }
 */
-  }
   if (Child!=NULL)
    Child->Render(ReplacableSkinId);
   glPopMatrix();
