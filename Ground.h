@@ -92,9 +92,9 @@ public:
     bool bVisible;
     bool bStatic; //czy nie jest pojazdem
     bool bAllocated; //Ra: zawsze true
-    TGroundNode *Next; //lista wszystkich, ostatni na koñcu
-    TGroundNode *Next2; //lista w sektorze
-    TGroundNode *pNext3; //lista obiektów podobnych, generowanych grupowo
+    TGroundNode *Next; //lista wszystkich w scenerii, ostatni na pocz¹tku
+    TGroundNode *pNext2; //lista w sektorze
+    TGroundNode *pNext3; //lista obiektów podobnych, renderowanych grupowo
     __fastcall TGroundNode();
     __fastcall ~TGroundNode();
     void __fastcall Init(int n);
@@ -135,15 +135,14 @@ private:
 public:
  void __fastcall LoadNodes();
 public:
- TGroundNode *pRootNode; //lista grup renderowanych
- //TGroundNode *pRenderVBO; //lista grup renderowanych ze wsp³nego VBO
- //TGroundNode *pRenderAlphaVBO; //lista grup renderowanych ze wsp³nego VBO
- //TGroundNode *pRender; //lista grup renderowanych z w³asnych VBO
- //TGroundNode *pRenderAlpha; //lista grup renderowanych z w³asnych VBO
- TGroundNode *pRootHidden; //lista obiektów niewidocznych, "renderowanych" równie¿ z ty³u
- TGroundNode *pRootSkip; //lista obiektów nie renerowanych wcale
+ TGroundNode *pRootNode; //lista wszystkich obiektów w sektorze
+ TGroundNode *pRenderHidden; //lista obiektów niewidocznych, "renderowanych" równie¿ z ty³u
+ TGroundNode *pRenderVBO; //lista grup renderowanych ze wspólnego VBO
+ TGroundNode *pRenderAlphaVBO; //lista grup renderowanych ze wspólnego VBO
+ TGroundNode *pRender; //lista grup renderowanych z w³asnych VBO
+ TGroundNode *pRenderAlpha; //lista grup renderowanych z w³asnych VBO
  __fastcall TSubRect();
- __fastcall ~TSubRect();
+ virtual __fastcall ~TSubRect();
  void __fastcall AddNode(TGroundNode *Node);
  bool __fastcall StartVBO();
  virtual void Release();
@@ -154,20 +153,20 @@ public:
 //Ra: trzeba sprawdziæ wydajnoœæ siatki
 const int iNumSubRects=5; //na ile dzielimy kilometr
 const int iNumRects=500;
-const double fHalfNumRects=iNumRects/2; //po³owa do wyznaczenia œrodka
+const double fHalfNumRects=iNumRects/2.0; //po³owa do wyznaczenia œrodka
 const int iTotalNumSubRects=iNumRects*iNumSubRects;
-const double fHalfTotalNumSubRects=iTotalNumSubRects/2;
+const double fHalfTotalNumSubRects=iTotalNumSubRects/2.0;
 const double fSubRectSize=1000.0/iNumSubRects;
 const double fRectSize=fSubRectSize*iNumSubRects;
 
-class TGroundRect //: public TSubRect
-{
+class TGroundRect : public TSubRect
+{//obiekty o niewielkiej iloœci wierzcho³ków bêd¹ renderowane st¹d
 private:
     TSubRect *pSubRects;
     void __fastcall Init() { pSubRects= new TSubRect[iNumSubRects*iNumSubRects]; };
 public:
     __fastcall TGroundRect() { pSubRects=NULL; };
-    __fastcall ~TGroundRect() { SafeDeleteArray(pSubRects); };
+    virtual __fastcall ~TGroundRect() { SafeDeleteArray(pSubRects); };
 
     TSubRect* __fastcall SafeGetRect( int iCol, int iRow) { if (!pSubRects) Init();  return pSubRects+iRow*iNumSubRects+iCol; };
     TSubRect* __fastcall FastGetRect( int iCol, int iRow) { return ( pSubRects ? pSubRects+iRow*iNumSubRects+iCol : NULL ); };

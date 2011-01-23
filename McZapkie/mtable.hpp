@@ -89,12 +89,11 @@ public:
 	int srm;
 	int ssh;
 	int ssm;
+	double mr;
 	void __fastcall UpdateMTableTime(double deltaT);
 	__fastcall TMTableTime(int InitH, int InitM, int InitSRH, int InitSRM, int InitSSH, int InitSSM);
-	
-private:
-	double mr;
 public:
+		
 	#pragma option push -w-inl
 	/* TObject.Create */ inline __fastcall TMTableTime(void) : System::TObject() { }
 	#pragma option pop

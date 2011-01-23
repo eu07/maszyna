@@ -126,11 +126,6 @@ void __fastcall TAnimContainer::UpdateModel()
     }
 }
 
-bool __fastcall TAnimContainer::InMovement()
-{//czy trwa animacja - informacja dla obrotnicy
- return fRotateSpeed!=0.0; //Ra: to nie jest w³aœciwy warunek, ale obrotnica jest zepsuta...
-}
-
 //---------------------------------------------------------------------------
 
 __fastcall TAnimModel::TAnimModel()
@@ -374,6 +369,10 @@ void __fastcall TAnimModel::RenderAlpha(vector3 pPosition, double fAngle)
         pModel->RenderAlpha(pPosition, fAngle, ReplacableSkinId);
 };
 
+bool __fastcall TAnimModel::IsAlpha()
+{//informacja dla TGround, czy ma byæ Render() czy RenderAlpha()
+ return pModel->IsAlpha()?true:TTexturesManager::GetAlpha(ReplacableSkinId);
+};
 //---------------------------------------------------------------------------
 
 #pragma package(smart_init)

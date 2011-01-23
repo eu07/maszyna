@@ -49,10 +49,9 @@ Type
                    dd,hh,mm: integer;
                    srh,srm : integer; {wschod slonca}
 	           ssh,ssm : integer; {zachod slonca}
+                   mr:real;
                    procedure UpdateMTableTime(deltaT:real);
                    constructor Init(InitH,InitM,InitSRH,InitSRM,InitSSH,InitSSM:integer);
-                   private
-                   mr:real;
                  end;
 
 var GlobalTime: TMTableTime;

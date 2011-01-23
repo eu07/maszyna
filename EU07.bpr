@@ -4,13 +4,13 @@
   <MACROS>
     <VERSION value="BCB.05.03"/>
     <PROJECT value="D:\EU07\EU07.exe"/>
-    <OBJFILES value="McZapkie\mover.obj McZapkie\ai_driver.obj QueryParserComp.obj EU07.obj 
-      dumb3d.obj Camera.obj Texture.obj World.obj Model3d.obj geometry.obj 
-      MdlMngr.obj Train.obj wavread.obj Timer.obj Event.obj MemCell.obj Logs.obj 
-      Spring.obj Button.obj Globals.obj Gauge.obj AnimModel.obj Ground.obj 
-      TrkFoll.obj Segment.obj Sound.obj AdvSound.obj Track.obj DynObj.obj 
-      RealSound.obj EvLaunch.obj Scenery.obj FadeSound.obj Traction.obj 
-      TractionPower.obj parser.obj sky.obj AirCoupler.obj glew.obj 
+    <OBJFILES value="McZapkie\mover.obj McZapkie\ai_driver.obj QueryParserComp.obj 
+      McZapkie\mtable.obj EU07.obj dumb3d.obj Camera.obj Texture.obj World.obj 
+      Model3d.obj geometry.obj MdlMngr.obj Train.obj wavread.obj Timer.obj 
+      Event.obj MemCell.obj Logs.obj Spring.obj Button.obj Globals.obj Gauge.obj 
+      AnimModel.obj Ground.obj TrkFoll.obj Segment.obj Sound.obj AdvSound.obj 
+      Track.obj DynObj.obj RealSound.obj EvLaunch.obj Scenery.obj FadeSound.obj 
+      Traction.obj TractionPower.obj parser.obj sky.obj AirCoupler.obj glew.obj 
       ResourceManager.obj TextureDDS.obj VBO.obj Feedback.obj"/>
     <RESFILES value="EU07.res"/>
     <IDLFILES value=""/>
@@ -60,8 +60,8 @@ IncludeVerInfo=1
 AutoIncBuild=1
 MajorVer=1
 MinorVer=2
-Release=58
-Build=95
+Release=59
+Build=97
 Debug=1
 PreRelease=0
 Special=0
@@ -73,7 +73,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=PC2009 SP1
-FileVersion=1.2.58.95
+FileVersion=1.2.59.97
 InternalName=hammer
 LegalCopyright=
 LegalTrademarks=

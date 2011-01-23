@@ -156,7 +156,8 @@ public:
       inline matrix4x4* __fastcall GetMatrix() { return &Matrix; };
       matrix4x4* __fastcall GetTransform();
       inline void __fastcall Hide() { Visible= false; };
-      void  __fastcall RaArrayFill(CVertNormTex *Vert);
+      void __fastcall RaArrayFill(CVertNormTex *Vert);
+      bool __fastcall IsAlpha(); 
 } ;
 
 class TModel3d : public CMesh
@@ -166,6 +167,7 @@ private:
     int MaterialsCount;
     bool TractionPart;
     TSubModel *Root;
+    bool TexAlpha;     //Ra: czy submodele maj¹ przezroczyste tekstury
 public:
     inline TSubModel* __fastcall GetSMRoot() {return(Root);};
     int SubModelsCount;
@@ -185,6 +187,7 @@ public:
     void __fastcall RenderAlpha( vector3 pPosition, double fAngle= 0, GLuint ReplacableSkinId= 0);
     void __fastcall RenderAlpha( double fSquareDistance, GLuint ReplacableSkinId= 0);
     inline int __fastcall GetSubModelsCount() { return (SubModelsCount); };
+    bool __fastcall IsAlpha() {return TexAlpha;};
 };
 
 typedef TModel3d *PModel3d;

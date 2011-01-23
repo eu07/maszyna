@@ -26,7 +26,6 @@ public:
     void __fastcall SetRotateAnim(vector3 vNewRotateAngles, double fNewRotateSpeed, bool bResetAngle=false);
     void __fastcall UpdateModel();
     TAnimContainer *pNext;
-    bool __fastcall InMovement(); //czy w trakcie animacji?
     double _fastcall AngleGet() {return vRotateAngles.z;}; //jednak ostatnia, T3D ma inny uk³ad
 };
 
@@ -46,6 +45,7 @@ public:
     void __fastcall RenderAlpha(double fSquareDistance);
     TLightState lsLights[iMaxNumLights];
     GLuint ReplacableSkinId; //McZapkie-020802: zmienialne skory
+    bool __fastcall IsAlpha(); 
 private:
     TSubModel *LightsOn[iMaxNumLights];
     TSubModel *LightsOff[iMaxNumLights];

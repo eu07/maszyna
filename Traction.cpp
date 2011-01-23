@@ -243,7 +243,7 @@ void  __fastcall TTraction::RaArrayFill(CVertNormTex *Vert)
  vector3 pt1,pt2,pt3,pt4,v1,v2;
  v1=pPoint4-pPoint3;
  v2=pPoint2-pPoint1;
- float step= 0;
+ float step=0;
  if (iNumSections>0)
   step=1.0f/(float)iNumSections;
  float f=step;
@@ -325,11 +325,11 @@ void  __fastcall TTraction::RaRenderVBO(float mgn,int iPtr)
  if (Wires!=0 && !TestFlag(DamageFlag,128))  //rysuj jesli sa druty i nie zerwana
  {
   glBindTexture(GL_TEXTURE_2D,0);
-  glDisable(GL_LIGHTING); //Ra: do testów
+  glDisable(GL_LIGHTING); //aby nie u¿ywa³o wektorów normalnych do kolorowania
   glColor4f(0,0,0,1);  //jak nieznany kolor to czarne nieprzezroczyste
-  //Ra: glEnable(GL_LINE_SMOOTH) kiepsko wygl¹da
-  float linealpha=10000*WireThickness/(mgn+1.0); //*WireThickness
-  if (linealpha>1.2) linealpha=1.2; //za grube nie s¹ dobre
+  //Ra: glEnable(GL_LINE_SMOOTH) kiepsko wygl¹da - robi gradient
+  float linealpha=5000*WireThickness/(mgn+1.0); //*WireThickness
+  if (linealpha>1.2) linealpha=1.2; //zbyt grube nie s¹ dobre
   glLineWidth(linealpha);
   //McZapkie-261102: kolor zalezy od materialu i zasniedzenia
   float r,g,b;
@@ -359,11 +359,11 @@ void  __fastcall TTraction::RaRenderVBO(float mgn,int iPtr)
   r=r*Global::ambientDayLight[0];  //w zaleznosci od koloru swiatla
   g=g*Global::ambientDayLight[1];
   b=b*Global::ambientDayLight[2];
-  if (linealpha>1.0) linealpha=1.0; //za grube nie s¹ dobre
-  glColor4f(r,g,b,linealpha); // linealpha);
+  if (linealpha>1.0) linealpha=1.0; //trzeba ograniczyæ do <=1
+  glColor4f(r,g,b,linealpha);
   glDrawArrays(GL_LINES,iPtr,iLines);
   glLineWidth(1.0);
-  glEnable(GL_LIGHTING); //Ra: do testów
+  glEnable(GL_LIGHTING);
  }
 };
 

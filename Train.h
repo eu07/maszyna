@@ -96,6 +96,7 @@ public:
        TGauge PrzGlGaugeB;
        TGauge ZbGlGaugeB;
     //******************************************
+    TGauge ClockSInd;
     TGauge ClockMInd;
     TGauge ClockHInd;
     TGauge HVoltageGauge;
