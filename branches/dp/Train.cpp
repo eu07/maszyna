@@ -2004,6 +2004,8 @@ else
 //McZapkie-300302: zegarek
     if (ClockMInd.SubModel)
      {
+      ClockSInd.UpdateValue(int(GlobalTime->mr));
+      ClockSInd.Update();     
       ClockMInd.UpdateValue(GlobalTime->mm);
       ClockMInd.Update();
       ClockHInd.UpdateValue(GlobalTime->hh+GlobalTime->mm/60.0);
@@ -3229,6 +3231,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
            I3BGauge.Clear();
            ItotalBGauge.Clear();
 
+           ClockSInd.Clear();
            ClockMInd.Clear();
            ClockHInd.Clear();
            EngineVoltage.Clear();
@@ -3250,7 +3253,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
            btLampkaNadmWent.Clear();
            btLampkaNadmSpr.Clear();
            btLampkaOpory.Clear();
-           btLampkaOpory.FeedbackBitSet(2);
+           btLampkaOpory.FeedbackBitSet(8);
            btLampkaWysRozr.Clear();
            btLampkaUniversal3.Clear();
            btLampkaWentZaluzje.Clear();
@@ -3603,8 +3606,9 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
           if (Parser->GetNextSymbol()==AnsiString("analog"))
            {
             //McZapkie-300302: zegarek
-            ClockMInd.Init(DynamicObject->mdKabina->GetFromName("ClockMhand"),gt_Rotate,0.01667,0,0);
-            ClockHInd.Init(DynamicObject->mdKabina->GetFromName("ClockHhand"),gt_Rotate,0.08333,0,0);
+            ClockSInd.Init(DynamicObject->mdKabina->GetFromName("ClockShand"),gt_Rotate,0.016666667,0,0);
+            ClockMInd.Init(DynamicObject->mdKabina->GetFromName("ClockMhand"),gt_Rotate,0.016666667,0,0);
+            ClockHInd.Init(DynamicObject->mdKabina->GetFromName("ClockHhand"),gt_Rotate,0.083333333,0,0);
            }
          }
         else

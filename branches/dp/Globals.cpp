@@ -28,6 +28,7 @@
 #include "usefull.h"
 #include "mover.hpp"
 #include "ai_driver.hpp"
+#include "Feedback.h"
 
 
 //namespace Global {
@@ -84,10 +85,10 @@ bool Global::changeDynObj; //info o zmianie pojazdu
 bool Global::detonatoryOK; //info o nowych detonatorach
 double Global::ABuDebug=0;
 AnsiString Global::asSky= "1";
-int Global::iDefaultFiltering=9; //domyœlne rozmywanie tekstur TGA
-int Global::iBallastFiltering=9; //domyœlne rozmywanie tekstury podsypki
-int Global::iRailProFiltering=6; //domyœlne rozmywanie tekstury szyn
-int Global::iDynamicFiltering=6; //domyœlne rozmywanie tekstur pojazdów
+int Global::iDefaultFiltering=9; //domyœlne rozmywanie tekstur TGA bez alfa
+int Global::iBallastFiltering=9; //domyœlne rozmywanie tekstur podsypki
+int Global::iRailProFiltering=6; //domyœlne rozmywanie tekstur szyn
+int Global::iDynamicFiltering=5; //domyœlne rozmywanie tekstur pojazdów
 bool Global::bReCompile=false; //czy odœwie¿yæ siatki
 bool Global::bUseVBO=false; //czy jest VBO w karcie graficznej
 int Global::iFeedbackMode=1; //tryb pracy informacji zwrotnej
@@ -245,6 +246,7 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
          iFeedbackMode=Parser->GetNextSymbol().ToIntDef(1); //domyœlnie 1
     }
 
+ Feedback::ModeSet(iFeedbackMode); //tryb pracy interfejsu zwrotnego
 }
 
 void __fastcall Global::InitKeys(AnsiString asFileName)

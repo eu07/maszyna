@@ -35,7 +35,7 @@ void __fastcall CMesh::BuildVBOs()
  glBindBufferARB(GL_ARRAY_BUFFER_ARB,m_nVBOVertices); //ustaw bufor jako aktualny
  glBufferDataARB(GL_ARRAY_BUFFER_ARB,m_nVertexCount*sizeof(CVertNormTex),m_pVNT,GL_STATIC_DRAW_ARB);
  WriteLog("Assigned VBO number "+AnsiString(m_nVBOVertices)+", vertices: "+AnsiString(m_nVertexCount));
- SafeDeleteArray(m_pVNT);
+ SafeDeleteArray(m_pVNT); //wierzcho³ki ju¿ siê nie przydadz¹
 };
 
 void __fastcall CMesh::Clear()

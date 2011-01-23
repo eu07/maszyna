@@ -478,7 +478,7 @@ struct ToLower
 TSubModel* __fastcall TSubModel::GetFromName(std::string search)
 {
 
-    TSubModel* result = NULL;
+    TSubModel* result;
 
     std::transform(search.begin(), search.end(), search.begin(), ToLower());
 
@@ -488,14 +488,14 @@ TSubModel* __fastcall TSubModel::GetFromName(std::string search)
     if (Next)
     {
         result = Next->GetFromName(search);
-        if(result)
+        if (result)
             return result;
     };
 
     if (Child)
     {
         result = Child->GetFromName(search);
-        if(result)
+        if (result)
             return result;
     };
 
@@ -701,6 +701,14 @@ matrix4x4* __fastcall TSubModel::GetTransform()
 //    return &Transform;
 };
 
+bool __fastcall TSubModel::IsAlpha()
+{//czy ma coœ z przezroczyst¹ tekstur¹?
+ if (TexAlpha) return true; //na pewno ma
+ if (Child) if (Child->IsAlpha()) return true; //dziecko ma
+ if (Next) if (Next->IsAlpha()) return true; //nastêpny ma
+ return false; //nic nie ma
+};
+
 //---------------------------------------------------------------------------
 
 void  __fastcall TSubModel::RaArrayFill(CVertNormTex *Vert)
@@ -728,8 +736,9 @@ __fastcall TModel3d::TModel3d()
 //    Root= NULL;
 //    Materials= NULL;
 //    MaterialsCount= 0;
-    Root= NULL;
-    SubModelsCount= 0;
+ Root= NULL;
+ SubModelsCount= 0;
+ TexAlpha=false;
 //    ReplacableSkinID = 0;
 };
 
@@ -738,9 +747,10 @@ __fastcall TModel3d::TModel3d(char *FileName)
 //    Root= NULL;
 //    Materials= NULL;
 //    MaterialsCount= 0;
-    Root= NULL;
-    SubModelsCount= 0;
-    LoadFromFile(FileName);
+ Root= NULL;
+ SubModelsCount= 0;
+ TexAlpha=false;
+ LoadFromFile(FileName);
 };
 
 __fastcall TModel3d::~TModel3d()
@@ -790,7 +800,7 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName)
 {
  WriteLog("Loading - text model: "+AnsiString(FileName));
  cParser parser(FileName,cParser::buffer_FILE);
- TSubModel *SubModel=NULL;
+ TSubModel *SubModel;
  std::string token;
  parser.getToken(token);
  int totalverts=0;
@@ -801,7 +811,7 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName)
   if (parent=="") break;
   SubModel= new TSubModel();
   totalverts+=SubModel->Load(parser,SubModelsCount,this,totalverts);
-  if (!AddTo(parent.c_str(),SubModel)) SafeDelete(SubModel);
+  if (!AddTo(parent.c_str(),SubModel)) delete SubModel;
   SubModelsCount++;
   parser.getToken(token);
  }
@@ -818,9 +828,8 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName)
   if (totalverts)
   {MakeArray(totalverts); //tworzenie tablic dla VBO
    Root->RaArrayFill(m_pVNT); //wype³nianie tablicy
-   //MakeArrays(totalverts); //tworzenie tablic dla VBO
-   //Root->RaArraysFill(m_pVertices,m_pNormals,m_pTexCoords); //wype³nianie tablic
    if (Global::bUseVBO) BuildVBOs();
+   TexAlpha=Root->IsAlpha(); //true gdy nie ma ¿adnej przezroczystoœci
   }
  }
 }
@@ -841,76 +850,58 @@ void __fastcall TModel3d::Render(vector3 pPosition, double fAngle, GLuint Replac
 {
 //    glColor3f(1.0f,1.0f,1.0f);
 //    glColor3f(0.0f,0.0f,0.0f);
-    glPushMatrix(); //zapamiêtanie matrycy przekszta³cenia
-
-    glTranslated(pPosition.x,pPosition.y,pPosition.z);
-    if (fAngle!=0)
-        glRotatef(fAngle,0,1,0);
+ glPushMatrix(); //zapamiêtanie matrycy przekszta³cenia
+ glTranslated(pPosition.x,pPosition.y,pPosition.z);
+ if (fAngle!=0)
+  glRotatef(fAngle,0,1,0);
 /*
-    matrix4x4 Identity;
-    Identity.Identity();
+ matrix4x4 Identity;
+ Identity.Identity();
 
-    matrix4x4 CurrentMatrix;
-    glGetdoublev(GL_MODELVIEW_MATRIX,CurrentMatrix.getArray());
-    vector3 pos= vector3(0,0,0);
-    pos= CurrentMatrix*pos;
-    fSquareDist= SquareMagnitude(pos);
-  */
-    fSquareDist= SquareMagnitude(pPosition-Global::GetCameraPosition());
-
-#ifdef _DEBUG
-    if (Root)
-     //   Root->Render(ReplacableSkinId);
-#endif
-    if (StartVBO())
-    {Root->Render(ReplacableSkinId);
-     EndVBO();
-    }
-    glPopMatrix(); //przywrócenie ustawieñ przekszta³cenia
+ matrix4x4 CurrentMatrix;
+ glGetdoublev(GL_MODELVIEW_MATRIX,CurrentMatrix.getArray());
+ vector3 pos= vector3(0,0,0);
+ pos= CurrentMatrix*pos;
+ fSquareDist= SquareMagnitude(pos);
+*/
+ fSquareDist= SquareMagnitude(pPosition-Global::GetCameraPosition());
+ if (StartVBO())
+ {Root->Render(ReplacableSkinId);
+  EndVBO();
+ }
+ glPopMatrix(); //przywrócenie ustawieñ przekszta³cenia
 };
 
 void __fastcall TModel3d::Render(double fSquareDistance, GLuint ReplacableSkinId)
 {
-    fSquareDist= fSquareDistance;
-#ifdef _DEBUG
-    if (Root)
-    //    Root->Render(ReplacableSkinId);
-#endif
-    if (StartVBO())
-    {Root->Render(ReplacableSkinId);
-     EndVBO();
-    }
+ fSquareDist= fSquareDistance;
+ if (StartVBO())
+ {Root->Render(ReplacableSkinId);
+  EndVBO();
+ }
 };
 
 void __fastcall TModel3d::RenderAlpha(vector3 pPosition, double fAngle, GLuint ReplacableSkinId)
 {
-    glPushMatrix();
-    glTranslated(pPosition.x,pPosition.y,pPosition.z);
-    if (fAngle!=0)
-        glRotatef(fAngle,0,1,0);
-    fSquareDist= SquareMagnitude(pPosition-Global::GetCameraPosition());
-#ifdef _DEBUG
-    if (Root)
-    //    Root->RenderAlpha(ReplacableSkinId);
-#endif
-    if (StartVBO())
-    {Root->RenderAlpha(ReplacableSkinId);
-     EndVBO();
-    }
-    glPopMatrix();
+ glPushMatrix();
+ glTranslated(pPosition.x,pPosition.y,pPosition.z);
+ if (fAngle!=0)
+  glRotatef(fAngle,0,1,0);
+ fSquareDist= SquareMagnitude(pPosition-Global::GetCameraPosition());
+ if (StartVBO())
+ {Root->RenderAlpha(ReplacableSkinId);
+  EndVBO();
+ }
+ glPopMatrix();
 };
 
 void __fastcall TModel3d::RenderAlpha(double fSquareDistance, GLuint ReplacableSkinId)
 {
-    fSquareDist= fSquareDistance;
-#ifdef _DEBUG
-    if (Root)
-    //    Root->RenderAlpha(ReplacableSkinId);
-#endif
-    if (StartVBO())
-    {Root->RenderAlpha(ReplacableSkinId);
-     EndVBO();
-    }
+ fSquareDist= fSquareDistance;
+ if (StartVBO())
+ {Root->RenderAlpha(ReplacableSkinId);
+  EndVBO();
+ }
 };
 
 

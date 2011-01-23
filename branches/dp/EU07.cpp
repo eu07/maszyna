@@ -71,6 +71,7 @@ USEUNIT("ResourceManager.cpp");
 USEUNIT("TextureDDS.cpp");
 USEUNIT("VBO.cpp");
 USEUNIT("Feedback.cpp");
+USEUNIT("McZapkie\mtable.pas");
 //---------------------------------------------------------------------------
 #include "World.h"
 

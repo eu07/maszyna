@@ -971,17 +971,22 @@ bool __fastcall TWorld::Update()
     }
 
     if (Pressed(VK_F1))
-    {
-       OutText1="Time: "+FloatToStrF(GlobalTime->hh,ffFixed,2,0)+":";
-       if((GlobalTime->mm)<10)
-          OutText1=OutText1+"0"+FloatToStrF(GlobalTime->mm,ffFixed,2,0);
-       else
-          OutText1+=FloatToStrF(GlobalTime->mm,ffFixed,2,0);
-       OutText2="";
-       //double CtrlPos=Controlled->MoverParameters->MainCtrlPos;
-       //double CtrlPosNo=Controlled->MoverParameters->MainCtrlPosNo;
-       //OutText2="defrot="+FloatToStrF(1+0.4*(CtrlPos/CtrlPosNo),ffFixed,2,5);
-       OutText3="";
+    {//tekst pokazywany po wciœniêciu [F1]
+     OutText1="Time: "+FloatToStrF(GlobalTime->hh,ffFixed,2,0)+":";
+     if ((GlobalTime->mm)<10)
+      OutText1+="0"+FloatToStrF(GlobalTime->mm,ffFixed,2,0);
+     else
+      OutText1+=FloatToStrF(GlobalTime->mm,ffFixed,2,0);
+     OutText1+=":";
+     if ((GlobalTime->mr)<10)
+      OutText1+="0"+FloatToStrF(GlobalTime->mr,ffFixed,2,0);
+     else
+      OutText1+=FloatToStrF(GlobalTime->mr,ffFixed,2,0);
+     OutText2="";
+     //double CtrlPos=Controlled->MoverParameters->MainCtrlPos;
+     //double CtrlPosNo=Controlled->MoverParameters->MainCtrlPosNo;
+     //OutText2="defrot="+FloatToStrF(1+0.4*(CtrlPos/CtrlPosNo),ffFixed,2,5);
+     OutText3="";
     }
     if (Pressed(VK_F12))
     {
