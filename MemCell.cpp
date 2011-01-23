@@ -44,11 +44,11 @@ __fastcall TMemCell::~TMemCell()
     SafeDeleteArray(szText);
 }
 
-bool __fastcall TMemCell::Init()
+void __fastcall TMemCell::Init()
 {
 }
 
-bool __fastcall TMemCell::UpdateValues(char *szNewText, double fNewValue1, double fNewValue2, int CheckMask)
+void __fastcall TMemCell::UpdateValues(char *szNewText, double fNewValue1, double fNewValue2, int CheckMask)
 {
     if (TestFlag(CheckMask,conditional_memstring))
       strcpy(szText,szNewText);
@@ -78,7 +78,7 @@ bool __fastcall TMemCell::Load(cParser *parser)
     return true;
 }
 
-bool __fastcall TMemCell::PutCommand(TMoverParameters *Mover, TLocation &Loc)
+void __fastcall TMemCell::PutCommand(TMoverParameters *Mover, TLocation &Loc)
 {
     Mover->PutCommand(szText,fValue1,fValue2,Loc);
 }

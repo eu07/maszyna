@@ -25,12 +25,16 @@
 
 #include "Mover.hpp"
 #include "mctools.hpp"
+#include "mtable.hpp"
 #include "Timer.h"
 #include "Globals.h"
 #include "EvLaunch.h"
 #include "Event.h"
 
 #include "Usefull.h"
+#include "MemCell.h"
+
+
 
 //---------------------------------------------------------------------------
 
@@ -49,7 +53,7 @@ __fastcall TEventLauncher::~TEventLauncher()
     SafeDeleteArray(szText);
 }
 
-bool __fastcall TEventLauncher::Init()
+void __fastcall TEventLauncher::Init()
 {
 }
 

@@ -130,9 +130,10 @@ public:
 
 class TSubRect : public Resource, public CMesh
 {
+private:
+ TTrack *pTrackAnim; //obiekty do przeliczenia animacji
 public:
  void __fastcall LoadNodes();
-private:
 public:
  TGroundNode *pRootNode; //lista grup renderowanych
  //TGroundNode *pRenderVBO; //lista grup renderowanych ze wsp³nego VBO
@@ -141,12 +142,13 @@ public:
  //TGroundNode *pRenderAlpha; //lista grup renderowanych z w³asnych VBO
  TGroundNode *pRootHidden; //lista obiektów niewidocznych, "renderowanych" równie¿ z ty³u
  TGroundNode *pRootSkip; //lista obiektów nie renerowanych wcale
- TGroundNode *pAnim; //obiekty do przeliczenia animacji
  __fastcall TSubRect();
  __fastcall ~TSubRect();
  void __fastcall AddNode(TGroundNode *Node);
- void Release();
  bool __fastcall StartVBO();
+ virtual void Release();
+ bool __fastcall TrackAnimAdd(TTrack *t);
+ void __fastcall Animate();
 };
 
 //Ra: trzeba sprawdziæ wydajnoœæ siatki

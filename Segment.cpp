@@ -666,7 +666,7 @@ void __fastcall TSegment::RaRenderLoft(
  }
 };
 
-void __fastcall TSegment::RaAnim(
+void __fastcall TSegment::RaAnimate(
  CVertNormTex* &Vert,const vector3 *ShapePoints,
  int iNumShapePoints,double fTextureLength,int iSkip,int iEnd,double fOffsetX)
 {//jak wy¿ej, tylko z pominiêciem mapowania i braku trapezowania

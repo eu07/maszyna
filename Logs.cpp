@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 #include <iostream>
+#include <fstream>
 
 std::ofstream output;
 

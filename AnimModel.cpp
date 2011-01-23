@@ -257,7 +257,7 @@ TAnimContainer* __fastcall TAnimModel::GetContainer(char *pName)
     return AddContainer(pName);
 }
 
-bool __fastcall TAnimModel::Render(vector3 pPosition, double fAngle)
+void __fastcall TAnimModel::Render(vector3 pPosition, double fAngle)
 {//sprawdza œwiat³a i rekurencyjnie renderuje TModel3d
  fBlinkTimer-= Timer::GetDeltaTime();
  if (fBlinkTimer<=0)
@@ -284,7 +284,7 @@ bool __fastcall TAnimModel::Render(vector3 pPosition, double fAngle)
   pModel->Render(pPosition,fAngle,ReplacableSkinId);
 }
 
-bool __fastcall TAnimModel::Render(double fSquareDistance)
+void __fastcall TAnimModel::Render(double fSquareDistance)
 {
     fBlinkTimer-= Timer::GetDeltaTime();
     if (fBlinkTimer<=0)
@@ -314,7 +314,7 @@ bool __fastcall TAnimModel::Render(double fSquareDistance)
         pModel->Render(fSquareDistance, ReplacableSkinId);
 }
 
-bool __fastcall TAnimModel::RenderAlpha(double fSquareDistance)
+void __fastcall TAnimModel::RenderAlpha(double fSquareDistance)
 {
     fBlinkTimer-= Timer::GetDeltaTime();
     if (fBlinkTimer<=0)
@@ -344,7 +344,7 @@ bool __fastcall TAnimModel::RenderAlpha(double fSquareDistance)
         pModel->RenderAlpha(fSquareDistance, ReplacableSkinId);
 }
 
-bool __fastcall TAnimModel::RenderAlpha(vector3 pPosition, double fAngle)
+void __fastcall TAnimModel::RenderAlpha(vector3 pPosition, double fAngle)
 {
     fBlinkTimer-= Timer::GetDeltaTime();
     if (fBlinkTimer<=0)

@@ -33,6 +33,8 @@
 #include "AirCoupler.h"
 
 #include "TractionPower.h"
+#include "MemCell.h"
+#include "Ground.h"
 
 const float maxrot=(M_PI/3);
 
@@ -2031,8 +2033,8 @@ pcp1p=MoverParameters->PantRearVolt;
 pcp2p=MoverParameters->PantFrontVolt;
 }
 
-   double ObjectDist2;
-   double vol2=0;
+   //double ObjectDist2;
+   //double vol2=0;
    double TempPantVol;
    double PantFrontDiff;
    double PantRearDiff;
@@ -2063,18 +2065,18 @@ pcp2p=MoverParameters->PantFrontVolt;
    else
     pcp2p=false;
 
-   ObjectDist2=SquareMagnitude(Global::pCameraPosition-GetPosition())/100;
-   vol2=255-ObjectDist2;
-   if ((MoverParameters->CompressedVolume<3.3)) //&& (MoverParameters->PantVolume<5.2))
-//   if (MoverParameters->PantVolume<5.2) &&
-    TempPantVol= MoverParameters->PantVolume;
-   else
-    TempPantVol= MoverParameters->CompressedVolume;
-   if (TempPantVol>6)
-    TempPantVol=6;
-   if (MoverParameters->TrainType==dt_EZT)
-    TempPantVol+= 2;
-    if (vol2<0) vol2=0; //Ra: vol2 nie u¿ywane dalej
+   //ObjectDist2=SquareMagnitude(Global::pCameraPosition-GetPosition())/100;
+   //vol2=255-ObjectDist2;
+   //if ((MoverParameters->CompressedVolume<3.3)) //&& (MoverParameters->PantVolume<5.2))
+// //  if (MoverParameters->PantVolume<5.2) &&
+   // TempPantVol= MoverParameters->PantVolume;
+   //else
+   // TempPantVol= MoverParameters->CompressedVolume;
+   //if (TempPantVol>6)
+   // TempPantVol=6;
+   //if (MoverParameters->TrainType==dt_EZT)
+   // TempPantVol+= 2;
+    //if (vol2<0) vol2=0; //Ra: vol2 nie u¿ywane dalej
    if (StartTime<2)
     pantspeedfactor=10;
    else
@@ -2982,7 +2984,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString Ty
           if (ReplacableSkin!=AnsiString("none"))
            {
              ReplacableSkin=Global::asCurrentTexturePath+ReplacableSkin;      //skory tez z dynamic/...
-             ReplacableSkinID= TTexturesManager::GetTextureID(ReplacableSkin.c_str());
+             ReplacableSkinID= TTexturesManager::GetTextureID(ReplacableSkin.c_str(),Global::iDynamicFiltering);
            }
 //Winger 040304 - ladowanie przedsionkow dla EZT
           if (MoverParameters->TrainType==dt_EZT)

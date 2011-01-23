@@ -35,6 +35,9 @@
 #include "TractionPower.h"
 
 #include "parser.h" //Tolaris-010603
+//---------------------------------------------------------------------------
+
+#pragma package(smart_init)
 
 
 bool bCondition; //McZapkie: do testowania warunku na event multiple
@@ -73,7 +76,7 @@ __fastcall TSubRect::AddNode(TGroundNode *Node)
 __fastcall TGroundNode::TGroundNode()
 {//nowy obiekt terenu - pusty
  Vertices=NULL;
- Next=Next2=pNext3=NULL;
+ Next=Next2=NULL;
  pCenter=vector3(0,0,0);
  fAngle=0;
  iNumVerts=0; //wierzcho³ków w trójk¹cie
@@ -96,7 +99,7 @@ __fastcall TGroundNode::TGroundNode()
   Specular[i]=Global::noLight[i]*255;
  }
  bAllocated=true; //zawsze true
- pNext3=NULL; //sam siê wyœwietla
+ pNext3=NULL; //nie wyœwietla innych
  iVboPtr=-1; //indeks w VBO sektora (-1: nie u¿ywa VBO)
 }
 
@@ -126,10 +129,10 @@ __fastcall TGroundNode::~TGroundNode()
 }
 
 void __fastcall TGroundNode::Init(int n)
-{
-    bVisible= false;
-    iNumVerts= n;
-    Vertices= new TGroundVertex[iNumVerts];
+{//utworzenie tablicy wierzcho³ków
+ bVisible=false;
+ iNumVerts=n;
+ Vertices=new TGroundVertex[iNumVerts];
 }
 
 void __fastcall TGroundNode::InitCenter()
@@ -288,7 +291,6 @@ void __fastcall TGroundNode::RenderVBO()
 bool __fastcall TGroundNode::Render()
 {
  double mgn=SquareMagnitude(pCenter-Global::pCameraPosition);
- float r,g,b;
  if ((mgn>fSquareRadius || (mgn<fSquareMinRadius)) && (iType!=TP_EVLAUNCH)) //McZapkie-070602: nie rysuj odleglych obiektow ale sprawdzaj wyzwalacz zdarzen
      return false;
 //    glMaterialfv( GL_FRONT, GL_DIFFUSE, Global::whiteLight );
@@ -327,6 +329,7 @@ bool __fastcall TGroundNode::Render()
    if (iNumPts)
    {float linealpha=255000*fLineThickness/(mgn+1.0);
     if (linealpha>255) linealpha=255;
+    float r,g,b;
     r=floor(Diffuse[0]*Global::ambientDayLight[0]);  //w zaleznosci od koloru swiatla
     g=floor(Diffuse[1]*Global::ambientDayLight[1]);
     b=floor(Diffuse[2]*Global::ambientDayLight[2]);
@@ -463,7 +466,8 @@ bool __fastcall TGroundNode::RenderAlpha()
 //------------------------------------------------------------------------------
 __fastcall TSubRect::TSubRect()
 {
- pRootNode=pRootHidden=pRootSkip=pAnim=NULL;
+ pRootNode=pRootHidden=pRootSkip=NULL;
+ pTrackAnim=NULL;
 }
 __fastcall TSubRect::~TSubRect()
 {
@@ -485,6 +489,9 @@ void __fastcall TSubRect::AddNode(TGroundNode *Node)
   case TP_TRACTIONPOWERSOURCE:
    //Node->Next2=pHidden; pHidden=Node;
    break;
+  case TP_TRACK:
+   Node->pTrack->RaOwnerSet(this); //informacja o zg³aszaniu animacji
+   break;
  }
  Node->Next2=pRootNode; //na razie bez zmian
  pRootNode=Node;
@@ -502,6 +509,24 @@ void __fastcall TSubRect::AddNode(TGroundNode *Node)
      pTriGroup=Node; //zapamiêtanie lidera
     }
 */
+};
+
+bool __fastcall TSubRect::TrackAnimAdd(TTrack *t)
+{//aktywacja animacji torów w VBO (zwrotnica, obrotnica)
+ if (m_nVertexCount<0) return true; //nie ma animacji, gdy nie widaæ
+ if (pTrackAnim)
+  pTrackAnim->RaAnimListAdd(t);
+ else
+  pTrackAnim=t;
+ return false; //bêdzie animowane...
+}
+
+void __fastcall TSubRect::Animate()
+{
+ if (pTrackAnim)
+ {glBindBufferARB(GL_ARRAY_BUFFER_ARB,m_nVBOVertices);
+  pTrackAnim=pTrackAnim->RaAnimate();
+ }
 };
 
 void __fastcall TSubRect::LoadNodes()
@@ -572,7 +597,7 @@ void __fastcall TSubRect::LoadNodes()
      break;
     case TP_TRACK:
      if (n->iNumVerts) //bo tory zabezpieczaj¹ce s¹ niewidoczne
-      n->pTrack->RaArrayFill(m_pVNT+n->iVboPtr);
+      n->pTrack->RaArrayFill(m_pVNT+n->iVboPtr,m_pVNT);
      break;
     case TP_TRACTION:
      if (n->iNumVerts) //druty mog¹ byæ niewidoczne...?
@@ -607,8 +632,8 @@ bool __fastcall TSubRect::StartVBO()
 };
 
 void TSubRect::Release()
-{//zwolnienie zasobów przez sprz¹tacz albo destruktor
- CMesh::Release();
+{//wirtualne zwolnienie zasobów przez sprz¹tacz albo destruktor
+ CMesh::Clear();
 };
 
 /* Ra: linie i trójk¹ty s¹ ju¿ przez VBO na poziomie sektora
@@ -677,11 +702,6 @@ void __fastcall TGroundNode::Compile()
         glEndList();
 };
 
-void TGroundNode::Release()
-{
- //if (DisplayListID) glDeleteLists(DisplayListID,1);
- //DisplayListID = 0;
-};
 */
 
 
@@ -747,8 +767,6 @@ AnsiString asTrainName= "";
 int iTrainSetWehicleNumber= 0;
 TGroundNode *TrainSetNode= NULL;
 
-//vector3 TempVecs[100];
-//vector3 TempNorm[20];
 TGroundVertex TempVerts[100];
 Byte TempConnectionType[200];
 
@@ -1111,7 +1129,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
                 else
                 {
                     Error("Track does not exist \""+tmp->DynamicObject->asTrack+"\"");
-                    SafeDelete(tmp);
+                    delete tmp;
                     return NULL;
                 }
 
@@ -1971,7 +1989,7 @@ bool __fastcall TGround::InitTracks()
                  if (tmp) //mamy model, trzeba zapamiêtaæ wskaŸnik do jego animacji
                  {//jak coœ pójdzie Ÿle, to robimy z tego normalny tor
                   //Track->ModelAssign(tmp->Model->GetContainer(NULL)); //wi¹zanie toru z modelem obrotnicy
-                  Track->Assign(Current,tmp->Model); //wi¹zanie toru z modelem obrotnicy
+                  Track->RaAssign(Current,tmp->Model); //wi¹zanie toru z modelem obrotnicy
                   //break; //jednak po³¹czê z s¹siednim, jak ma siê wysypywaæ null track
                  }
                 case tt_Normal :
@@ -1988,33 +2006,23 @@ bool __fastcall TGround::InitTracks()
                                 Track->ConnectPrevNext(tmp->pTrack);
                             break;
                             case 2: //Ra:zwrotnice nie maj¹ stanu pocz¹tkowego we wpisie
-                                //state= tmp->pTrack->GetSwitchState();
-                                //tmp->pTrack->Switch(0);
                                 Track->ConnectPrevPrev(tmp->pTrack);
                                 tmp->pTrack->SetConnections(0);
-                                //tmp->pTrack->Switch(state);
                             break;
                             case 3:
-                                //state= tmp->pTrack->GetSwitchState();
-                                //tmp->pTrack->Switch(0);
                                 Track->ConnectPrevNext(tmp->pTrack);
                                 tmp->pTrack->SetConnections(0);
-                                //tmp->pTrack->Switch(state);
                             break;
                             case 4:
-                                //state= tmp->pTrack->GetSwitchState();
                                 tmp->pTrack->Switch(1);
                                 Track->ConnectPrevPrev(tmp->pTrack);
                                 tmp->pTrack->SetConnections(1);
-                                //tmp->pTrack->Switch(state);
                                 tmp->pTrack->Switch(0);
                             break;
                             case 5:
-                                //state= tmp->pTrack->GetSwitchState();
                                 tmp->pTrack->Switch(1);
                                 Track->ConnectPrevNext(tmp->pTrack);
                                 tmp->pTrack->SetConnections(1);
-                                //tmp->pTrack->Switch(state);
                                 tmp->pTrack->Switch(0);
                             break;
                         }
@@ -2563,8 +2571,8 @@ bool __fastcall TGround::GetTraction(vector3 pPosition, TDynamicObject *model)
     dynwys= dwys.y;
     np1wy=1000;
     np2wy=1000;
-    p1wy=0;
-    p2wy=0;
+    //p1wy=0;   
+    //p2wy=0;
     int n= 2; //iloœæ kwadratów hektometrowych mapy do przeszukania
     int c= GetColFromX(pPosition.x);
     int r= GetRowFromZ(pPosition.z);
@@ -2602,8 +2610,8 @@ bool __fastcall TGround::GetTraction(vector3 pPosition, TDynamicObject *model)
                         //Patyk 1
                          p1wx=277;
                          p1wz=277;
-                         zt1x=t1x;
-                         zt2x=t2x;
+                         //zt1x=t1x;
+                         //zt2x=t2x;
                          liczwsp1=(t2z-t1z)*(bp1xp-bp1xl)-(bp1zp-bp1zl)*(t2x-t1x);
                          if (liczwsp1!=0)
                           {
@@ -2655,8 +2663,8 @@ bool __fastcall TGround::GetTraction(vector3 pPosition, TDynamicObject *model)
                         //Patyk 2
                          p2wx=277;
                          p2wz=277;
-                         zt1x=t1x;
-                         zt2x=t2x;
+                         //zt1x=t1x;
+                         //zt2x=t2x;
                          liczwsp1=(t2z-t1z)*(bp2xp-bp2xl)-(bp2zp-bp2zl)*(t2x-t1x);
                          if (liczwsp1!=0)
                           {
@@ -2770,6 +2778,7 @@ bool __fastcall TGround::Render(vector3 pPosition)
   {
    if ((tmp=FastGetSubRect(i,j))!=NULL)
    {
+    tmp->Animate(); //przeliczenia animacji w sektorze przed zapiêciem VBO
     tmp->LoadNodes();
     if (tmp->StartVBO())
     {for (node= tmp->pRootNode; node!=NULL; node=node->Next2)
@@ -2840,9 +2849,6 @@ bool __fastcall TGround::RenderAlpha(vector3 pPosition)
  return true;
 }
 
-
 //---------------------------------------------------------------------------
-
-#pragma package(smart_init)
 
 

@@ -3,7 +3,9 @@
 #ifndef GlobalsH
 #define GlobalsH
 
-#include "ground.h"
+#include <string>
+#include "opengl/glew.h"
+#include "dumb3d.h"
 #include "Logs.h"
 
 using namespace Math3D;
@@ -102,6 +104,9 @@ const int k_Active=71;
                         //Winger 020304
 const int MaxKeys= 72;
 
+//klasy dla wskaŸników globalnych
+class TGround;
+
 class Global
 {
 public:
@@ -170,8 +175,10 @@ public:
     static int iDefaultFiltering; //domyœlne rozmywanie tekstur TGA
     static int iBallastFiltering; //domyœlne rozmywanie tekstury podsypki
     static int iRailProFiltering; //domyœlne rozmywanie tekstury szyn
+    static int iDynamicFiltering; //domyœlne rozmywanie tekstur pojazdów
     static bool bReCompile; //czy odœwie¿yæ siatki
     static bool bUseVBO; //czy jest VBO w karcie graficznej
+    static int iFeedbackMode; //tryb pracy informacji zwrotnej
 };
 
 //---------------------------------------------------------------------------

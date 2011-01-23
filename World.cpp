@@ -90,12 +90,12 @@ GLvoid __fastcall TWorld::glPrint(const char *fmt)					// Custom GL "Print" Rout
 
 TDynamicObject *Controlled= NULL;
 
-__fastcall TWorld::Init(HWND NhWnd, HDC hDC)
+void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 {
 
     Global::detonatoryOK=true;
     WriteLog("Starting MaSzyna rail vehicle simulator.");
-    WriteLog("Compilation 2011-01-22");
+    WriteLog("Compilation 2011-01-23");
     WriteLog("Online documentation and additional files on http://eu07.pl");
     WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx_EU, OLO_EU, Bart, Quark-t, ShaXbee, Oli_EU, youBy and others");
     WriteLog("Renderer:");
@@ -126,7 +126,9 @@ __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
      WriteLog("Ra: The VBO is found and will be used.");
     }
     else
-     WriteLog("Ra: VBO not found - >>> buy a new graphic card <<< .");
+    {Error("Ra: VBO not found - >>> buy a new graphic card <<< .");
+     return;
+    }
 
 /*-----------------------Render Initialization----------------------*/
         glTexEnvf(TEXTURE_FILTER_CONTROL_EXT,TEXTURE_LOD_BIAS_EXT,-1);
@@ -1085,7 +1087,7 @@ bool __fastcall TWorld::Update()
       OutText1+= AnsiString(" ; ")+FloatToStrF(Controlled->GetPosition().z,ffFixed,6,2);
       OutText1+= AnsiString("; dist=")+FloatToStrF(Controlled->MoverParameters->DistCounter,ffFixed,8,4);
 
-      double a= acos( DotProduct(Normalize(Controlled->GetDirection()),vWorldFront));
+      //double a= acos( DotProduct(Normalize(Controlled->GetDirection()),vWorldFront));
 //      OutText+= AnsiString(";   angle ")+FloatToStrF(a/M_PI*180,ffFixed,6,2);
       OutText1+= AnsiString("; d_omega ")+FloatToStrF(Controlled->MoverParameters->dizel_engagedeltaomega,ffFixed,6,3);
       OutText2= AnsiString("ham zesp ")+FloatToStrF(Controlled->MoverParameters->BrakeCtrlPos,ffFixed,6,0);

@@ -70,6 +70,7 @@ USEUNIT("glew.c");
 USEUNIT("ResourceManager.cpp");
 USEUNIT("TextureDDS.cpp");
 USEUNIT("VBO.cpp");
+USEUNIT("Feedback.cpp");
 //---------------------------------------------------------------------------
 #include "World.h"
 
@@ -279,7 +280,7 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
 	AdjustWindowRectEx(&WindowRect, dwStyle, FALSE, dwExStyle);		// Adjust Window To True Requested Size
 
 	// Create The Window
-	if (!(hWnd=CreateWindowEx(	dwExStyle,							// Extended Style For The Window
+	if (NULL==(hWnd=CreateWindowEx(	dwExStyle,							// Extended Style For The Window
 								"OpenGL",							// Class Name
 								title,								// Window Title
 								dwStyle |							// Defined Window Style
@@ -320,14 +321,14 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
 		0, 0, 0										// Layer Masks Ignored
 	};
 
-	if (!(hDC=GetDC(hWnd)))							// Did We Get A Device Context?
+	if (NULL==(hDC=GetDC(hWnd)))							// Did We Get A Device Context?
 	{
 		KillGLWindow();								// Reset The Display
 		MessageBox(NULL,"Can't Create A GL Device Context.","ERROR",MB_OK|MB_ICONEXCLAMATION);
 		return FALSE;								// Return FALSE
 	}
 
-	if (!(PixelFormat=ChoosePixelFormat(hDC,&pfd)))	// Did Windows Find A Matching Pixel Format?
+	if (NULL==(PixelFormat=ChoosePixelFormat(hDC,&pfd)))	// Did Windows Find A Matching Pixel Format?
 	{
 		KillGLWindow();								// Reset The Display
 		MessageBox(NULL,"Can't Find A Suitable PixelFormat.","ERROR",MB_OK|MB_ICONEXCLAMATION);
@@ -341,7 +342,7 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
 		return FALSE;								// Return FALSE
 	}
 
-	if (!(hRC=wglCreateContext(hDC)))				// Are We Able To Get A Rendering Context?
+	if (NULL==(hRC=wglCreateContext(hDC)))				// Are We Able To Get A Rendering Context?
 	{
 		KillGLWindow();								// Reset The Display
 		MessageBox(NULL,"Can't Create A GL Rendering Context.","ERROR",MB_OK|MB_ICONEXCLAMATION);
