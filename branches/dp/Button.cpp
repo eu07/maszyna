@@ -7,6 +7,7 @@
 #include "Button.h"
 #include "Timer.h"
 #include <winuser.h>
+#include "Globals.h"
 
 //---------------------------------------------------------------------------
 
@@ -92,27 +93,28 @@ void __fastcall TButton::Update()
   if (pModelOff) pModelOff->Visible=!bOn;
  }
  if (iFeedbackBit)
- {if (bOn) //zapalenie
-  {if ((iFeedback&iFeedbackBit)==0)
-   {iFeedback|=iFeedbackBit; //zapalanie
-    if (iFeedbackBit&3) //gdy SHP albo CA
-     SetLedState(ktCapsLock,iFeedback&3);
-    else if (iFeedbackBit==4)
-    {SetLedState(ktScrollLock,true);
-     SetLedState(ktScrollLock,false);
+ {if (Global::iFeedbackMode==1)
+   if (bOn) //zapalenie
+   {if ((iFeedback&iFeedbackBit)==0)
+    {iFeedback|=iFeedbackBit; //zapalanie
+     if (iFeedbackBit&3) //gdy SHP albo CA
+      SetLedState(ktCapsLock,iFeedback&3);
+     else if (iFeedbackBit==4)
+     {SetLedState(ktScrollLock,true);
+      SetLedState(ktScrollLock,false);
+     }
     }
    }
-  }
-  else //zgaszenie
-   if ((iFeedback&iFeedbackBit)!=0)
-   {iFeedback&=~iFeedbackBit; //gaszenie
-    if (iFeedbackBit&3) //gdy SHP albo CA
-     SetLedState(ktCapsLock,iFeedback&3);
-    else if (iFeedbackBit==4)
-    {SetLedState(ktScrollLock,true);
-     SetLedState(ktScrollLock,false);
+   else //zgaszenie
+    if ((iFeedback&iFeedbackBit)!=0)
+    {iFeedback&=~iFeedbackBit; //gaszenie
+     if (iFeedbackBit&3) //gdy SHP albo CA
+      SetLedState(ktCapsLock,iFeedback&3);
+     else if (iFeedbackBit==4)
+     {SetLedState(ktScrollLock,true);
+      SetLedState(ktScrollLock,false);
+     }
     }
-   }
  }
 }
 

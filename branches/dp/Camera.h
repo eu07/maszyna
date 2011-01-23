@@ -26,9 +26,9 @@ public:
     double CrossDist;
     void __fastcall Init(vector3 NPos, vector3 NAngle);
     void __fastcall Reset() { Pitch=Yaw=Roll= 0; };
-    bool __fastcall OnCursorMove(double x, double y);
-    bool __fastcall Update();
-    bool __fastcall Render();
+    void __fastcall OnCursorMove(double x, double y);
+    void __fastcall Update();
+    void __fastcall Render();
     vector3 __fastcall GetDirection();
     vector3 inline __fastcall GetCrossPos() { return Pos+GetDirection()*CrossDist+CrossPos; };
 

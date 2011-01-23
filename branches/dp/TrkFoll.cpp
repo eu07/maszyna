@@ -29,6 +29,8 @@
 
 #include "TrkFoll.h"
 #include "Globals.h"
+#include "DynObj.h"
+#include "Ground.h"
 
 __fastcall TTrackFollower::TTrackFollower()
 {
@@ -206,7 +208,7 @@ bool __fastcall TTrackFollower::Move(double fDistance, bool bPrimary)
                     Global::pGround->AddToQuery(pCurrentTrack->Eventall2,Owner);
             }
             fCurrentDistance= s;
-            fDistance= 0;
+            //fDistance= 0;
             return ComputatePosition();
         }
     }
@@ -223,7 +225,7 @@ bool __fastcall TTrackFollower::ComputatePosition()
     return false;
 }
 
-bool __fastcall TTrackFollower::Render()
+void __fastcall TTrackFollower::Render()
 {
 
     glPushMatrix();

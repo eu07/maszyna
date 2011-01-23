@@ -18,7 +18,7 @@
 class TWorld
 {
 public:
-    __fastcall Init(HWND NhWnd, HDC hDC);
+    void __fastcall Init(HWND NhWnd, HDC hDC);
     HWND hWnd;
     GLvoid __fastcall glPrint(const char *fmt);
     void __fastcall OnKeyPress(int cKey);

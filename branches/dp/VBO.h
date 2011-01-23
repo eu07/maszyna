@@ -19,15 +19,17 @@ public:
 class CMesh
 {//wsparcie dla VBO
 public:
- int m_nVertexCount;        // Iloœæ wierzcho³ków
+ int m_nVertexCount; // iloœæ wierzcho³ków
  CVertNormTex *m_pVNT;
- unsigned int m_nVBOVertices;     //numer VBO z wierzcho³kami
+ unsigned int m_nVBOVertices; //numer VBO z wierzcho³kami
  __fastcall CMesh();
  __fastcall ~CMesh();
  void __fastcall MakeArray(int n); //tworzenie tablicy z elementami VNT
  void __fastcall BuildVBOs(); //zamiana tablic na VBO
- void __fastcall Release(); //zwolnienie zasobów
+ void __fastcall Clear(); //zwolnienie zasobów
  bool __fastcall StartVBO();
  void __fastcall EndVBO();
 };
+
 #endif
+

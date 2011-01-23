@@ -40,10 +40,10 @@ public:
     bool __fastcall Load(cParser *parser);
     TAnimContainer* __fastcall AddContainer(char *pName);
     TAnimContainer* __fastcall GetContainer(char *pName);
-    bool __fastcall Render(vector3 pPosition= vector3(0,0,0), double fAngle= 0);
-    bool __fastcall Render(double fSquareDistance);
-    bool __fastcall RenderAlpha(vector3 pPosition= vector3(0,0,0), double fAngle= 0);
-    bool __fastcall RenderAlpha(double fSquareDistance);
+    void __fastcall Render(vector3 pPosition= vector3(0,0,0), double fAngle= 0);
+    void __fastcall Render(double fSquareDistance);
+    void __fastcall RenderAlpha(vector3 pPosition= vector3(0,0,0), double fAngle= 0);
+    void __fastcall RenderAlpha(double fSquareDistance);
     TLightState lsLights[iMaxNumLights];
     GLuint ReplacableSkinId; //McZapkie-020802: zmienialne skory
 private:

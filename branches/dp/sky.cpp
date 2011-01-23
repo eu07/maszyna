@@ -19,7 +19,7 @@ __fastcall TSky::TSky()
 };
 
 
-__fastcall TSky::Init()
+void __fastcall TSky::Init()
 {
   WriteLog(Global::asSky.c_str());
   WriteLog("init");
@@ -32,7 +32,7 @@ __fastcall TSky::Init()
 };
 
 
-__fastcall TSky::Render()
+void __fastcall TSky::Render()
 {
  if (mdCloud!=NULL)
   {

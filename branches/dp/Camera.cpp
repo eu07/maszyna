@@ -11,6 +11,7 @@
 #include "Usefull.h"
 #include "Globals.h"
 #include "Timer.h"
+#include "mover.hpp"
 
 //TViewPyramid TCamera::OrgViewPyramid;
 //={vector3(-1,1,1),vector3(1,1,1),vector3(-1,-1,1),vector3(1,-1,1),vector3(0,0,0)};
@@ -37,7 +38,7 @@ void __fastcall TCamera::Init(vector3 NPos, vector3 NAngle)
 //    Type= tp_Free;
 };
 
-bool __fastcall TCamera::OnCursorMove(double x, double y)
+void __fastcall TCamera::OnCursorMove(double x, double y)
 {
 //McZapkie-170402: zeby mysz dzialala zawsze    if (Type==tp_Follow)
     {
@@ -58,7 +59,7 @@ bool __fastcall TCamera::OnCursorMove(double x, double y)
 
 }
 
-bool __fastcall TCamera::Update()
+void __fastcall TCamera::Update()
 {
     //ABu: zmiana i uniezaleznienie predkosci od FPS
     double a= (Pressed(VK_SHIFT)?5.00:1.00);
@@ -136,7 +137,7 @@ bool __fastcall TCamera::Update()
 
 }
 
-bool __fastcall TCamera::Render()
+void __fastcall TCamera::Render()
 {
 
 

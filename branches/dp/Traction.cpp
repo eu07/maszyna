@@ -22,10 +22,10 @@
 #include    "classes.hpp"
 #pragma hdrstop
 
-//#include "nodes.h"
 #include "Traction.h"
 #include "mctools.hpp"
 #include "Globals.h"
+#include "Usefull.h"
 
 //---------------------------------------------------------------------------
 
@@ -221,6 +221,7 @@ int __fastcall TTraction::RaArrayPrepare()
    case 4: iLines=iNumSections?4*(iNumSections)-2+6:8; break;
    default: iLines=0;
   }
+ //else iLines=0;
  return iLines;
 };
 
@@ -327,7 +328,7 @@ void  __fastcall TTraction::RaRenderVBO(float mgn,int iPtr)
   glDisable(GL_LIGHTING); //Ra: do testów
   glColor4f(0,0,0,1);  //jak nieznany kolor to czarne nieprzezroczyste
   //Ra: glEnable(GL_LINE_SMOOTH) kiepsko wygl¹da
-  float linealpha=1000*WireThickness*WireThickness/(mgn+1.0);
+  float linealpha=10000*WireThickness/(mgn+1.0); //*WireThickness
   if (linealpha>1.2) linealpha=1.2; //za grube nie s¹ dobre
   glLineWidth(linealpha);
   //McZapkie-261102: kolor zalezy od materialu i zasniedzenia
@@ -358,7 +359,8 @@ void  __fastcall TTraction::RaRenderVBO(float mgn,int iPtr)
   r=r*Global::ambientDayLight[0];  //w zaleznosci od koloru swiatla
   g=g*Global::ambientDayLight[1];
   b=b*Global::ambientDayLight[2];
-  glColor3f(r,g,b); // linealpha);
+  if (linealpha>1.0) linealpha=1.0; //za grube nie s¹ dobre
+  glColor4f(r,g,b,linealpha); // linealpha);
   glDrawArrays(GL_LINES,iPtr,iLines);
   glLineWidth(1.0);
   glEnable(GL_LIGHTING); //Ra: do testów

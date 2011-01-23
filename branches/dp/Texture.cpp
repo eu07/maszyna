@@ -20,7 +20,9 @@
 */
 
 #include <iostream>
+#include <fstream>
 #include "opengl/glew.h"
+#include <ddraw>
 
 #include    "system.hpp"
 #include    "classes.hpp"

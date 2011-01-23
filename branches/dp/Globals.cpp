@@ -22,9 +22,12 @@
 #include    "classes.hpp"
 #pragma hdrstop
 
+
 #include "Globals.h"
 #include "QueryParserComp.hpp"
 #include "usefull.h"
+#include "mover.hpp"
+#include "ai_driver.hpp"
 
 
 //namespace Global {
@@ -81,12 +84,13 @@ bool Global::changeDynObj; //info o zmianie pojazdu
 bool Global::detonatoryOK; //info o nowych detonatorach
 double Global::ABuDebug=0;
 AnsiString Global::asSky= "1";
-int Global::iDefaultFiltering=6; //domyœlne rozmywanie tekstur TGA
-int Global::iBallastFiltering=6; //domyœlne rozmywanie tekstury podsypki
+int Global::iDefaultFiltering=9; //domyœlne rozmywanie tekstur TGA
+int Global::iBallastFiltering=9; //domyœlne rozmywanie tekstury podsypki
 int Global::iRailProFiltering=6; //domyœlne rozmywanie tekstury szyn
+int Global::iDynamicFiltering=6; //domyœlne rozmywanie tekstur pojazdów
 bool Global::bReCompile=false; //czy odœwie¿yæ siatki
 bool Global::bUseVBO=false; //czy jest VBO w karcie graficznej
-
+int Global::iFeedbackMode=1; //tryb pracy informacji zwrotnej
 
 void __fastcall Global::LoadIniFile(AnsiString asFileName)
 {
@@ -235,6 +239,10 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
          iBallastFiltering=Parser->GetNextSymbol().ToIntDef(-1);
         else if (str==AnsiString("railprofiltering"))
          iRailProFiltering=Parser->GetNextSymbol().ToIntDef(-1);
+        else if (str==AnsiString("dynamicfiltering"))
+         iDynamicFiltering=Parser->GetNextSymbol().ToIntDef(-1);
+        else if (str==AnsiString("feedbackmode"))
+         iFeedbackMode=Parser->GetNextSymbol().ToIntDef(1); //domyœlnie 1
     }
 
 }
