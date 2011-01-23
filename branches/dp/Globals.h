@@ -179,6 +179,8 @@ public:
     static bool bReCompile; //czy odœwie¿yæ siatki
     static bool bUseVBO; //czy jest VBO w karcie graficznej
     static int iFeedbackMode; //tryb pracy informacji zwrotnej
+    static double fOpenGL; //wersja OpenGL - przyda siê
+    static bool bOpenGL_1_5; //czy s¹ dostêpne funkcje OpenGL 1.5
 };
 
 //---------------------------------------------------------------------------

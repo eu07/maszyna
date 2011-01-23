@@ -92,6 +92,8 @@ int Global::iDynamicFiltering=5; //domyœlne rozmywanie tekstur pojazdów
 bool Global::bReCompile=false; //czy odœwie¿yæ siatki
 bool Global::bUseVBO=false; //czy jest VBO w karcie graficznej
 int Global::iFeedbackMode=1; //tryb pracy informacji zwrotnej
+double Global::fOpenGL=0.0; //wersja OpenGL - przyda siê
+bool Global::bOpenGL_1_5=false; //czy s¹ dostêpne funkcje OpenGL 1.5
 
 void __fastcall Global::LoadIniFile(AnsiString asFileName)
 {
