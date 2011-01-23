@@ -463,20 +463,11 @@ void __fastcall TSubRect::AddNode(TGroundNode *Node)
  switch (Node->iType)
  {case TP_SOUND: //te obiekty s¹ sprawdzanie niezale¿nie od kierunku patrzenia
   case TP_EVLAUNCH:
-   Node->pNext3=pRenderHidden; pRenderHidden=Node;
+   Node->pNext3=pRenderHidden; pRenderHidden=Node; //do listy koniecznych
    break;
-  case TP_MEMCELL:
-  case TP_TRACTIONPOWERSOURCE:
-   break; //te w ogóle pomijamy
   case TP_TRACK:
-   Node->pTrack->RaOwnerSet(this); //informacja o zg³aszaniu animacji
-   Node->pNext3=pRenderVBO; pRenderVBO=Node; //tylko nieprzezroczyste
-   break;
-  case TP_MODEL: //z w³asnnych VBO
-   if (Node->TexAlpha) //czy jest przezroczyste?
-   {Node->pNext3=pRenderAlpha; pRenderAlpha=Node;} //do przezroczystych
-   else
-   {Node->pNext3=pRender; pRender=Node;} //do nieprzezroczystych
+   Node->pTrack->RaOwnerSet(this); //gdzie ma zg³aszaæ animacjê
+   Node->pNext3=pRenderVBO; pRenderVBO=Node; //do listy nieprzezroczystych
    break;
   case GL_TRIANGLE_STRIP:
   case GL_TRIANGLE_FAN:
@@ -486,11 +477,20 @@ void __fastcall TSubRect::AddNode(TGroundNode *Node)
    else
    {Node->pNext3=pRenderVBO; pRenderVBO=Node;} //do nieprzezroczystych
    break;
-  case TP_TRACTION: //na koñcu, ¿eby nie ³apa³o koloru t³a
+  case TP_TRACTION:
   case GL_LINES:
   case GL_LINE_STRIP:
-  case GL_LINE_LOOP:
+  case GL_LINE_LOOP: //te na koñcu, ¿eby nie ³apa³y koloru nieba
    Node->pNext3=pRenderAlphaVBO; pRenderAlphaVBO=Node;
+   break;
+  case TP_MODEL: //modle zawsze wyœwietlane z w³asnego VBO
+   if (Node->TexAlpha) //czy jest przezroczyste?
+   {Node->pNext3=pRenderAlpha; pRenderAlpha=Node;} //do przezroczystych
+   else
+   {Node->pNext3=pRender; pRender=Node;} //do nieprzezroczystych
+   break;
+  case TP_MEMCELL:
+  case TP_TRACTIONPOWERSOURCE: //a te w ogóle pomijamy
    break;
  }
  Node->pNext2=pRootNode; //dopisanie do ogólnej listy
@@ -523,10 +523,12 @@ bool __fastcall TSubRect::TrackAnimAdd(TTrack *t)
 
 void __fastcall TSubRect::Animate()
 {
- if (pTrackAnim)
- {glBindBufferARB(GL_ARRAY_BUFFER_ARB,m_nVBOVertices);
-  pTrackAnim=pTrackAnim->RaAnimate();
- }
+ if (!pTrackAnim) return;
+ if (Global::bOpenGL_1_5) //modyfikacje VBO s¹ dostêpne od OpenGL 1.5
+  glBindBufferARB(GL_ARRAY_BUFFER_ARB,m_nVBOVertices);
+ else //dla OpenGL 1.4 z GL_ARB_vertex_buffer_object odœwie¿enie ca³ego sektora
+  Release(); //opró¿nienie VBO sektora, aby siê odœwie¿y³ z nowymi ustawieniami
+ pTrackAnim=pTrackAnim->RaAnimate(); //przeliczenie i ewentualnie poprawiania VBO
 };
 
 void __fastcall TSubRect::LoadNodes()
@@ -540,22 +542,22 @@ void __fastcall TSubRect::LoadNodes()
   {case GL_TRIANGLE_STRIP:
    case GL_TRIANGLE_FAN:
    case GL_TRIANGLES:
-    n->iVboPtr=m_nVertexCount;
+    n->iVboPtr=m_nVertexCount; //nowy pocz¹tek
     m_nVertexCount+=n->iNumVerts;
     break;
    case GL_LINES:
    case GL_LINE_STRIP:
    case GL_LINE_LOOP:
-    n->iVboPtr=m_nVertexCount;
+    n->iVboPtr=m_nVertexCount; //nowy pocz¹tek
     m_nVertexCount+=n->iNumPts; //miejsce w tablicach normalnych i teksturowania siê zmarnuje...
     break;
    case TP_TRACK:
-    n->iVboPtr=m_nVertexCount;
+    n->iVboPtr=m_nVertexCount; //nowy pocz¹tek
     n->iNumVerts=n->pTrack->RaArrayPrepare(); //zliczenie wierzcho³ków
     m_nVertexCount+=n->iNumVerts;
     break;
    case TP_TRACTION:
-    n->iVboPtr=m_nVertexCount;
+    n->iVboPtr=m_nVertexCount; //nowy pocz¹tek
     n->iNumVerts=n->Traction->RaArrayPrepare(); //zliczenie wierzcho³ków
     m_nVertexCount+=n->iNumVerts;
     break;
@@ -639,57 +641,6 @@ void TSubRect::Release()
 /* Ra: linie i trójk¹ty s¹ ju¿ przez VBO na poziomie sektora
 void __fastcall TGroundNode::Compile()
 {
-  if (Global::bUseVBO)
-   if ( iType==GL_TRIANGLE_STRIP || iType==GL_TRIANGLE_FAN || iType==GL_TRIANGLES
-    || iType == GL_LINES || iType == GL_LINE_STRIP || iType == GL_LINE_LOOP)
-    return;
-  if (DisplayListID) Release();
-
-    if (Global::bManageNodes)
-    {
-        DisplayListID=glGenLists(1);
-        glNewList(DisplayListID,GL_COMPILE);
-    };
-
-    if (iType == GL_LINES || iType == GL_LINE_STRIP || iType == GL_LINE_LOOP)
-    {
-#ifdef USE_VERTEX_ARRAYS
-        glVertexPointer(3,GL_DOUBLE,sizeof(vector3),&Points[0].x);
-#endif
-        glBindTexture(GL_TEXTURE_2D,0);
-#ifdef USE_VERTEX_ARRAYS
-        glDrawArrays(iType,0,iNumPts);
-#else
-        glBegin(iType);
-        for (int i=0;i<iNumPts;i++)
-         glVertex3dv(&Points[i].x);
-        glEnd();
-#endif
-    }
-    else
-    {//jak nie linie, to trójk¹ty
-      TGroundNode *tri=this;
-      do
-      {//pêtla po obiektach w grupie w celu po³¹czenia siatek
-#ifdef USE_VERTEX_ARRAYS
-        glVertexPointer(3, GL_DOUBLE, sizeof(TGroundVertex), &tri->Vertices[0].Point.x);
-        glNormalPointer(GL_DOUBLE, sizeof(TGroundVertex), &tri->Vertices[0].Normal.x);
-        glTexCoordPointer(2, GL_FLOAT, sizeof(TGroundVertex), &tri->Vertices[0].tu);
-#endif
-        glColor3ub(tri->Diffuse[0],tri->Diffuse[1],tri->Diffuse[2]);
-        glBindTexture(GL_TEXTURE_2D,Global::bWireFrame?0:tri->TextureID);
-#ifdef USE_VERTEX_ARRAYS
-        glDrawArrays(Global::bWireFrame?GL_LINE_STRIP:tri->iType,0,tri->iNumVerts);
-#else
-        glBegin(tri->iType);
-        for (int i=0;i<tri->iNumVerts;i++)
-        {
-         glNormal3d(tri->Vertices[i].Normal.x,tri->Vertices[i].Normal.y,tri->Vertices[i].Normal.z);
-         glTexCoord2f(tri->Vertices[i].tu,tri->Vertices[i].tv);
-         glVertex3dv(&tri->Vertices[i].Point.x);
-        };
-        glEnd();
-#endif
         if (tri->pTriGroup) //jeœli z grupy
         {tri=tri->Next2; //nastêpny w sektorze
          while (tri?!tri->pTriGroup:false) tri=tri->Next2; //szukamy kolejnego nale¿¹cego do grupy
@@ -697,17 +648,13 @@ void __fastcall TGroundNode::Compile()
         else tri=NULL; //a jak nie, to koniec
       } while (tri);
     };
-
-    if (Global::bManageNodes)
-        glEndList();
 };
-
 */
 
 
 //---------------------------------------------------------------------------
-
-
+//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
 
 __fastcall TGround::TGround()
 {
@@ -2823,19 +2770,18 @@ bool __fastcall TGround::RenderAlpha(vector3 pPosition)
    if ((tmp=FastGetSubRect(i,j))!=NULL)
    {
     tmp->LoadNodes(); //ewentualne tworzenie siatek
-    tmp->StartVBO();
-    if (tmp->StartVBO())
-    {for (node=tmp->pRenderAlphaVBO;node!=NULL;node=node->pNext3)
-      if (node->iVboPtr>=0)
-       node->RenderAlpha();
-     tmp->EndVBO();
-    }
     for (node=tmp->pRenderAlpha;node!=NULL;node=node->pNext3)
      if (node->iVboPtr<0)
       node->RenderAlpha(); //przezroczyste modele
     for (node=tmp->pRenderVBO;node!=NULL;node=node->pNext3)
      if (node->iType==TP_TRACK)
       node->pTrack->RaRenderDynamic(); //pojazdy na torach
+    if (tmp->StartVBO())
+    {for (node=tmp->pRenderAlphaVBO;node!=NULL;node=node->pNext3)
+      if (node->iVboPtr>=0)
+       node->RenderAlpha(); //przezroczyste elementy terenu (w tym druty i linie)
+     tmp->EndVBO();
+    }
    }
   }
  return true;

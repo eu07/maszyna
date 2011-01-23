@@ -3,7 +3,7 @@
 <PROJECT>
   <MACROS>
     <VERSION value="BCB.05.03"/>
-    <PROJECT value="D:\EU07\EU07.exe"/>
+    <PROJECT value="G:\EU07\EU07.exe"/>
     <OBJFILES value="McZapkie\mover.obj McZapkie\ai_driver.obj QueryParserComp.obj 
       McZapkie\mtable.obj EU07.obj dumb3d.obj Camera.obj Texture.obj World.obj 
       Model3d.obj geometry.obj MdlMngr.obj Train.obj wavread.obj Timer.obj 
@@ -35,12 +35,12 @@
     <USERDEFINES value="GLEW_STATIC;_DEBUG;_USE_OLD_RW_STL"/>
     <SYSDEFINES value="_RTLDLL;NO_STRICT"/>
     <MAINSOURCE value="EU07.cpp"/>
-    <INCLUDEPATH value="..\CBuilder5\Projects;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
-    <LIBPATH value="..\CBuilder5\Projects;McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
+    <INCLUDEPATH value="G:\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
+    <LIBPATH value="G:\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
     <WARNINGS value="-w-par"/>
   </MACROS>
   <OPTIONS>
-    <IDLCFLAGS value="-I..\CBuilder5\Projects -IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl 
+    <IDLCFLAGS value="-IG:\CBuilder5\Projects\. -IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl 
       -src_suffix cpp -DGLEW_STATIC -D_DEBUG -D_USE_OLD_RW_STL -boa"/>
     <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a4 -6 -b- -k -y -v -vi- 
       -c -tW -tWM"/>
@@ -60,7 +60,7 @@ IncludeVerInfo=1
 AutoIncBuild=1
 MajorVer=1
 MinorVer=2
-Release=59
+Release=60
 Build=97
 Debug=1
 PreRelease=0
@@ -73,7 +73,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=PC2009 SP1
-FileVersion=1.2.59.97
+FileVersion=1.2.60.97
 InternalName=hammer
 LegalCopyright=
 LegalTrademarks=
@@ -131,12 +131,12 @@ Item6=_DEBUG
 
 [HistoryLists\hlFinalOutputDir]
 Count=7
-Item0=D:\EU07\
-Item1=M:\aEU07\EU07\
-Item2=M:\aEU07\EU07-2006\
-Item3=C:\EU07\
-Item4=M:\aEU07\EU07
-Item5=G:\EU07\
+Item0=G:\EU07\
+Item1=D:\EU07\
+Item2=M:\aEU07\EU07\
+Item3=M:\aEU07\EU07-2006\
+Item4=C:\EU07\
+Item5=M:\aEU07\EU07
 Item6=C:\EU07
 
 [Debugging]
@@ -152,10 +152,16 @@ RemoteDebug=0
 [Compiler]
 ShowInfoMsgs=0
 LinkDebugVcl=0
+LinkCGLIB=0
 
 [CORBA]
 AddServerUnit=1
 AddClientUnit=1
 PrecompiledHeaders=1
+
+[Language]
+ActiveLang=
+ProjectLang=
+RootDir=
   </IDEOPTIONS>
 </PROJECT>

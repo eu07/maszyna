@@ -1505,39 +1505,40 @@ TTrack* __fastcall TTrack::RaAnimate()
   {SwitchExtension->fOffset1=fMaxOffset; //maksimum-1cm?
    m=false; //koniec animacji
   }
-  if (TextureID1) //Ra: !!!! tu jest do poprawienia
-  {//iglice liczone tylko dla zwrotnic
-   vector3 rpts3[24],rpts4[24];
-   double fHTW=0.5*fabs(fTrackWidth);
-   double fHTW2=fHTW; //Ra: na razie niech tak bêdzie
-   double cos1=1.0,sin1=0.0,cos2=1.0,sin2=0.0; //Ra: ...
-   for (int i=0;i<12;++i)
-   {rpts3[i]   =vector3((fHTW+iglica[i].x)*cos1+iglica[i].y*sin1,-(fHTW+iglica[i].x)*sin1+iglica[i].y*cos1,iglica[i].z);
-    rpts3[i+12]=vector3((fHTW2+szyna[i].x)*cos2+szyna[i].y*sin2,-(fHTW2+szyna[i].x)*sin2+iglica[i].y*cos2,szyna[i].z);
-    rpts4[11-i]=vector3((-fHTW-iglica[i].x)*cos1+iglica[i].y*sin1,-(-fHTW-iglica[i].x)*sin1+iglica[i].y*cos1,iglica[i].z);
-    rpts4[23-i]=vector3((-fHTW2-szyna[i].x)*cos2+szyna[i].y*sin2,-(-fHTW2-szyna[i].x)*sin2+iglica[i].y*cos2,szyna[i].z);
+  if (Global::bOpenGL_1_5) //dla OpenGL 1.4 to siê nie wykona poprawnie
+   if (TextureID1) //Ra: !!!! tu jest do poprawienia
+   {//iglice liczone tylko dla zwrotnic
+    vector3 rpts3[24],rpts4[24];
+    double fHTW=0.5*fabs(fTrackWidth);
+    double fHTW2=fHTW; //Ra: na razie niech tak bêdzie
+    double cos1=1.0,sin1=0.0,cos2=1.0,sin2=0.0; //Ra: ...
+    for (int i=0;i<12;++i)
+    {rpts3[i]   =vector3((fHTW+iglica[i].x)*cos1+iglica[i].y*sin1,-(fHTW+iglica[i].x)*sin1+iglica[i].y*cos1,iglica[i].z);
+     rpts3[i+12]=vector3((fHTW2+szyna[i].x)*cos2+szyna[i].y*sin2,-(fHTW2+szyna[i].x)*sin2+iglica[i].y*cos2,szyna[i].z);
+     rpts4[11-i]=vector3((-fHTW-iglica[i].x)*cos1+iglica[i].y*sin1,-(-fHTW-iglica[i].x)*sin1+iglica[i].y*cos1,iglica[i].z);
+     rpts4[23-i]=vector3((-fHTW2-szyna[i].x)*cos2+szyna[i].y*sin2,-(-fHTW2-szyna[i].x)*sin2+iglica[i].y*cos2,szyna[i].z);
+    }
+    CVertNormTex Vert[2*2*12]; //na razie 2 segmenty
+    CVertNormTex *v=Vert; //bo RaAnimate() modyfikuje wskaŸnik
+    glGetBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iLeftVBO*sizeof(CVertNormTex),2*2*12*sizeof(CVertNormTex),&Vert);//pobranie fragmentu bufora VBO
+    if (SwitchExtension->RightSwitch)
+    {//nowa wersja z SPKS, ale odwrotnie lewa/prawa
+     SwitchExtension->Segments[0].RaAnimate(v,rpts3,-nnumPts,fTexLength,0,2,SwitchExtension->fOffset1);
+     glBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iLeftVBO*sizeof(CVertNormTex),2*2*12*sizeof(CVertNormTex),&Vert); //wys³anie fragmentu bufora VBO
+     v=Vert;
+     glGetBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iRightVBO*sizeof(CVertNormTex),2*2*12*sizeof(CVertNormTex),&Vert);//pobranie fragmentu bufora VBO
+     SwitchExtension->Segments[1].RaAnimate(v,rpts4,-nnumPts,fTexLength,0,2,-fMaxOffset+SwitchExtension->fOffset1);
+    }
+    else
+    {//oryginalnie lewa dzia³a³a lepiej ni¿ prawa
+     SwitchExtension->Segments[0].RaAnimate(v,rpts4,-nnumPts,fTexLength,0,2,-SwitchExtension->fOffset1); //prawa iglica
+     glBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iLeftVBO*sizeof(CVertNormTex),2*2*12*sizeof(CVertNormTex),&Vert);//wys³anie fragmentu bufora VBO
+     v=Vert;
+     glGetBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iRightVBO*sizeof(CVertNormTex),2*2*12*sizeof(CVertNormTex),&Vert); //pobranie fragmentu bufora VBO
+     SwitchExtension->Segments[1].RaAnimate(v,rpts3,-nnumPts,fTexLength,0,2,fMaxOffset-SwitchExtension->fOffset1); //lewa iglica
+    }
+    glBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iRightVBO*sizeof(CVertNormTex),2*2*12*sizeof(CVertNormTex),&Vert); //wys³anie fragmentu bufora VBO
    }
-   CVertNormTex Vert[2*2*12]; //na razie 2 segmenty
-   CVertNormTex *v=Vert; //bo RaAnimate() modyfikuje wskaŸnik
-   glGetBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iLeftVBO*sizeof(CVertNormTex),2*2*12*sizeof(CVertNormTex),&Vert);//pobranie fragmentu bufora VBO
-   if (SwitchExtension->RightSwitch)
-   {//nowa wersja z SPKS, ale odwrotnie lewa/prawa
-    SwitchExtension->Segments[0].RaAnimate(v,rpts3,-nnumPts,fTexLength,0,2,SwitchExtension->fOffset1);
-    glBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iLeftVBO*sizeof(CVertNormTex),2*2*12*sizeof(CVertNormTex),&Vert); //wys³anie fragmentu bufora VBO
-    v=Vert;
-    glGetBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iRightVBO*sizeof(CVertNormTex),2*2*12*sizeof(CVertNormTex),&Vert);//pobranie fragmentu bufora VBO
-    SwitchExtension->Segments[1].RaAnimate(v,rpts4,-nnumPts,fTexLength,0,2,-fMaxOffset+SwitchExtension->fOffset1);
-   }
-   else
-   {//oryginalnie lewa dzia³a³a lepiej ni¿ prawa
-    SwitchExtension->Segments[0].RaAnimate(v,rpts4,-nnumPts,fTexLength,0,2,-SwitchExtension->fOffset1); //prawa iglica
-    glBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iLeftVBO*sizeof(CVertNormTex),2*2*12*sizeof(CVertNormTex),&Vert);//wys³anie fragmentu bufora VBO
-    v=Vert;
-    glGetBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iRightVBO*sizeof(CVertNormTex),2*2*12*sizeof(CVertNormTex),&Vert); //pobranie fragmentu bufora VBO
-    SwitchExtension->Segments[1].RaAnimate(v,rpts3,-nnumPts,fTexLength,0,2,fMaxOffset-SwitchExtension->fOffset1); //lewa iglica
-   }
-   glBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iRightVBO*sizeof(CVertNormTex),2*2*12*sizeof(CVertNormTex),&Vert); //wys³anie fragmentu bufora VBO
-  }
  }
  else if (eType==tt_Turn) //dla obrotnicy - szyny i podsypka
  {
@@ -1551,11 +1552,13 @@ TTrack* __fastcall TTrack::RaAnimate()
     double sina=hlen*sin(DegToRad(SwitchExtension->fOffset1)),cosa=hlen*cos(DegToRad(SwitchExtension->fOffset1));
     vector3 middle=SwitchExtension->Segments->FastGetPoint(0.5);
     Segment->Init(middle+vector3(sina,0.0,cosa),middle-vector3(sina,0.0,cosa),5.0); //nowy odcinek
-    int size=RaArrayPrepare();
-    CVertNormTex *Vert=new CVertNormTex[size]; //bufor roboczy
-    //CVertNormTex *v=Vert; //zmieniane przez
-    RaArrayFill(Vert,Vert-SwitchExtension->iLeftVBO); //iLeftVBO powinno zostaæ niezmienione
-    glBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iLeftVBO*sizeof(CVertNormTex),size*sizeof(CVertNormTex),Vert); //wys³anie fragmentu bufora VBO
+    if (Global::bOpenGL_1_5) //dla OpenGL 1.4 to siê nie wykona poprawnie
+    {int size=RaArrayPrepare();
+     CVertNormTex *Vert=new CVertNormTex[size]; //bufor roboczy
+     //CVertNormTex *v=Vert; //zmieniane przez
+     RaArrayFill(Vert,Vert-SwitchExtension->iLeftVBO); //iLeftVBO powinno zostaæ niezmienione
+     glBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iLeftVBO*sizeof(CVertNormTex),size*sizeof(CVertNormTex),Vert); //wys³anie fragmentu bufora VBO
+    }
    } //animacja trwa nadal
   } else m=false; //koniec animacji albo w ogóle nie po³¹czone z modelem
  }

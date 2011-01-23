@@ -95,21 +95,17 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 
     Global::detonatoryOK=true;
     WriteLog("Starting MaSzyna rail vehicle simulator.");
-    WriteLog("Compilation 2011-01-23");
+    WriteLog("Compilation 2011-01-24");
     WriteLog("Online documentation and additional files on http://eu07.pl");
     WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx_EU, OLO_EU, Bart, Quark-t, ShaXbee, Oli_EU, youBy and others");
     WriteLog("Renderer:");
     WriteLog( (char*) glGetString(GL_RENDERER));
     WriteLog("Vendor:");
-//    WriteLog( (char*) glGetString(GL_VENDOR));
-//    WriteLog("OpenGl Version::");
-//    WriteLog( (char*) glGetString(GL_VERSION));
-
 //Winger030405: sprawdzanie sterownikow
     WriteLog( (char*) glGetString(GL_VENDOR));
     AnsiString glver=((char*)glGetString(GL_VERSION));
     WriteLog("OpenGL Version:");
-    WriteLog(glver.c_str());
+    WriteLog(glver);
     if ((glver=="1.5.1") || (glver=="1.5.2"))
     {
        Error("Niekompatybilna wersja openGL - dwuwymiarowy tekst nie bedzie wyswietlany!");
@@ -119,6 +115,11 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
     }
     else
        Global::detonatoryOK=true;
+    while (glver.LastDelimiter(".")>glver.Pos("."))
+     glver=glver.SubString(1,glver.LastDelimiter(".")-1); //obciêcie od drugiej kropki
+    try {Global::fOpenGL=glver.ToDouble();} catch (...) {Global::fOpenGL=0.0;}
+    Global::bOpenGL_1_5=(Global::fOpenGL>=1.5);
+    
     WriteLog("Supported Extensions:");
     WriteLog( (char*) glGetString(GL_EXTENSIONS));
     if (glewGetExtension("GL_ARB_vertex_buffer_object")) //czy jest VBO w karcie graficznej
@@ -126,8 +127,8 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
      WriteLog("Ra: The VBO is found and will be used.");
     }
     else
-    {Error("Ra: VBO not found - >>> buy a new graphic card <<< .");
-     return;
+    {Error("Ra: VBO not found - the program may crash. BUY A NEWER GRAPHICS CARD!");
+     //return;
     }
 
 /*-----------------------Render Initialization----------------------*/
