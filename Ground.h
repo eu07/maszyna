@@ -176,6 +176,7 @@ public:
 
 class TGround
 {
+ vector3 CameraDirection; //zmienna robocza przy renderowaniu
 public:
     TDynamicObject *LastDyn; //ABu: paskudnie, ale na bardzo szybko moze jakos przejdzie...
     TTrain *pTrain;
