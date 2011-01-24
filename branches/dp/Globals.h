@@ -112,8 +112,8 @@ class Global
 public:
 //    double Global::tSinceStart;
     static int Keys[MaxKeys];
-    static vector3 pCameraPosition;
-    static double pCameraRotation;
+    static vector3 pCameraPosition; //pozycja kamery w œwiecie
+    static double pCameraRotation;  //kierunek bezwzglêdny kamery w œwiecie
     static vector3 pFreeCameraInit;
     static vector3 pFreeCameraInitAngle;
     static int iWindowWidth;

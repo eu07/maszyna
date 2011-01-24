@@ -88,7 +88,7 @@ GLvoid __fastcall TWorld::glPrint(const char *fmt)					// Custom GL "Print" Rout
 }
 
 
-TDynamicObject *Controlled= NULL;
+TDynamicObject *Controlled=NULL; //pojazd, który prowadzimy
 
 void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 {
@@ -621,52 +621,51 @@ bool __fastcall TWorld::Update()
        lastmm=GlobalTime->mm;
     }
 
-    if (Pressed(VK_LBUTTON))// || Pressed(VK_NUMPAD5))
+    if (Pressed(VK_LBUTTON))
     {
-
-        Camera.Reset();
-    //    Camera.Pitch=Camera.Yaw=Camera.Roll= 0;
-//        SetCursorPos(Global::iWindowWidth/2,Global::iWindowHeight/2);
+     Camera.Reset(); //likwidacja obrotów - patrzy horyzontalnie na po³udnie
+     //if (!FreeFlyModeFlag) //jeœli wewn¹trz - patrzymy do ty³u
+     // Camera.LookAt=Train->pMechPosition-Normalize(Train->GetDirection())*10;
+     if (FreeFlyModeFlag)
+      Camera.RaLook(); //jednorazowe przestawienie kamery
     }
-    else
-    {
-
+    else if (Pressed(VK_RBUTTON)||Pressed(VK_F4))
+    {//ABu 180404 powrot mechanika na siedzenie albo w okolicê pojazdu
+     //Ra: na zewn¹trz wychodzimy w Train.cpp
+     Camera.Reset(); //likwidacja obrotów - patrzy horyzontalnie na po³udnie
+     if (Controlled) //jest pojazd do prowadzenia?
+     {
+      if (FreeFlyModeFlag)
+      {//je¿eli poza kabin¹, przestawiamy w jej okolicê - nie OK
+       Camera.Pos=Train->pMechPosition+Normalize(Train->GetDirection())*10;
+       Camera.LookAt=Train->pMechPosition; //+Normalize(Train->GetDirection())*-1;
+       Camera.RaLook(); //jednorazowe przestawienie kamery
+       //¿eby nie bylo numerów z 'fruwajacym' lokiem - konsekwencja bujania pud³a
+       Train->DynamicObject->ABuSetModelShake(vector3(0,0,0));
+       Train->DynamicObject->bDisplayCab=false;
+      }
+      else
+      {//korekcja ustawienia w kabinie - OK
+       //Ra: czy to tu jest potrzebne, bo przelicza siê kawa³ek dalej?
+       Camera.Pos=Train->pMechPosition;//Train.GetPosition1();
+       Camera.Roll=atan(Train->pMechShake.x*Train->fMechRoll);       //hustanie kamery na boki
+       Camera.Pitch-=atan(Train->vMechVelocity.z*Train->fMechPitch);  //hustanie kamery przod tyl
+       if (Train->DynamicObject->MoverParameters->ActiveCab==0)
+        Camera.LookAt=Train->pMechPosition+Train->GetDirection();
+       else  //patrz w strone wlasciwej kabiny
+        Camera.LookAt=Train->pMechPosition+Train->GetDirection()*Train->DynamicObject->MoverParameters->ActiveCab;
+       Train->pMechOffset.x=Train->pMechSittingPosition.x;
+       Train->pMechOffset.y=Train->pMechSittingPosition.y;
+       Train->pMechOffset.z=Train->pMechSittingPosition.z;
+       Train->DynamicObject->bDisplayCab=true;
+      }
+     }
     }
-
-   if ((Pressed(VK_RBUTTON)) || (Pressed(VK_F4)))
-    {   //ABu 180404 powrot mechanika na siedzenie
-        Camera.Reset();
-        double dt= GetDeltaTime();
-        if (Controlled)
-        {
-         Camera.Pos= Train->pMechPosition;//Train.GetPosition1();
-         Camera.Roll= atan(Train->pMechShake.x*Train->fMechRoll);       //hustanie kamery na boki
-         Camera.Pitch-= atan(Train->vMechVelocity.z*Train->fMechPitch);  //hustanie kamery przod tyl
-         if (Train->DynamicObject->MoverParameters->ActiveCab==0)
-           Camera.LookAt= Train->pMechPosition+Train->GetDirection();
-         else  //patrz w strone wlasciwej kabiny
-          Camera.LookAt= Train->pMechPosition+Train->GetDirection()*Train->DynamicObject->MoverParameters->ActiveCab;
-           Train->pMechOffset.x=Train->pMechSittingPosition.x;
-           Train->pMechOffset.y=Train->pMechSittingPosition.y;
-           Train->pMechOffset.z=Train->pMechSittingPosition.z;
-        if (FreeFlyModeFlag)
-         {
-         Camera.Pos= Train->pMechPosition+Train->GetDirection()*5+vector3(3,3,3);
-         Camera.LookAt= Train->pMechPosition+Train->GetDirection()*-1;
-         //Zeby nie bylo numerow z 'fruwajacym' lokiem - konsekwencja bujania pudla
-         Train->DynamicObject->ABuSetModelShake(vector3(0,0,0));
-         Train->DynamicObject->bDisplayCab= false;
-         }
-        else
-         Train->DynamicObject->bDisplayCab= true;
-        }
-    }
-
-    if (Pressed(VK_F10))
+    else if (Pressed(VK_F10))
     {//tu mozna dodac dopisywanie do logu przebiegu lokomotywy
-       return false;
+     return false;
     }
-    Camera.Update();
+    Camera.Update(); //uwzglêdnienie ruchu wywo³anego klawiszami
 
     double dt= GetDeltaTime();
     double iter;
@@ -705,7 +704,7 @@ bool __fastcall TWorld::Update()
         if (Train->DynamicObject->MoverParameters->ActiveCab==0)
           Camera.LookAt= Train->pMechPosition+Train->GetDirection();
         else  //patrz w strone wlasciwej kabiny
-         Camera.LookAt= Train->pMechPosition+Train->GetDirection()*Train->DynamicObject->MoverParameters->ActiveCab;
+         Camera.LookAt= Train->pMechPosition+Train->GetDirection()*Train->DynamicObject->MoverParameters->ActiveCab; //-1 albo 1
         Camera.vUp= Train->GetUp();
     }
 
@@ -734,7 +733,7 @@ bool __fastcall TWorld::Update()
       vector3 pos= Train->DynamicObject->GetPosition();
       glTranslatef(pos.x,pos.y,pos.z);
       glMultMatrixd(Train->DynamicObject->mMatrix.getArray());
-      
+
 //*yB: moje smuuugi 1
   float lightsum=0;
   int i;
@@ -1263,24 +1262,17 @@ bool __fastcall TWorld::Render()
       Clouds.Render();
     glEnable(GL_FOG);
 
-    if (Controlled!=NULL)
-     {
-      vector3 tempangle;
-      double modelrotate;
-      if (!FreeFlyModeFlag)
-       {
-        tempangle= Controlled->GetDirection()*(Controlled->MoverParameters->ActiveCab==-1 ? -1 : 1);
-        modelrotate= ABuAcos(tempangle);
-        while (modelrotate<-M_PI) modelrotate+=(2*M_PI);
-        while (modelrotate>M_PI) modelrotate-=(2*M_PI);
-       }
-      else
-       modelrotate=-M_PI;
-
-      Global::SetCameraRotation(Global::pCameraRotation-modelrotate);
-      while (Global::pCameraRotation<-M_PI) Global::SetCameraRotation(Global::pCameraRotation+2*M_PI);
-      while (Global::pCameraRotation>M_PI) Global::SetCameraRotation(Global::pCameraRotation-2*M_PI);
-     }
+    //wyliczenie bezwzglêdnego kierunku kamery (do znikania niepotrzebnych pojazdów)
+    if (FreeFlyModeFlag|!Controlled)
+     Global::SetCameraRotation(Camera.Yaw-M_PI);
+    else
+    {//kierunek pojazdu oraz kierunek wzglêdny
+     vector3 tempangle;
+     double modelrotate;
+     tempangle=Controlled->GetDirection()*(Controlled->MoverParameters->ActiveCab==-1 ? -1 : 1);
+     modelrotate=ABuAcos(tempangle);
+     Global::SetCameraRotation(Camera.Yaw-modelrotate);
+    }
 
 
     if (!Ground.Render(Camera.Pos))

@@ -1373,6 +1373,7 @@ void  __fastcall TTrack::RaRenderVBO(int iPtr)
 
 void  __fastcall TTrack::RaRenderDynamic()
 {//renderowanie pojazdów
+ if (!iNumDynamics) return; //nie ma pojazdów
  glColor3f(1.0f,1.0f,1.0f);
  //McZapkie-310702: zmiana oswietlenia w tunelu, wykopie
  GLfloat ambientLight[4] ={0.5f,0.5f,0.5f,1.0f};
