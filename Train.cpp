@@ -596,11 +596,8 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else
       if (cKey==Global::Keys[k_FreeFlyMode])
       {
-         if (FreeFlyModeFlag==false)
-          FreeFlyModeFlag=true;
-         else
-          FreeFlyModeFlag=false;
-         DynamicObject->ABuSetModelShake(vector3(0,0,0));
+       FreeFlyModeFlag=!FreeFlyModeFlag;
+       DynamicObject->ABuSetModelShake(vector3(0,0,0));
       }
       else
       if (cKey==Global::Keys[k_DecMainCtrl])

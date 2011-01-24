@@ -385,8 +385,10 @@ void __fastcall Global::SetCameraPosition(vector3 pNewCameraPosition)
 }
 
 void __fastcall Global::SetCameraRotation(double Yaw)
-{
-    pCameraRotation= Yaw;
+{//ustawienie bezwzglêdnego kierunku kamery z korekcj¹ do przedzia³u <-M_PI,M_PI>
+ pCameraRotation=Yaw;
+ while (pCameraRotation<-M_PI) pCameraRotation+=2*M_PI;
+ while (pCameraRotation> M_PI) pCameraRotation-=2*M_PI;
 }
 
 //}

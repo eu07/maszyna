@@ -36,7 +36,7 @@
 #include "MemCell.h"
 #include "Ground.h"
 
-const float maxrot=(M_PI/3);
+const float maxrot=(M_PI/3); //60°
 
 //---------------------------------------------------------------------------
 TDynamicObject* TDynamicObject::GetFirstDynamic(int cpl_type)
@@ -2312,24 +2312,24 @@ SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);
  return true; //Ra: chyba tak?
 }
 
-//McZapkie-040402: liczenie pozycji uwzgledniajac wysokosc szyn itp
+//McZapkie-040402: liczenie pozycji uwzgledniajac wysokosc szyn itp.
 vector3 inline __fastcall TDynamicObject::GetPosition()
+{
+ vector3 pos= (Axle1.pPosition+Axle4.pPosition)*0.5f; //œrodek miêdzy wózkami
+ if (MoverParameters->CategoryFlag==1) //tory
  {
-   vector3 pos= (Axle1.pPosition+Axle4.pPosition)*0.5f;
-        if (MoverParameters->CategoryFlag==1) //tory
-         {
-            pos.x+=MoverParameters->OffsetTrackH*vLeft.x;
-            pos.z+=MoverParameters->OffsetTrackH*vLeft.z;
-            pos.y+=MoverParameters->OffsetTrackV+0.18; //wypadaloby tu prawdziwa wysokosc szyny dorobic
-         }                                       //0.2
-        else
-         {
-            pos.x+=MoverParameters->OffsetTrackH*vLeft.x;
-            pos.z+=MoverParameters->OffsetTrackH*vLeft.z;
-            pos.y+=MoverParameters->OffsetTrackV;   //te offsety sa liczone przez moverparam
-         }
-    return pos;
+  pos.x+=MoverParameters->OffsetTrackH*vLeft.x;
+  pos.z+=MoverParameters->OffsetTrackH*vLeft.z;
+  pos.y+=MoverParameters->OffsetTrackV+0.18; //wypadaloby tu prawdziwa wysokosc szyny dorobic
+ }                                   //0.2
+ else
+ {
+  pos.x+=MoverParameters->OffsetTrackH*vLeft.x;
+  pos.z+=MoverParameters->OffsetTrackH*vLeft.z;
+  pos.y+=MoverParameters->OffsetTrackV;   //te offsety sa liczone przez moverparam
  }
+ return pos;
+}
 
 bool __fastcall TDynamicObject::Render()
 {
@@ -2343,15 +2343,12 @@ renderme=false;
     double ObjSqrDist= SquareMagnitude(Global::pCameraPosition-pos);
 //koniec przeklejki
 
-//    if ((FreeFlyModeFlag) || (ObjSqrDist<500))
-     if (ObjSqrDist<500)
-     {
-        modelrotate=0.01f;
-     }
-    else
-     {
-      tempangle= (GetPosition()-Global::pCameraPosition);
-      modelrotate=ABuAcos(tempangle);
+     if (ObjSqrDist<500) //jak jest blisko - do 70m
+      modelrotate=0.01f; //ma³y k¹t, ¿eby nie znika³o
+     else
+     {//Global::pCameraRotation to k¹t bewzglêdny w œwiecie (zero - na po³udnie)
+      tempangle=(pos-Global::pCameraPosition); //wektor od kamery
+      modelrotate=ABuAcos(tempangle); //okreœlenie k¹ta
       if (modelrotate>M_PI) modelrotate-=(2*M_PI);
       modelrotate+=Global::pCameraRotation;
      }
@@ -2361,7 +2358,7 @@ renderme=false;
 
     modelrotate=abs(modelrotate);
 
-    if (maxrot>modelrotate) renderme=true;
+    if (modelrotate<maxrot) renderme=true;
 
 if (renderme)
 {
