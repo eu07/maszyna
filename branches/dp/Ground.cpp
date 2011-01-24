@@ -2713,14 +2713,17 @@ bool __fastcall TGround::GetTraction(vector3 pPosition, TDynamicObject *model)
 
 bool __fastcall TGround::Render(vector3 pPosition)
 {
+ CameraDirection.x=sin(Global::pCameraRotation); //wektor kierunkowy
+ CameraDirection.z=cos(Global::pCameraRotation);
  int tr,tc;
- TGroundNode *node,*oldnode;
+ TGroundNode *node;
  glColor3f(1.0f,1.0f,1.0f);
  int n=2*iNumSubRects; //iloœæ sektorów mapy do wyœwietlenia
  int c=GetColFromX(pPosition.x);
  int r=GetRowFromZ(pPosition.z);
- TSubRect *tmp,*tmp2;
+ TSubRect *tmp;
  int i,j;
+ vector3 direction;
  //renderowanie czo³gowe dla obiektów aktywnych a niewidocznych
  for (j=r-n;j<r+n;j++)
   for (i=c-n;i<c+n;i++)
@@ -2733,6 +2736,12 @@ bool __fastcall TGround::Render(vector3 pPosition)
  for (j=r-n;j<r+n;j++)
   for (i=c-n;i<c+n;i++)
   {
+   direction=vector3(i-c,0,j-r);
+   if (LengthSquared3(direction)>4)
+   {direction=SafeNormalize(direction);
+    if (CameraDirection.x*direction.x+CameraDirection.z*direction.z<0.5)
+     continue; //pomijanie zbêdnych sektorów
+   }
    if ((tmp=FastGetSubRect(i,j))!=NULL)
    {
     tmp->Animate(); //przeliczenia animacji w sektorze przed zapiêciem VBO
@@ -2762,11 +2771,18 @@ bool __fastcall TGround::RenderAlpha(vector3 pPosition)
  int c=GetColFromX(pPosition.x);
  int r=GetRowFromZ(pPosition.z);
  TSubRect *tmp;
+ vector3 direction;
  //Ra: 3/4 terenu jest niepotrzebnie renderowane
  //renderowanie progresywne - zale¿ne od FPS oraz kierunku patrzenia
  for (int j=r-n;j<r+n;j++)
   for (int i=c-n;i<c+n;i++)
   {
+   direction=vector3(i-c,0,j-r);
+   if (LengthSquared3(direction)>4)
+   {direction=SafeNormalize(direction);
+    if (CameraDirection.x*direction.x+CameraDirection.z*direction.z<0.5)
+     continue; //pomijanie zbêdnych sektorów
+   }
    if ((tmp=FastGetSubRect(i,j))!=NULL)
    {
     tmp->LoadNodes(); //ewentualne tworzenie siatek
