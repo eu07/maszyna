@@ -151,13 +151,13 @@ public:
       void __fastcall SetRotateXYZ(vector3 vNewAngles);
       void __fastcall SetTranslate(vector3 vNewTransVector);
       TSubModel* __fastcall GetFromName(std::string search);
-      void __fastcall Render(GLuint ReplacableSkinId);
-      void __fastcall RenderAlpha(GLuint ReplacableSkinId);      
+      void __fastcall Render(GLuint ReplacableSkinId,bool bAlpha);
+      void __fastcall RenderAlpha(GLuint ReplacableSkinId,bool bAlpha);
       inline matrix4x4* __fastcall GetMatrix() { return &Matrix; };
       matrix4x4* __fastcall GetTransform();
       inline void __fastcall Hide() { Visible= false; };
       void __fastcall RaArrayFill(CVertNormTex *Vert);
-      bool __fastcall IsAlpha(); 
+      int __fastcall AlphaMode(); 
 } ;
 
 class TModel3d : public CMesh
@@ -167,7 +167,7 @@ private:
     int MaterialsCount;
     bool TractionPart;
     TSubModel *Root;
-    bool TexAlpha;     //Ra: czy submodele maj¹ przezroczyste tekstury
+    int iAlpha;     //Ra: czy submodele maj¹ przezroczyste tekstury
 public:
     inline TSubModel* __fastcall GetSMRoot() {return(Root);};
     int SubModelsCount;
@@ -182,12 +182,12 @@ public:
     bool __fastcall LoadFromFile(char *FileName);
     void __fastcall SaveToFile(char *FileName);
     void __fastcall BreakHierarhy();
-    void __fastcall Render( vector3 pPosition, double fAngle= 0, GLuint ReplacableSkinId= 0);
-    void __fastcall Render( double fSquareDistance, GLuint ReplacableSkinId= 0);
-    void __fastcall RenderAlpha( vector3 pPosition, double fAngle= 0, GLuint ReplacableSkinId= 0);
-    void __fastcall RenderAlpha( double fSquareDistance, GLuint ReplacableSkinId= 0);
+    void __fastcall Render(vector3 pPosition,double fAngle=0,GLuint ReplacableSkinId=0,bool bAlpha=false);
+    void __fastcall Render(double fSquareDistance,GLuint ReplacableSkinId=0,bool bAlpha=false);
+    void __fastcall RenderAlpha(vector3 pPosition,double fAngle=0,GLuint ReplacableSkinId=0,bool bAlpha=false);
+    void __fastcall RenderAlpha(double fSquareDistance,GLuint ReplacableSkinId=0,bool bAlpha=false);
     inline int __fastcall GetSubModelsCount() { return (SubModelsCount); };
-    bool __fastcall IsAlpha() {return TexAlpha;};
+    int __fastcall AlphaMode() {return iAlpha;};
 };
 
 typedef TModel3d *PModel3d;

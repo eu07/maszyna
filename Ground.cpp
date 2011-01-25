@@ -59,7 +59,7 @@ __fastcall TGroundNode::TGroundNode()
  iNumVerts=0; //wierzcho³ków w trójk¹cie
  iNumPts=0; //punktów w linii
  TextureID=0;
- TexAlpha=false;
+ iAlpha=0; //tryb przezroczystoœci nie zbadany
  Pointer=NULL; //zerowanie wskaŸnika kontekstowego
  iType=GL_POINTS;
  bVisible=false; //czy widoczny
@@ -444,7 +444,7 @@ bool __fastcall TGroundNode::RenderAlpha()
 __fastcall TSubRect::TSubRect()
 {
  pRootNode=NULL; //lista wszystkich obiektów jest pusta
- pRenderHidden=pRenderVBO=pRenderAlphaVBO=pRender=pRenderAlpha=NULL;
+ pRenderHidden=pRenderVBO=pRenderAlphaVBO=pRender=pRenderMixed=pRenderAlpha=NULL;
  pTrackAnim=NULL; //nic nie animujemy
 }
 __fastcall TSubRect::~TSubRect()
@@ -472,7 +472,7 @@ void __fastcall TSubRect::AddNode(TGroundNode *Node)
   case GL_TRIANGLE_STRIP:
   case GL_TRIANGLE_FAN:
   case GL_TRIANGLES:
-   if (Node->TexAlpha) //czy jest przezroczyste?
+   if (Node->iAlpha&2) //czy jest przezroczyste?
    {Node->pNext3=pRenderAlphaVBO; pRenderAlphaVBO=Node;} //do przezroczystych
    else
    {Node->pNext3=pRenderVBO; pRenderVBO=Node;} //do nieprzezroczystych
@@ -484,10 +484,14 @@ void __fastcall TSubRect::AddNode(TGroundNode *Node)
    Node->pNext3=pRenderAlphaVBO; pRenderAlphaVBO=Node;
    break;
   case TP_MODEL: //modle zawsze wyœwietlane z w³asnego VBO
-   if (Node->TexAlpha) //czy jest przezroczyste?
-   {Node->pNext3=pRenderAlpha; pRenderAlpha=Node;} //do przezroczystych
-   else
-   {Node->pNext3=pRender; pRender=Node;} //do nieprzezroczystych
+   switch (Node->iAlpha) //czy jest przezroczyste?
+   {case 1: //do nieprzezroczystych
+     Node->pNext3=pRender; pRender=Node; break;
+    case 2: //do przezroczystych
+     Node->pNext3=pRenderAlpha; pRenderAlpha=Node; break;
+    case 3: //do mieszanych
+     Node->pNext3=pRenderMixed; pRenderMixed=Node; break;
+   }
    break;
   case TP_MEMCELL:
   case TP_TRACTIONPOWERSOURCE: //a te w ogóle pomijamy
@@ -1101,7 +1105,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
 //            str= Parser->GetNextSymbol().LowerCase();
             if (!tmp->Model->Load(parser))
              return NULL;
-            tmp->TexAlpha=tmp->Model->IsAlpha(); //ustalenie, czy przezroczysty
+            tmp->iAlpha=tmp->Model->AlphaMode(); //ustalenie, czy przezroczysty
         break;
     //    case TP_ :
 
@@ -1157,8 +1161,8 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
               *parser >> token;
              }
             str= AnsiString(token.c_str());
-            tmp->TextureID= TTexturesManager::GetTextureID(str.c_str());
-            tmp->TexAlpha= TTexturesManager::GetAlpha(tmp->TextureID);
+            tmp->TextureID=TTexturesManager::GetTextureID(str.c_str());
+            tmp->iAlpha=TTexturesManager::GetAlpha(tmp->TextureID)?2:1;
         i=0;
         do
         {
@@ -2753,11 +2757,9 @@ bool __fastcall TGround::Render(vector3 pPosition)
      tmp->EndVBO();
     }
     for (node=tmp->pRender;node!=NULL;node=node->pNext3)
-     if (node->iVboPtr<0)
-      node->Render(); //nieprzezroczyste modele
-    for (node=tmp->pRenderAlpha;node!=NULL;node=node->pNext3)
-     if (node->iVboPtr<0)
-      node->Render(); //nieprzezroczyste fragmenty przezroczystych modeli
+     node->Render(); //nieprzezroczyste modele
+    for (node=tmp->pRenderMixed;node!=NULL;node=node->pNext3)
+     node->Render(); //nieprzezroczyste z mieszanych modeli
    }
   }
  return true;
@@ -2786,9 +2788,10 @@ bool __fastcall TGround::RenderAlpha(vector3 pPosition)
    if ((tmp=FastGetSubRect(i,j))!=NULL)
    {
     tmp->LoadNodes(); //ewentualne tworzenie siatek
+    for (node=tmp->pRenderMixed;node!=NULL;node=node->pNext3)
+     node->RenderAlpha(); //przezroczyste z mieszanych modeli
     for (node=tmp->pRenderAlpha;node!=NULL;node=node->pNext3)
-     if (node->iVboPtr<0)
-      node->RenderAlpha(); //przezroczyste modele
+     node->RenderAlpha(); //przezroczyste modele
     for (node=tmp->pRenderVBO;node!=NULL;node=node->pNext3)
      if (node->iType==TP_TRACK)
       node->pTrack->RaRenderDynamic(); //pojazdy na torach

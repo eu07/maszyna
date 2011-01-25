@@ -158,7 +158,8 @@ bool __fastcall TAnimModel::Init(AnsiString asName, AnsiString asReplacableTextu
 {
 //    asName="models//"+asName;
     if (asReplacableTexture!=AnsiString("none"))
-      ReplacableSkinId= TTexturesManager::GetTextureID(asReplacableTexture.c_str());
+      ReplacableSkinId=TTexturesManager::GetTextureID(asReplacableTexture.c_str());
+    bTexAlpha=TTexturesManager::GetAlpha(ReplacableSkinId);
     return (Init(TModelsManager::GetModel(asName.c_str())));
 }
 
@@ -276,7 +277,7 @@ void __fastcall TAnimModel::Render(vector3 pPosition, double fAngle)
  for (pCurrent=pRoot;pCurrent!=NULL;pCurrent=pCurrent->pNext)
   pCurrent->UpdateModel();
  if (pModel)
-  pModel->Render(pPosition,fAngle,ReplacableSkinId);
+  pModel->Render(pPosition,fAngle,ReplacableSkinId,bTexAlpha);
 }
 
 void __fastcall TAnimModel::Render(double fSquareDistance)
@@ -306,7 +307,7 @@ void __fastcall TAnimModel::Render(double fSquareDistance)
     for (pCurrent= pRoot; pCurrent!=NULL; pCurrent=pCurrent->pNext)
         pCurrent->UpdateModel();
     if (pModel)
-        pModel->Render(fSquareDistance, ReplacableSkinId);
+        pModel->Render(fSquareDistance,ReplacableSkinId,bTexAlpha);
 }
 
 void __fastcall TAnimModel::RenderAlpha(double fSquareDistance)
@@ -336,7 +337,7 @@ void __fastcall TAnimModel::RenderAlpha(double fSquareDistance)
     for (pCurrent= pRoot; pCurrent!=NULL; pCurrent=pCurrent->pNext)
         pCurrent->UpdateModel();
     if (pModel)
-        pModel->RenderAlpha(fSquareDistance, ReplacableSkinId);
+        pModel->RenderAlpha(fSquareDistance,ReplacableSkinId,bTexAlpha);
 }
 
 void __fastcall TAnimModel::RenderAlpha(vector3 pPosition, double fAngle)
@@ -366,12 +367,12 @@ void __fastcall TAnimModel::RenderAlpha(vector3 pPosition, double fAngle)
     for (pCurrent= pRoot; pCurrent!=NULL; pCurrent=pCurrent->pNext)
         pCurrent->UpdateModel();
     if (pModel)
-        pModel->RenderAlpha(pPosition, fAngle, ReplacableSkinId);
+        pModel->RenderAlpha(pPosition,fAngle,ReplacableSkinId,bTexAlpha);
 };
 
-bool __fastcall TAnimModel::IsAlpha()
+int __fastcall TAnimModel::AlphaMode()
 {//informacja dla TGround, czy ma byæ Render() czy RenderAlpha()
- return pModel->IsAlpha()?true:TTexturesManager::GetAlpha(ReplacableSkinId);
+ return pModel->AlphaMode()|(bTexAlpha?2:0);
 };
 //---------------------------------------------------------------------------
 
