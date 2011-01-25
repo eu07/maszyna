@@ -45,7 +45,8 @@ public:
     void __fastcall RenderAlpha(double fSquareDistance);
     TLightState lsLights[iMaxNumLights];
     GLuint ReplacableSkinId; //McZapkie-020802: zmienialne skory
-    bool __fastcall IsAlpha(); 
+    bool bTexAlpha; //¿eby nie sprawdzaæ za ka¿dym razem
+    int __fastcall AlphaMode();
 private:
     TSubModel *LightsOn[iMaxNumLights];
     TSubModel *LightsOff[iMaxNumLights];

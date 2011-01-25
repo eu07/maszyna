@@ -505,11 +505,11 @@ TSubModel* __fastcall TSubModel::GetFromName(std::string search)
 
 WORD hbIndices[18]= {3,0,1,5,4,2,1,0,4,1,5,3,2,3,5,2,4,0};
 
-void __fastcall TSubModel::Render(GLuint ReplacableSkinId)
+void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
 {//g³ówna procedura renderowania
  float Distdimm=0;
  if (Next!=NULL)
-  Next->Render(ReplacableSkinId); //dalsze rekurencyjnie
+  Next->Render(ReplacableSkinId,bAlpha); //dalsze rekurencyjnie
  if (Visible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
  {
   glPushMatrix();
@@ -538,8 +538,8 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId)
   if ((TextureID==-1)) // && (ReplacableSkinId!=0))
   {
    glBindTexture(GL_TEXTURE_2D,ReplacableSkinId);
-   if (ReplacableSkinId>0)
-    TexAlpha=TTexturesManager::GetAlpha(ReplacableSkinId); //malo eleganckie ale narazie niech bedzie
+   //if (ReplacableSkinId>0)
+   TexAlpha=bAlpha; //TTexturesManager::GetAlpha(ReplacableSkinId); //malo eleganckie ale narazie niech bedzie
   }
   else
    glBindTexture(GL_TEXTURE_2D,TextureID);
@@ -628,14 +628,14 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId)
     }
 */
   if (Child!=NULL)
-   Child->Render(ReplacableSkinId);
+   Child->Render(ReplacableSkinId,bAlpha);
   glPopMatrix();
  }
 };       //Render
 
-void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId)
+void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
 {
- if (Next) Next->RenderAlpha(ReplacableSkinId);
+ if (Next) Next->RenderAlpha(ReplacableSkinId,bAlpha);
 
     if (eType==smt_FreeSpotLight)
     {
@@ -670,15 +670,12 @@ void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId)
      glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
     //zmienialne skory
       if ((TextureID==-1)) // && (ReplacableSkinId!=0))
-       {
-        glBindTexture(GL_TEXTURE_2D,ReplacableSkinId);
-        if (ReplacableSkinId>0)
-          TexAlpha=TTexturesManager::GetAlpha(ReplacableSkinId); //malo eleganckie ale narazie niech bedzie
-       }
+      {
+       glBindTexture(GL_TEXTURE_2D,ReplacableSkinId);
+       TexAlpha=bAlpha; //TTexturesManager::GetAlpha(ReplacableSkinId); //malo eleganckie ale narazie niech bedzie
+      }
       else
-       {
-        glBindTexture(GL_TEXTURE_2D,TextureID);
-       }
+       glBindTexture(GL_TEXTURE_2D,TextureID);
       if (TexAlpha && Global::bRenderAlpha)  //mozna rysowac bo przezroczyste i nie ma #
       {
        glMaterialfv(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE,f4Diffuse);
@@ -688,8 +685,8 @@ void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId)
        if (bLight)
         glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
       }
-      if (Child!=NULL)
-          Child->RenderAlpha(ReplacableSkinId);
+      if (Child)
+          Child->RenderAlpha(ReplacableSkinId,bAlpha);
       glPopMatrix();
     }
 }; //RenderAlpha
@@ -701,12 +698,9 @@ matrix4x4* __fastcall TSubModel::GetTransform()
 //    return &Transform;
 };
 
-bool __fastcall TSubModel::IsAlpha()
+int __fastcall TSubModel::AlphaMode()
 {//czy ma coœ z przezroczyst¹ tekstur¹?
- if (TexAlpha) return true; //na pewno ma
- if (Child) if (Child->IsAlpha()) return true; //dziecko ma
- if (Next) if (Next->IsAlpha()) return true; //nastêpny ma
- return false; //nic nie ma
+ return (TextureID==-1?0:TexAlpha?2:1)|(Child?Child->AlphaMode():0)|(Next?Next->AlphaMode():0);
 };
 
 //---------------------------------------------------------------------------
@@ -738,7 +732,7 @@ __fastcall TModel3d::TModel3d()
 //    MaterialsCount= 0;
  Root= NULL;
  SubModelsCount= 0;
- TexAlpha=false;
+ iAlpha=0;
 //    ReplacableSkinID = 0;
 };
 
@@ -749,7 +743,7 @@ __fastcall TModel3d::TModel3d(char *FileName)
 //    MaterialsCount= 0;
  Root= NULL;
  SubModelsCount= 0;
- TexAlpha=false;
+ iAlpha=0;
  LoadFromFile(FileName);
 };
 
@@ -829,7 +823,7 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName)
   {MakeArray(totalverts); //tworzenie tablic dla VBO
    Root->RaArrayFill(m_pVNT); //wype³nianie tablicy
    if (Global::bUseVBO) BuildVBOs();
-   TexAlpha=Root->IsAlpha(); //true gdy nie ma ¿adnej przezroczystoœci
+   iAlpha=Root->AlphaMode(); //true gdy nie ma ¿adnej przezroczystoœci
   }
  }
 }
@@ -846,7 +840,7 @@ void __fastcall TModel3d::BreakHierarhy()
 };
 
 
-void __fastcall TModel3d::Render(vector3 pPosition, double fAngle, GLuint ReplacableSkinId)
+void __fastcall TModel3d::Render(vector3 pPosition,double fAngle,GLuint ReplacableSkinId,bool bAlpha)
 {
 //    glColor3f(1.0f,1.0f,1.0f);
 //    glColor3f(0.0f,0.0f,0.0f);
@@ -864,42 +858,42 @@ void __fastcall TModel3d::Render(vector3 pPosition, double fAngle, GLuint Replac
  pos= CurrentMatrix*pos;
  fSquareDist= SquareMagnitude(pos);
 */
- fSquareDist= SquareMagnitude(pPosition-Global::GetCameraPosition());
+ fSquareDist=SquareMagnitude(pPosition-Global::GetCameraPosition());
  if (StartVBO())
- {Root->Render(ReplacableSkinId);
+ {Root->Render(ReplacableSkinId,bAlpha);
   EndVBO();
  }
  glPopMatrix(); //przywrócenie ustawieñ przekszta³cenia
 };
 
-void __fastcall TModel3d::Render(double fSquareDistance, GLuint ReplacableSkinId)
+void __fastcall TModel3d::Render(double fSquareDistance,GLuint ReplacableSkinId,bool bAlpha)
 {
- fSquareDist= fSquareDistance;
+ fSquareDist=fSquareDistance;
  if (StartVBO())
- {Root->Render(ReplacableSkinId);
+ {Root->Render(ReplacableSkinId,bAlpha);
   EndVBO();
  }
 };
 
-void __fastcall TModel3d::RenderAlpha(vector3 pPosition, double fAngle, GLuint ReplacableSkinId)
+void __fastcall TModel3d::RenderAlpha(vector3 pPosition, double fAngle, GLuint ReplacableSkinId,bool bAlpha)
 {
  glPushMatrix();
  glTranslated(pPosition.x,pPosition.y,pPosition.z);
  if (fAngle!=0)
   glRotatef(fAngle,0,1,0);
- fSquareDist= SquareMagnitude(pPosition-Global::GetCameraPosition());
+ fSquareDist=SquareMagnitude(pPosition-Global::GetCameraPosition());
  if (StartVBO())
- {Root->RenderAlpha(ReplacableSkinId);
+ {Root->RenderAlpha(ReplacableSkinId,bAlpha);
   EndVBO();
  }
  glPopMatrix();
 };
 
-void __fastcall TModel3d::RenderAlpha(double fSquareDistance, GLuint ReplacableSkinId)
+void __fastcall TModel3d::RenderAlpha(double fSquareDistance, GLuint ReplacableSkinId,bool bAlpha)
 {
- fSquareDist= fSquareDistance;
+ fSquareDist=fSquareDistance;
  if (StartVBO())
- {Root->RenderAlpha(ReplacableSkinId);
+ {Root->RenderAlpha(ReplacableSkinId,bAlpha);
   EndVBO();
  }
 };

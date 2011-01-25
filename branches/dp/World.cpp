@@ -95,7 +95,7 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 
     Global::detonatoryOK=true;
     WriteLog("Starting MaSzyna rail vehicle simulator.");
-    WriteLog("Compilation 2011-01-24");
+    WriteLog("Compilation 2011-01-25");
     WriteLog("Online documentation and additional files on http://eu07.pl");
     WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx_EU, OLO_EU, Bart, Quark-t, ShaXbee, Oli_EU, youBy and others");
     WriteLog("Renderer:");
@@ -626,6 +626,7 @@ bool __fastcall TWorld::Update()
      Camera.Reset(); //likwidacja obrotów - patrzy horyzontalnie na po³udnie
      //if (!FreeFlyModeFlag) //jeœli wewn¹trz - patrzymy do ty³u
      // Camera.LookAt=Train->pMechPosition-Normalize(Train->GetDirection())*10;
+     Camera.LookAt=Controlled->GetPosition();
      if (FreeFlyModeFlag)
       Camera.RaLook(); //jednorazowe przestawienie kamery
     }
@@ -637,8 +638,9 @@ bool __fastcall TWorld::Update()
      {
       if (FreeFlyModeFlag)
       {//je¿eli poza kabin¹, przestawiamy w jej okolicê - nie OK
-       Camera.Pos=Train->pMechPosition+Normalize(Train->GetDirection())*10;
-       Camera.LookAt=Train->pMechPosition; //+Normalize(Train->GetDirection())*-1;
+       //Camera.Pos=Train->pMechPosition+Normalize(Train->GetDirection())*20;
+       Camera.Pos=Controlled->GetPosition()+Normalize(Train->GetDirection())*30+vector3(0,4,0);
+       Camera.LookAt=Controlled->GetPosition();//Train->pMechPosition;
        Camera.RaLook(); //jednorazowe przestawienie kamery
        //¿eby nie bylo numerów z 'fruwajacym' lokiem - konsekwencja bujania pud³a
        Train->DynamicObject->ABuSetModelShake(vector3(0,0,0));

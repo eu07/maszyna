@@ -85,7 +85,7 @@ public:
     //GLuint DisplayListID; //numer siatki
     int iVboPtr; //indeks w buforze VBO
     GLuint TextureID; //jedna tekstura na obiekt
-    bool TexAlpha;
+    int iAlpha; //tryb przezroczystoœci: 1-nieprz.,2-przezroczysty,3-mieszany
     float fLineThickness; //McZapkie-120702: grubosc linii
 //    int Status;  //McZapkie-170303: status dzwieku
     int Ambient[4],Diffuse[4],Specular[4]; //oœwietlenie
@@ -137,10 +137,11 @@ public:
 public:
  TGroundNode *pRootNode; //lista wszystkich obiektów w sektorze
  TGroundNode *pRenderHidden; //lista obiektów niewidocznych, "renderowanych" równie¿ z ty³u
- TGroundNode *pRenderVBO; //lista grup renderowanych ze wspólnego VBO
+ TGroundNode *pRenderVBO;      //lista grup renderowanych ze wspólnego VBO
  TGroundNode *pRenderAlphaVBO; //lista grup renderowanych ze wspólnego VBO
- TGroundNode *pRender; //lista grup renderowanych z w³asnych VBO
- TGroundNode *pRenderAlpha; //lista grup renderowanych z w³asnych VBO
+ TGroundNode *pRender;      //z w³asnych VBO - nieprzezroczyste
+ TGroundNode *pRenderMixed; //z w³asnych VBO - nieprzezroczyste i przezroczyste
+ TGroundNode *pRenderAlpha; //z w³asnych VBO - przezroczyste
  __fastcall TSubRect();
  virtual __fastcall ~TSubRect();
  void __fastcall AddNode(TGroundNode *Node);
