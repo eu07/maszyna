@@ -639,7 +639,7 @@ bool __fastcall TWorld::Update()
       if (FreeFlyModeFlag)
       {//je¿eli poza kabin¹, przestawiamy w jej okolicê - nie OK
        //Camera.Pos=Train->pMechPosition+Normalize(Train->GetDirection())*20;
-       Camera.Pos=Controlled->GetPosition()+Normalize(Train->GetDirection())*30+vector3(0,4,0);
+       Camera.Pos=Controlled->GetPosition()+(Controlled->MoverParameters->ActiveCab>=0?30:-30)*Normalize(Train->GetDirection())+vector3(0,4,0);
        Camera.LookAt=Controlled->GetPosition();//Train->pMechPosition;
        Camera.RaLook(); //jednorazowe przestawienie kamery
        //¿eby nie bylo numerów z 'fruwajacym' lokiem - konsekwencja bujania pud³a
@@ -974,16 +974,14 @@ bool __fastcall TWorld::Update()
 
     if (Pressed(VK_F1))
     {//tekst pokazywany po wciœniêciu [F1]
-     OutText1="Time: "+FloatToStrF(GlobalTime->hh,ffFixed,2,0)+":";
-     if ((GlobalTime->mm)<10)
-      OutText1+="0"+FloatToStrF(GlobalTime->mm,ffFixed,2,0);
-     else
-      OutText1+=FloatToStrF(GlobalTime->mm,ffFixed,2,0);
+     OutText1="Time: "+AnsiString((int)GlobalTime->hh)+":";
+     int i=GlobalTime->mm; //bo inaczej potrafi zrobiæ "hh:010"
+     if (i<10) OutText1+="0";
+     OutText1+=AnsiString(i); //minuty
      OutText1+=":";
-     if ((GlobalTime->mr)<10)
-      OutText1+="0"+FloatToStrF(GlobalTime->mr,ffFixed,2,0);
-     else
-      OutText1+=FloatToStrF(GlobalTime->mr,ffFixed,2,0);
+     i=floor(GlobalTime->mr); //bo inaczej potrafi zrobiæ "hh:mm:010"
+     if (i<10) OutText1+="0";
+     OutText1+=AnsiString(i);
      OutText2="";
      //double CtrlPos=Controlled->MoverParameters->MainCtrlPos;
      //double CtrlPosNo=Controlled->MoverParameters->MainCtrlPosNo;
@@ -993,7 +991,7 @@ bool __fastcall TWorld::Update()
     if (Pressed(VK_F12))
     {
        //Takie male info :)
-       OutText1= AnsiString("Online documentation (PL, ENG, DE, soon CZ): http://eu07.pl");
+       OutText1= AnsiString("Online documentation (PL): http://eu07.pl");
     }
 
     if (Pressed(VK_F2))
@@ -1004,7 +1002,7 @@ bool __fastcall TWorld::Update()
        {
        int CouplNr=-2;
        tmp=Controlled->ABuScanNearestObject(Controlled->GetTrack(), 1, 500, CouplNr);
-          if(tmp==NULL)
+          if (tmp==NULL)
           {
              tmp=Controlled->ABuScanNearestObject(Controlled->GetTrack(), -1, 500, CouplNr);
              //if(tmp==NULL) tmp=Controlled;
@@ -1045,7 +1043,7 @@ bool __fastcall TWorld::Update()
           OutText3+= FloatToStrF(tmp->MoverParameters->CntrlPipePress,ffFixed,5,2)+AnsiString(", ");
 //          OutText3+= FloatToStrF(tmp->MoverParameters->HighPipePress,ffFixed,5,2)+AnsiString(", ");
 //          OutText3+= FloatToStrF(tmp->MoverParameters->LowPipePress,ffFixed,5,2)+AnsiString(", ");
-          OutText3+= FloatToStrF(tmp->MoverParameters->BrakeStatus,ffFixed,5,0)+AnsiString(", ");          
+          OutText3+= FloatToStrF(tmp->MoverParameters->BrakeStatus,ffFixed,5,0)+AnsiString(", ");
           OutText3+= AnsiString("Pipe2 press: ")+FloatToStrF(tmp->MoverParameters->ScndPipePress,ffFixed,5,2)+AnsiString(". ");
 
           if ((tmp->MoverParameters->LocalBrakePos)>0)

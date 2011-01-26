@@ -372,7 +372,7 @@ void __fastcall TAnimModel::RenderAlpha(vector3 pPosition, double fAngle)
 
 int __fastcall TAnimModel::AlphaMode()
 {//informacja dla TGround, czy ma byæ Render() czy RenderAlpha()
- return pModel->AlphaMode()|(bTexAlpha?2:0);
+ return pModel->AlphaMode()|(ReplacableSkinId>0?(bTexAlpha?2:1):0);
 };
 //---------------------------------------------------------------------------
 
