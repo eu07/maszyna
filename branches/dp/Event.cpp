@@ -120,8 +120,7 @@ void __fastcall TEvent::Load(cParser* parser)
     *parser >> token;
     str= AnsiString(token.c_str());
 
-    if (str!=AnsiString("none"))
-        asNodeName=str;
+    if (str!="none") asNodeName=str; //nazwa obiektu powi¹zanego
 
     if (asName.SubString(1,5)=="none_")
      Type= tp_Unknown; //Ra: takie s¹ ignorowane
@@ -247,9 +246,9 @@ void __fastcall TEvent::Load(cParser* parser)
             {
                 parser->getTokens();
                 *parser >> token;
-                Params[9].asText=new char[255]; //nazwa modelu
+                Params[9].asText=new char[255]; //nazwa submodelu
                 strcpy(Params[9].asText,token.c_str());
-                Params[0].asInt= 1;
+                Params[0].asInt=1;
                 parser->getTokens(4);
                 *parser >> Params[1].asdouble >> Params[2].asdouble >> Params[3].asdouble >> Params[4].asdouble;
             }
@@ -258,11 +257,11 @@ void __fastcall TEvent::Load(cParser* parser)
             {
                 parser->getTokens();
                 *parser >> token;
-                Params[9].asText=new char[255]; //nazwa modelu
+                Params[9].asText=new char[255]; //nazwa submodelu
                 strcpy(Params[9].asText,token.c_str());
-                Params[0].asInt= 2;
+                Params[0].asInt=2;
                 parser->getTokens(4);
-                *parser >> Params[1].asdouble >> Params[2].asdouble >> Params[3].asdouble >> Params[4].asdouble;
+                *parser >> Params[1].asdouble >> Params[3].asdouble >> Params[2].asdouble >> Params[4].asdouble;
             }
             parser->getTokens(); *parser >> token;
         break;

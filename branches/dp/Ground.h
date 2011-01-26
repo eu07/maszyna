@@ -85,7 +85,7 @@ public:
     //GLuint DisplayListID; //numer siatki
     int iVboPtr; //indeks w buforze VBO
     GLuint TextureID; //jedna tekstura na obiekt
-    int iAlpha; //tryb przezroczystoœci: 1-nieprz.,2-przezroczysty,3-mieszany
+    int iFlags; //tryb przezroczystoœci: 2-nieprz.,4-przezroczysty,6-mieszany
     float fLineThickness; //McZapkie-120702: grubosc linii
 //    int Status;  //McZapkie-170303: status dzwieku
     int Ambient[4],Diffuse[4],Specular[4]; //oœwietlenie

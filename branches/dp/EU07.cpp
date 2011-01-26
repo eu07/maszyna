@@ -59,7 +59,6 @@ USEUNIT("DynObj.cpp");
 USEUNIT("RealSound.cpp");
 USEUNIT("EvLaunch.cpp");
 USEUNIT("QueryParserComp.pas");
-USEUNIT("Scenery.cpp");
 USEUNIT("FadeSound.cpp");
 USEUNIT("Traction.cpp");
 USEUNIT("TractionPower.cpp");

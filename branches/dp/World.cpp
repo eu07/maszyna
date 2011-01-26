@@ -95,7 +95,7 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 
     Global::detonatoryOK=true;
     WriteLog("Starting MaSzyna rail vehicle simulator.");
-    WriteLog("Compilation 2011-01-25");
+    WriteLog("Compilation 2011-01-27");
     WriteLog("Online documentation and additional files on http://eu07.pl");
     WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx_EU, OLO_EU, Bart, Quark-t, ShaXbee, Oli_EU, youBy and others");
     WriteLog("Renderer:");
@@ -127,7 +127,7 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
      WriteLog("Ra: The VBO is found and will be used.");
     }
     else
-    {Error("Ra: VBO not found - the program may crash. BUY A NEWER GRAPHICS CARD!");
+    {Error("Ra: VBO not found - the program may crash. Upgrade drivers or buy a newer graphics card!");
      //return;
     }
 
@@ -986,7 +986,7 @@ bool __fastcall TWorld::Update()
      //double CtrlPos=Controlled->MoverParameters->MainCtrlPos;
      //double CtrlPosNo=Controlled->MoverParameters->MainCtrlPosNo;
      //OutText2="defrot="+FloatToStrF(1+0.4*(CtrlPos/CtrlPosNo),ffFixed,2,5);
-     OutText3="";
+     OutText3="Pomoc w sterowaniu - [F9]";
     }
     if (Pressed(VK_F12))
     {
@@ -1439,7 +1439,6 @@ void TWorld::ShowHints(void)
 
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
-
 
 
 
