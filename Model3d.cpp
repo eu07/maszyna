@@ -30,6 +30,7 @@
 #include "Timer.h"
 
 double fSquareDist= 0;
+int TSubModel::iInstance; //numer renderowanego egzemplarza obiektu
 
 __fastcall TSubModel::TSubModel()
 {
@@ -50,15 +51,15 @@ void __fastcall TSubModel::FirstInit()
     v_aTransVector= vector3(0,0,0);
     f_Angle= 0;
     f_aAngle= 0;
-    v_DesiredTransVector= vector3(0,0,0);
-    f_TranslateSpeed= 0;
-    f_DesiredAngle= 0;
-    f_RotateSpeed= 0;
+    //v_DesiredTransVector= vector3(0,0,0);
+    //f_TranslateSpeed= 0;
+    //f_DesiredAngle= 0;
+    //f_RotateSpeed= 0;
     b_Anim= at_None;
-    v_aDesiredTransVector= vector3(0,0,0);
-    f_aTranslateSpeed= 0;
-    f_aDesiredAngle= 0;
-    f_aRotateSpeed= 0;
+    //v_aDesiredTransVector= vector3(0,0,0);
+    //f_aTranslateSpeed= 0;
+    //f_aDesiredAngle= 0;
+    //f_aRotateSpeed= 0;
     b_aAnim= at_None;
     Visible= false;
     Matrix.Identity();
@@ -67,6 +68,7 @@ void __fastcall TSubModel::FirstInit()
     Child= NULL;
     TextureID= 0;
     TexAlpha= false;
+    iFlags=0;
 //    TexHash= false;
 //    Hits= NULL;
   //  CollisionPts= NULL;
@@ -143,7 +145,6 @@ inline void readMatrix(cParser& parser, matrix4x4& matrix)
 
 int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int Pos)
 {//Ra: VBO tworzone na poziomie modelu, a nie submodeli
-    //GLVERTEX *Vertices=NULL; //
     iNumVerts=0;
     iVboPtr=Pos; //pozycja w VBO
 //    TMaterialColorf Ambient,Diffuse,Specular;
@@ -173,7 +174,7 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
     parser.ignoreToken();
     parser.getToken(Name);
 
-    if (parser.expectToken("anim:"))
+    if (parser.expectToken("anim:")) //Ra: ta informacja by siê przyda³a!
         parser.ignoreTokens(2);
 
     if (eType==smt_Mesh) readColor(parser,f4Ambient);
@@ -240,6 +241,7 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
             if (texture.find("replacableskin")!=texture.npos)
             {
                 TextureID= -1;
+                iFlags|=1;
             }
             else
             {
@@ -249,6 +251,7 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
 
                 TextureID= TTexturesManager::GetTextureID(texture);
                 TexAlpha= TTexturesManager::GetAlpha(TextureID);
+                iFlags|=TexAlpha?4:2;
             };
         };
     };
@@ -410,52 +413,55 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
 };
 
 void __fastcall TSubModel::AddChild(TSubModel *SubModel)
-{
-    if (Child==NULL)
-        Child= SubModel;
-    else
-        Child->AddNext(SubModel);
+{//dodanie submodelu potemnego (uzale¿nionego)
+ if (Child==NULL)
+  Child=SubModel;
+ else
+  Child->AddNext(SubModel);
+ iFlags|=(SubModel->iFlags&0xFF)<<16; //sumowanie flag struktury
 };
 
 void __fastcall TSubModel::AddNext(TSubModel *SubModel)
-{
-    if (Next==NULL)
-        Next= SubModel;
-    else
-        Next->AddNext(SubModel);
+{//dodanie submodelu kolejnego (wspólny przodek)
+ if (Next==NULL)
+  Next=SubModel;
+ else
+  Next->AddNext(SubModel);
+ iFlags|=(SubModel->iFlags&0xFF)<<24; //sumowanie flag struktury
 };
 void __fastcall TSubModel::SetRotate(vector3 vNewRotateAxis, double fNewAngle)
-{
-    f_RotateSpeed= 0;
-    v_RotateAxis= vNewRotateAxis;
-    f_Angle= fNewAngle;
-    b_Anim= at_Rotate;
-    f_aRotateSpeed= 0;
-    v_aRotateAxis= vNewRotateAxis;
-    f_aAngle= fNewAngle;
-    b_aAnim= at_Rotate;
-//    bAnim= true;
+{//obrócenie submodelu wg podanej osi (np. wskazówki w kabinie)
+ //f_RotateSpeed=0;
+ v_RotateAxis=vNewRotateAxis;
+ f_Angle=fNewAngle;
+ b_Anim=at_Rotate;
+ //f_aRotateSpeed=0;
+ //v_aRotateAxis=vNewRotateAxis;
+ f_aAngle=fNewAngle;
+ b_aAnim=at_Rotate;
+ iAnimOwner=iInstance; //zapamiêtanie czyja jest animacja
 }
 
 void __fastcall TSubModel::SetRotateXYZ(vector3 vNewAngles)
-{
-    f_RotateSpeed= 0;
-    v_Angles= vNewAngles;
-    b_Anim= at_RotateXYZ;
-    f_aRotateSpeed= 0;
-    v_aAngles= vNewAngles;
-    b_aAnim= at_RotateXYZ;
-//    bAnim= true;
+{//obrócenie submodelu o podane k¹ty wokó³ osi lokalnego uk³adu
+ //f_RotateSpeed=0;
+ v_Angles=vNewAngles;
+ b_Anim=at_RotateXYZ;
+ //f_aRotateSpeed=0;
+ v_aAngles=vNewAngles;
+ b_aAnim=at_RotateXYZ;
+ iAnimOwner=iInstance; //zapamiêtanie czyja jest animacja
 }
 
 void __fastcall TSubModel::SetTranslate(vector3 vNewTransVector)
-{
-    f_TranslateSpeed= 0;
-    v_TransVector= vNewTransVector;
-    b_Anim= at_Translate;
-    f_aTranslateSpeed= 0;
-    v_aTransVector= vNewTransVector;
-    b_aAnim= at_Translate;
+{//przesuniêcie submodelu (np. w kabinie)
+ //f_TranslateSpeed=0;
+ v_TransVector=vNewTransVector;
+ b_Anim=at_Translate;
+ //f_aTranslateSpeed=0;
+ v_aTransVector=vNewTransVector;
+ b_aAnim=at_Translate;
+ iAnimOwner=iInstance; //zapamiêtanie czyja jest animacja
 }
 /*
 void __fastcall TSubModel::SetRotateAnim(vector3 vNewRotateAxis, double fNewDesiredAngle, double fNewRotateSpeed, bool bResetAngle)
@@ -466,8 +472,6 @@ void __fastcall TSubModel::SetRotateAnim(vector3 vNewRotateAxis, double fNewDesi
     if (bResetAngle)
         fAngle= 0;
 }
-
-
   */
 
 struct ToLower
@@ -507,7 +511,7 @@ WORD hbIndices[18]= {3,0,1,5,4,2,1,0,4,1,5,3,2,3,5,2,4,0};
 
 void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
 {//g³ówna procedura renderowania
- float Distdimm=0;
+ //float Distdimm=0;
  if (Next!=NULL)
   Next->Render(ReplacableSkinId,bAlpha); //dalsze rekurencyjnie
  if (Visible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
@@ -515,23 +519,24 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
   glPushMatrix();
   glMultMatrixd(Matrix.getArray());
   switch (b_Anim)
-  {case at_Rotate:   //czy to potrzebne tu czy moze nizej?
+  {//korekcja po³o¿enia, jeœli submodel jest animowany
+   case at_Rotate:   //czy to potrzebne tu czy moze nizej?
    case at_Translate: //Ra: by³o "true"
+    if (iAnimOwner!=iInstance) break; //cudza animacja
     glRotatef(f_Angle,v_RotateAxis.x,v_RotateAxis.y,v_RotateAxis.z);
     glTranslatef(v_TransVector.x,v_TransVector.y,v_TransVector.z);
     //vRotateAxis= vector3(0,0,0);
     //vTransVector= vector3(0,0,0);
     f_Angle=0;
-    b_Anim=at_None;
     break;
    case at_RotateXYZ:
+    if (iAnimOwner!=iInstance) break; //cudza animacja
     glTranslatef(v_TransVector.x,v_TransVector.y,v_TransVector.z);
+    //v_TransVector.x=v_TransVector.y=v_TransVector.z=0.0;
     glRotatef(v_Angles.x,1.0,0.0,0.0);
     glRotatef(v_Angles.y,0.0,1.0,0.0);
     glRotatef(v_Angles.z,0.0,0.0,1.0);
-    v_Angles.x=v_Angles.y=v_Angles.z=0;
-    b_Anim=at_None;
-    //WriteLog("Animacja: "+AnsiString(Name.c_str()));
+    //v_Angles.x=v_Angles.y=v_Angles.z=0.0;
     break;
   }
   //zmienialne skory
@@ -631,76 +636,77 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
    Child->Render(ReplacableSkinId,bAlpha);
   glPopMatrix();
  }
+ b_Anim=at_None; //wy³¹czenie animacji dla kolejnego u¿ycia submodelu
 };       //Render
 
 void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
 {
  if (Next) Next->RenderAlpha(ReplacableSkinId,bAlpha);
-
-    if (eType==smt_FreeSpotLight)
-    {
+ if (eType==smt_FreeSpotLight)
+ {
 //        if (CosViewAngle>0)  //dorobic od kata
 //        {
-            return;
+            //return; //nie mo¿e byæ return - trzeba skasowaæ animacjê
 //        }
-     // dorobic aureole!
-    }
-
-    if (Visible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
-    {
-      glPushMatrix();
-      glMultMatrixd(Matrix.getArray());
-      switch (b_aAnim)
-      {case at_Rotate:
-       case at_Translate:
-        glRotatef(f_aAngle,v_aRotateAxis.x,v_aRotateAxis.y,v_aRotateAxis.z);
-        glTranslatef(v_aTransVector.x,v_aTransVector.y,v_aTransVector.z);
-        f_aAngle=0;
-        b_aAnim=at_None;
-        break;
-       case at_RotateXYZ:
-        glTranslatef(v_TransVector.x,v_TransVector.y,v_TransVector.z);
-        glRotatef(v_aAngles.y,0.0,1.0,0.0);
-        glRotatef(v_aAngles.x,1.0,0.0,0.0);
-        glRotatef(v_aAngles.z,0.0,0.0,1.0);
-        v_aAngles.x=v_aAngles.y=v_aAngles.z=0;
-        b_aAnim=at_None;
-        break;
-      }
-     glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
-    //zmienialne skory
-      if ((TextureID==-1)) // && (ReplacableSkinId!=0))
-      {
-       glBindTexture(GL_TEXTURE_2D,ReplacableSkinId);
-       TexAlpha=bAlpha; //TTexturesManager::GetAlpha(ReplacableSkinId); //malo eleganckie ale narazie niech bedzie
-      }
-      else
-       glBindTexture(GL_TEXTURE_2D,TextureID);
-      if (TexAlpha && Global::bRenderAlpha)  //mozna rysowac bo przezroczyste i nie ma #
-      {
-       glMaterialfv(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE,f4Diffuse);
-       if (bLight)
-        glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
-       glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie trójk¹ty z VBO
-       if (bLight)
-        glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
-      }
-      if (Child)
-          Child->RenderAlpha(ReplacableSkinId,bAlpha);
-      glPopMatrix();
-    }
+  // dorobic aureole!
+ }
+ else if (Visible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
+ {
+   glPushMatrix(); //zapamiêtanie matrycy
+   glMultMatrixd(Matrix.getArray());
+   switch (b_aAnim)
+   {case at_Rotate:
+    case at_Translate:
+     if (iAnimOwner!=iInstance) break; //cudza animacja
+     glRotatef(f_aAngle,v_aRotateAxis.x,v_aRotateAxis.y,v_aRotateAxis.z);
+     glTranslatef(v_aTransVector.x,v_aTransVector.y,v_aTransVector.z);
+     f_aAngle=0;
+     break;
+    case at_RotateXYZ:
+     if (iAnimOwner!=iInstance) break; //cudza animacja
+     glTranslatef(v_aTransVector.x,v_aTransVector.y,v_aTransVector.z);
+     //v_aTransVector.x=v_aTransVector.y=v_aTransVector.z=0.0;
+     glRotatef(v_aAngles.x,1.0,0.0,0.0);
+     glRotatef(v_aAngles.y,0.0,1.0,0.0);
+     glRotatef(v_aAngles.z,0.0,0.0,1.0);
+     //v_aAngles.x=v_aAngles.y=v_aAngles.z=0;
+     break;
+   }
+  glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
+ //zmienialne skory
+   if ((TextureID==-1)) // && (ReplacableSkinId!=0))
+   {
+    glBindTexture(GL_TEXTURE_2D,ReplacableSkinId);
+    TexAlpha=bAlpha; //TTexturesManager::GetAlpha(ReplacableSkinId); //malo eleganckie ale narazie niech bedzie
+   }
+   else
+    glBindTexture(GL_TEXTURE_2D,TextureID);
+   if (TexAlpha && Global::bRenderAlpha)  //mozna rysowac bo przezroczyste i nie ma #
+   {
+    glMaterialfv(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE,f4Diffuse);
+    if (bLight)
+     glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
+    glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie trójk¹ty z VBO
+    if (bLight)
+     glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
+   }
+   if (Child)
+       Child->RenderAlpha(ReplacableSkinId,bAlpha);
+   glPopMatrix();
+ }
+ b_aAnim=at_None; //wy³¹czenie animacji dla kolejnego u¿ycia submodelu
 }; //RenderAlpha
 
 
 matrix4x4* __fastcall TSubModel::GetTransform()
 {
 //    Anim= true;
-//    return &Transform;
+ return &Matrix;
 };
 
-int __fastcall TSubModel::AlphaMode()
+int __fastcall TSubModel::Flags()
 {//czy ma coœ z przezroczyst¹ tekstur¹?
- return (TextureID==-1?0:TexAlpha?2:1)|(Child?Child->AlphaMode():0)|(Next?Next->AlphaMode():0);
+ return iFlags;
 };
 
 //---------------------------------------------------------------------------
@@ -732,7 +738,7 @@ __fastcall TModel3d::TModel3d()
 //    MaterialsCount= 0;
  Root= NULL;
  SubModelsCount= 0;
- iAlpha=0;
+ iFlags=0;
 //    ReplacableSkinID = 0;
 };
 
@@ -743,7 +749,7 @@ __fastcall TModel3d::TModel3d(char *FileName)
 //    MaterialsCount= 0;
  Root= NULL;
  SubModelsCount= 0;
- iAlpha=0;
+ iFlags=0;
  LoadFromFile(FileName);
 };
 
@@ -823,7 +829,7 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName)
   {MakeArray(totalverts); //tworzenie tablic dla VBO
    Root->RaArrayFill(m_pVNT); //wype³nianie tablicy
    if (Global::bUseVBO) BuildVBOs();
-   iAlpha=Root->AlphaMode(); //true gdy nie ma ¿adnej przezroczystoœci
+   iFlags=Root->Flags(); //true gdy nie ma ¿adnej przezroczystoœci
   }
  }
 }

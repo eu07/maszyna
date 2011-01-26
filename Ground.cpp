@@ -59,7 +59,7 @@ __fastcall TGroundNode::TGroundNode()
  iNumVerts=0; //wierzcho³ków w trójk¹cie
  iNumPts=0; //punktów w linii
  TextureID=0;
- iAlpha=0; //tryb przezroczystoœci nie zbadany
+ iFlags=0; //tryb przezroczystoœci nie zbadany
  Pointer=NULL; //zerowanie wskaŸnika kontekstowego
  iType=GL_POINTS;
  bVisible=false; //czy widoczny
@@ -366,7 +366,6 @@ bool __fastcall TGroundNode::RenderAlpha()
  if (mgn>fSquareRadius) return false;
 //    glMaterialfv( GL_FRONT, GL_DIFFUSE, Global::whiteLight );
  int i,a;
- try{
  switch (iType)
  {
   case TP_TRACTION:
@@ -397,7 +396,6 @@ bool __fastcall TGroundNode::RenderAlpha()
     return true;
    }
  };
- }catch(...) {WriteLog("!!! B³¹d w TGroundNode::RenderAlpha() dla "+AnsiString(iType));}
 /* Ra: trójk¹ty i linie renderuj¹ siê z VBO sektora
     // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
     if(
@@ -472,7 +470,7 @@ void __fastcall TSubRect::AddNode(TGroundNode *Node)
   case GL_TRIANGLE_STRIP:
   case GL_TRIANGLE_FAN:
   case GL_TRIANGLES:
-   if (Node->iAlpha&2) //czy jest przezroczyste?
+   if (Node->iFlags&4) //czy jest przezroczyste?
    {Node->pNext3=pRenderAlphaVBO; pRenderAlphaVBO=Node;} //do przezroczystych
    else
    {Node->pNext3=pRenderVBO; pRenderVBO=Node;} //do nieprzezroczystych
@@ -484,17 +482,16 @@ void __fastcall TSubRect::AddNode(TGroundNode *Node)
    Node->pNext3=pRenderAlphaVBO; pRenderAlphaVBO=Node;
    break;
   case TP_MODEL: //modle zawsze wyœwietlane z w³asnego VBO
-   switch (Node->iAlpha) //czy jest przezroczyste?
-   {case 1: //do nieprzezroczystych
-     Node->pNext3=pRender; pRender=Node; break;
-    case 2: //do przezroczystych
-     Node->pNext3=pRenderAlpha; pRenderAlpha=Node; break;
-    case 3: //do mieszanych
-     Node->pNext3=pRenderMixed; pRenderMixed=Node; break;
-   }
+   if ((Node->iFlags&0x04040004)==0) //czy brak przezroczystoœci?
+   {Node->pNext3=pRender; pRender=Node;} //do nieprzezroczystych
+   else if ((Node->iFlags&0x02020002)==0) //czy brak nieprzezroczystoœci?
+   {Node->pNext3=pRenderAlpha; pRenderAlpha=Node;} //do przezroczystych
+   else //jak i take i takie, to bêdzie dwa razy renderowane...
+   {Node->pNext3=pRenderMixed; pRenderMixed=Node;} //do mieszanych
    break;
   case TP_MEMCELL:
   case TP_TRACTIONPOWERSOURCE: //a te w ogóle pomijamy
+  case TP_DYNAMIC:
    break;
  }
  Node->pNext2=pRootNode; //dopisanie do ogólnej listy
@@ -633,7 +630,7 @@ void __fastcall TSubRect::Load(TGroundNode *Node)
 
 bool __fastcall TSubRect::StartVBO()
 {//pocz¹tek rysowania elementów z VBO w sektorze
- SetLastUsage(Timer::GetSimulationTime());
+ SetLastUsage(Timer::GetSimulationTime()); //te z ty³u bêd¹ niepotrzebnie zwalniane
  return CMesh::StartVBO();
 };
 
@@ -642,7 +639,7 @@ void TSubRect::Release()
  CMesh::Clear();
 };
 
-/* Ra: linie i trójk¹ty s¹ ju¿ przez VBO na poziomie sektora
+/* 
 void __fastcall TGroundNode::Compile()
 {
         if (tri->pTriGroup) //jeœli z grupy
@@ -1105,7 +1102,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
 //            str= Parser->GetNextSymbol().LowerCase();
             if (!tmp->Model->Load(parser))
              return NULL;
-            tmp->iAlpha=tmp->Model->AlphaMode(); //ustalenie, czy przezroczysty
+            tmp->iFlags=tmp->Model->Flags(); //ustalenie, czy przezroczysty
         break;
     //    case TP_ :
 
@@ -1162,7 +1159,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
              }
             str= AnsiString(token.c_str());
             tmp->TextureID=TTexturesManager::GetTextureID(str.c_str());
-            tmp->iAlpha=TTexturesManager::GetAlpha(tmp->TextureID)?2:1;
+            tmp->iFlags=TTexturesManager::GetAlpha(tmp->TextureID)?4:2;
         i=0;
         do
         {
@@ -1802,17 +1799,16 @@ bool __fastcall TGround::InitEvents()
                                      Current->asNodeName+"\"");
             break;
             case tp_Animation :
-                tmp= FindGroundNode(Current->asNodeName,TP_MODEL);
-                if (tmp)
-                {
-                    strcpy(buff,Current->Params[9].asText);
-                    delete Current->Params[9].asText;
-                    Current->Params[9].asAnimContainer= tmp->Model->GetContainer(buff);
-                }
-                else
-                    Error("Event \""+Current->asName+"\" cannot find model\""+
-                                     Current->asNodeName+"\"");
-                Current->asNodeName= "";
+             tmp=FindGroundNode(Current->asNodeName,TP_MODEL); //egzemplarza modelu do animowania
+             if (tmp)
+             {
+              strcpy(buff,Current->Params[9].asText); //skopiowanie nazwy submodelu do bufora roboczego
+              delete Current->Params[9].asText; //usuniêcie nazwy submodelu
+              Current->Params[9].asAnimContainer=tmp->Model->GetContainer(buff); //submodel
+             }
+             else
+              Error("Event \""+Current->asName+"\" cannot find model\""+Current->asNodeName+"\"");
+             Current->asNodeName= "";
             break;
             case tp_Lights :
                 tmp= FindGroundNode(Current->asNodeName,TP_MODEL);
@@ -2314,7 +2310,14 @@ if (QueryRootEvent)
             break;
             case tp_Animation :
 //Marcin: dorobic translacje
-                QueryRootEvent->Params[9].asAnimContainer->SetRotateAnim(
+             if (QueryRootEvent->Params[0].asInt==1)
+               QueryRootEvent->Params[9].asAnimContainer->SetRotateAnim(
+                    vector3(QueryRootEvent->Params[1].asdouble,
+                            QueryRootEvent->Params[2].asdouble,
+                            QueryRootEvent->Params[3].asdouble),
+                            QueryRootEvent->Params[4].asdouble);
+             else
+               QueryRootEvent->Params[9].asAnimContainer->SetTranslateAnim(
                     vector3(QueryRootEvent->Params[1].asdouble,
                             QueryRootEvent->Params[2].asdouble,
                             QueryRootEvent->Params[3].asdouble),
@@ -2741,9 +2744,9 @@ bool __fastcall TGround::Render(vector3 pPosition)
   for (i=c-n;i<c+n;i++)
   {
    direction=vector3(i-c,0,j-r);
-   if (LengthSquared3(direction)>4)
+   if (LengthSquared3(direction)>5)
    {direction=SafeNormalize(direction);
-    if (CameraDirection.x*direction.x+CameraDirection.z*direction.z<0.5)
+    if (CameraDirection.x*direction.x+CameraDirection.z*direction.z<0.55)
      continue; //pomijanie zbêdnych sektorów
    }
    if ((tmp=FastGetSubRect(i,j))!=NULL)
@@ -2780,9 +2783,9 @@ bool __fastcall TGround::RenderAlpha(vector3 pPosition)
   for (int i=c-n;i<c+n;i++)
   {
    direction=vector3(i-c,0,j-r);
-   if (LengthSquared3(direction)>4)
+   if (LengthSquared3(direction)>5)
    {direction=SafeNormalize(direction);
-    if (CameraDirection.x*direction.x+CameraDirection.z*direction.z<0.5)
+    if (CameraDirection.x*direction.x+CameraDirection.z*direction.z<0.55)
      continue; //pomijanie zbêdnych sektorów
    }
    if ((tmp=FastGetSubRect(i,j))!=NULL)

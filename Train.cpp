@@ -1409,7 +1409,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       {
   //McZapkie: poruszanie sie po kabinie, w updatemechpos zawarte sa wiezy
 
-       double dt=Timer::GetDeltaTime();
+       //double dt=Timer::GetDeltaTime();
        if (DynamicObject->MoverParameters->ActiveCab<0)
         fMechCroach=-0.5;
        else
@@ -1552,6 +1552,7 @@ bool __fastcall TTrain::Update()
 
  if (DynamicObject->mdKabina)
   {
+    
     tor= DynamicObject->GetTrack(); //McZapkie-180203
 
 //McZapkie: predkosc wyswietlana na tachometrze brana jest z obrotow kol
@@ -1774,7 +1775,7 @@ bool __fastcall TTrain::Update()
       if (rsRunningNoise.AM!=0)
        {
         rsRunningNoise.Stop();
-        float aa=rsRunningNoise.AA;
+        //float aa=rsRunningNoise.AA;
         float am=rsRunningNoise.AM;
         float fa=rsRunningNoise.FA;
         float fm=rsRunningNoise.FM;
@@ -2867,7 +2868,7 @@ bool TTrain::CabChange(int iDirection)
        }
       else return false;
     }
-   else return false;
+  // else return false;
   return false;
 }
 
@@ -3141,22 +3142,15 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
         pMechSittingPosition.z=Parser->GetNextSymbol().ToDouble();
         parse=true;
       }
-      else
-      {
-        parse=false;
-      }
+      //else parse=false;
      while (!Parser->EndOfFile)
       {
         //ABu: wstawione warunki, wczesniej tylko to:
         //   str= Parser->GetNextSymbol().LowerCase();
         if (parse)
-        {
            str= Parser->GetNextSymbol().LowerCase();
-        }
         else
-        {
            parse=true;
-        }
 
     //inicjacja kabiny
         if (AnsiCompareStr(AnsiString("cab")+cabindex+AnsiString("model:"),str)==0)     //model kabiny

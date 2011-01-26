@@ -87,6 +87,7 @@ class TSubModel
 private:
       TSubModelType eType;
       GLuint TextureID;
+      int iFlags; //flagi informacyjne
       bool TexAlpha;        //McZapkie-141202: zeby bylo wiadomo czy sortowac ze wzgledu na przezroczystosc
       bool bLight; //selfillum
       float f4Ambient[4];
@@ -119,11 +120,11 @@ private:
       double f_Angle, f_aAngle;
       vector3 v_RotateAxis, v_aRotateAxis;
       vector3 v_Angles, v_aAngles;
-      double f_DesiredAngle, f_aDesiredAngle;
-      double f_RotateSpeed, f_aRotateSpeed;
+      //double f_DesiredAngle, f_aDesiredAngle;
+      //double f_RotateSpeed, f_aRotateSpeed; //na tym poziomie nie ma animacji
       vector3 v_TransVector, v_aTransVector;
-      vector3 v_DesiredTransVector, v_aDesiredTransVector;
-      double f_TranslateSpeed, f_aTranslateSpeed;
+      //vector3 v_DesiredTransVector, v_aDesiredTransVector;
+      //double f_TranslateSpeed, f_aTranslateSpeed; //na tym poziomie nie ma animacji
 
 
       TSubModel *Next;
@@ -134,12 +135,14 @@ private:
       int iNumVerts; //potrzebne do VBO
       int iVboPtr;
       GLVERTEX *Vertices; //do VBO
+      int iAnimOwner;
 public:
 
       TAnimType b_Anim, b_aAnim;
 
       bool Visible;
       std::string Name;
+      static int iInstance;
 
       __fastcall TSubModel();
       __fastcall ~TSubModel();
@@ -157,7 +160,7 @@ public:
       matrix4x4* __fastcall GetTransform();
       inline void __fastcall Hide() { Visible= false; };
       void __fastcall RaArrayFill(CVertNormTex *Vert);
-      int __fastcall AlphaMode(); 
+      int __fastcall Flags(); 
 } ;
 
 class TModel3d : public CMesh
@@ -167,7 +170,7 @@ private:
     int MaterialsCount;
     bool TractionPart;
     TSubModel *Root;
-    int iAlpha;     //Ra: czy submodele maj¹ przezroczyste tekstury
+    int iFlags;     //Ra: czy submodele maj¹ przezroczyste tekstury
 public:
     inline TSubModel* __fastcall GetSMRoot() {return(Root);};
     int SubModelsCount;
@@ -187,7 +190,7 @@ public:
     void __fastcall RenderAlpha(vector3 pPosition,double fAngle=0,GLuint ReplacableSkinId=0,bool bAlpha=false);
     void __fastcall RenderAlpha(double fSquareDistance,GLuint ReplacableSkinId=0,bool bAlpha=false);
     inline int __fastcall GetSubModelsCount() { return (SubModelsCount); };
-    int __fastcall AlphaMode() {return iAlpha;};
+    int __fastcall Flags() {return iFlags;};
 };
 
 typedef TModel3d *PModel3d;

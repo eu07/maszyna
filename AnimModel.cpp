@@ -36,97 +36,120 @@ const double fOffTime= fOnTime+0.66;
 
 __fastcall TAnimContainer::TAnimContainer()
 {
-    pNext= NULL;
-//    fAngle= 0.0f;
-//    vRotateAxis= vector3(0.0f,0.0f,0.0f);
-    vRotateAngles= vector3(0.0f,0.0f,0.0f); //aktualne k¹ty obrotu
-    vDesiredAngles= vector3(0.0f,0.0f,0.0f); //docelowe k¹ty obrotu
-    fRotateSpeed= 0.0f;
+ pNext=NULL;
+ vRotateAngles=vector3(0.0f,0.0f,0.0f); //aktualne k¹ty obrotu
+ vDesiredAngles=vector3(0.0f,0.0f,0.0f); //docelowe k¹ty obrotu
+ fRotateSpeed=0.0;
+ vTranslation=vector3(0.0f,0.0f,0.0f); //aktualne przesuniêcie
+ vTranslateTo=vector3(0.0f,0.0f,0.0f); //docelowe przesuniêcie
+ fTranslateSpeed=0.0;
+ pSubModel=NULL;
+ iAnim=0; //po³o¿enie pocz¹tkowe
 }
 
 __fastcall TAnimContainer::~TAnimContainer()
 {
-    SafeDelete(pNext);
+ SafeDelete(pNext);
 }
 
 bool __fastcall TAnimContainer::Init(TSubModel *pNewSubModel)
 {
-//    fAngle= 0.0f;
-    fRotateSpeed= 0.0f;
-    pSubModel= pNewSubModel;
-    return (pSubModel!=NULL);
+ fRotateSpeed=0.0f;
+ pSubModel=pNewSubModel;
+ return (pSubModel!=NULL);
 }
-/*
-void __fastcall TAnimContainer::SetRotateAnim(vector3 vNewRotateAxis, double fNewDesiredAngle, double fNewRotateSpeed, bool bResetAngle)
-{
-    fRotateSpeed= fNewRotateSpeed;
-    vRotateAxis= Normalize(vNewRotateAxis);
-    fDesiredAngle= fNewDesiredAngle;
-    if (bResetAngle)
-        fAngle= 0;
-} */
 
 void __fastcall TAnimContainer::SetRotateAnim(vector3 vNewRotateAngles, double fNewRotateSpeed, bool bResetAngle)
 {
-    vDesiredAngles= vNewRotateAngles;
-    fRotateSpeed= fNewRotateSpeed;
+ vDesiredAngles=vNewRotateAngles;
+ fRotateSpeed=fNewRotateSpeed;
+ iAnim|=1;
 }
 
+void __fastcall TAnimContainer::SetTranslateAnim(vector3 vNewTranslate, double fNewSpeed)
+{
+ vTranslateTo=vNewTranslate;
+ fTranslateSpeed=fNewSpeed;
+ iAnim|=2;
+}
 
 void __fastcall TAnimContainer::UpdateModel()
 {
-    if (pSubModel)
-    {
-        if (fRotateSpeed!=0)
-        {
+ if (pSubModel)
+ {
+  if (fTranslateSpeed!=0)
+  {
+   bool anim=false;
+   vector3 dif=vTranslateTo-vTranslation;
+   vector3 s=fTranslateSpeed*Normalize(dif)*Timer::GetDeltaTime();
+   if (s.x==0?s.y==0?s.z==0:false:false)
+   {vTranslation=vTranslateTo; //nie potrzeba przeliczaæ ju¿
+    fTranslateSpeed=0.0;
+    if (vTranslation.x==0.0)
+     if (vTranslation.y==0.0)
+      if (vTranslation.z==0.0)
+       iAnim&=~2; //przesuniêcie jest zerowe - jest w punkcie pocz¹tkowym
+   }
+   else
+    vTranslation+=s;
+  }
+  if (iAnim&2) //zmieniona pozycja wzglêdem pocz¹tkowej
+  {pSubModel->SetTranslate(vTranslation);
+   pSubModel->SetRotateXYZ(vRotateAngles); //ustawia typ animacji
+  }
+  if (fRotateSpeed!=0)
+  {
+
 /*
-            double dif= fDesiredAngle-fAngle;
-            double s= fRotateSpeed*sign(dif)*Timer::GetDeltaTime();
-            if ((abs(s)-abs(dif))>0)
-                fAngle= fDesiredAngle;
-            else
-                fAngle+= s;
+   double dif= fDesiredAngle-fAngle;
+   double s= fRotateSpeed*sign(dif)*Timer::GetDeltaTime();
+   if ((abs(s)-abs(dif))>0)
+       fAngle= fDesiredAngle;
+   else
+       fAngle+= s;
 
-            while (fAngle>360) fAngle-= 360;
-            while (fAngle<-360) fAngle+= 360;
-            pSubModel->SetRotate(vRotateAxis,fAngle);*/
+   while (fAngle>360) fAngle-= 360;
+   while (fAngle<-360) fAngle+= 360;
+   pSubModel->SetRotate(vRotateAxis,fAngle);*/
 
-            bool anim=false;
-            vector3 dif= vDesiredAngles-vRotateAngles;
-            double s;
-            s= fRotateSpeed*sign(dif.x)*Timer::GetDeltaTime();
-            if ((abs(s)-abs(dif.x))>-0.1)
-                vRotateAngles.x= vDesiredAngles.x;
-            else
-            {   vRotateAngles.x+= s; anim=true;}
-
-            s= fRotateSpeed*sign(dif.y)*Timer::GetDeltaTime();
-            if ((abs(s)-abs(dif.y))>-0.1)
-                vRotateAngles.y= vDesiredAngles.y;
-            else
-            {   vRotateAngles.y+= s; anim=true;}
-
-            s= fRotateSpeed*sign(dif.z)*Timer::GetDeltaTime();
-            if ((abs(s)-abs(dif.z))>-0.1)
-                vRotateAngles.z= vDesiredAngles.z;
-            else
-            {   vRotateAngles.z+= s; anim=true;}
-
-            while (vRotateAngles.x>360) vRotateAngles.x-= 360;
-            while (vRotateAngles.x<-360) vRotateAngles.x+= 360;
-            while (vRotateAngles.y>360) vRotateAngles.y-= 360;
-            while (vRotateAngles.y<-360) vRotateAngles.y+= 360;
-            while (vRotateAngles.z>360) vRotateAngles.z-= 360;
-            while (vRotateAngles.z<-360) vRotateAngles.z+= 360;
-
-            pSubModel->SetRotateXYZ(vRotateAngles);
-            //if (!anim) fRotateSpeed=0.0; //Ra: nie potrzeba przeliczaæ ju¿ - nie, to jakoœ dziwnie dzia³a...
-        }
-
-    }
+   bool anim=false;
+   vector3 dif=vDesiredAngles-vRotateAngles;
+   double s;
+   s=fRotateSpeed*sign(dif.x)*Timer::GetDeltaTime();
+   if (fabs(s)>=fabs(dif.x))
+    vRotateAngles.x=vDesiredAngles.x;
+   else
+   {vRotateAngles.x+=s; anim=true;}
+   s=fRotateSpeed*sign(dif.y)*Timer::GetDeltaTime();
+   if (fabs(s)>=fabs(dif.y))
+    vRotateAngles.y=vDesiredAngles.y;
+   else
+   {vRotateAngles.y+=s; anim=true;}
+   s=fRotateSpeed*sign(dif.z)*Timer::GetDeltaTime();
+   if (fabs(s)>=fabs(dif.z))
+    vRotateAngles.z=vDesiredAngles.z;
+   else
+   {vRotateAngles.z+=s; anim=true;}
+   while (vRotateAngles.x>= 360) vRotateAngles.x-=360;
+   while (vRotateAngles.x<=-360) vRotateAngles.x+=360;
+   while (vRotateAngles.y>= 360) vRotateAngles.y-=360;
+   while (vRotateAngles.y<=-360) vRotateAngles.y+=360;
+   while (vRotateAngles.z>= 360) vRotateAngles.z-=360;
+   while (vRotateAngles.z<=-360) vRotateAngles.z+=360;
+   if (vRotateAngles.z==0.0)
+    if (vRotateAngles.y==0.0)
+     if (vRotateAngles.y==0.0)
+      iAnim&=~1; //k¹ty s¹ zerowe
+   if (!anim) fRotateSpeed=0.0; //nie potrzeba przeliczaæ ju¿
+  }
+  if (iAnim&1) //zmieniona pozycja wzglêdem pocz¹tkowej
+   pSubModel->SetRotateXYZ(vRotateAngles);
+ }
 }
 
-//---------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 __fastcall TAnimModel::TAnimModel()
 {
@@ -144,7 +167,7 @@ __fastcall TAnimModel::TAnimModel()
 
 __fastcall TAnimModel::~TAnimModel()
 {
-    SafeDelete(pRoot);
+ SafeDelete(pRoot);
 }
 
 bool __fastcall TAnimModel::Init(TModel3d *pNewModel)
@@ -245,43 +268,40 @@ TAnimContainer* __fastcall TAnimModel::AddContainer(char *pName)
 
 TAnimContainer* __fastcall TAnimModel::GetContainer(char *pName)
 {
-    if (!pName) return pRoot; //pobranie pierwszego (dla obrotnicy)
-    TAnimContainer *pCurrent;
-    for (pCurrent= pRoot; pCurrent!=NULL; pCurrent=pCurrent->pNext)
-        if (pCurrent->GetName()==pName)
-            return pCurrent;
-    return AddContainer(pName);
+ if (!pName) return pRoot; //pobranie pierwszego (dla obrotnicy)
+ TAnimContainer *pCurrent;
+ for (pCurrent=pRoot;pCurrent!=NULL;pCurrent=pCurrent->pNext)
+  if (pCurrent->GetName()==pName)
+   return pCurrent;
+ return AddContainer(pName);
 }
 
 void __fastcall TAnimModel::Render(vector3 pPosition, double fAngle)
 {//sprawdza œwiat³a i rekurencyjnie renderuje TModel3d
- fBlinkTimer-= Timer::GetDeltaTime();
- if (fBlinkTimer<=0)
-  fBlinkTimer= fOffTime;
+ fBlinkTimer-=Timer::GetDeltaTime();
+ if (fBlinkTimer<=0) fBlinkTimer=fOffTime;
  for (int i=0;i<iNumLights;i++)
   if (lsLights[i]==ls_Blink)
   {
-   if (LightsOn[i])
-    LightsOn[i]->Visible=(fBlinkTimer<fOnTime);
-   if (LightsOff[i])
-    LightsOff[i]->Visible=!(fBlinkTimer<fOnTime);
+   if (LightsOn[i])  LightsOn[i]->Visible=(fBlinkTimer<fOnTime);
+   if (LightsOff[i]) LightsOff[i]->Visible=!(fBlinkTimer<fOnTime);
   }
   else
   {
-   if (LightsOn[i])
-    LightsOn[i]->Visible=(lsLights[i]==ls_On);
-   if (LightsOff[i])
-    LightsOff[i]->Visible=(lsLights[i]==ls_Off);
+   if (LightsOn[i])  LightsOn[i]->Visible=(lsLights[i]==ls_On);
+   if (LightsOff[i]) LightsOff[i]->Visible=(lsLights[i]==ls_Off);
   }
+ ++TSubModel::iInstance; //¿eby nie robiæ cudzych animacji
  TAnimContainer *pCurrent;
  for (pCurrent=pRoot;pCurrent!=NULL;pCurrent=pCurrent->pNext)
-  pCurrent->UpdateModel();
- if (pModel)
+  pCurrent->UpdateModel(); //przeliczenie animacji ka¿dego submodelu
+ if (pModel) //renderowanie rekurencyjne submodeli
   pModel->Render(pPosition,fAngle,ReplacableSkinId,bTexAlpha);
 }
 
+/*
 void __fastcall TAnimModel::Render(double fSquareDistance)
-{
+{//nie u¿ywane
     fBlinkTimer-= Timer::GetDeltaTime();
     if (fBlinkTimer<=0)
         fBlinkTimer= fOffTime;
@@ -305,7 +325,7 @@ void __fastcall TAnimModel::Render(double fSquareDistance)
 
     TAnimContainer *pCurrent;
     for (pCurrent= pRoot; pCurrent!=NULL; pCurrent=pCurrent->pNext)
-        pCurrent->UpdateModel();
+        pCurrent->UpdateModel(); //przeliczenie animacji
     if (pModel)
         pModel->Render(fSquareDistance,ReplacableSkinId,bTexAlpha);
 }
@@ -335,44 +355,38 @@ void __fastcall TAnimModel::RenderAlpha(double fSquareDistance)
 
     TAnimContainer *pCurrent;
     for (pCurrent= pRoot; pCurrent!=NULL; pCurrent=pCurrent->pNext)
-        pCurrent->UpdateModel();
+        pCurrent->UpdateModel(); //przeliczenie animacji
     if (pModel)
         pModel->RenderAlpha(fSquareDistance,ReplacableSkinId,bTexAlpha);
 }
-
+*/
 void __fastcall TAnimModel::RenderAlpha(vector3 pPosition, double fAngle)
 {
-    fBlinkTimer-= Timer::GetDeltaTime();
-    if (fBlinkTimer<=0)
-        fBlinkTimer= fOffTime;
-
-    for (int i=0; i<iNumLights; i++)
-//        if (LightsOn[i])
-            if (lsLights[i]==ls_Blink)
-            {
-                if (LightsOn[i])
-                 LightsOn[i]->Visible= (fBlinkTimer<fOnTime);
-                if (LightsOff[i])
-                 LightsOff[i]->Visible= !(fBlinkTimer<fOnTime);
-            }
-            else
-            {
-                if (LightsOn[i])
-                 LightsOn[i]->Visible= (lsLights[i]==ls_On);
-                if (LightsOff[i])
-                 LightsOff[i]->Visible= (lsLights[i]==ls_Off);
-            }
-
-    TAnimContainer *pCurrent;
-    for (pCurrent= pRoot; pCurrent!=NULL; pCurrent=pCurrent->pNext)
-        pCurrent->UpdateModel();
-    if (pModel)
-        pModel->RenderAlpha(pPosition,fAngle,ReplacableSkinId,bTexAlpha);
+ fBlinkTimer-=Timer::GetDeltaTime();
+ if (fBlinkTimer<=0) fBlinkTimer=fOffTime;
+ for (int i=0;i<iNumLights;i++)
+  if (lsLights[i]==ls_Blink)
+  {
+   if (LightsOn[i])  LightsOn[i]->Visible=(fBlinkTimer<fOnTime);
+   if (LightsOff[i]) LightsOff[i]->Visible=!(fBlinkTimer<fOnTime);
+  }
+  else
+  {
+   if (LightsOn[i])  LightsOn[i]->Visible=(lsLights[i]==ls_On);
+   if (LightsOff[i]) LightsOff[i]->Visible=(lsLights[i]==ls_Off);
+  }
+ ++TSubModel::iInstance; //¿eby nie robiæ cudzych animacji
+ TAnimContainer *pCurrent;
+ for (pCurrent=pRoot;pCurrent!=NULL;pCurrent=pCurrent->pNext)
+  pCurrent->UpdateModel(); //przeliczenie animacji ka¿dego submodelu
+ if (pModel) //renderowanie rekurencyjne submodeli
+  pModel->RenderAlpha(pPosition,fAngle,ReplacableSkinId,bTexAlpha);
 };
 
-int __fastcall TAnimModel::AlphaMode()
+int __fastcall TAnimModel::Flags()
 {//informacja dla TGround, czy ma byæ Render() czy RenderAlpha()
- return pModel->AlphaMode()|(ReplacableSkinId>0?(bTexAlpha?2:1):0);
+ int i=pModel->Flags();
+ return i|(ReplacableSkinId>0?(i&0x01010001)*(bTexAlpha?4:2):0);
 };
 //---------------------------------------------------------------------------
 
