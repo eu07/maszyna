@@ -2196,6 +2196,7 @@ bool __fastcall TGround::CheckQuery()
 {
     TLocation loc;
     int i;
+	double rprobability;
     Double evtime, evlowesttime;
     evlowesttime= 1000000;
 if (QueryRootEvent)
@@ -2352,7 +2353,11 @@ if (QueryRootEvent)
                    bCondition=(QueryRootEvent->Params[9].asTrack->IsEmpty());
                   else
                   if (QueryRootEvent->Params[8].asInt==conditional_propability)
-                   bCondition=(QueryRootEvent->Params[10].asdouble>1.0*rand()/RAND_MAX);
+                   {
+                   rprobability=1.0*rand()/RAND_MAX;
+                   bCondition=(QueryRootEvent->Params[10].asdouble>rprobability);
+                   WriteLog("Random integer: "+CurrToStr(rprobability)+"/"+CurrToStr(QueryRootEvent->Params[10].asdouble));
+                   }
                   else
                    {
                    bCondition=
