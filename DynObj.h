@@ -141,6 +141,7 @@ protected:
     //Byte PrevConnectedNo;
     int CouplCounter;
     AnsiString asModel;
+    int iDirection;
     void ScanEventTrack(TTrack *Track);
     void ABuScanObjects(TTrack *Track, double ScanDir, double ScanDist);
     void __fastcall ABuCheckMyTrack();
@@ -227,6 +228,7 @@ public:
     TTrack *MyTrack; //McZapkie-030303: tor na ktorym stoi, ABu
     AnsiString asBaseDir;
     GLuint ReplacableSkinID;  //McZapkie:zmienialne nadwozie
+    bool bAlpha;
     __fastcall TDynamicObject();
     __fastcall ~TDynamicObject();
     bool __fastcall TDynamicObject::Init(AnsiString Name, AnsiString BaseDir, AnsiString asReplacableSkin, AnsiString Type_Name,

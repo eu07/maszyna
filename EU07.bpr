@@ -3,7 +3,7 @@
 <PROJECT>
   <MACROS>
     <VERSION value="BCB.05.03"/>
-    <PROJECT value="D:\EU07\EU07.exe"/>
+    <PROJECT value="G:\EU07\EU07.exe"/>
     <OBJFILES value="McZapkie\mover.obj McZapkie\ai_driver.obj QueryParserComp.obj 
       McZapkie\mtable.obj EU07.obj dumb3d.obj Camera.obj Texture.obj World.obj 
       Model3d.obj geometry.obj MdlMngr.obj Train.obj wavread.obj Timer.obj 
@@ -60,8 +60,8 @@ IncludeVerInfo=1
 AutoIncBuild=1
 MajorVer=1
 MinorVer=2
-Release=65
-Build=101
+Release=67
+Build=103
 Debug=1
 PreRelease=0
 Special=0
@@ -73,7 +73,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=PC2009 SP1
-FileVersion=1.2.65.101
+FileVersion=1.2.67.103
 InternalName=hammer
 LegalCopyright=
 LegalTrademarks=
@@ -133,8 +133,8 @@ Item6=_DEBUG
 
 [HistoryLists\hlFinalOutputDir]
 Count=7
-Item0=D:\EU07\
-Item1=G:\EU07\
+Item0=G:\EU07\
+Item1=D:\EU07\
 Item2=M:\aEU07\EU07\
 Item3=M:\aEU07\EU07-2006\
 Item4=C:\EU07\
@@ -154,10 +154,16 @@ RemoteDebug=0
 [Compiler]
 ShowInfoMsgs=0
 LinkDebugVcl=0
+LinkCGLIB=0
 
 [CORBA]
 AddServerUnit=1
 AddClientUnit=1
 PrecompiledHeaders=1
+
+[Language]
+ActiveLang=
+ProjectLang=
+RootDir=
   </IDEOPTIONS>
 </PROJECT>
