@@ -81,7 +81,9 @@ void __fastcall TAnimContainer::UpdateModel()
   {
    bool anim=false;
    vector3 dif=vTranslateTo-vTranslation;
-   vector3 s=fTranslateSpeed*Normalize(dif)*Timer::GetDeltaTime();
+   vector3 s=SafeNormalize(dif);
+   s=fTranslateSpeed*s*Timer::GetDeltaTime();
+   if (LengthSquared3(s)>LengthSquared3(dif)) s=dif; //¿eby nie jecha³o na drug¹ stronê
    if (s.x==0?s.y==0?s.z==0:false:false)
    {vTranslation=vTranslateTo; //nie potrzeba przeliczaæ ju¿
     fTranslateSpeed=0.0;
@@ -92,10 +94,6 @@ void __fastcall TAnimContainer::UpdateModel()
    }
    else
     vTranslation+=s;
-  }
-  if (iAnim&2) //zmieniona pozycja wzglêdem pocz¹tkowej
-  {pSubModel->SetTranslate(vTranslation);
-   pSubModel->SetRotateXYZ(vRotateAngles); //ustawia typ animacji
   }
   if (fRotateSpeed!=0)
   {
@@ -142,8 +140,10 @@ void __fastcall TAnimContainer::UpdateModel()
       iAnim&=~1; //k¹ty s¹ zerowe
    if (!anim) fRotateSpeed=0.0; //nie potrzeba przeliczaæ ju¿
   }
-  if (iAnim&1) //zmieniona pozycja wzglêdem pocz¹tkowej
-   pSubModel->SetRotateXYZ(vRotateAngles);
+  if (iAnim&3) //zmieniona pozycja wzglêdem pocz¹tkowej
+  {pSubModel->SetTranslate(vTranslation);
+   pSubModel->SetRotateXYZ(vRotateAngles); //ustawia typ animacji
+  }
  }
 }
 

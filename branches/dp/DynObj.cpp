@@ -1328,7 +1328,8 @@ __fastcall TDynamicObject::TDynamicObject()
      smAnimatedDoor[i]= NULL;
     mdModel=NULL;
     mdKabina=NULL;
-    ReplacableSkinID= 0;
+    ReplacableSkinID=0;
+    bAlpha=false;
     smWiazary[0]=smWiazary[1]= NULL;
     smWahacze[0]=smWahacze[1]=smWahacze[2]=smWahacze[3]= NULL;
     fWahaczeAmp= 0;
@@ -1350,6 +1351,7 @@ __fastcall TDynamicObject::TDynamicObject()
     eng_turbo=0;
 
     cp1=cp2=sp1=sp2=0;
+    iDirection=1; //stoi w kierunku tradycyjnym
 }
 
 
@@ -1367,6 +1369,9 @@ bool __fastcall TDynamicObject::Init(AnsiString Name, AnsiString BaseDir, AnsiSt
                                      TTrack *Track, double fDist, AnsiString DriverType, double fVel, AnsiString TrainName, int Load, AnsiString LoadType)
 //McZapkie: Name to np. EU07-424, BaseDir to np. PKP/EU07, Type_Name to np. 303E, TrainName to np. PE2307
 {
+
+ iDirection=(fDist<0?-1:1); //Ra: ujemne, jeœli ma byæ wstawiony jako obrócony
+ if (fDist<0) fDist=-fDist;
 
 //McZapkie-310302
     asBaseDir= "dynamic\\"+BaseDir+"\\";
@@ -1555,7 +1560,6 @@ bool __fastcall TDynamicObject::Init(AnsiString Name, AnsiString BaseDir, AnsiSt
        smBuforPrawy[i]= mdModel->GetFromName(asAnimName.c_str());
      }
 
-
      for (int i=0; i<iAxles; i++)
       dRailPosition[i]=dWheelsPosition[i]+MoverParameters->Dim.L+fDist;
 //McZapkie-250202 end.
@@ -1567,27 +1571,27 @@ bool __fastcall TDynamicObject::Init(AnsiString Name, AnsiString BaseDir, AnsiSt
 //McZapkie-090402: odleglosc miedzy czopami skretu lub osiami
     float HalfMaxAxleDist= Max0R(MoverParameters->BDist,MoverParameters->ADist)*0.5;
     switch (iNumAxles)
-    {
-        case 2:
-            Axle1.Init(Track,this);
-            Axle4.Init(Track,this);
-            Axle1.Move(-HalfMaxAxleDist-0.01+fDist);
-            Axle4.Move(HalfMaxAxleDist+0.01+fDist);
-            Axle2.Init(Track,this);
-            Axle3.Init(Track,this);
-            Axle2.Move(-HalfMaxAxleDist+0.01+fDist);
-            Axle3.Move(HalfMaxAxleDist-0.01+fDist);
-        break;
-        case 4:
-            Axle1.Init(Track,this);
-            Axle2.Init(Track,this);
-            Axle3.Init(Track,this);
-            Axle4.Init(Track,this);
-            Axle1.Move(-(HalfMaxAxleDist+MoverParameters->ADist*0.5)+fDist);
-            Axle2.Move(-(HalfMaxAxleDist-MoverParameters->ADist*0.5)+fDist);
-            Axle3.Move((HalfMaxAxleDist-MoverParameters->ADist*0.5)+fDist);
-            Axle4.Move((HalfMaxAxleDist+MoverParameters->ADist*0.5)+fDist);
-        break;
+    {//Ra: pojazdy wstawiaj¹ siê odwrotnie, ale nie jestem do koñca pewien, czy dobrze
+     case 2:
+      Axle1.Init(Track,this);//,iDirection);
+      Axle4.Init(Track,this);//,iDirection);
+      Axle1.Move(iDirection*(-HalfMaxAxleDist-0.01)+fDist);
+      Axle4.Move(iDirection*(HalfMaxAxleDist+0.01)+fDist);
+      Axle2.Init(Track,this);//,iDirection);
+      Axle3.Init(Track,this);//,iDirection);
+      Axle2.Move(iDirection*(-HalfMaxAxleDist+0.01)+fDist);
+      Axle3.Move(iDirection*(HalfMaxAxleDist-0.01)+fDist);
+     break;
+     case 4:
+      Axle1.Init(Track,this);//,iDirection);
+      Axle2.Init(Track,this);//,iDirection);
+      Axle3.Init(Track,this);//,iDirection);
+      Axle4.Init(Track,this);//,iDirection);
+      Axle1.Move(iDirection*(-(HalfMaxAxleDist+MoverParameters->ADist*0.5))+fDist);
+      Axle2.Move(iDirection*(-(HalfMaxAxleDist-MoverParameters->ADist*0.5))+fDist);
+      Axle3.Move(iDirection*((HalfMaxAxleDist-MoverParameters->ADist*0.5))+fDist);
+      Axle4.Move(iDirection*((HalfMaxAxleDist+MoverParameters->ADist*0.5))+fDist);
+     break;
     }
     pOldPos4= Axle1.pPosition;
     pOldPos1= Axle4.pPosition;
@@ -1635,49 +1639,46 @@ void __fastcall TDynamicObject::Move(double fDistance)
 
 void __fastcall TDynamicObject::AttachPrev(TDynamicObject *Object, int iType)
 {
-    //ABu: ponizej chyba najprostszy i najszybszy sposob pozbycia sie bledu :)
-    //(iType czasami powinno byc rowne 0, a wynosi 48. Cholera wie, dlaczego...)
-    //if (iType==48)
-    double l=0;
-    for (TDynamicObject *Current= this; Current!=NULL; Current= Current->PrevConnected)
-        if (Current->PrevConnected)
-            l+= Current->GetLength();//-0.01;
-        else
-        {
-            l+= Current->GetLength()*0.5; //MC: skasowalem -0.1 bo juz niepotrzebne
-            break;
-        }
-    /*double r=*/ Object->Move(-l-(Object->GetLength())*0.5f); //Ra: bool do double zwracane jako bool?
-
-                TLocation loc;
-
-                loc.X=-GetPosition().x;
-                loc.Y=GetPosition().z;
-                loc.Z=GetPosition().y;                   /* TODO -cBUG : Remove this */
-                MoverParameters->Loc= loc;
-
-                loc.X=-Object->GetPosition().x;
-                loc.Y=Object->GetPosition().z;
-                loc.Z=Object->GetPosition().y;
-                Object->MoverParameters->Loc= loc;
-
-    MoverParameters->Attach(1,0,&(Object->MoverParameters),iType);
-    MoverParameters->Couplers[1].Render=false;
-    Object->MoverParameters->Attach(0,1,&MoverParameters,iType);
-    Object->MoverParameters->Couplers[0].Render=true;
-    NextConnected= Object;
-    Object->PrevConnected= this;
-    NextConnectedNo= 0;
-    Object->PrevConnectedNo= 1;
-    //ABu: To mala poprawka - sprawdzenie tablic Dynamics dla obiektow,
-    //bo wagony sa blednie rozmieszczane przy starcie symulatora.
-    Object->ABuCheckMyTrack();
-    return;// r;
-
-    //SetPneumatic(1,1); //Ra: to i tak siê nie wykonywa³o po return
-    //SetPneumatic(1,0);
-    //SetPneumatic(0,1);
-    //SetPneumatic(0,0);
+ //ABu: ponizej chyba najprostszy i najszybszy sposob pozbycia sie bledu :)
+ //(iType czasami powinno byc rowne 0, a wynosi 48. Cholera wie, dlaczego...)
+ //if (iType==48)
+ double l=0;
+ //obliczanie d³ugoœci sk³adu
+ for (TDynamicObject *Current=this;Current!=NULL;Current=Current->PrevConnected)
+  if (Current->PrevConnected)
+   l+=Current->GetLength();
+  else
+  {
+   l+=Current->GetLength()*0.5; //pierwszy w sk³adzie liczony od po³owy
+   break;
+  }
+ /*double r=*/
+ Object->Move(-l-(Object->GetLength())*0.5f); //Ra: bool do double zwracane jako bool?
+ TLocation loc;
+ loc.X=-GetPosition().x;
+ loc.Y=GetPosition().z;
+ loc.Z=GetPosition().y;                   /* TODO -cBUG : Remove this */
+ MoverParameters->Loc=loc;
+ loc.X=-Object->GetPosition().x;
+ loc.Y=Object->GetPosition().z;
+ loc.Z=Object->GetPosition().y;
+ Object->MoverParameters->Loc=loc;
+ MoverParameters->Attach(iDirection<0?0:1,Object->iDirection<0?1:0,&(Object->MoverParameters),iType);
+ MoverParameters->Couplers[iDirection<0?0:1].Render=false;
+ Object->MoverParameters->Attach(Object->iDirection<0?1:0,iDirection<0?0:1,&MoverParameters,iType);
+ Object->MoverParameters->Couplers[Object->iDirection<0?1:0].Render=true;
+ NextConnected=Object;
+ Object->PrevConnected=this;
+ NextConnectedNo=0;
+ Object->PrevConnectedNo=1;
+ //ABu: To mala poprawka - sprawdzenie tablic Dynamics dla obiektow,
+ //bo wagony sa blednie rozmieszczane przy starcie symulatora.
+ Object->ABuCheckMyTrack();
+ return;// r;
+ //SetPneumatic(1,1); //Ra: to i tak siê nie wykonywa³o po return
+ //SetPneumatic(1,0);
+ //SetPneumatic(0,1);
+ //SetPneumatic(0,0);
 }
 
 bool __fastcall TDynamicObject::UpdateForce(double dt, double dt1, bool FullVer)
@@ -2982,6 +2983,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString Ty
            {
              ReplacableSkin=Global::asCurrentTexturePath+ReplacableSkin;      //skory tez z dynamic/...
              ReplacableSkinID= TTexturesManager::GetTextureID(ReplacableSkin.c_str(),Global::iDynamicFiltering);
+             bAlpha=TTexturesManager::GetAlpha(ReplacableSkinID);
            }
 //Winger 040304 - ladowanie przedsionkow dla EZT
           if (MoverParameters->TrainType==dt_EZT)

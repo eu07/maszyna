@@ -259,6 +259,7 @@ void __fastcall TGround::MoveGroundNode(vector3 pPosition)
 
 void __fastcall TGroundNode::RenderVBO()
 {//renderowanie z bufora VBO (Vertex Array gdy brak VBO)
+ glEnable(GL_LIGHTING); //!!!! bo coœ oœwietlenie nie dzia³a
  glColor3ub(Diffuse[0],Diffuse[1],Diffuse[2]);
  if (TextureID)
   glBindTexture(GL_TEXTURE_2D,TextureID); // Ustaw aktywn¹ teksturê
@@ -716,7 +717,7 @@ int iTrainSetWehicleNumber= 0;
 TGroundNode *TrainSetNode= NULL;
 
 TGroundVertex TempVerts[100];
-Byte TempConnectionType[200];
+Byte TempConnectionType[200]; //Ra: ujemne, gdy odwrotnie
 
 TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
 {
@@ -982,7 +983,10 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
                     str= asTrainSetTrack;
                     parser->getTokens();
                     *parser >> tf1;
-                    tf1+= fTrainSetDist; //Dist
+                    if (tf1==-1.0)  //Ra: wstawianie modelu odwrotnie
+                     tf1=-fTrainSetDist; //ujemne, gdy odwrotnie
+                    else
+                     tf1+=fTrainSetDist; //Dist
 //                    int1= Parser->GetNextSymbol().ToInt();                 //Cab
                     parser->getTokens();
                     *parser >> token;
@@ -1593,7 +1597,7 @@ bool __fastcall TGround::Init(AnsiString asFile)
             Global::lightPos[1]= lp.y;
             Global::lightPos[2]= lp.z;
             Global::lightPos[3]= 0.0f;
-            Global::lightPos[3]= 0.0f;
+            //Global::lightPos[3]= 0.0f;
             glLightfv(GL_LIGHT0,GL_POSITION,Global::lightPos);                  //daylight position
             parser.getTokens(3);
             parser >> Global::ambientDayLight[0] >> Global::ambientDayLight[1] >> Global::ambientDayLight[2];
@@ -1695,12 +1699,10 @@ bool __fastcall TGround::Init(AnsiString asFile)
 
         if (bTrainSet && LastNode && (LastNode->iType==TP_DYNAMIC))
         {
-            if (TrainSetNode)
-             {
-                TrainSetNode->DynamicObject->AttachPrev(LastNode->DynamicObject, TempConnectionType[iTrainSetWehicleNumber-2]);
-             }
-            TrainSetNode= LastNode;
-//            fTrainSetVel= 0; a po co to???
+         if (TrainSetNode) //je¿eli jest przedostatni dynamic
+          TrainSetNode->DynamicObject->AttachPrev(LastNode->DynamicObject,TempConnectionType[iTrainSetWehicleNumber-2]);
+         TrainSetNode=LastNode; //ostatnio wczytany
+//         fTrainSetVel= 0; a po co to???
         }
 
         LastNode= NULL;

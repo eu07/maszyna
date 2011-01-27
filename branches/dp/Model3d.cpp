@@ -60,12 +60,12 @@ void __fastcall TSubModel::FirstInit()
     //f_aTranslateSpeed= 0;
     //f_aDesiredAngle= 0;
     //f_aRotateSpeed= 0;
-    b_aAnim= at_None;
-    Visible= false;
+    b_aAnim=at_None;
+    Visible=false;
     Matrix.Identity();
 //    Transform.Identity();
-    Next= NULL;
-    Child= NULL;
+    Next=NULL;
+    Child=NULL;
     TextureID= 0;
     TexAlpha= false;
     iFlags=0;
@@ -211,6 +211,7 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
         parser.getToken(fcosHotspotAngle);
         fcosHotspotAngle=cos(fcosHotspotAngle * M_PI / 180);
         iNumVerts=1;
+        iFlags|=2; //rysowane w cyklu nieprzezroczystych        
     };
 
     if (eType == smt_Mesh)
@@ -241,7 +242,7 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
             if (texture.find("replacableskin")!=texture.npos)
             {
                 TextureID= -1;
-                iFlags|=1;
+                iFlags|=1; //zmienna tekstura
             }
             else
             {
@@ -251,7 +252,7 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
 
                 TextureID= TTexturesManager::GetTextureID(texture);
                 TexAlpha= TTexturesManager::GetAlpha(TextureID);
-                iFlags|=TexAlpha?4:2;
+                iFlags|=TexAlpha?4:2; //2-nieprzezroczysta, 4-przezroczysta
             };
         };
     };
@@ -427,8 +428,23 @@ void __fastcall TSubModel::AddNext(TSubModel *SubModel)
   Next=SubModel;
  else
   Next->AddNext(SubModel);
- iFlags|=(SubModel->iFlags&0xFF)<<24; //sumowanie flag struktury
+ iFlags|=(SubModel->iFlags&0xFF)<<24; //sumowanie flag nastêpnego
 };
+
+int __fastcall TSubModel::Flags()
+{//dodanie submodelu kolejnego (wspólny przodek)
+ int i;
+ if (Child)
+ {i=Child->Flags();
+  iFlags|=0x00FF0000&((i<<16)|(i)|(i>>8)); //potomny, rodzeñstwo i dzieci
+ }
+ if (Next)
+ {i=Next->Flags();
+  iFlags|=0xFF000000&((i<<24)|(i<<8)|(i)); //nastêpny, kolejne i ich dzieci
+ }
+ return iFlags;
+};
+
 void __fastcall TSubModel::SetRotate(vector3 vNewRotateAxis, double fNewAngle)
 {//obrócenie submodelu wg podanej osi (np. wskazówki w kabinie)
  //f_RotateSpeed=0;
@@ -511,30 +527,29 @@ WORD hbIndices[18]= {3,0,1,5,4,2,1,0,4,1,5,3,2,3,5,2,4,0};
 
 void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
 {//g³ówna procedura renderowania
- //float Distdimm=0;
  if (Next!=NULL)
-  Next->Render(ReplacableSkinId,bAlpha); //dalsze rekurencyjnie
+  if (bAlpha?(iFlags&0x02000000):(iFlags&0x03000000))
+   Next->Render(ReplacableSkinId,bAlpha); //dalsze rekurencyjnie
  if (Visible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
  {
   glPushMatrix();
   glMultMatrixd(Matrix.getArray());
   switch (b_Anim)
   {//korekcja po³o¿enia, jeœli submodel jest animowany
-   case at_Rotate:   //czy to potrzebne tu czy moze nizej?
    case at_Translate: //Ra: by³o "true"
     if (iAnimOwner!=iInstance) break; //cudza animacja
-    glRotatef(f_Angle,v_RotateAxis.x,v_RotateAxis.y,v_RotateAxis.z);
     glTranslatef(v_TransVector.x,v_TransVector.y,v_TransVector.z);
-    //vRotateAxis= vector3(0,0,0);
-    //vTransVector= vector3(0,0,0);
-    f_Angle=0;
+    break;
+   case at_Rotate: //Ra: by³o "true"
+    if (iAnimOwner!=iInstance) break; //cudza animacja
+    glRotatef(f_Angle,v_RotateAxis.x,v_RotateAxis.y,v_RotateAxis.z);
     break;
    case at_RotateXYZ:
     if (iAnimOwner!=iInstance) break; //cudza animacja
     glTranslatef(v_TransVector.x,v_TransVector.y,v_TransVector.z);
     //v_TransVector.x=v_TransVector.y=v_TransVector.z=0.0;
-    glRotatef(v_Angles.x,1.0,0.0,0.0);
     glRotatef(v_Angles.y,0.0,1.0,0.0);
+    glRotatef(v_Angles.x,1.0,0.0,0.0);
     glRotatef(v_Angles.z,0.0,0.0,1.0);
     //v_Angles.x=v_Angles.y=v_Angles.z=0.0;
     break;
@@ -548,9 +563,9 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
   }
   else
    glBindTexture(GL_TEXTURE_2D,TextureID);
-  glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);   //McZapkie-240702: zamiast ub
   if (eType==smt_Mesh)
   {
+   glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);   //McZapkie-240702: zamiast ub
    if (!TexAlpha || !Global::bRenderAlpha)  //rysuj gdy nieprzezroczyste lub # albo gdy zablokowane alpha
    {
     glMaterialfv(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE,f4Diffuse);
@@ -570,8 +585,13 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
    fCosViewAngle=DotProduct(Normalize(mat*vector3(0,0,1)-gdzie),Normalize(gdzie));
    //(by³o miêdzy kierunkiem œwiat³a a k¹tem kamery)
    //fCosViewAngle=DotProduct(Normalize(mat*vector3(0,0,1)-mat*vector3(0,0,0)),vector3(0,0,1));
-   if (fCosViewAngle>fcosFalloffAngle)  // kat wiekszy niz max stozek swiatla
+   if (fCosViewAngle>fcosFalloffAngle)  //kat wiekszy niz max stozek swiatla
    {
+    double Distdimm=1.0;
+    if (fCosViewAngle<fcosHotspotAngle) //zmniejszona jasnoœæ miêdzy Hotspot a Falloff
+     if (fcosFalloffAngle<fcosHotspotAngle)
+      Distdimm=1.0-(fcosHotspotAngle-fCosViewAngle)/(fcosHotspotAngle-fcosFalloffAngle);
+
 /*  TODO: poprawic to zeby dzialalo
 
 2- Inverse (Applies inverse decay. The formula is luminance=R0/R, where R0 is
@@ -597,9 +617,10 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
               }
              if (Distdimm>1)
               Distdimm=1;
-             glColor3f(Diffuse[0]*Distdimm,Diffuse[1]*Distdimm,Diffuse[2]*Distdimm);
+
 */
     //glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
+    glColor3f(f4Diffuse[0]*Distdimm,f4Diffuse[1]*Distdimm,f4Diffuse[2]*Distdimm);
     glColorMaterial(GL_FRONT_AND_BACK,GL_EMISSION);
     glDisable(GL_LIGHTING);  //Tolaris-030603: bo mu punkty swiecace sie blendowaly
     glDrawArrays(GL_POINTS,iVboPtr,iNumVerts);  //narysuj wierzcho³ek z VBO
@@ -633,7 +654,8 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
     }
 */
   if (Child!=NULL)
-   Child->Render(ReplacableSkinId,bAlpha);
+   if (bAlpha?(iFlags&0x00020000):(iFlags&0x00030000))
+    Child->Render(ReplacableSkinId,bAlpha);
   glPopMatrix();
  }
  b_Anim=at_None; //wy³¹czenie animacji dla kolejnego u¿ycia submodelu
@@ -641,39 +663,36 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
 
 void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
 {
- if (Next) Next->RenderAlpha(ReplacableSkinId,bAlpha);
- if (eType==smt_FreeSpotLight)
+ if (Next)
+  if (bAlpha?(iFlags&0x05000000):(iFlags&0x04000000))
+   Next->RenderAlpha(ReplacableSkinId,bAlpha);
+ if (Visible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
  {
-//        if (CosViewAngle>0)  //dorobic od kata
-//        {
-            //return; //nie mo¿e byæ return - trzeba skasowaæ animacjê
-//        }
-  // dorobic aureole!
- }
- else if (Visible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
- {
-   glPushMatrix(); //zapamiêtanie matrycy
-   glMultMatrixd(Matrix.getArray());
-   switch (b_aAnim)
-   {case at_Rotate:
-    case at_Translate:
-     if (iAnimOwner!=iInstance) break; //cudza animacja
-     glRotatef(f_aAngle,v_aRotateAxis.x,v_aRotateAxis.y,v_aRotateAxis.z);
-     glTranslatef(v_aTransVector.x,v_aTransVector.y,v_aTransVector.z);
-     f_aAngle=0;
-     break;
-    case at_RotateXYZ:
-     if (iAnimOwner!=iInstance) break; //cudza animacja
-     glTranslatef(v_aTransVector.x,v_aTransVector.y,v_aTransVector.z);
-     //v_aTransVector.x=v_aTransVector.y=v_aTransVector.z=0.0;
-     glRotatef(v_aAngles.x,1.0,0.0,0.0);
-     glRotatef(v_aAngles.y,0.0,1.0,0.0);
-     glRotatef(v_aAngles.z,0.0,0.0,1.0);
-     //v_aAngles.x=v_aAngles.y=v_aAngles.z=0;
-     break;
-   }
+  glPushMatrix(); //zapamiêtanie matrycy
+  glMultMatrixd(Matrix.getArray());
+  switch (b_aAnim)
+  {case at_Translate: //Ra: by³o "true"
+    if (iAnimOwner!=iInstance) break; //cudza animacja
+    glTranslatef(v_aTransVector.x,v_aTransVector.y,v_aTransVector.z);
+    break;
+   case at_Rotate: //Ra: by³o "true"
+    if (iAnimOwner!=iInstance) break; //cudza animacja
+    glRotatef(f_aAngle,v_aRotateAxis.x,v_aRotateAxis.y,v_aRotateAxis.z);
+    break;
+   case at_RotateXYZ:
+    if (iAnimOwner!=iInstance) break; //cudza animacja
+    glTranslatef(v_aTransVector.x,v_aTransVector.y,v_aTransVector.z);
+    //v_aTransVector.x=v_aTransVector.y=v_aTransVector.z=0.0;
+    glRotatef(v_aAngles.y,0.0,1.0,0.0);
+    glRotatef(v_aAngles.x,1.0,0.0,0.0);
+    glRotatef(v_aAngles.z,0.0,0.0,1.0);
+    //v_aAngles.x=v_aAngles.y=v_aAngles.z=0;
+    break;
+  }
   glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
  //zmienialne skory
+  if (eType==smt_Mesh)
+  {
    if ((TextureID==-1)) // && (ReplacableSkinId!=0))
    {
     glBindTexture(GL_TEXTURE_2D,ReplacableSkinId);
@@ -690,9 +709,19 @@ void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
     if (bLight)
      glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
    }
-   if (Child)
-       Child->RenderAlpha(ReplacableSkinId,bAlpha);
-   glPopMatrix();
+  }
+  else if (eType==smt_FreeSpotLight)
+  {
+//        if (CosViewAngle>0)  //dorobic od kata
+//        {
+            //return; //nie mo¿e byæ return - trzeba skasowaæ animacjê
+//        }
+  // dorobic aureolê!
+  }
+  if (Child)
+   if (bAlpha?(iFlags&0x00050000):(iFlags&0x00040000))
+    Child->RenderAlpha(ReplacableSkinId,bAlpha);
+  glPopMatrix();
  }
  b_aAnim=at_None; //wy³¹czenie animacji dla kolejnego u¿ycia submodelu
 }; //RenderAlpha
@@ -704,10 +733,6 @@ matrix4x4* __fastcall TSubModel::GetTransform()
  return &Matrix;
 };
 
-int __fastcall TSubModel::Flags()
-{//czy ma coœ z przezroczyst¹ tekstur¹?
- return iFlags;
-};
 
 //---------------------------------------------------------------------------
 
@@ -829,7 +854,7 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName)
   {MakeArray(totalverts); //tworzenie tablic dla VBO
    Root->RaArrayFill(m_pVNT); //wype³nianie tablicy
    if (Global::bUseVBO) BuildVBOs();
-   iFlags=Root->Flags(); //true gdy nie ma ¿adnej przezroczystoœci
+   iFlags=Root->Flags(); //flagi ca³ego modelu
   }
  }
 }
@@ -873,7 +898,7 @@ void __fastcall TModel3d::Render(vector3 pPosition,double fAngle,GLuint Replacab
 };
 
 void __fastcall TModel3d::Render(double fSquareDistance,GLuint ReplacableSkinId,bool bAlpha)
-{
+{//renderowanie specjalne, np. kabiny
  fSquareDist=fSquareDistance;
  if (StartVBO())
  {Root->Render(ReplacableSkinId,bAlpha);
@@ -896,7 +921,7 @@ void __fastcall TModel3d::RenderAlpha(vector3 pPosition, double fAngle, GLuint R
 };
 
 void __fastcall TModel3d::RenderAlpha(double fSquareDistance, GLuint ReplacableSkinId,bool bAlpha)
-{
+{//renderowanie specjalne, np. kabiny
  fSquareDist=fSquareDistance;
  if (StartVBO())
  {Root->RenderAlpha(ReplacableSkinId,bAlpha);

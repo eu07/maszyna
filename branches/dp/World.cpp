@@ -814,8 +814,8 @@ bool __fastcall TWorld::Update()
       glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseCabLight);
       glLightfv(GL_LIGHT0,GL_SPECULAR,specularCabLight);
 
-      Train->DynamicObject->mdKabina->Render(SquareMagnitude(Global::pCameraPosition-pos),0);
-      Train->DynamicObject->mdKabina->RenderAlpha(SquareMagnitude(Global::pCameraPosition-pos),0);
+      Train->DynamicObject->mdKabina->Render(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,false);
+      Train->DynamicObject->mdKabina->RenderAlpha(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,true);
 //smierdzi
 //      mdModel->Render(SquareMagnitude(Global::pCameraPosition-pos),0);
 
