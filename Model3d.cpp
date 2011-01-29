@@ -419,7 +419,6 @@ void __fastcall TSubModel::AddChild(TSubModel *SubModel)
   Child=SubModel;
  else
   Child->AddNext(SubModel);
- iFlags|=(SubModel->iFlags&0xFF)<<16; //sumowanie flag struktury
 };
 
 void __fastcall TSubModel::AddNext(TSubModel *SubModel)
@@ -428,7 +427,6 @@ void __fastcall TSubModel::AddNext(TSubModel *SubModel)
   Next=SubModel;
  else
   Next->AddNext(SubModel);
- iFlags|=(SubModel->iFlags&0xFF)<<24; //sumowanie flag nastêpnego
 };
 
 int __fastcall TSubModel::Flags()
@@ -452,7 +450,7 @@ void __fastcall TSubModel::SetRotate(vector3 vNewRotateAxis, double fNewAngle)
  f_Angle=fNewAngle;
  b_Anim=at_Rotate;
  //f_aRotateSpeed=0;
- //v_aRotateAxis=vNewRotateAxis;
+ v_aRotateAxis=vNewRotateAxis;
  f_aAngle=fNewAngle;
  b_aAnim=at_Rotate;
  iAnimOwner=iInstance; //zapamiêtanie czyja jest animacja
