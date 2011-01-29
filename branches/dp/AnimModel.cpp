@@ -375,7 +375,7 @@ void __fastcall TAnimModel::RenderAlpha(vector3 pPosition, double fAngle)
    if (LightsOn[i])  LightsOn[i]->Visible=(lsLights[i]==ls_On);
    if (LightsOff[i]) LightsOff[i]->Visible=(lsLights[i]==ls_Off);
   }
- ++TSubModel::iInstance; //¿eby nie robiæ cudzych animacji
+ TSubModel::iInstance=(int)this; //¿eby nie robiæ cudzych animacji
  TAnimContainer *pCurrent;
  for (pCurrent=pRoot;pCurrent!=NULL;pCurrent=pCurrent->pNext)
   pCurrent->UpdateModel(); //przeliczenie animacji ka¿dego submodelu
