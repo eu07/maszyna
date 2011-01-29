@@ -18,7 +18,8 @@ using namespace Math3D;
 typedef enum { tp_Unknown, tp_Sound, tp_SoundPos, tp_Exit,
                tp_Disable, tp_Velocity, tp_Animation, tp_Lights,
                tp_UpdateValues, tp_GetValues, tp_PutValues,
-               tp_Switch, tp_DynVel, tp_TrackVel, tp_Multiple }  TEventType;
+               tp_Switch, tp_DynVel, tp_TrackVel, tp_Multiple,
+               tp_AddValues }  TEventType;
 
 const int conditional_trackoccupied=-1;
 const int conditional_trackfree=-2;
@@ -26,6 +27,7 @@ const int conditional_propability=-4;
 const int conditional_memstring=1;
 const int conditional_memval1=2;
 const int conditional_memval2=4;
+const int conditional_memadd=8; //dodanie do poprzedniej zawartoœci
 
 class TTrack;
 class TEvent;
