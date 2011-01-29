@@ -44,8 +44,11 @@ __fastcall TEvent::TEvent()
 
 __fastcall TEvent::~TEvent()
 {
-    if (Type==tp_UpdateValues)
-        SafeDeleteArray(Params[0].asText);
+ switch (Type)
+ {case tp_UpdateValues:
+  case tp_AddValues:
+   SafeDeleteArray(Params[0].asText);
+ }
 }
 
 void __fastcall TEvent::Init()
@@ -111,6 +114,9 @@ void __fastcall TEvent::Load(cParser* parser)
     if (str==AnsiString("multiple"))
         Type= tp_Multiple;
     else
+    if (str==AnsiString("addvalues"))
+        Type= tp_AddValues;
+    else
         Type= tp_Unknown;
 
     parser->getTokens();
@@ -128,21 +134,23 @@ void __fastcall TEvent::Load(cParser* parser)
     switch (Type)
     {
 
+        case tp_AddValues:
+            Params[12].asInt=conditional_memadd; //dodawanko
         case tp_UpdateValues:
-            Params[12].asInt= 0;
+            if (Type==tp_UpdateValues) Params[12].asInt=0;
             parser->getTokens(1,false);  //case sensitive
             *parser >> token;
             str= AnsiString(token.c_str());
             Params[0].asText= new char[str.Length()+1];
             strcpy(Params[0].asText,str.c_str());
             if (str!=AnsiString("*"))       //*=nie brac tego pod uwage
-              Params[12].asInt+=conditional_memstring;
+              Params[12].asInt|=conditional_memstring;
             parser->getTokens();
             *parser >> token;
             str= AnsiString(token.c_str());
             if (str!=AnsiString("*"))       //*=nie brac tego pod uwage)
              {
-              Params[12].asInt+=conditional_memval1;
+              Params[12].asInt|=conditional_memval1;
               Params[1].asdouble= str.ToDouble();
              }
             else
@@ -152,7 +160,7 @@ void __fastcall TEvent::Load(cParser* parser)
             str= AnsiString(token.c_str());
             if (str!=AnsiString("*"))       //*=nie brac tego pod uwage
              {
-              Params[12].asInt+=conditional_memval2;
+              Params[12].asInt|=conditional_memval2;
               Params[2].asdouble= str.ToDouble();
              }
             else

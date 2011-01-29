@@ -546,8 +546,8 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
     if (iAnimOwner!=iInstance) break; //cudza animacja
     glTranslatef(v_TransVector.x,v_TransVector.y,v_TransVector.z);
     //v_TransVector.x=v_TransVector.y=v_TransVector.z=0.0;
-    glRotatef(v_Angles.y,0.0,1.0,0.0);
     glRotatef(v_Angles.x,1.0,0.0,0.0);
+    glRotatef(v_Angles.y,0.0,1.0,0.0);
     glRotatef(v_Angles.z,0.0,0.0,1.0);
     //v_Angles.x=v_Angles.y=v_Angles.z=0.0;
     break;
@@ -681,8 +681,8 @@ void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
     if (iAnimOwner!=iInstance) break; //cudza animacja
     glTranslatef(v_aTransVector.x,v_aTransVector.y,v_aTransVector.z);
     //v_aTransVector.x=v_aTransVector.y=v_aTransVector.z=0.0;
-    glRotatef(v_aAngles.y,0.0,1.0,0.0);
     glRotatef(v_aAngles.x,1.0,0.0,0.0);
+    glRotatef(v_aAngles.y,0.0,1.0,0.0);
     glRotatef(v_aAngles.z,0.0,0.0,1.0);
     //v_aAngles.x=v_aAngles.y=v_aAngles.z=0;
     break;

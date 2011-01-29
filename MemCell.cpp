@@ -50,12 +50,24 @@ void __fastcall TMemCell::Init()
 
 void __fastcall TMemCell::UpdateValues(char *szNewText, double fNewValue1, double fNewValue2, int CheckMask)
 {
-    if (TestFlag(CheckMask,conditional_memstring))
-      strcpy(szText,szNewText);
-    if (TestFlag(CheckMask,conditional_memval1))
-      fValue1= fNewValue1;
-    if (TestFlag(CheckMask,conditional_memval2))
-       fValue2= fNewValue2;
+ if (CheckMask&conditional_memadd)
+ {//dodawanie wartoœci
+  if (TestFlag(CheckMask,conditional_memstring))
+   strcat(szText,szNewText);
+  if (TestFlag(CheckMask,conditional_memval1))
+   fValue1+=fNewValue1;
+  if (TestFlag(CheckMask,conditional_memval2))
+   fValue2+=fNewValue2;
+ }
+ else
+ {
+  if (TestFlag(CheckMask,conditional_memstring))
+   strcpy(szText,szNewText);
+  if (TestFlag(CheckMask,conditional_memval1))
+   fValue1= fNewValue1;
+  if (TestFlag(CheckMask,conditional_memval2))
+   fValue2= fNewValue2;
+ }
 }
 
 bool __fastcall TMemCell::Load(cParser *parser)

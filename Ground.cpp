@@ -55,9 +55,8 @@ __fastcall TGroundNode::TGroundNode()
  Vertices=NULL;
  Next=pNext2=NULL;
  pCenter=vector3(0,0,0);
- fAngle=0;
  iNumVerts=0; //wierzcho³ków w trójk¹cie
- iNumPts=0; //punktów w linii
+ //iNumPts=0; //punktów w linii
  TextureID=0;
  iFlags=0; //tryb przezroczystoœci nie zbadany
  Pointer=NULL; //zerowanie wskaŸnika kontekstowego
@@ -68,7 +67,8 @@ __fastcall TGroundNode::TGroundNode()
  fSquareMinRadius=0;
  asName="";
  //Color= TMaterialColor(1);
- fLineThickness=1.0; //mm
+ //fAngle=0; //obrót dla modelu
+ //fLineThickness=1.0; //mm dla linii
  for (int i=0;i<3;i++)
  {
   Ambient[i]=Global::whiteLight[i]*255;
@@ -370,12 +370,11 @@ bool __fastcall TGroundNode::RenderAlpha()
  switch (iType)
  {
   case TP_TRACTION:
-   if (Global::bRenderAlpha && bVisible && Global::bLoadTraction)
+   if (Global::bRenderAlpha && bVisible)
     Traction->RaRenderVBO(mgn,iVboPtr);
    return true;
   case TP_MODEL:
    Model->RenderAlpha(pCenter,fAngle); return true;
-  case TP_TRACK: return true;
   case GL_LINES:
   case GL_LINE_STRIP:
   case GL_LINE_LOOP:
@@ -397,45 +396,6 @@ bool __fastcall TGroundNode::RenderAlpha()
     return true;
    }
  };
-/* Ra: trójk¹ty i linie renderuj¹ siê z VBO sektora
-    // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
-    if(
-        (iNumVerts && Global::bRenderAlpha && TexAlpha) ||
-        (iNumPts && (Global::bRenderAlpha || fLineThickness > 0)))
-    {
-
-        if ( !DisplayListID || Global::bReCompile) //Ra: wymuszenie rekompilacji
-        {
-            Compile();
-            if (Global::bManageNodes)
-                ResourceManager::Register(this);
-        };
-
-        // GL_LINE, GL_LINE_STRIP, GL_LINE_LOOP
-        if (iNumPts)
-        {
-            float linealpha=255000*fLineThickness/(mgn+1.0);
-            if (linealpha>255)
-              linealpha= 255;
-
-            r=Diffuse[0]*Global::ambientDayLight[0];  //w zaleznosci od koloru swiatla
-            g=Diffuse[1]*Global::ambientDayLight[1];
-            b=Diffuse[2]*Global::ambientDayLight[2];
-
-            glColor4ub(r,g,b,linealpha); //przezroczystosc dalekiej linii
-
-            glCallList(DisplayListID);
-        }
-        // GL_TRIANGLE etc
-        else
-        {
-            glCallList(DisplayListID);
-        };
-
-        SetLastUsage(Timer::GetSimulationTime());
-
-    };
-*/
  return true;
 }
 
@@ -1764,7 +1724,8 @@ bool __fastcall TGround::InitEvents()
     {
         switch (Current->Type)
         {
-            case tp_UpdateValues :
+            case tp_AddValues:
+            case tp_UpdateValues:
                 tmp= FindGroundNode(Current->asNodeName,TP_MEMCELL);
 
                 if (tmp)
@@ -1780,7 +1741,7 @@ bool __fastcall TGround::InitEvents()
                         Current->Params[10].asTrack= tmp->pTrack;
                        }
                       else
-                       Error("MemCell track not exist!");
+                       Error("MemCell not exist!");
                      }
                     else
                      Current->Params[10].asTrack=NULL;

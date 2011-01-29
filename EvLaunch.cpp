@@ -115,12 +115,12 @@ bool __fastcall TEventLauncher::Load(cParser *parser)
       szText= new char[256];
       strcpy(szText,token.c_str());
       if (token.compare( "*" ) != 0)       //*=nie brac command pod uwage
-        iCheckMask+=conditional_memstring;
+        iCheckMask|=conditional_memstring;
       parser->getTokens();
       *parser >> token;
       if (token.compare( "*" ) != 0)       //*=nie brac command pod uwage
        {
-         iCheckMask+=conditional_memval1;
+         iCheckMask|=conditional_memval1;
          str= AnsiString(token.c_str());
          fVal1= str.ToDouble();
        }
@@ -129,7 +129,7 @@ bool __fastcall TEventLauncher::Load(cParser *parser)
       *parser >> token;
       if (token.compare( "*" ) != 0)       //*=nie brac command pod uwage
        {
-         iCheckMask+=conditional_memval2;
+         iCheckMask|=conditional_memval2;
          str= AnsiString(token.c_str());
          fVal2= str.ToDouble();
        }

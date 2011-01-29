@@ -25,7 +25,7 @@
 #include "VBO.h"
 
 const int TP_MODEL= 1000;
-const int TP_SEMAPHORE= 1002;
+const int TP_SEMAPHORE= 1002; //Ra: ju¿ nie u¿ywane
 const int TP_DYNAMIC= 1004;
 const int TP_SOUND= 1005;
 const int TP_TRACK= 1006;
@@ -79,18 +79,21 @@ public:
     };
     vector3 pCenter; //œrodek do przydzielenia sektora
 
-    double fAngle;
+    union
+    {
+     double fAngle; //k¹t obrotu dla modelu
+     double fLineThickness; //McZapkie-120702: grubosc linii
+     //int Status;  //McZapkie-170303: status dzwieku
+    };
     double fSquareRadius; //kwadrat widocznoœci do
     double fSquareMinRadius; //kwadrat widocznoœci od
-    //GLuint DisplayListID; //numer siatki
+    //GLuint DisplayListID; //numer siatki dla starszych kart
     int iVboPtr; //indeks w buforze VBO
     GLuint TextureID; //jedna tekstura na obiekt
     int iFlags; //tryb przezroczystoœci: 2-nieprz.,4-przezroczysty,6-mieszany
-    float fLineThickness; //McZapkie-120702: grubosc linii
-//    int Status;  //McZapkie-170303: status dzwieku
     int Ambient[4],Diffuse[4],Specular[4]; //oœwietlenie
     bool bVisible;
-    bool bStatic; //czy nie jest pojazdem
+    bool bStatic; //czy nie jest pojazdem - do zredukowania
     bool bAllocated; //Ra: zawsze true
     TGroundNode *Next; //lista wszystkich w scenerii, ostatni na pocz¹tku
     TGroundNode *pNext2; //lista w sektorze
