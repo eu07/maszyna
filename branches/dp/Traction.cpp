@@ -43,6 +43,8 @@ TTraction::TTraction()//:TNode()
 //    dwFlags= 0;
     Wires=2;
 //    fU=fR= 0;
+    uiDisplayList= glGenLists(1);
+    glNewList(uiDisplayList,GL_COMPILE);
     asPowerSupplyName="";
 //    mdPole= NULL;
 //    ReplacableSkinID= 0;
@@ -55,7 +57,6 @@ TTraction::~TTraction()
 
 void __fastcall TTraction::Optimize()
 {
-/* Ra: tymczasowo zablokowane
     glNewList(uiDisplayList,GL_COMPILE);
 
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -138,9 +139,8 @@ void __fastcall TTraction::Optimize()
            }
        glEnd();
       }
-      //glEndList();
+      glEndList();
   }
-*/
 }
 /*
 void __fastcall TTraction::InitCenter(vector3 Angles, vector3 pOrigin)
@@ -151,7 +151,6 @@ void __fastcall TTraction::InitCenter(vector3 Angles, vector3 pOrigin)
 
 void __fastcall TTraction::Render(float mgn)   //McZapkie: mgn to odleglosc od obserwatora
 {
-/* Ra: tymczasowo zablokowane
   //McZapkie: ustalanie przezroczystosci i koloru linii:
     if (Wires!=0 && !TestFlag(DamageFlag,128))  //rysuj jesli sa druty i nie zerwana
     {
@@ -207,7 +206,6 @@ void __fastcall TTraction::Render(float mgn)   //McZapkie: mgn to odleglosc od o
       glCallList(uiDisplayList);
       glLineWidth(1.0);
     }
-*/
 }
 
 int __fastcall TTraction::RaArrayPrepare()

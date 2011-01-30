@@ -59,6 +59,8 @@ __fastcall TGroundNode::TGroundNode()
  //iNumPts=0; //punktów w linii
  TextureID=0;
  iFlags=0; //tryb przezroczystoœci nie zbadany
+ DisplayListID = 0;
+ //TexAlpha=false;
  Pointer=NULL; //zerowanie wskaŸnika kontekstowego
  iType=GL_POINTS;
  bVisible=false; //czy widoczny
@@ -78,6 +80,7 @@ __fastcall TGroundNode::TGroundNode()
  bAllocated=true; //zawsze true
  pNext3=NULL; //nie wyœwietla innych
  iVboPtr=-1; //indeks w VBO sektora (-1: nie u¿ywa VBO)
+ pTriGroup=NULL; //sam siê wyœwietla
 }
 
 __fastcall TGroundNode::~TGroundNode()
@@ -220,12 +223,12 @@ void __fastcall TGroundNode::MoveMe(vector3 pPosition)
         case GL_LINE_LOOP:
             for (int i=0; i<iNumPts; i++)
                Points[i]+=pPosition;
-            //ResourceManager::Unregister(this);
+            ResourceManager::Unregister(this);
         break;
         default:
             for (int i=0; i<iNumVerts; i++)
                Vertices[i].Point+=pPosition;
-            //ResourceManager::Unregister(this);
+            ResourceManager::Unregister(this);
      }
 
 }
@@ -405,6 +408,7 @@ __fastcall TSubRect::TSubRect()
  pRootNode=NULL; //lista wszystkich obiektów jest pusta
  pRenderHidden=pRenderVBO=pRenderAlphaVBO=pRender=pRenderMixed=pRenderAlpha=NULL;
  pTrackAnim=NULL; //nic nie animujemy
+ pTriGroup=NULL;
 }
 __fastcall TSubRect::~TSubRect()
 {
@@ -576,19 +580,6 @@ void __fastcall TSubRect::LoadNodes()
   ResourceManager::Register(this); //dodanie do automatu zwalniaj¹cego pamiêæ
 }
 
-/*
-void __fastcall TSubRect::Load(TGroundNode *Node)
-{//³¹czenie trójk¹tów terenu w jeden
- //TGroundNode *tri=this;
-     if (tri->pTriGroup) //jeœli z grupy
-     {tri=tri->Next2; //nastêpny w sektorze
-      while (tri?!tri->pTriGroup:false) tri=tri->Next2; //szukamy kolejnego nale¿¹cego do grupy
-     }
-     else tri=NULL; //a jak nie, to koniec
-   } while (tri);
-}
-*/
-
 bool __fastcall TSubRect::StartVBO()
 {//pocz¹tek rysowania elementów z VBO w sektorze
  SetLastUsage(Timer::GetSimulationTime()); //te z ty³u bêd¹ niepotrzebnie zwalniane
@@ -600,7 +591,6 @@ void TSubRect::Release()
  CMesh::Clear();
 };
 
-/* 
 void __fastcall TGroundNode::Compile()
 {
         if (tri->pTriGroup) //jeœli z grupy
@@ -611,8 +601,110 @@ void __fastcall TGroundNode::Compile()
       } while (tri);
     };
 };
-*/
 
+bool __fastcall TGroundNode::Render()
+{
+    if (pTriGroup) if (pTriGroup!=this) return false; //wyœwietla go inny obiekt
+    double mgn= SquareMagnitude(pCenter-Global::pCameraPosition);
+    float r,g,b;
+  //  if (mgn<fSquareMinRadius)
+//        return false;
+ if ((mgn>fSquareRadius || (mgn<fSquareMinRadius)) && (iType!=TP_EVLAUNCH)) //McZapkie-070602: nie rysuj odleglych obiektow ale sprawdzaj wyzwalacz zdarzen
+     return false;
+//    glMaterialfv( GL_FRONT, GL_DIFFUSE, Global::whiteLight );
+ int i,a;
+ switch (iType)
+ {
+
+        case TP_TRACK:
+            return pTrack->Render();
+        //break;
+        case TP_MODEL:
+            Model->Render(pCenter,fAngle); return true;
+        //break;
+        case TP_DYNAMIC:
+            Error("Cannot render dynamic from TGroundNode::Render()");
+            return true;
+        //break;
+        case TP_SOUND:
+//McZapkie - dzwiek zapetlony w zaleznosci od odleglosci
+          if ((pStaticSound->GetStatus()&DSBSTATUS_PLAYING)==DSBPLAY_LOOPING)
+           {
+             pStaticSound->Play(1,DSBPLAY_LOOPING,true,pStaticSound->vSoundPosition);
+             pStaticSound->AdjFreq(1.0, Timer::GetDeltaTime());
+           }
+           return true;
+        //break;
+        case TP_MEMCELL:
+           return true;
+        //break;
+        case TP_EVLAUNCH:
+        {
+         if (EvLaunch->Render())
+          if (EvLaunch->dRadius<0 || mgn<EvLaunch->dRadius)
+           {
+             if (Pressed(VK_SHIFT) && EvLaunch->Event2!=NULL)
+                {
+                 Global::pGround->AddToQuery(EvLaunch->Event2,NULL);
+                }
+               else
+                {
+                if (EvLaunch->Event1!=NULL)
+                 Global::pGround->AddToQuery(EvLaunch->Event1,NULL);
+                }
+           }
+
+        }
+           return true;
+        //break;
+
+    };
+
+    // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
+    if(
+        (iNumVerts && (!Global::bRenderAlpha || (iFlags&2))) ||
+        (iNumPts && (!Global::bRenderAlpha || fLineThickness < 0)))
+    {
+
+#ifdef USE_VBO
+        if (!VboID)
+#endif
+        if (!DisplayListID) //||Global::bReCompile) //Ra: wymuszenie rekompilacji
+        {
+         Compile();
+         if (Global::bManageNodes)
+          ResourceManager::Register(this);
+        };
+
+        // GL_LINE, GL_LINE_STRIP, GL_LINE_LOOP
+        if (iNumPts)
+        {
+            r=Diffuse[0]*Global::ambientDayLight[0];  //w zaleznosci od koloru swiatla
+            g=Diffuse[1]*Global::ambientDayLight[1];
+            b=Diffuse[2]*Global::ambientDayLight[2];
+            glColor4ub(r,g,b,1.0);
+            glCallList(DisplayListID);
+        }
+        // GL_TRIANGLE etc
+        else
+        {
+#ifdef USE_VBO
+#else
+            glCallList(DisplayListID);
+#endif
+        };
+
+        SetLastUsage(Timer::GetSimulationTime());
+
+    };
+ return true;
+};
+
+void __fastcall TGroundNode::Compile()
+{
+
+    if (DisplayListID)
+        Release();
 
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
@@ -1741,7 +1833,7 @@ bool __fastcall TGround::InitEvents()
                         Current->Params[10].asTrack= tmp->pTrack;
                        }
                       else
-                       Error("MemCell not exist!");
+                       Error("MemCell track not exist!");
                      }
                     else
                      Current->Params[10].asTrack=NULL;
@@ -2320,7 +2412,7 @@ if (QueryRootEvent)
                    rprobability=1.0*rand()/RAND_MAX;
                    bCondition=(QueryRootEvent->Params[10].asdouble>rprobability);
                    WriteLog("Random integer: "+CurrToStr(rprobability)+"/"+CurrToStr(QueryRootEvent->Params[10].asdouble));
-                   }
+                   }  
                   else
                    {
                    bCondition=
@@ -2686,7 +2778,7 @@ bool __fastcall TGround::GetTraction(vector3 pPosition, TDynamicObject *model)
 }
 
 
-bool __fastcall TGround::Render(vector3 pPosition)
+bool __fastcall TGround::RaRender(vector3 pPosition)
 {
  CameraDirection.x=sin(Global::pCameraRotation); //wektor kierunkowy
  CameraDirection.z=cos(Global::pCameraRotation);
@@ -2736,7 +2828,7 @@ bool __fastcall TGround::Render(vector3 pPosition)
  return true;
 }
 
-bool __fastcall TGround::RenderAlpha(vector3 pPosition)
+bool __fastcall TGround::RaRenderAlpha(vector3 pPosition)
 {
  TGroundNode *node;
  glColor4f(1.0f,1.0f,1.0f,1.0f);
@@ -2776,6 +2868,60 @@ bool __fastcall TGround::RenderAlpha(vector3 pPosition)
   }
  return true;
 }
+
+bool __fastcall TGround::Render(vector3 pPosition)
+{
+    int tr,tc;
+    TGroundNode *node,*oldnode;
+
+    glColor3f(1.0f,1.0f,1.0f);
+    int n= 20; //iloœæ kwadratów hektometrowych mapy do wyœwietlenia
+    int c= GetColFromX(pPosition.x);
+    int r= GetRowFromZ(pPosition.z);
+    TSubRect *tmp,*tmp2;
+    for (int j= r-n; j<r+n; j++)
+        for (int i= c-n; i<c+n; i++)
+        {
+            tmp= FastGetSubRect(i,j);
+            if (tmp)
+            {
+                for (node= tmp->pRootNode; node!=NULL; node=node->pNext2)
+                {
+                    node->Render();
+                }
+
+            }
+        }
+
+    return true;
+}
+
+bool __fastcall TGround::RenderAlpha(vector3 pPosition)
+{
+    int tr,tc;
+    TGroundNode *node,*oldnode;
+    glColor4f(1.0f,1.0f,1.0f,1.0f);
+    int n= 20; //iloœæ kwadratów hektometrowych mapy do wyœwietlenia
+    int c= GetColFromX(pPosition.x);
+    int r= GetRowFromZ(pPosition.z);
+    TSubRect *tmp,*tmp2;
+    for (int j= r-n; j<r+n; j++)
+        for (int i= c-n; i<c+n; i++)
+        {
+            tmp= FastGetSubRect(i,j);
+            if (tmp)
+            {
+                for (node= tmp->pRootNode; node!=NULL; node=node->pNext2)
+                {
+                    node->RenderAlpha();
+                }
+
+            }
+        }
+
+    return true;
+}
+
 
 //---------------------------------------------------------------------------
 

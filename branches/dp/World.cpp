@@ -124,12 +124,10 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
     WriteLog( (char*) glGetString(GL_EXTENSIONS));
     if (glewGetExtension("GL_ARB_vertex_buffer_object")) //czy jest VBO w karcie graficznej
     {Global::bUseVBO=true;
-     WriteLog("Ra: The VBO is found and will be used.");
+     WriteLog("Ra: mo¿na u¿yæ VBO.");
     }
     else
-    {Error("Ra: VBO not found - the program may crash. Upgrade drivers or buy a newer graphics card!");
-     //return;
-    }
+     WriteLog("Ra: VBO nie znalezione.");
 
 /*-----------------------Render Initialization----------------------*/
         glTexEnvf(TEXTURE_FILTER_CONTROL_EXT,TEXTURE_LOD_BIAS_EXT,-1);
@@ -814,8 +812,18 @@ bool __fastcall TWorld::Update()
       glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseCabLight);
       glLightfv(GL_LIGHT0,GL_SPECULAR,specularCabLight);
 
-      Train->DynamicObject->mdKabina->RaRender(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,false);
-      Train->DynamicObject->mdKabina->RaRenderAlpha(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,true);
+      if (Global::bUseVBO)
+      {//renderowanie z u¿yciem VBO
+       Train->DynamicObject->mdKabina->RaRender(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,false);
+       Train->DynamicObject->mdKabina->RaRenderAlpha(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,true);
+      }
+      else
+      {//renderowanie z Display List
+       Train->DynamicObject->mdKabina->Render(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,false);
+       Train->DynamicObject->mdKabina->RenderAlpha(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,true);
+      }
+
+
 //smierdzi
 //      mdModel->Render(SquareMagnitude(Global::pCameraPosition-pos),0);
 
@@ -1274,11 +1282,17 @@ bool __fastcall TWorld::Render()
      Global::SetCameraRotation(Camera.Yaw-modelrotate);
     }
 
-
-    if (!Ground.Render(Camera.Pos))
+    if (Global::bUseVBO)
+    {//renderowanie przez VBO
+     if (!Ground.RaRender(Camera.Pos)) return false;
+     if (Global::bRenderAlpha)
+       if (!Ground.RaRenderAlpha(Camera.Pos))
           return false;
-    if (Global::bRenderAlpha)
-    {
+    }
+    else
+    {//renderowanie przez Display List
+     if (!Ground.Render(Camera.Pos)) return false;
+     if (Global::bRenderAlpha)
        if (!Ground.RenderAlpha(Camera.Pos))
           return false;
     }

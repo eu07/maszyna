@@ -43,7 +43,7 @@ public:
   //TAnimContainer *pAnim; //animator modelu dla obrotnicy
   TAnimModel *pModel; //na razie model
  };
- //bool bMovement; //czy w trakcie animacji
+ bool bMovement; //czy w trakcie animacji
  int iLeftVBO,iRightVBO; //indeksy iglic w VBO
  TSubRect *pOwner; //sektor, któremu trzeba zg³osiæ animacjê
  TTrack *pNextAnim; //nastêpny tor do animowania
@@ -55,8 +55,8 @@ const int iMaxNumDynamics= 40; //McZapkie-100303
 const int NextMask[4]= {0,1,0,1}; //tor nastêpny dla stanów 0, 1, 2, 3
 const int PrevMask[4]= {0,0,1,1}; //tor poprzedni dla stanów 0, 1, 2, 3
 
-class TTrack
-{//jest elementem sektora i razem z nim jest usuwane
+class TTrack: public Resource
+{
 private:
     TSwitchExtension *SwitchExtension; //dodatkowe dane do toru, który jest zwrotnic¹
     TSegment *Segment;
@@ -69,8 +69,11 @@ private:
     float fTexHeight; //wysokoœ brzegu wzglêdem trajektorii
     float fTexWidth;
     float fTexSlope;
+    //vector3 *HelperPts; //Ra: nie u¿ywane, na razie niech zostanie
     double fRadiusTable[2]; //dwa promienie, drugi dla zwrotnicy
     int iTrapezoid; //0-standard, 1-przechy³ka, 2-trapez, 3-oba
+private:
+    GLuint DisplayListID;
 public:
     int iNumDynamics;
     TDynamicObject *Dynamics[iMaxNumDynamics];
@@ -147,9 +150,12 @@ public:
     bool __fastcall RemoveDynamicObject(TDynamicObject *Dynamic);
     void __fastcall MoveMe(vector3 pPosition);
 
+    void Release();
+    void __fastcall Compile();
+
     bool __fastcall Render();
     bool __fastcall RenderAlpha();
-    //bool __fastcall InMovement(); //czy w trakcie animacji?
+    bool __fastcall InMovement(); //czy w trakcie animacji?
 
     void __fastcall RaAssign(TGroundNode *gn,TAnimContainer *ac);
     void __fastcall RaAssign(TGroundNode *gn,TAnimModel *am);

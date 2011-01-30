@@ -2394,11 +2394,17 @@ if (renderme)
 
     glMultMatrixd(mMatrix.getArray());
 
-    if(mdLowPolyInt!=NULL)
-       if((FreeFlyModeFlag)||((!FreeFlyModeFlag)&&(!mdKabina)))
+    if (mdLowPolyInt!=NULL)
+     if ((FreeFlyModeFlag)||((!FreeFlyModeFlag)&&(!mdKabina)))
+      if (Globals::bUseVBO)
        mdLowPolyInt->RaRender(ObjSqrDist,ReplacableSkinID);
+      else
+       mdLowPolyInt->Render(ObjSqrDist,ReplacableSkinID);
 
-    mdModel->RaRender(ObjSqrDist,ReplacableSkinID);
+    if (Globals::bUseVBO)
+     mdModel->RaRender(ObjSqrDist,ReplacableSkinID);
+    else 
+			  mdModel->Render(ObjSqrDist,ReplacableSkinID);
     if ((mdLoad==NULL) && (MoverParameters->Load>0))
      {
       asLoadName= asBaseDir+MoverParameters->LoadType+".t3d";
@@ -2413,12 +2419,18 @@ if (renderme)
       mdLoad=NULL;
      }
     if (mdLoad!=NULL)
-       mdLoad->RaRender(ObjSqrDist,ReplacableSkinID);
+     if (Globals::bUseVBO)
+      mdLoad->RaRender(ObjSqrDist,ReplacableSkinID);
+     else 
+      mdLoad->Render(ObjSqrDist,ReplacableSkinID);
 
 //rendering przedsionkow o ile istnieja
     if (mdPrzedsionek!=NULL)
      if (MoverParameters->filename==asBaseDir+"6ba.chk")
+      if (Globals::bUseVBO)
        mdPrzedsionek->RaRender(ObjSqrDist,ReplacableSkinID);
+      else 
+       mdPrzedsionek->Render(ObjSqrDist,ReplacableSkinID);
 //rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
 //ABu: tylko w trybie FreeFly, zwykly tryb w world.cpp
 
@@ -2460,7 +2472,10 @@ if (renderme)
       glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseCabLight);
       glLightfv(GL_LIGHT0,GL_SPECULAR,specularCabLight);
 
+     if (Globals::bUseVBO)
       mdKabina->RaRender(ObjSqrDist,0);
+     else 
+      mdKabina->Render(ObjSqrDist,0);      
 //smierdzi
 //      mdModel->Render(SquareMagnitude(Global::pCameraPosition-pos),0);
 
@@ -2859,7 +2874,10 @@ if (renderme)
     glTranslatef(pos.x,pos.y,pos.z);
     glMultMatrixd(mMatrix.getArray());
 
-    mdModel->RaRenderAlpha(ObjSqrDist,ReplacableSkinID);
+    if (Globals::bUseVBO)
+     mdModel->RaRenderAlpha(ObjSqrDist,ReplacableSkinID);
+    else 
+     mdModel->RenderAlpha(ObjSqrDist,ReplacableSkinID);
 
 /* skoro false to mo¿na wyci¹c
     //ABu: Tylko w trybie freefly

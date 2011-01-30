@@ -146,6 +146,11 @@ void __fastcall TAnimContainer::UpdateModel()
  }
 }
 
+bool __fastcall TAnimContainer::InMovement()
+{//czy trwa animacja - informacja dla obrotnicy
+ return fRotateSpeed!=0.0;
+}
+
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -319,6 +324,66 @@ void __fastcall TAnimModel::RaRenderAlpha(vector3 pPosition, double fAngle)
   pCurrent->UpdateModel(); //przeliczenie animacji ka¿dego submodelu
  if (pModel) //renderowanie rekurencyjne submodeli
   pModel->RaRenderAlpha(pPosition,fAngle,ReplacableSkinId,bTexAlpha);
+};
+
+void __fastcall TAnimModel::Render(vector3 pPosition, double fAngle)
+{
+    fBlinkTimer-= Timer::GetDeltaTime();
+    if (fBlinkTimer<=0)
+        fBlinkTimer= fOffTime;
+
+    for (int i=0; i<iNumLights; i++)
+//        if (LightsOn[i])
+            if (lsLights[i]==ls_Blink)
+            {
+                if (LightsOn[i])
+                 LightsOn[i]->Visible=(fBlinkTimer<fOnTime);
+                if (LightsOff[i])
+                 LightsOff[i]->Visible=!(fBlinkTimer<fOnTime);
+            }
+            else
+            {
+                if (LightsOn[i])
+                 LightsOn[i]->Visible= (lsLights[i]==ls_On);
+                if (LightsOff[i])
+                 LightsOff[i]->Visible= (lsLights[i]==ls_Off);
+            }
+
+    TAnimContainer *pCurrent;
+    for (pCurrent= pRoot; pCurrent!=NULL; pCurrent=pCurrent->pNext)
+        pCurrent->UpdateModel(); //przeliczenie animacji
+    if (pModel)
+        pModel->Render(pPosition, fAngle, ReplacableSkinId);
+}
+
+void __fastcall TAnimModel::RenderAlpha(vector3 pPosition, double fAngle)
+{
+    fBlinkTimer-= Timer::GetDeltaTime();
+    if (fBlinkTimer<=0)
+        fBlinkTimer= fOffTime;
+
+    for (int i=0; i<iNumLights; i++)
+//        if (LightsOn[i])
+  if (lsLights[i]==ls_Blink)
+  {
+                if (LightsOn[i])
+                 LightsOn[i]->Visible= (fBlinkTimer<fOnTime);
+                if (LightsOff[i])
+                 LightsOff[i]->Visible= !(fBlinkTimer<fOnTime);
+  }
+  else
+  {
+                if (LightsOn[i])
+                 LightsOn[i]->Visible= (lsLights[i]==ls_On);
+                if (LightsOff[i])
+                 LightsOff[i]->Visible= (lsLights[i]==ls_Off);
+  }
+
+ TAnimContainer *pCurrent;
+    for (pCurrent= pRoot; pCurrent!=NULL; pCurrent=pCurrent->pNext)
+        pCurrent->UpdateModel();
+    if (pModel)
+        pModel->RenderAlpha(pPosition, fAngle, ReplacableSkinId);
 };
 
 int __fastcall TAnimModel::Flags()
