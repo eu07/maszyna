@@ -10,7 +10,7 @@
 #include "AnimModel.h"
 
 
-class TTraction //: public TNode
+class TTraction 
 {
 private:
     vector3 vUp,vFront,vLeft;
@@ -38,13 +38,13 @@ public:
     void __fastcall TTraction::Optimize();
 
     TTraction();
-    virtual ~TTraction();
+    ~TTraction();
 
 //    virtual void __fastcall InitCenter(vector3 Angles, vector3 pOrigin);
 //    virtual bool __fastcall Hit(double x, double z, vector3 &hitPoint, vector3 &hitDirection) { return TNode::Hit(x,z,hitPoint,hitDirection); };
   //  virtual bool __fastcall Move(double dx, double dy, double dz) { return false; };
 //    virtual void __fastcall SelectedRender();
-    virtual void __fastcall Render(float mgn);
+    void __fastcall Render(float mgn);
     int __fastcall RaArrayPrepare();
     void  __fastcall RaArrayFill(CVertNormTex *Vert);
     void  __fastcall RaRenderVBO(float mgn,int iPtr);

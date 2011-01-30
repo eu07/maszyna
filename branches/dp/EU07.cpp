@@ -24,6 +24,7 @@
 #include "system.hpp"
 #include "classes.hpp"
 #include "Globals.h"
+#include "Feedback.h"
 #pragma hdrstop
 
 USERES("EU07.res");
@@ -67,10 +68,10 @@ USEUNIT("sky.cpp");
 USEUNIT("AirCoupler.cpp");
 USEUNIT("glew.c");
 USEUNIT("ResourceManager.cpp");
-USEUNIT("TextureDDS.cpp");
 USEUNIT("VBO.cpp");
 USEUNIT("Feedback.cpp");
 USEUNIT("McZapkie\mtable.pas");
+USEUNIT("TextureDDS.cpp");
 //---------------------------------------------------------------------------
 #include "World.h"
 
@@ -616,7 +617,7 @@ int WINAPI WinMain(	HINSTANCE	hInstance,			// Instance
 		    		done=TRUE;							// ESC or DrawGLScene Signalled A Quit
 		}
 	}
-
+  Feedback::BitsClear(-1);
     SystemParametersInfo(SPI_SETKEYBOARDSPEED,iOldSpeed,NULL,0);
     SystemParametersInfo(SPI_SETKEYBOARDDELAY,iOldDelay,NULL,0);
 

@@ -153,8 +153,8 @@ public:
     void Release();
     void __fastcall Compile();
 
-    bool __fastcall Render();
-    bool __fastcall RenderAlpha();
+    void __fastcall Render();
+    void __fastcall RenderAlpha();
     bool __fastcall InMovement(); //czy w trakcie animacji?
 
     void __fastcall RaAssign(TGroundNode *gn,TAnimContainer *ac);
