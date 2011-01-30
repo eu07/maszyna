@@ -125,9 +125,9 @@ public:
     //void Release();
 
     bool __fastcall GetTraction();
-    bool __fastcall Render();
-    bool __fastcall RenderAlpha(); //McZapkie-131202: dwuprzebiegowy rendering
-    void __fastcall RenderVBO();
+    bool __fastcall RaRender();
+    bool __fastcall RaRenderAlpha(); //McZapkie-131202: dwuprzebiegowy rendering
+    void __fastcall RaRenderVBO();
 };
 //TSubRect *TGroundNode::pOwner=NULL; //tymczasowo w³aœciciel
 
@@ -150,8 +150,8 @@ public:
  void __fastcall AddNode(TGroundNode *Node);
  bool __fastcall StartVBO();
  virtual void Release();
- bool __fastcall TrackAnimAdd(TTrack *t);
- void __fastcall Animate();
+ bool __fastcall RaTrackAnimAdd(TTrack *t);
+ void __fastcall RaAnimate();
 };
 
 //Ra: trzeba sprawdziæ wydajnoœæ siatki
