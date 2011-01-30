@@ -57,18 +57,18 @@ public:
     bool ShowNextCurrent; //pokaz przd w podlaczonej lokomotywie (ET41)
     bool InitializeCab(int NewCabNo, AnsiString asFileName);
     __fastcall TTrain();
-    virtual __fastcall ~TTrain();
+    __fastcall ~TTrain();
 //    bool __fastcall Init(TTrack *Track);
 //McZapkie-010302
-    virtual bool __fastcall Init(TDynamicObject *NewDynamicObject);
-    virtual void __fastcall OnKeyPress(int cKey);
+    bool __fastcall Init(TDynamicObject *NewDynamicObject);
+    void __fastcall OnKeyPress(int cKey);
 
 //    bool __fastcall SHP() { fShpTimer= 0; };
 
     inline vector3 __fastcall GetDirection() { return DynamicObject->GetDirection(); };
     inline vector3 __fastcall GetUp() { return DynamicObject->vUp; };
-    virtual void __fastcall UpdateMechPosition(double dt);
-    virtual bool __fastcall Update();
+    void __fastcall UpdateMechPosition(double dt);
+    bool __fastcall Update();
 //    virtual bool __fastcall RenderAlpha();
 //McZapkie-310302: ladowanie parametrow z pliku
     bool __fastcall LoadMMediaFile(AnsiString asFileName);

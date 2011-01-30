@@ -11,7 +11,7 @@
       AnimModel.obj Ground.obj TrkFoll.obj Segment.obj Sound.obj AdvSound.obj 
       Track.obj DynObj.obj RealSound.obj EvLaunch.obj FadeSound.obj Traction.obj 
       TractionPower.obj parser.obj sky.obj AirCoupler.obj glew.obj 
-      ResourceManager.obj TextureDDS.obj VBO.obj Feedback.obj"/>
+      ResourceManager.obj VBO.obj Feedback.obj TextureDDS.obj"/>
     <RESFILES value="EU07.res"/>
     <IDLFILES value=""/>
     <IDLGENFILES value=""/>
@@ -60,8 +60,8 @@ IncludeVerInfo=1
 AutoIncBuild=1
 MajorVer=1
 MinorVer=2
-Release=70
-Build=105
+Release=72
+Build=109
 Debug=1
 PreRelease=0
 Special=0
@@ -73,7 +73,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=PC2009 SP1
-FileVersion=1.2.70.105
+FileVersion=1.2.72.109
 InternalName=hammer
 LegalCopyright=
 LegalTrademarks=
@@ -145,8 +145,8 @@ Item6=C:\EU07
 DebugSourceDirs=
 
 [Parameters]
-RunParams=
-HostApplication=F:\Users\ShaXbee\workspace\eu07-old\branches\dp\EU07.exe
+RunParams=-s Test-92.scn
+HostApplication=
 RemoteHost=
 RemotePath=
 RemoteDebug=0

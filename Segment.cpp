@@ -75,20 +75,20 @@ bool __fastcall TSegment::Init(
     SafeDeleteArray(fTsBuffer);
     if ((bCurve) && (fStep>0))
     {//Ra: prosty dostanie podzia³, jak ma wpisane kontrolne :(
-        double s=0;
-        int i=0;
+     double s=0;
+     int i=0;
      iSegCount=ceil(fLength/fStep); //potrzebne do VBO
      //fStep=fLength/(double)(iSegCount-1); //wyrównanie podzia³u
      fTsBuffer=new double[iSegCount+1];
      fTsBuffer[0]=0;               /* TODO : fix fTsBuffer */
 
-        while (s<fLength)
-        {
-            i++;
+     while (s<fLength)
+     {
+      i++;
       s+=fStep;
       if (s>fLength) s=fLength;
       fTsBuffer[i]=GetTFromS(s);
-        }
+     }
     }
 
 
@@ -505,23 +505,6 @@ void __fastcall TSegment::RenderSwitchRail(const vector3 *ShapePoints1, const ve
                 tv1= tv2;
                 a1= a2;
             }
-/*
-            glBegin(GL_TRIANGLE_STRIP);
-                for (j=0; j<iNumShapePoints; j++)
-                {
-                pt= parallel1*ShapePoints1[j].x+pos1;
-                pt.y+= ShapePoints1[j].y;
-                glNormal3f(0.0f,1.0f,0.0f);
-                glTexCoord2f(ShapePoints1[j].z,0);
-                glVertex3f(pt.x,pt.y,pt.z);
-
-                pt= parallel1*ShapePoints1[j].x+pos2;
-                pt.y+= ShapePoints1[j].y;
-                glNormal3f(0.0f,1.0f,0.0f);
-                glTexCoord2f(ShapePoints1[j].z,fLength/fTextureLength);
-                glVertex3f(pt.x,pt.y,pt.z);
-                }
-            glEnd();*/
     }
 };
 
@@ -550,70 +533,9 @@ void __fastcall TSegment::Render()
                         pt= FastGetPoint(double(i)/8.0f);
                         glVertex3f(pt.x,pt.y,pt.z);
    }
-   while (tv1>1) tv1-=1.0f;
-   tv2=tv1+step/fTextureLength; //mapowanie na koñcu segmentu
-   t=fTsBuffer[i]; //szybsze od GetTFromS(s);
                  glEnd();
-   dir=FastGetDirection(t,fOffset); //nowy wektor kierunku
-   parallel2=Normalize(CrossProduct(dir,vector3(0,1,0)));
-   if (trapez)
-    for (j=0; j<iNumShapePoints; j++)
-    {//wspó³rzêdne pocz¹tku
-     pt=parallel1*(jmm1*(ShapePoints[j].x-fOffsetX)+m1*ShapePoints[j+iNumShapePoints].x)+pos1;
-     pt.y+=jmm1*ShapePoints[j].y+m1*ShapePoints[j+iNumShapePoints].y;
-     Vert->nx=0.0; //niekoniecznie tak
-     Vert->ny=1.0;
-     Vert->nz=0.0;
-     Vert->u=jmm1*ShapePoints[j].z+m1*ShapePoints[j+iNumShapePoints].z;
-     Vert->v=tv1;
-     Vert->x=pt.x; Vert->y=pt.y; Vert->z=pt.z; //punkt na pocz¹tku odcinka
-     Vert++;
-     //dla trapezu drugi koniec ma inne wspó³rzêdne
-     pt=parallel2*(jmm2*(ShapePoints[j].x-fOffsetX)+m2*ShapePoints[j+iNumShapePoints].x)+pos2;
-     pt.y+=jmm2*ShapePoints[j].y+m2*ShapePoints[j+iNumShapePoints].y;
-     Vert->nx=0.0; //niekoniecznie tak
-     Vert->ny=1.0;
-     Vert->nz=0.0;
-     Vert->u=jmm2*ShapePoints[j].z+m2*ShapePoints[j+iNumShapePoints].z;
-     Vert->v=tv2;
-     Vert->x=pt.x; Vert->y=pt.y; Vert->z=pt.z; //punkt na koñcu odcinka
-     Vert++;
    }
    else
-    for (j=0;j<iNumShapePoints;j++)
-    {//wspó³rzêdne pocz¹tku
-     pt=parallel1*(ShapePoints[j].x-fOffsetX)+pos1;
-     pt.y+=ShapePoints[j].y;
-     Vert->nx=0.0; //niekoniecznie tak
-     Vert->ny=1.0;
-     Vert->nz=0.0;
-     Vert->u=ShapePoints[j].z;
-     Vert->v=tv1;
-     Vert->x=pt.x; Vert->y=pt.y; Vert->z=pt.z; //punkt na pocz¹tku odcinka
-     Vert++;
-     pt=parallel2*ShapePoints[j].x+pos2;
-     pt.y+=ShapePoints[j].y;
-     Vert->nx=0.0; //niekoniecznie tak
-     Vert->ny=1.0;
-     Vert->nz=0.0;
-     Vert->u=ShapePoints[j].z;
-     Vert->v=tv2;
-     Vert->x=pt.x; Vert->y=pt.y; Vert->z=pt.z; //punkt na koñcu odcinka
-     Vert++;
-    }
-   pos1=pos2;
-   parallel1=parallel2;
-   tv1=tv2;
-  }
- }
- else
- {//gdy prosty
-  pos1=FastGetPoint((fStep*iSkip)/fLength);
-  pos2=FastGetPoint_1();
-  dir=GetDirection();
-  parallel1=Normalize(CrossProduct(dir,vector3(0,1,0)));
-  if (trapez)
-   for (j=0;j<iNumShapePoints;j++)
    {
                 glColor3f(0,0,1.0f);
                 glBegin(GL_LINE_STRIP);
@@ -633,9 +555,8 @@ void __fastcall TSegment::Render()
                 glEnd();
   }
 
-   }
 }
-};
+
 
 void __fastcall TSegment::RaRenderLoft(
  CVertNormTex* &Vert,const vector3 *ShapePoints,
