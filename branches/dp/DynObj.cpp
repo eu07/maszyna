@@ -2396,9 +2396,9 @@ if (renderme)
 
     if(mdLowPolyInt!=NULL)
        if((FreeFlyModeFlag)||((!FreeFlyModeFlag)&&(!mdKabina)))
-       mdLowPolyInt->Render(ObjSqrDist,ReplacableSkinID);
+       mdLowPolyInt->RaRender(ObjSqrDist,ReplacableSkinID);
 
-    mdModel->Render(ObjSqrDist,ReplacableSkinID);
+    mdModel->RaRender(ObjSqrDist,ReplacableSkinID);
     if ((mdLoad==NULL) && (MoverParameters->Load>0))
      {
       asLoadName= asBaseDir+MoverParameters->LoadType+".t3d";
@@ -2413,12 +2413,12 @@ if (renderme)
       mdLoad=NULL;
      }
     if (mdLoad!=NULL)
-       mdLoad->Render(ObjSqrDist,ReplacableSkinID);
+       mdLoad->RaRender(ObjSqrDist,ReplacableSkinID);
 
 //rendering przedsionkow o ile istnieja
     if (mdPrzedsionek!=NULL)
      if (MoverParameters->filename==asBaseDir+"6ba.chk")
-       mdPrzedsionek->Render(ObjSqrDist,ReplacableSkinID);
+       mdPrzedsionek->RaRender(ObjSqrDist,ReplacableSkinID);
 //rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
 //ABu: tylko w trybie FreeFly, zwykly tryb w world.cpp
 
@@ -2460,7 +2460,7 @@ if (renderme)
       glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseCabLight);
       glLightfv(GL_LIGHT0,GL_SPECULAR,specularCabLight);
 
-      mdKabina->Render(ObjSqrDist,0);
+      mdKabina->RaRender(ObjSqrDist,0);
 //smierdzi
 //      mdModel->Render(SquareMagnitude(Global::pCameraPosition-pos),0);
 
@@ -2859,7 +2859,7 @@ if (renderme)
     glTranslatef(pos.x,pos.y,pos.z);
     glMultMatrixd(mMatrix.getArray());
 
-    mdModel->RenderAlpha(ObjSqrDist,ReplacableSkinID);
+    mdModel->RaRenderAlpha(ObjSqrDist,ReplacableSkinID);
 
 /* skoro false to mo¿na wyci¹c
     //ABu: Tylko w trybie freefly

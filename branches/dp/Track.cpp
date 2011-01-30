@@ -1435,7 +1435,7 @@ bool __fastcall TTrack::Switch(int i)
    bNextSwitchDirection=SwitchExtension->bNextSwitchDirection[NextMask[i]];
    bPrevSwitchDirection=SwitchExtension->bPrevSwitchDirection[PrevMask[i]];
    fRadius=fRadiusTable[i]; //McZapkie: wybor promienia toru
-   if (SwitchExtension->pOwner?SwitchExtension->pOwner->TrackAnimAdd(this):true) //jeœli nie dodane do animacji
+   if (SwitchExtension->pOwner?SwitchExtension->pOwner->RaTrackAnimAdd(this):true) //jeœli nie dodane do animacji
     SwitchExtension->fOffset1=SwitchExtension->fDesiredOffset1; //nie ma siê co bawiæ
    return true;
   }
@@ -1456,7 +1456,7 @@ bool __fastcall TTrack::Switch(int i)
     pNext=pPrev=NULL;
     fVelocity=0.0; //AI, nie ruszaj siê!
     if (SwitchExtension->pOwner)
-     SwitchExtension->pOwner->TrackAnimAdd(this); //dodanie do listy animacyjnej
+     SwitchExtension->pOwner->RaTrackAnimAdd(this); //dodanie do listy animacyjnej
    }
    else
    {//ustalenie finalnego po³o¿enia (gdy nie by³o animacji)

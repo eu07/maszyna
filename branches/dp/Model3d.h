@@ -154,8 +154,8 @@ public:
       void __fastcall SetRotateXYZ(vector3 vNewAngles);
       void __fastcall SetTranslate(vector3 vNewTransVector);
       TSubModel* __fastcall GetFromName(std::string search);
-      void __fastcall Render(GLuint ReplacableSkinId,bool bAlpha);
-      void __fastcall RenderAlpha(GLuint ReplacableSkinId,bool bAlpha);
+      void __fastcall RaRender(GLuint ReplacableSkinId,bool bAlpha);
+      void __fastcall RaRenderAlpha(GLuint ReplacableSkinId,bool bAlpha);
       inline matrix4x4* __fastcall GetMatrix() { return &Matrix; };
       matrix4x4* __fastcall GetTransform();
       inline void __fastcall Hide() { Visible= false; };
@@ -185,10 +185,10 @@ public:
     bool __fastcall LoadFromFile(char *FileName);
     void __fastcall SaveToFile(char *FileName);
     void __fastcall BreakHierarhy();
-    void __fastcall Render(vector3 pPosition,double fAngle=0,GLuint ReplacableSkinId=0,bool bAlpha=false);
-    void __fastcall Render(double fSquareDistance,GLuint ReplacableSkinId=0,bool bAlpha=false);
-    void __fastcall RenderAlpha(vector3 pPosition,double fAngle=0,GLuint ReplacableSkinId=0,bool bAlpha=false);
-    void __fastcall RenderAlpha(double fSquareDistance,GLuint ReplacableSkinId=0,bool bAlpha=false);
+    void __fastcall RaRender(vector3 pPosition,double fAngle=0,GLuint ReplacableSkinId=0,bool bAlpha=false);
+    void __fastcall RaRender(double fSquareDistance,GLuint ReplacableSkinId=0,bool bAlpha=false);
+    void __fastcall RaRenderAlpha(vector3 pPosition,double fAngle=0,GLuint ReplacableSkinId=0,bool bAlpha=false);
+    void __fastcall RaRenderAlpha(double fSquareDistance,GLuint ReplacableSkinId=0,bool bAlpha=false);
     inline int __fastcall GetSubModelsCount() { return (SubModelsCount); };
     int __fastcall Flags() {return iFlags;};
 };

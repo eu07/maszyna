@@ -59,8 +59,8 @@ public:
  bool __fastcall Load(cParser *parser);
  TAnimContainer* __fastcall AddContainer(char *pName);
  TAnimContainer* __fastcall GetContainer(char *pName);
- void __fastcall Render(vector3 pPosition=vector3(0,0,0),double fAngle=0);
- void __fastcall RenderAlpha(vector3 pPosition=vector3(0,0,0),double fAngle=0);
+ void __fastcall RaRender(vector3 pPosition=vector3(0,0,0),double fAngle=0);
+ void __fastcall RaRenderAlpha(vector3 pPosition=vector3(0,0,0),double fAngle=0);
  //void __fastcall Render(double fSquareDistance);
  //void __fastcall RenderAlpha(double fSquareDistance);
  bool bTexAlpha; //¿eby nie sprawdzaæ za ka¿dym razem

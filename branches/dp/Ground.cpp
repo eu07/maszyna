@@ -257,7 +257,7 @@ void __fastcall TGround::MoveGroundNode(vector3 pPosition)
         }
 }
 
-void __fastcall TGroundNode::RenderVBO()
+void __fastcall TGroundNode::RaRenderVBO()
 {//renderowanie z bufora VBO (Vertex Array gdy brak VBO)
  glEnable(GL_LIGHTING); //!!!! bo coœ oœwietlenie nie dzia³a
  glColor3ub(Diffuse[0],Diffuse[1],Diffuse[2]);
@@ -266,7 +266,7 @@ void __fastcall TGroundNode::RenderVBO()
  glDrawArrays(iType,iVboPtr,iNumVerts);   // Narysuj naraz wszystkie trójk¹ty
 }
 
-bool __fastcall TGroundNode::Render()
+bool __fastcall TGroundNode::RaRender()
 {
  double mgn=SquareMagnitude(pCenter-Global::pCameraPosition);
  if ((mgn>fSquareRadius || (mgn<fSquareMinRadius)) && (iType!=TP_EVLAUNCH)) //McZapkie-070602: nie rysuj odleglych obiektow ale sprawdzaj wyzwalacz zdarzen
@@ -278,7 +278,7 @@ bool __fastcall TGroundNode::Render()
  {
   case TP_TRACTION: return true;
   case TP_TRACK: if (iNumVerts) pTrack->RaRenderVBO(iVboPtr); return true;
-  case TP_MODEL: Model->Render(pCenter,fAngle); return true;
+  case TP_MODEL: Model->RaRender(pCenter,fAngle); return true;
   case TP_DYNAMIC:
    Error("Cannot render dynamic from TGroundNode::Render()");
    return true;
@@ -319,7 +319,7 @@ bool __fastcall TGroundNode::Render()
    return true;
   default:
    if (iVboPtr>=0)
-    RenderVBO();
+    RaRenderVBO();
    return true;
  };
  }catch(...) {WriteLog("!!! B³¹d w TGroundNode::Render() dla "+AnsiString(iType));}
@@ -359,7 +359,7 @@ bool __fastcall TGroundNode::Render()
  return true;
 };
 
-bool __fastcall TGroundNode::RenderAlpha()
+bool __fastcall TGroundNode::RaRenderAlpha()
 {
  double mgn=SquareMagnitude(pCenter-Global::pCameraPosition);
  float r,g,b;
@@ -374,7 +374,7 @@ bool __fastcall TGroundNode::RenderAlpha()
     Traction->RaRenderVBO(mgn,iVboPtr);
    return true;
   case TP_MODEL:
-   Model->RenderAlpha(pCenter,fAngle); return true;
+   Model->RaRenderAlpha(pCenter,fAngle); return true;
   case GL_LINES:
   case GL_LINE_STRIP:
   case GL_LINE_LOOP:
@@ -392,7 +392,7 @@ bool __fastcall TGroundNode::RenderAlpha()
    return true;
   default:
    if (iVboPtr>=0)
-   {RenderVBO();
+   {RaRenderVBO();
     return true;
    }
  };
@@ -473,7 +473,7 @@ void __fastcall TSubRect::AddNode(TGroundNode *Node)
 */
 };
 
-bool __fastcall TSubRect::TrackAnimAdd(TTrack *t)
+bool __fastcall TSubRect::RaTrackAnimAdd(TTrack *t)
 {//aktywacja animacji torów w VBO (zwrotnica, obrotnica)
  if (m_nVertexCount<0) return true; //nie ma animacji, gdy nie widaæ
  if (pTrackAnim)
@@ -483,7 +483,7 @@ bool __fastcall TSubRect::TrackAnimAdd(TTrack *t)
  return false; //bêdzie animowane...
 }
 
-void __fastcall TSubRect::Animate()
+void __fastcall TSubRect::RaAnimate()
 {
  if (!pTrackAnim) return;
  if (Global::bOpenGL_1_5) //modyfikacje VBO s¹ dostêpne od OpenGL 1.5
@@ -2705,7 +2705,7 @@ bool __fastcall TGround::Render(vector3 pPosition)
   {
    if ((tmp=FastGetSubRect(i,j))!=NULL)
     for (node=tmp->pRenderHidden;node!=NULL;node=node->pNext3)
-     node->Render();
+     node->RaRender();
   }
  //renderowanie progresywne - zale¿ne od FPS oraz kierunku patrzenia
  for (j=r-n;j<r+n;j++)
@@ -2719,18 +2719,18 @@ bool __fastcall TGround::Render(vector3 pPosition)
    }
    if ((tmp=FastGetSubRect(i,j))!=NULL)
    {
-    tmp->Animate(); //przeliczenia animacji w sektorze przed zapiêciem VBO
+    tmp->RaAnimate(); //przeliczenia animacji w sektorze przed zapiêciem VBO
     tmp->LoadNodes(); //ewentualne tworzenie siatek
     if (tmp->StartVBO())
     {for (node=tmp->pRenderVBO;node!=NULL;node=node->pNext3)
       if (node->iVboPtr>=0)
-       node->Render(); //nieprzezroczyste obiekty terenu
+       node->RaRender(); //nieprzezroczyste obiekty terenu
      tmp->EndVBO();
     }
     for (node=tmp->pRender;node!=NULL;node=node->pNext3)
-     node->Render(); //nieprzezroczyste modele
+     node->RaRender(); //nieprzezroczyste modele
     for (node=tmp->pRenderMixed;node!=NULL;node=node->pNext3)
-     node->Render(); //nieprzezroczyste z mieszanych modeli
+     node->RaRender(); //nieprzezroczyste z mieszanych modeli
    }
   }
  return true;
@@ -2760,16 +2760,16 @@ bool __fastcall TGround::RenderAlpha(vector3 pPosition)
    {
     tmp->LoadNodes(); //ewentualne tworzenie siatek
     for (node=tmp->pRenderMixed;node!=NULL;node=node->pNext3)
-     node->RenderAlpha(); //przezroczyste z mieszanych modeli
+     node->RaRenderAlpha(); //przezroczyste z mieszanych modeli
     for (node=tmp->pRenderAlpha;node!=NULL;node=node->pNext3)
-     node->RenderAlpha(); //przezroczyste modele
+     node->RaRenderAlpha(); //przezroczyste modele
     for (node=tmp->pRenderVBO;node!=NULL;node=node->pNext3)
      if (node->iType==TP_TRACK)
       node->pTrack->RaRenderDynamic(); //pojazdy na torach
     if (tmp->StartVBO())
     {for (node=tmp->pRenderAlphaVBO;node!=NULL;node=node->pNext3)
       if (node->iVboPtr>=0)
-       node->RenderAlpha(); //przezroczyste elementy terenu (w tym druty i linie)
+       node->RaRenderAlpha(); //przezroczyste elementy terenu (w tym druty i linie)
      tmp->EndVBO();
     }
    }
