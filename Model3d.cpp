@@ -39,6 +39,7 @@ __fastcall TSubModel::TSubModel()
     Vertices=NULL;
     iNumVerts=-1; //do sprawdzenia
     iVboPtr=-1;
+    uiDisplayList= 0;
     bLight=false;
 };
 
@@ -96,6 +97,7 @@ void __fastcall TSubModel::FirstInit()
 
 __fastcall TSubModel::~TSubModel()
 {
+    glDeleteLists(uiDisplayList,1);
 //    SafeDeleteArray(Indices);
     SafeDelete(Next);
     SafeDelete(Child);
@@ -344,7 +346,6 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
         delete[] sg;
     };
 
-/* Ra: przy VBO to siê nie przyda
     if(eType==smt_Mesh)
     {
 #ifdef USE_VERTEX_ARRAYS
@@ -357,11 +358,11 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
         uiDisplayList= glGenLists(1);
         glNewList(uiDisplayList,GL_COMPILE);
 
-        glColor3f(Diffuse[0],Diffuse[1],Diffuse[2]);   //McZapkie-240702: zamiast ub
-        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE,Diffuse);
+        glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);   //McZapkie-240702: zamiast ub
+        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE,f4Diffuse);
 
         if (bLight)
-            glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,Diffuse);  //zeny swiecilo na kolorowo
+            glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,f4Diffuse);  //zeny swiecilo na kolorowo
 
 #ifdef USE_VERTEX_ARRAYS
         glDrawArrays(GL_TRIANGLES, 0, iNumVerts);
@@ -394,7 +395,7 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
 //         }
 //         else
 //TODO: poprawic zeby dzialalo
-         glColor3f(Diffuse[0],Diffuse[1],Diffuse[2]);
+         glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
         glColorMaterial(GL_FRONT_AND_BACK,GL_EMISSION);
         glDisable( GL_LIGHTING );  //Tolaris-030603: bo mu punkty swiecace sie blendowaly
         glBegin(GL_POINTS);
@@ -407,8 +408,8 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
         glEndList();
 
     }
-    SafeDeleteArray(Vertices); //musz¹ zostaæ do za³adowania ca³ego modelu
-*/
+
+    SafeDeleteArray(Vertices);
     Visible=true;
  return iNumVerts; //do okreœlenia wielkoœci VBO   
 };
@@ -523,11 +524,150 @@ TSubModel* __fastcall TSubModel::GetFromName(std::string search)
 
 WORD hbIndices[18]= {3,0,1,5,4,2,1,0,4,1,5,3,2,3,5,2,4,0};
 
+void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
+{
+ //   float Distdimm=0;
+    if (Next!=NULL)
+        Next->Render(ReplacableSkinId,bAlpha);
+
+    if (Visible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
+    {
+      glPushMatrix();
+      glMultMatrixd(Matrix.getArray());
+
+      if (b_Anim==at_Rotate)   //czy to potrzebne tu czy moze nizej?
+      {
+          glRotatef(f_Angle,v_RotateAxis.x,v_RotateAxis.y,v_RotateAxis.z);
+          glTranslatef(v_TransVector.x,v_TransVector.y,v_TransVector.z);
+
+  //        vRotateAxis= vector3(0,0,0);
+    //      vTransVector= vector3(0,0,0);
+          f_Angle= 0;
+          b_Anim= at_None;
+  //        bAnim= false;
+      }
+      else
+      if (b_Anim==at_RotateXYZ)
+      {
+          glTranslatef(v_TransVector.x,v_TransVector.y,v_TransVector.z);
+          glRotatef(v_Angles.y,0.0,1.0,0.0);
+          glRotatef(v_Angles.x,1.0,0.0,0.0);
+          glRotatef(v_Angles.z,0.0,0.0,1.0);
+          v_Angles.x=v_Angles.y=v_Angles.z= 0;
+          b_Anim= at_None;
+      }
+
+      //zmienialne skory
+      if ((TextureID==-1)) // && (ReplacableSkinId!=0))
+       {
+        glBindTexture(GL_TEXTURE_2D, ReplacableSkinId);
+        if (ReplacableSkinId>0)
+          TexAlpha= TTexturesManager::GetAlpha(ReplacableSkinId); //malo eleganckie ale narazie niech bedzie
+       }
+      else
+       {
+        glBindTexture(GL_TEXTURE_2D, TextureID);
+       }
+      if (!TexAlpha || !Global::bRenderAlpha)  //rysuj gdy nieprzezroczyste lub # albo gdy zablokowane alpha
+      {
+        if (eType==smt_FreeSpotLight)
+        {
+            matrix4x4 mat;
+            glGetDoublev(GL_MODELVIEW_MATRIX,mat.getArray());
+            fCosViewAngle=DotProduct(Normalize(mat*vector3(0,0,1)-mat*vector3(0,0,0)),vector3(0,0,1));
+            if (fCosViewAngle>fcosFalloffAngle)  // kat wiekszy niz max stozek swiatla
+            {
+/*  TODO: poprawic to zeby dzialalo
+              if (iFarAttenDecay>0)
+               switch (iFarAttenDecay)
+               {
+                case 1:
+                    Distdimm=fFarDecayRadius/(1+sqrt(fSquareDist));  //dorobic od kata
+                break;
+                case 2:
+                    Distdimm=fFarDecayRadius/(1+fSquareDist);  //dorobic od kata
+                break;
+               }
+              if (Distdimm>1)
+               Distdimm=1;
+              glColor3f(Diffuse[0]*Distdimm,Diffuse[1]*Distdimm,Diffuse[2]*Distdimm);
+*/
+              glPopMatrix();
+              return;
+    glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
+   }
+  }
+
+        glCallList(uiDisplayList);
+    }
+  if (Child!=NULL)
+          Child->Render(ReplacableSkinId,bAlpha);
+
+  glPopMatrix();
+ }
+};       //Render
+
+void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
+{
+    if (Next!=NULL)
+        Next->RenderAlpha(ReplacableSkinId,bAlpha);
+
+    if (eType==smt_FreeSpotLight)
+    {
+//        if (CosViewAngle>0)  //dorobic od kata
+//        {
+            return;
+//        }
+     // dorobic aureole!
+    }
+
+    if (Visible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
+    {
+      glPushMatrix();
+      glMultMatrixd(Matrix.getArray());
+      if (b_aAnim==at_Rotate)
+      {
+          glRotatef(f_aAngle,v_aRotateAxis.x,v_aRotateAxis.y,v_aRotateAxis.z);
+          glTranslatef(v_aTransVector.x,v_aTransVector.y,v_aTransVector.z);
+          f_aAngle= 0;
+          b_aAnim= at_None;
+      }
+      else
+      if (b_aAnim==at_RotateXYZ)
+      {
+          glTranslatef(v_TransVector.x,v_TransVector.y,v_TransVector.z);
+          glRotatef(v_aAngles.y,0.0,1.0,0.0);
+          glRotatef(v_aAngles.x,1.0,0.0,0.0);
+          glRotatef(v_aAngles.z,0.0,0.0,1.0);
+          v_aAngles.x=v_aAngles.y=v_aAngles.z= 0;
+          b_aAnim= at_None;
+      }
+    //zmienialne skory
+      if ((TextureID==-1)) // && (ReplacableSkinId!=0))
+       {
+        glBindTexture(GL_TEXTURE_2D, ReplacableSkinId);
+        if (ReplacableSkinId>0)
+          TexAlpha= TTexturesManager::GetAlpha(ReplacableSkinId); //malo eleganckie ale narazie niech bedzie
+       }
+      else
+       {
+        glBindTexture(GL_TEXTURE_2D, TextureID);
+       }
+      if (TexAlpha && Global::bRenderAlpha)  //mozna rysowac bo przezroczyste i nie ma #
+      {
+        glCallList(uiDisplayList);
+      }
+      if (Child!=NULL)
+          Child->RenderAlpha(ReplacableSkinId,bAlpha);
+      glPopMatrix();
+    }
+}; //RenderAlpha
+
 void __fastcall TSubModel::RaRender(GLuint ReplacableSkinId,bool bAlpha)
 {//g³ówna procedura renderowania
  if (Next!=NULL)
   if (bAlpha?(iFlags&0x02000000):(iFlags&0x03000000))
-   Next->RaRender(ReplacableSkinId,bAlpha); //dalsze rekurencyjnie
+   Next->Render(ReplacableSkinId,bAlpha); //dalsze rekurencyjnie
  if (Visible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
  {
   glPushMatrix();
@@ -653,7 +793,7 @@ void __fastcall TSubModel::RaRender(GLuint ReplacableSkinId,bool bAlpha)
 */
   if (Child!=NULL)
    if (bAlpha?(iFlags&0x00020000):(iFlags&0x00030000))
-    Child->RaRender(ReplacableSkinId,bAlpha);
+    Child->Render(ReplacableSkinId,bAlpha);
   glPopMatrix();
  }
  b_Anim=at_None; //wy³¹czenie animacji dla kolejnego u¿ycia submodelu
@@ -663,7 +803,7 @@ void __fastcall TSubModel::RaRenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
 {
  if (Next)
   if (bAlpha?(iFlags&0x05000000):(iFlags&0x04000000))
-   Next->RaRenderAlpha(ReplacableSkinId,bAlpha);
+   Next->RenderAlpha(ReplacableSkinId,bAlpha);
  if (Visible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
  {
   glPushMatrix(); //zapamiêtanie matrycy
@@ -718,7 +858,7 @@ void __fastcall TSubModel::RaRenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
   }
   if (Child)
    if (bAlpha?(iFlags&0x00050000):(iFlags&0x00040000))
-    Child->RaRenderAlpha(ReplacableSkinId,bAlpha);
+    Child->RenderAlpha(ReplacableSkinId,bAlpha);
   glPopMatrix();
  }
  b_aAnim=at_None; //wy³¹czenie animacji dla kolejnego u¿ycia submodelu
@@ -848,12 +988,6 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName)
   tmp.Identity();
   tmp.Rotation(M_PI,vector3(0,0,1));
   (*mat)= tmp*(*mat);
-  if (totalverts)
-  {MakeArray(totalverts); //tworzenie tablic dla VBO
-   Root->RaArrayFill(m_pVNT); //wype³nianie tablicy
-   if (Global::bUseVBO) BuildVBOs();
-   iFlags=Root->Flags(); //flagi ca³ego modelu
-  }
  }
 }
 
@@ -868,6 +1002,63 @@ void __fastcall TModel3d::BreakHierarhy()
     Error("Not implemented yet :(");
 };
 
+
+void __fastcall TModel3d::Render(vector3 pPosition,double fAngle,GLuint ReplacableSkinId,bool bAlpha)
+{
+//    glColor3f(1.0f,1.0f,1.0f);
+//    glColor3f(0.0f,0.0f,0.0f);
+    glPushMatrix();
+
+ glTranslated(pPosition.x,pPosition.y,pPosition.z);
+ if (fAngle!=0)
+  glRotatef(fAngle,0,1,0);
+/*
+ matrix4x4 Identity;
+ Identity.Identity();
+
+    matrix4x4 CurrentMatrix;
+    glGetdoublev(GL_MODELVIEW_MATRIX,CurrentMatrix.getArray());
+    vector3 pos= vector3(0,0,0);
+    pos= CurrentMatrix*pos;
+    fSquareDist= SquareMagnitude(pos);
+  */
+    fSquareDist= SquareMagnitude(pPosition-Global::GetCameraPosition());
+
+#ifdef _DEBUG
+    if (Root)
+        Root->Render(ReplacableSkinId,bAlpha);
+#else
+    Root->Render(ReplacableSkinId);
+#endif
+    glPopMatrix();
+};
+
+void __fastcall TModel3d::RenderAlpha(vector3 pPosition, double fAngle, GLuint ReplacableSkinId,bool bAlpha)
+{
+    glPushMatrix();
+    glTranslated(pPosition.x,pPosition.y,pPosition.z);
+    if (fAngle!=0)
+        glRotatef(fAngle,0,1,0);
+    fSquareDist= SquareMagnitude(pPosition-Global::GetCameraPosition());
+#ifdef _DEBUG
+    if (Root)
+        Root->RenderAlpha(ReplacableSkinId,bAlpha);
+#else
+    Root->RenderAlpha(ReplacableSkinId);
+#endif
+    glPopMatrix();
+};
+
+void __fastcall TModel3d::RenderAlpha(double fSquareDistance, GLuint ReplacableSkinId, bool bAlpha)
+{
+    fSquareDist= fSquareDistance;
+#ifdef _DEBUG
+    if (Root)
+        Root->RenderAlpha(ReplacableSkinId,bAlpha);
+#else
+    Root->RenderAlpha(ReplacableSkinId,bAlpha);
+#endif
+};
 
 void __fastcall TModel3d::RaRender(vector3 pPosition,double fAngle,GLuint ReplacableSkinId,bool bAlpha)
 {
@@ -889,7 +1080,7 @@ void __fastcall TModel3d::RaRender(vector3 pPosition,double fAngle,GLuint Replac
 */
  fSquareDist=SquareMagnitude(pPosition-Global::GetCameraPosition());
  if (StartVBO())
- {Root->RaRender(ReplacableSkinId,bAlpha);
+ {Root->Render(ReplacableSkinId,bAlpha);
   EndVBO();
  }
  glPopMatrix(); //przywrócenie ustawieñ przekszta³cenia
@@ -899,7 +1090,7 @@ void __fastcall TModel3d::RaRender(double fSquareDistance,GLuint ReplacableSkinI
 {//renderowanie specjalne, np. kabiny
  fSquareDist=fSquareDistance;
  if (StartVBO())
- {Root->RaRender(ReplacableSkinId,bAlpha);
+ {Root->Render(ReplacableSkinId,bAlpha);
   EndVBO();
  }
 };
@@ -912,7 +1103,7 @@ void __fastcall TModel3d::RaRenderAlpha(vector3 pPosition, double fAngle, GLuint
   glRotatef(fAngle,0,1,0);
  fSquareDist=SquareMagnitude(pPosition-Global::GetCameraPosition());
  if (StartVBO())
- {Root->RaRenderAlpha(ReplacableSkinId,bAlpha);
+ {Root->RenderAlpha(ReplacableSkinId,bAlpha);
   EndVBO();
  }
  glPopMatrix();
@@ -922,7 +1113,7 @@ void __fastcall TModel3d::RaRenderAlpha(double fSquareDistance, GLuint Replacabl
 {//renderowanie specjalne, np. kabiny
  fSquareDist=fSquareDistance;
  if (StartVBO())
- {Root->RaRenderAlpha(ReplacableSkinId,bAlpha);
+ {Root->RenderAlpha(ReplacableSkinId,bAlpha);
   EndVBO();
  }
 };

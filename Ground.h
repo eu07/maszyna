@@ -48,7 +48,7 @@ class TGroundNode;
 
 class TSubRect;
 
-class TGroundNode
+class TGroundNode : public Resource
 {
 private:
 public:
@@ -87,7 +87,8 @@ public:
     };
     double fSquareRadius; //kwadrat widocznoœci do
     double fSquareMinRadius; //kwadrat widocznoœci od
-    //GLuint DisplayListID; //numer siatki dla starszych kart
+    TGroundNode *pTriGroup; //Ra: obiekt grupuj¹cy trójk¹ty w TSubRect (ogranicza iloœæ DisplayList)
+    GLuint DisplayListID; //numer siatki
     int iVboPtr; //indeks w buforze VBO
     GLuint TextureID; //jedna tekstura na obiekt
     int iFlags; //tryb przezroczystoœci: 2-nieprz.,4-przezroczysty,6-mieszany
@@ -121,10 +122,13 @@ public:
         return NULL;
     };
 
-    //void __fastcall Compile();
-    //void Release();
+    void __fastcall Compile();
+    void Release();
 
     bool __fastcall GetTraction();
+    bool __fastcall Render();
+    bool __fastcall RenderAlpha(); //McZapkie-131202: dwuprzebiegowy rendering
+    void __fastcall RaRenderVBO();
     bool __fastcall RaRender();
     bool __fastcall RaRenderAlpha(); //McZapkie-131202: dwuprzebiegowy rendering
     void __fastcall RaRenderVBO();
@@ -145,9 +149,30 @@ public:
  TGroundNode *pRender;      //z w³asnych VBO - nieprzezroczyste
  TGroundNode *pRenderMixed; //z w³asnych VBO - nieprzezroczyste i przezroczyste
  TGroundNode *pRenderAlpha; //z w³asnych VBO - przezroczyste
+ TGroundNode *pTriGroup; //Ra: obiekt grupuj¹cy trójk¹ty (ogranicza iloœæ DisplayList)
  __fastcall TSubRect();
  virtual __fastcall ~TSubRect();
- void __fastcall AddNode(TGroundNode *Node);
+//    __fastcall ~TSubRect() { SafeDelete(pRootNode); };   /* TODO -cBUG : Attention, remember to delete those nodes */
+    void __fastcall RaAddNode(TGroundNode *Node);
+    void __fastcall AddNode(TGroundNode *Node)
+    {//przyczepienie obiektu do sektora, kwalifikacja trójk¹tów do ³¹czenia
+     Node->pNext2=pRootNode;
+     pRootNode=Node;
+     if ((Node->iType==GL_TRIANGLE_STRIP)||(Node->iType==GL_TRIANGLE_FAN)||(Node->iType==GL_TRIANGLES))
+      if (Node->fSquareMinRadius==0.0) //znikaj¹ce z bliska nie mog¹ byæ optymalizowane
+       if (Node->fSquareRadius>=160000.0) //tak od 400m to ju¿ normalne trójk¹ty musz¹ byæ
+        if (Node->iFlags&0x02) //i nieprzezroczysty
+        {if (pTriGroup) //je¿eli by³ ju¿ jakiœ grupuj¹cy
+         {if (pTriGroup->fSquareRadius>Node->fSquareRadius) //i mia³ wiêkszy zasiêg
+           Node->fSquareRadius=pTriGroup->fSquareRadius; //zwiêkszenie zakresu widocznoœci grupuj¹cego
+          pTriGroup->pTriGroup=Node; //poprzedniemu doczepiamy nowy
+         }
+         Node->pTriGroup=Node; //nowy lider ma siê sam wyœwietlaæ - wskaŸnik na siebie
+         pTriGroup=Node; //zapamiêtanie lidera
+        }
+    };
+    //void __fastcall RaGroupAdd(TGroundNode *Node) {if (pTriGroup) Node->pTriGroup=pTriGroup; else pTriGroup=Node;};
+//    __fastcall Render() { if (pRootNode) pRootNode->Render(); };
  bool __fastcall StartVBO();
  virtual void Release();
  bool __fastcall RaTrackAnimAdd(TTrack *t);
@@ -218,6 +243,8 @@ public:
     bool __fastcall GetTraction(vector3 pPosition, TDynamicObject *model);
     bool __fastcall Render(vector3 pPosition);
     bool __fastcall RenderAlpha(vector3 pPosition);
+    bool __fastcall RaRender(vector3 pPosition);
+    bool __fastcall RaRenderAlpha(vector3 pPosition);
     bool __fastcall CheckQuery();
 //    __fastcall GetRect(double x, double z) { return &(Rects[int(x/fSubRectSize+fHalfNumRects)][int(z/fSubRectSize+fHalfNumRects)]); };
 /*

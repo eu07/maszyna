@@ -37,6 +37,7 @@ public:
  void __fastcall SetRotateAnim(vector3 vNewRotateAngles, double fNewRotateSpeed, bool bResetAngle=false);
  void __fastcall SetTranslateAnim(vector3 vNewTranslate, double fNewSpeed);
  void __fastcall UpdateModel();
+ bool __fastcall InMovement(); //czy w trakcie animacji?
  double _fastcall AngleGet() {return vRotateAngles.z;}; //jednak ostatnia, T3D ma inny uk³ad
 };
 
@@ -59,12 +60,14 @@ public:
  bool __fastcall Load(cParser *parser);
  TAnimContainer* __fastcall AddContainer(char *pName);
  TAnimContainer* __fastcall GetContainer(char *pName);
+ void __fastcall Render(vector3 pPosition=vector3(0,0,0),double fAngle=0);
+ void __fastcall RenderAlpha(vector3 pPosition=vector3(0,0,0),double fAngle=0);
  void __fastcall RaRender(vector3 pPosition=vector3(0,0,0),double fAngle=0);
  void __fastcall RaRenderAlpha(vector3 pPosition=vector3(0,0,0),double fAngle=0);
  //void __fastcall Render(double fSquareDistance);
  //void __fastcall RenderAlpha(double fSquareDistance);
  bool bTexAlpha; //¿eby nie sprawdzaæ za ka¿dym razem
- int __fastcall Flags();
+ int __fastcall Flags();   
 };
 
 //---------------------------------------------------------------------------

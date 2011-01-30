@@ -47,6 +47,7 @@ __fastcall TSwitchExtension::TSwitchExtension()
  fOffset1=fOffset2=fDesiredOffset1=fDesiredOffset2=0.0; //po³o¿enie zasadnicze
  pOwner=NULL;
  pNextAnim=NULL;
+ bMovement=false; //nie potrzeba przeliczaæ fOffset1
 }
 __fastcall TSwitchExtension::~TSwitchExtension()
 {//nie ma nic do usuwania
@@ -84,6 +85,7 @@ __fastcall TTrack::TTrack()
  fRadiusTable[1]=0;
  iNumDynamics=0;
  ScannedFlag=false;
+ DisplayListID=0;
  iTrapezoid=0; //parametry kszta³tu: 0-standard, 1-przechy³ka, 2-trapez, 3-oba
  pTraction=NULL; //drut zasilaj¹cy najbli¿szy punktu 1 toru
 }
@@ -618,6 +620,7 @@ void __fastcall TTrack::MoveMe(vector3 pPosition)
     {
        Segment->MoveMe(pPosition);
     };
+    ResourceManager::Unregister(this);
 };
 
 
@@ -654,8 +657,7 @@ const vector3 iglica[nnumPts]= //iglica - vextor3(x,y,mapowanie tekstury)
 
 
 
-/* Ra: nie potrzebne
-void TTrack::Compile()
+void __fastcall TTrack::Compile()
 {//przygotowanie trójk¹tów do wyœwielenia - model proceduralny
     if (DisplayListID)
         Release(); //zwolnienie zasobów
@@ -809,9 +811,9 @@ void TTrack::Compile()
            SwitchExtension->bMovement=false; //koniec animacji
           }
          }
-*/
+
 //McZapkie-130302 - poprawione rysowanie szyn
-/*
+
          if (SwitchExtension->RightSwitch)
          {//nowa wersja z SPKS, ale odwrotnie lewa/prawa
           glBindTexture(GL_TEXTURE_2D, TextureID1);
@@ -926,22 +928,26 @@ void TTrack::Compile()
 };
 */
 
+void TTrack::Release()
+{
+    glDeleteLists(DisplayListID,1);
+    DisplayListID=0;
+};
 
 bool __fastcall TTrack::Render()
 {
 
     if(bVisible && SquareMagnitude(Global::pCameraPosition-Segment->FastGetPoint(0.5)) < 810000)
-    {/*
+    {
         if(!DisplayListID)
         {
             Compile();
             if(Global::bManageNodes)
                 ResourceManager::Register(this);
         };
-        //SetLastUsage(Timer::GetSimulationTime());
-        //glCallList(DisplayListID);
+        SetLastUsage(Timer::GetSimulationTime());
+        glCallList(DisplayListID);
         if (InMovement()) Release(); //zwrotnica w trakcie animacji do odrysowania
-      */  
     };
 
     for (int i=0; i<iNumDynamics; i++)
@@ -1048,11 +1054,12 @@ bool __fastcall TTrack::RemoveDynamicObject(TDynamicObject *Dynamic)
     return false;
 }
 
-/*
 bool __fastcall TTrack::InMovement()
 {//tory animowane (zwrotnica, obrotnica) maj¹ SwitchExtension
  if (SwitchExtension)
- {if (eType==tt_Turn)
+ {if (eType==tt_Switch)
+   return SwitchExtension->bMovement; //ze zwrotnic¹ ³atwiej
+  if (eType==tt_Turn)
    if (SwitchExtension->pModel)
    {if (!SwitchExtension->CurrentIndex) return false; //0=zablokowana siê nie animuje
     //trzeba ka¿dorazowo porównywaæ z k¹tem modelu
@@ -1062,7 +1069,7 @@ bool __fastcall TTrack::InMovement()
    }
  }
  return false;
-};*/
+};
 void __fastcall TTrack::RaAssign(TGroundNode *gn,TAnimContainer *ac)
 {//Ra: wi¹zanie toru z modelem obrotnicy
  //if (eType==tt_Turn) SwitchExtension->pAnim=p;
@@ -1425,7 +1432,6 @@ bool __fastcall TTrack::Switch(int i)
  if (SwitchExtension)
   if (eType==tt_Switch)
   {//przek³adanie zwrotnicy jak zwykle
-   i&=1; //ograniczenie b³êdów !!!!
    SwitchExtension->fDesiredOffset1=fMaxOffset*double(NextMask[i]); //od punktu 1
    //SwitchExtension->fDesiredOffset2=fMaxOffset*double(PrevMask[i]); //od punktu 2
    SwitchExtension->CurrentIndex=i;
@@ -1435,12 +1441,15 @@ bool __fastcall TTrack::Switch(int i)
    bNextSwitchDirection=SwitchExtension->bNextSwitchDirection[NextMask[i]];
    bPrevSwitchDirection=SwitchExtension->bPrevSwitchDirection[PrevMask[i]];
    fRadius=fRadiusTable[i]; //McZapkie: wybor promienia toru
-   if (SwitchExtension->pOwner?SwitchExtension->pOwner->RaTrackAnimAdd(this):true) //jeœli nie dodane do animacji
+   if (DisplayListID) //jeœli istnieje siatka renderu
+    SwitchExtension->bMovement=true; //bêdzie animacja
+   else
     SwitchExtension->fOffset1=SwitchExtension->fDesiredOffset1; //nie ma siê co bawiæ
    return true;
   }
   else
   {//blokowanie (0, szukanie torów) lub odblokowanie (1, roz³¹czenie) obrotnicy
+   SwitchExtension->CurrentIndex=i; //zapamiêtanie stanu zablokowania
    if (i)
    {//roz³¹czenie obrotnicy od s¹siednich torów
     if (pPrev)
@@ -1455,18 +1464,14 @@ bool __fastcall TTrack::Switch(int i)
       pNext->pPrev=NULL;
     pNext=pPrev=NULL;
     fVelocity=0.0; //AI, nie ruszaj siê!
-    if (SwitchExtension->pOwner)
-     SwitchExtension->pOwner->RaTrackAnimAdd(this); //dodanie do listy animacyjnej
    }
    else
    {//ustalenie finalnego po³o¿enia (gdy nie by³o animacji)
-    RaAnimate(); //ostatni etap animowania
     //zablokowanie pozycji i po³¹czenie do s¹siednich torów
     Global::pGround->TrackJoin(SwitchExtension->pMyNode);
     if (pNext||pPrev)
      fVelocity=6.0; //jazda dozwolona
    }
-   SwitchExtension->CurrentIndex=i; //zapamiêtanie stanu zablokowania
    return true;
   }
  Error("Cannot switch normal track");
