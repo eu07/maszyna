@@ -59,7 +59,7 @@ bool __fastcall TAnimContainer::Init(TSubModel *pNewSubModel)
  return (pSubModel!=NULL);
 }
 
-void __fastcall TAnimContainer::SetRotateAnim(vector3 vNewRotateAngles, double fNewRotateSpeed, bool bResetAngle)
+void __fastcall TAnimContainer::SetRotateAnim(vector3 vNewRotateAngles, double fNewRotateSpeed)
 {
  vDesiredAngles=vNewRotateAngles;
  fRotateSpeed=fNewRotateSpeed;
@@ -133,9 +133,9 @@ void __fastcall TAnimContainer::UpdateModel()
    while (vRotateAngles.y<=-360) vRotateAngles.y+=360;
    while (vRotateAngles.z>= 360) vRotateAngles.z-=360;
    while (vRotateAngles.z<=-360) vRotateAngles.z+=360;
-   if (vRotateAngles.z==0.0)
+   if (vRotateAngles.x==0.0)
     if (vRotateAngles.y==0.0)
-     if (vRotateAngles.y==0.0)
+     if (vRotateAngles.z==0.0)
       iAnim&=~1; //k¹ty s¹ zerowe
    if (!anim) fRotateSpeed=0.0; //nie potrzeba przeliczaæ ju¿
   }
@@ -295,7 +295,7 @@ void __fastcall TAnimModel::RaRender(vector3 pPosition, double fAngle)
    if (LightsOn[i])  LightsOn[i]->Visible=(lsLights[i]==ls_On);
    if (LightsOff[i]) LightsOff[i]->Visible=(lsLights[i]==ls_Off);
   }
- ++TSubModel::iInstance; //¿eby nie robiæ cudzych animacji
+ TSubModel::iInstance=(int)this; //¿eby nie robiæ cudzych animacji
  TAnimContainer *pCurrent;
  for (pCurrent=pRoot;pCurrent!=NULL;pCurrent=pCurrent->pNext)
   pCurrent->UpdateModel(); //przeliczenie animacji ka¿dego submodelu
@@ -348,12 +348,12 @@ void __fastcall TAnimModel::Render(vector3 pPosition, double fAngle)
                 if (LightsOff[i])
                  LightsOff[i]->Visible= (lsLights[i]==ls_Off);
             }
-
-    TAnimContainer *pCurrent;
-    for (pCurrent= pRoot; pCurrent!=NULL; pCurrent=pCurrent->pNext)
-        pCurrent->UpdateModel(); //przeliczenie animacji
-    if (pModel)
-        pModel->Render(pPosition, fAngle, ReplacableSkinId);
+ TSubModel::iInstance=(int)this; //¿eby nie robiæ cudzych animacji
+ TAnimContainer *pCurrent;
+ for (pCurrent=pRoot;pCurrent!=NULL;pCurrent=pCurrent->pNext)
+  pCurrent->UpdateModel(); //przeliczenie animacji ka¿dego submodelu
+ if (pModel) //renderowanie rekurencyjne submodeli
+  pModel->Render(pPosition,fAngle,ReplacableSkinId);
 }
 
 void __fastcall TAnimModel::RenderAlpha(vector3 pPosition, double fAngle)
@@ -378,7 +378,7 @@ void __fastcall TAnimModel::RenderAlpha(vector3 pPosition, double fAngle)
                 if (LightsOff[i])
                  LightsOff[i]->Visible= (lsLights[i]==ls_Off);
   }
-
+ TSubModel::iInstance=(int)this; //¿eby nie robiæ cudzych animacji
  TAnimContainer *pCurrent;
     for (pCurrent= pRoot; pCurrent!=NULL; pCurrent=pCurrent->pNext)
         pCurrent->UpdateModel();

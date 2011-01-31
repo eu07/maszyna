@@ -2363,7 +2363,7 @@ renderme=false;
 
 if (renderme)
 {
-
+    TSubModel::iInstance=(int)this; //¿eby nie robiæ cudzych animacji
     AnsiString asLoadName="";
     vFront= GetDirection();
     vFront= GetDirection();
@@ -2396,14 +2396,18 @@ if (renderme)
 
     if (mdLowPolyInt!=NULL)
      if ((FreeFlyModeFlag)||((!FreeFlyModeFlag)&&(!mdKabina)))
+#ifdef USE_VBO
       if (Globals::bUseVBO)
        mdLowPolyInt->RaRender(ObjSqrDist,ReplacableSkinID);
       else
+#endif       
        mdLowPolyInt->Render(ObjSqrDist,ReplacableSkinID);
 
+#ifdef USE_VBO
     if (Globals::bUseVBO)
      mdModel->RaRender(ObjSqrDist,ReplacableSkinID);
     else 
+#endif       
 			  mdModel->Render(ObjSqrDist,ReplacableSkinID);
     if ((mdLoad==NULL) && (MoverParameters->Load>0))
      {
@@ -2419,17 +2423,21 @@ if (renderme)
       mdLoad=NULL;
      }
     if (mdLoad!=NULL)
+#ifdef USE_VBO
      if (Globals::bUseVBO)
       mdLoad->RaRender(ObjSqrDist,ReplacableSkinID);
      else 
+#endif       
       mdLoad->Render(ObjSqrDist,ReplacableSkinID);
 
 //rendering przedsionkow o ile istnieja
     if (mdPrzedsionek!=NULL)
      if (MoverParameters->filename==asBaseDir+"6ba.chk")
+#ifdef USE_VBO
       if (Globals::bUseVBO)
        mdPrzedsionek->RaRender(ObjSqrDist,ReplacableSkinID);
       else 
+#endif       
        mdPrzedsionek->Render(ObjSqrDist,ReplacableSkinID);
 //rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
 //ABu: tylko w trybie FreeFly, zwykly tryb w world.cpp
@@ -2472,9 +2480,11 @@ if (renderme)
       glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseCabLight);
       glLightfv(GL_LIGHT0,GL_SPECULAR,specularCabLight);
 
+#ifdef USE_VBO
      if (Globals::bUseVBO)
       mdKabina->RaRender(ObjSqrDist,0);
      else 
+#endif       
       mdKabina->Render(ObjSqrDist,0);      
 //smierdzi
 //      mdModel->Render(SquareMagnitude(Global::pCameraPosition-pos),0);
@@ -2814,6 +2824,7 @@ bool __fastcall TDynamicObject::RenderAlpha()
 {
 if (renderme)
 {
+    TSubModel::iInstance=(int)this; //¿eby nie robiæ cudzych animacji
     vFront= GetDirection();
     if ((MoverParameters->CategoryFlag==2) && (MoverParameters->CabNo<0)) //TODO: zrobic to eleganciej z plynnym zawracaniem
        vFront= -vFront;
@@ -2874,9 +2885,11 @@ if (renderme)
     glTranslatef(pos.x,pos.y,pos.z);
     glMultMatrixd(mMatrix.getArray());
 
+#ifdef USE_VBO
     if (Globals::bUseVBO)
      mdModel->RaRenderAlpha(ObjSqrDist,ReplacableSkinID);
     else 
+#endif       
      mdModel->RenderAlpha(ObjSqrDist,ReplacableSkinID);
 
 /* skoro false to mo¿na wyci¹c
