@@ -95,7 +95,7 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 
     Global::detonatoryOK=true;
     WriteLog("Starting MaSzyna rail vehicle simulator.");
-    WriteLog("Compilation 2011-01-29");
+    WriteLog("Compilation 2011-01-31");
     WriteLog("Online documentation and additional files on http://eu07.pl");
     WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx_EU, OLO_EU, Bart, Quark-t, ShaXbee, Oli_EU, youBy and others");
     WriteLog("Renderer:");
@@ -811,21 +811,18 @@ bool __fastcall TWorld::Update()
       glLightfv(GL_LIGHT0,GL_AMBIENT,ambientCabLight);
       glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseCabLight);
       glLightfv(GL_LIGHT0,GL_SPECULAR,specularCabLight);
-
+#ifdef USE_VBO
       if (Global::bUseVBO)
       {//renderowanie z u¿yciem VBO
        Train->DynamicObject->mdKabina->RaRender(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,false);
        Train->DynamicObject->mdKabina->RaRenderAlpha(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,true);
       }
       else
+#endif
       {//renderowanie z Display List
        Train->DynamicObject->mdKabina->Render(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,false);
        Train->DynamicObject->mdKabina->RenderAlpha(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,true);
       }
-
-
-//smierdzi
-//      mdModel->Render(SquareMagnitude(Global::pCameraPosition-pos),0);
 
       glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
       glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
@@ -1280,8 +1277,8 @@ bool __fastcall TWorld::Render()
      tempangle=Controlled->GetDirection()*(Controlled->MoverParameters->ActiveCab==-1 ? -1 : 1);
      modelrotate=ABuAcos(tempangle);
      Global::SetCameraRotation(Camera.Yaw-modelrotate);
-    }
-
+     }
+#ifdef USE_VBO
     if (Global::bUseVBO)
     {//renderowanie przez VBO
      if (!Ground.RaRender(Camera.Pos)) return false;
@@ -1290,12 +1287,14 @@ bool __fastcall TWorld::Render()
           return false;
     }
     else
+#endif
     {//renderowanie przez Display List
      if (!Ground.Render(Camera.Pos)) return false;
      if (Global::bRenderAlpha)
        if (!Ground.RenderAlpha(Camera.Pos))
           return false;
     }
+    TSubModel::iInstance=(int)Train->DynamicObject; //¿eby nie robiæ cudzych animacji
 //    if (Camera.Type==tp_Follow)
     if (Controlled)
         Train->Update();
