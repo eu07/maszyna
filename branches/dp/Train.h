@@ -265,6 +265,7 @@ public:
 
     PSound dsbHasler;
     PSound dsbBuzzer;
+    PSound dsbSlipAlarm; //Bombardier 011010: alarm przy poslizgu dla 181/182
     TFadeSound sConverter;  //przetwornica
     TFadeSound sSmallCompressor;  //przetwornica
 

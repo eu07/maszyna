@@ -2405,10 +2405,10 @@ if (renderme)
 
 #ifdef USE_VBO
     if (Globals::bUseVBO)
-     mdModel->RaRender(ObjSqrDist,ReplacableSkinID);
-    else 
-#endif       
-			  mdModel->Render(ObjSqrDist,ReplacableSkinID);
+     mdModel->RaRender(ObjSqrDist,ReplacableSkinID,bAlpha);
+    else
+#endif
+			  mdModel->Render(ObjSqrDist,ReplacableSkinID,bAlpha);
     if ((mdLoad==NULL) && (MoverParameters->Load>0))
      {
       asLoadName= asBaseDir+MoverParameters->LoadType+".t3d";
@@ -2425,10 +2425,10 @@ if (renderme)
     if (mdLoad!=NULL)
 #ifdef USE_VBO
      if (Globals::bUseVBO)
-      mdLoad->RaRender(ObjSqrDist,ReplacableSkinID);
-     else 
-#endif       
-      mdLoad->Render(ObjSqrDist,ReplacableSkinID);
+      mdLoad->RaRender(ObjSqrDist,ReplacableSkinID,bAlpha);
+     else
+#endif
+      mdLoad->Render(ObjSqrDist,ReplacableSkinID,bAlpha);
 
 //rendering przedsionkow o ile istnieja
     if (mdPrzedsionek!=NULL)
@@ -2483,9 +2483,9 @@ if (renderme)
 #ifdef USE_VBO
      if (Globals::bUseVBO)
       mdKabina->RaRender(ObjSqrDist,0);
-     else 
-#endif       
-      mdKabina->Render(ObjSqrDist,0);      
+     else
+#endif
+      mdKabina->Render(ObjSqrDist,0);
 //smierdzi
 //      mdModel->Render(SquareMagnitude(Global::pCameraPosition-pos),0);
 
@@ -2641,7 +2641,8 @@ if ((MoverParameters->ConverterFlag==false)&&(MoverParameters->CompressorPower!=
 
 
 //youBy - przenioslem, bo diesel tez moze miec turbo
-
+if ((MoverParameters->MainCtrlPos)>=(MoverParameters->TurboTest))
+{
           //udawanie turbo:  (6.66*(eng_vol-0.85))
     if (eng_turbo>6.66*(enginevolume-0.8)+0.2*dt)
          eng_turbo=eng_turbo-0.2*dt; //0.125
@@ -2656,7 +2657,9 @@ if ((MoverParameters->ConverterFlag==false)&&(MoverParameters->CompressorPower!=
     sTurbo.UpdateAF(3*eng_turbo-1,0.4+eng_turbo*0.4,MechInside,GetPosition());
 //    eng_vol_act=enginevolume;
     //eng_frq_act=eng_frq;
-
+}
+else
+ sTurbo.TurnOff(MechInside,GetPosition());
 
 
 
@@ -2887,10 +2890,10 @@ if (renderme)
 
 #ifdef USE_VBO
     if (Globals::bUseVBO)
-     mdModel->RaRenderAlpha(ObjSqrDist,ReplacableSkinID);
-    else 
-#endif       
-     mdModel->RenderAlpha(ObjSqrDist,ReplacableSkinID);
+     mdModel->RaRenderAlpha(ObjSqrDist,ReplacableSkinID,bAlpha);
+    else
+#endif
+     mdModel->RenderAlpha(ObjSqrDist,ReplacableSkinID,bAlpha);
 
 /* skoro false to mo¿na wyci¹c
     //ABu: Tylko w trybie freefly

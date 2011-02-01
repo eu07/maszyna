@@ -228,7 +228,7 @@ public:
     TTrack *MyTrack; //McZapkie-030303: tor na ktorym stoi, ABu
     AnsiString asBaseDir;
     GLuint ReplacableSkinID;  //McZapkie:zmienialne nadwozie
-    bool bAlpha;
+    bool bAlpha; //czy tekstura przezroczysta
     __fastcall TDynamicObject();
     __fastcall ~TDynamicObject();
     bool __fastcall TDynamicObject::Init(AnsiString Name, AnsiString BaseDir, AnsiString asReplacableSkin, AnsiString Type_Name,

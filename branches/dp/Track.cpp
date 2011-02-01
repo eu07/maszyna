@@ -909,12 +909,13 @@ void __fastcall TTrack::Compile()
              Segment->RenderLoft(bpts1,numPts,fTexLength);
              if(TextureID2)
              {//brzegi rzeki prawie jak pobocze derogi, tylko inny znak ma wysokoœæ
-                 vector3 rpts1[3]= { vector3(rozp,fTexHeight,0.0),
+              //znak jest zmieniany przy wczytywaniu, wiêc tu musi byc minus fTexHeight
+                 vector3 rpts1[3]= { vector3(rozp,-fTexHeight,0.0),
                                      vector3(fHTW+side,0.0,0.5),
                                      vector3(fHTW,0.0,1.0) };
                  vector3 rpts2[3]= { vector3(-fHTW,0.0,1.0),
                                      vector3(-fHTW-side,0.0,0.5),
-                                     vector3(-rozp,fTexHeight,0.1) }; //Ra: po kiego 0.1?
+                                     vector3(-rozp,-fTexHeight,0.1) }; //Ra: po kiego 0.1?
                  glBindTexture(GL_TEXTURE_2D, TextureID2);      //brzeg rzeki
                  Segment->RenderLoft(rpts1,3,fTexLength);
                  Segment->RenderLoft(rpts2,3,fTexLength);
@@ -926,7 +927,6 @@ void __fastcall TTrack::Compile()
     if(Global::bManageNodes)
         glEndList();
 };
-*/
 
 void TTrack::Release()
 {
@@ -934,7 +934,7 @@ void TTrack::Release()
     DisplayListID=0;
 };
 
-bool __fastcall TTrack::Render()
+void __fastcall TTrack::Render()
 {
 
     if(bVisible && SquareMagnitude(Global::pCameraPosition-Segment->FastGetPoint(0.5)) < 810000)
@@ -978,11 +978,9 @@ bool __fastcall TTrack::Render()
    glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
    glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
    glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
-   return true;
 }
 
-
-bool __fastcall TTrack::RenderAlpha()
+void __fastcall TTrack::RenderAlpha()
 {
     glColor3f(1.0f,1.0f,1.0f);
 //McZapkie-310702: zmiana oswietlenia w tunelu, wykopie
@@ -1026,7 +1024,6 @@ bool __fastcall TTrack::RenderAlpha()
    glLightModelfv(GL_LIGHT_MODEL_AMBIENT,Global::ambientDayLight);
    glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
    glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
-   return true;
 }
 
 bool __fastcall TTrack::CheckDynamicObject(TDynamicObject *Dynamic)

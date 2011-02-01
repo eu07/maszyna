@@ -2142,28 +2142,34 @@ else
        }
      }
 
-    if ( DynamicObject->MoverParameters->SlippingWheels )
+    if  (DynamicObject->MoverParameters->SlippingWheels)
+    {
+     double veldiff=(DynamicObject->GetVelocity()-fTachoVelocity)/DynamicObject->MoverParameters->Vmax;
+     if (veldiff<0)
      {
-       double veldiff=(DynamicObject->GetVelocity()-fTachoVelocity)/DynamicObject->MoverParameters->Vmax;
-       if (veldiff<0)
-        {
-          if (abs(DynamicObject->MoverParameters->Im)>10.0)
-            btLampkaPoslizg.TurnOn();
-          rsSlippery.Play(-rsSlippery.AM*veldiff+rsSlippery.AA,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
-        }
-       else
-        {
-         if ((DynamicObject->MoverParameters->UnitBrakeForce>100.0) && (DynamicObject->GetVelocity()>1.0))
-           {
-             rsSlippery.Play(rsSlippery.AM*veldiff+rsSlippery.AA,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
-           }
-        }
+      if (fabs(DynamicObject->MoverParameters->Im)>10.0)
+       btLampkaPoslizg.TurnOn();
+      rsSlippery.Play(-rsSlippery.AM*veldiff+rsSlippery.AA,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
+      if (DynamicObject->MoverParameters->TrainType==dt_181) //alarm przy poslizgu dla 181/182 - BOMBARDIER
+       dsbSlipAlarm->Play (0, 0, DSBPLAY_LOOPING) ;
      }
+     else
+     {
+      if ((DynamicObject->MoverParameters->UnitBrakeForce>100.0) && (DynamicObject->GetVelocity()>1.0))
+      {
+       rsSlippery.Play(rsSlippery.AM*veldiff+rsSlippery.AA,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
+       if (DynamicObject->MoverParameters->TrainType==dt_181)
+        dsbSlipAlarm->Stop();
+      }
+     }
+    }
     else
-     {
-        btLampkaPoslizg.TurnOff();
-        rsSlippery.Stop();
-     }
+    {
+     btLampkaPoslizg.TurnOff();
+     rsSlippery.Stop();
+     if (DynamicObject->MoverParameters->TrainType==dt_181)
+      dsbSlipAlarm->Stop();
+    }
 
     if ( DynamicObject->MoverParameters->Mains )
      {
@@ -2913,6 +2919,12 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
          {
           str= Parser->GetNextSymbol().LowerCase();
           dsbBuzzer= TSoundsManager::GetFromName(str.c_str());
+         }
+        else
+        if (str==AnsiString("slipalarm:")) //Bombardier 011010: alarm przy poslizgu:
+         {
+          str= Parser->GetNextSymbol().LowerCase();
+          dsbSlipAlarm= TSoundsManager::GetFromName(str.c_str());
          }
         else
         if (str==AnsiString("tachoclock:"))                 //cykanie rejestratora:

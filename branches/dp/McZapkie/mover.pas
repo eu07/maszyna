@@ -180,6 +180,7 @@ CONST
    dt_PseudoDiesel=4;
    dt_ET22=5; //nie u¿ywane
    dt_SN61=6; //nie u¿ywane
+   dt_181=7; 
 
 TYPE
     PMoverParameters=^TMoverParameters;
@@ -388,6 +389,7 @@ TYPE
                LocalBrake: TLocalBrake;  {rodzaj hamulca indywidualnego}
                BrakePressureTable: TBrakePressureTable; {wyszczegolnienie cisnien w rurze}
                ASBType: byte;            {0: brak hamulca przeciwposlizgowego, 1: reczny, 2: automat}
+               TurboTest: byte;
                MaxBrakeForce: real;      {maksymalna sila nacisku hamulca}
                MaxBrakePress,P2FTrans: real;
                TrackBrakeForce: real;    {sila nacisku hamulca szynowego}
@@ -5423,9 +5425,11 @@ begin
                end
               else if s='ET41' then TrainType:=dt_ET41
               else if s='ET42' then TrainType:=dt_ET42
-              //else if s='ET22' then TrainType:=dt_ET22;
-              //else if s='SN61' then TrainType:=dt_SN61;
-              else if s='PSEUDODIESEL' then TrainType:=dt_PseudoDiesel;
+              else if s='ET22' then TrainType:=dt_ET22
+              else if s='SN61' then TrainType:=dt_SN61
+              else if s='PSEUDODIESEL' then TrainType:=dt_PseudoDiesel
+              else if s='181' then TrainType:=dt_181
+              else if s='182' then TrainType:=dt_181; {na razie tak}
             end;
           if Pos('Load:',lines)>0 then      {stale parametry}
             begin
@@ -5723,6 +5727,11 @@ begin
                   end;
 {                CouplerTune:=(1+Mass)/100000; }
               end;
+          if Pos('TurboPos:',lines)>0 then      {turbo zalezne od pozycji nastawnika}
+           begin
+            s:=ExtractKeyWord(lines,'TurboPos=');
+            TurboTest:=s2b(DUE(s));
+           end;
           if Pos('Cntrl.',lines)>0 then      {nastawniki}
             begin
               s:=DUE(ExtractKeyWord(lines,'BrakeSystem='));
