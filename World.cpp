@@ -95,7 +95,7 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 
     Global::detonatoryOK=true;
     WriteLog("Starting MaSzyna rail vehicle simulator.");
-    WriteLog("Compilation 2011-01-31");
+    WriteLog("Compilation 2011-02-01");
     WriteLog("Online documentation and additional files on http://eu07.pl");
     WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx_EU, OLO_EU, Bart, Quark-t, ShaXbee, Oli_EU, youBy and others");
     WriteLog("Renderer:");
@@ -814,14 +814,14 @@ bool __fastcall TWorld::Update()
 #ifdef USE_VBO
       if (Global::bUseVBO)
       {//renderowanie z u¿yciem VBO
-       Train->DynamicObject->mdKabina->RaRender(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,false);
-       Train->DynamicObject->mdKabina->RaRenderAlpha(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,true);
+       Train->DynamicObject->mdKabina->RaRender(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->bAlpha);
+       Train->DynamicObject->mdKabina->RaRenderAlpha(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->bAlpha);
       }
       else
 #endif
       {//renderowanie z Display List
-       Train->DynamicObject->mdKabina->Render(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,false);
-       Train->DynamicObject->mdKabina->RenderAlpha(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,true);
+       Train->DynamicObject->mdKabina->Render(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->bAlpha);
+       Train->DynamicObject->mdKabina->RenderAlpha(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->bAlpha);
       }
 
       glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
@@ -914,6 +914,7 @@ bool __fastcall TWorld::Update()
        //ABu zmiana pojazdu
        Train->dsbHasler->Stop();
        Train->dsbBuzzer->Stop();
+       Train->dsbSlipAlarm->Stop(); //dŸwiêk alarmu przy poœlizgu
        Train->rsHiss.Stop();
        Train->rsSBHiss.Stop();
        Train->rsRunningNoise.Stop();
