@@ -43,11 +43,9 @@
 bool bCondition; //McZapkie: do testowania warunku na event multiple
 AnsiString LogComment;
 
-/* tablica pozycji sektorów do renderowania progresywnego (zale¿nie od FPS)
-//pocz¹tki kolejnych krêgów (maksymalnie 40*40 sektorów)
-const int Start[]={0,1,9,25,49,81,121,13*13,15*15,17*17,19*19,21*21,23*23,25*25,27*27,29*29,31*31,33*33,35*35,37*37,39*39,41*41};
- (0,0)
-*/
+// tablica pozycji sektorów do renderowania progresywnego (zale¿nie od FPS)
+const int AreaFast[]={10,10,10,10,10,10,9,8,7,6,5}; //pe³ny zakres widocznoœci 2km
+const int AreaSlow[]={ 7, 7, 7, 7, 7, 6,5,4,0,0,0}; //ograniczenie widocznoœci 1.5km
 //---------------------------------------------------------------------------
 
 __fastcall TGroundNode::TGroundNode()
@@ -80,7 +78,6 @@ __fastcall TGroundNode::TGroundNode()
  bAllocated=true; //zawsze true
  pNext3=NULL; //nie wyœwietla innych
  iVboPtr=-1; //indeks w VBO sektora (-1: nie u¿ywa VBO)
- pTriGroup=NULL; //sam siê wyœwietla
 }
 
 __fastcall TGroundNode::~TGroundNode()
@@ -269,30 +266,26 @@ void __fastcall TGroundNode::RaRenderVBO()
  glDrawArrays(iType,iVboPtr,iNumVerts);   // Narysuj naraz wszystkie trójk¹ty
 }
 
-bool __fastcall TGroundNode::RaRender()
+void __fastcall TGroundNode::RaRender()
 {
  double mgn=SquareMagnitude(pCenter-Global::pCameraPosition);
  if ((mgn>fSquareRadius || (mgn<fSquareMinRadius)) && (iType!=TP_EVLAUNCH)) //McZapkie-070602: nie rysuj odleglych obiektow ale sprawdzaj wyzwalacz zdarzen
-     return false;
+     return;
 //    glMaterialfv( GL_FRONT, GL_DIFFUSE, Global::whiteLight );
  int i,a;
- try{
  switch (iType)
  {
-  case TP_TRACTION: return true;
-  case TP_TRACK: if (iNumVerts) pTrack->RaRenderVBO(iVboPtr); return true;
-  case TP_MODEL: Model->RaRender(pCenter,fAngle); return true;
-  case TP_DYNAMIC:
-   Error("Cannot render dynamic from TGroundNode::Render()");
-   return true;
+  case TP_TRACTION: return;
+  case TP_TRACK: if (iNumVerts) pTrack->RaRenderVBO(iVboPtr); return;
+  case TP_MODEL: Model->RaRender(pCenter,fAngle); return;
   case TP_SOUND: //McZapkie - dzwiek zapetlony w zaleznosci od odleglosci
    if ((pStaticSound->GetStatus()&DSBSTATUS_PLAYING)==DSBPLAY_LOOPING)
    {
     pStaticSound->Play(1,DSBPLAY_LOOPING,true,pStaticSound->vSoundPosition);
     pStaticSound->AdjFreq(1.0,Timer::GetDeltaTime());
    }
-   return true;
-  case TP_MEMCELL: return true;
+   return;
+  case TP_MEMCELL: return;
   case TP_EVLAUNCH:
    if (EvLaunch->Render())
     if (EvLaunch->dRadius<0 || mgn<EvLaunch->dRadius)
@@ -303,7 +296,7 @@ bool __fastcall TGroundNode::RaRender()
       if (EvLaunch->Event1!=NULL)
        Global::pGround->AddToQuery(EvLaunch->Event1,NULL);
     }
-   return true;
+   return;
   case GL_LINES:
   case GL_LINE_STRIP:
   case GL_LINE_LOOP:
@@ -319,13 +312,11 @@ bool __fastcall TGroundNode::RaRender()
     glDrawArrays(iType,iVboPtr,iNumPts); //rysowanie linii
     glEnable(GL_LIGHTING);
    }
-   return true;
+   return;
   default:
    if (iVboPtr>=0)
     RaRenderVBO();
-   return true;
  };
- }catch(...) {WriteLog("!!! B³¹d w TGroundNode::Render() dla "+AnsiString(iType));}
 /* Ra: trójk¹ty i linie renderuj¹ siê z VBO sektora
     // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
     if(
@@ -359,15 +350,15 @@ bool __fastcall TGroundNode::RaRender()
 
     };
 */
- return true;
+ return;
 };
 
-bool __fastcall TGroundNode::RaRenderAlpha()
+void __fastcall TGroundNode::RaRenderAlpha()
 {
  double mgn=SquareMagnitude(pCenter-Global::pCameraPosition);
  float r,g,b;
- if (mgn<fSquareMinRadius) return false;
- if (mgn>fSquareRadius) return false;
+ if (mgn<fSquareMinRadius) return;
+ if (mgn>fSquareRadius) return;
 //    glMaterialfv( GL_FRONT, GL_DIFFUSE, Global::whiteLight );
  int i,a;
  switch (iType)
@@ -375,9 +366,9 @@ bool __fastcall TGroundNode::RaRenderAlpha()
   case TP_TRACTION:
    if (Global::bRenderAlpha && bVisible)
     Traction->RaRenderVBO(mgn,iVboPtr);
-   return true;
+   return;
   case TP_MODEL:
-   Model->RaRenderAlpha(pCenter,fAngle); return true;
+   Model->RaRenderAlpha(pCenter,fAngle); return;
   case GL_LINES:
   case GL_LINE_STRIP:
   case GL_LINE_LOOP:
@@ -392,14 +383,14 @@ bool __fastcall TGroundNode::RaRenderAlpha()
     glDrawArrays(iType,iVboPtr,iNumPts); //rysowanie linii
     glEnable(GL_LIGHTING);
    }
-   return true;
+   return;
   default:
    if (iVboPtr>=0)
    {RaRenderVBO();
-    return true;
+    return;
    }
  };
- return true;
+ return;
 }
 
 //------------------------------------------------------------------------------
@@ -421,8 +412,8 @@ void __fastcall TSubRect::AddNode(TGroundNode *Node)
  //pRenderHidden   - lista obiektów niewidocznych, "renderowanych" równie¿ z ty³u
  //pRenderVBO      - lista grup renderowanych ze wsp³nego VBO
  //pRenderAlphaVBO - lista grup renderowanych ze wsp³nego VBO z przezroczystoœci¹
- //pRender         - lista grup renderowanych z w³asnych VBO
- //pRenderAlpha    - lista grup renderowanych z w³asnych VBO z przezroczystoœci¹
+ //pRender         - lista grup renderowanych z w³asnych VBO albo DL
+ //pRenderAlpha    - lista grup renderowanych z w³asnych VBO z przezroczystoœci¹ albo DL
  switch (Node->iType)
  {case TP_SOUND: //te obiekty s¹ sprawdzanie niezale¿nie od kierunku patrzenia
   case TP_EVLAUNCH:
@@ -430,21 +421,51 @@ void __fastcall TSubRect::AddNode(TGroundNode *Node)
    break;
   case TP_TRACK:
    Node->pTrack->RaOwnerSet(this); //gdzie ma zg³aszaæ animacjê
-   Node->pNext3=pRenderVBO; pRenderVBO=Node; //do listy nieprzezroczystych
+   if (Global::bUseVBO)
+   {Node->pNext3=pRenderVBO; pRenderVBO=Node;} //VBO: do listy nieprzezroczystych
+   else
+   {Node->pNext3=pRender; pRender=Node;} //DL: do nieprzezroczystych
    break;
   case GL_TRIANGLE_STRIP:
   case GL_TRIANGLE_FAN:
   case GL_TRIANGLES:
-   if (Node->iFlags&4) //czy jest przezroczyste?
-   {Node->pNext3=pRenderAlphaVBO; pRenderAlphaVBO=Node;} //do przezroczystych
+   if (Global::bUseVBO)
+   {if (Node->iFlags&4) //czy jest przezroczyste?
+    {Node->pNext3=pRenderAlphaVBO; pRenderAlphaVBO=Node;} //VBO: do przezroczystych
+    else
+    {Node->pNext3=pRenderVBO; pRenderVBO=Node;} //VBO: do nieprzezroczystych
+   }
    else
-   {Node->pNext3=pRenderVBO; pRenderVBO=Node;} //do nieprzezroczystych
+   {if (Node->iFlags&4) //czy jest przezroczyste?
+    {Node->pNext3=pRenderAlpha; pRenderAlpha=Node;} //DL: do przezroczystych
+    else
+    {Node->pNext3=pRender; pRender=Node; //DL: do nieprzezroczystych
+/*
+    //Ra: na razie wy³¹czone do testów VBO
+    //if ((Node->iType==GL_TRIANGLE_STRIP)||(Node->iType==GL_TRIANGLE_FAN)||(Node->iType==GL_TRIANGLES))
+     if (Node->fSquareMinRadius==0.0) //znikaj¹ce z bliska nie mog¹ byæ optymalizowane
+      if (Node->fSquareRadius>=160000.0) //tak od 400m to ju¿ normalne trójk¹ty musz¹ byæ
+      //if (Node->iFlags&2) //i nieprzezroczysty
+      {if (pTriGroup) //je¿eli by³ ju¿ jakiœ grupuj¹cy
+       {if (pTriGroup->fSquareRadius>Node->fSquareRadius) //i mia³ wiêkszy zasiêg
+         Node->fSquareRadius=pTriGroup->fSquareRadius; //zwiêkszenie zakresu widocznoœci grupuj¹cego
+        pTriGroup->pTriGroup=Node; //poprzedniemu doczepiamy nowy
+       }
+       Node->pTriGroup=Node; //nowy lider ma siê sam wyœwietlaæ - wskaŸnik na siebie
+       pTriGroup=Node; //zapamiêtanie lidera
+      }
+*/
+    }
+   }
    break;
   case TP_TRACTION:
   case GL_LINES:
   case GL_LINE_STRIP:
   case GL_LINE_LOOP: //te na koñcu, ¿eby nie ³apa³y koloru nieba
-   Node->pNext3=pRenderAlphaVBO; pRenderAlphaVBO=Node;
+   if (Global::bUseVBO)
+   {Node->pNext3=pRenderAlphaVBO; pRenderAlphaVBO=Node;}
+   else
+   {Node->pNext3=pRenderAlpha; pRenderAlpha=Node;} //DL: do przezroczystych
    break;
   case TP_MODEL: //modle zawsze wyœwietlane z w³asnego VBO
    if ((Node->iFlags&0x04040004)==0) //czy brak przezroczystoœci?
@@ -461,20 +482,6 @@ void __fastcall TSubRect::AddNode(TGroundNode *Node)
  }
  Node->pNext2=pRootNode; //dopisanie do ogólnej listy
  pRootNode=Node;
-/* //Ra: na razie wy³¹czone do testów VBO
- if ((Node->iType==GL_TRIANGLE_STRIP)||(Node->iType==GL_TRIANGLE_FAN)||(Node->iType==GL_TRIANGLES))
-  if (Node->fSquareMinRadius==0.0) //znikaj¹ce z bliska nie mog¹ byæ optymalizowane
-   if (Node->fSquareRadius>=160000.0) //tak od 400m to ju¿ normalne trójk¹ty musz¹ byæ
-    if (!Node->TexAlpha) //i nieprzezroczysty
-    {if (pTriGroup) //je¿eli by³ ju¿ jakiœ grupuj¹cy
-     {if (pTriGroup->fSquareRadius>Node->fSquareRadius) //i mia³ wiêkszy zasiêg
-       Node->fSquareRadius=pTriGroup->fSquareRadius; //zwiêkszenie zakresu widocznoœci grupuj¹cego
-      pTriGroup->pTriGroup=Node; //poprzedniemu doczepiamy nowy
-     }
-     Node->pTriGroup=Node; //nowy lider ma siê sam wyœwietlaæ - wskaŸnik na siebie
-     pTriGroup=Node; //zapamiêtanie lidera
-    }
-*/
 };
 
 bool __fastcall TSubRect::RaTrackAnimAdd(TTrack *t)
@@ -489,12 +496,15 @@ bool __fastcall TSubRect::RaTrackAnimAdd(TTrack *t)
 
 void __fastcall TSubRect::RaAnimate()
 {
- if (!pTrackAnim) return;
- if (Global::bOpenGL_1_5) //modyfikacje VBO s¹ dostêpne od OpenGL 1.5
-  glBindBufferARB(GL_ARRAY_BUFFER_ARB,m_nVBOVertices);
- else //dla OpenGL 1.4 z GL_ARB_vertex_buffer_object odœwie¿enie ca³ego sektora
-  Release(); //opró¿nienie VBO sektora, aby siê odœwie¿y³ z nowymi ustawieniami
- pTrackAnim=pTrackAnim->RaAnimate(); //przeliczenie i ewentualnie poprawiania VBO
+ if (!pTrackAnim) return; //nie ma nic do animowania
+ if (Global::bUseVBO)
+ {//odœwie¿enie VBO sektora
+  if (Global::bOpenGL_1_5) //modyfikacje VBO s¹ dostêpne od OpenGL 1.5
+   glBindBufferARB(GL_ARRAY_BUFFER_ARB,m_nVBOVertices);
+  else //dla OpenGL 1.4 z GL_ARB_vertex_buffer_object odœwie¿enie ca³ego sektora
+   Release(); //opró¿nienie VBO sektora, aby siê odœwie¿y³ z nowymi ustawieniami
+ }
+ pTrackAnim=pTrackAnim->RaAnimate(); //przeliczenie animacji kolejnego
 };
 
 void __fastcall TSubRect::LoadNodes()
@@ -531,51 +541,53 @@ void __fastcall TSubRect::LoadNodes()
   n=n->pNext2;
  }
  if (!m_nVertexCount) return; //jeœli nie ma obiektów do wyœwietlenia z VBO, to koniec
- MakeArray(m_nVertexCount);
- n=pRootNode;
- int i;
- while (n)
- {if (n->iVboPtr>=0)
-   switch (n->iType)
-   {case GL_TRIANGLE_STRIP:
-    case GL_TRIANGLE_FAN:
-    case GL_TRIANGLES:
-     for (i=0;i<n->iNumVerts;++i)
-     {//Ra: trójk¹ty mo¿na od razu wczytywaæ do takich tablic... to mo¿e poczekaæ
-      m_pVNT[n->iVboPtr+i].x=n->Vertices[i].Point.x;
-      m_pVNT[n->iVboPtr+i].y=n->Vertices[i].Point.y;
-      m_pVNT[n->iVboPtr+i].z=n->Vertices[i].Point.z;
-      m_pVNT[n->iVboPtr+i].nx=n->Vertices[i].Normal.x;
-      m_pVNT[n->iVboPtr+i].ny=n->Vertices[i].Normal.y;
-      m_pVNT[n->iVboPtr+i].nz=n->Vertices[i].Normal.z;
-      m_pVNT[n->iVboPtr+i].u=n->Vertices[i].tu;
-      m_pVNT[n->iVboPtr+i].v=n->Vertices[i].tv;
-     }
-     break;
-    case GL_LINES:
-    case GL_LINE_STRIP:
-    case GL_LINE_LOOP:
-     for (i=0;i<n->iNumPts;++i)
-     {
-      m_pVNT[n->iVboPtr+i].x=n->Points[i].x;
-      m_pVNT[n->iVboPtr+i].y=n->Points[i].y;
-      m_pVNT[n->iVboPtr+i].z=n->Points[i].z;
-      //miejsce w tablicach normalnych i teksturowania siê zmarnuje...
-     }
-     break;
-    case TP_TRACK:
-     if (n->iNumVerts) //bo tory zabezpieczaj¹ce s¹ niewidoczne
-      n->pTrack->RaArrayFill(m_pVNT+n->iVboPtr,m_pVNT);
-     break;
-    case TP_TRACTION:
-     if (n->iNumVerts) //druty mog¹ byæ niewidoczne...?
-      n->Traction->RaArrayFill(m_pVNT+n->iVboPtr);
-     break;
-   }
-  n=n->pNext2;
- }
  if (Global::bUseVBO)
+ {//tylko liczenie wierzcho³ów, gdy nie ma VBO
+  MakeArray(m_nVertexCount);
+  n=pRootNode;
+  int i;
+  while (n)
+  {if (n->iVboPtr>=0)
+    switch (n->iType)
+    {case GL_TRIANGLE_STRIP:
+     case GL_TRIANGLE_FAN:
+     case GL_TRIANGLES:
+      for (i=0;i<n->iNumVerts;++i)
+      {//Ra: trójk¹ty mo¿na od razu wczytywaæ do takich tablic... to mo¿e poczekaæ
+       m_pVNT[n->iVboPtr+i].x=n->Vertices[i].Point.x;
+       m_pVNT[n->iVboPtr+i].y=n->Vertices[i].Point.y;
+       m_pVNT[n->iVboPtr+i].z=n->Vertices[i].Point.z;
+       m_pVNT[n->iVboPtr+i].nx=n->Vertices[i].Normal.x;
+       m_pVNT[n->iVboPtr+i].ny=n->Vertices[i].Normal.y;
+       m_pVNT[n->iVboPtr+i].nz=n->Vertices[i].Normal.z;
+       m_pVNT[n->iVboPtr+i].u=n->Vertices[i].tu;
+       m_pVNT[n->iVboPtr+i].v=n->Vertices[i].tv;
+      }
+      break;
+     case GL_LINES:
+     case GL_LINE_STRIP:
+     case GL_LINE_LOOP:
+      for (i=0;i<n->iNumPts;++i)
+      {
+       m_pVNT[n->iVboPtr+i].x=n->Points[i].x;
+       m_pVNT[n->iVboPtr+i].y=n->Points[i].y;
+       m_pVNT[n->iVboPtr+i].z=n->Points[i].z;
+       //miejsce w tablicach normalnych i teksturowania siê zmarnuje...
+      }
+      break;
+     case TP_TRACK:
+      if (n->iNumVerts) //bo tory zabezpieczaj¹ce s¹ niewidoczne
+       n->pTrack->RaArrayFill(m_pVNT+n->iVboPtr,m_pVNT);
+      break;
+     case TP_TRACTION:
+      if (n->iNumVerts) //druty mog¹ byæ niewidoczne...?
+       n->Traction->RaArrayFill(m_pVNT+n->iVboPtr);
+      break;
+    }
+   n=n->pNext2;
+  }
   BuildVBOs();
+ }
  if (Global::bManageNodes)
   ResourceManager::Register(this); //dodanie do automatu zwalniaj¹cego pamiêæ
 }
@@ -588,123 +600,203 @@ bool __fastcall TSubRect::StartVBO()
 
 void TSubRect::Release()
 {//wirtualne zwolnienie zasobów przez sprz¹tacz albo destruktor
- CMesh::Clear();
+ if (Global::bUseVBO)
+  CMesh::Clear(); //usuwanie buforów
 };
 
 void __fastcall TGroundNode::Compile()
 {
-        if (tri->pTriGroup) //jeœli z grupy
-        {tri=tri->Next2; //nastêpny w sektorze
-         while (tri?!tri->pTriGroup:false) tri=tri->Next2; //szukamy kolejnego nale¿¹cego do grupy
-        }
-        else tri=NULL; //a jak nie, to koniec
-      } while (tri);
-    };
+ if (DisplayListID) Release();
+ if (Global::bManageNodes)
+ {
+  DisplayListID=glGenLists(1);
+  glNewList(DisplayListID,GL_COMPILE);
+ };
+ if (iType == GL_LINES || iType == GL_LINE_STRIP || iType == GL_LINE_LOOP)
+ {
+#ifdef USE_VERTEX_ARRAYS
+  glVertexPointer(3,GL_DOUBLE,sizeof(vector3),&Points[0].x);
+#endif
+  glBindTexture(GL_TEXTURE_2D,0);
+#ifdef USE_VERTEX_ARRAYS
+  glDrawArrays(iType,0,iNumPts);
+#else
+  glBegin(iType);
+  for (int i=0;i<iNumPts;i++)
+   glVertex3dv(&Points[i].x);
+  glEnd();
+#endif
+ }
+ else if (iType==GL_TRIANGLE_STRIP || iType==GL_TRIANGLE_FAN || iType==GL_TRIANGLES )
+ {//jak nie linie, to trójk¹ty
+  TGroundNode *tri=this;
+  do
+  {//pêtla po obiektach w grupie w celu po³¹czenia siatek
+#ifdef USE_VERTEX_ARRAYS
+   glVertexPointer(3, GL_DOUBLE, sizeof(TGroundVertex), &tri->Vertices[0].Point.x);
+   glNormalPointer(GL_DOUBLE, sizeof(TGroundVertex), &tri->Vertices[0].Normal.x);
+   glTexCoordPointer(2, GL_FLOAT, sizeof(TGroundVertex), &tri->Vertices[0].tu);
+#endif
+   glColor3ub(tri->Diffuse[0],tri->Diffuse[1],tri->Diffuse[2]);
+   glBindTexture(GL_TEXTURE_2D,Global::bWireFrame?0:tri->TextureID);
+#ifdef USE_VERTEX_ARRAYS
+   glDrawArrays(Global::bWireFrame?GL_LINE_STRIP:tri->iType,0,tri->iNumVerts);
+#else
+   glBegin(Global::bWireFrame?GL_LINE_STRIP:tri->iType);
+   for (int i=0;i<tri->iNumVerts;i++)
+   {
+    glNormal3d(tri->Vertices[i].Normal.x,tri->Vertices[i].Normal.y,tri->Vertices[i].Normal.z);
+    glTexCoord2f(tri->Vertices[i].tu,tri->Vertices[i].tv);
+    glVertex3dv(&tri->Vertices[i].Point.x);
+   };
+   glEnd();
+#endif
+/*
+   if (tri->pTriGroup) //jeœli z grupy
+   {tri=tri->pNext3; //nastêpny w sektorze
+    while (tri?!tri->pTriGroup:false) tri=tri->pNext3; //szukamy kolejnego nale¿¹cego do grupy
+   }
+   else
+*/
+    tri=NULL; //a jak nie, to koniec
+  } while (tri);
+ };
+ if (Global::bManageNodes)
+  glEndList();
 };
 
-bool __fastcall TGroundNode::Render()
+void TGroundNode::Release()
 {
-    if (pTriGroup) if (pTriGroup!=this) return false; //wyœwietla go inny obiekt
-    double mgn= SquareMagnitude(pCenter-Global::pCameraPosition);
+ if (DisplayListID)
+  glDeleteLists(DisplayListID,1);
+ DisplayListID=0;
+};
+
+void __fastcall TGroundNode::RenderHidden()
+{//renderowanie obiektów niewidocznych
+ double mgn= SquareMagnitude(pCenter-Global::pCameraPosition);
+ switch (iType)
+ {
+  case TP_SOUND: //McZapkie - dzwiek zapetlony w zaleznosci od odleglosci
+   if ((pStaticSound->GetStatus()&DSBSTATUS_PLAYING)==DSBPLAY_LOOPING)
+   {
+    pStaticSound->Play(1,DSBPLAY_LOOPING,true,pStaticSound->vSoundPosition);
+    pStaticSound->AdjFreq(1.0, Timer::GetDeltaTime());
+   }
+   return;
+  case TP_EVLAUNCH:
+   if (EvLaunch->Render())
+    if (EvLaunch->dRadius<0 || mgn<EvLaunch->dRadius)
+    {
+     if (Pressed(VK_SHIFT) && EvLaunch->Event2!=NULL)
+      Global::pGround->AddToQuery(EvLaunch->Event2,NULL);
+     else
+      if (EvLaunch->Event1!=NULL)
+       Global::pGround->AddToQuery(EvLaunch->Event1,NULL);
+    }
+   return;
+ }
+};
+
+void __fastcall TGroundNode::Render()
+{//wyœwietlanie obiektów przez Display List
+ //if (pTriGroup) if (pTriGroup!=this) return; //wyœwietla go inny obiekt
+ double mgn= SquareMagnitude(pCenter-Global::pCameraPosition);
+ if ((mgn>fSquareRadius) || (mgn<fSquareMinRadius)) //McZapkie-070602: nie rysuj odleglych obiektow ale sprawdzaj wyzwalacz zdarzen
+  return;
+ int i,a;
+ switch (iType)
+ {
+  case TP_TRACK:
+   return pTrack->Render();
+  case TP_MODEL:
+   return Model->Render(pCenter,fAngle);
+ }
+    // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
+  if(
+   (iNumVerts && (!Global::bRenderAlpha || (iFlags&2))) ||
+   (iNumPts && (!Global::bRenderAlpha || fLineThickness < 0)))
+  {
+   if (!DisplayListID||Global::bReCompile) //Ra: wymuszenie rekompilacji
+   {
+    Compile();
+    if (Global::bManageNodes)
+     ResourceManager::Register(this);
+   };
+
+   if (iType == GL_LINES || iType == GL_LINE_STRIP || iType == GL_LINE_LOOP)
+   //if (iNumPts)
+   {
     float r,g,b;
-  //  if (mgn<fSquareMinRadius)
-//        return false;
- if ((mgn>fSquareRadius || (mgn<fSquareMinRadius)) && (iType!=TP_EVLAUNCH)) //McZapkie-070602: nie rysuj odleglych obiektow ale sprawdzaj wyzwalacz zdarzen
-     return false;
+    r=Diffuse[0]*Global::ambientDayLight[0];  //w zaleznosci od koloru swiatla
+    g=Diffuse[1]*Global::ambientDayLight[1];
+    b=Diffuse[2]*Global::ambientDayLight[2];
+    glColor4ub(r,g,b,1.0);
+    glCallList(DisplayListID);
+   }
+   // GL_TRIANGLE etc
+   else
+    glCallList(DisplayListID);
+   SetLastUsage(Timer::GetSimulationTime());
+  };
+};
+
+void __fastcall TGroundNode::RenderAlpha()
+{
+ //if (pTriGroup) if (pTriGroup!=this) return; //wyœwietla go inny obiekt
+ double mgn=SquareMagnitude(pCenter-Global::pCameraPosition);
+ float r,g,b;
+ if (mgn<fSquareMinRadius)
+     return;
+ if (mgn>fSquareRadius)
+     return;
 //    glMaterialfv( GL_FRONT, GL_DIFFUSE, Global::whiteLight );
  int i,a;
  switch (iType)
  {
+  case TP_TRACTION:
+   if (Global::bRenderAlpha && bVisible)
+    Traction->Render(mgn);
+   return;
+  case TP_MODEL:
+   Model->RenderAlpha(pCenter,fAngle);
+   return;
+  case TP_TRACK:
+   pTrack->RenderAlpha();
+   return;
+ };
 
-        case TP_TRACK:
-            return pTrack->Render();
-        //break;
-        case TP_MODEL:
-            Model->Render(pCenter,fAngle); return true;
-        //break;
-        case TP_DYNAMIC:
-            Error("Cannot render dynamic from TGroundNode::Render()");
-            return true;
-        //break;
-        case TP_SOUND:
-//McZapkie - dzwiek zapetlony w zaleznosci od odleglosci
-          if ((pStaticSound->GetStatus()&DSBSTATUS_PLAYING)==DSBPLAY_LOOPING)
-           {
-             pStaticSound->Play(1,DSBPLAY_LOOPING,true,pStaticSound->vSoundPosition);
-             pStaticSound->AdjFreq(1.0, Timer::GetDeltaTime());
-           }
-           return true;
-        //break;
-        case TP_MEMCELL:
-           return true;
-        //break;
-        case TP_EVLAUNCH:
-        {
-         if (EvLaunch->Render())
-          if (EvLaunch->dRadius<0 || mgn<EvLaunch->dRadius)
-           {
-             if (Pressed(VK_SHIFT) && EvLaunch->Event2!=NULL)
-                {
-                 Global::pGround->AddToQuery(EvLaunch->Event2,NULL);
-                }
-               else
-                {
-                if (EvLaunch->Event1!=NULL)
-                 Global::pGround->AddToQuery(EvLaunch->Event1,NULL);
-                }
-           }
+ // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
+ if(
+     (iNumVerts && Global::bRenderAlpha && (iFlags&4)) ||
+     (iNumPts && (Global::bRenderAlpha || fLineThickness > 0)))
+ {
 
-        }
-           return true;
-        //break;
-
-    };
-
-    // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
-    if(
-        (iNumVerts && (!Global::bRenderAlpha || (iFlags&2))) ||
-        (iNumPts && (!Global::bRenderAlpha || fLineThickness < 0)))
-    {
-
-#ifdef USE_VBO
-        if (!VboID)
-#endif
-        if (!DisplayListID) //||Global::bReCompile) //Ra: wymuszenie rekompilacji
-        {
+     if (!DisplayListID) //||Global::bReCompile) //Ra: wymuszenie rekompilacji
+     {
          Compile();
          if (Global::bManageNodes)
-          ResourceManager::Register(this);
-        };
+             ResourceManager::Register(this);
+     };
 
-        // GL_LINE, GL_LINE_STRIP, GL_LINE_LOOP
-        if (iNumPts)
-        {
-            r=Diffuse[0]*Global::ambientDayLight[0];  //w zaleznosci od koloru swiatla
-            g=Diffuse[1]*Global::ambientDayLight[1];
-            b=Diffuse[2]*Global::ambientDayLight[2];
-            glColor4ub(r,g,b,1.0);
-            glCallList(DisplayListID);
-        }
-        // GL_TRIANGLE etc
-        else
-        {
-#ifdef USE_VBO
-#else
-            glCallList(DisplayListID);
-#endif
-        };
-
-        SetLastUsage(Timer::GetSimulationTime());
-
-    };
- return true;
-};
-
-void __fastcall TGroundNode::Compile()
-{
-
-    if (DisplayListID)
-        Release();
+     // GL_LINE, GL_LINE_STRIP, GL_LINE_LOOP
+     if (iNumPts)
+     {
+         float linealpha=255000*fLineThickness/(mgn+1.0);
+         if (linealpha>255)
+           linealpha= 255;
+         r=Diffuse[0]*Global::ambientDayLight[0];  //w zaleznosci od koloru swiatla
+         g=Diffuse[1]*Global::ambientDayLight[1];
+         b=Diffuse[2]*Global::ambientDayLight[2];
+         glColor4ub(r,g,b,linealpha); //przezroczystosc dalekiej linii
+         glCallList(DisplayListID);
+     }
+     // GL_TRIANGLE etc
+     else
+      glCallList(DisplayListID);
+     SetLastUsage(Timer::GetSimulationTime());
+ };
+}
 
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
@@ -2372,7 +2464,7 @@ if (QueryRootEvent)
                             QueryRootEvent->Params[2].asdouble,
                             QueryRootEvent->Params[3].asdouble),
                             QueryRootEvent->Params[4].asdouble);
-             else
+             else if (QueryRootEvent->Params[0].asInt==2)
                QueryRootEvent->Params[9].asAnimContainer->SetTranslateAnim(
                     vector3(QueryRootEvent->Params[1].asdouble,
                             QueryRootEvent->Params[2].asdouble,
@@ -2797,7 +2889,7 @@ bool __fastcall TGround::RaRender(vector3 pPosition)
   {
    if ((tmp=FastGetSubRect(i,j))!=NULL)
     for (node=tmp->pRenderHidden;node!=NULL;node=node->pNext3)
-     node->RaRender();
+     node->RenderHidden();
   }
  //renderowanie progresywne - zale¿ne od FPS oraz kierunku patrzenia
  for (j=r-n;j<r+n;j++)
@@ -2843,7 +2935,7 @@ bool __fastcall TGround::RaRenderAlpha(vector3 pPosition)
   for (int i=c-n;i<c+n;i++)
   {
    direction=vector3(i-c,0,j-r);
-   if (LengthSquared3(direction)>5)
+   if (LengthSquared3(direction)>6)
    {direction=SafeNormalize(direction);
     if (CameraDirection.x*direction.x+CameraDirection.z*direction.z<0.55)
      continue; //pomijanie zbêdnych sektorów
@@ -2870,59 +2962,90 @@ bool __fastcall TGround::RaRenderAlpha(vector3 pPosition)
 }
 
 bool __fastcall TGround::Render(vector3 pPosition)
-{
-    int tr,tc;
-    TGroundNode *node,*oldnode;
-
-    glColor3f(1.0f,1.0f,1.0f);
-    int n= 20; //iloœæ kwadratów hektometrowych mapy do wyœwietlenia
-    int c= GetColFromX(pPosition.x);
-    int r= GetRowFromZ(pPosition.z);
-    TSubRect *tmp,*tmp2;
-    for (int j= r-n; j<r+n; j++)
-        for (int i= c-n; i<c+n; i++)
-        {
-            tmp= FastGetSubRect(i,j);
-            if (tmp)
-            {
-                for (node= tmp->pRootNode; node!=NULL; node=node->pNext2)
-                {
-                    node->Render();
-                }
-
-            }
-        }
-
-    return true;
+{//renderowanie scenerii z Display List - faza nieprzezroczystych
+ CameraDirection.x=sin(Global::pCameraRotation); //wektor kierunkowy
+ CameraDirection.z=cos(Global::pCameraRotation);
+ int tr,tc;
+ TGroundNode *node;
+ glColor3f(1.0f,1.0f,1.0f);
+ int n=2*iNumSubRects; //iloœæ sektorów mapy do wyœwietlenia
+ int c=GetColFromX(pPosition.x);
+ int r=GetRowFromZ(pPosition.z);
+ TSubRect *tmp;
+ int i,j,k;
+ //renderowanie czo³gowe dla obiektów aktywnych a niewidocznych
+ for (j=r-n;j<r+n;j++)
+  for (i=c-n;i<c+n;i++)
+   if ((tmp=FastGetSubRect(i,j))!=NULL)
+   {tmp->LoadNodes(); //oznaczanie aktywnych sektorów
+    for (node=tmp->pRenderHidden;node!=NULL;node=node->pNext3)
+     node->RenderHidden();
+   }
+ //renderowanie progresywne - zale¿ne od FPS oraz kierunku patrzenia
+ vector3 direction;
+ iRange=Global::slowmotion?AreaSlow:AreaFast;
+ n=(iRange[0]*n)/10; //tak dla zasady - 10 albo 7
+ for (j=-n;j<=n;j++)
+ {k=iRange[j<0?-j:j]; //zasiêg na danym poziomie
+  for (i=-k;i<=k;i++)
+  {
+   direction=vector3(i,0,j);
+   if (LengthSquared3(direction)>7)
+   {direction=SafeNormalize(direction);
+    if (CameraDirection.x*direction.x+CameraDirection.z*direction.z<0.55)
+     continue; //pomijanie zbêdnych sektorów
+   }
+   if ((tmp=FastGetSubRect(i+c,j+r))!=NULL)
+   {
+    tmp->RaAnimate(); //przeliczenia animacji torów w sektorze
+    for (node=tmp->pRender;node!=NULL;node=node->pNext3)
+     node->Render(); //nieprzezroczyste obiekty (pojazdy z automatu)
+    for (node=tmp->pRenderMixed;node!=NULL;node=node->pNext3)
+     node->Render(); //nieprzezroczyste z mieszanych modeli
+   }
+  }
+ }
+ return true;
 }
 
 bool __fastcall TGround::RenderAlpha(vector3 pPosition)
-{
-    int tr,tc;
-    TGroundNode *node,*oldnode;
-    glColor4f(1.0f,1.0f,1.0f,1.0f);
-    int n= 20; //iloœæ kwadratów hektometrowych mapy do wyœwietlenia
-    int c= GetColFromX(pPosition.x);
-    int r= GetRowFromZ(pPosition.z);
-    TSubRect *tmp,*tmp2;
-    for (int j= r-n; j<r+n; j++)
-        for (int i= c-n; i<c+n; i++)
-        {
-            tmp= FastGetSubRect(i,j);
-            if (tmp)
-            {
-                for (node= tmp->pRootNode; node!=NULL; node=node->pNext2)
-                {
-                    node->RenderAlpha();
-                }
-
-            }
-        }
-
-    return true;
+{//renderowanie scenerii z Display List - faza przezroczystych
+ TGroundNode *node;
+ glColor4f(1.0f,1.0f,1.0f,1.0f);
+ int n=2*iNumSubRects; //iloœæ sektorów mapy do wyœwietlenia
+ int c=GetColFromX(pPosition.x);
+ int r=GetRowFromZ(pPosition.z);
+ TSubRect *tmp;
+ vector3 direction;
+ //Ra: renderowanie progresywne - zale¿ne od FPS oraz kierunku patrzenia
+ int i,j,k;
+ n=(iRange[0]*n)/10; //tak dla zasady - 10 albo 7
+ for (j=-n;j<=n;j++)
+ {k=iRange[j<0?-j:j]; //zasiêg na danym poziomie
+  for (i=-k;i<=k;i++)
+  {
+   direction=vector3(i,0,j);
+   if (LengthSquared3(direction)>7)
+   {direction=SafeNormalize(direction);
+    if (CameraDirection.x*direction.x+CameraDirection.z*direction.z<0.55)
+     continue; //pomijanie zbêdnych sektorów
+   }
+   if ((tmp=FastGetSubRect(i+c,j+r))!=NULL)
+   {
+    for (node=tmp->pRenderMixed;node!=NULL;node=node->pNext3)
+     node->RenderAlpha(); //przezroczyste z mieszanych modeli
+    for (node=tmp->pRenderAlpha;node!=NULL;node=node->pNext3)
+     node->RenderAlpha(); //przezroczyste modele
+    for (node=tmp->pRender;node!=NULL;node=node->pNext3)
+     if (node->iType==TP_TRACK)
+      node->pTrack->RenderAlpha(); //pojazdy na torach
+   }
+  }
+ }
+ return true;
 }
 
-
 //---------------------------------------------------------------------------
+
 
 

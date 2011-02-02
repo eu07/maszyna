@@ -930,8 +930,9 @@ void __fastcall TTrack::Compile()
 
 void TTrack::Release()
 {
-    glDeleteLists(DisplayListID,1);
-    DisplayListID=0;
+ if (DisplayListID)
+  glDeleteLists(DisplayListID,1);
+ DisplayListID=0;
 };
 
 void __fastcall TTrack::Render()
@@ -1425,10 +1426,11 @@ void  __fastcall TTrack::RaRenderDynamic()
 //---------------------------------------------------------------------------
 
 bool __fastcall TTrack::Switch(int i)
-{
- if (SwitchExtension)
+{//prze³¹czenie torów z uruchomieniem animacji
+ if (SwitchExtension) //tory prze³¹czalne maj¹ doklejkê
   if (eType==tt_Switch)
   {//przek³adanie zwrotnicy jak zwykle
+   i&=1; //ograniczenie b³êdów !!!!
    SwitchExtension->fDesiredOffset1=fMaxOffset*double(NextMask[i]); //od punktu 1
    //SwitchExtension->fDesiredOffset2=fMaxOffset*double(PrevMask[i]); //od punktu 2
    SwitchExtension->CurrentIndex=i;
@@ -1438,17 +1440,18 @@ bool __fastcall TTrack::Switch(int i)
    bNextSwitchDirection=SwitchExtension->bNextSwitchDirection[NextMask[i]];
    bPrevSwitchDirection=SwitchExtension->bPrevSwitchDirection[PrevMask[i]];
    fRadius=fRadiusTable[i]; //McZapkie: wybor promienia toru
-   if (DisplayListID) //jeœli istnieje siatka renderu
-    SwitchExtension->bMovement=true; //bêdzie animacja
-   else
+   //if (DisplayListID) //jeœli istnieje siatka renderu
+   // SwitchExtension->bMovement=true; //bêdzie animacja
+   //else
+   if (SwitchExtension->pOwner?SwitchExtension->pOwner->RaTrackAnimAdd(this):true) //jeœli nie dodane do animacji
     SwitchExtension->fOffset1=SwitchExtension->fDesiredOffset1; //nie ma siê co bawiæ
    return true;
   }
   else
   {//blokowanie (0, szukanie torów) lub odblokowanie (1, roz³¹czenie) obrotnicy
-   SwitchExtension->CurrentIndex=i; //zapamiêtanie stanu zablokowania
+   //SwitchExtension->CurrentIndex=i; //zapamiêtanie stanu zablokowania
    if (i)
-   {//roz³¹czenie obrotnicy od s¹siednich torów
+   {//0: roz³¹czenie obrotnicy od s¹siednich torów
     if (pPrev)
      if (bPrevSwitchDirection)
       pPrev->pPrev=NULL;
@@ -1461,14 +1464,18 @@ bool __fastcall TTrack::Switch(int i)
       pNext->pPrev=NULL;
     pNext=pPrev=NULL;
     fVelocity=0.0; //AI, nie ruszaj siê!
+    if (SwitchExtension->pOwner)
+     SwitchExtension->pOwner->RaTrackAnimAdd(this); //dodanie do listy animacyjnej
    }
    else
-   {//ustalenie finalnego po³o¿enia (gdy nie by³o animacji)
+   {//1: ustalenie finalnego po³o¿enia (gdy nie by³o animacji)
+    RaAnimate(); //ostatni etap animowania
     //zablokowanie pozycji i po³¹czenie do s¹siednich torów
     Global::pGround->TrackJoin(SwitchExtension->pMyNode);
     if (pNext||pPrev)
      fVelocity=6.0; //jazda dozwolona
    }
+   SwitchExtension->CurrentIndex=i; //zapamiêtanie stanu zablokowania
    return true;
   }
  Error("Cannot switch normal track");
@@ -1491,7 +1498,7 @@ void __fastcall TTrack::RaAnimListAdd(TTrack *t)
 };
 
 TTrack* __fastcall TTrack::RaAnimate()
-{//wykonanie rekurencyjne animacji, wywo³ywane przed wyœwietleniem sektora
+{//wykonanie rekurencyjne animacji, wywo³ywane przed wyœwietleniem sektora z VBO
  //zwraca wskaŸnik toru wymagaj¹cego dalszej animacji
  if (SwitchExtension->pNextAnim)
   SwitchExtension->pNextAnim=SwitchExtension->pNextAnim->RaAnimate();
@@ -1508,40 +1515,45 @@ TTrack* __fastcall TTrack::RaAnimate()
   {SwitchExtension->fOffset1=fMaxOffset; //maksimum-1cm?
    m=false; //koniec animacji
   }
-  if (Global::bOpenGL_1_5) //dla OpenGL 1.4 to siê nie wykona poprawnie
-   if (TextureID1) //Ra: !!!! tu jest do poprawienia
-   {//iglice liczone tylko dla zwrotnic
-    vector3 rpts3[24],rpts4[24];
-    double fHTW=0.5*fabs(fTrackWidth);
-    double fHTW2=fHTW; //Ra: na razie niech tak bêdzie
-    double cos1=1.0,sin1=0.0,cos2=1.0,sin2=0.0; //Ra: ...
-    for (int i=0;i<12;++i)
-    {rpts3[i]   =vector3((fHTW+iglica[i].x)*cos1+iglica[i].y*sin1,-(fHTW+iglica[i].x)*sin1+iglica[i].y*cos1,iglica[i].z);
-     rpts3[i+12]=vector3((fHTW2+szyna[i].x)*cos2+szyna[i].y*sin2,-(fHTW2+szyna[i].x)*sin2+iglica[i].y*cos2,szyna[i].z);
-     rpts4[11-i]=vector3((-fHTW-iglica[i].x)*cos1+iglica[i].y*sin1,-(-fHTW-iglica[i].x)*sin1+iglica[i].y*cos1,iglica[i].z);
-     rpts4[23-i]=vector3((-fHTW2-szyna[i].x)*cos2+szyna[i].y*sin2,-(-fHTW2-szyna[i].x)*sin2+iglica[i].y*cos2,szyna[i].z);
+  if (Global::bUseVBO)
+  {//dla OpenGL 1.4 odœwie¿y siê ca³y sektor, w póŸniejszych poprawiamy fragment
+   if (Global::bOpenGL_1_5) //dla OpenGL 1.4 to siê nie wykona poprawnie
+    if (TextureID1) //Ra: !!!! tu jest do poprawienia
+    {//iglice liczone tylko dla zwrotnic
+     vector3 rpts3[24],rpts4[24];
+     double fHTW=0.5*fabs(fTrackWidth);
+     double fHTW2=fHTW; //Ra: na razie niech tak bêdzie
+     double cos1=1.0,sin1=0.0,cos2=1.0,sin2=0.0; //Ra: ...
+     for (int i=0;i<12;++i)
+     {rpts3[i]   =vector3((fHTW+iglica[i].x)*cos1+iglica[i].y*sin1,-(fHTW+iglica[i].x)*sin1+iglica[i].y*cos1,iglica[i].z);
+      rpts3[i+12]=vector3((fHTW2+szyna[i].x)*cos2+szyna[i].y*sin2,-(fHTW2+szyna[i].x)*sin2+iglica[i].y*cos2,szyna[i].z);
+      rpts4[11-i]=vector3((-fHTW-iglica[i].x)*cos1+iglica[i].y*sin1,-(-fHTW-iglica[i].x)*sin1+iglica[i].y*cos1,iglica[i].z);
+      rpts4[23-i]=vector3((-fHTW2-szyna[i].x)*cos2+szyna[i].y*sin2,-(-fHTW2-szyna[i].x)*sin2+iglica[i].y*cos2,szyna[i].z);
+     }
+     CVertNormTex Vert[2*2*12]; //na razie 2 segmenty
+     CVertNormTex *v=Vert; //bo RaAnimate() modyfikuje wskaŸnik
+     glGetBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iLeftVBO*sizeof(CVertNormTex),2*2*12*sizeof(CVertNormTex),&Vert);//pobranie fragmentu bufora VBO
+     if (SwitchExtension->RightSwitch)
+     {//nowa wersja z SPKS, ale odwrotnie lewa/prawa
+      SwitchExtension->Segments[0].RaAnimate(v,rpts3,-nnumPts,fTexLength,0,2,SwitchExtension->fOffset1);
+      glBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iLeftVBO*sizeof(CVertNormTex),2*2*12*sizeof(CVertNormTex),&Vert); //wys³anie fragmentu bufora VBO
+      v=Vert;
+      glGetBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iRightVBO*sizeof(CVertNormTex),2*2*12*sizeof(CVertNormTex),&Vert);//pobranie fragmentu bufora VBO
+      SwitchExtension->Segments[1].RaAnimate(v,rpts4,-nnumPts,fTexLength,0,2,-fMaxOffset+SwitchExtension->fOffset1);
+     }
+     else
+     {//oryginalnie lewa dzia³a³a lepiej ni¿ prawa
+      SwitchExtension->Segments[0].RaAnimate(v,rpts4,-nnumPts,fTexLength,0,2,-SwitchExtension->fOffset1); //prawa iglica
+      glBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iLeftVBO*sizeof(CVertNormTex),2*2*12*sizeof(CVertNormTex),&Vert);//wys³anie fragmentu bufora VBO
+      v=Vert;
+      glGetBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iRightVBO*sizeof(CVertNormTex),2*2*12*sizeof(CVertNormTex),&Vert); //pobranie fragmentu bufora VBO
+      SwitchExtension->Segments[1].RaAnimate(v,rpts3,-nnumPts,fTexLength,0,2,fMaxOffset-SwitchExtension->fOffset1); //lewa iglica
+     }
+     glBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iRightVBO*sizeof(CVertNormTex),2*2*12*sizeof(CVertNormTex),&Vert); //wys³anie fragmentu bufora VBO
     }
-    CVertNormTex Vert[2*2*12]; //na razie 2 segmenty
-    CVertNormTex *v=Vert; //bo RaAnimate() modyfikuje wskaŸnik
-    glGetBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iLeftVBO*sizeof(CVertNormTex),2*2*12*sizeof(CVertNormTex),&Vert);//pobranie fragmentu bufora VBO
-    if (SwitchExtension->RightSwitch)
-    {//nowa wersja z SPKS, ale odwrotnie lewa/prawa
-     SwitchExtension->Segments[0].RaAnimate(v,rpts3,-nnumPts,fTexLength,0,2,SwitchExtension->fOffset1);
-     glBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iLeftVBO*sizeof(CVertNormTex),2*2*12*sizeof(CVertNormTex),&Vert); //wys³anie fragmentu bufora VBO
-     v=Vert;
-     glGetBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iRightVBO*sizeof(CVertNormTex),2*2*12*sizeof(CVertNormTex),&Vert);//pobranie fragmentu bufora VBO
-     SwitchExtension->Segments[1].RaAnimate(v,rpts4,-nnumPts,fTexLength,0,2,-fMaxOffset+SwitchExtension->fOffset1);
-    }
-    else
-    {//oryginalnie lewa dzia³a³a lepiej ni¿ prawa
-     SwitchExtension->Segments[0].RaAnimate(v,rpts4,-nnumPts,fTexLength,0,2,-SwitchExtension->fOffset1); //prawa iglica
-     glBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iLeftVBO*sizeof(CVertNormTex),2*2*12*sizeof(CVertNormTex),&Vert);//wys³anie fragmentu bufora VBO
-     v=Vert;
-     glGetBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iRightVBO*sizeof(CVertNormTex),2*2*12*sizeof(CVertNormTex),&Vert); //pobranie fragmentu bufora VBO
-     SwitchExtension->Segments[1].RaAnimate(v,rpts3,-nnumPts,fTexLength,0,2,fMaxOffset-SwitchExtension->fOffset1); //lewa iglica
-    }
-    glBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iRightVBO*sizeof(CVertNormTex),2*2*12*sizeof(CVertNormTex),&Vert); //wys³anie fragmentu bufora VBO
-   }
+  }
+  else //gdy Display List
+   Release(); //niszczenie skompilowanej listy
  }
  else if (eType==tt_Turn) //dla obrotnicy - szyny i podsypka
  {
@@ -1555,13 +1567,18 @@ TTrack* __fastcall TTrack::RaAnimate()
     double sina=hlen*sin(DegToRad(SwitchExtension->fOffset1)),cosa=hlen*cos(DegToRad(SwitchExtension->fOffset1));
     vector3 middle=SwitchExtension->Segments->FastGetPoint(0.5);
     Segment->Init(middle+vector3(sina,0.0,cosa),middle-vector3(sina,0.0,cosa),5.0); //nowy odcinek
-    if (Global::bOpenGL_1_5) //dla OpenGL 1.4 to siê nie wykona poprawnie
-    {int size=RaArrayPrepare();
-     CVertNormTex *Vert=new CVertNormTex[size]; //bufor roboczy
-     //CVertNormTex *v=Vert; //zmieniane przez
-     RaArrayFill(Vert,Vert-SwitchExtension->iLeftVBO); //iLeftVBO powinno zostaæ niezmienione
-     glBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iLeftVBO*sizeof(CVertNormTex),size*sizeof(CVertNormTex),Vert); //wys³anie fragmentu bufora VBO
+    if (Global::bUseVBO)
+    {//dla OpenGL 1.4 odœwie¿y siê ca³y sektor, w póŸniejszych poprawiamy fragment
+     if (Global::bOpenGL_1_5) //dla OpenGL 1.4 to siê nie wykona poprawnie
+     {int size=RaArrayPrepare();
+      CVertNormTex *Vert=new CVertNormTex[size]; //bufor roboczy
+      //CVertNormTex *v=Vert; //zmieniane przez
+      RaArrayFill(Vert,Vert-SwitchExtension->iLeftVBO); //iLeftVBO powinno zostaæ niezmienione
+      glBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iLeftVBO*sizeof(CVertNormTex),size*sizeof(CVertNormTex),Vert); //wys³anie fragmentu bufora VBO
+     }
     }
+    else //gdy Display List
+     Release(); //niszczenie skompilowanej listy, aby siê wygenerowa³a nowa
    } //animacja trwa nadal
   } else m=false; //koniec animacji albo w ogóle nie po³¹czone z modelem
  }

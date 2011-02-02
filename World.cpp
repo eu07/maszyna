@@ -95,7 +95,7 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 
     Global::detonatoryOK=true;
     WriteLog("Starting MaSzyna rail vehicle simulator.");
-    WriteLog("Compilation 2011-02-01");
+    WriteLog("Compilation 2011-02-02");
     WriteLog("Online documentation and additional files on http://eu07.pl");
     WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx_EU, OLO_EU, Bart, Quark-t, ShaXbee, Oli_EU, youBy and others");
     WriteLog("Renderer:");
@@ -123,8 +123,10 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
     WriteLog("Supported Extensions:");
     WriteLog( (char*) glGetString(GL_EXTENSIONS));
     if (glewGetExtension("GL_ARB_vertex_buffer_object")) //czy jest VBO w karcie graficznej
-    {Global::bUseVBO=true;
-     WriteLog("Ra: mo¿na u¿yæ VBO.");
+    {WriteLog("Ra: mo¿na u¿yæ VBO.");
+#ifdef USE_VBO
+     Global::bUseVBO=true; //VBO w³¹czane tylko, jeœli jest obs³uga
+#endif
     }
     else
      WriteLog("Ra: VBO nie znalezione.");

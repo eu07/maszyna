@@ -32,7 +32,7 @@
     <DEBUGLIBPATH value="$(BCB)\lib\debug"/>
     <RELEASELIBPATH value="$(BCB)\lib\release"/>
     <LINKER value="tlink32"/>
-    <USERDEFINES value="GLEW_STATIC;_DEBUG;_USE_OLD_RW_STL"/>
+    <USERDEFINES value="GLEW_STATIC;_DEBUG"/>
     <SYSDEFINES value="_RTLDLL;NO_STRICT"/>
     <MAINSOURCE value="EU07.cpp"/>
     <INCLUDEPATH value="G:\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
@@ -41,7 +41,7 @@
   </MACROS>
   <OPTIONS>
     <IDLCFLAGS value="-IG:\CBuilder5\Projects\. -IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl 
-      -src_suffix cpp -DGLEW_STATIC -D_DEBUG -D_USE_OLD_RW_STL -boa"/>
+      -src_suffix cpp -DGLEW_STATIC -D_DEBUG -boa"/>
     <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a4 -6 -b- -k -y -v -vi- 
       -c -tW -tWM"/>
     <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
@@ -60,8 +60,8 @@ IncludeVerInfo=1
 AutoIncBuild=1
 MajorVer=1
 MinorVer=2
-Release=74
-Build=110
+Release=75
+Build=111
 Debug=1
 PreRelease=0
 Special=0
@@ -73,7 +73,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=PC2009 SP1
-FileVersion=1.2.74.110
+FileVersion=1.2.75.111
 InternalName=hammer
 LegalCopyright=
 LegalTrademarks=
@@ -123,8 +123,8 @@ Item1=$(BCB)\source\vcl
 
 [HistoryLists\hlConditionals]
 Count=7
-Item0=GLEW_STATIC;_DEBUG;_USE_OLD_RW_STL
-Item1=GLEW_STATIC;_DEBUG
+Item0=GLEW_STATIC;_DEBUG
+Item1=GLEW_STATIC;_DEBUG;_USE_OLD_RW_STL
 Item2=GLEW_STATIC
 Item3=GLEW_STATIC;USE_VERTEX_ARRAYS;_DEBUG
 Item4=GLEW_STATIC;USE_VERTEX_ARRAYS

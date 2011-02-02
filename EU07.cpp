@@ -551,7 +551,7 @@ int WINAPI WinMain(	HINSTANCE	hInstance,			// Instance
                  Global::asHumanCtrlVehicle= str;
                }
               else
-               Error("Program usage: EU07 [-s sceneryfilepath] [-v vehiclename]");
+               Error("Program usage: EU07 [-s sceneryfilepath] [-v vehiclename]",!Global::bWriteLogEnabled);
           }
           //ABu 050205: tego wczesniej nie bylo:
           delete Parser;
