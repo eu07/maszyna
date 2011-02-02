@@ -234,26 +234,27 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
 
         if (texture=="none")
         {
-            TextureID= 0;
+         TextureID= 0;
+         iFlags|=2; //rysowane w cyklu nieprzezroczystych
         }
         else
         {
 // McZapkie-060702: zmienialne skory modelu
-            if (texture.find("replacableskin")!=texture.npos)
-            {
-                TextureID= -1;
-                iFlags|=1; //zmienna tekstura
-            }
-            else
-            {
-                //jesli tylko nazwa pliku to dawac biezaca sciezke do tekstur
-                if(texture.find_first_of("/\\") == texture.npos)
-                    texture.insert(0, Global::asCurrentTexturePath.c_str());
+         if (texture.find("replacableskin")!=texture.npos)
+         {
+             TextureID= -1;
+             iFlags|=1; //zmienna tekstura
+         }
+         else
+         {
+          //jesli tylko nazwa pliku to dawac biezaca sciezke do tekstur
+          if(texture.find_first_of("/\\") == texture.npos)
+              texture.insert(0, Global::asCurrentTexturePath.c_str());
 
-                TextureID= TTexturesManager::GetTextureID(texture);
-                TexAlpha= TTexturesManager::GetAlpha(TextureID);
-                iFlags|=TexAlpha?4:2; //2-nieprzezroczysta, 4-przezroczysta
-            };
+          TextureID= TTexturesManager::GetTextureID(texture);
+          TexAlpha= TTexturesManager::GetAlpha(TextureID);
+          iFlags|=TexAlpha?4:2; //2-nieprzezroczysta, 4-przezroczysta
+         };
         };
     };
 
@@ -344,7 +345,7 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
         delete[] sg;
     };
 
-    if(eType==smt_Mesh)
+    if (eType==smt_Mesh)
     {
 #ifdef USE_VERTEX_ARRAYS
         // ShaXbee-121209: przekazywanie wierzcholkow hurtem
@@ -365,7 +366,7 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
 #ifdef USE_VERTEX_ARRAYS
         glDrawArrays(GL_TRIANGLES, 0, iNumVerts);
 #else
-        glBegin(GL_TRIANGLES);
+        glBegin(bWire?GL_LINES:GL_TRIANGLES);
         for(int i=0; i<iNumVerts; i++)
         {
                glNormal3d(Vertices[i].Normal.x,Vertices[i].Normal.y,Vertices[i].Normal.z);

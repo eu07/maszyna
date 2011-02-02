@@ -1,4 +1,6 @@
 
+#define _USE_OLD_RW_STL
+
 #include "parser.h"
 #include "logs.h"
 //#include "Globals.h"

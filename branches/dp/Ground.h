@@ -126,21 +126,20 @@ public:
     void Release();
 
     bool __fastcall GetTraction();
-    bool __fastcall Render();
-    bool __fastcall RenderAlpha(); //McZapkie-131202: dwuprzebiegowy rendering
+    void __fastcall RenderHidden();
+    void __fastcall Render();
+    void __fastcall RenderAlpha(); //McZapkie-131202: dwuprzebiegowy rendering
     void __fastcall RaRenderVBO();
-    bool __fastcall RaRender();
-    bool __fastcall RaRenderAlpha(); //McZapkie-131202: dwuprzebiegowy rendering
-    void __fastcall RaRenderVBO();
+    void __fastcall RaRender();
+    void __fastcall RaRenderAlpha(); //McZapkie-131202: dwuprzebiegowy rendering
 };
 //TSubRect *TGroundNode::pOwner=NULL; //tymczasowo w³aœciciel
 
 class TSubRect : public Resource, public CMesh
 {
 private:
+ TGroundNode *pTriGroup; //Ra: obiekt grupuj¹cy trójk¹ty (ogranicza iloœæ DisplayList)
  TTrack *pTrackAnim; //obiekty do przeliczenia animacji
-public:
- void __fastcall LoadNodes();
 public:
  TGroundNode *pRootNode; //lista wszystkich obiektów w sektorze
  TGroundNode *pRenderHidden; //lista obiektów niewidocznych, "renderowanych" równie¿ z ty³u
@@ -149,28 +148,13 @@ public:
  TGroundNode *pRender;      //z w³asnych VBO - nieprzezroczyste
  TGroundNode *pRenderMixed; //z w³asnych VBO - nieprzezroczyste i przezroczyste
  TGroundNode *pRenderAlpha; //z w³asnych VBO - przezroczyste
- TGroundNode *pTriGroup; //Ra: obiekt grupuj¹cy trójk¹ty (ogranicza iloœæ DisplayList)
+ void __fastcall LoadNodes();
+public:
  __fastcall TSubRect();
  virtual __fastcall ~TSubRect();
 //    __fastcall ~TSubRect() { SafeDelete(pRootNode); };   /* TODO -cBUG : Attention, remember to delete those nodes */
     void __fastcall RaAddNode(TGroundNode *Node);
-    void __fastcall AddNode(TGroundNode *Node)
-    {//przyczepienie obiektu do sektora, kwalifikacja trójk¹tów do ³¹czenia
-     Node->pNext2=pRootNode;
-     pRootNode=Node;
-     if ((Node->iType==GL_TRIANGLE_STRIP)||(Node->iType==GL_TRIANGLE_FAN)||(Node->iType==GL_TRIANGLES))
-      if (Node->fSquareMinRadius==0.0) //znikaj¹ce z bliska nie mog¹ byæ optymalizowane
-       if (Node->fSquareRadius>=160000.0) //tak od 400m to ju¿ normalne trójk¹ty musz¹ byæ
-        if (Node->iFlags&0x02) //i nieprzezroczysty
-        {if (pTriGroup) //je¿eli by³ ju¿ jakiœ grupuj¹cy
-         {if (pTriGroup->fSquareRadius>Node->fSquareRadius) //i mia³ wiêkszy zasiêg
-           Node->fSquareRadius=pTriGroup->fSquareRadius; //zwiêkszenie zakresu widocznoœci grupuj¹cego
-          pTriGroup->pTriGroup=Node; //poprzedniemu doczepiamy nowy
-         }
-         Node->pTriGroup=Node; //nowy lider ma siê sam wyœwietlaæ - wskaŸnik na siebie
-         pTriGroup=Node; //zapamiêtanie lidera
-        }
-    };
+    void __fastcall AddNode(TGroundNode *Node);
     //void __fastcall RaGroupAdd(TGroundNode *Node) {if (pTriGroup) Node->pTriGroup=pTriGroup; else pTriGroup=Node;};
 //    __fastcall Render() { if (pRootNode) pRootNode->Render(); };
  bool __fastcall StartVBO();
@@ -188,7 +172,7 @@ const double fHalfTotalNumSubRects=iTotalNumSubRects/2.0;
 const double fSubRectSize=1000.0/iNumSubRects;
 const double fRectSize=fSubRectSize*iNumSubRects;
 
-class TGroundRect : public TSubRect
+class TGroundRect //: public TSubRect
 {//obiekty o niewielkiej iloœci wierzcho³ków bêd¹ renderowane st¹d
 private:
     TSubRect *pSubRects;
@@ -206,6 +190,7 @@ public:
 class TGround
 {
  vector3 CameraDirection; //zmienna robocza przy renderowaniu
+ int const *iRange; //tabela widocznoœci
 public:
     TDynamicObject *LastDyn; //ABu: paskudnie, ale na bardzo szybko moze jakos przejdzie...
     TTrain *pTrain;
@@ -218,7 +203,7 @@ public:
     bool __fastcall Init(AnsiString asFile);
     bool __fastcall InitEvents();
     bool __fastcall InitTracks();
-    bool __fastcall InitLaunchers();
+    bool __fastcall InitLaunchers();    
     TGroundNode* __fastcall FindTrack(vector3 Point, int &iConnection, TGroundNode *Exclude);
     TGroundNode* __fastcall CreateGroundNode();
     TGroundNode* __fastcall AddGroundNode(cParser* parser);

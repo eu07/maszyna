@@ -2639,9 +2639,8 @@ if ((MoverParameters->ConverterFlag==false)&&(MoverParameters->CompressorPower!=
         sSmallCompressor.TurnOff(MechInside,GetPosition());
      sSmallCompressor.Update(MechInside,GetPosition());
 
-
 //youBy - przenioslem, bo diesel tez moze miec turbo
-if ((MoverParameters->MainCtrlPos)>=(MoverParameters->TurboTest))
+//if ((MoverParameters->MainCtrlPos)>=(MoverParameters->TurboTest))
 {
           //udawanie turbo:  (6.66*(eng_vol-0.85))
     if (eng_turbo>6.66*(enginevolume-0.8)+0.2*dt)
@@ -2658,8 +2657,7 @@ if ((MoverParameters->MainCtrlPos)>=(MoverParameters->TurboTest))
 //    eng_vol_act=enginevolume;
     //eng_frq_act=eng_frq;
 }
-else
- sTurbo.TurnOff(MechInside,GetPosition());
+//else sTurbo.TurnOff(MechInside,GetPosition());
 
 
 
