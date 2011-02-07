@@ -337,6 +337,7 @@ public:
 	TLocalBrake LocalBrake;
 	TBrakePressure BrakePressureTable[13];
 	Byte ASBType;
+	Byte TurboTest;
 	double MaxBrakeForce;
 	double MaxBrakePress;
 	double P2FTrans;
@@ -754,6 +755,7 @@ static const Shortint dt_ET42 = 0x3;
 static const Shortint dt_PseudoDiesel = 0x4;
 static const Shortint dt_ET22 = 0x5;
 static const Shortint dt_SN61 = 0x6;
+static const Shortint dt_181 = 0x7;
 extern PACKAGE double __fastcall Distance(const TLocation &Loc1, const TLocation &Loc2, const TDimension 
 	&Dim1, const TDimension &Dim2);
 

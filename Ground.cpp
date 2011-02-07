@@ -863,6 +863,59 @@ TGroundNode *TrainSetNode= NULL;
 TGroundVertex TempVerts[100];
 Byte TempConnectionType[200]; //Ra: ujemne, gdy odwrotnie
 
+void __fastcall TGround::RaTriangleDivider(TGroundNode* node)
+{//tworzy dodatkowe trójk¹ty i zmiejsza podany
+ if (node->iType!=GL_TRIANGLES) return; //tylko pojedyncze trójk¹ty
+ if (node->iNumVerts!=3) return; //tylko gdy jeden trójk¹t
+ if ((LengthSquared3(node->Vertices[0].Point-node->pCenter)<22500)
+  && (LengthSquared3(node->Vertices[1].Point-node->pCenter)<22500)
+  && (LengthSquared3(node->Vertices[2].Point-node->pCenter)<22500))
+  return; //trójk¹t do 150m od swojego œrodka jest do przyjêcia
+ //no to tworzymy trzy dodatkowe trójk¹ty
+ TGroundNode* tri[4]; //zmiena robocza - trzy wskaŸniki
+ tri[3]=node; //do kompletu
+ int i,j;
+ for (i=0;i<3;++i)
+ {//skopiowanie parametrów do nowych trzech trójk¹tów
+  tri[i]=new TGroundNode();
+  tri[i]->iType=GL_TRIANGLES;
+  tri[i]->Init(3);
+  tri[i]->TextureID=node->TextureID;
+  tri[i]->iFlags=node->iFlags;
+  for (j=0;j<4;++j)
+  {tri[i]->Ambient[j]=node->Ambient[j];
+   tri[i]->Diffuse[j]=node->Diffuse[j];
+   tri[i]->Specular[j]=node->Specular[j];
+  }
+  tri[i]->asName=node->asName;
+  tri[i]->fSquareRadius=node->fSquareRadius;
+  tri[i]->fSquareMinRadius=node->fSquareMinRadius;
+  tri[i]->bVisible=node->bVisible;
+  tri[i]->bStatic=node->bStatic;
+  tri[i]->Next=RootNode;
+  RootNode=tri[i]; //dopisanie z przodu do listy
+  iNumNodes++;
+ }
+ tri[0]->Vertices[0]=node->Vertices[0]; //przepisanie wspó³rzêdnych
+ tri[1]->Vertices[1]=node->Vertices[1];
+ tri[2]->Vertices[2]=node->Vertices[2];
+ tri[3]->Vertices[0].HalfSet(tri[1]->Vertices[1],tri[2]->Vertices[2]);
+ tri[3]->Vertices[1].HalfSet(tri[0]->Vertices[0],tri[2]->Vertices[2]);
+ tri[3]->Vertices[2].HalfSet(tri[1]->Vertices[1],tri[0]->Vertices[0]);
+ tri[0]->Vertices[1]=tri[3]->Vertices[2];
+ tri[0]->Vertices[2]=tri[3]->Vertices[1];
+ tri[1]->Vertices[0]=tri[3]->Vertices[2];
+ tri[1]->Vertices[2]=tri[3]->Vertices[0];
+ tri[2]->Vertices[0]=tri[3]->Vertices[1];
+ tri[2]->Vertices[1]=tri[3]->Vertices[0];
+ for (i=0;i<4;++i)
+ {//przeliczenie œrodka ciê¿koœci wszystkich czterech
+  tri[i]->pCenter=(tri[i]->Vertices[0].Point+tri[i]->Vertices[1].Point+tri[i]->Vertices[2].Point)/3;
+ }
+ for (i=0;i<3;++i)
+  RaTriangleDivider(tri[i]); //rekurencja, bo nawet na TD raz nie wystarczy 
+}
+
 TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
 {
 //    if (!Global::bLoadTraction)
@@ -1367,7 +1420,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
         } while (token.compare( "endtri" ) != 0);
 
         nv= i;
-        tmp->Init(nv);
+        tmp->Init(nv); //utworzenie tablicy wierzcho³ków
         tmp->pCenter/= (nv>0?nv:1);
 
 //        memcpy(tmp->Vertices,TempVerts,nv*sizeof(TGroundVertex));
@@ -1383,6 +1436,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
 
 //        tmp->fSquareRadius= 2000*2000+r;
         tmp->fSquareRadius+= r;
+        RaTriangleDivider(tmp);
         break;
 
         case GL_LINES :
@@ -2382,7 +2436,7 @@ if (QueryRootEvent)
         WriteLog(QueryRootEvent->asName.c_str());
         switch (QueryRootEvent->Type)
         {
-
+            case tp_AddValues: //ró¿ni siê jedn¹ flag¹ od UpdateValues
             case tp_UpdateValues :
                 QueryRootEvent->Params[9].asMemCell->UpdateValues(QueryRootEvent->Params[0].asText,
                                                                   QueryRootEvent->Params[1].asdouble,
@@ -2504,7 +2558,7 @@ if (QueryRootEvent)
                    rprobability=1.0*rand()/RAND_MAX;
                    bCondition=(QueryRootEvent->Params[10].asdouble>rprobability);
                    WriteLog("Random integer: "+CurrToStr(rprobability)+"/"+CurrToStr(QueryRootEvent->Params[10].asdouble));
-                   }  
+                   }
                   else
                    {
                    bCondition=
@@ -2535,6 +2589,13 @@ if (QueryRootEvent)
                     }
                   }
                }
+            break;
+            case tp_WhoIs : //pobranie nazwy poci¹gu do komórki pamiêci
+             QueryRootEvent->Params[9].asMemCell->UpdateValues(
+              QueryRootEvent->Activator->TrainParams->TrainName.c_str(),
+              QueryRootEvent->Activator->TrainParams->StationCount,
+              QueryRootEvent->Activator->TrainParams->StationIndex,
+              conditional_memstring|conditional_memval1|conditional_memval2);
             break;
         }
         };

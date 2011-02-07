@@ -39,9 +39,15 @@ typedef int TGroundNodeType;
 
 struct TGroundVertex
 {
-    vector3 Point;
-    vector3 Normal;
-    float tu,tv;
+ vector3 Point;
+ vector3 Normal;
+ float tu,tv;
+ void HalfSet(const TGroundVertex &v1,const TGroundVertex &v2)
+ {Point=0.5*(v1.Point+v2.Point);
+  Normal=0.5*(v1.Normal+v2.Normal);
+  tu=0.5*(v1.tu+v2.tu);
+  tv=0.5*(v1.tv+v2.tv);
+ }
 };
 
 class TGroundNode;
@@ -310,6 +316,7 @@ private:
     vector3 pOrigin;
     vector3 aRotate;
     bool bInitDone;
+    void __fastcall RaTriangleDivider(TGroundNode* node);
 };
 //---------------------------------------------------------------------------
 #endif

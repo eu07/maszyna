@@ -72,7 +72,7 @@ bool cParser::getTokens( int Count, bool ToLower, const char* Break )
                   trtest = "niemaproblema";
                   else
                   trtest = "x";
-        int i=0;
+        int i;
 	this->str(""); this->clear();
 	for(i = 0; i < Count; ++i )
                {
@@ -93,59 +93,68 @@ bool cParser::getTokens( int Count, bool ToLower, const char* Break )
 		return true;
 }
 
-std::string cParser::readToken( bool ToLower, const char* Break, std::string trtest ) {
+std::string cParser::readToken( bool ToLower, const char* Break, std::string trtest )
+{
+ std::string token = "";
+ size_t pos; //pocz¹tek podmienianego ci¹gu
+ // see if there's include parsing going on. clean up when it's done.
+ if( mIncludeParser )
+ {
+  token=(*mIncludeParser).readToken(ToLower,Break,trtest);
+  if (!token.empty())
+  {pos=token.find("(p");
+   // check if the token is a parameter which should be replaced with stored true value
+   if (pos!=std::string::npos)
+   {
+    std::string parameter=token.substr(pos+2,token.find(")",pos)-pos+2); //numer parametru
+    token.erase(pos,token.find(")",pos)-pos+1); //najpierw usuniêcie "(pN)"
+    size_t nr=atoi(parameter.c_str())-1;
+    if (nr<parameters.size())
+     token.insert(pos,parameters.at(nr)); //wklejenie wartoœci parametru
+    else
+     token.insert(pos,"none"); //zabezpieczenie przed brakiem parametru
+   }
+   return token;
+  }
+  else
+  {delete mIncludeParser;
+  	mIncludeParser = NULL;
+  	parameters.clear();
+  }
+ }
 
-	std::string token = "";
-	// see if there's include parsing going on. clean up when it's done.
-	if( mIncludeParser ) {
-		token = (*mIncludeParser).readToken( ToLower, Break, trtest );
-		if( !token.empty() ) {
-			// check if the token is a parameter which should be replaced with stored true value
-			if( token.find( "(p" ) != std::string::npos ) {
-				std::string parameter = token.substr( token.find( "(p" ) + 2, token.find( ")", token.find( "(p" ) ) - (token.find( "(p" ) + 2) );
-				token.insert( token.find( "(p" ), parameters.at( atoi(parameter.c_str()) - 1 ) );
-				token.erase( token.find( "(p" ), token.find( ")", token.find( "(p" ) ) - token.find( "(p" ) + 1 );
-			}
-			return token;
-		}
-		else {
-			delete mIncludeParser;
-			mIncludeParser = NULL;
-			parameters.clear();
-		}
-	}
-	
-	// get the token yourself if there's no child to delegate it to.
-	char c;
-	do {
-		while( mStream->peek()!=EOF&& strchr( Break, c = mStream->get() ) == NULL ) {
-			if( ToLower )
-				c = tolower( c );
-			token += c;
-			if( trimComments( token ) )			// don't glue together words separated with comment
-				break;
-		}
-	} while( token == "" && mStream->peek()!=EOF);	// double check to deal with trailing spaces
+ // get the token yourself if there's no child to delegate it to.
+ char c;
+ do
+ {while (mStream->peek()!=EOF&& strchr( Break, c = mStream->get() ) == NULL)
+  {
+ 	 if (ToLower)
+ 	 	c=tolower(c);
+ 	 token+=c;
+ 	 if (trimComments(token))			// don't glue together words separated with comment
+ 	 	break;
+ 	}
+ } while (token=="" && mStream->peek()!=EOF);	// double check to deal with trailing spaces
 
-	// launch child parser if include directive found.
-	// NOTE: parameter collecting uses default set of token separators.
-	if( token.compare( "include" ) == 0 )
-                {
- 		  std::string includefile = readToken( ToLower );
-                  std::string trtest2 = "niemaproblema";
-                  if (trtest=="x")
-                  trtest2 = includefile;
-		 std::string parameter = readToken( ToLower );
-		 while( parameter.compare( "end" ) != 0 ) {
-		 	parameters.push_back( parameter );
-		 	parameter = readToken( ToLower );
-		 }
- 		 if (trtest2.find("tr/")!=0)
-                   mIncludeParser = new cParser( includefile, buffer_FILE, mPath );
+ // launch child parser if include directive found.
+ // NOTE: parameter collecting uses default set of token separators.
+ if (token.compare("include")==0)
+ {
+ 	  std::string includefile = readToken( ToLower );
+                 std::string trtest2 = "niemaproblema";
+                 if (trtest=="x")
+                 trtest2 = includefile;
+ 	 std::string parameter = readToken( ToLower );
+ 	 while( parameter.compare( "end" ) != 0 ) {
+ 	 	parameters.push_back( parameter );
+ 	 	parameter = readToken( ToLower );
+ 	 }
+ 	 if (trtest2.find("tr/")!=0)
+                  mIncludeParser = new cParser( includefile, buffer_FILE, mPath );
 
-		 token = readToken( ToLower, Break, trtest );
-	}
-	return token;
+ 	 token = readToken( ToLower, Break, trtest );
+ }
+ return token;
 }
 
 bool cParser::trimComments( std::string& String ) {
