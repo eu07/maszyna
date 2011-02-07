@@ -117,6 +117,12 @@ void __fastcall TEvent::Load(cParser* parser)
     if (str==AnsiString("addvalues"))
         Type= tp_AddValues;
     else
+    if (str==AnsiString("copyvalues"))
+        Type= tp_CopyValues;
+    else
+    if (str==AnsiString("whois"))
+        Type= tp_WhoIs;
+    else
         Type= tp_Unknown;
 
     parser->getTokens();
@@ -129,7 +135,7 @@ void __fastcall TEvent::Load(cParser* parser)
     if (str!="none") asNodeName=str; //nazwa obiektu powi¹zanego
 
     if (asName.SubString(1,5)=="none_")
-     Type= tp_Unknown; //Ra: takie s¹ ignorowane
+     Type= tp_Ignored; //Ra: takie s¹ ignorowane
 
     switch (Type)
     {
@@ -168,6 +174,8 @@ void __fastcall TEvent::Load(cParser* parser)
             parser->getTokens();
             *parser >> token;
         break;
+        case tp_WhoIs:
+        case tp_CopyValues:
         case tp_GetValues:
             parser->getTokens();
             *parser >> token;
@@ -357,13 +365,15 @@ void __fastcall TEvent::Load(cParser* parser)
 
             }
         break;
-        case tp_Unknown: //ignorowanie reszty
+        case tp_Ignored: //ignorowany
+        case tp_Unknown: //nieznany
          do
          {parser->getTokens();
           *parser >> token;
           str= AnsiString(token.c_str());
          } while (str!="endevent");
-         WriteLog("Event \""+asName+"\" is ignored.");
+
+         WriteLog("Event \""+asName+(Type==tp_Unknown?"\" has unknown type.":"\" is ignored."));
          break;
     }
 }

@@ -19,7 +19,8 @@ typedef enum { tp_Unknown, tp_Sound, tp_SoundPos, tp_Exit,
                tp_Disable, tp_Velocity, tp_Animation, tp_Lights,
                tp_UpdateValues, tp_GetValues, tp_PutValues,
                tp_Switch, tp_DynVel, tp_TrackVel, tp_Multiple,
-               tp_AddValues }  TEventType;
+               tp_AddValues, tp_Ignored, tp_CopyValues, tp_WhoIs
+             }  TEventType;
 
 const int conditional_trackoccupied=-1;
 const int conditional_trackfree=-2;

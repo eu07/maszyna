@@ -38,10 +38,11 @@ const Math3D::vector3 vGravity= Math3D::vector3(0,-9.81,0);
 #define szDefaultTexturePath "textures\\"
 #define szDefaultTextureExt ".dds"
 
-void __fastcall Error(const AnsiString &asMessage)
+void __fastcall Error(const AnsiString &asMessage,bool box=true)
 {
-    MessageBox(NULL,asMessage.c_str(),"EU07-424",MB_OK);
-    WriteLog(asMessage.c_str());
+ if (box)
+  MessageBox(NULL,asMessage.c_str(),"EU07-424",MB_OK);
+ WriteLog(asMessage.c_str());
 }
 void __fastcall WriteLog(const AnsiString &str)
 {//Ra: wersja z AnsiString jest zamienna z Error()

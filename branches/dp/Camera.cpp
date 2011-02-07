@@ -172,9 +172,12 @@ bool __fastcall TCamera::SetMatrix()
 
 void __fastcall TCamera::RaLook()
 {//zmiana kierunku patrzenia - przelicza Yaw
- vector3 where=LookAt-Pos;
+ vector3 where=LookAt-Pos+vector3(0,3,0); //trochê w górê od szyn
  if ((where.x!=0.0)||(where.z!=0.0))
-  Yaw=atan2(-where.x,-where.z);
+  Yaw=atan2(-where.x,-where.z); //k¹t horyzontalny
+ double l=Length3(where);
+ if (l>0.0)
+  Pitch=asin(where.y/l); //k¹t w pionie
 };
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
