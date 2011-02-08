@@ -158,11 +158,10 @@ public:
 public:
  __fastcall TSubRect();
  virtual __fastcall ~TSubRect();
-//    __fastcall ~TSubRect() { SafeDelete(pRootNode); };   /* TODO -cBUG : Attention, remember to delete those nodes */
-    void __fastcall RaAddNode(TGroundNode *Node);
-    void __fastcall AddNode(TGroundNode *Node);
-    //void __fastcall RaGroupAdd(TGroundNode *Node) {if (pTriGroup) Node->pTriGroup=pTriGroup; else pTriGroup=Node;};
-//    __fastcall Render() { if (pRootNode) pRootNode->Render(); };
+ void __fastcall RaAddNode(TGroundNode *Node);
+ void __fastcall AddNode(TGroundNode *Node);
+ //void __fastcall RaGroupAdd(TGroundNode *Node) {if (pTriGroup) Node->pTriGroup=pTriGroup; else pTriGroup=Node;};
+ //__fastcall Render() { if (pRootNode) pRootNode->Render(); };
  bool __fastcall StartVBO();
  virtual void Release();
  bool __fastcall RaTrackAnimAdd(TTrack *t);
@@ -178,17 +177,34 @@ const double fHalfTotalNumSubRects=iTotalNumSubRects/2.0;
 const double fSubRectSize=1000.0/iNumSubRects;
 const double fRectSize=fSubRectSize*iNumSubRects;
 
-class TGroundRect //: public TSubRect
+class TGroundRect : public TSubRect
 {//obiekty o niewielkiej iloœci wierzcho³ków bêd¹ renderowane st¹d
 private:
-    TSubRect *pSubRects;
-    void __fastcall Init() { pSubRects= new TSubRect[iNumSubRects*iNumSubRects]; };
+ int iLastDisplay; //numer klatki w której by³ ostatnio wyœwietlany
+ TSubRect *pSubRects;
+ void __fastcall Init() { pSubRects= new TSubRect[iNumSubRects*iNumSubRects]; };
 public:
-    __fastcall TGroundRect() { pSubRects=NULL; };
-    virtual __fastcall ~TGroundRect() { SafeDeleteArray(pSubRects); };
+ static int iFrameNumber; //numer kolejny wyœwietlanej klatki
+ __fastcall TGroundRect() { pSubRects=NULL; };
+ virtual __fastcall ~TGroundRect() { SafeDeleteArray(pSubRects); };
 
-    TSubRect* __fastcall SafeGetRect( int iCol, int iRow) { if (!pSubRects) Init();  return pSubRects+iRow*iNumSubRects+iCol; };
-    TSubRect* __fastcall FastGetRect( int iCol, int iRow) { return ( pSubRects ? pSubRects+iRow*iNumSubRects+iCol : NULL ); };
+ TSubRect* __fastcall SafeGetRect(int iCol,int iRow)
+ {//pobranie wskaŸnika do ma³ego kwadratu, utworzenie jeœli trzeba
+  if (!pSubRects) Init(); //utworzenie ma³ych kwadratów
+  return pSubRects+iRow*iNumSubRects+iCol; //zwrócenie w³aœciwego
+ };
+ TSubRect* __fastcall FastGetRect( int iCol, int iRow)
+ {//pobranie wskaŸnika do ma³ego kwadratu, bez tworzenia jeœli nie ma
+  return (pSubRects?pSubRects+iRow*iNumSubRects+iCol:NULL);
+ };
+ void __fastcall Render()
+ {//renderowanie kwadratu kilometrowego, jeœli jeszcze nie zrobione
+  if (iLastDisplay!=iFrameNumber)
+  {for (TGroundNode* node=pRender;node!=NULL;node=node->pNext3)
+    node->Render(); //nieprzezroczyste obiekty (pojazdy z automatu)
+   iLastDisplay=iFrameNumber;
+  }
+ };
 };
 
 
@@ -209,7 +225,7 @@ public:
     bool __fastcall Init(AnsiString asFile);
     bool __fastcall InitEvents();
     bool __fastcall InitTracks();
-    bool __fastcall InitLaunchers();    
+    bool __fastcall InitLaunchers();
     TGroundNode* __fastcall FindTrack(vector3 Point, int &iConnection, TGroundNode *Exclude);
     TGroundNode* __fastcall CreateGroundNode();
     TGroundNode* __fastcall AddGroundNode(cParser* parser);
@@ -291,6 +307,7 @@ public:
         return NULL;
     }
 */
+    TGroundRect* __fastcall GetRect(double x, double z) { return &Rects[GetColFromX(x)/iNumSubRects][GetRowFromZ(z)/iNumSubRects]; };
     TSubRect* __fastcall GetSubRect(double x, double z) { return GetSubRect(GetColFromX(x),GetRowFromZ(z)); };
     TSubRect* __fastcall FastGetSubRect(double x, double z) { return FastGetSubRect(GetColFromX(x),GetRowFromZ(z)); };
     TSubRect* __fastcall GetSubRect(int iCol, int iRow);

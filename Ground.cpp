@@ -230,31 +230,48 @@ void __fastcall TGroundNode::MoveMe(vector3 pPosition)
 
 }
 
+//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+int TGroundRect::iFrameNumber=0; //licznik wyœwietlanych klatek
+
+
+//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+
 void __fastcall TGround::MoveGroundNode(vector3 pPosition)
 {
-    TGroundNode *Current;
-    for (Current= RootNode; Current!=NULL; Current= Current->Next)
-        Current->MoveMe(pPosition);
+ TGroundNode *Current;
+ for (Current=RootNode;Current!=NULL;Current=Current->Next)
+  Current->MoveMe(pPosition);
 
-    TGroundRect *Rectx = new TGroundRect; //zawiera wskaŸnik do tablicy hektometrów
-    for(int i=0;i<iNumRects;i++)
-     for(int j=0;j<iNumRects;j++)
-      Rects[i][j]= *Rectx; //kopiowanie do ka¿dego kwadratu
-    delete Rectx;
-    for (Current= RootNode; Current!=NULL; Current= Current->Next)
-        {
-            if (Current->iType!=TP_DYNAMIC)
-                GetSubRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
-        }
-    for (Current= RootDynamic; Current!=NULL; Current= Current->Next)
-        {
-            Current->pCenter+=pPosition;
-            Current->DynamicObject->UpdatePos();
-        }
-    for (Current= RootDynamic; Current!=NULL; Current= Current->Next)
-        {
-            Current->DynamicObject->MoverParameters->Physic_ReActivation();
-        }
+ TGroundRect *Rectx=new TGroundRect; //kwadrat kilometrowy
+ for(int i=0;i<iNumRects;i++)
+  for(int j=0;j<iNumRects;j++)
+   Rects[i][j]=*Rectx; //kopiowanie zawartoœci do ka¿dego kwadratu
+ delete Rectx;
+ for (Current=RootNode;Current!=NULL;Current=Current->Next)
+ {//roz³o¿enie obiektów na mapie
+  if (Current->iType!=TP_DYNAMIC)
+  {//pojazdów to w ogóle nie dotyczy
+   if ((Current->iType!=GL_TRIANGLES)?true //~czy trójk¹t?
+    :(Current->iFlags&4)?true //~czy teksturê ma nieprzezroczyst¹?
+     :(Current->iNumVerts!=3)?true //~czy tylko jeden trójk¹t?
+      :(Current->fSquareMinRadius!=0.0)?true //~czy widoczny z bliska?
+       :(Current->fSquareRadius<=90000.0)) //~czy widoczny z daleka?
+    GetSubRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
+   else //dodajemy do kwadratu kilometrowego
+    GetRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
+  }
+ }
+ for (Current=RootDynamic;Current!=NULL;Current=Current->Next)
+ {
+  Current->pCenter+=pPosition;
+  Current->DynamicObject->UpdatePos();
+ }
+ for (Current=RootDynamic;Current!=NULL;Current=Current->Next)
+  Current->DynamicObject->MoverParameters->Physic_ReActivation();
 }
 
 void __fastcall TGroundNode::RaRenderVBO()
@@ -1436,7 +1453,8 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
 
 //        tmp->fSquareRadius= 2000*2000+r;
         tmp->fSquareRadius+= r;
-        RaTriangleDivider(tmp);
+        //Ra: dzielenie trójk¹tów siê nie sprawdza - spadek FPS i znacznie d³u¿sze wczytywanie
+        //RaTriangleDivider(tmp);
         break;
 
         case GL_LINES :
@@ -1513,18 +1531,16 @@ TSubRect* __fastcall TGround::FastGetSubRect(int iCol, int iRow)
     return (Rects[br][bc].FastGetRect(sc,sr));
 }
 
-TSubRect* __fastcall TGround::GetSubRect(int iCol, int iRow)
-{
-    int br,bc,sr,sc;
-    br= iRow/iNumSubRects;
-    bc= iCol/iNumSubRects;
-    sr= iRow-br*iNumSubRects;
-    sc= iCol-bc*iNumSubRects;
-
-    if ( (br<0) || (bc<0) || (br>=iNumRects) || (bc>=iNumRects) )
-        return NULL;
-
-    return (Rects[br][bc].SafeGetRect(sc,sr));
+TSubRect* __fastcall TGround::GetSubRect(int iCol,int iRow)
+{//znalezienie ma³ego kwadratu mapy
+ int br,bc,sr,sc;
+ br=iRow/iNumSubRects; //wspó³rzêdne kwadratu kilometrowego
+ bc=iCol/iNumSubRects;
+ sr=iRow-br*iNumSubRects; //wspó³rzêdne wzglêne ma³ego kwadratu
+ sc=iCol-bc*iNumSubRects;
+ if ( (br<0) || (bc<0) || (br>=iNumRects) || (bc>=iNumRects) )
+  return NULL; //jeœli poza map¹
+ return (Rects[br][bc].SafeGetRect(sc,sr)); //pobranie ma³ego kwadratu
 }
 
 TEvent* __fastcall TGround::FindEvent(AnsiString asEventName)
@@ -1850,30 +1866,41 @@ bool __fastcall TGround::Init(AnsiString asFile)
         else
         if (str==AnsiString("firstinit"))
         {
-          if (!bInitDone) //Ra: ¿eby nie robi³o dwa razy
-          { bInitDone=true;
-            WriteLog("InitNormals");
-            for (TGroundNode* Current= RootNode; Current!=NULL; Current= Current->Next)
-            {
-                Current->InitNormals();
-                if (Current->iType!=TP_DYNAMIC)
-                    GetSubRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
-            }
-            WriteLog("InitNormals OK");
-            WriteLog("InitTracks");
-            InitTracks(); //³¹czenie odcinków ze sob¹ i przyklejanie eventów
-            WriteLog("InitTracks OK");
-            WriteLog("InitEvents");
-            InitEvents();
-            WriteLog("InitEvents OK");
-            WriteLog("InitLaunchers");
-            InitLaunchers();
-            WriteLog("InitLaunchers OK");
-            WriteLog("InitGlobalTime");
-            //ABu 160205: juz nie TODO :)
-            GlobalTime= new TMTableTime(hh,mm,srh,srm,ssh,ssm); //McZapkie-300302: inicjacja czasu rozkladowego - TODO: czytac z trasy!
-            WriteLog("InitGlobalTime OK");
+         if (!bInitDone) //Ra: ¿eby nie robi³o dwa razy
+         {bInitDone=true;
+          WriteLog("InitNormals");
+          for (TGroundNode* Current= RootNode; Current!=NULL; Current= Current->Next)
+          {
+           Current->InitNormals();
+           if (Current->iType!=TP_DYNAMIC)
+           {//pojazdów to w ogóle nie dotyczy
+            if ((Current->iType!=GL_TRIANGLES)?true //~czy trójk¹t?
+             :(Current->iFlags&4)?true //~czy teksturê ma nieprzezroczyst¹?
+              :(Current->iNumVerts!=3)?true //~czy tylko jeden trójk¹t?
+               :(Current->fSquareMinRadius!=0.0)?true //~czy widoczny z bliska?
+                :(Current->fSquareRadius<=90000.0)) //~czy widoczny z daleka?
+             GetSubRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
+            else //dodajemy do kwadratu kilometrowego
+             GetRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
+           }
+           //if (Current->iType!=TP_DYNAMIC)
+           // GetSubRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
           }
+          WriteLog("InitNormals OK");
+          WriteLog("InitTracks");
+          InitTracks(); //³¹czenie odcinków ze sob¹ i przyklejanie eventów
+          WriteLog("InitTracks OK");
+          WriteLog("InitEvents");
+          InitEvents();
+          WriteLog("InitEvents OK");
+          WriteLog("InitLaunchers");
+          InitLaunchers();
+          WriteLog("InitLaunchers OK");
+          WriteLog("InitGlobalTime");
+          //ABu 160205: juz nie TODO :)
+          GlobalTime= new TMTableTime(hh,mm,srh,srm,ssh,ssm); //McZapkie-300302: inicjacja czasu rozkladowego - TODO: czytac z trasy!
+          WriteLog("InitGlobalTime OK");
+         }
         }
         else
         if (str==AnsiString("description"))
@@ -3024,6 +3051,7 @@ bool __fastcall TGround::RaRenderAlpha(vector3 pPosition)
 
 bool __fastcall TGround::Render(vector3 pPosition)
 {//renderowanie scenerii z Display List - faza nieprzezroczystych
+ ++TGroundRect::iFrameNumber; //zwiêszenie licznika ramek
  CameraDirection.x=sin(Global::pCameraRotation); //wektor kierunkowy
  CameraDirection.z=cos(Global::pCameraRotation);
  int tr,tc;
@@ -3056,6 +3084,7 @@ bool __fastcall TGround::Render(vector3 pPosition)
     if (CameraDirection.x*direction.x+CameraDirection.z*direction.z<0.55)
      continue; //pomijanie zbêdnych sektorów
    }
+   Rects[(i+c)/iNumSubRects][(j+r)/iNumSubRects].Render();
    if ((tmp=FastGetSubRect(i+c,j+r))!=NULL)
    {
     tmp->RaAnimate(); //przeliczenia animacji torów w sektorze
