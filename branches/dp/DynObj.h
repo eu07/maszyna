@@ -173,8 +173,8 @@ public:
     //float EmR;
     //vector3 smokeoffset;
 
-    TDynamicObject *NextConnected;
-    TDynamicObject *PrevConnected;
+    TDynamicObject *NextConnected; //pojazd pod³¹czony od strony sprzêgu 1 (kabina -1)
+    TDynamicObject *PrevConnected; //pojazd pod³¹czony od strony sprzêgu 0 (kabina 1)
     Byte NextConnectedNo;
     Byte PrevConnectedNo;
     vector3 modelRot;      //Obrot pudla w/m swiata
@@ -232,7 +232,8 @@ public:
     __fastcall TDynamicObject();
     __fastcall ~TDynamicObject();
     bool __fastcall TDynamicObject::Init(AnsiString Name, AnsiString BaseDir, AnsiString asReplacableSkin, AnsiString Type_Name,
-                                     TTrack *Track, double fDist, AnsiString DriverType, double fVel, AnsiString TrainName, int Load, AnsiString LoadType);
+                                     TTrack *Track, double fDist, AnsiString DriverType, double fVel, AnsiString TrainName,
+                                     int Load, AnsiString LoadType,bool Reversed);
     void __fastcall AttachPrev(TDynamicObject *Object, int iType= 1);
     bool __fastcall UpdateForce(double dt, double dt1, bool FullVer);
     bool __fastcall Update(double dt, double dt1);

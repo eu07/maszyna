@@ -66,6 +66,7 @@ public:
  void __fastcall RaRenderAlpha(vector3 pPosition=vector3(0,0,0),double fAngle=0);
  //void __fastcall Render(double fSquareDistance);
  //void __fastcall RenderAlpha(double fSquareDistance);
+ void __fastcall RaPrepare();
  bool bTexAlpha; //¿eby nie sprawdzaæ za ka¿dym razem
  int __fastcall Flags();   
 };

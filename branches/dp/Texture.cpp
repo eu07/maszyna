@@ -217,7 +217,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName,int 
     file.read((char*)TGAcompare,sizeof(TGAcompare));
     file.read((char*)header,sizeof(header));
     std::cout << file.tellg() << std::endl;
-    if(file.eof())
+    if (file.eof())
     {
      file.close();
      return fail;
@@ -498,7 +498,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadDDS(std::string fileName)
 
 void TTexturesManager::SetFiltering(int filter)
 {
- if (filter<5) //rozmycie przy powiêkszeniu
+ if (filter<4) //rozmycie przy powiêkszeniu
  {//brak rozmycia z bliska - tych jest 4: 0..3, aby nie by³o przeskoku
   glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
   filter+=4;
@@ -573,12 +573,12 @@ GLuint TTexturesManager::CreateTexture(char *buff,int bpp,int width,int Height,b
     glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
     glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
 
-    if(bHasAlpha || bHash)
-        glTexImage2D(GL_TEXTURE_2D, 0, ( bHasAlpha ? GL_RGBA : GL_RGB ), width, Height, 0,
-            ( bHasAlpha ? GL_RGBA : GL_RGB ), GL_UNSIGNED_BYTE, buff);
+    if (bHasAlpha || bHash || (filter==0))
+     glTexImage2D(GL_TEXTURE_2D, 0, ( bHasAlpha ? GL_RGBA : GL_RGB ), width, Height, 0,
+      ( bHasAlpha ? GL_RGBA : GL_RGB ), GL_UNSIGNED_BYTE, buff);
     else
-        gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGB, width, Height,
-            GL_RGB, GL_UNSIGNED_BYTE, buff);
+     gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGB, width, Height,
+      GL_RGB, GL_UNSIGNED_BYTE, buff);
 
     return ID;
 }

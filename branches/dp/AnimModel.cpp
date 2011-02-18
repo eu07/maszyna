@@ -280,94 +280,53 @@ TAnimContainer* __fastcall TAnimModel::GetContainer(char *pName)
  return AddContainer(pName);
 }
 
-void __fastcall TAnimModel::RaRender(vector3 pPosition, double fAngle)
-{//sprawdza œwiat³a i rekurencyjnie renderuje TModel3d
+void __fastcall TAnimModel::RaPrepare()
+{//ustawia œwiat³a i animacje w modelu przed renderowaniem
  fBlinkTimer-=Timer::GetDeltaTime();
  if (fBlinkTimer<=0) fBlinkTimer=fOffTime;
+ bool state; //stan œwiat³a
  for (int i=0;i<iNumLights;i++)
-  if (lsLights[i]==ls_Blink)
-  {
-   if (LightsOn[i])  LightsOn[i]->Visible=(fBlinkTimer<fOnTime);
-   if (LightsOff[i]) LightsOff[i]->Visible=!(fBlinkTimer<fOnTime);
+ {switch (lsLights[i])
+  {case ls_Blink: //migotanie
+    state=fBlinkTimer<fOnTime; break;
+   case ls_Dark: //zapalone, gdy ciemno
+    state=Global::fLuminance<=0.25; break;
+   default: //zapalony albo zgaszony
+    state=(lsLights[i]==ls_On);
   }
-  else
-  {
-   if (LightsOn[i])  LightsOn[i]->Visible=(lsLights[i]==ls_On);
-   if (LightsOff[i]) LightsOff[i]->Visible=(lsLights[i]==ls_Off);
-  }
+  if (LightsOn[i])  LightsOn[i]->Visible=state;
+  if (LightsOff[i]) LightsOff[i]->Visible=!state;
+ }
  TSubModel::iInstance=(int)this; //¿eby nie robiæ cudzych animacji
  TAnimContainer *pCurrent;
  for (pCurrent=pRoot;pCurrent!=NULL;pCurrent=pCurrent->pNext)
   pCurrent->UpdateModel(); //przeliczenie animacji ka¿dego submodelu
+}
+
+void __fastcall TAnimModel::RaRender(vector3 pPosition, double fAngle)
+{//sprawdza œwiat³a i rekurencyjnie renderuje TModel3d
+ RaPrepare();
  if (pModel) //renderowanie rekurencyjne submodeli
   pModel->RaRender(pPosition,fAngle,ReplacableSkinId,bTexAlpha);
 }
 
 void __fastcall TAnimModel::RaRenderAlpha(vector3 pPosition, double fAngle)
 {
- fBlinkTimer-=Timer::GetDeltaTime();
- if (fBlinkTimer<=0) fBlinkTimer=fOffTime;
- for (int i=0;i<iNumLights;i++)
-  if (lsLights[i]==ls_Blink)
-  {
-   if (LightsOn[i])  LightsOn[i]->Visible=(fBlinkTimer<fOnTime);
-   if (LightsOff[i]) LightsOff[i]->Visible=!(fBlinkTimer<fOnTime);
-  }
-  else
-  {
-   if (LightsOn[i])  LightsOn[i]->Visible=(lsLights[i]==ls_On);
-   if (LightsOff[i]) LightsOff[i]->Visible=(lsLights[i]==ls_Off);
-  }
- TSubModel::iInstance=(int)this; //¿eby nie robiæ cudzych animacji
- TAnimContainer *pCurrent;
- for (pCurrent=pRoot;pCurrent!=NULL;pCurrent=pCurrent->pNext)
-  pCurrent->UpdateModel(); //przeliczenie animacji ka¿dego submodelu
+ RaPrepare();
  if (pModel) //renderowanie rekurencyjne submodeli
   pModel->RaRenderAlpha(pPosition,fAngle,ReplacableSkinId,bTexAlpha);
 };
 
 void __fastcall TAnimModel::Render(vector3 pPosition, double fAngle)
 {
- fBlinkTimer-=Timer::GetDeltaTime();
- if (fBlinkTimer<=0) fBlinkTimer=fOffTime;
- for (int i=0;i<iNumLights;i++)
-  if (lsLights[i]==ls_Blink)
-  {
-   if (LightsOn[i])  LightsOn[i]->Visible=(fBlinkTimer<fOnTime);
-   if (LightsOff[i]) LightsOff[i]->Visible=!(fBlinkTimer<fOnTime);
-  }
-  else
-  {
-   if (LightsOn[i])  LightsOn[i]->Visible=(lsLights[i]==ls_On);
-   if (LightsOff[i]) LightsOff[i]->Visible=(lsLights[i]==ls_Off);
-  }
- TSubModel::iInstance=(int)this; //¿eby nie robiæ cudzych animacji
- TAnimContainer *pCurrent;
- for (pCurrent=pRoot;pCurrent!=NULL;pCurrent=pCurrent->pNext)
-  pCurrent->UpdateModel(); //przeliczenie animacji ka¿dego submodelu
+ RaPrepare();
  if (pModel) //renderowanie rekurencyjne submodeli
   pModel->Render(pPosition,fAngle,ReplacableSkinId,bTexAlpha);
 }
 
 void __fastcall TAnimModel::RenderAlpha(vector3 pPosition, double fAngle)
 {
- fBlinkTimer-=Timer::GetDeltaTime();
- if (fBlinkTimer<=0) fBlinkTimer=fOffTime;
- for (int i=0;i<iNumLights;i++)
-  if (lsLights[i]==ls_Blink)
-  {
-   if (LightsOn[i])  LightsOn[i]->Visible=(fBlinkTimer<fOnTime);
-   if (LightsOff[i]) LightsOff[i]->Visible=!(fBlinkTimer<fOnTime);
-  }
-  else
-  {
-   if (LightsOn[i])  LightsOn[i]->Visible=(lsLights[i]==ls_On);
-   if (LightsOff[i]) LightsOff[i]->Visible=(lsLights[i]==ls_Off);
-  }
- TSubModel::iInstance=(int)this; //¿eby nie robiæ cudzych animacji
- TAnimContainer *pCurrent;
- for (pCurrent= pRoot; pCurrent!=NULL; pCurrent=pCurrent->pNext)
-  pCurrent->UpdateModel();
+ RaPrepare();
  if (pModel)
   pModel->RenderAlpha(pPosition,fAngle,ReplacableSkinId,bTexAlpha);
 };

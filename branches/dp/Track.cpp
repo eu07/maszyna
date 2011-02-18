@@ -88,6 +88,7 @@ __fastcall TTrack::TTrack()
  DisplayListID=0;
  iTrapezoid=0; //parametry kszta³tu: 0-standard, 1-przechy³ka, 2-trapez, 3-oba
  pTraction=NULL; //drut zasilaj¹cy najbli¿szy punktu 1 toru
+ fTexRatio=1.0; //proporcja boków nawierzchni (¿eby zaoszczêdziæ na rozmiarach tekstur...)
 }
 
 __fastcall TTrack::~TTrack()
@@ -228,7 +229,7 @@ void __fastcall TTrack::Load(cParser *parser, vector3 pOrigin)
  else if (str=="cross")
  {//Ra: to bêdzie skrzy¿owanie dróg
   eType=tt_Cross;
-  iCategoryFlag= 2;
+  iCategoryFlag=2;
  }
  else if (str=="river")
  {eType=tt_Normal;
@@ -323,6 +324,15 @@ void __fastcall TTrack::Load(cParser *parser, vector3 pOrigin)
    {SwitchExtension= new TSwitchExtension(); //zwrotnica ma doklejkê
     SwitchExtension->Segments->Init(p1,p2,segsize); //kopia oryginalnego toru
    }
+   else if (iCategoryFlag==2)
+    if (TextureID1&&fTexLength)
+    {//dla drogi trzeba ustaliæ proporcje boków nawierzchni
+     float w,h;
+     glBindTexture(GL_TEXTURE_2D,TextureID1);
+     glGetTexLevelParameterfv(GL_TEXTURE_2D,0,GL_TEXTURE_WIDTH,&w);
+     glGetTexLevelParameterfv(GL_TEXTURE_2D,0,GL_TEXTURE_HEIGHT,&h);
+     if (h!=0.0) fTexRatio=w/h; //proporcja boków
+    }
   break;
 
   case tt_Cross: //skrzy¿owanie dróg - 4 punkty z wektorami kontrolnymi
@@ -848,7 +858,7 @@ void __fastcall TTrack::Compile()
      {vector3 bpts1[4]; //punkty g³ównej p³aszczyzny przydaj¹ siê do robienia boków
       if (TextureID1||TextureID2) //punkty siê przydadz¹, nawet jeœli nawierzchni nie ma
       {//double max=2.0*(fHTW>fHTW2?fHTW:fHTW2); //z szerszej strony jest 100%
-       double max=fTexLength; //test: szerokoœæ proporcjonalna do d³ugoœci
+       double max=fTexRatio*fTexLength; //test: szerokoœæ proporcjonalna do d³ugoœci
        double map1=max>0.0?fHTW/max:0.5; //obciêcie tekstury od strony 1
        double map2=max>0.0?fHTW2/max:0.5; //obciêcie tekstury od strony 2
        if (iTrapezoid) //trapez albo przechy³ki
@@ -1440,16 +1450,12 @@ bool __fastcall TTrack::Switch(int i)
    bNextSwitchDirection=SwitchExtension->bNextSwitchDirection[NextMask[i]];
    bPrevSwitchDirection=SwitchExtension->bPrevSwitchDirection[PrevMask[i]];
    fRadius=fRadiusTable[i]; //McZapkie: wybor promienia toru
-   //if (DisplayListID) //jeœli istnieje siatka renderu
-   // SwitchExtension->bMovement=true; //bêdzie animacja
-   //else
    if (SwitchExtension->pOwner?SwitchExtension->pOwner->RaTrackAnimAdd(this):true) //jeœli nie dodane do animacji
     SwitchExtension->fOffset1=SwitchExtension->fDesiredOffset1; //nie ma siê co bawiæ
    return true;
   }
   else
   {//blokowanie (0, szukanie torów) lub odblokowanie (1, roz³¹czenie) obrotnicy
-   //SwitchExtension->CurrentIndex=i; //zapamiêtanie stanu zablokowania
    if (i)
    {//0: roz³¹czenie obrotnicy od s¹siednich torów
     if (pPrev)
@@ -1488,12 +1494,15 @@ void __fastcall TTrack::RaAnimListAdd(TTrack *t)
  {if (t==this) return; //siebie nie dodajemy drugi raz do listy
   if (!t->SwitchExtension) return; //nie podlega animacji
   if (SwitchExtension->pNextAnim)
-   if (SwitchExtension->pNextAnim==t)
+  {if (SwitchExtension->pNextAnim==t)
     return; //gdy ju¿ taki jest
    else
     SwitchExtension->pNextAnim->RaAnimListAdd(t);
-  SwitchExtension->pNextAnim=t;
-  t->SwitchExtension->pNextAnim=NULL; //nowo dodawany nie mo¿e mieæ ogona
+  }
+  else
+  {SwitchExtension->pNextAnim=t;
+   t->SwitchExtension->pNextAnim=NULL; //nowo dodawany nie mo¿e mieæ ogona
+  }
  }
 };
 

@@ -100,6 +100,7 @@ __fastcall TTrain::TTrain()
     iCabLightFlag= 0;
     pMechSittingPosition=vector3(0,0,0); //ABu: 180404
     LampkaUniversal3_st=false; //ABu: 030405
+ dsbSlipAlarm=NULL;
 }
 
 __fastcall TTrain::~TTrain()
@@ -1849,15 +1850,14 @@ else
    //ABu 100205: prad w nastepnej lokomotywie, przycisk w ET41
    TDynamicObject *tmp;
    tmp=NULL;
-   if (DynamicObject->NextConnected)
+   if (DynamicObject->NextConnected) //pojazd od strony sprzêgu 1
       if ((DynamicObject->NextConnected->MoverParameters->TrainType==dt_ET41)
          && TestFlag(DynamicObject->MoverParameters->Couplers[1].CouplingFlag,ctrain_controll))
          tmp=DynamicObject->NextConnected;
-   if (DynamicObject->PrevConnected)
+   if (DynamicObject->PrevConnected) //pojazd od strony sprzêgu 0
       if ((DynamicObject->PrevConnected->MoverParameters->TrainType==dt_ET41)
          && TestFlag(DynamicObject->MoverParameters->Couplers[0].CouplingFlag,ctrain_controll))
          tmp=DynamicObject->PrevConnected;
-   //tmp=DynamicObject->NextConnected;
    if (tmp)
    {
       if (I1Gauge.SubModel)
@@ -1956,7 +1956,6 @@ else
    if (DynamicObject->PrevConnected)
       if ((TestFlag(DynamicObject->MoverParameters->Couplers[0].CouplingFlag,ctrain_controll)) && (DynamicObject->MoverParameters->ActiveCab==-1))
          tmp=DynamicObject->PrevConnected;
-   //tmp=DynamicObject->NextConnected;
    if (tmp)
     if (tmp->MoverParameters->Power>0)
      {
@@ -2151,7 +2150,7 @@ else
        btLampkaPoslizg.TurnOn();
       rsSlippery.Play(-rsSlippery.AM*veldiff+rsSlippery.AA,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
       if (DynamicObject->MoverParameters->TrainType==dt_181) //alarm przy poslizgu dla 181/182 - BOMBARDIER
-       dsbSlipAlarm->Play (0, 0, DSBPLAY_LOOPING) ;
+       if (dsbSlipAlarm) dsbSlipAlarm->Play(0,0,DSBPLAY_LOOPING);
      }
      else
      {
@@ -2159,7 +2158,7 @@ else
       {
        rsSlippery.Play(rsSlippery.AM*veldiff+rsSlippery.AA,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
        if (DynamicObject->MoverParameters->TrainType==dt_181)
-        dsbSlipAlarm->Stop();
+        if (dsbSlipAlarm) dsbSlipAlarm->Stop();
       }
      }
     }
@@ -2168,7 +2167,7 @@ else
      btLampkaPoslizg.TurnOff();
      rsSlippery.Stop();
      if (DynamicObject->MoverParameters->TrainType==dt_181)
-      dsbSlipAlarm->Stop();
+      if (dsbSlipAlarm) dsbSlipAlarm->Stop();
     }
 
     if ( DynamicObject->MoverParameters->Mains )
@@ -2922,10 +2921,10 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
          }
         else
         if (str==AnsiString("slipalarm:")) //Bombardier 011010: alarm przy poslizgu:
-         {
-          str= Parser->GetNextSymbol().LowerCase();
-          dsbSlipAlarm= TSoundsManager::GetFromName(str.c_str());
-         }
+        {
+         str=Parser->GetNextSymbol().LowerCase();
+         dsbSlipAlarm=TSoundsManager::GetFromName(str.c_str());
+        }
         else
         if (str==AnsiString("tachoclock:"))                 //cykanie rejestratora:
          {

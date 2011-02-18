@@ -63,11 +63,12 @@ private:
     TTrack *pNext; //odcinek od strony punktu 2
     TTrack *pPrev; //odcinek od strony punktu 1
 //McZapkie-070402: dodalem zmienne opisujace rozmiary tekstur
-    GLuint TextureID1; //tekstura szyn
+    GLuint TextureID1; //tekstura szyn albo nawierzchni
     float fTexLength;
-    GLuint TextureID2; //tekstura automatycznej podsypki
+    float fTexRatio; //proporcja rozmiarów nawierzchni drogi
+    GLuint TextureID2; //tekstura automatycznej podsypki albo pobocza
     float fTexHeight; //wysokoœ brzegu wzglêdem trajektorii
-    float fTexWidth;
+    float fTexWidth; //szerokoœæ boku
     float fTexSlope;
     //vector3 *HelperPts; //Ra: nie u¿ywane, na razie niech zostanie
     double fRadiusTable[2]; //dwa promienie, drugi dla zwrotnicy

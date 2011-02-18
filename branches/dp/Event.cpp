@@ -277,7 +277,7 @@ void __fastcall TEvent::Load(cParser* parser)
                 strcpy(Params[9].asText,token.c_str());
                 Params[0].asInt=2;
                 parser->getTokens(4);
-                *parser >> Params[1].asdouble >> Params[3].asdouble >> Params[2].asdouble >> Params[4].asdouble;
+                *parser >> Params[1].asdouble >> Params[2].asdouble >> Params[3].asdouble >> Params[4].asdouble;
             }
             parser->getTokens(); *parser >> token;
         break;

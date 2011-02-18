@@ -40,28 +40,30 @@ const float maxrot=(M_PI/3); //60°
 
 //---------------------------------------------------------------------------
 TDynamicObject* TDynamicObject::GetFirstDynamic(int cpl_type)
-{ //Szukanie pierwszego polaczonego obiektu w pociagu
-  //Pierwszy -> od strony sprzegu 0 obiektu szukajacego
-   TDynamicObject* temp=this;
-   int coupler_nr=0;
-   for(int i=0;i<100;i++) //tak na wszelki wypadek :)
-   {
-      if (temp->MoverParameters->Couplers[coupler_nr].CouplingFlag==0)
-         return temp;
-      if (coupler_nr==0)
-         {
-            if (temp->PrevConnectedNo==coupler_nr)
-               coupler_nr=1-coupler_nr;
-            temp=temp->PrevConnected;
-         }
-      else
-         {
-            if (temp->NextConnectedNo==coupler_nr)
-               coupler_nr=1-coupler_nr;
-            temp=temp->NextConnected;
-         }
-   }
-  return NULL; //Ra: chyba tak?
+{//Szukanie pierwszego polaczonego obiektu w pociagu
+ //Pierwszy -> od strony sprzegu 0 obiektu szukajacego
+ TDynamicObject* temp=this;
+ int coupler_nr=0;
+ for (int i=0;i<100;i++) //tak na wszelki wypadek :)
+ {
+  if (!temp)
+   return NULL; //Ra: takie zabezpieczenie
+  if (temp->MoverParameters->Couplers[coupler_nr].CouplingFlag==0)
+   return temp;
+  if (coupler_nr==0)
+  {
+   if (temp->PrevConnectedNo==coupler_nr) //pojazd od strony sprzêgu 0
+    coupler_nr=1-coupler_nr;
+   temp=temp->PrevConnected; //ten jest od strony 0
+  }
+  else
+  {
+   if (temp->NextConnectedNo==coupler_nr) //pojazd od strony sprzêgu 1
+    coupler_nr=1-coupler_nr;
+   temp=temp->NextConnected;
+  }
+ }
+ return NULL; //to tylko po wyczerpaniu pêtli
 }
 
 TDynamicObject* TDynamicObject::GetLastDynamic(int cpl_type)
@@ -76,13 +78,13 @@ TDynamicObject* TDynamicObject::GetLastDynamic(int cpl_type)
          return temp;
       if (coupler_nr==0)
          {
-            if (temp->PrevConnectedNo==coupler_nr)
+            if (temp->PrevConnectedNo==coupler_nr) //pojazd od strony sprzêgu 0
                coupler_nr=1-coupler_nr;
             temp=temp->PrevConnected;
          }
       else
          {
-            if (temp->NextConnectedNo==coupler_nr)
+            if (temp->NextConnectedNo==coupler_nr) //pojazd od strony sprzêgu 1
                coupler_nr=1-coupler_nr;
             temp=temp->NextConnected;
          }
@@ -134,12 +136,12 @@ void __fastcall TDynamicObject::SetPneumatic(bool front, bool red)
 {
   int x, ten, tamten;
   ten = GetPneumatic(front, red);
-  if(front)
-   if(PrevConnected)
-    tamten = PrevConnected->GetPneumatic((PrevConnectedNo==0?true:false), red);
-  if(!front)
-   if(NextConnected)
-    tamten = NextConnected->GetPneumatic((NextConnectedNo==0?true:false), red);
+  if (front)
+   if (PrevConnected) //pojazd od strony sprzêgu 0
+    tamten=PrevConnected->GetPneumatic((PrevConnectedNo==0?true:false),red);
+  if (!front)
+   if (NextConnected) //pojazd od strony sprzêgu 1
+    tamten=NextConnected->GetPneumatic((NextConnectedNo==0?true:false),red);
   x=0;
 
   if (ten==tamten)
@@ -912,51 +914,51 @@ TDynamicObject* __fastcall ABuFindObject(TTrack *Track, TDynamicObject *MyPointe
    return NULL;
 }
 
-void TDynamicObject::CouplersDettach(int MinDist, double MyScanDir)
+void TDynamicObject::CouplersDettach(int MinDist,double MyScanDir)
 {  //Funkcja rozlaczajaca podlaczone sprzegi.
    //MinDist - dystans minimalny, dla ktorego mozna rozlaczac.
    if (MyScanDir>0)
    {
-      if(PrevConnected!=NULL)
+      if(PrevConnected) //pojazd od strony sprzêgu 0
       {
          if(MoverParameters->Couplers[0].Dist > MinDist)
          {
             PrevConnected->MoverParameters->Couplers[PrevConnectedNo].Connected=NULL;
             if(PrevConnectedNo==0)
             {
-               PrevConnected->PrevConnectedNo=2;
+               PrevConnected->PrevConnectedNo=2; //sprzêg 0 nie pod³¹czony
                PrevConnected->PrevConnected=NULL;
             }
             if(PrevConnectedNo==1)
             {
-               PrevConnected->NextConnectedNo=2;
+               PrevConnected->NextConnectedNo=2; //sprzêg 1 nie pod³¹czony
                PrevConnected->NextConnected=NULL;
             }
             PrevConnected=NULL;
-            PrevConnectedNo=2;
+            PrevConnectedNo=2; //sprzêg 0 nie pod³¹czony
             MoverParameters->Couplers[0].Connected=NULL;
          }
       }
    }
    else
    {
-      if(NextConnected!=NULL)
+      if (NextConnected) //pojazd od strony sprzêgu 1
       {
          if(MoverParameters->Couplers[1].Dist > MinDist)
          {
             NextConnected->MoverParameters->Couplers[NextConnectedNo].Connected=NULL;
             if(NextConnectedNo==0)
             {
-               NextConnected->PrevConnectedNo=2;
+               NextConnected->PrevConnectedNo=2; //sprzêg 0 nie pod³¹czony
                NextConnected->PrevConnected=NULL;
             }
             if(NextConnectedNo==1)
             {
-               NextConnected->NextConnectedNo=2;
+               NextConnected->NextConnectedNo=2; //sprzêg 1 nie pod³¹czony
                NextConnected->NextConnected=NULL;
             }
             NextConnected=NULL;
-            NextConnectedNo=2;
+            NextConnectedNo=2; //sprzêg 1 nie pod³¹czony
             MoverParameters->Couplers[1].Connected=NULL;
          }
       }
@@ -1047,12 +1049,12 @@ void TDynamicObject::ABuScanObjects(TTrack *Track, double ScanDir, double ScanDi
 
       if(MyCouplFound==0)
       {
-         PrevConnected=FoundedObj;
+         PrevConnected=FoundedObj; //pojazd od strony sprzêgu 0
          PrevConnectedNo=CouplFound;
       }
       else
       {
-         NextConnected=FoundedObj;
+         NextConnected=FoundedObj; //pojazd od strony sprzêgu 1
          NextConnectedNo=CouplFound;
       }
       if(CouplFound==0)
@@ -1274,7 +1276,7 @@ __fastcall TDynamicObject::TDynamicObject()
     Controller= AIdriver;
     bDisplayCab= false; //030303
     NextConnected=PrevConnected= NULL;
-    NextConnectedNo=PrevConnectedNo=2; //ABu: Numery sprzegow.
+    NextConnectedNo=PrevConnectedNo=2; //ABu: Numery sprzegow. 2=nie pod³¹czony
     CouplCounter=50;
     asName= "";
     bEnabled= true;
@@ -1365,13 +1367,15 @@ __fastcall TDynamicObject::~TDynamicObject()
     SafeDelete(TrainParams);
 }
 
-bool __fastcall TDynamicObject::Init(AnsiString Name, AnsiString BaseDir, AnsiString asReplacableSkin, AnsiString Type_Name,
-                                     TTrack *Track, double fDist, AnsiString DriverType, double fVel, AnsiString TrainName, int Load, AnsiString LoadType)
+bool __fastcall TDynamicObject::Init(
+ AnsiString Name,AnsiString BaseDir,AnsiString asReplacableSkin,AnsiString Type_Name,
+ TTrack *Track,double fDist,AnsiString DriverType,double fVel,AnsiString TrainName,
+ int Load, AnsiString LoadType,bool Reversed)
 //McZapkie: Name to np. EU07-424, BaseDir to np. PKP/EU07, Type_Name to np. 303E, TrainName to np. PE2307
 {
 
- iDirection=(fDist<0?-1:1); //Ra: ujemne, jeœli ma byæ wstawiony jako obrócony
- if (fDist<0) fDist=-fDist;
+ iDirection=(Reversed?-1:1); //Ra: ujemne, jeœli ma byæ wstawiony do sk³adu jako obrócony
+ //if (fDist<0) fDist=-fDist;
 
 //McZapkie-310302
     asBaseDir= "dynamic\\"+BaseDir+"\\";
@@ -1573,20 +1577,20 @@ bool __fastcall TDynamicObject::Init(AnsiString Name, AnsiString BaseDir, AnsiSt
     switch (iNumAxles)
     {//Ra: pojazdy wstawiaj¹ siê odwrotnie, ale nie jestem do koñca pewien, czy dobrze
      case 2:
-      Axle1.Init(Track,this);//,iDirection);
-      Axle4.Init(Track,this);//,iDirection);
+      Axle1.Init(Track,this);
+      Axle4.Init(Track,this);
       Axle1.Move(iDirection*(-HalfMaxAxleDist-0.01)+fDist);
       Axle4.Move(iDirection*(HalfMaxAxleDist+0.01)+fDist);
-      Axle2.Init(Track,this);//,iDirection);
-      Axle3.Init(Track,this);//,iDirection);
+      Axle2.Init(Track,this);
+      Axle3.Init(Track,this);
       Axle2.Move(iDirection*(-HalfMaxAxleDist+0.01)+fDist);
       Axle3.Move(iDirection*(HalfMaxAxleDist-0.01)+fDist);
      break;
      case 4:
-      Axle1.Init(Track,this);//,iDirection);
-      Axle2.Init(Track,this);//,iDirection);
-      Axle3.Init(Track,this);//,iDirection);
-      Axle4.Init(Track,this);//,iDirection);
+      Axle1.Init(Track,this);
+      Axle2.Init(Track,this);
+      Axle3.Init(Track,this);
+      Axle4.Init(Track,this);
       Axle1.Move(iDirection*(-(HalfMaxAxleDist+MoverParameters->ADist*0.5))+fDist);
       Axle2.Move(iDirection*(-(HalfMaxAxleDist-MoverParameters->ADist*0.5))+fDist);
       Axle3.Move(iDirection*((HalfMaxAxleDist-MoverParameters->ADist*0.5))+fDist);
@@ -1638,39 +1642,57 @@ void __fastcall TDynamicObject::Move(double fDistance)
 }
 
 void __fastcall TDynamicObject::AttachPrev(TDynamicObject *Object, int iType)
-{
+{//Ra: doczepia Object na koñcu sk³adu (nazwa funkcji jest myl¹ca)
+ //Ra: u¿ywane tylko przy wczytywaniu scenerii
  //ABu: ponizej chyba najprostszy i najszybszy sposob pozbycia sie bledu :)
  //(iType czasami powinno byc rowne 0, a wynosi 48. Cholera wie, dlaczego...)
  //if (iType==48)
+ //Ra: pewnie ³apa³o zero jako kod znaku... ale to ju¿ chyba nieaktualne?
  double l=0;
  //obliczanie d³ugoœci sk³adu
- for (TDynamicObject *Current=this;Current!=NULL;Current=Current->PrevConnected)
-  if (Current->PrevConnected)
-   l+=Current->GetLength();
+ for (TDynamicObject *Current=this;Current;Current=Current->iDirection<0?Current->NextConnected:Current->PrevConnected)
+  if (Current->iDirection<0?Current->NextConnected:Current->PrevConnected) //czy jeszcze coœ jest?
+   l+=Current->GetLength(); //dodanie jego d³ugoœci do d³ugoœci sk³adu
   else
   {
    l+=Current->GetLength()*0.5; //pierwszy w sk³adzie liczony od po³owy
    break;
   }
- /*double r=*/
- Object->Move(-l-(Object->GetLength())*0.5f); //Ra: bool do double zwracane jako bool?
+ /*double r=*/  //Ra: by³o bool rzutowane na double i zwracane jako bool (?)
+ Object->Move(-l-(Object->GetLength())*0.5f); //przesuniêcie wózków na w³aœciwe miejsce w szeregu
  TLocation loc;
  loc.X=-GetPosition().x;
  loc.Y=GetPosition().z;
  loc.Z=GetPosition().y;                   /* TODO -cBUG : Remove this */
- MoverParameters->Loc=loc;
+ MoverParameters->Loc=loc; //Ra: ustawienie siebie? po co?
  loc.X=-Object->GetPosition().x;
  loc.Y=Object->GetPosition().z;
  loc.Z=Object->GetPosition().y;
- Object->MoverParameters->Loc=loc;
+ Object->MoverParameters->Loc=loc; //ustawienie dodawanego pojazdu
  MoverParameters->Attach(iDirection<0?0:1,Object->iDirection<0?1:0,&(Object->MoverParameters),iType);
  MoverParameters->Couplers[iDirection<0?0:1].Render=false;
  Object->MoverParameters->Attach(Object->iDirection<0?1:0,iDirection<0?0:1,&MoverParameters,iType);
- Object->MoverParameters->Couplers[Object->iDirection<0?1:0].Render=true;
- NextConnected=Object;
- Object->PrevConnected=this;
- NextConnectedNo=0;
- Object->PrevConnectedNo=1;
+ Object->MoverParameters->Couplers[Object->iDirection<0?1:0].Render=true; //rysowanie sprzêgu w do³¹czanym
+ if (iDirection<0)
+ {//³¹czenie odwrotne
+  PrevConnected=Object; //doczepiamy go sobie do sprzêgu 0, gdy stoimy odwrotnie
+  PrevConnectedNo=Object->iDirection<0?1:0;
+ }
+ else
+ {//³¹czenie standardowe
+  NextConnected=Object; //doczepiamy go sobie do sprzêgu 1
+  NextConnectedNo=Object->iDirection<0?1:0;
+ }
+ if (Object->iDirection<0)
+ {//do³¹czany jest odwrotnie ustawiany
+  Object->NextConnected=this; //on ma nas z ty³u
+  Object->NextConnectedNo=iDirection<0?0:1;
+ }
+ else
+ {//do³¹czany jest normalnie ustawiany
+  Object->PrevConnected=this; //on ma nas z przodu
+  Object->PrevConnectedNo=iDirection<0?0:1;
+ }
  //ABu: To mala poprawka - sprawdzenie tablic Dynamics dla obiektow,
  //bo wagony sa blednie rozmieszczane przy starcie symulatora.
  Object->ABuCheckMyTrack();
@@ -2316,6 +2338,7 @@ SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);
 //McZapkie-040402: liczenie pozycji uwzgledniajac wysokosc szyn itp.
 vector3 inline __fastcall TDynamicObject::GetPosition()
 {
+ //if (!this) return vector3(0,0,0);
  vector3 pos= (Axle1.pPosition+Axle4.pPosition)*0.5f; //œrodek miêdzy wózkami
  if (MoverParameters->CategoryFlag==1) //tory
  {
@@ -2420,7 +2443,7 @@ if (renderme)
      }
     if ((mdLoad==NULL) && (MoverParameters->Load>0))
      {
-      mdLoad=NULL;
+      mdLoad=NULL; //Ra: to jest tu bez sensu - co autor mia³ na myœli?
      }
     if (mdLoad!=NULL)
 #ifdef USE_VBO
@@ -2436,8 +2459,8 @@ if (renderme)
 #ifdef USE_VBO
       if (Globals::bUseVBO)
        mdPrzedsionek->RaRender(ObjSqrDist,ReplacableSkinID);
-      else 
-#endif       
+      else
+#endif
        mdPrzedsionek->Render(ObjSqrDist,ReplacableSkinID);
 //rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
 //ABu: tylko w trybie FreeFly, zwykly tryb w world.cpp
@@ -2892,6 +2915,14 @@ if (renderme)
     else
 #endif
      mdModel->RenderAlpha(ObjSqrDist,ReplacableSkinID,bAlpha);
+
+    if (mdLoad) //Ra: dodane renderowanie przezroczystego ³adunku
+#ifdef USE_VBO
+     if (Globals::bUseVBO)
+      mdLoad->RaRenderAlpha(ObjSqrDist,ReplacableSkinID,bAlpha);
+     else
+#endif
+      mdLoad->RenderAlpha(ObjSqrDist,ReplacableSkinID,bAlpha);
 
 /* skoro false to mo¿na wyci¹c
     //ABu: Tylko w trybie freefly
