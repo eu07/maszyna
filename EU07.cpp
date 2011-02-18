@@ -454,8 +454,12 @@ LRESULT CALLBACK WndProc(	HWND	hWnd,			// Handle For This Window
             switch (wParam)
             {
                 case VK_F7:
-                    Global::bWireFrame=!Global::bWireFrame;
-                    Global::bReCompile=true; //czy odœwie¿yæ siatki
+                 if (DebugModeFlag)
+                 {//siatki tyko w trybie tekstowym
+                  Global::bWireFrame=!Global::bWireFrame;
+                  Global::bReCompile=true; //czy odœwie¿yæ siatki
+                  //Ra: jeszcze usun¹æ siatki ze skompilowanych obiektów!
+                 }
                 break;
             }
 			return 0;								// Jump Back

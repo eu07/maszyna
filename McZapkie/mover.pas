@@ -2599,7 +2599,7 @@ begin
   begin
    if (ConnectTo<>nil) then
     begin
-      if (ConnectToNr<>2) then CouplerNr[ConnectNo]:=ConnectToNr;
+      if (ConnectToNr<>2) then CouplerNr[ConnectNo]:=ConnectToNr; {2=nic nie pod³¹czone}
       ct:=ConnectTo^.Couplers[CouplerNr[ConnectNo]].CouplerType;
       if (((Distance(Loc,ConnectTo^.Loc,Dim,ConnectTo^.Dim)<=dEpsilon) and (CouplerType<>NoCoupler) and (CouplerType=ct))
          or (CouplingType and ctrain_coupler=0))

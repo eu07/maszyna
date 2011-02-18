@@ -94,6 +94,8 @@ bool Global::bUseVBO=false; //czy jest VBO w karcie graficznej
 int Global::iFeedbackMode=1; //tryb pracy informacji zwrotnej
 double Global::fOpenGL=0.0; //wersja OpenGL - przyda siê
 bool Global::bOpenGL_1_5=false; //czy s¹ dostêpne funkcje OpenGL 1.5
+double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
+bool Global::bMultiplayer=false; //blokada dzia³ania niektórych eventów na rzecz kominikacji
 
 void __fastcall Global::LoadIniFile(AnsiString asFileName)
 {
@@ -246,6 +248,8 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
          iDynamicFiltering=Parser->GetNextSymbol().ToIntDef(-1);
         else if (str==AnsiString("feedbackmode"))
          iFeedbackMode=Parser->GetNextSymbol().ToIntDef(1); //domyœlnie 1
+        else if (str==AnsiString("multiplayer"))
+         bMultiplayer=Parser->GetNextSymbol().ToIntDef(0); //domyœlnie 1
     }
 
  Feedback::ModeSet(iFeedbackMode); //tryb pracy interfejsu zwrotnego
