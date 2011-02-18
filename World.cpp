@@ -95,7 +95,7 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 
     Global::detonatoryOK=true;
     WriteLog("Starting MaSzyna rail vehicle simulator.");
-    WriteLog("Compilation 2011-02-08, release 1.2.77.113.");
+    WriteLog("Compilation 2011-02-18, release 1.2.77.117.");
     WriteLog("Online documentation and additional files on http://eu07.pl");
     WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx_EU, OLO_EU, Bart, Quark-t, ShaXbee, Oli_EU, youBy and others");
     WriteLog("Renderer:");
@@ -445,68 +445,68 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
     WriteLog(buff);
     TGroundNode *PlayerTrain= Ground.FindDynamic(Global::asHumanCtrlVehicle);
     if (PlayerTrain)
+    {
+//   if (PlayerTrain->DynamicObject->MoverParameters->TypeName==AnsiString("machajka"))
+//     Train= new TMachajka();
+//   else
+//   if (PlayerTrain->DynamicObject->MoverParameters->TypeName==AnsiString("303e"))
+//     Train= new TEu07();
+//   else
+     Train=new TTrain();
+     if (Train->Init(PlayerTrain->DynamicObject))
      {
-//      if (PlayerTrain->DynamicObject->MoverParameters->TypeName==AnsiString("machajka"))
-//        Train= new TMachajka();
-//      else
-//      if (PlayerTrain->DynamicObject->MoverParameters->TypeName==AnsiString("303e"))
-//        Train= new TEu07();
-//      else
-        Train= new TTrain();
-      if (Train->Init(PlayerTrain->DynamicObject))
-       {
-        Controlled= Train->DynamicObject;
-        WriteLog("Player train init OK");
-        if(Global::detonatoryOK)
-        {
-        glRasterPos2f(-0.25f, -0.19f);
-        glPrint("OK.");
-        }
-        SwapBuffers(hDC);					// Swap Buffers (Double Buffering)
-
-       }
-      else
-       {
-        Error("Player train init failed!");
-        if(Global::detonatoryOK)
-        {
-        glRasterPos2f(-0.25f, -0.20f);
-        glPrint("Blad inicjalizacji sterowanego pojazdu!");
-        }
-        SwapBuffers(hDC);					// Swap Buffers (Double Buffering)
-
-         Controlled= NULL;
-         Camera.Type= tp_Free;
-       }
+      Controlled=Train->DynamicObject;
+      WriteLog("Player train init OK");
+      if (Global::detonatoryOK)
+      {
+       glRasterPos2f(-0.25f, -0.19f);
+       glPrint("OK.");
+      }
+      SwapBuffers(hDC);					// Swap Buffers (Double Buffering)
      }
-    else
+     else
      {
-       if (Global::asHumanCtrlVehicle!=AnsiString("ghostview"))
-         Error("Player train not exist!");
-       if (Global::detonatoryOK)
-       {
+      Error("Player train init failed!");
+      FreeFlyModeFlag=true; //Ra: automatycznie w³¹czone latanie
+      if (Global::detonatoryOK)
+      {
        glRasterPos2f(-0.25f, -0.20f);
-       glPrint("Wybrany pojazd nie istnieje w scenerii!");
-       }
-       SwapBuffers(hDC);					// Swap Buffers (Double Buffering)
-
-       Controlled= NULL;
-       Camera.Type= tp_Free;
+       glPrint("Blad inicjalizacji sterowanego pojazdu!");
+      }
+      SwapBuffers(hDC);					// Swap Buffers (Double Buffering)
+      Controlled= NULL;
+      Camera.Type= tp_Free;
      }
-
+    }
+    else
+    {
+     if (Global::asHumanCtrlVehicle!=AnsiString("ghostview"))
+      Error("Player train not exist!");
+     FreeFlyModeFlag=true; //Ra: automatycznie w³¹czone latanie
+     if (Global::detonatoryOK)
+     {
+      glRasterPos2f(-0.25f, -0.20f);
+      glPrint("Wybrany pojazd nie istnieje w scenerii!");
+     }
+     SwapBuffers(hDC);					// Swap Buffers (Double Buffering)
+     Controlled= NULL;
+     Camera.Type= tp_Free;
+    }
     glEnable(GL_DEPTH_TEST);
-    Ground.pTrain= Train;
-    KeyEvents[0]= Ground.FindEvent("keyctrl00");
-    KeyEvents[1]= Ground.FindEvent("keyctrl01");
-    KeyEvents[2]= Ground.FindEvent("keyctrl02");
-    KeyEvents[3]= Ground.FindEvent("keyctrl03");
-    KeyEvents[4]= Ground.FindEvent("keyctrl04");
-    KeyEvents[5]= Ground.FindEvent("keyctrl05");
-    KeyEvents[6]= Ground.FindEvent("keyctrl06");
-    KeyEvents[7]= Ground.FindEvent("keyctrl07");
-    KeyEvents[8]= Ground.FindEvent("keyctrl08");
-    KeyEvents[9]= Ground.FindEvent("keyctrl09");
-
+    Ground.pTrain=Train;
+    if (!Global::bMultiplayer)
+    {//eventy aktywowane z klawiatury tylko dla jednego u¿ytkownika
+     KeyEvents[0]=Ground.FindEvent("keyctrl00");
+     KeyEvents[1]=Ground.FindEvent("keyctrl01");
+     KeyEvents[2]=Ground.FindEvent("keyctrl02");
+     KeyEvents[3]=Ground.FindEvent("keyctrl03");
+     KeyEvents[4]=Ground.FindEvent("keyctrl04");
+     KeyEvents[5]=Ground.FindEvent("keyctrl05");
+     KeyEvents[6]=Ground.FindEvent("keyctrl06");
+     KeyEvents[7]=Ground.FindEvent("keyctrl07");
+     KeyEvents[8]=Ground.FindEvent("keyctrl08");
+     KeyEvents[9]=Ground.FindEvent("keyctrl09");
+    }
     matrix4x4 ident2;
     ident2.Identity();
 
@@ -700,7 +700,7 @@ bool __fastcall TWorld::Update()
                   temp=vector3(0,0,6*0.25);
                else
                   temp=vector3(0,0,-6*0.25);
-            Controlled->ABuSetModelShake(temp);
+            if (Controlled) Controlled->ABuSetModelShake(temp);
         //ABu: koniec rzucania
 
         if (Train->DynamicObject->MoverParameters->ActiveCab==0)
@@ -737,14 +737,18 @@ bool __fastcall TWorld::Update()
       glMultMatrixd(Train->DynamicObject->mMatrix.getArray());
 
 //*yB: moje smuuugi 1
-  float lightsum=0;
-  int i;
-  for(i=1;i<3;i++)
-   {
-    lightsum+=Global::diffuseDayLight[i];
-    lightsum+=Global::ambientDayLight[i];
-   }
-  if(lightsum<1.0)
+  //float lightsum=0;
+  //int i;
+  //for(i=1;i<3;i++)
+  // {
+  //  lightsum+=Global::diffuseDayLight[i];
+  //  lightsum+=Global::ambientDayLight[i];
+  // }
+  Global::fLuminance= //to pos³u¿y równie¿ do zapalania latarñ
+   +0.150*(Global::diffuseDayLight[0]+Global::ambientDayLight[0])  //R
+   +0.295*(Global::diffuseDayLight[1]+Global::ambientDayLight[1])  //G
+   +0.055*(Global::diffuseDayLight[0]+Global::ambientDayLight[0]); //B
+  if (Global::fLuminance<=0.25)
    {
     glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_ONE);
 //    glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_DST_COLOR);
@@ -911,12 +915,11 @@ bool __fastcall TWorld::Update()
     }
 
 
-    if(Global::changeDynObj==true)
-    {
-       //ABu zmiana pojazdu
+    if (Global::changeDynObj==true)
+    {//ABu zmiana pojazdu - przejœcie do innego
        Train->dsbHasler->Stop();
        Train->dsbBuzzer->Stop();
-       Train->dsbSlipAlarm->Stop(); //dŸwiêk alarmu przy poœlizgu
+       if (Train->dsbSlipAlarm) Train->dsbSlipAlarm->Stop(); //dŸwiêk alarmu przy poœlizgu
        Train->rsHiss.Stop();
        Train->rsSBHiss.Stop();
        Train->rsRunningNoise.Stop();
@@ -927,21 +930,15 @@ bool __fastcall TWorld::Update()
        int CabNr;
        TDynamicObject *temp;
        if (Train->DynamicObject->MoverParameters->ActiveCab==-1)
-          {
-             temp=Train->DynamicObject->NextConnected;
-             if (Train->DynamicObject->NextConnectedNo==0)
-                {CabNr= 1;}
-             else
-                {CabNr=-1;}
-          }
+       {
+        temp=Train->DynamicObject->NextConnected; //pojazd od strony sprzêgu 1
+        CabNr=(Train->DynamicObject->NextConnectedNo==0)?1:-1;
+       }
        else
-          {
-             temp=Train->DynamicObject->PrevConnected;
-             if (Train->DynamicObject->PrevConnectedNo==0)
-                {CabNr= 1;}
-             else
-                {CabNr=-1;}
-          }
+       {
+        temp=Train->DynamicObject->PrevConnected; //pojazd od strony sprzêgu 0
+        CabNr=(Train->DynamicObject->PrevConnectedNo==0)?1:-1;
+       }
 /*
        TLocation l;
        l.X=l.Y=l.Z= 0;
