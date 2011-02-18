@@ -40,8 +40,8 @@
     <WARNINGS value="-w-par"/>
   </MACROS>
   <OPTIONS>
-    <IDLCFLAGS value="-IG:\CBuilder5\Projects\. -IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl 
-      -src_suffix cpp -DGLEW_STATIC -D_DEBUG -boa"/>
+    <IDLCFLAGS value="-src_suffix cpp -DGLEW_STATIC -D_DEBUG -IG:\CBuilder5\Projects\. 
+      -IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl -boa"/>
     <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a4 -6 -b- -k -y -v -vi- 
       -c -tW -tWM"/>
     <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
@@ -59,9 +59,9 @@
 IncludeVerInfo=1
 AutoIncBuild=1
 MajorVer=1
-MinorVer=2
-Release=77
-Build=113
+MinorVer=3
+Release=78
+Build=117
 Debug=1
 PreRelease=0
 Special=0
@@ -72,14 +72,14 @@ CodePage=1250
 
 [Version Info Keys]
 CompanyName=EU07 Team
-FileDescription=PC2009 SP1
-FileVersion=1.2.77.113
+FileDescription=4th by Ra
+FileVersion=1.3.78.117
 InternalName=hammer
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=eu07.exe
 ProductName=MaSzyna EU07-424
-ProductVersion=1.2
+ProductVersion=1.3
 Comments=
 
 [HistoryLists\hlIncludePath]
@@ -145,7 +145,7 @@ Item6=C:\EU07
 DebugSourceDirs=
 
 [Parameters]
-RunParams=-xs Test-92.scn
+RunParams=-v SM31-165
 HostApplication=
 RemoteHost=
 RemotePath=

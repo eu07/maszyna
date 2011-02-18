@@ -718,8 +718,8 @@ void __fastcall TGroundNode::RenderHidden()
 void __fastcall TGroundNode::Render()
 {//wyœwietlanie obiektów przez Display List
  //if (pTriGroup) if (pTriGroup!=this) return; //wyœwietla go inny obiekt
- double mgn= SquareMagnitude(pCenter-Global::pCameraPosition);
- if ((mgn>fSquareRadius) || (mgn<fSquareMinRadius)) //McZapkie-070602: nie rysuj odleglych obiektow ale sprawdzaj wyzwalacz zdarzen
+ double mgn=SquareMagnitude(pCenter-Global::pCameraPosition);
+ if ((mgn>fSquareRadius)||(mgn<fSquareMinRadius)) //McZapkie-070602: nie rysuj odleglych obiektow ale sprawdzaj wyzwalacz zdarzen
   return;
  int i,a;
  switch (iType)
@@ -884,10 +884,16 @@ void __fastcall TGround::RaTriangleDivider(TGroundNode* node)
 {//tworzy dodatkowe trójk¹ty i zmiejsza podany
  if (node->iType!=GL_TRIANGLES) return; //tylko pojedyncze trójk¹ty
  if (node->iNumVerts!=3) return; //tylko gdy jeden trójk¹t
- if ((LengthSquared3(node->Vertices[0].Point-node->pCenter)<22500)
-  && (LengthSquared3(node->Vertices[1].Point-node->pCenter)<22500)
-  && (LengthSquared3(node->Vertices[2].Point-node->pCenter)<22500))
-  return; //trójk¹t do 150m od swojego œrodka jest do przyjêcia
+ double x0=1000.0*floor(0.001*node->pCenter.x)-200.0; double x1=x0+1400.0;
+ double z0=1000.0*floor(0.001*node->pCenter.z)-200.0; double z1=z0+1400.0;
+ if (
+  (node->Vertices[0].Point.x>=x0) && (node->Vertices[0].Point.x<=x1) &&
+  (node->Vertices[0].Point.z>=z0) && (node->Vertices[0].Point.z<=z1) &&
+  (node->Vertices[1].Point.x>=x0) && (node->Vertices[1].Point.x<=x1) &&
+  (node->Vertices[1].Point.z>=z0) && (node->Vertices[1].Point.z<=z1) &&
+  (node->Vertices[2].Point.x>=x0) && (node->Vertices[2].Point.x<=x1) &&
+  (node->Vertices[2].Point.z>=z0) && (node->Vertices[2].Point.z<=z1))
+  return; //trójk¹t wystaj¹cy mniej ni¿ 200m z kw. kilometrowego jest do przyjêcia
  //no to tworzymy trzy dodatkowe trójk¹ty
  TGroundNode* tri[4]; //zmiena robocza - trzy wskaŸniki
  tri[3]=node; //do kompletu
@@ -1197,10 +1203,10 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
                     str= asTrainSetTrack;
                     parser->getTokens();
                     *parser >> tf1;
-                    if (tf1==-1.0)  //Ra: wstawianie modelu odwrotnie
-                     tf1=-fTrainSetDist; //ujemne, gdy odwrotnie
-                    else
-                     tf1+=fTrainSetDist; //Dist
+                    //if (tf1==-1.0)  //Ra: wstawianie modelu odwrotnie
+                    // tf1=-fTrainSetDist; //ujemne, gdy odwrotnie
+                    //else
+                    // tf1+=fTrainSetDist; //Dist
 //                    int1= Parser->GetNextSymbol().ToInt();                 //Cab
                     parser->getTokens();
                     *parser >> token;
@@ -1251,7 +1257,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
 //                    if (bTrainSet)
   //                      tmp->DynamicObject->Init(Track,2,"",fTrainSetVel);
     //                else
-                    tmp->DynamicObject->Init(asNodeName,str1,Skin,str3,Track,tf1,DriverType,tf3,asTrainName,int2,str2);
+                    tmp->DynamicObject->Init(asNodeName,str1,Skin,str3,Track,(tf1==-1.0?fTrainSetDist:tf1+fTrainSetDist),DriverType,tf3,asTrainName,int2,str2,(tf1==-1.0));
                     tmp->pCenter= tmp->DynamicObject->GetPosition();
 //McZapkie-030203: sygnaly czola pociagu, ale tylko dla pociagow jadacych
                     if (tf3>0) //predkosc poczatkowa, jak ja lubie takie nazwy zmiennych
@@ -1454,7 +1460,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
 //        tmp->fSquareRadius= 2000*2000+r;
         tmp->fSquareRadius+= r;
         //Ra: dzielenie trójk¹tów siê nie sprawdza - spadek FPS i znacznie d³u¿sze wczytywanie
-        //RaTriangleDivider(tmp);
+        RaTriangleDivider(tmp); //no ale trzeba... teraz inaczej, mo¿e nie bêdzie tak Ÿle
         break;
 
         case GL_LINES :
@@ -1922,7 +1928,7 @@ bool __fastcall TGround::Init(AnsiString asFile)
         if (str==AnsiString(""))
             break;
 
-        if (bTrainSet && LastNode && (LastNode->iType==TP_DYNAMIC))
+        if (bTrainSet && (LastNode?(LastNode->iType==TP_DYNAMIC):false))
         {
          if (TrainSetNode) //je¿eli jest przedostatni dynamic
           TrainSetNode->DynamicObject->AttachPrev(LastNode->DynamicObject,TempConnectionType[iTrainSetWehicleNumber-2]);
@@ -2012,7 +2018,7 @@ bool __fastcall TGround::InitEvents()
                      Current->Params[10].asTrack=NULL;
                  }
                 else
-                    Error("Event \""+Current->asName+"\" cannot find node\""+
+                    Error("Event \""+Current->asName+"\" cannot find node \""+
                                      Current->asNodeName+"\"");
             break;
             case tp_GetValues :
@@ -2023,7 +2029,7 @@ bool __fastcall TGround::InitEvents()
                     Current->Params[9].asMemCell= tmp->MemCell;
                 }
                 else
-                    Error("Event \""+Current->asName+"\" cannot find memcell\""+
+                    Error("Event \""+Current->asName+"\" cannot find memcell \""+
                                      Current->asNodeName+"\"");
             break;
             case tp_Animation :
@@ -2035,7 +2041,7 @@ bool __fastcall TGround::InitEvents()
               Current->Params[9].asAnimContainer=tmp->Model->GetContainer(buff); //submodel
              }
              else
-              Error("Event \""+Current->asName+"\" cannot find model\""+Current->asNodeName+"\"");
+              Error("Event \""+Current->asName+"\" cannot find model \""+Current->asNodeName+"\"");
              Current->asNodeName= "";
             break;
             case tp_Lights :
@@ -2043,7 +2049,7 @@ bool __fastcall TGround::InitEvents()
                 if (tmp)
                     Current->Params[9].asModel= tmp->Model;
                 else
-                    Error("Event \""+Current->asName+"\" cannot find model\""+
+                    Error("Event \""+Current->asName+"\" cannot find model \""+
                                      Current->asNodeName+"\"");
                 Current->asNodeName= "";
             break;
@@ -2052,7 +2058,7 @@ bool __fastcall TGround::InitEvents()
                 if (tmp)
                     Current->Params[9].asTrack= tmp->pTrack;
                 else
-                    Error("Event \""+Current->asName+"\" cannot find track\""+
+                    Error("Event \""+Current->asName+"\" cannot find track \""+
                                      Current->asNodeName+"\"");
                 Current->asNodeName= "";
             break;
@@ -2061,7 +2067,7 @@ bool __fastcall TGround::InitEvents()
                 if (tmp)
                     Current->Params[9].asRealSound= tmp->pStaticSound;
                 else
-                    Error("Event \""+Current->asName+"\" cannot find static sound\""+
+                    Error("Event \""+Current->asName+"\" cannot find static sound \""+
                                      Current->asNodeName+"\"");
                 Current->asNodeName= "";
             break;
@@ -2072,7 +2078,7 @@ bool __fastcall TGround::InitEvents()
                     if (tmp)
                         Current->Params[9].asTrack= tmp->pTrack;
                     else
-                        Error("Event \""+Current->asName+"\" cannot find track\""+
+                        Error("Event \""+Current->asName+"\" cannot find track \""+
                                          Current->asNodeName+"\"");
                 }
                 Current->asNodeName= "";
@@ -2086,7 +2092,7 @@ bool __fastcall TGround::InitEvents()
                     if (tmp)
                         Current->Params[9].asDynamic= tmp->DynamicObject;
                     else
-                        Error("Event \""+Current->asName+"\" cannot find node\""+
+                        Error("Event \""+Current->asName+"\" cannot find node \""+
                                          Current->asNodeName+"\"");
                 }
                 Current->asNodeName= "";
@@ -2984,7 +2990,7 @@ bool __fastcall TGround::RaRender(vector3 pPosition)
   for (i=c-n;i<c+n;i++)
   {
    direction=vector3(i-c,0,j-r);
-   if (LengthSquared3(direction)>5)
+   if (LengthSquared3(direction)>4)
    {direction=SafeNormalize(direction);
     if (CameraDirection.x*direction.x+CameraDirection.z*direction.z<0.55)
      continue; //pomijanie zbêdnych sektorów
@@ -3023,7 +3029,7 @@ bool __fastcall TGround::RaRenderAlpha(vector3 pPosition)
   for (int i=c-n;i<c+n;i++)
   {
    direction=vector3(i-c,0,j-r);
-   if (LengthSquared3(direction)>6)
+   if (LengthSquared3(direction)>4)
    {direction=SafeNormalize(direction);
     if (CameraDirection.x*direction.x+CameraDirection.z*direction.z<0.55)
      continue; //pomijanie zbêdnych sektorów
@@ -3079,7 +3085,7 @@ bool __fastcall TGround::Render(vector3 pPosition)
   for (i=-k;i<=k;i++)
   {
    direction=vector3(i,0,j);
-   if (LengthSquared3(direction)>7)
+   if (LengthSquared3(direction)>4)
    {direction=SafeNormalize(direction);
     if (CameraDirection.x*direction.x+CameraDirection.z*direction.z<0.55)
      continue; //pomijanie zbêdnych sektorów
@@ -3115,7 +3121,7 @@ bool __fastcall TGround::RenderAlpha(vector3 pPosition)
   for (i=-k;i<=k;i++)
   {
    direction=vector3(i,0,j);
-   if (LengthSquared3(direction)>7)
+   if (LengthSquared3(direction)>4)
    {direction=SafeNormalize(direction);
     if (CameraDirection.x*direction.x+CameraDirection.z*direction.z<0.55)
      continue; //pomijanie zbêdnych sektorów
