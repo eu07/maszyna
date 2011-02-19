@@ -919,17 +919,17 @@ void TDynamicObject::CouplersDettach(int MinDist,double MyScanDir)
    //MinDist - dystans minimalny, dla ktorego mozna rozlaczac.
    if (MyScanDir>0)
    {
-      if(PrevConnected) //pojazd od strony sprzêgu 0
+      if (PrevConnected) //pojazd od strony sprzêgu 0
       {
-         if(MoverParameters->Couplers[0].Dist > MinDist)
+         if (MoverParameters->Couplers[0].Dist > MinDist)
          {
             PrevConnected->MoverParameters->Couplers[PrevConnectedNo].Connected=NULL;
-            if(PrevConnectedNo==0)
+            if (PrevConnectedNo==0)
             {
                PrevConnected->PrevConnectedNo=2; //sprzêg 0 nie pod³¹czony
                PrevConnected->PrevConnected=NULL;
             }
-            if(PrevConnectedNo==1)
+            if (PrevConnectedNo==1)
             {
                PrevConnected->NextConnectedNo=2; //sprzêg 1 nie pod³¹czony
                PrevConnected->NextConnected=NULL;
@@ -947,12 +947,12 @@ void TDynamicObject::CouplersDettach(int MinDist,double MyScanDir)
          if(MoverParameters->Couplers[1].Dist > MinDist)
          {
             NextConnected->MoverParameters->Couplers[NextConnectedNo].Connected=NULL;
-            if(NextConnectedNo==0)
+            if (NextConnectedNo==0)
             {
                NextConnected->PrevConnectedNo=2; //sprzêg 0 nie pod³¹czony
                NextConnected->PrevConnected=NULL;
             }
-            if(NextConnectedNo==1)
+            if (NextConnectedNo==1)
             {
                NextConnected->NextConnectedNo=2; //sprzêg 1 nie pod³¹czony
                NextConnected->NextConnected=NULL;
@@ -1047,7 +1047,7 @@ void TDynamicObject::ABuScanObjects(TTrack *Track, double ScanDir, double ScanDi
       FoundedObj->MoverParameters->Attach(CouplFound,MyCouplFound,&(this->MoverParameters),ctrain_virtual);
       FoundedObj->MoverParameters->Couplers[CouplFound].Render=true;
 
-      if(MyCouplFound==0)
+      if (MyCouplFound==0)
       {
          PrevConnected=FoundedObj; //pojazd od strony sprzêgu 0
          PrevConnectedNo=CouplFound;
@@ -1057,7 +1057,7 @@ void TDynamicObject::ABuScanObjects(TTrack *Track, double ScanDir, double ScanDi
          NextConnected=FoundedObj; //pojazd od strony sprzêgu 1
          NextConnectedNo=CouplFound;
       }
-      if(CouplFound==0)
+      if (CouplFound==0)
       {
          FoundedObj->PrevConnected=this;
          FoundedObj->PrevConnectedNo=MyCouplFound;
@@ -1067,7 +1067,7 @@ void TDynamicObject::ABuScanObjects(TTrack *Track, double ScanDir, double ScanDi
          FoundedObj->NextConnected=this;
          FoundedObj->NextConnectedNo=MyCouplFound;
       }
-      if((Mechanik)&&(!EndTrack))
+      if ((Mechanik)&&(!EndTrack))
       {
          EndTrack=true;
          if((this->MoverParameters->Couplers[MyCouplFound].CoupleDist)<50)
@@ -1375,8 +1375,6 @@ bool __fastcall TDynamicObject::Init(
 {
 
  iDirection=(Reversed?-1:1); //Ra: ujemne, jeœli ma byæ wstawiony do sk³adu jako obrócony
- //if (fDist<0) fDist=-fDist;
-
 //McZapkie-310302
     asBaseDir= "dynamic\\"+BaseDir+"\\";
 //    Model.Init(asModel);

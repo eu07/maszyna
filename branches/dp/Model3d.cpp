@@ -34,13 +34,13 @@ int TSubModel::iInstance; //numer renderowanego egzemplarza obiektu
 
 __fastcall TSubModel::TSubModel()
 {
-    FirstInit();
-    eType=smt_Unknown;
-    Vertices=NULL;
-    iNumVerts=-1; //do sprawdzenia
-    iVboPtr=-1;
-    uiDisplayList= 0;
-    bLight=false;
+ FirstInit();
+ eType=smt_Unknown;
+ Vertices=NULL;
+ iNumVerts=-1; //do sprawdzenia
+ iVboPtr=-1;
+ uiDisplayList= 0;
+ fLight=-1.0; //œwietcenie wy³¹czone
 };
 
 void __fastcall TSubModel::FirstInit()
@@ -154,7 +154,7 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
 //    GLuint TextureID;
 //    char *extName;
 
-    if(!parser.expectToken("type:"))
+    if (!parser.expectToken("type:"))
         Error("Model type parse failure!");
 
     {
@@ -181,8 +181,16 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
     readColor(parser,f4Diffuse);
     if (eType==smt_Mesh) readColor(parser,f4Specular);
 
-    bLight = parser.expectToken("true");
-
+    {
+     std::string light;
+     parser.getToken(light);
+     if (light=="true")
+      fLight=2.0; //zawsze œwieci
+     else if (light=="false")
+      fLight=-1.0; //zawsze ciemy
+     else
+      fLight=atof(light.c_str());
+    };
     if (eType==smt_FreeSpotLight)
     {
 
@@ -211,7 +219,7 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
         parser.getToken(fcosHotspotAngle);
         fcosHotspotAngle=cos(fcosHotspotAngle * M_PI / 180);
         iNumVerts=1;
-        iFlags|=2; //rysowane w cyklu nieprzezroczystych        
+        iFlags|=2; //rysowane w cyklu nieprzezroczystych
     };
 
     if (eType == smt_Mesh)
@@ -291,26 +299,31 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
         for (int i=0;i<iNumVerts;i++)
         {
 
-            if(i % 3 == 0)
-                parser.getToken(sg[i/3]);
+            if (i%3==0)
+             parser.getToken(sg[i/3]); //kod powierzchni
 
             parser.getToken(Vertices[i].Point.x);
             parser.getToken(Vertices[i].Point.y);
             parser.getToken(Vertices[i].Point.z);
 
-            Vertices[i].Normal= vector3(0,0,0);
+            Vertices[i].Normal=vector3(0,0,0); //bêdzie liczony
 
             parser.getToken(Vertices[i].tu);
             parser.getToken(Vertices[i].tv);
 
-            if(i%3 == 2 && (Vertices[i].Point == Vertices[i-1].Point ||
+            if ((i%3==2) && (Vertices[i].Point == Vertices[i-1].Point ||
                             Vertices[i-1].Point == Vertices[i-2].Point ||
                             Vertices[i-2].Point == Vertices[i].Point))
-                WriteLog("Degenerated triangle found");
+            {
+             --iNumFaces; //o jeden trójk¹t mniej
+             iNumVerts-=3; //czyli o 3 wierzcho³ki
+             i-=3; //wczytanie kolejnego w to miejsce
+             WriteLog("Degenerated triangle ignored");
+            }
         }
 
         int v=0;
-        int f=0;
+        int f;
         int j;
 
         vector3 norm;
@@ -336,8 +349,8 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
 
                 if (norm.Length()>0)
                     Vertices[v].Normal=Normalize(norm);
-                else
-                    f=0;
+                //else
+                //    f=0;
                 v++;
             }
         }
@@ -354,13 +367,13 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
         glTexCoordPointer(2, GL_FLOAT, sizeof(GLVERTEX), &Vertices[0].tu);
 #endif
 
-        uiDisplayList= glGenLists(1);
+        uiDisplayList=glGenLists(1);
         glNewList(uiDisplayList,GL_COMPILE);
 
         glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);   //McZapkie-240702: zamiast ub
         glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE,f4Diffuse);
 
-        if (bLight)
+        if (fLight>Global::fLuminance)
             glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,f4Diffuse);  //zeny swiecilo na kolorowo
 
 #ifdef USE_VERTEX_ARRAYS
@@ -376,7 +389,7 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
         glEnd();
 #endif
 
-        if (bLight)
+        if (fLight>Global::fLuminance)
             glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
 
         glEndList();
@@ -568,11 +581,13 @@ void __fastcall TSubModel::RaRender(GLuint ReplacableSkinId,bool bAlpha)
    if (!TexAlpha || !Global::bRenderAlpha)  //rysuj gdy nieprzezroczyste lub # albo gdy zablokowane alpha
    {
     glMaterialfv(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE,f4Diffuse);
-    if (bLight)
-     glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
-    glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie trójk¹ty z VBO
-    if (bLight)
+    if (fLight<Global::fLuminance)
+    {glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
+     glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie trójk¹ty z VBO
      glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
+    }
+    else
+     glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie trójk¹ty z VBO
    }
   }
   else if (eType==smt_FreeSpotLight)
@@ -702,11 +717,13 @@ void __fastcall TSubModel::RaRenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
    if (TexAlpha && Global::bRenderAlpha)  //mozna rysowac bo przezroczyste i nie ma #
    {
     glMaterialfv(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE,f4Diffuse);
-    if (bLight)
-     glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
-    glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie trójk¹ty z VBO
-    if (bLight)
+    if (fLight<Global::fLuminance)
+    {glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
+     glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie trójk¹ty z VBO
      glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
+    }
+    else
+     glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie trójk¹ty z VBO
    }
   }
   else if (eType==smt_FreeSpotLight)
@@ -801,11 +818,17 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
    else
     glBindTexture(GL_TEXTURE_2D,TextureID);
    if (!TexAlpha || !Global::bRenderAlpha)  //rysuj gdy nieprzezroczyste lub # albo gdy zablokowane alpha
-    glCallList(uiDisplayList); //tylko dla siatki
+    if (fLight<Global::fLuminance)
+    {glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
+     glCallList(uiDisplayList); //tylko dla siatki
+     glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
+    }
+    else
+     glCallList(uiDisplayList); //tylko dla siatki
   }
   if (Child!=NULL)
    if (bAlpha?(iFlags&0x00020000):(iFlags&0x00030000))
-          Child->Render(ReplacableSkinId,bAlpha);
+    Child->Render(ReplacableSkinId,bAlpha);
   glPopMatrix();
  }
  b_Anim=at_None; //wy³¹czenie animacji dla kolejnego u¿ycia subm
@@ -861,7 +884,13 @@ void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
    else
     glBindTexture(GL_TEXTURE_2D, TextureID);
    if (TexAlpha && Global::bRenderAlpha)  //mozna rysowac bo przezroczyste i nie ma #
-    glCallList(uiDisplayList);
+    if (fLight<Global::fLuminance)
+    {glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
+     glCallList(uiDisplayList); //tylko dla siatki
+     glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
+    }
+    else
+     glCallList(uiDisplayList); //tylko dla siatki
   }
   if (Child!=NULL)
    if (bAlpha?(iFlags&0x00050000):(iFlags&0x00040000))

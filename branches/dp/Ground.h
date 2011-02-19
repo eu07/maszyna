@@ -35,6 +35,19 @@ const int TP_EVLAUNCH= 1009; //MC
 const int TP_TRACTION= 1010;
 const int TP_TRACTIONPOWERSOURCE= 1011; //MC
 
+struct DaneRozkaz
+{//struktura komunikacji z EU07.EXE
+ int iSygn; //sygnatura 'EU07'
+ int iComm; //rozkaz/status (kod ramki)
+ union
+ {float fPar[62];
+  int iPar[62];
+  char cString[248]; //upakowane stringi
+ };
+};
+
+
+
 typedef int TGroundNodeType;
 
 struct TGroundVertex
@@ -314,7 +327,7 @@ public:
     TSubRect* __fastcall FastGetSubRect(int iCol, int iRow);
     int __fastcall GetRowFromZ(double z) { return (z/fSubRectSize+fHalfTotalNumSubRects); };
     int __fastcall GetColFromX(double x) { return (x/fSubRectSize+fHalfTotalNumSubRects); };
-    TEvent* __fastcall FindEvent(AnsiString asEventName);
+    TEvent* __fastcall FindEvent(const AnsiString &asEventName);
     void __fastcall TrackJoin(TGroundNode *Current);
 private:
     TGroundNode *RootNode; //lista wêz³ów
@@ -334,6 +347,10 @@ private:
     vector3 aRotate;
     bool bInitDone;
     void __fastcall RaTriangleDivider(TGroundNode* node);
+ void __fastcall Navigate(String ClassName,UINT Msg,WPARAM wParam,LPARAM lParam);
+ void __fastcall WyslijEvent(const AnsiString &e,const AnsiString &d);
+public:
+ void __fastcall WyslijWolny(const AnsiString &t);
 };
 //---------------------------------------------------------------------------
 #endif

@@ -36,6 +36,8 @@
 
 #define TEXTURE_FILTER_CONTROL_EXT      0x8500
 #define TEXTURE_LOD_BIAS_EXT            0x8501
+//---------------------------------------------------------------------------
+#pragma package(smart_init)
 
 using namespace Timer;
 
@@ -61,11 +63,11 @@ __fastcall TWorld::TWorld()
 __fastcall TWorld::~TWorld()
 {
  Global::bManageNodes=false; //Ra: wy³¹czenie wyrejestrowania, bo siê sypie
-    SafeDelete(Train);
-    TSoundsManager::Free();
-    TModelsManager::Free();
-    TTexturesManager::Free();
-    glDeleteLists(base, 96);
+ SafeDelete(Train);
+ TSoundsManager::Free();
+ TModelsManager::Free();
+ TTexturesManager::Free();
+ glDeleteLists(base,96);
 }
 
 GLvoid __fastcall TWorld::glPrint(const char *fmt)					// Custom GL "Print" Routine
@@ -92,10 +94,10 @@ TDynamicObject *Controlled=NULL; //pojazd, który prowadzimy
 
 void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 {
-
+ Global::hWnd=NhWnd; //do WM_COPYDATA
     Global::detonatoryOK=true;
     WriteLog("Starting MaSzyna rail vehicle simulator.");
-    WriteLog("Compilation 2011-02-18, release 1.2.77.117.");
+    WriteLog("Compilation 2011-02-19, release 1.3.80.119.");
     WriteLog("Online documentation and additional files on http://eu07.pl");
     WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx_EU, OLO_EU, Bart, Quark-t, ShaXbee, Oli_EU, youBy and others");
     WriteLog("Renderer:");
@@ -431,7 +433,7 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 //    Camera.Init(vector3(1500,5,-4000),0,M_PI,0);
 //McZapkie-130302 - coby nie przekompilowywac:
 //      Camera.Init(Global::pFreeCameraInit,0,M_PI,0);
-      Camera.Init(Global::pFreeCameraInit,Global::pFreeCameraInitAngle);
+      Camera.Init(Global::pFreeCameraInit[0],Global::pFreeCameraInitAngle[0]);
 
     char buff[255]= "Player train init: ";
     if(Global::detonatoryOK)
@@ -520,15 +522,19 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 
 void __fastcall TWorld::OnKeyPress(int cKey)
 {
-
-    TGroundNode *tmp;
-
-    if (Pressed(VK_SHIFT) && (cKey>='0' && cKey<='9' && KeyEvents[cKey-'0']))
-        Ground.AddToQuery(KeyEvents[cKey-'0'],NULL);
-
-     if (Controlled)
-      if ((Controlled->Controller==Humandriver) || DebugModeFlag)
-        Train->OnKeyPress(cKey);
+ if ((cKey>='0')&&(cKey<='9')) //klawisze cyfrowe
+ {if (Pressed(VK_SHIFT))
+  {if (KeyEvents[cKey-'0'])
+    Ground.AddToQuery(KeyEvents[cKey-'0'],NULL);
+  }
+  else
+   if (FreeFlyModeFlag) //w trybie latania mo¿na przeskakiwaæ do ustawionych kamer
+    Camera.Init(Global::pFreeCameraInit[cKey-'0'],Global::pFreeCameraInitAngle[cKey-'0']);
+  //bêdzie jeszcze za³¹czanie sprzêgów z [Ctrl]
+ }
+ if (Controlled)
+  if ((Controlled->Controller==Humandriver) || DebugModeFlag)
+   Train->OnKeyPress(cKey); //przekazanie klawisza do pojazdu
 }
 
 
@@ -621,7 +627,7 @@ bool __fastcall TWorld::Update()
        lastmm=GlobalTime->mm;
     }
 
-    if (Pressed(VK_LBUTTON))
+    if (Pressed(VK_LBUTTON)&&Controlled)
     {
      Camera.Reset(); //likwidacja obrotów - patrzy horyzontalnie na po³udnie
      //if (!FreeFlyModeFlag) //jeœli wewn¹trz - patrzymy do ty³u
@@ -716,7 +722,9 @@ bool __fastcall TWorld::Update()
         return false;
 
 //**********************************************************************************************************
-//rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
+
+   if (Train)
+   {//rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
     vector3 vFront= Train->DynamicObject->GetDirection();
     if ((Train->DynamicObject->MoverParameters->CategoryFlag==2) && (Train->DynamicObject->MoverParameters->ActiveCab<0)) //TODO: zrobic to eleganciej z plynnym zawracaniem
        vFront= -vFront;
@@ -836,6 +844,7 @@ bool __fastcall TWorld::Update()
     }
     glPopMatrix ( );
 //**********************************************************************************************************
+   } //koniec if (Train)
     if (DebugModeFlag)
      {
        OutText1= "  FPS: ";
@@ -1294,7 +1303,7 @@ bool __fastcall TWorld::Render()
        if (!Ground.RenderAlpha(Camera.Pos))
           return false;
     }
-    TSubModel::iInstance=(int)Train->DynamicObject; //¿eby nie robiæ cudzych animacji
+    TSubModel::iInstance=(int)(Train?Train->DynamicObject:0); //¿eby nie robiæ cudzych animacji
 //    if (Camera.Type==tp_Follow)
     if (Controlled)
         Train->Update();
@@ -1446,15 +1455,51 @@ void TWorld::ShowHints(void)
    }
 };
 
-
-
-
+//---------------------------------------------------------------------------
+void __fastcall TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
+{//odebranie komunikatu z serwera
+ if (pRozkaz->iSygn=='EU07')
+  switch (pRozkaz->iComm)
+  {
+   case 2: //event
+    if (Global::bMultiplayer)
+    {//WriteLog("Komunikat: "+AnsiString(pRozkaz->Name1));
+     TEvent *e=Ground.FindEvent(AnsiString(pRozkaz->cString+1,int(pRozkaz->cString[0])));
+     if (e->Type==tp_Multiple) //szybciej by by³o szukaæ tylko po tp_Multiple
+      Ground.AddToQuery(e,NULL); //drugi parametr to dynamic wywo³uj¹cy - tu brak
+    }
+    break;
+   case 3: //rozkaz dla AI
+    if (Global::bMultiplayer)
+    {int i=int(pRozkaz->cString[8]); //d³ugoœæ pierwszego ³añcucha (z przodu dwa floaty)
+     TGroundNode* t=Ground.FindDynamic(AnsiString(pRozkaz->cString+10+i)); //nazwa pojazdu jest druga
+     if (t)
+     {WriteLog("AI command: "+AnsiString(pRozkaz->cString+9));
+      t->DynamicObject->MoverParameters->SetInternalCommand(
+       AnsiString(pRozkaz->cString+9,i),pRozkaz->fPar[0],pRozkaz->fPar[1]); //floaty s¹ z przodu
+     }
+    }
+    break;
+   case 4: //badanie zajêtoœci toru
+    {
+     TGroundNode* t=Ground.FindGroundNode(AnsiString(pRozkaz->cString+1,int(pRozkaz->cString[0])),TP_TRACK);
+     if (t?t->pTrack->IsEmpty():false)
+      Ground.WyslijWolny(t->asName);
+    }
+    break;
+   case 5: //ustawienie parametrów
+    {
+     if (*pRozkaz->iPar&0) //ustawienie czasu
+     {double t=pRozkaz->fPar[1];
+      GlobalTime->dd=floor(t); //niby nie powinno byæ, ale...
+      GlobalTime->hh=floor(24*t)-24.0*GlobalTime->dd;
+      GlobalTime->mm=floor(60*24*t)-60.0*(24.0*GlobalTime->dd+GlobalTime->hh);
+      GlobalTime->mr=floor(60*60*24*t)-60.0*(60.0*(24.0*GlobalTime->dd+GlobalTime->hh)+GlobalTime->mm);
+     }
+    }
+    break;
+  }
+};
 
 //---------------------------------------------------------------------------
-#pragma package(smart_init)
-
-
-
-
-
 

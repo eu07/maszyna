@@ -31,7 +31,7 @@
 
 #pragma package(smart_init)
 
-TTraction::TTraction()//:TNode()
+TTraction::TTraction()
 {
     pPoint1=pPoint2=pPoint3=pPoint4= vector3(0,0,0);
     vFront=vector3(0,0,1);
@@ -52,14 +52,16 @@ TTraction::TTraction()//:TNode()
 
 TTraction::~TTraction()
 {
-    glDeleteLists(uiDisplayList,1);
+ if (!Global::bUseVBO)
+  glDeleteLists(uiDisplayList,1);
 }
 
 void __fastcall TTraction::Optimize()
 {
-    glNewList(uiDisplayList,GL_COMPILE);
+ if (Global::bUseVBO) return;
+ glNewList(uiDisplayList,GL_COMPILE);
 
-    glBindTexture(GL_TEXTURE_2D, 0);
+ glBindTexture(GL_TEXTURE_2D, 0);
 //    glColor3ub(0,0,0); McZapkie: to do render
 
 //    glPushMatrix();
@@ -152,18 +154,15 @@ void __fastcall TTraction::InitCenter(vector3 Angles, vector3 pOrigin)
 void __fastcall TTraction::Render(float mgn)   //McZapkie: mgn to odleglosc od obserwatora
 {
   //McZapkie: ustalanie przezroczystosci i koloru linii:
-    if (Wires!=0 && !TestFlag(DamageFlag,128))  //rysuj jesli sa druty i nie zerwana
-    {
-      glColor4f(0,0,0,1);  //jak nieznany kolor to czarne nieprzezroczyste
-      float linealpha=1000*WireThickness*WireThickness/(mgn+1.0);
+ if (Wires!=0 && !TestFlag(DamageFlag,128))  //rysuj jesli sa druty i nie zerwana
+ {
+  glColor4f(0,0,0,1);  //jak nieznany kolor to czarne nieprzezroczyste
+  //Ra: glEnable(GL_LINE_SMOOTH) kiepsko wygl¹da - robi gradient
+  float linealpha=5000*WireThickness/(mgn+1.0); //*WireThickness
+  if (linealpha>1.2) linealpha=1.2; //zbyt grube nie s¹ dobre
+  glLineWidth(linealpha);
 
-      if(linealpha > 1.5)
-          linealpha = 1.5;
-
-      glEnable(GL_LINE_SMOOTH);
-      glLineWidth(linealpha);
-
-      if(linealpha > 1.0)
+      if (linealpha > 1.0)
           linealpha = 1.0;
 
       //McZapkie-261102: kolor zalezy od materialu i zasniedzenia
@@ -202,10 +201,11 @@ void __fastcall TTraction::Render(float mgn)   //McZapkie: mgn to odleglosc od o
       r=r*Global::ambientDayLight[0];  //w zaleznosci od koloru swiatla
       g=g*Global::ambientDayLight[1];
       b=b*Global::ambientDayLight[2];
-      glColor3f(r,g,b); // linealpha);
-      glCallList(uiDisplayList);
-      glLineWidth(1.0);
-    }
+  if (linealpha>1.0) linealpha=1.0; //trzeba ograniczyæ do <=1
+  glColor4f(r,g,b,linealpha);
+  glCallList(uiDisplayList);
+  glLineWidth(1.0);
+ }
 }
 
 int __fastcall TTraction::RaArrayPrepare()

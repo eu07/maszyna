@@ -114,8 +114,8 @@ public:
     static int Keys[MaxKeys];
     static vector3 pCameraPosition; //pozycja kamery w œwiecie
     static double pCameraRotation;  //kierunek bezwzglêdny kamery w œwiecie
-    static vector3 pFreeCameraInit;
-    static vector3 pFreeCameraInitAngle;
+    static vector3 pFreeCameraInit[10]; //pozycje kamery
+    static vector3 pFreeCameraInitAngle[10];
     static int iWindowWidth;
     static int iWindowHeight;
     static int iBpp;
@@ -182,7 +182,8 @@ public:
     static double fOpenGL; //wersja OpenGL - przyda siê
     static bool bOpenGL_1_5; //czy s¹ dostêpne funkcje OpenGL 1.5
     static double fLuminance; //jasnoœæ œwiat³a do automatycznego zapalania
-    static bool bMultiplayer; //blokada dzia³ania niektórych eventów na rzecz kominikacji 
+    static bool bMultiplayer; //blokada dzia³ania niektórych eventów na rzecz kominikacji
+    static HWND	hWnd; //uchwyt okna
 };
 
 //---------------------------------------------------------------------------

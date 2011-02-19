@@ -867,9 +867,9 @@ void __fastcall TGround::Free()
 }
 
 
-double fTrainSetVel= 0;
-double fTrainSetDir= 0;
-double fTrainSetDist= 0;
+double fTrainSetVel=0;
+double fTrainSetDir=0;
+double fTrainSetDist=0;
 AnsiString asTrainSetTrack= "";
 int iTrainSetConnection= 0;
 bool bTrainSet= false;
@@ -1124,11 +1124,11 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
             *parser >> token;
             if ( token.compare( "endtraction" ) != 0 )
               Error("ENDTRACTION delimiter missing! "+str2+" found instead.");
-            tmp->Traction->Optimize();
+             tmp->Traction->Optimize();
             tmp->pCenter= (tmp->Traction->pPoint2+tmp->Traction->pPoint1)*0.5f;
         if (!Global::bLoadTraction)
             {
-            tmp->~TGroundNode();
+            SafeDelete(tmp);
             }
         break;
         case TP_TRACTIONPOWERSOURCE :
@@ -1211,7 +1211,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
                     parser->getTokens();
                     *parser >> token;
                     DriverType= AnsiString(token.c_str());            //McZapkie:010303 - w przyszlosci rozne konfiguracje mechanik/pomocnik itp
-                    tf3= fTrainSetVel;
+                    tf3=fTrainSetVel;
                     parser->getTokens();
                     *parser >> int1;
                     //TempConnectionType[iTrainSetWehicleNumber]=toupper(TempConnectionType[iTrainSetWehicleNumber]);
@@ -1221,22 +1221,23 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
                 }
                 else
                 {
-                    asTrainName= "none";
-                    parser->getTokens();
-                    *parser >> token;
-                    str= AnsiString(token.c_str());           //track
-                    parser->getTokens();
-                    *parser >> tf1;                           //Dist
-//                    tf2= Parser->GetNextSymbol().ToDouble();
-//                    int1= Parser->GetNextSymbol().ToInt();    //Cab
-                    parser->getTokens();
-                    *parser >> token;
-                    DriverType= AnsiString(token.c_str());  //McZapkie:010303
-                    parser->getTokens();
-                    *parser >> tf3;                           //Vel
+                 fTrainSetDist=0; //zerowanie dodatkowego przesuniêcia
+                 asTrainName= "none";
+                 parser->getTokens();
+                 *parser >> token;
+                 str= AnsiString(token.c_str());           //track
+                 parser->getTokens();
+                 *parser >> tf1;                           //Dist
+//                 tf2= Parser->GetNextSymbol().ToDouble();
+//                 int1= Parser->GetNextSymbol().ToInt();    //Cab
+                 parser->getTokens();
+                 *parser >> token;
+                 DriverType= AnsiString(token.c_str());  //McZapkie:010303
+                 parser->getTokens();
+                 *parser >> tf3;                           //Vel
                 }
                 parser->getTokens();
-               *parser >> int2;                               //Load
+                *parser >> int2;                               //Load
                 if (int2>0)
                  {
                    parser->getTokens();
@@ -1549,15 +1550,14 @@ TSubRect* __fastcall TGround::GetSubRect(int iCol,int iRow)
  return (Rects[br][bc].SafeGetRect(sc,sr)); //pobranie ma³ego kwadratu
 }
 
-TEvent* __fastcall TGround::FindEvent(AnsiString asEventName)
+TEvent* __fastcall TGround::FindEvent(const AnsiString &asEventName)
 {
-    for (TEvent *Current=RootEvent; Current!=NULL; Current= Current->Next2)
-    {
-        if (Current->asName==asEventName)
-            return Current;
-    }
-    return NULL;
-
+ for (TEvent *Current=RootEvent; Current!=NULL; Current= Current->Next2)
+ {
+  if (Current->asName==asEventName)
+   return Current;
+ }
+ return NULL;
 }
 
 bool __fastcall TGround::Init(AnsiString asFile)
@@ -1840,15 +1840,24 @@ bool __fastcall TGround::Init(AnsiString asFile)
         else
         if (str==AnsiString("camera"))
         {
-            WriteLog("Scenery camera definition");
-            parser.getTokens(3);
-            parser >> Global::pFreeCameraInit.x >> Global::pFreeCameraInit.y >> Global::pFreeCameraInit.z;
-            parser.getTokens(3);
-            parser >> Global::pFreeCameraInitAngle.x >> Global::pFreeCameraInitAngle.y >> Global::pFreeCameraInitAngle.z;
-            do
-             {
-               parser.getTokens(); parser >> token;
-             } while (token.compare("endcamera") != 0);
+         vector3 xyz,abc;
+         WriteLog("Scenery camera definition");
+         parser.getTokens(3);
+         parser >> xyz.x >> xyz.y >> xyz.z;
+         parser.getTokens(3);
+         parser >> abc.x >> abc.y >> abc.z;
+         int into=-1; //do której definicji kamery wstawiæ
+         do
+         {//opcjonalna siódma liczba okreœla numer kamery
+          parser.getTokens(); parser >> token;
+          if (into<0) into=atoi(token.c_str()); //takie sobie, bo mo¿na wpisaæ -1
+         } while (token.compare("endcamera")!=0);
+         if (into<0) into=0;
+         if ((into>=0)&&(into<10))
+         {//przepisanie do odpowiedniego miejsca w tabelce
+          Global::pFreeCameraInit[into]=xyz;
+          Global::pFreeCameraInitAngle[into]=abc;
+         }
         }
 //youBy - niebo z pliku
         else
@@ -2613,14 +2622,21 @@ if (QueryRootEvent)
                    }
                  }
                 if (bCondition)                                  //warunek spelniony
+                {
+                 WriteLog("Multiple passed");
+                 for (i=0; i<8; i++)
                  {
-                  WriteLog("Multiple passed");
-                  for (i=0; i<8; i++)
-                    {
-                      if (QueryRootEvent->Params[i].asEvent)
-                         AddToQuery(QueryRootEvent->Params[i].asEvent,QueryRootEvent->Activator);
-                    }
-                  }
+                  if (QueryRootEvent->Params[i].asEvent)
+                   AddToQuery(QueryRootEvent->Params[i].asEvent,QueryRootEvent->Activator);
+                 }
+                 if (Global::bMultiplayer) //dajemy znaæ do serwera o wykonaniu
+                 {
+                  if (QueryRootEvent->Activator)
+                   WyslijEvent(QueryRootEvent->asName,QueryRootEvent->Activator->GetasName());
+                  else
+                   WyslijEvent(QueryRootEvent->asName,NULL);
+                 }
+                }
                }
             break;
             case tp_WhoIs : //pobranie nazwy poci¹gu do komórki pamiêci
@@ -3141,6 +3157,44 @@ bool __fastcall TGround::RenderAlpha(vector3 pPosition)
  return true;
 }
 
+//---------------------------------------------------------------------------
+void __fastcall TGround::Navigate(String ClassName,UINT Msg,WPARAM wParam,LPARAM lParam)
+{//wys³anie komunikatu do steruj¹cego
+ HWND h=FindWindow(ClassName.c_str(),0); //mo¿na by to zapamiêtaæ
+ WriteLog(AnsiString(SendMessage(h,Msg,wParam,lParam)));
+};
+//--------------------------------
+void __fastcall TGround::WyslijEvent(const AnsiString &e,const AnsiString &d)
+{//Ra: jeszcze do wyczyszczenia
+ DaneRozkaz r;
+ r.iSygn='EU07';
+ r.iComm=2; //2 - event
+ int i=e.Length(),j=d.Length();
+ r.cString[0]=char(i);
+ strcpy(r.cString+1,e.c_str()); //zakoñczony zerem
+ r.cString[i+2]=char(j); //licznik po zerze koñcz¹cym
+ strcpy(r.cString+3+i,d.c_str()); //zakoñczony zerem
+ COPYDATASTRUCT cData;
+ cData.dwData='EU07'; //sygnatura
+ cData.cbData=12+i+j; //8+dwa liczniki i dwa zera koñcz¹ce
+ cData.lpData=&r;
+ Navigate("TEU07SRK",WM_COPYDATA,(WPARAM)Global::hWnd,(LPARAM)&cData);
+};
+//---------------------------------------------------------------------------
+void __fastcall TGround::WyslijWolny(const AnsiString &t)
+{//Ra: jeszcze do wyczyszczenia
+ DaneRozkaz r;
+ r.iSygn='EU07';
+ r.iComm=4; //tor wolny
+ int i=t.Length();
+ r.cString[0]=char(i);
+ strcpy(r.cString+1,t.c_str()); //z zerem koñcz¹cym
+ COPYDATASTRUCT cData;
+ cData.dwData='EU07'; //sygnatura
+ cData.cbData=10+i; //8+licznik i zero koñcz¹ce
+ cData.lpData=&r;
+ Navigate("TEU07SRK",WM_COPYDATA,(WPARAM)Global::hWnd,(LPARAM)&cData);
+};
 //---------------------------------------------------------------------------
 
 
