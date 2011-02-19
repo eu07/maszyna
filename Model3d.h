@@ -89,7 +89,7 @@ private:
       GLuint TextureID;
       int iFlags; //flagi informacyjne
       bool TexAlpha;        //McZapkie-141202: zeby bylo wiadomo czy sortowac ze wzgledu na przezroczystosc
-      bool bLight; //selfillum
+      float fLight; //próg jasnoœci œwiat³a do zadzia³ania selfillum
       float f4Ambient[4];
       float f4Diffuse[4];
       float f4Specular[4];

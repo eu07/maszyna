@@ -205,7 +205,7 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
 	wc.hCursor			= LoadCursor(NULL, IDC_ARROW);			// Load The Arrow Pointer
 	wc.hbrBackground	= NULL;									// No Background Required For GL
 	wc.lpszMenuName		= NULL;									// We Don't Want A Menu
-	wc.lpszClassName	= "OpenGL";								// Set The Class Name
+	wc.lpszClassName	= "EU07";								// Set The Class Name
 
 	if (!RegisterClass(&wc))									// Attempt To Register The Window Class
 	{
@@ -243,7 +243,7 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
 			// fill refresh rate info for screen mode change
 			dmScreenSettings.dmDisplayFrequency = refreshrate;
 			dmScreenSettings.dmFields = DM_DISPLAYFREQUENCY;
-		}                
+		}
 		dmScreenSettings.dmPelsWidth	= width;				// Selected Screen Width
 		dmScreenSettings.dmPelsHeight	= height;				// Selected Screen Height
 		dmScreenSettings.dmBitsPerPel	= bits;					// Selected Bits Per Pixel
@@ -253,14 +253,14 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
 		if (ChangeDisplaySettings(&dmScreenSettings,CDS_FULLSCREEN)!=DISP_CHANGE_SUCCESSFUL)
 		{
 			// If The Mode Fails, Offer Two Options.  Quit Or Use Windowed Mode.
-			if (MessageBox(NULL,"The Requested Fullscreen Mode Is Not Supported By\nYour Video Card. Use Windowed Mode Instead?","EU07",MB_YESNO|MB_ICONEXCLAMATION)==IDYES)
+			if (MessageBox(NULL,"The requested fullscreen mode is not supported by\nyour video card. Use windowed mode instead?","EU07",MB_YESNO|MB_ICONEXCLAMATION)==IDYES)
 			{
 				fullscreen=FALSE;		// Windowed Mode Selected.  Fullscreen = FALSE
 			}
 			else
 			{
 				// Pop Up A Message Box Letting User Know The Program Is Closing.
-				Error("Program Will Now Close.");
+				Error("Program will now close.");
 				return FALSE;									// Return FALSE
 			}
 		}
@@ -282,7 +282,7 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
 
 	// Create The Window
 	if (NULL==(hWnd=CreateWindowEx(	dwExStyle,							// Extended Style For The Window
-								"OpenGL",							// Class Name
+								"EU07",							// Class Name
 								title,								// Window Title
 								dwStyle |							// Defined Window Style
 								WS_CLIPSIBLINGS |					// Required Window Style
@@ -378,19 +378,31 @@ static int mx=0, my=0;
 static POINT mouse;
 
 static int test= 0;
+/**/
+// ************ Globals ************
+//
+#define MYDISPLAY 1
+
+
+PCOPYDATASTRUCT pDane;
 
 LRESULT CALLBACK WndProc(	HWND	hWnd,			// Handle For This Window
 							UINT	uMsg,			// Message For This Window
 							WPARAM	wParam,			// Additional Message Information
 							LPARAM	lParam)			// Additional Message Information
 {
-    TRect rect;
-	switch (uMsg)									// Check For Windows Messages
+ TRect rect;
+ switch (uMsg)									// Check For Windows Messages
+ {
+  case WM_COPYDATA: //obs³uga danych przes³anych przez program steruj¹cy
+   pDane=(PCOPYDATASTRUCT)lParam;
+   if (pDane->dwData=='EU07') //sygnatura danych
+    World.OnCommandGet((DaneRozkaz*)(pDane->lpData));
+   break;
+	case WM_ACTIVATE:							// Watch For Window Activate Message
 	{
-		case WM_ACTIVATE:							// Watch For Window Activate Message
-		{
-            active= (LOWORD(wParam)!=WA_INACTIVE);
-            if (active)
+           active= (LOWORD(wParam)!=WA_INACTIVE);
+           if (active)
                 SetCursorPos(mx,my);
             ShowCursor(!active);
 /*

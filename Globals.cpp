@@ -35,8 +35,8 @@
 int Global::Keys[MaxKeys];
 vector3 Global::pCameraPosition;
 double Global::pCameraRotation;
-vector3 Global::pFreeCameraInit;
-vector3 Global::pFreeCameraInitAngle= vector3(0, 0, 0);
+vector3 Global::pFreeCameraInit[10];
+vector3 Global::pFreeCameraInitAngle[10];
 int Global::iWindowWidth= 800;
 int Global::iWindowHeight= 600;
 int Global::iBpp= 16;
@@ -96,9 +96,15 @@ double Global::fOpenGL=0.0; //wersja OpenGL - przyda siê
 bool Global::bOpenGL_1_5=false; //czy s¹ dostêpne funkcje OpenGL 1.5
 double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 bool Global::bMultiplayer=false; //blokada dzia³ania niektórych eventów na rzecz kominikacji
+HWND Global::hWnd=NULL; //uchwyt okna
 
 void __fastcall Global::LoadIniFile(AnsiString asFileName)
 {
+ for (int i=0;i<10;++i)
+ {//zerowanie pozycji kamer
+  pFreeCameraInit[i]=vector3(0,0,0); //wspó³rzêdne w scenerii
+  pFreeCameraInitAngle[i]=vector3(0,0,0); //k¹ty obrotu w radianach
+ }
     TFileStream *fs;
     fs= new TFileStream(asFileName , fmOpenRead	| fmShareCompat	);
     AnsiString str= "";
@@ -143,9 +149,9 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
         if (str==AnsiString("freefly")) //Mczapkie-130302
          {
            bFreeFly= (Parser->GetNextSymbol().LowerCase()==AnsiString("yes"));
-           pFreeCameraInit.x= Parser->GetNextSymbol().ToDouble();
-           pFreeCameraInit.y= Parser->GetNextSymbol().ToDouble();
-           pFreeCameraInit.z= Parser->GetNextSymbol().ToDouble();
+           pFreeCameraInit[0].x= Parser->GetNextSymbol().ToDouble();
+           pFreeCameraInit[0].y= Parser->GetNextSymbol().ToDouble();
+           pFreeCameraInit[0].z= Parser->GetNextSymbol().ToDouble();
          }
         else
         if (str==AnsiString("wireframe"))
