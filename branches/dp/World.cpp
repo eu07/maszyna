@@ -97,7 +97,7 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
  Global::hWnd=NhWnd; //do WM_COPYDATA
     Global::detonatoryOK=true;
     WriteLog("Starting MaSzyna rail vehicle simulator.");
-    WriteLog("Compilation 2011-02-19, release 1.3.80.119.");
+    WriteLog("Compilation 2011-02-20, release 1.3.81.120.");
     WriteLog("Online documentation and additional files on http://eu07.pl");
     WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx_EU, OLO_EU, Bart, Quark-t, ShaXbee, Oli_EU, youBy and others");
     WriteLog("Renderer:");
@@ -765,23 +765,23 @@ bool __fastcall TWorld::Update()
     glDisable(GL_LIGHTING);
     glDisable(GL_FOG);
     glColor4f(1.0f,1.0f,1.0f,1.0f);
-      glBindTexture(GL_TEXTURE_2D, light);       // Select our texture
-        glBegin(GL_QUADS);
-         if(TestFlag(Train->DynamicObject->MoverParameters->EndSignalsFlag,21))
-          {
-           glTexCoord2f(0, 0);  glVertex3f( 15.0, 0.0, 15);
-           glTexCoord2f(1, 0);  glVertex3f(-15.0, 0.0, 15);
-           glTexCoord2f(1, 1);  glVertex3f(-15.0, 2.5, 250);
-           glTexCoord2f(0, 1);  glVertex3f( 15.0, 2.5, 250);
-          }
-         if(TestFlag(Train->DynamicObject->MoverParameters->HeadSignalsFlag,21))
-          {
-           glTexCoord2f(0, 0);  glVertex3f(-15.0, 0.0, -15);
-           glTexCoord2f(1, 0);  glVertex3f( 15.0, 0.0, -15);
-           glTexCoord2f(1, 1);  glVertex3f( 15.0, 2.5, -250);
-           glTexCoord2f(0, 1);  glVertex3f(-15.0, 2.5, -250);
-          }
-        glEnd();
+    glBindTexture(GL_TEXTURE_2D, light);       // Select our texture
+    glBegin(GL_QUADS);
+     if (Train->DynamicObject->MoverParameters->EndSignalsFlag&21)
+     {//wystarczy jeden zapalony
+      glTexCoord2f(0,0); glVertex3f( 15.0,0.0,  15.0);
+      glTexCoord2f(1,0); glVertex3f(-15.0,0.0,  15.0);
+      glTexCoord2f(1,1); glVertex3f(-15.0,2.5, 250.0);
+      glTexCoord2f(0,1); glVertex3f( 15.0,2.5, 250.0);
+     }
+     if (Train->DynamicObject->MoverParameters->HeadSignalsFlag&21)
+     {//wystarczy jeden zapalony
+      glTexCoord2f(0,0); glVertex3f(-15.0,0.0, -15.0);
+      glTexCoord2f(1,0); glVertex3f( 15.0,0.0, -15.0);
+      glTexCoord2f(1,1); glVertex3f( 15.0,2.5,-250.0);
+      glTexCoord2f(0,1); glVertex3f(-15.0,2.5,-250.0);
+     }
+    glEnd();
 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_DEPTH_TEST);
@@ -791,15 +791,15 @@ bool __fastcall TWorld::Update()
 //yB: moje smuuugi 1 - koniec*/
 
     //oswietlenie kabiny
-      GLfloat  ambientCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
-      GLfloat  diffuseCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
-      GLfloat  specularCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
+      GLfloat ambientCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
+      GLfloat diffuseCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
+      GLfloat specularCabLight[4]={ 0.5f,  0.5f, 0.5f, 1.0f };
       for (int li=0; li<3; li++)
-       {
-         ambientCabLight[li]= Global::ambientDayLight[li]*0.9;
-         diffuseCabLight[li]= Global::diffuseDayLight[li]*0.5;
-         specularCabLight[li]= Global::specularDayLight[li]*0.5;
-       }
+      {
+       ambientCabLight[li]= Global::ambientDayLight[li]*0.9;
+       diffuseCabLight[li]= Global::diffuseDayLight[li]*0.5;
+       specularCabLight[li]=Global::specularDayLight[li]*0.5;
+      }
       switch (Train->DynamicObject->MyTrack->eEnvironment)
       {
        case e_canyon:
@@ -1000,7 +1000,7 @@ bool __fastcall TWorld::Update()
      //double CtrlPos=Controlled->MoverParameters->MainCtrlPos;
      //double CtrlPosNo=Controlled->MoverParameters->MainCtrlPosNo;
      //OutText2="defrot="+FloatToStrF(1+0.4*(CtrlPos/CtrlPosNo),ffFixed,2,5);
-     OutText3="Pomoc w sterowaniu - [F9]";
+     OutText3=""; //Pomoc w sterowaniu - [F9]";
     }
     if (Pressed(VK_F12))
     {
@@ -1205,7 +1205,7 @@ bool __fastcall TWorld::Update()
 
 if (Global::detonatoryOK)
 {
-   if (Pressed(VK_F9)) ShowHints();
+   //if (Pressed(VK_F9)) ShowHints(); //to nie dzia³a prawid³owo - prosili wy³¹czyæ
 
     glTranslatef(0.0f,0.0f,-0.50f);
     glRasterPos2f(-0.25f, 0.20f);
@@ -1472,9 +1472,9 @@ void __fastcall TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
    case 3: //rozkaz dla AI
     if (Global::bMultiplayer)
     {int i=int(pRozkaz->cString[8]); //d³ugoœæ pierwszego ³añcucha (z przodu dwa floaty)
-     TGroundNode* t=Ground.FindDynamic(AnsiString(pRozkaz->cString+10+i)); //nazwa pojazdu jest druga
+     TGroundNode* t=Ground.FindDynamic(AnsiString(pRozkaz->cString+11+i,(int)pRozkaz->cString[10+i])); //nazwa pojazdu jest druga
      if (t)
-     {WriteLog("AI command: "+AnsiString(pRozkaz->cString+9));
+     {WriteLog("AI command: "+AnsiString(pRozkaz->cString+9,i));
       t->DynamicObject->MoverParameters->SetInternalCommand(
        AnsiString(pRozkaz->cString+9,i),pRozkaz->fPar[0],pRozkaz->fPar[1]); //floaty s¹ z przodu
      }

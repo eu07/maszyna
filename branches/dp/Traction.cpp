@@ -157,7 +157,7 @@ void __fastcall TTraction::Render(float mgn)   //McZapkie: mgn to odleglosc od o
  if (Wires!=0 && !TestFlag(DamageFlag,128))  //rysuj jesli sa druty i nie zerwana
  {
   glColor4f(0,0,0,1);  //jak nieznany kolor to czarne nieprzezroczyste
-  //Ra: glEnable(GL_LINE_SMOOTH) kiepsko wygl¹da - robi gradient
+  glDisable(GL_LINE_SMOOTH); //na liniach kiepsko wygl¹da - robi gradient
   float linealpha=5000*WireThickness/(mgn+1.0); //*WireThickness
   if (linealpha>1.2) linealpha=1.2; //zbyt grube nie s¹ dobre
   glLineWidth(linealpha);
@@ -205,6 +205,7 @@ void __fastcall TTraction::Render(float mgn)   //McZapkie: mgn to odleglosc od o
   glColor4f(r,g,b,linealpha);
   glCallList(uiDisplayList);
   glLineWidth(1.0);
+  glEnable(GL_LINE_SMOOTH); //bez tego siê modele nie oœwietlaj¹
  }
 }
 
