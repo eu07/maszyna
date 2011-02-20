@@ -373,7 +373,7 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
         glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);   //McZapkie-240702: zamiast ub
         glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE,f4Diffuse);
 
-        if (fLight>Global::fLuminance)
+        if (Global::fLuminance<fLight)
             glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,f4Diffuse);  //zeny swiecilo na kolorowo
 
 #ifdef USE_VERTEX_ARRAYS
@@ -389,7 +389,7 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
         glEnd();
 #endif
 
-        if (fLight>Global::fLuminance)
+        if (Global::fLuminance<fLight)
             glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
 
         glEndList();
@@ -581,7 +581,7 @@ void __fastcall TSubModel::RaRender(GLuint ReplacableSkinId,bool bAlpha)
    if (!TexAlpha || !Global::bRenderAlpha)  //rysuj gdy nieprzezroczyste lub # albo gdy zablokowane alpha
    {
     glMaterialfv(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE,f4Diffuse);
-    if (fLight<Global::fLuminance)
+    if (Global::fLuminance<fLight)
     {glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
      glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie trójk¹ty z VBO
      glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
@@ -717,7 +717,7 @@ void __fastcall TSubModel::RaRenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
    if (TexAlpha && Global::bRenderAlpha)  //mozna rysowac bo przezroczyste i nie ma #
    {
     glMaterialfv(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE,f4Diffuse);
-    if (fLight<Global::fLuminance)
+    if (Global::fLuminance<fLight)
     {glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
      glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie trójk¹ty z VBO
      glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
@@ -818,7 +818,7 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
    else
     glBindTexture(GL_TEXTURE_2D,TextureID);
    if (!TexAlpha || !Global::bRenderAlpha)  //rysuj gdy nieprzezroczyste lub # albo gdy zablokowane alpha
-    if (fLight<Global::fLuminance)
+    if (Global::fLuminance<fLight)
     {glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
      glCallList(uiDisplayList); //tylko dla siatki
      glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
@@ -884,7 +884,7 @@ void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
    else
     glBindTexture(GL_TEXTURE_2D, TextureID);
    if (TexAlpha && Global::bRenderAlpha)  //mozna rysowac bo przezroczyste i nie ma #
-    if (fLight<Global::fLuminance)
+    if (Global::fLuminance<fLight)
     {glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
      glCallList(uiDisplayList); //tylko dla siatki
      glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
