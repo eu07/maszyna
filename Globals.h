@@ -184,6 +184,8 @@ public:
     static double fLuminance; //jasnoœæ œwiat³a do automatycznego zapalania
     static bool bMultiplayer; //blokada dzia³ania niektórych eventów na rzecz kominikacji
     static HWND	hWnd; //uchwyt okna
+    static int iCameraLast;
+    static AnsiString asVersion; 
 };
 
 //---------------------------------------------------------------------------

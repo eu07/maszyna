@@ -95,43 +95,43 @@ TDynamicObject *Controlled=NULL; //pojazd, który prowadzimy
 void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 {
  Global::hWnd=NhWnd; //do WM_COPYDATA
-    Global::detonatoryOK=true;
-    WriteLog("Starting MaSzyna rail vehicle simulator.");
-    WriteLog("Compilation 2011-02-20, release 1.3.81.120.");
-    WriteLog("Online documentation and additional files on http://eu07.pl");
-    WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx_EU, OLO_EU, Bart, Quark-t, ShaXbee, Oli_EU, youBy and others");
-    WriteLog("Renderer:");
-    WriteLog( (char*) glGetString(GL_RENDERER));
-    WriteLog("Vendor:");
+ Global::detonatoryOK=true;
+ WriteLog("Starting MaSzyna rail vehicle simulator.");
+ WriteLog(Global::asVersion);
+ WriteLog("Online documentation and additional files on http://eu07.pl");
+ WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx_EU, OLO_EU, Bart, Quark-t, ShaXbee, Oli_EU, youBy and others");
+ WriteLog("Renderer:");
+ WriteLog( (char*) glGetString(GL_RENDERER));
+ WriteLog("Vendor:");
 //Winger030405: sprawdzanie sterownikow
-    WriteLog( (char*) glGetString(GL_VENDOR));
-    AnsiString glver=((char*)glGetString(GL_VERSION));
-    WriteLog("OpenGL Version:");
-    WriteLog(glver);
-    if ((glver=="1.5.1") || (glver=="1.5.2"))
-    {
-       Error("Niekompatybilna wersja openGL - dwuwymiarowy tekst nie bedzie wyswietlany!");
-       WriteLog("WARNING! This OpenGL version is not fully compatible with simulator!");
-       WriteLog("UWAGA! Ta wersja OpenGL nie jest w pelni kompatybilna z symulatorem!");
-       Global::detonatoryOK=false;
-    }
-    else
-       Global::detonatoryOK=true;
-    while (glver.LastDelimiter(".")>glver.Pos("."))
-     glver=glver.SubString(1,glver.LastDelimiter(".")-1); //obciêcie od drugiej kropki
-    try {Global::fOpenGL=glver.ToDouble();} catch (...) {Global::fOpenGL=0.0;}
-    Global::bOpenGL_1_5=(Global::fOpenGL>=1.5);
-    
-    WriteLog("Supported Extensions:");
-    WriteLog( (char*) glGetString(GL_EXTENSIONS));
-    if (glewGetExtension("GL_ARB_vertex_buffer_object")) //czy jest VBO w karcie graficznej
-    {WriteLog("Ra: mo¿na u¿yæ VBO.");
+ WriteLog( (char*) glGetString(GL_VENDOR));
+ AnsiString glver=((char*)glGetString(GL_VERSION));
+ WriteLog("OpenGL Version:");
+ WriteLog(glver);
+ if ((glver=="1.5.1") || (glver=="1.5.2"))
+ {
+  Error("Niekompatybilna wersja openGL - dwuwymiarowy tekst nie bedzie wyswietlany!");
+  WriteLog("WARNING! This OpenGL version is not fully compatible with simulator!");
+  WriteLog("UWAGA! Ta wersja OpenGL nie jest w pelni kompatybilna z symulatorem!");
+  Global::detonatoryOK=false;
+ }
+ else
+  Global::detonatoryOK=true;
+ while (glver.LastDelimiter(".")>glver.Pos("."))
+  glver=glver.SubString(1,glver.LastDelimiter(".")-1); //obciêcie od drugiej kropki
+ try {Global::fOpenGL=glver.ToDouble();} catch (...) {Global::fOpenGL=0.0;}
+ Global::bOpenGL_1_5=(Global::fOpenGL>=1.5);
+
+ WriteLog("Supported Extensions:");
+ WriteLog((char*)glGetString(GL_EXTENSIONS));
+ if (glewGetExtension("GL_ARB_vertex_buffer_object")) //czy jest VBO w karcie graficznej
+ {WriteLog("Ra: mo¿na u¿yæ VBO.");
 #ifdef USE_VBO
-     Global::bUseVBO=true; //VBO w³¹czane tylko, jeœli jest obs³uga
+  Global::bUseVBO=true; //VBO w³¹czane tylko, jeœli jest obs³uga
 #endif
-    }
-    else
-     WriteLog("Ra: VBO nie znalezione.");
+ }
+ else
+  WriteLog("Ra: VBO nie znalezione.");
 
 /*-----------------------Render Initialization----------------------*/
         glTexEnvf(TEXTURE_FILTER_CONTROL_EXT,TEXTURE_LOD_BIAS_EXT,-1);
@@ -1461,6 +1461,9 @@ void __fastcall TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
  if (pRozkaz->iSygn=='EU07')
   switch (pRozkaz->iComm)
   {
+   case 0: //odes³anie identyfikatora wersji
+    Ground.WyslijString(Global::asVersion,0); //tor wolny
+    break;
    case 2: //event
     if (Global::bMultiplayer)
     {//WriteLog("Komunikat: "+AnsiString(pRozkaz->Name1));
