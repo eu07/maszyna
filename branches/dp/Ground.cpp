@@ -495,6 +495,7 @@ void __fastcall TSubRect::AddNode(TGroundNode *Node)
   case TP_MEMCELL:
   case TP_TRACTIONPOWERSOURCE: //a te w ogóle pomijamy
   case TP_DYNAMIC:
+  case TP_ISOLATED: //lista torów w obwodzie izolowanym - na razie ignorowana
    break;
  }
  Node->pNext2=pRootNode; //dopisanie do ogólnej listy
@@ -1053,6 +1054,9 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
 	if (str==AnsiString("tractionpowersource"))
 		tmp->iType= TP_TRACTIONPOWERSOURCE;
 	else
+	if (str=="isolated")
+ 	 tmp->iType=TP_ISOLATED;
+	else
 	{
         bError= true;
 	}
@@ -1507,6 +1511,13 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
 
 
         break;
+        case TP_ISOLATED: //lista torów w obwodzie izolowanym - na razie ignorowana
+         do
+         {//po¿arcie dodatkowych parametrów
+          parser->getTokens();
+          *parser >> token;
+         } while (token.compare("endisolated")!=0);
+         break;
     }
 
     if (tmp->bStatic)
@@ -1852,11 +1863,12 @@ bool __fastcall TGround::Init(AnsiString asFile)
           parser.getTokens(); parser >> token;
           if (into<0) into=atoi(token.c_str()); //takie sobie, bo mo¿na wpisaæ -1
          } while (token.compare("endcamera")!=0);
-         if (into<0) into=0;
+         if (into<0) into=++Global::iCameraLast;
          if ((into>=0)&&(into<10))
          {//przepisanie do odpowiedniego miejsca w tabelce
           Global::pFreeCameraInit[into]=xyz;
           Global::pFreeCameraInitAngle[into]=abc;
+          Global::iCameraLast=into; //numer ostatniej
          }
         }
 //youBy - niebo z pliku
@@ -2506,15 +2518,16 @@ if (QueryRootEvent)
                  WriteLog(LogComment.c_str());
             break;
             case tp_GetValues :
-                if (QueryRootEvent->Activator)
-                {
-                    loc.X= -QueryRootEvent->Params[8].asGroundNode->pCenter.x;
-                    loc.Y=  QueryRootEvent->Params[8].asGroundNode->pCenter.z;
-                    loc.Z=  QueryRootEvent->Params[8].asGroundNode->pCenter.y;
-                    QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Activator->MoverParameters,
-                                                                    loc);
-                }
-                WriteLog("Type: GetValues");
+             if (QueryRootEvent->Activator)
+             {
+              loc.X= -QueryRootEvent->Params[8].asGroundNode->pCenter.x;
+              loc.Y=  QueryRootEvent->Params[8].asGroundNode->pCenter.z;
+              loc.Z=  QueryRootEvent->Params[8].asGroundNode->pCenter.y;
+              QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Activator->MoverParameters,loc);
+              if (Global::bMultiplayer) //potwierdzenie wykonania dla serwera - najczêœciej odczyt semafora
+               WyslijEvent(QueryRootEvent->asName,QueryRootEvent->Activator->GetasName());
+             }
+             WriteLog("Type: GetValues");
             break;
             case tp_PutValues :
                 if (QueryRootEvent->Activator)
@@ -3181,11 +3194,11 @@ void __fastcall TGround::WyslijEvent(const AnsiString &e,const AnsiString &d)
  Navigate("TEU07SRK",WM_COPYDATA,(WPARAM)Global::hWnd,(LPARAM)&cData);
 };
 //---------------------------------------------------------------------------
-void __fastcall TGround::WyslijWolny(const AnsiString &t)
+void __fastcall TGround::WyslijString(const AnsiString &t,int n)
 {//Ra: jeszcze do wyczyszczenia
  DaneRozkaz r;
  r.iSygn='EU07';
- r.iComm=4; //tor wolny
+ r.iComm=n; //numer komunikatu
  int i=t.Length();
  r.cString[0]=char(i);
  strcpy(r.cString+1,t.c_str()); //z zerem koñcz¹cym
@@ -3194,6 +3207,11 @@ void __fastcall TGround::WyslijWolny(const AnsiString &t)
  cData.cbData=10+i; //8+licznik i zero koñcz¹ce
  cData.lpData=&r;
  Navigate("TEU07SRK",WM_COPYDATA,(WPARAM)Global::hWnd,(LPARAM)&cData);
+};
+//---------------------------------------------------------------------------
+void __fastcall TGround::WyslijWolny(const AnsiString &t)
+{//Ra: jeszcze do wyczyszczenia
+ WyslijString(t,4); //tor wolny
 };
 //---------------------------------------------------------------------------
 

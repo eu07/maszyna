@@ -34,6 +34,7 @@ const int TP_MEMCELL= 1008;
 const int TP_EVLAUNCH= 1009; //MC
 const int TP_TRACTION= 1010;
 const int TP_TRACTIONPOWERSOURCE= 1011; //MC
+const int TP_ISOLATED=1012; //Ra
 
 struct DaneRozkaz
 {//struktura komunikacji z EU07.EXE
@@ -350,6 +351,7 @@ private:
  void __fastcall Navigate(String ClassName,UINT Msg,WPARAM wParam,LPARAM lParam);
  void __fastcall WyslijEvent(const AnsiString &e,const AnsiString &d);
 public:
+ void __fastcall WyslijString(const AnsiString &t,int n);
  void __fastcall WyslijWolny(const AnsiString &t);
 };
 //---------------------------------------------------------------------------

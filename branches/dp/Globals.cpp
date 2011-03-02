@@ -97,6 +97,8 @@ bool Global::bOpenGL_1_5=false; //czy s¹ dostêpne funkcje OpenGL 1.5
 double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 bool Global::bMultiplayer=false; //blokada dzia³ania niektórych eventów na rzecz kominikacji
 HWND Global::hWnd=NULL; //uchwyt okna
+int Global::iCameraLast=-1;
+AnsiString Global::asVersion="Compilation 2011-03-02, release 1.3.82.121.";
 
 void __fastcall Global::LoadIniFile(AnsiString asFileName)
 {

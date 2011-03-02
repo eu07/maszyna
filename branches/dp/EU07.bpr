@@ -3,7 +3,7 @@
 <PROJECT>
   <MACROS>
     <VERSION value="BCB.05.03"/>
-    <PROJECT value="C:\EU07\EU07.exe"/>
+    <PROJECT value="D:\EU07\EU07.exe"/>
     <OBJFILES value="McZapkie\mover.obj McZapkie\ai_driver.obj QueryParserComp.obj 
       McZapkie\mtable.obj EU07.obj dumb3d.obj Camera.obj Texture.obj World.obj 
       Model3d.obj geometry.obj MdlMngr.obj Train.obj wavread.obj Timer.obj 
@@ -35,13 +35,13 @@
     <USERDEFINES value="GLEW_STATIC;_DEBUG"/>
     <SYSDEFINES value="_RTLDLL;NO_STRICT"/>
     <MAINSOURCE value="EU07.cpp"/>
-    <INCLUDEPATH value="G:\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
-    <LIBPATH value="G:\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
+    <INCLUDEPATH value="McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
+    <LIBPATH value="McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
     <WARNINGS value="-w-par"/>
   </MACROS>
   <OPTIONS>
-    <IDLCFLAGS value="-IG:\CBuilder5\Projects\. -IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl 
-      -src_suffix cpp -DGLEW_STATIC -D_DEBUG -boa"/>
+    <IDLCFLAGS value="-IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl -src_suffix cpp 
+      -DGLEW_STATIC -D_DEBUG -boa"/>
     <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a4 -6 -b- -k -y -v -vi- 
       -c -tW -tWM"/>
     <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
@@ -60,8 +60,8 @@ IncludeVerInfo=1
 AutoIncBuild=1
 MajorVer=1
 MinorVer=3
-Release=81
-Build=120
+Release=82
+Build=121
 Debug=1
 PreRelease=0
 Special=0
@@ -73,7 +73,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.3.81.120
+FileVersion=1.3.82.121
 InternalName=4th by Ra
 LegalCopyright=
 LegalTrademarks=
@@ -84,9 +84,9 @@ Comments=
 
 [HistoryLists\hlIncludePath]
 Count=14
-Item0=G:\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item1=..\CBuilder5\Projects;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item2=McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item0=McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item1=G:\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item2=..\CBuilder5\Projects;McZapkie;$(BCB)\include;$(BCB)\include\vcl
 Item3=F:\ProgsWin\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
 Item4=F:\ProgsWin\CBuilder5\Projects;McZapkie;$(BCB)\include;$(BCB)\include\vcl
 Item5=C:\Program Files\Borland\CBuilder5\Projects\;d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
@@ -101,9 +101,9 @@ Item13=G:\Borland\CBuilder5\Examples\OpenGL\Rotate\;$(BCB)\include;$(BCB)\includ
 
 [HistoryLists\hlLibraryPath]
 Count=14
-Item0=G:\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item1=..\CBuilder5\Projects;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item2=McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item0=McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item1=G:\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item2=..\CBuilder5\Projects;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
 Item3=F:\ProgsWin\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
 Item4=F:\ProgsWin\CBuilder5\Projects;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
 Item5=$(BCB)\lib\obj;$(BCB)\lib
@@ -133,10 +133,10 @@ Item6=_DEBUG
 
 [HistoryLists\hlFinalOutputDir]
 Count=7
-Item0=C:\EU07\
-Item1=M:\aEU07\EU07\
-Item2=G:\EU07\
-Item3=D:\EU07\
+Item0=D:\EU07\
+Item1=C:\EU07\
+Item2=M:\aEU07\EU07\
+Item3=G:\EU07\
 Item4=M:\aEU07\EU07-2006\
 Item5=M:\aEU07\EU07
 Item6=C:\EU07
