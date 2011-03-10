@@ -98,7 +98,8 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 bool Global::bMultiplayer=false; //blokada dzia³ania niektórych eventów na rzecz kominikacji
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asVersion="Compilation 2011-03-02, release 1.3.82.121.";
+AnsiString Global::asVersion="Compilation 2011-03-10, release 1.3.83.122."; //tutaj, bo wysy³any
+int Global::iViewMode; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 
 void __fastcall Global::LoadIniFile(AnsiString asFileName)
 {
@@ -107,19 +108,19 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
   pFreeCameraInit[i]=vector3(0,0,0); //wspó³rzêdne w scenerii
   pFreeCameraInitAngle[i]=vector3(0,0,0); //k¹ty obrotu w radianach
  }
-    TFileStream *fs;
-    fs= new TFileStream(asFileName , fmOpenRead	| fmShareCompat	);
-    AnsiString str= "";
-    int size= fs->Size;
-    str.SetLength(size);
-    fs->Read(str.c_str(),size);
-    str+= "";
-    delete fs;
-    TQueryParserComp *Parser;
-    Parser= new TQueryParserComp(NULL);
-    Parser->TextToParse= str;
-//    Parser->LoadStringToParse(asFile);
-    Parser->First();
+ TFileStream *fs;
+ fs= new TFileStream(asFileName , fmOpenRead	| fmShareCompat	);
+ AnsiString str= "";
+ int size= fs->Size;
+ str.SetLength(size);
+ fs->Read(str.c_str(),size);
+ str+= "";
+ delete fs;
+ TQueryParserComp *Parser;
+ Parser= new TQueryParserComp(NULL);
+ Parser->TextToParse= str;
+ //Parser->LoadStringToParse(asFile);
+ Parser->First();
 
     while (!Parser->EndOfFile)
     {
@@ -357,6 +358,7 @@ void __fastcall Global::InitKeys(AnsiString asFileName)
         Keys[k_ProgramPause]= VK_F3;
         Keys[k_ProgramHelp]= VK_F1;
         Keys[k_FreeFlyMode]= VK_F4;
+        Keys[k_WalkMode]= VK_F5;
 
         Keys[k_OpenLeft]= VkKeyScan(',');
         Keys[k_OpenRight]= VkKeyScan('.');

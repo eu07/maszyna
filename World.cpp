@@ -496,7 +496,7 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
     }
     glEnable(GL_DEPTH_TEST);
     Ground.pTrain=Train;
-    if (!Global::bMultiplayer)
+    //if (!Global::bMultiplayer) //na razie w³¹czone
     {//eventy aktywowane z klawiatury tylko dla jednego u¿ytkownika
      KeyEvents[0]=Ground.FindEvent("keyctrl00");
      KeyEvents[1]=Ground.FindEvent("keyctrl01");

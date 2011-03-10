@@ -102,7 +102,8 @@ const int k_EndSign=70;
 
 const int k_Active=71;
                         //Winger 020304
-const int MaxKeys= 72;
+const int k_WalkMode= 72;
+const int MaxKeys= 73;
 
 //klasy dla wskaŸników globalnych
 class TGround;
@@ -172,20 +173,21 @@ public:
     static bool detonatoryOK;
     static AnsiString asSky;
     static bool bnewAirCouplers;
-    static int iDefaultFiltering; //domyœlne rozmywanie tekstur TGA
-    static int iBallastFiltering; //domyœlne rozmywanie tekstury podsypki
-    static int iRailProFiltering; //domyœlne rozmywanie tekstury szyn
-    static int iDynamicFiltering; //domyœlne rozmywanie tekstur pojazdów
-    static bool bReCompile; //czy odœwie¿yæ siatki
-    static bool bUseVBO; //czy jest VBO w karcie graficznej
-    static int iFeedbackMode; //tryb pracy informacji zwrotnej
-    static double fOpenGL; //wersja OpenGL - przyda siê
-    static bool bOpenGL_1_5; //czy s¹ dostêpne funkcje OpenGL 1.5
-    static double fLuminance; //jasnoœæ œwiat³a do automatycznego zapalania
-    static bool bMultiplayer; //blokada dzia³ania niektórych eventów na rzecz kominikacji
-    static HWND	hWnd; //uchwyt okna
-    static int iCameraLast;
-    static AnsiString asVersion; 
+ static int iDefaultFiltering; //domyœlne rozmywanie tekstur TGA
+ static int iBallastFiltering; //domyœlne rozmywanie tekstury podsypki
+ static int iRailProFiltering; //domyœlne rozmywanie tekstury szyn
+ static int iDynamicFiltering; //domyœlne rozmywanie tekstur pojazdów
+ static bool bReCompile; //czy odœwie¿yæ siatki
+ static bool bUseVBO; //czy jest VBO w karcie graficznej
+ static int iFeedbackMode; //tryb pracy informacji zwrotnej
+ static double fOpenGL; //wersja OpenGL - przyda siê
+ static bool bOpenGL_1_5; //czy s¹ dostêpne funkcje OpenGL 1.5
+ static double fLuminance; //jasnoœæ œwiat³a do automatycznego zapalania
+ static bool bMultiplayer; //blokada dzia³ania niektórych eventów na rzecz kominikacji
+ static HWND	hWnd; //uchwyt okna
+ static int iCameraLast;
+ static AnsiString asVersion; 
+ static int iViewMode; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 };
 
 //---------------------------------------------------------------------------
