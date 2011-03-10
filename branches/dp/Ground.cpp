@@ -885,8 +885,8 @@ void __fastcall TGround::RaTriangleDivider(TGroundNode* node)
 {//tworzy dodatkowe trójk¹ty i zmiejsza podany
  if (node->iType!=GL_TRIANGLES) return; //tylko pojedyncze trójk¹ty
  if (node->iNumVerts!=3) return; //tylko gdy jeden trójk¹t
- double x0=1000.0*floor(0.001*node->pCenter.x)-200.0; double x1=x0+1400.0;
- double z0=1000.0*floor(0.001*node->pCenter.z)-200.0; double z1=z0+1400.0;
+ double x0=1000.0*floor(0.001*node->pCenter.x)-100.0; double x1=x0+1200.0;
+ double z0=1000.0*floor(0.001*node->pCenter.z)-100.0; double z1=z0+1200.0;
  if (
   (node->Vertices[0].Point.x>=x0) && (node->Vertices[0].Point.x<=x1) &&
   (node->Vertices[0].Point.z>=z0) && (node->Vertices[0].Point.z<=z1) &&
@@ -894,7 +894,8 @@ void __fastcall TGround::RaTriangleDivider(TGroundNode* node)
   (node->Vertices[1].Point.z>=z0) && (node->Vertices[1].Point.z<=z1) &&
   (node->Vertices[2].Point.x>=x0) && (node->Vertices[2].Point.x<=x1) &&
   (node->Vertices[2].Point.z>=z0) && (node->Vertices[2].Point.z<=z1))
-  return; //trójk¹t wystaj¹cy mniej ni¿ 200m z kw. kilometrowego jest do przyjêcia
+  return; //trójk¹t wystaj¹cy mniej ni¿ 100m z kw. kilometrowego jest do przyjêcia
+ //Ra: przerobiæ na dzielenie na 2 trójk¹ty, podzia³ w przeciêciu z siatk¹ kilometrow¹
  //no to tworzymy trzy dodatkowe trójk¹ty
  TGroundNode* tri[4]; //zmiena robocza - trzy wskaŸniki
  tri[3]=node; //do kompletu
@@ -2429,21 +2430,21 @@ TGroundNode* __fastcall TGround::GetNode( AnsiString asName )
 
 bool __fastcall TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
 {
-    if (!Event->bLaunched)
-    {
-        WriteLog("EVENT ADDED TO QUEUE:");
-        WriteLog(Event->asName.c_str());
-        Event->Activator= Node;
-        Event->fStartTime= abs(Event->fDelay)+Timer::GetTime();
-        Event->bLaunched= true;
-        if (QueryRootEvent)
-            QueryRootEvent->AddToQuery(Event);
-        else
-        {
-            Event->Next= QueryRootEvent;
-            QueryRootEvent= Event;
-        }
-    }
+ if (!Event->bLaunched)
+ {
+  WriteLog("EVENT ADDED TO QUEUE:");
+  WriteLog(Event->asName.c_str());
+  Event->Activator=Node;
+  Event->fStartTime=fabs(Event->fDelay)+Timer::GetTime();
+  Event->bLaunched=true;
+  if (QueryRootEvent)
+   QueryRootEvent->AddToQuery(Event);
+  else
+  {
+   Event->Next=QueryRootEvent;
+   QueryRootEvent=Event;
+  }
+ }
  return true;
 }
 
@@ -3160,11 +3161,30 @@ bool __fastcall TGround::RenderAlpha(vector3 pPosition)
     for (node=tmp->pRenderMixed;node!=NULL;node=node->pNext3)
      node->RenderAlpha(); //przezroczyste z mieszanych modeli
     for (node=tmp->pRenderAlpha;node!=NULL;node=node->pNext3)
-     node->RenderAlpha(); //przezroczyste modele
+     if (node->iType!=TP_TRACTION) //druty na koñcu
+      node->RenderAlpha(); //przezroczyste modele
     for (node=tmp->pRender;node!=NULL;node=node->pNext3)
      if (node->iType==TP_TRACK)
       node->pTrack->RenderAlpha(); //pojazdy na torach
    }
+  }
+ }
+ //test: druty na koñcu, ¿eby siê nie robi³y bia³e plamy na tle lasu
+ //jeœli zadzia³a, to wydzieliæ druty do osobnego ³añcucha
+ for (j=-n;j<=n;j++)
+ {k=iRange[j<0?-j:j]; //zasiêg na danym poziomie
+  for (i=-k;i<=k;i++)
+  {
+   direction=vector3(i,0,j);
+   if (LengthSquared3(direction)>4)
+   {direction=SafeNormalize(direction);
+    if (CameraDirection.x*direction.x+CameraDirection.z*direction.z<0.55)
+     continue; //pomijanie zbêdnych sektorów
+   }
+   if ((tmp=FastGetSubRect(i+c,j+r))!=NULL)
+    for (node=tmp->pRenderAlpha;node!=NULL;node=node->pNext3)
+     if (node->iType==TP_TRACTION)
+      node->RenderAlpha(); //przezroczyste modele
   }
  }
  return true;
