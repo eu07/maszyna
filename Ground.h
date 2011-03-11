@@ -156,7 +156,7 @@ public:
 //TSubRect *TGroundNode::pOwner=NULL; //tymczasowo w³aœciciel
 
 class TSubRect : public Resource, public CMesh
-{
+{//sektor sk³adowy kwadratu kilometrowego
 private:
  TGroundNode *pTriGroup; //Ra: obiekt grupuj¹cy trójk¹ty (ogranicza iloœæ DisplayList)
  TTrack *pTrackAnim; //obiekty do przeliczenia animacji
@@ -193,7 +193,8 @@ const double fSubRectSize=1000.0/iNumSubRects;
 const double fRectSize=fSubRectSize*iNumSubRects;
 
 class TGroundRect : public TSubRect
-{//obiekty o niewielkiej iloœci wierzcho³ków bêd¹ renderowane st¹d
+{//kwadrat kilometrowy
+ //obiekty o niewielkiej iloœci wierzcho³ków bêd¹ renderowane st¹d
 private:
  int iLastDisplay; //numer klatki w której by³ ostatnio wyœwietlany
  TSubRect *pSubRects;

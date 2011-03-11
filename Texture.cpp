@@ -208,117 +208,128 @@ TTexturesManager::AlphaValue TTexturesManager::LoadBMP(std::string fileName)
 
 TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName,int filter)
 {
-    AlphaValue fail(0, false);
-//    GLubyte TGAheader[] = {0,0,2,0,0,0,0,0,0,0,0,0};	// Uncompressed TGA Header
-    GLubyte TGACompheader[] = {0,0,10,0,0,0,0,0,0,0,0,0}; // Uncompressed TGA Header
-    GLubyte TGAcompare[12]; // Used To Compare TGA Header
-    GLubyte header[6]; // First 6 Useful Bytes From The Header
-    std::ifstream file(fileName.c_str(),std::ios::binary);
-    file.read((char*)TGAcompare,sizeof(TGAcompare));
-    file.read((char*)header,sizeof(header));
-    std::cout << file.tellg() << std::endl;
-    if (file.eof())
-    {
-     file.close();
-     return fail;
-    };
-    bool compressed=(memcmp(TGACompheader,TGAcompare,sizeof(TGACompheader))==0);
-    GLuint width =header[1]*256+header[0]; // Determine The TGA width (highbyte*256+lowbyte)
-    GLuint height=header[3]*256+header[2]; // Determine The TGA height (highbyte*256+lowbyte)
-    // check if width, height and bpp is correct
-    if ( !width || !height || (header[4]!=24 && header[4]!=32))
-    {
-     file.close();
-     return fail;
-    };
-    GLuint bpp=header[4];	// Grab The TGA's Bits Per Pixel (24 or 32)
-    GLuint bytesPerPixel=bpp/8; // Divide By 8 To Get The Bytes Per Pixel
-    GLuint imageSize=width*height*bytesPerPixel; // Calculate The Memory Required For The TGA Data
-    GLubyte *imageData=new GLubyte[imageSize]; // Reserve Memory To Hold The TGA Data
-    if (!compressed)
-    {
-     file.read(imageData, imageSize);
-     if (file.eof())
-     {
-      delete[] imageData;
-      file.close();
-      return fail;
-     };
-     // Swap R and B components
-     GLuint temp;
-     for (GLuint i=0;i<imageSize;i+=bytesPerPixel)
-     {
-      temp          =imageData[i];
-      imageData[i]  =imageData[i+2];
-      imageData[i+2]=temp;
-     };
-    }
-    else
-    {//compressed TGA
-     GLuint pixelcount=height*width; // Nuber of pixels in the image
-     GLuint currentpixel=0; // Current pixel being read
-     GLuint currentbyte=0; // Current byte
-     GLubyte *colorbuffer=new GLubyte[bytesPerPixel]; // Storage for 1 pixel
-     while (currentpixel<pixelcount)
-     {
-      GLubyte chunkheader; // Storage for "chunk" header
-      file.read((char*)&chunkheader,sizeof(GLubyte));
-      if (file.eof())
-      {
-       MessageBox(NULL,"Could not read RLE header","ERROR",MB_OK); // Display Error
-       delete[] imageData;
-       file.close();
-       return fail;
-      };
-      if (chunkheader<128)
-      {// If the header is < 128, it means the that is the number of RAW color packets minus 1
-       chunkheader++; // add 1 to get number of following color values
-       for (int counter=0;counter<chunkheader;counter++) // Read RAW color values
-       {
-        file.read(colorbuffer, bytesPerPixel);
-        // Flip R and B vcolor values around in the process
-        imageData[currentbyte]  =colorbuffer[2];
-        imageData[currentbyte+1]=colorbuffer[1];
-        imageData[currentbyte+2]=colorbuffer[0];
-        if (bytesPerPixel==4)	// if its a 32 bpp image
-         imageData[currentbyte+3]=colorbuffer[3];// copy the 4th byte
-        currentbyte+=bytesPerPixel;
-        currentpixel++;
-       }
-      }
-      else
-      {// chunkheader > 128 RLE data, next color reapeated chunkheader - 127 times
-       chunkheader-=127;
-       file.read(colorbuffer,bytesPerPixel);
-       // copy the color into the image data as many times as dictated
-       for (int counter=0;counter<chunkheader;counter++)
-       {																			// by the header
-        imageData[currentbyte  ]=colorbuffer[2];// switch R and B bytes areound while copying
-        imageData[currentbyte+1]=colorbuffer[1];
-        imageData[currentbyte+2]=colorbuffer[0];
-        if (bytesPerPixel==4)												// If TGA images is 32 bpp
-         imageData[currentbyte+3]=colorbuffer[3];// Copy 4th byte
-        currentbyte+=bytesPerPixel;
-        currentpixel++;
-       }
-      }
-     };
-    };
-    file.close();
-    bool alpha = (bpp == 32);
-    bool hash = (fileName.find('#') != std::string::npos); //true gdy w nazwie jest "#"
-    bool dollar = (fileName.find('$') == std::string::npos); //true gdy w nazwie nie ma "$"
-    size_t pos=fileName.rfind('%'); //ostatni % w nazwie
-    if (pos!=std::string::npos)
-     if (pos<fileName.size())
-     {filter=(int)fileName[pos+1]-'0'; //zamiana cyfry za % na liczbê
-      if ((filter<0)||(filter>10)) filter=-1; //jeœli nie jest cyfr¹
-     }
-    if (!alpha&&!hash&&dollar&&(filter<0))
-     filter=Global::iDefaultFiltering; //dotyczy tekstur TGA bez kana³u alfa
-    GLuint id=CreateTexture(imageData,bytesPerPixel,width,height,alpha,hash,dollar,filter);
+ AlphaValue fail(0, false);
+ //GLubyte TGAheader[] = {0,0,2,0,0,0,0,0,0,0,0,0};	// Uncompressed TGA Header
+ GLubyte TGACompheader[] = {0,0,10,0,0,0,0,0,0,0,0,0}; // Uncompressed TGA Header
+ GLubyte TGAcompare[12]; // Used To Compare TGA Header
+ GLubyte header[6]; // First 6 Useful Bytes From The Header
+ std::ifstream file(fileName.c_str(),std::ios::binary);
+ file.read((char*)TGAcompare,sizeof(TGAcompare));
+ file.read((char*)header,sizeof(header));
+ std::cout << file.tellg() << std::endl;
+ if (file.eof())
+ {
+  file.close();
+  return fail;
+ };
+ bool compressed=(memcmp(TGACompheader,TGAcompare,sizeof(TGACompheader))==0);
+ GLuint width =header[1]*256+header[0]; // Determine The TGA width (highbyte*256+lowbyte)
+ GLuint height=header[3]*256+header[2]; // Determine The TGA height (highbyte*256+lowbyte)
+ // check if width, height and bpp is correct
+ if ( !width || !height || (header[4]!=24 && header[4]!=32))
+ {
+  file.close();
+  return fail;
+ };
+ GLuint bpp=header[4];	// Grab The TGA's Bits Per Pixel (24 or 32)
+ GLuint bytesPerPixel=bpp/8; // Divide By 8 To Get The Bytes Per Pixel
+ GLuint imageSize=width*height*bytesPerPixel; // Calculate The Memory Required For The TGA Data
+ GLubyte *imageData=new GLubyte[imageSize]; // Reserve Memory To Hold The TGA Data
+ if (!compressed)
+ {
+  file.read(imageData, imageSize);
+  if (file.eof())
+  {
+   delete[] imageData;
+   file.close();
+   return fail;
+  };
+  // Swap R and B components
+  GLuint temp;
+  for (GLuint i=0;i<imageSize;i+=bytesPerPixel)
+  {
+   temp          =imageData[i];
+   imageData[i]  =imageData[i+2];
+   imageData[i+2]=temp;
+  };
+ }
+ else
+ {//compressed TGA
+  GLuint pixelcount=height*width; // Nuber of pixels in the image
+  GLuint currentpixel=0; // Current pixel being read
+  GLuint currentbyte=0; // Current byte
+  GLubyte *colorbuffer=new GLubyte[bytesPerPixel]; // Storage for 1 pixel
+  while (currentpixel<pixelcount)
+  {
+   GLubyte chunkheader; // Storage for "chunk" header
+   file.read((char*)&chunkheader,sizeof(GLubyte));
+   if (file.eof())
+   {
+    MessageBox(NULL,"Could not read RLE header","ERROR",MB_OK); // Display Error
     delete[] imageData;
-    return std::make_pair(id, alpha);
+    file.close();
+    return fail;
+   };
+   if (chunkheader<128)
+   {// If the header is < 128, it means the that is the number of RAW color packets minus 1
+    chunkheader++; // add 1 to get number of following color values
+    for (int counter=0;counter<chunkheader;counter++) // Read RAW color values
+    {
+     file.read(colorbuffer, bytesPerPixel);
+     // Flip R and B vcolor values around in the process
+     imageData[currentbyte]  =colorbuffer[2];
+     imageData[currentbyte+1]=colorbuffer[1];
+     imageData[currentbyte+2]=colorbuffer[0];
+     if (bytesPerPixel==4)	// if its a 32 bpp image
+      imageData[currentbyte+3]=colorbuffer[3];// copy the 4th byte
+     currentbyte+=bytesPerPixel;
+     currentpixel++;
+    }
+   }
+   else
+   {// chunkheader > 128 RLE data, next color reapeated chunkheader - 127 times
+    chunkheader-=127;
+    file.read(colorbuffer,bytesPerPixel);
+    // copy the color into the image data as many times as dictated
+    for (int counter=0;counter<chunkheader;counter++)
+    {																			// by the header
+     imageData[currentbyte  ]=colorbuffer[2];// switch R and B bytes areound while copying
+     imageData[currentbyte+1]=colorbuffer[1];
+     imageData[currentbyte+2]=colorbuffer[0];
+     if (bytesPerPixel==4)												// If TGA images is 32 bpp
+      imageData[currentbyte+3]=colorbuffer[3];// Copy 4th byte
+     currentbyte+=bytesPerPixel;
+     currentpixel++;
+    }
+   }
+  };
+ };
+ file.close();
+ bool alpha = (bpp == 32);
+ bool hash = (fileName.find('#') != std::string::npos); //true gdy w nazwie jest "#"
+ bool dollar = (fileName.find('$') == std::string::npos); //true gdy w nazwie nie ma "$"
+ size_t pos=fileName.rfind('%'); //ostatni % w nazwie
+ if (pos!=std::string::npos)
+  if (pos<fileName.size())
+  {filter=(int)fileName[pos+1]-'0'; //zamiana cyfry za % na liczbê
+   if ((filter<0)||(filter>10)) filter=-1; //jeœli nie jest cyfr¹
+  }
+ if (!alpha&&!hash&&dollar&&(filter<0))
+  filter=Global::iDefaultFiltering; //dotyczy tekstur TGA bez kana³u alfa
+ //ewentualne przeskalowanie tekstury do dopuszczalnego rozumiaru
+ GLuint w=width,h=height;
+ if (width>Global::iMaxTextureSize) width=Global::iMaxTextureSize; //ogranizczenie wielkoœci
+ if (height>Global::iMaxTextureSize) height=Global::iMaxTextureSize;
+ if ((w!=width)||(h!=height))
+ {//przeskalowanie tekstury, ¿eby siê nie wyœwietla³a jako bia³a
+  GLubyte* imgData=new GLubyte[width*height*bytesPerPixel]; //nowy rozmiar
+  gluScaleImage(bytesPerPixel==3?GL_RGB:GL_RGBA,w,h,GL_UNSIGNED_BYTE,imageData,width,height,GL_UNSIGNED_BYTE,imgData);
+  delete imageData; //usuniêcie starego
+  imageData=imgData;
+ }
+ GLuint id=CreateTexture(imageData,bytesPerPixel,width,height,alpha,hash,dollar,filter);
+ delete[] imageData;
+ return std::make_pair(id,alpha);
 };
 
 TTexturesManager::AlphaValue TTexturesManager::LoadTEX(std::string fileName)
@@ -554,33 +565,28 @@ void TTexturesManager::SetFiltering(bool alpha, bool hash)
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-GLuint TTexturesManager::CreateTexture(char *buff,int bpp,int width,int Height,bool bHasAlpha,bool bHash,bool bDollar,int filter)
+GLuint TTexturesManager::CreateTexture(char* buff,int bpp,int width,int height,bool bHasAlpha,bool bHash,bool bDollar,int filter)
 {
-
-    GLuint ID;
-    glGenTextures(1,&ID);
-    glBindTexture(GL_TEXTURE_2D, ID);
-    glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-    if (filter>=0)
-     SetFiltering(filter); //cyfra po % w nazwie
-    else
-     SetFiltering(bHasAlpha&&bDollar,bHash); //znaki #, $ i kana³ alfa w nazwie
-
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-    glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
-    glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
-
-    if (bHasAlpha || bHash || (filter==0))
-     glTexImage2D(GL_TEXTURE_2D, 0, ( bHasAlpha ? GL_RGBA : GL_RGB ), width, Height, 0,
-      ( bHasAlpha ? GL_RGBA : GL_RGB ), GL_UNSIGNED_BYTE, buff);
-    else
-     gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGB, width, Height,
-      GL_RGB, GL_UNSIGNED_BYTE, buff);
-
-    return ID;
+ //Ra: dodaæ obs³ugê GL_BGR oraz GL_BGRA dla TGA - bêdzie siê szybciej wczytywaæ
+ GLuint ID;
+ glGenTextures(1,&ID);
+ glBindTexture(GL_TEXTURE_2D,ID);
+ glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
+ glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
+ if (filter>=0)
+  SetFiltering(filter); //cyfra po % w nazwie
+ else
+  SetFiltering(bHasAlpha&&bDollar,bHash); //znaki #, $ i kana³ alfa w nazwie
+ glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+ glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+ glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
+ glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
+ if (bHasAlpha || bHash || (filter==0))
+  glTexImage2D(GL_TEXTURE_2D,0,(bHasAlpha?GL_RGBA:GL_RGB),width,height,0,
+   (bHasAlpha?GL_RGBA:GL_RGB),GL_UNSIGNED_BYTE,buff);
+ else
+  gluBuild2DMipmaps(GL_TEXTURE_2D,GL_RGB,width,height,GL_RGB,GL_UNSIGNED_BYTE,buff);
+ return ID;
 }
 
 void TTexturesManager::Free()

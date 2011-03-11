@@ -188,6 +188,7 @@ public:
  static int iCameraLast;
  static AnsiString asVersion; 
  static int iViewMode; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
+ static GLint iMaxTextureSize; //maksymalny rozmiar tekstury
 };
 
 //---------------------------------------------------------------------------
