@@ -1643,35 +1643,35 @@ bool __fastcall TGround::Init(AnsiString asFile)
         else
         if (str==AnsiString("trainset"))
         {
-            iTrainSetWehicleNumber= 0;
-            TrainSetNode= NULL;
-            bTrainSet= true;
-            parser.getTokens();
-            parser >> token;
-            asTrainName= AnsiString(token.c_str());  //McZapkie: rodzaj+nazwa pociagu w SRJP
-            parser.getTokens();
-            parser >> token;
-            asTrainSetTrack= AnsiString(token.c_str()); //œcie¿ka startowa
-            parser.getTokens(2);
-            parser >> fTrainSetDist >> fTrainSetVel; //przesuniêcie i prêdkoœæ
+         iTrainSetWehicleNumber=0;
+         TrainSetNode=NULL;
+         bTrainSet=true;
+         parser.getTokens();
+         parser >> token;
+         asTrainName=AnsiString(token.c_str());  //McZapkie: rodzaj+nazwa pociagu w SRJP
+         parser.getTokens();
+         parser >> token;
+         asTrainSetTrack=AnsiString(token.c_str()); //œcie¿ka startowa
+         parser.getTokens(2);
+         parser >> fTrainSetDist >> fTrainSetVel; //przesuniêcie i prêdkoœæ
         }
         else
         if (str==AnsiString("endtrainset"))
-        {
-//McZapkie-110103: sygnaly konca pociagu ale tylko dla pociagow rozkladowych
-            if (asTrainName!=AnsiString("none"))
-            {//gdy podana nazwa, w³¹czenie jazdy poci¹gowej
-              if((TrainSetNode->DynamicObject->EndSignalsLight1Active())
-               ||(TrainSetNode->DynamicObject->EndSignalsLight1oldActive()))
-                TrainSetNode->DynamicObject->MoverParameters->HeadSignalsFlag=2+32;
-              else
-                TrainSetNode->DynamicObject->MoverParameters->EndSignalsFlag=64;
-            }
-            bTrainSet= false;
-            fTrainSetVel= 0;
-//            iTrainSetConnection= 0;
-            TrainSetNode= NULL;
-            iTrainSetWehicleNumber= 0;
+        {//McZapkie-110103: sygnaly konca pociagu ale tylko dla pociagow rozkladowych
+         if (asTrainName!=AnsiString("none"))
+          if (TrainSetNode) //trainset bez dynamic siê sypa³
+          {//gdy podana nazwa, w³¹czenie jazdy poci¹gowej
+           if((TrainSetNode->DynamicObject->EndSignalsLight1Active())
+            ||(TrainSetNode->DynamicObject->EndSignalsLight1oldActive()))
+            TrainSetNode->DynamicObject->MoverParameters->HeadSignalsFlag=2+32;
+           else
+            TrainSetNode->DynamicObject->MoverParameters->EndSignalsFlag=64;
+          }
+         bTrainSet=false;
+         fTrainSetVel=0;
+         //iTrainSetConnection=0;
+         TrainSetNode=NULL;
+         iTrainSetWehicleNumber=0;
         }
         else
         if (str==AnsiString("event"))
