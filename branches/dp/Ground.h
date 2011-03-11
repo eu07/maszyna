@@ -168,6 +168,7 @@ public:
  TGroundNode *pRender;      //z w³asnych VBO - nieprzezroczyste
  TGroundNode *pRenderMixed; //z w³asnych VBO - nieprzezroczyste i przezroczyste
  TGroundNode *pRenderAlpha; //z w³asnych VBO - przezroczyste
+ TGroundNode *pRenderWires; //z w³asnych VBO - druty
  void __fastcall LoadNodes();
 public:
  __fastcall TSubRect();
@@ -339,6 +340,8 @@ private:
 
     TEvent *RootEvent; //lista zdarzeñ
     TEvent *QueryRootEvent,*tmpEvent,*tmp2Event,*OldQRE;
+    TSubRect *pRendered[16*iNumSubRects*iNumSubRects+8*iNumSubRects+1]; //lista renderowanych sektorów
+    int iRendered;
 
     void __fastcall OpenGLUpdate(HDC hDC);
 //    TWorld World;
