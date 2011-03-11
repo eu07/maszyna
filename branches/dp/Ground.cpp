@@ -3114,13 +3114,13 @@ bool __fastcall TGround::Render(vector3 pPosition)
  {k=iRange[j<0?-j:j]; //zasiêg na danym poziomie
   for (i=-k;i<=k;i++)
   {
-   Rects[(i+c)/iNumSubRects][(j+r)/iNumSubRects].Render(); //kwadrat kilometrowy zawsze
    direction=vector3(i,0,j);
    if (LengthSquared3(direction)>4)
    {direction=SafeNormalize(direction);
     if (CameraDirection.x*direction.x+CameraDirection.z*direction.z<0.55)
      continue; //pomijanie zbêdnych sektorów
    }
+   Rects[(i+c)/iNumSubRects][(j+r)/iNumSubRects].Render(); //kwadrat kilometrowy nie zawsze, bo szkoda FPS
    if ((tmp=FastGetSubRect(i+c,j+r))!=NULL)
     pRendered[iRendered++]=tmp; //tworzenie listy sektorów do renderowania
   }

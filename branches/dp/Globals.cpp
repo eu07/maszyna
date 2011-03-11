@@ -98,8 +98,9 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 bool Global::bMultiplayer=false; //blokada dzia³ania niektórych eventów na rzecz kominikacji
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asVersion="Compilation 2011-03-11, release 1.3.85.123."; //tutaj, bo wysy³any
-int Global::iViewMode; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
+AnsiString Global::asVersion="Compilation 2011-03-12, release 1.3.86.124."; //tutaj, bo wysy³any
+int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
+GLint Global::iMaxTextureSize=4096;//maksymalny rozmiar tekstury
 
 void __fastcall Global::LoadIniFile(AnsiString asFileName)
 {

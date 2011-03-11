@@ -122,7 +122,7 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
  try {Global::fOpenGL=glver.ToDouble();} catch (...) {Global::fOpenGL=0.0;}
  Global::bOpenGL_1_5=(Global::fOpenGL>=1.5);
 
- WriteLog("Supported Extensions:");
+ WriteLog("Supported extensions:");
  WriteLog((char*)glGetString(GL_EXTENSIONS));
  if (glewGetExtension("GL_ARB_vertex_buffer_object")) //czy jest VBO w karcie graficznej
  {WriteLog("Ra: mo¿na u¿yæ VBO.");
@@ -133,6 +133,8 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
  else
   WriteLog("Ra: VBO nie znalezione.");
 
+ glGetIntegerv(GL_MAX_TEXTURE_SIZE,&Global::iMaxTextureSize);
+ WriteLog("Max texture size: "+AnsiString(Global::iMaxTextureSize));
 /*-----------------------Render Initialization----------------------*/
         glTexEnvf(TEXTURE_FILTER_CONTROL_EXT,TEXTURE_LOD_BIAS_EXT,-1);
         GLfloat  FogColor[]    = { 1.0f,  1.0f, 1.0f, 1.0f };
