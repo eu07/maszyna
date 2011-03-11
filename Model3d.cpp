@@ -714,17 +714,15 @@ void __fastcall TSubModel::RaRenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
    }
    else
     glBindTexture(GL_TEXTURE_2D,TextureID);
-   if (TexAlpha && Global::bRenderAlpha)  //mozna rysowac bo przezroczyste i nie ma #
-   {
-    glMaterialfv(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE,f4Diffuse);
-    if (Global::fLuminance<fLight)
-    {glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
-     glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie trójk¹ty z VBO
-     glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
-    }
-    else
-     glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie trójk¹ty z VBO
+   //jak przezroczyste s¹ wy³¹czone, to tu w ogóle nie wchodzi
+   glMaterialfv(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE,f4Diffuse);
+   if (Global::fLuminance<fLight)
+   {glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
+    glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie trójk¹ty z VBO
+    glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
    }
+   else
+    glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie trójk¹ty z VBO
   }
   else if (eType==smt_FreeSpotLight)
   {
@@ -883,14 +881,14 @@ void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
     }
    else
     glBindTexture(GL_TEXTURE_2D, TextureID);
-   if (TexAlpha && Global::bRenderAlpha)  //mozna rysowac bo przezroczyste i nie ma #
-    if (Global::fLuminance<fLight)
-    {glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
-     glCallList(uiDisplayList); //tylko dla siatki
-     glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
-    }
-    else
-     glCallList(uiDisplayList); //tylko dla siatki
+   //jak przezroczyste s¹ wy³¹czone, to tu w ogóle nie wchodzi
+   if (Global::fLuminance<fLight)
+   {glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
+    glCallList(uiDisplayList); //tylko dla siatki
+    glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
+   }
+   else
+    glCallList(uiDisplayList); //tylko dla siatki
   }
   if (Child!=NULL)
    if (bAlpha?(iFlags&0x00050000):(iFlags&0x00040000))

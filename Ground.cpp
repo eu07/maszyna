@@ -381,7 +381,7 @@ void __fastcall TGroundNode::RaRenderAlpha()
  switch (iType)
  {
   case TP_TRACTION:
-   if (Global::bRenderAlpha && bVisible)
+   if (bVisible)
     Traction->RaRenderVBO(mgn,iVboPtr);
    return;
   case TP_MODEL:
@@ -414,7 +414,7 @@ void __fastcall TGroundNode::RaRenderAlpha()
 __fastcall TSubRect::TSubRect()
 {
  pRootNode=NULL; //lista wszystkich obiektów jest pusta
- pRenderHidden=pRenderVBO=pRenderAlphaVBO=pRender=pRenderMixed=pRenderAlpha=NULL;
+ pRenderHidden=pRenderVBO=pRenderAlphaVBO=pRender=pRenderMixed=pRenderAlpha=pRenderWires=NULL;
  pTrackAnim=NULL; //nic nie animujemy
  pTriGroup=NULL;
 }
@@ -431,6 +431,7 @@ void __fastcall TSubRect::AddNode(TGroundNode *Node)
  //pRenderAlphaVBO - lista grup renderowanych ze wsp³nego VBO z przezroczystoœci¹
  //pRender         - lista grup renderowanych z w³asnych VBO albo DL
  //pRenderAlpha    - lista grup renderowanych z w³asnych VBO z przezroczystoœci¹ albo DL
+ //pRenderWires    - lista grup renderowanych z w³asnych VBO - druty
  switch (Node->iType)
  {case TP_SOUND: //te obiekty s¹ sprawdzanie niezale¿nie od kierunku patrzenia
   case TP_EVLAUNCH:
@@ -479,10 +480,8 @@ void __fastcall TSubRect::AddNode(TGroundNode *Node)
   case GL_LINES:
   case GL_LINE_STRIP:
   case GL_LINE_LOOP: //te na koñcu, ¿eby nie ³apa³y koloru nieba
-   if (Global::bUseVBO)
-   {Node->pNext3=pRenderAlphaVBO; pRenderAlphaVBO=Node;}
-   else
-   {Node->pNext3=pRenderAlpha; pRenderAlpha=Node;} //DL: do przezroczystych
+   //if (Global::bUseVBO)
+   Node->pNext3=pRenderWires; pRenderWires=Node; //lista drutów
    break;
   case TP_MODEL: //modle zawsze wyœwietlane z w³asnego VBO
    if ((Node->iFlags&0x04040004)==0) //czy brak przezroczystoœci?
@@ -785,8 +784,8 @@ void __fastcall TGroundNode::RenderAlpha()
  };
 
  // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
- if(
-     (iNumVerts && Global::bRenderAlpha && (iFlags&4)) ||
+ if (
+     (iNumVerts && (iFlags&4)) ||
      (iNumPts && (Global::bRenderAlpha || fLineThickness > 0)))
  {
 
@@ -3107,6 +3106,7 @@ bool __fastcall TGround::Render(vector3 pPosition)
      node->RenderHidden();
    }
  //renderowanie progresywne - zale¿ne od FPS oraz kierunku patrzenia
+ iRendered=0; //iloœæ renderowanych sektorów
  vector3 direction;
  iRange=Global::slowmotion?AreaSlow:AreaFast;
  n=(iRange[0]*n)/10; //tak dla zasady - 10 albo 7
@@ -3114,22 +3114,25 @@ bool __fastcall TGround::Render(vector3 pPosition)
  {k=iRange[j<0?-j:j]; //zasiêg na danym poziomie
   for (i=-k;i<=k;i++)
   {
+   Rects[(i+c)/iNumSubRects][(j+r)/iNumSubRects].Render(); //kwadrat kilometrowy zawsze
    direction=vector3(i,0,j);
    if (LengthSquared3(direction)>4)
    {direction=SafeNormalize(direction);
     if (CameraDirection.x*direction.x+CameraDirection.z*direction.z<0.55)
      continue; //pomijanie zbêdnych sektorów
    }
-   Rects[(i+c)/iNumSubRects][(j+r)/iNumSubRects].Render();
    if ((tmp=FastGetSubRect(i+c,j+r))!=NULL)
-   {
-    tmp->RaAnimate(); //przeliczenia animacji torów w sektorze
-    for (node=tmp->pRender;node!=NULL;node=node->pNext3)
-     node->Render(); //nieprzezroczyste obiekty (pojazdy z automatu)
-    for (node=tmp->pRenderMixed;node!=NULL;node=node->pNext3)
-     node->Render(); //nieprzezroczyste z mieszanych modeli
-   }
+    pRendered[iRendered++]=tmp; //tworzenie listy sektorów do renderowania
   }
+ }
+ for (i=0;i<iRendered;i++)
+ {//renderowanie ju¿ bez sprawdzania poszczególnych sektorów
+  tmp=pRendered[i];
+  tmp->RaAnimate(); //przeliczenia animacji torów w sektorze
+  for (node=tmp->pRender;node!=NULL;node=node->pNext3)
+   node->Render(); //nieprzezroczyste obiekty (pojazdy z automatu)
+  for (node=tmp->pRenderMixed;node!=NULL;node=node->pNext3)
+   node->Render(); //nieprzezroczyste z mieszanych modeli
  }
  return true;
 }
@@ -3138,54 +3141,28 @@ bool __fastcall TGround::RenderAlpha(vector3 pPosition)
 {//renderowanie scenerii z Display List - faza przezroczystych
  TGroundNode *node;
  glColor4f(1.0f,1.0f,1.0f,1.0f);
- int n=2*iNumSubRects; //iloœæ sektorów mapy do wyœwietlenia
- int c=GetColFromX(pPosition.x);
- int r=GetRowFromZ(pPosition.z);
  TSubRect *tmp;
- vector3 direction;
  //Ra: renderowanie progresywne - zale¿ne od FPS oraz kierunku patrzenia
- int i,j,k;
- n=(iRange[0]*n)/10; //tak dla zasady - 10 albo 7
- for (j=-n;j<=n;j++)
- {k=iRange[j<0?-j:j]; //zasiêg na danym poziomie
-  for (i=-k;i<=k;i++)
-  {
-   direction=vector3(i,0,j);
-   if (LengthSquared3(direction)>4)
-   {direction=SafeNormalize(direction);
-    if (CameraDirection.x*direction.x+CameraDirection.z*direction.z<0.55)
-     continue; //pomijanie zbêdnych sektorów
-   }
-   if ((tmp=FastGetSubRect(i+c,j+r))!=NULL)
-   {
-    for (node=tmp->pRenderMixed;node!=NULL;node=node->pNext3)
-     node->RenderAlpha(); //przezroczyste z mieszanych modeli
-    for (node=tmp->pRenderAlpha;node!=NULL;node=node->pNext3)
-     if (node->iType!=TP_TRACTION) //druty na koñcu
-      node->RenderAlpha(); //przezroczyste modele
-    for (node=tmp->pRender;node!=NULL;node=node->pNext3)
-     if (node->iType==TP_TRACK)
-      node->pTrack->RenderAlpha(); //pojazdy na torach
-   }
-  }
+ int i;
+ for (i=0;i<iRendered;i++)
+ {//renderowanie ju¿ bez sprawdzania poszczególnych sektorów
+  tmp=pRendered[i];
+  for (node=tmp->pRenderMixed;node!=NULL;node=node->pNext3)
+   node->RenderAlpha(); //przezroczyste z mieszanych modeli
+  for (node=tmp->pRenderAlpha;node!=NULL;node=node->pNext3)
+   //if (node->iType!=TP_TRACTION) //druty na koñcu
+    node->RenderAlpha(); //przezroczyste modele
+  for (node=tmp->pRender;node!=NULL;node=node->pNext3)
+   if (node->iType==TP_TRACK)
+    node->pTrack->RenderAlpha(); //przezroczyste fragmenty pojazdów na torach
  }
- //test: druty na koñcu, ¿eby siê nie robi³y bia³e plamy na tle lasu
- //jeœli zadzia³a, to wydzieliæ druty do osobnego ³añcucha
- for (j=-n;j<=n;j++)
- {k=iRange[j<0?-j:j]; //zasiêg na danym poziomie
-  for (i=-k;i<=k;i++)
-  {
-   direction=vector3(i,0,j);
-   if (LengthSquared3(direction)>4)
-   {direction=SafeNormalize(direction);
-    if (CameraDirection.x*direction.x+CameraDirection.z*direction.z<0.55)
-     continue; //pomijanie zbêdnych sektorów
-   }
-   if ((tmp=FastGetSubRect(i+c,j+r))!=NULL)
-    for (node=tmp->pRenderAlpha;node!=NULL;node=node->pNext3)
-     if (node->iType==TP_TRACTION)
-      node->RenderAlpha(); //przezroczyste modele
-  }
+ //druty na koñcu, ¿eby siê nie robi³y bia³e plamy na tle lasu
+ for (i=0;i<iRendered;i++)
+ {//renderowanie ju¿ bez sprawdzania poszczególnych sektorów
+  tmp=pRendered[i];
+  for (node=tmp->pRenderWires;node!=NULL;node=node->pNext3)
+   //if (node->iType==TP_TRACTION)
+   node->RenderAlpha(); //przezroczyste modele
  }
  return true;
 }
