@@ -237,13 +237,14 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName,int 
  GLubyte *imageData=new GLubyte[imageSize]; // Reserve Memory To Hold The TGA Data
  if (!compressed)
  {
-  file.read(imageData, imageSize);
+  file.read(imageData,imageSize);
   if (file.eof())
   {
    delete[] imageData;
    file.close();
    return fail;
   };
+/* Ra: nie potrzeba tego robiæ, mo¿na zamieniæ przy tworzeniu tekstury
   // Swap R and B components
   GLuint temp;
   for (GLuint i=0;i<imageSize;i+=bytesPerPixel)
@@ -252,6 +253,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName,int 
    imageData[i]  =imageData[i+2];
    imageData[i+2]=temp;
   };
+*/
  }
  else
  {//compressed TGA
@@ -273,9 +275,10 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName,int 
    if (chunkheader<128)
    {// If the header is < 128, it means the that is the number of RAW color packets minus 1
     chunkheader++; // add 1 to get number of following color values
+    /* Ra: nie potrzeba zamieniaæ, mo¿na daæ informacjê przy tworzeniu tekstury
     for (int counter=0;counter<chunkheader;counter++) // Read RAW color values
     {
-     file.read(colorbuffer, bytesPerPixel);
+     file.read(colorbuffer,bytesPerPixel);
      // Flip R and B vcolor values around in the process
      imageData[currentbyte]  =colorbuffer[2];
      imageData[currentbyte+1]=colorbuffer[1];
@@ -285,6 +288,9 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName,int 
      currentbyte+=bytesPerPixel;
      currentpixel++;
     }
+    */
+    file.read(imageData+currentbyte,chunkheader*bytesPerPixel);
+    currentbyte+=chunkheader*bytesPerPixel;
    }
    else
    {// chunkheader > 128 RLE data, next color reapeated chunkheader - 127 times
@@ -293,15 +299,18 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName,int 
     // copy the color into the image data as many times as dictated
     for (int counter=0;counter<chunkheader;counter++)
     {																			// by the header
-     imageData[currentbyte  ]=colorbuffer[2];// switch R and B bytes areound while copying
+     memcpy(imageData+currentbyte,colorbuffer,bytesPerPixel);
+     /*
+     imageData[currentbyte  ]=colorbuffer[0];
      imageData[currentbyte+1]=colorbuffer[1];
-     imageData[currentbyte+2]=colorbuffer[0];
+     imageData[currentbyte+2]=colorbuffer[2];
      if (bytesPerPixel==4)												// If TGA images is 32 bpp
       imageData[currentbyte+3]=colorbuffer[3];// Copy 4th byte
+     */
      currentbyte+=bytesPerPixel;
-     currentpixel++;
     }
    }
+   currentpixel+=chunkheader;
   };
  };
  file.close();
@@ -327,7 +336,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName,int 
   delete imageData; //usuniêcie starego
   imageData=imgData;
  }
- GLuint id=CreateTexture(imageData,bytesPerPixel,width,height,alpha,hash,dollar,filter);
+ GLuint id=CreateTexture(imageData,(alpha?GL_BGRA:GL_BGR),width,height,alpha,hash,dollar,filter);
  delete[] imageData;
  return std::make_pair(id,alpha);
 };
@@ -375,7 +384,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTEX(std::string fileName)
 
     bool hash = (fileName.find('#') != std::string::npos);
 
-    GLuint id = CreateTexture(data, bpp, width, height, alpha, hash);
+    GLuint id = CreateTexture(data,(alpha?GL_RGBA:GL_RGB),width,height,alpha,hash);
     delete[] data;
 
     return std::make_pair(id, alpha);
@@ -565,8 +574,8 @@ void TTexturesManager::SetFiltering(bool alpha, bool hash)
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-GLuint TTexturesManager::CreateTexture(char* buff,int bpp,int width,int height,bool bHasAlpha,bool bHash,bool bDollar,int filter)
-{
+GLuint TTexturesManager::CreateTexture(char* buff,GLint bpp,int width,int height,bool bHasAlpha,bool bHash,bool bDollar,int filter)
+{//Ra: u¿ywane tylko dla TGA i TEX
  //Ra: dodaæ obs³ugê GL_BGR oraz GL_BGRA dla TGA - bêdzie siê szybciej wczytywaæ
  GLuint ID;
  glGenTextures(1,&ID);
@@ -582,10 +591,9 @@ GLuint TTexturesManager::CreateTexture(char* buff,int bpp,int width,int height,b
  glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
  glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
  if (bHasAlpha || bHash || (filter==0))
-  glTexImage2D(GL_TEXTURE_2D,0,(bHasAlpha?GL_RGBA:GL_RGB),width,height,0,
-   (bHasAlpha?GL_RGBA:GL_RGB),GL_UNSIGNED_BYTE,buff);
+  glTexImage2D(GL_TEXTURE_2D,0,(bHasAlpha?GL_RGBA:GL_RGB),width,height,0,bpp,GL_UNSIGNED_BYTE,buff);
  else
-  gluBuild2DMipmaps(GL_TEXTURE_2D,GL_RGB,width,height,GL_RGB,GL_UNSIGNED_BYTE,buff);
+  gluBuild2DMipmaps(GL_TEXTURE_2D,GL_RGB,width,height,bpp,GL_UNSIGNED_BYTE,buff);
  return ID;
 }
 
