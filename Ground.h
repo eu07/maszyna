@@ -163,12 +163,12 @@ private:
 public:
  TGroundNode *pRootNode; //lista wszystkich obiektów w sektorze
  TGroundNode *pRenderHidden; //lista obiektów niewidocznych, "renderowanych" równie¿ z ty³u
- TGroundNode *pRenderVBO;      //lista grup renderowanych ze wspólnego VBO
- TGroundNode *pRenderAlphaVBO; //lista grup renderowanych ze wspólnego VBO
+ TGroundNode *pRenderRect;      //lista grup renderowanych z poziomu sektora
+ TGroundNode *pRenderRectAlpha; //lista grup renderowanych z poziomu sektora
+ TGroundNode *pRenderWires; //z poziomu sektora - druty
  TGroundNode *pRender;      //z w³asnych VBO - nieprzezroczyste
  TGroundNode *pRenderMixed; //z w³asnych VBO - nieprzezroczyste i przezroczyste
  TGroundNode *pRenderAlpha; //z w³asnych VBO - przezroczyste
- TGroundNode *pRenderWires; //z w³asnych VBO - druty
  void __fastcall LoadNodes();
 public:
  __fastcall TSubRect();
@@ -341,8 +341,7 @@ private:
 
     TEvent *RootEvent; //lista zdarzeñ
     TEvent *QueryRootEvent,*tmpEvent,*tmp2Event,*OldQRE;
-    TSubRect *pRendered[16*iNumSubRects*iNumSubRects+8*iNumSubRects+1]; //lista renderowanych sektorów
-    int iRendered;
+ TSubRect *pRendered[16*iNumSubRects*iNumSubRects+8*iNumSubRects+1]; //lista renderowanych sektorów
 
     void __fastcall OpenGLUpdate(HDC hDC);
 //    TWorld World;
@@ -350,11 +349,12 @@ private:
     int iNumNodes;
     vector3 pOrigin;
     vector3 aRotate;
-    bool bInitDone;
-    void __fastcall RaTriangleDivider(TGroundNode* node);
+ bool bInitDone;
+ void __fastcall RaTriangleDivider(TGroundNode* node);
  void __fastcall Navigate(String ClassName,UINT Msg,WPARAM wParam,LPARAM lParam);
  void __fastcall WyslijEvent(const AnsiString &e,const AnsiString &d);
 public:
+ int iRendered; //iloœæ renderowanych sektorów
  void __fastcall WyslijString(const AnsiString &t,int n);
  void __fastcall WyslijWolny(const AnsiString &t);
 };

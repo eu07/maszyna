@@ -68,39 +68,43 @@ cParser::~cParser() {
 // methods
 bool cParser::getTokens( int Count, bool ToLower, const char* Break )
 {
-                 if (LoadTraction==true)
-                  trtest = "niemaproblema";
-                  else
-                  trtest = "x";
-        int i;
-	this->str(""); this->clear();
-	for(i = 0; i < Count; ++i )
-               {
-		std::string string = readToken( ToLower, Break, trtest );
-		// collect parameters
-		if( i == 0 )
-			this->str( string );
-		else {
-			std::string temp = this->str();
-			temp.append( "\n" );
-			temp.append( string );
-			this->str( temp );
-		}
-	}
-	if( i < Count )
-		return false;
-	else
-		return true;
+/*
+ if (LoadTraction==true)
+  trtest="niemaproblema"; //wczytywaæ
+ else
+  trtest="x"; //nie wczytywaæ
+*/
+ int i;
+ this->str("");
+ this->clear();
+ for (i=0;i<Count;++i)
+ {
+  std::string string=readToken(ToLower,Break);
+  // collect parameters
+  if (i==0)
+   this->str(string);
+  else
+  {
+   std::string temp=this->str();
+   temp.append("\n");
+   temp.append(string);
+   this->str(temp);
+  }
+ }
+ if (i<Count)
+ 	return false;
+ else
+ 	return true;
 }
 
-std::string cParser::readToken( bool ToLower, const char* Break, std::string trtest )
+std::string cParser::readToken(bool ToLower,const char* Break)
 {
- std::string token = "";
+ std::string token="";
  size_t pos; //pocz¹tek podmienianego ci¹gu
  // see if there's include parsing going on. clean up when it's done.
- if( mIncludeParser )
+ if (mIncludeParser)
  {
-  token=(*mIncludeParser).readToken(ToLower,Break,trtest);
+  token=(*mIncludeParser).readToken(ToLower,Break);
   if (!token.empty())
   {pos=token.find("(p");
    // check if the token is a parameter which should be replaced with stored true value
@@ -118,41 +122,45 @@ std::string cParser::readToken( bool ToLower, const char* Break, std::string trt
   }
   else
   {delete mIncludeParser;
-  	mIncludeParser = NULL;
-  	parameters.clear();
+   mIncludeParser = NULL;
+   parameters.clear();
   }
  }
-
  // get the token yourself if there's no child to delegate it to.
  char c;
  do
  {while (mStream->peek()!=EOF&& strchr( Break, c = mStream->get() ) == NULL)
   {
- 	 if (ToLower)
- 	 	c=tolower(c);
- 	 token+=c;
- 	 if (trimComments(token))			// don't glue together words separated with comment
- 	 	break;
- 	}
+   if (ToLower) c=tolower(c);
+   token+=c;
+   if (trimComments(token))			// don't glue together words separated with comment
+    break;
+  }
  } while (token=="" && mStream->peek()!=EOF);	// double check to deal with trailing spaces
 
  // launch child parser if include directive found.
  // NOTE: parameter collecting uses default set of token separators.
  if (token.compare("include")==0)
- {
- 	  std::string includefile = readToken( ToLower );
-                 std::string trtest2 = "niemaproblema";
-                 if (trtest=="x")
-                 trtest2 = includefile;
- 	 std::string parameter = readToken( ToLower );
- 	 while( parameter.compare( "end" ) != 0 ) {
- 	 	parameters.push_back( parameter );
- 	 	parameter = readToken( ToLower );
- 	 }
- 	 if (trtest2.find("tr/")!=0)
-                  mIncludeParser = new cParser( includefile, buffer_FILE, mPath );
-
- 	 token = readToken( ToLower, Break, trtest );
+ {//obs³uga include
+  std::string includefile=readToken(ToLower); //nazwa pliku
+  if (LoadTraction?true:(includefile.find("tr/")!=0)||(includefile.find("tra/")!=0))
+  {
+   //std::string trtest2="niemaproblema"; //nazwa odporna na znalezienie "tr/"
+   //if (trtest=="x") //jeœli nie wczytywaæ drutów
+   //trtest2=includefile; //kopiowanie œcie¿ki do pliku
+   std::string parameter=readToken(ToLower);
+   while (parameter.compare("end")!=0)
+   {
+    parameters.push_back(parameter);
+    parameter=readToken(ToLower);
+   }
+   //if (trtest2.find("tr/")!=0)
+   mIncludeParser=new cParser(includefile,buffer_FILE,mPath);
+  }
+  else
+   while (token.compare("end")!=0)
+    token=readToken(ToLower);
+  token=readToken(ToLower,Break);
  }
  return token;
 }

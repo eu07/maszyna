@@ -868,10 +868,12 @@ bool __fastcall TWorld::Update()
        {Global::slowmotion=false;};*/
 
     if (Pressed(VK_F8))
-       {
-          OutText1= "  FPS: ";
-          OutText1+= FloatToStrF(GetFPS(),ffFixed,6,2);
-       }
+    {
+     OutText1="  FPS: ";
+     OutText1+=FloatToStrF(GetFPS(),ffFixed,6,2);
+     OutText1+=", sectors: ";
+     OutText1+=AnsiString(Ground.iRendered);
+    }
 
     //if (Pressed(VK_F7))
     //{

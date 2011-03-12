@@ -47,7 +47,7 @@ public:
 
 protected:
 // methods:
-	std::string readToken( bool ToLower = true, const char* Break = "\n\t ,;", std::string trtest = "niemaproblema");
+	std::string readToken( bool ToLower = true, const char* Break = "\n\t ,;");
 	std::string readComment( const std::string Break = "\n\t ,;" );
 	std::string trtest;
 	bool trimComments( std::string& String );

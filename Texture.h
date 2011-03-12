@@ -33,7 +33,7 @@ private:
 
     static void SetFiltering(int filter);
     static void SetFiltering(bool alpha, bool hash);
-    static GLuint CreateTexture(char *buff, int bpp, int width, int Height, bool bHasAlpha, bool bHash, bool bDollar=true,int filter=-1);
+    static GLuint CreateTexture(char *buff,GLint bpp,int width,int height,bool bHasAlpha,bool bHash,bool bDollar=true,int filter=-1);
 
     static Names _names;
     static Alphas _alphas;
