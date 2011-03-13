@@ -232,7 +232,7 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
         parser.getToken(fWireSize);
 
         parser.ignoreToken();
-        Transparency = readIntAsDouble(parser, 100.0f);
+        Transparency=readIntAsDouble(parser,100.0f);
 
         if (!parser.expectToken("map:"))
             Error("Model map parse failure!");
@@ -242,7 +242,7 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
 
         if (texture=="none")
         {
-         TextureID= 0;
+         TextureID=0;
          iFlags|=2; //rysowane w cyklu nieprzezroczystych
         }
         else
@@ -250,17 +250,17 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
 // McZapkie-060702: zmienialne skory modelu
          if (texture.find("replacableskin")!=texture.npos)
          {
-             TextureID= -1;
-             iFlags|=1; //zmienna tekstura
+          TextureID= -1;
+          iFlags|=1; //zmienna tekstura
          }
          else
          {
           //jesli tylko nazwa pliku to dawac biezaca sciezke do tekstur
-          if(texture.find_first_of("/\\") == texture.npos)
-              texture.insert(0, Global::asCurrentTexturePath.c_str());
+          if (texture.find_first_of("/\\") == texture.npos)
+           texture.insert(0,Global::asCurrentTexturePath.c_str());
 
-          TextureID= TTexturesManager::GetTextureID(texture);
-          TexAlpha= TTexturesManager::GetAlpha(TextureID);
+          TextureID=TTexturesManager::GetTextureID(texture);
+          TexAlpha=TTexturesManager::GetAlpha(TextureID);
           iFlags|=TexAlpha?4:2; //2-nieprzezroczysta, 4-przezroczysta
          };
         };
@@ -941,7 +941,7 @@ __fastcall TModel3d::TModel3d()
  iFlags=0;
 //    ReplacableSkinID = 0;
 };
-
+/*
 __fastcall TModel3d::TModel3d(char *FileName)
 {
 //    Root= NULL;
@@ -952,7 +952,7 @@ __fastcall TModel3d::TModel3d(char *FileName)
  iFlags=0;
  LoadFromFile(FileName);
 };
-
+*/
 __fastcall TModel3d::~TModel3d()
 {
     SafeDelete(Root);
@@ -999,7 +999,7 @@ TMaterial* __fastcall TModel3d::GetMaterialFromName(char *sName)
 void __fastcall TModel3d::LoadFromTextFile(char *FileName)
 {
  WriteLog("Loading - text model: "+AnsiString(FileName));
- cParser parser(FileName,cParser::buffer_FILE);
+ cParser parser(FileName,cParser::buffer_FILE); //Ra: tu powinno byæ "models\\"...
  TSubModel *SubModel;
  std::string token;
  parser.getToken(token);

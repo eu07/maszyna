@@ -3033,209 +3033,207 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString Ty
 //    DecimalSeparator= '.';
     while (!Parser->EndOfFile && !Stop_InternalData)
     {
-        str= Parser->GetNextSymbol().LowerCase();
+        str=Parser->GetNextSymbol().LowerCase();
         if (str==AnsiString("models:"))                            //modele i podmodele
         {
           asModel=Parser->GetNextSymbol().LowerCase();
           asModel= BaseDir+asModel; //McZapkie-200702 - dynamics maja swoje modele w dynamics/basedir
-          Global::asCurrentTexturePath= BaseDir;                    //biezaca sciezka do tekstur to dynamic/...
-          mdModel= TModelsManager::GetModel(asModel.c_str());
+          Global::asCurrentTexturePath=BaseDir;                    //biezaca sciezka do tekstur to dynamic/...
+          mdModel=TModelsManager::GetModel(asModel.c_str());
           if (ReplacableSkin!=AnsiString("none"))
-           {
-             ReplacableSkin=Global::asCurrentTexturePath+ReplacableSkin;      //skory tez z dynamic/...
-             ReplacableSkinID= TTexturesManager::GetTextureID(ReplacableSkin.c_str(),Global::iDynamicFiltering);
-             bAlpha=TTexturesManager::GetAlpha(ReplacableSkinID);
-           }
+          {
+           ReplacableSkin=Global::asCurrentTexturePath+ReplacableSkin;      //skory tez z dynamic/...
+           ReplacableSkinID=TTexturesManager::GetTextureID(ReplacableSkin.c_str(),Global::iDynamicFiltering);
+           bAlpha=TTexturesManager::GetAlpha(ReplacableSkinID);
+          }
 //Winger 040304 - ladowanie przedsionkow dla EZT
           if (MoverParameters->TrainType==dt_EZT)
           {
            asModel="przedsionki.t3d";
-           asModel= BaseDir+asModel;
-           mdPrzedsionek= TModelsManager::GetModel(asModel.c_str());
+           asModel=BaseDir+asModel;
+           mdPrzedsionek=TModelsManager::GetModel(asModel.c_str());
           }
           if (MoverParameters->LoadAccepted!=AnsiString(""))
           //           if (MoverParameters->LoadAccepted!=AnsiString("")); // && MoverParameters->LoadType!=AnsiString("passengers"))
-            if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
-             {
-             if (MoverParameters->Load==1)
-              MoverParameters->PantFront(true);
-             else if (MoverParameters->Load==2)
-              MoverParameters->PantRear(true);
-             else if (MoverParameters->Load==3)
-              {
-              MoverParameters->PantFront(true);
-              MoverParameters->PantRear(true);
-              }
-             else if (MoverParameters->Load==4)
-              MoverParameters->DoubleTr=-1;
-             else if (MoverParameters->Load==5)
-              {
-              MoverParameters->DoubleTr=-1;
-              MoverParameters->PantRear(true);
-              }
-             else if (MoverParameters->Load==6)
-              {
-              MoverParameters->DoubleTr=-1;
-              MoverParameters->PantFront(true);
-              }
-             else if (MoverParameters->Load==7)
-              {
-              MoverParameters->DoubleTr=-1;
-              MoverParameters->PantFront(true);
-              MoverParameters->PantRear(true);
-              }
-             }
-            else
+           if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
            {
-             mdLoad= TModelsManager::GetModel(asLoadName.c_str());  //ladunek
+            if (MoverParameters->Load==1)
+             MoverParameters->PantFront(true);
+            else if (MoverParameters->Load==2)
+             MoverParameters->PantRear(true);
+            else if (MoverParameters->Load==3)
+            {
+             MoverParameters->PantFront(true);
+             MoverParameters->PantRear(true);
+            }
+            else if (MoverParameters->Load==4)
+             MoverParameters->DoubleTr=-1;
+            else if (MoverParameters->Load==5)
+            {
+             MoverParameters->DoubleTr=-1;
+             MoverParameters->PantRear(true);
+            }
+            else if (MoverParameters->Load==6)
+            {
+             MoverParameters->DoubleTr=-1;
+             MoverParameters->PantFront(true);
+            }
+            else if (MoverParameters->Load==7)
+            {
+             MoverParameters->DoubleTr=-1;
+             MoverParameters->PantFront(true);
+             MoverParameters->PantRear(true);
+            }
            }
-          Global::asCurrentTexturePath= AnsiString(szDefaultTexturePath); //z powrotem defaultowa sciezka do tekstur
+           else
+            mdLoad= TModelsManager::GetModel(asLoadName.c_str());  //ladunek
+          Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath); //z powrotem defaultowa sciezka do tekstur
           while (!Parser->EndOfFile && str!=AnsiString("endmodels"))
           {
-            str= Parser->GetNextSymbol().LowerCase();
-            if (str==AnsiString("lowpolyinterior:")) //ABu: wnetrze lowpoly
+           str= Parser->GetNextSymbol().LowerCase();
+           if (str==AnsiString("lowpolyinterior:")) //ABu: wnetrze lowpoly
+           {
+              asModel=Parser->GetNextSymbol().LowerCase();
+              asModel= BaseDir+asModel; //McZapkie-200702 - dynamics maja swoje modele w dynamics/basedir
+              Global::asCurrentTexturePath= BaseDir;                    //biezaca sciezka do tekstur to dynamic/...
+              mdLowPolyInt=TModelsManager::GetModel(asModel.c_str());
+           }
+           else
+           if (str==AnsiString("animwheelprefix:"))              //prefiks krecacych sie kol
             {
-               asModel=Parser->GetNextSymbol().LowerCase();
-               asModel= BaseDir+asModel; //McZapkie-200702 - dynamics maja swoje modele w dynamics/basedir
-               Global::asCurrentTexturePath= BaseDir;                    //biezaca sciezka do tekstur to dynamic/...
-               mdLowPolyInt=TModelsManager::GetModel(asModel.c_str());
-            }
-            else
-            if (str==AnsiString("animwheelprefix:"))              //prefiks krecacych sie kol
-             {
-              str= Parser->GetNextSymbol();
-              asAnimName="";
-              for (int i=1; i<=MaxAnimatedAxles; i++)
-               {
+             str= Parser->GetNextSymbol();
+             asAnimName="";
+             for (int i=1; i<=MaxAnimatedAxles; i++)
+              {
     //McZapkie-050402: wyszukiwanie kol o nazwie str*
-                asAnimName=str+i;
-                smAnimatedWheel[i-1]= mdModel->GetFromName(asAnimName.c_str());
-                if (smAnimatedWheel[i-1]!=NULL)
-                 iAnimatedAxles+=1;
-                else
-                 i=MaxAnimatedAxles+1;
-               }
-             }
-            else
-            if (str==AnsiString("animrodprefix:"))              //prefiks wiazarow dwoch
-             {
-              str= Parser->GetNextSymbol();
-              asAnimName="";
-              for (int i=1; i<=2; i++)
-               {
-    //McZapkie-050402: wyszukiwanie max 2 wiazarow o nazwie str*
-                asAnimName=str+i;
-                smWiazary[i-1]= mdModel->GetFromName(asAnimName.c_str());
-               }
-             }
-            else
-//Pantografy - Winger 160204
-            if (str==AnsiString("animpantrd1prefix:"))              //prefiks ramion dolnych 1
-             {
-              str= Parser->GetNextSymbol();
-              asAnimName="";
-              for (int i=1; i<=2; i++)
-               {
-    //Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
-                asAnimName=str+i;
-                smPatykird1[i-1]= mdModel->GetFromName(asAnimName.c_str());
-               }
-             }
-            else
-            if (str==AnsiString("animpantrd2prefix:"))              //prefiks ramion dolnych 2
-             {
-              str= Parser->GetNextSymbol();
-              asAnimName="";
-              for (int i=1; i<=2; i++)
-               {
-    //Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
-                asAnimName=str+i;
-                smPatykird2[i-1]= mdModel->GetFromName(asAnimName.c_str());
-               }
-             }
-            else
-            if (str==AnsiString("animpantrg1prefix:"))              //prefiks ramion gornych 1
-             {
-              str= Parser->GetNextSymbol();
-              asAnimName="";
-              for (int i=1; i<=2; i++)
-               {
-    //Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
-                asAnimName=str+i;
-                smPatykirg1[i-1]= mdModel->GetFromName(asAnimName.c_str());
-               }
-             }
-            else
-            if (str==AnsiString("animpantrg2prefix:"))              //prefiks ramion gornych 2
-             {
-              str= Parser->GetNextSymbol();
-              asAnimName="";
-              for (int i=1; i<=2; i++)
-               {
-    //Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
-                asAnimName=str+i;
-                smPatykirg2[i-1]= mdModel->GetFromName(asAnimName.c_str());
-               }
-             }
-            else
-            if (str==AnsiString("animpantslprefix:"))              //prefiks slizgaczy
-             {
-              str= Parser->GetNextSymbol();
-              asAnimName="";
-              for (int i=1; i<=2; i++)
-               {
-    //Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
-                asAnimName=str+i;
-                smPatykisl[i-1]= mdModel->GetFromName(asAnimName.c_str());
-               }
-             }
-            else
-    //Winger 010304: parametry pantografow
-            if (str==AnsiString("pantfactors:"))              //prefiks slizgaczy
-             {
-              pant1x= Parser->GetNextSymbol().ToDouble();
-              pant2x= Parser->GetNextSymbol().ToDouble();
-              panty= Parser->GetNextSymbol().ToDouble();
-              panth= Parser->GetNextSymbol().ToDouble();
-              //              asAnimName="";
-             }
-            else
-            if (str==AnsiString("animpendulumprefix:"))              //prefiks wahaczy
-             {
-              str= Parser->GetNextSymbol();
-              asAnimName="";
-              for (int i=1; i<=4; i++)
-               {
-    //McZapkie-050402: wyszukiwanie max 4 wahaczy o nazwie str*
-                asAnimName=str+i;
-                smWahacze[i-1]= mdModel->GetFromName(asAnimName.c_str());
-               }
-              str= Parser->GetNextSymbol().LowerCase();
-              if (str==AnsiString("pendulumamplitude:"))
-               fWahaczeAmp= Parser->GetNextSymbol().ToDouble();
-             }
-            else
-            if (str==AnsiString("engineer:"))              //nazwa submodelu maszynisty
-             {
-              str= Parser->GetNextSymbol();
-              smMechanik= mdModel->GetFromName(str.c_str());
-             }
-            else
-            if (str==AnsiString("animdoorprefix:"))           //nazwa animowanych dzwi
-            {
-              str= Parser->GetNextSymbol();
-              asAnimName="";
-              for (int i=1; i<=MaxAnimatedDoors; i++)
-               {
-    //NBMX wrzesien 2003: wyszukiwanie drzwi o nazwie str*
-                asAnimName=str+i;
-                smAnimatedDoor[i-1]= mdModel->GetFromName(asAnimName.c_str());
-                if (smAnimatedDoor[i-1]!=NULL)
-                 iAnimatedDoors+=1;
-                else
-                 i=MaxAnimatedDoors+1;
-               }
+               asAnimName=str+i;
+               smAnimatedWheel[i-1]= mdModel->GetFromName(asAnimName.c_str());
+               if (smAnimatedWheel[i-1]!=NULL)
+                iAnimatedAxles+=1;
+               else
+                i=MaxAnimatedAxles+1;
+              }
             }
+           else
+           if (str==AnsiString("animrodprefix:"))              //prefiks wiazarow dwoch
+            {
+             str= Parser->GetNextSymbol();
+             asAnimName="";
+             for (int i=1; i<=2; i++)
+              {
+    //McZapkie-050402: wyszukiwanie max 2 wiazarow o nazwie str*
+               asAnimName=str+i;
+               smWiazary[i-1]= mdModel->GetFromName(asAnimName.c_str());
+              }
+            }
+           else
+//Pantografy - Winger 160204
+           if (str==AnsiString("animpantrd1prefix:"))              //prefiks ramion dolnych 1
+            {
+             str= Parser->GetNextSymbol();
+             asAnimName="";
+             for (int i=1; i<=2; i++)
+              {
+    //Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
+               asAnimName=str+i;
+               smPatykird1[i-1]= mdModel->GetFromName(asAnimName.c_str());
+              }
+            }
+           else
+           if (str==AnsiString("animpantrd2prefix:"))              //prefiks ramion dolnych 2
+            {
+             str= Parser->GetNextSymbol();
+             asAnimName="";
+             for (int i=1; i<=2; i++)
+              {
+    //Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
+               asAnimName=str+i;
+               smPatykird2[i-1]= mdModel->GetFromName(asAnimName.c_str());
+              }
+            }
+           else
+           if (str==AnsiString("animpantrg1prefix:"))              //prefiks ramion gornych 1
+            {
+             str= Parser->GetNextSymbol();
+             asAnimName="";
+             for (int i=1; i<=2; i++)
+              {
+    //Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
+               asAnimName=str+i;
+               smPatykirg1[i-1]= mdModel->GetFromName(asAnimName.c_str());
+              }
+            }
+           else
+           if (str==AnsiString("animpantrg2prefix:"))              //prefiks ramion gornych 2
+            {
+             str= Parser->GetNextSymbol();
+             asAnimName="";
+             for (int i=1; i<=2; i++)
+              {
+    //Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
+               asAnimName=str+i;
+               smPatykirg2[i-1]= mdModel->GetFromName(asAnimName.c_str());
+              }
+            }
+           else
+           if (str==AnsiString("animpantslprefix:"))              //prefiks slizgaczy
+            {
+             str= Parser->GetNextSymbol();
+             asAnimName="";
+             for (int i=1; i<=2; i++)
+              {
+    //Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
+               asAnimName=str+i;
+               smPatykisl[i-1]= mdModel->GetFromName(asAnimName.c_str());
+              }
+            }
+           else
+    //Winger 010304: parametry pantografow
+           if (str==AnsiString("pantfactors:"))              //prefiks slizgaczy
+            {
+             pant1x= Parser->GetNextSymbol().ToDouble();
+             pant2x= Parser->GetNextSymbol().ToDouble();
+             panty= Parser->GetNextSymbol().ToDouble();
+             panth= Parser->GetNextSymbol().ToDouble();
+             //              asAnimName="";
+            }
+           else
+           if (str==AnsiString("animpendulumprefix:"))              //prefiks wahaczy
+            {
+             str= Parser->GetNextSymbol();
+             asAnimName="";
+             for (int i=1; i<=4; i++)
+              {
+    //McZapkie-050402: wyszukiwanie max 4 wahaczy o nazwie str*
+               asAnimName=str+i;
+               smWahacze[i-1]= mdModel->GetFromName(asAnimName.c_str());
+              }
+             str= Parser->GetNextSymbol().LowerCase();
+             if (str==AnsiString("pendulumamplitude:"))
+              fWahaczeAmp= Parser->GetNextSymbol().ToDouble();
+            }
+           else
+           if (str==AnsiString("engineer:"))              //nazwa submodelu maszynisty
+            {
+             str=Parser->GetNextSymbol();
+             smMechanik=mdModel->GetFromName(str.c_str());
+            }
+           else
+           if (str==AnsiString("animdoorprefix:"))           //nazwa animowanych dzwi
+           {
+             str= Parser->GetNextSymbol();
+             asAnimName="";
+             for (int i=1; i<=MaxAnimatedDoors; i++)
+              {
+    //NBMX wrzesien 2003: wyszukiwanie drzwi o nazwie str*
+               asAnimName=str+i;
+               smAnimatedDoor[i-1]= mdModel->GetFromName(asAnimName.c_str());
+               if (smAnimatedDoor[i-1]!=NULL)
+                iAnimatedDoors+=1;
+               else
+                i=MaxAnimatedDoors+1;
+              }
+           }
           }
         }
         else
