@@ -125,37 +125,33 @@ TModel3d*  __fastcall TModelsManager::LoadModel(char *Name)
 
 TModel3d* __fastcall TModelsManager::GetModel(char *Name)
 {
-    char buf[255];
-    AnsiString buftp=Global::asCurrentTexturePath;
-    TModel3d* tmpModel; //tymczasowe zmienne
-
-    if (strchr(Name,'\\')==NULL)
-    {
-        strcpy(buf,"models\\");
-        strcat(buf,Name);
-        if (strchr(Name,'/')!=NULL)
-         {
-           Global::asCurrentTexturePath= Global::asCurrentTexturePath+AnsiString(Name);
-           Global::asCurrentTexturePath.Delete(Global::asCurrentTexturePath.Pos("/")+1,Global::asCurrentTexturePath.Length());
-         }
-    }
-    else
-     strcpy(buf,Name);
-
-    StrLower(buf);
-
-    for (int i=0; i<Count; i++)
-    {
-        if (strcmp(buf,Models[i].Name)==0)
-         {
-             Global::asCurrentTexturePath= buftp;
-             return (Models[i].Model);
-         }
-    };
-    
-    tmpModel=LoadModel(buf);
-    Global::asCurrentTexturePath= buftp;
-    return(tmpModel);
+ char buf[255];
+ AnsiString buftp=Global::asCurrentTexturePath;
+ TModel3d* tmpModel; //tymczasowe zmienne
+ if (strchr(Name,'\\')==NULL)
+ {
+  strcpy(buf,"models\\"); //Ra: by³o by lepiej katalog dodaæ w parserze
+  strcat(buf,Name);
+  if (strchr(Name,'/')!=NULL)
+  {
+   Global::asCurrentTexturePath= Global::asCurrentTexturePath+AnsiString(Name);
+   Global::asCurrentTexturePath.Delete(Global::asCurrentTexturePath.Pos("/")+1,Global::asCurrentTexturePath.Length());
+  }
+ }
+ else
+  strcpy(buf,Name);
+ StrLower(buf);
+ for (int i=0; i<Count; i++)
+ {
+  if (strcmp(buf,Models[i].Name)==0)
+  {
+   Global::asCurrentTexturePath= buftp;
+   return (Models[i].Model);
+  }
+ };
+ tmpModel=LoadModel(buf);
+ Global::asCurrentTexturePath= buftp;
+ return(tmpModel);
 };
 
 /*

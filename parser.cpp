@@ -122,7 +122,7 @@ std::string cParser::readToken(bool ToLower,const char* Break)
   }
   else
   {delete mIncludeParser;
-   mIncludeParser = NULL;
+   mIncludeParser=NULL;
    parameters.clear();
   }
  }
