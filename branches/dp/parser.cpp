@@ -143,7 +143,7 @@ std::string cParser::readToken(bool ToLower,const char* Break)
  if (token.compare("include")==0)
  {//obs³uga include
   std::string includefile=readToken(ToLower); //nazwa pliku
-  if (LoadTraction?true:(includefile.find("tr/")!=0)||(includefile.find("tra/")!=0))
+  if (LoadTraction?true:(includefile.find("tr/")!=0)&&(includefile.find("tra/")!=0))
   {
    //std::string trtest2="niemaproblema"; //nazwa odporna na znalezienie "tr/"
    //if (trtest=="x") //jeœli nie wczytywaæ drutów

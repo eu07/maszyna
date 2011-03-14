@@ -1210,7 +1210,7 @@ bool __fastcall TWorld::Update()
 if (Global::detonatoryOK)
 {
    //if (Pressed(VK_F9)) ShowHints(); //to nie dzia³a prawid³owo - prosili wy³¹czyæ
-
+ if (Pressed(VK_F9)) OutText1=Global::asVersion; //informacja o wersji
     glTranslatef(0.0f,0.0f,-0.50f);
     glRasterPos2f(-0.25f, 0.20f);
 //    glRasterPos2f(-0.25f, 0.20f);
@@ -1472,8 +1472,9 @@ void __fastcall TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
     if (Global::bMultiplayer)
     {//WriteLog("Komunikat: "+AnsiString(pRozkaz->Name1));
      TEvent *e=Ground.FindEvent(AnsiString(pRozkaz->cString+1,int(pRozkaz->cString[0])));
-     if (e->Type==tp_Multiple) //szybciej by by³o szukaæ tylko po tp_Multiple
-      Ground.AddToQuery(e,NULL); //drugi parametr to dynamic wywo³uj¹cy - tu brak
+     if (e)
+      if (e->Type==tp_Multiple) //szybciej by by³o szukaæ tylko po tp_Multiple
+       Ground.AddToQuery(e,NULL); //drugi parametr to dynamic wywo³uj¹cy - tu brak
     }
     break;
    case 3: //rozkaz dla AI
@@ -1490,8 +1491,9 @@ void __fastcall TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
    case 4: //badanie zajêtoœci toru
     {
      TGroundNode* t=Ground.FindGroundNode(AnsiString(pRozkaz->cString+1,int(pRozkaz->cString[0])),TP_TRACK);
-     if (t?t->pTrack->IsEmpty():false)
-      Ground.WyslijWolny(t->asName);
+     if (t)
+      if (t->pTrack->IsEmpty())
+       Ground.WyslijWolny(t->asName);
     }
     break;
    case 5: //ustawienie parametrów

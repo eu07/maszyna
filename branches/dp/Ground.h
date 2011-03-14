@@ -169,6 +169,7 @@ public:
  TGroundNode *pRender;      //z w³asnych VBO - nieprzezroczyste
  TGroundNode *pRenderMixed; //z w³asnych VBO - nieprzezroczyste i przezroczyste
  TGroundNode *pRenderAlpha; //z w³asnych VBO - przezroczyste
+ int iNodeCount; //licznik obiektów
  void __fastcall LoadNodes();
 public:
  __fastcall TSubRect();
@@ -209,7 +210,7 @@ public:
   if (!pSubRects) Init(); //utworzenie ma³ych kwadratów
   return pSubRects+iRow*iNumSubRects+iCol; //zwrócenie w³aœciwego
  };
- TSubRect* __fastcall FastGetRect( int iCol, int iRow)
+ TSubRect* __fastcall FastGetRect(int iCol,int iRow)
  {//pobranie wskaŸnika do ma³ego kwadratu, bez tworzenia jeœli nie ma
   return (pSubRects?pSubRects+iRow*iNumSubRects+iCol:NULL);
  };
