@@ -223,8 +223,8 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName,int 
   return fail;
  };
  bool compressed=(memcmp(TGACompheader,TGAcompare,sizeof(TGACompheader))==0);
- GLuint width =header[1]*256+header[0]; // Determine The TGA width (highbyte*256+lowbyte)
- GLuint height=header[3]*256+header[2]; // Determine The TGA height (highbyte*256+lowbyte)
+ GLint width =header[1]*256+header[0]; // Determine The TGA width (highbyte*256+lowbyte)
+ GLint height=header[3]*256+header[2]; // Determine The TGA height (highbyte*256+lowbyte)
  // check if width, height and bpp is correct
  if ( !width || !height || (header[4]!=24 && header[4]!=32))
  {
@@ -326,7 +326,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName,int 
  if (!alpha&&!hash&&dollar&&(filter<0))
   filter=Global::iDefaultFiltering; //dotyczy tekstur TGA bez kana³u alfa
  //ewentualne przeskalowanie tekstury do dopuszczalnego rozumiaru
- GLuint w=width,h=height;
+ GLint w=width,h=height;
  if (width>Global::iMaxTextureSize) width=Global::iMaxTextureSize; //ogranizczenie wielkoœci
  if (height>Global::iMaxTextureSize) height=Global::iMaxTextureSize;
  if ((w!=width)||(h!=height))
