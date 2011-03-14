@@ -185,49 +185,40 @@ void __fastcall TGroundNode::InitNormals()
 }
 
 void __fastcall TGroundNode::MoveMe(vector3 pPosition)
-{
-    pCenter+=pPosition;
-    switch (iType)
-    {
-
-        case TP_TRACTION:
-//            if (!Global::bRenderAlpha && bVisible && Global::bLoadTraction)
-//              Traction->Render(mgn);
-           {
-            Traction->pPoint1+=pPosition;
-            Traction->pPoint2+=pPosition;
-            Traction->pPoint3+=pPosition;
-            Traction->pPoint4+=pPosition;
-            Traction->Optimize();
-           }
-        break;
-        case TP_MODEL:
-        case TP_DYNAMIC:
-        case TP_MEMCELL:
-        case TP_EVLAUNCH:
-        break;
-        case TP_TRACK:
-           {
-            pTrack->MoveMe(pPosition);
-           }
-        break;
-        case TP_SOUND:
-//McZapkie - dzwiek zapetlony w zaleznosci od odleglosci
-             pStaticSound->vSoundPosition+=pPosition;
-        break;
-        case GL_LINES:
-        case GL_LINE_STRIP:
-        case GL_LINE_LOOP:
-            for (int i=0; i<iNumPts; i++)
-               Points[i]+=pPosition;
-            ResourceManager::Unregister(this);
-        break;
-        default:
-            for (int i=0; i<iNumVerts; i++)
-               Vertices[i].Point+=pPosition;
-            ResourceManager::Unregister(this);
-     }
-
+{//przesuwanie obiektów scenerii o wektor w celu redukcji trzêsienia
+ pCenter+=pPosition;
+ switch (iType)
+ {
+  case TP_TRACTION:
+   Traction->pPoint1+=pPosition;
+   Traction->pPoint2+=pPosition;
+   Traction->pPoint3+=pPosition;
+   Traction->pPoint4+=pPosition;
+   Traction->Optimize();
+   break;
+  case TP_MODEL:
+  case TP_DYNAMIC:
+  case TP_MEMCELL:
+  case TP_EVLAUNCH:
+   break;
+  case TP_TRACK:
+   pTrack->MoveMe(pPosition);
+   break;
+  case TP_SOUND: //McZapkie - dzwiek zapetlony w zaleznosci od odleglosci
+   pStaticSound->vSoundPosition+=pPosition;
+   break;
+  case GL_LINES:
+  case GL_LINE_STRIP:
+  case GL_LINE_LOOP:
+   for (int i=0; i<iNumPts; i++)
+    Points[i]+=pPosition;
+   ResourceManager::Unregister(this);
+   break;
+  default:
+   for (int i=0; i<iNumVerts; i++)
+    Vertices[i].Point+=pPosition;
+   ResourceManager::Unregister(this);
+ }
 }
 
 //---------------------------------------------------------------------------
@@ -939,7 +930,7 @@ void __fastcall TGround::RaTriangleDivider(TGroundNode* node)
 
 TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
 {//wczytanie wpisu typu "node"
- parser->LoadTraction=Global::bLoadTraction;
+ //parser->LoadTraction=Global::bLoadTraction; //Ra: tu nie potrzeba powtarzaæ
  AnsiString str,str1,str2,str3,Skin,DriverType,asNodeName;
  int nv,ti,i,n;
  double tf,r,rmin,tf1,tf2,tf3,tf4,l,dist,mgn;
@@ -1399,7 +1390,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
  }
  if (tmp->bStatic)
  {//jeœli nie jest pojazdem
-  if (Global::bLoadTraction?true:tmp->iType!=TP_TRACTION)
+  if (Global::bLoadTraction?true:(tmp->iType!=TP_TRACTION))
   {
    tmp->Next=RootNode;
    RootNode=tmp; //dopisanie z przodu do listy
@@ -1459,9 +1450,9 @@ bool __fastcall TGround::Init(AnsiString asFile)
 //    int size;
 
 
-      std::string subpath=Global::asCurrentSceneryPath.c_str(); //   "scenery/";
-      cParser parser(asFile.c_str(),cParser::buffer_FILE,subpath);
-      std::string token;
+ std::string subpath=Global::asCurrentSceneryPath.c_str(); //   "scenery/";
+ cParser parser(asFile.c_str(),cParser::buffer_FILE,subpath,Global::bLoadTraction);
+ std::string token;
 
 /*
     TFileStream *fs;
@@ -1807,17 +1798,26 @@ bool __fastcall TGround::Init(AnsiString asFile)
           WriteLog("InitGlobalTime OK");
          }
         }
-        else
-        if (str==AnsiString("description"))
+        else if (str==AnsiString("description"))
         {
          do
-          {
-            parser.getTokens();
-            parser >> token;
-          } while (token.compare("enddescription")!=0);
+         {
+          parser.getTokens();
+          parser >> token;
+         } while (token.compare("enddescription")!=0);
         }
-        else
-        if (str!=AnsiString(""))
+        else if (str==AnsiString("test"))
+        {//wypisywanie treœci po przetworzeniu
+         WriteLog("---> Parser test:");
+         do
+         {
+          parser.getTokens();
+          parser >> token;
+          WriteLog(token.c_str());
+         } while (token.compare("endtest")!=0);
+         WriteLog("---> End of parser test.");
+        }
+        else if (str!=AnsiString(""))
         {
             Error(AnsiString("Unrecognized command: "+str));
 //            WriteLog(token.c_str());
