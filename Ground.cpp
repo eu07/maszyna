@@ -417,6 +417,7 @@ __fastcall TSubRect::TSubRect()
  pRenderHidden=pRenderRect=pRenderRectAlpha=pRender=pRenderMixed=pRenderAlpha=pRenderWires=NULL;
  pTrackAnim=NULL; //nic nie animujemy
  pTriGroup=NULL;
+ iNodeCount=0; //licznik obiektów
 }
 __fastcall TSubRect::~TSubRect()
 {
@@ -487,12 +488,14 @@ void __fastcall TSubRect::AddNode(TGroundNode *Node)
    break;
   case TP_MEMCELL:
   case TP_TRACTIONPOWERSOURCE: //a te w ogóle pomijamy
-  case TP_DYNAMIC:
   case TP_ISOLATED: //lista torów w obwodzie izolowanym - na razie ignorowana
    break;
+  case TP_DYNAMIC:
+   return;
  }
  Node->pNext2=pRootNode; //dopisanie do ogólnej listy
  pRootNode=Node;
+ ++iNodeCount; //licznik obiektów
 };
 
 bool __fastcall TSubRect::RaTrackAnimAdd(TTrack *t)
@@ -2998,7 +3001,8 @@ bool __fastcall TGround::Render(vector3 pPosition)
    }
    Rects[(i+c)/iNumSubRects][(j+r)/iNumSubRects].Render(); //kwadrat kilometrowy nie zawsze, bo szkoda FPS
    if ((tmp=FastGetSubRect(i+c,j+r))!=NULL)
-    pRendered[iRendered++]=tmp; //tworzenie listy sektorów do renderowania
+    if (tmp->iNodeCount) //je¿eli s¹ jakieœ obiekty, bo po co puste sektory przelatywaæ
+     pRendered[iRendered++]=tmp; //tworzenie listy sektorów do renderowania
   }
  }
  for (i=0;i<iRendered;i++)
@@ -3090,6 +3094,5 @@ void __fastcall TGround::WyslijWolny(const AnsiString &t)
  WyslijString(t,4); //tor wolny
 };
 //---------------------------------------------------------------------------
-
 
 
