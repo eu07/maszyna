@@ -133,8 +133,12 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
  else
   WriteLog("Ra: VBO nie znalezione.");
 
- glGetIntegerv(GL_MAX_TEXTURE_SIZE,&Global::iMaxTextureSize);
- WriteLog("Max texture size: "+AnsiString(Global::iMaxTextureSize));
+ {//ograniczenie maksymalnego rozmiaru tekstur - parametr dla skalowania tekstur
+  GLint i;
+  glGetIntegerv(GL_MAX_TEXTURE_SIZE,&i);
+  if (i<Global::iMaxTextureSize) Global::iMaxTextureSize=i;
+  WriteLog("Max texture size: "+AnsiString(Global::iMaxTextureSize));
+ }
 /*-----------------------Render Initialization----------------------*/
         glTexEnvf(TEXTURE_FILTER_CONTROL_EXT,TEXTURE_LOD_BIAS_EXT,-1);
         GLfloat  FogColor[]    = { 1.0f,  1.0f, 1.0f, 1.0f };
