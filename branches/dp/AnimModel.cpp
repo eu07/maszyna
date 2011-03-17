@@ -167,6 +167,7 @@ __fastcall TAnimModel::TAnimModel()
   LightsOn[i]=LightsOff[i]=NULL; //normalnie nie ma
   lsLights[i]=ls_Off; //a jeœli s¹, to wy³¹czone
  }
+ vAngle.x=vAngle.y=vAngle.z=0.0; //zerowanie obrotów egzemplarza
 }
 
 __fastcall TAnimModel::~TAnimModel()
@@ -336,6 +337,36 @@ int __fastcall TAnimModel::Flags()
  int i=pModel->Flags();
  return i|(ReplacableSkinId>0?(i&0x01010001)*(bTexAlpha?4:2):0);
 };
+
+//-----------------------------------------------------------------------------
+//2011-03-16 cztery nowe funkcje renderowania z mo¿liwoœci¹ pochylania obiektów
+//-----------------------------------------------------------------------------
+
+void __fastcall TAnimModel::Render(vector3* vPosition)
+{
+ RaPrepare();
+ if (pModel) //renderowanie rekurencyjne submodeli
+  pModel->Render(vPosition,&vAngle,ReplacableSkinId,bTexAlpha);
+};
+void __fastcall TAnimModel::RenderAlpha(vector3* vPosition)
+{
+ RaPrepare();
+ if (pModel) //renderowanie rekurencyjne submodeli
+  pModel->RenderAlpha(vPosition,&vAngle,ReplacableSkinId,bTexAlpha);
+};
+void __fastcall TAnimModel::RaRender(vector3* vPosition)
+{
+ RaPrepare();
+ if (pModel) //renderowanie rekurencyjne submodeli
+  pModel->RaRender(vPosition,&vAngle,ReplacableSkinId,bTexAlpha);
+};
+void __fastcall TAnimModel::RaRenderAlpha(vector3* vPosition)
+{
+ RaPrepare();
+ if (pModel) //renderowanie rekurencyjne submodeli
+  pModel->RaRenderAlpha(vPosition,&vAngle,ReplacableSkinId,bTexAlpha);
+};
+
 //---------------------------------------------------------------------------
 
 #pragma package(smart_init)
