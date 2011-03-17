@@ -1053,7 +1053,7 @@ void __fastcall TModel3d::Render(vector3 pPosition,double fAngle,GLuint Replacab
 {
 //    glColor3f(1.0f,1.0f,1.0f);
 //    glColor3f(0.0f,0.0f,0.0f);
-    glPushMatrix();
+ glPushMatrix();
 
  glTranslated(pPosition.x,pPosition.y,pPosition.z);
  if (fAngle!=0)
@@ -1068,25 +1068,25 @@ void __fastcall TModel3d::Render(vector3 pPosition,double fAngle,GLuint Replacab
     pos= CurrentMatrix*pos;
     fSquareDist= SquareMagnitude(pos);
   */
-    fSquareDist= SquareMagnitude(pPosition-Global::GetCameraPosition());
+    fSquareDist=SquareMagnitude(pPosition-Global::GetCameraPosition());
 
 #ifdef _DEBUG
     if (Root)
         Root->Render(ReplacableSkinId,bAlpha);
 #else
-    Root->Render(ReplacableSkinId);
+    Root->Render(ReplacableSkinId,bAlpha);
 #endif
     glPopMatrix();
 };
 
 void __fastcall TModel3d::Render(double fSquareDistance,GLuint ReplacableSkinId,bool bAlpha)
 {
-    fSquareDist= fSquareDistance;
+    fSquareDist=fSquareDistance;
 #ifdef _DEBUG
     if (Root)
         Root->Render(ReplacableSkinId,bAlpha);
 #else
-    Root->Render(ReplacableSkinId);
+    Root->Render(ReplacableSkinId,bAlpha);
 #endif
 };
 
@@ -1096,7 +1096,7 @@ void __fastcall TModel3d::RenderAlpha(vector3 pPosition, double fAngle, GLuint R
     glTranslated(pPosition.x,pPosition.y,pPosition.z);
     if (fAngle!=0)
         glRotatef(fAngle,0,1,0);
-    fSquareDist= SquareMagnitude(pPosition-Global::GetCameraPosition());
+    fSquareDist=SquareMagnitude(pPosition-Global::GetCameraPosition());
 #ifdef _DEBUG
     if (Root)
         Root->RenderAlpha(ReplacableSkinId,bAlpha);
@@ -1175,6 +1175,61 @@ void __fastcall TModel3d::RaRenderAlpha(double fSquareDistance, GLuint Replacabl
  }
 };
 
+
+//-----------------------------------------------------------------------------
+//2011-03-16 cztery nowe funkcje renderowania z mo¿liwoœci¹ pochylania obiektów
+//-----------------------------------------------------------------------------
+
+void __fastcall TModel3d::Render(vector3* vPosition,vector3* vAngle,GLuint ReplacableSkinId,bool bAlpha)
+{//nieprzezroczyste, Display List
+ glPushMatrix();
+ glTranslated(vPosition->x,vPosition->y,vPosition->z);
+ if (vAngle->x!=0.0) glRotatef(vAngle->x,1.0,0.0,0.0);
+ if (vAngle->y!=0.0) glRotatef(vAngle->y,0.0,1.0,0.0);
+ if (vAngle->z!=0.0) glRotatef(vAngle->z,0.0,0.0,1.0);
+ fSquareDist=SquareMagnitude(*vPosition-Global::GetCameraPosition());
+ Root->Render(ReplacableSkinId,bAlpha);
+ glPopMatrix();
+};
+void __fastcall TModel3d::RenderAlpha(vector3* vPosition,vector3* vAngle,GLuint ReplacableSkinId,bool bAlpha)
+{//przezroczyste, Display List
+ glPushMatrix();
+ glTranslated(vPosition->x,vPosition->y,vPosition->z);
+ if (vAngle->x!=0.0) glRotatef(vAngle->x,1.0,0.0,0.0);
+ if (vAngle->y!=0.0) glRotatef(vAngle->y,0.0,1.0,0.0);
+ if (vAngle->z!=0.0) glRotatef(vAngle->z,0.0,0.0,1.0);
+ fSquareDist=SquareMagnitude(*vPosition-Global::GetCameraPosition());
+ Root->RenderAlpha(ReplacableSkinId,bAlpha);
+ glPopMatrix();
+};
+void __fastcall TModel3d::RaRender(vector3* vPosition,vector3* vAngle,GLuint ReplacableSkinId,bool bAlpha)
+{//nieprzezroczyste, VBO
+ glPushMatrix();
+ glTranslated(vPosition->x,vPosition->y,vPosition->z);
+ if (vAngle->x!=0.0) glRotatef(vAngle->x,1.0,0.0,0.0);
+ if (vAngle->y!=0.0) glRotatef(vAngle->y,0.0,1.0,0.0);
+ if (vAngle->z!=0.0) glRotatef(vAngle->z,0.0,0.0,1.0);
+ fSquareDist=SquareMagnitude(*vPosition-Global::GetCameraPosition());
+ if (StartVBO())
+ {Root->RaRender(ReplacableSkinId,bAlpha);
+  EndVBO();
+ }
+ glPopMatrix();
+};
+void __fastcall TModel3d::RaRenderAlpha(vector3* vPosition,vector3* vAngle,GLuint ReplacableSkinId,bool bAlpha)
+{//przezroczyste, VBO
+ glPushMatrix();
+ glTranslated(vPosition->x,vPosition->y,vPosition->z);
+ if (vAngle->x!=0.0) glRotatef(vAngle->x,1.0,0.0,0.0);
+ if (vAngle->y!=0.0) glRotatef(vAngle->y,0.0,1.0,0.0);
+ if (vAngle->z!=0.0) glRotatef(vAngle->z,0.0,0.0,1.0);
+ fSquareDist=SquareMagnitude(*vPosition-Global::GetCameraPosition());
+ if (StartVBO())
+ {Root->RaRenderAlpha(ReplacableSkinId,bAlpha);
+  EndVBO();
+ }
+ glPopMatrix();
+};
 
 //---------------------------------------------------------------------------
 #pragma package(smart_init)

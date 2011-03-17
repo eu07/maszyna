@@ -4,7 +4,7 @@
 #define AnimModelH
 
 #include "Model3d.h"
-#include "parser.h"
+//#include "parser.h"
 
 const int iMaxNumLights=8;
 
@@ -48,8 +48,9 @@ private:
  TModel3d *pModel;
  double fBlinkTimer;
  int iNumLights;
- TSubModel *LightsOn[iMaxNumLights];
+ TSubModel *LightsOn[iMaxNumLights]; //Ra: te wskaŸniki powinny byæ w ramach TModel3d
  TSubModel *LightsOff[iMaxNumLights];
+ vector3 vAngle; //bazowe obroty egzemplarza wzglêdem osi
 public:
  TLightState lsLights[iMaxNumLights];
  GLuint ReplacableSkinId; //McZapkie-020802: zmienialne skory
@@ -64,11 +65,17 @@ public:
  void __fastcall RenderAlpha(vector3 pPosition=vector3(0,0,0),double fAngle=0);
  void __fastcall RaRender(vector3 pPosition=vector3(0,0,0),double fAngle=0);
  void __fastcall RaRenderAlpha(vector3 pPosition=vector3(0,0,0),double fAngle=0);
+ void __fastcall Render(vector3* vPosition);
+ void __fastcall RenderAlpha(vector3* vPosition);
+ void __fastcall RaRender(vector3* vPosition);
+ void __fastcall RaRenderAlpha(vector3* vPosition);
  //void __fastcall Render(double fSquareDistance);
  //void __fastcall RenderAlpha(double fSquareDistance);
  void __fastcall RaPrepare();
  bool bTexAlpha; //¿eby nie sprawdzaæ za ka¿dym razem
- int __fastcall Flags();   
+ int __fastcall Flags();
+ void __fastcall RaAnglesSet(double a,double b,double c)
+ {vAngle.x=a; vAngle.y=b; vAngle.z=c;};
 };
 
 //---------------------------------------------------------------------------

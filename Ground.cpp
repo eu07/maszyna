@@ -285,7 +285,8 @@ void __fastcall TGroundNode::RaRender()
  {
   case TP_TRACTION: return;
   case TP_TRACK: if (iNumVerts) pTrack->RaRenderVBO(iVboPtr); return;
-  case TP_MODEL: Model->RaRender(pCenter,fAngle); return;
+  //case TP_MODEL: Model->RaRender(pCenter,fAngle); return;
+  case TP_MODEL: Model->RaRender(&pCenter); return;
   case TP_SOUND: //McZapkie - dzwiek zapetlony w zaleznosci od odleglosci
    if ((pStaticSound->GetStatus()&DSBSTATUS_PLAYING)==DSBPLAY_LOOPING)
    {
@@ -376,7 +377,8 @@ void __fastcall TGroundNode::RaRenderAlpha()
     Traction->RaRenderVBO(mgn,iVboPtr);
    return;
   case TP_MODEL:
-   Model->RaRenderAlpha(pCenter,fAngle); return;
+   //Model->RaRenderAlpha(pCenter,fAngle); return;
+   Model->RaRenderAlpha(&pCenter); return;
   case GL_LINES:
   case GL_LINE_STRIP:
   case GL_LINE_LOOP:
@@ -715,7 +717,8 @@ void __fastcall TGroundNode::Render()
   case TP_TRACK:
    return pTrack->Render();
   case TP_MODEL:
-   return Model->Render(pCenter,fAngle);
+   //return Model->Render(pCenter,fAngle);
+   return Model->Render(&pCenter);
  }
     // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
   if(
@@ -764,7 +767,8 @@ void __fastcall TGroundNode::RenderAlpha()
     Traction->Render(mgn);
    return;
   case TP_MODEL:
-   Model->RenderAlpha(pCenter,fAngle);
+   //Model->RenderAlpha(pCenter,fAngle);
+   Model->RenderAlpha(&pCenter);
    return;
   case TP_TRACK:
    pTrack->RenderAlpha();
@@ -1214,13 +1218,15 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    parser->getTokens(3);
    *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
    parser->getTokens();
-   *parser >> tmp->fAngle;
+   *parser >> tf1;//tmp->fAngle;
    //OlO_EU&KAKISH-030103: obracanie punktow zaczepien w modelu
    tmp->pCenter.RotateY(aRotate.y/180*M_PI);
    //McZapkie-260402: model tez ma wspolrzedne wzgledne
    tmp->pCenter+=pOrigin;
-   tmp->fAngle+=aRotate.y; // /180*M_PI
+   //tmp->fAngle+=aRotate.y; // /180*M_PI
    tmp->Model=new TAnimModel();
+   tmp->Model->RaAnglesSet(aRotate.x,tf1+aRotate.y,aRotate.z);
+   //tmp->Model->RaAnglesSet(0,tf1+aRotate.y,0);
 //   str=Parser->GetNextSymbol().LowerCase();
    if (!tmp->Model->Load(parser))
     return NULL;
@@ -2444,8 +2450,7 @@ if (QueryRootEvent)
             case tp_Disable :
                 Error("Not implemented yet :(");
             break;
-            case tp_Animation :
-//Marcin: dorobic translacje
+            case tp_Animation : //Marcin: dorobic translacje - Ra: dorobi³em ;-)
              if (QueryRootEvent->Params[0].asInt==1)
                QueryRootEvent->Params[9].asAnimContainer->SetRotateAnim(
                     vector3(QueryRootEvent->Params[1].asdouble,

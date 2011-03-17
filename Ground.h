@@ -101,7 +101,7 @@ public:
 
     union
     {
-     double fAngle; //k¹t obrotu dla modelu
+     //double fAngle; //k¹t obrotu dla modelu
      double fLineThickness; //McZapkie-120702: grubosc linii
      //int Status;  //McZapkie-170303: status dzwieku
     };

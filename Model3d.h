@@ -3,7 +3,7 @@
 #define Model3dH
 
 #include "opengl/glew.h"
-#include "geometry.h"
+//#include "geometry.h"
 #include "Parser.h"
 #include "dumb3d.h"
 #include "VBO.h"
@@ -196,6 +196,10 @@ public:
     void __fastcall RaRender(double fSquareDistance,GLuint ReplacableSkinId=0,bool bAlpha=false);
     void __fastcall RaRenderAlpha(vector3 pPosition,double fAngle=0,GLuint ReplacableSkinId=0,bool bAlpha=false);
     void __fastcall RaRenderAlpha(double fSquareDistance,GLuint ReplacableSkinId=0,bool bAlpha=false);
+    void __fastcall Render(vector3* vPosition,vector3* vAngle,GLuint ReplacableSkinId=0,bool bAlpha=false);
+    void __fastcall RenderAlpha(vector3* vPosition,vector3* vAngle,GLuint ReplacableSkinId=0,bool bAlpha=false);
+    void __fastcall RaRender(vector3* vPosition,vector3* vAngle,GLuint ReplacableSkinId=0,bool bAlpha=false);
+    void __fastcall RaRenderAlpha(vector3* vPosition,vector3* vAngle,GLuint ReplacableSkinId=0,bool bAlpha=false);
     inline int __fastcall GetSubModelsCount() { return (SubModelsCount); };
     int __fastcall Flags() {return iFlags;};
 };

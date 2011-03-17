@@ -152,7 +152,8 @@ public:
  static AnsiString asHumanCtrlVehicle;
  static void __fastcall LoadIniFile(AnsiString asFileName="eu07.ini");
  static void __fastcall InitKeys(AnsiString asFileName="keys.ini");
- static vector3 __fastcall GetCameraPosition();
+ inline static vector3 __fastcall GetCameraPosition()
+ {return pCameraPosition;};
  static void __fastcall SetCameraPosition(vector3 pNewCameraPosition);
  static void __fastcall SetCameraRotation(double Yaw);
  static bool bWriteLogEnabled;
