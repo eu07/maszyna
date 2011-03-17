@@ -1225,7 +1225,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    tmp->pCenter+=pOrigin;
    //tmp->fAngle+=aRotate.y; // /180*M_PI
    tmp->Model=new TAnimModel();
-   tmp->Model->RaAnglesSet(aRotate.x,tf1+aRotate.y,aRotate.z);
+   tmp->Model->RaAnglesSet(aRotate.x,tf1+aRotate.y,aRotate.z); //dostosowanie do pochylania linii
    //tmp->Model->RaAnglesSet(0,tf1+aRotate.y,0);
 //   str=Parser->GetNextSymbol().LowerCase();
    if (!tmp->Model->Load(parser))
@@ -1569,8 +1569,9 @@ bool __fastcall TGround::Init(AnsiString asFile)
         else
         if (str==AnsiString("rotate"))
         {
-            parser.getTokens(3);
-            parser >> aRotate.x >> aRotate.y >> aRotate.z;
+            parser.getTokens(); parser >> aRotate.x;
+            parser.getTokens(); parser >> aRotate.y;
+            parser.getTokens(); parser >> aRotate.z;
         }
         else
         if (str==AnsiString("origin"))
@@ -1947,7 +1948,7 @@ bool __fastcall TGround::InitEvents()
              }
              else
               Error("Event \""+Current->asName+"\" cannot find model \""+Current->asNodeName+"\"");
-             Current->asNodeName= "";
+             Current->asNodeName="";
             break;
             case tp_Lights :
                 tmp= FindGroundNode(Current->asNodeName,TP_MODEL);
@@ -1956,7 +1957,7 @@ bool __fastcall TGround::InitEvents()
                 else
                     Error("Event \""+Current->asName+"\" cannot find model \""+
                                      Current->asNodeName+"\"");
-                Current->asNodeName= "";
+                Current->asNodeName="";
             break;
             case tp_Switch :
                 tmp= FindGroundNode(Current->asNodeName,TP_TRACK);
@@ -1965,7 +1966,7 @@ bool __fastcall TGround::InitEvents()
                 else
                     Error("Event \""+Current->asName+"\" cannot find track \""+
                                      Current->asNodeName+"\"");
-                Current->asNodeName= "";
+                Current->asNodeName="";
             break;
             case tp_Sound :
                 tmp= FindGroundNode(Current->asNodeName,TP_SOUND);
@@ -1974,7 +1975,7 @@ bool __fastcall TGround::InitEvents()
                 else
                     Error("Event \""+Current->asName+"\" cannot find static sound \""+
                                      Current->asNodeName+"\"");
-                Current->asNodeName= "";
+                Current->asNodeName="";
             break;
             case tp_TrackVel :
                 if (Current->asNodeName!=AnsiString(""))
