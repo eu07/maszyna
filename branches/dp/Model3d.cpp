@@ -1184,8 +1184,8 @@ void __fastcall TModel3d::Render(vector3* vPosition,vector3* vAngle,GLuint Repla
 {//nieprzezroczyste, Display List
  glPushMatrix();
  glTranslated(vPosition->x,vPosition->y,vPosition->z);
- if (vAngle->x!=0.0) glRotatef(vAngle->x,1.0,0.0,0.0);
  if (vAngle->y!=0.0) glRotatef(vAngle->y,0.0,1.0,0.0);
+ if (vAngle->x!=0.0) glRotatef(vAngle->x,1.0,0.0,0.0);
  if (vAngle->z!=0.0) glRotatef(vAngle->z,0.0,0.0,1.0);
  fSquareDist=SquareMagnitude(*vPosition-Global::GetCameraPosition());
  Root->Render(ReplacableSkinId,bAlpha);
@@ -1195,8 +1195,8 @@ void __fastcall TModel3d::RenderAlpha(vector3* vPosition,vector3* vAngle,GLuint 
 {//przezroczyste, Display List
  glPushMatrix();
  glTranslated(vPosition->x,vPosition->y,vPosition->z);
- if (vAngle->x!=0.0) glRotatef(vAngle->x,1.0,0.0,0.0);
  if (vAngle->y!=0.0) glRotatef(vAngle->y,0.0,1.0,0.0);
+ if (vAngle->x!=0.0) glRotatef(vAngle->x,1.0,0.0,0.0);
  if (vAngle->z!=0.0) glRotatef(vAngle->z,0.0,0.0,1.0);
  fSquareDist=SquareMagnitude(*vPosition-Global::GetCameraPosition());
  Root->RenderAlpha(ReplacableSkinId,bAlpha);
@@ -1206,8 +1206,8 @@ void __fastcall TModel3d::RaRender(vector3* vPosition,vector3* vAngle,GLuint Rep
 {//nieprzezroczyste, VBO
  glPushMatrix();
  glTranslated(vPosition->x,vPosition->y,vPosition->z);
- if (vAngle->x!=0.0) glRotatef(vAngle->x,1.0,0.0,0.0);
  if (vAngle->y!=0.0) glRotatef(vAngle->y,0.0,1.0,0.0);
+ if (vAngle->x!=0.0) glRotatef(vAngle->x,1.0,0.0,0.0);
  if (vAngle->z!=0.0) glRotatef(vAngle->z,0.0,0.0,1.0);
  fSquareDist=SquareMagnitude(*vPosition-Global::GetCameraPosition());
  if (StartVBO())
@@ -1220,8 +1220,8 @@ void __fastcall TModel3d::RaRenderAlpha(vector3* vPosition,vector3* vAngle,GLuin
 {//przezroczyste, VBO
  glPushMatrix();
  glTranslated(vPosition->x,vPosition->y,vPosition->z);
- if (vAngle->x!=0.0) glRotatef(vAngle->x,1.0,0.0,0.0);
  if (vAngle->y!=0.0) glRotatef(vAngle->y,0.0,1.0,0.0);
+ if (vAngle->x!=0.0) glRotatef(vAngle->x,1.0,0.0,0.0);
  if (vAngle->z!=0.0) glRotatef(vAngle->z,0.0,0.0,1.0);
  fSquareDist=SquareMagnitude(*vPosition-Global::GetCameraPosition());
  if (StartVBO())
