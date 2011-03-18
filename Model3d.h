@@ -78,7 +78,20 @@ struct THitBoxContainer
 
 typedef enum { smt_Unknown, smt_Mesh, smt_Point, smt_FreeSpotLight, smt_Text} TSubModelType;
 
-typedef enum { at_None, at_Rotate, at_RotateXYZ, at_Translate } TAnimType;
+typedef enum //rodzaj animacji
+{at_None, //brak
+ at_Rotate, //obrót wzglêdem wektora o k¹t
+ at_RotateXYZ, //obrót wzglêdem osi o k¹ty
+ at_Translate, //przesuniêcie
+ at_SecondsJump, //sekundy z przeskokiem
+ at_MinutesJump, //minuty z przeskokiem
+ at_HoursJump, //godziny z przeskokiem 12h/360°
+ at_Hours24Jump, //godziny z przeskokiem 24h/360°
+ at_Seconds, //sekundy p³ynnie
+ at_Minutes, //minuty p³ynnie
+ at_Hours, //godziny p³ynnie 12h/360°
+ at_Hours24 //godziny p³ynnie 24h/360°
+} TAnimType;
 
 class TModel3d;
 
@@ -136,9 +149,11 @@ private:
       int iVboPtr;
       GLVERTEX *Vertices; //do VBO
       int iAnimOwner;
+ void __fastcall RaAnimation(TAnimType a);
+ void __fastcall RaaAnimation(TAnimType a);
 public:
 
-      TAnimType b_Anim, b_aAnim;
+      TAnimType b_Anim,b_aAnim;
 
       bool Visible;
       std::string Name;

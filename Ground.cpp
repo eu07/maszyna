@@ -1569,9 +1569,12 @@ bool __fastcall TGround::Init(AnsiString asFile)
         else
         if (str==AnsiString("rotate"))
         {
-            parser.getTokens(); parser >> aRotate.x;
-            parser.getTokens(); parser >> aRotate.y;
-            parser.getTokens(); parser >> aRotate.z;
+         //parser.getTokens(3);
+         //parser >> aRotate.x >> aRotate.y >> aRotate.z; //Ra: to potrafi dawaæ b³êdne rezultaty
+         parser.getTokens(); parser >> aRotate.x;
+         parser.getTokens(); parser >> aRotate.y;
+         parser.getTokens(); parser >> aRotate.z;
+         //WriteLog("*** rotate "+AnsiString(aRotate.x)+" "+AnsiString(aRotate.y)+" "+AnsiString(aRotate.z));
         }
         else
         if (str==AnsiString("origin"))
@@ -1927,16 +1930,17 @@ bool __fastcall TGround::InitEvents()
                     Error("Event \""+Current->asName+"\" cannot find node \""+
                                      Current->asNodeName+"\"");
             break;
-            case tp_GetValues :
-                tmp= FindGroundNode(Current->asNodeName,TP_MEMCELL);
-                if (tmp)
-                {
-                    Current->Params[8].asGroundNode= tmp;
-                    Current->Params[9].asMemCell= tmp->MemCell;
-                }
-                else
-                    Error("Event \""+Current->asName+"\" cannot find memcell \""+
-                                     Current->asNodeName+"\"");
+            case tp_GetValues:
+            case tp_WhoIs:
+            case tp_LogValues: //skojarzenie z memcell
+             tmp= FindGroundNode(Current->asNodeName,TP_MEMCELL);
+             if (tmp)
+             {
+              Current->Params[8].asGroundNode=tmp;
+              Current->Params[9].asMemCell=tmp->MemCell;
+             }
+             else
+              Error("Event \""+Current->asName+"\" cannot find memcell \""+Current->asNodeName+"\"");
             break;
             case tp_Animation :
              tmp=FindGroundNode(Current->asNodeName,TP_MODEL); //egzemplarza modelu do animowania
@@ -2537,12 +2541,19 @@ if (QueryRootEvent)
                 }
                }
             break;
-            case tp_WhoIs : //pobranie nazwy poci¹gu do komórki pamiêci
+            case tp_WhoIs: //pobranie nazwy poci¹gu do komórki pamiêci
              QueryRootEvent->Params[9].asMemCell->UpdateValues(
               QueryRootEvent->Activator->TrainParams->TrainName.c_str(),
               QueryRootEvent->Activator->TrainParams->StationCount,
               QueryRootEvent->Activator->TrainParams->StationIndex,
               conditional_memstring|conditional_memval1|conditional_memval2);
+             WriteLog("Train detected: "+QueryRootEvent->Activator->TrainParams->TrainName);
+            break;
+            case tp_LogValues: //zapisanie zawartoœci komórki pamiêci do logu
+             WriteLog("Memcell \""+QueryRootEvent->asNodeName+"\": "+
+              QueryRootEvent->Params[9].asMemCell->szText+", "+
+              QueryRootEvent->Params[9].asMemCell->fValue1+", "+
+              QueryRootEvent->Params[9].asMemCell->fValue2);
             break;
         }
         };
