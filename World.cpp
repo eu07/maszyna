@@ -615,6 +615,9 @@ bool __fastcall TWorld::Update()
        p6 = p2 + 10.0f; //1.5f
        p7 = (p2*3.45) + 125.0f;
 
+ /*
+//ZiomalCl: uzaleznienie pory dnia od godziny w takiej formie wylaczone
+//bo nie wyglada to ladnie wraz z tex nieba lub w nocy
        if (p1<0.6f)
        {
        GLfloat  FogColor2[]    = { p3, p4, p5, 1.0f };
@@ -630,6 +633,7 @@ bool __fastcall TWorld::Update()
        glFogf(GL_FOG_END, p7);							// Fog End Depth
        glEnable(GL_FOG);									// Enables GL_FOG
        }
+	   */
        lastmm=GlobalTime->mm;
     }
 
