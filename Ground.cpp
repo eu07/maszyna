@@ -1161,6 +1161,120 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
 //       if (bTrainSet)
   //                      tmp->DynamicObject->Init(Track,2,"",fTrainSetVel);
     //                else
+					
+					//ZiomalCl: poprawka na zmiane polozenia pociagu wzgledem toru podanego we wpisie 
+					//- szukamy nazwy toru polozonego n metrow (n - odleglosc we wpisie trainset) od naszego toru
+					//gdy znajdziemy, to do tego wlasnie skladu przypisujemy pociag
+					if(Track->Length()<tf1)
+                    {
+                      double l1=tf1;
+                      int fDirection1=1;
+                      for(int i=0; i<20;i++)
+                      {
+                      if(Track->Length()<l1)
+                        {
+                        l1=l1-Track->Length();
+                        if (fDirection1>0)
+                        {
+                          if (Track->bNextSwitchDirection)
+                          {
+                          Track= Track->CurrentNext();
+                          fDirection1= -fDirection1;
+                          }
+                         else
+                          {
+                          Track= Track->CurrentNext();
+                          }
+                        }
+                        else
+                        if (fDirection1<0)
+                        {
+                          if (Track->bPrevSwitchDirection)
+                          {
+                          Track= Track->CurrentPrev();
+                          fDirection1= -fDirection1;
+                          }
+                          else
+                          {
+                          Track= Track->CurrentPrev();
+                          }
+                        }
+
+                        }
+
+                      }
+                      tf1=l1;
+                    }
+                    else if(tf1<0)
+                    {
+                      double l1=tf1;
+                      int fDirection1=-1;
+
+                      if (fDirection1>0)
+                        {
+                          if (Track->bNextSwitchDirection)
+                          {
+                          Track= Track->CurrentNext();
+                          fDirection1= -fDirection1;
+                          }
+                         else
+                          {
+                          Track= Track->CurrentNext();
+                          }
+                        }
+                        else
+                        if (fDirection1<0)
+                        {
+                          if (Track->bPrevSwitchDirection)
+                          {
+                          Track= Track->CurrentPrev();
+                          fDirection1= -fDirection1;
+                          }
+                          else
+                          {
+                          Track= Track->CurrentPrev();
+                          }
+                        }
+
+                      for(int i=0; i<20;i++)
+                      {
+
+                        if(-Track->Length()>l1)
+                        {
+                        l1=Track->Length()+l1;
+                        if (fDirection1>0)
+                        {
+                          if (Track->bNextSwitchDirection)
+                          {
+                          Track= Track->CurrentNext();
+                          fDirection1= -fDirection1;
+                          }
+                         else
+                          {
+                          Track= Track->CurrentNext();
+                          }
+                        }
+                        else
+                        if (fDirection1<0)
+                        {
+                          if (Track->bPrevSwitchDirection)
+                          {
+                          Track= Track->CurrentPrev();
+                          fDirection1= -fDirection1;
+                          }
+                          else
+                          {
+                          Track= Track->CurrentPrev();
+                          }
+                        }
+
+
+                        }
+                      }
+                      tf1=Track->Length()+l1;
+
+                    }             
+					
     tmp->DynamicObject->Init(asNodeName,str1,Skin,str3,Track,(tf1==-1.0?fTrainSetDist:tf1+fTrainSetDist),DriverType,tf3,asTrainName,int2,str2,(tf1==-1.0));
     tmp->pCenter=tmp->DynamicObject->GetPosition();
 //McZapkie-030203: sygnaly czola pociagu, ale tylko dla pociagow jadacych
