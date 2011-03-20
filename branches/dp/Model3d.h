@@ -200,14 +200,17 @@ public:
     bool __fastcall LoadFromFile(char *FileName);
     void __fastcall SaveToFile(char *FileName);
     void __fastcall BreakHierarhy();
-    void __fastcall Render(vector3 pPosition,double fAngle=0,GLuint ReplacableSkinId=0,bool bAlpha=false);
+    //renderowanie specjalne
     void __fastcall Render(double fSquareDistance,GLuint ReplacableSkinId=0,bool bAlpha=false);
-    void __fastcall RenderAlpha(vector3 pPosition,double fAngle=0,GLuint ReplacableSkinId=0,bool bAlpha=false);
     void __fastcall RenderAlpha(double fSquareDistance,GLuint ReplacableSkinId=0,bool bAlpha=false);
-    void __fastcall RaRender(vector3 pPosition,double fAngle=0,GLuint ReplacableSkinId=0,bool bAlpha=false);
     void __fastcall RaRender(double fSquareDistance,GLuint ReplacableSkinId=0,bool bAlpha=false);
-    void __fastcall RaRenderAlpha(vector3 pPosition,double fAngle=0,GLuint ReplacableSkinId=0,bool bAlpha=false);
     void __fastcall RaRenderAlpha(double fSquareDistance,GLuint ReplacableSkinId=0,bool bAlpha=false);
+    //jeden k¹t obrotu
+    void __fastcall Render(vector3 pPosition,double fAngle=0,GLuint ReplacableSkinId=0,bool bAlpha=false);
+    void __fastcall RenderAlpha(vector3 pPosition,double fAngle=0,GLuint ReplacableSkinId=0,bool bAlpha=false);
+    void __fastcall RaRender(vector3 pPosition,double fAngle=0,GLuint ReplacableSkinId=0,bool bAlpha=false);
+    void __fastcall RaRenderAlpha(vector3 pPosition,double fAngle=0,GLuint ReplacableSkinId=0,bool bAlpha=false);
+    //trzy k¹ty obrotu
     void __fastcall Render(vector3* vPosition,vector3* vAngle,GLuint ReplacableSkinId=0,bool bAlpha=false);
     void __fastcall RenderAlpha(vector3* vPosition,vector3* vAngle,GLuint ReplacableSkinId=0,bool bAlpha=false);
     void __fastcall RaRender(vector3* vPosition,vector3* vAngle,GLuint ReplacableSkinId=0,bool bAlpha=false);
@@ -216,6 +219,6 @@ public:
     int __fastcall Flags() {return iFlags;};
 };
 
-typedef TModel3d *PModel3d;
+//typedef TModel3d *PModel3d;
 //---------------------------------------------------------------------------
 #endif
