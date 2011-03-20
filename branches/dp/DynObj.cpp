@@ -1108,7 +1108,7 @@ TTrack* __fastcall TraceRoute(double &fDistance, double &fDirection, TTrack *Tra
      }
     while (s<fDistance)
      {
-        Track->ScannedFlag= true;
+        Track->ScannedFlag= false;
         s+= fCurrentDistance;
         if (fDirection>0)
          {
@@ -1145,8 +1145,49 @@ TTrack* __fastcall TraceRoute(double &fDistance, double &fDirection, TTrack *Tra
         fCurrentDistance= Track->Length();
         if (CheckTrackEvent(fDirection,Track))
          {
-           fDistance= s;
-           return Track;
+         //ZiomalCl: teraz zwracany jest pierwszy event podajacy predkosc dla AI
+         //a nie kazdy najblizszy event [AI sie gubilo gdy przed getval z SetVelocity
+         //mialo np. PutValues z eventem od SHP]
+           if(Track->Event1!=NULL)
+            if(Track->Event1->Type==tp_GetValues)
+              {
+              AnsiString st1 = String(Track->Event1->Params[9].asMemCell->szText);
+              if(st1=="SetVelocity"||st1=="ShuntVelocity")
+                {
+                fDistance= s;
+                return Track;
+                }
+              }
+            else if(Track->Event1->Type==tp_PutValues)
+              {
+              AnsiString st1 = String(Track->Event1->Params[0].asText);
+              if (st1=="SetVelocity"||st1=="ShuntVelocity")
+                {
+                fDistance= s;
+                return Track;
+                }
+              }
+           if(Track->Event2!=NULL)
+            if(Track->Event2->Type==tp_GetValues)
+              {
+              AnsiString st1 = String(Track->Event2->Params[9].asMemCell->szText);
+              if(st1=="SetVelocity"||st1=="ShuntVelocity")
+                {
+                fDistance= s;
+                return Track;
+                }
+              }
+            else if(Track->Event2->Type==tp_PutValues)
+              {
+              AnsiString st1 = String(Track->Event2->Params[0].asText);
+              if (st1=="SetVelocity"||st1=="ShuntVelocity")
+                {
+                fDistance= s;
+                return Track;
+                }
+              }
+
+
          }
      }
     fDistance= s;

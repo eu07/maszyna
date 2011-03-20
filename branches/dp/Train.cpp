@@ -719,12 +719,21 @@ void __fastcall TTrain::OnKeyPress(int cKey)
        {
          if ((DynamicObject->MoverParameters->BrakeCtrlPos>-1) || (keybrakecount>1))
           {
-            if (DynamicObject->MoverParameters->DecBrakeLevel());
-             if ((isEztOer) && (DynamicObject->MoverParameters->BrakeCtrlPos<2))
+
+            if ((isEztOer) && (DynamicObject->MoverParameters->Mains) && (DynamicObject->MoverParameters->BrakeCtrlPos!=-1))
+            {
+             dsbPneumaticSwitch->SetVolume(-10);
+             dsbPneumaticSwitch->Play( 0, 0, 0 );
+            }
+            DynamicObject->MoverParameters->DecBrakeLevel();
+			
+             /*
+			 if ((isEztOer) && (DynamicObject->MoverParameters->BrakeCtrlPos<2))
               {
                dsbPneumaticSwitch->SetVolume(-10);
                dsbPneumaticSwitch->Play( 0, 0, 0 );
               }
+			  */
           }
            else keybrakecount+=1;
        }
