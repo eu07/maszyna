@@ -115,6 +115,7 @@ public:
  static int Keys[MaxKeys];
  static vector3 pCameraPosition; //pozycja kamery w œwiecie
  static double pCameraRotation;  //kierunek bezwzglêdny kamery w œwiecie
+ static double pCameraRotationDeg;  //w stopniach, dla animacji billboard
  static vector3 pFreeCameraInit[10]; //pozycje kamery
  static vector3 pFreeCameraInitAngle[10];
  static int iWindowWidth;

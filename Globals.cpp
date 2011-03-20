@@ -35,6 +35,7 @@
 int Global::Keys[MaxKeys];
 vector3 Global::pCameraPosition;
 double Global::pCameraRotation;
+double Global::pCameraRotationDeg;
 vector3 Global::pFreeCameraInit[10];
 vector3 Global::pFreeCameraInitAngle[10];
 int Global::iWindowWidth=800;
@@ -98,7 +99,7 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 bool Global::bMultiplayer=false; //blokada dzia³ania niektórych eventów na rzecz kominikacji
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asVersion="Compilation 2011-03-18, release 1.3.94.134."; //tutaj, bo wysy³any
+AnsiString Global::asVersion="Compilation 2011-03-20, release 1.3.96.135."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 GLint Global::iMaxTextureSize=8192;//maksymalny rozmiar tekstury
 
@@ -384,6 +385,7 @@ void __fastcall Global::SetCameraRotation(double Yaw)
  pCameraRotation=Yaw;
  while (pCameraRotation<-M_PI) pCameraRotation+=2*M_PI;
  while (pCameraRotation> M_PI) pCameraRotation-=2*M_PI;
+ //pCameraRotationDeg=pCameraRotation*180.0/M_PI;
 }
 
 //}

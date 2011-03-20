@@ -30,7 +30,7 @@
 #include "Timer.h"
 #include "mtable.hpp"
 
-double fSquareDist= 0;
+double fSquareDist=0;
 int TSubModel::iInstance; //numer renderowanego egzemplarza obiektu
 
 __fastcall TSubModel::TSubModel()
@@ -40,7 +40,7 @@ __fastcall TSubModel::TSubModel()
  Vertices=NULL;
  iNumVerts=-1; //do sprawdzenia
  iVboPtr=-1;
- uiDisplayList= 0;
+ uiDisplayList=0;
  fLight=-1.0; //œwietcenie wy³¹czone
 };
 
@@ -49,19 +49,11 @@ void __fastcall TSubModel::FirstInit()
  Index=-1;
  v_RotateAxis=vector3(0,0,0);
  v_TransVector=vector3(0,0,0);
- v_aRotateAxis=vector3(0,0,0);
- v_aTransVector=vector3(0,0,0);
+ //v_aRotateAxis=vector3(0,0,0);
+ //v_aTransVector=vector3(0,0,0);
  f_Angle=0;
- f_aAngle=0;
- //v_DesiredTransVector= vector3(0,0,0);
- //f_TranslateSpeed= 0;
- //f_DesiredAngle= 0;
- //f_RotateSpeed= 0;
+ //f_aAngle=0;
  b_Anim=at_None;
- //v_aDesiredTransVector= vector3(0,0,0);
- //f_aTranslateSpeed= 0;
- //f_aDesiredAngle= 0;
- //f_aRotateSpeed= 0;
  b_aAnim=at_None;
  Visible=false;
  Matrix.Identity();
@@ -99,13 +91,13 @@ __fastcall TSubModel::~TSubModel()
     delete[] Vertices;
 };
 
-int __fastcall TSubModel::SeekFaceNormal(DWORD *Masks, int f, DWORD dwMask, vector3 pt, GLVERTEX *Vertices)
+int __fastcall TSubModel::SeekFaceNormal(DWORD *Masks,int f,DWORD dwMask,vector3 pt,GLVERTEX *Vertices)
 {
-    int iNumFaces= iNumVerts/3;
+    int iNumFaces=iNumVerts/3;
 
     for (int i=f; i<iNumFaces; i++)
     {
-        if ( ( (Masks[i] & dwMask) != 0 ) && ( (Vertices[i*3+0].Point==pt) ||
+        if ( ( (Masks[i] & dwMask)!=0 ) && ( (Vertices[i*3+0].Point==pt) ||
                                                 (Vertices[i*3+1].Point==pt) ||
                                                 (Vertices[i*3+2].Point==pt) ) )
             return i;
@@ -114,10 +106,10 @@ int __fastcall TSubModel::SeekFaceNormal(DWORD *Masks, int f, DWORD dwMask, vect
     return -1;
 }
 
-float emm1[]= { 1,1,1,0 };
-float emm2[]= { 0,0,0,0 };
+float emm1[]={1,1,1,0};
+float emm2[]={0,0,0,0};
 
-inline double readIntAsDouble(cParser& parser, int base = 255)
+inline double readIntAsDouble(cParser& parser,int base=255)
 {
     int value;
     parser.getToken(value);
@@ -133,14 +125,14 @@ inline void readColor(cParser& parser,ColorT* color)
  color[2]=readIntAsDouble(parser);
 };
 
-inline void readMatrix(cParser& parser, matrix4x4& matrix)
+inline void readMatrix(cParser& parser,matrix4x4& matrix)
 {
-    for(int x = 0; x <= 3; x++)
-        for(int y = 0; y <= 3; y++)
-            parser.getToken(matrix(x)[y]);
+ for (int x=0;x<=3;x++)
+  for (int y=0;y<=3;y++)
+   parser.getToken(matrix(x)[y]);
 };
 
-int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int Pos)
+int __fastcall TSubModel::Load(cParser& parser,int NIndex,TModel3d *Model,int Pos)
 {//Ra: VBO tworzone na poziomie modelu, a nie submodeli
  iNumVerts=0;
  iVboPtr=Pos; //pozycja w VBO
@@ -179,6 +171,7 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
    else if (type=="minutes")       b_Anim=b_aAnim=at_Minutes; //minuty p³ynnie
    else if (type=="hours")         b_Anim=b_aAnim=at_Hours; //godziny p³ynnie
    else if (type=="hours24")       b_Anim=b_aAnim=at_Hours24; //godziny p³ynnie
+   else if (type=="billboard")     b_Anim=b_aAnim=at_Billboard; //godziny p³ynnie
  }
  if (eType==smt_Mesh) readColor(parser,f4Ambient); //ignoruje token przed
  readColor(parser,f4Diffuse);
@@ -205,7 +198,7 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
      parser.getToken(fNearAttenEnd);
 
      parser.ignoreToken();
-     bUseNearAtten = parser.expectToken("true");
+     bUseNearAtten=parser.expectToken("true");
 
      parser.ignoreToken();
      parser.getToken(iFarAttenDecay);
@@ -224,184 +217,144 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
      iFlags|=2; //rysowane w cyklu nieprzezroczystych
  };
 
- if (eType == smt_Mesh)
+ if (eType==smt_Mesh)
  {
-
-     parser.ignoreToken();
-     bWire = parser.expectToken("true");
-
-     parser.ignoreToken();
-     parser.getToken(fWireSize);
-
-     parser.ignoreToken();
-     Transparency=readIntAsDouble(parser,100.0f);
-
-     if (!parser.expectToken("map:"))
-         Error("Model map parse failure!");
-
-     std::string texture;
-     parser.getToken(texture);
-
-     if (texture=="none")
-     {
-      TextureID=0;
-      iFlags|=2; //rysowane w cyklu nieprzezroczystych
-     }
-     else
-     {
-// McZapkie-060702: zmienialne skory modelu
-      if (texture.find("replacableskin")!=texture.npos)
-      {
-       TextureID= -1;
-       iFlags|=1; //zmienna tekstura
-      }
-      else
-      {
-       //jesli tylko nazwa pliku to dawac biezaca sciezke do tekstur
-       if (texture.find_first_of("/\\") == texture.npos)
-        texture.insert(0,Global::asCurrentTexturePath.c_str());
-
-       TextureID=TTexturesManager::GetTextureID(texture);
-       TexAlpha=TTexturesManager::GetAlpha(TextureID);
-       iFlags|=TexAlpha?4:2; //2-nieprzezroczysta, 4-przezroczysta
-      };
-     };
+  parser.ignoreToken();
+  bWire=parser.expectToken("true");
+  parser.ignoreToken();
+  parser.getToken(fWireSize);
+  parser.ignoreToken();
+  Transparency=readIntAsDouble(parser,100.0f);
+  if (!parser.expectToken("map:"))
+   Error("Model map parse failure!");
+  std::string texture;
+  parser.getToken(texture);
+  if (texture=="none")
+  {//rysowanie podanym kolorem
+   TextureID=0;
+   iFlags|=2; //rysowane w cyklu nieprzezroczystych
+  }
+  else if (texture.find("replacableskin")!=texture.npos)
+  {// McZapkie-060702: zmienialne skory modelu
+   TextureID=-1;
+   iFlags|=1; //zmienna tekstura
+  }
+  else
+  {//jesli tylko nazwa pliku to dawac biezaca sciezke do tekstur
+   if (texture.find_first_of("/\\")==texture.npos)
+    texture.insert(0,Global::asCurrentTexturePath.c_str());
+   TextureID=TTexturesManager::GetTextureID(texture);
+   TexAlpha=TTexturesManager::GetAlpha(TextureID);
+   iFlags|=TexAlpha?4:2; //2-nieprzezroczysta, 4-przezroczysta
+  };
  };
-
  parser.ignoreToken();
  parser.getToken(fSquareMaxDist);
- fSquareMaxDist *= fSquareMaxDist;
-
+ fSquareMaxDist*=fSquareMaxDist;
  parser.ignoreToken();
  parser.getToken(fSquareMinDist);
- fSquareMinDist*= fSquareMinDist;
-
+ fSquareMinDist*=fSquareMinDist;
  parser.ignoreToken();
- readMatrix(parser, Matrix);
-
+ readMatrix(parser,Matrix);
  int iNumFaces;
  DWORD *sg;
-
  if (eType==smt_Mesh)
- {
-     parser.ignoreToken();
-     parser.getToken(iNumVerts);
-
-     if (iNumVerts % 3)
-     {
-         iNumVerts= 0;
-         Error("Mesh error, iNumVertices%3!=0");
-         return 0;
-     }
-
-     Vertices= new GLVERTEX[iNumVerts];
-     iNumFaces= iNumVerts/3;
-     sg = new DWORD[iNumFaces];
-
-     for (int i=0;i<iNumVerts;i++)
-     {
-
-         if (i%3==0)
-          parser.getToken(sg[i/3]); //kod powierzchni
-
-         parser.getToken(Vertices[i].Point.x);
-         parser.getToken(Vertices[i].Point.y);
-         parser.getToken(Vertices[i].Point.z);
-
-         Vertices[i].Normal=vector3(0,0,0); //bêdzie liczony
-
-         parser.getToken(Vertices[i].tu);
-         parser.getToken(Vertices[i].tv);
-
-         if ((i%3==2) && (Vertices[i].Point == Vertices[i-1].Point ||
-                         Vertices[i-1].Point == Vertices[i-2].Point ||
-                         Vertices[i-2].Point == Vertices[i].Point))
-         {
-          --iNumFaces; //o jeden trójk¹t mniej
-          iNumVerts-=3; //czyli o 3 wierzcho³ki
-          i-=3; //wczytanie kolejnego w to miejsce
-          WriteLog("Degenerated triangle ignored");
-         }
-     }
-
-     int v=0;
-     int f;
-     int j;
-
-     vector3 norm;
-
-     for (int i=0; i<iNumFaces; i++)
-     {
-         for (j=0; j<3; j++)
-         {
-             norm= vector3(0,0,0);
-
-             f=SeekFaceNormal(sg,0,sg[i],Vertices[v].Point,Vertices);
-             norm=vector3(0,0,0);
-             while (f>=0)
-             {
-                 norm+=SafeNormalize(CrossProduct( Vertices[f*3].Point-Vertices[f*3+1].Point,
-                                            Vertices[f*3].Point-Vertices[f*3+2].Point ));
-                 f=SeekFaceNormal(sg,f+1,sg[i],Vertices[v].Point,Vertices);
-             }
-
-             if (norm.Length()==0)
-                 norm+=SafeNormalize(CrossProduct( Vertices[i*3].Point-Vertices[i*3+1].Point,
-                                            Vertices[i*3].Point-Vertices[i*3+2].Point ));
-
-             if (norm.Length()>0)
-                 Vertices[v].Normal=Normalize(norm);
-             //else
-             //    f=0;
-             v++;
-         }
-     }
-
-     delete[] sg;
+ {//wczytywanie wierzcho³ków
+  parser.ignoreToken();
+  parser.getToken(iNumVerts);
+  if (iNumVerts%3)
+  {
+   iNumVerts=0;
+   Error("Mesh error, iNumVertices%3!=0");
+   return 0;
+  }
+  Vertices=new GLVERTEX[iNumVerts];
+  iNumFaces=iNumVerts/3;
+  sg=new DWORD[iNumFaces];
+  for (int i=0;i<iNumVerts;i++)
+  {
+   if (i%3==0)
+    parser.getToken(sg[i/3]); //kod powierzchni
+   parser.getToken(Vertices[i].Point.x);
+   parser.getToken(Vertices[i].Point.y);
+   parser.getToken(Vertices[i].Point.z);
+   Vertices[i].Normal=vector3(0,0,0); //bêdzie liczony potem
+   parser.getToken(Vertices[i].tu);
+   parser.getToken(Vertices[i].tv);
+   if ((i%3==2) && (Vertices[i  ].Point==Vertices[i-1].Point ||
+                    Vertices[i-1].Point==Vertices[i-2].Point ||
+                    Vertices[i-2].Point==Vertices[i  ].Point ))
+   {//je¿eli punkty siê nak³adaj¹ na siebie
+    --iNumFaces; //o jeden trójk¹t mniej
+    iNumVerts-=3; //czyli o 3 wierzcho³ki
+    i-=3; //wczytanie kolejnego w to miejsce
+    WriteLog("Degenerated triangle ignored");
+   }
+  }
+  int v=0;
+  int f;
+  int j;
+  vector3 norm;
+  for (int i=0;i<iNumFaces;i++)
+  {
+   for (j=0;j<3;j++)
+   {
+    norm=vector3(0,0,0);
+    f=SeekFaceNormal(sg,0,sg[i],Vertices[v].Point,Vertices);
+    norm=vector3(0,0,0);
+    while (f>=0)
+    {
+     norm+=SafeNormalize(CrossProduct(Vertices[f*3].Point-Vertices[f*3+1].Point,
+                                Vertices[f*3].Point-Vertices[f*3+2].Point));
+     f=SeekFaceNormal(sg,f+1,sg[i],Vertices[v].Point,Vertices);
+    }
+    if (norm.Length()==0)
+        norm+=SafeNormalize(CrossProduct(Vertices[i*3].Point-Vertices[i*3+1].Point,
+                                   Vertices[i*3].Point-Vertices[i*3+2].Point));
+    if (norm.Length()>0)
+        Vertices[v].Normal=Normalize(norm);
+    //else f=0;
+    v++;
+   }
+  }
+  delete[] sg;
  };
 
  if (eType==smt_Mesh)
  {
 #ifdef USE_VERTEX_ARRAYS
-     // ShaXbee-121209: przekazywanie wierzcholkow hurtem
-     glVertexPointer(3, GL_DOUBLE, sizeof(GLVERTEX), &Vertices[0].Point.x);
-     glNormalPointer(GL_DOUBLE, sizeof(GLVERTEX), &Vertices[0].Normal.x);
-     glTexCoordPointer(2, GL_FLOAT, sizeof(GLVERTEX), &Vertices[0].tu);
+  // ShaXbee-121209: przekazywanie wierzcholkow hurtem
+  glVertexPointer(3,GL_DOUBLE,sizeof(GLVERTEX),&Vertices[0].Point.x);
+  glNormalPointer(GL_DOUBLE,sizeof(GLVERTEX),&Vertices[0].Normal.x);
+  glTexCoordPointer(2,GL_FLOAT,sizeof(GLVERTEX),&Vertices[0].tu);
 #endif
-
-     uiDisplayList=glGenLists(1);
-     glNewList(uiDisplayList,GL_COMPILE);
-
-     glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);   //McZapkie-240702: zamiast ub
-     glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE,f4Diffuse);
-
-     if (Global::fLuminance<fLight)
-         glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,f4Diffuse);  //zeny swiecilo na kolorowo
-
+  uiDisplayList=glGenLists(1);
+  glNewList(uiDisplayList,GL_COMPILE);
+  glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);   //McZapkie-240702: zamiast ub
+  glMaterialfv(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE,f4Diffuse);
+  if (Global::fLuminance<fLight)
+   glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,f4Diffuse);  //zeny swiecilo na kolorowo
 #ifdef USE_VERTEX_ARRAYS
-     glDrawArrays(GL_TRIANGLES, 0, iNumVerts);
+  glDrawArrays(GL_TRIANGLES,0,iNumVerts);
 #else
-     glBegin(bWire?GL_LINES:GL_TRIANGLES);
-     for(int i=0; i<iNumVerts; i++)
-     {
-            glNormal3d(Vertices[i].Normal.x,Vertices[i].Normal.y,Vertices[i].Normal.z);
-            glTexCoord2f(Vertices[i].tu,Vertices[i].tv);
-            glVertex3dv(&Vertices[i].Point.x);
-     };
-     glEnd();
+  glBegin(bWire?GL_LINES:GL_TRIANGLES);
+  for(int i=0; i<iNumVerts; i++)
+  {
+   glNormal3d(Vertices[i].Normal.x,Vertices[i].Normal.y,Vertices[i].Normal.z);
+   glTexCoord2f(Vertices[i].tu,Vertices[i].tv);
+   glVertex3dv(&Vertices[i].Point.x);
+  };
+  glEnd();
 #endif
-
-     if (Global::fLuminance<fLight)
-         glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
-
-     glEndList();
+  if (Global::fLuminance<fLight)
+   glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
+  glEndList();
  }
  else
  {
-     uiDisplayList= glGenLists(1);
-     glNewList(uiDisplayList,GL_COMPILE);
-
-     glBindTexture(GL_TEXTURE_2D, 0);
+  uiDisplayList=glGenLists(1);
+  glNewList(uiDisplayList,GL_COMPILE);
+  glBindTexture(GL_TEXTURE_2D,0);
 //     if (eType==smt_FreeSpotLight)
 //      {
 //       if (iFarAttenDecay==0)
@@ -409,18 +362,16 @@ int __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model,int 
 //      }
 //      else
 //TODO: poprawic zeby dzialalo
-     //glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
-     glColorMaterial(GL_FRONT_AND_BACK,GL_EMISSION);
-     glDisable( GL_LIGHTING );  //Tolaris-030603: bo mu punkty swiecace sie blendowaly
-     glBegin(GL_POINTS);
-         glVertex3f(0,0,0);
-     glEnd();
-     glEnable( GL_LIGHTING );
-     glColorMaterial(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE);
-     glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
-
-     glEndList();
-
+  //glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
+  glColorMaterial(GL_FRONT_AND_BACK,GL_EMISSION);
+  glDisable( GL_LIGHTING );  //Tolaris-030603: bo mu punkty swiecace sie blendowaly
+  glBegin(GL_POINTS);
+      glVertex3f(0,0,0);
+  glEnd();
+  glEnable( GL_LIGHTING );
+  glColorMaterial(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE);
+  glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
+  glEndList();
  }
  SafeDeleteArray(Vertices); //musz¹ zostaæ do za³adowania ca³ego modelu
  Visible=true;
@@ -457,14 +408,12 @@ int __fastcall TSubModel::Flags()
  return iFlags;
 };
 
-void __fastcall TSubModel::SetRotate(vector3 vNewRotateAxis, double fNewAngle)
+void __fastcall TSubModel::SetRotate(vector3 vNewRotateAxis,double fNewAngle)
 {//obrócenie submodelu wg podanej osi (np. wskazówki w kabinie)
- //f_RotateSpeed=0;
  v_RotateAxis=vNewRotateAxis;
  f_Angle=fNewAngle;
- //f_aRotateSpeed=0;
- v_aRotateAxis=vNewRotateAxis;
- f_aAngle=fNewAngle;
+ //v_aRotateAxis=vNewRotateAxis;
+ //f_aAngle=fNewAngle;
  if (fNewAngle!=0.0)
  {b_Anim=at_Rotate;
   b_aAnim=at_Rotate;
@@ -474,33 +423,29 @@ void __fastcall TSubModel::SetRotate(vector3 vNewRotateAxis, double fNewAngle)
 
 void __fastcall TSubModel::SetRotateXYZ(vector3 vNewAngles)
 {//obrócenie submodelu o podane k¹ty wokó³ osi lokalnego uk³adu
- //f_RotateSpeed=0;
  v_Angles=vNewAngles;
  b_Anim=at_RotateXYZ;
- //f_aRotateSpeed=0;
- v_aAngles=vNewAngles;
+ //v_aAngles=vNewAngles;
  b_aAnim=at_RotateXYZ;
  iAnimOwner=iInstance; //zapamiêtanie czyja jest animacja
 }
 
 void __fastcall TSubModel::SetTranslate(vector3 vNewTransVector)
 {//przesuniêcie submodelu (np. w kabinie)
- //f_TranslateSpeed=0;
  v_TransVector=vNewTransVector;
  b_Anim=at_Translate;
- //f_aTranslateSpeed=0;
- v_aTransVector=vNewTransVector;
+ //v_aTransVector=vNewTransVector;
  b_aAnim=at_Translate;
  iAnimOwner=iInstance; //zapamiêtanie czyja jest animacja
 }
 /*
-void __fastcall TSubModel::SetRotateAnim(vector3 vNewRotateAxis, double fNewDesiredAngle, double fNewRotateSpeed, bool bResetAngle)
+void __fastcall TSubModel::SetRotateAnim(vector3 vNewRotateAxis,double fNewDesiredAngle,double fNewRotateSpeed,bool bResetAngle)
 {
-    fRotateSpeed= fNewRotateSpeed;
-    vRotateAxis= Normalize(vNewRotateAxis);
-    fDesiredAngle= fNewDesiredAngle;
+    fRotateSpeed=fNewRotateSpeed;
+    vRotateAxis=Normalize(vNewRotateAxis);
+    fDesiredAngle=fNewDesiredAngle;
     if (bResetAngle)
-        fAngle= 0;
+        fAngle=0;
 }
   */
 
@@ -514,21 +459,21 @@ TSubModel* __fastcall TSubModel::GetFromName(std::string search)
 
     TSubModel* result;
 
-    std::transform(search.begin(), search.end(), search.begin(), ToLower());
+    std::transform(search.begin(),search.end(),search.begin(),ToLower());
 
-    if (search == Name)
+    if (search==Name)
         return this;
 
     if (Next)
     {
-        result = Next->GetFromName(search);
+        result=Next->GetFromName(search);
         if (result)
             return result;
     };
 
     if (Child)
     {
-        result = Child->GetFromName(search);
+        result=Child->GetFromName(search);
         if (result)
             return result;
     };
@@ -537,7 +482,7 @@ TSubModel* __fastcall TSubModel::GetFromName(std::string search)
 
 };
 
-WORD hbIndices[18]= {3,0,1,5,4,2,1,0,4,1,5,3,2,3,5,2,4,0};
+WORD hbIndices[18]={3,0,1,5,4,2,1,0,4,1,5,3,2,3,5,2,4,0};
 
 void __fastcall TSubModel::RaAnimation(TAnimType a)
 {//wykonanie animacji niezale¿nie od renderowania
@@ -554,11 +499,9 @@ void __fastcall TSubModel::RaAnimation(TAnimType a)
   case at_RotateXYZ:
    if (iAnimOwner!=iInstance) break; //cudza animacja
    glTranslatef(v_TransVector.x,v_TransVector.y,v_TransVector.z);
-   //v_TransVector.x=v_TransVector.y=v_TransVector.z=0.0;
    glRotatef(v_Angles.x,1.0,0.0,0.0);
    glRotatef(v_Angles.y,0.0,1.0,0.0);
    glRotatef(v_Angles.z,0.0,0.0,1.0);
-   //v_Angles.x=v_Angles.y=v_Angles.z=0.0;
    break;
   case at_SecondsJump: //sekundy z przeskokiem
    glRotatef(floor(GlobalTime->mr)*6.0,0.0,1.0,0.0);
@@ -584,8 +527,15 @@ void __fastcall TSubModel::RaAnimation(TAnimType a)
   case at_Hours24: //godziny p³ynnie 24h/360°
    glRotatef(GlobalTime->hh*15.0+GlobalTime->mm*0.25+GlobalTime->mr/240.0,0.0,1.0,0.0);
    break;
+  case at_Billboard: //fronetm do kamery
+   glRotatef(Global::pCameraRotationDeg,0.0,0.0,1.0); //obrót w pionie o k¹t kamery
+   //Ra: lepiej by by³o policzyæ k¹t miêdzy obiektem a kamer¹, tylko jak odczytaæ pozycjê obiektu?
+   //vector3 gdzie=mat*vector3(0,0,0); //pozycja wzglêdna punktu œwiec¹cego
+   //fCosViewAngle=DotProduct(Normalize(mat*vector3(0,0,1)-gdzie),Normalize(gdzie));
+   break;
  }
 };
+/*
 void __fastcall TSubModel::RaaAnimation(TAnimType a)
 {//wykonanie animacji niezale¿nie od renderowania
  switch (a)
@@ -632,6 +582,7 @@ void __fastcall TSubModel::RaaAnimation(TAnimType a)
    break;
  }
 };
+*/
 
 void __fastcall TSubModel::RaRender(GLuint ReplacableSkinId,bool bAlpha)
 {//g³ówna procedura renderowania
@@ -762,7 +713,7 @@ void __fastcall TSubModel::RaRenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
  {
   glPushMatrix(); //zapamiêtanie matrycy
   glMultMatrixd(Matrix.getArray());
-  if (b_aAnim) RaaAnimation(b_aAnim);
+  if (b_aAnim) RaAnimation(b_aAnim);
   glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
  //zmienialne skory
   if (eType==smt_Mesh)
@@ -875,7 +826,7 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
  }
  if (b_Anim<at_SecondsJump)
   b_Anim=at_None; //wy³¹czenie animacji dla kolejnego u¿ycia subm
-};       //Render
+}; //Render
 
 void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
 {
@@ -886,7 +837,7 @@ void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
  {
   glPushMatrix();
   glMultMatrixd(Matrix.getArray());
-  if (b_aAnim) RaaAnimation(b_aAnim);
+  if (b_aAnim) RaAnimation(b_aAnim);
   if (eType==smt_FreeSpotLight)
   {
 //        if (CosViewAngle>0)  //dorobic od kata
@@ -900,12 +851,12 @@ void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
    //zmienialne skory
    if ((TextureID==-1)) // && (ReplacableSkinId!=0))
     {
-     glBindTexture(GL_TEXTURE_2D, ReplacableSkinId);
+     glBindTexture(GL_TEXTURE_2D,ReplacableSkinId);
      if (ReplacableSkinId>0)
-       TexAlpha= TTexturesManager::GetAlpha(ReplacableSkinId); //malo eleganckie ale narazie niech bedzie
+       TexAlpha=TTexturesManager::GetAlpha(ReplacableSkinId); //malo eleganckie ale narazie niech bedzie
     }
    else
-    glBindTexture(GL_TEXTURE_2D, TextureID);
+    glBindTexture(GL_TEXTURE_2D,TextureID);
    //jak przezroczyste s¹ wy³¹czone, to tu w ogóle nie wchodzi
    if (TexAlpha && Global::bRenderAlpha)  //mozna rysowac bo przezroczyste i nie ma #
    if (Global::fLuminance<fLight)
@@ -928,7 +879,6 @@ void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
 
 matrix4x4* __fastcall TSubModel::GetTransform()
 {
-//    Anim= true;
  return &Matrix;
 };
 
@@ -957,36 +907,35 @@ void  __fastcall TSubModel::RaArrayFill(CVertNormTex *Vert)
 
 __fastcall TModel3d::TModel3d()
 {
-//    Root= NULL;
-//    Materials= NULL;
-//    MaterialsCount= 0;
- Root= NULL;
- SubModelsCount= 0;
+//    Root=NULL;
+//    Materials=NULL;
+//    MaterialsCount=0;
+ Root=NULL;
+ SubModelsCount=0;
  iFlags=0;
-//    ReplacableSkinID = 0;
+//    ReplacableSkinID=0;
 };
 /*
 __fastcall TModel3d::TModel3d(char *FileName)
 {
-//    Root= NULL;
-//    Materials= NULL;
-//    MaterialsCount= 0;
- Root= NULL;
- SubModelsCount= 0;
+//    Root=NULL;
+//    Materials=NULL;
+//    MaterialsCount=0;
+ Root=NULL;
+ SubModelsCount=0;
  iFlags=0;
  LoadFromFile(FileName);
 };
 */
 __fastcall TModel3d::~TModel3d()
 {
-    SafeDelete(Root);
-//    SafeDeleteArray(Materials);
-
+ SafeDelete(Root);
+ //SafeDeleteArray(Materials);
 };
 
-bool __fastcall TModel3d::AddTo(const char *Name, TSubModel *SubModel)
+bool __fastcall TModel3d::AddTo(const char *Name,TSubModel *SubModel)
 {
-    TSubModel *tmp= GetFromName(Name);
+    TSubModel *tmp=GetFromName(Name);
     if (tmp!=NULL)
     {
         tmp->AddChild(SubModel);
@@ -997,7 +946,7 @@ bool __fastcall TModel3d::AddTo(const char *Name, TSubModel *SubModel)
         if (Root!=NULL)
             Root->AddNext(SubModel);
         else
-            Root= SubModel;
+            Root=SubModel;
 
         return true;
     }
@@ -1011,7 +960,7 @@ TSubModel* __fastcall TModel3d::GetFromName(const char *sName)
 /*
 TMaterial* __fastcall TModel3d::GetMaterialFromName(char *sName)
 {
-    AnsiString tmp= AnsiString(sName).Trim();
+    AnsiString tmp=AnsiString(sName).Trim();
     for (int i=0; i<MaterialsCount; i++)
         if (strcmp(sName,Materials[i].Name.c_str())==0)
 //        if (Trim()==Materials[i].Name.tmp)
@@ -1028,12 +977,12 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName)
  std::string token;
  parser.getToken(token);
  int totalverts=0;
- while (token != "" || parser.eof())
+ while (token!="" || parser.eof())
  {
   std::string parent;
   parser.getToken(parent);
   if (parent=="") break;
-  SubModel= new TSubModel();
+  SubModel=new TSubModel();
   totalverts+=SubModel->Load(parser,SubModelsCount,this,totalverts);
   if (!AddTo(parent.c_str(),SubModel)) delete SubModel;
   SubModelsCount++;
@@ -1042,13 +991,13 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName)
  matrix4x4 *mat,tmp;
  if (Root)
  {
-  mat= Root->GetMatrix();
+  mat=Root->GetMatrix();
   tmp.Identity();
   tmp.Rotation(M_PI/2,vector3(1,0,0));
-  (*mat)= tmp*(*mat);
+  (*mat)=tmp*(*mat);
   tmp.Identity();
   tmp.Rotation(M_PI,vector3(0,0,1));
-  (*mat)= tmp*(*mat);
+  (*mat)=tmp*(*mat);
   if (totalverts)
   {
 #ifdef USE_VBO
@@ -1088,9 +1037,9 @@ void __fastcall TModel3d::Render(vector3 pPosition,double fAngle,GLuint Replacab
 
     matrix4x4 CurrentMatrix;
     glGetdoublev(GL_MODELVIEW_MATRIX,CurrentMatrix.getArray());
-    vector3 pos= vector3(0,0,0);
-    pos= CurrentMatrix*pos;
-    fSquareDist= SquareMagnitude(pos);
+    vector3 pos=vector3(0,0,0);
+    pos=CurrentMatrix*pos;
+    fSquareDist=SquareMagnitude(pos);
   */
     fSquareDist=SquareMagnitude(pPosition-Global::GetCameraPosition());
 
@@ -1114,7 +1063,7 @@ void __fastcall TModel3d::Render(double fSquareDistance,GLuint ReplacableSkinId,
 #endif
 };
 
-void __fastcall TModel3d::RenderAlpha(vector3 pPosition, double fAngle, GLuint ReplacableSkinId,bool bAlpha)
+void __fastcall TModel3d::RenderAlpha(vector3 pPosition,double fAngle,GLuint ReplacableSkinId,bool bAlpha)
 {
     glPushMatrix();
     glTranslated(pPosition.x,pPosition.y,pPosition.z);
@@ -1132,7 +1081,7 @@ void __fastcall TModel3d::RenderAlpha(vector3 pPosition, double fAngle, GLuint R
 
 void __fastcall TModel3d::RenderAlpha(double fSquareDistance,GLuint ReplacableSkinId,bool bAlpha)
 {
-    fSquareDist= fSquareDistance;
+    fSquareDist=fSquareDistance;
 #ifdef _DEBUG
     if (Root)
         Root->RenderAlpha(ReplacableSkinId,bAlpha);
@@ -1155,9 +1104,9 @@ void __fastcall TModel3d::RaRender(vector3 pPosition,double fAngle,GLuint Replac
 
  matrix4x4 CurrentMatrix;
  glGetdoublev(GL_MODELVIEW_MATRIX,CurrentMatrix.getArray());
- vector3 pos= vector3(0,0,0);
- pos= CurrentMatrix*pos;
- fSquareDist= SquareMagnitude(pos);
+ vector3 pos=vector3(0,0,0);
+ pos=CurrentMatrix*pos;
+ fSquareDist=SquareMagnitude(pos);
 */
  fSquareDist=SquareMagnitude(pPosition-Global::GetCameraPosition());
  if (StartVBO())
@@ -1176,7 +1125,7 @@ void __fastcall TModel3d::RaRender(double fSquareDistance,GLuint ReplacableSkinI
  }
 };
 
-void __fastcall TModel3d::RaRenderAlpha(vector3 pPosition, double fAngle, GLuint ReplacableSkinId,bool bAlpha)
+void __fastcall TModel3d::RaRenderAlpha(vector3 pPosition,double fAngle,GLuint ReplacableSkinId,bool bAlpha)
 {
  glPushMatrix();
  glTranslated(pPosition.x,pPosition.y,pPosition.z);
@@ -1190,7 +1139,7 @@ void __fastcall TModel3d::RaRenderAlpha(vector3 pPosition, double fAngle, GLuint
  glPopMatrix();
 };
 
-void __fastcall TModel3d::RaRenderAlpha(double fSquareDistance, GLuint ReplacableSkinId,bool bAlpha)
+void __fastcall TModel3d::RaRenderAlpha(double fSquareDistance,GLuint ReplacableSkinId,bool bAlpha)
 {//renderowanie specjalne, np. kabiny
  fSquareDist=fSquareDistance;
  if (StartVBO())
