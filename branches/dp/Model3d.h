@@ -90,13 +90,14 @@ typedef enum //rodzaj animacji
  at_Seconds, //sekundy p³ynnie
  at_Minutes, //minuty p³ynnie
  at_Hours, //godziny p³ynnie 12h/360°
- at_Hours24 //godziny p³ynnie 24h/360°
+ at_Hours24, //godziny p³ynnie 24h/360°
+ at_Billboard //fronetm do kamery
 } TAnimType;
 
 class TModel3d;
 
 class TSubModel
-{
+{//klasa submodelu - pojedyncza siatka albo punkt œwietlny
 private:
       TSubModelType eType;
       GLuint TextureID;
@@ -130,14 +131,10 @@ private:
       //ABu: te same zmienne, ale zdublowane dla Render i RenderAlpha,
       //bo sie chrzanilo przemieszczanie obiektow.
 
-      double f_Angle, f_aAngle;
-      vector3 v_RotateAxis, v_aRotateAxis;
-      vector3 v_Angles, v_aAngles;
-      //double f_DesiredAngle, f_aDesiredAngle;
-      //double f_RotateSpeed, f_aRotateSpeed; //na tym poziomie nie ma animacji
-      vector3 v_TransVector, v_aTransVector;
-      //vector3 v_DesiredTransVector, v_aDesiredTransVector;
-      //double f_TranslateSpeed, f_aTranslateSpeed; //na tym poziomie nie ma animacji
+      double f_Angle;//, f_aAngle;
+      vector3 v_RotateAxis;//, v_aRotateAxis;
+      vector3 v_Angles;//, v_aAngles;
+      vector3 v_TransVector;//, v_aTransVector;
 
 
       TSubModel *Next;
@@ -145,12 +142,12 @@ private:
   //    vector3 HitBoxPts[6];
       int __fastcall SeekFaceNormal(DWORD *Masks, int f, DWORD dwMask, vector3 pt, GLVERTEX *Vertices);
 
-      int iNumVerts; //potrzebne do VBO
-      int iVboPtr;
-      GLVERTEX *Vertices; //do VBO
-      int iAnimOwner;
+ int iNumVerts; //potrzebne do VBO
+ int iVboPtr;
+ GLVERTEX *Vertices; //do VBO
+ int iAnimOwner;
  void __fastcall RaAnimation(TAnimType a);
- void __fastcall RaaAnimation(TAnimType a);
+ //void __fastcall RaaAnimation(TAnimType a);
 public:
 
       TAnimType b_Anim,b_aAnim;

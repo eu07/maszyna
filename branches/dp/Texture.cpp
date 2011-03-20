@@ -24,9 +24,9 @@
 #include "opengl/glew.h"
 #include <ddraw>
 
-#include    "system.hpp"
-#include    "classes.hpp"
-#include    "stdio.h"
+#include "system.hpp"
+#include "classes.hpp"
+#include "stdio.h"
 #pragma hdrstop
 
 #include "Usefull.h"
@@ -208,9 +208,9 @@ TTexturesManager::AlphaValue TTexturesManager::LoadBMP(std::string fileName)
 
 TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName,int filter)
 {
- AlphaValue fail(0, false);
- //GLubyte TGAheader[] = {0,0,2,0,0,0,0,0,0,0,0,0};	// Uncompressed TGA Header
- GLubyte TGACompheader[] = {0,0,10,0,0,0,0,0,0,0,0,0}; // Uncompressed TGA Header
+ AlphaValue fail(0,false);
+ //GLubyte TGAheader[]={0,0,2,0,0,0,0,0,0,0,0,0};	// Uncompressed TGA Header
+ GLubyte TGACompheader[]={0,0,10,0,0,0,0,0,0,0,0,0}; // Uncompressed TGA Header
  GLubyte TGAcompare[12]; // Used To Compare TGA Header
  GLubyte header[6]; // First 6 Useful Bytes From The Header
  std::ifstream file(fileName.c_str(),std::ios::binary);
@@ -261,10 +261,10 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName,int 
   GLuint currentpixel=0; // Current pixel being read
   GLuint currentbyte=0; // Current byte
   GLubyte *colorbuffer=new GLubyte[bytesPerPixel]; // Storage for 1 pixel
+  int chunkheader=0; //storage for "chunk" header //Ra: bêdziemy wczytywaæ najm³odszy bajt
   while (currentpixel<pixelcount)
   {
-   GLubyte chunkheader; // Storage for "chunk" header
-   file.read((char*)&chunkheader,sizeof(GLubyte));
+   file.read((char*)&chunkheader,1); //jeden bajt, pozosta³e zawsze zerowe
    if (file.eof())
    {
     MessageBox(NULL,"Could not read RLE header","ERROR",MB_OK); // Display Error
@@ -297,18 +297,26 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName,int 
     chunkheader-=127;
     file.read(colorbuffer,bytesPerPixel);
     // copy the color into the image data as many times as dictated
-    for (int counter=0;counter<chunkheader;counter++)
-    {																			// by the header
-     memcpy(imageData+currentbyte,colorbuffer,bytesPerPixel);
-     /*
-     imageData[currentbyte  ]=colorbuffer[0];
-     imageData[currentbyte+1]=colorbuffer[1];
-     imageData[currentbyte+2]=colorbuffer[2];
-     if (bytesPerPixel==4)												// If TGA images is 32 bpp
-      imageData[currentbyte+3]=colorbuffer[3];// Copy 4th byte
-     */
-     currentbyte+=bytesPerPixel;
+    if (bytesPerPixel==4)
+    {//przy czterech bajtach powinno byæ szybsze u¿ywanie int
+     __int32 *ptr=(__int32*)(imageData+currentbyte),bgra=*((__int32*)colorbuffer);
+     for (int counter=0;counter<chunkheader;counter++)
+      *ptr++=bgra;
+     currentbyte+=chunkheader*bytesPerPixel;
     }
+    else
+     for (int counter=0;counter<chunkheader;counter++)
+     {																			// by the header
+      memcpy(imageData+currentbyte,colorbuffer,bytesPerPixel);
+      /*
+      imageData[currentbyte  ]=colorbuffer[0];
+      imageData[currentbyte+1]=colorbuffer[1];
+      imageData[currentbyte+2]=colorbuffer[2];
+      if (bytesPerPixel==4)												// If TGA images is 32 bpp
+       imageData[currentbyte+3]=colorbuffer[3];// Copy 4th byte
+      */
+      currentbyte+=bytesPerPixel;
+     }
    }
    currentpixel+=chunkheader;
   };
