@@ -43,8 +43,8 @@ void __fastcall TSky::Render()
 #ifdef USE_VBO
   if (Global::bUseVBO)
   {//renderowanie z VBO
-   //mdCloud->RaRender(100,0);
-   //mdCloud->RaRenderAlpha(100,0);
+   mdCloud->RaRender(100,0);
+   mdCloud->RaRenderAlpha(100,0);
   }
   else
 #endif

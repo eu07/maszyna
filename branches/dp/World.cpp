@@ -125,14 +125,14 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
  WriteLog("Supported extensions:");
  WriteLog((char*)glGetString(GL_EXTENSIONS));
  if (glewGetExtension("GL_ARB_vertex_buffer_object")) //czy jest VBO w karcie graficznej
- {WriteLog("Ra: mo¿na u¿yæ VBO.");
+ {WriteLog("Ra: The VBO is found and will be used.");
 #ifdef USE_VBO
-  Global::bUseVBO=true; //VBO w³¹czane tylko, jeœli jest obs³uga
+  if (AnsiString((char*)glGetString(GL_VENDOR)).Pos("Intel")) //tylko dla kart Intel
+   Global::bUseVBO=true; //VBO w³¹czane tylko, jeœli jest obs³uga
 #endif
  }
  else
-  WriteLog("Ra: VBO nie znalezione.");
-
+  WriteLog("Ra: VBO not found - Display Lists used. Upgrade drivers or buy a newer graphics card!");
  {//ograniczenie maksymalnego rozmiaru tekstur - parametr dla skalowania tekstur
   GLint i;
   glGetIntegerv(GL_MAX_TEXTURE_SIZE,&i);
@@ -839,8 +839,8 @@ bool __fastcall TWorld::Update()
 #ifdef USE_VBO
       if (Global::bUseVBO)
       {//renderowanie z u¿yciem VBO
-       //Train->DynamicObject->mdKabina->RaRender(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->bAlpha);
-       //Train->DynamicObject->mdKabina->RaRenderAlpha(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->bAlpha);
+       Train->DynamicObject->mdKabina->RaRender(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->bAlpha);
+       Train->DynamicObject->mdKabina->RaRenderAlpha(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->bAlpha);
       }
       else
 #endif
@@ -1201,18 +1201,14 @@ bool __fastcall TWorld::Update()
         }
      }
 
-  	glDisable(GL_LIGHTING);
-    if (Controlled)
-     {
-      SetWindowText(hWnd,AnsiString(Controlled->MoverParameters->Name).c_str());
-     }
-    else
-     {
-      SetWindowText(hWnd,Global::szSceneryFile);
-     }
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glColor4f(1.0f,0.0f,0.0f,1.0f);
-    glLoadIdentity();
+ glDisable(GL_LIGHTING);
+ if (Controlled)
+  SetWindowText(hWnd,AnsiString(Controlled->MoverParameters->Name).c_str());
+ else
+  SetWindowText(hWnd,Global::szSceneryFile); //nazwa scenerii
+ glBindTexture(GL_TEXTURE_2D, 0);
+ glColor4f(1.0f,0.0f,0.0f,1.0f);
+ glLoadIdentity();
 
 //ABu 150205: prosty help, zeby sie na forum nikt nie pytal, jak ma ruszyc :)
 
@@ -1220,33 +1216,44 @@ bool __fastcall TWorld::Update()
  {
   //if (Pressed(VK_F9)) ShowHints(); //to nie dzia³a prawid³owo - prosili wy³¹czyæ
   if (Pressed(VK_F9))
-  {OutText1=Global::asVersion; //informacja o wersji
-   switch (glGetError())
-   {
-    case GL_NO_ERROR: break;
-    case GL_INVALID_ENUM: OutText3="GLenum argument out of range"; break;
-    case GL_INVALID_VALUE: OutText3="Numeric argument out of range"; break;
-    case GL_INVALID_OPERATION: OutText3="Operation illegal in current state"; break;
-    case GL_STACK_OVERFLOW: OutText3="Command would cause a stack overflow"; break;
-    case GL_STACK_UNDERFLOW: OutText3="Command would cause a stack underflow"; break;
-    case GL_OUT_OF_MEMORY: OutText3="Not enough memory left to execute command"; break;
-    default: OutText3="Other OpenGL error";
+  {//informacja o wersji, sposobie wyœwietlania i b³êdach OpenGL
+   OutText1=Global::asVersion; //informacja o wersji
+   OutText2=AnsiString("Rendering mode: ")+(Global::bUseVBO?"VBO":"Display Lists");
+   GLenum err=glGetError();
+   if (err!=GL_NO_ERROR)
+   {OutText3="OpenGL error "+AnsiString(err)+": "+AnsiString((char *)gluErrorString(err));
+    for (int i=1;i<=OutText3.Length();++i)
+     switch (OutText3[i])
+     {//bo komunikaty po polsku s¹...
+      case '¹': OutText3[i]='a'; break;
+      case 'æ': OutText3[i]='c'; break;
+      case 'ê': OutText3[i]='e'; break;
+      case '³': OutText3[i]='l'; break;
+      case 'ñ': OutText3[i]='n'; break;
+      case 'ó': OutText3[i]='o'; break;
+      case 'œ': OutText3[i]='s'; break;
+      case '¿': OutText3[i]='z'; break;
+      case 'Ÿ': OutText3[i]='z'; break;
+      default: if (OutText3[i]&128) OutText3[i]='?';
+     }
    }
   }
-  glTranslatef(0.0f,0.0f,-0.50f);
-  glRasterPos2f(-0.25f, 0.20f);
-  //glRasterPos2f(-0.25f, 0.20f);
-  if(OutText1!="")
-  {
+  if (OutText1!="")
+  {//ABu: i od razu czyszczenie tego, co bylo napisane
+   glTranslatef(0.0f,0.0f,-0.50f);
+   glRasterPos2f(-0.25f,0.20f);
    glPrint(OutText1.c_str());
-   glRasterPos2f(-0.25f, 0.19f);
-   glPrint(OutText2.c_str());
-   glRasterPos2f(-0.25f, 0.18f);
-   glPrint(OutText3.c_str());
-   //ABu: i od razu czyszczenie tego, co bylo napisane
-   OutText3 = "";
-   OutText2 = "";
-   OutText1 = "";
+   OutText1="";
+   if (OutText2!="")
+   {glRasterPos2f(-0.25f,0.19f);
+    glPrint(OutText2.c_str());
+    OutText2="";
+   }
+   if (OutText3!="")
+   {glRasterPos2f(-0.25f,0.18f);
+    glPrint(OutText3.c_str());
+    OutText3="";
+   }
   }
  }
  //glRasterPos2f(-0.25f, 0.17f);
@@ -1315,9 +1322,9 @@ bool __fastcall TWorld::Render()
     if (Global::bUseVBO)
     {//renderowanie przez VBO
      if (!Ground.RaRender(Camera.Pos)) return false;
-     //if (Global::bRenderAlpha)
-     //  if (!Ground.RaRenderAlpha(Camera.Pos))
-     //     return false;
+     if (Global::bRenderAlpha)
+       if (!Ground.RaRenderAlpha(Camera.Pos))
+          return false;
     }
     else
 #endif

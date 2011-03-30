@@ -43,8 +43,7 @@ TTraction::TTraction()
 //    dwFlags= 0;
     Wires=2;
 //    fU=fR= 0;
-    uiDisplayList= glGenLists(1);
-    glNewList(uiDisplayList,GL_COMPILE);
+    uiDisplayList=0;
     asPowerSupplyName="";
 //    mdPole= NULL;
 //    ReplacableSkinID= 0;
@@ -59,6 +58,7 @@ TTraction::~TTraction()
 void __fastcall TTraction::Optimize()
 {
  if (Global::bUseVBO) return;
+ uiDisplayList=glGenLists(1);
  glNewList(uiDisplayList,GL_COMPILE);
 
  glBindTexture(GL_TEXTURE_2D, 0);

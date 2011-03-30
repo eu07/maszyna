@@ -724,7 +724,7 @@ void __fastcall TTrack::Compile()
      if (fHTW2>5.0*fHTW) {fHTW2=fHTW; WriteLog("niedopasowanie 1");};
      if (side2>5.0*side) {side2=side; WriteLog("niedopasowanie 2");};
      if (rozp2>5.0*rozp) {rozp2=rozp; WriteLog("niedopasowanie 3");};
-     if (fabs(fTexHeight2)>5.0*fabs(fTexHeight)) {fTexHeight2=fTexHeight; WriteLog("niedopasowanie 4");};
+     //if (fabs(fTexHeight2)>5.0*fabs(fTexHeight)) {fTexHeight2=fTexHeight; WriteLog("niedopasowanie 4");};
     }
     else //gdy nie ma nastêpnego albo jest nieodpowiednim koñcem podpiêty
     {fHTW2=fHTW; side2=side; rozp2=rozp; fTexHeight2=fTexHeight;}
@@ -1125,7 +1125,7 @@ void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Star
   if (fHTW2>5.0*fHTW) {fHTW2=fHTW; WriteLog("!!!! niedopasowanie 1");};
   if (side2>5.0*side) {side2=side; WriteLog("!!!! niedopasowanie 2");};
   if (rozp2>5.0*rozp) {rozp2=rozp; WriteLog("!!!! niedopasowanie 3");};
-  if (fabs(fTexHeight2)>5.0*fabs(fTexHeight)) {fTexHeight2=fTexHeight; WriteLog("!!!! niedopasowanie 4");};
+  //if (fabs(fTexHeight2)>5.0*fabs(fTexHeight)) {fTexHeight2=fTexHeight; WriteLog("!!!! niedopasowanie 4");};
  }
  else //gdy nie ma nastêpnego albo jest nieodpowiednim koñcem podpiêty
  {fHTW2=fHTW; side2=side; rozp2=rozp; fTexHeight2=fTexHeight;}

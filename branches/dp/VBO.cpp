@@ -60,7 +60,7 @@ bool __fastcall CMesh::StartVBO()
  if (m_nVBOVertices)
  {
   glBindBufferARB(GL_ARRAY_BUFFER_ARB,m_nVBOVertices);
-  glVertexPointer(3,GL_FLOAT,sizeof(CVertNormTex),NULL);               //pozycje
+  glVertexPointer(3,GL_FLOAT,sizeof(CVertNormTex),((char*)NULL));               //pozycje
   glNormalPointer(GL_FLOAT,sizeof(CVertNormTex),((char*)NULL)+12);     //normalne
   glTexCoordPointer(2,GL_FLOAT,sizeof(CVertNormTex),((char*)NULL)+24); //wierzcho³ki
  }
