@@ -839,8 +839,8 @@ bool __fastcall TWorld::Update()
 #ifdef USE_VBO
       if (Global::bUseVBO)
       {//renderowanie z u¿yciem VBO
-       Train->DynamicObject->mdKabina->RaRender(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->bAlpha);
-       Train->DynamicObject->mdKabina->RaRenderAlpha(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->bAlpha);
+       //Train->DynamicObject->mdKabina->RaRender(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->bAlpha);
+       //Train->DynamicObject->mdKabina->RaRenderAlpha(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->bAlpha);
       }
       else
 #endif
@@ -1216,32 +1216,43 @@ bool __fastcall TWorld::Update()
 
 //ABu 150205: prosty help, zeby sie na forum nikt nie pytal, jak ma ruszyc :)
 
-if (Global::detonatoryOK)
-{
-   //if (Pressed(VK_F9)) ShowHints(); //to nie dzia³a prawid³owo - prosili wy³¹czyæ
- if (Pressed(VK_F9)) OutText1=Global::asVersion; //informacja o wersji
-    glTranslatef(0.0f,0.0f,-0.50f);
-    glRasterPos2f(-0.25f, 0.20f);
-//    glRasterPos2f(-0.25f, 0.20f);
-    if(OutText1!="")
-    {
-      glPrint(OutText1.c_str());
-      glRasterPos2f(-0.25f, 0.19f);
-      glPrint(OutText2.c_str());
-      glRasterPos2f(-0.25f, 0.18f);
-      glPrint(OutText3.c_str());
-      //ABu: i od razu czyszczenie tego, co bylo napisane
-      OutText3 = "";
-      OutText2 = "";
-      OutText1 = "";
-    }
-}
-
-//    glRasterPos2f(-0.25f, 0.17f);
-//    glPrint(OutText4.c_str());
-  	glEnable(GL_LIGHTING);
-
-    return (true);
+ if (Global::detonatoryOK)
+ {
+  //if (Pressed(VK_F9)) ShowHints(); //to nie dzia³a prawid³owo - prosili wy³¹czyæ
+  if (Pressed(VK_F9))
+  {OutText1=Global::asVersion; //informacja o wersji
+   switch (glGetError())
+   {
+    case GL_NO_ERROR: break;
+    case GL_INVALID_ENUM: OutText3="GLenum argument out of range"; break;
+    case GL_INVALID_VALUE: OutText3="Numeric argument out of range"; break;
+    case GL_INVALID_OPERATION: OutText3="Operation illegal in current state"; break;
+    case GL_STACK_OVERFLOW: OutText3="Command would cause a stack overflow"; break;
+    case GL_STACK_UNDERFLOW: OutText3="Command would cause a stack underflow"; break;
+    case GL_OUT_OF_MEMORY: OutText3="Not enough memory left to execute command"; break;
+    default: OutText3="Other OpenGL error";
+   }
+  }
+  glTranslatef(0.0f,0.0f,-0.50f);
+  glRasterPos2f(-0.25f, 0.20f);
+  //glRasterPos2f(-0.25f, 0.20f);
+  if(OutText1!="")
+  {
+   glPrint(OutText1.c_str());
+   glRasterPos2f(-0.25f, 0.19f);
+   glPrint(OutText2.c_str());
+   glRasterPos2f(-0.25f, 0.18f);
+   glPrint(OutText3.c_str());
+   //ABu: i od razu czyszczenie tego, co bylo napisane
+   OutText3 = "";
+   OutText2 = "";
+   OutText1 = "";
+  }
+ }
+ //glRasterPos2f(-0.25f, 0.17f);
+ //glPrint(OutText4.c_str());
+ glEnable(GL_LIGHTING);
+ return (true);
 };
 
 
@@ -1304,9 +1315,9 @@ bool __fastcall TWorld::Render()
     if (Global::bUseVBO)
     {//renderowanie przez VBO
      if (!Ground.RaRender(Camera.Pos)) return false;
-     if (Global::bRenderAlpha)
-       if (!Ground.RaRenderAlpha(Camera.Pos))
-          return false;
+     //if (Global::bRenderAlpha)
+     //  if (!Ground.RaRenderAlpha(Camera.Pos))
+     //     return false;
     }
     else
 #endif

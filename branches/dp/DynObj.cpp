@@ -2459,14 +2459,14 @@ if (renderme)
     if (mdLowPolyInt!=NULL)
      if ((FreeFlyModeFlag)||((!FreeFlyModeFlag)&&(!mdKabina)))
 #ifdef USE_VBO
-      if (Globals::bUseVBO)
+      if (Global::bUseVBO)
        mdLowPolyInt->RaRender(ObjSqrDist,ReplacableSkinID);
       else
 #endif       
        mdLowPolyInt->Render(ObjSqrDist,ReplacableSkinID);
 
 #ifdef USE_VBO
-    if (Globals::bUseVBO)
+    if (Global::bUseVBO)
      mdModel->RaRender(ObjSqrDist,ReplacableSkinID,bAlpha);
     else
 #endif
@@ -2486,7 +2486,7 @@ if (renderme)
      }
     if (mdLoad!=NULL)
 #ifdef USE_VBO
-     if (Globals::bUseVBO)
+     if (Global::bUseVBO)
       mdLoad->RaRender(ObjSqrDist,ReplacableSkinID,bAlpha);
      else
 #endif
@@ -2496,7 +2496,7 @@ if (renderme)
     if (mdPrzedsionek!=NULL)
      if (MoverParameters->filename==asBaseDir+"6ba.chk")
 #ifdef USE_VBO
-      if (Globals::bUseVBO)
+      if (Global::bUseVBO)
        mdPrzedsionek->RaRender(ObjSqrDist,ReplacableSkinID);
       else
 #endif
@@ -2543,7 +2543,7 @@ if (renderme)
       glLightfv(GL_LIGHT0,GL_SPECULAR,specularCabLight);
 
 #ifdef USE_VBO
-     if (Globals::bUseVBO)
+     if (Global::bUseVBO)
       mdKabina->RaRender(ObjSqrDist,0);
      else
 #endif
@@ -2949,7 +2949,7 @@ if (renderme)
     glMultMatrixd(mMatrix.getArray());
 
 #ifdef USE_VBO
-    if (Globals::bUseVBO)
+    if (Global::bUseVBO)
      mdModel->RaRenderAlpha(ObjSqrDist,ReplacableSkinID,bAlpha);
     else
 #endif
@@ -2957,7 +2957,7 @@ if (renderme)
 
     if (mdLoad) //Ra: dodane renderowanie przezroczystego ³adunku
 #ifdef USE_VBO
-     if (Globals::bUseVBO)
+     if (Global::bUseVBO)
       mdLoad->RaRenderAlpha(ObjSqrDist,ReplacableSkinID,bAlpha);
      else
 #endif

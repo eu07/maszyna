@@ -34,25 +34,27 @@ void __fastcall TSky::Init()
 
 void __fastcall TSky::Render()
 {
- if (mdCloud!=NULL)
-  {
+ if (mdCloud)
+ {//jeœli jest model nieba
   glPushMatrix();
-//     glDisable(GL_DEPTH_TEST);
-
-     glTranslatef(Global::pCameraPosition.x, Global::pCameraPosition.y, Global::pCameraPosition.z);
-     glLightfv(GL_LIGHT0,GL_POSITION,lightPos);
-
+  //glDisable(GL_DEPTH_TEST);
+  glTranslatef(Global::pCameraPosition.x, Global::pCameraPosition.y, Global::pCameraPosition.z);
+  glLightfv(GL_LIGHT0,GL_POSITION,lightPos);
 #ifdef USE_VBO
-     mdCloud->RaRenderAlpha(100,0);
-     mdCloud->RaRender(100,0);
-#else
-     mdCloud->RenderAlpha(100,0);
-     mdCloud->Render(100,0);
+  if (Global::bUseVBO)
+  {//renderowanie z VBO
+   //mdCloud->RaRender(100,0);
+   //mdCloud->RaRenderAlpha(100,0);
+  }
+  else
 #endif
-
-//     glEnable(GL_DEPTH_TEST);
-     glClear(GL_DEPTH_BUFFER_BIT);
-//     glEnable(GL_LIGHTING);
+  {//renderowanie z Display List
+   mdCloud->Render(100,0);
+   mdCloud->RenderAlpha(100,0);
+  }
+  //glEnable(GL_DEPTH_TEST);
+  glClear(GL_DEPTH_BUFFER_BIT);
+  //glEnable(GL_LIGHTING);
   glPopMatrix();
   glLightfv(GL_LIGHT0,GL_POSITION,Global::lightPos);
  }

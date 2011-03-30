@@ -215,12 +215,22 @@ public:
   return (pSubRects?pSubRects+iRow*iNumSubRects+iCol:NULL);
  };
  void __fastcall Render()
- {//renderowanie kwadratu kilometrowego, jeœli jeszcze nie zrobione
+ {//renderowanie kwadratu kilometrowego (DL), jeœli jeszcze nie zrobione
   if (iLastDisplay!=iFrameNumber)
   {for (TGroundNode* node=pRender;node!=NULL;node=node->pNext3)
     node->Render(); //nieprzezroczyste obiekty (pojazdy z automatu)
    iLastDisplay=iFrameNumber;
   }
+ };
+ void __fastcall RaRender()
+ {//renderowanie kwadratu kilometrowego (VBO), jeœli jeszcze nie zrobione
+  if (iLastDisplay!=iFrameNumber)
+   if (StartVBO())
+   {for (TGroundNode* node=pRender;node!=NULL;node=node->pNext3)
+     node->RaRenderVBO(); //nieprzezroczyste obiekty (pojazdy z automatu)
+    EndVBO();  
+    iLastDisplay=iFrameNumber;
+   }
  };
 };
 
