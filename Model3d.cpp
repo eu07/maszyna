@@ -84,7 +84,7 @@ void __fastcall TSubModel::FirstInit()
 
 __fastcall TSubModel::~TSubModel()
 {
-    glDeleteLists(uiDisplayList,1);
+ if (uiDisplayList) glDeleteLists(uiDisplayList,1);
 //    SafeDeleteArray(Indices);
     SafeDelete(Next);
     SafeDelete(Child);
@@ -319,32 +319,33 @@ int __fastcall TSubModel::Load(cParser& parser,int NIndex,TModel3d *Model,int Po
   }
   delete[] sg;
  };
-
- if (eType==smt_Mesh)
- {
-#ifdef USE_VERTEX_ARRAYS
-  // ShaXbee-121209: przekazywanie wierzcholkow hurtem
-  glVertexPointer(3,GL_DOUBLE,sizeof(GLVERTEX),&Vertices[0].Point.x);
-  glNormalPointer(GL_DOUBLE,sizeof(GLVERTEX),&Vertices[0].Normal.x);
-  glTexCoordPointer(2,GL_FLOAT,sizeof(GLVERTEX),&Vertices[0].tu);
-#endif
-  uiDisplayList=glGenLists(1);
-  glNewList(uiDisplayList,GL_COMPILE);
-  glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);   //McZapkie-240702: zamiast ub
-  glMaterialfv(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE,f4Diffuse);
-  if (Global::fLuminance<fLight)
-   glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,f4Diffuse);  //zeny swiecilo na kolorowo
-#ifdef USE_VERTEX_ARRAYS
-  glDrawArrays(GL_TRIANGLES,0,iNumVerts);
-#else
-  glBegin(bWire?GL_LINES:GL_TRIANGLES);
-  for(int i=0; i<iNumVerts; i++)
+ if (!Global::bUseVBO)
+ {//Ra: przy VBO to siê nie przyda
+  if (eType==smt_Mesh)
   {
-   glNormal3d(Vertices[i].Normal.x,Vertices[i].Normal.y,Vertices[i].Normal.z);
-   glTexCoord2f(Vertices[i].tu,Vertices[i].tv);
-   glVertex3dv(&Vertices[i].Point.x);
-  };
-  glEnd();
+#ifdef USE_VERTEX_ARRAYS
+   // ShaXbee-121209: przekazywanie wierzcholkow hurtem
+   glVertexPointer(3,GL_DOUBLE,sizeof(GLVERTEX),&Vertices[0].Point.x);
+   glNormalPointer(GL_DOUBLE,sizeof(GLVERTEX),&Vertices[0].Normal.x);
+   glTexCoordPointer(2,GL_FLOAT,sizeof(GLVERTEX),&Vertices[0].tu);
+#endif
+   uiDisplayList=glGenLists(1);
+   glNewList(uiDisplayList,GL_COMPILE);
+   glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);   //McZapkie-240702: zamiast ub
+   glMaterialfv(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE,f4Diffuse);
+   if (Global::fLuminance<fLight)
+    glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,f4Diffuse);  //zeny swiecilo na kolorowo
+#ifdef USE_VERTEX_ARRAYS
+   glDrawArrays(GL_TRIANGLES,0,iNumVerts);
+#else
+   glBegin(bWire?GL_LINES:GL_TRIANGLES);
+   for(int i=0; i<iNumVerts; i++)
+   {
+    glNormal3d(Vertices[i].Normal.x,Vertices[i].Normal.y,Vertices[i].Normal.z);
+    glTexCoord2f(Vertices[i].tu,Vertices[i].tv);
+    glVertex3dv(&Vertices[i].Point.x);
+   };
+   glEnd();
 #endif
   if (Global::fLuminance<fLight)
    glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
@@ -362,18 +363,19 @@ int __fastcall TSubModel::Load(cParser& parser,int NIndex,TModel3d *Model,int Po
 //      }
 //      else
 //TODO: poprawic zeby dzialalo
-  //glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
-  glColorMaterial(GL_FRONT_AND_BACK,GL_EMISSION);
-  glDisable( GL_LIGHTING );  //Tolaris-030603: bo mu punkty swiecace sie blendowaly
-  glBegin(GL_POINTS);
+   //glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
+   glColorMaterial(GL_FRONT_AND_BACK,GL_EMISSION);
+   glDisable( GL_LIGHTING );  //Tolaris-030603: bo mu punkty swiecace sie blendowaly
+   glBegin(GL_POINTS);
       glVertex3f(0,0,0);
-  glEnd();
-  glEnable( GL_LIGHTING );
-  glColorMaterial(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE);
-  glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
-  glEndList();
+   glEnd();
+   glEnable( GL_LIGHTING );
+   glColorMaterial(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE);
+   glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
+   glEndList();
+  }
+  SafeDeleteArray(Vertices); //musz¹ zostaæ do za³adowania ca³ego modelu
  }
- SafeDeleteArray(Vertices); //musz¹ zostaæ do za³adowania ca³ego modelu
  Visible=true;
  return iNumVerts; //do okreœlenia wielkoœci VBO
 };
@@ -586,7 +588,7 @@ void __fastcall TSubModel::RaaAnimation(TAnimType a)
 
 void __fastcall TSubModel::RaRender(GLuint ReplacableSkinId,bool bAlpha)
 {//g³ówna procedura renderowania
- if (Next!=NULL)
+ if (Next)
   if (bAlpha?(iFlags&0x02000000):(iFlags&0x03000000))
    Next->RaRender(ReplacableSkinId,bAlpha); //dalsze rekurencyjnie
  if (Visible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
@@ -594,9 +596,8 @@ void __fastcall TSubModel::RaRender(GLuint ReplacableSkinId,bool bAlpha)
   glPushMatrix();
   glMultMatrixd(Matrix.getArray());
   if (b_Anim) RaAnimation(b_Anim);
-  //zmienialne skory
   if ((TextureID==-1)) // && (ReplacableSkinId!=0))
-  {
+  {//zmienialne skory
    glBindTexture(GL_TEXTURE_2D,ReplacableSkinId);
    //if (ReplacableSkinId>0)
    TexAlpha=bAlpha; //TTexturesManager::GetAlpha(ReplacableSkinId); //malo eleganckie ale narazie niech bedzie
@@ -715,7 +716,7 @@ void __fastcall TSubModel::RaRenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
   glMultMatrixd(Matrix.getArray());
   if (b_aAnim) RaAnimation(b_aAnim);
   glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
- //zmienialne skory
+  //zmienialne skory
   if (eType==smt_Mesh)
   {
    if ((TextureID==-1)) // && (ReplacableSkinId!=0))
@@ -991,7 +992,7 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName)
  matrix4x4 *mat,tmp;
  if (Root)
  {
-  mat=Root->GetMatrix();
+  mat=Root->GetMatrix(); //transform
   tmp.Identity();
   tmp.Rotation(M_PI/2,vector3(1,0,0));
   (*mat)=tmp*(*mat);
@@ -1001,9 +1002,12 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName)
   if (totalverts)
   {
 #ifdef USE_VBO
-   MakeArray(totalverts); //tworzenie tablic dla VBO
-   Root->RaArrayFill(m_pVNT); //wype³nianie tablicy
-   if (Global::bUseVBO) BuildVBOs();
+   if (Global::bUseVBO)
+   {//tworzenie tymczasowej tablicy z wierzcho³kami ca³ego modelu
+    MakeArray(totalverts); //tworzenie tablic dla VBO
+    Root->RaArrayFill(m_pVNT); //wype³nianie tablicy
+    BuildVBOs(); //tworzenie VBO i usuwanie tablicy z pamiêci
+   } 
 #endif
    iFlags=Root->Flags(); //flagi ca³ego modelu
   }
@@ -1118,11 +1122,24 @@ void __fastcall TModel3d::RaRender(vector3 pPosition,double fAngle,GLuint Replac
 
 void __fastcall TModel3d::RaRender(double fSquareDistance,GLuint ReplacableSkinId,bool bAlpha)
 {//renderowanie specjalne, np. kabiny
- fSquareDist=fSquareDistance;
- if (StartVBO())
- {Root->RaRender(ReplacableSkinId,bAlpha);
-  EndVBO();
+ if (bAlpha?(iFlags&0x02020002):(iFlags&0x03030003))
+ {fSquareDist=fSquareDistance;
+  if (StartVBO())
+  {Root->RaRender(ReplacableSkinId,bAlpha);
+   EndVBO();
+  }
  }
+};
+
+void __fastcall TModel3d::RaRenderAlpha(double fSquareDistance,GLuint ReplacableSkinId,bool bAlpha)
+{//renderowanie specjalne, np. kabiny
+ if (bAlpha?(iFlags&0x04040004):(iFlags&0x05050005))
+ {fSquareDist=fSquareDistance;
+  if (StartVBO())
+  {Root->RaRenderAlpha(ReplacableSkinId,bAlpha);
+   EndVBO();
+  }
+ } 
 };
 
 void __fastcall TModel3d::RaRenderAlpha(vector3 pPosition,double fAngle,GLuint ReplacableSkinId,bool bAlpha)
@@ -1137,15 +1154,6 @@ void __fastcall TModel3d::RaRenderAlpha(vector3 pPosition,double fAngle,GLuint R
   EndVBO();
  }
  glPopMatrix();
-};
-
-void __fastcall TModel3d::RaRenderAlpha(double fSquareDistance,GLuint ReplacableSkinId,bool bAlpha)
-{//renderowanie specjalne, np. kabiny
- fSquareDist=fSquareDistance;
- if (StartVBO())
- {Root->RaRenderAlpha(ReplacableSkinId,bAlpha);
-  EndVBO();
- }
 };
 
 

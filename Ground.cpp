@@ -3005,6 +3005,7 @@ bool __fastcall TGround::GetTraction(vector3 pPosition, TDynamicObject *model)
 
 bool __fastcall TGround::RaRender(vector3 pPosition)
 {
+ ++TGroundRect::iFrameNumber; //zwiêszenie licznika ramek
  CameraDirection.x=sin(Global::pCameraRotation); //wektor kierunkowy
  CameraDirection.z=cos(Global::pCameraRotation);
  int tr,tc;
@@ -3014,8 +3015,7 @@ bool __fastcall TGround::RaRender(vector3 pPosition)
  int c=GetColFromX(pPosition.x);
  int r=GetRowFromZ(pPosition.z);
  TSubRect *tmp;
- int i,j;
- vector3 direction;
+ int i,j,k;
  //renderowanie czo³gowe dla obiektów aktywnych a niewidocznych
  for (j=r-n;j<r+n;j++)
   for (i=c-n;i<c+n;i++)
@@ -3025,31 +3025,40 @@ bool __fastcall TGround::RaRender(vector3 pPosition)
      node->RenderHidden();
   }
  //renderowanie progresywne - zale¿ne od FPS oraz kierunku patrzenia
- for (j=r-n;j<r+n;j++)
-  for (i=c-n;i<c+n;i++)
+ iRendered=0; //iloœæ renderowanych sektorów
+ vector3 direction;
+ iRange=Global::slowmotion?AreaSlow:AreaFast;
+ n=(iRange[0]*n)/10; //tak dla zasady - 10 albo 7
+ for (j=-n;j<=n;j++)
+ {k=iRange[j<0?-j:j]; //zasiêg na danym poziomie
+  for (i=-k;i<=k;i++)
   {
-   direction=vector3(i-c,0,j-r);
-   if (LengthSquared3(direction)>4)
+   direction=vector3(i,0,j);
+   if (LengthSquared3(direction)>5)
    {direction=SafeNormalize(direction);
     if (CameraDirection.x*direction.x+CameraDirection.z*direction.z<0.55)
      continue; //pomijanie zbêdnych sektorów
    }
-   if ((tmp=FastGetSubRect(i,j))!=NULL)
-   {
-    tmp->RaAnimate(); //przeliczenia animacji w sektorze przed zapiêciem VBO
-    tmp->LoadNodes(); //ewentualne tworzenie siatek
-    if (tmp->StartVBO())
-    {for (node=tmp->pRenderRect;node!=NULL;node=node->pNext3)
-      if (node->iVboPtr>=0)
-       node->RaRender(); //nieprzezroczyste obiekty terenu
-     tmp->EndVBO();
-    }
-    for (node=tmp->pRender;node;node=node->pNext3)
-     node->RaRender(); //nieprzezroczyste modele
-    for (node=tmp->pRenderMixed;node;node=node->pNext3)
-     node->RaRender(); //nieprzezroczyste z mieszanych modeli
-   }
+   Rects[(i+c)/iNumSubRects][(j+r)/iNumSubRects].RaRender(); //kwadrat kilometrowy nie zawsze, bo szkoda FPS
+   if ((tmp=FastGetSubRect(i+c,j+r))!=NULL)
+    if (tmp->iNodeCount) //je¿eli s¹ jakieœ obiekty, bo po co puste sektory przelatywaæ
+     pRendered[iRendered++]=tmp; //tworzenie listy sektorów do renderowania
   }
+ }
+ for (i=0;i<iRendered;i++)
+ {//renderowanie nieprzezroczystych
+   tmp->LoadNodes(); //ewentualne tworzenie siatek
+   if (tmp->StartVBO())
+   {for (node=tmp->pRenderRect;node!=NULL;node=node->pNext3)
+     if (node->iVboPtr>=0)
+      node->RaRender(); //nieprzezroczyste obiekty terenu
+    tmp->EndVBO();
+   }
+   for (node=tmp->pRender;node;node=node->pNext3)
+    node->RaRender(); //nieprzezroczyste modele
+   for (node=tmp->pRenderMixed;node;node=node->pNext3)
+    node->RaRender(); //nieprzezroczyste z mieszanych modeli
+ }
  return true;
 }
 
@@ -3061,9 +3070,10 @@ bool __fastcall TGround::RaRenderAlpha(vector3 pPosition)
  int c=GetColFromX(pPosition.x);
  int r=GetRowFromZ(pPosition.z);
  TSubRect *tmp;
- vector3 direction;
+ int i;
  //Ra: 3/4 terenu jest niepotrzebnie renderowane
  //renderowanie progresywne - zale¿ne od FPS oraz kierunku patrzenia
+ /*
  for (int j=r-n;j<r+n;j++)
   for (int i=c-n;i<c+n;i++)
   {
@@ -3091,6 +3101,27 @@ bool __fastcall TGround::RaRenderAlpha(vector3 pPosition)
     }
    }
   }
+  */
+ for (i=0;i<iRendered;i++)
+ {//renderowanie przezroczystych modeli oraz pojazdów
+  tmp=pRendered[i];
+  for (node=tmp->pRenderMixed;node;node=node->pNext3)
+   node->RaRenderAlpha(); //przezroczyste z mieszanych modeli
+  for (node=tmp->pRenderAlpha;node;node=node->pNext3)
+   node->RaRenderAlpha(); //przezroczyste modele
+  for (node=tmp->pRender;node;node=node->pNext3)
+   if (node->iType==TP_TRACK)
+    node->pTrack->RaRenderDynamic(); //przezroczyste fragmenty pojazdów na torach
+ }
+ if (tmp->StartVBO()) //VBO sektora
+ {for (i=0;i<iRendered;i++)
+  {//druty na koñcu, ¿eby siê nie robi³y bia³e plamy na tle lasu
+   tmp=pRendered[i];
+   for (node=tmp->pRenderWires;node;node=node->pNext3)
+    node->RenderAlpha(); //przezroczyste modele
+  }
+  tmp->EndVBO();
+ }
  return true;
 }
 
@@ -3130,7 +3161,7 @@ bool __fastcall TGround::Render(vector3 pPosition)
     if (CameraDirection.x*direction.x+CameraDirection.z*direction.z<0.55)
      continue; //pomijanie zbêdnych sektorów
    }
-   Rects[(i+c)/iNumSubRects][(j+r)/iNumSubRects].Render(); //kwadrat kilometrowy nie zawsze, bo szkoda FPS
+   Rects[(i+c)/iNumSubRects][(j+r)/iNumSubRects].RaRender(); //kwadrat kilometrowy nie zawsze, bo szkoda FPS
    if ((tmp=FastGetSubRect(i+c,j+r))!=NULL)
     if (tmp->iNodeCount) //je¿eli s¹ jakieœ obiekty, bo po co puste sektory przelatywaæ
      pRendered[iRendered++]=tmp; //tworzenie listy sektorów do renderowania
