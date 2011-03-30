@@ -225,12 +225,14 @@ public:
  void __fastcall RaRender()
  {//renderowanie kwadratu kilometrowego (VBO), jeœli jeszcze nie zrobione
   if (iLastDisplay!=iFrameNumber)
+  {LoadNodes(); //ewentualne tworzenie siatek
    if (StartVBO())
-   {for (TGroundNode* node=pRender;node!=NULL;node=node->pNext3)
+   {for (TGroundNode* node=pRenderRect;node!=NULL;node=node->pNext3)
      node->RaRenderVBO(); //nieprzezroczyste obiekty (pojazdy z automatu)
-    EndVBO();  
+    EndVBO();
     iLastDisplay=iFrameNumber;
    }
+  }
  };
 };
 

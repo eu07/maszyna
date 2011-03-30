@@ -267,7 +267,7 @@ void __fastcall TGround::MoveGroundNode(vector3 pPosition)
 
 void __fastcall TGroundNode::RaRenderVBO()
 {//renderowanie z bufora VBO (Vertex Array gdy brak VBO)
- glEnable(GL_LIGHTING); //!!!! bo coœ oœwietlenie nie dzia³a
+ //glEnable(GL_LIGHTING); //!!!! bo coœ oœwietlenie nie dzia³a
  glColor3ub(Diffuse[0],Diffuse[1],Diffuse[2]);
  if (TextureID)
   glBindTexture(GL_TEXTURE_2D,TextureID); // Ustaw aktywn¹ teksturê
@@ -3047,6 +3047,8 @@ bool __fastcall TGround::RaRender(vector3 pPosition)
  }
  for (i=0;i<iRendered;i++)
  {//renderowanie nieprzezroczystych
+  tmp=pRendered[i];
+  tmp->RaAnimate(); //przeliczenia animacji w sektorze przed zapiêciem VBO
    tmp->LoadNodes(); //ewentualne tworzenie siatek
    if (tmp->StartVBO())
    {for (node=tmp->pRenderRect;node!=NULL;node=node->pNext3)
@@ -3094,9 +3096,8 @@ bool __fastcall TGround::RaRenderAlpha(vector3 pPosition)
      if (node->iType==TP_TRACK)
       node->pTrack->RaRenderDynamic(); //pojazdy na torach
     if (tmp->StartVBO())
-    {for (node=tmp->pRenderRectAlpha;node;node=node->pNext3)
-      if (node->iVboPtr>=0)
-       node->RaRenderAlpha(); //przezroczyste elementy terenu (w tym druty i linie)
+    {for (node=tmp->pRenderWires;node;node=node->pNext3)
+       node->RaRenderAlpha(); //przezroczyste modele
      tmp->EndVBO();
     }
    }
@@ -3109,21 +3110,21 @@ bool __fastcall TGround::RaRenderAlpha(vector3 pPosition)
    node->RaRenderAlpha(); //przezroczyste z mieszanych modeli
   for (node=tmp->pRenderAlpha;node;node=node->pNext3)
    node->RaRenderAlpha(); //przezroczyste modele
-  for (node=tmp->pRender;node;node=node->pNext3)
+  for (node=tmp->pRenderRect;node;node=node->pNext3)
    if (node->iType==TP_TRACK)
     node->pTrack->RaRenderDynamic(); //przezroczyste fragmenty pojazdów na torach
  }
- if (tmp->StartVBO()) //VBO sektora
- {for (i=0;i<iRendered;i++)
-  {//druty na koñcu, ¿eby siê nie robi³y bia³e plamy na tle lasu
-   tmp=pRendered[i];
-   for (node=tmp->pRenderWires;node;node=node->pNext3)
-    node->RenderAlpha(); //przezroczyste modele
+ for (i=0;i<iRendered;i++)
+ {//druty na koñcu, ¿eby siê nie robi³y bia³e plamy na tle lasu
+  tmp=pRendered[i];
+  if (tmp->StartVBO())
+  {for (node=tmp->pRenderWires;node;node=node->pNext3)
+    node->RaRenderAlpha(); //przezroczyste modele
+   tmp->EndVBO();
   }
-  tmp->EndVBO();
  }
  return true;
-}
+};
 
 bool __fastcall TGround::Render(vector3 pPosition)
 {//renderowanie scenerii z Display List - faza nieprzezroczystych
@@ -3161,7 +3162,7 @@ bool __fastcall TGround::Render(vector3 pPosition)
     if (CameraDirection.x*direction.x+CameraDirection.z*direction.z<0.55)
      continue; //pomijanie zbêdnych sektorów
    }
-   Rects[(i+c)/iNumSubRects][(j+r)/iNumSubRects].RaRender(); //kwadrat kilometrowy nie zawsze, bo szkoda FPS
+   Rects[(i+c)/iNumSubRects][(j+r)/iNumSubRects].Render(); //kwadrat kilometrowy nie zawsze, bo szkoda FPS
    if ((tmp=FastGetSubRect(i+c,j+r))!=NULL)
     if (tmp->iNodeCount) //je¿eli s¹ jakieœ obiekty, bo po co puste sektory przelatywaæ
      pRendered[iRendered++]=tmp; //tworzenie listy sektorów do renderowania

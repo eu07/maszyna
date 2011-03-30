@@ -32,7 +32,7 @@
     <DEBUGLIBPATH value="$(BCB)\lib\debug"/>
     <RELEASELIBPATH value="$(BCB)\lib\release"/>
     <LINKER value="tlink32"/>
-    <USERDEFINES value="GLEW_STATIC;_DEBUG"/>
+    <USERDEFINES value="GLEW_STATIC;_DEBUG;USE_VBO"/>
     <SYSDEFINES value="_RTLDLL;NO_STRICT"/>
     <MAINSOURCE value="EU07.cpp"/>
     <INCLUDEPATH value="McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
@@ -40,8 +40,8 @@
     <WARNINGS value="-w-par"/>
   </MACROS>
   <OPTIONS>
-    <IDLCFLAGS value="-src_suffix cpp -DGLEW_STATIC -D_DEBUG -IMcZapkie -I$(BCB)\include 
-      -I$(BCB)\include\vcl -boa"/>
+    <IDLCFLAGS value="-IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl -src_suffix cpp 
+      -DGLEW_STATIC -D_DEBUG -DUSE_VBO -boa"/>
     <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a4 -6 -b- -k -y -v -vi- 
       -c -tW -tWM"/>
     <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
@@ -60,8 +60,8 @@ IncludeVerInfo=1
 AutoIncBuild=1
 MajorVer=1
 MinorVer=3
-Release=98
-Build=137
+Release=99
+Build=138
 Debug=1
 PreRelease=0
 Special=0
@@ -73,7 +73,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.3.98.137
+FileVersion=1.3.99.138
 InternalName=4th by Ra
 LegalCopyright=
 LegalTrademarks=
@@ -122,14 +122,16 @@ Item0=c:\lang\borland\cbuilder5\source\vcl;D:\USER\MCZAPKIE\PROGRAMY\rail\symul\
 Item1=$(BCB)\source\vcl
 
 [HistoryLists\hlConditionals]
-Count=7
-Item0=GLEW_STATIC;_DEBUG
-Item1=GLEW_STATIC;_DEBUG;_USE_OLD_RW_STL
-Item2=GLEW_STATIC
-Item3=GLEW_STATIC;USE_VERTEX_ARRAYS;_DEBUG
-Item4=GLEW_STATIC;USE_VERTEX_ARRAYS
-Item5=GLEW_STATIC;_DEBUG;USE_VERTEX_ARRAYS
-Item6=_DEBUG
+Count=9
+Item0=GLEW_STATIC;_DEBUG;USE_VBO
+Item1=GLEW_STATIC;_DEBUG;USE_VBO0
+Item2=GLEW_STATIC;_DEBUG
+Item3=GLEW_STATIC;_DEBUG;_USE_OLD_RW_STL
+Item4=GLEW_STATIC
+Item5=GLEW_STATIC;USE_VERTEX_ARRAYS;_DEBUG
+Item6=GLEW_STATIC;USE_VERTEX_ARRAYS
+Item7=GLEW_STATIC;_DEBUG;USE_VERTEX_ARRAYS
+Item8=_DEBUG
 
 [HistoryLists\hlFinalOutputDir]
 Count=7
@@ -145,7 +147,7 @@ Item6=C:\EU07
 DebugSourceDirs=
 
 [Parameters]
-RunParams=-s tor.SCN -v SU45-201
+RunParams=
 HostApplication=
 RemoteHost=
 RemotePath=
