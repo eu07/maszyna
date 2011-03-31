@@ -76,7 +76,14 @@ struct THitBoxContainer
 };
 */
 
-typedef enum { smt_Unknown, smt_Mesh, smt_Point, smt_FreeSpotLight, smt_Text} TSubModelType;
+typedef enum
+{smt_Unknown,       //nieznany
+ smt_Mesh,          //siatka
+ smt_Point,
+ smt_FreeSpotLight, //punkt œwietlny
+ smt_Text,          //generator tekstu
+ smt_Stars          //wiele punktów œwietlnych
+} TSubModelType;
 
 typedef enum //rodzaj animacji
 {at_None, //brak
@@ -130,11 +137,12 @@ private:
 
       //ABu: te same zmienne, ale zdublowane dla Render i RenderAlpha,
       //bo sie chrzanilo przemieszczanie obiektow.
+      //Ra: ju¿ siê nie chrzani
 
-      double f_Angle;//, f_aAngle;
-      vector3 v_RotateAxis;//, v_aRotateAxis;
-      vector3 v_Angles;//, v_aAngles;
-      vector3 v_TransVector;//, v_aTransVector;
+      double f_Angle;
+      vector3 v_RotateAxis;
+      vector3 v_Angles;
+      vector3 v_TransVector;
 
 
       TSubModel *Next;
@@ -147,7 +155,6 @@ private:
  GLVERTEX *Vertices; //do VBO
  int iAnimOwner;
  void __fastcall RaAnimation(TAnimType a);
- //void __fastcall RaaAnimation(TAnimType a);
 public:
 
       TAnimType b_Anim,b_aAnim;

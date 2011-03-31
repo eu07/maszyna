@@ -125,14 +125,20 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
  WriteLog("Supported extensions:");
  WriteLog((char*)glGetString(GL_EXTENSIONS));
  if (glewGetExtension("GL_ARB_vertex_buffer_object")) //czy jest VBO w karcie graficznej
- {WriteLog("Ra: The VBO is found and will be used.");
+ {
 #ifdef USE_VBO
-  if (AnsiString((char*)glGetString(GL_VENDOR)).Pos("Intel")) //tylko dla kart Intel
+  if (AnsiString((char*)glGetString(GL_VENDOR)).Pos("Intel")) //wymuszenie tylko dla kart Intel
    Global::bUseVBO=true; //VBO w³¹czane tylko, jeœli jest obs³uga
+  if (Global::bUseVBO)
+   WriteLog("Ra: The VBO is found and will be used.");
+  else
+   WriteLog("Ra: The VBO is found, but Display Lists are selected.");
 #endif
  }
  else
-  WriteLog("Ra: VBO not found - Display Lists used. Upgrade drivers or buy a newer graphics card!");
+ {WriteLog("Ra: No VBO found - Display Lists used. Upgrade drivers or buy a newer graphics card!");
+  Global::bUseVBO=false; //mo¿e byæ w³¹czone parametrem w INI
+ }
  {//ograniczenie maksymalnego rozmiaru tekstur - parametr dla skalowania tekstur
   GLint i;
   glGetIntegerv(GL_MAX_TEXTURE_SIZE,&i);
@@ -228,35 +234,34 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 
     vector3 lp= Normalize(vector3(-500,500,200));
 
-    Global::lightPos[0]= lp.x;
-    Global::lightPos[1]= lp.y;
-    Global::lightPos[2]= lp.z;
-    Global::lightPos[3]= 0.0f;
+    Global::lightPos[0]=lp.x;
+    Global::lightPos[1]=lp.y;
+    Global::lightPos[2]=lp.z;
+    Global::lightPos[3]=0.0f;
 
-	// Setup and enable light 0
-    WriteLog("glLightModelfv(GL_LIGHT_MODEL_AMBIENT,ambientLight);");
-	glLightModelfv(GL_LIGHT_MODEL_AMBIENT,Global::ambientDayLight);
-//	glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
+    //Ra: szcz¹tkowe œwiat³o rozproszone - ¿eby by³o cokolwiek widaæ w ciemnoœci
+    WriteLog("glLightModelfv(GL_LIGHT_MODEL_AMBIENT,darkLight);");
+    glLightModelfv(GL_LIGHT_MODEL_AMBIENT,Global::darkLight);
+
+    //Ra: œwiat³o 0 - g³ówne œwiat³o zewnêtrzne (S³oñce, Ksiê¿yc)
+    WriteLog("glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);");
+    glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
     WriteLog("glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);");
-	glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
+    glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
     WriteLog("glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);");
-	glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
+    glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
     WriteLog("glLightfv(GL_LIGHT0,GL_POSITION,lightPos);");
-   	glLightfv(GL_LIGHT0,GL_POSITION,Global::lightPos);
+    glLightfv(GL_LIGHT0,GL_POSITION,Global::lightPos);
     WriteLog("glEnable(GL_LIGHT0);");
-	glEnable(GL_LIGHT0);
+    glEnable(GL_LIGHT0);
 
 
-	// Enable color tracking
+    //glColor() ma zmieniaæ kolor wybrany w glColorMaterial()
     WriteLog("glEnable(GL_COLOR_MATERIAL);");
-	glEnable(GL_COLOR_MATERIAL);
-
-	// Set Material properties to follow glColor values
-//    WriteLog("glColorMaterial(GL_FRONT, GL_DIFFUSE);");
-//	glColorMaterial(GL_FRONT, GL_DIFFUSE);
+    glEnable(GL_COLOR_MATERIAL);
 
     WriteLog("glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);");
-	glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
 
 //    WriteLog("glMaterialfv( GL_FRONT, GL_AMBIENT, whiteLight );");
 //	glMaterialfv( GL_FRONT, GL_AMBIENT, Global::whiteLight );
@@ -265,9 +270,6 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 	glMaterialfv( GL_FRONT, GL_AMBIENT_AND_DIFFUSE, Global::whiteLight );
 
 /*
-    WriteLog("glMaterialfv( GL_FRONT, GL_DIFFUSE, whiteLight );");
-	glMaterialfv( GL_FRONT, GL_DIFFUSE, Global::whiteLight );
-
     WriteLog("glMaterialfv( GL_FRONT, GL_SPECULAR, noLight );");
 	glMaterialfv( GL_FRONT, GL_SPECULAR, Global::noLight );
 */

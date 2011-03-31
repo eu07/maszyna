@@ -107,7 +107,7 @@ int __fastcall TSubModel::SeekFaceNormal(DWORD *Masks,int f,DWORD dwMask,vector3
 }
 
 float emm1[]={1,1,1,0};
-float emm2[]={0,0,0,0};
+float emm2[]={0,0,0,1};
 
 inline double readIntAsDouble(cParser& parser,int base=255)
 {
@@ -155,6 +155,8 @@ int __fastcall TSubModel::Load(cParser& parser,int NIndex,TModel3d *Model,int Po
    eType=smt_FreeSpotLight; //œwiate³ko
   else if (type=="text")
    eType=smt_Text; //wyœwietlacz tekstowy (generator napisów)
+  else if (type=="stars")
+   eType=smt_Stars; //wiele punktów œwietlnych
  };
  parser.ignoreToken();
  parser.getToken(Name);
@@ -331,10 +333,10 @@ int __fastcall TSubModel::Load(cParser& parser,int NIndex,TModel3d *Model,int Po
 #endif
    uiDisplayList=glGenLists(1);
    glNewList(uiDisplayList,GL_COMPILE);
-   glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);   //McZapkie-240702: zamiast ub
-   glMaterialfv(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE,f4Diffuse);
+   glColor3fv(f4Diffuse);   //McZapkie-240702: zamiast ub
+   //glMaterialfv(GL_FRONT,GL_AMBIENT_AND_DIFFUSE,f4Diffuse); //to samo, co glColor
    if (Global::fLuminance<fLight)
-    glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,f4Diffuse);  //zeny swiecilo na kolorowo
+    glMaterialfv(GL_FRONT,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
 #ifdef USE_VERTEX_ARRAYS
    glDrawArrays(GL_TRIANGLES,0,iNumVerts);
 #else
@@ -348,7 +350,7 @@ int __fastcall TSubModel::Load(cParser& parser,int NIndex,TModel3d *Model,int Po
    glEnd();
 #endif
   if (Global::fLuminance<fLight)
-   glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
+   glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
   glEndList();
  }
  else
@@ -364,17 +366,17 @@ int __fastcall TSubModel::Load(cParser& parser,int NIndex,TModel3d *Model,int Po
 //      else
 //TODO: poprawic zeby dzialalo
    //glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
-   glColorMaterial(GL_FRONT_AND_BACK,GL_EMISSION);
+   glColorMaterial(GL_FRONT,GL_EMISSION);
    glDisable( GL_LIGHTING );  //Tolaris-030603: bo mu punkty swiecace sie blendowaly
    glBegin(GL_POINTS);
       glVertex3f(0,0,0);
    glEnd();
    glEnable( GL_LIGHTING );
-   glColorMaterial(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE);
-   glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
+   glColorMaterial(GL_FRONT,GL_AMBIENT_AND_DIFFUSE);
+   glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
    glEndList();
   }
-  SafeDeleteArray(Vertices); //musz¹ zostaæ do za³adowania ca³ego modelu
+  SafeDeleteArray(Vertices); //przy VBO musz¹ zostaæ do za³adowania ca³ego modelu
  }
  Visible=true;
  return iNumVerts; //do okreœlenia wielkoœci VBO
@@ -414,8 +416,6 @@ void __fastcall TSubModel::SetRotate(vector3 vNewRotateAxis,double fNewAngle)
 {//obrócenie submodelu wg podanej osi (np. wskazówki w kabinie)
  v_RotateAxis=vNewRotateAxis;
  f_Angle=fNewAngle;
- //v_aRotateAxis=vNewRotateAxis;
- //f_aAngle=fNewAngle;
  if (fNewAngle!=0.0)
  {b_Anim=at_Rotate;
   b_aAnim=at_Rotate;
@@ -427,7 +427,6 @@ void __fastcall TSubModel::SetRotateXYZ(vector3 vNewAngles)
 {//obrócenie submodelu o podane k¹ty wokó³ osi lokalnego uk³adu
  v_Angles=vNewAngles;
  b_Anim=at_RotateXYZ;
- //v_aAngles=vNewAngles;
  b_aAnim=at_RotateXYZ;
  iAnimOwner=iInstance; //zapamiêtanie czyja jest animacja
 }
@@ -436,20 +435,9 @@ void __fastcall TSubModel::SetTranslate(vector3 vNewTransVector)
 {//przesuniêcie submodelu (np. w kabinie)
  v_TransVector=vNewTransVector;
  b_Anim=at_Translate;
- //v_aTransVector=vNewTransVector;
  b_aAnim=at_Translate;
  iAnimOwner=iInstance; //zapamiêtanie czyja jest animacja
 }
-/*
-void __fastcall TSubModel::SetRotateAnim(vector3 vNewRotateAxis,double fNewDesiredAngle,double fNewRotateSpeed,bool bResetAngle)
-{
-    fRotateSpeed=fNewRotateSpeed;
-    vRotateAxis=Normalize(vNewRotateAxis);
-    fDesiredAngle=fNewDesiredAngle;
-    if (bResetAngle)
-        fAngle=0;
-}
-  */
 
 struct ToLower
 {
@@ -537,54 +525,6 @@ void __fastcall TSubModel::RaAnimation(TAnimType a)
    break;
  }
 };
-/*
-void __fastcall TSubModel::RaaAnimation(TAnimType a)
-{//wykonanie animacji niezale¿nie od renderowania
- switch (a)
- {case at_Translate: //Ra: by³o "true"
-   if (iAnimOwner!=iInstance) break; //cudza animacja
-   glTranslatef(v_aTransVector.x,v_aTransVector.y,v_aTransVector.z);
-   break;
-  case at_Rotate: //Ra: by³o "true"
-   if (iAnimOwner!=iInstance) break; //cudza animacja
-   glRotatef(f_aAngle,v_aRotateAxis.x,v_aRotateAxis.y,v_aRotateAxis.z);
-   break;
-  case at_RotateXYZ:
-   if (iAnimOwner!=iInstance) break; //cudza animacja
-   glTranslatef(v_aTransVector.x,v_aTransVector.y,v_aTransVector.z);
-   //v_aTransVector.x=v_aTransVector.y=v_aTransVector.z=0.0;
-   glRotatef(v_aAngles.x,1.0,0.0,0.0);
-   glRotatef(v_aAngles.y,0.0,1.0,0.0);
-   glRotatef(v_aAngles.z,0.0,0.0,1.0);
-   //v_aAngles.x=v_aAngles.y=v_aAngles.z=0;
-   break;
-  case at_SecondsJump: //sekundy z przeskokiem
-   glRotatef(floor(GlobalTime->mr)*6.0,0.0,1.0,0.0);
-   break;
-  case at_MinutesJump: //minuty z przeskokiem
-   glRotatef(GlobalTime->mm*6.0,0.0,1.0,0.0);
-   break;
-  case at_HoursJump: //godziny p³ynnie 12h/360°
-   glRotatef(GlobalTime->hh*30.0*0.5,0.0,1.0,0.0);
-   break;
-  case at_Hours24Jump: //godziny p³ynnie 24h/360°
-   glRotatef(GlobalTime->hh*15.0*0.25,0.0,1.0,0.0);
-   break;
-  case at_Seconds: //sekundy p³ynnie
-   glRotatef(GlobalTime->mr*6.0,0.0,1.0,0.0);
-   break;
-  case at_Minutes: //minuty p³ynnie
-   glRotatef(GlobalTime->mm*6.0+GlobalTime->mr*0.1,0.0,1.0,0.0);
-   break;
-  case at_Hours: //godziny p³ynnie 12h/360°
-   glRotatef(GlobalTime->hh*30.0+GlobalTime->mm*0.5+GlobalTime->mr/120.0,0.0,1.0,0.0);
-   break;
-  case at_Hours24: //godziny p³ynnie 24h/360°
-   glRotatef(GlobalTime->hh*15.0+GlobalTime->mm*0.25+GlobalTime->mr/240.0,0.0,1.0,0.0);
-   break;
- }
-};
-*/
 
 void __fastcall TSubModel::RaRender(GLuint ReplacableSkinId,bool bAlpha)
 {//g³ówna procedura renderowania
@@ -606,14 +546,14 @@ void __fastcall TSubModel::RaRender(GLuint ReplacableSkinId,bool bAlpha)
    glBindTexture(GL_TEXTURE_2D,TextureID);
   if (eType==smt_Mesh)
   {
-   glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);   //McZapkie-240702: zamiast ub
+   glColor3fv(f4Diffuse);   //McZapkie-240702: zamiast ub
    if (!TexAlpha || !Global::bRenderAlpha)  //rysuj gdy nieprzezroczyste lub # albo gdy zablokowane alpha
    {
-    glMaterialfv(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE,f4Diffuse);
+    //glMaterialfv(GL_FRONT,GL_AMBIENT_AND_DIFFUSE,f4Diffuse); //to samo, co glColor
     if (Global::fLuminance<fLight)
-    {glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
+    {glMaterialfv(GL_FRONT,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
      glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie trójk¹ty z VBO
-     glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
+     glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
     }
     else
      glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie trójk¹ty z VBO
@@ -663,13 +603,14 @@ void __fastcall TSubModel::RaRender(GLuint ReplacableSkinId,bool bAlpha)
 
 */
     //glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
+    glColorMaterial(GL_FRONT,GL_EMISSION);
     glColor3f(f4Diffuse[0]*Distdimm,f4Diffuse[1]*Distdimm,f4Diffuse[2]*Distdimm);
-    glColorMaterial(GL_FRONT_AND_BACK,GL_EMISSION);
+    //glColorMaterial(GL_FRONT,GL_EMISSION);
     glDisable(GL_LIGHTING);  //Tolaris-030603: bo mu punkty swiecace sie blendowaly
     glDrawArrays(GL_POINTS,iVboPtr,iNumVerts);  //narysuj wierzcho³ek z VBO
     glEnable(GL_LIGHTING);
-    glColorMaterial(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE);
-    glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
+    glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
+    glColorMaterial(GL_FRONT,GL_AMBIENT_AND_DIFFUSE); //co ma ustawiaæ glColor
    }
   }
 /*Ra: tu coœ jest bez sensu...
@@ -684,15 +625,15 @@ void __fastcall TSubModel::RaRender(GLuint ReplacableSkinId,bool bAlpha)
 //         else
 //TODO: poprawic zeby dzialalo
      glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
-     glColorMaterial(GL_FRONT_AND_BACK,GL_EMISSION);
+     glColorMaterial(GL_FRONT,GL_EMISSION);
      glDisable(GL_LIGHTING);  //Tolaris-030603: bo mu punkty swiecace sie blendowaly
      //glBegin(GL_POINTS);
      glDrawArrays(GL_POINTS,iVboPtr,iNumVerts);  //narysuj wierzcho³ek z VBO
      //       glVertex3f(0,0,0);
      //glEnd();
      glEnable(GL_LIGHTING);
-     glColorMaterial(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE);
-     glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
+     glColorMaterial(GL_FRONT,GL_AMBIENT_AND_DIFFUSE);
+     glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
      //glEndList();
     }
 */
@@ -715,7 +656,7 @@ void __fastcall TSubModel::RaRenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
   glPushMatrix(); //zapamiêtanie matrycy
   glMultMatrixd(Matrix.getArray());
   if (b_aAnim) RaAnimation(b_aAnim);
-  glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
+  glColor3fv(f4Diffuse);
   //zmienialne skory
   if (eType==smt_Mesh)
   {
@@ -728,11 +669,11 @@ void __fastcall TSubModel::RaRenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
     glBindTexture(GL_TEXTURE_2D,TextureID);
    if (TexAlpha && Global::bRenderAlpha)  //mozna rysowac bo przezroczyste i nie ma #
    {
-   glMaterialfv(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE,f4Diffuse);
+   //glMaterialfv(GL_FRONT,GL_AMBIENT_AND_DIFFUSE,f4Diffuse);
    if (Global::fLuminance<fLight)
-   {glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
+   {glMaterialfv(GL_FRONT,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
     glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie trójk¹ty z VBO
-    glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
+    glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
    }
    else
     glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie trójk¹ty z VBO
@@ -813,9 +754,9 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
     glBindTexture(GL_TEXTURE_2D,TextureID);
    if (!TexAlpha || !Global::bRenderAlpha)  //rysuj gdy nieprzezroczyste lub # albo gdy zablokowane alpha
     if (Global::fLuminance<fLight)
-    {glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
+    {glMaterialfv(GL_FRONT,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
      glCallList(uiDisplayList); //tylko dla siatki
-     glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
+     glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
     }
     else
      glCallList(uiDisplayList); //tylko dla siatki
@@ -861,9 +802,9 @@ void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
    //jak przezroczyste s¹ wy³¹czone, to tu w ogóle nie wchodzi
    if (TexAlpha && Global::bRenderAlpha)  //mozna rysowac bo przezroczyste i nie ma #
    if (Global::fLuminance<fLight)
-   {glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
+   {glMaterialfv(GL_FRONT,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
     glCallList(uiDisplayList); //tylko dla siatki
-    glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
+    glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
    }
    else
     glCallList(uiDisplayList); //tylko dla siatki

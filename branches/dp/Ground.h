@@ -142,7 +142,7 @@ public:
         return NULL;
     };
 
-    void __fastcall Compile();
+    void __fastcall Compile(bool many=false);
     void Release();
 
     bool __fastcall GetTraction();
@@ -214,21 +214,14 @@ public:
  {//pobranie wskaŸnika do ma³ego kwadratu, bez tworzenia jeœli nie ma
   return (pSubRects?pSubRects+iRow*iNumSubRects+iCol:NULL);
  };
- void __fastcall Render()
- {//renderowanie kwadratu kilometrowego (DL), jeœli jeszcze nie zrobione
-  if (iLastDisplay!=iFrameNumber)
-  {for (TGroundNode* node=pRender;node!=NULL;node=node->pNext3)
-    node->Render(); //nieprzezroczyste obiekty (pojazdy z automatu)
-   iLastDisplay=iFrameNumber;
-  }
- };
+ void __fastcall Render();
  void __fastcall RaRender()
  {//renderowanie kwadratu kilometrowego (VBO), jeœli jeszcze nie zrobione
   if (iLastDisplay!=iFrameNumber)
   {LoadNodes(); //ewentualne tworzenie siatek
    if (StartVBO())
    {for (TGroundNode* node=pRenderRect;node!=NULL;node=node->pNext3)
-     node->RaRenderVBO(); //nieprzezroczyste obiekty (pojazdy z automatu)
+     node->RaRenderVBO(); //nieprzezroczyste trójk¹ty kwadratu kilometrowego
     EndVBO();
     iLastDisplay=iFrameNumber;
    }

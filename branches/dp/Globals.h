@@ -167,6 +167,7 @@ public:
  static GLfloat specularDayLight[];
  static GLfloat whiteLight[];
  static GLfloat noLight[];
+ static GLfloat darkLight[];
  static GLfloat lightPos[4];
  static bool slowmotion;
  static bool changeDynObj;
@@ -189,8 +190,9 @@ public:
  static HWND hWnd; //uchwyt okna
  static int iCameraLast;
  static AnsiString asVersion;
- static int iViewMode; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
+ static int iViewMode; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty, 4-obwody
  static GLint iMaxTextureSize; //maksymalny rozmiar tekstury
+ static int iTextMode; //tryb pracy wyœwietlacza tekstowego
 };
 
 //---------------------------------------------------------------------------
