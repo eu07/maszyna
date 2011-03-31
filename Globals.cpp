@@ -69,6 +69,7 @@ GLfloat  Global::diffuseDayLight[] ={0.55f,0.54f,0.50f,1.0f};
 GLfloat  Global::specularDayLight[]={0.95f,0.94f,0.90f,1.0f};
 GLfloat  Global::whiteLight[]      ={1.00f,1.00f,1.00f,1.0f};
 GLfloat  Global::noLight[]         ={0.00f,0.00f,0.00f,1.0f};
+GLfloat  Global::darkLight[]       ={0.01f,0.01f,0.01f,1.0f}; //œladowe
 GLfloat  Global::lightPos[4];
 TGround *Global::pGround=NULL;
 //char Global::CreatorName1[30]="Maciej Czapkiewicz";
@@ -99,9 +100,10 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 bool Global::bMultiplayer=false; //blokada dzia³ania niektórych eventów na rzecz kominikacji
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asVersion="Compilation 2011-03-30, release 1.3.100.138."; //tutaj, bo wysy³any
+AnsiString Global::asVersion="Compilation 2011-03-31, release 1.3.100.138."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
-GLint Global::iMaxTextureSize=8192;//maksymalny rozmiar tekstury
+GLint Global::iMaxTextureSize=16384;//maksymalny rozmiar tekstury
+int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 
 void __fastcall Global::LoadIniFile(AnsiString asFileName)
 {
@@ -221,13 +223,15 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
          iRailProFiltering=Parser->GetNextSymbol().ToIntDef(-1);
         else if (str==AnsiString("dynamicfiltering"))
          iDynamicFiltering=Parser->GetNextSymbol().ToIntDef(-1);
+        else if (str==AnsiString("usevbo"))
+         bUseVBO=(Parser->GetNextSymbol().LowerCase()==AnsiString("yes"));
         else if (str==AnsiString("feedbackmode"))
          iFeedbackMode=Parser->GetNextSymbol().ToIntDef(1); //domyœlnie 1
         else if (str==AnsiString("multiplayer"))
          bMultiplayer=Parser->GetNextSymbol().ToIntDef(0); //domyœlnie 0
         else if (str==AnsiString("maxtexturesize"))
         {//wymuszenie przeskalowania tekstur
-         i=Parser->GetNextSymbol().ToIntDef(8192); //domyœlnie du¿e
+         i=Parser->GetNextSymbol().ToIntDef(16384); //domyœlnie du¿e
          if (i<=  64) iMaxTextureSize=  64; else
          if (i<= 128) iMaxTextureSize= 128; else
          if (i<= 256) iMaxTextureSize= 256; else
@@ -235,7 +239,8 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
          if (i<=1024) iMaxTextureSize=1024; else
          if (i<=2048) iMaxTextureSize=2048; else
          if (i<=4096) iMaxTextureSize=4096; else
-          iMaxTextureSize=8192;
+         if (i<=8192) iMaxTextureSize=8192; else
+          iMaxTextureSize=16384;
         }
     }
  if (!bLoadTraction)

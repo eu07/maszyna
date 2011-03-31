@@ -694,8 +694,9 @@ void __fastcall TTrack::Compile()
                 diffuseLight[li]= Global::diffuseDayLight[li]*0.3;
                 specularLight[li]= Global::specularDayLight[li]*0.4;
             }
+            glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
             glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
-	        glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
+            glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
         break;
         case e_tunnel: //tunel
             for(int li=0; li<3; li++)
@@ -1008,8 +1009,9 @@ void __fastcall TTrack::RenderAlpha()
            diffuseLight[li]= Global::diffuseDayLight[li]*0.4;
            specularLight[li]= Global::specularDayLight[li]*0.5;
          }
+	    glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
         glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
-	glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
+	    glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
       }
      break;
      case e_tunnel:
@@ -1032,7 +1034,7 @@ void __fastcall TTrack::RenderAlpha()
         //if(SquareMagnitude(Global::pCameraPosition-Dynamics[i]->GetPosition())<20000)
         Dynamics[i]->RenderAlpha();
     }
-   glLightModelfv(GL_LIGHT_MODEL_AMBIENT,Global::ambientDayLight);
+   glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
    glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
    glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
 }
@@ -1380,7 +1382,7 @@ void  __fastcall TTrack::RaRenderVBO(int iPtr)
  {//przywrócenie globalnych ustawieñ œwiat³a
   case e_canyon: //wykop
   case e_tunnel: //tunel
-   glLightModelfv(GL_LIGHT_MODEL_AMBIENT,Global::ambientDayLight);
+   glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
    glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
    glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
  }
@@ -1427,7 +1429,7 @@ void  __fastcall TTrack::RaRenderDynamic()
  {//przywrócenie globalnych ustawieñ œwiat³a
   case e_canyon: //wykop
   case e_tunnel: //tunel
-   glLightModelfv(GL_LIGHT_MODEL_AMBIENT,Global::ambientDayLight);
+   glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
    glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
    glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
  }

@@ -34,7 +34,7 @@ void __fastcall CMesh::BuildVBOs()
  glGenBuffersARB(1,&m_nVBOVertices); //pobierz numer
  glBindBufferARB(GL_ARRAY_BUFFER_ARB,m_nVBOVertices); //ustaw bufor jako aktualny
  glBufferDataARB(GL_ARRAY_BUFFER_ARB,m_nVertexCount*sizeof(CVertNormTex),m_pVNT,GL_STATIC_DRAW_ARB);
- WriteLog("Assigned VBO number "+AnsiString(m_nVBOVertices)+", vertices: "+AnsiString(m_nVertexCount));
+ //WriteLog("Assigned VBO number "+AnsiString(m_nVBOVertices)+", vertices: "+AnsiString(m_nVertexCount));
  SafeDeleteArray(m_pVNT); //wierzcho³ki ju¿ siê nie przydadz¹
 };
 
@@ -44,7 +44,7 @@ void __fastcall CMesh::Clear()
  if (m_nVBOVertices) //jeœli by³o coœ rezerwowane
  {
   glDeleteBuffersARB(1,&m_nVBOVertices); // Free The Memory
-  WriteLog("Released VBO number "+AnsiString(m_nVBOVertices));
+  //WriteLog("Released VBO number "+AnsiString(m_nVBOVertices));
  }
  m_nVBOVertices=0;
  m_nVertexCount=-1; //do ponownego zliczenia

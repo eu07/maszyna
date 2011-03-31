@@ -226,6 +226,27 @@ void __fastcall TGroundNode::MoveMe(vector3 pPosition)
 //---------------------------------------------------------------------------
 int TGroundRect::iFrameNumber=0; //licznik wyœwietlanych klatek
 
+void __fastcall TGroundRect::Render()
+{//renderowanie kwadratu kilometrowego (DL), jeœli jeszcze nie zrobione
+ if (iLastDisplay!=iFrameNumber)
+ {
+  //for (TGroundNode* node=pRender;node;node=node->pNext3)
+  // node->Render(); //nieprzezroczyste trójk¹ty kwadratu kilometrowego
+  if (pRender)
+  {//³¹czenie trójk¹tów w jedn¹ listê - trochê wioska
+   if (!pRender->DisplayListID)
+   {//je¿eli nie skompilowany, kompilujemy wszystkie trójk¹ty w jeden
+    pRender->DisplayListID=glGenLists(1);
+    glNewList(pRender->DisplayListID,GL_COMPILE);
+    for (TGroundNode* node=pRender;node;node=node->pNext3)
+     node->Compile(true);
+    glEndList();
+   }
+   pRender->Render(); //nieprzezroczyste trójk¹ty kwadratu kilometrowego
+  } 
+  iLastDisplay=iFrameNumber;
+ }
+};
 
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
@@ -267,7 +288,6 @@ void __fastcall TGround::MoveGroundNode(vector3 pPosition)
 
 void __fastcall TGroundNode::RaRenderVBO()
 {//renderowanie z bufora VBO (Vertex Array gdy brak VBO)
- //glEnable(GL_LIGHTING); //!!!! bo coœ oœwietlenie nie dzia³a
  glColor3ub(Diffuse[0],Diffuse[1],Diffuse[2]);
  if (TextureID)
   glBindTexture(GL_TEXTURE_2D,TextureID); // Ustaw aktywn¹ teksturê
@@ -279,13 +299,11 @@ void __fastcall TGroundNode::RaRender()
  double mgn=SquareMagnitude(pCenter-Global::pCameraPosition);
  if ((mgn>fSquareRadius || (mgn<fSquareMinRadius)) && (iType!=TP_EVLAUNCH)) //McZapkie-070602: nie rysuj odleglych obiektow ale sprawdzaj wyzwalacz zdarzen
      return;
-//    glMaterialfv( GL_FRONT, GL_DIFFUSE, Global::whiteLight );
  int i,a;
  switch (iType)
  {
   case TP_TRACTION: return;
   case TP_TRACK: if (iNumVerts) pTrack->RaRenderVBO(iVboPtr); return;
-  //case TP_MODEL: Model->RaRender(pCenter,fAngle); return;
   case TP_MODEL: Model->RaRender(&pCenter); return;
   case TP_SOUND: //McZapkie - dzwiek zapetlony w zaleznosci od odleglosci
    if ((pStaticSound->GetStatus()&DSBSTATUS_PLAYING)==DSBPLAY_LOOPING)
@@ -368,7 +386,6 @@ void __fastcall TGroundNode::RaRenderAlpha()
  float r,g,b;
  if (mgn<fSquareMinRadius) return;
  if (mgn>fSquareRadius) return;
-//    glMaterialfv( GL_FRONT, GL_DIFFUSE, Global::whiteLight );
  int i,a;
  switch (iType)
  {
@@ -611,14 +628,16 @@ void TSubRect::Release()
   CMesh::Clear(); //usuwanie buforów
 };
 
-void __fastcall TGroundNode::Compile()
-{
- if (DisplayListID) Release();
- if (Global::bManageNodes)
- {
-  DisplayListID=glGenLists(1);
-  glNewList(DisplayListID,GL_COMPILE);
- };
+void __fastcall TGroundNode::Compile(bool many)
+{//tworzenie skompilowanej listy w wyœwietlaniu DL
+ if (!many)
+ {if (DisplayListID) Release();
+  if (Global::bManageNodes)
+  {
+   DisplayListID=glGenLists(1);
+   glNewList(DisplayListID,GL_COMPILE);
+  }
+ }
  if (iType == GL_LINES || iType == GL_LINE_STRIP || iType == GL_LINE_LOOP)
  {
 #ifdef USE_VERTEX_ARRAYS
@@ -660,16 +679,17 @@ void __fastcall TGroundNode::Compile()
 #endif
 /*
    if (tri->pTriGroup) //jeœli z grupy
-   {tri=tri->pNext3; //nastêpny w sektorze
-    while (tri?!tri->pTriGroup:false) tri=tri->pNext3; //szukamy kolejnego nale¿¹cego do grupy
+   {tri=tri->pNext2; //nastêpny w sektorze
+    while (tri?!tri->pTriGroup:false) tri=tri->pNext2; //szukamy kolejnego nale¿¹cego do grupy
    }
    else
 */
     tri=NULL; //a jak nie, to koniec
   } while (tri);
  };
- if (Global::bManageNodes)
-  glEndList();
+ if (!many)
+  if (Global::bManageNodes)
+   glEndList();
 };
 
 void TGroundNode::Release()
@@ -758,7 +778,6 @@ void __fastcall TGroundNode::RenderAlpha()
      return;
  if (mgn>fSquareRadius)
      return;
-//    glMaterialfv( GL_FRONT, GL_DIFFUSE, Global::whiteLight );
  int i,a;
  switch (iType)
  {
@@ -1823,17 +1842,20 @@ bool __fastcall TGround::Init(AnsiString asFile)
          Global::lightPos[3]=0.0f;
          //Global::lightPos[3]=0.0f;
          glLightfv(GL_LIGHT0,GL_POSITION,Global::lightPos);                  //daylight position
-         parser.getTokens(3);
-         parser >> Global::ambientDayLight[0] >> Global::ambientDayLight[1] >> Global::ambientDayLight[2];
-         glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);            //ambient daylight color
+         parser.getTokens(); parser >> Global::ambientDayLight[0];
+         parser.getTokens(); parser >> Global::ambientDayLight[1];
+         parser.getTokens(); parser >> Global::ambientDayLight[2];
+         glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);  //kolor wszechobceny
 
-         parser.getTokens(3);
-         parser >> Global::diffuseDayLight[0] >> Global::diffuseDayLight[1] >> Global::diffuseDayLight[2];
-	 glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);            //diffuse daylight color
+         parser.getTokens(); parser >> Global::diffuseDayLight[0];
+         parser.getTokens(); parser >> Global::diffuseDayLight[1];
+         parser.getTokens(); parser >> Global::diffuseDayLight[2];
+	 glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);  //kolor padaj¹cy
 
-         parser.getTokens(3);
-         parser >> Global::specularDayLight[0] >> Global::specularDayLight[1] >> Global::specularDayLight[2];
-  	 glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);          //specular daylight color
+         parser.getTokens(); parser >> Global::specularDayLight[0];
+         parser.getTokens(); parser >> Global::specularDayLight[1];
+         parser.getTokens(); parser >> Global::specularDayLight[2];
+  	 glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight); //kolor odbity
 
          glEnable(GL_LIGHTING);
          do
@@ -3068,9 +3090,6 @@ bool __fastcall TGround::RaRenderAlpha(vector3 pPosition)
 {
  TGroundNode *node;
  glColor4f(1.0f,1.0f,1.0f,1.0f);
- int n=2*iNumSubRects; //iloœæ sektorów mapy do wyœwietlenia
- int c=GetColFromX(pPosition.x);
- int r=GetRowFromZ(pPosition.z);
  TSubRect *tmp;
  int i;
  //Ra: 3/4 terenu jest niepotrzebnie renderowane
