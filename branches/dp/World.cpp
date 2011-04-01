@@ -882,6 +882,8 @@ bool __fastcall TWorld::Update()
     {
      OutText1="  FPS: ";
      OutText1+=FloatToStrF(GetFPS(),ffFixed,6,2);
+     if (Global::slowmotion)
+      OutText1+=" (slowmotion)";
      OutText1+=", sectors: ";
      OutText1+=AnsiString(Ground.iRendered);
     }
