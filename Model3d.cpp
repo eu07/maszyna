@@ -603,14 +603,17 @@ void __fastcall TSubModel::RaRender(GLuint ReplacableSkinId,bool bAlpha)
 
 */
     //glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
-    glColorMaterial(GL_FRONT,GL_EMISSION);
-    glColor3f(f4Diffuse[0]*Distdimm,f4Diffuse[1]*Distdimm,f4Diffuse[2]*Distdimm);
+    //glColorMaterial(GL_FRONT,GL_EMISSION);
+    float color[4]={f4Diffuse[0]*Distdimm,f4Diffuse[1]*Distdimm,f4Diffuse[2]*Distdimm,0};
+    //glColor3f(f4Diffuse[0]*Distdimm,f4Diffuse[1]*Distdimm,f4Diffuse[2]*Distdimm);
     //glColorMaterial(GL_FRONT,GL_EMISSION);
     glDisable(GL_LIGHTING);  //Tolaris-030603: bo mu punkty swiecace sie blendowaly
+    glColor3fv(color); //inaczej s¹ bia³e
+    glMaterialfv(GL_FRONT,GL_EMISSION,color);
     glDrawArrays(GL_POINTS,iVboPtr,iNumVerts);  //narysuj wierzcho³ek z VBO
-    glEnable(GL_LIGHTING);
     glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
-    glColorMaterial(GL_FRONT,GL_AMBIENT_AND_DIFFUSE); //co ma ustawiaæ glColor
+    glEnable(GL_LIGHTING);
+    //glColorMaterial(GL_FRONT,GL_AMBIENT_AND_DIFFUSE); //co ma ustawiaæ glColor
    }
   }
 /*Ra: tu coœ jest bez sensu...

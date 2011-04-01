@@ -464,7 +464,7 @@ void __fastcall TSubRect::AddNode(TGroundNode *Node)
     if (Global::bUseVBO)
     {Node->pNext3=pRenderRect; pRenderRect=Node;} //VBO: do nieprzezroczystych z sektora
     else
-    {Node->pNext3=pRender; pRender=Node;} //DL: do nieprzezroczystych
+    {Node->pNext3=pRender; pRender=Node;} //DL: do nieprzezroczystych wszelakich
 /*
    //Ra: na razie wy³¹czone do testów VBO
    //if ((Node->iType==GL_TRIANGLE_STRIP)||(Node->iType==GL_TRIANGLE_FAN)||(Node->iType==GL_TRIANGLES))
@@ -3092,36 +3092,18 @@ bool __fastcall TGround::RaRenderAlpha(vector3 pPosition)
  glColor4f(1.0f,1.0f,1.0f,1.0f);
  TSubRect *tmp;
  int i;
- //Ra: 3/4 terenu jest niepotrzebnie renderowane
- //renderowanie progresywne - zale¿ne od FPS oraz kierunku patrzenia
- /*
- for (int j=r-n;j<r+n;j++)
-  for (int i=c-n;i<c+n;i++)
-  {
-   direction=vector3(i-c,0,j-r);
-   if (LengthSquared3(direction)>4)
-   {direction=SafeNormalize(direction);
-    if (CameraDirection.x*direction.x+CameraDirection.z*direction.z<0.55)
-     continue; //pomijanie zbêdnych sektorów
+ for (i=0;i<iRendered;i++)
+ {//renderowanie przezroczystych trójk¹tów sektora
+  tmp=pRendered[i];
+  tmp->RaAnimate(); //przeliczenia animacji w sektorze przed zapiêciem VBO
+   tmp->LoadNodes(); //ewentualne tworzenie siatek
+   if (tmp->StartVBO())
+   {for (node=tmp->pRenderRectAlpha;node!=NULL;node=node->pNext3)
+     if (node->iVboPtr>=0)
+      node->RaRenderAlpha(); //nieprzezroczyste obiekty terenu
+    tmp->EndVBO();
    }
-   if ((tmp=FastGetSubRect(i,j))!=NULL)
-   {
-    tmp->LoadNodes(); //ewentualne tworzenie siatek
-    for (node=tmp->pRenderMixed;node;node=node->pNext3)
-     node->RaRenderAlpha(); //przezroczyste z mieszanych modeli
-    for (node=tmp->pRenderAlpha;node;node=node->pNext3)
-     node->RaRenderAlpha(); //przezroczyste modele
-    for (node=tmp->pRenderRect;node;node=node->pNext3)
-     if (node->iType==TP_TRACK)
-      node->pTrack->RaRenderDynamic(); //pojazdy na torach
-    if (tmp->StartVBO())
-    {for (node=tmp->pRenderWires;node;node=node->pNext3)
-       node->RaRenderAlpha(); //przezroczyste modele
-     tmp->EndVBO();
-    }
-   }
-  }
-  */
+ }  
  for (i=0;i<iRendered;i++)
  {//renderowanie przezroczystych modeli oraz pojazdów
   tmp=pRendered[i];
