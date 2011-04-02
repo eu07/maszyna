@@ -98,7 +98,7 @@ typedef enum //rodzaj animacji
  at_Minutes, //minuty p³ynnie
  at_Hours, //godziny p³ynnie 12h/360°
  at_Hours24, //godziny p³ynnie 24h/360°
- at_Billboard //fronetm do kamery
+ at_Billboard //obrót w pionie do kamery
 } TAnimType;
 
 class TModel3d;
