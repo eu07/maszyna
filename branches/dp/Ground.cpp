@@ -236,6 +236,7 @@ void __fastcall TGroundRect::Render()
   {//³¹czenie trójk¹tów w jedn¹ listê - trochê wioska
    if (!pRender->DisplayListID)
    {//je¿eli nie skompilowany, kompilujemy wszystkie trójk¹ty w jeden
+    pRender->fSquareRadius=5000.0*5000.0; //aby agregat nigdy nie znika³
     pRender->DisplayListID=glGenLists(1);
     glNewList(pRender->DisplayListID,GL_COMPILE);
     for (TGroundNode* node=pRender;node;node=node->pNext3)

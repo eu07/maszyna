@@ -173,7 +173,7 @@ int __fastcall TSubModel::Load(cParser& parser,int NIndex,TModel3d *Model,int Po
    else if (type=="minutes")       b_Anim=b_aAnim=at_Minutes; //minuty p³ynnie
    else if (type=="hours")         b_Anim=b_aAnim=at_Hours; //godziny p³ynnie
    else if (type=="hours24")       b_Anim=b_aAnim=at_Hours24; //godziny p³ynnie
-   else if (type=="billboard")     b_Anim=b_aAnim=at_Billboard; //godziny p³ynnie
+   else if (type=="billboard")     b_Anim=b_aAnim=at_Billboard; //obrót w pionie do kamery
  }
  if (eType==smt_Mesh) readColor(parser,f4Ambient); //ignoruje token przed
  readColor(parser,f4Diffuse);
@@ -517,11 +517,14 @@ void __fastcall TSubModel::RaAnimation(TAnimType a)
   case at_Hours24: //godziny p³ynnie 24h/360°
    glRotatef(GlobalTime->hh*15.0+GlobalTime->mm*0.25+GlobalTime->mr/240.0,0.0,1.0,0.0);
    break;
-  case at_Billboard: //fronetm do kamery
-   glRotatef(Global::pCameraRotationDeg,0.0,0.0,1.0); //obrót w pionie o k¹t kamery
-   //Ra: lepiej by by³o policzyæ k¹t miêdzy obiektem a kamer¹, tylko jak odczytaæ pozycjê obiektu?
-   //vector3 gdzie=mat*vector3(0,0,0); //pozycja wzglêdna punktu œwiec¹cego
-   //fCosViewAngle=DotProduct(Normalize(mat*vector3(0,0,1)-gdzie),Normalize(gdzie));
+  case at_Billboard: //obrót w pionie do kamery
+   {matrix4x4 mat; //potrzebujemy wspó³rzêdne przesuniêcia œrodka uk³adu wspó³rzêdnych submodelu
+    glGetDoublev(GL_MODELVIEW_MATRIX,mat.getArray()); //pobranie aktualnej matrycy
+    vector3 gdzie=vector3(mat[3][0],mat[3][1],mat[3][2]); //pocz¹tek uk³adu wspó³rzêdnych submodelu wzglêdem kamery
+    glLoadIdentity(); //macierz jedynkowa
+    glTranslated(gdzie.x,gdzie.y,gdzie.z); //pocz¹tek uk³adu zostaje bez zmian
+    glRotated(atan2(gdzie.x,gdzie.z)*180.0/M_PI,0.0,1.0,0.0); //jedynie obracamy w pionie o k¹t
+   }
    break;
  }
 };
@@ -564,7 +567,7 @@ void __fastcall TSubModel::RaRender(GLuint ReplacableSkinId,bool bAlpha)
    matrix4x4 mat;
    glGetDoublev(GL_MODELVIEW_MATRIX,mat.getArray());
    //k¹t miêdzy kierunkiem œwiat³a a wspó³rzêdnymi kamery
-   vector3 gdzie=mat*vector3(0,0,0); //pozycja wzglêdna punktu œwiec¹cego
+   vector3 gdzie=mat*vector3(0,0,0); //pozycja punktu œwiec¹cego wzglêdem kamery
    fCosViewAngle=DotProduct(Normalize(mat*vector3(0,0,1)-gdzie),Normalize(gdzie));
    //(by³o miêdzy kierunkiem œwiat³a a k¹tem kamery)
    //fCosViewAngle=DotProduct(Normalize(mat*vector3(0,0,1)-mat*vector3(0,0,0)),vector3(0,0,1));
