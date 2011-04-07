@@ -7,6 +7,21 @@
 #include "Geometry.h"
 #include "VBO.h"
 
+//110405 Ra: klasa punktów przekroju z normalnymi
+
+class vector6 : public vector3
+{//punkt przekroju
+public:
+ vector3 n;
+ __fastcall vector6()
+ {x=y=z=n.x=n.z=0.0; n.y=1.0;};
+ __fastcall vector6(double a,double b,double c,double d,double e,double f)
+ //{x=a; y=b; z=c; n.x=d; n.y=e; n.z=f;};
+ {x=a; y=b; z=c; n.x=0.0; n.y=1.0; n.z=0.0;}; //Ra: bo na razie s¹ z tym problemy
+ __fastcall vector6(double a,double b,double c)
+ {x=a; y=b; z=c; n.x=0.0; n.y=1.0; n.z=0.0;};
+};
+
 class TSegment
 {
 private:
@@ -47,17 +62,17 @@ public:
     {//pobranie przechy³ek (do generowania trójk¹tów)
         r1=fRoll1; r2=fRoll2;
     }
-    void __fastcall RenderLoft(const vector3 *ShapePoints, int iNumShapePoints,
+    void __fastcall RenderLoft(const vector6 *ShapePoints, int iNumShapePoints,
         double fTextureLength, int iSkip=0, int iQualityFactor=1);
-    void __fastcall RenderSwitchRail(const vector3 *ShapePoints1, const vector3 *ShapePoints2,
+    void __fastcall RenderSwitchRail(const vector6 *ShapePoints1, const vector6 *ShapePoints2,
                             int iNumShapePoints,double fTextureLength, int iSkip=0, double fOffsetX=0.0f);
     void __fastcall Render();
     inline double __fastcall GetLength() { return fLength; };
     void __fastcall MoveMe(vector3 pPosition) { Point1+=pPosition; Point2+=pPosition; if(bCurve) {CPointIn+=pPosition; CPointOut+=pPosition;}}
     int __fastcall RaSegCount() {return fTsBuffer?iSegCount:1;};
-    void __fastcall RaRenderLoft(CVertNormTex* &Vert,const vector3 *ShapePoints,int iNumShapePoints,
+    void __fastcall RaRenderLoft(CVertNormTex* &Vert,const vector6 *ShapePoints,int iNumShapePoints,
         double fTextureLength, int iSkip=0,int iEnd=0,double fOffsetX=0.0);
-    void __fastcall RaAnimate(CVertNormTex* &Vert,const vector3 *ShapePoints,int iNumShapePoints,
+    void __fastcall RaAnimate(CVertNormTex* &Vert,const vector6 *ShapePoints,int iNumShapePoints,
         double fTextureLength, int iSkip=0,int iEnd=0,double fOffsetX=0.0);
 };
 

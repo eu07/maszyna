@@ -175,7 +175,7 @@ void __fastcall TTrack::ConnectNextNext(TTrack *pTrack)
  }
 }
 
-vector3 __fastcall MakeCPoint(vector3 p, double d, double a1, double a2)
+vector3 __fastcall MakeCPoint(vector3 p,double d,double a1,double a2)
 {
  vector3 cp=vector3(0,0,1);
  cp.RotateX(DegToRad(a2));
@@ -193,7 +193,7 @@ vector3 __fastcall LoadPoint(cParser *parser)
  return p;
 }
 
-void __fastcall TTrack::Load(cParser *parser, vector3 pOrigin)
+void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin)
 {//pobranie obiektu trajektorii ruchu
  vector3 pt,vec,p1,p2,cp1,cp2;
  double a1,a2,r1,r2,d1,d2,a;
@@ -204,7 +204,7 @@ void __fastcall TTrack::Load(cParser *parser, vector3 pOrigin)
 
  parser->getTokens();
  *parser >> token;
- str= AnsiString(token.c_str());
+ str=AnsiString(token.c_str());
 
  if (str=="normal")
  {
@@ -241,27 +241,27 @@ void __fastcall TTrack::Load(cParser *parser, vector3 pOrigin)
   WriteLog(str.c_str());
  parser->getTokens(4);
  *parser >> fTrackLength >> fTrackWidth >> fFriction >> fSoundDistance;
-//    fTrackLength= Parser->GetNextSymbol().ToDouble();                       //track length 100502
-//    fTrackWidth= Parser->GetNextSymbol().ToDouble();                        //track width
-//    fFriction= Parser->GetNextSymbol().ToDouble();                          //friction coeff.
-//    fSoundDistance= Parser->GetNextSymbol().ToDouble();   //snd
+//    fTrackLength=Parser->GetNextSymbol().ToDouble();                       //track length 100502
+//    fTrackWidth=Parser->GetNextSymbol().ToDouble();                        //track width
+//    fFriction=Parser->GetNextSymbol().ToDouble();                          //friction coeff.
+//    fSoundDistance=Parser->GetNextSymbol().ToDouble();   //snd
  parser->getTokens(2);
  *parser >> iQualityFlag >> iDamageFlag;
-//    iQualityFlag= Parser->GetNextSymbol().ToInt();   //McZapkie: qualityflag
-//    iDamageFlag= Parser->GetNextSymbol().ToInt();   //damage
+//    iQualityFlag=Parser->GetNextSymbol().ToInt();   //McZapkie: qualityflag
+//    iDamageFlag=Parser->GetNextSymbol().ToInt();   //damage
  parser->getTokens();
  *parser >> token;
- str= AnsiString(token.c_str());  //environment
+ str=AnsiString(token.c_str());  //environment
  if (str=="flat")
-  eEnvironment= e_flat;
+  eEnvironment=e_flat;
  else if (str=="mountains" || str=="mountain")
-  eEnvironment= e_mountains;
+  eEnvironment=e_mountains;
  else if (str=="canyon")
-  eEnvironment= e_canyon;
+  eEnvironment=e_canyon;
  else if (str=="tunnel")
-  eEnvironment= e_tunnel;
+  eEnvironment=e_tunnel;
  else if (str=="bridge")
-  eEnvironment= e_bridge;
+  eEnvironment=e_bridge;
  else if (str=="bank")
   eEnvironment=e_bank;
  else
@@ -271,24 +271,24 @@ void __fastcall TTrack::Load(cParser *parser, vector3 pOrigin)
  }
  parser->getTokens();
  *parser >> token;
- bVisible= (token.compare( "vis" ) == 0 );   //visible
+ bVisible=(token.compare( "vis" )==0);   //visible
  if (bVisible)
   {
    parser->getTokens();
    *parser >> token;
-   str= AnsiString(token.c_str());   //railtex
+   str=AnsiString(token.c_str());   //railtex
    TextureID1=(str=="none"?0:TTexturesManager::GetTextureID(str.c_str(),(iCategoryFlag==1)?Global::iRailProFiltering:Global::iBallastFiltering));
    parser->getTokens();
    *parser >> fTexLength; //tex tile length
    parser->getTokens();
    *parser >> token;
-   str= AnsiString(token.c_str());   //sub || railtex
+   str=AnsiString(token.c_str());   //sub || railtex
    TextureID2=(str=="none"?0:TTexturesManager::GetTextureID(str.c_str(),(eType==tt_Normal)?Global::iBallastFiltering:Global::iRailProFiltering));
    parser->getTokens(3);
    *parser >> fTexHeight >> fTexWidth >> fTexSlope;
-//      fTexHeight= Parser->GetNextSymbol().ToDouble(); //tex sub height
-//      fTexWidth= Parser->GetNextSymbol().ToDouble(); //tex sub width
-//      fTexSlope= Parser->GetNextSymbol().ToDouble(); //tex sub slope width
+//      fTexHeight=Parser->GetNextSymbol().ToDouble(); //tex sub height
+//      fTexWidth=Parser->GetNextSymbol().ToDouble(); //tex sub width
+//      fTexSlope=Parser->GetNextSymbol().ToDouble(); //tex sub slope width
    if (iCategoryFlag==4)
     fTexHeight=-fTexHeight; //rzeki maj¹ wysokoœæ odwrotnie ni¿ drogi
   }
@@ -300,12 +300,12 @@ void __fastcall TTrack::Load(cParser *parser, vector3 pOrigin)
  {//Ra: ³uki segmentowane co 5m albo 314-k¹tem foremnym
   case tt_Turn: //obrotnica jest prawie jak zwyk³y tor
   case tt_Normal:
-   p1= LoadPoint(parser)+pOrigin; //pobranie wspó³rzêdnych P1
+   p1=LoadPoint(parser)+pOrigin; //pobranie wspó³rzêdnych P1
    parser->getTokens();
    *parser >> r1; //pobranie przechy³ki w P1
-   cp1= LoadPoint(parser); //pobranie wspó³rzêdnych punktów kontrolnych
-   cp2= LoadPoint(parser);
-   p2= LoadPoint(parser)+pOrigin; //pobranie wspó³rzêdnych P2
+   cp1=LoadPoint(parser); //pobranie wspó³rzêdnych punktów kontrolnych
+   cp2=LoadPoint(parser);
+   p2=LoadPoint(parser)+pOrigin; //pobranie wspó³rzêdnych P2
    parser->getTokens(2);
    *parser >> r2 >> fRadius; //pobranie przechy³ki w P1 i promienia
 
@@ -321,7 +321,7 @@ void __fastcall TTrack::Load(cParser *parser, vector3 pOrigin)
     Segment->Init(p1,cp1+p1,cp2+p2,p2,segsize,r1,r2); //gdy ³uk (ustawia bCurve=true)
    if ((r1!=0)||(r2!=0)) iTrapezoid=1; //s¹ przechy³ki do uwzglêdniania w rysowaniu
    if (eType==tt_Turn) //obrotnica ma doklejkê
-   {SwitchExtension= new TSwitchExtension(); //zwrotnica ma doklejkê
+   {SwitchExtension=new TSwitchExtension(); //zwrotnica ma doklejkê
     SwitchExtension->Segments->Init(p1,p2,segsize); //kopia oryginalnego toru
    }
    else if (iCategoryFlag==2)
@@ -341,7 +341,7 @@ void __fastcall TTrack::Load(cParser *parser, vector3 pOrigin)
    //wtedy dzieli siê na dodatkowe odcinki (po 0.2m, bo R=0) i animacjê diabli bior¹
    //Ra: na razie nie podejmujê siê przerabiania iglic
 
-   SwitchExtension= new TSwitchExtension(); //zwrotnica ma doklejkê
+   SwitchExtension=new TSwitchExtension(); //zwrotnica ma doklejkê
 
    p1=LoadPoint(parser)+pOrigin; //pobranie wspó³rzêdnych P1
    parser->getTokens();
@@ -399,202 +399,202 @@ void __fastcall TTrack::Load(cParser *parser, vector3 pOrigin)
  }
  parser->getTokens();
  *parser >> token;
- str= AnsiString(token.c_str());
+ str=AnsiString(token.c_str());
  while (str!="endtrack")
  {
   if (str=="event0")
    {
       parser->getTokens();
       *parser >> token;
-      asEvent0Name= AnsiString(token.c_str());
+      asEvent0Name=AnsiString(token.c_str());
    }
   else
   if (str=="event1")
    {
       parser->getTokens();
       *parser >> token;
-      asEvent1Name= AnsiString(token.c_str());
+      asEvent1Name=AnsiString(token.c_str());
    }
   else
   if (str=="event2")
    {
       parser->getTokens();
       *parser >> token;
-      asEvent2Name= AnsiString(token.c_str());
+      asEvent2Name=AnsiString(token.c_str());
    }
   else
   if (str=="eventall0")
    {
       parser->getTokens();
       *parser >> token;
-      asEventall0Name= AnsiString(token.c_str());
+      asEventall0Name=AnsiString(token.c_str());
    }
   else
   if (str=="eventall1")
    {
       parser->getTokens();
       *parser >> token;
-      asEventall1Name= AnsiString(token.c_str());
+      asEventall1Name=AnsiString(token.c_str());
    }
   else
   if (str=="eventall2")
    {
       parser->getTokens();
       *parser >> token;
-      asEventall2Name= AnsiString(token.c_str());
+      asEventall2Name=AnsiString(token.c_str());
    }
   else
   if (str=="velocity")
    {
      parser->getTokens();
      *parser >> fVelocity;
-//         fVelocity= Parser->GetNextSymbol().ToDouble(); //*0.28; McZapkie-010602
+//         fVelocity=Parser->GetNextSymbol().ToDouble(); //*0.28; McZapkie-010602
    }
   else
    Error("Unknown track property: \""+str+"\"");
   parser->getTokens(); *parser >> token;
-  str= AnsiString(token.c_str());
+  str=AnsiString(token.c_str());
  }
 }
 
-bool __fastcall TTrack::AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2)
+bool __fastcall TTrack::AssignEvents(TEvent *NewEvent0,TEvent *NewEvent1,TEvent *NewEvent2)
 {
-    bool bError= false;
+    bool bError=false;
     if (!Event0)
     {
         if (NewEvent0)
         {
-            Event0= NewEvent0;
-            asEvent0Name= "";
+            Event0=NewEvent0;
+            asEvent0Name="";
         }
         else
         {
             if (!asEvent0Name.IsEmpty())
             {
                 Error(AnsiString("Event0 \"")+asEvent0Name+AnsiString("\" does not exist"));
-                bError= true;
+                bError=true;
             }
         }
     }
     else
     {
         Error(AnsiString("Event 0 cannot be assigned to track, track already has one"));
-        bError= true;
+        bError=true;
     }
 
     if (!Event1)
     {
         if (NewEvent1)
         {
-            Event1= NewEvent1;
-            asEvent1Name= "";
+            Event1=NewEvent1;
+            asEvent1Name="";
         }
         else
         {
             if (!asEvent0Name.IsEmpty())
             {//Ra: tylko w logu informacja
                 WriteLog(AnsiString("Event1 \"")+asEvent1Name+AnsiString("\" does not exist").c_str());
-                bError= true;
+                bError=true;
             }
         }
     }
     else
     {
         Error(AnsiString("Event 1 cannot be assigned to track, track already has one"));
-        bError= true;
+        bError=true;
     }
 
     if (!Event2)
     {
         if (NewEvent2)
         {
-            Event2= NewEvent2;
-            asEvent2Name= "";
+            Event2=NewEvent2;
+            asEvent2Name="";
         }
         else
         {
             if (!asEvent0Name.IsEmpty())
             {//Ra: tylko w logu informacja
                 WriteLog(AnsiString("Event2 \"")+asEvent2Name+AnsiString("\" does not exist"));
-                bError= true;
+                bError=true;
             }
         }
     }
     else
     {
         Error(AnsiString("Event 2 cannot be assigned to track, track already has one"));
-        bError= true;
+        bError=true;
     }
     return !bError;
 }
 
-bool __fastcall TTrack::AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2)
+bool __fastcall TTrack::AssignallEvents(TEvent *NewEvent0,TEvent *NewEvent1,TEvent *NewEvent2)
 {
-    bool bError= false;
+    bool bError=false;
     if (!Eventall0)
     {
         if (NewEvent0)
         {
-            Eventall0= NewEvent0;
-            asEventall0Name= "";
+            Eventall0=NewEvent0;
+            asEventall0Name="";
         }
         else
         {
             if (!asEvent0Name.IsEmpty())
             {
                 Error(AnsiString("Eventall 0 \"")+asEventall0Name+AnsiString("\" does not exist"));
-                bError= true;
+                bError=true;
             }
         }
     }
     else
     {
         Error(AnsiString("Eventall 0 cannot be assigned to track, track already has one"));
-        bError= true;
+        bError=true;
     }
 
     if (!Eventall1)
     {
         if (NewEvent1)
         {
-            Eventall1= NewEvent1;
-            asEventall1Name= "";
+            Eventall1=NewEvent1;
+            asEventall1Name="";
         }
         else
         {
             if (!asEvent0Name.IsEmpty())
             {//Ra: tylko w logu informacja
                 WriteLog(AnsiString("Eventall 1 \"")+asEventall1Name+AnsiString("\" does not exist"));
-                bError= true;
+                bError=true;
             }
         }
     }
     else
     {
         Error(AnsiString("Eventall 1 cannot be assigned to track, track already has one"));
-        bError= true;
+        bError=true;
     }
 
     if (!Eventall2)
     {
         if (NewEvent2)
         {
-            Eventall2= NewEvent2;
-            asEventall2Name= "";
+            Eventall2=NewEvent2;
+            asEventall2Name="";
         }
         else
         {
             if (!asEvent0Name.IsEmpty())
             {//Ra: tylko w logu informacja
                 WriteLog(AnsiString("Eventall 2 \"")+asEventall2Name+AnsiString("\" does not exist"));
-                bError= true;
+                bError=true;
             }
         }
     }
     else
     {
         Error(AnsiString("Eventall 2 cannot be assigned to track, track already has one"));
-        bError= true;
+        bError=true;
     }
     return !bError;
 }
@@ -605,9 +605,9 @@ bool __fastcall TTrack::AddDynamicObject(TDynamicObject *Dynamic)
 {
     if (iNumDynamics<iMaxNumDynamics)
     {
-        Dynamics[iNumDynamics]= Dynamic;
+        Dynamics[iNumDynamics]=Dynamic;
         iNumDynamics++;
-        Dynamic->MyTrack = this; //ABu: Na ktorym torze jestesmy.
+        Dynamic->MyTrack=this; //ABu: Na ktorym torze jestesmy.
         return true;
     }
     else
@@ -634,309 +634,313 @@ void __fastcall TTrack::MoveMe(vector3 pPosition)
 };
 
 
-const int numPts= 4;
-const int nnumPts= 12;
-const vector3 szyna[nnumPts]= //szyna - vextor3(x,y,mapowanie tekstury)
-{vector3( 0.111,0.000,0.00),
- vector3( 0.045,0.025,0.15),
- vector3( 0.045,0.110,0.25),
- vector3( 0.071,0.140,0.35), //albo tu 0.073
- vector3( 0.072,0.170,0.40),
- vector3( 0.052,0.180,0.45),
- vector3( 0.020,0.180,0.55),
- vector3( 0.000,0.170,0.60),
- vector3( 0.001,0.140,0.65), //albo tu -0.001
- vector3( 0.027,0.110,0.75), //albo zostanie asymetryczna
- vector3( 0.027,0.025,0.85),
- vector3(-0.039,0.000,1.00)
+const int numPts=4;
+const int nnumPts=12;
+const vector6 szyna[nnumPts]= //szyna - vextor3(x,y,mapowanie tekstury)
+{vector6( 0.111,0.000,0.00, 1.000, 0.000,0.000),
+ vector6( 0.045,0.025,0.15, 0.707, 0.707,0.000),
+ vector6( 0.045,0.110,0.25, 0.707,-0.707,0.000),
+ vector6( 0.071,0.140,0.35, 0.707,-0.707,0.000), //albo tu 0.073
+ vector6( 0.072,0.170,0.40, 0.707, 0.707,0.000),
+ vector6( 0.052,0.180,0.45, 0.000, 1.000,0.000),
+ vector6( 0.020,0.180,0.55, 0.000, 1.000,0.000),
+ vector6( 0.000,0.170,0.60,-0.707, 0.707,0.000),
+ vector6( 0.001,0.140,0.65,-0.707,-0.707,0.000), //albo tu -0.001
+ vector6( 0.027,0.110,0.75,-0.707,-0.707,0.000), //albo zostanie asymetryczna
+ vector6( 0.027,0.025,0.85,-0.707, 0.707,0.000),
+ vector6(-0.039,0.000,1.00,-1.000, 0.000,0.000)
 };
-const vector3 iglica[nnumPts]= //iglica - vextor3(x,y,mapowanie tekstury)
-{vector3( 0.010,0.000,0.00),
- vector3( 0.010,0.025,0.15),
- vector3( 0.010,0.110,0.25),
- vector3( 0.010,0.140,0.35),
- vector3( 0.010,0.170,0.40),
- vector3( 0.010,0.180,0.45),
- vector3( 0.000,0.180,0.55),
- vector3( 0.000,0.170,0.60),
- vector3( 0.000,0.140,0.65),
- vector3( 0.000,0.110,0.75),
- vector3( 0.000,0.025,0.85),
- vector3(-0.040,0.000,1.00) //1mm wiêcej, ¿eby nie nachodzi³y tekstury?
+const vector6 iglica[nnumPts]= //iglica - vextor3(x,y,mapowanie tekstury)
+{vector6( 0.010,0.000,0.00, 1.000, 0.000,0.000),
+ vector6( 0.010,0.025,0.15, 1.000, 0.000,0.000),
+ vector6( 0.010,0.110,0.25, 1.000, 0.000,0.000),
+ vector6( 0.010,0.140,0.35, 1.000, 0.000,0.000),
+ vector6( 0.010,0.170,0.40, 1.000, 0.000,0.000),
+ vector6( 0.010,0.180,0.45, 0.707, 0.707,0.000),
+ vector6( 0.000,0.180,0.55, 0.707, 0.707,0.000),
+ vector6( 0.000,0.170,0.60,-1.000, 0.000,0.000),
+ vector6( 0.000,0.140,0.65,-1.000, 0.000,0.000),
+ vector6( 0.000,0.110,0.75,-1.000, 0.000,0.000),
+ vector6( 0.000,0.025,0.85,-0.707, 0.707,0.000),
+ vector6(-0.040,0.000,1.00,-1.000, 0.000,0.000) //1mm wiêcej, ¿eby nie nachodzi³y tekstury?
 };
 
 
 
 void __fastcall TTrack::Compile()
 {//przygotowanie trójk¹tów do wyœwielenia - model proceduralny
-    if (DisplayListID)
-        Release(); //zwolnienie zasobów
+ if (DisplayListID)
+     Release(); //zwolnienie zasobów
 
-    if (Global::bManageNodes)
-    {
-        DisplayListID=glGenLists(1); //otwarcie nowej listy
-        glNewList(DisplayListID,GL_COMPILE);
-    };
+ if (Global::bManageNodes)
+ {
+     DisplayListID=glGenLists(1); //otwarcie nowej listy
+     glNewList(DisplayListID,GL_COMPILE);
+ };
 
-    glColor3f(1.0f,1.0f,1.0f);
+ glColor3f(1.0f,1.0f,1.0f);
 
-    //McZapkie-310702: zmiana oswietlenia w tunelu, wykopie
-    GLfloat  ambientLight[4]  = {0.5f, 0.5f, 0.5f, 1.0f};
-    GLfloat  diffuseLight[4]  = {0.5f, 0.5f, 0.5f, 1.0f};
-    GLfloat  specularLight[4] = {0.5f, 0.5f, 0.5f, 1.0f};
+ //McZapkie-310702: zmiana oswietlenia w tunelu, wykopie
+ GLfloat  ambientLight[4] ={0.5f,0.5f,0.5f,1.0f};
+ GLfloat  diffuseLight[4] ={0.5f,0.5f,0.5f,1.0f};
+ GLfloat  specularLight[4]={0.5f,0.5f,0.5f,1.0f};
 
-    switch (eEnvironment)
-    {//modyfikacje oœwietlenia zale¿nie od œrodowiska
-        case e_canyon: //wykop
-            for(int li=0; li<3; li++)
-            {
-                ambientLight[li]= Global::ambientDayLight[li]*0.7;
-                diffuseLight[li]= Global::diffuseDayLight[li]*0.3;
-                specularLight[li]= Global::specularDayLight[li]*0.4;
-            }
-            glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
-            glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
-            glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
-        break;
-        case e_tunnel: //tunel
-            for(int li=0; li<3; li++)
-            {
-                ambientLight[li]= Global::ambientDayLight[li]*0.2;
-                diffuseLight[li]= Global::diffuseDayLight[li]*0.1;
-                specularLight[li]= Global::specularDayLight[li]*0.2;
-            }
-            glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
-            glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
-            glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
-        break;
+ switch (eEnvironment)
+ {//modyfikacje oœwietlenia zale¿nie od œrodowiska
+     case e_canyon: //wykop
+         for(int li=0; li<3; li++)
+         {
+             ambientLight[li]=Global::ambientDayLight[li]*0.7;
+             diffuseLight[li]=Global::diffuseDayLight[li]*0.3;
+             specularLight[li]=Global::specularDayLight[li]*0.4;
+         }
+         glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
+         glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
+         glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
+     break;
+     case e_tunnel: //tunel
+         for(int li=0; li<3; li++)
+         {
+             ambientLight[li]=Global::ambientDayLight[li]*0.2;
+             diffuseLight[li]=Global::diffuseDayLight[li]*0.1;
+             specularLight[li]=Global::specularDayLight[li]*0.2;
+         }
+         glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
+         glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
+         glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
+     break;
+ }
+
+ double fHTW=0.5*fabs(fTrackWidth); //po³owa szerokoœci
+ double side=fabs(fTexWidth); //szerokœæ podsypki na zewn¹trz szyny albo pobocza
+ double rozp=fHTW+side+fabs(fTexSlope); //brzeg zewnêtrzny
+ double hypot1=hypot(fTexSlope,fTexHeight); //rozmiar pochylenia do liczenia normalnych
+ if (hypot1==0.0) hypot1=1.0;
+ vector3 normal1=vector3(fTexSlope/hypot1,fTexHeight/hypot1,0.0); //wektor normalny
+ double fHTW2,side2,rozp2,fTexHeight2,hypot2;
+ vector3 normal2;
+ if (iTrapezoid&2) //ten bit oznacza, ¿e istnieje odpowiednie pNext
+ {//Ra: na tym siê lubi wieszaæ, ciekawe co za œmieci siê pod³¹czaj¹...
+  fHTW2=0.5*fabs(pNext->fTrackWidth); //po³owa rozstawu/nawierzchni
+  side2=fabs(pNext->fTexWidth);
+  rozp2=fHTW2+side2+fabs(pNext->fTexSlope);
+  fTexHeight2=pNext->fTexHeight;
+  hypot2=hypot(pNext->fTexSlope,pNext->fTexHeight);
+  if (hypot2==0.0) hypot2=1.0;
+  normal2=vector3(pNext->fTexSlope/hypot2,fTexHeight2/hypot2,0.0);
+  //zabezpieczenia przed zawieszeniem - logowaæ to?
+  if (fHTW2>5.0*fHTW) {fHTW2=fHTW; WriteLog("niedopasowanie 1");};
+  if (side2>5.0*side) {side2=side; WriteLog("niedopasowanie 2");};
+  if (rozp2>5.0*rozp) {rozp2=rozp; WriteLog("niedopasowanie 3");};
+  //if (fabs(fTexHeight2)>5.0*fabs(fTexHeight)) {fTexHeight2=fTexHeight; WriteLog("niedopasowanie 4");};
+ }
+ else //gdy nie ma nastêpnego albo jest nieodpowiednim koñcem podpiêty
+ {fHTW2=fHTW; side2=side; rozp2=rozp; fTexHeight2=fTexHeight; normal2=normal1;}
+ double roll1,roll2;
+ switch (iCategoryFlag)
+ {
+  case 1:   //tor
+  {
+   Segment->GetRolls(roll1,roll2);
+   double sin1=sin(roll1),cos1=cos(roll1),sin2=sin(roll2),cos2=cos(roll2);
+   // zwykla szyna: //Ra: czemu g³ówki s¹ asymetryczne na wysokoœci 0.140?
+   vector6 rpts1[24],rpts2[24],rpts3[24],rpts4[24];
+   int i;
+   for (i=0;i<12;++i)
+   {rpts1[i]   =vector6(( fHTW+szyna[i].x)*cos1+szyna[i].y*sin1,-( fHTW+szyna[i].x)*sin1+szyna[i].y*cos1,szyna[i].z ,+szyna[i].n.x*cos1+szyna[i].n.y*sin1,-szyna[i].n.x*sin1+szyna[i].n.y*cos1,0.0);
+    rpts2[11-i]=vector6((-fHTW-szyna[i].x)*cos1+szyna[i].y*sin1,-(-fHTW-szyna[i].x)*sin1+szyna[i].y*cos1,szyna[i].z ,-szyna[i].n.x*cos1+szyna[i].n.y*sin1,+szyna[i].n.x*sin1+szyna[i].n.y*cos1,0.0);
+   }
+   if (iTrapezoid) //trapez albo przechy³ki, to oddzielne punkty na koñcu
+    for (i=0;i<12;++i)
+    {rpts1[12+i]=vector6(( fHTW2+szyna[i].x)*cos2+szyna[i].y*sin2,-( fHTW2+szyna[i].x)*sin2+szyna[i].y*cos2,szyna[i].z ,+szyna[i].n.x*cos2+szyna[i].n.y*sin2,-szyna[i].n.x*sin2+szyna[i].n.y*cos2,0.0);
+     rpts2[23-i]=vector6((-fHTW2-szyna[i].x)*cos2+szyna[i].y*sin2,-(-fHTW2-szyna[i].x)*sin2+szyna[i].y*cos2,szyna[i].z ,-szyna[i].n.x*cos2+szyna[i].n.y*sin2,+szyna[i].n.x*sin2+szyna[i].n.y*cos2,0.0);
     }
-
-    double fHTW=0.5*fabs(fTrackWidth);
-    double side=fabs(fTexWidth); //szerokœæ podsypki na zewn¹trz szyny albo pobocza
-    double rozp=fHTW+side+fabs(fTexSlope); //brzeg zewnêtrzny
-    double fHTW2,side2,rozp2,fTexHeight2;
-    if (iTrapezoid&2) //ten bit oznacza, ¿e istnieje odpowiednie pNext
-    {//Ra: na tym siê lubi wieszaæ, ciekawe co za œmieci siê pod³¹czaj¹...
-     fHTW2=0.5*fabs(pNext->fTrackWidth); //po³owa rozstawu/nawierzchni
-     side2=fabs(pNext->fTexWidth);
-     rozp2=fHTW2+side2+fabs(pNext->fTexSlope);
-     fTexHeight2=pNext->fTexHeight;
-     //zabezpieczenia przed zawieszeniem - logowaæ to?
-     if (fHTW2>5.0*fHTW) {fHTW2=fHTW; WriteLog("niedopasowanie 1");};
-     if (side2>5.0*side) {side2=side; WriteLog("niedopasowanie 2");};
-     if (rozp2>5.0*rozp) {rozp2=rozp; WriteLog("niedopasowanie 3");};
-     //if (fabs(fTexHeight2)>5.0*fabs(fTexHeight)) {fTexHeight2=fTexHeight; WriteLog("niedopasowanie 4");};
-    }
-    else //gdy nie ma nastêpnego albo jest nieodpowiednim koñcem podpiêty
-    {fHTW2=fHTW; side2=side; rozp2=rozp; fTexHeight2=fTexHeight;}
-    double roll1,roll2;
-    switch (iCategoryFlag)
-    {
-     case 1:   //tor
-     {
-      Segment->GetRolls(roll1,roll2);
-      double sin1=sin(roll1),cos1=cos(roll1),sin2=sin(roll2),cos2=cos(roll2);
-      // zwykla szyna: //Ra: czemu g³ówki s¹ asymetryczne na wysokoœci 0.140?
-      vector3 rpts1[24],rpts2[24],rpts3[24],rpts4[24];
-      int i;
+   switch (eType) //dalej zale¿nie od typu
+   {
+    case tt_Turn: //obrotnica jak zwyk³y tor, tylko animacja dochodzi
+     if (InMovement()) //jeœli siê krêci
+     {//wyznaczamy wspó³rzêdne koñców, przy za³o¿eniu sta³ego œródka i d³ugoœci
+      double hlen=0.5*SwitchExtension->Segments->GetLength(); //po³owa d³ugoœci
+      //SwitchExtension->fOffset1=SwitchExtension->pAnim?SwitchExtension->pAnim->AngleGet():0.0; //pobranie k¹ta z modelu
+      TAnimContainer *ac=SwitchExtension->pModel?SwitchExtension->pModel->GetContainer(NULL):NULL;
+      if (ac)
+       SwitchExtension->fOffset1=ac?180+ac->AngleGet():0.0; //pobranie k¹ta z modelu
+      double sina=hlen*sin(DegToRad(SwitchExtension->fOffset1)),cosa=hlen*cos(DegToRad(SwitchExtension->fOffset1));
+      vector3 middle=SwitchExtension->Segments->FastGetPoint(0.5);
+      Segment->Init(middle+vector3(sina,0.0,cosa),middle-vector3(sina,0.0,cosa),5.0);
+     }
+    case tt_Normal:
+     if (TextureID2)
+     {//podsypka z podk³adami jest tylko dla zwyk³ego toru
+      vector6 bpts1[8]; //punkty g³ównej p³aszczyzny nie przydaj¹ siê do robienia boków
+      if (iTrapezoid) //trapez albo przechy³ki
+      {//podsypka z podkladami trapezowata
+       //ewentualnie poprawiæ mapowanie, ¿eby œrodek mapowa³ siê na 1.435/4.671 ((0.3464,0.6536)
+       //bo siê tekstury podsypki rozje¿d¿aj¹ po zmianie proporcji profilu
+       bpts1[0]=vector6(rozp,-fTexHeight,0.0,normal1.x,-normal1.y,0.0); //lewy brzeg
+       bpts1[1]=vector6((fHTW+side)*cos1,-(fHTW+side)*sin1,0.33,0.0,1.0,0.0); //krawêdŸ za³amania
+       bpts1[2]=vector6(-bpts1[1].x,-bpts1[1].y,0.67,-normal1.x,-normal1.y,0.0); //prawy brzeg pocz¹tku symetrycznie
+       bpts1[3]=vector6(-rozp,-fTexHeight,1.0,-normal1.x,-normal1.y,0.0); //prawy skos
+       bpts1[4]=vector6(rozp2,-fTexHeight2,0.0,normal2.x,-normal2.y,0.0); //lewy brzeg
+       bpts1[5]=vector6((fHTW2+side2)*cos2,-(fHTW2+side2)*sin2,0.33,0.0,1.0,0.0); //krawêdŸ za³amania
+       bpts1[6]=vector6(-bpts1[5].x,-bpts1[5].y,0.67,0.0,1.0,0.0); //prawy brzeg pocz¹tku symetrycznie
+       bpts1[7]=vector6(-rozp2,-fTexHeight2,1.0,-normal2.x,-normal2.y,0.0); //prawy skos
+      }
+      else
+      {bpts1[0]=vector6(rozp,-fTexHeight,0.0,normal1.x,-normal1.y,0.0); //lewy brzeg
+       bpts1[1]=vector6(fHTW+side,0.0,0.33,normal1.x,-normal1.y,0.0); //krawêdŸ za³amania
+       bpts1[2]=vector6(-fHTW-side,0.0,0.67,-normal1.x,-normal1.y,0.0); //druga
+       bpts1[3]=vector6(-rozp,-fTexHeight,1.0,-normal1.x,-normal1.y,0.0); //prawy skos
+      }
+      glBindTexture(GL_TEXTURE_2D,TextureID2);
+      Segment->RenderLoft(bpts1,iTrapezoid?-4:4,fTexLength);
+     }
+     if (TextureID1)
+     {// szyny
+      glBindTexture(GL_TEXTURE_2D,TextureID1);
+      Segment->RenderLoft(rpts1,iTrapezoid?-nnumPts:nnumPts,fTexLength);
+      Segment->RenderLoft(rpts2,iTrapezoid?-nnumPts:nnumPts,fTexLength);
+     }
+     break;
+    case tt_Switch: //dla zwrotnicy dwa razy szyny
+     if (TextureID1)
+     {//iglice liczone tylko dla zwrotnic
+      vector6 rpts3[24],rpts4[24];
       for (i=0;i<12;++i)
-      {rpts1[i]=vector3((fHTW+szyna[i].x)*cos1+szyna[i].y*sin1,-(fHTW+szyna[i].x)*sin1+szyna[i].y*cos1,szyna[i].z);
-       rpts2[11-i]=vector3((-fHTW-szyna[i].x)*cos1+szyna[i].y*sin1,-(-fHTW-szyna[i].x)*sin1+szyna[i].y*cos1,szyna[i].z);
+      {rpts3[i]   =vector6(( fHTW+iglica[i].x)*cos1+iglica[i].y*sin1,-( fHTW+iglica[i].x)*sin1+iglica[i].y*cos1,iglica[i].z,+iglica[i].n.x*cos1+iglica[i].n.y*sin1,-iglica[i].n.x*sin1+iglica[i].n.y*cos1,0.0);
+       rpts4[11-i]=vector6((-fHTW-iglica[i].x)*cos1+iglica[i].y*sin1,-(-fHTW-iglica[i].x)*sin1+iglica[i].y*cos1,iglica[i].z,-iglica[i].n.x*cos1+iglica[i].n.y*sin1,+iglica[i].n.x*sin1+iglica[i].n.y*cos1,0.0);
       }
       if (iTrapezoid) //trapez albo przechy³ki, to oddzielne punkty na koñcu
        for (i=0;i<12;++i)
-       {rpts1[12+i]=vector3((fHTW2+szyna[i].x)*cos2+szyna[i].y*sin2,-(fHTW2+szyna[i].x)*sin2+szyna[i].y*cos2,szyna[i].z);
-        rpts2[23-i]=vector3((-fHTW2-szyna[i].x)*cos2+szyna[i].y*sin2,-(-fHTW2-szyna[i].x)*sin2+szyna[i].y*cos2,szyna[i].z);
+       {rpts3[12+i]=vector6(( fHTW2+iglica[i].x)*cos2+iglica[i].y*sin2,-( fHTW2+iglica[i].x)*sin2+iglica[i].y*cos2,iglica[i].z,+iglica[i].n.x*cos2+iglica[i].n.y*sin2,-iglica[i].n.x*sin2+iglica[i].n.y*cos2,0.0);
+        rpts4[23-i]=vector6((-fHTW2-iglica[i].x)*cos2+iglica[i].y*sin2,-(-fHTW2-iglica[i].x)*sin2+iglica[i].y*cos2,iglica[i].z,-iglica[i].n.x*cos2+iglica[i].n.y*sin2,+iglica[i].n.x*sin2+iglica[i].n.y*cos2,0.0);
        }
-      switch (eType) //dalej zale¿nie od typu
-      {
-       case tt_Turn: //obrotnica jak zwyk³y tor, tylko animacja dochodzi
-        if (InMovement()) //jeœli siê krêci
-        {//wyznaczamy wspó³rzêdne koñców, przy za³o¿eniu sta³ego œródka i d³ugoœci
-         double hlen=0.5*SwitchExtension->Segments->GetLength(); //po³owa d³ugoœci
-         //SwitchExtension->fOffset1=SwitchExtension->pAnim?SwitchExtension->pAnim->AngleGet():0.0; //pobranie k¹ta z modelu
-         TAnimContainer *ac=SwitchExtension->pModel?SwitchExtension->pModel->GetContainer(NULL):NULL;
-         if (ac)
-          SwitchExtension->fOffset1=ac?180+ac->AngleGet():0.0; //pobranie k¹ta z modelu
-         double sina=hlen*sin(DegToRad(SwitchExtension->fOffset1)),cosa=hlen*cos(DegToRad(SwitchExtension->fOffset1));
-         vector3 middle=SwitchExtension->Segments->FastGetPoint(0.5);
-         Segment->Init(middle+vector3(sina,0.0,cosa),middle-vector3(sina,0.0,cosa),5.0);
-        }
-       case tt_Normal:
-        if (TextureID2)
-        {//podsypka z podk³adami jest tylko dla zwyk³ego toru
-         vector3 bpts1[8]; //punkty g³ównej p³aszczyzny nie przydaj¹ siê do robienia boków
-         if (iTrapezoid) //trapez albo przechy³ki
-         {//podsypka z podkladami trapezowata
-          //ewentualnie poprawiæ mapowanie, ¿eby œrodek mapowa³ siê na 1.435/4.671 ((0.3464,0.6536)
-          //bo siê tekstury podsypki rozje¿d¿aj¹ po zmianie proporcji profilu
-          bpts1[0]=vector3(rozp,-fTexHeight,0.0); //lewy brzeg
-          bpts1[1]=vector3((fHTW+side)*cos1,-(fHTW+side)*sin1,0.33); //krawêdŸ za³amania
-          bpts1[2]=vector3(-bpts1[1].x,-bpts1[1].y,0.67); //prawy brzeg pocz¹tku symetrycznie
-          bpts1[3]=vector3(-rozp,-fTexHeight,1.0); //prawy skos
-          bpts1[4]=vector3(rozp2,-fTexHeight2,0.0); //lewy brzeg
-          bpts1[5]=vector3((fHTW2+side2)*cos2,-(fHTW2+side2)*sin2,0.33); //krawêdŸ za³amania
-          bpts1[6]=vector3(-bpts1[5].x,-bpts1[5].y,0.67); //prawy brzeg pocz¹tku symetrycznie
-          bpts1[7]=vector3(-rozp2,-fTexHeight2,1.0); //prawy skos
-         }
-         else
-         {bpts1[0]=vector3(rozp,-fTexHeight,0.0); //lewy brzeg
-          bpts1[1]=vector3(fHTW+side,0.0,0.33); //krawêdŸ za³amania
-          bpts1[2]=vector3(-fHTW-side,0.0,0.67); //druga
-          bpts1[3]=vector3(-rozp,-fTexHeight,1.0); //prawy skos
-         }
-         glBindTexture(GL_TEXTURE_2D, TextureID2);
-         Segment->RenderLoft(bpts1,iTrapezoid?-4:4,fTexLength);
-        }
-        if (TextureID1)
-        {// szyny
-         glBindTexture(GL_TEXTURE_2D, TextureID1);
-         Segment->RenderLoft(rpts1,iTrapezoid?-nnumPts:nnumPts,fTexLength);
-         Segment->RenderLoft(rpts2,iTrapezoid?-nnumPts:nnumPts,fTexLength);
-        }
-        break;
-       case tt_Switch: //dla zwrotnicy dwa razy szyny
-        if (TextureID1)
-        {//iglice liczone tylko dla zwrotnic
-         vector3 rpts3[24],rpts4[24];
-         for (i=0;i<12;++i)
-         {rpts3[i]=vector3((fHTW+iglica[i].x)*cos1+iglica[i].y*sin1,-(fHTW+iglica[i].x)*sin1+iglica[i].y*cos1,iglica[i].z);
-          rpts4[11-i]=vector3((-fHTW-iglica[i].x)*cos1+iglica[i].y*sin1,-(-fHTW-iglica[i].x)*sin1+iglica[i].y*cos1,iglica[i].z);
-         }
-         if (iTrapezoid) //trapez albo przechy³ki, to oddzielne punkty na koñcu
-          for (i=0;i<12;++i)
-          {rpts3[12+i]=vector3((fHTW2+iglica[i].x)*cos2+iglica[i].y*sin2,-(fHTW2+iglica[i].x)*sin2+iglica[i].y*cos2,iglica[i].z);
-           rpts4[23-i]=vector3((-fHTW2-iglica[i].x)*cos2+iglica[i].y*sin2,-(-fHTW2-iglica[i].x)*sin2+iglica[i].y*cos2,iglica[i].z);
-          }
-         if (InMovement())
-         {//Ra: trochê bez sensu, ¿e tu jest animacja
-          double v=SwitchExtension->fDesiredOffset1-SwitchExtension->fOffset1;
-          SwitchExtension->fOffset1+=sign(v)*Timer::GetDeltaTime()*0.1;
-          //Ra: trzeba daæ to do klasy...
-          if (SwitchExtension->fOffset1<=0.00)
-          {SwitchExtension->fOffset1; //1cm?
-           SwitchExtension->bMovement=false; //koniec animacji
-          }
-          if (SwitchExtension->fOffset1>=fMaxOffset)
-          {SwitchExtension->fOffset1=fMaxOffset; //maksimum-1cm?
-           SwitchExtension->bMovement=false; //koniec animacji
-          }
-         }
-
-//McZapkie-130302 - poprawione rysowanie szyn
-
-         if (SwitchExtension->RightSwitch)
-         {//nowa wersja z SPKS, ale odwrotnie lewa/prawa
-          glBindTexture(GL_TEXTURE_2D, TextureID1);
-          SwitchExtension->Segments[0].RenderLoft(rpts1,nnumPts,fTexLength,2);
-          SwitchExtension->Segments[0].RenderSwitchRail(rpts1,rpts3,nnumPts,fTexLength,2,SwitchExtension->fOffset1);
-          SwitchExtension->Segments[0].RenderLoft(rpts2,nnumPts,fTexLength);
-          glBindTexture(GL_TEXTURE_2D, TextureID2);
-          SwitchExtension->Segments[1].RenderLoft(rpts1,nnumPts,fTexLength);
-          SwitchExtension->Segments[1].RenderLoft(rpts2,nnumPts,fTexLength,2);
-          SwitchExtension->Segments[1].RenderSwitchRail(rpts2,rpts4,nnumPts,fTexLength,2,-fMaxOffset+SwitchExtension->fOffset1);
-          //WriteLog("Kompilacja prawej"); WriteLog(AnsiString(SwitchExtension->fOffset1).c_str());
-         }
-         else
-         {//lewa dzia³a lepiej ni¿ prawa
-          glBindTexture(GL_TEXTURE_2D, TextureID1);
-          SwitchExtension->Segments[0].RenderLoft(rpts1,nnumPts,fTexLength); //lewa szyna normalna ca³a
-          SwitchExtension->Segments[0].RenderLoft(rpts2,nnumPts,fTexLength,2); //prawa szyna za iglic¹
-          SwitchExtension->Segments[0].RenderSwitchRail(rpts2,rpts4,nnumPts,fTexLength,2,-SwitchExtension->fOffset1); //prawa iglica
-          glBindTexture(GL_TEXTURE_2D, TextureID2);
-          SwitchExtension->Segments[1].RenderLoft(rpts1,nnumPts,fTexLength,2); //lewa szyna za iglic¹
-          SwitchExtension->Segments[1].RenderSwitchRail(rpts1,rpts3,nnumPts,fTexLength,2,fMaxOffset-SwitchExtension->fOffset1); //lewa iglica
-          SwitchExtension->Segments[1].RenderLoft(rpts2,nnumPts,fTexLength); //prawa szyna normalnie ca³a
-          //WriteLog("Kompilacja lewej"); WriteLog(AnsiString(SwitchExtension->fOffset1).c_str());
-         }
-        }
-        break;
-      }
-     } //koniec obs³ugi torów
-     break;
-     case 2:   //McZapkie-260302 - droga - rendering
-//McZapkie:240702-zmieniony zakres widzialnosci
-     {vector3 bpts1[4]; //punkty g³ównej p³aszczyzny przydaj¹ siê do robienia boków
-      if (TextureID1||TextureID2) //punkty siê przydadz¹, nawet jeœli nawierzchni nie ma
-      {//double max=2.0*(fHTW>fHTW2?fHTW:fHTW2); //z szerszej strony jest 100%
-       double max=fTexRatio*fTexLength; //test: szerokoœæ proporcjonalna do d³ugoœci
-       double map1=max>0.0?fHTW/max:0.5; //obciêcie tekstury od strony 1
-       double map2=max>0.0?fHTW2/max:0.5; //obciêcie tekstury od strony 2
-       if (iTrapezoid) //trapez albo przechy³ki
-       {//nawierzchnia trapezowata
-        Segment->GetRolls(roll1,roll2);
-        bpts1[0]=vector3(fHTW*cos(roll1),-fHTW*sin(roll1),0.5-map1); //lewy brzeg pocz¹tku
-        bpts1[1]=vector3(-bpts1[0].x,-bpts1[0].y,0.5+map1); //prawy brzeg pocz¹tku symetrycznie
-        bpts1[2]=vector3(fHTW2*cos(roll2),-fHTW2*sin(roll2),0.5-map2); //lewy brzeg koñca
-        bpts1[3]=vector3(-bpts1[2].x,-bpts1[2].y,0.5+map2); //prawy brzeg pocz¹tku symetrycznie
+      if (InMovement())
+      {//Ra: trochê bez sensu, ¿e tu jest animacja
+       double v=SwitchExtension->fDesiredOffset1-SwitchExtension->fOffset1;
+       SwitchExtension->fOffset1+=sign(v)*Timer::GetDeltaTime()*0.1;
+       //Ra: trzeba daæ to do klasy...
+       if (SwitchExtension->fOffset1<=0.00)
+       {SwitchExtension->fOffset1; //1cm?
+        SwitchExtension->bMovement=false; //koniec animacji
        }
-       else
-       {bpts1[0]=vector3( fHTW,0.0,0.5-map1); //zawsze standardowe mapowanie
-        bpts1[1]=vector3(-fHTW,0.0,0.5+map1);
+       if (SwitchExtension->fOffset1>=fMaxOffset)
+       {SwitchExtension->fOffset1=fMaxOffset; //maksimum-1cm?
+        SwitchExtension->bMovement=false; //koniec animacji
        }
       }
-      if (TextureID1) //jeœli podana by³a tekstura, generujemy trójk¹ty
-      {//tworzenie trójk¹tów nawierzchni szosy
-       glBindTexture(GL_TEXTURE_2D, TextureID1);
-       Segment->RenderLoft(bpts1,iTrapezoid?-2:2,fTexLength);
+      //McZapkie-130302 - poprawione rysowanie szyn
+      if (SwitchExtension->RightSwitch)
+      {//nowa wersja z SPKS, ale odwrotnie lewa/prawa
+       glBindTexture(GL_TEXTURE_2D,TextureID1);
+       SwitchExtension->Segments[0].RenderLoft(rpts1,nnumPts,fTexLength,2);
+       SwitchExtension->Segments[0].RenderSwitchRail(rpts1,rpts3,nnumPts,fTexLength,2,SwitchExtension->fOffset1);
+       SwitchExtension->Segments[0].RenderLoft(rpts2,nnumPts,fTexLength);
+       glBindTexture(GL_TEXTURE_2D,TextureID2);
+       SwitchExtension->Segments[1].RenderLoft(rpts1,nnumPts,fTexLength);
+       SwitchExtension->Segments[1].RenderLoft(rpts2,nnumPts,fTexLength,2);
+       SwitchExtension->Segments[1].RenderSwitchRail(rpts2,rpts4,nnumPts,fTexLength,2,-fMaxOffset+SwitchExtension->fOffset1);
+       //WriteLog("Kompilacja prawej"); WriteLog(AnsiString(SwitchExtension->fOffset1).c_str());
       }
-      if (TextureID2)
-      {//pobocze drogi - poziome przy przechy³ce (a mo¿e krawê¿nik i chodnik zrobiæ jak w Midtown Madness 2?)
-       glBindTexture(GL_TEXTURE_2D, TextureID2);
-       vector3 rpts1[6],rpts2[6]; //wspó³rzêdne przekroju i mapowania dla prawej i lewej strony
-       rpts1[0]=vector3(rozp,-fTexHeight,0.0); //lewy brzeg podstawy
-       rpts1[1]=vector3(bpts1[0].x+side,bpts1[0].y,0.5), //lewa krawêdŸ za³amania
-       rpts1[2]=vector3(bpts1[0].x,bpts1[0].y,1.0); //lewy brzeg pobocza (mapowanie mo¿e byæ inne
-       rpts2[0]=vector3(bpts1[1].x,bpts1[1].y,1.0); //prawy brzeg pobocza
-       rpts2[1]=vector3(bpts1[1].x-side,bpts1[1].y,0.5); //prawa krawêdŸ za³amania
-       rpts2[2]=vector3(-rozp,-fTexHeight,0.0); //prawy brzeg podstawy
-       if (iTrapezoid) //trapez albo przechy³ki
-       {//pobocza do trapezowatej nawierzchni - dodatkowe punkty z drugiej strony odcinka
-        rpts1[3]=vector3(rozp2,-fTexHeight2,0.0); //lewy brzeg lewego pobocza
-        rpts1[4]=vector3(bpts1[2].x+side2,bpts1[2].y,0.5); //krawêdŸ za³amania
-        rpts1[5]=vector3(bpts1[2].x,bpts1[2].y,1.0); //brzeg pobocza
-        rpts2[3]=vector3(bpts1[3].x,bpts1[3].y,1.0);
-        rpts2[4]=vector3(bpts1[3].x-side2,bpts1[3].y,0.5);
-        rpts2[5]=vector3(-rozp2,-fTexHeight2,0.0); //prawy brzeg prawego pobocza
-        Segment->RenderLoft(rpts1,-3,fTexLength);
-        Segment->RenderLoft(rpts2,-3,fTexLength);
-       }
-       else
-       {//pobocza zwyk³e, brak przechy³ki
-        Segment->RenderLoft(rpts1,3,fTexLength);
-        Segment->RenderLoft(rpts2,3,fTexLength);
-       }
+      else
+      {//lewa dzia³a lepiej ni¿ prawa
+       glBindTexture(GL_TEXTURE_2D,TextureID1);
+       SwitchExtension->Segments[0].RenderLoft(rpts1,nnumPts,fTexLength); //lewa szyna normalna ca³a
+       SwitchExtension->Segments[0].RenderLoft(rpts2,nnumPts,fTexLength,2); //prawa szyna za iglic¹
+       SwitchExtension->Segments[0].RenderSwitchRail(rpts2,rpts4,nnumPts,fTexLength,2,-SwitchExtension->fOffset1); //prawa iglica
+       glBindTexture(GL_TEXTURE_2D,TextureID2);
+       SwitchExtension->Segments[1].RenderLoft(rpts1,nnumPts,fTexLength,2); //lewa szyna za iglic¹
+       SwitchExtension->Segments[1].RenderSwitchRail(rpts1,rpts3,nnumPts,fTexLength,2,fMaxOffset-SwitchExtension->fOffset1); //lewa iglica
+       SwitchExtension->Segments[1].RenderLoft(rpts2,nnumPts,fTexLength); //prawa szyna normalnie ca³a
+       //WriteLog("Kompilacja lewej"); WriteLog(AnsiString(SwitchExtension->fOffset1).c_str());
       }
      }
      break;
-     case 4:   //McZapkie-260302 - rzeka- rendering
-      //Ra: rzeki na razie bez zmian, przechy³ki na pewno nie maj¹
-         vector3 bpts1[numPts]= { vector3(fHTW,0.0,0.0),vector3(fHTW,0.2,0.33),
-                                vector3(-fHTW,0.0,0.67),vector3(-fHTW,0.0,1.0) };
-         //Ra: dziwnie ten kszta³t wygl¹da
-         if(TextureID1)
-         {
-             glBindTexture(GL_TEXTURE_2D, TextureID1);
-             Segment->RenderLoft(bpts1,numPts,fTexLength);
-             if(TextureID2)
-             {//brzegi rzeki prawie jak pobocze derogi, tylko inny znak ma wysokoœæ
-              //znak jest zmieniany przy wczytywaniu, wiêc tu musi byc minus fTexHeight
-                 vector3 rpts1[3]= { vector3(rozp,-fTexHeight,0.0),
-                                     vector3(fHTW+side,0.0,0.5),
-                                     vector3(fHTW,0.0,1.0) };
-                 vector3 rpts2[3]= { vector3(-fHTW,0.0,1.0),
-                                     vector3(-fHTW-side,0.0,0.5),
-                                     vector3(-rozp,-fTexHeight,0.1) }; //Ra: po kiego 0.1?
-                 glBindTexture(GL_TEXTURE_2D, TextureID2);      //brzeg rzeki
-                 Segment->RenderLoft(rpts1,3,fTexLength);
-                 Segment->RenderLoft(rpts2,3,fTexLength);
-             }
-         }
-         break;
+   }
+  } //koniec obs³ugi torów
+  break;
+  case 2:   //McZapkie-260302 - droga - rendering
+  //McZapkie:240702-zmieniony zakres widzialnosci
+  {vector6 bpts1[4]; //punkty g³ównej p³aszczyzny przydaj¹ siê do robienia boków
+   if (TextureID1||TextureID2) //punkty siê przydadz¹, nawet jeœli nawierzchni nie ma
+   {//double max=2.0*(fHTW>fHTW2?fHTW:fHTW2); //z szerszej strony jest 100%
+    double max=fTexRatio*fTexLength; //test: szerokoœæ proporcjonalna do d³ugoœci
+    double map1=max>0.0?fHTW/max:0.5; //obciêcie tekstury od strony 1
+    double map2=max>0.0?fHTW2/max:0.5; //obciêcie tekstury od strony 2
+    if (iTrapezoid) //trapez albo przechy³ki
+    {//nawierzchnia trapezowata
+     Segment->GetRolls(roll1,roll2);
+     bpts1[0]=vector6(fHTW*cos(roll1),-fHTW*sin(roll1),0.5-map1,sin(roll1),cos(roll1),0.0); //lewy brzeg pocz¹tku
+     bpts1[1]=vector6(-bpts1[0].x,-bpts1[0].y,0.5+map1,-sin(roll1),cos(roll1),0.0); //prawy brzeg pocz¹tku symetrycznie
+     bpts1[2]=vector6(fHTW2*cos(roll2),-fHTW2*sin(roll2),0.5-map2,sin(roll2),cos(roll2),0.0); //lewy brzeg koñca
+     bpts1[3]=vector6(-bpts1[2].x,-bpts1[2].y,0.5+map2,-sin(roll2),cos(roll2),0.0); //prawy brzeg pocz¹tku symetrycznie
     }
-
-    if(Global::bManageNodes)
-        glEndList();
+    else
+    {bpts1[0]=vector6( fHTW,0.0,0.5-map1,0.0,1.0,0.0);
+     bpts1[1]=vector6(-fHTW,0.0,0.5+map1,0.0,1.0,0.0);
+    }
+   }
+   if (TextureID1) //jeœli podana by³a tekstura, generujemy trójk¹ty
+   {//tworzenie trójk¹tów nawierzchni szosy
+    glBindTexture(GL_TEXTURE_2D,TextureID1);
+    Segment->RenderLoft(bpts1,iTrapezoid?-2:2,fTexLength);
+   }
+   if (TextureID2)
+   {//pobocze drogi - poziome przy przechy³ce (a mo¿e krawê¿nik i chodnik zrobiæ jak w Midtown Madness 2?)
+    glBindTexture(GL_TEXTURE_2D,TextureID2);
+    vector6 rpts1[6],rpts2[6]; //wspó³rzêdne przekroju i mapowania dla prawej i lewej strony
+    rpts1[0]=vector6(rozp,-fTexHeight,0.0); //lewy brzeg podstawy
+    rpts1[1]=vector6(bpts1[0].x+side,bpts1[0].y,0.5), //lewa krawêdŸ za³amania
+    rpts1[2]=vector6(bpts1[0].x,bpts1[0].y,1.0); //lewy brzeg pobocza (mapowanie mo¿e byæ inne
+    rpts2[0]=vector6(bpts1[1].x,bpts1[1].y,1.0); //prawy brzeg pobocza
+    rpts2[1]=vector6(bpts1[1].x-side,bpts1[1].y,0.5); //prawa krawêdŸ za³amania
+    rpts2[2]=vector6(-rozp,-fTexHeight,0.0); //prawy brzeg podstawy
+    if (iTrapezoid) //trapez albo przechy³ki
+    {//pobocza do trapezowatej nawierzchni - dodatkowe punkty z drugiej strony odcinka
+     rpts1[3]=vector6(rozp2,-fTexHeight2,0.0); //lewy brzeg lewego pobocza
+     rpts1[4]=vector6(bpts1[2].x+side2,bpts1[2].y,0.5); //krawêdŸ za³amania
+     rpts1[5]=vector6(bpts1[2].x,bpts1[2].y,1.0); //brzeg pobocza
+     rpts2[3]=vector6(bpts1[3].x,bpts1[3].y,1.0);
+     rpts2[4]=vector6(bpts1[3].x-side2,bpts1[3].y,0.5);
+     rpts2[5]=vector6(-rozp2,-fTexHeight2,0.0); //prawy brzeg prawego pobocza
+     Segment->RenderLoft(rpts1,-3,fTexLength);
+     Segment->RenderLoft(rpts2,-3,fTexLength);
+    }
+    else
+    {//pobocza zwyk³e, brak przechy³ki
+     Segment->RenderLoft(rpts1,3,fTexLength);
+     Segment->RenderLoft(rpts2,3,fTexLength);
+    }
+   }
+  }
+  break;
+  case 4:   //McZapkie-260302 - rzeka- rendering
+   //Ra: rzeki na razie bez zmian, przechy³ki na pewno nie maj¹
+   vector6 bpts1[numPts]={vector6( fHTW,0.0,0.0), vector6( fHTW,0.2,0.33),
+                          vector6(-fHTW,0.0,0.67),vector6(-fHTW,0.0,1.0 ) };
+   //Ra: dziwnie ten kszta³t wygl¹da
+   if(TextureID1)
+   {
+    glBindTexture(GL_TEXTURE_2D,TextureID1);
+    Segment->RenderLoft(bpts1,numPts,fTexLength);
+    if(TextureID2)
+    {//brzegi rzeki prawie jak pobocze derogi, tylko inny znak ma wysokoœæ
+     //znak jest zmieniany przy wczytywaniu, wiêc tu musi byc minus fTexHeight
+     vector6 rpts1[3]={ vector6(rozp,-fTexHeight,0.0),
+                        vector6(fHTW+side,0.0,0.5),
+                        vector6(fHTW,0.0,1.0) };
+     vector6 rpts2[3]={ vector6(-fHTW,0.0,1.0),
+                        vector6(-fHTW-side,0.0,0.5),
+                        vector6(-rozp,-fTexHeight,0.1) }; //Ra: po kiego 0.1?
+     glBindTexture(GL_TEXTURE_2D,TextureID2);      //brzeg rzeki
+     Segment->RenderLoft(rpts1,3,fTexLength);
+     Segment->RenderLoft(rpts2,3,fTexLength);
+    }
+   }
+   break;
+ }
+ if(Global::bManageNodes)
+  glEndList();
 };
 
 void TTrack::Release()
@@ -973,11 +977,11 @@ void __fastcall TTrack::Render()
               glDisable(GL_DEPTH_TEST);
                   glDisable(GL_LIGHTING);
               glColor3ub(255,0,0);
-              glBindTexture(GL_TEXTURE_2D, 0);
+              glBindTexture(GL_TEXTURE_2D,0);
               glBegin(GL_LINE_STRIP);
-                  pos1= Segment->FastGetPoint_0();
-                  pos2= Segment->FastGetPoint(0.5);
-                  pos3= Segment->FastGetPoint_1();
+                  pos1=Segment->FastGetPoint_0();
+                  pos2=Segment->FastGetPoint(0.5);
+                  pos3=Segment->FastGetPoint_1();
                   glVertex3f(pos1.x,pos1.y,pos1.z);
                   glVertex3f(pos2.x,pos2.y+10,pos2.z);
                   glVertex3f(pos3.x,pos3.y,pos3.z);
@@ -1007,7 +1011,7 @@ void __fastcall TTrack::RenderAlpha()
          {
            ambientLight[li]= Global::ambientDayLight[li]*0.8;
            diffuseLight[li]= Global::diffuseDayLight[li]*0.4;
-           specularLight[li]= Global::specularDayLight[li]*0.5;
+           specularLight[li]=Global::specularDayLight[li]*0.5;
          }
 	    glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
         glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
@@ -1020,7 +1024,7 @@ void __fastcall TTrack::RenderAlpha()
          {
            ambientLight[li]= Global::ambientDayLight[li]*0.2;
            diffuseLight[li]= Global::diffuseDayLight[li]*0.1;
-           specularLight[li]= Global::specularDayLight[li]*0.2;
+           specularLight[li]=Global::specularDayLight[li]*0.2;
          }
 	glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
 	glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
@@ -1055,7 +1059,7 @@ bool __fastcall TTrack::RemoveDynamicObject(TDynamicObject *Dynamic)
         {
             iNumDynamics--;
             for (i; i<iNumDynamics; i++)
-                Dynamics[i]= Dynamics[i+1];
+                Dynamics[i]=Dynamics[i+1];
             return true;
 
         }
@@ -1142,44 +1146,43 @@ void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Star
     roll1=roll2=0.0; //dla zwrotnic
    double sin1=sin(roll1),cos1=cos(roll1),sin2=sin(roll2),cos2=cos(roll2);
    // zwykla szyna: //Ra: czemu g³ówki s¹ asymetryczne na wysokoœci 0.140?
-   vector3 rpts1[24],rpts2[24],rpts3[24],rpts4[24];
+   vector6 rpts1[24],rpts2[24],rpts3[24],rpts4[24];
    int i;
    for (i=0;i<12;++i)
-   {rpts1[i]=vector3((fHTW+szyna[i].x)*cos1+szyna[i].y*sin1,-(fHTW+szyna[i].x)*sin1+szyna[i].y*cos1,szyna[i].z);
-    rpts2[11-i]=vector3((-fHTW-szyna[i].x)*cos1+szyna[i].y*sin1,-(-fHTW-szyna[i].x)*sin1+szyna[i].y*cos1,szyna[i].z);
+   {rpts1[i]   =vector6(( fHTW+szyna[i].x)*cos1+szyna[i].y*sin1,-( fHTW+szyna[i].x)*sin1+szyna[i].y*cos1,szyna[i].z ,+szyna[i].n.x*cos1+szyna[i].n.y*sin1,-szyna[i].n.x*sin1+szyna[i].n.y*cos1,0.0);
+    rpts2[11-i]=vector6((-fHTW-szyna[i].x)*cos1+szyna[i].y*sin1,-(-fHTW-szyna[i].x)*sin1+szyna[i].y*cos1,szyna[i].z ,-szyna[i].n.x*cos1+szyna[i].n.y*sin1,+szyna[i].n.x*sin1+szyna[i].n.y*cos1,0.0);
    }
    if (iTrapezoid) //trapez albo przechy³ki, to oddzielne punkty na koñcu
     for (i=0;i<12;++i)
-    {rpts1[12+i]=vector3((fHTW2+szyna[i].x)*cos2+szyna[i].y*sin2,-(fHTW2+szyna[i].x)*sin2+szyna[i].y*cos2,szyna[i].z);
-     rpts2[23-i]=vector3((-fHTW2-szyna[i].x)*cos2+szyna[i].y*sin2,-(-fHTW2-szyna[i].x)*sin2+szyna[i].y*cos2,szyna[i].z);
+    {rpts1[12+i]=vector6(( fHTW2+szyna[i].x)*cos2+szyna[i].y*sin2,-( fHTW2+szyna[i].x)*sin2+szyna[i].y*cos2,szyna[i].z ,+szyna[i].n.x*cos2+szyna[i].n.y*sin2,-szyna[i].n.x*sin2+szyna[i].n.y*cos2,0.0);
+     rpts2[23-i]=vector6((-fHTW2-szyna[i].x)*cos2+szyna[i].y*sin2,-(-fHTW2-szyna[i].x)*sin2+szyna[i].y*cos2,szyna[i].z ,-szyna[i].n.x*cos2+szyna[i].n.y*sin2,+szyna[i].n.x*sin2+szyna[i].n.y*cos2,0.0);
     }
    switch (eType) //dalej zale¿nie od typu
    {
     case tt_Turn: //obrotnica jak zwyk³y tor, tylko animacja dochodzi
      SwitchExtension->iLeftVBO=Vert-Start; //indeks toru obrotnicy
-     //RaAnimate(); //hm, nie powinno byæ rekurencji tutaj
     case tt_Normal:
      if (TextureID2)
      {//podsypka z podk³adami jest tylko dla zwyk³ego toru
-      vector3 bpts1[8]; //punkty g³ównej p³aszczyzny nie przydaj¹ siê do robienia boków
+      vector6 bpts1[8]; //punkty g³ównej p³aszczyzny nie przydaj¹ siê do robienia boków
       if (iTrapezoid) //trapez albo przechy³ki
       {//podsypka z podkladami trapezowata
        //ewentualnie poprawiæ mapowanie, ¿eby œrodek mapowa³ siê na 1.435/4.671 ((0.3464,0.6536)
        //bo siê tekstury podsypki rozje¿d¿aj¹ po zmianie proporcji profilu
-       bpts1[0]=vector3(rozp,-fTexHeight,0.0); //lewy brzeg
-       bpts1[1]=vector3((fHTW+side)*cos1,-(fHTW+side)*sin1,0.33); //krawêdŸ za³amania
-       bpts1[2]=vector3(-bpts1[1].x,-bpts1[1].y,0.67); //prawy brzeg pocz¹tku symetrycznie
-       bpts1[3]=vector3(-rozp,-fTexHeight,1.0); //prawy skos
-       bpts1[4]=vector3(rozp2,-fTexHeight2,0.0); //lewy brzeg
-       bpts1[5]=vector3((fHTW2+side2)*cos2,-(fHTW2+side2)*sin2,0.33); //krawêdŸ za³amania
-       bpts1[6]=vector3(-bpts1[5].x,-bpts1[5].y,0.67); //prawy brzeg pocz¹tku symetrycznie
-       bpts1[7]=vector3(-rozp2,-fTexHeight2,1.0); //prawy skos
+       bpts1[0]=vector6(rozp,-fTexHeight,0.0,-0.707,0.707,0.0); //lewy brzeg
+       bpts1[1]=vector6((fHTW+side)*cos1,-(fHTW+side)*sin1,0.33,-0.707,0.707,0.0); //krawêdŸ za³amania
+       bpts1[2]=vector6(-bpts1[1].x,-bpts1[1].y,0.67,0.707,0.707,0.0); //prawy brzeg pocz¹tku symetrycznie
+       bpts1[3]=vector6(-rozp,-fTexHeight,1.0,0.707,0.707,0.0); //prawy skos
+       bpts1[4]=vector6(rozp2,-fTexHeight2,0.0,-0.707,0.707,0.0); //lewy brzeg
+       bpts1[5]=vector6((fHTW2+side2)*cos2,-(fHTW2+side2)*sin2,0.33,-0.707,0.707,0.0); //krawêdŸ za³amania
+       bpts1[6]=vector6(-bpts1[5].x,-bpts1[5].y,0.67,0.707,0.707,0.0); //prawy brzeg pocz¹tku symetrycznie
+       bpts1[7]=vector6(-rozp2,-fTexHeight2,1.0,0.707,0.707,0.0); //prawy skos
       }
       else
-      {bpts1[0]=vector3(rozp,-fTexHeight,0.0); //lewy brzeg
-       bpts1[1]=vector3(fHTW+side,0.0,0.33); //krawêdŸ za³amania
-       bpts1[2]=vector3(-fHTW-side,0.0,0.67); //druga
-       bpts1[3]=vector3(-rozp,-fTexHeight,1.0); //prawy skos
+      {bpts1[0]=vector6(rozp,-fTexHeight,0.0,-0.707,0.707,0.0); //lewy brzeg
+       bpts1[1]=vector6(fHTW+side,0.0,0.33,-0.707,0.707,0.0); //krawêdŸ za³amania
+       bpts1[2]=vector6(-fHTW-side,0.0,0.67,0.707,0.707,0.0); //druga
+       bpts1[3]=vector6(-rozp,-fTexHeight,1.0,0.707,0.707,0.0); //prawy skos
       }
       Segment->RaRenderLoft(Vert,bpts1,iTrapezoid?-4:4,fTexLength);
      }
@@ -1192,12 +1195,12 @@ void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Star
     case tt_Switch: //dla zwrotnicy dwa razy szyny
      if (TextureID1) //Ra: !!!! tu jest do poprawienia
      {//iglice liczone tylko dla zwrotnic
-      vector3 rpts3[24],rpts4[24];
+      vector6 rpts3[24],rpts4[24];
       for (i=0;i<12;++i)
-      {rpts3[i]   =vector3((fHTW+iglica[i].x)*cos1+iglica[i].y*sin1,-(fHTW+iglica[i].x)*sin1+iglica[i].y*cos1,iglica[i].z);
-       rpts3[i+12]=vector3((fHTW2+szyna[i].x)*cos2+szyna[i].y*sin2,-(fHTW2+szyna[i].x)*sin2+iglica[i].y*cos2,szyna[i].z);
-       rpts4[11-i]=vector3((-fHTW-iglica[i].x)*cos1+iglica[i].y*sin1,-(-fHTW-iglica[i].x)*sin1+iglica[i].y*cos1,iglica[i].z);
-       rpts4[23-i]=vector3((-fHTW2-szyna[i].x)*cos2+szyna[i].y*sin2,-(-fHTW2-szyna[i].x)*sin2+iglica[i].y*cos2,szyna[i].z);
+      {rpts3[i]   =vector6((fHTW+iglica[i].x)*cos1+iglica[i].y*sin1,-(fHTW+iglica[i].x)*sin1+iglica[i].y*cos1,iglica[i].z);
+       rpts3[i+12]=vector6((fHTW2+szyna[i].x)*cos2+szyna[i].y*sin2,-(fHTW2+szyna[i].x)*sin2+iglica[i].y*cos2,szyna[i].z);
+       rpts4[11-i]=vector6((-fHTW-iglica[i].x)*cos1+iglica[i].y*sin1,-(-fHTW-iglica[i].x)*sin1+iglica[i].y*cos1,iglica[i].z);
+       rpts4[23-i]=vector6((-fHTW2-szyna[i].x)*cos2+szyna[i].y*sin2,-(-fHTW2-szyna[i].x)*sin2+iglica[i].y*cos2,szyna[i].z);
       }
       if (SwitchExtension->RightSwitch)
       {//nowa wersja z SPKS, ale odwrotnie lewa/prawa
@@ -1222,13 +1225,13 @@ void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Star
        SwitchExtension->Segments[1].RaRenderLoft(Vert,rpts2,nnumPts,fTexLength); //prawa szyna normalnie ca³a
       }
      }
-     break;                                            
+     break;
    }
   } //koniec obs³ugi torów
   break;
   case 2: //McZapkie-260302 - droga - rendering
   case 4: //Ra: rzeki na razie jak drogi, przechy³ki na pewno nie maj¹
-  {vector3 bpts1[4]; //punkty g³ównej p³aszczyzny przydaj¹ siê do robienia boków
+  {vector6 bpts1[4]; //punkty g³ównej p³aszczyzny przydaj¹ siê do robienia boków
    if (TextureID1||TextureID2) //punkty siê przydadz¹, nawet jeœli nawierzchni nie ma
    {//double max=2.0*(fHTW>fHTW2?fHTW:fHTW2); //z szerszej strony jest 100%
     double max=(iCategoryFlag==4)?0.0:fTexLength; //test: szerokoœæ dróg proporcjonalna do d³ugoœci
@@ -1237,14 +1240,14 @@ void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Star
     if (iTrapezoid) //trapez albo przechy³ki
     {//nawierzchnia trapezowata
      Segment->GetRolls(roll1,roll2);
-     bpts1[0]=vector3(fHTW*cos(roll1),-fHTW*sin(roll1),0.5-map1); //lewy brzeg pocz¹tku
-     bpts1[1]=vector3(-bpts1[0].x,-bpts1[0].y,0.5+map1); //prawy brzeg pocz¹tku symetrycznie
-     bpts1[2]=vector3(fHTW2*cos(roll2),-fHTW2*sin(roll2),0.5-map2); //lewy brzeg koñca
-     bpts1[3]=vector3(-bpts1[2].x,-bpts1[2].y,0.5+map2); //prawy brzeg pocz¹tku symetrycznie
+     bpts1[0]=vector6(fHTW*cos(roll1),-fHTW*sin(roll1),0.5-map1); //lewy brzeg pocz¹tku
+     bpts1[1]=vector6(-bpts1[0].x,-bpts1[0].y,0.5+map1); //prawy brzeg pocz¹tku symetrycznie
+     bpts1[2]=vector6(fHTW2*cos(roll2),-fHTW2*sin(roll2),0.5-map2); //lewy brzeg koñca
+     bpts1[3]=vector6(-bpts1[2].x,-bpts1[2].y,0.5+map2); //prawy brzeg pocz¹tku symetrycznie
     }
     else
-    {bpts1[0]=vector3( fHTW,0.0,0.5-map1); //zawsze standardowe mapowanie
-     bpts1[1]=vector3(-fHTW,0.0,0.5+map1);
+    {bpts1[0]=vector6( fHTW,0.0,0.5-map1); //zawsze standardowe mapowanie
+     bpts1[1]=vector6(-fHTW,0.0,0.5+map1);
     }
    }
    if (TextureID1) //jeœli podana by³a tekstura, generujemy trójk¹ty
@@ -1253,21 +1256,21 @@ void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Star
    }
    if (TextureID2)
    {//pobocze drogi - poziome przy przechy³ce (a mo¿e krawê¿nik i chodnik zrobiæ jak w Midtown Madness 2?)
-    vector3 rpts1[6],rpts2[6]; //wspó³rzêdne przekroju i mapowania dla prawej i lewej strony
-    rpts1[0]=vector3(rozp,-fTexHeight,0.0); //lewy brzeg podstawy
-    rpts1[1]=vector3(bpts1[0].x+side,bpts1[0].y,0.5), //lewa krawêdŸ za³amania
-    rpts1[2]=vector3(bpts1[0].x,bpts1[0].y,1.0); //lewy brzeg pobocza (mapowanie mo¿e byæ inne
-    rpts2[0]=vector3(bpts1[1].x,bpts1[1].y,1.0); //prawy brzeg pobocza
-    rpts2[1]=vector3(bpts1[1].x-side,bpts1[1].y,0.5); //prawa krawêdŸ za³amania
-    rpts2[2]=vector3(-rozp,-fTexHeight,0.0); //prawy brzeg podstawy
+    vector6 rpts1[6],rpts2[6]; //wspó³rzêdne przekroju i mapowania dla prawej i lewej strony
+    rpts1[0]=vector6(rozp,-fTexHeight,0.0); //lewy brzeg podstawy
+    rpts1[1]=vector6(bpts1[0].x+side,bpts1[0].y,0.5), //lewa krawêdŸ za³amania
+    rpts1[2]=vector6(bpts1[0].x,bpts1[0].y,1.0); //lewy brzeg pobocza (mapowanie mo¿e byæ inne
+    rpts2[0]=vector6(bpts1[1].x,bpts1[1].y,1.0); //prawy brzeg pobocza
+    rpts2[1]=vector6(bpts1[1].x-side,bpts1[1].y,0.5); //prawa krawêdŸ za³amania
+    rpts2[2]=vector6(-rozp,-fTexHeight,0.0); //prawy brzeg podstawy
     if (iTrapezoid) //trapez albo przechy³ki
     {//pobocza do trapezowatej nawierzchni - dodatkowe punkty z drugiej strony odcinka
-     rpts1[3]=vector3(rozp2,-fTexHeight2,0.0); //lewy brzeg lewego pobocza
-     rpts1[4]=vector3(bpts1[2].x+side2,bpts1[2].y,0.5); //krawêdŸ za³amania
-     rpts1[5]=vector3(bpts1[2].x,bpts1[2].y,1.0); //brzeg pobocza
-     rpts2[3]=vector3(bpts1[3].x,bpts1[3].y,1.0);
-     rpts2[4]=vector3(bpts1[3].x-side2,bpts1[3].y,0.5);
-     rpts2[5]=vector3(-rozp2,-fTexHeight2,0.0); //prawy brzeg prawego pobocza
+     rpts1[3]=vector6(rozp2,-fTexHeight2,0.0); //lewy brzeg lewego pobocza
+     rpts1[4]=vector6(bpts1[2].x+side2,bpts1[2].y,0.5); //krawêdŸ za³amania
+     rpts1[5]=vector6(bpts1[2].x,bpts1[2].y,1.0); //brzeg pobocza
+     rpts2[3]=vector6(bpts1[3].x,bpts1[3].y,1.0);
+     rpts2[4]=vector6(bpts1[3].x-side2,bpts1[3].y,0.5);
+     rpts2[5]=vector6(-rozp2,-fTexHeight2,0.0); //prawy brzeg prawego pobocza
      Segment->RaRenderLoft(Vert,rpts1,-3,fTexLength);
      Segment->RaRenderLoft(Vert,rpts2,-3,fTexLength);
     }
@@ -1531,15 +1534,15 @@ TTrack* __fastcall TTrack::RaAnimate()
    if (Global::bOpenGL_1_5) //dla OpenGL 1.4 to siê nie wykona poprawnie
     if (TextureID1) //Ra: !!!! tu jest do poprawienia
     {//iglice liczone tylko dla zwrotnic
-     vector3 rpts3[24],rpts4[24];
+     vector6 rpts3[24],rpts4[24];
      double fHTW=0.5*fabs(fTrackWidth);
      double fHTW2=fHTW; //Ra: na razie niech tak bêdzie
      double cos1=1.0,sin1=0.0,cos2=1.0,sin2=0.0; //Ra: ...
      for (int i=0;i<12;++i)
-     {rpts3[i]   =vector3((fHTW+iglica[i].x)*cos1+iglica[i].y*sin1,-(fHTW+iglica[i].x)*sin1+iglica[i].y*cos1,iglica[i].z);
-      rpts3[i+12]=vector3((fHTW2+szyna[i].x)*cos2+szyna[i].y*sin2,-(fHTW2+szyna[i].x)*sin2+iglica[i].y*cos2,szyna[i].z);
-      rpts4[11-i]=vector3((-fHTW-iglica[i].x)*cos1+iglica[i].y*sin1,-(-fHTW-iglica[i].x)*sin1+iglica[i].y*cos1,iglica[i].z);
-      rpts4[23-i]=vector3((-fHTW2-szyna[i].x)*cos2+szyna[i].y*sin2,-(-fHTW2-szyna[i].x)*sin2+iglica[i].y*cos2,szyna[i].z);
+     {rpts3[i]   =vector6((fHTW+iglica[i].x)*cos1+iglica[i].y*sin1,-(fHTW+iglica[i].x)*sin1+iglica[i].y*cos1,iglica[i].z);
+      rpts3[i+12]=vector6((fHTW2+szyna[i].x)*cos2+szyna[i].y*sin2,-(fHTW2+szyna[i].x)*sin2+iglica[i].y*cos2,szyna[i].z);
+      rpts4[11-i]=vector6((-fHTW-iglica[i].x)*cos1+iglica[i].y*sin1,-(-fHTW-iglica[i].x)*sin1+iglica[i].y*cos1,iglica[i].z);
+      rpts4[23-i]=vector6((-fHTW2-szyna[i].x)*cos2+szyna[i].y*sin2,-(-fHTW2-szyna[i].x)*sin2+iglica[i].y*cos2,szyna[i].z);
      }
      CVertNormTex Vert[2*2*12]; //na razie 2 segmenty
      CVertNormTex *v=Vert; //bo RaAnimate() modyfikuje wskaŸnik
