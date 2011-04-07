@@ -161,46 +161,35 @@ void __fastcall TTraction::Render(float mgn)   //McZapkie: mgn to odleglosc od o
   float linealpha=5000*WireThickness/(mgn+1.0); //*WireThickness
   if (linealpha>1.2) linealpha=1.2; //zbyt grube nie s¹ dobre
   glLineWidth(linealpha);
-
-      if (linealpha > 1.0)
-          linealpha = 1.0;
-
-      //McZapkie-261102: kolor zalezy od materialu i zasniedzenia
-      float r,g,b;
-      switch (Material)
-      {
-          case 1:
-              if (TestFlag(DamageFlag,1))
-               {
-                 r=0.2;
-                 g=0.6;
-                 b=0.3;  //zielona miedz
-               }
-              else
-               {
-                 r=0.6;
-                 g=0.2;
-                 b=0.1;  //czerwona miedz
-               }
-          break;
-          case 2:
-              if (TestFlag(DamageFlag,1))
-               {
-                 r=0.2;
-                 g=0.2;
-                 b=0.2;  //czarne Al
-               }
-              else
-               {
-                 r=0.5;
-                 g=0.5;
-                 b=0.5;  //srebrne Al
-               }
-          break;
-      }
-      r=r*Global::ambientDayLight[0];  //w zaleznosci od koloru swiatla
-      g=g*Global::ambientDayLight[1];
-      b=b*Global::ambientDayLight[2];
+  if (linealpha>1.0) linealpha = 1.0;
+  //McZapkie-261102: kolor zalezy od materialu i zasniedzenia
+  float r,g,b;
+  switch (Material)
+  {//Ra: kolory podzieli³em przez 2, bo po zmianie ambient za jasne by³y
+   case 1:
+    if (TestFlag(DamageFlag,1))
+    {
+     r=0.00000; g=0.32549; b=0.2882353;  //zielona miedz
+    }
+    else
+    {
+     r=0.35098; g=0.22549; b=0.1;  //czerwona miedz
+    }
+   break;
+   case 2:
+    if (TestFlag(DamageFlag,1))
+    {
+     r=0.10; g=0.10; b=0.10;  //czarne Al
+    }
+    else
+    {
+     r=0.25; g=0.25; b=0.25;  //srebrne Al
+    }
+   break;
+  }
+  r=r*Global::ambientDayLight[0];  //w zaleznosci od koloru swiatla
+  g=g*Global::ambientDayLight[1];
+  b=b*Global::ambientDayLight[2];
   if (linealpha>1.0) linealpha=1.0; //trzeba ograniczyæ do <=1
   glColor4f(r,g,b,linealpha);
   glCallList(uiDisplayList);
@@ -333,25 +322,25 @@ void  __fastcall TTraction::RaRenderVBO(float mgn,int iPtr)
   //McZapkie-261102: kolor zalezy od materialu i zasniedzenia
   float r,g,b;
   switch (Material)
-  {
+  {//Ra: kolory podzieli³em przez 2, bo po zmianie ambient za jasne by³y
    case 1:
     if (TestFlag(DamageFlag,1))
     {
-     r=0.2; g=0.6; b=0.3;  //zielona miedz
+     r=0.00000; g=0.32549; b=0.2882353;  //zielona miedz
     }
     else
     {
-     r=0.6; g=0.2; b=0.1;  //czerwona miedz
+     r=0.35098; g=0.22549; b=0.1;  //czerwona miedz
     }
    break;
    case 2:
     if (TestFlag(DamageFlag,1))
     {
-     r=0.2; g=0.2; b=0.2;  //czarne Al
+     r=0.10; g=0.10; b=0.10;  //czarne Al
     }
     else
     {
-     r=0.5; g=0.5; b=0.5;  //srebrne Al
+     r=0.25; g=0.25; b=0.25;  //srebrne Al
     }
    break;
   }

@@ -1834,15 +1834,14 @@ bool __fastcall TGround::Init(AnsiString asFile)
          WriteLog("Scenery light definition");
          glDisable(GL_LIGHTING);
          vector3 lp;
-         parser.getTokens(3);
-         parser >> lp.x >> lp.y >> lp.z;
+         parser.getTokens(); parser >> lp.x;
+         parser.getTokens(); parser >> lp.y;
+         parser.getTokens(); parser >> lp.z;
          lp=Normalize(lp);
          Global::lightPos[0]=lp.x;
          Global::lightPos[1]=lp.y;
          Global::lightPos[2]=lp.z;
-         Global::lightPos[3]=0.0f;
-         //Global::lightPos[3]=0.0f;
-         glLightfv(GL_LIGHT0,GL_POSITION,Global::lightPos);                  //daylight position
+         glLightfv(GL_LIGHT0,GL_POSITION,Global::lightPos);        //daylight position
          parser.getTokens(); parser >> Global::ambientDayLight[0];
          parser.getTokens(); parser >> Global::ambientDayLight[1];
          parser.getTokens(); parser >> Global::ambientDayLight[2];

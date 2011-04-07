@@ -1,7 +1,6 @@
 //---------------------------------------------------------------------------
 
-#include    "system.hpp"
-#include    "classes.hpp"
+#include "system.hpp"
 #pragma hdrstop
 
 #include "Segment.h"
@@ -246,139 +245,143 @@ vector3 __fastcall TSegment::FastGetPoint(double t)
  return (bCurve?Interpolate(t,Point1,CPointOut,CPointIn,Point2):((1.0-t)*Point1+(t)*Point2));
 }
 
-void __fastcall TSegment::RenderLoft(const vector3 *ShapePoints, int iNumShapePoints,
+void __fastcall TSegment::RenderLoft(const vector6 *ShapePoints, int iNumShapePoints,
         double fTextureLength, int iSkip, int iQualityFactor)
 {//generowanie trójk¹tów dla odcinka trajektorii ruchu
  //standardowo tworzy triangle_strip dla prostego albo ich zestaw dla ³uku
  //po modyfikacji - dla ujemnego (iNumShapePoints) w dodatkowych polach tabeli
  // podany jest przekrój koñcowy
  //podsypka toru jest robiona za pomoc¹ 6 punktów, szyna 12, drogi i rzeki na 3+2+3
-    if (iQualityFactor<1) iQualityFactor= 1; //co który segment ma byæ uwzglêdniony
-    vector3 pos1,pos2,dir,parallel1,parallel2,pt;
-    double s,step,fOffset,tv1,tv2,t;
-    int i,j ;
-    bool trapez=iNumShapePoints<0; //sygnalizacja trapezowatoœci
-    iNumShapePoints=abs(iNumShapePoints);
-    if (bCurve)
+ if (iQualityFactor<1) iQualityFactor= 1; //co który segment ma byæ uwzglêdniony
+ vector3 pos1,pos2,dir,parallel1,parallel2,pt,norm;
+ double s,step,fOffset,tv1,tv2,t;
+ int i,j ;
+ bool trapez=iNumShapePoints<0; //sygnalizacja trapezowatoœci
+ iNumShapePoints=abs(iNumShapePoints);
+ if (bCurve)
+ {
+  double m1,jmm1,m2,jmm2; //pozycje wzglêdne na odcinku 0...1 (ale nie parametr Beziera)
+  tv1=0; //Ra: to by mo¿na by³o wyliczaæ dla odcinka, wygl¹da³o by lepiej
+  step=fStep*iQualityFactor;
+  s=fStep*iSkip; //iSkip - ile odcinków z pocz¹tku pomin¹æ
+  i=iSkip; //domyœlnie 0
+  t=fTsBuffer[i]; //tabela watoœci t dla segmentów
+  fOffset=0.1/fLength; //pierwsze 10cm
+  pos1=FastGetPoint(t); //wektor pocz¹tku segmentu
+  dir=FastGetDirection(t,fOffset); //wektor kierunku
+  parallel1=Normalize(CrossProduct(dir,vector3(0,1,0))); //wektor poprzeczny
+  m2=s/fLength; jmm2=1.0-m2;
+  while (s<fLength)
+  {
+   //step=SquareMagnitude(Global::GetCameraPosition()+pos);
+   i+=iQualityFactor; //kolejny punkt ³amanej
+   s+=step; //koñcowa pozycja segmentu [m]
+   m1=m2; jmm1=jmm2; //stara pozycja
+   m2=s/fLength; jmm2=1.0-m2; //nowa pozycja
+   if (s>fLength-0.5) //Ra: -0.5 ¿eby nie robi³o cieniasa na koñcu
+   {//gdy przekroczyliœmy koniec - st¹d dziury w torach...
+    step-=(s-fLength); //jeszcze do wyliczenia mapowania potrzebny
+    s=fLength;
+    i=iSegCount; //20/5 ma dawaæ 4
+    m2=1.0; jmm2=0.0;
+   }
+   while (tv1>1) tv1-= 1.0f;
+   tv2=tv1+step/fTextureLength; //mapowanie na koñcu segmentu
+   t=fTsBuffer[i]; //szybsze od GetTFromS(s);
+   pos2=FastGetPoint(t);
+   dir=Normalize(FastGetDirection(t,fOffset)); //nowy wektor kierunku
+   parallel2=CrossProduct(dir,vector3(0,1,0)); //wektor poprzeczny
+   glBegin(GL_TRIANGLE_STRIP);
+   if (trapez)
+    for (j=0;j<iNumShapePoints;j++)
     {
-       double m1,jmm1,m2,jmm2; //pozycje wzglêdne na odcinku 0...1 (ale nie parametr Beziera)
-       tv1=0; //Ra: to by mo¿na by³o wyliczaæ dla odcinka, wygl¹da³o by lepiej
-       step= fStep*iQualityFactor;
-       s= fStep*iSkip; //iSkip - ile odcinków z pocz¹tku pomin¹æ
-       i= iSkip; //domyœlnie 0
-       t= fTsBuffer[i]; //tabela wattoœci t dla segmentów
-       fOffset= 0.1/fLength; //pierwsze 10cm
-       pos1= FastGetPoint( t ); //wektor pocz¹tku segmentu
-       dir= FastGetDirection( t, fOffset ); //wektor kierunku
-       parallel1= Normalize(CrossProduct(dir,vector3(0,1,0))); //wektor prostopad³y
-       m2=s/fLength; jmm2=1.0-m2;
-
-       while (s<fLength)
-       {
-//           step= SquareMagnitude(Global::GetCameraPosition()+pos);
-           i+= iQualityFactor; //kolejny punkt ³amanej
-           s+= step; //koñcowa pozycja segmentu [m]
-
-           m1=m2; jmm1=jmm2; //stara pozycja
-           m2=s/fLength; jmm2=1.0-m2; //nowa pozycja
-
-           if (s>fLength-0.5) //Ra: -0.5 ¿eby nie robi³o cieniasa na koñcu
-           {//gdy przekroczyliœmy koniec - st¹d dziury w torach...
-               step-=(s-fLength); //jeszcze do wyliczenia mapowania potrzebny
-               s=fLength;
-               i=iSegCount; //20/5 ma dawaæ 4
-               m2=1.0; jmm2=0.0;
-           }
-
-           while (tv1>1) tv1-= 1.0f;
-
-           tv2=tv1+step/fTextureLength; //mapowanie na koñcu segmentu
-
-           t= fTsBuffer[i]; //szybsze od GetTFromS(s);
-           pos2= FastGetPoint( t );
-           dir= FastGetDirection( t, fOffset ); //nowy wektor kierunku
-           parallel2= Normalize(CrossProduct(dir,vector3(0,1,0)));
-
-
-       glBegin(GL_TRIANGLE_STRIP);
-         if (trapez)
-          for (j=0; j<iNumShapePoints; j++)
-          {
-           pt=parallel1*(jmm1*ShapePoints[j].x+m1*ShapePoints[j+iNumShapePoints].x)+pos1;
-           pt.y+=jmm1*ShapePoints[j].y+m1*ShapePoints[j+iNumShapePoints].y;
-           glNormal3f(0.0f,1.0f,0.0f);
-           glTexCoord2f(jmm1*ShapePoints[j].z+m1*ShapePoints[j+iNumShapePoints].z,tv1);
-           glVertex3f(pt.x,pt.y,pt.z); //pt nie mamy gdzie zapamiêtaæ?
-           //dla trapezu drugi koniec ma inne wspó³rzêdne
-           pt=parallel2*(jmm2*ShapePoints[j].x+m2*ShapePoints[j+iNumShapePoints].x)+pos2;
-           pt.y+=jmm2*ShapePoints[j].y+m2*ShapePoints[j+iNumShapePoints].y;
-           glNormal3f(0.0f,1.0f,0.0f);
-           glTexCoord2f(jmm2*ShapePoints[j].z+m2*ShapePoints[j+iNumShapePoints].z,tv2);
-           glVertex3f(pt.x,pt.y,pt.z);
-          }
-         else
-           for (j=0; j<iNumShapePoints; j++)
-           {
-           pt= parallel1*ShapePoints[j].x+pos1;
-           pt.y+= ShapePoints[j].y;
-           glNormal3f(0.0f,1.0f,0.0f);
-           glTexCoord2f(ShapePoints[j].z,tv1);
-           glVertex3f(pt.x,pt.y,pt.z); //punkt na pocz¹tku odcinka
-           pt= parallel2*ShapePoints[j].x+pos2;
-           pt.y+= ShapePoints[j].y;
-           glNormal3f(0.0f,1.0f,0.0f);
-           glTexCoord2f(ShapePoints[j].z,tv2);
-           glVertex3f(pt.x,pt.y,pt.z); //punkt na koñcu odcinka
-           }
-       glEnd();
-       pos1= pos2;
-       parallel1= parallel2;
-       tv1= tv2;
-      }
+     norm=(jmm1*ShapePoints[j].n.x+m1*ShapePoints[j+iNumShapePoints].n.x)*parallel1;
+     norm.y+=jmm1*ShapePoints[j].n.y+m1*ShapePoints[j+iNumShapePoints].n.y;
+     pt=parallel1*(jmm1*ShapePoints[j].x+m1*ShapePoints[j+iNumShapePoints].x)+pos1;
+     pt.y+=jmm1*ShapePoints[j].y+m1*ShapePoints[j+iNumShapePoints].y;
+     glNormal3d(norm.x,norm.y,norm.z);
+     glTexCoord2f(jmm1*ShapePoints[j].z+m1*ShapePoints[j+iNumShapePoints].z,tv1);
+     glVertex3f(pt.x,pt.y,pt.z); //pt nie mamy gdzie zapamiêtaæ?
+     //dla trapezu drugi koniec ma inne wspó³rzêdne
+     norm=(jmm1*ShapePoints[j].n.x+m1*ShapePoints[j+iNumShapePoints].n.x)*parallel2;
+     norm.y+=jmm1*ShapePoints[j].n.y+m1*ShapePoints[j+iNumShapePoints].n.y;
+     pt=parallel2*(jmm2*ShapePoints[j].x+m2*ShapePoints[j+iNumShapePoints].x)+pos2;
+     pt.y+=jmm2*ShapePoints[j].y+m2*ShapePoints[j+iNumShapePoints].y;
+     glNormal3d(norm.x,norm.y,norm.z);
+     glTexCoord2f(jmm2*ShapePoints[j].z+m2*ShapePoints[j+iNumShapePoints].z,tv2);
+     glVertex3f(pt.x,pt.y,pt.z);
     }
-    else
-    {//gdy prosty
-            pos1= FastGetPoint( (fStep*iSkip)/fLength );
-            pos2= FastGetPoint_1();
-            dir= GetDirection();
-            parallel1= Normalize(CrossProduct(dir,vector3(0,1,0)));
-
-            glBegin(GL_TRIANGLE_STRIP);
-            if (trapez)
-                for (j=0; j<iNumShapePoints; j++)
-                {
-                pt= parallel1*ShapePoints[j].x+pos1;
-                pt.y+= ShapePoints[j].y;
-                glNormal3f(0.0f,1.0f,0.0f);
-                glTexCoord2f(ShapePoints[j].z,0);
-                glVertex3f(pt.x,pt.y,pt.z);
-                //dla trapezu drugi koniec ma inne wspó³rzêdne
-                pt= parallel1*ShapePoints[j+iNumShapePoints].x+pos2; //odsuniêcie
-                pt.y+= ShapePoints[j+iNumShapePoints].y; //wysokoœæ
-                glNormal3f(0.0f,1.0f,0.0f);
-                glTexCoord2f(ShapePoints[j+iNumShapePoints].z,fLength/fTextureLength);
-                glVertex3f(pt.x,pt.y,pt.z);
-                }
-            else
-                for (j=0; j<iNumShapePoints; j++)
-                {
-                pt= parallel1*ShapePoints[j].x+pos1;
-                pt.y+= ShapePoints[j].y;
-                glNormal3f(0.0f,1.0f,0.0f);
-                glTexCoord2f(ShapePoints[j].z,0);
-                glVertex3f(pt.x,pt.y,pt.z);
-
-                pt= parallel1*ShapePoints[j].x+pos2;
-                pt.y+= ShapePoints[j].y;
-                glNormal3f(0.0f,1.0f,0.0f);
-                glTexCoord2f(ShapePoints[j].z,fLength/fTextureLength);
-                glVertex3f(pt.x,pt.y,pt.z);
-                }
-            glEnd();
+   else
+    for (j=0;j<iNumShapePoints;j++)
+    {//³uk z jednym profilem
+     norm=ShapePoints[j].n.x*parallel1;
+     norm.y+=ShapePoints[j].n.y;
+     pt=parallel1*ShapePoints[j].x+pos1;
+     pt.y+=ShapePoints[j].y;
+     glNormal3f(norm.x,norm.y,norm.z);
+     glTexCoord2f(ShapePoints[j].z,tv1);
+     glVertex3f(pt.x,pt.y,pt.z); //punkt na pocz¹tku odcinka
+     norm=ShapePoints[j].n.x*parallel2;
+     norm.y+=ShapePoints[j].n.y;
+     pt=parallel2*ShapePoints[j].x+pos2;
+     pt.y+=ShapePoints[j].y;
+     glNormal3d(norm.x,norm.y,norm.z);
+     glTexCoord2f(ShapePoints[j].z,tv2);
+     glVertex3f(pt.x,pt.y,pt.z); //punkt na koñcu odcinka
     }
+   glEnd();
+   pos1=pos2;
+   parallel1=parallel2;
+   tv1=tv2;
+  }
+ }
+ else
+ {//gdy prosty, nie modyfikujemy wektora kierunkowego i poprzecznego
+  pos1=FastGetPoint((fStep*iSkip)/fLength);
+  pos2=FastGetPoint_1();
+  dir=GetDirection();
+  parallel1=Normalize(CrossProduct(dir,vector3(0,1,0)));
+  glBegin(GL_TRIANGLE_STRIP);
+  if (trapez)
+   for (j=0;j<iNumShapePoints;j++)
+   {
+    norm=ShapePoints[j].n.x*parallel1;
+    norm.y+=ShapePoints[j].n.y;
+    pt=parallel1*ShapePoints[j].x+pos1;
+    pt.y+=ShapePoints[j].y;
+    glNormal3d(norm.x,norm.y,norm.z);
+    glTexCoord2f(ShapePoints[j].z,0);
+    glVertex3f(pt.x,pt.y,pt.z);
+    //dla trapezu drugi koniec ma inne wspó³rzêdne wzglêdne
+    norm=ShapePoints[j+iNumShapePoints].n.x*parallel1;
+    norm.y+=ShapePoints[j+iNumShapePoints].n.y;
+    pt=parallel1*ShapePoints[j+iNumShapePoints].x+pos2; //odsuniêcie
+    pt.y+=ShapePoints[j+iNumShapePoints].y; //wysokoœæ
+    glNormal3d(norm.x,norm.y,norm.z);
+    glTexCoord2f(ShapePoints[j+iNumShapePoints].z,fLength/fTextureLength);
+    glVertex3f(pt.x,pt.y,pt.z);
+   }
+  else
+   for (j=0;j<iNumShapePoints;j++)
+   {
+    norm=ShapePoints[j].n.x*parallel1;
+    norm.y+=ShapePoints[j].n.y;
+    pt=parallel1*ShapePoints[j].x+pos1;
+    pt.y+=ShapePoints[j].y;
+    glNormal3d(norm.x,norm.y,norm.z);
+    glTexCoord2f(ShapePoints[j].z,0);
+    glVertex3f(pt.x,pt.y,pt.z);
+    pt=parallel1*ShapePoints[j].x+pos2;
+    pt.y+=ShapePoints[j].y;
+    glNormal3d(norm.x,norm.y,norm.z);
+    glTexCoord2f(ShapePoints[j].z,fLength/fTextureLength);
+    glVertex3f(pt.x,pt.y,pt.z);
+   }
+  glEnd();
+ }
 };
 
-void __fastcall TSegment::RenderSwitchRail(const vector3 *ShapePoints1, const vector3 *ShapePoints2,
+void __fastcall TSegment::RenderSwitchRail(const vector6 *ShapePoints1, const vector6 *ShapePoints2,
                             int iNumShapePoints,double fTextureLength, int iSkip, double fOffsetX)
 {//tworzenie siatki trójk¹tów dla iglicy
     vector3 pos1,pos2,dir,parallel1,parallel2,pt;
@@ -559,7 +562,7 @@ void __fastcall TSegment::Render()
 
 
 void __fastcall TSegment::RaRenderLoft(
- CVertNormTex* &Vert,const vector3 *ShapePoints,
+ CVertNormTex* &Vert,const vector6 *ShapePoints,
  int iNumShapePoints,double fTextureLength,int iSkip,int iEnd,double fOffsetX)
 {//generowanie trójk¹tów dla odcinka trajektorii ruchu
  //standardowo tworzy triangle_strip dla prostego albo ich zestaw dla ³uku
@@ -569,7 +572,7 @@ void __fastcall TSegment::RaRenderLoft(
  //na u¿ytek VBO strip dla ³uków jest tworzony wzd³u¿
  //dla skróconego odcinka (iEnd<iSegCount), ShapePoints dotyczy
  //koñców skróconych, a nie ca³oœci (to pod k¹tem iglic jest)
- vector3 pos1,pos2,dir,parallel1,parallel2,pt;
+ vector3 pos1,pos2,dir,parallel1,parallel2,pt,norm;
  double s,step,fOffset,tv1,tv2,t,fEnd;
  int i,j ;
  bool trapez=iNumShapePoints<0; //sygnalizacja trapezowatoœci
@@ -611,21 +614,25 @@ void __fastcall TSegment::RaRenderLoft(
    if (trapez)
     for (j=0; j<iNumShapePoints; j++)
     {//wspó³rzêdne pocz¹tku
+     norm=(jmm1*ShapePoints[j].n.x+m1*ShapePoints[j+iNumShapePoints].n.x)*parallel1;
+     norm.y+=jmm1*ShapePoints[j].n.y+m1*ShapePoints[j+iNumShapePoints].n.y;
      pt=parallel1*(jmm1*(ShapePoints[j].x-fOffsetX)+m1*ShapePoints[j+iNumShapePoints].x)+pos1;
      pt.y+=jmm1*ShapePoints[j].y+m1*ShapePoints[j+iNumShapePoints].y;
-     Vert->nx=0.0; //niekoniecznie tak
-     Vert->ny=1.0;
-     Vert->nz=0.0;
+     Vert->nx=norm.x; //niekoniecznie tak
+     Vert->ny=norm.y;
+     Vert->nz=norm.z;
      Vert->u=jmm1*ShapePoints[j].z+m1*ShapePoints[j+iNumShapePoints].z;
      Vert->v=tv1;
      Vert->x=pt.x; Vert->y=pt.y; Vert->z=pt.z; //punkt na pocz¹tku odcinka
      Vert++;
-     //dla trapezu drugi koniec ma inne wspó³rzêdne
+     //dla trapezu drugi koniec ma inne wspó³rzêdne wzglêdne
+     norm=(jmm1*ShapePoints[j].n.x+m1*ShapePoints[j+iNumShapePoints].n.x)*parallel2;
+     norm.y+=jmm1*ShapePoints[j].n.y+m1*ShapePoints[j+iNumShapePoints].n.y;
      pt=parallel2*(jmm2*(ShapePoints[j].x-fOffsetX)+m2*ShapePoints[j+iNumShapePoints].x)+pos2;
      pt.y+=jmm2*ShapePoints[j].y+m2*ShapePoints[j+iNumShapePoints].y;
-     Vert->nx=0.0; //niekoniecznie tak
-     Vert->ny=1.0;
-     Vert->nz=0.0;
+     Vert->nx=norm.x; //niekoniecznie tak
+     Vert->ny=norm.y;
+     Vert->nz=norm.z;
      Vert->u=jmm2*ShapePoints[j].z+m2*ShapePoints[j+iNumShapePoints].z;
      Vert->v=tv2;
      Vert->x=pt.x; Vert->y=pt.y; Vert->z=pt.z; //punkt na koñcu odcinka
@@ -634,20 +641,24 @@ void __fastcall TSegment::RaRenderLoft(
    else
     for (j=0;j<iNumShapePoints;j++)
     {//wspó³rzêdne pocz¹tku
+     norm=ShapePoints[j].n.x*parallel1;
+     norm.y+=ShapePoints[j].n.y;
      pt=parallel1*(ShapePoints[j].x-fOffsetX)+pos1;
      pt.y+=ShapePoints[j].y;
-     Vert->nx=0.0; //niekoniecznie tak
-     Vert->ny=1.0;
-     Vert->nz=0.0;
+     Vert->nx=norm.x; //niekoniecznie tak
+     Vert->ny=norm.y;
+     Vert->nz=norm.z;
      Vert->u=ShapePoints[j].z;
      Vert->v=tv1;
      Vert->x=pt.x; Vert->y=pt.y; Vert->z=pt.z; //punkt na pocz¹tku odcinka
      Vert++;
+     norm=ShapePoints[j].n.x*parallel2;
+     norm.y+=ShapePoints[j].n.y;
      pt=parallel2*ShapePoints[j].x+pos2;
      pt.y+=ShapePoints[j].y;
-     Vert->nx=0.0; //niekoniecznie tak
-     Vert->ny=1.0;
-     Vert->nz=0.0;
+     Vert->nx=norm.x; //niekoniecznie tak
+     Vert->ny=norm.y;
+     Vert->nz=norm.z;
      Vert->u=ShapePoints[j].z;
      Vert->v=tv2;
      Vert->x=pt.x; Vert->y=pt.y; Vert->z=pt.z; //punkt na koñcu odcinka
@@ -667,21 +678,25 @@ void __fastcall TSegment::RaRenderLoft(
   if (trapez)
    for (j=0;j<iNumShapePoints;j++)
    {
+    norm=ShapePoints[j].n.x*parallel1;
+    norm.y+=ShapePoints[j].n.y;
     pt=parallel1*(ShapePoints[j].x-fOffsetX)+pos1;
     pt.y+=ShapePoints[j].y;
-    Vert->nx=0.0; //niekoniecznie tak
-    Vert->ny=1.0;
-    Vert->nz=0.0;
+    Vert->nx=norm.x; //niekoniecznie tak
+    Vert->ny=norm.y;
+    Vert->nz=norm.z;
     Vert->u=ShapePoints[j].z;
     Vert->v=0;
     Vert->x=pt.x; Vert->y=pt.y; Vert->z=pt.z; //punkt na pocz¹tku odcinka
     Vert++;
     //dla trapezu drugi koniec ma inne wspó³rzêdne
+    norm=ShapePoints[j+iNumShapePoints].n.x*parallel1;
+    norm.y+=ShapePoints[j+iNumShapePoints].n.y;
     pt=parallel1*(ShapePoints[j+iNumShapePoints].x-fOffsetX)+pos2; //odsuniêcie
     pt.y+=ShapePoints[j+iNumShapePoints].y; //wysokoœæ
-    Vert->nx=0.0; //niekoniecznie tak
-    Vert->ny=1.0;
-    Vert->nz=0.0;
+    Vert->nx=norm.x; //niekoniecznie tak
+    Vert->ny=norm.y;
+    Vert->nz=norm.z;
     Vert->u=ShapePoints[j+iNumShapePoints].z;
     Vert->v=fLength/fTextureLength;
     Vert->x=pt.x; Vert->y=pt.y; Vert->z=pt.z; //punkt na koñcu odcinka
@@ -690,20 +705,22 @@ void __fastcall TSegment::RaRenderLoft(
   else
    for (j=0;j<iNumShapePoints;j++)
    {
+    norm=ShapePoints[j].n.x*parallel1;
+    norm.y+=ShapePoints[j].n.y;
     pt=parallel1*(ShapePoints[j].x-fOffsetX)+pos1;
     pt.y+=ShapePoints[j].y;
-    Vert->nx=0.0; //niekoniecznie tak
-    Vert->ny=1.0;
-    Vert->nz=0.0;
+    Vert->nx=norm.x; //niekoniecznie tak
+    Vert->ny=norm.y;
+    Vert->nz=norm.z;
     Vert->u=ShapePoints[j].z;
     Vert->v=0;
     Vert->x=pt.x; Vert->y=pt.y; Vert->z=pt.z; //punkt na pocz¹tku odcinka
     Vert++;
     pt=parallel1*(ShapePoints[j].x-fOffsetX)+pos2;
     pt.y+=ShapePoints[j].y;
-    Vert->nx=0.0; //niekoniecznie tak
-    Vert->ny=1.0;
-    Vert->nz=0.0;
+    Vert->nx=norm.x; //niekoniecznie tak
+    Vert->ny=norm.y;
+    Vert->nz=norm.z;
     Vert->u=ShapePoints[j].z;
     Vert->v=fLength/fTextureLength;
     Vert->x=pt.x; Vert->y=pt.y; Vert->z=pt.z; //punkt na koñcu odcinka
@@ -713,7 +730,7 @@ void __fastcall TSegment::RaRenderLoft(
 };
 
 void __fastcall TSegment::RaAnimate(
- CVertNormTex* &Vert,const vector3 *ShapePoints,
+ CVertNormTex* &Vert,const vector6 *ShapePoints,
  int iNumShapePoints,double fTextureLength,int iSkip,int iEnd,double fOffsetX)
 {//jak wy¿ej, tylko z pominiêciem mapowania i braku trapezowania
  vector3 pos1,pos2,dir,parallel1,parallel2,pt;

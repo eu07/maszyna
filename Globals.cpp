@@ -100,10 +100,12 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 bool Global::bMultiplayer=false; //blokada dzia³ania niektórych eventów na rzecz kominikacji
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asVersion="Compilation 2011-04-02, release 1.3.103.141."; //tutaj, bo wysy³any
+AnsiString Global::asVersion="Compilation 2011-04-07, release 1.3.104.143."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 GLint Global::iMaxTextureSize=16384;//maksymalny rozmiar tekstury
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
+bool Global::bDoubleAmbient=true; //podwójna jasnoœæ ambient
+int Global::iMoveLight=-1; //ruchome œwiat³o
 
 void __fastcall Global::LoadIniFile(AnsiString asFileName)
 {
@@ -225,6 +227,8 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
          iDynamicFiltering=Parser->GetNextSymbol().ToIntDef(-1);
         else if (str==AnsiString("usevbo"))
          bUseVBO=(Parser->GetNextSymbol().LowerCase()==AnsiString("yes"));
+        else if (str==AnsiString("doubleambient")) //podwójna jasnoœæ ambient
+         bDoubleAmbient=(Parser->GetNextSymbol().LowerCase()==AnsiString("yes"));
         else if (str==AnsiString("feedbackmode"))
          iFeedbackMode=Parser->GetNextSymbol().ToIntDef(1); //domyœlnie 1
         else if (str==AnsiString("multiplayer"))
@@ -242,6 +246,8 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
          if (i<=8192) iMaxTextureSize=8192; else
           iMaxTextureSize=16384;
         }
+        else if (str==AnsiString("movelight")) //numer dnia w roku albo -1
+         iMoveLight=Parser->GetNextSymbol().ToIntDef(-1);
     }
  if (!bLoadTraction)
  {//tutaj wy³¹czenie, bo mog¹ nie byæ zdefiniowane w INI

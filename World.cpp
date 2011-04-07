@@ -239,9 +239,16 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
     Global::lightPos[2]=lp.z;
     Global::lightPos[3]=0.0f;
 
-    //Ra: szcz¹tkowe œwiat³o rozproszone - ¿eby by³o cokolwiek widaæ w ciemnoœci
-    WriteLog("glLightModelfv(GL_LIGHT_MODEL_AMBIENT,darkLight);");
-    glLightModelfv(GL_LIGHT_MODEL_AMBIENT,Global::darkLight);
+    if (Global::bDoubleAmbient)
+    {//Ra: wczeœniej by³o ambient dane na obydwa œwiat³a
+     WriteLog("glLightModelfv(GL_LIGHT_MODEL_AMBIENT,ambientLight);");
+     glLightModelfv(GL_LIGHT_MODEL_AMBIENT,Global::ambientDayLight);
+    }
+    else
+    {//Ra: szcz¹tkowe œwiat³o rozproszone - ¿eby by³o cokolwiek widaæ w ciemnoœci
+     WriteLog("glLightModelfv(GL_LIGHT_MODEL_AMBIENT,darkLight);");
+     glLightModelfv(GL_LIGHT_MODEL_AMBIENT,Global::darkLight);
+    }
 
     //Ra: œwiat³o 0 - g³ówne œwiat³o zewnêtrzne (S³oñce, Ksiê¿yc)
     WriteLog("glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);");
@@ -552,12 +559,9 @@ void __fastcall TWorld::OnMouseMove(double x, double y)
     Camera.OnCursorMove(x*Global::fMouseXScale,-y*Global::fMouseYScale);
 }
 
-//#include <dstring.h>
-
 bool __fastcall TWorld::Update()
 {
-
-    vector3 tmpvector = Global::GetCameraPosition();
+ vector3 tmpvector = Global::GetCameraPosition();
 
     tmpvector = vector3(
         - int(tmpvector.x) + int(tmpvector.x) % 10000,
@@ -583,6 +587,33 @@ bool __fastcall TWorld::Update()
 
     UpdateTimers();
     GlobalTime->UpdateMTableTime(GetDeltaTime()); //McZapkie-300302: czas rozkladowy
+
+ if (Global::iMoveLight>0)
+ {//testowo ruch œwiat³a
+  double n=Global::iMoveLight; //numer dnia w roku
+  double d=asin(0.39795*cos(0.98563*(n-173))); //deklinacja S³oñca
+  double a=GlobalTime->mr/30.0*M_PI-M_PI; //k¹t godzinny (na razie kó³ko w minutê)
+  double L=52/180*M_PI; //szerokoœæ geograficzna
+  double H=asin(cos(L)*cos(d)*cos(a)+sin(L)*sin(d));
+  //double A=asin(cos(d)*sin(M_PI-a)/cos(H));
+//Declination=((0.322003-22.971*cos(t)-0.357898*cos(2*t)-0.14398*cos(3*t)+3.94638*sin(t)+0.019334*sin(2*t)+0.05928*sin(3*t)))*Pi/180
+//Altitude=asin(sin(Declination)*sin(latitude)+cos(Declination)*cos(latitude)*cos((15*(time-12))*(Pi/180)));
+//Azimuth=(acos((cos(latitude)*sin(Declination)-cos(Declination)*sin(latitude)*cos((15*(time-12))*(Pi/180)))/cos(Altitude)));
+  //double A=acos(cos(L)*sin(d)-cos(d)*sin(L)*cos(M_PI-a)/cos(H));
+//dAzimuth = atan2(-sin( dHourAngle ),tan( dDeclination )*dCos_Latitude - dSin_Latitude*dCos_HourAngle );
+  double A=atan2(-sin(a),tan(d)*cos(L)-sin(L)*cos(a));
+  vector3 lp=vector3(cos(A),-atan(H),sin(A));
+  lp=Normalize(lp);
+  Global::lightPos[0]=lp.x;
+  Global::lightPos[1]=lp.y;
+  Global::lightPos[2]=lp.z;
+  glLightfv(GL_LIGHT0,GL_POSITION,Global::lightPos);        //daylight position
+  // Calculate sky colour according to time of day.
+  //GLfloat sin_t = sin(PI * time_of_day / 12.0);
+  //back_red = 0.3 * (1.0 - sin_t);
+  //back_green = 0.9 * sin_t;
+  //back_blue = sin_t + 0.4, 1.0;
+ }
 
  /*
 //ZiomalCl: uzaleznienie pory dnia od godziny w takiej formie wylaczone
@@ -858,6 +889,18 @@ bool __fastcall TWorld::Update()
     glPopMatrix ( );
 //**********************************************************************************************************
    } //koniec if (Train)
+
+ if (Global::iMoveLight>0)
+ {//"zegar s³oneczny"
+  glColor3f(1.0f,1.0f,1.0f);
+  glDisable(GL_LIGHTING);
+  glBegin(GL_LINES);		        // Drawing using triangles
+   glVertex3f(0.0f,1.0f,0.0f);
+   glVertex3f(Global::lightPos[0],Global::lightPos[1],Global::lightPos[2]); //wskazuje kierunek S³oñca
+  glEnd();
+  glEnable(GL_LIGHTING);
+ }
+
     if (DebugModeFlag)
      {
        OutText1= "  FPS: ";
