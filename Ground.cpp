@@ -268,11 +268,11 @@ void __fastcall TGround::MoveGroundNode(vector3 pPosition)
  {//roz³o¿enie obiektów na mapie
   if (Current->iType!=TP_DYNAMIC)
   {//pojazdów to w ogóle nie dotyczy
-   if ((Current->iType!=GL_TRIANGLES)?true //~czy trójk¹t?
+   if ((Current->iType!=GL_TRIANGLES)&&(Current->iType!=GL_TRIANGLE_STRIP)?true //~czy trójk¹t?
     :(Current->iFlags&4)?true //~czy teksturê ma nieprzezroczyst¹?
-     :(Current->iNumVerts!=3)?true //~czy tylko jeden trójk¹t?
-      :(Current->fSquareMinRadius!=0.0)?true //~czy widoczny z bliska?
-       :(Current->fSquareRadius<=90000.0)) //~czy widoczny z daleka?
+     //:(Current->iNumVerts!=3)?true //~czy tylko jeden trójk¹t?
+     :(Current->fSquareMinRadius!=0.0)?true //~czy widoczny z bliska?
+      :(Current->fSquareRadius<=90000.0)) //~czy widoczny z daleka?
     GetSubRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
    else //dodajemy do kwadratu kilometrowego
     GetRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
@@ -1886,27 +1886,21 @@ bool __fastcall TGround::Init(AnsiString asFile)
           Global::iCameraLast=into; //numer ostatniej
          }
         }
-//youBy - niebo z pliku
-        else
-        if (str==AnsiString("sky"))
-        {
-
-            WriteLog("Scenery sky definition");
-            parser.getTokens();
-            parser >> token;
-            AnsiString SkyTemp;
-//            parser >> SkyTemp;
-            SkyTemp=AnsiString(token.c_str());
-            if (Global::asSky=="1")
-              Global::asSky=SkyTemp;
-            do
-             {//po¿arcie dodatkowych parametrów
-               parser.getTokens(); parser >> token;
-             } while (token.compare("endsky")!=0);
-             WriteLog(Global::asSky.c_str());
+        else if (str==AnsiString("sky"))
+        {//youBy - niebo z pliku
+         WriteLog("Scenery sky definition");
+         parser.getTokens();
+         parser >> token;
+         AnsiString SkyTemp;
+         SkyTemp=AnsiString(token.c_str());
+         if (Global::asSky=="1") Global::asSky=SkyTemp;
+         do
+         {//po¿arcie dodatkowych parametrów
+          parser.getTokens(); parser >> token;
+         } while (token.compare("endsky")!=0);
+         WriteLog(Global::asSky.c_str());
         }
-        else
-        if (str==AnsiString("firstinit"))
+        else if (str==AnsiString("firstinit"))
         {
          if (!bInitDone) //Ra: ¿eby nie robi³o dwa razy
          {bInitDone=true;
@@ -1916,9 +1910,9 @@ bool __fastcall TGround::Init(AnsiString asFile)
            Current->InitNormals();
            if (Current->iType!=TP_DYNAMIC)
            {//pojazdów to w ogóle nie dotyczy
-            if ((Current->iType!=GL_TRIANGLES)?true //~czy trójk¹t?
+            if ((Current->iType!=GL_TRIANGLES)&&(Current->iType!=GL_TRIANGLE_STRIP)?true //~czy trójk¹t?
              :(Current->iFlags&4)?true //~czy teksturê ma nieprzezroczyst¹?
-              :(Current->iNumVerts!=3)?true //~czy tylko jeden trójk¹t?
+              //:(Current->iNumVerts!=3)?true //~czy tylko jeden trójk¹t?
                :(Current->fSquareMinRadius!=0.0)?true //~czy widoczny z bliska?
                 :(Current->fSquareRadius<=90000.0)) //~czy widoczny z daleka?
              GetSubRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
