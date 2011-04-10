@@ -2460,25 +2460,25 @@ if (renderme)
      if ((FreeFlyModeFlag)||((!FreeFlyModeFlag)&&(!mdKabina)))
 #ifdef USE_VBO
       if (Global::bUseVBO)
-       mdLowPolyInt->RaRender(ObjSqrDist,ReplacableSkinID);
+       mdLowPolyInt->RaRender(ObjSqrDist,ReplacableSkinID,bAlpha);
       else
-#endif       
-       mdLowPolyInt->Render(ObjSqrDist,ReplacableSkinID);
+#endif
+       mdLowPolyInt->Render(ObjSqrDist,ReplacableSkinID,bAlpha);
 
 #ifdef USE_VBO
     if (Global::bUseVBO)
      mdModel->RaRender(ObjSqrDist,ReplacableSkinID,bAlpha);
     else
 #endif
-			  mdModel->Render(ObjSqrDist,ReplacableSkinID,bAlpha);
+     mdModel->Render(ObjSqrDist,ReplacableSkinID,bAlpha);
     if ((mdLoad==NULL) && (MoverParameters->Load>0))
      {
       asLoadName= asBaseDir+MoverParameters->LoadType+".t3d";
 //      asLoadName=MoverParameters->LoadType;
 //      if (MoverParameters->LoadType!=AnsiString("passengers"))
-       Global::asCurrentTexturePath= asBaseDir;                    //biezaca sciezka do tekstur to dynamic/...
-       mdLoad= TModelsManager::GetModel(asLoadName.c_str());  //nowy ladunek
-       Global::asCurrentTexturePath= AnsiString(szDefaultTexturePath); //z powrotem defaultowa sciezka do tekstur
+       Global::asCurrentTexturePath=asBaseDir;                    //biezaca sciezka do tekstur to dynamic/...
+       mdLoad=TModelsManager::GetModel(asLoadName.c_str());  //nowy ladunek
+       Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath); //z powrotem defaultowa sciezka do tekstur
      }
     if ((mdLoad==NULL) && (MoverParameters->Load>0))
      {
@@ -2497,15 +2497,15 @@ if (renderme)
      if (MoverParameters->filename==asBaseDir+"6ba.chk")
 #ifdef USE_VBO
       if (Global::bUseVBO)
-       mdPrzedsionek->RaRender(ObjSqrDist,ReplacableSkinID);
+       mdPrzedsionek->RaRender(ObjSqrDist,ReplacableSkinID,bAlpha);
       else
 #endif
-       mdPrzedsionek->Render(ObjSqrDist,ReplacableSkinID);
+       mdPrzedsionek->Render(ObjSqrDist,ReplacableSkinID,bAlpha);
 //rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
 //ABu: tylko w trybie FreeFly, zwykly tryb w world.cpp
 
     if ((mdKabina!=mdModel) && bDisplayCab && FreeFlyModeFlag)
-    {
+    {//Ra: a œwiet³a nie zosta³y ju¿ ustawione dla toru?
 //oswietlenie kabiny
       GLfloat  ambientCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
       GLfloat  diffuseCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
@@ -2591,7 +2591,7 @@ if (renderme)
              }
             else if (MoverParameters->EngineType==DieselElectric)
              vol=rsSilnik.AM*(MoverParameters->EnginePower/1000/MoverParameters->Power)+0.2*(MoverParameters->enrot*60)/(MoverParameters->DElist[MoverParameters->MainCtrlPosNo].RPM)+rsSilnik.AA;
-            else 
+            else
              vol=rsSilnik.AM*(MoverParameters->EnginePower/1000+fabs(MoverParameters->enrot)*60.0)+rsSilnik.AA;
 //            McZapkie-250302 - natezenie zalezne od obrotow i mocy
             if ((vol<1) && (MoverParameters->EngineType==ElectricSeriesMotor) && (MoverParameters->EnginePower<100))
@@ -2684,7 +2684,7 @@ if (renderme)
 if ((MoverParameters->ConverterFlag==false)&&(MoverParameters->CompressorPower!=0))
  MoverParameters->CompressorFlag=false;
 //if (MoverParameters->CompressorPower==2)
-// MoverParameters->CompressorAllow=MoverParameters->ConverterFlag; 
+// MoverParameters->CompressorAllow=MoverParameters->ConverterFlag;
 
 // McZapkie! - dzwiek compressor.wav tylko gdy dziala sprezarka
     if (MoverParameters->VeselVolume!=0)

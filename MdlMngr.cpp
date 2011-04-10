@@ -33,13 +33,13 @@
 
 TModel3d* __fastcall TMdlContainer::LoadModel(char *newName)
 {
-    SafeDeleteArray(Name);
-    SafeDelete(Model);
-    Name= new char[strlen(newName)+1];
-    strcpy(Name,newName);
-    Model= new TModel3d();
-    Model->LoadFromTextFile(Name); //np. "models\\pkp/head1-y.t3d"
-    return Model;
+ SafeDeleteArray(Name);
+ SafeDelete(Model);
+ Name=new char[strlen(newName)+1];
+ strcpy(Name,newName);
+ Model=new TModel3d();
+ Model->LoadFromTextFile(Name); //np. "models\\pkp/head1-y.t3d"
+ return Model;
 };
 
 TMdlContainer *TModelsManager::Models;
@@ -105,22 +105,26 @@ double Radius;
 
 TModel3d*  __fastcall TModelsManager::LoadModel(char *Name)
 {
-    TModel3d *mdl= NULL;;
-    WIN32_FIND_DATA FindFileData;
-    HANDLE handle= FindFirstFile(Name, &FindFileData);
-    if (handle==INVALID_HANDLE_VALUE) return(0);
-    else
-    {
-        if (Count==MAX_MODELS)
-            Error("FIXME: Too many models, program will now crash :)");
-        else
-        {
-            mdl= Models[Count].LoadModel(Name);
-            Count++;
-        }
-    }
-    FindClose(handle);
-    return mdl;
+ TModel3d *mdl=NULL;;
+ WIN32_FIND_DATA FindFileData;
+ HANDLE handle=FindFirstFile(Name,&FindFileData);
+ if (handle==INVALID_HANDLE_VALUE)
+ {
+  WriteLog("Missed model "+AnsiString(Name));
+  return NULL; //zg³oszenie b³êdu wy¿ej
+ }
+ else
+ {
+  if (Count==MAX_MODELS)
+   Error("FIXME: Too many models, program will now crash :)");
+  else
+  {
+   mdl=Models[Count].LoadModel(Name);
+   Count++;
+  }
+ }
+ FindClose(handle);
+ return mdl;
 }
 
 TModel3d* __fastcall TModelsManager::GetModel(char *Name)
@@ -150,8 +154,8 @@ TModel3d* __fastcall TModelsManager::GetModel(char *Name)
   }
  };
  tmpModel=LoadModel(buf);
- Global::asCurrentTexturePath= buftp;
- return(tmpModel);
+ Global::asCurrentTexturePath=buftp;
+ return (tmpModel); //NULL jeœli b³¹d
 };
 
 /*
