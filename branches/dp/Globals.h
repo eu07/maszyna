@@ -194,7 +194,9 @@ public:
  static GLint iMaxTextureSize; //maksymalny rozmiar tekstury
  static int iTextMode; //tryb pracy wyœwietlacza tekstowego
  static bool bDoubleAmbient; //podwójna jasnoœæ ambient
- static int iMoveLight; //numer dnia w roku albo -1
+ static double fMoveLight; //numer dnia w roku albo -1
+ static bool bSmoothTraction; //wyg³adzanie drutów
+ static double fSunDeclination; //deklinacja S³oñca
 };
 
 //---------------------------------------------------------------------------
