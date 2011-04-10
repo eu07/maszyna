@@ -18,8 +18,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#include    "system.hpp"
-#include    "classes.hpp"
+#include "system.hpp"
+#include "classes.hpp"
 #pragma hdrstop
 
 
@@ -100,12 +100,14 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 bool Global::bMultiplayer=false; //blokada dzia³ania niektórych eventów na rzecz kominikacji
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asVersion="Compilation 2011-04-10, release 1.3.106.145."; //tutaj, bo wysy³any
+AnsiString Global::asVersion="Compilation 2011-04-10, release 1.3.107.145."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 GLint Global::iMaxTextureSize=16384;//maksymalny rozmiar tekstury
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 bool Global::bDoubleAmbient=true; //podwójna jasnoœæ ambient
-int Global::iMoveLight=-1; //ruchome œwiat³o
+double Global::fMoveLight=-1; //ruchome œwiat³o
+bool Global::bSmoothTraction=false; //wyg³adzanie drutów
+double Global::fSunDeclination=0.0; //deklinacja S³oñca
 
 void __fastcall Global::LoadIniFile(AnsiString asFileName)
 {
@@ -227,8 +229,6 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
          iDynamicFiltering=Parser->GetNextSymbol().ToIntDef(-1);
         else if (str==AnsiString("usevbo"))
          bUseVBO=(Parser->GetNextSymbol().LowerCase()==AnsiString("yes"));
-        else if (str==AnsiString("doubleambient")) //podwójna jasnoœæ ambient
-         bDoubleAmbient=(Parser->GetNextSymbol().LowerCase()==AnsiString("yes"));
         else if (str==AnsiString("feedbackmode"))
          iFeedbackMode=Parser->GetNextSymbol().ToIntDef(1); //domyœlnie 1
         else if (str==AnsiString("multiplayer"))
@@ -246,8 +246,24 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
          if (i<=8192) iMaxTextureSize=8192; else
           iMaxTextureSize=16384;
         }
+        else if (str==AnsiString("doubleambient")) //podwójna jasnoœæ ambient
+         bDoubleAmbient=(Parser->GetNextSymbol().LowerCase()==AnsiString("yes"));
         else if (str==AnsiString("movelight")) //numer dnia w roku albo -1
-         iMoveLight=Parser->GetNextSymbol().ToIntDef(-1);
+        {fMoveLight=Parser->GetNextSymbol().ToIntDef(-1); //numer dnia 1..365
+         if (fMoveLight>0)
+         {//obliczenie deklinacji wg http://en.wikipedia.org/wiki/Declination (XX wiek)
+          fMoveLight=M_PI/182.5*(Global::fMoveLight-1.0); //numer dnia w postaci k¹ta
+          fSunDeclination=0.006918-0.3999120*cos(  fMoveLight)+0.0702570*sin(  fMoveLight)
+                                  -0.0067580*cos(2*fMoveLight)+0.0009070*sin(2*fMoveLight)
+                                  -0.0026970*cos(3*fMoveLight)+0.0014800*sin(3*fMoveLight);
+          //Declination=((0.322003-22.971*cos(t)-0.357898*cos(2*t)-0.14398*cos(3*t)+3.94638*sin(t)+0.019334*sin(2*t)+0.05928*sin(3*t)))*Pi/180
+          //fSunDeclination=0.005620-0.4009196*cos(  fMoveLight)+0.0688773*sin(  fMoveLight)
+          //                        -0.0062465*cos(2*fMoveLight)+0.0003374*sin(2*fMoveLight)
+          //                        -0.0025129*cos(3*fMoveLight)+0.0010346*sin(3*fMoveLight);
+         }
+        }
+        else if (str==AnsiString("smoothtraction")) //podwójna jasnoœæ ambient
+         bSmoothTraction=(Parser->GetNextSymbol().LowerCase()==AnsiString("yes"));
     }
  if (!bLoadTraction)
  {//tutaj wy³¹czenie, bo mog¹ nie byæ zdefiniowane w INI

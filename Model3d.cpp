@@ -972,7 +972,7 @@ void __fastcall TModel3d::BreakHierarhy()
     Error("Not implemented yet :(");
 };
 
-
+/*
 void __fastcall TModel3d::Render(vector3 pPosition,double fAngle,GLuint ReplacableSkinId,bool bAlpha)
 {
 //    glColor3f(1.0f,1.0f,1.0f);
@@ -991,7 +991,7 @@ void __fastcall TModel3d::Render(vector3 pPosition,double fAngle,GLuint Replacab
     vector3 pos=vector3(0,0,0);
     pos=CurrentMatrix*pos;
     fSquareDist=SquareMagnitude(pos);
-  */
+  * /
     fSquareDist=SquareMagnitude(pPosition-Global::GetCameraPosition());
 
 #ifdef _DEBUG
@@ -1002,18 +1002,17 @@ void __fastcall TModel3d::Render(vector3 pPosition,double fAngle,GLuint Replacab
 #endif
     glPopMatrix();
 };
+*/
 
 void __fastcall TModel3d::Render(double fSquareDistance,GLuint ReplacableSkinId,bool bAlpha)
 {
-    fSquareDist=fSquareDistance;
-#ifdef _DEBUG
-    if (Root)
-        Root->Render(ReplacableSkinId,bAlpha);
-#else
-    Root->Render(ReplacableSkinId,bAlpha);
-#endif
+ if (bAlpha?(iFlags&0x02020002):(iFlags&0x03030003))
+ {fSquareDist=fSquareDistance;
+  Root->Render(ReplacableSkinId,bAlpha);
+ }
 };
 
+/*
 void __fastcall TModel3d::RenderAlpha(vector3 pPosition,double fAngle,GLuint ReplacableSkinId,bool bAlpha)
 {
     glPushMatrix();
@@ -1029,16 +1028,15 @@ void __fastcall TModel3d::RenderAlpha(vector3 pPosition,double fAngle,GLuint Rep
 #endif
     glPopMatrix();
 };
+*/
 
 void __fastcall TModel3d::RenderAlpha(double fSquareDistance,GLuint ReplacableSkinId,bool bAlpha)
 {
-    fSquareDist=fSquareDistance;
-#ifdef _DEBUG
-    if (Root)
-        Root->RenderAlpha(ReplacableSkinId,bAlpha);
-#else
-    Root->RenderAlpha(ReplacableSkinId,bAlpha);
-#endif
+ if (bAlpha?(iFlags&0x05050005):(iFlags&0x04040004))
+ {
+  fSquareDist=fSquareDistance;
+  Root->RenderAlpha(ReplacableSkinId,bAlpha);
+ }
 };
 
 void __fastcall TModel3d::RaRender(vector3 pPosition,double fAngle,GLuint ReplacableSkinId,bool bAlpha)
@@ -1080,13 +1078,13 @@ void __fastcall TModel3d::RaRender(double fSquareDistance,GLuint ReplacableSkinI
 
 void __fastcall TModel3d::RaRenderAlpha(double fSquareDistance,GLuint ReplacableSkinId,bool bAlpha)
 {//renderowanie specjalne, np. kabiny
- if (bAlpha?(iFlags&0x04040004):(iFlags&0x05050005))
+ if (bAlpha?(iFlags&0x05050005):(iFlags&0x04040004))
  {fSquareDist=fSquareDistance;
   if (StartVBO())
   {Root->RaRenderAlpha(ReplacableSkinId,bAlpha);
    EndVBO();
   }
- } 
+ }
 };
 
 void __fastcall TModel3d::RaRenderAlpha(vector3 pPosition,double fAngle,GLuint ReplacableSkinId,bool bAlpha)

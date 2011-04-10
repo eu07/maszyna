@@ -299,8 +299,8 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 	glEnable(GL_FOG);									// Enables GL_FOG
 
     //Ra: ustawienia testowe
-    //glHint(GL_LINE_SMOOTH_HINT,GL_NICEST);
-    //glHint(GL_POLYGON_SMOOTH_HINT,GL_NICEST);
+    glHint(GL_LINE_SMOOTH_HINT,GL_NICEST);
+    glHint(GL_POLYGON_SMOOTH_HINT,GL_NICEST);
 
 /*--------------------Render Initialization End---------------------*/
 
@@ -588,25 +588,23 @@ bool __fastcall TWorld::Update()
     UpdateTimers();
     GlobalTime->UpdateMTableTime(GetDeltaTime()); //McZapkie-300302: czas rozkladowy
 
- if (Global::iMoveLight>0)
+ if (Global::fMoveLight>0)
  {//testowo ruch œwiat³a
-  double n=Global::iMoveLight; //numer dnia w roku
-  double d=asin(0.39795*cos(0.98563*(n-173))); //deklinacja S³oñca
   double a=GlobalTime->mr/30.0*M_PI-M_PI; //k¹t godzinny (na razie kó³ko w minutê)
   double L=52/180*M_PI; //szerokoœæ geograficzna
-  double H=asin(cos(L)*cos(d)*cos(a)+sin(L)*sin(d));
+  double H=asin(cos(L)*cos(Global::fSunDeclination)*cos(a)+sin(L)*sin(Global::fSunDeclination));
   //double A=asin(cos(d)*sin(M_PI-a)/cos(H));
 //Declination=((0.322003-22.971*cos(t)-0.357898*cos(2*t)-0.14398*cos(3*t)+3.94638*sin(t)+0.019334*sin(2*t)+0.05928*sin(3*t)))*Pi/180
 //Altitude=asin(sin(Declination)*sin(latitude)+cos(Declination)*cos(latitude)*cos((15*(time-12))*(Pi/180)));
 //Azimuth=(acos((cos(latitude)*sin(Declination)-cos(Declination)*sin(latitude)*cos((15*(time-12))*(Pi/180)))/cos(Altitude)));
   //double A=acos(cos(L)*sin(d)-cos(d)*sin(L)*cos(M_PI-a)/cos(H));
 //dAzimuth = atan2(-sin( dHourAngle ),tan( dDeclination )*dCos_Latitude - dSin_Latitude*dCos_HourAngle );
-  double A=atan2(-sin(a),tan(d)*cos(L)-sin(L)*cos(a));
-  vector3 lp=vector3(cos(A),-atan(H),sin(A));
+  double A=atan2(-sin(a),tan(Global::fSunDeclination)*cos(L)-sin(L)*cos(a));
+  vector3 lp=vector3(cos(A),tan(H),sin(A));
   lp=Normalize(lp);
-  Global::lightPos[0]=lp.x;
-  Global::lightPos[1]=lp.y;
-  Global::lightPos[2]=lp.z;
+  Global::lightPos[0]=(float)lp.x;
+  Global::lightPos[1]=(float)lp.y;
+  Global::lightPos[2]=(float)lp.z;
   glLightfv(GL_LIGHT0,GL_POSITION,Global::lightPos);        //daylight position
   // Calculate sky colour according to time of day.
   //GLfloat sin_t = sin(PI * time_of_day / 12.0);
@@ -890,12 +888,12 @@ bool __fastcall TWorld::Update()
 //**********************************************************************************************************
    } //koniec if (Train)
 
- if (Global::iMoveLight>0)
+ if (Global::fMoveLight>0)
  {//"zegar s³oneczny"
   glColor3f(1.0f,1.0f,1.0f);
   glDisable(GL_LIGHTING);
   glBegin(GL_LINES);		        // Drawing using triangles
-   glVertex3f(0.0f,1.0f,0.0f);
+   glVertex3f(2.0f,1.0f,0.0f);
    glVertex3f(Global::lightPos[0],Global::lightPos[1],Global::lightPos[2]); //wskazuje kierunek S³oñca
   glEnd();
   glEnable(GL_LIGHTING);
