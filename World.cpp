@@ -600,7 +600,7 @@ bool __fastcall TWorld::Update()
   //double A=acos(cos(L)*sin(d)-cos(d)*sin(L)*cos(M_PI-a)/cos(H));
 //dAzimuth = atan2(-sin( dHourAngle ),tan( dDeclination )*dCos_Latitude - dSin_Latitude*dCos_HourAngle );
   double A=atan2(-sin(a),tan(Global::fSunDeclination)*cos(L)-sin(L)*cos(a));
-  vector3 lp=vector3(cos(A),tan(H),sin(A));
+  vector3 lp=vector3(sin(A),tan(H),cos(A));
   lp=Normalize(lp);
   Global::lightPos[0]=(float)lp.x;
   Global::lightPos[1]=(float)lp.y;
@@ -889,12 +889,16 @@ bool __fastcall TWorld::Update()
    } //koniec if (Train)
 
  if (Global::fMoveLight>0)
- {//"zegar s這neczny"
+ {//tymczasowy "zegar s這neczny"
+  float x=2.0f,y=3.0f,z=0.0f;
   glColor3f(1.0f,1.0f,1.0f);
   glDisable(GL_LIGHTING);
   glBegin(GL_LINES);		        // Drawing using triangles
-   glVertex3f(2.0f,1.0f,0.0f);
-   glVertex3f(Global::lightPos[0],Global::lightPos[1],Global::lightPos[2]); //wskazuje kierunek S這鎍a
+   glVertex3f(x,y,z);
+   x+=Global::lightPos[0];
+   y+=Global::lightPos[1];
+   z+=Global::lightPos[2];
+   glVertex3f(x,y,z); //wskazuje kierunek S這鎍a
   glEnd();
   glEnable(GL_LIGHTING);
  }
