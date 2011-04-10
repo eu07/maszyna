@@ -1352,7 +1352,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    parser->getTokens(3);
    *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
    parser->getTokens();
-   *parser >> tf1;//tmp->fAngle;
+   *parser >> tf1;
    //OlO_EU&KAKISH-030103: obracanie punktow zaczepien w modelu
    tmp->pCenter.RotateY(aRotate.y/180*M_PI);
    //McZapkie-260402: model tez ma wspolrzedne wzgledne
