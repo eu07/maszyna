@@ -49,15 +49,11 @@ void __fastcall TSubModel::FirstInit()
  Index=-1;
  v_RotateAxis=vector3(0,0,0);
  v_TransVector=vector3(0,0,0);
- //v_aRotateAxis=vector3(0,0,0);
- //v_aTransVector=vector3(0,0,0);
  f_Angle=0;
- //f_aAngle=0;
  b_Anim=at_None;
  b_aAnim=at_None;
  Visible=false;
  Matrix.Identity();
- //Transform.Identity();
  Next=NULL;
  Child=NULL;
  TextureID=0;
@@ -85,10 +81,10 @@ void __fastcall TSubModel::FirstInit()
 __fastcall TSubModel::~TSubModel()
 {
  if (uiDisplayList) glDeleteLists(uiDisplayList,1);
-//    SafeDeleteArray(Indices);
-    SafeDelete(Next);
-    SafeDelete(Child);
-    delete[] Vertices;
+ //SafeDeleteArray(Indices);
+ SafeDelete(Next);
+ SafeDelete(Child);
+ delete[] Vertices;
 };
 
 int __fastcall TSubModel::SeekFaceNormal(DWORD *Masks,int f,DWORD dwMask,vector3 pt,GLVERTEX *Vertices)
@@ -111,9 +107,9 @@ float emm2[]={0,0,0,1};
 
 inline double readIntAsDouble(cParser& parser,int base=255)
 {
-    int value;
-    parser.getToken(value);
-    return double(value) / base;
+ int value;
+ parser.getToken(value);
+ return double(value)/base;
 };
 
 template <typename ColorT>
@@ -174,6 +170,7 @@ int __fastcall TSubModel::Load(cParser& parser,int NIndex,TModel3d *Model,int Po
    else if (type=="hours")         b_Anim=b_aAnim=at_Hours; //godziny p³ynnie
    else if (type=="hours24")       b_Anim=b_aAnim=at_Hours24; //godziny p³ynnie
    else if (type=="billboard")     b_Anim=b_aAnim=at_Billboard; //obrót w pionie do kamery
+   else if (type=="lightpos")      b_Anim=b_aAnim=at_LightPos; //w kierunku œwiat³a
  }
  if (eType==smt_Mesh) readColor(parser,f4Ambient); //ignoruje token przed
  readColor(parser,f4Diffuse);
@@ -525,6 +522,11 @@ void __fastcall TSubModel::RaAnimation(TAnimType a)
     glTranslated(gdzie.x,gdzie.y,gdzie.z); //pocz¹tek uk³adu zostaje bez zmian
     glRotated(atan2(gdzie.x,gdzie.z)*180.0/M_PI,0.0,1.0,0.0); //jedynie obracamy w pionie o k¹t
    }
+   break;
+  case at_LightPos: //w kierunku œwiat³a
+   glRotatef(atan2(Global::lightPos[1],Global::lightPos[0]),1.0,0.0,0.0);
+   glRotatef(atan2(Global::lightPos[2],Global::lightPos[0]),0.0,1.0,0.0);
+   glRotatef(atan2(Global::lightPos[2],Global::lightPos[1]),0.0,0.0,1.0);
    break;
  }
 };
