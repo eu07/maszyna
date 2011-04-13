@@ -187,64 +187,63 @@ void __fastcall TDynamicObject::SetPneumatic(bool front, bool red)
 
 //ABu 29.01.05 przeklejone z render i renderalpha: *********************
 void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
-{  //ABu290105: pozbierane i uporzadkowane powtarzajace sie rzeczy z Render i RenderAlpha
-   //dodatkowy warunek, if(ObjSqrDist<...) zeby niepotrzebnie nie zmianiec w obiektach,
-   //ktorych i tak nie widac
-
-   //NBMX wrzesien, MC listopad: zuniwersalnione
-   for (int i=0; i<iAnimatedDoors ; i++)
-    {
-     //    WriteLog("Dla drzwi nr:", i);
-     //    WriteLog("Wspolczynnik", DoorSpeedFactor[i]);
-     if (smAnimatedDoor[i]!=NULL)
-     {
-      if (MoverParameters->DoorOpenMethod==1) //przesuwne
-       {
-        if ((i % 2)==0)
-         {
-         (smAnimatedDoor[i]->SetTranslate(vector3(0,0,1)*dDoorMoveL*DoorSpeedFactor[i]));
-         //dDoorMoveL=dDoorMoveL*DoorSpeedFactor[i];
-         }
-        else
-         {
-         (smAnimatedDoor[i]->SetTranslate(vector3(0,0,1)*dDoorMoveR*DoorSpeedFactor[i]));
-         //dDoorMoveR=dDoorMoveR*DoorSpeedFactor[i];
-         }
-       }
-      else
-      if (MoverParameters->DoorOpenMethod==2) //obrotowe albo dwojlomne (trzeba kombinowac submodelami i ShiftL=90,R=180)
-       {
-        if ((i % 2)==0)
-         smAnimatedDoor[i]->SetRotate(vector3(1,0,0),dDoorMoveL);
-        else
-         smAnimatedDoor[i]->SetRotate(vector3(1,0,0),dDoorMoveR);
-       }
-     }
-    }
-btnOn=false;
-
-  if(ObjSqrDist<160000)
+{//ABu290105: pozbierane i uporzadkowane powtarzajace sie rzeczy z Render i RenderAlpha
+ //dodatkowy warunek, if (ObjSqrDist<...) zeby niepotrzebnie nie zmianiec w obiektach,
+ //ktorych i tak nie widac
+ //NBMX wrzesien, MC listopad: zuniwersalnione
+ for (int i=0;i<iAnimatedDoors;i++)
+ {
+  //WriteLog("Dla drzwi nr:", i);
+  //WriteLog("Wspolczynnik", DoorSpeedFactor[i]);
+  if (smAnimatedDoor[i]!=NULL)
   {
-   if(ObjSqrDist<2500)
+   if (MoverParameters->DoorOpenMethod==1) //przesuwne
    {
-     //ABu290105: rzucanie pudlem
-      mdModel->GetSMRoot()->SetTranslate(modelShake);
-      if (mdKabina)
-         mdKabina->GetSMRoot()->SetTranslate(modelShake);
-      if (mdLoad)
-         mdLoad->GetSMRoot()->SetTranslate(modelShake);
-      if (mdLowPolyInt)
-         mdLowPolyInt->GetSMRoot()->SetTranslate(modelShake);
-      if (mdPrzedsionek)
-         mdPrzedsionek->GetSMRoot()->SetTranslate(modelShake);
-      //ABu: koniec rzucania
-     //ABu011104: liczenie obrotow wozkow
-     if(Global::bEnableTraction) ABuBogies();
-     //McZapkie-050402: obracanie kolami
-     for (int i=0; i<iAnimatedAxles; i++)
-      if (smAnimatedWheel[i])
-       smAnimatedWheel[i]->SetRotate(vector3(1,0,0),dWheelAngle);
-         //Mczapkie-100402: rysowanie lub nie - sprzegow
+    if ((i%2)==0)
+    {
+    (smAnimatedDoor[i]->SetTranslate(vector3(0,0,1)*dDoorMoveL*DoorSpeedFactor[i]));
+    //dDoorMoveL=dDoorMoveL*DoorSpeedFactor[i];
+    }
+    else
+    {
+    (smAnimatedDoor[i]->SetTranslate(vector3(0,0,1)*dDoorMoveR*DoorSpeedFactor[i]));
+    //dDoorMoveR=dDoorMoveR*DoorSpeedFactor[i];
+    }
+   }
+   else
+   if (MoverParameters->DoorOpenMethod==2) //obrotowe albo dwojlomne (trzeba kombinowac submodelami i ShiftL=90,R=180)
+   {
+    if ((i%2)==0)
+     smAnimatedDoor[i]->SetRotate(vector3(1,0,0),dDoorMoveL);
+    else
+     smAnimatedDoor[i]->SetRotate(vector3(1,0,0),dDoorMoveR);
+   }
+  }
+ }
+ btnOn=false;
+
+  if (ObjSqrDist<160000)
+  {
+   if (ObjSqrDist<2500)
+   {
+    //ABu290105: rzucanie pudlem
+    mdModel->GetSMRoot()->SetTranslate(modelShake);
+    if (mdKabina)
+     mdKabina->GetSMRoot()->SetTranslate(modelShake);
+    if (mdLoad)
+     mdLoad->GetSMRoot()->SetTranslate(modelShake);
+    if (mdLowPolyInt)
+     mdLowPolyInt->GetSMRoot()->SetTranslate(modelShake);
+    if (mdPrzedsionek)
+     mdPrzedsionek->GetSMRoot()->SetTranslate(modelShake);
+    //ABu: koniec rzucania
+    //ABu011104: liczenie obrotow wozkow
+    if(Global::bEnableTraction) ABuBogies();
+    //McZapkie-050402: obracanie kolami
+    for (int i=0; i<iAnimatedAxles; i++)
+     if (smAnimatedWheel[i])
+      smAnimatedWheel[i]->SetRotate(vector3(1,0,0),dWheelAngle);
+    //Mczapkie-100402: rysowanie lub nie - sprzegow
     //ABu-240105: Dodatkowy warunek: if (...).Render, zeby rysowal tylko jeden
     //z polaczonych sprzegow
     if ((TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_coupler))
@@ -257,9 +256,9 @@ btnOn=false;
      {btCoupler2.TurnOn(); btnOn=true;}
     else
      btCoupler2.TurnOff();
-//********************************************************************************
-    //przewody powietrzne j.w., ABu: decyzja czy rysowac tylko na podstawie 'render' - juz nie
-    //przewody powietrzne, yB: decyzja na podstawie polaczen w t3d
+  //********************************************************************************
+  //przewody powietrzne j.w., ABu: decyzja czy rysowac tylko na podstawie 'render' - juz nie
+  //przewody powietrzne, yB: decyzja na podstawie polaczen w t3d
   if (Global::bnewAirCouplers)
    {
     SetPneumatic(false,false); //wczytywanie z t3d ulozenia wezykow
@@ -721,20 +720,20 @@ TDynamicObject* TDynamicObject::ABuScanNearestObject(TTrack *Track, double ScanD
 //ABu 01.11.04 poczatek wyliczania przechylow pudla **********************
 void __fastcall TDynamicObject::ABuModelRoll()
 {
-   double modelRoll=RadToDeg((Axle1.GetRoll()+Axle4.GetRoll())/2); //Ra: tu nie by³o DegToRad
-//   if (ABuGetDirection()<0) modelRoll=-modelRoll;
-   mdModel->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
-   if (mdKabina)
-      if(MoverParameters->ActiveCab==-1)
-         mdKabina->GetSMRoot()->SetRotateXYZ(vector3(0,-modelRoll,0));
-      else
-         mdKabina->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
-   if (mdLoad)
-      mdLoad->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
-   if (mdLowPolyInt)
-       mdLowPolyInt->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
-   if (mdPrzedsionek)
-      mdPrzedsionek->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
+ double modelRoll=RadToDeg((Axle1.GetRoll()+Axle4.GetRoll())/2); //Ra: tu nie by³o DegToRad
+ //if (ABuGetDirection()<0) modelRoll=-modelRoll;
+ mdModel->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
+ if (mdKabina)
+  if(MoverParameters->ActiveCab==-1)
+   mdKabina->GetSMRoot()->SetRotateXYZ(vector3(0,-modelRoll,0));
+  else
+   mdKabina->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
+ if (mdLoad)
+  mdLoad->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
+ if (mdLowPolyInt)
+  mdLowPolyInt->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
+ if (mdPrzedsionek)
+  mdPrzedsionek->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
 }
 
 //ABu 06.05.04 poczatek wyliczania obrotow wozkow **********************
@@ -2471,20 +2470,22 @@ if (renderme)
     else
 #endif
      mdModel->Render(ObjSqrDist,ReplacableSkinID,bAlpha);
+/* Ra: nie próbujemy wczytywaæ modeli miliony razy podczas renderowania!!!
     if ((mdLoad==NULL) && (MoverParameters->Load>0))
-     {
-      asLoadName= asBaseDir+MoverParameters->LoadType+".t3d";
-//      asLoadName=MoverParameters->LoadType;
-//      if (MoverParameters->LoadType!=AnsiString("passengers"))
-       Global::asCurrentTexturePath=asBaseDir;                    //biezaca sciezka do tekstur to dynamic/...
-       mdLoad=TModelsManager::GetModel(asLoadName.c_str());  //nowy ladunek
-       Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath); //z powrotem defaultowa sciezka do tekstur
-     }
+    {
+     asLoadName=asBaseDir+MoverParameters->LoadType+".t3d";
+     //asLoadName=MoverParameters->LoadType;
+     //if (MoverParameters->LoadType!=AnsiString("passengers"))
+     Global::asCurrentTexturePath=asBaseDir; //biezaca sciezka do tekstur to dynamic/...
+     mdLoad=TModelsManager::GetModel(asLoadName.c_str()); //nowy ladunek
+     Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath); //z powrotem defaultowa sciezka do tekstur
+    }
     if ((mdLoad==NULL) && (MoverParameters->Load>0))
      {
       mdLoad=NULL; //Ra: to jest tu bez sensu - co autor mia³ na myœli?
      }
-    if (mdLoad!=NULL)
+*/
+    if (mdLoad) //renderowanie nieprzezroczystego ³adunku
 #ifdef USE_VBO
      if (Global::bUseVBO)
       mdLoad->RaRender(ObjSqrDist,ReplacableSkinID,bAlpha);
@@ -3051,24 +3052,24 @@ if (renderme)
 
 //McZapkie-250202
 //wczytywanie pliku z danymi multimedialnymi (dzwieki)
-void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName, AnsiString ReplacableSkin)
+void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString TypeName,AnsiString ReplacableSkin)
 {
     double dSDist;
     TFileStream *fs;
-    AnsiString asFileName= BaseDir+TypeName+".mmd";
-    AnsiString asLoadName= BaseDir+MoverParameters->LoadType+".t3d";
-    fs= new TFileStream(asFileName , fmOpenRead	| fmShareCompat	);
-    AnsiString str= "";
-    int size= fs->Size;
+    AnsiString asFileName=BaseDir+TypeName+".mmd";
+    AnsiString asLoadName=BaseDir+MoverParameters->LoadType+".t3d";
+    fs= new TFileStream(asFileName,fmOpenRead|fmShareCompat);
+    AnsiString str="";
+    int size=fs->Size;
     AnsiString asAnimName="";
-    bool Stop_InternalData= false;
+    bool Stop_InternalData=false;
     str.SetLength(size);
     fs->Read(str.c_str(),size);
-    str+= "";
+    str+="";
     delete fs;
     TQueryParserComp *Parser;
-    Parser= new TQueryParserComp(NULL);
-    Parser->TextToParse= str;
+    Parser=new TQueryParserComp(NULL);
+    Parser->TextToParse=str;
 //    Parser->LoadStringToParse(asFile);
     Parser->First();
 //    DecimalSeparator= '.';
@@ -3126,8 +3127,8 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString Ty
              MoverParameters->PantRear(true);
             }
            }
-           else
-            mdLoad= TModelsManager::GetModel(asLoadName.c_str());  //ladunek
+           else //Ra: tu wczytywanie modelu ³adunku jest w porz¹dku
+            mdLoad=TModelsManager::GetModel(asLoadName.c_str());  //ladunek
           Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath); //z powrotem defaultowa sciezka do tekstur
           while (!Parser->EndOfFile && str!=AnsiString("endmodels"))
           {
