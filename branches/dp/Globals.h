@@ -165,6 +165,9 @@ public:
  static GLfloat ambientDayLight[];
  static GLfloat diffuseDayLight[];
  static GLfloat specularDayLight[];
+ static GLfloat ambientLight[];
+ static GLfloat diffuseLight[];
+ static GLfloat specularLight[];
  static GLfloat whiteLight[];
  static GLfloat noLight[];
  static GLfloat darkLight[];

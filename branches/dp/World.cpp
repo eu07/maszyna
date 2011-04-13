@@ -239,16 +239,11 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
     Global::lightPos[2]=lp.z;
     Global::lightPos[3]=0.0f;
 
-    if (Global::bDoubleAmbient)
-    {//Ra: wczeœniej by³o ambient dane na obydwa œwiat³a
-     WriteLog("glLightModelfv(GL_LIGHT_MODEL_AMBIENT,ambientLight);");
-     glLightModelfv(GL_LIGHT_MODEL_AMBIENT,Global::ambientDayLight);
-    }
-    else
-    {//Ra: szcz¹tkowe œwiat³o rozproszone - ¿eby by³o cokolwiek widaæ w ciemnoœci
-     WriteLog("glLightModelfv(GL_LIGHT_MODEL_AMBIENT,darkLight);");
-     glLightModelfv(GL_LIGHT_MODEL_AMBIENT,Global::darkLight);
-    }
+    //Ra: œwiat³a by sensowniej by³o ustawiaæ po wczytaniu scenerii
+
+    //Ra: szcz¹tkowe œwiat³o rozproszone - ¿eby by³o cokolwiek widaæ w ciemnoœci
+    WriteLog("glLightModelfv(GL_LIGHT_MODEL_AMBIENT,darkLight);");
+    glLightModelfv(GL_LIGHT_MODEL_AMBIENT,Global::darkLight);
 
     //Ra: œwiat³o 0 - g³ówne œwiat³o zewnêtrzne (S³oñce, Ksiê¿yc)
     WriteLog("glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);");
@@ -591,7 +586,7 @@ bool __fastcall TWorld::Update()
  if (Global::fMoveLight>0)
  {//testowo ruch œwiat³a
   double a=GlobalTime->mr/30.0*M_PI-M_PI; //k¹t godzinny (na razie kó³ko w minutê)
-  double L=52/180*M_PI; //szerokoœæ geograficzna
+  double L=52.0/180.0*M_PI; //szerokoœæ geograficzna
   double H=asin(cos(L)*cos(Global::fSunDeclination)*cos(a)+sin(L)*sin(Global::fSunDeclination));
   //double A=asin(cos(d)*sin(M_PI-a)/cos(H));
 //Declination=((0.322003-22.971*cos(t)-0.357898*cos(2*t)-0.14398*cos(3*t)+3.94638*sin(t)+0.019334*sin(2*t)+0.05928*sin(3*t)))*Pi/180
@@ -599,18 +594,47 @@ bool __fastcall TWorld::Update()
 //Azimuth=(acos((cos(latitude)*sin(Declination)-cos(Declination)*sin(latitude)*cos((15*(time-12))*(Pi/180)))/cos(Altitude)));
   //double A=acos(cos(L)*sin(d)-cos(d)*sin(L)*cos(M_PI-a)/cos(H));
 //dAzimuth = atan2(-sin( dHourAngle ),tan( dDeclination )*dCos_Latitude - dSin_Latitude*dCos_HourAngle );
-  double A=atan2(-sin(a),tan(Global::fSunDeclination)*cos(L)-sin(L)*cos(a));
+  double A=atan2(sin(a),tan(Global::fSunDeclination)*cos(L)-sin(L)*cos(a));
   vector3 lp=vector3(sin(A),tan(H),cos(A));
   lp=Normalize(lp);
   Global::lightPos[0]=(float)lp.x;
   Global::lightPos[1]=(float)lp.y;
   Global::lightPos[2]=(float)lp.z;
   glLightfv(GL_LIGHT0,GL_POSITION,Global::lightPos);        //daylight position
+  if (H>0)
+  {//s³oñce ponad horyzontem
+   Global::ambientDayLight[0]=Global::ambientLight[0];
+   Global::ambientDayLight[1]=Global::ambientLight[1];
+   Global::ambientDayLight[2]=Global::ambientLight[2];
+   Global::diffuseDayLight[0]=Global::diffuseLight[0]; //od wschodu do zachodu maksimum ???
+   Global::diffuseDayLight[1]=Global::diffuseLight[1]; //od wschodu do zachodu maksimum ???
+   Global::diffuseDayLight[2]=Global::diffuseLight[2]; //od wschodu do zachodu maksimum ???
+   Global::specularDayLight[0]=Global::specularLight[0]; //podobnie specular
+   Global::specularDayLight[1]=Global::specularLight[1]; //podobnie specular
+   Global::specularDayLight[2]=Global::specularLight[2]; //podobnie specular
+  }
+  else
+  {//s³oñce pod horyzontem
+   GLfloat lum=2.5*(H>-0.314159?0.314159+H:0.0);
+   Global::ambientDayLight[0]=lum;
+   Global::ambientDayLight[1]=lum;
+   Global::ambientDayLight[2]=lum;
+   Global::diffuseDayLight[0]=Global::noLight[0]; //od zachodu do wschodu nie ma diffuse
+   Global::diffuseDayLight[1]=Global::noLight[1]; //od zachodu do wschodu nie ma diffuse
+   Global::diffuseDayLight[2]=Global::noLight[2]; //od zachodu do wschodu nie ma diffuse
+   Global::specularDayLight[0]=Global::noLight[0]; //ani specular
+   Global::specularDayLight[1]=Global::noLight[1]; //ani specular
+   Global::specularDayLight[2]=Global::noLight[2]; //ani specular
+  }
   // Calculate sky colour according to time of day.
   //GLfloat sin_t = sin(PI * time_of_day / 12.0);
   //back_red = 0.3 * (1.0 - sin_t);
   //back_green = 0.9 * sin_t;
   //back_blue = sin_t + 0.4, 1.0;
+  //aktualizacja œwiate³
+  glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
+  glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
+  glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
  }
 
  /*
@@ -890,14 +914,17 @@ bool __fastcall TWorld::Update()
 
  if (Global::fMoveLight>0)
  {//tymczasowy "zegar s³oneczny"
-  float x=2.0f,y=3.0f,z=0.0f;
+  float x=0.0f,y=10.0f,z=0.0f;
   glColor3f(1.0f,1.0f,1.0f);
   glDisable(GL_LIGHTING);
   glBegin(GL_LINES);		        // Drawing using triangles
+   x+=2.0*Global::lightPos[0];
+   y+=2.0*Global::lightPos[1];
+   z+=2.0*Global::lightPos[2];
    glVertex3f(x,y,z);
-   x+=Global::lightPos[0];
-   y+=Global::lightPos[1];
-   z+=Global::lightPos[2];
+   x+=8.0*Global::lightPos[0];
+   y+=8.0*Global::lightPos[1];
+   z+=8.0*Global::lightPos[2];
    glVertex3f(x,y,z); //wskazuje kierunek S³oñca
   glEnd();
   glEnable(GL_LIGHTING);

@@ -1857,6 +1857,10 @@ bool __fastcall TGround::Init(AnsiString asFile)
          parser.getTokens(); parser >> Global::specularDayLight[2];
   	 glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight); //kolor odbity
 
+         //musi byæ tutaj, bo wczeœniej nie mieliœmy wartoœci œwiat³a
+         if (Global::bDoubleAmbient) //Ra: wczeœniej by³o ambient dawane na obydwa œwiat³a
+          glLightModelfv(GL_LIGHT_MODEL_AMBIENT,Global::ambientDayLight);
+
          glEnable(GL_LIGHTING);
          do
           {  parser.getTokens(); parser >> token;
