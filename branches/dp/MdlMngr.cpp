@@ -110,7 +110,7 @@ TModel3d*  __fastcall TModelsManager::LoadModel(char *Name)
  HANDLE handle=FindFirstFile(Name,&FindFileData);
  if (handle==INVALID_HANDLE_VALUE)
  {
-  WriteLog("Missed model "+AnsiString(Name));
+  //WriteLog("Missed model "+AnsiString(Name));
   return NULL; //zg³oszenie b³êdu wy¿ej
  }
  else

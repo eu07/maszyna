@@ -128,7 +128,7 @@ inline void readMatrix(cParser& parser,matrix4x4& matrix)
    parser.getToken(matrix(x)[y]);
 };
 
-int __fastcall TSubModel::Load(cParser& parser,int NIndex,TModel3d *Model,int Pos)
+int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
 {//Ra: VBO tworzone na poziomie modelu, a nie submodeli
  iNumVerts=0;
  iVboPtr=Pos; //pozycja w VBO
@@ -861,7 +861,7 @@ __fastcall TModel3d::TModel3d()
 //    Materials=NULL;
 //    MaterialsCount=0;
  Root=NULL;
- SubModelsCount=0;
+ //SubModelsCount=0;
  iFlags=0;
 //    ReplacableSkinID=0;
 };
@@ -933,9 +933,9 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName)
   parser.getToken(parent);
   if (parent=="") break;
   SubModel=new TSubModel();
-  totalverts+=SubModel->Load(parser,SubModelsCount,this,totalverts);
+  totalverts+=SubModel->Load(parser,this,totalverts);
   if (!AddTo(parent.c_str(),SubModel)) delete SubModel;
-  SubModelsCount++;
+  //SubModelsCount++;
   parser.getToken(token);
  }
  matrix4x4 *mat,tmp;
