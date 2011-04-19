@@ -103,7 +103,7 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 bool Global::bMultiplayer=false; //blokada dzia³ania niektórych eventów na rzecz kominikacji
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asVersion="Compilation 2011-04-14, release 1.3.110.148."; //tutaj, bo wysy³any
+AnsiString Global::asVersion="Compilation 2011-04-19, release 1.3.114.149."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 GLint Global::iMaxTextureSize=16384;//maksymalny rozmiar tekstury
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
@@ -111,6 +111,8 @@ bool Global::bDoubleAmbient=true; //podwójna jasnoœæ ambient
 double Global::fMoveLight=-1; //ruchome œwiat³o
 bool Global::bSmoothTraction=false; //wyg³adzanie drutów
 double Global::fSunDeclination=0.0; //deklinacja S³oñca
+double Global::fSunSpeed=1.0; //prêdkoœæ ruchu S³oñca, zmienna do testów
+double Global::fTimeAngleDeg=0.0; //godzina w postaci k¹ta
 
 void __fastcall Global::LoadIniFile(AnsiString asFileName)
 {
@@ -267,6 +269,8 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
         }
         else if (str==AnsiString("smoothtraction")) //podwójna jasnoœæ ambient
          bSmoothTraction=(Parser->GetNextSymbol().LowerCase()==AnsiString("yes"));
+        else if (str==AnsiString("sunspeed")) //prêdkoœæ ruchu S³oñca, zmienna do testów
+         fSunSpeed=Parser->GetNextSymbol().ToIntDef(1);
     }
  if (!bLoadTraction)
  {//tutaj wy³¹czenie, bo mog¹ nie byæ zdefiniowane w INI
