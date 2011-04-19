@@ -478,6 +478,13 @@ TTexturesManager::AlphaValue TTexturesManager::LoadDDS(std::string fileName)
     SetFiltering(true, fileName.find('#') != std::string::npos);
 
     GLuint offset = 0;
+    
+    while(data.width > Global::iMaxTextureSize || data.height > Global::iMaxTextureSize)
+    {
+        offset += ((data.width + 3) / 4) * ((data.height+3)/4) * data.blockSize;
+        data.width /= 2;
+        data.height /= 2;
+    };
 
     // Load the mip-map levels
     for (int i = 0; i < data.numMipMaps; i++)
