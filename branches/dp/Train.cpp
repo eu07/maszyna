@@ -410,7 +410,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
               }
               else
               {
-                 int CouplNr=-2;              
+                 int CouplNr=-2;
                  TDynamicObject *temp;
                  temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 500, CouplNr));
                  if (temp==NULL)
@@ -583,7 +583,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
          }
       }
    }
-  else                   //McZapkie-240302 - klawisze bez shifta
+  else //McZapkie-240302 - klawisze bez shifta
    {
       if (cKey==Global::Keys[k_IncMainCtrl])
       {

@@ -549,54 +549,50 @@ void __fastcall TWorld::OnKeyPress(int cKey)
 
 
 void __fastcall TWorld::OnMouseMove(double x, double y)
-{
-//McZapkie:060503-definicja obracania myszy
-    Camera.OnCursorMove(x*Global::fMouseXScale,-y*Global::fMouseYScale);
+{//McZapkie:060503-definicja obracania myszy
+ Camera.OnCursorMove(x*Global::fMouseXScale,-y*Global::fMouseYScale);
 }
 
 bool __fastcall TWorld::Update()
 {
- vector3 tmpvector = Global::GetCameraPosition();
-
-    tmpvector = vector3(
-        - int(tmpvector.x) + int(tmpvector.x) % 10000,
-        - int(tmpvector.y) + int(tmpvector.y) % 10000,
-        - int(tmpvector.z) + int(tmpvector.z) % 10000);
-
 #ifdef USE_SCENERY_MOVING
-    if(tmpvector.x || tmpvector.y || tmpvector.z)
-    {
-        WriteLog("Moving scenery");
-        Ground.MoveGroundNode(tmpvector);
-        WriteLog("Scenery moved");
-    };
+ vector3 tmpvector = Global::GetCameraPosition();
+ tmpvector = vector3(
+  -int(tmpvector.x)+int(tmpvector.x)%10000,
+  -int(tmpvector.y)+int(tmpvector.y)%10000,
+  -int(tmpvector.z)+int(tmpvector.z)%10000);
+ if(tmpvector.x || tmpvector.y || tmpvector.z)
+ {
+  WriteLog("Moving scenery");
+  Ground.MoveGroundNode(tmpvector);
+  WriteLog("Scenery moved");
+ };
 #endif
+ if (GetFPS()<12)
+  Global::slowmotion=true;
+ else
+  if (GetFPS()>15)
+   Global::slowmotion=false;
+ UpdateTimers();
+ GlobalTime->UpdateMTableTime(GetDeltaTime()); //McZapkie-300302: czas rozkladowy
 
-    if (GetFPS()<12)
-          {  Global::slowmotion=true;  }
-       else
-          {
-             if (GetFPS()>15)
-                Global::slowmotion=false;
-          };
-
-    UpdateTimers();
-    GlobalTime->UpdateMTableTime(GetDeltaTime()); //McZapkie-300302: czas rozkladowy
-
- if (Global::fMoveLight>0)
+ //Ra: przeliczenie k¹ta czasu (do animacji zale¿nych od czasu)
+ Global::fTimeAngleDeg=GlobalTime->hh*15.0+GlobalTime->mm*0.25+GlobalTime->mr/240.0;
+ if (Global::fMoveLight>0.0)
  {//testowo ruch œwiat³a
-  double a=GlobalTime->mr/30.0*M_PI-M_PI; //k¹t godzinny (na razie kó³ko w minutê)
+  //double a=Global::fTimeAngleDeg/180.0*M_PI-M_PI; //k¹t godzinny w radianach
+  double a=fmod(Global::fSunSpeed*Global::fTimeAngleDeg,360.0)/180.0*M_PI-M_PI; //k¹t godzinny w radianach
   double L=52.0/180.0*M_PI; //szerokoœæ geograficzna
   double H=asin(cos(L)*cos(Global::fSunDeclination)*cos(a)+sin(L)*sin(Global::fSunDeclination));
   //double A=asin(cos(d)*sin(M_PI-a)/cos(H));
-//Declination=((0.322003-22.971*cos(t)-0.357898*cos(2*t)-0.14398*cos(3*t)+3.94638*sin(t)+0.019334*sin(2*t)+0.05928*sin(3*t)))*Pi/180
-//Altitude=asin(sin(Declination)*sin(latitude)+cos(Declination)*cos(latitude)*cos((15*(time-12))*(Pi/180)));
-//Azimuth=(acos((cos(latitude)*sin(Declination)-cos(Declination)*sin(latitude)*cos((15*(time-12))*(Pi/180)))/cos(Altitude)));
+  //Declination=((0.322003-22.971*cos(t)-0.357898*cos(2*t)-0.14398*cos(3*t)+3.94638*sin(t)+0.019334*sin(2*t)+0.05928*sin(3*t)))*Pi/180
+  //Altitude=asin(sin(Declination)*sin(latitude)+cos(Declination)*cos(latitude)*cos((15*(time-12))*(Pi/180)));
+  //Azimuth=(acos((cos(latitude)*sin(Declination)-cos(Declination)*sin(latitude)*cos((15*(time-12))*(Pi/180)))/cos(Altitude)));
   //double A=acos(cos(L)*sin(d)-cos(d)*sin(L)*cos(M_PI-a)/cos(H));
-//dAzimuth = atan2(-sin( dHourAngle ),tan( dDeclination )*dCos_Latitude - dSin_Latitude*dCos_HourAngle );
+  //dAzimuth = atan2(-sin( dHourAngle ),tan( dDeclination )*dCos_Latitude - dSin_Latitude*dCos_HourAngle );
   double A=atan2(sin(a),tan(Global::fSunDeclination)*cos(L)-sin(L)*cos(a));
   vector3 lp=vector3(sin(A),tan(H),cos(A));
-  lp=Normalize(lp);
+  lp=Normalize(lp); //przeliczenie na wektor d³ugoœci 1.0
   Global::lightPos[0]=(float)lp.x;
   Global::lightPos[1]=(float)lp.y;
   Global::lightPos[2]=(float)lp.z;
@@ -607,24 +603,24 @@ bool __fastcall TWorld::Update()
    Global::ambientDayLight[1]=Global::ambientLight[1];
    Global::ambientDayLight[2]=Global::ambientLight[2];
    Global::diffuseDayLight[0]=Global::diffuseLight[0]; //od wschodu do zachodu maksimum ???
-   Global::diffuseDayLight[1]=Global::diffuseLight[1]; //od wschodu do zachodu maksimum ???
-   Global::diffuseDayLight[2]=Global::diffuseLight[2]; //od wschodu do zachodu maksimum ???
+   Global::diffuseDayLight[1]=Global::diffuseLight[1];
+   Global::diffuseDayLight[2]=Global::diffuseLight[2];
    Global::specularDayLight[0]=Global::specularLight[0]; //podobnie specular
-   Global::specularDayLight[1]=Global::specularLight[1]; //podobnie specular
-   Global::specularDayLight[2]=Global::specularLight[2]; //podobnie specular
+   Global::specularDayLight[1]=Global::specularLight[1];
+   Global::specularDayLight[2]=Global::specularLight[2];
   }
   else
   {//s³oñce pod horyzontem
-   GLfloat lum=2.5*(H>-0.314159?0.314159+H:0.0);
+   GLfloat lum=2.5*(H>-0.314159?0.314159+H:0.0); //po zachodzie ambient siê œciemnia
    Global::ambientDayLight[0]=lum;
    Global::ambientDayLight[1]=lum;
    Global::ambientDayLight[2]=lum;
    Global::diffuseDayLight[0]=Global::noLight[0]; //od zachodu do wschodu nie ma diffuse
-   Global::diffuseDayLight[1]=Global::noLight[1]; //od zachodu do wschodu nie ma diffuse
-   Global::diffuseDayLight[2]=Global::noLight[2]; //od zachodu do wschodu nie ma diffuse
+   Global::diffuseDayLight[1]=Global::noLight[1];
+   Global::diffuseDayLight[2]=Global::noLight[2];
    Global::specularDayLight[0]=Global::noLight[0]; //ani specular
-   Global::specularDayLight[1]=Global::noLight[1]; //ani specular
-   Global::specularDayLight[2]=Global::noLight[2]; //ani specular
+   Global::specularDayLight[1]=Global::noLight[1];
+   Global::specularDayLight[2]=Global::noLight[2];
   }
   // Calculate sky colour according to time of day.
   //GLfloat sin_t = sin(PI * time_of_day / 12.0);
@@ -691,7 +687,7 @@ bool __fastcall TWorld::Update()
        }
        lastmm=GlobalTime->mm;
     }
-	   */
+    */
 
     if (Pressed(VK_LBUTTON)&&Controlled)
     {
@@ -726,7 +722,7 @@ bool __fastcall TWorld::Update()
        Camera.Pitch-=atan(Train->vMechVelocity.z*Train->fMechPitch);  //hustanie kamery przod tyl
        if (Train->DynamicObject->MoverParameters->ActiveCab==0)
         Camera.LookAt=Train->pMechPosition+Train->GetDirection();
-       else  //patrz w strone wlasciwej kabiny
+       else //patrz w strone wlasciwej kabiny
         Camera.LookAt=Train->pMechPosition+Train->GetDirection()*Train->DynamicObject->MoverParameters->ActiveCab;
        Train->pMechOffset.x=Train->pMechSittingPosition.x;
        Train->pMechOffset.y=Train->pMechSittingPosition.y;
@@ -741,45 +737,44 @@ bool __fastcall TWorld::Update()
     }
     Camera.Update(); //uwzglêdnienie ruchu wywo³anego klawiszami
 
-    double dt= GetDeltaTime();
+    double dt=GetDeltaTime();
     double iter;
-    int n= 1;
+    int n=1;
     if (dt>fMaxDt)
     {
-        iter= ceil(dt/fMaxDt);
-        n= iter;
-        dt= dt/iter;
+     iter=ceil(dt/fMaxDt);
+     n=iter;
+     dt=dt/iter;
     }
-    if (n>20)
-        n= 20; //McZapkie-081103: przesuniecie granicy FPS z 10 na 5
+    if (n>20) n=20; //McZapkie-081103: przesuniecie granicy FPS z 10 na 5
     //blablabla
     //Sleep(50);
     Ground.Update(dt,n); //ABu: zamiast 'n' bylo: 'Camera.Type==tp_Follow'
-//        Ground.Update(0.01,Camera.Type==tp_Follow);
-    dt= GetDeltaTime();
+    //Ground.Update(0.01,Camera.Type==tp_Follow);
+    dt=GetDeltaTime();
     if (Camera.Type==tp_Follow)
     {
-        Train->UpdateMechPosition(dt);
-        Camera.Pos= Train->pMechPosition;//Train.GetPosition1();
-        Camera.Roll= atan(Train->pMechShake.x*Train->fMechRoll);       //hustanie kamery na boki
-        Camera.Pitch-= atan(Train->vMechVelocity.z*Train->fMechPitch);  //hustanie kamery przod tyl
-        //ABu011104: rzucanie pudlem
-            vector3 temp;
-            if (abs(Train->pMechShake.y)<0.25)
-               temp=vector3(0,0,6*Train->pMechShake.y);
-            else
-               if ((Train->pMechShake.y)>0)
-                  temp=vector3(0,0,6*0.25);
-               else
-                  temp=vector3(0,0,-6*0.25);
-            if (Controlled) Controlled->ABuSetModelShake(temp);
-        //ABu: koniec rzucania
+     Train->UpdateMechPosition(dt);
+     Camera.Pos=Train->pMechPosition;//Train.GetPosition1();
+     Camera.Roll=atan(Train->pMechShake.x*Train->fMechRoll);       //hustanie kamery na boki
+     Camera.Pitch-=atan(Train->vMechVelocity.z*Train->fMechPitch);  //hustanie kamery przod tyl
+     //ABu011104: rzucanie pudlem
+     vector3 temp;
+     if (abs(Train->pMechShake.y)<0.25)
+      temp=vector3(0,0,6*Train->pMechShake.y);
+     else
+      if ((Train->pMechShake.y)>0)
+       temp=vector3(0,0,6*0.25);
+      else
+       temp=vector3(0,0,-6*0.25);
+     if (Controlled) Controlled->ABuSetModelShake(temp);
+     //ABu: koniec rzucania
 
-        if (Train->DynamicObject->MoverParameters->ActiveCab==0)
-          Camera.LookAt= Train->pMechPosition+Train->GetDirection();
-        else  //patrz w strone wlasciwej kabiny
-         Camera.LookAt= Train->pMechPosition+Train->GetDirection()*Train->DynamicObject->MoverParameters->ActiveCab; //-1 albo 1
-        Camera.vUp= Train->GetUp();
+     if (Train->DynamicObject->MoverParameters->ActiveCab==0)
+      Camera.LookAt=Train->pMechPosition+Train->GetDirection();
+     else  //patrz w strone wlasciwej kabiny
+      Camera.LookAt=Train->pMechPosition+Train->GetDirection()*Train->DynamicObject->MoverParameters->ActiveCab; //-1 albo 1
+     Camera.vUp= Train->GetUp();
     }
 
     Ground.CheckQuery();
@@ -821,7 +816,7 @@ bool __fastcall TWorld::Update()
   Global::fLuminance= //to pos³u¿y równie¿ do zapalania latarñ
    +0.150*(Global::diffuseDayLight[0]+Global::ambientDayLight[0])  //R
    +0.295*(Global::diffuseDayLight[1]+Global::ambientDayLight[1])  //G
-   +0.055*(Global::diffuseDayLight[0]+Global::ambientDayLight[0]); //B
+   +0.055*(Global::diffuseDayLight[2]+Global::ambientDayLight[2]); //B
   if (Global::fLuminance<=0.25)
    {
     glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_ONE);

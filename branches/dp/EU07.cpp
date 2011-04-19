@@ -223,26 +223,25 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
 		// locate primary monitor...
 		if (Global::bAdjustScreenFreq)
 		{
-			POINT point; point.x = 0; point.y = 0;
-			MONITORINFOEX monitorinfo; monitorinfo.cbSize = sizeof( MONITORINFOEX);
-			::GetMonitorInfo( ::MonitorFromPoint( point, MONITOR_DEFAULTTOPRIMARY), &monitorinfo );
-			//  ..and query for highest supported refresh rate
-			unsigned int refreshrate = 0;
-			int i = 0;
-			while( ::EnumDisplaySettings( monitorinfo.szDevice, i, &dmScreenSettings ) )
-			{
-				if( i > 0 )
-					if ( dmScreenSettings.dmPelsWidth  == width &&
-						dmScreenSettings.dmPelsHeight == height &&
-						dmScreenSettings.dmBitsPerPel == (unsigned int)bits
-						)
-						if( dmScreenSettings.dmDisplayFrequency > refreshrate )
-							refreshrate = dmScreenSettings.dmDisplayFrequency;
-				++i;
-			}
-			// fill refresh rate info for screen mode change
-			dmScreenSettings.dmDisplayFrequency = refreshrate;
-			dmScreenSettings.dmFields = DM_DISPLAYFREQUENCY;
+		 POINT point; point.x=0; point.y=0;
+		 MONITORINFOEX monitorinfo; monitorinfo.cbSize=sizeof(MONITORINFOEX);
+		 ::GetMonitorInfo( ::MonitorFromPoint(point,MONITOR_DEFAULTTOPRIMARY),&monitorinfo);
+		 //  ..and query for highest supported refresh rate
+		 unsigned int refreshrate=0;
+		 int i=0;
+		 while (::EnumDisplaySettings(monitorinfo.szDevice,i,&dmScreenSettings))
+		 {
+		  if (i>0)
+		   if (dmScreenSettings.dmPelsWidth==(unsigned int)width)
+		    if (dmScreenSettings.dmPelsHeight==(unsigned int)height)
+		     if (dmScreenSettings.dmBitsPerPel==(unsigned int)bits)
+                      if (dmScreenSettings.dmDisplayFrequency>refreshrate)
+                       refreshrate=dmScreenSettings.dmDisplayFrequency;
+		  ++i;
+		 }
+		 // fill refresh rate info for screen mode change
+		 dmScreenSettings.dmDisplayFrequency=refreshrate;
+		 dmScreenSettings.dmFields=DM_DISPLAYFREQUENCY;
 		}
 		dmScreenSettings.dmPelsWidth	= width;				// Selected Screen Width
 		dmScreenSettings.dmPelsHeight	= height;				// Selected Screen Height

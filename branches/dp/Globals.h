@@ -200,6 +200,8 @@ public:
  static double fMoveLight; //numer dnia w roku albo -1
  static bool bSmoothTraction; //wyg³adzanie drutów
  static double fSunDeclination; //deklinacja S³oñca
+ static double fSunSpeed; //prêdkoœæ ruchu S³oñca, zmienna do testów
+ static double fTimeAngleDeg; //godzina w postaci k¹ta
 };
 
 //---------------------------------------------------------------------------

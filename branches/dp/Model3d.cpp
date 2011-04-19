@@ -496,10 +496,10 @@ void __fastcall TSubModel::RaAnimation(TAnimType a)
   case at_MinutesJump: //minuty z przeskokiem
    glRotatef(GlobalTime->mm*6.0,0.0,1.0,0.0);
    break;
-  case at_HoursJump: //godziny p³ynnie 12h/360°
+  case at_HoursJump: //godziny skokowo 12h/360°
    glRotatef(GlobalTime->hh*30.0*0.5,0.0,1.0,0.0);
    break;
-  case at_Hours24Jump: //godziny p³ynnie 24h/360°
+  case at_Hours24Jump: //godziny skokowo 24h/360°
    glRotatef(GlobalTime->hh*15.0*0.25,0.0,1.0,0.0);
    break;
   case at_Seconds: //sekundy p³ynnie
@@ -509,10 +509,12 @@ void __fastcall TSubModel::RaAnimation(TAnimType a)
    glRotatef(GlobalTime->mm*6.0+GlobalTime->mr*0.1,0.0,1.0,0.0);
    break;
   case at_Hours: //godziny p³ynnie 12h/360°
-   glRotatef(GlobalTime->hh*30.0+GlobalTime->mm*0.5+GlobalTime->mr/120.0,0.0,1.0,0.0);
+   //glRotatef(GlobalTime->hh*30.0+GlobalTime->mm*0.5+GlobalTime->mr/120.0,0.0,1.0,0.0);
+   glRotatef(0.5*Global::fTimeAngleDeg,0.0,1.0,0.0);
    break;
   case at_Hours24: //godziny p³ynnie 24h/360°
-   glRotatef(GlobalTime->hh*15.0+GlobalTime->mm*0.25+GlobalTime->mr/240.0,0.0,1.0,0.0);
+   //glRotatef(GlobalTime->hh*15.0+GlobalTime->mm*0.25+GlobalTime->mr/240.0,0.0,1.0,0.0);
+   glRotatef(Global::fTimeAngleDeg,0.0,1.0,0.0);
    break;
   case at_Billboard: //obrót w pionie do kamery
    {matrix4x4 mat; //potrzebujemy wspó³rzêdne przesuniêcia œrodka uk³adu wspó³rzêdnych submodelu
