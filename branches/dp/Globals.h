@@ -140,7 +140,7 @@ public:
  static double fFogStart;
  static double fFogEnd;
  static TGround *pGround;
- static std::string szDefaultExt;
+ static char** szDefaultExt;
  static char szSceneryFile[256];
  static char CreatorName1[20];
  static char CreatorName2[20];
@@ -202,6 +202,8 @@ public:
  static double fSunDeclination; //deklinacja S³oñca
  static double fSunSpeed; //prêdkoœæ ruchu S³oñca, zmienna do testów
  static double fTimeAngleDeg; //godzina w postaci k¹ta
+ static char* szTexturesTGA[4]; //lista tekstur od TGA
+ static char* szTexturesDDS[4]; //lista tekstur od DDS
 };
 
 //---------------------------------------------------------------------------
