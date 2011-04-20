@@ -109,9 +109,23 @@ GLuint TTexturesManager::GetTextureID(std::string fileName,int filter)
         fileName.insert(0, szDefaultTexturePath);
 
     if (fileName.find('.') == std::string::npos)
-    {
-        fileName.append(".");
-        fileName.append(Global::szDefaultExt);
+    {//Ra: wypróbowanie rozszerzeñ po kolei, zaczynaj¹c od szDefaultExt
+     fileName.append(".");
+     std::string test;
+     for (int i=0;i<4;++i)
+     {test=fileName;
+      test.append(Global::szDefaultExt[i]);
+      std::ifstream file(test.c_str());
+      if (!file.is_open())
+      {test.insert(0,szDefaultTexturePath);
+       file.open(test.c_str());
+      }
+      if (file.is_open())
+      {
+       fileName.append(Global::szDefaultExt[i]); //dopisanie znalezionego
+       file.close();
+      }
+     }
     };
 
     Names::iterator iter = _names.find(fileName);
@@ -399,7 +413,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTEX(std::string fileName)
 
 };
 
-TTexturesManager::AlphaValue TTexturesManager::LoadDDS(std::string fileName)
+TTexturesManager::AlphaValue TTexturesManager::LoadDDS(std::string fileName,int filter)
 {
 
     AlphaValue fail(0, false);

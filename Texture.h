@@ -29,7 +29,7 @@ private:
     static AlphaValue LoadBMP(std::string fileName);
     static AlphaValue LoadTEX(std::string fileName);
     static AlphaValue LoadTGA(std::string fileName,int filter=-1);
-    static AlphaValue LoadDDS(std::string fileName);
+    static AlphaValue LoadDDS(std::string fileName,int filter=-1);
 
     static void SetFiltering(int filter);
     static void SetFiltering(bool alpha, bool hash);
