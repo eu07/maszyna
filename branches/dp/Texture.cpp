@@ -65,16 +65,16 @@ TTexturesManager::Names::iterator TTexturesManager::LoadFromFile(std::string fil
 
     AlphaValue texinfo;
 
-    if (ext == "tga")
-        texinfo = LoadTGA(realFileName,filter);
-    else if (ext == "tex")
-        texinfo = LoadTEX(realFileName);
-    else if (ext == "bmp")
-        texinfo = LoadBMP(realFileName);
-    else if (ext == "dds")
-        texinfo = LoadDDS(realFileName);
+    if (ext=="tga")
+     texinfo=LoadTGA(realFileName,filter);
+    else if (ext=="tex")
+     texinfo=LoadTEX(realFileName);
+    else if (ext=="bmp")
+     texinfo=LoadBMP(realFileName);
+    else if (ext=="dds")
+     texinfo=LoadDDS(realFileName,filter);
 
-    _alphas.insert(texinfo);
+    _alphas.insert(texinfo); //zapamiêtanie stanu przezroczystoœci tekstury - mo¿na by tylko przezroczyste
     std::pair<Names::iterator, bool> ret = _names.insert(std::make_pair(fileName, texinfo.first));
 
     if(!texinfo.first)
@@ -84,7 +84,7 @@ TTexturesManager::Names::iterator TTexturesManager::LoadFromFile(std::string fil
     };
 
     _alphas.insert(texinfo);
-    ret = _names.insert(std::make_pair(fileName, texinfo.first));
+    ret=_names.insert(std::make_pair(fileName,texinfo.first)); //dodanie tekstury do magazynu (spisu nazw)
 
     WriteLog("OK");
     return ret.first;
@@ -100,49 +100,55 @@ struct ReplaceSlash
 };
 
 GLuint TTexturesManager::GetTextureID(std::string fileName,int filter)
-{
-
-    std::transform(fileName.begin(), fileName.end(), fileName.begin(), ReplaceSlash());
-
-    // jesli biezaca sciezka do tekstur nie zostala dodana to dodajemy defaultowa
-    if (fileName.find('\\') == std::string::npos)
-        fileName.insert(0, szDefaultTexturePath);
-
-    if (fileName.find('.') == std::string::npos)
-    {//Ra: wypróbowanie rozszerzeñ po kolei, zaczynaj¹c od szDefaultExt
-     fileName.append(".");
-     std::string test;
-     for (int i=0;i<4;++i)
-     {test=fileName;
-      test.append(Global::szDefaultExt[i]);
-      std::ifstream file(test.c_str());
-      if (!file.is_open())
-      {test.insert(0,szDefaultTexturePath);
-       file.open(test.c_str());
-      }
-      if (file.is_open())
-      {
-       fileName.append(Global::szDefaultExt[i]); //dopisanie znalezionego
-       file.close();
-      }
-     }
-    };
-
-    Names::iterator iter = _names.find(fileName);
-
-    if (iter == _names.end())
-        iter = LoadFromFile(fileName,filter);
-
-    return (iter != _names.end() ? iter->second : 0);
-
+{//ustalenie numeru tekstury, wczytanie jeœli nie jeszcze takiej nie by³o
+ std::transform(fileName.begin(),fileName.end(),fileName.begin(),ReplaceSlash());
+ //jeœli bie¿aca œcie¿ka do tekstur nie zosta³a dodana to dodajemy domyœln¹
+ if (fileName.find('\\')==std::string::npos)
+  fileName.insert(0,szDefaultTexturePath);
+ Names::iterator iter;
+ if (fileName.find('.')==std::string::npos)
+ {//Ra: wypróbowanie rozszerzeñ po kolei, zaczynaj¹c od domyœlnego
+  fileName.append("."); //kropka bêdze na pewno, resztê trzeba próbowaæ
+  std::string test; //zmienna robocza
+  for (int i=0;i<4;++i)
+  {//najpierw szukamy w magazynie
+   test=fileName;
+   test.append(Global::szDefaultExt[i]);
+   iter=_names.find(fileName); //czy mamy ju¿ w magazynie?
+   if (iter!=_names.end())
+    return iter->second; //znalezione!
+   test.insert(0,szDefaultTexturePath); //jeszcze próba z dodatkow¹ œcie¿k¹
+   iter=_names.find(fileName); //czy mamy ju¿ w magazynie?
+   if (iter!=_names.end())
+    return iter->second; //znalezione!
+  }
+  for (int i=0;i<4;++i)
+  {//w magazynie nie ma, to sprawdzamy na dysku
+   test=fileName;
+   test.append(Global::szDefaultExt[i]);
+   std::ifstream file(test.c_str());
+   if (!file.is_open())
+   {test.insert(0,szDefaultTexturePath);
+    file.open(test.c_str());
+   }
+   if (file.is_open())
+   {
+    fileName.append(Global::szDefaultExt[i]); //dopisanie znalezionego
+    file.close();
+    break; //wyjœcie z pêtli na etapie danego rozszerzenia
+   }
+  }
+ }
+ iter=_names.find(fileName); //czy mamy ju¿ w magazynie
+ if (iter==_names.end())
+  iter=LoadFromFile(fileName,filter);
+ return (iter!=_names.end()?iter->second:0);
 }
 
 bool TTexturesManager::GetAlpha(GLuint id)
-{
-
-    Alphas::iterator iter = _alphas.find(id);
-    return (iter != _alphas.end() ? iter->second : false);
-
+{//atrybut przezroczystoœci dla tekstury o podanym numerze (id)
+ Alphas::iterator iter=_alphas.find(id);
+ return (iter!=_alphas.end()?iter->second:false);
 }
 
 TTexturesManager::AlphaValue TTexturesManager::LoadBMP(std::string fileName)

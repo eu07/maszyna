@@ -102,7 +102,7 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 bool Global::bMultiplayer=false; //blokada dzia³ania niektórych eventów na rzecz kominikacji
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asVersion="Compilation 2011-04-20, release 1.3.115.150."; //tutaj, bo wysy³any
+AnsiString Global::asVersion="Compilation 2011-04-22, release 1.3.116.151."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 GLint Global::iMaxTextureSize=16384;//maksymalny rozmiar tekstury
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
@@ -115,6 +115,7 @@ double Global::fTimeAngleDeg=0.0; //godzina w postaci k¹ta
 char* Global::szTexturesTGA[4]={"tga","dds","tex","bmp"}; //lista tekstur od TGA
 char* Global::szTexturesDDS[4]={"dds","tga","tex","bmp"}; //lista tekstur od DDS
 char** Global::szDefaultExt=Global::szTexturesDDS; //domyœlnie od DDS
+int Global::iMultisampling; //tryb antyaliasingu: 0=brak,1=2px,2=4px
 
 void __fastcall Global::LoadIniFile(AnsiString asFileName)
 {
@@ -277,6 +278,8 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
          bSmoothTraction=(Parser->GetNextSymbol().LowerCase()==AnsiString("yes"));
         else if (str==AnsiString("sunspeed")) //prêdkoœæ ruchu S³oñca, zmienna do testów
          fSunSpeed=Parser->GetNextSymbol().ToIntDef(1);
+        else if (str==AnsiString("multisampling")) //tryb antyaliasingu: 0=brak,1=2px,2=4px
+         iMultisampling=Parser->GetNextSymbol().ToIntDef(2); //domyœlnie 2
     }
  if (!bLoadTraction)
  {//tutaj wy³¹czenie, bo mog¹ nie byæ zdefiniowane w INI
@@ -284,6 +287,10 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
   bLiveTraction=false;
  }
  //if (fMoveLight>0) bDoubleAmbient=false; //wtedy tylko jedno œwiat³o ruchome
+ if (iMultisampling)
+ {//antyaliasing ca³oekranowy wy³¹cza rozmywanie drutów
+  bSmoothTraction=false;
+ }
  Feedback::ModeSet(iFeedbackMode); //tryb pracy interfejsu zwrotnego
 }
 
