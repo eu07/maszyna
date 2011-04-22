@@ -157,9 +157,9 @@ TTexturesManager::AlphaValue TTexturesManager::LoadBMP(std::string fileName)
     AlphaValue fail(0, false);
     std::ifstream file(fileName.c_str(), std::ios::binary);
 
-    if(file.eof())
+    if (!file.is_open())
     {
-        file.close();
+        //file.close();
         return fail;
     };
 
