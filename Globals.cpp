@@ -102,7 +102,7 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 bool Global::bMultiplayer=false; //blokada dzia³ania niektórych eventów na rzecz kominikacji
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asVersion="Compilation 2011-04-22, release 1.3.117.151."; //tutaj, bo wysy³any
+AnsiString Global::asVersion="Compilation 2011-04-23, release 1.3.120.152."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 GLint Global::iMaxTextureSize=16384;//maksymalny rozmiar tekstury
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
@@ -115,7 +115,7 @@ double Global::fTimeAngleDeg=0.0; //godzina w postaci k¹ta
 char* Global::szTexturesTGA[4]={"tga","dds","tex","bmp"}; //lista tekstur od TGA
 char* Global::szTexturesDDS[4]={"dds","tga","tex","bmp"}; //lista tekstur od DDS
 char** Global::szDefaultExt=Global::szTexturesDDS; //domyœlnie od DDS
-int Global::iMultisampling; //tryb antyaliasingu: 0=brak,1=2px,2=4px
+int Global::iMultisampling=2; //tryb antyaliasingu: 0=brak,1=2px,2=4px
 
 void __fastcall Global::LoadIniFile(AnsiString asFileName)
 {
@@ -281,12 +281,14 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
         else if (str==AnsiString("multisampling")) //tryb antyaliasingu: 0=brak,1=2px,2=4px
          iMultisampling=Parser->GetNextSymbol().ToIntDef(2); //domyœlnie 2
     }
+ //na koniec trochê zale¿noœci
  if (!bLoadTraction)
  {//tutaj wy³¹czenie, bo mog¹ nie byæ zdefiniowane w INI
   bEnableTraction=false;
   bLiveTraction=false;
  }
  //if (fMoveLight>0) bDoubleAmbient=false; //wtedy tylko jedno œwiat³o ruchome
+ //if (fOpenGL<1.3) iMultisampling=0; //mo¿na by z góry wy³¹czyæ, ale nie mamy jeszcze fOpenGL 
  if (iMultisampling)
  {//antyaliasing ca³oekranowy wy³¹cza rozmywanie drutów
   bSmoothTraction=false;

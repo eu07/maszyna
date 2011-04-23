@@ -117,6 +117,7 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
  }
  else
   Global::detonatoryOK=true;
+ //Ra: umieszczone w EU07.cpp jakoœ nie chce dzia³aæ
  while (glver.LastDelimiter(".")>glver.Pos("."))
   glver=glver.SubString(1,glver.LastDelimiter(".")-1); //obciêcie od drugiej kropki
  try {Global::fOpenGL=glver.ToDouble();} catch (...) {Global::fOpenGL=0.0;}
@@ -129,11 +130,11 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 #ifdef USE_VBO
   if (AnsiString((char*)glGetString(GL_VENDOR)).Pos("Intel")) //wymuszenie tylko dla kart Intel
    Global::bUseVBO=true; //VBO w³¹czane tylko, jeœli jest obs³uga
+#endif
   if (Global::bUseVBO)
    WriteLog("Ra: The VBO is found and will be used.");
   else
    WriteLog("Ra: The VBO is found, but Display Lists are selected.");
-#endif
  }
  else
  {WriteLog("Ra: No VBO found - Display Lists used. Upgrade drivers or buy a newer graphics card!");
@@ -611,7 +612,7 @@ bool __fastcall TWorld::Update()
   }
   else
   {//s³oñce pod horyzontem
-   GLfloat lum=2.5*(H>-0.314159?0.314159+H:0.0); //po zachodzie ambient siê œciemnia
+   GLfloat lum=2.0*(H>-0.314159?0.314159+H:0.0); //po zachodzie ambient siê œciemnia
    Global::ambientDayLight[0]=lum;
    Global::ambientDayLight[1]=lum;
    Global::ambientDayLight[2]=lum;

@@ -64,73 +64,61 @@ bool WGLisExtensionSupported(const char *extension)
 	}
 }
 
-// InitMultisample: Used To Query The Multisample Frequencies
-bool InitMultisample(HINSTANCE hInstance,HWND hWnd,PIXELFORMATDESCRIPTOR pfd)
-{  
-	 // See If The String Exists In WGL!
-	if (!WGLisExtensionSupported("WGL_ARB_multisample"))
-	{
-		arbMultisampleSupported=false;
-		return false;
-	}
-
-	// Get Our Pixel Format
-	PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB = (PFNWGLCHOOSEPIXELFORMATARBPROC)wglGetProcAddress("wglChoosePixelFormatARB");	
-	if (!wglChoosePixelFormatARB) 
-	{
-		arbMultisampleSupported=false;
-		return false;
-	}
-
-	// Get Our Current Device Context
-	HDC hDC = GetDC(hWnd);
-
-	int		pixelFormat;
-	int		valid;
-	UINT	numFormats;
-	float	fAttributes[] = {0,0};
-
-	// These Attributes Are The Bits We Want To Test For In Our Sample
-	// Everything Is Pretty Standard, The Only One We Want To 
-	// Really Focus On Is The SAMPLE BUFFERS ARB And WGL SAMPLES
-	// These Two Are Going To Do The Main Testing For Whether Or Not
-	// We Support Multisampling On This Hardware.
-	int iAttributes[] =
-	{
-		WGL_DRAW_TO_WINDOW_ARB,GL_TRUE,
-		WGL_SUPPORT_OPENGL_ARB,GL_TRUE,
-		WGL_ACCELERATION_ARB,WGL_FULL_ACCELERATION_ARB,
-		WGL_COLOR_BITS_ARB,24,
-		WGL_ALPHA_BITS_ARB,8,
-		WGL_DEPTH_BITS_ARB,16,
-		WGL_STENCIL_BITS_ARB,0,
-		WGL_DOUBLE_BUFFER_ARB,GL_TRUE,
-		WGL_SAMPLE_BUFFERS_ARB,GL_TRUE,
-		WGL_SAMPLES_ARB,4,
-		0,0
-	};
-
-	// First We Check To See If We Can Get A Pixel Format For 4 Samples
-	valid = wglChoosePixelFormatARB(hDC,iAttributes,fAttributes,1,&pixelFormat,&numFormats);
- 
-	// If We Returned True, And Our Format Count Is Greater Than 1
-	if (valid && numFormats >= 1)
-	{
-		arbMultisampleSupported = true;
-		arbMultisampleFormat = pixelFormat;	
-		return arbMultisampleSupported;
-	}
-
-	// Our Pixel Format With 4 Samples Failed, Test For 2 Samples
-	iAttributes[19] = 2;
-	valid = wglChoosePixelFormatARB(hDC,iAttributes,fAttributes,1,&pixelFormat,&numFormats);
-	if (valid && numFormats >= 1)
-	{
-		arbMultisampleSupported = true;
-		arbMultisampleFormat = pixelFormat;	 
-		return arbMultisampleSupported;
-	}
-	  
-	// Return The Valid Format
-	return  arbMultisampleSupported;
+bool InitMultisample(HINSTANCE hInstance,HWND hWnd,PIXELFORMATDESCRIPTOR pfd,int mode)
+{//used to query the multisample frequencies
+ arbMultisampleSupported=false;
+ //see if the string exists in WGL!
+ if (!WGLisExtensionSupported("WGL_ARB_multisample"))
+  return false;
+ //get our pixel format
+ PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB=(PFNWGLCHOOSEPIXELFORMATARBPROC)wglGetProcAddress("wglChoosePixelFormatARB");
+ if (!wglChoosePixelFormatARB)
+  return false;
+ //get our current device context
+ HDC hDC=GetDC(hWnd);
+ int pixelFormat;
+ int valid;
+ UINT numFormats;
+ float fAttributes[]={0,0};
+ // These attributes are the bits we want to test for in our sample
+ // everything is pretty standard, the only one we want to
+ // really focus on is the SAMPLE BUFFERS ARB and WGL SAMPLES
+ // these two are going to do the main testing for whether or not
+ // we support multisampling on this hardware.
+ int iAttributes[]=
+ {
+  WGL_DRAW_TO_WINDOW_ARB,GL_TRUE,
+  WGL_SUPPORT_OPENGL_ARB,GL_TRUE,
+  WGL_ACCELERATION_ARB,WGL_FULL_ACCELERATION_ARB,
+  WGL_COLOR_BITS_ARB,24,
+  WGL_ALPHA_BITS_ARB,8,
+  WGL_DEPTH_BITS_ARB,16,
+  WGL_STENCIL_BITS_ARB,0,
+  WGL_DOUBLE_BUFFER_ARB,GL_TRUE,
+  WGL_SAMPLE_BUFFERS_ARB,GL_TRUE,
+  WGL_SAMPLES_ARB,mode,
+  0,0
+ };
+/*
+ //first we check to see if we can get a pixel format for 4 samples
+ valid=wglChoosePixelFormatARB(hDC,iAttributes,fAttributes,1,&pixelFormat,&numFormats);
+ if (valid&&(numFormats>=1))
+ {//if we returned true, and our format count is greater than 1
+  arbMultisampleSupported=true;
+  arbMultisampleFormat=pixelFormat;
+  return arbMultisampleSupported;
+ }
+*/
+ while (iAttributes[19]>1)
+ {//our pixel format with 4 samples failed, test for 2 samples
+  valid=wglChoosePixelFormatARB(hDC,iAttributes,fAttributes,1,&pixelFormat,&numFormats);
+  if (valid&&(numFormats>=1))
+  {//if we returned true, and our format count is greater than 1
+   arbMultisampleSupported=true;
+   arbMultisampleFormat=pixelFormat;
+   return arbMultisampleSupported;
+  }
+  iAttributes[19]>>=1;
+ }
+ return false;
 }
