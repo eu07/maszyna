@@ -371,7 +371,7 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
  */
  if (Global::iMultisampling)
   if (!arbMultisampleSupported)
-   if (InitMultisample(hInstance,hWnd,pfd))
+   if (InitMultisample(hInstance,hWnd,pfd,1<<Global::iMultisampling))
    {
     WriteLog("Opening second window for multisampling");
     KillGLWindow(); // reset the display
@@ -540,26 +540,28 @@ LRESULT CALLBACK WndProc(	HWND	hWnd,			// Handle For This Window
 
 
 
-int WINAPI WinMain(	HINSTANCE	hInstance,			// Instance
-					HINSTANCE	hPrevInstance,		// Previous Instance
-					LPSTR		lpCmdLine,			// Command Line Parameters
-					int			nCmdShow)			// Window Show State
+int WINAPI WinMain( HINSTANCE hInstance,     //instance
+		    HINSTANCE hPrevInstance, //previous instance
+		    LPSTR lpCmdLine,	     //command line parameters
+		    int	nCmdShow)	     //window show state
 {
+ MSG msg; //windows message structure
+ BOOL done=FALSE; //bool variable to exit loop
+ //Form1= new TForm1(NULL);
+ //Form1->Show();
+ fullscreen=true;
+ DecimalSeparator= '.';
+/* //Ra: tutaj to nie dzia³a - zwraca NULL
+ //najpierw ustalmy wersjê OpenGL
+ AnsiString glver=((char*)glGetString(GL_VERSION));
+ while (glver.LastDelimiter(".")>glver.Pos("."))
+  glver=glver.SubString(1,glver.LastDelimiter(".")-1); //obciêcie od drugiej kropki
+ try {Global::fOpenGL=glver.ToDouble();} catch (...) {Global::fOpenGL=0.0;}
+ Global::bOpenGL_1_5=(Global::fOpenGL>=1.5);
+*/
 
-    MSG		msg;									// Windows Message Structure
-	BOOL	done=FALSE;     						// Bool Variable To Exit Loop
-
-//    Form1= new TForm1(NULL);
-  //  Form1->Show();
-
-    fullscreen=true;
-
-    DecimalSeparator= '.';
-
-    Global::LoadIniFile();
-
-
-    Global::InitKeys();
+ Global::LoadIniFile(); //teraz dopiero mo¿na przejrzeæ plik z ustawieniami
+ Global::InitKeys(); //wczytanie mapowania klawiszy - jest na sta³e
 
 //    if (FileExists(lpCmdLine))
     AnsiString str;

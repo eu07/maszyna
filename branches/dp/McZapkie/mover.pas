@@ -2010,7 +2010,7 @@ begin
 //                 dpBrake:=FlowSpeedVal*(dp-LocBrakePress)*dt/(1+BrakeDelay[1+ord(BrakePressureVal>LocBrakePress)+2*BrakeDelayFlag]);
 //              end;
 //                dpBrake:=FlowSpeedVal*(dp-LocBrakePress)*dt/BrakeDelay[1+ord(dp>LocBrakePress)+2*BrakeDelayFlag];
-                  dpBrake:=MaxBrakePress*FlowSpeedVal/5.0*sign(dp-LocBrakePress)*PR(dp,LocBrakePress)*dt/(1.0+BrakeDelay[1.0+ord(dp>LocBrakePress)+2.0*BrakeDelayFlag]);
+                  dpBrake:=MaxBrakePress*FlowSpeedVal/5.0*sign(dp-LocBrakePress)*PR(dp,LocBrakePress)*dt/(1.0+BrakeDelay[1+ord(dp>LocBrakePress)+2*BrakeDelayFlag]);
                 //             dpLocalValve:=FlowSpeedVal/6*sign(dp-LocBrakePress)*PR(dp,LocBrakePress)*dt/(1+BrakeDelay[1+ord(BrakeStatus and b_on)+2*BrakeDelayFlag]);
 //             if (dpBrake>0) then
 //              Volume:=Volume-10*dpBrake*BrakeVolume;
@@ -5401,7 +5401,10 @@ begin
               s:=ExtractKeyWord(lines,'M=');
               Mass:=s2rE(DUE(s));         {w kg}
               s:=ExtractKeyWord(lines,'Mred='); {zredukowane masy wiruj¹ce}
-              Mred:=s2rE(DUE(s));         {w kg}
+              if s='' then
+               Mred:=0
+              else
+               Mred:=s2rE(DUE(s));         {w kg}
               s:=ExtractKeyWord(lines,'Vmax=');
               Vmax:=s2rE(DUE(s));     {w km/h}
               s:=ExtractKeyWord(lines,'PWR=');

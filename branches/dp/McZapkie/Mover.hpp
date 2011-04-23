@@ -314,6 +314,7 @@ public:
 	double Vmax;
 	double Mass;
 	double Power;
+	double Mred;
 	double TotalMass;
 	double HeatingPower;
 	double LightPower;
