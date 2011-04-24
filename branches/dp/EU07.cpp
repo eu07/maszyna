@@ -371,9 +371,9 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
  */
  if (Global::iMultisampling)
   if (!arbMultisampleSupported)
-   if (InitMultisample(hInstance,hWnd,pfd,1<<Global::iMultisampling))
+   if (int i=InitMultisample(hInstance,hWnd,pfd,1<<Global::iMultisampling))
    {
-    WriteLog("Opening second window for multisampling");
+    WriteLog("Opening second window for multisampling of "+AnsiString(i)+" samples.");
     KillGLWindow(); // reset the display
     return CreateGLWindow(title,width,height,bits,fullscreenflag); //rekurencja
    }
