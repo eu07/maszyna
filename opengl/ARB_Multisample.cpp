@@ -64,16 +64,16 @@ bool WGLisExtensionSupported(const char *extension)
 	}
 }
 
-bool InitMultisample(HINSTANCE hInstance,HWND hWnd,PIXELFORMATDESCRIPTOR pfd,int mode)
+int InitMultisample(HINSTANCE hInstance,HWND hWnd,PIXELFORMATDESCRIPTOR pfd,int mode)
 {//used to query the multisample frequencies
  arbMultisampleSupported=false;
  //see if the string exists in WGL!
  if (!WGLisExtensionSupported("WGL_ARB_multisample"))
-  return false;
+  return 0;
  //get our pixel format
  PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB=(PFNWGLCHOOSEPIXELFORMATARBPROC)wglGetProcAddress("wglChoosePixelFormatARB");
  if (!wglChoosePixelFormatARB)
-  return false;
+  return 0;
  //get our current device context
  HDC hDC=GetDC(hWnd);
  int pixelFormat;
@@ -110,15 +110,15 @@ bool InitMultisample(HINSTANCE hInstance,HWND hWnd,PIXELFORMATDESCRIPTOR pfd,int
  }
 */
  while (iAttributes[19]>1)
- {//our pixel format with 4 samples failed, test for 2 samples
+ {//our pixel format with (mode) samples failed, test for less samples
   valid=wglChoosePixelFormatARB(hDC,iAttributes,fAttributes,1,&pixelFormat,&numFormats);
   if (valid&&(numFormats>=1))
   {//if we returned true, and our format count is greater than 1
    arbMultisampleSupported=true;
    arbMultisampleFormat=pixelFormat;
-   return arbMultisampleSupported;
+   return iAttributes[19]; //return number of samples
   }
   iAttributes[19]>>=1;
  }
- return false;
+ return 0;
 }

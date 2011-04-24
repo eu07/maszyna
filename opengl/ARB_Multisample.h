@@ -23,6 +23,6 @@ extern int arbMultisampleFormat;
 #define CHECK_FOR_MULTISAMPLE 1
 
 //to check for our sampling
-bool InitMultisample(HINSTANCE hInstance,HWND hWnd,PIXELFORMATDESCRIPTOR pfd,int mode=4);
+int InitMultisample(HINSTANCE hInstance,HWND hWnd,PIXELFORMATDESCRIPTOR pfd,int mode=4);
 
 #endif
