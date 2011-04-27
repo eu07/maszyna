@@ -4713,8 +4713,14 @@ else if command='PantFront' then         {Winger 160204}
       end;
     if OK then LoadStatus:=0;
    end
-    else begin end;
-   RunCommand:=OK;
+  else if Pos('PassengerStopPoint:',command)=1 then  {wskaznik W4}
+   begin
+    //if Order<>Obey_train then {przy manewrach ignorowany}
+     begin
+
+     end;
+   end;
+  RunCommand:=OK;
 {$B-}
 End;
 

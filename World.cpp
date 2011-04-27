@@ -70,25 +70,23 @@ __fastcall TWorld::~TWorld()
  glDeleteLists(base,96);
 }
 
-GLvoid __fastcall TWorld::glPrint(const char *fmt)					// Custom GL "Print" Routine
-{
-//	char		text[256];								// Holds Our String
-//	va_list		ap;										// Pointer To List Of Arguments
-
-	if (fmt == NULL)									// If There's No Text
-		return;											// Do Nothing
-
-//	va_start(ap, fmt);									// Parses The String For Variables
-//	    vsprintf(text, fmt, ap);						// And Converts Symbols To Actual Numbers
-//	va_end(ap);											// Results Are Stored In Text
-
-	glPushAttrib(GL_LIST_BIT);							// Pushes The Display List Bits
-	glListBase(base - 32);								// Sets The Base Character to 32
-	glCallLists(strlen(fmt), GL_UNSIGNED_BYTE, fmt);	// Draws The Display List Text
-//	glCallLists(strlen(text), GL_UNSIGNED_BYTE, text);	// Draws The Display List Text
-	glPopAttrib();										// Pops The Display List Bits
+GLvoid __fastcall TWorld::glPrint(const char *txt) //custom GL "Print" routine
+{//wypisywanie tekstu 2D na ekranie
+ if (!txt) return;
+ if (Global::bGlutFont)
+ {//tekst generowany przez GLUT
+  int i,len=strlen(txt);
+  for (i=0;i<len;i++)
+   glutBitmapCharacter(GLUT_BITMAP_8_BY_13,txt[i]);
+ }
+ else
+ {//generowanie przez Display Lists
+  glPushAttrib(GL_LIST_BIT); //pushes the display list bits
+  glListBase(base-32); //sets the base character to 32
+  glCallLists(strlen(txt),GL_UNSIGNED_BYTE,txt); //draws the display list text
+  glPopAttrib(); //pops the display list bits
+ }
 }
-
 
 TDynamicObject *Controlled=NULL; //pojazd, który prowadzimy
 
@@ -300,34 +298,31 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 
 /*--------------------Render Initialization End---------------------*/
 
-    WriteLog("Font init");
-	HFONT	font;										// Windows Font ID
+ if (!Global::bGlutFont)
+ {//jeœli bezGLUTowy font
+  WriteLog("Font init");
+  HFONT font;										// Windows Font ID
+  base=glGenLists(96); //storage for 96 characters
+  font=CreateFont(       -15, //height of font
+                           0, //width of font
+    		           0, //angle of escapement
+		           0, //orientation angle
+	             FW_BOLD, //font weight
+	               FALSE, //italic
+	               FALSE, //underline
+     	               FALSE, //strikeout
+                ANSI_CHARSET, //character set identifier
+               OUT_TT_PRECIS, //output precision
+         CLIP_DEFAULT_PRECIS, //clipping precision
+         ANTIALIASED_QUALITY, //output quality
+   FF_DONTCARE|DEFAULT_PITCH, //family and pitch
+              "Courier New"); //font name
+  SelectObject(hDC,font); //selects the font we want
+  wglUseFontBitmapsA(hDC,32,96,base); //builds 96 characters starting at character 32
+  WriteLog("Font init OK"); //+AnsiString(glGetError())
+ }
 
-	base = glGenLists(96);								// Storage For 96 Characters
-
-	font = CreateFont(	-15,							// Height Of Font
-						0,								// Width Of Font
-						0,								// Angle Of Escapement
-						0,								// Orientation Angle
-						FW_BOLD,						// Font Weight
-						FALSE,							// Italic
-						FALSE,							// Underline
-						FALSE,							// Strikeout
-						ANSI_CHARSET,					// Character Set Identifier
-						OUT_TT_PRECIS,					// Output Precision
-						CLIP_DEFAULT_PRECIS,			// Clipping Precision
-						ANTIALIASED_QUALITY,			// Output Quality
-						FF_DONTCARE|DEFAULT_PITCH,		// Family And Pitch
-						"Courier New");					// Font Name
-
-	SelectObject(hDC, font);							// Selects The Font We Want
-
-	wglUseFontBitmaps(hDC, 32, 96, base);				// Builds 96 Characters Starting At Character 32
-
-
-    WriteLog("Font init OK");
-
-    Timer::ResetTimers();
+ Timer::ResetTimers();
 
     hWnd= NhWnd;
     glColor4f(1.0f,3.0f,3.0f,0.0f);
@@ -356,7 +351,7 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 		glTexCoord2f(1.0f, 1.0f); glVertex3f( 0.28f,  0.22f,  0.0f);	// Top right of the texture and quad
 		glTexCoord2f(0.0f, 1.0f); glVertex3f(-0.28f,  0.22f,  0.0f);	// Top left of the texture and quad
 	glEnd();
-        ~logo;
+        //~logo; Ra: to jest bez sensu zapis
     glColor3f(0.0f,0.0f,100.0f);
     if(Global::detonatoryOK)
     {
@@ -579,7 +574,7 @@ bool __fastcall TWorld::Update()
 
  //Ra: przeliczenie k¹ta czasu (do animacji zale¿nych od czasu)
  Global::fTimeAngleDeg=GlobalTime->hh*15.0+GlobalTime->mm*0.25+GlobalTime->mr/240.0;
- if (Global::fMoveLight>0.0)
+ if (Global::fMoveLight>=0.0)
  {//testowo ruch œwiat³a
   //double a=Global::fTimeAngleDeg/180.0*M_PI-M_PI; //k¹t godzinny w radianach
   double a=fmod(Global::fSunSpeed*Global::fTimeAngleDeg,360.0)/180.0*M_PI-M_PI; //k¹t godzinny w radianach
@@ -908,7 +903,7 @@ bool __fastcall TWorld::Update()
 //**********************************************************************************************************
    } //koniec if (Train)
 
- if (Global::fMoveLight>0)
+ if (Global::fMoveLight>=0)
  {//tymczasowy "zegar s³oneczny"
   float x=0.0f,y=10.0f,z=0.0f;
   glColor3f(1.0f,1.0f,1.0f);
@@ -1081,7 +1076,8 @@ bool __fastcall TWorld::Update()
      i=floor(GlobalTime->mr); //bo inaczej potrafi zrobiæ "hh:mm:010"
      if (i<10) OutText1+="0";
      OutText1+=AnsiString(i);
-     OutText2="";
+     if (Controlled)
+      OutText2=Controlled->TrainParams->ShowRelation();
      //double CtrlPos=Controlled->MoverParameters->MainCtrlPos;
      //double CtrlPosNo=Controlled->MoverParameters->MainCtrlPosNo;
      //OutText2="defrot="+FloatToStrF(1+0.4*(CtrlPos/CtrlPosNo),ffFixed,2,5);

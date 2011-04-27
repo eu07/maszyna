@@ -205,6 +205,7 @@ public:
  static char* szTexturesTGA[4]; //lista tekstur od TGA
  static char* szTexturesDDS[4]; //lista tekstur od DDS
  static int iMultisampling; //tryb antyaliasingu: 0=brak,1=2px,2=4px
+ static bool bGlutFont; //tekst generowany przez GLUT
 };
 
 //---------------------------------------------------------------------------
