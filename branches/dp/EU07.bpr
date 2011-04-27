@@ -36,13 +36,13 @@
     <USERDEFINES value="GLEW_STATIC;_DEBUG;USE_VBO"/>
     <SYSDEFINES value="_RTLDLL;NO_STRICT"/>
     <MAINSOURCE value="EU07.cpp"/>
-    <INCLUDEPATH value="opengl;C:\ProgsWin\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
-    <LIBPATH value="opengl;C:\ProgsWin\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
+    <INCLUDEPATH value="opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
+    <LIBPATH value="opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
     <WARNINGS value="-w-par"/>
   </MACROS>
   <OPTIONS>
-    <IDLCFLAGS value="-Iopengl -IC:\ProgsWin\CBuilder5\Projects\. -IMcZapkie -I$(BCB)\include 
-      -I$(BCB)\include\vcl -src_suffix cpp -DGLEW_STATIC -D_DEBUG -DUSE_VBO -boa"/>
+    <IDLCFLAGS value="-Iopengl -IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl -src_suffix cpp 
+      -DGLEW_STATIC -D_DEBUG -DUSE_VBO -boa"/>
     <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a4 -6 -b- -k -y -v -vi- 
       -c -tW -tWM"/>
     <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
@@ -61,7 +61,7 @@ IncludeVerInfo=1
 AutoIncBuild=1
 MajorVer=1
 MinorVer=3
-Release=121
+Release=122
 Build=153
 Debug=1
 PreRelease=0
@@ -74,7 +74,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.3.121.153
+FileVersion=1.3.122.153
 InternalName=4th by Ra
 LegalCopyright=
 LegalTrademarks=
@@ -84,44 +84,46 @@ ProductVersion=1.3
 Comments=
 
 [HistoryLists\hlIncludePath]
-Count=17
-Item0=opengl;C:\ProgsWin\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item1=C:\ProgsWin\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item2=C:\ProgsWin\CBuilder5\Projects;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item3=McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item4=G:\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item5=..\CBuilder5\Projects;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item6=F:\ProgsWin\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item7=F:\ProgsWin\CBuilder5\Projects;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item8=C:\Program Files\Borland\CBuilder5\Projects\;d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item9=C:\Program Files\Borland\CBuilder5\Projects;d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item10=d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item11=d:\program files\CBuilder5\Projects;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item12=NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item13=NewScenery;g:\Borland\CBuilder5\Projects;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item14=$(BCB)\include;$(BCB)\include\vcl
-Item15=triangle;gpc231;G:\Borland\CBuilder5\Examples\OpenGL\Rotate\;$(BCB)\include;$(BCB)\include\vcl
-Item16=G:\Borland\CBuilder5\Examples\OpenGL\Rotate\;$(BCB)\include;$(BCB)\include\vcl
+Count=18
+Item0=opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item1=opengl;C:\ProgsWin\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item2=C:\ProgsWin\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item3=C:\ProgsWin\CBuilder5\Projects;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item4=McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item5=G:\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item6=..\CBuilder5\Projects;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item7=F:\ProgsWin\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item8=F:\ProgsWin\CBuilder5\Projects;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item9=C:\Program Files\Borland\CBuilder5\Projects\;d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item10=C:\Program Files\Borland\CBuilder5\Projects;d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item11=d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item12=d:\program files\CBuilder5\Projects;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item13=NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item14=NewScenery;g:\Borland\CBuilder5\Projects;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item15=$(BCB)\include;$(BCB)\include\vcl
+Item16=triangle;gpc231;G:\Borland\CBuilder5\Examples\OpenGL\Rotate\;$(BCB)\include;$(BCB)\include\vcl
+Item17=G:\Borland\CBuilder5\Examples\OpenGL\Rotate\;$(BCB)\include;$(BCB)\include\vcl
 
 [HistoryLists\hlLibraryPath]
-Count=17
-Item0=opengl;C:\ProgsWin\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item1=C:\ProgsWin\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item2=C:\ProgsWin\CBuilder5\Projects;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item3=McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item4=G:\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item5=..\CBuilder5\Projects;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item6=F:\ProgsWin\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item7=F:\ProgsWin\CBuilder5\Projects;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item8=$(BCB)\lib\obj;$(BCB)\lib
-Item9=C:\Program Files\Borland\CBuilder5\Projects\;d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item10=C:\Program Files\Borland\CBuilder5\Projects;d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item11=d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item12=d:\program files\CBuilder5\Projects;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item13=NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item14=NewScenery;g:\Borland\CBuilder5\Projects;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item15=triangle;gpc231;G:\Borland\CBuilder5\Examples\OpenGL\Rotate\;$(BCB)\lib\obj;$(BCB)\lib
-Item16=G:\Borland\CBuilder5\Examples\OpenGL\Rotate\;$(BCB)\lib\obj;$(BCB)\lib
+Count=18
+Item0=opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item1=opengl;C:\ProgsWin\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item2=C:\ProgsWin\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item3=C:\ProgsWin\CBuilder5\Projects;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item4=McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item5=G:\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item6=..\CBuilder5\Projects;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item7=F:\ProgsWin\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item8=F:\ProgsWin\CBuilder5\Projects;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item9=$(BCB)\lib\obj;$(BCB)\lib
+Item10=C:\Program Files\Borland\CBuilder5\Projects\;d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item11=C:\Program Files\Borland\CBuilder5\Projects;d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item12=d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item13=d:\program files\CBuilder5\Projects;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item14=NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item15=NewScenery;g:\Borland\CBuilder5\Projects;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item16=triangle;gpc231;G:\Borland\CBuilder5\Examples\OpenGL\Rotate\;$(BCB)\lib\obj;$(BCB)\lib
+Item17=G:\Borland\CBuilder5\Examples\OpenGL\Rotate\;$(BCB)\lib\obj;$(BCB)\lib
 
 [HistoryLists\hlDebugSourcePath]
 Count=2

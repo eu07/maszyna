@@ -72,45 +72,49 @@ begin
 end;
 
 function TTrainParameters.WatchMTable(DistCounter:real): real;
+{zwraca odlegloœæ do najblizszej stacji z zatrzymaniem}
 var dist:real;
 begin
   if Direction=1 then
    dist:=TimeTable[StationIndex].km-TimeTable[0].km-DistCounter
   else
    dist:=TimeTable[0].km-TimeTable[StationIndex].km-DistCounter;
-  WatchMTable:=dist; {jaka odleglosc do najblizszej stacji gdzie sie ma zatrzymac}
+  WatchMTable:=dist;
 end;
 
-function TTrainParameters.UpdateMTable(hh,mm:real; NewName: string): boolean;
-var OK: boolean;
+function TTrainParameters.UpdateMTable(hh,mm:real;NewName:string):boolean;
+{odfajkowanie dojechania do stacji (NewName) i przeliczenie opóŸnienia}
+var OK:boolean;
 begin
-  OK:=false;
-  if StationIndex<StationCount then {albo <= !!!}
-   begin
-     if TimeTable[1].km-TimeTable[0].km<0 then
-       Direction:=-1
-      else
-       Direction:=1; {prowizorka bo moze byc zmiana kilometrazu}
-     if NewName=TimeTable[StationIndex+1].StationName then
-      begin
-        LastStationLatency:=CompareTime(hh,mm,TimeTable[StationIndex].dh,TimeTable[StationIndex].dm);
-        inc(StationIndex);
-        NextStationName:=TimeTable[StationIndex].StationName;
-        OK:=true;
-      end;
-   end;
-  UpdateMTable:=OK; {czy jest nastepna stacja}
+ OK:=false;
+ if StationIndex<=StationCount then {albo <= !!! Ra: stacje s¹ 1..StationCount}
+  begin
+   if TimeTable[1].km-TimeTable[0].km<0 then
+    Direction:=-1
+   else
+    Direction:=1; {prowizorka bo moze byc zmiana kilometrazu}
+   if NewName=TimeTable[StationIndex+1].StationName then
+    begin
+     LastStationLatency:=CompareTime(hh,mm,TimeTable[StationIndex].dh,TimeTable[StationIndex].dm);
+     inc(StationIndex);
+     NextStationName:=TimeTable[StationIndex].StationName;
+     OK:=true;
+    end;
+  end;
+ UpdateMTable:=OK; {czy jest nastepna stacja}
 end;
 
 
-function TTrainParameters.ShowRelation: string;
+function TTrainParameters.ShowRelation:string;
+{zwraca informacjê o relacji}
 begin
-  if (Relation1=TimeTable[1].StationName) and (Relation2=TimeTable[StationCount].StationName)
-   then ShowRelation:=Relation1+' - '+Relation2
-  else ShowRelation:='';
+ if (Relation1=TimeTable[1].StationName) and (Relation2=TimeTable[StationCount].StationName)
+ then ShowRelation:=Relation1+' - '+Relation2
+ else ShowRelation:='';
 end;
 
 constructor TTrainParameters.Init(NewTrainName:string);
+{wstêpne ustawienie parametrów rozk³adu jazdy}
 var i:integer;
 begin
   TrainName:=NewTrainName;
@@ -129,210 +133,211 @@ begin
   TTVmax:=100; {wykasowac}
 end;
 
-function TTrainParameters.LoadTTfile(scnpath:string): boolean;
+function TTrainParameters.LoadTTfile(scnpath:string):boolean;
+{wczytanie pliku-tabeli z rozk³adem}
 var
-  lines,s: string;
-  fin: text;
-  EndTable:boolean;
-  vActual:real;
-procedure UpdateVelocity(StationCount: integer; vActual:real);
-var i: integer;
+ lines,s:string;
+ fin:text;
+ EndTable:boolean;
+ vActual:real;
+procedure UpdateVelocity(StationCount:integer;vActual:real);
+var i:integer;
 begin
-  i:=StationCount;
-  TTVmax:=vActual;  {PROWIZORKA!!!}
-  while (i>0) and (TimeTable[i-1].vmax=-1) do
-   begin
-     dec(i);
-     TimeTable[i].vmax:=vActual;
-   end;
+ i:=StationCount;
+ TTVmax:=vActual;  {PROWIZORKA!!!}
+ while (i>0) and (TimeTable[i-1].vmax=-1) do
+  begin
+   dec(i);
+   TimeTable[i].vmax:=vActual;
+  end;
 end;
 begin
-  ConversionError:=666;
-  s:=scnpath+TrainName+'.txt';
-  assignfile(fin,s);
-  s:='';
-  EndTable:=False;
-  vActual:=-1;
+ ConversionError:=666;
+ s:=scnpath+TrainName+'.txt';
+ assignfile(fin,s);
+ s:='';
+ EndTable:=False;
+ vActual:=-1;
 {$I-}
-  reset(fin);
+ reset(fin);
 {$I+}
-  if IOresult<>0 then
-   begin
-     ConversionError:=-8;
-   end
-  else
-   begin
-     ConversionError:=0;
-     while not (eof(fin) or (ConversionError<>0) or EndTable) do
-      begin
-        readln(fin,lines);
-        if Pos('___________________',lines)>0 then
-        if ReadWord(fin)='[' then
-         if ReadWord(fin)='Rodzaj' then
+ if IOresult<>0 then
+  begin
+   ConversionError:=-8; {Ra: ten b³¹d jest niepotrzebny}
+  end
+ else
+  begin {analiza rozk³adu jazdy}
+   ConversionError:=0;
+   while not (eof(fin) or (ConversionError<>0) or EndTable) do
+    begin
+     readln(fin,lines); {wczytanie linii}
+     if Pos('___________________',lines)>0 then {linia pozioma górna}
+      if ReadWord(fin)='[' then {lewy pion}
+       if ReadWord(fin)='Rodzaj' then {"Rodzaj i numer pociagu"}
+        repeat
+        until (ReadWord(fin)='|') or (eof(fin)); {œrodkowy pion}
+        s:=ReadWord(fin); {nazwa poci¹gu}
+        if LowerCase(s)<>TrainName then {musi byæ taka sama, jak nazwa pliku}
+         ConversionError:=-7 {b³¹d niezgodnoœci}
+        else
+         begin  {czytaj naglowek}
+          repeat
+          until (Pos('_______|',ReadWord(fin))>0) or eof(fin);
+          repeat
+          until (ReadWord(fin)='[') or (eof(fin)); {pierwsza linia z relacj¹}
+          repeat
+           s:=ReadWord(fin);
+          until (s<>'|') or eof(fin);
+          if s<>'|' then Relation1:=s
+          else ConversionError:=-5;
+          repeat
+          until (Readword(fin)='Relacja') or (eof(fin)); {druga linia z relacj¹}
           repeat
           until (ReadWord(fin)='|') or (eof(fin));
+          Relation2:=ReadWord(fin);
+          repeat
+          until Readword(fin)='Wymagany';
+          repeat
+          until (ReadWord(fin)='|') or (eoln(fin));
           s:=ReadWord(fin);
-          if LowerCase(s)<>TrainName then
-            ConversionError:=-7
-          else
-           begin  {czytaj naglowek}
-             repeat
-             until (Pos('_______|',ReadWord(fin))>0) or eof(fin);
-             repeat
-             until (ReadWord(fin)='[') or (eof(fin));
-             repeat
-               s:=ReadWord(fin);
-             until (s<>'|') or eof(fin);
-             if s<>'|' then Relation1:=s
-              else ConversionError:=-5;
-             repeat
-             until (Readword(fin)='Relacja') or (eof(fin));
-             repeat
-             until (ReadWord(fin)='|') or (eof(fin));
-             Relation2:=ReadWord(fin);
-             repeat
-             until Readword(fin)='Wymagany';
-             repeat
-             until (ReadWord(fin)='|') or (eoln(fin));
+          s:=Copy(s,1,Pos('%',s)-1);
+          BrakeRatio:=s2rE(s);
+          repeat
+          until Readword(fin)='Seria';
+          repeat
+          until (ReadWord(fin)='|') or (eof(fin));
+          LocSeries:=ReadWord(fin);
+          LocLoad:=s2rE(ReadWord(fin));
+          repeat
+          until (Pos('[______________',ReadWord(fin))>0) or (eof(fin));
+          while not eof(fin) and not EndTable do
+           begin
+            inc(StationCount);
+            repeat
              s:=ReadWord(fin);
-             s:=Copy(s,1,Pos('%',s)-1);
-             BrakeRatio:=s2rE(s);
-             repeat
-             until Readword(fin)='Seria';
-             repeat
-             until (ReadWord(fin)='|') or (eof(fin));
-             LocSeries:=ReadWord(fin);
-             LocLoad:=s2rE(ReadWord(fin));
-             repeat
-             until (Pos('[______________',ReadWord(fin))>0) or (eof(fin));
-             while not eof(fin) and not EndTable do
-              begin
-                inc(StationCount);
-                repeat
-                  s:=ReadWord(fin);
-                until (s='[') or (eof(fin));
-                with TimeTable[StationCount] do
+            until (s='[') or (eof(fin));
+            with TimeTable[StationCount] do
+             begin
+              if s='[' then
+               s:=ReadWord(fin)
+              else conversionError:=-4;
+              if Pos('|',s)=0 then
+               begin
+                km:=s2rE(s);
+                s:=ReadWord(fin);
+               end;
+              if Pos('|_____|',s)>0 then {zmiana predkosci szlakowej}
+               UpdateVelocity(StationCount,vActual)
+              else
+               begin
+                s:=ReadWord(fin);
+                if Pos('|',s)=0 then
+                vActual:=s2rE(s);
+               end;
+              while Pos('|',s)=0 do
+               s:=Readword(fin);
+              StationName:=ReadWord(fin);
+              repeat
+               s:=ReadWord(fin);
+              until (s='1') or (s='2') or eof(fin);
+              TrackNo:=s2bE(s);
+              s:=ReadWord(fin);
+              if s<>'|' then
+               begin
+                if Pos(hrsd,s)>0 then
                  begin
-                   if s='[' then
-                    s:=ReadWord(fin)
-                   else conversionError:=-4;
-                   if Pos('|',s)=0 then
-                    begin
-                      km:=s2rE(s);
-                      s:=ReadWord(fin);
-                    end;
-                   if Pos('|_____|',s)>0 then {zmiana predkosci szlakowej}
-                      UpdateVelocity(StationCount,vActual)
-                   else
-                    begin
-                      s:=ReadWord(fin);
-                      if Pos('|',s)=0 then
-                       vActual:=s2rE(s);
-                    end;
-                   while Pos('|',s)=0 do
-                    s:=Readword(fin);
-                   StationName:=ReadWord(fin);
-                   repeat
-                     s:=ReadWord(fin);
-                   until (s='1') or (s='2') or eof(fin);
-                   TrackNo:=s2bE(s);
-                   s:=ReadWord(fin);
-                   if s<>'|' then
-                    begin
-                      if Pos(hrsd,s)>0 then
-                       begin
-                         ah:=s2iE(Copy(s,1,Pos(hrsd,s)-1));
-                         am:=s2iE(Copy(s,Pos(hrsd,s)+1,Length(s)));
-                       end
-                      else
-                       begin
-                         ah:=TimeTable[StationCount-1].ah;
-                         am:=s2iE(s); {tylko minuty podane}
-                       end;
-                    end;
-                   repeat
-                     s:=ReadWord(fin);
-                   until (s<>'|') or (eof(fin));
-                   if s<>']' then
-                    tm:=s2rE(s);
-                   repeat
-                    s:=ReadWord(fin);
-                   until (s='[') or eof(fin);
-                   s:=ReadWord(fin);
-                   if Pos('|',s)=0 then
-                    begin
+                  ah:=s2iE(Copy(s,1,Pos(hrsd,s)-1));
+                  am:=s2iE(Copy(s,Pos(hrsd,s)+1,Length(s)));
+                 end
+                else
+                 begin
+                  ah:=TimeTable[StationCount-1].ah;
+                  am:=s2iE(s); {tylko minuty podane}
+                 end;
+               end;
+              repeat
+               s:=ReadWord(fin);
+              until (s<>'|') or (eof(fin));
+              if s<>']' then
+               tm:=s2rE(s);
+              repeat
+               s:=ReadWord(fin);
+              until (s='[') or eof(fin);
+              s:=ReadWord(fin);
+              if Pos('|',s)=0 then
+               begin
 {tu s moze byc miejscem zmiany predkosci szlakowej}
-                      s:=ReadWord(fin);
-                    end;
-                   if Pos('|_____|',s)>0 then {zmiana predkosci szlakowej}
-                      UpdateVelocity(StationCount,vActual)
-                   else
-                    begin
-                      s:=ReadWord(fin);
-                      if Pos('|',s)=0 then
-                       vActual:=s2rE(s);
-                    end;
-                   while Pos('|',s)=0 do
-                    s:=Readword(fin);
-                   StationWare:=ReadWord(fin);
-                   repeat
-                     s:=ReadWord(fin);
-                   until (s='1') or (s='2') or eof(fin);
-                   TrackNo:=s2bE(s);
-                   s:=ReadWord(fin);
-                   if s<>'|' then
-                    begin
-                      if Pos(hrsd,s)>0 then
-                       begin
-                         dh:=s2iE(Copy(s,1,Pos(hrsd,s)-1));
-                         dm:=s2iE(Copy(s,Pos(hrsd,s)+1,Length(s)));
-                       end
-                      else
-                       begin
-                         dh:=TimeTable[StationCount-1].dh;
-                         dm:=s2iE(s); {tylko minuty podane}
-                       end;
-                      WaitTime:=Trunc(CompareTime(ah,am,dh,dm)+0.1);
-                    end;
-                   repeat
-                     s:=ReadWord(fin);
-                   until (s<>'|') or (eof(fin));
-                   if s<>']' then
-                    tm:=s2rE(s);
-                   repeat
-                    s:=ReadWord(fin);
-                   until (Pos('[',s)>0) or eof(fin);
-                   if Pos('_|_',s)=0 then
-                    s:=Readword(fin);
-                   if Pos('|',s)=0 then
-                    begin
+                s:=ReadWord(fin);
+               end;
+              if Pos('|_____|',s)>0 then {zmiana predkosci szlakowej}
+               UpdateVelocity(StationCount,vActual)
+              else
+               begin
+                s:=ReadWord(fin);
+                if Pos('|',s)=0 then
+                 vActual:=s2rE(s);
+               end;
+              while Pos('|',s)=0 do
+               s:=Readword(fin);
+              StationWare:=ReadWord(fin);
+              repeat
+               s:=ReadWord(fin);
+              until (s='1') or (s='2') or eof(fin);
+              TrackNo:=s2bE(s);
+              s:=ReadWord(fin);
+              if s<>'|' then
+               begin
+                if Pos(hrsd,s)>0 then
+                 begin
+                  dh:=s2iE(Copy(s,1,Pos(hrsd,s)-1));
+                  dm:=s2iE(Copy(s,Pos(hrsd,s)+1,Length(s)));
+                 end
+                else
+                 begin
+                  dh:=TimeTable[StationCount-1].dh;
+                  dm:=s2iE(s); {tylko minuty podane}
+                 end;
+                WaitTime:=Trunc(CompareTime(ah,am,dh,dm)+0.1);
+               end;
+              repeat
+               s:=ReadWord(fin);
+              until (s<>'|') or (eof(fin));
+              if s<>']' then
+               tm:=s2rE(s);
+              repeat
+               s:=ReadWord(fin);
+              until (Pos('[',s)>0) or eof(fin);
+              if Pos('_|_',s)=0 then
+               s:=Readword(fin);
+              if Pos('|',s)=0 then
+               begin
 {tu s moze byc miejscem zmiany predkosci szlakowej}
-                      s:=ReadWord(fin);
-                    end;
-                   if Pos('|_____|',s)>0 then {zmiana predkosci szlakowej}
-                      UpdateVelocity(StationCount,vActual)
-                   else
-                    begin
-                      s:=ReadWord(fin);
-                      if Pos('|',s)=0 then
-                       vActual:=s2rE(s);
-                    end;
-{                   while Pos('|',s)=0 do
-                    s:=Readword(fin);    }
-                   while (Pos(']',s)=0) do
-                     s:=ReadWord(fin);
-                   if Pos('_|_',s)>0 then EndTable:=True;
-                 end; {timetableline}
-              end;
+                s:=ReadWord(fin);
+               end;
+              if Pos('|_____|',s)>0 then {zmiana predkosci szlakowej}
+               UpdateVelocity(StationCount,vActual)
+              else
+               begin
+                s:=ReadWord(fin);
+                if Pos('|',s)=0 then
+                 vActual:=s2rE(s);
+               end;
+              while Pos('|',s)=0 do
+               s:=Readword(fin);
+              while (Pos(']',s)=0) do
+               s:=ReadWord(fin);
+              if Pos('_|_',s)>0 then EndTable:=True;
+             end; {timetableline}
            end;
-      end; {while eof}
+         end;
+    end; {while eof}
    end;
    if ConversionError=0 then
     begin
       NextStationName:=TimeTable[1].StationName;
 {      TTVmax:=TimeTable[1].vmax;  }
-    end;
-   LoadTTfile:=(ConversionError=0);
+  end;
+ LoadTTfile:=(ConversionError=0);
 end;
 
 procedure TMTableTime.UpdateMTableTime(deltaT:real);

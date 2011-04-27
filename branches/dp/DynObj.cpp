@@ -1160,7 +1160,7 @@ TTrack* __fastcall TraceRoute(double &fDistance, double &fDirection, TTrack *Tra
             else if(Track->Event1->Type==tp_PutValues)
               {
               AnsiString st1 = String(Track->Event1->Params[0].asText);
-              if (st1=="SetVelocity"||st1=="ShuntVelocity")
+              if (st1=="SetVelocity"||st1=="ShuntVelocity"||(st1.SubString(1,19)=="PassengerStopPoint:"))
                 {
                 fDistance= s;
                 return Track;
@@ -1179,7 +1179,7 @@ TTrack* __fastcall TraceRoute(double &fDistance, double &fDirection, TTrack *Tra
             else if(Track->Event2->Type==tp_PutValues)
               {
               AnsiString st1 = String(Track->Event2->Params[0].asText);
-              if (st1=="SetVelocity"||st1=="ShuntVelocity")
+              if (st1=="SetVelocity"||st1=="ShuntVelocity"||(st1.SubString(1,19)=="PassengerStopPoint:"))
                 {
                 fDistance= s;
                 return Track;
