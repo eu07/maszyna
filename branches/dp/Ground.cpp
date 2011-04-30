@@ -1001,6 +1001,12 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
  if (bError)
  {
   MessageBox(0,AnsiString("Scene parse error near "+str).c_str(),"Error",MB_OK);
+  for (int i=0;i<60;++i)
+  {//Ra: skopiowanie dalszej czêœci do logu - taka prowizorka, lepsza ni¿ nic
+   parser->getTokens(); //pobranie linijki tekstu nie dzia³a
+   *parser >> token;
+   WriteLog(token.c_str());
+  }
   //if (tmp==RootNode) RootNode=NULL;
   delete tmp;
   return NULL;

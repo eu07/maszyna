@@ -103,7 +103,7 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 bool Global::bMultiplayer=false; //blokada dzia³ania niektórych eventów na rzecz kominikacji
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asVersion="Compilation 2011-04-27, release 1.3.122.153."; //tutaj, bo wysy³any
+AnsiString Global::asVersion="Compilation 2011-04-30, release 1.3.123.157."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 GLint Global::iMaxTextureSize=16384;//maksymalny rozmiar tekstury
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
@@ -113,6 +113,7 @@ bool Global::bSmoothTraction=false; //wyg³adzanie drutów
 double Global::fSunDeclination=0.0; //deklinacja S³oñca
 double Global::fSunSpeed=1.0; //prêdkoœæ ruchu S³oñca, zmienna do testów
 double Global::fTimeAngleDeg=0.0; //godzina w postaci k¹ta
+double Global::fLatitudeDeg=52.0; //szerokoœæ geograficzna
 char* Global::szTexturesTGA[4]={"tga","dds","tex","bmp"}; //lista tekstur od TGA
 char* Global::szTexturesDDS[4]={"dds","tga","tex","bmp"}; //lista tekstur od DDS
 char** Global::szDefaultExt=Global::szTexturesDDS; //domyœlnie od DDS
@@ -214,7 +215,7 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
         else if (str==AnsiString("skyenabled"))
         {//youBy - niebo
          if (Parser->GetNextSymbol().LowerCase()==AnsiString("yes"))
-          asSky="1"; else asSky="0"; 
+          asSky="1"; else asSky="0";
         }
         else if (str==AnsiString("managenodes"))
         {
@@ -291,6 +292,8 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
          iMultisampling=Parser->GetNextSymbol().ToIntDef(2); //domyœlnie 2
         else if (str==AnsiString("glutfont")) //tekst generowany przez GLUT
          bGlutFont=(Parser->GetNextSymbol().LowerCase()==AnsiString("yes"));
+        else if (str==AnsiString("latitude")) //szerokoœæ geograficzna
+         fLatitudeDeg=Parser->GetNextSymbol().ToDouble();
     }
  //na koniec trochê zale¿noœci
  if (!bLoadTraction)
@@ -299,7 +302,7 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
   bLiveTraction=false;
  }
  //if (fMoveLight>0) bDoubleAmbient=false; //wtedy tylko jedno œwiat³o ruchome
- //if (fOpenGL<1.3) iMultisampling=0; //mo¿na by z góry wy³¹czyæ, ale nie mamy jeszcze fOpenGL 
+ //if (fOpenGL<1.3) iMultisampling=0; //mo¿na by z góry wy³¹czyæ, ale nie mamy jeszcze fOpenGL
  if (iMultisampling)
  {//antyaliasing ca³oekranowy wy³¹cza rozmywanie drutów
   bSmoothTraction=false;

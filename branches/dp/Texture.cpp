@@ -101,6 +101,9 @@ struct ReplaceSlash
 
 GLuint TTexturesManager::GetTextureID(std::string fileName,int filter)
 {//ustalenie numeru tekstury, wczytanie jeœli nie jeszcze takiej nie by³o
+ size_t pos=fileName.find(':'); //szukamy dwukropka
+ if (pos!=std::string::npos) //po dwukropku mog¹ byæ podane dodatkowe informacje
+  fileName=fileName.substr(0,pos); //niebêd¹ce nazw¹ tekstury
  std::transform(fileName.begin(),fileName.end(),fileName.begin(),ReplaceSlash());
  //jeœli bie¿aca œcie¿ka do tekstur nie zosta³a dodana to dodajemy domyœln¹
  if (fileName.find('\\')==std::string::npos)
@@ -494,8 +497,11 @@ TTexturesManager::AlphaValue TTexturesManager::LoadDDS(std::string fileName,int 
     GLuint id;
     glGenTextures(1, &id);
     glBindTexture(GL_TEXTURE_2D, id);
-
-    SetFiltering(true, fileName.find('#') != std::string::npos);
+    if (filter>=0)
+     SetFiltering(filter); //cyfra po % w nazwie
+    else
+     //SetFiltering(bHasAlpha&&bDollar,bHash); //znaki #, $ i kana³ alfa w nazwie
+     SetFiltering(data.components==4,fileName.find('#')!=std::string::npos);
 
     GLuint offset = 0;
     int firstMipMap = 0;
@@ -613,7 +619,7 @@ void TTexturesManager::SetFiltering(bool alpha, bool hash)
 ///////////////////////////////////////////////////////////////////////////////
 GLuint TTexturesManager::CreateTexture(char* buff,GLint bpp,int width,int height,bool bHasAlpha,bool bHash,bool bDollar,int filter)
 {//Ra: u¿ywane tylko dla TGA i TEX
- //Ra: dodaæ obs³ugê GL_BGR oraz GL_BGRA dla TGA - bêdzie siê szybciej wczytywaæ
+ //Ra: dodana obs³uga GL_BGR oraz GL_BGRA dla TGA - szybciej siê wczytuje
  GLuint ID;
  glGenTextures(1,&ID);
  glBindTexture(GL_TEXTURE_2D,ID);

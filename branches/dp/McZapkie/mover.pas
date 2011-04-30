@@ -4712,13 +4712,6 @@ else if command='PantFront' then         {Winger 160204}
          OK:=LoadingDone(-Min0R(CValue2,LoadSpeed),testload);
       end;
     if OK then LoadStatus:=0;
-   end
-  else if Pos('PassengerStopPoint:',command)=1 then  {wskaznik W4}
-   begin
-    //if Order<>Obey_train then {przy manewrach ignorowany}
-     begin
-
-     end;
    end;
   RunCommand:=OK;
 {$B-}
