@@ -202,9 +202,10 @@ public:
  static double fSunDeclination; //deklinacja S³oñca
  static double fSunSpeed; //prêdkoœæ ruchu S³oñca, zmienna do testów
  static double fTimeAngleDeg; //godzina w postaci k¹ta
+ static double fLatitudeDeg; //szerokoœæ geograficzna
  static char* szTexturesTGA[4]; //lista tekstur od TGA
  static char* szTexturesDDS[4]; //lista tekstur od DDS
- static int iMultisampling; //tryb antyaliasingu: 0=brak,1=2px,2=4px
+ static int iMultisampling; //tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
  static bool bGlutFont; //tekst generowany przez GLUT
 };
 

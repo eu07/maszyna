@@ -18,8 +18,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#include    "system.hpp"
-#include    "classes.hpp"
+#include "system.hpp"
+#include "classes.hpp"
 
 #include "opengl/glew.h"
 #include "opengl/glut.h"
@@ -38,6 +38,12 @@
 #define TEXTURE_LOD_BIAS_EXT            0x8501
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
+
+typedef void (APIENTRY *FglutBitmapCharacter)(void *font,int character); //typ funkcji
+FglutBitmapCharacter glutBitmapCharacterDLL=NULL; //deklaracja zmiennej
+HINSTANCE hinstGLUT32=NULL; //wskaŸnik do GLUT32.DLL
+//GLUTAPI void APIENTRY glutBitmapCharacterDLL(void *font, int character);
+
 
 using namespace Timer;
 
@@ -68,6 +74,8 @@ __fastcall TWorld::~TWorld()
  TModelsManager::Free();
  TTexturesManager::Free();
  glDeleteLists(base,96);
+ if (hinstGLUT32)
+  FreeLibrary(hinstGLUT32);
 }
 
 GLvoid __fastcall TWorld::glPrint(const char *txt) //custom GL "Print" routine
@@ -77,7 +85,7 @@ GLvoid __fastcall TWorld::glPrint(const char *txt) //custom GL "Print" routine
  {//tekst generowany przez GLUT
   int i,len=strlen(txt);
   for (i=0;i<len;i++)
-   glutBitmapCharacter(GLUT_BITMAP_8_BY_13,txt[i]);
+   (glutBitmapCharacterDLL)(GLUT_BITMAP_8_BY_13,txt[i]); //funkcja linkowana dynamicznie
  }
  else
  {//generowanie przez Display Lists
@@ -94,6 +102,7 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 {
  Global::hWnd=NhWnd; //do WM_COPYDATA
  Global::detonatoryOK=true;
+ WriteLog("--- MaSzyna ---"); //pierwsza linia jest gubiona
  WriteLog("Starting MaSzyna rail vehicle simulator.");
  WriteLog(Global::asVersion);
  WriteLog("Online documentation and additional files on http://eu07.pl");
@@ -138,6 +147,8 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
  {WriteLog("Ra: No VBO found - Display Lists used. Upgrade drivers or buy a newer graphics card!");
   Global::bUseVBO=false; //mo¿e byæ w³¹czone parametrem w INI
  }
+ if (Global::iMultisampling)
+  WriteLog("Used multisampling of "+AnsiString(Global::iMultisampling)+" samples.");
  {//ograniczenie maksymalnego rozmiaru tekstur - parametr dla skalowania tekstur
   GLint i;
   glGetIntegerv(GL_MAX_TEXTURE_SIZE,&i);
@@ -298,9 +309,22 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 
 /*--------------------Render Initialization End---------------------*/
 
+ WriteLog("Font init"); //pocz¹tek inicjacji fontów 2D
+ if (Global::bGlutFont) //jeœli wybrano GLUT font, próbujemy zlinkowaæ GLUT32.DLL
+ {
+  hinstGLUT32=LoadLibrary(TEXT("GLUT32.DLL")); //get a handle to the DLL module
+  // If the handle is valid, try to get the function address.
+  if (hinstGLUT32)
+   glutBitmapCharacterDLL=(FglutBitmapCharacter)GetProcAddress(hinstGLUT32,"glutBitmapCharacter");
+  else
+   WriteLog("Missed GLUT32.DLL.");
+  if (glutBitmapCharacterDLL)
+   WriteLog("Used font from GLUT32.DLL.");
+  else
+   Global::bGlutFont=false; //nie uda³o siê, trzeba spróbowaæ na Display List
+ }
  if (!Global::bGlutFont)
  {//jeœli bezGLUTowy font
-  WriteLog("Font init");
   HFONT font;										// Windows Font ID
   base=glGenLists(96); //storage for 96 characters
   font=CreateFont(       -15, //height of font
@@ -319,8 +343,9 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
               "Courier New"); //font name
   SelectObject(hDC,font); //selects the font we want
   wglUseFontBitmapsA(hDC,32,96,base); //builds 96 characters starting at character 32
-  WriteLog("Font init OK"); //+AnsiString(glGetError())
+  WriteLog("Display Lists font used."); //+AnsiString(glGetError())
  }
+ WriteLog("Font init OK"); //+AnsiString(glGetError())
 
  Timer::ResetTimers();
 
@@ -578,7 +603,7 @@ bool __fastcall TWorld::Update()
  {//testowo ruch œwiat³a
   //double a=Global::fTimeAngleDeg/180.0*M_PI-M_PI; //k¹t godzinny w radianach
   double a=fmod(Global::fSunSpeed*Global::fTimeAngleDeg,360.0)/180.0*M_PI-M_PI; //k¹t godzinny w radianach
-  double L=52.0/180.0*M_PI; //szerokoœæ geograficzna
+  double L=Global::fLatitudeDeg/180.0*M_PI; //szerokoœæ geograficzna
   double H=asin(cos(L)*cos(Global::fSunDeclination)*cos(a)+sin(L)*sin(Global::fSunDeclination));
   //double A=asin(cos(d)*sin(M_PI-a)/cos(H));
   //Declination=((0.322003-22.971*cos(t)-0.357898*cos(2*t)-0.14398*cos(3*t)+3.94638*sin(t)+0.019334*sin(2*t)+0.05928*sin(3*t)))*Pi/180
@@ -696,6 +721,7 @@ bool __fastcall TWorld::Update()
     }
     else if (Pressed(VK_RBUTTON)||Pressed(VK_F4))
     {//ABu 180404 powrot mechanika na siedzenie albo w okolicê pojazdu
+     if (Pressed(VK_F4)) Global::iViewMode=VK_F4;
      //Ra: na zewn¹trz wychodzimy w Train.cpp
      Camera.Reset(); //likwidacja obrotów - patrzy horyzontalnie na po³udnie
      if (Controlled) //jest pojazd do prowadzenia?
@@ -729,6 +755,7 @@ bool __fastcall TWorld::Update()
     }
     else if (Pressed(VK_F10))
     {//tu mozna dodac dopisywanie do logu przebiegu lokomotywy
+     Global::iViewMode=VK_F10;
      return false;
     }
     Camera.Update(); //uwzglêdnienie ruchu wywo³anego klawiszami
@@ -943,6 +970,7 @@ bool __fastcall TWorld::Update()
 
     if (Pressed(VK_F8))
     {
+     Global::iViewMode=VK_F8;
      OutText1="  FPS: ";
      OutText1+=FloatToStrF(GetFPS(),ffFixed,6,2);
      if (Global::slowmotion)
@@ -998,6 +1026,7 @@ bool __fastcall TWorld::Update()
     */
     if (Pressed(VK_F6)&&(DebugModeFlag))
     {
+     Global::iViewMode=VK_F6;
        //OutText1=FloatToStrF(arg,ffFixed,2,4)+", ";
        //OutText1+=FloatToStrF(p2,ffFixed,7,4)+", ";
        GlobalTime->UpdateMTableTime(100);
@@ -1068,6 +1097,7 @@ bool __fastcall TWorld::Update()
 
     if (Pressed(VK_F1))
     {//tekst pokazywany po wciœniêciu [F1]
+     Global::iViewMode=VK_F1;
      OutText1="Time: "+AnsiString((int)GlobalTime->hh)+":";
      int i=GlobalTime->mm; //bo inaczej potrafi zrobiæ "hh:010"
      if (i<10) OutText1+="0";
@@ -1085,12 +1115,15 @@ bool __fastcall TWorld::Update()
     }
     if (Pressed(VK_F12))
     {
+     Global::iViewMode=VK_F12;
+
        //Takie male info :)
        OutText1= AnsiString("Online documentation (PL): http://eu07.pl");
     }
 
     if (Pressed(VK_F2))
-     {
+    {
+     Global::iViewMode=VK_F2;
        //ABu: info dla najblizszego pojazdu!
        TDynamicObject *tmp;
        if (FreeFlyModeFlag)
@@ -1285,6 +1318,7 @@ bool __fastcall TWorld::Update()
   //if (Pressed(VK_F9)) ShowHints(); //to nie dzia³a prawid³owo - prosili wy³¹czyæ
   if (Pressed(VK_F9))
   {//informacja o wersji, sposobie wyœwietlania i b³êdach OpenGL
+   Global::iViewMode=VK_F9;
    OutText1=Global::asVersion; //informacja o wersji
    OutText2=AnsiString("Rendering mode: ")+(Global::bUseVBO?"VBO":"Display Lists");
    GLenum err=glGetError();
@@ -1322,10 +1356,18 @@ bool __fastcall TWorld::Update()
     glPrint(OutText3.c_str());
     OutText3="";
    }
+   //if (OutText4!="")
+   //{glRasterPos2f(-0.25f, 0.17f);
+   // glPrint(OutText4.c_str());
+   // OutText4="";
+   //}
   }
  }
- //glRasterPos2f(-0.25f, 0.17f);
- //glPrint(OutText4.c_str());
+ if (Global::iViewMode!=Global::iTextMode)
+ {//Ra: taka maksymalna prowizorka na razie
+  WriteLog("Pressed function key F"+AnsiString(Global::iViewMode-111));
+  Global::iTextMode=Global::iViewMode;
+ }
  glEnable(GL_LIGHTING);
  return (true);
 };
