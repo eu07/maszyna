@@ -6,7 +6,7 @@
 #include <string>
 #include "opengl/glew.h"
 #include "dumb3d.h"
-#include "Logs.h"
+//#include "Logs.h"
 
 using namespace Math3D;
 
@@ -207,6 +207,7 @@ public:
  static char* szTexturesDDS[4]; //lista tekstur od DDS
  static int iMultisampling; //tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
  static bool bGlutFont; //tekst generowany przez GLUT
+ static int iKeyLast; //ostatnio naciœniêty klawisz w celu logowania
 };
 
 //---------------------------------------------------------------------------

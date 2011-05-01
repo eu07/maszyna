@@ -73,7 +73,7 @@ GLfloat Global::diffuseLight[]    ={0.85f,0.85f,0.80f,1.0f};
 GLfloat Global::specularLight[]   ={0.95f,0.94f,0.90f,1.0f};
 GLfloat Global::whiteLight[]      ={1.00f,1.00f,1.00f,1.0f};
 GLfloat Global::noLight[]         ={0.00f,0.00f,0.00f,1.0f};
-GLfloat Global::darkLight[]       ={0.01f,0.01f,0.01f,1.0f}; //œladowe
+GLfloat Global::darkLight[]       ={0.03f,0.03f,0.03f,1.0f}; //œladowe
 GLfloat Global::lightPos[4];
 TGround *Global::pGround=NULL;
 //char Global::CreatorName1[30]="Maciej Czapkiewicz";
@@ -103,7 +103,7 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 bool Global::bMultiplayer=false; //blokada dzia³ania niektórych eventów na rzecz kominikacji
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asVersion="Compilation 2011-04-30, release 1.3.123.157."; //tutaj, bo wysy³any
+AnsiString Global::asVersion="Compilation 2011-04-30, release 1.3.124.158."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 GLint Global::iMaxTextureSize=16384;//maksymalny rozmiar tekstury
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
@@ -117,8 +117,9 @@ double Global::fLatitudeDeg=52.0; //szerokoœæ geograficzna
 char* Global::szTexturesTGA[4]={"tga","dds","tex","bmp"}; //lista tekstur od TGA
 char* Global::szTexturesDDS[4]={"dds","tga","tex","bmp"}; //lista tekstur od DDS
 char** Global::szDefaultExt=Global::szTexturesDDS; //domyœlnie od DDS
-int Global::iMultisampling=2; //tryb antyaliasingu: 0=brak,1=2px,2=4px
+int Global::iMultisampling=2; //tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
 bool Global::bGlutFont=false; //tekst generowany przez GLUT
+int Global::iKeyLast=0; //ostatnio naciœniêty klawisz w celu logowania
 
 void __fastcall Global::LoadIniFile(AnsiString asFileName)
 {
