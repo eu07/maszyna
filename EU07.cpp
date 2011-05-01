@@ -516,9 +516,9 @@ LRESULT CALLBACK WndProc(	HWND	hWnd,			// Handle For This Window
 		{
 			ReSizeGLScene(LOWORD(lParam),HIWORD(lParam));  // LoWord=Width, HiWord=Height
             if (GetWindowRect(hWnd,&rect))
-            {
-                mx= WindowWidth/2+rect.left;    // horizontal position
-                my= WindowHeight/2+rect.top;    // vertical position
+            {//Ra: zmiana rozmiaru okna bez przesuwania myszy
+                //mx= WindowWidth/2+rect.left;    // horizontal position
+                //my= WindowHeight/2+rect.top;    // vertical position
 //                SetCursorPos(mx,my);
             }
 			return 0;								// Jump Back

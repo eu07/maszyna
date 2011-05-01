@@ -3243,7 +3243,7 @@ void __fastcall TGround::WyslijEvent(const AnsiString &e,const AnsiString &d)
 };
 //---------------------------------------------------------------------------
 void __fastcall TGround::WyslijString(const AnsiString &t,int n)
-{//Ra: jeszcze do wyczyszczenia
+{//wys³anie informacji w postaci pojedynczego tekstu
  DaneRozkaz r;
  r.iSygn='EU07';
  r.iComm=n; //numer komunikatu
@@ -3260,6 +3260,33 @@ void __fastcall TGround::WyslijString(const AnsiString &t,int n)
 void __fastcall TGround::WyslijWolny(const AnsiString &t)
 {//Ra: jeszcze do wyczyszczenia
  WyslijString(t,4); //tor wolny
+};
+//--------------------------------
+void __fastcall TGround::WyslijNamiary(TGroundNode* t)
+{//wys³anie informacji o pojeŸdzie - (float), d³ugoœæ ramki bêdzie zwiêkszana w miarê potrzeby
+ DaneRozkaz r;
+ r.iSygn='EU07';
+ r.iComm=7; //7 - dane pojazdu
+ int i=9,j=t->asName.Length();
+ r.iPar[ 0]=i; //iloœæ danych liczbowych
+ r.fPar[ 1]=Global::fTimeAngleDeg/360.0; //aktualny czas (1.0=doba)
+ r.fPar[ 2]=t->DynamicObject->MoverParameters->Loc.X; //pozycja X
+ r.fPar[ 3]=t->DynamicObject->MoverParameters->Loc.Y; //pozycja Y
+ r.fPar[ 4]=t->DynamicObject->MoverParameters->Loc.Z; //pozycja Z
+ r.fPar[ 5]=t->DynamicObject->MoverParameters->V; //prêdkoœæ ruchu X
+ r.fPar[ 6]=0; //prêdkoœæ ruchu Y
+ r.fPar[ 7]=0; //prêdkoœæ ruchu Z
+ r.fPar[ 8]=t->DynamicObject->MoverParameters->AccV; //przyspieszenie X
+ //r.fPar[ 9]=0; //przyspieszenie Y //na razie nie
+ //r.fPar[10]=0; //przyspieszenie Z
+ i<<=2; //iloœæ bajtów
+ r.cString[i]=char(j); //na koñcu nazwa, ¿eby jakoœ zidentyfikowaæ
+ strcpy(r.cString+i+1,t->asName.c_str()); //zakoñczony zerem
+ COPYDATASTRUCT cData;
+ cData.dwData='EU07'; //sygnatura
+ cData.cbData=10+i+j; //8+licznik i zero koñcz¹ce
+ cData.lpData=&r;
+ Navigate("TEU07SRK",WM_COPYDATA,(WPARAM)Global::hWnd,(LPARAM)&cData);
 };
 //---------------------------------------------------------------------------
 
