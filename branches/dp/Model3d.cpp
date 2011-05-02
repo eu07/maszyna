@@ -170,6 +170,7 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
    else if (type=="hours")         b_Anim=b_aAnim=at_Hours; //godziny p³ynnie
    else if (type=="hours24")       b_Anim=b_aAnim=at_Hours24; //godziny p³ynnie
    else if (type=="billboard")     b_Anim=b_aAnim=at_Billboard; //obrót w pionie do kamery
+   else if (type=="wind")          b_Anim=b_aAnim=at_Wind; //ruch pod wp³ywem wiatru
    else if (type=="sky")           b_Anim=b_aAnim=at_Sky; //aniamacja nieba
  }
  if (eType==smt_Mesh) readColor(parser,f4Ambient); //ignoruje token przed
@@ -525,10 +526,13 @@ void __fastcall TSubModel::RaAnimation(TAnimType a)
     glRotated(atan2(gdzie.x,gdzie.z)*180.0/M_PI,0.0,1.0,0.0); //jedynie obracamy w pionie o k¹t
    }
    break;
+  case at_Wind: //ruch pod wp³ywem wiatru (wiatr bêdziemy liczyæ potem...)
+   glRotated(1.5*sin(M_PI*GlobalTime->mr/6.0),0.0,1.0,0.0);
+   break;
   case at_Sky: //animacja nieba
-   glRotatef(Global::fLatitudeDeg,1.0,0.0,0.0); //ustawienie osi OY na pó³noc
+   glRotated(Global::fLatitudeDeg,1.0,0.0,0.0); //ustawienie osi OY na pó³noc
    //glRotatef(Global::fTimeAngleDeg,0.0,1.0,0.0); //obrót dobowy osi OX
-   glRotatef(-fmod(Global::fSunSpeed*Global::fTimeAngleDeg,360.0),0.0,1.0,0.0); //obrót dobowy osi OX
+   glRotated(-fmod(Global::fSunSpeed*Global::fTimeAngleDeg,360.0),0.0,1.0,0.0); //obrót dobowy osi OX
    break;
  }
 };

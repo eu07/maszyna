@@ -98,6 +98,7 @@ typedef enum //rodzaj animacji
  at_Hours, //godziny p³ynnie 12h/360°
  at_Hours24, //godziny p³ynnie 24h/360°
  at_Billboard, //obrót w pionie do kamery
+ at_Wind, //ruch pod wp³ywem wiatru
  at_Sky //animacja nieba
 } TAnimType;
 

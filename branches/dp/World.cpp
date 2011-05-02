@@ -553,7 +553,7 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 
 void __fastcall TWorld::OnKeyPress(int cKey)
 {//(cKey) to kod klawisza, cyfrowe i literowe siê zgadzaj¹
- if ((cKey>='0')&&(cKey<='9')) //klawisze cyfrowe
+ if ((cKey<='9')?(cKey>='0'):false) //klawisze cyfrowe
  {int i=cKey-'0'; //numer klawisza
    if (FreeFlyModeFlag) //w trybie latania mo¿na przeskakiwaæ do ustawionych kamer
    {if ((DebugModeFlag&&Pressed(VK_SHIFT))||(!Global::pFreeCameraInit[i].x&&!Global::pFreeCameraInit[i].y&&!Global::pFreeCameraInit[i].z))
@@ -582,6 +582,21 @@ void __fastcall TWorld::OnKeyPress(int cKey)
       Ground.AddToQuery(KeyEvents[i],NULL);
     }
   //bêdzie jeszcze za³¹czanie sprzêgów z [Ctrl]
+ }
+ else if ((cKey>=VK_F1)?(cKey<=VK_F12):false)
+ {if (Global::iTextMode==cKey)
+   Global::iTextMode=0; //wy³¹czenie napisów
+  else
+   switch (cKey)
+   {case VK_F1: //czas i relacja
+    case VK_F2: //parametry pojazdu
+    case VK_F3:
+    case VK_F8: //FPS
+    case VK_F9: //wersja, typ wyœwietlania, b³êdy OpenGL
+    case VK_F12: //coœ tam jeszcze
+     Global::iTextMode=cKey;
+   }
+  if (cKey!=VK_F4) return; //nie s¹ przekazywane do pojazdu
  }
  if (Controlled)
   if ((Controlled->Controller==Humandriver) || DebugModeFlag)
@@ -750,7 +765,7 @@ bool __fastcall TWorld::Update()
     }
     else if (Pressed(VK_RBUTTON)||Pressed(VK_F4))
     {//ABu 180404 powrot mechanika na siedzenie albo w okolicê pojazdu
-     if (Pressed(VK_F4)) Global::iViewMode=VK_F4;
+     //if (Pressed(VK_F4)) Global::iViewMode=VK_F4;
      //Ra: na zewn¹trz wychodzimy w Train.cpp
      Camera.Reset(); //likwidacja obrotów - patrzy horyzontalnie na po³udnie
      if (Controlled) //jest pojazd do prowadzenia?
@@ -784,7 +799,7 @@ bool __fastcall TWorld::Update()
     }
     else if (Pressed(VK_F10))
     {//tu mozna dodac dopisywanie do logu przebiegu lokomotywy
-     Global::iViewMode=VK_F10;
+     //Global::iViewMode=VK_F10;
      return false;
     }
     Camera.Update(); //uwzglêdnienie ruchu wywo³anego klawiszami
@@ -997,7 +1012,7 @@ bool __fastcall TWorld::Update()
     if (Pressed(VK_F6))
        {Global::slowmotion=false;};*/
 
-    if (Pressed(VK_F8))
+    if (Global::iTextMode==VK_F8)
     {
      Global::iViewMode=VK_F8;
      OutText1="  FPS: ";
@@ -1124,9 +1139,9 @@ bool __fastcall TWorld::Update()
        Global::changeDynObj=false;
     }
 
-    if (Pressed(VK_F1))
+    if (Global::iTextMode==VK_F1)
     {//tekst pokazywany po wciœniêciu [F1]
-     Global::iViewMode=VK_F1;
+     //Global::iViewMode=VK_F1;
      OutText1="Time: "+AnsiString((int)GlobalTime->hh)+":";
      int i=GlobalTime->mm; //bo inaczej potrafi zrobiæ "hh:010"
      if (i<10) OutText1+="0";
@@ -1142,17 +1157,17 @@ bool __fastcall TWorld::Update()
      //OutText2="defrot="+FloatToStrF(1+0.4*(CtrlPos/CtrlPosNo),ffFixed,2,5);
      OutText3=""; //Pomoc w sterowaniu - [F9]";
     }
-    if (Pressed(VK_F12))
+    if (Global::iTextMode==VK_F12)
     {
-     Global::iViewMode=VK_F12;
+     //Global::iViewMode=VK_F12;
 
        //Takie male info :)
        OutText1= AnsiString("Online documentation (PL): http://eu07.pl");
     }
 
-    if (Pressed(VK_F2))
+    if (Global::iTextMode==VK_F2)
     {
-     Global::iViewMode=VK_F2;
+     //Global::iViewMode=VK_F2;
        //ABu: info dla najblizszego pojazdu!
        TDynamicObject *tmp;
        if (FreeFlyModeFlag)
@@ -1345,9 +1360,9 @@ bool __fastcall TWorld::Update()
  if (Global::detonatoryOK)
  {
   //if (Pressed(VK_F9)) ShowHints(); //to nie dzia³a prawid³owo - prosili wy³¹czyæ
-  if (Pressed(VK_F9))
+  if (Global::iTextMode==VK_F9)
   {//informacja o wersji, sposobie wyœwietlania i b³êdach OpenGL
-   Global::iViewMode=VK_F9;
+   //Global::iViewMode=VK_F9;
    OutText1=Global::asVersion; //informacja o wersji
    OutText2=AnsiString("Rendering mode: ")+(Global::bUseVBO?"VBO":"Display Lists");
    GLenum err=glGetError();
@@ -1392,11 +1407,11 @@ bool __fastcall TWorld::Update()
    //}
   }
  }
- if (Global::iViewMode!=Global::iTextMode)
- {//Ra: taka maksymalna prowizorka na razie
-  WriteLog("Pressed function key F"+AnsiString(Global::iViewMode-111));
-  Global::iTextMode=Global::iViewMode;
- }
+ //if (Global::iViewMode!=Global::iTextMode)
+ //{//Ra: taka maksymalna prowizorka na razie
+ // WriteLog("Pressed function key F"+AnsiString(Global::iViewMode-111));
+ // Global::iTextMode=Global::iViewMode;
+ //}
  glEnable(GL_LIGHTING);
  return (true);
 };
