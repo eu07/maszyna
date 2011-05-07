@@ -87,19 +87,18 @@ __fastcall TSubModel::~TSubModel()
  delete[] Vertices;
 };
 
-int __fastcall TSubModel::SeekFaceNormal(DWORD *Masks,int f,DWORD dwMask,vector3 pt,GLVERTEX *Vertices)
-{
-    int iNumFaces=iNumVerts/3;
-
-    for (int i=f; i<iNumFaces; i++)
-    {
-        if ( ( (Masks[i] & dwMask)!=0 ) && ( (Vertices[i*3+0].Point==pt) ||
-                                                (Vertices[i*3+1].Point==pt) ||
-                                                (Vertices[i*3+2].Point==pt) ) )
-            return i;
-
-    }
-    return -1;
+int __fastcall TSubModel::SeekFaceNormal(DWORD *Masks,int f,DWORD dwMask,vector3 *pt,GLVERTEX *Vertices)
+{//szukanie punktu stycznego do (pt), zwraca numer wierzcho³ka, a nie trójk¹ta
+ int iNumFaces=iNumVerts/3; //bo maska powierzchni jest jedna na trójk¹t
+ GLVERTEX *p; //roboczy wskaŸnik
+ for (int i=f;i<iNumFaces;++i) //pêtla po trójk¹tach, od trójk¹ta (f)
+  if (Masks[i]&dwMask) //jeœli wspólna maska powierzchni
+  {p=Vertices+3*i;
+   if (p->Point==*pt) return 3*i;
+   if ((++p)->Point==*pt) return 3*i+1;
+   if ((++p)->Point==*pt) return 3*i+2;
+  }
+ return -1; //nie znaleziono stycznego wierzcho³ka
 }
 
 float emm1[]={1,1,1,0};
@@ -255,9 +254,9 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
  parser.getToken(fSquareMinDist);
  fSquareMinDist*=fSquareMinDist;
  parser.ignoreToken();
- readMatrix(parser,Matrix);
- int iNumFaces;
- DWORD *sg;
+ readMatrix(parser,Matrix); //wczytanie transform
+ int iNumFaces; //iloœæ trójk¹tów
+ DWORD *sg; //maski przynale¿noœci trójk¹tów do powierzchni
  if (eType==smt_Mesh)
  {//wczytywanie wierzcho³ków
   parser.ignoreToken();
@@ -270,53 +269,58 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
   }
   Vertices=new GLVERTEX[iNumVerts];
   iNumFaces=iNumVerts/3;
-  sg=new DWORD[iNumFaces];
+  sg=new DWORD[iNumFaces]; //maski powierzchni
   for (int i=0;i<iNumVerts;i++)
   {
    if (i%3==0)
-    parser.getToken(sg[i/3]); //kod powierzchni
+    parser.getToken(sg[i/3]); //maska powierzchni trójk¹ta
    parser.getToken(Vertices[i].Point.x);
    parser.getToken(Vertices[i].Point.y);
    parser.getToken(Vertices[i].Point.z);
-   Vertices[i].Normal=vector3(0,0,0); //bêdzie liczony potem
+   //Vertices[i].Normal=vector3(0,0,0); //bêdzie liczony potem
    parser.getToken(Vertices[i].tu);
    parser.getToken(Vertices[i].tv);
-   if ((i%3==2) && (Vertices[i  ].Point==Vertices[i-1].Point ||
-                    Vertices[i-1].Point==Vertices[i-2].Point ||
-                    Vertices[i-2].Point==Vertices[i  ].Point ))
-   {//je¿eli punkty siê nak³adaj¹ na siebie
-    --iNumFaces; //o jeden trójk¹t mniej
-    iNumVerts-=3; //czyli o 3 wierzcho³ki
-    i-=3; //wczytanie kolejnego w to miejsce
-    WriteLog("Degenerated triangle ignored");
-   }
-  }
-  int v=0;
-  int f;
-  int j;
-  vector3 norm;
-  for (int i=0;i<iNumFaces;i++)
-  {
-   for (j=0;j<3;j++)
-   {
-    norm=vector3(0,0,0);
-    f=SeekFaceNormal(sg,0,sg[i],Vertices[v].Point,Vertices);
-    norm=vector3(0,0,0);
-    while (f>=0)
-    {
-     norm+=SafeNormalize(CrossProduct(Vertices[f*3].Point-Vertices[f*3+1].Point,
-                                Vertices[f*3].Point-Vertices[f*3+2].Point));
-     f=SeekFaceNormal(sg,f+1,sg[i],Vertices[v].Point,Vertices);
+   if (i%3==2) //je¿eli wczytano 3 punkty
+    if (Vertices[i  ].Point==Vertices[i-1].Point ||
+        Vertices[i-1].Point==Vertices[i-2].Point ||
+        Vertices[i-2].Point==Vertices[i  ].Point)
+    {//je¿eli punkty siê nak³adaj¹ na siebie
+     --iNumFaces; //o jeden trójk¹t mniej
+     iNumVerts-=3; //czyli o 3 wierzcho³ki
+     i-=3; //wczytanie kolejnego w to miejsce
+     WriteLog("Degenerated triangle ignored");
     }
-    if (norm.Length()==0)
-        norm+=SafeNormalize(CrossProduct(Vertices[i*3].Point-Vertices[i*3+1].Point,
-                                   Vertices[i*3].Point-Vertices[i*3+2].Point));
-    if (norm.Length()>0)
-        Vertices[v].Normal=Normalize(norm);
-    //else f=0;
-    v++;
+  }
+  int i; //indeks dla trójk¹tów
+  vector3 *n=new vector3[iNumFaces]; //tablica wektorów normalnych dla trójk¹tów
+  for (i=0;i<iNumFaces;i++) //pêtla po trójk¹tach - bêdzie szybciej, jak wstêpnie przeliczymy normalne trójk¹tów
+   n[i]=SafeNormalize(CrossProduct(Vertices[i*3].Point-Vertices[i*3+1].Point,Vertices[i*3].Point-Vertices[i*3+2].Point));
+  int v; //indeks dla wierzcho³ków
+  int *wsp=new int[iNumVerts]; //z którego wierzcho³ka kopiowaæ wektor normalny
+  for (v=0;v<iNumVerts;v++)
+   wsp[v]=-1; //wektory normalne nie s¹ policzone
+  int f; //numer trójk¹ta stycznego
+  vector3 norm; //roboczy wektor normalny
+  for (v=0;v<iNumVerts;v++)
+  {//pêtla po wierzcho³kach trójk¹tów
+   if (wsp[v]>=0) //jeœli ju¿ by³ liczony wektor normalny z u¿yciem tego wierzcho³ka
+    Vertices[v].Normal=Vertices[wsp[v]].Normal; //to wystarczy skopiowaæ policzony wczeœniej
+   else
+   {//inaczej musimy dopiero policzyæ
+    i=v/3; //numer trójk¹ta
+    norm=vector3(0,0,0); //liczenie zaczynamy od zera
+    f=v; //zaczynamy dodawanie wektorów normalnych od w³asnego
+    while (f>=0)
+    {//sumowanie z wektorem normalnym s¹siada (w³¹cznie ze sob¹)
+     wsp[f]=v; //informacja, ¿e w tym wierzcho³ku jest ju¿ policzony wektor normalny
+     norm+=n[f/3];
+     f=SeekFaceNormal(sg,f/3+1,sg[i],&Vertices[v].Point,Vertices); //i szukanie od kolejnego trójk¹ta
+    }
+    Vertices[v].Normal=SafeNormalize(norm); //przepisanie do wierzcho³ka trójk¹ta
    }
   }
+  delete[] wsp;
+  delete[] n;
   delete[] sg;
  };
  if (!Global::bUseVBO)
