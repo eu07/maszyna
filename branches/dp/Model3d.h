@@ -143,7 +143,7 @@ private:
  TSubModel *Next;
  TSubModel *Child;
  //vector3 HitBoxPts[6];
- int __fastcall SeekFaceNormal(DWORD *Masks, int f, DWORD dwMask, vector3 pt, GLVERTEX *Vertices);
+ int __fastcall SeekFaceNormal(DWORD *Masks, int f, DWORD dwMask, vector3 *pt, GLVERTEX *Vertices);
  int iNumVerts; //potrzebne do VBO
  int iVboPtr;
  GLVERTEX *Vertices; //do VBO
