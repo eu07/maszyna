@@ -554,14 +554,22 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 void __fastcall TWorld::OnKeyPress(int cKey)
 {//(cKey) to kod klawisza, cyfrowe i literowe siê zgadzaj¹
  if (cKey>123) //coœ tam jeszcze jest?
-  WriteLog("Key pressed: ["+AnsiString(cKey)+(Pressed(VK_SHIFT)?"]+[Shift]":"]"));
+  WriteLog("Key pressed: ["+AnsiString((char)(cKey-128))+(Pressed(VK_SHIFT)?"]+[Shift]":"]"));
  else if (cKey>=112) //funkcyjne
   WriteLog("Key pressed: [F"+AnsiString(cKey-111)+(Pressed(VK_SHIFT)?"]+[Shift]":"]"));
  else if (cKey>=96)
   WriteLog("Key pressed: [Num"+AnsiString("0123456789*+?-./").SubString(cKey-95,1)+(Pressed(VK_SHIFT)?"]+[Shift]":"]"));
- else if (((cKey>='0')&&(cKey<='9'))||((cKey>='A')&&(cKey<='Z')))
+ else if (((cKey>='0')&&(cKey<='9'))||((cKey>='A')&&(cKey<='Z'))||(cKey==' '))
   WriteLog("Key pressed: ["+AnsiString((char)(cKey))+(Pressed(VK_SHIFT)?"]+[Shift]":"]"));
- else if (cKey>=' ')
+ else if (cKey=='-')
+  WriteLog("Key pressed: [Insert]");
+ else if (cKey=='.')
+  WriteLog("Key pressed: [Delete]");
+ else if (cKey=='$')
+  WriteLog("Key pressed: [Home]");
+ else if (cKey=='#')
+  WriteLog("Key pressed: [End]");
+ else if (cKey>'Z') //¿eby nie logowaæ kursorów
   WriteLog("Key pressed: ["+AnsiString(cKey)+(Pressed(VK_SHIFT)?"]+[Shift]":"]")); //numer klawisza
  if ((cKey<='9')?(cKey>='0'):false) //klawisze cyfrowe
  {int i=cKey-'0'; //numer klawisza
