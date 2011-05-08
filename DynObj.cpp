@@ -2257,8 +2257,9 @@ if (tmpTraction.TractionVoltage==0)
  if (CouplCounter>25) //licznik, aby nie robiæ za ka¿dym razem
  {//poszukiwanie czegoœ do zderzenia siê
   if (MoverParameters->V>0) //jeœli jedzie do przodu (w kierunku Coupler 0)
-   if (MoverParameters->Couplers[0].CouplingFlag==ctrain_virtual)
+  {if (MoverParameters->Couplers[0].CouplingFlag==ctrain_virtual)
     ABuScanObjects(MyTrack,1,300); //szukanie czegoœ do pod³¹czenia
+  }  
   else if (MoverParameters->V<0) //jeœli jedzie do ty³u (w kierunku Coupler 1)
    if (MoverParameters->Couplers[1].CouplingFlag==ctrain_virtual)
     ABuScanObjects(MyTrack,-1,300);
