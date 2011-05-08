@@ -188,32 +188,25 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
  };
  if (eType==smt_FreeSpotLight)
  {
-     if (!parser.expectToken("nearattenstart:"))
-         Error("Model light parse failure!");
-
-     parser.getToken(fNearAttenStart);
-
-     parser.ignoreToken();
-     parser.getToken(fNearAttenEnd);
-
-     parser.ignoreToken();
-     bUseNearAtten=parser.expectToken("true");
-
-     parser.ignoreToken();
-     parser.getToken(iFarAttenDecay);
-
-     parser.ignoreToken();
-     parser.getToken(fFarDecayRadius);
-
-     parser.ignoreToken();
-     parser.getToken(fcosFalloffAngle);
-     fcosFalloffAngle=cos(fcosFalloffAngle * M_PI / 180);
-
-     parser.ignoreToken();
-     parser.getToken(fcosHotspotAngle);
-     fcosHotspotAngle=cos(fcosHotspotAngle * M_PI / 180);
-     iNumVerts=1;
-     iFlags|=2; //rysowane w cyklu nieprzezroczystych
+  if (!parser.expectToken("nearattenstart:"))
+   Error("Model light parse failure!");
+  parser.getToken(fNearAttenStart);
+  parser.ignoreToken();
+  parser.getToken(fNearAttenEnd);
+  parser.ignoreToken();
+  bUseNearAtten=parser.expectToken("true");
+  parser.ignoreToken();
+  parser.getToken(iFarAttenDecay);
+  parser.ignoreToken();
+  parser.getToken(fFarDecayRadius);
+  parser.ignoreToken();
+  parser.getToken(fcosFalloffAngle);
+  fcosFalloffAngle=cos(fcosFalloffAngle * M_PI / 180);
+  parser.ignoreToken();
+  parser.getToken(fcosHotspotAngle);
+  fcosHotspotAngle=cos(fcosHotspotAngle * M_PI / 180);
+  iNumVerts=1;
+  iFlags|=2; //rysowane w cyklu nieprzezroczystych
  }
  else if (eType==smt_Mesh)
  {
@@ -357,13 +350,13 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
    glNewList(uiDisplayList,GL_COMPILE);
    glColor3fv(f4Diffuse);   //McZapkie-240702: zamiast ub
    //glMaterialfv(GL_FRONT,GL_AMBIENT_AND_DIFFUSE,f4Diffuse); //to samo, co glColor
-   if (Global::fLuminance<fLight)
-    glMaterialfv(GL_FRONT,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
+   //if (Global::fLuminance<fLight)
+   // glMaterialfv(GL_FRONT,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
 #ifdef USE_VERTEX_ARRAYS
    glDrawArrays(GL_TRIANGLES,0,iNumVerts);
 #else
    glBegin(bWire?GL_LINES:GL_TRIANGLES);
-   for(int i=0; i<iNumVerts; i++)
+   for (int i=0;i<iNumVerts;i++)
    {
     glNormal3dv(&Vertices[i].Normal.x);
     glTexCoord2f(Vertices[i].tu,Vertices[i].tv);
@@ -371,8 +364,8 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
    };
    glEnd();
 #endif
-   if (Global::fLuminance<fLight)
-    glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
+   //if (Global::fLuminance<fLight)
+   // glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
    glEndList();
   }
   else if (eType==smt_Mesh)
@@ -403,20 +396,16 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
    uiDisplayList=glGenLists(1);
    glNewList(uiDisplayList,GL_COMPILE);
    glBindTexture(GL_TEXTURE_2D,0); //tekstury nie ma
-   //glColor3fv(f4Diffuse);   //McZapkie-240702: zamiast ub
    glColorMaterial(GL_FRONT,GL_EMISSION);
    glDisable(GL_LIGHTING);  //Tolaris-030603: bo mu punkty swiecace sie blendowaly
-   //glMaterialfv(GL_FRONT,GL_AMBIENT_AND_DIFFUSE,f4Diffuse); //to samo, co glColor
-   //if (Global::fLuminance<fLight)
-   // glMaterialfv(GL_FRONT,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
    glBegin(GL_POINTS);
-   for(int i=0; i<iNumVerts; i++)
+   for (int i=0;i<iNumVerts;i++)
    {
     glColor3d(Vertices[i].Normal.x,Vertices[i].Normal.y,Vertices[i].Normal.z);
     glVertex3dv(&Vertices[i].Point.x);
    };
    glEnd();
-   glEnable( GL_LIGHTING );
+   glEnable(GL_LIGHTING);
    glColorMaterial(GL_FRONT,GL_AMBIENT_AND_DIFFUSE);
    glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
    glEndList();
@@ -680,7 +669,7 @@ void __fastcall TSubModel::RaRender(GLuint ReplacableSkinId,bool bAlpha)
    if (Global::fLuminance<fLight)
    {glMaterialfv(GL_FRONT,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
     glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie punkty z VBO
-    glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
+    //glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
    }
    //else
    // glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie punkty

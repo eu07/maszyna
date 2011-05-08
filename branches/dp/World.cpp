@@ -553,11 +553,27 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 
 void __fastcall TWorld::OnKeyPress(int cKey)
 {//(cKey) to kod klawisza, cyfrowe i literowe siê zgadzaj¹
+ if (cKey>123) //coœ tam jeszcze jest?
+  WriteLog("Key pressed: ["+AnsiString(cKey)+(Pressed(VK_SHIFT)?"]+[Shift]":"]"));
+ else if (cKey>=112) //funkcyjne
+  WriteLog("Key pressed: [F"+AnsiString(cKey-111)+(Pressed(VK_SHIFT)?"]+[Shift]":"]"));
+ else if (cKey>=96)
+  WriteLog("Key pressed: [Num"+AnsiString("0123456789*+?-./").SubString(cKey-95,1)+(Pressed(VK_SHIFT)?"]+[Shift]":"]"));
+ else if (((cKey>='0')&&(cKey<='9'))||((cKey>='A')&&(cKey<='Z')))
+  WriteLog("Key pressed: ["+AnsiString((char)(cKey))+(Pressed(VK_SHIFT)?"]+[Shift]":"]"));
+ else if (cKey>=' ')
+  WriteLog("Key pressed: ["+AnsiString(cKey)+(Pressed(VK_SHIFT)?"]+[Shift]":"]")); //numer klawisza
  if ((cKey<='9')?(cKey>='0'):false) //klawisze cyfrowe
  {int i=cKey-'0'; //numer klawisza
+  if (Pressed(VK_SHIFT))
+  {//z [Shift] uruchomienie eventu
+   if (KeyEvents[i])
+    Ground.AddToQuery(KeyEvents[i],NULL);
+  }
+  else
    if (FreeFlyModeFlag) //w trybie latania mo¿na przeskakiwaæ do ustawionych kamer
-   {if ((DebugModeFlag&&Pressed(VK_SHIFT))||(!Global::pFreeCameraInit[i].x&&!Global::pFreeCameraInit[i].y&&!Global::pFreeCameraInit[i].z))
-    {//jeœli w punkcie zerowym, zapamiêtanie wspó³rzêdnych i k¹ty
+   {if ((!Global::pFreeCameraInit[i].x&&!Global::pFreeCameraInit[i].y&&!Global::pFreeCameraInit[i].z))
+    {//jeœli kamera jest w punkcie zerowym, zapamiêtanie wspó³rzêdnych i k¹tów
      Global::pFreeCameraInit[i]=Camera.Pos;
      Global::pFreeCameraInitAngle[i].x=Camera.Pitch;
      Global::pFreeCameraInitAngle[i].y=Camera.Yaw;
@@ -575,12 +591,6 @@ void __fastcall TWorld::OnKeyPress(int cKey)
     else
      Camera.Init(Global::pFreeCameraInit[i],Global::pFreeCameraInitAngle[i]);
    }
-   else
-    if (Pressed(VK_SHIFT))
-    {//z [Shift] uruchomienie eventu, tylko w kabinie
-     if (KeyEvents[i])
-      Ground.AddToQuery(KeyEvents[i],NULL);
-    }
   //bêdzie jeszcze za³¹czanie sprzêgów z [Ctrl]
  }
  else if ((cKey>=VK_F1)?(cKey<=VK_F12):false)
@@ -601,10 +611,6 @@ void __fastcall TWorld::OnKeyPress(int cKey)
  if (Controlled)
   if ((Controlled->Controller==Humandriver) || DebugModeFlag)
    Train->OnKeyPress(cKey); //przekazanie klawisza do pojazdu
- if (cKey>'Z')
-  WriteLog("Key pressed: ["+AnsiString((int)cKey)+(Pressed(VK_SHIFT)?"]+[Shift]":"]")); //numer klawisza
- else if (cKey>='0')
-  WriteLog("Key pressed: ["+AnsiString((char)(cKey))+(Pressed(VK_SHIFT)?"]+[Shift]":"]"));
  //switch (cKey)
  //{case 'a': //ignorowanie repetycji
  // case 'A': Global::iKeyLast=cKey; break;
@@ -701,6 +707,22 @@ bool __fastcall TWorld::Update()
   +0.150*(Global::diffuseDayLight[0]+Global::ambientDayLight[0])  //R
   +0.295*(Global::diffuseDayLight[1]+Global::ambientDayLight[1])  //G
   +0.055*(Global::diffuseDayLight[2]+Global::ambientDayLight[2]); //B
+ if (Global::fMoveLight>=0.0)
+ {//przeliczenie koloru nieba
+  vector3 sky=vector3(Global::AtmoColor[0],Global::AtmoColor[1],Global::AtmoColor[2]);
+  if (Global::fLuminance<0.25)
+  {//przyspieszenie zachodu/wschodu
+   sky*=4.0*Global::fLuminance; //nocny kolor nieba
+   GLfloat fog[3];
+   fog[0]=Global::FogColor[0]*4.0*Global::fLuminance;
+   fog[1]=Global::FogColor[1]*4.0*Global::fLuminance;
+   fog[2]=Global::FogColor[2]*4.0*Global::fLuminance;
+   glFogfv(GL_FOG_COLOR,fog); //nocny kolor mg³y
+  }
+  else
+   glFogfv(GL_FOG_COLOR,Global::FogColor); //kolor mg³y
+  glClearColor(sky.x,sky.y,sky.x,0.0); //kolor nieba
+ }
 
  /*
 //ZiomalCl: uzaleznienie pory dnia od godziny w takiej formie wylaczone
@@ -973,25 +995,25 @@ bool __fastcall TWorld::Update()
     glPopMatrix ( );
 //**********************************************************************************************************
    } //koniec if (Train)
-
+/*
  if (Global::fMoveLight>=0)
- {//tymczasowy "zegar s³oneczny"
-  float x=0.0f,y=10.0f,z=0.0f;
+ {//Ra: tymczasowy "zegar s³oneczny"
+  float x=0.0f,y=10.0f,z=0.0f; //œrodek tarczy
   glColor3f(1.0f,1.0f,1.0f);
   glDisable(GL_LIGHTING);
-  glBegin(GL_LINES);		        // Drawing using triangles
-   x+=2.0*Global::lightPos[0];
-   y+=2.0*Global::lightPos[1];
-   z+=2.0*Global::lightPos[2];
-   glVertex3f(x,y,z);
-   x+=8.0*Global::lightPos[0];
-   y+=8.0*Global::lightPos[1];
-   z+=8.0*Global::lightPos[2];
-   glVertex3f(x,y,z); //wskazuje kierunek S³oñca
+  glBegin(GL_LINES); //linia
+   x+=1.0*Global::lightPos[0];
+   y+=1.0*Global::lightPos[1];
+   z+=1.0*Global::lightPos[2];
+   glVertex3f(x,y,z); //pocz¹tek wskazówki
+   x+=10.0*Global::lightPos[0];
+   y+=10.0*Global::lightPos[1];
+   z+=10.0*Global::lightPos[2];
+   glVertex3f(x,y,z); //koniec wskazuje kierunek S³oñca
   glEnd();
   glEnable(GL_LIGHTING);
  }
-
+*/
     if (DebugModeFlag)
      {
        OutText1= "  FPS: ";
