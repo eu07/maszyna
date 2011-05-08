@@ -697,6 +697,10 @@ bool __fastcall TWorld::Update()
   glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
   glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
  }
+ Global::fLuminance= //to pos³u¿y równie¿ do zapalania latarñ
+  +0.150*(Global::diffuseDayLight[0]+Global::ambientDayLight[0])  //R
+  +0.295*(Global::diffuseDayLight[1]+Global::ambientDayLight[1])  //G
+  +0.055*(Global::diffuseDayLight[2]+Global::ambientDayLight[2]); //B
 
  /*
 //ZiomalCl: uzaleznienie pory dnia od godziny w takiej formie wylaczone
@@ -880,10 +884,6 @@ bool __fastcall TWorld::Update()
   //  lightsum+=Global::diffuseDayLight[i];
   //  lightsum+=Global::ambientDayLight[i];
   // }
-  Global::fLuminance= //to pos³u¿y równie¿ do zapalania latarñ
-   +0.150*(Global::diffuseDayLight[0]+Global::ambientDayLight[0])  //R
-   +0.295*(Global::diffuseDayLight[1]+Global::ambientDayLight[1])  //G
-   +0.055*(Global::diffuseDayLight[2]+Global::ambientDayLight[2]); //B
   if (Global::fLuminance<=0.25)
    {
     glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_ONE);

@@ -175,7 +175,7 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
  if (eType==smt_Mesh) readColor(parser,f4Ambient); //ignoruje token przed
  readColor(parser,f4Diffuse);
  if (eType==smt_Mesh) readColor(parser,f4Specular);
- parser.ignoreTokens(1); //zignorowanie nazwy œwiat³a
+ parser.ignoreTokens(1); //zignorowanie nazwy "SelfIllum:"
  {
   std::string light;
   parser.getToken(light);
@@ -214,9 +214,8 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
      fcosHotspotAngle=cos(fcosHotspotAngle * M_PI / 180);
      iNumVerts=1;
      iFlags|=2; //rysowane w cyklu nieprzezroczystych
- };
-
- if (eType==smt_Mesh)
+ }
+ else if (eType==smt_Mesh)
  {
   parser.ignoreToken();
   bWire=parser.expectToken("true");
@@ -246,7 +245,8 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
    TexAlpha=TTexturesManager::GetAlpha(TextureID);
    iFlags|=TexAlpha?4:2; //2-nieprzezroczysta, 4-przezroczysta
   };
- };
+ }
+ else iFlags|=2;
  parser.ignoreToken();
  parser.getToken(fSquareMaxDist);
  fSquareMaxDist*=fSquareMaxDist;
@@ -322,7 +322,27 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
   delete[] wsp;
   delete[] n;
   delete[] sg;
- };
+ }
+ else if (eType==smt_Stars)
+ {//punkty œwiec¹ce dookólnie - sk³adnia jak dla smt_Mesh
+  parser.ignoreToken();
+  parser.getToken(iNumVerts);
+  Vertices=new GLVERTEX[iNumVerts];
+  int i,j;
+  for (i=0;i<iNumVerts;i++)
+  {
+   if (i%3==0)
+    parser.ignoreToken(); //maska powierzchni trójk¹ta
+   parser.getToken(Vertices[i].Point.x);
+   parser.getToken(Vertices[i].Point.y);
+   parser.getToken(Vertices[i].Point.z);
+   parser.getToken(j); //zakodowany kolor
+   parser.ignoreToken();
+   Vertices[i].Normal.x=((j    )&0xFF)/255.0; //R
+   Vertices[i].Normal.y=((j>> 8)&0xFF)/255.0; //G
+   Vertices[i].Normal.z=((j>>16)&0xFF)/255.0; //B
+  }
+ }
  if (!Global::bUseVBO)
  {//Ra: przy VBO to siê nie przyda
   if (eType==smt_Mesh)
@@ -345,21 +365,21 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
    glBegin(bWire?GL_LINES:GL_TRIANGLES);
    for(int i=0; i<iNumVerts; i++)
    {
-    glNormal3d(Vertices[i].Normal.x,Vertices[i].Normal.y,Vertices[i].Normal.z);
+    glNormal3dv(&Vertices[i].Normal.x);
     glTexCoord2f(Vertices[i].tu,Vertices[i].tv);
     glVertex3dv(&Vertices[i].Point.x);
    };
    glEnd();
 #endif
-  if (Global::fLuminance<fLight)
-   glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
-  glEndList();
- }
- else
- {
-  uiDisplayList=glGenLists(1);
-  glNewList(uiDisplayList,GL_COMPILE);
-  glBindTexture(GL_TEXTURE_2D,0);
+   if (Global::fLuminance<fLight)
+    glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
+   glEndList();
+  }
+  else if (eType==smt_Mesh)
+  {
+   uiDisplayList=glGenLists(1);
+   glNewList(uiDisplayList,GL_COMPILE);
+   glBindTexture(GL_TEXTURE_2D,0);
 //     if (eType==smt_FreeSpotLight)
 //      {
 //       if (iFarAttenDecay==0)
@@ -369,9 +389,32 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
 //TODO: poprawic zeby dzialalo
    //glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
    glColorMaterial(GL_FRONT,GL_EMISSION);
-   glDisable( GL_LIGHTING );  //Tolaris-030603: bo mu punkty swiecace sie blendowaly
+   glDisable(GL_LIGHTING);  //Tolaris-030603: bo mu punkty swiecace sie blendowaly
    glBegin(GL_POINTS);
-      glVertex3f(0,0,0);
+    glVertex3f(0,0,0);
+   glEnd();
+   glEnable(GL_LIGHTING);
+   glColorMaterial(GL_FRONT,GL_AMBIENT_AND_DIFFUSE);
+   glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
+   glEndList();
+  }
+  else if (eType==smt_Stars)
+  {//punkty œwiec¹ce dookólnie
+   uiDisplayList=glGenLists(1);
+   glNewList(uiDisplayList,GL_COMPILE);
+   glBindTexture(GL_TEXTURE_2D,0); //tekstury nie ma
+   //glColor3fv(f4Diffuse);   //McZapkie-240702: zamiast ub
+   glColorMaterial(GL_FRONT,GL_EMISSION);
+   glDisable(GL_LIGHTING);  //Tolaris-030603: bo mu punkty swiecace sie blendowaly
+   //glMaterialfv(GL_FRONT,GL_AMBIENT_AND_DIFFUSE,f4Diffuse); //to samo, co glColor
+   //if (Global::fLuminance<fLight)
+   // glMaterialfv(GL_FRONT,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
+   glBegin(GL_POINTS);
+   for(int i=0; i<iNumVerts; i++)
+   {
+    glColor3d(Vertices[i].Normal.x,Vertices[i].Normal.y,Vertices[i].Normal.z);
+    glVertex3dv(&Vertices[i].Point.x);
+   };
    glEnd();
    glEnable( GL_LIGHTING );
    glColorMaterial(GL_FRONT,GL_AMBIENT_AND_DIFFUSE);
@@ -631,6 +674,18 @@ void __fastcall TSubModel::RaRender(GLuint ReplacableSkinId,bool bAlpha)
     //glColorMaterial(GL_FRONT,GL_AMBIENT_AND_DIFFUSE); //co ma ustawiaæ glColor
    }
   }
+  else if (eType==smt_Stars)
+  {
+   //glDisable(GL_LIGHTING);  //Tolaris-030603: bo mu punkty swiecace sie blendowaly
+   if (Global::fLuminance<fLight)
+   {glMaterialfv(GL_FRONT,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
+    glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie punkty z VBO
+    glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
+   }
+   //else
+   // glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie punkty
+   //glEnable(GL_LIGHTING);
+  }
 /*Ra: tu coœ jest bez sensu...
     else
     {
@@ -761,7 +816,7 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
     glCallList(uiDisplayList); //wyœwietlenie warunkowe
    }
   }
-  else
+  else if (eType==smt_Mesh)
   {if ((TextureID==-1)) // && (ReplacableSkinId!=0))
    {
     glBindTexture(GL_TEXTURE_2D,ReplacableSkinId);
@@ -778,6 +833,18 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
     }
     else
      glCallList(uiDisplayList); //tylko dla siatki
+  }
+  else if (eType==smt_Stars)
+  {
+   //glDisable(GL_LIGHTING);  //Tolaris-030603: bo mu punkty swiecace sie blendowaly
+   if (Global::fLuminance<fLight)
+   {glMaterialfv(GL_FRONT,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
+    glCallList(uiDisplayList); //narysuj naraz wszystkie punkty z DL
+    glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
+   }
+   //else
+   // glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie punkty
+   //glEnable(GL_LIGHTING);
   }
   if (Child!=NULL)
    if (bAlpha?(iFlags&0x00020000):(iFlags&0x00030000))
