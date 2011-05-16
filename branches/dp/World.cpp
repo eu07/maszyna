@@ -729,7 +729,7 @@ bool __fastcall TWorld::Update()
   }
   else
    glFogfv(GL_FOG_COLOR,Global::FogColor); //kolor mg³y
-  glClearColor(sky.x,sky.y,sky.x,0.0); //kolor nieba
+  glClearColor(sky.x,sky.y,sky.z,0.0); //kolor nieba
  }
 
  /*
