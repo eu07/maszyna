@@ -368,7 +368,7 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
    // glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
    glEndList();
   }
-  else if (eType==smt_Mesh)
+  else if (eType==smt_FreeSpotLight)
   {
    uiDisplayList=glGenLists(1);
    glNewList(uiDisplayList,GL_COMPILE);
