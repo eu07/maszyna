@@ -226,18 +226,17 @@ vector3 __fastcall TSegment::FastGetDirection(double fDistance, double fOffset)
 }
 
 vector3 __fastcall TSegment::GetPoint(double fDistance)
-{
-    if (bCurve)
-    {
-        double t= GetTFromS(fDistance);
-        return  Interpolate(t,Point1,CPointOut,CPointIn,Point2);
-    }
-    else
-    {
-        double t= fDistance/fLength;
-        return  ((1.0-t)*Point1+(t)*Point2);
-    }
-
+{//wyliczenie wspó³rzêdnych XYZ na torze w odleg³oœci (fDistance) od Point1
+ if (bCurve)
+ {//mo¿na by wprowadziæ uproszczony wzór dla okrêgów p³askich
+  double t=GetTFromS(fDistance);
+  return Interpolate(t,Point1,CPointOut,CPointIn,Point2);
+ }
+ else
+ {//wyliczenie dla odcinka prostego jest prostsze
+  double t=fDistance/fLength;
+  return ((1.0-t)*Point1+(t)*Point2);
+ }
 }
 
 vector3 __fastcall TSegment::FastGetPoint(double t)

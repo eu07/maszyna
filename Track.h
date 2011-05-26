@@ -78,6 +78,7 @@ private:
 public:
     int iNumDynamics;
     TDynamicObject *Dynamics[iMaxNumDynamics];
+    int iEvents; //Ra: flaga informuj¹ca o obecnoœci eventów
     TEvent *Eventall0;  //McZapkie-140302: wyzwalany gdy pojazd stoi
     TEvent *Eventall1;
     TEvent *Eventall2;

@@ -72,6 +72,7 @@ __fastcall TTrack::TTrack()
  iDamageFlag=0;
  eEnvironment=e_flat;
  bVisible=true;
+ iEvents=0; //Ra: flaga informuj¹ca o obecnoœci eventów
  Event0=NULL;
  Event1=NULL;
  Event2=NULL;
@@ -459,144 +460,146 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin)
 
 bool __fastcall TTrack::AssignEvents(TEvent *NewEvent0,TEvent *NewEvent1,TEvent *NewEvent2)
 {
-    bool bError=false;
-    if (!Event0)
-    {
-        if (NewEvent0)
-        {
-            Event0=NewEvent0;
-            asEvent0Name="";
-        }
-        else
-        {
-            if (!asEvent0Name.IsEmpty())
-            {
-                Error(AnsiString("Event0 \"")+asEvent0Name+AnsiString("\" does not exist"));
-                bError=true;
-            }
-        }
-    }
-    else
-    {
-        Error(AnsiString("Event 0 cannot be assigned to track, track already has one"));
-        bError=true;
-    }
-
-    if (!Event1)
-    {
-        if (NewEvent1)
-        {
-            Event1=NewEvent1;
-            asEvent1Name="";
-        }
-        else
-        {
-            if (!asEvent0Name.IsEmpty())
-            {//Ra: tylko w logu informacja
-                WriteLog(AnsiString("Event1 \"")+asEvent1Name+AnsiString("\" does not exist").c_str());
-                bError=true;
-            }
-        }
-    }
-    else
-    {
-        Error(AnsiString("Event 1 cannot be assigned to track, track already has one"));
-        bError=true;
-    }
-
-    if (!Event2)
-    {
-        if (NewEvent2)
-        {
-            Event2=NewEvent2;
-            asEvent2Name="";
-        }
-        else
-        {
-            if (!asEvent0Name.IsEmpty())
-            {//Ra: tylko w logu informacja
-                WriteLog(AnsiString("Event2 \"")+asEvent2Name+AnsiString("\" does not exist"));
-                bError=true;
-            }
-        }
-    }
-    else
-    {
-        Error(AnsiString("Event 2 cannot be assigned to track, track already has one"));
-        bError=true;
-    }
-    return !bError;
+ bool bError=false;
+ if (!Event0)
+ {
+  if (NewEvent0)
+  {
+   Event0=NewEvent0;
+   asEvent0Name="";
+   iEvents|=1; //sumaryczna informacja o eventach
+  }
+  else
+  {
+   if (!asEvent0Name.IsEmpty())
+   {
+    Error(AnsiString("Event0 \"")+asEvent0Name+AnsiString("\" does not exist"));
+    bError=true;
+   }
+  }
+ }
+ else
+ {
+  Error(AnsiString("Event 0 cannot be assigned to track, track already has one"));
+  bError=true;
+ }
+ if (!Event1)
+ {
+  if (NewEvent1)
+  {
+   Event1=NewEvent1;
+   asEvent1Name="";
+   iEvents|=2; //sumaryczna informacja o eventach
+  }
+  else
+  {
+   if (!asEvent0Name.IsEmpty())
+   {//Ra: tylko w logu informacja
+    WriteLog(AnsiString("Event1 \"")+asEvent1Name+AnsiString("\" does not exist").c_str());
+    bError=true;
+   }
+  }
+ }
+ else
+ {
+  Error(AnsiString("Event 1 cannot be assigned to track, track already has one"));
+  bError=true;
+ }
+ if (!Event2)
+ {
+  if (NewEvent2)
+  {
+   Event2=NewEvent2;
+   asEvent2Name="";
+   iEvents|=4; //sumaryczna informacja o eventach
+  }
+  else
+  {
+   if (!asEvent0Name.IsEmpty())
+   {//Ra: tylko w logu informacja
+    WriteLog(AnsiString("Event2 \"")+asEvent2Name+AnsiString("\" does not exist"));
+    bError=true;
+   }
+  }
+ }
+ else
+ {
+  Error(AnsiString("Event 2 cannot be assigned to track, track already has one"));
+  bError=true;
+ }
+ return !bError;
 }
 
 bool __fastcall TTrack::AssignallEvents(TEvent *NewEvent0,TEvent *NewEvent1,TEvent *NewEvent2)
 {
-    bool bError=false;
-    if (!Eventall0)
-    {
-        if (NewEvent0)
-        {
-            Eventall0=NewEvent0;
-            asEventall0Name="";
-        }
-        else
-        {
-            if (!asEvent0Name.IsEmpty())
-            {
-                Error(AnsiString("Eventall 0 \"")+asEventall0Name+AnsiString("\" does not exist"));
-                bError=true;
-            }
-        }
-    }
-    else
-    {
-        Error(AnsiString("Eventall 0 cannot be assigned to track, track already has one"));
-        bError=true;
-    }
-
-    if (!Eventall1)
-    {
-        if (NewEvent1)
-        {
-            Eventall1=NewEvent1;
-            asEventall1Name="";
-        }
-        else
-        {
-            if (!asEvent0Name.IsEmpty())
-            {//Ra: tylko w logu informacja
-                WriteLog(AnsiString("Eventall 1 \"")+asEventall1Name+AnsiString("\" does not exist"));
-                bError=true;
-            }
-        }
-    }
-    else
-    {
-        Error(AnsiString("Eventall 1 cannot be assigned to track, track already has one"));
-        bError=true;
-    }
-
-    if (!Eventall2)
-    {
-        if (NewEvent2)
-        {
-            Eventall2=NewEvent2;
-            asEventall2Name="";
-        }
-        else
-        {
-            if (!asEvent0Name.IsEmpty())
-            {//Ra: tylko w logu informacja
-                WriteLog(AnsiString("Eventall 2 \"")+asEventall2Name+AnsiString("\" does not exist"));
-                bError=true;
-            }
-        }
-    }
-    else
-    {
-        Error(AnsiString("Eventall 2 cannot be assigned to track, track already has one"));
-        bError=true;
-    }
-    return !bError;
+ bool bError=false;
+ if (!Eventall0)
+ {
+  if (NewEvent0)
+  {
+   Eventall0=NewEvent0;
+   asEventall0Name="";
+   iEvents|=8; //sumaryczna informacja o eventach
+  }
+  else
+  {
+   if (!asEvent0Name.IsEmpty())
+   {
+    Error(AnsiString("Eventall 0 \"")+asEventall0Name+AnsiString("\" does not exist"));
+    bError=true;
+   }
+  }
+ }
+ else
+ {
+  Error(AnsiString("Eventall 0 cannot be assigned to track, track already has one"));
+  bError=true;
+ }
+ if (!Eventall1)
+ {
+  if (NewEvent1)
+  {
+   Eventall1=NewEvent1;
+   asEventall1Name="";
+   iEvents|=16; //sumaryczna informacja o eventach
+  }
+  else
+  {
+   if (!asEvent0Name.IsEmpty())
+   {//Ra: tylko w logu informacja
+    WriteLog(AnsiString("Eventall 1 \"")+asEventall1Name+AnsiString("\" does not exist"));
+    bError=true;
+   }
+  }
+ }
+ else
+ {
+  Error(AnsiString("Eventall 1 cannot be assigned to track, track already has one"));
+  bError=true;
+ }
+ if (!Eventall2)
+ {
+  if (NewEvent2)
+  {
+   Eventall2=NewEvent2;
+   asEventall2Name="";
+   iEvents|=32; //sumaryczna informacja o eventach
+  }
+  else
+  {
+   if (!asEvent0Name.IsEmpty())
+   {//Ra: tylko w logu informacja
+    WriteLog(AnsiString("Eventall 2 \"")+asEventall2Name+AnsiString("\" does not exist"));
+    bError=true;
+   }
+  }
+ }
+ else
+ {
+  Error(AnsiString("Eventall 2 cannot be assigned to track, track already has one"));
+  bError=true;
+ }
+ return !bError;
 }
 
 
