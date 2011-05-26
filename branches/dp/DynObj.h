@@ -259,16 +259,15 @@ public:
     //McZapkie-260202
     void __fastcall LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName, AnsiString ReplacableSkin);
 
-    inline double __fastcall ABuGetDirection() //ABu.
-           {
-              return (Axle1.GetTrack()==MyTrack?Axle1.GetDirection():Axle4.GetDirection());
-           };
-    inline double __fastcall ABuGetTranslation() //ABu.
-           {
-              return (Axle1.GetTrack()==MyTrack?Axle1.GetTranslation():Axle4.GetTranslation());
-           };
-    void CouplersDettach(double MinDist,int MyScanDir);
-
+ inline double __fastcall ABuGetDirection() //ABu.
+ {
+  return (Axle1.GetTrack()==MyTrack?Axle1.GetDirection():Axle4.GetDirection());
+ };
+ inline double __fastcall ABuGetTranslation() //ABu.
+ {//zwraca przesuniêcie wózka wzglêdem Point1 toru
+  return (Axle1.GetTrack()==MyTrack?Axle1.GetTranslation():Axle4.GetTranslation());
+ };
+ void CouplersDettach(double MinDist,int MyScanDir);
 };
 
 
