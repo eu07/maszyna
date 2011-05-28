@@ -23,7 +23,7 @@ public:
 };
 
 class TSegment
-{
+{//aproksymacja toru (zwrotnica ma dwa takie, jeden z nich jest aktywny)
 private:
  vector3 Point1,CPointOut,CPointIn,Point2;
  double fRoll1,fRoll2;
@@ -31,9 +31,13 @@ private:
  double *fTsBuffer;
  double fStep;
  int iSegCount;
+ double fDirection; //Ra: k¹t prostego w planie, dla ³uku k¹t od Point1
+ double fStoop; //Ra: k¹t wzniesienia, dla ³uku od Point1
+ vector3 vA,vB,vC; //wspó³czynniki wielomianów trzeciego stopnia vD==Point1
  vector3 __fastcall GetFirstDerivative(double fTime);
  double __fastcall RombergIntegral(double fA, double fB);
  double __fastcall GetTFromS(double s);
+ vector3 __fastcall RaInterpolate(double t);
 public:
  bool bCurve;
  //int iShape; //Ra: flagi kszta³tu dadz¹ wiêcej mo¿liwoœci optymalizacji
@@ -51,6 +55,7 @@ public:
  vector3 __fastcall GetDirection() {return CPointOut;};
  vector3 __fastcall FastGetDirection(double fDistance,double fOffset);
  vector3 __fastcall GetPoint(double fDistance);
+ void __fastcall RaPositionGet(double fDistance,vector3 &p,vector3 &a);
  vector3 __fastcall FastGetPoint(double t);
  inline vector3 __fastcall FastGetPoint_0() {return Point1;};
  inline vector3 __fastcall FastGetPoint_1() {return Point2;};

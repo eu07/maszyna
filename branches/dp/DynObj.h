@@ -130,13 +130,13 @@ private:
     bool renderme; //yB - czy renderowac
     char cp1, sp1, cp2, sp2; //ustawienia wezy
     TRealSound sBrakeAcc; //dzwiek przyspieszacza
-    
+
 protected:
     bool bEnabled;
     AnsiString asName;
-    TTrackFollower Axle2;
+    TTrackFollower Axle2; //dwie osie z czterech (protected)
     TTrackFollower Axle3;
-    int iNumAxles;
+    int iNumAxles; //iloœæ osi
     //Byte NextConnectedNo;
     //Byte PrevConnectedNo;
     int CouplCounter;
@@ -220,7 +220,7 @@ public:
     TController *Mechanik;
     TTrainParameters *TrainParams;
     bool MechInside;
-    TTrackFollower Axle1;
+    TTrackFollower Axle1; //dwie osie z czterech (public)
     TTrackFollower Axle4;
 //McZapkie-270202
     bool Controller;

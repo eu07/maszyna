@@ -212,18 +212,23 @@ bool __fastcall TTrackFollower::ComputatePosition()
 {//ustalenie wspó³rzêdnych XYZ
  if (pCurrentSegment) //o ile jest tor
  {
-  pPosition=pCurrentSegment->GetPoint(fCurrentDistance); //wyliczenie z dystansu od Point1
+  //pPosition=pCurrentSegment->GetPoint(fCurrentDistance); //wyliczenie z dystansu od Point1
+  pCurrentSegment->RaPositionGet(fCurrentDistance,pPosition,vAngles);
   return true;
  }
  return false;
 }
 
-void __fastcall TTrackFollower::Render()
-{//funkcja rysuj¹ca sto¿ek w miejscu wózka
- glPushMatrix();
-  glTranslatef(pPosition.x,pPosition.y,pPosition.z);
-  glRotatef(-90,1,0,0);
-  glutSolidCone(5,10,4,1); //rysowanie sto¿ka
+void __fastcall TTrackFollower::Render(double fAngle,float fNr)
+{//funkcja rysuj¹ca sto¿ek w miejscu osi
+ glPushMatrix(); //matryca kamery
+  glTranslatef(pPosition.x,pPosition.y+6,pPosition.z); //6m ponad
+  glRotatef(-fAngle,0,1,0); //obrót wzglêdem osi OY
+  glDisable(GL_LIGHTING);
+  glColor3f(1.0-fNr,fNr,0); //czerwone dla 0, zielone dla 1
+  //glutWireCone(promieñ podstawy,wysokoœæ,k¹tnoœæ podstawy,iloœæ segmentów na wysokoœæ)
+  glutWireCone(6,6,4,1); //rysowanie sto¿ka (ostros³upa o podstawie czworok¹ta)
+  glEnable(GL_LIGHTING);
  glPopMatrix();
 }
 
