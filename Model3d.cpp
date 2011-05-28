@@ -154,7 +154,7 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
    eType=smt_Stars; //wiele punktów œwietlnych
  };
  parser.ignoreToken();
- parser.getToken(Name);
+ parser.getToken(Name); //ze zmian¹ na ma³e!
  if (parser.expectToken("anim:")) //Ra: ta informacja by siê przyda³a!
  {//rodzaj animacji
   std::string type;

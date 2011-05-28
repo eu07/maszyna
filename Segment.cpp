@@ -50,56 +50,56 @@ bool __fastcall TSegment::Init(
 bool __fastcall TSegment::Init(
  vector3 NewPoint1,vector3 NewCPointOut,vector3 NewCPointIn,vector3 NewPoint2,
  double fNewStep,double fNewRoll1, double fNewRoll2, bool bIsCurve)
-{//wersja dla krzywej
-    Point1= NewPoint1;
-    CPointOut= NewCPointOut;
-    CPointIn= NewCPointIn;
-    Point2= NewPoint2;
-    bCurve= bIsCurve;
-    if (bCurve)
-        fLength= ComputeLength(Point1,CPointOut,CPointIn,Point2);
-    else
-        fLength= (Point1-Point2).Length();
-    fRoll1= DegToRad(fNewRoll1); //Ra: przeliczone jest bardziej przydatne
-    fRoll2= DegToRad(fNewRoll2);
-    fStep= fNewStep;
-
-    if (fLength<=0)
-    {
-        WriteLog("Length <= 0 in TSegment::Init");
-        //MessageBox(0,"Length<=0","TSegment::Init",MB_OK);
-        return false;
-    }
-
-    SafeDeleteArray(fTsBuffer);
-    if ((bCurve) && (fStep>0))
-    {//Ra: prosty dostanie podzia³, jak ma wpisane kontrolne :(
-     double s=0;
-     int i=0;
-     iSegCount=ceil(fLength/fStep); //potrzebne do VBO
-     //fStep=fLength/(double)(iSegCount-1); //wyrównanie podzia³u
-     fTsBuffer=new double[iSegCount+1];
-     fTsBuffer[0]=0;               /* TODO : fix fTsBuffer */
-
-     while (s<fLength)
-     {
-      i++;
-      s+=fStep;
-      if (s>fLength) s=fLength;
-      fTsBuffer[i]=GetTFromS(s);
-     }
-    }
-
-
-//    return true;
-
-    if (fLength>500)
-    {
-        MessageBox(0,"Length>500","TSegment::Init",MB_OK);
-        return false;
-    }
-
-    return true;
+{//wersja uniwersalna (dla krzywej i prostego)
+ Point1=NewPoint1;
+ CPointOut=NewCPointOut;
+ CPointIn=NewCPointIn;
+ Point2=NewPoint2;
+ fStoop=Point2.z-Point1.z/fLength; //pochylenie toru prostego, ¿eby nie liczyæ wielokrotnie
+ //Ra: ten k¹t jeszcze do przemyœlenia jest
+ fDirection=atan2(Point2.z-Point1.z,Point2.x-Point1.x); //k¹t w planie, ¿eby nie liczyæ wielokrotnie
+ bCurve=bIsCurve;
+ if (bCurve)
+ {//przeliczenie wspó³czynników wielomianu, bêdzie mniej mno¿eñ i mo¿na policzyæ pochodne
+  vC=3.0*(CPointOut-Point1); //t^1
+  vB=3.0*(CPointIn-CPointOut)-vC; //t^2
+  vA=Point2-Point1-vC-vB; //t^3
+  fLength=ComputeLength(Point1,CPointOut,CPointIn,Point2);
+ }
+ else
+  fLength=(Point1-Point2).Length();
+ fRoll1=DegToRad(fNewRoll1); //Ra: przeliczone jest bardziej przydatne
+ fRoll2=DegToRad(fNewRoll2);
+ fStep=fNewStep;
+ if (fLength<=0)
+ {
+  WriteLog("Length <= 0 in TSegment::Init");
+  //MessageBox(0,"Length<=0","TSegment::Init",MB_OK);
+  return false; //zerowe nie mog¹ byæ
+ }
+ SafeDeleteArray(fTsBuffer);
+ if ((bCurve) && (fStep>0))
+ {//Ra: prosty dostanie podzia³, jak ma wpisane kontrolne :(
+  double s=0;
+  int i=0;
+  iSegCount=ceil(fLength/fStep); //potrzebne do VBO
+  //fStep=fLength/(double)(iSegCount-1); //wyrównanie podzia³u
+  fTsBuffer=new double[iSegCount+1];
+  fTsBuffer[0]=0;               /* TODO : fix fTsBuffer */
+  while (s<fLength)
+  {
+   i++;
+   s+=fStep;
+   if (s>fLength) s=fLength;
+   fTsBuffer[i]=GetTFromS(s);
+  }
+ }
+ if (fLength>500)
+ {//tor ma pojemnoœæ 40 pojazdów, wiêc nie mo¿e byæ za d³ugi
+  MessageBox(0,"Length>500","TSegment::Init",MB_OK);
+  return false;
+ }
+ return true;
 }
 
 
@@ -184,64 +184,92 @@ double __fastcall TSegment::GetTFromS(double s)
     // tolerance or integration accuracy.
     //return -1; //Ra: tu nigdy nie dojdzie
 
+};
+
+vector3 __fastcall TSegment::RaInterpolate(double t)
+{//wyliczenie XYZ na krzywej Beziera z u¿yciem wspó³czynników
+ return t*(t*(t*vA+vB)+vC)+Point1; //9 mno¿eñ, 9 dodawañ
+};
+
+double __fastcall TSegment::ComputeLength(vector3 p1,vector3 cp1,vector3 cp2,vector3 p2)  //McZapkie-150503: dlugosc miedzy punktami krzywej
+{//obliczenie d³ugoœci krzywej Beziera za pomoc¹ interpolacji odcinkami
+ double t,l=0;
+ vector3 tmp,last=p1;
+ for (int i=1;i<=Precision;i++)
+ {
+  t=double(i)/double(Precision);
+  //tmp=Interpolate(t,p1,cp1,cp2,p2);
+  tmp=RaInterpolate(t);
+  t=vector3(tmp-last).Length();
+  l+=t;
+  last=tmp;
+ }
+ return (l);
 }
 
-double __fastcall TSegment::ComputeLength(vector3 p1, vector3 cp1, vector3 cp2, vector3 p2)  //McZapkie-150503: dlugosc miedzy punktami krzywej
-{
-    double t,l=0;
-    vector3 tmp,last= p1;
-    for (int i=1; i<=Precision; i++)
-    {
-        t= double(i)/double(Precision);
-        tmp= Interpolate(t,p1,cp1,cp2,p2);
-        t= vector3(tmp-last).Length();
-        l+= t;
-        last= tmp;
-    }
-    return (l);
-}
-
-const double fDirectionOffset= 0.1;
+const double fDirectionOffset=0.1; //d³ugoœæ wektora do wyliczenia kierunku
 
 vector3 __fastcall TSegment::GetDirection(double fDistance)
-{
-    double t1= GetTFromS(fDistance-fDirectionOffset);
-    if (t1<0)
-        return (CPointOut-Point1);
-    double t2= GetTFromS(fDistance+fDirectionOffset);
-    if (t2>1)
-        return (Point1-CPointIn);
-    return (FastGetPoint(t2)-FastGetPoint(t1));
+{//takie toporne liczenie pochodnej dla podanego dystansu od Point1
+ double t1=GetTFromS(fDistance-fDirectionOffset);
+ if (t1<0)
+  return (CPointOut-Point1); //na zewn¹trz jako prosta
+ double t2=GetTFromS(fDistance+fDirectionOffset);
+ if (t2>1)
+  return (Point1-CPointIn); //na zewn¹trz jako prosta
+ return (FastGetPoint(t2)-FastGetPoint(t1));
 }
 
 vector3 __fastcall TSegment::FastGetDirection(double fDistance, double fOffset)
-{
-    double t1= fDistance-fOffset;
-    if (t1<0)
-        return (CPointOut-Point1);
-    double t2= fDistance+fOffset;
-    if (t2>1)
-        return (Point2-CPointIn);
-    return (FastGetPoint(t2)-FastGetPoint(t1));
+{//takie toporne liczenie pochodnej dla parametru 0.0÷1.0
+ double t1=fDistance-fOffset;
+ if (t1<0)
+  return (CPointOut-Point1);
+ double t2=fDistance+fOffset;
+ if (t2>1)
+  return (Point2-CPointIn);
+ return (FastGetPoint(t2)-FastGetPoint(t1));
 }
 
 vector3 __fastcall TSegment::GetPoint(double fDistance)
 {//wyliczenie wspó³rzêdnych XYZ na torze w odleg³oœci (fDistance) od Point1
  if (bCurve)
  {//mo¿na by wprowadziæ uproszczony wzór dla okrêgów p³askich
-  double t=GetTFromS(fDistance);
-  return Interpolate(t,Point1,CPointOut,CPointIn,Point2);
+  double t=GetTFromS(fDistance); //aproksymacja dystansu na krzywej Beziera
+  //return Interpolate(t,Point1,CPointOut,CPointIn,Point2);
+  return RaInterpolate(t);
  }
  else
  {//wyliczenie dla odcinka prostego jest prostsze
-  double t=fDistance/fLength;
+  double t=fDistance/fLength; //zerowych torów nie ma
   return ((1.0-t)*Point1+(t)*Point2);
  }
-}
+};
+
+void __fastcall TSegment::RaPositionGet(double fDistance,vector3 &p,vector3 &a)
+{//ustalenie pozycji osi na torze, przechy³ki, pochylenia i kierunku jazdy
+ double t=fDistance/fLength; //zerowych torów nie ma
+ a.x=(1.0-t)*fRoll1+(t)*fRoll2; //przechy³ka w danym miejscu (zmienia siê liniowo)
+ if (bCurve)
+ {//mo¿na by wprowadziæ uproszczony wzór dla okrêgów p³askich
+  double k=GetTFromS(fDistance); //aproksymacja dystansu na krzywej Beziera
+  p=RaInterpolate(t);
+  a.y=fStoop; //pochylenie krzywej
+  a.z=fDirection; //kierunek krzywej w planie
+ }
+ else
+ {//wyliczenie dla odcinka prostego jest prostsze
+  p=((1.0-t)*Point1+(t)*Point2);
+  a.y=fStoop; //pochylenie toru prostego
+  a.z=fDirection; //kierunek toru w planie
+ }
+};
+
 
 vector3 __fastcall TSegment::FastGetPoint(double t)
 {
- return (bCurve?Interpolate(t,Point1,CPointOut,CPointIn,Point2):((1.0-t)*Point1+(t)*Point2));
+ //return (bCurve?Interpolate(t,Point1,CPointOut,CPointIn,Point2):((1.0-t)*Point1+(t)*Point2));
+ return (bCurve?RaInterpolate(t):((1.0-t)*Point1+(t)*Point2));
 }
 
 void __fastcall TSegment::RenderLoft(const vector6 *ShapePoints, int iNumShapePoints,
@@ -539,22 +567,22 @@ void __fastcall TSegment::Render()
    }
    else
    {
-                glColor3f(0,0,1.0f);
-                glBegin(GL_LINE_STRIP);
-                    glVertex3f(Point1.x,Point1.y,Point1.z);
-                    glVertex3f(Point1.x+CPointOut.x,Point1.y+CPointOut.y,Point1.z+CPointOut.z);
-                glEnd();
+    glColor3f(0,0,1.0f);
+    glBegin(GL_LINE_STRIP);
+        glVertex3f(Point1.x,Point1.y,Point1.z);
+        glVertex3f(Point1.x+CPointOut.x,Point1.y+CPointOut.y,Point1.z+CPointOut.z);
+    glEnd();
 
-                glBegin(GL_LINE_STRIP);
-                    glVertex3f(Point2.x,Point2.y,Point2.z);
-                    glVertex3f(Point2.x+CPointIn.x,Point2.y+CPointIn.y,Point2.z+CPointIn.z);
-                glEnd();
+    glBegin(GL_LINE_STRIP);
+        glVertex3f(Point2.x,Point2.y,Point2.z);
+        glVertex3f(Point2.x+CPointIn.x,Point2.y+CPointIn.y,Point2.z+CPointIn.z);
+    glEnd();
 
-                glColor3f(0.5f,0,0);
-                glBegin(GL_LINE_STRIP);
-                    glVertex3f(Point1.x+CPointOut.x,Point1.y+CPointOut.y,Point1.z+CPointOut.z);
-                    glVertex3f(Point2.x+CPointIn.x,Point2.y+CPointIn.y,Point2.z+CPointIn.z);
-                glEnd();
+    glColor3f(0.5f,0,0);
+    glBegin(GL_LINE_STRIP);
+        glVertex3f(Point1.x+CPointOut.x,Point1.y+CPointOut.y,Point1.z+CPointOut.z);
+        glVertex3f(Point2.x+CPointIn.x,Point2.y+CPointIn.y,Point2.z+CPointIn.z);
+    glEnd();
   }
 
 }

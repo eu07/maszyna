@@ -222,9 +222,9 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
  }
  btnOn=false;
 
-  if (ObjSqrDist<160000)
+  if (ObjSqrDist<160000) //gdy bli¿ej ni¿ 400m
   {
-   if (ObjSqrDist<2500)
+   if (ObjSqrDist<2500) //gdy bli¿ej ni¿ 50m
    {
     //ABu290105: rzucanie pudlem
     mdModel->GetSMRoot()->SetTranslate(modelShake);
@@ -238,7 +238,8 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
      mdPrzedsionek->GetSMRoot()->SetTranslate(modelShake);
     //ABu: koniec rzucania
     //ABu011104: liczenie obrotow wozkow
-    if(Global::bEnableTraction) ABuBogies();
+    //if (Global::bEnableTraction) //Ra: bardziej potrzebne wózki ni¿ druty
+     ABuBogies();
     //McZapkie-050402: obracanie kolami
     for (int i=0; i<iAnimatedAxles; i++)
      if (smAnimatedWheel[i])
@@ -588,69 +589,59 @@ double __fastcall ABuAcos(vector3 calc_temp)
 }
 
 
-TDynamicObject* __fastcall ABuFindNearestObject(TTrack *Track, TDynamicObject *MyPointer, int &CouplNr)
-{  //Zwraca wskaznik najblizszego kamerze sprzegu obiektu znajdujacego sie na torze
-   //WE: Track      - tor, na ktorym odbywa sie poszukiwanie,
-   //    MyPointer  - wskaznik do obiektu szukajacego.
+TDynamicObject* __fastcall ABuFindNearestObject(TTrack *Track,TDynamicObject *MyPointer,int &CouplNr)
+{//zwraca wskaznik najblizszego kamerze sprzegu obiektu znajdujacego sie na torze
+ //s³u¿y np. do ³¹czenia i rozpinania sprzêgów
+ //WE: Track      - tor, na ktorym odbywa sie poszukiwanie
+ //    MyPointer  - wskaznik do obiektu szukajacego
 
-   //Uwaga! Jesli CouplNr==-2 to szukamy njblizszego obiektu, a nie sprzegu!!!
+ //Uwaga! Jesli CouplNr==-2 to szukamy njblizszego obiektu, a nie sprzegu!!!
 
-   if ((Track->iNumDynamics)>0)
-   {
-      vector3 tmp;
-      double dist;
-      for(int i=0; i<Track->iNumDynamics; i++)
-      {
-         //wektor (kamera->sprzeg0 i jego dlugosc) lub (kamera->obiekt) w zaleznosci od parametru:
-         if(CouplNr==-2)
-         {
-            tmp=Global::GetCameraPosition()-
-            vector3(
-                   Track->Dynamics[i]->GetPosition().x,
-                   Track->Dynamics[i]->GetPosition().y,
-                   Track->Dynamics[i]->GetPosition().z
-                );
-            dist=sqrt((tmp.x*tmp.x)+(tmp.y*tmp.y)+(tmp.z*tmp.z));
-            if (dist<10) return Track->Dynamics[i];
-                    //else return NULL;
-         }
-
-         else //Jesli CouplNr inne niz -2:
-         {
-            //Powinno byc wyliczone, ale nie zaszkodzi drugi raz:
-            //(bo co, jesli nie wykonuje sie obrotow wozkow?)
-            Track->Dynamics[i]->modelRot.z=ABuAcos(Track->Dynamics[i]->Axle4.pPosition-Track->Dynamics[i]->Axle1.pPosition);
-
-            tmp=Global::GetCameraPosition()-
-                vector3(
-                          Track->Dynamics[i]->GetPosition().x-((Track->Dynamics[i]->MoverParameters->Dim.L/2)*sin(Track->Dynamics[i]->modelRot.z)),
-                          Track->Dynamics[i]->GetPosition().y,
-                          Track->Dynamics[i]->GetPosition().z+((Track->Dynamics[i]->MoverParameters->Dim.L/2)*cos(Track->Dynamics[i]->modelRot.z))
-                       );
-            dist=sqrt((tmp.x*tmp.x)+(tmp.y*tmp.y)+(tmp.z*tmp.z));
-            if (dist<5)
-            {
-               CouplNr=0;
-               return Track->Dynamics[i];
-            }
-            tmp=Global::GetCameraPosition()-
-                vector3(
-                          Track->Dynamics[i]->GetPosition().x+((Track->Dynamics[i]->MoverParameters->Dim.L/2)*sin(Track->Dynamics[i]->modelRot.z)),
-                          Track->Dynamics[i]->GetPosition().y,
-                          Track->Dynamics[i]->GetPosition().z-((Track->Dynamics[i]->MoverParameters->Dim.L/2)*cos(Track->Dynamics[i]->modelRot.z))
-                       );
-            dist=sqrt((tmp.x*tmp.x)+(tmp.y*tmp.y)+(tmp.z*tmp.z));
-            if (dist<5)
-            {
-               CouplNr=1;
-               return Track->Dynamics[i];
-            }
-         }
-      }
-      return NULL;
+ if ((Track->iNumDynamics)>0)
+ {//o ile w ogóle jest co przegl¹daæ
+  vector3 poz; //pozycja pojazdu
+  vector3 kon; //wektor czo³a wzglêdem œrodka
+  vector3 tmp; //wektor pomiêdzy kamer¹ i sprzêgiem
+  double dist; //odleg³oœæ
+  for (int i=0;i<Track->iNumDynamics;i++)
+  {
+   if (CouplNr==-2)
+   {//wektor [kamera-obiekt]
+    tmp=Global::GetCameraPosition()-Track->Dynamics[i]->GetPosition();
+    dist=tmp.x*tmp.x+tmp.y*tmp.y+tmp.z*tmp.z; //odleg³oœæ do kwadratu
+    if (dist<100.0) //10 metrów
+     return Track->Dynamics[i];
    }
-   else
-   return NULL;
+   else //jeœli (CouplNr) inne niz -2, szukamy sprzêgu
+   {//wektor [kamera-sprzeg0], potem [kamera-sprzeg1]
+    //Powinno byc wyliczone, ale nie zaszkodzi drugi raz:
+    //(bo co, jesli nie wykonuje sie obrotow wozkow?)
+    Track->Dynamics[i]->modelRot.z=ABuAcos(Track->Dynamics[i]->Axle4.pPosition-Track->Dynamics[i]->Axle1.pPosition);
+    poz=Track->Dynamics[i]->GetPosition(); //pozycja œrodka pojazdu
+    kon=vector3( //po³o¿enie przodu wzglêdem œrodka
+     -((0.5*Track->Dynamics[i]->MoverParameters->Dim.L)*sin(Track->Dynamics[i]->modelRot.z)),
+     0, //yyy... jeœli du¿e pochylenie i d³ugi pojazd, to mo¿e byæ problem
+     +((0.5*Track->Dynamics[i]->MoverParameters->Dim.L)*cos(Track->Dynamics[i]->modelRot.z))
+    );
+    tmp=Global::GetCameraPosition()-poz-kon;
+    dist=tmp.x*tmp.x+tmp.y*tmp.y+tmp.z*tmp.z; //odleg³oœæ do kwadratu
+    if (dist<25.0) //5 metrów
+    {
+     CouplNr=0;
+     return Track->Dynamics[i];
+    }
+    tmp=Global::GetCameraPosition()-poz+kon;
+    dist=tmp.x*tmp.x+tmp.y*tmp.y+tmp.z*tmp.z; //odleg³oœæ do kwadratu
+    if (dist<25.0) //5 metrów
+    {
+     CouplNr=1;
+     return Track->Dynamics[i];
+    }
+   }
+  }
+  return NULL;
+ }
+ return NULL;
 }
 
 
@@ -719,7 +710,7 @@ TDynamicObject* TDynamicObject::ABuScanNearestObject(TTrack *Track, double ScanD
 
 //ABu 01.11.04 poczatek wyliczania przechylow pudla **********************
 void __fastcall TDynamicObject::ABuModelRoll()
-{
+{//ustawienie przechy³ki pojazdu i jego zawartoœci
  double modelRoll=RadToDeg(0.5*(Axle1.GetRoll()+Axle4.GetRoll())); //Ra: tu nie by³o DegToRad
  //if (ABuGetDirection()<0) modelRoll=-modelRoll;
  mdModel->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
@@ -739,19 +730,19 @@ void __fastcall TDynamicObject::ABuModelRoll()
 //ABu 06.05.04 poczatek wyliczania obrotow wozkow **********************
 
 void __fastcall TDynamicObject::ABuBogies()
-{  //Obracanie wozkow na zakretach. Na razie uwzglêdnia tylko zakrêty,
-   //bez zadnych gorek i innych przeszkod.
-   if((smBogie[0]!=NULL)&&(smBogie[1]!=NULL))
-   {
-   modelRot.z=ABuAcos(Axle4.pPosition-Axle1.pPosition);
-   bogieRot[0].z=ABuAcos(Axle4.pPosition-Axle3.pPosition);
-   bogieRot[1].z=ABuAcos(Axle2.pPosition-Axle1.pPosition);
-   bogieRot[0]=(modelRot-bogieRot[0])*180.0f/M_PI;
-   bogieRot[1]=(modelRot-bogieRot[1])*180.0f/M_PI;
-   smBogie[0]->SetRotateXYZ(bogieRot[0]);
-   smBogie[1]->SetRotateXYZ(bogieRot[1]);
-   }
-}
+{//Obracanie wozkow na zakretach. Na razie uwzglêdnia tylko zakrêty,
+ //bez zadnych gorek i innych przeszkod.
+ if((smBogie[0]!=NULL)&&(smBogie[1]!=NULL))
+ {
+  modelRot.z=ABuAcos(Axle4.pPosition-Axle1.pPosition);
+  bogieRot[0].z=ABuAcos(Axle4.pPosition-Axle3.pPosition);
+  bogieRot[1].z=ABuAcos(Axle2.pPosition-Axle1.pPosition);
+  bogieRot[0]=RadToDeg(modelRot-bogieRot[0]); //mno¿enie wektora przez sta³¹
+  bogieRot[1]=RadToDeg(modelRot-bogieRot[1]);
+  smBogie[0]->SetRotateXYZ(bogieRot[0]);
+  smBogie[1]->SetRotateXYZ(bogieRot[1]);
+ }
+};
 //ABu 06.05.04 koniec wyliczania obrotow wozkow ************************
 
 //ABu 16.03.03 sledzenie toru przed obiektem: **************************
@@ -1055,6 +1046,12 @@ void TDynamicObject::ABuScanObjects(TTrack *Track,int ScanDir,double ScanDist)
  TDynamicObject *FoundedObj; //znaleziony obiekt
  FoundedObj=ABuFindObject(Track,this,ScanDir,MyScanDir,MyCouplFound,CouplFound);
 
+ if (FoundedObj) //jak coœ znajdzie, to œledzimy
+ {//powtórzenie wyszukiwania tylko do testów
+  if (ABuGetDirection()<0) ScanDir=ScanDir; //ustalenie kierunku wzglêdem toru
+  FoundedObj=ABuFindObject(Track,this,ScanDir,MyScanDir,MyCouplFound,CouplFound);
+ }
+
  if (FoundedObj)
   if (CouplFound==0)
   {
@@ -1291,108 +1288,105 @@ TTrack* __fastcall TraceRoute(double &fDistance, double &fDirection, TTrack *Tra
 }
 
 
-//sprawdzanie zdarzen semaforow i ograniczen szlakowych
+//sprawdzanie zdarzeñ semaforów i ograniczeñ szlakowych
 void TDynamicObject::ScanEventTrack(TTrack *Track)
+{
+ double scandir=MoverParameters->CabNo*Axle1.GetDirection(); //kabina i zwrot na torze
+ TLocation sl;
+ if (MoverParameters->ActiveDir!=0)
+  scandir=scandir*MoverParameters->ActiveDir;
+ if (scandir!=0) //skanowanie toru w poszukiwaniu eventu GetValues
+ {
+  double scandist=120+random(MoverParameters->Vmax*5); //fabs(Mechanik->ProximityDist);
+  TTrack *scantrack=TraceRoute(scandist,scandir,Track);
+  if (scantrack==NULL) //jeœli wykryto koniec toru
+  {
+   if (!EndTrack)
+    if (!Mechanik->SetProximityVelocity(0.5*fabs(scandist),0))
+     Mechanik->SetVelocity(Mechanik->VelActual*0.9,0);
+  }
+  else
+  {
+   double vtrackmax=scantrack->fVelocity;  //ograniczenie szlakowe
+   double vmechmax=-1;
+   if ((scantrack->Event2!=NULL) && (scandir>0))
    {
-
-     double scandir= MoverParameters->CabNo*Axle1.GetDirection();
-     TLocation sl;
-     if (MoverParameters->ActiveDir!=0)
-      scandir= scandir*MoverParameters->ActiveDir;
-     if (scandir!=0)                 //skanowanie toru w poszukiwaniu GetValues
+    if (scantrack->Event2->Type==tp_GetValues)
+    {
+     if (strcmp(scantrack->Event2->Params[9].asMemCell->szText,"SetVelocity")==0)
+     {//przeslac info o zblizajacym sie semaforze
+      sl.X=-scantrack->Event2->Params[8].asGroundNode->pCenter.x;
+      sl.Y= scantrack->Event2->Params[8].asGroundNode->pCenter.z;
+      sl.Z= scantrack->Event2->Params[8].asGroundNode->pCenter.y;
+      vmechmax=scantrack->Event2->Params[9].asMemCell->fValue1;
+      if (fabs(scandist)>Mechanik->MinProximityDist) //semafor daleko
       {
-        double scandist= 120+random(MoverParameters->Vmax*5); //fabs(Mechanik->ProximityDist);
-        TTrack *scantrack= TraceRoute(scandist, scandir, Track);
-        if (scantrack==NULL)               //koniec toru!
-         {
-           if(!EndTrack)
-            if (!Mechanik->SetProximityVelocity(fabs(scandist)/2,0))
-             Mechanik->SetVelocity(Mechanik->VelActual*0.9,0);
-         }
-        else
-         {
-           double vtrackmax= scantrack->fVelocity;  //ograniczenie szlakowe
-           double vmechmax= -1;
-           if ((scantrack->Event2!=NULL) && (scandir>0))
-            {
-             if (scantrack->Event2->Type==tp_GetValues)
-              {
-               if (strcmp(scantrack->Event2->Params[9].asMemCell->szText,"SetVelocity")==0)
-                {                         //przeslac info o zblizajacym sie semaforze
-                  sl.X= -scantrack->Event2->Params[8].asGroundNode->pCenter.x;
-                  sl.Y=  scantrack->Event2->Params[8].asGroundNode->pCenter.z;
-                  sl.Z=  scantrack->Event2->Params[8].asGroundNode->pCenter.y;
-                  vmechmax= scantrack->Event2->Params[9].asMemCell->fValue1;
-                  if (fabs(scandist)>Mechanik->MinProximityDist) //semafor daleko
-                  {
-                   if(!EndTrack)
-                    Mechanik->PutCommand("SetProximityVelocity",fabs(scandist),vmechmax,sl);
-                  }
-                  else             //semafor na tym torze
-                  {
-                   if(!EndTrack)
-                    Mechanik->PutCommand("SetVelocity",vmechmax,scantrack->Event2->Params[9].asMemCell->fValue2,sl);
-                  }
-                }
-              }
-             else if (scantrack->Event2->Type==tp_PutValues)
-               if (strcmp(scantrack->Event2->Params[0].asText,"SetVelocity")==0)
-                {                         //statyczne ograniczenie predkosci
-                  sl.X= -scantrack->Event2->Params[3].asdouble;
-                  sl.Y=  scantrack->Event2->Params[4].asdouble;
-                  sl.Z=  scantrack->Event2->Params[5].asdouble;
-                  if (fabs(scandist)<Mechanik->MinProximityDist+1) //na tym torze
-                   if(!EndTrack)
-                    Mechanik->PutCommand("SetVelocity",scantrack->Event2->Params[1].asdouble,scantrack->Event2->Params[2].asdouble,sl);
-                }
-            }
-           else
-           if ((scantrack->Event1!=NULL) && (scandir<0))
-            {
-             if (scantrack->Event1->Type==tp_GetValues)
-              {
-               if (strcmp(scantrack->Event1->Params[9].asMemCell->szText,"SetVelocity")==0)
-                {                         //to samo ale w druga strone
-                  sl.X= -scantrack->Event1->Params[8].asGroundNode->pCenter.x;
-                  sl.Y=  scantrack->Event1->Params[8].asGroundNode->pCenter.z;
-                  sl.Z=  scantrack->Event1->Params[8].asGroundNode->pCenter.y;
-                  vmechmax= scantrack->Event1->Params[9].asMemCell->fValue1;
-                  if (fabs(scandist)>Mechanik->MinProximityDist) //semafor daleko
-                  {
-                   if(!EndTrack)
-                    Mechanik->PutCommand("SetProximityVelocity",fabs(scandist),vmechmax,sl);
-                  }
-                  else             //semafor na tym torze
-                  {
-                   if(!EndTrack)
-                    Mechanik->PutCommand("SetVelocity",vmechmax,scantrack->Event1->Params[9].asMemCell->fValue2,sl);
-                  }
-                }
-              }
-             else if (scantrack->Event1->Type==tp_PutValues)
-               if (strcmp(scantrack->Event1->Params[0].asText,"SetVelocity")==0)
-                {                         //statyczne ograniczenie predkosci
-                  sl.X= -scantrack->Event1->Params[3].asdouble;
-                  sl.Y=  scantrack->Event1->Params[4].asdouble;
-                  sl.Z=  scantrack->Event1->Params[5].asdouble;
-                  if (fabs(scandist)<Mechanik->MinProximityDist+1) //na tym torze
-                   if(!EndTrack)
-                    Mechanik->PutCommand("SetVelocity",scantrack->Event1->Params[1].asdouble,scantrack->Event1->Params[2].asdouble,sl);
-                }
-            }
-           if (vtrackmax>0)
-            if ((vmechmax<0) || (vtrackmax<vmechmax))
-             {
-               sl.X= -scantrack->CurrentSegment()->FastGetPoint(0.5).x;
-               sl.Y= scantrack->CurrentSegment()->FastGetPoint(0.5).z;
-               sl.Z= scantrack->CurrentSegment()->FastGetPoint(0.5).y;
-               if(!EndTrack)
-                  Mechanik->PutCommand("SetProximityVelocity",fabs(scandist),vtrackmax,sl);
-             }
-         }  // !null
+       if (!EndTrack)
+        Mechanik->PutCommand("SetProximityVelocity",fabs(scandist),vmechmax,sl);
       }
-
+      else //semafor na tym torze
+      {
+       if (!EndTrack)
+        Mechanik->PutCommand("SetVelocity",vmechmax,scantrack->Event2->Params[9].asMemCell->fValue2,sl);
+      }
+     }
+    }
+    else if (scantrack->Event2->Type==tp_PutValues)
+     if (strcmp(scantrack->Event2->Params[0].asText,"SetVelocity")==0)
+     {//statyczne ograniczenie predkosci
+      sl.X=-scantrack->Event2->Params[3].asdouble;
+      sl.Y= scantrack->Event2->Params[4].asdouble;
+      sl.Z= scantrack->Event2->Params[5].asdouble;
+      if (fabs(scandist)<Mechanik->MinProximityDist+1) //na tym torze
+       if (!EndTrack)
+        Mechanik->PutCommand("SetVelocity",scantrack->Event2->Params[1].asdouble,scantrack->Event2->Params[2].asdouble,sl);
+     }
    }
+   else if ((scantrack->Event1!=NULL) && (scandir<0))
+   {
+    if (scantrack->Event1->Type==tp_GetValues)
+    {
+     if (strcmp(scantrack->Event1->Params[9].asMemCell->szText,"SetVelocity")==0)
+     {//to samo ale w druga stronê
+      sl.X=-scantrack->Event1->Params[8].asGroundNode->pCenter.x;
+      sl.Y= scantrack->Event1->Params[8].asGroundNode->pCenter.z;
+      sl.Z= scantrack->Event1->Params[8].asGroundNode->pCenter.y;
+      vmechmax=scantrack->Event1->Params[9].asMemCell->fValue1;
+      if (fabs(scandist)>Mechanik->MinProximityDist) //semafor daleko
+      {
+       if (!EndTrack)
+        Mechanik->PutCommand("SetProximityVelocity",fabs(scandist),vmechmax,sl);
+      }
+      else //semafor na tym torze
+      {
+       if (!EndTrack)
+        Mechanik->PutCommand("SetVelocity",vmechmax,scantrack->Event1->Params[9].asMemCell->fValue2,sl);
+      }
+     }
+    }
+    else if (scantrack->Event1->Type==tp_PutValues)
+     if (strcmp(scantrack->Event1->Params[0].asText,"SetVelocity")==0)
+     {                         //statyczne ograniczenie predkosci
+      sl.X=-scantrack->Event1->Params[3].asdouble;
+      sl.Y= scantrack->Event1->Params[4].asdouble;
+      sl.Z= scantrack->Event1->Params[5].asdouble;
+      if (fabs(scandist)<Mechanik->MinProximityDist+1) //na tym torze
+       if (!EndTrack)
+        Mechanik->PutCommand("SetVelocity",scantrack->Event1->Params[1].asdouble,scantrack->Event1->Params[2].asdouble,sl);
+     }
+   }
+   if (vtrackmax>0)
+    if ((vmechmax<0) || (vtrackmax<vmechmax))
+    {
+     sl.X=-scantrack->CurrentSegment()->FastGetPoint(0.5).x;
+     sl.Y= scantrack->CurrentSegment()->FastGetPoint(0.5).z;
+     sl.Z= scantrack->CurrentSegment()->FastGetPoint(0.5).y;
+     if (!EndTrack)
+      Mechanik->PutCommand("SetProximityVelocity",fabs(scandist),vtrackmax,sl);
+    }
+  }  // !null
+ }
+};
 
 //-----------koniec skanowania semaforow
 
@@ -1704,22 +1698,22 @@ bool __fastcall TDynamicObject::Init(
 //McZapkie-250202 end.
 
     Track->AddDynamicObject(this);
-//McZapkie: zmieniono na ilosc osi brane z chk
-//    iNumAxles= ( MoverParameters->NAxles>3 ? 4 : 2 );
-    iNumAxles= 2;
-//McZapkie-090402: odleglosc miedzy czopami skretu lub osiami
-    float HalfMaxAxleDist= Max0R(MoverParameters->BDist,MoverParameters->ADist)*0.5;
+    //McZapkie: zmieniono na ilosc osi brane z chk
+    //iNumAxles=(MoverParameters->NAxles>3 ? 4 : 2 );
+    iNumAxles=2;
+    //McZapkie-090402: odleglosc miedzy czopami skretu lub osiami
+    double HalfMaxAxleDist=Max0R(MoverParameters->BDist,MoverParameters->ADist)*0.5;
     switch (iNumAxles)
     {//Ra: pojazdy wstawiaj¹ siê odwrotnie, ale nie jestem do koñca pewien, czy dobrze
      case 2:
       Axle1.Init(Track,this);
       Axle4.Init(Track,this);
       Axle1.Move(iDirection*(-HalfMaxAxleDist-0.01)+fDist);
-      Axle4.Move(iDirection*(HalfMaxAxleDist+0.01)+fDist);
+      Axle4.Move(iDirection*(+HalfMaxAxleDist+0.01)+fDist);
       Axle2.Init(Track,this);
       Axle3.Init(Track,this);
       Axle2.Move(iDirection*(-HalfMaxAxleDist+0.01)+fDist);
-      Axle3.Move(iDirection*(HalfMaxAxleDist-0.01)+fDist);
+      Axle3.Move(iDirection*(+HalfMaxAxleDist-0.01)+fDist);
      break;
      case 4:
       Axle1.Init(Track,this);
@@ -1728,16 +1722,20 @@ bool __fastcall TDynamicObject::Init(
       Axle4.Init(Track,this);
       Axle1.Move(iDirection*(-(HalfMaxAxleDist+MoverParameters->ADist*0.5))+fDist);
       Axle2.Move(iDirection*(-(HalfMaxAxleDist-MoverParameters->ADist*0.5))+fDist);
-      Axle3.Move(iDirection*((HalfMaxAxleDist-MoverParameters->ADist*0.5))+fDist);
-      Axle4.Move(iDirection*((HalfMaxAxleDist+MoverParameters->ADist*0.5))+fDist);
+      Axle3.Move(iDirection*(+(HalfMaxAxleDist-MoverParameters->ADist*0.5))+fDist);
+      Axle4.Move(iDirection*(+(HalfMaxAxleDist+MoverParameters->ADist*0.5))+fDist);
      break;
     }
-    pOldPos4= Axle1.pPosition;
-    pOldPos1= Axle4.pPosition;
+    pOldPos4=Axle1.pPosition;
+    pOldPos1=Axle4.pPosition;
 //    ActualTrack= GetTrack(); //McZapkie-030303
 //ABuWozki 060504
-    smBogie[0]= mdModel->GetFromName("BOGIE1");
-    smBogie[1]= mdModel->GetFromName("BOGIE2");
+    smBogie[0]=mdModel->GetFromName("bogie1"); //Ra: bo nazwy s¹ ma³ymi
+    smBogie[1]=mdModel->GetFromName("bogie2");
+    if (!smBogie[0])
+     smBogie[0]=mdModel->GetFromName("boogie01"); //Ra: alternatywna nazwa
+    if (!smBogie[1])
+     smBogie[1]=mdModel->GetFromName("boogie02"); //Ra: alternatywna nazwa
     //ABu: zainicjowanie zmiennej, zeby nic sie nie ruszylo
     //w pierwszej klatce, potem juz liczona prawidlowa wartosc masy
 
@@ -2495,8 +2493,8 @@ vector3 tempangle;
 // zmienne
 renderme=false;
 //przeklejka
-    vector3 pos= GetPosition();
-    double ObjSqrDist= SquareMagnitude(Global::pCameraPosition-pos);
+    vector3 pos=GetPosition();
+    double ObjSqrDist=SquareMagnitude(Global::pCameraPosition-pos);
 //koniec przeklejki
 
      if (ObjSqrDist<500) //jak jest blisko - do 70m
@@ -2516,39 +2514,40 @@ renderme=false;
 
     if (modelrotate<maxrot) renderme=true;
 
-if (renderme)
-{
+ if (renderme)
+ {
     TSubModel::iInstance=(int)this; //¿eby nie robiæ cudzych animacji
     AnsiString asLoadName="";
-    vFront= GetDirection();
-    vFront= GetDirection();
+    //przejœcie na uk³ad wspó³rzêdnych modelu - tu siê zniekszta³ca
+    vFront=GetDirection();
+    //vFront=GetDirection();
     if ((MoverParameters->CategoryFlag==2) && (MoverParameters->CabNo<0)) //TODO: zrobic to eleganciej z plynnym zawracaniem
-       vFront= -vFront;
-    vUp= vWorldUp;
+     vFront=-vFront;
+    vUp=vWorldUp;
     vFront.Normalize();
-    vLeft= CrossProduct(vUp,vFront);
-    vUp= CrossProduct(vFront,vLeft);
+    vLeft=CrossProduct(vUp,vFront);
+    vUp=CrossProduct(vFront,vLeft);
     matrix4x4 mat;
-
     mat.Identity();
 
     mat.BasisChange(vLeft,vUp,vFront);
-    mMatrix= Inverse(mat);
+    mMatrix=Inverse(mat);
 
-    vector3 pos= GetPosition();
-    double ObjSqrDist= SquareMagnitude(Global::pCameraPosition-pos);
+    vector3 pos=GetPosition();
+    double ObjSqrDist=SquareMagnitude(Global::pCameraPosition-pos);
     ABuLittleUpdate(ObjSqrDist);
 
 //    ActualTrack= GetTrack(); //McZapkie-240702
 
-    glPushMatrix ( );
+// Ra: do testu - renderowanie pozycji wózków
+    Axle1.Render(bogieRot[0].z,0); //bogieRot[0]
+    Axle4.Render(bogieRot[1].z,1);
 
+    glPushMatrix ( );
     //vector3 pos= GetPosition();
     //double ObjDist= SquareMagnitude(Global::pCameraPosition-pos);
     glTranslated(pos.x,pos.y,pos.z);
-
     glMultMatrixd(mMatrix.getArray());
-
     if (mdLowPolyInt!=NULL)
      if ((FreeFlyModeFlag)||((!FreeFlyModeFlag)&&(!mdKabina)))
 #ifdef USE_VBO
