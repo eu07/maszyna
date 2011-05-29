@@ -557,7 +557,7 @@ void __fastcall TWorld::OnKeyPress(int cKey)
  if (Pressed(VK_SHIFT)) info+="Shift]+[";
  if (Pressed(VK_CONTROL)) info+="Ctrl]+[";
  if (cKey>123) //coœ tam jeszcze jest?
-  WriteLog(AnsiString((char)(cKey-128))+"]");
+  WriteLog(info+AnsiString((char)(cKey-128))+"]");
  else if (cKey>=112) //funkcyjne
   WriteLog(info+"F"+AnsiString(cKey-111)+"]");
  else if (cKey>=96)

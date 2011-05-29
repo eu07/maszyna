@@ -37,7 +37,7 @@ __fastcall TTrackFollower::TTrackFollower()
  pCurrentTrack=NULL;
  pCurrentSegment=NULL;
  fCurrentDistance=0;
- pPosition=vector3(0,0,0);
+ pPosition=vAngles=vector3(0,0,0);
  fDirection=1;
 }
 
