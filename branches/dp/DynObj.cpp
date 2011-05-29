@@ -1054,12 +1054,14 @@ void TDynamicObject::ABuScanObjects(TTrack *Track,int ScanDir,double ScanDist)
   if (CouplFound==0)
   {
    if (FoundedObj->PrevConnected)
-    WriteLog("0! Coupler error on "+asName+":"+AnsiString(MyCouplFound)+" - "+FoundedObj->asName+":0 is already connected");
+    if (FoundedObj->PrevConnected!=this) //odœwie¿enie tego samego siê nie liczy
+     WriteLog("0! Coupler error on "+asName+":"+AnsiString(MyCouplFound)+" - "+FoundedObj->asName+":0 is already connected");
   }
   else
   {
    if (FoundedObj->NextConnected)
-    WriteLog("0! Coupler error on "+asName+":"+AnsiString(MyCouplFound)+" - "+FoundedObj->asName+":1 is already connected");
+    if (FoundedObj->NextConnected!=this) //odœwie¿enie tego samego siê nie liczy
+     WriteLog("0! Coupler error on "+asName+":"+AnsiString(MyCouplFound)+" - "+FoundedObj->asName+":1 is already connected");
   }
 
 
@@ -1962,7 +1964,7 @@ if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
     l.Y=GetPosition().z;
     l.Z=GetPosition().y;
     TRotation r;
-    r.Rx=r.Ry=r.Rz= 0;
+    r.Rx=r.Ry=r.Rz=0;
 //McZapkie: parametry powinny byc pobierane z toru
 
     //TTrackShape ts;
@@ -2064,6 +2066,26 @@ tmpTraction.TractionVoltage=3400;
 //       }
 
 
+/* //z EXE Kursa
+    if ((MoverParameters->Battery==false)&&(Controller==Humandriver)&& (MoverParameters->EngineType!=DieselEngine) && (MoverParameters->EngineType!=WheelsDriven))
+     {
+     if (MoverParameters->MainSwitch(False))
+      MoverParameters->EventFlag=True;
+      }
+    if (MoverParameters->TrainType=="et42"){
+     if (((TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab>0)&&(NextConnected-> MoverParameters->TrainType!="et42"))||((TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab<0)&&(PrevConnected-> MoverParameters->TrainType!="et42")))
+     {
+     if (MoverParameters->MainSwitch(False))
+      MoverParameters->EventFlag=True;
+      }
+     if ((!(TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab>0))||(!(TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab<0)))
+      {
+     if (MoverParameters->MainSwitch(False))
+      MoverParameters->EventFlag=True;
+      }
+      }
+*/
+
 
 //McZapkie-260202 - dMoveLen przyda sie przy stukocie kol
     dDOMoveLen=GetdMoveLen()+MoverParameters->ComputeMovement(dt,dt1,ts,tp,tmpTraction,l,r);
@@ -2145,6 +2167,40 @@ else
   sBrakeAcc.Stop();
 
 SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);
+
+/*//z EXE Kursa
+
+      /* if (MoverParameters->TrainType=="et42")
+           {
+           if ((MoverParameters->DynamicBrakeType=dbrake_switch) && ((MoverParameters->BrakePress > 0.2) || ( MoverParameters->PipePress < 0.36 )))
+                        {
+                        MoverParameters->StLinFlag=true;
+                        }
+           else
+           if ((MoverParameters->DynamicBrakeType=dbrake_switch) && (MoverParameters->BrakePress < 0.1))
+                        {
+                        MoverParameters->StLinFlag=false;
+
+                        }
+           }   */
+/*
+        if ((MoverParameters->TrainType=="et40") || (MoverParameters->TrainType=="ep05"))
+        {
+       /* if ((MoverParameters->MainCtrlPos>MoverParameters->MainCtrlActualPos)&&(abs(MoverParameters->Im)>MoverParameters->IminHi))
+          {
+          MoverParameters->DecMainCtrl(1);
+          } */
+/*
+          if (( !Pressed(Global::Keys[k_IncMainCtrl]))&&(MoverParameters->MainCtrlPos>MoverParameters->MainCtrlActualPos))
+          {
+          MoverParameters->DecMainCtrl(1);
+          }
+          if (( !Pressed(Global::Keys[k_DecMainCtrl]))&&(MoverParameters->MainCtrlPos<MoverParameters->MainCtrlActualPos))
+          {
+          MoverParameters->IncMainCtrl(1);
+          }
+        }
+*/
 
 //McZapkie-050402: krecenie kolami:
 if (MoverParameters->Vel!=0)
@@ -2230,6 +2286,10 @@ pcp2p=MoverParameters->PantFrontVolt;
     //ABu: uniezaleznienie od TempPantVol, bo sie krzaczylo...
     pantspeedfactor = 100*dt1;
     //pantspeedfactor = ((TempPantVol-2.5)/5)*180*dt1;
+
+//z EXE Kursa
+  //pantspeedfactor = (MoverParameters->PantPress)*20*dt1;
+
     pantspeedfactor*=abs(MoverParameters->CabNo);
    //if ((PantTraction1==5.8171) && (PantTraction2==5.8171))
    // pantspeedfactor=10;
