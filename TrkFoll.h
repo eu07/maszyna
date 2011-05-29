@@ -21,24 +21,21 @@ private:
 
 public:
  vector3 pPosition; //wspó³rzêdne XYZ w uk³adzie scenerii
- vector3 vAngles; //x:przechy³ka,y:pochylenie,z:kierunek w planie (w radianach) 
+ vector3 vAngles; //x:przechy³ka, y:pochylenie, z:kierunek w planie (w radianach)
  __fastcall TTrackFollower();
  __fastcall ~TTrackFollower();
- inline void __fastcall SetCurrentTrack(TTrack *pTrack)
- {
-  pCurrentTrack=pTrack;
-  pCurrentSegment=(pCurrentTrack?pCurrentTrack->CurrentSegment():NULL);
- };
+ void __fastcall SetCurrentTrack(TTrack *pTrack,double end);
  bool __fastcall Move(double fDistance, bool bPrimary=false);
  inline TTrack* __fastcall GetTrack() {return pCurrentTrack;};
- inline double __fastcall GetRoll() {return pCurrentSegment->GetRoll(fCurrentDistance)*fDirection;};
+ inline double __fastcall GetRoll() {return vAngles.x;}; //przechy³ka policzona przy ustalaniu pozycji
+ //{return pCurrentSegment->GetRoll(fCurrentDistance)*fDirection;}; //zamiast liczyæ mo¿na pobraæ
  inline double __fastcall GetDirection() {return fDirection;}; //zwrot na torze
  inline double __fastcall GetTranslation() {return fCurrentDistance;};  //ABu-030403
  //inline double __fastcall GetLength(vector3 p1, vector3 cp1, vector3 cp2, vector3 p2)
  //{ return pCurrentSegment->ComputeLength(p1,cp1,cp2,p2); };
  //inline double __fastcall GetRadius(double L, double d);  //McZapkie-150503
  bool __fastcall Init(TTrack *pTrack,TDynamicObject *NewOwner=NULL,double fDir=1.0f);
- void __fastcall Render(double fAngle,float fNr);
+ void __fastcall Render(float fNr);
 };
 //---------------------------------------------------------------------------
 #endif

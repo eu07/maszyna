@@ -22,6 +22,8 @@ public:
  {x=a; y=b; z=c; n.x=0.0; n.y=1.0; n.z=0.0;};
 };
 
+class TTrack; //potrzebny jest wskaŸnik na w³aœciciela
+
 class TSegment
 {//aproksymacja toru (zwrotnica ma dwa takie, jeden z nich jest aktywny)
 private:
@@ -30,10 +32,13 @@ private:
  double fLength;
  double *fTsBuffer;
  double fStep;
- int iSegCount;
+ int iSegCount; //iloœæ odcinków do rysowania krzywej
  double fDirection; //Ra: k¹t prostego w planie, dla ³uku k¹t od Point1
  double fStoop; //Ra: k¹t wzniesienia, dla ³uku od Point1
  vector3 vA,vB,vC; //wspó³czynniki wielomianów trzeciego stopnia vD==Point1
+ //TSegment *pPrev; //odcinek od strony punktu 1 - w segmencie, ¿eby nie skakaæ na zwrotnicach
+ //TSegment *pNext; //odcinek od strony punktu 2
+ TTrack *pOwner; //wskaŸnik na w³aœciciela
  vector3 __fastcall GetFirstDerivative(double fTime);
  double __fastcall RombergIntegral(double fA, double fB);
  double __fastcall GetTFromS(double s);
@@ -41,7 +46,7 @@ private:
 public:
  bool bCurve;
  //int iShape; //Ra: flagi kszta³tu dadz¹ wiêcej mo¿liwoœci optymalizacji
- __fastcall TSegment();
+ __fastcall TSegment(TTrack *owner);
  __fastcall ~TSegment() {SafeDeleteArray(fTsBuffer);};
  bool __fastcall Init(vector3 NewPoint1,vector3 NewPoint2,double fNewStep,
                       double fNewRoll1=0,double fNewRoll2=0);
