@@ -25,13 +25,13 @@ static const double fMaxOffset=0.1f;
 class TSwitchExtension
 {//dodatkowe dane do toru, który jest zwrotnic¹
 public:
- __fastcall TSwitchExtension();
+ __fastcall TSwitchExtension(TTrack *owner);
  __fastcall ~TSwitchExtension();
- TSegment Segments[4]; //dwa tory od punktu 1, pozosta³e dwa od 2?
+ TSegment *Segments[4]; //dwa tory od punktu 1, pozosta³e dwa od 2?
  TTrack *pNexts[2];
  TTrack *pPrevs[2];
- bool bNextSwitchDirection[2];
- bool bPrevSwitchDirection[2];
+ bool iNextDirection[2];
+ bool iPrevDirection[2];
  int CurrentIndex; //dla zwrotnicy
  double fOffset1, fDesiredOffset1; //ruch od strony punktu 1
  union
@@ -60,7 +60,7 @@ class TTrack: public Resource
 private:
     TSwitchExtension *SwitchExtension; //dodatkowe dane do toru, który jest zwrotnic¹
     TSegment *Segment;
-    TTrack *pNext; //odcinek od strony punktu 2
+    TTrack *pNext; //odcinek od strony punktu 2 - to powinno byæ w segmencie
     TTrack *pPrev; //odcinek od strony punktu 1
 //McZapkie-070402: dodalem zmienne opisujace rozmiary tekstur
     GLuint TextureID1; //tekstura szyn albo nawierzchni
@@ -70,7 +70,6 @@ private:
     float fTexHeight; //wysokoœ brzegu wzglêdem trajektorii
     float fTexWidth; //szerokoœæ boku
     float fTexSlope;
-    //vector3 *HelperPts; //Ra: nie u¿ywane, na razie niech zostanie
     double fRadiusTable[2]; //dwa promienie, drugi dla zwrotnicy
     int iTrapezoid; //0-standard, 1-przechy³ka, 2-trapez, 3-oba
 private:
@@ -93,8 +92,8 @@ public:
     AnsiString asEvent0Name;
     AnsiString asEvent1Name;
     AnsiString asEvent2Name;
-    bool bNextSwitchDirection;
-    bool bPrevSwitchDirection;
+    int iNextDirection; //0:Point1, 1:Point2, 3:do odchylonego na zwrotnicy
+    int iPrevDirection;
     TTrackType eType;
     int iCategoryFlag;
     float fTrackWidth; //szerokoœæ w punkcie 1
@@ -115,33 +114,15 @@ public:
     __fastcall ~TTrack();
     void __fastcall Init();
     inline bool __fastcall IsEmpty() { return (iNumDynamics<=0); };
-    void __fastcall ConnectPrevPrev(TTrack *pNewPrev);
-    void __fastcall ConnectPrevNext(TTrack *pNewPrev);
-    void __fastcall ConnectNextPrev(TTrack *pNewNext);
-    void __fastcall ConnectNextNext(TTrack *pNewNext);
+    void __fastcall ConnectPrevPrev(TTrack *pNewPrev,int typ);
+    void __fastcall ConnectPrevNext(TTrack *pNewPrev,int typ);
+    void __fastcall ConnectNextPrev(TTrack *pNewNext,int typ);
+    void __fastcall ConnectNextNext(TTrack *pNewNext,int typ);
     inline double __fastcall Length() { return Segment->GetLength(); };
     inline TSegment* __fastcall CurrentSegment() { return Segment; };
-    inline TTrack* __fastcall CurrentNext() { return (pNext); };
-    inline TTrack* __fastcall CurrentPrev() { return (pPrev); };
-    inline bool __fastcall SetConnections(int i)
-    {
-        if (SwitchExtension)
-        {
-            SwitchExtension->pNexts[NextMask[i]]= pNext;
-            SwitchExtension->pPrevs[PrevMask[i]]= pPrev;
-            SwitchExtension->bNextSwitchDirection[NextMask[i]]= bNextSwitchDirection;
-            SwitchExtension->bPrevSwitchDirection[PrevMask[i]]= bPrevSwitchDirection;
-            if (eType==tt_Switch)
-            {
-                SwitchExtension->pPrevs[PrevMask[i+2]]= pPrev;
-                SwitchExtension->bPrevSwitchDirection[PrevMask[i+2]]= bPrevSwitchDirection;
-            }
-            Switch(0);
-            return true;
-        }
-        Error("Cannot set connections");
-        return false;
-    }
+    inline TTrack* __fastcall CurrentNext() {return (pNext);};
+    inline TTrack* __fastcall CurrentPrev() {return (pPrev);};
+    bool __fastcall SetConnections(int i);
     bool __fastcall Switch(int i);
     inline int __fastcall GetSwitchState() { return (SwitchExtension?SwitchExtension->CurrentIndex:-1); };
     void __fastcall Load(cParser *parser, vector3 pOrigin);

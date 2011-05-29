@@ -1471,11 +1471,10 @@ void __fastcall TTrain::UpdateMechPosition(double dt)
  matrix4x4 mat;
 
  double a1,a2,atmp;
- a1=(DynamicObject->Axle1.GetRoll()); //licznie przechy³ki wózka
+ a1=(DynamicObject->Axle1.GetRoll()); //pobranie przechy³ki wózka
  a2=(DynamicObject->Axle4.GetRoll()); //uwzglêdnia ju¿ kierunek ruchu
  atmp=(a1+a2); //k¹t przechy³u pud³a
- //if (DynamicObject->ABuGetDirection()<0) atmp=-atmp; //przedtem by³o bez zmiennych
- //mat.Rotation(((Axle1.GetRoll()+Axle4.GetRoll()))*0.5f,vFront);
+ //mat.Rotation(((Axle1.GetRoll()+Axle4.GetRoll()))*0.5f,vFront); //przedtem by³o bez zmiennych
  mat.Rotation(atmp*0.5f,DynamicObject->vFront); //obrót matrycy o k¹t pud³a
  //Ra: tu by siê przyda³o uwzglêdniæ rozk³ad si³:
  // - na postoju horyzont prosto, kabina skosem

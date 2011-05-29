@@ -19,8 +19,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#include    "system.hpp"
-#include    "classes.hpp"
+#include "system.hpp"
+#include "classes.hpp"
 
 #include "opengl/glew.h"
 #include "opengl/glut.h"
@@ -49,13 +49,24 @@ bool __fastcall TTrackFollower::Init(TTrack *pTrack,TDynamicObject *NewOwner,dou
 {
  fDirection=fDir;
  Owner=NewOwner;
- SetCurrentTrack(pTrack);
+ SetCurrentTrack(pTrack,0);
  iEventFlag=0;
  iEventallFlag=0;
  if ((pCurrentSegment))// && (pCurrentSegment->GetLength()<fFirstDistance))
   return false;
  return true;
 }
+
+void __fastcall TTrackFollower::SetCurrentTrack(TTrack *pTrack,double end)
+{//przejechanie na inny odcinkek toru, z ewentualnym rozpruciem
+ if (pTrack->eType==tt_Switch) //jeœli zwrotnica, to przek³adamy j¹, aby uzyskaæ dobry segment
+ {int i=(end?pCurrentTrack->iNextDirection:pCurrentTrack->iPrevDirection);
+  if (i>0) //je¿eli wjazd z ostrza
+   pTrack->Switch(i>>1); //to prze³o¿enie zwrotnicy - rozprucie!
+ }
+ pCurrentTrack=pTrack;
+ pCurrentSegment=(pCurrentTrack?pCurrentTrack->CurrentSegment():NULL);
+};
 
 bool __fastcall TTrackFollower::Move(double fDistance, bool bPrimary)
 {//przesuwanie wózka po torach o odleg³oœæ (fDistance), z wyzwoleniem eventów
@@ -116,9 +127,20 @@ bool __fastcall TTrackFollower::Move(double fDistance, bool bPrimary)
    bCanSkip=bPrimary && pCurrentTrack->CheckDynamicObject(Owner);
    if (bCanSkip)
     pCurrentTrack->RemoveDynamicObject(Owner);
-   if (pCurrentTrack->bPrevSwitchDirection)
-   {//gdy zmiana kierunku toru (Point1-Point1)
-    SetCurrentTrack(pCurrentTrack->CurrentPrev()); //ustawienie (pCurrentTrack)
+   if (pCurrentTrack->iPrevDirection)
+   {//gdy kierunek bez zmiany (Point1->Point2)
+    SetCurrentTrack(pCurrentTrack->CurrentPrev(),0);
+    if (pCurrentTrack==NULL)
+    {
+     Error(Owner->MoverParameters->Name+" at NULL track");
+     return false; //wyjœcie z b³êdem
+    }
+    fCurrentDistance=pCurrentSegment->GetLength();
+    fDistance=s;
+   }
+   else
+   {//gdy zmiana kierunku toru (Point1->Point1)
+    SetCurrentTrack(pCurrentTrack->CurrentPrev(),0); //ustawienie (pCurrentTrack)
     fCurrentDistance=0;
     fDistance=-s;
     fDirection=-fDirection;
@@ -127,17 +149,6 @@ bool __fastcall TTrackFollower::Move(double fDistance, bool bPrimary)
      Error(Owner->MoverParameters->Name+" at NULL track");
      return false; //wyjœcie z b³êdem
     }
-   }
-   else
-   {//gdy kierunek bez zmiany (Point1-Point2)
-    SetCurrentTrack(pCurrentTrack->CurrentPrev());
-    if (pCurrentTrack==NULL)
-    {
-     Error(Owner->MoverParameters->Name+" at NULL track");
-     return false; //wyjœcie z b³êdem
-    }
-    fCurrentDistance=pCurrentSegment->GetLength();
-    fDistance=s;
    }
    if (bCanSkip)
    {
@@ -153,10 +164,10 @@ bool __fastcall TTrackFollower::Move(double fDistance, bool bPrimary)
    bCanSkip=bPrimary && pCurrentTrack->CheckDynamicObject(Owner);
    if (bCanSkip)
     pCurrentTrack->RemoveDynamicObject(Owner);
-   if (pCurrentTrack->bNextSwitchDirection)
-   {//gdy zmiana kierunku toru (Point2-Point2)
+   if (pCurrentTrack->iNextDirection)
+   {//gdy zmiana kierunku toru (Point2->Point2)
     fDistance=-(s-pCurrentSegment->GetLength());
-    SetCurrentTrack(pCurrentTrack->CurrentNext());
+    SetCurrentTrack(pCurrentTrack->CurrentNext(),1);
     if (pCurrentTrack==NULL)
     {
      Error(Owner->MoverParameters->Name+" at NULL track");
@@ -166,9 +177,9 @@ bool __fastcall TTrackFollower::Move(double fDistance, bool bPrimary)
     fDirection=-fDirection;
    }
    else
-   {//gdy kierunek bez zmiany (Point2-Point1)
+   {//gdy kierunek bez zmiany (Point2->Point1)
     fDistance=s-pCurrentSegment->GetLength();
-    SetCurrentTrack(pCurrentTrack->CurrentNext());
+    SetCurrentTrack(pCurrentTrack->CurrentNext(),1);
     fCurrentDistance=0;
     if (pCurrentTrack==NULL)
     {
@@ -214,20 +225,26 @@ bool __fastcall TTrackFollower::ComputatePosition()
  {
   //pPosition=pCurrentSegment->GetPoint(fCurrentDistance); //wyliczenie z dystansu od Point1
   pCurrentSegment->RaPositionGet(fCurrentDistance,pPosition,vAngles);
+  if (fDirection<0) //k¹ty zale¿¹ jeszcze od zwrotu na torze
+  {vAngles.x=-vAngles.x; //przechy³ka jest w przecinw¹ stronê
+   vAngles.y=-vAngles.y; //pochylenie jest w przecinw¹ stronê
+   vAngles.z+=M_PI; //ale kierunek w planie jest obrócony o 180° 
+  }
   return true;
  }
  return false;
 }
 
-void __fastcall TTrackFollower::Render(double fAngle,float fNr)
+void __fastcall TTrackFollower::Render(float fNr)
 {//funkcja rysuj¹ca sto¿ek w miejscu osi
  glPushMatrix(); //matryca kamery
   glTranslatef(pPosition.x,pPosition.y+6,pPosition.z); //6m ponad
-  glRotatef(-fAngle,0,1,0); //obrót wzglêdem osi OY
+  glRotated(RadToDeg(-vAngles.z),0,1,0); //obrót wzglêdem osi OY
+  //glRotated(RadToDeg(vAngles.z),0,1,0); //obrót wzglêdem osi OY
   glDisable(GL_LIGHTING);
   glColor3f(1.0-fNr,fNr,0); //czerwone dla 0, zielone dla 1
   //glutWireCone(promieñ podstawy,wysokoœæ,k¹tnoœæ podstawy,iloœæ segmentów na wysokoœæ)
-  glutWireCone(6,6,4,1); //rysowanie sto¿ka (ostros³upa o podstawie czworok¹ta)
+  glutWireCone(0.5,2,4,1); //rysowanie sto¿ka (ostros³upa o podstawie wieloboka)
   glEnable(GL_LIGHTING);
  glPopMatrix();
 }

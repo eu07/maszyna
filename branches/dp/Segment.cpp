@@ -13,7 +13,7 @@
 
 //101206 Ra: trapezoidalne drogi
 
-__fastcall TSegment::TSegment()
+__fastcall TSegment::TSegment(TTrack *owner)
 {
  Point1=CPointOut=CPointIn=Point2=vector3(0.0f,0.0f,0.0f);
  fLength=0;
@@ -21,6 +21,7 @@ __fastcall TSegment::TSegment()
  fRoll2=0;
  fTsBuffer=NULL;
  fStep=0;
+ pOwner=owner;
 }
 
 
@@ -55,9 +56,9 @@ bool __fastcall TSegment::Init(
  CPointOut=NewCPointOut;
  CPointIn=NewCPointIn;
  Point2=NewPoint2;
- fStoop=Point2.z-Point1.z/fLength; //pochylenie toru prostego, ¿eby nie liczyæ wielokrotnie
+ fStoop=atan2((Point2.z-Point1.z),fLength); //pochylenie toru prostego, ¿eby nie liczyæ wielokrotnie
  //Ra: ten k¹t jeszcze do przemyœlenia jest
- fDirection=atan2(Point2.z-Point1.z,Point2.x-Point1.x); //k¹t w planie, ¿eby nie liczyæ wielokrotnie
+ fDirection=-atan2(Point2.x-Point1.x,Point2.z-Point1.z); //k¹t w planie, ¿eby nie liczyæ wielokrotnie
  bCurve=bIsCurve;
  if (bCurve)
  {//przeliczenie wspó³czynników wielomianu, bêdzie mniej mno¿eñ i mo¿na policzyæ pochodne
@@ -248,17 +249,18 @@ vector3 __fastcall TSegment::GetPoint(double fDistance)
 
 void __fastcall TSegment::RaPositionGet(double fDistance,vector3 &p,vector3 &a)
 {//ustalenie pozycji osi na torze, przechy³ki, pochylenia i kierunku jazdy
- double t=fDistance/fLength; //zerowych torów nie ma
- a.x=(1.0-t)*fRoll1+(t)*fRoll2; //przechy³ka w danym miejscu (zmienia siê liniowo)
  if (bCurve)
  {//mo¿na by wprowadziæ uproszczony wzór dla okrêgów p³askich
-  double k=GetTFromS(fDistance); //aproksymacja dystansu na krzywej Beziera
+  double t=GetTFromS(fDistance); //aproksymacja dystansu na krzywej Beziera na parametr (t)
   p=RaInterpolate(t);
-  a.y=fStoop; //pochylenie krzywej
-  a.z=fDirection; //kierunek krzywej w planie
+  a.x=(1.0-t)*fRoll1+(t)*fRoll2; //przechy³ka w danym miejscu (zmienia siê liniowo)
+  //pochodna jest 3*A*t^2+2*B*t+C
+  a.y=atan(t*(t*3.0*vA.y+2.0*vB.y)+vC.y); //pochylenie krzywej
+  a.z=-atan2(t*(t*3.0*vA.x+2.0*vB.x)+vC.x,t*(t*3.0*vA.z+2.0*vB.z)+vC.z); //kierunek krzywej w planie
  }
  else
  {//wyliczenie dla odcinka prostego jest prostsze
+  double t=fDistance/fLength; //zerowych torów nie ma
   p=((1.0-t)*Point1+(t)*Point2);
   a.y=fStoop; //pochylenie toru prostego
   a.z=fDirection; //kierunek toru w planie

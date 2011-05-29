@@ -553,24 +553,27 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 
 void __fastcall TWorld::OnKeyPress(int cKey)
 {//(cKey) to kod klawisza, cyfrowe i literowe siê zgadzaj¹
+ AnsiString info="Key pressed: [";
+ if (Pressed(VK_SHIFT)) info+="Shift]+[";
+ if (Pressed(VK_CONTROL)) info+="Ctrl]+[";
  if (cKey>123) //coœ tam jeszcze jest?
-  WriteLog("Key pressed: ["+AnsiString((char)(cKey-128))+(Pressed(VK_SHIFT)?"]+[Shift]":"]"));
+  WriteLog(AnsiString((char)(cKey-128))+"]");
  else if (cKey>=112) //funkcyjne
-  WriteLog("Key pressed: [F"+AnsiString(cKey-111)+(Pressed(VK_SHIFT)?"]+[Shift]":"]"));
+  WriteLog(info+"F"+AnsiString(cKey-111)+"]");
  else if (cKey>=96)
-  WriteLog("Key pressed: [Num"+AnsiString("0123456789*+?-./").SubString(cKey-95,1)+(Pressed(VK_SHIFT)?"]+[Shift]":"]"));
+  WriteLog(info+"Num"+AnsiString("0123456789*+?-./").SubString(cKey-95,1)+"]");
  else if (((cKey>='0')&&(cKey<='9'))||((cKey>='A')&&(cKey<='Z'))||(cKey==' '))
-  WriteLog("Key pressed: ["+AnsiString((char)(cKey))+(Pressed(VK_SHIFT)?"]+[Shift]":"]"));
+  WriteLog(info+AnsiString((char)(cKey))+"]");
  else if (cKey=='-')
-  WriteLog("Key pressed: [Insert]");
+  WriteLog(info+"Insert]");
  else if (cKey=='.')
-  WriteLog("Key pressed: [Delete]");
+  WriteLog(info+"Delete]");
  else if (cKey=='$')
-  WriteLog("Key pressed: [Home]");
+  WriteLog(info+"Home]");
  else if (cKey=='#')
-  WriteLog("Key pressed: [End]");
+  WriteLog(info+"End]");
  else if (cKey>'Z') //¿eby nie logowaæ kursorów
-  WriteLog("Key pressed: ["+AnsiString(cKey)+(Pressed(VK_SHIFT)?"]+[Shift]":"]")); //numer klawisza
+  WriteLog(info+AnsiString(cKey)+"]"); //numer klawisza
  if ((cKey<='9')?(cKey>='0'):false) //klawisze cyfrowe
  {int i=cKey-'0'; //numer klawisza
   if (Pressed(VK_SHIFT))
@@ -1022,7 +1025,7 @@ bool __fastcall TWorld::Update()
   glEnable(GL_LIGHTING);
  }
 */
-    if (DebugModeFlag)
+    if (DebugModeFlag&&!Global::iTextMode)
      {
        OutText1= "  FPS: ";
        OutText1+= FloatToStrF(GetFPS(),ffFixed,6,2);
@@ -1286,19 +1289,19 @@ bool __fastcall TWorld::Update()
 
      }
     else
-    if (Controlled && DebugModeFlag && !Pressed(VK_F1))
+    if (Controlled && DebugModeFlag && !Global::iTextMode)
     {
-      OutText1+= AnsiString(";  vel ")+FloatToStrF(Controlled->GetVelocity(),ffFixed,6,2);
-      OutText1+= AnsiString(";  pos ")+FloatToStrF(Controlled->GetPosition().x,ffFixed,6,2);
-      OutText1+= AnsiString(" ; ")+FloatToStrF(Controlled->GetPosition().y,ffFixed,6,2);
-      OutText1+= AnsiString(" ; ")+FloatToStrF(Controlled->GetPosition().z,ffFixed,6,2);
-      OutText1+= AnsiString("; dist=")+FloatToStrF(Controlled->MoverParameters->DistCounter,ffFixed,8,4);
+      OutText1+=AnsiString(";  vel ")+FloatToStrF(Controlled->GetVelocity(),ffFixed,6,2);
+      OutText1+=AnsiString(";  pos ")+FloatToStrF(Controlled->GetPosition().x,ffFixed,6,2);
+      OutText1+=AnsiString(" ; ")+FloatToStrF(Controlled->GetPosition().y,ffFixed,6,2);
+      OutText1+=AnsiString(" ; ")+FloatToStrF(Controlled->GetPosition().z,ffFixed,6,2);
+      OutText1+=AnsiString("; dist=")+FloatToStrF(Controlled->MoverParameters->DistCounter,ffFixed,8,4);
 
       //double a= acos( DotProduct(Normalize(Controlled->GetDirection()),vWorldFront));
 //      OutText+= AnsiString(";   angle ")+FloatToStrF(a/M_PI*180,ffFixed,6,2);
-      OutText1+= AnsiString("; d_omega ")+FloatToStrF(Controlled->MoverParameters->dizel_engagedeltaomega,ffFixed,6,3);
-      OutText2= AnsiString("ham zesp ")+FloatToStrF(Controlled->MoverParameters->BrakeCtrlPos,ffFixed,6,0);
-      OutText2+= AnsiString("; ham pom ")+FloatToStrF(Controlled->MoverParameters->LocalBrakePos,ffFixed,6,0);
+      OutText1+=AnsiString("; d_omega ")+FloatToStrF(Controlled->MoverParameters->dizel_engagedeltaomega,ffFixed,6,3);
+      OutText2 =AnsiString("ham zesp ")+FloatToStrF(Controlled->MoverParameters->BrakeCtrlPos,ffFixed,6,0);
+      OutText2+=AnsiString("; ham pom ")+FloatToStrF(Controlled->MoverParameters->LocalBrakePos,ffFixed,6,0);
       Controlled->MoverParameters->MainCtrlPos;
       if (Controlled->MoverParameters->MainCtrlPos<0)
           OutText2+= AnsiString("; nastawnik 0");
@@ -1307,73 +1310,72 @@ bool __fastcall TWorld::Update()
 //      else
 //          OutText2+= AnsiString("; nastawnik S") + Controlled->MoverParameters->MainCtrlPos;
 
-      OutText2+= AnsiString("; bocznik:")+Controlled->MoverParameters->ScndCtrlPos;
-      OutText2+= AnsiString("; I=")+FloatToStrF(Controlled->MoverParameters->Im,ffFixed,6,2);
-  //    OutText2+= AnsiString("; I2=")+FloatToStrF(Controlled->NextConnected->MoverParameters->Im,ffFixed,6,2);
-      OutText2+= AnsiString("; V=")+FloatToStrF(Controlled->MoverParameters->RunningTraction.TractionVoltage,ffFixed,5,1);
-  //    OutText2+= AnsiString("; rvent=")+FloatToStrF(Controlled->MoverParameters->RventRot,ffFixed,6,2);
-      OutText2+= AnsiString("; R=")+FloatToStrF(Controlled->MoverParameters->RunningShape.R,ffFixed,4,1);
-      OutText2+= AnsiString(" An=")+FloatToStrF(Controlled->MoverParameters->AccN,ffFixed,4,2);
-  //    OutText2+= AnsiString("; P=")+FloatToStrF(Controlled->MoverParameters->EnginePower,ffFixed,6,1);
-      OutText3+= AnsiString("cyl.ham. ")+FloatToStrF(Controlled->MoverParameters->BrakePress,ffFixed,5,2);
-      OutText3+= AnsiString("; prz.gl. ")+FloatToStrF(Controlled->MoverParameters->PipePress,ffFixed,5,2);
-      OutText3+= AnsiString("; zb.gl. ")+FloatToStrF(Controlled->MoverParameters->CompressedVolume,ffFixed,6,2);
+      OutText2+=AnsiString("; bocznik:")+Controlled->MoverParameters->ScndCtrlPos;
+      OutText2+=AnsiString("; I=")+FloatToStrF(Controlled->MoverParameters->Im,ffFixed,6,2);
+      //OutText2+=AnsiString("; I2=")+FloatToStrF(Controlled->NextConnected->MoverParameters->Im,ffFixed,6,2);
+      OutText2+=AnsiString("; V=")+FloatToStrF(Controlled->MoverParameters->RunningTraction.TractionVoltage,ffFixed,5,1);
+      //OutText2+=AnsiString("; rvent=")+FloatToStrF(Controlled->MoverParameters->RventRot,ffFixed,6,2);
+      OutText2+=AnsiString("; R=")+FloatToStrF(Controlled->MoverParameters->RunningShape.R,ffFixed,4,1);
+      OutText2+=AnsiString(" An=")+FloatToStrF(Controlled->MoverParameters->AccN,ffFixed,4,2);
+      //OutText2+=AnsiString("; P=")+FloatToStrF(Controlled->MoverParameters->EnginePower,ffFixed,6,1);
+      OutText3+=AnsiString("cyl.ham. ")+FloatToStrF(Controlled->MoverParameters->BrakePress,ffFixed,5,2);
+      OutText3+=AnsiString("; prz.gl. ")+FloatToStrF(Controlled->MoverParameters->PipePress,ffFixed,5,2);
+      OutText3+=AnsiString("; zb.gl. ")+FloatToStrF(Controlled->MoverParameters->CompressedVolume,ffFixed,6,2);
 //youBy - drugi wezyk
-      OutText3+= AnsiString("; p.zas. ")+FloatToStrF(Controlled->MoverParameters->ScndPipePress,ffFixed,6,2);
+      OutText3+=AnsiString("; p.zas. ")+FloatToStrF(Controlled->MoverParameters->ScndPipePress,ffFixed,6,2);
 
       //ABu: testy sprzegow-> (potem przeniesc te zmienne z public do protected!)
-      //OutText3+= AnsiString("; EnginePwr=")+FloatToStrF(Controlled->MoverParameters->EnginePower,ffFixed,1,5);
-      //OutText3+= AnsiString("; nn=")+FloatToStrF(Controlled->NextConnectedNo,ffFixed,1,0);
-      //OutText3+= AnsiString("; PR=")+FloatToStrF(Controlled->dPantAngleR,ffFixed,3,0);
-      //OutText3+= AnsiString("; PF=")+FloatToStrF(Controlled->dPantAngleF,ffFixed,3,0);
+      //OutText3+=AnsiString("; EnginePwr=")+FloatToStrF(Controlled->MoverParameters->EnginePower,ffFixed,1,5);
+      //OutText3+=AnsiString("; nn=")+FloatToStrF(Controlled->NextConnectedNo,ffFixed,1,0);
+      //OutText3+=AnsiString("; PR=")+FloatToStrF(Controlled->dPantAngleR,ffFixed,3,0);
+      //OutText3+=AnsiString("; PF=")+FloatToStrF(Controlled->dPantAngleF,ffFixed,3,0);
       //if(Controlled->bDisplayCab==true)
-      //OutText3+= AnsiString("; Wysw. kab");//+Controlled->mdKabina->GetSMRoot()->Name;
+      //OutText3+=AnsiString("; Wysw. kab");//+Controlled->mdKabina->GetSMRoot()->Name;
       //else
-      //OutText3+= AnsiString("; test:")+AnsiString(Controlled->MoverParameters->TrainType[1]);
+      //OutText3+=AnsiString("; test:")+AnsiString(Controlled->MoverParameters->TrainType[1]);
 
       //OutText3+=FloatToStrF(Train->DynamicObject->MoverParameters->EndSignalsFlag,ffFixed,3,0);;
 
       //OutText3+=FloatToStrF(Train->DynamicObject->MoverParameters->EndSignalsFlag&byte(((((1+Train->DynamicObject->MoverParameters->CabNo)/2)*30)+2)),ffFixed,3,0);;
 
-//      OutText3+= AnsiString("; Ftmax=")+FloatToStrF(Controlled->MoverParameters->Ftmax,ffFixed,3,0);
-//      OutText3+= AnsiString("; FTotal=")+FloatToStrF(Controlled->MoverParameters->FTotal/1000.0f,ffFixed,3,2);
-//      OutText3+= AnsiString("; FTrain=")+FloatToStrF(Controlled->MoverParameters->FTrain/1000.0f,ffFixed,3,2);
+      //OutText3+=AnsiString("; Ftmax=")+FloatToStrF(Controlled->MoverParameters->Ftmax,ffFixed,3,0);
+      //OutText3+=AnsiString("; FTotal=")+FloatToStrF(Controlled->MoverParameters->FTotal/1000.0f,ffFixed,3,2);
+      //OutText3+=AnsiString("; FTrain=")+FloatToStrF(Controlled->MoverParameters->FTrain/1000.0f,ffFixed,3,2);
       //Controlled->mdModel->GetSMRoot()->SetTranslate(vector3(0,1,0));
 
       //McZapkie: warto wiedziec w jakim stanie sa przelaczniki
       if (!Controlled->MoverParameters->Mains)
-       {OutText3+= "  ";}
+       OutText3+="  ";
       else
+      {
+       switch (Controlled->MoverParameters->ActiveDir)
        {
-        switch (Controlled->MoverParameters->ActiveDir)
-        {
-        case 0 : {OutText3+=" -- "; break;}
-        case 1 : {OutText3+=" -> "; break;}
+        case  1: {OutText3+=" -> "; break;}
+        case  0: {OutText3+=" -- "; break;}
         case -1: {OutText3+=" <- "; break;}
-        }
        }
-  //    OutText3+= AnsiString("; dpLocal ")+FloatToStrF(Controlled->MoverParameters->dpLocalValve,ffFixed,10,8);
-  //    OutText3+= AnsiString("; dpMain ")+FloatToStrF(Controlled->MoverParameters->dpMainValve,ffFixed,10,8);
-  //McZapkie: predkosc szlakowa
+      }
+      //OutText3+=AnsiString("; dpLocal ")+FloatToStrF(Controlled->MoverParameters->dpLocalValve,ffFixed,10,8);
+      //OutText3+=AnsiString("; dpMain ")+FloatToStrF(Controlled->MoverParameters->dpMainValve,ffFixed,10,8);
+      //McZapkie: predkosc szlakowa
       if (Controlled->MoverParameters->RunningTrack.Velmax==-1)
-       {OutText3+= AnsiString(" Vtrack=Vmax ");}
+       {OutText3+=AnsiString(" Vtrack=Vmax ");}
       else
-       {OutText3+= AnsiString(" Vtrack ")+FloatToStrF(Controlled->MoverParameters->RunningTrack.Velmax,ffFixed,8,2);}
+       {OutText3+=AnsiString(" Vtrack ")+FloatToStrF(Controlled->MoverParameters->RunningTrack.Velmax,ffFixed,8,2);}
 //      WriteLog(Controlled->MoverParameters->TrainType.c_str());
       if ((Controlled->MoverParameters->EnginePowerSource.SourceType==CurrentCollector) || (Controlled->MoverParameters->TrainType==dt_EZT))
-       {OutText3+= AnsiString(" zb.pant. ")+FloatToStrF(Controlled->MoverParameters->PantVolume,ffFixed,8,2);}
+       {OutText3+=AnsiString(" zb.pant. ")+FloatToStrF(Controlled->MoverParameters->PantVolume,ffFixed,8,2);}
   //McZapkie: komenda i jej parametry
        if (Controlled->MoverParameters->CommandIn.Command!=AnsiString(""))
         OutText3+=AnsiString(" C:")+AnsiString(Controlled->MoverParameters->CommandIn.Command)
         +AnsiString(" V1=")+FloatToStrF(Controlled->MoverParameters->CommandIn.Value1,ffFixed,5,0)
         +AnsiString(" V2=")+FloatToStrF(Controlled->MoverParameters->CommandIn.Value2,ffFixed,5,0);
        if (Controlled->Mechanik && Controlled->Mechanik->AIControllFlag==AIdriver)
-        {
-          OutText3+=AnsiString(" Vd:")+FloatToStrF(Controlled->Mechanik->VelDesired,ffFixed,4,0)
-          +AnsiString(" ad=")+FloatToStrF(Controlled->Mechanik->AccDesired,ffFixed,5,2)
-          +AnsiString(" Pd=")+FloatToStrF(Controlled->Mechanik->ActualProximityDist,ffFixed,4,0)
-          +AnsiString(" Vn=")+FloatToStrF(Controlled->Mechanik->VelNext,ffFixed,4,0);
-        }
+        OutText3+=AnsiString(" Vd:")+FloatToStrF(Controlled->Mechanik->VelDesired,ffFixed,4,0)
+        +AnsiString(" ad=")+FloatToStrF(Controlled->Mechanik->AccDesired,ffFixed,5,2)
+        +AnsiString(" Pd=")+FloatToStrF(Controlled->Mechanik->ActualProximityDist,ffFixed,4,0)
+        +AnsiString(" Vn=")+FloatToStrF(Controlled->Mechanik->VelNext,ffFixed,4,0);
+
      }
 
  glDisable(GL_LIGHTING);

@@ -34,8 +34,8 @@ private:
     bool btnOn; //ABu: czy byly uzywane buttony, jesli tak, to po renderingu wylacz
                 //bo ten sam model moze byc jeszcze wykorzystany przez inny obiekt!
     double __fastcall ComputeRadius(vector3 p1, vector3 p2, vector3 p3, vector3 p4);
-    vector3 pOldPos1;
-    vector3 pOldPos4;
+    //vector3 pOldPos1; //Ra: nie u¿ywane
+    //vector3 pOldPos4;
 //McZapkie-050402 - do krecenia kolami
     int iAnimatedAxles;
     int iAnimatedDoors;
@@ -134,8 +134,8 @@ private:
 protected:
     bool bEnabled;
     AnsiString asName;
-    TTrackFollower Axle2; //dwie osie z czterech (protected)
-    TTrackFollower Axle3;
+    //TTrackFollower Axle2; //dwie osie z czterech (te s¹ protected)
+    //TTrackFollower Axle3; //Ra: wy³¹czy³em, bo k¹ty s¹ liczone w Segment.cpp
     int iNumAxles; //iloœæ osi
     //Byte NextConnectedNo;
     //Byte PrevConnectedNo;
