@@ -113,6 +113,7 @@ public:
     __fastcall TTrack();
     __fastcall ~TTrack();
     void __fastcall Init();
+    TTrack* __fastcall NullCreate(int dir);
     inline bool __fastcall IsEmpty() { return (iNumDynamics<=0); };
     void __fastcall ConnectPrevPrev(TTrack *pNewPrev,int typ);
     void __fastcall ConnectPrevNext(TTrack *pNewPrev,int typ);

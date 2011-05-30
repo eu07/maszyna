@@ -38,7 +38,7 @@ __fastcall TTrackFollower::TTrackFollower()
  pCurrentSegment=NULL;
  fCurrentDistance=0;
  pPosition=vAngles=vector3(0,0,0);
- fDirection=1;
+ fDirection=1; //jest przodem do Point2
 }
 
 __fastcall TTrackFollower::~TTrackFollower()
@@ -57,13 +57,15 @@ bool __fastcall TTrackFollower::Init(TTrack *pTrack,TDynamicObject *NewOwner,dou
  return true;
 }
 
-void __fastcall TTrackFollower::SetCurrentTrack(TTrack *pTrack,double end)
+void __fastcall TTrackFollower::SetCurrentTrack(TTrack *pTrack,int end)
 {//przejechanie na inny odcinkek toru, z ewentualnym rozpruciem
- if (pTrack->eType==tt_Switch) //jeœli zwrotnica, to przek³adamy j¹, aby uzyskaæ dobry segment
+ if (pTrack?pTrack->eType==tt_Switch:false) //jeœli zwrotnica, to przek³adamy j¹, aby uzyskaæ dobry segment
  {int i=(end?pCurrentTrack->iNextDirection:pCurrentTrack->iPrevDirection);
   if (i>0) //je¿eli wjazd z ostrza
    pTrack->Switch(i>>1); //to prze³o¿enie zwrotnicy - rozprucie!
  }
+ if (!pTrack)
+  pTrack=pCurrentTrack->NullCreate(end); //tworzenie toru wykolej¹cego na przed³u¿eniu pCurrentTrack
  pCurrentTrack=pTrack;
  pCurrentSegment=(pCurrentTrack?pCurrentTrack->CurrentSegment():NULL);
 };

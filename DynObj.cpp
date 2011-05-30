@@ -646,7 +646,7 @@ TDynamicObject* __fastcall ABuFindNearestObject(TTrack *Track,TDynamicObject *My
 
 
 
-TDynamicObject* TDynamicObject::ABuScanNearestObject(TTrack *Track, double ScanDir, double ScanDist, int &CouplNr)
+TDynamicObject* TDynamicObject::ABuScanNearestObject(TTrack *Track,double ScanDir,double ScanDist,int &CouplNr)
 {
    //skanowanie toru w poszukiwaniu obiektu najblizszego kamerze
    //double MyScanDir=ScanDir;  //Moja orientacja na torze.  //Ra: nie u¿ywane
@@ -760,9 +760,9 @@ void __fastcall TDynamicObject::ABuCheckMyTrack()
 
 //Ra: w poni¿szej funkcji jest problem ze sprzêgami
 TDynamicObject* __fastcall ABuFindObject(TTrack *Track,TDynamicObject *MyPointer,int ScanDir,int MyScanDir,Byte MyCouplFound,Byte &CouplFound)
-{//Zwraca wskaznik najblizszego obiektu znajdujacego sie
- //na torze w okreslonym kierunku, ale tylko wtedy, kiedy
- //obiekty moga sie zderzyc, tzn. nie mijaja sie.
+{//Zwraca wskaŸnik najbli¿szego obiektu znajduj¹cego siê
+ //na torze w okreœlonym kierunku, ale tylko wtedy, kiedy
+ //obiekty mog¹ siê zderzyæ, tzn. nie mijaj¹ siê.
 
  //WE: Track      - tor, na ktorym odbywa sie poszukiwanie,
  //    MyPointer  - wskaznik do obiektu szukajacego.
@@ -796,69 +796,58 @@ TDynamicObject* __fastcall ABuFindObject(TTrack *Track,TDynamicObject *MyPointer
      if ((TestDist>0)&&(TestDist<=MinDist))
      {//gdy jest po w³aœciwej stronie i bli¿ej ni¿ jakiœ wczeœniejszy
       CouplFound=(Track->Dynamics[i]->ABuGetDirection()>0)?1:0; //to, bo (ScanDir>=0)
-      // Szukamy sprzegu obiektu.
-      //if (MyScanDir>0) //orientacje torów zgodne
-      // CouplFound=(Track->Dynamics[i]->ABuGetDirection()>0)?1-MyCouplFound:MyCouplFound;
-      //else //orientacje torów pprzeciwne
-      // CouplFound=(Track->Dynamics[i]->ABuGetDirection()>0)?MyCouplFound:1-MyCouplFound;
-/* //Ra: mijanie samochodów zrobimy potem
-      // Przesuniecie wzgledne pojazdow. Wyznaczane, zeby sprawdzic,
-      // czy pojazdy faktycznie sie zderzaja (moga byc przesuniete
-      // w/m toru tak, ze nie zachodza na siebie i wtedy sie mijaja).
-      double RelOffsetH; //odleg³oœæ od osi toru (dla samochodów)
-      if (MyCouplFound!=CouplFound) //nie ten warunek!
-       //Kabiny ustawione w tym samym kierunku.
-       RelOffsetH=(MyPointer->MoverParameters->OffsetTrackH-Track->Dynamics[i]->MoverParameters->OffsetTrackH);
-      else
-       //Kabiny ustawione w przeciwnych kierunkach.
-       RelOffsetH=(MyPointer->MoverParameters->OffsetTrackH+Track->Dynamics[i]->MoverParameters->OffsetTrackH);
-      if (RelOffsetH<0) RelOffsetH=-RelOffsetH;
-      if (RelOffsetH<(((MyPointer->MoverParameters->Dim.W)+(Track->Dynamics[i]->MoverParameters->Dim.W))/2.0))
-*/
-      { //Bedzie zderzenie.
-       iMinDist=i;
-       MinDist=TestDist;
+      if (Track->iCategoryFlag&254) //trajektoria innego typu ni¿ tor kolejowy
+      {//dla torów nie ma sensu tego sprawdzaæ, rzadko co jedzie po jednej szynie i siê mija
+       //Ra: mijanie samochodów wcale nie jest proste
+       // Przesuniecie wzgledne pojazdow. Wyznaczane, zeby sprawdzic,
+       // czy pojazdy faktycznie sie zderzaja (moga byc przesuniete
+       // w/m siebie tak, ze nie zachodza na siebie i wtedy sie mijaja).
+       double RelOffsetH; //wzajemna odleg³oœæ poprzeczna
+       if (CouplFound) //my na tym torze byœmy byli w kierunku Point2
+        //dla CouplFound=1 s¹ zwroty zgodne - istotna ró¿nica przesuniêæ
+        RelOffsetH=(MyPointer->MoverParameters->OffsetTrackH-Track->Dynamics[i]->MoverParameters->OffsetTrackH);
+       else
+        //dla CouplFound=0 s¹ zwroty przeciwne - przesuniêcia sumuj¹ siê
+        RelOffsetH=(MyPointer->MoverParameters->OffsetTrackH+Track->Dynamics[i]->MoverParameters->OffsetTrackH);
+       if (RelOffsetH<0) RelOffsetH=-RelOffsetH;
+       if (RelOffsetH+RelOffsetH>MyPointer->MoverParameters->Dim.W)+(Track->Dynamics[i]->MoverParameters->Dim.W);
+        continue; //odleg³oœæ wiêksza od po³owy sumy szerokoœci - kolizji nie bêdzie
       }
+      iMinDist=i; //potencjalna kolizja
+      MinDist=TestDist;
      }
     }
    }
   }
   else //(ScanDir<0)
   {
-   for (int i=0; i<Track->iNumDynamics; i++)
+   for (int i=0; i<Track->iNumDynamics;i++)
    {
     if (MyPointer!=Track->Dynamics[i])
     {
      TestDist=MyTranslation-(Track->Dynamics[i]->ABuGetTranslation()); //???-przesuniêcie wózka wzglêdem Point1 toru
      if ((TestDist>0)&&(TestDist<MinDist))
      {
-      //if (ScanDir>0)
-      // CouplFound=(Track->Dynamics[i]->ABuGetDirection()>0)?1:0;
-      //else
-      CouplFound=(Track->Dynamics[i]->ABuGetDirection()>0)?0:1;
-      // Szukamy sprzegu obiektu.
-      //if (ScanDir*MyScanDir>0) //orientacje torow zgodne
-      // CouplFound=(Track->Dynamics[i]->ABuGetDirection()>0)?1-MyCouplFound:MyCouplFound;
-      //else //orientacje torow pprzeciwne
-      // CouplFound=(Track->Dynamics[i]->ABuGetDirection()>0)?MyCouplFound:1-MyCouplFound;
-/* //Ra: mijanie samochodów zrobimy potem
-      // Przesuniecie wzgledne pojazdow. Wyznaczane, zeby sprawdzic,
-      // czy pojazdy faktycznie sie zderzaja (moga byc przesuniete
-      // w/m toru tak, ze nie zachodza na siebie i wtedy sie mijaja).
-      double RelOffsetH;
-      if (MyCouplFound!=CouplFound)
-       //Kabiny ustawione w tym samym kierunku.
-       RelOffsetH=(MyPointer->MoverParameters->OffsetTrackH-Track->Dynamics[i]->MoverParameters->OffsetTrackH);
-      else
-       //Kabiny ustawione w przeciwnych kierunkach.
-       RelOffsetH=(MyPointer->MoverParameters->OffsetTrackH+Track->Dynamics[i]->MoverParameters->OffsetTrackH);
-      if (RelOffsetH<0) RelOffsetH=-RelOffsetH;
-      if (RelOffsetH<(((MyPointer->MoverParameters->Dim.W)+(Track->Dynamics[i]->MoverParameters->Dim.W))/2))
-*/
-      {//Bedzie zderzenie.
-       iMinDist=i;
-       MinDist=TestDist;
+      CouplFound=(Track->Dynamics[i]->ABuGetDirection()>0)?0:1; //odwrotnie, bo (ScanDir<0)
+      if (Track->iCategoryFlag&254) //trajektoria innego typu ni¿ tor kolejowy
+      {//dla torów nie ma sensu tego sprawdzaæ, rzadko co jedzie po jednej szynie i siê mija
+       //Ra: mijanie samochodów wcale nie jest proste
+       // Przesuniecie wzgledne pojazdow. Wyznaczane, zeby sprawdzic,
+       // czy pojazdy faktycznie sie zderzaja (moga byc przesuniete
+       // w/m siebie tak, ze nie zachodza na siebie i wtedy sie mijaja).
+       double RelOffsetH; //wzajemna odleg³oœæ poprzeczna
+       if (CouplFound) //my na tym torze byœmy byli w kierunku Point1
+        //dla CouplFound=1 s¹ zwroty zgodne - istotna ró¿nica przesuniêæ
+        RelOffsetH=(MyPointer->MoverParameters->OffsetTrackH-Track->Dynamics[i]->MoverParameters->OffsetTrackH);
+       else
+        //dla CouplFound=0 s¹ zwroty przeciwne - przesuniêcia sumuj¹ siê
+        RelOffsetH=(MyPointer->MoverParameters->OffsetTrackH+Track->Dynamics[i]->MoverParameters->OffsetTrackH);
+       if (RelOffsetH<0) RelOffsetH=-RelOffsetH;
+       if (RelOffsetH+RelOffsetH>MyPointer->MoverParameters->Dim.W)+(Track->Dynamics[i]->MoverParameters->Dim.W);
+        continue; //odleg³oœæ wiêksza od po³owy sumy szerokoœci - kolizji nie bêdzie
       }
+      iMinDist=i; //potencjalna kolizja
+      MinDist=TestDist;
      }
     }
    }
@@ -1385,123 +1374,119 @@ void TDynamicObject::ScanEventTrack(TTrack *Track)
 
 __fastcall TDynamicObject::TDynamicObject()
 {
-    modelShake=vector3(0,0,0);
-    EndTrack=false;
-    btnOn=false;
-    vUp= vWorldUp;
-    vFront= vWorldFront;
-    vLeft= vWorldLeft;
-    iNumAxles= 0;
-    MoverParameters= NULL;
-    Mechanik= NULL;
-    MechInside= false;
-    TrainParams= NULL;
-//McZapkie-270202
-    Controller= AIdriver;
-    bDisplayCab= false; //030303
-    NextConnected=PrevConnected= NULL;
-    NextConnectedNo=PrevConnectedNo=2; //ABu: Numery sprzegow. 2=nie pod³¹czony
-    CouplCounter=50; //bêdzie sprawdzaæ na pocz¹tku
-    asName= "";
-    bEnabled= true;
-    MyTrack=NULL;
-//McZapkie-260202
-    dRailLength=25.0;
-    for (int i= 0; i<MaxAxles; i++)
-     dRailPosition[i]= 0.0;
-    for (int i=0; i<MaxAxles; i++)
-     dWheelsPosition[i]= 0.0;
-    iAxles= 0;
-    dWheelAngle= 0.0;
-//Winger 160204 - pantografy
-//    PantVolume = 3.5;
-    StartTime= 0;
-    NoVoltTime= 0;
-    dPantAngleF= 0.0;
-    dPantAngleR= 0.0;
-    PantTraction1= 10;
-    PantTraction2= 10;
-    if (!Global::bEnableTraction)
-     {
-     PantTraction1= 5.8;
-     PantTraction2= 5.8;
-     }
-    dPantAngleFT= 0.0;
-    dPantAngleRT= 0.0;
-    PantWysF= 0.0;
-    PantWysR= 0.0;
-    smPatykird1[0]=smPatykird1[1]= NULL;
-    smPatykird2[0]=smPatykird2[1]= NULL;
-    smPatykirg1[0]=smPatykirg1[1]= NULL;
-    smPatykirg2[0]=smPatykirg2[1]= NULL;
-    smPatykisl[0]=smPatykisl[1]= NULL;
-    pant1x= 0;
-    pant2x= 0;
-    panty= 0;
-    panth= 0;
-    dDoorMoveL= 0.0;
-    dDoorMoveR= 0.0;
-    for (int i=0; i<8 ; i++)
-        {
-        DoorSpeedFactor[i]=random(150);
-        DoorSpeedFactor[i]=(DoorSpeedFactor[i]+100)/100;
-        }
-    iAnimatedAxles= 0;
-    iAnimatedDoors= 0;
-    for (int i= 0; i<MaxAnimatedAxles; i++)
-     smAnimatedWheel[i]= NULL;
-    for (int i= 0; i<MaxAnimatedDoors; i++)
-     smAnimatedDoor[i]= NULL;
-    mdModel=NULL;
-    mdKabina=NULL;
-    ReplacableSkinID=0;
-    bAlpha=false;
-    smWiazary[0]=smWiazary[1]= NULL;
-    smWahacze[0]=smWahacze[1]=smWahacze[2]=smWahacze[3]= NULL;
-    fWahaczeAmp= 0;
-    iAnimatedAxles=0;
-    iAnimatedDoors=0;
-    mdLoad=NULL;
-    mdLowPolyInt=NULL;
-    mdPrzedsionek=NULL;
-    smMechanik=NULL;
-    smBuforLewy[0]=smBuforLewy[1]=NULL;
-    smBuforPrawy[0]=smBuforPrawy[1]=NULL;
-    enginevolume=0;
-    smBogie[0]=smBogie[1]=NULL;
-    bogieRot[0]=bogieRot[1]=vector3(0,0,0);
-    modelRot=vector3(0,0,0);
-    eng_vol_act=0.8;
-    eng_dfrq=0;
-    eng_frq_act=1;
-    eng_turbo=0;
-
-    cp1=cp2=sp1=sp2=0;
-    iDirection=1; //stoi w kierunku tradycyjnym
+ modelShake=vector3(0,0,0);
+ EndTrack=false;
+ btnOn=false;
+ vUp=vWorldUp;
+ vFront=vWorldFront;
+ vLeft=vWorldLeft;
+ iNumAxles=0;
+ MoverParameters=NULL;
+ Mechanik=NULL;
+ MechInside=false;
+ TrainParams=NULL;
+ //McZapkie-270202
+ Controller=AIdriver;
+ bDisplayCab=false; //030303
+ NextConnected=PrevConnected= NULL;
+ NextConnectedNo=PrevConnectedNo=2; //ABu: Numery sprzegow. 2=nie pod³¹czony
+ CouplCounter=50; //bêdzie sprawdzaæ na pocz¹tku
+ asName="";
+ bEnabled=true;
+ MyTrack=NULL;
+ //McZapkie-260202
+ dRailLength=25.0;
+ for (int i=0;i<MaxAxles;i++)
+  dRailPosition[i]=0.0;
+ for (int i=0;i<MaxAxles;i++)
+  dWheelsPosition[i]=0.0;
+ iAxles=0;
+ dWheelAngle=0.0;
+ //Winger 160204 - pantografy
+ //PantVolume = 3.5;
+ StartTime=0;
+ NoVoltTime=0;
+ dPantAngleF=0.0;
+ dPantAngleR=0.0;
+ PantTraction1=10;
+ PantTraction2=10;
+ if (!Global::bEnableTraction)
+  {
+  PantTraction1=5.8;
+  PantTraction2=5.8;
+  }
+ dPantAngleFT=0.0;
+ dPantAngleRT=0.0;
+ PantWysF=0.0;
+ PantWysR=0.0;
+ smPatykird1[0]=smPatykird1[1]=NULL;
+ smPatykird2[0]=smPatykird2[1]=NULL;
+ smPatykirg1[0]=smPatykirg1[1]=NULL;
+ smPatykirg2[0]=smPatykirg2[1]=NULL;
+ smPatykisl[0]=smPatykisl[1]=NULL;
+ pant1x=0;
+ pant2x=0;
+ panty=0;
+ panth=0;
+ dDoorMoveL=0.0;
+ dDoorMoveR=0.0;
+ for (int i=0;i<8;i++)
+ {
+  DoorSpeedFactor[i]=random(150);
+  DoorSpeedFactor[i]=(DoorSpeedFactor[i]+100)/100;
+ }
+ iAnimatedAxles=0;
+ iAnimatedDoors=0;
+ for (int i=0;i<MaxAnimatedAxles;i++)
+  smAnimatedWheel[i]=NULL;
+ for (int i=0;i<MaxAnimatedDoors;i++)
+  smAnimatedDoor[i]=NULL;
+ mdModel=NULL;
+ mdKabina=NULL;
+ ReplacableSkinID=0;
+ bAlpha=false;
+ smWiazary[0]=smWiazary[1]=NULL;
+ smWahacze[0]=smWahacze[1]=smWahacze[2]=smWahacze[3]=NULL;
+ fWahaczeAmp=0;
+ iAnimatedAxles=0;
+ iAnimatedDoors=0;
+ mdLoad=NULL;
+ mdLowPolyInt=NULL;
+ mdPrzedsionek=NULL;
+ smMechanik=NULL;
+ smBuforLewy[0]=smBuforLewy[1]=NULL;
+ smBuforPrawy[0]=smBuforPrawy[1]=NULL;
+ enginevolume=0;
+ smBogie[0]=smBogie[1]=NULL;
+ bogieRot[0]=bogieRot[1]=vector3(0,0,0);
+ modelRot=vector3(0,0,0);
+ eng_vol_act=0.8;
+ eng_dfrq=0;
+ eng_frq_act=1;
+ eng_turbo=0;
+ cp1=cp2=sp1=sp2=0;
+ iDirection=1; //stoi w kierunku tradycyjnym
 }
 
-
 __fastcall TDynamicObject::~TDynamicObject()
-{
-//McZapkie-250302 - zamykanie logowania parametrow fizycznych
-    if (Mechanik)
-     Mechanik->CloseLog();
-    SafeDelete(Mechanik);
-    SafeDelete(MoverParameters);
-    SafeDelete(TrainParams);
+{//McZapkie-250302 - zamykanie logowania parametrow fizycznych
+ if (Mechanik)
+  Mechanik->CloseLog();
+ SafeDelete(Mechanik);
+ SafeDelete(MoverParameters);
+ SafeDelete(TrainParams);
 }
 
 bool __fastcall TDynamicObject::Init(
  AnsiString Name,AnsiString BaseDir,AnsiString asReplacableSkin,AnsiString Type_Name,
  TTrack *Track,double fDist,AnsiString DriverType,double fVel,AnsiString TrainName,
  int Load, AnsiString LoadType,bool Reversed)
-//McZapkie: Name to np. EU07-424, BaseDir to np. PKP/EU07, Type_Name to np. 303E, TrainName to np. PE2307
-{
+{//McZapkie: Name to np. EU07-424, BaseDir to np. PKP/EU07, Type_Name to np. 303E, TrainName to np. PE2307
 
  iDirection=(Reversed?-1:1); //Ra: ujemne, jeœli ma byæ wstawiony do sk³adu jako obrócony
-//McZapkie-310302
-    asBaseDir= "dynamic\\"+BaseDir+"\\";
-//    Model.Init(asModel);
+ //McZapkie-310302
+ asBaseDir= "dynamic\\"+BaseDir+"\\";
+ //Model.Init(asModel);
 
     if (Name!=AnsiString(""))
         asName= Name;
@@ -2029,14 +2014,14 @@ tmpTraction.TractionVoltage=3400;
     {
         //ABu: proba szybkiego naprawienia bledu z zatrzymujacymi sie bez powodu skladami
         if ((MoverParameters->CabNo!=0)&&(Controller!=Humandriver)&&(!MoverParameters->Mains)&&(Mechanik->EngineActive))
-                       {
-                          MoverParameters->PantRear(false);
-                          MoverParameters->PantFront(false);
-                          MoverParameters->PantRear(true);
-                          MoverParameters->PantFront(true);
-                          MoverParameters->DecMainCtrl(2); //?
-                          MoverParameters->MainSwitch(true);
-                       };
+        {
+         MoverParameters->PantRear(false);
+         MoverParameters->PantFront(false);
+         MoverParameters->PantRear(true);
+         MoverParameters->PantFront(true);
+         MoverParameters->DecMainCtrl(2); //?
+         MoverParameters->MainSwitch(true);
+        };
 //yB: cos (AI) tu jest nie kompatybilne z czyms (hamulce)
 //        if (Controller!=Humandriver)
 //         if (Mechanik->LastReactionTime>0.5)
@@ -2658,11 +2643,11 @@ renderme=false;
       GLfloat  diffuseCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
       GLfloat  specularCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
       for (int li=0; li<3; li++)
-       {
-         ambientCabLight[li]= Global::ambientDayLight[li]*0.9;
-         diffuseCabLight[li]= Global::diffuseDayLight[li]*0.5;
-         specularCabLight[li]= Global::specularDayLight[li]*0.5;
-       }
+      {
+       ambientCabLight[li]= Global::ambientDayLight[li]*0.9;
+       diffuseCabLight[li]= Global::diffuseDayLight[li]*0.5;
+       specularCabLight[li]=Global::specularDayLight[li]*0.5;
+      }
       switch (MyTrack->eEnvironment)
       {
        case e_canyon:
@@ -2870,121 +2855,115 @@ if ((MoverParameters->ConverterFlag==false)&&(MoverParameters->CompressorPower!=
 
 
 
-    if(MoverParameters->TrainType==dt_PseudoDiesel)
-    {
-       //ABu: udawanie woodwarda dla lok. spalinowych
-       //jesli silnik jest podpiety pod dzwiek przetwornicy
-       if (MoverParameters->ConverterFlag)                 //NBMX dzwiek przetwornicy
-       {
-          sConverter.TurnOn(MechInside,GetPosition());
-       }
-       else
-          sConverter.TurnOff(MechInside,GetPosition());
+   if (MoverParameters->TrainType==dt_PseudoDiesel)
+   {
+      //ABu: udawanie woodwarda dla lok. spalinowych
+      //jesli silnik jest podpiety pod dzwiek przetwornicy
+      if (MoverParameters->ConverterFlag)                 //NBMX dzwiek przetwornicy
+      {
+         sConverter.TurnOn(MechInside,GetPosition());
+      }
+      else
+         sConverter.TurnOff(MechInside,GetPosition());
 
-       //glosnosc zalezy od stosunku mocy silnika el. do mocy max
-          double eng_vol;
-          if (MoverParameters->Power>1)
-             //0.85+0.000015*(...)
-             eng_vol=0.8+0.00002*(MoverParameters->EnginePower/MoverParameters->Power);
-          else
-             eng_vol=1;
+      //glosnosc zalezy od stosunku mocy silnika el. do mocy max
+         double eng_vol;
+         if (MoverParameters->Power>1)
+            //0.85+0.000015*(...)
+            eng_vol=0.8+0.00002*(MoverParameters->EnginePower/MoverParameters->Power);
+         else
+            eng_vol=1;
 
-          eng_dfrq=eng_dfrq+(eng_vol_act-eng_vol);
-          if(eng_dfrq>0)
-          {
-             eng_dfrq=eng_dfrq-0.025*dt;
-             if(eng_dfrq<0.025*dt)
-                eng_dfrq=0;
-          }
-          else
-          if(eng_dfrq<0)
-          {
-             eng_dfrq=eng_dfrq+0.025*dt;
-             if(eng_dfrq>-0.025*dt)
-                eng_dfrq=0;
-          }
-          double defrot;
-          if (MoverParameters->MainCtrlPos!=0)
-          {
-             double CtrlPos=MoverParameters->MainCtrlPos;
-             double CtrlPosNo=MoverParameters->MainCtrlPosNo;
-             //defrot=1+0.4*(CtrlPos/CtrlPosNo);
-             defrot=1+0.5*(CtrlPos/CtrlPosNo);
-          }
-          else
-             defrot=1;
+         eng_dfrq=eng_dfrq+(eng_vol_act-eng_vol);
+         if(eng_dfrq>0)
+         {
+            eng_dfrq=eng_dfrq-0.025*dt;
+            if(eng_dfrq<0.025*dt)
+               eng_dfrq=0;
+         }
+         else
+         if(eng_dfrq<0)
+         {
+            eng_dfrq=eng_dfrq+0.025*dt;
+            if(eng_dfrq>-0.025*dt)
+               eng_dfrq=0;
+         }
+         double defrot;
+         if (MoverParameters->MainCtrlPos!=0)
+         {
+            double CtrlPos=MoverParameters->MainCtrlPos;
+            double CtrlPosNo=MoverParameters->MainCtrlPosNo;
+            //defrot=1+0.4*(CtrlPos/CtrlPosNo);
+            defrot=1+0.5*(CtrlPos/CtrlPosNo);
+         }
+         else
+            defrot=1;
 
-          if (eng_frq_act<defrot)
-          {
-             //if (MoverParameters->MainCtrlPos==1) eng_frq_act=eng_frq_act+0.1*dt;
-             eng_frq_act=eng_frq_act+0.4*dt; //0.05
-             if (eng_frq_act>defrot-0.4*dt)
+         if (eng_frq_act<defrot)
+         {
+            //if (MoverParameters->MainCtrlPos==1) eng_frq_act=eng_frq_act+0.1*dt;
+            eng_frq_act=eng_frq_act+0.4*dt; //0.05
+            if (eng_frq_act>defrot-0.4*dt)
+              eng_frq_act=defrot;
+         }
+         else
+         if (eng_frq_act>defrot)
+         {
+            eng_frq_act=eng_frq_act-0.1*dt; //0.05
+            if (eng_frq_act<defrot+0.1*dt)
                eng_frq_act=defrot;
-          }
-          else
-          if (eng_frq_act>defrot)
-          {
-             eng_frq_act=eng_frq_act-0.1*dt; //0.05
-             if (eng_frq_act<defrot+0.1*dt)
-                eng_frq_act=defrot;
-          }
-          sConverter.UpdateAF(eng_vol_act,eng_frq_act+eng_dfrq,MechInside,GetPosition());
-          //udawanie turbo:  (6.66*(eng_vol-0.85))
-          if (eng_turbo>6.66*(eng_vol-0.8)+0.2*dt)
-             eng_turbo=eng_turbo-0.2*dt; //0.125
-          else
-          if (eng_turbo<6.66*(eng_vol-0.8)-0.4*dt)
-             eng_turbo=eng_turbo+0.4*dt;  //0.333
-          else
-             eng_turbo=6.66*(eng_vol-0.8);
+         }
+         sConverter.UpdateAF(eng_vol_act,eng_frq_act+eng_dfrq,MechInside,GetPosition());
+         //udawanie turbo:  (6.66*(eng_vol-0.85))
+         if (eng_turbo>6.66*(eng_vol-0.8)+0.2*dt)
+            eng_turbo=eng_turbo-0.2*dt; //0.125
+         else
+         if (eng_turbo<6.66*(eng_vol-0.8)-0.4*dt)
+            eng_turbo=eng_turbo+0.4*dt;  //0.333
+         else
+            eng_turbo=6.66*(eng_vol-0.8);
 
-          sTurbo.TurnOn(MechInside,GetPosition());
-          //sTurbo.UpdateAF(eng_turbo,0.7+(eng_turbo*0.6),MechInside,GetPosition());
-          sTurbo.UpdateAF(3*eng_turbo-1,0.4+eng_turbo*0.4,MechInside,GetPosition());
-          eng_vol_act=eng_vol;
-          //eng_frq_act=eng_frq;
-    }
+         sTurbo.TurnOn(MechInside,GetPosition());
+         //sTurbo.UpdateAF(eng_turbo,0.7+(eng_turbo*0.6),MechInside,GetPosition());
+         sTurbo.UpdateAF(3*eng_turbo-1,0.4+eng_turbo*0.4,MechInside,GetPosition());
+         eng_vol_act=eng_vol;
+         //eng_frq_act=eng_frq;
+   }
+   else
+   {
+    if (MoverParameters->ConverterFlag)                 //NBMX dzwiek przetwornicy
+     sConverter.TurnOn(MechInside,GetPosition());
     else
-    {
-       if (MoverParameters->ConverterFlag)                 //NBMX dzwiek przetwornicy
-       {
-          sConverter.TurnOn(MechInside,GetPosition());
-       }
-       else
-          sConverter.TurnOff(MechInside,GetPosition());
-          sConverter.Update(MechInside,GetPosition());
-    }
-    if (MoverParameters->WarningSignal>0)
-     {
-      if (TestFlag(MoverParameters->WarningSignal,1))
-         sHorn1.TurnOn(MechInside,GetPosition());
-      else
-         sHorn1.TurnOff(MechInside,GetPosition());
-      if (TestFlag(MoverParameters->WarningSignal,2))
-         sHorn2.TurnOn(MechInside,GetPosition());
-      else
-         sHorn2.TurnOff(MechInside,GetPosition());
-     }
+     sConverter.TurnOff(MechInside,GetPosition());
+    sConverter.Update(MechInside,GetPosition());
+   }
+   if (MoverParameters->WarningSignal>0)
+   {
+    if (TestFlag(MoverParameters->WarningSignal,1))
+     sHorn1.TurnOn(MechInside,GetPosition());
     else
-     {
-       sHorn1.TurnOff(MechInside,GetPosition());
-       sHorn2.TurnOff(MechInside,GetPosition());
-     }
-    if (MoverParameters->DoorClosureWarning)
-     {
-      if (MoverParameters->DepartureSignal)     //NBMX sygnal odjazdu, MC: pod warunkiem ze jest zdefiniowane w chk
-        {
-         sDepartureSignal.TurnOn(MechInside,GetPosition());
-        }
-      else
-        {
-         sDepartureSignal.TurnOff(MechInside,GetPosition());
-        }
-      sDepartureSignal.Update(MechInside,GetPosition());
-     }
-    sHorn1.Update(MechInside,GetPosition());
-    sHorn2.Update(MechInside,GetPosition());
-//McZapkie: w razie wykolejenia
+     sHorn1.TurnOff(MechInside,GetPosition());
+    if (TestFlag(MoverParameters->WarningSignal,2))
+     sHorn2.TurnOn(MechInside,GetPosition());
+    else
+     sHorn2.TurnOff(MechInside,GetPosition());
+   }
+   else
+   {
+    sHorn1.TurnOff(MechInside,GetPosition());
+    sHorn2.TurnOff(MechInside,GetPosition());
+   }
+   if (MoverParameters->DoorClosureWarning)
+   {
+    if (MoverParameters->DepartureSignal) //NBMX sygnal odjazdu, MC: pod warunkiem ze jest zdefiniowane w chk
+     sDepartureSignal.TurnOn(MechInside,GetPosition());
+    else
+     sDepartureSignal.TurnOff(MechInside,GetPosition());
+    sDepartureSignal.Update(MechInside,GetPosition());
+   }
+   sHorn1.Update(MechInside,GetPosition());
+   sHorn2.Update(MechInside,GetPosition());
+   //McZapkie: w razie wykolejenia
    if (MoverParameters->EventFlag)
     {
      if (TestFlag(MoverParameters->DamageFlag,dtrain_out) && GetVelocity()>0)
@@ -3028,27 +3007,27 @@ if ((MoverParameters->ConverterFlag==false)&&(MoverParameters->CompressorPower!=
      btHeadSignals23.TurnOff();
     }
     return true;
-}
+};
 
 bool __fastcall TDynamicObject::RenderAlpha()
 {
-if (renderme)
-{
-    TSubModel::iInstance=(int)this; //¿eby nie robiæ cudzych animacji
-    vFront= GetDirection();
-    if ((MoverParameters->CategoryFlag==2) && (MoverParameters->CabNo<0)) //TODO: zrobic to eleganciej z plynnym zawracaniem
-       vFront= -vFront;
-    vUp= vWorldUp;
-    vFront.Normalize();
-    vLeft= CrossProduct(vUp,vFront);
-    vUp= CrossProduct(vFront,vLeft);
-    matrix4x4 mat;
-    mat.Identity();
-    mat.BasisChange(vLeft,vUp,vFront);
-    mMatrix= Inverse(mat);
-    vector3 pos= GetPosition();
-    double ObjSqrDist= SquareMagnitude(Global::pCameraPosition-pos);
-    ABuLittleUpdate(ObjSqrDist);
+ if (renderme)
+ {
+  TSubModel::iInstance=(int)this; //¿eby nie robiæ cudzych animacji
+  vFront= GetDirection();
+  if ((MoverParameters->CategoryFlag==2) && (MoverParameters->CabNo<0)) //TODO: zrobic to eleganciej z plynnym zawracaniem
+   vFront=-vFront;
+  vUp=vWorldUp; //Ra: jeœli to wskazuje pionowo w górê
+  vFront.Normalize(); //a to w dó³ lub w górê, to mamy problem z ortogonalnoœci¹ i skalowaniem
+  vLeft=CrossProduct(vUp,vFront);
+  vUp=CrossProduct(vFront,vLeft);
+  matrix4x4 mat;
+  mat.Identity();
+  mat.BasisChange(vLeft,vUp,vFront);
+  mMatrix=Inverse(mat);
+  vector3 pos=GetPosition();
+  double ObjSqrDist=SquareMagnitude(Global::pCameraPosition-pos);
+  ABuLittleUpdate(ObjSqrDist);
 
 /*    for (int i=0; i<iAnimatedAxles; i++)
      if (smAnimatedWheel[i])

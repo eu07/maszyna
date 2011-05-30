@@ -312,7 +312,9 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
  WriteLog("Font init"); //pocz¹tek inicjacji fontów 2D
  if (Global::bGlutFont) //jeœli wybrano GLUT font, próbujemy zlinkowaæ GLUT32.DLL
  {
+  UINT mode=SetErrorMode(SEM_NOOPENFILEERRORBOX); //aby nie wrzeszcza³, ¿e znaleŸæ nie mo¿e
   hinstGLUT32=LoadLibrary(TEXT("GLUT32.DLL")); //get a handle to the DLL module
+  SetErrorMode(mode);
   // If the handle is valid, try to get the function address.
   if (hinstGLUT32)
    glutBitmapCharacterDLL=(FglutBitmapCharacter)GetProcAddress(hinstGLUT32,"glutBitmapCharacter");
