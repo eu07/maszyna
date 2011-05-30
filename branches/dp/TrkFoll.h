@@ -13,7 +13,7 @@ private:
  TTrack *pCurrentTrack; //na którym torze siê znajduje
  TSegment *pCurrentSegment; //zwrotnice mog¹ mieæ dwa segmenty
  double fCurrentDistance; //przesuniêcie wzglêdem Point1 w stronê Point2
- double fDirection; //-1.0 albo 1.0, u¿ywane do mno¿enia przez dystans
+ double fDirection; //ustawienie wzglêdem toru: -1.0 albo 1.0, mno¿one przez dystans
  bool __fastcall ComputatePosition(); //przeliczenie pozycji na torze
  TDynamicObject *Owner; //pojazd posiadaj¹cy
  int iEventFlag; //McZapkie-020602: informacja o tym czy wyzwalac zdarzenie: 0,1,2,3
@@ -24,7 +24,7 @@ public:
  vector3 vAngles; //x:przechy³ka, y:pochylenie, z:kierunek w planie (w radianach)
  __fastcall TTrackFollower();
  __fastcall ~TTrackFollower();
- void __fastcall SetCurrentTrack(TTrack *pTrack,double end);
+ void __fastcall SetCurrentTrack(TTrack *pTrack,int end);
  bool __fastcall Move(double fDistance, bool bPrimary=false);
  inline TTrack* __fastcall GetTrack() {return pCurrentTrack;};
  inline double __fastcall GetRoll() {return vAngles.x;}; //przechy³ka policzona przy ustalaniu pozycji

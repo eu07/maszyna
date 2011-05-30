@@ -68,6 +68,7 @@ __fastcall TTrack::TTrack()
  fTexHeight=0.6; //nowy profil podsypki ;)
  fTexWidth=0.9;
  fTexSlope=0.9;
+ eType=tt_Normal; //domyœlnie zwyk³y
  iCategoryFlag=1; //1-tor, 2-droga, 4-rzeka, 8-samolot?
  fTrackWidth=1.435; //rozstaw toru, szerokoœæ nawierzchni
  fFriction=0.15; //wspó³czynnik tarcia
@@ -92,8 +93,10 @@ __fastcall TTrack::TTrack()
  ScannedFlag=false;
  DisplayListID=0;
  iTrapezoid=0; //parametry kszta³tu: 0-standard, 1-przechy³ka, 2-trapez, 3-oba
- pTraction=NULL; //drut zasilaj¹cy najbli¿szy punktu 1 toru
+ pTraction=NULL; //drut zasilaj¹cy najbli¿szy Point1 toru
  fTexRatio=1.0; //proporcja boków nawierzchni (¿eby zaoszczêdziæ na rozmiarach tekstur...)
+ iPrevDirection=0; //domyœlnie wirtualne odcinki do³¹czamy stron¹ od Point1
+ iNextDirection=0;
 }
 
 __fastcall TTrack::~TTrack()
@@ -121,6 +124,47 @@ void __fastcall TTrack::Init()
  }
 }
 
+TTrack* __fastcall TTrack::NullCreate(int dir)
+{//tworzenie toru wykolejaj¹cego od strony (dir)
+ TGroundNode *tmp=new TGroundNode(); //node
+ tmp->iType=TP_TRACK;
+ TTrack* trk=new TTrack(); //tor; UWAGA! obrotnica mo¿e generowaæ du¿e iloœci tego
+ tmp->pTrack=trk;
+ trk->bVisible=false; //nie potrzeba pokazywaæ, zreszt¹ i tak nie ma tekstur
+ //trk->iTrapezoid=1; //s¹ przechy³ki do uwzglêdniania w rysowaniu
+ trk->iCategoryFlag=iCategoryFlag; //taki sam typ
+ trk->iDamageFlag=128; //wykolejenie
+ trk->fVelocity=0.0; //koniec jazdy
+ trk->Init(); //utworzenie segmentu
+ double r1,r2;
+ Segment->GetRolls(r1,r2); //pobranie przechy³ek na pocz¹tku toru
+ vector3 p1,cv1,cv2,p2; //bêdziem tworzyæ trajektoriê lotu
+ switch (dir)
+ {//³¹czenie z nowym torem
+  case 0:
+   p1=Segment->FastGetPoint_0();
+   p2=p1-450.0*Normalize(Segment->GetDirection1());
+   trk->Segment->Init(p1,p2,5,-RadToDeg(r1),70.0); //bo prosty, kontrolne wyliczane przy zmiennej przechy³ce
+   ConnectPrevPrev(trk,0);
+   break;
+  case 1:
+   p1=Segment->FastGetPoint_1();
+   p2=p1+450.0*Normalize(Segment->GetDirection2());
+   trk->Segment->Init(p1,p2,5,RadToDeg(r2),70.0); //bo prosty, kontrolne wyliczane przy zmiennej przechy³ce
+   ConnectNextPrev(trk,0);
+   break;
+  case 3: //na razie nie mo¿liwe
+   trk->ConnectPrevNext(trk,dir);
+   break; //do drugiego zwrotnicy... nie zadzia³a?
+ }
+ //trzeba jeszcze dodaæ do odpowiedniego segmentu, aby siê renderowa³y z niego pojazdy
+ tmp->pCenter=(0.5*(p1+p2)); //œrodek, aby siê mog³o wyœwietliæ
+ //Ra: to poni¿ej to pora¿ka, ale na razie siê nie da inaczej
+ Global::pGround->GetSubRect(tmp->pCenter.x,tmp->pCenter.z)->AddNode(tmp);
+ Global::pGround->GetSubRect(tmp->pCenter.x,tmp->pCenter.z)->Release(); //usuniêcie skompilowanych zasobów
+ return trk;
+};
+
 void __fastcall TTrack::ConnectPrevPrev(TTrack *pTrack,int typ)
 {//³aczenie torów - Point1 w³asny do Point1 cudzego
  if (pTrack)
@@ -136,7 +180,7 @@ void __fastcall TTrack::ConnectPrevNext(TTrack *pTrack,int typ)
  if (pTrack)
  {
   pPrev=pTrack;
-  iPrevDirection=typ; //1:zwyk³y lub pierwszy zwrotnicy, 3:drugi zwrotnicy
+  iPrevDirection=typ|1; //1:zwyk³y lub pierwszy zwrotnicy, 3:drugi zwrotnicy
   pTrack->pNext=this;
   pTrack->iNextDirection=0;
   if (bVisible)
@@ -174,7 +218,7 @@ void __fastcall TTrack::ConnectNextNext(TTrack *pTrack,int typ)
  if (pTrack)
  {
   pNext=pTrack;
-  iNextDirection=typ; //1:zwyk³y lub pierwszy zwrotnicy, 3:drugi zwrotnicy
+  iNextDirection=typ|1; //1:zwyk³y lub pierwszy zwrotnicy, 3:drugi zwrotnicy
   pTrack->pNext=this;
   pTrack->iNextDirection=1;
  }

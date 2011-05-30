@@ -27,8 +27,8 @@ const Math3D::vector3 vWorldUp= Math3D::vector3(0,1,0);
 const Math3D::vector3 vWorldLeft= CrossProduct(vWorldUp,vWorldFront);
 const Math3D::vector3 vGravity= Math3D::vector3(0,-9.81,0);
 
-#define DegToRad(a) ((M_PI/180.0)*a)
-#define RadToDeg(r) ((180.0/M_PI)*r)
+#define DegToRad(a) ((M_PI/180.0)*(a)) //(a) w nawiasie, bo mo¿e byæ dodawaniem
+#define RadToDeg(r) ((180.0/M_PI)*(r))
 
 #define Fix(a,b,c) {if (a<b) a=b; if (a>c) a=c;}
 

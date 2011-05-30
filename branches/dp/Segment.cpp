@@ -56,7 +56,7 @@ bool __fastcall TSegment::Init(
  CPointOut=NewCPointOut;
  CPointIn=NewCPointIn;
  Point2=NewPoint2;
- fStoop=atan2((Point2.z-Point1.z),fLength); //pochylenie toru prostego, ¿eby nie liczyæ wielokrotnie
+ fStoop=atan2((Point2.y-Point1.y),fLength); //pochylenie toru prostego, ¿eby nie liczyæ wielokrotnie
  //Ra: ten k¹t jeszcze do przemyœlenia jest
  fDirection=-atan2(Point2.x-Point1.x,Point2.z-Point1.z); //k¹t w planie, ¿eby nie liczyæ wielokrotnie
  bCurve=bIsCurve;
@@ -262,6 +262,7 @@ void __fastcall TSegment::RaPositionGet(double fDistance,vector3 &p,vector3 &a)
  {//wyliczenie dla odcinka prostego jest prostsze
   double t=fDistance/fLength; //zerowych torów nie ma
   p=((1.0-t)*Point1+(t)*Point2);
+  a.x=(1.0-t)*fRoll1+(t)*fRoll2; //przechy³ka w danym miejscu (zmienia siê liniowo)
   a.y=fStoop; //pochylenie toru prostego
   a.z=fDirection; //kierunek toru w planie
  }
