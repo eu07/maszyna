@@ -61,8 +61,8 @@ IncludeVerInfo=1
 AutoIncBuild=1
 MajorVer=1
 MinorVer=3
-Release=136
-Build=166
+Release=137
+Build=167
 Debug=1
 PreRelease=0
 Special=0
@@ -74,7 +74,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.3.136.166
+FileVersion=1.3.137.167
 InternalName=couplers (4th plus) by Ra
 LegalCopyright=
 LegalTrademarks=
@@ -156,7 +156,7 @@ Item6=C:\EU07
 DebugSourceDirs=
 
 [Parameters]
-RunParams=
+RunParams=-s spychanie.scn -v ET22-135
 HostApplication=
 RemoteHost=
 RemotePath=
