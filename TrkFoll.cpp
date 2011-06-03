@@ -115,7 +115,7 @@ bool __fastcall TTrackFollower::Move(double fDistance, bool bPrimary)
       Global::pGround->AddToQuery(pCurrentTrack->Eventall0,Owner);
    }
   }
-  if (!pCurrentSegment) //je¿eli nie ma powi¹zanego toru?
+  if (!pCurrentSegment) //je¿eli nie ma powi¹zanego segmentu toru?
    return false;
   //if (fDistance==0.0) return true; //Ra: jak stoi, to chyba dalej nie ma co kombinowaæ?
   s=fCurrentDistance+fDistance; //doliczenie przesuniêcia
@@ -123,7 +123,7 @@ bool __fastcall TTrackFollower::Move(double fDistance, bool bPrimary)
   //Ra: W Point1 toru mo¿e znajdowaæ siê "dziura", która zamieni energiê kinetyczn¹
   // ruchu wzd³u¿nego na energiê potencjaln¹, zamieniaj¹c¹ siê potem na energiê
   // sprê¿ystoœci na amortyzatorach. Nale¿a³oby we wpisie toru umieœciæ wspó³czynnik
-  // podzia³u energii kinetycznej. 
+  // podzia³u energii kinetycznej.
   if (s<0)
   {//jeœli przekroczenie toru od strony Point1
    bCanSkip=bPrimary && pCurrentTrack->CheckDynamicObject(Owner);

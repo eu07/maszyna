@@ -143,7 +143,7 @@ protected:
     AnsiString asModel;
     int iDirection;
     void ScanEventTrack(TTrack *Track);
-    void ABuScanObjects(TTrack *Track,int ScanDir,double ScanDist);
+    void ABuScanObjects(int ScanDir,double ScanDist);
     void __fastcall ABuCheckMyTrack();
 
 public:
