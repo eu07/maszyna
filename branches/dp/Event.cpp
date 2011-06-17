@@ -211,7 +211,12 @@ void __fastcall TEvent::Load(cParser* parser)
 //            if (str!=AnsiString("*"))       //*=nie brac tego pod uwage
 //             {
 //              Params[12].asInt+=conditional_memval2;
-              Params[2].asdouble= str.ToDouble();
+             try
+             {Params[2].asdouble= str.ToDouble();}
+             catch (...)
+             {Params[2].asdouble=0;
+              WriteLog("Error: number expected in PutValues event.");
+             }
 //             }
 //            else
 //             Params[2].asdouble= 0;

@@ -731,6 +731,7 @@ void __fastcall TTrack::Compile()
 
  glColor3f(1.0f,1.0f,1.0f);
 
+/* //Ra: nie zmieniamy oœwietlenia przy kompilowaniu, poniewa¿ ono siê zmienia w czasie!
  //McZapkie-310702: zmiana oswietlenia w tunelu, wykopie
  GLfloat  ambientLight[4] ={0.5f,0.5f,0.5f,1.0f};
  GLfloat  diffuseLight[4] ={0.5f,0.5f,0.5f,1.0f};
@@ -739,7 +740,7 @@ void __fastcall TTrack::Compile()
  switch (eEnvironment)
  {//modyfikacje oœwietlenia zale¿nie od œrodowiska
   case e_canyon: //wykop
-   for(int li=0; li<3; li++)
+   for (int li=0; li<3; li++)
    {
     //ambientLight[li]=Global::ambientDayLight[li]*0.7;
     diffuseLight[li]=Global::diffuseDayLight[li]*0.3;
@@ -750,7 +751,7 @@ void __fastcall TTrack::Compile()
    glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
   break;
   case e_tunnel: //tunel
-   for(int li=0; li<3; li++)
+   for (int li=0; li<3; li++)
    {
     ambientLight[li]=Global::ambientDayLight[li]*0.2;
     diffuseLight[li]=Global::diffuseDayLight[li]*0.1;
@@ -761,6 +762,7 @@ void __fastcall TTrack::Compile()
    glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
   break;
  }
+*/
 
  double fHTW=0.5*fabs(fTrackWidth); //po³owa szerokoœci
  double side=fabs(fTexWidth); //szerokœæ podsypki na zewn¹trz szyny albo pobocza
@@ -990,7 +992,7 @@ void __fastcall TTrack::Compile()
    }
    break;
  }
- if(Global::bManageNodes)
+ if (Global::bManageNodes)
   glEndList();
 };
 
@@ -1049,44 +1051,50 @@ void __fastcall TTrack::Render()
 
 void __fastcall TTrack::RenderAlpha()
 {
-    glColor3f(1.0f,1.0f,1.0f);
-//McZapkie-310702: zmiana oswietlenia w tunelu, wykopie
-    GLfloat ambientLight[4]= {0.5f,0.5f,0.5f,1.0f};
-    GLfloat diffuseLight[4]= {0.5f,0.5f,0.5f,1.0f};
-    GLfloat specularLight[4]={0.5f,0.5f,0.5f,1.0f};
-    switch (eEnvironment)
-    {
-     case e_canyon:
-      for (int li=0; li<3; li++)
-      {
-       //ambientLight[li]= Global::ambientDayLight[li]*0.8;
-       diffuseLight[li]= Global::diffuseDayLight[li]*0.4;
-       specularLight[li]=Global::specularDayLight[li]*0.5;
-      }
-      //glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
-      glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
-      glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
-      break;
-     case e_tunnel:
-      for (int li=0; li<3; li++)
-      {
-       ambientLight[li]= Global::ambientDayLight[li]*0.2;
-       diffuseLight[li]= Global::diffuseDayLight[li]*0.1;
-       specularLight[li]=Global::specularDayLight[li]*0.2;
-      }
-      glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
-      glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
-      glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
-      break;
-    }
-    for (int i=0; i<iNumDynamics; i++)
-    {
-        //if(SquareMagnitude(Global::pCameraPosition-Dynamics[i]->GetPosition())<20000)
-        Dynamics[i]->RenderAlpha();
-    }
+ if (!iNumDynamics) return; //po co kombinowaæ, jeœli nie ma pojazdów?
+ glColor3f(1.0f,1.0f,1.0f);
+ //McZapkie-310702: zmiana oswietlenia w tunelu, wykopie
+ GLfloat ambientLight[4]= {0.5f,0.5f,0.5f,1.0f};
+ GLfloat diffuseLight[4]= {0.5f,0.5f,0.5f,1.0f};
+ GLfloat specularLight[4]={0.5f,0.5f,0.5f,1.0f};
+ switch (eEnvironment)
+ {
+  case e_canyon:
+   for (int li=0; li<3; li++)
+   {
+    //ambientLight[li]= Global::ambientDayLight[li]*0.8;
+    diffuseLight[li]= Global::diffuseDayLight[li]*0.4;
+    specularLight[li]=Global::specularDayLight[li]*0.5;
+   }
+   //glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
+   glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
+   glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
+   break;
+  case e_tunnel:
+   for (int li=0; li<3; li++)
+   {
+    ambientLight[li]= Global::ambientDayLight[li]*0.2;
+    diffuseLight[li]= Global::diffuseDayLight[li]*0.1;
+    specularLight[li]=Global::specularDayLight[li]*0.2;
+   }
+   glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
+   glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
+   glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
+   break;
+ }
+ for (int i=0;i<iNumDynamics;i++)
+ {
+  //if (SquareMagnitude(Global::pCameraPosition-Dynamics[i]->GetPosition())<20000)
+  Dynamics[i]->RenderAlpha();
+ }
+ switch (eEnvironment)
+ {//przywrócenie globalnych ustawieñ œwiat³a
+  case e_canyon: //wykop
+  case e_tunnel: //tunel
    glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
    glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
    glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
+ }
 }
 
 bool __fastcall TTrack::CheckDynamicObject(TDynamicObject *Dynamic)
