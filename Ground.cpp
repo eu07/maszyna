@@ -2134,7 +2134,7 @@ bool __fastcall TGround::InitEvents()
                      {
                       tmp= FindGroundNode(buff,TP_TRACK);
                       if (!tmp)
-                        Error(AnsiString("Track \"")+AnsiString(buff)+AnsiString("\" does not exist"));
+                        Error(AnsiString("Track \"")+AnsiString(buff)+"\" does not exist in \""+Current->asName+"\"");
                       else
                        Current->Params[9].asTrack= tmp->pTrack;
                      }

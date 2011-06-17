@@ -864,19 +864,23 @@ void TDynamicObject::CouplersDettach(double MinDist,int MyScanDir)
  {
   if (PrevConnected) //pojazd od strony sprzêgu 0
   {
-   if (MoverParameters->Couplers[0].Dist>MinDist)
+   if (MoverParameters->Couplers[0].Dist>MinDist) //sprzêgi wirtualne zawsze przekraczaj¹
    {
-    PrevConnected->MoverParameters->Couplers[PrevConnectedNo].Connected=NULL;
-    if (PrevConnectedNo==0)
-    {
-     PrevConnected->PrevConnectedNo=2; //sprzêg 0 nie pod³¹czony
-     PrevConnected->PrevConnected=NULL;
+    if ((PrevConnectedNo?PrevConnected->NextConnected:PrevConnected->PrevConnected)!=this)
+    {//Ra: nie roz³¹czamy znalezionego, je¿eli nie do nas pod³¹czony (mo¿e jechaæ w innym kierunku)
+     PrevConnected->MoverParameters->Couplers[PrevConnectedNo].Connected=NULL;
+     if (PrevConnectedNo==0)
+     {
+      PrevConnected->PrevConnectedNo=2; //sprzêg 0 nie pod³¹czony
+      PrevConnected->PrevConnected=NULL;
+     }
+     else if (PrevConnectedNo==1)
+     {
+      PrevConnected->NextConnectedNo=2; //sprzêg 1 nie pod³¹czony
+      PrevConnected->NextConnected=NULL;
+     }
     }
-    else if (PrevConnectedNo==1)
-    {
-     PrevConnected->NextConnectedNo=2; //sprzêg 1 nie pod³¹czony
-     PrevConnected->NextConnected=NULL;
-    }
+    //za to zawsze od³¹czamy siebie
     PrevConnected=NULL;
     PrevConnectedNo=2; //sprzêg 0 nie pod³¹czony
     MoverParameters->Couplers[0].Connected=NULL;
@@ -887,18 +891,21 @@ void TDynamicObject::CouplersDettach(double MinDist,int MyScanDir)
  {
   if (NextConnected) //pojazd od strony sprzêgu 1
   {
-   if (MoverParameters->Couplers[1].Dist>MinDist)
+   if (MoverParameters->Couplers[1].Dist>MinDist) //sprzêgi wirtualne zawsze przekraczaj¹
    {
-    NextConnected->MoverParameters->Couplers[NextConnectedNo].Connected=NULL;
-    if (NextConnectedNo==0)
-    {
-     NextConnected->PrevConnectedNo=2; //sprzêg 0 nie pod³¹czony
-     NextConnected->PrevConnected=NULL;
-    }
-    else if (NextConnectedNo==1)
-    {
-     NextConnected->NextConnectedNo=2; //sprzêg 1 nie pod³¹czony
-     NextConnected->NextConnected=NULL;
+    if ((NextConnectedNo?NextConnected->NextConnected:NextConnected->PrevConnected)!=this)
+    {//Ra: nie roz³¹czamy znalezionego, je¿eli nie do nas pod³¹czony (mo¿e jechaæ w innym kierunku)
+     NextConnected->MoverParameters->Couplers[NextConnectedNo].Connected=NULL;
+     if (NextConnectedNo==0)
+     {
+      NextConnected->PrevConnectedNo=2; //sprzêg 0 nie pod³¹czony
+      NextConnected->PrevConnected=NULL;
+     }
+     else if (NextConnectedNo==1)
+     {
+      NextConnected->NextConnectedNo=2; //sprzêg 1 nie pod³¹czony
+      NextConnected->NextConnected=NULL;
+     }
     }
     NextConnected=NULL;
     NextConnectedNo=2; //sprzêg 1 nie pod³¹czony
@@ -997,14 +1004,13 @@ void TDynamicObject::ABuScanObjects(int ScanDir,double ScanDist)
    }
   }
  } // Koniec szukania najbli¿szego toru z jakimœ obiektem.
- // Teraz odczepianie i jeœli coœ siê znalaz³o, doczepianie.
+ //teraz odczepianie i jeœli coœ siê znalaz³o, doczepianie.
  CouplersDettach(1,MyScanDir);
- // i ³¹czenie:
- if (FoundedObj!=NULL)
- {MoverParameters->Attach(MyCouplFound,CouplFound,&(FoundedObj->MoverParameters),ctrain_virtual);
+ // i ³¹czenie sprzêgiem wirtualnym
+ if (FoundedObj)
+ {//siebie mo¿na bezpiecznie pod³¹czyæ
+  MoverParameters->Attach(MyCouplFound,CouplFound,&(FoundedObj->MoverParameters),ctrain_virtual);
   MoverParameters->Couplers[MyCouplFound].Render=false;
-  FoundedObj->MoverParameters->Attach(CouplFound,MyCouplFound,&(this->MoverParameters),ctrain_virtual);
-  FoundedObj->MoverParameters->Couplers[CouplFound].Render=true;
   if (MyCouplFound==0)
   {
    PrevConnected=FoundedObj; //pojazd od strony sprzêgu 0
@@ -1015,21 +1021,26 @@ void TDynamicObject::ABuScanObjects(int ScanDir,double ScanDist)
    NextConnected=FoundedObj; //pojazd od strony sprzêgu 1
    NextConnectedNo=CouplFound;
   }
-  if (CouplFound==0)
-  {
-   if (FoundedObj->PrevConnected)
-    if (FoundedObj->PrevConnected!=this)
-     WriteLog("1! Coupler error on "+asName+":"+AnsiString(MyCouplFound)+" - "+FoundedObj->asName+":0 connected to "+FoundedObj->PrevConnected->asName+":"+AnsiString(FoundedObj->PrevConnectedNo));
-   FoundedObj->PrevConnected=this;
-   FoundedObj->PrevConnectedNo=MyCouplFound;
-  }
-  else
-  {
-   if (FoundedObj->NextConnected)
-    if (FoundedObj->NextConnected!=this)
-     WriteLog("1! Coupler error on "+asName+":"+AnsiString(MyCouplFound)+" - "+FoundedObj->asName+":1 connected to "+FoundedObj->NextConnected->asName+":"+AnsiString(FoundedObj->NextConnectedNo));
-   FoundedObj->NextConnected=this;
-   FoundedObj->NextConnectedNo=MyCouplFound;
+  if (FoundedObj->MoverParameters->Couplers[CouplFound].CouplingFlag!=ctrain_virtual)
+  {//Ra: jeœli znaleziony ma niwirtualny sprzêg, to mu siê wirtualnym nie wpinamy
+   FoundedObj->MoverParameters->Attach(CouplFound,MyCouplFound,&(this->MoverParameters),ctrain_virtual);
+   FoundedObj->MoverParameters->Couplers[CouplFound].Render=true;
+   if (CouplFound==0)
+   {
+    if (FoundedObj->PrevConnected)
+     if (FoundedObj->PrevConnected!=this)
+      WriteLog("1! Coupler error on "+asName+":"+AnsiString(MyCouplFound)+" - "+FoundedObj->asName+":0 connected to "+FoundedObj->PrevConnected->asName+":"+AnsiString(FoundedObj->PrevConnectedNo));
+    FoundedObj->PrevConnected=this;
+    FoundedObj->PrevConnectedNo=MyCouplFound;
+   }
+   else
+   {
+    if (FoundedObj->NextConnected)
+     if (FoundedObj->NextConnected!=this)
+      WriteLog("1! Coupler error on "+asName+":"+AnsiString(MyCouplFound)+" - "+FoundedObj->asName+":1 connected to "+FoundedObj->NextConnected->asName+":"+AnsiString(FoundedObj->NextConnectedNo));
+    FoundedObj->NextConnected=this;
+    FoundedObj->NextConnectedNo=MyCouplFound;
+   }
   }
   if ((Mechanik)&&(!EndTrack))
   {

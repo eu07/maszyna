@@ -958,7 +958,7 @@ bool __fastcall TWorld::Update()
       GLfloat diffuseCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
       GLfloat specularCabLight[4]={ 0.5f,  0.5f, 0.5f, 1.0f };
       for (int li=0; li<3; li++)
-      {
+      {//przyciemnienie standardowe
        ambientCabLight[li]= Global::ambientDayLight[li]*0.9;
        diffuseCabLight[li]= Global::diffuseDayLight[li]*0.5;
        specularCabLight[li]=Global::specularDayLight[li]*0.5;
@@ -966,23 +966,23 @@ bool __fastcall TWorld::Update()
       switch (Train->DynamicObject->MyTrack->eEnvironment)
       {
        case e_canyon:
+       {
+        for (int li=0; li<3; li++)
         {
-          for (int li=0; li<3; li++)
-           {
-             diffuseCabLight[li]*= 0.6;
-             specularCabLight[li]*= 0.7;
-           }
+         diffuseCabLight[li] *=0.6;
+         specularCabLight[li]*=0.7;
         }
+       }
        break;
        case e_tunnel:
+       {
+        for (int li=0; li<3; li++)
         {
-          for (int li=0; li<3; li++)
-           {
-             ambientCabLight[li]*= 0.3;
-             diffuseCabLight[li]*= 0.1;
-             specularCabLight[li]*= 0.2;
-           }
+         ambientCabLight[li] *=0.3;
+         diffuseCabLight[li] *=0.1;
+         specularCabLight[li]*=0.2;
         }
+       }
        break;
       }
       glLightfv(GL_LIGHT0,GL_AMBIENT,ambientCabLight);
@@ -1000,7 +1000,7 @@ bool __fastcall TWorld::Update()
        Train->DynamicObject->mdKabina->Render(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->bAlpha);
        Train->DynamicObject->mdKabina->RenderAlpha(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->bAlpha);
       }
-
+      //przywrócenie standardowych, bo zawsze s¹ zmieniane
       glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
       glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
       glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
