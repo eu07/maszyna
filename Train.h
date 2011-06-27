@@ -294,7 +294,7 @@ private:
 //McZapkie: do syczenia
     float fPPress,fNPress;
     float fSPPress,fSNPress;
-
+ int iSekunda; //Ra: sekunda aktualizacji prêdkoœci
 };
 //---------------------------------------------------------------------------
 #endif

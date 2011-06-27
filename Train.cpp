@@ -1564,21 +1564,27 @@ bool __fastcall TTrain::Update()
 
  if (DynamicObject->mdKabina)
   {
-    
+
     tor= DynamicObject->GetTrack(); //McZapkie-180203
 
 //McZapkie: predkosc wyswietlana na tachometrze brana jest z obrotow kol
     float maxtacho=3;
-    fTachoVelocity= abs(11.31*DynamicObject->MoverParameters->WheelDiameter*DynamicObject->MoverParameters->nrot);
-    if (fTachoVelocity>1) //McZapkie-270503: podkrecanie tachometru
+    if (iSekunda!=floor(GlobalTime->mr))
+    {fTachoVelocity=abs(11.31*DynamicObject->MoverParameters->WheelDiameter*DynamicObject->MoverParameters->nrot);
+     if (fTachoVelocity>1) //McZapkie-270503: podkrecanie tachometru
      {
       if (fTachoCount<maxtacho)
        fTachoCount+=dt;
      }
-    else
-     if (fTachoCount>0)
-      fTachoCount-=dt;
-
+     else
+      if (fTachoCount>0)
+       fTachoCount-=dt;
+     if (fTachoVelocity>7.0)
+     {fTachoVelocity=floor(0.5+fTachoVelocity+random(7)-random(7)); //*floor(0.2*fTachoVelocity);
+      if (fTachoVelocity<0.0) fTachoVelocity=0.0;
+     }
+     iSekunda=floor(GlobalTime->mr);
+    }
     double vol=0;
 //    int freq=1;
     double dfreq;
