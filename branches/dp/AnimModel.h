@@ -39,6 +39,7 @@ public:
  void __fastcall UpdateModel();
  bool __fastcall InMovement(); //czy w trakcie animacji?
  double _fastcall AngleGet() {return vRotateAngles.z;}; //jednak ostatnia, T3D ma inny uk³ad
+ void __fastcall WillBeAnimated() {if (pSubModel) pSubModel->WillBeAnimated();};
 };
 
 class TAnimModel

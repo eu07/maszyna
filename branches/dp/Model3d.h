@@ -181,6 +181,7 @@ public:
  void __fastcall Render();
  int __fastcall Flags();
  void __fastcall WillBeAnimated() {iFlags|=0x4000;};
+ void __fastcall InitialRotate(bool doit);
 };
 
 class TModel3d : public CMesh

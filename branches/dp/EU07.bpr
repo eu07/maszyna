@@ -3,7 +3,7 @@
 <PROJECT>
   <MACROS>
     <VERSION value="BCB.05.03"/>
-    <PROJECT value="D:\EU07DDS\EU07.exe"/>
+    <PROJECT value="D:\EU07\EU07.exe"/>
     <OBJFILES value="McZapkie\mover.obj McZapkie\ai_driver.obj QueryParserComp.obj 
       McZapkie\mtable.obj EU07.obj dumb3d.obj Camera.obj Texture.obj World.obj 
       Model3d.obj geometry.obj MdlMngr.obj Train.obj wavread.obj Timer.obj 
@@ -41,8 +41,8 @@
     <WARNINGS value="-w-par"/>
   </MACROS>
   <OPTIONS>
-    <IDLCFLAGS value="-Iopengl -IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl -src_suffix cpp 
-      -DGLEW_STATIC -D_DEBUG -DUSE_VBO -boa"/>
+    <IDLCFLAGS value="-src_suffix cpp -DGLEW_STATIC -D_DEBUG -DUSE_VBO -Iopengl -IMcZapkie 
+      -I$(BCB)\include -I$(BCB)\include\vcl -boa"/>
     <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a4 -6 -b- -k -y -v -vi- 
       -c -tW -tWM"/>
     <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
@@ -61,8 +61,8 @@ IncludeVerInfo=1
 AutoIncBuild=1
 MajorVer=1
 MinorVer=3
-Release=139
-Build=169
+Release=141
+Build=172
 Debug=1
 PreRelease=0
 Special=0
@@ -74,7 +74,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.3.139.169
+FileVersion=1.3.141.172
 InternalName=couplers (4th plus) by Ra
 LegalCopyright=
 LegalTrademarks=
@@ -126,9 +126,10 @@ Item16=triangle;gpc231;G:\Borland\CBuilder5\Examples\OpenGL\Rotate\;$(BCB)\lib\o
 Item17=G:\Borland\CBuilder5\Examples\OpenGL\Rotate\;$(BCB)\lib\obj;$(BCB)\lib
 
 [HistoryLists\hlDebugSourcePath]
-Count=2
-Item0=c:\lang\borland\cbuilder5\source\vcl;D:\USER\MCZAPKIE\PROGRAMY\rail\symul\source\zmiany\McZapkie\;D:\USER\MCZAPKIE\PROGRAMY\rail\symul\source\zmiany\
-Item1=$(BCB)\source\vcl
+Count=3
+Item0=C:\Ra\dp\McZapkie\
+Item1=c:\lang\borland\cbuilder5\source\vcl;D:\USER\MCZAPKIE\PROGRAMY\rail\symul\source\zmiany\McZapkie\;D:\USER\MCZAPKIE\PROGRAMY\rail\symul\source\zmiany\
+Item2=$(BCB)\source\vcl
 
 [HistoryLists\hlConditionals]
 Count=9
@@ -144,9 +145,9 @@ Item8=_DEBUG
 
 [HistoryLists\hlFinalOutputDir]
 Count=9
-Item0=D:\EU07DDS\
-Item1=D:\EU07DDS
-Item2=D:\EU07\
+Item0=D:\EU07\
+Item1=D:\EU07DDS\
+Item2=D:\EU07DDS
 Item3=C:\EU07\
 Item4=M:\aEU07\EU07\
 Item5=G:\EU07\
@@ -155,10 +156,10 @@ Item7=M:\aEU07\EU07
 Item8=C:\EU07
 
 [Debugging]
-DebugSourceDirs=
+DebugSourceDirs=C:\Ra\dp\McZapkie\
 
 [Parameters]
-RunParams=-s EXPORT.scn -v SM04-002
+RunParams=
 HostApplication=
 RemoteHost=
 RemotePath=

@@ -2067,6 +2067,8 @@ bool __fastcall TGround::InitEvents()
               strcpy(buff,Current->Params[9].asText); //skopiowanie nazwy submodelu do bufora roboczego
               delete Current->Params[9].asText; //usuniêcie nazwy submodelu
               Current->Params[9].asAnimContainer=tmp->Model->GetContainer(buff); //submodel
+              if (Current->Params[9].asAnimContainer)
+               Current->Params[9].asAnimContainer->WillBeAnimated(); //oflagowanie animacji
              }
              else
               Error("Event \""+Current->asName+"\" cannot find model \""+Current->asNodeName+"\"");

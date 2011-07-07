@@ -2592,7 +2592,7 @@ end;
 
 {sprzegi}
 
-function TMoverParameters.Attach(ConnectNo:byte;ConnectToNr:byte; ConnectTo:PMoverParameters; CouplingType: byte): boolean;
+function TMoverParameters.Attach(ConnectNo:byte;ConnectToNr:byte;ConnectTo:PMoverParameters;CouplingType:byte):boolean;
 {³¹czenie do (ConnectNo) pojazdu (ConnectTo) stron¹ (ConnectToNr) }
 const dEpsilon=0.001;
 var ct:TCouplerType;
@@ -2602,14 +2602,16 @@ begin
    if (ConnectTo<>nil) then
     begin
       if (ConnectToNr<>2) then CouplerNr[ConnectNo]:=ConnectToNr; {2=nic nie pod³¹czone}
-      ct:=ConnectTo^.Couplers[CouplerNr[ConnectNo]].CouplerType;
-      if (((Distance(Loc,ConnectTo^.Loc,Dim,ConnectTo^.Dim)<=dEpsilon) and (CouplerType<>NoCoupler) and (CouplerType=ct))
+      ct:=ConnectTo^.Couplers[CouplerNr[ConnectNo]].CouplerType; //typ sprzêgu pod³¹czanego pojazdu
+      Dist:=Distance(Loc,ConnectTo^.Loc,Dim,ConnectTo^.Dim); //odleg³oœæ pomiêdzy sprzêgami
+      if (((Dist<=dEpsilon) and (CouplerType<>NoCoupler) and (CouplerType=ct))
          or (CouplingType and ctrain_coupler=0))
        then
         begin  {stykaja sie zderzaki i kompatybilne typy sprzegow chyba ze wirtualnie}
           Connected:=ConnectTo;
           CouplingFlag:=CouplingType;
-          Connected.Couplers[CouplerNr[ConnectNo]].CouplingFlag:=CouplingType;
+          if (CouplingType<>ctrain_virtual) //Ra: wirtualnego nie ³¹czymy zwrotnie!
+           then Connected.Couplers[CouplerNr[ConnectNo]].CouplingFlag:=CouplingType;
           Attach:=True;
         end
        else
