@@ -686,12 +686,22 @@ bool __fastcall TWorld::Update()
    Global::ambientDayLight[0]=Global::ambientLight[0];
    Global::ambientDayLight[1]=Global::ambientLight[1];
    Global::ambientDayLight[2]=Global::ambientLight[2];
-   Global::diffuseDayLight[0]=Global::diffuseLight[0]; //od wschodu do zachodu maksimum ???
-   Global::diffuseDayLight[1]=Global::diffuseLight[1];
-   Global::diffuseDayLight[2]=Global::diffuseLight[2];
-   Global::specularDayLight[0]=Global::specularLight[0]; //podobnie specular
-   Global::specularDayLight[1]=Global::specularLight[1];
-   Global::specularDayLight[2]=Global::specularLight[2];
+   if (H>0.02)
+   {Global::diffuseDayLight[0]=Global::diffuseLight[0]; //od wschodu do zachodu maksimum ???
+    Global::diffuseDayLight[1]=Global::diffuseLight[1];
+    Global::diffuseDayLight[2]=Global::diffuseLight[2];
+    Global::specularDayLight[0]=Global::specularLight[0]; //podobnie specular
+    Global::specularDayLight[1]=Global::specularLight[1];
+    Global::specularDayLight[2]=Global::specularLight[2];
+   }
+   else
+   {Global::diffuseDayLight[0]=50*H*Global::diffuseLight[0]; //wschód albo zachód
+    Global::diffuseDayLight[1]=50*H*Global::diffuseLight[1];
+    Global::diffuseDayLight[2]=50*H*Global::diffuseLight[2];
+    Global::specularDayLight[0]=50*H*Global::specularLight[0]; //podobnie specular
+    Global::specularDayLight[1]=50*H*Global::specularLight[1];
+    Global::specularDayLight[2]=50*H*Global::specularLight[2];
+   }
   }
   else
   {//s³oñce pod horyzontem
@@ -1185,8 +1195,10 @@ bool __fastcall TWorld::Update()
      i=floor(GlobalTime->mr); //bo inaczej potrafi zrobiæ "hh:mm:010"
      if (i<10) OutText1+="0";
      OutText1+=AnsiString(i);
+/* Ra: tymczasowo wy³¹czone
      if (Controlled)
       OutText2=Controlled->TrainParams->ShowRelation();
+*/
      //double CtrlPos=Controlled->MoverParameters->MainCtrlPos;
      //double CtrlPosNo=Controlled->MoverParameters->MainCtrlPosNo;
      //OutText2="defrot="+FloatToStrF(1+0.4*(CtrlPos/CtrlPosNo),ffFixed,2,5);
@@ -1220,7 +1232,7 @@ bool __fastcall TWorld::Update()
           tmp=Controlled;
        }
 
-       if(tmp!=NULL)
+       if (tmp)
        {
           OutText3="";
           OutText1="Vehicle Name:  "+AnsiString(tmp->MoverParameters->Name);
@@ -1274,14 +1286,16 @@ bool __fastcall TWorld::Update()
             OutText3+= AnsiString(" pcabc2: ")+FloatToStrF(tmp->MoverParameters->PantFrontUp,ffFixed,5,0);
             }
 */
-
+         OutText4="";
+         OutText4+="Coupler 0: "+(tmp->PrevConnected?tmp->PrevConnected->GetasName():AnsiString("NULL"))+" ("+AnsiString(tmp->MoverParameters->Couplers[0].CouplingFlag)+"), ";
+         OutText4+="Coupler 1: "+(tmp->NextConnected?tmp->NextConnected->GetasName():AnsiString("NULL"))+" ("+AnsiString(tmp->MoverParameters->Couplers[1].CouplingFlag)+")";
         }
         else
         {
-          //OutText ="Camera Position: "+FloatToStrF(Camera.Pos.x,ffFixed,6,2)+" "+FloatToStrF(Camera.Pos.y,ffFixed,6,2)+" "+FloatToStrF(Camera.Pos.z,ffFixed,6,2);
-          OutText1="";
-          OutText2="";
-          OutText3="";
+          OutText1="Camera Position: "+FloatToStrF(Camera.Pos.x,ffFixed,6,2)+" "+FloatToStrF(Camera.Pos.y,ffFixed,6,2)+" "+FloatToStrF(Camera.Pos.z,ffFixed,6,2);
+          //OutText1="";
+          //OutText2="";
+          //OutText3="";
         }
         //OutText3= AnsiString("  Online documentation (PL, ENG, DE, soon CZ): http://www.eu07.pl");
         //OutText3="enrot="+FloatToStrF(Controlled->MoverParameters->enrot,ffFixed,6,2);
@@ -1433,12 +1447,12 @@ bool __fastcall TWorld::Update()
    {glRasterPos2f(-0.25f,0.18f);
     glPrint(OutText3.c_str());
     OutText3="";
+    if (OutText4!="")
+    {glRasterPos2f(-0.25f, 0.17f);
+     glPrint(OutText4.c_str());
+     OutText4="";
+    }
    }
-   //if (OutText4!="")
-   //{glRasterPos2f(-0.25f, 0.17f);
-   // glPrint(OutText4.c_str());
-   // OutText4="";
-   //}
   }
  }
  //if (Global::iViewMode!=Global::iTextMode)

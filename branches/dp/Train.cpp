@@ -1081,11 +1081,11 @@ void __fastcall TTrain::OnKeyPress(int cKey)
           }
           else
           { //tryb freefly
-            int CouplNr=-1;
+            int CouplNr=-1; //normalnie ¿aden ze sprzêgów
             TDynamicObject *tmp;
-            tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), 1, 500, CouplNr);
+            tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1,500,CouplNr);
             if (tmp==NULL)
-            tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 500, CouplNr);
+             tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1,500,CouplNr);
             if (tmp&&(CouplNr!=-1))
             {
               if (tmp->MoverParameters->Couplers[CouplNr].CouplingFlag==0)        //hak
@@ -1094,7 +1094,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                 {
                   //tmp->MoverParameters->Couplers[CouplNr].Render=true;
                   dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
-                  dsbCouplerAttach->Play( 0, 0, 0 );
+                  dsbCouplerAttach->Play(0,0,0);
                 }
               }
               else
@@ -1155,7 +1155,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
             TDynamicObject *tmp;
             tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), 1, 500, CouplNr);
             if (tmp==NULL)
-            tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 500, CouplNr);
+             tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 500, CouplNr);
             if (tmp&&(CouplNr!=-1))
             {
               if (tmp->MoverParameters->Couplers[CouplNr].CouplingFlag>0)
@@ -1557,37 +1557,48 @@ void __fastcall TTrain::UpdateMechPosition(double dt)
 
 bool __fastcall TTrain::Update()
 {
-
  DWORD stat;
-
- double dt= Timer::GetDeltaTime();
-
+ double dt=Timer::GetDeltaTime();
  if (DynamicObject->mdKabina)
+ {
+  tor=DynamicObject->GetTrack(); //McZapkie-180203
+  //McZapkie: predkosc wyswietlana na tachometrze brana jest z obrotow kol
+  float maxtacho=3;
+  fTachoVelocity=abs(11.31*DynamicObject->MoverParameters->WheelDiameter*DynamicObject->MoverParameters->nrot);
+  if (fTachoVelocity>1) //McZapkie-270503: podkrecanie tachometru
   {
+   if (fTachoCount<maxtacho)
+    fTachoCount+=dt;
+  }
+  else
+   if (fTachoCount>0)
+    fTachoCount-=dt;
 
-    tor= DynamicObject->GetTrack(); //McZapkie-180203
-
-//McZapkie: predkosc wyswietlana na tachometrze brana jest z obrotow kol
-    float maxtacho=3;
-    if (iSekunda!=floor(GlobalTime->mr))
-    {fTachoVelocity=abs(11.31*DynamicObject->MoverParameters->WheelDiameter*DynamicObject->MoverParameters->nrot);
-     if (fTachoVelocity>1) //McZapkie-270503: podkrecanie tachometru
-     {
-      if (fTachoCount<maxtacho)
-       fTachoCount+=dt;
-     }
-     else
-      if (fTachoCount>0)
-       fTachoCount-=dt;
-     if (fTachoVelocity>7.0)
-     {fTachoVelocity=floor(0.5+fTachoVelocity+random(7)-random(7)); //*floor(0.2*fTachoVelocity);
-      if (fTachoVelocity<0.0) fTachoVelocity=0.0;
-     }
-     iSekunda=floor(GlobalTime->mr);
+/* Ra: to by trzeba by³o przemyœleæ, zmienione na szybko problemy robi
+  //McZapkie: predkosc wyswietlana na tachometrze brana jest z obrotow kol
+  double vel=fabs(11.31*DynamicObject->MoverParameters->WheelDiameter*DynamicObject->MoverParameters->nrot);
+  if (iSekunda!=floor(GlobalTime->mr)||(vel<1.0))
+  {fTachoVelocity=vel;
+   if (fTachoVelocity>1.0) //McZapkie-270503: podkrecanie tachometru
+   {
+    if (fTachoCount<maxtacho)
+     fTachoCount+=dt;
+   }
+   else
+    if (fTachoCount>0)
+     fTachoCount-=dt;
+   if (DynamicObject->MoverParameters->TrainType==dt_EZT)
+    //dla EZT wskazówka porusza siê niestabilnie
+    if (fTachoVelocity>7.0)
+    {fTachoVelocity=floor(0.5+fTachoVelocity+random(5)-random(5)); //*floor(0.2*fTachoVelocity);
+     if (fTachoVelocity<0.0) fTachoVelocity=0.0;
     }
-    double vol=0;
+   iSekunda=floor(GlobalTime->mr);
+  }
+*/
+  double vol=0;
 //    int freq=1;
-    double dfreq;
+   double dfreq;
 
 //McZapkie-280302 - syczenie
       if (rsHiss.AM!=0)

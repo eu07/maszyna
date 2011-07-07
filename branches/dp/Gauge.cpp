@@ -46,17 +46,18 @@ void __fastcall TGauge::Clear()
 }
 
 
-void __fastcall TGauge::Init(TSubModel *NewSubModel, TGaugeType eNewType, double fNewScale, double fNewOffset, double fNewFriction, double fNewValue)
-{
-    if (NewSubModel!=NULL)
-    {
-     fFriction= fNewFriction;
-     fValue= fNewValue;
-     fOffset= fNewOffset;
-     fScale= fNewScale;
-     SubModel= NewSubModel;
-     eType= eNewType;
-    }
+void __fastcall TGauge::Init(TSubModel *NewSubModel,TGaugeType eNewType,double fNewScale,double fNewOffset,double fNewFriction,double fNewValue)
+{//ustawienie parametrów animacji submodelu
+ if (NewSubModel)
+ {
+  fFriction=fNewFriction;
+  fValue=fNewValue;
+  fOffset=fNewOffset;
+  fScale=fNewScale;
+  SubModel=NewSubModel;
+  eType=eNewType;
+  NewSubModel->WillBeAnimated(); //wy³¹czenie ignowania jedynkowego transformu 
+ }
 }
 
 void __fastcall TGauge::Load(TQueryParserComp *Parser, TModel3d *mdParent)
