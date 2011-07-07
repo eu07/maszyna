@@ -121,9 +121,9 @@ inline void readColor(cParser& parser,ColorT* color)
 };
 
 inline void readMatrix(cParser& parser,matrix4x4& matrix)
-{
- for (int x=0;x<=3;x++)
-  for (int y=0;y<=3;y++)
+{//Ra: wczytanie transforma
+ for (int x=0;x<=3;x++) //wiersze
+  for (int y=0;y<=3;y++) //kolumny
    parser.getToken(matrix(x)[y]);
 };
 
@@ -274,7 +274,7 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
   iNumFaces=iNumVerts/3;
   sg=new DWORD[iNumFaces]; //maski powierzchni
   for (int i=0;i<iNumVerts;i++)
-  {
+  {//Ra: z konwersj¹ na uk³ad scenerii - bêdzie wydajniejsze wyœwietlanie
    if (i%3==0)
     parser.getToken(sg[i/3]); //maska powierzchni trójk¹ta
    parser.getToken(Vertices[i].Point.x);
@@ -424,6 +424,55 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
  }
  Visible=true;
  return iNumVerts; //do okreœlenia wielkoœci VBO
+};
+
+void __fastcall TSubModel::InitialRotate(bool doit)
+{//konwersja uk³adu wspó³rzêdnych na zgodny ze sceneri¹
+ if (Next) Next->InitialRotate(doit);
+ if (iFlags&0x4000) //animacja albo niejednostkowy
+ {//niejednostkowy transform jest mno¿ony i wystarczy zabawy
+  if (doit)
+  {//Matrix.Rotation(M_PI/2.0,vector3(1,0,0)); //obrót wzglêdem osi OX o 90°
+   //Matrix.Rotation(M_PI,vector3(0,0,1)); //obrót wzglêdem osi OZ o 180°
+   matrix4x4 *mat,tmp;
+   mat=GetMatrix(); //transform g³ównego submodelu
+   tmp.Identity();
+   tmp.Rotation(M_PI/2,vector3(1,0,0)); //obrót wzglêdem osi OX o 90°
+   (*mat)=tmp*(*mat);
+   tmp.Identity();
+   tmp.Rotation(M_PI,vector3(0,0,1)); //obrót wzglêdem osi OZ o 90°
+   (*mat)=tmp*(*mat);
+  }
+  if (Child)
+   Child->InitialRotate(false); //potomnych nie obracamy ju¿
+  else
+  {//jak nie ma potomnych, mo¿na wymno¿yæ przez transform i wyjedynkowaæ go
+  }
+ }
+ else //jak jest jednostkowy
+  if (doit)
+  {//jeœli jest jednostkowy transform, to przeliczamy wierzcho³ki, a mno¿enie podajemy dalej
+   double t;
+   if (Vertices)
+    for (int i=0;i<iNumVerts;++i)
+    {
+     Vertices->Point.x=-Vertices->Point.x; //zmiana znaku X
+     t=Vertices->Point.y; //zamiana Y i Z
+     Vertices->Point.y=Vertices->Point.z;
+     Vertices->Point.z=t;
+    }
+   if (Child) Child->InitialRotate(doit); //potomne ewentualnie obrócimy
+  }
+/*
+  tmp.Rotation(M_PI/2,vector3(1,0,0)); //obrót wzglêdem osi OX o 90°
+  (*mat)=tmp*(*mat);
+  tmp.Identity();
+  tmp.Rotation(M_PI,vector3(0,0,1)); //obrót wzglêdem osi OZ o 90°
+  matrix4x4 *mat,tmp;
+  mat=Root->GetMatrix(); //transform g³ównego submodelu
+  tmp.Identity();
+  tmp.Rotation(M_PI/2,vector3(1,0,0)); //obrót wzglêdem osi OX o 90°
+*/
 };
 
 void __fastcall TSubModel::AddChild(TSubModel *SubModel)
@@ -1037,9 +1086,10 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName)
   //SubModelsCount++;
   parser.getToken(token);
  }
- matrix4x4 *mat,tmp;
  if (Root)
  {
+/* Ra: modele maj¹ mieæ taki uk³ad wspó³rzêdnych jak sceneria
+  matrix4x4 *mat,tmp;
   mat=Root->GetMatrix(); //transform g³ównego submodelu
   tmp.Identity();
   tmp.Rotation(M_PI/2,vector3(1,0,0)); //obrót wzglêdem osi OX o 90°
@@ -1048,6 +1098,11 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName)
   tmp.Rotation(M_PI,vector3(0,0,1)); //obrót wzglêdem osi OZ o 90°
   (*mat)=tmp*(*mat);
   Root->WillBeAnimated(); //Ra: bo kurde te g³upie obroty s¹
+//*/
+  if (!Global::bUseVBO) //przy DL wierzcho³ki s¹ ju¿ skompilowane
+   Root->WillBeAnimated(); //i nie da siê ich przeliczyæ
+  Root->InitialRotate(true); //konwersja uk³adu wspó³rzêdnych
+  //Root->WillBeAnimated(); //Ra: docelowo do usuniêcia
   if (totalverts)
   {
 #ifdef USE_VBO

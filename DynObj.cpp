@@ -590,23 +590,24 @@ double __fastcall ABuAcos(vector3 calc_temp)
 
 
 TDynamicObject* __fastcall ABuFindNearestObject(TTrack *Track,TDynamicObject *MyPointer,int &CouplNr)
-{//zwraca wskaznik najblizszego kamerze sprzegu obiektu znajdujacego sie na torze
+{//zwraca wskaznik do obiektu znajdujacego sie na torze (Track), którego sprzêg jest najblizszy kamerze 
  //s³u¿y np. do ³¹czenia i rozpinania sprzêgów
  //WE: Track      - tor, na ktorym odbywa sie poszukiwanie
  //    MyPointer  - wskaznik do obiektu szukajacego
+ //WY: CouplNr    - który sprzêg znalezionego obiektu jest bli¿szy kamerze
 
  //Uwaga! Jesli CouplNr==-2 to szukamy njblizszego obiektu, a nie sprzegu!!!
 
  if ((Track->iNumDynamics)>0)
- {//o ile w ogóle jest co przegl¹daæ
-  vector3 poz; //pozycja pojazdu
-  vector3 kon; //wektor czo³a wzglêdem œrodka
+ {//o ile w ogóle jest co przegl¹daæ na tym torze
+  vector3 poz; //pozycja pojazdu XYZ w scenerii
+  vector3 kon; //wektor czo³a wzglêdem œrodka pojazdu wzglêem pocz¹tku toru
   vector3 tmp; //wektor pomiêdzy kamer¹ i sprzêgiem
   double dist; //odleg³oœæ
   for (int i=0;i<Track->iNumDynamics;i++)
   {
    if (CouplNr==-2)
-   {//wektor [kamera-obiekt]
+   {//wektor [kamera-obiekt] - poszukiwanie obiektu
     tmp=Global::GetCameraPosition()-Track->Dynamics[i]->GetPosition();
     dist=tmp.x*tmp.x+tmp.y*tmp.y+tmp.z*tmp.z; //odleg³oœæ do kwadratu
     if (dist<100.0) //10 metrów
@@ -647,61 +648,52 @@ TDynamicObject* __fastcall ABuFindNearestObject(TTrack *Track,TDynamicObject *My
 
 
 TDynamicObject* TDynamicObject::ABuScanNearestObject(TTrack *Track,double ScanDir,double ScanDist,int &CouplNr)
-{
-   //skanowanie toru w poszukiwaniu obiektu najblizszego kamerze
-   //double MyScanDir=ScanDir;  //Moja orientacja na torze.  //Ra: nie u¿ywane
-   if(ABuGetDirection()<0) ScanDir=-ScanDir;
-   TDynamicObject* FoundedObj;
-
-   FoundedObj=ABuFindNearestObject(Track, this, CouplNr);
-   if(FoundedObj==NULL)
+{//skanowanie toru w poszukiwaniu obiektu najblizszego kamerze
+ //double MyScanDir=ScanDir;  //Moja orientacja na torze.  //Ra: nie u¿ywane
+ if (ABuGetDirection()<0) ScanDir=-ScanDir;
+ TDynamicObject* FoundedObj;
+ FoundedObj=ABuFindNearestObject(Track,this,CouplNr); //zwraca numer sprzêgu znalezionego pojazdu
+ if (FoundedObj==NULL)
+ {
+  double ActDist;    //Przeskanowana odleglosc.
+  double CurrDist=0; //Aktualna dlugosc toru.
+  if (ScanDir>=0) ActDist=Track->Length()-ABuGetTranslation(); //???-przesuniêcie wózka wzglêdem Point1 toru
+             else ActDist=ABuGetTranslation(); //przesuniêcie wózka wzglêdem Point1 toru
+  while (ActDist<ScanDist)
+  {
+   ActDist+=CurrDist;
+   if (ScanDir>0) //do przodu
    {
-      double ActDist;    //Przeskanowana odleglosc.
-      double CurrDist=0; //Aktualna dlugosc toru.
-      if (ScanDir>=0) ActDist=Track->Length()-ABuGetTranslation(); //???-przesuniêcie wózka wzglêdem Point1 toru
-                 else ActDist=ABuGetTranslation(); //przesuniêcie wózka wzglêdem Point1 toru
-      while (ActDist<ScanDist)
-      {
-         ActDist+=CurrDist;
-         if (ScanDir>0) //do przodu
-         {
-          if (Track->iNextDirection)
-          {
-           Track=Track->CurrentNext();
-           ScanDir=-ScanDir;
-          }
-          else
-           Track=Track->CurrentNext();
-         }
-         else //do ty³u
-         {
-          if (Track->iPrevDirection)
-           Track= Track->CurrentPrev();
-          else
-          {
-           Track= Track->CurrentPrev();
-           ScanDir= -ScanDir;
-          }
-         }
-         if (Track!=NULL)
-         { //jesli jest kolejny odcinek toru
-            CurrDist=Track->Length();
-            FoundedObj=ABuFindNearestObject(Track, this, CouplNr);
-            if (FoundedObj!=NULL)
-            {
-               ActDist=ScanDist;
-            }
-         }
-         else //Jesli nie ma, to wychodzimy.
-         {
-            ActDist=ScanDist;
-         }
-      }
-   } //Koniec szukania najblizszego toru z jakims obiektem.
-   if (FoundedObj!=NULL)
-      return FoundedObj;
-   else
-      return NULL;
+    if (Track->iNextDirection)
+    {
+     Track=Track->CurrentNext();
+     ScanDir=-ScanDir;
+    }
+    else
+     Track=Track->CurrentNext();
+   }
+   else //do ty³u
+   {
+    if (Track->iPrevDirection)
+     Track=Track->CurrentPrev();
+    else
+    {
+     Track=Track->CurrentPrev();
+     ScanDir=-ScanDir;
+    }
+   }
+   if (Track!=NULL)
+   { //jesli jest kolejny odcinek toru
+    CurrDist=Track->Length();
+    FoundedObj=ABuFindNearestObject(Track, this, CouplNr);
+    if (FoundedObj!=NULL)
+     ActDist=ScanDist;
+   }
+   else //Jesli nie ma, to wychodzimy.
+    ActDist=ScanDist;
+  }
+ } //Koniec szukania najblizszego toru z jakims obiektem.
+ return FoundedObj;
 }
 
 //ABu 01.11.04 poczatek wyliczania przechylow pudla **********************
@@ -745,17 +737,17 @@ void __fastcall TDynamicObject::ABuBogies()
 
 //ABu 16.03.03 sledzenie toru przed obiektem: **************************
 void __fastcall TDynamicObject::ABuCheckMyTrack()
-{  //Funkcja przypisujaca obiekt prawidlowej tablicy Dynamics,
-   //bo gdzies jest jakis blad i wszystkie obiekty z danego
-   //pociagu na poczatku stawiane sa na jednym torze i wpisywane
-   //do jednej tablicy. Wykonuje sie tylko raz - po to 'ABuChecked'
-   TTrack* OldTrack=MyTrack;
-   TTrack* NewTrack=Axle4.GetTrack();
-   if((NewTrack!=OldTrack)&&(OldTrack!=NULL))
-   {
-      OldTrack->RemoveDynamicObject(this);
-      NewTrack->AddDynamicObject(this);
-   }
+{//Funkcja przypisujaca obiekt prawidlowej tablicy Dynamics,
+ //bo gdzies jest jakis blad i wszystkie obiekty z danego
+ //pociagu na poczatku stawiane sa na jednym torze i wpisywane
+ //do jednej tablicy. Wykonuje sie tylko raz - po to 'ABuChecked'
+ TTrack* OldTrack=MyTrack;
+ TTrack* NewTrack=Axle4.GetTrack();
+ if ((NewTrack!=OldTrack)&&OldTrack)
+ {
+  OldTrack->RemoveDynamicObject(this);
+  NewTrack->AddDynamicObject(this);
+ }
 }
 
 //Ra: w poni¿szej funkcji jest problem ze sprzêgami
@@ -860,6 +852,7 @@ TDynamicObject* __fastcall ABuFindObject(TTrack *Track,TDynamicObject *MyPointer
 void TDynamicObject::CouplersDettach(double MinDist,int MyScanDir)
 {//funkcja roz³¹czajaca pod³¹czone sprzêgi
  //MinDist - dystans minimalny, dla ktorego mozna roz³¹czaæ
+ //Force - jeœli false, to nie odepnie niewzajemnego po³¹czenia
  if (MyScanDir>0)
  {
   if (PrevConnected) //pojazd od strony sprzêgu 0
@@ -1010,7 +1003,7 @@ void TDynamicObject::ABuScanObjects(int ScanDir,double ScanDist)
  if (FoundedObj)
  {//siebie mo¿na bezpiecznie pod³¹czyæ
   MoverParameters->Attach(MyCouplFound,CouplFound,&(FoundedObj->MoverParameters),ctrain_virtual);
-  MoverParameters->Couplers[MyCouplFound].Render=false;
+  MoverParameters->Couplers[MyCouplFound].Render=false; //wirtualnego nie renderujemy
   if (MyCouplFound==0)
   {
    PrevConnected=FoundedObj; //pojazd od strony sprzêgu 0
@@ -1021,10 +1014,10 @@ void TDynamicObject::ABuScanObjects(int ScanDir,double ScanDist)
    NextConnected=FoundedObj; //pojazd od strony sprzêgu 1
    NextConnectedNo=CouplFound;
   }
-  if (FoundedObj->MoverParameters->Couplers[CouplFound].CouplingFlag!=ctrain_virtual)
-  {//Ra: jeœli znaleziony ma niwirtualny sprzêg, to mu siê wirtualnym nie wpinamy
+  if (FoundedObj->MoverParameters->Couplers[CouplFound].CouplingFlag==ctrain_virtual)
+  {//Ra: wpinamy siê wirtualnym tylko jeœli znaleziony ma wirtualny sprzêg
    FoundedObj->MoverParameters->Attach(CouplFound,MyCouplFound,&(this->MoverParameters),ctrain_virtual);
-   FoundedObj->MoverParameters->Couplers[CouplFound].Render=true;
+   FoundedObj->MoverParameters->Couplers[CouplFound].Render=false; //wirtualnego nie renderujemy
    if (CouplFound==0)
    {
     if (FoundedObj->PrevConnected)
@@ -3101,9 +3094,10 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
         if (str==AnsiString("models:"))                            //modele i podmodele
         {
           asModel=Parser->GetNextSymbol().LowerCase();
-          asModel= BaseDir+asModel; //McZapkie-200702 - dynamics maja swoje modele w dynamics/basedir
+          asModel=BaseDir+asModel; //McZapkie-200702 - dynamics maja swoje modele w dynamics/basedir
           Global::asCurrentTexturePath=BaseDir;                    //biezaca sciezka do tekstur to dynamic/...
           mdModel=TModelsManager::GetModel(asModel.c_str());
+          if (mdModel) mdModel->GetSMRoot()->WillBeAnimated(); //Ra: taka proteza, bo ABu zmodyfikowa³ te transformy
           if (ReplacableSkin!=AnsiString("none"))
           {
            ReplacableSkin=Global::asCurrentTexturePath+ReplacableSkin;      //skory tez z dynamic/...
@@ -3116,6 +3110,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
            asModel="przedsionki.t3d";
            asModel=BaseDir+asModel;
            mdPrzedsionek=TModelsManager::GetModel(asModel.c_str());
+           if (mdPrzedsionek) mdPrzedsionek->GetSMRoot()->WillBeAnimated(); //Ra: taka proteza, bo ABu zmodyfikowa³ te transformy
           }
           if (MoverParameters->LoadAccepted!=AnsiString(""))
           //           if (MoverParameters->LoadAccepted!=AnsiString("")); // && MoverParameters->LoadType!=AnsiString("passengers"))
@@ -3150,22 +3145,25 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
             }
            }
            else //Ra: tu wczytywanie modelu ³adunku jest w porz¹dku
-            mdLoad=TModelsManager::GetModel(asLoadName.c_str());  //ladunek
+           {mdLoad=TModelsManager::GetModel(asLoadName.c_str());  //ladunek
+            if (mdLoad) mdLoad->GetSMRoot()->WillBeAnimated(); //Ra: taka proteza, bo ABu zmodyfikowa³ te transformy
+           }
           Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath); //z powrotem defaultowa sciezka do tekstur
           while (!Parser->EndOfFile && str!=AnsiString("endmodels"))
           {
-           str= Parser->GetNextSymbol().LowerCase();
+           str=Parser->GetNextSymbol().LowerCase();
            if (str==AnsiString("lowpolyinterior:")) //ABu: wnetrze lowpoly
            {
-              asModel=Parser->GetNextSymbol().LowerCase();
-              asModel= BaseDir+asModel; //McZapkie-200702 - dynamics maja swoje modele w dynamics/basedir
-              Global::asCurrentTexturePath= BaseDir;                    //biezaca sciezka do tekstur to dynamic/...
-              mdLowPolyInt=TModelsManager::GetModel(asModel.c_str());
+            asModel=Parser->GetNextSymbol().LowerCase();
+            asModel=BaseDir+asModel; //McZapkie-200702 - dynamics maja swoje modele w dynamics/basedir
+            Global::asCurrentTexturePath=BaseDir;                    //biezaca sciezka do tekstur to dynamic/...
+            mdLowPolyInt=TModelsManager::GetModel(asModel.c_str());
+            if (mdLowPolyInt) mdLowPolyInt->GetSMRoot()->WillBeAnimated(); //Ra: taka proteza, bo ABu zmodyfikowa³ te transformy
            }
            else
            if (str==AnsiString("animwheelprefix:"))              //prefiks krecacych sie kol
             {
-             str= Parser->GetNextSymbol();
+             str=Parser->GetNextSymbol();
              asAnimName="";
              for (int i=1; i<=MaxAnimatedAxles; i++)
               {
