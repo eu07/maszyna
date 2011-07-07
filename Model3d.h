@@ -99,23 +99,29 @@ typedef enum //rodzaj animacji
  at_Hours24, //godziny p³ynnie 24h/360°
  at_Billboard, //obrót w pionie do kamery
  at_Wind, //ruch pod wp³ywem wiatru
- at_Sky //animacja nieba
+ at_Sky, //animacja nieba
+ at_Undefined //animacja chwilowo nieokreœlona
 } TAnimType;
 
 class TModel3d;
 
 class TSubModel
-{//klasa submodelu - pojedyncza siatka albo punkt œwietlny
+{//klasa submodelu - pojedyncza siatka, punkt œwietlny albo grupa punktów
 private:
  TSubModelType eType;
  GLuint TextureID;
  int iFlags; //flagi informacyjne
+ //bit  0: =1 faza rysowania zale¿y od wymiennej tekstury
+ //bit  1: =1 rysowany w fazie nieprzezroczystych
+ //bit  2: =1 rysowany w fazie przezroczystych
+ //bit  7: =1 ta sama tekstura, co poprzedni albo nadrzêdny
+ //bit 13: =1 wystarczy przesuniêcie zamiast mno¿enia macierzy (trzy jedynki)
+ //bit 14: =1 wymagane przechowanie macierzy (transform niejedynkowy lub animacje)
  bool TexAlpha;        //McZapkie-141202: zeby bylo wiadomo czy sortowac ze wzgledu na przezroczystosc
  float fLight; //próg jasnoœci œwiat³a do zadzia³ania selfillum
  float f4Ambient[4];
  float f4Diffuse[4];
  float f4Specular[4];
- //bool TexHash;
  GLuint uiDisplayList;
  double Transparency;
  bool bWire;
@@ -174,6 +180,7 @@ public:
  void __fastcall RaArrayFill(CVertNormTex *Vert);
  void __fastcall Render();
  int __fastcall Flags();
+ void __fastcall WillBeAnimated() {iFlags|=0x4000;};
 };
 
 class TModel3d : public CMesh

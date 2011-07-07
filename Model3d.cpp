@@ -160,6 +160,7 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
   std::string type;
   parser.getToken(type);
   if (type!="false")
+  {iFlags|=0x4000; //jak animacja, to trzeba przechowywaæ macierz zawsze
    if      (type=="seconds_jump")  b_Anim=b_aAnim=at_SecondsJump; //sekundy z przeskokiem
    else if (type=="minutes_jump")  b_Anim=b_aAnim=at_MinutesJump; //minuty z przeskokiem
    else if (type=="hours_jump")    b_Anim=b_aAnim=at_HoursJump; //godziny z przeskokiem
@@ -171,6 +172,8 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
    else if (type=="billboard")     b_Anim=b_aAnim=at_Billboard; //obrót w pionie do kamery
    else if (type=="wind")          b_Anim=b_aAnim=at_Wind; //ruch pod wp³ywem wiatru
    else if (type=="sky")           b_Anim=b_aAnim=at_Sky; //aniamacja nieba
+   else b_Anim=b_aAnim=at_Undefined; //nieznana forma animacji
+  }
  }
  if (eType==smt_Mesh) readColor(parser,f4Ambient); //ignoruje token przed
  readColor(parser,f4Diffuse);
@@ -248,6 +251,13 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
  fSquareMinDist*=fSquareMinDist;
  parser.ignoreToken();
  readMatrix(parser,Matrix); //wczytanie transform
+ if ((iFlags&0x4000)==0) //o ile nie ma animacji
+  for (int i=0;i<16;++i)
+   if (Matrix.readArray()[i]!=((i%5)?0.0:1.0)) //jedynki tylko na 0, 5, 10 i 15
+   {
+    iFlags|=0x4000; //transform niejedynkowy - trzeba przechowaæ
+    break;
+   }
  int iNumFaces; //iloœæ trójk¹tów
  DWORD *sg; //maski przynale¿noœci trójk¹tów do powierzchni
  if (eType==smt_Mesh)
@@ -433,15 +443,26 @@ void __fastcall TSubModel::AddNext(TSubModel *SubModel)
 };
 
 int __fastcall TSubModel::Flags()
-{//dodanie submodelu kolejnego (wspólny przodek)
+{//analiza koniecznych zmian pomiêdzy submodelami
+ //samo pomijanie glBindTexture() nie poprawi wydajnoœci
+ //ale mo¿na sprawdziæ, czy mo¿na w ogóle pomin¹æ kod do tekstur (sprawdzanie replaceskin)
  int i;
  if (Child)
- {i=Child->Flags();
+ {//Child jest renderowany po danym submodelu
+  if (Child->TextureID) //o ile ma teksturê
+   if (Child->TextureID!=TextureID) //i jest ona inna ni¿ rodzica
+    Child->iFlags|=0x80; //to trzeba sprawdzaæ, jak z teksturami jest
+  i=Child->Flags();
   iFlags|=0x00FF0000&((i<<16)|(i)|(i>>8)); //potomny, rodzeñstwo i dzieci
  }
  if (Next)
- {i=Next->Flags();
+ {//Next jest renderowany przed danym submodelem
+  i=Next->Flags();
   iFlags|=0xFF000000&((i<<24)|(i<<8)|(i)); //nastêpny, kolejne i ich dzieci
+  if (TextureID) //o ile dany ma teksturê
+   if ((TextureID!=Next->TextureID)||(i&0x00800000)) //a ma inn¹ albo dzieci zmieniaj¹
+    iFlags|=0x80; //to dany submodel musi sobie j¹ ustawiaæ
+  //tekstury nie ustawiamy tylko wtedy, gdy jest taka sama jak Next i jego dzieci nie zmieniaj¹
  }
  return iFlags;
 };
@@ -475,7 +496,7 @@ void __fastcall TSubModel::SetTranslate(vector3 vNewTransVector)
 
 struct ToLower
 {
-    char operator()(char input) { return tolower(input); }
+ char operator()(char input) { return tolower(input); }
 };
 
 TSubModel* __fastcall TSubModel::GetFromName(std::string search)
@@ -580,8 +601,10 @@ void __fastcall TSubModel::RaRender(GLuint ReplacableSkinId,bool bAlpha)
    Next->RaRender(ReplacableSkinId,bAlpha); //dalsze rekurencyjnie
  if (Visible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
  {
-  glPushMatrix();
-  glMultMatrixd(Matrix.getArray());
+  if (iFlags&0x4000)
+  {glPushMatrix();
+   glMultMatrixd(Matrix.getArray());
+  }
   if (b_Anim) RaAnimation(b_Anim);
   if ((TextureID==-1)) // && (ReplacableSkinId!=0))
   {//zmienialne skory
@@ -702,7 +725,8 @@ void __fastcall TSubModel::RaRender(GLuint ReplacableSkinId,bool bAlpha)
   if (Child!=NULL)
    if (bAlpha?(iFlags&0x00020000):(iFlags&0x00030000))
     Child->RaRender(ReplacableSkinId,bAlpha);
-  glPopMatrix();
+  if (iFlags&0x4000)
+   glPopMatrix();
  }
  if (b_Anim<at_SecondsJump)
   b_Anim=at_None; //wy³¹czenie animacji dla kolejnego u¿ycia submodelu
@@ -715,8 +739,10 @@ void __fastcall TSubModel::RaRenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
    Next->RaRenderAlpha(ReplacableSkinId,bAlpha);
  if (Visible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
  {
-  glPushMatrix(); //zapamiêtanie matrycy
-  glMultMatrixd(Matrix.getArray());
+  if (iFlags&0x4000)
+  {glPushMatrix(); //zapamiêtanie matrycy
+   glMultMatrixd(Matrix.getArray());
+  }
   if (b_aAnim) RaAnimation(b_aAnim);
   glColor3fv(f4Diffuse);
   //zmienialne skory
@@ -752,7 +778,8 @@ void __fastcall TSubModel::RaRenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
   if (Child)
    if (bAlpha?(iFlags&0x00050000):(iFlags&0x00040000))
     Child->RaRenderAlpha(ReplacableSkinId,bAlpha);
-  glPopMatrix();
+  if (iFlags&0x4000)
+   glPopMatrix();
  }
  if (b_aAnim<at_SecondsJump)
   b_aAnim=at_None; //wy³¹czenie animacji dla kolejnego u¿ycia submodelu
@@ -760,13 +787,15 @@ void __fastcall TSubModel::RaRenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
 
 void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
 {//g³ówna procedura renderowania
- if (Next!=NULL)
+ if (Next)
   if (bAlpha?(iFlags&0x02000000):(iFlags&0x03000000))
    Next->Render(ReplacableSkinId,bAlpha); //dalsze rekurencyjnie
  if (Visible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
  {
-  glPushMatrix();
-  glMultMatrixd(Matrix.getArray());
+  if (iFlags&0x4000)
+  {glPushMatrix();
+   glMultMatrixd(Matrix.getArray());
+  }
   if (b_Anim) RaAnimation(b_Anim);
   //zmienialne skory
   if (eType==smt_FreeSpotLight)
@@ -838,7 +867,8 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
   if (Child!=NULL)
    if (bAlpha?(iFlags&0x00020000):(iFlags&0x00030000))
     Child->Render(ReplacableSkinId,bAlpha);
-  glPopMatrix();
+  if (iFlags&0x4000)
+   glPopMatrix();
  }
  if (b_Anim<at_SecondsJump)
   b_Anim=at_None; //wy³¹czenie animacji dla kolejnego u¿ycia subm
@@ -851,8 +881,10 @@ void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
    Next->RenderAlpha(ReplacableSkinId,bAlpha);
  if (Visible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
  {
-  glPushMatrix();
-  glMultMatrixd(Matrix.getArray());
+  if (iFlags&0x4000)
+  {glPushMatrix();
+   glMultMatrixd(Matrix.getArray());
+  }
   if (b_aAnim) RaAnimation(b_aAnim);
   if (eType==smt_FreeSpotLight)
   {
@@ -886,7 +918,8 @@ void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
   if (Child!=NULL)
    if (bAlpha?(iFlags&0x00050000):(iFlags&0x00040000))
     Child->RenderAlpha(ReplacableSkinId,bAlpha);
-  glPopMatrix();
+  if (iFlags&0x4000)
+   glPopMatrix();
  }
  if (b_aAnim<at_SecondsJump)
   b_aAnim=at_None; //wy³¹czenie animacji dla kolejnego u¿ycia submodelu
@@ -1007,13 +1040,14 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName)
  matrix4x4 *mat,tmp;
  if (Root)
  {
-  mat=Root->GetMatrix(); //transform
+  mat=Root->GetMatrix(); //transform g³ównego submodelu
   tmp.Identity();
-  tmp.Rotation(M_PI/2,vector3(1,0,0));
+  tmp.Rotation(M_PI/2,vector3(1,0,0)); //obrót wzglêdem osi OX o 90°
   (*mat)=tmp*(*mat);
   tmp.Identity();
-  tmp.Rotation(M_PI,vector3(0,0,1));
+  tmp.Rotation(M_PI,vector3(0,0,1)); //obrót wzglêdem osi OZ o 90°
   (*mat)=tmp*(*mat);
+  Root->WillBeAnimated(); //Ra: bo kurde te g³upie obroty s¹
   if (totalverts)
   {
 #ifdef USE_VBO
@@ -1025,6 +1059,8 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName)
    } 
 #endif
    iFlags=Root->Flags(); //flagi ca³ego modelu
+   //if (Root->TextureID) //o ile ma teksturê
+   // Root->iFlags|=0x80; //koniecznoœæ ustawienia tekstury
   }
  }
 }

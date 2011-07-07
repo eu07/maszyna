@@ -103,7 +103,7 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 bool Global::bMultiplayer=false; //blokada dzia³ania niektórych eventów na rzecz kominikacji
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asVersion="Compilation 2011-06-27, release 1.3.139.169."; //tutaj, bo wysy³any
+AnsiString Global::asVersion="Compilation 2011-07-07, release 1.3.140.171."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 GLint Global::iMaxTextureSize=16384;//maksymalny rozmiar tekstury
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
@@ -120,6 +120,7 @@ char** Global::szDefaultExt=Global::szTexturesDDS; //domyœlnie od DDS
 int Global::iMultisampling=2; //tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
 bool Global::bGlutFont=false; //tekst generowany przez GLUT
 int Global::iKeyLast=0; //ostatnio naciœniêty klawisz w celu logowania
+GLuint Global::iTextureId=0; //ostatnio u¿yta tekstura 2D
 
 void __fastcall Global::LoadIniFile(AnsiString asFileName)
 {
@@ -453,7 +454,13 @@ void __fastcall Global::SetCameraRotation(double Yaw)
  pCameraRotationDeg=pCameraRotation*180.0/M_PI;
 }
 
-//}
+void __fastcall Global::BindTexture(GLuint t)
+{//ustawienie aktualnej tekstury, tylko gdy siê zmienia
+ if (t!=iTextureId)
+ {iTextureId=t;
+ }
+};
+
 
 //---------------------------------------------------------------------------
 

@@ -2592,7 +2592,8 @@ end;
 
 {sprzegi}
 
-function TMoverParameters.Attach(ConnectNo: byte; ConnectToNr: byte; ConnectTo:PMoverParameters; CouplingType: byte): boolean; {laczenie}
+function TMoverParameters.Attach(ConnectNo:byte;ConnectToNr:byte; ConnectTo:PMoverParameters; CouplingType: byte): boolean;
+{³¹czenie do (ConnectNo) pojazdu (ConnectTo) stron¹ (ConnectToNr) }
 const dEpsilon=0.001;
 var ct:TCouplerType;
 begin

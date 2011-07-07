@@ -36,6 +36,7 @@ private:
     AnsiString OutText1;
     AnsiString OutText2;
     AnsiString OutText3;
+    AnsiString OutText4;
     void ShowHints();
     bool __fastcall Render();
     TCamera Camera;
