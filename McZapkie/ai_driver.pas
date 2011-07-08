@@ -207,31 +207,35 @@ begin
   OrderDirectionChange:=Round(VelforDriver);
 end;
 
-procedure TController.SetVelocity(NewVel,NewVelNext: real);
+procedure TController.SetVelocity(NewVel,NewVelNext:real);
+//ustawienie nowej prêdkoœci
 begin
-     WaitingTime:=-WaitingExpireTime;
-     MaxVelFlag:=False; MinVelFlag:=False;
-     VelActual:=NewVel;
-     VelNext:=NewVelNext;
-     if (NewVel>NewVelNext) or (NewVel<Controlling^.Vel) then
-      ProximityDist:=-800
-     else
-      ProximityDist:=-300;
+ WaitingTime:=-WaitingExpireTime;
+ MaxVelFlag:=False; MinVelFlag:=False;
+ VelActual:=NewVel;   //prêdkoœæ oczekiwana
+ VelNext:=NewVelNext; //prêdkoœæ nastêpna
+ if (NewVel>NewVelNext) //jeœli oczekiwana wiêksza ni¿ nastêpna
+  or (NewVel<Controlling^.Vel) //albo aktualna jest mniejsza ni¿ aktualna
+ then
+  ProximityDist:=-800 //droga hamowania do zmiany prêdkoœci
+ else
+  ProximityDist:=-300;
 end;
 
-function TController.SetProximityVelocity(NewDist,NewVelNext: real): boolean;
+function TController.SetProximityVelocity(NewDist,NewVelNext:real):boolean;
+//informacja o ograniczeniu w pobli¿u
 begin
-       if NewVelNext=0 then
-         WaitingTime:=0;
-{     if ((NewVelNext>=0) and ((VelNext>=0) and (NewVelNext<VelNext)) or (NewVelNext<VelActual)) or (VelNext<0) then
-      begin }
-        MaxVelFlag:=False; MinVelFlag:=False;
-        VelNext:=NewVelNext;
-        ProximityDist:=NewDist;
-        SetProximityVelocity:=true;
-{      end
-     else
-      SetProximityVelocity:=false; }
+ if NewVelNext=0 then
+   WaitingTime:=0;
+{if ((NewVelNext>=0) and ((VelNext>=0) and (NewVelNext<VelNext)) or (NewVelNext<VelActual)) or (VelNext<0) then
+  begin }
+   MaxVelFlag:=False; MinVelFlag:=False;
+   VelNext:=NewVelNext;
+   ProximityDist:=NewDist;
+   SetProximityVelocity:=true;
+{end
+  else
+   SetProximityVelocity:=false; }
 end;
 
 procedure TController.SetDriverPsyche;

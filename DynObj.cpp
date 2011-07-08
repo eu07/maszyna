@@ -19,8 +19,8 @@
 */
 
 
-#include    "system.hpp"
-#include    "classes.hpp"
+#include "system.hpp"
+#include "classes.hpp"
 #pragma hdrstop
 
 #include "DynObj.h"
@@ -40,57 +40,38 @@ const float maxrot=(M_PI/3); //60°
 
 //---------------------------------------------------------------------------
 TDynamicObject* TDynamicObject::GetFirstDynamic(int cpl_type)
-{//Szukanie pierwszego polaczonego obiektu w pociagu
- //Pierwszy -> od strony sprzegu 0 obiektu szukajacego
+{//Szukanie skrajnego polaczonego pojazdu w pociagu
+ //od strony sprzegu (cpl_type) obiektu szukajacego
+ //Ra: wystarczy jedna funkcja do szukania w obu kierunkach
  TDynamicObject* temp=this;
- int coupler_nr=0;
- for (int i=0;i<100;i++) //tak na wszelki wypadek :)
+ int coupler_nr=cpl_type;
+ for (int i=0;i<300;i++) //ograniczenie do 300 na wypadek zapêtlenia sk³adu
  {
   if (!temp)
-   return NULL; //Ra: takie zabezpieczenie
+   return NULL; //Ra: zabezpieczenie przed ewentaulnymi b³êdami sprzêgów
   if (temp->MoverParameters->Couplers[coupler_nr].CouplingFlag==0)
    return temp;
   if (coupler_nr==0)
-  {
-   if (temp->PrevConnectedNo==coupler_nr) //pojazd od strony sprzêgu 0
-    coupler_nr=1-coupler_nr;
-   temp=temp->PrevConnected; //ten jest od strony 0
+  {//je¿eli szukamy od sprzêgu 0
+   if (temp->PrevConnectedNo==0) //jeœli pojazd od strony sprzêgu 0 jest odwrócony
+    coupler_nr=1-coupler_nr; //to zmieniamy kierunek sprzêgu
+   if (temp->PrevConnected)
+    temp=temp->PrevConnected; //ten jest od strony 0
+   else
+    return temp; //jeœli jednak z przodu nic nie ma
   }
   else
   {
-   if (temp->NextConnectedNo==coupler_nr) //pojazd od strony sprzêgu 1
-    coupler_nr=1-coupler_nr;
-   temp=temp->NextConnected;
+   if (temp->NextConnectedNo==1) //jeœli pojazd od strony sprzêgu 1 jest odwrócony
+    coupler_nr=1-coupler_nr; //to zmieniamy kierunek sprzêgu
+   if (temp->NextConnected)
+    temp=temp->NextConnected; //ten pojazd jest od strony 1
+   else
+    return temp; //jeœli jednak z ty³u nic nie ma
   }
  }
  return NULL; //to tylko po wyczerpaniu pêtli
-}
-
-TDynamicObject* TDynamicObject::GetLastDynamic(int cpl_type)
-{ //Szukanie ostatniego polaczonego obiektu w pociagu
-  //Ostatni -> od strony sprzegu 1 obiektu szukajacego
-  //na wejsciu podany rodzaj sprzegu.
-   TDynamicObject* temp=this;
-   int coupler_nr=1;
-   for(int i=0;i<100;i++) //tak na wszelki wypadek :)
-   {
-      if (temp->MoverParameters->Couplers[coupler_nr].CouplingFlag==0)
-         return temp;
-      if (coupler_nr==0)
-         {
-            if (temp->PrevConnectedNo==coupler_nr) //pojazd od strony sprzêgu 0
-               coupler_nr=1-coupler_nr;
-            temp=temp->PrevConnected;
-         }
-      else
-         {
-            if (temp->NextConnectedNo==coupler_nr) //pojazd od strony sprzêgu 1
-               coupler_nr=1-coupler_nr;
-            temp=temp->NextConnected;
-         }
-   }
- return NULL; //Ra: chyba tak?
-}
+};
 
 void TDynamicObject::ABuSetModelShake(vector3 mShake)
 {
@@ -852,14 +833,13 @@ TDynamicObject* __fastcall ABuFindObject(TTrack *Track,TDynamicObject *MyPointer
 void TDynamicObject::CouplersDettach(double MinDist,int MyScanDir)
 {//funkcja roz³¹czajaca pod³¹czone sprzêgi
  //MinDist - dystans minimalny, dla ktorego mozna roz³¹czaæ
- //Force - jeœli false, to nie odepnie niewzajemnego po³¹czenia
  if (MyScanDir>0)
  {
   if (PrevConnected) //pojazd od strony sprzêgu 0
   {
-   if (MoverParameters->Couplers[0].Dist>MinDist) //sprzêgi wirtualne zawsze przekraczaj¹
+   if (MoverParameters->Couplers[0].CoupleDist>MinDist) //sprzêgi wirtualne zawsze przekraczaj¹
    {
-    if ((PrevConnectedNo?PrevConnected->NextConnected:PrevConnected->PrevConnected)!=this)
+    if ((PrevConnectedNo?PrevConnected->NextConnected:PrevConnected->PrevConnected)==this)
     {//Ra: nie roz³¹czamy znalezionego, je¿eli nie do nas pod³¹czony (mo¿e jechaæ w innym kierunku)
      PrevConnected->MoverParameters->Couplers[PrevConnectedNo].Connected=NULL;
      if (PrevConnectedNo==0)
@@ -884,9 +864,9 @@ void TDynamicObject::CouplersDettach(double MinDist,int MyScanDir)
  {
   if (NextConnected) //pojazd od strony sprzêgu 1
   {
-   if (MoverParameters->Couplers[1].Dist>MinDist) //sprzêgi wirtualne zawsze przekraczaj¹
+   if (MoverParameters->Couplers[1].CoupleDist>MinDist) //sprzêgi wirtualne zawsze przekraczaj¹
    {
-    if ((NextConnectedNo?NextConnected->NextConnected:NextConnected->PrevConnected)!=this)
+    if ((NextConnectedNo?NextConnected->NextConnected:NextConnected->PrevConnected)==this)
     {//Ra: nie roz³¹czamy znalezionego, je¿eli nie do nas pod³¹czony (mo¿e jechaæ w innym kierunku)
      NextConnected->MoverParameters->Couplers[NextConnectedNo].Connected=NULL;
      if (NextConnectedNo==0)
@@ -998,12 +978,14 @@ void TDynamicObject::ABuScanObjects(int ScanDir,double ScanDist)
   }
  } // Koniec szukania najbli¿szego toru z jakimœ obiektem.
  //teraz odczepianie i jeœli coœ siê znalaz³o, doczepianie.
- CouplersDettach(1,MyScanDir);
+ if (MyScanDir>0?PrevConnected:NextConnected)
+  if ((MyScanDir>0?PrevConnected:NextConnected)!=FoundedObj)
+   CouplersDettach(1,MyScanDir);
  // i ³¹czenie sprzêgiem wirtualnym
  if (FoundedObj)
- {//siebie mo¿na bezpiecznie pod³¹czyæ
+ {//siebie mo¿na bezpiecznie pod³¹czyæ jednostronnie do znalezionego
   MoverParameters->Attach(MyCouplFound,CouplFound,&(FoundedObj->MoverParameters),ctrain_virtual);
-  MoverParameters->Couplers[MyCouplFound].Render=false; //wirtualnego nie renderujemy
+  //MoverParameters->Couplers[MyCouplFound].Render=false; //wirtualnego nie renderujemy
   if (MyCouplFound==0)
   {
    PrevConnected=FoundedObj; //pojazd od strony sprzêgu 0
@@ -1038,11 +1020,11 @@ void TDynamicObject::ABuScanObjects(int ScanDir,double ScanDist)
   if ((Mechanik)&&(!EndTrack))
   {
    EndTrack=true;
-   if ((this->MoverParameters->Couplers[MyCouplFound].CoupleDist)<50)
+   if ((MoverParameters->Couplers[MyCouplFound].CoupleDist)<50)
     Mechanik->SetVelocity(0,0);
    else
-    Mechanik->SetVelocity(20,20);
-   //Mechanik->SetProximityVelocity((this->MoverParameters->Couplers[MyCouplFound].Dist)-20,0);
+    //Mechanik->SetVelocity(20,20);
+    Mechanik->SetProximityVelocity((MoverParameters->Couplers[MyCouplFound].CoupleDist)-20,0);
   }
  }
 }
@@ -2276,30 +2258,31 @@ if (tmpTraction.TractionVoltage==0)
    if ((dDoorMoveR<MoverParameters->DoorMaxShiftR) && (MoverParameters->DoorRightOpened))
      dDoorMoveR+=dt1*MoverParameters->DoorOpenSpeed/2;
    if ((dDoorMoveR>0) && (!MoverParameters->DoorRightOpened))
-     {
-      dDoorMoveR-=dt1*MoverParameters->DoorCloseSpeed;
-      if (dDoorMoveR<0)
-        dDoorMoveR=0;
-      }
+   {
+    dDoorMoveR-=dt1*MoverParameters->DoorCloseSpeed;
+    if (dDoorMoveR<0)
+     dDoorMoveR=0;
+   }
 
-//ABu-160305 Testowanie gotowosci do jazdy
-       if (Mechanik)
-       {
-          if (MoverParameters->BrakePress<0.03*MoverParameters->MaxBrakePress)
-             Mechanik->Ready=true;
-          TDynamicObject *tmp;
-          tmp=GetLastDynamic(1);
-          if(tmp!=this)
-             if (tmp->MoverParameters->BrakePress>0.03*tmp->MoverParameters->MaxBrakePress)
-                Mechanik->Ready=false;
-          tmp=GetFirstDynamic(1);
-          if(tmp!=this)
-             if (tmp->MoverParameters->BrakePress>0.03*tmp->MoverParameters->MaxBrakePress)
-                Mechanik->Ready=false;
-       }
+   if (Mechanik)
+   {//ABu-160305 Testowanie gotowosci do jazdy
+    if (MoverParameters->BrakePress<0.03*MoverParameters->MaxBrakePress)
+     Mechanik->Ready=true; //wstêpnie gotowy
+    //Ra: trzeba by sprawdziæ wszystkie, a nie tylko skrajne
+    //sprawdzenie odhamowania skrajnych pojazdów
+    TDynamicObject *tmp;
+    tmp=GetFirstDynamic(1); //szukanie od strony sprzêgu 1
+    if (tmp?tmp!=this:false) //NULL zdarzy siê tylko w przypadku b³êdu
+     if (tmp->MoverParameters->BrakePress>0.03*tmp->MoverParameters->MaxBrakePress)
+      Mechanik->Ready=false; //nie gotowy
+    tmp=GetFirstDynamic(0); //szukanie od strony sprzêgu 0
+    if (tmp?tmp!=this:false)
+     if (tmp->MoverParameters->BrakePress>0.03*tmp->MoverParameters->MaxBrakePress)
+      Mechanik->Ready=false; //nie gotowy
+   }
 
 //ABu-160303 sledzenie toru przed obiektem: *******************************
- //Z obserwacji: v>0 -> Coupler 0; v<0 ->coupler1.
+ //Z obserwacji: v>0 -> Coupler 0; v<0 ->coupler1 (Ra: prêdkoœæ jest zwi¹zana z pojazdem)
  //Rozroznienie jest tutaj, zeby niepotrzebnie
  //nie skakac do funkcji. Nie jest uzaleznione
  //od obecnosci AI, zeby uwzglednic np. jadace

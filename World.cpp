@@ -1621,7 +1621,7 @@ void TWorld::ShowHints(void)
          OutText2="   ('d' - do przodu, 'r' - do tylu)";
          }
       else
-      if (Controlled->GetLastDynamic(1)->MoverParameters->BrakePress>0)
+      if (Controlled->GetFirstDynamic(1)->MoverParameters->BrakePress>0)
          {
          OutText1="Odhamuj sklad i zaczekaj az Ci powiem - to moze troche potrwac.";
          OutText2="   ('.' na klawiaturze numerycznej)";

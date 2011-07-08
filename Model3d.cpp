@@ -284,15 +284,25 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
    parser.getToken(Vertices[i].tu);
    parser.getToken(Vertices[i].tv);
    if (i%3==2) //je¿eli wczytano 3 punkty
-    if (Vertices[i  ].Point==Vertices[i-1].Point ||
+   {if (Vertices[i  ].Point==Vertices[i-1].Point ||
         Vertices[i-1].Point==Vertices[i-2].Point ||
         Vertices[i-2].Point==Vertices[i  ].Point)
     {//je¿eli punkty siê nak³adaj¹ na siebie
      --iNumFaces; //o jeden trójk¹t mniej
      iNumVerts-=3; //czyli o 3 wierzcho³ki
      i-=3; //wczytanie kolejnego w to miejsce
-     WriteLog("Degenerated triangle ignored");
+     WriteLog(AnsiString("Degenerated triangle ignored in: \"")+Name.c_str()+"\"");
     }
+    if (((Vertices[i  ].Point-Vertices[i-1].Point).Length()>2000.0) ||
+        ((Vertices[i-1].Point-Vertices[i-2].Point).Length()>2000.0) ||
+        ((Vertices[i-2].Point-Vertices[i  ].Point).Length()>2000.0))
+    {//je¿eli s¹ dalej ni¿ 2km od siebie
+     --iNumFaces; //o jeden trójk¹t mniej
+     iNumVerts-=3; //czyli o 3 wierzcho³ki
+     i-=3; //wczytanie kolejnego w to miejsce
+     WriteLog(AnsiString("Too large triangle ignored in: \"")+Name.c_str()+"\"");
+    }
+   }
   }
   int i; //indeks dla trójk¹tów
   vector3 *n=new vector3[iNumFaces]; //tablica wektorów normalnych dla trójk¹tów
@@ -463,16 +473,6 @@ void __fastcall TSubModel::InitialRotate(bool doit)
     }
    if (Child) Child->InitialRotate(doit); //potomne ewentualnie obrócimy
   }
-/*
-  tmp.Rotation(M_PI/2,vector3(1,0,0)); //obrót wzglêdem osi OX o 90°
-  (*mat)=tmp*(*mat);
-  tmp.Identity();
-  tmp.Rotation(M_PI,vector3(0,0,1)); //obrót wzglêdem osi OZ o 90°
-  matrix4x4 *mat,tmp;
-  mat=Root->GetMatrix(); //transform g³ównego submodelu
-  tmp.Identity();
-  tmp.Rotation(M_PI/2,vector3(1,0,0)); //obrót wzglêdem osi OX o 90°
-*/
 };
 
 void __fastcall TSubModel::AddChild(TSubModel *SubModel)
