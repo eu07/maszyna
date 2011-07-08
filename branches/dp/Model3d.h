@@ -202,7 +202,7 @@ public:
  TSubModel* __fastcall GetFromName(const char *sName);
  //TMaterial* __fastcall GetMaterialFromName(char *sName);
  bool __fastcall AddTo(const char *Name, TSubModel *SubModel);
- void __fastcall LoadFromTextFile(char *FileName);
+ void __fastcall LoadFromTextFile(char *FileName,bool dynamic);
  bool __fastcall LoadFromFile(char *FileName);
  void __fastcall SaveToFile(char *FileName);
  void __fastcall BreakHierarhy();

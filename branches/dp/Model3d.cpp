@@ -1067,7 +1067,7 @@ TMaterial* __fastcall TModel3d::GetMaterialFromName(char *sName)
 }
 */
 
-void __fastcall TModel3d::LoadFromTextFile(char *FileName)
+void __fastcall TModel3d::LoadFromTextFile(char *FileName,bool dynamic)
 {
  WriteLog("Loading - text model: "+AnsiString(FileName));
  cParser parser(FileName,cParser::buffer_FILE); //Ra: tu powinno byæ "models\\"...
@@ -1088,18 +1088,9 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName)
  }
  if (Root)
  {
-/* Ra: modele maj¹ mieæ taki uk³ad wspó³rzêdnych jak sceneria
-  matrix4x4 *mat,tmp;
-  mat=Root->GetMatrix(); //transform g³ównego submodelu
-  tmp.Identity();
-  tmp.Rotation(M_PI/2,vector3(1,0,0)); //obrót wzglêdem osi OX o 90°
-  (*mat)=tmp*(*mat);
-  tmp.Identity();
-  tmp.Rotation(M_PI,vector3(0,0,1)); //obrót wzglêdem osi OZ o 90°
-  (*mat)=tmp*(*mat);
-  Root->WillBeAnimated(); //Ra: bo kurde te g³upie obroty s¹
-//*/
-  if (!Global::bUseVBO) //przy DL wierzcho³ki s¹ ju¿ skompilowane
+  if (dynamic) //pojazd musi mieæ banana?
+   Root->WillBeAnimated();
+  else if (!Global::bUseVBO) //dla DL wierzcho³ki s¹ kompilowane przy wczytywaniu
    Root->WillBeAnimated(); //i nie da siê ich przeliczyæ
   Root->InitialRotate(true); //konwersja uk³adu wspó³rzêdnych
   //Root->WillBeAnimated(); //Ra: docelowo do usuniêcia
