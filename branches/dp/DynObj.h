@@ -180,7 +180,6 @@ public:
     vector3 modelRot;      //Obrot pudla w/m swiata
     TDynamicObject* ABuScanNearestObject(TTrack *Track, double ScanDir, double ScanDist, int &CouplNr);
     TDynamicObject* GetFirstDynamic(int cpl_type);
-    TDynamicObject* GetLastDynamic(int cpl_type);
     void ABuSetModelShake(vector3 mShake);
     TModel3d *mdLoad;
     TModel3d *mdPrzedsionek;
