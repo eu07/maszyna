@@ -1088,46 +1088,46 @@ void __fastcall TTrain::OnKeyPress(int cKey)
              tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1,500,CouplNr);
             if (tmp&&(CouplNr!=-1))
             {
-              if (tmp->MoverParameters->Couplers[CouplNr].CouplingFlag==0)        //hak
+             if (tmp->MoverParameters->Couplers[CouplNr].CouplingFlag==0)        //hak
+             {
+              if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,ctrain_coupler))
               {
-                if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,ctrain_coupler))
-                {
-                  //tmp->MoverParameters->Couplers[CouplNr].Render=true;
-                  dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
-                  dsbCouplerAttach->Play(0,0,0);
-                }
+               tmp->MoverParameters->Couplers[CouplNr].Render=true; //pod³¹czony sprzêg bêdzie widoczny
+               dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
+               dsbCouplerAttach->Play(0,0,0);
               }
-              else
-              if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag,ctrain_pneumatic))    //pneumatyka
+             }
+             else
+             if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag,ctrain_pneumatic))    //pneumatyka
+             {
+              if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,tmp->MoverParameters->Couplers[CouplNr].CouplingFlag+ctrain_pneumatic))
               {
-                if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,tmp->MoverParameters->Couplers[CouplNr].CouplingFlag+ctrain_pneumatic))
-                {
-                  rsHiss.Play(1,DSBPLAY_LOOPING,true,tmp->GetPosition());
-                  DynamicObject->SetPneumatic(CouplNr,1);
-                  tmp->SetPneumatic(CouplNr,1);
-                }
+               rsHiss.Play(1,DSBPLAY_LOOPING,true,tmp->GetPosition());
+               DynamicObject->SetPneumatic(CouplNr,1);
+               tmp->SetPneumatic(CouplNr,1);
               }
-              else
-              if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag,ctrain_scndpneumatic))     //zasilajacy
+             }
+             else
+             if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag,ctrain_scndpneumatic))     //zasilajacy
+             {
+              if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,tmp->MoverParameters->Couplers[CouplNr].CouplingFlag+ctrain_scndpneumatic))
               {
-                if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,tmp->MoverParameters->Couplers[CouplNr].CouplingFlag+ctrain_scndpneumatic))
-                {
-//                  rsHiss.Play(1,DSBPLAY_LOOPING,true,tmp->GetPosition());
-                  dsbCouplerDetach->SetVolume(DSBVOLUME_MAX);
-                  dsbCouplerDetach->Play( 0, 0, 0 );
-                  DynamicObject->SetPneumatic(CouplNr,0);
-                  tmp->SetPneumatic(CouplNr,0);
-                }
+//               rsHiss.Play(1,DSBPLAY_LOOPING,true,tmp->GetPosition());
+               dsbCouplerDetach->SetVolume(DSBVOLUME_MAX);
+               dsbCouplerDetach->Play( 0, 0, 0 );
+               DynamicObject->SetPneumatic(CouplNr,0);
+               tmp->SetPneumatic(CouplNr,0);
               }
-              else
-              if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag,ctrain_controll))     //ukrotnionko
+             }
+             else
+             if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag,ctrain_controll))     //ukrotnionko
+             {
+              if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,tmp->MoverParameters->Couplers[CouplNr].CouplingFlag+ctrain_controll))
               {
-                if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,tmp->MoverParameters->Couplers[CouplNr].CouplingFlag+ctrain_controll))
-                {
-                  dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
-                  dsbCouplerAttach->Play( 0, 0, 0 );
-                }
+               dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
+               dsbCouplerAttach->Play( 0, 0, 0 );
               }
+             }
             }
           }
         }
