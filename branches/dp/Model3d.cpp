@@ -46,7 +46,7 @@ __fastcall TSubModel::TSubModel()
 
 void __fastcall TSubModel::FirstInit()
 {
- Index=-1;
+ //Index=-1;
  v_RotateAxis=vector3(0,0,0);
  v_TransVector=vector3(0,0,0);
  f_Angle=0;
@@ -445,7 +445,7 @@ void __fastcall TSubModel::InitialRotate(bool doit)
   {//Matrix.Rotation(M_PI/2.0,vector3(1,0,0)); //obrót wzglêdem osi OX o 90°
    //Matrix.Rotation(M_PI,vector3(0,0,1)); //obrót wzglêdem osi OZ o 180°
    matrix4x4 *mat,tmp;
-   mat=GetMatrix(); //transform g³ównego submodelu
+   mat=GetMatrix(); //transform submodelu
    tmp.Identity();
    tmp.Rotation(M_PI/2,vector3(1,0,0)); //obrót wzglêdem osi OX o 90°
    (*mat)=tmp*(*mat);
@@ -457,6 +457,10 @@ void __fastcall TSubModel::InitialRotate(bool doit)
    Child->InitialRotate(false); //potomnych nie obracamy ju¿
   else
   {//jak nie ma potomnych, mo¿na wymno¿yæ przez transform i wyjedynkowaæ go
+   matrix4x4 *mat=GetMatrix(); //transform submodelu
+   if (Vertices)
+    for (int i=0;i<iNumVerts;++i)
+     Vertices->Point=(*mat)*Vertices->Point;
   }
  }
  else //jak jest jednostkowy
@@ -659,7 +663,7 @@ void __fastcall TSubModel::RaRender(GLuint ReplacableSkinId,bool bAlpha)
   {//zmienialne skory
    glBindTexture(GL_TEXTURE_2D,ReplacableSkinId);
    //if (ReplacableSkinId>0)
-   TexAlpha=bAlpha; //TTexturesManager::GetAlpha(ReplacableSkinId); //malo eleganckie ale narazie niech bedzie
+   TexAlpha=bAlpha; //zmiana tylko w przypadku wymienej tekstury
   }
   else
    glBindTexture(GL_TEXTURE_2D,TextureID);
@@ -800,7 +804,7 @@ void __fastcall TSubModel::RaRenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
    if ((TextureID==-1)) // && (ReplacableSkinId!=0))
    {
     glBindTexture(GL_TEXTURE_2D,ReplacableSkinId);
-    TexAlpha=bAlpha; //TTexturesManager::GetAlpha(ReplacableSkinId); //malo eleganckie ale narazie niech bedzie
+    TexAlpha=bAlpha; //zmiana tylko w przypadku wymienej tekstury
    }
    else
     glBindTexture(GL_TEXTURE_2D,TextureID);
@@ -888,7 +892,7 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
    {
     glBindTexture(GL_TEXTURE_2D,ReplacableSkinId);
     //if (ReplacableSkinId>0)
-    TexAlpha=bAlpha; //TTexturesManager::GetAlpha(ReplacableSkinId); //malo eleganckie ale narazie niech bedzie
+    TexAlpha=bAlpha; //zmiana tylko w przypadku wymienej tekstury
    }
    else
     glBindTexture(GL_TEXTURE_2D,TextureID);
@@ -950,19 +954,19 @@ void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
     {
      glBindTexture(GL_TEXTURE_2D,ReplacableSkinId);
      if (ReplacableSkinId>0)
-       TexAlpha=TTexturesManager::GetAlpha(ReplacableSkinId); //malo eleganckie ale narazie niech bedzie
+       TexAlpha=bAlpha;  //zmiana tylko w przypadku wymienej tekstury
     }
    else
     glBindTexture(GL_TEXTURE_2D,TextureID);
    //jak przezroczyste s¹ wy³¹czone, to tu w ogóle nie wchodzi
    if (TexAlpha && Global::bRenderAlpha)  //mozna rysowac bo przezroczyste i nie ma #
-   if (Global::fLuminance<fLight)
-   {glMaterialfv(GL_FRONT,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
-    glCallList(uiDisplayList); //tylko dla siatki
-    glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
-   }
-   else
-    glCallList(uiDisplayList); //tylko dla siatki
+    if (Global::fLuminance<fLight)
+    {glMaterialfv(GL_FRONT,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
+     glCallList(uiDisplayList); //tylko dla siatki
+     glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
+    }
+    else
+     glCallList(uiDisplayList); //tylko dla siatki
   }
   if (Child!=NULL)
    if (bAlpha?(iFlags&0x00050000):(iFlags&0x00040000))

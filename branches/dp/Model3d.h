@@ -109,7 +109,6 @@ class TSubModel
 {//klasa submodelu - pojedyncza siatka, punkt œwietlny albo grupa punktów
 private:
  TSubModelType eType;
- GLuint TextureID;
  int iFlags; //flagi informacyjne
  //bit  0: =1 faza rysowania zale¿y od wymiennej tekstury
  //bit  1: =1 rysowany w fazie nieprzezroczystych
@@ -117,15 +116,16 @@ private:
  //bit  7: =1 ta sama tekstura, co poprzedni albo nadrzêdny
  //bit 13: =1 wystarczy przesuniêcie zamiast mno¿enia macierzy (trzy jedynki)
  //bit 14: =1 wymagane przechowanie macierzy (transform niejedynkowy lub animacje)
+ GLuint TextureID; //numer tekstury, -1 wymienna, 0 brak
  bool TexAlpha;        //McZapkie-141202: zeby bylo wiadomo czy sortowac ze wzgledu na przezroczystosc
  float fLight; //próg jasnoœci œwiat³a do zadzia³ania selfillum
  float f4Ambient[4];
  float f4Diffuse[4];
  float f4Specular[4];
  GLuint uiDisplayList;
- double Transparency;
- bool bWire;
- double fWireSize;
+ double Transparency; //nie u¿ywane, ale wczytywane
+ bool bWire; //nie u¿ywane, ale wczytywane
+ double fWireSize; //nie u¿ywane, ale wczytywane
  double fSquareMaxDist;
  double fSquareMinDist;
  //McZapkie-050702: parametry dla swiatla:
@@ -137,8 +137,8 @@ private:
  double fcosFalloffAngle; //cosinus kata stozka pod ktorym widac swiatlo
  double fcosHotspotAngle; //cosinus kata stozka pod ktorym widac aureole i zwiekszone natezenie swiatla
  double fCosViewAngle;    //cos kata pod jakim sie teraz patrzy
- int Index;
- matrix4x4 Matrix;
+ //int Index;
+ matrix4x4 Matrix; //transform
  //ABu: te same zmienne, ale zdublowane dla Render i RenderAlpha,
  //bo sie chrzanilo przemieszczanie obiektow.
  //Ra: ju¿ siê nie chrzani
@@ -155,8 +155,8 @@ private:
  GLVERTEX *Vertices; //do VBO
  int iAnimOwner;
  void __fastcall RaAnimation(TAnimType a);
-public:
  TAnimType b_Anim,b_aAnim; //kody animacji oddzielnie, bo zerowane
+public:
  bool Visible;
  std::string Name;
  static int iInstance;
