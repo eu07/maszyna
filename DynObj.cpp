@@ -1775,11 +1775,13 @@ void __fastcall TDynamicObject::UpdatePos()
 bool __fastcall TDynamicObject::Update(double dt, double dt1)
 {
 #ifdef _DEBUG
-    if (dt==0)
+    if (dt==0) return true; //Ra: pauza
+/*
     {
         Error("dt==0");
         dt= 0.001;
     }
+*/
 #endif
 if (!MoverParameters->PhysicActivation)
      return true;   //McZapkie: wylaczanie fizyki gdy nie potrzeba
@@ -2309,11 +2311,13 @@ if (tmpTraction.TractionVoltage==0)
 bool __fastcall TDynamicObject::FastUpdate(double dt)
 {
 #ifdef _DEBUG
-    if (dt==0)
+    if (dt==0) return true; //Ra: pauza
+/*
     {
         Error("dt==0");
         dt= 0.001;
     }
+*/
 #endif
     double dDOMoveLen;
     if (!MoverParameters->PhysicActivation)

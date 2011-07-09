@@ -121,6 +121,7 @@ int Global::iMultisampling=2; //tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=1
 bool Global::bGlutFont=false; //tekst generowany przez GLUT
 int Global::iKeyLast=0; //ostatnio naciœniêty klawisz w celu logowania
 GLuint Global::iTextureId=0; //ostatnio u¿yta tekstura 2D
+bool Global::bPause=false; //globalna pauza ruchu
 
 void __fastcall Global::LoadIniFile(AnsiString asFileName)
 {

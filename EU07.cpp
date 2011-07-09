@@ -86,7 +86,6 @@ TWorld World;
 
 bool active=TRUE;	//window active flag set to TRUE by default
 bool fullscreen=TRUE;	//fullscreen flag set to fullscreen mode by default
-bool pause=false;       //flaga pauzy uruchamianej rêcznie
 int WindowWidth= 800;
 int WindowHeight= 600;
 int Bpp= 32;
@@ -436,6 +435,9 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
   {
    switch (wParam) //check system calls
    {
+    case 61696: //F10
+     World.OnKeyPress(VK_F10);
+     return 0;
     case SC_SCREENSAVE:	//screensaver trying to start?
     case SC_MONITORPOWER: //monitor trying to enter powersave?
     return 0; //prevent from happening
@@ -444,7 +446,7 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
   }
   case WM_CLOSE: // did we receive a close message?
   {
-   PostQuitMessage(0); //send a quit message
+   PostQuitMessage(0); //send a quit message [Alt]+[F4]
    return 0; //jump back
   }
   case WM_MOUSEMOVE:
@@ -471,6 +473,10 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
    World.OnKeyPress(wParam);
    switch (wParam)
    {
+    case 19: //[Pause]
+     if (!Global::bMultiplayer) //w multiplayerze pauza nie ma sensu
+      Global::bPause=!Global::bPause; //zmiana stanu zapauzowania
+     break;
     case VK_F7:
      if (DebugModeFlag)
      {//siatki wyœwietlane tyko w trybie testowym
@@ -484,11 +490,9 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
   }
   case WM_CHAR:
   {
+/*
    switch ((TCHAR) wParam)
    {
-    case VK_ESCAPE:
-     pause=!pause; //zmiana stanu zapauzowania
-     break;
     // case 'q':
     //  done= true;
     //  KillGLWindow();
@@ -496,6 +500,7 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
     //  DestroyWindow( hWnd );
     //  break;
    };
+*/
    return 0;
   }
   case WM_SIZE:	//resize the OpenGL window
@@ -619,7 +624,7 @@ int WINAPI WinMain( HINSTANCE hInstance,     //instance
   {
    //draw the scene, watch for quit messages
    //DrawGLScene()
-   if (!pause)
+   //if (!pause)
     if (World.Update()) // Was There A Quit Received?
      SwapBuffers(hDC);	// Swap Buffers (Double Buffering)
     else
