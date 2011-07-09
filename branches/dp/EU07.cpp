@@ -84,7 +84,7 @@ HWND	hWnd=NULL;			// Holds Our Window Handle
 TWorld World;
 
 
-bool active=TRUE;	//window active flag set to TRUE by default
+//bool active=TRUE;	//window active flag set to TRUE by default
 bool fullscreen=TRUE;	//fullscreen flag set to fullscreen mode by default
 int WindowWidth= 800;
 int WindowHeight= 600;
@@ -419,10 +419,10 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
    break;
   case WM_ACTIVATE: //watch for window activate message
   {//Ra: uzale¿nienie aktywnoœci od bycia na wierzchu
-   active=(LOWORD(wParam)!=WA_INACTIVE);
-   if (active)
+   Global::bActive=(LOWORD(wParam)!=WA_INACTIVE);
+   if (Global::bActive)
     SetCursorPos(mx,my);
-   ShowCursor(!active);
+   ShowCursor(!Global::bActive);
 /*
    if (!HIWORD(wParam))	//check minimization state
    	active=TRUE;	//program is active
@@ -457,7 +457,7 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
    //m_x= LOWORD(lParam);
    //m_y= HIWORD(lParam);
    GetCursorPos(&mouse);
-   if (active && ((mouse.x!=mx) || (mouse.y!=my)))
+   if (Global::bActive && ((mouse.x!=mx) || (mouse.y!=my)))
    {
     World.OnMouseMove(double(mouse.x-mx)*0.005,double(mouse.y-my)*0.01);
     SetCursorPos(mx,my);
@@ -469,25 +469,26 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
    return 0;
   }
   case WM_KEYDOWN :
-  {
-   World.OnKeyPress(wParam);
-   switch (wParam)
+   if (Global::bActive)
    {
-    case 19: //[Pause]
-     if (!Global::bMultiplayer) //w multiplayerze pauza nie ma sensu
-      Global::bPause=!Global::bPause; //zmiana stanu zapauzowania
+    World.OnKeyPress(wParam);
+    switch (wParam)
+    {
+     case 19: //[Pause]
+      if (!Global::bMultiplayer) //w multiplayerze pauza nie ma sensu
+       Global::bPause=!Global::bPause; //zmiana stanu zapauzowania
+      break;
+     case VK_F7:
+      if (DebugModeFlag)
+      {//siatki wyœwietlane tyko w trybie testowym
+       Global::bWireFrame=!Global::bWireFrame;
+       Global::bReCompile=true; //czy odœwie¿yæ siatki
+       //Ra: jeszcze usun¹æ siatki ze skompilowanych obiektów!
+      }
      break;
-    case VK_F7:
-     if (DebugModeFlag)
-     {//siatki wyœwietlane tyko w trybie testowym
-      Global::bWireFrame=!Global::bWireFrame;
-      Global::bReCompile=true; //czy odœwie¿yæ siatki
-      //Ra: jeszcze usun¹æ siatki ze skompilowanych obiektów!
-     }
-    break;
+    }
    }
    return 0; // jump back
-  }
   case WM_CHAR:
   {
 /*
@@ -514,7 +515,7 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
    }
    return 0; //jump back
   }
-  case WM_MOVE: //poruszanie mysz¹
+  case WM_MOVE: //przesuwanie okna?
   {
    mx=WindowWidth/2+LOWORD(lParam);    // horizontal position
    my=WindowHeight/2+HIWORD(lParam);    // vertical position

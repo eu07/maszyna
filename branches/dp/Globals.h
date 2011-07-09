@@ -211,6 +211,7 @@ public:
  static bool bGlutFont; //tekst generowany przez GLUT
  static int iKeyLast; //ostatnio naciœniêty klawisz w celu logowania
  static bool bPause; //globalna pauza ruchu
+ static bool bActive; //czy jest aktywnym oknem
  static void __fastcall BindTexture(GLuint t);
 };
 
