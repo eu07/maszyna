@@ -1088,9 +1088,10 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName,bool dynamic)
  }
  if (Root)
  {
-  if (dynamic) //pojazd musi mieæ banana?
-   Root->WillBeAnimated();
-  else if (!Global::bUseVBO) //dla DL wierzcho³ki s¹ kompilowane przy wczytywaniu
+  //if (dynamic) //pojazd musi mieæ banana?
+  // Root->WillBeAnimated();
+  //else
+  if (!Global::bUseVBO) //dla DL wierzcho³ki s¹ kompilowane przy wczytywaniu
    Root->WillBeAnimated(); //i nie da siê ich przeliczyæ
   Root->InitialRotate(true); //konwersja uk³adu wspó³rzêdnych
   //Root->WillBeAnimated(); //Ra: docelowo do usuniêcia

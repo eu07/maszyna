@@ -3080,7 +3080,6 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
           asModel=BaseDir+asModel; //McZapkie-200702 - dynamics maja swoje modele w dynamics/basedir
           Global::asCurrentTexturePath=BaseDir;                    //biezaca sciezka do tekstur to dynamic/...
           mdModel=TModelsManager::GetModel(asModel.c_str(),true);
-          //if (mdModel) mdModel->GetSMRoot()->WillBeAnimated(); //Ra: taka proteza, bo ABu zmodyfikowa³ te transformy
           if (ReplacableSkin!=AnsiString("none"))
           {
            ReplacableSkin=Global::asCurrentTexturePath+ReplacableSkin;      //skory tez z dynamic/...
@@ -3093,7 +3092,6 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
            asModel="przedsionki.t3d";
            asModel=BaseDir+asModel;
            mdPrzedsionek=TModelsManager::GetModel(asModel.c_str(),true);
-           //if (mdPrzedsionek) mdPrzedsionek->GetSMRoot()->WillBeAnimated(); //Ra: taka proteza, bo ABu zmodyfikowa³ te transformy
           }
           if (MoverParameters->LoadAccepted!=AnsiString(""))
           //           if (MoverParameters->LoadAccepted!=AnsiString("")); // && MoverParameters->LoadType!=AnsiString("passengers"))
@@ -3128,9 +3126,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
             }
            }
            else //Ra: tu wczytywanie modelu ³adunku jest w porz¹dku
-           {mdLoad=TModelsManager::GetModel(asLoadName.c_str(),true);  //ladunek
-            //if (mdLoad) mdLoad->GetSMRoot()->WillBeAnimated(); //Ra: taka proteza, bo ABu zmodyfikowa³ te transformy
-           }
+            mdLoad=TModelsManager::GetModel(asLoadName.c_str(),true);  //ladunek
           Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath); //z powrotem defaultowa sciezka do tekstur
           while (!Parser->EndOfFile && str!=AnsiString("endmodels"))
           {
@@ -3141,7 +3137,6 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
             asModel=BaseDir+asModel; //McZapkie-200702 - dynamics maja swoje modele w dynamics/basedir
             Global::asCurrentTexturePath=BaseDir;                    //biezaca sciezka do tekstur to dynamic/...
             mdLowPolyInt=TModelsManager::GetModel(asModel.c_str(),true);
-            //if (mdLowPolyInt) mdLowPolyInt->GetSMRoot()->WillBeAnimated(); //Ra: taka proteza, bo ABu zmodyfikowa³ te transformy
            }
            else
            if (str==AnsiString("animwheelprefix:"))              //prefiks krecacych sie kol
