@@ -210,6 +210,7 @@ public:
  static int iMultisampling; //tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
  static bool bGlutFont; //tekst generowany przez GLUT
  static int iKeyLast; //ostatnio naciœniêty klawisz w celu logowania
+ static bool bPause; //globalna pauza ruchu
  static void __fastcall BindTexture(GLuint t);
 };
 

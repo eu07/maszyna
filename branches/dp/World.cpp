@@ -555,37 +555,41 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 
 void __fastcall TWorld::OnKeyPress(int cKey)
 {//(cKey) to kod klawisza, cyfrowe i literowe siê zgadzaj¹
- AnsiString info="Key pressed: [";
- if (Pressed(VK_SHIFT)) info+="Shift]+[";
- if (Pressed(VK_CONTROL)) info+="Ctrl]+[";
- if (cKey>123) //coœ tam jeszcze jest?
-  WriteLog(info+AnsiString((char)(cKey-128))+"]");
- else if (cKey>=112) //funkcyjne
-  WriteLog(info+"F"+AnsiString(cKey-111)+"]");
- else if (cKey>=96)
-  WriteLog(info+"Num"+AnsiString("0123456789*+?-./").SubString(cKey-95,1)+"]");
- else if (((cKey>='0')&&(cKey<='9'))||((cKey>='A')&&(cKey<='Z'))||(cKey==' '))
-  WriteLog(info+AnsiString((char)(cKey))+"]");
- else if (cKey=='-')
-  WriteLog(info+"Insert]");
- else if (cKey=='.')
-  WriteLog(info+"Delete]");
- else if (cKey=='$')
-  WriteLog(info+"Home]");
- else if (cKey=='#')
-  WriteLog(info+"End]");
- else if (cKey>'Z') //¿eby nie logowaæ kursorów
-  WriteLog(info+AnsiString(cKey)+"]"); //numer klawisza
+ if (!Global::bPause)
+ {//podczas pauzy klawisze nie dzia³aj¹
+  AnsiString info="Key pressed: [";
+  if (Pressed(VK_SHIFT)) info+="Shift]+[";
+  if (Pressed(VK_CONTROL)) info+="Ctrl]+[";
+  if (cKey>123) //coœ tam jeszcze jest?
+   WriteLog(info+AnsiString((char)(cKey-128))+"]");
+  else if (cKey>=112) //funkcyjne
+   WriteLog(info+"F"+AnsiString(cKey-111)+"]");
+  else if (cKey>=96)
+   WriteLog(info+"Num"+AnsiString("0123456789*+?-./").SubString(cKey-95,1)+"]");
+  else if (((cKey>='0')&&(cKey<='9'))||((cKey>='A')&&(cKey<='Z'))||(cKey==' '))
+   WriteLog(info+AnsiString((char)(cKey))+"]");
+  else if (cKey=='-')
+   WriteLog(info+"Insert]");
+  else if (cKey=='.')
+   WriteLog(info+"Delete]");
+  else if (cKey=='$')
+   WriteLog(info+"Home]");
+  else if (cKey=='#')
+   WriteLog(info+"End]");
+  else if (cKey>'Z') //¿eby nie logowaæ kursorów
+   WriteLog(info+AnsiString(cKey)+"]"); //numer klawisza
+ }
  if ((cKey<='9')?(cKey>='0'):false) //klawisze cyfrowe
  {int i=cKey-'0'; //numer klawisza
   if (Pressed(VK_SHIFT))
   {//z [Shift] uruchomienie eventu
-   if (KeyEvents[i])
-    Ground.AddToQuery(KeyEvents[i],NULL);
+   if (!Global::bPause) //podczas pauzy klawisze nie dzia³aj¹
+    if (KeyEvents[i])
+     Ground.AddToQuery(KeyEvents[i],NULL);
   }
-  else
-   if (FreeFlyModeFlag) //w trybie latania mo¿na przeskakiwaæ do ustawionych kamer
-   {if ((!Global::pFreeCameraInit[i].x&&!Global::pFreeCameraInit[i].y&&!Global::pFreeCameraInit[i].z))
+   else //zapamiêtywanie kamery mo¿e dzia³aæ podczas pauzy
+    if (FreeFlyModeFlag) //w trybie latania mo¿na przeskakiwaæ do ustawionych kamer
+    {if ((!Global::pFreeCameraInit[i].x&&!Global::pFreeCameraInit[i].y&&!Global::pFreeCameraInit[i].z))
     {//jeœli kamera jest w punkcie zerowym, zapamiêtanie wspó³rzêdnych i k¹tów
      Global::pFreeCameraInit[i]=Camera.Pos;
      Global::pFreeCameraInitAngle[i].x=Camera.Pitch;
@@ -601,7 +605,7 @@ void __fastcall TWorld::OnKeyPress(int cKey)
       +AnsiString(Global::pFreeCameraInitAngle[i].z)+" "
       +AnsiString(i)+" endcamera");
     }
-    else
+    else //równie¿ przeskaliwanie
      Camera.Init(Global::pFreeCameraInit[i],Global::pFreeCameraInitAngle[i]);
    }
   //bêdzie jeszcze za³¹czanie sprzêgów z [Ctrl]
@@ -616,14 +620,21 @@ void __fastcall TWorld::OnKeyPress(int cKey)
     case VK_F3:
     case VK_F8: //FPS
     case VK_F9: //wersja, typ wyœwietlania, b³êdy OpenGL
+    case VK_F10:
     case VK_F12: //coœ tam jeszcze
      Global::iTextMode=cKey;
    }
   if (cKey!=VK_F4) return; //nie s¹ przekazywane do pojazdu
  }
- if (Controlled)
-  if ((Controlled->Controller==Humandriver) || DebugModeFlag)
-   Train->OnKeyPress(cKey); //przekazanie klawisza do pojazdu
+ if (Global::iTextMode==VK_F10) //wyœwietlone napisy klawiszem F10
+  if (cKey=='Y') //i potwierdzenie
+  {Global::iTextMode=-1; //flaga wyjœcia z programu
+   return; //nie przekazujemy do poci¹gu
+  }
+ if (!Global::bPause) //podczas pauzy sterownaie nie dzia³a
+  if (Controlled)
+   if ((Controlled->Controller==Humandriver) || DebugModeFlag)
+    Train->OnKeyPress(cKey); //przekazanie klawisza do pojazdu
  //switch (cKey)
  //{case 'a': //ignorowanie repetycji
  // case 'A': Global::iKeyLast=cKey; break;
@@ -657,95 +668,96 @@ bool __fastcall TWorld::Update()
  else
   if (GetFPS()>15)
    Global::slowmotion=false;
- UpdateTimers();
- GlobalTime->UpdateMTableTime(GetDeltaTime()); //McZapkie-300302: czas rozkladowy
-
- //Ra: przeliczenie k¹ta czasu (do animacji zale¿nych od czasu)
- Global::fTimeAngleDeg=GlobalTime->hh*15.0+GlobalTime->mm*0.25+GlobalTime->mr/240.0;
- if (Global::fMoveLight>=0.0)
- {//testowo ruch œwiat³a
-  //double a=Global::fTimeAngleDeg/180.0*M_PI-M_PI; //k¹t godzinny w radianach
-  double a=fmod(Global::fSunSpeed*Global::fTimeAngleDeg,360.0)/180.0*M_PI-M_PI; //k¹t godzinny w radianach
-  double L=Global::fLatitudeDeg/180.0*M_PI; //szerokoœæ geograficzna
-  double H=asin(cos(L)*cos(Global::fSunDeclination)*cos(a)+sin(L)*sin(Global::fSunDeclination));
-  //double A=asin(cos(d)*sin(M_PI-a)/cos(H));
-  //Declination=((0.322003-22.971*cos(t)-0.357898*cos(2*t)-0.14398*cos(3*t)+3.94638*sin(t)+0.019334*sin(2*t)+0.05928*sin(3*t)))*Pi/180
-  //Altitude=asin(sin(Declination)*sin(latitude)+cos(Declination)*cos(latitude)*cos((15*(time-12))*(Pi/180)));
-  //Azimuth=(acos((cos(latitude)*sin(Declination)-cos(Declination)*sin(latitude)*cos((15*(time-12))*(Pi/180)))/cos(Altitude)));
-  //double A=acos(cos(L)*sin(d)-cos(d)*sin(L)*cos(M_PI-a)/cos(H));
-  //dAzimuth = atan2(-sin( dHourAngle ),tan( dDeclination )*dCos_Latitude - dSin_Latitude*dCos_HourAngle );
-  double A=atan2(sin(a),tan(Global::fSunDeclination)*cos(L)-sin(L)*cos(a));
-  vector3 lp=vector3(sin(A),tan(H),cos(A));
-  lp=Normalize(lp); //przeliczenie na wektor d³ugoœci 1.0
-  Global::lightPos[0]=(float)lp.x;
-  Global::lightPos[1]=(float)lp.y;
-  Global::lightPos[2]=(float)lp.z;
-  glLightfv(GL_LIGHT0,GL_POSITION,Global::lightPos);        //daylight position
-  if (H>0)
-  {//s³oñce ponad horyzontem
-   Global::ambientDayLight[0]=Global::ambientLight[0];
-   Global::ambientDayLight[1]=Global::ambientLight[1];
-   Global::ambientDayLight[2]=Global::ambientLight[2];
-   if (H>0.02)
-   {Global::diffuseDayLight[0]=Global::diffuseLight[0]; //od wschodu do zachodu maksimum ???
-    Global::diffuseDayLight[1]=Global::diffuseLight[1];
-    Global::diffuseDayLight[2]=Global::diffuseLight[2];
-    Global::specularDayLight[0]=Global::specularLight[0]; //podobnie specular
-    Global::specularDayLight[1]=Global::specularLight[1];
-    Global::specularDayLight[2]=Global::specularLight[2];
+ UpdateTimers(Global::bPause);
+ if (!Global::bPause)
+ {//jak pauza, to nie ma po co tego przeliczaæ
+  GlobalTime->UpdateMTableTime(GetDeltaTime()); //McZapkie-300302: czas rozkladowy
+  //Ra: przeliczenie k¹ta czasu (do animacji zale¿nych od czasu)
+  Global::fTimeAngleDeg=GlobalTime->hh*15.0+GlobalTime->mm*0.25+GlobalTime->mr/240.0;
+  if (Global::fMoveLight>=0.0)
+  {//testowo ruch œwiat³a
+   //double a=Global::fTimeAngleDeg/180.0*M_PI-M_PI; //k¹t godzinny w radianach
+   double a=fmod(Global::fSunSpeed*Global::fTimeAngleDeg,360.0)/180.0*M_PI-M_PI; //k¹t godzinny w radianach
+   double L=Global::fLatitudeDeg/180.0*M_PI; //szerokoœæ geograficzna
+   double H=asin(cos(L)*cos(Global::fSunDeclination)*cos(a)+sin(L)*sin(Global::fSunDeclination));
+   //double A=asin(cos(d)*sin(M_PI-a)/cos(H));
+   //Declination=((0.322003-22.971*cos(t)-0.357898*cos(2*t)-0.14398*cos(3*t)+3.94638*sin(t)+0.019334*sin(2*t)+0.05928*sin(3*t)))*Pi/180
+   //Altitude=asin(sin(Declination)*sin(latitude)+cos(Declination)*cos(latitude)*cos((15*(time-12))*(Pi/180)));
+   //Azimuth=(acos((cos(latitude)*sin(Declination)-cos(Declination)*sin(latitude)*cos((15*(time-12))*(Pi/180)))/cos(Altitude)));
+   //double A=acos(cos(L)*sin(d)-cos(d)*sin(L)*cos(M_PI-a)/cos(H));
+   //dAzimuth = atan2(-sin( dHourAngle ),tan( dDeclination )*dCos_Latitude - dSin_Latitude*dCos_HourAngle );
+   double A=atan2(sin(a),tan(Global::fSunDeclination)*cos(L)-sin(L)*cos(a));
+   vector3 lp=vector3(sin(A),tan(H),cos(A));
+   lp=Normalize(lp); //przeliczenie na wektor d³ugoœci 1.0
+   Global::lightPos[0]=(float)lp.x;
+   Global::lightPos[1]=(float)lp.y;
+   Global::lightPos[2]=(float)lp.z;
+   glLightfv(GL_LIGHT0,GL_POSITION,Global::lightPos);        //daylight position
+   if (H>0)
+   {//s³oñce ponad horyzontem
+    Global::ambientDayLight[0]=Global::ambientLight[0];
+    Global::ambientDayLight[1]=Global::ambientLight[1];
+    Global::ambientDayLight[2]=Global::ambientLight[2];
+    if (H>0.02)
+    {Global::diffuseDayLight[0]=Global::diffuseLight[0]; //od wschodu do zachodu maksimum ???
+     Global::diffuseDayLight[1]=Global::diffuseLight[1];
+     Global::diffuseDayLight[2]=Global::diffuseLight[2];
+     Global::specularDayLight[0]=Global::specularLight[0]; //podobnie specular
+     Global::specularDayLight[1]=Global::specularLight[1];
+     Global::specularDayLight[2]=Global::specularLight[2];
+    }
+    else
+    {Global::diffuseDayLight[0]=50*H*Global::diffuseLight[0]; //wschód albo zachód
+     Global::diffuseDayLight[1]=50*H*Global::diffuseLight[1];
+     Global::diffuseDayLight[2]=50*H*Global::diffuseLight[2];
+     Global::specularDayLight[0]=50*H*Global::specularLight[0]; //podobnie specular
+     Global::specularDayLight[1]=50*H*Global::specularLight[1];
+     Global::specularDayLight[2]=50*H*Global::specularLight[2];
+    }
    }
    else
-   {Global::diffuseDayLight[0]=50*H*Global::diffuseLight[0]; //wschód albo zachód
-    Global::diffuseDayLight[1]=50*H*Global::diffuseLight[1];
-    Global::diffuseDayLight[2]=50*H*Global::diffuseLight[2];
-    Global::specularDayLight[0]=50*H*Global::specularLight[0]; //podobnie specular
-    Global::specularDayLight[1]=50*H*Global::specularLight[1];
-    Global::specularDayLight[2]=50*H*Global::specularLight[2];
+   {//s³oñce pod horyzontem
+    GLfloat lum=2.0*(H>-0.314159?0.314159+H:0.0); //po zachodzie ambient siê œciemnia
+    Global::ambientDayLight[0]=lum;
+    Global::ambientDayLight[1]=lum;
+    Global::ambientDayLight[2]=lum;
+    Global::diffuseDayLight[0]=Global::noLight[0]; //od zachodu do wschodu nie ma diffuse
+    Global::diffuseDayLight[1]=Global::noLight[1];
+    Global::diffuseDayLight[2]=Global::noLight[2];
+    Global::specularDayLight[0]=Global::noLight[0]; //ani specular
+    Global::specularDayLight[1]=Global::noLight[1];
+    Global::specularDayLight[2]=Global::noLight[2];
    }
+   // Calculate sky colour according to time of day.
+   //GLfloat sin_t = sin(PI * time_of_day / 12.0);
+   //back_red = 0.3 * (1.0 - sin_t);
+   //back_green = 0.9 * sin_t;
+   //back_blue = sin_t + 0.4, 1.0;
+   //aktualizacja œwiate³
+   glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
+   glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
+   glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
   }
-  else
-  {//s³oñce pod horyzontem
-   GLfloat lum=2.0*(H>-0.314159?0.314159+H:0.0); //po zachodzie ambient siê œciemnia
-   Global::ambientDayLight[0]=lum;
-   Global::ambientDayLight[1]=lum;
-   Global::ambientDayLight[2]=lum;
-   Global::diffuseDayLight[0]=Global::noLight[0]; //od zachodu do wschodu nie ma diffuse
-   Global::diffuseDayLight[1]=Global::noLight[1];
-   Global::diffuseDayLight[2]=Global::noLight[2];
-   Global::specularDayLight[0]=Global::noLight[0]; //ani specular
-   Global::specularDayLight[1]=Global::noLight[1];
-   Global::specularDayLight[2]=Global::noLight[2];
+  Global::fLuminance= //to pos³u¿y równie¿ do zapalania latarñ
+   +0.150*(Global::diffuseDayLight[0]+Global::ambientDayLight[0])  //R
+   +0.295*(Global::diffuseDayLight[1]+Global::ambientDayLight[1])  //G
+   +0.055*(Global::diffuseDayLight[2]+Global::ambientDayLight[2]); //B
+  if (Global::fMoveLight>=0.0)
+  {//przeliczenie koloru nieba
+   vector3 sky=vector3(Global::AtmoColor[0],Global::AtmoColor[1],Global::AtmoColor[2]);
+   if (Global::fLuminance<0.25)
+   {//przyspieszenie zachodu/wschodu
+    sky*=4.0*Global::fLuminance; //nocny kolor nieba
+    GLfloat fog[3];
+    fog[0]=Global::FogColor[0]*4.0*Global::fLuminance;
+    fog[1]=Global::FogColor[1]*4.0*Global::fLuminance;
+    fog[2]=Global::FogColor[2]*4.0*Global::fLuminance;
+    glFogfv(GL_FOG_COLOR,fog); //nocny kolor mg³y
+   }
+   else
+    glFogfv(GL_FOG_COLOR,Global::FogColor); //kolor mg³y
+   glClearColor(sky.x,sky.y,sky.z,0.0); //kolor nieba
   }
-  // Calculate sky colour according to time of day.
-  //GLfloat sin_t = sin(PI * time_of_day / 12.0);
-  //back_red = 0.3 * (1.0 - sin_t);
-  //back_green = 0.9 * sin_t;
-  //back_blue = sin_t + 0.4, 1.0;
-  //aktualizacja œwiate³
-  glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
-  glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
-  glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
- }
- Global::fLuminance= //to pos³u¿y równie¿ do zapalania latarñ
-  +0.150*(Global::diffuseDayLight[0]+Global::ambientDayLight[0])  //R
-  +0.295*(Global::diffuseDayLight[1]+Global::ambientDayLight[1])  //G
-  +0.055*(Global::diffuseDayLight[2]+Global::ambientDayLight[2]); //B
- if (Global::fMoveLight>=0.0)
- {//przeliczenie koloru nieba
-  vector3 sky=vector3(Global::AtmoColor[0],Global::AtmoColor[1],Global::AtmoColor[2]);
-  if (Global::fLuminance<0.25)
-  {//przyspieszenie zachodu/wschodu
-   sky*=4.0*Global::fLuminance; //nocny kolor nieba
-   GLfloat fog[3];
-   fog[0]=Global::FogColor[0]*4.0*Global::fLuminance;
-   fog[1]=Global::FogColor[1]*4.0*Global::fLuminance;
-   fog[2]=Global::FogColor[2]*4.0*Global::fLuminance;
-   glFogfv(GL_FOG_COLOR,fog); //nocny kolor mg³y
-  }
-  else
-   glFogfv(GL_FOG_COLOR,Global::FogColor); //kolor mg³y
-  glClearColor(sky.x,sky.y,sky.z,0.0); //kolor nieba
- }
 
  /*
 //ZiomalCl: uzaleznienie pory dnia od godziny w takiej formie wylaczone
@@ -802,6 +814,7 @@ bool __fastcall TWorld::Update()
        lastmm=GlobalTime->mm;
     }
     */
+ } //koniec dzia³añ niewykonywanych podczas pauzy
 
     if (Pressed(VK_LBUTTON)&&Controlled)
     {
@@ -846,10 +859,9 @@ bool __fastcall TWorld::Update()
       }
      }
     }
-    else if (Pressed(VK_F10))
+    else if (Global::iTextMode==-1)
     {//tu mozna dodac dopisywanie do logu przebiegu lokomotywy
-     //Global::iViewMode=VK_F10;
-     return false;
+      return false;
     }
     Camera.Update(); //uwzglêdnienie ruchu wywo³anego klawiszami
 
@@ -1204,7 +1216,7 @@ bool __fastcall TWorld::Update()
      //OutText2="defrot="+FloatToStrF(1+0.4*(CtrlPos/CtrlPosNo),ffFixed,2,5);
      OutText3=""; //Pomoc w sterowaniu - [F9]";
     }
-    if (Global::iTextMode==VK_F12)
+    else if (Global::iTextMode==VK_F12)
     {
      //Global::iViewMode=VK_F12;
 
@@ -1212,7 +1224,7 @@ bool __fastcall TWorld::Update()
        OutText1= AnsiString("Online documentation (PL): http://eu07.pl");
     }
 
-    if (Global::iTextMode==VK_F2)
+    else if (Global::iTextMode==VK_F2)
     {
      //Global::iViewMode=VK_F2;
        //ABu: info dla najblizszego pojazdu!
@@ -1304,6 +1316,13 @@ bool __fastcall TWorld::Update()
 
 
      }
+    else if (Global::iTextMode==VK_F10)
+    {//tu mozna dodac dopisywanie do logu przebiegu lokomotywy
+     //Global::iViewMode=VK_F10;
+     //return false;
+     OutText1=AnsiString("To quit press [Y] key.");
+     OutText3=AnsiString("Aby zakonczyc program, przycisnij klawisz [Y].");
+    }
     else
     if (Controlled && DebugModeFlag && !Global::iTextMode)
     {
