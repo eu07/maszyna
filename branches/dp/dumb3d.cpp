@@ -4,6 +4,40 @@
 
 namespace Math3D {
 
+void __fastcall vector3::RotateX(double angle)
+{
+    double ty= y;
+    y= (cos(angle)*y-z*sin(angle));
+    z= (z*cos(angle)+sin(angle)*ty);
+};
+void __fastcall vector3::RotateY(double angle)
+{
+    double tx= x;
+    x= (cos(angle)*x+z*sin(angle));
+    z= (z*cos(angle)-sin(angle)*tx);
+};
+void __fastcall vector3::RotateZ(double angle)
+{
+    double ty= y;
+    y= (cos(angle)*y+x*sin(angle));
+    x= (x*cos(angle)-sin(angle)*ty);
+};
+
+void inline __fastcall vector3::SafeNormalize()
+{
+    double l= Length();
+    if (l==0)
+    {
+        x=y=z=0;
+    }
+    else
+    {
+        x/= l;
+        y/= l;
+        z/= l;
+    }
+}
+
 // From code in Graphics Gems; p. 766
 inline scalar_t det2x2 (scalar_t a, scalar_t b, scalar_t c, scalar_t d) {
 	return a*d - b*c;

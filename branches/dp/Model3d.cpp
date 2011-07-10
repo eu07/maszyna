@@ -155,6 +155,21 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
  };
  parser.ignoreToken();
  parser.getToken(Name); //ze zmian¹ na ma³e!
+ //niektóre submodele s¹ animowane po rozpoznaniu nazwy
+ if      (Name=="bogie1")        iFlags|=0x4000; //wy³¹czenie optymalizacji transformu
+ else if (Name=="bogie2")        iFlags|=0x4000;
+ else if (Name=="boogie01")      iFlags|=0x4000;
+ else if (Name=="boogie02")      iFlags|=0x4000;
+ else if (Name=="buffer_left0")  iFlags|=0x4000;
+ else if (Name=="buffer_right0") iFlags|=0x4000;
+ else if (Name=="wheel01")       iFlags|=0x4000;
+ else if (Name=="wheel02")       iFlags|=0x4000;
+ else if (Name=="wheel03")       iFlags|=0x4000;
+ else if (Name=="wheel04")       iFlags|=0x4000;
+ else if (Name=="wheel05")       iFlags|=0x4000;
+ else if (Name=="wheel06")       iFlags|=0x4000;
+ else if (Name=="wheel07")       iFlags|=0x4000;
+ else if (Name=="wheel08")       iFlags|=0x4000;
  if (parser.expectToken("anim:")) //Ra: ta informacja by siê przyda³a!
  {//rodzaj animacji
   std::string type;
@@ -358,6 +373,7 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
  }
  if (!Global::bUseVBO)
  {//Ra: przy VBO to siê nie przyda
+  iFlags|=0x4000; //wy³¹czenie przeliczania wierzcho³ków, bo nie s¹ zachowane
   if (eType==smt_Mesh)
   {
 #ifdef USE_VERTEX_ARRAYS
@@ -369,9 +385,6 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
    uiDisplayList=glGenLists(1);
    glNewList(uiDisplayList,GL_COMPILE);
    glColor3fv(f4Diffuse);   //McZapkie-240702: zamiast ub
-   //glMaterialfv(GL_FRONT,GL_AMBIENT_AND_DIFFUSE,f4Diffuse); //to samo, co glColor
-   //if (Global::fLuminance<fLight)
-   // glMaterialfv(GL_FRONT,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
 #ifdef USE_VERTEX_ARRAYS
    glDrawArrays(GL_TRIANGLES,0,iNumVerts);
 #else
@@ -384,8 +397,6 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
    };
    glEnd();
 #endif
-   //if (Global::fLuminance<fLight)
-   // glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
    glEndList();
   }
   else if (eType==smt_FreeSpotLight)
@@ -432,18 +443,17 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
   }
   SafeDeleteArray(Vertices); //przy VBO musz¹ zostaæ do za³adowania ca³ego modelu
  }
- Visible=true;
+ Visible=true; //siê potem wy³¹czy w razie potrzeby
  return iNumVerts; //do okreœlenia wielkoœci VBO
 };
 
 void __fastcall TSubModel::InitialRotate(bool doit)
 {//konwersja uk³adu wspó³rzêdnych na zgodny ze sceneri¹
  if (Next) Next->InitialRotate(doit);
- if (iFlags&0xC000) //animacja albo niejednostkowy
+ if (iFlags&0xC000) //jeœli jest animacja albo niejednostkowy
  {//niejednostkowy transform jest mno¿ony i wystarczy zabawy
   if (doit)
-  {//Matrix.Rotation(M_PI/2.0,vector3(1,0,0)); //obrót wzglêdem osi OX o 90°
-   //Matrix.Rotation(M_PI,vector3(0,0,1)); //obrót wzglêdem osi OZ o 180°
+  {//obrót lewostronny
    matrix4x4 *mat,tmp;
    mat=GetMatrix(); //transform submodelu
    tmp.Identity();
@@ -454,20 +464,19 @@ void __fastcall TSubModel::InitialRotate(bool doit)
    (*mat)=tmp*(*mat);
   }
   if (Child)
-   Child->InitialRotate(false); //potomnych nie obracamy ju¿
+   Child->InitialRotate(false); //potomnych nie obracamy ju¿, tylko przegl¹damy
   else
-  {//jak nie ma potomnych, mo¿na wymno¿yæ przez transform i wyjedynkowaæ go
-/*
-   matrix4x4 *mat=GetMatrix(); //transform submodelu
-   if (Vertices)
-    for (int i=0;i<iNumVerts;++i)
-     Vertices[i].Point=(*mat)*Vertices[i].Point;
-   mat->Identity(); //jedynkowanie transformu po przeliczeniu wierzcho³ków
-   iFlags&=~0x8000; //transform jedynkowy, przy animacji nadal odk³adany
-*/
-  }
+   if ((iFlags&0xC000)==0x8000) //o ile nie ma animacji
+   {//jak nie ma potomnych, mo¿na wymno¿yæ przez transform i wyjedynkowaæ go
+    matrix4x4 *mat=GetMatrix(); //transform submodelu
+    if (Vertices)
+     for (int i=0;i<iNumVerts;++i)
+      Vertices[i].Point=(*mat)*Vertices[i].Point;
+    mat->Identity(); //jedynkowanie transformu po przeliczeniu wierzcho³ków
+    iFlags&=~0x8000; //transform jedynkowy
+   }
  }
- else //jak jest jednostkowy
+ else //jak jest jednostkowy i nie ma animacji
   if (doit)
   {//jeœli jest jednostkowy transform, to przeliczamy wierzcho³ki, a mno¿enie podajemy dalej
    double t;
@@ -660,9 +669,10 @@ void __fastcall TSubModel::RaRender(GLuint ReplacableSkinId,bool bAlpha)
  {
   if (iFlags&0xC000)
   {glPushMatrix();
-   glMultMatrixd(Matrix.getArray());
+   //if (iFlags&0x8000)
+    glMultMatrixd(Matrix.getArray());
+   if (b_Anim) RaAnimation(b_Anim);
   }
-  if (b_Anim) RaAnimation(b_Anim);
   if ((TextureID==-1)) // && (ReplacableSkinId!=0))
   {//zmienialne skory
    glBindTexture(GL_TEXTURE_2D,ReplacableSkinId);
@@ -798,9 +808,10 @@ void __fastcall TSubModel::RaRenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
  {
   if (iFlags&0xC000)
   {glPushMatrix(); //zapamiêtanie matrycy
-   glMultMatrixd(Matrix.getArray());
+   //if (iFlags&0x8000)
+    glMultMatrixd(Matrix.getArray());
+   if (b_aAnim) RaAnimation(b_aAnim);
   }
-  if (b_aAnim) RaAnimation(b_aAnim);
   glColor3fv(f4Diffuse);
   //zmienialne skory
   if (eType==smt_Mesh)
@@ -851,9 +862,10 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
  {
   if (iFlags&0xC000)
   {glPushMatrix();
-   glMultMatrixd(Matrix.getArray());
+   //if (iFlags&0x8000)
+    glMultMatrixd(Matrix.getArray());
+   if (b_Anim) RaAnimation(b_Anim);
   }
-  if (b_Anim) RaAnimation(b_Anim);
   //zmienialne skory
   if (eType==smt_FreeSpotLight)
   {
@@ -940,9 +952,10 @@ void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
  {
   if (iFlags&0xC000)
   {glPushMatrix();
-   glMultMatrixd(Matrix.getArray());
+   //if (iFlags&0x8000)
+    glMultMatrixd(Matrix.getArray());
+   if (b_aAnim) RaAnimation(b_aAnim);
   }
-  if (b_aAnim) RaAnimation(b_aAnim);
   if (eType==smt_FreeSpotLight)
   {
 //        if (CosViewAngle>0)  //dorobic od kata
@@ -1082,7 +1095,7 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName,bool dynamic)
  TSubModel *SubModel;
  std::string token;
  parser.getToken(token);
- int totalverts=0;
+ int totalverts=0;            
  while (token!="" || parser.eof())
  {
   std::string parent;
@@ -1096,9 +1109,6 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName,bool dynamic)
  }
  if (Root)
  {
-  //if (dynamic) //pojazd musi mieæ banana?
-  // Root->WillBeAnimated();
-  //else
   if (!Global::bUseVBO) //dla DL wierzcho³ki s¹ kompilowane przy wczytywaniu
    Root->WillBeAnimated(); //i nie da siê ich przeliczyæ
   Root->InitialRotate(true); //konwersja uk³adu wspó³rzêdnych
@@ -1111,7 +1121,7 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName,bool dynamic)
     MakeArray(totalverts); //tworzenie tablic dla VBO
     Root->RaArrayFill(m_pVNT); //wype³nianie tablicy
     BuildVBOs(); //tworzenie VBO i usuwanie tablicy z pamiêci
-   } 
+   }
 #endif
    iFlags=Root->Flags(); //flagi ca³ego modelu
    //if (Root->TextureID) //o ile ma teksturê
