@@ -115,7 +115,8 @@ private:
  //bit  2: =1 rysowany w fazie przezroczystych
  //bit  7: =1 ta sama tekstura, co poprzedni albo nadrzêdny
  //bit 13: =1 wystarczy przesuniêcie zamiast mno¿enia macierzy (trzy jedynki)
- //bit 14: =1 wymagane przechowanie macierzy (transform niejedynkowy lub animacje)
+ //bit 14: =1 wymagane przechowanie macierzy (animacje)
+ //bit 15: =1 wymagane przechowanie macierzy (transform niejedynkowy)
  GLuint TextureID; //numer tekstury, -1 wymienna, 0 brak
  bool TexAlpha;        //McZapkie-141202: zeby bylo wiadomo czy sortowac ze wzgledu na przezroczystosc
  float fLight; //próg jasnoœci œwiat³a do zadzia³ania selfillum
