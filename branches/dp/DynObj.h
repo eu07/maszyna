@@ -267,6 +267,7 @@ public:
   return (Axle1.GetTrack()==MyTrack?Axle1.GetTranslation():Axle4.GetTranslation());
  };
  void CouplersDettach(double MinDist,int MyScanDir);
+ void __fastcall RadioStop();
 };
 
 

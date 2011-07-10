@@ -285,6 +285,7 @@ struct TSecuritySystem
 	double SystemBrakeTimer;
 	int VelocityAllowed;
 	int NextVelocityAllowed;
+	bool RadioStop;
 } ;
 
 struct mover__2

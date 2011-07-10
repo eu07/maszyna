@@ -343,6 +343,7 @@ TYPE
                        Status: byte;     {0: wylaczony, 1: wlaczony, 2: czuwak, 4: shp, 8: alarm, 16: hamowanie awaryjne}
                        SystemTimer, SystemSoundTimer, SystemBrakeTimer: real;
                        VelocityAllowed, NextVelocityAllowed: integer; {predkosc pokazywana przez sygnalizacje kabinowa}
+                       RadioStop:boolean; //czy jest RadioStop
                      end;
 
     {----------------------------------------------}
@@ -4991,6 +4992,7 @@ begin
       Status:=0;
       SystemTimer:=0; SystemBrakeTimer:=0;
       VelocityAllowed:=-1; NextVelocityAllowed:=-1;
+      RadioStop:=false; //domyœlnie nie ma 
     end;
     //ABu 240105:
     CouplerNr[0]:=1;
@@ -5864,6 +5866,10 @@ begin
                 s:=ExtractKeyWord(lines,'EmergencyBrakeDelay=');
                if s<>'' then
                 EmergencyBrakeDelay:=s2r(DUE(s));
+               s:=ExtractKeyWord(lines,'RadioStop=');
+               if s<>'' then
+                if Pos('Yes',s)>0 then
+                 RadioStop:=true;
              end;
           if Pos('Clima:',lines)>0 then      {zrodlo mocy dla ogrzewania itp}
             begin

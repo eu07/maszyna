@@ -151,6 +151,7 @@ public:
     {if (SwitchExtension) SwitchExtension->pOwner=o;};
     void __fastcall RaAnimListAdd(TTrack *t);
     TTrack* __fastcall RaAnimate();
+    void __fastcall RadioStop();
 };
 
 //---------------------------------------------------------------------------
