@@ -260,46 +260,12 @@ inline vector3 operator* (const matrix4x4& m, const vector3& v) {
 
 }
 
-void __fastcall vector3::RotateX(double angle)
-{
-    double ty= y;
-    y= (cos(angle)*y-z*sin(angle));
-    z= (z*cos(angle)+sin(angle)*ty);
-};
-void __fastcall vector3::RotateY(double angle)
-{
-    double tx= x;
-    x= (cos(angle)*x+z*sin(angle));
-    z= (z*cos(angle)-sin(angle)*tx);
-};
-void __fastcall vector3::RotateZ(double angle)
-{
-    double ty= y;
-    y= (cos(angle)*y+x*sin(angle));
-    x= (x*cos(angle)-sin(angle)*ty);
-};
-
 void inline __fastcall vector3::Normalize()
 {
     double il= 1/Length();
     x*= il;
     y*= il;
     z*= il;
-}
-
-void inline __fastcall vector3::SafeNormalize()
-{
-    double l= Length();
-    if (l==0)
-    {
-        x=y=z=0;
-    }
-    else
-    {
-        x/= l;
-        y/= l;
-        z/= l;
-    }
 }
 
 double inline __fastcall vector3::Length()
