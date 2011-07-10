@@ -3269,5 +3269,23 @@ void __fastcall TGround::WyslijNamiary(TGroundNode* t)
  Navigate("TEU07SRK",WM_COPYDATA,(WPARAM)Global::hWnd,(LPARAM)&cData);
 };
 //---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+void __fastcall TGround::RadioStop(vector3 pPosition)
+{//zatrzymanie poci¹gów w okolicy
+ TGroundNode *node;
+ TSubRect *tmp;
+ int c=GetColFromX(pPosition.x);
+ int r=GetRowFromZ(pPosition.z);
+ int i,j,k;
+ int n=2*iNumSubRects; //przegl¹danie czo³gowe okolicznych torów w kwadracie 4km×4km
+ for (j=r-n;j<r+n;j++)
+  for (i=c-n;i<c+n;i++)
+   if ((tmp=FastGetSubRect(i,j))!=NULL)
+    for (node=tmp->pRootNode;node!=NULL;node=node->pNext2)
+     if (node->iType==TP_TRACK)
+      node->pTrack->RadioStop(); //przekazanie do ka¿dego toru w ka¿dym segmencie
+};
 
+//---------------------------------------------------------------------------
 

@@ -360,10 +360,11 @@ private:
  void __fastcall Navigate(String ClassName,UINT Msg,WPARAM wParam,LPARAM lParam);
  void __fastcall WyslijEvent(const AnsiString &e,const AnsiString &d);
 public:
- int iRendered; //iloœæ renderowanych sektorów
+ int iRendered; //iloœæ renderowanych sektorów, pobierana przy pokazywniu FPS
  void __fastcall WyslijString(const AnsiString &t,int n);
  void __fastcall WyslijWolny(const AnsiString &t);
  void __fastcall WyslijNamiary(TGroundNode* t);
+ void __fastcall RadioStop(vector3 pPosition);
 };
 //---------------------------------------------------------------------------
 #endif

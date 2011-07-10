@@ -631,7 +631,11 @@ void __fastcall TWorld::OnKeyPress(int cKey)
   Global::iTextMode=(cKey=='Y')?-1:0; //flaga wyjœcia z programu
   return; //nie przekazujemy do poci¹gu
  }
- if (!Global::bPause||(cKey==VK_F4)) //podczas pauzy sterownaie nie dzia³a, F4 tak
+ else if (cKey==3) //[Ctrl]+[Break]
+ {//hamowanie wszystkich pojazdów w okolicy
+  Ground.RadioStop(Camera.Pos);
+ }
+ else if (!Global::bPause||(cKey==VK_F4)) //podczas pauzy sterownaie nie dzia³a, F4 tak
   if (Controlled)
    if ((Controlled->Controller==Humandriver)||DebugModeFlag||(cKey=='q'))
     Train->OnKeyPress(cKey); //przekazanie klawisza do pojazdu

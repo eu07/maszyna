@@ -471,12 +471,14 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
   case WM_KEYDOWN :
    if (Global::bActive)
    {
-    World.OnKeyPress(wParam);
+    if (wParam!=17) //bo naciœniêcia [Ctrl] nie ma po co przekazywaæ
+     World.OnKeyPress(wParam);
     switch (wParam)
     {
      case 19: //[Pause]
       if (!Global::bMultiplayer) //w multiplayerze pauza nie ma sensu
-       Global::bPause=!Global::bPause; //zmiana stanu zapauzowania
+       if (!Pressed(VK_CONTROL))
+        Global::bPause=!Global::bPause; //zmiana stanu zapauzowania
       break;
      case VK_F7:
       if (DebugModeFlag)

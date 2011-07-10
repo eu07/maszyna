@@ -1672,4 +1672,8 @@ TTrack* __fastcall TTrack::RaAnimate()
  return m?this:SwitchExtension->pNextAnim; //zwraca obiekt do dalszej animacji
 };
 //---------------------------------------------------------------------------
-
+void __fastcall TTrack::RadioStop()
+{//przekazanie pojazdom rozkazu zatrzymania
+ for (int i=0;i<iNumDynamics;i++)
+  Dynamics[i]->RadioStop();
+};

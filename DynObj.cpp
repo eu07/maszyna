@@ -3430,9 +3430,13 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
     delete Parser;
 }
 
-
-
 //---------------------------------------------------------------------------
+void __fastcall TDynamicObject::RadioStop()
+{//zatrzymanie pojazdu
+ if (MoverParameters->SecuritySystem.RadioStop) //jeœli pojazd ma RadioStop i jest on aktywny
+  MoverParameters->PutCommand("Emergency_brake",1.0,1.0,MoverParameters->Loc);
+};
+
 
 #pragma package(smart_init)
 
