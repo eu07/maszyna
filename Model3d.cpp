@@ -251,13 +251,13 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
  fSquareMinDist*=fSquareMinDist;
  parser.ignoreToken();
  readMatrix(parser,Matrix); //wczytanie transform
- if ((iFlags&0x4000)==0) //o ile nie ma animacji
-  for (int i=0;i<16;++i)
-   if (Matrix.readArray()[i]!=((i%5)?0.0:1.0)) //jedynki tylko na 0, 5, 10 i 15
-   {
-    iFlags|=0x4000; //transform niejedynkowy - trzeba przechowaæ
-    break;
-   }
+ //if ((iFlags&0x4000)==0) //o ile nie ma animacji
+ for (int i=0;i<16;++i)
+  if (Matrix.readArray()[i]!=((i%5)?0.0:1.0)) //jedynki tylko na 0, 5, 10 i 15
+  {
+   iFlags|=0x8000; //transform niejedynkowy - trzeba przechowaæ
+   break;
+  }
  int iNumFaces; //iloœæ trójk¹tów
  DWORD *sg; //maski przynale¿noœci trójk¹tów do powierzchni
  if (eType==smt_Mesh)
@@ -439,7 +439,7 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
 void __fastcall TSubModel::InitialRotate(bool doit)
 {//konwersja uk³adu wspó³rzêdnych na zgodny ze sceneri¹
  if (Next) Next->InitialRotate(doit);
- if (iFlags&0x4000) //animacja albo niejednostkowy
+ if (iFlags&0xC000) //animacja albo niejednostkowy
  {//niejednostkowy transform jest mno¿ony i wystarczy zabawy
   if (doit)
   {//Matrix.Rotation(M_PI/2.0,vector3(1,0,0)); //obrót wzglêdem osi OX o 90°
@@ -457,10 +457,14 @@ void __fastcall TSubModel::InitialRotate(bool doit)
    Child->InitialRotate(false); //potomnych nie obracamy ju¿
   else
   {//jak nie ma potomnych, mo¿na wymno¿yæ przez transform i wyjedynkowaæ go
+/*
    matrix4x4 *mat=GetMatrix(); //transform submodelu
    if (Vertices)
     for (int i=0;i<iNumVerts;++i)
-     Vertices->Point=(*mat)*Vertices->Point;
+     Vertices[i].Point=(*mat)*Vertices[i].Point;
+   mat->Identity(); //jedynkowanie transformu po przeliczeniu wierzcho³ków
+   iFlags&=~0x8000; //transform jedynkowy, przy animacji nadal odk³adany
+*/
   }
  }
  else //jak jest jednostkowy
@@ -470,10 +474,10 @@ void __fastcall TSubModel::InitialRotate(bool doit)
    if (Vertices)
     for (int i=0;i<iNumVerts;++i)
     {
-     Vertices->Point.x=-Vertices->Point.x; //zmiana znaku X
-     t=Vertices->Point.y; //zamiana Y i Z
-     Vertices->Point.y=Vertices->Point.z;
-     Vertices->Point.z=t;
+     Vertices[i].Point.x=-Vertices[i].Point.x; //zmiana znaku X
+     t=Vertices[i].Point.y; //zamiana Y i Z
+     Vertices[i].Point.y=Vertices[i].Point.z;
+     Vertices[i].Point.z=t;
     }
    if (Child) Child->InitialRotate(doit); //potomne ewentualnie obrócimy
   }
@@ -654,7 +658,7 @@ void __fastcall TSubModel::RaRender(GLuint ReplacableSkinId,bool bAlpha)
    Next->RaRender(ReplacableSkinId,bAlpha); //dalsze rekurencyjnie
  if (Visible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
  {
-  if (iFlags&0x4000)
+  if (iFlags&0xC000)
   {glPushMatrix();
    glMultMatrixd(Matrix.getArray());
   }
@@ -778,7 +782,7 @@ void __fastcall TSubModel::RaRender(GLuint ReplacableSkinId,bool bAlpha)
   if (Child!=NULL)
    if (bAlpha?(iFlags&0x00020000):(iFlags&0x00030000))
     Child->RaRender(ReplacableSkinId,bAlpha);
-  if (iFlags&0x4000)
+  if (iFlags&0xC000)
    glPopMatrix();
  }
  if (b_Anim<at_SecondsJump)
@@ -792,7 +796,7 @@ void __fastcall TSubModel::RaRenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
    Next->RaRenderAlpha(ReplacableSkinId,bAlpha);
  if (Visible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
  {
-  if (iFlags&0x4000)
+  if (iFlags&0xC000)
   {glPushMatrix(); //zapamiêtanie matrycy
    glMultMatrixd(Matrix.getArray());
   }
@@ -831,7 +835,7 @@ void __fastcall TSubModel::RaRenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
   if (Child)
    if (bAlpha?(iFlags&0x00050000):(iFlags&0x00040000))
     Child->RaRenderAlpha(ReplacableSkinId,bAlpha);
-  if (iFlags&0x4000)
+  if (iFlags&0xC000)
    glPopMatrix();
  }
  if (b_aAnim<at_SecondsJump)
@@ -845,7 +849,7 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
    Next->Render(ReplacableSkinId,bAlpha); //dalsze rekurencyjnie
  if (Visible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
  {
-  if (iFlags&0x4000)
+  if (iFlags&0xC000)
   {glPushMatrix();
    glMultMatrixd(Matrix.getArray());
   }
@@ -920,7 +924,7 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
   if (Child!=NULL)
    if (bAlpha?(iFlags&0x00020000):(iFlags&0x00030000))
     Child->Render(ReplacableSkinId,bAlpha);
-  if (iFlags&0x4000)
+  if (iFlags&0xC000)
    glPopMatrix();
  }
  if (b_Anim<at_SecondsJump)
@@ -934,7 +938,7 @@ void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
    Next->RenderAlpha(ReplacableSkinId,bAlpha);
  if (Visible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
  {
-  if (iFlags&0x4000)
+  if (iFlags&0xC000)
   {glPushMatrix();
    glMultMatrixd(Matrix.getArray());
   }
@@ -971,7 +975,7 @@ void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
   if (Child!=NULL)
    if (bAlpha?(iFlags&0x00050000):(iFlags&0x00040000))
     Child->RenderAlpha(ReplacableSkinId,bAlpha);
-  if (iFlags&0x4000)
+  if (iFlags&0xC000)
    glPopMatrix();
  }
  if (b_aAnim<at_SecondsJump)
