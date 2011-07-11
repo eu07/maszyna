@@ -29,6 +29,7 @@ public:
  void __fastcall Clear(); //zwolnienie zasobów
  bool __fastcall StartVBO();
  void __fastcall EndVBO();
+ bool __fastcall StartColorVBO();
 };
 
 #endif

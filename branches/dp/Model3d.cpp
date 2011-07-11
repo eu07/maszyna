@@ -155,21 +155,6 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
  };
  parser.ignoreToken();
  parser.getToken(Name); //ze zmian¹ na ma³e!
- //niektóre submodele s¹ animowane po rozpoznaniu nazwy
- if      (Name=="bogie1")        iFlags|=0x4000; //wy³¹czenie optymalizacji transformu
- else if (Name=="bogie2")        iFlags|=0x4000;
- else if (Name=="boogie01")      iFlags|=0x4000;
- else if (Name=="boogie02")      iFlags|=0x4000;
- else if (Name=="buffer_left0")  iFlags|=0x4000;
- else if (Name=="buffer_right0") iFlags|=0x4000;
- else if (Name=="wheel01")       iFlags|=0x4000;
- else if (Name=="wheel02")       iFlags|=0x4000;
- else if (Name=="wheel03")       iFlags|=0x4000;
- else if (Name=="wheel04")       iFlags|=0x4000;
- else if (Name=="wheel05")       iFlags|=0x4000;
- else if (Name=="wheel06")       iFlags|=0x4000;
- else if (Name=="wheel07")       iFlags|=0x4000;
- else if (Name=="wheel08")       iFlags|=0x4000;
  if (parser.expectToken("anim:")) //Ra: ta informacja by siê przyda³a!
  {//rodzaj animacji
   std::string type;
@@ -1095,14 +1080,14 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName,bool dynamic)
  TSubModel *SubModel;
  std::string token;
  parser.getToken(token);
- int totalverts=0;            
+ iNumVerts=0;
  while (token!="" || parser.eof())
  {
   std::string parent;
   parser.getToken(parent);
   if (parent=="") break;
   SubModel=new TSubModel();
-  totalverts+=SubModel->Load(parser,this,totalverts);
+  iNumVerts+=SubModel->Load(parser,this,iNumVerts);
   if (!AddTo(parent.c_str(),SubModel)) delete SubModel;
   //SubModelsCount++;
   parser.getToken(token);
@@ -1111,25 +1096,32 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName,bool dynamic)
  {
   if (!Global::bUseVBO) //dla DL wierzcho³ki s¹ kompilowane przy wczytywaniu
    Root->WillBeAnimated(); //i nie da siê ich przeliczyæ
-  Root->InitialRotate(true); //konwersja uk³adu wspó³rzêdnych
-  //Root->WillBeAnimated(); //Ra: docelowo do usuniêcia
-  if (totalverts)
+  if (!dynamic) //dynamic zrobi to sam dopiero po przeanalizowaniu animacji submodeli
+   Init();
+ }
+}
+
+void __fastcall TModel3d::Init()
+{//obrócenie pocz¹tkowe uk³adu wspó³rzêdnych, dla pojazdów wykonywane po analizie animacji
+ if (iFlags&0x8000) return; //zosta³ ju¿ obrócony
+ if (Root)
+ {Root->InitialRotate(true); //konwersja uk³adu wspó³rzêdnych
+  if (iNumVerts)
   {
 #ifdef USE_VBO
    if (Global::bUseVBO)
    {//tworzenie tymczasowej tablicy z wierzcho³kami ca³ego modelu
-    MakeArray(totalverts); //tworzenie tablic dla VBO
+    MakeArray(iNumVerts); //tworzenie tablic dla VBO
     Root->RaArrayFill(m_pVNT); //wype³nianie tablicy
     BuildVBOs(); //tworzenie VBO i usuwanie tablicy z pamiêci
    }
 #endif
-   iFlags=Root->Flags(); //flagi ca³ego modelu
+   iFlags=Root->Flags()|0x8000; //flagi ca³ego modelu
    //if (Root->TextureID) //o ile ma teksturê
    // Root->iFlags|=0x80; //koniecznoœæ ustawienia tekstury
   }
  }
-}
-
+};
 
 void __fastcall TModel3d::SaveToFile(char *FileName)
 {

@@ -3199,7 +3199,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
          {
           str= DynamicObject->asBaseDir+str;
           Global::asCurrentTexturePath=DynamicObject->asBaseDir;         //biezaca sciezka do tekstur to dynamic/...
-          DynamicObject->mdKabina=TModelsManager::GetModel(str.c_str()); //szukaj kabinê jako oddzielny model
+          DynamicObject->mdKabina=TModelsManager::GetModel(str.c_str(),true); //szukaj kabinê jako oddzielny model
           Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath); //z powrotem defaultowa sciezka do tekstur
          }
          else
@@ -3849,14 +3849,15 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
 //    btLampkaUnknown.Init("unknown",mdKabina,false);
        }
     }
-   else return false;
-   //ABu 050205: tego wczesniej nie bylo:
-   delete Parser;
-   if (!DynamicObject->mdKabina && !AnsiCompareStr(str,AnsiString("none"))) return false;
-    else
-     {
-     return true;
-     }
+ else return false;
+ //ABu 050205: tego wczesniej nie bylo:
+ delete Parser;
+ if (DynamicObject->mdKabina)
+ {
+  DynamicObject->mdKabina->Init(); //obrócenie modelu oraz optymalizacja, równie¿ zapisanie binarnego
+  return true;
+ }
+ return AnsiCompareStr(str,AnsiString("none"));
 }
 
 
