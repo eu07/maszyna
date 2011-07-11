@@ -52,9 +52,9 @@ void __fastcall CMesh::Clear()
 };
 
 bool __fastcall CMesh::StartVBO()
-{//pocz¹tek rysowania elementów z VBO w sektorze
+{//pocz¹tek rysowania elementów z VBO
  if (m_nVertexCount<=0) return false; //nie ma nic do rysowania w ten sposób
- glEnableClientState(GL_VERTEX_ARRAY);        
+ glEnableClientState(GL_VERTEX_ARRAY);
  glEnableClientState(GL_NORMAL_ARRAY);
  glEnableClientState(GL_TEXTURE_COORD_ARRAY);
  if (m_nVBOVertices)
@@ -67,11 +67,26 @@ bool __fastcall CMesh::StartVBO()
  return true; //mo¿na rysowaæ z VBO
 };
 
+bool __fastcall CMesh::StartColorVBO()
+{//pocz¹tek rysowania punktów œwiec¹cych z VBO
+ if (m_nVertexCount<=0) return false; //nie ma nic do rysowania w ten sposób
+ glEnableClientState(GL_VERTEX_ARRAY);
+ glEnableClientState(GL_COLOR_ARRAY);
+ if (m_nVBOVertices)
+ {
+  glBindBufferARB(GL_ARRAY_BUFFER_ARB,m_nVBOVertices);
+  glVertexPointer(3,GL_FLOAT,sizeof(CVertNormTex),((char*)NULL));               //pozycje
+  glColorPointer(3,GL_UNSIGNED_BYTE,sizeof(CVertNormTex),((char*)NULL)+12);     //kolory
+ }
+ return true; //mo¿na rysowaæ z VBO
+};
+
 void __fastcall CMesh::EndVBO()
 {//koniec u¿ycia VBO
  glDisableClientState(GL_VERTEX_ARRAY);
  glDisableClientState(GL_NORMAL_ARRAY);
  glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+ glDisableClientState(GL_COLOR_ARRAY);
  //glBindBuffer(GL_ARRAY_BUFFER,0); //takie coœ psuje, mimo i¿ polecali u¿yæ
  glBindBufferARB(GL_ARRAY_BUFFER_ARB,0);
  glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB,0);

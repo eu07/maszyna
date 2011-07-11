@@ -181,7 +181,7 @@ public:
  void __fastcall RaArrayFill(CVertNormTex *Vert);
  void __fastcall Render();
  int __fastcall Flags();
- void __fastcall WillBeAnimated() {iFlags|=0x4000;};
+ void __fastcall WillBeAnimated() {if (this) iFlags|=0x4000;};
  void __fastcall InitialRotate(bool doit);
 };
 
@@ -191,8 +191,9 @@ private:
  //TMaterial *Materials;
  //int MaterialsCount; //Ra: nie u¿ywane
  //bool TractionPart; //Ra: nie u¿ywane
- TSubModel *Root;
+ TSubModel *Root; //drzewo submodeli
  int iFlags; //Ra: czy submodele maj¹ przezroczyste tekstury
+ int iNumVerts; //iloœæ wierzcho³ków
 public:
  inline TSubModel* __fastcall GetSMRoot() {return(Root);};
  //int SubModelsCount; //Ra: nie u¿ywane
@@ -224,6 +225,7 @@ public:
  void __fastcall RaRenderAlpha(vector3* vPosition,vector3* vAngle,GLuint ReplacableSkinId=0,bool bAlpha=false);
  //inline int __fastcall GetSubModelsCount() { return (SubModelsCount); };
  int __fastcall Flags() {return iFlags;};
+ void __fastcall Init(); 
 };
 
 //typedef TModel3d *PModel3d;
