@@ -365,6 +365,7 @@ public:
  void __fastcall WyslijWolny(const AnsiString &t);
  void __fastcall WyslijNamiary(TGroundNode* t);
  void __fastcall RadioStop(vector3 pPosition);
+ TDynamicObject* __fastcall DynamicNearest(vector3 pPosition);
 };
 //---------------------------------------------------------------------------
 #endif
