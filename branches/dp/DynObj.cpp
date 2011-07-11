@@ -2387,14 +2387,14 @@ vector3 inline __fastcall TDynamicObject::GetPosition()
  vector3 pos=(Axle1.pPosition+Axle4.pPosition)*0.5f; //œrodek miêdzy skrajnymi osiami
  if (MoverParameters->CategoryFlag&1)
  {//gdy jest pojazdem poruszaj¹cym siê po szynach (rail albo unimog)
-  pos.x+=MoverParameters->OffsetTrackH*vLeft.x; //dodanie przesuniêcia w bok
-  pos.z+=MoverParameters->OffsetTrackH*vLeft.z; //vLeft jest wektorem poprzecznym
+  //pos.x+=MoverParameters->OffsetTrackH*vLeft.x; //dodanie przesuniêcia w bok
+  //pos.z+=MoverParameters->OffsetTrackH*vLeft.z; //vLeft jest wektorem poprzecznym
   pos.y+=MoverParameters->OffsetTrackV+0.18; //wypadaloby tu prawdziwa wysokosc szyny dorobic
  }                                   //0.2
  else
  {
-  pos.x+=MoverParameters->OffsetTrackH*vLeft.x;
-  pos.z+=MoverParameters->OffsetTrackH*vLeft.z;
+  pos.x+=MoverParameters->OffsetTrackH*vLeft.x; //dodanie przesuniêcia w bok
+  pos.z+=MoverParameters->OffsetTrackH*vLeft.z; //vLeft jest wektorem poprzecznym
   pos.y+=MoverParameters->OffsetTrackV;   //te offsety sa liczone przez moverparam
  }
  return pos;

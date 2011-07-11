@@ -3277,7 +3277,7 @@ void __fastcall TGround::RadioStop(vector3 pPosition)
  TSubRect *tmp;
  int c=GetColFromX(pPosition.x);
  int r=GetRowFromZ(pPosition.z);
- int i,j,k;
+ int i,j;
  int n=2*iNumSubRects; //przegl¹danie czo³gowe okolicznych torów w kwadracie 4km×4km
  for (j=r-n;j<r+n;j++)
   for (i=c-n;i<c+n;i++)
@@ -3287,5 +3287,27 @@ void __fastcall TGround::RadioStop(vector3 pPosition)
       node->pTrack->RadioStop(); //przekazanie do ka¿dego toru w ka¿dym segmencie
 };
 
+TDynamicObject* __fastcall TGround::DynamicNearest(vector3 pPosition)
+{//wyszukanie pojazdu najbli¿szego wzglêdem (pPosition)
+ TGroundNode *node;
+ TSubRect *tmp;
+ TDynamicObject *dyn=NULL;
+ int c=GetColFromX(pPosition.x);
+ int r=GetRowFromZ(pPosition.z);
+ int i,j,k;
+ double sqm=100.0,sqd; //maksymalny promien poszukiwañ do kwadratu
+ for (j=r-1;j<r+1;j++) //plus dwa zewnêtrzne sektory, ³¹cznie 9
+  for (i=c-1;i<c+1;i++)
+   if ((tmp=FastGetSubRect(i,j))!=NULL)
+    for (node=tmp->pRootNode;node!=NULL;node=node->pNext2)
+     if (node->iType==TP_TRACK)
+      for (k=0;k<node->pTrack->iNumDynamics;k++)
+       if ((sqd=SquareMagnitude(node->pTrack->Dynamics[k]->GetPosition()-pPosition))<sqm)
+       {
+        sqm=sqd; //nowa odleg³oœæ
+        dyn=node->pTrack->Dynamics[k]; //nowy lider
+       }
+ return dyn;
+};
 //---------------------------------------------------------------------------
 
