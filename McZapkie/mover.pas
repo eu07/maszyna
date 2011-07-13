@@ -549,6 +549,7 @@ TYPE
                 {komenda przekazywana przez PutCommand}
                 {i wykonywana przez RunInternalCommand}
                 CommandOut: string;        {komenda przekazywana przez ExternalCommand}
+                CommandLast: string; //Ra: ostatnio wykonana komenda podgl¹du
                 ValueOut: real;            {argument komendy ktora ma byc przekazana na zewnatrz}
 
                 RunningShape:TTrackShape;{geometria toru po ktorym jedzie pojazd}
@@ -4748,6 +4749,7 @@ end;
 
 procedure TMoverParameters.PutCommand(NewCommand:string; NewValue1,NewValue2:real; NewLocation:TLocation);
 begin
+ CommandLast:=NewCommand; //zapamiêtanie komendy
   with CommandIn do
    begin
      Command:=NewCommand;
