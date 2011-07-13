@@ -95,6 +95,7 @@ public:
 	void __fastcall CloseLog(void);
 	__fastcall TController(const Mover::TLocation &LocInitial, const Mover::TRotation &RotInitial, bool 
 		AI, Mover::PMoverParameters NewControll, Mtable::PTrainParameters NewTrainSet, bool InitPsyche);
+	AnsiString __fastcall OrderCurrent();
 	
 private:
 	AnsiString VehicleName;

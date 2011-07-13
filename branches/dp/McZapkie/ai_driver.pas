@@ -110,8 +110,8 @@ Type
                   {ustawia nowa predkosc do ktorej ma dazyc oraz predkosc przy nastepnym obiekcie}
                   CommandLocation: TLocation;
                   {polozenie wskaznika, sygnalizatora lub innego obiektu do ktorego odnosi sie komenda}
-                  OrderList: array[0..maxorders] of TOrders;
-                  OrderPos: byte;
+                  OrderList: array[0..maxorders] of TOrders; //lista rozkazów
+                  OrderPos: byte; //aktualny rozkaz
                   LogFile: text;   {zapis parametrow fizycznych}
                   AILogFile: text; {log AI}
                   ScanMe: boolean; {flaga potrzeby skanowania toru dla DynObj.cpp}
@@ -146,13 +146,14 @@ Type
                   procedure CloseLog;
                   constructor Init(LocInitial:TLocation; RotInitial:TRotation;
                                    AI:boolean; NewControll:PMoverParameters; NewTrainSet:PTRainParameters; InitPsyche:boolean);
-                  private
+                  function OrderCurrent:string;
+private
                   VehicleName: string;
                   VelMargin: real;
                   WarningDuration: real;
                   WaitingTime, WaitingExpireTime:real;
                   function OrderDirectionChange(newdir:integer; Vehicle:PMoverParameters):integer;
-                end;
+end;
 
 
 implementation
@@ -177,6 +178,12 @@ begin
    else
     Order2Str:='Undefined!';
   end;
+end;
+
+function TController.OrderCurrent:string;
+//pobranie aktualnego rozkazu celem wyœwietlenia
+begin
+ OrderCurrent:=Order2Str(OrderList[OrderPos]);
 end;
 
 function TController.OrderDirectionChange(newdir:integer; Vehicle:PMoverParameters):integer;
