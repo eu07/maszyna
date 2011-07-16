@@ -5,15 +5,18 @@
 #include "opengl/glew.h"
 #include "Parser.h"
 #include "dumb3d.h"
-#include "VBO.h"
 using namespace Math3D;
+#include "Float3d.h"
+#include "VBO.h"
 
+/*
 struct GLVERTEX
 {
  vector3 Point;
  vector3 Normal;
  float tu,tv;
 };
+*/
 
 class TStringPack
 {
@@ -159,31 +162,35 @@ private:
  double fCosViewAngle;    //cos kata pod jakim sie teraz patrzy
  //int Index;
  union
- {matrix4x4 *dMatrix; //transform, nie ka¿dy submodel musi mieæ
-  float *fMatrix;
+ {//matrix4x4 *dMatrix; //transform, nie ka¿dy submodel musi mieæ
+  float4x4 *fMatrix;
   int iMatrix; //w pliku binarnym jest numer matrycy
  };
  //ABu: te same zmienne, ale zdublowane dla Render i RenderAlpha,
  //bo sie chrzanilo przemieszczanie obiektow.
  //Ra: ju¿ siê nie chrzani
  float f_Angle;
- vector3 v_RotateAxis;
- vector3 v_Angles;
- vector3 v_TransVector;
+ //vector3 v_RotateAxis;
+ //vector3 v_Angles;
+ //vector3 v_TransVector;
+ float3 v_RotateAxis;
+ float3 v_Angles;
+ float3 v_TransVector;
  TSubModel *Next;
  TSubModel *Child;
  //vector3 HitBoxPts[6];
  int iNumVerts; //potrzebne do VBO
  int iVboPtr;
- GLVERTEX *Vertices; //do VBO
+ float8 *Vertices; //do VBO
  int iAnimOwner;
  TAnimType b_Anim,b_aAnim; //kody animacji oddzielnie, bo zerowane
- char space[32];
+ char space[68];
 public:
  bool Visible;
  std::string Name;
 private:
- int __fastcall SeekFaceNormal(DWORD *Masks, int f, DWORD dwMask, vector3 *pt, GLVERTEX *Vertices);
+ //int __fastcall SeekFaceNormal(DWORD *Masks, int f,DWORD dwMask,vector3 *pt,GLVERTEX *Vertices);
+ int __fastcall SeekFaceNormal(DWORD *Masks,int f,DWORD dwMask,float3 *pt,float8 *Vertices);
  void __fastcall RaAnimation(TAnimType a);
 public:
  static int iInstance;
@@ -193,15 +200,19 @@ public:
  int __fastcall Load(cParser& Parser, TModel3d *Model,int Pos);
  void __fastcall AddChild(TSubModel *SubModel);
  void __fastcall AddNext(TSubModel *SubModel);
- void __fastcall SetRotate(vector3 vNewRotateAxis,float fNewAngle);
+ //void __fastcall SetRotate(vector3 vNewRotateAxis,float fNewAngle);
+ void __fastcall SetRotate(float3 vNewRotateAxis,float fNewAngle);
  void __fastcall SetRotateXYZ(vector3 vNewAngles);
+ void __fastcall SetRotateXYZ(float3 vNewAngles);
  void __fastcall SetTranslate(vector3 vNewTransVector);
+ void __fastcall SetTranslate(float3 vNewTransVector);
  TSubModel* __fastcall GetFromName(std::string search);
  void __fastcall Render(GLuint ReplacableSkinId,bool bAlpha);
  void __fastcall RenderAlpha(GLuint ReplacableSkinId,bool bAlpha);
  void __fastcall RaRender(GLuint ReplacableSkinId,bool bAlpha);
  void __fastcall RaRenderAlpha(GLuint ReplacableSkinId,bool bAlpha);
- inline matrix4x4* __fastcall GetMatrix() { return dMatrix; };
+ //inline matrix4x4* __fastcall GetMatrix() { return dMatrix; };
+ inline float4x4* __fastcall GetMatrix() { return fMatrix; };
  //matrix4x4* __fastcall GetTransform() {return Matrix;};
  inline void __fastcall Hide() { Visible= false; };
  void __fastcall RaArrayFill(CVertNormTex *Vert);
@@ -209,6 +220,7 @@ public:
  int __fastcall Flags();
  void __fastcall WillBeAnimated() {if (this) iFlags|=0x4000;};
  void __fastcall InitialRotate(bool doit);
+ void __fastcall DisplayLists();
 };
 
 class TModel3d : public CMesh

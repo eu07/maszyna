@@ -6,7 +6,6 @@
 #include <string>
 #include "opengl/glew.h"
 #include "dumb3d.h"
-//#include "Logs.h"
 
 using namespace Math3D;
 

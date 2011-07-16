@@ -195,9 +195,9 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
    if (MoverParameters->DoorOpenMethod==2) //obrotowe albo dwojlomne (trzeba kombinowac submodelami i ShiftL=90,R=180)
    {
     if ((i%2)==0)
-     smAnimatedDoor[i]->SetRotate(vector3(1,0,0),dDoorMoveL);
+     smAnimatedDoor[i]->SetRotate(float3(1,0,0),dDoorMoveL);
     else
-     smAnimatedDoor[i]->SetRotate(vector3(1,0,0),dDoorMoveR);
+     smAnimatedDoor[i]->SetRotate(float3(1,0,0),dDoorMoveR);
    }
   }
  }
@@ -224,7 +224,7 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
     //McZapkie-050402: obracanie kolami
     for (int i=0; i<iAnimatedAxles; i++)
      if (smAnimatedWheel[i])
-      smAnimatedWheel[i]->SetRotate(vector3(1,0,0),dWheelAngle);
+      smAnimatedWheel[i]->SetRotate(float3(1,0,0),dWheelAngle);
     //Mczapkie-100402: rysowanie lub nie - sprzegow
     //ABu-240105: Dodatkowy warunek: if (...).Render, zeby rysowal tylko jeden
     //z polaczonych sprzegow
@@ -400,31 +400,31 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
    if (Global::bLoadTraction)
    {
     if (smPatykird1[0])
-       smPatykird1[0]->SetRotate(vector3(1,0,0),dPantAngleF);
+       smPatykird1[0]->SetRotate(float3(1,0,0),dPantAngleF);
     if (smPatykird2[0])
-       smPatykird2[0]->SetRotate(vector3(-1,0,0),dPantAngleF);
+       smPatykird2[0]->SetRotate(float3(-1,0,0),dPantAngleF);
     if (smPatykirg1[0])
-       smPatykirg1[0]->SetRotate(vector3(-1,0,0),dPantAngleF*1.81);
+       smPatykirg1[0]->SetRotate(float3(-1,0,0),dPantAngleF*1.81);
     if (smPatykirg2[0])
-       smPatykirg2[0]->SetRotate(vector3(1,0,0),dPantAngleF*1.81);
+       smPatykirg2[0]->SetRotate(float3(1,0,0),dPantAngleF*1.81);
     if (smPatykisl[0])
-       smPatykisl[0]->SetRotate(vector3(1,0,0),dPantAngleF*0.81);
+       smPatykisl[0]->SetRotate(float3(1,0,0),dPantAngleF*0.81);
     //Tylny patyk
     if (smPatykird1[1])
-       smPatykird1[1]->SetRotate(vector3(1,0,0),dPantAngleR);
+       smPatykird1[1]->SetRotate(float3(1,0,0),dPantAngleR);
     if (smPatykird2[1])
-       smPatykird2[1]->SetRotate(vector3(-1,0,0),dPantAngleR);
+       smPatykird2[1]->SetRotate(float3(-1,0,0),dPantAngleR);
     if (smPatykirg1[1])
-       smPatykirg1[1]->SetRotate(vector3(-1,0,0),dPantAngleR*1.81);
+       smPatykirg1[1]->SetRotate(float3(-1,0,0),dPantAngleR*1.81);
     if (smPatykirg2[1])
-       smPatykirg2[1]->SetRotate(vector3(1,0,0),dPantAngleR*1.81);
+       smPatykirg2[1]->SetRotate(float3(1,0,0),dPantAngleR*1.81);
     if (smPatykisl[1])
-       smPatykisl[1]->SetRotate(vector3(1,0,0),dPantAngleR*0.81);
+       smPatykisl[1]->SetRotate(float3(1,0,0),dPantAngleR*0.81);
    }
     if (smWiazary[0])
-       smWiazary[0]->SetRotate(vector3(1,0,0),-dWheelAngle);
+       smWiazary[0]->SetRotate(float3(1,0,0),-dWheelAngle);
     if (smWiazary[1])
-       smWiazary[1]->SetRotate(vector3(1,0,0),-dWheelAngle);
+       smWiazary[1]->SetRotate(float3(1,0,0),-dWheelAngle);
 //przewody sterowania ukrotnionego
     if (TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_controll))
      {btCCtrl1.TurnOn(); btnOn=true;}
@@ -525,7 +525,7 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
 //McZapkie-181002: krecenie wahaczem (korzysta z kata obrotu silnika)
     for (int i=0; i<4; i++)
      if (smWahacze[i])
-      smWahacze[i]->SetRotate(vector3(1,0,0),fWahaczeAmp*cos(MoverParameters->eAngle));
+      smWahacze[i]->SetRotate(float3(1,0,0),fWahaczeAmp*cos(MoverParameters->eAngle));
 
     if (smMechanik!=NULL)
      {

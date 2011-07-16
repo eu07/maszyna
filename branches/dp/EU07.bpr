@@ -12,7 +12,7 @@
       Track.obj DynObj.obj RealSound.obj EvLaunch.obj FadeSound.obj Traction.obj 
       TractionPower.obj parser.obj sky.obj AirCoupler.obj glew.obj 
       ResourceManager.obj VBO.obj Feedback.obj TextureDDS.obj 
-      opengl\ARB_Multisample.obj"/>
+      opengl\ARB_Multisample.obj float3d.obj"/>
     <RESFILES value="EU07.res"/>
     <IDLFILES value=""/>
     <IDLGENFILES value=""/>
@@ -41,8 +41,8 @@
     <WARNINGS value="-w-par"/>
   </MACROS>
   <OPTIONS>
-    <IDLCFLAGS value="-src_suffix cpp -DGLEW_STATIC -D_DEBUG -DUSE_VBO -Iopengl -IMcZapkie 
-      -I$(BCB)\include -I$(BCB)\include\vcl -boa"/>
+    <IDLCFLAGS value="-Iopengl -IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl -src_suffix cpp 
+      -DGLEW_STATIC -D_DEBUG -DUSE_VBO -boa"/>
     <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a4 -6 -b- -k -y -v -vi- 
       -c -tW -tWM"/>
     <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
@@ -61,7 +61,7 @@ IncludeVerInfo=1
 AutoIncBuild=1
 MajorVer=1
 MinorVer=3
-Release=154
+Release=155
 Build=180
 Debug=1
 PreRelease=0
@@ -74,8 +74,8 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.3.154.180
-InternalName=couplers (4th plus) by Ra
+FileVersion=1.3.155.180
+InternalName=(5th by Ra
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=eu07.exe
@@ -84,46 +84,12 @@ ProductVersion=1.3
 Comments=
 
 [HistoryLists\hlIncludePath]
-Count=18
+Count=1
 Item0=opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item1=opengl;C:\ProgsWin\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item2=C:\ProgsWin\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item3=C:\ProgsWin\CBuilder5\Projects;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item4=McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item5=G:\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item6=..\CBuilder5\Projects;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item7=F:\ProgsWin\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item8=F:\ProgsWin\CBuilder5\Projects;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item9=C:\Program Files\Borland\CBuilder5\Projects\;d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item10=C:\Program Files\Borland\CBuilder5\Projects;d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item11=d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item12=d:\program files\CBuilder5\Projects;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item13=NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item14=NewScenery;g:\Borland\CBuilder5\Projects;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item15=$(BCB)\include;$(BCB)\include\vcl
-Item16=triangle;gpc231;G:\Borland\CBuilder5\Examples\OpenGL\Rotate\;$(BCB)\include;$(BCB)\include\vcl
-Item17=G:\Borland\CBuilder5\Examples\OpenGL\Rotate\;$(BCB)\include;$(BCB)\include\vcl
 
 [HistoryLists\hlLibraryPath]
-Count=18
+Count=1
 Item0=opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item1=opengl;C:\ProgsWin\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item2=C:\ProgsWin\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item3=C:\ProgsWin\CBuilder5\Projects;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item4=McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item5=G:\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item6=..\CBuilder5\Projects;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item7=F:\ProgsWin\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item8=F:\ProgsWin\CBuilder5\Projects;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item9=$(BCB)\lib\obj;$(BCB)\lib
-Item10=C:\Program Files\Borland\CBuilder5\Projects\;d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item11=C:\Program Files\Borland\CBuilder5\Projects;d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item12=d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item13=d:\program files\CBuilder5\Projects;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item14=NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item15=NewScenery;g:\Borland\CBuilder5\Projects;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item16=triangle;gpc231;G:\Borland\CBuilder5\Examples\OpenGL\Rotate\;$(BCB)\lib\obj;$(BCB)\lib
-Item17=G:\Borland\CBuilder5\Examples\OpenGL\Rotate\;$(BCB)\lib\obj;$(BCB)\lib
 
 [HistoryLists\hlDebugSourcePath]
 Count=3

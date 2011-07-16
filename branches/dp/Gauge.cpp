@@ -127,11 +127,11 @@ void __fastcall TGauge::Update()
         switch (eType)
         {
             case gt_Rotate:
-                SubModel->SetRotate(vector3(0,1,0),fValue*360);
+                SubModel->SetRotate(float3(0,1,0),fValue*360);
             break;
 
             case gt_Move:
-                SubModel->SetTranslate(vector3(0,0,1)*fValue);
+                SubModel->SetTranslate(float3(0,0,fValue));
             break;
         }
     }
