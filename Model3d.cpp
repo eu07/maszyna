@@ -48,17 +48,16 @@ char* TStringPack::String(int n)
 __fastcall TSubModel::TSubModel()
 {
  FirstInit();
- eType=TP_UNKNOWN;
- Vertices=NULL;
- iNumVerts=-1; //do sprawdzenia
- iVboPtr=-1;
- uiDisplayList=0;
- fLight=-1.0; //œwietcenie wy³¹czone
 };
 
 void __fastcall TSubModel::FirstInit()
 {
- //Index=-1;
+ eType=TP_UNKNOWN;
+ Vertices=NULL;
+ uiDisplayList=0;
+ iNumVerts=-1; //do sprawdzenia
+ iVboPtr=-1;
+ fLight=-1.0; //œwietcenie wy³¹czone
  v_RotateAxis=float3(0,0,0);
  v_TransVector=float3(0,0,0);
  f_Angle=0;
@@ -88,6 +87,7 @@ void __fastcall TSubModel::FirstInit()
  fCosViewAngle=0;
  fSquareMaxDist=10000;
  fSquareMinDist=0;
+ asTexture="";
 };
 
 __fastcall TSubModel::~TSubModel()
@@ -266,6 +266,7 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
   }
   else
   {//jesli tylko nazwa pliku to dawac biezaca sciezke do tekstur
+   asTexture=AnsiString(texture.c_str()); //zapamiêtanie nazwy tekstury
    if (texture.find_first_of("/\\")==texture.npos)
     texture.insert(0,Global::asCurrentTexturePath.c_str());
    TextureID=TTexturesManager::GetTextureID(texture);
@@ -472,7 +473,7 @@ void __fastcall TSubModel::DisplayLists()
   glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
   glEndList();
  }
- SafeDeleteArray(Vertices); //przy VBO musz¹ zostaæ do za³adowania ca³ego modelu
+ //SafeDeleteArray(Vertices); //przy VBO musz¹ zostaæ do za³adowania ca³ego modelu
  if (Child) Child->DisplayLists();
 };
 
@@ -745,8 +746,8 @@ void __fastcall TSubModel::RaRender(GLuint ReplacableSkinId,bool bAlpha)
    matrix4x4 mat;
    glGetDoublev(GL_MODELVIEW_MATRIX,mat.getArray());
    //k¹t miêdzy kierunkiem œwiat³a a wspó³rzêdnymi kamery
-   Math3D::vector3 gdzie=mat*Math3D::vector3(0,0,0); //pozycja punktu œwiec¹cego wzglêdem kamery
-   fCosViewAngle=DotProduct(Normalize(mat*Math3D::vector3(0,0,1)-gdzie),Normalize(gdzie));
+   vector3 gdzie=mat*vector3(0,0,0); //pozycja punktu œwiec¹cego wzglêdem kamery
+   fCosViewAngle=DotProduct(Normalize(mat*vector3(0,0,1)-gdzie),Normalize(gdzie));
    //(by³o miêdzy kierunkiem œwiat³a a k¹tem kamery)
    //fCosViewAngle=DotProduct(Normalize(mat*vector3(0,0,1)-mat*vector3(0,0,0)),vector3(0,0,1));
    if (fCosViewAngle>fcosFalloffAngle)  //kat wiekszy niz max stozek swiatla
@@ -916,8 +917,8 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
    matrix4x4 mat;
    glGetDoublev(GL_MODELVIEW_MATRIX,mat.getArray());
    //k¹t miêdzy kierunkiem œwiat³a a wspó³rzêdnymi kamery
-   Math3D::vector3 gdzie=mat*Math3D::vector3(0,0,0); //pozycja wzglêdna punktu œwiec¹cego
-   fCosViewAngle=DotProduct(Normalize(mat*Math3D::vector3(0,0,1)-gdzie),Normalize(gdzie));
+   vector3 gdzie=mat*vector3(0,0,0); //pozycja wzglêdna punktu œwiec¹cego
+   fCosViewAngle=DotProduct(Normalize(mat*vector3(0,0,1)-gdzie),Normalize(gdzie));
    //(by³o miêdzy kierunkiem œwiat³a a k¹tem kamery)
    //fCosViewAngle=DotProduct(Normalize(mat*vector3(0,0,1)-mat*vector3(0,0,0)),vector3(0,0,1));
    if (fCosViewAngle>fcosFalloffAngle)  //kat wiekszy niz max stozek swiatla
@@ -1059,6 +1060,42 @@ void  __fastcall TSubModel::RaArrayFill(CVertNormTex *Vert)
  else if (eType==TP_FREESPOTLIGHT)
   Vert[iVboPtr].x=Vert[iVboPtr].y=Vert[iVboPtr].z=0.0;
 };
+
+void __fastcall TSubModel::Info()
+{//zapisanie informacji o submodelu do obiektu pomocniczego
+ TSubModelInfo *info=TSubModelInfo::pTable+TSubModelInfo::iCurrent;
+ info->pSubModel=this;
+ if (fMatrix)
+  info->iTransform=info->iTotalTransforms++;
+ if ((int)TextureID>0)
+ {info->iTexture=info->iTotalTextures++; //przydzielenie numeru tekstury w pliku
+  info->iTextureLen=asTexture.Length()+1; //z zerem na koñcu
+ }
+ else info->iTexture=TextureID; //nie ma albo wymienna
+ if (Name.length())
+ {info->iName=info->iTotalNames++; //przydzielenie numeru nazwy w pliku
+  info->iNameLen=Name.length()+1; //z zerem na koñcu
+ }
+ ++info->iCurrent; //przejœcie do kolejnego obiektu pomocniczego
+ if (Child)
+ {info->iChild=info->iCurrent;
+  Child->Info();
+ }
+ if (Next)
+ {info->iNext=info->iCurrent;
+  Next->Info();
+ }
+};
+
+void __fastcall TSubModel::InfoSet(TSubModelInfo *info)
+{//ustawienie danych wg obiektu pomocniczego
+ CopyMemory(this,info->pSubModel,320); //skopiowanie pamiêci 1:1
+ //TextureID= ;//numer nazwy tekstury, a nie numer w OpenGL
+ iMatrix=info->iTransform; //numer macierzy
+ Next=(TSubModel*)info->iNext; //numer nastêpnego
+ Child=(TSubModel*)info->iChild; //numer potomnego
+};
+
 //---------------------------------------------------------------------------
 
 __fastcall TModel3d::TModel3d()
@@ -1067,6 +1104,7 @@ __fastcall TModel3d::TModel3d()
  //MaterialsCount=0;
  Root=NULL;
  iFlags=0;
+ iSubModelsCount=0;
 };
 /*
 __fastcall TModel3d::TModel3d(char *FileName)
@@ -1125,16 +1163,17 @@ void __fastcall TModel3d::LoadFromFile(char *FileName,bool dynamic)
  if (i)
   if (name.SubString(i,name.Length()-i+1)==".t3d")
    name.Delete(i,4);
- if (!FileExists(name+".e3d"))
+ //if (!FileExists(name+".e3d"))
  {if (FileExists(name+".t3d"))
-  {LoadFromTextFile(FileName,dynamic); //wczytanie tekstowego
-   if (!dynamic)
-    SaveToBinFile((name+".e3d").c_str());
+  {LoadFromTextFile(FileName,true); //wczytanie tekstowego
+   //if (!dynamic) SaveToBinFile((name+".e3d").c_str());
   }
  }
+/*
  else
   if (FileExists(name+".e3d"))
    LoadFromBinFile((name+".e3d").c_str());
+*/
 };
 
 void __fastcall TModel3d::LoadFromBinFile(char *FileName)
@@ -1208,7 +1247,7 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName,bool dynamic)
   SubModel=new TSubModel();
   iNumVerts+=SubModel->Load(parser,this,iNumVerts);
   if (!AddTo(parent.c_str(),SubModel)) delete SubModel;
-  //SubModelsCount++;
+  iSubModelsCount++;
   parser.getToken(token);
  }
  if (Root)
@@ -1247,8 +1286,78 @@ void __fastcall TModel3d::Init()
 };
 
 void __fastcall TModel3d::SaveToBinFile(char *FileName)
-{
- //WriteLog("Saving E3D not implemented yet.");
+{//zapis modelu binarnego
+ WriteLog("Saving E3D binary model.");
+ int i,zero=0;
+ TSubModelInfo *info=new TSubModelInfo[iSubModelsCount];
+ info->Reset();
+ Root->Info(); //zebranie informacji o submodelach
+ int len; //³¹czna d³ugoœæ pliku
+ int sub; //iloœæ submodeli (w bajtach)
+ int tra; //wielkoœæ obszaru transformów
+ int vnt; //wielkoœæ obszaru wierzcho³ków
+ int tex=0; //wielkoœæ obszaru nazw tekstur
+ int nam=0; //wielkoœæ obszaru nazw submodeli
+ sub=8+320*iSubModelsCount;
+ tra=info->iTotalTransforms?8+64*info->iTotalTransforms:0;
+ vnt=8+32*iNumVerts;
+ for (i=0;i<iSubModelsCount;++i)
+ {tex+=info[i].iTextureLen;
+  nam+=info[i].iNameLen;
+ }
+ if (tex) tex+=8;
+ if (nam) nam+=8;
+ len=8+sub+tra+vnt+tex+((-tex)&3)+nam+((-nam)&3);
+ TSubModel *roboczy=new TSubModel();
+ TFileStream *fs=new TFileStream(AnsiString(FileName),fmCreate);
+ fs->Write("E3D0",4); //kromka g³ówna
+ fs->Write(&len,4);
+ {fs->Write("SUB1",4); //dane submodeli
+  fs->Write(&sub,4);
+  for (i=0;i<iSubModelsCount;++i)
+  {roboczy->InfoSet(info+i);
+   fs->Write(roboczy,320); //zapis jednego submodelu
+  }
+ }
+ if (tra)
+ {//zapis transformów
+  fs->Write("TRA0",4); //transformy
+  fs->Write(&tra,4);
+  for (i=0;i<iSubModelsCount;++i)
+   if (info[i].iTransform>=0)
+    fs->Write(info[i].pSubModel->GetMatrix(),4*16);
+ }
+ {//zapis wierzcho³ków
+  MakeArray(iNumVerts); //tworzenie tablic dla VBO
+  Root->RaArrayFill(m_pVNT); //wype³nianie tablicy
+  fs->Write("VNT0",4); //wierzcho³ki
+  fs->Write(&vnt,4);
+  fs->Write(m_pVNT,32*iNumVerts);
+ }
+ if (tex) //mo¿e byæ jeden submodel ze zmienn¹ tekstur¹ i nazwy nie bêdzie
+ {//zapis nazw tekstur
+  fs->Write("TEX0",4); //nazwy tekstur
+  i=(tex+3)&~3; //zaokr¹glenie w górê
+  fs->Write(&i,4);
+  for (i=0;i<iSubModelsCount;++i)
+   if (info[i].iTextureLen)
+    fs->Write(info[i].pSubModel->asTexture.c_str(),info[i].iTextureLen);
+  if ((-tex)&3) fs->Write(&zero,((-tex)&3)); //wyrównanie
+ }
+ if (nam) //mo¿e byæ jeden anonimowy submodel w modelu
+ {//zapis nazw submodeli
+  fs->Write("NAM0",4); //nazwy submodeli
+  i=(nam+3)&~3; //zaokr¹glenie w górê
+  fs->Write(&i,4);
+  for (i=0;i<iSubModelsCount;++i)
+   if (info[i].iNameLen)
+    fs->Write(info[i].pSubModel->Name.c_str(),info[i].iNameLen);
+  if ((-nam)&3) fs->Write(&zero,((-nam)&3)); //wyrównanie
+ }
+ delete fs;
+ roboczy->FirstInit(); //¿eby delete nie usuwa³o czego nie powinno
+ delete roboczy;
+ delete info;
 };
 
 void __fastcall TModel3d::BreakHierarhy()
