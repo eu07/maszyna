@@ -98,13 +98,17 @@ GLvoid __fastcall TWorld::glPrint(const char *txt) //custom GL "Print" routine
 
 TDynamicObject *Controlled=NULL; //pojazd, który prowadzimy
 
-void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
+bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 {
  Global::hWnd=NhWnd; //do WM_COPYDATA
  Global::detonatoryOK=true;
  WriteLog("--- MaSzyna ---"); //pierwsza linia jest gubiona
  WriteLog("Starting MaSzyna rail vehicle simulator.");
  WriteLog(Global::asVersion);
+#if sizeof(TSubModel)!=320
+ Error("Wrong sizeof(TSubModel) is "+AnsiString(sizeof(TSubModel)));
+ return false;
+#endif
  WriteLog("Online documentation and additional files on http://eu07.pl");
  WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx_EU, OLO_EU, Bart, Quark-t, ShaXbee, Oli_EU, youBy and others");
  WriteLog("Renderer:");
@@ -550,6 +554,7 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 
 //    Camera.Reset();
     ResetTimers();
+ return true;
 };
 
 

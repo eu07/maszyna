@@ -33,10 +33,22 @@
 double fSquareDist=0;
 int TSubModel::iInstance; //numer renderowanego egzemplarza obiektu
 
+char* TStringPack::String(int n)
+{//zwraca wskaŸnik do ³añcucha o podanym numerze
+ int max=*((int*)(data+4)); //d³ugoœæ obszaru ³añcuchów
+ char* ptr=data+8; //pocz¹ek obszaru ³añcuchów
+ for (int i=0;i<n;++i)
+ {//wyszukiwanie ³añcuchów nie jest zbyt optymalne, ale nie musi byæ 
+  while (*ptr) ++ptr; //wyszukiwanie zera
+  if (ptr-data+max) return NULL; //zbyt wysoki numer
+ }
+ return ptr;
+};
+
 __fastcall TSubModel::TSubModel()
 {
  FirstInit();
- eType=smt_Unknown;
+ eType=TP_UNKNOWN;
  Vertices=NULL;
  iNumVerts=-1; //do sprawdzenia
  iVboPtr=-1;
@@ -53,7 +65,7 @@ void __fastcall TSubModel::FirstInit()
  b_Anim=at_None;
  b_aAnim=at_None;
  Visible=false;
- Matrix.Identity();
+ dMatrix=NULL; //Identity();
  Next=NULL;
  Child=NULL;
  TextureID=0;
@@ -120,6 +132,16 @@ inline void readColor(cParser& parser,ColorT* color)
  color[2]=readIntAsDouble(parser);
 };
 
+inline void readColor(cParser& parser,int &color)
+{
+ int r,g,b;
+ parser.ignoreToken();
+ parser.getToken(r);
+ parser.getToken(g);
+ parser.getToken(b);
+ color=r+(g<<8)+(b<<16);
+};
+
 inline void readMatrix(cParser& parser,matrix4x4& matrix)
 {//Ra: wczytanie transforma
  for (int x=0;x<=3;x++) //wiersze
@@ -143,15 +165,15 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
   std::string type;
   parser.getToken(type);
   if (type=="mesh")
-   eType=smt_Mesh; //submodel - trójkaty
+   eType=GL_TRIANGLES; //submodel - trójkaty
   else if (type=="point")
-   eType=smt_Point; //co to niby jest?
+   eType=GL_POINTS; //co to niby jest?
   else if (type=="freespotlight")
-   eType=smt_FreeSpotLight; //œwiate³ko
+   eType=TP_FREESPOTLIGHT; //œwiate³ko
   else if (type=="text")
-   eType=smt_Text; //wyœwietlacz tekstowy (generator napisów)
+   eType=TP_TEXT; //wyœwietlacz tekstowy (generator napisów)
   else if (type=="stars")
-   eType=smt_Stars; //wiele punktów œwietlnych
+   eType=TP_STARS; //wiele punktów œwietlnych
  };
  parser.ignoreToken();
  parser.getToken(Name); //ze zmian¹ na ma³e!
@@ -175,9 +197,9 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
    else b_Anim=b_aAnim=at_Undefined; //nieznana forma animacji
   }
  }
- if (eType==smt_Mesh) readColor(parser,f4Ambient); //ignoruje token przed
+ if (eType==GL_TRIANGLES) readColor(parser,f4Ambient); //ignoruje token przed
  readColor(parser,f4Diffuse);
- if (eType==smt_Mesh) readColor(parser,f4Specular);
+ if (eType==GL_TRIANGLES) readColor(parser,f4Specular);
  parser.ignoreTokens(1); //zignorowanie nazwy "SelfIllum:"
  {
   std::string light;
@@ -189,7 +211,7 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
   else
    fLight=atof(light.c_str());
  };
- if (eType==smt_FreeSpotLight)
+ if (eType==TP_FREESPOTLIGHT)
  {
   if (!parser.expectToken("nearattenstart:"))
    Error("Model light parse failure!");
@@ -211,7 +233,7 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
   iNumVerts=1;
   iFlags|=2; //rysowane w cyklu nieprzezroczystych
  }
- else if (eType==smt_Mesh)
+ else if (eType==GL_TRIANGLES)
  {
   parser.ignoreToken();
   bWire=parser.expectToken("true");
@@ -250,17 +272,18 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
  parser.getToken(fSquareMinDist);
  fSquareMinDist*=fSquareMinDist;
  parser.ignoreToken();
- readMatrix(parser,Matrix); //wczytanie transform
+ dMatrix=new matrix4x4();
+ readMatrix(parser,*dMatrix); //wczytanie transform
  //if ((iFlags&0x4000)==0) //o ile nie ma animacji
  for (int i=0;i<16;++i)
-  if (Matrix.readArray()[i]!=((i%5)?0.0:1.0)) //jedynki tylko na 0, 5, 10 i 15
+  if (dMatrix->readArray()[i]!=((i%5)?0.0:1.0)) //jedynki tylko na 0, 5, 10 i 15
   {
    iFlags|=0x8000; //transform niejedynkowy - trzeba przechowaæ
    break;
   }
  int iNumFaces; //iloœæ trójk¹tów
  DWORD *sg; //maski przynale¿noœci trójk¹tów do powierzchni
- if (eType==smt_Mesh)
+ if (eType==GL_TRIANGLES)
  {//wczytywanie wierzcho³ków
   parser.ignoreToken();
   parser.getToken(iNumVerts);
@@ -336,7 +359,7 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
   delete[] n;
   delete[] sg;
  }
- else if (eType==smt_Stars)
+ else if (eType==TP_STARS)
  {//punkty œwiec¹ce dookólnie - sk³adnia jak dla smt_Mesh
   parser.ignoreToken();
   parser.getToken(iNumVerts);
@@ -359,7 +382,7 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
  if (!Global::bUseVBO)
  {//Ra: przy VBO to siê nie przyda
   iFlags|=0x4000; //wy³¹czenie przeliczania wierzcho³ków, bo nie s¹ zachowane
-  if (eType==smt_Mesh)
+  if (eType==GL_TRIANGLES)
   {
 #ifdef USE_VERTEX_ARRAYS
    // ShaXbee-121209: przekazywanie wierzcholkow hurtem
@@ -384,7 +407,7 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
 #endif
    glEndList();
   }
-  else if (eType==smt_FreeSpotLight)
+  else if (eType==TP_FREESPOTLIGHT)
   {
    uiDisplayList=glGenLists(1);
    glNewList(uiDisplayList,GL_COMPILE);
@@ -407,7 +430,7 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
    glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
    glEndList();
   }
-  else if (eType==smt_Stars)
+  else if (eType==TP_STARS)
   {//punkty œwiec¹ce dookólnie
    uiDisplayList=glGenLists(1);
    glNewList(uiDisplayList,GL_COMPILE);
@@ -518,7 +541,7 @@ int __fastcall TSubModel::Flags()
  return iFlags;
 };
 
-void __fastcall TSubModel::SetRotate(vector3 vNewRotateAxis,double fNewAngle)
+void __fastcall TSubModel::SetRotate(vector3 vNewRotateAxis,float fNewAngle)
 {//obrócenie submodelu wg podanej osi (np. wskazówki w kabinie)
  v_RotateAxis=vNewRotateAxis;
  f_Angle=fNewAngle;
@@ -552,33 +575,23 @@ struct ToLower
 
 TSubModel* __fastcall TSubModel::GetFromName(std::string search)
 {
-
-    TSubModel* result;
-
-    std::transform(search.begin(),search.end(),search.begin(),ToLower());
-
-    if (search==Name)
-        return this;
-
-    if (Next)
-    {
-        result=Next->GetFromName(search);
-        if (result)
-            return result;
-    };
-
-    if (Child)
-    {
-        result=Child->GetFromName(search);
-        if (result)
-            return result;
-    };
-
-    return NULL;
-
+ TSubModel* result;
+ std::transform(search.begin(),search.end(),search.begin(),ToLower());
+ if (search==Name) return this;
+ if (Next)
+ {
+  result=Next->GetFromName(search);
+  if (result) return result;
+ }
+ if (Child)
+ {
+  result=Child->GetFromName(search);
+  if (result) return result;
+ }
+ return NULL;
 };
 
-WORD hbIndices[18]={3,0,1,5,4,2,1,0,4,1,5,3,2,3,5,2,4,0};
+//WORD hbIndices[18]={3,0,1,5,4,2,1,0,4,1,5,3,2,3,5,2,4,0};
 
 void __fastcall TSubModel::RaAnimation(TAnimType a)
 {//wykonanie animacji niezale¿nie od renderowania
@@ -654,8 +667,8 @@ void __fastcall TSubModel::RaRender(GLuint ReplacableSkinId,bool bAlpha)
  {
   if (iFlags&0xC000)
   {glPushMatrix();
-   //if (iFlags&0x8000)
-    glMultMatrixd(Matrix.getArray());
+   if (dMatrix)
+    glMultMatrixd(dMatrix->getArray());
    if (b_Anim) RaAnimation(b_Anim);
   }
   if ((TextureID==-1)) // && (ReplacableSkinId!=0))
@@ -666,7 +679,7 @@ void __fastcall TSubModel::RaRender(GLuint ReplacableSkinId,bool bAlpha)
   }
   else
    glBindTexture(GL_TEXTURE_2D,TextureID);
-  if (eType==smt_Mesh)
+  if (eType==GL_TRIANGLES)
   {
    glColor3fv(f4Diffuse);   //McZapkie-240702: zamiast ub
    if (!TexAlpha || !Global::bRenderAlpha)  //rysuj gdy nieprzezroczyste lub # albo gdy zablokowane alpha
@@ -681,7 +694,7 @@ void __fastcall TSubModel::RaRender(GLuint ReplacableSkinId,bool bAlpha)
      glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie trójk¹ty z VBO
    }
   }
-  else if (eType==smt_FreeSpotLight)
+  else if (eType==TP_FREESPOTLIGHT)
   {
    matrix4x4 mat;
    glGetDoublev(GL_MODELVIEW_MATRIX,mat.getArray());
@@ -738,7 +751,7 @@ void __fastcall TSubModel::RaRender(GLuint ReplacableSkinId,bool bAlpha)
     //glColorMaterial(GL_FRONT,GL_AMBIENT_AND_DIFFUSE); //co ma ustawiaæ glColor
    }
   }
-  else if (eType==smt_Stars)
+  else if (eType==TP_STARS)
   {
    //glDisable(GL_LIGHTING);  //Tolaris-030603: bo mu punkty swiecace sie blendowaly
    if (Global::fLuminance<fLight)
@@ -793,13 +806,13 @@ void __fastcall TSubModel::RaRenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
  {
   if (iFlags&0xC000)
   {glPushMatrix(); //zapamiêtanie matrycy
-   //if (iFlags&0x8000)
-    glMultMatrixd(Matrix.getArray());
+   if (dMatrix)
+    glMultMatrixd(dMatrix->getArray());
    if (b_aAnim) RaAnimation(b_aAnim);
   }
   glColor3fv(f4Diffuse);
   //zmienialne skory
-  if (eType==smt_Mesh)
+  if (eType==GL_TRIANGLES)
   {
    if ((TextureID==-1)) // && (ReplacableSkinId!=0))
    {
@@ -820,7 +833,7 @@ void __fastcall TSubModel::RaRenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
     glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie trójk¹ty z VBO
   }
   }
-  else if (eType==smt_FreeSpotLight)
+  else if (eType==TP_FREESPOTLIGHT)
   {
 //        if (CosViewAngle>0)  //dorobic od kata
 //        {
@@ -847,12 +860,12 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
  {
   if (iFlags&0xC000)
   {glPushMatrix();
-   //if (iFlags&0x8000)
-    glMultMatrixd(Matrix.getArray());
+   if (dMatrix)
+    glMultMatrixd(dMatrix->getArray());
    if (b_Anim) RaAnimation(b_Anim);
   }
   //zmienialne skory
-  if (eType==smt_FreeSpotLight)
+  if (eType==TP_FREESPOTLIGHT)
   {
    matrix4x4 mat;
    glGetDoublev(GL_MODELVIEW_MATRIX,mat.getArray());
@@ -888,7 +901,7 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
     glCallList(uiDisplayList); //wyœwietlenie warunkowe
    }
   }
-  else if (eType==smt_Mesh)
+  else if (eType==GL_TRIANGLES)
   {if ((TextureID==-1)) // && (ReplacableSkinId!=0))
    {
     glBindTexture(GL_TEXTURE_2D,ReplacableSkinId);
@@ -906,7 +919,7 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
     else
      glCallList(uiDisplayList); //tylko dla siatki
   }
-  else if (eType==smt_Stars)
+  else if (eType==TP_STARS)
   {
    //glDisable(GL_LIGHTING);  //Tolaris-030603: bo mu punkty swiecace sie blendowaly
    if (Global::fLuminance<fLight)
@@ -937,11 +950,11 @@ void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
  {
   if (iFlags&0xC000)
   {glPushMatrix();
-   //if (iFlags&0x8000)
-    glMultMatrixd(Matrix.getArray());
+   if (dMatrix)
+    glMultMatrixd(dMatrix->getArray());
    if (b_aAnim) RaAnimation(b_aAnim);
   }
-  if (eType==smt_FreeSpotLight)
+  if (eType==TP_FREESPOTLIGHT)
   {
 //        if (CosViewAngle>0)  //dorobic od kata
 //        {
@@ -980,20 +993,13 @@ void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
   b_aAnim=at_None; //wy³¹czenie animacji dla kolejnego u¿ycia submodelu
 }; //RenderAlpha
 
-
-matrix4x4* __fastcall TSubModel::GetTransform()
-{
- return &Matrix;
-};
-
-
 //---------------------------------------------------------------------------
 
 void  __fastcall TSubModel::RaArrayFill(CVertNormTex *Vert)
 {//wype³nianie tablic VBO
  if (Next) Next->RaArrayFill(Vert);
  if (Child) Child->RaArrayFill(Vert);
- if (eType==smt_Mesh)
+ if (eType==GL_TRIANGLES)
   for (int i=0;i<iNumVerts;++i)
   {Vert[iVboPtr+i].x =Vertices[i].Point.x;
    Vert[iVboPtr+i].y =Vertices[i].Point.y;
@@ -1004,20 +1010,17 @@ void  __fastcall TSubModel::RaArrayFill(CVertNormTex *Vert)
    Vert[iVboPtr+i].u =Vertices[i].tu;
    Vert[iVboPtr+i].v =Vertices[i].tv;
   }
- else if (eType==smt_FreeSpotLight)
+ else if (eType==TP_FREESPOTLIGHT)
   Vert[iVboPtr].x=Vert[iVboPtr].y=Vert[iVboPtr].z=0.0;
 };
 //---------------------------------------------------------------------------
 
 __fastcall TModel3d::TModel3d()
 {
-//    Root=NULL;
-//    Materials=NULL;
-//    MaterialsCount=0;
+ //Materials=NULL;
+ //MaterialsCount=0;
  Root=NULL;
- //SubModelsCount=0;
  iFlags=0;
-//    ReplacableSkinID=0;
 };
 /*
 __fastcall TModel3d::TModel3d(char *FileName)
@@ -1039,21 +1042,17 @@ __fastcall TModel3d::~TModel3d()
 
 bool __fastcall TModel3d::AddTo(const char *Name,TSubModel *SubModel)
 {
-    TSubModel *tmp=GetFromName(Name);
-    if (tmp!=NULL)
-    {
-        tmp->AddChild(SubModel);
-        return true;
-    }
-    else
-    {
-        if (Root!=NULL)
-            Root->AddNext(SubModel);
-        else
-            Root=SubModel;
-
-        return true;
-    }
+ TSubModel *tmp=GetFromName(Name);
+ if (tmp)
+ {
+  tmp->AddChild(SubModel);
+  return true;
+ }
+ else
+ {
+  if (Root) Root->AddNext(SubModel); else Root=SubModel;
+  return true;
+ }
 };
 
 TSubModel* __fastcall TModel3d::GetFromName(const char *sName)
@@ -1072,6 +1071,80 @@ TMaterial* __fastcall TModel3d::GetMaterialFromName(char *sName)
     return Materials;
 }
 */
+
+void __fastcall TModel3d::LoadFromFile(char *FileName,bool dynamic)
+{//wczytanie modelu z pliku
+ AnsiString name=AnsiString(FileName).LowerCase();
+ int i=name.LastDelimiter(".");
+ if (i)
+  if (name.SubString(i,name.Length()-i+1)==".t3d")
+   name.Delete(i,4);
+ if (!FileExists(name+".e3d"))
+ {if (FileExists(name+".t3d"))
+  {LoadFromTextFile(FileName,dynamic); //wczytanie tekstowego
+   if (!dynamic)
+    SaveToBinFile((name+".e3d").c_str());
+  }
+ }
+ else
+  if (FileExists(name+".e3d"))
+   LoadFromBinFile((name+".e3d").c_str());
+};
+
+void __fastcall TModel3d::LoadFromBinFile(char *FileName)
+{//wczytanie modelu z pliku binarnego
+ WriteLog("Loading - binary model: "+AnsiString(FileName));
+ TFileStream *fs=new TFileStream(AnsiString(FileName),fmOpenRead);
+ int *model=new int[fs->Size>>2];
+ fs->Read(model,fs->Size); //wczytanie pliku
+ delete fs;
+ //zestaw kromek:
+ int i=0,j,k,ch;
+ while ((i<<2)<fs->Size) //w pliku mo¿e byæ kilka modeli
+ {ch=model[i]; //nazwa kromki
+  j=i+(model[i+1]>>2); //pocz¹tek nastêpnej kromki
+  if (ch=='E3D0') //g³ówna: 'EU07',len,pod-kromki
+  {//tylko tê kromkê znamy, mo¿e kiedyœ jeszcze DOF siê zrobi
+   i+=2;
+   while (i<j)
+   {//przetwarzanie kromek wewnêtrznych
+    ch=model[i]; //nazwa kromki
+    k=i+(model[i+1]>>2); //pocz¹tek nastêpnej podkromki
+    switch (ch)
+    {case 'MOD0': //zmienne modelu: 'E3D0',len,(informacje o modelu)
+      break;
+     case 'VNT0': //wierzcho³ki: 'VNT0',len,(32 bajty na wiercho³ek)
+      iNumVerts=(k-2)>>3;
+      m_pVNT=(CVertNormTex*)(model+i+2);
+      break;
+     case 'SUB0': //submodele:   'SUB0',len,(xx bajtów na submodel)
+      Root=(TSubModel*)(model+i+2); //numery na wskaŸniki przetworzymy póŸniej
+      break;
+     case 'IDX1': //indeksy 1B:  'IDX2',len,(po bajcie na numer wierzcho³ka)
+      break;
+     case 'IDX2': //indeksy 2B:  'IDX2',len,(po 2 bajty na numer wierzcho³ka)
+      break;
+     case 'IDX4': //indeksy 4B:  'IDX4',len,(po 4 bajty na numer wierzcho³ka)
+      break;
+     case 'TEX0': //tekstury:    'TEX0',len,(³añcuchy zakoñczone zerem - pliki tekstur)
+      Textures=(TStringPack*)(model+i+2);
+      break;
+     case 'TIX0': //indeks nazw tekstur
+      break;
+     case 'NAM0': //nazwy:       'NAM0',len,(³añcuchy zakoñczone zerem - nazwy submodeli)
+      Names=(TStringPack*)(model+i+2);
+      break;
+     case 'NIX0': //indeks nazw submodeli
+      break;
+     case 'TRA0': //macierze transformacji
+      break;
+    }
+    i+=k; //przejœcie do kolejnej kromki
+   }
+  }
+  i=j;
+ }
+};
 
 void __fastcall TModel3d::LoadFromTextFile(char *FileName,bool dynamic)
 {
@@ -1123,9 +1196,9 @@ void __fastcall TModel3d::Init()
  }
 };
 
-void __fastcall TModel3d::SaveToFile(char *FileName)
+void __fastcall TModel3d::SaveToBinFile(char *FileName)
 {
-    Error("Not implemented yet :(");
+ //WriteLog("Saving E3D not implemented yet.");
 };
 
 void __fastcall TModel3d::BreakHierarhy()

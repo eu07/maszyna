@@ -491,6 +491,7 @@ public:
 	Byte HeadSignalsFlag;
 	TCommand CommandIn;
 	AnsiString CommandOut;
+	AnsiString CommandLast;
 	double ValueOut;
 	TTrackShape RunningShape;
 	TTrackParam RunningTrack;
