@@ -216,15 +216,15 @@ inline scalar_t Length4 (const vector3& v)
 
 inline vector3 Normalize (const vector3& v)
 {	vector3 retVal = v / Length3(v); return retVal; }
-inline vector3 SafeNormalize (const vector3& v)
+inline vector3 SafeNormalize(const vector3& v)
 {
-    double l= Length3(v);
-    vector3 retVal;
-    if (l==0)
-        retVal.x=retVal.y=retVal.z= 0;
-    else
-        retVal = v / Length3(v);
-    return retVal;
+ double l= Length3(v);
+ vector3 retVal;
+ if (l==0)
+  retVal.x=retVal.y=retVal.z=0;
+ else
+  retVal=v/l;
+ return retVal;
 }
 inline vector3 Normalize4 (const vector3& v)
 {	return v / Length4(v); }

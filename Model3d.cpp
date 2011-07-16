@@ -59,13 +59,13 @@ __fastcall TSubModel::TSubModel()
 void __fastcall TSubModel::FirstInit()
 {
  //Index=-1;
- v_RotateAxis=vector3(0,0,0);
- v_TransVector=vector3(0,0,0);
+ v_RotateAxis=float3(0,0,0);
+ v_TransVector=float3(0,0,0);
  f_Angle=0;
  b_Anim=at_None;
  b_aAnim=at_None;
  Visible=false;
- dMatrix=NULL; //Identity();
+ iMatrix=0; //Identity();
  Next=NULL;
  Child=NULL;
  TextureID=0;
@@ -99,10 +99,12 @@ __fastcall TSubModel::~TSubModel()
  delete[] Vertices;
 };
 
-int __fastcall TSubModel::SeekFaceNormal(DWORD *Masks,int f,DWORD dwMask,vector3 *pt,GLVERTEX *Vertices)
+//int __fastcall TSubModel::SeekFaceNormal(DWORD *Masks, int f,DWORD dwMask,vector3 *pt,GLVERTEX *Vertices)
+int __fastcall TSubModel::SeekFaceNormal(DWORD *Masks,int f,DWORD dwMask,float3 *pt,float8 *Vertices)
 {//szukanie punktu stycznego do (pt), zwraca numer wierzcho³ka, a nie trójk¹ta
  int iNumFaces=iNumVerts/3; //bo maska powierzchni jest jedna na trójk¹t
- GLVERTEX *p; //roboczy wskaŸnik
+ //GLVERTEX *p; //roboczy wskaŸnik
+ float8 *p; //roboczy wskaŸnik
  for (int i=f;i<iNumFaces;++i) //pêtla po trójk¹tach, od trójk¹ta (f)
   if (Masks[i]&dwMask) //jeœli wspólna maska powierzchni
   {p=Vertices+3*i;
@@ -141,8 +143,15 @@ inline void readColor(cParser& parser,int &color)
  parser.getToken(b);
  color=r+(g<<8)+(b<<16);
 };
-
+/*
 inline void readMatrix(cParser& parser,matrix4x4& matrix)
+{//Ra: wczytanie transforma
+ for (int x=0;x<=3;x++) //wiersze
+  for (int y=0;y<=3;y++) //kolumny
+   parser.getToken(matrix(x)[y]);
+};
+*/
+inline void readMatrix(cParser& parser,float4x4& matrix)
 {//Ra: wczytanie transforma
  for (int x=0;x<=3;x++) //wiersze
   for (int y=0;y<=3;y++) //kolumny
@@ -272,11 +281,11 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
  parser.getToken(fSquareMinDist);
  fSquareMinDist*=fSquareMinDist;
  parser.ignoreToken();
- dMatrix=new matrix4x4();
- readMatrix(parser,*dMatrix); //wczytanie transform
+ fMatrix=new float4x4();
+ readMatrix(parser,*fMatrix); //wczytanie transform
  //if ((iFlags&0x4000)==0) //o ile nie ma animacji
  for (int i=0;i<16;++i)
-  if (dMatrix->readArray()[i]!=((i%5)?0.0:1.0)) //jedynki tylko na 0, 5, 10 i 15
+  if (fMatrix->readArray()[i]!=((i%5)?0.0:1.0)) //jedynki tylko na 0, 5, 10 i 15
   {
    iFlags|=0x8000; //transform niejedynkowy - trzeba przechowaæ
    break;
@@ -293,7 +302,8 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
    Error("Mesh error, iNumVertices%3!=0");
    return 0;
   }
-  Vertices=new GLVERTEX[iNumVerts];
+  //Vertices=new GLVERTEX[iNumVerts];
+  Vertices=new float8[iNumVerts];
   iNumFaces=iNumVerts/3;
   sg=new DWORD[iNumFaces]; //maski powierzchni
   for (int i=0;i<iNumVerts;i++)
@@ -328,7 +338,7 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
    }
   }
   int i; //indeks dla trójk¹tów
-  vector3 *n=new vector3[iNumFaces]; //tablica wektorów normalnych dla trójk¹tów
+  float3 *n=new float3[iNumFaces]; //tablica wektorów normalnych dla trójk¹tów
   for (i=0;i<iNumFaces;i++) //pêtla po trójk¹tach - bêdzie szybciej, jak wstêpnie przeliczymy normalne trójk¹tów
    n[i]=SafeNormalize(CrossProduct(Vertices[i*3].Point-Vertices[i*3+1].Point,Vertices[i*3].Point-Vertices[i*3+2].Point));
   int v; //indeks dla wierzcho³ków
@@ -336,7 +346,7 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
   for (v=0;v<iNumVerts;v++)
    wsp[v]=-1; //wektory normalne nie s¹ policzone
   int f; //numer trójk¹ta stycznego
-  vector3 norm; //roboczy wektor normalny
+  float3 norm; //roboczy wektor normalny
   for (v=0;v<iNumVerts;v++)
   {//pêtla po wierzcho³kach trójk¹tów
    if (wsp[v]>=0) //jeœli ju¿ by³ liczony wektor normalny z u¿yciem tego wierzcho³ka
@@ -344,7 +354,7 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
    else
    {//inaczej musimy dopiero policzyæ
     i=v/3; //numer trójk¹ta
-    norm=vector3(0,0,0); //liczenie zaczynamy od zera
+    norm=float3(0,0,0); //liczenie zaczynamy od zera
     f=v; //zaczynamy dodawanie wektorów normalnych od w³asnego
     while (f>=0)
     {//sumowanie z wektorem normalnym s¹siada (w³¹cznie ze sob¹)
@@ -363,7 +373,8 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
  {//punkty œwiec¹ce dookólnie - sk³adnia jak dla smt_Mesh
   parser.ignoreToken();
   parser.getToken(iNumVerts);
-  Vertices=new GLVERTEX[iNumVerts];
+  //Vertices=new GLVERTEX[iNumVerts];
+  Vertices=new float8[iNumVerts];
   int i,j;
   for (i=0;i<iNumVerts;i++)
   {
@@ -379,39 +390,50 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
    Vertices[i].Normal.z=((j>>16)&0xFF)/255.0; //B
   }
  }
- if (!Global::bUseVBO)
- {//Ra: przy VBO to siê nie przyda
-  iFlags|=0x4000; //wy³¹czenie przeliczania wierzcho³ków, bo nie s¹ zachowane
-  if (eType==GL_TRIANGLES)
-  {
+ Visible=true; //siê potem wy³¹czy w razie potrzeby
+ return iNumVerts; //do okreœlenia wielkoœci VBO
+};
+
+void __fastcall TSubModel::DisplayLists()
+{//utworznie po jednej skompilowanej liœcie dla ka¿dego submodelu
+ if (Global::bUseVBO) return; //Ra: przy VBO to siê nie przyda
+ if (Next) Next->DisplayLists();
+ //iFlags|=0x4000; //wy³¹czenie przeliczania wierzcho³ków, bo nie s¹ zachowane
+ if (eType==GL_TRIANGLES)
+ {
 #ifdef USE_VERTEX_ARRAYS
-   // ShaXbee-121209: przekazywanie wierzcholkow hurtem
-   glVertexPointer(3,GL_DOUBLE,sizeof(GLVERTEX),&Vertices[0].Point.x);
-   glNormalPointer(GL_DOUBLE,sizeof(GLVERTEX),&Vertices[0].Normal.x);
-   glTexCoordPointer(2,GL_FLOAT,sizeof(GLVERTEX),&Vertices[0].tu);
+  // ShaXbee-121209: przekazywanie wierzcholkow hurtem
+  glVertexPointer(3,GL_DOUBLE,sizeof(GLVERTEX),&Vertices[0].Point.x);
+  glNormalPointer(GL_DOUBLE,sizeof(GLVERTEX),&Vertices[0].Normal.x);
+  glTexCoordPointer(2,GL_FLOAT,sizeof(GLVERTEX),&Vertices[0].tu);
 #endif
-   uiDisplayList=glGenLists(1);
-   glNewList(uiDisplayList,GL_COMPILE);
-   glColor3fv(f4Diffuse);   //McZapkie-240702: zamiast ub
+  uiDisplayList=glGenLists(1);
+  glNewList(uiDisplayList,GL_COMPILE);
+  glColor3fv(f4Diffuse);   //McZapkie-240702: zamiast ub
 #ifdef USE_VERTEX_ARRAYS
-   glDrawArrays(GL_TRIANGLES,0,iNumVerts);
+  glDrawArrays(GL_TRIANGLES,0,iNumVerts);
 #else
-   glBegin(bWire?GL_LINES:GL_TRIANGLES);
-   for (int i=0;i<iNumVerts;i++)
-   {
-    glNormal3dv(&Vertices[i].Normal.x);
-    glTexCoord2f(Vertices[i].tu,Vertices[i].tv);
-    glVertex3dv(&Vertices[i].Point.x);
-   };
-   glEnd();
-#endif
-   glEndList();
-  }
-  else if (eType==TP_FREESPOTLIGHT)
+  glBegin(bWire?GL_LINES:GL_TRIANGLES);
+  for (int i=0;i<iNumVerts;i++)
   {
-   uiDisplayList=glGenLists(1);
-   glNewList(uiDisplayList,GL_COMPILE);
-   glBindTexture(GL_TEXTURE_2D,0);
+/*
+   glNormal3dv(&Vertices[i].Normal.x);
+   glTexCoord2f(Vertices[i].tu,Vertices[i].tv);
+   glVertex3dv(&Vertices[i].Point.x);
+*/
+   glNormal3fv(&Vertices[i].Normal.x);
+   glTexCoord2f(Vertices[i].tu,Vertices[i].tv);
+   glVertex3fv(&Vertices[i].Point.x);
+  };
+  glEnd();
+#endif
+  glEndList();
+ }
+ else if (eType==TP_FREESPOTLIGHT)
+ {
+  uiDisplayList=glGenLists(1);
+  glNewList(uiDisplayList,GL_COMPILE);
+  glBindTexture(GL_TEXTURE_2D,0);
 //     if (eType==smt_FreeSpotLight)
 //      {
 //       if (iFarAttenDecay==0)
@@ -419,40 +441,39 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
 //      }
 //      else
 //TODO: poprawic zeby dzialalo
-   //glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
-   glColorMaterial(GL_FRONT,GL_EMISSION);
-   glDisable(GL_LIGHTING);  //Tolaris-030603: bo mu punkty swiecace sie blendowaly
-   glBegin(GL_POINTS);
-    glVertex3f(0,0,0);
-   glEnd();
-   glEnable(GL_LIGHTING);
-   glColorMaterial(GL_FRONT,GL_AMBIENT_AND_DIFFUSE);
-   glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
-   glEndList();
-  }
-  else if (eType==TP_STARS)
-  {//punkty œwiec¹ce dookólnie
-   uiDisplayList=glGenLists(1);
-   glNewList(uiDisplayList,GL_COMPILE);
-   glBindTexture(GL_TEXTURE_2D,0); //tekstury nie ma
-   glColorMaterial(GL_FRONT,GL_EMISSION);
-   glDisable(GL_LIGHTING);  //Tolaris-030603: bo mu punkty swiecace sie blendowaly
-   glBegin(GL_POINTS);
-   for (int i=0;i<iNumVerts;i++)
-   {
-    glColor3d(Vertices[i].Normal.x,Vertices[i].Normal.y,Vertices[i].Normal.z);
-    glVertex3dv(&Vertices[i].Point.x);
-   };
-   glEnd();
-   glEnable(GL_LIGHTING);
-   glColorMaterial(GL_FRONT,GL_AMBIENT_AND_DIFFUSE);
-   glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
-   glEndList();
-  }
-  SafeDeleteArray(Vertices); //przy VBO musz¹ zostaæ do za³adowania ca³ego modelu
+  //glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
+  glColorMaterial(GL_FRONT,GL_EMISSION);
+  glDisable(GL_LIGHTING);  //Tolaris-030603: bo mu punkty swiecace sie blendowaly
+  glBegin(GL_POINTS);
+   glVertex3f(0,0,0);
+  glEnd();
+  glEnable(GL_LIGHTING);
+  glColorMaterial(GL_FRONT,GL_AMBIENT_AND_DIFFUSE);
+  glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
+  glEndList();
  }
- Visible=true; //siê potem wy³¹czy w razie potrzeby
- return iNumVerts; //do okreœlenia wielkoœci VBO
+ else if (eType==TP_STARS)
+ {//punkty œwiec¹ce dookólnie
+  uiDisplayList=glGenLists(1);
+  glNewList(uiDisplayList,GL_COMPILE);
+  glBindTexture(GL_TEXTURE_2D,0); //tekstury nie ma
+  glColorMaterial(GL_FRONT,GL_EMISSION);
+  glDisable(GL_LIGHTING);  //Tolaris-030603: bo mu punkty swiecace sie blendowaly
+  glBegin(GL_POINTS);
+  for (int i=0;i<iNumVerts;i++)
+  {
+   glColor3f(Vertices[i].Normal.x,Vertices[i].Normal.y,Vertices[i].Normal.z);
+   //glVertex3dv(&Vertices[i].Point.x);
+   glVertex3fv(&Vertices[i].Point.x);
+  };
+  glEnd();
+  glEnable(GL_LIGHTING);
+  glColorMaterial(GL_FRONT,GL_AMBIENT_AND_DIFFUSE);
+  glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
+  glEndList();
+ }
+ SafeDeleteArray(Vertices); //przy VBO musz¹ zostaæ do za³adowania ca³ego modelu
+ if (Child) Child->DisplayLists();
 };
 
 void __fastcall TSubModel::InitialRotate(bool doit)
@@ -462,21 +483,26 @@ void __fastcall TSubModel::InitialRotate(bool doit)
  {//niejednostkowy transform jest mno¿ony i wystarczy zabawy
   if (doit)
   {//obrót lewostronny
-   matrix4x4 *mat,tmp;
+   fMatrix->InitialRotate(); //zmiana znaku X oraz zamiana Y i Z
+/*
+   float4x4 *mat,tmp1,tmp2;
    mat=GetMatrix(); //transform submodelu
-   tmp.Identity();
-   tmp.Rotation(M_PI/2,vector3(1,0,0)); //obrót wzglêdem osi OX o 90°
-   (*mat)=tmp*(*mat);
-   tmp.Identity();
-   tmp.Rotation(M_PI,vector3(0,0,1)); //obrót wzglêdem osi OZ o 90°
-   (*mat)=tmp*(*mat);
+   tmp1.Identity(); //{1,0,0,0, 0,0,1,0, 0,-1,0,0, 0,0,0,1}
+   tmp1.Rotation(M_PI/2,float3(1,0,0)); //obrót wzglêdem osi OX o 90°
+   (*mat)=tmp1*(*mat);
+   tmp2.Identity(); //{-1,0,0,0, 0,-1,0,0, 0,0,1,0, 0,0,0,1}
+   tmp2.Rotation(M_PI,float3(0,0,1)); //obrót wzglêdem osi OZ o 90°
+   (*mat)=tmp2*(*mat);
+   //tmp1=tmp2*tmp1; //{-1,0,0,0, 0,0,1,0, 0,1,0,0, 0,0,0,1}
+   //tmp2.Identity();
+*/
   }
   if (Child)
    Child->InitialRotate(false); //potomnych nie obracamy ju¿, tylko przegl¹damy
   else
    if ((iFlags&0xC000)==0x8000) //o ile nie ma animacji
    {//jak nie ma potomnych, mo¿na wymno¿yæ przez transform i wyjedynkowaæ go
-    matrix4x4 *mat=GetMatrix(); //transform submodelu
+    float4x4 *mat=GetMatrix(); //transform submodelu
     if (Vertices)
      for (int i=0;i<iNumVerts;++i)
       Vertices[i].Point=(*mat)*Vertices[i].Point;
@@ -541,7 +567,7 @@ int __fastcall TSubModel::Flags()
  return iFlags;
 };
 
-void __fastcall TSubModel::SetRotate(vector3 vNewRotateAxis,float fNewAngle)
+void __fastcall TSubModel::SetRotate(float3 vNewRotateAxis,float fNewAngle)
 {//obrócenie submodelu wg podanej osi (np. wskazówki w kabinie)
  v_RotateAxis=vNewRotateAxis;
  f_Angle=fNewAngle;
@@ -552,7 +578,7 @@ void __fastcall TSubModel::SetRotate(vector3 vNewRotateAxis,float fNewAngle)
  iAnimOwner=iInstance; //zapamiêtanie czyja jest animacja
 }
 
-void __fastcall TSubModel::SetRotateXYZ(vector3 vNewAngles)
+void __fastcall TSubModel::SetRotateXYZ(float3 vNewAngles)
 {//obrócenie submodelu o podane k¹ty wokó³ osi lokalnego uk³adu
  v_Angles=vNewAngles;
  b_Anim=at_RotateXYZ;
@@ -560,9 +586,29 @@ void __fastcall TSubModel::SetRotateXYZ(vector3 vNewAngles)
  iAnimOwner=iInstance; //zapamiêtanie czyja jest animacja
 }
 
-void __fastcall TSubModel::SetTranslate(vector3 vNewTransVector)
+void __fastcall TSubModel::SetRotateXYZ(vector3 vNewAngles)
+{//obrócenie submodelu o podane k¹ty wokó³ osi lokalnego uk³adu
+ v_Angles.x=vNewAngles.x;
+ v_Angles.y=vNewAngles.y;
+ v_Angles.z=vNewAngles.z;
+ b_Anim=at_RotateXYZ;
+ b_aAnim=at_RotateXYZ;
+ iAnimOwner=iInstance; //zapamiêtanie czyja jest animacja
+}
+
+void __fastcall TSubModel::SetTranslate(float3 vNewTransVector)
 {//przesuniêcie submodelu (np. w kabinie)
  v_TransVector=vNewTransVector;
+ b_Anim=at_Translate;
+ b_aAnim=at_Translate;
+ iAnimOwner=iInstance; //zapamiêtanie czyja jest animacja
+}
+
+void __fastcall TSubModel::SetTranslate(vector3 vNewTransVector)
+{//przesuniêcie submodelu (np. w kabinie)
+ v_TransVector.x=vNewTransVector.x;
+ v_TransVector.y=vNewTransVector.y;
+ v_TransVector.z=vNewTransVector.z;
  b_Anim=at_Translate;
  b_aAnim=at_Translate;
  iAnimOwner=iInstance; //zapamiêtanie czyja jest animacja
@@ -641,9 +687,9 @@ void __fastcall TSubModel::RaAnimation(TAnimType a)
   case at_Billboard: //obrót w pionie do kamery
    {matrix4x4 mat; //potrzebujemy wspó³rzêdne przesuniêcia œrodka uk³adu wspó³rzêdnych submodelu
     glGetDoublev(GL_MODELVIEW_MATRIX,mat.getArray()); //pobranie aktualnej matrycy
-    vector3 gdzie=vector3(mat[3][0],mat[3][1],mat[3][2]); //pocz¹tek uk³adu wspó³rzêdnych submodelu wzglêdem kamery
+    float3 gdzie=float3(mat[3][0],mat[3][1],mat[3][2]); //pocz¹tek uk³adu wspó³rzêdnych submodelu wzglêdem kamery
     glLoadIdentity(); //macierz jedynkowa
-    glTranslated(gdzie.x,gdzie.y,gdzie.z); //pocz¹tek uk³adu zostaje bez zmian
+    glTranslatef(gdzie.x,gdzie.y,gdzie.z); //pocz¹tek uk³adu zostaje bez zmian
     glRotated(atan2(gdzie.x,gdzie.z)*180.0/M_PI,0.0,1.0,0.0); //jedynie obracamy w pionie o k¹t
    }
    break;
@@ -667,8 +713,8 @@ void __fastcall TSubModel::RaRender(GLuint ReplacableSkinId,bool bAlpha)
  {
   if (iFlags&0xC000)
   {glPushMatrix();
-   if (dMatrix)
-    glMultMatrixd(dMatrix->getArray());
+   if (fMatrix)
+    glMultMatrixf(fMatrix->readArray());
    if (b_Anim) RaAnimation(b_Anim);
   }
   if ((TextureID==-1)) // && (ReplacableSkinId!=0))
@@ -699,8 +745,8 @@ void __fastcall TSubModel::RaRender(GLuint ReplacableSkinId,bool bAlpha)
    matrix4x4 mat;
    glGetDoublev(GL_MODELVIEW_MATRIX,mat.getArray());
    //k¹t miêdzy kierunkiem œwiat³a a wspó³rzêdnymi kamery
-   vector3 gdzie=mat*vector3(0,0,0); //pozycja punktu œwiec¹cego wzglêdem kamery
-   fCosViewAngle=DotProduct(Normalize(mat*vector3(0,0,1)-gdzie),Normalize(gdzie));
+   Math3D::vector3 gdzie=mat*Math3D::vector3(0,0,0); //pozycja punktu œwiec¹cego wzglêdem kamery
+   fCosViewAngle=DotProduct(Normalize(mat*Math3D::vector3(0,0,1)-gdzie),Normalize(gdzie));
    //(by³o miêdzy kierunkiem œwiat³a a k¹tem kamery)
    //fCosViewAngle=DotProduct(Normalize(mat*vector3(0,0,1)-mat*vector3(0,0,0)),vector3(0,0,1));
    if (fCosViewAngle>fcosFalloffAngle)  //kat wiekszy niz max stozek swiatla
@@ -806,8 +852,8 @@ void __fastcall TSubModel::RaRenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
  {
   if (iFlags&0xC000)
   {glPushMatrix(); //zapamiêtanie matrycy
-   if (dMatrix)
-    glMultMatrixd(dMatrix->getArray());
+   if (fMatrix)
+    glMultMatrixf(fMatrix->readArray());
    if (b_aAnim) RaAnimation(b_aAnim);
   }
   glColor3fv(f4Diffuse);
@@ -860,8 +906,8 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
  {
   if (iFlags&0xC000)
   {glPushMatrix();
-   if (dMatrix)
-    glMultMatrixd(dMatrix->getArray());
+   if (fMatrix)
+    glMultMatrixf(fMatrix->readArray());
    if (b_Anim) RaAnimation(b_Anim);
   }
   //zmienialne skory
@@ -870,8 +916,8 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
    matrix4x4 mat;
    glGetDoublev(GL_MODELVIEW_MATRIX,mat.getArray());
    //k¹t miêdzy kierunkiem œwiat³a a wspó³rzêdnymi kamery
-   vector3 gdzie=mat*vector3(0,0,0); //pozycja wzglêdna punktu œwiec¹cego
-   fCosViewAngle=DotProduct(Normalize(mat*vector3(0,0,1)-gdzie),Normalize(gdzie));
+   Math3D::vector3 gdzie=mat*Math3D::vector3(0,0,0); //pozycja wzglêdna punktu œwiec¹cego
+   fCosViewAngle=DotProduct(Normalize(mat*Math3D::vector3(0,0,1)-gdzie),Normalize(gdzie));
    //(by³o miêdzy kierunkiem œwiat³a a k¹tem kamery)
    //fCosViewAngle=DotProduct(Normalize(mat*vector3(0,0,1)-mat*vector3(0,0,0)),vector3(0,0,1));
    if (fCosViewAngle>fcosFalloffAngle)  //kat wiekszy niz max stozek swiatla
@@ -950,8 +996,8 @@ void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
  {
   if (iFlags&0xC000)
   {glPushMatrix();
-   if (dMatrix)
-    glMultMatrixd(dMatrix->getArray());
+   if (fMatrix)
+    glMultMatrixf(fMatrix->readArray());
    if (b_aAnim) RaAnimation(b_aAnim);
   }
   if (eType==TP_FREESPOTLIGHT)
@@ -1167,8 +1213,8 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName,bool dynamic)
  }
  if (Root)
  {
-  if (!Global::bUseVBO) //dla DL wierzcho³ki s¹ kompilowane przy wczytywaniu
-   Root->WillBeAnimated(); //i nie da siê ich przeliczyæ
+  //if (!Global::bUseVBO) //dla DL wierzcho³ki s¹ kompilowane przy wczytywaniu
+  // Root->WillBeAnimated(); //i nie da siê ich przeliczyæ
   if (!dynamic) //dynamic zrobi to sam dopiero po przeanalizowaniu animacji submodeli
    Init();
  }
@@ -1176,7 +1222,7 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName,bool dynamic)
 
 void __fastcall TModel3d::Init()
 {//obrócenie pocz¹tkowe uk³adu wspó³rzêdnych, dla pojazdów wykonywane po analizie animacji
- if (iFlags&0x8000) return; //zosta³ ju¿ obrócony
+ if (iFlags&0x8000) return; //operacje zosta³y ju¿ wykonane
  if (Root)
  {Root->InitialRotate(true); //konwersja uk³adu wspó³rzêdnych
   if (iNumVerts)
@@ -1188,7 +1234,11 @@ void __fastcall TModel3d::Init()
     Root->RaArrayFill(m_pVNT); //wype³nianie tablicy
     BuildVBOs(); //tworzenie VBO i usuwanie tablicy z pamiêci
    }
+   else
 #endif
+   {//przygotowanie skompilowanych siatek dla DisplayLists
+    Root->DisplayLists(); //tworzenie skompilowanej listy dla submodelu
+   }
    iFlags=Root->Flags()|0x8000; //flagi ca³ego modelu
    //if (Root->TextureID) //o ile ma teksturê
    // Root->iFlags|=0x80; //koniecznoœæ ustawienia tekstury
@@ -1324,7 +1374,7 @@ void __fastcall TModel3d::RaRenderAlpha(double fSquareDistance,GLuint Replacable
 void __fastcall TModel3d::RaRenderAlpha(vector3 pPosition,double fAngle,GLuint ReplacableSkinId,bool bAlpha)
 {
  glPushMatrix();
- glTranslated(pPosition.x,pPosition.y,pPosition.z);
+ glTranslatef(pPosition.x,pPosition.y,pPosition.z);
  if (fAngle!=0)
   glRotatef(fAngle,0,1,0);
  fSquareDist=SquareMagnitude(pPosition-Global::GetCameraPosition());
