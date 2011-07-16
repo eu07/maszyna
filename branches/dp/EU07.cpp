@@ -74,7 +74,7 @@ USEUNIT("Feedback.cpp");
 USEUNIT("McZapkie\mtable.pas");
 USEUNIT("TextureDDS.cpp");
 USEUNIT("opengl\ARB_Multisample.cpp");
-USEUNIT("float3d.cpp");
+USEUNIT("Float3d.cpp");
 //---------------------------------------------------------------------------
 #include "World.h"
 

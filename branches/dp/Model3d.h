@@ -124,6 +124,7 @@ typedef enum //rodzaj animacji
 } TAnimType;
 
 class TModel3d;
+class TSubModelInfo;
 
 class TSubModel
 {//klasa submodelu - pojedyncza siatka, punkt œwietlny albo grupa punktów
@@ -184,8 +185,9 @@ private:
  float8 *Vertices; //do VBO
  int iAnimOwner;
  TAnimType b_Anim,b_aAnim; //kody animacji oddzielnie, bo zerowane
- char space[68];
+ char space[60];
 public:
+ AnsiString asTexture; //nazwa tekstury do zapisania w pliku binarnym
  bool Visible;
  std::string Name;
 private:
@@ -221,7 +223,40 @@ public:
  void __fastcall WillBeAnimated() {if (this) iFlags|=0x4000;};
  void __fastcall InitialRotate(bool doit);
  void __fastcall DisplayLists();
+ void __fastcall Info();
+ void __fastcall InfoSet(TSubModelInfo *info);
 };
+
+class TSubModelInfo
+{//klasa z informacjami o submodelach, do tworzenia pliku binarnego
+public:
+ TSubModel *pSubModel; //wskaŸnik na submodel
+ int iTransform; //numer transformu (-1 gdy brak)
+ int iName; //numer nazwy
+ int iTexture; //numer tekstury
+ int iNameLen; //d³ugoœæ nazwy
+ int iTextureLen; //d³ugoœæ tekstury
+ int iNext,iChild; //numer nastêpnego i potomnego
+ static int iTotalTransforms; //iloœæ transformów
+ static int iTotalNames; //iloœæ nazw
+ static int iTotalTextures; //iloœæ tekstur
+ static int iCurrent; //aktualny obiekt
+ static TSubModelInfo* pTable; //tabele obiektów pomocniczych
+ __fastcall TSubModelInfo()
+ {pSubModel=NULL;
+  iTransform=iName=iTexture=iNext=iChild=-1; //nie ma
+  iNameLen=iTextureLen=0;
+ }
+ void __fastcall Reset()
+ {pTable=this; //ustawienie wskaŸnika tabeli obiektów
+  iTotalTransforms=iTotalNames=iTotalTextures=iCurrent=0; //zerowanie liczników
+ }
+};
+int TSubModelInfo::iTotalTransforms; //iloœæ transformów
+int TSubModelInfo::iTotalNames; //d³ugoœæ obszaru nazw
+int TSubModelInfo::iTotalTextures; //d³ugoœæ obszaru tekstur
+int TSubModelInfo::iCurrent; //aktualny obiekt
+TSubModelInfo* TSubModelInfo::pTable; //tabele obiektów pomocniczych
 
 class TModel3d : public CMesh
 {
@@ -236,7 +271,7 @@ private:
  TStringPack *Names; //nazwy submodeli
 public:
  inline TSubModel* __fastcall GetSMRoot() {return(Root);};
- //int SubModelsCount; //Ra: nie u¿ywane
+ int iSubModelsCount; //Ra: u¿ywane do tworzenia binarnych
  //double Radius; //Ra: nie u¿ywane
  __fastcall TModel3d();
  __fastcall TModel3d(char *FileName);

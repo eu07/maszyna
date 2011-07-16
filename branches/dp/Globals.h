@@ -9,6 +9,11 @@
 
 using namespace Math3D;
 
+const vector3 vWorldFront=vector3(0,0,1);
+const vector3 vWorldUp=vector3(0,1,0);
+const vector3 vWorldLeft=CrossProduct(vWorldUp,vWorldFront);
+const vector3 vGravity=vector3(0,-9.81,0);
+
 //definicje klawiszy
 const int k_IncMainCtrl= 0; //[Num+]
 const int k_IncMainCtrlFAST= 1; //[Num+] [Shift]

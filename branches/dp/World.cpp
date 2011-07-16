@@ -546,8 +546,8 @@ bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
      KeyEvents[8]=Ground.FindEvent("keyctrl08");
      KeyEvents[9]=Ground.FindEvent("keyctrl09");
     }
-    matrix4x4 ident2;
-    ident2.Identity();
+    //matrix4x4 ident2;
+    //ident2.Identity();
 
 //  glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);  //{Texture blends with object background}
   light= TTexturesManager::GetTextureID("smuga.tga");
@@ -925,7 +925,7 @@ bool __fastcall TWorld::Update()
   vector3 vFront= Train->DynamicObject->GetDirection();
   if ((Train->DynamicObject->MoverParameters->CategoryFlag==2) && (Train->DynamicObject->MoverParameters->ActiveCab<0)) //TODO: zrobic to eleganciej z plynnym zawracaniem
      vFront= -vFront;
-  vector3 vUp= vWorldUp;
+  vector3 vUp= vWorldUp; //sta³a
   vFront.Normalize();
   vector3 vLeft= CrossProduct(vUp,vFront);
   vUp= CrossProduct(vFront,vLeft);
