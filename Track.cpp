@@ -972,7 +972,7 @@ void __fastcall TTrack::Compile()
    vector6 bpts1[numPts]={vector6( fHTW,0.0,0.0), vector6( fHTW,0.2,0.33),
                           vector6(-fHTW,0.0,0.67),vector6(-fHTW,0.0,1.0 ) };
    //Ra: dziwnie ten kszta³t wygl¹da
-   if(TextureID1)
+   if (TextureID1)
    {
     glBindTexture(GL_TEXTURE_2D,TextureID1);
     Segment->RenderLoft(bpts1,numPts,fTexLength);
@@ -1005,48 +1005,46 @@ void TTrack::Release()
 
 void __fastcall TTrack::Render()
 {
-
-    if(bVisible && SquareMagnitude(Global::pCameraPosition-Segment->FastGetPoint(0.5)) < 810000)
-    {
-        if(!DisplayListID)
-        {
-            Compile();
-            if(Global::bManageNodes)
-                ResourceManager::Register(this);
-        };
-        SetLastUsage(Timer::GetSimulationTime());
-        glCallList(DisplayListID);
-        if (InMovement()) Release(); //zwrotnica w trakcie animacji do odrysowania
-    };
-
-    for (int i=0; i<iNumDynamics; i++)
-    {
-        Dynamics[i]->Render();
-    }
+ if (bVisible && SquareMagnitude(Global::pCameraPosition-Segment->FastGetPoint(0.5)) < 810000)
+ {
+  if (!DisplayListID)
+  {
+   Compile();
+   if (Global::bManageNodes)
+    ResourceManager::Register(this);
+  };
+  SetLastUsage(Timer::GetSimulationTime());
+  glCallList(DisplayListID);
+  if (InMovement()) Release(); //zwrotnica w trakcie animacji do odrysowania
+ };
+ for (int i=0; i<iNumDynamics; i++)
+ {
+  Dynamics[i]->Render();
+ }
 #ifdef _DEBUG
-            if (DebugModeFlag && ScannedFlag) //McZapkie-230702
-            {
-              vector3 pos1,pos2,pos3;
-              glDisable(GL_DEPTH_TEST);
-                  glDisable(GL_LIGHTING);
-              glColor3ub(255,0,0);
-              glBindTexture(GL_TEXTURE_2D,0);
-              glBegin(GL_LINE_STRIP);
-                  pos1=Segment->FastGetPoint_0();
-                  pos2=Segment->FastGetPoint(0.5);
-                  pos3=Segment->FastGetPoint_1();
-                  glVertex3f(pos1.x,pos1.y,pos1.z);
-                  glVertex3f(pos2.x,pos2.y+10,pos2.z);
-                  glVertex3f(pos3.x,pos3.y,pos3.z);
-              glEnd();
-              glEnable(GL_LIGHTING);
-              glEnable(GL_DEPTH_TEST);
-            }
+ if (DebugModeFlag && ScannedFlag) //McZapkie-230702
+ {
+  vector3 pos1,pos2,pos3;
+  glDisable(GL_DEPTH_TEST);
+      glDisable(GL_LIGHTING);
+  glColor3ub(255,0,0);
+  glBindTexture(GL_TEXTURE_2D,0);
+  glBegin(GL_LINE_STRIP);
+      pos1=Segment->FastGetPoint_0();
+      pos2=Segment->FastGetPoint(0.5);
+      pos3=Segment->FastGetPoint_1();
+      glVertex3f(pos1.x,pos1.y,pos1.z);
+      glVertex3f(pos2.x,pos2.y+10,pos2.z);
+      glVertex3f(pos3.x,pos3.y,pos3.z);
+  glEnd();
+  glEnable(GL_LIGHTING);
+  glEnable(GL_DEPTH_TEST);
+  ScannedFlag=false;
+ }
 #endif
-   ScannedFlag=false;
-   glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
-   glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
-   glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
+ glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
+ glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
+ glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
 }
 
 void __fastcall TTrack::RenderAlpha()
