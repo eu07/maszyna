@@ -103,7 +103,7 @@ __fastcall TSubModel::~TSubModel()
   //SafeDeleteArray(Indices);
   SafeDelete(Next);
   SafeDelete(Child);
-  delete fMatrix; //w³asny transform trzeba usun¹æ
+  delete fMatrix; //w³asny transform trzeba usun¹æ (zawsze jeden)
   delete[] Vertices;
  }
 /*
@@ -320,71 +320,75 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
    return 0;
   }
   //Vertices=new GLVERTEX[iNumVerts];
-  Vertices=new float8[iNumVerts];
-  iNumFaces=iNumVerts/3;
-  sg=new DWORD[iNumFaces]; //maski powierzchni
-  for (int i=0;i<iNumVerts;i++)
-  {//Ra: z konwersj¹ na uk³ad scenerii - bêdzie wydajniejsze wyœwietlanie
-   if (i%3==0)
-    parser.getToken(sg[i/3]); //maska powierzchni trójk¹ta
-   parser.getToken(Vertices[i].Point.x);
-   parser.getToken(Vertices[i].Point.y);
-   parser.getToken(Vertices[i].Point.z);
-   //Vertices[i].Normal=vector3(0,0,0); //bêdzie liczony potem
-   parser.getToken(Vertices[i].tu);
-   parser.getToken(Vertices[i].tv);
-   if (i%3==2) //je¿eli wczytano 3 punkty
-   {if (Vertices[i  ].Point==Vertices[i-1].Point ||
-        Vertices[i-1].Point==Vertices[i-2].Point ||
-        Vertices[i-2].Point==Vertices[i  ].Point)
-    {//je¿eli punkty siê nak³adaj¹ na siebie
-     --iNumFaces; //o jeden trójk¹t mniej
-     iNumVerts-=3; //czyli o 3 wierzcho³ki
-     i-=3; //wczytanie kolejnego w to miejsce
-     WriteLog(AnsiString("Degenerated triangle ignored in: \"")+asName+"\"");
-    }
-    if (((Vertices[i  ].Point-Vertices[i-1].Point).Length()>2000.0) ||
-        ((Vertices[i-1].Point-Vertices[i-2].Point).Length()>2000.0) ||
-        ((Vertices[i-2].Point-Vertices[i  ].Point).Length()>2000.0))
-    {//je¿eli s¹ dalej ni¿ 2km od siebie
-     --iNumFaces; //o jeden trójk¹t mniej
-     iNumVerts-=3; //czyli o 3 wierzcho³ki
-     i-=3; //wczytanie kolejnego w to miejsce
-     WriteLog(AnsiString("Too large triangle ignored in: \"")+asName+"\"");
+  if (iNumVerts)
+  {Vertices=new float8[iNumVerts];
+   iNumFaces=iNumVerts/3;
+   sg=new DWORD[iNumFaces]; //maski powierzchni
+   for (int i=0;i<iNumVerts;i++)
+   {//Ra: z konwersj¹ na uk³ad scenerii - bêdzie wydajniejsze wyœwietlanie
+    if (i%3==0)
+     parser.getToken(sg[i/3]); //maska powierzchni trójk¹ta
+    parser.getToken(Vertices[i].Point.x);
+    parser.getToken(Vertices[i].Point.y);
+    parser.getToken(Vertices[i].Point.z);
+    //Vertices[i].Normal=vector3(0,0,0); //bêdzie liczony potem
+    parser.getToken(Vertices[i].tu);
+    parser.getToken(Vertices[i].tv);
+    if (i%3==2) //je¿eli wczytano 3 punkty
+    {if (Vertices[i  ].Point==Vertices[i-1].Point ||
+         Vertices[i-1].Point==Vertices[i-2].Point ||
+         Vertices[i-2].Point==Vertices[i  ].Point)
+     {//je¿eli punkty siê nak³adaj¹ na siebie
+      --iNumFaces; //o jeden trójk¹t mniej
+      iNumVerts-=3; //czyli o 3 wierzcho³ki
+      i-=3; //wczytanie kolejnego w to miejsce
+      WriteLog(AnsiString("Degenerated triangle ignored in: \"")+asName+"\"");
+     }
+     if (((Vertices[i  ].Point-Vertices[i-1].Point).Length()>2000.0) ||
+         ((Vertices[i-1].Point-Vertices[i-2].Point).Length()>2000.0) ||
+         ((Vertices[i-2].Point-Vertices[i  ].Point).Length()>2000.0))
+     {//je¿eli s¹ dalej ni¿ 2km od siebie
+      --iNumFaces; //o jeden trójk¹t mniej
+      iNumVerts-=3; //czyli o 3 wierzcho³ki
+      i-=3; //wczytanie kolejnego w to miejsce
+      WriteLog(AnsiString("Too large triangle ignored in: \"")+asName+"\"");
+     }
     }
    }
-  }
-  int i; //indeks dla trójk¹tów
-  float3 *n=new float3[iNumFaces]; //tablica wektorów normalnych dla trójk¹tów
-  for (i=0;i<iNumFaces;i++) //pêtla po trójk¹tach - bêdzie szybciej, jak wstêpnie przeliczymy normalne trójk¹tów
-   n[i]=SafeNormalize(CrossProduct(Vertices[i*3].Point-Vertices[i*3+1].Point,Vertices[i*3].Point-Vertices[i*3+2].Point));
-  int v; //indeks dla wierzcho³ków
-  int *wsp=new int[iNumVerts]; //z którego wierzcho³ka kopiowaæ wektor normalny
-  for (v=0;v<iNumVerts;v++)
-   wsp[v]=-1; //wektory normalne nie s¹ policzone
-  int f; //numer trójk¹ta stycznego
-  float3 norm; //roboczy wektor normalny
-  for (v=0;v<iNumVerts;v++)
-  {//pêtla po wierzcho³kach trójk¹tów
-   if (wsp[v]>=0) //jeœli ju¿ by³ liczony wektor normalny z u¿yciem tego wierzcho³ka
-    Vertices[v].Normal=Vertices[wsp[v]].Normal; //to wystarczy skopiowaæ policzony wczeœniej
-   else
-   {//inaczej musimy dopiero policzyæ
-    i=v/3; //numer trójk¹ta
-    norm=float3(0,0,0); //liczenie zaczynamy od zera
-    f=v; //zaczynamy dodawanie wektorów normalnych od w³asnego
-    while (f>=0)
-    {//sumowanie z wektorem normalnym s¹siada (w³¹cznie ze sob¹)
-     wsp[f]=v; //informacja, ¿e w tym wierzcho³ku jest ju¿ policzony wektor normalny
-     norm+=n[f/3];
-     f=SeekFaceNormal(sg,f/3+1,sg[i],&Vertices[v].Point,Vertices); //i szukanie od kolejnego trójk¹ta
+   int i; //indeks dla trójk¹tów
+   float3 *n=new float3[iNumFaces]; //tablica wektorów normalnych dla trójk¹tów
+   for (i=0;i<iNumFaces;i++) //pêtla po trójk¹tach - bêdzie szybciej, jak wstêpnie przeliczymy normalne trójk¹tów
+    n[i]=SafeNormalize(CrossProduct(Vertices[i*3].Point-Vertices[i*3+1].Point,Vertices[i*3].Point-Vertices[i*3+2].Point));
+   int v; //indeks dla wierzcho³ków
+   int *wsp=new int[iNumVerts]; //z którego wierzcho³ka kopiowaæ wektor normalny
+   for (v=0;v<iNumVerts;v++)
+    wsp[v]=-1; //wektory normalne nie s¹ policzone
+   int f; //numer trójk¹ta stycznego
+   float3 norm; //roboczy wektor normalny
+   for (v=0;v<iNumVerts;v++)
+   {//pêtla po wierzcho³kach trójk¹tów
+    if (wsp[v]>=0) //jeœli ju¿ by³ liczony wektor normalny z u¿yciem tego wierzcho³ka
+     Vertices[v].Normal=Vertices[wsp[v]].Normal; //to wystarczy skopiowaæ policzony wczeœniej
+    else
+    {//inaczej musimy dopiero policzyæ
+     i=v/3; //numer trójk¹ta
+     norm=float3(0,0,0); //liczenie zaczynamy od zera
+     f=v; //zaczynamy dodawanie wektorów normalnych od w³asnego
+     while (f>=0)
+     {//sumowanie z wektorem normalnym s¹siada (w³¹cznie ze sob¹)
+      wsp[f]=v; //informacja, ¿e w tym wierzcho³ku jest ju¿ policzony wektor normalny
+      norm+=n[f/3];
+      f=SeekFaceNormal(sg,f/3+1,sg[i],&Vertices[v].Point,Vertices); //i szukanie od kolejnego trójk¹ta
+     }
+     Vertices[v].Normal=SafeNormalize(norm); //przepisanie do wierzcho³ka trójk¹ta
     }
-    Vertices[v].Normal=SafeNormalize(norm); //przepisanie do wierzcho³ka trójk¹ta
    }
+   delete[] wsp;
+   delete[] n;
+   delete[] sg;
   }
-  delete[] wsp;
-  delete[] n;
-  delete[] sg;
+  else //gdy brak wierzcho³ków
+   eType=-1; //submodel pomocniczy, ma tylko macierz przekszta³cenia
  }
  else if (eType==TP_STARS)
  {//punkty œwiec¹ce dookólnie - sk³adnia jak dla smt_Mesh
@@ -968,7 +972,7 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
     glCallList(uiDisplayList); //wyœwietlenie warunkowe
    }
   }
-  else if (eType==GL_TRIANGLES)
+  else if ((unsigned int)eType<=GL_POLYGON)
   {if ((TextureID==-1)) // && (ReplacableSkinId!=0))
    {
     glBindTexture(GL_TEXTURE_2D,ReplacableSkinId);
@@ -1029,7 +1033,7 @@ void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
 //        }
      // dorobic aureole!
   }
-  else
+  else if ((unsigned int)eType<=GL_POLYGON)
   {
    //zmienialne skory
    if ((TextureID==-1)) // && (ReplacableSkinId!=0))
@@ -1140,6 +1144,7 @@ void __fastcall TSubModel::BinInit(TSubModel *s,float4x4 *m,float8 *v,TStringPac
  iFlags&=~0x0200; //wczytano z pliku binarnego (nie jest w³aœcicielem tablic)
  Vertices=v+iVboPtr;
  Visible=true; //tymczasowo u¿ywane
+ if (!iNumVerts) eType=-1; //tymczasowo zmiana typu, ¿eby siê nie renderowa³o na si³ê
 };
 //---------------------------------------------------------------------------
 
@@ -1174,6 +1179,7 @@ __fastcall TModel3d::~TModel3d()
  else
  {//wczytano z pliku binarnego (jest w³aœcicielem tablic)
   m_pVNT=NULL; //nie usuwaæ tego, bo wskazuje na iModel
+  Root=NULL;
   delete[] iModel; //usuwamy ca³y wczytany plik i to wystarczy
  }
  //dalej siê jeszcze usunie obiekt z którego dziedziczymy tabelê VBO
@@ -1588,13 +1594,13 @@ void __fastcall TModel3d::RaRenderAlpha(vector3 pPosition,double fAngle,GLuint R
 //2011-03-16 cztery nowe funkcje renderowania z mo¿liwoœci¹ pochylania obiektów
 //-----------------------------------------------------------------------------
 
-void __fastcall TModel3d::Render(vector3* vPosition,vector3* vAngle,GLuint ReplacableSkinId,bool bAlpha)
+void __fastcall TModel3d::Render(vector3 *vPosition,vector3 *vAngle,GLuint ReplacableSkinId,bool bAlpha)
 {//nieprzezroczyste, Display List
  glPushMatrix();
  glTranslated(vPosition->x,vPosition->y,vPosition->z);
- if (vAngle->y!=0.0) glRotatef(vAngle->y,0.0,1.0,0.0);
- if (vAngle->x!=0.0) glRotatef(vAngle->x,1.0,0.0,0.0);
- if (vAngle->z!=0.0) glRotatef(vAngle->z,0.0,0.0,1.0);
+ if (vAngle->y!=0.0) glRotated(vAngle->y,0.0,1.0,0.0);
+ if (vAngle->x!=0.0) glRotated(vAngle->x,1.0,0.0,0.0);
+ if (vAngle->z!=0.0) glRotated(vAngle->z,0.0,0.0,1.0);
  fSquareDist=SquareMagnitude(*vPosition-Global::GetCameraPosition());
  Root->Render(ReplacableSkinId,bAlpha);
  glPopMatrix();
@@ -1603,9 +1609,9 @@ void __fastcall TModel3d::RenderAlpha(vector3* vPosition,vector3* vAngle,GLuint 
 {//przezroczyste, Display List
  glPushMatrix();
  glTranslated(vPosition->x,vPosition->y,vPosition->z);
- if (vAngle->y!=0.0) glRotatef(vAngle->y,0.0,1.0,0.0);
- if (vAngle->x!=0.0) glRotatef(vAngle->x,1.0,0.0,0.0);
- if (vAngle->z!=0.0) glRotatef(vAngle->z,0.0,0.0,1.0);
+ if (vAngle->y!=0.0) glRotated(vAngle->y,0.0,1.0,0.0);
+ if (vAngle->x!=0.0) glRotated(vAngle->x,1.0,0.0,0.0);
+ if (vAngle->z!=0.0) glRotated(vAngle->z,0.0,0.0,1.0);
  fSquareDist=SquareMagnitude(*vPosition-Global::GetCameraPosition());
  Root->RenderAlpha(ReplacableSkinId,bAlpha);
  glPopMatrix();
@@ -1614,9 +1620,9 @@ void __fastcall TModel3d::RaRender(vector3* vPosition,vector3* vAngle,GLuint Rep
 {//nieprzezroczyste, VBO
  glPushMatrix();
  glTranslated(vPosition->x,vPosition->y,vPosition->z);
- if (vAngle->y!=0.0) glRotatef(vAngle->y,0.0,1.0,0.0);
- if (vAngle->x!=0.0) glRotatef(vAngle->x,1.0,0.0,0.0);
- if (vAngle->z!=0.0) glRotatef(vAngle->z,0.0,0.0,1.0);
+ if (vAngle->y!=0.0) glRotated(vAngle->y,0.0,1.0,0.0);
+ if (vAngle->x!=0.0) glRotated(vAngle->x,1.0,0.0,0.0);
+ if (vAngle->z!=0.0) glRotated(vAngle->z,0.0,0.0,1.0);
  fSquareDist=SquareMagnitude(*vPosition-Global::GetCameraPosition());
  if (StartVBO())
  {Root->RaRender(ReplacableSkinId,bAlpha);
@@ -1628,9 +1634,9 @@ void __fastcall TModel3d::RaRenderAlpha(vector3* vPosition,vector3* vAngle,GLuin
 {//przezroczyste, VBO
  glPushMatrix();
  glTranslated(vPosition->x,vPosition->y,vPosition->z);
- if (vAngle->y!=0.0) glRotatef(vAngle->y,0.0,1.0,0.0);
- if (vAngle->x!=0.0) glRotatef(vAngle->x,1.0,0.0,0.0);
- if (vAngle->z!=0.0) glRotatef(vAngle->z,0.0,0.0,1.0);
+ if (vAngle->y!=0.0) glRotated(vAngle->y,0.0,1.0,0.0);
+ if (vAngle->x!=0.0) glRotated(vAngle->x,1.0,0.0,0.0);
+ if (vAngle->z!=0.0) glRotated(vAngle->z,0.0,0.0,1.0);
  fSquareDist=SquareMagnitude(*vPosition-Global::GetCameraPosition());
  if (StartVBO())
  {Root->RaRenderAlpha(ReplacableSkinId,bAlpha);

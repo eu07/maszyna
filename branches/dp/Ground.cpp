@@ -244,7 +244,7 @@ void __fastcall TGroundRect::Render()
     glEndList();
    }
    pRender->Render(); //nieprzezroczyste trójk¹ty kwadratu kilometrowego
-  } 
+  }
   iLastDisplay=iFrameNumber;
  }
 };
@@ -3158,7 +3158,9 @@ bool __fastcall TGround::Render(vector3 pPosition)
   tmp=pRendered[i];
   tmp->RaAnimate(); //przeliczenia animacji torów w sektorze
   for (node=tmp->pRender;node;node=node->pNext3)
+  {
    node->Render(); //nieprzezroczyste obiekty (pojazdy z torów)
+  }
   for (node=tmp->pRenderMixed;node;node=node->pNext3)
    node->Render(); //nieprzezroczyste z mieszanych modeli
  }

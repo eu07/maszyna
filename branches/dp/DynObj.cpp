@@ -2952,7 +2952,7 @@ bool __fastcall TDynamicObject::RenderAlpha()
     glPushMatrix ( );
     //vector3 pos= GetPosition();
     //double ObjDist= SquareMagnitude(Global::pCameraPosition-pos);
-    glTranslatef(pos.x,pos.y,pos.z);
+    glTranslated(pos.x,pos.y,pos.z);
     glMultMatrixd(mMatrix.getArray());
 
 #ifdef USE_VBO

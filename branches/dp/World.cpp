@@ -160,19 +160,19 @@ bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
   WriteLog("Max texture size: "+AnsiString(Global::iMaxTextureSize));
  }
 /*-----------------------Render Initialization----------------------*/
-        glTexEnvf(TEXTURE_FILTER_CONTROL_EXT,TEXTURE_LOD_BIAS_EXT,-1);
-        GLfloat  FogColor[]    = { 1.0f,  1.0f, 1.0f, 1.0f };
-        glMatrixMode(GL_MODELVIEW);							// Select The Modelview Matrix
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	// Clear screen and depth buffer
-    glLoadIdentity();
+ if (Global::fOpenGL>=1.2) //poni¿sze nie dzia³a w 1.1
+  glTexEnvf(TEXTURE_FILTER_CONTROL_EXT,TEXTURE_LOD_BIAS_EXT,-2);
+ GLfloat FogColor[]={1.0f,1.0f,1.0f,1.0f};
+ glMatrixMode(GL_MODELVIEW); // Select The Modelview Matrix
+ glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear screen and depth buffer
+ glLoadIdentity();
+ //WriteLog("glClearColor (FogColor[0], FogColor[1], FogColor[2], 0.0); ");
+ //glClearColor (1.0, 0.0, 0.0, 0.0);                  // Background Color
+ //glClearColor (FogColor[0], FogColor[1], FogColor[2], 0.0);                  // Background Color
+ glClearColor (0.2, 0.4, 0.33, 1.0);                  // Background Color
 
-//    WriteLog("glClearColor (FogColor[0], FogColor[1], FogColor[2], 0.0); ");
-//    glClearColor (1.0, 0.0, 0.0, 0.0);                  // Background Color
-//    glClearColor (FogColor[0], FogColor[1], FogColor[2], 0.0);                  // Background Color
-    glClearColor (0.2, 0.4, 0.33, 1.0);                  // Background Color
-
-    WriteLog("glFogfv(GL_FOG_COLOR, FogColor);");
-    glFogfv(GL_FOG_COLOR, FogColor);					// Set Fog Color
+ WriteLog("glFogfv(GL_FOG_COLOR, FogColor);");
+ glFogfv(GL_FOG_COLOR, FogColor);					// Set Fog Color
 
     WriteLog("glClearDepth(1.0f);  ");
     glClearDepth(1.0f);                                 // ZBuffer Value
@@ -373,8 +373,8 @@ bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
     glColor3f(3.0f,3.0f,3.0f);
 
         GLuint logo;
-        logo= TTexturesManager::GetTextureID("logo.bmp");
-        glBindTexture(GL_TEXTURE_2D, logo);       // Select our texture
+        logo=TTexturesManager::GetTextureID("logo.bmp");
+        glBindTexture(GL_TEXTURE_2D,logo);       // Select our texture
 
 	glBegin(GL_QUADS);		        // Drawing using triangles
 		glTexCoord2f(0.0f, 0.0f); glVertex3f(-0.28f, -0.22f,  0.0f);	// Bottom left of the texture and quad
