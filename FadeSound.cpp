@@ -40,7 +40,7 @@ __fastcall TFadeSound::~TFadeSound()
     Free();
 }
 
-__fastcall TFadeSound::Free()
+void __fastcall TFadeSound::Free()
 {
 }
 

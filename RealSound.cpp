@@ -45,7 +45,7 @@ __fastcall TRealSound::~TRealSound()
 {
 }
 
-__fastcall TRealSound::Free()
+void __fastcall TRealSound::Free()
 {
 }
 
