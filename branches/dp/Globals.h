@@ -9,10 +9,15 @@
 
 using namespace Math3D;
 
-const vector3 vWorldFront=vector3(0,0,1);
-const vector3 vWorldUp=vector3(0,1,0);
-const vector3 vWorldLeft=CrossProduct(vWorldUp,vWorldFront);
-const vector3 vGravity=vector3(0,-9.81,0);
+//Ra: taki zapis funkcjonuje lepiej, ale mo¿e nie jest optymalny
+#define vWorldFront vector3(0,0,1)
+#define vWorldUp vector3(0,1,0)
+#define vWorldLeft CrossProduct(vWorldUp,vWorldFront)
+
+//Ra: bo te poni¿ej to siê powiela³y w ka¿dym module odobno
+//vector3 vWorldFront=vector3(0,0,1);
+//vector3 vWorldUp=vector3(0,1,0);
+//vector3 vWorldLeft=CrossProduct(vWorldUp,vWorldFront);
 
 //definicje klawiszy
 const int k_IncMainCtrl= 0; //[Num+]
@@ -217,6 +222,7 @@ public:
  static bool bPause; //globalna pauza ruchu
  static bool bActive; //czy jest aktywnym oknem
  static void __fastcall BindTexture(GLuint t);
+ static bool bConvertModels; //tworzenie plików binarnych
 };
 
 //---------------------------------------------------------------------------

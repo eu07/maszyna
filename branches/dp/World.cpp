@@ -105,7 +105,7 @@ bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
  WriteLog("--- MaSzyna ---"); //pierwsza linia jest gubiona
  WriteLog("Starting MaSzyna rail vehicle simulator.");
  WriteLog(Global::asVersion);
-#if sizeof(TSubModel)!=320
+#if sizeof(TSubModel)!=256
  Error("Wrong sizeof(TSubModel) is "+AnsiString(sizeof(TSubModel)));
  return false;
 #endif

@@ -32,7 +32,7 @@ public:
  __fastcall TAnimContainer();
  __fastcall ~TAnimContainer();
  bool __fastcall Init(TSubModel *pNewSubModel);
- std::string inline __fastcall GetName() { return (pSubModel?pSubModel->Name : std::string("")); };
+ std::string inline __fastcall GetName() { return std::string(pSubModel?pSubModel->asName.c_str():""); };
  //void __fastcall SetRotateAnim(vector3 vNewRotateAxis, double fNewDesiredAngle, double fNewRotateSpeed, bool bResetAngle=false);
  void __fastcall SetRotateAnim(vector3 vNewRotateAngles, double fNewRotateSpeed);
  void __fastcall SetTranslateAnim(vector3 vNewTranslate, double fNewSpeed);
