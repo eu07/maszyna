@@ -67,6 +67,7 @@ void __fastcall TSubModel::FirstInit()
  f_Angle=0;
  b_Anim=at_None;
  b_aAnim=at_None;
+ fVisible=0.0; //zawsze widoczne
  Visible=false;
  iMatrix=0; //Identity();
  Next=NULL;
@@ -180,6 +181,7 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
  f4Ambient[0]=f4Ambient[1]=f4Ambient[2]=f4Ambient[3]=1.0; //{1,1,1,1};
  f4Diffuse[0]=f4Diffuse[1]=f4Diffuse[2]=f4Diffuse[3]=1.0; //{1,1,1,1};
  f4Specular[0]=f4Specular[1]=f4Specular[2]=0.0; f4Specular[3]=1.0; //{0,0,0,1};
+ f4Emision[0]=f4Emision[1]=f4Emision[2]=f4Emision[3]=1.0;
  //GLuint TextureID;
  //char *extName;
  if (!parser.expectToken("type:"))
@@ -1092,8 +1094,15 @@ void __fastcall TSubModel::Info()
  if (fMatrix)
   info->iTransform=info->iTotalTransforms++;
  if ((int)TextureID>0)
- {info->iTexture=++info->iTotalTextures; //przydzielenie numeru tekstury w pliku (od 1)
-  info->iTextureLen=asTexture.Length()+1; //z zerem na koñcu
+ {for (int i=0;i<info->iCurrent;++i)
+   if (TextureID==info->pTable[i].pSubModel->TextureID) //porównanie z wczeœniejszym
+   {info->iTexture=info->pTable[i].iTexture; //taki jaki ju¿ by³
+    break; //koniec sprawdzania
+   }
+  if (info->iTexture<0) //jeœli nie znaleziono we wczeœniejszych
+  {info->iTexture=++info->iTotalTextures; //przydzielenie numeru tekstury w pliku (od 1)
+   info->iTextureLen=asTexture.Length()+1; //z zerem na koñcu
+  }
  }
  else info->iTexture=TextureID; //nie ma albo wymienna
  if (asName.Length())

@@ -9,6 +9,13 @@ using namespace Math3D;
 #include "Float3d.h"
 #include "VBO.h"
 
+struct GLVERTEX
+{
+ vector3 Point;
+ vector3 Normal;
+ float tu,tv;
+};
+
 class TStringPack
 {
  char *data;
@@ -256,12 +263,13 @@ public:
  {pTable=this; //ustawienie wskaŸnika tabeli obiektów
   iTotalTransforms=iTotalNames=iTotalTextures=iCurrent=0; //zerowanie liczników
  }
+ __fastcall ~TSubModelInfo() {};
 };
-int TSubModelInfo::iTotalTransforms; //iloœæ transformów
-int TSubModelInfo::iTotalNames; //d³ugoœæ obszaru nazw
-int TSubModelInfo::iTotalTextures; //d³ugoœæ obszaru tekstur
-int TSubModelInfo::iCurrent; //aktualny obiekt
-TSubModelInfo* TSubModelInfo::pTable; //tabele obiektów pomocniczych
+int TSubModelInfo::iTotalTransforms=0; //iloœæ transformów
+int TSubModelInfo::iTotalNames=0; //d³ugoœæ obszaru nazw
+int TSubModelInfo::iTotalTextures=0; //d³ugoœæ obszaru tekstur
+int TSubModelInfo::iCurrent=0; //aktualny obiekt
+TSubModelInfo* TSubModelInfo::pTable=NULL; //tabele obiektów pomocniczych
 
 class TModel3d : public CMesh
 {
