@@ -136,11 +136,10 @@ class TSubModel
 {//klasa submodelu - pojedyncza siatka, punkt œwietlny albo grupa punktów
  //Ra: ta klasa ma mieæ wielkoœæ 320 bajtów, aby pokry³a siê z formatem binarnym
 private:
- //TSubModelType eType;
  TSubModel *Next;
  TSubModel *Child;
  int eType; //Ra: modele binarne daj¹ wiêcej mo¿liwoœci ni¿ mesh z³o¿ony z trójk¹tów
- int iName;
+ int iName; //numer ³añcucha z nazw¹ submodelu, albo -1 gdy anonimowy
  TAnimType b_Anim;
  int iFlags; //flagi informacyjne:
  //bit  0: =1 faza rysowania zale¿y od wymiennej tekstury
@@ -159,7 +158,7 @@ private:
  };
  int iNumVerts; //iloœæ wierzcho³ków (1 dla FreeSpotLight)
  int iVboPtr; //pocz¹tek na liœcie wierzcho³ków albo indeksów
- GLuint TextureID; //numer tekstury, -1 wymienna, 0 brak
+ int iTexture; //numer nazwy tekstury, -1 wymienna, 0 brak
  float fVisible; //próg jasnoœci œwiat³a do za³¹czenia submodelu
  float fLight; //próg jasnoœci œwiat³a do zadzia³ania selfillum
  float f4Ambient[4];
@@ -179,6 +178,7 @@ private:
  float fCosHotspotAngle; //cosinus k¹ta sto¿ka pod którym widaæ aureolê i zwiêkszone natê¿enie œwiat³a
  float fCosViewAngle;    //cos kata pod jakim sie teraz patrzy
  //Ra: dalej s¹ zmienne robocze
+ GLuint TextureID; //numer tekstury, -1 wymienna, 0 brak
  bool bWire; //nie u¿ywane, ale wczytywane
  bool TexAlpha;        //McZapkie-141202: zeby bylo wiadomo czy sortowac ze wzgledu na przezroczystosc
  GLuint uiDisplayList; //roboczy numer listy wyœwietlania
@@ -195,7 +195,7 @@ private:
  float8 *Vertices; //roboczy wskaŸnik - wczytanie T3D do VBO
  int iAnimOwner; //roboczy numer egzemplarza, który ustawi³ animacjê
  TAnimType b_aAnim; //kody animacji oddzielnie, bo zerowane
- char space[24];
+ char space[20];
 public:
  AnsiString asTexture; //robocza nazwa tekstury do zapisania w pliku binarnym
  bool Visible; //roboczy stan widocznoœci
