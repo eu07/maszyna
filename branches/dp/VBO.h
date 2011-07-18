@@ -25,7 +25,7 @@ public:
  __fastcall CMesh();
  __fastcall ~CMesh();
  void __fastcall MakeArray(int n); //tworzenie tablicy z elementami VNT
- void __fastcall BuildVBOs(); //zamiana tablic na VBO
+ void __fastcall BuildVBOs(bool del=true); //zamiana tablic na VBO
  void __fastcall Clear(); //zwolnienie zasobów
  bool __fastcall StartVBO();
  void __fastcall EndVBO();

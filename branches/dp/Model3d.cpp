@@ -1251,7 +1251,7 @@ void __fastcall TModel3d::LoadFromFile(char *FileName,bool dynamic)
    if (!dynamic) //pojazdy dopiero po ustawieniu animacji
    {//Init();
     if (Global::bConvertModels)
-     SaveToBinFile((asBinary).c_str());
+     SaveToBinFile(asBinary.c_str()); //zapisanie binarnego od razu
    }
   }
  }
@@ -1283,6 +1283,7 @@ void __fastcall TModel3d::LoadFromBinFile(char *FileName)
       break;
      case 'VNT0': //wierzcho³ki: 'VNT0',len,(32 bajty na wierzcho³ek)
       iNumVerts=(k-2)>>3;
+      m_nVertexCount=iNumVerts;
       m_pVNT=(CVertNormTex*)(iModel+i+2);
       break;
      case 'SUB0': //submodele: 'SUB0',len,(256 bajtów na submodel)
@@ -1363,18 +1364,22 @@ void __fastcall TModel3d::Init()
  {if (iFlags&0x0200) //jeœli wczytano z pliku tekstowego
    Root->InitialRotate(true); //nale¿y siê konwersja uk³adu wspó³rzêdnych
   if (!asBinary.IsEmpty()) //jeœli jest podana nazwa
-   if (Global::bConvertModels) //i w³¹czony zapis
+  {if (Global::bConvertModels) //i w³¹czony zapis
     SaveToBinFile(asBinary.c_str()); //utworzy tablicê (m_pVNT)
+   asBinary=""; //wy³¹czenie zapisu
+  }
   if (iNumVerts)
   {
 #ifdef USE_VBO
    if (Global::bUseVBO)
-   {//tworzenie tymczasowej tablicy z wierzcho³kami ca³ego modelu
-    if (!m_pVNT) //jeœli nie ma jeszcze tablicy (wczytano z pliku tekstowego)
-    {MakeArray(iNumVerts); //tworzenie tablic dla VBO
+   {if (!m_pVNT) //jeœli nie ma jeszcze tablicy (wczytano z pliku tekstowego)
+    {//tworzenie tymczasowej tablicy z wierzcho³kami ca³ego modelu
+     MakeArray(iNumVerts); //tworzenie tablic dla VBO
      Root->RaArrayFill(m_pVNT); //wype³nianie tablicy
+     BuildVBOs(); //tworzenie VBO i usuwanie tablicy z pamiêci
     }
-    BuildVBOs(); //tworzenie VBO i usuwanie tablicy z pamiêci
+    else
+     BuildVBOs(false); //tworzenie VBO bez usuwania tablicy z pamiêci
    }
    else
 #endif
