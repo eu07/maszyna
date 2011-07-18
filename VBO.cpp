@@ -28,14 +28,14 @@ void __fastcall CMesh::MakeArray(int n)
  m_pVNT=new CVertNormTex[m_nVertexCount]; // przydzielenie pamiêci dla tablicy
 };
 
-void __fastcall CMesh::BuildVBOs()
+void __fastcall CMesh::BuildVBOs(bool del)
 {//tworzenie VBO i kasowanie ju¿ niepotrzebnych tablic
  //pobierz numer VBO oraz ustaw go jako aktywny
  glGenBuffersARB(1,&m_nVBOVertices); //pobierz numer
  glBindBufferARB(GL_ARRAY_BUFFER_ARB,m_nVBOVertices); //ustaw bufor jako aktualny
  glBufferDataARB(GL_ARRAY_BUFFER_ARB,m_nVertexCount*sizeof(CVertNormTex),m_pVNT,GL_STATIC_DRAW_ARB);
  //WriteLog("Assigned VBO number "+AnsiString(m_nVBOVertices)+", vertices: "+AnsiString(m_nVertexCount));
- SafeDeleteArray(m_pVNT); //wierzcho³ki ju¿ siê nie przydadz¹
+ if (del) SafeDeleteArray(m_pVNT); //wierzcho³ki ju¿ siê nie przydadz¹
 };
 
 void __fastcall CMesh::Clear()
