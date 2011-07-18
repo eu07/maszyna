@@ -92,6 +92,8 @@ void __fastcall TSubModel::FirstInit()
  fCosViewAngle=0;
  fSquareMaxDist=10000;
  fSquareMinDist=0;
+ iName=-1; //brak nazwy
+ iTexture=0; //brak tekst
  asName="";
  asTexture="";
 };
@@ -478,7 +480,7 @@ void __fastcall TSubModel::DisplayLists()
   glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
   glEndList();
  }
- else if (eType==TP_STARS)
+ else if (eType==TP_STARS)   
  {//punkty œwiec¹ce dookólnie
   uiDisplayList=glGenLists(1);
   glNewList(uiDisplayList,GL_COMPILE);
@@ -1091,7 +1093,7 @@ void __fastcall TSubModel::Info()
 {//zapisanie informacji o submodelu do obiektu pomocniczego
  TSubModelInfo *info=TSubModelInfo::pTable+TSubModelInfo::iCurrent;
  info->pSubModel=this;
- if (fMatrix)
+ if (fMatrix&&(iFlags&0x8000)) //ma matrycê i jest ona niejednostkowa
   info->iTransform=info->iTotalTransforms++;
  if ((int)TextureID>0)
  {for (int i=0;i<info->iCurrent;++i)
@@ -1125,7 +1127,8 @@ void __fastcall TSubModel::InfoSet(TSubModelInfo *info)
  int ile=(char*)&TexAlpha-(char*)&eType;
  ZeroMemory(this,sizeof(TSubModel));
  CopyMemory(this,info->pSubModel,ile); //skopiowanie pamiêci 1:1
- TextureID=info->iTexture;//numer nazwy tekstury, a nie numer w OpenGL
+ iTexture=info->iTexture;//numer nazwy tekstury, a nie numer w OpenGL
+ TextureID=info->iTexture;//numer tekstury w OpenGL
  iName=info->iName; //numer nazwy w obszarze nazw
  iMatrix=info->iTransform; //numer macierzy
  Next=(TSubModel*)info->iNext; //numer nastêpnego
@@ -1141,9 +1144,9 @@ void __fastcall TSubModel::BinInit(TSubModel *s,float4x4 *m,float8 *v,TStringPac
  fMatrix=(iMatrix>=0)?m+iMatrix:NULL;
  //Name=""; //ten typ nie lubi byæ wczytywany na sztywno z pliku
  if (n&&(iName>=0)) asName=AnsiString(n->String(iName)); else asName="";
- if ((int)TextureID>0)
+ if (iTexture>0)
  {//TextureID=TTexturesManager::GetTextureID(t->String(TextureID));
-  asTexture=AnsiString(t->String(TextureID));
+  asTexture=AnsiString(t->String(iTexture));
   if (asTexture.LastDelimiter("/\\")==0)
    asTexture.Insert(Global::asCurrentTexturePath,1);
   TextureID=TTexturesManager::GetTextureID(asTexture.c_str());
@@ -1249,9 +1252,9 @@ void __fastcall TModel3d::LoadFromFile(char *FileName,bool dynamic)
  {if (FileExists(name+".t3d"))
   {LoadFromTextFile(FileName,dynamic); //wczytanie tekstowego
    if (!dynamic) //pojazdy dopiero po ustawieniu animacji
-   {//Init();
-    if (Global::bConvertModels)
-     SaveToBinFile(asBinary.c_str()); //zapisanie binarnego od razu
+   {Init(); //generowanie siatek i zapis E3D
+    //if (Global::bConvertModels)
+    // SaveToBinFile(asBinary.c_str()); //zapisanie binarnego od razu
    }
   }
  }
@@ -1348,6 +1351,7 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName,bool dynamic)
   iSubModelsCount++;
   parser.getToken(token);
  }
+/*
  if (Root)
  {
   //if (!Global::bUseVBO) //dla DL wierzcho³ki s¹ kompilowane przy wczytywaniu
@@ -1355,6 +1359,7 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName,bool dynamic)
   if (!dynamic) //dynamic zrobi to sam dopiero po przeanalizowaniu animacji submodeli
    Init();
  }
+*/
 }
 
 void __fastcall TModel3d::Init()
