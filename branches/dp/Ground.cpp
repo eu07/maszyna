@@ -318,7 +318,7 @@ void __fastcall TGroundNode::RaRender()
   case TP_MEMCELL: return;
   case TP_EVLAUNCH:
    if (EvLaunch->Render())
-    if (EvLaunch->dRadius<0 || mgn<EvLaunch->dRadius)
+    if ((EvLaunch->dRadius<0)||(mgn<EvLaunch->dRadius))
     {
      if (Pressed(VK_SHIFT) && EvLaunch->Event2!=NULL)
       Global::pGround->AddToQuery(EvLaunch->Event2,NULL);
@@ -1905,7 +1905,7 @@ bool __fastcall TGround::Init(AnsiString asFile)
            {
             Current->InitNormals();
             if (Current->iType!=TP_DYNAMIC)
-            {//pojazdów to w ogóle nie dotyczy
+            {//pojazdów w ogóle nie dotyczy dodawanie do mapy
              if ((Current->iType!=GL_TRIANGLES)&&(Current->iType!=GL_TRIANGLE_STRIP)?true //~czy trójk¹t?
               :(Current->iFlags&4)?true //~czy teksturê ma nieprzezroczyst¹?
                //:(Current->iNumVerts!=3)?true //~czy tylko jeden trójk¹t?
@@ -1913,7 +1913,10 @@ bool __fastcall TGround::Init(AnsiString asFile)
                  :(Current->fSquareRadius<=90000.0)) //~czy widoczny z daleka?
               GetSubRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
              else //dodajemy do kwadratu kilometrowego
-              GetRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
+              if (i==TP_EVLAUNCH?Current->EvLaunch->IsGlobal():false)
+               srGlobal.AddNode(Current); //dodanie do globalnego obiektu
+              else
+               GetRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
             }
             //if (Current->iType!=TP_DYNAMIC)
             // GetSubRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
@@ -2330,25 +2333,20 @@ bool __fastcall TGround::InitLaunchers()
  int i;
  for (Current=nRootOfType[TP_EVLAUNCH];Current;Current=Current->Next)
  {
-       //if (Current->iType==TP_EVLAUNCH)
-         {
-           EventLauncher= Current->EvLaunch;
-           if (EventLauncher->iCheckMask!=0)
-            if (EventLauncher->asMemCellName!=AnsiString("none"))
-              {
-                tmp= FindGroundNode(EventLauncher->asMemCellName,TP_MEMCELL);
-                if (tmp)
-                 {
-                    EventLauncher->MemCell= tmp->MemCell;
-                 }
-                else
-                  MessageBox(0,"Cannot find Memory Cell for Event Launcher","Error",MB_OK);
-              }
-             else
-              EventLauncher->MemCell= NULL;
-           EventLauncher->Event1= (EventLauncher->asEvent1Name!=AnsiString("none")) ? FindEvent(EventLauncher->asEvent1Name) : NULL;
-           EventLauncher->Event2= (EventLauncher->asEvent2Name!=AnsiString("none")) ? FindEvent(EventLauncher->asEvent2Name) : NULL;
-         }
+  EventLauncher=Current->EvLaunch;
+  if (EventLauncher->iCheckMask!=0)
+   if (EventLauncher->asMemCellName!=AnsiString("none"))
+   {//jeœli jest powi¹zana komórka pamiêci
+    tmp=FindGroundNode(EventLauncher->asMemCellName,TP_MEMCELL);
+    if (tmp)
+     EventLauncher->MemCell=tmp->MemCell; //jeœli znaleziona, dopisaæ
+    else
+     MessageBox(0,"Cannot find Memory Cell for Event Launcher","Error",MB_OK);
+   }
+   else
+    EventLauncher->MemCell=NULL;
+  EventLauncher->Event1=(EventLauncher->asEvent1Name!=AnsiString("none"))?FindEvent(EventLauncher->asEvent1Name):NULL;
+  EventLauncher->Event2=(EventLauncher->asEvent2Name!=AnsiString("none"))?FindEvent(EventLauncher->asEvent2Name):NULL;
  }
  return true;
 }
@@ -3030,6 +3028,8 @@ bool __fastcall TGround::RaRender(vector3 pPosition)
  int c=GetColFromX(pPosition.x);
  int r=GetRowFromZ(pPosition.z);
  TSubRect *tmp;
+ for (node=srGlobal.pRenderHidden;node!=NULL;node=node->pNext3)
+  node->RenderHidden(); //rednerowanie globalnych (nie za czêsto?)
  int i,j,k;
  //renderowanie czo³gowe dla obiektów aktywnych a niewidocznych
  for (j=r-n;j<r+n;j++)
@@ -3132,6 +3132,8 @@ bool __fastcall TGround::Render(vector3 pPosition)
  int c=GetColFromX(pPosition.x);
  int r=GetRowFromZ(pPosition.z);
  TSubRect *tmp;
+ for (node=srGlobal.pRenderHidden;node!=NULL;node=node->pNext3)
+  node->RenderHidden(); //rednerowanie globalnych (nie za czêsto?)
  int i,j,k;
  //renderowanie czo³gowe dla obiektów aktywnych a niewidocznych
  for (j=r-n;j<r+n;j++)
