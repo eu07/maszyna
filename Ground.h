@@ -25,15 +25,15 @@
 #include "VBO.h"
 
 //Ra: zmniejszone liczby, aby zrobiæ tabelkê i zoptymalizowaæ wyszukiwanie
-const int TP_MODEL= 10;
-const int TP_SEMAPHORE= 12; //Ra: ju¿ nie u¿ywane
-const int TP_DYNAMIC= 14;
-const int TP_SOUND= 15;
-const int TP_TRACK= 16;
-const int TP_GEOMETRY= 17;
-const int TP_MEMCELL= 18;
-const int TP_EVLAUNCH= 19; //MC
-const int TP_TRACTION= 20;
+const int TP_MODEL=10;
+const int TP_SEMAPHORE=12; //Ra: ju¿ nie u¿ywane
+const int TP_DYNAMIC=14;
+const int TP_SOUND=15;
+const int TP_TRACK=16;
+const int TP_GEOMETRY=17;
+const int TP_MEMCELL=18;
+const int TP_EVLAUNCH=19; //MC
+const int TP_TRACTION=20;
 const int TP_TRACTIONPOWERSOURCE= 21; //MC
 const int TP_ISOLATED=22; //Ra
 const int TP_LAST=25; //rozmiar tablicy
@@ -249,6 +249,7 @@ class TGround
  bool bInitDone;
  TGroundNode *nRootOfType[TP_LAST]; //tablica grupuj¹ca obiekty, przyspiesza szukanie
  //TGroundNode *nLastOfType[TP_LAST]; //ostatnia
+ TSubRect srGlobal; //zawiera obiekty globalne (na razie wyzwalacze czasowe)
 public:
  TDynamicObject *LastDyn; //ABu: paskudnie, ale na bardzo szybko moze jakos przejdzie...
  TTrain *pTrain;

@@ -23,10 +23,10 @@
 #include    "classes.hpp"
 #pragma hdrstop
 
+#include "Event.h"
+#include "parser.h"
 #include "Timer.h"
 #include "Usefull.h"
-
-#include "Event.h"
 
 __fastcall TEvent::TEvent()
 {
