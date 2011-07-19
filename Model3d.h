@@ -211,8 +211,9 @@ public:
  __fastcall ~TSubModel();
  void __fastcall FirstInit();
  int __fastcall Load(cParser& Parser, TModel3d *Model,int Pos);
- void __fastcall AddChild(TSubModel *SubModel);
- void __fastcall AddNext(TSubModel *SubModel);
+ void __fastcall ChildAdd(TSubModel *SubModel);
+ void __fastcall NextAdd(TSubModel *SubModel);
+ TSubModel* __fastcall NextGet() {return Next;};
  //void __fastcall SetRotate(vector3 vNewRotateAxis,float fNewAngle);
  void __fastcall SetRotate(float3 vNewRotateAxis,float fNewAngle);
  void __fastcall SetRotateXYZ(vector3 vNewAngles);
@@ -293,7 +294,7 @@ public:
  __fastcall ~TModel3d();
  TSubModel* __fastcall GetFromName(const char *sName);
  //TMaterial* __fastcall GetMaterialFromName(char *sName);
- bool __fastcall AddTo(const char *Name, TSubModel *SubModel);
+ void __fastcall AddTo(const char *Name, TSubModel *SubModel);
  void __fastcall LoadFromTextFile(char *FileName,bool dynamic);
  void __fastcall LoadFromBinFile(char *FileName);
  void __fastcall LoadFromFile(char *FileName,bool dynamic);

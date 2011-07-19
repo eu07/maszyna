@@ -24,17 +24,19 @@
 #include "ResourceManager.h"
 #include "VBO.h"
 
-const int TP_MODEL= 1000;
-const int TP_SEMAPHORE= 1002; //Ra: ju¿ nie u¿ywane
-const int TP_DYNAMIC= 1004;
-const int TP_SOUND= 1005;
-const int TP_TRACK= 1006;
-const int TP_GEOMETRY= 1007;
-const int TP_MEMCELL= 1008;
-const int TP_EVLAUNCH= 1009; //MC
-const int TP_TRACTION= 1010;
-const int TP_TRACTIONPOWERSOURCE= 1011; //MC
-const int TP_ISOLATED=1012; //Ra
+//Ra: zmniejszone liczby, aby zrobiæ tabelkê i zoptymalizowaæ wyszukiwanie
+const int TP_MODEL= 10;
+const int TP_SEMAPHORE= 12; //Ra: ju¿ nie u¿ywane
+const int TP_DYNAMIC= 14;
+const int TP_SOUND= 15;
+const int TP_TRACK= 16;
+const int TP_GEOMETRY= 17;
+const int TP_MEMCELL= 18;
+const int TP_EVLAUNCH= 19; //MC
+const int TP_TRACTION= 20;
+const int TP_TRACTIONPOWERSOURCE= 21; //MC
+const int TP_ISOLATED=22; //Ra
+const int TP_LAST=25; //rozmiar tablicy
 
 struct DaneRozkaz
 {//struktura komunikacji z EU07.EXE
@@ -235,11 +237,23 @@ class TGround
 {
  vector3 CameraDirection; //zmienna robocza przy renderowaniu
  int const *iRange; //tabela widocznoœci
+ //TGroundNode *RootNode; //lista wszystkich wêz³ów
+ TGroundNode *RootDynamic; //lista pojazdów
+ TGroundRect Rects[iNumRects][iNumRects]; //mapa kwadratów kilometrowych
+ TEvent *RootEvent; //lista zdarzeñ
+ TEvent *QueryRootEvent,*tmpEvent,*tmp2Event,*OldQRE;
+ TSubRect *pRendered[16*iNumSubRects*iNumSubRects+8*iNumSubRects+1]; //lista renderowanych sektorów
+ int iNumNodes;
+ vector3 pOrigin;
+ vector3 aRotate;
+ bool bInitDone;
+ TGroundNode *nRootOfType[TP_LAST]; //tablica grupuj¹ca obiekty, przyspiesza szukanie
+ //TGroundNode *nLastOfType[TP_LAST]; //ostatnia
 public:
-    TDynamicObject *LastDyn; //ABu: paskudnie, ale na bardzo szybko moze jakos przejdzie...
-    TTrain *pTrain;
-//    double fVDozwolona;
-  //  bool bTrabil;
+ TDynamicObject *LastDyn; //ABu: paskudnie, ale na bardzo szybko moze jakos przejdzie...
+ TTrain *pTrain;
+ //double fVDozwolona;
+ //bool bTrabil;
 
     __fastcall TGround();
     __fastcall ~TGround();
@@ -282,6 +296,7 @@ public:
     int __fastcall GetSubRowFromZ(double z) { return (z/fSubRectSize+fHalfNumSubRects); };
    int __fastcall GetSubColFromX(double x) { return (x/fSubRectSize+fHalfNumSubRects); };
    */
+/*
     inline TGroundNode* __fastcall FindGroundNode(const AnsiString &asNameToFind )
     {
         if (RootNode)
@@ -289,7 +304,7 @@ public:
         else
             return NULL;
     }
-
+*/
     inline TGroundNode* __fastcall FindDynamic( AnsiString asNameToFind )
     {
         for (TGroundNode *Current= RootDynamic; Current!=NULL; Current= Current->Next)
@@ -299,12 +314,12 @@ public:
     }
 
     inline TGroundNode* __fastcall FindGroundNode( AnsiString asNameToFind, TGroundNodeType iNodeType )
-    {
-        TGroundNode *Current;
-        for (Current= RootNode; Current!=NULL; Current= Current->Next)
-            if ((Current->iType==iNodeType) && (Current->asName==asNameToFind))
-                return Current;
-        return NULL;
+    {//wyszukiwanie obiektu o podanej nazwie i konkretnym typie
+     TGroundNode *Current;
+     for (Current=nRootOfType[iNodeType];Current;Current=Current->Next)
+      if (Current->asName==asNameToFind)
+       return Current;
+     return NULL;
     }
 
 //Winger - to smierdzi
@@ -339,23 +354,7 @@ public:
     TEvent* __fastcall FindEvent(const AnsiString &asEventName);
     void __fastcall TrackJoin(TGroundNode *Current);
 private:
-    TGroundNode *RootNode; //lista wêz³ów
-//    TGroundNode *FirstVisible,*LastVisible;
-    TGroundNode *RootDynamic; //lista pojazdów
-
-    TGroundRect Rects[iNumRects][iNumRects]; //mapa kwadratów kilometrowych
-
-    TEvent *RootEvent; //lista zdarzeñ
-    TEvent *QueryRootEvent,*tmpEvent,*tmp2Event,*OldQRE;
- TSubRect *pRendered[16*iNumSubRects*iNumSubRects+8*iNumSubRects+1]; //lista renderowanych sektorów
-
-    void __fastcall OpenGLUpdate(HDC hDC);
-//    TWorld World;
-
-    int iNumNodes;
-    vector3 pOrigin;
-    vector3 aRotate;
- bool bInitDone;
+ void __fastcall OpenGLUpdate(HDC hDC);
  void __fastcall RaTriangleDivider(TGroundNode* node);
  void __fastcall Navigate(String ClassName,UINT Msg,WPARAM wParam,LPARAM lParam);
  void __fastcall WyslijEvent(const AnsiString &e,const AnsiString &d);
