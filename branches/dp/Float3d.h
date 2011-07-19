@@ -49,6 +49,7 @@ inline float3 CrossProduct(const float3& v1,const float3& v2)
 
 struct float8
 {//wiercho³ek 3D z wektorem normalnym i mapowaniem, pojedyncza precyzja
+public:
  float3 Point;
  float3 Normal;
  float tu,tv;
@@ -62,7 +63,7 @@ public:
  float4x4(float f[16]) {for (int i=0;i<16;++i) e[i]=f[i];};
  float* __fastcall operator() (int i) { return &e[i<<2]; }
  const float* __fastcall readArray(void) { return e; }
- void __fastcall Identity(void)
+ void __fastcall Identity()
  {for (int i=0;i<16;++i)
    e[i]=0;
   e[0]=e[5]=e[10]=e[15]=1.0f;

@@ -3099,7 +3099,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
        {
         asModel="przedsionki.t3d";
         asModel=BaseDir+asModel;
-        mdPrzedsionek=TModelsManager::GetModel(asModel.c_str());
+        mdPrzedsionek=TModelsManager::GetModel(asModel.c_str(),true);
        }
        if (MoverParameters->LoadAccepted!=AnsiString(""))
        //           if (MoverParameters->LoadAccepted!=AnsiString("")); // && MoverParameters->LoadType!=AnsiString("passengers"))
@@ -3134,7 +3134,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
          }
         }
         else //Ra: tu wczytywanie modelu ³adunku jest w porz¹dku
-         mdLoad=TModelsManager::GetModel(asLoadName.c_str());  //ladunek
+         mdLoad=TModelsManager::GetModel(asLoadName.c_str(),true);  //ladunek
        Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath); //z powrotem defaultowa sciezka do tekstur
        while (!Parser->EndOfFile && str!=AnsiString("endmodels"))
        {
@@ -3144,7 +3144,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
          asModel=Parser->GetNextSymbol().LowerCase();
          asModel=BaseDir+asModel; //McZapkie-200702 - dynamics maja swoje modele w dynamics/basedir
          Global::asCurrentTexturePath=BaseDir;                    //biezaca sciezka do tekstur to dynamic/...
-         mdLowPolyInt=TModelsManager::GetModel(asModel.c_str());
+         mdLowPolyInt=TModelsManager::GetModel(asModel.c_str(),true);
         }
         else
         if (str==AnsiString("animwheelprefix:"))              //prefiks krecacych sie kol

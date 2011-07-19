@@ -51,6 +51,7 @@ char* TStringPack::String(int n)
 
 __fastcall TSubModel::TSubModel()
 {
+ ZeroMemory(this,sizeof(TSubModel)); //istotne przy zapisywaniu wersji binarnej
  FirstInit();
 };
 
@@ -68,13 +69,13 @@ void __fastcall TSubModel::FirstInit()
  b_Anim=at_None;
  b_aAnim=at_None;
  fVisible=0.0; //zawsze widoczne
- Visible=false;
+ Visible=true;
  iMatrix=0; //Identity();
  Next=NULL;
  Child=NULL;
  TextureID=0;
  TexAlpha=false;
- iFlags=0;
+ iFlags=0x0200; //bit 9=1: submodel zosta³ utworzony a nie ustawiony na wczytany plik
  //TexHash=false;
  //Hits=NULL;
  //CollisionPts=NULL;
@@ -93,9 +94,13 @@ void __fastcall TSubModel::FirstInit()
  fSquareMaxDist=10000;
  fSquareMinDist=0;
  iName=-1; //brak nazwy
- iTexture=0; //brak tekst
+ iTexture=0; //brak tekstury
  asName="";
  asTexture="";
+ f4Ambient[0]=f4Ambient[1]=f4Ambient[2]=f4Ambient[3]=1.0; //{1,1,1,1};
+ f4Diffuse[0]=f4Diffuse[1]=f4Diffuse[2]=f4Diffuse[3]=1.0; //{1,1,1,1};
+ f4Specular[0]=f4Specular[1]=f4Specular[2]=0.0; f4Specular[3]=1.0; //{0,0,0,1};
+ f4Emision[0]=f4Emision[1]=f4Emision[2]=f4Emision[3]=1.0;
 };
 
 __fastcall TSubModel::~TSubModel()
@@ -180,10 +185,6 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
  iNumVerts=0;
  iVboPtr=Pos; //pozycja w VBO
  //TMaterialColorf Ambient,Diffuse,Specular;
- f4Ambient[0]=f4Ambient[1]=f4Ambient[2]=f4Ambient[3]=1.0; //{1,1,1,1};
- f4Diffuse[0]=f4Diffuse[1]=f4Diffuse[2]=f4Diffuse[3]=1.0; //{1,1,1,1};
- f4Specular[0]=f4Specular[1]=f4Specular[2]=0.0; f4Specular[3]=1.0; //{0,0,0,1};
- f4Emision[0]=f4Emision[1]=f4Emision[2]=f4Emision[3]=1.0;
  //GLuint TextureID;
  //char *extName;
  if (!parser.expectToken("type:"))
@@ -308,7 +309,7 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
  for (int i=0;i<16;++i)
   if (fMatrix->readArray()[i]!=((i%5)?0.0:1.0)) //jedynki tylko na 0, 5, 10 i 15
   {
-   iFlags|=0x8000; //transform niejedynkowy - trzeba przechowaæ
+   iFlags|=0x8000; //transform niejedynkowy - trzeba go przechowaæ
    break;
   }
  int iNumFaces; //iloœæ trójk¹tów
@@ -415,26 +416,27 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
    Vertices[i].Normal.z=((j>>16)&0xFF)/255.0; //B
   }
  }
- Visible=true; //siê potem wy³¹czy w razie potrzeby
- iFlags|=0x0200; //wczytano z pliku tekstowego (jest w³aœcicielem tablic)
+ //Visible=true; //siê potem wy³¹czy w razie potrzeby
+ //iFlags|=0x0200; //wczytano z pliku tekstowego (jest w³aœcicielem tablic)
+ if (iNumVerts<1) iFlags&=~7; //cykl renderowania uzale¿niony od potomnych
  return iNumVerts; //do okreœlenia wielkoœci VBO
 };
 
 void __fastcall TSubModel::DisplayLists()
 {//utworznie po jednej skompilowanej liœcie dla ka¿dego submodelu
  if (Global::bUseVBO) return; //Ra: przy VBO to siê nie przyda
- if (Next) Next->DisplayLists();
  //iFlags|=0x4000; //wy³¹czenie przeliczania wierzcho³ków, bo nie s¹ zachowane
  if (eType==GL_TRIANGLES)
  {
+  if (iNumVerts>0)
+  {
 #ifdef USE_VERTEX_ARRAYS
   // ShaXbee-121209: przekazywanie wierzcholkow hurtem
-  glVertexPointer(3,GL_DOUBLE,sizeof(GLVERTEX),&Vertices[0].Point.x);
-  glNormalPointer(GL_DOUBLE,sizeof(GLVERTEX),&Vertices[0].Normal.x);
-  glTexCoordPointer(2,GL_FLOAT,sizeof(GLVERTEX),&Vertices[0].tu);
+   glVertexPointer(3,GL_DOUBLE,sizeof(GLVERTEX),&Vertices[0].Point.x);
+   glNormalPointer(GL_DOUBLE,sizeof(GLVERTEX),&Vertices[0].Normal.x);
+   glTexCoordPointer(2,GL_FLOAT,sizeof(GLVERTEX),&Vertices[0].tu);
 #endif
-  if (iNumVerts)
-  {uiDisplayList=glGenLists(1);
+   uiDisplayList=glGenLists(1);
    glNewList(uiDisplayList,GL_COMPILE);
    glColor3fv(f4Diffuse);   //McZapkie-240702: zamiast ub
 #ifdef USE_VERTEX_ARRAYS
@@ -480,7 +482,7 @@ void __fastcall TSubModel::DisplayLists()
   glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
   glEndList();
  }
- else if (eType==TP_STARS)   
+ else if (eType==TP_STARS)
  {//punkty œwiec¹ce dookólnie
   uiDisplayList=glGenLists(1);
   glNewList(uiDisplayList,GL_COMPILE);
@@ -502,28 +504,21 @@ void __fastcall TSubModel::DisplayLists()
  }
  //SafeDeleteArray(Vertices); //przy VBO musz¹ zostaæ do za³adowania ca³ego modelu
  if (Child) Child->DisplayLists();
+ if (Next) Next->DisplayLists();
 };
 
 void __fastcall TSubModel::InitialRotate(bool doit)
 {//konwersja uk³adu wspó³rzêdnych na zgodny ze sceneri¹
- if (Next) Next->InitialRotate(doit);
  if (iFlags&0xC000) //jeœli jest animacja albo niejednostkowy
  {//niejednostkowy transform jest mno¿ony i wystarczy zabawy
   if (doit)
   {//obrót lewostronny
+   if (!fMatrix) //macierzy mo¿e nie byæ w dodanym "bananie"
+   {fMatrix=new float4x4(); //tworzy macierz o przypadkowej zawartoœci
+    fMatrix->Identity(); //a zaczynamy obracanie od jednostkowej
+    iFlags|=0x8000; //po mno¿eniu bêdzie mia³ niezerowy matrix (mo¿e mieæ tylko animacjê)
+   }
    fMatrix->InitialRotate(); //zmiana znaku X oraz zamiana Y i Z
-/*
-   float4x4 *mat,tmp1,tmp2;
-   mat=GetMatrix(); //transform submodelu
-   tmp1.Identity(); //{1,0,0,0, 0,0,1,0, 0,-1,0,0, 0,0,0,1}
-   tmp1.Rotation(M_PI/2,float3(1,0,0)); //obrót wzglêdem osi OX o 90°
-   (*mat)=tmp1*(*mat);
-   tmp2.Identity(); //{-1,0,0,0, 0,-1,0,0, 0,0,1,0, 0,0,0,1}
-   tmp2.Rotation(M_PI,float3(0,0,1)); //obrót wzglêdem osi OZ o 90°
-   (*mat)=tmp2*(*mat);
-   //tmp1=tmp2*tmp1; //{-1,0,0,0, 0,0,1,0, 0,1,0,0, 0,0,0,1}
-   //tmp2.Identity();
-*/
   }
   if (Child)
    Child->InitialRotate(false); //potomnych nie obracamy ju¿, tylko przegl¹damy
@@ -552,22 +547,22 @@ void __fastcall TSubModel::InitialRotate(bool doit)
     }
    if (Child) Child->InitialRotate(doit); //potomne ewentualnie obrócimy
   }
+ if (Next) Next->InitialRotate(doit);
 };
 
-void __fastcall TSubModel::AddChild(TSubModel *SubModel)
+void __fastcall TSubModel::ChildAdd(TSubModel *SubModel)
 {//dodanie submodelu potemnego (uzale¿nionego)
- if (Child==NULL)
-  Child=SubModel;
- else
-  Child->AddNext(SubModel);
+ //Ra: zmiana kolejnoœci, ¿eby kolejne móc renderowaæ po aktualnym (by³o przed)
+ if (SubModel) SubModel->NextAdd(Child); //Ra: zmiana kolejnoœci renderowania
+ Child=SubModel;
 };
 
-void __fastcall TSubModel::AddNext(TSubModel *SubModel)
+void __fastcall TSubModel::NextAdd(TSubModel *SubModel)
 {//dodanie submodelu kolejnego (wspólny przodek)
- if (Next==NULL)
-  Next=SubModel;
+ if (Next)
+  Next->NextAdd(SubModel);
  else
-  Next->AddNext(SubModel);
+  Next=SubModel;
 };
 
 int __fastcall TSubModel::Flags()
@@ -585,11 +580,11 @@ int __fastcall TSubModel::Flags()
  }
  if (Next)
  {//Next jest renderowany przed danym submodelem
-  i=Next->Flags();
-  iFlags|=0xFF000000&((i<<24)|(i<<8)|(i)); //nastêpny, kolejne i ich dzieci
   if (TextureID) //o ile dany ma teksturê
    if ((TextureID!=Next->TextureID)||(i&0x00800000)) //a ma inn¹ albo dzieci zmieniaj¹
     iFlags|=0x80; //to dany submodel musi sobie j¹ ustawiaæ
+  i=Next->Flags();
+  iFlags|=0xFF000000&((i<<24)|(i<<8)|(i)); //nastêpny, kolejne i ich dzieci
   //tekstury nie ustawiamy tylko wtedy, gdy jest taka sama jak Next i jego dzieci nie zmieniaj¹
  }
  return iFlags;
@@ -735,9 +730,6 @@ void __fastcall TSubModel::RaAnimation(TAnimType a)
 
 void __fastcall TSubModel::RaRender(GLuint ReplacableSkinId,bool bAlpha)
 {//g³ówna procedura renderowania
- if (Next)
-  if (bAlpha?(iFlags&0x02000000):(iFlags&0x03000000))
-   Next->RaRender(ReplacableSkinId,bAlpha); //dalsze rekurencyjnie
  if (Visible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
  {
   if (iFlags&0xC000)
@@ -870,13 +862,13 @@ void __fastcall TSubModel::RaRender(GLuint ReplacableSkinId,bool bAlpha)
  }
  if (b_Anim<at_SecondsJump)
   b_Anim=at_None; //wy³¹czenie animacji dla kolejnego u¿ycia submodelu
+ if (Next)
+  if (bAlpha?(iFlags&0x02000000):(iFlags&0x03000000))
+   Next->RaRender(ReplacableSkinId,bAlpha); //dalsze rekurencyjnie
 };       //Render
 
 void __fastcall TSubModel::RaRenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
 {
- if (Next)
-  if (bAlpha?(iFlags&0x05000000):(iFlags&0x04000000))
-   Next->RaRenderAlpha(ReplacableSkinId,bAlpha);
  if (Visible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
  {
   if (iFlags&0xC000)
@@ -924,13 +916,13 @@ void __fastcall TSubModel::RaRenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
  }
  if (b_aAnim<at_SecondsJump)
   b_aAnim=at_None; //wy³¹czenie animacji dla kolejnego u¿ycia submodelu
+ if (Next)
+  if (bAlpha?(iFlags&0x05000000):(iFlags&0x04000000))
+   Next->RaRenderAlpha(ReplacableSkinId,bAlpha);
 }; //RenderAlpha
 
 void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
 {//g³ówna procedura renderowania
- if (Next)
-  if (bAlpha?(iFlags&0x02000000):(iFlags&0x03000000))
-   Next->Render(ReplacableSkinId,bAlpha); //dalsze rekurencyjnie
  if (Visible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
  {
   if (iFlags&0xC000)
@@ -1014,13 +1006,13 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
  }
  if (b_Anim<at_SecondsJump)
   b_Anim=at_None; //wy³¹czenie animacji dla kolejnego u¿ycia subm
+ if (Next)
+  if (bAlpha?(iFlags&0x02000000):(iFlags&0x03000000))
+   Next->Render(ReplacableSkinId,bAlpha); //dalsze rekurencyjnie
 }; //Render
 
 void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
 {
- if (Next!=NULL)
-  if (bAlpha?(iFlags&0x05000000):(iFlags&0x04000000))
-   Next->RenderAlpha(ReplacableSkinId,bAlpha);
  if (Visible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
  {
   if (iFlags&0xC000)
@@ -1066,13 +1058,15 @@ void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
  }
  if (b_aAnim<at_SecondsJump)
   b_aAnim=at_None; //wy³¹czenie animacji dla kolejnego u¿ycia submodelu
+ if (Next!=NULL)
+  if (bAlpha?(iFlags&0x05000000):(iFlags&0x04000000))
+   Next->RenderAlpha(ReplacableSkinId,bAlpha);
 }; //RenderAlpha
 
 //---------------------------------------------------------------------------
 
 void  __fastcall TSubModel::RaArrayFill(CVertNormTex *Vert)
 {//wype³nianie tablic VBO
- if (Next) Next->RaArrayFill(Vert);
  if (Child) Child->RaArrayFill(Vert);
  if (eType==GL_TRIANGLES)
   for (int i=0;i<iNumVerts;++i)
@@ -1087,6 +1081,7 @@ void  __fastcall TSubModel::RaArrayFill(CVertNormTex *Vert)
   }
  else if (eType==TP_FREESPOTLIGHT)
   Vert[iVboPtr].x=Vert[iVboPtr].y=Vert[iVboPtr].z=0.0;
+ if (Next) Next->RaArrayFill(Vert);
 };
 
 void __fastcall TSubModel::Info()
@@ -1133,6 +1128,7 @@ void __fastcall TSubModel::InfoSet(TSubModelInfo *info)
  iMatrix=info->iTransform; //numer macierzy
  Next=(TSubModel*)info->iNext; //numer nastêpnego
  Child=(TSubModel*)info->iChild; //numer potomnego
+ iFlags&=~0x200; //nie jest wczytany z tekstowego
  asName="";
  asTexture="";
 };
@@ -1197,18 +1193,17 @@ __fastcall TModel3d::~TModel3d()
  //dalej siê jeszcze usunie obiekt z którego dziedziczymy tabelê VBO
 };
 
-bool __fastcall TModel3d::AddTo(const char *Name,TSubModel *SubModel)
+void __fastcall TModel3d::AddTo(const char *Name,TSubModel *SubModel)
 {
- TSubModel *tmp=GetFromName(Name);
+ TSubModel *tmp=GetFromName(Name); //szukanie nadrzêdnego
  if (tmp)
- {
-  tmp->AddChild(SubModel);
-  return true;
+ {//jeœli znaleziony, pod³¹czamy mu jako potomny
+  tmp->ChildAdd(SubModel);
  }
  else
- {
-  if (Root) Root->AddNext(SubModel); else Root=SubModel;
-  return true;
+ {//jeœli nie znaleziony, podczepiamy do ³añcucha g³ównego
+  SubModel->NextAdd(Root); //Ra: zmiana kolejnoœci renderowania wymusza zmianê tu
+  Root=SubModel;
  }
 };
 
@@ -1334,7 +1329,7 @@ void __fastcall TModel3d::LoadFromBinFile(char *FileName)
 void __fastcall TModel3d::LoadFromTextFile(char *FileName,bool dynamic)
 {
  WriteLog("Loading - text model: "+AnsiString(FileName));
- iFlags|=0x0200; //wczytano z pliku tekstowego (nie jest w³aœcicielem tablic)
+ iFlags|=0x0200; //wczytano z pliku tekstowego (w³aœcicielami tablic s¹ submodle)
  cParser parser(FileName,cParser::buffer_FILE); //Ra: tu powinno byæ "models\\"...
  TSubModel *SubModel;
  std::string token;
@@ -1347,19 +1342,20 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName,bool dynamic)
   if (parent=="") break;
   SubModel=new TSubModel();
   iNumVerts+=SubModel->Load(parser,this,iNumVerts);
-  if (!AddTo(parent.c_str(),SubModel)) delete SubModel;
+  AddTo(parent.c_str(),SubModel);
   iSubModelsCount++;
   parser.getToken(token);
  }
-/*
- if (Root)
- {
-  //if (!Global::bUseVBO) //dla DL wierzcho³ki s¹ kompilowane przy wczytywaniu
-  // Root->WillBeAnimated(); //i nie da siê ich przeliczyæ
-  if (!dynamic) //dynamic zrobi to sam dopiero po przeanalizowaniu animacji submodeli
-   Init();
+ if (dynamic&&Root)
+ {if (Root->NextGet()) //jeœli ma jakiekolwiek kolejne
+  {//dynamic musi mieæ "banana", bo tylko pierwszy obiekt jest animowany, a nastêpne nie
+   SubModel=new TSubModel(); //utworzenie pustego
+   SubModel->ChildAdd(Root);
+   Root=SubModel;
+   ++iSubModelsCount;
+  }
+  Root->WillBeAnimated(); //bo z tym jest du¿o problemów
  }
-*/
 }
 
 void __fastcall TModel3d::Init()
@@ -1368,10 +1364,11 @@ void __fastcall TModel3d::Init()
  if (Root)
  {if (iFlags&0x0200) //jeœli wczytano z pliku tekstowego
    Root->InitialRotate(true); //nale¿y siê konwersja uk³adu wspó³rzêdnych
+  iFlags|=Root->Flags()|0x8000; //flagi ca³ego modelu
   if (!asBinary.IsEmpty()) //jeœli jest podana nazwa
   {if (Global::bConvertModels) //i w³¹czony zapis
     SaveToBinFile(asBinary.c_str()); //utworzy tablicê (m_pVNT)
-   asBinary=""; //wy³¹czenie zapisu
+   asBinary=""; //zablokowanie powtórnego zapisu
   }
   if (iNumVerts)
   {
@@ -1391,7 +1388,6 @@ void __fastcall TModel3d::Init()
    {//przygotowanie skompilowanych siatek dla DisplayLists
     Root->DisplayLists(); //tworzenie skompilowanej listy dla submodelu
    }
-   iFlags=Root->Flags()|0x8000; //flagi ca³ego modelu
    //if (Root->TextureID) //o ile ma teksturê
    // Root->iFlags|=0x80; //koniecznoœæ ustawienia tekstury
   }

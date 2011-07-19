@@ -373,7 +373,7 @@ bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
     glColor3f(3.0f,3.0f,3.0f);
 
         GLuint logo;
-        logo=TTexturesManager::GetTextureID("logo.bmp");
+        logo=TTexturesManager::GetTextureID("logo",6);
         glBindTexture(GL_TEXTURE_2D,logo);       // Select our texture
 
 	glBegin(GL_QUADS);		        // Drawing using triangles

@@ -254,7 +254,8 @@ void __fastcall TGroundRect::Render()
 //---------------------------------------------------------------------------
 
 void __fastcall TGround::MoveGroundNode(vector3 pPosition)
-{
+{//Ra: to wymaga gruntownej reformy
+/*
  TGroundNode *Current;
  for (Current=RootNode;Current!=NULL;Current=Current->Next)
   Current->MoveMe(pPosition);
@@ -285,6 +286,7 @@ void __fastcall TGround::MoveGroundNode(vector3 pPosition)
  }
  for (Current=RootDynamic;Current!=NULL;Current=Current->Next)
   Current->DynamicObject->MoverParameters->Physic_ReActivation();
+*/
 }
 
 void __fastcall TGroundNode::RaRenderVBO()
@@ -833,17 +835,19 @@ void __fastcall TGroundNode::RenderAlpha()
 
 __fastcall TGround::TGround()
 {
-    RootNode=NULL;
-    RootDynamic=NULL;
-    QueryRootEvent=NULL;
-    tmpEvent=NULL;
-    tmp2Event=NULL;
-    OldQRE=NULL;
-    RootEvent=NULL;
-    iNumNodes=0;
-    pTrain=NULL;
-    Global::pGround=this;
-    bInitDone=false; //Ra: ¿eby nie robi³o dwa razy
+ //RootNode=NULL;
+ RootDynamic=NULL;
+ QueryRootEvent=NULL;
+ tmpEvent=NULL;
+ tmp2Event=NULL;
+ OldQRE=NULL;
+ RootEvent=NULL;
+ iNumNodes=0;
+ pTrain=NULL;
+ Global::pGround=this;
+ bInitDone=false; //Ra: ¿eby nie robi³o dwa razy FirstInit
+ for (int i=0;i<TP_LAST;i++)
+  nRootOfType[i]=NULL; //zerowanie tablic wyszukiwania
 }
 
 __fastcall TGround::~TGround()
@@ -861,11 +865,14 @@ void __fastcall TGround::Free()
         delete tmp;
     }
     TGroundNode *tmpn;
-    for (TGroundNode *Current=RootNode; Current!=NULL; )
-    {
-        tmpn= Current;
-        Current= Current->Next;
-        delete tmpn;
+    for (int i=0;i<TP_LAST;++i)
+    {for (TGroundNode *Current=nRootOfType[i];Current;)
+     {
+      tmpn=Current;
+      Current=Current->Next;
+      delete tmpn;
+     }
+     nRootOfType[i]=NULL;
     }
     for (TGroundNode *Current=RootDynamic; Current!=NULL; )
     {
@@ -874,7 +881,7 @@ void __fastcall TGround::Free()
         delete tmpn;
     }
     iNumNodes=0;
-    RootNode=NULL;
+    //RootNode=NULL;
     RootDynamic=NULL;
 }
 
@@ -928,8 +935,8 @@ void __fastcall TGround::RaTriangleDivider(TGroundNode* node)
   tri[i]->fSquareMinRadius=node->fSquareMinRadius;
   tri[i]->bVisible=node->bVisible;
   tri[i]->bStatic=node->bStatic;
-  tri[i]->Next=RootNode;
-  RootNode=tri[i]; //dopisanie z przodu do listy
+  tri[i]->Next=nRootOfType[GL_TRIANGLES];
+  nRootOfType[GL_TRIANGLES]=tri[i]; //dopisanie z przodu do listy
   iNumNodes++;
  }
  tri[0]->Vertices[0]=node->Vertices[0]; //przepisanie wspó³rzêdnych
@@ -1516,8 +1523,8 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
  {//jeœli nie jest pojazdem
   if (Global::bLoadTraction?true:(tmp->iType!=TP_TRACTION))
   {
-   tmp->Next=RootNode;
-   RootNode=tmp; //dopisanie z przodu do listy
+   tmp->Next=nRootOfType[tmp->iType]; //ostatni dodany do³¹czamy na koñcu nowego
+   nRootOfType[tmp->iType]=tmp; //ustawienie nowego na pocz¹tku listy
    iNumNodes++;
   }
  }
@@ -1893,22 +1900,24 @@ bool __fastcall TGround::Init(AnsiString asFile)
          if (!bInitDone) //Ra: ¿eby nie robi³o dwa razy
          {bInitDone=true;
           WriteLog("InitNormals");
-          for (TGroundNode* Current=RootNode;Current;Current=Current->Next)
-          {
-           Current->InitNormals();
-           if (Current->iType!=TP_DYNAMIC)
-           {//pojazdów to w ogóle nie dotyczy
-            if ((Current->iType!=GL_TRIANGLES)&&(Current->iType!=GL_TRIANGLE_STRIP)?true //~czy trójk¹t?
-             :(Current->iFlags&4)?true //~czy teksturê ma nieprzezroczyst¹?
-              //:(Current->iNumVerts!=3)?true //~czy tylko jeden trójk¹t?
-               :(Current->fSquareMinRadius!=0.0)?true //~czy widoczny z bliska?
-                :(Current->fSquareRadius<=90000.0)) //~czy widoczny z daleka?
-             GetSubRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
-            else //dodajemy do kwadratu kilometrowego
-             GetRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
+          for (int i=0;i<TP_LAST;++i)
+          {for (TGroundNode *Current=nRootOfType[i];Current;Current=Current->Next)
+           {
+            Current->InitNormals();
+            if (Current->iType!=TP_DYNAMIC)
+            {//pojazdów to w ogóle nie dotyczy
+             if ((Current->iType!=GL_TRIANGLES)&&(Current->iType!=GL_TRIANGLE_STRIP)?true //~czy trójk¹t?
+              :(Current->iFlags&4)?true //~czy teksturê ma nieprzezroczyst¹?
+               //:(Current->iNumVerts!=3)?true //~czy tylko jeden trójk¹t?
+                :(Current->fSquareMinRadius!=0.0)?true //~czy widoczny z bliska?
+                 :(Current->fSquareRadius<=90000.0)) //~czy widoczny z daleka?
+              GetSubRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
+             else //dodajemy do kwadratu kilometrowego
+              GetRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
+            }
+            //if (Current->iType!=TP_DYNAMIC)
+            // GetSubRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
            }
-           //if (Current->iType!=TP_DYNAMIC)
-           // GetSubRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
           }
           WriteLog("InitNormals OK");
           WriteLog("InitTracks");
@@ -2180,9 +2189,9 @@ bool __fastcall TGround::InitTracks()
  TGroundNode *Current,*tmp;
  TTrack *Track;
  int iConnection,state;
- for (Current= RootNode; Current!=NULL; Current= Current->Next)
+ for (Current=nRootOfType[TP_TRACK];Current;Current=Current->Next)
  {
-  if (Current->iType==TP_TRACK)
+  //if (Current->iType==TP_TRACK)
   {
    Track= Current->pTrack;
    Track->AssignEvents(
@@ -2316,12 +2325,12 @@ void __fastcall TGround::TrackJoin(TGroundNode *Current)
 //McZapkie-070602: wyzwalacze zdarzen
 bool __fastcall TGround::InitLaunchers()
 {
-    TGroundNode *Current,*tmp;
-    TEventLauncher *EventLauncher;
-    int i;
-    for (Current= RootNode; Current!=NULL; Current= Current->Next)
-    {
-       if (Current->iType==TP_EVLAUNCH)
+ TGroundNode *Current,*tmp;
+ TEventLauncher *EventLauncher;
+ int i;
+ for (Current=nRootOfType[TP_EVLAUNCH];Current;Current=Current->Next)
+ {
+       //if (Current->iType==TP_EVLAUNCH)
          {
            EventLauncher= Current->EvLaunch;
            if (EventLauncher->iCheckMask!=0)
@@ -2340,18 +2349,18 @@ bool __fastcall TGround::InitLaunchers()
            EventLauncher->Event1= (EventLauncher->asEvent1Name!=AnsiString("none")) ? FindEvent(EventLauncher->asEvent1Name) : NULL;
            EventLauncher->Event2= (EventLauncher->asEvent2Name!=AnsiString("none")) ? FindEvent(EventLauncher->asEvent2Name) : NULL;
          }
-    }
+ }
  return true;
 }
 
 TGroundNode* __fastcall TGround::FindTrack(vector3 Point, int &iConnection, TGroundNode *Exclude= NULL)
 {
-    int state;
-    TTrack *Track;
-    TGroundNode *Current,*tmp;
-    iConnection= -1;
-    for (Current= RootNode; Current!=NULL; Current= Current->Next)
-    {
+ int state;
+ TTrack *Track;
+ TGroundNode *Current,*tmp;
+ iConnection=-1;
+ for (Current=nRootOfType[TP_TRACK];Current;Current=Current->Next)
+ {
         if ((Current->iType==TP_TRACK) && (Current!=Exclude))
         {
             Track= Current->pTrack;
