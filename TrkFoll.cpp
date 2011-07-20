@@ -31,6 +31,7 @@
 #include "Globals.h"
 #include "DynObj.h"
 #include "Ground.h"
+#include "Event.h"
 
 __fastcall TTrackFollower::TTrackFollower()
 {
@@ -62,7 +63,7 @@ void __fastcall TTrackFollower::SetCurrentTrack(TTrack *pTrack,int end)
  if (pTrack?pTrack->eType==tt_Switch:false) //jeœli zwrotnica, to przek³adamy j¹, aby uzyskaæ dobry segment
  {int i=(end?pCurrentTrack->iNextDirection:pCurrentTrack->iPrevDirection);
   if (i>0) //je¿eli wjazd z ostrza
-   pTrack->Switch(i>>1); //to prze³o¿enie zwrotnicy - rozprucie!
+   pTrack->SwitchForced(i>>1,Owner); //to prze³o¿enie zwrotnicy - rozprucie!
  }
  if (!pTrack)
   pTrack=pCurrentTrack->NullCreate(end); //tworzenie toru wykolej¹cego na przed³u¿eniu pCurrentTrack

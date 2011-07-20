@@ -3,26 +3,12 @@
 #ifndef groundH
 #define groundH
 
-#include "system.hpp"
-#include "classes.hpp"
-
-
 #include "dumb3d.h"
-#include "Geometry.h"
-#include "QueryParserComp.hpp"
-#include "AnimModel.h"
-#include "DynObj.h"
-#include "Train.h"
-#include "Sound.h"
-#include "MemCell.h"
-#include "Traction.h"
-#include "EvLaunch.h"
-#include "TractionPower.h"
-#include "mtable.hpp"
-
-#include "parser.h" //Tolaris-010603
 #include "ResourceManager.h"
 #include "VBO.h"
+#include "Classes.h"
+
+using namespace Math3D;
 
 //Ra: zmniejszone liczby, aby zrobiÊ tabelkÍ i zoptymalizowaÊ wyszukiwanie
 const int TP_MODEL=10;
@@ -74,86 +60,86 @@ class TGroundNode : public Resource
 {
 private:
 public:
-    //TDynamicObject *NearestDynObj;
-    //double DistToDynObj;
+ //TDynamicObject *NearestDynObj;
+ //double DistToDynObj;
 
-    TGroundNodeType iType; //typ obiektu
-    union
-    {
-     void *Pointer; //do przypisywania NULL
-     TAnimModel *Model;
-     TDynamicObject *DynamicObject;
-     vector3 *Points; //punkty dla linii
-     TTrack *pTrack;
-     TGroundVertex *Vertices; //wierzcho≥ki dla trÛjkπtÛw
-     TMemCell *MemCell;
-     TEventLauncher *EvLaunch;
-     TTraction *Traction;
-     TTractionPowerSource *TractionPowerSource;
-     TRealSound *pStaticSound;
-    };
-    AnsiString asName;
-    union
-    {
-     int iNumVerts; //dla trÛjkπtÛw
-     int iNumPts; //dla linii
-     //int iState; //Ra: nie uøywane - düwiÍki zapÍtlone
-    };
-    vector3 pCenter; //úrodek do przydzielenia sektora
+ TGroundNodeType iType; //typ obiektu
+ union
+ {
+  void *Pointer; //do przypisywania NULL
+  TAnimModel *Model;
+  TDynamicObject *DynamicObject;
+  vector3 *Points; //punkty dla linii
+  TTrack *pTrack;
+  TGroundVertex *Vertices; //wierzcho≥ki dla trÛjkπtÛw
+  TMemCell *MemCell;
+  TEventLauncher *EvLaunch;
+  TTraction *Traction;
+  TTractionPowerSource *TractionPowerSource;
+  TRealSound *pStaticSound;
+ };
+ AnsiString asName;
+ union
+ {
+  int iNumVerts; //dla trÛjkπtÛw
+  int iNumPts; //dla linii
+  //int iState; //Ra: nie uøywane - düwiÍki zapÍtlone
+ };
+ vector3 pCenter; //úrodek do przydzielenia sektora
 
-    union
-    {
-     //double fAngle; //kπt obrotu dla modelu
-     double fLineThickness; //McZapkie-120702: grubosc linii
-     //int Status;  //McZapkie-170303: status dzwieku
-    };
-    double fSquareRadius; //kwadrat widocznoúci do
-    double fSquareMinRadius; //kwadrat widocznoúci od
-    TGroundNode *pTriGroup; //Ra: obiekt grupujπcy trÛjkπty w TSubRect (ogranicza iloúÊ DisplayList)
-    GLuint DisplayListID; //numer siatki
-    int iVboPtr; //indeks w buforze VBO
-    GLuint TextureID; //jedna tekstura na obiekt
-    int iFlags; //tryb przezroczystoúci: 2-nieprz.,4-przezroczysty,6-mieszany
-    int Ambient[4],Diffuse[4],Specular[4]; //oúwietlenie
-    bool bVisible;
-    bool bStatic; //czy nie jest pojazdem - do zredukowania
-    bool bAllocated; //Ra: zawsze true
-    TGroundNode *Next; //lista wszystkich w scenerii, ostatni na poczπtku
-    TGroundNode *pNext2; //lista w sektorze
-    TGroundNode *pNext3; //lista obiektÛw podobnych, renderowanych grupowo
-    __fastcall TGroundNode();
-    __fastcall ~TGroundNode();
-    void __fastcall Init(int n);
-    void __fastcall InitCenter();
-    void __fastcall InitNormals();
+ union
+ {
+  //double fAngle; //kπt obrotu dla modelu
+  double fLineThickness; //McZapkie-120702: grubosc linii
+  //int Status;  //McZapkie-170303: status dzwieku
+ };
+ double fSquareRadius; //kwadrat widocznoúci do
+ double fSquareMinRadius; //kwadrat widocznoúci od
+ TGroundNode *pTriGroup; //Ra: obiekt grupujπcy trÛjkπty w TSubRect (ogranicza iloúÊ DisplayList)
+ GLuint DisplayListID; //numer siatki
+ int iVboPtr; //indeks w buforze VBO
+ GLuint TextureID; //jedna tekstura na obiekt
+ int iFlags; //tryb przezroczystoúci: 2-nieprz.,4-przezroczysty,6-mieszany
+ int Ambient[4],Diffuse[4],Specular[4]; //oúwietlenie
+ bool bVisible;
+ bool bStatic; //czy nie jest pojazdem - do zredukowania
+ bool bAllocated; //Ra: zawsze true
+ TGroundNode *Next; //lista wszystkich w scenerii, ostatni na poczπtku
+ TGroundNode *pNext2; //lista w sektorze
+ TGroundNode *pNext3; //lista obiektÛw podobnych, renderowanych grupowo
+ __fastcall TGroundNode();
+ __fastcall ~TGroundNode();
+ void __fastcall Init(int n);
+ void __fastcall InitCenter();
+ void __fastcall InitNormals();
 
-    void __fastcall MoveMe(vector3 pPosition);
+ void __fastcall MoveMe(vector3 pPosition);
 
-    //bool __fastcall Disable();
-    inline TGroundNode* __fastcall Find(const AnsiString &asNameToFind)
-    {
-        if (asNameToFind==asName) return this; else if (Next) return Next->Find(asNameToFind);
-        return NULL;
-    };
-    inline TGroundNode* __fastcall Find(const AnsiString &asNameToFind, TGroundNodeType iNodeType )
-    {
-        if ((iNodeType==iType) && (asNameToFind==asName))
-            return this;
-        else
-            if (Next) return Next->Find(asNameToFind,iNodeType);
-        return NULL;
-    };
+ //bool __fastcall Disable();
+ inline TGroundNode* __fastcall Find(const AnsiString &asNameToFind)
+ {
+     if (asNameToFind==asName) return this; else if (Next) return Next->Find(asNameToFind);
+     return NULL;
+ };
+ inline TGroundNode* __fastcall Find(const AnsiString &asNameToFind, TGroundNodeType iNodeType )
+ {
+     if ((iNodeType==iType) && (asNameToFind==asName))
+         return this;
+     else
+         if (Next) return Next->Find(asNameToFind,iNodeType);
+     return NULL;
+ };
 
-    void __fastcall Compile(bool many=false);
-    void Release();
+ void __fastcall Compile(bool many=false);
+ void Release();
 
-    bool __fastcall GetTraction();
-    void __fastcall RenderHidden();
-    void __fastcall Render();
-    void __fastcall RenderAlpha(); //McZapkie-131202: dwuprzebiegowy rendering
-    void __fastcall RaRenderVBO();
-    void __fastcall RaRender();
-    void __fastcall RaRenderAlpha(); //McZapkie-131202: dwuprzebiegowy rendering
+ bool __fastcall GetTraction();
+ void __fastcall RenderHidden();
+ void __fastcall Render();
+ void __fastcall RenderAlpha(); //McZapkie-131202: dwuprzebiegowy rendering
+ void __fastcall RaRenderVBO();
+ void __fastcall RaRender();
+ void __fastcall RaRenderAlpha(); //McZapkie-131202: dwuprzebiegowy rendering
 };
 //TSubRect *TGroundNode::pOwner=NULL; //tymczasowo w≥aúciciel
 
@@ -205,7 +191,7 @@ private:
 public:
  static int iFrameNumber; //numer kolejny wyúwietlanej klatki
  __fastcall TGroundRect() { pSubRects=NULL; };
- virtual __fastcall ~TGroundRect() { SafeDeleteArray(pSubRects); };
+ virtual __fastcall ~TGroundRect();
 
  TSubRect* __fastcall SafeGetRect(int iCol,int iRow)
  {//pobranie wskaünika do ma≥ego kwadratu, utworzenie jeúli trzeba

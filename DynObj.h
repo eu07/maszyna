@@ -18,7 +18,6 @@
 #include "Button.h"
 #include "AirCoupler.h"
 
-
 //McZapkie-250202
   const MaxAxles=16; //ABu 280105: zmienione z 8 na 16
   const MaxAnimatedAxles=16; //i to tez.
@@ -249,7 +248,7 @@ public:
     inline TTrack* __fastcall GetTrack() { return (MoverParameters->ActiveDir<0?Axle1.GetTrack():Axle4.GetTrack()); };
     void __fastcall UpdatePos();    
 
-    TMoverParameters *MoverParameters;
+    Mover::TMoverParameters *MoverParameters;
 
     vector3 vUp,vFront,vLeft;
     matrix4x4 mMatrix;

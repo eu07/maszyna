@@ -35,6 +35,7 @@
 #include "TractionPower.h"
 #include "MemCell.h"
 #include "Ground.h"
+#include "Event.h"
 
 const float maxrot=(M_PI/3); //60°
 

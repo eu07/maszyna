@@ -3,9 +3,9 @@
 #ifndef MemCellH
 #define MemCellH
 
-#include "TrkFoll.h"
+#include "Classes.h"
 
-#include "parser.h"
+using namespace Mover;
 
 class TMemCell
 {

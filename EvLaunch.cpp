@@ -20,7 +20,6 @@
 */
 
 #include    "system.hpp"
-#include    "classes.hpp"
 #pragma hdrstop
 
 #include "Mover.hpp"
@@ -33,6 +32,7 @@
 
 #include "Usefull.h"
 #include "MemCell.h"
+#include "parser.h"
 
 
 
