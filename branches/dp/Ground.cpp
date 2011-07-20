@@ -19,8 +19,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#include    "system.hpp"
-#include    "classes.hpp"
+#include "system.hpp"
+#include "classes.hpp"
 
 #include "opengl/glew.h"
 #include "opengl/glut.h"
@@ -29,10 +29,19 @@
 
 #include "Timer.h"
 #include "Texture.h"
-#include "ground.h"
+#include "Ground.h"
 #include "Globals.h"
+#include "Event.h"
 #include "EvLaunch.h"
 #include "TractionPower.h"
+#include "Traction.h"
+#include "Track.h"
+#include "RealSound.h"
+#include "AnimModel.h"
+#include "MemCell.h"
+#include "mtable.hpp"
+#include "DynObj.h"
+
 
 #include "parser.h" //Tolaris-010603
 //---------------------------------------------------------------------------
@@ -225,6 +234,11 @@ void __fastcall TGroundNode::MoveMe(vector3 pPosition)
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 int TGroundRect::iFrameNumber=0; //licznik wyœwietlanych klatek
+
+__fastcall TGroundRect::~TGroundRect()
+{
+ SafeDeleteArray(pSubRects);
+};
 
 void __fastcall TGroundRect::Render()
 {//renderowanie kwadratu kilometrowego (DL), jeœli jeszcze nie zrobione
@@ -2194,108 +2208,96 @@ bool __fastcall TGround::InitTracks()
  int iConnection,state;
  for (Current=nRootOfType[TP_TRACK];Current;Current=Current->Next)
  {
-  //if (Current->iType==TP_TRACK)
+  Track=Current->pTrack;
+  Track->AssignEvents(
+   Track->asEvent0Name.IsEmpty()?FindEvent(Track->asEvent0Name):NULL,
+   Track->asEvent1Name.IsEmpty()?FindEvent(Track->asEvent1Name):NULL,
+   Track->asEvent2Name.IsEmpty()?FindEvent(Track->asEvent2Name):NULL);
+  Track->AssignallEvents(
+   Track->asEventall0Name.IsEmpty()?FindEvent(Track->asEventall0Name):NULL,
+   Track->asEventall1Name.IsEmpty()?FindEvent(Track->asEventall1Name):NULL,
+   Track->asEventall2Name.IsEmpty()?FindEvent(Track->asEventall2Name):NULL); //MC-280503
+  switch (Track->eType)
   {
-   Track= Current->pTrack;
-   Track->AssignEvents(
-       ( (Track->asEvent0Name!=AnsiString("")) ? FindEvent(Track->asEvent0Name) : NULL ),
-       ( (Track->asEvent1Name!=AnsiString("")) ? FindEvent(Track->asEvent1Name) : NULL ),
-       ( (Track->asEvent2Name!=AnsiString("")) ? FindEvent(Track->asEvent2Name) : NULL ) );
-   Track->AssignallEvents(
-       ( (Track->asEventall0Name!=AnsiString("")) ? FindEvent(Track->asEventall0Name) : NULL ),
-       ( (Track->asEventall1Name!=AnsiString("")) ? FindEvent(Track->asEventall1Name) : NULL ),
-       ( (Track->asEventall2Name!=AnsiString("")) ? FindEvent(Track->asEventall2Name) : NULL ) ); //MC-280503
-   switch (Track->eType)
-   {
-    case tt_Turn: //obrotnicê te¿ ³¹czymy na starcie z innymi torami
-     tmp=FindGroundNode(Current->asName,TP_MODEL); //szukamy modelu o tej samej nazwie
-     if (tmp) //mamy model, trzeba zapamiêtaæ wskaŸnik do jego animacji
-     {//jak coœ pójdzie Ÿle, to robimy z tego normalny tor
-      //Track->ModelAssign(tmp->Model->GetContainer(NULL)); //wi¹zanie toru z modelem obrotnicy
-      Track->RaAssign(Current,tmp->Model); //wi¹zanie toru z modelem obrotnicy
-      //break; //jednak po³¹czê z s¹siednim, jak ma siê wysypywaæ null track
-     }
-    case tt_Normal :
-     if (Track->CurrentPrev()==NULL)
+   case tt_Turn: //obrotnicê te¿ ³¹czymy na starcie z innymi torami
+    tmp=FindGroundNode(Current->asName,TP_MODEL); //szukamy modelu o tej samej nazwie
+    if (tmp) //mamy model, trzeba zapamiêtaæ wskaŸnik do jego animacji
+    {//jak coœ pójdzie Ÿle, to robimy z tego normalny tor
+     //Track->ModelAssign(tmp->Model->GetContainer(NULL)); //wi¹zanie toru z modelem obrotnicy
+     Track->RaAssign(Current,tmp->Model); //wi¹zanie toru z modelem obrotnicy
+     //break; //jednak po³¹czê z s¹siednim, jak ma siê wysypywaæ null track
+    }
+   case tt_Normal: //tylko proste s¹ pod³¹czane do rozjazdów, st¹d dwa rozjazdy siê nie po³¹cz¹ ze sob¹
+    if (Track->CurrentPrev()==NULL) //tylko jeœli jeszcze nie pod³¹czony
+    {
+     tmp=FindTrack(Track->CurrentSegment()->FastGetPoint_0(),iConnection,Current);
+     switch (iConnection)
      {
-      tmp=FindTrack(Track->CurrentSegment()->FastGetPoint_0(),iConnection,Current);
-      switch (iConnection)
-      {
-       case -1: break;
-       case 0:
-        Track->ConnectPrevPrev(tmp->pTrack,0);
-       break;
-       case 1:
-        Track->ConnectPrevNext(tmp->pTrack,1);
-       break;
-       case 2: //Ra:zwrotnice nie maj¹ stanu pocz¹tkowego we wpisie
-        Track->ConnectPrevPrev(tmp->pTrack,0); //do Point1 pierwszego
-        tmp->pTrack->SetConnections(0); //zapamiêtanie ustawieñ w Segmencie
-       break;
-       case 3:
-        Track->ConnectPrevNext(tmp->pTrack,1); //do Point2 pierwszego
-        tmp->pTrack->SetConnections(0); //zapamiêtanie ustawieñ w Segmencie
-       break;
-       case 4:
-        tmp->pTrack->Switch(1);
-        Track->ConnectPrevPrev(tmp->pTrack,0); //do Point1 drugiego
-        tmp->pTrack->SetConnections(1); //robi te¿ Switch(0)
-        //tmp->pTrack->Switch(0);
-       break;
-       case 5:
-        tmp->pTrack->Switch(1);
-        Track->ConnectPrevNext(tmp->pTrack,3); //do Point2 drugiego
-        tmp->pTrack->SetConnections(1); //robi te¿ Switch(0)
-        //tmp->pTrack->Switch(0);
-       break;
-      }
+      case -1: break;
+      case 0:
+       Track->ConnectPrevPrev(tmp->pTrack,0);
+      break;
+      case 1:
+       Track->ConnectPrevNext(tmp->pTrack,1);
+      break;
+      case 2:
+       Track->ConnectPrevPrev(tmp->pTrack,0); //do Point1 pierwszego
+       tmp->pTrack->SetConnections(0); //zapamiêtanie ustawieñ w Segmencie
+      break;
+      case 3:
+       Track->ConnectPrevNext(tmp->pTrack,1); //do Point2 pierwszego
+       tmp->pTrack->SetConnections(0); //zapamiêtanie ustawieñ w Segmencie
+      break;
+      case 4:
+       tmp->pTrack->Switch(1);
+       Track->ConnectPrevPrev(tmp->pTrack,0); //do Point1 drugiego
+       tmp->pTrack->SetConnections(1); //robi te¿ Switch(0)
+      break;
+      case 5:
+       tmp->pTrack->Switch(1);
+       Track->ConnectPrevNext(tmp->pTrack,3); //do Point2 drugiego
+       tmp->pTrack->SetConnections(1); //robi te¿ Switch(0)
+      break;
      }
-     if (Track->CurrentNext()==NULL)
+    }
+    if (Track->CurrentNext()==NULL) //tylko jeœli jeszcze nie pod³¹czony
+    {
+     tmp=FindTrack(Track->CurrentSegment()->FastGetPoint_1(),iConnection,Current);
+     switch (iConnection)
      {
-      tmp=FindTrack(Track->CurrentSegment()->FastGetPoint_1(),iConnection,Current);
-      switch (iConnection)
-      {
-       case -1: break;
-       case 0:
-        Track->ConnectNextPrev(tmp->pTrack,0);
-       break;
-       case 1:
-        Track->ConnectNextNext(tmp->pTrack,1);
-       break;
-       case 2:
-        //state= tmp->pTrack->GetSwitchState();
-        //tmp->pTrack->Switch(0);
-        Track->ConnectNextPrev(tmp->pTrack,0);
-        tmp->pTrack->SetConnections(0); //zapamiêtanie ustawieñ w Segmencie
-        //tmp->pTrack->Switch(state);
-       break;
-       case 3:
-        //state= tmp->pTrack->GetSwitchState();
-        //tmp->pTrack->Switch(0);
-        Track->ConnectNextNext(tmp->pTrack,1);
-        tmp->pTrack->SetConnections(0); //zapamiêtanie ustawieñ w Segmencie
-        //tmp->pTrack->Switch(state);
-       break;
-       case 4:
-        //state= tmp->pTrack->GetSwitchState();
-        tmp->pTrack->Switch(1);
-        Track->ConnectNextPrev(tmp->pTrack,0);
-        tmp->pTrack->SetConnections(1); //robi te¿ Switch(0)
-        //tmp->pTrack->Switch(state);
-        //tmp->pTrack->Switch(0);
-       break;
-       case 5:
-        //state= tmp->pTrack->GetSwitchState();
-        tmp->pTrack->Switch(1);
-        Track->ConnectNextNext(tmp->pTrack,3);
-        tmp->pTrack->SetConnections(1); //robi te¿ Switch(0)
-        //tmp->pTrack->Switch(state);
-        //tmp->pTrack->Switch(0);
-       break;
-      }
+      case -1: break;
+      case 0:
+       Track->ConnectNextPrev(tmp->pTrack,0);
+      break;
+      case 1:
+       Track->ConnectNextNext(tmp->pTrack,1);
+      break;
+      case 2:
+       Track->ConnectNextPrev(tmp->pTrack,0);
+       tmp->pTrack->SetConnections(0); //zapamiêtanie ustawieñ w Segmencie
+      break;
+      case 3:
+       Track->ConnectNextNext(tmp->pTrack,1);
+       tmp->pTrack->SetConnections(0); //zapamiêtanie ustawieñ w Segmencie
+      break;
+      case 4:
+       tmp->pTrack->Switch(1);
+       Track->ConnectNextPrev(tmp->pTrack,0);
+       tmp->pTrack->SetConnections(1); //robi te¿ Switch(0)
+      break;
+      case 5:
+       tmp->pTrack->Switch(1);
+       Track->ConnectNextNext(tmp->pTrack,3);
+       tmp->pTrack->SetConnections(1); //robi te¿ Switch(0)
+      break;
      }
+    }
     break;
-   }
+   case tt_Switch: //dla rozjazdów szukamy eventów sygnalizacji rozprucia
+    Track->AssignForcedEvents(
+     FindEvent(Current->asName+":forced+"),
+     FindEvent(Current->asName+":forced-"));
+    break;
   }
  }
  return true;

@@ -4,14 +4,15 @@
 #define TrackH
 
 #include "Segment.h"
-#include "parser.h"
-#include "Event.h"
-#include "Flags.h"
 #include "ResourceManager.h"
+#include "opengl/glew.h"
+#include <system.hpp>
+#include "Classes.h"
+
 
 class TEvent;
 
-typedef enum { tt_Unknown, tt_Normal, tt_Switch, tt_Turn, tt_Cross } TTrackType;
+typedef enum { tt_Unknown, tt_Normal, tt_Switch, tt_Turn, tt_Cross, tt_Tributary } TTrackType;
 //McZapkie-100502
 typedef enum { e_unknown, e_flat, e_mountains, e_canyon, e_tunnel, e_bridge, e_bank } TEnvironmentType;
 
@@ -47,6 +48,7 @@ public:
  int iLeftVBO,iRightVBO; //indeksy iglic w VBO
  TSubRect *pOwner; //sektor, któremu trzeba zg³osiæ animacjê
  TTrack *pNextAnim; //nastêpny tor do animowania
+ TEvent *EventPlus,*EventMinus; //zdarzenia sygnalizacji rozprucia
 private:
 };
 
@@ -125,10 +127,12 @@ public:
     inline TTrack* __fastcall CurrentPrev() {return (pPrev);};
     bool __fastcall SetConnections(int i);
     bool __fastcall Switch(int i);
+    bool __fastcall SwitchForced(int i,TDynamicObject *o);
     inline int __fastcall GetSwitchState() { return (SwitchExtension?SwitchExtension->CurrentIndex:-1); };
     void __fastcall Load(cParser *parser, vector3 pOrigin);
     bool __fastcall AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2);
     bool __fastcall AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2);
+    bool __fastcall AssignForcedEvents(TEvent *NewEventPlus, TEvent *NewEventMinus);
     bool __fastcall CheckDynamicObject(TDynamicObject *Dynamic);
     bool __fastcall AddDynamicObject(TDynamicObject *Dynamic);
     bool __fastcall RemoveDynamicObject(TDynamicObject *Dynamic);

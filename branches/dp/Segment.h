@@ -1,11 +1,13 @@
 //---------------------------------------------------------------------------
 
 #ifndef SegmentH
-#define SegmentH
+#define SegmentH                                   
 
-#include "usefull.h"
-#include "Geometry.h"
 #include "VBO.h"
+#include "dumb3d.h"
+#include "Classes.h"
+
+using namespace Math3D;
 
 //110405 Ra: klasa punktów przekroju z normalnymi
 
@@ -47,7 +49,7 @@ public:
  bool bCurve;
  //int iShape; //Ra: flagi kszta³tu dadz¹ wiêcej mo¿liwoœci optymalizacji
  __fastcall TSegment(TTrack *owner);
- __fastcall ~TSegment() {SafeDeleteArray(fTsBuffer);};
+ __fastcall ~TSegment();
  bool __fastcall Init(vector3 NewPoint1,vector3 NewPoint2,double fNewStep,
                       double fNewRoll1=0,double fNewRoll2=0);
  bool __fastcall Init(vector3 NewPoint1,vector3 NewCPointOut,

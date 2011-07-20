@@ -33,6 +33,7 @@
 #include "Globals.h"
 #include "Camera.h"
 #include "ResourceManager.h"
+#include "Event.h"
 
 #define TEXTURE_FILTER_CONTROL_EXT      0x8500
 #define TEXTURE_LOD_BIAS_EXT            0x8501

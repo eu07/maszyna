@@ -15,5 +15,14 @@ class TAnimContainer;
 class TMemCell;
 class cParser;
 class TRealSound;
+class TEventLauncher;
+class TTraction;
+class TTractionPowerSource;
+
+namespace Mover
+{
+class TMoverParameters;
+class TLocation;
+}
 
 #endif

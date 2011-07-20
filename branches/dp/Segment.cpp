@@ -2,6 +2,8 @@
 
 #include "system.hpp"
 #pragma hdrstop
+#include "opengl/glew.h"
+//#include "opengl/glut.h"
 
 #include "Segment.h"
 #include "Usefull.h"
@@ -24,6 +26,10 @@ __fastcall TSegment::TSegment(TTrack *owner)
  pOwner=owner;
 }
 
+__fastcall TSegment::~TSegment()
+{
+ SafeDeleteArray(fTsBuffer);
+};
 
 bool __fastcall TSegment::Init(
  vector3 NewPoint1,vector3 NewPoint2,double fNewStep,

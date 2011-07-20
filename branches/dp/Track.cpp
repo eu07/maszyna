@@ -18,20 +18,19 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#include    "system.hpp"
-#include    "classes.hpp"
-
-#include "opengl/glew.h"
-#include "opengl/glut.h"
-
+//nag³ówki identyczne w ka¿dym pliku...
 #pragma hdrstop
 
+#include "Track.h"
+#include "Usefull.h"
 #include "Texture.h"
 #include "Timer.h"
-#include "usefull.h"
 #include "Globals.h"
-#include "Track.h"
 #include "Ground.h"
+#include "parser.h"
+#include "Mover.hpp"
+#include "DynObj.h"
+
 
 #pragma package(smart_init)
 
@@ -52,6 +51,7 @@ __fastcall TSwitchExtension::TSwitchExtension(TTrack *owner)
  Segments[1]=new TSegment(owner);
  Segments[3]=NULL;
  Segments[4]=NULL;
+ EventPlus=EventMinus=NULL;
 }
 __fastcall TSwitchExtension::~TSwitchExtension()
 {//nie ma nic do usuwania
@@ -284,6 +284,10 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin)
  {eType=tt_Normal;
   iCategoryFlag=4;
  }
+ else if (str=="tributary")
+ {eType=tt_Tributary;
+  iCategoryFlag=4;
+ }
  else
   eType=tt_Unknown;
  if (DebugModeFlag)
@@ -386,6 +390,7 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin)
 
   case tt_Cross: //skrzy¿owanie dróg - 4 punkty z wektorami kontrolnymi
   case tt_Switch: //zwrotnica
+  case tt_Tributary: //dop³yw
    //problemy z animacj¹ iglic powstaje, gdzy odcinek prosty ma zmienn¹ przechy³kê
    //wtedy dzieli siê na dodatkowe odcinki (po 0.2m, bo R=0) i animacjê diabli bior¹
    //Ra: na razie nie podejmujê siê przerabiania iglic
@@ -650,6 +655,17 @@ bool __fastcall TTrack::AssignallEvents(TEvent *NewEvent0,TEvent *NewEvent1,TEve
  return !bError;
 }
 
+bool __fastcall TTrack::AssignForcedEvents(TEvent *NewEventPlus, TEvent *NewEventMinus)
+{//ustawienie eventów sygnalizacji rozprucia
+ if (SwitchExtension)
+ {if (NewEventPlus)
+   SwitchExtension->EventPlus=NewEventPlus;
+  if (NewEventMinus)
+   SwitchExtension->EventMinus=NewEventMinus;
+  return true;
+ }
+ return false;
+};
 
 //ABu: przeniesione z Track.h i poprawione!!!
 bool __fastcall TTrack::AddDynamicObject(TDynamicObject *Dynamic)
@@ -1564,6 +1580,25 @@ bool __fastcall TTrack::Switch(int i)
  return false;
 };
 
+bool __fastcall TTrack::SwitchForced(int i,TDynamicObject *o)
+{//rozprucie rozjazdu
+ if (SwitchExtension)
+  if (i!=SwitchExtension->CurrentIndex)
+  {switch (i)
+   {case 0:
+     if (SwitchExtension->EventPlus)
+      Global::pGround->AddToQuery(SwitchExtension->EventPlus,o); //dodanie do kolejki
+     break;
+    case 1:
+     if (SwitchExtension->EventMinus)
+      Global::pGround->AddToQuery(SwitchExtension->EventMinus,o); //dodanie do kolejki
+     break;
+   }
+   Switch(i); //jeœli siê tu nie prze³¹czy, to ka¿dy pojazd powtórzy event rozrprucia
+  }
+ return true;
+};
+
 void __fastcall TTrack::RaAnimListAdd(TTrack *t)
 {//dodanie toru do listy animacyjnej
  if (SwitchExtension)
@@ -1583,7 +1618,7 @@ void __fastcall TTrack::RaAnimListAdd(TTrack *t)
 };
 
 TTrack* __fastcall TTrack::RaAnimate()
-{//wykonanie rekurencyjne animacji, wywo³ywane przed wyœwietleniem sektora z VBO
+{//wykonanie rekurencyjne animacji, wywo³ywane przed wyœwietleniem sektora
  //zwraca wskaŸnik toru wymagaj¹cego dalszej animacji
  if (SwitchExtension->pNextAnim)
   SwitchExtension->pNextAnim=SwitchExtension->pNextAnim->RaAnimate();
