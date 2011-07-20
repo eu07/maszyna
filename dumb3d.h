@@ -105,7 +105,22 @@ public:
 	inline matrix4x4& BasisChange (const vector3& v, const vector3& n);
 	inline matrix4x4& BasisChange (const vector3& u, const vector3& v, const vector3& n);
 	inline matrix4x4& ProjectionMatrix (bool perspective, scalar_t l, scalar_t r, scalar_t t, scalar_t b, scalar_t n, scalar_t f);
-	
+ void InitialRotate()
+ {//taka specjalna rotacja, nie ma co ci¹gaæ trygonometrii
+  double f;
+  for (int i=0;i<16;i+=4)
+  {e[i]=-e[i]; //zmiana znaku X
+   f=e[i+1]; e[i+1]=e[i+2]; e[i+2]=f; //zamiana Y i Z
+  }
+ };
+ inline bool IdentityIs()
+ {//sprawdzenie jednostkowoœci
+  for (int i=0;i<16;++i)
+   if (e[i]!=((i%5)?0.0:1.0)) //jedynki tylko na 0, 5, 10 i 15
+    return false;
+  return true;
+ }
+
 private:
 	scalar_t e[16];
 };

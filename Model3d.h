@@ -153,7 +153,8 @@ private:
  //bit 15: =1 wymagane przechowanie macierzy (transform niejedynkowy)
  union
  {//transform, nie ka¿dy submodel musi mieæ
-  float4x4 *fMatrix;
+  //float4x4 *fMatrix; //Ra: nie sprawdza siê - kabina EP09 migocze
+  matrix4x4 *dMatrix; //do testu macierz podwójnej precyzji
   int iMatrix; //w pliku binarnym jest numer matrycy
  };
  int iNumVerts; //iloœæ wierzcho³ków (1 dla FreeSpotLight)
@@ -195,8 +196,7 @@ private:
  float8 *Vertices; //roboczy wskaŸnik - wczytanie T3D do VBO
  int iAnimOwner; //roboczy numer egzemplarza, który ustawi³ animacjê
  TAnimType b_aAnim; //kody animacji oddzielnie, bo zerowane
- matrix4x4 *dMatrix; //do testu macierz podwójnej precyzji
- char space[16];
+ char space[20];
 public:
  AnsiString asTexture; //robocza nazwa tekstury do zapisania w pliku binarnym
  bool Visible; //roboczy stan widocznoœci
@@ -226,8 +226,8 @@ public:
  void __fastcall RenderAlpha(GLuint ReplacableSkinId,bool bAlpha);
  void __fastcall RaRender(GLuint ReplacableSkinId,bool bAlpha);
  void __fastcall RaRenderAlpha(GLuint ReplacableSkinId,bool bAlpha);
- //inline matrix4x4* __fastcall GetMatrix() { return dMatrix; };
- inline float4x4* __fastcall GetMatrix() { return fMatrix; };
+ inline matrix4x4* __fastcall GetMatrix() { return dMatrix; };
+ //inline float4x4* __fastcall GetMatrix() { return fMatrix; };
  //matrix4x4* __fastcall GetTransform() {return Matrix;};
  inline void __fastcall Hide() { Visible= false; };
  void __fastcall RaArrayFill(CVertNormTex *Vert);
@@ -238,7 +238,7 @@ public:
  void __fastcall DisplayLists();
  void __fastcall Info();
  void __fastcall InfoSet(TSubModelInfo *info);
- void __fastcall BinInit(TSubModel *s,float4x4 *m,float8 *v,TStringPack *t,TStringPack *n=NULL);
+ void __fastcall BinInit(TSubModel *s,matrix4x4 *m,float8 *v,TStringPack *t,TStringPack *n=NULL);
 };
 
 class TSubModelInfo
