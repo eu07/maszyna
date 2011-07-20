@@ -2228,13 +2228,13 @@ bool __fastcall TGround::InitTracks()
  {
   Track=Current->pTrack;
   Track->AssignEvents(
-   Track->asEvent0Name.IsEmpty()?FindEvent(Track->asEvent0Name):NULL,
-   Track->asEvent1Name.IsEmpty()?FindEvent(Track->asEvent1Name):NULL,
-   Track->asEvent2Name.IsEmpty()?FindEvent(Track->asEvent2Name):NULL);
+   Track->asEvent0Name.IsEmpty()?NULL:FindEvent(Track->asEvent0Name),
+   Track->asEvent1Name.IsEmpty()?NULL:FindEvent(Track->asEvent1Name),
+   Track->asEvent2Name.IsEmpty()?NULL:FindEvent(Track->asEvent2Name));
   Track->AssignallEvents(
-   Track->asEventall0Name.IsEmpty()?FindEvent(Track->asEventall0Name):NULL,
-   Track->asEventall1Name.IsEmpty()?FindEvent(Track->asEventall1Name):NULL,
-   Track->asEventall2Name.IsEmpty()?FindEvent(Track->asEventall2Name):NULL); //MC-280503
+   Track->asEventall0Name.IsEmpty()?NULL:FindEvent(Track->asEventall0Name),
+   Track->asEventall1Name.IsEmpty()?NULL:FindEvent(Track->asEventall1Name),
+   Track->asEventall2Name.IsEmpty()?NULL:FindEvent(Track->asEventall2Name)); //MC-280503
   switch (Track->eType)
   {
    case tt_Turn: //obrotnicê te¿ ³¹czymy na starcie z innymi torami

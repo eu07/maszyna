@@ -222,7 +222,7 @@ public:
  static bool bPause; //globalna pauza ruchu
  static bool bActive; //czy jest aktywnym oknem
  static void __fastcall BindTexture(GLuint t);
- static bool bConvertModels; //tworzenie plików binarnych
+ static int iConvertModels; //tworzenie plików binarnych
  static int iErorrCounter; //licznik sprawdzañ do œledzenia b³êdów OpenGL
 };
 
