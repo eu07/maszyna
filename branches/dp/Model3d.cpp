@@ -77,7 +77,7 @@ void __fastcall TSubModel::FirstInit()
  b_aAnim=at_None;
  fVisible=0.0; //zawsze widoczne
  Visible=true;
- fMatrix=NULL; //to samo co iMatrix=0;
+ dMatrix=NULL; //to samo co iMatrix=0;
  Next=NULL;
  Child=NULL;
  TextureID=0;
@@ -119,10 +119,9 @@ __fastcall TSubModel::~TSubModel()
   //SafeDeleteArray(Indices);
   SafeDelete(Next);
   SafeDelete(Child);
-  delete fMatrix; //w³asny transform trzeba usun¹æ (zawsze jeden)
+  delete dMatrix; //w³asny transform trzeba usun¹æ (zawsze jeden)
   delete[] Vertices;
  }
- delete dMatrix;
 /*
  else
  {//wczytano z pliku binarnego (nie jest w³aœcicielem tablic)
@@ -174,14 +173,14 @@ inline void readColor(cParser& parser,int &color)
  parser.getToken(b);
  color=r+(g<<8)+(b<<16);
 };
-/*
+
 inline void readMatrix(cParser& parser,matrix4x4& matrix)
 {//Ra: wczytanie transforma
  for (int x=0;x<=3;x++) //wiersze
   for (int y=0;y<=3;y++) //kolumny
    parser.getToken(matrix(x)[y]);
 };
-*/
+
 inline void readMatrix(cParser& parser,float4x4& matrix)
 {//Ra: wczytanie transforma
  for (int x=0;x<=3;x++) //wiersze
@@ -312,9 +311,10 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
  parser.getToken(fSquareMinDist);
  fSquareMinDist*=fSquareMinDist;
  parser.ignoreToken();
- fMatrix=new float4x4();
- readMatrix(parser,*fMatrix); //wczytanie transform
- if (!fMatrix->IdentityIs())
+ //fMatrix=new float4x4();
+ dMatrix=new matrix4x4();
+ readMatrix(parser,*dMatrix); //wczytanie transform
+ if (!dMatrix->IdentityIs())
   iFlags|=0x8000; //transform niejedynkowy - trzeba go przechowaæ
  int iNumFaces; //iloœæ trójk¹tów
  DWORD *sg; //maski przynale¿noœci trójk¹tów do powierzchni
@@ -444,7 +444,7 @@ void __fastcall TSubModel::DisplayLists()
    glTexCoordPointer(2,GL_FLOAT,sizeof(GLVERTEX),&Vertices[0].tu);
    glDrawArrays(eType,0,iNumVerts);
 #else
-   glBegin(bWire?GL_LINES:eType);
+   glBegin(eType);
    for (int i=0;i<iNumVerts;i++)
    {
 /*
@@ -515,23 +515,30 @@ void __fastcall TSubModel::InitialRotate(bool doit)
  {//niejednostkowy transform jest mno¿ony i wystarczy zabawy
   if (doit)
   {//obrót lewostronny
-   if (!fMatrix) //macierzy mo¿e nie byæ w dodanym "bananie"
-   {fMatrix=new float4x4(); //tworzy macierz o przypadkowej zawartoœci
-    fMatrix->Identity(); //a zaczynamy obracanie od jednostkowej
+   if (!dMatrix) //macierzy mo¿e nie byæ w dodanym "bananie"
+   {//fMatrix=new float4x4(); //tworzy macierz o przypadkowej zawartoœci
+    dMatrix=new matrix4x4();
+    dMatrix->Identity(); //a zaczynamy obracanie od jednostkowej
    }
    iFlags|=0x8000; //po obróceniu bêdzie raczej niejedynkowy matrix
-   fMatrix->InitialRotate(); //zmiana znaku X oraz zamiana Y i Z
-   if (fMatrix->IdentityIs()) iFlags&=~0x8000; //jednak jednostkowa po obróceniu
+   dMatrix->InitialRotate(); //zmiana znaku X oraz zamiana Y i Z
+   if (dMatrix->IdentityIs()) iFlags&=~0x8000; //jednak jednostkowa po obróceniu
   }
   if (Child)
    Child->InitialRotate(false); //potomnych nie obracamy ju¿, tylko przegl¹damy
   else
    if ((iFlags&0xC000)==0x8000) //o ile nie ma animacji
    {//jak nie ma potomnych, mo¿na wymno¿yæ przez transform i wyjedynkowaæ go
-    float4x4 *mat=GetMatrix(); //transform submodelu
+    //float4x4 *mat=GetMatrix(); //transform submodelu
+    matrix4x4 *mat=GetMatrix(); //transform submodelu
+    vector3 point;
     if (Vertices)
      for (int i=0;i<iNumVerts;++i)
-      Vertices[i].Point=(*mat)*Vertices[i].Point;
+     {point=(*mat)*vector3(Vertices[i].Point.x,Vertices[i].Point.y,Vertices[i].Point.z);
+      Vertices[i].Point.x=point.x; //przepisywanie z double do float
+      Vertices[i].Point.y=point.y;
+      Vertices[i].Point.z=point.z;
+     }
     mat->Identity(); //jedynkowanie transformu po przeliczeniu wierzcho³ków
     iFlags&=~0x8000; //transform jedynkowy
    }
@@ -550,13 +557,6 @@ void __fastcall TSubModel::InitialRotate(bool doit)
     }
    if (Child) Child->InitialRotate(doit); //potomne ewentualnie obrócimy
   }
- if (fMatrix)
- {//tymczasowo utworzenie podwójnej precyzji
-  dMatrix=new matrix4x4();
-  for (int i=0;i<4;++i)
-   for (int j=0;j<4;++j)
-    (*dMatrix)(i)[j]=(*fMatrix)[i][j];
- }
  if (Next) Next->InitialRotate(doit);
 };
 
@@ -1092,7 +1092,7 @@ void __fastcall TSubModel::Info()
 {//zapisanie informacji o submodelu do obiektu pomocniczego
  TSubModelInfo *info=TSubModelInfo::pTable+TSubModelInfo::iCurrent;
  info->pSubModel=this;
- if (fMatrix&&(iFlags&0x8000)) //ma matrycê i jest ona niejednostkowa
+ if (dMatrix&&(iFlags&0x8000)) //ma matrycê i jest ona niejednostkowa
   info->iTransform=info->iTotalTransforms++;
  if ((int)TextureID>0)
  {for (int i=0;i<info->iCurrent;++i)
@@ -1137,17 +1137,11 @@ void __fastcall TSubModel::InfoSet(TSubModelInfo *info)
  asTexture="";
 };
 
-void __fastcall TSubModel::BinInit(TSubModel *s,float4x4 *m,float8 *v,TStringPack *t,TStringPack *n)
+void __fastcall TSubModel::BinInit(TSubModel *s,matrix4x4 *m,float8 *v,TStringPack *t,TStringPack *n)
 {//ustawienie wskaŸników w submodelu
  Child=((int)Child>0)?s+(int)Child:NULL; //zerowy nie mo¿e byæ potomnym
  Next=((int)Next>0)?s+(int)Next:NULL; //zerowy nie mo¿e byæ nastêpnym
- fMatrix=(iMatrix>=0)?m+iMatrix:NULL;
- if (fMatrix)
- {dMatrix=new matrix4x4();
-  for (int i=0;i<4;++i)
-   for (int j=0;j<4;++j)
-    (*dMatrix)(i)[j]=(*fMatrix)[i][j];
- }
+ dMatrix=(iMatrix>=0)?m+iMatrix:NULL;
  if (n&&(iName>=0)) asName=AnsiString(n->String(iName)); else asName="";
  if (iTexture>0)
  {//TextureID=TTexturesManager::GetTextureID(t->String(TextureID));
@@ -1199,7 +1193,7 @@ __fastcall TModel3d::~TModel3d()
   Root=NULL;
   delete[] iModel; //usuwamy ca³y wczytany plik i to wystarczy
  }
- //dalej siê jeszcze usunie obiekt z którego dziedziczymy tabelê VBO
+ //póŸniej siê jeszcze usuwa obiekt z którego dziedziczymy tabelê VBO
 };
 
 void __fastcall TModel3d::AddTo(const char *Name,TSubModel *SubModel)
@@ -1273,7 +1267,7 @@ void __fastcall TModel3d::LoadFromBinFile(char *FileName)
  iModel=new int[size]; //ten wskaŸnik musi byæ w modelu, aby zwolniæ pamiêæ
  fs->Read(iModel,fs->Size); //wczytanie pliku
  delete fs;
- float4x4 *m=NULL; //transformy
+ matrix4x4 *m=NULL; //transformy
  //zestaw kromek:
  while ((i<<2)<size) //w pliku mo¿e byæ kilka modeli
  {ch=iModel[i]; //nazwa kromki
@@ -1304,7 +1298,11 @@ void __fastcall TModel3d::LoadFromBinFile(char *FileName)
        MoveMemory(((char*)Root)+256*ch,((char*)Root)+320*ch,256);
       break;
      case 'TRA0': //transformy: 'TRA0',len,(64 bajty na transform)
-      m=(float4x4*)(iModel+i+2); //tabela transformów
+      //trzeba utworzyæ nowy i przeliczyæ z float na double
+      //m=(float4x4*)(iModel+i+2); //tabela transformów
+      break;
+     case 'TRA1': //transformy: 'TRA0',len,(128 bajtów na transform)
+      m=(matrix4x4*)(iModel+i+2); //tabela transformów
       break;
      case 'IDX1': //indeksy 1B: 'IDX2',len,(po bajcie na numer wierzcho³ka)
       break;
@@ -1336,7 +1334,7 @@ void __fastcall TModel3d::LoadFromBinFile(char *FileName)
 };
 
 void __fastcall TModel3d::LoadFromTextFile(char *FileName,bool dynamic)
-{
+{//wczytanie submodelu z pliku tekstowego
  WriteLog("Loading - text model: "+AnsiString(FileName));
  iFlags|=0x0200; //wczytano z pliku tekstowego (w³aœcicielami tablic s¹ submodle)
  cParser parser(FileName,cParser::buffer_FILE); //Ra: tu powinno byæ "models\\"...
@@ -1417,7 +1415,7 @@ void __fastcall TModel3d::SaveToBinFile(char *FileName)
  int tex=0; //wielkoœæ obszaru nazw tekstur
  int nam=0; //wielkoœæ obszaru nazw submodeli
  sub=8+sizeof(TSubModel)*iSubModelsCount;
- tra=info->iTotalTransforms?8+64*info->iTotalTransforms:0;
+ tra=info->iTotalTransforms?8+16*8*info->iTotalTransforms:0;
  vnt=8+32*iNumVerts;
  for (i=0;i<iSubModelsCount;++i)
  {tex+=info[i].iTextureLen;
@@ -1439,11 +1437,11 @@ void __fastcall TModel3d::SaveToBinFile(char *FileName)
  }
  if (tra)
  {//zapis transformów
-  fs->Write("TRA0",4); //transformy
+  fs->Write("TRA1",4); //transformy podwójnej precyzji
   fs->Write(&tra,4);
   for (i=0;i<iSubModelsCount;++i)
    if (info[i].iTransform>=0)
-    fs->Write(info[i].pSubModel->GetMatrix(),4*16);
+    fs->Write(info[i].pSubModel->GetMatrix(),16*8);
  }
  {//zapis wierzcho³ków
   MakeArray(iNumVerts); //tworzenie tablic dla VBO
@@ -1523,24 +1521,6 @@ void __fastcall TModel3d::Render(double fSquareDistance,GLuint ReplacableSkinId,
   Root->Render(ReplacableSkinId,bAlpha);
  }
 };
-
-/*
-void __fastcall TModel3d::RenderAlpha(vector3 pPosition,double fAngle,GLuint ReplacableSkinId,bool bAlpha)
-{
-    glPushMatrix();
-    glTranslated(pPosition.x,pPosition.y,pPosition.z);
-    if (fAngle!=0)
-        glRotatef(fAngle,0,1,0);
-    fSquareDist=SquareMagnitude(pPosition-Global::GetCameraPosition());
-#ifdef _DEBUG
-    if (Root)
-        Root->RenderAlpha(ReplacableSkinId,bAlpha);
-#else
-    Root->RenderAlpha(ReplacableSkinId,bAlpha);
-#endif
-    glPopMatrix();
-};
-*/
 
 void __fastcall TModel3d::RenderAlpha(double fSquareDistance,GLuint ReplacableSkinId,bool bAlpha)
 {
