@@ -78,7 +78,13 @@ public:
   }
  };
  inline float4x4& Rotation(double angle,float3 axis);
-
+ inline bool IdentityIs()
+ {//sprawdzenie jednostkowoœci
+  for (int i=0;i<16;++i)
+   if (e[i]!=((i%5)?0.0:1.0)) //jedynki tylko na 0, 5, 10 i 15
+    return false;
+  return true;
+ }
 };
 
 inline float3 operator*(const float4x4& m,const float3& v)

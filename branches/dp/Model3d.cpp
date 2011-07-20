@@ -64,7 +64,7 @@ __fastcall TSubModel::TSubModel()
 
 void __fastcall TSubModel::FirstInit()
 {
- eType=TP_UNKNOWN;
+ eType=TP_ROTATOR;
  Vertices=NULL;
  uiDisplayList=0;
  iNumVerts=-1; //do sprawdzenia
@@ -77,7 +77,7 @@ void __fastcall TSubModel::FirstInit()
  b_aAnim=at_None;
  fVisible=0.0; //zawsze widoczne
  Visible=true;
- iMatrix=0; //Identity();
+ fMatrix=NULL; //to samo co iMatrix=0;
  Next=NULL;
  Child=NULL;
  TextureID=0;
@@ -108,6 +108,7 @@ void __fastcall TSubModel::FirstInit()
  f4Diffuse[0]=f4Diffuse[1]=f4Diffuse[2]=f4Diffuse[3]=1.0; //{1,1,1,1};
  f4Specular[0]=f4Specular[1]=f4Specular[2]=0.0; f4Specular[3]=1.0; //{0,0,0,1};
  f4Emision[0]=f4Emision[1]=f4Emision[2]=f4Emision[3]=1.0;
+ dMatrix=NULL;
 };
 
 __fastcall TSubModel::~TSubModel()
@@ -121,6 +122,7 @@ __fastcall TSubModel::~TSubModel()
   delete fMatrix; //w³asny transform trzeba usun¹æ (zawsze jeden)
   delete[] Vertices;
  }
+ delete dMatrix;
 /*
  else
  {//wczytano z pliku binarnego (nie jest w³aœcicielem tablic)
@@ -234,9 +236,9 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
    else b_Anim=b_aAnim=at_Undefined; //nieznana forma animacji
   }
  }
- if (eType==GL_TRIANGLES) readColor(parser,f4Ambient); //ignoruje token przed
+ if (eType<TP_ROTATOR) readColor(parser,f4Ambient); //ignoruje token przed
  readColor(parser,f4Diffuse);
- if (eType==GL_TRIANGLES) readColor(parser,f4Specular);
+ if (eType<TP_ROTATOR) readColor(parser,f4Specular);
  parser.ignoreTokens(1); //zignorowanie nazwy "SelfIllum:"
  {
   std::string light;
@@ -263,14 +265,14 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
   parser.getToken(fFarDecayRadius);
   parser.ignoreToken();
   parser.getToken(fCosFalloffAngle);
-  fCosFalloffAngle=cos(fCosFalloffAngle * M_PI / 180);
+  fCosFalloffAngle=cos(fCosFalloffAngle*M_PI/180);
   parser.ignoreToken();
   parser.getToken(fCosHotspotAngle);
-  fCosHotspotAngle=cos(fCosHotspotAngle * M_PI / 180);
+  fCosHotspotAngle=cos(fCosHotspotAngle*M_PI/180);
   iNumVerts=1;
-  iFlags|=2; //rysowane w cyklu nieprzezroczystych
+  iFlags|=0x4002; //rysowane w cyklu nieprzezroczystych, macierz musi zostaæ
  }
- else if (eType==GL_TRIANGLES)
+ else if (eType<TP_ROTATOR)
  {
   parser.ignoreToken();
   bWire=parser.expectToken("true");
@@ -312,16 +314,11 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
  parser.ignoreToken();
  fMatrix=new float4x4();
  readMatrix(parser,*fMatrix); //wczytanie transform
- //if ((iFlags&0x4000)==0) //o ile nie ma animacji
- for (int i=0;i<16;++i)
-  if (fMatrix->readArray()[i]!=((i%5)?0.0:1.0)) //jedynki tylko na 0, 5, 10 i 15
-  {
-   iFlags|=0x8000; //transform niejedynkowy - trzeba go przechowaæ
-   break;
-  }
+ if (!fMatrix->IdentityIs())
+  iFlags|=0x8000; //transform niejedynkowy - trzeba go przechowaæ
  int iNumFaces; //iloœæ trójk¹tów
  DWORD *sg; //maski przynale¿noœci trójk¹tów do powierzchni
- if (eType==GL_TRIANGLES)
+ if (eType<TP_ROTATOR)
  {//wczytywanie wierzcho³ków
   parser.ignoreToken();
   parser.getToken(iNumVerts);
@@ -433,23 +430,21 @@ void __fastcall TSubModel::DisplayLists()
 {//utworznie po jednej skompilowanej liœcie dla ka¿dego submodelu
  if (Global::bUseVBO) return; //Ra: przy VBO to siê nie przyda
  //iFlags|=0x4000; //wy³¹czenie przeliczania wierzcho³ków, bo nie s¹ zachowane
- if (eType==GL_TRIANGLES)
+ if (eType<TP_ROTATOR)
  {
   if (iNumVerts>0)
   {
+   uiDisplayList=glGenLists(1);
+   glNewList(uiDisplayList,GL_COMPILE);
+   glColor3fv(f4Diffuse);   //McZapkie-240702: zamiast ub
 #ifdef USE_VERTEX_ARRAYS
   // ShaXbee-121209: przekazywanie wierzcholkow hurtem
    glVertexPointer(3,GL_DOUBLE,sizeof(GLVERTEX),&Vertices[0].Point.x);
    glNormalPointer(GL_DOUBLE,sizeof(GLVERTEX),&Vertices[0].Normal.x);
    glTexCoordPointer(2,GL_FLOAT,sizeof(GLVERTEX),&Vertices[0].tu);
-#endif
-   uiDisplayList=glGenLists(1);
-   glNewList(uiDisplayList,GL_COMPILE);
-   glColor3fv(f4Diffuse);   //McZapkie-240702: zamiast ub
-#ifdef USE_VERTEX_ARRAYS
-   glDrawArrays(GL_TRIANGLES,0,iNumVerts);
+   glDrawArrays(eType,0,iNumVerts);
 #else
-   glBegin(bWire?GL_LINES:GL_TRIANGLES);
+   glBegin(bWire?GL_LINES:eType);
    for (int i=0;i<iNumVerts;i++)
    {
 /*
@@ -523,9 +518,10 @@ void __fastcall TSubModel::InitialRotate(bool doit)
    if (!fMatrix) //macierzy mo¿e nie byæ w dodanym "bananie"
    {fMatrix=new float4x4(); //tworzy macierz o przypadkowej zawartoœci
     fMatrix->Identity(); //a zaczynamy obracanie od jednostkowej
-    iFlags|=0x8000; //po mno¿eniu bêdzie mia³ niezerowy matrix (mo¿e mieæ tylko animacjê)
    }
+   iFlags|=0x8000; //po obróceniu bêdzie raczej niejedynkowy matrix
    fMatrix->InitialRotate(); //zmiana znaku X oraz zamiana Y i Z
+   if (fMatrix->IdentityIs()) iFlags&=~0x8000; //jednak jednostkowa po obróceniu
   }
   if (Child)
    Child->InitialRotate(false); //potomnych nie obracamy ju¿, tylko przegl¹damy
@@ -554,6 +550,13 @@ void __fastcall TSubModel::InitialRotate(bool doit)
     }
    if (Child) Child->InitialRotate(doit); //potomne ewentualnie obrócimy
   }
+ if (fMatrix)
+ {//tymczasowo utworzenie podwójnej precyzji
+  dMatrix=new matrix4x4();
+  for (int i=0;i<4;++i)
+   for (int j=0;j<4;++j)
+    (*dMatrix)(i)[j]=(*fMatrix)[i][j];
+ }
  if (Next) Next->InitialRotate(doit);
 };
 
@@ -736,13 +739,13 @@ void __fastcall TSubModel::RaAnimation(TAnimType a)
 };
 
 void __fastcall TSubModel::RaRender(GLuint ReplacableSkinId,bool bAlpha)
-{//g³ówna procedura renderowania
+{//g³ówna procedura renderowania przez VBO
  if (Visible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
  {
   if (iFlags&0xC000)
   {glPushMatrix();
-   if (fMatrix)
-    glMultMatrixf(fMatrix->readArray());
+   //if (fMatrix) glMultMatrixf(fMatrix->readArray());
+   if (dMatrix) glMultMatrixd(dMatrix->readArray());
    if (b_Anim) RaAnimation(b_Anim);
   }
   if ((TextureID==-1)) // && (ReplacableSkinId!=0))
@@ -753,7 +756,7 @@ void __fastcall TSubModel::RaRender(GLuint ReplacableSkinId,bool bAlpha)
   }
   else
    glBindTexture(GL_TEXTURE_2D,TextureID);
-  if (eType==GL_TRIANGLES)
+  if (eType<TP_ROTATOR)
   {
    glColor3fv(f4Diffuse);   //McZapkie-240702: zamiast ub
    if (!TexAlpha || !Global::bRenderAlpha)  //rysuj gdy nieprzezroczyste lub # albo gdy zablokowane alpha
@@ -761,11 +764,11 @@ void __fastcall TSubModel::RaRender(GLuint ReplacableSkinId,bool bAlpha)
     //glMaterialfv(GL_FRONT,GL_AMBIENT_AND_DIFFUSE,f4Diffuse); //to samo, co glColor
     if (Global::fLuminance<fLight)
     {glMaterialfv(GL_FRONT,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
-     glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie trójk¹ty z VBO
+     glDrawArrays(eType,iVboPtr,iNumVerts);  //narysuj naraz wszystkie trójk¹ty z VBO
      glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
     }
     else
-     glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie trójk¹ty z VBO
+     glDrawArrays(eType,iVboPtr,iNumVerts);  //narysuj naraz wszystkie trójk¹ty z VBO
    }
   }
   else if (eType==TP_FREESPOTLIGHT)
@@ -830,12 +833,9 @@ void __fastcall TSubModel::RaRender(GLuint ReplacableSkinId,bool bAlpha)
    //glDisable(GL_LIGHTING);  //Tolaris-030603: bo mu punkty swiecace sie blendowaly
    if (Global::fLuminance<fLight)
    {glMaterialfv(GL_FRONT,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
-    glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie punkty z VBO
+    glDrawArrays(eType,iVboPtr,iNumVerts);  //narysuj naraz wszystkie punkty z VBO
     //glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
    }
-   //else
-   // glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie punkty
-   //glEnable(GL_LIGHTING);
   }
 /*Ra: tu coœ jest bez sensu...
     else
@@ -875,18 +875,18 @@ void __fastcall TSubModel::RaRender(GLuint ReplacableSkinId,bool bAlpha)
 };       //Render
 
 void __fastcall TSubModel::RaRenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
-{
+{//renderowanie przezroczystych przez VBO
  if (Visible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
  {
   if (iFlags&0xC000)
   {glPushMatrix(); //zapamiêtanie matrycy
-   if (fMatrix)
-    glMultMatrixf(fMatrix->readArray());
+   //if (fMatrix) glMultMatrixf(fMatrix->readArray());
+   if (dMatrix) glMultMatrixd(dMatrix->readArray());
    if (b_aAnim) RaAnimation(b_aAnim);
   }
   glColor3fv(f4Diffuse);
   //zmienialne skory
-  if (eType==GL_TRIANGLES)
+  if (eType<TP_ROTATOR)
   {
    if ((TextureID==-1)) // && (ReplacableSkinId!=0))
    {
@@ -900,11 +900,11 @@ void __fastcall TSubModel::RaRenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
    //glMaterialfv(GL_FRONT,GL_AMBIENT_AND_DIFFUSE,f4Diffuse);
    if (Global::fLuminance<fLight)
    {glMaterialfv(GL_FRONT,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
-    glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie trójk¹ty z VBO
+    glDrawArrays(eType,iVboPtr,iNumVerts);  //narysuj naraz wszystkie trójk¹ty z VBO
     glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
    }
    else
-    glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie trójk¹ty z VBO
+    glDrawArrays(eType,iVboPtr,iNumVerts);  //narysuj naraz wszystkie trójk¹ty z VBO
   }
   }
   else if (eType==TP_FREESPOTLIGHT)
@@ -929,19 +929,19 @@ void __fastcall TSubModel::RaRenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
 }; //RenderAlpha
 
 void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
-{//g³ówna procedura renderowania
+{//g³ówna procedura renderowania przez DL
  if (Visible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
  {
   if (iFlags&0xC000)
   {glPushMatrix();
-   if (fMatrix)
-    glMultMatrixf(fMatrix->readArray());
+   //if (fMatrix) glMultMatrixf(fMatrix->readArray());
+   if (dMatrix) glMultMatrixd(dMatrix->readArray());
    if (b_Anim) RaAnimation(b_Anim);
   }
   //zmienialne skory
   if (eType==TP_FREESPOTLIGHT)
   {
-   matrix4x4 mat;
+   matrix4x4 mat; //macierz opisuje uk³ad renderowania wzglêdem kamery
    glGetDoublev(GL_MODELVIEW_MATRIX,mat.getArray());
    //k¹t miêdzy kierunkiem œwiat³a a wspó³rzêdnymi kamery
    vector3 gdzie=mat*vector3(0,0,0); //pozycja wzglêdna punktu œwiec¹cego
@@ -1001,9 +1001,6 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
     glCallList(uiDisplayList); //narysuj naraz wszystkie punkty z DL
     glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
    }
-   //else
-   // glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie punkty
-   //glEnable(GL_LIGHTING);
   }
   if (Child!=NULL)
    if (bAlpha?(iFlags&0x00020000):(iFlags&0x00030000))
@@ -1019,13 +1016,13 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
 }; //Render
 
 void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
-{
+{//renderowanie przezroczystych przez DL
  if (Visible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
  {
   if (iFlags&0xC000)
   {glPushMatrix();
-   if (fMatrix)
-    glMultMatrixf(fMatrix->readArray());
+   //if (fMatrix) glMultMatrixf(fMatrix->readArray());
+   if (dMatrix) glMultMatrixd(dMatrix->readArray());
    if (b_aAnim) RaAnimation(b_aAnim);
   }
   if (eType==TP_FREESPOTLIGHT)
@@ -1075,7 +1072,7 @@ void __fastcall TSubModel::RenderAlpha(GLuint ReplacableSkinId,bool bAlpha)
 void  __fastcall TSubModel::RaArrayFill(CVertNormTex *Vert)
 {//wype³nianie tablic VBO
  if (Child) Child->RaArrayFill(Vert);
- if (eType==GL_TRIANGLES)
+ if (eType<TP_ROTATOR)
   for (int i=0;i<iNumVerts;++i)
   {Vert[iVboPtr+i].x =Vertices[i].Point.x;
    Vert[iVboPtr+i].y =Vertices[i].Point.y;
@@ -1145,7 +1142,12 @@ void __fastcall TSubModel::BinInit(TSubModel *s,float4x4 *m,float8 *v,TStringPac
  Child=((int)Child>0)?s+(int)Child:NULL; //zerowy nie mo¿e byæ potomnym
  Next=((int)Next>0)?s+(int)Next:NULL; //zerowy nie mo¿e byæ nastêpnym
  fMatrix=(iMatrix>=0)?m+iMatrix:NULL;
- //Name=""; //ten typ nie lubi byæ wczytywany na sztywno z pliku
+ if (fMatrix)
+ {dMatrix=new matrix4x4();
+  for (int i=0;i<4;++i)
+   for (int j=0;j<4;++j)
+    (*dMatrix)(i)[j]=(*fMatrix)[i][j];
+ }
  if (n&&(iName>=0)) asName=AnsiString(n->String(iName)); else asName="";
  if (iTexture>0)
  {//TextureID=TTexturesManager::GetTextureID(t->String(TextureID));
@@ -1159,7 +1161,7 @@ void __fastcall TSubModel::BinInit(TSubModel *s,float4x4 *m,float8 *v,TStringPac
  iFlags&=~0x0200; //wczytano z pliku binarnego (nie jest w³aœcicielem tablic)
  Vertices=v+iVboPtr;
  Visible=true; //tymczasowo u¿ywane
- if (!iNumVerts) eType=-1; //tymczasowo zmiana typu, ¿eby siê nie renderowa³o na si³ê
+ //if (!iNumVerts) eType=-1; //tymczasowo zmiana typu, ¿eby siê nie renderowa³o na si³ê
 };
 //---------------------------------------------------------------------------
 

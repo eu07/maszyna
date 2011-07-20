@@ -105,10 +105,10 @@ typedef enum
 } TSubModelType;
 */
 //Ra: specjalne typy submodeli, poza tym GL_TRIANGLES itp.
-const int TP_UNKNOWN=2000;
-const int TP_FREESPOTLIGHT=2001;
-const int TP_STARS=2002;
-const int TP_TEXT=2003;
+const int TP_ROTATOR=256;
+const int TP_FREESPOTLIGHT=257;
+const int TP_STARS=258;
+const int TP_TEXT=259;
 
 enum TAnimType //rodzaj animacji
 {at_None, //brak
@@ -195,7 +195,8 @@ private:
  float8 *Vertices; //roboczy wskaŸnik - wczytanie T3D do VBO
  int iAnimOwner; //roboczy numer egzemplarza, który ustawi³ animacjê
  TAnimType b_aAnim; //kody animacji oddzielnie, bo zerowane
- char space[20];
+ matrix4x4 *dMatrix; //do testu macierz podwójnej precyzji
+ char space[16];
 public:
  AnsiString asTexture; //robocza nazwa tekstury do zapisania w pliku binarnym
  bool Visible; //roboczy stan widocznoœci
