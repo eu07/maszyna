@@ -1971,11 +1971,28 @@ bool __fastcall TGround::Init(AnsiString asFile)
          } while (token.compare("endtest")!=0);
          WriteLog("---> End of parser test.");
         }
+        else if (str==AnsiString("config"))
+        {//mo¿liwoœæ przedefiniowania parametrów w scenerii
+         do
+         {
+          parser.getTokens();
+          parser >> token;
+         } while (token.compare("endconfig")!=0);
+        }
         else if (str!=AnsiString(""))
-        {
-            Error(AnsiString("Unrecognized command: "+str));
-//            WriteLog(token.c_str());
-            break;
+        {//pomijanie od nierozpoznanej komendy do jej zakoñczenia
+         if ((token.length()>2)&&(atof(token.c_str())==0.0))
+         {//jeœli nie liczba, to spróbowaæ pomin¹æ komendê
+          WriteLog(AnsiString("Unrecognized command: "+str));
+          str="end"+str;
+          do
+          {
+           parser.getTokens();
+           parser >> token;
+          } while (token.compare(str.c_str())!=0);
+         }
+         else //jak liczba to na pewno b³¹d
+          Error(AnsiString("Unrecognized command: "+str));
         }
         else
         if (str==AnsiString(""))
