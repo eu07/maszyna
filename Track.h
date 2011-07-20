@@ -57,8 +57,24 @@ const int iMaxNumDynamics= 40; //McZapkie-100303
 const int NextMask[4]= {0,1,0,1}; //tor nastêpny dla stanów 0, 1, 2, 3
 const int PrevMask[4]= {0,0,1,1}; //tor poprzedni dla stanów 0, 1, 2, 3
 
+class TIsolated
+{//obiekt zbieraj¹cy zajêtoœci z kilku odcinków
+ int iAxles; //iloœæ osi na odcinkach obs³ugiwanych przez obiekt
+ TIsolated *pNext;
+ static TIsolated *pRoot;
+public:
+ AnsiString asName; //nazwa obiektu, baza do nazw eventów
+ TEvent *eBusy; //zdarzenie wyzwalane po zajêciu grupy
+ TEvent *eFree; //zdarzenie wyzwalane po ca³kowitym zwolnieniu zajêtoœci grupy
+ __fastcall TIsolated();
+ __fastcall TIsolated(const AnsiString &n,TIsolated *i);
+ __fastcall ~TIsolated();
+ static TIsolated* __fastcall Find(const AnsiString &n); //znalezienie obiektu albo utworzenie nowego
+ void __fastcall Modify(int i,TDynamicObject *o); //dodanie lub odjêcie osi
+};
+
 class TTrack: public Resource
-{
+{//trajektoria ruchu - opakowanie
 private:
     TSwitchExtension *SwitchExtension; //dodatkowe dane do toru, który jest zwrotnic¹
     TSegment *Segment;
@@ -74,8 +90,8 @@ private:
     float fTexSlope;
     double fRadiusTable[2]; //dwa promienie, drugi dla zwrotnicy
     int iTrapezoid; //0-standard, 1-przechy³ka, 2-trapez, 3-oba
-private:
     GLuint DisplayListID;
+    TIsolated *pIsolated; //obwód izolowany obs³uguj¹cy zajêcia/zwolnienia grupy torów
 public:
     int iNumDynamics;
     TDynamicObject *Dynamics[iMaxNumDynamics];
@@ -110,8 +126,9 @@ public:
 //McZapkie-100502:
     double fTrackLength; //d³ugoœæ z wpisu, nigdzie nie u¿ywana
     double fRadius; //promieñ, dla zwrotnicy kopiowany z tabeli
-    bool ScannedFlag; //McZapkie: to dla testu
+    bool ScannedFlag; //McZapkie: do zaznaczania kolorem torów skanowanych przez AI
     TTraction *pTraction; //drut zasilaj¹cy
+
     __fastcall TTrack();
     __fastcall ~TTrack();
     void __fastcall Init();
@@ -156,6 +173,10 @@ public:
     void __fastcall RaAnimListAdd(TTrack *t);
     TTrack* __fastcall RaAnimate();
     void __fastcall RadioStop();
+    void __fastcall AxleCounter(int i,TDynamicObject *o)
+    {if (pIsolated) pIsolated->Modify(i,o);}; //dodanie lub odjêcie osi
+    AnsiString __fastcall IsolatedName();
+    bool __fastcall IsolatedEventsAssign(TEvent *busy, TEvent *free);
 };
 
 //---------------------------------------------------------------------------

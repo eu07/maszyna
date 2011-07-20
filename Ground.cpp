@@ -2206,6 +2206,7 @@ bool __fastcall TGround::InitTracks()
  TGroundNode *Current,*tmp;
  TTrack *Track;
  int iConnection,state;
+ AnsiString name;
  for (Current=nRootOfType[TP_TRACK];Current;Current=Current->Next)
  {
   Track=Current->pTrack;
@@ -2299,6 +2300,9 @@ bool __fastcall TGround::InitTracks()
      FindEvent(Current->asName+":forced-"));
     break;
   }
+  name=Track->IsolatedName(); //pobranie nazwy odcinka izolowanego
+  if (!name.IsEmpty()) //jeœli zosta³a zwrócona nazwa
+   Track->IsolatedEventsAssign(FindEvent(name+":busy"),FindEvent(name+":free"));
  }
  return true;
 }

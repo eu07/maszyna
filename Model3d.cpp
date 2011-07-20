@@ -33,6 +33,13 @@
 double fSquareDist=0;
 int TSubModel::iInstance; //numer renderowanego egzemplarza obiektu
 
+int TSubModelInfo::iTotalTransforms=0; //iloœæ transformów
+int TSubModelInfo::iTotalNames=0; //d³ugoœæ obszaru nazw
+int TSubModelInfo::iTotalTextures=0; //d³ugoœæ obszaru tekstur
+int TSubModelInfo::iCurrent=0; //aktualny obiekt
+TSubModelInfo* TSubModelInfo::pTable=NULL; //tabele obiektów pomocniczych
+
+
 char* TStringPack::String(int n)
 {//zwraca wskaŸnik do ³añcucha o podanym numerze
  if (index?n<(index[1]>>2)-2:false)
