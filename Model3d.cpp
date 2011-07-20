@@ -1133,7 +1133,7 @@ void __fastcall TSubModel::BinInit(TSubModel *s,float4x4 *m,float8 *v,TStringPac
 {//ustawienie wskaŸników w submodelu
  Child=((int)Child>0)?s+(int)Child:NULL; //zerowy nie mo¿e byæ potomnym
  Next=((int)Next>0)?s+(int)Next:NULL; //zerowy nie mo¿e byæ nastêpnym
- fMatrix=(iMatrix>=0)?m+iMatrix:NULL;
+ fMatrix=((iMatrix>=0)&&m)?m+iMatrix:NULL;
  if (n&&(iName>=0)) asName=AnsiString(n->String(iName)); else asName="";
  if (iTexture>0)
  {//TextureID=TTexturesManager::GetTextureID(t->String(TextureID));
