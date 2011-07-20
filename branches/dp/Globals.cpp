@@ -103,7 +103,7 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 bool Global::bMultiplayer=false; //blokada dzia³ania niektórych eventów na rzecz kominikacji
 HWND Global::hWnd=NULL; //uchwyt okna 
 int Global::iCameraLast=-1;
-AnsiString Global::asVersion="Compilation 2011-07-20, release 1.3.167.185."; //tutaj, bo wysy³any
+AnsiString Global::asVersion="Compilation 2011-07-20, release 1.3.168.186."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 GLint Global::iMaxTextureSize=16384;//maksymalny rozmiar tekstury
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
@@ -123,7 +123,7 @@ int Global::iKeyLast=0; //ostatnio naciœniêty klawisz w celu logowania
 GLuint Global::iTextureId=0; //ostatnio u¿yta tekstura 2D
 bool Global::bPause=false; //globalna pauza ruchu
 bool Global::bActive=true; //czy jest aktywnym oknem
-bool Global::bConvertModels=true; //tworzenie plików binarnych
+int Global::iConvertModels=1; //tworzenie plików binarnych
 int Global::iErorrCounter=0; //licznik sprawdzañ do œledzenia b³êdów OpenGL
 
 void __fastcall Global::LoadIniFile(AnsiString asFileName)
@@ -301,7 +301,7 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
         else if (str==AnsiString("latitude")) //szerokoœæ geograficzna
          fLatitudeDeg=Parser->GetNextSymbol().ToDouble();
         else if (str==AnsiString("convertmodels")) //tworzenie plików binarnych
-         bConvertModels=(Parser->GetNextSymbol().LowerCase()==AnsiString("yes"));
+         iConvertModels=Parser->GetNextSymbol().ToIntDef(1); //domyœlnie 1
     }
  //na koniec trochê zale¿noœci
  if (!bLoadTraction)
