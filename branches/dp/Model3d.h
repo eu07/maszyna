@@ -266,11 +266,6 @@ public:
  }
  __fastcall ~TSubModelInfo() {};
 };
-int TSubModelInfo::iTotalTransforms=0; //iloœæ transformów
-int TSubModelInfo::iTotalNames=0; //d³ugoœæ obszaru nazw
-int TSubModelInfo::iTotalTextures=0; //d³ugoœæ obszaru tekstur
-int TSubModelInfo::iCurrent=0; //aktualny obiekt
-TSubModelInfo* TSubModelInfo::pTable=NULL; //tabele obiektów pomocniczych
 
 class TModel3d : public CMesh
 {

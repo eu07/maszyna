@@ -35,6 +35,9 @@
 #pragma package(smart_init)
 
 //101206 Ra: trapezoidalne drogi i tory
+//110720 Ra: rozprucie zwrotnicy i odcinki izolowane
+
+TIsolated *TIsolated::pRoot=NULL;
 
 __fastcall TSwitchExtension::TSwitchExtension(TTrack *owner)
 {//na pocz¹tku wszystko puste
@@ -56,6 +59,62 @@ __fastcall TSwitchExtension::TSwitchExtension(TTrack *owner)
 __fastcall TSwitchExtension::~TSwitchExtension()
 {//nie ma nic do usuwania
 }
+
+__fastcall TIsolated::TIsolated()
+{//utworznie pustego
+ TIsolated("none",NULL);
+};
+__fastcall TIsolated::TIsolated(const AnsiString &n,TIsolated *i)
+{//utworznie obwodu izolowanego
+ asName=n;
+ pNext=i;
+ iAxles=0;
+ eBusy=eFree=NULL;
+};
+
+__fastcall TIsolated::~TIsolated()
+{//usuwanie
+/*
+ TIsolated *p=pRoot;
+ while (pRoot)
+ {
+  p=pRoot;
+  p->pNext=NULL;
+  delete p;
+ }
+*/
+};
+
+TIsolated* __fastcall TIsolated::Find(const AnsiString &n)
+{//znalezienie obiektu albo utworzenie nowego
+ TIsolated *p=pRoot;
+ while (p)
+ {//jeœli siê znajdzie, to podaæ wskaŸnik
+  if (p->asName==n) return p;
+  p=p->pNext;
+ }
+ pRoot=new TIsolated(n,pRoot);
+ return pRoot;
+};
+
+void __fastcall TIsolated::Modify(int i,TDynamicObject *o)
+{//dodanie lub odjêcie osi
+ if (iAxles)
+ {//grupa zajêta
+  iAxles+=i;
+  if (!iAxles)
+   if (eFree)
+    Global::pGround->AddToQuery(eFree,o); //dodanie zwolnienia do kolejki
+ }
+ else
+ {//grupa by³a wolna
+  iAxles+=i;
+  if (iAxles)
+   if (eBusy)
+    Global::pGround->AddToQuery(eBusy,o); //dodanie zajêtoœci do kolejki
+ }
+};
+
 
 __fastcall TTrack::TTrack()
 {//tworzenie nowego odcinka ruchu
@@ -97,6 +156,7 @@ __fastcall TTrack::TTrack()
  fTexRatio=1.0; //proporcja boków nawierzchni (¿eby zaoszczêdziæ na rozmiarach tekstur...)
  iPrevDirection=0; //domyœlnie wirtualne odcinki do³¹czamy stron¹ od Point1
  iNextDirection=0;
+ pIsolated=NULL;
 }
 
 __fastcall TTrack::~TTrack()
@@ -457,53 +517,64 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin)
  while (str!="endtrack")
  {
   if (str=="event0")
-   {
-      parser->getTokens();
-      *parser >> token;
-      asEvent0Name=AnsiString(token.c_str());
-   }
-  else
-  if (str=="event1")
-   {
-      parser->getTokens();
-      *parser >> token;
-      asEvent1Name=AnsiString(token.c_str());
-   }
-  else
-  if (str=="event2")
-   {
-      parser->getTokens();
-      *parser >> token;
-      asEvent2Name=AnsiString(token.c_str());
-   }
-  else
-  if (str=="eventall0")
-   {
-      parser->getTokens();
-      *parser >> token;
-      asEventall0Name=AnsiString(token.c_str());
-   }
-  else
-  if (str=="eventall1")
-   {
-      parser->getTokens();
-      *parser >> token;
-      asEventall1Name=AnsiString(token.c_str());
-   }
-  else
-  if (str=="eventall2")
-   {
-      parser->getTokens();
-      *parser >> token;
-      asEventall2Name=AnsiString(token.c_str());
-   }
-  else
-  if (str=="velocity")
-   {
-     parser->getTokens();
-     *parser >> fVelocity;
-//         fVelocity=Parser->GetNextSymbol().ToDouble(); //*0.28; McZapkie-010602
-   }
+  {
+   parser->getTokens();
+   *parser >> token;
+   asEvent0Name=AnsiString(token.c_str());
+  }
+  else if (str=="event1")
+  {
+   parser->getTokens();
+   *parser >> token;
+   asEvent1Name=AnsiString(token.c_str());
+  }
+  else if (str=="event2")
+  {
+   parser->getTokens();
+   *parser >> token;
+   asEvent2Name=AnsiString(token.c_str());
+  }
+  else if (str=="eventall0")
+  {
+   parser->getTokens();
+   *parser >> token;
+   asEventall0Name=AnsiString(token.c_str());
+  }
+  else if (str=="eventall1")
+  {
+   parser->getTokens();
+   *parser >> token;
+   asEventall1Name=AnsiString(token.c_str());
+  }
+  else if (str=="eventall2")
+  {
+   parser->getTokens();
+   *parser >> token;
+   asEventall2Name=AnsiString(token.c_str());
+  }
+  else if (str=="velocity")
+  {
+   parser->getTokens();
+   *parser >> fVelocity; //*0.28; McZapkie-010602
+  }
+  else if (str=="isolated")
+  {//obwód izolowany, do którego tor nale¿y
+   parser->getTokens();
+   *parser >> token;
+   pIsolated=TIsolated::Find(AnsiString(token.c_str()));
+  }
+  else if (str=="angle1")
+  {//k¹t œciêcia od strony 1
+   parser->getTokens();
+   *parser >> a1;
+   Segment->AngleSet(0,a1);
+  }
+  else if (str=="angle2")
+  {//k¹t œciêcia od strony 2
+   parser->getTokens();
+   *parser >> a2;
+   Segment->AngleSet(1,a2);
+  }
   else
    Error("Unknown track property: \""+str+"\"");
   parser->getTokens(); *parser >> token;
@@ -666,6 +737,27 @@ bool __fastcall TTrack::AssignForcedEvents(TEvent *NewEventPlus, TEvent *NewEven
  }
  return false;
 };
+
+AnsiString __fastcall TTrack::IsolatedName()
+{//podaje nazwê odcinka izolowanego, jesli nie ma on jeszcze przypisanych zdarzeñ
+ if (pIsolated)
+  if (!pIsolated->eBusy&&!pIsolated->eFree)
+   return pIsolated->asName;
+ return "";
+};
+
+bool __fastcall TTrack::IsolatedEventsAssign(TEvent *busy, TEvent *free)
+{//ustawia zdarzenia dla odcinka izolowanego
+ if (pIsolated)
+ {if (busy)
+   pIsolated->eBusy=busy;
+  if (free)
+   pIsolated->eFree=free;
+  return true;
+ }
+ return false;
+};
+
 
 //ABu: przeniesione z Track.h i poprawione!!!
 bool __fastcall TTrack::AddDynamicObject(TDynamicObject *Dynamic)

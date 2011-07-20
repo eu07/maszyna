@@ -61,7 +61,7 @@ IncludeVerInfo=1
 AutoIncBuild=1
 MajorVer=1
 MinorVer=3
-Release=164
+Release=165
 Build=184
 Debug=1
 PreRelease=0
@@ -74,7 +74,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.3.164.184
+FileVersion=1.3.165.184
 InternalName=5th by Ra
 LegalCopyright=
 LegalTrademarks=

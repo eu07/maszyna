@@ -67,6 +67,10 @@ void __fastcall TTrackFollower::SetCurrentTrack(TTrack *pTrack,int end)
  }
  if (!pTrack)
   pTrack=pCurrentTrack->NullCreate(end); //tworzenie toru wykolej¹cego na przed³u¿eniu pCurrentTrack
+ else
+ {if (pCurrentTrack) pCurrentTrack->AxleCounter(-1,Owner); //opuszczenie tamtego toru
+  pTrack->AxleCounter(+1,Owner); //zajêcie nowego toru
+ }
  pCurrentTrack=pTrack;
  pCurrentSegment=(pCurrentTrack?pCurrentTrack->CurrentSegment():NULL);
 };
