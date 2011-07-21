@@ -54,7 +54,7 @@ private:
  vector3 vAngle; //bazowe obroty egzemplarza wzglêdem osi
 public:
  TLightState lsLights[iMaxNumLights];
- GLuint ReplacableSkinId; //McZapkie-020802: zmienialne skory
+ GLuint ReplacableSkinId[5]; //McZapkie-020802: zmienialne skory
  __fastcall TAnimModel();
  __fastcall ~TAnimModel();
  bool __fastcall Init(TModel3d *pNewModel);
@@ -73,7 +73,7 @@ public:
  //void __fastcall Render(double fSquareDistance);
  //void __fastcall RenderAlpha(double fSquareDistance);
  void __fastcall RaPrepare();
- bool bTexAlpha; //¿eby nie sprawdzaæ za ka¿dym razem
+ int iTexAlpha; //¿eby nie sprawdzaæ za ka¿dym razem, dla 4 wymiennych tekstur
  int __fastcall Flags();
  void __fastcall RaAnglesSet(double a,double b,double c)
  {vAngle.x=a; vAngle.y=b; vAngle.z=c;};
