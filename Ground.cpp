@@ -284,7 +284,7 @@ void __fastcall TGround::MoveGroundNode(vector3 pPosition)
   if (Current->iType!=TP_DYNAMIC)
   {//pojazdów to w ogóle nie dotyczy
    if ((Current->iType!=GL_TRIANGLES)&&(Current->iType!=GL_TRIANGLE_STRIP)?true //~czy trójk¹t?
-    :(Current->iFlags&4)?true //~czy teksturê ma nieprzezroczyst¹?
+    :(Current->iFlags&0x20)?true //~czy teksturê ma nieprzezroczyst¹?
      //:(Current->iNumVerts!=3)?true //~czy tylko jeden trójk¹t?
      :(Current->fSquareMinRadius!=0.0)?true //~czy widoczny z bliska?
       :(Current->fSquareRadius<=90000.0)) //~czy widoczny z daleka?
@@ -475,7 +475,7 @@ void __fastcall TSubRect::AddNode(TGroundNode *Node)
   case GL_TRIANGLE_STRIP:
   case GL_TRIANGLE_FAN:
   case GL_TRIANGLES:
-   if (Node->iFlags&4) //czy jest przezroczyste?
+   if (Node->iFlags&0x20) //czy jest przezroczyste?
    {Node->pNext3=pRenderRectAlpha; pRenderRectAlpha=Node;} //DL: do przezroczystych z sektora
    else
     if (Global::bUseVBO)
@@ -487,7 +487,7 @@ void __fastcall TSubRect::AddNode(TGroundNode *Node)
    //if ((Node->iType==GL_TRIANGLE_STRIP)||(Node->iType==GL_TRIANGLE_FAN)||(Node->iType==GL_TRIANGLES))
     if (Node->fSquareMinRadius==0.0) //znikaj¹ce z bliska nie mog¹ byæ optymalizowane
      if (Node->fSquareRadius>=160000.0) //tak od 400m to ju¿ normalne trójk¹ty musz¹ byæ
-     //if (Node->iFlags&2) //i nieprzezroczysty
+     //if (Node->iFlags&0x10) //i nieprzezroczysty
      {if (pTriGroup) //je¿eli by³ ju¿ jakiœ grupuj¹cy
       {if (pTriGroup->fSquareRadius>Node->fSquareRadius) //i mia³ wiêkszy zasiêg
         Node->fSquareRadius=pTriGroup->fSquareRadius; //zwiêkszenie zakresu widocznoœci grupuj¹cego
@@ -506,9 +506,9 @@ void __fastcall TSubRect::AddNode(TGroundNode *Node)
    Node->pNext3=pRenderWires; pRenderWires=Node; //lista drutów
    break;
   case TP_MODEL: //modle zawsze wyœwietlane z w³asnego VBO
-   if ((Node->iFlags&0x04040004)==0) //czy brak przezroczystoœci?
+   if ((Node->iFlags&0x20200020)==0) //czy brak przezroczystoœci?
    {Node->pNext3=pRender; pRender=Node;} //do nieprzezroczystych
-   else if ((Node->iFlags&0x02020002)==0) //czy brak nieprzezroczystoœci?
+   else if ((Node->iFlags&0x10100010)==0) //czy brak nieprzezroczystoœci?
    {Node->pNext3=pRenderAlpha; pRenderAlpha=Node;} //do przezroczystych
    else //jak i take i takie, to bêdzie dwa razy renderowane...
    {Node->pNext3=pRenderMixed; pRenderMixed=Node;} //do mieszanych
@@ -759,7 +759,7 @@ void __fastcall TGroundNode::Render()
  }
     // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
   if(
-   (iNumVerts && (!Global::bRenderAlpha || (iFlags&2))) ||
+   (iNumVerts && (!Global::bRenderAlpha || (iFlags&0x10))) ||
    (iNumPts && (!Global::bRenderAlpha || fLineThickness < 0)))
   {
    if (!DisplayListID||Global::bReCompile) //Ra: wymuszenie rekompilacji
@@ -813,7 +813,7 @@ void __fastcall TGroundNode::RenderAlpha()
 
  // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
  if (
-     (iNumVerts && (iFlags&4)) ||
+     (iNumVerts && (iFlags&0x20)) ||
      (iNumPts && (Global::bRenderAlpha || fLineThickness > 0)))
  {
 
@@ -1414,7 +1414,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    }
    str=AnsiString(token.c_str());
    tmp->TextureID=TTexturesManager::GetTextureID(str.c_str());
-   tmp->iFlags=TTexturesManager::GetAlpha(tmp->TextureID)?4:2;
+   tmp->iFlags=TTexturesManager::GetAlpha(tmp->TextureID)?0x20:0x10;
    i=0;
    do
    {
@@ -1921,7 +1921,7 @@ bool __fastcall TGround::Init(AnsiString asFile)
             if (Current->iType!=TP_DYNAMIC)
             {//pojazdów w ogóle nie dotyczy dodawanie do mapy
              if ((Current->iType!=GL_TRIANGLES)&&(Current->iType!=GL_TRIANGLE_STRIP)?true //~czy trójk¹t?
-              :(Current->iFlags&4)?true //~czy teksturê ma nieprzezroczyst¹?
+              :(Current->iFlags&0x20)?true //~czy teksturê ma nieprzezroczyst¹?
                //:(Current->iNumVerts!=3)?true //~czy tylko jeden trójk¹t?
                 :(Current->fSquareMinRadius!=0.0)?true //~czy widoczny z bliska?
                  :(Current->fSquareRadius<=90000.0)) //~czy widoczny z daleka?

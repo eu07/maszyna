@@ -225,8 +225,8 @@ public:
     bool bDisplayCab; //czy wyswietlac kabine w train.cpp
     TTrack *MyTrack; //McZapkie-030303: tor na ktorym stoi, ABu
     AnsiString asBaseDir;
-    GLuint ReplacableSkinID;  //McZapkie:zmienialne nadwozie
-    bool bAlpha; //czy tekstura przezroczysta
+    GLuint ReplacableSkinID[5];  //McZapkie:zmienialne nadwozie
+    int iAlpha; //czy tekstura przezroczysta
     __fastcall TDynamicObject();
     __fastcall ~TDynamicObject();
     bool __fastcall TDynamicObject::Init(AnsiString Name, AnsiString BaseDir, AnsiString asReplacableSkin, AnsiString Type_Name,

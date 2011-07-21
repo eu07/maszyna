@@ -99,7 +99,7 @@ public:
  GLuint DisplayListID; //numer siatki
  int iVboPtr; //indeks w buforze VBO
  GLuint TextureID; //jedna tekstura na obiekt
- int iFlags; //tryb przezroczystoœci: 2-nieprz.,4-przezroczysty,6-mieszany
+ int iFlags; //tryb przezroczystoœci: 0x10-nieprz.,0x20-przezroczysty,0x30-mieszany
  int Ambient[4],Diffuse[4],Specular[4]; //oœwietlenie
  bool bVisible;
  bool bStatic; //czy nie jest pojazdem - do zredukowania

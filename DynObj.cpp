@@ -917,13 +917,13 @@ void TDynamicObject::ABuScanObjects(int ScanDir,double ScanDist)
   {
    if (FoundedObj->PrevConnected)
     if (FoundedObj->PrevConnected!=this) //odœwie¿enie tego samego siê nie liczy
-     WriteLog("0! Coupler error on "+asName+":"+AnsiString(MyCouplFound)+" - "+FoundedObj->asName+":0 is already connected");
+     WriteLog("0! Coupler error on "+asName+":"+AnsiString(MyCouplFound)+" - "+FoundedObj->asName+":0 connected to "+FoundedObj->PrevConnected->asName+":"+AnsiString(FoundedObj->PrevConnectedNo));
   }
-  else
+  else                 
   {
    if (FoundedObj->NextConnected)
     if (FoundedObj->NextConnected!=this) //odœwie¿enie tego samego siê nie liczy
-     WriteLog("0! Coupler error on "+asName+":"+AnsiString(MyCouplFound)+" - "+FoundedObj->asName+":1 is already connected");
+     WriteLog("0! Coupler error on "+asName+":"+AnsiString(MyCouplFound)+" - "+FoundedObj->asName+":1 connected to "+FoundedObj->NextConnected->asName+":"+AnsiString(FoundedObj->NextConnectedNo));
   }
 
 
@@ -1314,8 +1314,12 @@ __fastcall TDynamicObject::TDynamicObject()
   smAnimatedDoor[i]=NULL;
  mdModel=NULL;
  mdKabina=NULL;
- ReplacableSkinID=0;
- bAlpha=false;
+ ReplacableSkinID[0]=0;
+ ReplacableSkinID[1]=0;
+ ReplacableSkinID[2]=0;
+ ReplacableSkinID[3]=0;
+ ReplacableSkinID[4]=0;
+ iAlpha=0x30300030;
  smWiazary[0]=smWiazary[1]=NULL;
  smWahacze[0]=smWahacze[1]=smWahacze[2]=smWahacze[3]=NULL;
  fWahaczeAmp=0;
@@ -2472,17 +2476,17 @@ renderme=false;
      if ((FreeFlyModeFlag)||((!FreeFlyModeFlag)&&(!mdKabina)))
 #ifdef USE_VBO
       if (Global::bUseVBO)
-       mdLowPolyInt->RaRender(ObjSqrDist,ReplacableSkinID,bAlpha);
+       mdLowPolyInt->RaRender(ObjSqrDist,ReplacableSkinID,iAlpha);
       else
 #endif
-       mdLowPolyInt->Render(ObjSqrDist,ReplacableSkinID,bAlpha);
+       mdLowPolyInt->Render(ObjSqrDist,ReplacableSkinID,iAlpha);
 
 #ifdef USE_VBO
     if (Global::bUseVBO)
-     mdModel->RaRender(ObjSqrDist,ReplacableSkinID,bAlpha);
+     mdModel->RaRender(ObjSqrDist,ReplacableSkinID,iAlpha);
     else
 #endif
-     mdModel->Render(ObjSqrDist,ReplacableSkinID,bAlpha);
+     mdModel->Render(ObjSqrDist,ReplacableSkinID,iAlpha);
 /* Ra: nie próbujemy wczytywaæ modeli miliony razy podczas renderowania!!!
     if ((mdLoad==NULL) && (MoverParameters->Load>0))
     {
@@ -2501,20 +2505,20 @@ renderme=false;
     if (mdLoad) //renderowanie nieprzezroczystego ³adunku
 #ifdef USE_VBO
      if (Global::bUseVBO)
-      mdLoad->RaRender(ObjSqrDist,ReplacableSkinID,bAlpha);
+      mdLoad->RaRender(ObjSqrDist,ReplacableSkinID,iAlpha);
      else
 #endif
-      mdLoad->Render(ObjSqrDist,ReplacableSkinID,bAlpha);
+      mdLoad->Render(ObjSqrDist,ReplacableSkinID,iAlpha);
 
 //rendering przedsionkow o ile istnieja
     if (mdPrzedsionek)
      if (MoverParameters->filename==asBaseDir+"6ba.chk")
 #ifdef USE_VBO
       if (Global::bUseVBO)
-       mdPrzedsionek->RaRender(ObjSqrDist,ReplacableSkinID,bAlpha);
+       mdPrzedsionek->RaRender(ObjSqrDist,ReplacableSkinID,iAlpha);
       else
 #endif
-       mdPrzedsionek->Render(ObjSqrDist,ReplacableSkinID,bAlpha);
+       mdPrzedsionek->Render(ObjSqrDist,ReplacableSkinID,iAlpha);
 //rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
 //ABu: tylko w trybie FreeFly, zwykly tryb w world.cpp
 
@@ -2958,18 +2962,18 @@ bool __fastcall TDynamicObject::RenderAlpha()
 
 #ifdef USE_VBO
     if (Global::bUseVBO)
-     mdModel->RaRenderAlpha(ObjSqrDist,ReplacableSkinID,bAlpha);
+     mdModel->RaRenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
     else
 #endif
-     mdModel->RenderAlpha(ObjSqrDist,ReplacableSkinID,bAlpha);
+     mdModel->RenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
 
     if (mdLoad) //Ra: dodane renderowanie przezroczystego ³adunku
 #ifdef USE_VBO
      if (Global::bUseVBO)
-      mdLoad->RaRenderAlpha(ObjSqrDist,ReplacableSkinID,bAlpha);
+      mdLoad->RaRenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
      else
 #endif
-      mdLoad->RenderAlpha(ObjSqrDist,ReplacableSkinID,bAlpha);
+      mdLoad->RenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
 
 /* skoro false to mo¿na wyci¹c
     //ABu: Tylko w trybie freefly
@@ -3092,8 +3096,11 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
        if (ReplacableSkin!=AnsiString("none"))
        {
         ReplacableSkin=Global::asCurrentTexturePath+ReplacableSkin;      //skory tez z dynamic/...
-        ReplacableSkinID=TTexturesManager::GetTextureID(ReplacableSkin.c_str(),Global::iDynamicFiltering);
-        bAlpha=TTexturesManager::GetAlpha(ReplacableSkinID);
+        ReplacableSkinID[1]=TTexturesManager::GetTextureID(ReplacableSkin.c_str(),Global::iDynamicFiltering);
+        if (TTexturesManager::GetAlpha(ReplacableSkinID[1]))
+         iAlpha=0x31310031; //tekstura z kana³em alfa - nie renderowaæ w cyklu nieprzezroczystych
+        else
+         iAlpha=0x30300030; //tekstura nieprzezroczysta - nie renderowaæ w cyklu przezroczystych
        }
   //Winger 040304 - ladowanie przedsionkow dla EZT
        if (MoverParameters->TrainType==dt_EZT)

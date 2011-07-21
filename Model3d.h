@@ -142,9 +142,12 @@ private:
  int iName; //numer ³añcucha z nazw¹ submodelu, albo -1 gdy anonimowy
  TAnimType b_Anim;
  int iFlags; //flagi informacyjne:
- //bit  0: =1 faza rysowania zale¿y od wymiennej tekstury
- //bit  1: =1 rysowany w fazie nieprzezroczystych
- //bit  2: =1 rysowany w fazie przezroczystych
+ //bit  0: =1 faza rysowania zale¿y od wymiennej tekstury 0
+ //bit  1: =1 faza rysowania zale¿y od wymiennej tekstury 1
+ //bit  2: =1 faza rysowania zale¿y od wymiennej tekstury 2
+ //bit  3: =1 faza rysowania zale¿y od wymiennej tekstury 3
+ //bit  4: =1 rysowany w fazie nieprzezroczystych
+ //bit  5: =1 rysowany w fazie przezroczystych
  //bit  7: =1 ta sama tekstura, co poprzedni albo nadrzêdny
  //bit  8: =1 wierzcho³ki wyœwietlane z indeksów
  //bit  9: =1 wczytano z pliku tekstowego (jest w³aœcicielem tablic)
@@ -179,7 +182,7 @@ private:
  float fCosHotspotAngle; //cosinus k¹ta sto¿ka pod którym widaæ aureolê i zwiêkszone natê¿enie œwiat³a
  float fCosViewAngle;    //cos kata pod jakim sie teraz patrzy
  //Ra: dalej s¹ zmienne robocze
- GLuint TextureID; //numer tekstury, -1 wymienna, 0 brak
+ int TextureID; //numer tekstury, -1 wymienna, 0 brak
  bool bWire; //nie u¿ywane, ale wczytywane
  bool TexAlpha;        //McZapkie-141202: zeby bylo wiadomo czy sortowac ze wzgledu na przezroczystosc
  GLuint uiDisplayList; //roboczy numer listy wyœwietlania
@@ -208,6 +211,8 @@ private:
  void __fastcall RaAnimation(TAnimType a);
 public:
  static int iInstance; //identyfikator egzemplarza, który aktualnie renderuje model
+ static GLuint *ReplacableSkinId;
+ static int iAlpha;
  __fastcall TSubModel();
  __fastcall ~TSubModel();
  void __fastcall FirstInit();
@@ -222,16 +227,16 @@ public:
  void __fastcall SetTranslate(vector3 vNewTransVector);
  void __fastcall SetTranslate(float3 vNewTransVector);
  TSubModel* __fastcall GetFromName(AnsiString search);
- void __fastcall Render(GLuint ReplacableSkinId,bool bAlpha);
- void __fastcall RenderAlpha(GLuint ReplacableSkinId,bool bAlpha);
- void __fastcall RaRender(GLuint ReplacableSkinId,bool bAlpha);
- void __fastcall RaRenderAlpha(GLuint ReplacableSkinId,bool bAlpha);
+ void __fastcall Render();
+ void __fastcall RenderAlpha();
+ void __fastcall RaRender();
+ void __fastcall RaRenderAlpha();
  //inline matrix4x4* __fastcall GetMatrix() { return dMatrix; };
  inline float4x4* __fastcall GetMatrix() { return fMatrix; };
  //matrix4x4* __fastcall GetTransform() {return Matrix;};
  inline void __fastcall Hide() { Visible= false; };
  void __fastcall RaArrayFill(CVertNormTex *Vert);
- void __fastcall Render();
+ //void __fastcall Render();
  int __fastcall Flags();
  void __fastcall WillBeAnimated() {if (this) iFlags|=0x4000;};
  void __fastcall InitialRotate(bool doit);
@@ -239,6 +244,8 @@ public:
  void __fastcall Info();
  void __fastcall InfoSet(TSubModelInfo *info);
  void __fastcall BinInit(TSubModel *s,float4x4 *m,float8 *v,TStringPack *t,TStringPack *n=NULL);
+ void __fastcall ReplacableSet(GLuint *r,int a)
+ {ReplacableSkinId=r; iAlpha=a;};
 };
 
 class TSubModelInfo
@@ -297,20 +304,20 @@ public:
  void __fastcall SaveToBinFile(char *FileName);
  void __fastcall BreakHierarhy();
  //renderowanie specjalne
- void __fastcall Render(double fSquareDistance,GLuint ReplacableSkinId=0,bool bAlpha=false);
- void __fastcall RenderAlpha(double fSquareDistance,GLuint ReplacableSkinId=0,bool bAlpha=false);
- void __fastcall RaRender(double fSquareDistance,GLuint ReplacableSkinId=0,bool bAlpha=false);
- void __fastcall RaRenderAlpha(double fSquareDistance,GLuint ReplacableSkinId=0,bool bAlpha=false);
+ void __fastcall Render(double fSquareDistance,GLuint *ReplacableSkinId=NULL,int iAlpha=0x30300030);
+ void __fastcall RenderAlpha(double fSquareDistance,GLuint *ReplacableSkinId=NULL,int iAlpha=0x30300030);
+ void __fastcall RaRender(double fSquareDistance,GLuint *ReplacableSkinId=NULL,int iAlpha=0x30300030);
+ void __fastcall RaRenderAlpha(double fSquareDistance,GLuint *ReplacableSkinId=NULL,int iAlpha=0x30300030);
  //jeden k¹t obrotu
- void __fastcall Render(vector3 pPosition,double fAngle=0,GLuint ReplacableSkinId=0,bool bAlpha=false);
- void __fastcall RenderAlpha(vector3 pPosition,double fAngle=0,GLuint ReplacableSkinId=0,bool bAlpha=false);
- void __fastcall RaRender(vector3 pPosition,double fAngle=0,GLuint ReplacableSkinId=0,bool bAlpha=false);
- void __fastcall RaRenderAlpha(vector3 pPosition,double fAngle=0,GLuint ReplacableSkinId=0,bool bAlpha=false);
+ void __fastcall Render(vector3 pPosition,double fAngle=0,GLuint *ReplacableSkinId=NULL,int iAlpha=0x30300030);
+ void __fastcall RenderAlpha(vector3 pPosition,double fAngle=0,GLuint *ReplacableSkinId=NULL,int iAlpha=0x30300030);
+ void __fastcall RaRender(vector3 pPosition,double fAngle=0,GLuint *ReplacableSkinId=NULL,int iAlpha=0x30300030);
+ void __fastcall RaRenderAlpha(vector3 pPosition,double fAngle=0,GLuint *ReplacableSkinId=NULL,int iAlpha=0x30300030);
  //trzy k¹ty obrotu
- void __fastcall Render(vector3* vPosition,vector3* vAngle,GLuint ReplacableSkinId=0,bool bAlpha=false);
- void __fastcall RenderAlpha(vector3* vPosition,vector3* vAngle,GLuint ReplacableSkinId=0,bool bAlpha=false);
- void __fastcall RaRender(vector3* vPosition,vector3* vAngle,GLuint ReplacableSkinId=0,bool bAlpha=false);
- void __fastcall RaRenderAlpha(vector3* vPosition,vector3* vAngle,GLuint ReplacableSkinId=0,bool bAlpha=false);
+ void __fastcall Render(vector3* vPosition,vector3* vAngle,GLuint *ReplacableSkinId=NULL,int iAlpha=0x30300030);
+ void __fastcall RenderAlpha(vector3* vPosition,vector3* vAngle,GLuint *ReplacableSkinId=NULL,int iAlpha=0x30300030);
+ void __fastcall RaRender(vector3* vPosition,vector3* vAngle,GLuint *ReplacableSkinId=NULL,int iAlpha=0x30300030);
+ void __fastcall RaRenderAlpha(vector3* vPosition,vector3* vAngle,GLuint *ReplacableSkinId=NULL,int iAlpha=0x30300030);
  //inline int __fastcall GetSubModelsCount() { return (SubModelsCount); };
  int __fastcall Flags() {return iFlags;};
  void __fastcall Init();
