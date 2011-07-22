@@ -660,7 +660,7 @@ public:
 		, AnsiString TypeNameInit, AnsiString NameInit, int LoadInitial, AnsiString LoadTypeInitial, int Cab
 		);
 	bool __fastcall LoadChkFile(AnsiString chkpath);
-	bool __fastcall CheckLocomotiveParameters(bool ReadyFlag);
+	bool __fastcall CheckLocomotiveParameters(bool ReadyFlag, int Dir);
 	AnsiString __fastcall EngineDescription(int what);
 	bool __fastcall DoorLeft(bool State);
 	bool __fastcall DoorRight(bool State);

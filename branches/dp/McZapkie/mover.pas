@@ -809,7 +809,7 @@ TYPE
                                  VelInitial:real; TypeNameInit, NameInit: string; LoadInitial:longint; LoadTypeInitial: string; Cab:integer);
                                                               {wywolac najpierw to}
                 function LoadChkFile(chkpath:string):Boolean;   {potem zaladowac z pliku}
-                function CheckLocomotiveParameters(ReadyFlag:boolean): boolean;  {a nastepnie sprawdzic}
+                function CheckLocomotiveParameters(ReadyFlag:boolean;Dir:longint): boolean;  {a nastepnie sprawdzic}
                 function EngineDescription(what:integer): string;  {opis stanu lokomotywy}
 
    {obsluga drzwi}
@@ -4941,7 +4941,7 @@ begin
   Ftotal:=0; FStand:=0; FTrain:=0;
   AccS:=0; AccN:=0; AccV:=0;
   EventFlag:=False; SoundFlag:=0;
-  Vel:=Abs(VelInitial); V:=VelInitial/3.6;
+  Vel:=VelInitial; V:=VelInitial/3.6;
   LastSwitchingTime:=0;
   LastRelayTime:=0;
   EndSignalsFlag:=0;
@@ -5061,7 +5061,7 @@ begin
   EngineDescription:=outstr;
 end;
 
-function TMoverParameters.CheckLocomotiveParameters(ReadyFlag:boolean): boolean;
+function TMoverParameters.CheckLocomotiveParameters(ReadyFlag:boolean;Dir:longint): boolean;
 var //k:integer;
     OK:boolean;
     b:byte;
@@ -5097,15 +5097,15 @@ begin
      CompressedVolume:=VeselVolume*MinCompressor*(9.8+Random);
      ScndPipePress:=MinCompressor*(9.8+Random)/10.0;
      PipePress:=CntrlPipePress;
-     LocalBrakePos:=0;
+     LocalBrakePos:=0; //wyluzowany hamulec pomocniczy
      if (BrakeSystem=Pneumatic) and (BrakeCtrlPosNo>0) then
       if CabNo=0 then
-       BrakeCtrlPos:=-2;
+       BrakeCtrlPos:=-2; //odciêcie na zespolonym
      MainSwitch(false);
      PantFront(true);
      PantRear(true);
-     MainSwitch(true);     
-     ActiveDir:=1;
+     MainSwitch(true);
+     ActiveDir:=Dir;
      LimPipePress:=CntrlPipePress;
    end
   else

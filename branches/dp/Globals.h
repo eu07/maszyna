@@ -224,6 +224,7 @@ public:
  static void __fastcall BindTexture(GLuint t);
  static int iConvertModels; //tworzenie plików binarnych
  static int iErorrCounter; //licznik sprawdzañ do œledzenia b³êdów OpenGL
+ static bool bInactivePause; //automatyczna pauza, gdy okno nieaktywne
 };
 
 //---------------------------------------------------------------------------

@@ -902,7 +902,7 @@ void __fastcall TGround::Free()
 
 double fTrainSetVel=0;
 double fTrainSetDir=0;
-double fTrainSetDist=0;
+double fTrainSetDist=0; //odleg³oœæ sk³adu od punktu 1 w stronê punktu 2
 AnsiString asTrainSetTrack= "";
 int iTrainSetConnection= 0;
 bool bTrainSet= false;
@@ -1021,7 +1021,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
  //WriteLog("-> node "+str+" "+tmp->asName);
  if (bError)
  {
-  MessageBox(0,AnsiString("Scene parse error near "+str).c_str(),"Error",MB_OK);
+  Error(AnsiString("Scene parse error near "+str).c_str());
   for (int i=0;i<60;++i)
   {//Ra: skopiowanie dalszej czêœci do logu - taka prowizorka, lepsza ni¿ nic
    parser->getTokens(); //pobranie linijki tekstu nie dzia³a
@@ -1141,77 +1141,69 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    break;
   case TP_DYNAMIC :
    tmp->DynamicObject=new TDynamicObject();
-//   tmp->DynamicObject->Load(Parser);
+   //tmp->DynamicObject->Load(Parser);
    parser->getTokens();
    *parser >> token;
-   str1=AnsiString(token.c_str());
-// str2=Parser->GetNextSymbol().LowerCase(); McZapkie-131102: model w .mmd
-//McZapkie: doszedl parametr ze zmienialna skora
+   str1=AnsiString(token.c_str()); //McZapkie-131102: model w .mmd
+   //McZapkie: doszedl parametr ze zmienialna skora
    parser->getTokens();
    *parser >> token;
-   Skin=AnsiString(token.c_str());
+   Skin=AnsiString(token.c_str()); //tekstura wymienna
    parser->getTokens();
    *parser >> token;
    str3=AnsiString(token.c_str());
    if (bTrainSet)
-   {
+   {//jeœli pojazd jest umieszczony w sk³adzie
     str=asTrainSetTrack;
     parser->getTokens();
-    *parser >> tf1;
-//    int1=Parser->GetNextSymbol().ToInt();                 //Cab
+    *parser >> tf1; //Ra: -1 oznacza odwrotne wstawienie, normalnie w sk³adzie 0
     parser->getTokens();
     *parser >> token;
-    DriverType=AnsiString(token.c_str());            //McZapkie:010303 - w przyszlosci rozne konfiguracje mechanik/pomocnik itp
+    DriverType=AnsiString(token.c_str()); //McZapkie:010303 - w przyszlosci rozne konfiguracje mechanik/pomocnik itp
     tf3=fTrainSetVel;
     parser->getTokens();
     *parser >> int1;
-    //TempConnectionType[iTrainSetWehicleNumber]=toupper(TempConnectionType[iTrainSetWehicleNumber]);
     TempConnectionType[iTrainSetWehicleNumber]=int1;
     iTrainSetWehicleNumber++;
    }
    else
-   {
+   {//pojazd wstawiony luzem
     fTrainSetDist=0; //zerowanie dodatkowego przesuniêcia
     asTrainName="none";
     parser->getTokens();
     *parser >> token;
-    str=AnsiString(token.c_str());           //track
+    str=AnsiString(token.c_str()); //track
     parser->getTokens();
-    *parser >> tf1;                           //Dist
-//  tf2=Parser->GetNextSymbol().ToDouble();
-//  int1=Parser->GetNextSymbol().ToInt();    //Cab
+    *parser >> tf1; //Ra: -1 oznacza odwrotne wstawienie
     parser->getTokens();
     *parser >> token;
-    DriverType=AnsiString(token.c_str());  //McZapkie:010303
+    DriverType=AnsiString(token.c_str()); //McZapkie:010303: obsada
     parser->getTokens();
-    *parser >> tf3;                           //Vel
+    *parser >> tf3; //prêdkoœæ
    }
    parser->getTokens();
-   *parser >> int2;                               //Load
+   *parser >> int2; //iloœæ ³adunku
    if (int2>0)
-   {
+   {//je¿eli ³adunku jest wiêcej ni¿ 0, to rozpoznajemy jego typ
     parser->getTokens();
     *parser >> token;
     str2=AnsiString(token.c_str());  //LoadType
-    if (str2==AnsiString("enddynamic"))           //idiotoodpornosc - ³adunek bez podanego typu
+    if (str2==AnsiString("enddynamic")) //idiotoodpornoœæ: ³adunek bez podanego typu
     {
-     str2=""; int2=0;
+     str2=""; int2=0; //iloœæ bez typu siê nie liczy jako ³adunek
     }
    }
    else
     str2="";  //brak ladunku
 
-   tmp1=FindGroundNode(str,TP_TRACK);
+   tmp1=FindGroundNode(str,TP_TRACK); //poszukiwanie toru
    if (tmp1 && tmp1->pTrack)
-   {
+   {//jeœli tor znaleziony
     Track=tmp1->pTrack;
-//       if (bTrainSet)
-  //                      tmp->DynamicObject->Init(Track,2,"",fTrainSetVel);
-    //                else
-
-    //ZiomalCl: poprawka na zmiane polozenia pociagu wzgledem toru podanego we wpisie
-    //- szukamy nazwy toru polozonego n metrow (n - odleglosc we wpisie trainset) od naszego toru
-    //gdy znajdziemy, to do tego wlasnie toru przypisujemy pociag
+/* Ra: jednak nie dzia³a to dobrze - spróbujemy to naprawiæ w DynObj
+    //ZiomalCl: poprawka na zmianê po³o¿enia poci¹gu wzglêdem toru podanego we wpisie
+    //- szukamy nazwy toru po³o¿onego n metrów (n - odleglosc we wpisie trainset) od naszego toru
+    //- gdy znajdziemy, to do tego w³asnie toru przypisujemy poci¹g
     if (Track->Length()<tf1)
     {
      double l1=tf1;
@@ -1299,47 +1291,45 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
      }
      tf1=Track->Length()+l1;
     }
-
-    tmp->DynamicObject->Init(asNodeName,str1,Skin,str3,Track,(tf1==-1.0?fTrainSetDist:tf1+fTrainSetDist),DriverType,tf3,asTrainName,int2,str2,(tf1==-1.0));
-    tmp->pCenter=tmp->DynamicObject->GetPosition();
-//McZapkie-030203: sygnaly czola pociagu, ale tylko dla pociagow jadacych
-    if (tf3>0) //predkosc poczatkowa, jak ja lubie takie nazwy zmiennych
-    {
-     if (bTrainSet)
+*/
+    //WriteLog("Dynamic shift: "+AnsiString(fTrainSetDist));
+    tf1=tmp->DynamicObject->Init(asNodeName,str1,Skin,str3,Track,(tf1==-1.0?fTrainSetDist:tf1+fTrainSetDist),DriverType,tf3,asTrainName,int2,str2,(tf1==-1.0));
+    if (tf1>0.0) //zero oznacza b³¹d
+    {fTrainSetDist-=tf1; //przesuniêcie dla kolejnego, minus bo idziemy w stronê punktu 1
+     tmp->pCenter=tmp->DynamicObject->GetPosition();
+     //McZapkie-030203: sygnaly czola pociagu, ale tylko dla pociagow jadacych
+     if (tf3>0) //predkosc poczatkowa, jak ja lubie takie nazwy zmiennych
      {
-      if (asTrainName!=AnsiString("none"))
+      if (bTrainSet)
       {
-       if (iTrainSetWehicleNumber==1)
+       if (asTrainName!=AnsiString("none"))
        {
-        tmp->DynamicObject->MoverParameters->EndSignalsFlag=1+4+16; //trojkat dla rozkladowych
-        if ((tmp->DynamicObject->EndSignalsLight1Active())
-           ||(tmp->DynamicObject->EndSignalsLight1oldActive()))
-         tmp->DynamicObject->MoverParameters->HeadSignalsFlag=2+32;
-        else
-         tmp->DynamicObject->MoverParameters->HeadSignalsFlag=64;
+        if (iTrainSetWehicleNumber==1)
+        {
+         tmp->DynamicObject->RaLightsSet(-1,1+4+16); //trojkat dla rozkladowych
+         if ((tmp->DynamicObject->EndSignalsLight1Active())
+            ||(tmp->DynamicObject->EndSignalsLight1oldActive()))
+          tmp->DynamicObject->RaLightsSet(2+32,-1);
+         else
+          tmp->DynamicObject->RaLightsSet(64,-1);
+        }
+        if (iTrainSetWehicleNumber==2)
+         LastDyn->RaLightsSet(0,-1); //zgaszone swiatla od strony wagonow
        }
-       if (iTrainSetWehicleNumber==2)
-        LastDyn->MoverParameters->HeadSignalsFlag=0; //zgaszone swiatla od strony wagonow
+       else
+       {
+        if (iTrainSetWehicleNumber==1)
+         tmp->DynamicObject->RaLightsSet(1,16); //manewry
+        if (iTrainSetWehicleNumber==2)
+         LastDyn->RaLightsSet(0,-1); //zgaszone swiatla od strony wagonow
+       }
       }
       else
-      {
-       if (iTrainSetWehicleNumber==1)
-       {
-        tmp->DynamicObject->MoverParameters->EndSignalsFlag=16;    //manewry
-        tmp->DynamicObject->MoverParameters->HeadSignalsFlag=1;
-       }
-       if (iTrainSetWehicleNumber==2)
-         LastDyn->MoverParameters->HeadSignalsFlag=0; //zgaszone swiatla od strony wagonow
-      }
+       tmp->DynamicObject->RaLightsSet(1,16); //manewry pojed. pojazdu
+      LastDyn=tmp->DynamicObject;
      }
-     else
-     {
-      tmp->DynamicObject->MoverParameters->EndSignalsFlag=16;         //manewry pojed. pojazdu
-      tmp->DynamicObject->MoverParameters->HeadSignalsFlag=1;
-     }
-     //Track->AddDynamicObject(Current->DynamicObject);
-     LastDyn=tmp->DynamicObject;
     }
+    //else LastNode=NULL;
    }
    else
    {
