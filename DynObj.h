@@ -229,9 +229,12 @@ public:
     int iAlpha; //czy tekstura przezroczysta
     __fastcall TDynamicObject();
     __fastcall ~TDynamicObject();
-    bool __fastcall TDynamicObject::Init(AnsiString Name, AnsiString BaseDir, AnsiString asReplacableSkin, AnsiString Type_Name,
-                                     TTrack *Track, double fDist, AnsiString DriverType, double fVel, AnsiString TrainName,
-                                     int Load, AnsiString LoadType,bool Reversed);
+    double __fastcall TDynamicObject::Init
+    (//zwraca d³ugoœæ pojazdu albo 0, jeœli b³¹d
+     AnsiString Name, AnsiString BaseDir, AnsiString asReplacableSkin, AnsiString Type_Name,
+     TTrack *Track, double fDist, AnsiString DriverType, double fVel, AnsiString TrainName,
+     float Load, AnsiString LoadType,bool Reversed
+    );
     void __fastcall AttachPrev(TDynamicObject *Object, int iType= 1);
     bool __fastcall UpdateForce(double dt, double dt1, bool FullVer);
     bool __fastcall Update(double dt, double dt1);
@@ -267,6 +270,7 @@ public:
  };
  void CouplersDettach(double MinDist,int MyScanDir);
  void __fastcall RadioStop();
+ void __fastcall RaLightsSet(int head,int rear);
 };
 
 

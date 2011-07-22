@@ -76,26 +76,27 @@ void __fastcall TTrackFollower::SetCurrentTrack(TTrack *pTrack,int end)
  pCurrentSegment=(pCurrentTrack?pCurrentTrack->CurrentSegment():NULL);
 };
 
-bool __fastcall TTrackFollower::Move(double fDistance, bool bPrimary)
+bool __fastcall TTrackFollower::Move(double fDistance,bool bPrimary)
 {//przesuwanie wózka po torach o odleg³oœæ (fDistance), z wyzwoleniem eventów
+ //bPrimary=true - jest pierwsz¹ osi¹ w pojeŸdzie, czyli generuje eventy i przepisuje pojazd
  fDistance*=fDirection; //dystans mno¿nony przez kierunek
  double s;
- bool bCanSkip;
- while (true)
+ bool bCanSkip; //czy przemieœciæ pojazd na inny tor
+ while (true)  //pêtla wychodzi, gdy przesuniêcie wyjdzie zerowe
  {//pêtla przesuwaj¹ca wózek przez kolejne tory, a¿ do trafienia w jakiœ
   if (!pCurrentTrack) return false; //nie ma toru, to nie ma przesuwania
   if (pCurrentTrack->iEvents) //sumaryczna informacja o eventach
-  {//omijamy ca³y ten blok, gdy tor nie ma ¿adnych eventów (wiêkszoœc nie ma)
+  {//omijamy ca³y ten blok, gdy tor nie ma on ¿adnych eventów (wiêkszoœc nie ma)
    if (fDistance<0)
    {
     if (Owner->MoverParameters->CabNo!=0) //McZapkie-280503: wyzwalanie event tylko dla pojazdow z obsada
      if (TestFlag(iEventFlag,1))
       if (iSetFlag(iEventFlag,-1))
-       if (bPrimary && pCurrentTrack->Event1 && pCurrentTrack->Event1->fStartTime<=0)
+       if (bPrimary && pCurrentTrack->Event1 && (pCurrentTrack->Event1->fStartTime<=0))
         Global::pGround->AddToQuery(pCurrentTrack->Event1,Owner); //dodanie do kolejki
     if (TestFlag(iEventallFlag,1))        //McZapkie-280503: wyzwalanie eventall dla wszystkich pojazdow
      if (iSetFlag(iEventallFlag,-1))
-      if (bPrimary && pCurrentTrack->Eventall1 && pCurrentTrack->Eventall1->fStartTime<=0)
+      if (bPrimary && pCurrentTrack->Eventall1 && (pCurrentTrack->Eventall1->fStartTime<=0))
        Global::pGround->AddToQuery(pCurrentTrack->Eventall1,Owner); //dodanie do kolejki
    }
    else if (fDistance>0)
@@ -103,22 +104,22 @@ bool __fastcall TTrackFollower::Move(double fDistance, bool bPrimary)
     if (Owner->MoverParameters->CabNo!=0)
      if (TestFlag(iEventFlag,2))
       if (iSetFlag(iEventFlag,-2))
-       if (bPrimary && pCurrentTrack->Event2 && pCurrentTrack->Event2->fStartTime<=0)
+       if (bPrimary && pCurrentTrack->Event2 && (pCurrentTrack->Event2->fStartTime<=0))
         Global::pGround->AddToQuery(pCurrentTrack->Event2,Owner);
     if (TestFlag(iEventallFlag,2))
      if (iSetFlag(iEventallFlag,-2))
-      if (bPrimary && pCurrentTrack->Eventall2 && pCurrentTrack->Eventall2->fStartTime<=0)
+      if (bPrimary && pCurrentTrack->Eventall2 && (pCurrentTrack->Eventall2->fStartTime<=0))
        Global::pGround->AddToQuery(pCurrentTrack->Eventall2,Owner);
    }
    else //if (fDistance==0) //McZapkie-140602: wyzwalanie zdarzenia gdy pojazd stoi
    {
     if (Owner->MoverParameters->CabNo!=0)
      if (pCurrentTrack->Event0)
-      if (pCurrentTrack->Event0->fStartTime<=0 && pCurrentTrack->Event0->fDelay!=0)
+      if (pCurrentTrack->Event0->fStartTime<=0 && (pCurrentTrack->Event0->fDelay!=0))
        Global::pGround->AddToQuery(pCurrentTrack->Event0,Owner);
     if (pCurrentTrack->Eventall0)
-     if (pCurrentTrack->Eventall0->fStartTime<=0 && pCurrentTrack->Eventall0->fDelay!=0)
-      Global::pGround->AddToQuery(pCurrentTrack->Eventall0,Owner);
+     if (pCurrentTrack->Eventall0->fStartTime<=0 && (pCurrentTrack->Eventall0->fDelay!=0))
+       Global::pGround->AddToQuery(pCurrentTrack->Eventall0,Owner);
    }
   }
   if (!pCurrentSegment) //je¿eli nie ma powi¹zanego segmentu toru?
@@ -132,9 +133,9 @@ bool __fastcall TTrackFollower::Move(double fDistance, bool bPrimary)
   // podzia³u energii kinetycznej.
   if (s<0)
   {//jeœli przekroczenie toru od strony Point1
-   bCanSkip=bPrimary && pCurrentTrack->CheckDynamicObject(Owner);
-   if (bCanSkip)
-    pCurrentTrack->RemoveDynamicObject(Owner);
+   bCanSkip=bPrimary?pCurrentTrack->CheckDynamicObject(Owner):false;
+   if (bCanSkip) //tylko g³ówna oœ przenosi pojazd do innego toru
+    pCurrentTrack->RemoveDynamicObject(Owner); //usuniêcie z aktualnego toru
    if (pCurrentTrack->iPrevDirection)
    {//gdy kierunek bez zmiany (Point1->Point2)
     SetCurrentTrack(pCurrentTrack->CurrentPrev(),0);
@@ -159,18 +160,17 @@ bool __fastcall TTrackFollower::Move(double fDistance, bool bPrimary)
     }
    }
    if (bCanSkip)
-   {
+   {//jak g³ówna oœ, to dodanie pojazdu do nowego toru
     pCurrentTrack->AddDynamicObject(Owner);
     iEventFlag=3; //McZapkie-020602: umozliwienie uruchamiania event1,2 po zmianie toru
     iEventallFlag=3; //McZapkie-280503: jw, dla eventall1,2
    }
-   //event1 przesuniete na gore
    continue;
   }
   else if (s>pCurrentSegment->GetLength())
   {//jeœli przekroczenie toru od strony Point2
-   bCanSkip=bPrimary && pCurrentTrack->CheckDynamicObject(Owner);
-   if (bCanSkip)
+   bCanSkip=bPrimary?pCurrentTrack->CheckDynamicObject(Owner):false;
+   if (bCanSkip) //tylko g³ówna oœ przenosi pojazd do innego toru
     pCurrentTrack->RemoveDynamicObject(Owner);
    if (pCurrentTrack->iNextDirection)
    {//gdy zmiana kierunku toru (Point2->Point2)
@@ -196,18 +196,17 @@ bool __fastcall TTrackFollower::Move(double fDistance, bool bPrimary)
     }
    }
    if (bCanSkip)
-   {
+   {//jak g³ówna oœ, to dodanie pojazdu do nowego toru
     pCurrentTrack->AddDynamicObject(Owner);
     iEventFlag=3; //McZapkie-020602: umozliwienie uruchamiania event1,2 po zmianie toru
     iEventallFlag=3;
    }
-   //event2 przesuniete na gore
    continue;
   }
   else
   {//gdy zostaje na tym samym torze (przesuwanie ju¿ nie zmienia toru)
    if (bPrimary)
-   {
+   {//tylko gdy pocz¹tkowe ustawienie, dodajemy eventy stania do kolejki
     if (Owner->MoverParameters->CabNo!=0)
     {
      if (pCurrentTrack->Event1 && pCurrentTrack->Event1->fDelay<=-1.0f)

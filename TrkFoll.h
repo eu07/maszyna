@@ -25,7 +25,7 @@ public:
  __fastcall TTrackFollower();
  __fastcall ~TTrackFollower();
  void __fastcall SetCurrentTrack(TTrack *pTrack,int end);
- bool __fastcall Move(double fDistance, bool bPrimary=false);
+ bool __fastcall Move(double fDistance,bool bPrimary);
  inline TTrack* __fastcall GetTrack() {return pCurrentTrack;};
  inline double __fastcall GetRoll() {return vAngles.x;}; //przechy³ka policzona przy ustalaniu pozycji
  //{return pCurrentSegment->GetRoll(fCurrentDistance)*fDirection;}; //zamiast liczyæ mo¿na pobraæ
@@ -34,7 +34,7 @@ public:
  //inline double __fastcall GetLength(vector3 p1, vector3 cp1, vector3 cp2, vector3 p2)
  //{ return pCurrentSegment->ComputeLength(p1,cp1,cp2,p2); };
  //inline double __fastcall GetRadius(double L, double d);  //McZapkie-150503
- bool __fastcall Init(TTrack *pTrack,TDynamicObject *NewOwner=NULL,double fDir=1.0f);
+ bool __fastcall Init(TTrack *pTrack,TDynamicObject *NewOwner,double fDir);
  void __fastcall Render(float fNr);
 };
 //---------------------------------------------------------------------------

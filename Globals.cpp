@@ -101,9 +101,9 @@ double Global::fOpenGL=0.0; //wersja OpenGL - przyda siê
 bool Global::bOpenGL_1_5=false; //czy s¹ dostêpne funkcje OpenGL 1.5
 double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 bool Global::bMultiplayer=false; //blokada dzia³ania niektórych eventów na rzecz kominikacji
-HWND Global::hWnd=NULL; //uchwyt okna 
+HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asVersion="Compilation 2011-07-20, release 1.3.170.186."; //tutaj, bo wysy³any
+AnsiString Global::asVersion="Compilation 2011-07-22, release 1.3.172.189."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 GLint Global::iMaxTextureSize=16384;//maksymalny rozmiar tekstury
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
@@ -125,7 +125,13 @@ bool Global::bPause=false; //globalna pauza ruchu
 bool Global::bActive=true; //czy jest aktywnym oknem
 int Global::iConvertModels=1; //tworzenie plików binarnych
 int Global::iErorrCounter=0; //licznik sprawdzañ do œledzenia b³êdów OpenGL
+bool Global::bInactivePause=true; //automatyczna pauza, gdy okno nieaktywne
 
+/* Ra: trzeba by przerobiæ na cParser, ¿eby to dzia³a³o w scenerii
+void __fastcall Global::ParseConfig(TQueryParserComp *Parser)
+{
+};
+*/
 void __fastcall Global::LoadIniFile(AnsiString asFileName)
 {
  int i;
@@ -302,6 +308,8 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
          fLatitudeDeg=Parser->GetNextSymbol().ToDouble();
         else if (str==AnsiString("convertmodels")) //tworzenie plików binarnych
          iConvertModels=Parser->GetNextSymbol().ToIntDef(2); //domyœlnie 2
+        else if (str==AnsiString("inactivepause")) //automatyczna pauza, gdy okno nieaktywne
+         bInactivePause=(Parser->GetNextSymbol().LowerCase()==AnsiString("yes"));
     }
  //na koniec trochê zale¿noœci
  if (!bLoadTraction)

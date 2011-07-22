@@ -536,7 +536,7 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
        smMechanik->Visible= false;
      }
     //ABu: Przechyly na zakretach
-    if(ObjSqrDist<80000) ABuModelRoll();
+    if (ObjSqrDist<80000) ABuModelRoll(); //przechy³ki od 400m
  }
 }
 //ABu 29.01.05 koniec przeklejenia *************************************
@@ -572,7 +572,7 @@ double __fastcall ABuAcos(vector3 calc_temp)
 
 
 TDynamicObject* __fastcall ABuFindNearestObject(TTrack *Track,TDynamicObject *MyPointer,int &CouplNr)
-{//zwraca wskaznik do obiektu znajdujacego sie na torze (Track), którego sprzêg jest najblizszy kamerze 
+{//zwraca wskaznik do obiektu znajdujacego sie na torze (Track), którego sprzêg jest najblizszy kamerze
  //s³u¿y np. do ³¹czenia i rozpinania sprzêgów
  //WE: Track      - tor, na ktorym odbywa sie poszukiwanie
  //    MyPointer  - wskaznik do obiektu szukajacego
@@ -702,7 +702,7 @@ void __fastcall TDynamicObject::ABuModelRoll()
 void __fastcall TDynamicObject::ABuBogies()
 {//Obracanie wozkow na zakretach. Na razie uwzglêdnia tylko zakrêty,
  //bez zadnych gorek i innych przeszkod.
- if((smBogie[0]!=NULL)&&(smBogie[1]!=NULL))
+ if ((smBogie[0]!=NULL)&&(smBogie[1]!=NULL))
  {
   modelRot.z=ABuAcos(Axle4.pPosition-Axle1.pPosition);
   //bogieRot[0].z=ABuAcos(Axle4.pPosition-Axle3.pPosition);
@@ -1270,7 +1270,7 @@ __fastcall TDynamicObject::TDynamicObject()
  for (int i=0;i<MaxAxles;i++)
   dRailPosition[i]=0.0;
  for (int i=0;i<MaxAxles;i++)
-  dWheelsPosition[i]=0.0;
+  dWheelsPosition[i]=0.0; //bêdzie wczytane z MMD
  iAxles=0;
  dWheelAngle=0.0;
  //Winger 160204 - pantografy
@@ -1352,252 +1352,225 @@ __fastcall TDynamicObject::~TDynamicObject()
  SafeDelete(TrainParams);
 }
 
-bool __fastcall TDynamicObject::Init(
- AnsiString Name,AnsiString BaseDir,AnsiString asReplacableSkin,AnsiString Type_Name,
- TTrack *Track,double fDist,AnsiString DriverType,double fVel,AnsiString TrainName,
- int Load, AnsiString LoadType,bool Reversed)
-{//McZapkie: Name to np. EU07-424, BaseDir to np. PKP/EU07, Type_Name to np. 303E, TrainName to np. PE2307
-
- iDirection=(Reversed?-1:1); //Ra: ujemne, jeœli ma byæ wstawiony do sk³adu jako obrócony
- //McZapkie-310302
- asBaseDir= "dynamic\\"+BaseDir+"\\";
- //Model.Init(asModel);
-
-    if (Name!=AnsiString(""))
-        asName= Name;
-
-    AnsiString asAnimName="";
-
-    TLocation l;
-    l.X=l.Y=l.Z= 0;
-    TRotation r;
-    r.Rx=r.Ry=r.Rz= 0;
-    int Cab;
-    if (DriverType==AnsiString("headdriver"))
-     Cab=1;
+double __fastcall TDynamicObject::Init(
+ AnsiString Name, //nazwa pojazdu, np. "EU07-424"
+ AnsiString BaseDir, //z którego katalogu wczytany, np. "PKP/EU07"
+ AnsiString asReplacableSkin, //nazwa wymiennej tekstury
+ AnsiString Type_Name, //nazwa CHK/MMD, np. "303E"
+ TTrack *Track, //tor pocz¹tkowy wstwawienia (pocz¹tek sk³adu)
+ double fDist, //dystans wzglêdem punktu 2
+ AnsiString DriverType, //typ obsady
+ double fVel, //prêdkoœæ pocz¹tkowa
+ AnsiString TrainName, //nazwa sk³adu, np. "PE2307"
+ float Load, //iloœæ ³adunku
+ AnsiString LoadType, //nazwa ³adunku
+ bool Reversed) //true, jeœli ma staæ odwrotnie
+{//Ustawienie pocz¹tkowe pojazdu
+ iDirection=(Reversed?-1:1); //Ra: ujemne, jeœli ma byæ wstawiony do jako obrócony ty³em
+ asBaseDir= "dynamic\\"+BaseDir+"\\"; //McZapkie-310302
+ asName=Name;
+ AnsiString asAnimName=""; //zmienna robocza do wyszukiwania osi i wózków
+ TLocation l; //wspó³rzêdne w scenerii (typ z fizyki)
+ l.X=l.Y=l.Z=0;
+ TRotation r;
+ r.Rx=r.Ry=r.Rz= 0;
+ int Cab; //numer kabiny z obsad¹ (nie mo¿na zaj¹æ obu)
+ if (DriverType==AnsiString("headdriver")) //od przodu sk³adu
+  Cab=iDirection;
+ else if (DriverType==AnsiString("reardriver")) //od ty³u sk³adu
+  Cab=-iDirection;
+ else if (DriverType==AnsiString("connected")) //pod³¹czony, to tak jakby tam ktoœ siedzia³
+  Cab=iDirection;
+ else if (DriverType==AnsiString("passenger"))
+ {
+  if (random(6)<3) Cab=1; else Cab=-1; //losowy przydzia³ kabiny
+ }
+ else if (DriverType==AnsiString("nobody"))
+  Cab=0;
+ else
+ {//obsada nie rozpoznana
+  Cab=0;  //McZapkie-010303: w przyszlosci dac tez pomocnika, palacza, konduktora itp.
+  Error("Unknown DriverType description: "+DriverType);
+  DriverType="nobody";
+ }
+ //utworzenie parametrów fizyki
+ MoverParameters=new TMoverParameters(l,r,iDirection*fVel,Type_Name,asName,Load,LoadType,Cab);
+ //McZapkie: TypeNamenit musi byc nazw¹ typu pojazdu
+ if (!MoverParameters->LoadChkFile(asBaseDir))
+ {//jak wczytanie CHK siê nie uda, to b³¹d
+  Error("Cannot load dynamic object "+asName+" from:\r\n"+BaseDir+"\\"+Type_Name+"\r\nError "+ConversionError+" in line "+LineCount);
+  return 0.0;
+ }
+ bool driveractive=(fVel!=0.0); //jeœli prêdkoœæ niezerowa, to aktywujemy ruch
+ if (!MoverParameters->CheckLocomotiveParameters(driveractive,iDirection)) //jak jedzie lub obsadzony to gotowy do drogi
+ {
+  Error("Parameters mismatch: dynamic object "+asName+" from\n"+BaseDir+"\\"+Type_Name);
+  return 0.0;
+ }
+ if (MoverParameters->CategoryFlag==2) //jeœli samochód
+ {//ustawianie samochodow na poboczu albo na œrodku drogi
+  if (Track->fTrackWidth<3.5) //jeœli droga w¹ska
+   MoverParameters->OffsetTrackH=0.0; //to stawiamy na œrodku, niezale¿nie od stanu ruchu
+  else
+  if (driveractive) //od 3.5m do 6.0m jedzie po œrodku pasa, dla szerszych w odleg³oœci 1.5m
+   MoverParameters->OffsetTrackH=Track->fTrackWidth<6.0?-Track->fTrackWidth*0.25:-1.5;
+  else //jak stoi, to ko³em na poboczu i pobieramy szerokoœæ razem z poboczem, ale nie z chodnikiem
+   MoverParameters->OffsetTrackH=-Track->WidthTotal()*0.5+MoverParameters->Dim.W;
+ }
+ //w wagonie tez niech jedzie
+ //if (MoverParameters->MainCtrlPosNo>0 &&
+ // if (MoverParameters->CabNo!=0)
+ if (DriverType!="nobody")
+ {//McZapkie-040602: jeœli coœ siedzi w pojeŸdzie
+  if (Name==AnsiString(Global::asHumanCtrlVehicle)) //jeœli pojazd wybrany do prowadzenia
+  {
+   if (MoverParameters->EngineType!=Dumb) //i nie jest dumbem
+    Controller=Humandriver; //wsadzamy tam steruj¹cego
+  }
+  //McZapkie-151102: rozk³ad jazdy czytany z pliku *.txt z katalogu w którym jest sceneria
+  if ((DriverType=="headdriver")||(DriverType=="reardriver"))
+  {//McZapkie-110303: mechanik i rozklad tylko gdy jest obsada
+   MoverParameters->ActiveCab=MoverParameters->CabNo; //ustalenie aktywnej kabiny (rozrz¹d)
+   TrainParams=new TTrainParameters(TrainName); //dane poci¹gu
+   if (TrainName!="none")
+    if (!TrainParams->LoadTTfile(Global::asCurrentSceneryPath))
+     Error("Cannot load timetable file "+TrainName+"\r\nError "+ConversionError+" in line "+TrainParams->StationCount);
+   Mechanik=new TController(l,r,Controller,&MoverParameters,&TrainParams,Aggressive);
+   if (Controller==AIdriver)
+   {//jeœli steruje komputer, okreœlamy dodatkowe parametry
+    Mechanik->Ready=false;
+    Mechanik->ChangeOrder(Prepare_engine); //odpala silnik
+    Mechanik->JumpToNextOrder();
+    if (TrainName==AnsiString("none"))
+     Mechanik->ChangeOrder(Shunt); //jeœli nie ma rozk³adu, to manewruje
     else
-    if (DriverType==AnsiString("reardriver"))
-     Cab=-1;
-    else
-    if (DriverType==AnsiString("connected"))
-     Cab=1;
-    else
-    if (DriverType==AnsiString("passenger"))
-     {
-      if (random(6)<3) Cab=1;
-       else Cab=-1;
-     }
-    else
-     if (DriverType==AnsiString("nobody"))
-     Cab=0;
-    else
-     {
-      Cab=0;  //McZapkie-010303: w przyszlosci dac tez pomocnika, palacza, konduktora itp.
-      Error("Unknown DriverType description: "+DriverType);
-      DriverType="nobody";
-     }
-
-    MoverParameters= new TMoverParameters(l,r,fVel,Type_Name,asName,Load,LoadType,Cab);
-    //McZapkie: TypeNamenit musi byc nazwa typu pojazdu
-    if (!MoverParameters->LoadChkFile(asBaseDir))
-    {
-        Error("Cannot load dynamic object "+asName+" from\n"+BaseDir+"\\"+Type_Name+" Error="+ConversionError+"@"+LineCount);
-        return false;
-    }
-    bool driveractive=  (fVel!=0);
-    if (!MoverParameters->CheckLocomotiveParameters(driveractive)) //jak jedzie lub obsadzony to gotowy do drogi
-     {
-        Error("Parameters mismatch: dynamic object "+asName+" from\n"+BaseDir+"\\"+Type_Name);
-        return false;
-     }
-    if (MoverParameters->CategoryFlag==2)       //ustawianie samochodow na poboczu
-     if (driveractive)
-      MoverParameters->OffsetTrackH=-Track->fTrackWidth*0.2;
-     else
-      MoverParameters->OffsetTrackH=-Track->fTrackWidth*0.3;
-
-//w wagonie tez niech jedzie
-//    if (MoverParameters->MainCtrlPosNo>0 &&
-//     if (MoverParameters->CabNo!=0)
-     if (DriverType!=AnsiString("nobody"))
-     {
-//McZapkie-040602
-       if (Name==AnsiString(Global::asHumanCtrlVehicle))
-       {
-        if (MoverParameters->EngineType!=Dumb)
-         Controller=Humandriver;
-       }
-
-//McZapkie-151102: rozklad jazdy czytany z pliku *.tt z katalogu w ktorym jest sceneria
-       if ((DriverType==AnsiString("headdriver")) || (DriverType==AnsiString("reardriver")))
-//McZapkie-110303: mechanik&rozklad tylko gdy jest obsada
-       {
-         MoverParameters->ActiveCab=MoverParameters->CabNo;
-         TrainParams= new TTrainParameters(TrainName);
-         if (TrainName!=AnsiString("none"))
-           if (!TrainParams->LoadTTfile(Global::asCurrentSceneryPath))
-             Error("Cannot load timetable file "+TrainName+": Error="+ConversionError+"@"+TrainParams->StationCount);
-
-         Mechanik= new TController(l,r,Controller,&MoverParameters,&TrainParams,Aggressive);
-
-         if (Controller==AIdriver)
-          {
-            Mechanik->Ready=false;
-            Mechanik->ChangeOrder(Prepare_engine);
-            Mechanik->JumpToNextOrder();
-            if (TrainName==AnsiString("none"))
-             Mechanik->ChangeOrder(Shunt);
-            else
-             Mechanik->ChangeOrder(Obey_train);
-            Mechanik->JumpToNextOrder();
-            Mechanik->ChangeOrder(Shunt);
-            Mechanik->JumpToNextOrder();
-            Mechanik->ChangeOrder(Shunt);
-            Mechanik->JumpToNextOrder();
+     Mechanik->ChangeOrder(Obey_train); //z rozk³adem jedzie na szlak
+    Mechanik->JumpToNextOrder();
+    Mechanik->ChangeOrder(Shunt); //rozkazy na zapas?
+    Mechanik->JumpToNextOrder();
+    Mechanik->ChangeOrder(Shunt);
+    Mechanik->JumpToNextOrder();
     //McZapkie-100302 - to ma byc wyzwalane ze scenerii
-    //  Mechanik->JumpToFirstOrder();
-            if (fVel==0)
-             {
-               Mechanik->SetVelocity(0,0);
-             }
-            else
-             {
-              Mechanik->SetVelocity(fVel,-1);
-              Mechanik->JumpToFirstOrder();
-             }
-          }
-  // McZapkie! - zeby w ogole AI ruszyl to musi wykonac powyzsze rozkazy
-  // ALe mozna by je zapodac ze scenerii
-       }
-      else
-       if (DriverType==AnsiString("passenger"))  //obserwator w charakterze pasazera
-        {
-         TrainParams= new TTrainParameters(TrainName);
-         Mechanik= new TController(l,r,Controller,&MoverParameters,&TrainParams,Easyman);
-        }
-     }
-
-
-// McZapkie-250202
-    iAxles= (MaxAxles<MoverParameters->NAxles)?MaxAxles:MoverParameters->NAxles;
-
-//wczytywanie z pliku nazwatypu.mmd
-
-    LoadMMediaFile(asBaseDir,Type_Name, asReplacableSkin);
-
-
-//  asModel wczytywany w LoadMMediaFile
-
-
-//McZapkie-100402: wyszukiwanie sprzegow
-    btCoupler1.Init("coupler1",mdModel,false);
-    btCoupler2.Init("coupler2",mdModel,false);
-/********************************************************
-    btCPneumatic1.Init("cpneumatic1",mdModel,false);
-    btCPneumatic2.Init("cpneumatic2",mdModel,false);
-    btCPneumatic1r.Init("cpneumatic1r",mdModel,false);
-    btCPneumatic2r.Init("cpneumatic2r",mdModel,false);
-    btPneumatic1.Init("pneumatic1",mdModel,false);
-    btPneumatic2.Init("pneumatic2",mdModel,false);
-    btPneumatic1r.Init("pneumatic1r",mdModel,false);
-    btPneumatic2r.Init("pneumatic2r",mdModel,false);
-********************************************************/
-    btCPneumatic1.Init("cpneumatic1",mdModel);
-    btCPneumatic2.Init("cpneumatic2",mdModel);
-    btCPneumatic1r.Init("cpneumatic1r",mdModel);
-    btCPneumatic2r.Init("cpneumatic2r",mdModel);
-    btPneumatic1.Init("pneumatic1",mdModel);
-    btPneumatic2.Init("pneumatic2",mdModel);
-    btPneumatic1r.Init("pneumatic1r",mdModel);
-    btPneumatic2r.Init("pneumatic2r",mdModel);
-
-    btCCtrl1.Init("cctrl1",mdModel,false);
-    btCCtrl2.Init("cctrl2",mdModel,false);
-    btCPass1.Init("cpass1",mdModel,false);
-    btCPass2.Init("cpass2",mdModel,false);
-//sygnaly
-
-
-    //ABu 060205: Zmiany dla koncowek swiecacych:
-    btEndSignals11.Init("endsignal23",mdModel,false);
-    btEndSignals13.Init("endsignal22",mdModel,false);
-    btEndSignals21.Init("endsignal13",mdModel,false);
-    btEndSignals23.Init("endsignal12",mdModel,false);
-    //ABu: to niestety zostawione dla kompatybilnosci modeli:
-    btEndSignals2.Init("endsignals1",mdModel,false);
-    btEndSignals1.Init("endsignals2",mdModel,false);
-
-    btEndSignalsTab1.Init("endtab1",mdModel,false);
-    btEndSignalsTab2.Init("endtab2",mdModel,false);
-    //ABu Uwaga! tu zmienic w modelu!
-    btHeadSignals11.Init("headlamp23",mdModel,false);
-    btHeadSignals12.Init("headlamp21",mdModel,false);
-    btHeadSignals13.Init("headlamp22",mdModel,false);
-    btHeadSignals21.Init("headlamp13",mdModel,false);
-    btHeadSignals22.Init("headlamp11",mdModel,false);
-    btHeadSignals23.Init("headlamp12",mdModel,false);
-//wyszukiwanie zderzakow
-
-    for (int i=0;i<2;i++)
+    //Mechanik->JumpToFirstOrder();
+    if (fVel==0.0)
+     Mechanik->SetVelocity(0,0); //jeœli nie jedzie, to stoi
+    else
     {
-     asAnimName=AnsiString("buffer_left0")+(i+1);
-     smBuforLewy[i]=mdModel->GetFromName(asAnimName.c_str());
-     smBuforLewy[i]->WillBeAnimated();
-     asAnimName=AnsiString("buffer_right0")+(i+1);
-     smBuforPrawy[i]=mdModel->GetFromName(asAnimName.c_str());
-     smBuforPrawy[i]->WillBeAnimated();
+     Mechanik->SetVelocity(fVel,-1); //ma ustawiæ ¿¹dan¹ prêdkoœæ
+     Mechanik->JumpToFirstOrder();
     }
-
-    for (int i=0; i<iAxles; i++)
-     dRailPosition[i]=dWheelsPosition[i]+MoverParameters->Dim.L+fDist;
-//McZapkie-250202 end.
-
-    Track->AddDynamicObject(this);
-    //McZapkie: zmieniono na ilosc osi brane z chk
-    //iNumAxles=(MoverParameters->NAxles>3 ? 4 : 2 );
-    iNumAxles=2;
-    //McZapkie-090402: odleglosc miedzy czopami skretu lub osiami
-    double HalfMaxAxleDist=Max0R(MoverParameters->BDist,MoverParameters->ADist)*0.5;
-    switch (iNumAxles)
-    {//Ra: pojazdy wstawiaj¹ siê odwrotnie, ale nie jestem do koñca pewien, czy dobrze
-     case 2: //ustawianie osi na torze
-      Axle1.Init(Track,this);
-      Axle4.Init(Track,this);
-      Axle1.Move(iDirection*(-HalfMaxAxleDist-0.01)+fDist);
-      Axle4.Move(iDirection*(+HalfMaxAxleDist+0.01)+fDist);
-      //Axle2.Init(Track,this);
-      //Axle3.Init(Track,this);
-      //Axle2.Move(iDirection*(-HalfMaxAxleDist+0.01)+fDist);
-      //Axle3.Move(iDirection*(+HalfMaxAxleDist-0.01)+fDist);
-     break;
-     case 4:
-      Axle1.Init(Track,this);
-      //Axle2.Init(Track,this);
-      //Axle3.Init(Track,this);
-      Axle4.Init(Track,this);
-      Axle1.Move(iDirection*(-(HalfMaxAxleDist+MoverParameters->ADist*0.5))+fDist);
-      //Axle2.Move(iDirection*(-(HalfMaxAxleDist-MoverParameters->ADist*0.5))+fDist);
-      //Axle3.Move(iDirection*(+(HalfMaxAxleDist-MoverParameters->ADist*0.5))+fDist);
-      Axle4.Move(iDirection*(+(HalfMaxAxleDist+MoverParameters->ADist*0.5))+fDist);
-     break;
-    }
-    //pOldPos4=Axle1.pPosition; //Ra: nie u¿ywane
-    //pOldPos1=Axle4.pPosition;
-    //ActualTrack= GetTrack(); //McZapkie-030303
-    //ABuWozki 060504
-    smBogie[0]=mdModel->GetFromName("bogie1"); //Ra: bo nazwy s¹ ma³ymi
-    smBogie[1]=mdModel->GetFromName("bogie2");
-    if (!smBogie[0])
-     smBogie[0]=mdModel->GetFromName("boogie01"); //Ra: alternatywna nazwa
-    if (!smBogie[1])
-     smBogie[1]=mdModel->GetFromName("boogie02"); //Ra: alternatywna nazwa
-    smBogie[0]->WillBeAnimated();
-    smBogie[1]->WillBeAnimated();
-    //ABu: zainicjowanie zmiennej, zeby nic sie nie ruszylo
-    //w pierwszej klatce, potem juz liczona prawidlowa wartosc masy
-
-    MoverParameters->ComputeConstans();
-    return true;
+   }
+   //McZapkie! - zeby w ogole AI ruszyl to musi wykonac powyzsze rozkazy
+   //Ale mozna by je zapodac ze scenerii
+  }
+  else
+   if (DriverType=="passenger")
+   {//obserwator w charakterze pasazera
+    TrainParams= new TTrainParameters(TrainName);
+    Mechanik= new TController(l,r,Controller,&MoverParameters,&TrainParams,Easyman);
+   }
+ }
+ // McZapkie-250202
+ iAxles=(MaxAxles<MoverParameters->NAxles)?MaxAxles:MoverParameters->NAxles; //iloœæ osi
+ //wczytywanie z pliku nazwatypu.mmd, w tym model
+ LoadMMediaFile(asBaseDir,Type_Name,asReplacableSkin);
+ //McZapkie-100402: wyszukiwanie submodeli sprzegów
+ btCoupler1.Init("coupler1",mdModel,false); //false - ma byæ wy³¹czony
+ btCoupler2.Init("coupler2",mdModel,false);
+ btCPneumatic1.Init("cpneumatic1",mdModel);
+ btCPneumatic2.Init("cpneumatic2",mdModel);
+ btCPneumatic1r.Init("cpneumatic1r",mdModel);
+ btCPneumatic2r.Init("cpneumatic2r",mdModel);
+ btPneumatic1.Init("pneumatic1",mdModel);
+ btPneumatic2.Init("pneumatic2",mdModel);
+ btPneumatic1r.Init("pneumatic1r",mdModel);
+ btPneumatic2r.Init("pneumatic2r",mdModel);
+ btCCtrl1.Init("cctrl1",mdModel,false);
+ btCCtrl2.Init("cctrl2",mdModel,false);
+ btCPass1.Init("cpass1",mdModel,false);
+ btCPass2.Init("cpass2",mdModel,false);
+ //sygnaly
+ //ABu 060205: Zmiany dla koncowek swiecacych:
+ btEndSignals11.Init("endsignal23",mdModel,false);
+ btEndSignals13.Init("endsignal22",mdModel,false);
+ btEndSignals21.Init("endsignal13",mdModel,false);
+ btEndSignals23.Init("endsignal12",mdModel,false);
+ //ABu: to niestety zostawione dla kompatybilnosci modeli:
+ btEndSignals2.Init("endsignals1",mdModel,false);
+ btEndSignals1.Init("endsignals2",mdModel,false);
+ btEndSignalsTab1.Init("endtab1",mdModel,false);
+ btEndSignalsTab2.Init("endtab2",mdModel,false);
+ //ABu Uwaga! tu zmienic w modelu!
+ btHeadSignals11.Init("headlamp23",mdModel,false);
+ btHeadSignals12.Init("headlamp21",mdModel,false);
+ btHeadSignals13.Init("headlamp22",mdModel,false);
+ btHeadSignals21.Init("headlamp13",mdModel,false);
+ btHeadSignals22.Init("headlamp11",mdModel,false);
+ btHeadSignals23.Init("headlamp12",mdModel,false);
+ //wyszukiwanie zderzakow
+ for (int i=0;i<2;i++)
+ {
+  asAnimName=AnsiString("buffer_left0")+(i+1);
+  smBuforLewy[i]=mdModel->GetFromName(asAnimName.c_str());
+  smBuforLewy[i]->WillBeAnimated(); //ustawienie flagi animacji
+  asAnimName=AnsiString("buffer_right0")+(i+1);
+  smBuforPrawy[i]=mdModel->GetFromName(asAnimName.c_str());
+  smBuforPrawy[i]->WillBeAnimated();
+ }
+ for (int i=0;i<iAxles;i++) //wyszukiwanie osi (0 jest na koñcu, dlatego dodajemy d³ugoœæ?)
+  dRailPosition[i]=(Reversed?-dWheelsPosition[i]:(dWheelsPosition[i]+MoverParameters->Dim.L))+fDist;
+ //McZapkie-250202 end.
+ Track->AddDynamicObject(this); //wstawiamy do toru na pozycjê 0, a potem przesuniemy
+ //McZapkie: zmieniono na ilosc osi brane z chk
+ //iNumAxles=(MoverParameters->NAxles>3 ? 4 : 2 );
+ iNumAxles=2;
+ //McZapkie-090402: odleglosc miedzy czopami skretu lub osiami
+ double HalfMaxAxleDist=Max0R(MoverParameters->BDist,MoverParameters->ADist)*0.5;
+ fDist-=0.5*MoverParameters->Dim.L; //dodajemy pó³ d³ugoœci pojazdu
+ switch (iNumAxles)
+ {//Ra: pojazdy wstawiaj¹ siê odwrotnie, ale nie jestem do koñca pewien, czy dobrze
+  //Ra: pojazdy wstawiane s¹ na tor pocz¹tkowy, a potem przesuwane
+  case 2: //ustawianie osi na torze
+   Axle1.Init(Track,this,iDirection);
+   Axle1.Move(iDirection*fDist-HalfMaxAxleDist-0.01,false); //false, ¿eby nie generowaæ eventów
+   //Axle2.Init(Track,this,iDirection);
+   //Axle2.Move(iDirection*fDist-HalfMaxAxleDist+0.01),false);
+   //Axle3.Init(Track,this,iDirection);
+   //Axle3.Move(iDirection*fDist+HalfMaxAxleDist-0.01),false);
+   Axle4.Init(Track,this,iDirection);
+   Axle4.Move(iDirection*fDist+HalfMaxAxleDist+0.01,false);
+  break;
+  case 4:
+   Axle1.Init(Track,this,iDirection);
+   Axle1.Move(iDirection*fDist-(HalfMaxAxleDist+MoverParameters->ADist*0.5),false);
+   //Axle2.Init(Track,this,iDirection);
+   //Axle2.Move(iDirection*fDist-(HalfMaxAxleDist-MoverParameters->ADist*0.5),false);
+   //Axle3.Init(Track,this,iDirection);
+   //Axle3.Move(iDirection*fDist+(HalfMaxAxleDist-MoverParameters->ADist*0.5),false);
+   Axle4.Init(Track,this,iDirection);
+   Axle4.Move(iDirection*fDist+(HalfMaxAxleDist+MoverParameters->ADist*0.5),false);
+  break;
+ }
+ //teraz jeszcze trzeba przypisaæ pojazdy do nowego toru,
+ //bo przesuwanie pocz¹tkowe osi nie zrobi³o tego
+ //if (fDist!=0.0) //Ra: taki ma³y patent, ¿eby lokomotywa ruszy³a, mimo ¿e stoi na innym torze
+ ABuCheckMyTrack(); //zmiana toru na ten co oœ Axle4
+ //pOldPos4=Axle1.pPosition; //Ra: nie u¿ywane
+ //pOldPos1=Axle4.pPosition;
+ //ActualTrack= GetTrack(); //McZapkie-030303
+ //ABuWozki 060504
+ smBogie[0]=mdModel->GetFromName("bogie1"); //Ra: bo nazwy s¹ ma³ymi
+ smBogie[1]=mdModel->GetFromName("bogie2");
+ if (!smBogie[0])
+  smBogie[0]=mdModel->GetFromName("boogie01"); //Ra: alternatywna nazwa
+ if (!smBogie[1])
+  smBogie[1]=mdModel->GetFromName("boogie02"); //Ra: alternatywna nazwa
+ smBogie[0]->WillBeAnimated();
+ smBogie[1]->WillBeAnimated();
+ //ABu: zainicjowanie zmiennej, zeby nic sie nie ruszylo
+ //w pierwszej klatce, potem juz liczona prawidlowa wartosc masy
+ MoverParameters->ComputeConstans();
+ return MoverParameters->Dim.L; //d³ugoœæ wiêksza od zera oznacza OK
 }
 /*
 bool __fastcall TDynamicObject::Move(double fDistance)
@@ -1624,9 +1597,11 @@ void __fastcall TDynamicObject::FastMove(double fDistance)
 }
 
 void __fastcall TDynamicObject::Move(double fDistance)
-{
- bEnabled&= Axle1.Move(fDistance,MoverParameters->V>=0); //pierwszy, gdy jedziemy do przodu
- bEnabled&= Axle4.Move(fDistance,MoverParameters->V<0); //pierwszy, gdy jedziemy do ty³u
+{//przesuwanie pojazdu po trajektorii polega na przesuwaniu poszczególnych osi
+ //Ra: wartoœæ prêdkoœci -5km/m ma ograniczyæ przepisywanie pojazdu w przypadku drgañ
+ //Ra: pojazd jad¹cy wolno do ty³u bêdzie generowa³ event1/event2 tak, jakby mia³ jedn¹ oœ
+ bEnabled&=Axle4.Move(fDistance,MoverParameters->V>=-5.0); //pierwsza oœ, gdy jedziemy do przodu
+ bEnabled&=Axle1.Move(fDistance,MoverParameters->V<-5.0); //a ta, gdy jedziemy do ty³u
  //Axle3.Move(fDistance,false); //te nigdy pierwsze nie s¹
  //Axle2.Move(fDistance,false);
 };
@@ -1638,18 +1613,20 @@ void __fastcall TDynamicObject::AttachPrev(TDynamicObject *Object, int iType)
  //(iType czasami powinno byc rowne 0, a wynosi 48. Cholera wie, dlaczego...)
  //if (iType==48)
  //Ra: pewnie ³apa³o zero jako kod znaku... ale to ju¿ chyba nieaktualne?
- double l=0;
- //obliczanie d³ugoœci sk³adu
- for (TDynamicObject *Current=this;Current;Current=Current->iDirection<0?Current->NextConnected:Current->PrevConnected)
-  if (Current->iDirection<0?Current->NextConnected:Current->PrevConnected) //czy jeszcze coœ jest?
+/*
+ //Ra: sk³ad wstawiamy w podanym miejscu bez uwzglêdnienia po³owy d³ugoœci
+ //Ra: miejsce to miejse i nie powinno byæ ró¿nicy, czy pierwszy pojazd ma 5m, czy 20m
+ double l=0.0; //obliczanie d³ugoœci sk³adu
+ for (TDynamicObject *Current=this;Current;Current=Current->iDirection>0?Current->NextConnected:Current->PrevConnected)
+  //if (Current->iDirection<0?Current->NextConnected:Current->PrevConnected) //czy jeszcze coœ jest?
    l+=Current->GetLength(); //dodanie jego d³ugoœci do d³ugoœci sk³adu
-  else
-  {
-   l+=Current->GetLength()*0.5; //pierwszy w sk³adzie liczony od po³owy
-   break;
-  }
- /*double r=*/  //Ra: by³o bool rzutowane na double i zwracane jako bool (?)
- Object->Move(-l-(Object->GetLength())*0.5f); //przesuniêcie wózków na w³aœciwe miejsce w szeregu
+  //else
+  //{
+  // l+=Current->GetLength()*0.5; //pierwszy w sk³adzie liczony od po³owy
+  // break;
+  //}
+ //Object->Move(-l-(Object->GetLength())*0.5f); //przesuniêcie wózków na w³aœciwe miejsce w szeregu
+*/
  TLocation loc;
  loc.X=-GetPosition().x;
  loc.Y=GetPosition().z;
@@ -1685,7 +1662,7 @@ void __fastcall TDynamicObject::AttachPrev(TDynamicObject *Object, int iType)
  }
  //ABu: To mala poprawka - sprawdzenie tablic Dynamics dla obiektow,
  //bo wagony sa blednie rozmieszczane przy starcie symulatora.
- Object->ABuCheckMyTrack();
+ //Object->ABuCheckMyTrack(); //Ra: spróbujemy bez tego
  return;// r;
  //SetPneumatic(1,1); //Ra: to i tak siê nie wykonywa³o po return
  //SetPneumatic(1,0);
@@ -3109,10 +3086,10 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
         asModel=BaseDir+asModel;
         mdPrzedsionek=TModelsManager::GetModel(asModel.c_str(),true);
        }
-       if (MoverParameters->LoadAccepted!=AnsiString(""))
-       //           if (MoverParameters->LoadAccepted!=AnsiString("")); // && MoverParameters->LoadType!=AnsiString("passengers"))
+       if (!MoverParameters->LoadAccepted.IsEmpty())
+       //if (MoverParameters->LoadAccepted!=AnsiString("")); // && MoverParameters->LoadType!=AnsiString("passengers"))
         if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
-        {
+        {//wartoœæ niby "pantstate" - nazwa dla formalnoœci, wa¿na jest iloœæ
          if (MoverParameters->Load==1)
           MoverParameters->PantFront(true);
          else if (MoverParameters->Load==2)
@@ -3451,6 +3428,9 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
  //ABu 050205 - tego wczesniej nie bylo i uciekala pamiec:
  delete Parser;
  if (mdModel) mdModel->Init(); //obrócenie modelu oraz optymalizacja, równie¿ zapisanie binarnego
+ if (mdLoad) mdLoad->Init();
+ if (mdPrzedsionek) mdPrzedsionek->Init();
+ if (mdLowPolyInt) mdLowPolyInt->Init();
 }
 
 //---------------------------------------------------------------------------
@@ -3460,6 +3440,19 @@ void __fastcall TDynamicObject::RadioStop()
   MoverParameters->PutCommand("Emergency_brake",1.0,1.0,MoverParameters->Loc);
 };
 
+void __fastcall TDynamicObject::RaLightsSet(int head,int rear)
+{//zapalenie œwiate³ z przodu i z ty³u, zale¿ne od kierunku pojazdu
+ if (iDirection>0)
+ {
+  if (head>=0) MoverParameters->HeadSignalsFlag=head;
+  if (rear>=0) MoverParameters->EndSignalsFlag=rear;
+ }
+ else //jak jest odwrócony w sk³adzie, to zapalamy odwrotnie
+ {
+  if (head>=0) MoverParameters->EndSignalsFlag=head;
+  if (rear>=0) MoverParameters->HeadSignalsFlag=rear;
+ }
+};
 
 #pragma package(smart_init)
 

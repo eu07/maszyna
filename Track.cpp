@@ -761,19 +761,18 @@ bool __fastcall TTrack::IsolatedEventsAssign(TEvent *busy, TEvent *free)
 
 //ABu: przeniesione z Track.h i poprawione!!!
 bool __fastcall TTrack::AddDynamicObject(TDynamicObject *Dynamic)
-{
-    if (iNumDynamics<iMaxNumDynamics)
-    {
-        Dynamics[iNumDynamics]=Dynamic;
-        iNumDynamics++;
-        Dynamic->MyTrack=this; //ABu: Na ktorym torze jestesmy.
-        return true;
-    }
-    else
-    {
-        Error("Cannot add dynamic to track");
-        return false;
-    }
+{//dodanie pojazdu do trajektorii
+ if (iNumDynamics<iMaxNumDynamics)
+ {//jeœli jest miejsce, dajemy na koniec
+  Dynamics[iNumDynamics++]=Dynamic;
+  Dynamic->MyTrack=this; //ABu: na ktorym torze jesteœmy
+  return true;
+ }
+ else
+ {
+  Error("Too many dynamics on track.");
+  return false;
+ }
 };
 
 void __fastcall TTrack::MoveMe(vector3 pPosition)
@@ -1204,28 +1203,27 @@ void __fastcall TTrack::RenderAlpha()
 }
 
 bool __fastcall TTrack::CheckDynamicObject(TDynamicObject *Dynamic)
-{
-    for (int i=0; i<iNumDynamics; i++)
-        if (Dynamic==Dynamics[i])
-            return true;
-    return false;
+{//sprawdzenie, czy pojazd jest przypisany do toru
+ for (int i=0;i<iNumDynamics;i++)
+  if (Dynamic==Dynamics[i])
+   return true;
+ return false;
 };
 
 bool __fastcall TTrack::RemoveDynamicObject(TDynamicObject *Dynamic)
-{
-    for (int i=0; i<iNumDynamics; i++)
-    {
-        if (Dynamic==Dynamics[i])
-        {
-            iNumDynamics--;
-            for (i; i<iNumDynamics; i++)
-                Dynamics[i]=Dynamics[i+1];
-            return true;
-
-        }
-    }
-    Error("Cannot remove dynamic from track");
-    return false;
+{//usuniêcie pojazdu z listy przypisanych do toru
+ for (int i=0;i<iNumDynamics;i++)
+ {//sprawdzanie wszystkich po kolei
+  if (Dynamic==Dynamics[i])
+  {//znaleziony, przepisanie nastêpnych, ¿eby dziur nie by³o
+   --iNumDynamics;
+   for (i;i<iNumDynamics;i++)
+    Dynamics[i]=Dynamics[i+1];
+   return true;
+  }
+ }
+ Error("Cannot remove dynamic from track");
+ return false;
 }
 
 bool __fastcall TTrack::InMovement()
@@ -1801,4 +1799,12 @@ void __fastcall TTrack::RadioStop()
 {//przekazanie pojazdom rozkazu zatrzymania
  for (int i=0;i<iNumDynamics;i++)
   Dynamics[i]->RadioStop();
+};
+
+double __fastcall TTrack::WidthTotal()
+{//szerokoœæ z poboczem
+ if (iCategoryFlag==2) //jesli droga
+  if (fTexHeight>=0.0) //i ma boki zagiête w dó³ (chodnik jest w górê)
+   return 2.0*fabs(fTexWidth)+0.5*fabs(fTrackWidth+fTrackWidth2); //dodajemy pobocze
+ return 0.5*fabs(fTrackWidth+fTrackWidth2); //a tak tylko zwyk³a œrednia szerokoœæ
 };
