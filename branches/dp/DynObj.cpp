@@ -1034,110 +1034,81 @@ void TDynamicObject::ABuScanObjects(int ScanDir,double ScanDist)
 //----------------McZapkie: skanowanie semaforow:
 
 //pomocnicza funkcja sprawdzania czy do toru jest podpiety semafor
-bool __fastcall CheckTrackEvent(double fDirection, TTrack *Track)
-{
-  if (fDirection>0)
-   if (Track->Event2)
-    if ((Track->Event2->Type==tp_GetValues) || (Track->Event2->Type==tp_PutValues))
-     return true;
-  if (fDirection<0)
-   if (Track->Event1)
-    if ((Track->Event1->Type==tp_GetValues) || (Track->Event1->Type==tp_PutValues))
-     return true;
-  return false;
+bool __fastcall TDynamicObject::CheckTrackEvent(double fDirection,TTrack *Track)
+{//sprawdzanie eventów na podanym torze
+ //ZiomalCl: teraz zwracany jest pierwszy event podajacy predkosc dla AI
+ //a nie kazdy najblizszy event [AI sie gubilo gdy przed getval z SetVelocity
+ //mialo np. PutValues z eventem od SHP]
+ TEvent *e=(fDirection>0)?Track->Event2:Track->Event1;
+ if (e)
+ {AnsiString command;
+  double speed=0;
+  switch (e->Type)
+  {case tp_GetValues:
+    command=String(e->Params[9].asMemCell->szText);
+    if (Mechanik->OrderList[Mechanik->OrderPos]==Shunt) //tylko jeœli w trybie manewrowym
+     if (command=="ShuntVelocity")
+      return true;
+    break;
+   case tp_PutValues:
+    command=String(e->Params[0].asText);
+    break;
+   default:
+    return false; //inne eventy siê nie licz¹
+  }
+  if (command=="SetVelocity")
+   return true; //jak podamy wyjazd, to prze³¹czy siê w jazdê poci¹gow¹
+  //if (command.SubString(1,19)=="PassengerStopPoint:")
+  // return true; //porównaæ z rozk³adem i przekazaæ tylko jeœli siê zgadza
+ }
+ return false;
 }
 
-TTrack* __fastcall TraceRoute(double &fDistance, double &fDirection, TTrack *Track)
-{
-//    fDistance*= fDirection;
-    double fCurrentDistance= Track->Length();
-    double s= 0;
-    if (CheckTrackEvent(fDirection,Track))
-     {
-      fDistance= 0;   //to na tym torze stoimy
-      return Track;
-     }
-    while (s<fDistance)
-     {
-        Track->ScannedFlag= false;
-        s+= fCurrentDistance;
-        if (fDirection>0)
-        {
-         if (Track->iNextDirection)
-         {
-          Track=Track->CurrentNext();
-          fDirection=-fDirection;
-         }
-         else
-          Track=Track->CurrentNext();
-        }
-        else if (fDirection<0)
-        {
-         if (Track->iPrevDirection)
-          Track=Track->CurrentPrev();
-         else
-         {
-          Track=Track->CurrentPrev();
-          fDirection=-fDirection;
-         }
-        }
-        else return NULL; //kierunek moze byc tylko +-
-
-        if (Track==NULL)
-        {
-            fDistance= s;
-            return NULL;
-        }
-        fCurrentDistance= Track->Length();
-        if (CheckTrackEvent(fDirection,Track))
-         {
-         //ZiomalCl: teraz zwracany jest pierwszy event podajacy predkosc dla AI
-         //a nie kazdy najblizszy event [AI sie gubilo gdy przed getval z SetVelocity
-         //mialo np. PutValues z eventem od SHP]
-           if (Track->Event1)
-            if(Track->Event1->Type==tp_GetValues)
-              {
-              AnsiString st1 = String(Track->Event1->Params[9].asMemCell->szText);
-              if(st1=="SetVelocity"||st1=="ShuntVelocity")
-                {
-                fDistance= s;
-                return Track;
-                }
-              }
-            else if(Track->Event1->Type==tp_PutValues)
-              {
-              AnsiString st1 = String(Track->Event1->Params[0].asText);
-              if (st1=="SetVelocity"||st1=="ShuntVelocity"||(st1.SubString(1,19)=="PassengerStopPoint:"))
-                {
-                fDistance= s;
-                return Track;
-                }
-              }
-           if (Track->Event2)
-            if(Track->Event2->Type==tp_GetValues)
-              {
-              AnsiString st1 = String(Track->Event2->Params[9].asMemCell->szText);
-              if(st1=="SetVelocity"||st1=="ShuntVelocity")
-                {
-                fDistance= s;
-                return Track;
-                }
-              }
-            else if(Track->Event2->Type==tp_PutValues)
-              {
-              AnsiString st1 = String(Track->Event2->Params[0].asText);
-              if (st1=="SetVelocity"||st1=="ShuntVelocity"||(st1.SubString(1,19)=="PassengerStopPoint:"))
-                {
-                fDistance= s;
-                return Track;
-                }
-              }
-
-
-         }
-     }
-    fDistance= s;
-    return Track;
+TTrack* __fastcall TDynamicObject::TraceRoute(double &fDistance,double &fDirection,TTrack *Track)
+{//szukanie semafora z przodu
+ //fDistance*=fDirection;
+ double fCurrentDistance=Track->Length();
+ double s= 0;
+ if (CheckTrackEvent(fDirection,Track))
+ {
+  fDistance=0;   //to na tym torze stoimy
+  return Track;
+ }
+ while (s<fDistance)
+ {
+  Track->ScannedFlag=false;
+  s+=fCurrentDistance;
+  if (fDirection>0)
+  {
+   if (Track->iNextDirection)
+   {
+    Track=Track->CurrentNext();
+    fDirection=-fDirection;
+   }
+   else
+    Track=Track->CurrentNext();
+  }
+  else //if (fDirection<0)
+  {
+   if (Track->iPrevDirection)
+    Track=Track->CurrentPrev();
+   else
+   {
+    Track=Track->CurrentPrev();
+    fDirection=-fDirection;
+   }
+  }
+  if (Track==NULL)
+  {
+   fDistance=s;
+   return NULL;
+  }
+  fCurrentDistance=Track->Length();
+  if (CheckTrackEvent(fDirection,Track))
+   break;
+ }
+ fDistance=s;
+ return Track;
 }
 
 
@@ -1163,16 +1134,17 @@ void TDynamicObject::ScanEventTrack()
   {
    double vtrackmax=scantrack->fVelocity;  //ograniczenie szlakowe
    double vmechmax=-1;
-   if ((scantrack->Event2) && (scandir>0))
+   TEvent *e=(scandir>0)?scantrack->Event2:scantrack->Event1;
+   if (e) //Ra: dwa prawie identyczne fragmenty kodu s¹ trudne do poprawiania
    {
-    if (scantrack->Event2->Type==tp_GetValues)
-    {
-     if (strcmp(scantrack->Event2->Params[9].asMemCell->szText,"SetVelocity")==0)
-     {//przeslac info o zblizajacym sie semaforze
-      sl.X=-scantrack->Event2->Params[8].asGroundNode->pCenter.x;
-      sl.Y= scantrack->Event2->Params[8].asGroundNode->pCenter.z;
-      sl.Z= scantrack->Event2->Params[8].asGroundNode->pCenter.y;
-      vmechmax=scantrack->Event2->Params[9].asMemCell->fValue1;
+    if (e->Type==tp_GetValues)
+    {//przes³aæ info o zbli¿aj¹cym siê semaforze
+     sl.X=-e->Params[8].asGroundNode->pCenter.x;
+     sl.Y= e->Params[8].asGroundNode->pCenter.z;
+     sl.Z= e->Params[8].asGroundNode->pCenter.y;
+     vmechmax=e->Params[9].asMemCell->fValue1;
+     if (strcmp(e->Params[9].asMemCell->szText,"SetVelocity")==0)
+     {//
       if ((fabs(scandist)>Mechanik->MinProximityDist)&&(MoverParameters->Vel!=0.0))
       {//semafor daleko; Ra: odleg³oœæ do semafora nie liczy siê, jeœli stoimy
        if (!EndTrack)
@@ -1181,52 +1153,26 @@ void TDynamicObject::ScanEventTrack()
       else
       {//semafor na tym torze albo lokomtywa stoi
        if (!EndTrack)
-        Mechanik->PutCommand("SetVelocity",vmechmax,scantrack->Event2->Params[9].asMemCell->fValue2,sl);
+        Mechanik->PutCommand("SetVelocity",vmechmax,e->Params[9].asMemCell->fValue2,sl);
       }
      }
+     else
+      if (Mechanik->OrderList[Mechanik->OrderPos]==Shunt) //tylko jeœli w trybie manewrowym
+       if (strcmp(e->Params[9].asMemCell->szText,"ShuntVelocity")==0)
+       {//
+        if (!EndTrack)
+         Mechanik->PutCommand("ShuntVelocity",e->Params[9].asMemCell->fValue2,vtrackmax,sl);
+       }
     }
-    else if (scantrack->Event2->Type==tp_PutValues)
-     if (strcmp(scantrack->Event2->Params[0].asText,"SetVelocity")==0)
+    else if (e->Type==tp_PutValues)
+     if (strcmp(e->Params[0].asText,"SetVelocity")==0)
      {//statyczne ograniczenie predkosci
-      sl.X=-scantrack->Event2->Params[3].asdouble;
-      sl.Y= scantrack->Event2->Params[4].asdouble;
-      sl.Z= scantrack->Event2->Params[5].asdouble;
-      if (fabs(scandist)<Mechanik->MinProximityDist+1) //na tym torze
+      sl.X=-e->Params[3].asdouble;
+      sl.Y= e->Params[4].asdouble;
+      sl.Z= e->Params[5].asdouble;
+      if (fabs(scandist)<Mechanik->MinProximityDist+1) //tylko na tym torze
        if (!EndTrack)
-        Mechanik->PutCommand("SetVelocity",scantrack->Event2->Params[1].asdouble,scantrack->Event2->Params[2].asdouble,sl);
-     }
-   }
-   else if ((scantrack->Event1) && (scandir<0))
-   {
-    if (scantrack->Event1->Type==tp_GetValues)
-    {
-     if (strcmp(scantrack->Event1->Params[9].asMemCell->szText,"SetVelocity")==0)
-     {//to samo ale w druga stronê
-      sl.X=-scantrack->Event1->Params[8].asGroundNode->pCenter.x;
-      sl.Y= scantrack->Event1->Params[8].asGroundNode->pCenter.z;
-      sl.Z= scantrack->Event1->Params[8].asGroundNode->pCenter.y;
-      vmechmax=scantrack->Event1->Params[9].asMemCell->fValue1;
-      if ((fabs(scandist)>Mechanik->MinProximityDist)&&(MoverParameters->Vel!=0.0))
-      {//semafor daleko; Ra: odleg³oœæ do semafora nie liczy siê, jeœli stoimy
-       if (!EndTrack)
-        Mechanik->PutCommand("SetProximityVelocity",fabs(scandist),vmechmax,sl);
-      }
-      else
-      {//semafor na tym torze albo lokomtywa stoi
-       if (!EndTrack)
-        Mechanik->PutCommand("SetVelocity",vmechmax,scantrack->Event1->Params[9].asMemCell->fValue2,sl);
-      }
-     }
-    }
-    else if (scantrack->Event1->Type==tp_PutValues)
-     if (strcmp(scantrack->Event1->Params[0].asText,"SetVelocity")==0)
-     {                         //statyczne ograniczenie predkosci
-      sl.X=-scantrack->Event1->Params[3].asdouble;
-      sl.Y= scantrack->Event1->Params[4].asdouble;
-      sl.Z= scantrack->Event1->Params[5].asdouble;
-      if (fabs(scandist)<Mechanik->MinProximityDist+1) //na tym torze
-       if (!EndTrack)
-        Mechanik->PutCommand("SetVelocity",scantrack->Event1->Params[1].asdouble,scantrack->Event1->Params[2].asdouble,sl);
+        Mechanik->PutCommand("SetVelocity",e->Params[1].asdouble,e->Params[2].asdouble,sl);
      }
    }
    if (vtrackmax>0)
