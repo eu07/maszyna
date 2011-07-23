@@ -560,8 +560,8 @@ TYPE
                 Mains: boolean;    {polozenie glownego wylacznika}
                 MainCtrlPos: byte; {polozenie glownego nastawnika}
                 ScndCtrlPos: byte; {polozenie dodatkowego nastawnika}
-                ActiveDir: integer;{czy lok. jest wlaczona i w ktorym kierunku}
-                {-1 - do tylu, +1 - do przodu, 0 - wylaczona}
+                ActiveDir: integer; //czy lok. jest wlaczona i w ktorym kierunku:
+                //wzglêdem wybranej kabiny: -1 - do tylu, +1 - do przodu, 0 - wylaczona
                 CabNo: integer;    {! numer kabiny: 1 lub -1. W przeciwnym razie brak sterowania - rozrzad}
                 ActiveCab: integer; {! numer kabiny, w ktorej sie jest}
                 LastCab: integer;       { numer kabiny przed zmiana }

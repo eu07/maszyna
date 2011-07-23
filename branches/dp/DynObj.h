@@ -141,7 +141,7 @@ protected:
     int CouplCounter;
     AnsiString asModel;
     int iDirection;
-    void ScanEventTrack(TTrack *Track);
+    void ScanEventTrack();
     void ABuScanObjects(int ScanDir,double ScanDist);
     void __fastcall ABuCheckMyTrack();
 
