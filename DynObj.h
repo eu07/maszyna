@@ -130,6 +130,8 @@ private:
     char cp1, sp1, cp2, sp2; //ustawienia wezy
     TRealSound sBrakeAcc; //dzwiek przyspieszacza
 
+ bool __fastcall CheckTrackEvent(double fDirection,TTrack *Track);
+ TTrack* __fastcall TraceRoute(double &fDistance,double &fDirection,TTrack *Track);
 protected:
     bool bEnabled;
     AnsiString asName;

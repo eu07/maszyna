@@ -56,7 +56,7 @@ public:
                       double fNewRoll1=0,double fNewRoll2=0,bool bIsCurve=true);
  inline double __fastcall ComputeLength(vector3 p1,vector3 cp1,vector3 cp2,vector3 p2);  //McZapkie-150503
  inline vector3 __fastcall GetDirection1() {return bCurve?CPointOut-Point1:CPointOut;};
- inline vector3 __fastcall GetDirection2() {return bCurve?Point2-CPointIn:-CPointIn;};
+ inline vector3 __fastcall GetDirection2() {return bCurve?CPointIn-Point2:CPointIn;};
  vector3 __fastcall GetDirection(double fDistance);
  vector3 __fastcall GetDirection() {return CPointOut;};
  vector3 __fastcall FastGetDirection(double fDistance,double fOffset);

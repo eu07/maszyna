@@ -210,7 +210,7 @@ TTrack* __fastcall TTrack::NullCreate(int dir)
    break;
   case 1:
    p1=Segment->FastGetPoint_1();
-   p2=p1+450.0*Normalize(Segment->GetDirection2());
+   p2=p1-450.0*Normalize(Segment->GetDirection2());
    trk->Segment->Init(p1,p2,5,RadToDeg(r2),70.0); //bo prosty, kontrolne wyliczane przy zmiennej przechy³ce
    ConnectNextPrev(trk,0);
    break;
@@ -1054,36 +1054,39 @@ void __fastcall TTrack::Compile()
      //na razie po³owa odleg³oœci pomiêdzy Point1 i Point2, potem siê dopracuje
      vector3 p[4]; //punkty siê przydadz¹ do obliczeñ
      double a[4]; //k¹ty osi ulic wchodz¹cych
-     p[0]= SwitchExtension->Segments[0]->GetDirection1(); //Point1 - pobranie wektorów kontrolnych
-     p[1]=-SwitchExtension->Segments[1]->GetDirection2(); //Point4
-     p[2]=-SwitchExtension->Segments[0]->GetDirection2(); //Point2
-     p[3]= SwitchExtension->Segments[1]->GetDirection1(); //Point3
-     a[0]=atan2(-p[0].x,p[0].z); // k¹ty osi
+     p[0]=SwitchExtension->Segments[0]->GetDirection1(); //Point1 - pobranie wektorów kontrolnych
+     p[1]=SwitchExtension->Segments[1]->GetDirection2(); //Point4
+     p[2]=SwitchExtension->Segments[0]->GetDirection2(); //Point2
+     p[3]=SwitchExtension->Segments[1]->GetDirection1(); //Point3
+     a[0]=atan2(-p[0].x,p[0].z); // k¹ty dróg
      a[1]=atan2(-p[1].x,p[1].z);
      a[2]=atan2(-p[2].x,p[2].z);
      a[3]=atan2(-p[3].x,p[3].z);
      p[0]=SwitchExtension->Segments[0]->FastGetPoint_0(); //Point1 - pobranie wspó³rzêdnych koñców
      p[1]=SwitchExtension->Segments[1]->FastGetPoint_1(); //Point4
      p[2]=SwitchExtension->Segments[0]->FastGetPoint_1(); //Point2
-     p[3]=SwitchExtension->Segments[1]->FastGetPoint_0(); //Point3
-     int points=2+4*2; //ile punktów
+     p[3]=SwitchExtension->Segments[1]->FastGetPoint_0(); //Point3 - przy trzech drogach pokrywa siê z Point1
+     int drogi=(p[2]==p[0])?3:4; //jeœli punkty siê nak³adaj¹, to mamy trzy drogi
+     int points=2+3*drogi,i=0,j; //ile punktów (mo¿e byc ró¿na iloœæ punktów miêdzy drogami)
      vector3 *q=new vector3[points];
      double sina0=sin(a[0]),cosa0=cos(a[0]);
-     q[ 0]=0.5*(p[0]+p[2]); //œrodek skrzy¿owania
-     q[ 1]=p[0]+vector3(+fHTW*cos(a[0]),0,+fHTW*sin(a[0])); //Point1
-     q[ 2]=p[0]+vector3(-fHTW*cos(a[0]),0,-fHTW*sin(a[0]));
-     q[ 3]=p[1]+vector3(+fHTW*cos(a[1]),0,+fHTW*sin(a[1])); //Point4
-     q[ 4]=p[1]+vector3(-fHTW*cos(a[1]),0,-fHTW*sin(a[1]));
-     q[ 5]=p[2]+vector3(+fHTW*cos(a[2]),0,+fHTW*sin(a[2])); //Point2
-     q[ 6]=p[2]+vector3(-fHTW*cos(a[2]),0,-fHTW*sin(a[2]));
-     q[ 7]=p[3]+vector3(+fHTW*cos(a[3]),0,+fHTW*sin(a[3])); //Point3
-     q[ 8]=p[3]+vector3(-fHTW*cos(a[3]),0,-fHTW*sin(a[3]));
-     q[points-1]=q[1]; //zamkniêcie obszaru
+     q[0]=0.5*(p[0]+p[2]); //œrodek skrzy¿owania
+     for (j=0;j<drogi;++j)
+     {q[++i]=p[j]+vector3(+fHTW*cos(a[j]),0,+fHTW*sin(a[j])); //Point1
+      q[++i]=p[j]+vector3(-fHTW*cos(a[j]),0,-fHTW*sin(a[j]));
+      ++i; //punkt w œrodku obliczymy potem
+     }
+     q[++i]=q[1]; //domkniêcie obszaru
+     i=0; //zaczynamy od zera, aby wype³niæ œrodki, mo¿e byc ró¿na iloœæ punktów
+     for (j=0;j<drogi;++j)
+     {i+=3;
+      q[i]=0.5*(0.5*(q[i-1]+q[i+1])+q[0]); //tak na pocz¹tek
+     }
      double u,v;
      if (TextureID1) //jeœli podana tekstura nawierzchni
      {glBindTexture(GL_TEXTURE_2D,TextureID1);
       glBegin(GL_TRIANGLE_FAN); //takie kó³eczko bêdzie
-       for (int i=0;i<points;++i)
+       for (i=0;i<points;++i)
        {glNormal3f(0,1,0);
         u=(q[i].x-q[0].x)/fTexLength; //mapowanie we wspó³rzêdnych scenerii
         v=(q[i].z-q[0].z)/(fTexRatio*fTexLength);
