@@ -162,7 +162,7 @@ bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
  }
 /*-----------------------Render Initialization----------------------*/
  if (Global::fOpenGL>=1.2) //poni¿sze nie dzia³a w 1.1
-  glTexEnvf(TEXTURE_FILTER_CONTROL_EXT,TEXTURE_LOD_BIAS_EXT,-2);
+  glTexEnvf(TEXTURE_FILTER_CONTROL_EXT,TEXTURE_LOD_BIAS_EXT,-1);
  GLfloat FogColor[]={1.0f,1.0f,1.0f,1.0f};
  glMatrixMode(GL_MODELVIEW); // Select The Modelview Matrix
  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear screen and depth buffer

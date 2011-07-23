@@ -335,7 +335,7 @@ void __fastcall TSegment::RenderLoft(const vector6 *ShapePoints, int iNumShapePo
      norm.y+=jmm1*ShapePoints[j].n.y+m1*ShapePoints[j+iNumShapePoints].n.y;
      pt=parallel1*(jmm1*ShapePoints[j].x+m1*ShapePoints[j+iNumShapePoints].x)+pos1;
      pt.y+=jmm1*ShapePoints[j].y+m1*ShapePoints[j+iNumShapePoints].y;
-     glNormal3d(norm.x,norm.y,norm.z);
+     glNormal3f(norm.x,norm.y,norm.z);
      glTexCoord2f(jmm1*ShapePoints[j].z+m1*ShapePoints[j+iNumShapePoints].z,tv1);
      glVertex3f(pt.x,pt.y,pt.z); //pt nie mamy gdzie zapamiêtaæ?
      //dla trapezu drugi koniec ma inne wspó³rzêdne
@@ -343,7 +343,7 @@ void __fastcall TSegment::RenderLoft(const vector6 *ShapePoints, int iNumShapePo
      norm.y+=jmm1*ShapePoints[j].n.y+m1*ShapePoints[j+iNumShapePoints].n.y;
      pt=parallel2*(jmm2*ShapePoints[j].x+m2*ShapePoints[j+iNumShapePoints].x)+pos2;
      pt.y+=jmm2*ShapePoints[j].y+m2*ShapePoints[j+iNumShapePoints].y;
-     glNormal3d(norm.x,norm.y,norm.z);
+     glNormal3f(norm.x,norm.y,norm.z);
      glTexCoord2f(jmm2*ShapePoints[j].z+m2*ShapePoints[j+iNumShapePoints].z,tv2);
      glVertex3f(pt.x,pt.y,pt.z);
     }
@@ -361,7 +361,7 @@ void __fastcall TSegment::RenderLoft(const vector6 *ShapePoints, int iNumShapePo
      norm.y+=ShapePoints[j].n.y;
      pt=parallel2*ShapePoints[j].x+pos2;
      pt.y+=ShapePoints[j].y;
-     glNormal3d(norm.x,norm.y,norm.z);
+     glNormal3f(norm.x,norm.y,norm.z);
      glTexCoord2f(ShapePoints[j].z,tv2);
      glVertex3f(pt.x,pt.y,pt.z); //punkt na koñcu odcinka
     }
@@ -385,7 +385,7 @@ void __fastcall TSegment::RenderLoft(const vector6 *ShapePoints, int iNumShapePo
     norm.y+=ShapePoints[j].n.y;
     pt=parallel1*ShapePoints[j].x+pos1;
     pt.y+=ShapePoints[j].y;
-    glNormal3d(norm.x,norm.y,norm.z);
+    glNormal3f(norm.x,norm.y,norm.z);
     glTexCoord2f(ShapePoints[j].z,0);
     glVertex3f(pt.x,pt.y,pt.z);
     //dla trapezu drugi koniec ma inne wspó³rzêdne wzglêdne
@@ -393,7 +393,7 @@ void __fastcall TSegment::RenderLoft(const vector6 *ShapePoints, int iNumShapePo
     norm.y+=ShapePoints[j+iNumShapePoints].n.y;
     pt=parallel1*ShapePoints[j+iNumShapePoints].x+pos2; //odsuniêcie
     pt.y+=ShapePoints[j+iNumShapePoints].y; //wysokoœæ
-    glNormal3d(norm.x,norm.y,norm.z);
+    glNormal3f(norm.x,norm.y,norm.z);
     glTexCoord2f(ShapePoints[j+iNumShapePoints].z,fLength/fTextureLength);
     glVertex3f(pt.x,pt.y,pt.z);
    }
@@ -404,12 +404,12 @@ void __fastcall TSegment::RenderLoft(const vector6 *ShapePoints, int iNumShapePo
     norm.y+=ShapePoints[j].n.y;
     pt=parallel1*ShapePoints[j].x+pos1;
     pt.y+=ShapePoints[j].y;
-    glNormal3d(norm.x,norm.y,norm.z);
+    glNormal3f(norm.x,norm.y,norm.z);
     glTexCoord2f(ShapePoints[j].z,0);
     glVertex3f(pt.x,pt.y,pt.z);
     pt=parallel1*ShapePoints[j].x+pos2;
     pt.y+=ShapePoints[j].y;
-    glNormal3d(norm.x,norm.y,norm.z);
+    glNormal3f(norm.x,norm.y,norm.z);
     glTexCoord2f(ShapePoints[j].z,fLength/fTextureLength);
     glVertex3f(pt.x,pt.y,pt.z);
    }
