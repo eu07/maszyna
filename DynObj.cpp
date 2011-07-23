@@ -1037,11 +1037,11 @@ void TDynamicObject::ABuScanObjects(int ScanDir,double ScanDist)
 bool __fastcall CheckTrackEvent(double fDirection, TTrack *Track)
 {
   if (fDirection>0)
-   if (Track->Event2!=NULL)
+   if (Track->Event2)
     if ((Track->Event2->Type==tp_GetValues) || (Track->Event2->Type==tp_PutValues))
      return true;
   if (fDirection<0)
-   if (Track->Event1!=NULL)
+   if (Track->Event1)
     if ((Track->Event1->Type==tp_GetValues) || (Track->Event1->Type==tp_PutValues))
      return true;
   return false;
@@ -1094,7 +1094,7 @@ TTrack* __fastcall TraceRoute(double &fDistance, double &fDirection, TTrack *Tra
          //ZiomalCl: teraz zwracany jest pierwszy event podajacy predkosc dla AI
          //a nie kazdy najblizszy event [AI sie gubilo gdy przed getval z SetVelocity
          //mialo np. PutValues z eventem od SHP]
-           if(Track->Event1!=NULL)
+           if (Track->Event1)
             if(Track->Event1->Type==tp_GetValues)
               {
               AnsiString st1 = String(Track->Event1->Params[9].asMemCell->szText);
@@ -1113,7 +1113,7 @@ TTrack* __fastcall TraceRoute(double &fDistance, double &fDirection, TTrack *Tra
                 return Track;
                 }
               }
-           if(Track->Event2!=NULL)
+           if (Track->Event2)
             if(Track->Event2->Type==tp_GetValues)
               {
               AnsiString st1 = String(Track->Event2->Params[9].asMemCell->szText);
@@ -1142,16 +1142,17 @@ TTrack* __fastcall TraceRoute(double &fDistance, double &fDirection, TTrack *Tra
 
 
 //sprawdzanie zdarzeñ semaforów i ograniczeñ szlakowych
-void TDynamicObject::ScanEventTrack(TTrack *Track)
+void TDynamicObject::ScanEventTrack()
 {
- double scandir=MoverParameters->CabNo*Axle1.GetDirection(); //kabina i zwrot na torze
+ double scandir=MoverParameters->CabNo; //która kabina jest w u¿yciu
  TLocation sl;
- if (MoverParameters->ActiveDir!=0)
-  scandir=scandir*MoverParameters->ActiveDir;
+ if (MoverParameters->ActiveDir)
+  scandir=scandir*MoverParameters->ActiveDir; //uwzglêdnienie nastawnika kierunkowego
+ scandir=scandir>0?Axle4.GetDirection():Axle1.GetDirection(); //od której osi szukamy
  if (scandir!=0) //skanowanie toru w poszukiwaniu eventu GetValues
  {
   double scandist=120+random(MoverParameters->Vmax*5); //fabs(Mechanik->ProximityDist);
-  TTrack *scantrack=TraceRoute(scandist,scandir,Track);
+  TTrack *scantrack=TraceRoute(scandist,scandir,scandir>0?Axle4.GetTrack():Axle1.GetTrack()); //
   if (scantrack==NULL) //jeœli wykryto koniec toru
   {
    if (!EndTrack)
@@ -1162,7 +1163,7 @@ void TDynamicObject::ScanEventTrack(TTrack *Track)
   {
    double vtrackmax=scantrack->fVelocity;  //ograniczenie szlakowe
    double vmechmax=-1;
-   if ((scantrack->Event2!=NULL) && (scandir>0))
+   if ((scantrack->Event2) && (scandir>0))
    {
     if (scantrack->Event2->Type==tp_GetValues)
     {
@@ -1172,13 +1173,13 @@ void TDynamicObject::ScanEventTrack(TTrack *Track)
       sl.Y= scantrack->Event2->Params[8].asGroundNode->pCenter.z;
       sl.Z= scantrack->Event2->Params[8].asGroundNode->pCenter.y;
       vmechmax=scantrack->Event2->Params[9].asMemCell->fValue1;
-      if (fabs(scandist)>Mechanik->MinProximityDist) //semafor daleko
-      {
+      if ((fabs(scandist)>Mechanik->MinProximityDist)&&(MoverParameters->Vel!=0.0))
+      {//semafor daleko; Ra: odleg³oœæ do semafora nie liczy siê, jeœli stoimy
        if (!EndTrack)
         Mechanik->PutCommand("SetProximityVelocity",fabs(scandist),vmechmax,sl);
       }
-      else //semafor na tym torze
-      {
+      else
+      {//semafor na tym torze albo lokomtywa stoi
        if (!EndTrack)
         Mechanik->PutCommand("SetVelocity",vmechmax,scantrack->Event2->Params[9].asMemCell->fValue2,sl);
       }
@@ -1195,7 +1196,7 @@ void TDynamicObject::ScanEventTrack(TTrack *Track)
         Mechanik->PutCommand("SetVelocity",scantrack->Event2->Params[1].asdouble,scantrack->Event2->Params[2].asdouble,sl);
      }
    }
-   else if ((scantrack->Event1!=NULL) && (scandir<0))
+   else if ((scantrack->Event1) && (scandir<0))
    {
     if (scantrack->Event1->Type==tp_GetValues)
     {
@@ -1205,13 +1206,13 @@ void TDynamicObject::ScanEventTrack(TTrack *Track)
       sl.Y= scantrack->Event1->Params[8].asGroundNode->pCenter.z;
       sl.Z= scantrack->Event1->Params[8].asGroundNode->pCenter.y;
       vmechmax=scantrack->Event1->Params[9].asMemCell->fValue1;
-      if (fabs(scandist)>Mechanik->MinProximityDist) //semafor daleko
-      {
+      if ((fabs(scandist)>Mechanik->MinProximityDist)&&(MoverParameters->Vel!=0.0))
+      {//semafor daleko; Ra: odleg³oœæ do semafora nie liczy siê, jeœli stoimy
        if (!EndTrack)
         Mechanik->PutCommand("SetProximityVelocity",fabs(scandist),vmechmax,sl);
       }
-      else //semafor na tym torze
-      {
+      else
+      {//semafor na tym torze albo lokomtywa stoi
        if (!EndTrack)
         Mechanik->PutCommand("SetVelocity",vmechmax,scantrack->Event1->Params[9].asMemCell->fValue2,sl);
       }
@@ -1553,8 +1554,8 @@ double __fastcall TDynamicObject::Init(
  }
  //teraz jeszcze trzeba przypisaæ pojazdy do nowego toru,
  //bo przesuwanie pocz¹tkowe osi nie zrobi³o tego
- //if (fDist!=0.0) //Ra: taki ma³y patent, ¿eby lokomotywa ruszy³a, mimo ¿e stoi na innym torze
- ABuCheckMyTrack(); //zmiana toru na ten co oœ Axle4
+ if (fDist!=0.0) //Ra: taki ma³y patent, ¿eby lokomotywa ruszy³a, mimo ¿e stoi na innym torze
+  ABuCheckMyTrack(); //zmiana toru na ten co oœ Axle4
  //pOldPos4=Axle1.pPosition; //Ra: nie u¿ywane
  //pOldPos1=Axle4.pPosition;
  //ActualTrack= GetTrack(); //McZapkie-030303
@@ -1891,7 +1892,7 @@ tmpTraction.TractionVoltage=3400;
         if (Mechanik->UpdateSituation(dt1))  //czuwanie AI
 //         if (Mechanik->ScanMe)
            {
-            ScanEventTrack(MyTrack);
+            ScanEventTrack(); //tor pocz¹tkowy zale¿y od po³o¿enia wózków
 //            if(MoverParameters->BrakeCtrlPos>0)
 //              MoverParameters->BrakeCtrlPos=MoverParameters->BrakeCtrlPosNo;
 //            Mechanik->ScanMe= false;
@@ -2336,7 +2337,7 @@ bool __fastcall TDynamicObject::FastUpdate(double dt)
     //    if (Mechanik->UpdateSituation(dt))  //czuwanie AI
 //  //       if (Mechanik->ScanMe)
     //      {
-    //        ScanEventTrack(MyTrack);
+    //        ScanEventTrack();
 //  //          Mechanik->ScanMe= false;
     //      }
     //
