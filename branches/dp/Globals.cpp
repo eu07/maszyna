@@ -100,10 +100,10 @@ int Global::iFeedbackMode=1; //tryb pracy informacji zwrotnej
 double Global::fOpenGL=0.0; //wersja OpenGL - przyda siê
 bool Global::bOpenGL_1_5=false; //czy s¹ dostêpne funkcje OpenGL 1.5
 double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
-bool Global::bMultiplayer=false; //blokada dzia³ania niektórych eventów na rzecz kominikacji
+int Global::iMultiplayer=0; //blokada dzia³ania niektórych eventów na rzecz kominikacji
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asVersion="Compilation 2011-07-23, release 1.3.179.190."; //tutaj, bo wysy³any
+AnsiString Global::asVersion="Compilation 2011-07-24, release 1.3.180.191."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 GLint Global::iMaxTextureSize=16384;//maksymalny rozmiar tekstury
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
@@ -259,7 +259,7 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
         else if (str==AnsiString("feedbackmode"))
          iFeedbackMode=Parser->GetNextSymbol().ToIntDef(1); //domyœlnie 1
         else if (str==AnsiString("multiplayer"))
-         bMultiplayer=Parser->GetNextSymbol().ToIntDef(0); //domyœlnie 0
+         iMultiplayer=Parser->GetNextSymbol().ToIntDef(0); //domyœlnie 0
         else if (str==AnsiString("maxtexturesize"))
         {//wymuszenie przeskalowania tekstur
          i=Parser->GetNextSymbol().ToIntDef(16384); //domyœlnie du¿e
@@ -304,7 +304,7 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
          iMultisampling=Parser->GetNextSymbol().ToIntDef(2); //domyœlnie 2
         else if (str==AnsiString("glutfont")) //tekst generowany przez GLUT
          bGlutFont=(Parser->GetNextSymbol().LowerCase()==AnsiString("yes"));
-        else if (str==AnsiString("latitude")) //szerokoœæ geograficzna      
+        else if (str==AnsiString("latitude")) //szerokoœæ geograficzna
          fLatitudeDeg=Parser->GetNextSymbol().ToDouble();
         else if (str==AnsiString("convertmodels")) //tworzenie plików binarnych
          iConvertModels=Parser->GetNextSymbol().ToIntDef(2); //domyœlnie 2
@@ -323,6 +323,8 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
  {//antyaliasing ca³oekranowy wy³¹cza rozmywanie drutów
   bSmoothTraction=false;
  }
+ if (iMultiplayer>0)
+  bInactivePause=false; //pauza nieaktywna, jeœli w³¹czona komunikacja
  Feedback::ModeSet(iFeedbackMode); //tryb pracy interfejsu zwrotnego
 }
 
