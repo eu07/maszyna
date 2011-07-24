@@ -129,7 +129,7 @@ private:
     bool renderme; //yB - czy renderowac
     char cp1, sp1, cp2, sp2; //ustawienia wezy
     TRealSound sBrakeAcc; //dzwiek przyspieszacza
-
+ bool __fastcall CheckEvent(TEvent *e,bool prox);
  bool __fastcall CheckTrackEvent(double fDirection,TTrack *Track);
  TTrack* __fastcall TraceRoute(double &fDistance,double &fDirection,TTrack *Track);
 protected:
@@ -273,6 +273,7 @@ public:
  void CouplersDettach(double MinDist,int MyScanDir);
  void __fastcall RadioStop();
  void __fastcall RaLightsSet(int head,int rear);
+ void __fastcall RaAxleEvent(TEvent *e);
 };
 
 
