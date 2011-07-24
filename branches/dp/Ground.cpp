@@ -1881,6 +1881,9 @@ bool __fastcall TGround::Init(AnsiString asFile)
          if ((into>=0)&&(into<10))
          {//przepisanie do odpowiedniego miejsca w tabelce
           Global::pFreeCameraInit[into]=xyz;
+          abc.x=DegToRad(abc.x);
+          abc.y=DegToRad(abc.y);
+          abc.z=DegToRad(abc.z);
           Global::pFreeCameraInitAngle[into]=abc;
           Global::iCameraLast=into; //numer ostatniej
          }
@@ -2554,7 +2557,7 @@ if (QueryRootEvent)
               loc.Y=  QueryRootEvent->Params[8].asGroundNode->pCenter.z;
               loc.Z=  QueryRootEvent->Params[8].asGroundNode->pCenter.y;
               QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Activator->MoverParameters,loc);
-              if (Global::bMultiplayer) //potwierdzenie wykonania dla serwera - najczêœciej odczyt semafora
+              if (Global::iMultiplayer) //potwierdzenie wykonania dla serwera - najczêœciej odczyt semafora
                WyslijEvent(QueryRootEvent->asName,QueryRootEvent->Activator->GetasName());
              }
              WriteLog("Type: GetValues");
@@ -2671,7 +2674,7 @@ if (QueryRootEvent)
                   if (QueryRootEvent->Params[i].asEvent)
                    AddToQuery(QueryRootEvent->Params[i].asEvent,QueryRootEvent->Activator);
                  }
-                 if (Global::bMultiplayer) //dajemy znaæ do serwera o wykonaniu
+                 if (Global::iMultiplayer) //dajemy znaæ do serwera o wykonaniu
                  {
                   if (QueryRootEvent->Activator)
                    WyslijEvent(QueryRootEvent->asName,QueryRootEvent->Activator->GetasName());
@@ -3228,7 +3231,7 @@ bool __fastcall TGround::RenderAlpha(vector3 pPosition)
 void __fastcall TGround::Navigate(String ClassName,UINT Msg,WPARAM wParam,LPARAM lParam)
 {//wys³anie komunikatu do steruj¹cego
  HWND h=FindWindow(ClassName.c_str(),0); //mo¿na by to zapamiêtaæ
- WriteLog(AnsiString(SendMessage(h,Msg,wParam,lParam)));
+ SendMessage(h,Msg,wParam,lParam);
 };
 //--------------------------------
 void __fastcall TGround::WyslijEvent(const AnsiString &e,const AnsiString &d)
@@ -3313,7 +3316,7 @@ void __fastcall TGround::RadioStop(vector3 pPosition)
       node->pTrack->RadioStop(); //przekazanie do ka¿dego toru w ka¿dym segmencie
 };
 
-TDynamicObject* __fastcall TGround::DynamicNearest(vector3 pPosition)
+TDynamicObject* __fastcall TGround::DynamicNearest(vector3 pPosition,double distance)
 {//wyszukanie pojazdu najbli¿szego wzglêdem (pPosition)
  TGroundNode *node;
  TSubRect *tmp;
@@ -3321,7 +3324,7 @@ TDynamicObject* __fastcall TGround::DynamicNearest(vector3 pPosition)
  int c=GetColFromX(pPosition.x);
  int r=GetRowFromZ(pPosition.z);
  int i,j,k;
- double sqm=100.0,sqd; //maksymalny promien poszukiwañ do kwadratu
+ double sqm=distance*distance,sqd; //maksymalny promien poszukiwañ do kwadratu
  for (j=r-1;j<r+1;j++) //plus dwa zewnêtrzne sektory, ³¹cznie 9
   for (i=c-1;i<c+1;i++)
    if ((tmp=FastGetSubRect(i,j))!=NULL)

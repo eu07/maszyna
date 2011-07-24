@@ -606,9 +606,9 @@ void __fastcall TWorld::OnKeyPress(int cKey)
       +AnsiString(Global::pFreeCameraInit[i].x)+" "
       +AnsiString(Global::pFreeCameraInit[i].y)+" "
       +AnsiString(Global::pFreeCameraInit[i].z)+" "
-      +AnsiString(Global::pFreeCameraInitAngle[i].x)+" "
-      +AnsiString(Global::pFreeCameraInitAngle[i].y)+" "
-      +AnsiString(Global::pFreeCameraInitAngle[i].z)+" "
+      +AnsiString(RadToDeg(Global::pFreeCameraInitAngle[i].x))+" "
+      +AnsiString(RadToDeg(Global::pFreeCameraInitAngle[i].y))+" "
+      +AnsiString(RadToDeg(Global::pFreeCameraInitAngle[i].z))+" "
       +AnsiString(i)+" endcamera");
     }
     else //rÛwnieø przeskaliwanie
@@ -827,12 +827,17 @@ bool __fastcall TWorld::Update()
  } //koniec dzia≥aÒ niewykonywanych podczas pauzy
  if (Global::bActive)
  {//obs≥uga ruchu kamery tylko gdy okno jest aktywne
-  if (Pressed(VK_LBUTTON)&&Controlled)
+  if (Pressed(VK_LBUTTON))
   {
    Camera.Reset(); //likwidacja obrotÛw - patrzy horyzontalnie na po≥udnie
    //if (!FreeFlyModeFlag) //jeúli wewnπtrz - patrzymy do ty≥u
    // Camera.LookAt=Train->pMechPosition-Normalize(Train->GetDirection())*10;
-   Camera.LookAt=Controlled->GetPosition();
+   if (Controlled)
+    Camera.LookAt=Controlled->GetPosition();
+   else
+   {TDynamicObject *d=Ground.DynamicNearest(Camera.Pos,300); //szukaj w promieniu 300m
+    if (d) Camera.LookAt=d->GetPosition();
+   }
    if (FreeFlyModeFlag)
     Camera.RaLook(); //jednorazowe przestawienie kamery
   }
@@ -1440,6 +1445,8 @@ bool __fastcall TWorld::Update()
    //Global::iViewMode=VK_F9;
    OutText1=Global::asVersion; //informacja o wersji
    OutText2=AnsiString("Rendering mode: ")+(Global::bUseVBO?"VBO":"Display Lists");
+   if (Global::iMultiplayer) OutText2+=". Multiplayer is active";
+   OutText2+=".";
    GLenum err=glGetError();
    if (err!=GL_NO_ERROR)
    {OutText3="OpenGL error "+AnsiString(err)+": "+AnsiString((char *)gluErrorString(err));
@@ -1725,7 +1732,7 @@ void __fastcall TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
     Ground.WyslijString(Global::asVersion,0); //przedsatwienie siÍ
     break;
    case 2: //event
-    if (Global::bMultiplayer)
+    if (Global::iMultiplayer)
     {//WriteLog("Komunikat: "+AnsiString(pRozkaz->Name1));
      TEvent *e=Ground.FindEvent(AnsiString(pRozkaz->cString+1,(unsigned)(pRozkaz->cString[0])));
      if (e)
@@ -1734,7 +1741,7 @@ void __fastcall TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
     }
     break;
    case 3: //rozkaz dla AI
-    if (Global::bMultiplayer)
+    if (Global::iMultiplayer)
     {int i=int(pRozkaz->cString[8]); //d≥ugoúÊ pierwszego ≥aÒcucha (z przodu dwa floaty)
      TGroundNode* t=Ground.FindDynamic(AnsiString(pRozkaz->cString+11+i,(unsigned)pRozkaz->cString[10+i])); //nazwa pojazdu jest druga
      if (t)
@@ -1766,7 +1773,7 @@ void __fastcall TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
     }
     break;
    case 6: //pobranie parametrÛw ruchu pojazdu
-    if (Global::bMultiplayer)
+    if (Global::iMultiplayer)
     {TGroundNode* t=Ground.FindDynamic(AnsiString(pRozkaz->cString+1,(unsigned)pRozkaz->cString[0])); //nazwa pojazdu
      if (t)
       Ground.WyslijNamiary(t); //wys≥anie informacji o pojeüdzie

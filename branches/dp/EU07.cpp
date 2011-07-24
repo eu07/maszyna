@@ -479,7 +479,7 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
     switch (wParam)
     {
      case 19: //[Pause]
-      if (!Global::bMultiplayer) //w multiplayerze pauza nie ma sensu
+      if (!Global::iMultiplayer) //w multiplayerze pauza nie ma sensu
        if (!Pressed(VK_CONTROL))
         Global::bPause=!Global::bPause; //zmiana stanu zapauzowania
       break;
