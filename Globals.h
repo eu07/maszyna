@@ -200,7 +200,7 @@ public:
  static double fOpenGL; //wersja OpenGL - przyda siê
  static bool bOpenGL_1_5; //czy s¹ dostêpne funkcje OpenGL 1.5
  static double fLuminance; //jasnoœæ œwiat³a do automatycznego zapalania
- static bool bMultiplayer; //blokada dzia³ania niektórych eventów na rzecz kominikacji
+ static int iMultiplayer; //blokada dzia³ania niektórych eventów na rzecz kominikacji
  static HWND hWnd; //uchwyt okna
  static int iCameraLast;
  static AnsiString asVersion;

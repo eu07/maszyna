@@ -93,11 +93,13 @@ bool __fastcall TTrackFollower::Move(double fDistance,bool bPrimary)
      if (TestFlag(iEventFlag,1))
       if (iSetFlag(iEventFlag,-1))
        if (bPrimary && pCurrentTrack->Event1 && (pCurrentTrack->Event1->fStartTime<=0))
-        Global::pGround->AddToQuery(pCurrentTrack->Event1,Owner); //dodanie do kolejki
+        //Global::pGround->AddToQuery(pCurrentTrack->Event1,Owner); //dodanie do kolejki
+        Owner->RaAxleEvent(pCurrentTrack->Event1); //Ra: dynamic zdecyduje, czy dodaæ do kolejki
     if (TestFlag(iEventallFlag,1))        //McZapkie-280503: wyzwalanie eventall dla wszystkich pojazdow
      if (iSetFlag(iEventallFlag,-1))
       if (bPrimary && pCurrentTrack->Eventall1 && (pCurrentTrack->Eventall1->fStartTime<=0))
-       Global::pGround->AddToQuery(pCurrentTrack->Eventall1,Owner); //dodanie do kolejki
+       //Global::pGround->AddToQuery(pCurrentTrack->Eventall1,Owner); //dodanie do kolejki
+       Owner->RaAxleEvent(pCurrentTrack->Eventall1); //Ra: dynamic zdecyduje, czy dodaæ do kolejki
    }
    else if (fDistance>0)
    {
@@ -105,21 +107,25 @@ bool __fastcall TTrackFollower::Move(double fDistance,bool bPrimary)
      if (TestFlag(iEventFlag,2))
       if (iSetFlag(iEventFlag,-2))
        if (bPrimary && pCurrentTrack->Event2 && (pCurrentTrack->Event2->fStartTime<=0))
-        Global::pGround->AddToQuery(pCurrentTrack->Event2,Owner);
+        //Global::pGround->AddToQuery(pCurrentTrack->Event2,Owner);
+        Owner->RaAxleEvent(pCurrentTrack->Event2); //Ra: dynamic zdecyduje, czy dodaæ do kolejki
     if (TestFlag(iEventallFlag,2))
      if (iSetFlag(iEventallFlag,-2))
       if (bPrimary && pCurrentTrack->Eventall2 && (pCurrentTrack->Eventall2->fStartTime<=0))
-       Global::pGround->AddToQuery(pCurrentTrack->Eventall2,Owner);
+       //Global::pGround->AddToQuery(pCurrentTrack->Eventall2,Owner);
+       Owner->RaAxleEvent(pCurrentTrack->Eventall2); //Ra: dynamic zdecyduje, czy dodaæ do kolejki
    }
    else //if (fDistance==0) //McZapkie-140602: wyzwalanie zdarzenia gdy pojazd stoi
    {
     if (Owner->MoverParameters->CabNo!=0)
      if (pCurrentTrack->Event0)
       if (pCurrentTrack->Event0->fStartTime<=0 && (pCurrentTrack->Event0->fDelay!=0))
-       Global::pGround->AddToQuery(pCurrentTrack->Event0,Owner);
+       //Global::pGround->AddToQuery(pCurrentTrack->Event0,Owner);
+       Owner->RaAxleEvent(pCurrentTrack->Event0); //Ra: dynamic zdecyduje, czy dodaæ do kolejki
     if (pCurrentTrack->Eventall0)
      if (pCurrentTrack->Eventall0->fStartTime<=0 && (pCurrentTrack->Eventall0->fDelay!=0))
-       Global::pGround->AddToQuery(pCurrentTrack->Eventall0,Owner);
+      //Global::pGround->AddToQuery(pCurrentTrack->Eventall0,Owner);
+      Owner->RaAxleEvent(pCurrentTrack->Eventall0); //Ra: dynamic zdecyduje, czy dodaæ do kolejki
    }
   }
   if (!pCurrentSegment) //je¿eli nie ma powi¹zanego segmentu toru?

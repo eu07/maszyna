@@ -758,6 +758,13 @@ begin
       if (OrderList[OrderPos]=Shunt) and (NewValue1<>0) then
        OrderList[OrderPos]:=Obey_train;
     end
+   else if NewCommand='ShuntVelocity' then
+    begin
+      CommandLocation:=NewLocation;
+      SetVelocity(NewValue1,NewValue2);
+      if (OrderList[OrderPos]=Obey_train) and (NewValue1<>0) then
+       OrderList[OrderPos]:=Shunt;
+    end
    else
     if NewCommand='SetProximityVelocity' then
      begin
