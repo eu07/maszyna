@@ -132,9 +132,12 @@ private:
  bool __fastcall CheckEvent(TEvent *e,bool prox);
  bool __fastcall CheckTrackEvent(double fDirection,TTrack *Track);
  TTrack* __fastcall TraceRoute(double &fDistance,double &fDirection,TTrack *Track);
+		TDynamicObject *NewDynamic;
+		bool bDynChangeEnd;
+		bool bDynChangeStart;
 protected:
     bool bEnabled;
-    AnsiString asName;
+    
     //TTrackFollower Axle2; //dwie osie z czterech (te s¹ protected)
     //TTrackFollower Axle3; //Ra: wy³¹czy³em, bo k¹ty s¹ liczone w Segment.cpp
     int iNumAxles; //iloœæ osi
@@ -158,7 +161,7 @@ public:
     bool __fastcall EndSignalsLight2oldActive() {return btEndSignals2.Active();};
     int __fastcall GetPneumatic(bool front, bool red);
     void __fastcall SetPneumatic(bool front, bool red);
-
+		AnsiString asName;
     AnsiString __fastcall GetasName()
        {
           return asName;
@@ -181,6 +184,7 @@ public:
     vector3 modelRot;      //Obrot pudla w/m swiata
     TDynamicObject* ABuScanNearestObject(TTrack *Track, double ScanDir, double ScanDist, int &CouplNr);
     TDynamicObject* GetFirstDynamic(int cpl_type);
+		TDynamicObject* GetFirstCabDynamic(int cpl_type);
     void ABuSetModelShake(vector3 mShake);
     TModel3d *mdLoad;
     TModel3d *mdPrzedsionek;
@@ -252,6 +256,8 @@ public:
     inline double __fastcall GetWidth() { return MoverParameters->Dim.W; };
     inline TTrack* __fastcall GetTrack() { return (MoverParameters->ActiveDir<0?Axle1.GetTrack():Axle4.GetTrack()); };
     void __fastcall UpdatePos();
+		void __fastcall DynChangeStart(TDynamicObject *Dyn);
+    void __fastcall DynChangeEnd(); 
 
     Mover::TMoverParameters *MoverParameters;
 

@@ -123,6 +123,7 @@ Type
                   DriverFailCount: integer;
                   Need_TryAgain, Need_BrakeRelease: boolean;
                   MinProximityDist, MaxProximityDist: real;
+									bCheckSKP: boolean; 
 {funkcje}
                   procedure SetDriverPsyche;
                   function PrepareEngine: boolean;
@@ -679,7 +680,10 @@ begin
          JumpToFirstOrder
         else
          if (Order=Shunt) and (Value1<>0) then
-          Order:=Obey_train;
+					begin
+						Order:=Obey_train;
+						bCheckSKP:=true;
+					end;
       end
      else if Controlling^.CommandIn.Command='SetProximityVelocity' then
       begin
@@ -756,7 +760,10 @@ begin
       CommandLocation:=NewLocation;
       SetVelocity(NewValue1,NewValue2);
       if (OrderList[OrderPos]=Shunt) and (NewValue1<>0) then
-       OrderList[OrderPos]:=Obey_train;
+				begin
+					OrderList[OrderPos]:=Obey_train;
+					bCheckSKP:=true;
+				end;
     end
    else if NewCommand='ShuntVelocity' then
     begin
@@ -856,7 +863,7 @@ begin
                         MinProximityDist:=1; MaxProximityDist:=3; {m}
                           VelReduced:=5; {km/h}
                           if Vel=0 then
-                            if (ActiveDir<0) then
+                            if (ActiveDir*CabNo<0) then
                                begin
                                   if (Couplers[1].Connected=NIL) then
                                      HeadSignalsFlag:=16;  {swiatla manewrowe}
@@ -883,6 +890,7 @@ begin
                                       Dettach(0);
                                       VehicleCount:=-2;
                                       VelActual:=0;
+																			bCheckSKP:=true;
                                     end
                                    else
                                    if (ActiveDir<0) and (Couplers[1].CouplingFlag>0) then
@@ -890,6 +898,7 @@ begin
                                       Dettach(1);
                                       VehicleCount:=-2;
                                       VelActual:=0;
+																			bCheckSKP:=true;
                                     end
                                    else HelpMeFlag:=true; {cos nie tak z kierunkiem dociskania}
                                  end;
@@ -928,7 +937,7 @@ begin
                           if CategoryFlag=1 then  {jazda pociagowa}
                            begin
                              MinProximityDist:=30; MaxProximityDist:=50; {m}
-                             if (ActiveDir<0) then
+                             if (ActiveDir*CabNo<0) then
                                begin
                                   if (Couplers[0].CouplingFlag=0) then
                                       HeadSignalsFlag:= 1+4+16; {wlacz trojkat}

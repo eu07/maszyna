@@ -2464,9 +2464,56 @@ if (QueryRootEvent)
               loc.X= -QueryRootEvent->Params[8].asGroundNode->pCenter.x;
               loc.Y=  QueryRootEvent->Params[8].asGroundNode->pCenter.z;
               loc.Z=  QueryRootEvent->Params[8].asGroundNode->pCenter.y;
-              QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Activator->MoverParameters,loc);
               if (Global::iMultiplayer) //potwierdzenie wykonania dla serwera - najczêœciej odczyt semafora
                WyslijEvent(QueryRootEvent->asName,QueryRootEvent->Activator->GetasName());
+							TDynamicObject* tmp2=NULL;
+								if(QueryRootEvent->Activator->Mechanik!=NULL)
+                {
+									if((String(QueryRootEvent->Params[9].asMemCell->szText )=="Change_direction"||(String(QueryRootEvent->Params[9].asMemCell->szText )=="OutsideStation"&&QueryRootEvent->Activator->Mechanik->OrderList[QueryRootEvent->Activator->Mechanik->OrderPos]!=Obey_train))&&
+										QueryRootEvent->Params[9].asMemCell->fValue1!=QueryRootEvent->Activator->MoverParameters->CabNo)
+									{
+										if(QueryRootEvent->Activator->asName!=Global::asHumanCtrlVehicle)
+                    {
+                      TDynamicObject* tmp1;
+                        tmp1 = QueryRootEvent->Activator->GetFirstDynamic(1);
+                        if(tmp1!=QueryRootEvent->Activator)
+                        {
+                          tmp2 = tmp1->GetFirstCabDynamic(0);
+                          if(tmp2==NULL)
+                          {
+                            tmp2 = tmp1->GetFirstCabDynamic(1);
+                          }
+
+                          if(tmp2!=NULL&&tmp2!=QueryRootEvent->Activator)
+                          QueryRootEvent->Activator->DynChangeStart(tmp2);
+                          else
+                          QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Activator->MoverParameters,
+                                                                    loc);
+                        }
+                        else
+                        {
+                        tmp1 = QueryRootEvent->Activator->GetFirstDynamic(0);
+                        if(tmp1!=QueryRootEvent->Activator)
+                        {
+                          tmp2 = tmp1->GetFirstCabDynamic(1);
+                          if(tmp2==NULL)
+                          {
+                            tmp2 = tmp1->GetFirstCabDynamic(0);
+                          }
+
+                          if(tmp2!=NULL&&tmp2!=QueryRootEvent->Activator)
+                          QueryRootEvent->Activator->DynChangeStart(tmp2);
+                          else
+                          QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Activator->MoverParameters,
+                                                                    loc);
+                        }
+                      }
+                    }
+					        }
+                }
+                if(tmp2==NULL)
+                QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Activator->MoverParameters,
+                                                                    loc);
              }
              WriteLog("Type: GetValues");
             break;
@@ -2476,7 +2523,48 @@ if (QueryRootEvent)
                     loc.X= -QueryRootEvent->Params[3].asdouble;
                     loc.Y=  QueryRootEvent->Params[5].asdouble;
                     loc.Z=  QueryRootEvent->Params[4].asdouble;
-                    QueryRootEvent->Activator->MoverParameters->PutCommand(QueryRootEvent->Params[0].asText,
+                    TDynamicObject* tmp2 = NULL;
+                    if(QueryRootEvent->Activator->Mechanik!=NULL)
+                    {
+                    if((QueryRootEvent->Params[0].asText=="Change_direction"||(QueryRootEvent->Params[0].asText=="OutsideStation"&&QueryRootEvent->Activator->Mechanik->OrderList[QueryRootEvent->Activator->Mechanik->OrderPos]!=Obey_train))&&
+                    QueryRootEvent->Params[1].asdouble!=QueryRootEvent->Activator->MoverParameters->CabNo)
+                    {
+                    if(QueryRootEvent->Activator->asName!=Global::asHumanCtrlVehicle)
+                    {
+
+                        TDynamicObject* tmp1;
+                        tmp1 = QueryRootEvent->Activator->GetFirstDynamic(0);
+                        if(tmp1!=QueryRootEvent->Activator)
+                        {
+                          tmp2 = tmp1->GetFirstCabDynamic(1);
+                          if((tmp2==tmp1&&tmp1->MoverParameters->CabNo!=1)||tmp2==NULL)
+                          {
+                            tmp2 = tmp1->GetFirstCabDynamic(0);
+                          }
+
+                          if(tmp2!=NULL&&tmp2!=QueryRootEvent->Activator)
+                          QueryRootEvent->Activator->DynChangeStart(tmp2);
+                        }
+                        else
+                        {
+                        tmp1 = QueryRootEvent->Activator->GetFirstDynamic(0);
+                        if(tmp1!=QueryRootEvent->Activator)
+                        {
+                          tmp2 = tmp1->GetFirstCabDynamic(0);
+                          if((tmp2==tmp1&&tmp1->MoverParameters->CabNo!=1)||tmp2==NULL)
+                          {
+                            tmp2 = tmp1->GetFirstCabDynamic(1);
+                          }
+
+                          if(tmp2!=NULL&&tmp2!=QueryRootEvent->Activator)
+                          QueryRootEvent->Activator->DynChangeStart(tmp2);
+                        }
+                      }
+                    }
+					        }
+                }
+                if(tmp2==NULL)
+                QueryRootEvent->Activator->MoverParameters->PutCommand(QueryRootEvent->Params[0].asText,
                                                                            QueryRootEvent->Params[1].asdouble,
                                                                            QueryRootEvent->Params[2].asdouble,loc);
                 }
