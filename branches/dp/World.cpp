@@ -1762,9 +1762,60 @@ void __fastcall TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
     {int i=int(pRozkaz->cString[8]); //d³ugoœæ pierwszego ³añcucha (z przodu dwa floaty)
      TGroundNode* t=Ground.FindDynamic(AnsiString(pRozkaz->cString+11+i,(unsigned)pRozkaz->cString[10+i])); //nazwa pojazdu jest druga
      if (t)
-     {WriteLog("AI command: "+AnsiString(pRozkaz->cString+9,i));
-      t->DynamicObject->MoverParameters->SetInternalCommand(
-       AnsiString(pRozkaz->cString+9,i),pRozkaz->fPar[0],pRozkaz->fPar[1]); //floaty s¹ z przodu
+     {
+        TDynamicObject* tmp2=NULL;
+          if(t->DynamicObject->Mechanik!=NULL)
+          {
+            if((AnsiString(pRozkaz->cString+9,i)=="Change_direction"||(AnsiString(pRozkaz->cString+9,i)=="OutsideStation"&&t->DynamicObject->Mechanik->OrderList[t->DynamicObject->Mechanik->OrderPos]!=Obey_train))&&pRozkaz->fPar[0]!=t->DynamicObject->MoverParameters->CabNo)
+            {
+              if(t->DynamicObject->asName!=Global::asHumanCtrlVehicle)
+              {
+                TDynamicObject* tmp1;
+                tmp1 = t->DynamicObject->GetFirstDynamic(1);
+                if(tmp1!=t->DynamicObject)
+                {
+                  tmp2 = tmp1->GetFirstCabDynamic(0);
+                  if(tmp2==NULL)
+                    tmp2 = tmp1->GetFirstCabDynamic(1);
+                  if(tmp2!=NULL&&tmp2!=t)
+                    t->DynamicObject->DynChangeStart(tmp2);
+                  else
+                  {
+                    TLocation l;
+                    l.X=l.Y=l.Z= 0;
+                    t->DynamicObject->Mechanik->PutCommand(AnsiString(pRozkaz->cString+9,i),pRozkaz->fPar[0],pRozkaz->fPar[1],l); //floaty s¹ z przodu
+                  }
+                }
+                else
+                {
+                  tmp1 = t->DynamicObject->GetFirstDynamic(0);
+                  if(tmp1!=t->DynamicObject)
+                  {
+                    tmp2 = tmp1->GetFirstCabDynamic(1);
+                    if(tmp2==NULL)
+                      tmp2 = tmp1->GetFirstCabDynamic(0);
+                    if(tmp2!=NULL&&tmp2!=t)
+                      t->DynamicObject->DynChangeStart(tmp2);
+                    else
+                    {
+                      TLocation l;
+                      l.X=l.Y=l.Z= 0;
+                      t->DynamicObject->Mechanik->PutCommand(AnsiString(pRozkaz->cString+9,i),pRozkaz->fPar[0],pRozkaz->fPar[1],l); //floaty s¹ z przodu
+                    }
+                  }
+                }
+              }
+            }
+          }
+          if(tmp2==NULL)
+          {
+            TLocation l;
+            l.X=l.Y=l.Z= 0;
+            if(t->DynamicObject->Mechanik)
+            t->DynamicObject->Mechanik->PutCommand(AnsiString(pRozkaz->cString+9,i),pRozkaz->fPar[0],pRozkaz->fPar[1],l); //floaty s¹ z przodu
+            t->DynamicObject->MoverParameters->SetInternalCommand(AnsiString(pRozkaz->cString+9,i),pRozkaz->fPar[0],pRozkaz->fPar[1]); //floaty s¹ z przodu
+          }
+        WriteLog("AI command: "+AnsiString(pRozkaz->cString+9,i));
      }
     }
     break;

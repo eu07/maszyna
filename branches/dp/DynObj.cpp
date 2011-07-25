@@ -76,6 +76,37 @@ TDynamicObject* TDynamicObject::GetFirstDynamic(int cpl_type)
  return NULL; //to tylko po wyczerpaniu pêtli
 };
 
+TDynamicObject* TDynamicObject::GetFirstCabDynamic(int cpl_type)
+{ //ZiomalCl: szukanie skrajnego obiektu z kabin¹
+ TDynamicObject* temp=this;
+ int coupler_nr=cpl_type;
+ for (int i=0;i<300;i++) //ograniczenie do 300 na wypadek zapêtlenia sk³adu
+ {
+  if (!temp)
+   return NULL; //Ra: zabezpieczenie przed ewentaulnymi b³êdami sprzêgów
+  if(temp->MoverParameters->CabNo!=0&&temp->MoverParameters->SandCapacity!=0)
+    return temp;
+	if (temp->MoverParameters->Couplers[coupler_nr].CouplingFlag==0)
+   return NULL;
+  if (coupler_nr==0)
+  {//je¿eli szukamy od sprzêgu 0
+   if (temp->PrevConnectedNo==0) //jeœli pojazd od strony sprzêgu 0 jest odwrócony
+    coupler_nr=1-coupler_nr; //to zmieniamy kierunek sprzêgu
+   if (temp->PrevConnected)
+    temp=temp->PrevConnected; //ten jest od strony 0
+  }
+  else
+  {
+   if (temp->NextConnectedNo==1) //jeœli pojazd od strony sprzêgu 1 jest odwrócony
+    coupler_nr=1-coupler_nr; //to zmieniamy kierunek sprzêgu
+   if (temp->NextConnected)
+    temp=temp->NextConnected; //ten pojazd jest od strony 1
+  }
+ }
+ return NULL; //to tylko po wyczerpaniu pêtli
+};
+
+
 void TDynamicObject::ABuSetModelShake(vector3 mShake)
 {
    modelShake=mShake;
@@ -1435,6 +1466,8 @@ double __fastcall TDynamicObject::Init(
  AnsiString LoadType, //nazwa ³adunku
  bool Reversed) //true, jeœli ma staæ odwrotnie
 {//Ustawienie pocz¹tkowe pojazdu
+ bDynChangeStart=false; //ZiomalCl: d¹¿enie do zatrzymania poci¹gu i zmiany czo³a poci¹gu przez AI
+ bDynChangeEnd=false; //ZiomalCl: AI na starym czole sk³adu usuniête, tworzenie AI po nowej stronie
  iDirection=(Reversed?-1:1); //Ra: ujemne, jeœli ma byæ wstawiony do jako obrócony ty³em
  asBaseDir= "dynamic\\"+BaseDir+"\\"; //McZapkie-310302
  asName=Name;
@@ -1500,6 +1533,13 @@ double __fastcall TDynamicObject::Init(
   if ((DriverType=="headdriver")||(DriverType=="reardriver"))
   {//McZapkie-110303: mechanik i rozklad tylko gdy jest obsada
    MoverParameters->ActiveCab=MoverParameters->CabNo; //ustalenie aktywnej kabiny (rozrz¹d)
+	 if(CabNo==-1)
+   {//ZiomalCl: jeœli AI prowadzi sk³ad w drugiej kabinie (inny kierunek),
+    //to musimy zmieniæ kabiny (kierunki) w pozosta³ych wagonach/cz³onach
+    //inaczej np. cz³on A ET41 bêdzie jecha³ w jedn¹ stronê, a cz³on B w drug¹
+    MoverParameters->CabDeactivisation();
+    MoverParameters->CabActivisation();
+   }
    TrainParams=new TTrainParameters(TrainName); //dane poci¹gu
    if (TrainName!="none")
     if (!TrainParams->LoadTTfile(Global::asCurrentSceneryPath))
@@ -1829,6 +1869,17 @@ void __fastcall TDynamicObject::UpdatePos()
   MoverParameters->Loc.Z=  GetPosition().y;
 }
 
+void __fastcall TDynamicObject::DynChangeStart(TDynamicObject *Dyn)
+{//ZiomalCl: rozpoczêcie zmiany czo³a przez AI (ca³ego sk³adu, nie tylko w obrêbie lokomotywy)
+  bDynChangeStart=true;
+  NewDynamic=Dyn;
+}
+
+void __fastcall TDynamicObject::DynChangeEnd()
+{//ZiomalCl: ci¹g dalszy i koñczenie zmiany czo³a przez AI (ca³ego sk³adu, nie tylko w obrêbie lokomotywy)
+  bDynChangeEnd=true;
+}
+
 bool __fastcall TDynamicObject::Update(double dt, double dt1)
 {
 #ifdef _DEBUG
@@ -1845,6 +1896,137 @@ if (!MoverParameters->PhysicActivation)
 
     if (!bEnabled)
         return false;
+
+  if(bDynChangeStart)
+  {//ZiomalCl: zmieniamy czo³o poci¹gu
+    Mechanik->SetVelocity(0,0);
+    if(MoverParameters->Vel==0)
+    {
+      if(!MoverParameters->DecBrakeLevel())
+      {
+        MoverParameters->PantFront(true);
+        MoverParameters->PantRear(true);
+        int dir=-MoverParameters->CabNo;
+        if(MoverParameters->Couplers[0].Connected==NULL)
+        {
+         if(MoverParameters->ActiveDir==1)
+          {
+            if(Mechanik->OrderList[Mechanik->OrderPos]==Obey_train)
+            MoverParameters->EndSignalsFlag=2+32;
+            else
+            MoverParameters->EndSignalsFlag=1;
+          }
+          else
+          {
+            if(Mechanik->OrderList[Mechanik->OrderPos]==Obey_train)
+            MoverParameters->HeadSignalsFlag=2+32;
+            else
+            MoverParameters->HeadSignalsFlag=1;
+          }
+        }
+        else if(MoverParameters->Couplers[1].Connected==NULL)
+        {
+          if(MoverParameters->ActiveDir==1)
+          {
+            if(Mechanik->OrderList[Mechanik->OrderPos]==Obey_train)
+              MoverParameters->EndSignalsFlag=2+32;
+            else
+              MoverParameters->HeadSignalsFlag=1;
+          }
+          else
+          {
+            if(Mechanik->OrderList[Mechanik->OrderPos]==Obey_train)
+              MoverParameters->HeadSignalsFlag=2+32;
+            else
+              MoverParameters->HeadSignalsFlag=1;
+          }
+       }
+        if(dir==-1)
+        {
+          MoverParameters->DecScndCtrl(2);
+          MoverParameters->DecMainCtrl(2);
+        }
+        else if(dir==1)
+        {
+          MoverParameters->DecScndCtrl(2);
+          MoverParameters->DecMainCtrl(2);
+        }
+        MoverParameters->ActiveCab=0;
+        if (MoverParameters->Couplers[1].CouplingFlag!=0||MoverParameters->Couplers[0].CouplingFlag!=0)
+        {
+          TDynamicObject* temp = NULL;
+            if (this->PrevConnected)
+              temp=this->PrevConnected;
+            if(temp==NULL)
+              if(this->NextConnected)
+                temp=this->NextConnected;
+        }
+        Mechanik->CloseLog();
+        SafeDelete(Mechanik);
+        MoverParameters->DecLocalBrakeLevelFAST();
+        bDynChangeStart=false;
+        NewDynamic->DynChangeEnd();
+      }
+    }
+  }
+
+
+  if(bDynChangeEnd)
+  {//ZiomalCl: inicjalizacja AI po zmianie czo³a poci¹gu
+    TLocation l;
+    l.X=l.Y=l.Z= 0;
+    TRotation r;
+    r.Rx=r.Ry=r.Rz= 0;
+    int dir=-MoverParameters->CabNo;
+    TrainParams= new TTrainParameters("rozklad");
+    if (TrainParams->TrainName!=AnsiString("none"))
+      if (!TrainParams->LoadTTfile(Global::asCurrentSceneryPath))
+        Error("Cannot load timetable file "+TrainParams->TrainName+": Error="+ConversionError+"@"+TrainParams->StationCount);
+    Mechanik= new TController(l,r,true,&MoverParameters,&TrainParams,Aggressive);
+    AnsiString t1 = asName;
+    Mechanik->Ready=false;
+    Mechanik->ChangeOrder(Prepare_engine);
+    Mechanik->JumpToNextOrder();
+    Mechanik->ChangeOrder(Shunt);
+    Mechanik->JumpToNextOrder();
+    Mechanik->SetVelocity(20,-1);
+    Mechanik->JumpToFirstOrder();
+
+    if(dir==-1)
+    {
+      if(MoverParameters->ActiveDir!=dir)
+        MoverParameters->DirectionForward();
+      if(MoverParameters->ActiveDir!=dir)
+        MoverParameters->DirectionForward();
+      MoverParameters->ActiveDir=1;
+      MoverParameters->ActiveCab=-1;
+      MoverParameters->CabNo=-1;
+      MoverParameters->CabDeactivisation();
+      MoverParameters->CabActivisation();
+    }
+    else if(dir==1)
+    {
+      if(MoverParameters->ActiveDir!=dir)
+        MoverParameters->DirectionForward();
+      if(MoverParameters->ActiveDir!=dir)
+        MoverParameters->DirectionForward();
+      MoverParameters->ActiveCab=1;
+      MoverParameters->CabNo=1;
+      MoverParameters->ActiveDir=1;
+      MoverParameters->CabDeactivisation();
+      MoverParameters->CabActivisation();
+    }
+    if (MoverParameters->Couplers[1].CouplingFlag!=0||MoverParameters->Couplers[0].CouplingFlag!=0)
+    {
+      TDynamicObject* temp = NULL;
+      if (this->PrevConnected)
+        temp=this->PrevConnected;
+      if(temp==NULL)
+        if(this->NextConnected)
+          temp=this->NextConnected;
+    }
+    bDynChangeEnd=false;
+  }
 
 //McZapkie-260202
     MoverParameters->BatteryVoltage=90;
@@ -2338,6 +2520,52 @@ if (tmpTraction.TractionVoltage==0)
     if (tmp?tmp!=this:false)
      if (tmp->MoverParameters->BrakePress>0.03*tmp->MoverParameters->MaxBrakePress)
       Mechanik->Ready=false; //nie gotowy
+			
+    if(Mechanik->bCheckSKP)
+    { //ZiomalCl: sprawdzanie i zmiana SKP w skladzie prowadzonym przez AI
+      Mechanik->bCheckSKP=false;
+      TDynamicObject* tmp1;
+      tmp1 = GetFirstDynamic(1);
+      if(!tmp1)
+        tmp1 = GetFirstDynamic(0);
+      if(tmp1&&tmp1!=this)
+      {
+        if(tmp1->MoverParameters->Couplers[0].Connected==NULL)
+        {
+          if(tmp1->MoverParameters->ActiveDir==1)
+          {
+            if(Mechanik->OrderList[Mechanik->OrderPos]==Obey_train)
+              tmp1->MoverParameters->EndSignalsFlag=2+32;
+            else
+              tmp1->MoverParameters->EndSignalsFlag=1;
+          }
+          else
+          {
+            if(Mechanik->OrderList[Mechanik->OrderPos]==Obey_train)
+              tmp1->MoverParameters->HeadSignalsFlag=2+32;
+            else
+              tmp1->MoverParameters->HeadSignalsFlag=1;
+          }
+        }
+        else if(tmp1->MoverParameters->Couplers[1].Connected==NULL)
+        {
+          if(tmp1->MoverParameters->ActiveDir==1)
+          {
+            if(Mechanik->OrderList[Mechanik->OrderPos]==Obey_train)
+              tmp1->MoverParameters->HeadSignalsFlag=2+32;
+            else
+              tmp1->MoverParameters->HeadSignalsFlag=1;
+          }
+          else
+          {
+            if(Mechanik->OrderList[Mechanik->OrderPos]==Obey_train)
+              tmp1->MoverParameters->EndSignalsFlag=2+32;
+            else
+              tmp1->MoverParameters->EndSignalsFlag=1;
+          }
+        }
+      }
+    }
    }
 
 //ABu-160303 sledzenie toru przed obiektem: *******************************
