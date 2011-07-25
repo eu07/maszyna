@@ -1533,7 +1533,7 @@ double __fastcall TDynamicObject::Init(
   if ((DriverType=="headdriver")||(DriverType=="reardriver"))
   {//McZapkie-110303: mechanik i rozklad tylko gdy jest obsada
    MoverParameters->ActiveCab=MoverParameters->CabNo; //ustalenie aktywnej kabiny (rozrz¹d)
-	 if(CabNo==-1)
+	 if(MoverParameters->CabNo==-1)
    {//ZiomalCl: jeœli AI prowadzi sk³ad w drugiej kabinie (inny kierunek),
     //to musimy zmieniæ kabiny (kierunki) w pozosta³ych wagonach/cz³onach
     //inaczej np. cz³on A ET41 bêdzie jecha³ w jedn¹ stronê, a cz³on B w drug¹

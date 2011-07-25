@@ -1037,7 +1037,27 @@ begin
                  ChangeDir:=ChangeDirOrder;
                 ChangeDirOrder:=ChangeDir;
                 if OrderDirectionChange(ChangeDir,Controlling)=-1 then
-                 JumpToNextOrder
+                                 begin
+                PantFront(true);
+                PantRear(true);
+                Controlling^.CommandIn.Value1:=-1;
+                Controlling^.CommandIn.Value2:=-1;
+                OrderList[OrderPos]:=Shunt;
+                SetVelocity(20,20);
+                append(AIlogFile);
+                writeln(AILogFile,ElapsedTime:5:2,': ',Name,' Direction changed!');
+                close(AILogFile);
+                if (ActiveDir<0) then
+                               begin
+                                     HeadSignalsFlag:=16;  {swiatla manewrowe}
+                                     EndSignalsFlag:=1;
+                               end
+                               else
+                               begin
+                                     HeadSignalsFlag:=1;  {swiatla manewrowe}
+                                     EndSignalsFlag:=16;
+                               end;
+                end;
 {                else
                  VelActual:=0; {na wszelki wypadek niech zahamuje}
               end;
