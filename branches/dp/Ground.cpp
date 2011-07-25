@@ -1200,132 +1200,40 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    if (tmp1 && tmp1->pTrack)
    {//jeœli tor znaleziony
     Track=tmp1->pTrack;
-/* Ra: jednak nie dzia³a to dobrze - spróbujemy to naprawiæ w DynObj
-    //ZiomalCl: poprawka na zmianê po³o¿enia poci¹gu wzglêdem toru podanego we wpisie
-    //- szukamy nazwy toru po³o¿onego n metrów (n - odleglosc we wpisie trainset) od naszego toru
-    //- gdy znajdziemy, to do tego w³asnie toru przypisujemy poci¹g
-    if (Track->Length()<tf1)
-    {
-     double l1=tf1;
-     int fDirection1=1;
-     for (int i=0;i<20;i++)
-     {
-      if (Track->Length()<l1)
-      {
-       l1=l1-Track->Length();
-       if (fDirection1>0)
-       {
-        if (Track->iNextDirection)
-        {
-         Track=Track->CurrentNext();
-         fDirection1=-fDirection1;
-        }
-        else
-         Track=Track->CurrentNext();
-       }
-       else if (fDirection1<0)
-       {
-        if (Track->iPrevDirection)
-         Track=Track->CurrentPrev();
-        else
-        {
-         Track=Track->CurrentPrev();
-         fDirection1=-fDirection1;
-        }
-       }
-      }
-     }
-     tf1=l1;
-    }
-    else if(tf1<0)
-    {
-     double l1=tf1;
-     int fDirection1=-1;
-     if (fDirection1>0)
-     {
-      if (Track->iNextDirection)
-      {
-       Track=Track->CurrentNext();
-       fDirection1=-fDirection1;
-      }
-      else
-       Track=Track->CurrentNext();
-     }
-     else
-      if (fDirection1<0)
-      {
-       if (Track->iPrevDirection)
-        Track= Track->CurrentPrev();
-       else
-       {
-        Track=Track->CurrentPrev();
-        fDirection1=-fDirection1;
-       }
-      }
-     for(int i=0; i<20;i++)
-     {
-      if (-Track->Length()>l1)
-      {
-       l1=Track->Length()+l1;
-       if (fDirection1>0)
-       {
-        if (Track->iNextDirection)
-        {
-         Track=Track->CurrentNext();
-         fDirection1= -fDirection1;
-        }
-        else
-         Track=Track->CurrentNext();
-       }
-       else if (fDirection1<0)
-       {
-        if (Track->iPrevDirection)
-         Track=Track->CurrentPrev();
-        else
-        {
-         Track=Track->CurrentPrev();
-         fDirection1=-fDirection1;
-        }
-       }
-      }
-     }
-     tf1=Track->Length()+l1;
-    }
-*/
     //WriteLog("Dynamic shift: "+AnsiString(fTrainSetDist));
     tf1=tmp->DynamicObject->Init(asNodeName,str1,Skin,str3,Track,(tf1==-1.0?fTrainSetDist:tf1+fTrainSetDist),DriverType,tf3,asTrainName,int2,str2,(tf1==-1.0));
     if (tf1>0.0) //zero oznacza b³¹d
     {fTrainSetDist-=tf1; //przesuniêcie dla kolejnego, minus bo idziemy w stronê punktu 1
      tmp->pCenter=tmp->DynamicObject->GetPosition();
      //McZapkie-030203: sygnaly czola pociagu, ale tylko dla pociagow jadacych
-     if (tf3>0) //predkosc poczatkowa, jak ja lubie takie nazwy zmiennych
-     {
+     if (tf3>0.0) //predkosc poczatkowa, jak ja lubie takie nazwy zmiennych
+     {//œwiat³a w sk³adzie ruchomym - AI i tak zapali je sobie po swojemu
       if (bTrainSet)
-      {
-       if (asTrainName!=AnsiString("none"))
-       {
-        if (iTrainSetWehicleNumber==1)
+      {//czo³o jest zawsze od pierwszego pojazdu w trainset
+       if (asTrainName!="none")
+       {//jadacy sk³ad z rozk³adem jest oœwietlony odpowiednio
+        if (iTrainSetWehicleNumber==1) //jeœli ma numer 0 (czyli aktualny jest 1)
         {
-         tmp->DynamicObject->RaLightsSet(-1,1+4+16); //trojkat dla rozkladowych
+         tmp->DynamicObject->RaLightsSet(1+4+16,-1); //trojk¹t dla rozk³adowych
          if ((tmp->DynamicObject->EndSignalsLight1Active())
             ||(tmp->DynamicObject->EndSignalsLight1oldActive()))
-          tmp->DynamicObject->RaLightsSet(2+32,-1);
+          tmp->DynamicObject->RaLightsSet(-1,2+32); //z ty³u
          else
-          tmp->DynamicObject->RaLightsSet(64,-1);
+          tmp->DynamicObject->RaLightsSet(-1,64);
         }
-        if (iTrainSetWehicleNumber==2)
-         LastDyn->RaLightsSet(0,-1); //zgaszone swiatla od strony wagonow
+        if (iTrainSetWehicleNumber==2) //jeœli jest drugi pojazd, to gasi w pierwszym
+         LastDyn->RaLightsSet(-1,0); //zgaszone swiatla od strony wagonow
        }
        else
-       {
-        if (iTrainSetWehicleNumber==1)
-         tmp->DynamicObject->RaLightsSet(1,16); //manewry
+       {//jak nie ma rozk³adu, to manewruje
+        if (iTrainSetWehicleNumber==1) //jeœli pierwszy w sk³adzie
+         tmp->DynamicObject->RaLightsSet(16,1); //manewry
         if (iTrainSetWehicleNumber==2)
-         LastDyn->RaLightsSet(0,-1); //zgaszone swiatla od strony wagonow
+         LastDyn->RaLightsSet(-1,0); //zgaszone swiatla od strony wagonow
        }
       }
       else
-       tmp->DynamicObject->RaLightsSet(1,16); //manewry pojed. pojazdu
+       tmp->DynamicObject->RaLightsSet(16,1); //manewry pojedynczego pojazdu
       LastDyn=tmp->DynamicObject;
      }
     }

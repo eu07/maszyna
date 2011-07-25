@@ -658,6 +658,36 @@ void __fastcall TWorld::OnMouseMove(double x, double y)
  Camera.OnCursorMove(x*Global::fMouseXScale,-y*Global::fMouseYScale);
 }
 
+AnsiString __fastcall Bezogonkow(AnsiString str)
+{//wyciêcie liter z ogonkami, bo OpenGL nie umie wyœwietliæ
+ for (int i=1;i<=str.Length();++i)
+  switch (str[i])
+  {//bo komunikaty po polsku s¹...
+   case '¹': str[i]='a'; break;
+   case 'æ': str[i]='c'; break;
+   case 'ê': str[i]='e'; break;
+   case '³': str[i]='l'; break;
+   case 'ñ': str[i]='n'; break;
+   case 'ó': str[i]='o'; break;
+   case 'œ': str[i]='s'; break;
+   case '¿': str[i]='z'; break;
+   case 'Ÿ': str[i]='z'; break;
+   case '¥': str[i]='A'; break;
+   case 'Æ': str[i]='C'; break;
+   case 'Ê': str[i]='E'; break;
+   case '£': str[i]='L'; break;
+   case 'Ñ': str[i]='N'; break;
+   case 'Ó': str[i]='O'; break;
+   case 'Œ': str[i]='S'; break;
+   case '¯': str[i]='Z'; break;
+   case '': str[i]='Z'; break;
+   default:
+    if (str[i]&128) str[i]='?';
+    else if (str[i]<' ') str[i]=' ';
+  }
+ return str;
+}
+
 bool __fastcall TWorld::Update()
 {
 #ifdef USE_SCENERY_MOVING
@@ -1222,10 +1252,10 @@ bool __fastcall TWorld::Update()
      if (i<10) OutText1+="0";
      OutText1+=AnsiString(i);
      if (Global::bPause) OutText1+=" - paused";
-/* Ra: tymczasowo wy³¹czone
+///* Ra: tymczasowo wy³¹czone
      if (Controlled)
-      OutText2=Controlled->TrainParams->ShowRelation();
-*/
+      OutText2=Bezogonkow(Controlled->TrainParams->ShowRelation()+", "+Controlled->asNextStop);
+//*/
      //double CtrlPos=Controlled->MoverParameters->MainCtrlPos;
      //double CtrlPosNo=Controlled->MoverParameters->MainCtrlPosNo;
      //OutText2="defrot="+FloatToStrF(1+0.4*(CtrlPos/CtrlPosNo),ffFixed,2,5);
@@ -1449,21 +1479,8 @@ bool __fastcall TWorld::Update()
    OutText2+=".";
    GLenum err=glGetError();
    if (err!=GL_NO_ERROR)
-   {OutText3="OpenGL error "+AnsiString(err)+": "+AnsiString((char *)gluErrorString(err));
-    for (int i=1;i<=OutText3.Length();++i)
-     switch (OutText3[i])
-     {//bo komunikaty po polsku s¹...
-      case '¹': OutText3[i]='a'; break;
-      case 'æ': OutText3[i]='c'; break;
-      case 'ê': OutText3[i]='e'; break;
-      case '³': OutText3[i]='l'; break;
-      case 'ñ': OutText3[i]='n'; break;
-      case 'ó': OutText3[i]='o'; break;
-      case 'œ': OutText3[i]='s'; break;
-      case '¿': OutText3[i]='z'; break;
-      case 'Ÿ': OutText3[i]='z'; break;
-      default: if (OutText3[i]&128) OutText3[i]='?';
-     }
+   {
+    OutText3="OpenGL error "+AnsiString(err)+": "+Bezogonkow(AnsiString((char *)gluErrorString(err)));
    }
   }
   if (OutText1!="")

@@ -4941,7 +4941,7 @@ begin
   Ftotal:=0; FStand:=0; FTrain:=0;
   AccS:=0; AccN:=0; AccV:=0;
   EventFlag:=False; SoundFlag:=0;
-  Vel:=VelInitial; V:=VelInitial/3.6;
+  Vel:=Abs(VelInitial); V:=VelInitial/3.6;
   LastSwitchingTime:=0;
   LastRelayTime:=0;
   EndSignalsFlag:=0;
