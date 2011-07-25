@@ -61,6 +61,7 @@ public:
 	double __fastcall CheckTrainLatency(void);
 	AnsiString __fastcall ShowRelation();
 	double __fastcall WatchMTable(double DistCounter);
+	AnsiString __fastcall NextStop();
 	bool __fastcall UpdateMTable(double hh, double mm, AnsiString NewName);
 	__fastcall TTrainParameters(AnsiString NewTrainName);
 	bool __fastcall LoadTTfile(AnsiString scnpath);

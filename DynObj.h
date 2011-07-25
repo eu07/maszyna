@@ -251,13 +251,14 @@ public:
     inline double __fastcall GetLength() { return MoverParameters->Dim.L; };
     inline double __fastcall GetWidth() { return MoverParameters->Dim.W; };
     inline TTrack* __fastcall GetTrack() { return (MoverParameters->ActiveDir<0?Axle1.GetTrack():Axle4.GetTrack()); };
-    void __fastcall UpdatePos();    
+    void __fastcall UpdatePos();
 
     Mover::TMoverParameters *MoverParameters;
 
     vector3 vUp,vFront,vLeft;
     matrix4x4 mMatrix;
     AnsiString asTrack;
+ AnsiString asNextStop; //nazwa nastêpnego punktu zatrzymania wg rozk³adu
 
     //McZapkie-260202
     void __fastcall LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName, AnsiString ReplacableSkin);

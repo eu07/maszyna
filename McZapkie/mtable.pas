@@ -25,7 +25,7 @@ Type
    TTrainParameters = class(TObject)
                         TrainName:string;
                         TTVmax:real;
-                        Relation1,Relation2: string;
+                        Relation1,Relation2: string; //nazwy stacji danego odcinka
                         BrakeRatio: real;
                         LocSeries: string;
                         LocLoad: real;
@@ -39,6 +39,7 @@ Type
                         {todo: str hh:mm to int i z powrotem}
                         function ShowRelation: string;
                         function WatchMTable(DistCounter:real): real;
+                        function NextStop:string;
                         function UpdateMTable(hh,mm:real; NewName: string): boolean;                        
                         constructor Init(NewTrainName:string);
                         function LoadTTfile(scnpath:string): boolean;
@@ -80,6 +81,16 @@ begin
   else
    dist:=TimeTable[0].km-TimeTable[StationIndex].km-DistCounter;
   WatchMTable:=dist;
+end;
+
+function TTrainParameters.NextStop:string;
+//pobranie nazwy nastêpnego miejsca zatrzymania
+begin
+ if StationIndex<StationCount
+ then
+  NextStop:='PassengerStopPoint:'+TimeTable[StationIndex+1].StationName
+ else
+  NextStop:='[End of route]'; //¿e niby koniec
 end;
 
 function TTrainParameters.UpdateMTable(hh,mm:real;NewName:string):boolean;
