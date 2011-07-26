@@ -129,10 +129,13 @@ private:
     bool renderme; //yB - czy renderowac
     char cp1, sp1, cp2, sp2; //ustawienia wezy
     TRealSound sBrakeAcc; //dzwiek przyspieszacza
+ int iAxleFirst; //numer pierwszej oœ w kierunku ruchu
+ TEvent* eSignSkip; //miniêty semafor zezwalaj¹cy na jazdê
  bool __fastcall CheckEvent(TEvent *e,bool prox);
  bool __fastcall CheckTrackEvent(double fDirection,TTrack *Track);
  TTrack* __fastcall TraceRoute(double &fDistance,double &fDirection,TTrack *Track);
-		TDynamicObject *NewDynamic;
+ void SetProximityVelocity(double dist,double vel,const TLocation *pos);
+ 	TDynamicObject *NewDynamic;
 		bool bDynChangeEnd;
 		bool bDynChangeStart;
 protected:
@@ -162,7 +165,7 @@ public:
     int __fastcall GetPneumatic(bool front, bool red);
     void __fastcall SetPneumatic(bool front, bool red);
 		AnsiString asName;
-    AnsiString __fastcall GetasName()
+    AnsiString __fastcall GetName()
        {
           return asName;
        };
@@ -254,7 +257,7 @@ public:
     inline double __fastcall GetVelocity() { return MoverParameters->Vel; };
     inline double __fastcall GetLength() { return MoverParameters->Dim.L; };
     inline double __fastcall GetWidth() { return MoverParameters->Dim.W; };
-    inline TTrack* __fastcall GetTrack() { return (MoverParameters->ActiveDir<0?Axle1.GetTrack():Axle4.GetTrack()); };
+    inline TTrack* __fastcall GetTrack() { return (iAxleFirst?Axle1.GetTrack():Axle4.GetTrack()); };
     void __fastcall UpdatePos();
 		void __fastcall DynChangeStart(TDynamicObject *Dyn);
     void __fastcall DynChangeEnd(); 

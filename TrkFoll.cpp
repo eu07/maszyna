@@ -141,7 +141,8 @@ bool __fastcall TTrackFollower::Move(double fDistance,bool bPrimary)
   {//jeœli przekroczenie toru od strony Point1
    bCanSkip=bPrimary?pCurrentTrack->CheckDynamicObject(Owner):false;
    if (bCanSkip) //tylko g³ówna oœ przenosi pojazd do innego toru
-    pCurrentTrack->RemoveDynamicObject(Owner); //usuniêcie z aktualnego toru
+    Owner->MyTrack->RemoveDynamicObject(Owner); //zdejmujemy pojazd z dotychczasowego toru
+    //pCurrentTrack->RemoveDynamicObject(Owner); //usuniêcie z aktualnego toru
    if (pCurrentTrack->iPrevDirection)
    {//gdy kierunek bez zmiany (Point1->Point2)
     SetCurrentTrack(pCurrentTrack->CurrentPrev(),0);
@@ -177,7 +178,8 @@ bool __fastcall TTrackFollower::Move(double fDistance,bool bPrimary)
   {//jeœli przekroczenie toru od strony Point2
    bCanSkip=bPrimary?pCurrentTrack->CheckDynamicObject(Owner):false;
    if (bCanSkip) //tylko g³ówna oœ przenosi pojazd do innego toru
-    pCurrentTrack->RemoveDynamicObject(Owner);
+    Owner->MyTrack->RemoveDynamicObject(Owner); //zdejmujemy pojazd z dotychczasowego toru
+    //pCurrentTrack->RemoveDynamicObject(Owner); //usuniêcie z aktualnego toru
    if (pCurrentTrack->iNextDirection)
    {//gdy zmiana kierunku toru (Point2->Point2)
     fDistance=-(s-pCurrentSegment->GetLength());
