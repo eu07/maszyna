@@ -1181,7 +1181,7 @@ void TDynamicObject::SetProximityVelocity(double dist,double vel,const TLocation
   dist-=10.0;
  };
  if (dist<0.0) dist=0.0;
- if (dist>0.1*(MoverParameters->Vel*MoverParameters->Vel-vel*vel)+50)
+ if ((vel<0)?true:dist>0.1*(MoverParameters->Vel*MoverParameters->Vel-vel*vel)+50)
  {//jeœli jest dalej od umownej drogi hamowania
   Mechanik->PutCommand("SetProximityVelocity",floor(dist),vel,*pos);
 #if LOGVELOCITY
@@ -1253,7 +1253,7 @@ void TDynamicObject::ScanEventTrack()
       vmechmax=e->Params[9].asMemCell->fValue1; //prêdkoœæ przy tym semaforze
       if (dir.x*sem.x+dir.z*sem.z<0)
       {//iloczyn skalarny jest ujemny, gdy semafor stoi z ty³u
-       if (vmechmax>0)
+       if (vmechmax!=0)
        {//jeœli dosta³ zezwolenie na jazdê
         eSignSkip=e; //wtedy uznajemy go za ignorowany przy poszukiwaniu nowego
 #if LOGVELOCITY
