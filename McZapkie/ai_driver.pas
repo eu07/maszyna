@@ -1248,7 +1248,7 @@ begin
                     IncMainCtrl(1); {zwieksz nastawnik skoro mozesz - tak aby sie ustawic na bezoporowej}
 
                 {zmniejszanie predkosci:}
-                if ((Vel>VelDesired) or ((Vel>VelDesired*0.98) and (AbsAccS>0)))
+                if ((Vel>VelDesired) or ((Vel>VelDesired*0.9) and (AbsAccS>0)))
                 or ((AccDesired<0) and (AbsAccS>AccDesired)) then
        {          if not MinVelFlag then   }
                    begin
