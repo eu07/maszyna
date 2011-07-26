@@ -1,55 +1,53 @@
 unit ai_driver;
 
-(*
-    MaSzyna EU07 locomotive simulator
-    Copyright (C) 2001-2004  Maciej Czapkiewicz and others
+//    MaSzyna EU07 locomotive simulator
+//    Copyright (C) 2001-2004  Maciej Czapkiewicz and others
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+//    This program is free software; you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation; either version 2 of the License, or
+//    (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+//    This program is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-*)
+//    You should have received a copy of the GNU General Public License
+//    along with this program; if not, write to the Free Software
+//    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
-(*
-zrobione:
-0. pobieranie komend z dwoma parametrami
-1. przyspieszanie do zadanej predkosci, ew. hamowanie jesli przekroczona
-2. hamowanie na zadanym odcinku do zadanej predkosci (ze stabilizacja przyspieszenia)
-3. wychodzenie z sytuacji awaryjnych: bezpiecznik nadmiarowy, poslizg
-4. przygotowanie pojazdu do drogi, zmiana kierunku ruchu
-5. dwa sposoby jazdy - manewrowy i pociagowy
-6. dwa zestawy psychiki: spokojny i agresywny
-7. przejscie na zestaw spokojny jesli wystepuje duzo poslizgow lub wybic nadmiarowego.
-8. lagodne ruszanie (przedluzony czas reakcji na 2 pierwszych nastawnikach)
-9. unikanie jazdy na oporach rozruchowych
-10. logowanie fizyki
-11. kasowanie czuwaka/SHP
-12. procedury wspomagajace "patrzenie" na odlegle semafory
-13. ulepszone procedury sterowania
-14. zglaszanie problemow z dlugim staniem na sygnale S1
-15. sterowanie EN57
-16. zmiana kierunku
-17. otwieranie/zamykanie drzwi
 
-do zrobienia:
-1. kierownik pociagu
-2. madrzejsze unikanie grzania oporow rozruchowych i silnika
-3. unikanie szarpniec, zerwania pociagu itp
-4. obsluga innych awarii
-5. raportowanie problemow, usterek nie do rozwiazania
-6. dla Humandriver: tasma szybkosciomierza - zapis do pliku!
-7. samouczacy sie algorytm hamowania
-*)
+
+//zrobione:
+//0. pobieranie komend z dwoma parametrami
+//1. przyspieszanie do zadanej predkosci, ew. hamowanie jesli przekroczona
+//2. hamowanie na zadanym odcinku do zadanej predkosci (ze stabilizacja przyspieszenia)
+//3. wychodzenie z sytuacji awaryjnych: bezpiecznik nadmiarowy, poslizg
+//4. przygotowanie pojazdu do drogi, zmiana kierunku ruchu
+//5. dwa sposoby jazdy - manewrowy i pociagowy
+//6. dwa zestawy psychiki: spokojny i agresywny
+//7. przejscie na zestaw spokojny jesli wystepuje duzo poslizgow lub wybic nadmiarowego.
+//8. lagodne ruszanie (przedluzony czas reakcji na 2 pierwszych nastawnikach)
+//9. unikanie jazdy na oporach rozruchowych
+//10. logowanie fizyki
+//11. kasowanie czuwaka/SHP
+//12. procedury wspomagajace "patrzenie" na odlegle semafory
+//13. ulepszone procedury sterowania
+//14. zglaszanie problemow z dlugim staniem na sygnale S1
+//15. sterowanie EN57
+//16. zmiana kierunku
+//17. otwieranie/zamykanie drzwi
+
+//do zrobienia:
+//1. kierownik pociagu
+//2. madrzejsze unikanie grzania oporow rozruchowych i silnika
+//3. unikanie szarpniec, zerwania pociagu itp
+//4. obsluga innych awarii
+//5. raportowanie problemow, usterek nie do rozwiazania
+//6. dla Humandriver: tasma szybkosciomierza - zapis do pliku!
+//7. samouczacy sie algorytm hamowania
 
 interface
 
@@ -972,7 +970,11 @@ begin
               if PrepareEngine then    {gotowy do drogi?}
                begin
                  SetDriverPsyche;
-                 JumpToNextOrder;
+                 //JumpToNextOrder;
+                 Controlling^.CommandIn.Value1:=-1;
+                 Controlling^.CommandIn.Value2:=-1;
+                 OrderList[OrderPos]:=Shunt;
+
 //                 if OrderList[OrderPos]<>Wait_for_Orders then
 //                  if BrakeSystem=Pneumatic then  {napelnianie uderzeniowe na wstepie}
 //                   if BrakeSubsystem=Oerlikon then
