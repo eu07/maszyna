@@ -3818,7 +3818,7 @@ void __fastcall TDynamicObject::RadioStop()
 
 void __fastcall TDynamicObject::RaLightsSet(int head,int rear)
 {//zapalenie œwiate³ z przodu i z ty³u, zale¿ne od kierunku pojazdu
- if (iDirection*MoverParameters->CabNo>0)
+ if (iDirection*MoverParameters->CabNo<0)
  {//jesli pojazd stoi w standardowym kierunku
   if (head>=0) MoverParameters->HeadSignalsFlag=head;
   if (rear>=0) MoverParameters->EndSignalsFlag=rear;
