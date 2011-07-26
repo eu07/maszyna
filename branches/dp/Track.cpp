@@ -1156,6 +1156,7 @@ void __fastcall TTrack::Render()
  }
 #ifdef _DEBUG
  if (DebugModeFlag && ScannedFlag) //McZapkie-230702
+ //if (iNumDynamics) //bêdzie kreska na zajêtym torze
  {
   vector3 pos1,pos2,pos3;
   glDisable(GL_DEPTH_TEST);

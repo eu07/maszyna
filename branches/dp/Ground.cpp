@@ -2465,14 +2465,14 @@ if (QueryRootEvent)
               loc.Y=  QueryRootEvent->Params[8].asGroundNode->pCenter.z;
               loc.Z=  QueryRootEvent->Params[8].asGroundNode->pCenter.y;
               if (Global::iMultiplayer) //potwierdzenie wykonania dla serwera - najczêœciej odczyt semafora
-               WyslijEvent(QueryRootEvent->asName,QueryRootEvent->Activator->GetasName());
+               WyslijEvent(QueryRootEvent->asName,QueryRootEvent->Activator->GetName());
 							TDynamicObject* tmp2=NULL;
 								if(QueryRootEvent->Activator->Mechanik!=NULL)
                 {
 									if((String(QueryRootEvent->Params[9].asMemCell->szText )=="Change_direction"||(String(QueryRootEvent->Params[9].asMemCell->szText )=="OutsideStation"&&QueryRootEvent->Activator->Mechanik->OrderList[QueryRootEvent->Activator->Mechanik->OrderPos]!=Obey_train))&&
 										QueryRootEvent->Params[9].asMemCell->fValue1!=QueryRootEvent->Activator->MoverParameters->CabNo)
 									{
-										if(QueryRootEvent->Activator->asName!=Global::asHumanCtrlVehicle)
+										if(QueryRootEvent->Activator->GetName()!=Global::asHumanCtrlVehicle)
                     {
                       TDynamicObject* tmp1;
                         tmp1 = QueryRootEvent->Activator->GetFirstDynamic(1);
@@ -2529,7 +2529,7 @@ if (QueryRootEvent)
                     if((QueryRootEvent->Params[0].asText=="Change_direction"||(QueryRootEvent->Params[0].asText=="OutsideStation"&&QueryRootEvent->Activator->Mechanik->OrderList[QueryRootEvent->Activator->Mechanik->OrderPos]!=Obey_train))&&
                     QueryRootEvent->Params[1].asdouble!=QueryRootEvent->Activator->MoverParameters->CabNo)
                     {
-                    if(QueryRootEvent->Activator->asName!=Global::asHumanCtrlVehicle)
+                    if(QueryRootEvent->Activator->GetName()!=Global::asHumanCtrlVehicle)
                     {
 
                         TDynamicObject* tmp1;
@@ -2673,7 +2673,7 @@ if (QueryRootEvent)
                  if (Global::iMultiplayer) //dajemy znaæ do serwera o wykonaniu
                  {
                   if (QueryRootEvent->Activator)
-                   WyslijEvent(QueryRootEvent->asName,QueryRootEvent->Activator->GetasName());
+                   WyslijEvent(QueryRootEvent->asName,QueryRootEvent->Activator->GetName());
                   else
                    WyslijEvent(QueryRootEvent->asName,NULL);
                  }

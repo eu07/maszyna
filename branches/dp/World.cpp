@@ -1224,7 +1224,7 @@ bool __fastcall TWorld::Update()
        //Train->DynamicObject->mdKabina=NULL;
        Train->DynamicObject=temp;
        Controlled=Train->DynamicObject;
-       Global::asHumanCtrlVehicle=Train->DynamicObject->GetasName();
+       Global::asHumanCtrlVehicle=Train->DynamicObject->GetName();
 //       Train->DynamicObject->MoverParameters->BrakeCtrlPos=-2;
        Train->DynamicObject->MoverParameters->LimPipePress=Controlled->MoverParameters->PipePress;
 //       Train->DynamicObject->MoverParameters->ActFlowSpeed=0;
@@ -1348,8 +1348,8 @@ bool __fastcall TWorld::Update()
       }
 */
        OutText4="";
-       OutText4+="Coupler 0: "+(tmp->PrevConnected?tmp->PrevConnected->GetasName():AnsiString("NULL"))+" ("+AnsiString(tmp->MoverParameters->Couplers[0].CouplingFlag)+"), ";
-       OutText4+="Coupler 1: "+(tmp->NextConnected?tmp->NextConnected->GetasName():AnsiString("NULL"))+" ("+AnsiString(tmp->MoverParameters->Couplers[1].CouplingFlag)+")";
+       OutText4+="Coupler 0: "+(tmp->PrevConnected?tmp->PrevConnected->GetName():AnsiString("NULL"))+" ("+AnsiString(tmp->MoverParameters->Couplers[0].CouplingFlag)+"), ";
+       OutText4+="Coupler 1: "+(tmp->NextConnected?tmp->NextConnected->GetName():AnsiString("NULL"))+" ("+AnsiString(tmp->MoverParameters->Couplers[1].CouplingFlag)+")";
       }
       else
       {
@@ -1768,7 +1768,7 @@ void __fastcall TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
           {
             if((AnsiString(pRozkaz->cString+9,i)=="Change_direction"||(AnsiString(pRozkaz->cString+9,i)=="OutsideStation"&&t->DynamicObject->Mechanik->OrderList[t->DynamicObject->Mechanik->OrderPos]!=Obey_train))&&pRozkaz->fPar[0]!=t->DynamicObject->MoverParameters->CabNo)
             {
-              if(t->DynamicObject->asName!=Global::asHumanCtrlVehicle)
+              if(t->DynamicObject->GetName()!=Global::asHumanCtrlVehicle)
               {
                 TDynamicObject* tmp1;
                 tmp1 = t->DynamicObject->GetFirstDynamic(1);
