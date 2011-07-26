@@ -776,8 +776,83 @@ begin
        if SetProximityVelocity(NewValue1,NewValue2) then
           CommandLocation:=NewLocation;
  {        if Order=Shunt then Order:=Obey_train;}
-     end;
+      end
+     else if NewCommand='ShuntVelocity' then
+    begin
+      if NewValue1<>0 then
+      VehicleCount:=-2;
+      Prepare2press:=false;
+      CommandLocation:=NewLocation;
+      if (OrderList[OrderPos]<>Obey_train) then
+      SetVelocity(NewValue1,NewValue2);
+
+    end
+      else if NewCommand='Wait_for_orders' then
+      OrderList[OrderPos]:=Wait_for_orders
+     else if NewCommand='Prepare_engine' then
+      begin
+        if NewValue1=0 then OrderList[OrderPos]:=Release_engine
+         else if NewValue1=1 then OrderList[OrderPos]:=Prepare_engine
+      end
+     else if NewCommand='Change_direction' then
+      case Trunc(NewValue1) of
+       0,1,-1: begin
+                 ChangeDirOrder:=Trunc(NewValue1);
+                 OrderList[OrderPos]:=Change_direction
+               end
+      end
+     else if NewCommand='Obey_train' then
+      begin
+        OrderList[OrderPos]:=Obey_train;
+        if NewValue1>0 then
+         TrainNumber:=Trunc(NewValue1); {i co potem ???}
+      end
+     else if NewCommand='Shunt' then
+      begin
+        if NewValue1<>VehicleCount then
+         VehicleCount:=Trunc(NewValue1); {i co potem ? - trzeba zaprogramowac odczepianie}
+          OrderList[OrderPos]:=Shunt;
+      end
+     else if NewCommand='Jump_to_order' then
+      begin
+        if NewValue1=-1 then
+         JumpToNextOrder
+        else
+         if (NewValue1>=0) and (NewValue1<=maxorders) then
+          OrderPos:=Trunc(NewValue1);
+             if WriteLogFlag then
+                begin
+                append(AIlogFile);
+                writeln(AILogFile,ElapsedTime:5:2,' - new order: ',Order2Str( OrderList[OrderPos]),' @ ',OrderPos);
+                close(AILogFile);
+                end;
+      end
+     else if NewCommand='Warning_signal' then
+      begin
+        if NewValue1>0 then
+         begin
+           WarningDuration:=NewValue1;
+           if NewValue2>1 then
+            Controlling^.WarningSignal:=2
+           else
+            Controlling^.WarningSignal:=1;
+         end;
+      end
+     else if NewCommand='OutsideStation' then  {wskaznik D5}
+      begin
+        if  OrderList[OrderPos]=Obey_train then
+         SetVelocity(NewValue1,NewValue2) {koniec stacji - predkosc szlakowa}
+        else                        {manewry - zawracaj}
+         begin
+             ChangeDirOrder:=0;
+             OrderList[OrderPos]:=Change_direction;
+         end;
+      end;
+
+
 end;
+
+
 
 
 function TController.UpdateSituation(dt:real):boolean;
@@ -940,14 +1015,14 @@ begin
                                   if (Couplers[0].CouplingFlag=0) then
                                       HeadSignalsFlag:= 1+4+16; {wlacz trojkat}
                                   if (Couplers[1].CouplingFlag=0) then
-                                      EndSignalsFlag:= 32;      {swiatla konca pociagu i/lub blachy}
+                                      EndSignalsFlag:= 2+32;      {swiatla konca pociagu i/lub blachy}
                                end
                                else
                                begin
                                   if (Couplers[0].CouplingFlag=0) then
                                       EndSignalsFlag:= 1+4+16; {wlacz trojkat}
                                   if (Couplers[1].CouplingFlag=0) then
-                                      HeadSignalsFlag:= 32;      {swiatla konca pociagu i/lub blachy}
+                                      HeadSignalsFlag:= 2+32;      {swiatla konca pociagu i/lub blachy}
 
                                end;
                                                         end
@@ -1033,13 +1108,17 @@ begin
                end;
               if OrderList[OrderPos]=Change_direction then {sprobuj zmienic kierunek}
               begin
+              VelActual:=0;
+                if VelActual < 0.1 then
+                begin
+
                 if ChangeDirOrder=0 then
                  ChangeDir:=-(ActiveDir*CabNo)
                 else
                  ChangeDir:=ChangeDirOrder;
                 ChangeDirOrder:=ChangeDir;
-                if OrderDirectionChange(ChangeDir,Controlling)=-1 then
-                                 begin
+                CabNo:=ChangeDir;
+                ActiveCab:=ChangeDir;
                 PantFront(true);
                 PantRear(true);
                 Controlling^.CommandIn.Value1:=-1;
@@ -1049,7 +1128,7 @@ begin
                 append(AIlogFile);
                 writeln(AILogFile,ElapsedTime:5:2,': ',Name,' Direction changed!');
                 close(AILogFile);
-                if (ActiveDir<0) then
+                if (ActiveDir*CabNo<0) then
                                begin
                                      HeadSignalsFlag:=16;  {swiatla manewrowe}
                                      EndSignalsFlag:=1;
@@ -1059,7 +1138,7 @@ begin
                                      HeadSignalsFlag:=1;  {swiatla manewrowe}
                                      EndSignalsFlag:=16;
                                end;
-                end;
+                 end;
 {                else
                  VelActual:=0; {na wszelki wypadek niech zahamuje}
               end;
