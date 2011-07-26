@@ -1811,9 +1811,7 @@ void __fastcall TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
           {
             TLocation l;
             l.X=l.Y=l.Z= 0;
-            if(t->DynamicObject->Mechanik)
             t->DynamicObject->Mechanik->PutCommand(AnsiString(pRozkaz->cString+9,i),pRozkaz->fPar[0],pRozkaz->fPar[1],l); //floaty s¹ z przodu
-            t->DynamicObject->MoverParameters->SetInternalCommand(AnsiString(pRozkaz->cString+9,i),pRozkaz->fPar[0],pRozkaz->fPar[1]); //floaty s¹ z przodu
           }
         WriteLog("AI command: "+AnsiString(pRozkaz->cString+9,i));
      }
