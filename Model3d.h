@@ -298,8 +298,8 @@ public:
  TSubModel* __fastcall GetFromName(const char *sName);
  //TMaterial* __fastcall GetMaterialFromName(char *sName);
  void __fastcall AddTo(const char *Name, TSubModel *SubModel);
- bool __fastcall LoadFromTextFile(char *FileName,bool dynamic);
- bool __fastcall LoadFromBinFile(char *FileName);
+ void __fastcall LoadFromTextFile(char *FileName,bool dynamic);
+ void __fastcall LoadFromBinFile(char *FileName);
  bool __fastcall LoadFromFile(char *FileName,bool dynamic);
  void __fastcall SaveToBinFile(char *FileName);
  void __fastcall BreakHierarhy();
@@ -320,7 +320,7 @@ public:
  void __fastcall RaRenderAlpha(vector3* vPosition,vector3* vAngle,GLuint *ReplacableSkinId=NULL,int iAlpha=0x30300030);
  //inline int __fastcall GetSubModelsCount() { return (SubModelsCount); };
  int __fastcall Flags() {return iFlags;};
- bool __fastcall Init();
+ void __fastcall Init();
 };
 
 //typedef TModel3d *PModel3d;

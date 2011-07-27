@@ -3,7 +3,7 @@
 <PROJECT>
   <MACROS>
     <VERSION value="BCB.05.03"/>
-    <PROJECT value="D:\EU07\EU07.exe"/>
+    <PROJECT value="D:\EU07DDS\EU07.exe"/>
     <OBJFILES value="McZapkie\mover.obj McZapkie\ai_driver.obj QueryParserComp.obj 
       McZapkie\mtable.obj EU07.obj dumb3d.obj Camera.obj Texture.obj World.obj 
       Model3d.obj geometry.obj MdlMngr.obj Train.obj wavread.obj Timer.obj 
@@ -61,8 +61,8 @@ IncludeVerInfo=1
 AutoIncBuild=1
 MajorVer=1
 MinorVer=3
-Release=193
-Build=198
+Release=194
+Build=199
 Debug=1
 PreRelease=0
 Special=0
@@ -74,7 +74,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.3.193.198
+FileVersion=1.3.194.199
 InternalName=5th by Ra
 LegalCopyright=
 LegalTrademarks=
@@ -110,22 +110,20 @@ Item7=GLEW_STATIC;_DEBUG;USE_VERTEX_ARRAYS
 Item8=_DEBUG
 
 [HistoryLists\hlFinalOutputDir]
-Count=9
-Item0=D:\EU07\
-Item1=D:\EU07DDS\
+Count=7
+Item0=D:\EU07DDS\
+Item1=D:\EU07\
 Item2=D:\EU07DDS
-Item3=C:\EU07\
-Item4=M:\aEU07\EU07\
-Item5=G:\EU07\
-Item6=M:\aEU07\EU07-2006\
-Item7=M:\aEU07\EU07
-Item8=C:\EU07
+Item3=M:\aEU07\EU07\
+Item4=G:\EU07\
+Item5=M:\aEU07\EU07-2006\
+Item6=M:\aEU07\EU07
 
 [Debugging]
 DebugSourceDirs=C:\Ra\dp\McZapkie\
 
 [Parameters]
-RunParams=-s krzyzowa2.SCN -v eu07-150
+RunParams=-s baltyk_zima.SCN -v eu07-310
 HostApplication=
 RemoteHost=
 RemotePath=
