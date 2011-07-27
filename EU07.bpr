@@ -61,8 +61,8 @@ IncludeVerInfo=1
 AutoIncBuild=1
 MajorVer=1
 MinorVer=3
-Release=192
-Build=197
+Release=193
+Build=198
 Debug=1
 PreRelease=0
 Special=0
@@ -74,7 +74,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.3.192.197
+FileVersion=1.3.193.198
 InternalName=5th by Ra
 LegalCopyright=
 LegalTrademarks=
@@ -125,7 +125,7 @@ Item8=C:\EU07
 DebugSourceDirs=C:\Ra\dp\McZapkie\
 
 [Parameters]
-RunParams=-s EXPORT-test2.SCN -v ghostview
+RunParams=-s krzyzowa2.SCN -v eu07-150
 HostApplication=
 RemoteHost=
 RemotePath=
