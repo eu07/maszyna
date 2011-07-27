@@ -1840,6 +1840,12 @@ if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
     }
 //napiecie sieci trakcyjnej
 
+    float wolty;
+
+//    wolty= 2600 + (MoverParameters->PantFrontUp?300:0) + (MoverParameters->PantRearUp?400:0);
+    wolty= 3400;
+
+
     TTractionParam tmpTraction;
 if ((MoverParameters->EnginePowerSource.SourceType==CurrentCollector)||(MoverParameters->TrainType=="ezt"))
 {
@@ -1854,18 +1860,18 @@ if ((MoverParameters->EnginePowerSource.SourceType==CurrentCollector)||(MoverPar
      if (NoVoltTime>1)
       tmpTraction.TractionVoltage=0;
      else
-       tmpTraction.TractionVoltage=3400; //3550
+       tmpTraction.TractionVoltage=wolty; //3550
      }
     else
-    tmpTraction.TractionVoltage=3400;
+    tmpTraction.TractionVoltage=wolty;
 }
 else
-tmpTraction.TractionVoltage=3400;
+tmpTraction.TractionVoltage=wolty;
      tmpTraction.TractionFreq=0;
      tmpTraction.TractionMaxCurrent=7500;
-     tmpTraction.TractionResistivity=0.3;
+     tmpTraction.TractionResistivity=0.30;
 
-     
+
 
 
 //McZapkie: predkosc w torze przekazac do TrackParam
@@ -1874,6 +1880,7 @@ tmpTraction.TractionVoltage=3400;
 
     if (Mechanik)
     {
+        MoverParameters->EqvtPipePress=GetFirstDynamic(3)->MoverParameters->PipePress*0.4+GetLastDynamic(3)->MoverParameters->PipePress*0.4+MoverParameters->PipePress*0.2;
         //ABu: proba szybkiego naprawienia bledu z zatrzymujacymi sie bez powodu skladami
         if ((MoverParameters->CabNo!=0)&&(Controller!=Humandriver)&&(!MoverParameters->Mains)&&(Mechanik->EngineActive))
                        {
@@ -2206,16 +2213,16 @@ if (tmpTraction.TractionVoltage==0)
 //ABu-160305 Testowanie gotowosci do jazdy
        if (Mechanik)
        {
-          if (MoverParameters->BrakePress<0.03*MoverParameters->MaxBrakePress)
+          if (MoverParameters->BrakePress<0.3)
              Mechanik->Ready=true;
           TDynamicObject *tmp;
           tmp=GetLastDynamic(1);
           if(tmp!=this)
-             if (tmp->MoverParameters->BrakePress>0.03*tmp->MoverParameters->MaxBrakePress)
+             if (tmp->MoverParameters->BrakePress>0.3)
                 Mechanik->Ready=false;
           tmp=GetFirstDynamic(1);
           if(tmp!=this)
-             if (tmp->MoverParameters->BrakePress>0.03*tmp->MoverParameters->MaxBrakePress)
+             if (tmp->MoverParameters->BrakePress>0.3)
                 Mechanik->Ready=false;
        }
 

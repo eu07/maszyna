@@ -35,16 +35,15 @@
     <USERDEFINES value="GLEW_STATIC;_DEBUG"/>
     <SYSDEFINES value="_RTLDLL;NO_STRICT"/>
     <MAINSOURCE value="EU07.cpp"/>
-    <INCLUDEPATH value="McZapki;McZapk;McZap;McZa;McZp;McZ;Mc;M;youBy;C:\Users\usert\;&quot;d:\program files\CBuilder5\Projects\&quot;;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
-    <LIBPATH value="McZapki;McZapk;McZap;McZa;McZp;McZ;Mc;M;youBy;C:\Users\usert\;&quot;d:\program files\CBuilder5\Projects\&quot;;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
+    <INCLUDEPATH value="C:\Users\usert\ps;McZapki;McZapk;McZap;McZa;McZp;McZ;Mc;M;youBy;C:\Users\usert\;&quot;d:\program files\CBuilder5\Projects\&quot;;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
+    <LIBPATH value="C:\Users\usert\ps;McZapki;McZapk;McZap;McZa;McZp;McZ;Mc;M;youBy;C:\Users\usert\;&quot;d:\program files\CBuilder5\Projects\&quot;;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
     <WARNINGS value="-w-par"/>
   </MACROS>
   <OPTIONS>
-    <IDLCFLAGS value="-src_suffix cpp -DGLEW_STATIC -D_DEBUG -IMcZapki -IMcZapk -IMcZap -IMcZa 
-      -IMcZp -IMcZ -IMc -IM -IyouBy -IC:\Users\usert\. 
-      -I&quot;d:\program files\CBuilder5\Projects\.&quot; -INewScenery 
-      -Ig:\Borland\CBuilder5\Projects\. -IMcZapkie -I$(BCB)\include 
-      -I$(BCB)\include\vcl -boa"/>
+    <IDLCFLAGS value="-IC:\Users\usert\ps -IMcZapki -IMcZapk -IMcZap -IMcZa -IMcZp -IMcZ -IMc 
+      -IM -IyouBy -IC:\Users\usert\. -I&quot;d:\program files\CBuilder5\Projects\.&quot; 
+      -INewScenery -Ig:\Borland\CBuilder5\Projects\. -IMcZapkie -I$(BCB)\include 
+      -I$(BCB)\include\vcl -src_suffix cpp -DGLEW_STATIC -D_DEBUG -boa"/>
     <CFLAG1 value="-Od -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a4 -6 -b- -k -y -v -vi- 
       -c -tW -tWM"/>
     <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
@@ -60,11 +59,11 @@
   <IDEOPTIONS>
 [Version Info]
 IncludeVerInfo=1
-AutoIncBuild=1
+AutoIncBuild=0
 MajorVer=1
 MinorVer=2
 Release=2
-Build=5
+Build=590
 Debug=0
 PreRelease=1
 Special=0
@@ -76,7 +75,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=PC2009 SP1 w/SPKS
-FileVersion=1.2.2.5
+FileVersion=1.2.2.590
 InternalName=hammer
 LegalCopyright=
 LegalTrademarks=

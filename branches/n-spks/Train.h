@@ -77,6 +77,9 @@ public:
 
     AnsiString asMessage;
 
+    float klateczka;
+    GLuint VideoSkinID;    
+
 //McZapkie: definicje wskaznikow
     TGauge VelocityGauge;
     TGauge I1Gauge;
@@ -261,6 +264,8 @@ public:
     TRealSound rsRunningNoise;
     TRealSound rsEngageSlippery;
     TRealSound rsFadeSound;
+
+    TRealSound rsVideo;    
 
     PSound dsbHasler;
     PSound dsbBuzzer;

@@ -26,7 +26,9 @@
 #include "MdlMngr.h"
 #include "Globals.h"
 #include "Timer.h"
+#include "Texture.h"
 
+float dtpk;
 using namespace Timer;
 
 __fastcall TCab::TCab()
@@ -168,7 +170,7 @@ bool __fastcall TTrain::Init(TDynamicObject *NewDynamicObject)
 
 void __fastcall TTrain::OnKeyPress(int cKey)
 {
-
+  dtpk=0;
   bool isEztOer;
   isEztOer=(DynamicObject->MoverParameters->TrainType=="ezt")&&(DynamicObject->MoverParameters->Mains)&&(DynamicObject->MoverParameters->BrakeSubsystem==ss_ESt)&&(DynamicObject->MoverParameters->ActiveDir!=0);
 
@@ -232,7 +234,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
               int CouplNr=-2;
               if (!FreeFlyModeFlag)
               {
-                  if(DynamicObject->MoverParameters->BrakeDelaySwitch(0))
+                  if(DynamicObject->MoverParameters->BrakeDelaySwitch(bdelay_P))
                    {
                        dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
                        dsbPneumaticRelay->Play( 0, 0, 0 );
@@ -249,7 +251,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                  }
                  if (temp!=NULL)
                  {
-                    if (temp->MoverParameters->BrakeDelaySwitch(0))
+                    if (temp->MoverParameters->BrakeDelaySwitch(bdelay_P))
                      {
                        dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
                        dsbPneumaticRelay->Play( 0, 0, 0 );
@@ -405,6 +407,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                    DynamicObject->MoverParameters->Heating=true;
                    dsbSwitch->SetVolume(DSBVOLUME_MAX);
                    dsbSwitch->Play( 0, 0, 0 );
+//                   klateczka=0;
                    }
               }
               else
@@ -759,7 +762,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
           while (DynamicObject->MoverParameters->BrakeCtrlPos<DynamicObject->MoverParameters->BrakeCtrlPosNo/2 && DynamicObject->MoverParameters->IncBrakeLevel());
 
           if (GetAsyncKeyState(VK_CONTROL)<0)
-            if ((DynamicObject->MoverParameters->BrakeSubsystem==ss_ESt)&&(DynamicObject->MoverParameters->BrakeSystem==Pneumatic))
+            if ((DynamicObject->MoverParameters->BrakeHandle==FV4a)&&(DynamicObject->MoverParameters->BrakeSystem==Pneumatic))
               DynamicObject->MoverParameters->BrakeCtrlPos=-2;
       }
       else
@@ -875,14 +878,14 @@ void __fastcall TTrain::OnKeyPress(int cKey)
               if (!FreeFlyModeFlag)
               {
                   if (GetAsyncKeyState(VK_CONTROL)<0)
-                   if(DynamicObject->MoverParameters->BrakeDelaySwitch(2))
+                   if(DynamicObject->MoverParameters->BrakeDelaySwitch(bdelay_R))
                      {
                        dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
                        dsbPneumaticRelay->Play( 0, 0, 0 );
                      }
                    else;
                   else
-                   if(DynamicObject->MoverParameters->BrakeDelaySwitch(1))
+                   if(DynamicObject->MoverParameters->BrakeDelaySwitch(bdelay_G))
                      {
                        dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
                        dsbPneumaticRelay->Play( 0, 0, 0 );
@@ -900,14 +903,14 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                  if (temp!=NULL)
                  {
                   if (GetAsyncKeyState(VK_CONTROL)<0)
-                    if (temp->MoverParameters->BrakeDelaySwitch(2))
+                    if (temp->MoverParameters->BrakeDelaySwitch(bdelay_R))
                      {
                        dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
                        dsbPneumaticRelay->Play( 0, 0, 0 );
                      }
                     else;
                   else
-                    if (temp->MoverParameters->BrakeDelaySwitch(1))
+                    if (temp->MoverParameters->BrakeDelaySwitch(bdelay_G))
                      {
                        dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
                        dsbPneumaticRelay->Play( 0, 0, 0 );
@@ -1215,6 +1218,8 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                    dsbSwitch->SetVolume(DSBVOLUME_MAX);
                    dsbSwitch->Play( 0, 0, 0 );
                    DynamicObject->MoverParameters->Heating=false;
+//                   rsVideo.Stop();
+//                   klateczka=0;
                    }
               }
               else
@@ -1443,7 +1448,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       if (DebugModeFlag)
       {
           if (cKey==VkKeyScan('['))
-              DynamicObject->Move(100.0);
+              DynamicObject->Move( 100.0);
           else
           if (cKey==VkKeyScan(']'))
               DynamicObject->Move(-100.0);
@@ -1561,6 +1566,25 @@ bool __fastcall TTrain::Update()
  DWORD stat;
 
  double dt= Timer::GetDeltaTime();
+//yB: testy hamowania naglego
+// if(DynamicObject->MoverParameters->Vel<floor(DynamicObject->MoverParameters->Vel+0.3))
+//  {
+//   if(DynamicObject->MoverParameters->EmergencyBrakeFlag==false)
+//     DynamicObject->MoverParameters->DistCounter= 0;
+//   DynamicObject->MoverParameters->EmergencyBrakeFlag= true;
+//  }
+
+ if(DynamicObject->MoverParameters->Heating)
+  {
+//   klateczka+=dt;
+//   rsVideo.AdjFreq(2, 0);
+//   rsVideo.Play(1,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
+  }
+//  if(klateczka<1) rsVideo.Stop();
+
+ DynamicObject->MoverParameters->Hamulec->Releaser(0);
+
+// VideoSkinID= TTexturesManager::GetTextureID(("vid/vid"+FloatToStrF(klateczka*10,ffFixed,4,0)).c_str());   
 
  if (DynamicObject->mdKabina)
   {
@@ -2014,12 +2038,12 @@ else
 
     if (CylHamGauge.SubModel!=NULL)
      {
-      CylHamGauge.UpdateValue(DynamicObject->MoverParameters->BrakePress);
+      CylHamGauge.UpdateValue(DynamicObject->MoverParameters->BrakePress*0.1f);
       CylHamGauge.Update();
      }
     if (CylHamGaugeB.SubModel!=NULL)
      {
-      CylHamGaugeB.UpdateValue(DynamicObject->MoverParameters->BrakePress);
+      CylHamGaugeB.UpdateValue(DynamicObject->MoverParameters->BrakePress*0.1f);
       CylHamGaugeB.Update();
      }
     if (PrzGlGauge.SubModel!=NULL)
@@ -2029,18 +2053,18 @@ else
      }
     if (PrzGlGaugeB.SubModel!=NULL)
      {
-      PrzGlGaugeB.UpdateValue(DynamicObject->MoverParameters->PipePress);
+      PrzGlGaugeB.UpdateValue(DynamicObject->MoverParameters->PipePress*0.1f);
       PrzGlGaugeB.Update();
      }
 // McZapkie! - zamiast pojemnosci cisnienie
     if (ZbGlGauge.SubModel!=NULL)
      {
-      ZbGlGauge.UpdateValue(DynamicObject->MoverParameters->Compressor);
+      ZbGlGauge.UpdateValue(DynamicObject->MoverParameters->Compressor*0.1f);
       ZbGlGauge.Update();
      }
     if (ZbGlGaugeB.SubModel!=NULL)
-     {
-      ZbGlGaugeB.UpdateValue(DynamicObject->MoverParameters->Compressor);
+     {                                                             
+      ZbGlGaugeB.UpdateValue(DynamicObject->MoverParameters->Compressor*0.1f);
       ZbGlGaugeB.Update();
      }
      
@@ -2177,15 +2201,10 @@ else
         if ( DynamicObject->MoverParameters->ResistorsFlagCheck())
          {
           btLampkaOpory.TurnOn();
-//          ShellExecute(NULL, NULL , "c:\pkc.exe", "-c0 -o10,1", "", SW_HIDE);
          }
         else
          {
           btLampkaOpory.TurnOff();
-//          WinExec("c:\pkc.exe -c0 -o10,0",SW_NORMAL);
-//          ShellExecute(                                          //SW_SHOWNORMAL
-//          ShellExecute(NULL, NULL , "c:\pkc.exe", "-c0 -o10,0", "", SW_HIDE);
-//          WinExec("c:\pkc.exe -c0 -o10,0",
          }
         if ( (DynamicObject->MoverParameters->Itot!=0) || (DynamicObject->MoverParameters->BrakePress > 0.2) || ( DynamicObject->MoverParameters->PipePress < 0.36 ))
           btLampkaStyczn.TurnOff();     //
@@ -2291,7 +2310,7 @@ else
 
 } //**************************************************** */
 
-    if ((DynamicObject->MoverParameters->BrakePress>=0.05f*DynamicObject->MoverParameters->MaxBrakePress) || (DynamicObject->MoverParameters->DynamicBrakeFlag))
+    if ((DynamicObject->MoverParameters->BrakePress>=0.05f*DynamicObject->MoverParameters->MaxBrakePress[3]) || (DynamicObject->MoverParameters->DynamicBrakeFlag))
      { btLampkaHamienie.TurnOn(); }
     else
      { btLampkaHamienie.TurnOff(); }
@@ -2351,7 +2370,7 @@ else
 
     if (BrakeProfileCtrlGauge.SubModel!=NULL)
      {
-      BrakeProfileCtrlGauge.UpdateValue(double(DynamicObject->MoverParameters->BrakeDelayFlag==2?0.5:DynamicObject->MoverParameters->BrakeDelayFlag));
+      BrakeProfileCtrlGauge.UpdateValue(double(DynamicObject->MoverParameters->BrakeDelayFlag==4?2:DynamicObject->MoverParameters->BrakeDelayFlag-1));
       BrakeProfileCtrlGauge.Update();
      }
 
@@ -2881,6 +2900,88 @@ else
     AntiSlipButtonGauge.UpdateValue(0);
     DepartureSignalButtonGauge.UpdateValue(0);
     FuseButtonGauge.UpdateValue(0);
+
+/*
+   dtpk+=dt;
+    if (dtpk>0.10)
+    try
+    { //pokis
+   //bufor na liniê z pliku
+   //utworzenie obiektu infile klasy ifstream
+    TFileStream *fs;
+    fs= new TFileStream("input.txt", fmOpenRead|fmShareCompat);
+    AnsiString str= "";
+    int size= fs->Size;
+    str.SetLength(size);
+    fs->Read(str.c_str(),size);
+    str+= "";
+    delete fs;
+    TQueryParserComp *Parser;
+    Parser= new TQueryParserComp(NULL);
+    Parser->TextToParse= str;
+//    Parser->LoadStringToParse(asFile);
+    Parser->First();
+   //je¿eli tworzenie obiektu zakoñczy siê niepowodzeniem to przerwij operacjê
+    str= Parser->GetNextSymbol().LowerCase();
+    int z;
+    z = StrToInt(str);
+//    z = (z*(DynamicObject->MoverParameters->MainCtrlPosNo+0.1)/1000);
+    while((DynamicObject->MoverParameters->MainCtrlPos<z)&&(z<=DynamicObject->MoverParameters->MainCtrlPosNo)) DynamicObject->MoverParameters->IncMainCtrl(1);
+    while(DynamicObject->MoverParameters->MainCtrlPos>z) DynamicObject->MoverParameters->DecMainCtrl(1);
+
+    str= Parser->GetNextSymbol().LowerCase();
+
+    z = StrToInt(str);
+//    z = (z*(DynamicObject->MoverParameters->MainCtrlPosNo+0.1)/1000);
+    while((DynamicObject->MoverParameters->ScndCtrlPos<z)&&(z<=DynamicObject->MoverParameters->ScndCtrlPosNo)) DynamicObject->MoverParameters->IncScndCtrl(1);
+    while(DynamicObject->MoverParameters->ScndCtrlPos>z) DynamicObject->MoverParameters->DecScndCtrl(1);
+
+    str= Parser->GetNextSymbol().LowerCase();
+    if(str=="n")
+      DynamicObject->MoverParameters->ActiveDir= 1;
+    else if(str=="t")
+      DynamicObject->MoverParameters->ActiveDir=-1;
+    else
+      DynamicObject->MoverParameters->ActiveDir= 0;
+
+    str= Parser->GetNextSymbol();
+    float z1;
+    z1 = StrToFloat(str);
+    DynamicObject->MoverParameters->BrakeCtrlPos = z1;
+
+    Parser->GetNextSymbol();
+
+    str= Parser->GetNextSymbol().LowerCase();
+    z = StrToInt(str);
+    DynamicObject->MoverParameters->LocalBrakePos = int(10 * z * 0.00144);
+
+    Parser->Free();
+    dtpk=0;
+    }
+    catch(...)
+    {
+    dtpk=0.2;
+    };        //*/
+
+/*
+    try
+    {
+    std::ofstream outputpk;
+    char* str;
+    if(DynamicObject->MoverParameters->ResistorsFlag)
+      str= "R";
+    else
+      str= "r";
+
+    outputpk.open("output.txt", std::ios::trunc|std::ios::out);
+    outputpk << str << "\n";
+    outputpk.flush();
+    outputpk.close();
+    }
+    catch(...)
+    {
+    }; //*/
+
   }
  return true; //(DynamicObject->Update(dt));
 }  //koniec update
@@ -2922,6 +3023,15 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
     Parser->First();
     str="";
     dsbPneumaticSwitch= TSoundsManager::GetFromName("silence1.wav");
+
+//    str="video.wav";
+//    rsVideo.Init(str.c_str(),-1,0,0,0);
+//    rsVideo.AM=1.0;
+//    rsVideo.AA=1.0;
+//    rsVideo.FM=1.0;
+//    rsVideo.FA=1.0;
+    str="";
+
     while ((!Parser->EndOfFile) && (str!=AnsiString("internaldata:")))
     {
         str= Parser->GetNextSymbol().LowerCase();
@@ -3368,11 +3478,6 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
         if (str==AnsiString("security_reset_bt:"))             //przycisk zbijajacy SHP/czuwak
          {
            SecurityResetButtonGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("releaser_bt:"))                   //przycisk odluzniacza
-         {
-           ReleaserButtonGauge.Load(Parser,DynamicObject->mdKabina);
          }
         else
         if (str==AnsiString("releaser_bt:"))                   //przycisk odluzniacza

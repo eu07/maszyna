@@ -56,6 +56,7 @@ __fastcall TWorld::TWorld()
     OutText1 = "";
     OutText2 = "";
     OutText3 = "";
+//    Deszczyk.Init(1000, 0, 0, 0, 100, 500, 100, -10);
 }
 
 __fastcall TWorld::~TWorld()
@@ -802,8 +803,10 @@ bool __fastcall TWorld::Update()
       glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseCabLight);
       glLightfv(GL_LIGHT0,GL_SPECULAR,specularCabLight);
 
-      Train->DynamicObject->mdKabina->Render(SquareMagnitude(Global::pCameraPosition-pos),0);
-      Train->DynamicObject->mdKabina->RenderAlpha(SquareMagnitude(Global::pCameraPosition-pos),0);
+
+
+      Train->DynamicObject->mdKabina->Render(SquareMagnitude(Global::pCameraPosition-pos),Train->VideoSkinID);
+      Train->DynamicObject->mdKabina->RenderAlpha(SquareMagnitude(Global::pCameraPosition-pos),Train->VideoSkinID);
 //smierdzi
 //      mdModel->Render(SquareMagnitude(Global::pCameraPosition-pos),0);
 
@@ -1002,36 +1005,27 @@ bool __fastcall TWorld::Update()
        {
           OutText3="";
           OutText1="Vehicle Name:  "+AnsiString(tmp->MoverParameters->Name);
-//yB          OutText1+="; d:  "+FloatToStrF(tmp->ABuGetDirection(),ffFixed,2,0);
           //OutText1=FloatToStrF(tmp->MoverParameters->Couplers[0].CouplingFlag,ffFixed,3,2)+", ";
           //OutText1+=FloatToStrF(tmp->MoverParameters->Couplers[1].CouplingFlag,ffFixed,3,2);
           OutText2="Damage status: "+tmp->MoverParameters->EngineDescription(0);//+" Engine status: ";
           OutText2+="; Brake delay: ";
-          if(tmp->MoverParameters->BrakeDelayFlag>0)
-           if(tmp->MoverParameters->BrakeDelayFlag>1)
+          if(tmp->MoverParameters->BrakeDelayFlag>1)
+           if(tmp->MoverParameters->BrakeDelayFlag>2)
             OutText2+="R";
            else
-            OutText2+="G";
+            OutText2+="P";
           else
-           OutText2+="P";
-          OutText2+=AnsiString(", BTP:")+FloatToStrF(tmp->MoverParameters->BCMFlag,ffFixed,5,0);
+           OutText2+="G";
+          OutText2+=AnsiString(", BTP:")+FloatToStrF(tmp->MoverParameters->LoadFlag,ffFixed,5,0);
           OutText2+=AnsiString(", u:")+FloatToStrF(tmp->MoverParameters->u,ffFixed,3,3);
-          OutText2+=AnsiString(", N:")+FloatToStrF((tmp->MoverParameters->BrakePress*tmp->MoverParameters->P2FTrans*tmp->MoverParameters->BrakeCylNo)-2*(tmp->MoverParameters->NAxles*2+1),ffFixed,4,0);
-//          OutText2+= FloatToStrF(tmp->MoverParameters->CompressorPower,ffFixed,5,0)+AnsiString(", ");
-//yB          if(tmp->MoverParameters->BrakeSubsystem==Knorr) OutText2+=" Knorr";
-//yB          if(tmp->MoverParameters->BrakeSubsystem==Oerlikon) OutText2+=" Oerlikon";
-//yB          if(tmp->MoverParameters->BrakeSubsystem==Hik) OutText2+=" Hik";
-//yB          if(tmp->MoverParameters->BrakeSubsystem==WeLu) OutText2+=" £estingha³s";
-          //OutText2= " GetFirst: "+AnsiString(tmp->GetFirstDynamic(1)->MoverParameters->Name)+" Damage status="+tmp->MoverParameters->EngineDescription(0)+" Engine status: ";
-          //OutText2+= " GetLast: "+AnsiString(tmp->GetLastDynamic(1)->MoverParameters->Name)+" Damage status="+tmp->MoverParameters->EngineDescription(0)+" Engine status: ";
-          OutText3= AnsiString("Brake press: ")+FloatToStrF(10*tmp->MoverParameters->BrakePress,ffFixed,5,2)+AnsiString(", ");
-          OutText3+= AnsiString("Pipe press: ")+FloatToStrF(tmp->MoverParameters->PipePress,ffFixed,5,2)+AnsiString(", ");
-          OutText3+= AnsiString("BVP: ")+FloatToStrF(tmp->MoverParameters->Volume*10,ffFixed,5,3)+AnsiString(", ");
-          OutText3+= FloatToStrF(tmp->MoverParameters->CntrlPipePress*10,ffFixed,5,3)+AnsiString(", ");
+          OutText2+=AnsiString(", N:")+FloatToStrF((tmp->MoverParameters->BrakePress*tmp->MoverParameters->P2FTrans-tmp->MoverParameters->BrakeCylSpring)*tmp->MoverParameters->BrakeCylNo*tmp->MoverParameters->BrakeCylMult[0]-tmp->MoverParameters->BrakeSlckAdj,ffFixed,4,0);
+          OutText3= AnsiString("BP: ")+FloatToStrF(tmp->MoverParameters->BrakePress,ffFixed,5,2)+AnsiString(", ");
+          OutText3+= AnsiString("PP: ")+FloatToStrF(tmp->MoverParameters->PipePress,ffFixed,5,2)+AnsiString(", ");
+          OutText3+= AnsiString("BVP: ")+FloatToStrF(tmp->MoverParameters->Volume,ffFixed,5,3)+AnsiString(", ");
+          OutText3+= FloatToStrF(tmp->MoverParameters->CntrlPipePress,ffFixed,5,3)+AnsiString(", ");
           OutText3+= FloatToStrF(tmp->MoverParameters->Hamulec->GetCRP(),ffFixed,5,3)+AnsiString(", ");
-//          OutText3+= FloatToStrF(tmp->MoverParameters->LowPipePress,ffFixed,5,2)+AnsiString(", ");
-          OutText3+= FloatToStrF(tmp->MoverParameters->BrakeStatus,ffFixed,5,0)+AnsiString(", ");          
-          OutText3+= AnsiString("Pipe2 press: ")+FloatToStrF(tmp->MoverParameters->ScndPipePress,ffFixed,5,2)+AnsiString(". ");
+          OutText3+= FloatToStrF(tmp->MoverParameters->BrakeStatus,ffFixed,5,0)+AnsiString(", ");
+          OutText3+= AnsiString("HP: ")+FloatToStrF(tmp->MoverParameters->ScndPipePress,ffFixed,5,2)+AnsiString(". ");
 
           if ((tmp->MoverParameters->LocalBrakePos)>0)
              OutText3+= AnsiString("local brake active. ");
