@@ -1227,7 +1227,7 @@ TMaterial* __fastcall TModel3d::GetMaterialFromName(char *sName)
 }
 */
 
-void __fastcall TModel3d::LoadFromFile(char *FileName,bool dynamic)
+bool __fastcall TModel3d::LoadFromFile(char *FileName,bool dynamic)
 {//wczytanie modelu z pliku
  AnsiString name=AnsiString(FileName).LowerCase();
  int i=name.LastDelimiter(".");
@@ -1238,21 +1238,20 @@ void __fastcall TModel3d::LoadFromFile(char *FileName,bool dynamic)
  if (FileExists(asBinary))
  {LoadFromBinFile(asBinary.c_str());
   asBinary=""; //wy³¹czenie zapisu
-  Init();
+  return Init();
  }
  else
  {if (FileExists(name+".t3d"))
-  {LoadFromTextFile(FileName,dynamic); //wczytanie tekstowego
-   if (!dynamic) //pojazdy dopiero po ustawieniu animacji
-   {Init(); //generowanie siatek i zapis E3D
-    //if (Global::bConvertModels)
-    // SaveToBinFile(asBinary.c_str()); //zapisanie binarnego od razu
+  {if (LoadFromTextFile(FileName,dynamic)) //wczytanie tekstowego
+   {if (!dynamic) //pojazdy dopiero po ustawieniu animacji
+     return Init(); //generowanie siatek i zapis E3D
    }
   }
  }
+ return false; //brak pliku albo problem z wczytaniem
 };
 
-void __fastcall TModel3d::LoadFromBinFile(char *FileName)
+bool __fastcall TModel3d::LoadFromBinFile(char *FileName)
 {//wczytanie modelu z pliku binarnego
  WriteLog("Loading - binary model: "+AnsiString(FileName));
  int i=0,j,k,ch,size;
@@ -1326,9 +1325,10 @@ void __fastcall TModel3d::LoadFromBinFile(char *FileName)
  for (i=0;i<iSubModelsCount;++i)
   Root[i].BinInit(Root,m,(float8*)m_pVNT,&Textures,&Names); //aktualizacja wskaŸników w submodelach
  iFlags&=~0x0200;
+ return (iSubModelsCount>0);
 };
 
-void __fastcall TModel3d::LoadFromTextFile(char *FileName,bool dynamic)
+bool __fastcall TModel3d::LoadFromTextFile(char *FileName,bool dynamic)
 {//wczytanie submodelu z pliku tekstowego
  WriteLog("Loading - text model: "+AnsiString(FileName));
  iFlags|=0x0200; //wczytano z pliku tekstowego (w³aœcicielami tablic s¹ submodle)
@@ -1358,11 +1358,12 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName,bool dynamic)
   }
   Root->WillBeAnimated(); //bo z tym jest du¿o problemów
  }
+ return Root; //musi byæ g³ówny submodel
 }
 
-void __fastcall TModel3d::Init()
+bool __fastcall TModel3d::Init()
 {//obrócenie pocz¹tkowe uk³adu wspó³rzêdnych, dla pojazdów wykonywane po analizie animacji
- if (iFlags&0x8000) return; //operacje zosta³y ju¿ wykonane
+ if (iFlags&0x8000) return true; //operacje zosta³y ju¿ wykonane
  if (Root)
  {if (iFlags&0x0200) //jeœli wczytano z pliku tekstowego
    Root->InitialRotate(true); //nale¿y siê konwersja uk³adu wspó³rzêdnych
@@ -1393,7 +1394,9 @@ void __fastcall TModel3d::Init()
    //if (Root->TextureID) //o ile ma teksturê
    // Root->iFlags|=0x80; //koniecznoœæ ustawienia tekstury
   }
+  return true;
  }
+ return false; //nie ma g³ownego submodelu
 };
 
 void __fastcall TModel3d::SaveToBinFile(char *FileName)

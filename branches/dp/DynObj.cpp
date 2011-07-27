@@ -37,7 +37,7 @@
 #include "Ground.h"
 #include "Event.h"
 
-#define LOGVELOCITY 1
+#define LOGVELOCITY 0
 
 const float maxrot=(M_PI/3); //60°
 
@@ -716,18 +716,22 @@ void __fastcall TDynamicObject::ABuModelRoll()
 {//ustawienie przechy³ki pojazdu i jego zawartoœci
  double modelRoll=RadToDeg(0.5*(Axle1.GetRoll()+Axle4.GetRoll())); //Ra: tu nie by³o DegToRad
  //if (ABuGetDirection()<0) modelRoll=-modelRoll;
- mdModel->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
- if (mdKabina)
-  if (MoverParameters->ActiveCab==-1)
-   mdKabina->GetSMRoot()->SetRotateXYZ(vector3(0,-modelRoll,0));
-  else
-   mdKabina->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
- if (mdLoad)
-  mdLoad->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
- if (mdLowPolyInt)
-  mdLowPolyInt->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
- if (mdPrzedsionek)
-  mdPrzedsionek->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
+ if (modelRoll!=0.0)
+ {//jak nie ma przechy³ki, to nie ma po co przechylaæ modeli
+  if (mdModel)
+   mdModel->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
+  if (mdKabina)
+   if (MoverParameters->ActiveCab==-1)
+    mdKabina->GetSMRoot()->SetRotateXYZ(vector3(0,-modelRoll,0));
+   else
+    mdKabina->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
+  if (mdLoad)
+   mdLoad->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
+  if (mdLowPolyInt)
+   mdLowPolyInt->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
+  if (mdPrzedsionek)
+   mdPrzedsionek->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
+ }
 }
 
 //ABu 06.05.04 poczatek wyliczania obrotow wozkow **********************
@@ -1075,7 +1079,8 @@ bool __fastcall TDynamicObject::CheckEvent(TEvent *e,bool prox)
   AnsiString command;
   //double speed=0;
   switch (e->Type)
-  {case tp_GetValues:
+  {//to siê wykonuje równie¿ sk³adu jad¹cego bez obs³ugi 
+   case tp_GetValues:
     command=String(e->Params[9].asMemCell->szText);
     if (prox?true:Mechanik->OrderList[Mechanik->OrderPos]==Shunt) //tylko w trybie manewrowym albo sprawdzanie ignorowania
      if (command=="ShuntVelocity")
@@ -3836,7 +3841,8 @@ void __fastcall TDynamicObject::RaAxleEvent(TEvent *e)
  if (!CheckEvent(e,true)) //jeœli nie jest ustawiaj¹cym prêdkoœæ
   Global::pGround->AddToQuery(e,this); //dodanie do kolejki
  else
-  ScanEventTrack(); //ale dla pewnoœci robimy skanowanie
+  if (Mechanik) //tylko jeœli ma obsadê
+   ScanEventTrack(); //dla pewnoœci robimy skanowanie
 };
 #pragma package(smart_init)
 

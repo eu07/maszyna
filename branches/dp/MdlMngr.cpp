@@ -38,7 +38,8 @@ TModel3d* __fastcall TMdlContainer::LoadModel(char *newName,bool dynamic)
  Name=new char[strlen(newName)+1];
  strcpy(Name,newName);
  Model=new TModel3d();
- Model->LoadFromFile(Name,dynamic); //np. "models\\pkp/head1-y.t3d"
+ if (!Model->LoadFromFile(Name,dynamic)) //np. "models\\pkp/head1-y.t3d"
+  SafeDelete(Model);
  return Model;
 };
 
@@ -105,7 +106,8 @@ double Radius;
 
 TModel3d*  __fastcall TModelsManager::LoadModel(char *Name,bool dynamic)
 {
- TModel3d *mdl=NULL;;
+ TModel3d *mdl=NULL;
+/* //nie wymagamy ju¿ obecnoœci T3D
  WIN32_FIND_DATA FindFileData;
  HANDLE handle=FindFirstFile(Name,&FindFileData);
  if (handle==INVALID_HANDLE_VALUE)
@@ -115,15 +117,18 @@ TModel3d*  __fastcall TModelsManager::LoadModel(char *Name,bool dynamic)
  }
  else
  {
-  if (Count==MAX_MODELS)
-   Error("FIXME: Too many models, program will now crash :)");
-  else
-  {
-   mdl=Models[Count].LoadModel(Name,dynamic);
-   Count++;
-  }
+*/
+ if (Count==MAX_MODELS)
+  Error("FIXME: Too many models, program will now crash :)");
+ else
+ {
+  mdl=Models[Count].LoadModel(Name,dynamic);
+  if (mdl) Count++; //jeœli b³¹d wczytania modelu, to go nie wliczamy
+ }
+/*
  }
  FindClose(handle);
+*/
  return mdl;
 }
 
