@@ -10,6 +10,8 @@
 #pragma delphiheader begin
 #pragma option push -w-
 #pragma option push -Vx
+#include <SysUtils.hpp>	// Pascal unit
+#include <mctools.hpp>	// Pascal unit
 #include <SysInit.hpp>	// Pascal unit
 #include <System.hpp>	// Pascal unit
 
@@ -72,6 +74,42 @@ public:
 };
 
 
+class DELPHICLASS TP10yBg;
+class PASCALIMPLEMENTATION TP10yBg : public TFricMat 
+{
+	typedef TFricMat inherited;
+	
+public:
+	virtual double __fastcall GetFC(double N, double Vel);
+public:
+	#pragma option push -w-inl
+	/* TObject.Create */ inline __fastcall TP10yBg(void) : TFricMat() { }
+	#pragma option pop
+	#pragma option push -w-inl
+	/* TObject.Destroy */ inline __fastcall virtual ~TP10yBg(void) { }
+	#pragma option pop
+	
+};
+
+
+class DELPHICLASS TP10yBgu;
+class PASCALIMPLEMENTATION TP10yBgu : public TFricMat 
+{
+	typedef TFricMat inherited;
+	
+public:
+	virtual double __fastcall GetFC(double N, double Vel);
+public:
+	#pragma option push -w-inl
+	/* TObject.Create */ inline __fastcall TP10yBgu(void) : TFricMat() { }
+	#pragma option pop
+	#pragma option push -w-inl
+	/* TObject.Destroy */ inline __fastcall virtual ~TP10yBgu(void) { }
+	#pragma option pop
+	
+};
+
+
 class DELPHICLASS TP10;
 class PASCALIMPLEMENTATION TP10 : public TFricMat 
 {
@@ -90,19 +128,43 @@ public:
 };
 
 
+class DELPHICLASS TFR513;
+class PASCALIMPLEMENTATION TFR513 : public TFricMat 
+{
+	typedef TFricMat inherited;
+	
+public:
+	virtual double __fastcall GetFC(double N, double Vel);
+public:
+	#pragma option push -w-inl
+	/* TObject.Create */ inline __fastcall TFR513(void) : TFricMat() { }
+	#pragma option pop
+	#pragma option push -w-inl
+	/* TObject.Destroy */ inline __fastcall virtual ~TFR513(void) { }
+	#pragma option pop
+	
+};
+
+
+class DELPHICLASS TCosid;
+class PASCALIMPLEMENTATION TCosid : public TFricMat 
+{
+	typedef TFricMat inherited;
+	
+public:
+	virtual double __fastcall GetFC(double N, double Vel);
+public:
+	#pragma option push -w-inl
+	/* TObject.Create */ inline __fastcall TCosid(void) : TFricMat() { }
+	#pragma option pop
+	#pragma option push -w-inl
+	/* TObject.Destroy */ inline __fastcall virtual ~TCosid(void) { }
+	#pragma option pop
+	
+};
+
+
 //-- var, const, procedure ---------------------------------------------------
-static const Shortint bp_P10 = 0x0;
-static const Shortint bp_P10Bg = 0x2;
-static const Shortint bp_P10Bgu = 0x1;
-static const Shortint bp_LLBg = 0x4;
-static const Shortint bp_LLBgu = 0x3;
-static const Shortint bp_LBg = 0x6;
-static const Shortint bp_LBgu = 0x5;
-static const Shortint bp_KBg = 0x8;
-static const Shortint bp_KBgu = 0x7;
-static const Shortint bp_D1 = 0x9;
-static const Shortint bp_D2 = 0xa;
-static const Byte bp_MHS = 0x80;
 
 }	/* namespace Friction */
 #if !defined(NO_IMPLICIT_NAMESPACE_USE)

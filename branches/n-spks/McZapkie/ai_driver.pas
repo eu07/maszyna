@@ -528,7 +528,7 @@ begin
         None : if (MainCtrlPosNo>0) then {McZapkie-041003: wagon sterowniczy}
                 begin
 {TODO: sprawdzanie innego czlonu                  if not FuseFlagCheck() then }
-                    if (BrakePress<0.03*MaxBrakePress) then
+                    if (BrakePress<0.03) then
                       begin
                         OK:=IncMainCtrl(1);
                       end;

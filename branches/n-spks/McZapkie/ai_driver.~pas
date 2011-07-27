@@ -1076,7 +1076,7 @@ begin
                           SetDriverPsyche;
                        end;
                 if BrakeSystem=Pneumatic then  {napelnianie uderzeniowe}
-                 if BrakeSubsystem=Oerlikon then
+                 if BrakeSubsystem=ss_LSt then
                   begin
                     if BrakeCtrlPos=-2 then BrakeCtrlPos:=0;
                     if (BrakeCtrlPos<0)and (PipebrakePress<0.01){(CntrlPipePress-(Volume/BrakeVVolume/10)<0.01)} then
