@@ -753,7 +753,7 @@ void __fastcall TSubModel::RaRender()
   if (eType<TP_ROTATOR)
   {
    glColor3fv(f4Diffuse);   //McZapkie-240702: zamiast ub
-   if (!TexAlpha || !Global::bRenderAlpha)  //rysuj gdy nieprzezroczyste lub # albo gdy zablokowane alpha
+   if (!TexAlpha)  //rysuj gdy nieprzezroczyste lub # albo gdy zablokowane alpha
    {
     //glMaterialfv(GL_FRONT,GL_AMBIENT_AND_DIFFUSE,f4Diffuse); //to samo, co glColor
     if (Global::fLuminance<fLight)
@@ -889,7 +889,7 @@ void __fastcall TSubModel::RaRenderAlpha()
    }
    else
     glBindTexture(GL_TEXTURE_2D,TextureID);
-   if (TexAlpha && Global::bRenderAlpha)  //mozna rysowac bo przezroczyste i nie ma #
+   if (TexAlpha)  //mozna rysowac bo przezroczyste i nie ma #
    {
    //glMaterialfv(GL_FRONT,GL_AMBIENT_AND_DIFFUSE,f4Diffuse);
    if (Global::fLuminance<fLight)
@@ -978,7 +978,7 @@ void __fastcall TSubModel::Render()
    }
    else
     glBindTexture(GL_TEXTURE_2D,TextureID);
-   if (!TexAlpha || !Global::bRenderAlpha)  //rysuj gdy nieprzezroczyste lub # albo gdy zablokowane alpha
+   if (!TexAlpha)  //rysuj gdy nieprzezroczyste lub # albo gdy zablokowane alpha
     if (Global::fLuminance<fLight)
     {glMaterialfv(GL_FRONT,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
      glCallList(uiDisplayList); //tylko dla siatki
@@ -1039,7 +1039,7 @@ void __fastcall TSubModel::RenderAlpha()
    else
     glBindTexture(GL_TEXTURE_2D,TextureID);
    //jak przezroczyste s¹ wy³¹czone, to tu w ogóle nie wchodzi
-   if (TexAlpha && Global::bRenderAlpha)  //mozna rysowac bo przezroczyste i nie ma #
+   if (TexAlpha)  //mozna rysowac bo przezroczyste i nie ma #
     if (Global::fLuminance<fLight)
     {glMaterialfv(GL_FRONT,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
      glCallList(uiDisplayList); //tylko dla siatki

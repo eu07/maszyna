@@ -915,7 +915,8 @@ begin
    begin
 {     UpdateSituation:=True; }
      {tu bedzie logika sterowania}
-     if (LastReactionTime>ReactionTime)  then
+     {Ra: nie wiem czemu ReactionTime potrafi dostaæ 12 sekund, to jest przegiêcie, bo prze¿yna STÓJ}
+     if (LastReactionTime>Min0R(ReactionTime,2.0))  then
       with Controlling^ do
        begin
          MechLoc:=Loc; {uwzglednic potem polozenie kabiny}

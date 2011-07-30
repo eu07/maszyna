@@ -364,8 +364,8 @@ void __fastcall TGroundNode::RaRender()
 /* Ra: trójk¹ty i linie renderuj¹ siê z VBO sektora
     // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
     if(
-        (iNumVerts && (!Global::bRenderAlpha || !TexAlpha)) ||
-        (iNumPts && (!Global::bRenderAlpha || fLineThickness < 0)))
+        (iNumVerts && (!TexAlpha)) ||
+        (iNumPts && (fLineThickness < 0)))
     {
 
         if ( !DisplayListID || Global::bReCompile) //Ra: wymuszenie rekompilacji
@@ -759,8 +759,8 @@ void __fastcall TGroundNode::Render()
  }
     // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
   if(
-   (iNumVerts && (!Global::bRenderAlpha || (iFlags&0x10))) ||
-   (iNumPts && (!Global::bRenderAlpha || fLineThickness < 0)))
+   (iNumVerts && ((iFlags&0x10))) ||
+   (iNumPts && (fLineThickness < 0)))
   {
    if (!DisplayListID||Global::bReCompile) //Ra: wymuszenie rekompilacji
    {
@@ -799,7 +799,7 @@ void __fastcall TGroundNode::RenderAlpha()
  switch (iType)
  {
   case TP_TRACTION:
-   if (Global::bRenderAlpha && bVisible)
+   if (bVisible)
     Traction->Render(mgn);
    return;
   case TP_MODEL:
@@ -814,7 +814,7 @@ void __fastcall TGroundNode::RenderAlpha()
  // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
  if (
      (iNumVerts && (iFlags&0x20)) ||
-     (iNumPts && (Global::bRenderAlpha || fLineThickness > 0)))
+     (iNumPts && (fLineThickness > 0)))
  {
 
      if (!DisplayListID) //||Global::bReCompile) //Ra: wymuszenie rekompilacji
@@ -2372,8 +2372,7 @@ bool __fastcall TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
 {
  if (!Event->bLaunched)
  {
-  WriteLog("EVENT ADDED TO QUEUE:");
-  WriteLog(Event->asName.c_str());
+  WriteLog("EVENT ADDED TO QUEUE: "+Event->asName);
   Event->Activator=Node;
   Event->fStartTime=fabs(Event->fDelay)+Timer::GetTime();
   Event->bLaunched=true;
@@ -2427,8 +2426,7 @@ if (QueryRootEvent)
 
         if (QueryRootEvent->bEnabled)
         {
-        WriteLog("EVENT LAUNCHED:");
-        WriteLog(QueryRootEvent->asName.c_str());
+        WriteLog("EVENT LAUNCHED: "+QueryRootEvent->asName);
         switch (QueryRootEvent->Type)
         {
             case tp_AddValues: //ró¿ni siê jedn¹ flag¹ od UpdateValues

@@ -191,7 +191,7 @@ bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
     glEnable(GL_DEPTH_TEST);
 
 //McZapkie:261102-uruchomienie polprzezroczystosci (na razie linie) pod kierunkiem Marcina
-    if (Global::bRenderAlpha)
+    //if (Global::bRenderAlpha) //Ra: wywalam tê flagê
     {
       WriteLog("glEnable(GL_BLEND);");
       glEnable(GL_BLEND);
@@ -204,6 +204,7 @@ bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
       WriteLog("glDepthFunc(GL_LEQUAL);");
       glDepthFunc(GL_LEQUAL);
     }
+/*
     else
     {
       WriteLog("glEnable(GL_ALPHA_TEST);");
@@ -215,6 +216,7 @@ bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
       WriteLog("glDisable(GL_BLEND);");
       glDisable(GL_BLEND);
     }
+*/
 /* zakomentowanie to co bylo kiedys mieszane
     WriteLog("glEnable(GL_ALPHA_TEST);");
     glEnable(GL_ALPHA_TEST);//glGetIntegerv()
@@ -1575,7 +1577,7 @@ bool __fastcall TWorld::Render()
     if (Global::bUseVBO)
     {//renderowanie przez VBO
      if (!Ground.RaRender(Camera.Pos)) return false;
-     if (Global::bRenderAlpha)
+     //if (Global::bRenderAlpha) //Ra: wywalam tê flagê
       if (!Ground.RaRenderAlpha(Camera.Pos))
        return false;
     }
@@ -1583,7 +1585,7 @@ bool __fastcall TWorld::Render()
 #endif
     {//renderowanie przez Display List
      if (!Ground.Render(Camera.Pos)) return false;
-     if (Global::bRenderAlpha)
+     //if (Global::bRenderAlpha) //Ra: wywalam tê flagê
       if (!Ground.RenderAlpha(Camera.Pos))
        return false;
     }

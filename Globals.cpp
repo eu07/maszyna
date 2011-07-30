@@ -47,7 +47,7 @@ bool Global::bFreeFly=false;
 bool Global::bWireFrame=false;
 bool Global::bTimeChange=false;
 bool Global::bSoundEnabled=true;
-bool Global::bRenderAlpha=true;
+bool Global::bRenderAlpha=true; //Ra: wywalam tê flagê
 bool Global::bWriteLogEnabled=true;
 bool Global::bAdjustScreenFreq=true;
 bool Global::bEnableTraction=true;
@@ -103,7 +103,7 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iMultiplayer=0; //blokada dzia³ania niektórych eventów na rzecz kominikacji
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asVersion="Compilation 2011-07-27, release 1.3.194.199."; //tutaj, bo wysy³any
+AnsiString Global::asVersion="Compilation 2011-07-30, release 1.3.200.200."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 GLint Global::iMaxTextureSize=16384;//maksymalny rozmiar tekstury
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
@@ -189,8 +189,8 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
          DebugModeFlag=(Parser->GetNextSymbol().LowerCase()==AnsiString("yes"));
         else if (str==AnsiString("soundenabled")) //McZapkie-040302 - blokada dzwieku - przyda sie do debugowania oraz na komp. bez karty dzw.
          bSoundEnabled=(Parser->GetNextSymbol().LowerCase()==AnsiString("yes"));
-        else if (str==AnsiString("renderalpha")) //McZapkie-1312302 - dwuprzebiegowe renderowanie
-         bRenderAlpha=(Parser->GetNextSymbol().LowerCase()==AnsiString("yes"));
+        //else if (str==AnsiString("renderalpha")) //McZapkie-1312302 - dwuprzebiegowe renderowanie
+        // bRenderAlpha=(Parser->GetNextSymbol().LowerCase()==AnsiString("yes"));
         else if (str==AnsiString("physicslog")) //McZapkie-030402 - logowanie parametrow fizycznych dla kazdego pojazdu z maszynista
          WriteLogFlag=(Parser->GetNextSymbol().LowerCase()==AnsiString("yes"));
         else if (str==AnsiString("physicsdeactivation")) //McZapkie-291103 - usypianie fizyki
