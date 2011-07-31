@@ -26,7 +26,7 @@
 class TDynamicObject
 {
 private:
-    bool EndTrack; //Info o tym, czy jest koniec trasy
+    double fTrackBlock; //odleg³oœæ do przeszkody do dalszego ruchu
     TTrackShape ts;
     TTrackParam tp;
     void ABuLittleUpdate(double ObjSqrDist);
@@ -129,6 +129,7 @@ private:
     bool renderme; //yB - czy renderowac
     char cp1, sp1, cp2, sp2; //ustawienia wezy
     TRealSound sBrakeAcc; //dzwiek przyspieszacza
+ //Ra: poni¿sze przenieœæ do modu³u AI:
  int iAxleFirst; //numer pierwszej oœ w kierunku ruchu
  TEvent* eSignSkip; //miniêty sygna³ zezwalaj¹cy na jazdê, pomijany przy szukaniu
  TEvent* eSignLast; //ostatnio znaleziony sygna³, o ile nie miniêty
@@ -136,6 +137,7 @@ private:
  bool __fastcall CheckTrackEvent(double fDirection,TTrack *Track);
  TTrack* __fastcall TraceRoute(double &fDistance,double &fDirection,TTrack *Track);
  void SetProximityVelocity(double dist,double vel,const TLocation *pos);
+ //Ra: koniec tych do przeniesienia do AI
  	TDynamicObject *NewDynamic;
 		bool bDynChangeEnd;
 		bool bDynChangeStart;

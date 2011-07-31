@@ -421,8 +421,9 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
   case WM_ACTIVATE: //watch for window activate message
   {//Ra: uzale¿nienie aktywnoœci od bycia na wierzchu
    Global::bActive=(LOWORD(wParam)!=WA_INACTIVE);
-   //if (Global::bInactivePause)
-   // Global::bPause=Global::bActive; //w³¹czenie pauzy, gdy nieaktywy
+   if (Global::bInactivePause)
+    //if (!Global::bActive)
+     Global::bPause=!Global::bActive; //w³¹czenie pauzy, gdy nieaktywy
    if (Global::bActive)
     SetCursorPos(mx,my);
    ShowCursor(!Global::bActive);
@@ -631,11 +632,11 @@ int WINAPI WinMain( HINSTANCE hInstance,     //instance
    //draw the scene, watch for quit messages
    //DrawGLScene()
    //if (!pause)
-   if (Global::bInactivePause?Global::bActive:true)
-    if (World.Update()) // Was There A Quit Received?
-     SwapBuffers(hDC);	// Swap Buffers (Double Buffering)
-    else
-     done=TRUE; //[F10] or DrawGLScene signalled a quit
+   //if (Global::bInactivePause?Global::bActive:true) //tak nie, bo spada z góry
+   if (World.Update()) // Was There A Quit Received?
+    SwapBuffers(hDC);	// Swap Buffers (Double Buffering)
+   else
+    done=TRUE; //[F10] or DrawGLScene signalled a quit
   }
  }
  Feedback::BitsClear(-1); //wy³¹czenie komunikacji zwrotnej
