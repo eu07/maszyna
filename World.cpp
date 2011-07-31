@@ -645,7 +645,7 @@ void __fastcall TWorld::OnKeyPress(int cKey)
  }
  else if (!Global::bPause||(cKey==VK_F4)) //podczas pauzy sterownaie nie dzia³a, F4 tak
   if (Controlled)
-   if ((Controlled->Controller==Humandriver)||DebugModeFlag||(cKey=='q'))
+   if ((Controlled->Controller==Humandriver)?true:DebugModeFlag||(cKey=='q')||(cKey==VK_F4))
     Train->OnKeyPress(cKey); //przekazanie klawisza do pojazdu
  //switch (cKey)
  //{case 'a': //ignorowanie repetycji

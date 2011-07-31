@@ -957,7 +957,7 @@ void TDynamicObject::ABuScanObjects(int ScanDir,double ScanDist)
     if (FoundedObj->PrevConnected!=this) //odœwie¿enie tego samego siê nie liczy
      WriteLog("0! Coupler error on "+asName+":"+AnsiString(MyCouplFound)+" - "+FoundedObj->asName+":0 connected to "+FoundedObj->PrevConnected->asName+":"+AnsiString(FoundedObj->PrevConnectedNo));
   }
-  else                 
+  else
   {
    if (FoundedObj->NextConnected)
     if (FoundedObj->NextConnected!=this) //odœwie¿enie tego samego siê nie liczy
@@ -995,24 +995,26 @@ void TDynamicObject::ABuScanObjects(int ScanDir,double ScanDist)
     FoundedObj=ABuFindObject(Track,this,ScanDir,CouplFound); //przejrzenie pojazdów tego toru
     if (FoundedObj)
     {
-     //if((Mechanik)&&(!EndTrack))
+     //if((Mechanik)&&(!fTrackBlock))
      //{
-     //   EndTrack=true;
+     //   fTrackBlock=true;
      //   //Mechanik->SetProximityVelocity(0,20);
      //   Mechanik->SetVelocity(0,0);
      //}
      ActDist=ScanDist; //wyjœcie z pêtli poszukiwania
     }
    }
-   else //Jesli nie ma, to wychodzimy.
+   else //jeœli toru nie ma, to wychodzimy
    {
-    if ((Mechanik)&&(!EndTrack))
+/* //Ra: sprawdzanie koñca toru nie mo¿e byæ tutaj, bo trzeba te¿ uwzglêdniæ tory z prêdkoœci¹ 0 i uszkodzone
+    if ((Mechanik)&&(fTrackBlock>50.0))
     {
-     EndTrack=true;
+     fTrackBlock=50.0;
      Mechanik->SetProximityVelocity(ActDist-50,0);
      //Mechanik->SetVelocity(0,0);
     }
-    ActDist=ScanDist;
+*/
+    ActDist=ScanDist; //koniec przegl¹dania torów
    }
   }
  } // Koniec szukania najbli¿szego toru z jakimœ obiektem.
@@ -1056,14 +1058,14 @@ void TDynamicObject::ABuScanObjects(int ScanDir,double ScanDist)
     FoundedObj->NextConnectedNo=MyCouplFound;
    }
   }
-  if ((Mechanik)&&(!EndTrack))
-  {
-   EndTrack=true;
-   if ((MoverParameters->Couplers[MyCouplFound].CoupleDist)<50)
-    Mechanik->SetVelocity(0,0);
+  fTrackBlock=MoverParameters->Couplers[MyCouplFound].CoupleDist; //odleg³oœæ do najbli¿szego pojazdu
+  if (Mechanik)//&&(fTrackBlock>50.0))
+  {//jeœli z przodu od kierunku ruchu jest jakiœ pojazd ze sprzêgiem wirtualnym
+   if (fTrackBlock<50.0) //jak bli¿ej ni¿ 50m, to stop
+    Mechanik->SetVelocity(0,0); //zatrzymaæ
    else
     //Mechanik->SetVelocity(20,20);
-    Mechanik->SetProximityVelocity((MoverParameters->Couplers[MyCouplFound].CoupleDist)-20,0);
+    Mechanik->SetProximityVelocity(fTrackBlock-20,0); //spowolnienie jazdy
   }
  }
 }
@@ -1194,7 +1196,7 @@ void TDynamicObject::SetProximityVelocity(double dist,double vel,const TLocation
  if ((vel<0)?true:dist>0.1*(MoverParameters->Vel*MoverParameters->Vel-vel*vel)+50)
  {//jeœli jest dalej od umownej drogi hamowania
 */
-  Mechanik->PutCommand("SetProximityVelocity",floor(dist),vel,*pos);
+  Mechanik->PutCommand("SetProximityVelocity",dist,vel,*pos);
 #if LOGVELOCITY
   WriteLog("-> SetProximityVelocity "+AnsiString(floor(dist))+" "+AnsiString(vel));
 #endif
@@ -1223,25 +1225,34 @@ void TDynamicObject::ScanEventTrack()
  if (startdir==0) //jeœli kabina i kierunek nie jest okreslony
   return; //nie robimy nic
   //startdir=2*random(2)-1; //wybieramy losowy kierunek - trzeba by jeszcze ustawiæ kierunek ruchu
- double scandir=startdir*(iAxleFirst?Axle1.GetDirection():Axle4.GetDirection()); //szukamy od tylnej osi
+ double scandir=startdir*(iAxleFirst?Axle1.GetDirection():Axle4.GetDirection()); //szukamy od tylnej osi na wypadek przejechania
  if (scandir!=0.0) //skanowanie toru w poszukiwaniu eventów GetValues/PutValues
- {//Ra: skanowanie drogi proporcjonalnej do kwadratu aktualnej prêdkoœci, no chyba ¿e stoi
+ {//Ra: skanowanie drogi proporcjonalnej do kwadratu aktualnej prêdkoœci (+150m), no chyba ¿e stoi (wtedy 500m)
   double scanmax=(MoverParameters->Vel>0.0)?150+0.1*MoverParameters->Vel*MoverParameters->Vel:500; //fabs(Mechanik->ProximityDist);
   double scandist=scanmax; //zmodyfikuje na rzeczywiœcie przeskanowane
+  //Ra: znaleziony semafor trzeba zapamiêtaæ, bo mo¿e byæ wpisany we wczeœniejszy tor
+  //Ra: oprócz semafora szukamy najbli¿szego ograniczenia (koniec/brak toru to ograniczenie do zera)
   TTrack *scantrack=TraceRoute(scandist,scandir,iAxleFirst?Axle1.GetTrack():Axle4.GetTrack());
   if (!scantrack) //jeœli wykryto koniec toru albo zerow¹ prêdkoœæ
   {
-   if (!EndTrack)
    {//if (!Mechanik->SetProximityVelocity(0.7*fabs(scandist),0))
     // Mechanik->SetVelocity(Mechanik->VelActual*0.9,0);
-    sl.X=-GetPosition().x;
-    sl.Y= GetPosition().z;
-    sl.Z= GetPosition().y;
+    if (fTrackBlock>50.0) //je¿eli nie ma zawalidrogi w tej odleg³oœci
+    {
+     //scandist=(scandist>5?scandist-5:0); //10m do zatrzymania
+     vector3 pos=GetPosition()+scandist*SafeNormalize(startdir*GetDirection());
+     sl.X=-pos.x;
+     sl.Y= pos.z;
+     sl.Z= pos.y;
 #if LOGVELOCITY
-    //WriteLog("End of track:");
+      WriteLog("End of track:");
 #endif
-    //SetProximityVelocity(scandist-20,0,&sl);
-    Mechanik->PutCommand("SetProximityVelocity",scandist-20,0,sl);
+     if (scandist>0) //jeœli zosta³o wiêcej ni¿ 10m do koñca toru
+      SetProximityVelocity(scandist,0,&sl); //informacja o zbli¿aniu siê do koñca
+     else
+      Mechanik->PutCommand("SetVelocity",0,0,sl); //na koñcu toru ma staæ
+    }
+    //Mechanik->PutCommand("SetProximityVelocity",scandist-20,0,sl);
    }
   }
   else
@@ -1256,7 +1267,7 @@ void TDynamicObject::ScanEventTrack()
 #if LOGVELOCITY
     AnsiString edir=asName+" - "+AnsiString((scandir>0)?"Event2":"Event1");
 #endif
-    if (!EndTrack)
+    if (fTrackBlock>50.0)
     {
      //najpierw sprawdzamy, czy semafor czy inny znak zosta³ przejechany
      //bo jeœli tak, to trzeba szukaæ nastêpnego, a ten mo¿e go zas³aniaæ
@@ -1288,28 +1299,29 @@ void TDynamicObject::ScanEventTrack()
       if (strcmp(e->Params[9].asMemCell->szText,"SetVelocity")==0)
       {//
        eSignLast=e; //licz¹cy siê sygna³ do zapamiêtania
-       if ((scandist>Mechanik->MinProximityDist)?(MoverParameters->Vel!=0.0):false)
-       {//jeœli semafor jest daleko, a pojazd jedzie, to informujemy o zmianie prêdkoœci
-        if (MoverParameters->Vel!=0.0) //jeœli stoi, to nic mu nie wysy³amy
-        {//Mechanik->PutCommand("SetProximityVelocity",scandist,vmechmax,sl);
+       if (fTrackBlock>50.0) //je¿eli nie ma zawalidrogi w tej odleg³oœci
+        if ((scandist>Mechanik->MinProximityDist)?(MoverParameters->Vel!=0.0):false)
+        {//jeœli semafor jest daleko, a pojazd jedzie, to informujemy o zmianie prêdkoœci
+         if (MoverParameters->Vel!=0.0) //jeœli stoi, to nic mu nie wysy³amy
+         {//Mechanik->PutCommand("SetProximityVelocity",scandist,vmechmax,sl);
 #if LOGVELOCITY
-         //WriteLog(edir+"SetProximityVelocity "+AnsiString(scandist)+" "+AnsiString(vmechmax));
-         WriteLog(edir);
+          //WriteLog(edir+"SetProximityVelocity "+AnsiString(scandist)+" "+AnsiString(vmechmax));
+          WriteLog(edir);
 #endif
-         SetProximityVelocity(scandist,vmechmax,&sl);
-        }
-       }
-       else  //ustawiamy prêdkoœæ tylko wtedy, gdy ma ruszyæ, stan¹æ albo ma staæ
-       {if ((MoverParameters->Vel==0.0)||(vmechmax==0.0)) //jeœli jedzie lub ma stan¹æ/staæ
-        {//semafor na tym torze albo lokomtywa stoi, a ma ruszyæ, albo ma stan¹æ, albo nie ruszaæ
-         {//stop trzeba powtarzaæ, bo inaczej zatr¹bi i pojedzie sam
-          Mechanik->PutCommand("SetVelocity",vmechmax,e->Params[9].asMemCell->fValue2,sl);
-#if LOGVELOCITY
-          WriteLog(edir+"SetVelocity "+AnsiString(vmechmax)+" "+AnsiString(e->Params[9].asMemCell->fValue2));
-#endif
+          SetProximityVelocity(scandist,vmechmax,&sl);
          }
         }
-       }
+        else  //ustawiamy prêdkoœæ tylko wtedy, gdy ma ruszyæ, stan¹æ albo ma staæ
+        {if ((MoverParameters->Vel==0.0)||(vmechmax==0.0)) //jeœli jedzie lub ma stan¹æ/staæ
+         {//semafor na tym torze albo lokomtywa stoi, a ma ruszyæ, albo ma stan¹æ, albo nie ruszaæ
+          {//stop trzeba powtarzaæ, bo inaczej zatr¹bi i pojedzie sam
+           Mechanik->PutCommand("SetVelocity",vmechmax,e->Params[9].asMemCell->fValue2,sl);
+#if LOGVELOCITY
+           WriteLog(edir+"SetVelocity "+AnsiString(vmechmax)+" "+AnsiString(e->Params[9].asMemCell->fValue2));
+#endif
+          }
+         }
+        }
       }
       else if (Mechanik->OrderList[Mechanik->OrderPos]==Shunt)
       {//tylko jeœli w trybie manewrowym
@@ -1317,53 +1329,55 @@ void TDynamicObject::ScanEventTrack()
        {//
         eSignLast=e; //licz¹cy siê sygna³ do zapamiêtania
         //if ((scandist>Mechanik->MinProximityDist)?(MoverParameters->Vel!=0.0)||(vmechmax==0.0):false) //podjedzie pod semafor
-        if ((scandist>Mechanik->MinProximityDist)?(MoverParameters->Vel!=0.0):false) //nie podjedzie pod semafor
-        {//jeœli semafor jest daleko, a pojazd jedzie, albo stoi a semafor zamkniêty
-         if (MoverParameters->Vel!=0.0) //jeœli stoi, to nic mu nie wysy³amy
-          {//Mechanik->PutCommand("SetProximityVelocity",scandist,vmechmax,sl);
+        if (fTrackBlock>50.0) //je¿eli nie ma zawalidrogi w tej odleg³oœci
+         if ((scandist>Mechanik->MinProximityDist)?(MoverParameters->Vel!=0.0):false) //nie podjedzie pod semafor
+         {//jeœli semafor jest daleko, a pojazd jedzie, albo stoi a semafor zamkniêty
+          if (MoverParameters->Vel!=0.0) //jeœli jedzie, to nic mu nie wysy³amy
+           {//Mechanik->PutCommand("SetProximityVelocity",scandist,vmechmax,sl);
 #if LOGVELOCITY
-           //WriteLog(edir+"SetProximityVelocity "+AnsiString(scandist)+" "+AnsiString(vmechmax));
-           WriteLog(edir);
+            //WriteLog(edir+"SetProximityVelocity "+AnsiString(scandist)+" "+AnsiString(vmechmax));
+            WriteLog(edir);
 #endif
-           SetProximityVelocity(scandist,vmechmax,&sl);
-          }
-        }
-        else //ustawiamy prêdkoœæ tylko wtedy, gdy ma ruszyæ, stan¹æ albo ma staæ
-         if ((MoverParameters->Vel==0.0)||(vmechmax==0.0)) //jeœli jedzie lub ma stan¹æ/staæ
-          {//stop trzeba powtarzaæ, bo inaczej zatr¹bi i pojedzie sam
-           Mechanik->PutCommand("ShuntVelocity",vmechmax,e->Params[9].asMemCell->fValue2,sl);
+            SetProximityVelocity(scandist,vmechmax,&sl);
+           }
+         }
+         else //ustawiamy prêdkoœæ tylko wtedy, gdy ma ruszyæ, stan¹æ albo ma staæ
+          if ((MoverParameters->Vel==0.0)||(vmechmax==0.0)) //jeœli jedzie lub ma stan¹æ/staæ
+           {//stop trzeba powtarzaæ, bo inaczej zatr¹bi i pojedzie sam
+            Mechanik->PutCommand("ShuntVelocity",vmechmax,e->Params[9].asMemCell->fValue2,sl);
 #if LOGVELOCITY
-           WriteLog(edir+"ShuntVelocity "+AnsiString(vmechmax)+" "+AnsiString(e->Params[9].asMemCell->fValue2));
+            WriteLog(edir+"ShuntVelocity "+AnsiString(vmechmax)+" "+AnsiString(e->Params[9].asMemCell->fValue2));
 #endif
-          }
+           }
        }
       }
       else if (strcmp(e->Params[9].asMemCell->szText,asNextStop.c_str())==0)
       {//jeœli zatrzymanie na przystanku/przy peronie, to aktualizacja rozk³adu i pobranie kolejnego
-       if ((scandist>Mechanik->MinProximityDist)?(MoverParameters->Vel!=0.0):false)
-       {//jeœli jedzie, informujemy o zatrzymaniu na wykrytym stopie
-        eSignLast=e; //licz¹cy siê sygna³ do zapamiêtania
-        //Mechanik->PutCommand("SetProximityVelocity",scandist,0,sl);
+       if (fTrackBlock>50.0) //je¿eli nie ma zawalidrogi w tej odleg³oœci
+        if ((scandist>Mechanik->MinProximityDist)?(MoverParameters->Vel!=0.0):false)
+        {//jeœli jedzie, informujemy o zatrzymaniu na wykrytym stopie
+         eSignLast=e; //licz¹cy siê sygna³ do zapamiêtania
+         //Mechanik->PutCommand("SetProximityVelocity",scandist,0,sl);
 #if LOGVELOCITY
-        //WriteLog(edir+"SetProximityVelocity "+AnsiString(scandist)+" 0");
-        WriteLog(edir);
+         //WriteLog(edir+"SetProximityVelocity "+AnsiString(scandist)+" 0");
+         WriteLog(edir);
 #endif
-        SetProximityVelocity(scandist,0,&sl);
-       }
-       else
-       {Mechanik->PutCommand("SetVelocity",0,0,sl); //zatrzymanie na przystanku
+         SetProximityVelocity(scandist,0,&sl);
+        }
+        else
+        {Mechanik->PutCommand("SetVelocity",0,0,sl); //zatrzymanie na przystanku
 #if LOGVELOCITY
-        WriteLog(edir+"SetVelocity 0 0 ");
+         WriteLog(edir+"SetVelocity 0 0 ");
 #endif
-        TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,asNextStop.SubString(19,asNextStop.Length()));
+         TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,asNextStop.SubString(19,asNextStop.Length()));
 #if LOGVELOCITY
-        WriteLog(edir+asNextStop); //informacja o zatrzymaniu na stopie
+         WriteLog(edir+asNextStop); //informacja o zatrzymaniu na stopie
 #endif
-        asNextStop=TrainParams->NextStop(); //pobranie kolejnego miejsca zatrzymania
+         asNextStop=TrainParams->NextStop(); //pobranie kolejnego miejsca zatrzymania
 #if LOGVELOCITY
-        WriteLog("Next stop: "+asNextStop.SubString(19,asNextStop.Length())); //informacja
+         WriteLog("Next stop: "+asNextStop.SubString(19,asNextStop.Length())); //informacja
 #endif
-       }
+        }
       }
      }
      else if (e->Type==tp_PutValues)
@@ -1382,22 +1396,23 @@ void TDynamicObject::ScanEventTrack()
        sl.X=-e->Params[3].asdouble;
        sl.Y= e->Params[4].asdouble;
        sl.Z= e->Params[5].asdouble;
-       if (fabs(scandist)<Mechanik->MinProximityDist+1) //tylko na tym torze
-       {
-        eSignLast=e; //licz¹cy siê sygna³ do zapamiêtania
-        Mechanik->PutCommand("SetVelocity",e->Params[1].asdouble,e->Params[2].asdouble,sl);
+       if (fTrackBlock>50.0) //je¿eli nie ma zawalidrogi w tej odleg³oœci
+        if (scandist<Mechanik->MinProximityDist+1) //tylko na tym torze
+        {
+         eSignLast=e; //licz¹cy siê sygna³ do zapamiêtania
+         Mechanik->PutCommand("SetVelocity",e->Params[1].asdouble,e->Params[2].asdouble,sl);
 #if LOGVELOCITY
-        WriteLog("PutValues: SetVelocity "+AnsiString(e->Params[1].asdouble)+" "+AnsiString(e->Params[2].asdouble));
+         WriteLog("PutValues: SetVelocity "+AnsiString(e->Params[1].asdouble)+" "+AnsiString(e->Params[2].asdouble));
 #endif
-       }
-       else
-       {Mechanik->PutCommand("SetProximityVelocity",scandist,e->Params[1].asdouble,sl);
+        }
+        else
+        {//Mechanik->PutCommand("SetProximityVelocity",scandist,e->Params[1].asdouble,sl);
 #if LOGVELOCITY
-        //WriteLog("PutValues: SetProximityVelocity "+AnsiString(scandist)+" "+AnsiString(e->Params[1].asdouble));
-        //WriteLog("PutValues:");
+         //WriteLog("PutValues: SetProximityVelocity "+AnsiString(scandist)+" "+AnsiString(e->Params[1].asdouble));
+          WriteLog("PutValues:");
 #endif
-        SetProximityVelocity(scandist,e->Params[1].asdouble,&sl);
-       }
+         SetProximityVelocity(scandist,e->Params[1].asdouble,&sl);
+        }
       }
     }
    }
@@ -1417,13 +1432,13 @@ void TDynamicObject::ScanEventTrack()
      sl.X=-pos.x;
      sl.Y= pos.z;
      sl.Z= pos.y;
-     if (!EndTrack)
-     {Mechanik->PutCommand("SetProximityVelocity",dist1,vtrackmax,sl);
+     if (fTrackBlock>50.0)
+     {//Mechanik->PutCommand("SetProximityVelocity",dist1,vtrackmax,sl);
 #if LOGVELOCITY
       //WriteLog("Track Velocity: SetProximityVelocity "+AnsiString(dist1)+" "+AnsiString(vtrackmax));
-      //WriteLog("Track Velocity:");
+        WriteLog("Track velocity:");
 #endif
-      //SetProximityVelocity(dist1,vtrackmax,&sl);
+      SetProximityVelocity(dist1,vtrackmax,&sl);
      }
     }
   }  // !null
@@ -1435,7 +1450,7 @@ void TDynamicObject::ScanEventTrack()
 __fastcall TDynamicObject::TDynamicObject()
 {
  modelShake=vector3(0,0,0);
- EndTrack=false;
+ fTrackBlock=10000.0; //brak przeszkody na drodze
  btnOn=false;
  vUp=vWorldUp;
  vFront=vWorldFront;
@@ -2675,11 +2690,9 @@ if (tmpTraction.TractionVoltage==0)
 
 //ABu-160303 sledzenie toru przed obiektem: *******************************
  //Z obserwacji: v>0 -> Coupler 0; v<0 ->coupler1 (Ra: prêdkoœæ jest zwi¹zana z pojazdem)
- //Rozroznienie jest tutaj, zeby niepotrzebnie
- //nie skakac do funkcji. Nie jest uzaleznione
- //od obecnosci AI, zeby uwzglednic np. jadace
- //bez lokomotywy wagony.
- EndTrack=false;
+ //Rozroznienie jest tutaj, zeby niepotrzebnie nie skakac do funkcji. Nie jest uzaleznione
+ //od obecnosci AI, zeby uwzglednic np. jadace bez lokomotywy wagony.
+ fTrackBlock=10000.0; //na razie nie ma przeszkód
  if (CouplCounter>25) //licznik, aby nie robiæ za ka¿dym razem
  {//poszukiwanie czegoœ do zderzenia siê
   if (MoverParameters->V>0) //jeœli jedzie do przodu (w kierunku Coupler 0)
