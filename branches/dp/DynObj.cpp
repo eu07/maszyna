@@ -1132,9 +1132,14 @@ TTrack* __fastcall TDynamicObject::TraceRoute(double &fDistance,double &fDirecti
  if (fDirection>0) //jeœli w kierunku Point2 toru
   fCurrentDistance=Track->Length()-fCurrentDistance;
  if (CheckTrackEvent(fDirection,Track))
- {
+ {//jeœli jest semafor na tym torze
   fDistance=0; //to na tym torze stoimy
   return Track;
+ }
+ if (Track->fVelocity==0.0)
+ {
+  fDistance=0; //to na tym torze stoimy
+  return NULL; //stop
  }
  while (s<fDistance)
  {
@@ -1247,12 +1252,15 @@ void TDynamicObject::ScanEventTrack()
 #if LOGVELOCITY
       WriteLog("End of track:");
 #endif
-     if (scandist>0) //jeœli zosta³o wiêcej ni¿ 10m do koñca toru
+     if (scandist>10) //jeœli zosta³o wiêcej ni¿ 15m do koñca toru
       SetProximityVelocity(scandist,0,&sl); //informacja o zbli¿aniu siê do koñca
      else
-      Mechanik->PutCommand("SetVelocity",0,0,sl); //na koñcu toru ma staæ
+     {Mechanik->PutCommand("SetVelocity",0,0,sl); //na koñcu toru ma staæ
+#if LOGVELOCITY
+      WriteLog("-> SetVelocity 0 0");
+#endif
+     }
     }
-    //Mechanik->PutCommand("SetProximityVelocity",scandist-20,0,sl);
    }
   }
   else
@@ -1416,31 +1424,32 @@ void TDynamicObject::ScanEventTrack()
       }
     }
    }
-   if (vtrackmax>0) //jeœli w torze jest dodatnia
-    if ((vmechmax<0) || (vtrackmax<vmechmax)) //i mniejsza od tej drugiej
-    {//tutaj jest wykrywanie ograniczenia prêdkoœci w torze
-     vector3 pos=GetPosition();
-     double dist1=(scantrack->CurrentSegment()->FastGetPoint_0()-pos).Length();
-     double dist2=(scantrack->CurrentSegment()->FastGetPoint_1()-pos).Length();
-     if (dist2<dist1)
-     {//Point2 jest bli¿ej i jego wybieramy
-      dist1=dist2;
-      pos=scantrack->CurrentSegment()->FastGetPoint_1();
-     }
-     else
-      pos=scantrack->CurrentSegment()->FastGetPoint_0();
-     sl.X=-pos.x;
-     sl.Y= pos.z;
-     sl.Z= pos.y;
-     if (fTrackBlock>50.0)
-     {//Mechanik->PutCommand("SetProximityVelocity",dist1,vtrackmax,sl);
+   if (scandist<=scanmax) //jeœli ograniczenie jest dalej, ni¿ skanujemy, mo¿na je zignorowaæ
+    if (vtrackmax>0) //jeœli w torze jest dodatnia
+     if ((vmechmax<0) || (vtrackmax<vmechmax)) //i mniejsza od tej drugiej
+     {//tutaj jest wykrywanie ograniczenia prêdkoœci w torze
+      vector3 pos=GetPosition();
+      double dist1=(scantrack->CurrentSegment()->FastGetPoint_0()-pos).Length();
+      double dist2=(scantrack->CurrentSegment()->FastGetPoint_1()-pos).Length();
+      if (dist2<dist1)
+      {//Point2 jest bli¿ej i jego wybieramy
+       dist1=dist2;
+       pos=scantrack->CurrentSegment()->FastGetPoint_1();
+      }
+      else
+       pos=scantrack->CurrentSegment()->FastGetPoint_0();
+      sl.X=-pos.x;
+      sl.Y= pos.z;
+      sl.Z= pos.y;
+      if (fTrackBlock>50.0)
+      {//Mechanik->PutCommand("SetProximityVelocity",dist1,vtrackmax,sl);
 #if LOGVELOCITY
-      //WriteLog("Track Velocity: SetProximityVelocity "+AnsiString(dist1)+" "+AnsiString(vtrackmax));
+       //WriteLog("Track Velocity: SetProximityVelocity "+AnsiString(dist1)+" "+AnsiString(vtrackmax));
         WriteLog("Track velocity:");
 #endif
-      SetProximityVelocity(dist1,vtrackmax,&sl);
+       SetProximityVelocity(dist1,vtrackmax,&sl);
+      }
      }
-    }
   }  // !null
  }
 };
