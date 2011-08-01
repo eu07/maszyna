@@ -121,7 +121,9 @@ std::string cParser::readToken(bool ToLower,const char* Break)
     size_t nr=atoi(parameter.c_str())-1;
     if (nr<parameters.size())
     {token.insert(pos,parameters.at(nr)); //wklejenie wartoœci parametru
-     //if (ToLower) token=tolower(token);
+     if (ToLower)
+      for (;pos<token.length();++pos)
+       token[pos]=tolower(token[pos]);
     }
     else
      token.insert(pos,"none"); //zabezpieczenie przed brakiem parametru

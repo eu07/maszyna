@@ -1395,9 +1395,19 @@ void TDynamicObject::ScanEventTrack()
         }
       }
       else if (strcmp(e->Params[0].asText,asNextStop.c_str())==0)
-      {//jeœli zatrzymanie na przystanku/przy peronie, to aktualizacja rozk³adu i pobranie kolejnego
+      {//jeœli W4 z nazw¹ jak w rozk³adzie, to aktualizacja rozk³adu i pobranie kolejnego
        if (fTrackBlock>50.0) //je¿eli nie ma zawalidrogi w tej odleg³oœci
-        if ((scandist>Mechanik->MinProximityDist)?(MoverParameters->Vel!=0.0):false)
+        if (!TrainParams->IsStop())
+        {//jeœli nie ma tu postoju
+         if (scandist<500)
+         {//zaliczamy posterunek w pewnej odleg³oœci przed, bo W4 zas³ania semafor
+         TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,asNextStop.SubString(20,asNextStop.Length()));
+         asNextStop=TrainParams->NextStop(); //pobranie kolejnego miejsca zatrzymania
+         eSignSkip=e; //wtedy uznajemy go za ignorowany przy poszukiwaniu nowego
+         eSignLast=NULL; //¿eby jakiœ nowy by³ poszukiwany
+         }
+        }
+        else if ((scandist>Mechanik->MinProximityDist)?(MoverParameters->Vel!=0.0):false)
         {//jeœli jedzie, informujemy o zatrzymaniu na wykrytym stopie
          eSignLast=e; //licz¹cy siê sygna³ do zapamiêtania
          //Mechanik->PutCommand("SetProximityVelocity",scandist,0,sl);
