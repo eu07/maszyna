@@ -744,7 +744,7 @@ void __fastcall TSubModel::RaRender()
    if (b_Anim) RaAnimation(b_Anim);
   }
   if (TextureID<0) // && (ReplacableSkinId!=0))
-  {//zmienialne skory
+  {//zmienialne skóry
    glBindTexture(GL_TEXTURE_2D,ReplacableSkinId[-TextureID]);
    TexAlpha=!(iAlpha&1); //zmiana tylko w przypadku wymienej tekstury
   }
@@ -907,7 +907,7 @@ void __fastcall TSubModel::RaRenderAlpha()
 //        {
             //return; //nie mo¿e byæ return - trzeba skasowaæ animacjê
 //        }
-  // dorobic aureolê!
+  // dorobiæ aureolê!
   }
   if (Child)
    if (iAlpha&iFlags&0x002F0000)
@@ -932,7 +932,7 @@ void __fastcall TSubModel::Render()
     glMultMatrixf(fMatrix->readArray());
    if (b_Anim) RaAnimation(b_Anim);
   }
-  //zmienialne skory
+  //zmienialne skóry
   if (eType==TP_FREESPOTLIGHT)
   {
    matrix4x4 mat; //macierz opisuje uk³ad renderowania wzglêdem kamery
@@ -1025,11 +1025,11 @@ void __fastcall TSubModel::RenderAlpha()
 //        {
 //            return;
 //        }
-     // dorobic aureole!
+     // dorobiæ aureolê!
   }
   else if ((unsigned int)eType<=GL_POLYGON)
   {
-   //zmienialne skory
+   //zmienialne skóry
    if (TextureID<0) // && (ReplacableSkinId!=0))
     {
      glBindTexture(GL_TEXTURE_2D,ReplacableSkinId[-TextureID]);
