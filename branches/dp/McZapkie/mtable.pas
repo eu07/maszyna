@@ -12,7 +12,7 @@ Type
                    StationName: string[32];   {nazwa stacji ( '_' zamiast spacji}
                    StationWare: string[32];   {typ i wyposazenie stacji, oddz. przecinkami}
                    TrackNo: byte;             {ilosc torow szlakowych}
-                   Ah, Am: integer;              {godz. i min. przyjazdu}
+                   Ah, Am: integer;           //godz. i min. przyjazdu, -1 gdy bez postoju
                    Dh, Dm: integer;              {godz. i min. odjazdu}
                    tm: real;                  {czas jazdy do tej stacji w min.}
                    WaitTime: integer;         {czas postoju}
@@ -40,6 +40,7 @@ Type
                         function ShowRelation: string;
                         function WatchMTable(DistCounter:real): real;
                         function NextStop:string;
+                        function IsStop:boolean;
                         function UpdateMTable(hh,mm:real; NewName: string): boolean;                        
                         constructor Init(NewTrainName:string);
                         function LoadTTfile(scnpath:string): boolean;
@@ -90,7 +91,17 @@ begin
  then
   NextStop:='PassengerStopPoint:'+TimeTable[StationIndex+1].StationName
  else
-  NextStop:='[End of route]'; //¿e niby koniec
+  NextStop:='[End of route]'; //¿e niby koniec      
+end;
+
+function TTrainParameters.IsStop:boolean;
+//pytanie, czy zatrzymywaæ na aktualnej stacji
+begin
+ if StationIndex<StationCount
+ then
+  IsStop:=TimeTable[StationIndex+1].Ah>=0 //-1 to brak postoju
+ else
+  IsStop:=true; //na koñcu zatrzymaæ
 end;
 
 function TTrainParameters.UpdateMTable(hh,mm:real;NewName:string):boolean;
@@ -257,13 +268,13 @@ begin
                begin
                 if Pos(hrsd,s)>0 then
                  begin
-                  ah:=s2iE(Copy(s,1,Pos(hrsd,s)-1));
-                  am:=s2iE(Copy(s,Pos(hrsd,s)+1,Length(s)));
+                  ah:=s2iE(Copy(s,1,Pos(hrsd,s)-1)); //godzina
+                  am:=s2iE(Copy(s,Pos(hrsd,s)+1,Length(s))); //minuty
                  end
                 else
                  begin
-                  ah:=TimeTable[StationCount-1].ah;
-                  am:=s2iE(s); {tylko minuty podane}
+                  ah:=TimeTable[StationCount-1].ah; //godzina z poprzedniej pozycji
+                  am:=s2iE(s); //bo tylko minuty podane
                  end;
                end;
               repeat
@@ -300,13 +311,13 @@ begin
                begin
                 if Pos(hrsd,s)>0 then
                  begin
-                  dh:=s2iE(Copy(s,1,Pos(hrsd,s)-1));
-                  dm:=s2iE(Copy(s,Pos(hrsd,s)+1,Length(s)));
+                  dh:=s2iE(Copy(s,1,Pos(hrsd,s)-1)); //godzina
+                  dm:=s2iE(Copy(s,Pos(hrsd,s)+1,Length(s))); //minuty
                  end
                 else
                  begin
-                  dh:=TimeTable[StationCount-1].dh;
-                  dm:=s2iE(s); {tylko minuty podane}
+                  dh:=TimeTable[StationCount-1].dh; //godzina z poprzedniej pozycji
+                  dm:=s2iE(s); //bo tylko minuty podane
                  end;
                 WaitTime:=Trunc(CompareTime(ah,am,dh,dm)+0.1);
                end;
