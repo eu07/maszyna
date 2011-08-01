@@ -1359,34 +1359,6 @@ void TDynamicObject::ScanEventTrack()
            }
        }
       }
-      else if (strcmp(e->Params[9].asMemCell->szText,asNextStop.c_str())==0)
-      {//jeœli zatrzymanie na przystanku/przy peronie, to aktualizacja rozk³adu i pobranie kolejnego
-       if (fTrackBlock>50.0) //je¿eli nie ma zawalidrogi w tej odleg³oœci
-        if ((scandist>Mechanik->MinProximityDist)?(MoverParameters->Vel!=0.0):false)
-        {//jeœli jedzie, informujemy o zatrzymaniu na wykrytym stopie
-         eSignLast=e; //licz¹cy siê sygna³ do zapamiêtania
-         //Mechanik->PutCommand("SetProximityVelocity",scandist,0,sl);
-#if LOGVELOCITY
-         //WriteLog(edir+"SetProximityVelocity "+AnsiString(scandist)+" 0");
-         WriteLog(edir);
-#endif
-         SetProximityVelocity(scandist,0,&sl);
-        }
-        else
-        {Mechanik->PutCommand("SetVelocity",0,0,sl); //zatrzymanie na przystanku
-#if LOGVELOCITY
-         WriteLog(edir+"SetVelocity 0 0 ");
-#endif
-         TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,asNextStop.SubString(19,asNextStop.Length()));
-#if LOGVELOCITY
-         WriteLog(edir+asNextStop); //informacja o zatrzymaniu na stopie
-#endif
-         asNextStop=TrainParams->NextStop(); //pobranie kolejnego miejsca zatrzymania
-#if LOGVELOCITY
-         WriteLog("Next stop: "+asNextStop.SubString(19,asNextStop.Length())); //informacja
-#endif
-        }
-      }
      }
      else if (e->Type==tp_PutValues)
       if (strcmp(e->Params[0].asText,"SetVelocity")==0)
@@ -1420,6 +1392,36 @@ void TDynamicObject::ScanEventTrack()
           WriteLog("PutValues:");
 #endif
          SetProximityVelocity(scandist,e->Params[1].asdouble,&sl);
+        }
+      }
+      else if (strcmp(e->Params[0].asText,asNextStop.c_str())==0)
+      {//jeœli zatrzymanie na przystanku/przy peronie, to aktualizacja rozk³adu i pobranie kolejnego
+       if (fTrackBlock>50.0) //je¿eli nie ma zawalidrogi w tej odleg³oœci
+        if ((scandist>Mechanik->MinProximityDist)?(MoverParameters->Vel!=0.0):false)
+        {//jeœli jedzie, informujemy o zatrzymaniu na wykrytym stopie
+         eSignLast=e; //licz¹cy siê sygna³ do zapamiêtania
+         //Mechanik->PutCommand("SetProximityVelocity",scandist,0,sl);
+#if LOGVELOCITY
+         //WriteLog(edir+"SetProximityVelocity "+AnsiString(scandist)+" 0");
+         WriteLog(edir);
+#endif
+         SetProximityVelocity(scandist,0,&sl);
+        }
+        else
+        {Mechanik->PutCommand("SetVelocity",0,0,sl); //zatrzymanie na przystanku
+#if LOGVELOCITY
+         WriteLog(edir+"SetVelocity 0 0 ");
+#endif
+         TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,asNextStop.SubString(20,asNextStop.Length()));
+#if LOGVELOCITY
+         WriteLog(edir+asNextStop); //informacja o zatrzymaniu na stopie
+#endif
+         asNextStop=TrainParams->NextStop(); //pobranie kolejnego miejsca zatrzymania
+#if LOGVELOCITY
+         WriteLog("Next stop: "+asNextStop.SubString(19,asNextStop.Length())); //informacja
+#endif
+         eSignSkip=e; //wtedy uznajemy go za ignorowany przy poszukiwaniu nowego
+         eSignLast=NULL; //¿eby jakiœ nowy by³ poszukiwany
         }
       }
     }
