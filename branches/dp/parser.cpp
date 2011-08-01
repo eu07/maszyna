@@ -120,7 +120,9 @@ std::string cParser::readToken(bool ToLower,const char* Break)
     token.erase(pos,token.find(")",pos)-pos+1); //najpierw usuniêcie "(pN)"
     size_t nr=atoi(parameter.c_str())-1;
     if (nr<parameters.size())
-     token.insert(pos,parameters.at(nr)); //wklejenie wartoœci parametru
+    {token.insert(pos,parameters.at(nr)); //wklejenie wartoœci parametru
+     //if (ToLower) token=tolower(token);
+    }
     else
      token.insert(pos,"none"); //zabezpieczenie przed brakiem parametru
    }
@@ -153,7 +155,7 @@ std::string cParser::readToken(bool ToLower,const char* Break)
    //std::string trtest2="niemaproblema"; //nazwa odporna na znalezienie "tr/"
    //if (trtest=="x") //jeœli nie wczytywaæ drutów
    //trtest2=includefile; //kopiowanie œcie¿ki do pliku
-   std::string parameter=readToken(ToLower);
+   std::string parameter=readToken(false); //w parametrach nie zmniejszamy
    while (parameter.compare("end")!=0)
    {
     parameters.push_back(parameter);
