@@ -85,7 +85,7 @@ char Global::szSceneryFile[256]="TD.scn";
 AnsiString Global::asCurrentSceneryPath="scenery/";
 AnsiString Global::asHumanCtrlVehicle="EU07-424";
 AnsiString Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath);
-bool Global::slowmotion; //Info o malym FPS... :)
+int Global::iSlowMotion=0; //info o malym FPS: 0-OK, 1-wy³¹czyæ multisampling 3-zmniejszenie promienia
 bool Global::changeDynObj; //info o zmianie pojazdu
 bool Global::detonatoryOK; //info o nowych detonatorach
 double Global::ABuDebug=0;
@@ -103,7 +103,7 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iMultiplayer=0; //blokada dzia³ania niektórych eventów na rzecz kominikacji
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asVersion="Compilation 2011-07-31, release 1.3.212.204."; //tutaj, bo wysy³any
+AnsiString Global::asVersion="Compilation 2011-08-02, release 1.3.213.206."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 GLint Global::iMaxTextureSize=16384;//maksymalny rozmiar tekstury
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego

@@ -59,7 +59,7 @@ __fastcall TWorld::TWorld()
     Aspect= 1;
     for (int i=0; i<10; i++)
         KeyEvents[i]= NULL;
-    Global::slowmotion=false;
+    Global::iSlowMotion=0;
     Global::changeDynObj=false;
     lastmm=61; //ABu: =61, zeby zawsze inicjowac kolor czarnej mgly przy warunku (GlobalTime->mm!=lastmm) :)
     OutText1 = "";
@@ -705,11 +705,18 @@ bool __fastcall TWorld::Update()
   WriteLog("Scenery moved");
  };
 #endif
- if (GetFPS()<12)
-  Global::slowmotion=true;
- else
-  if (GetFPS()>15)
-   Global::slowmotion=false;
+ if (GetFPS()<10)
+ {Global::iSlowMotion=(Global::iSlowMotion<<1)+1; //zapalenie kolejnego bitu
+  if (Global::iMultisampling) //a multisampling jest w³¹czony
+   glDisable(GL_MULTISAMPLE); //wy³¹czenie multisamplingu powinno poprawiæ FPS
+ }
+ else if (GetFPS()>15)
+ {//FPS siê zwiêkszy³, mo¿na w³¹czyæ bajery
+  Global::iSlowMotion=(Global::iSlowMotion>>1); //zgaszenie bitu
+  if (Global::iSlowMotion==0) //jeœli jest pe³na prêdkoœæ
+   if (Global::iMultisampling) //a multisampling jest w³¹czony
+    glEnable(GL_MULTISAMPLE);
+ }
  UpdateTimers(Global::bPause);
  if (!Global::bPause)
  {//jak pauza, to nie ma po co tego przeliczaæ
@@ -1097,12 +1104,9 @@ bool __fastcall TWorld::Update()
 */
     if (DebugModeFlag&&!Global::iTextMode)
      {
-       OutText1= "  FPS: ";
-       OutText1+= FloatToStrF(GetFPS(),ffFixed,6,2);
-       if(Global::slowmotion)
-          {OutText1+= "S";}
-       else
-          {OutText1+= "N";};
+       OutText1="  FPS: ";
+       OutText1+=FloatToStrF(GetFPS(),ffFixed,6,2);
+       OutText1+=Global::iSlowMotion?"S":"N";
 
 
        if (GetDeltaTime()>=0.2)
@@ -1120,7 +1124,7 @@ bool __fastcall TWorld::Update()
      Global::iViewMode=VK_F8;
      OutText1="  FPS: ";
      OutText1+=FloatToStrF(GetFPS(),ffFixed,6,2);
-     if (Global::slowmotion)
+     if (Global::iSlowMotion)
       OutText1+=" (slowmotion)";
      OutText1+=", sectors: ";
      OutText1+=AnsiString(Ground.iRendered);

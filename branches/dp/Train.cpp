@@ -1502,7 +1502,7 @@ void __fastcall TTrain::UpdateMechPosition(double dt)
  double r1,r2,r3;
  int iVel= DynamicObject->GetVelocity();
  if (iVel>150) iVel=150;
- if (!Global::slowmotion)
+ if (!Global::iSlowMotion) //musi byæ pe³na prêdkoœæ
  {
    if (!(random((GetFPS()+1)/15)>0))
    {

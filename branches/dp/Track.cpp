@@ -303,7 +303,7 @@ vector3 __fastcall LoadPoint(cParser *parser)
  return p;
 }
 
-void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin)
+void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
 {//pobranie obiektu trajektorii ruchu
  vector3 pt,vec,p1,p2,cp1,cp2;
  double a1,a2,r1,r2,d1,d2,a;
@@ -314,7 +314,7 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin)
 
  parser->getTokens();
  *parser >> token;
- str=AnsiString(token.c_str());
+ str=AnsiString(token.c_str()); //typ toru
 
  if (str=="normal")
  {
@@ -586,6 +586,11 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin)
   parser->getTokens(); *parser >> token;
   str=AnsiString(token.c_str());
  }
+ //alternatywny zapis nazwy odcinka izolowanego - po znaku "@" w nazwie toru
+ if (!pIsolated)
+  if ((i=name.Pos("@"))>0)
+   if (i<name.Length()) //nie mo¿e byæ puste
+    pIsolated=TIsolated::Find(name.SubString(i+1,name.Length()));
 }
 
 bool __fastcall TTrack::AssignEvents(TEvent *NewEvent0,TEvent *NewEvent1,TEvent *NewEvent2)

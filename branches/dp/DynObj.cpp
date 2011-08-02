@@ -1136,7 +1136,7 @@ TTrack* __fastcall TDynamicObject::TraceRoute(double &fDistance,double &fDirecti
   fDistance=0; //to na tym torze stoimy
   return Track;
  }
- if (Track->fVelocity==0.0)
+ if ((Track->fVelocity==0.0)||(Track->iDamageFlag&128))
  {
   fDistance=0; //to na tym torze stoimy
   return NULL; //stop
@@ -1157,8 +1157,8 @@ TTrack* __fastcall TDynamicObject::TraceRoute(double &fDistance,double &fDirecti
     fDirection=-fDirection;
    Track=Track->CurrentPrev(); //mo¿e byæ NULL
   }
-  if (Track?Track->fVelocity==0.0:true)
-  {//gdy dalej toru nie ma albo zakaz wjazu
+  if (Track?(Track->fVelocity==0.0)||(Track->iDamageFlag&128):true)
+  {//gdy dalej toru nie ma albo zerowa prêdkoœæ, albo uszkadza pojazd
    fDistance=s;
    return NULL; //zwraca NULL, ewentualnie tor z zerow¹ prêdkoœci¹
   }
