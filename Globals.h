@@ -183,7 +183,7 @@ public:
  static GLfloat noLight[];
  static GLfloat darkLight[];
  static GLfloat lightPos[4];
- static bool slowmotion;
+ static int iSlowMotion;
  static bool changeDynObj;
  static double ABuDebug;
  static bool detonatoryOK;

@@ -916,6 +916,7 @@ begin
 {     UpdateSituation:=True; }
      {tu bedzie logika sterowania}
      {Ra: nie wiem czemu ReactionTime potrafi dostaæ 12 sekund, to jest przegiêcie, bo prze¿yna STÓJ}
+	 {yB: otó¿ jest to jedna trzecia czasu nape³niania na towarowym; mo¿e siê przydaæ przy wdra¿aniu hamowania, ¿eby nie rusza³o kranem jak g³upie}
      if (LastReactionTime>Min0R(ReactionTime,2.0))  then
       with Controlling^ do
        begin
@@ -1161,10 +1162,11 @@ begin
                  if TrainSet^.TTVmax>0 then
                   VelDesired:=Min0R(VelDesired,TrainSet^.TTVmax); {jesli nie spozniony to nie szybciej niz rozkladowa}
                 AbsAccs:=Accs*sign(V); {czy sie rozpedza czy hamuje}
-                {ustalanie zadanego przyspieszenia}
-                if (VelNext>=0) and (ActualProximityDist>=0) and (Vel>=VelNext) then
+				
+				{ustalanie zadanego przyspieszenia}
+                if (VelNext>=0) and (ActualProximityDist>=0) and (Vel>=VelNext) then //gdy zbliza sie i jest za szybko do NOWEGO
                  begin
-                   if Vel>0 then
+                   if Vel>0 then //jesli nie stoi
                     begin
                      if (Vel<VelReduced+VelNext) and (ActualProximityDist>MaxProximityDist*(1+Vel/10)) then {dojedz do semafora/przeszkody}
                       begin
@@ -1174,8 +1176,20 @@ begin
                       end
                      else
                       if ActualProximityDist>MinProximityDist then
-                       begin
-                         AccDesired:=(SQR(VelNext)-SQR(Vel))/(25.92*ActualProximityDist+0.1); {hamuj proporcjonalnie}
+                       begin                                //25.92 - skorektowane, zeby ladniej hamowal
+                         if (VelNext>Vel-35) then //dwustopniowe hamowanie - niski przy ma³ej ró¿nicy
+                          if ((VelNext>0)and(VelNext>Vel-3)) then //jeœli powolna i niewielkie przekroczenie
+                            AccDesired:=0                         //to olej (zacznij luzowaæ)
+                          else  //w przeciwnym wypadku
+                            if (VelNext=0)and(Vel*Vel<0.4*ActualProximityDist) then //jeœli stójka i niewielka prêdkoœæ
+                              if Vel<30 then  //trzymaj 30 km/h
+                                AccDesired:=0.5
+                              else
+                                AccDesired:=0
+                            else // prostu hamuj (niski stopieñ)
+                              AccDesired:=(SQR(VelNext)-SQR(Vel))/(25.92*ActualProximityDist+0.1) {hamuj proporcjonalnie} //mniejsze opóŸnienie przy ma³ej ró¿nicy
+                         else  //przy du¿ej ró¿nicy wysoki stopieñ (1,25 potrzebnego opoznienia)
+                           AccDesired:=(SQR(VelNext)-SQR(Vel))/(20.73*ActualProximityDist+0.1); {hamuj proporcjonalnie} //najpierw hamuje mocniej, potem zluzuje
                          if AccPreferred<AccDesired then
                           AccDesired:=AccPReferred;                  //(1+abs(AccDesired))
                          ReactionTime:=BrakeDelay[2+2*BrakeDelayFlag]/2; {aby szybkosc hamowania zalezala od przyspieszenia i opoznienia hamulcow}
@@ -1192,17 +1206,31 @@ begin
                        VelDesired:=0;            {stoj}
                      end;
                  end
-                else
+                else //gdy jedzie wolniej, to jest normalnie
                  AccDesired:=AccPreferred;       {normalna jazda}
-                if (VelDesired>=0) and (Vel>VelDesired) then
-                 if AccDesired>-AccPreferred then
-                  Accdesired:=-AccPreferred;
-                if (AccDesired>0) and (VelNext>=0) then
-                 if (VelNext<Vel-70) then        {lepiej zaczac hamowac}
+				//koniec predkosci nastepnej
+
+                if (VelDesired>=0) and (Vel>VelDesired) then //jesli jedzie za szybko do AKTUALNEGO
+                 if (VelDesired=0) then //jesli stoj, to hamuj, ale i tak juz za pozno :)
+                     AccDesired:=-0.5
+                 else
+                 if (Vel<VelDesired+5) then // o 5 km/h to olej
+                   if (AccDesired>0) then
+                     AccDesired:=0
+                   else
+                 else
+                   AccDesired:=-0.2;  //hamuj tak œrednio
+//                 if AccDesired>-AccPreferred then
+//                  Accdesired:=-AccPreferred;
+				//koniec predkosci aktualnej
+
+                if (AccDesired>0) and (VelNext>=0) then //wybieg b¹dŸ lekkie hamowanie, warunki byly zamienione
+                 if (VelNext<Vel-100) then        {lepiej zaczac hamowac} 
                   AccDesired:=-0.2
                  else
-                  if (VelNext<Vel-100) then
+                  if (VelNext<Vel-70) then
                    AccDesired:=0;                {nie spiesz sie bo bedzie hamowanie}
+				//koniec wybiegu i hamowania
                 {wlaczanie bezpiecznika}
                 if EngineType=ElectricSeriesMotor then
                  if FuseFlag or Need_TryAgain then
@@ -1235,33 +1263,35 @@ begin
 //                         DecBrakeLevel
 //                       end;
                   end;
-                {zwiekszanie predkosci:}
-                if ((Vel<VelDesired*0.7-VelMargin) or ((Vel<VelDesired*0.94-VelMargin) and (AbsAccS<0)))
-               and (((AccDesired>0) and (AbsAccS<AccDesired)) or ((AccDesired<=0) and (AbsAccS<3/(1+BrakeDelay[1+2*BrakeDelayFlag]/10)*AccDesired))) then
+
+                if(AccDesired>=0) then while DecBrake do;  //jeœli przyspieszamy, to nie hamujemy
+                if(AccDesired<=0)or(Vel+VelMargin>VelDesired*0.95) then while DecSpeed do; //jeœli hamujemy, to nie przyspieszamy
+
+                {zwiekszanie predkosci:} //yB: usuniête ró¿ne dziwne warunki, oddzielamy czêœæ zadaj¹c¹ od wykonawczej
+                if ((AbsAccS<AccDesired)and(Vel<VelDesired*0.85-VelMargin)and(AccDesired>=0)) then
        {          if not MaxVelFlag then }
-                  begin
-                   if not DecBrake then
                     if not IncSpeed then
                      MaxVelFlag:=True
                     else MaxVelFlag:=False;
-                  end
-                 else
-                  if (Vel<VelDesired*0.85) and (AccDesired>0) and (EngineType=ElectricSeriesMotor)
-                      and (RList[MainCtrlPos].R>0.0) and (not DelayCtrlFlag) then
-                   if (Im<Imax) and Ready=True {(BrakePress<0.01*MaxBrakePress)} then
-                    IncMainCtrl(1); {zwieksz nastawnik skoro mozesz - tak aby sie ustawic na bezoporowej}
+//                  end;
+//                 else
+//                  if (Vel<VelDesired*0.85) and (AccDesired>0) and (EngineType=ElectricSeriesMotor)
+//                      and (RList[MainCtrlPos].R>0.0) and (not DelayCtrlFlag) then
+//                   if (Im<Imin) and Ready=True {(BrakePress<0.01*MaxBrakePress)} then
+//                    IncMainCtrl(1); {zwieksz nastawnik skoro mozesz - tak aby sie ustawic na bezoporowej}
 
-                {zmniejszanie predkosci:}
-                if ((Vel>VelDesired) or ((Vel>VelDesired*0.9) and (AbsAccS>0)))
-                or ((AccDesired<0) and (AbsAccS>AccDesired)) then
+                {zmniejszanie predkosci:} //yB: usuniête ró¿ne dziwne warunki, oddzielamy czêœæ zadaj¹c¹ od wykonawczej
+                if ((AccDesired<-0.1) and (AbsAccS>AccDesired+0.05)) then
        {          if not MinVelFlag then   }
-                   begin
-                      if not DecSpeed then
-                       if (AccDesired<-0.1+AbsAccS) or ((Vel-VelMargin)>VelDesired) then
                         if not IncBrake then
                          MinVelFlag:=True
-                        else MinVelFlag:=False;
-                   end;
+                   else begin MinVelFlag:=False; ReactionTime:=3+(BrakeDelay[2+2*BrakeDelayFlag]-3)/2; end;
+
+                if ((AccDesired<-0.05) and (AbsAccS<AccDesired-0.2)) then
+                 begin DecBrake; ReactionTime:=(BrakeDelay[1+2*BrakeDelayFlag])/3; end; //jak hamuje, to nie tykaj kranu za czêsto
+//                   end;
+//Mietek-end1
+
 
                 {zapobieganie poslizgowi w czlonie silnikowym}
                 if (Couplers[0].Connected<>NIL) then

@@ -55,6 +55,7 @@ AnsiString LogComment;
 // tablica pozycji sektorów do renderowania progresywnego (zale¿nie od FPS)
 const int AreaFast[]={10,10,10,10,10,10,9,8,7,6,5}; //pe³ny zakres widocznoœci 2km
 const int AreaSlow[]={ 7, 7, 7, 7, 7, 6,5,4,0,0,0}; //ograniczenie widocznoœci 1.5km
+const int AreaMini[]={ 5, 5, 5, 5, 5, 4,0,0,0,0,0}; //ograniczenie widocznoœci 1km
 //---------------------------------------------------------------------------
 
 __fastcall TGroundNode::TGroundNode()
@@ -1116,7 +1117,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    tmp->pTrack=new TTrack();
    if ((DebugModeFlag) && (tmp->asName!=AnsiString("")))
      WriteLog(tmp->asName.c_str());
-   tmp->pTrack->Load(parser,pOrigin);
+   tmp->pTrack->Load(parser,pOrigin,tmp->asName); //w nazwie mo¿e byæ nazwa odcinka izolowanego
 
 //            str=Parser->GetNextSymbol().LowerCase();
   //          str=Parser->GetNextSymbol().LowerCase();
@@ -3052,7 +3053,7 @@ bool __fastcall TGround::RaRender(vector3 pPosition)
  //renderowanie progresywne - zale¿ne od FPS oraz kierunku patrzenia
  iRendered=0; //iloœæ renderowanych sektorów
  vector3 direction;
- iRange=Global::slowmotion?AreaSlow:AreaFast;
+ iRange=(Global::iSlowMotion&6)?((Global::iSlowMotion&4)?AreaMini:AreaSlow):AreaFast;
  n=(iRange[0]*n)/10; //tak dla zasady - 10 albo 7
  for (j=-n;j<=n;j++)
  {k=iRange[j<0?-j:j]; //zasiêg na danym poziomie
@@ -3156,7 +3157,8 @@ bool __fastcall TGround::Render(vector3 pPosition)
  //renderowanie progresywne - zale¿ne od FPS oraz kierunku patrzenia
  iRendered=0; //iloœæ renderowanych sektorów
  vector3 direction;
- iRange=Global::slowmotion?AreaSlow:AreaFast;
+ //iRange=Global::slowmotion?AreaSlow:AreaFast;
+ iRange=(Global::iSlowMotion&6)?((Global::iSlowMotion&4)?AreaMini:AreaSlow):AreaFast;
  n=(iRange[0]*n)/10; //tak dla zasady - 10 albo 7
  for (j=-n;j<=n;j++)
  {k=iRange[j<0?-j:j]; //zasiêg na danym poziomie

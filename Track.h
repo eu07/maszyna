@@ -145,7 +145,7 @@ public:
  bool __fastcall Switch(int i);
  bool __fastcall SwitchForced(int i,TDynamicObject *o);
  inline int __fastcall GetSwitchState() { return (SwitchExtension?SwitchExtension->CurrentIndex:-1); };
- void __fastcall Load(cParser *parser, vector3 pOrigin);
+ void __fastcall Load(cParser *parser, vector3 pOrigin,AnsiString name);
  bool __fastcall AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2);
  bool __fastcall AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2);
  bool __fastcall AssignForcedEvents(TEvent *NewEventPlus, TEvent *NewEventMinus);
