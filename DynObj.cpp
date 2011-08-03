@@ -1310,53 +1310,62 @@ void TDynamicObject::ScanEventTrack()
        if (fTrackBlock>50.0) //je¿eli nie ma zawalidrogi w tej odleg³oœci
         if ((scandist>Mechanik->MinProximityDist)?(MoverParameters->Vel!=0.0):false)
         {//jeœli semafor jest daleko, a pojazd jedzie, to informujemy o zmianie prêdkoœci
-         if (MoverParameters->Vel!=0.0) //jeœli stoi, to nic mu nie wysy³amy
-         {//Mechanik->PutCommand("SetProximityVelocity",scandist,vmechmax,sl);
+         //Mechanik->PutCommand("SetProximityVelocity",scandist,vmechmax,sl);
 #if LOGVELOCITY
-          //WriteLog(edir+"SetProximityVelocity "+AnsiString(scandist)+" "+AnsiString(vmechmax));
-          WriteLog(edir);
+         //WriteLog(edir+"SetProximityVelocity "+AnsiString(scandist)+" "+AnsiString(vmechmax));
+         WriteLog(edir);
 #endif
-          SetProximityVelocity(scandist,vmechmax,&sl);
-         }
+         SetProximityVelocity(scandist,vmechmax,&sl);
         }
         else  //ustawiamy prêdkoœæ tylko wtedy, gdy ma ruszyæ, stan¹æ albo ma staæ
-        {if ((MoverParameters->Vel==0.0)||(vmechmax==0.0)) //jeœli jedzie lub ma stan¹æ/staæ
+         if ((MoverParameters->Vel==0.0)||(vmechmax==0.0)) //jeœli jedzie lub ma stan¹æ/staæ
          {//semafor na tym torze albo lokomtywa stoi, a ma ruszyæ, albo ma stan¹æ, albo nie ruszaæ
-          {//stop trzeba powtarzaæ, bo inaczej zatr¹bi i pojedzie sam
-           Mechanik->PutCommand("SetVelocity",vmechmax,e->Params[9].asMemCell->fValue2,sl);
+          //stop trzeba powtarzaæ, bo inaczej zatr¹bi i pojedzie sam
+          Mechanik->PutCommand("SetVelocity",vmechmax,e->Params[9].asMemCell->fValue2,sl);
 #if LOGVELOCITY
-           WriteLog(edir+"SetVelocity "+AnsiString(vmechmax)+" "+AnsiString(e->Params[9].asMemCell->fValue2));
+          WriteLog(edir+"SetVelocity "+AnsiString(vmechmax)+" "+AnsiString(e->Params[9].asMemCell->fValue2));
 #endif
-          }
          }
-        }
       }
       else if (Mechanik->OrderList[Mechanik->OrderPos]==Shunt)
-      {//tylko jeœli w trybie manewrowym
+      {//reakcja AI w trybie manewrowym dodatkowo na sygna³y manewrowe
        if (strcmp(e->Params[9].asMemCell->szText,"ShuntVelocity")==0)
        {//
         eSignLast=e; //licz¹cy siê sygna³ do zapamiêtania
         //if ((scandist>Mechanik->MinProximityDist)?(MoverParameters->Vel!=0.0)||(vmechmax==0.0):false) //podjedzie pod semafor
         if (fTrackBlock>50.0) //je¿eli nie ma zawalidrogi w tej odleg³oœci
-         if ((scandist>Mechanik->MinProximityDist)?(MoverParameters->Vel!=0.0):false) //nie podjedzie pod semafor
-         {//jeœli semafor jest daleko, a pojazd jedzie, albo stoi a semafor zamkniêty
-          if (MoverParameters->Vel!=0.0) //jeœli jedzie, to nic mu nie wysy³amy
-           {//Mechanik->PutCommand("SetProximityVelocity",scandist,vmechmax,sl);
+        {if ((scandist>Mechanik->MinProximityDist)?(MoverParameters->Vel!=0.0)||(vmechmax==0.0):false)
+         {//jeœli tarcza jest daleko, to:
+          //- jesli pojazd jedzie, to informujemy o zmianie prêdkoœci
+          //- jeœli stoi, to z w³asnej inicjatywy mo¿e podjechaæ pod zamkniêt¹ tarczê
+          if (MoverParameters->Vel!=0.0) //tylko jeœli jedzie
+          {//Mechanik->PutCommand("SetProximityVelocity",scandist,vmechmax,sl);
 #if LOGVELOCITY
-            //WriteLog(edir+"SetProximityVelocity "+AnsiString(scandist)+" "+AnsiString(vmechmax));
-            WriteLog(edir);
+           //WriteLog(edir+"SetProximityVelocity "+AnsiString(scandist)+" "+AnsiString(vmechmax));
+           WriteLog(edir);
 #endif
-            SetProximityVelocity(scandist,vmechmax,&sl);
-           }
+           SetProximityVelocity(scandist,vmechmax,&sl);
+          }
          }
-         else //ustawiamy prêdkoœæ tylko wtedy, gdy ma ruszyæ, stan¹æ albo ma staæ
+         else //ustawiamy prêdkoœæ tylko wtedy, gdy ma ruszyæ, albo stan¹æ albo ma staæ pod tarcz¹
+         {//stop trzeba powtarzaæ, bo inaczej zatr¹bi i pojedzie sam
           if ((MoverParameters->Vel==0.0)||(vmechmax==0.0)) //jeœli jedzie lub ma stan¹æ/staæ
-           {//stop trzeba powtarzaæ, bo inaczej zatr¹bi i pojedzie sam
-            Mechanik->PutCommand("ShuntVelocity",vmechmax,e->Params[9].asMemCell->fValue2,sl);
+          {//nie dostanie komendy jeœli jedzie i ma jechaæ
+           Mechanik->PutCommand("ShuntVelocity",vmechmax,e->Params[9].asMemCell->fValue2,sl);
 #if LOGVELOCITY
-            WriteLog(edir+"ShuntVelocity "+AnsiString(vmechmax)+" "+AnsiString(e->Params[9].asMemCell->fValue2));
+           WriteLog(edir+"ShuntVelocity "+AnsiString(vmechmax)+" "+AnsiString(e->Params[9].asMemCell->fValue2));
 #endif
-           }
+          }
+         }
+         if ((vmechmax!=0.0)&&(scandist<100.0))
+         {//jeœli tarcza w odleg³oœci do 100m podaje zezwolenie na jazdê, to od razu j¹ ignorujemy, aby móc szukaæ kolejnej
+          eSignSkip=e; //wtedy uznajemy ignorowan¹ przy poszukiwaniu nowej
+          eSignLast=NULL; //¿eby jakaœ nowa by³a poszukiwana
+#if LOGVELOCITY
+          WriteLog(edir+" - will be ignored");
+#endif
+         }
+        }
        }
       }
      }

@@ -533,7 +533,9 @@ void __fastcall TSubModel::InitialRotate(bool doit)
      float4x4 *mat=GetMatrix(); //transform submodelu
      if (Vertices)
       for (int i=0;i<iNumVerts;++i)
-       Vertices[i].Point=(*mat)*Vertices[i].Point;
+      {Vertices[i].Point=(*mat)*Vertices[i].Point;
+       Vertices[i].Normal=SafeNormalize((*mat)*Vertices[i].Normal); //te te¿, bo Ÿle wychodzi³o
+      }
      mat->Identity(); //jedynkowanie transformu po przeliczeniu wierzcho³ków
      iFlags&=~0x8000; //transform jedynkowy
     }
