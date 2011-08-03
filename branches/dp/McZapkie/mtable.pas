@@ -119,7 +119,8 @@ begin
     begin
      LastStationLatency:=CompareTime(hh,mm,TimeTable[StationIndex].dh,TimeTable[StationIndex].dm);
      inc(StationIndex);
-     NextStationName:=TimeTable[StationIndex].StationName;
+     NextStationName:=TimeTable[StationIndex].StationName; //ju¿ zaliczona
+     TTVmax:=TimeTable[StationIndex].vmax; //Ra: nowa prêdkoœæ rozk³adowa na kolejnym odcinku
      OK:=true;
     end;
   end;
@@ -162,17 +163,20 @@ var
  fin:text;
  EndTable:boolean;
  vActual:real;
+
 procedure UpdateVelocity(StationCount:integer;vActual:real);
+//zapisywanie prêdkoœci maksymalnej do wczeœniejszych odcinków
 var i:integer;
 begin
  i:=StationCount;
- TTVmax:=vActual;  {PROWIZORKA!!!}
+ //TTVmax:=vActual;  {PROWIZORKA!!!}
  while (i>0) and (TimeTable[i-1].vmax=-1) do
   begin
    dec(i);
    TimeTable[i].vmax:=vActual;
   end;
 end;
+
 begin
  ConversionError:=666;
  s:=scnpath+TrainName+'.txt';
