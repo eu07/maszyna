@@ -709,7 +709,7 @@ bool __fastcall TWorld::Update()
   --iCheckFPS;
  else
  {//jak dosz³o do zera, to sprawdzamy wydajnoœæ
-  if ((GetFPS()<16)&&(Global::iSlowMotion<15))
+  if ((GetFPS()<16)&&(Global::iSlowMotion<7)) 
   {Global::iSlowMotion=(Global::iSlowMotion<<1)+1; //zapalenie kolejnego bitu
    if (Global::iMultisampling) //a multisampling jest w³¹czony
     glDisable(GL_MULTISAMPLE); //wy³¹czenie multisamplingu powinno poprawiæ FPS

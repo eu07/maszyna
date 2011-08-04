@@ -93,6 +93,8 @@ public:
 	void __fastcall JumpToFirstOrder(void);
 	void __fastcall ChangeOrder(TOrders NewOrder);
 	TOrders __fastcall GetCurrentOrder(void);
+	bool __fastcall CheckSKP(void);
+	void __fastcall ResetSKP(void);
 	void __fastcall CloseLog(void);
 	__fastcall TController(const Mover::TLocation &LocInitial, const Mover::TRotation &RotInitial, bool 
 		AI, Mover::PMoverParameters NewControll, Mtable::PTrainParameters NewTrainSet, bool InitPsyche);
