@@ -132,7 +132,9 @@ private:
  //Ra: poni¿sze przenieœæ do modu³u AI:
  int iAxleFirst; //numer pierwszej oœ w kierunku ruchu
  TEvent* eSignSkip; //miniêty sygna³ zezwalaj¹cy na jazdê, pomijany przy szukaniu
+public:
  TEvent* eSignLast; //ostatnio znaleziony sygna³, o ile nie miniêty
+private:
  bool __fastcall CheckEvent(TEvent *e,bool prox);
  bool __fastcall CheckTrackEvent(double fDirection,TTrack *Track);
  TTrack* __fastcall TraceRoute(double &fDistance,double &fDirection,TTrack *Track);

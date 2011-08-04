@@ -49,6 +49,7 @@ private:
 
     TSky Clouds;
     TEvent *KeyEvents[10];
+    int iCheckFPS; //kiedy znów sprawdziæ FPS, ¿eby wy³¹czaæ optymalizacji od razu do zera 
 };
 //---------------------------------------------------------------------------
 #endif

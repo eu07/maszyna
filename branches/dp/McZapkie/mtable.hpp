@@ -63,6 +63,7 @@ public:
 	double __fastcall WatchMTable(double DistCounter);
 	AnsiString __fastcall NextStop();
 	bool __fastcall IsStop(void);
+	bool __fastcall IsTimeToGo(double hh, double mm);
 	bool __fastcall UpdateMTable(double hh, double mm, AnsiString NewName);
 	__fastcall TTrainParameters(AnsiString NewTrainName);
 	bool __fastcall LoadTTfile(AnsiString scnpath);
