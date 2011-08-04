@@ -142,6 +142,8 @@ Type
                   procedure JumpToFirstOrder;
                   procedure ChangeOrder(NewOrder:TOrders);
                   function GetCurrentOrder: TOrders;
+									function CheckSKP: boolean;
+                  procedure ResetSKP;
                   procedure CloseLog;
                   constructor Init(LocInitial:TLocation; RotInitial:TRotation;
                                    AI:boolean; NewControll:PMoverParameters; NewTrainSet:PTRainParameters; InitPsyche:boolean);
@@ -183,6 +185,18 @@ function TController.OrderCurrent:string;
 //pobranie aktualnego rozkazu celem wyœwietlenia
 begin
  OrderCurrent:=Order2Str(OrderList[OrderPos]);
+end;
+
+function TController.CheckSKP:boolean;
+//sprawdzenie potrzeby za³o¿enia SKP
+begin
+ CheckSKP:=bCheckSKP;
+end;
+
+procedure TController.ResetSKP;
+//skasowanie potrzeby za³o¿enia SKP
+begin
+ bCheckSKP:=false;
 end;
 
 function TController.OrderDirectionChange(newdir:integer; Vehicle:PMoverParameters):integer;

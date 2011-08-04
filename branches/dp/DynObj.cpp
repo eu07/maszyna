@@ -2708,9 +2708,9 @@ if (tmpTraction.TractionVoltage==0)
      if (tmp->MoverParameters->BrakePress>0.03*tmp->MoverParameters->MaxBrakePress)
       Mechanik->Ready=false; //nie gotowy
 			
-    if (Mechanik->bCheckSKP)
+    if (Mechanik->CheckSKP())
     { //ZiomalCl: sprawdzanie i zmiana SKP w skladzie prowadzonym przez AI
-      Mechanik->bCheckSKP=false;
+      Mechanik->ResetSKP();
       TDynamicObject* tmp1;
       tmp1 = GetFirstDynamic(1);
       if(!tmp1)
