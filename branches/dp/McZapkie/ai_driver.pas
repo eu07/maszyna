@@ -64,7 +64,15 @@ const
   WriteLogFlag:boolean=False;
 
 Type
-   TOrders = (Wait_for_orders,Prepare_engine,Shunt,Change_direction,Obey_train,Release_engine,Jump_to_first_order);
+ TOrders =
+ (Wait_for_orders,    //czekanie na dostarczenie nastêpnych rozkazów
+  Prepare_engine,     //w³¹czenie silnika
+  Shunt,              //tryb manewrowy
+  Change_direction,   //zmiana kierunku
+  Obey_train,         //tryb poci¹gowy
+  Release_engine,     //wy³¹czenie silnika
+  Jump_to_first_order //zapêlenie do pierwszej pozycji
+ );
    TController = class(TObject)
                   EngineActive: boolean; {ABu: Czy silnik byl juz zalaczony}
                   MechLoc: TLocation;
@@ -684,11 +692,11 @@ begin
         if Value1<>VehicleCount then
          VehicleCount:=Trunc(Value1); {i co potem ? - trzeba zaprogramowac odczepianie}
       end
-     else if Controlling^.CommandIn.Command='SetVelocity' then
+     else if Command='SetVelocity' then
       begin
         CommandLocation:=Location;
-         SetVelocity(Controlling^.CommandIn.Value1,Controlling^.CommandIn.Value2);  {bylo: nic nie rob bo SetVelocity zewnetrznie jest wywolywane przez dynobj.cpp}
-        if (Order=Wait_for_orders) and (Controlling^.CommandIn.Value1<>0) then
+         SetVelocity(Value1,Value2);  {bylo: nic nie rob bo SetVelocity zewnetrznie jest wywolywane przez dynobj.cpp}
+        if (Order=Wait_for_orders) and (Value1<>0) then
          JumpToFirstOrder
         else
          if (Order=Shunt) and (Value1<>0) then
@@ -697,9 +705,9 @@ begin
 						bCheckSKP:=true;
 					end;
       end
-     else if Controlling^.CommandIn.Command='SetProximityVelocity' then
+     else if Command='SetProximityVelocity' then
       begin
-        if SetProximityVelocity(Controlling^.CommandIn.Value1,Controlling^.CommandIn.Value2) then
+        if SetProximityVelocity(Value1,Value2) then
           CommandLocation:=Location;
  {        if Order=Shunt then Order:=Obey_train;}
        end
@@ -727,18 +735,18 @@ begin
                 close(AILogFile);
                 end;
       end
-     else if Controlling^.CommandIn.Command='Warning_signal' then
+     else if Command='Warning_signal' then
       begin
         if Value1>0 then
          begin
-           WarningDuration:=Controlling^.CommandIn.Value1;
-           if Controlling^.CommandIn.Value2>1 then
+           WarningDuration:=Value1;
+           if Value2>1 then
             Controlling^.WarningSignal:=2
            else
             Controlling^.WarningSignal:=1;
          end;
       end
-     else if Controlling^.CommandIn.Command='OutsideStation' then  {wskaznik D5}
+     else if Command='OutsideStation' then  {wskaznik D5}
       begin
         if Order=Obey_train then
          SetVelocity(Value1,Value2) {koniec stacji - predkosc szlakowa}
@@ -748,11 +756,11 @@ begin
              Order:=Change_direction
          end;
       end
-     else if Pos('PassengerStopPoint:',Controlling^.CommandIn.Command)=1 then  {wskaznik W4}
+     else if Pos('PassengerStopPoint:',Command)=1 then  {wskaznik W4}
       begin
        if Order=Obey_train then
         begin
-         TrainSet^.UpdateMTable(GlobalTime.hh,GlobalTime.mm,Copy(Controlling^.CommandIn.Command,20,Length(Controlling^.CommandIn.Command)-20));
+         TrainSet^.UpdateMTable(GlobalTime.hh,GlobalTime.mm,Copy(Command,20,Length(Command)-20));
         end 
       end
 
@@ -1061,10 +1069,11 @@ begin
               if PrepareEngine then    {gotowy do drogi?}
                begin
                  SetDriverPsyche;
-                 //JumpToNextOrder;
+                 //Ra: na aktualnej pozycji zapisujemy manewry (po co?)
                  Controlling^.CommandIn.Value1:=-1;
                  Controlling^.CommandIn.Value2:=-1;
-                 OrderList[OrderPos]:=Shunt;
+                 //OrderList[OrderPos]:=Shunt; //Ra: to nie mo¿e tak byæ, bo scenerie robi¹ Jump_to_first_order i przechodzi w manewrowy
+                 JumpToNextOrder; //w nastêpnym jest Shunt albo Obey_train
 
 //                 if OrderList[OrderPos]<>Wait_for_Orders then
 //                  if BrakeSystem=Pneumatic then  {napelnianie uderzeniowe na wstepie}

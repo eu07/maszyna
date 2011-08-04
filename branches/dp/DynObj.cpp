@@ -1324,8 +1324,9 @@ void TDynamicObject::ScanEventTrack()
        {//
         eSignLast=e; //licz¹cy siê sygna³ do zapamiêtania
         if (fTrackBlock>50.0) //je¿eli nie ma zawalidrogi w tej odleg³oœci
-         if ((scandist>Mechanik->MinProximityDist)?(MoverParameters->Vel!=0.0):false)
+         if ((scandist>Mechanik->MinProximityDist)?(MoverParameters->Vel!=0.0)&&(Mechanik->OrderList[Mechanik->OrderPos]!=Shunt):false)
          {//jeœli semafor jest daleko, a pojazd jedzie, to informujemy o zmianie prêdkoœci
+          //jeœli jedzie manewrowo, musi dostaæ SetVelocity, ¿eby sie na poci¹gowy prze³¹czy³
           //Mechanik->PutCommand("SetProximityVelocity",scandist,vmechmax,sl);
 #if LOGVELOCITY
           //WriteLog(edir+"SetProximityVelocity "+AnsiString(scandist)+" "+AnsiString(vmechmax));
@@ -1340,7 +1341,7 @@ void TDynamicObject::ScanEventTrack()
             Mechanik->PutCommand("SetVelocity",vmechmax,e->Params[9].asMemCell->fValue2,sl);
 #if LOGVELOCITY
             WriteLog(edir+" SetVelocity "+AnsiString(vmechmax)+" "+AnsiString(e->Params[9].asMemCell->fValue2));
-#endif
+#endif          
            }
         }
       if (Mechanik->OrderList[Mechanik->OrderPos]==Shunt)
@@ -1725,7 +1726,7 @@ double __fastcall TDynamicObject::Init(
     Mechanik->Ready=false;
     Mechanik->ChangeOrder(Prepare_engine); //odpala silnik
     Mechanik->JumpToNextOrder();
-    if (TrainName==AnsiString("none"))
+    if (TrainName==AnsiString("none"))   
      Mechanik->ChangeOrder(Shunt); //jeœli nie ma rozk³adu, to manewruje
     else
      Mechanik->ChangeOrder(Obey_train); //z rozk³adem jedzie na szlak
