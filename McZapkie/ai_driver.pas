@@ -935,7 +935,7 @@ begin
              DecBrakeLevel;
          case OrderList[OrderPos] of   {na jaka odleglosc i z jaka predkoscia ma podjechac}
            Shunt :      begin
-                        MinProximityDist:=1; MaxProximityDist:=3; {m}
+                        MinProximityDist:=1; MaxProximityDist:=10; {m}
                           VelReduced:=5; {km/h}
                           if Vel=0 then
                             if (ActiveDir*CabNo<0) then

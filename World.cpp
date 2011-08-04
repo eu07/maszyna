@@ -52,19 +52,19 @@ const double fMaxDt= 0.01;
 
 __fastcall TWorld::TWorld()
 {
-
-//    randomize();
-  //  Randomize();
-    Train= NULL;
-    Aspect= 1;
-    for (int i=0; i<10; i++)
-        KeyEvents[i]= NULL;
-    Global::iSlowMotion=0;
-    Global::changeDynObj=false;
-    lastmm=61; //ABu: =61, zeby zawsze inicjowac kolor czarnej mgly przy warunku (GlobalTime->mm!=lastmm) :)
-    OutText1 = "";
-    OutText2 = "";
-    OutText3 = "";
+ //randomize();
+ //Randomize();
+ Train=NULL;
+ Aspect=1;
+ for (int i=0; i<10; i++)
+  KeyEvents[i]=NULL; //eventy wyzwalane klawiszami cyfrowymi
+ Global::iSlowMotion=0;
+ Global::changeDynObj=false;
+ lastmm=61; //ABu: =61, zeby zawsze inicjowac kolor czarnej mgly przy warunku (GlobalTime->mm!=lastmm) :)
+ OutText1=""; //teksty wyœwietlane na ekranie
+ OutText2="";
+ OutText3="";
+ iCheckFPS=0; //kiedy znów sprawdziæ FPS, ¿eby wy³¹czaæ optymalizacji od razu do zera
 }
 
 __fastcall TWorld::~TWorld()
@@ -705,17 +705,23 @@ bool __fastcall TWorld::Update()
   WriteLog("Scenery moved");
  };
 #endif
- if (GetFPS()<10)
- {Global::iSlowMotion=(Global::iSlowMotion<<1)+1; //zapalenie kolejnego bitu
-  if (Global::iMultisampling) //a multisampling jest w³¹czony
-   glDisable(GL_MULTISAMPLE); //wy³¹czenie multisamplingu powinno poprawiæ FPS
- }
- else if (GetFPS()>15)
- {//FPS siê zwiêkszy³, mo¿na w³¹czyæ bajery
-  Global::iSlowMotion=(Global::iSlowMotion>>1); //zgaszenie bitu
-  if (Global::iSlowMotion==0) //jeœli jest pe³na prêdkoœæ
+ if (iCheckFPS)
+  --iCheckFPS;
+ else
+ {//jak dosz³o do zera, to sprawdzamy wydajnoœæ
+  if ((GetFPS()<16)&&(Global::iSlowMotion<15))
+  {Global::iSlowMotion=(Global::iSlowMotion<<1)+1; //zapalenie kolejnego bitu
    if (Global::iMultisampling) //a multisampling jest w³¹czony
-    glEnable(GL_MULTISAMPLE);
+    glDisable(GL_MULTISAMPLE); //wy³¹czenie multisamplingu powinno poprawiæ FPS
+  }
+  else if ((GetFPS()>25)&&Global::iSlowMotion)
+  {//FPS siê zwiêkszy³, mo¿na w³¹czyæ bajery
+   Global::iSlowMotion=(Global::iSlowMotion>>1); //zgaszenie bitu
+   if (Global::iSlowMotion==0) //jeœli jest pe³na prêdkoœæ
+    if (Global::iMultisampling) //a multisampling jest w³¹czony
+     glEnable(GL_MULTISAMPLE);
+  }
+  iCheckFPS=2*GetFPS(); //tak ze 2 sekundy poczekaæ
  }
  UpdateTimers(Global::bPause);
  if (!Global::bPause)
@@ -1125,7 +1131,7 @@ bool __fastcall TWorld::Update()
      OutText1="  FPS: ";
      OutText1+=FloatToStrF(GetFPS(),ffFixed,6,2);
      if (Global::iSlowMotion)
-      OutText1+=" (slowmotion)";
+      OutText1+=" (slowmotion "+AnsiString(Global::iSlowMotion)+")";
      OutText1+=", sectors: ";
      OutText1+=AnsiString(Ground.iRendered);
     }
@@ -1354,8 +1360,9 @@ bool __fastcall TWorld::Update()
       }
 */
        OutText4="";
-       OutText4+="Coupler 0: "+(tmp->PrevConnected?tmp->PrevConnected->GetName():AnsiString("NULL"))+" ("+AnsiString(tmp->MoverParameters->Couplers[0].CouplingFlag)+"), ";
-       OutText4+="Coupler 1: "+(tmp->NextConnected?tmp->NextConnected->GetName():AnsiString("NULL"))+" ("+AnsiString(tmp->MoverParameters->Couplers[1].CouplingFlag)+")";
+       //OutText4+="Coupler 0: "+(tmp->PrevConnected?tmp->PrevConnected->GetName():AnsiString("NULL"))+" ("+AnsiString(tmp->MoverParameters->Couplers[0].CouplingFlag)+"), ";
+       //OutText4+="Coupler 1: "+(tmp->NextConnected?tmp->NextConnected->GetName():AnsiString("NULL"))+" ("+AnsiString(tmp->MoverParameters->Couplers[1].CouplingFlag)+")";
+       if (tmp->eSignLast) OutText4+="Control event: "+Bezogonkow(tmp->eSignLast->asName); //nazwa eventu semafora
       }
       else
       {
