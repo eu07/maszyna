@@ -1264,10 +1264,11 @@ bool __fastcall TWorld::Update()
      if (i<10) OutText1+="0";
      OutText1+=AnsiString(i);
      if (Global::bPause) OutText1+=" - paused";
-///* Ra: tymczasowo wy³¹czone
      if (Controlled)
-      OutText2=Bezogonkow(Controlled->TrainParams->ShowRelation()+", "+Controlled->asNextStop);
-//*/
+     {OutText2=Controlled->TrainParams->ShowRelation();
+      if (!OutText2.IsEmpty())
+       OutText2=Bezogonkow(OutText2+", "+Controlled->asNextStop); //dopisanie punktu zatrzymania
+     }
      //double CtrlPos=Controlled->MoverParameters->MainCtrlPos;
      //double CtrlPosNo=Controlled->MoverParameters->MainCtrlPosNo;
      //OutText2="defrot="+FloatToStrF(1+0.4*(CtrlPos/CtrlPosNo),ffFixed,2,5);
