@@ -14,6 +14,7 @@
 //---------------------------------------------------------------------------
 
 //101206 Ra: trapezoidalne drogi
+//110806 Ra: odwrócone mapowanie wzd³u¿ - Point1 == 1.0
 
 __fastcall TSegment::TSegment(TTrack *owner)
 {
@@ -297,7 +298,7 @@ void __fastcall TSegment::RenderLoft(const vector6 *ShapePoints, int iNumShapePo
  if (bCurve)
  {
   double m1,jmm1,m2,jmm2; //pozycje wzglêdne na odcinku 0...1 (ale nie parametr Beziera)
-  tv1=0; //Ra: to by mo¿na by³o wyliczaæ dla odcinka, wygl¹da³o by lepiej
+  tv1=1.0; //Ra: to by mo¿na by³o wyliczaæ dla odcinka, wygl¹da³o by lepiej
   step=fStep*iQualityFactor;
   s=fStep*iSkip; //iSkip - ile odcinków z pocz¹tku pomin¹æ
   i=iSkip; //domyœlnie 0
@@ -321,8 +322,8 @@ void __fastcall TSegment::RenderLoft(const vector6 *ShapePoints, int iNumShapePo
     i=iSegCount; //20/5 ma dawaæ 4
     m2=1.0; jmm2=0.0;
    }
-   while (tv1>1) tv1-= 1.0f;
-   tv2=tv1+step/fTextureLength; //mapowanie na koñcu segmentu
+   while (tv1<0.0) tv1+=1.0; //przestawienie mapowania
+   tv2=tv1-step/fTextureLength; //mapowanie na koñcu segmentu
    t=fTsBuffer[i]; //szybsze od GetTFromS(s);
    pos2=FastGetPoint(t);
    dir=Normalize(FastGetDirection(t,fOffset)); //nowy wektor kierunku
@@ -428,7 +429,7 @@ void __fastcall TSegment::RenderSwitchRail(const vector6 *ShapePoints1, const ve
             //t2= 0;
             t2step= 1/double(iSkip); //przesuniêcie tekstury?
             oldt2= 1;
-            tv1=0;
+            tv1=1.0;
             step= fStep; //d³ugœæ segmentu
             s= 0;
             i= 0;
@@ -454,12 +455,8 @@ void __fastcall TSegment::RenderSwitchRail(const vector6 *ShapePoints1, const ve
                     s= fLength;
                 }
 
-                while (tv1>1)
-                {
-                    tv1-= 1.0f;
-                }
-
-                tv2=tv1+step/fTextureLength;
+                while (tv1<0.0) tv1+=1.0;
+                tv2=tv1-step/fTextureLength;
 
                 t= fTsBuffer[i];
                 pos2= FastGetPoint( t );
@@ -485,13 +482,13 @@ void __fastcall TSegment::RenderSwitchRail(const vector6 *ShapePoints1, const ve
                 glEnd();
                 pos1= pos2;
                 parallel1= parallel2;
-                tv1= tv2;
+                tv1=tv2;
                 a1= a2;
             }
     }
     else
     {//dla toru prostego
-            tv1=0;
+            tv1=1.0;
             s= 0;
             i= 0;
 //            pos1= FastGetPoint( (5*iSkip)/fLength );
@@ -513,12 +510,9 @@ void __fastcall TSegment::RenderSwitchRail(const vector6 *ShapePoints1, const ve
                     s= fLength;
                 }
 
-                while (tv1>1)
-                {
-                    tv1-= 1.0f;
-                }
+                while (tv1<0.0) tv1+=1.0;
 
-                tv2=tv1+step/fTextureLength;
+                tv2=tv1-step/fTextureLength;
 
                 t= s/fLength;
                 pos2= FastGetPoint( t );
@@ -541,7 +535,7 @@ void __fastcall TSegment::RenderSwitchRail(const vector6 *ShapePoints1, const ve
                     }
                 glEnd();
                 pos1= pos2;
-                tv1= tv2;
+                tv1=tv2;
                 a1= a2;
             }
     }
@@ -617,7 +611,7 @@ void __fastcall TSegment::RaRenderLoft(
  {
   double m1,jmm1,m2,jmm2; //pozycje wzglêdne na odcinku 0...1 (ale nie parametr Beziera)
   step=fStep;
-  tv1=0; //Ra: to by mo¿na by³o wyliczaæ dla odcinka, wygl¹da³o by lepiej
+  tv1=1.0; //Ra: to by mo¿na by³o wyliczaæ dla odcinka, wygl¹da³o by lepiej
   s=fStep*iSkip; //iSkip - ile odcinków z pocz¹tku pomin¹æ
   i=iSkip; //domyœlnie 0
   t=fTsBuffer[i]; //tabela wattoœci t dla segmentów
@@ -641,8 +635,8 @@ void __fastcall TSegment::RaRenderLoft(
     //i=iEnd; //20/5 ma dawaæ 4
     m2=1.0; jmm2=0.0;
    }
-   while (tv1>1) tv1-=1.0f;
-   tv2=tv1+step/fTextureLength; //mapowanie na koñcu segmentu
+   while (tv1<0.0) tv1+=1.0;
+   tv2=tv1-step/fTextureLength; //mapowanie na koñcu segmentu
    t=fTsBuffer[i]; //szybsze od GetTFromS(s);
    pos2=FastGetPoint(t);
    dir=FastGetDirection(t,fOffset); //nowy wektor kierunku
