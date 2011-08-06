@@ -153,7 +153,8 @@ __fastcall TTrack::TTrack()
  DisplayListID=0;
  iTrapezoid=0; //parametry kszta³tu: 0-standard, 1-przechy³ka, 2-trapez, 3-oba
  pTraction=NULL; //drut zasilaj¹cy najbli¿szy Point1 toru
- fTexRatio=1.0; //proporcja boków nawierzchni (¿eby zaoszczêdziæ na rozmiarach tekstur...)
+ fTexRatio1=1.0; //proporcja boków tekstury nawierzchni (¿eby zaoszczêdziæ na rozmiarach tekstur...)
+ fTexRatio2=1.0; //proporcja boków tekstury chodnika (¿eby zaoszczêdziæ na rozmiarach tekstur...)
  iPrevDirection=0; //domyœlnie wirtualne odcinki do³¹czamy stron¹ od Point1
  iNextDirection=0;
  pIsolated=NULL;
@@ -445,7 +446,11 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
      glBindTexture(GL_TEXTURE_2D,TextureID1);
      glGetTexLevelParameterfv(GL_TEXTURE_2D,0,GL_TEXTURE_WIDTH,&w);
      glGetTexLevelParameterfv(GL_TEXTURE_2D,0,GL_TEXTURE_HEIGHT,&h);
-     if (h!=0.0) fTexRatio=w/h; //proporcja boków
+     if (h!=0.0) fTexRatio1=w/h; //proporcja boków
+     glBindTexture(GL_TEXTURE_2D,TextureID2);
+     glGetTexLevelParameterfv(GL_TEXTURE_2D,0,GL_TEXTURE_WIDTH,&w);
+     glGetTexLevelParameterfv(GL_TEXTURE_2D,0,GL_TEXTURE_HEIGHT,&h);
+     if (h!=0.0) fTexRatio2=w/h; //proporcja boków
     }
   break;
 
@@ -851,19 +856,21 @@ void __fastcall TTrack::Compile()
  //trochê podliczonych zmiennych, co siê potem przydadz¹
  double fHTW=0.5*fabs(fTrackWidth); //po³owa szerokoœci
  double side=fabs(fTexWidth); //szerokœæ podsypki na zewn¹trz szyny albo pobocza
- double rozp=fHTW+side+fabs(fTexSlope); //brzeg zewnêtrzny
- double hypot1=hypot(fTexSlope,fTexHeight); //rozmiar pochylenia do liczenia normalnych
+ double slop=fabs(fTexSlope); //szerokoœæ pochylenia
+ double rozp=fHTW+side+slop; //brzeg zewnêtrzny
+ double hypot1=hypot(slop,fTexHeight); //rozmiar pochylenia do liczenia normalnych
  if (hypot1==0.0) hypot1=1.0;
  vector3 normal1=vector3(fTexSlope/hypot1,fTexHeight/hypot1,0.0); //wektor normalny
- double fHTW2,side2,rozp2,fTexHeight2,hypot2;
+ double fHTW2,side2,slop2,rozp2,fTexHeight2,hypot2;
  vector3 normal2;
  if (iTrapezoid&2) //ten bit oznacza, ¿e istnieje odpowiednie pNext
  {//Ra: na tym siê lubi wieszaæ, ciekawe co za œmieci siê pod³¹czaj¹...
   fHTW2=0.5*fabs(pNext->fTrackWidth); //po³owa rozstawu/nawierzchni
   side2=fabs(pNext->fTexWidth);
-  rozp2=fHTW2+side2+fabs(pNext->fTexSlope);
+  slop2=fabs(pNext->fTexSlope);
+  rozp2=fHTW2+side2+slop2;
   fTexHeight2=pNext->fTexHeight;
-  hypot2=hypot(pNext->fTexSlope,pNext->fTexHeight);
+  hypot2=hypot(slop2,pNext->fTexHeight);
   if (hypot2==0.0) hypot2=1.0;
   normal2=vector3(pNext->fTexSlope/hypot2,fTexHeight2/hypot2,0.0);
   //zabezpieczenia przed zawieszeniem - logowaæ to?
@@ -872,7 +879,7 @@ void __fastcall TTrack::Compile()
   if (rozp2>5.0*rozp) {rozp2=rozp; WriteLog("niedopasowanie 3");};
  }
  else //gdy nie ma nastêpnego albo jest nieodpowiednim koñcem podpiêty
- {fHTW2=fHTW; side2=side; rozp2=rozp; fTexHeight2=fTexHeight; normal2=normal1;}
+ {fHTW2=fHTW; side2=side; slop2=slop; rozp2=rozp; fTexHeight2=fTexHeight; normal2=normal1;}
  double roll1,roll2;
  switch (iCategoryFlag)
  {
@@ -1004,7 +1011,7 @@ void __fastcall TTrack::Compile()
     {vector6 bpts1[4]; //punkty g³ównej p³aszczyzny przydaj¹ siê do robienia boków
      if (TextureID1||TextureID2) //punkty siê przydadz¹, nawet jeœli nawierzchni nie ma
      {//double max=2.0*(fHTW>fHTW2?fHTW:fHTW2); //z szerszej strony jest 100%
-      double max=fTexRatio*fTexLength; //test: szerokoœæ proporcjonalna do d³ugoœci
+      double max=fTexRatio1*fTexLength; //test: szerokoœæ proporcjonalna do d³ugoœci
       double map1=max>0.0?fHTW/max:0.5; //obciêcie tekstury od strony 1
       double map2=max>0.0?fHTW2/max:0.5; //obciêcie tekstury od strony 2
       if (iTrapezoid) //trapez albo przechy³ki
@@ -1029,40 +1036,64 @@ void __fastcall TTrack::Compile()
      {//pobocze drogi - poziome przy przechy³ce (a mo¿e krawê¿nik i chodnik zrobiæ jak w Midtown Madness 2?)
       glBindTexture(GL_TEXTURE_2D,TextureID2);
       vector6 rpts1[6],rpts2[6]; //wspó³rzêdne przekroju i mapowania dla prawej i lewej strony
-      rpts1[0]=vector6(rozp,-fTexHeight,0.0); //lewy brzeg podstawy
-      rpts1[1]=vector6(bpts1[0].x+side,bpts1[0].y,0.5); //lewa krawêdŸ za³amania
-      rpts1[2]=vector6(bpts1[0].x,bpts1[0].y,1.0); //lewy brzeg pobocza (mapowanie mo¿e byæ inne
-      rpts2[0]=vector6(bpts1[1].x,bpts1[1].y,1.0); //prawy brzeg pobocza
-      rpts2[1]=vector6(bpts1[1].x-side,bpts1[1].y,0.5); //prawa krawêdŸ za³amania
-      rpts2[2]=vector6(-rozp,-fTexHeight,0.0); //prawy brzeg podstawy
-      if (iTrapezoid) //trapez albo przechy³ki
-      {//pobocza do trapezowatej nawierzchni - dodatkowe punkty z drugiej strony odcinka
-       rpts1[3]=vector6(rozp2,-fTexHeight2,0.0); //lewy brzeg lewego pobocza
-       rpts1[4]=vector6(bpts1[2].x+side2,bpts1[2].y,0.5); //krawêdŸ za³amania
-       rpts1[5]=vector6(bpts1[2].x,bpts1[2].y,1.0); //brzeg pobocza
-       rpts2[3]=vector6(bpts1[3].x,bpts1[3].y,1.0);
-       rpts2[4]=vector6(bpts1[3].x-side2,bpts1[3].y,0.5);
-       rpts2[5]=vector6(-rozp2,-fTexHeight2,0.0); //prawy brzeg prawego pobocza
-      }
-      if (fTexHeight<0) //TODO: przerobiæ mapowanie chodnika
-      {//wersja dla chodnika: skos bli¿ej jezdni, potem poziomo
-       rpts1[1].y=rpts1[0].y; //lewy krawê¿nik u góry
-       rpts2[1].y=rpts2[2].y; //prawy krawê¿nik u góry
+      if (fTexHeight>=0.0)
+      {//standardowo od zewn¹trz pochylenie, a od wewn¹trz poziomo
+       rpts1[0]=vector6(rozp,-fTexHeight,0.0); //lewy brzeg podstawy
+       rpts1[1]=vector6(bpts1[0].x+side,bpts1[0].y,0.5); //lewa krawêdŸ za³amania
+       rpts1[2]=vector6(bpts1[0].x,bpts1[0].y,1.0); //lewy brzeg pobocza (mapowanie mo¿e byæ inne
+       rpts2[0]=vector6(bpts1[1].x,bpts1[1].y,1.0); //prawy brzeg pobocza
+       rpts2[1]=vector6(bpts1[1].x-side,bpts1[1].y,0.5); //prawa krawêdŸ za³amania
+       rpts2[2]=vector6(-rozp,-fTexHeight,0.0); //prawy brzeg podstawy
        if (iTrapezoid) //trapez albo przechy³ki
-       {//chodniki do trapezowatej nawierzchni - dodatkowe punkty z drugiej strony odcinka
-        rpts1[4].y=rpts1[3].y; //lewy krawê¿nik u góry
-        rpts2[4].y=rpts2[5].y; //prawy krawê¿nik u góry
+       {//pobocza do trapezowatej nawierzchni - dodatkowe punkty z drugiej strony odcinka
+        rpts1[3]=vector6(rozp2,-fTexHeight2,0.0); //lewy brzeg lewego pobocza
+        rpts1[4]=vector6(bpts1[2].x+side2,bpts1[2].y,0.5); //krawêdŸ za³amania
+        rpts1[5]=vector6(bpts1[2].x,bpts1[2].y,1.0); //brzeg pobocza
+        rpts2[3]=vector6(bpts1[3].x,bpts1[3].y,1.0);
+        rpts2[4]=vector6(bpts1[3].x-side2,bpts1[3].y,0.5);
+        rpts2[5]=vector6(-rozp2,-fTexHeight2,0.0); //prawy brzeg prawego pobocza
+       }
+      }
+      else
+      {//wersja dla chodnika: skos 1:3.75, ka¿dy chodnik innej szerokoœci
+       //mapowanie propocjonalne do szerokoœci chodnika
+       //krawê¿nik jest mapowany od 31/64 do 32/64 lewy i od 32/64 do 33/64 prawy
+       double d=-fTexHeight/3.75; //krawê¿nik o wysokoœci 150mm jest pochylony 40mm
+       double max=fTexRatio2*fTexLength; //test: szerokoœæ proporcjonalna do d³ugoœci
+       double map1l=max>0.0?side/max:0.484375; //obciêcie tekstury od lewej strony punktu 1
+       double map1r=max>0.0?slop/max:0.484375; //obciêcie tekstury od prawej strony punktu 1
+       rpts1[0]=vector6(bpts1[0].x+slop,bpts1[0].y-fTexHeight,0.515625+map1r ); //prawy brzeg prawego chodnika
+       rpts1[1]=vector6(bpts1[0].x+d,   bpts1[0].y-fTexHeight,0.515625       ); //prawy krawê¿nik u góry
+       rpts1[2]=vector6(bpts1[0].x,     bpts1[0].y,           0.515625-d/2.56); //prawy krawê¿nik u do³u
+       rpts2[0]=vector6(bpts1[1].x,     bpts1[1].y,           0.484375+d/2.56); //lewy krawê¿nik u do³u
+       rpts2[1]=vector6(bpts1[1].x-d,   bpts1[1].y-fTexHeight,0.484375       ); //lewy krawê¿nik u góry
+       rpts2[2]=vector6(bpts1[1].x-side,bpts1[1].y-fTexHeight,0.484375-map1l ); //lewy brzeg lewego chodnika
+       if (iTrapezoid) //trapez albo przechy³ki
+       {//pobocza do trapezowatej nawierzchni - dodatkowe punkty z drugiej strony odcinka
+        slop2=fabs((iTrapezoid&2)?slop2:slop); //szerokoœæ chodnika po prawej
+        double map2l=max>0.0?slop2/max:0.484375; //obciêcie tekstury od lewej strony punktu 2
+        double map2r=max>0.0?side2/max:0.484375; //obciêcie tekstury od prawej strony punktu 2
+        rpts1[3]=vector6(bpts1[2].x+slop2,bpts1[2].y-fTexHeight2,0.515625+map2r ); //prawy brzeg prawego chodnika
+        rpts1[4]=vector6(bpts1[2].x+d,    bpts1[2].y-fTexHeight2,0.515625       ); //prawy krawê¿nik u góry
+        rpts1[5]=vector6(bpts1[2].x,      bpts1[2].y,            0.515625-d/2.56); //prawy krawê¿nik u do³u
+        rpts2[3]=vector6(bpts1[3].x,      bpts1[3].y,            0.484375+d/2.56); //lewy krawê¿nik u do³u
+        rpts2[4]=vector6(bpts1[3].x-d,    bpts1[3].y-fTexHeight2,0.484375       ); //lewy krawê¿nik u góry
+        rpts2[5]=vector6(bpts1[3].x-side2,bpts1[3].y-fTexHeight2,0.484375-map2l ); //lewy brzeg lewego chodnika
        }
       }
       if (iTrapezoid) //trapez albo przechy³ki
       {//pobocza do trapezowatej nawierzchni - dodatkowe punkty z drugiej strony odcinka
-       Segment->RenderLoft(rpts1,-3,fTexLength);
-       Segment->RenderLoft(rpts2,-3,fTexLength);
+       if ((fTexHeight>=0.0)?true:(slop!=0.0))
+        Segment->RenderLoft(rpts1,-3,fTexLength);
+       if ((fTexHeight>=0.0)?true:(side!=0.0))
+        Segment->RenderLoft(rpts2,-3,fTexLength);
       }
       else
       {//pobocza zwyk³e, brak przechy³ki
-       Segment->RenderLoft(rpts1,3,fTexLength);
-       Segment->RenderLoft(rpts2,3,fTexLength);
+       if ((fTexHeight>=0.0)?true:(slop!=0.0))
+        Segment->RenderLoft(rpts1,3,fTexLength);
+       if ((fTexHeight>=0.0)?true:(side!=0.0))
+        Segment->RenderLoft(rpts2,3,fTexLength);
       }
      }
      break;
@@ -1107,7 +1138,7 @@ void __fastcall TTrack::Compile()
        for (i=0;i<points;++i)
        {glNormal3f(0,1,0);
         u=(q[i].x-q[0].x)/fTexLength; //mapowanie we wspó³rzêdnych scenerii
-        v=(q[i].z-q[0].z)/(fTexRatio*fTexLength);
+        v=(q[i].z-q[0].z)/(fTexRatio1*fTexLength);
         glTexCoord2f(cosa0*u+sina0*v+0.5,sina0*u+cosa0*v+0.5);
         glVertex3f(q[i].x,q[i].y,q[i].z);
        }
@@ -1322,13 +1353,15 @@ void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Star
  //Ra: trzeba rozdzieliæ szyny od podsypki, aby móc grupowaæ wg tekstur
  double fHTW=0.5*fabs(fTrackWidth);
  double side=fabs(fTexWidth); //szerokœæ podsypki na zewn¹trz szyny albo pobocza
- double rozp=fHTW+side+fabs(fTexSlope); //brzeg zewnêtrzny
- double fHTW2,side2,rozp2,fTexHeight2;
+ double slop=fabs(fTexSlope); //brzeg zewnêtrzny
+ double rozp=fHTW+side+slop; //brzeg zewnêtrzny
+ double fHTW2,side2,slop2,rozp2,fTexHeight2;
  if (iTrapezoid&2) //ten bit oznacza, ¿e istnieje odpowiednie pNext
  {//Ra: na tym siê lubi wieszaæ, ciekawe co za œmieci siê pod³¹czaj¹...
   fHTW2=0.5*fabs(pNext->fTrackWidth); //po³owa rozstawu/nawierzchni
   side2=fabs(pNext->fTexWidth);
-  rozp2=fHTW2+side2+fabs(pNext->fTexSlope);
+  slop2=fabs(pNext->fTexSlope);
+  rozp2=fHTW2+side2+slop2;
   fTexHeight2=pNext->fTexHeight;
   //zabezpieczenia przed zawieszeniem - logowaæ to?
   if (fHTW2>5.0*fHTW) {fHTW2=fHTW; WriteLog("!!!! niedopasowanie 1");};
@@ -1337,7 +1370,7 @@ void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Star
   //if (fabs(fTexHeight2)>5.0*fabs(fTexHeight)) {fTexHeight2=fTexHeight; WriteLog("!!!! niedopasowanie 4");};
  }
  else //gdy nie ma nastêpnego albo jest nieodpowiednim koñcem podpiêty
- {fHTW2=fHTW; side2=side; rozp2=rozp; fTexHeight2=fTexHeight;}
+ {fHTW2=fHTW; side2=side; slop2=slop; rozp2=rozp; fTexHeight2=fTexHeight;}
  double roll1,roll2;
  switch (iCategoryFlag)
  {
@@ -1433,6 +1466,62 @@ void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Star
   } //koniec obs³ugi torów
   break;
   case 2: //McZapkie-260302 - droga - rendering
+   switch (eType) //dalej zale¿nie od typu
+   {
+    case tt_Normal: //drogi proste, bo skrzy¿owania osobno
+    {vector6 bpts1[4]; //punkty g³ównej p³aszczyzny przydaj¹ siê do robienia boków
+     if (TextureID1||TextureID2) //punkty siê przydadz¹, nawet jeœli nawierzchni nie ma
+     {//double max=2.0*(fHTW>fHTW2?fHTW:fHTW2); //z szerszej strony jest 100%
+      double max=(iCategoryFlag==4)?0.0:fTexLength; //test: szerokoœæ dróg proporcjonalna do d³ugoœci
+      double map1=max>0.0?fHTW/max:0.5; //obciêcie tekstury od strony 1
+      double map2=max>0.0?fHTW2/max:0.5; //obciêcie tekstury od strony 2
+      if (iTrapezoid) //trapez albo przechy³ki
+      {//nawierzchnia trapezowata
+       Segment->GetRolls(roll1,roll2);
+       bpts1[0]=vector6(fHTW*cos(roll1),-fHTW*sin(roll1),0.5-map1); //lewy brzeg pocz¹tku
+       bpts1[1]=vector6(-bpts1[0].x,-bpts1[0].y,0.5+map1); //prawy brzeg pocz¹tku symetrycznie
+       bpts1[2]=vector6(fHTW2*cos(roll2),-fHTW2*sin(roll2),0.5-map2); //lewy brzeg koñca
+       bpts1[3]=vector6(-bpts1[2].x,-bpts1[2].y,0.5+map2); //prawy brzeg pocz¹tku symetrycznie
+      }
+      else
+      {bpts1[0]=vector6( fHTW,0.0,0.5-map1); //zawsze standardowe mapowanie
+       bpts1[1]=vector6(-fHTW,0.0,0.5+map1);
+      }
+     }
+     if (TextureID1) //jeœli podana by³a tekstura, generujemy trójk¹ty
+     {//tworzenie trójk¹tów nawierzchni szosy
+      Segment->RaRenderLoft(Vert,bpts1,iTrapezoid?-2:2,fTexLength);
+     }
+     if (TextureID2)
+     {//pobocze drogi - poziome przy przechy³ce (a mo¿e krawê¿nik i chodnik zrobiæ jak w Midtown Madness 2?)
+      //Ra: dorobiæ renderowanie chodnika
+      vector6 rpts1[6],rpts2[6]; //wspó³rzêdne przekroju i mapowania dla prawej i lewej strony
+      rpts1[0]=vector6(rozp,-fTexHeight,0.0); //lewy brzeg podstawy
+      rpts1[1]=vector6(bpts1[0].x+side,bpts1[0].y,0.5), //lewa krawêdŸ za³amania
+      rpts1[2]=vector6(bpts1[0].x,bpts1[0].y,1.0); //lewy brzeg pobocza (mapowanie mo¿e byæ inne
+      rpts2[0]=vector6(bpts1[1].x,bpts1[1].y,1.0); //prawy brzeg pobocza
+      rpts2[1]=vector6(bpts1[1].x-side,bpts1[1].y,0.5); //prawa krawêdŸ za³amania
+      rpts2[2]=vector6(-rozp,-fTexHeight,0.0); //prawy brzeg podstawy
+      if (iTrapezoid) //trapez albo przechy³ki
+      {//pobocza do trapezowatej nawierzchni - dodatkowe punkty z drugiej strony odcinka
+       rpts1[3]=vector6(rozp2,-fTexHeight2,0.0); //lewy brzeg lewego pobocza
+       rpts1[4]=vector6(bpts1[2].x+side2,bpts1[2].y,0.5); //krawêdŸ za³amania
+       rpts1[5]=vector6(bpts1[2].x,bpts1[2].y,1.0); //brzeg pobocza
+       rpts2[3]=vector6(bpts1[3].x,bpts1[3].y,1.0);
+       rpts2[4]=vector6(bpts1[3].x-side2,bpts1[3].y,0.5);
+       rpts2[5]=vector6(-rozp2,-fTexHeight2,0.0); //prawy brzeg prawego pobocza
+       Segment->RaRenderLoft(Vert,rpts1,-3,fTexLength);
+       Segment->RaRenderLoft(Vert,rpts2,-3,fTexLength);
+      }
+      else
+      {//pobocza zwyk³e, brak przechy³ki
+       Segment->RaRenderLoft(Vert,rpts1,3,fTexLength);
+       Segment->RaRenderLoft(Vert,rpts2,3,fTexLength);
+      }
+     }
+    }
+   }
+  break;
   case 4: //Ra: rzeki na razie jak drogi, przechy³ki na pewno nie maj¹
    switch (eType) //dalej zale¿nie od typu
    {

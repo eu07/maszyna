@@ -81,9 +81,10 @@ private:
  TTrack *pPrev; //odcinek od strony punktu 1
  //McZapkie-070402: dodalem zmienne opisujace rozmiary tekstur
  GLuint TextureID1; //tekstura szyn albo nawierzchni
- float fTexLength;
- float fTexRatio; //proporcja rozmiarów nawierzchni drogi
  GLuint TextureID2; //tekstura automatycznej podsypki albo pobocza
+ float fTexLength; //d³ugoœæ powtarzania tekstury w metrach
+ float fTexRatio1; //proporcja rozmiarów tekstury dla nawierzchni drogi
+ float fTexRatio2; //proporcja rozmiarów tekstury dla chodnika
  float fTexHeight; //wysokoœ brzegu wzglêdem trajektorii
  float fTexWidth; //szerokoœæ boku
  float fTexSlope;

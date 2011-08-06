@@ -551,6 +551,11 @@ void __fastcall TSubModel::InitialRotate(bool doit)
      t=Vertices[i].Point.y; //zamiana Y i Z
      Vertices[i].Point.y=Vertices[i].Point.z;
      Vertices[i].Point.z=t;
+     //wektory normalne równie¿ trzeba przekszta³ciæ, bo siê Ÿle oœwietlaj¹  
+     Vertices[i].Normal.x=-Vertices[i].Normal.x; //zmiana znaku X
+     t=Vertices[i].Normal.y; //zamiana Y i Z
+     Vertices[i].Normal.y=Vertices[i].Normal.z;
+     Vertices[i].Normal.z=t;
     }
    if (Child) Child->InitialRotate(doit); //potomne ewentualnie obrócimy
   }
