@@ -532,10 +532,12 @@ void __fastcall TSubModel::InitialRotate(bool doit)
     {//jak nie ma potomnych, mo¿na wymno¿yæ przez transform i wyjedynkowaæ go
      float4x4 *mat=GetMatrix(); //transform submodelu
      if (Vertices)
+     {for (int i=0;i<iNumVerts;++i)
+       Vertices[i].Point=(*mat)*Vertices[i].Point;
+      (*mat)(3)[0]=(*mat)(3)[1]=(*mat)(3)[2]=0.0; //zerujemy przesuniêcie przed obraniem normalnych
       for (int i=0;i<iNumVerts;++i)
-      {Vertices[i].Point=(*mat)*Vertices[i].Point;
-       Vertices[i].Normal=SafeNormalize((*mat)*Vertices[i].Normal); //te te¿, bo Ÿle wychodzi³o
-      }
+       Vertices[i].Normal=SafeNormalize((*mat)*Vertices[i].Normal);
+     }
      mat->Identity(); //jedynkowanie transformu po przeliczeniu wierzcho³ków
      iFlags&=~0x8000; //transform jedynkowy
     }
@@ -551,7 +553,7 @@ void __fastcall TSubModel::InitialRotate(bool doit)
      t=Vertices[i].Point.y; //zamiana Y i Z
      Vertices[i].Point.y=Vertices[i].Point.z;
      Vertices[i].Point.z=t;
-     //wektory normalne równie¿ trzeba przekszta³ciæ, bo siê Ÿle oœwietlaj¹  
+     //wektory normalne równie¿ trzeba przekszta³ciæ, bo siê Ÿle oœwietlaj¹
      Vertices[i].Normal.x=-Vertices[i].Normal.x; //zmiana znaku X
      t=Vertices[i].Normal.y; //zamiana Y i Z
      Vertices[i].Normal.y=Vertices[i].Normal.z;
