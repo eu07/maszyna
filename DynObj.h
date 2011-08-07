@@ -136,8 +136,8 @@ public:
  TEvent* eSignLast; //ostatnio znaleziony sygna³, o ile nie miniêty
 private:
  bool __fastcall CheckEvent(TEvent *e,bool prox);
- bool __fastcall CheckTrackEvent(double fDirection,TTrack *Track);
- TTrack* __fastcall TraceRoute(double &fDistance,double &fDirection,TTrack *Track);
+ TEvent* __fastcall CheckTrackEvent(double fDirection,TTrack *Track);
+ TTrack* __fastcall TraceRoute(double &fDistance,double &fDirection,TTrack *Track,TEvent*&Event);
  void SetProximityVelocity(double dist,double vel,const TLocation *pos);
  //Ra: koniec tych do przeniesienia do AI
  	TDynamicObject *NewDynamic;
