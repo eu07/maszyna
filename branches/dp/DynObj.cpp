@@ -1115,15 +1115,16 @@ bool __fastcall TDynamicObject::CheckEvent(TEvent *e,bool prox)
  return false;
 }
 
-bool __fastcall TDynamicObject::CheckTrackEvent(double fDirection,TTrack *Track)
+TEvent* __fastcall TDynamicObject::CheckTrackEvent(double fDirection,TTrack *Track)
 {//sprawdzanie eventów na podanym torze
  //ZiomalCl: teraz zwracany jest pierwszy event podajacy predkosc dla AI
  //a nie kazdy najblizszy event [AI sie gubilo gdy przed getval z SetVelocity
  //mialo np. PutValues z eventem od SHP]
- return CheckEvent((fDirection>0)?Track->Event2:Track->Event1,false);
+ TEvent* e=(fDirection>0)?Track->Event2:Track->Event1;
+ return CheckEvent(e,false)?e:NULL; //sprawdzenie z pominiêciem niepotrzebnych
 }
 
-TTrack* __fastcall TDynamicObject::TraceRoute(double &fDistance,double &fDirection,TTrack *Track)
+TTrack* __fastcall TDynamicObject::TraceRoute(double &fDistance,double &fDirection,TTrack *Track,TEvent*&Event)
 {//szukanie semafora w kierunku jazdy (eventu odczytu komórki pamiêci albo ustawienia prêdkoœci)
  TTrack *pTrackChVel=Track; //tor ze zmian¹ prêdkoœci
  double fDistChVel=-1; //odleg³oœæ do toru ze zmian¹ prêdkoœci
@@ -1131,7 +1132,7 @@ TTrack* __fastcall TDynamicObject::TraceRoute(double &fDistance,double &fDirecti
  double s=0;
  if (fDirection>0) //jeœli w kierunku Point2 toru
   fCurrentDistance=Track->Length()-fCurrentDistance;
- if (CheckTrackEvent(fDirection,Track))
+ if ((Event=CheckTrackEvent(fDirection,Track))!=NULL)
  {//jeœli jest semafor na tym torze
   fDistance=0; //to na tym torze stoimy
   return Track;
@@ -1172,12 +1173,13 @@ TTrack* __fastcall TDynamicObject::TraceRoute(double &fDistance,double &fDirecti
    pTrackChVel=Track; //zapamiêtanie toru
   }
   fCurrentDistance=Track->Length();
-  if (CheckTrackEvent(fDirection,Track))
+  if ((Event=CheckTrackEvent(fDirection,Track))!=NULL)
   {//znaleziony tor z eventem
    fDistance=s;
    return Track;
   }
  }
+ Event=NULL; //jak dojdzie tu, to nie ma semafora
  if (fDistChVel<0)
  {//zwraca ostatni sprawdzony tor
   fDistance=s;
@@ -1237,7 +1239,8 @@ void TDynamicObject::ScanEventTrack()
   double scandist=scanmax; //zmodyfikuje na rzeczywiœcie przeskanowane
   //Ra: znaleziony semafor trzeba zapamiêtaæ, bo mo¿e byæ wpisany we wczeœniejszy tor
   //Ra: oprócz semafora szukamy najbli¿szego ograniczenia (koniec/brak toru to ograniczenie do zera)
-  TTrack *scantrack=TraceRoute(scandist,scandir,iAxleFirst?Axle1.GetTrack():Axle4.GetTrack());
+  TEvent *ev=NULL; //event potencjalnie od semafora
+  TTrack *scantrack=TraceRoute(scandist,scandir,iAxleFirst?Axle1.GetTrack():Axle4.GetTrack(),ev);
   if (!scantrack) //jeœli wykryto koniec toru albo zerow¹ prêdkoœæ
   {
    {//if (!Mechanik->SetProximityVelocity(0.7*fabs(scandist),0))
@@ -1269,7 +1272,7 @@ void TDynamicObject::ScanEventTrack()
    double vmechmax=-1; //prêdkoœæ ustawiona semaforem
    TEvent *e=eSignLast; //poprzedni sygna³ nadal siê liczy
    if (!e) //jeœli nie by³o ¿adnego sygna³u
-    e=(scandir>0)?scantrack->Event2:scantrack->Event1; //pobranie nowego
+    e=ev; //ten ewentualnie znaleziony (scandir>0)?scantrack->Event2:scantrack->Event1; //pobranie nowego
    if (e)
    {//jeœli jest jakiœ sygna³ na widoku
 #if LOGVELOCITY
