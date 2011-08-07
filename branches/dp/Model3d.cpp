@@ -1105,6 +1105,10 @@ void __fastcall TSubModel::Info()
    }
   if (info->iTexture<0) //jeœli nie znaleziono we wczeœniejszych
   {info->iTexture=++info->iTotalTextures; //przydzielenie numeru tekstury w pliku (od 1)
+   if (asTexture.SubString(asTexture.Length()-3,4)==".tga")
+    asTexture.Delete(asTexture.Length()-3,4);
+   else if (asTexture.SubString(asTexture.Length()-3,4)==".dds")
+    asTexture.Delete(asTexture.Length()-3,4);
    info->iTextureLen=asTexture.Length()+1; //z zerem na koñcu
   }
  }
