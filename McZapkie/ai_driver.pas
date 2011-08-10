@@ -89,28 +89,18 @@ Type
                   HelpMeFlag: boolean;
                   {adres gracza}
                 {?  PlayerIP: IPAddress;  }
-                  {rzeczywisty/wirtualny maszynista}
-                  AIControllFlag: boolean;
-                  {Czy jest na peronie}
-                  OnStationFlag: boolean;
-                  {jakim pojazdem steruje}
-                  Controlling: PMoverParameters;
-                  {do jakiego pociagu nalezy}
-                  TrainSet: PTrainParameters;
-                  {numer rozkladowy tego pociagu}
-                  TrainNumber: integer;
-                  {komenda pobierana z pojazdu}
-                  OrderCommand: string;
-                  {argument komendy}
-                  OrderValue: real;
-                  {preferowane przyspieszenie}
-                  AccPreferred: real;
+                  AIControllFlag: boolean; //rzeczywisty/wirtualny maszynista
+                  OnStationFlag: boolean; //Czy jest na peronie
+                  Controlling: PMoverParameters; //jakim pojazdem steruje
+                  TrainSet: PTrainParameters; //do jakiego pociagu nalezy
+                  TrainNumber: integer; //numer rozkladowy tego pociagu
+                  OrderCommand: string; //komenda pobierana z pojazdu
+                  OrderValue: real; //argument komendy
+                  AccPreferred: real; //preferowane przyspieszenie
                   {chwilowe przyspieszenie, predkosc, predkosc dla manewrow}
                   AccDesired: real; VelDesired:real; VelforDriver: real;
-                  {predkosc do ktorej dazy}
-                  VelActual : real;
-                  {predkosc przy nastepnym obiekcie}
-                  VelNext: real;
+                  VelActual : real; //predkosc do której d¹zy
+                  VelNext: real; //predkosc przy nastepnym obiekcie
                   {odleglosc od obiektu, ujemna jesli nieznana}
                   ProximityDist, ActualProximityDist: real;
                   {ustawia nowa predkosc do ktorej ma dazyc oraz predkosc przy nastepnym obiekcie}
@@ -157,11 +147,12 @@ Type
                                    AI:boolean; NewControll:PMoverParameters; NewTrainSet:PTRainParameters; InitPsyche:boolean);
                   function OrderCurrent:string;
 private
-                  VehicleName: string;
-                  VelMargin: real;
-                  WarningDuration: real;
-                  WaitingTime, WaitingExpireTime:real;
-                  function OrderDirectionChange(newdir:integer; Vehicle:PMoverParameters):integer;
+ VehicleName:string;
+ VelMargin:real;
+ WarningDuration:real;
+ WaitingTime:real; //zliczany czas oczekiwania do samoistnego ruszenia
+ WaitingExpireTime:real; //maksymlany czas oczekiwania do samoistnego ruszenia
+ function OrderDirectionChange(newdir:integer;Vehicle:PMoverParameters):integer;
 end;
 
 
@@ -238,10 +229,10 @@ end;
 procedure TController.SetVelocity(NewVel,NewVelNext:real);
 //ustawienie nowej prêdkoœci
 begin
- WaitingTime:=-WaitingExpireTime;
+ WaitingTime:=-WaitingExpireTime; //no albo przypisujemy -WaitingExpireTime, albo porównujemy z WaitingExpireTime 
  MaxVelFlag:=False; MinVelFlag:=False;
- VelActual:=NewVel;   //prêdkoœæ oczekiwana
- VelNext:=NewVelNext; //prêdkoœæ nastêpna
+ VelActual:=NewVel;   //prêdkoœæ do której d¹¿y
+ VelNext:=NewVelNext; //prêdkoœæ przy nastêpnym obiekcie
  if (NewVel>NewVelNext) //jeœli oczekiwana wiêksza ni¿ nastêpna
   or (NewVel<Controlling^.Vel) //albo aktualna jest mniejsza ni¿ aktualna
  then
@@ -251,10 +242,10 @@ begin
 end;
 
 function TController.SetProximityVelocity(NewDist,NewVelNext:real):boolean;
-//informacja o ograniczeniu w pobli¿u
+//informacja o prêdkoœci w pewnej odleg³oœci
 begin
  if NewVelNext=0 then
-   WaitingTime:=0;
+   WaitingTime:=0; //nie trzeba ju¿ czekaæ
 {if ((NewVelNext>=0) and ((VelNext>=0) and (NewVelNext<VelNext)) or (NewVelNext<VelActual)) or (VelNext<0) then
   begin }
    MaxVelFlag:=False; MinVelFlag:=False;
@@ -1099,8 +1090,9 @@ begin
                end
               else
                SetDriverPsyche;
+              //no albo przypisujemy -WaitingExpireTime, albo porównujemy z WaitingExpireTime
               if (VelActual=0) and (WaitingTime>WaitingExpireTime) and (Controlling^.RunningTrack.Velmax<>0) then
-               begin
+               begin //jeœli stoi, a up³yn¹³ czas oczekiwania i tor ma niezerow¹ prêdkoœæ
                   with Controlling^ do
                      begin
                         if WriteLogFlag then
