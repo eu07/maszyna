@@ -192,36 +192,29 @@ void __fastcall TEvent::Load(cParser* parser)
             *parser >> token;
             str=AnsiString(token.c_str());
             if (str.SubString(1,19)=="PassengerStopPoint:")
-             if (str.Pos("#")) str=str.SubString(1,str.Pos("#")-1);
+             if (str.Pos("#")) str=str.SubString(1,str.Pos("#")-1); //obciêcie unikatowoœci
             Params[0].asText= new char[str.Length()+1];
             strcpy(Params[0].asText,str.c_str());
 //            if (str!=AnsiString("*"))       //*=nie brac tego pod uwage
 //              Params[12].asInt+=conditional_memstring;
             parser->getTokens();
             *parser >> token;
-            str= AnsiString(token.c_str());
-//            if (str!=AnsiString("*"))       //*=nie brac tego pod uwage)
-//             {
-//              Params[12].asInt+=conditional_memval1;
-              Params[1].asdouble= str.ToDouble();
-//             }
-//            else
-//             Params[1].asdouble= 0;
+            str=AnsiString(token.c_str());
+            try
+            {Params[1].asdouble=str.ToDouble();}
+            catch (...)
+            {Params[1].asdouble=0.0;
+             WriteLog("Error: number expected in PutValues event, found: "+str);
+            }
             parser->getTokens();
             *parser >> token;
-            str= AnsiString(token.c_str());
-//            if (str!=AnsiString("*"))       //*=nie brac tego pod uwage
-//             {
-//              Params[12].asInt+=conditional_memval2;
-             try
-             {Params[2].asdouble= str.ToDouble();}
-             catch (...)
-             {Params[2].asdouble=0;
-              WriteLog("Error: number expected in PutValues event.");
-             }
-//             }
-//            else
-//             Params[2].asdouble= 0;
+            str=AnsiString(token.c_str());
+            try
+            {Params[2].asdouble=str.ToDouble();}
+            catch (...)
+            {Params[2].asdouble=0.0;
+             WriteLog("Error: number expected in PutValues event, found: "+str);
+            }
             parser->getTokens();
             *parser >> token;
         break;
