@@ -1465,6 +1465,13 @@ void TDynamicObject::ScanEventTrack()
 #if LOGVELOCITY
            WriteLog(edir+" "+asNextStop); //informacja o zatrzymaniu na stopie
 #endif
+           if (MoverParameters->TrainType==dt_EZT)//otwieranie drzwi w EN57
+            if (!MoverParameters->DoorLeftOpened&&!MoverParameters->DoorRightOpened)
+            {//otwieranie drzwi
+             int i=floor(e->Params[2].asdouble); //p7=platform side (1:left, 2:right, 3:both)
+             if (i&1) MoverParameters->DoorLeft(true);
+             if (i&2) MoverParameters->DoorRight(true);
+            }
            if (TrainParams->IsTimeToGo(GlobalTime->hh,GlobalTime->mm))
            {//z dalsz¹ akcj¹ czekamy do godziny odjazdu
             asNextStop=TrainParams->NextStop(); //pobranie kolejnego miejsca zatrzymania
