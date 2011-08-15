@@ -142,16 +142,22 @@ end;
 function TTrainParameters.IsTimeToGo(hh,mm:real):boolean;
 //sprawdzenie, czy mo¿na ju¿ odjechaæ
 begin
- if (TimeTable[StationIndex].dh<0) then
-  IsTimeToGo:=true
- else
-  IsTimeToGo:=CompareTime(hh,mm,TimeTable[StationIndex].dh,TimeTable[StationIndex].dm)<=0;
+ if (StationIndex<StationCount) then
+  begin
+   if (TimeTable[StationIndex].dh<0) then
+    IsTimeToGo:=true
+   else
+    IsTimeToGo:=CompareTime(hh,mm,TimeTable[StationIndex].dh,TimeTable[StationIndex].dm)<=0;
+  end
+ else //gdy rozk³ad siê skoñczy³
+  IsTimeToGo:=false; //dalej nie jechaæ
 end;
 
 function TTrainParameters.ShowRelation:string;
 {zwraca informacjê o relacji}
 begin
- if (Relation1=TimeTable[1].StationName) and (Relation2=TimeTable[StationCount].StationName)
+ //if (Relation1=TimeTable[1].StationName) and (Relation2=TimeTable[StationCount].StationName)
+ if (Relation1<>'') and (Relation2<>'')
  then ShowRelation:=Relation1+' - '+Relation2
  else ShowRelation:='';
 end;
@@ -266,7 +272,7 @@ begin
              begin
               if s='[' then
                s:=ReadWord(fin)
-              else conversionError:=-4;
+              else ConversionError:=-4;
               if Pos('|',s)=0 then
                begin
                 km:=s2rE(s);
@@ -383,13 +389,13 @@ begin
            end;
          end;
     end; {while eof}
-   end;
-   if ConversionError=0 then
-    begin
-      NextStationName:=TimeTable[1].StationName;
-{      TTVmax:=TimeTable[1].vmax;  }
+   close(fin);
   end;
- close(fin);
+  if ConversionError=0 then
+   begin
+    NextStationName:=TimeTable[1].StationName;
+{   TTVmax:=TimeTable[1].vmax;  }
+   end;
  LoadTTfile:=(ConversionError=0);
 end;
 
