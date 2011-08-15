@@ -39,7 +39,7 @@
 
 #define LOGVELOCITY 0
 
-const float maxrot=(M_PI/3); //60°
+const float maxrot=(M_PI/3.0); //60°
 
 //---------------------------------------------------------------------------
 TDynamicObject* TDynamicObject::GetFirstDynamic(int cpl_type)
@@ -1110,7 +1110,7 @@ bool __fastcall TDynamicObject::CheckEvent(TEvent *e,bool prox)
   else //nazwa stacji pobrana z rozk³adu - nie ma co sprawdzaæ raz po raz
    if (!asNextStop.IsEmpty())
     if (command.SubString(1,asNextStop.Length())==asNextStop)
-    return true;
+     return true;
  }
  return false;
 }
@@ -1232,15 +1232,17 @@ void TDynamicObject::ScanEventTrack()
  if (startdir==0) //jeœli kabina i kierunek nie jest okreslony
   return; //nie robimy nic
   //startdir=2*random(2)-1; //wybieramy losowy kierunek - trzeba by jeszcze ustawiæ kierunek ruchu
- double scandir=startdir*(iAxleFirst?Axle1.GetDirection():Axle4.GetDirection()); //szukamy od tylnej osi na wypadek przejechania
+ //iAxleFirst - która oœ jest z przodu w kierunku jazdy: =0-przednia >0-tylna
+ double scandir=startdir*(iAxleFirst?Axle1.GetDirection():Axle4.GetDirection()); //szukamy od pierwszej osi w kierunku ruchu
  if (scandir!=0.0) //skanowanie toru w poszukiwaniu eventów GetValues/PutValues
  {//Ra: skanowanie drogi proporcjonalnej do kwadratu aktualnej prêdkoœci (+150m), no chyba ¿e stoi (wtedy 500m)
-  double scanmax=(MoverParameters->Vel>0.0)?150+0.1*MoverParameters->Vel*MoverParameters->Vel:500; //fabs(Mechanik->ProximityDist);
+  //Ra: tymczasowo, dla wiêkszej zgodnoœci wstecz, szukanie semafora na postoju zwiêkszone do 2km
+  double scanmax=(MoverParameters->Vel>0.0)?150+0.1*MoverParameters->Vel*MoverParameters->Vel:2000; //fabs(Mechanik->ProximityDist);
   double scandist=scanmax; //zmodyfikuje na rzeczywiœcie przeskanowane
   //Ra: znaleziony semafor trzeba zapamiêtaæ, bo mo¿e byæ wpisany we wczeœniejszy tor
   //Ra: oprócz semafora szukamy najbli¿szego ograniczenia (koniec/brak toru to ograniczenie do zera)
   TEvent *ev=NULL; //event potencjalnie od semafora
-  TTrack *scantrack=TraceRoute(scandist,scandir,iAxleFirst?Axle1.GetTrack():Axle4.GetTrack(),ev);
+  TTrack *scantrack=TraceRoute(scandist,scandir,iAxleFirst?Axle1.GetTrack():Axle4.GetTrack(),ev); //wg pierwszej osi w kierunku ruchu
   if (!scantrack) //jeœli wykryto koniec toru albo zerow¹ prêdkoœæ
   {
    {//if (!Mechanik->SetProximityVelocity(0.7*fabs(scandist),0))
@@ -1284,7 +1286,7 @@ void TDynamicObject::ScanEventTrack()
      //bo jeœli tak, to trzeba szukaæ nastêpnego, a ten mo¿e go zas³aniaæ
      vector3 pos=GetPosition(); //aktualna pozycja, potrzebna do liczenia wektorów
      vector3 dir=startdir*GetDirection(); //wektor w kierunku jazdy/szukania
-     vector3 sem;
+     vector3 sem; //wetor do sygna³u
      if (e->Type==tp_GetValues)
      {//przes³aæ info o zbli¿aj¹cym siê semaforze
 #if LOGVELOCITY
@@ -1344,7 +1346,7 @@ void TDynamicObject::ScanEventTrack()
             Mechanik->PutCommand("SetVelocity",vmechmax,e->Params[9].asMemCell->fValue2,sl);
 #if LOGVELOCITY
             WriteLog(edir+" SetVelocity "+AnsiString(vmechmax)+" "+AnsiString(e->Params[9].asMemCell->fValue2));
-#endif          
+#endif
            }
         }
       if (Mechanik->OrderList[Mechanik->OrderPos]==Shunt)
@@ -1445,9 +1447,9 @@ void TDynamicObject::ScanEventTrack()
          sl.X=-e->Params[3].asdouble; //wyliczenie wspó³rzêdnych zatrzymania
          sl.Y= e->Params[5].asdouble;
          sl.Z= e->Params[4].asdouble;
+         eSignLast=e; //licz¹cy siê sygna³ do zapamiêtania
          if ((scandist>Mechanik->MinProximityDist)?(MoverParameters->Vel!=0.0):false)
          {//jeœli jedzie, informujemy o zatrzymaniu na wykrytym stopie
-          eSignLast=e; //licz¹cy siê sygna³ do zapamiêtania
           //Mechanik->PutCommand("SetProximityVelocity",scandist,0,sl);
 #if LOGVELOCITY
           //WriteLog(edir+"SetProximityVelocity "+AnsiString(scandist)+" 0");
@@ -1497,6 +1499,9 @@ void TDynamicObject::ScanEventTrack()
             eSignSkip=e; //wtedy W4 uznajemy za ignorowany
             eSignLast=NULL; //¿eby jakiœ nowy sygna³ by³ poszukiwany
             Mechanik->JumpToNextOrder(); //wykonanie kolejnego rozkazu
+#if LOGVELOCITY
+            WriteLog("Next stop: "+asNextStop.SubString(20,asNextStop.Length())); //informacja
+#endif
            }
           }
          }
@@ -3967,8 +3972,11 @@ void __fastcall TDynamicObject::RaAxleEvent(TEvent *e)
  if (!CheckEvent(e,true)) //jeœli nie jest ustawiaj¹cym prêdkoœæ
   Global::pGround->AddToQuery(e,this); //dodanie do kolejki
  else
-  if (Mechanik) //tylko jeœli ma obsadê
+ {if (Mechanik) //tylko jeœli ma obsadê
    ScanEventTrack(); //dla pewnoœci robimy skanowanie
+  if (Global::iMultiplayer) //potwierdzenie wykonania dla serwera - najczêœciej odczyt semafora
+   Global::pGround->WyslijEvent(e->asName,GetName());
+ }
 };
 #pragma package(smart_init)
 
