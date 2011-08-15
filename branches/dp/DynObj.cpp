@@ -1441,6 +1441,7 @@ void TDynamicObject::ScanEventTrack()
         {
          vmechmax=0.0; //ma stan¹æ na W4 - informacja dla dalszego kodu
          scandist=sem.Length()-0.5*MoverParameters->Dim.L-3; //3m luzu
+         if (scandist<0) scandist=0; //ujemnych nie ma po co wysy³aæ
          sl.X=-e->Params[3].asdouble; //wyliczenie wspó³rzêdnych zatrzymania
          sl.Y= e->Params[5].asdouble;
          sl.Z= e->Params[4].asdouble;
@@ -1461,30 +1462,39 @@ void TDynamicObject::ScanEventTrack()
 #endif
           if (MoverParameters->Vel==0.0)
           {//jeœli siê zatrzyma³ przy W4
-           TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,asNextStop.SubString(20,asNextStop.Length()));
-#if LOGVELOCITY
-           WriteLog(edir+" "+asNextStop); //informacja o zatrzymaniu na stopie
-#endif
            if (MoverParameters->TrainType==dt_EZT)//otwieranie drzwi w EN57
             if (!MoverParameters->DoorLeftOpened&&!MoverParameters->DoorRightOpened)
             {//otwieranie drzwi
              int i=floor(e->Params[2].asdouble); //p7=platform side (1:left, 2:right, 3:both)
              if (i&1) MoverParameters->DoorLeft(true);
              if (i&2) MoverParameters->DoorRight(true);
+             //if (i&3) //¿eby jeszcze poczeka³ chwilê, zanim zamknie
             }
-           if (TrainParams->IsTimeToGo(GlobalTime->hh,GlobalTime->mm))
-           {//z dalsz¹ akcj¹ czekamy do godziny odjazdu
-            asNextStop=TrainParams->NextStop(); //pobranie kolejnego miejsca zatrzymania
+           if (TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,asNextStop.SubString(20,asNextStop.Length())))
+           {//jeœli s¹ dalsze stacje
 #if LOGVELOCITY
-            WriteLog("Next stop: "+asNextStop.SubString(20,asNextStop.Length())); //informacja
+            WriteLog(edir+" "+asNextStop); //informacja o zatrzymaniu na stopie
 #endif
-            eSignSkip=e; //wtedy uznajemy go za ignorowany przy poszukiwaniu nowego
+            if (TrainParams->IsTimeToGo(GlobalTime->hh,GlobalTime->mm))
+            {//z dalsz¹ akcj¹ czekamy do godziny odjazdu
+             asNextStop=TrainParams->NextStop(); //pobranie kolejnego miejsca zatrzymania
+#if LOGVELOCITY
+             WriteLog("Next stop: "+asNextStop.SubString(20,asNextStop.Length())); //informacja
+#endif
+             eSignSkip=e; //wtedy uznajemy go za ignorowany przy poszukiwaniu nowego
+             eSignLast=NULL; //¿eby jakiœ nowy by³ poszukiwany
+             vmechmax=vtrackmax; //odjazd po zatrzymaniu - informacja dla dalszego kodu
+             Mechanik->PutCommand("SetVelocity",vmechmax,vmechmax,sl);
+#if LOGVELOCITY
+             WriteLog(edir+" SetVelocity "+AnsiString(vtrackmax)+" "+AnsiString(vtrackmax));
+#endif
+            }
+           }
+           else
+           {//jeœli nie ma dalszych stacji
+            eSignSkip=e; //wtedy W4 uznajemy za ignorowany
             eSignLast=NULL; //¿eby jakiœ nowy by³ poszukiwany
-            vmechmax=vtrackmax; //odjazd po zatrzymaniu - informacja dla dalszego kodu
-            Mechanik->PutCommand("SetVelocity",vmechmax,vmechmax,sl);
-#if LOGVELOCITY
-            WriteLog(edir+" SetVelocity "+AnsiString(vtrackmax)+" "+AnsiString(vtrackmax));
-#endif
+            Mechanik->JumpToNextOrder(); //wykonanie kolejnego rozkazu
            }
           }
          }
