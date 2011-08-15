@@ -1470,8 +1470,9 @@ void TDynamicObject::ScanEventTrack()
              if (i&2) MoverParameters->DoorRight(true);
              //if (i&3) //¿eby jeszcze poczeka³ chwilê, zanim zamknie
             }
-           if (TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,asNextStop.SubString(20,asNextStop.Length())))
-           {//jeœli s¹ dalsze stacje
+           TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,asNextStop.SubString(20,asNextStop.Length()));
+           if (TrainParams->StationIndex<TrainParams->StationCount)
+           {//jeœli s¹ dalsze stacje, czekamy do godziny odjazdu
 #if LOGVELOCITY
             WriteLog(edir+" "+asNextStop); //informacja o zatrzymaniu na stopie
 #endif
@@ -1491,9 +1492,10 @@ void TDynamicObject::ScanEventTrack()
             }
            }
            else
-           {//jeœli nie ma dalszych stacji
+           {//jeœli dojechaliœmy do koñca rozk³adu
+            asNextStop=TrainParams->NextStop(); //informacja o koñcu trasy
             eSignSkip=e; //wtedy W4 uznajemy za ignorowany
-            eSignLast=NULL; //¿eby jakiœ nowy by³ poszukiwany
+            eSignLast=NULL; //¿eby jakiœ nowy sygna³ by³ poszukiwany
             Mechanik->JumpToNextOrder(); //wykonanie kolejnego rozkazu
            }
           }
