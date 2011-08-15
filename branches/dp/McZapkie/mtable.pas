@@ -107,13 +107,13 @@ begin
 end;
 
 function TTrainParameters.IsStop:boolean;
-//pytanie, czy zatrzymywaæ na aktualnej stacji
+//zapytanie, czy zatrzymywaæ na aktualnej stacji
 begin
- if StationIndex<StationCount
+ if (StationIndex<StationCount) AND (StationIndex>1)
  then
   IsStop:=TimeTable[StationIndex+1].Ah>=0 //-1 to brak postoju
  else
-  IsStop:=true; //na koñcu zatrzymaæ
+  IsStop:=true; //na pocz¹tku i na koñcu siê zatrzymaæ zawsze
 end;
 
 function TTrainParameters.UpdateMTable(hh,mm:real;NewName:string):boolean;

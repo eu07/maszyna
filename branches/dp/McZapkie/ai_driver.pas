@@ -538,18 +538,21 @@ end;
 function TController.IncSpeed: boolean;
 var OK:boolean;
 begin
-  ClearPendingExceptions;
-  OK:=True;
-   with Controlling^ do
+ ClearPendingExceptions;
+ OK:=True;
+ with Controlling^ do
+ begin
+  if (DoorOpenCtrl=1) and (Vel=0) and (DoorLeftOpened or DoorRightOpened) then  //AI zamyka drzwi przed odjazdem
    begin
-      if (DoorOpenCtrl=1) and (Vel=0) and (DoorLeftOpened or DoorRightOpened) then  //AI zamyka drzwi przed odjazdem
-        begin
-          DepartureSignal:=true;
-          DoorLeft(false);
-          DoorRight(false);
-          DepartureSignal:=false;
-        end
-      else
+    DepartureSignal:=true; //za³¹cenie bzyczka
+    DoorLeft(false); //zamykanie drzwi
+    DoorRight(false);
+    //DepartureSignal:=false;
+    //Ra: trzeba by ustawiæ jakiœ czas oczekiwania na zamkniêcie siê drzwi
+   end
+  else
+   begin
+    DepartureSignal:=false;
       case EngineType of
         None : if (MainCtrlPosNo>0) then {McZapkie-041003: wagon sterowniczy}
                 begin
@@ -601,8 +604,9 @@ begin
                      end;
                end;
       end {case}
-   end;
-  IncSpeed:=OK;
+  end;
+ end; //Controlling^
+ IncSpeed:=OK;
 end;
 
 function TController.DecSpeed: boolean;
