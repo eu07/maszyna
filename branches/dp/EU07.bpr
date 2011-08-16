@@ -61,8 +61,8 @@ IncludeVerInfo=1
 AutoIncBuild=1
 MajorVer=1
 MinorVer=3
-Release=228
-Build=219
+Release=229
+Build=220
 Debug=1
 PreRelease=0
 Special=0
@@ -74,7 +74,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.3.228.219
+FileVersion=1.3.229.220
 InternalName=5th plus by Ra
 LegalCopyright=
 LegalTrademarks=
@@ -123,7 +123,7 @@ Item6=M:\aEU07\EU07
 DebugSourceDirs=C:\Ra\dp\McZapkie\
 
 [Parameters]
-RunParams=
+RunParams=-s test_W4.scn -v ET22-135
 HostApplication=
 RemoteHost=
 RemotePath=
