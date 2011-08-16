@@ -1455,7 +1455,8 @@ void TDynamicObject::ScanEventTrack()
           //WriteLog(edir+"SetProximityVelocity "+AnsiString(scandist)+" 0");
           WriteLog(edir);
 #endif
-          SetProximityVelocity(scandist,0,&sl);
+          //SetProximityVelocity(scandist,0,&sl); //staje 300m oe W4
+          SetProximityVelocity(scandist,scandist>100.0?25:0,&sl); //Ra: taka proteza
          }
          else
          {Mechanik->PutCommand("SetVelocity",0,0,sl); //zatrzymanie na przystanku
@@ -2719,7 +2720,7 @@ if (tmpTraction.TractionVoltage==0)
     if (dDoorMoveR<0)
      dDoorMoveR=0;
    }
-
+                         
    if (Mechanik)
    {//ABu-160305 Testowanie gotowosci do jazdy
     if (MoverParameters->BrakePress<0.03*MoverParameters->MaxBrakePress)
