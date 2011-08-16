@@ -132,6 +132,7 @@ private:
  //Ra: poni¿sze przenieœæ do modu³u AI:
  int iAxleFirst; //numer pierwszej oœ w kierunku ruchu
  TEvent* eSignSkip; //miniêty sygna³ zezwalaj¹cy na jazdê, pomijany przy szukaniu
+ double fSignSpeed; //prêdkoœæ w moemcie zobaczenia W4
 public:
  TEvent* eSignLast; //ostatnio znaleziony sygna³, o ile nie miniêty
 private:

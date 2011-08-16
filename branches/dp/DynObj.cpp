@@ -1441,6 +1441,8 @@ void TDynamicObject::ScanEventTrack()
         }
         else
         {
+         if (fSignSpeed<0) //gdy na stacji pocz¹tkowej, albo W4 by³o zas³oniête semaforem
+          fSignSpeed=floor(MoverParameters->Vel); //zapamiêtanie pierwotnej prêdkoœci
          vmechmax=0.0; //ma stan¹æ na W4 - informacja dla dalszego kodu
          scandist=sem.Length()-0.5*MoverParameters->Dim.L-3; //3m luzu
          if (scandist<0) scandist=0; //ujemnych nie ma po co wysy³aæ
@@ -1449,6 +1451,7 @@ void TDynamicObject::ScanEventTrack()
          sl.Z= e->Params[4].asdouble;
          eSignLast=e; //licz¹cy siê sygna³ do zapamiêtania
          if ((scandist>Mechanik->MinProximityDist)?(MoverParameters->Vel!=0.0):false)
+         //if ((scandist>Mechanik->MinProximityDist)?(fSignSpeed>0.0):false)
          {//jeœli jedzie, informujemy o zatrzymaniu na wykrytym stopie
           //Mechanik->PutCommand("SetProximityVelocity",scandist,0,sl);
 #if LOGVELOCITY
@@ -1458,54 +1461,60 @@ void TDynamicObject::ScanEventTrack()
           //SetProximityVelocity(scandist,0,&sl); //staje 300m oe W4
           SetProximityVelocity(scandist,scandist>100.0?25:0,&sl); //Ra: taka proteza
          }
-         else
-         {Mechanik->PutCommand("SetVelocity",0,0,sl); //zatrzymanie na przystanku
+         else //jeœli jest blisko, albo stoi
+          if ((fSignSpeed>0.0)&&(scandist>100.0)) //jeœli pierwotnie jecha³, a jest daleko
+           Mechanik->PutCommand("SetVelocity",20,0,sl); //doci¹ganie do przystanku
+          else
+          {//jeœli pierwotnie sta³ lub zatrzyma³ siê wystarczaj¹co blisko
+           Mechanik->PutCommand("SetVelocity",0,0,sl); //zatrzymanie na przystanku
 #if LOGVELOCITY
-          WriteLog(edir+" SetVelocity 0 0 ");
+           WriteLog(edir+" SetVelocity 0 0 ");
 #endif
-          if (MoverParameters->Vel==0.0)
-          {//jeœli siê zatrzyma³ przy W4
-           if (MoverParameters->TrainType==dt_EZT)//otwieranie drzwi w EN57
-            if (!MoverParameters->DoorLeftOpened&&!MoverParameters->DoorRightOpened)
-            {//otwieranie drzwi
-             int i=floor(e->Params[2].asdouble); //p7=platform side (1:left, 2:right, 3:both)
-             if (i&1) MoverParameters->DoorLeft(true);
-             if (i&2) MoverParameters->DoorRight(true);
-             //if (i&3) //¿eby jeszcze poczeka³ chwilê, zanim zamknie
+           if (MoverParameters->Vel==0.0)
+           {//jeœli siê zatrzyma³ przy W4, albo sta³ w momencie zobaczenia W4
+            if (MoverParameters->TrainType==dt_EZT)//otwieranie drzwi w EN57
+             if (!MoverParameters->DoorLeftOpened&&!MoverParameters->DoorRightOpened)
+             {//otwieranie drzwi
+              int i=floor(e->Params[2].asdouble); //p7=platform side (1:left, 2:right, 3:both)
+              if (i&1) MoverParameters->DoorLeft(true);
+              if (i&2) MoverParameters->DoorRight(true);
+              //if (i&3) //¿eby jeszcze poczeka³ chwilê, zanim zamknie
+             }
+            TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,asNextStop.SubString(20,asNextStop.Length()));
+            if (TrainParams->StationIndex<TrainParams->StationCount)
+            {//jeœli s¹ dalsze stacje, czekamy do godziny odjazdu
+#if LOGVELOCITY
+             WriteLog(edir+" "+asNextStop); //informacja o zatrzymaniu na stopie
+#endif
+             if (TrainParams->IsTimeToGo(GlobalTime->hh,GlobalTime->mm))
+             {//z dalsz¹ akcj¹ czekamy do godziny odjazdu
+              asNextStop=TrainParams->NextStop(); //pobranie kolejnego miejsca zatrzymania
+#if LOGVELOCITY
+              WriteLog("Next stop: "+asNextStop.SubString(20,asNextStop.Length())); //informacja
+#endif
+              fSignSpeed=-1.0; //nieokreœlona prêdkoœæ
+              eSignSkip=e; //wtedy uznajemy go za ignorowany przy poszukiwaniu nowego
+              eSignLast=NULL; //¿eby jakiœ nowy by³ poszukiwany
+              vmechmax=vtrackmax; //odjazd po zatrzymaniu - informacja dla dalszego kodu
+              Mechanik->PutCommand("SetVelocity",vmechmax,vmechmax,sl);
+#if LOGVELOCITY
+              WriteLog(edir+" SetVelocity "+AnsiString(vtrackmax)+" "+AnsiString(vtrackmax));
+#endif
+             }
             }
-           TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,asNextStop.SubString(20,asNextStop.Length()));
-           if (TrainParams->StationIndex<TrainParams->StationCount)
-           {//jeœli s¹ dalsze stacje, czekamy do godziny odjazdu
-#if LOGVELOCITY
-            WriteLog(edir+" "+asNextStop); //informacja o zatrzymaniu na stopie
-#endif
-            if (TrainParams->IsTimeToGo(GlobalTime->hh,GlobalTime->mm))
-            {//z dalsz¹ akcj¹ czekamy do godziny odjazdu
-             asNextStop=TrainParams->NextStop(); //pobranie kolejnego miejsca zatrzymania
+            else
+            {//jeœli dojechaliœmy do koñca rozk³adu
+             asNextStop=TrainParams->NextStop(); //informacja o koñcu trasy
+             fSignSpeed=-1.0; //nieokreœlona prêdkoœæ
+             eSignSkip=e; //wtedy W4 uznajemy za ignorowany
+             eSignLast=NULL; //¿eby jakiœ nowy sygna³ by³ poszukiwany
+             Mechanik->JumpToNextOrder(); //wykonanie kolejnego rozkazu
 #if LOGVELOCITY
              WriteLog("Next stop: "+asNextStop.SubString(20,asNextStop.Length())); //informacja
-#endif
-             eSignSkip=e; //wtedy uznajemy go za ignorowany przy poszukiwaniu nowego
-             eSignLast=NULL; //¿eby jakiœ nowy by³ poszukiwany
-             vmechmax=vtrackmax; //odjazd po zatrzymaniu - informacja dla dalszego kodu
-             Mechanik->PutCommand("SetVelocity",vmechmax,vmechmax,sl);
-#if LOGVELOCITY
-             WriteLog(edir+" SetVelocity "+AnsiString(vtrackmax)+" "+AnsiString(vtrackmax));
-#endif
+ #endif
             }
            }
-           else
-           {//jeœli dojechaliœmy do koñca rozk³adu
-            asNextStop=TrainParams->NextStop(); //informacja o koñcu trasy
-            eSignSkip=e; //wtedy W4 uznajemy za ignorowany
-            eSignLast=NULL; //¿eby jakiœ nowy sygna³ by³ poszukiwany
-            Mechanik->JumpToNextOrder(); //wykonanie kolejnego rozkazu
-#if LOGVELOCITY
-            WriteLog("Next stop: "+asNextStop.SubString(20,asNextStop.Length())); //informacja
-#endif
-           }
           }
-         }
         }
       }
      }
@@ -1643,6 +1652,7 @@ __fastcall TDynamicObject::TDynamicObject()
  iDirection=1; //stoi w kierunku tradycyjnym
  iAxleFirst=0; //numer pierwszej osi w kierunku ruchu (na ogó³)
  eSignSkip=eSignLast=NULL; //miniêty semafor
+ fSignSpeed=-1.0; //nie okreœlono prêdkoœci przed W4
 }
 
 __fastcall TDynamicObject::~TDynamicObject()

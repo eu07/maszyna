@@ -229,7 +229,7 @@ begin
         repeat
         until (ReadWord(fin)='|') or (eof(fin)); {œrodkowy pion}
         s:=ReadWord(fin); {nazwa poci¹gu}
-        if LowerCase(s)<>TrainName then {musi byæ taka sama, jak nazwa pliku}
+        if LowerCase(s)<>ExtractFileName(TrainName) then {musi byæ taka sama, jak nazwa pliku}
          ConversionError:=-7 {b³¹d niezgodnoœci}
         else
          begin  {czytaj naglowek}
