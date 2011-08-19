@@ -1822,17 +1822,16 @@ bool __fastcall TGround::Init(AnsiString asFile)
             Current->InitNormals();
             if (Current->iType!=TP_DYNAMIC)
             {//pojazdów w ogóle nie dotyczy dodawanie do mapy
-             if ((Current->iType!=GL_TRIANGLES)&&(Current->iType!=GL_TRIANGLE_STRIP)?true //~czy trójk¹t?
+             if (i==TP_EVLAUNCH?Current->EvLaunch->IsGlobal():false)
+              srGlobal.AddNode(Current); //dodanie do globalnego obiektu
+             else if ((Current->iType!=GL_TRIANGLES)&&(Current->iType!=GL_TRIANGLE_STRIP)?true //~czy trójk¹t?
               :(Current->iFlags&0x20)?true //~czy teksturê ma nieprzezroczyst¹?
                //:(Current->iNumVerts!=3)?true //~czy tylko jeden trójk¹t?
                 :(Current->fSquareMinRadius!=0.0)?true //~czy widoczny z bliska?
                  :(Current->fSquareRadius<=90000.0)) //~czy widoczny z daleka?
               GetSubRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
              else //dodajemy do kwadratu kilometrowego
-              if (i==TP_EVLAUNCH?Current->EvLaunch->IsGlobal():false)
-               srGlobal.AddNode(Current); //dodanie do globalnego obiektu
-              else
-               GetRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
+              GetRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
             }
             //if (Current->iType!=TP_DYNAMIC)
             // GetSubRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
