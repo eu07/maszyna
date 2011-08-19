@@ -557,7 +557,7 @@ begin
         None : if (MainCtrlPosNo>0) then {McZapkie-041003: wagon sterowniczy}
                 begin
 {TODO: sprawdzanie innego czlonu                  if not FuseFlagCheck() then }
-                    if (BrakePress<0.1) then
+                    if (BrakePress<0.03*MaxBrakePress) then
                       begin
                         OK:=IncMainCtrl(1);
                       end;
@@ -1266,7 +1266,7 @@ begin
                           SetDriverPsyche;
                        end;
                 if BrakeSystem=Pneumatic then  {napelnianie uderzeniowe}
-                 if BrakeSubsystem=ss_LSt then
+                 if BrakeSubsystem=Oerlikon then
                   begin
                     if BrakeCtrlPos=-2 then BrakeCtrlPos:=0;
                     if (BrakeCtrlPos<0)and (PipebrakePress<0.01){(CntrlPipePress-(Volume/BrakeVVolume/10)<0.01)} then

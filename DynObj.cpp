@@ -2482,7 +2482,7 @@ tmpTraction.TractionVoltage=3400;
 if(ObjectDist<50000)
  if(TestFlag(MoverParameters->SoundFlag,sound_brakeacc))
    sBrakeAcc.Play(-1,0,MechInside,GetPosition());
-// else;
+ else;
 // if(MoverParameters->BrakePress=0)
 //   sBrakeAcc.Stop();
 else
@@ -2733,18 +2733,18 @@ if (tmpTraction.TractionVoltage==0)
                          
    if (Mechanik)
    {//ABu-160305 Testowanie gotowosci do jazdy
-    if (MoverParameters->BrakePress<0.2)
+    if (MoverParameters->BrakePress<0.03*MoverParameters->MaxBrakePress)
      Mechanik->Ready=true; //wstêpnie gotowy
     //Ra: trzeba by sprawdziæ wszystkie, a nie tylko skrajne
     //sprawdzenie odhamowania skrajnych pojazdów
     TDynamicObject *tmp;
     tmp=GetFirstDynamic(1); //szukanie od strony sprzêgu 1
     if (tmp?tmp!=this:false) //NULL zdarzy siê tylko w przypadku b³êdu
-     if (tmp->MoverParameters->BrakePress>0.3)
+     if (tmp->MoverParameters->BrakePress>0.03*tmp->MoverParameters->MaxBrakePress)
       Mechanik->Ready=false; //nie gotowy
     tmp=GetFirstDynamic(0); //szukanie od strony sprzêgu 0
     if (tmp?tmp!=this:false)
-     if (tmp->MoverParameters->BrakePress>0.3)
+     if (tmp->MoverParameters->BrakePress>0.03*tmp->MoverParameters->MaxBrakePress)
       Mechanik->Ready=false; //nie gotowy
 			
     if (Mechanik->CheckSKP())
