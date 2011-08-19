@@ -20,15 +20,19 @@
 */
 
 #include <iostream>
+#include <fstream>
 #include "opengl/glew.h"
+#include <ddraw>
 
-#include    "system.hpp"
-#include    "classes.hpp"
-#include    "stdio.h"
+#include "system.hpp"
+#include "classes.hpp"
+#include "stdio.h"
 #pragma hdrstop
 
 #include "Usefull.h"
 #include "Texture.h"
+#include "TextureDDS.h"
+
 #include "logs.h"
 #include "Globals.h"
 
@@ -39,7 +43,7 @@ void TTexturesManager::Init()
 {
 };
 
-TTexturesManager::Names::iterator TTexturesManager::LoadFromFile(std::string fileName)
+TTexturesManager::Names::iterator TTexturesManager::LoadFromFile(std::string fileName,int filter)
 {
 
     std::string message("Loading - texture: ");
@@ -61,16 +65,16 @@ TTexturesManager::Names::iterator TTexturesManager::LoadFromFile(std::string fil
 
     AlphaValue texinfo;
 
-    if(ext == "tga")
-        texinfo = LoadTGA(realFileName);
-    else if(ext == "tex")
-        texinfo = LoadTEX(realFileName);
-    else if(ext == "bmp")
-        texinfo = LoadBMP(realFileName);
-    else if(ext == "dds")
-        texinfo = LoadDDS(realFileName);
+    if (ext=="tga")
+     texinfo=LoadTGA(realFileName,filter);
+    else if (ext=="tex")
+     texinfo=LoadTEX(realFileName);
+    else if (ext=="bmp")
+     texinfo=LoadBMP(realFileName);
+    else if (ext=="dds")
+     texinfo=LoadDDS(realFileName,filter);
 
-    _alphas.insert(texinfo);
+    _alphas.insert(texinfo); //zapamiêtanie stanu przezroczystoœci tekstury - mo¿na by tylko przezroczyste
     std::pair<Names::iterator, bool> ret = _names.insert(std::make_pair(fileName, texinfo.first));
 
     if(!texinfo.first)
@@ -80,7 +84,7 @@ TTexturesManager::Names::iterator TTexturesManager::LoadFromFile(std::string fil
     };
 
     _alphas.insert(texinfo);
-    ret = _names.insert(std::make_pair(fileName, texinfo.first));
+    ret=_names.insert(std::make_pair(fileName,texinfo.first)); //dodanie tekstury do magazynu (spisu nazw)
 
     WriteLog("OK");
     return ret.first;
@@ -95,36 +99,59 @@ struct ReplaceSlash
     }
 };
 
-GLuint TTexturesManager::GetTextureID(std::string fileName)
-{
-
-    std::transform(fileName.begin(), fileName.end(), fileName.begin(), ReplaceSlash());
-
-    // jesli biezaca sciezka do tekstur nie zostala dodana to dodajemy defaultowa
-    if(fileName.find('\\') == std::string::npos)
-        fileName.insert(0, szDefaultTexturePath);
-
-    if(fileName.find('.') == std::string::npos)
-    {
-        fileName.append(".");
-        fileName.append(Global::szDefaultExt);
-    };
-
-    Names::iterator iter = _names.find(fileName);
-
-    if(iter == _names.end())
-        iter = LoadFromFile(fileName);
-
-    return (iter != _names.end() ? iter->second : 0);
-
+GLuint TTexturesManager::GetTextureID(std::string fileName,int filter)
+{//ustalenie numeru tekstury, wczytanie jeœli nie jeszcze takiej nie by³o
+ size_t pos=fileName.find(':'); //szukamy dwukropka
+ if (pos!=std::string::npos) //po dwukropku mog¹ byæ podane dodatkowe informacje
+  fileName=fileName.substr(0,pos); //niebêd¹ce nazw¹ tekstury
+ std::transform(fileName.begin(),fileName.end(),fileName.begin(),ReplaceSlash());
+ //jeœli bie¿aca œcie¿ka do tekstur nie zosta³a dodana to dodajemy domyœln¹
+ if (fileName.find('\\')==std::string::npos)
+  fileName.insert(0,szDefaultTexturePath);
+ Names::iterator iter;
+ if (fileName.find('.')==std::string::npos)
+ {//Ra: wypróbowanie rozszerzeñ po kolei, zaczynaj¹c od domyœlnego
+  fileName.append("."); //kropka bêdze na pewno, resztê trzeba próbowaæ
+  std::string test; //zmienna robocza
+  for (int i=0;i<4;++i)
+  {//najpierw szukamy w magazynie
+   test=fileName;
+   test.append(Global::szDefaultExt[i]);
+   iter=_names.find(fileName); //czy mamy ju¿ w magazynie?
+   if (iter!=_names.end())
+    return iter->second; //znalezione!
+   test.insert(0,szDefaultTexturePath); //jeszcze próba z dodatkow¹ œcie¿k¹
+   iter=_names.find(fileName); //czy mamy ju¿ w magazynie?
+   if (iter!=_names.end())
+    return iter->second; //znalezione!
+  }
+  for (int i=0;i<4;++i)
+  {//w magazynie nie ma, to sprawdzamy na dysku
+   test=fileName;
+   test.append(Global::szDefaultExt[i]);
+   std::ifstream file(test.c_str());
+   if (!file.is_open())
+   {test.insert(0,szDefaultTexturePath);
+    file.open(test.c_str());
+   }
+   if (file.is_open())
+   {
+    fileName.append(Global::szDefaultExt[i]); //dopisanie znalezionego
+    file.close();
+    break; //wyjœcie z pêtli na etapie danego rozszerzenia
+   }
+  }
+ }
+ iter=_names.find(fileName); //czy mamy ju¿ w magazynie
+ if (iter==_names.end())
+  iter=LoadFromFile(fileName,filter);
+ return (iter!=_names.end()?iter->second:0);
 }
 
 bool TTexturesManager::GetAlpha(GLuint id)
-{
-
-    Alphas::iterator iter = _alphas.find(id);
-    return (iter != _alphas.end() ? iter->second : false);
-
+{//atrybut przezroczystoœci dla tekstury o podanym numerze (id)
+ Alphas::iterator iter=_alphas.find(id);
+ return (iter!=_alphas.end()?iter->second:false);
 }
 
 TTexturesManager::AlphaValue TTexturesManager::LoadBMP(std::string fileName)
@@ -133,9 +160,9 @@ TTexturesManager::AlphaValue TTexturesManager::LoadBMP(std::string fileName)
     AlphaValue fail(0, false);
     std::ifstream file(fileName.c_str(), std::ios::binary);
 
-    if(file.eof())
+    if (!file.is_open())
     {
-        file.close();
+        //file.close();
         return fail;
     };
 
@@ -151,7 +178,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadBMP(std::string fileName)
 
     // Read in bitmap information structure
     BITMAPINFO info;
-    unsigned long infoSize = header.bfOffBits - sizeof(BITMAPFILEHEADER);
+    long infoSize = header.bfOffBits - sizeof(BITMAPFILEHEADER);
     file.read((char*) &info, infoSize);
 
     if(file.eof())
@@ -199,151 +226,150 @@ TTexturesManager::AlphaValue TTexturesManager::LoadBMP(std::string fileName)
 
     delete[] data;
     return std::make_pair(id, false);
-    
+
 };
 
-TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName)
+TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName,int filter)
 {
-
-    AlphaValue fail(0, false);
-
-//    GLubyte TGAheader[] = {0,0,2,0,0,0,0,0,0,0,0,0};	// Uncompressed TGA Header
-    GLubyte TGACompheader[] = {0,0,10,0,0,0,0,0,0,0,0,0}; // Uncompressed TGA Header
-    GLubyte TGAcompare[12]; // Used To Compare TGA Header
-    GLubyte header[6]; // First 6 Useful Bytes From The Header
-
-    std::ifstream file(fileName.c_str(), std::ios::binary);
-
-    file.read((char*) TGAcompare, sizeof(TGAcompare));
-    file.read((char*) header, sizeof(header));
-
-    std::cout << file.tellg() << std::endl;
-
-    if(file.eof())
+ AlphaValue fail(0,false);
+ //GLubyte TGAheader[]={0,0,2,0,0,0,0,0,0,0,0,0};	// Uncompressed TGA Header
+ GLubyte TGACompheader[]={0,0,10,0,0,0,0,0,0,0,0,0}; // Uncompressed TGA Header
+ GLubyte TGAcompare[12]; // Used To Compare TGA Header
+ GLubyte header[6]; // First 6 Useful Bytes From The Header
+ std::ifstream file(fileName.c_str(),std::ios::binary);
+ file.read((char*)TGAcompare,sizeof(TGAcompare));
+ file.read((char*)header,sizeof(header));
+ std::cout << file.tellg() << std::endl;
+ if (file.eof())
+ {
+  file.close();
+  return fail;
+ };
+ bool compressed=(memcmp(TGACompheader,TGAcompare,sizeof(TGACompheader))==0);
+ GLint width =header[1]*256+header[0]; // Determine The TGA width (highbyte*256+lowbyte)
+ GLint height=header[3]*256+header[2]; // Determine The TGA height (highbyte*256+lowbyte)
+ // check if width, height and bpp is correct
+ if ( !width || !height || (header[4]!=24 && header[4]!=32))
+ {
+  file.close();
+  return fail;
+ };
+ GLuint bpp=header[4];	// Grab The TGA's Bits Per Pixel (24 or 32)
+ GLuint bytesPerPixel=bpp/8; // Divide By 8 To Get The Bytes Per Pixel
+ GLuint imageSize=width*height*bytesPerPixel; // Calculate The Memory Required For The TGA Data
+ GLubyte *imageData=new GLubyte[imageSize]; // Reserve Memory To Hold The TGA Data
+ if (!compressed)
+ {
+  file.read(imageData,imageSize);
+  if (file.eof())
+  {
+   delete[] imageData;
+   file.close();
+   return fail;
+  };
+/* Ra: nie potrzeba tego robiæ, mo¿na zamieniæ przy tworzeniu tekstury
+  // Swap R and B components
+  GLuint temp;
+  for (GLuint i=0;i<imageSize;i+=bytesPerPixel)
+  {
+   temp          =imageData[i];
+   imageData[i]  =imageData[i+2];
+   imageData[i+2]=temp;
+  };
+*/
+ }
+ else
+ {//compressed TGA
+  GLuint pixelcount=height*width; // Nuber of pixels in the image
+  GLuint currentpixel=0; // Current pixel being read
+  GLuint currentbyte=0; // Current byte
+  GLubyte *colorbuffer=new GLubyte[bytesPerPixel]; // Storage for 1 pixel
+  int chunkheader=0; //storage for "chunk" header //Ra: bêdziemy wczytywaæ najm³odszy bajt
+  while (currentpixel<pixelcount)
+  {
+   file.read((char*)&chunkheader,1); //jeden bajt, pozosta³e zawsze zerowe
+   if (file.eof())
+   {
+    MessageBox(NULL,"Could not read RLE header","ERROR",MB_OK); // Display Error
+    delete[] imageData;
+    file.close();
+    return fail;
+   };
+   if (chunkheader<128)
+   {// If the header is < 128, it means the that is the number of RAW color packets minus 1
+    chunkheader++; // add 1 to get number of following color values
+    /* Ra: nie potrzeba zamieniaæ, mo¿na daæ informacjê przy tworzeniu tekstury
+    for (int counter=0;counter<chunkheader;counter++) // Read RAW color values
     {
-        file.close();
-        return fail;
-    };
-
-    bool compressed = (memcmp(TGACompheader, TGAcompare, sizeof(TGACompheader)) == 0);
-
-    GLuint width  = header[1] * 256 + header[0]; // Determine The TGA width (highbyte*256+lowbyte)
-    GLuint height = header[3] * 256 + header[2]; // Determine The TGA height (highbyte*256+lowbyte)
-
-    // check if width, height and bpp is correct
-    if(!width || !height || (header[4] != 24 && header[4] != 32))
-    {
-        file.close();
-        return fail;
-    };
-
-    GLuint bpp = header[4];	// Grab The TGA's Bits Per Pixel (24 or 32)
-    GLuint bytesPerPixel = bpp/8; // Divide By 8 To Get The Bytes Per Pixel
-
-    GLuint imageSize = width * height * bytesPerPixel; // Calculate The Memory Required For The TGA Data
-    GLubyte* imageData = new GLubyte[imageSize]; // Reserve Memory To Hold The TGA Data
-
-    if(!compressed)
-    {
-
-        file.read(imageData, imageSize);
-
-        if(file.eof())
-        {
-            delete[] imageData;
-            file.close();
-            return fail;
-        };
-
-        // Swap R and B components
-        for(GLuint i=0; i < imageSize; i += bytesPerPixel)
-        {
-            GLuint temp = imageData[i];
-            imageData[i] = imageData[i + 2];
-	        imageData[i + 2] = temp;
-        };
-
+     file.read(colorbuffer,bytesPerPixel);
+     // Flip R and B vcolor values around in the process
+     imageData[currentbyte]  =colorbuffer[2];
+     imageData[currentbyte+1]=colorbuffer[1];
+     imageData[currentbyte+2]=colorbuffer[0];
+     if (bytesPerPixel==4)	// if its a 32 bpp image
+      imageData[currentbyte+3]=colorbuffer[3];// copy the 4th byte
+     currentbyte+=bytesPerPixel;
+     currentpixel++;
+    }
+    */
+    file.read(imageData+currentbyte,chunkheader*bytesPerPixel);
+    currentbyte+=chunkheader*bytesPerPixel;
+   }
+   else
+   {// chunkheader > 128 RLE data, next color reapeated chunkheader - 127 times
+    chunkheader-=127;
+    file.read(colorbuffer,bytesPerPixel);
+    // copy the color into the image data as many times as dictated
+    if (bytesPerPixel==4)
+    {//przy czterech bajtach powinno byæ szybsze u¿ywanie int
+     __int32 *ptr=(__int32*)(imageData+currentbyte),bgra=*((__int32*)colorbuffer);
+     for (int counter=0;counter<chunkheader;counter++)
+      *ptr++=bgra;
+     currentbyte+=chunkheader*bytesPerPixel;
     }
     else
-    // compressed TGA
-    {
-
-	GLuint pixelcount	= height * width; // Nuber of pixels in the image
-	GLuint currentpixel	= 0; // Current pixel being read
-	GLuint currentbyte	= 0; // Current byte
-	GLubyte* colorbuffer = new GLubyte[bytesPerPixel]; // Storage for 1 pixel
-
-	while(currentpixel < pixelcount)
-	{
-
-        GLubyte chunkheader; // Storage for "chunk" header
-        file.read((char*) &chunkheader, sizeof(GLubyte));
-
-        if(file.eof())
-        {
-            MessageBox(NULL, "Could not read RLE header", "ERROR", MB_OK);	// Display Error
-            delete[] imageData;
-            file.close();
-            return fail;
-        };
-
-        // If the ehader is < 128, it means the that is the number of RAW color packets minus 1
-        if(chunkheader < 128)
-	    {
-	        chunkheader++; // add 1 to get number of following color values
-		    for(short counter = 0; counter < chunkheader; counter++) // Read RAW color values
-		    {
-                file.read(colorbuffer, bytesPerPixel);
-
-                // Flip R and B vcolor values around in the process
-		        imageData[currentbyte] = colorbuffer[2];
-                imageData[currentbyte + 1] = colorbuffer[1];
-                imageData[currentbyte + 2] = colorbuffer[0];
-
-		        if(bytesPerPixel == 4)												// if its a 32 bpp image
-                    imageData[currentbyte + 3] = colorbuffer[3];				// copy the 4th byte
-
-		        currentbyte += bytesPerPixel;
-			    currentpixel++;
-			}
-		}
-        // chunkheader > 128 RLE data, next color reapeated chunkheader - 127 times
-		else
-		{
-			chunkheader -= 127;
-
-            file.read(colorbuffer, bytesPerPixel);
-
-			// copy the color into the image data as many times as dictated
-			for(short counter = 0; counter < chunkheader; counter++)
-			{																			// by the header
-				imageData[currentbyte		] = colorbuffer[2];					// switch R and B bytes areound while copying
-				imageData[currentbyte + 1	] = colorbuffer[1];
-				imageData[currentbyte + 2	] = colorbuffer[0];
-
-				if(bytesPerPixel == 4)												// If TGA images is 32 bpp
-					imageData[currentbyte + 3] = colorbuffer[3];				// Copy 4th byte
-
-				currentbyte += bytesPerPixel;
-				currentpixel++;
-
-			}
-		}
-	};
-
-    };
-
-
-    file.close();
-
-    bool alpha = (bpp == 32);
-    bool hash = (fileName.find('#') != std::string::npos);
-
-    GLuint id = CreateTexture(imageData, bytesPerPixel, width, height, alpha, hash);
-    delete[] imageData;
-
-	return std::make_pair(id, alpha);
-
+     for (int counter=0;counter<chunkheader;counter++)
+     {																			// by the header
+      memcpy(imageData+currentbyte,colorbuffer,bytesPerPixel);
+      /*
+      imageData[currentbyte  ]=colorbuffer[0];
+      imageData[currentbyte+1]=colorbuffer[1];
+      imageData[currentbyte+2]=colorbuffer[2];
+      if (bytesPerPixel==4)												// If TGA images is 32 bpp
+       imageData[currentbyte+3]=colorbuffer[3];// Copy 4th byte
+      */
+      currentbyte+=bytesPerPixel;
+     }
+   }
+   currentpixel+=chunkheader;
+  };
+ };
+ file.close();
+ bool alpha = (bpp == 32);
+ bool hash = (fileName.find('#') != std::string::npos); //true gdy w nazwie jest "#"
+ bool dollar = (fileName.find('$') == std::string::npos); //true gdy w nazwie nie ma "$"
+ size_t pos=fileName.rfind('%'); //ostatni % w nazwie
+ if (pos!=std::string::npos)
+  if (pos<fileName.size())
+  {filter=(int)fileName[pos+1]-'0'; //zamiana cyfry za % na liczbê
+   if ((filter<0)||(filter>10)) filter=-1; //jeœli nie jest cyfr¹
+  }
+ if (!alpha&&!hash&&dollar&&(filter<0))
+  filter=Global::iDefaultFiltering; //dotyczy tekstur TGA bez kana³u alfa
+ //ewentualne przeskalowanie tekstury do dopuszczalnego rozumiaru
+ GLint w=width,h=height;
+ if (width>Global::iMaxTextureSize) width=Global::iMaxTextureSize; //ogranizczenie wielkoœci
+ if (height>Global::iMaxTextureSize) height=Global::iMaxTextureSize;
+ if ((w!=width)||(h!=height))
+ {//przeskalowanie tekstury, ¿eby siê nie wyœwietla³a jako bia³a
+  GLubyte* imgData=new GLubyte[width*height*bytesPerPixel]; //nowy rozmiar
+  gluScaleImage(bytesPerPixel==3?GL_RGB:GL_RGBA,w,h,GL_UNSIGNED_BYTE,imageData,width,height,GL_UNSIGNED_BYTE,imgData);
+  delete imageData; //usuniêcie starego
+  imageData=imgData;
+ }
+ GLuint id=CreateTexture(imageData,(alpha?GL_BGRA:GL_BGR),width,height,alpha,hash,dollar,filter);
+ delete[] imageData;
+ return std::make_pair(id,alpha);
 };
 
 TTexturesManager::AlphaValue TTexturesManager::LoadTEX(std::string fileName)
@@ -389,25 +415,14 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTEX(std::string fileName)
 
     bool hash = (fileName.find('#') != std::string::npos);
 
-    GLuint id = CreateTexture(data, bpp, width, height, alpha, hash);
+    GLuint id = CreateTexture(data,(alpha?GL_RGBA:GL_RGB),width,height,alpha,hash);
     delete[] data;
 
     return std::make_pair(id, alpha);
 
 };
 
-struct DDS_IMAGE_DATA
-{
-    GLsizei  width;
-    GLsizei  height;
-    GLint    components;
-    GLenum   format;
-    GLuint   blockSize;
-    int      numMipMaps;
-    GLubyte *pixels;
-};
-
-TTexturesManager::AlphaValue TTexturesManager::LoadDDS(std::string fileName)
+TTexturesManager::AlphaValue TTexturesManager::LoadDDS(std::string fileName,int filter)
 {
 
     AlphaValue fail(0, false);
@@ -464,7 +479,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadDDS(std::string fileName)
     GLuint bufferSize = (ddsd.dwMipMapCount > 1 ? ddsd.dwLinearSize * factor : ddsd.dwLinearSize);
 
     data.pixels = new GLubyte[bufferSize];
-    file.read((char*) data.pixels, bufferSize);
+    file.read((char*)data.pixels,bufferSize);
 
     file.close();
 
@@ -472,7 +487,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadDDS(std::string fileName)
     data.height     = ddsd.dwHeight;
     data.numMipMaps = ddsd.dwMipMapCount;
 
-    if(ddsd.ddpfPixelFormat.dwFourCC == FOURCC_DXT1)
+    if (ddsd.ddpfPixelFormat.dwFourCC == FOURCC_DXT1)
         data.components = 3;
     else
         data.components = 4;
@@ -482,22 +497,55 @@ TTexturesManager::AlphaValue TTexturesManager::LoadDDS(std::string fileName)
     GLuint id;
     glGenTextures(1, &id);
     glBindTexture(GL_TEXTURE_2D, id);
+    if (filter>=0)
+     SetFiltering(filter); //cyfra po % w nazwie
+    else
+     //SetFiltering(bHasAlpha&&bDollar,bHash); //znaki #, $ i kana³ alfa w nazwie
+     SetFiltering(data.components==4,fileName.find('#')!=std::string::npos);
 
-    SetFiltering(true, fileName.find('#') != std::string::npos);
-
-    GLuint size;
     GLuint offset = 0;
+    int firstMipMap = 0;
+    
+    while(data.width > Global::iMaxTextureSize || data.height > Global::iMaxTextureSize)
+    {
+        offset += ((data.width + 3) / 4) * ((data.height+3)/4) * data.blockSize;
+        data.width /= 2;
+        data.height /= 2;
+        firstMipMap++;
+    };
 
     // Load the mip-map levels
-    for(int i = 0; i < data.numMipMaps; i++)
+    for (int i=0; i < data.numMipMaps - firstMipMap; i++)
     {
-        if(!data.width) data.width = 1;
-        if(!data.height) data.height = 1;
+        if (!data.width) data.width = 1;
+        if (!data.height) data.height = 1;
 
-        size = ((data.width + 3) / 4) * ((data.height+3)/4) * data.blockSize;
+        GLuint size = ((data.width + 3) / 4) * ((data.height+3)/4) * data.blockSize;
 
-        glCompressedTexImage2D(GL_TEXTURE_2D, i, data.format, data.width,
-            data.height, 0, size, data.pixels + offset);
+        if ((Global::bDecompressDDS)&&(i==1))  //should be i==0 but then problem with "glBindTexture()"
+        {
+            GLuint decomp_size = data.width * data.height * 4;
+            GLubyte* output = new GLubyte[decomp_size];
+            DecompressDXT(data, data.pixels + offset, output);
+
+            glTexImage2D(GL_TEXTURE_2D, i, GL_RGBA, data.width, data.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, output);
+
+            delete[] output;
+        }
+        else
+        {
+            glCompressedTexImage2D(
+                GL_TEXTURE_2D,
+                i,
+                data.format,
+                data.width,
+                data.height,
+                0,
+                size,
+                data.pixels + offset
+            );
+
+        }
 
         offset += size;
 
@@ -511,6 +559,31 @@ TTexturesManager::AlphaValue TTexturesManager::LoadDDS(std::string fileName)
 
 };
 
+void TTexturesManager::SetFiltering(int filter)
+{
+ if (filter<4) //rozmycie przy powiêkszeniu
+ {//brak rozmycia z bliska - tych jest 4: 0..3, aby nie by³o przeskoku
+  glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+  filter+=4;
+ }
+ else
+  glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+ switch (filter) //rozmycie przy oddaleniu
+ {case 4: //najbli¿szy z tekstury
+   glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST); break;
+  case 5: //œrednia z tekstury
+   glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR); break;
+  case 6: //najbli¿szy z mipmapy
+   glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST_MIPMAP_NEAREST); break;
+  case 7: //œrednia z mipmapy
+   glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_NEAREST); break;
+  case 8: //najbli¿szy z dwóch mipmap
+   glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST_MIPMAP_LINEAR); break;
+  case 9: //œrednia z dwóch mipmap
+   glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_LINEAR); break;
+ }
+};
+
 void TTexturesManager::SetFiltering(bool alpha, bool hash)
 {
 
@@ -518,7 +591,7 @@ void TTexturesManager::SetFiltering(bool alpha, bool hash)
     {
       if (alpha) // przezroczystosc: nie wlaczac mipmapingu
        {
-         if (hash) // #: calkowity brak filtracji
+         if (hash) // #: calkowity brak filtracji - pikseloza
           {
            glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_NEAREST);
            glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -529,13 +602,13 @@ void TTexturesManager::SetFiltering(bool alpha, bool hash)
            glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_LINEAR);
           }
        }
-      else  // #: filtruj ale bez dalekich mipmap
+      else  // filtruj ale bez dalekich mipmap - robi artefakty
        {
          glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_LINEAR);
          glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_LINEAR);
        }
      }
-    else // filtruj wszystko
+    else // $: filtruj wszystko - brzydko siê zlewa
      {
        glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_LINEAR);
        glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -544,30 +617,27 @@ void TTexturesManager::SetFiltering(bool alpha, bool hash)
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-GLuint TTexturesManager::CreateTexture(char *buff, int bpp, int width, int Height, bool bHasAlpha, bool bHash)
-{
-
-    GLuint ID;
-    glGenTextures(1,&ID);
-    glBindTexture(GL_TEXTURE_2D, ID);
-    glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-    SetFiltering(bHasAlpha, bHash);
-
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-    glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
-    glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
-
-    if(bHasAlpha || bHash)
-        glTexImage2D(GL_TEXTURE_2D, 0, ( bHasAlpha ? GL_RGBA : GL_RGB ), width, Height, 0,
-            ( bHasAlpha ? GL_RGBA : GL_RGB ), GL_UNSIGNED_BYTE, buff);
-    else
-        gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGB, width, Height,
-            GL_RGB, GL_UNSIGNED_BYTE, buff);
-
-    return ID;
+GLuint TTexturesManager::CreateTexture(char* buff,GLint bpp,int width,int height,bool bHasAlpha,bool bHash,bool bDollar,int filter)
+{//Ra: u¿ywane tylko dla TGA i TEX
+ //Ra: dodana obs³uga GL_BGR oraz GL_BGRA dla TGA - szybciej siê wczytuje
+ GLuint ID;
+ glGenTextures(1,&ID);
+ glBindTexture(GL_TEXTURE_2D,ID);
+ glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
+ glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
+ if (filter>=0)
+  SetFiltering(filter); //cyfra po % w nazwie
+ else
+  SetFiltering(bHasAlpha&&bDollar,bHash); //znaki #, $ i kana³ alfa w nazwie
+ glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+ glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+ glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
+ glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
+ if (bHasAlpha || bHash || (filter==0))
+  glTexImage2D(GL_TEXTURE_2D,0,(bHasAlpha?GL_RGBA:GL_RGB),width,height,0,bpp,GL_UNSIGNED_BYTE,buff);
+ else
+  gluBuild2DMipmaps(GL_TEXTURE_2D,GL_RGB,width,height,bpp,GL_UNSIGNED_BYTE,buff);
+ return ID;
 }
 
 void TTexturesManager::Free()

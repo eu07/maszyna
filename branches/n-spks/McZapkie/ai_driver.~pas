@@ -1,55 +1,53 @@
 unit ai_driver;
 
-(*
-    MaSzyna EU07 locomotive simulator
-    Copyright (C) 2001-2004  Maciej Czapkiewicz and others
+//    MaSzyna EU07 locomotive simulator
+//    Copyright (C) 2001-2004  Maciej Czapkiewicz and others
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+//    This program is free software; you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation; either version 2 of the License, or
+//    (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+//    This program is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-*)
+//    You should have received a copy of the GNU General Public License
+//    along with this program; if not, write to the Free Software
+//    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
-(*
-zrobione:
-0. pobieranie komend z dwoma parametrami
-1. przyspieszanie do zadanej predkosci, ew. hamowanie jesli przekroczona
-2. hamowanie na zadanym odcinku do zadanej predkosci (ze stabilizacja przyspieszenia)
-3. wychodzenie z sytuacji awaryjnych: bezpiecznik nadmiarowy, poslizg
-4. przygotowanie pojazdu do drogi, zmiana kierunku ruchu
-5. dwa sposoby jazdy - manewrowy i pociagowy
-6. dwa zestawy psychiki: spokojny i agresywny
-7. przejscie na zestaw spokojny jesli wystepuje duzo poslizgow lub wybic nadmiarowego.
-8. lagodne ruszanie (przedluzony czas reakcji na 2 pierwszych nastawnikach)
-9. unikanie jazdy na oporach rozruchowych
-10. logowanie fizyki
-11. kasowanie czuwaka/SHP
-12. procedury wspomagajace "patrzenie" na odlegle semafory
-13. ulepszone procedury sterowania
-14. zglaszanie problemow z dlugim staniem na sygnale S1
-15. sterowanie EN57
-16. zmiana kierunku
-17. otwieranie/zamykanie drzwi
 
-do zrobienia:
-1. kierownik pociagu
-2. madrzejsze unikanie grzania oporow rozruchowych i silnika
-3. unikanie szarpniec, zerwania pociagu itp
-4. obsluga innych awarii
-5. raportowanie problemow, usterek nie do rozwiazania
-6. dla Humandriver: tasma szybkosciomierza - zapis do pliku!
-7. samouczacy sie algorytm hamowania
-*)
+
+//zrobione:
+//0. pobieranie komend z dwoma parametrami
+//1. przyspieszanie do zadanej predkosci, ew. hamowanie jesli przekroczona
+//2. hamowanie na zadanym odcinku do zadanej predkosci (ze stabilizacja przyspieszenia)
+//3. wychodzenie z sytuacji awaryjnych: bezpiecznik nadmiarowy, poslizg
+//4. przygotowanie pojazdu do drogi, zmiana kierunku ruchu
+//5. dwa sposoby jazdy - manewrowy i pociagowy
+//6. dwa zestawy psychiki: spokojny i agresywny
+//7. przejscie na zestaw spokojny jesli wystepuje duzo poslizgow lub wybic nadmiarowego.
+//8. lagodne ruszanie (przedluzony czas reakcji na 2 pierwszych nastawnikach)
+//9. unikanie jazdy na oporach rozruchowych
+//10. logowanie fizyki
+//11. kasowanie czuwaka/SHP
+//12. procedury wspomagajace "patrzenie" na odlegle semafory
+//13. ulepszone procedury sterowania
+//14. zglaszanie problemow z dlugim staniem na sygnale S1
+//15. sterowanie EN57
+//16. zmiana kierunku
+//17. otwieranie/zamykanie drzwi
+
+//do zrobienia:
+//1. kierownik pociagu
+//2. madrzejsze unikanie grzania oporow rozruchowych i silnika
+//3. unikanie szarpniec, zerwania pociagu itp
+//4. obsluga innych awarii
+//5. raportowanie problemow, usterek nie do rozwiazania
+//6. dla Humandriver: tasma szybkosciomierza - zapis do pliku!
+//7. samouczacy sie algorytm hamowania
 
 interface
 
@@ -110,8 +108,8 @@ Type
                   {ustawia nowa predkosc do ktorej ma dazyc oraz predkosc przy nastepnym obiekcie}
                   CommandLocation: TLocation;
                   {polozenie wskaznika, sygnalizatora lub innego obiektu do ktorego odnosi sie komenda}
-                  OrderList: array[0..maxorders] of TOrders;
-                  OrderPos: byte;
+                  OrderList: array[0..maxorders] of TOrders; //lista rozkazów
+                  OrderPos: byte; //aktualny rozkaz
                   LogFile: text;   {zapis parametrow fizycznych}
                   AILogFile: text; {log AI}
                   ScanMe: boolean; {flaga potrzeby skanowania toru dla DynObj.cpp}
@@ -123,6 +121,7 @@ Type
                   DriverFailCount: integer;
                   Need_TryAgain, Need_BrakeRelease: boolean;
                   MinProximityDist, MaxProximityDist: real;
+									bCheckSKP: boolean; 
 {funkcje}
                   procedure SetDriverPsyche;
                   function PrepareEngine: boolean;
@@ -146,13 +145,14 @@ Type
                   procedure CloseLog;
                   constructor Init(LocInitial:TLocation; RotInitial:TRotation;
                                    AI:boolean; NewControll:PMoverParameters; NewTrainSet:PTRainParameters; InitPsyche:boolean);
-                  private
+                  function OrderCurrent:string;
+private
                   VehicleName: string;
                   VelMargin: real;
                   WarningDuration: real;
                   WaitingTime, WaitingExpireTime:real;
                   function OrderDirectionChange(newdir:integer; Vehicle:PMoverParameters):integer;
-                end;
+end;
 
 
 implementation
@@ -176,7 +176,13 @@ begin
     Jump_to_first_order: Order2Str:='Jump_to_first_order';
    else
     Order2Str:='Undefined!';
-  end;   
+  end;
+end;
+
+function TController.OrderCurrent:string;
+//pobranie aktualnego rozkazu celem wyœwietlenia
+begin
+ OrderCurrent:=Order2Str(OrderList[OrderPos]);
 end;
 
 function TController.OrderDirectionChange(newdir:integer; Vehicle:PMoverParameters):integer;
@@ -202,36 +208,40 @@ begin
      IncBrake;
     if ActiveDir=testd then
      VelforDriver:=-1;
-     if (ActiveDir<>0) and (TrainType='ezt') then Imin:=IminHi;
+     if (ActiveDir<>0) and (TrainType=dt_EZT) then Imin:=IminHi;
    end;
-  OrderDirectionChange:=Trunc(VelforDriver);
+  OrderDirectionChange:=Round(VelforDriver);
 end;
 
-procedure TController.SetVelocity(NewVel,NewVelNext: real);
+procedure TController.SetVelocity(NewVel,NewVelNext:real);
+//ustawienie nowej prêdkoœci
 begin
-     WaitingTime:=-WaitingExpireTime;
-     MaxVelFlag:=False; MinVelFlag:=False;
-     VelActual:=NewVel;
-     VelNext:=NewVelNext;
-     if (NewVel>NewVelNext) or (NewVel<Controlling^.Vel) then
-      ProximityDist:=-800
-     else
-      ProximityDist:=-300;
+ WaitingTime:=-WaitingExpireTime;
+ MaxVelFlag:=False; MinVelFlag:=False;
+ VelActual:=NewVel;   //prêdkoœæ oczekiwana
+ VelNext:=NewVelNext; //prêdkoœæ nastêpna
+ if (NewVel>NewVelNext) //jeœli oczekiwana wiêksza ni¿ nastêpna
+  or (NewVel<Controlling^.Vel) //albo aktualna jest mniejsza ni¿ aktualna
+ then
+  ProximityDist:=-800 //droga hamowania do zmiany prêdkoœci
+ else
+  ProximityDist:=-300;
 end;
 
-function TController.SetProximityVelocity(NewDist,NewVelNext: real): boolean;
+function TController.SetProximityVelocity(NewDist,NewVelNext:real):boolean;
+//informacja o ograniczeniu w pobli¿u
 begin
-       if NewVelNext=0 then
-         WaitingTime:=0;
-{     if ((NewVelNext>=0) and ((VelNext>=0) and (NewVelNext<VelNext)) or (NewVelNext<VelActual)) or (VelNext<0) then
-      begin }
-        MaxVelFlag:=False; MinVelFlag:=False;
-        VelNext:=NewVelNext;
-        ProximityDist:=NewDist;
-        SetProximityVelocity:=true;
-{      end
-     else
-      SetProximityVelocity:=false; }
+ if NewVelNext=0 then
+   WaitingTime:=0;
+{if ((NewVelNext>=0) and ((VelNext>=0) and (NewVelNext<VelNext)) or (NewVelNext<VelActual)) or (VelNext<0) then
+  begin }
+   MaxVelFlag:=False; MinVelFlag:=False;
+   VelNext:=NewVelNext;
+   ProximityDist:=NewDist;
+   SetProximityVelocity:=true;
+{end
+  else
+   SetProximityVelocity:=false; }
 end;
 
 procedure TController.SetDriverPsyche;
@@ -279,7 +289,7 @@ begin
   ReactionTime:=PrepareTime;
   with Controlling^ do
    begin
-   if ((EnginePowerSource.SourceType=CurrentCollector) or (TrainType='ezt')) then
+   if ((EnginePowerSource.SourceType=CurrentCollector) or (TrainType=dt_EZT)) then
      begin
        if(GetTrainsetVoltage) then
           begin
@@ -309,14 +319,14 @@ begin
 //   end
    else
       //if EnginePowerSource.SourceType<>CurrentCollector then
-      if TrainType<>'ezt' then
+      if TrainType<>dt_EZT then
        voltfront:=true;
      if EnginePowerSource.SourceType=CurrentCollector then
       begin
        PantFront(true);
        PantRear(true);
       end;
-     if TrainType='ezt' then
+     if TrainType=dt_EZT then
       begin
        PantFront(true);
        PantRear(true);
@@ -330,7 +340,7 @@ if (PantFrontVolt or PantRearVolt or voltfront or voltrear) then
   begin
      if not Mains then
        begin
-       //if TrainType='SN61' then
+       //if TrainType=dt_SN61 then
        //   begin
        //      OK:=(OrderDirectionChange(ChangeDir,Controlling)=-1);
        //      OK:=IncMainCtrl(1);
@@ -428,6 +438,7 @@ end;
 function TController.IncBrake: boolean;
 var OK:boolean;
 begin
+  ClearPendingExceptions;
   OK:=False;
   with Controlling^ do
    begin
@@ -479,6 +490,7 @@ end;
 function TController.DecBrake: boolean;
 var OK:boolean;
 begin
+  ClearPendingExceptions;
   OK:=False;
  with Controlling^ do
    begin
@@ -513,6 +525,7 @@ end;
 function TController.IncSpeed: boolean;
 var OK:boolean;
 begin
+  ClearPendingExceptions;
   OK:=True;
    with Controlling^ do
    begin
@@ -624,6 +637,7 @@ end;
 procedure TController.RecognizeCommand;
 var OK:boolean; Order:TOrders;
 begin
+  ClearPendingExceptions;
   OK:=True;
   Order:=OrderList[OrderPos];
   with Controlling^.CommandIn do
@@ -664,7 +678,10 @@ begin
          JumpToFirstOrder
         else
          if (Order=Shunt) and (Value1<>0) then
-          Order:=Obey_train;
+					begin
+						Order:=Obey_train;
+						bCheckSKP:=true;
+					end;
       end
      else if Controlling^.CommandIn.Command='SetProximityVelocity' then
       begin
@@ -717,6 +734,13 @@ begin
              Order:=Change_direction
          end;
       end
+     else if Pos('PassengerStopPoint:',Controlling^.CommandIn.Command)=1 then  {wskaznik W4}
+      begin
+       if Order=Obey_train then
+        begin
+         TrainSet^.UpdateMTable(GlobalTime.hh,GlobalTime.mm,Copy(Controlling^.CommandIn.Command,20,Length(Controlling^.CommandIn.Command)-20));
+        end 
+      end
 
      else OK:=False;
      if OK then
@@ -734,7 +758,17 @@ begin
       CommandLocation:=NewLocation;
       SetVelocity(NewValue1,NewValue2);
       if (OrderList[OrderPos]=Shunt) and (NewValue1<>0) then
-       OrderList[OrderPos]:=Obey_train;
+				begin
+					OrderList[OrderPos]:=Obey_train;
+					bCheckSKP:=true;
+				end;
+    end
+   else if NewCommand='ShuntVelocity' then
+    begin
+      CommandLocation:=NewLocation;
+      SetVelocity(NewValue1,NewValue2);
+      if (OrderList[OrderPos]=Obey_train) and (NewValue1<>0) then
+       OrderList[OrderPos]:=Shunt;
     end
    else
     if NewCommand='SetProximityVelocity' then
@@ -742,8 +776,83 @@ begin
        if SetProximityVelocity(NewValue1,NewValue2) then
           CommandLocation:=NewLocation;
  {        if Order=Shunt then Order:=Obey_train;}
-     end;
+      end
+     else if NewCommand='ShuntVelocity' then
+    begin
+      if NewValue1<>0 then
+      VehicleCount:=-2;
+      Prepare2press:=false;
+      CommandLocation:=NewLocation;
+      if (OrderList[OrderPos]<>Obey_train) then
+      SetVelocity(NewValue1,NewValue2);
+
+    end
+      else if NewCommand='Wait_for_orders' then
+      OrderList[OrderPos]:=Wait_for_orders
+     else if NewCommand='Prepare_engine' then
+      begin
+        if NewValue1=0 then OrderList[OrderPos]:=Release_engine
+         else if NewValue1=1 then OrderList[OrderPos]:=Prepare_engine
+      end
+     else if NewCommand='Change_direction' then
+      case Trunc(NewValue1) of
+       0,1,-1: begin
+                 ChangeDirOrder:=Trunc(NewValue1);
+                 OrderList[OrderPos]:=Change_direction
+               end
+      end
+     else if NewCommand='Obey_train' then
+      begin
+        OrderList[OrderPos]:=Obey_train;
+        if NewValue1>0 then
+         TrainNumber:=Trunc(NewValue1); {i co potem ???}
+      end
+     else if NewCommand='Shunt' then
+      begin
+        if NewValue1<>VehicleCount then
+         VehicleCount:=Trunc(NewValue1); {i co potem ? - trzeba zaprogramowac odczepianie}
+          OrderList[OrderPos]:=Shunt;
+      end
+     else if NewCommand='Jump_to_order' then
+      begin
+        if NewValue1=-1 then
+         JumpToNextOrder
+        else
+         if (NewValue1>=0) and (NewValue1<=maxorders) then
+          OrderPos:=Trunc(NewValue1);
+             if WriteLogFlag then
+                begin
+                append(AIlogFile);
+                writeln(AILogFile,ElapsedTime:5:2,' - new order: ',Order2Str( OrderList[OrderPos]),' @ ',OrderPos);
+                close(AILogFile);
+                end;
+      end
+     else if NewCommand='Warning_signal' then
+      begin
+        if NewValue1>0 then
+         begin
+           WarningDuration:=NewValue1;
+           if NewValue2>1 then
+            Controlling^.WarningSignal:=2
+           else
+            Controlling^.WarningSignal:=1;
+         end;
+      end
+     else if NewCommand='OutsideStation' then  {wskaznik D5}
+      begin
+        if  OrderList[OrderPos]=Obey_train then
+         SetVelocity(NewValue1,NewValue2) {koniec stacji - predkosc szlakowa}
+        else                        {manewry - zawracaj}
+         begin
+             ChangeDirOrder:=0;
+             OrderList[OrderPos]:=Change_direction;
+         end;
+      end;
+
+
 end;
+
+
 
 
 function TController.UpdateSituation(dt:real):boolean;
@@ -806,7 +915,9 @@ begin
    begin
 {     UpdateSituation:=True; }
      {tu bedzie logika sterowania}
-     if (LastReactionTime>ReactionTime)  then
+     {Ra: nie wiem czemu ReactionTime potrafi dostaæ 12 sekund, to jest przegiêcie, bo prze¿yna STÓJ}
+	 {yB: otó¿ jest to jedna trzecia czasu nape³niania na towarowym; mo¿e siê przydaæ przy wdra¿aniu hamowania, ¿eby nie rusza³o kranem jak g³upie}
+     if (LastReactionTime>Min0R(ReactionTime,2.0))  then
       with Controlling^ do
        begin
          MechLoc:=Loc; {uwzglednic potem polozenie kabiny}
@@ -827,7 +938,7 @@ begin
                         MinProximityDist:=1; MaxProximityDist:=3; {m}
                           VelReduced:=5; {km/h}
                           if Vel=0 then
-                            if (ActiveDir<0) then
+                            if (ActiveDir*CabNo<0) then
                                begin
                                   if (Couplers[1].Connected=NIL) then
                                      HeadSignalsFlag:=16;  {swiatla manewrowe}
@@ -854,6 +965,7 @@ begin
                                       Dettach(0);
                                       VehicleCount:=-2;
                                       VelActual:=0;
+																			bCheckSKP:=true;
                                     end
                                    else
                                    if (ActiveDir<0) and (Couplers[1].CouplingFlag>0) then
@@ -861,6 +973,7 @@ begin
                                       Dettach(1);
                                       VehicleCount:=-2;
                                       VelActual:=0;
+																			bCheckSKP:=true;
                                     end
                                    else HelpMeFlag:=true; {cos nie tak z kierunkiem dociskania}
                                  end;
@@ -899,19 +1012,19 @@ begin
                           if CategoryFlag=1 then  {jazda pociagowa}
                            begin
                              MinProximityDist:=30; MaxProximityDist:=50; {m}
-                             if (ActiveDir<0) then
+                             if (ActiveDir*CabNo<0) then
                                begin
                                   if (Couplers[0].CouplingFlag=0) then
                                       HeadSignalsFlag:= 1+4+16; {wlacz trojkat}
                                   if (Couplers[1].CouplingFlag=0) then
-                                      EndSignalsFlag:= 32;      {swiatla konca pociagu i/lub blachy}
+                                      EndSignalsFlag:= 2+32;      {swiatla konca pociagu i/lub blachy}
                                end
                                else
                                begin
                                   if (Couplers[0].CouplingFlag=0) then
                                       EndSignalsFlag:= 1+4+16; {wlacz trojkat}
                                   if (Couplers[1].CouplingFlag=0) then
-                                      HeadSignalsFlag:= 32;      {swiatla konca pociagu i/lub blachy}
+                                      HeadSignalsFlag:= 2+32;      {swiatla konca pociagu i/lub blachy}
 
                                end;
                                                         end
@@ -934,7 +1047,11 @@ begin
               if PrepareEngine then    {gotowy do drogi?}
                begin
                  SetDriverPsyche;
-                 JumpToNextOrder;
+                 //JumpToNextOrder;
+                 Controlling^.CommandIn.Value1:=-1;
+                 Controlling^.CommandIn.Value2:=-1;
+                 OrderList[OrderPos]:=Shunt;
+
 //                 if OrderList[OrderPos]<>Wait_for_Orders then
 //                  if BrakeSystem=Pneumatic then  {napelnianie uderzeniowe na wstepie}
 //                   if BrakeSubsystem=Oerlikon then
@@ -993,13 +1110,40 @@ begin
                end;
               if OrderList[OrderPos]=Change_direction then {sprobuj zmienic kierunek}
               begin
+              VelActual:=0;
+                if VelActual < 0.1 then
+                begin
+
                 if ChangeDirOrder=0 then
                  ChangeDir:=-(ActiveDir*CabNo)
                 else
                  ChangeDir:=ChangeDirOrder;
                 ChangeDirOrder:=ChangeDir;
-                if OrderDirectionChange(ChangeDir,Controlling)=-1 then
-                 JumpToNextOrder
+                CabNo:=ChangeDir;
+                ActiveCab:=ChangeDir;
+                PantFront(true);
+                PantRear(true);
+                Controlling^.CommandIn.Value1:=-1;
+                Controlling^.CommandIn.Value2:=-1;
+                OrderList[OrderPos]:=Shunt;
+                SetVelocity(20,20);
+                if WriteLogFlag then
+                 begin
+                  append(AIlogFile);
+                  writeln(AILogFile,ElapsedTime:5:2,': ',Name,' Direction changed!');
+                  close(AILogFile);
+                 end;
+                if (ActiveDir*CabNo<0) then
+                               begin
+                                     HeadSignalsFlag:=16;  {swiatla manewrowe}
+                                     EndSignalsFlag:=1;
+                               end
+                               else
+                               begin
+                                     HeadSignalsFlag:=1;  {swiatla manewrowe}
+                                     EndSignalsFlag:=16;
+                               end;
+                 end;
 {                else
                  VelActual:=0; {na wszelki wypadek niech zahamuje}
               end;
@@ -1018,10 +1162,11 @@ begin
                  if TrainSet^.TTVmax>0 then
                   VelDesired:=Min0R(VelDesired,TrainSet^.TTVmax); {jesli nie spozniony to nie szybciej niz rozkladowa}
                 AbsAccs:=Accs*sign(V); {czy sie rozpedza czy hamuje}
-                {ustalanie zadanego przyspieszenia}
-                if (VelNext>=0) and (ActualProximityDist>=0) and (Vel>=VelNext) then
+				
+				{ustalanie zadanego przyspieszenia}
+                if (VelNext>=0) and (ActualProximityDist>=0) and (Vel>=VelNext) then //gdy zbliza sie i jest za szybko do NOWEGO
                  begin
-                   if Vel>0 then
+                   if Vel>0 then //jesli nie stoi
                     begin
                      if (Vel<VelReduced+VelNext) and (ActualProximityDist>MaxProximityDist*(1+Vel/10)) then {dojedz do semafora/przeszkody}
                       begin
@@ -1031,8 +1176,20 @@ begin
                       end
                      else
                       if ActualProximityDist>MinProximityDist then
-                       begin
-                         AccDesired:=(SQR(VelNext)-SQR(Vel))/(25.92*ActualProximityDist+0.1); {hamuj proporcjonalnie}
+                       begin                                //25.92 - skorektowane, zeby ladniej hamowal
+                         if (VelNext>Vel-35) then //dwustopniowe hamowanie - niski przy ma³ej ró¿nicy
+                          if ((VelNext>0)and(VelNext>Vel-3)) then //jeœli powolna i niewielkie przekroczenie
+                            AccDesired:=0                         //to olej (zacznij luzowaæ)
+                          else  //w przeciwnym wypadku
+                            if (VelNext=0)and(Vel*Vel<0.4*ActualProximityDist) then //jeœli stójka i niewielka prêdkoœæ
+                              if Vel<30 then  //trzymaj 30 km/h
+                                AccDesired:=0.5
+                              else
+                                AccDesired:=0
+                            else // prostu hamuj (niski stopieñ)
+                              AccDesired:=(SQR(VelNext)-SQR(Vel))/(25.92*ActualProximityDist+0.1) {hamuj proporcjonalnie} //mniejsze opóŸnienie przy ma³ej ró¿nicy
+                         else  //przy du¿ej ró¿nicy wysoki stopieñ (1,25 potrzebnego opoznienia)
+                           AccDesired:=(SQR(VelNext)-SQR(Vel))/(20.73*ActualProximityDist+0.1); {hamuj proporcjonalnie} //najpierw hamuje mocniej, potem zluzuje
                          if AccPreferred<AccDesired then
                           AccDesired:=AccPReferred;                  //(1+abs(AccDesired))
                          ReactionTime:=BrakeDelay[2+2*BrakeDelayFlag]/2; {aby szybkosc hamowania zalezala od przyspieszenia i opoznienia hamulcow}
@@ -1049,17 +1206,31 @@ begin
                        VelDesired:=0;            {stoj}
                      end;
                  end
-                else
+                else //gdy jedzie wolniej, to jest normalnie
                  AccDesired:=AccPreferred;       {normalna jazda}
-                if (VelDesired>=0) and (Vel>VelDesired) then
-                 if AccDesired>-AccPreferred then
-                  Accdesired:=-AccPreferred;
-                if (AccDesired>0) and (VelNext>=0) then
-                 if (VelNext<Vel-70) then        {lepiej zaczac hamowac}
+				//koniec predkosci nastepnej
+
+                if (VelDesired>=0) and (Vel>VelDesired) then //jesli jedzie za szybko do AKTUALNEGO
+                 if (VelDesired=0) then //jesli stoj, to hamuj, ale i tak juz za pozno :)
+                     AccDesired:=-0.5
+                 else
+                 if (Vel<VelDesired+5) then // o 5 km/h to olej
+                   if (AccDesired>0) then
+                     AccDesired:=0
+                   else
+                 else
+                   AccDesired:=-0.2;  //hamuj tak œrednio
+//                 if AccDesired>-AccPreferred then
+//                  Accdesired:=-AccPreferred;
+				//koniec predkosci aktualnej
+
+                if (AccDesired>0) and (VelNext>=0) then //wybieg b¹dŸ lekkie hamowanie, warunki byly zamienione
+                 if (VelNext<Vel-100) then        {lepiej zaczac hamowac} 
                   AccDesired:=-0.2
                  else
-                  if (VelNext<Vel-100) then
+                  if (VelNext<Vel-70) then
                    AccDesired:=0;                {nie spiesz sie bo bedzie hamowanie}
+				//koniec wybiegu i hamowania
                 {wlaczanie bezpiecznika}
                 if EngineType=ElectricSeriesMotor then
                  if FuseFlag or Need_TryAgain then
@@ -1076,7 +1247,7 @@ begin
                           SetDriverPsyche;
                        end;
                 if BrakeSystem=Pneumatic then  {napelnianie uderzeniowe}
-                 if BrakeSubsystem=ss_LSt then
+                 if BrakeSubsystem=Oerlikon then
                   begin
                     if BrakeCtrlPos=-2 then BrakeCtrlPos:=0;
                     if (BrakeCtrlPos<0)and (PipebrakePress<0.01){(CntrlPipePress-(Volume/BrakeVVolume/10)<0.01)} then
@@ -1092,33 +1263,35 @@ begin
 //                         DecBrakeLevel
 //                       end;
                   end;
-                {zwiekszanie predkosci:}
-                if ((Vel<VelDesired*0.7-VelMargin) or ((Vel<VelDesired*0.94-VelMargin) and (AbsAccS<0)))
-               and (((AccDesired>0) and (AbsAccS<AccDesired)) or ((AccDesired<=0) and (AbsAccS<3/(1+BrakeDelay[1+2*BrakeDelayFlag]/10)*AccDesired))) then
+
+                if(AccDesired>=0) then while DecBrake do;  //jeœli przyspieszamy, to nie hamujemy
+                if(AccDesired<=0)or(Vel+VelMargin>VelDesired*0.95) then while DecSpeed do; //jeœli hamujemy, to nie przyspieszamy
+
+                {zwiekszanie predkosci:} //yB: usuniête ró¿ne dziwne warunki, oddzielamy czêœæ zadaj¹c¹ od wykonawczej
+                if ((AbsAccS<AccDesired)and(Vel<VelDesired*0.85-VelMargin)and(AccDesired>=0)) then
        {          if not MaxVelFlag then }
-                  begin
-                   if not DecBrake then
                     if not IncSpeed then
                      MaxVelFlag:=True
                     else MaxVelFlag:=False;
-                  end
-                 else
-                  if (Vel<VelDesired*0.85) and (AccDesired>0) and (EngineType=ElectricSeriesMotor)
-                      and (RList[MainCtrlPos].R>0.0) and (not DelayCtrlFlag) then
-                   if (Im<Imax) and Ready=True {(BrakePress<0.01*MaxBrakePress)} then
-                    IncMainCtrl(1); {zwieksz nastawnik skoro mozesz - tak aby sie ustawic na bezoporowej}
+//                  end;
+//                 else
+//                  if (Vel<VelDesired*0.85) and (AccDesired>0) and (EngineType=ElectricSeriesMotor)
+//                      and (RList[MainCtrlPos].R>0.0) and (not DelayCtrlFlag) then
+//                   if (Im<Imin) and Ready=True {(BrakePress<0.01*MaxBrakePress)} then
+//                    IncMainCtrl(1); {zwieksz nastawnik skoro mozesz - tak aby sie ustawic na bezoporowej}
 
-                {zmniejszanie predkosci:}
-                if ((Vel>VelDesired) or ((Vel>VelDesired*0.98) and (AbsAccS>0)))
-                or ((AccDesired<0) and (AbsAccS>AccDesired)) then
+                {zmniejszanie predkosci:} //yB: usuniête ró¿ne dziwne warunki, oddzielamy czêœæ zadaj¹c¹ od wykonawczej
+                if ((AccDesired<-0.1) and (AbsAccS>AccDesired+0.05)) then
        {          if not MinVelFlag then   }
-                   begin
-                      if not DecSpeed then
-                       if (AccDesired<-0.1+AbsAccS) or ((Vel-VelMargin)>VelDesired) then
                         if not IncBrake then
                          MinVelFlag:=True
-                        else MinVelFlag:=False;
-                   end;
+                   else begin MinVelFlag:=False; ReactionTime:=3+(BrakeDelay[2+2*BrakeDelayFlag]-3)/2; end;
+
+                if ((AccDesired<-0.05) and (AbsAccS<AccDesired-0.2)) then
+                 begin DecBrake; ReactionTime:=(BrakeDelay[1+2*BrakeDelayFlag])/3; end; //jak hamuje, to nie tykaj kranu za czêsto
+//                   end;
+//Mietek-end1
+
 
                 {zapobieganie poslizgowi w czlonie silnikowym}
                 if (Couplers[0].Connected<>NIL) then

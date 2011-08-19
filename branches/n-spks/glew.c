@@ -9100,7 +9100,7 @@ extern GLenum glxewContextInit (void);
 GLenum glewInit ()
 {
   GLenum r;
-  if ( (r = glewContextInit()) ) return r;
+  if ( (r = glewContextInit())!=NULL ) return r;
 #if defined(_WIN32)
   return wglewContextInit();
 #elif !defined(__APPLE__) || defined(GLEW_APPLE_GLX) /* _UNIX */

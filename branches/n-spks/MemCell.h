@@ -3,9 +3,9 @@
 #ifndef MemCellH
 #define MemCellH
 
-#include "TrkFoll.h"
+#include "Classes.h"
 
-#include "parser.h"
+using namespace Mover;
 
 class TMemCell
 {
@@ -21,10 +21,10 @@ public:
     AnsiString asTrackName;
     __fastcall TMemCell();
     __fastcall ~TMemCell();
-    bool __fastcall Init();
-    bool __fastcall UpdateValues(char *szNewText, double fNewValue1, double fNewValue2, int CheckMask);
+    void __fastcall Init();
+    void __fastcall UpdateValues(char *szNewText, double fNewValue1, double fNewValue2, int CheckMask);
     bool __fastcall Load(cParser *parser);
-    bool __fastcall PutCommand(TMoverParameters *Mover, TLocation &Loc);
+    void __fastcall PutCommand(TMoverParameters *Mover, TLocation &Loc);
     bool __fastcall Compare(char *szTestText, double fTestValue1, double fTestValue2, int CheckMask);
     bool __fastcall Render();
 };

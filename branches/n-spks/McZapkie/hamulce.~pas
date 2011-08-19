@@ -22,18 +22,20 @@ unit hamulce;          {fizyka hamulcow dla symulatora}
 (*
     MaSzyna EU07 - SPKS
     Brakes.
-    Copyright (C) 2007-2010 Maciej Cierniak
+    Copyright (C) 2007-2011 Maciej Cierniak
 *)
 
 
 (*
 (C) youBy
 Co brakuje:
-Wszystko
+Knorr, knorr, knorr i moze jeszcze jakis knorr albo SW
+tarcze hamulcowe i magnetyki
 *)
 (*
 Zrobione:
-nic
+ESt3, ESt3AL2, ESt4R, LSt, FV4a, FD1, EP2, prosty westinghouse
+duzo wersji ¿eliwa
 *)
 
 interface
@@ -395,14 +397,17 @@ begin
 end;
 
 //---SILOWNIK---
-
 function TBrakeCyl.pa:real;
-var VtoC: real;
+//var VtoC: real;
 begin
-  VtoC:=Vol/Cap;
+//  VtoC:=Vol/Cap;
   pa:=P*0.1
 end;
 
+
+(* NOWSZA WERSJA - maksymalne ciœnienie to ok. 4,75 bar, co powoduje
+//                 problemy przy rapidzie w lokomotywach, gdyz jest
+//                 osiagany wierzcholek paraboli
 function TBrakeCyl.P:real;
 var VtoC: real;
 begin
@@ -410,17 +415,17 @@ begin
   if VtoC<0.06 then P:=VtoC/4
   else if VtoC>0.88 then P:=0.5+(VtoC-0.88)*1.043-0.064*(VtoC-0.88)*(VtoC-0.88)
   else P:=0.15+0.35/0.82*(VtoC-0.06);
-end;
+end; *)
 
-(* STARA WERSJA
+//(* STARA WERSJA
 function TBrakeCyl.P:real;
-var VtoC: real;
+var VtoC: real; //stosunek cisnienia do objetosci
 begin
   VtoC:=Vol/Cap;
 //  P:=VtoC;
-  if VtoC<0.11 then P:=VtoC
-  else if VtoC>1.11 then P:=VtoC-1
-  else P:=0.11
+  if VtoC<0.15 then P:=VtoC//objetosc szkodliwa
+  else if VtoC>1.3 then P:=VtoC-1 //caly silownik
+  else P:=0.15*(1+(VtoC-0.15)/1.15); //wysuwanie tloka
 end;  //*)
 
 
@@ -491,36 +496,43 @@ begin
   end;
 end;
 
+//inicjalizacja hamulca (stan poczatkowy)
 procedure TBrake.Init(PP, HPP, LPP, BP: real; BDF: byte);
 begin
 
 end;
 
+//pobranie wspolczynnika tarcia materialu
 function TBrake.GetFC(Vel, N: real): real;
 begin
   GetFC:=FM.GetFC(N, Vel);
 end;
 
+//cisnienie cylindra hamulcowego
 function TBrake.GetBCP: real;
 begin
   GetBCP:=BrakeCyl.P;
 end;
 
+//cisnienie zbiornika pomocniczego
 function TBrake.GetBRP: real;
 begin
   GetBRP:=BrakeRes.P;
 end;
 
+//cisnienie komory wstepnej
 function TBrake.GetVRP: real;
 begin
   GetVRP:=ValveRes.P;
 end;
 
+//cisnienie zbiornika sterujacego
 function TBrake.GetCRP: real;
 begin
   GetCRP:=0;
 end;
 
+//przeplyw z przewodu glowneg
 function TBrake.GetPF(PP, dt, Vel: real): real;
 begin
   ValveRes.Act;
@@ -529,6 +541,7 @@ begin
   GetPF:=0;
 end;
 
+//przeplyw z przewodu zasilajacego
 function TBrake.GetHPFlow(HP, dt: real): real;
 begin
   GetHPFlow:=0;
@@ -1527,7 +1540,7 @@ const
 var
   LimPP, dpPipe, dpMainValve, ActFlowSpeed: real;
 begin
-
+          ep:=pp; //SPKS!!
           Limpp:=Min0R(BPT[Round(i_bcp)][1],HP);
           ActFlowSpeed:=BPT[Round(i_bcp)][0];
 

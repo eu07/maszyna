@@ -23,10 +23,10 @@
 #include    "classes.hpp"
 #pragma hdrstop
 
+#include "Event.h"
+#include "parser.h"
 #include "Timer.h"
 #include "Usefull.h"
-
-#include "Event.h"
 
 __fastcall TEvent::TEvent()
 {
@@ -44,16 +44,19 @@ __fastcall TEvent::TEvent()
 
 __fastcall TEvent::~TEvent()
 {
-    if (Type==tp_UpdateValues)
-        SafeDeleteArray(Params[0].asText);
+ switch (Type)
+ {case tp_UpdateValues:
+  case tp_AddValues:
+   SafeDeleteArray(Params[0].asText);
+ }
 }
 
-bool __fastcall TEvent::Init()
+void __fastcall TEvent::Init()
 {
 
 }
 
-bool __fastcall TEvent::Load(cParser* parser)
+void __fastcall TEvent::Load(cParser* parser)
 {
     int i;
     int ti;
@@ -66,7 +69,7 @@ bool __fastcall TEvent::Load(cParser* parser)
 
     parser->getTokens();
     *parser >> token;
-    asName= AnsiString(token.c_str());
+    asName=AnsiString(token.c_str()).LowerCase(); //u¿ycie parametrów mo¿e dawaæ wielkie
 
     parser->getTokens();
     *parser >> token;
@@ -111,6 +114,18 @@ bool __fastcall TEvent::Load(cParser* parser)
     if (str==AnsiString("multiple"))
         Type= tp_Multiple;
     else
+    if (str==AnsiString("addvalues"))
+        Type= tp_AddValues;
+    else
+    if (str==AnsiString("copyvalues"))
+        Type= tp_CopyValues;
+    else
+    if (str==AnsiString("whois"))
+        Type= tp_WhoIs;
+    else
+    if (str==AnsiString("logvalues"))
+        Type= tp_LogValues;
+    else
         Type= tp_Unknown;
 
     parser->getTokens();
@@ -120,27 +135,31 @@ bool __fastcall TEvent::Load(cParser* parser)
     *parser >> token;
     str= AnsiString(token.c_str());
 
-    if (str!=AnsiString("none"))
-        asNodeName= str;
+    if (str!="none") asNodeName=str; //nazwa obiektu powi¹zanego
+
+    if (asName.SubString(1,5)=="none_")
+     Type= tp_Ignored; //Ra: takie s¹ ignorowane
 
     switch (Type)
     {
 
+        case tp_AddValues:
+            Params[12].asInt=conditional_memadd; //dodawanko
         case tp_UpdateValues:
-            Params[12].asInt= 0;
+            if (Type==tp_UpdateValues) Params[12].asInt=0;
             parser->getTokens(1,false);  //case sensitive
             *parser >> token;
             str= AnsiString(token.c_str());
             Params[0].asText= new char[str.Length()+1];
             strcpy(Params[0].asText,str.c_str());
             if (str!=AnsiString("*"))       //*=nie brac tego pod uwage
-              Params[12].asInt+=conditional_memstring;
+              Params[12].asInt|=conditional_memstring;
             parser->getTokens();
             *parser >> token;
             str= AnsiString(token.c_str());
             if (str!=AnsiString("*"))       //*=nie brac tego pod uwage)
              {
-              Params[12].asInt+=conditional_memval1;
+              Params[12].asInt|=conditional_memval1;
               Params[1].asdouble= str.ToDouble();
              }
             else
@@ -150,7 +169,7 @@ bool __fastcall TEvent::Load(cParser* parser)
             str= AnsiString(token.c_str());
             if (str!=AnsiString("*"))       //*=nie brac tego pod uwage
              {
-              Params[12].asInt+=conditional_memval2;
+              Params[12].asInt|=conditional_memval2;
               Params[2].asdouble= str.ToDouble();
              }
             else
@@ -158,7 +177,10 @@ bool __fastcall TEvent::Load(cParser* parser)
             parser->getTokens();
             *parser >> token;
         break;
+        case tp_WhoIs:
+        case tp_CopyValues:
         case tp_GetValues:
+        case tp_LogValues:
             parser->getTokens();
             *parser >> token;
         break;
@@ -168,31 +190,31 @@ bool __fastcall TEvent::Load(cParser* parser)
             Params[12].asInt= 0;
             parser->getTokens(1,false);  //komendy 'case sensitive'
             *parser >> token;
-            str= AnsiString(token.c_str());
+            str=AnsiString(token.c_str());
+            if (str.SubString(1,19)=="PassengerStopPoint:")
+             if (str.Pos("#")) str=str.SubString(1,str.Pos("#")-1); //obciêcie unikatowoœci
             Params[0].asText= new char[str.Length()+1];
             strcpy(Params[0].asText,str.c_str());
 //            if (str!=AnsiString("*"))       //*=nie brac tego pod uwage
 //              Params[12].asInt+=conditional_memstring;
             parser->getTokens();
             *parser >> token;
-            str= AnsiString(token.c_str());
-//            if (str!=AnsiString("*"))       //*=nie brac tego pod uwage)
-//             {
-//              Params[12].asInt+=conditional_memval1;
-              Params[1].asdouble= str.ToDouble();
-//             }
-//            else
-//             Params[1].asdouble= 0;
+            str=AnsiString(token.c_str());
+            try
+            {Params[1].asdouble=str.ToDouble();}
+            catch (...)
+            {Params[1].asdouble=0.0;
+             WriteLog("Error: number expected in PutValues event, found: "+str);
+            }
             parser->getTokens();
             *parser >> token;
-            str= AnsiString(token.c_str());
-//            if (str!=AnsiString("*"))       //*=nie brac tego pod uwage
-//             {
-//              Params[12].asInt+=conditional_memval2;
-              Params[2].asdouble= str.ToDouble();
-//             }
-//            else
-//             Params[2].asdouble= 0;
+            str=AnsiString(token.c_str());
+            try
+            {Params[2].asdouble=str.ToDouble();}
+            catch (...)
+            {Params[2].asdouble=0.0;
+             WriteLog("Error: number expected in PutValues event, found: "+str);
+            }
             parser->getTokens();
             *parser >> token;
         break;
@@ -239,21 +261,25 @@ bool __fastcall TEvent::Load(cParser* parser)
         case tp_Animation:
             parser->getTokens();
             *parser >> token;
-            Params[0].asInt= 0;
+            Params[0].asInt=0; //nieznany typ
             if ( token.compare( "rotate" ) == 0 )
             {
                 parser->getTokens();
                 *parser >> token;
-                Params[9].asText= new char[255];
+                Params[9].asText=new char[255]; //nazwa submodelu
                 strcpy(Params[9].asText,token.c_str());
-                Params[0].asInt= 1;
+                Params[0].asInt=1;
                 parser->getTokens(4);
                 *parser >> Params[1].asdouble >> Params[2].asdouble >> Params[3].asdouble >> Params[4].asdouble;
             }
             else
             if ( token.compare( "translate" ) == 0 )
             {
-                Params[0].asInt= 2;
+                parser->getTokens();
+                *parser >> token;
+                Params[9].asText=new char[255]; //nazwa submodelu
+                strcpy(Params[9].asText,token.c_str());
+                Params[0].asInt=2;
                 parser->getTokens(4);
                 *parser >> Params[1].asdouble >> Params[2].asdouble >> Params[3].asdouble >> Params[4].asdouble;
             }
@@ -283,18 +309,17 @@ bool __fastcall TEvent::Load(cParser* parser)
 
             while (str!=AnsiString("endevent") && str!=AnsiString("condition"))
             {
-                if (str!=AnsiString("none"))
-                {
-                    if (i<8)
-                    {
-                        Params[i].asText= new char[255];
-                        strcpy(Params[i].asText,str.c_str());
-                    }
-                    i++;
-                };
-               parser->getTokens();
-               *parser >> token;
-               str= AnsiString(token.c_str());
+             if ((str.SubString(1,5)!="none_")?(i<8):false)
+             {//eventy rozpoczynaj¹ce siê od "none_" s¹ ignorowane
+              Params[i].asText=new char[255];
+              strcpy(Params[i].asText,str.c_str());
+              i++;
+             }
+             else
+              WriteLog("Event \""+str+"\" ignored in multiple \""+asName+"\"!");
+             parser->getTokens();
+             *parser >> token;
+             str=AnsiString(token.c_str());
             }
             if (str==AnsiString("condition"))
             {
@@ -344,9 +369,16 @@ bool __fastcall TEvent::Load(cParser* parser)
 
             }
         break;
-        case tp_Unknown:
-                    parser->getTokens(); *parser >> token;
-             break;
+        case tp_Ignored: //ignorowany
+        case tp_Unknown: //nieznany
+         do
+         {parser->getTokens();
+          *parser >> token;
+          str= AnsiString(token.c_str());
+         } while (str!="endevent");
+
+         WriteLog("Event \""+asName+(Type==tp_Unknown?"\" has unknown type.":"\" is ignored."));
+         break;
     }
 }
 

@@ -5,7 +5,7 @@ unit mover;          {fizyka ruchu dla symulatora lokomotywy}
     Copyright (C) 2001-2004  Maciej Czapkiewicz and others
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by                                                             
+    it under the terms of the GNU General Public License as published by
     the Free Software Foundation; either version 2 of the License, or
     (at your option) any later version.
 
@@ -152,6 +152,16 @@ CONST
 
    PhysicActivationFlag: boolean=False;
 
+   //szczególne typy pojazdów (inna obs³uga) dla zmiennej TrainType
+   dt_Default=0;
+   dt_EZT=1;
+   dt_ET41=2;
+   dt_ET42=3;
+   dt_PseudoDiesel=4;
+   dt_ET22=5; //nie u¿ywane
+   dt_SN61=6; //nie u¿ywane
+   dt_181=7; 
+
 TYPE
     PMoverParameters=^TMoverParameters;
 
@@ -200,10 +210,10 @@ TYPE
                   {zmienne}
                   CouplingFlag : byte; {0 - wirtualnie, 1 - sprzegi, 2 - pneumatycznie, 4 - sterowanie, 8 - kabel mocy}
                   Render: boolean;             {ABu: czy rysowac jak zaczepiony sprzeg}
-                  CoupleDist: real;            {ABu: optymalizacja - liczenie odleglosci raz na klatke, bez iteracji}
+                  CoupleDist: real;            {ABu: optymalizacja - liczenie odleglosci raz na klatkê, bez iteracji}
                   Connected: PMoverParameters; {co jest podlaczone}
                   CForce: real;                {sila z jaka dzialal}
-                  Dist: real;                  {strzalka ugiecia}
+                  Dist: real;                  {strzalka ugiecia zderzaków}
                   CheckCollision: boolean;     {czy sprawdzac sile czy pedy}
                 end;
 
@@ -315,6 +325,7 @@ TYPE
                        Status: byte;     {0: wylaczony, 1: wlaczony, 2: czuwak, 4: shp, 8: alarm, 16: hamowanie awaryjne}
                        SystemTimer, SystemSoundTimer, SystemBrakeTimer: real;
                        VelocityAllowed, NextVelocityAllowed: integer; {predkosc pokazywana przez sygnalizacje kabinowa}
+                       RadioStop:boolean; //czy jest RadioStop
                      end;
 
     {----------------------------------------------}
@@ -327,7 +338,8 @@ TYPE
                CategoryFlag: byte;       {1 - pociag, 2 - samochod, 4 - statek, 8 - samolot}
                     {--sekcja stalych typowych parametrow}
                TypeName: string;         {nazwa serii/typu}
-               TrainType: string;       {typ: EZT/elektrowoz - Winger 040304}
+               //TrainType: string;       {typ: EZT/elektrowoz - Winger 040304}
+               TrainType: integer; {Ra: powinno byæ szybciej ni¿ string}
                EngineType: TEngineTypes;               {typ napedu}
                EnginePowerSource: TPowerParameters;    {zrodlo mocy dla silnikow}
                SystemPowerSource: TPowerParameters;    {zrodlo mocy dla systemow sterowania/przetwornic/sprezarek}
@@ -336,6 +348,7 @@ TYPE
                LightPowerSource: TPowerParameters;     {zrodlo mocy dla oswietlenia}
                AlterLightPowerSource: TPowerParameters;{alternatywne mocy dla oswietlenia}
                Vmax,Mass,Power: real;    {max. predkosc kontrukcyjna, masa wlasna, moc}
+               Mred: real;    {Ra: zredukowane masy wiruj¹ce; potrzebne do obliczeñ hamowania}
                TotalMass:real; {wyliczane przez ComputeMass}
                HeatingPower, LightPower: real; {moc pobierana na ogrzewanie/oswietlenie}
                BatteryVoltage: integer;        {Winger - baterie w elektrykach}
@@ -367,6 +380,7 @@ TYPE
                LocalBrake: TLocalBrake;  {rodzaj hamulca indywidualnego}
                BrakePressureTable: TBrakePressureTable; {wyszczegolnienie cisnien w rurze}
                ASBType: byte;            {0: brak hamulca przeciwposlizgowego, 1: reczny, 2: automat}
+               TurboTest: byte;
                MaxBrakeForce: real;      {maksymalna sila nacisku hamulca}
                MaxBrakePress: array[0..3] of real;
                P2FTrans: real;
@@ -521,7 +535,6 @@ TYPE
 //                NapUdWsp: integer;
                 LimPipePress: real;                 {stabilizator cisnienia}
                 ActFlowSpeed: real;                 {szybkosc stabilizatora}
-//                fv4at,fv4ac,fv4ar: real;            {cisnienia w zbiornikach kranu}
 
 
                 DamageFlag: byte;  {kombinacja bitowa stalych dtrain_* }
@@ -532,6 +545,7 @@ TYPE
                 {komenda przekazywana przez PutCommand}
                 {i wykonywana przez RunInternalCommand}
                 CommandOut: string;        {komenda przekazywana przez ExternalCommand}
+                CommandLast: string; //Ra: ostatnio wykonana komenda podgl¹du
                 ValueOut: real;            {argument komendy ktora ma byc przekazana na zewnatrz}
 
                 RunningShape:TTrackShape;{geometria toru po ktorym jedzie pojazd}
@@ -542,8 +556,8 @@ TYPE
                 Mains: boolean;    {polozenie glownego wylacznika}
                 MainCtrlPos: byte; {polozenie glownego nastawnika}
                 ScndCtrlPos: byte; {polozenie dodatkowego nastawnika}
-                ActiveDir: integer;{czy lok. jest wlaczona i w ktorym kierunku}
-                {-1 - do tylu, +1 - do przodu, 0 - wylaczona}
+                ActiveDir: integer; //czy lok. jest wlaczona i w ktorym kierunku:
+                //wzglêdem wybranej kabiny: -1 - do tylu, +1 - do przodu, 0 - wylaczona
                 CabNo: integer;    {! numer kabiny: 1 lub -1. W przeciwnym razie brak sterowania - rozrzad}
                 ActiveCab: integer; {! numer kabiny, w ktorej sie jest}
                 LastCab: integer;       { numer kabiny przed zmiana }
@@ -612,7 +626,6 @@ TYPE
                    FrictConst1:  real;
                    FrictConst2s: real;
                    FrictConst2d: real;
-                   FrictConst3:  real;
                    TotalMassxg     : real; {TotalMass*g}
 
 
@@ -624,6 +637,10 @@ TYPE
                 procedure PantCheck; //pomocnicza, do sprawdzania pantografow
 
 {                function BrakeRatio: real;  }
+                function LocalBrakeRatio: real;
+                function PipeRatio: real; {ile napelniac}
+                function RealPipeRatio: real; {jak szybko}
+                function BrakeVP: real;                
                 function DynamicBrakeSwitch(Switch:boolean):boolean;
 
                 {! przesylanie komend sterujacych}
@@ -789,7 +806,7 @@ TYPE
                                  VelInitial:real; TypeNameInit, NameInit: string; LoadInitial:longint; LoadTypeInitial: string; Cab:integer);
                                                               {wywolac najpierw to}
                 function LoadChkFile(chkpath:string):Boolean;   {potem zaladowac z pliku}
-                function CheckLocomotiveParameters(ReadyFlag:boolean): boolean;  {a nastepnie sprawdzic}
+                function CheckLocomotiveParameters(ReadyFlag:boolean;Dir:longint): boolean;  {a nastepnie sprawdzic}
                 function EngineDescription(what:integer): string;  {opis stanu lokomotywy}
 
    {obsluga drzwi}
@@ -799,7 +816,7 @@ TYPE
                 function PantFront(State: Boolean): Boolean;
                 function PantRear(State: Boolean): Boolean;
    {ogrzewanie - Winger 020304}
-//                function Heating(State: Boolean): Boolean;
+               //function Heating(State: Boolean): Boolean;
 
                 //private
                 //function TotalMass:real;
@@ -858,11 +875,12 @@ begin
   s2NNW:=NNW;
 end;
 
-function Distance(Loc1,Loc2: TLocation; Dim1,Dim2:TDimension) : real;
+function Distance(Loc1,Loc2:TLocation;Dim1,Dim2:TDimension):real;
+{zwraca odleg³oœæ pomiêdzy pojazdami (Loc1) i (Loc2) z uwzglêdnieneim ich d³ugoœci}
 var Dist:real;
 begin
-  Dist:=SQRT(SQR(Loc2.x-Loc1.x)+SQR(Loc1.y-Loc2.y));
-  Distance:=Dist-Dim2.L/2-Dim1.L/2;
+ Dist:=SQRT(SQR(Loc2.x-Loc1.x)+SQR(Loc1.y-Loc2.y));
+ Distance:=Dist-Dim2.L/2.0-Dim1.L/2.0;
 {  Distance:=Hypot(Loc2.x-Loc1.x,Loc2.y-Loc1.y)-(Dim2.L+Dim1.L)/2; }
 end;
 
@@ -986,6 +1004,55 @@ function TMoverParameters.BrakeRatio: real;
     BrakeRatio:=0;
  end;
 }
+
+function TMoverParameters.LocalBrakeRatio: real;
+var LBR:real;
+begin
+  if LocalBrakePosNo>0 then
+   LBR:=LocalBrakePos/LocalBrakePosNo
+  else
+   LBR:=0;
+// if TestFlag(BrakeStatus,b_antislip) then
+//   LBR:=Max0R(LBR,PipeRatio)+0.4; SPKS!!
+ LocalBrakeRatio:=LBR;
+end;
+
+function TMoverParameters.PipeRatio: real;
+var pr:real;
+begin
+  if DeltaPipePress>0 then
+   if (false) then //SPKS!!
+    begin
+     if (3*PipePress)>(HighPipePress+LowPipePress+LowPipePress) then
+      pr:=(HighPipePress-Min0R(HighPipePress,PipePress))/(DeltaPipePress*4.0/3.0)
+     else
+      pr:=(HighPipePress-1.0/3.0*DeltaPipePress-Max0R(LowPipePress,PipePress))/(DeltaPipePress*2.0/3.0);
+//     if (not TestFlag(BrakeStatus,b_Ractive)) and (BrakeMethod and 1 = 0) and TestFlag(BrakeDelays,bdelay_R) and (Power<1) and (BrakeCtrlPos<1) then
+//      pr:=Min0R(0.5,pr);
+    end
+   else
+     pr:=(HighPipePress-Max0R(LowPipePress,Min0R(HighPipePress,PipePress)))/DeltaPipePress
+  else
+    pr:=0;
+  PipeRatio:=pr;
+end;
+
+function TMoverParameters.RealPipeRatio: real;
+var rpp:real;
+begin
+  if DeltaPipePress>0 then
+    rpp:=(CntrlPipePress-PipePress)/(DeltaPipePress)
+  else
+    rpp:=0;
+  RealPipeRatio:=rpp;
+end;
+
+function TMoverParameters.BrakeVP: real;
+begin
+  if BrakeVVolume>0 then
+   BrakeVP:=Volume/(10.0*BrakeVVolume)
+  else BrakeVP:=0;
+end;
 
 {reczne przelaczanie hamulca elektrodynamicznego}
 function TMoverParameters.DynamicBrakeSwitch(Switch:boolean):boolean;
@@ -1124,7 +1191,7 @@ begin
              if Imax=ImaxHi then
               if RList[MainCtrlPos].Bn>1 then
                begin
-                if(TrainType='et42')then
+                if(TrainType=dt_ET42)then
                  begin
                   dec(MainCtrlPos);
                   OK:=false;
@@ -1135,7 +1202,7 @@ begin
               MainCtrlActualPos:=1;
  }             end;
             if(DynamicBrakeFlag)then
-              if(TrainType='et42')then
+              if(TrainType=dt_ET42)then
                 if MainCtrlPos>20 then
                  begin
                   dec(MainCtrlPos);
@@ -1148,10 +1215,10 @@ begin
              while (RList[MainCtrlPos].R>0) and IncMainCtrl(1) do
               OK:=True ; {takie chamskie, potem poprawie}
             if(DynamicBrakeFlag)then
-              if(TrainType='et42')then
+              if(TrainType=dt_ET42)then
                 while(MainCtrlPos>20)do
                   dec(MainCtrlPos);
-                OK:=false;
+            OK:=false;
            end;
         DieselEngine:
          if CtrlSpeed=1 then
@@ -1275,12 +1342,12 @@ function TMoverParameters.IncScndCtrl(CtrlSpeed:integer): boolean;
 var //b:byte;
     OK:boolean;
 begin
-  if (MainCtrlPos=0)and(CabNo<>0)and(TrainType='et42')and(ScndCtrlPos=0)and(DynamicBrakeFlag)then
+  if (MainCtrlPos=0)and(CabNo<>0)and(TrainType=dt_ET42)and(ScndCtrlPos=0)and(DynamicBrakeFlag)then
    begin
     OK:=DynamicBrakeSwitch(False);
    end
   else
- if (ScndCtrlPosNo>0) and (CabNo<>0) and not ((TrainType='et42')and((Imax=ImaxHi)or((DynamicBrakeFlag)and(MainCtrlPos>0)))) then
+ if (ScndCtrlPosNo>0) and (CabNo<>0) and not ((TrainType=dt_ET42)and((Imax=ImaxHi)or((DynamicBrakeFlag)and(MainCtrlPos>0)))) then
   begin
 {      if (RList[MainCtrlPos].R=0) and (MainCtrlPos>0) and (ScndCtrlPos<ScndCtrlPosNo) and (not CoupledCtrl) then}
    if (ScndCtrlPos<ScndCtrlPosNo) and (not CoupledCtrl) and ((EngineType<>DieselElectric) or (not AutoRelayFlag)) then
@@ -1314,7 +1381,7 @@ function TMoverParameters.DecScndCtrl(CtrlSpeed:integer): boolean;
 var //b:byte;
     OK:boolean;
 begin
-  if (MainCtrlPos=0)and(CabNo<>0)and(TrainType='et42')and(ScndCtrlPos=0)and not(DynamicBrakeFlag)then
+  if (MainCtrlPos=0)and(CabNo<>0)and(TrainType=dt_ET42)and(ScndCtrlPos=0)and not(DynamicBrakeFlag)then
    begin
     OK:=DynamicBrakeSwitch(true);
    end
@@ -1356,7 +1423,7 @@ begin
      DirectionForward:=True;
      SendCtrlToNext('Direction',ActiveDir,CabNo);
    end
-  else if (ActiveDir=1) and (MainCtrlPos=0) and (TrainType='ezt') then
+  else if (ActiveDir=1) and (MainCtrlPos=0) and (TrainType=dt_EZT) then
     DirectionForward:=MinCurrentSwitch(true)
   else
     DirectionForward:=False;
@@ -1364,7 +1431,7 @@ end;
 
 function TMoverParameters.DirectionBackward: boolean;
 begin
-  if (ActiveDir=1) and (MainCtrlPos=0) and (TrainType='ezt') then
+  if (ActiveDir=1) and (MainCtrlPos=0) and (TrainType=dt_EZT) then
     if MinCurrentSwitch(false) then
     begin
       DirectionBackward:=True;
@@ -1385,6 +1452,7 @@ end;
 
 function TMoverParameters.MainSwitch(State:boolean): boolean;
 begin
+ MainSwitch:=False; //Ra: przeniesione z koñca
   if ((Mains<>State) and (MainCtrlPosNo>0)) then
    begin
     if (State=False) or ({(MainCtrlPos=0) and} (ScndCtrlPos=0) and (LastSwitchingTime>CtrlDelay) and not TestFlag(DamageFlag,dtrain_out)) then
@@ -1409,8 +1477,7 @@ begin
         SecuritySystem.Status:=s_waiting;
      end
    end
-  else
-   MainSwitch:=False;
+  //else MainSwitch:=False;
 end;
 
 function TMoverParameters.ChangeCab(direction:integer): boolean;
@@ -1455,6 +1522,7 @@ end;
 {wl/wyl przetwornicy}
 function TMoverParameters.ConverterSwitch(State:boolean):boolean;
 begin
+ ConverterSwitch:=false; //Ra: normalnie chyba false?
  if (ConverterAllow<>State) then
  begin
    ConverterAllow:=State;
@@ -1469,6 +1537,7 @@ end;
 {wl/wyl sprezarki}
 function TMoverParameters.CompressorSwitch(State:boolean):boolean;
 begin
+ CompressorSwitch:=false; //Ra: normalnie chyba tak?
 // if State=true then
 //  if ((CompressorPower=2) and (not ConverterAllow)) then
 //   State:=false; //yB: to juz niepotrzebne
@@ -1615,8 +1684,9 @@ begin
               begin
 //                SendCtrlToNext('Brake',0,CabNo);
 //                SetFlag(BrakeStatus,-b_epused);
-              end;
            end;
+           end;
+
       end
      else
       begin
@@ -1634,7 +1704,7 @@ function TMoverParameters.DecBrakeLevel:boolean;
 begin
   if (BrakeCtrlPosNo>0) {and (LocalBrakePos=0)} then
    begin
-     if (BrakeCtrlPos>-1) or ((BrakeSubsystem=ss_LSt) and (BrakeCtrlPos>(-2+Byte(BrakeSystem=ElectroPneumatic)))) then
+     if (BrakeCtrlPos>-1-Byte(BrakeHandle=FV4a)) then
       begin
         dec(BrakeCtrlPos);
         if EmergencyBrakeFlag then
@@ -1771,14 +1841,13 @@ end;
 
 function TMoverParameters.AntiSlippingBrake: boolean;
 begin
+ AntiSlippingBrake:=False; //Ra: przeniesione z koñca
   if ASBType=1 then
    begin
 //     if SetFlag(BrakeStatus,b_antislip) then
-       AntiSlippingBrake:=True;
+//       AntiSlippingBrake:=True;  //SPKS!!
      BrakeSlippingTimer:=0;
    end
-  else
-   AntiSlippingBrake:=False;
 end;
 
 function TMoverParameters.AntiSlippingButton: boolean;
@@ -1906,23 +1975,23 @@ begin
   dv1:=0;
   dv2:=0;
 //sprzeg 1
-  if Couplers[0].Connected<>nil then
-   if TestFlag(Couplers[0].CouplingFlag,ctrain_pneumatic) then
-     begin
-       c:=Couplers[0].Connected; //skrot
+      if Couplers[0].Connected<>nil then
+       if TestFlag(Couplers[0].CouplingFlag,ctrain_pneumatic) then
+         begin
+           c:=Couplers[0].Connected; //skrot
        dv1:=0.5*dt*PF(PipePress,c^.PipePress,Spg*0.85);
        if (dv1*dv1>0.00000000000001) then c^.Physic_Reactivation;
        c^.Pipe.Flow(-dv1);
-      end;
+          end;
 //sprzeg 2
-  if Couplers[1].Connected<>nil then
-   if TestFlag(Couplers[1].CouplingFlag,ctrain_pneumatic) then
-     begin
-       c:=Couplers[1].Connected; //skrot
+      if Couplers[1].Connected<>nil then
+       if TestFlag(Couplers[1].CouplingFlag,ctrain_pneumatic) then
+         begin
+           c:=Couplers[1].Connected; //skrot
        dv2:=0.5*dt*PF(PipePress,c^.PipePress,Spg*0.85);
        if (dv2*dv2>0.00000000000001) then c^.Physic_Reactivation;
        c^.Pipe.Flow(-dv2);
-      end;
+          end;
   if(Couplers[1].Connected<>nil)and(Couplers[0].Connected<>nil)then
     if (TestFlag(Couplers[0].CouplingFlag,ctrain_pneumatic))and(TestFlag(Couplers[1].CouplingFlag,ctrain_pneumatic))then
      begin
@@ -1941,7 +2010,7 @@ var {b: byte;} dV{,PWSpeed}:real; c: PMoverParameters;
      temp: real;
 begin
   PipePress:=Pipe.P;
-  
+
   dpMainValve:=0;
 
 if (BrakeCtrlPosNo>1) and (ActiveCab*ActiveCab>0)then
@@ -1965,29 +2034,29 @@ end;
 
       case BrakeValve of
       LSt:
-       begin
+         begin
         LocBrakePress:=LocHandle.GetCP;
         (Hamulec as TLSt).SetLBP(LocBrakePress);
-        end;
+         end;
       CV1_L_TR:
-       begin
+         begin
         LocBrakePress:=LocHandle.GetCP;
         (Hamulec as TCV1L_TR).SetLBP(LocBrakePress);
-        end;
+            end;
        EP2:      (Hamulec as TEStEP2).PLC(TotalMass);
        ESt3AL2:
          if MBPM<2 then
           (Hamulec as TESt3AL2).PLC(MaxBrakePress[LoadFlag])
-         else
+        else
           (Hamulec as TESt3AL2).PLC(TotalMass);
-       end;
+      end;
 
       if (BrakeHandle = FVel6) and (ActiveCab*ActiveCab>0) then
-       begin
+      begin
         temp:=(Handle as TFVel6).GetCP;
         (Hamulec as TEStEP2).SetEPS(temp);
         SendCtrlToNext('Brake',temp,CabNo);
-       end;
+      end;
 
 
       Pipe.Act;
@@ -2052,7 +2121,7 @@ procedure TMoverParameters.UpdatePantVolume(dt:real);
  begin
    if PantCompFlag=true then
     begin
-     PantVolume:=PantVolume+dt/30;
+     PantVolume:=PantVolume+dt/30.0;
     end;
  {Winger - ZROBIC}
 end;
@@ -2077,12 +2146,12 @@ begin
 //sprzeg 1
   if Couplers[0].Connected<>nil then
    if TestFlag(Couplers[0].CouplingFlag,ctrain_scndpneumatic) then
-     begin
-       c:=Couplers[0].Connected; //skrot
+    begin
+      c:=Couplers[0].Connected; //skrot
        dv1:=0.5*dt*PF(ScndPipePress,c^.ScndPipePress,Spg*0.75);
        if (dv1*dv1>0.00000000000001) then c^.Physic_Reactivation;
        c^.Pipe2.Flow(-dv1);
-      end;
+    end;
 //sprzeg 2
   if Couplers[1].Connected<>nil then
    if TestFlag(Couplers[1].CouplingFlag,ctrain_scndpneumatic) then
@@ -2098,16 +2167,16 @@ begin
       dv:=0.25*dt*PF(Couplers[0].Connected^.ScndPipePress,Couplers[1].Connected^.ScndPipePress,Spg*0.7);
       Couplers[0].Connected.Pipe2.Flow(+dv);
       Couplers[1].Connected.Pipe2.Flow(-dv);
-     end;
+      end;
 
   Pipe2.Flow(Hamulec.GetHPFlow(ScndPipePress, dt));
 
-  if ((Compressor>ScndPipePress) and (CompressorSpeed>0.0001)) or (TrainType='ezt') then
-   begin
+  if ((Compressor>ScndPipePress) and (CompressorSpeed>0.0001)) or (TrainType=dt_EZT) then
+     begin
     dV:=PF(Compressor,ScndPipePress,Spz)*dt;
     CompressedVolume:=CompressedVolume+dV/1000;
     Pipe2.Flow(-dV);
-   end;
+     end;
 
   Pipe2.Flow(dv1+dv2);
   Pipe2.Act;
@@ -2118,7 +2187,8 @@ end;
 
 {sprzegi}
 
-function TMoverParameters.Attach(ConnectNo: byte; ConnectToNr: byte; ConnectTo:PMoverParameters; CouplingType: byte): boolean; {laczenie}
+function TMoverParameters.Attach(ConnectNo:byte;ConnectToNr:byte;ConnectTo:PMoverParameters;CouplingType:byte):boolean;
+{³¹czenie do (ConnectNo) pojazdu (ConnectTo) stron¹ (ConnectToNr) }
 const dEpsilon=0.001;
 var ct:TCouplerType;
 begin
@@ -2126,15 +2196,17 @@ begin
   begin
    if (ConnectTo<>nil) then
     begin
-      if (ConnectToNr<>2) then CouplerNr[ConnectNo]:=ConnectToNr;
-      ct:=ConnectTo^.Couplers[CouplerNr[ConnectNo]].CouplerType;
-      if (((Distance(Loc,ConnectTo^.Loc,Dim,ConnectTo^.Dim)<=dEpsilon) and (CouplerType<>NoCoupler) and (CouplerType=ct))
+      if (ConnectToNr<>2) then CouplerNr[ConnectNo]:=ConnectToNr; {2=nic nie pod³¹czone}
+      ct:=ConnectTo^.Couplers[CouplerNr[ConnectNo]].CouplerType; //typ sprzêgu pod³¹czanego pojazdu
+      CoupleDist:=Distance(Loc,ConnectTo^.Loc,Dim,ConnectTo^.Dim); //odleg³oœæ pomiêdzy sprzêgami
+      if (((CoupleDist<=dEpsilon) and (CouplerType<>NoCoupler) and (CouplerType=ct))
          or (CouplingType and ctrain_coupler=0))
        then
         begin  {stykaja sie zderzaki i kompatybilne typy sprzegow chyba ze wirtualnie}
           Connected:=ConnectTo;
           CouplingFlag:=CouplingType;
-          Connected.Couplers[CouplerNr[ConnectNo]].CouplingFlag:=CouplingType;
+          if (CouplingType<>ctrain_virtual) //Ra: wirtualnego nie ³¹czymy zwrotnie!
+           then Connected.Couplers[CouplerNr[ConnectNo]].CouplingFlag:=CouplingType;
           Attach:=True;
         end
        else
@@ -2174,7 +2246,7 @@ begin
    newn:=0
   else
    begin
-     eps:=WForce*WheelDiameter/(2*AxleInertialMoment);
+     eps:=WForce*WheelDiameter/(2.0*AxleInertialMoment);
      newn:=n+eps*dt;
      if (newn*n<=0) and (eps*n<0) then
       newn:=0;
@@ -2225,6 +2297,7 @@ end;
 function TMoverParameters.ShowCurrent(AmpN:byte): integer;
 var b,Bn:byte;
 begin
+  ClearPendingExceptions;
   ShowCurrent:=0;
   Bn:=RList[MainCtrlActualPos].Bn;
   if (DynamicBrakeType=dbrake_automatic) and (DynamicBrakeFlag) then
@@ -2250,6 +2323,7 @@ end;
 function TMoverParameters.ShowEngineRotation(VehN:byte): integer;
 var b:Byte; //,Bn:byte;
 begin
+  ClearPendingExceptions;
   ShowEngineRotation:=0;
   case VehN of
    1: ShowEngineRotation:=Trunc(Abs(enrot));
@@ -2360,9 +2434,9 @@ begin
           if Mains then
            begin
             if U>0 then
-             MotorCurrent:=(U-Isf*Rz-Mn*fi*n+SQRT(Delta))/(2*Rz)
+             MotorCurrent:=(U-Isf*Rz-Mn*fi*n+SQRT(Delta))/(2.0*Rz)
             else
-             MotorCurrent:=(U-Isf*Rz-Mn*fi*n-SQRT(Delta))/(2*Rz)
+             MotorCurrent:=(U-Isf*Rz-Mn*fi*n-SQRT(Delta))/(2.0*Rz)
            end
           else
            MotorCurrent:=0;
@@ -2388,7 +2462,7 @@ begin
      if MainSwitch(False) then
        EventFlag:=True;                                      {zbyt duze obroty - wywalanie wskutek ognia okreznego}
     if TestFlag(DamageFlag,dtrain_engine) then
-     if FuzzyLogic(MotorCurrent,ImaxLo/10,p_elengproblem) then
+     if FuzzyLogic(MotorCurrent,ImaxLo/10.0,p_elengproblem) then
       if MainSwitch(False) then
        EventFlag:=True;                                      {uszkodzony silnik (uplywy)}
     if (FuzzyLogic(Abs(Im),Imax*2,p_elengproblem) or FuzzyLogic(Abs(n),nmax*1.11,p_elengproblem)) then
@@ -2408,7 +2482,7 @@ begin
     if not (Rlist[MainCtrlActualPos].ScndAct=255) then
      SP:=Rlist[MainCtrlActualPos].ScndAct;
     with MotorParam[SP] do
-     Momentum:=mfi*I*(1-1/(Abs(I)/mIsat+1));
+     Momentum:=mfi*I*(1-1.0/(Abs(I)/mIsat+1));
 end;
 
 function TMoverParameters.dizel_Momentum(dizel_fill,n,dt:real): real;
@@ -2423,8 +2497,8 @@ begin
 {     Moment:=Moment*(1+sin(eAngle*4))-dizel_Mstand*(1+cos(eAngle*4));}
    end
    else Moment:=-dizel_Mstand;
-  if enrot<dizel_nmin/10 then
-   if (eAngle<Pi/2) then Moment:=Moment-dizel_Mstand; {wstrzymywanie przy malych obrotach}
+  if enrot<dizel_nmin/10.0 then
+   if (eAngle<Pi/2.0) then Moment:=Moment-dizel_Mstand; {wstrzymywanie przy malych obrotach}
   //!! abs
   if abs(abs(n)-enrot)<0.1 then
    begin
@@ -2477,16 +2551,19 @@ end;
 function TMoverParameters.MaxCurrentSwitch(State:boolean):boolean;
 begin
   MaxCurrentSwitch:=False;
-  if (EngineType=ElectricSeriesMotor) and (ImaxHi>ImaxLo) then
+  if (EngineType=ElectricSeriesMotor) then
+   if (ImaxHi>ImaxLo) then
    begin
-     if State and (Imax=ImaxLo) and (RList[MainCtrlPos].Bn<2) and not ((TrainType='et42')and(MainctrlPos>0)) then
+     if State and (Imax=ImaxLo) and (RList[MainCtrlPos].Bn<2) and not ((TrainType=dt_ET42)and(MainctrlPos>0)) then
       begin
         Imax:=ImaxHi;
         MaxCurrentSwitch:=True;
         if CabNo<>0 then
          SendCtrlToNext('MaxCurrentSwitch',1,CabNo);
       end;
-     if (not State) and (Imax=ImaxHi) and not ((TrainType='et42')and(MainctrlPos>0)) then
+     if (not State) then
+     if (Imax=ImaxHi) then
+     if not ((TrainType=dt_ET42)and(MainctrlPos>0)) then
       begin
         Imax:=ImaxLo;
         MaxCurrentSwitch:=True;
@@ -2501,7 +2578,7 @@ end;
 function TMoverParameters.MinCurrentSwitch(State:boolean):boolean;
 begin
   MinCurrentSwitch:=False;
-  if ((EngineType=ElectricSeriesMotor) and (IminHi>IminLo)) or (TrainType='ezt') then
+  if ((EngineType=ElectricSeriesMotor) and (IminHi>IminLo)) or (TrainType=dt_EZT) then
    begin
      if State and (Imin=IminLo) then
       begin
@@ -2537,7 +2614,7 @@ function TMoverParameters.AutoRelaySwitch(State:boolean):boolean;
 function TMoverParameters.AutoRelayCheck: boolean;
 var OK:boolean; //b:byte;
 begin
-//  if ((TrainType='ezt'{) or (TrainType='ET22')}) and (Imin=IminLo)) or ((ActiveDir<0) and (TrainType<>'pseudodiesel')) then
+//  if ((TrainType=dt_EZT{) or (TrainType=dt_ET22)}) and (Imin=IminLo)) or ((ActiveDir<0) and (TrainType<>dt_PseudoDiesel')) then
 //     if Rlist[MainCtrlActualPos].Bn>1 then
 //      begin
 //        dec(MainCtrlActualPos);
@@ -2601,7 +2678,7 @@ begin
         end
        else
         begin          {zmieniaj mainctrlactualpos}
-          if ((TrainType='ezt'{) or (TrainType='ET22')}) and (Imin=IminLo)) or ((ActiveDir<0) and (TrainType<>'pseudodiesel')) then
+          if ((TrainType=dt_EZT{) or (TrainType=dt_ET22)}) and (Imin=IminLo)) or ((ActiveDir<0) and (TrainType<>dt_PseudoDiesel)) then
            if Rlist[MainCtrlActualPos+1].Bn>1 then
             begin
               AutoRelayCheck:=False;
@@ -2702,9 +2779,9 @@ end;
 function TMoverParameters.dizel_EngageChange(dt: real): boolean;
 {zmienia parametr do ktorego dazy sprzeglo}
 const engagedownspeed=0.9; engageupspeed=0.5;
-var engagespeed:real; OK:boolean;
+var engagespeed:real; //OK:boolean;
 begin
- OK:=false;
+ dizel_EngageChange:=false;
  if dizel_engage-dizel_engagestate>0 then
   engagespeed:=engagedownspeed
  else
@@ -2715,18 +2792,17 @@ begin
   begin
     if (dizel_engage<>dizel_engagestate) then
      begin
-       OK:=true;
+       dizel_EngageChange:=true;
        dizel_engage:=dizel_engagestate;
      end
-    else
-     OK:=false;
+    //else OK:=false; //ju¿ jest false
   end
  else
   begin
     dizel_engage:=dizel_engage+engagespeed*dt*(dizel_engagestate-dizel_engage);
-    OK:=false;
+    //OK:=false;
   end;
- dizel_EngageChange:=OK;
+ //dizel_EngageChange:=OK;
 end;
 
 (*
@@ -2784,9 +2860,9 @@ begin
         else realfill:=0; {sluczaj}
        end;
        if enrot>nreg then
-        realfill:=realfill*(3.9-3*abs(enrot)/nreg);
+        realfill:=realfill*(3.9-3.0*abs(enrot)/nreg);
        if enrot>dizel_nmax_cutoff then
-       realfill:=realfill*(9.8-9*abs(enrot)/dizel_nmax_cutoff);
+       realfill:=realfill*(9.8-9.0*abs(enrot)/dizel_nmax_cutoff);
        if enrot<dizel_nmin then
         realfill:=realfill*(1+(dizel_nmin-abs(enrot))/dizel_nmin);
       end;
@@ -2857,23 +2933,23 @@ begin
 end;
 
 function TMoverParameters.dizel_Update(dt:real): boolean;
-{odswieza informacje o silniku}
-var OK:boolean;
+{odœwie¿a informacje o silniku}
+//var OK:boolean;
 const fillspeed=2;
 begin
-  OK:=false;
+  //dizel_Update:=false;
   if dizel_enginestart and (LastSwitchingTime>InitialCtrlDelay) then
     begin
       dizel_enginestart:=false;
       LastSwitchingTime:=0;
-      enrot:=dizel_nmin/2; {TODO: dac zaleznie od temperatury i baterii}
+      enrot:=dizel_nmin/2.0; {TODO: dac zaleznie od temperatury i baterii}
     end;
   {OK:=}dizel_EngageChange(dt);
 //  if AutoRelayFlag then Poprawka na SM03
-   OK:=dizel_AutoGearCheck;
+  dizel_Update:=dizel_AutoGearCheck;
 {  dizel_fill:=(dizel_fill+dizel_fillcheck(MainCtrlPos))/2; }
   dizel_fill:=dizel_fill+fillspeed*dt*(dizel_fillcheck(MainCtrlPos)-dizel_fill);
-  dizel_Update:=OK;
+  //dizel_Update:=OK;
 end;
 
 
@@ -2902,9 +2978,9 @@ begin
   if SlippingWheels=False then
      begin
         if SandDose then
-           Adhesive:=(Max0R(staticfriction*(100+Vel)/((50+Vel)*11),0.048))*(11-2*random)
+           Adhesive:=(Max0R(staticfriction*(100.0+Vel)/((50.0+Vel)*11.0),0.048))*(11.0-2.0*random)
         else
-           Adhesive:=(staticfriction*(100+Vel)/((50+Vel)*10))*(11-2*random);
+           Adhesive:=(staticfriction*(100.0+Vel)/((50.0+Vel)*10))*(11.0-2.0*random);
      end
   else
      begin
@@ -2930,20 +3006,20 @@ begin
 //youBy
   if (EngineType=DieselElectric) then
     begin
-     tmp := DEList[MainCtrlPos].rpm/60;
+     tmp := DEList[MainCtrlPos].rpm/60.0;
      if (Heating) and (MainCtrlPosNo>MainCtrlPos) then
      begin
        i:=MainCtrlPosNo;
-       while (DEList[i-2].rpm/60>tmp) do
+       while (DEList[i-2].rpm/60.0>tmp) do
          i:=i-1;
-       tmp:=DEList[i].rpm/60
+       tmp:=DEList[i].rpm/60.0
      end;
      if enrot<>tmp*Byte(ConverterFlag) then
        if ABS(tmp*Byte(ConverterFlag) - enrot) < 0.001 then
          enrot := tmp*Byte(ConverterFlag)
        else
          if (enrot<DEList[0].rpm*0.01) and (ConverterFlag) then
-           enrot := enrot + (tmp*Byte(ConverterFlag) - enrot)*dt/5
+           enrot := enrot + (tmp*Byte(ConverterFlag) - enrot)*dt/5.0
          else
            enrot := enrot + (tmp*Byte(ConverterFlag) - enrot)*1.5*dt;
     end
@@ -2969,7 +3045,7 @@ begin
         begin
           if Vel>0.1 then
            begin
-             Ft:=Min0R(1000*Power/Abs(V),Ftmax)*PosRatio;
+             Ft:=Min0R(1000.0*Power/Abs(V),Ftmax)*PosRatio;
            end
           else Ft:=Ftmax*PosRatio;
           Ft:=Ft*ActiveDir*CabNo;
@@ -2995,10 +3071,10 @@ begin
       begin
 {        enrot:=Transmision.Ratio*nrot; }
         //yB: szereg dwoch sekcji w ET42
-        if(TrainType='et42')and(Imax=ImaxHi)then
-          Voltage:=Voltage/2;
+        if(TrainType=dt_ET42)and(Imax=ImaxHi)then
+          Voltage:=Voltage/2.0;
         Mm:=Momentum(Current(enrot,Voltage)); {oblicza tez prad p/slinik}
-        if(TrainType='et42')then
+        if(TrainType=dt_ET42)then
          begin
            if(Imax=ImaxHi)then
              Voltage:=Voltage*2;
@@ -3007,7 +3083,7 @@ begin
          end;
         if (Abs(Im)>Imax) then
          FuseOff;                     {wywalanie bezpiecznika z powodu przetezenia silnikow}
-        if (Abs(Voltage)<EnginePowerSource.MaxVoltage/2) or (Abs(Voltage)>EnginePowerSource.MaxVoltage*2) then
+        if (Abs(Voltage)<EnginePowerSource.MaxVoltage/2.0) or (Abs(Voltage)>EnginePowerSource.MaxVoltage*2) then
          if MainSwitch(False) then
           EventFlag:=True;            {wywalanie szybkiego z powodu niewlasciwego napiecia}
 
@@ -3016,7 +3092,7 @@ begin
         else
          Itot:=Im*RList[MainCtrlActualPos].Bn;   {prad silnika * ilosc galezi}
         Mw:=Mm*Transmision.Ratio;
-        Fw:=Mw*2/WheelDiameter;
+        Fw:=Mw*2.0/WheelDiameter;
         Ft:=Fw*NPoweredAxles;                {sila trakcyjna}
         case RVentType of {wentylatory rozruchowe}
         1: if ActiveDir<>0 then
@@ -3038,7 +3114,7 @@ begin
                     dmoment:=dmoment-dizel_Mstand*(0.2*enrot/nmax);  {dodatkowe opory z powodu sprezarki}
                    Mm:=dizel_engage*dmoment;
                    Mw:=Mm*dtrans;           {dmoment i dtrans policzone przy okazji enginerotation}
-                   Fw:=Mw*2/WheelDiameter;
+                   Fw:=Mw*2.0/WheelDiameter;
                    Ft:=Fw*NPoweredAxles;                {sila trakcyjna}
                    Ft:=Ft*ActiveDir*CabNo;
 
@@ -3052,7 +3128,7 @@ begin
         begin
          Voltage := (SST[MainCtrlPos].Umax * AnPos) + (SST[MainCtrlPos].Umin * (1 - AnPos));
          tmp := (SST[MainCtrlPos].Pmax * AnPos) + (SST[MainCtrlPos].Pmin * (1 - AnPos));
-         Ft := tmp * 1000 / (abs(tmpV)+1.6);
+         Ft := tmp * 1000.0 / (abs(tmpV)+1.6);
          PosRatio := 1;
         end
        else  //jazda ciapongowa
@@ -3060,12 +3136,12 @@ begin
 
        tmp:=Min0R(DEList[MainCtrlPos].genpower,Power-HeatingPower*byte(Heating));
 
-        PosRatio := 0.037 + 0.963 * DEList[MainCtrlPos].genpower / DEList[MainCtrlPosNo].genpower;  {stosunek mocy teraz do mocy max}
+        PosRatio := DEList[MainCtrlPos].genpower / DEList[MainCtrlPosNo].genpower;  {stosunek mocy teraz do mocy max}
         if (MainCtrlPos>0) and (ConverterFlag) then
           if tmpV < (Vhyp*(Power-HeatingPower*byte(Heating))/DEList[MainCtrlPosNo].genpower) then //czy na czesci prostej, czy na hiperboli
-            Ft := (Ftmax - ((Ftmax - 1000 * DEList[MainCtrlPosNo].genpower / (Vhyp+Vadd)) * (tmpV/Vhyp) / PowerCorRatio)) * PosRatio //posratio - bo sila jakos tam sie rozklada
+            Ft := (Ftmax - ((Ftmax - 1000.0 * DEList[MainCtrlPosNo].genpower / (Vhyp+Vadd)) * (tmpV/Vhyp) / PowerCorRatio)) * PosRatio //posratio - bo sila jakos tam sie rozklada
           else //na hiperboli                             //1.107 - wspolczynnik sredniej nadwyzki Ft w symku nad charakterystyka
-            Ft := 1000 * tmp / (tmpV+Vadd) / PowerCorRatio //tu jest zawarty stosunek mocy
+            Ft := 1000.0 * tmp / (tmpV+Vadd) / PowerCorRatio //tu jest zawarty stosunek mocy
         else Ft := 0; //jak nastawnik na zero, to sila tez zero
 
       PosRatio:=tmp/DEList[MainCtrlPosNo].genpower;
@@ -3073,7 +3149,7 @@ begin
       end;
         Ft := Ft * ActiveDir * CabNo; //zwrot sily i jej wartosc
         Fw := Ft / NPoweredAxles; //sila na obwodzie kola
-        Mw := Fw * WheelDiameter / 2; // moment na osi kola
+        Mw := Fw * WheelDiameter / 2.0; // moment na osi kola
         Mm := Mw / Transmision.Ratio; // moment silnika trakcyjnego
 
 
@@ -3085,10 +3161,10 @@ begin
 
        if (ShuntMode) then
        begin
-         EnginePower := Voltage * Im/1000;
+         EnginePower := Voltage * Im/1000.0;
          if (EnginePower > tmp) then
          begin
-           EnginePower:=tmp*1000;
+           EnginePower:=tmp*1000.0;
            Voltage:=EnginePower/Im;
          end;
          if (EnginePower < tmp) then
@@ -3103,19 +3179,19 @@ begin
 
         if (Im > 0) then //jak pod obciazeniem
           if (Flat) then //ograniczenie napiecia w pradnicy - plaszczak u gory
-            Voltage := 1000 * tmp / ABS(Im)
+            Voltage := 1000.0 * tmp / ABS(Im)
           else  //charakterystyka pradnicy obcowzbudnej (elipsa) - twierdzenie Pitagorasa
           begin
             Voltage := sqrt(ABS(sqr(DEList[MainCtrlPos].Umax)-sqr(DEList[MainCtrlPos].Umax*Im/DEList[MainCtrlPos].Imax)))*(MainCtrlPos-1)+
                        (1-Im/DEList[MainCtrlPos].Imax)*DEList[MainCtrlPos].Umax*(MainCtrlPosNo-MainCtrlPos);
             Voltage := Voltage/(MainCtrlPosNo-1);
-            Voltage := Min0R(Voltage,(1000 * tmp / ABS(Im)));
+            Voltage := Min0R(Voltage,(1000.0 * tmp / ABS(Im)));
             if Voltage<(Im*0.05) then Voltage:=Im*0.05;
           end;
         if (Voltage > DEList[MainCtrlPos].Umax) or (Im = 0) then //gdy wychodzi za duze napiecie
           Voltage := DEList[MainCtrlPos].Umax * byte(ConverterFlag);     //albo przy biegu jalowym (jest cos takiego?)
 
-        EnginePower := Voltage * Im / 1000;
+        EnginePower := Voltage * Im / 1000.0;
 
         if (tmpV>2) and (EnginePower<tmp) then
           Ft:=Ft*EnginePower/tmp;
@@ -3168,7 +3244,7 @@ begin
                 if (MPTRelay[ScndCtrlPos+1].Idown<Im) and (MPTRelay[ScndCtrlPos].Idown>Vel)then
                  dec(ScndCtrlPos);
               if (MainCtrlPos<9)and(ScndCtrlPos>2) then ScndCtrlPos:=2;
-              if (MainCtrlPos<6)and(ScndCtrlPos>0) then ScndCtrlPos:=0;
+              if (MainCtrlPos<6)and(ScndCtrlPos>0) then ScndCtrlPos:=0;              
              end
           else end;
      end;
@@ -3189,10 +3265,10 @@ begin
    NBrakeAxles:=NAxles;
   case LocalBrake of
    NoBrake :      K:=0;
-//   ManualBrake :  K:=MaxBrakeForce*LocalBrakeRatio;
+   ManualBrake :  K:=MaxBrakeForce*LocalBrakeRatio;
    HydraulicBrake : K:=0;
    PneumaticBrake:if Compressor<MaxBrakePress[3] then
-                   K:=MaxBrakeForce*2
+                   K:=MaxBrakeForce*LocalBrakeRatio/2.0
                   else
                    K:=0;
   end;
@@ -3209,9 +3285,13 @@ begin
   if (NBpA*UnitBrakeForce>TotalMassxg*Adhesive(RunningTrack.friction)/NAxles) and (Abs(V)>0.001) then
    {poslizg}
    begin
+{     Fb:=Adhesive(Track.friction)*Mass*g;  }
      SlippingWheels:=True;
    end;
-     if (LocalBrake=ManualBrake) and (BrakePress<0.05*MaxBrakePress[3]) then
+{  else
+   begin
+{     SlippingWheels:=False;}
+     if (LocalBrake=ManualBrake) and (BrakePress<0.3) then
       Fb:=UnitBrakeForce*NBpA {ham. reczny dziala na jedna os}
      else
       Fb:=UnitBrakeForce*NBrakeAxles*NBpA;
@@ -3222,42 +3302,44 @@ begin
 end;
 
 procedure TMoverParameters.SetCoupleDist;
+{przeliczenie odleg³oœci sprzêgów}
 begin
-   with Couplers[0] do
-      if (Connected<>nil) then
-         CoupleDist:=Distance(Loc,Connected^.Loc,Dim,Connected^.Dim);
-   with Couplers[1] do
-      if (Connected<>nil) then
-         CoupleDist:=Distance(Loc,Connected^.Loc,Dim,Connected^.Dim);
+ with Couplers[0] do
+  if (Connected<>nil) then
+   CoupleDist:=Distance(Loc,Connected^.Loc,Dim,Connected^.Dim);
+ with Couplers[1] do
+  if (Connected<>nil) then
+   CoupleDist:=Distance(Loc,Connected^.Loc,Dim,Connected^.Dim);
 end;
 
-function TMoverParameters.CouplerForce(CouplerN:byte; dt:real):real;
+function TMoverParameters.CouplerForce(CouplerN:byte;dt:real):real;
+//wyliczenie si³y na sprzêgu
 var tempdist,newdist,distDelta,CF,dV,absdv,Fmax,BetaAvg:real; CNext:byte;
 const MaxDist=405.0; {ustawione + 5 m, bo skanujemy do 400 m }
       MinDist=0.5;   {ustawione +.5 m, zeby nie rozlaczac przy malych odleglosciach}
       MaxCount=1500;
 begin
   CF:=0;
-  distDelta:=0;
+  //distDelta:=0; //Ra: value never used
   CNext:=CouplerNr[CouplerN];
 {  if Couplers[CouplerN].CForce=0 then  {nie bylo uzgadniane wiec policz}
    with Couplers[CouplerN] do
     begin
       CheckCollision:=False;
-      newdist:=CoupleDist;
+      newdist:=CoupleDist; //odleg³oœæ od sprzêgu s¹siada
       //newdist:=Distance(Loc,Connected^.Loc,Dim,Connected^.Dim);
       if (CouplerN=0) then
          begin
             //ABu: bylo newdist+10*((...
             tempdist:=((Connected^.dMoveLen*DirPatch(0,CouplerNr[0]))-dMoveLen);
-            newdist:=newdist+10*tempdist;
+            newdist:=newdist+10.0*tempdist;
             tempdist:=tempdist+CoupleDist; //ABu: proby szybkiego naprawienia bledu
          end
       else
          begin
             //ABu: bylo newdist+10*((...
             tempdist:=((dMoveLen-(Connected^.dMoveLen*DirPatch(1,CouplerNr[1]))));
-            newdist:=newdist+10*tempdist;
+            newdist:=newdist+10.0*tempdist;
             tempdist:=tempdist+CoupleDist; //ABu: proby szybkiego naprawienia bledu
          end;
 
@@ -3285,8 +3367,8 @@ begin
           end
          else            {usrednij bo wspolny sprzeg}
           begin
-            BetaAvg:=(beta+Connected^.Couplers[CNext].beta)/2;
-            Fmax:=(FmaxC+FmaxB+Connected^.Couplers[CNext].FmaxC+Connected^.Couplers[CNext].FmaxB)*CouplerTune/2;
+            BetaAvg:=(beta+Connected^.Couplers[CNext].beta)/2.0;
+            Fmax:=(FmaxC+FmaxB+Connected^.Couplers[CNext].FmaxC+Connected^.Couplers[CNext].FmaxB)*CouplerTune/2.0;
           end;
          dV:=V-DirPatch(CouplerN,CNext)*Connected^.V;
          absdv:=abs(dV);
@@ -3309,10 +3391,10 @@ begin
          if Dist>0 then
           begin
             if distDelta>0 then
-              CF:=(-(SpringKC+Connected^.Couplers[CNext].SpringKC)*Dist/2)*DirF(CouplerN)-Fmax*dV*betaAvg
+              CF:=(-(SpringKC+Connected^.Couplers[CNext].SpringKC)*Dist/2.0)*DirF(CouplerN)-Fmax*dV*betaAvg
              else
-              CF:=(-(SpringKC+Connected^.Couplers[CNext].SpringKC)*Dist/2)*DirF(CouplerN)*betaAvg-Fmax*dV*betaAvg;
-                {liczenie sily ze sprezystosci sprzegu}                                
+              CF:=(-(SpringKC+Connected^.Couplers[CNext].SpringKC)*Dist/2.0)*DirF(CouplerN)*betaAvg-Fmax*dV*betaAvg;
+                {liczenie sily ze sprezystosci sprzegu}
             if Dist>(DmaxC+Connected^.Couplers[CNext].DmaxC) then {zderzenie}
             //***if tempdist>(DmaxC+Connected^.Couplers[CNext].DmaxC) then {zderzenie}
              CheckCollision:=True;
@@ -3320,9 +3402,9 @@ begin
          if Dist<0 then
           begin
             if distDelta>0 then
-              CF:=(-(SpringKB+Connected^.Couplers[CNext].SpringKB)*Dist/2)*DirF(CouplerN)-Fmax*dV*betaAvg
+              CF:=(-(SpringKB+Connected^.Couplers[CNext].SpringKB)*Dist/2.0)*DirF(CouplerN)-Fmax*dV*betaAvg
             else
-              CF:=(-(SpringKB+Connected^.Couplers[CNext].SpringKB)*Dist/2)*DirF(CouplerN)*betaAvg-Fmax*dV*betaAvg;
+              CF:=(-(SpringKB+Connected^.Couplers[CNext].SpringKB)*Dist/2.0)*DirF(CouplerN)*betaAvg-Fmax*dV*betaAvg;
                 {liczenie sily ze sprezystosci zderzaka}
            if -Dist>(DmaxB+Connected^.Couplers[CNext].DmaxB) then  {zderzenie}
             //***if -tempdist>(DmaxB+Connected^.Couplers[CNext].DmaxB)/10 then  {zderzenie}
@@ -3350,8 +3432,8 @@ begin
         Vprev:=V;
         VprevC:=Connected^.V;
         case CouplerN of
-         0 : CCF:=ComputeCollision(V,Connected^.V,TotalMass,Connected^.TotalMass,(beta+Connected^.Couplers[CouplerNr[CouplerN]].beta)/2,VirtualCoupling)/(dt{+0.01}); //yB: ej ej ej, a po
-         1 : CCF:=ComputeCollision(Connected^.V,V,Connected^.TotalMass,TotalMass,(beta+Connected^.Couplers[CouplerNr[CouplerN]].beta)/2,VirtualCoupling)/(dt{+0.01}); //czemu tu jest +0.01??
+         0 : CCF:=ComputeCollision(V,Connected^.V,TotalMass,Connected^.TotalMass,(beta+Connected^.Couplers[CouplerNr[CouplerN]].beta)/2.0,VirtualCoupling)/(dt{+0.01}); //yB: ej ej ej, a po
+         1 : CCF:=ComputeCollision(Connected^.V,V,Connected^.TotalMass,TotalMass,(beta+Connected^.Couplers[CouplerNr[CouplerN]].beta)/2.0,VirtualCoupling)/(dt{+0.01}); //czemu tu jest +0.01??
         end;
         AccS:=AccS+(V-Vprev)/dt;
         Connected^.AccS:=Connected^.AccS+(Connected^.V-VprevC)/dt;
@@ -3370,7 +3452,7 @@ begin
           end ;
       end;
 end;
-(*
+
 procedure TMoverParameters.ComputeConstans;
 var BearingF,RollF,HideModifier: real;
 begin
@@ -3378,76 +3460,38 @@ begin
   TotalMassxg:=TotalMass*g; {TotalMass*g}
   BearingF:=2*(DamageFlag and dtrain_bearing);
 
-  HideModifier:=2*Byte((Couplers[0].CouplingFlag=0)or(Couplers[1].CouplingFlag=0));
+  HideModifier:=Byte(Couplers[0].CouplingFlag>0)+Byte(Couplers[1].CouplingFlag>0);
   with Dim do
    begin
     if BearingType=0 then
      RollF:=0.05          {slizgowe}
     else
      RollF:=0.015;        {toczne}
-    RollF:=RollF+BearingF/200;
+    RollF:=RollF+BearingF/200.0;
 
-    if NPoweredAxles>0 then
-     RollF:=RollF*1.5;    {dodatkowe lozyska silnikow}
-{    if(NPoweredAxles>0)then //drobna optymalka
+(*    if NPoweredAxles>0 then
+     RollF:=RollF*1.5;    {dodatkowe lozyska silnikow}*)
+    if(NPoweredAxles>0)then //drobna optymalka
      begin
        RollF:=RollF+0.025;
        if(Ft*Ft<1)then
          HideModifier:=HideModifier-3;
-     end;}
-    Ff:=TotalMassxg*(BearingF+RollF*V*V/10)/1000;
+     end;
+    Ff:=TotalMassxg*(BearingF+RollF*V*V/10.0)/1000.0;
     {dorobic liczenie temperatury lozyska!}
-    FrictConst1 :=((TotalMassxg*RollF)/10000)+(Cx*W*H)*HideModifier;
-    FrictConst2s:= (TotalMassxg*(2.5 + 2*BearingF/dtrain_bearing))/1000;
-    FrictConst2d:= (TotalMassxg*(2.0 + BearingF/dtrain_bearing))/1000;
-
-//    FrictConst1 := (Cx*W*H)*1.1*(2*HideModifier+0.54)+0.0142*Totalmassxg/1000;
-//    FrictConst2s:= (TotalMassxg*(2.5)/1000);
-//    FrictConst2d:= (TotalMassxg*(2.0)/1000);
-
-    FrictConst3:=0;
+    FrictConst1 :=((TotalMassxg*RollF)/10000.0)+(Cx*W*H);
+    FrictConst2s:= (TotalMassxg*(2.5 - HideModifier + 2*BearingF/dtrain_bearing))/1000.0;
+    FrictConst2d:= (TotalMassxg*(2.0 - HideModifier + BearingF/dtrain_bearing))/1000.0;
    end;
 end;
-//*)
-//(*
-procedure TMoverParameters.ComputeConstans;
-var BearingF,RollF,HideModifier: real;
-begin
-  TotalMass:=ComputeMass;
-  TotalMassxg:=TotalMass*g; {TotalMass*g}
-  BearingF:=2*(DamageFlag and dtrain_bearing);
-
-  HideModifier:=Byte((Couplers[0].CouplingFlag=0)or(Couplers[1].CouplingFlag=0));
-  with Dim do
-   begin
-    if BearingType=0 then
-     RollF:=9          {slizgowe}
-    else
-     RollF:=6;        {toczne}
-
-    if(NPoweredAxles>0)then //drobna optymalka
-     begin
-       RollF:=RollF*1.5;
-//       if(Ft*Ft<1)then
-//         HideModifier:=HideModifier-3;
-     end;
-    Ff:=TotalMassxg*(BearingF+RollF*V*V/10)/1000;
-    {dorobic liczenie temperatury lozyska!}
-    FrictConst1 := 8*(1+2.5*HideModifier);
-    FrictConst2s:= 150*NAxles+RollF*TotalMass/1000;
-    FrictConst2d:= 120*NAxles+RollF*TotalMass/1000;
-
-    FrictConst3 := (1.5*TotalMass/1000)
-   end;
-end;   //  *)
 
 function TMoverParameters.FrictionForce(R:real;TDamage:byte):real;
 begin
 //ABu 240205: chyba juz ekstremalnie zoptymalizowana funkcja liczaca sily tarcia
-   if (Vel>1) then
-      FrictionForce:=(FrictConst1*Vel/10*Vel/10)+(FrictConst2d)+FrictConst3*Vel/10
+   if (abs(V)>0.01) then
+      FrictionForce:=(FrictConst1*V*V)+FrictConst2d
    else
-      FrictionForce:=(FrictConst1*Vel/10*Vel/10)+(FrictConst2s)+FrictConst3*Vel/10;
+      FrictionForce:=(FrictConst1*V*V)+FrictConst2s;
 end;
 
 function TMoverParameters.AddPulseForce(Multipler:integer): boolean; {dla drezyny}
@@ -3456,9 +3500,9 @@ begin
    begin
      ActiveDir:=cabno;
      if Vel>0 then
-       PulseForce:=Min0R(1000*Power/(Abs(V)+0.1),Ftmax)
+       PulseForce:=Min0R(1000.0*Power/(Abs(V)+0.1),Ftmax)
       else PulseForce:=Ftmax;
-     if PulseForceCount>1000 then
+     if PulseForceCount>1000.0 then
       PulseForce:=0
      else
        PulseForce:=PulseForce*Multipler;
@@ -3472,11 +3516,12 @@ end;
 function TMoverParameters.LoadingDone(LSpeed:real; LoadInit:string): boolean;
 var LoadChange:longint;
 begin
+  ClearPendingExceptions;
   LoadingDone:=False;
   if (LoadInit<>'') then
    begin
      if Load>MaxLoad then
-      LoadChange:=Abs(Trunc(LSpeed*LastLoadChangeTime/2))
+      LoadChange:=Abs(Trunc(LSpeed*LastLoadChangeTime/2.0))
      else LoadChange:=Abs(Trunc(LSpeed*LastLoadChangeTime));
      if LoadChange<>0 then
       begin
@@ -3523,7 +3568,7 @@ begin
     Vel:=Abs(V)*3.6;
     nrot:=V2n;
 
-    if TestFlag(BrakeMethod,2) and (PipePress<CntrlPipePress/3)then
+    if TestFlag(BrakeMethod,2) and (PipePress<CntrlPipePress/3.0)then
       FStand:=Fstand+(RunningTrack.friction)*TrackBrakeForce;
 
 //    if(FullVer=True) then
@@ -3579,7 +3624,7 @@ begin
         liczona zawsze.}
    //if PhysicActivationFlag then
    // begin
-     if (CabNo=0) and (Vel<0.0001) and (abs(AccS)<0.0001) and (TrainType<>'ezt') then
+     if (CabNo=0) and (Vel<0.0001) and (abs(AccS)<0.0001) and (TrainType<>dt_EZT) then
       begin
         if not PhysicActivation then
          begin
@@ -3606,6 +3651,7 @@ var b:byte;
     Vprev,AccSprev:real;
 const Vepsilon=1e-5; Aepsilon=1e-3; ASBSpeed=0.8;
 begin
+  ClearPendingExceptions;
   if not TestFlag(DamageFlag,dtrain_out) then
    begin
      RunningShape:=Shape;
@@ -3618,7 +3664,7 @@ begin
        RunningTraction.TractionVoltage:=TractionVoltage-Abs(TractionResistivity*Itot);
    end;
   if CategoryFlag=4 then
-   OffsetTrackV:=TotalMass/(Dim.L*Dim.W*1000)
+   OffsetTrackV:=TotalMass/(Dim.L*Dim.W*1000.0)
   else
    if TestFlag(CategoryFlag,1) and TestFlag(RunningTrack.CategoryFlag,1) then
     if TestFlag(DamageFlag,dtrain_out) then
@@ -3634,7 +3680,7 @@ begin
      AccSprev:=AccS;
      {dt:=ActualTime-LastUpdatedTime;}                               {przyrost czasu}
      {przyspieszenie styczne}
-     AccS:=(FTotal/TotalMass+AccSprev)/2;                            {prawo Newtona ale z wygladzaniem}
+     AccS:=(FTotal/TotalMass+AccSprev)/2.0;                            {prawo Newtona ale z wygladzaniem}
 
      if TestFlag(DamageFlag,dtrain_out) then
       AccS:=-Sign(V)*g*Random;
@@ -3644,12 +3690,12 @@ begin
      else AccN:=g*Shape.dHrail/TrackW;
 
      {szarpanie}
-     if FuzzyLogic((10+Track.DamageFlag)*Mass*Vel/Vmax,500000,p_accn) then
-       AccV:=sqrt((1+Track.DamageFlag)*random(Trunc(50*Mass/1000000))*Vel/(Vmax*(10+(Track.QualityFlag and 31))))
+     if FuzzyLogic((10+Track.DamageFlag)*Mass*Vel/Vmax,500000,p_accn) then {Ra: czemu tu masa bez ³adunku?}
+       AccV:=sqrt((1+Track.DamageFlag)*random(Trunc(50*Mass/1000000.0))*Vel/(Vmax*(10+(Track.QualityFlag and 31))))
      else
-      AccV:=AccV/2;
+      AccV:=AccV/2.0;
      if AccV>1.0 then
-      AccN:=AccN+(7-random(5))*(100.0+Track.DamageFlag/2)*AccV/2000;
+      AccN:=AccN+(7-random(5))*(100.0+Track.DamageFlag/2.0)*AccV/2000.0;
 
      {wykolejanie na luku oraz z braku szyn}
      if TestFlag(CategoryFlag,1) then
@@ -3663,7 +3709,7 @@ begin
            RunningShape.R:=0;
          end;
      {wykolejanie na poszerzeniu toru}
-        if FuzzyLogic(Abs(Track.Width-TrackW),TrackW/10,1) then
+        if FuzzyLogic(Abs(Track.Width-TrackW),TrackW/10.0,1) then
          if SetFlag(DamageFlag,dtrain_out) then
           begin
             EventFlag:=True;
@@ -3679,7 +3725,7 @@ begin
           MainS:=False;
         end;
 
-     V:=V+(3*AccS-AccSprev)*dt/2;                                  {przyrost predkosci}
+     V:=V+(3*AccS-AccSprev)*dt/2.0;                                  {przyrost predkosci}
 
      if TestFlag(DamageFlag,dtrain_out) then
       if Vel<1 then
@@ -3702,7 +3748,7 @@ begin
        end;
    *)
    { dL:=(V+AccS*dt/2)*dt;                                      {przyrost dlugosci czyli przesuniecie}
-     dL:=(3*V-Vprev)*dt/2;                                       {metoda Adamsa-Bashfortha}
+     dL:=(3*V-Vprev)*dt/2.0;                                       {metoda Adamsa-Bashfortha}
     {ale jesli jest kolizja (zas. zach. pedu) to...}
     for b:=0 to 1 do
      if Couplers[b].CheckCollision then
@@ -3721,7 +3767,7 @@ begin
   ComputeMovement:=CabNo*dL {na chwile dla testu}
  else
   ComputeMovement:=dL;
- DistCounter:=DistCounter+abs(dL)/1000;
+ DistCounter:=DistCounter+abs(dL)/1000.0;
  dL:=0;
 
    {koniec procedury, tu nastepuja dodatkowe procedury pomocnicze}
@@ -3793,6 +3839,7 @@ var b:byte;
     Vprev,AccSprev:real;
 const Vepsilon=1e-5; Aepsilon=1e-3; ASBSpeed=0.8;
 begin
+  ClearPendingExceptions;
   Loc:=NewLoc;
   Rot:=NewRot;
   with NewRot do begin Rx:=0; Ry:=0; Rz:=0; end;
@@ -3802,7 +3849,7 @@ begin
      AccSprev:=AccS;
      {dt:=ActualTime-LastUpdatedTime;}                               {przyrost czasu}
      {przyspieszenie styczne}
-     AccS:=(FTotal/TotalMass+AccSprev)/2;                            {prawo Newtona ale z wygladzaniem}
+     AccS:=(FTotal/TotalMass+AccSprev)/2.0;                            {prawo Newtona ale z wygladzaniem}
 
      if TestFlag(DamageFlag,dtrain_out) then
       AccS:=-Sign(V)*g*Random;
@@ -3813,11 +3860,11 @@ begin
 
      {szarpanie}
      if FuzzyLogic((10+Track.DamageFlag)*Mass*Vel/Vmax,500000,p_accn) then
-       AccV:=sqrt((1+Track.DamageFlag)*random(Trunc(50*Mass/1000000))*Vel/(Vmax*(10+(Track.QualityFlag and 31))))
+       AccV:=sqrt((1+Track.DamageFlag)*random(Trunc(50*Mass/1000000.0))*Vel/(Vmax*(10+(Track.QualityFlag and 31))))
      else
-      AccV:=AccV/2;
+      AccV:=AccV/2.0;
      if AccV>1.0 then
-      AccN:=AccN+(7-random(5))*(100.0+Track.DamageFlag/2)*AccV/2000;
+      AccN:=AccN+(7-random(5))*(100.0+Track.DamageFlag/2.0)*AccV/2000.0;
 
 //     {wykolejanie na luku oraz z braku szyn}
 //     if TestFlag(CategoryFlag,1) then
@@ -3847,7 +3894,7 @@ begin
 //          MainS:=False;
 //        end;
 
-     V:=V+(3*AccS-AccSprev)*dt/2;                                  {przyrost predkosci}
+     V:=V+(3.0*AccS-AccSprev)*dt/2.0;                                  {przyrost predkosci}
 
      if TestFlag(DamageFlag,dtrain_out) then
       if Vel<1 then
@@ -3861,7 +3908,7 @@ begin
          V:=0;
          AccS:=0;
        end;
-     dL:=(3*V-Vprev)*dt/2;                                       {metoda Adamsa-Bashfortha}
+     dL:=(3*V-Vprev)*dt/2.0;                                       {metoda Adamsa-Bashfortha}
     {ale jesli jest kolizja (zas. zach. pedu) to...}
     for b:=0 to 1 do
      if Couplers[b].CheckCollision then
@@ -3872,7 +3919,7 @@ begin
   FastComputeMovement:=CabNo*dL {na chwile dla testu}
  else
   FastComputeMovement:=dL;
- DistCounter:=DistCounter+abs(dL)/1000;
+ DistCounter:=DistCounter+abs(dL)/1000.0;
  dL:=0;
 
    {koniec procedury, tu nastepuja dodatkowe procedury pomocnicze}
@@ -3910,30 +3957,27 @@ end; {FastComputeMovement}
 function TMoverParameters.ComputeMass: real;
 var M:real;
 begin
-  if Load>0 then
-   begin
-    if LoadQuantity='tonns' then
-     M:=Load*1000
-    else
-     if LowerCase(LoadType)=LowerCase('Passengers') then
-      M:=Load*80
-     else
-      if LoadType='Luggage' then
-       M:=Load*100
-     else
-      if LoadType='Cars' then
-       M:=Load*800
-      else
-       if LoadType='Containers' then
-        M:=Load*8000
-       else
-        if LoadType='Transformers' then
-         M:=Load*50000
-        else
-         M:=Load*1000;
-   end
-  else M:=0;
-  ComputeMass:=Mass+M;
+ if Load>0 then
+  begin
+   if LoadQuantity='tonns' then
+    M:=Load*1000
+   else if LowerCase(LoadType)=LowerCase('Passengers') then
+    M:=Load*80
+   else if LoadType='Luggage' then
+    M:=Load*100
+   else if LoadType='Cars' then
+    M:=Load*800
+   else if LoadType='Containers' then
+    M:=Load*8000
+   else if LoadType='Transformers' then
+    M:=Load*50000
+   else
+    M:=Load*1000;
+  end
+ else
+  M:=0;
+ {Ra: na razie tak, ale nie wszêdzie masy wiruj¹ce siê wliczaj¹}
+ ComputeMass:=Mass+M+Mred;
 end;
 
 
@@ -3969,6 +4013,7 @@ var OK:boolean; testload:string;
 Begin
 {$B+} {cholernie mi sie nie podoba ta dyrektywa!!!}
   OK:=False;
+  ClearPendingExceptions();
 
   {test komend sterowania ukrotnionego}
   if command='MainCtrl' then
@@ -3991,12 +4036,11 @@ Begin
         OK:=SendCtrlToNext(command,CValue1,CValue2);
       end;
    end *)
-
   else if command='Brake' then //youBy - jak sie EP hamuje, to trza sygnal wyslac...
    begin
      if (Hamulec is TEStEP2) then (Hamulec as TEStEP2).SetEPS(CValue1);
      OK:=SendCtrlToNext(command,CValue1,CValue2);
-   end //youby - odluzniacz hamulcow, przyda sie    }
+   end //youby - odluzniacz hamulcow, przyda sie
   else if command='BrakeReleaser' then
    begin
      BrakeReleaser;
@@ -4073,7 +4117,7 @@ Begin
    end
 else if command='PantFront' then         {Winger 160204}
    begin
-     if (TrainType='ezt') then
+     if (TrainType=dt_EZT) then
      begin {'ezt'}
        if (CValue1=1) then
         begin
@@ -4119,7 +4163,7 @@ else if command='PantFront' then         {Winger 160204}
    end
   else if command='PantRear' then         {Winger 160204, ABu 310105 i 030305}
    begin
-     if (TrainType='ezt') then
+     if (TrainType=dt_EZT) then
      begin {'ezt'}
       if (CValue1=1) then
         begin
@@ -4215,9 +4259,9 @@ else if command='PantFront' then         {Winger 160204}
     if (V=0) and (MaxLoad>0) and (Load<MaxLoad*(1+OverLoadFactor)) then {czy mozna ladowac?}
      if Distance(Loc,CommandIn.Location,Dim,Dim)<3 then {ten peron/rampa}
       begin
-        testload:=LowerCase(DUE(command));
-        if Pos(testload,LoadAccepted)>0 then {mozna to zaladowac}
-         OK:=LoadingDone(Min0R(CValue2,LoadSpeed),testload);
+       testload:=LowerCase(DUE(command));
+       if Pos(testload,LoadAccepted)>0 then {mozna to zaladowac}
+        OK:=LoadingDone(Min0R(CValue2,LoadSpeed),testload);
       end;
     if OK then LoadStatus:=0; {nie udalo sie w ogole albo juz skonczone}
    end
@@ -4232,9 +4276,8 @@ else if command='PantFront' then         {Winger 160204}
          OK:=LoadingDone(-Min0R(CValue2,LoadSpeed),testload);
       end;
     if OK then LoadStatus:=0;
-   end
-    else begin end;
-   RunCommand:=OK;
+   end;
+  RunCommand:=OK;
 {$B-}
 End;
 
@@ -4262,6 +4305,7 @@ end;
 
 procedure TMoverParameters.PutCommand(NewCommand:string; NewValue1,NewValue2:real; NewLocation:TLocation);
 begin
+ CommandLast:=NewCommand; //zapamiêtanie komendy
   with CommandIn do
    begin
      Command:=NewCommand;
@@ -4277,7 +4321,7 @@ begin
   if TestFlag(CategoryFlag,2) and TestFlag(RunningTrack.CategoryFlag,2) then
    begin
      OffsetTrackH:=OffsetTrackH+DeltaOffset;
-     if abs(OffsetTrackH)>(RunningTrack.Width/1.95-TrackW/2) then
+     if abs(OffsetTrackH)>(RunningTrack.Width/1.95-TrackW/2.0) then
       ChangeOffsetH:=False  {kola na granicy drogi}
      else
       ChangeOffsetH:=True;
@@ -4324,7 +4368,7 @@ begin
   DynamicBrakeType:=0;
   ASBType:=0;
   AutoRelayType:=0;
-  for b:=1 to 2 do
+  for b:=0 to 1 do //Ra: kto tu zrobi³ "for b:=1 to 2 do" ???
    with Couplers[b] do
     begin
       CouplerType:=NoCoupler;
@@ -4506,6 +4550,7 @@ begin
       Status:=0;
       SystemTimer:=0; SystemBrakeTimer:=0;
       VelocityAllowed:=-1; NextVelocityAllowed:=-1;
+      RadioStop:=false; //domyœlnie nie ma 
     end;
     //ABu 240105:
     CouplerNr[0]:=1;
@@ -4572,7 +4617,7 @@ begin
   EngineDescription:=outstr;
 end;
 
-function TMoverParameters.CheckLocomotiveParameters(ReadyFlag:boolean): boolean;
+function TMoverParameters.CheckLocomotiveParameters(ReadyFlag:boolean;Dir:longint): boolean;
 var //k:integer;
     OK:boolean;
     b:byte;
@@ -4665,12 +4710,12 @@ end;
      LocalBrakePos:=0;
      if (BrakeSystem=Pneumatic) and (BrakeCtrlPosNo>0) then
       if CabNo=0 then
-       BrakeCtrlPos:=-2;
+       BrakeCtrlPos:=-2; //odciêcie na zespolonym
      MainSwitch(false);
      PantFront(true);
      PantRear(true);
      MainSwitch(true);
-     ActiveDir:=1;
+     ActiveDir:=Dir;
      LimPipePress:=CntrlPipePress;
    end
   else
@@ -4701,11 +4746,11 @@ end;
 
 
   if(LoadFlag>0)then
-   begin
+     begin
     if(Load<MaxLoad*0.45)then
      begin
       IncBrakeMult();IncBrakeMult();DecBrakeMult();
-      if(Load<MaxLoad*0.45)then
+      if(Load<MaxLoad*0.35)then
         DecBrakeMult();
      end;
     if(Load>=MaxLoad*0.45)then
@@ -4714,7 +4759,7 @@ end;
       if(Load>=MaxLoad*0.55)then
         IncBrakeMult();
      end;
-   end;
+  end;
 
 //taki mini automat - powinno byc ladnie dobrze :)
     BrakeDelayFlag:=bdelay_P;
@@ -4723,13 +4768,12 @@ end;
   if(TestFlag(BrakeDelays,bdelay_R))and not(TestFlag(BrakeDelays,bdelay_G))then
     BrakeDelayFlag:=bdelay_R;
 
-
 //yB: jesli pojazdy nie maja zadeklarowanych czasow, to wsadz z przepisow +-16,(6)%
   for b:=1 to 4 do
    begin
      if BrakeDelay[b]=0 then
        BrakeDelay[b]:=DefBrakeTable[b];
-     BrakeDelay[b]:=BrakeDelay[b]*(2.5+Random)/3;
+     BrakeDelay[b]:=BrakeDelay[b]*(2.5+Random)/3.0;
    end;
 
   if(TypeName='et22')then
@@ -4801,7 +4845,7 @@ begin
       PantFront:=false;
       PantFrontStart:=1;
       SendCtrlToNext('PantFront',0,CabNo);
-      if (TrainType='ezt') then
+      if (TrainType=dt_EZT) then
        begin
         PantRearUp:=false;
         PantRearStart:=1;
@@ -5031,22 +5075,23 @@ begin
               s:=DUE(ExtractKeyWord(lines,'Category='));
               if s='train' then
                CategoryFlag:=1
+              else if s='road' then
+               CategoryFlag:=2
+              else if s='ship' then
+               CategoryFlag:=4
+              else if s='airplane' then
+               CategoryFlag:=8
+              else if s='unimog' then
+               CategoryFlag:=3
               else
-               if s='road' then
-                CategoryFlag:=2
-               else
-                if s='ship' then
-                 CategoryFlag:=4
-                else
-                if s='airplane' then
-                 CategoryFlag:=8
-                else
-                if s='unimog' then
-                 CategoryFlag:=3
-                else
-                 ConversionError:=-7;
+               ConversionError:=-7;
               s:=ExtractKeyWord(lines,'M=');
               Mass:=s2rE(DUE(s));         {w kg}
+              s:=ExtractKeyWord(lines,'Mred='); {zredukowane masy wiruj¹ce}
+              if s='' then
+               Mred:=0
+              else
+               Mred:=s2rE(DUE(s));         {w kg}
               s:=ExtractKeyWord(lines,'Vmax=');
               Vmax:=s2rE(DUE(s));     {w km/h}
               s:=ExtractKeyWord(lines,'PWR=');
@@ -5057,12 +5102,20 @@ begin
               LightPower:=s2r(DUE(s));    {w kW}
               s:=ExtractKeyWord(lines,'SandCap=');
               SandCapacity:=s2i(DUE(s));  {w kg}
-              s:=ExtractKeyWord(lines,'Type=');
-              TrainType:=DUE(s);
-              if TrainType='ezt' then
-              begin
-              IminLo:=1;IminHi:=2;Imin:=1;
-              end;
+              TrainType:=dt_Default;
+              s:=Ups(DUE(ExtractKeyWord(lines,'Type='))); //wielkimi
+              if s='EZT' then
+               begin
+                TrainType:=dt_EZT;
+                IminLo:=1;IminHi:=2;Imin:=1; //przy okazji
+               end
+              else if s='ET41' then TrainType:=dt_ET41
+              else if s='ET42' then TrainType:=dt_ET42
+              else if s='ET22' then TrainType:=dt_ET22
+              else if s='SN61' then TrainType:=dt_SN61
+              else if s='PSEUDODIESEL' then TrainType:=dt_PseudoDiesel
+              else if s='181' then TrainType:=dt_181
+              else if s='182' then TrainType:=dt_181; {na razie tak}
             end;
           if Pos('Load:',lines)>0 then      {stale parametry}
             begin
@@ -5278,7 +5331,7 @@ begin
                    beta:=s2r(DUE(s));
                  end
                 else
-                 if (CouplerType=Bare) then
+                 if (CouplerType=Bare) then {Ra: czemu masy bez ³adunków?}
                   begin
                     SpringKC:=50*Mass+Ftmax/0.05;
                     DmaxC:=0.05;
@@ -5374,6 +5427,11 @@ begin
                   end;
 {                CouplerTune:=(1+Mass)/100000; }
               end;
+          if Pos('TurboPos:',lines)>0 then      {turbo zalezne od pozycji nastawnika}
+           begin
+            s:=ExtractKeyWord(lines,'TurboPos=');
+            TurboTest:=s2b(DUE(s));
+           end;
           if Pos('Cntrl.',lines)>0 then      {nastawniki}
             begin
               s:=DUE(ExtractKeyWord(lines,'BrakeSystem='));
@@ -5422,6 +5480,7 @@ begin
                  s:=DUE(ExtractKeyWord(lines,'MaxBPMass='));
                  if s<>'' then
                    MBPM:=s2rE(s)*1000;
+
 
                  if BrakeCtrlPosNo>0 then
                   begin
@@ -5519,6 +5578,10 @@ begin
                 s:=ExtractKeyWord(lines,'EmergencyBrakeDelay=');
                if s<>'' then
                 EmergencyBrakeDelay:=s2r(DUE(s));
+               s:=ExtractKeyWord(lines,'RadioStop=');
+               if s<>'' then
+                if Pos('Yes',s)>0 then
+                 RadioStop:=true;
              end;
           if Pos('Clima:',lines)>0 then      {zrodlo mocy dla ogrzewania itp}
             begin
@@ -5580,7 +5643,7 @@ begin
                  WindingRes:=s2r(DUE(s));
                  if WindingRes=0 then WindingRes:=0.01;
                  s:=ExtractKeyWord(lines,'nmax=');
-                 nmax:=s2rE(DUE(s))/60;
+                 nmax:=s2rE(DUE(s))/60.0;
                end;
              WheelsDriven:
                begin
@@ -5611,11 +5674,11 @@ begin
                       Ratio:=NToothW/NToothM
                      else Ratio:=1;
                  s:=ExtractKeyWord(lines,'nmin=');
-                 dizel_nmin:=s2r(DUE(s))/60;
+                 dizel_nmin:=s2r(DUE(s))/60.0;
                  s:=ExtractKeyWord(lines,'nmax=');
-                 nmax:=s2rE(DUE(s))/60;
+                 nmax:=s2rE(DUE(s))/60.0;
                  s:=ExtractKeyWord(lines,'nmax_cutoff=');
-                 dizel_nmax_cutoff:=s2r(DUE(s))/60;
+                 dizel_nmax_cutoff:=s2r(DUE(s))/60.0;
                  s:=ExtractKeyWord(lines,'AIM=');
                  dizel_AIM:=s2r(DUE(s));
                end;
@@ -5760,7 +5823,7 @@ begin
              if RventType>0 then
               begin
                 s:=ExtractKeyWord(lines,'RVentnmax=');
-                RVentnmax:=s2rE(DUE(s))/60;
+                RVentnmax:=s2rE(DUE(s))/60.0;
                 s:=ExtractKeyWord(lines,'RVentCutOff=');
                 RVentCutOff:=s2r(DUE(s));
               end;
@@ -5823,7 +5886,7 @@ begin
               end;
             end;
           end;
-        end;          
+        end;
       end; {koniec filtru importu parametrow}
      if ConversionError=0 then
       OK:=True

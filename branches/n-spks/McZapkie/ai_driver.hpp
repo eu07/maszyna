@@ -75,6 +75,7 @@ public:
 	bool Need_BrakeRelease;
 	double MinProximityDist;
 	double MaxProximityDist;
+	bool bCheckSKP;
 	void __fastcall SetDriverPsyche(void);
 	bool __fastcall PrepareEngine(void);
 	bool __fastcall ReleaseEngine(void);
@@ -92,9 +93,12 @@ public:
 	void __fastcall JumpToFirstOrder(void);
 	void __fastcall ChangeOrder(TOrders NewOrder);
 	TOrders __fastcall GetCurrentOrder(void);
+	bool __fastcall CheckSKP(void);
+	void __fastcall ResetSKP(void);
 	void __fastcall CloseLog(void);
 	__fastcall TController(const Mover::TLocation &LocInitial, const Mover::TRotation &RotInitial, bool 
 		AI, Mover::PMoverParameters NewControll, Mtable::PTrainParameters NewTrainSet, bool InitPsyche);
+	AnsiString __fastcall OrderCurrent();
 	
 private:
 	AnsiString VehicleName;

@@ -13,17 +13,18 @@
 #include "Train.h"
 #include "Globals.h"
 #include "sky.h"
-
+#include <winuser.h>
 
 class TWorld
 {
 public:
-    __fastcall Init(HWND NhWnd, HDC hDC);
+    bool __fastcall Init(HWND NhWnd, HDC hDC);
     HWND hWnd;
     GLvoid __fastcall glPrint(const char *fmt);
     void __fastcall OnKeyPress(int cKey);
 //    void __fastcall UpdateWindow();
     void __fastcall OnMouseMove(double x, double y);
+    void __fastcall OnCommandGet(DaneRozkaz *pRozkaz);
     bool __fastcall Update();
     __fastcall TWorld();
     __fastcall ~TWorld();
@@ -35,6 +36,7 @@ private:
     AnsiString OutText1;
     AnsiString OutText2;
     AnsiString OutText3;
+    AnsiString OutText4;
     void ShowHints();
     bool __fastcall Render();
     TCamera Camera;
@@ -47,7 +49,7 @@ private:
 
     TSky Clouds;
     TEvent *KeyEvents[10];
-
+    int iCheckFPS; //kiedy znów sprawdziæ FPS, ¿eby wy³¹czaæ optymalizacji od razu do zera 
 };
 //---------------------------------------------------------------------------
 #endif

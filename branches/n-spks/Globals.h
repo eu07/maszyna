@@ -3,17 +3,28 @@
 #ifndef GlobalsH
 #define GlobalsH
 
+#include <string>
+#include "opengl/glew.h"
 #include "dumb3d.h"
-#include "ground.h"
-#include "Logs.h"
 
 using namespace Math3D;
 
-const int k_IncMainCtrl= 0;
-const int k_IncMainCtrlFAST= 1;
-const int k_DecMainCtrl= 2;
-const int k_DecMainCtrlFAST= 3;
-const int k_IncScndCtrl= 4;
+//Ra: taki zapis funkcjonuje lepiej, ale mo¿e nie jest optymalny
+#define vWorldFront vector3(0,0,1)
+#define vWorldUp vector3(0,1,0)
+#define vWorldLeft CrossProduct(vWorldUp,vWorldFront)
+
+//Ra: bo te poni¿ej to siê powiela³y w ka¿dym module odobno
+//vector3 vWorldFront=vector3(0,0,1);
+//vector3 vWorldUp=vector3(0,1,0);
+//vector3 vWorldLeft=CrossProduct(vWorldUp,vWorldFront);
+
+//definicje klawiszy
+const int k_IncMainCtrl= 0; //[Num+]
+const int k_IncMainCtrlFAST= 1; //[Num+] [Shift]
+const int k_DecMainCtrl= 2; //[Num-]
+const int k_DecMainCtrlFAST= 3; //[Num-] [Shift]
+const int k_IncScndCtrl= 4; //[Num/]
 const int k_IncScndCtrlFAST= 5;
 const int k_DecScndCtrl= 6;
 const int k_DecScndCtrlFAST= 7;
@@ -100,72 +111,120 @@ const int k_EndSign=70;
 
 const int k_Active=71;
                         //Winger 020304
-const int MaxKeys= 72;
+const int k_WalkMode= 72;
+const int MaxKeys= 73;
+
+//klasy dla wskaŸników globalnych
+class TGround;
 
 class Global
 {
+private:
+ static GLuint iTextureId; //ostatnio u¿yta tekstura 2D
 public:
-//    double Global::tSinceStart;
-    static int Keys[MaxKeys];
-    static vector3 pCameraPosition;
-    static double pCameraRotation;      
-    static vector3 pFreeCameraInit;
-    static vector3 pFreeCameraInitAngle;
-    static int iWindowWidth;
-    static int iWindowHeight;
-    static int iBpp;
-    static bool bFullScreen;
-//    static bool bFreeFly;
-    static bool bFreeFly;
-//    float RunningTime;
-    static bool bWireFrame;
-    static bool bSoundEnabled;
-//McZapkie-131202
-    static bool bRenderAlpha;
-    static bool bAdjustScreenFreq;
-    static bool bEnableTraction;
-    static bool bLoadTraction;
-    static bool bLiveTraction;
-    static bool bManageNodes;
-//    bool WFreeFly;
-    static float Global::fMouseXScale;
-    static float Global::fMouseYScale;
-    static double fFogStart;
-    static double fFogEnd;
-    static TGround *pGround;
-    static std::string szDefaultExt;
-    static char szSceneryFile[256];
-    static char CreatorName1[20];
-    static char CreatorName2[20];
-    static char CreatorName3[20];
-    static char CreatorName4[30];
-    static char CreatorName5[30];
-    static AnsiString  asCurrentSceneryPath;
-    static AnsiString asCurrentTexturePath;
-//McZapkie-170602: zewnetrzna definicja pojazdu uzytkownika
-    static AnsiString asHumanCtrlVehicle;
-    static bool __fastcall LoadIniFile(AnsiString asFileName="eu07.ini");
-    static bool __fastcall InitKeys(AnsiString asFileName="keys.ini");
-    static vector3 __fastcall GetCameraPosition();
-    static void __fastcall SetCameraPosition(vector3 pNewCameraPosition);
-    static void __fastcall SetCameraRotation(double Yaw);
-    static bool bWriteLogEnabled;
-//McZapkie-221002: definicja swiatla dziennego
-    static GLfloat  AtmoColor[];
-    static GLfloat  FogColor[];
-    static bool bTimeChange;
-    static GLfloat  ambientDayLight[];
-    static GLfloat  diffuseDayLight[];
-    static GLfloat  specularDayLight[];
-    static GLfloat  whiteLight[];
-    static GLfloat  noLight[];
-    static GLfloat  lightPos[4];
-    static bool slowmotion;
-    static bool changeDynObj;
-    static double ABuDebug;
-    static bool detonatoryOK;
-    static AnsiString asSky;
-    static bool bnewAirCouplers;
+ //double Global::tSinceStart;
+ static int Keys[MaxKeys];
+ static vector3 pCameraPosition; //pozycja kamery w œwiecie
+ static double pCameraRotation;  //kierunek bezwzglêdny kamery w œwiecie
+ static double pCameraRotationDeg;  //w stopniach, dla animacji billboard
+ static vector3 pFreeCameraInit[10]; //pozycje kamery
+ static vector3 pFreeCameraInitAngle[10];
+ static int iWindowWidth;
+ static int iWindowHeight;
+ static int iBpp;
+ static bool bFullScreen;
+ static bool bFreeFly;
+ //float RunningTime;
+ static bool bWireFrame;
+ static bool bSoundEnabled;
+ //McZapkie-131202
+ static bool bRenderAlpha;
+ static bool bAdjustScreenFreq;
+ static bool bEnableTraction;
+ static bool bLoadTraction;
+ static bool bLiveTraction;
+ static bool bManageNodes;
+ static bool bDecompressDDS;
+ //    bool WFreeFly;
+ static float Global::fMouseXScale;
+ static float Global::fMouseYScale;
+ static double fFogStart;
+ static double fFogEnd;
+ static TGround *pGround;
+ static char** szDefaultExt;
+ static char szSceneryFile[256];
+ static char CreatorName1[20];
+ static char CreatorName2[20];
+ static char CreatorName3[20];
+ static char CreatorName4[30];
+ static char CreatorName5[30];
+ static AnsiString asCurrentSceneryPath;
+ static AnsiString asCurrentTexturePath;
+ //McZapkie-170602: zewnetrzna definicja pojazdu uzytkownika
+ static AnsiString asHumanCtrlVehicle;
+ static void __fastcall LoadIniFile(AnsiString asFileName="eu07.ini");
+ static void __fastcall InitKeys(AnsiString asFileName="keys.ini");
+ inline static vector3 __fastcall GetCameraPosition()
+ {return pCameraPosition;};
+ static void __fastcall SetCameraPosition(vector3 pNewCameraPosition);
+ static void __fastcall SetCameraRotation(double Yaw);
+ static bool bWriteLogEnabled;
+ //McZapkie-221002: definicja swiatla dziennego
+ static GLfloat AtmoColor[];
+ static GLfloat FogColor[];
+ static bool bTimeChange;
+ static GLfloat ambientDayLight[];
+ static GLfloat diffuseDayLight[];
+ static GLfloat specularDayLight[];
+ static GLfloat ambientLight[];
+ static GLfloat diffuseLight[];
+ static GLfloat specularLight[];
+ static GLfloat whiteLight[];
+ static GLfloat noLight[];
+ static GLfloat darkLight[];
+ static GLfloat lightPos[4];
+ static int iSlowMotion;
+ static bool changeDynObj;
+ static double ABuDebug;
+ static bool detonatoryOK;
+ static AnsiString asSky;
+ static bool bnewAirCouplers;
+ //Ra: nowe zmienne globalne
+ static int iDefaultFiltering; //domyœlne rozmywanie tekstur TGA
+ static int iBallastFiltering; //domyœlne rozmywanie tekstury podsypki
+ static int iRailProFiltering; //domyœlne rozmywanie tekstury szyn
+ static int iDynamicFiltering; //domyœlne rozmywanie tekstur pojazdów
+ static bool bReCompile; //czy odœwie¿yæ siatki
+ static bool bUseVBO; //czy jest VBO w karcie graficznej
+ static int iFeedbackMode; //tryb pracy informacji zwrotnej
+ static double fOpenGL; //wersja OpenGL - przyda siê
+ static bool bOpenGL_1_5; //czy s¹ dostêpne funkcje OpenGL 1.5
+ static double fLuminance; //jasnoœæ œwiat³a do automatycznego zapalania
+ static int iMultiplayer; //blokada dzia³ania niektórych eventów na rzecz kominikacji
+ static HWND hWnd; //uchwyt okna
+ static int iCameraLast;
+ static AnsiString asVersion;
+ static int iViewMode; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty, 4-obwody
+ static GLint iMaxTextureSize; //maksymalny rozmiar tekstury
+ static int iTextMode; //tryb pracy wyœwietlacza tekstowego
+ static bool bDoubleAmbient; //podwójna jasnoœæ ambient
+ static double fMoveLight; //numer dnia w roku albo -1
+ static bool bSmoothTraction; //wyg³adzanie drutów
+ static double fSunDeclination; //deklinacja S³oñca
+ static double fSunSpeed; //prêdkoœæ ruchu S³oñca, zmienna do testów
+ static double fTimeAngleDeg; //godzina w postaci k¹ta
+ static double fLatitudeDeg; //szerokoœæ geograficzna
+ static char* szTexturesTGA[4]; //lista tekstur od TGA
+ static char* szTexturesDDS[4]; //lista tekstur od DDS
+ static int iMultisampling; //tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
+ static bool bGlutFont; //tekst generowany przez GLUT
+ static int iKeyLast; //ostatnio naciœniêty klawisz w celu logowania
+ static bool bPause; //globalna pauza ruchu
+ static bool bActive; //czy jest aktywnym oknem
+ static void __fastcall BindTexture(GLuint t);
+ static int iConvertModels; //tworzenie plików binarnych
+ static int iErorrCounter; //licznik sprawdzañ do œledzenia b³êdów OpenGL
+ static bool bInactivePause; //automatyczna pauza, gdy okno nieaktywne
 };
 
 //---------------------------------------------------------------------------

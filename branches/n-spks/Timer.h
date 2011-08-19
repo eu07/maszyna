@@ -3,12 +3,13 @@
 #ifndef TimerH
 #define TimerH
 
-namespace Timer {
+namespace Timer { 
 
 
 double __fastcall GetTime();
 
 double __fastcall GetDeltaTime();
+double __fastcall GetDeltaRenderTime();
 
 double __fastcall GetfSinceStart();
 
@@ -24,7 +25,7 @@ double __fastcall GetFPS();
 
 void __fastcall ResetTimers();
 
-void __fastcall UpdateTimers();
+void __fastcall UpdateTimers(bool pause);
 
 };
 

@@ -295,6 +295,7 @@ struct TSecuritySystem
 	double SystemBrakeTimer;
 	int VelocityAllowed;
 	int NextVelocityAllowed;
+	bool RadioStop;
 } ;
 
 struct mover__2
@@ -313,7 +314,7 @@ public:
 	AnsiString filename;
 	Byte CategoryFlag;
 	AnsiString TypeName;
-	AnsiString TrainType;
+	int TrainType;
 	TEngineTypes EngineType;
 	TPowerParameters EnginePowerSource;
 	TPowerParameters SystemPowerSource;
@@ -324,6 +325,7 @@ public:
 	double Vmax;
 	double Mass;
 	double Power;
+	double Mred;
 	double TotalMass;
 	double HeatingPower;
 	double LightPower;
@@ -355,6 +357,7 @@ public:
 	TLocalBrake LocalBrake;
 	TBrakePressure BrakePressureTable[13];
 	Byte ASBType;
+	Byte TurboTest;
 	double MaxBrakeForce;
 	double MaxBrakePress[4];
 	double P2FTrans;
@@ -511,6 +514,7 @@ public:
 	Byte HeadSignalsFlag;
 	TCommand CommandIn;
 	AnsiString CommandOut;
+	AnsiString CommandLast;
 	double ValueOut;
 	TTrackShape RunningShape;
 	TTrackParam RunningTrack;
@@ -580,11 +584,14 @@ public:
 	double FrictConst1;
 	double FrictConst2s;
 	double FrictConst2d;
-	double FrictConst3;
 	double TotalMassxg;
 	bool __fastcall GetTrainsetVoltage(void);
 	bool __fastcall Physic_ReActivation(void);
 	void __fastcall PantCheck(void);
+	double __fastcall LocalBrakeRatio(void);
+	double __fastcall PipeRatio(void);
+	double __fastcall RealPipeRatio(void);
+	double __fastcall BrakeVP(void);
 	bool __fastcall DynamicBrakeSwitch(bool Switch);
 	bool __fastcall SendCtrlBroadcast(AnsiString CtrlCommand, double ctrlvalue);
 	bool __fastcall SendCtrlToNext(AnsiString CtrlCommand, double ctrlvalue, double dir);
@@ -677,7 +684,7 @@ public:
 		, AnsiString TypeNameInit, AnsiString NameInit, int LoadInitial, AnsiString LoadTypeInitial, int Cab
 		);
 	bool __fastcall LoadChkFile(AnsiString chkpath);
-	bool __fastcall CheckLocomotiveParameters(bool ReadyFlag);
+	bool __fastcall CheckLocomotiveParameters(bool ReadyFlag, int Dir);
 	AnsiString __fastcall EngineDescription(int what);
 	bool __fastcall DoorLeft(bool State);
 	bool __fastcall DoorRight(bool State);
@@ -753,6 +760,14 @@ static const Shortint sound_manyrelay = 0x20;
 static const Shortint sound_brakeacc = 0x40;
 #define Spg  (5.067000E-01)
 extern PACKAGE bool PhysicActivationFlag;
+static const Shortint dt_Default = 0x0;
+static const Shortint dt_EZT = 0x1;
+static const Shortint dt_ET41 = 0x2;
+static const Shortint dt_ET42 = 0x3;
+static const Shortint dt_PseudoDiesel = 0x4;
+static const Shortint dt_ET22 = 0x5;
+static const Shortint dt_SN61 = 0x6;
+static const Shortint dt_181 = 0x7;
 extern PACKAGE double __fastcall Distance(const TLocation &Loc1, const TLocation &Loc2, const TDimension 
 	&Dim1, const TDimension &Dim2);
 

@@ -6,23 +6,24 @@ interface
 
 
 const
+{Ra: te sta³e nie s¹ u¿ywane...
         _FileName = ['a'..'z','A'..'Z',':','\','.','*','?','0'..'9','_','-'];
         _RealNum  = ['0'..'9','-','+','.','E','e'];
-        _Integer  = ['0'..'9','-'];
+        _Integer  = ['0'..'9','-']; //Ra: to siê gryzie z STLport w Builder 6
         _Plus_Int = ['0'..'9'];
         _All      = [' '..'þ'];
-        _EOL      = [#13,#10];
-        _SPACE    = ' ';
         _Delimiter= [',',';']+_EOL;
         _Delimiter_Space=_Delimiter+[' '];
+}
+        _EOL      = [#13,#10];
+        _SPACE    = ' ';
         _Spacesigns=[' ']+[#9]+_EOL;
         CutLeft=-1; CutRight=1; CutBoth=0;  {Cut_Space}
 
+var
         ConversionError: integer=0;
         LineCount: integer=0;
         DebugModeFlag: boolean=False;
-//        DebugModeFlag: boolean=False;
-var
         FreeFlyModeFlag: boolean=False;
 
 type
@@ -93,6 +94,7 @@ function Horiz(X:real):longint;
 
 function Vert(Y:real):longint;
 
+procedure ClearPendingExceptions;
 
 {------------------------------------------------}
 Implementation
@@ -268,7 +270,7 @@ end;
 
 function TestFlag(Flag:integer; Value:integer):boolean;
 begin
-  if Flag and Value=Value then
+  if (Flag and Value)=Value then
    TestFlag:=True
   else TestFlag:=False;
 end;
@@ -486,5 +488,10 @@ begin
         else Vert:= -MaxInt
 end;
 
+procedure ClearPendingExceptions;
+//resetuje b³êdy FPU, wymagane dla Trunc()
+asm
+  FNCLEX
+end;
 
 end.

@@ -45,13 +45,14 @@ public:
 //	explicit vector3(scalar_t* initArray, int arraySize = 3)
 //	{ for (int i = 0;i<arraySize;++i) e[i] = initArray[i]; }
 
-    void __fastcall RotateX(double angle);                              
+    void __fastcall RotateX(double angle);
     void __fastcall RotateY(double angle);
     void __fastcall RotateZ(double angle);
 
     void inline __fastcall Normalize();
     void inline __fastcall SafeNormalize();
     double inline __fastcall Length();
+    void inline __fastcall Zero() {x=y=z=0.0;};
 
 	// [] is to read, () is to write (const correctness)
 //	const scalar_t& operator[] (int i) const { return e[i]; }
@@ -104,7 +105,22 @@ public:
 	inline matrix4x4& BasisChange (const vector3& v, const vector3& n);
 	inline matrix4x4& BasisChange (const vector3& u, const vector3& v, const vector3& n);
 	inline matrix4x4& ProjectionMatrix (bool perspective, scalar_t l, scalar_t r, scalar_t t, scalar_t b, scalar_t n, scalar_t f);
-	
+ void InitialRotate()
+ {//taka specjalna rotacja, nie ma co ci¹gaæ trygonometrii
+  double f;
+  for (int i=0;i<16;i+=4)
+  {e[i]=-e[i]; //zmiana znaku X
+   f=e[i+1]; e[i+1]=e[i+2]; e[i+2]=f; //zamiana Y i Z
+  }
+ };
+ inline bool IdentityIs()
+ {//sprawdzenie jednostkowoœci
+  for (int i=0;i<16;++i)
+   if (e[i]!=((i%5)?0.0:1.0)) //jedynki tylko na 0, 5, 10 i 15
+    return false;
+  return true;
+ }
+
 private:
 	scalar_t e[16];
 };
@@ -215,15 +231,15 @@ inline scalar_t Length4 (const vector3& v)
 
 inline vector3 Normalize (const vector3& v)
 {	vector3 retVal = v / Length3(v); return retVal; }
-inline vector3 SafeNormalize (const vector3& v)
+inline vector3 SafeNormalize(const vector3& v)
 {
-    double l= Length3(v);
-    vector3 retVal;
-    if (l==0)
-        retVal.x=retVal.y=retVal.z= 0;
-    else
-        retVal = v / Length3(v);
-    return retVal;
+ double l= Length3(v);
+ vector3 retVal;
+ if (l==0)
+  retVal.x=retVal.y=retVal.z=0;
+ else
+  retVal=v/l;
+ return retVal;
 }
 inline vector3 Normalize4 (const vector3& v)
 {	return v / Length4(v); }
@@ -259,46 +275,12 @@ inline vector3 operator* (const matrix4x4& m, const vector3& v) {
 
 }
 
-void __fastcall vector3::RotateX(double angle)
-{
-    double ty= y;
-    y= (cos(angle)*y-z*sin(angle));
-    z= (z*cos(angle)+sin(angle)*ty);
-};
-void __fastcall vector3::RotateY(double angle)
-{
-    double tx= x;
-    x= (cos(angle)*x+z*sin(angle));
-    z= (z*cos(angle)-sin(angle)*tx);
-};
-void __fastcall vector3::RotateZ(double angle)
-{
-    double ty= y;
-    y= (cos(angle)*y+x*sin(angle));
-    x= (x*cos(angle)-sin(angle)*ty);
-};
-
 void inline __fastcall vector3::Normalize()
 {
     double il= 1/Length();
     x*= il;
     y*= il;
     z*= il;
-}
-
-void inline __fastcall vector3::SafeNormalize()
-{
-    double l= Length();
-    if (l==0)
-    {
-        x=y=z=0;
-    }
-    else
-    {
-        x/= l;
-        y/= l;
-        z/= l;
-    }
 }
 
 double inline __fastcall vector3::Length()

@@ -20,14 +20,15 @@
 */
 
 
-#include    "system.hpp"
-#include    "classes.hpp"
+#include "system.hpp"
+#include "classes.hpp"
 #pragma hdrstop
 
 #include "Mover.hpp"
 #include "mctools.hpp"
 #include "MemCell.h"
 #include "Event.h"
+#include "parser.h"
 
 #include "Usefull.h"
 
@@ -44,18 +45,30 @@ __fastcall TMemCell::~TMemCell()
     SafeDeleteArray(szText);
 }
 
-bool __fastcall TMemCell::Init()
+void __fastcall TMemCell::Init()
 {
 }
 
-bool __fastcall TMemCell::UpdateValues(char *szNewText, double fNewValue1, double fNewValue2, int CheckMask)
+void __fastcall TMemCell::UpdateValues(char *szNewText, double fNewValue1, double fNewValue2, int CheckMask)
 {
-    if (TestFlag(CheckMask,conditional_memstring))
-      strcpy(szText,szNewText);
-    if (TestFlag(CheckMask,conditional_memval1))
-      fValue1= fNewValue1;
-    if (TestFlag(CheckMask,conditional_memval2))
-       fValue2= fNewValue2;
+ if (CheckMask&conditional_memadd)
+ {//dodawanie wartoœci
+  if (TestFlag(CheckMask,conditional_memstring))
+   strcat(szText,szNewText);
+  if (TestFlag(CheckMask,conditional_memval1))
+   fValue1+=fNewValue1;
+  if (TestFlag(CheckMask,conditional_memval2))
+   fValue2+=fNewValue2;
+ }
+ else
+ {
+  if (TestFlag(CheckMask,conditional_memstring))
+   strcpy(szText,szNewText);
+  if (TestFlag(CheckMask,conditional_memval1))
+   fValue1= fNewValue1;
+  if (TestFlag(CheckMask,conditional_memval2))
+   fValue2= fNewValue2;
+ }
 }
 
 bool __fastcall TMemCell::Load(cParser *parser)
@@ -78,17 +91,31 @@ bool __fastcall TMemCell::Load(cParser *parser)
     return true;
 }
 
-bool __fastcall TMemCell::PutCommand(TMoverParameters *Mover, TLocation &Loc)
+void __fastcall TMemCell::PutCommand(TMoverParameters *Mover, TLocation &Loc)
 {
     Mover->PutCommand(szText,fValue1,fValue2,Loc);
 }
 
-bool __fastcall TMemCell::Compare(char *szTestText, double fTestValue1, double fTestValue2, int CheckMask)
-{
-  return ((!TestFlag(CheckMask,conditional_memstring) || (AnsiString(szTestText)==AnsiString(szText))) &&
-          (!TestFlag(CheckMask,conditional_memval1) || (fValue1==fTestValue1)) &&
-          (!TestFlag(CheckMask,conditional_memval2) || (fValue2==fTestValue2)));
-}
+bool __fastcall TMemCell::Compare(char *szTestText,double fTestValue1,double fTestValue2,int CheckMask)
+{//porównanie zawartoœci komórki pamiêci z podanymi wartoœciami
+ if (TestFlag(CheckMask,conditional_memstring))
+ {//porównaæ teksty
+  char *pos=StrPos(szTestText,"*"); //zwraca wskaŸnik na pozycjê albo NULL
+  if (pos)
+  {//porównanie fragmentu ³añcucha
+   int i=pos-szTestText; //iloœæ porównywanych znaków
+   if (i) //jeœli nie jest pierwszym znakiem
+    if (AnsiString(szTestText,i)!=AnsiString(szText,i))
+     return false; //pocz¹tki o d³ugoœci (i) s¹ ró¿ne
+  }
+  else
+   if (AnsiString(szTestText)!=AnsiString(szText))
+    return false; //³¹ñcuchy s¹ ró¿ne
+ }
+ //tekst zgodny, porównaæ resztê
+ return ((!TestFlag(CheckMask,conditional_memval1) || (fValue1==fTestValue1)) &&
+         (!TestFlag(CheckMask,conditional_memval2) || (fValue2==fTestValue2)));
+};
 
 bool __fastcall TMemCell::Render()
 {

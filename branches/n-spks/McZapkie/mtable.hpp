@@ -61,6 +61,9 @@ public:
 	double __fastcall CheckTrainLatency(void);
 	AnsiString __fastcall ShowRelation();
 	double __fastcall WatchMTable(double DistCounter);
+	AnsiString __fastcall NextStop();
+	bool __fastcall IsStop(void);
+	bool __fastcall IsTimeToGo(double hh, double mm);
 	bool __fastcall UpdateMTable(double hh, double mm, AnsiString NewName);
 	__fastcall TTrainParameters(AnsiString NewTrainName);
 	bool __fastcall LoadTTfile(AnsiString scnpath);
@@ -89,12 +92,11 @@ public:
 	int srm;
 	int ssh;
 	int ssm;
+	double mr;
 	void __fastcall UpdateMTableTime(double deltaT);
 	__fastcall TMTableTime(int InitH, int InitM, int InitSRH, int InitSRM, int InitSSH, int InitSSM);
-	
-private:
-	double mr;
 public:
+		
 	#pragma option push -w-inl
 	/* TObject.Create */ inline __fastcall TMTableTime(void) : System::TObject() { }
 	#pragma option pop

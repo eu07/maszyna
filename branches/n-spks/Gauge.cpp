@@ -37,7 +37,7 @@ __fastcall TGauge::~TGauge()
 {
 }
 
-__fastcall TGauge::Clear()
+void __fastcall TGauge::Clear()
 {
   SubModel= NULL;
   eType= gt_Unknown;
@@ -46,20 +46,21 @@ __fastcall TGauge::Clear()
 }
 
 
-bool __fastcall TGauge::Init(TSubModel *NewSubModel, TGaugeType eNewType, double fNewScale, double fNewOffset, double fNewFriction, double fNewValue)
-{
-    if (NewSubModel!=NULL)
-    {
-     fFriction= fNewFriction;
-     fValue= fNewValue;
-     fOffset= fNewOffset;
-     fScale= fNewScale;
-     SubModel= NewSubModel;
-     eType= eNewType;
-    }
+void __fastcall TGauge::Init(TSubModel *NewSubModel,TGaugeType eNewType,double fNewScale,double fNewOffset,double fNewFriction,double fNewValue)
+{//ustawienie parametrów animacji submodelu
+ if (NewSubModel)
+ {
+  fFriction=fNewFriction;
+  fValue=fNewValue;
+  fOffset=fNewOffset;
+  fScale=fNewScale;
+  SubModel=NewSubModel;
+  eType=eNewType;
+  NewSubModel->WillBeAnimated(); //wy³¹czenie ignowania jedynkowego transformu 
+ }
 }
 
-bool __fastcall TGauge::Load(TQueryParserComp *Parser, TModel3d *mdParent)
+void __fastcall TGauge::Load(TQueryParserComp *Parser, TModel3d *mdParent)
 {
     AnsiString str1=Parser->GetNextSymbol();
     AnsiString str2=Parser->GetNextSymbol();
@@ -71,7 +72,7 @@ bool __fastcall TGauge::Load(TQueryParserComp *Parser, TModel3d *mdParent)
 }
 
 
-bool __fastcall TGauge::PermIncValue(double fNewDesired)
+void __fastcall TGauge::PermIncValue(double fNewDesired)
 {
 //    double p;
 //    p= fNewDesired;
@@ -83,7 +84,7 @@ bool __fastcall TGauge::PermIncValue(double fNewDesired)
     }
 }
 
-bool __fastcall TGauge::IncValue(double fNewDesired)
+void __fastcall TGauge::IncValue(double fNewDesired)
 {
 //    double p;
 //    p= fNewDesired;
@@ -92,7 +93,7 @@ bool __fastcall TGauge::IncValue(double fNewDesired)
        fDesiredValue=fScale+fOffset;
 }
 
-bool __fastcall TGauge::DecValue(double fNewDesired)
+void __fastcall TGauge::DecValue(double fNewDesired)
 {
 //    double p;
 //    p= fNewDesired;
@@ -100,21 +101,21 @@ bool __fastcall TGauge::DecValue(double fNewDesired)
     if(fDesiredValue<0) fDesiredValue=0;
 }
 
-bool __fastcall TGauge::UpdateValue(double fNewDesired)
+void __fastcall TGauge::UpdateValue(double fNewDesired)
 {
 //    double p;
 //    p= fNewDesired;
     fDesiredValue= fNewDesired*fScale+fOffset;
 }
 
-bool __fastcall TGauge::PutValue(double fNewDesired) //McZapkie-281102: natychmiastowe wpisanie wartosci
+void __fastcall TGauge::PutValue(double fNewDesired) //McZapkie-281102: natychmiastowe wpisanie wartosci
 {
     fDesiredValue= fNewDesired*fScale+fOffset;
     fValue=fDesiredValue;
 }
 
 
-bool __fastcall TGauge::Update()
+void __fastcall TGauge::Update()
 {
     float dt=Timer::GetDeltaTime();
     if (fFriction>0 && dt<fFriction/2)     //McZapkie-281102: zabezpieczenie przed oscylacjami dla dlugich czasow
@@ -126,18 +127,18 @@ bool __fastcall TGauge::Update()
         switch (eType)
         {
             case gt_Rotate:
-                SubModel->SetRotate(vector3(0,1,0),fValue*360);
+                SubModel->SetRotate(float3(0,1,0),fValue*360);
             break;
 
             case gt_Move:
-                SubModel->SetTranslate(vector3(0,0,1)*fValue);
+                SubModel->SetTranslate(float3(0,0,fValue));
             break;
         }
     }
 
 }
 
-bool __fastcall TGauge::Render()
+void __fastcall TGauge::Render()
 {
 }
 
