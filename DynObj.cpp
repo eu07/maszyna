@@ -1286,7 +1286,7 @@ void TDynamicObject::ScanEventTrack()
      //bo jeœli tak, to trzeba szukaæ nastêpnego, a ten mo¿e go zas³aniaæ
      vector3 pos=GetPosition(); //aktualna pozycja, potrzebna do liczenia wektorów
      vector3 dir=startdir*GetDirection(); //wektor w kierunku jazdy/szukania
-     vector3 sem; //wetor do sygna³u
+     vector3 sem; //wektor do sygna³u
      if (e->Type==tp_GetValues)
      {//przes³aæ info o zbli¿aj¹cym siê semaforze
 #if LOGVELOCITY
