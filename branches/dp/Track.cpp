@@ -868,15 +868,15 @@ void __fastcall TTrack::Compile()
   fHTW2=0.5*fabs(pNext->fTrackWidth); //po³owa rozstawu/nawierzchni
   side2=fabs(pNext->fTexWidth);
   slop2=fabs(pNext->fTexSlope);
-  rozp2=fHTW2+side2+slop2;
+  rozp2=fHTW2+side2+slop2; //szerokoœæ podstawy
   fTexHeight2=pNext->fTexHeight;
   hypot2=hypot(slop2,pNext->fTexHeight);
   if (hypot2==0.0) hypot2=1.0;
   normal2=vector3(pNext->fTexSlope/hypot2,fTexHeight2/hypot2,0.0);
-  //zabezpieczenia przed zawieszeniem - logowaæ to?
-  if (fHTW2>5.0*fHTW) {fHTW2=fHTW; WriteLog("niedopasowanie 1");};
-  if (side2>5.0*side) {side2=side; WriteLog("niedopasowanie 2");};
-  if (rozp2>5.0*rozp) {rozp2=rozp; WriteLog("niedopasowanie 3");};
+  //zabezpieczenia przed zawieszeniem - jest OK, ju¿ siê nie wiesza
+  //if (fHTW2>5.0*fHTW) {fHTW2=fHTW; WriteLog("niedopasowanie 1");};
+  //if (side2>5.0*side) {side2=side; WriteLog("niedopasowanie 2");};
+  //if (rozp2>5.0*rozp) {rozp2=rozp; WriteLog("niedopasowanie 3");};
  }
  else //gdy nie ma nastêpnego albo jest nieodpowiednim koñcem podpiêty
  {fHTW2=fHTW; side2=side; slop2=slop; rozp2=rozp; fTexHeight2=fTexHeight; normal2=normal1;}
@@ -1363,10 +1363,10 @@ void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Star
   slop2=fabs(pNext->fTexSlope);
   rozp2=fHTW2+side2+slop2;
   fTexHeight2=pNext->fTexHeight;
-  //zabezpieczenia przed zawieszeniem - logowaæ to?
-  if (fHTW2>5.0*fHTW) {fHTW2=fHTW; WriteLog("!!!! niedopasowanie 1");};
-  if (side2>5.0*side) {side2=side; WriteLog("!!!! niedopasowanie 2");};
-  if (rozp2>5.0*rozp) {rozp2=rozp; WriteLog("!!!! niedopasowanie 3");};
+  //zabezpieczenia przed zawieszeniem - jest OK, ju¿ siê nie wiesza
+  //if (fHTW2>5.0*fHTW) {fHTW2=fHTW; WriteLog("!!!! niedopasowanie 1");};
+  //if (side2>5.0*side) {side2=side; WriteLog("!!!! niedopasowanie 2");};
+  //if (rozp2>5.0*rozp) {rozp2=rozp; WriteLog("!!!! niedopasowanie 3");};
   //if (fabs(fTexHeight2)>5.0*fabs(fTexHeight)) {fTexHeight2=fTexHeight; WriteLog("!!!! niedopasowanie 4");};
  }
  else //gdy nie ma nastêpnego albo jest nieodpowiednim koñcem podpiêty
