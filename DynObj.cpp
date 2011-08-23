@@ -1340,7 +1340,7 @@ void TDynamicObject::ScanEventTrack()
           SetProximityVelocity(scandist,vmechmax,&sl);
          }
           else  //ustawiamy prêdkoœæ tylko wtedy, gdy ma ruszyæ, stan¹æ albo ma staæ
-           if ((MoverParameters->Vel==0.0)||(vmechmax==0.0)) //jeœli jedzie lub ma stan¹æ/staæ
+           if ((MoverParameters->Vel==0.0)||(vmechmax==0.0)) //jeœli stoi lub ma stan¹æ/staæ
            {//semafor na tym torze albo lokomtywa stoi, a ma ruszyæ, albo ma stan¹æ, albo nie ruszaæ
             //stop trzeba powtarzaæ, bo inaczej zatr¹bi i pojedzie sam
             Mechanik->PutCommand("SetVelocity",vmechmax,e->Params[9].asMemCell->fValue2,sl);
@@ -1428,96 +1428,102 @@ void TDynamicObject::ScanEventTrack()
       }
       else if (strcmp(e->Params[0].asText,asNextStop.c_str())==0)
       {//jeœli W4 z nazw¹ jak w rozk³adzie, to aktualizacja rozk³adu i pobranie kolejnego
-       if (fTrackBlock>50.0) //je¿eli nie ma zawalidrogi w tej odleg³oœci
-        if (!TrainParams->IsStop())
-        {//jeœli nie ma tu postoju
-         if (scandist<500)
-         {//zaliczamy posterunek w pewnej odleg³oœci przed, bo W4 zas³ania semafor
+       scandist=sem.Length()-0.5*MoverParameters->Dim.L-3; //dok³adniejsza d³ugoœæ, 3m luzu
+       if ((scandist<0)?true:dir.x*sem.x+dir.z*sem.z<0)
+        scandist=0; //ujemnych nie ma po co wysy³aæ, jeœli miniêty, to równie¿ 0
+       if (!TrainParams->IsStop())
+       {//jeœli nie ma tu postoju
+        if (scandist<500)
+        {//zaliczamy posterunek w pewnej odleg³oœci przed, bo W4 zas³ania semafor
          TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,asNextStop.SubString(20,asNextStop.Length()));
          asNextStop=TrainParams->NextStop(); //pobranie kolejnego miejsca zatrzymania
          eSignSkip=e; //wtedy uznajemy go za ignorowany przy poszukiwaniu nowego
          eSignLast=NULL; //¿eby jakiœ nowy by³ poszukiwany
-         }
         }
-        else
-        {
-         if (fSignSpeed<0) //gdy na stacji pocz¹tkowej, albo W4 by³o zas³oniête semaforem
-          fSignSpeed=floor(MoverParameters->Vel); //zapamiêtanie pierwotnej prêdkoœci
-         vmechmax=0.0; //ma stan¹æ na W4 - informacja dla dalszego kodu
-         scandist=sem.Length()-0.5*MoverParameters->Dim.L-3; //3m luzu
-         if (scandist<0) scandist=0; //ujemnych nie ma po co wysy³aæ
-         sl.X=-e->Params[3].asdouble; //wyliczenie wspó³rzêdnych zatrzymania
-         sl.Y= e->Params[5].asdouble;
-         sl.Z= e->Params[4].asdouble;
-         eSignLast=e; //licz¹cy siê sygna³ do zapamiêtania
-         if ((scandist>Mechanik->MinProximityDist)?(MoverParameters->Vel!=0.0):false)
-         //if ((scandist>Mechanik->MinProximityDist)?(fSignSpeed>0.0):false)
-         {//jeœli jedzie, informujemy o zatrzymaniu na wykrytym stopie
-          //Mechanik->PutCommand("SetProximityVelocity",scandist,0,sl);
+       } //koniec obs³ugi przelotu na W4
+       else
+       {//zatrzymanie na W4
+        if (fSignSpeed<0) //gdy na stacji pocz¹tkowej, albo W4 by³o zas³oniête semaforem
+         fSignSpeed=floor(MoverParameters->Vel); //zapamiêtanie pierwotnej prêdkoœci
+        vmechmax=0.0; //ma stan¹æ na W4 - informacja dla dalszego kodu
+        sl.X=-e->Params[3].asdouble; //wyliczenie wspó³rzêdnych zatrzymania
+        sl.Y= e->Params[5].asdouble;
+        sl.Z= e->Params[4].asdouble;
+        eSignLast=e; //licz¹cy siê sygna³ do zapamiêtania
+        if ((scandist>Mechanik->MinProximityDist)?(MoverParameters->Vel!=0.0):false)
+        //if ((scandist>Mechanik->MinProximityDist)?(fSignSpeed>0.0):false)
+        {//jeœli jedzie, informujemy o zatrzymaniu na wykrytym stopie
+         //Mechanik->PutCommand("SetProximityVelocity",scandist,0,sl);
+         if (fTrackBlock>50.0) //je¿eli nie ma zawalidrogi w tej odleg³oœci
+         {//informacjê wysy³amy, jeœli nic nie ma na kolizyjnym
 #if LOGVELOCITY
-          //WriteLog(edir+"SetProximityVelocity "+AnsiString(scandist)+" 0");
+         //WriteLog(edir+"SetProximityVelocity "+AnsiString(scandist)+" 0");
           WriteLog(edir);
 #endif
           //SetProximityVelocity(scandist,0,&sl); //staje 300m oe W4
           SetProximityVelocity(scandist,scandist>100.0?25:0,&sl); //Ra: taka proteza
          }
-         else //jeœli jest blisko, albo stoi
-          if ((fSignSpeed>0.0)&&(scandist>100.0)) //jeœli pierwotnie jecha³, a jest daleko
+        }
+        else //jeœli jest blisko, albo stoi
+         if ((fSignSpeed>0.0)&&(scandist>100.0)) //jeœli pierwotnie jecha³, a jest daleko
+         {
+          if (fTrackBlock>50.0) //je¿eli nie ma zawalidrogi w tej odleg³oœci
            Mechanik->PutCommand("SetVelocity",20,0,sl); //doci¹ganie do przystanku
-          else
-          {//jeœli pierwotnie sta³ lub zatrzyma³ siê wystarczaj¹co blisko
-           Mechanik->PutCommand("SetVelocity",0,0,sl); //zatrzymanie na przystanku
+         } //koniec obs³ugi odleg³ego zatrzymania
+         else
+         {//jeœli pierwotnie sta³ lub zatrzyma³ siê wystarczaj¹co blisko
+          Mechanik->PutCommand("SetVelocity",0,0,sl); //zatrzymanie na przystanku
 #if LOGVELOCITY
-           WriteLog(edir+" SetVelocity 0 0 ");
+          WriteLog(edir+" SetVelocity 0 0 ");
 #endif
-           if (MoverParameters->Vel==0.0)
-           {//jeœli siê zatrzyma³ przy W4, albo sta³ w momencie zobaczenia W4
-            if (MoverParameters->TrainType==dt_EZT)//otwieranie drzwi w EN57
-             if (!MoverParameters->DoorLeftOpened&&!MoverParameters->DoorRightOpened)
-             {//otwieranie drzwi
-              int i=floor(e->Params[2].asdouble); //p7=platform side (1:left, 2:right, 3:both)
-              if (i&1) MoverParameters->DoorLeft(true);
-              if (i&2) MoverParameters->DoorRight(true);
-              //if (i&3) //¿eby jeszcze poczeka³ chwilê, zanim zamknie
-             }
-            TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,asNextStop.SubString(20,asNextStop.Length()));
-            if (TrainParams->StationIndex<TrainParams->StationCount)
-            {//jeœli s¹ dalsze stacje, czekamy do godziny odjazdu
-#if LOGVELOCITY
-             WriteLog(edir+" "+asNextStop); //informacja o zatrzymaniu na stopie
-#endif
-             if (TrainParams->IsTimeToGo(GlobalTime->hh,GlobalTime->mm))
-             {//z dalsz¹ akcj¹ czekamy do godziny odjazdu
-              asNextStop=TrainParams->NextStop(); //pobranie kolejnego miejsca zatrzymania
-#if LOGVELOCITY
-              WriteLog("Next stop: "+asNextStop.SubString(20,asNextStop.Length())); //informacja
-#endif
-              fSignSpeed=-1.0; //nieokreœlona prêdkoœæ
-              eSignSkip=e; //wtedy uznajemy go za ignorowany przy poszukiwaniu nowego
-              eSignLast=NULL; //¿eby jakiœ nowy by³ poszukiwany
-              vmechmax=vtrackmax; //odjazd po zatrzymaniu - informacja dla dalszego kodu
-              Mechanik->PutCommand("SetVelocity",vmechmax,vmechmax,sl);
-#if LOGVELOCITY
-              WriteLog(edir+" SetVelocity "+AnsiString(vtrackmax)+" "+AnsiString(vtrackmax));
-#endif
-             }
+          if (MoverParameters->Vel==0.0)
+          {//jeœli siê zatrzyma³ przy W4, albo sta³ w momencie zobaczenia W4
+           if (MoverParameters->TrainType==dt_EZT)//otwieranie drzwi w EN57
+            if (!MoverParameters->DoorLeftOpened&&!MoverParameters->DoorRightOpened)
+            {//otwieranie drzwi
+             int i=floor(e->Params[2].asdouble); //p7=platform side (1:left, 2:right, 3:both)
+             if (i&1) MoverParameters->DoorLeft(true);
+             if (i&2) MoverParameters->DoorRight(true);
+             //if (i&3) //¿eby jeszcze poczeka³ chwilê, zanim zamknie
             }
-            else
-            {//jeœli dojechaliœmy do koñca rozk³adu
-             asNextStop=TrainParams->NextStop(); //informacja o koñcu trasy
-             fSignSpeed=-1.0; //nieokreœlona prêdkoœæ
-             eSignSkip=e; //wtedy W4 uznajemy za ignorowany
-             eSignLast=NULL; //¿eby jakiœ nowy sygna³ by³ poszukiwany
-             Mechanik->JumpToNextOrder(); //wykonanie kolejnego rozkazu
+           TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,asNextStop.SubString(20,asNextStop.Length()));
+           if (TrainParams->StationIndex<TrainParams->StationCount)
+           {//jeœli s¹ dalsze stacje, czekamy do godziny odjazdu
+#if LOGVELOCITY
+            WriteLog(edir+" "+asNextStop); //informacja o zatrzymaniu na stopie
+#endif
+            if (TrainParams->IsTimeToGo(GlobalTime->hh,GlobalTime->mm))
+            {//z dalsz¹ akcj¹ czekamy do godziny odjazdu
+             asNextStop=TrainParams->NextStop(); //pobranie kolejnego miejsca zatrzymania
 #if LOGVELOCITY
              WriteLog("Next stop: "+asNextStop.SubString(20,asNextStop.Length())); //informacja
+#endif
+             fSignSpeed=-1.0; //nieokreœlona prêdkoœæ
+             eSignSkip=e; //wtedy uznajemy go za ignorowany przy poszukiwaniu nowego
+             eSignLast=NULL; //¿eby jakiœ nowy by³ poszukiwany
+             vmechmax=vtrackmax; //odjazd po zatrzymaniu - informacja dla dalszego kodu
+             Mechanik->PutCommand("SetVelocity",vmechmax,vmechmax,sl);
+#if LOGVELOCITY
+             WriteLog(edir+" SetVelocity "+AnsiString(vtrackmax)+" "+AnsiString(vtrackmax));
+#endif
+            } //koniec startu z zatrzymania
+           } //koniec obs³ugi pocz¹tkowych stacji
+           else
+           {//jeœli dojechaliœmy do koñca rozk³adu
+            asNextStop=TrainParams->NextStop(); //informacja o koñcu trasy
+            fSignSpeed=-1.0; //nieokreœlona prêdkoœæ
+            eSignSkip=e; //wtedy W4 uznajemy za ignorowany
+            eSignLast=NULL; //¿eby jakiœ nowy sygna³ by³ poszukiwany
+            Mechanik->JumpToNextOrder(); //wykonanie kolejnego rozkazu
+#if LOGVELOCITY
+            WriteLog("Next stop: "+asNextStop.SubString(20,asNextStop.Length())); //informacja
  #endif
-            }
-           }
-          }
-        }
-      }
-     }
+           } //koniec obs³ugi ostatniej stacji
+          } //if (MoverParameters->Vel==0.0)
+         } //koniec obs³ugi W4 z zatrzymaniem
+       } //koniec obs³ugi zatrzymania na W4
+      } //koniec obs³ugi PassengerStopPoint
+     } //if (e->Type==tp_PutValues)
     }
    }
    if (scandist<=scanmax) //jeœli ograniczenie jest dalej, ni¿ skanujemy, mo¿na je zignorowaæ
@@ -1755,16 +1761,26 @@ double __fastcall TDynamicObject::Init(
    TrainParams=new TTrainParameters(TrainName); //dane poci¹gu
    if (TrainName!="none")
     if (!TrainParams->LoadTTfile(Global::asCurrentSceneryPath))
-     Error("Cannot load timetable file "+TrainName+"\r\nError "+ConversionError+" in line "+TrainParams->StationCount);
+     Error("Cannot load timetable file "+TrainName+"\r\nError "+ConversionError+" in position "+TrainParams->StationCount);
     else
+    {//inicjacja pierwszego przystanku i pobranie jego nazwy
+     TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,TrainParams->NextStationName);
      asNextStop=TrainParams->NextStop();
+     WriteLog("/* "+TrainParams->ShowRelation());
+     TMTableLine *t;
+     for (int i=0;i<=TrainParams->StationCount;++i)
+     {t=TrainParams->TimeTable+i;
+      WriteLog(AnsiString(t->StationName)+" "+AnsiString((int)t->Ah)+":"+AnsiString((int)t->Am)+", "+AnsiString((int)t->Dh)+":"+AnsiString((int)t->Dm));
+     }
+     WriteLog("*/");
+    }
    Mechanik=new TController(l,r,Controller,&MoverParameters,&TrainParams,Aggressive);
    if (Controller==AIdriver)
    {//jeœli steruje komputer, okreœlamy dodatkowe parametry
     Mechanik->Ready=false;
     Mechanik->ChangeOrder(Prepare_engine); //odpala silnik
     Mechanik->JumpToNextOrder();
-    if (TrainName==AnsiString("none"))   
+    if (TrainName==AnsiString("none"))
      Mechanik->ChangeOrder(Shunt); //jeœli nie ma rozk³adu, to manewruje
     else
      Mechanik->ChangeOrder(Obey_train); //z rozk³adem jedzie na szlak
@@ -2205,7 +2221,7 @@ if (!MoverParameters->PhysicActivation)
     TrainParams= new TTrainParameters("rozklad");
     if (TrainParams->TrainName!=AnsiString("none"))
       if (!TrainParams->LoadTTfile(Global::asCurrentSceneryPath))
-        Error("Cannot load timetable file "+TrainParams->TrainName+": Error="+ConversionError+"@"+TrainParams->StationCount);
+        Error("Cannot load timetable file "+TrainParams->TrainName+": Error="+ConversionError+" in position "+TrainParams->StationCount);
     Mechanik= new TController(l,r,true,&MoverParameters,&TrainParams,Aggressive);
     AnsiString t1 = asName;
     Mechanik->Ready=false;

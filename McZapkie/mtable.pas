@@ -2,21 +2,23 @@ unit mtable;
 
 interface uses mctools,sysutils;
 
-const MaxTTableSize= 100;
+const MaxTTableSize=100; //mo¿na by to robiæ dynamicznie
       hrsd= '.';
 Type
+//Ra: pozycja zerowa rozk³adu chyba nie ma sensu
+//Ra: numeracja przystanków jest 1..StationCount
 
-   TMTableLine = record
-                   km: real;                  {kilometraz linii}
-                   vmax: real;                {predkosc rozkladowa}
-                   StationName: string[32];   {nazwa stacji ( '_' zamiast spacji}
-                   StationWare: string[32];   {typ i wyposazenie stacji, oddz. przecinkami}
-                   TrackNo: byte;             {ilosc torow szlakowych}
-                   Ah, Am: integer;           //godz. i min. przyjazdu, -1 gdy bez postoju
-                   Dh, Dm: integer;              {godz. i min. odjazdu}
-                   tm: real;                  {czas jazdy do tej stacji w min.}
-                   WaitTime: integer;         {czas postoju}
-                 end;
+   TMTableLine=record
+                km:real;                //kilometraz linii
+                vmax:real;              //predkosc rozkladowa przed przystankiem
+                StationName:string[32]; //nazwa stacji ('_' zamiast spacji)
+                StationWare:string[32]; //typ i wyposazenie stacji, oddz. przecinkami}
+                TrackNo:byte;           {ilosc torow szlakowych}
+                Ah,Am:integer;          //godz. i min. przyjazdu, -1 gdy bez postoju
+                Dh,Dm:integer;          //godz. i min. odjazdu
+                tm:real;                //czas jazdy do tej stacji w min. (z kolumny)
+                WaitTime:integer;       //czas postoju (liczony plus 6 sekund)
+               end;
 
    TMTable = array[0..MaxTTableSize] of TMTableLine;
 
@@ -30,8 +32,8 @@ Type
                         LocSeries: string;
                         LocLoad: real;
                         TimeTable: TMTable;
-                        StationCount: integer;
-                        StationIndex: integer;
+                        StationCount: integer; //iloœæ przystanków (0-techniczny)
+                        StationIndex: integer; //numer nastêpnego przystanku
                         NextStationName: string;
                         LastStationLatency: real;
                         Direction: integer;        {kierunek jazdy w/g kilometrazu}
@@ -99,21 +101,22 @@ end;
 function TTrainParameters.NextStop:string;
 //pobranie nazwy nastêpnego miejsca zatrzymania
 begin
- if StationIndex<StationCount
+ if StationIndex<=StationCount
  then
-  NextStop:='PassengerStopPoint:'+TimeTable[StationIndex+1].StationName
+  NextStop:='PassengerStopPoint:'+NextStationName //nazwa nastêpnego przystanku
  else
-  NextStop:='[End of route]'; //¿e niby koniec      
+  NextStop:='[End of route]'; //¿e niby koniec
 end;
 
 function TTrainParameters.IsStop:boolean;
-//zapytanie, czy zatrzymywaæ na aktualnej stacji
+//zapytanie, czy zatrzymywaæ na nastêpnym punkcie rozk³adu
 begin
- if (StationIndex<StationCount) AND (StationIndex>1)
- then
-  IsStop:=TimeTable[StationIndex+1].Ah>=0 //-1 to brak postoju
+ if (StationIndex<=0) then //StationIndex - numer nastêpnego przystanku
+  IsStop:=(TimeTable[1].StationName=Relation1) //stop jeœli nazwy zgodne
+ else if (StationIndex<StationCount) then
+  IsStop:=TimeTable[StationIndex].Ah>=0 //-1 to brak postoju
  else
-  IsStop:=true; //na pocz¹tku i na koñcu siê zatrzymaæ zawsze
+  IsStop:=true; //na ostatnim siê zatrzymaæ zawsze
 end;
 
 function TTrainParameters.UpdateMTable(hh,mm:real;NewName:string):boolean;
@@ -121,18 +124,24 @@ function TTrainParameters.UpdateMTable(hh,mm:real;NewName:string):boolean;
 var OK:boolean;
 begin
  OK:=false;
- if StationIndex<StationCount then {Ra: "<", bo dodaje 1 przy przejœciu do nastêpnej stacji}
+ if StationIndex<=StationCount then //Ra: "<=", bo ostatni przystanek jest traktowany wyj¹tkowo
   begin
-   if NewName=TimeTable[StationIndex+1].StationName then
+   if NewName=NextStationName then //jeœli dojechane do nastêpnego
     begin //Ra: wywo³anie mo¿e byæ powtarzane, jak stoi na W4
-     if TimeTable[StationIndex+1].km-TimeTable[StationIndex].km<0 then
+     if TimeTable[StationIndex+1].km-TimeTable[StationIndex].km<0 then //to jest bez sensu
       Direction:=-1
      else
-      Direction:=1; {prowizorka bo moze byc zmiana kilometrazu}
-     LastStationLatency:=CompareTime(hh,mm,TimeTable[StationIndex].dh,TimeTable[StationIndex].dm);
-     inc(StationIndex);
-     NextStationName:=TimeTable[StationIndex].StationName; //ju¿ zaliczona
-     TTVmax:=TimeTable[StationIndex].vmax; //Ra: nowa prêdkoœæ rozk³adowa na kolejnym odcinku
+      Direction:=1; //prowizorka bo moze byc zmiana kilometrazu
+     //ustalenie, czy opóŸniony (porównanie z czasem odjazdu)
+     LastStationLatency:=CompareTime(hh,mm,TimeTable[StationIndex].Dh,TimeTable[StationIndex].Dm);
+     inc(StationIndex); //przejœcie do nastêpnej pozycji StationIndex<=StationCount
+     if StationIndex<=StationCount then //Ra: "<", bo dodaje 1 przy przejœciu do nastêpnej stacji
+      begin //jeœli nie ostatnia stacja
+       NextStationName:=TimeTable[StationIndex].StationName; //zapamiêtanie nazwy
+       TTVmax:=TimeTable[StationIndex].vmax; //Ra: nowa prêdkoœæ rozk³adowa na kolejnym odcinku
+      end
+     else //gdy ostatnia stacja
+      NextStationName:=''; //nie ma nastêpnej stacji
      OK:=true;
     end;
   end;
@@ -140,14 +149,14 @@ begin
 end;
 
 function TTrainParameters.IsTimeToGo(hh,mm:real):boolean;
-//sprawdzenie, czy mo¿na ju¿ odjechaæ
+//sprawdzenie, czy mo¿na ju¿ odjechaæ z aktualnego zatrzymania
 begin
  if (StationIndex<StationCount) then
-  begin
-   if (TimeTable[StationIndex].dh<0) then
-    IsTimeToGo:=true
+  begin //oprócz ostatniego przystanku
+   if (TimeTable[StationIndex].Ah<0) then
+    IsTimeToGo:=true //czas przyjazdu nie by³ podany - przelot
    else
-    IsTimeToGo:=CompareTime(hh,mm,TimeTable[StationIndex].dh,TimeTable[StationIndex].dm)<=0;
+    IsTimeToGo:=CompareTime(hh,mm,TimeTable[StationIndex].Dh,TimeTable[StationIndex].Dm)<=0;
   end
  else //gdy rozk³ad siê skoñczy³
   IsTimeToGo:=false; //dalej nie jechaæ
@@ -192,14 +201,15 @@ var
 
 procedure UpdateVelocity(StationCount:integer;vActual:real);
 //zapisywanie prêdkoœci maksymalnej do wczeœniejszych odcinków
+//wywo³ywane z numerem ostatniego przetworzonego przystanku
 var i:integer;
 begin
  i:=StationCount;
  //TTVmax:=vActual;  {PROWIZORKA!!!}
- while (i>0) and (TimeTable[i-1].vmax=-1) do
+ while (i>=0) and (TimeTable[i].vmax=-1) do
   begin
-   dec(i);
-   TimeTable[i].vmax:=vActual;
+   TimeTable[i].vmax:=vActual; //prêdkoœæ dojazdu do przystanku i
+   dec(i); //ewentualnie do poprzedniego te¿
   end;
 end;
 
@@ -352,7 +362,7 @@ begin
                end
               else
                begin
-                dh:=ah; //odjazd o tej samej, co przyjazd
+                dh:=ah; //odjazd o tej samej, co przyjazd (dla ostatniego te¿)
                 dm:=am; //bo s¹ u¿ywane do wyliczenia opóŸnienia po dojechaniu
                end;
               if (ah>=0) then
@@ -393,7 +403,7 @@ begin
   end;
   if ConversionError=0 then
    begin
-    NextStationName:=TimeTable[1].StationName;
+    //NextStationName:=TimeTable[1].StationName;
 {   TTVmax:=TimeTable[1].vmax;  }
    end;
  LoadTTfile:=(ConversionError=0);
