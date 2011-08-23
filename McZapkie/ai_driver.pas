@@ -770,6 +770,7 @@ end;
 
 procedure TController.PutCommand(NewCommand:string; NewValue1,NewValue2:real; NewLocation:TLocation);
 begin
+ ClearPendingExceptions;
    if NewCommand='SetVelocity' then
     begin
       CommandLocation:=NewLocation;
@@ -780,13 +781,6 @@ begin
 					bCheckSKP:=true;
 				end;
     end
-   else if NewCommand='ShuntVelocity' then
-    begin
-      CommandLocation:=NewLocation;
-      SetVelocity(NewValue1,NewValue2);
-      if (OrderList[OrderPos]=Obey_train) and (NewValue1<>0) then
-       OrderList[OrderPos]:=Shunt;
-    end
    else
     if NewCommand='SetProximityVelocity' then
      begin
@@ -794,15 +788,17 @@ begin
           CommandLocation:=NewLocation;
  {        if Order=Shunt then Order:=Obey_train;}
       end
-     else if NewCommand='ShuntVelocity' then
-    begin
-      if NewValue1<>0 then
-      VehicleCount:=-2;
-      Prepare2press:=false;
+   else if NewCommand='ShuntVelocity' then
+    begin //Ra: by³y dwa, po³¹czy³em, ale nadal jest bez sensu
       CommandLocation:=NewLocation;
-      if (OrderList[OrderPos]<>Obey_train) then
+      //SetVelocity(NewValue1,NewValue2);
+      //if (OrderList[OrderPos]=Obey_train) and (NewValue1<>0) then
+      OrderList[OrderPos]:=Shunt;
+      if NewValue1<>0 then
+       VehicleCount:=-2;
+      Prepare2press:=false;
+      //if (OrderList[OrderPos]<>Obey_train) then
       SetVelocity(NewValue1,NewValue2);
-
     end
       else if NewCommand='Wait_for_orders' then
       OrderList[OrderPos]:=Wait_for_orders
@@ -828,8 +824,10 @@ begin
       begin
         if NewValue1<>VehicleCount then
          VehicleCount:=Trunc(NewValue1); {i co potem ? - trzeba zaprogramowac odczepianie}
-          OrderList[OrderPos]:=Shunt;
+        OrderList[OrderPos]:=Shunt;
       end
+     else if NewCommand='Jump_to_first_order' then
+      JumpToFirstOrder
      else if NewCommand='Jump_to_order' then
       begin
         if NewValue1=-1 then
