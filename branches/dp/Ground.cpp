@@ -1989,7 +1989,7 @@ bool __fastcall TGround::InitEvents()
                      Current->Params[10].asTrack=NULL;
                  }
                 else
-                    Error("Event \""+Current->asName+"\" cannot find node \""+
+                    Error("Event \""+Current->asName+"\" cannot find memcell \""+
                                      Current->asNodeName+"\"");
             break;
             case tp_GetValues:
@@ -2066,7 +2066,7 @@ bool __fastcall TGround::InitEvents()
                     if (tmp)
                         Current->Params[9].asDynamic= tmp->DynamicObject;
                     else
-                        Error("Event \""+Current->asName+"\" cannot find node \""+
+                        Error("Event \""+Current->asName+"\" cannot find dynamic \""+
                                          Current->asNodeName+"\"");
                 }
                 Current->asNodeName= "";
@@ -2221,6 +2221,9 @@ bool __fastcall TGround::InitTracks()
   name=Track->IsolatedName(); //pobranie nazwy odcinka izolowanego
   if (!name.IsEmpty()) //jeœli zosta³a zwrócona nazwa
    Track->IsolatedEventsAssign(FindEvent(name+":busy"),FindEvent(name+":free"));
+  if (Current->asName.SubString(1,1)=="*") //mo¿liwy portal, jeœli nie pod³¹czony od striny 1
+   if (!Track->CurrentPrev()&&Track->CurrentNext())
+    Track->iCategoryFlag|=0x100; //ustawienie flagi portalu
  }
  return true;
 }
@@ -2442,8 +2445,8 @@ if (QueryRootEvent)
                   loc.Y=  QueryRootEvent->Params[8].asGroundNode->pCenter.z;
                   loc.Z=  QueryRootEvent->Params[8].asGroundNode->pCenter.y;
                   for (int i=0; i<QueryRootEvent->Params[10].asTrack->iNumDynamics; i++)
-                   {
-                    QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Params[10].asTrack->Dynamics[i]->MoverParameters,loc);
+                   {                   
+                    QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Params[10].asTrack->Dynamics[i]->Mechanik,loc);
                    }
                   LogComment="Type: UpdateValues & Track command - ";
                   LogComment+=AnsiString(QueryRootEvent->Params[0].asText);
@@ -2464,54 +2467,50 @@ if (QueryRootEvent)
               loc.Z=  QueryRootEvent->Params[8].asGroundNode->pCenter.y;
               if (Global::iMultiplayer) //potwierdzenie wykonania dla serwera - najczêœciej odczyt semafora
                WyslijEvent(QueryRootEvent->asName,QueryRootEvent->Activator->GetName());
-							TDynamicObject* tmp2=NULL;
-								if(QueryRootEvent->Activator->Mechanik!=NULL)
+	      TDynamicObject* tmp2=NULL;
+	      if(QueryRootEvent->Activator->Mechanik!=NULL)
+              {if ((String(QueryRootEvent->Params[9].asMemCell->szText )=="Change_direction"
+                ||(String(QueryRootEvent->Params[9].asMemCell->szText )=="OutsideStation"
+                 &&QueryRootEvent->Activator->Mechanik->OrderList[QueryRootEvent->Activator->Mechanik->OrderPos]!=Obey_train))
+                 &&QueryRootEvent->Params[9].asMemCell->fValue1!=QueryRootEvent->Activator->MoverParameters->CabNo)
+    		{
+    		 if (QueryRootEvent->Activator->GetName()!=Global::asHumanCtrlVehicle)
                 {
-									if((String(QueryRootEvent->Params[9].asMemCell->szText )=="Change_direction"||(String(QueryRootEvent->Params[9].asMemCell->szText )=="OutsideStation"&&QueryRootEvent->Activator->Mechanik->OrderList[QueryRootEvent->Activator->Mechanik->OrderPos]!=Obey_train))&&
-										QueryRootEvent->Params[9].asMemCell->fValue1!=QueryRootEvent->Activator->MoverParameters->CabNo)
-									{
-										if(QueryRootEvent->Activator->GetName()!=Global::asHumanCtrlVehicle)
-                    {
-                      TDynamicObject* tmp1;
-                        tmp1 = QueryRootEvent->Activator->GetFirstDynamic(1);
-                        if(tmp1!=QueryRootEvent->Activator)
-                        {
-                          tmp2 = tmp1->GetFirstCabDynamic(0);
-                          if(tmp2==NULL)
-                          {
-                            tmp2 = tmp1->GetFirstCabDynamic(1);
-                          }
-
-                          if(tmp2!=NULL&&tmp2!=QueryRootEvent->Activator)
-                          QueryRootEvent->Activator->DynChangeStart(tmp2);
-                          else
-                          QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Activator->MoverParameters,
-                                                                    loc);
-                        }
-                        else
-                        {
-                        tmp1 = QueryRootEvent->Activator->GetFirstDynamic(0);
-                        if(tmp1!=QueryRootEvent->Activator)
-                        {
-                          tmp2 = tmp1->GetFirstCabDynamic(1);
-                          if(tmp2==NULL)
-                          {
-                            tmp2 = tmp1->GetFirstCabDynamic(0);
-                          }
-
-                          if(tmp2!=NULL&&tmp2!=QueryRootEvent->Activator)
-                          QueryRootEvent->Activator->DynChangeStart(tmp2);
-                          else
-                          QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Activator->MoverParameters,
-                                                                    loc);
-                        }
-                      }
-                    }
-					        }
+                 TDynamicObject* tmp1;
+                 tmp1=QueryRootEvent->Activator->GetFirstDynamic(1);
+                 if (tmp1!=QueryRootEvent->Activator)
+                 {
+                  tmp2=tmp1->GetFirstCabDynamic(0);
+                  if (tmp2==NULL)
+                  {
+                   tmp2=tmp1->GetFirstCabDynamic(1);
+                  }
+                  if (tmp2!=NULL&&tmp2!=QueryRootEvent->Activator)
+                   QueryRootEvent->Activator->DynChangeStart(tmp2);
+                  else
+                   QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Activator->Mechanik,loc);
+                 }
+                 else
+                 {
+                  tmp1=QueryRootEvent->Activator->GetFirstDynamic(0);
+                  if (tmp1!=QueryRootEvent->Activator)
+                  {
+                   tmp2=tmp1->GetFirstCabDynamic(1);
+                   if (tmp2==NULL)
+                   {
+                    tmp2=tmp1->GetFirstCabDynamic(0);
+                   }
+                   if(tmp2!=NULL&&tmp2!=QueryRootEvent->Activator)
+                    QueryRootEvent->Activator->DynChangeStart(tmp2);
+                   else
+                    QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Activator->Mechanik,loc);
+                  }
+                 }
                 }
-                if(tmp2==NULL)
-                QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Activator->MoverParameters,
-                                                                    loc);
+               }
+              }
+              if (tmp2==NULL)
+               QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Activator->Mechanik,loc);
              }
              WriteLog("Type: GetValues");
             break;
@@ -3333,5 +3332,16 @@ TDynamicObject* __fastcall TGround::DynamicNearest(vector3 pPosition,double dist
        }
  return dyn;
 };
+//---------------------------------------------------------------------------
+void __fastcall TGround::DynamicRemove(TDynamicObject* dyn)
+{//Ra: usuniêcie pojazdów ze scenerii (gdy dojad¹ na koniec i nie sa potrzebne)
+ TDynamicObject* d=dyn->Prev();
+ if (d) //jeœli coœ jest z przodu
+  DynamicRemove(d); //zaczynamy od tego z przodu
+ else
+ {//jeœli mamy ju¿ tego na pocz¹tku
+ }
+};
+
 //---------------------------------------------------------------------------
 

@@ -160,6 +160,8 @@ protected:
     void __fastcall ABuCheckMyTrack();
 
 public:
+    TDynamicObject* __fastcall Prev(){return iDirection>0?PrevConnected:NextConnected;};
+    TDynamicObject* __fastcall Next(){return iDirection>0?NextConnected:PrevConnected;};
     void __fastcall SetdMoveLen(double dMoveLen) {MoverParameters->dMoveLen=dMoveLen;}
     void __fastcall ResetdMoveLen() {MoverParameters->dMoveLen=0;}
     double __fastcall GetdMoveLen() {return MoverParameters->dMoveLen;}
@@ -265,7 +267,7 @@ public:
     inline double __fastcall GetWidth() { return MoverParameters->Dim.W; };
     inline TTrack* __fastcall GetTrack() { return (iAxleFirst?Axle1.GetTrack():Axle4.GetTrack()); };
     void __fastcall UpdatePos();
-		void __fastcall DynChangeStart(TDynamicObject *Dyn);
+    void __fastcall DynChangeStart(TDynamicObject *Dyn);
     void __fastcall DynChangeEnd(); 
 
     Mover::TMoverParameters *MoverParameters;

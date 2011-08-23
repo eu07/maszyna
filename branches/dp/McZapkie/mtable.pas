@@ -70,13 +70,18 @@ function CompareTime(t1h,t1m,t2h,t2m:real):real; {roznica czasu w minutach}
 var
  t:real;
 begin
- t:=(t2h-t1h)*60+t2m-t1m; //jeœli t2=00:05, a t1=23:50, to ró¿nica wyjdzie ujemna
- if (t<-720) then //jeœli ró¿nica przekracza 12h na minus
-  t:=t+1440 //to dodanie doby minut
+ if (t2h<0) then
+  CompareTime:=0
  else
-  if (t>720) then //jeœli przekracza 12h na plus
-   t:=t-1440; //to odjêcie doby minut
- CompareTime:=t;
+  begin
+   t:=(t2h-t1h)*60+t2m-t1m; //jeœli t2=00:05, a t1=23:50, to ró¿nica wyjdzie ujemna
+   if (t<-720) then //jeœli ró¿nica przekracza 12h na minus
+    t:=t+1440 //to dodanie doby minut
+   else
+    if (t>720) then //jeœli przekracza 12h na plus
+     t:=t-1440; //to odjêcie doby minut
+   CompareTime:=t;
+ end;
 end;
 
 function TTrainParameters.CheckTrainLatency: real;
@@ -111,9 +116,7 @@ end;
 function TTrainParameters.IsStop:boolean;
 //zapytanie, czy zatrzymywaæ na nastêpnym punkcie rozk³adu
 begin
- if (StationIndex<=0) then //StationIndex - numer nastêpnego przystanku
-  IsStop:=(TimeTable[1].StationName=Relation1) //stop jeœli nazwy zgodne
- else if (StationIndex<StationCount) then
+ if (StationIndex<StationCount) then
   IsStop:=TimeTable[StationIndex].Ah>=0 //-1 to brak postoju
  else
   IsStop:=true; //na ostatnim siê zatrzymaæ zawsze
@@ -151,12 +154,14 @@ end;
 function TTrainParameters.IsTimeToGo(hh,mm:real):boolean;
 //sprawdzenie, czy mo¿na ju¿ odjechaæ z aktualnego zatrzymania
 begin
- if (StationIndex<StationCount) then
+ if (StationIndex<=1) then
+  IsTimeToGo:=true //przed pierwsz¹ jechaæ
+ else if (StationIndex<StationCount) then
   begin //oprócz ostatniego przystanku
-   if (TimeTable[StationIndex].Ah<0) then
+   if (TimeTable[StationIndex-1].Ah<0) then //odjazd z poprzedniego
     IsTimeToGo:=true //czas przyjazdu nie by³ podany - przelot
    else
-    IsTimeToGo:=CompareTime(hh,mm,TimeTable[StationIndex].Dh,TimeTable[StationIndex].Dm)<=0;
+    IsTimeToGo:=CompareTime(hh,mm,TimeTable[StationIndex-1].Dh,TimeTable[StationIndex-1].Dm)<=0;
   end
  else //gdy rozk³ad siê skoñczy³
   IsTimeToGo:=false; //dalej nie jechaæ
@@ -403,6 +408,12 @@ begin
   end;
   if ConversionError=0 then
    begin
+    if (TimeTable[1].StationName=Relation1) then //jeœli nazwa pierwszego zgodna z relacj¹
+     if (TimeTable[1].Ah<0) then //a nie podany czas przyjazdu
+      begin //to mamy zatrzymanie na pierwszym, a nie przelot
+       TimeTable[1].Ah:=TimeTable[1].Dh;
+       TimeTable[1].Am:=TimeTable[1].Dm;
+      end
     //NextStationName:=TimeTable[1].StationName;
 {   TTVmax:=TimeTable[1].vmax;  }
    end;
