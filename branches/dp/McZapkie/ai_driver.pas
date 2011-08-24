@@ -793,7 +793,10 @@ begin
       CommandLocation:=NewLocation;
       //SetVelocity(NewValue1,NewValue2);
       //if (OrderList[OrderPos]=Obey_train) and (NewValue1<>0) then
-      OrderList[OrderPos]:=Shunt;
+      if (OrderList[OrderPos]=Prepare_engine) then//jeœli w trakcie odpalania
+       OrderList[OrderPos+1]:=Shunt //wstawimy do nastêpnej pozycji
+      else
+       OrderList[OrderPos]:=Shunt; //zamieniamy w aktualnej pozycji
       if NewValue1<>0 then
        VehicleCount:=-2;
       Prepare2press:=false;
