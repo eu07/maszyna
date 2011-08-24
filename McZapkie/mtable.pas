@@ -153,10 +153,11 @@ end;
 
 function TTrainParameters.IsTimeToGo(hh,mm:real):boolean;
 //sprawdzenie, czy mo¿na ju¿ odjechaæ z aktualnego zatrzymania
+//StationIndex to numer nastêpnego po dodarciu do aktualnego
 begin
  if (StationIndex<=1) then
   IsTimeToGo:=true //przed pierwsz¹ jechaæ
- else if (StationIndex<StationCount) then
+ else if (StationIndex<=StationCount) then
   begin //oprócz ostatniego przystanku
    if (TimeTable[StationIndex-1].Ah<0) then //odjazd z poprzedniego
     IsTimeToGo:=true //czas przyjazdu nie by³ podany - przelot

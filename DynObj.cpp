@@ -1327,7 +1327,7 @@ void TDynamicObject::ScanEventTrack()
         move=true; //AI w trybie manewerowym ma doci¹gn¹æ pod S1
        else
        {//
-        eSignLast=e; //licz¹cy siê sygna³ do zapamiêtania
+        eSignLast=(scandist<200)?e:NULL; //zapamiêtanie na wypadek przejechania albo Ÿle podpiêtego toru
         if (fTrackBlock>50.0) //je¿eli nie ma zawalidrogi w tej odleg³oœci
          if ((scandist>Mechanik->MinProximityDist)?(MoverParameters->Vel!=0.0)&&(Mechanik->OrderList[Mechanik->OrderPos]!=Shunt):false)
          {//jeœli semafor jest daleko, a pojazd jedzie, to informujemy o zmianie prêdkoœci
@@ -1353,7 +1353,7 @@ void TDynamicObject::ScanEventTrack()
       {//reakcja AI w trybie manewrowym dodatkowo na sygna³y manewrowe
        if (move?true:strcmp(e->Params[9].asMemCell->szText,"ShuntVelocity")==0)
        {//jeœli powy¿ej by³o SetVelocity 0 0, to doci¹gamy pod S1
-        eSignLast=e; //licz¹cy siê sygna³ do zapamiêtania
+        eSignLast=(scandist<200)?e:NULL; //zapamiêtanie na wypadek przejechania albo Ÿle podpiêtego toru
         if (fTrackBlock>50.0) //je¿eli nie ma zawalidrogi w tej odleg³oœci
         {if ((scandist>Mechanik->MinProximityDist)?(MoverParameters->Vel!=0.0)||(vmechmax==0.0):false)
          {//jeœli tarcza jest daleko, to:
@@ -1411,7 +1411,7 @@ void TDynamicObject::ScanEventTrack()
        if (fTrackBlock>50.0) //je¿eli nie ma zawalidrogi w tej odleg³oœci
         if (scandist<Mechanik->MinProximityDist+1) //tylko na tym torze
         {
-         eSignLast=e; //licz¹cy siê sygna³ do zapamiêtania
+         eSignLast=(scandist<200)?e:NULL; //zapamiêtanie na wypadek przejechania albo Ÿle podpiêtego toru
          Mechanik->PutCommand("SetVelocity",vmechmax,e->Params[2].asdouble,sl);
 #if LOGVELOCITY
          WriteLog("PutValues: SetVelocity "+AnsiString(vmechmax)+" "+AnsiString(e->Params[2].asdouble));
@@ -1449,7 +1449,7 @@ void TDynamicObject::ScanEventTrack()
         sl.X=-e->Params[3].asdouble; //wyliczenie wspó³rzêdnych zatrzymania
         sl.Y= e->Params[5].asdouble;
         sl.Z= e->Params[4].asdouble;
-        eSignLast=e; //licz¹cy siê sygna³ do zapamiêtania
+        eSignLast=(scandist<200)?e:NULL; //zapamiêtanie na wypadek przejechania albo Ÿle podpiêtego toru
         if ((scandist>Mechanik->MinProximityDist)?(MoverParameters->Vel!=0.0):false)
         //if ((scandist>Mechanik->MinProximityDist)?(fSignSpeed>0.0):false)
         {//jeœli jedzie, informujemy o zatrzymaniu na wykrytym stopie
