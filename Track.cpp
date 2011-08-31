@@ -395,6 +395,7 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
    TextureID1=(str=="none"?0:TTexturesManager::GetTextureID(str.c_str(),(iCategoryFlag==1)?Global::iRailProFiltering:Global::iBallastFiltering));
    parser->getTokens();
    *parser >> fTexLength; //tex tile length
+   if (fTexLength<0.01) fTexLength=4; //Ra: zabezpiecznie przed zawieszeniem
    parser->getTokens();
    *parser >> token;
    str=AnsiString(token.c_str());   //sub || railtex
@@ -864,7 +865,7 @@ void __fastcall TTrack::Compile()
  double fHTW2,side2,slop2,rozp2,fTexHeight2,hypot2;
  vector3 normal2;
  if (iTrapezoid&2) //ten bit oznacza, ¿e istnieje odpowiednie pNext
- {//Ra: na tym siê lubi wieszaæ, ciekawe co za œmieci siê pod³¹czaj¹...
+ {//Ra: jest OK
   fHTW2=0.5*fabs(pNext->fTrackWidth); //po³owa rozstawu/nawierzchni
   side2=fabs(pNext->fTexWidth);
   slop2=fabs(pNext->fTexSlope);
@@ -873,10 +874,6 @@ void __fastcall TTrack::Compile()
   hypot2=hypot(slop2,pNext->fTexHeight);
   if (hypot2==0.0) hypot2=1.0;
   normal2=vector3(pNext->fTexSlope/hypot2,fTexHeight2/hypot2,0.0);
-  //zabezpieczenia przed zawieszeniem - jest OK, ju¿ siê nie wiesza
-  //if (fHTW2>5.0*fHTW) {fHTW2=fHTW; WriteLog("niedopasowanie 1");};
-  //if (side2>5.0*side) {side2=side; WriteLog("niedopasowanie 2");};
-  //if (rozp2>5.0*rozp) {rozp2=rozp; WriteLog("niedopasowanie 3");};
  }
  else //gdy nie ma nastêpnego albo jest nieodpowiednim koñcem podpiêty
  {fHTW2=fHTW; side2=side; slop2=slop; rozp2=rozp; fTexHeight2=fTexHeight; normal2=normal1;}
@@ -1357,17 +1354,13 @@ void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Star
  double rozp=fHTW+side+slop; //brzeg zewnêtrzny
  double fHTW2,side2,slop2,rozp2,fTexHeight2;
  if (iTrapezoid&2) //ten bit oznacza, ¿e istnieje odpowiednie pNext
- {//Ra: na tym siê lubi wieszaæ, ciekawe co za œmieci siê pod³¹czaj¹...
+ {//Ra: jest OK
   fHTW2=0.5*fabs(pNext->fTrackWidth); //po³owa rozstawu/nawierzchni
   side2=fabs(pNext->fTexWidth);
   slop2=fabs(pNext->fTexSlope);
   rozp2=fHTW2+side2+slop2;
   fTexHeight2=pNext->fTexHeight;
   //zabezpieczenia przed zawieszeniem - jest OK, ju¿ siê nie wiesza
-  //if (fHTW2>5.0*fHTW) {fHTW2=fHTW; WriteLog("!!!! niedopasowanie 1");};
-  //if (side2>5.0*side) {side2=side; WriteLog("!!!! niedopasowanie 2");};
-  //if (rozp2>5.0*rozp) {rozp2=rozp; WriteLog("!!!! niedopasowanie 3");};
-  //if (fabs(fTexHeight2)>5.0*fabs(fTexHeight)) {fTexHeight2=fTexHeight; WriteLog("!!!! niedopasowanie 4");};
  }
  else //gdy nie ma nastêpnego albo jest nieodpowiednim koñcem podpiêty
  {fHTW2=fHTW; side2=side; slop2=slop; rozp2=rozp; fTexHeight2=fTexHeight;}

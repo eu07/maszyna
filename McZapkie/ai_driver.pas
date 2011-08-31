@@ -119,7 +119,7 @@ Type
                   DriverFailCount: integer;
                   Need_TryAgain, Need_BrakeRelease: boolean;
                   MinProximityDist, MaxProximityDist: real;
-									bCheckSKP: boolean; 
+ 		  bCheckSKP: boolean;
 {funkcje}
                   procedure SetDriverPsyche;
                   function PrepareEngine: boolean;
@@ -146,6 +146,7 @@ Type
                   constructor Init(LocInitial:TLocation; RotInitial:TRotation;
                                    AI:boolean; NewControll:PMoverParameters; NewTrainSet:PTRainParameters; InitPsyche:boolean);
                   function OrderCurrent:string;
+                  procedure WaitingSet(Seconds:real);
 private
  VehicleName:string;
  VelMargin:real;
@@ -226,10 +227,16 @@ begin
   OrderDirectionChange:=Round(VelforDriver);
 end;
 
+procedure TController.WaitingSet(Seconds:real);
+//ustawienie odczekania
+begin
+ WaitingTime:=-Seconds;
+end;
+
 procedure TController.SetVelocity(NewVel,NewVelNext:real);
 //ustawienie nowej prêdkoœci
 begin
- WaitingTime:=-WaitingExpireTime; //no albo przypisujemy -WaitingExpireTime, albo porównujemy z WaitingExpireTime 
+ WaitingTime:=-WaitingExpireTime; //no albo przypisujemy -WaitingExpireTime, albo porównujemy z WaitingExpireTime
  MaxVelFlag:=False; MinVelFlag:=False;
  VelActual:=NewVel;   //prêdkoœæ do której d¹¿y
  VelNext:=NewVelNext; //prêdkoœæ przy nastêpnym obiekcie
