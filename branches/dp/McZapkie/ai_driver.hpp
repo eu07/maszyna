@@ -99,6 +99,7 @@ public:
 	__fastcall TController(const Mover::TLocation &LocInitial, const Mover::TRotation &RotInitial, bool 
 		AI, Mover::PMoverParameters NewControll, Mtable::PTrainParameters NewTrainSet, bool InitPsyche);
 	AnsiString __fastcall OrderCurrent();
+	void __fastcall WaitingSet(double Seconds);
 	
 private:
 	AnsiString VehicleName;

@@ -2004,6 +2004,16 @@ bool __fastcall TGround::InitEvents()
              else
               Error("Event \""+Current->asName+"\" cannot find memcell \""+Current->asNodeName+"\"");
             break;
+            case tp_CopyValues :
+             tmp=FindGroundNode(Current->asNodeName,TP_MEMCELL); //komórka docelowa
+             if (tmp)
+             {
+              Current->Params[8].asGroundNode=tmp;
+              Current->Params[9].asMemCell=tmp->MemCell;
+             }
+             else
+              Error("Event \""+Current->asName+"\" cannot find memcell \""+Current->asNodeName+"\"");
+            break;
             case tp_Animation :
              tmp=FindGroundNode(Current->asNodeName,TP_MODEL); //egzemplarza modelu do animowania
              if (tmp)
@@ -2432,12 +2442,19 @@ if (QueryRootEvent)
         WriteLog("EVENT LAUNCHED: "+QueryRootEvent->asName);
         switch (QueryRootEvent->Type)
         {
-            case tp_AddValues: //ró¿ni siê jedn¹ flag¹ od UpdateValues
-            case tp_UpdateValues :
-                QueryRootEvent->Params[9].asMemCell->UpdateValues(QueryRootEvent->Params[0].asText,
-                                                                  QueryRootEvent->Params[1].asdouble,
-                                                                  QueryRootEvent->Params[2].asdouble,
-                                                                  QueryRootEvent->Params[12].asInt);
+         case tp_CopyValues: //pobranie wartoœci z innej komórki
+/*
+          QueryRootEvent->Params[0].asText=QueryRootEvent->Params[9].asMemCell->U
+          QueryRootEvent->Params[1].asdouble=
+          QueryRootEvent->Params[2].asdouble=
+          QueryRootEvent->Params[12].asInt=conditional_memstring|conditional_memval1|conditional_memval2; //wszystko
+*/
+         case tp_AddValues: //ró¿ni siê jedn¹ flag¹ od UpdateValues
+         case tp_UpdateValues :
+          QueryRootEvent->Params[9].asMemCell->UpdateValues(QueryRootEvent->Params[0].asText,
+                                                            QueryRootEvent->Params[1].asdouble,
+                                                            QueryRootEvent->Params[2].asdouble,
+                                                            QueryRootEvent->Params[12].asInt);
 //McZapkie-100302 - updatevalues oprocz zmiany wartosci robi putcommand dla wszystkich 'dynamic' na danym torze
                 if (QueryRootEvent->Params[10].asTrack)
                  {
@@ -2445,7 +2462,7 @@ if (QueryRootEvent)
                   loc.Y=  QueryRootEvent->Params[8].asGroundNode->pCenter.z;
                   loc.Z=  QueryRootEvent->Params[8].asGroundNode->pCenter.y;
                   for (int i=0; i<QueryRootEvent->Params[10].asTrack->iNumDynamics; i++)
-                   {                   
+                   {
                     QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Params[10].asTrack->Dynamics[i]->Mechanik,loc);
                    }
                   LogComment="Type: UpdateValues & Track command - ";

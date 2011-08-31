@@ -306,7 +306,8 @@ void __fastcall TSegment::RenderLoft(const vector6 *ShapePoints, int iNumShapePo
   fOffset=0.1/fLength; //pierwsze 10cm
   pos1=FastGetPoint(t); //wektor pocz¹tku segmentu
   dir=FastGetDirection(t,fOffset); //wektor kierunku
-  parallel1=Normalize(CrossProduct(dir,vector3(0,1,0))); //wektor poprzeczny
+  //parallel1=Normalize(CrossProduct(dir,vector3(0,1,0))); //wektor poprzeczny
+  parallel1=Normalize(vector3(-dir.z,0.0,dir.x)); //wektor poprzeczny
   m2=s/fLength; jmm2=1.0-m2;
   while (s<fLength)
   {
@@ -326,8 +327,9 @@ void __fastcall TSegment::RenderLoft(const vector6 *ShapePoints, int iNumShapePo
    tv2=tv1-step/fTextureLength; //mapowanie na koñcu segmentu
    t=fTsBuffer[i]; //szybsze od GetTFromS(s);
    pos2=FastGetPoint(t);
-   dir=Normalize(FastGetDirection(t,fOffset)); //nowy wektor kierunku
-   parallel2=CrossProduct(dir,vector3(0,1,0)); //wektor poprzeczny
+   dir=FastGetDirection(t,fOffset); //nowy wektor kierunku
+   //parallel2=CrossProduct(dir,vector3(0,1,0)); //wektor poprzeczny
+   parallel2=Normalize(vector3(-dir.z,0.0,dir.x)); //wektor poprzeczny
    glBegin(GL_TRIANGLE_STRIP);
    if (trapez)
     for (j=0;j<iNumShapePoints;j++)
@@ -377,7 +379,8 @@ void __fastcall TSegment::RenderLoft(const vector6 *ShapePoints, int iNumShapePo
   pos1=FastGetPoint((fStep*iSkip)/fLength);
   pos2=FastGetPoint_1();
   dir=GetDirection();
-  parallel1=Normalize(CrossProduct(dir,vector3(0,1,0)));
+  //parallel1=Normalize(CrossProduct(dir,vector3(0,1,0)));
+  parallel1=Normalize(vector3(-dir.z,0.0,dir.x)); //wektor poprzeczny
   glBegin(GL_TRIANGLE_STRIP);
   if (trapez)
    for (j=0;j<iNumShapePoints;j++)
@@ -439,8 +442,10 @@ void __fastcall TSegment::RenderSwitchRail(const vector6 *ShapePoints1, const ve
             offset= 0.1/fLength; //oko³o 10cm w sensie parametru t
             pos1= FastGetPoint( t ); //wspó³rzêdne dla parmatru t
 //            dir= GetDirection1();
-            dir= FastGetDirection( t, offset ); //wektor wzd³u¿ny
-            parallel1= Normalize(CrossProduct(dir,vector3(0,1,0))); //poprzeczny?
+  dir=FastGetDirection(t,offset); //wektor wzd³u¿ny
+  //parallel1=Normalize(CrossProduct(dir,vector3(0,1,0))); //poprzeczny?
+  parallel1=Normalize(vector3(-dir.z,0.0,dir.x)); //wektor poprzeczny
+
 
             while (s<fLength && i<iSkip)
             {
@@ -460,8 +465,9 @@ void __fastcall TSegment::RenderSwitchRail(const vector6 *ShapePoints1, const ve
 
                 t= fTsBuffer[i];
                 pos2= FastGetPoint( t );
-                dir= FastGetDirection( t, offset );
-                parallel2= Normalize(CrossProduct(dir,vector3(0,1,0)));
+  dir=FastGetDirection(t,offset);
+  //parallel2=Normalize(CrossProduct(dir,vector3(0,1,0)));
+  parallel2=Normalize(vector3(-dir.z,0.0,dir.x)); //wektor poprzeczny
 
                 a2= double(i)/(iSkip);
                 glBegin(GL_TRIANGLE_STRIP);
@@ -493,8 +499,10 @@ void __fastcall TSegment::RenderSwitchRail(const vector6 *ShapePoints1, const ve
             i= 0;
 //            pos1= FastGetPoint( (5*iSkip)/fLength );
             pos1= FastGetPoint_0();
-            dir= GetDirection();
-            parallel1= CrossProduct(dir,vector3(0,1,0));
+   dir=GetDirection();
+   //parallel1=CrossProduct(dir,vector3(0,1,0));
+   parallel1=Normalize(vector3(-dir.z,0.0,dir.x)); //wektor poprzeczny
+
             step= 5;
             a1= 0;
 
@@ -618,7 +626,8 @@ void __fastcall TSegment::RaRenderLoft(
   fOffset=0.1/fLength; //pierwsze 10cm
   pos1=FastGetPoint(t); //wektor pocz¹tku segmentu
   dir=FastGetDirection(t,fOffset); //wektor kierunku
-  parallel1=Normalize(CrossProduct(dir,vector3(0,1,0))); //wektor prostopad³y
+  //parallel1=Normalize(CrossProduct(dir,vector3(0,1,0))); //wektor prostopad³y
+  parallel1=Normalize(vector3(-dir.z,0.0,dir.x)); //wektor poprzeczny
   if (iEnd==0) iEnd=iSegCount;
   fEnd=fLength*double(iEnd)/double(iSegCount);
   m2=s/fEnd; jmm2=1.0-m2;
@@ -640,7 +649,8 @@ void __fastcall TSegment::RaRenderLoft(
    t=fTsBuffer[i]; //szybsze od GetTFromS(s);
    pos2=FastGetPoint(t);
    dir=FastGetDirection(t,fOffset); //nowy wektor kierunku
-   parallel2=Normalize(CrossProduct(dir,vector3(0,1,0)));
+   //parallel2=Normalize(CrossProduct(dir,vector3(0,1,0)));
+   parallel2=Normalize(vector3(-dir.z,0.0,dir.x)); //wektor poprzeczny
    if (trapez)
     for (j=0; j<iNumShapePoints; j++)
     {//wspó³rzêdne pocz¹tku
@@ -704,7 +714,8 @@ void __fastcall TSegment::RaRenderLoft(
   pos1=FastGetPoint((fStep*iSkip)/fLength);
   pos2=FastGetPoint_1();
   dir=GetDirection();
-  parallel1=Normalize(CrossProduct(dir,vector3(0,1,0)));
+  //parallel1=Normalize(CrossProduct(dir,vector3(0,1,0)));
+  parallel1=Normalize(vector3(-dir.z,0.0,dir.x)); //wektor poprzeczny
   if (trapez)
    for (j=0;j<iNumShapePoints;j++)
    {
@@ -778,7 +789,8 @@ void __fastcall TSegment::RaAnimate(
   fOffset=0.1/fLength; //pierwsze 10cm
   pos1=FastGetPoint(t); //wektor pocz¹tku segmentu
   dir=FastGetDirection(t,fOffset); //wektor kierunku
-  parallel1=Normalize(CrossProduct(dir,vector3(0,1,0))); //wektor prostopad³y
+  //parallel1=Normalize(CrossProduct(dir,vector3(0,1,0))); //wektor prostopad³y
+  parallel1=Normalize(vector3(-dir.z,0.0,dir.x)); //wektor poprzeczny
   if (iEnd==0) iEnd=iSegCount;
   fEnd=fLength*double(iEnd)/double(iSegCount);
   m2=s/fEnd; jmm2=1.0-m2;
@@ -798,7 +810,8 @@ void __fastcall TSegment::RaAnimate(
    t=fTsBuffer[i]; //szybsze od GetTFromS(s);
    pos2=FastGetPoint(t);
    dir=FastGetDirection(t,fOffset); //nowy wektor kierunku
-   parallel2=Normalize(CrossProduct(dir,vector3(0,1,0)));
+   //parallel2=Normalize(CrossProduct(dir,vector3(0,1,0)));
+   parallel2=Normalize(vector3(-dir.z,0.0,dir.x)); //wektor poprzeczny
    if (trapez)
     for (j=0; j<iNumShapePoints; j++)
     {//wspó³rzêdne pocz¹tku
@@ -821,7 +834,8 @@ void __fastcall TSegment::RaAnimate(
   pos1=FastGetPoint((fStep*iSkip)/fLength);
   pos2=FastGetPoint_1();
   dir=GetDirection();
-  parallel1=Normalize(CrossProduct(dir,vector3(0,1,0)));
+  //parallel1=Normalize(CrossProduct(dir,vector3(0,1,0)));
+  parallel1=Normalize(vector3(-dir.z,0.0,dir.x)); //wektor poprzeczny
   if (trapez)
    for (j=0;j<iNumShapePoints;j++)
    {

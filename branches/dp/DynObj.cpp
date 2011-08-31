@@ -1219,10 +1219,37 @@ void TDynamicObject::SetProximityVelocity(double dist,double vel,const TLocation
  */
 }
 
+int komenda[24]=
+{//tabela reakcji na sygna³y podawane semaforem albo tarcz¹ manewrow¹
+ //0: nic, 1: SetProximityVelocity, 2: SetVelocity, 3: ShuntVelocity
+ 3, //[ 0]= staæ   stoi   blisko manewr. ShuntV.
+ 3, //[ 1]= jechaæ stoi   blisko manewr. ShuntV.
+ 3, //[ 2]= staæ   jedzie blisko manewr. ShuntV.
+ 3, //[ 3]= jechaæ jedzie blisko manewr. ShuntV.
+ 0, //[ 4]= staæ   stoi   deleko manewr. ShuntV.
+ 3, //[ 5]= jechaæ stoi   deleko manewr. ShuntV.
+ 1, //[ 6]= staæ   jedzie deleko manewr. ShuntV.
+ 1, //[ 7]= jechaæ jedzie deleko manewr. ShuntV.
+ 2, //[ 8]= staæ   stoi   blisko poci¹g. SetV.
+ 2, //[ 9]= jechaæ stoi   blisko poci¹g. SetV.
+ 2, //[10]= staæ   jedzie blisko poci¹g. SetV.
+ 2, //[11]= jechaæ jedzie blisko poci¹g. SetV.
+ 2, //[12]= staæ   stoi   deleko poci¹g. SetV.
+ 2, //[13]= jechaæ stoi   deleko poci¹g. SetV.
+ 1, //[14]= staæ   jedzie deleko poci¹g. SetV.
+ 1, //[15]= jechaæ jedzie deleko poci¹g. SetV.
+ 3, //[16]= staæ   stoi   blisko manewr. SetV.
+ 2, //[17]= jechaæ stoi   blisko manewr. SetV.
+ 3, //[18]= staæ   jedzie blisko manewr. SetV.
+ 2, //[19]= jechaæ jedzie blisko manewr. SetV.
+ 0, //[20]= staæ   stoi   deleko manewr. SetV.
+ 2, //[21]= jechaæ stoi   deleko manewr. SetV.
+ 1, //[22]= staæ   jedzie deleko manewr. SetV.
+ 2  //[23]= jechaæ jedzie deleko manewr. SetV.
+};
 
-//sprawdzanie zdarzeñ semaforów i ograniczeñ szlakowych
 void TDynamicObject::ScanEventTrack()
-{
+{//sprawdzanie zdarzeñ semaforów i ograniczeñ szlakowych
  TLocation sl;
  int startdir=MoverParameters->CabNo; //kabina okreœla kierunek ruchu AI (-1 albo 1, ewentualnie 0)
  if (MoverParameters->ActiveDir!=0)
@@ -1298,7 +1325,7 @@ void TDynamicObject::ScanEventTrack()
        eSignSkip=e; //wtedy uznajemy go za ignorowany przy poszukiwaniu nowego
        eSignLast=NULL; //¿eby jakiœ nowy by³ poszukiwany
 #if LOGVELOCITY
-       WriteLog(edir+" - will be ignored");
+       WriteLog(edir+" - will be ignored as passed by");
 #endif
        return;
       }
@@ -1313,13 +1340,33 @@ void TDynamicObject::ScanEventTrack()
       int mode=(vmechmax!=0.0)?1:0; //tryb jazdy - prêdkoœæ podawana sygna³em
       mode|=(MoverParameters->Vel!=0.0)?2:0; //stan aktualny: jedzie albo stoi
       mode|=(scandist>Mechanik->MinProximityDist)?4:0;
-      if (Mechanik->OrderList[Mechanik->OrderPos]==Shunt)
+      if (Mechanik->OrderList[Mechanik->OrderPos]!=Obey_train)
       {mode|=8; //tryb manewrowy
        if (strcmp(e->Params[9].asMemCell->szText,"ShuntVelocity")==0)
         mode|=16; //ustawienie prêdkoœci manewrowej
       }
-      if (strcmp(e->Params[9].asMemCell->szText,"SetVelocity")==0)
-       mode=32; //ustawienie prêdkoœci poci¹gowej
+      if ((model&16)==0) //o ile nie podana prêdkoœæ manewrowa
+       if (strcmp(e->Params[9].asMemCell->szText,"SetVelocity")==0)
+        mode=32; //ustawienie prêdkoœci poci¹gowej
+      //wartoœci 0..15 nie przekazuj¹ komendy
+      //wartoœci 16..23 - ignorowanie sygna³ów maewrowych w trybie poc¹gowym
+      mode-=24;
+      if (mode>=0)
+      {
+       //0:
+       //+4: dodatkowo: - sygna³ ma byæ ignorowany
+       switch (komenda[mode]) //pobranie kodu komendy
+       {//komendy mo¿liwe do przekazania:
+        case 0: //nic - sygna³ nie wysy³a komendy
+         break;
+        case 1: //SetProximityVelocity - informacja o zmienie prêdkoœci
+         break;
+        case 2: //SetVelocity - nadanie prêdkoœci do jazdy poci¹gowej
+         break;
+        case 3: //ShuntVelocity - nadanie prêdkoœci do jazdy manewrowej
+         break;
+       }
+      }
 */
       bool move=false; //czy AI w trybie manewerowym ma doci¹gn¹æ pod S1
       if (strcmp(e->Params[9].asMemCell->szText,"SetVelocity")==0)
@@ -1383,7 +1430,7 @@ void TDynamicObject::ScanEventTrack()
           eSignSkip=e; //wtedy uznajemy ignorowan¹ przy poszukiwaniu nowej
           eSignLast=NULL; //¿eby jakaœ nowa by³a poszukiwana
 #if LOGVELOCITY
-          WriteLog(edir+" - will be ignored");
+          WriteLog(edir+" - will be ignored due to Ms2");
 #endif
          }
         }
@@ -1400,7 +1447,7 @@ void TDynamicObject::ScanEventTrack()
         eSignSkip=e; //wtedy uznajemy go za ignorowany przy poszukiwaniu nowego
         eSignLast=NULL; //¿eby jakiœ nowy by³ poszukiwany
 #if LOGVELOCITY
-        WriteLog(edir+" - will be ignored");
+        WriteLog(edir+" - will be ignored as passed by");
 #endif
         return;
        }
@@ -1484,7 +1531,8 @@ void TDynamicObject::ScanEventTrack()
              int i=floor(e->Params[2].asdouble); //p7=platform side (1:left, 2:right, 3:both)
              if (i&1) MoverParameters->DoorLeft(true);
              if (i&2) MoverParameters->DoorRight(true);
-             //if (i&3) //¿eby jeszcze poczeka³ chwilê, zanim zamknie
+             if (i&3) //¿eby jeszcze poczeka³ chwilê, zanim zamknie
+              Mechanik->WaitingSet(15); //15 sekund
             }
            TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,asNextStop.SubString(20,asNextStop.Length()));
            if (TrainParams->StationIndex<=TrainParams->StationCount)
@@ -1514,6 +1562,7 @@ void TDynamicObject::ScanEventTrack()
             fSignSpeed=-1.0; //nieokreœlona prêdkoœæ
             eSignSkip=e; //wtedy W4 uznajemy za ignorowany
             eSignLast=NULL; //¿eby jakiœ nowy sygna³ by³ poszukiwany
+            Mechanik->WaitingSet(180); //tak ze 3 minuty, a¿ wszyscy wysi¹d¹
             Mechanik->JumpToNextOrder(); //wykonanie kolejnego rozkazu
 #if LOGVELOCITY
             WriteLog("Next stop: "+asNextStop.SubString(20,asNextStop.Length())); //informacja
@@ -4000,7 +4049,8 @@ void __fastcall TDynamicObject::RaAxleEvent(TEvent *e)
   Global::pGround->AddToQuery(e,this); //dodanie do kolejki
  else
  {if (Mechanik) //tylko jeœli ma obsadê
-   ScanEventTrack(); //dla pewnoœci robimy skanowanie
+   if (Controller!=Humandriver) //i nie u¿ytkownik (na razie)
+    ScanEventTrack(); //dla pewnoœci robimy skanowanie
   if (Global::iMultiplayer) //potwierdzenie wykonania dla serwera - najczêœciej odczyt semafora
    Global::pGround->WyslijEvent(e->asName,GetName());
  }
