@@ -2623,8 +2623,11 @@ if (QueryRootEvent)
                             QueryRootEvent->Params[4].asdouble);
             break;
             case tp_Switch :
-                if (QueryRootEvent->Params[9].asTrack)
-                    QueryRootEvent->Params[9].asTrack->Switch(QueryRootEvent->Params[0].asInt);
+             if (QueryRootEvent->Params[9].asTrack)
+              QueryRootEvent->Params[9].asTrack->Switch(QueryRootEvent->Params[0].asInt);
+             if (Global::iMultiplayer) //dajemy znaæ do serwera o prze³o¿eniu
+              WyslijEvent(QueryRootEvent->asName,NULL); //wys³anie nazwy eventu prze³¹czajacego
+             //Ra: bardziej by siê przyda³a nazwa toru, ale nie ma do niej st¹d dostêpu
             break;
             case tp_TrackVel :
                 if (QueryRootEvent->Params[9].asTrack)

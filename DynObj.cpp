@@ -1125,7 +1125,8 @@ TEvent* __fastcall TDynamicObject::CheckTrackEvent(double fDirection,TTrack *Tra
 }
 
 TTrack* __fastcall TDynamicObject::TraceRoute(double &fDistance,double &fDirection,TTrack *Track,TEvent*&Event)
-{//szukanie semafora w kierunku jazdy (eventu odczytu komórki pamiêci albo ustawienia prêdkoœci)
+{//szukanie semafora w kierunku jazdy (eventu odczytu komórki pamiêci)
+ //albo ustawienia innej prêdkoœci albo koñca toru 
  TTrack *pTrackChVel=Track; //tor ze zmian¹ prêdkoœci
  double fDistChVel=-1; //odleg³oœæ do toru ze zmian¹ prêdkoœci
  double fCurrentDistance=iAxleFirst?Axle1.GetTranslation():Axle4.GetTranslation(); //aktualna pozycja na torze

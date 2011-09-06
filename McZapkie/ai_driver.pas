@@ -619,42 +619,43 @@ end;
 function TController.DecSpeed: boolean;
 var OK:boolean;
 begin
-  OK:=True;
-  with Controlling^ do
-   begin
-      case EngineType of
-        None : if (MainCtrlPosNo>0) then  {McZapkie-041003: wagon sterowniczy}
-                  OK:=DecMainCtrl(1+ord(MainCtrlPos>2));
-        ElectricSeriesMotor:
-               begin
-                 OK:=DecScndCtrl(2);
-                 if not OK then
-                  OK:=DecMainCtrl(1+ord(MainCtrlPos>2));
-               end;
-        Dumb, DieselElectric : begin
-                 OK:=DecScndCtrl(2);
-                 if not OK then
-                  OK:=DecMainCtrl(2+(MainCtrlPos div 2));
-               end;
-        WheelsDriven :
-               begin
-                 OK:=False;
-               end;
-        DieselEngine :
-               begin
-                   OK:=false;
-                   if (Vel>dizel_minVelfullengage) then
-                    begin
-                      if RList[MainCtrlPos].Mn>0 then
-                       OK:=DecMainCtrl(1)
-                    end
-                   else
-                    while (RList[MainCtrlPos].Mn>0) and (MainCtrlPos>1) do
-                     OK:=DecMainCtrl(1);
-               end;
-      end {case}
-   end;
-  DecSpeed:=OK;
+ OK:=false; //domyœlnie false, aby wysz³o z pêtli while
+ with Controlling^ do
+  begin
+   case EngineType of
+    None:
+     if (MainCtrlPosNo>0) then  {McZapkie-041003: wagon sterowniczy}
+      OK:=DecMainCtrl(1+ord(MainCtrlPos>2));
+    ElectricSeriesMotor:
+     begin
+      OK:=DecScndCtrl(2);
+      if not OK then
+       OK:=DecMainCtrl(1+ord(MainCtrlPos>2));
+     end;
+    Dumb,DieselElectric:
+     begin
+      OK:=DecScndCtrl(2);
+      if not OK then
+       OK:=DecMainCtrl(2+(MainCtrlPos div 2));
+     end;
+    //WheelsDriven :
+    // begin
+    //  OK:=False;
+    // end;
+    DieselEngine :
+     begin
+      if (Vel>dizel_minVelfullengage) then
+       begin
+        if RList[MainCtrlPos].Mn>0 then
+         OK:=DecMainCtrl(1)
+       end
+      else
+       while (RList[MainCtrlPos].Mn>0) and (MainCtrlPos>1) do
+        OK:=DecMainCtrl(1);
+     end;
+   end {case}
+  end;
+ DecSpeed:=OK;
 end;
 
 
@@ -1494,4 +1495,5 @@ begin
 end;
 
 END.
+
 
