@@ -220,6 +220,7 @@ begin
 end;
 
 begin
+ ClearPendingExceptions; 
  ConversionError:=666;
  s:=scnpath+TrainName+'.txt';
  assignfile(fin,s);

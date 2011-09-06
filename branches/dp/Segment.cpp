@@ -220,10 +220,10 @@ const double fDirectionOffset=0.1; //d³ugoœæ wektora do wyliczenia kierunku
 vector3 __fastcall TSegment::GetDirection(double fDistance)
 {//takie toporne liczenie pochodnej dla podanego dystansu od Point1
  double t1=GetTFromS(fDistance-fDirectionOffset);
- if (t1<0)
+ if (t1<=0.0)
   return (CPointOut-Point1); //na zewn¹trz jako prosta
  double t2=GetTFromS(fDistance+fDirectionOffset);
- if (t2>1)
+ if (t2>=1.0)
   return (Point1-CPointIn); //na zewn¹trz jako prosta
  return (FastGetPoint(t2)-FastGetPoint(t1));
 }
@@ -231,11 +231,11 @@ vector3 __fastcall TSegment::GetDirection(double fDistance)
 vector3 __fastcall TSegment::FastGetDirection(double fDistance, double fOffset)
 {//takie toporne liczenie pochodnej dla parametru 0.0÷1.0
  double t1=fDistance-fOffset;
- if (t1<0)
-  return (CPointOut-Point1);
+ if (t1<=0.0)
+  return (CPointOut-Point1); //wektor na pocz¹tku jest sta³y
  double t2=fDistance+fOffset;
- if (t2>1)
-  return (Point2-CPointIn);
+ if (t2>=1.0)
+  return (Point2-CPointIn); //wektor na koñcu jest sta³y
  return (FastGetPoint(t2)-FastGetPoint(t1));
 }
 
