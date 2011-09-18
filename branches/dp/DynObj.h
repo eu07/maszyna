@@ -138,6 +138,8 @@ public:
 private:
  bool __fastcall CheckEvent(TEvent *e,bool prox);
  TEvent* __fastcall CheckTrackEvent(double fDirection,TTrack *Track);
+ void __fastcall TraceRoute2();//tabelkowypelniacz
+ void ScanEventTrack2(float fDistance, TEvent* &Event);
  TTrack* __fastcall TraceRoute(double &fDistance,double &fDirection,TTrack *Track,TEvent*&Event);
  void SetProximityVelocity(double dist,double vel,const TLocation *pos);
  //Ra: koniec tych do przeniesienia do AI
