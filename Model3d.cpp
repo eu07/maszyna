@@ -217,6 +217,7 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
  std::string token;
  parser.getToken(token); //ze zmian¹ na ma³e!
  asName=AnsiString(token.c_str());
+
  if (parser.expectToken("anim:")) //Ra: ta informacja by siê przyda³a!
  {//rodzaj animacji
   std::string type;

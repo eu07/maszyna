@@ -225,6 +225,8 @@ public:
  static int iConvertModels; //tworzenie plików binarnych
  static int iErorrCounter; //licznik sprawdzañ do œledzenia b³êdów OpenGL
  static bool bInactivePause; //automatyczna pauza, gdy okno nieaktywne
+ static int iTextures; //licznik u¿ytych tekstur
+ static int iSlowMotionMask; //maska wy³¹czanych w³aœciwoœci
 };
 
 //---------------------------------------------------------------------------
