@@ -2,7 +2,7 @@ unit ai_driver;
 
 //    MaSzyna EU07 locomotive simulator
 //    Copyright (C) 2001-2004  Maciej Czapkiewicz and others
-                                                                                                                                                
+
 //    This program is free software; you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
 //    the Free Software Foundation; either version 2 of the License, or
@@ -63,13 +63,6 @@ const
   maxdriverfails=4;
   WriteLogFlag:boolean=False;
 
-  rvTrack=1;
-  rvSignal=2;
-  rvVechicle=3;
-  rvShunt=4;
-  rvPassStop=5;
-
-
 Type
  TOrders =
  (Wait_for_orders,    //czekanie na dostarczenie nastêpnych rozkazów
@@ -80,12 +73,6 @@ Type
   Release_engine,     //wy³¹czenie silnika
   Jump_to_first_order //zapêlenie do pierwszej pozycji
  );
- TProximityTablePos = record
-   Dist: real;
-   Vel: real;
-   Acc: real;
-   Flag: byte;
- end;
    TController = class(TObject)
                   EngineActive: boolean; {ABu: Czy silnik byl juz zalaczony}
                   MechLoc: TLocation;
@@ -116,10 +103,6 @@ Type
                   VelNext: real; //predkosc przy nastepnym obiekcie
                   {odleglosc od obiektu, ujemna jesli nieznana}
                   ProximityDist, ActualProximityDist: real;
-                  ProximityTable: array[Byte] of TProximityTablePos; //tabelka ograniczen przyszlych
-                  ReducedTable: array[Byte] of real;  //tabliczka ograniczen aktualnych (predkosc)
-                  ProximityTableIndex: byte;  //indeks do wpisywania, czytania i kasowania
-                  LPTA, LPTI: byte; //ilosc ostatnio, ostatni indeks 
                   {ustawia nowa predkosc do ktorej ma dazyc oraz predkosc przy nastepnym obiekcie}
                   CommandLocation: TLocation;
                   {polozenie wskaznika, sygnalizatora lub innego obiektu do ktorego odnosi sie komenda}
@@ -152,13 +135,12 @@ Type
                   procedure SetVelocity(NewVel,NewVelNext:real);
                   {uaktualnia informacje o predkosci}
                   function SetProximityVelocity(NewDist,NewVelNext: real): boolean;
-                  function AddReducedVelocity(Distance,Velocity:real;Flag:Byte): boolean;
                   {uaktualnia informacje o predkosci przy nastepnym semaforze}
                   procedure JumpToNextOrder;
                   procedure JumpToFirstOrder;
                   procedure ChangeOrder(NewOrder:TOrders);
                   function GetCurrentOrder: TOrders;
-		  function CheckSKP: boolean;
+									function CheckSKP: boolean;
                   procedure ResetSKP;
                   procedure CloseLog;
                   constructor Init(LocInitial:TLocation; RotInitial:TRotation;
@@ -240,7 +222,8 @@ begin
      IncBrake;
     if ActiveDir=testd then
      VelforDriver:=-1;
-     if (ActiveDir<>0) and (TrainType=dt_EZT) then Imin:=IminHi;
+    if (ActiveDir>0) and (TrainType=dt_EZT)
+    then DirectionForward; //Ra: z przekazaniem do silnikowego
    end;
   OrderDirectionChange:=Round(VelforDriver);
 end;
@@ -277,47 +260,9 @@ begin
    VelNext:=NewVelNext;
    ProximityDist:=NewDist;
    SetProximityVelocity:=true;
-   AddReducedVelocity(NewDist,NewVelNext,0);
 {end
   else
    SetProximityVelocity:=false; }
-end;
-
-function TController.AddReducedVelocity(Distance,Velocity:real;Flag:Byte):boolean;
-//informacja o ograniczeniu prêdkoœci w pewnej odleg³oœci
-begin
-  if (Distance<=20) then  //jeœli jest to aktualne
-   begin //to dopisujemy do tabelki aktualnych ograniczeñ
-    ReducedTable[Flag]:=Velocity;
-    if (Flag=rvSignal) and (Velocity>0) then //jeœli sygna³ poci¹gowy jest zezwalaj¹cy
-     begin
-      ReducedTable[rvShunt]:=-1; //to kasuje manewrowy
-      if (OrderList[OrderPos]=Shunt) then //i jeœli manewrowa³
-       begin
-        OrderList[OrderPos]:=Obey_train; //to przechodzi w tryb poci¹gowy
-       	bCheckSKP:=true;
-       end;
-     end;
-    if (Flag=rvShunt) and (Velocity>0) then //jeœli sygna³ manewrowy jest zezwalaj¹cy
-     begin
-      ReducedTable[rvSignal]:=-1; //to kasuje poci¹gowy
-      if (OrderList[OrderPos]=Obey_train) then //i jeœli poci¹gowa³
-       begin
-        OrderList[OrderPos]:=Shunt; //to przechodzi na manewry
-       end;
-     end;
-   end
-  else //sygna³ jest daleko
-   begin
-    ProximityTable[ProximityTableIndex].Dist:=Distance; //wpisz odleg³oœæ
-    ProximityTable[ProximityTableIndex].Vel:=Velocity;  //i prêdkoœæ
-    if Velocity<0 then //jeœli prêdkoœæ jest nieograniczona
-      ProximityTable[ProximityTableIndex].Acc:=0 //to nie ma hamowania
-    else //jeœli jest ograniczona
-      ProximityTable[ProximityTableIndex].Acc:=(Velocity*Velocity-Controlling^.Vel*Controlling^.Vel)/(25.92); //to policz przyspieszenie do niego
-    ProximityTable[ProximityTableIndex].Flag:=Flag; //zapisz rodzaj
-    inc(ProximityTableIndex); //zwiêksz indeks
-   end;
 end;
 
 procedure TController.SetDriverPsyche;
@@ -529,23 +474,15 @@ begin
           OK:=IncLocalBrakeLevel(1+Trunc(abs(AccDesired))) {hamowanie lokalnym bo luzem jedzie}
          else
           begin
-           if BrakeCtrlPos+1=BrakeCtrlPosNo then //gdy na przedostatniej pozycji
-             begin
-              if AccDesired<-1.5 then  {hamowanie nagle} //yB: to jest zupelnie bez sensu - hamowanie nagle nie przyspieszy
-               OK:=IncBrakeLevel                         //hamowania wdrozonego przed (5x2) 10 sekundami. Hamowanie nagle
-              else                                       //musi byc wdrazane natychmiast albo wcale...
-               OK:=false;
-             end
-           else //jesli nie na przedostatniej pozycji
+           if BrakeCtrlPos+1=BrakeCtrlPosNo then
             begin
-             if BrakeDelayFlag=bdelay_G then //yB: jesli nastawa towarowa, to ograniczaj kran, bo sklad wolno reaguje
-              begin                          //tak naprawde to tymczasowa proteza, bo trzeba poznac mozliwosci skladu
-               if (BrakeCtrlPos)<(-AccDesired/0.17) then
-                 OK:=IncBrakeLevel
-               else
-                 OK:=false;
-              end
-             else  //jesli nie towarowe i nie na przedostatniej pozycji
+              if AccDesired<-1.5 then  {hamowanie nagle}
+               OK:=IncBrakeLevel
+              else
+               OK:=false;
+            end
+           else
+            begin
 {               if (AccDesired>-0.2) and ((Vel<20) or (Vel-VelNext<10)) then
                 begin
                   if BrakeCtrlPos>0 then
@@ -554,7 +491,7 @@ begin
                    OK:=IncLocalBrakeLevel(1);   {finezyjne hamowanie lokalnym}
 {                end
                else }
-                OK:=IncBrakeLevel; //zahamuj
+                OK:=IncBrakeLevel;
             end;
           end;
        end;
@@ -763,8 +700,7 @@ begin
      else if Command='SetVelocity' then
       begin
         CommandLocation:=Location;
-//yB         SetVelocity(Value1,Value2);  {bylo: nic nie rob bo SetVelocity zewnetrznie jest wywolywane przez dynobj.cpp}
-//         AddReducedVelocity(0, Value1, rvTrack);
+         SetVelocity(Value1,Value2);  {bylo: nic nie rob bo SetVelocity zewnetrznie jest wywolywane przez dynobj.cpp}
         if (Order=Wait_for_orders) and (Value1<>0) then
          JumpToFirstOrder
         else
@@ -776,9 +712,8 @@ begin
       end
      else if Command='SetProximityVelocity' then
       begin
-//        if SetProximityVelocity(Value1,Value2) then
-//          CommandLocation:=Location;
-//         AddReducedVelocity(Value1, Value2, 0);
+        if SetProximityVelocity(Value1,Value2) then
+          CommandLocation:=Location;
  {        if Order=Shunt then Order:=Obey_train;}
        end
      else if Command='ShuntVelocity' then
@@ -788,8 +723,7 @@ begin
          if ((Order=Obey_train) or (Order=Wait_for_orders)) then
           Order:=Shunt;
         if (Order=Shunt) then
-          AddReducedVelocity(0,Value1,rvShunt);
-//          SetVelocity(Value1,Value2);
+          SetVelocity(Value1,Value2);
       end
      else if Command='Jump_to_order' then
       begin
@@ -820,8 +754,7 @@ begin
      else if Command='OutsideStation' then  {wskaznik D5}
       begin
         if Order=Obey_train then
-          AddReducedVelocity(0,-1,rvSignal)
-//         SetVelocity(Value1,Value2) {koniec stacji - predkosc szlakowa}
+         SetVelocity(Value1,Value2) {koniec stacji - predkosc szlakowa}
         else                        {manewry - zawracaj}
          begin
              ChangeDirOrder:=0;
@@ -851,7 +784,7 @@ begin
    if NewCommand='SetVelocity' then
     begin
       CommandLocation:=NewLocation;
-//      SetVelocity(NewValue1,NewValue2);
+      SetVelocity(NewValue1,NewValue2);
       if (OrderList[OrderPos]=Shunt) and (NewValue1<>0) then
 				begin
 					OrderList[OrderPos]:=Obey_train;
@@ -936,8 +869,7 @@ begin
      else if NewCommand='OutsideStation' then  {wskaznik D5}
       begin
         if  OrderList[OrderPos]=Obey_train then
-//         SetVelocity(NewValue1,NewValue2) {koniec stacji - predkosc szlakowa}
-         AddReducedVelocity(0,-1,rvSignal)
+         SetVelocity(NewValue1,NewValue2) {koniec stacji - predkosc szlakowa}
         else                        {manewry - zawracaj}
          begin
              ChangeDirOrder:=0;
@@ -952,7 +884,7 @@ end;
 
 
 function TController.UpdateSituation(dt:real):boolean;
-var AbsAccS,VelReduced:real; b:byte;
+var AbsAccS,VelReduced:real;
 const SignalDim:TDimension=(W:1;L:1;H:1);
 begin
 //yb: zeby EP nie musial sie bawic z ciesnieniem w PG
@@ -967,17 +899,15 @@ begin
         SlippingWheels:=false;
       end;
     end;
-  LPTA:=ProximityTableIndex;  
     
   HelpMeFlag:=False;
 //Winger 020304
-//  if Controlling^.Vel>0 then
-//   if AIControllFlag then
-//    if Controlling^.DoorOpenCtrl=1 then
-//     if Controlling^.DoorRightOpened then
-//      with Controlling^ do
-//       DoorRight(false);  //Winger 090304 - jak jedzie to niech zamyka drzwi
-       //yB: ja bym powyzsz blok Wingera wywalil, bo mamy zamykanie w IncSpeed.
+  if Controlling^.Vel>0 then
+   if AIControllFlag then
+    if Controlling^.DoorOpenCtrl=1 then
+     if Controlling^.DoorRightOpened then
+      with Controlling^ do
+       DoorRight(false);  //Winger 090304 - jak jedzie to niech zamyka drzwi
  if Controlling^.EnginePowerSource.SourceType=CurrentCollector then
   if Controlling^.Vel>0 then
    if AIControllFlag then
@@ -1015,15 +945,15 @@ begin
      {tu bedzie logika sterowania}
      {Ra: nie wiem czemu ReactionTime potrafi dostaæ 12 sekund, to jest przegiêcie, bo prze¿yna STÓJ}
 	 {yB: otó¿ jest to jedna trzecia czasu nape³niania na towarowym; mo¿e siê przydaæ przy wdra¿aniu hamowania, ¿eby nie rusza³o kranem jak g³upie}
-     if (LastReactionTime>Min0R(ReactionTime,1.0))  then
+     if (LastReactionTime>Min0R(ReactionTime,2.0))  then
       with Controlling^ do
        begin
          MechLoc:=Loc; {uwzglednic potem polozenie kabiny}
-//         if (ProximityDist>=0) then //yB: na razie niepotrzebne
-//          ActualProximityDist:=Min0R(ProximityDist,Distance(MechLoc,CommandLocation,Dim,SignalDim))
-//         else
-//          if ProximityDist<0 then
-//           ActualProximityDist:=ProximityDist;
+         if (ProximityDist>=0) then
+          ActualProximityDist:=Min0R(ProximityDist,Distance(MechLoc,CommandLocation,Dim,SignalDim))
+         else
+          if ProximityDist<0 then
+           ActualProximityDist:=ProximityDist;
          if CommandIn.Command<>'' then
           if not RunInternalCommand then {rozpoznaj komende bo lokomotywa jej nie rozpoznaje}
            RecognizeCommand;
@@ -1189,9 +1119,8 @@ begin
                         PrepareEngine;
                      end;
                   WaitingTime:=0;
-                  VelActual:=-1;
-//                  VelActual:=20;
-                  ReducedTable[rvSignal]:=20;
+
+                  VelActual:=20;
                   WarningDuration:=1.5;
                   Controlling.WarningSignal:=1;
                end
@@ -1227,8 +1156,7 @@ begin
                 Controlling^.CommandIn.Value1:=-1;
                 Controlling^.CommandIn.Value2:=-1;
                 OrderList[OrderPos]:=Shunt;
-//                SetVelocity(20,20);
-                AddReducedVelocity(0,20,rvShunt);
+                SetVelocity(20,20);
                 if WriteLogFlag then
                  begin
                   append(AIlogFile);
@@ -1249,48 +1177,28 @@ begin
 {                else
                  VelActual:=0; {na wszelki wypadek niech zahamuje}
               end;
-
-             ProximityTableIndex:=0;
-//             if ReducedTable[0]<0 then ReducedTable[0]:=Vmax; //na wszelki wypadek, gdyby nie by³o ograniczenia jakiegokolwiek (same -1)
-             ReducedTable[0]:=Vmax;
-
-             for b:=1 to 255 do //szukanie najnizszego aktualnego
-               if ReducedTable[b]<ReducedTable[ProximityTableIndex] then
-                if ReducedTable[b]>=0 then
-                 ProximityTableIndex:=b;
-
              {ustalanie zadanej predkosci}
              if (Controlling^.ActiveDir<>0) then
               begin
-//                if VelActual<0 then
-                 VelDesired:=Vmax; {ile fabryka dala}
-//                else
-//                 VelDesired:=Min0R(Vmax,VelActual);
-//                if RunningTrack.Velmax>=0 then
-                 VelDesired:=Min0R(VelDesired,ReducedTable[ProximityTableIndex]); {uwaga na ograniczenia szlakowej!}
+                if VelActual<0 then
+                 VelDesired:=Vmax {ile fabryka dala}
+                else
+                 VelDesired:=Min0R(Vmax,VelActual);
                 if RunningTrack.Velmax>=0 then
                  VelDesired:=Min0R(VelDesired,RunningTrack.Velmax); {uwaga na ograniczenia szlakowej!}
                 if VelforDriver>=0 then
                   VelDesired:=Min0R(VelDesired,VelforDriver);
-//                if TrainSet^.CheckTrainLatency<10 then //yB: rozk³adowej nie wolno przekraczac!!!!
+                if TrainSet^.CheckTrainLatency<10 then
                  if TrainSet^.TTVmax>0 then
                   VelDesired:=Min0R(VelDesired,TrainSet^.TTVmax); {jesli nie spozniony to nie szybciej niz rozkladowa}
                 AbsAccs:=Accs*sign(V); {czy sie rozpedza czy hamuje}
-
-                ProximityTableIndex:=0;
-                for b:=0 to 255 do
-                  if ProximityTable[b].Acc<ProximityTable[ProximityTableIndex].Acc then
-                    ProximityTableIndex:=b;
-
-                VelNext:=ProximityTable[ProximityTableIndex].Vel; //nastepna predkosc
-                ActualProximityDist:=ProximityTable[ProximityTableIndex].Dist; //i odleglosc do niej
-
+				
 				{ustalanie zadanego przyspieszenia}
                 if (VelNext>=0) and (ActualProximityDist>=0) and (Vel>=VelNext) then //gdy zbliza sie i jest za szybko do NOWEGO
                  begin
                    if Vel>0 then //jesli nie stoi
                     begin
-                     if (Vel<VelReduced+VelNext) and (ActualProximityDist>MaxProximityDist) then {dojedz do semafora/przeszkody}
+                     if (Vel<VelReduced+VelNext) and (ActualProximityDist>MaxProximityDist*(1+Vel/10)) then {dojedz do semafora/przeszkody}
                       begin
                         if AccPreferred>0 then
                          AccDesired:=AccPreferred/2;
@@ -1308,8 +1216,8 @@ begin
                                 AccDesired:=0.5
                               else
                                 AccDesired:=0
-                            else // prostu hamuj (niski stopieñ) (na razie da³em 95% szybkosci, moze bedzie lepiej wchodzic)
-                              AccDesired:=(SQR(VelNext*0.95)-SQR(Vel))/(25.92*(ActualProximityDist-MinProximityDist)+0.1) {hamuj proporcjonalnie} //mniejsze opóŸnienie przy ma³ej ró¿nicy
+                            else // prostu hamuj (niski stopieñ)
+                              AccDesired:=(SQR(VelNext)-SQR(Vel))/(25.92*ActualProximityDist+0.1) {hamuj proporcjonalnie} //mniejsze opóŸnienie przy ma³ej ró¿nicy
                          else  //przy du¿ej ró¿nicy wysoki stopieñ (1,25 potrzebnego opoznienia)
                            AccDesired:=(SQR(VelNext)-SQR(Vel))/(20.73*ActualProximityDist+0.1); {hamuj proporcjonalnie} //najpierw hamuje mocniej, potem zluzuje
                          if AccPreferred<AccDesired then
@@ -1320,7 +1228,7 @@ begin
                        VelDesired:=Min0R(VelDesired,VelNext); {utrzymuj predkosc bo juz blisko}
                     end
                    else                         {zatrzymany}
-                    if (VelNext>0) or (ActualProximityDist>MaxProximityDist) then
+                    if (VelNext>0) or (ActualProximityDist>MaxProximityDist*1.2) then
                      if AccPreferred>0 then
                       AccDesired:=AccPreferred/2  {dociagnij do semafora}
                     else
@@ -1334,46 +1242,24 @@ begin
 
                 if (VelDesired>=0) and (Vel>VelDesired) then //jesli jedzie za szybko do AKTUALNEGO
                  if (VelDesired=0) then //jesli stoj, to hamuj, ale i tak juz za pozno :)
-                     AccDesired:=Min0R(AccDesired,-0.8)
+                     AccDesired:=-0.5
                  else
                  if (Vel<VelDesired+5) then // o 5 km/h to olej
                    if (AccDesired>0) then
-                     AccDesired:=Min0R(AccDesired,0)
+                     AccDesired:=0
                    else
                  else
-                   AccDesired:=Min0R(AccDesired,-0.25);  //hamuj tak œrednio
+                   AccDesired:=-0.2;  //hamuj tak œrednio
 //                 if AccDesired>-AccPreferred then
 //                  Accdesired:=-AccPreferred;
 				//koniec predkosci aktualnej
 
-//yB: Te warunki sa teraz bez sensu, bo AI skanuje sobie to z wyprzedzeniem i tak!
-//                if (AccDesired>0) and (VelNext>=0) then //wybieg b¹dŸ lekkie hamowanie, warunki byly zamienione
-//                 if (VelNext<Vel-100) then        {lepiej zaczac hamowac}
-//                  AccDesired:=-0.2
-//                 else
-//                  if (VelNext<Vel-70) then
-//                   AccDesired:=0;                {nie spiesz sie bo bedzie hamowanie}
-
-//                AccDesired:=ProximityTable[0][pt_acc];
-                if BrakeDelayFlag=bdelay_G then
-                 begin
-                  if (AccDesired<0)and(AccDesired>-0.07)and(ActualProximityDist>150) then AccDesired:=0.5;
-                 end
-                else
-                  if (AccDesired<0)and(AccDesired>-0.15)and(ActualProximityDist>100) then AccDesired:=0.5;
-                //pomijanie malych opoznien hamowania, zeby nie wlaczac wybiegu i sie wlec
-
-                LPTI:=ProximityTableIndex;
-                ProximityTableIndex:=0;
-
-                for b:=0 to 255 do //czyszczenie tabelki przyszlych, aktualne zostaja.
-                 begin
-                  ProximityTable[b].Dist:=0;
-                  ProximityTable[b].Vel:=-1;
-                  ProximityTable[b].Acc:=0;
-                  ProximityTable[b].Flag:=0;
-                 end;
-
+                if (AccDesired>0) and (VelNext>=0) then //wybieg b¹dŸ lekkie hamowanie, warunki byly zamienione
+                 if (VelNext<Vel-100) then        {lepiej zaczac hamowac} 
+                  AccDesired:=-0.2
+                 else
+                  if (VelNext<Vel-70) then
+                   AccDesired:=0;                {nie spiesz sie bo bedzie hamowanie}
 				//koniec wybiegu i hamowania
                 {wlaczanie bezpiecznika}
                 if EngineType=ElectricSeriesMotor then
@@ -1394,11 +1280,11 @@ begin
                  if BrakeSubsystem=Oerlikon then
                   begin
                     if BrakeCtrlPos=-2 then BrakeCtrlPos:=0;
-                    if (BrakeCtrlPos<0)and (BrakePress<0.025){(CntrlPipePress-(Volume/BrakeVVolume/10)<0.01)} then
+                    if (BrakeCtrlPos<0)and (PipebrakePress<0.01){(CntrlPipePress-(Volume/BrakeVVolume/10)<0.01)} then
                      IncBrakeLevel;
                     if (BrakeCtrlPos=0) and (AbsAccS<0)and(AccDesired>0) then
 //                     if FuzzyLogicAI(CntrlPipePress-PipePress,0.01,1) then
-                     if BrakePress>0.03{((Volume/BrakeVVolume/10)<0.485)} then
+                     if PipebrakePress>0.01{((Volume/BrakeVVolume/10)<0.485)} then
                       DecBrakeLevel
                      else
                       if Need_BrakeRelease then
@@ -1408,18 +1294,13 @@ begin
 //                       end;
                   end;
 
-                if BrakeSystem=ElectroPneumatic then  {napelnianie uderzeniowe}
-                 begin
-                  while(BrakeCtrlPos>0)do DecBrakeLevel;
-                  while(BrakeCtrlPos<0)do IncBrakeLevel;
-                 end;
-
-
                 if(AccDesired>=0) then while DecBrake do;  //jeœli przyspieszamy, to nie hamujemy
-                if(AccDesired<=0)or(Vel+VelMargin>VelDesired*0.95) then while DecSpeed do; //jeœli hamujemy, to nie przyspieszamy
+                //Ra: zmieni³em 0.95 na 1.0 - trzeba ustaliæ, sk¹d sie takie wartoœci bior¹
+                if(AccDesired<=0)or(Vel+VelMargin>VelDesired*1.0) then while DecSpeed do; //jeœli hamujemy, to nie przyspieszamy
 
                 {zwiekszanie predkosci:} //yB: usuniête ró¿ne dziwne warunki, oddzielamy czêœæ zadaj¹c¹ od wykonawczej
-                if ((AbsAccS<AccDesired)and(Vel<VelDesired*0.85-VelMargin)and(AccDesired>=0)) then
+                if ((AbsAccS<AccDesired)and(Vel<VelDesired*0.95-VelMargin)and(AccDesired>=0)) then
+                //Ra: zmieni³em 0.85 na 0.95 - trzeba ustaliæ, sk¹d sie takie wartoœci bior¹
        {          if not MaxVelFlag then }
                     if not IncSpeed then
                      MaxVelFlag:=True
@@ -1432,22 +1313,11 @@ begin
 //                    IncMainCtrl(1); {zwieksz nastawnik skoro mozesz - tak aby sie ustawic na bezoporowej}
 
                 {zmniejszanie predkosci:} //yB: usuniête ró¿ne dziwne warunki, oddzielamy czêœæ zadaj¹c¹ od wykonawczej
-                if BrakeDelayFlag=bdelay_G then
-                 begin
-                  if ((AccDesired<-0.15) and (AbsAccS>AccDesired+0.05)) then
-         {          if not MinVelFlag then   }
-                          if not IncBrake then
-                           MinVelFlag:=True
-                     else begin MinVelFlag:=False; ReactionTime:=3+(BrakeDelay[2+2*BrakeDelayFlag]-3)/2; end;
-                 end
-                else
-                 begin
-                  if ((AccDesired<-0.25) and (AbsAccS>AccDesired+0.05)) then
-         {          if not MinVelFlag then   }
-                          if not IncBrake then
-                           MinVelFlag:=True
-                     else begin MinVelFlag:=False; ReactionTime:=3+(BrakeDelay[2+2*BrakeDelayFlag]-3)/2; end;
-                 end;
+                if ((AccDesired<-0.1) and (AbsAccS>AccDesired+0.05)) then
+       {          if not MinVelFlag then   }
+                        if not IncBrake then
+                         MinVelFlag:=True
+                   else begin MinVelFlag:=False; ReactionTime:=3+(BrakeDelay[2+2*BrakeDelayFlag]-3)/2; end;
 
                 if ((AccDesired<-0.05) and (AbsAccS<AccDesired-0.2)) then
                  begin DecBrake; ReactionTime:=(BrakeDelay[1+2*BrakeDelayFlag])/3; end; //jak hamuje, to nie tykaj kranu za czêsto
@@ -1567,15 +1437,6 @@ begin
    begin x:=0; y:=0; z:=0; end;
   VelActual:=0;
   VelNext:=120;
-  for b:=0 to 255 do
-   begin
-    ProximityTable[b].Dist:=0;
-    ProximityTable[b].Vel:=-1;
-    ProximityTable[b].Acc:=0;
-    ProximityTable[b].Flag:=0;
-    ReducedTable[b]:=-1;
-   end;
-  ProximityTableIndex:=0;                   
   AIControllFlag:=AI;
   Controlling:=NewControll;
 (*
