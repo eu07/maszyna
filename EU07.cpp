@@ -55,7 +55,6 @@ USEUNIT("Segment.cpp");
 USEUNIT("McZapkie\mover.pas");
 USEUNIT("Sound.cpp");
 USEUNIT("AdvSound.cpp");
-USEUNIT("McZapkie\ai_driver.pas");
 USEUNIT("Track.cpp");
 USEUNIT("DynObj.cpp");
 USEUNIT("RealSound.cpp");
@@ -76,6 +75,7 @@ USEUNIT("TextureDDS.cpp");
 USEUNIT("opengl\ARB_Multisample.cpp");
 USEUNIT("Float3d.cpp");
 USEUNIT("Classes.cpp");
+USEUNIT("Driver.cpp");
 //---------------------------------------------------------------------------
 #include "World.h"
 
