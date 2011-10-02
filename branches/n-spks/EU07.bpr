@@ -61,16 +61,11 @@ IncludeVerInfo=1
 AutoIncBuild=1
 MajorVer=0
 MinorVer=666
-<<<<<<< .mine
-Release=213
-Build=213
-=======
-Release=230
-Build=221
->>>>>>> .r230
+Release=255
+Build=235
 Debug=1
-PreRelease=1
-Special=1
+PreRelease=0
+Special=0
 Private=0
 DLL=0
 Locale=1045
@@ -79,66 +74,20 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-<<<<<<< .mine
-FileVersion=0.666.213.213
-InternalName=5th by Ra + SPKS
-=======
-FileVersion=1.3.230.221
-InternalName=5th plus by Ra
->>>>>>> .r230
+FileVersion=0.666.255.235
+InternalName=5th plus by Ra with SPKS
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=eu07.exe
 ProductName=MaSzyna EU07-424
 ProductVersion=1.3
 Comments=
-SpecialBuild=
-
-[HistoryLists\hlIncludePath]
-Count=1
-Item0=opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-
-[HistoryLists\hlLibraryPath]
-Count=1
-Item0=opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-
-[HistoryLists\hlDebugSourcePath]
-Count=3
-Item0=C:\Ra\dp\McZapkie\
-Item1=c:\lang\borland\cbuilder5\source\vcl;D:\USER\MCZAPKIE\PROGRAMY\rail\symul\source\zmiany\McZapkie\;D:\USER\MCZAPKIE\PROGRAMY\rail\symul\source\zmiany\
-Item2=$(BCB)\source\vcl
-
-[HistoryLists\hlConditionals]
-Count=9
-Item0=GLEW_STATIC;_DEBUG;USE_VBO
-Item1=GLEW_STATIC;_DEBUG;USE_VBO0
-Item2=GLEW_STATIC;_DEBUG
-Item3=GLEW_STATIC;_DEBUG;_USE_OLD_RW_STL
-Item4=GLEW_STATIC
-Item5=GLEW_STATIC;USE_VERTEX_ARRAYS;_DEBUG
-Item6=GLEW_STATIC;USE_VERTEX_ARRAYS
-Item7=GLEW_STATIC;_DEBUG;USE_VERTEX_ARRAYS
-Item8=_DEBUG
-
-[HistoryLists\hlFinalOutputDir]
-Count=11
-Item0=D:\!PC2010_DDS_SPKS\
-Item1=D:\!PC2010_DDS_SPKS
-Item2=D:\PC2010_DDS\
-Item3=D:\PC2010_DDS
-Item4=D:\EU07\
-Item5=D:\EU07DDS\
-Item6=D:\EU07DDS
-Item7=M:\aEU07\EU07\
-Item8=G:\EU07\
-Item9=M:\aEU07\EU07-2006\
-Item10=M:\aEU07\EU07
 
 [Debugging]
 DebugSourceDirs=
 
 [Parameters]
-RunParams=-s test_W4.scn -v ET22-135
+RunParams=-s AI_start.scn -v ET22-135
 HostApplication=
 RemoteHost=
 RemotePath=

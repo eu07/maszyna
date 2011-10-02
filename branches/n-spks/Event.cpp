@@ -181,7 +181,7 @@ void __fastcall TEvent::Load(cParser* parser)
         case tp_CopyValues:
         case tp_GetValues:
         case tp_LogValues:
-            parser->getTokens();
+            parser->getTokens(); //nazwa komórki pamiêci
             *parser >> token;
         break;
         case tp_PutValues:

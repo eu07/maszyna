@@ -138,6 +138,8 @@ public:
 private:
  bool __fastcall CheckEvent(TEvent *e,bool prox);
  TEvent* __fastcall CheckTrackEvent(double fDirection,TTrack *Track);
+ void __fastcall TraceRoute2();//tabelkowypelniacz
+ void ScanEventTrack2(float fDistance, TEvent* &Event);
  TTrack* __fastcall TraceRoute(double &fDistance,double &fDirection,TTrack *Track,TEvent*&Event);
  void SetProximityVelocity(double dist,double vel,const TLocation *pos);
  //Ra: koniec tych do przeniesienia do AI
@@ -160,6 +162,8 @@ protected:
     void __fastcall ABuCheckMyTrack();
 
 public:
+    TDynamicObject* __fastcall Prev(){return iDirection>0?PrevConnected:NextConnected;};
+    TDynamicObject* __fastcall Next(){return iDirection>0?NextConnected:PrevConnected;};
     void __fastcall SetdMoveLen(double dMoveLen) {MoverParameters->dMoveLen=dMoveLen;}
     void __fastcall ResetdMoveLen() {MoverParameters->dMoveLen=0;}
     double __fastcall GetdMoveLen() {return MoverParameters->dMoveLen;}
@@ -265,7 +269,7 @@ public:
     inline double __fastcall GetWidth() { return MoverParameters->Dim.W; };
     inline TTrack* __fastcall GetTrack() { return (iAxleFirst?Axle1.GetTrack():Axle4.GetTrack()); };
     void __fastcall UpdatePos();
-		void __fastcall DynChangeStart(TDynamicObject *Dyn);
+    void __fastcall DynChangeStart(TDynamicObject *Dyn);
     void __fastcall DynChangeEnd(); 
 
     Mover::TMoverParameters *MoverParameters;

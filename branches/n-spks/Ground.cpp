@@ -1822,17 +1822,16 @@ bool __fastcall TGround::Init(AnsiString asFile)
             Current->InitNormals();
             if (Current->iType!=TP_DYNAMIC)
             {//pojazdów w ogóle nie dotyczy dodawanie do mapy
-             if ((Current->iType!=GL_TRIANGLES)&&(Current->iType!=GL_TRIANGLE_STRIP)?true //~czy trójk¹t?
+             if (i==TP_EVLAUNCH?Current->EvLaunch->IsGlobal():false)
+              srGlobal.AddNode(Current); //dodanie do globalnego obiektu
+             else if ((Current->iType!=GL_TRIANGLES)&&(Current->iType!=GL_TRIANGLE_STRIP)?true //~czy trójk¹t?
               :(Current->iFlags&0x20)?true //~czy teksturê ma nieprzezroczyst¹?
                //:(Current->iNumVerts!=3)?true //~czy tylko jeden trójk¹t?
                 :(Current->fSquareMinRadius!=0.0)?true //~czy widoczny z bliska?
                  :(Current->fSquareRadius<=90000.0)) //~czy widoczny z daleka?
               GetSubRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
              else //dodajemy do kwadratu kilometrowego
-              if (i==TP_EVLAUNCH?Current->EvLaunch->IsGlobal():false)
-               srGlobal.AddNode(Current); //dodanie do globalnego obiektu
-              else
-               GetRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
+              GetRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
             }
             //if (Current->iType!=TP_DYNAMIC)
             // GetSubRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
@@ -1990,13 +1989,23 @@ bool __fastcall TGround::InitEvents()
                      Current->Params[10].asTrack=NULL;
                  }
                 else
-                    Error("Event \""+Current->asName+"\" cannot find node \""+
+                    Error("Event \""+Current->asName+"\" cannot find memcell \""+
                                      Current->asNodeName+"\"");
             break;
             case tp_GetValues:
             case tp_WhoIs:
             case tp_LogValues: //skojarzenie z memcell
              tmp= FindGroundNode(Current->asNodeName,TP_MEMCELL);
+             if (tmp)
+             {
+              Current->Params[8].asGroundNode=tmp;
+              Current->Params[9].asMemCell=tmp->MemCell;
+             }
+             else
+              Error("Event \""+Current->asName+"\" cannot find memcell \""+Current->asNodeName+"\"");
+            break;
+            case tp_CopyValues :
+             tmp=FindGroundNode(Current->asNodeName,TP_MEMCELL); //komórka docelowa
              if (tmp)
              {
               Current->Params[8].asGroundNode=tmp;
@@ -2067,7 +2076,7 @@ bool __fastcall TGround::InitEvents()
                     if (tmp)
                         Current->Params[9].asDynamic= tmp->DynamicObject;
                     else
-                        Error("Event \""+Current->asName+"\" cannot find node \""+
+                        Error("Event \""+Current->asName+"\" cannot find dynamic \""+
                                          Current->asNodeName+"\"");
                 }
                 Current->asNodeName= "";
@@ -2222,6 +2231,9 @@ bool __fastcall TGround::InitTracks()
   name=Track->IsolatedName(); //pobranie nazwy odcinka izolowanego
   if (!name.IsEmpty()) //jeœli zosta³a zwrócona nazwa
    Track->IsolatedEventsAssign(FindEvent(name+":busy"),FindEvent(name+":free"));
+  if (Current->asName.SubString(1,1)=="*") //mo¿liwy portal, jeœli nie pod³¹czony od striny 1
+   if (!Track->CurrentPrev()&&Track->CurrentNext())
+    Track->iCategoryFlag|=0x100; //ustawienie flagi portalu
  }
  return true;
 }
@@ -2430,12 +2442,19 @@ if (QueryRootEvent)
         WriteLog("EVENT LAUNCHED: "+QueryRootEvent->asName);
         switch (QueryRootEvent->Type)
         {
-            case tp_AddValues: //ró¿ni siê jedn¹ flag¹ od UpdateValues
-            case tp_UpdateValues :
-                QueryRootEvent->Params[9].asMemCell->UpdateValues(QueryRootEvent->Params[0].asText,
-                                                                  QueryRootEvent->Params[1].asdouble,
-                                                                  QueryRootEvent->Params[2].asdouble,
-                                                                  QueryRootEvent->Params[12].asInt);
+         case tp_CopyValues: //pobranie wartoœci z innej komórki
+/*
+          QueryRootEvent->Params[0].asText=QueryRootEvent->Params[9].asMemCell->U
+          QueryRootEvent->Params[1].asdouble=
+          QueryRootEvent->Params[2].asdouble=
+          QueryRootEvent->Params[12].asInt=conditional_memstring|conditional_memval1|conditional_memval2; //wszystko
+*/
+         case tp_AddValues: //ró¿ni siê jedn¹ flag¹ od UpdateValues
+         case tp_UpdateValues :
+          QueryRootEvent->Params[9].asMemCell->UpdateValues(QueryRootEvent->Params[0].asText,
+                                                            QueryRootEvent->Params[1].asdouble,
+                                                            QueryRootEvent->Params[2].asdouble,
+                                                            QueryRootEvent->Params[12].asInt);
 //McZapkie-100302 - updatevalues oprocz zmiany wartosci robi putcommand dla wszystkich 'dynamic' na danym torze
                 if (QueryRootEvent->Params[10].asTrack)
                  {
@@ -2444,7 +2463,7 @@ if (QueryRootEvent)
                   loc.Z=  QueryRootEvent->Params[8].asGroundNode->pCenter.y;
                   for (int i=0; i<QueryRootEvent->Params[10].asTrack->iNumDynamics; i++)
                    {
-                    QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Params[10].asTrack->Dynamics[i]->MoverParameters,loc);
+                    QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Params[10].asTrack->Dynamics[i]->Mechanik,loc);
                    }
                   LogComment="Type: UpdateValues & Track command - ";
                   LogComment+=AnsiString(QueryRootEvent->Params[0].asText);
@@ -2465,54 +2484,50 @@ if (QueryRootEvent)
               loc.Z=  QueryRootEvent->Params[8].asGroundNode->pCenter.y;
               if (Global::iMultiplayer) //potwierdzenie wykonania dla serwera - najczêœciej odczyt semafora
                WyslijEvent(QueryRootEvent->asName,QueryRootEvent->Activator->GetName());
-							TDynamicObject* tmp2=NULL;
-								if(QueryRootEvent->Activator->Mechanik!=NULL)
+	      TDynamicObject* tmp2=NULL;
+	      if(QueryRootEvent->Activator->Mechanik!=NULL)
+              {if ((String(QueryRootEvent->Params[9].asMemCell->szText )=="Change_direction"
+                ||(String(QueryRootEvent->Params[9].asMemCell->szText )=="OutsideStation"
+                 &&QueryRootEvent->Activator->Mechanik->OrderList[QueryRootEvent->Activator->Mechanik->OrderPos]!=Obey_train))
+                 &&QueryRootEvent->Params[9].asMemCell->fValue1!=QueryRootEvent->Activator->MoverParameters->CabNo)
+    		{
+    		 if (QueryRootEvent->Activator->GetName()!=Global::asHumanCtrlVehicle)
                 {
-									if((String(QueryRootEvent->Params[9].asMemCell->szText )=="Change_direction"||(String(QueryRootEvent->Params[9].asMemCell->szText )=="OutsideStation"&&QueryRootEvent->Activator->Mechanik->OrderList[QueryRootEvent->Activator->Mechanik->OrderPos]!=Obey_train))&&
-										QueryRootEvent->Params[9].asMemCell->fValue1!=QueryRootEvent->Activator->MoverParameters->CabNo)
-									{
-										if(QueryRootEvent->Activator->GetName()!=Global::asHumanCtrlVehicle)
-                    {
-                      TDynamicObject* tmp1;
-                        tmp1 = QueryRootEvent->Activator->GetFirstDynamic(1);
-                        if(tmp1!=QueryRootEvent->Activator)
-                        {
-                          tmp2 = tmp1->GetFirstCabDynamic(0);
-                          if(tmp2==NULL)
-                          {
-                            tmp2 = tmp1->GetFirstCabDynamic(1);
-                          }
-
-                          if(tmp2!=NULL&&tmp2!=QueryRootEvent->Activator)
-                          QueryRootEvent->Activator->DynChangeStart(tmp2);
-                          else
-                          QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Activator->MoverParameters,
-                                                                    loc);
-                        }
-                        else
-                        {
-                        tmp1 = QueryRootEvent->Activator->GetFirstDynamic(0);
-                        if(tmp1!=QueryRootEvent->Activator)
-                        {
-                          tmp2 = tmp1->GetFirstCabDynamic(1);
-                          if(tmp2==NULL)
-                          {
-                            tmp2 = tmp1->GetFirstCabDynamic(0);
-                          }
-
-                          if(tmp2!=NULL&&tmp2!=QueryRootEvent->Activator)
-                          QueryRootEvent->Activator->DynChangeStart(tmp2);
-                          else
-                          QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Activator->MoverParameters,
-                                                                    loc);
-                        }
-                      }
-                    }
-					        }
+                 TDynamicObject* tmp1;
+                 tmp1=QueryRootEvent->Activator->GetFirstDynamic(1);
+                 if (tmp1!=QueryRootEvent->Activator)
+                 {
+                  tmp2=tmp1->GetFirstCabDynamic(0);
+                  if (tmp2==NULL)
+                  {
+                   tmp2=tmp1->GetFirstCabDynamic(1);
+                  }
+                  if (tmp2!=NULL&&tmp2!=QueryRootEvent->Activator)
+                   QueryRootEvent->Activator->DynChangeStart(tmp2);
+                  else
+                   QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Activator->Mechanik,loc);
+                 }
+                 else
+                 {
+                  tmp1=QueryRootEvent->Activator->GetFirstDynamic(0);
+                  if (tmp1!=QueryRootEvent->Activator)
+                  {
+                   tmp2=tmp1->GetFirstCabDynamic(1);
+                   if (tmp2==NULL)
+                   {
+                    tmp2=tmp1->GetFirstCabDynamic(0);
+                   }
+                   if(tmp2!=NULL&&tmp2!=QueryRootEvent->Activator)
+                    QueryRootEvent->Activator->DynChangeStart(tmp2);
+                   else
+                    QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Activator->Mechanik,loc);
+                  }
+                 }
                 }
-                if(tmp2==NULL)
-                QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Activator->MoverParameters,
-                                                                    loc);
+               }
+              }
+              if (tmp2==NULL)
+               QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Activator->Mechanik,loc);
              }
              WriteLog("Type: GetValues");
             break;
@@ -2608,8 +2623,11 @@ if (QueryRootEvent)
                             QueryRootEvent->Params[4].asdouble);
             break;
             case tp_Switch :
-                if (QueryRootEvent->Params[9].asTrack)
-                    QueryRootEvent->Params[9].asTrack->Switch(QueryRootEvent->Params[0].asInt);
+             if (QueryRootEvent->Params[9].asTrack)
+              QueryRootEvent->Params[9].asTrack->Switch(QueryRootEvent->Params[0].asInt);
+             if (Global::iMultiplayer) //dajemy znaæ do serwera o prze³o¿eniu
+              WyslijEvent(QueryRootEvent->asName,""); //wys³anie nazwy eventu prze³¹czajacego
+             //Ra: bardziej by siê przyda³a nazwa toru, ale nie ma do niej st¹d dostêpu
             break;
             case tp_TrackVel :
                 if (QueryRootEvent->Params[9].asTrack)
@@ -2674,7 +2692,7 @@ if (QueryRootEvent)
                   if (QueryRootEvent->Activator)
                    WyslijEvent(QueryRootEvent->asName,QueryRootEvent->Activator->GetName());
                   else
-                   WyslijEvent(QueryRootEvent->asName,NULL);
+                   WyslijEvent(QueryRootEvent->asName,"");
                  }
                 }
                }
@@ -3334,5 +3352,16 @@ TDynamicObject* __fastcall TGround::DynamicNearest(vector3 pPosition,double dist
        }
  return dyn;
 };
+//---------------------------------------------------------------------------
+void __fastcall TGround::DynamicRemove(TDynamicObject* dyn)
+{//Ra: usuniêcie pojazdów ze scenerii (gdy dojad¹ na koniec i nie sa potrzebne)
+ TDynamicObject* d=dyn->Prev();
+ if (d) //jeœli coœ jest z przodu
+  DynamicRemove(d); //zaczynamy od tego z przodu
+ else
+ {//jeœli mamy ju¿ tego na pocz¹tku
+ }
+};
+
 //---------------------------------------------------------------------------
 

@@ -26,6 +26,14 @@ enum TOrders { Wait_for_orders, Prepare_engine, Shunt, Change_direction, Obey_tr
 	Jump_to_first_order };
 #pragma option pop
 
+struct TProximityTablePos
+{
+	double Dist;
+	double Vel;
+	double Acc;
+	Byte Flag;
+} ;
+
 class DELPHICLASS TController;
 class PASCALIMPLEMENTATION TController : public System::TObject 
 {
@@ -58,6 +66,11 @@ public:
 	double VelNext;
 	double ProximityDist;
 	double ActualProximityDist;
+	TProximityTablePos ProximityTable[256];
+	double ReducedTable[256];
+	Byte ProximityTableIndex;
+	Byte LPTA;
+	Byte LPTI;
 	Mover::TLocation CommandLocation;
 	TOrders OrderList[17];
 	Byte OrderPos;
@@ -89,6 +102,7 @@ public:
 	bool __fastcall UpdateSituation(double dt);
 	void __fastcall SetVelocity(double NewVel, double NewVelNext);
 	bool __fastcall SetProximityVelocity(double NewDist, double NewVelNext);
+	bool __fastcall AddReducedVelocity(double Distance, double Velocity, Byte Flag);
 	void __fastcall JumpToNextOrder(void);
 	void __fastcall JumpToFirstOrder(void);
 	void __fastcall ChangeOrder(TOrders NewOrder);
@@ -99,6 +113,7 @@ public:
 	__fastcall TController(const Mover::TLocation &LocInitial, const Mover::TRotation &RotInitial, bool 
 		AI, Mover::PMoverParameters NewControll, Mtable::PTrainParameters NewTrainSet, bool InitPsyche);
 	AnsiString __fastcall OrderCurrent();
+	void __fastcall WaitingSet(double Seconds);
 	
 private:
 	AnsiString VehicleName;
@@ -126,6 +141,11 @@ static const bool Humandriver = false;
 static const Shortint maxorders = 0x10;
 static const Shortint maxdriverfails = 0x4;
 extern PACKAGE bool WriteLogFlag;
+static const Shortint rvTrack = 0x1;
+static const Shortint rvSignal = 0x2;
+static const Shortint rvVechicle = 0x3;
+static const Shortint rvShunt = 0x4;
+static const Shortint rvPassStop = 0x5;
 
 }	/* namespace Ai_driver */
 #if !defined(NO_IMPLICIT_NAMESPACE_USE)

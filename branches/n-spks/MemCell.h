@@ -6,6 +6,7 @@
 #include "Classes.h"
 
 using namespace Mover;
+using namespace Ai_driver;
 
 class TMemCell
 {
@@ -24,7 +25,7 @@ public:
     void __fastcall Init();
     void __fastcall UpdateValues(char *szNewText, double fNewValue1, double fNewValue2, int CheckMask);
     bool __fastcall Load(cParser *parser);
-    void __fastcall PutCommand(TMoverParameters *Mover, TLocation &Loc);
+    void __fastcall PutCommand(TController *Mech, TLocation &Loc);
     bool __fastcall Compare(char *szTestText, double fTestValue1, double fTestValue2, int CheckMask);
     bool __fastcall Render();
 };

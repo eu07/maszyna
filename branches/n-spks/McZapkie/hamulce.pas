@@ -342,7 +342,7 @@ begin
   PR:=(p2-p1)/(1.13*ph-pl);
 end;
 
-function PF(P1,P2,S:real):real;
+function PF_old(P1,P2,S:real):real;
 var ph,pl: real;
 begin
   PH:=Max0R(P1,P2)+1;
@@ -352,6 +352,18 @@ begin
     PF:=20*(PH-PL)*(PH+1)*222*S*(P2-P1)/(1.13*ph-pl)
   else
     PF:=(PH+1)*222*S*(P2-P1)/(1.13*ph-pl);
+end;
+
+function PF(P1,P2,S:real):real;
+var ph,pl: real;
+begin
+  PH:=Max0R(P1,P2)+1;
+  PL:=P1+P2-PH+2;
+  if  PH-PL<0.0001 then PF:=0 else
+  if (PH-PL)<0.05 then
+    PF:=20*(PH-PL)*(PH)*197*S*(P2-P1)/(1.13*ph-pl)
+  else
+    PF:=(PH)*197*S*SQRT((PL/PH)*(1-PL/PH));
 end;
 
 

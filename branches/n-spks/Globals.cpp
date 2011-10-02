@@ -81,7 +81,7 @@ TGround *Global::pGround=NULL;
 //char Global::CreatorName3[20]="Adam Bugiel <ABu>";
 //char Global::CreatorName4[30]="Arkadiusz Slusarczyk <Winger>";
 //char Global::CreatorName5[30]="Lukasz Kirchner <Nbmx>";
-char Global::szSceneryFile[256]="TD.scn";
+char Global::szSceneryFile[256]="td.scn";
 AnsiString Global::asCurrentSceneryPath="scenery/";
 AnsiString Global::asHumanCtrlVehicle="EU07-424";
 AnsiString Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath);
@@ -103,7 +103,7 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iMultiplayer=0; //blokada dzia³ania niektórych funkcji na rzecz kominikacji
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asVersion="Compilation 2011-08-16, release 1.3.230.221."; //tutaj, bo wysy³any
+AnsiString Global::asVersion="Compilation 2011-09-25, release 1.3.255.235."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 GLint Global::iMaxTextureSize=16384;//maksymalny rozmiar tekstury
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
@@ -126,6 +126,8 @@ bool Global::bActive=true; //czy jest aktywnym oknem
 int Global::iConvertModels=2; //tworzenie plików binarnych, 2-optymalizacja transformów
 int Global::iErorrCounter=0; //licznik sprawdzañ do œledzenia b³êdów OpenGL
 bool Global::bInactivePause=true; //automatyczna pauza, gdy okno nieaktywne
+int Global::iTextures=0; //licznik u¿ytych tekstur
+int Global::iSlowMotionMask=-1; //maska wy³¹czanych w³aœciwoœci
 
 /* Ra: trzeba by przerobiæ na cParser, ¿eby to dzia³a³o w scenerii
 void __fastcall Global::ParseConfig(TQueryParserComp *Parser)
@@ -310,6 +312,8 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
          iConvertModels=Parser->GetNextSymbol().ToIntDef(2); //domyœlnie 2
         else if (str==AnsiString("inactivepause")) //automatyczna pauza, gdy okno nieaktywne
          bInactivePause=(Parser->GetNextSymbol().LowerCase()==AnsiString("yes"));
+        else if (str==AnsiString("slowmotion")) //tworzenie plików binarnych
+         iSlowMotionMask=Parser->GetNextSymbol().ToIntDef(-1); //domyœlnie -1
     }
  //na koniec trochê zale¿noœci
  if (!bLoadTraction)

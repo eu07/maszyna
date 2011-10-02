@@ -101,6 +101,7 @@ TDynamicObject *Controlled=NULL; //pojazd, który prowadzimy
 
 bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 {
+ double time=(double)Now();
  Global::hWnd=NhWnd; //do WM_COPYDATA
  Global::detonatoryOK=true;
  WriteLog("--- MaSzyna ---"); //pierwsza linia jest gubiona
@@ -111,7 +112,7 @@ bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
  return false;
 #endif
  WriteLog("Online documentation and additional files on http://eu07.pl");
- WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx_EU, OLO_EU, Bart, Quark-t, ShaXbee, Oli_EU, youBy and others");
+ WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx_EU, OLO_EU, Bart, Quark-t, ShaXbee, Oli_EU, youBy, Ra and others");
  WriteLog("Renderer:");
  WriteLog( (char*) glGetString(GL_RENDERER));
  WriteLog("Vendor:");
@@ -552,11 +553,11 @@ bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
     //matrix4x4 ident2;
     //ident2.Identity();
 
-//  glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);  //{Texture blends with object background}
-  light= TTexturesManager::GetTextureID("smuga.tga");
-
-//    Camera.Reset();
-    ResetTimers();
+// glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);  //{Texture blends with object background}
+ light=TTexturesManager::GetTextureID("smuga.tga");
+// Camera.Reset();
+ ResetTimers();
+ WriteLog("Load time: "+AnsiString(0.1*floor(864000.0*((double)Now()-time)))+" seconds");
  return true;
 };
 
@@ -626,6 +627,7 @@ void __fastcall TWorld::OnKeyPress(int cKey)
    {case VK_F1: //czas i relacja
     case VK_F2: //parametry pojazdu
     case VK_F3:
+    case VK_F5: //tabelka ograniczen
     case VK_F8: //FPS
     case VK_F9: //wersja, typ wyœwietlania, b³êdy OpenGL
     case VK_F10:
@@ -709,10 +711,11 @@ bool __fastcall TWorld::Update()
   --iCheckFPS;
  else
  {//jak dosz³o do zera, to sprawdzamy wydajnoœæ
-  if ((GetFPS()<16)&&(Global::iSlowMotion<7)) 
+  if ((GetFPS()<16)&&(Global::iSlowMotion<7))
   {Global::iSlowMotion=(Global::iSlowMotion<<1)+1; //zapalenie kolejnego bitu
-   if (Global::iMultisampling) //a multisampling jest w³¹czony
-    glDisable(GL_MULTISAMPLE); //wy³¹czenie multisamplingu powinno poprawiæ FPS
+   if (Global::iSlowMotionMask&1)
+    if (Global::iMultisampling) //a multisampling jest w³¹czony
+     glDisable(GL_MULTISAMPLE); //wy³¹czenie multisamplingu powinno poprawiæ FPS
   }
   else if ((GetFPS()>25)&&Global::iSlowMotion)
   {//FPS siê zwiêkszy³, mo¿na w³¹czyæ bajery
@@ -922,7 +925,8 @@ bool __fastcall TWorld::Update()
   }
   else if (Global::iTextMode==-1)
   {//tu mozna dodac dopisywanie do logu przebiegu lokomotywy
-    return false;
+   WriteLog("Number of textures used: "+AnsiString(Global::iTextures));
+   return false;
   }
   Camera.Update(); //uwzglêdnienie ruchu wywo³anego klawiszami
  } //koniec bloku pomijanego przy nieaktywnym oknie
@@ -939,6 +943,12 @@ bool __fastcall TWorld::Update()
  //blablabla
  //Sleep(50);
  Ground.Update(dt,n); //ABu: zamiast 'n' bylo: 'Camera.Type==tp_Follow'
+ if (GetAsyncKeyState(VK_ESCAPE)<0)
+ {
+  Ground.Update(dt,n); //ABu: zamiast 'n' bylo: 'Camera.Type==tp_Follow'
+   Ground.Update(dt,n); //ABu: zamiast 'n' bylo: 'Camera.Type==tp_Follow'
+    Ground.Update(dt,n); //ABu: zamiast 'n' bylo: 'Camera.Type==tp_Follow'
+    }
  //Ground.Update(0.01,Camera.Type==tp_Follow);
  dt=GetDeltaTime();
  if (Camera.Type==tp_Follow)
@@ -1382,6 +1392,10 @@ bool __fastcall TWorld::Update()
        //OutText4+="Coupler 0: "+(tmp->PrevConnected?tmp->PrevConnected->GetName():AnsiString("NULL"))+" ("+AnsiString(tmp->MoverParameters->Couplers[0].CouplingFlag)+"), ";
        //OutText4+="Coupler 1: "+(tmp->NextConnected?tmp->NextConnected->GetName():AnsiString("NULL"))+" ("+AnsiString(tmp->MoverParameters->Couplers[1].CouplingFlag)+")";
        if (tmp->eSignLast) OutText4+="Control event: "+Bezogonkow(tmp->eSignLast->asName); //nazwa eventu semafora
+       if (tmp->Mechanik)
+        {
+         //OutText4+="  LPTI@A: "+IntToStr(tmp->Mechanik->LPTI)+"@"+IntToStr(tmp->Mechanik->LPTA);
+        }
       }
       else
       {
@@ -1391,6 +1405,36 @@ bool __fastcall TWorld::Update()
       //OutText3="enrot="+FloatToStrF(Controlled->MoverParameters->enrot,ffFixed,6,2);
       //OutText3="; n="+FloatToStrF(Controlled->MoverParameters->n,ffFixed,6,2);
      }
+    else if (Global::iTextMode==VK_F5)
+    {
+     TDynamicObject *tmp;
+     if (FreeFlyModeFlag)
+      tmp=Ground.DynamicNearest(Camera.Pos);
+     else
+      tmp=Controlled;
+
+     OutText1=OutText2=OutText3=OutText4="";
+     AnsiString flag[10]={"vmax", "tory", "smfr", "pjzd", "mnwr", "pstk", "brak", "brak", "brak", "brak"};
+     if(tmp)
+     if(tmp->Mechanik)
+     {
+/*
+      for(int i=0;i<15;i++)
+      {
+       int tmppar=floor(tmp->Mechanik->ProximityTable[i].Vel);
+       OutText2+=(tmppar<1000?(tmppar<100?((tmppar<10)&&(tmppar>=0)?"   ":"  "):" "):"")+IntToStr(tmppar)+" ";
+       tmppar=floor(tmp->Mechanik->ProximityTable[i].Dist);
+       OutText3+=(tmppar<1000?(tmppar<100?((tmppar<10)&&(tmppar>=0)?"   ":"  "):" "):"")+IntToStr(tmppar)+" ";
+       OutText1+=flag[tmp->Mechanik->ProximityTable[i].Flag]+" ";
+      }
+      for(int i=0;i<6;i++)
+      {
+       int tmppar=floor(tmp->Mechanik->ReducedTable[i]);
+       OutText4+=flag[i]+":"+(tmppar<1000?(tmppar<100?((tmppar<10)&&(tmppar>=0)?"   ":"  "):" "):"")+IntToStr(tmppar)+" ";
+      }
+*/
+     }
+    }
     else if (Global::iTextMode==VK_F10)
     {//tu mozna dodac dopisywanie do logu przebiegu lokomotywy
      //Global::iViewMode=VK_F10;
@@ -1779,6 +1823,9 @@ void __fastcall TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
   {
    case 0: //odes³anie identyfikatora wersji
     Ground.WyslijString(Global::asVersion,0); //przedsatwienie siê
+    break;
+   case 1: //odes³anie identyfikatora wersji
+    Ground.WyslijString(Global::szSceneryFile,1); //nazwa scenerii
     break;
    case 2: //event
     if (Global::iMultiplayer)

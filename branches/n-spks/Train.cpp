@@ -3113,17 +3113,17 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
           dsbDoorOpen= TSoundsManager::GetFromName(str.c_str());
          }
       }
-
     }
     else return false; //nie znalazl sekcji internal
-   if (!InitializeCab(DynamicObject->MoverParameters->ActiveCab,asFileName)) //zle zainicjowana kabina
-    return false;
-   else
-    {
-      if (DynamicObject->Controller==Humandriver)
-       DynamicObject->bDisplayCab= true;             //McZapkie-030303: mozliwosc wyswietlania kabiny, w przyszlosci dac opcje w mmd
-      return true;
-    }
+   delete Parser; //Ra: jak siê coœ newuje, to trzeba zdeletowaæ, inaczej syf siê robi
+ if (!InitializeCab(DynamicObject->MoverParameters->ActiveCab,asFileName)) //zle zainicjowana kabina
+  return false;
+ else
+ {
+  if (DynamicObject->Controller==Humandriver)
+   DynamicObject->bDisplayCab=true;             //McZapkie-030303: mozliwosc wyswietlania kabiny, w przyszlosci dac opcje w mmd
+  return true;
+ }
 }
 
 
@@ -3163,687 +3163,692 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     if (AnsiCompareStr(str,cabstr)==0)
     {
      Cabine[cabindex].Load(Parser);
-     str= Parser->GetNextSymbol().LowerCase();
+     str=Parser->GetNextSymbol().LowerCase();
      if (AnsiCompareStr(AnsiString("driver")+cabindex+AnsiString("pos:"),str)==0)     //pozycja poczatkowa maszynisty
-      {
-        pMechOffset.x=Parser->GetNextSymbol().ToDouble();
-        pMechOffset.y=Parser->GetNextSymbol().ToDouble();
-        pMechOffset.z=Parser->GetNextSymbol().ToDouble();
-        pMechSittingPosition.x=pMechOffset.x;
-        pMechSittingPosition.y=pMechOffset.y;
-        pMechSittingPosition.z=pMechOffset.z;
-      }
+     {
+      pMechOffset.x=Parser->GetNextSymbol().ToDouble();
+      pMechOffset.y=Parser->GetNextSymbol().ToDouble();
+      pMechOffset.z=Parser->GetNextSymbol().ToDouble();
+      pMechSittingPosition.x=pMechOffset.x;
+      pMechSittingPosition.y=pMechOffset.y;
+      pMechSittingPosition.z=pMechOffset.z;
+     }
      //ABu: pozycja siedzaca mechanika
      str= Parser->GetNextSymbol().LowerCase();
      if (AnsiCompareStr(AnsiString("driver")+cabindex+AnsiString("sitpos:"),str)==0)     //ABu 180404 pozycja siedzaca maszynisty
-      {
-        pMechSittingPosition.x=Parser->GetNextSymbol().ToDouble();
-        pMechSittingPosition.y=Parser->GetNextSymbol().ToDouble();
-        pMechSittingPosition.z=Parser->GetNextSymbol().ToDouble();
-        parse=true;
-      }
-      //else parse=false;
+     {
+      pMechSittingPosition.x=Parser->GetNextSymbol().ToDouble();
+      pMechSittingPosition.y=Parser->GetNextSymbol().ToDouble();
+      pMechSittingPosition.z=Parser->GetNextSymbol().ToDouble();
+      parse=true;
+     }
+     //else parse=false;
      while (!Parser->EndOfFile)
-      {
-        //ABu: wstawione warunki, wczesniej tylko to:
-        //   str= Parser->GetNextSymbol().LowerCase();
-        if (parse)
-           str= Parser->GetNextSymbol().LowerCase();
-        else
-           parse=true;
+     {
+      //ABu: wstawione warunki, wczesniej tylko to:
+      //   str= Parser->GetNextSymbol().LowerCase();
+      if (parse)
+       str=Parser->GetNextSymbol().LowerCase();
+      else
+       parse=true;
 
     //inicjacja kabiny
-        if (AnsiCompareStr(AnsiString("cab")+cabindex+AnsiString("model:"),str)==0)     //model kabiny
-        {
-         str= Parser->GetNextSymbol().LowerCase();
-         if (str!=AnsiString("none"))
-         {
-          str= DynamicObject->asBaseDir+str;
-          Global::asCurrentTexturePath=DynamicObject->asBaseDir;         //biezaca sciezka do tekstur to dynamic/...
-          DynamicObject->mdKabina=TModelsManager::GetModel(str.c_str(),true); //szukaj kabinê jako oddzielny model
-          Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath); //z powrotem defaultowa sciezka do tekstur
-         }
-         else
-          DynamicObject->mdKabina= DynamicObject->mdModel;   //McZapkie-170103: szukaj elementy kabiny w glownym modelu
-         ActiveUniversal4=false;
-         MainCtrlGauge.Clear();
-         MainCtrlActGauge.Clear();           
-         ScndCtrlGauge.Clear();
-         DirKeyGauge.Clear();
-         BrakeCtrlGauge.Clear();
-         LocalBrakeGauge.Clear();
-         BrakeProfileCtrlGauge.Clear();
-         MaxCurrentCtrlGauge.Clear();
-         MainOffButtonGauge.Clear();
-         MainOnButtonGauge.Clear();
-         SecurityResetButtonGauge.Clear();
-         ReleaserButtonGauge.Clear();
-         AntiSlipButtonGauge.Clear();
-         HornButtonGauge.Clear();
-         NextCurrentButtonGauge.Clear();
-         Universal1ButtonGauge.Clear();
-         Universal2ButtonGauge.Clear();
-         Universal3ButtonGauge.Clear();
-         Universal4ButtonGauge.Clear();
-         FuseButtonGauge.Clear();
-         StLinOffButtonGauge.Clear();
-         DoorLeftButtonGauge.Clear();
-         DoorRightButtonGauge.Clear();
-         DepartureSignalButtonGauge.Clear();
-         CompressorButtonGauge.Clear();
-         ConverterButtonGauge.Clear();
-         PantFrontButtonGauge.Clear();
-         PantRearButtonGauge.Clear();
-         PantFrontButtonOffGauge.Clear();
-         PantAllDownButtonGauge.Clear();
-         VelocityGauge.Clear();
-         I1Gauge.Clear();
-         I2Gauge.Clear();
-         I3Gauge.Clear();
-         ItotalGauge.Clear();
-         CylHamGauge.Clear();
-         PrzGlGauge.Clear();
-         ZbGlGauge.Clear();
-
-         VelocityGaugeB.Clear();
-         I1GaugeB.Clear();
-         I2GaugeB.Clear();
-         I3GaugeB.Clear();
-         ItotalGaugeB.Clear();
-         CylHamGaugeB.Clear();
-         PrzGlGaugeB.Clear();
-         ZbGlGaugeB.Clear();
-
-         I1BGauge.Clear();
-         I2BGauge.Clear();
-         I3BGauge.Clear();
-         ItotalBGauge.Clear();
-
-         ClockSInd.Clear();
-         ClockMInd.Clear();
-         ClockHInd.Clear();
-         EngineVoltage.Clear();
-         HVoltageGauge.Clear();
-         LVoltageGauge.Clear();
-         enrot1mGauge.Clear();
-         enrot2mGauge.Clear();
-         enrot3mGauge.Clear();
-         engageratioGauge.Clear();
-         maingearstatusGauge.Clear();
-         IgnitionKeyGauge.Clear();
-         btLampkaPoslizg.Clear();
-         btLampkaStyczn.Clear();
-         btLampkaNadmPrzetw.Clear();
-         btLampkaPrzekRozn.Clear();
-         btLampkaPrzekRoznPom.Clear();
-         btLampkaNadmSil.Clear();
-         btLampkaWylSzybki.Clear();
-         btLampkaNadmWent.Clear();
-         btLampkaNadmSpr.Clear();
-         btLampkaOpory.Clear();
-         btLampkaOpory.FeedbackBitSet(8);
-         btLampkaWysRozr.Clear();
-         btLampkaUniversal3.Clear();
-         btLampkaWentZaluzje.Clear();
-         btLampkaOgrzewanieSkladu.Clear();
-         btLampkaSHP.Clear();
-         btLampkaSHP.FeedbackBitSet(0);
-         btLampkaCzuwaka.Clear();
-         btLampkaCzuwaka.FeedbackBitSet(1);
-         btLampkaDoorLeft.Clear();
-         btLampkaDoorRight.Clear();
-         btLampkaDepartureSignal.Clear();
-         btLampkaRezerwa.Clear();
-         btLampkaBocznikI.Clear();
-         btLampkaBocznikII.Clear();
-         btLampkaRadiotelefon.Clear();
-         btLampkaHamienie.Clear();
-         btLampkaSprezarka.Clear();
-         btLampkaSprezarkaB.Clear();
-         btLampkaNapNastHam.Clear();
-         btLampkaJazda.Clear();
-         btLampkaStycznB.Clear();
-         btLampkaNadmPrzetwB.Clear();
-         btLampkaWylSzybkiB.Clear();
-         LeftLightButtonGauge.Clear();
-         RightLightButtonGauge.Clear();
-         UpperLightButtonGauge.Clear();
-         LeftEndLightButtonGauge.Clear();
-         RightEndLightButtonGauge.Clear();
-        }
-        else
-    //SEKCJA REGULATOROW
-        if (str==AnsiString("mainctrl:"))                    //nastawnik
-         {
-           if (!DynamicObject->mdKabina)
-            {
-             Error("Cab not initialised!");
-            }
-           else
-            {
-             MainCtrlGauge.Load(Parser,DynamicObject->mdKabina);
-            }
-         }
-        else
-        if (str==AnsiString("mainctrlact:"))                 //zabek pozycji aktualnej
-         {
-           MainCtrlActGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-
-        if (str==AnsiString("scndctrl:"))                    //bocznik
-         {
-           ScndCtrlGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("dirkey:"))                    //klucz kierunku
-         {
-           DirKeyGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("brakectrl:"))                    //hamulec zasadniczy
-         {
-           BrakeCtrlGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("localbrake:"))                    //hamulec pomocniczy
-         {
-           LocalBrakeGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-//sekcja przelacznikow obrotowych
-        if (str==AnsiString("brakeprofile_sw:"))                    //przelacznik tow/osob
-         {
-           BrakeProfileCtrlGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("maxcurrent_sw:"))                    //przelacznik rozruchu
-         {
-           MaxCurrentCtrlGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-    //SEKCJA przyciskow sprezynujacych
-        if (str==AnsiString("main_off_bt:"))                    //przycisk wylaczajacy (w EU07 wyl szybki czerwony)
-         {
-           MainOffButtonGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("main_on_bt:"))                    //przycisk wlaczajacy (w EU07 wyl szybki zielony)
-         {
-           MainOnButtonGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("security_reset_bt:"))             //przycisk zbijajacy SHP/czuwak
-         {
-           SecurityResetButtonGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("releaser_bt:"))                   //przycisk odluzniacza
-         {
-           ReleaserButtonGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("antislip_bt:"))                   //przycisk antyposlizgowy
-         {
-           AntiSlipButtonGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("horn_bt:"))                       //dzwignia syreny
-         {
-           HornButtonGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("fuse_bt:"))                       //bezp. nadmiarowy
-         {
-           FuseButtonGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("stlinoff_bt:"))                       //st. liniowe
-         {
-           StLinOffButtonGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("door_left_sw:"))                       //drzwi lewe
-         {
-           DoorLeftButtonGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("door_right_sw:"))                       //drzwi prawe
-         {
-           DoorRightButtonGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("departure_signal_bt:"))                       //sygnal odjazdu
-         {
-           DepartureSignalButtonGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("upperlight_sw:"))                       //swiatlo
-         {
-           UpperLightButtonGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("leftlight_sw:"))                       //swiatlo
-         {
-           LeftLightButtonGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("rightlight_sw:"))                       //swiatlo
-         {
-           RightLightButtonGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("leftend_sw:"))                       //swiatlo
-         {
-           LeftEndLightButtonGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("rightend_sw:"))                       //swiatlo
-         {
-           RightEndLightButtonGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("compressor_sw:"))                       //sprezarka
-         {
-           CompressorButtonGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("converter_sw:"))                       //przetwornica
-         {
-           ConverterButtonGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("converteroff_sw:"))                       //przetwornica wyl
-         {
-           ConverterOffButtonGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("main_sw:"))                       //wyl szybki (ezt)
-         {
-           MainButtonGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("radio_sw:"))                       //radio
-         {
-           RadioButtonGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("pantfront_sw:"))                       //patyk przedni
-         {
-           PantFrontButtonGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("pantrear_sw:"))                       //patyk tylni
-         {
-           PantRearButtonGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("pantfrontoff_sw:"))                       //patyk przedni w dol
-         {
-           PantFrontButtonOffGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("pantalloff_sw:"))                       //patyk przedni w dol
-         {
-           PantAllDownButtonGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        if (str==AnsiString("trainheating_sw:"))                       //grzanie skladu
-         {
-           TrainHeatingButtonGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("nextcurrent_sw:"))                       //grzanie skladu
-         {
-           NextCurrentButtonGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        //ABu 090305: uniwersalne przyciski lub inne rzeczy
-        if (str==AnsiString("universal1:"))
-         {
-           Universal1ButtonGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("universal2:"))
-         {
-           Universal2ButtonGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("universal3:"))
-         {
-           Universal3ButtonGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("universal4:"))
-         {
-           Universal4ButtonGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-//SEKCJA WSKAZNIKOW
-        if (str==AnsiString("tachometer:"))                    //predkosciomierz
-         {
-           VelocityGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("hvcurrent1:"))                    //1szy amperomierz
-         {
-            I1Gauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("hvcurrent2:"))                    //2gi amperomierz
-         {
-            I2Gauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("hvcurrent3:"))                    //3ci amperomierz
-         {
-            I3Gauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("hvcurrent:"))                     //amperomierz calkowitego pradu
-         {
-            ItotalGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("brakepress:"))                    //manometr cylindrow hamulcowych
-         {
-            CylHamGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("pipepress:"))                    //manometr przewodu hamulcowego
-         {
-            PrzGlGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("compressor:"))                    //manometr sprezarki/zbiornika glownego
-         {
-            ZbGlGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        //*************************************************************
-        //Sekcja zdublowanych wskaznikow dla dwustronnych kabin
-        if (str==AnsiString("tachometerb:"))                    //predkosciomierz
-         {
-           VelocityGaugeB.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("hvcurrent1b:"))                    //1szy amperomierz
-         {
-            I1GaugeB.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("hvcurrent2b:"))                    //2gi amperomierz
-         {
-            I2GaugeB.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("hvcurrent3b:"))                    //3ci amperomierz
-         {
-            I3GaugeB.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("hvcurrentb:"))                     //amperomierz calkowitego pradu
-         {
-            ItotalGaugeB.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("brakepressb:"))                    //manometr cylindrow hamulcowych
-         {
-            CylHamGaugeB.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("pipepressb:"))                    //manometr przewodu hamulcowego
-         {
-            PrzGlGaugeB.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("compressorb:"))                    //manometr sprezarki/zbiornika glownego
-         {
-            ZbGlGaugeB.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        //*************************************************************
-        //yB - dla drugiej sekcji
-        if (str==AnsiString("hvbcurrent1:"))                    //1szy amperomierz
-         {
-            I1BGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("hvbcurrent2:"))                    //2gi amperomierz
-         {
-            I2BGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("hvbcurrent3:"))                    //3ci amperomierz
-         {
-            I3BGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("hvbcurrent:"))                     //amperomierz calkowitego pradu
-         {
-            ItotalBGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        //*************************************************************
-        if (str==AnsiString("clock:"))                    //manometr sprezarki/zbiornika glownego
-         {
-          if (Parser->GetNextSymbol()==AnsiString("analog"))
-           {
-            //McZapkie-300302: zegarek
-            ClockSInd.Init(DynamicObject->mdKabina->GetFromName("ClockShand"),gt_Rotate,0.016666667,0,0);
-            ClockMInd.Init(DynamicObject->mdKabina->GetFromName("ClockMhand"),gt_Rotate,0.016666667,0,0);
-            ClockHInd.Init(DynamicObject->mdKabina->GetFromName("ClockHhand"),gt_Rotate,0.083333333,0,0);
-           }
-         }
-        else
-        if (str==AnsiString("evoltage:"))                    //woltomierz napiecia silnikow
-         {
-            EngineVoltage.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("hvoltage:"))                    //woltomierz wysokiego napiecia
-         {
-            HVoltageGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("lvoltage:"))                    //woltomierz niskiego napiecia
-         {
-            LVoltageGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("enrot1m:"))                    //obrotomierz
-         {
-            enrot1mGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("enrot2m:"))
-         {
-            enrot2mGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("enrot3m:"))
-         {
-            enrot3mGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("engageratio:"))   //np. cisnienie sterownika przegla
-         {
-            engageratioGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("maingearstatus:"))   //np. cisnienie sterownika skrzyni biegow
-         {
-            maingearstatusGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("ignitionkey:"))   //np. cisnienie sterownika skrzyni biegow
-         {
-            IgnitionKeyGauge.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-//SEKCJA LAMPEK
-        if (str==AnsiString("i-slippery:"))
-        {
-           btLampkaPoslizg.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("i-contactors:"))
-         {
-           btLampkaStyczn.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("i-conv_ovld:"))
-         {
-           btLampkaNadmPrzetw.Load(Parser,DynamicObject->mdKabina);
-         }
-       else
-        if (str==AnsiString("i-diff_relay:"))
-         {
-           btLampkaPrzekRozn.Load(Parser,DynamicObject->mdKabina);
-         }
-       else
-        if (str==AnsiString("i-diff_relay2:"))
-         {
-           btLampkaPrzekRoznPom.Load(Parser,DynamicObject->mdKabina);
-         }
-       else
-        if (str==AnsiString("i-motor_ovld:"))
-         {
-           btLampkaNadmSil.Load(Parser,DynamicObject->mdKabina);
-         }
-       else
-        if (str==AnsiString("i-mainbreaker:"))
-         {
-           btLampkaWylSzybki.Load(Parser,DynamicObject->mdKabina);
-         }
-       else
-        if (str==AnsiString("i-vent_ovld:"))
-         {
-           btLampkaNadmWent.Load(Parser,DynamicObject->mdKabina);
-         }
-       else
-        if (str==AnsiString("i-comp_ovld:"))
-         {
-           btLampkaNadmSpr.Load(Parser,DynamicObject->mdKabina);
-         }
-       else
-        if (str==AnsiString("i-resistors:"))
-         {
-           btLampkaOpory.Load(Parser,DynamicObject->mdKabina);
-         }
-       else
-        if (str==AnsiString("i-highcurrent:"))
-         {
-           btLampkaWysRozr.Load(Parser,DynamicObject->mdKabina);
-         }
-       else
-        if (str==AnsiString("i-universal3:"))
-         {
-           btLampkaUniversal3.Load(Parser,DynamicObject->mdKabina);
-           LampkaUniversal3_typ=0;
-         }
-       else
-       if (str==AnsiString("i-universal3_M:"))
-         {
-           btLampkaUniversal3.Load(Parser,DynamicObject->mdKabina);
-           LampkaUniversal3_typ=1;
-         }
-       else
-       if (str==AnsiString("i-universal3_C:"))
-         {
-           btLampkaUniversal3.Load(Parser,DynamicObject->mdKabina);
-           LampkaUniversal3_typ=2;
-         }
-       else
-        if (str==AnsiString("i-vent_trim:"))
-         {
-           btLampkaWentZaluzje.Load(Parser,DynamicObject->mdKabina);
-         }
-       else
-        if (str==AnsiString("i-trainheating:"))
-         {
-           btLampkaOgrzewanieSkladu.Load(Parser,DynamicObject->mdKabina);
-         }
-       else
-        if (str==AnsiString("i-security_aware:"))
-         {
-           btLampkaCzuwaka.Load(Parser,DynamicObject->mdKabina);
-         }
-       else
-        if (str==AnsiString("i-security_cabsignal:"))
-         {
-           btLampkaSHP.Load(Parser,DynamicObject->mdKabina);
-         }
-       else
-        if (str==AnsiString("i-door_left:"))
-         {
-           btLampkaDoorLeft.Load(Parser,DynamicObject->mdKabina);
-         }
-       else
-        if (str==AnsiString("i-door_right:"))
-         {
-           btLampkaDoorRight.Load(Parser,DynamicObject->mdKabina);
-         }
-       else
-        if (str==AnsiString("i-departure_signal:"))
-         {
-           btLampkaDepartureSignal.Load(Parser,DynamicObject->mdKabina);
-         }
-       else
-        if (str==AnsiString("i-reserve:"))
-         {
-           btLampkaRezerwa.Load(Parser,DynamicObject->mdKabina);
-         }
-       else
-        if (str==AnsiString("i-scnd1:"))
-         {
-           btLampkaBocznikI.Load(Parser,DynamicObject->mdKabina);
-         }
-       else
-        if (str==AnsiString("i-scnd2:"))
-         {
-           btLampkaBocznikII.Load(Parser,DynamicObject->mdKabina);
-         }
-       else
-        if (str==AnsiString("i-braking:"))
-         {
-           btLampkaHamienie.Load(Parser,DynamicObject->mdKabina);
-         }
-       else
-        if (str==AnsiString("i-compressor:"))
-         {
-           btLampkaSprezarka.Load(Parser,DynamicObject->mdKabina);
-         }
-        if (str==AnsiString("i-compressorb:"))
-         {
-           btLampkaSprezarkaB.Load(Parser,DynamicObject->mdKabina);
-         }
-       else
-        if (str==AnsiString("i-voltbrake:"))
-         {
-           btLampkaNapNastHam.Load(Parser,DynamicObject->mdKabina);
-         }
-
-        if (str==AnsiString("i-mainbreakerb:"))
-         {
-           btLampkaWylSzybkiB.Load(Parser,DynamicObject->mdKabina);
-         }
-       else
-        if (str==AnsiString("i-resistorsb:"))
-         {
-           btLampkaOporyB.Load(Parser,DynamicObject->mdKabina);
-         }
-       else
-        if (str==AnsiString("i-contactorsb:"))
-         {
-           btLampkaStycznB.Load(Parser,DynamicObject->mdKabina);
-         }
-        else
-        if (str==AnsiString("i-conv_ovldb:"))
-         {
-           btLampkaNadmPrzetwB.Load(Parser,DynamicObject->mdKabina);
-         }
-//    btLampkaUnknown.Init("unknown",mdKabina,false);
+      if (AnsiCompareStr(AnsiString("cab")+cabindex+AnsiString("model:"),str)==0)     //model kabiny
+      {
+       str= Parser->GetNextSymbol().LowerCase();
+       if (str!=AnsiString("none"))
+       {
+        str= DynamicObject->asBaseDir+str;
+        Global::asCurrentTexturePath=DynamicObject->asBaseDir;         //biezaca sciezka do tekstur to dynamic/...
+        DynamicObject->mdKabina=TModelsManager::GetModel(str.c_str(),true); //szukaj kabinê jako oddzielny model
+        Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath); //z powrotem defaultowa sciezka do tekstur
        }
+       else
+        DynamicObject->mdKabina=DynamicObject->mdModel;   //McZapkie-170103: szukaj elementy kabiny w glownym modelu
+       ActiveUniversal4=false;
+       MainCtrlGauge.Clear();
+       MainCtrlActGauge.Clear();
+       ScndCtrlGauge.Clear();
+       DirKeyGauge.Clear();
+       BrakeCtrlGauge.Clear();
+       LocalBrakeGauge.Clear();
+       BrakeProfileCtrlGauge.Clear();
+       MaxCurrentCtrlGauge.Clear();
+       MainOffButtonGauge.Clear();
+       MainOnButtonGauge.Clear();
+       SecurityResetButtonGauge.Clear();
+       ReleaserButtonGauge.Clear();
+       AntiSlipButtonGauge.Clear();
+       HornButtonGauge.Clear();
+       NextCurrentButtonGauge.Clear();
+       Universal1ButtonGauge.Clear();
+       Universal2ButtonGauge.Clear();
+       Universal3ButtonGauge.Clear();
+       Universal4ButtonGauge.Clear();
+       FuseButtonGauge.Clear();
+       StLinOffButtonGauge.Clear();
+       DoorLeftButtonGauge.Clear();
+       DoorRightButtonGauge.Clear();
+       DepartureSignalButtonGauge.Clear();
+       CompressorButtonGauge.Clear();
+       ConverterButtonGauge.Clear();
+       PantFrontButtonGauge.Clear();
+       PantRearButtonGauge.Clear();
+       PantFrontButtonOffGauge.Clear();
+       PantAllDownButtonGauge.Clear();
+       VelocityGauge.Clear();
+       I1Gauge.Clear();
+       I2Gauge.Clear();
+       I3Gauge.Clear();
+       ItotalGauge.Clear();
+       CylHamGauge.Clear();
+       PrzGlGauge.Clear();
+       ZbGlGauge.Clear();
+
+       VelocityGaugeB.Clear();
+       I1GaugeB.Clear();
+       I2GaugeB.Clear();
+       I3GaugeB.Clear();
+       ItotalGaugeB.Clear();
+       CylHamGaugeB.Clear();
+       PrzGlGaugeB.Clear();
+       ZbGlGaugeB.Clear();
+
+       I1BGauge.Clear();
+       I2BGauge.Clear();
+       I3BGauge.Clear();
+       ItotalBGauge.Clear();
+
+       ClockSInd.Clear();
+       ClockMInd.Clear();
+       ClockHInd.Clear();
+       EngineVoltage.Clear();
+       HVoltageGauge.Clear();
+       LVoltageGauge.Clear();
+       enrot1mGauge.Clear();
+       enrot2mGauge.Clear();
+       enrot3mGauge.Clear();
+       engageratioGauge.Clear();
+       maingearstatusGauge.Clear();
+       IgnitionKeyGauge.Clear();
+       btLampkaPoslizg.Clear();
+       btLampkaStyczn.Clear();
+       btLampkaNadmPrzetw.Clear();
+       btLampkaPrzekRozn.Clear();
+       btLampkaPrzekRoznPom.Clear();
+       btLampkaNadmSil.Clear();
+       btLampkaWylSzybki.Clear();
+       btLampkaNadmWent.Clear();
+       btLampkaNadmSpr.Clear();
+       btLampkaOpory.Clear();
+       btLampkaOpory.FeedbackBitSet(8);
+       btLampkaWysRozr.Clear();
+       btLampkaUniversal3.Clear();
+       btLampkaWentZaluzje.Clear();
+       btLampkaOgrzewanieSkladu.Clear();
+       btLampkaSHP.Clear();
+       btLampkaSHP.FeedbackBitSet(0);
+       btLampkaCzuwaka.Clear();
+       btLampkaCzuwaka.FeedbackBitSet(1);
+       btLampkaDoorLeft.Clear();
+       btLampkaDoorRight.Clear();
+       btLampkaDepartureSignal.Clear();
+       btLampkaRezerwa.Clear();
+       btLampkaBocznikI.Clear();
+       btLampkaBocznikII.Clear();
+       btLampkaRadiotelefon.Clear();
+       btLampkaHamienie.Clear();
+       btLampkaSprezarka.Clear();
+       btLampkaSprezarkaB.Clear();
+       btLampkaNapNastHam.Clear();
+       btLampkaJazda.Clear();
+       btLampkaStycznB.Clear();
+       btLampkaNadmPrzetwB.Clear();
+       btLampkaWylSzybkiB.Clear();
+       LeftLightButtonGauge.Clear();
+       RightLightButtonGauge.Clear();
+       UpperLightButtonGauge.Clear();
+       LeftEndLightButtonGauge.Clear();
+       RightEndLightButtonGauge.Clear();
+      }
+      else
+    //SEKCJA REGULATOROW
+      if (str==AnsiString("mainctrl:"))                    //nastawnik
+       {
+         if (!DynamicObject->mdKabina)
+          {
+           Error("Cab not initialised!");
+          }
+         else
+          {
+           MainCtrlGauge.Load(Parser,DynamicObject->mdKabina);
+          }
+       }
+      else
+      if (str==AnsiString("mainctrlact:"))                 //zabek pozycji aktualnej
+       {
+         MainCtrlActGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+
+      if (str==AnsiString("scndctrl:"))                    //bocznik
+       {
+         ScndCtrlGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("dirkey:"))                    //klucz kierunku
+       {
+         DirKeyGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("brakectrl:"))                    //hamulec zasadniczy
+       {
+         BrakeCtrlGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("localbrake:"))                    //hamulec pomocniczy
+       {
+         LocalBrakeGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+//sekcja przelacznikow obrotowych
+      if (str==AnsiString("brakeprofile_sw:"))                    //przelacznik tow/osob
+       {
+         BrakeProfileCtrlGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("maxcurrent_sw:"))                    //przelacznik rozruchu
+       {
+         MaxCurrentCtrlGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+    //SEKCJA przyciskow sprezynujacych
+      if (str==AnsiString("main_off_bt:"))                    //przycisk wylaczajacy (w EU07 wyl szybki czerwony)
+       {
+         MainOffButtonGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("main_on_bt:"))                    //przycisk wlaczajacy (w EU07 wyl szybki zielony)
+       {
+         MainOnButtonGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("security_reset_bt:"))             //przycisk zbijajacy SHP/czuwak
+       {
+         SecurityResetButtonGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("releaser_bt:"))                   //przycisk odluzniacza
+       {
+         ReleaserButtonGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("releaser_bt:"))                   //przycisk odluzniacza
+       {
+         ReleaserButtonGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("antislip_bt:"))                   //przycisk antyposlizgowy
+       {
+         AntiSlipButtonGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("horn_bt:"))                       //dzwignia syreny
+       {
+         HornButtonGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("fuse_bt:"))                       //bezp. nadmiarowy
+       {
+         FuseButtonGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("stlinoff_bt:"))                       //st. liniowe
+       {
+         StLinOffButtonGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("door_left_sw:"))                       //drzwi lewe
+       {
+         DoorLeftButtonGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("door_right_sw:"))                       //drzwi prawe
+       {
+         DoorRightButtonGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("departure_signal_bt:"))                       //sygnal odjazdu
+       {
+         DepartureSignalButtonGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("upperlight_sw:"))                       //swiatlo
+       {
+         UpperLightButtonGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("leftlight_sw:"))                       //swiatlo
+       {
+         LeftLightButtonGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("rightlight_sw:"))                       //swiatlo
+       {
+         RightLightButtonGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("leftend_sw:"))                       //swiatlo
+       {
+         LeftEndLightButtonGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("rightend_sw:"))                       //swiatlo
+       {
+         RightEndLightButtonGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("compressor_sw:"))                       //sprezarka
+       {
+         CompressorButtonGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("converter_sw:"))                       //przetwornica
+       {
+         ConverterButtonGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("converteroff_sw:"))                       //przetwornica wyl
+       {
+         ConverterOffButtonGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("main_sw:"))                       //wyl szybki (ezt)
+       {
+         MainButtonGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("radio_sw:"))                       //radio
+       {
+         RadioButtonGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("pantfront_sw:"))                       //patyk przedni
+       {
+         PantFrontButtonGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("pantrear_sw:"))                       //patyk tylni
+       {
+         PantRearButtonGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("pantfrontoff_sw:"))                       //patyk przedni w dol
+       {
+         PantFrontButtonOffGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("pantalloff_sw:"))                       //patyk przedni w dol
+       {
+         PantAllDownButtonGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      if (str==AnsiString("trainheating_sw:"))                       //grzanie skladu
+       {
+         TrainHeatingButtonGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("nextcurrent_sw:"))                       //grzanie skladu
+       {
+         NextCurrentButtonGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      //ABu 090305: uniwersalne przyciski lub inne rzeczy
+      if (str==AnsiString("universal1:"))
+       {
+         Universal1ButtonGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("universal2:"))
+       {
+         Universal2ButtonGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("universal3:"))
+       {
+         Universal3ButtonGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("universal4:"))
+       {
+         Universal4ButtonGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+//SEKCJA WSKAZNIKOW
+      if (str==AnsiString("tachometer:"))                    //predkosciomierz
+       {
+         VelocityGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("hvcurrent1:"))                    //1szy amperomierz
+       {
+          I1Gauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("hvcurrent2:"))                    //2gi amperomierz
+       {
+          I2Gauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("hvcurrent3:"))                    //3ci amperomierz
+       {
+          I3Gauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("hvcurrent:"))                     //amperomierz calkowitego pradu
+       {
+          ItotalGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("brakepress:"))                    //manometr cylindrow hamulcowych
+       {
+          CylHamGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("pipepress:"))                    //manometr przewodu hamulcowego
+       {
+          PrzGlGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("compressor:"))                    //manometr sprezarki/zbiornika glownego
+       {
+          ZbGlGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      //*************************************************************
+      //Sekcja zdublowanych wskaznikow dla dwustronnych kabin
+      if (str==AnsiString("tachometerb:"))                    //predkosciomierz
+       {
+         VelocityGaugeB.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("hvcurrent1b:"))                    //1szy amperomierz
+       {
+          I1GaugeB.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("hvcurrent2b:"))                    //2gi amperomierz
+       {
+          I2GaugeB.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("hvcurrent3b:"))                    //3ci amperomierz
+       {
+          I3GaugeB.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("hvcurrentb:"))                     //amperomierz calkowitego pradu
+       {
+          ItotalGaugeB.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("brakepressb:"))                    //manometr cylindrow hamulcowych
+       {
+          CylHamGaugeB.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("pipepressb:"))                    //manometr przewodu hamulcowego
+       {
+          PrzGlGaugeB.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("compressorb:"))                    //manometr sprezarki/zbiornika glownego
+       {
+          ZbGlGaugeB.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      //*************************************************************
+      //yB - dla drugiej sekcji
+      if (str==AnsiString("hvbcurrent1:"))                    //1szy amperomierz
+       {
+          I1BGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("hvbcurrent2:"))                    //2gi amperomierz
+       {
+          I2BGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("hvbcurrent3:"))                    //3ci amperomierz
+       {
+          I3BGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("hvbcurrent:"))                     //amperomierz calkowitego pradu
+       {
+          ItotalBGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      //*************************************************************
+      if (str==AnsiString("clock:"))                    //manometr sprezarki/zbiornika glownego
+       {
+        if (Parser->GetNextSymbol()==AnsiString("analog"))
+         {
+          //McZapkie-300302: zegarek
+          ClockSInd.Init(DynamicObject->mdKabina->GetFromName("ClockShand"),gt_Rotate,0.016666667,0,0);
+          ClockMInd.Init(DynamicObject->mdKabina->GetFromName("ClockMhand"),gt_Rotate,0.016666667,0,0);
+          ClockHInd.Init(DynamicObject->mdKabina->GetFromName("ClockHhand"),gt_Rotate,0.083333333,0,0);
+         }
+       }
+      else
+      if (str==AnsiString("evoltage:"))                    //woltomierz napiecia silnikow
+       {
+          EngineVoltage.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("hvoltage:"))                    //woltomierz wysokiego napiecia
+       {
+          HVoltageGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("lvoltage:"))                    //woltomierz niskiego napiecia
+       {
+          LVoltageGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("enrot1m:"))                    //obrotomierz
+       {
+          enrot1mGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("enrot2m:"))
+       {
+          enrot2mGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("enrot3m:"))
+       {
+          enrot3mGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("engageratio:"))   //np. cisnienie sterownika przegla
+       {
+          engageratioGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("maingearstatus:"))   //np. cisnienie sterownika skrzyni biegow
+       {
+          maingearstatusGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("ignitionkey:"))   //np. cisnienie sterownika skrzyni biegow
+       {
+          IgnitionKeyGauge.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+//SEKCJA LAMPEK
+      if (str==AnsiString("i-slippery:"))
+      {
+         btLampkaPoslizg.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("i-contactors:"))
+       {
+         btLampkaStyczn.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("i-conv_ovld:"))
+       {
+         btLampkaNadmPrzetw.Load(Parser,DynamicObject->mdKabina);
+       }
+     else
+      if (str==AnsiString("i-diff_relay:"))
+       {
+         btLampkaPrzekRozn.Load(Parser,DynamicObject->mdKabina);
+       }
+     else
+      if (str==AnsiString("i-diff_relay2:"))
+       {
+         btLampkaPrzekRoznPom.Load(Parser,DynamicObject->mdKabina);
+       }
+     else
+      if (str==AnsiString("i-motor_ovld:"))
+       {
+         btLampkaNadmSil.Load(Parser,DynamicObject->mdKabina);
+       }
+     else
+      if (str==AnsiString("i-mainbreaker:"))
+       {
+         btLampkaWylSzybki.Load(Parser,DynamicObject->mdKabina);
+       }
+     else
+      if (str==AnsiString("i-vent_ovld:"))
+       {
+         btLampkaNadmWent.Load(Parser,DynamicObject->mdKabina);
+       }
+     else
+      if (str==AnsiString("i-comp_ovld:"))
+       {
+         btLampkaNadmSpr.Load(Parser,DynamicObject->mdKabina);
+       }
+     else
+      if (str==AnsiString("i-resistors:"))
+       {
+         btLampkaOpory.Load(Parser,DynamicObject->mdKabina);
+       }
+     else
+      if (str==AnsiString("i-highcurrent:"))
+       {
+         btLampkaWysRozr.Load(Parser,DynamicObject->mdKabina);
+       }
+     else
+      if (str==AnsiString("i-universal3:"))
+       {
+         btLampkaUniversal3.Load(Parser,DynamicObject->mdKabina);
+         LampkaUniversal3_typ=0;
+       }
+     else
+     if (str==AnsiString("i-universal3_M:"))
+       {
+         btLampkaUniversal3.Load(Parser,DynamicObject->mdKabina);
+         LampkaUniversal3_typ=1;
+       }
+     else
+     if (str==AnsiString("i-universal3_C:"))
+       {
+         btLampkaUniversal3.Load(Parser,DynamicObject->mdKabina);
+         LampkaUniversal3_typ=2;
+       }
+     else
+      if (str==AnsiString("i-vent_trim:"))
+       {
+         btLampkaWentZaluzje.Load(Parser,DynamicObject->mdKabina);
+       }
+     else
+      if (str==AnsiString("i-trainheating:"))
+       {
+         btLampkaOgrzewanieSkladu.Load(Parser,DynamicObject->mdKabina);
+       }
+     else
+      if (str==AnsiString("i-security_aware:"))
+       {
+         btLampkaCzuwaka.Load(Parser,DynamicObject->mdKabina);
+       }
+     else
+      if (str==AnsiString("i-security_cabsignal:"))
+       {
+         btLampkaSHP.Load(Parser,DynamicObject->mdKabina);
+       }
+     else
+      if (str==AnsiString("i-door_left:"))
+       {
+         btLampkaDoorLeft.Load(Parser,DynamicObject->mdKabina);
+       }
+     else
+      if (str==AnsiString("i-door_right:"))
+       {
+         btLampkaDoorRight.Load(Parser,DynamicObject->mdKabina);
+       }
+     else
+      if (str==AnsiString("i-departure_signal:"))
+       {
+         btLampkaDepartureSignal.Load(Parser,DynamicObject->mdKabina);
+       }
+     else
+      if (str==AnsiString("i-reserve:"))
+       {
+         btLampkaRezerwa.Load(Parser,DynamicObject->mdKabina);
+       }
+     else
+      if (str==AnsiString("i-scnd1:"))
+       {
+         btLampkaBocznikI.Load(Parser,DynamicObject->mdKabina);
+       }
+     else
+      if (str==AnsiString("i-scnd2:"))
+       {
+         btLampkaBocznikII.Load(Parser,DynamicObject->mdKabina);
+       }
+     else
+      if (str==AnsiString("i-braking:"))
+       {
+         btLampkaHamienie.Load(Parser,DynamicObject->mdKabina);
+       }
+     else
+      if (str==AnsiString("i-compressor:"))
+       {
+         btLampkaSprezarka.Load(Parser,DynamicObject->mdKabina);
+       }
+      if (str==AnsiString("i-compressorb:"))
+       {
+         btLampkaSprezarkaB.Load(Parser,DynamicObject->mdKabina);
+       }
+     else
+      if (str==AnsiString("i-voltbrake:"))
+       {
+         btLampkaNapNastHam.Load(Parser,DynamicObject->mdKabina);
+       }
+
+      if (str==AnsiString("i-mainbreakerb:"))
+       {
+         btLampkaWylSzybkiB.Load(Parser,DynamicObject->mdKabina);
+       }
+     else
+      if (str==AnsiString("i-resistorsb:"))
+       {
+         btLampkaOporyB.Load(Parser,DynamicObject->mdKabina);
+       }
+     else
+      if (str==AnsiString("i-contactorsb:"))
+       {
+         btLampkaStycznB.Load(Parser,DynamicObject->mdKabina);
+       }
+      else
+      if (str==AnsiString("i-conv_ovldb:"))
+       {
+         btLampkaNadmPrzetwB.Load(Parser,DynamicObject->mdKabina);
+       }
+//  btLampkaUnknown.Init("unknown",mdKabina,false);
+     }
     }
  else return false;
  //ABu 050205: tego wczesniej nie bylo:

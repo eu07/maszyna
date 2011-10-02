@@ -119,7 +119,7 @@ Type
                   DriverFailCount: integer;
                   Need_TryAgain, Need_BrakeRelease: boolean;
                   MinProximityDist, MaxProximityDist: real;
-									bCheckSKP: boolean; 
+ 		  bCheckSKP: boolean;
 {funkcje}
                   procedure SetDriverPsyche;
                   function PrepareEngine: boolean;
@@ -146,6 +146,7 @@ Type
                   constructor Init(LocInitial:TLocation; RotInitial:TRotation;
                                    AI:boolean; NewControll:PMoverParameters; NewTrainSet:PTRainParameters; InitPsyche:boolean);
                   function OrderCurrent:string;
+                  procedure WaitingSet(Seconds:real);
 private
  VehicleName:string;
  VelMargin:real;
@@ -221,15 +222,22 @@ begin
      IncBrake;
     if ActiveDir=testd then
      VelforDriver:=-1;
-     if (ActiveDir<>0) and (TrainType=dt_EZT) then Imin:=IminHi;
+    if (ActiveDir>0) and (TrainType=dt_EZT)
+    then DirectionForward; //Ra: z przekazaniem do silnikowego
    end;
   OrderDirectionChange:=Round(VelforDriver);
+end;
+
+procedure TController.WaitingSet(Seconds:real);
+//ustawienie odczekania
+begin
+ WaitingTime:=-Seconds;
 end;
 
 procedure TController.SetVelocity(NewVel,NewVelNext:real);
 //ustawienie nowej prêdkoœci
 begin
- WaitingTime:=-WaitingExpireTime; //no albo przypisujemy -WaitingExpireTime, albo porównujemy z WaitingExpireTime 
+ WaitingTime:=-WaitingExpireTime; //no albo przypisujemy -WaitingExpireTime, albo porównujemy z WaitingExpireTime
  MaxVelFlag:=False; MinVelFlag:=False;
  VelActual:=NewVel;   //prêdkoœæ do której d¹¿y
  VelNext:=NewVelNext; //prêdkoœæ przy nastêpnym obiekcie
@@ -557,8 +565,9 @@ begin
         None : if (MainCtrlPosNo>0) then {McZapkie-041003: wagon sterowniczy}
                 begin
 {TODO: sprawdzanie innego czlonu                  if not FuseFlagCheck() then }
-                    if (BrakePress<0.1) then
+                    if (BrakePress<0.3) then
                       begin
+                        if ActiveDir>0 then DirectionForward; //zeby EN57 jechaly na drugiej nastawie
                         OK:=IncMainCtrl(1);
                       end;
               end;
@@ -612,42 +621,43 @@ end;
 function TController.DecSpeed: boolean;
 var OK:boolean;
 begin
-  OK:=True;
-  with Controlling^ do
-   begin
-      case EngineType of
-        None : if (MainCtrlPosNo>0) then  {McZapkie-041003: wagon sterowniczy}
-                  OK:=DecMainCtrl(1+ord(MainCtrlPos>2));
-        ElectricSeriesMotor:
-               begin
-                 OK:=DecScndCtrl(2);
-                 if not OK then
-                  OK:=DecMainCtrl(1+ord(MainCtrlPos>2));
-               end;
-        Dumb, DieselElectric : begin
-                 OK:=DecScndCtrl(2);
-                 if not OK then
-                  OK:=DecMainCtrl(2+(MainCtrlPos div 2));
-               end;
-        WheelsDriven :
-               begin
-                 OK:=False;
-               end;
-        DieselEngine :
-               begin
-                   OK:=false;
-                   if (Vel>dizel_minVelfullengage) then
-                    begin
-                      if RList[MainCtrlPos].Mn>0 then
-                       OK:=DecMainCtrl(1)
-                    end
-                   else
-                    while (RList[MainCtrlPos].Mn>0) and (MainCtrlPos>1) do
-                     OK:=DecMainCtrl(1);
-               end;
-      end {case}
-   end;
-  DecSpeed:=OK;
+ OK:=false; //domyœlnie false, aby wysz³o z pêtli while
+ with Controlling^ do
+  begin
+   case EngineType of
+    None:
+     if (MainCtrlPosNo>0) then  {McZapkie-041003: wagon sterowniczy}
+      OK:=DecMainCtrl(1+ord(MainCtrlPos>2));
+    ElectricSeriesMotor:
+     begin
+      OK:=DecScndCtrl(2);
+      if not OK then
+       OK:=DecMainCtrl(1+ord(MainCtrlPos>2));
+     end;
+    Dumb,DieselElectric:
+     begin
+      OK:=DecScndCtrl(2);
+      if not OK then
+       OK:=DecMainCtrl(2+(MainCtrlPos div 2));
+     end;
+    //WheelsDriven :
+    // begin
+    //  OK:=False;
+    // end;
+    DieselEngine :
+     begin
+      if (Vel>dizel_minVelfullengage) then
+       begin
+        if RList[MainCtrlPos].Mn>0 then
+         OK:=DecMainCtrl(1)
+       end
+      else
+       while (RList[MainCtrlPos].Mn>0) and (MainCtrlPos>1) do
+        OK:=DecMainCtrl(1);
+     end;
+   end {case}
+  end;
+ DecSpeed:=OK;
 end;
 
 
@@ -770,6 +780,7 @@ end;
 
 procedure TController.PutCommand(NewCommand:string; NewValue1,NewValue2:real; NewLocation:TLocation);
 begin
+ ClearPendingExceptions;
    if NewCommand='SetVelocity' then
     begin
       CommandLocation:=NewLocation;
@@ -780,13 +791,6 @@ begin
 					bCheckSKP:=true;
 				end;
     end
-   else if NewCommand='ShuntVelocity' then
-    begin
-      CommandLocation:=NewLocation;
-      SetVelocity(NewValue1,NewValue2);
-      if (OrderList[OrderPos]=Obey_train) and (NewValue1<>0) then
-       OrderList[OrderPos]:=Shunt;
-    end
    else
     if NewCommand='SetProximityVelocity' then
      begin
@@ -794,15 +798,20 @@ begin
           CommandLocation:=NewLocation;
  {        if Order=Shunt then Order:=Obey_train;}
       end
-     else if NewCommand='ShuntVelocity' then
-    begin
-      if NewValue1<>0 then
-      VehicleCount:=-2;
-      Prepare2press:=false;
+   else if NewCommand='ShuntVelocity' then
+    begin //Ra: by³y dwa, po³¹czy³em, ale nadal jest bez sensu
       CommandLocation:=NewLocation;
-      if (OrderList[OrderPos]<>Obey_train) then
+      //SetVelocity(NewValue1,NewValue2);
+      //if (OrderList[OrderPos]=Obey_train) and (NewValue1<>0) then
+      if (OrderList[OrderPos]=Prepare_engine) then//jeœli w trakcie odpalania
+       OrderList[OrderPos+1]:=Shunt //wstawimy do nastêpnej pozycji
+      else
+       OrderList[OrderPos]:=Shunt; //zamieniamy w aktualnej pozycji
+      if NewValue1<>0 then
+       VehicleCount:=-2;
+      Prepare2press:=false;
+      //if (OrderList[OrderPos]<>Obey_train) then
       SetVelocity(NewValue1,NewValue2);
-
     end
       else if NewCommand='Wait_for_orders' then
       OrderList[OrderPos]:=Wait_for_orders
@@ -828,8 +837,10 @@ begin
       begin
         if NewValue1<>VehicleCount then
          VehicleCount:=Trunc(NewValue1); {i co potem ? - trzeba zaprogramowac odczepianie}
-          OrderList[OrderPos]:=Shunt;
+        OrderList[OrderPos]:=Shunt;
       end
+     else if NewCommand='Jump_to_first_order' then
+      JumpToFirstOrder
      else if NewCommand='Jump_to_order' then
       begin
         if NewValue1=-1 then
@@ -897,6 +908,7 @@ begin
      if Controlling^.DoorRightOpened then
       with Controlling^ do
        DoorRight(false);  //Winger 090304 - jak jedzie to niech zamyka drzwi
+       //yB: ja bym powyzsz blok Wingera wywalil, bo mamy zamykanie w IncSpeed.
  if Controlling^.EnginePowerSource.SourceType=CurrentCollector then
   if Controlling^.Vel>0 then
    if AIControllFlag then
@@ -1028,7 +1040,7 @@ begin
            Obey_train : begin
                           if CategoryFlag=1 then  {jazda pociagowa}
                            begin
-                             MinProximityDist:=30; MaxProximityDist:=50; {m}
+                             MinProximityDist:=30; MaxProximityDist:=60; {m}
                              if (ActiveDir*CabNo<0) then
                                begin
                                   if (Couplers[0].CouplingFlag=0) then
@@ -1205,8 +1217,8 @@ begin
                                 AccDesired:=0.5
                               else
                                 AccDesired:=0
-                            else // prostu hamuj (niski stopieñ)
-                              AccDesired:=(SQR(VelNext)-SQR(Vel))/(25.92*ActualProximityDist+0.1) {hamuj proporcjonalnie} //mniejsze opóŸnienie przy ma³ej ró¿nicy
+                            else // prostu hamuj (niski stopieñ) (na razie da³em 95% szybkosci, moze bedzie lepiej wchodzic)
+                              AccDesired:=(SQR(VelNext*0.95)-SQR(Vel))/(25.92*ActualProximityDist+0.1) {hamuj proporcjonalnie} //mniejsze opóŸnienie przy ma³ej ró¿nicy
                          else  //przy du¿ej ró¿nicy wysoki stopieñ (1,25 potrzebnego opoznienia)
                            AccDesired:=(SQR(VelNext)-SQR(Vel))/(20.73*ActualProximityDist+0.1); {hamuj proporcjonalnie} //najpierw hamuje mocniej, potem zluzuje
                          if AccPreferred<AccDesired then
@@ -1243,12 +1255,14 @@ begin
 //                  Accdesired:=-AccPreferred;
 				//koniec predkosci aktualnej
 
+//yB: Te warunki sa teraz bez sensu, bo AI skanuje sobie to z wyprzedzeniem i tak!
                 if (AccDesired>0) and (VelNext>=0) then //wybieg b¹dŸ lekkie hamowanie, warunki byly zamienione
-                 if (VelNext<Vel-100) then        {lepiej zaczac hamowac} 
+                 if (VelNext<Vel-100) then        {lepiej zaczac hamowac}
                   AccDesired:=-0.2
                  else
                   if (VelNext<Vel-70) then
                    AccDesired:=0;                {nie spiesz sie bo bedzie hamowanie}
+
 				//koniec wybiegu i hamowania
                 {wlaczanie bezpiecznika}
                 if EngineType=ElectricSeriesMotor then
@@ -1266,14 +1280,14 @@ begin
                           SetDriverPsyche;
                        end;
                 if BrakeSystem=Pneumatic then  {napelnianie uderzeniowe}
-                 if BrakeSubsystem=ss_LSt then
+                 if BrakeHandle=FV4a then
                   begin
                     if BrakeCtrlPos=-2 then BrakeCtrlPos:=0;
-                    if (BrakeCtrlPos<0)and (PipebrakePress<0.01){(CntrlPipePress-(Volume/BrakeVVolume/10)<0.01)} then
+                    if (BrakeCtrlPos<0)and (BrakePress<0.25){(CntrlPipePress-(Volume/BrakeVVolume/10)<0.01)} then
                      IncBrakeLevel;
                     if (BrakeCtrlPos=0) and (AbsAccS<0)and(AccDesired>0) then
 //                     if FuzzyLogicAI(CntrlPipePress-PipePress,0.01,1) then
-                     if PipebrakePress>0.01{((Volume/BrakeVVolume/10)<0.485)} then
+                     if BrakePress>0.3{((Volume/BrakeVVolume/10)<0.485)} then
                       DecBrakeLevel
                      else
                       if Need_BrakeRelease then
@@ -1283,11 +1297,19 @@ begin
 //                       end;
                   end;
 
+//                if BrakeSystem=ElectroPneumatic then  {napelnianie uderzeniowe}
+//                 begin
+//                  while BrakeCtrlPos>0 do DecBrakeLevel;
+//                  while BrakeCtrlPos<0 do IncBrakeLevel;
+//                 end;
+
                 if(AccDesired>=0) then while DecBrake do;  //jeœli przyspieszamy, to nie hamujemy
-                if(AccDesired<=0)or(Vel+VelMargin>VelDesired*0.95) then while DecSpeed do; //jeœli hamujemy, to nie przyspieszamy
+                //Ra: zmieni³em 0.95 na 1.0 - trzeba ustaliæ, sk¹d sie takie wartoœci bior¹
+                if(AccDesired<=0)or(Vel+VelMargin>VelDesired*1.0) then while DecSpeed do; //jeœli hamujemy, to nie przyspieszamy
 
                 {zwiekszanie predkosci:} //yB: usuniête ró¿ne dziwne warunki, oddzielamy czêœæ zadaj¹c¹ od wykonawczej
-                if ((AbsAccS<AccDesired)and(Vel<VelDesired*0.85-VelMargin)and(AccDesired>=0)) then
+                if ((AbsAccS<AccDesired)and(Vel<VelDesired*0.95-VelMargin)and(AccDesired>=0)) then
+                //Ra: zmieni³em 0.85 na 0.95 - trzeba ustaliæ, sk¹d sie takie wartoœci bior¹
        {          if not MaxVelFlag then }
                     if not IncSpeed then
                      MaxVelFlag:=True
@@ -1310,7 +1332,6 @@ begin
                  begin DecBrake; ReactionTime:=(BrakeDelay[1+2*BrakeDelayFlag])/3; end; //jak hamuje, to nie tykaj kranu za czêsto
 //                   end;
 //Mietek-end1
-
 
                 {zapobieganie poslizgowi w czlonie silnikowym}
                 if (Couplers[0].Connected<>NIL) then
@@ -1486,4 +1507,5 @@ begin
 end;
 
 END.
+
 
