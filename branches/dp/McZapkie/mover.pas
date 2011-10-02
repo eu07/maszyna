@@ -5428,7 +5428,7 @@ begin
               if s='EZT' then
                begin
                 TrainType:=dt_EZT;
-                IminLo:=1;IminHi:=2;Imin:=1; //przy okazji
+                IminLo:=1;IminHi:=2;Imin:=1; //wirtualne wartoœci dla rozrz¹dczego
                end
               else if s='ET41' then TrainType:=dt_ET41
               else if s='ET42' then TrainType:=dt_ET42
