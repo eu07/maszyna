@@ -5,11 +5,10 @@
 
 // Ra: poprawiony rêcznie plik nag³ówkowy
 
-#include <mctools.hpp>	// Pascal unit
+#include "Classes.h"
 #include <mover.hpp>	// Pascal unit
-#include <mtable.hpp>	// Pascal unit
 
-namespace Ai_driver {
+//namespace Ai_driver {
 //-- type declarations -------------------------------------------------------
 enum TOrders
 {//rozkazy dla AI
@@ -63,6 +62,8 @@ public:
  //PlayerIP: IPAddress;  //adres gracza
  bool AIControllFlag; //rzeczywisty/wirtualny maszynista
  bool OnStationFlag; //Czy jest na peronie
+ TDynamicObject *Vehicle; //pojazd w którym siedzi steruj¹cy
+ TDynamicObject *Vehicles[2]; //skrajne pojazdy w sk³adzie
  Mover::TMoverParameters *Controlling; //jakim pojazdem steruje
  Mtable::TTrainParameters *TrainSet; //do jakiego pociagu nalezy
  int TrainNumber; //numer rozkladowy tego pociagu
@@ -124,7 +125,7 @@ public:
  (const Mover::TLocation &LocInitial,
   const Mover::TRotation &RotInitial,
   bool AI,
-  Mover::TMoverParameters *NewControll,
+  TDynamicObject *NewControll,
   Mtable::TTrainParameters *NewTrainSet,
   bool InitPsyche
  );
@@ -144,9 +145,9 @@ public:
 
 
 
-}	/* namespace Ai_driver */
-#if !defined(NO_IMPLICIT_NAMESPACE_USE)
-using namespace Ai_driver;
-#endif
+//}	/* namespace Ai_driver */
+//#if !defined(NO_IMPLICIT_NAMESPACE_USE)
+//using namespace Ai_driver;
+//#endif
 
 #endif

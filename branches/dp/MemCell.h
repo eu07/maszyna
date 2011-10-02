@@ -6,7 +6,7 @@
 #include "Classes.h"
 
 using namespace Mover;
-using namespace Ai_driver;
+//using namespace Ai_driver;
 
 class TMemCell
 {

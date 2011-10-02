@@ -1741,7 +1741,7 @@ begin
 
 //youBy: EP po nowemu
         DecBrakeLevel:=True;
-        if (BrakePressureTable[BrakeCtrlPos].PipePressureVal<0)and(BrakePressureTable[BrakeCtrlPos+1].PipePressureVal>0) then
+        if (BrakePressureTable[BrakeCtrlPos].PipePressureVal<0.0)and(BrakePressureTable[BrakeCtrlPos+1].PipePressureVal>0) then
           LimPipePress:=PipePress;
 
         if (BrakeSystem=ElectroPneumatic) then
