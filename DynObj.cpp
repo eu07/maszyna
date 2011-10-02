@@ -44,7 +44,7 @@ const float maxrot=(M_PI/3.0); //60°
 
 //---------------------------------------------------------------------------
 TDynamicObject* TDynamicObject::GetFirstDynamic(int cpl_type)
-{//Szukanie skrajnego polaczonego pojazdu w pociagu
+{//Szukanie skrajnego po³¹czonego pojazdu w pociagu
  //od strony sprzegu (cpl_type) obiektu szukajacego
  //Ra: wystarczy jedna funkcja do szukania w obu kierunkach
  TDynamicObject* temp=this;
@@ -78,7 +78,7 @@ TDynamicObject* TDynamicObject::GetFirstDynamic(int cpl_type)
 };
 
 TDynamicObject* TDynamicObject::GetFirstCabDynamic(int cpl_type)
-{ //ZiomalCl: szukanie skrajnego obiektu z kabin¹
+{//ZiomalCl: szukanie skrajnego obiektu z kabin¹
  TDynamicObject* temp=this;
  int coupler_nr=cpl_type;
  for (int i=0;i<300;i++) //ograniczenie do 300 na wypadek zapêtlenia sk³adu
@@ -562,13 +562,13 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
      if (smWahacze[i])
       smWahacze[i]->SetRotate(float3(1,0,0),fWahaczeAmp*cos(MoverParameters->eAngle));
 
-    if (smMechanik!=NULL)
-     {
-      if ((Mechanik!=NULL) && (Controller!=Humandriver))  //rysowanie figurki mechanika
-       smMechanik->Visible= true;
-      else
-       smMechanik->Visible= false;
-     }
+    if (smMechanik)
+    {
+     if ((Mechanik)&&(Controller!=Humandriver))  //rysowanie figurki mechanika
+      smMechanik->Visible=true;
+     else
+      smMechanik->Visible=false;
+    }
     //ABu: Przechyly na zakretach
     if (ObjSqrDist<80000) ABuModelRoll(); //przechy³ki od 400m
  }
@@ -1307,7 +1307,7 @@ void TDynamicObject::ScanEventTrack()
    if (e)
    {//jeœli jest jakiœ sygna³ na widoku
 #if LOGVELOCITY + LOGSTOPS
-    AnsiString edir=asName+" - "+AnsiString((scandir>0)?"Event2":"Event1");
+    AnsiString edir=asName+" - "+AnsiString((scandir>0)?"Event2 ":"Event1 ");
 #endif
     if (fTrackBlock>50.0)
     {
@@ -1319,7 +1319,7 @@ void TDynamicObject::ScanEventTrack()
      if (e->Type==tp_GetValues)
      {//przes³aæ info o zbli¿aj¹cym siê semaforze
 #if LOGVELOCITY
-      edir+=" ("+(e->Params[8].asGroundNode->asName)+"): ";
+      edir+="("+(e->Params[8].asGroundNode->asName)+"): ";
 #endif
       sem=e->Params[8].asGroundNode->pCenter-pos; //wektor do komórki pamiêci
       if (dir.x*sem.x+dir.z*sem.z<0)
@@ -1327,7 +1327,7 @@ void TDynamicObject::ScanEventTrack()
        eSignSkip=e; //wtedy uznajemy go za ignorowany przy poszukiwaniu nowego
        eSignLast=NULL; //¿eby jakiœ nowy by³ poszukiwany
 #if LOGVELOCITY
-       WriteLog(edir+" - will be ignored as passed by");
+       WriteLog(edir+"- will be ignored as passed by");
 #endif
        return;
       }
@@ -1394,7 +1394,7 @@ void TDynamicObject::ScanEventTrack()
            //stop trzeba powtarzaæ, bo inaczej zatr¹bi i pojedzie sam
            Mechanik->PutCommand("SetVelocity",vmechmax,e->Params[9].asMemCell->fValue2,sl);
 #if LOGVELOCITY
-           WriteLog(edir+" SetVelocity "+AnsiString(vmechmax)+" "+AnsiString(e->Params[9].asMemCell->fValue2));
+           WriteLog(edir+"SetVelocity "+AnsiString(vmechmax)+" "+AnsiString(e->Params[9].asMemCell->fValue2));
 #endif
           }
         }
@@ -1423,7 +1423,7 @@ void TDynamicObject::ScanEventTrack()
           {//nie dostanie komendy jeœli jedzie i ma jechaæ
            Mechanik->PutCommand("ShuntVelocity",vmechmax,e->Params[9].asMemCell->fValue2,sl);
 #if LOGVELOCITY
-           WriteLog(edir+" ShuntVelocity "+AnsiString(vmechmax)+" "+AnsiString(e->Params[9].asMemCell->fValue2));
+           WriteLog(edir+"ShuntVelocity "+AnsiString(vmechmax)+" "+AnsiString(e->Params[9].asMemCell->fValue2));
 #endif
           }
          }
@@ -1432,7 +1432,7 @@ void TDynamicObject::ScanEventTrack()
           eSignSkip=e; //wtedy uznajemy ignorowan¹ przy poszukiwaniu nowej
           eSignLast=NULL; //¿eby jakaœ nowa by³a poszukiwana
 #if LOGVELOCITY
-          WriteLog(edir+" - will be ignored due to Ms2");
+          WriteLog(edir+"- will be ignored due to Ms2");
 #endif
          }
         }
@@ -1449,7 +1449,7 @@ void TDynamicObject::ScanEventTrack()
         eSignSkip=e; //wtedy uznajemy go za ignorowany przy poszukiwaniu nowego
         eSignLast=NULL; //¿eby jakiœ nowy by³ poszukiwany
 #if LOGVELOCITY
-        WriteLog(edir+" - will be ignored as passed by");
+        WriteLog(edir+"- will be ignored as passed by");
 #endif
         return;
        }
@@ -1485,7 +1485,7 @@ void TDynamicObject::ScanEventTrack()
         if (scandist<500)
         {//zaliczamy posterunek w pewnej odleg³oœci przed, bo W4 zas³ania semafor
 #if LOGSTOPS
-         WriteLog(edir+" Skipped stop: "+asNextStop.SubString(20,asNextStop.Length())); //informacja
+         WriteLog(edir+AnsiString(GlobalTime->hh)+":"+AnsiString(GlobalTime->mm)+" Skipped stop: "+asNextStop.SubString(20,asNextStop.Length())); //informacja
 #endif
          TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,asNextStop.SubString(20,asNextStop.Length()));
          asNextStop=TrainParams->NextStop(); //pobranie kolejnego miejsca zatrzymania
@@ -1526,7 +1526,7 @@ void TDynamicObject::ScanEventTrack()
          {//jeœli pierwotnie sta³ lub zatrzyma³ siê wystarczaj¹co blisko
           Mechanik->PutCommand("SetVelocity",0,0,sl); //zatrzymanie na przystanku
 #if LOGVELOCITY
-          WriteLog(edir+" SetVelocity 0 0 ");
+          WriteLog(edir+"SetVelocity 0 0 ");
 #endif
           if (MoverParameters->Vel==0.0)
           {//jeœli siê zatrzyma³ przy W4, albo sta³ w momencie zobaczenia W4
@@ -1543,13 +1543,13 @@ void TDynamicObject::ScanEventTrack()
            if (TrainParams->StationIndex<=TrainParams->StationCount)
            {//jeœli s¹ dalsze stacje, czekamy do godziny odjazdu
 #if LOGVELOCITY
-            WriteLog(edir+" "+asNextStop); //informacja o zatrzymaniu na stopie
+            WriteLog(edir+asNextStop); //informacja o zatrzymaniu na stopie
 #endif
             if (TrainParams->IsTimeToGo(GlobalTime->hh,GlobalTime->mm))
             {//z dalsz¹ akcj¹ czekamy do godziny odjazdu
              asNextStop=TrainParams->NextStop(); //pobranie kolejnego miejsca zatrzymania
 #if LOGSTOPS
-             WriteLog(edir+" Next stop: "+asNextStop.SubString(20,asNextStop.Length())); //informacja
+             WriteLog(edir+AnsiString(GlobalTime->hh)+":"+AnsiString(GlobalTime->mm)+" Next stop: "+asNextStop.SubString(20,asNextStop.Length())); //informacja
 #endif
              fSignSpeed=-1.0; //nieokreœlona prêdkoœæ
              eSignSkip=e; //wtedy uznajemy go za ignorowany przy poszukiwaniu nowego
@@ -1557,7 +1557,7 @@ void TDynamicObject::ScanEventTrack()
              vmechmax=vtrackmax; //odjazd po zatrzymaniu - informacja dla dalszego kodu
              Mechanik->PutCommand("SetVelocity",vmechmax,vmechmax,sl);
 #if LOGVELOCITY
-             WriteLog(edir+" SetVelocity "+AnsiString(vtrackmax)+" "+AnsiString(vtrackmax));
+             WriteLog(edir+"SetVelocity "+AnsiString(vtrackmax)+" "+AnsiString(vtrackmax));
 #endif
             } //koniec startu z zatrzymania
            } //koniec obs³ugi pocz¹tkowych stacji
@@ -1570,7 +1570,7 @@ void TDynamicObject::ScanEventTrack()
             Mechanik->WaitingSet(180); //tak ze 3 minuty, a¿ wszyscy wysi¹d¹
             Mechanik->JumpToNextOrder(); //wykonanie kolejnego rozkazu
 #if LOGSTOPS
-            WriteLog(edir+" Next stop: "+asNextStop.SubString(20,asNextStop.Length())); //informacja
+            WriteLog(edir+AnsiString(GlobalTime->hh)+":"+AnsiString(GlobalTime->mm)+" Next stop: "+asNextStop.SubString(20,asNextStop.Length())); //informacja
 #endif
            } //koniec obs³ugi ostatniej stacji
           } //if (MoverParameters->Vel==0.0)
@@ -1651,10 +1651,10 @@ __fastcall TDynamicObject::TDynamicObject()
  PantTraction1=10;
  PantTraction2=10;
  if (!Global::bEnableTraction)
-  {
+ {
   PantTraction1=5.8;
   PantTraction2=5.8;
-  }
+ }
  dPantAngleFT=0.0;
  dPantAngleRT=0.0;
  PantWysF=0.0;
@@ -1828,7 +1828,7 @@ double __fastcall TDynamicObject::Init(
      }
      WriteLog("*/");
     }
-   Mechanik=new TController(l,r,Controller,MoverParameters,TrainParams,Aggressive);
+   Mechanik=new TController(l,r,Controller,this,TrainParams,Aggressive);
    if (Controller==AIdriver)
    {//jeœli steruje komputer, okreœlamy dodatkowe parametry
     Mechanik->Ready=false;
@@ -1860,7 +1860,7 @@ double __fastcall TDynamicObject::Init(
    if (DriverType=="passenger")
    {//obserwator w charakterze pasazera
     TrainParams=new TTrainParameters(TrainName);
-    Mechanik=new TController(l,r,Controller,MoverParameters,TrainParams,Easyman);
+    Mechanik=new TController(l,r,Controller,this,TrainParams,Easyman);
    }
  }
  // McZapkie-250202
@@ -2191,7 +2191,7 @@ if (!MoverParameters->PhysicActivation)
     if (!bEnabled)
         return false;
 
-  if(bDynChangeStart)
+  if (bDynChangeStart)
   {//ZiomalCl: zmieniamy czo³o poci¹gu
     Mechanik->SetVelocity(0,0);
     if(MoverParameters->Vel==0)
@@ -2222,14 +2222,14 @@ if (!MoverParameters->PhysicActivation)
         {
           if(MoverParameters->ActiveDir==1)
           {
-            if(Mechanik->OrderList[Mechanik->OrderPos]==Obey_train)
+            if (Mechanik->OrderList[Mechanik->OrderPos]==Obey_train)
               MoverParameters->EndSignalsFlag=2+32;
             else
               MoverParameters->HeadSignalsFlag=1;
           }
           else
           {
-            if(Mechanik->OrderList[Mechanik->OrderPos]==Obey_train)
+            if (Mechanik->OrderList[Mechanik->OrderPos]==Obey_train)
               MoverParameters->HeadSignalsFlag=2+32;
             else
               MoverParameters->HeadSignalsFlag=1;
@@ -2274,10 +2274,10 @@ if (!MoverParameters->PhysicActivation)
     int dir=-MoverParameters->CabNo;
     TrainParams= new TTrainParameters("rozklad");
     if (TrainParams->TrainName!=AnsiString("none"))
-      if (!TrainParams->LoadTTfile(Global::asCurrentSceneryPath))
-        Error("Cannot load timetable file "+TrainParams->TrainName+": Error="+ConversionError+" in position "+TrainParams->StationCount);
-    Mechanik= new TController(l,r,true,MoverParameters,TrainParams,Aggressive);
-    AnsiString t1 = asName;
+     if (!TrainParams->LoadTTfile(Global::asCurrentSceneryPath))
+      Error("Cannot load timetable file "+TrainParams->TrainName+": Error="+ConversionError+" in position "+TrainParams->StationCount);
+    Mechanik=new TController(l,r,true,this,TrainParams,Aggressive);
+    AnsiString t1=asName;
     Mechanik->Ready=false;
     Mechanik->ChangeOrder(Prepare_engine);
     Mechanik->JumpToNextOrder();
@@ -2419,38 +2419,38 @@ tmpTraction.TractionVoltage=3400;
 
     if (Mechanik)
     {
-        //ABu: proba szybkiego naprawienia bledu z zatrzymujacymi sie bez powodu skladami
-        if ((MoverParameters->CabNo!=0)&&(Controller!=Humandriver)&&(!MoverParameters->Mains)&&(Mechanik->EngineActive))
-        {
-         MoverParameters->PantRear(false);
-         MoverParameters->PantFront(false);
-         MoverParameters->PantRear(true);
-         MoverParameters->PantFront(true);
-         MoverParameters->DecMainCtrl(2); //?
-         MoverParameters->MainSwitch(true);
-        };
+     //ABu: proba szybkiego naprawienia bledu z zatrzymujacymi sie bez powodu skladami
+     if ((MoverParameters->CabNo!=0)&&(Controller!=Humandriver)&&(!MoverParameters->Mains)&&(Mechanik->EngineActive))
+     {
+      MoverParameters->PantRear(false);
+      MoverParameters->PantFront(false);
+      MoverParameters->PantRear(true);
+      MoverParameters->PantFront(true);
+      MoverParameters->DecMainCtrl(2); //?
+      MoverParameters->MainSwitch(true);
+     };
 //yB: cos (AI) tu jest nie kompatybilne z czyms (hamulce)
-//        if (Controller!=Humandriver)
-//         if (Mechanik->LastReactionTime>0.5)
-//          {
-//           MoverParameters->BrakeCtrlPos=0;
-//           Mechanik->LastReactionTime=0;
-//          }
+//   if (Controller!=Humandriver)
+//    if (Mechanik->LastReactionTime>0.5)
+//     {
+//      MoverParameters->BrakeCtrlPos=0;
+//      Mechanik->LastReactionTime=0;
+//     }
 
-        if (Mechanik->UpdateSituation(dt1))  //czuwanie AI
-//         if (Mechanik->ScanMe)
-           {
-            ScanEventTrack(); //tor pocz¹tkowy zale¿y od po³o¿enia wózków
-//            if(MoverParameters->BrakeCtrlPos>0)
-//              MoverParameters->BrakeCtrlPos=MoverParameters->BrakeCtrlPosNo;
-//            Mechanik->ScanMe= false;
-           }
+      if (Mechanik->UpdateSituation(dt1))  //czuwanie AI
+//    if (Mechanik->ScanMe)
+      {
+       ScanEventTrack(); //tor pocz¹tkowy zale¿y od po³o¿enia wózków
+//       if(MoverParameters->BrakeCtrlPos>0)
+//         MoverParameters->BrakeCtrlPos=MoverParameters->BrakeCtrlPosNo;
+//       Mechanik->ScanMe= false;
+      }
     }
 //    else
 //    { MoverParameters->SecuritySystemReset(); }
     if (MoverParameters->ActiveCab==0)
         MoverParameters->SecuritySystemReset();
-    else 
+    else
       if ((Controller!=Humandriver)&&(MoverParameters->BrakeCtrlPos<0)&&(!TestFlag(MoverParameters->BrakeStatus,1))&&((MoverParameters->CntrlPipePress)>0.51))
 //       {
 ////        MoverParameters->PipePress=0.50;
@@ -2803,7 +2803,7 @@ if (tmpTraction.TractionVoltage==0)
                          
    if (Mechanik)
    {//ABu-160305 Testowanie gotowosci do jazdy
-    if (MoverParameters->BrakePress<0.03*MoverParameters->MaxBrakePress)
+    if (MoverParameters->BrakePress<0.05*MoverParameters->MaxBrakePress)
      Mechanik->Ready=true; //wstêpnie gotowy
     //Ra: trzeba by sprawdziæ wszystkie, a nie tylko skrajne
     //sprawdzenie odhamowania skrajnych pojazdów
@@ -2816,51 +2816,51 @@ if (tmpTraction.TractionVoltage==0)
     if (tmp?tmp!=this:false)
      if (tmp->MoverParameters->BrakePress>0.03*tmp->MoverParameters->MaxBrakePress)
       Mechanik->Ready=false; //nie gotowy
-			
+
     if (Mechanik->CheckSKP())
-    { //ZiomalCl: sprawdzanie i zmiana SKP w skladzie prowadzonym przez AI
-      Mechanik->ResetSKP();
-      TDynamicObject* tmp1;
-      tmp1 = GetFirstDynamic(1);
-      if(!tmp1)
-        tmp1 = GetFirstDynamic(0);
-      if(tmp1&&tmp1!=this)
+    {//ZiomalCl: sprawdzanie i zmiana SKP w skladzie prowadzonym przez AI
+     Mechanik->ResetSKP();
+     TDynamicObject* tmp1;
+     tmp1=GetFirstDynamic(1);
+     if (!tmp1)
+      tmp1=GetFirstDynamic(0);
+     if (tmp1&&tmp1!=this)
+     {
+      if(tmp1->MoverParameters->Couplers[0].Connected==NULL)
       {
-        if(tmp1->MoverParameters->Couplers[0].Connected==NULL)
-        {
-          if(tmp1->MoverParameters->ActiveDir==1)
-          {
-            if(Mechanik->OrderList[Mechanik->OrderPos]==Obey_train)
-              tmp1->MoverParameters->EndSignalsFlag=2+32;
-            else
-              tmp1->MoverParameters->EndSignalsFlag=1;
-          }
-          else
-          {
-            if(Mechanik->OrderList[Mechanik->OrderPos]==Obey_train)
-              tmp1->MoverParameters->HeadSignalsFlag=2+32;
-            else
-              tmp1->MoverParameters->HeadSignalsFlag=1;
-          }
-        }
-        else if(tmp1->MoverParameters->Couplers[1].Connected==NULL)
-        {
-          if(tmp1->MoverParameters->ActiveDir==1)
-          {
-            if(Mechanik->OrderList[Mechanik->OrderPos]==Obey_train)
-              tmp1->MoverParameters->HeadSignalsFlag=2+32;
-            else
-              tmp1->MoverParameters->HeadSignalsFlag=1;
-          }
-          else
-          {
-            if(Mechanik->OrderList[Mechanik->OrderPos]==Obey_train)
-              tmp1->MoverParameters->EndSignalsFlag=2+32;
-            else
-              tmp1->MoverParameters->EndSignalsFlag=1;
-          }
-        }
+       if(tmp1->MoverParameters->ActiveDir==1)
+       {
+        if(Mechanik->OrderList[Mechanik->OrderPos]==Obey_train)
+         tmp1->MoverParameters->EndSignalsFlag=2+32;
+        else
+         tmp1->MoverParameters->EndSignalsFlag=1;
+       }
+       else
+       {
+        if(Mechanik->OrderList[Mechanik->OrderPos]==Obey_train)
+         tmp1->MoverParameters->HeadSignalsFlag=2+32;
+        else
+         tmp1->MoverParameters->HeadSignalsFlag=1;
+       }
       }
+      else if(tmp1->MoverParameters->Couplers[1].Connected==NULL)
+      {
+       if(tmp1->MoverParameters->ActiveDir==1)
+       {
+        if(Mechanik->OrderList[Mechanik->OrderPos]==Obey_train)
+         tmp1->MoverParameters->HeadSignalsFlag=2+32;
+        else
+         tmp1->MoverParameters->HeadSignalsFlag=1;
+       }
+       else
+       {
+        if(Mechanik->OrderList[Mechanik->OrderPos]==Obey_train)
+         tmp1->MoverParameters->EndSignalsFlag=2+32;
+        else
+         tmp1->MoverParameters->EndSignalsFlag=1;
+       }
+      }
+     }
     }
    }
 

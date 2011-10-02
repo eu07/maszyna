@@ -24,11 +24,13 @@
 #pragma hdrstop
 
 #include "Driver.h"
-
+#include <mtable.hpp>
+#include "DynObj.h"
+#include <math.h>
 /*
 
 Modu³ obs³uguj¹cy sterowanie pojazdami (sk³adami poci¹gów, samochodami).
-Ma dzia³aæ zarówno jako AI oraz przy prowadzeniu przed cz³owieka. W tym
+Ma dzia³aæ zarówno jako AI oraz przy prowadzeniu przez cz³owieka. W tym
 drugim przypadku jedynie informuje za pomoc¹ napisów o tym, co by zrobi³
 w tym pierwszym. Obejmuje zarówno maszynistê jak i kierownika poci¹gu
 (dawanie sygna³u do odjazdu).
@@ -37,26 +39,6 @@ Przeniesiona tutaj zosta³a zawartoœæ ai_driver.pas przerobione na C++.
 Równie¿ niektóre funkcje dotycz¹ce sk³adów z DynObj.cpp.
 
 */
-
-#include <math.h>
-//    MaSzyna EU07 locomotive simulator
-//    Copyright (C) 2001-2004  Maciej Czapkiewicz and others
-
-//    This program is free software; you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation; either version 2 of the License, or
-//    (at your option) any later version.
-
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR( A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for( more details.
-
-//    You should have received a copy of the GNU General Public License
-//    along with this program; if not, write to the Free Software
-//    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
-
 
 
 //zrobione:
@@ -88,13 +70,13 @@ Równie¿ niektóre funkcje dotycz¹ce sk³adów z DynObj.cpp.
 //6. dla Humandriver: tasma szybkosciomierza - zapis do pliku!
 //7. samouczacy sie algorytm hamowania
 
-//sta³ê
+//sta³e
 const double EasyReactionTime=0.4;
 const double HardReactionTime=0.2;
 const double EasyAcceleration=0.5;
 const double HardAcceleration=0.9;
 const double PrepareTime     =2.0;
-bool Ai_driver::WriteLogFlag=false;
+bool WriteLogFlag=false;
 
 
 AnsiString __fastcall Order2Str(TOrders Order)
@@ -167,15 +149,15 @@ void __fastcall TController::SetVelocity(double NewVel,double NewVelNext)
  VelNext=NewVelNext; //prêdkoœæ przy nastêpnym obiekcie
  if ((NewVel>NewVelNext) //jeœli oczekiwana wiêksza ni¿ nastêpna
   || (NewVel<Controlling->Vel)) //albo aktualna jest mniejsza ni¿ aktualna
-  ProximityDist=-800; //droga hamowania do zmiany prêdkoœci
+  ProximityDist=-800.0; //droga hamowania do zmiany prêdkoœci
  else
-  ProximityDist=-300;
+  ProximityDist=-300.0;
 }
 
 bool __fastcall TController::SetProximityVelocity(double NewDist,double NewVelNext)
 {//informacja o prêdkoœci w pewnej odleg³oœci
- if (NewVelNext==0)
-  WaitingTime=0; //nie trzeba ju¿ czekaæ
+ if (NewVelNext==0.0)
+  WaitingTime=0.0; //nie trzeba ju¿ czekaæ
  //if ((NewVelNext>=0)&&((VelNext>=0)&&(NewVelNext<VelNext))||(NewVelNext<VelActual))||(VelNext<0))
  {MaxVelFlag=False;
   MinVelFlag=False;
@@ -206,12 +188,12 @@ void __fastcall TController::SetDriverPsyche()
   WaitingExpireTime=65;
  }
  if (Controlling!=NULL)
- {//*   with Controlling do
+ {//with Controlling do
   if (Controlling->MainCtrlPos<3)
    ReactionTime=Controlling->InitialCtrlDelay+ReactionTime;
   if (Controlling->BrakeCtrlPos>1)
    ReactionTime=0.5*ReactionTime;
-  if ((Controlling->V>0.1)&&(Controlling->Couplers[0].Connected)) //dopisac to samo dla V<-0.1 i zaleznie od Psyche*/
+  if ((Controlling->V>0.1)&&(Controlling->Couplers[0].Connected)) //dopisac to samo dla V<-0.1 i zaleznie od Psyche
    if (Controlling->Couplers[0].CouplingFlag==0)
    {//Ra: funkcje s¹ odpowiednie?
     AccPreferred=((Mover::TMoverParameters*)(Controlling->Couplers[0].Connected))->V; //tymczasowa wartoœæ
@@ -227,9 +209,9 @@ bool __fastcall TController::PrepareEngine()
  bool voltfront,voltrear;
  voltfront=false;
  voltrear=false;
- LastReactionTime=0;
+ LastReactionTime=0.0;
  ReactionTime=PrepareTime;
- //*  with Controlling do
+ //with Controlling do
  if (((Controlling->EnginePowerSource.SourceType==CurrentCollector)||(Controlling->TrainType==dt_EZT)))
  {
   if (Controlling->GetTrainsetVoltage())
@@ -330,7 +312,7 @@ bool __fastcall TController::PrepareEngine()
 bool __fastcall TController::ReleaseEngine()
 {//wy³¹czanie silnika
  bool OK=false;
- LastReactionTime=0;
+ LastReactionTime=0.0;
  ReactionTime=PrepareTime;
  if (Controlling->DoorOpenCtrl==1)
  {//zamykanie drzwi
@@ -405,7 +387,7 @@ bool __fastcall TController::IncBrake()
    break;
   case ElectroPneumatic:
    if (Controlling->BrakeCtrlPos<Controlling->BrakeCtrlPosNo)
-    if (Controlling->BrakePressureTable[Controlling->BrakeCtrlPos+1].BrakeType==ElectroPneumatic)
+    if (Controlling->BrakePressureTable[Controlling->BrakeCtrlPos+1+2].BrakeType==ElectroPneumatic) //+2 to indeks Pascala 
      OK=Controlling->IncBrakeLevel();
     else
      OK=false;
@@ -431,10 +413,15 @@ bool __fastcall TController::DecBrake()
    break;
   case ElectroPneumatic:
    if (Controlling->BrakeCtrlPos>-1)
-    if (Controlling->BrakePressureTable[Controlling->BrakeCtrlPos-1].BrakeType==ElectroPneumatic)
+    if (Controlling->BrakePressureTable[Controlling->BrakeCtrlPos-1+2].BrakeType==ElectroPneumatic) //+2 to indeks Pascala
      OK=Controlling->DecBrakeLevel();
     else
+    {if ((Controlling->BrakeSubsystem==Knorr)||(Controlling->BrakeSubsystem==Hik)||(Controlling->BrakeSubsystem==Kk))
+     {//jeœli Knorr
+      Controlling->SwitchEPBrake((Controlling->BrakePress>0.0)?1:0);
+     }
      OK=false;
+    }
     if (!OK)
      OK=Controlling->DecLocalBrakeLevel(2);
    break;
@@ -463,7 +450,7 @@ bool __fastcall TController::IncSpeed()
     if (Controlling->MainCtrlPosNo>0) //McZapkie-041003: wagon sterowniczy
     {
      //TODO: sprawdzanie innego czlonu //if (!FuseFlagCheck())
-     if (Controlling->BrakePress<0.03*Controlling->MaxBrakePress)
+     if (Controlling->BrakePress<0.05*Controlling->MaxBrakePress)
      {
       if (Controlling->ActiveDir>0) Controlling->DirectionForward(); //zeby EN57 jechaly na drugiej nastawie
       OK=Controlling->IncMainCtrl(1);
@@ -568,7 +555,7 @@ void __fastcall TController::RecognizeCommand()
  else if (c->Command=="Change_direction")
  {if (c->Value1>0.0) ChangeDirOrder=1;
   else if (c->Value1<0.0) ChangeDirOrder=-1;
-  else ChangeDirOrder=0;
+  else ChangeDirOrder=0.0;
   Order=Change_direction;
  }
  else if (c->Command=="Obey_train")
@@ -756,7 +743,7 @@ void __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
  else if (NewCommand=="OutsideStation") //wskaznik W5
  {
   if (OrderList[OrderPos]==Obey_train)
-   SetVelocity(NewValue1,NewValue2); ///koniec stacji - predkosc szlakowa
+   SetVelocity(NewValue1,NewValue2); //koniec stacji - predkosc szlakowa
   else //manewry - zawracaj
   {
    ChangeDirOrder=0;
@@ -785,23 +772,22 @@ bool __fastcall TController::UpdateSituation(double dt)
  HelpMeFlag=false;
  //Winger 020304
  if (Controlling->Vel>0)
-  if (AIControllFlag)
+ {if (AIControllFlag)
    if (Controlling->DoorOpenCtrl==1)
     if (Controlling->DoorRightOpened)
      Controlling->DoorRight(false);  //Winger 090304 - jak jedzie to niech zamyka drzwi
- if (Controlling->EnginePowerSource.SourceType==CurrentCollector)
-  if (Controlling->Vel>0)
+  if (Controlling->EnginePowerSource.SourceType==CurrentCollector)
    if (AIControllFlag)
     Controlling->PantFront(true);
+  if (TestFlag(Controlling->CategoryFlag,2)) //jeœli samochód
+   if (fabs(Controlling->OffsetTrackH)<Controlling->Dim.W)
+    if (!Controlling->ChangeOffsetH(-0.1*Controlling->Vel*dt))
+     Controlling->ChangeOffsetH(0.1*Controlling->Vel*dt);
+ }
  if (Controlling->EnginePowerSource.SourceType==CurrentCollector)
   if (Controlling->Vel>30)
    if (AIControllFlag)
     Controlling->PantRear(false);
-  if (Controlling->Vel>0)
-   if (TestFlag(Controlling->CategoryFlag,2)) //jeœli samochód
-    if (fabs(Controlling->OffsetTrackH)<Controlling->Dim.W)
-     if (!Controlling->ChangeOffsetH(-0.1*Controlling->Vel*dt))
-      Controlling->ChangeOffsetH(0.1*Controlling->Vel*dt);
  ElapsedTime=ElapsedTime+dt;
  WaitingTime=WaitingTime+dt;
  if (WriteLogFlag)
@@ -814,7 +800,7 @@ bool __fastcall TController::UpdateSituation(double dt)
    if (fabs(Controlling->V)>0.1)
     deltalog=0.2;
    else deltalog=1.0;
-   LastUpdatedTime=0;
+   LastUpdatedTime=0.0;
   }
   else
    LastUpdatedTime= LastUpdatedTime+dt;
@@ -838,12 +824,12 @@ bool __fastcall TController::UpdateSituation(double dt)
      RecognizeCommand();
    if (Controlling->SecuritySystem.Status>1)
     if (!Controlling->SecuritySystemReset())
-     if (TestFlag(Controlling->SecuritySystem.Status,s_ebrake)&&(Controlling->BrakeCtrlPos==0)&&(AccDesired>0))
-       Controlling->DecBrakeLevel();
+     if (TestFlag(Controlling->SecuritySystem.Status,s_ebrake)&&(Controlling->BrakeCtrlPos==0)&&(AccDesired>0.0))
+      Controlling->DecBrakeLevel();
    switch (OrderList[OrderPos])
    {//na jaka odleglosc i z jaka predkoscia ma podjechac
     case Shunt:
-     MinProximityDist=1; MaxProximityDist=10; //[m]
+     MinProximityDist=1.0; MaxProximityDist=10.0; //[m]
      VelReduced=5; //[km/h]
      if (Controlling->Vel==0)
       if (Controlling->ActiveDir*Controlling->CabNo<0)
@@ -868,18 +854,18 @@ bool __fastcall TController::UpdateSituation(double dt)
         VelActual=3;
         if (Controlling->MainCtrlPos>0)
         {
-         if ((Controlling->ActiveDir>0) &&  (Controlling->Couplers[0].CouplingFlag>0))
+         if ((Controlling->ActiveDir>0)&&(Controlling->Couplers[0].CouplingFlag>0))
          {
           Controlling->Dettach(0);
           VehicleCount=-2;
-          VelActual=0; 	 																bCheckSKP= true;
+          VelActual=0.0; 	 																bCheckSKP= true;
          }
          else
-          if ((Controlling->ActiveDir<0) &&  (Controlling->Couplers[1].CouplingFlag>0))
+          if ((Controlling->ActiveDir<0)&&(Controlling->Couplers[1].CouplingFlag>0))
           {
            Controlling->Dettach(1);
            VehicleCount=-2;
-           VelActual=0;
+           VelActual=0.0;
           }
           else HelpMeFlag=true; //cos nie tak z kierunkiem dociskania
         }
@@ -890,8 +876,8 @@ bool __fastcall TController::UpdateSituation(double dt)
           IncSpeed(); //docisnij sklad
          }
        }
-       if ((Controlling->Vel==0)&&(!Prepare2press))
-       {//zmien kierunek na przeciwny
+       if ((Controlling->Vel==0)&&!Prepare2press)
+       {//zmieñ kierunek na przeciwny
         Prepare2press=true;
         if (Controlling->ActiveDir>=0)
          while (Controlling->ActiveDir>=0)
@@ -911,13 +897,13 @@ bool __fastcall TController::UpdateSituation(double dt)
            while (Controlling->ActiveDir<=0)
             Controlling->DirectionForward();
          Prepare2press=false;
-         VelActual=10;
+         VelActual=10.0;
         }
      break;
     case Obey_train:
      if (Controlling->CategoryFlag==1) //jazda pociagowa
      {
-      MinProximityDist=30; MaxProximityDist=60; //[m]
+      MinProximityDist=30.0; MaxProximityDist=60.0; //[m]
       if ((Controlling->ActiveDir*Controlling->CabNo<0))
       {
        if ((Controlling->Couplers[0].CouplingFlag==0))
@@ -935,12 +921,12 @@ bool __fastcall TController::UpdateSituation(double dt)
      }
      else //samochod
      {
-      MinProximityDist=5; MaxProximityDist=10; //[m]
+      MinProximityDist=5.0; MaxProximityDist=10.0; //[m]
      }
      VelReduced=4; //[km/h]
      break;
     default:
-     MinProximityDist=-0.01; MaxProximityDist=2; //[m]
+     MinProximityDist=-0.01; MaxProximityDist=2.0; //[m]
      VelReduced=1; //[km/h]
    } //switch
    switch (OrderList[OrderPos])
@@ -978,7 +964,7 @@ bool __fastcall TController::UpdateSituation(double dt)
      {
       VelActual=Min0R(VelActual,30);
       if ((VehicleCount>=0)&&!Prepare2press)
-       VelActual=0; //dorobic potem doczepianie
+       VelActual=0.0; //dorobic potem doczepianie
      }
      else
       SetDriverPsyche();
@@ -994,8 +980,8 @@ bool __fastcall TController::UpdateSituation(double dt)
        }
 */
       PrepareEngine();
-      WaitingTime=0;
-      VelActual=20;
+      WaitingTime=0.0;
+      VelActual=20.0;
       WarningDuration=1.5;
       Controlling->WarningSignal=1;
      }
@@ -1016,7 +1002,7 @@ bool __fastcall TController::UpdateSituation(double dt)
      }
      if (OrderList[OrderPos]==Change_direction) //sprobuj zmienic kierunek
      {
-      VelActual=0;
+      VelActual=0.0;
       if (VelActual<0.1)
       {
        if (ChangeDirOrder==0)
@@ -1052,7 +1038,7 @@ bool __fastcall TController::UpdateSituation(double dt)
        }
       }
     //else
-    // VelActual:=0; //na wszelki wypadek niech zahamuje
+    // VelActual:=0.0; //na wszelki wypadek niech zahamuje
      } //Change_direction
      //ustalanie zadanej predkosci
      if ((Controlling->ActiveDir!=0))
@@ -1065,34 +1051,34 @@ bool __fastcall TController::UpdateSituation(double dt)
        VelDesired=Min0R(VelDesired,Controlling->RunningTrack.Velmax); //uwaga na ograniczenia szlakowej!
       if (VelforDriver>=0)
        VelDesired=Min0R(VelDesired,VelforDriver);
-      if (TrainSet->CheckTrainLatency()<10)
-       if (TrainSet->TTVmax>0)
-        VelDesired=Min0R(VelDesired,TrainSet->TTVmax); //jesli nie spozniony to nie szybciej niz rozkladowa*/
+      if (TrainSet->CheckTrainLatency()<10.0)
+       if (TrainSet->TTVmax>0.0)
+        VelDesired=Min0R(VelDesired,TrainSet->TTVmax); //jesli nie spozniony to nie szybciej niz rozkladowa
       AbsAccS=Controlling->AccS; //czy sie rozpedza czy hamuje
-      if (Controlling->V<0) AbsAccS=-AbsAccS;
-      else if (Controlling->V==0.0) AbsAccS=0;
+      if (Controlling->V<0.0) AbsAccS=-AbsAccS;
+      else if (Controlling->V==0.0) AbsAccS=0.0;
       //ustalanie zadanego przyspieszenia
-      if ((VelNext>=0)&&(ActualProximityDist>=0)&&(Controlling->Vel>=VelNext)) //gdy zbliza sie i jest za szybko do NOWEGO
+      if ((VelNext>=0.0)&&(ActualProximityDist>=0)&&(Controlling->Vel>=VelNext)) //gdy zbliza sie i jest za szybko do NOWEGO
       {
-       if (Controlling->Vel>0) //jesli nie stoi
+       if (Controlling->Vel>0.0) //jesli nie stoi
        {
-        if ((Controlling->Vel<VelReduced+VelNext)&&(ActualProximityDist>MaxProximityDist*(1+Controlling->Vel/10))) //dojedz do semafora/przeszkody
+        if ((Controlling->Vel<VelReduced+VelNext)&&(ActualProximityDist>MaxProximityDist*(1+0.1*Controlling->Vel))) //dojedz do semafora/przeszkody
         {
-         if (AccPreferred>0)
-          AccDesired= AccPreferred/2;
+         if (AccPreferred>0.0)
+          AccDesired=0.5*AccPreferred;
           //VelDesired:=Min0R(VelDesired,VelReduced+VelNext);
         }
         else if (ActualProximityDist>MinProximityDist)
         {//25.92 - skorektowane, zeby ladniej hamowal
-         if ((VelNext>Controlling->Vel-35)) //dwustopniowe hamowanie - niski przy ma³ej ró¿nicy
-         {if ((VelNext>0)&&(VelNext>Controlling->Vel-3)) //jeœli powolna i niewielkie przekroczenie
-            AccDesired=0; //to olej (zacznij luzowaæ)
+         if ((VelNext>Controlling->Vel-35.0)) //dwustopniowe hamowanie - niski przy ma³ej ró¿nicy
+         {if ((VelNext>0)&&(VelNext>Controlling->Vel-3.0)) //jeœli powolna i niewielkie przekroczenie
+            AccDesired=0.0; //to olej (zacznij luzowaæ)
           else  //w przeciwnym wypadku
-           if ((VelNext==0)&&(Controlling->Vel*Controlling->Vel<0.4*ActualProximityDist)) //jeœli stójka i niewielka prêdkoœæ
-           {if (Controlling->Vel<30)  //trzymaj 30 km/h
+           if ((VelNext==0.0)&&(Controlling->Vel*Controlling->Vel<0.4*ActualProximityDist)) //jeœli stójka i niewielka prêdkoœæ
+           {if (Controlling->Vel<30.0)  //trzymaj 30 km/h
              AccDesired=0.5;
             else
-             AccDesired=0;
+             AccDesired=0.0;
            }
            else // prostu hamuj (niski stopieñ)
             AccDesired=(VelNext*VelNext-Controlling->Vel*Controlling->Vel)/(25.92*ActualProximityDist+0.1); //hamuj proporcjonalnie //mniejsze opóŸnienie przy ma³ej ró¿nicy
@@ -1107,22 +1093,22 @@ bool __fastcall TController::UpdateSituation(double dt)
          VelDesired=Min0R(VelDesired,VelNext); //utrzymuj predkosc bo juz blisko
        }
        else  //zatrzymany
-        if ((VelNext>0)||(ActualProximityDist>MaxProximityDist*1.2))
+        if ((VelNext>0.0)||(ActualProximityDist>MaxProximityDist*1.2))
          if (AccPreferred>0)
           AccDesired=0.5*AccPreferred; //dociagnij do semafora
          else
-          VelDesired=0; //stoj
+          VelDesired=0.0; //stoj
       }
       else //gdy jedzie wolniej, to jest normalnie
        AccDesired=AccPreferred; //normalna jazda
    	//koniec predkosci nastepnej
       if ((VelDesired>=0)&&(Controlling->Vel>VelDesired)) //jesli jedzie za szybko do AKTUALNEGO
-       if (VelDesired==0) //jesli stoj, to hamuj, ale i tak juz za pozno :)
+       if (VelDesired==0.0) //jesli stoj, to hamuj, ale i tak juz za pozno :)
         AccDesired=-0.5;
        else
         if ((Controlling->Vel<VelDesired+5)) //o 5 km/h to olej
-        {if ((AccDesired>0))
-          AccDesired=0;
+        {if ((AccDesired>0.0))
+          AccDesired=0.0;
          //else
         }
         else
@@ -1131,11 +1117,11 @@ bool __fastcall TController::UpdateSituation(double dt)
       // Accdesired:=-AccPreferred;
       //koniec predkosci aktualnej
       if ((AccDesired>0)&&(VelNext>=0)) //wybieg b¹dŸ lekkie hamowanie, warunki byly zamienione
-       if (VelNext<Controlling->Vel-100) //lepiej zaczac hamowac}
+       if (VelNext<Controlling->Vel-100.0) //lepiej zaczac hamowac}
         AccDesired=-0.2;
        else
         if ((VelNext<Controlling->Vel-70))
-         AccDesired=0; //nie spiesz sie bo bedzie hamowanie
+         AccDesired=0.0; //nie spiesz sie bo bedzie hamowanie
       //koniec wybiegu i hamowania
       //wlaczanie bezpiecznika
       if (Controlling->EngineType==ElectricSeriesMotor)
@@ -1160,7 +1146,7 @@ bool __fastcall TController::UpdateSituation(double dt)
          Controlling->BrakeCtrlPos=0;
         if ((Controlling->BrakeCtrlPos<0)&&(Controlling->PipeBrakePress<0.01))//{(CntrlPipePress-(Volume/BrakeVVolume/10)<0.01)})
          Controlling->IncBrakeLevel();
-        if ((Controlling->BrakeCtrlPos==0)&&(AbsAccS<0)&&(AccDesired>0))
+        if ((Controlling->BrakeCtrlPos==0)&&(AbsAccS<0.0)&&(AccDesired>0.0))
         //if FuzzyLogicAI(CntrlPipePress-PipePress,0.01,1))
          if (Controlling->PipeBrakePress>0.01)//{((Volume/BrakeVVolume/10)<0.485)})
           Controlling->DecBrakeLevel();
@@ -1171,13 +1157,14 @@ bool __fastcall TController::UpdateSituation(double dt)
            //DecBrakeLevel();
           //}
        }
-      if (AccDesired>=0)
+      if (AccDesired>=0.0)
        while (DecBrake());  //jeœli przyspieszamy, to nie hamujemy
       //Ra: zmieni³em 0.95 na 1.0 - trzeba ustaliæ, sk¹d sie takie wartoœci bior¹
-      if ((AccDesired<=0)||(Controlling->Vel+VelMargin>VelDesired*1.0))
+      if ((AccDesired<=0.0)||(Controlling->Vel+VelMargin>VelDesired*1.0))
        while (DecSpeed()); //jeœli hamujemy, to nie przyspieszamy
-      //yB: usuniête ró¿ne dziwne warunki, oddzielamy czêœæ zadaj¹c¹ od wykonawczej /***               /*zwiekszanie predkosci;
-      if ((AbsAccS<AccDesired)&&(Controlling->Vel<VelDesired*0.95-VelMargin)&&(AccDesired>=0))
+      //yB: usuniête ró¿ne dziwne warunki, oddzielamy czêœæ zadaj¹c¹ od wykonawczej
+      //zwiekszanie predkosci
+      if ((AbsAccS<AccDesired)&&(Controlling->Vel<VelDesired*0.95-VelMargin)&&(AccDesired>=0.0))
       //Ra: zmieni³em 0.85 na 0.95 - trzeba ustaliæ, sk¹d sie takie wartoœci bior¹
       //if (!MaxVelFlag)
        if (!IncSpeed())
@@ -1189,7 +1176,8 @@ bool __fastcall TController::UpdateSituation(double dt)
       // if (Im<Imin) and Ready=True {(BrakePress<0.01*MaxBrakePress)})
       //  IncMainCtrl(1); {zwieksz nastawnik skoro mozesz - tak aby sie ustawic na bezoporowej*/
 
-      //yB: usuniête ró¿ne dziwne warunki, oddzielamy czêœæ zadaj¹c¹ od wykonawczej /***               /*zmniejszanie predkosci;
+      //yB: usuniête ró¿ne dziwne warunki, oddzielamy czêœæ zadaj¹c¹ od wykonawczej
+      //zmniejszanie predkosci
       if ((AccDesired<-0.1)&&(AbsAccS>AccDesired+0.05))
       //if not MinVelFlag)
        if (!IncBrake())
@@ -1234,9 +1222,9 @@ bool __fastcall TController::UpdateSituation(double dt)
        if (DriverFailCount>maxdriverfails*2)
         SetDriverPsyche();
       }
-     } //kierunek rozny od zera
+     } //kierunek ró¿ny od zera
      //odhamowywanie skladu po zatrzymaniu i zabezpieczanie lokomotywy
-     if ((Controlling->V==0)&&((VelDesired==0)||(AccDesired==0)))
+     if ((Controlling->V==0.0)&&((VelDesired==0.0)||(AccDesired==0.0)))
       if ((Controlling->BrakeCtrlPos<1)||!Controlling->DecBrakeLevel())
        Controlling->IncLocalBrakeLevel(1);
 
@@ -1247,7 +1235,7 @@ bool __fastcall TController::UpdateSituation(double dt)
      break; //rzeczy robione przy jezdzie
    } //switch (OrderList[OrderPos])
    //kasowanie licznika czasu
-   LastReactionTime=0;
+   LastReactionTime=0.0;
    //ewentualne skanowanie toru
    if (!ScanMe)
     ScanMe=true;
@@ -1259,7 +1247,7 @@ bool __fastcall TController::UpdateSituation(double dt)
   {//tr¹bienie
    WarningDuration=WarningDuration-dt;
    if (WarningDuration<0.2)
-    Controlling->WarningSignal=0;
+    Controlling->WarningSignal=0.0;
   }
   return UpdateOK;
  }
@@ -1297,33 +1285,35 @@ __fastcall TController::TController
 (const Mover::TLocation &LocInitial,
  const Mover::TRotation &RotInitial,
  bool AI,
- Mover::TMoverParameters *NewControll,
+ TDynamicObject *NewControll,
  Mtable::TTrainParameters *NewTrainSet,
  bool InitPsyche
 )
 {
- byte b;
  EngineActive=false;
  MechLoc=LocInitial;
  MechRot=RotInitial;
- LastUpdatedTime=0;
- ElapsedTime=0;
+ LastUpdatedTime=0.0;
+ ElapsedTime=0.0;
  //inicjalizacja zmiennych
  Psyche=InitPsyche;
  AccDesired=AccPreferred;
- VelDesired=0;
+ VelDesired=0.0;
  VelforDriver=-1;
- LastReactionTime=0;
+ LastReactionTime=0.0;
  HelpMeFlag=false;
  ProximityDist=1;
  ActualProximityDist=1;
  CommandLocation.X=0;
  CommandLocation.Y=0;
  CommandLocation.Z=0;
- VelActual=0;
- VelNext=120;
+ VelActual=0.0;
+ VelNext=120.0;
  AIControllFlag=AI;
- Controlling=NewControll;
+ Vehicle=NewControll;
+ Controlling=Vehicle->MoverParameters; //skrót do obiektu parametrów
+ Vehicles[0]=Vehicle->GetFirstDynamic(0); //pierwszy w kierunku jazdy (Np. Pc1)
+ Vehicles[1]=Vehicle->GetFirstDynamic(1); //ostatni w kierunku jazdy (koñcówki)
  SetDriverPsyche(); //wymaga wskaŸnika na pojazd (Controlling)
 /*
  switch (Controlling->CabNo)
@@ -1338,7 +1328,7 @@ __fastcall TController::TController
  OrderCommand="";
  OrderValue=0;
  OrderPos=0;
- for (b=0;b<=maxorders;b++)
+ for (int b=0;b<=maxorders;b++)
   OrderList[b]=Wait_for_orders;
  MaxVelFlag=false; MinVelFlag=false;
  ChangeDir=1;
@@ -1365,10 +1355,10 @@ __fastcall TController::TController
  ScanMe=False;
  VelMargin=Controlling->Vmax*0.005;
  WarningDuration=-1;
- WaitingExpireTime=31;
- WaitingTime=0;
- MinProximityDist=30;
- MaxProximityDist=50;
+ WaitingExpireTime=31.0;
+ WaitingTime=0.0;
+ MinProximityDist=30.0;
+ MaxProximityDist=50.0;
  VehicleCount=-2;
  Prepare2press=false;
 }

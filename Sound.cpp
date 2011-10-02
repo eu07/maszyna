@@ -165,28 +165,24 @@ __fastcall TSoundsManager::Free()
 };
 
 
-void __fastcall TSoundsManager::LoadFromFile(char *Name, int Concurrent)
+void __fastcall TSoundsManager::LoadFromFile(char *Name,int Concurrent)
 {
-    TSoundContainer *Tmp= First;
-
-    First= new TSoundContainer(pDS, Directory, Name, Concurrent);
-    First->Next= Tmp;
-    Count++;
-
+ TSoundContainer *Tmp=First;
+ First=new TSoundContainer(pDS, Directory, Name, Concurrent);
+ First->Next=Tmp;
+ Count++;
 };
 
 void __fastcall TSoundsManager::LoadSounds(char *Directory)
 {
-    WIN32_FIND_DATA FindFileData;
-    HANDLE handle= FindFirstFile("Sounds\\*.wav", &FindFileData);
-    if (handle!=INVALID_HANDLE_VALUE)
-        do
-        {
-            LoadFromFile(FindFileData.cFileName,1);
-
-        } while (FindNextFile(handle, &FindFileData));
-    FindClose(handle);
-
+ WIN32_FIND_DATA FindFileData;
+ HANDLE handle=FindFirstFile("Sounds\\*.wav",&FindFileData);
+ if (handle!=INVALID_HANDLE_VALUE)
+  do
+  {
+   LoadFromFile(FindFileData.cFileName,1);
+  } while (FindNextFile(handle, &FindFileData));
+ FindClose(handle);
 };
 
 LPDIRECTSOUNDBUFFER __fastcall TSoundsManager::GetFromName(char *Name)
