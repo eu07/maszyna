@@ -236,6 +236,7 @@ class TGround
  TGroundNode *nRootOfType[TP_LAST]; //tablica grupuj¹ca obiekty, przyspiesza szukanie
  //TGroundNode *nLastOfType[TP_LAST]; //ostatnia
  TSubRect srGlobal; //zawiera obiekty globalne (na razie wyzwalacze czasowe)
+ int hh,mm,srh,srm,ssh,ssm; //ustawienia czasu
 public:
  TDynamicObject *LastDyn; //ABu: paskudnie, ale na bardzo szybko moze jakos przejdzie...
  TTrain *pTrain;
@@ -246,6 +247,7 @@ public:
     __fastcall ~TGround();
     void __fastcall Free();
     bool __fastcall Init(AnsiString asFile);
+    void __fastcall FirstInit();
     bool __fastcall InitEvents();
     bool __fastcall InitTracks();
     bool __fastcall InitLaunchers();

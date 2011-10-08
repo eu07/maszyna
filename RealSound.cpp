@@ -84,6 +84,7 @@ double __fastcall TRealSound::ListenerDistance(vector3 ListenerPosition)
 
 void __fastcall TRealSound::Play(double Volume, int Looping, bool ListenerInside, vector3 NewPosition)
 {
+ if (!pSound) return;
  double vol;
  double dS;
 // double Distance;
@@ -167,12 +168,13 @@ void __fastcall TRealSound::AdjFreq(double Freq, double dt) //McZapkie TODO: dor
 
 double TRealSound::GetWaveTime() //McZapkie: na razie tylko dla 22KHz/8bps
 {
-    double WaveTime=0;
-    DSBCAPS caps;
-    caps.dwSize= sizeof(caps);
-    pSound->GetCaps(&caps);
-    WaveTime= caps.dwBufferBytes;
-    return WaveTime/22000;  // wielkosc w bajtach przez czestotliwosc probkowania
+ if (!pSound) return 0.0;
+ double WaveTime=0;
+ DSBCAPS caps;
+ caps.dwSize= sizeof(caps);
+ pSound->GetCaps(&caps);
+ WaveTime= caps.dwBufferBytes;
+ return WaveTime/22000;  // wielkosc w bajtach przez czestotliwosc probkowania
 }
 
 int TRealSound::GetStatus()

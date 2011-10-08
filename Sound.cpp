@@ -16,7 +16,7 @@ LPDIRECTSOUND       TSoundsManager::pDS;
 LPDIRECTSOUNDNOTIFY TSoundsManager::pDSNotify;
 
 int TSoundsManager::Count= 0;
-TSoundContainer *TSoundsManager::First= NULL;
+TSoundContainer *TSoundsManager::First=NULL;
 
 
 __fastcall TSoundContainer::TSoundContainer( LPDIRECTSOUND pDS, char *Directory, char *strFileName, int NConcurrent)
@@ -165,12 +165,13 @@ __fastcall TSoundsManager::Free()
 };
 
 
-void __fastcall TSoundsManager::LoadFromFile(char *Name,int Concurrent)
+TSoundContainer* __fastcall TSoundsManager::LoadFromFile(char *Name,int Concurrent)
 {
  TSoundContainer *Tmp=First;
- First=new TSoundContainer(pDS, Directory, Name, Concurrent);
+ First=new TSoundContainer(pDS,Directory,Name,Concurrent);
  First->Next=Tmp;
  Count++;
+ return First; //albo NULL, jak nie wyjdzie (na razie zawsze wychodzi)
 };
 
 void __fastcall TSoundsManager::LoadSounds(char *Directory)
@@ -187,42 +188,43 @@ void __fastcall TSoundsManager::LoadSounds(char *Directory)
 
 LPDIRECTSOUNDBUFFER __fastcall TSoundsManager::GetFromName(char *Name)
 {
-    TSoundContainer *Next= First;
-    DWORD dwStatus;
+ TSoundContainer *Next=First;
+ DWORD dwStatus;
+ for (int i=0;i<Count;i++)
+ {
+  if (strcmp(Name,Next->Name)==0)
+  {
+   return (Next->GetUnique(pDS));
+//      DSBuffers.
+     /*
+         Next->pDSBuffer[Next->Oldest]->Stop();
+         Next->pDSBuffer[Next->Oldest]->SetCurrentPosition(0);
+         if (Next->Oldest<Next->Concurrent-1)
+         {
+             Next->Oldest++;
+             return (Next->pDSBuffer[Next->Oldest-1]);
+         }
+         else
+         {
+             Next->Oldest= 0;
+             return (Next->pDSBuffer[Next->Concurrent-1]);
+         };
 
-    for (int i=0; i<Count; i++)
-    {
-        if (strcmp(Name,Next->Name)==0)
-        {
-            return ( Next->GetUnique(pDS) ); 
-//            DSBuffers.
-        /*
-            Next->pDSBuffer[Next->Oldest]->Stop();
-            Next->pDSBuffer[Next->Oldest]->SetCurrentPosition(0);
-            if (Next->Oldest<Next->Concurrent-1)
-            {
-                Next->Oldest++;
-                return (Next->pDSBuffer[Next->Oldest-1]);
-            }
-            else
-            {
-                Next->Oldest= 0;
-                return (Next->pDSBuffer[Next->Concurrent-1]);
-            };
+/*         for (int j=0; j<Next->Concurrent; j++)
+         {
 
-/*            for (int j=0; j<Next->Concurrent; j++)
-            {
-
-                Next->pDSBuffer[j]->GetStatus(&dwStatus);
-                if ((dwStatus & DSBSTATUS_PLAYING) != DSBSTATUS_PLAYING)
-                    return (Next->pDSBuffer[j]);
-            }                                   */
-        }
-        else
-            Next= Next->Next;
-    };
-    Error("Cannot find sound "+AnsiString(Name));
-    return (NULL);
+             Next->pDSBuffer[j]->GetStatus(&dwStatus);
+             if ((dwStatus & DSBSTATUS_PLAYING) != DSBSTATUS_PLAYING)
+                 return (Next->pDSBuffer[j]);
+         }                                   */
+  }
+  else
+   Next=Next->Next;
+ };
+ Next=LoadFromFile(Name,1);
+ if (Next) return Next->GetUnique(pDS);
+ Error("Cannot find sound "+AnsiString(Name));
+ return (NULL);
 };
 
 void __fastcall TSoundsManager::RestoreAll()

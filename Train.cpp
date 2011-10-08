@@ -293,14 +293,14 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       if (cKey==VkKeyScan('q'))
       {
         DynamicObject->Mechanik->Ready=false;
-        DynamicObject->Mechanik->AIControllFlag= AIdriver;
-        DynamicObject->Controller= AIdriver;
+        DynamicObject->Mechanik->AIControllFlag=AIdriver;
+        DynamicObject->Controller=AIdriver;
         DynamicObject->Mechanik->ChangeOrder(Prepare_engine);
         DynamicObject->Mechanik->JumpToNextOrder();
-        DynamicObject->Mechanik->ChangeOrder(Obey_train);
+        DynamicObject->Mechanik->ChangeOrder(Obey_train); //to bez sensu jest
         DynamicObject->Mechanik->JumpToFirstOrder();
   // czy dac ponizsze? to problematyczne
-        DynamicObject->Mechanik->SetVelocity(DynamicObject->GetVelocity(),-1);
+        DynamicObject->Mechanik->SetVelocity(DynamicObject->GetVelocity(),-1); //utrzymanie dotychczasowej?
       }
       else
       if (cKey==Global::Keys[k_MaxCurrent])   //McZapkie-160502: F - wysoki rozruch

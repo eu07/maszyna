@@ -46,6 +46,7 @@ Type
                         function IsTimeToGo(hh,mm:real):boolean;
                         function UpdateMTable(hh,mm:real; NewName: string): boolean;
                         constructor Init(NewTrainName:string);
+                        procedure NewName(NewTrainName:string);
                         function LoadTTfile(scnpath:string): boolean;
                       end;
 
@@ -178,6 +179,12 @@ begin
 end;
 
 constructor TTrainParameters.Init(NewTrainName:string);
+{wstêpne ustawienie parametrów rozk³adu jazdy}
+begin
+ NewName(NewTrainName);
+end;
+
+procedure TTrainParameters.NewName(NewTrainName:string);
 {wstêpne ustawienie parametrów rozk³adu jazdy}
 var i:integer;
 begin

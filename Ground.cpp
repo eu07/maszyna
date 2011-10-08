@@ -1482,6 +1482,48 @@ TEvent* __fastcall TGround::FindEvent(const AnsiString &asEventName)
  return NULL;
 }
 
+void __fastcall TGround::FirstInit()
+{//ustalanie zale¿noœci na scenerii przed wczytaniem pojazdów
+ if (bInitDone) return;//Ra: ¿eby nie robi³o siê dwa razy
+ bInitDone=true;
+ WriteLog("InitNormals");
+ for (int i=0;i<TP_LAST;++i)
+ {for (TGroundNode *Current=nRootOfType[i];Current;Current=Current->Next)
+  {
+   Current->InitNormals();
+   if (Current->iType!=TP_DYNAMIC)
+   {//pojazdów w ogóle nie dotyczy dodawanie do mapy
+    if (i==TP_EVLAUNCH?Current->EvLaunch->IsGlobal():false)
+     srGlobal.AddNode(Current); //dodanie do globalnego obiektu
+    else if ((Current->iType!=GL_TRIANGLES)&&(Current->iType!=GL_TRIANGLE_STRIP)?true //~czy trójk¹t?
+     :(Current->iFlags&0x20)?true //~czy teksturê ma nieprzezroczyst¹?
+      //:(Current->iNumVerts!=3)?true //~czy tylko jeden trójk¹t?
+       :(Current->fSquareMinRadius!=0.0)?true //~czy widoczny z bliska?
+        :(Current->fSquareRadius<=90000.0)) //~czy widoczny z daleka?
+     GetSubRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
+    else //dodajemy do kwadratu kilometrowego
+     GetRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
+   }
+   //if (Current->iType!=TP_DYNAMIC)
+   // GetSubRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
+  }
+ }
+ WriteLog("InitNormals OK");
+ WriteLog("InitTracks");
+ InitTracks(); //³¹czenie odcinków ze sob¹ i przyklejanie eventów
+ WriteLog("InitTracks OK");
+ WriteLog("InitEvents");
+ InitEvents();
+ WriteLog("InitEvents OK");
+ WriteLog("InitLaunchers");
+ InitLaunchers();
+ WriteLog("InitLaunchers OK");
+ WriteLog("InitGlobalTime");
+ //ABu 160205: juz nie TODO :)
+ GlobalTime=new TMTableTime(hh,mm,srh,srm,ssh,ssm); //McZapkie-300302: inicjacja czasu rozkladowego - TODO: czytac z trasy!
+ WriteLog("InitGlobalTime OK");
+};
+
 bool __fastcall TGround::Init(AnsiString asFile)
 {
     Global::pGround=this;
@@ -1521,7 +1563,6 @@ bool __fastcall TGround::Init(AnsiString asFile)
     double tf;
     int ParamCount,ParamPos;
 
-    int hh,mm,srh,srm,ssh,ssm; //ustawienia czasu
     //ABu: Jezeli nie ma definicji w scenerii to ustawiane ponizsze wartosci:
     hh=10;  //godzina startu
     mm=30;  //minuty startu
@@ -1812,47 +1853,7 @@ bool __fastcall TGround::Init(AnsiString asFile)
          WriteLog(Global::asSky.c_str());
         }
         else if (str==AnsiString("firstinit"))
-        {
-         if (!bInitDone) //Ra: ¿eby nie robi³o dwa razy
-         {bInitDone=true;
-          WriteLog("InitNormals");
-          for (int i=0;i<TP_LAST;++i)
-          {for (TGroundNode *Current=nRootOfType[i];Current;Current=Current->Next)
-           {
-            Current->InitNormals();
-            if (Current->iType!=TP_DYNAMIC)
-            {//pojazdów w ogóle nie dotyczy dodawanie do mapy
-             if (i==TP_EVLAUNCH?Current->EvLaunch->IsGlobal():false)
-              srGlobal.AddNode(Current); //dodanie do globalnego obiektu
-             else if ((Current->iType!=GL_TRIANGLES)&&(Current->iType!=GL_TRIANGLE_STRIP)?true //~czy trójk¹t?
-              :(Current->iFlags&0x20)?true //~czy teksturê ma nieprzezroczyst¹?
-               //:(Current->iNumVerts!=3)?true //~czy tylko jeden trójk¹t?
-                :(Current->fSquareMinRadius!=0.0)?true //~czy widoczny z bliska?
-                 :(Current->fSquareRadius<=90000.0)) //~czy widoczny z daleka?
-              GetSubRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
-             else //dodajemy do kwadratu kilometrowego
-              GetRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
-            }
-            //if (Current->iType!=TP_DYNAMIC)
-            // GetSubRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
-           }
-          }
-          WriteLog("InitNormals OK");
-          WriteLog("InitTracks");
-          InitTracks(); //³¹czenie odcinków ze sob¹ i przyklejanie eventów
-          WriteLog("InitTracks OK");
-          WriteLog("InitEvents");
-          InitEvents();
-          WriteLog("InitEvents OK");
-          WriteLog("InitLaunchers");
-          InitLaunchers();
-          WriteLog("InitLaunchers OK");
-          WriteLog("InitGlobalTime");
-          //ABu 160205: juz nie TODO :)
-          GlobalTime=new TMTableTime(hh,mm,srh,srm,ssh,ssm); //McZapkie-300302: inicjacja czasu rozkladowego - TODO: czytac z trasy!
-          WriteLog("InitGlobalTime OK");
-         }
-        }
+         FirstInit();
         else if (str==AnsiString("description"))
         {
          do
@@ -1918,7 +1919,7 @@ bool __fastcall TGround::Init(AnsiString asFile)
 //    DecimalSeparator=',';
 
     delete parser;
-
+ if (!bInitDone) FirstInit(); //jeœli nie by³o w scenerii 
 
 //------------------------------------Init dynamic---------------------------------
   /*

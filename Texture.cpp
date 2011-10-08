@@ -271,8 +271,6 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName,int 
  }
  else
  {//skompresowany plik TGA
-  //GLuint pixelcount=height*width; //nuber of pixels in the image
-  //GLuint currentpixel; //current pixel being read
   GLuint filesize; //current byte
   GLuint colorbuffer[1]; // Storage for 1 pixel
   file.seekg(0,ios::end); //na koniec
@@ -283,28 +281,60 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName,int 
   int chunkheader=0; //Ra: bêdziemy wczytywaæ najm³odszy bajt
   if (filesize<imageSize) //jeœli po kompresji jest mniejszy ni¿ przed
   {//Ra: nowe wczytywanie skompresowanych: czytamy ca³e od razu, dekompresja w pamiêci
-   file.read(imageData+imageSize-filesize,filesize); //wczytanie reszty po nag³ówku
-   //currentpixel=0;
-   //filesize=imageSize-filesize; //gdzie jest pocz¹tek
+   GLuint copybytes;
    GLubyte *copyfrom=imageData+imageSize-filesize; //gdzie jest pocz¹tek
-   int copybytes;
+   file.read(copyfrom,filesize); //wczytanie reszty po nag³ówku
    //najpierw trzeba ustaliæ, ile skopiowanych pikseli jest na samym koñcu
    copyto=copyfrom; //roboczo przelatujemy wczytane dane
-   while (copyto<copyend)
+   copybytes=0; //licznik bajtów obrazka
+   while (copybytes<imageSize)
    {
     chunkheader=(unsigned char)*copyto; //jeden bajt, pozosta³e zawsze zerowe
-    copyto+=1+bytesPerPixel; //bajt licznika i jeden piksel jest zawsze
-    if (chunkheader<128)
+    copyto+=1+bytesPerPixel; //bajt licznika oraz jeden piksel jest zawsze
+    copybytes+=(1+(chunkheader&127))*bytesPerPixel; //iloœæ pikseli
+    if (chunkheader<128) //jeœli kopiowanie, pikseli jest wiêcej
      copyto+=(chunkheader)*bytesPerPixel; //rozmiar kopiowanego obszaru (bez jednego piksela)
    }
+   if (copybytes>imageSize)
+   {//nie ma prawa byæ wiêksze
+    WriteLog("Compression error");
+    delete[] imageData;
+    file.close();
+    return fail;
+   }
+   //na koñcu mog¹ byæ œmieci
+   int extraend=copyend-copyto; //d³ugoœæ œmieci na koñcu
+   if (extraend>0)
+   {//przesuwamy bufor do koñca obszaru dekompresji
+    WriteLog("Extra bytes: "+AnsiString(extraend));
+    memmove(copyfrom+extraend,copyfrom,filesize-extraend);
+    copyfrom+=extraend;
+    file.close();
+    filesize-=extraend; //to chyba nie ma znaczenia
+    if (Global::iModifyTGA&2) //flaga obcinania œmieci
+    {//najlepiej by by³o obci¹æ plik, ale fstream tego nie potrafi
+     int handle;
+     for (unsigned int i=0;i<fileName.length();++i)
+      if (fileName[i]=='/')
+       fileName[i]=='\\'; //bo to Windows
+     WriteLog("Truncating extra bytes");
+     handle=open(fileName.c_str(),O_RDWR|O_BINARY);
+     chsize(handle,18+filesize); //obciêcie œmieci
+     close(handle);
+     extraend=0; //skoro obciêty, to siê ju¿ nie liczy
+    }
+    file.open(fileName.c_str(),std::ios::binary|std::ios::in);
+   }
    if (chunkheader<128) //jeœli ostatnie piksele s¹ kopiowane
-    copyend-=(1+chunkheader)*bytesPerPixel; //bajty na koñcu nie podlegaj¹ce dekompresji
-   copyto=imageData; //wype³nianie od pocz¹tku obszaru
+    copyend-=(1+chunkheader)*bytesPerPixel; //bajty kopiowane na koñcu nie podlegaj¹ce dekompresji
+   else
+    copyend-=bytesPerPixel; //ostatni piksel i tak siê nie zmieni
+   copyto=imageData; //teraz bêdzie wype³nianie od pocz¹tku obszaru
    while (copyto<copyend)
    {
     if (copyto>=copyfrom)
     {WriteLog("Decompression problem at pixel "+AnsiString((copyto-imageData)/bytesPerPixel)+"+"+AnsiString((copyend-copyto)/bytesPerPixel));
-     file.seekg(copyfrom-imageData-imageSize,ios::end); //odleg³oœæ od koñca
+     file.seekg(copyfrom-imageData-imageSize-extraend,ios::end); //odleg³oœæ od koñca (ujemna)
      break; //bufor siê zatka³, dalej w ten sposób siê nie da
     }
     chunkheader=(unsigned char)*copyfrom; //jeden bajt, pozosta³e zawsze zerowe
@@ -342,9 +372,9 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName,int 
   }
   else
   {WriteLog("Compressed file is larger than uncompressed!");
-   writeback=true; //no zapisaæ ten krótszy...
+   writeback=Global::iModifyTGA&1; //no zapisaæ ten krótszy...
   }
-  if (copyto<copyend) WriteLog("Old loader...");
+  if (copyto<copyend) WriteLog("Slow loader...");
   while (copyto<copyend)
   {//Ra: stare wczytywanie skompresowanych, z nadu¿ywaniem file.read()
    //równie¿ wykonywane, jeœli dekompresja w buforze przekroczy jego rozmiar
