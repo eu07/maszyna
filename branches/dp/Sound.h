@@ -53,7 +53,7 @@ public:
     __fastcall ~TSoundsManager();
     static __fastcall Free();
     static void __fastcall Init(char *Name, int Concurrent);
-    static void __fastcall LoadFromFile(char *Name, int Concurrent);
+    static TSoundContainer* __fastcall LoadFromFile(char *Name,int Concurrent);
     static void __fastcall LoadSounds(char *Directory);
     static LPDIRECTSOUNDBUFFER __fastcall GetFromName(char *Name);
     static void __fastcall RestoreAll();

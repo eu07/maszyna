@@ -399,8 +399,8 @@ bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 
   	glEnable(GL_LIGHTING);
 /*-----------------------Sound Initialization-----------------------*/
-    TSoundsManager::Init( hWnd );
-    TSoundsManager::LoadSounds( "" );
+    TSoundsManager::Init(hWnd);
+    //TSoundsManager::LoadSounds( "" );
 /*---------------------Sound Initialization End---------------------*/
     WriteLog("Sound Init OK");
     if(Global::detonatoryOK)
@@ -1374,11 +1374,16 @@ bool __fastcall TWorld::Update()
        OutText4="";
        //OutText4+="Coupler 0: "+(tmp->PrevConnected?tmp->PrevConnected->GetName():AnsiString("NULL"))+" ("+AnsiString(tmp->MoverParameters->Couplers[0].CouplingFlag)+"), ";
        //OutText4+="Coupler 1: "+(tmp->NextConnected?tmp->NextConnected->GetName():AnsiString("NULL"))+" ("+AnsiString(tmp->MoverParameters->Couplers[1].CouplingFlag)+")";
-       if (tmp->eSignLast) OutText4+="Control event: "+Bezogonkow(tmp->eSignLast->asName); //nazwa eventu semafora
        if (tmp->Mechanik)
-        {
-         //OutText4+="  LPTI@A: "+IntToStr(tmp->Mechanik->LPTI)+"@"+IntToStr(tmp->Mechanik->LPTA);
+       {//o ile jest ktoœ w œrodku
+        OutText4=tmp->Mechanik->StopReasonText();
+        if (tmp->eSignLast)
+        {//jeœli ma zapamiêtany event semafora
+         if (!OutText4.IsEmpty()) OutText4+=", "; //aby ³adniejszy odstêp by³
+         OutText4+="Control event: "+Bezogonkow(tmp->eSignLast->asName); //nazwa eventu semafora
         }
+         //OutText4+="  LPTI@A: "+IntToStr(tmp->Mechanik->LPTI)+"@"+IntToStr(tmp->Mechanik->LPTA);
+       }
       }
       else
       {

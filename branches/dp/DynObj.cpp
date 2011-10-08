@@ -1000,7 +1000,7 @@ void TDynamicObject::ABuScanObjects(int ScanDir,double ScanDist)
      //{
      //   fTrackBlock=true;
      //   //Mechanik->SetProximityVelocity(0,20);
-     //   Mechanik->SetVelocity(0,0);
+     //   Mechanik->SetVelocity(0,0,stopBlock);
      //}
      ActDist=ScanDist; //wyjœcie z pêtli poszukiwania
     }
@@ -1012,7 +1012,7 @@ void TDynamicObject::ABuScanObjects(int ScanDir,double ScanDist)
     {
      fTrackBlock=50.0;
      Mechanik->SetProximityVelocity(ActDist-50,0);
-     //Mechanik->SetVelocity(0,0);
+     //Mechanik->SetVelocity(0,0,stopBlock);
     }
 */
     ActDist=ScanDist; //koniec przegl¹dania torów
@@ -1063,7 +1063,7 @@ void TDynamicObject::ABuScanObjects(int ScanDir,double ScanDist)
   if (Mechanik)//&&(fTrackBlock>50.0))
   {//jeœli z przodu od kierunku ruchu jest jakiœ pojazd ze sprzêgiem wirtualnym
    if (fTrackBlock<50.0) //jak bli¿ej ni¿ 50m, to stop
-    Mechanik->SetVelocity(0,0); //zatrzymaæ
+    Mechanik->SetVelocity(0,0,stopBlock); //zatrzymaæ
    else
     //Mechanik->SetVelocity(20,20);
     Mechanik->SetProximityVelocity(fTrackBlock-20,0); //spowolnienie jazdy
@@ -1213,7 +1213,7 @@ void TDynamicObject::SetProximityVelocity(double dist,double vel,const TLocation
  }
  else
  {//jeœli jest zagro¿enie, ¿e przekroczy
-  Mechanik->SetVelocity(floor(0.2*sqrt(dist)+vel),vel);
+  Mechanik->SetVelocity(floor(0.2*sqrt(dist)+vel),vel,stopError);
 #if LOGVELOCITY
   WriteLog("-> SetVelocity "+AnsiString(floor(0.2*sqrt(dist)+vel))+" "+AnsiString(vel));
 #endif
@@ -1289,7 +1289,7 @@ void TDynamicObject::ScanEventTrack()
      if (scandist>10) //jeœli zosta³o wiêcej ni¿ 15m do koñca toru
       SetProximityVelocity(scandist,0,&sl); //informacja o zbli¿aniu siê do koñca
      else
-     {Mechanik->PutCommand("SetVelocity",0,0,sl); //na koñcu toru ma staæ
+     {Mechanik->PutCommand("SetVelocity",0,0,sl,stopEnd); //na koñcu toru ma staæ
 #if LOGVELOCITY
       WriteLog("-> SetVelocity 0 0");
 #endif
@@ -1421,7 +1421,7 @@ void TDynamicObject::ScanEventTrack()
          {//stop trzeba powtarzaæ, bo inaczej zatr¹bi i pojedzie sam
           //if ((MoverParameters->Vel==0.0)||(vmechmax==0.0)) //jeœli jedzie lub ma stan¹æ/staæ
           {//nie dostanie komendy jeœli jedzie i ma jechaæ
-           Mechanik->PutCommand("ShuntVelocity",vmechmax,e->Params[9].asMemCell->fValue2,sl);
+           Mechanik->PutCommand("ShuntVelocity",vmechmax,e->Params[9].asMemCell->fValue2,sl,stopSem);
 #if LOGVELOCITY
            WriteLog(edir+"ShuntVelocity "+AnsiString(vmechmax)+" "+AnsiString(e->Params[9].asMemCell->fValue2));
 #endif
@@ -1461,7 +1461,7 @@ void TDynamicObject::ScanEventTrack()
         if (scandist<Mechanik->MinProximityDist+1) //tylko na tym torze
         {
          eSignLast=(scandist<200)?e:NULL; //zapamiêtanie na wypadek przejechania albo Ÿle podpiêtego toru
-         Mechanik->PutCommand("SetVelocity",vmechmax,e->Params[2].asdouble,sl);
+         Mechanik->PutCommand("SetVelocity",vmechmax,e->Params[2].asdouble,sl,stopSem);
 #if LOGVELOCITY
          WriteLog("PutValues: SetVelocity "+AnsiString(vmechmax)+" "+AnsiString(e->Params[2].asdouble));
 #endif
@@ -1524,7 +1524,7 @@ void TDynamicObject::ScanEventTrack()
          } //koniec obs³ugi odleg³ego zatrzymania
          else
          {//jeœli pierwotnie sta³ lub zatrzyma³ siê wystarczaj¹co blisko
-          Mechanik->PutCommand("SetVelocity",0,0,sl); //zatrzymanie na przystanku
+          Mechanik->PutCommand("SetVelocity",0,0,sl,stopTime); //zatrzymanie na przystanku
 #if LOGVELOCITY
           WriteLog(edir+"SetVelocity 0 0 ");
 #endif
@@ -1812,7 +1812,7 @@ double __fastcall TDynamicObject::Init(
     MoverParameters->CabDeactivisation();
     MoverParameters->CabActivisation();
    }
-   TrainParams=new TTrainParameters(TrainName); //dane poci¹gu
+   TrainParams=new TTrainParameters(TrainName); //rozk³¹d jazdy
    if (TrainName!="none")
     if (!TrainParams->LoadTTfile(Global::asCurrentSceneryPath))
      Error("Cannot load timetable file "+TrainName+"\r\nError "+ConversionError+" in position "+TrainParams->StationCount);
@@ -1846,7 +1846,7 @@ double __fastcall TDynamicObject::Init(
     //McZapkie-100302 - to ma byc wyzwalane ze scenerii
     //Mechanik->JumpToFirstOrder();
     if (fVel==0.0)
-     Mechanik->SetVelocity(0,0); //jeœli nie jedzie, to stoi
+     Mechanik->SetVelocity(0,0,stopSleep); //jeœli nie ma prêdkoœci pocz¹tkowej, to œpi
     else
     {
      Mechanik->SetVelocity(fVel,-1); //ma ustawiæ ¿¹dan¹ prêdkoœæ
@@ -2193,8 +2193,8 @@ if (!MoverParameters->PhysicActivation)
 
   if (bDynChangeStart)
   {//ZiomalCl: zmieniamy czo³o poci¹gu
-    Mechanik->SetVelocity(0,0);
-    if(MoverParameters->Vel==0)
+    Mechanik->SetVelocity(0,0,stopDir);
+    if (MoverParameters->Vel==0)
     {
       if(!MoverParameters->DecBrakeLevel())
       {
@@ -4029,8 +4029,9 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
 //---------------------------------------------------------------------------
 void __fastcall TDynamicObject::RadioStop()
 {//zatrzymanie pojazdu
- if (MoverParameters->SecuritySystem.RadioStop) //jeœli pojazd ma RadioStop i jest on aktywny
-  MoverParameters->PutCommand("Emergency_brake",1.0,1.0,MoverParameters->Loc);
+ if (Mechanik) //o ile ktoœ go prowadzi
+  if (MoverParameters->SecuritySystem.RadioStop) //jeœli pojazd ma RadioStop i jest on aktywny
+   Mechanik->PutCommand("Emergency_brake",1.0,1.0,MoverParameters->Loc,stopRadio);
 };
 
 void __fastcall TDynamicObject::RaLightsSet(int head,int rear)

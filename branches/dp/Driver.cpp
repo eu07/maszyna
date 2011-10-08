@@ -27,6 +27,7 @@
 #include <mtable.hpp>
 #include "DynObj.h"
 #include <math.h>
+#include "Globals.h"
 /*
 
 Modu³ obs³uguj¹cy sterowanie pojazdami (sk³adami poci¹gów, samochodami).
@@ -78,6 +79,20 @@ const double HardAcceleration=0.9;
 const double PrepareTime     =2.0;
 bool WriteLogFlag=false;
 
+AnsiString StopReasonTable[]=
+{//przyczyny zatrzymania ruchu AI
+ "", //stopNone, //nie ma powodu - powinien jechaæ
+ "Sleep", //stopSleep, //nie zosta³ odpalony, to nie pojedzie
+ "Semaphore", //stopSem, //semafor zamkniêty
+ "Time", //stopTime, //czekanie na godzinê odjazdu
+ "End of track", //stopEnd, //brak dalszej czêœci toru
+ "Change direction", //stopDir, //trzeba stan¹æ, by zmieniæ kierunek jazdy
+ "Block", //stopBlock, //przeszkoda na drodze ruchu
+ "A command", //stopComm, //otrzymano tak¹ komendê (niewiadomego pochodzenia)
+ "Out of station", //stopOut, //komenda wyjazdu poza stacjê (raczej nie powinna zatrzymywaæ!)
+ "Radiostop", //stopRadio, //komunikat przekazany radiem (Radiostop)
+ "Error", //stopError //z powodu b³êdu w obliczeniu drogi hamowania
+};
 
 AnsiString __fastcall Order2Str(TOrders Order)
 {//zamiana kodu rozkazu na opis
@@ -140,7 +155,7 @@ void __fastcall TController::WaitingSet(double Seconds)
  WaitingTime=-Seconds;
 }
 
-void __fastcall TController::SetVelocity(double NewVel,double NewVelNext)
+void __fastcall TController::SetVelocity(double NewVel,double NewVelNext,TStopReason r)
 {//ustawienie nowej prêdkoœci
  WaitingTime=-WaitingExpireTime; //no albo przypisujemy -WaitingExpireTime, albo porównujemy z WaitingExpireTime
  MaxVelFlag=False;
@@ -152,6 +167,12 @@ void __fastcall TController::SetVelocity(double NewVel,double NewVelNext)
   ProximityDist=-800.0; //droga hamowania do zmiany prêdkoœci
  else
   ProximityDist=-300.0;
+ if (NewVel==0.0) //jeœli ma stan¹æ
+ {if (r!=stopNone) //a jest powód podany
+   eStopReason=r; //to zapamiêtaæ nowy powód
+ }
+ else
+  eStopReason=stopNone; //podana prêdkoœæ, to nie ma powodów do stania
 }
 
 bool __fastcall TController::SetProximityVelocity(double NewDist,double NewVelNext)
@@ -299,6 +320,8 @@ bool __fastcall TController::PrepareEngine()
  OK=OK&&(Controlling->ActiveDir!=0)&&(Controlling->CompressorAllow);
  if (OK)
  {
+  if (eStopReason==stopSleep) //jeœli dotychczas spa³
+   eStopReason==stopNone; //teraz nie ma powodu do stania
   EngineActive=true;
   return true;
  }
@@ -345,7 +368,8 @@ bool __fastcall TController::ReleaseEngine()
      if (!Controlling->DecMainCtrl(2))
       Controlling->DirectionForward();
   }
-  if (OK&&(Controlling->Vel<0.01)) EngineActive=false;
+ if (OK&&(Controlling->Vel<0.01)) EngineActive=false;
+ eStopReason=stopSleep; //stoimy z powodu wy³¹czenia
  return OK&&(Controlling->Vel<0.01);
 }
 
@@ -545,35 +569,43 @@ void __fastcall TController::RecognizeCommand()
  //ClearPendingExceptions;
  TCommand *c=&Controlling->CommandIn;
  if (c->Command=="Wait_for_orders")
-  Order=Wait_for_orders;
+  PutCommand(c->Command,c->Value1,c->Value2,c->Location);
+  //Order=Wait_for_orders;
  else if (c->Command=="Prepare_engine")
  {
-  if (c->Value1==0) Order=Release_engine;
-  else if (c->Value1==1) Order=Prepare_engine;
-  else OK=false;
+  PutCommand(c->Command,c->Value1,c->Value2,c->Location);
+  //if (c->Value1==0)
+  // Order=Release_engine;
+  //else if (c->Value1==1)
+  // Order=Prepare_engine;
+  //else OK=false;
  }
  else if (c->Command=="Change_direction")
- {if (c->Value1>0.0) ChangeDirOrder=1;
-  else if (c->Value1<0.0) ChangeDirOrder=-1;
-  else ChangeDirOrder=0.0;
-  Order=Change_direction;
+ {//if (c->Value1>0.0) ChangeDirOrder=1;
+  //else if (c->Value1<0.0) ChangeDirOrder=-1;
+  //else ChangeDirOrder=0;
+  //Order=Change_direction;
+  PutCommand(c->Command,c->Value1,c->Value2,c->Location);
  }
- else if (c->Command=="Obey_train")
+ //else if (c->Command=="Obey_train")
+ else if (c->Command.Pos("Obey")==1)
  {
-  Order=Obey_train;
-  if (c->Value1>0)
-   TrainNumber=floor(c->Value1); //i co potem ???
+  PutCommand(c->Command,c->Value1,c->Value2,c->Location);
+  //Order=Obey_train;
+  //if (c->Value1>0)
+  // TrainNumber=floor(c->Value1); //i co potem ???
  }
  else if (c->Command=="Shunt")
  {
-  Order=Shunt;
-  if (floor(c->Value1)!=VehicleCount)
-   VehicleCount=floor(c->Value1); //i co potem ? - trzeba zaprogramowac odczepianie
+  PutCommand(c->Command,c->Value1,c->Value2,c->Location);
+  //Order=Shunt;
+  //if (floor(c->Value1)!=VehicleCount)
+  // VehicleCount=floor(c->Value1); //i co potem ? - trzeba zaprogramowac odczepianie
  }
  else if (c->Command=="SetVelocity")
  {
   CommandLocation=c->Location;
-  SetVelocity(c->Value1,c->Value2);  //bylo: nic nie rob bo SetVelocity zewnetrznie jest wywolywane przez dynobj.cpp
+  SetVelocity(c->Value1,c->Value2,stopComm);  //bylo: nic nie rob bo SetVelocity zewnetrznie jest wywolywane przez dynobj.cpp
   if ((Order==Wait_for_orders)&&(c->Value1!=0.0))
    JumpToFirstOrder();
   else
@@ -585,8 +617,9 @@ void __fastcall TController::RecognizeCommand()
  }
  else if (c->Command=="SetProximityVelocity")
  {
-  if (SetProximityVelocity(c->Value1,c->Value2))
-   CommandLocation=c->Location;
+  PutCommand(c->Command,c->Value1,c->Value2,c->Location);
+  //if (SetProximityVelocity(c->Value1,c->Value2))
+  // CommandLocation=c->Location;
   //if (Order=Shunt) Order=Obey_train;
  }
  else if (c->Command=="ShuntVelocity")
@@ -596,16 +629,17 @@ void __fastcall TController::RecognizeCommand()
    if ((Order==Obey_train)||(Order==Wait_for_orders))
     Order=Shunt;
   if (Order==Shunt)
-   SetVelocity(c->Value1,c->Value2);
+   SetVelocity(c->Value1,c->Value2,stopComm);
  }
  else if (c->Command=="Jump_to_order")
  {
-  if (c->Value1==-1.0)
-   JumpToNextOrder();
-  else
-   if ((c->Value1>=0)&&(c->Value1<=maxorders))
-    OrderPos=floor(c->Value1);
-   Order=OrderList[OrderPos];
+  PutCommand(c->Command,c->Value1,c->Value2,c->Location);
+  //if (c->Value1==-1.0)
+  // JumpToNextOrder();
+  //else
+  // if ((c->Value1>=0)&&(c->Value1<=maxorders))
+  //  OrderPos=floor(c->Value1);
+  // Order=OrderList[OrderPos];
 /*
   if (WriteLogFlag)
   {
@@ -641,7 +675,9 @@ void __fastcall TController::RecognizeCommand()
   if (Order==Obey_train)
    TrainSet->UpdateMTable(GlobalTime->hh,GlobalTime->mm,c->Command.SubString(20,c->Command.Length()-20));
  }
- else OK=false;
+ else
+  PutCommand(c->Command,c->Value1,c->Value2,c->Location);
+  //OK=false;
  if (OK)
  {
   c->Command="";
@@ -649,13 +685,13 @@ void __fastcall TController::RecognizeCommand()
  }
 }
 
-void __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,double NewValue2,const Mover::TLocation &NewLocation)
+void __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,double NewValue2,const Mover::TLocation &NewLocation,TStopReason reason)
 {
  //ClearPendingExceptions;
  if (NewCommand=="SetVelocity")
  {
   CommandLocation= NewLocation;
-  SetVelocity(NewValue1,NewValue2);
+  SetVelocity(NewValue1,NewValue2,reason);
   if ((OrderList[OrderPos]==Shunt) &&  (NewValue1!=0))
   {
    OrderList[OrderPos]=Obey_train;
@@ -665,13 +701,13 @@ void __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
  else if (NewCommand=="SetProximityVelocity")
  {
   if (SetProximityVelocity(NewValue1,NewValue2))
-   CommandLocation= NewLocation;
+   CommandLocation=NewLocation;
   //if Order=Shunt) Order=Obey_train;
  }
  else if (NewCommand=="ShuntVelocity")
  {//Ra: by³y dwa, po³¹czy³em, ale nadal jest bez sensu
   CommandLocation=NewLocation;
-  //SetVelocity(NewValue1,NewValue2);
+  //SetVelocity(NewValue1,NewValue2,reason);
   //if (OrderList[OrderPos]=Obey_train) and (NewValue1<>0))
   if ((OrderList[OrderPos]==Prepare_engine))//jeœli w trakcie odpalania
    OrderList[OrderPos+1]=Shunt; //wstawimy do nastêpnej pozycji
@@ -681,7 +717,7 @@ void __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
    VehicleCount=-2;
   Prepare2press=false;
   //if (OrderList[OrderPos]<>Obey_train))
-  SetVelocity(NewValue1,NewValue2);
+  SetVelocity(NewValue1,NewValue2,reason);
  }
  else if (NewCommand=="Wait_for_orders")
   OrderList[OrderPos]=Wait_for_orders;
@@ -694,8 +730,7 @@ void __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
  }
  else if (NewCommand=="Change_direction")
  {if (NewValue1>0.0) ChangeDirOrder=1;
-  else if (NewValue1<0.0)
-   ChangeDirOrder=-1;
+  else if (NewValue1<0.0) ChangeDirOrder=-1;
   else ChangeDirOrder=0;
   OrderList[OrderPos]=Change_direction;
  }
@@ -705,17 +740,40 @@ void __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
   if (NewValue1>0)
    TrainNumber=floor(NewValue1); //i co potem ???
  }
+ else if (NewCommand.Pos("Obey:")==1)
+ {//przypisanie nowego rozk³adu jazdy
+  OrderList[OrderPos]=Obey_train; //¿e do jazdy
+  NewCommand.Delete(1,5); //zostanie nazwa pliku z rozk³adem
+  TrainSet->NewName(NewCommand);
+  if (NewCommand!="none")
+   if (!TrainSet->LoadTTfile(Global::asCurrentSceneryPath))
+    Error("Cannot load timetable file "+NewCommand+"\r\nError "+ConversionError+" in position "+TrainSet->StationCount);
+   else
+   {//inicjacja pierwszego przystanku i pobranie jego nazwy
+    TrainSet->UpdateMTable(GlobalTime->hh,GlobalTime->mm,TrainSet->NextStationName);
+    Vehicle->asNextStop=TrainSet->NextStop();
+    WriteLog("/* Timetable: "+TrainSet->ShowRelation());
+    TMTableLine *t;
+    for (int i=0;i<=TrainSet->StationCount;++i)
+    {t=TrainSet->TimeTable+i;
+     WriteLog(AnsiString(t->StationName)+" "+AnsiString((int)t->Ah)+":"+AnsiString((int)t->Am)+", "+AnsiString((int)t->Dh)+":"+AnsiString((int)t->Dm));
+    }
+    WriteLog("*/");
+   }
+  if (NewValue1>0)
+   TrainNumber=floor(NewValue1); //i co potem ???
+ }
  else if (NewCommand=="Shunt")
  {
   if (NewValue1!=VehicleCount)
    VehicleCount=floor(NewValue1); //i co potem ? - trzeba zaprogramowac odczepianie
-  OrderList[OrderPos]= Shunt;
+  OrderList[OrderPos]=Shunt;
  }
  else if (NewCommand=="Jump_to_first_order")
   JumpToFirstOrder();
  else if (NewCommand=="Jump_to_order")
  {
-  if (NewValue1==-1)
+  if (NewValue1==-1.0)
    JumpToNextOrder();
   else
    if ((NewValue1>=0)&&(NewValue1<=maxorders))
@@ -743,12 +801,17 @@ void __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
  else if (NewCommand=="OutsideStation") //wskaznik W5
  {
   if (OrderList[OrderPos]==Obey_train)
-   SetVelocity(NewValue1,NewValue2); //koniec stacji - predkosc szlakowa
+   SetVelocity(NewValue1,NewValue2,stopOut); //koniec stacji - predkosc szlakowa
   else //manewry - zawracaj
   {
    ChangeDirOrder=0;
    OrderList[OrderPos]=Change_direction;
   }
+ }
+ else if (NewCommand=="Emergency_brake") //wymuszenie zatrzymania
+ {//Ra: no nadal nie jest zbyt piêknie
+  SetVelocity(0,0,reason);
+  Controlling->PutCommand("Emergency_brake",1.0,1.0,Controlling->Loc);
  }
 };
 
@@ -1361,6 +1424,7 @@ __fastcall TController::TController
  MaxProximityDist=50.0;
  VehicleCount=-2;
  Prepare2press=false;
+ eStopReason=stopSleep; //na pocz¹tku œpi
 }
 
 void __fastcall TController::CloseLog()
@@ -1377,3 +1441,8 @@ void __fastcall TController::CloseLog()
  }
 */
 }
+
+AnsiString __fastcall TController::StopReasonText()
+{//informacja tekstowa o przyczynie zatrzymania
+ return StopReasonTable[eStopReason];
+};

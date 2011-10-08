@@ -21,6 +21,20 @@ enum TOrders
  Jump_to_first_order //zapêlenie do pierwszej pozycji
 };
 
+enum TStopReason
+{//powód zatrzymania
+ stopNone, //nie ma powodu - powinien jechaæ
+ stopSleep, //nie zosta³ odpalony, to nie pojedzie
+ stopSem, //semafor zamkniêty
+ stopTime, //czekanie na godzinê odjazdu
+ stopEnd, //brak dalszej czêœci toru
+ stopDir, //trzeba stan¹æ, by zmieniæ kierunek jazdy
+ stopBlock, //przeszkoda na drodze ruchu
+ stopComm, //otrzymano tak¹ komendê (niewiadomego pochodzenia)
+ stopOut, //komenda wyjazdu poza stacjê (raczej nie powinna zatrzymywaæ!)
+ stopRadio, //komunikat przekazany radiem (Radiostop)
+ stopError //z powodu b³êdu w obliczeniu drogi hamowania
+};
 /*
 struct TProximityTablePos
 {
@@ -100,6 +114,7 @@ public:
  double MinProximityDist;
  double MaxProximityDist;
  bool bCheckSKP;
+ TStopReason eStopReason;
  void __fastcall SetDriverPsyche();
  bool __fastcall PrepareEngine();
  bool __fastcall ReleaseEngine();
@@ -108,10 +123,10 @@ public:
  bool __fastcall IncSpeed();
  bool __fastcall DecSpeed();
  void __fastcall RecognizeCommand(); //odczytuje komende przekazana lokomotywie
- void __fastcall PutCommand(AnsiString NewCommand,double NewValue1,double NewValue2,const Mover::TLocation &NewLocation);
+ void __fastcall PutCommand(AnsiString NewCommand,double NewValue1,double NewValue2,const Mover::TLocation &NewLocation,TStopReason reason=stopComm);
  bool __fastcall UpdateSituation(double dt); //uruchamiac przynajmniej raz na sekunde
  //procedury dotyczace rozkazow dla maszynisty
- void __fastcall SetVelocity(double NewVel,double NewVelNext); //uaktualnia informacje o predkosci
+ void __fastcall SetVelocity(double NewVel,double NewVelNext,TStopReason r=stopNone); //uaktualnia informacje o predkosci
  bool __fastcall SetProximityVelocity(double NewDist,double NewVelNext); //uaktualnia informacje o predkosci przy nastepnym semaforze
  bool __fastcall AddReducedVelocity(double Distance, double Velocity, Byte Flag);
  void __fastcall JumpToNextOrder();
@@ -140,6 +155,7 @@ private:
  int __fastcall OrderDirectionChange(int newdir,Mover::TMoverParameters *Vehicle);
 public:
  //inline __fastcall TController() { };
+ AnsiString __fastcall StopReasonText();
  inline __fastcall virtual ~TController() {};
 };
 
