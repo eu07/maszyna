@@ -47,7 +47,8 @@ Type
                         function UpdateMTable(hh,mm:real; NewName: string): boolean;
                         constructor Init(NewTrainName:string);
                         procedure NewName(NewTrainName:string);
-                        function LoadTTfile(scnpath:string): boolean;
+                        function LoadTTfile(scnpath:string):boolean;
+                        function DirectionChange():boolean;
                       end;
 
    TMTableTime = class(TObject)
@@ -463,10 +464,15 @@ begin
   ssm:=InitSSM;
 end;
 
+function TTrainParameters.DirectionChange():boolean;
+//sprawdzenie, czy po zatrzymaniu zmieniæ kierunek jazdy
+begin
+ DirectionChange:=false; //przed pierwsz¹ bez zmiany
+ if (StationIndex>0) and (StationIndex<=StationCount) then
+  if (Pos('@',TimeTable[StationIndex-1].StationWare)>0) then
+   DirectionChange:=true;
+end;
+
 
 END.
-
-
-
-
 

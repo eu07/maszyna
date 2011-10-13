@@ -26,6 +26,7 @@
 #include "MdlMngr.h"
 #include "Globals.h"
 #include "Timer.h"
+#include "Driver.h"
 
 using namespace Timer;
 
@@ -295,9 +296,8 @@ void __fastcall TTrain::OnKeyPress(int cKey)
         DynamicObject->Mechanik->Ready=false;
         DynamicObject->Mechanik->AIControllFlag=AIdriver;
         DynamicObject->Controller=AIdriver;
-        DynamicObject->Mechanik->ChangeOrder(Prepare_engine);
-        DynamicObject->Mechanik->JumpToNextOrder();
-        DynamicObject->Mechanik->ChangeOrder(Obey_train); //to bez sensu jest
+        DynamicObject->Mechanik->OrderNext(Prepare_engine);
+        DynamicObject->Mechanik->OrderNext(Obey_train); //to bez sensu jest
         DynamicObject->Mechanik->JumpToFirstOrder();
   // czy dac ponizsze? to problematyczne
         DynamicObject->Mechanik->SetVelocity(DynamicObject->GetVelocity(),-1); //utrzymanie dotychczasowej?
@@ -1472,9 +1472,9 @@ void __fastcall TTrain::UpdateMechPosition(double dt)
 
  double a1,a2,atmp;
  a1=(DynamicObject->Axle1.GetRoll()); //pobranie przechy³ki wózka
- a2=(DynamicObject->Axle4.GetRoll()); //uwzglêdnia ju¿ kierunek ruchu
+ a2=(DynamicObject->Axle0.GetRoll()); //uwzglêdnia ju¿ kierunek ruchu
  atmp=(a1+a2); //k¹t przechy³u pud³a
- //mat.Rotation(((Axle1.GetRoll()+Axle4.GetRoll()))*0.5f,vFront); //przedtem by³o bez zmiennych
+ //mat.Rotation(((Axle1.GetRoll()+Axle0.GetRoll()))*0.5f,vFront); //przedtem by³o bez zmiennych
  mat.Rotation(atmp*0.5f,DynamicObject->vFront); //obrót matrycy o k¹t pud³a
  //Ra: tu by siê przyda³o uwzglêdniæ rozk³ad si³:
  // - na postoju horyzont prosto, kabina skosem
