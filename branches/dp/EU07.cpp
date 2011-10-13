@@ -26,6 +26,9 @@
 #include "classes.hpp"
 #include "Globals.h"
 #include "Feedback.h"
+#include "QueryParserComp.hpp"
+#include <Mover.hpp>
+#include "Train.h" //to tu bez sensu jest
 #pragma hdrstop
 
 USERES("EU07.res");
