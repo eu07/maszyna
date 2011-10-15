@@ -116,7 +116,7 @@ void __fastcall TIsolated::Modify(int i,TDynamicObject *o)
 };
 
 
-__fastcall TTrack::TTrack()
+__fastcall TTrack::TTrack(TGroundNode *g)
 {//tworzenie nowego odcinka ruchu
  pNext=pPrev=NULL; //s¹siednie
  Segment=NULL; //dane odcinka
@@ -158,6 +158,7 @@ __fastcall TTrack::TTrack()
  iPrevDirection=0; //domyœlnie wirtualne odcinki do³¹czamy stron¹ od Point1
  iNextDirection=0;
  pIsolated=NULL;
+ pMyNode=g; //Ra: proteza, ¿eby tor zna³ swoj¹ nazwê TODO: odziedziczyæ TTrack z TGroundNode
 }
 
 __fastcall TTrack::~TTrack()
@@ -190,7 +191,7 @@ TTrack* __fastcall TTrack::NullCreate(int dir)
 {//tworzenie toru wykolejaj¹cego od strony (dir)
  TGroundNode *tmp=new TGroundNode(); //node
  tmp->iType=TP_TRACK;
- TTrack* trk=new TTrack(); //tor; UWAGA! obrotnica mo¿e generowaæ du¿e iloœci tego
+ TTrack* trk=new TTrack(tmp); //tor; UWAGA! obrotnica mo¿e generowaæ du¿e iloœci tego
  tmp->pTrack=trk;
  trk->bVisible=false; //nie potrzeba pokazywaæ, zreszt¹ i tak nie ma tekstur
  //trk->iTrapezoid=1; //s¹ przechy³ki do uwzglêdniania w rysowaniu
@@ -794,6 +795,12 @@ bool __fastcall TTrack::IsolatedEventsAssign(TEvent *busy, TEvent *free)
 //ABu: przeniesione z Track.h i poprawione!!!
 bool __fastcall TTrack::AddDynamicObject(TDynamicObject *Dynamic)
 {//dodanie pojazdu do trajektorii
+ //Ra: tymczasowo wysy³anie informacji o zajêtoœci konkretnego toru
+ //Ra: usun¹æ po upowszechnieniu siê odcinków izolowanych
+ if (Global::iMultiplayer) //jeœli multiplayer
+  if (!iNumDynamics) //pierwszy zajmuj¹cy
+   if (pMyNode->asName!="none")
+    Global::pGround->WyslijString(pMyNode->asName,8); //przekazanie informacji o zajêtoœci toru
  if (iNumDynamics<iMaxNumDynamics)
  {//jeœli jest miejsce, dajemy na koniec
   Dynamics[iNumDynamics++]=Dynamic;
@@ -1373,17 +1380,16 @@ void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Star
  {//Ra: jest OK
   fHTW2=0.5*fabs(pNext->fTrackWidth); //po³owa rozstawu/nawierzchni
   side2=fabs(pNext->fTexWidth);
-  slop2=fabs(pNext->fTexSlope);
+  slop2=fabs(pNext->fTexSlope); //nie jest u¿ywane póŸniej
   rozp2=fHTW2+side2+slop2;
   fTexHeight2=pNext->fTexHeight;
-  //zabezpieczenia przed zawieszeniem - jest OK, ju¿ siê nie wiesza
  }
  else //gdy nie ma nastêpnego albo jest nieodpowiednim koñcem podpiêty
- {fHTW2=fHTW; side2=side; slop2=slop; rozp2=rozp; fTexHeight2=fTexHeight;}
+ {fHTW2=fHTW; side2=side; /*slop2=slop;*/ rozp2=rozp; fTexHeight2=fTexHeight;}
  double roll1,roll2;
  switch (iCategoryFlag)
  {
-  case 1:   //tor
+  case 1: //tor
   {
    if (Segment)
     Segment->GetRolls(roll1,roll2);

@@ -362,39 +362,6 @@ void __fastcall TGroundNode::RaRender()
    if (iVboPtr>=0)
     RaRenderVBO();
  };
-/* Ra: trójk¹ty i linie renderuj¹ siê z VBO sektora
-    // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
-    if(
-        (iNumVerts && (!TexAlpha)) ||
-        (iNumPts && (fLineThickness < 0)))
-    {
-
-        if ( !DisplayListID || Global::bReCompile) //Ra: wymuszenie rekompilacji
-        {
-         Compile();
-         if (Global::bManageNodes)
-          ResourceManager::Register(this);
-        };
-
-        // GL_LINE, GL_LINE_STRIP, GL_LINE_LOOP
-        if (iNumPts)
-        {
-            r=Diffuse[0]*Global::ambientDayLight[0];  //w zaleznosci od koloru swiatla
-            g=Diffuse[1]*Global::ambientDayLight[1];
-            b=Diffuse[2]*Global::ambientDayLight[2];
-            glColor4ub(r,g,b,1.0);
-            glCallList(DisplayListID);
-        }
-        // GL_TRIANGLE etc
-        else
-        {
-            glCallList(DisplayListID);
-        };
-
-        SetLastUsage(Timer::GetSimulationTime());
-
-    };
-*/
  return;
 };
 
@@ -1114,7 +1081,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    tmp->EvLaunch->Load(parser);
    break;
   case TP_TRACK :
-   tmp->pTrack=new TTrack();
+   tmp->pTrack=new TTrack(tmp);
    if ((DebugModeFlag) && (tmp->asName!=AnsiString("")))
      WriteLog(tmp->asName.c_str());
    tmp->pTrack->Load(parser,pOrigin,tmp->asName); //w nazwie mo¿e byæ nazwa odcinka izolowanego
@@ -1565,7 +1532,7 @@ bool __fastcall TGround::Init(AnsiString asFile)
     Parser->First();
     AnsiString Token,asFileName;
 */
-    const int OriginStackMaxDepth=1000; //rozmiar stosu dla zagnie¿d¿enia origin
+    const int OriginStackMaxDepth=100; //rozmiar stosu dla zagnie¿d¿enia origin
     int OriginStackTop=0;
     vector3 OriginStack[OriginStackMaxDepth]; //stos zagnie¿d¿enia origin
 
@@ -1623,11 +1590,13 @@ bool __fastcall TGround::Init(AnsiString asFile)
          if (asTrainName!=AnsiString("none"))
           if (TrainSetNode) //trainset bez dynamic siê sypa³
           {//gdy podana nazwa, w³¹czenie jazdy poci¹gowej
+/*
            if((TrainSetNode->DynamicObject->EndSignalsLight1Active())
             ||(TrainSetNode->DynamicObject->EndSignalsLight1oldActive()))
-            TrainSetNode->DynamicObject->MoverParameters->HeadSignalsFlag=2+32;
+            TrainSetNode->DynamicObject->MoverParameters->HeadSignal=2+32;
            else
             TrainSetNode->DynamicObject->MoverParameters->EndSignalsFlag=64;
+*/
           }
          bTrainSet=false;
          fTrainSetVel=0;
@@ -2468,12 +2437,13 @@ if (QueryRootEvent)
 //McZapkie-100302 - updatevalues oprocz zmiany wartosci robi putcommand dla wszystkich 'dynamic' na danym torze
                 if (QueryRootEvent->Params[10].asTrack)
                  {
-                  loc.X= -QueryRootEvent->Params[8].asGroundNode->pCenter.x;
-                  loc.Y=  QueryRootEvent->Params[8].asGroundNode->pCenter.z;
-                  loc.Z=  QueryRootEvent->Params[8].asGroundNode->pCenter.y;
+                  //loc.X= -QueryRootEvent->Params[8].asGroundNode->pCenter.x;
+                  //loc.Y=  QueryRootEvent->Params[8].asGroundNode->pCenter.z;
+                  //loc.Z=  QueryRootEvent->Params[8].asGroundNode->pCenter.y;
                   for (int i=0; i<QueryRootEvent->Params[10].asTrack->iNumDynamics; i++)
                    {
-                    QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Params[10].asTrack->Dynamics[i]->Mechanik,loc);
+                    //QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Params[10].asTrack->Dynamics[i]->Mechanik,loc);
+                    QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Params[10].asTrack->Dynamics[i]->Mechanik,&QueryRootEvent->Params[8].asGroundNode->pCenter);
                    }
                   LogComment="Type: UpdateValues & Track command - ";
                   LogComment+=AnsiString(QueryRootEvent->Params[0].asText);
@@ -2489,109 +2459,23 @@ if (QueryRootEvent)
             case tp_GetValues :
              if (QueryRootEvent->Activator)
              {
-              loc.X= -QueryRootEvent->Params[8].asGroundNode->pCenter.x;
-              loc.Y=  QueryRootEvent->Params[8].asGroundNode->pCenter.z;
-              loc.Z=  QueryRootEvent->Params[8].asGroundNode->pCenter.y;
+              //loc.X= -QueryRootEvent->Params[8].asGroundNode->pCenter.x;
+              //loc.Y=  QueryRootEvent->Params[8].asGroundNode->pCenter.z;
+              //loc.Z=  QueryRootEvent->Params[8].asGroundNode->pCenter.y;
               if (Global::iMultiplayer) //potwierdzenie wykonania dla serwera - najczêœciej odczyt semafora
                WyslijEvent(QueryRootEvent->asName,QueryRootEvent->Activator->GetName());
-/*
-	      TDynamicObject* tmp2=NULL;
-	      if(QueryRootEvent->Activator->Mechanik!=NULL)
-              {if ((String(QueryRootEvent->Params[9].asMemCell->szText )=="Change_direction"
-                ||(String(QueryRootEvent->Params[9].asMemCell->szText )=="OutsideStation"
-                 &&QueryRootEvent->Activator->Mechanik->OrderList[QueryRootEvent->Activator->Mechanik->OrderPos]!=Obey_train))
-                 &&QueryRootEvent->Params[9].asMemCell->fValue1!=QueryRootEvent->Activator->MoverParameters->CabNo)
-    		{
-    		 if (QueryRootEvent->Activator->GetName()!=Global::asHumanCtrlVehicle)
-                {
-                 TDynamicObject* tmp1;
-                 tmp1=QueryRootEvent->Activator->GetFirstDynamic(1);
-                 if (tmp1!=QueryRootEvent->Activator)
-                 {
-                  tmp2=tmp1->GetFirstCabDynamic(0);
-                  if (tmp2==NULL)
-                  {
-                   tmp2=tmp1->GetFirstCabDynamic(1);
-                  }
-                  if (tmp2!=NULL&&tmp2!=QueryRootEvent->Activator)
-                   QueryRootEvent->Activator->DynChangeStart(tmp2);
-                  else
-                   QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Activator->Mechanik,loc);
-                 }
-                 else
-                 {
-                  tmp1=QueryRootEvent->Activator->GetFirstDynamic(0);
-                  if (tmp1!=QueryRootEvent->Activator)
-                  {
-                   tmp2=tmp1->GetFirstCabDynamic(1);
-                   if (tmp2==NULL)
-                   {
-                    tmp2=tmp1->GetFirstCabDynamic(0);
-                   }
-                   if(tmp2!=NULL&&tmp2!=QueryRootEvent->Activator)
-                    QueryRootEvent->Activator->DynChangeStart(tmp2);
-                   else
-                    QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Activator->Mechanik,loc);
-                  }
-                 }
-                }
-               }
-              }
-              if (tmp2==NULL)
-*/
-               QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Activator->Mechanik,loc);
+               //QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Activator->Mechanik,loc);
+               QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Activator->Mechanik,&QueryRootEvent->Params[8].asGroundNode->pCenter);
              }
              WriteLog("Type: GetValues");
             break;
             case tp_PutValues :
              if (QueryRootEvent->Activator)
              {
-              loc.X= -QueryRootEvent->Params[3].asdouble;
-              loc.Y=  QueryRootEvent->Params[5].asdouble;
-              loc.Z=  QueryRootEvent->Params[4].asdouble;
-              TDynamicObject* tmp2 = NULL;
+              loc.X=QueryRootEvent->Params[3].asdouble;
+              loc.Y=QueryRootEvent->Params[4].asdouble;
+              loc.Z=QueryRootEvent->Params[5].asdouble;
               if (QueryRootEvent->Activator->Mechanik)
-/*
-              {
-               if((QueryRootEvent->Params[0].asText=="Change_direction"||(QueryRootEvent->Params[0].asText=="OutsideStation"&&QueryRootEvent->Activator->Mechanik->OrderList[QueryRootEvent->Activator->Mechanik->OrderPos]!=Obey_train))&&
-               QueryRootEvent->Params[1].asdouble!=QueryRootEvent->Activator->MoverParameters->CabNo)
-               {
-               if(QueryRootEvent->Activator->GetName()!=Global::asHumanCtrlVehicle)
-               {
-
-                   TDynamicObject* tmp1;
-                   tmp1 = QueryRootEvent->Activator->GetFirstDynamic(0);
-                   if(tmp1!=QueryRootEvent->Activator)
-                   {
-                     tmp2 = tmp1->GetFirstCabDynamic(1);
-                     if((tmp2==tmp1&&tmp1->MoverParameters->CabNo!=1)||tmp2==NULL)
-                     {
-                       tmp2 = tmp1->GetFirstCabDynamic(0);
-                     }
-
-                     if(tmp2!=NULL&&tmp2!=QueryRootEvent->Activator)
-                     QueryRootEvent->Activator->DynChangeStart(tmp2);
-                   }
-                   else
-                   {
-                   tmp1 = QueryRootEvent->Activator->GetFirstDynamic(0);
-                   if(tmp1!=QueryRootEvent->Activator)
-                   {
-                     tmp2 = tmp1->GetFirstCabDynamic(0);
-                     if((tmp2==tmp1&&tmp1->MoverParameters->CabNo!=1)||tmp2==NULL)
-                     {
-                       tmp2 = tmp1->GetFirstCabDynamic(1);
-                     }
-
-                     if(tmp2!=NULL&&tmp2!=QueryRootEvent->Activator)
-                     QueryRootEvent->Activator->DynChangeStart(tmp2);
-                   }
-                 }
-               }
-              }
-             }
-             if(tmp2==NULL)
-*/
                QueryRootEvent->Activator->MoverParameters->PutCommand(QueryRootEvent->Params[0].asText,
                                                                       QueryRootEvent->Params[1].asdouble,
                                                                       QueryRootEvent->Params[2].asdouble,loc);

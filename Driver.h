@@ -3,13 +3,11 @@
 #ifndef DriverH
 #define DriverH
 
-// Ra: poprawiony rêcznie plik nag³ówkowy
-
 #include "Classes.h"
 #include <mover.hpp>	// Pascal unit
+#include "dumb3d.h"
+using namespace Math3D;
 
-//namespace Ai_driver {
-//-- type declarations -------------------------------------------------------
 enum TOrders
 {//rozkazy dla AI
  Wait_for_orders=0,       //czekanie na dostarczenie nastêpnych rozkazów
@@ -38,6 +36,7 @@ enum TStopReason
  stopComm,  //otrzymano tak¹ komendê (niewiadomego pochodzenia)
  stopOut,   //komenda wyjazdu poza stacjê (raczej nie powinna zatrzymywaæ!)
  stopRadio, //komunikat przekazany radiem (Radiostop)
+ stopExt,   //komenda z zewn¹trz
  stopError  //z powodu b³êdu w obliczeniu drogi hamowania
 };
 /*
@@ -71,9 +70,12 @@ class TController
  double fShuntVelocity; //maksymalna prêdkoœæ manewrowania, zale¿y m.in. od sk³adu
  double fLength; //d³ugoœæ sk³adu (dla ograniczeñ i stawania przed semaforami)
  bool bCheckVehicles; //nale¿y sprawdziæ pojazdy i ustawiæ œwiat³a
+ int iVehicles; //iloœæ pojazdów w sk³adzie 
  bool EngineActive; //ABu: Czy silnik byl juz zalaczony
- Mover::TLocation MechLoc;
- Mover::TRotation MechRot;
+ //Mover::TLocation MechLoc;
+ //Mover::TRotation MechRot;
+ vector3 vMechLoc; //pozycja pojazdu do liczenia odleg³oœci od semafora (?)
+ //vector3 vMechRot;
  bool Psyche;
 public:
  double ReactionTime; //czas reakcji Ra: czego?
@@ -89,9 +91,9 @@ public:
  bool OnStationFlag; //Czy jest na peronie
 private:
  TDynamicObject *pVehicle; //pojazd w którym siedzi steruj¹cy
- TDynamicObject *Vehicles[2]; //skrajne pojazdy w sk³adzie
+ TDynamicObject *pVehicles[2]; //skrajne pojazdy w sk³adzie
  Mover::TMoverParameters *Controlling; //jakim pojazdem steruje
- Mtable::TTrainParameters *TrainSet; //do jakiego pociagu nalezy
+ Mtable::TTrainParameters *TrainParams; //do jakiego pociagu nalezy
  int TrainNumber; //numer rozkladowy tego pociagu
  AnsiString OrderCommand; //komenda pobierana z pojazdu
  double OrderValue; //argument komendy
@@ -114,7 +116,7 @@ private:
  //Byte ProximityTableIndex;
  //Byte LPTA;
  //Byte LPTI;
- Mover::TLocation CommandLocation; //polozenie wskaznika, sygnalizatora lub innego obiektu do ktorego odnosi sie komenda
+ vector3 vCommandLocation; //polozenie wskaznika, sygnalizatora lub innego obiektu do ktorego odnosi sie komenda
  TOrders OrderList[maxorders]; //lista rozkazów
  int OrderPos,OrderTop; //rozkaz aktualny oraz wolne miejsce do wstawiania nowych
  TextFile LogFile; //zapis parametrow fizycznych
@@ -142,8 +144,9 @@ private:
  bool __fastcall IncSpeed();
  bool __fastcall DecSpeed();
  void __fastcall RecognizeCommand(); //odczytuje komende przekazana lokomotywie
-public:
  void __fastcall PutCommand(AnsiString NewCommand,double NewValue1,double NewValue2,const Mover::TLocation &NewLocation,TStopReason reason=stopComm);
+public:
+ void __fastcall PutCommand(AnsiString NewCommand,double NewValue1,double NewValue2,const vector3 *NewLocation,TStopReason reason=stopComm);
  bool __fastcall UpdateSituation(double dt); //uruchamiac przynajmniej raz na sekunde
  //procedury dotyczace rozkazow dla maszynisty
  void __fastcall SetVelocity(double NewVel,double NewVelNext,TStopReason r=stopNone); //uaktualnia informacje o predkosci
@@ -162,11 +165,13 @@ private:
  void __fastcall CloseLog();
 public:
  __fastcall TController
- (const Mover::TLocation &LocInitial,
-  const Mover::TRotation &RotInitial,
+ (//const Mover::TLocation &LocInitial,
+  //const Mover::TRotation &RotInitial,
+  //const vector3 &vLocInitial,
+  //const vector3 &vRotInitial,
   bool AI,
   TDynamicObject *NewControll,
-  Mtable::TTrainParameters *NewTrainSet,
+  Mtable::TTrainParameters *NewTrainParams,
   bool InitPsyche
  );
  AnsiString __fastcall OrderCurrent();
@@ -179,10 +184,25 @@ private:
  double WaitingExpireTime; //maksymlany czas oczekiwania do samoistnego ruszenia
  AnsiString __fastcall Order2Str(TOrders Order);
  int __fastcall OrderDirectionChange(int newdir,Mover::TMoverParameters *Vehicle);
+ void __fastcall Lights(int head,int rear);
+ //Ra: poni¿sze przenieœæ do modu³u AI:
+ TEvent* eSignSkip; //miniêty sygna³ zezwalaj¹cy na jazdê, pomijany przy szukaniu
+ double fSignSpeed; //prêdkoœæ w moemcie zobaczenia W4
+ AnsiString asNextStop; //nazwa nastêpnego punktu zatrzymania wg rozk³adu
+public:
+ TEvent* eSignLast; //ostatnio znaleziony sygna³, o ile nie miniêty
+private:
+ TEvent* __fastcall CheckTrackEvent(double fDirection,TTrack *Track);
+ TTrack* __fastcall TraceRoute(double &fDistance,double &fDirection,TTrack *Track,TEvent*&Event);
+ void SetProximityVelocity(double dist,double vel,const vector3 *pos);
+ //Ra: koniec tych do przeniesienia do AI
 public:
  //inline __fastcall TController() { };
  AnsiString __fastcall StopReasonText();
  __fastcall ~TController();
+ void __fastcall ScanEventTrack();
+ bool __fastcall CheckEvent(TEvent *e,bool prox);
+ AnsiString __fastcall NextStop();
 };
 
 #endif

@@ -180,7 +180,7 @@ CONST
    dt_PseudoDiesel=4;
    dt_ET22=5; //nie u¿ywane
    dt_SN61=6; //nie u¿ywane
-   dt_181=7; 
+   dt_181=7;
 
 TYPE
     PMoverParameters=^TMoverParameters;
@@ -238,7 +238,7 @@ TYPE
                 end;
 
     TCouplers= array[0..1] of TCoupling;
-    TCouplerNr= array[0..1] of byte; {ABu: nr sprzegu z ktorym polaczony}
+    TCouplerNr= array[0..1] of byte; //ABu: nr sprzegu z ktorym polaczony; Ra: wrzuciæ do TCoupling
 
     {typy hamulcow zespolonych}
     TBrakeSystem = (Individual, Pneumatic, ElectroPneumatic);
@@ -543,8 +543,8 @@ TYPE
 
                 DamageFlag: byte;  {kombinacja bitowa stalych dtrain_* }
 
-                EndSignalsFlag: byte;  {ABu 060205: zmiany - koncowki: 1/16 - swiatla prz/tyl, 2/31 - blachy prz/tyl}
-                HeadSignalsFlag: byte; {ABu 060205: zmiany - swiatla: 1/2/4 - przod, 16/32/63 - tyl}
+                //EndSignalsFlag: byte;  {ABu 060205: zmiany - koncowki: 1/16 - swiatla prz/tyl, 2/31 - blachy prz/tyl}
+                //HeadSignalsFlag: byte; {ABu 060205: zmiany - swiatla: 1/2/4 - przod, 16/32/63 - tyl}
                 CommandIn: TCommand;
                 {komenda przekazywana przez PutCommand}
                 {i wykonywana przez RunInternalCommand}
@@ -1090,15 +1090,27 @@ end;
 
 
 function TMoverParameters.SendCtrlToNext(CtrlCommand:string;ctrlvalue,dir:real):boolean;
-var OK:boolean;
+//wys³anie komendy w kierunku dir (1=przod,-1=ty³)
+var
+ OK:Boolean;
+ d:Integer;
 begin
-   OK:=(dir<>0); // and Mains;
-   if OK then
-    with Couplers[(1+Sign(dir)) div 2] do
-     if TestFlag(CouplingFlag,ctrain_controll) then
+//Ra: by³ problem z propagacj¹, jeœli w sk³adzie jest pojazd wstawiony odwrotnie
+//Ra: problem jest równie¿, jeœli AI bêdzie na koñcu sk³adu
+ OK:=(dir<>0); // and Mains;
+ d:=(1+Sign(dir)) div 2; //-1=>0, 1=>1
+ if OK then
+  with Couplers[d] do //w³asny sprzêg od strony (d)
+   if TestFlag(CouplingFlag,ctrain_controll) then
+    if CouplerNr[d]<>d then //jeœli ten nastpêny jest zgodny z aktualnym
+     begin
       if Connected^.SetInternalCommand(CtrlCommand,ctrlvalue,dir) then
        OK:=Connected^.RunInternalCommand and OK;
-   SendCtrlToNext:=OK;
+     end
+     else //jeœli nastêpny jest ustawiony przeciwnie, zmieniamy kierunek
+      if Connected^.SetInternalCommand(CtrlCommand,ctrlvalue,-dir) then
+       OK:=Connected^.RunInternalCommand and OK;
+ SendCtrlToNext:=OK;
 end;
 
 procedure TMoverParameters.PantCheck;
@@ -1245,8 +1257,8 @@ begin
        end {case EngineType}
       else
        if CoupledCtrl then {wspolny wal}
-         begin
-           if ScndCtrlPos<ScndCtrlPosNo then
+         begin //Ra:tu jest coœ bez sensu, OK=False i EN57 stoi
+           if ScndCtrlPos<ScndCtrlPosNo then //3<3 -> false
              begin
                inc(ScndCtrlPos);
                OK:=True;
@@ -4943,8 +4955,8 @@ begin
   Vel:=Abs(VelInitial); V:=VelInitial/3.6;
   LastSwitchingTime:=0;
   LastRelayTime:=0;
-  EndSignalsFlag:=0;
-  HeadSignalsFlag:=0;
+  //EndSignalsFlag:=0;
+  //HeadSignalsFlag:=0;
   DistCounter:=0;
   PulseForce:=0;
   PulseForceTimer:=0;
@@ -4993,7 +5005,7 @@ begin
       Status:=0;
       SystemTimer:=0; SystemBrakeTimer:=0;
       VelocityAllowed:=-1; NextVelocityAllowed:=-1;
-      RadioStop:=false; //domyœlnie nie ma 
+      RadioStop:=false; //domyœlnie nie ma
     end;
     //ABu 240105:
     CouplerNr[0]:=1;
