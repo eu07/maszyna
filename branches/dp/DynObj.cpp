@@ -33,8 +33,7 @@
 #include "AirCoupler.h"
 
 #include "TractionPower.h"
-#include "MemCell.h"
-#include "Ground.h"
+#include "Ground.h" //bo AddToQuery jest
 #include "Event.h"
 #include "Driver.h"
 
@@ -493,19 +492,19 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
 // sygnaly konca pociagu
     if (btEndSignals1.Active())
     {
-       if (TestFlag(MoverParameters->HeadSignalsFlag,2)
-         ||TestFlag(MoverParameters->HeadSignalsFlag,32))
+       if (TestFlag(iLights[0],2)
+         ||TestFlag(iLights[0],32))
         {btEndSignals1.TurnOn(); btnOn=true;}
        else
         btEndSignals1.TurnOff();
     }
     else
     {
-       if (TestFlag(MoverParameters->HeadSignalsFlag,2))
+       if (TestFlag(iLights[0],2))
         {btEndSignals11.TurnOn(); btnOn=true;}
        else
          btEndSignals11.TurnOff();
-       if (TestFlag(MoverParameters->HeadSignalsFlag,32))
+       if (TestFlag(iLights[0],32))
         {btEndSignals13.TurnOn(); btnOn=true;}
        else
         btEndSignals13.TurnOff();
@@ -513,57 +512,57 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
 
     if (btEndSignals2.Active())
     {
-       if (TestFlag(MoverParameters->EndSignalsFlag,2)
-         ||TestFlag(MoverParameters->EndSignalsFlag,32))
+       if (TestFlag(iLights[1],2)
+         ||TestFlag(iLights[1],32))
         {btEndSignals2.TurnOn(); btnOn=true;}
        else
         btEndSignals2.TurnOff();
     }
     else
     {
-       if (TestFlag(MoverParameters->EndSignalsFlag,2))
+       if (TestFlag(iLights[1],2))
         {btEndSignals21.TurnOn(); btnOn=true;}
        else
         btEndSignals21.TurnOff();
-       if (TestFlag(MoverParameters->EndSignalsFlag,32))
+       if (TestFlag(iLights[1],32))
         {btEndSignals23.TurnOn(); btnOn=true;}
        else
         btEndSignals23.TurnOff();
     }
 
     //tablice blaszane:
-    if (TestFlag(MoverParameters->HeadSignalsFlag,64))
+    if (TestFlag(iLights[0],64))
      {btEndSignalsTab1.TurnOn(); btnOn=true;}
     else
      btEndSignalsTab1.TurnOff();
-    if (TestFlag(MoverParameters->EndSignalsFlag,64))
+    if (TestFlag(iLights[1],64))
      {btEndSignalsTab2.TurnOn(); btnOn=true;}
     else
      btEndSignalsTab2.TurnOff();
 
 // sygnaly czola pociagu
-    if (TestFlag(MoverParameters->HeadSignalsFlag,1))
+    if (TestFlag(iLights[0],1))
      {btHeadSignals11.TurnOn(); btnOn=true;}
     else
      btHeadSignals11.TurnOff();
-    if (TestFlag(MoverParameters->HeadSignalsFlag,4))
+    if (TestFlag(iLights[0],4))
      {btHeadSignals12.TurnOn(); btnOn=true;}
     else
      btHeadSignals12.TurnOff();
-    if (TestFlag(MoverParameters->HeadSignalsFlag,16))
+    if (TestFlag(iLights[0],16))
      {btHeadSignals13.TurnOn(); btnOn=true;}
     else
      btHeadSignals13.TurnOff();
 
-    if (TestFlag(MoverParameters->EndSignalsFlag,1))
+    if (TestFlag(iLights[1],1))
      {btHeadSignals21.TurnOn(); btnOn=true;}
     else
      btHeadSignals21.TurnOff();
-    if (TestFlag(MoverParameters->EndSignalsFlag,4))
+    if (TestFlag(iLights[1],4))
      {btHeadSignals22.TurnOn(); btnOn=true;}
     else
      btHeadSignals22.TurnOff();
-    if (TestFlag(MoverParameters->EndSignalsFlag,16))
+    if (TestFlag(iLights[1],16))
      {btHeadSignals23.TurnOn(); btnOn=true;}
     else
      btHeadSignals23.TurnOff();
@@ -615,8 +614,7 @@ double __fastcall ABuAcos(vector3 calc_temp)
     return 0;
 }
 
-
-TDynamicObject* __fastcall ABuFindNearestObject(TTrack *Track,TDynamicObject *MyPointer,int &CouplNr)
+TDynamicObject* __fastcall TDynamicObject::ABuFindNearestObject(TTrack *Track,TDynamicObject *MyPointer,int &CouplNr)
 {//zwraca wskaznik do obiektu znajdujacego sie na torze (Track), którego sprzêg jest najblizszy kamerze
  //s³u¿y np. do ³¹czenia i rozpinania sprzêgów
  //WE: Track      - tor, na ktorym odbywa sie poszukiwanie
@@ -635,7 +633,7 @@ TDynamicObject* __fastcall ABuFindNearestObject(TTrack *Track,TDynamicObject *My
   {
    if (CouplNr==-2)
    {//wektor [kamera-obiekt] - poszukiwanie obiektu
-    tmp=Global::GetCameraPosition()-Track->Dynamics[i]->GetPosition();
+    tmp=Global::GetCameraPosition()-Track->Dynamics[i]->vPosition;
     dist=tmp.x*tmp.x+tmp.y*tmp.y+tmp.z*tmp.z; //odleg³oœæ do kwadratu
     if (dist<100.0) //10 metrów
      return Track->Dynamics[i];
@@ -645,7 +643,7 @@ TDynamicObject* __fastcall ABuFindNearestObject(TTrack *Track,TDynamicObject *My
     //Powinno byc wyliczone, ale nie zaszkodzi drugi raz:
     //(bo co, jesli nie wykonuje sie obrotow wozkow?)
     Track->Dynamics[i]->modelRot.z=ABuAcos(Track->Dynamics[i]->Axle0.pPosition-Track->Dynamics[i]->Axle1.pPosition);
-    poz=Track->Dynamics[i]->GetPosition(); //pozycja œrodka pojazdu
+    poz=Track->Dynamics[i]->vPosition; //pozycja œrodka pojazdu
     kon=vector3( //po³o¿enie przodu wzglêdem œrodka
      -((0.5*Track->Dynamics[i]->MoverParameters->Dim.L)*sin(Track->Dynamics[i]->modelRot.z)),
      0, //yyy... jeœli du¿e pochylenie i d³ugi pojazd, to mo¿e byæ problem
@@ -1083,548 +1081,6 @@ void TDynamicObject::ABuScanObjects(int ScanDir,double ScanDist)
 }
 //----------ABu: koniec skanowania pojazdow
 
-//----------------McZapkie: skanowanie semaforow:
-
-//pomocnicza funkcja sprawdzania czy do toru jest podpiety semafor
-bool __fastcall TDynamicObject::CheckEvent(TEvent *e,bool prox)
-{//sprawdzanie eventu, czy jest obs³ugiwany poza kolejk¹
- //prox=true, gdy sprawdzanie, czy dodaæ event do kolejki
- //-> zwraca true, jeœli event istotny dla AI
- //prox=false, gdy wyszukiwanie semafora przez AI
- //-> zwraca false, gdy event ma byæ dodany do kolejki
- if (e)
- {if (e==eSignSkip) return false; //semafor przejechany jest ignorowany
-  AnsiString command;
-  //double speed=0;
-  switch (e->Type)
-  {//to siê wykonuje równie¿ sk³adu jad¹cego bez obs³ugi 
-   case tp_GetValues:
-    command=String(e->Params[9].asMemCell->szText);
-    if (prox?true:Mechanik->OrderCurrentGet()!=Obey_train) //tylko w trybie manewrowym albo sprawdzanie ignorowania
-     if (command=="ShuntVelocity")
-      return true;
-    break;
-   case tp_PutValues:
-    command=String(e->Params[0].asText);
-    break;
-   default:
-    return false; //inne eventy siê nie licz¹
-  }
-  if (prox)
-   if (command=="SetProximityVelocity")
-    return true; //ten event z toru ma byæ ignorowany
-  if (command=="SetVelocity")
-   return true; //jak podamy wyjazd, to prze³¹czy siê w jazdê poci¹gow¹
-  if (prox) //pomijanie punktów zatrzymania
-  {if (command.SubString(1,19)=="PassengerStopPoint:")
-    return true;
-  }
-  else //nazwa stacji pobrana z rozk³adu - nie ma co sprawdzaæ raz po raz
-   if (!asNextStop.IsEmpty())
-    if (command.SubString(1,asNextStop.Length())==asNextStop)
-     return true;
- }
- return false;
-}
-
-TEvent* __fastcall TDynamicObject::CheckTrackEvent(double fDirection,TTrack *Track)
-{//sprawdzanie eventów na podanym torze
- //ZiomalCl: teraz zwracany jest pierwszy event podajacy predkosc dla AI
- //a nie kazdy najblizszy event [AI sie gubilo gdy przed getval z SetVelocity
- //mialo np. PutValues z eventem od SHP]
- TEvent* e=(fDirection>0)?Track->Event2:Track->Event1;
- return CheckEvent(e,false)?e:NULL; //sprawdzenie z pominiêciem niepotrzebnych
-}
-
-TTrack* __fastcall TDynamicObject::TraceRoute(double &fDistance,double &fDirection,TTrack *Track,TEvent*&Event)
-{//szukanie semafora w kierunku jazdy (eventu odczytu komórki pamiêci)
- //albo ustawienia innej prêdkoœci albo koñca toru 
- TTrack *pTrackChVel=Track; //tor ze zmian¹ prêdkoœci
- double fDistChVel=-1; //odleg³oœæ do toru ze zmian¹ prêdkoœci
- double fCurrentDistance=iAxleFirst?Axle1.GetTranslation():Axle0.GetTranslation(); //aktualna pozycja na torze
- double s=0;
- if (fDirection>0) //jeœli w kierunku Point2 toru
-  fCurrentDistance=Track->Length()-fCurrentDistance;
- if ((Event=CheckTrackEvent(fDirection,Track))!=NULL)
- {//jeœli jest semafor na tym torze
-  fDistance=0; //to na tym torze stoimy
-  return Track;
- }
- if ((Track->fVelocity==0.0)||(Track->iDamageFlag&128))
- {
-  fDistance=0; //to na tym torze stoimy
-  return NULL; //stop
- }
- while (s<fDistance)
- {
-  Track->ScannedFlag=false; //do pokazywania przeskanowanych torów
-  s+=fCurrentDistance; //doliczenie kolejnego odcinka do przeskanowanej d³ugoœci
-  if (fDirection>0)
-  {//jeœli szukanie od Point1 w kierunku Point2
-   if (Track->iNextDirection)
-    fDirection=-fDirection;
-   Track=Track->CurrentNext(); //mo¿e byæ NULL
-  }
-  else //if (fDirection<0)
-  {//jeœli szukanie od Point2 w kierunku Point1
-   if (!Track->iPrevDirection)
-    fDirection=-fDirection;
-   Track=Track->CurrentPrev(); //mo¿e byæ NULL
-  }
-  if (Track?(Track->fVelocity==0.0)||(Track->iDamageFlag&128):true)
-  {//gdy dalej toru nie ma albo zerowa prêdkoœæ, albo uszkadza pojazd
-   fDistance=s;
-   return NULL; //zwraca NULL, ewentualnie tor z zerow¹ prêdkoœci¹
-  }
-  if (fDistChVel<0? //gdy pierwsza zmiana prêdkoœci
-   (Track->fVelocity!=pTrackChVel->fVelocity): //to prêdkosæ w kolejnym torze ma byæ ró¿na od aktualnej
-   ((pTrackChVel->fVelocity<0.0)? //albo jeœli by³a mniejsza od zera (maksymalna)
-    (Track->fVelocity>=0.0): //to wystarczy, ¿e nastêpna bêdzie nieujemna
-    (Track->fVelocity<pTrackChVel->fVelocity))) //albo dalej byæ mniejsza ni¿ poprzednio znaleziona dodatnia
-  {
-   fDistChVel=s; //odleg³oœæ do zmiany prêdkoœci
-   pTrackChVel=Track; //zapamiêtanie toru
-  }
-  fCurrentDistance=Track->Length();
-  if ((Event=CheckTrackEvent(fDirection,Track))!=NULL)
-  {//znaleziony tor z eventem
-   fDistance=s;
-   return Track;
-  }
- }
- Event=NULL; //jak dojdzie tu, to nie ma semafora
- if (fDistChVel<0)
- {//zwraca ostatni sprawdzony tor
-  fDistance=s;
-  return Track;
- }
- fDistance=fDistChVel; //odleg³oœæ do zmiany prêdkoœci
- return pTrackChVel; //i tor na którym siê zmienia
-}
-
-
-//sprawdzanie zdarzeñ semaforów i ograniczeñ szlakowych
-void TDynamicObject::SetProximityVelocity(double dist,double vel,const TLocation *pos)
-{//Ra:przeslanie do AI prêdkoœci
-/*
- //!!!! zast¹piæ prawid³ow¹ reakcj¹ AI na SetProximityVelocity !!!!
- if (vel==0)
- {//jeœli zatrzymanie, to zmniejszamy dystans o 10m
-  dist-=10.0;
- };
- if (dist<0.0) dist=0.0;
- if ((vel<0)?true:dist>0.1*(MoverParameters->Vel*MoverParameters->Vel-vel*vel)+50)
- {//jeœli jest dalej od umownej drogi hamowania
-*/
-  Mechanik->PutCommand("SetProximityVelocity",dist,vel,*pos);
-#if LOGVELOCITY
-  WriteLog("-> SetProximityVelocity "+AnsiString(floor(dist))+" "+AnsiString(vel));
-#endif
-/*
- }
- else
- {//jeœli jest zagro¿enie, ¿e przekroczy
-  Mechanik->SetVelocity(floor(0.2*sqrt(dist)+vel),vel,stopError);
-#if LOGVELOCITY
-  WriteLog("-> SetVelocity "+AnsiString(floor(0.2*sqrt(dist)+vel))+" "+AnsiString(vel));
-#endif
- }
- */
-}
-
-int komenda[24]=
-{//tabela reakcji na sygna³y podawane semaforem albo tarcz¹ manewrow¹
- //0: nic, 1: SetProximityVelocity, 2: SetVelocity, 3: ShuntVelocity
- 3, //[ 0]= staæ   stoi   blisko manewr. ShuntV.
- 3, //[ 1]= jechaæ stoi   blisko manewr. ShuntV.
- 3, //[ 2]= staæ   jedzie blisko manewr. ShuntV.
- 3, //[ 3]= jechaæ jedzie blisko manewr. ShuntV.
- 0, //[ 4]= staæ   stoi   deleko manewr. ShuntV.
- 3, //[ 5]= jechaæ stoi   deleko manewr. ShuntV.
- 1, //[ 6]= staæ   jedzie deleko manewr. ShuntV.
- 1, //[ 7]= jechaæ jedzie deleko manewr. ShuntV.
- 2, //[ 8]= staæ   stoi   blisko poci¹g. SetV.
- 2, //[ 9]= jechaæ stoi   blisko poci¹g. SetV.
- 2, //[10]= staæ   jedzie blisko poci¹g. SetV.
- 2, //[11]= jechaæ jedzie blisko poci¹g. SetV.
- 2, //[12]= staæ   stoi   deleko poci¹g. SetV.
- 2, //[13]= jechaæ stoi   deleko poci¹g. SetV.
- 1, //[14]= staæ   jedzie deleko poci¹g. SetV.
- 1, //[15]= jechaæ jedzie deleko poci¹g. SetV.
- 3, //[16]= staæ   stoi   blisko manewr. SetV.
- 2, //[17]= jechaæ stoi   blisko manewr. SetV.
- 3, //[18]= staæ   jedzie blisko manewr. SetV.
- 2, //[19]= jechaæ jedzie blisko manewr. SetV.
- 0, //[20]= staæ   stoi   deleko manewr. SetV.
- 2, //[21]= jechaæ stoi   deleko manewr. SetV.
- 1, //[22]= staæ   jedzie deleko manewr. SetV.
- 2  //[23]= jechaæ jedzie deleko manewr. SetV.
-};
-
-void TDynamicObject::ScanEventTrack()
-{//sprawdzanie zdarzeñ semaforów i ograniczeñ szlakowych
- TLocation sl;
- int startdir=MoverParameters->CabNo; //kabina okreœla kierunek ruchu AI (-1 albo 1, ewentualnie 0)
- if (MoverParameters->ActiveDir!=0)
- {//ewentualnie nastawnik kierunkowy - AI stoj¹ce mo¿e mieæ na 0
-  startdir*=MoverParameters->ActiveDir;
- }
- if (startdir==0) //jeœli kabina i kierunek nie jest okreslony
-  return; //nie robimy nic
-  //startdir=2*random(2)-1; //wybieramy losowy kierunek - trzeba by jeszcze ustawiæ kierunek ruchu
- //iAxleFirst - która oœ jest z przodu w kierunku jazdy: =0-przednia >0-tylna
- double scandir=startdir*(iAxleFirst?Axle1.GetDirection():Axle0.GetDirection()); //szukamy od pierwszej osi w kierunku ruchu
- if (scandir!=0.0) //skanowanie toru w poszukiwaniu eventów GetValues/PutValues
- {//Ra: skanowanie drogi proporcjonalnej do kwadratu aktualnej prêdkoœci (+150m), no chyba ¿e stoi (wtedy 500m)
-  //Ra: tymczasowo, dla wiêkszej zgodnoœci wstecz, szukanie semafora na postoju zwiêkszone do 2km
-  double scanmax=(MoverParameters->Vel>0.0)?150+0.1*MoverParameters->Vel*MoverParameters->Vel:500; //fabs(Mechanik->ProximityDist);
-  double scandist=scanmax; //zmodyfikuje na rzeczywiœcie przeskanowane
-  //Ra: znaleziony semafor trzeba zapamiêtaæ, bo mo¿e byæ wpisany we wczeœniejszy tor
-  //Ra: oprócz semafora szukamy najbli¿szego ograniczenia (koniec/brak toru to ograniczenie do zera)
-  TEvent *ev=NULL; //event potencjalnie od semafora
-  TTrack *scantrack=TraceRoute(scandist,scandir,iAxleFirst?Axle1.GetTrack():Axle0.GetTrack(),ev); //wg pierwszej osi w kierunku ruchu
-  if (!scantrack) //jeœli wykryto koniec toru albo zerow¹ prêdkoœæ
-  {
-   {//if (!Mechanik->SetProximityVelocity(0.7*fabs(scandist),0))
-    // Mechanik->SetVelocity(Mechanik->VelActual*0.9,0);
-    if (fTrackBlock>50.0) //je¿eli nie ma zawalidrogi w tej odleg³oœci
-    {
-     //scandist=(scandist>5?scandist-5:0); //10m do zatrzymania
-     vector3 pos=GetPosition()+scandist*SafeNormalize(startdir*GetDirection());
-     sl.X=-pos.x;
-     sl.Y= pos.z;
-     sl.Z= pos.y;
-#if LOGVELOCITY
-     WriteLog("End of track:");
-#endif
-     if (scandist>10) //jeœli zosta³o wiêcej ni¿ 15m do koñca toru
-      SetProximityVelocity(scandist,0,&sl); //informacja o zbli¿aniu siê do koñca
-     else
-     {Mechanik->PutCommand("SetVelocity",0,0,sl,stopEnd); //na koñcu toru ma staæ
-#if LOGVELOCITY
-      WriteLog("-> SetVelocity 0 0");
-#endif
-     }
-    }
-   }
-  }
-  else
-  {//jeœli s¹ dalej tory
-   double vtrackmax=scantrack->fVelocity;  //ograniczenie szlakowe
-   double vmechmax=-1; //prêdkoœæ ustawiona semaforem
-   TEvent *e=eSignLast; //poprzedni sygna³ nadal siê liczy
-   if (!e) //jeœli nie by³o ¿adnego sygna³u
-    e=ev; //ten ewentualnie znaleziony (scandir>0)?scantrack->Event2:scantrack->Event1; //pobranie nowego
-   if (e)
-   {//jeœli jest jakiœ sygna³ na widoku
-#if LOGVELOCITY + LOGSTOPS
-    AnsiString edir=asName+" - "+AnsiString((scandir>0)?"Event2 ":"Event1 ");
-#endif
-    if (fTrackBlock>50.0)
-    {
-     //najpierw sprawdzamy, czy semafor czy inny znak zosta³ przejechany
-     //bo jeœli tak, to trzeba szukaæ nastêpnego, a ten mo¿e go zas³aniaæ
-     vector3 pos=GetPosition(); //aktualna pozycja, potrzebna do liczenia wektorów
-     vector3 dir=startdir*GetDirection(); //wektor w kierunku jazdy/szukania
-     vector3 sem; //wektor do sygna³u
-     if (e->Type==tp_GetValues)
-     {//przes³aæ info o zbli¿aj¹cym siê semaforze
-#if LOGVELOCITY
-      edir+="("+(e->Params[8].asGroundNode->asName)+"): ";
-#endif
-      sem=e->Params[8].asGroundNode->pCenter-pos; //wektor do komórki pamiêci
-      if (dir.x*sem.x+dir.z*sem.z<0)
-      {//iloczyn skalarny jest ujemny, gdy sygna³ stoi z ty³u
-       eSignSkip=e; //wtedy uznajemy go za ignorowany przy poszukiwaniu nowego
-       eSignLast=NULL; //¿eby jakiœ nowy by³ poszukiwany
-#if LOGVELOCITY
-       WriteLog(edir+"- will be ignored as passed by");
-#endif
-       return;
-      }
-      sl.X=-e->Params[8].asGroundNode->pCenter.x;
-      sl.Y= e->Params[8].asGroundNode->pCenter.z;
-      sl.Z= e->Params[8].asGroundNode->pCenter.y;
-      vmechmax=e->Params[9].asMemCell->fValue1; //prêdkoœæ przy tym semaforze
-      //przeliczamy odleg³oœæ od semafora - potrzebne by by³y wspó³rzêdne pocz¹tku sk³adu
-      scandist=(pos-e->Params[8].asGroundNode->pCenter).Length()-0.5*MoverParameters->Dim.L-10; //10m luzu
-      if (scandist<0) scandist=0; //ujemnych nie ma po co wysy³aæ
-/* //Ra: takie rozpisanie wcale nie robi proœciej
-      int mode=(vmechmax!=0.0)?1:0; //tryb jazdy - prêdkoœæ podawana sygna³em
-      mode|=(MoverParameters->Vel!=0.0)?2:0; //stan aktualny: jedzie albo stoi
-      mode|=(scandist>Mechanik->MinProximityDist)?4:0;
-      if (Mechanik->OrderList[Mechanik->OrderPos]!=Obey_train)
-      {mode|=8; //tryb manewrowy
-       if (strcmp(e->Params[9].asMemCell->szText,"ShuntVelocity")==0)
-        mode|=16; //ustawienie prêdkoœci manewrowej
-      }
-      if ((model&16)==0) //o ile nie podana prêdkoœæ manewrowa
-       if (strcmp(e->Params[9].asMemCell->szText,"SetVelocity")==0)
-        mode=32; //ustawienie prêdkoœci poci¹gowej
-      //wartoœci 0..15 nie przekazuj¹ komendy
-      //wartoœci 16..23 - ignorowanie sygna³ów maewrowych w trybie poc¹gowym
-      mode-=24;
-      if (mode>=0)
-      {
-       //0:
-       //+4: dodatkowo: - sygna³ ma byæ ignorowany
-       switch (komenda[mode]) //pobranie kodu komendy
-       {//komendy mo¿liwe do przekazania:
-        case 0: //nic - sygna³ nie wysy³a komendy
-         break;
-        case 1: //SetProximityVelocity - informacja o zmienie prêdkoœci
-         break;
-        case 2: //SetVelocity - nadanie prêdkoœci do jazdy poci¹gowej
-         break;
-        case 3: //ShuntVelocity - nadanie prêdkoœci do jazdy manewrowej
-         break;
-       }
-      }
-*/
-      bool move=false; //czy AI w trybie manewerowym ma doci¹gn¹æ pod S1
-      if (strcmp(e->Params[9].asMemCell->szText,"SetVelocity")==0)
-       if ((vmechmax==0.0)?(Mechanik->OrderCurrentGet()==Shunt):false)
-        move=true; //AI w trybie manewerowym ma doci¹gn¹æ pod S1
-       else
-       {//
-        eSignLast=(scandist<200)?e:NULL; //zapamiêtanie na wypadek przejechania albo Ÿle podpiêtego toru
-        if (fTrackBlock>50.0) //je¿eli nie ma zawalidrogi w tej odleg³oœci
-         if ((scandist>Mechanik->fMinProximityDist)?(MoverParameters->Vel!=0.0)&&(Mechanik->OrderCurrentGet()!=Shunt):false)
-         {//jeœli semafor jest daleko, a pojazd jedzie, to informujemy o zmianie prêdkoœci
-          //jeœli jedzie manewrowo, musi dostaæ SetVelocity, ¿eby sie na poci¹gowy prze³¹czy³
-          //Mechanik->PutCommand("SetProximityVelocity",scandist,vmechmax,sl);
-#if LOGVELOCITY
-          //WriteLog(edir+"SetProximityVelocity "+AnsiString(scandist)+" "+AnsiString(vmechmax));
-          WriteLog(edir);
-#endif
-          SetProximityVelocity(scandist,vmechmax,&sl);
-         }
-         else  //ustawiamy prêdkoœæ tylko wtedy, gdy ma ruszyæ, stan¹æ albo ma staæ
-          //if ((MoverParameters->Vel==0.0)||(vmechmax==0.0)) //jeœli stoi lub ma stan¹æ/staæ
-          {//semafor na tym torze albo lokomtywa stoi, a ma ruszyæ, albo ma stan¹æ, albo nie ruszaæ
-           //stop trzeba powtarzaæ, bo inaczej zatr¹bi i pojedzie sam
-           Mechanik->PutCommand("SetVelocity",vmechmax,e->Params[9].asMemCell->fValue2,sl);
-#if LOGVELOCITY
-           WriteLog(edir+"SetVelocity "+AnsiString(vmechmax)+" "+AnsiString(e->Params[9].asMemCell->fValue2));
-#endif
-          }
-        }
-      if (Mechanik->OrderCurrentGet()!=Obey_train) //w Wait_for_orders te¿ widzi tarcze
-      {//reakcja AI w trybie manewrowym dodatkowo na sygna³y manewrowe
-       if (move?true:strcmp(e->Params[9].asMemCell->szText,"ShuntVelocity")==0)
-       {//jeœli powy¿ej by³o SetVelocity 0 0, to doci¹gamy pod S1
-        eSignLast=(scandist<200)?e:NULL; //zapamiêtanie na wypadek przejechania albo Ÿle podpiêtego toru
-        if (fTrackBlock>50.0) //je¿eli nie ma zawalidrogi w tej odleg³oœci
-        {if ((scandist>Mechanik->fMinProximityDist)?(MoverParameters->Vel!=0.0)||(vmechmax==0.0):false)
-         {//jeœli tarcza jest daleko, to:
-          //- jesli pojazd jedzie, to informujemy o zmianie prêdkoœci
-          //- jeœli stoi, to z w³asnej inicjatywy mo¿e podjechaæ pod zamkniêt¹ tarczê
-          if (MoverParameters->Vel!=0.0) //tylko jeœli jedzie
-          {//Mechanik->PutCommand("SetProximityVelocity",scandist,vmechmax,sl);
-#if LOGVELOCITY
-           //WriteLog(edir+"SetProximityVelocity "+AnsiString(scandist)+" "+AnsiString(vmechmax));
-           WriteLog(edir);
-#endif
-           SetProximityVelocity(scandist,vmechmax,&sl);
-          }
-         }
-         else //ustawiamy prêdkoœæ tylko wtedy, gdy ma ruszyæ, albo stan¹æ albo ma staæ pod tarcz¹
-         {//stop trzeba powtarzaæ, bo inaczej zatr¹bi i pojedzie sam
-          //if ((MoverParameters->Vel==0.0)||(vmechmax==0.0)) //jeœli jedzie lub ma stan¹æ/staæ
-          {//nie dostanie komendy jeœli jedzie i ma jechaæ
-           Mechanik->PutCommand("ShuntVelocity",vmechmax,e->Params[9].asMemCell->fValue2,sl,stopSem);
-#if LOGVELOCITY
-           WriteLog(edir+"ShuntVelocity "+AnsiString(vmechmax)+" "+AnsiString(e->Params[9].asMemCell->fValue2));
-#endif
-          }
-         }
-         if ((vmechmax!=0.0)&&(scandist<100.0))
-         {//jeœli Tm w odleg³oœci do 100m podaje zezwolenie na jazdê, to od razu j¹ ignorujemy, aby móc szukaæ kolejnej
-          eSignSkip=e; //wtedy uznajemy ignorowan¹ przy poszukiwaniu nowej
-          eSignLast=NULL; //¿eby jakaœ nowa by³a poszukiwana
-#if LOGVELOCITY
-          WriteLog(edir+"- will be ignored due to Ms2");
-#endif
-         }
-        }
-       }
-      }
-     }
-     else if (e->Type==tp_PutValues)
-     {
-      sem=vector3(e->Params[3].asdouble,e->Params[4].asdouble,e->Params[5].asdouble)-pos; //wektor do komórki pamiêci
-      if (strcmp(e->Params[0].asText,"SetVelocity")==0)
-      {//statyczne ograniczenie predkosci
-       if (dir.x*sem.x+dir.z*sem.z<0)
-       {//iloczyn skalarny jest ujemny, gdy sygna³ stoi z ty³u
-        eSignSkip=e; //wtedy uznajemy go za ignorowany przy poszukiwaniu nowego
-        eSignLast=NULL; //¿eby jakiœ nowy by³ poszukiwany
-#if LOGVELOCITY
-        WriteLog(edir+"- will be ignored as passed by");
-#endif
-        return;
-       }
-       vmechmax=e->Params[1].asdouble;
-       sl.X=-e->Params[3].asdouble;
-       sl.Y= e->Params[5].asdouble;
-       sl.Z= e->Params[4].asdouble;
-       if (fTrackBlock>50.0) //je¿eli nie ma zawalidrogi w tej odleg³oœci
-        if (scandist<Mechanik->fMinProximityDist+1) //tylko na tym torze
-        {
-         eSignLast=(scandist<200)?e:NULL; //zapamiêtanie na wypadek przejechania albo Ÿle podpiêtego toru
-         Mechanik->PutCommand("SetVelocity",vmechmax,e->Params[2].asdouble,sl,stopSem);
-#if LOGVELOCITY
-         WriteLog("PutValues: SetVelocity "+AnsiString(vmechmax)+" "+AnsiString(e->Params[2].asdouble));
-#endif
-        }
-        else
-        {//Mechanik->PutCommand("SetProximityVelocity",scandist,e->Params[1].asdouble,sl);
-#if LOGVELOCITY
-         //WriteLog("PutValues: SetProximityVelocity "+AnsiString(scandist)+" "+AnsiString(e->Params[1].asdouble));
-          WriteLog("PutValues:");
-#endif
-         SetProximityVelocity(scandist,e->Params[1].asdouble,&sl);
-        }
-      }
-      else if (strcmp(e->Params[0].asText,asNextStop.c_str())==0)
-      {//jeœli W4 z nazw¹ jak w rozk³adzie, to aktualizacja rozk³adu i pobranie kolejnego
-       scandist=sem.Length()-0.5*MoverParameters->Dim.L-3; //dok³adniejsza d³ugoœæ, 3m luzu
-       if ((scandist<0)?true:dir.x*sem.x+dir.z*sem.z<0)
-        scandist=0; //ujemnych nie ma po co wysy³aæ, jeœli miniêty, to równie¿ 0
-       if (!TrainParams->IsStop())
-       {//jeœli nie ma tu postoju
-        if (scandist<500)
-        {//zaliczamy posterunek w pewnej odleg³oœci przed, bo W4 zas³ania semafor
-#if LOGSTOPS
-         WriteLog(edir+AnsiString(GlobalTime->hh)+":"+AnsiString(GlobalTime->mm)+" Skipped stop: "+asNextStop.SubString(20,asNextStop.Length())); //informacja
-#endif
-         TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,asNextStop.SubString(20,asNextStop.Length()));
-         asNextStop=TrainParams->NextStop(); //pobranie kolejnego miejsca zatrzymania
-         eSignSkip=e; //wtedy uznajemy go za ignorowany przy poszukiwaniu nowego
-         eSignLast=NULL; //¿eby jakiœ nowy by³ poszukiwany
-        }
-       } //koniec obs³ugi przelotu na W4
-       else
-       {//zatrzymanie na W4
-        if (fSignSpeed<0) //gdy na stacji pocz¹tkowej, albo W4 by³o zas³oniête semaforem
-         fSignSpeed=floor(MoverParameters->Vel); //zapamiêtanie pierwotnej prêdkoœci
-        vmechmax=0.0; //ma stan¹æ na W4 - informacja dla dalszego kodu
-        sl.X=-e->Params[3].asdouble; //wyliczenie wspó³rzêdnych zatrzymania
-        sl.Y= e->Params[5].asdouble;
-        sl.Z= e->Params[4].asdouble;
-        eSignLast=(scandist<200)?e:NULL; //zapamiêtanie na wypadek przejechania albo Ÿle podpiêtego toru
-        if ((scandist>Mechanik->fMinProximityDist)?(MoverParameters->Vel!=0.0):false)
-        //if ((scandist>Mechanik->MinProximityDist)?(fSignSpeed>0.0):false)
-        {//jeœli jedzie, informujemy o zatrzymaniu na wykrytym stopie
-         //Mechanik->PutCommand("SetProximityVelocity",scandist,0,sl);
-         if (fTrackBlock>50.0) //je¿eli nie ma zawalidrogi w tej odleg³oœci
-         {//informacjê wysy³amy, jeœli nic nie ma na kolizyjnym
-#if LOGVELOCITY
-         //WriteLog(edir+"SetProximityVelocity "+AnsiString(scandist)+" 0");
-          WriteLog(edir);
-#endif
-          //SetProximityVelocity(scandist,0,&sl); //staje 300m oe W4
-          SetProximityVelocity(scandist,scandist>100.0?25:0,&sl); //Ra: taka proteza
-         }
-        }
-        else //jeœli jest blisko, albo stoi
-         if ((fSignSpeed>0.0)&&(scandist>100.0)) //jeœli pierwotnie jecha³, a jest daleko
-         {
-          if (fTrackBlock>50.0) //je¿eli nie ma zawalidrogi w tej odleg³oœci
-           Mechanik->PutCommand("SetVelocity",20,0,sl); //doci¹ganie do przystanku
-         } //koniec obs³ugi odleg³ego zatrzymania
-         else
-         {//jeœli pierwotnie sta³ lub zatrzyma³ siê wystarczaj¹co blisko
-          Mechanik->PutCommand("SetVelocity",0,0,sl,stopTime); //zatrzymanie na przystanku
-#if LOGVELOCITY
-          WriteLog(edir+"SetVelocity 0 0 ");
-#endif
-          if (MoverParameters->Vel==0.0)
-          {//jeœli siê zatrzyma³ przy W4, albo sta³ w momencie zobaczenia W4
-           if (MoverParameters->TrainType==dt_EZT)//otwieranie drzwi w EN57
-            if (!MoverParameters->DoorLeftOpened&&!MoverParameters->DoorRightOpened)
-            {//otwieranie drzwi
-             int i=floor(e->Params[2].asdouble); //p7=platform side (1:left, 2:right, 3:both)
-             if (i&1) MoverParameters->DoorLeft(true);
-             if (i&2) MoverParameters->DoorRight(true);
-             if (i&3) //¿eby jeszcze poczeka³ chwilê, zanim zamknie
-              Mechanik->WaitingSet(15); //15 sekund
-             if (TrainParams->DirectionChange()) //jeœli zmiana kierunku jazdy
-              Mechanik->JumpToNextOrder(); //wykonanie kolejnego rozkazu
-            }
-           TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,asNextStop.SubString(20,asNextStop.Length()));
-           if (TrainParams->StationIndex<=TrainParams->StationCount)
-           {//jeœli s¹ dalsze stacje, czekamy do godziny odjazdu
-#if LOGVELOCITY
-            WriteLog(edir+asNextStop); //informacja o zatrzymaniu na stopie
-#endif
-            if (TrainParams->IsTimeToGo(GlobalTime->hh,GlobalTime->mm))
-            {//z dalsz¹ akcj¹ czekamy do godziny odjazdu
-             asNextStop=TrainParams->NextStop(); //pobranie kolejnego miejsca zatrzymania
-#if LOGSTOPS
-             WriteLog(edir+AnsiString(GlobalTime->hh)+":"+AnsiString(GlobalTime->mm)+" Next stop: "+asNextStop.SubString(20,asNextStop.Length())); //informacja
-#endif
-             fSignSpeed=-1.0; //nieokreœlona prêdkoœæ
-             eSignSkip=e; //wtedy uznajemy go za ignorowany przy poszukiwaniu nowego
-             eSignLast=NULL; //¿eby jakiœ nowy by³ poszukiwany
-             vmechmax=vtrackmax; //odjazd po zatrzymaniu - informacja dla dalszego kodu
-             Mechanik->PutCommand("SetVelocity",vmechmax,vmechmax,sl);
-#if LOGVELOCITY
-             WriteLog(edir+"SetVelocity "+AnsiString(vtrackmax)+" "+AnsiString(vtrackmax));
-#endif
-            } //koniec startu z zatrzymania
-           } //koniec obs³ugi pocz¹tkowych stacji
-           else
-           {//jeœli dojechaliœmy do koñca rozk³adu
-            asNextStop=TrainParams->NextStop(); //informacja o koñcu trasy
-            fSignSpeed=-1.0; //nieokreœlona prêdkoœæ
-            eSignSkip=e; //wtedy W4 uznajemy za ignorowany
-            eSignLast=NULL; //¿eby jakiœ nowy sygna³ by³ poszukiwany
-            Mechanik->WaitingSet(180); //tak ze 3 minuty, a¿ wszyscy wysi¹d¹
-            Mechanik->JumpToNextOrder(); //wykonanie kolejnego rozkazu
-#if LOGSTOPS
-            WriteLog(edir+AnsiString(GlobalTime->hh)+":"+AnsiString(GlobalTime->mm)+" Next stop: "+asNextStop.SubString(20,asNextStop.Length())); //informacja
-#endif
-           } //koniec obs³ugi ostatniej stacji
-          } //if (MoverParameters->Vel==0.0)
-         } //koniec obs³ugi W4 z zatrzymaniem
-       } //koniec obs³ugi zatrzymania na W4
-      } //koniec obs³ugi PassengerStopPoint
-     } //if (e->Type==tp_PutValues)
-    }
-   }
-   if (scandist<=scanmax) //jeœli ograniczenie jest dalej, ni¿ skanujemy, mo¿na je zignorowaæ
-    if (vtrackmax>0) //jeœli w torze jest dodatnia
-     if ((vmechmax<0) || (vtrackmax<vmechmax)) //i mniejsza od tej drugiej
-     {//tutaj jest wykrywanie ograniczenia prêdkoœci w torze
-      vector3 pos=GetPosition();
-      double dist1=(scantrack->CurrentSegment()->FastGetPoint_0()-pos).Length();
-      double dist2=(scantrack->CurrentSegment()->FastGetPoint_1()-pos).Length();
-      if (dist2<dist1)
-      {//Point2 jest bli¿ej i jego wybieramy
-       dist1=dist2;
-       pos=scantrack->CurrentSegment()->FastGetPoint_1();
-      }
-      else
-       pos=scantrack->CurrentSegment()->FastGetPoint_0();
-      sl.X=-pos.x;
-      sl.Y= pos.z;
-      sl.Z= pos.y;
-      if (fTrackBlock>50.0)
-      {//Mechanik->PutCommand("SetProximityVelocity",dist1,vtrackmax,sl);
-#if LOGVELOCITY
-       //WriteLog("Track Velocity: SetProximityVelocity "+AnsiString(dist1)+" "+AnsiString(vtrackmax));
-        WriteLog("Track velocity:");
-#endif
-       SetProximityVelocity(dist1,vtrackmax,&sl);
-      }
-     }
-  }  // !null
- }
-};
-
-//-----------koniec skanowania semaforow
-
 __fastcall TDynamicObject::TDynamicObject()
 {
  modelShake=vector3(0,0,0);
@@ -1724,8 +1180,6 @@ __fastcall TDynamicObject::TDynamicObject()
  cp1=cp2=sp1=sp2=0;
  iDirection=1; //stoi w kierunku tradycyjnym
  iAxleFirst=0; //numer pierwszej osi w kierunku ruchu (na ogó³)
- eSignSkip=eSignLast=NULL; //miniêty semafor
- fSignSpeed=-1.0; //nie okreœlono prêdkoœci przed W4
 }
 
 __fastcall TDynamicObject::~TDynamicObject()
@@ -1756,16 +1210,16 @@ double __fastcall TDynamicObject::Init(
  asBaseDir="dynamic\\"+BaseDir+"\\"; //McZapkie-310302
  asName=Name;
  AnsiString asAnimName=""; //zmienna robocza do wyszukiwania osi i wózków
- TLocation l; //wspó³rzêdne w scenerii (typ z fizyki)
+ TLocation l; //wspó³rzêdne w scenerii
  l.X=l.Y=l.Z=0;
  TRotation r;
- r.Rx=r.Ry=r.Rz= 0;
+ r.Rx=r.Ry=r.Rz=0;
  int Cab; //numer kabiny z obsad¹ (nie mo¿na zaj¹æ obu)
  if (DriverType==AnsiString("headdriver")) //od przodu sk³adu
   Cab=iDirection;
  else if (DriverType==AnsiString("reardriver")) //od ty³u sk³adu
   Cab=-iDirection;
- else if (DriverType==AnsiString("connected")) //pod³¹czony, to tak jakby tam ktoœ siedzia³
+ else if (DriverType==AnsiString("connected")) //uaktywnianie wirtualnej kabiny
   Cab=iDirection;
  else if (DriverType==AnsiString("passenger"))
  {
@@ -1831,9 +1285,9 @@ double __fastcall TDynamicObject::Init(
     else
     {//inicjacja pierwszego przystanku i pobranie jego nazwy
      TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,TrainParams->NextStationName);
-     asNextStop=TrainParams->NextStop();
     }
-   Mechanik=new TController(l,r,Controller,this,TrainParams,Aggressive);
+   //Mechanik=new TController(l,r,Controller,this,TrainParams,Aggressive);
+   Mechanik=new TController(Controller,this,TrainParams,Aggressive);
    if (Controller==AIdriver)
    {//jeœli steruje komputer, okreœlamy dodatkowe parametry
     Mechanik->Ready=false;
@@ -1878,7 +1332,7 @@ double __fastcall TDynamicObject::Init(
    if (DriverType=="passenger")
    {//obserwator w charakterze pasazera
     TrainParams=new TTrainParameters(TrainName);
-    Mechanik=new TController(l,r,Controller,this,TrainParams,Easyman);
+    Mechanik=new TController(Controller,this,TrainParams,Easyman);
    }
  }
  // McZapkie-250202
@@ -1961,6 +1415,7 @@ double __fastcall TDynamicObject::Init(
    //Axle3.Move(iDirection*fDist+(HalfMaxAxleDist-MoverParameters->ADist*0.5),false);
   break;
  }
+ Move(0.0); //potrzebne do wyliczenia aktualnej pozycji
  //teraz jeszcze trzeba przypisaæ pojazdy do nowego toru,
  //bo przesuwanie pocz¹tkowe osi nie zrobi³o tego
  //if (fDist!=0.0) //Ra: taki ma³y patent, ¿eby lokomotywa ruszy³a, mimo ¿e stoi na innym torze
@@ -2026,19 +1481,36 @@ void __fastcall TDynamicObject::Move(double fDistance)
  bEnabled&=Axle1.Move(fDistance,iAxleFirst); //oœ z ty³u pojazdu
  //Axle3.Move(fDistance,false); //te nigdy pierwsze nie s¹
  //Axle2.Move(fDistance,false);
+ vPosition=0.5*(Axle1.pPosition+Axle0.pPosition); //œrodek miêdzy skrajnymi osiami
+ if (MoverParameters->CategoryFlag>1)
+ {
+  vPosition.x+=MoverParameters->OffsetTrackH*vLeft.x; //dodanie przesuniêcia w bok
+  vPosition.z+=MoverParameters->OffsetTrackH*vLeft.z; //vLeft jest wektorem poprzecznym
+  //if () na przechy³ce bêdzie dodatkowo zmiana wysokoœci samochodu
+  vPosition.y+=MoverParameters->OffsetTrackV;   //te offsety sa liczone przez moverparam
+ }
+/*
+ else
+ {//gdy jest pojazdem poruszaj¹cym siê po szynach (rail albo unimog)
+  //pos.x+=MoverParameters->OffsetTrackH*vLeft.x; //dodanie przesuniêcia w bok
+  //pos.z+=MoverParameters->OffsetTrackH*vLeft.z; //vLeft jest wektorem poprzecznym
+  //wysokoœæ szyny zosta³a doliczona przy wczytywaniu
+  //pos.y+=MoverParameters->OffsetTrackV+0.18; //wysokosc szyny
+ }
+*/
 };
 
 void __fastcall TDynamicObject::AttachPrev(TDynamicObject *Object, int iType)
 {//Ra: doczepia Object na koñcu sk³adu (nazwa funkcji jest myl¹ca)
  //Ra: u¿ywane tylko przy wczytywaniu scenerii
  TLocation loc;
- loc.X=-GetPosition().x;
- loc.Y=GetPosition().z;
- loc.Z=GetPosition().y;                   /* TODO -cBUG : Remove this */
+ loc.X=-vPosition.x;
+ loc.Y=vPosition.z;
+ loc.Z=vPosition.y;                   /* TODO -cBUG : Remove this */
  MoverParameters->Loc=loc; //Ra: ustawienie siebie? po co?
- loc.X=-Object->GetPosition().x;
- loc.Y=Object->GetPosition().z;
- loc.Z=Object->GetPosition().y;
+ loc.X=-Object->vPosition.x;
+ loc.Y=Object->vPosition.z;
+ loc.Z=Object->vPosition.y;
  Object->MoverParameters->Loc=loc; //ustawienie dodawanego pojazdu
  MoverParameters->Attach(iDirection<0?0:1,Object->iDirection<0?1:0,&(Object->MoverParameters),iType);
  MoverParameters->Couplers[iDirection<0?0:1].Render=false;
@@ -2154,9 +1626,9 @@ double __fastcall TDynamicObject::ComputeRadius()
 
 void __fastcall TDynamicObject::UpdatePos()
 {
-  MoverParameters->Loc.X= -GetPosition().x;
-  MoverParameters->Loc.Y=  GetPosition().z;
-  MoverParameters->Loc.Z=  GetPosition().y;
+  MoverParameters->Loc.X= -vPosition.x;
+  MoverParameters->Loc.Y=  vPosition.z;
+  MoverParameters->Loc.Z=  vPosition.y;
 }
 
 void __fastcall TDynamicObject::DynChangeStart(TDynamicObject *Dyn)
@@ -2346,9 +1818,9 @@ if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
     double dDOMoveLen;
 
     TLocation l;
-    l.X=-GetPosition().x;
-    l.Y=GetPosition().z;
-    l.Z=GetPosition().y;
+    l.X=-vPosition.x;
+    l.Y=vPosition.z;
+    l.Z=vPosition.y;
     TRotation r;
     r.Rx=r.Ry=r.Rz=0;
 //McZapkie: parametry powinny byc pobierane z toru
@@ -2438,7 +1910,8 @@ tmpTraction.TractionVoltage=3400;
       if (Mechanik->UpdateSituation(dt1))  //czuwanie AI
 //    if (Mechanik->ScanMe)
       {
-       ScanEventTrack(); //tor pocz¹tkowy zale¿y od po³o¿enia wózków
+       if (Mechanik) //bo teraz mo¿e siê przesiaœæ
+        Mechanik->ScanEventTrack(); //tor pocz¹tkowy zale¿y od po³o¿enia wózków
 //       if(MoverParameters->BrakeCtrlPos>0)
 //         MoverParameters->BrakeCtrlPos=MoverParameters->BrakeCtrlPosNo;
 //       Mechanik->ScanMe= false;
@@ -2491,7 +1964,7 @@ tmpTraction.TractionVoltage=3400;
    double ObjectDist;
    double vol=0;
    double freq;
-   ObjectDist=SquareMagnitude(Global::pCameraPosition-GetPosition());
+   ObjectDist=SquareMagnitude(Global::pCameraPosition-vPosition);
 //McZapkie-270202
    if (MyTrack->fSoundDistance!=-1)
    {
@@ -2534,7 +2007,7 @@ tmpTraction.TractionVoltage=3400;
                     }
                    else
                     {rsStukot[i+1].Stop();}
-                   rsStukot[i].Play(vol,0,MechInside,GetPosition()); //poprawic pozycje o uklad osi
+                   rsStukot[i].Play(vol,0,MechInside,vPosition); //poprawic pozycje o uklad osi
                    if (i==1)
                       MoverParameters->AccV-= 0.5*GetVelocity()/(1+MoverParameters->Vmax);
                    dRailPosition[i]+=dRailLength;
@@ -2549,7 +2022,7 @@ tmpTraction.TractionVoltage=3400;
 //yB: przyspieszacz (moze zadziala, ale dzwiek juz jest)
 if(ObjectDist<50000)
  if(TestFlag(MoverParameters->SoundFlag,sound_brakeacc))
-   sBrakeAcc.Play(-1,0,MechInside,GetPosition());
+   sBrakeAcc.Play(-1,0,MechInside,vPosition);
  else;
 // if(MoverParameters->BrakePress=0)
 //   sBrakeAcc.Stop();
@@ -2640,7 +2113,7 @@ pcp2p=MoverParameters->PantFrontVolt;
    if (PantFrontDiff<1)
     {
     if ((pcp1p==false) && (pcp2p==false) && (pcabc1==true))
-     sPantUp.Play(vol,0,MechInside,GetPosition());
+     sPantUp.Play(vol,0,MechInside,vPosition);
     pcp1p=true;
     }
    else
@@ -2652,13 +2125,13 @@ pcp2p=MoverParameters->PantFrontVolt;
    if (PantRearDiff<1)
     {
     if ((pcp2p==false) && (pcp1p==false) && (pcabc2==true))
-     sPantUp.Play(vol,0,MechInside,GetPosition());
+     sPantUp.Play(vol,0,MechInside,vPosition);
     pcp2p=true;
     }
    else
     pcp2p=false;
 
-   //ObjectDist2=SquareMagnitude(Global::pCameraPosition-GetPosition())/100;
+   //ObjectDist2=SquareMagnitude(Global::pCameraPosition-vPosition)/100;
    //vol2=255-ObjectDist2;
    //if ((MoverParameters->CompressedVolume<3.3)) //&& (MoverParameters->PantVolume<5.2))
 // //  if (MoverParameters->PantVolume<5.2) &&
@@ -2762,12 +2235,12 @@ MoverParameters->PantFrontVolt=pcp2p;
 
 if ((MoverParameters->PantFrontSP==false) && (MoverParameters->PantFrontUp==false))
     {
-    sPantDown.Play(vol,0,MechInside,GetPosition());
+    sPantDown.Play(vol,0,MechInside,vPosition);
     MoverParameters->PantFrontSP=true;
     }
 if ((MoverParameters->PantRearSP==false) && (MoverParameters->PantRearUp==false))
     {
-    sPantDown.Play(vol,0,MechInside,GetPosition());
+    sPantDown.Play(vol,0,MechInside,vPosition);
     MoverParameters->PantRearSP=true;
     }
 
@@ -2860,9 +2333,9 @@ bool __fastcall TDynamicObject::FastUpdate(double dt)
         return false;
 
     TLocation l;
-    l.X=-GetPosition().x;
-    l.Y=GetPosition().z;
-    l.Z=GetPosition().y;
+    l.X=-vPosition.x;
+    l.Y=vPosition.z;
+    l.Z=vPosition.y;
     TRotation r;
     r.Rx=r.Ry=r.Rz= 0;
 
@@ -2895,10 +2368,10 @@ bool __fastcall TDynamicObject::FastUpdate(double dt)
 
 //yB: przyspieszacz (moze zadziala, ale dzwiek juz jest)
 double ObjectDist;
-ObjectDist=SquareMagnitude(Global::pCameraPosition-GetPosition());
+ObjectDist=SquareMagnitude(Global::pCameraPosition-vPosition);
 if(ObjectDist<50000)
  if(TestFlag(MoverParameters->SoundFlag,sound_brakeacc))
-   sBrakeAcc.Play(-1,0,MechInside,GetPosition());
+   sBrakeAcc.Play(-1,0,MechInside,vPosition);
  else;
 // if(MoverParameters->BrakePress=0)
 //   sBrakeAcc.Stop();
@@ -2911,24 +2384,8 @@ SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);
 
 //McZapkie-040402: liczenie pozycji uwzgledniajac wysokosc szyn itp.
 vector3 inline __fastcall TDynamicObject::GetPosition()
-{
- //if (!this) return vector3(0,0,0);
- vector3 pos=(Axle1.pPosition+Axle0.pPosition)*0.5f; //œrodek miêdzy skrajnymi osiami
- if (MoverParameters->CategoryFlag&1)
- {//gdy jest pojazdem poruszaj¹cym siê po szynach (rail albo unimog)
-  //pos.x+=MoverParameters->OffsetTrackH*vLeft.x; //dodanie przesuniêcia w bok
-  //pos.z+=MoverParameters->OffsetTrackH*vLeft.z; //vLeft jest wektorem poprzecznym
-  //wysokoœæ szyny zosta³a doliczona przy wczytywaniu
-  //pos.y+=MoverParameters->OffsetTrackV+0.18; //wysokosc szyny
- }
- else
- {
-  pos.x+=MoverParameters->OffsetTrackH*vLeft.x; //dodanie przesuniêcia w bok
-  pos.z+=MoverParameters->OffsetTrackH*vLeft.z; //vLeft jest wektorem poprzecznym
-  //if () na przechy³ce bêdzie dodatkowo zmiana wysokoœci samochodu
-  pos.y+=MoverParameters->OffsetTrackV;   //te offsety sa liczone przez moverparam
- }
- return pos;
+{//Ra: pozycja pojazdu jest liczona zaraz po przesuniêciu
+ return vPosition;
 }
 
 bool __fastcall TDynamicObject::Render()
@@ -2939,7 +2396,7 @@ bool __fastcall TDynamicObject::Render()
  // zmienne
  renderme=false;
  //przeklejka
- vector3 pos=GetPosition();
+ vector3 pos=vPosition;
  double ObjSqrDist=SquareMagnitude(Global::pCameraPosition-pos);
  //koniec przeklejki
  if (ObjSqrDist<500) //jak jest blisko - do 70m
@@ -2976,7 +2433,7 @@ bool __fastcall TDynamicObject::Render()
   mat.BasisChange(vLeft,vUp,vFront);
   mMatrix=Inverse(mat);
 
-  vector3 pos=GetPosition();
+  vector3 pos=vPosition;
   double ObjSqrDist=SquareMagnitude(Global::pCameraPosition-pos);
   ABuLittleUpdate(ObjSqrDist);
 
@@ -2992,7 +2449,7 @@ bool __fastcall TDynamicObject::Render()
 #endif
 
   glPushMatrix ( );
-  //vector3 pos= GetPosition();
+  //vector3 pos= vPosition;
   //double ObjDist= SquareMagnitude(Global::pCameraPosition-pos);
   glTranslated(pos.x,pos.y,pos.z);
   glMultMatrixd(mMatrix.getArray());
@@ -3103,7 +2560,7 @@ bool __fastcall TDynamicObject::Render()
  double dt=Timer::GetDeltaTime();
 
 //    double sounddist;
-//    sounddist=SquareMagnitude(Global::pCameraPosition-GetPosition());
+//    sounddist=SquareMagnitude(Global::pCameraPosition-vPosition);
 
     if (MoverParameters->Power>0)
      {
@@ -3981,35 +3438,40 @@ void __fastcall TDynamicObject::RadioStop()
 {//zatrzymanie pojazdu
  if (Mechanik) //o ile ktoœ go prowadzi
   if (MoverParameters->SecuritySystem.RadioStop) //jeœli pojazd ma RadioStop i jest on aktywny
-   Mechanik->PutCommand("Emergency_brake",1.0,1.0,MoverParameters->Loc,stopRadio);
+   Mechanik->PutCommand("Emergency_brake",1.0,1.0,&vPosition,stopRadio);
 };
 
 void __fastcall TDynamicObject::RaLightsSet(int head,int rear)
 {//zapalenie œwiate³ z przodu i z ty³u, zale¿ne od kierunku pojazdu
  if (iDirection>0) //w zale¿noœci od kierunku pojazdu w sk³adzie
  {//jesli pojazd stoi sprzêgiem 0 w stronê czo³a
-  if (head>=0) MoverParameters->HeadSignalsFlag=head;
-  if (rear>=0) MoverParameters->EndSignalsFlag=rear;
+  if (head>=0) iLights[0]=head;
+  if (rear>=0) iLights[1]=rear;
  }
  else
  {//jak jest odwrócony w sk³adzie (-1), to zapalamy odwrotnie
-  if (head>=0) MoverParameters->EndSignalsFlag=head;
-  if (rear>=0) MoverParameters->HeadSignalsFlag=rear;
+  if (head>=0) iLights[1]=head;
+  if (rear>=0) iLights[0]=rear;
  }
 };
 
 void __fastcall TDynamicObject::RaAxleEvent(TEvent *e)
-{//wykrycie eventu przez wózek - jeœli steruj¹cy prêdkoœci¹, to ignorujemy
+{//obs³uga eventu wykrytego przez wózek - jeœli steruj¹cy prêdkoœci¹, to ignorujemy
  //bo mamy w³asny mechanizm obs³ugi tych eventów i nie musz¹ iœæ do kolejki
- if (!CheckEvent(e,true)) //jeœli nie jest ustawiaj¹cym prêdkoœæ
-  Global::pGround->AddToQuery(e,this); //dodanie do kolejki
- else
- {if (Mechanik) //tylko jeœli ma obsadê
-   if (Controller!=Humandriver) //i nie u¿ytkownik (na razie)
-    ScanEventTrack(); //dla pewnoœci robimy skanowanie
-  if (Global::iMultiplayer) //potwierdzenie wykonania dla serwera - najczêœciej odczyt semafora
-   Global::pGround->WyslijEvent(e->asName,GetName());
+ if (Mechanik) //tylko jeœli ma obsadê
+ {if (!Mechanik->CheckEvent(e,true)) //jeœli nie jest ustawiaj¹cym prêdkoœæ
+   Global::pGround->AddToQuery(e,this); //dodanie do kolejki
+  else
+ //if (Mechanik) //tylko jeœli ma obsadê
+  {if (Controller!=Humandriver) //i nie u¿ytkownik (na razie)
+    Mechanik->ScanEventTrack(); //dla pewnoœci robimy skanowanie
+   if (Global::iMultiplayer) //potwierdzenie wykonania dla serwera - najczêœciej odczyt semafora
+    Global::pGround->WyslijEvent(e->asName,GetName());
+  }
  }
+ else
+  if (!Mechanik->CheckEvent(e,true)) //czy dodawany do kolejki
+   Global::pGround->AddToQuery(e,this); //dodanie do kolejki
 };
 
 int __fastcall TDynamicObject::DirectionSet(int d)

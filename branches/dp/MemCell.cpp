@@ -92,7 +92,7 @@ bool __fastcall TMemCell::Load(cParser *parser)
     return true;
 }
 
-void __fastcall TMemCell::PutCommand(TController *Mech, TLocation &Loc)
+void __fastcall TMemCell::PutCommand(TController *Mech, vector3 *Loc)
 {//wys³anie zawartoœci komórki do AI
  if (Mech)
   Mech->PutCommand(szText,fValue1,fValue2,Loc);

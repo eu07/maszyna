@@ -8,7 +8,6 @@
 #include "QueryParserComp.hpp"
 #include "AnimModel.h"
 #include "Mover.hpp"
-//#include "Driver.h"
 #include "mtable.hpp"
 #include "TractionPower.h"
 //McZapkie:
@@ -26,15 +25,15 @@
 class TDynamicObject
 {
 private:
-    double fTrackBlock; //odleg³oœæ do przeszkody do dalszego ruchu
     TTrackShape ts;
     TTrackParam tp;
     void ABuLittleUpdate(double ObjSqrDist);
     bool btnOn; //ABu: czy byly uzywane buttony, jesli tak, to po renderingu wylacz
                 //bo ten sam model moze byc jeszcze wykorzystany przez inny obiekt!
-    double __fastcall ComputeRadius(vector3 p1, vector3 p2, vector3 p3, vector3 p4);
+    double __fastcall ComputeRadius(vector3 p1,vector3 p2,vector3 p3,vector3 p4);
     //vector3 pOldPos1; //Ra: nie u¿ywane
     //vector3 pOldPos4;
+    vector3 vPosition; //Ra: pozycja pojazdu liczona zaraz po przesuniêciu
 //McZapkie-050402 - do krecenia kolami
     int iAnimatedAxles;
     int iAnimatedDoors;
@@ -129,21 +128,11 @@ private:
     bool renderme; //yB - czy renderowac
     char cp1, sp1, cp2, sp2; //ustawienia wezy
     TRealSound sBrakeAcc; //dzwiek przyspieszacza
- //Ra: poni¿sze przenieœæ do modu³u AI:
  int iAxleFirst; //numer pierwszej oœ w kierunku ruchu
- TEvent* eSignSkip; //miniêty sygna³ zezwalaj¹cy na jazdê, pomijany przy szukaniu
- double fSignSpeed; //prêdkoœæ w moemcie zobaczenia W4
-public:
- TEvent* eSignLast; //ostatnio znaleziony sygna³, o ile nie miniêty
-private:
- bool __fastcall CheckEvent(TEvent *e,bool prox);
- TEvent* __fastcall CheckTrackEvent(double fDirection,TTrack *Track);
- TTrack* __fastcall TraceRoute(double &fDistance,double &fDirection,TTrack *Track,TEvent*&Event);
- void SetProximityVelocity(double dist,double vel,const TLocation *pos);
- //Ra: koniec tych do przeniesienia do AI
  	TDynamicObject *NewDynamic;
 		bool bDynChangeEnd;
 		bool bDynChangeStart;
+ TDynamicObject* __fastcall ABuFindNearestObject(TTrack *Track,TDynamicObject *MyPointer,int &CouplNr);
 protected:
     bool bEnabled;
 
@@ -155,13 +144,14 @@ protected:
     int CouplCounter;
     AnsiString asModel;
     int iDirection; //kierunek wzglêdem czo³a sk³adu (1=zgodny,-1=przeciwny)
-    void ScanEventTrack();
     void ABuScanObjects(int ScanDir,double ScanDist);
     void __fastcall ABuCheckMyTrack();
 
 public:
-    TDynamicObject* __fastcall Prev(){return iDirection>0?PrevConnected:NextConnected;};
-    TDynamicObject* __fastcall Next(){return iDirection>0?NextConnected:PrevConnected;};
+ int iLights[2]; //bity zapalonych œwiate³
+ double fTrackBlock; //odleg³oœæ do przeszkody do dalszego ruchu
+ TDynamicObject* __fastcall Prev(){return iDirection>0?PrevConnected:NextConnected;};
+ TDynamicObject* __fastcall Next(){return iDirection>0?NextConnected:PrevConnected;};
     void __fastcall SetdMoveLen(double dMoveLen) {MoverParameters->dMoveLen=dMoveLen;}
     void __fastcall ResetdMoveLen() {MoverParameters->dMoveLen=0;}
     double __fastcall GetdMoveLen() {return MoverParameters->dMoveLen;}
@@ -275,7 +265,6 @@ public:
  vector3 vUp,vFront,vLeft;
  matrix4x4 mMatrix;
  AnsiString asTrack;
- AnsiString asNextStop; //nazwa nastêpnego punktu zatrzymania wg rozk³adu
  AnsiString asDestination; //dok¹d pojazd ma byæ kierowany "(stacja):(tor)"
  //McZapkie-260202
  void __fastcall LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName, AnsiString ReplacableSkin);
@@ -288,12 +277,25 @@ public:
  {//zwraca przesuniêcie wózka wzglêdem Point1 toru
   return (Axle1.GetTrack()==MyTrack?Axle1.GetTranslation():Axle0.GetTranslation());
  };
+ inline double __fastcall RaDirectionGet()
+ {//zwraca kierunek pojazdu na torze z aktywn¹ os¹
+  return iAxleFirst?Axle1.GetDirection():Axle0.GetDirection();
+ };
+ inline double __fastcall RaTranslationGet()
+ {//zwraca przesuniêcie wózka wzglêdem Point1 toru z aktywn¹ osi¹
+  return iAxleFirst?Axle1.GetTranslation():Axle0.GetTranslation();
+ };
+ inline TTrack* __fastcall RaTrackGet()
+ {//zwraca tor z aktywn¹ osi¹
+  return iAxleFirst?Axle1.GetTrack():Axle0.GetTrack();
+ };
  void CouplersDettach(double MinDist,int MyScanDir);
  void __fastcall RadioStop();
  void __fastcall RaLightsSet(int head,int rear);
  void __fastcall RaAxleEvent(TEvent *e);
  TDynamicObject* __fastcall FirstFind(int &coupler_nr);
  int __fastcall DirectionSet(int d); //ustawienie kierunku w sk³adzie
+ int __fastcall DirectionGet() {return iDirection;}; //ustawienie kierunku w sk³adzie
 };
 
 

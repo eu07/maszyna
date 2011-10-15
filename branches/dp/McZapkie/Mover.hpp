@@ -487,8 +487,6 @@ public:
 	double LimPipePress;
 	double ActFlowSpeed;
 	Byte DamageFlag;
-	Byte EndSignalsFlag;
-	Byte HeadSignalsFlag;
 	TCommand CommandIn;
 	AnsiString CommandOut;
 	AnsiString CommandLast;
