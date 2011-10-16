@@ -1304,7 +1304,19 @@ double __fastcall TDynamicObject::Init(
       WriteLog(AnsiString(t->StationName)+" "+AnsiString((int)t->Ah)+":"+AnsiString((int)t->Am)+", "+AnsiString((int)t->Dh)+":"+AnsiString((int)t->Dm));
       if (AnsiString(t->StationWare).Pos("@"))
       {//zmiana kierunku i dalsza jazda wg rozk³adu
-       Mechanik->OrderPush(Change_direction); //zmiana kierunku
+       if (MoverParameters->TrainType==dt_EZT) //SZT równie¿!
+       {//jeœli sk³ad zespolony, wystarczy zmieniæ kierunek jazdy
+        Mechanik->OrderPush(Change_direction); //zmiana kierunku
+       }
+       else
+       {//dla zwyk³ego sk³adu wagonowego odczepiamy lokomotywê
+        Mechanik->OrderPush(Disconnect); //odczepienie lokomotywy
+        Mechanik->OrderPush(Shunt); //a dalej manewry
+        Mechanik->OrderPush(Change_direction); //zmiana kierunku
+        Mechanik->OrderPush(Shunt); //jazda na drug¹ stronê sk³adu
+        Mechanik->OrderPush(Change_direction); //zmiana kierunku
+        Mechanik->OrderPush(Shunt); //jazda pod wagony
+       }
        if (i<TrainParams->StationCount) //jak nie ostatnia stacja
         Mechanik->OrderPush(Obey_train); //to dalej wg rozk³adu
       }
@@ -1910,8 +1922,8 @@ tmpTraction.TractionVoltage=3400;
       if (Mechanik->UpdateSituation(dt1))  //czuwanie AI
 //    if (Mechanik->ScanMe)
       {
-       if (Mechanik) //bo teraz mo¿e siê przesiaœæ
-        Mechanik->ScanEventTrack(); //tor pocz¹tkowy zale¿y od po³o¿enia wózków
+       //if (Mechanik) //bo teraz mo¿e siê przesiaœæ
+       // Mechanik->ScanEventTrack(); //tor pocz¹tkowy zale¿y od po³o¿enia wózków
 //       if(MoverParameters->BrakeCtrlPos>0)
 //         MoverParameters->BrakeCtrlPos=MoverParameters->BrakeCtrlPosNo;
 //       Mechanik->ScanMe= false;

@@ -500,6 +500,7 @@ public:
 	Byte ScndCtrlPos;
 	int ActiveDir;
 	int CabNo;
+	int DirAbsolute;
 	int ActiveCab;
 	int LastCab;
 	double LastSwitchingTime;
