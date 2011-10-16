@@ -14,13 +14,13 @@ enum TOrders
  //operacje tymczasowe
  Prepare_engine=1,        //w³¹czenie silnika
  Release_engine=2,        //wy³¹czenie silnika
- Change_direction=4,      //zmiana kierunku
- Connect=8,               //pod³¹czanie wagonów
- Disconnect=0x10,         //od³¹czanie wagonów
+ Change_direction=4,      //zmiana kierunku (bez skanowania sygnalizacji)
+ Connect=8,               //pod³¹czanie wagonów (bez skanowania sygnalizacji)
+ Disconnect=0x10,         //od³¹czanie wagonów (bez skanowania sygnalizacji)
  //jazda
- Shunt=0x10,              //tryb manewrowy
- Obey_train=0x20,         //tryb poci¹gowy
- Jump_to_first_order=0x30 //zapêlenie do pierwszej pozycji (po co?)
+ Shunt=0x20,              //tryb manewrowy
+ Obey_train=0x40,         //tryb poci¹gowy
+ Jump_to_first_order=0x60 //zapêlenie do pierwszej pozycji (po co?)
 };
 
 enum TStopReason

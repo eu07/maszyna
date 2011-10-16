@@ -563,6 +563,7 @@ TYPE
                 ActiveDir: integer; //czy lok. jest wlaczona i w ktorym kierunku:
                 //wzglêdem wybranej kabiny: -1 - do tylu, +1 - do przodu, 0 - wylaczona
                 CabNo: integer;    {! numer kabiny: 1 lub -1. W przeciwnym razie brak sterowania - rozrzad}
+                DirAbsolute: integer; //zadany kierunek jazdy wzglêdem sprzêgów (1=w strone 0,-1=w stronê 1) 
                 ActiveCab: integer; {! numer kabiny, w ktorej sie jest}
                 LastCab: integer;       { numer kabiny przed zmiana }
                 LastSwitchingTime: real; {czas ostatniego przelaczania czegos}
@@ -1098,7 +1099,7 @@ begin
 //Ra: by³ problem z propagacj¹, jeœli w sk³adzie jest pojazd wstawiony odwrotnie
 //Ra: problem jest równie¿, jeœli AI bêdzie na koñcu sk³adu
  OK:=(dir<>0); // and Mains;
- d:=(1+Sign(dir)) div 2; //-1=>0, 1=>1
+ d:=(1+Sign(dir)) div 2; //-1=>0, 1=>1 - wysy³anie tylko w ty³
  if OK then
   with Couplers[d] do //w³asny sprzêg od strony (d)
    if TestFlag(CouplingFlag,ctrain_controll) then
@@ -1131,6 +1132,7 @@ begin
   if(OK)then
    begin
      CabNo:=ActiveCab;
+     DirAbsolute:=ActiveDir*CabNo;
      SendCtrlToNext('CabActivisation',CabNo,ActiveCab);
      PantCheck;
    end;
@@ -1145,6 +1147,7 @@ begin
    begin
      LastCab:=CabNo;
      CabNo:=0;
+     DirAbsolute:=ActiveDir*CabNo;
      SendCtrlToNext('CabActivisation',0,ActiveCab);
    end;
   CabDeactivisation:=OK;
@@ -1435,6 +1438,7 @@ begin
   if (MainCtrlPosNo>0) and (ActiveDir<1) and (MainCtrlPos=0) then
    begin
      inc(ActiveDir);
+     DirAbsolute:=ActiveDir*CabNo;
      DirectionForward:=True;
      SendCtrlToNext('Direction',ActiveDir,CabNo);
    end
@@ -1454,10 +1458,11 @@ begin
     end;
   if (MainCtrlPosNo>0) and (ActiveDir>-1) and (MainCtrlPos=0) then
    begin
-     if EngineType=WheelsDriven then
-      dec(CabNo);
-{     else}
-      dec(ActiveDir);
+    if EngineType=WheelsDriven then
+     dec(CabNo);
+{    else}
+     dec(ActiveDir);
+     DirAbsolute:=ActiveDir*CabNo;
      DirectionBackward:=True;
      SendCtrltoNext('Direction',ActiveDir,CabNo);
    end
@@ -1499,39 +1504,40 @@ function TMoverParameters.ChangeCab(direction:integer): boolean;
 //var //b:byte;
 //    c:boolean;
 begin
-  if Abs(ActiveCab+direction)<2 then
-   begin
-//     if (ActiveCab+direction=0) then LastCab:=ActiveCab;
-     ActiveCab:=ActiveCab+direction;
-     ChangeCab:=True;
-     if (BrakeSystem=Pneumatic) and (BrakeCtrlPosNo>0) then
-      begin
-        BrakeCtrlPos:=-2;
-        LimPipePress:=PipePress;
-        ActFlowSpeed:= 0;
-      end  
-     else
-        BrakeCtrlPos:=0;
-//     if not TestFlag(BrakeStatus,b_dmg) then
-//      BrakeStatus:=b_off;
-     MainCtrlPos:=0;
-     ScndCtrlPos:=0;
-     if (EngineType<>DieselEngine) and (EngineType<>DieselElectric) then
-     begin
-       Mains:=False;
-       CompressorAllow:=false;
-       ConverterAllow:=false;
-     end;
-//     if (ActiveCab<>LastCab) and (ActiveCab<>0) then
-//      begin
-//       c:=PantFrontUp;
-//       PantFrontUp:=PantRearUp;
-//       PantRearUp:=c;
-//      end; //yB: poszlo do wylacznika rozrzadu
-     ActiveDir:=0;
-   end
-  else
-   ChangeCab:=False;
+ if Abs(ActiveCab+direction)<2 then
+  begin
+//  if (ActiveCab+direction=0) then LastCab:=ActiveCab;
+   ActiveCab:=ActiveCab+direction;
+   ChangeCab:=True;
+   if (BrakeSystem=Pneumatic) and (BrakeCtrlPosNo>0) then
+    begin
+     BrakeCtrlPos:=-2;
+     LimPipePress:=PipePress;
+     ActFlowSpeed:= 0;
+    end
+   else
+    BrakeCtrlPos:=0;
+//   if not TestFlag(BrakeStatus,b_dmg) then
+//    BrakeStatus:=b_off;
+   MainCtrlPos:=0;
+   ScndCtrlPos:=0;
+   if (EngineType<>DieselEngine) and (EngineType<>DieselElectric) then
+    begin
+     Mains:=False;
+     CompressorAllow:=false;
+     ConverterAllow:=false;
+    end;
+//   if (ActiveCab<>LastCab) and (ActiveCab<>0) then
+//    begin
+//     c:=PantFrontUp;
+//     PantFrontUp:=PantRearUp;
+//     PantRearUp:=c;
+//    end; //yB: poszlo do wylacznika rozrzadu
+   ActiveDir:=0;
+   DirAbsolute:=0;
+  end
+ else
+  ChangeCab:=False;
 end;
 
 {wl/wyl przetwornicy}
@@ -1928,19 +1934,21 @@ begin
 end;
 
 function TMoverParameters.BrakeReleaser: boolean;
+var OK:boolean;
 begin
   if (BrakeCtrlPosNo>-1) and (PipePress<CntrlPipePress) and {(BrakeStatus=b_on)}(not TestFlag(BrakeStatus,b_dmg)) then
    begin
-     BrakeReleaser:=SetFlag(BrakeStatus,b_release);
+     OK:=SetFlag(BrakeStatus,b_release);
      CntrlPipePress:=PipePress+0.015-0.0075*ord((BrakeSubsystem=Oerlikon)or(BrakeSubsystem=KE));
      if (BrakeCtrlPosNo=0) and (Power<1) and (BrakeSystem<>ElectroPneumatic) then
       Volume:=BrakeVVolume*CntrlPipePress*10;
      SetFlag(BrakeStatus,-b_on);
    end
   else
-   BrakeReleaser:=False;
-  if CabNo<>0 then
-   SendCtrlToNext('BrakeReleaser',0,CabNo);
+   OK:=False;
+  if CabNo<>0 then //rekurencyjne wys³anie do nastêpnego
+   OK:=OK and SendCtrlToNext('BrakeReleaser',0,CabNo);
+  BrakeReleaser:=OK;
 end;
 
 function TMoverParameters.SwitchEPBrake(state: byte):boolean;
@@ -3425,7 +3433,7 @@ begin
 //youBy
   if (EngineType=DieselElectric) then
     begin
-     tmp := DEList[MainCtrlPos].rpm/60.0;
+     tmp:=DEList[MainCtrlPos].rpm/60.0;
      if (Heating) and (MainCtrlPosNo>MainCtrlPos) then
      begin
        i:=MainCtrlPosNo;
@@ -3435,12 +3443,12 @@ begin
      end;
      if enrot<>tmp*Byte(ConverterFlag) then
        if ABS(tmp*Byte(ConverterFlag) - enrot) < 0.001 then
-         enrot := tmp*Byte(ConverterFlag)
+         enrot:=tmp*Byte(ConverterFlag)
        else
          if (enrot<DEList[0].rpm*0.01) and (ConverterFlag) then
-           enrot := enrot + (tmp*Byte(ConverterFlag) - enrot)*dt/5.0
+           enrot:=enrot + (tmp*Byte(ConverterFlag) - enrot)*dt/5.0
          else
-           enrot := enrot + (tmp*Byte(ConverterFlag) - enrot)*1.5*dt;
+           enrot:=enrot + (tmp*Byte(ConverterFlag) - enrot)*1.5*dt;
     end
   else
   if EngineType<>DieselEngine then
@@ -3467,7 +3475,7 @@ begin
              Ft:=Min0R(1000.0*Power/Abs(V),Ftmax)*PosRatio;
            end
           else Ft:=Ftmax*PosRatio;
-          Ft:=Ft*ActiveDir*CabNo;
+          Ft:=Ft*DirAbsolute; //ActiveDir*CabNo;
         end
        else Ft:=0;
        EnginePower:=1000*Power*PosRatio;
@@ -3535,59 +3543,59 @@ begin
                    Mw:=Mm*dtrans;           {dmoment i dtrans policzone przy okazji enginerotation}
                    Fw:=Mw*2.0/WheelDiameter;
                    Ft:=Fw*NPoweredAxles;                {sila trakcyjna}
-                   Ft:=Ft*ActiveDir*CabNo;
+                   Ft:=Ft*DirAbsolute; //ActiveDir*CabNo;
 
                  end;
    DieselElectric:    //youBy
      begin
 //       tmpV:=V*CabNo*ActiveDir;
-         tmpV:=nrot*Pirazy2*WheelDiameter/2*CabNo*ActiveDir;
+         tmpV:=nrot*Pirazy2*0.5*WheelDiameter*DirAbsolute; //*CabNo*ActiveDir;
        //jazda manewrowa
        if (ShuntMode) then
         begin
-         Voltage := (SST[MainCtrlPos].Umax * AnPos) + (SST[MainCtrlPos].Umin * (1 - AnPos));
-         tmp := (SST[MainCtrlPos].Pmax * AnPos) + (SST[MainCtrlPos].Pmin * (1 - AnPos));
-         Ft := tmp * 1000.0 / (abs(tmpV)+1.6);
-         PosRatio := 1;
+         Voltage:=(SST[MainCtrlPos].Umax * AnPos) + (SST[MainCtrlPos].Umin * (1 - AnPos));
+         tmp:=(SST[MainCtrlPos].Pmax * AnPos) + (SST[MainCtrlPos].Pmin * (1 - AnPos));
+         Ft:=tmp * 1000.0 / (abs(tmpV)+1.6);
+         PosRatio:=1;
         end
        else  //jazda ciapongowa
       begin
 
        tmp:=Min0R(DEList[MainCtrlPos].genpower,Power-HeatingPower*byte(Heating));
 
-        PosRatio := DEList[MainCtrlPos].genpower / DEList[MainCtrlPosNo].genpower;  {stosunek mocy teraz do mocy max}
+        PosRatio:=DEList[MainCtrlPos].genpower / DEList[MainCtrlPosNo].genpower;  {stosunek mocy teraz do mocy max}
         if (MainCtrlPos>0) and (ConverterFlag) then
           if tmpV < (Vhyp*(Power-HeatingPower*byte(Heating))/DEList[MainCtrlPosNo].genpower) then //czy na czesci prostej, czy na hiperboli
-            Ft := (Ftmax - ((Ftmax - 1000.0 * DEList[MainCtrlPosNo].genpower / (Vhyp+Vadd)) * (tmpV/Vhyp) / PowerCorRatio)) * PosRatio //posratio - bo sila jakos tam sie rozklada
+            Ft:=(Ftmax - ((Ftmax - 1000.0 * DEList[MainCtrlPosNo].genpower / (Vhyp+Vadd)) * (tmpV/Vhyp) / PowerCorRatio)) * PosRatio //posratio - bo sila jakos tam sie rozklada
           else //na hiperboli                             //1.107 - wspolczynnik sredniej nadwyzki Ft w symku nad charakterystyka
-            Ft := 1000.0 * tmp / (tmpV+Vadd) / PowerCorRatio //tu jest zawarty stosunek mocy
-        else Ft := 0; //jak nastawnik na zero, to sila tez zero
+            Ft:=1000.0 * tmp / (tmpV+Vadd) / PowerCorRatio //tu jest zawarty stosunek mocy
+        else Ft:=0; //jak nastawnik na zero, to sila tez zero
 
       PosRatio:=tmp/DEList[MainCtrlPosNo].genpower;
 
       end;
-        Ft := Ft * ActiveDir * CabNo; //zwrot sily i jej wartosc
-        Fw := Ft / NPoweredAxles; //sila na obwodzie kola
-        Mw := Fw * WheelDiameter / 2.0; // moment na osi kola
-        Mm := Mw / Transmision.Ratio; // moment silnika trakcyjnego
+        Ft:=Ft*DirAbsolute; //ActiveDir * CabNo; //zwrot sily i jej wartosc
+        Fw:=Ft/NPoweredAxles; //sila na obwodzie kola
+        Mw:=Fw*WheelDiameter / 2.0; // moment na osi kola
+        Mm:=Mw/Transmision.Ratio; // moment silnika trakcyjnego
 
 
        with MotorParam[ScndCtrlPos] do
          if ABS(Mm) > fi then
-           Im := NPoweredAxles * ABS(ABS(Mm) / mfi + mIsat)
+           Im:=NPoweredAxles * ABS(ABS(Mm) / mfi + mIsat)
          else
-           Im := NPoweredAxles * sqrt(ABS(Mm * Isat));
+           Im:=NPoweredAxles * sqrt(ABS(Mm * Isat));
 
        if (ShuntMode) then
        begin
-         EnginePower := Voltage * Im/1000.0;
+         EnginePower:=Voltage * Im/1000.0;
          if (EnginePower > tmp) then
          begin
            EnginePower:=tmp*1000.0;
            Voltage:=EnginePower/Im;
          end;
          if (EnginePower < tmp) then
-         Ft := Ft * EnginePower / tmp;
+         Ft:=Ft * EnginePower / tmp;
        end
        else
        begin
@@ -3598,19 +3606,19 @@ begin
 
         if (Im > 0) then //jak pod obciazeniem
           if (Flat) then //ograniczenie napiecia w pradnicy - plaszczak u gory
-            Voltage := 1000.0 * tmp / ABS(Im)
+            Voltage:=1000.0 * tmp / ABS(Im)
           else  //charakterystyka pradnicy obcowzbudnej (elipsa) - twierdzenie Pitagorasa
           begin
-            Voltage := sqrt(ABS(sqr(DEList[MainCtrlPos].Umax)-sqr(DEList[MainCtrlPos].Umax*Im/DEList[MainCtrlPos].Imax)))*(MainCtrlPos-1)+
-                       (1-Im/DEList[MainCtrlPos].Imax)*DEList[MainCtrlPos].Umax*(MainCtrlPosNo-MainCtrlPos);
-            Voltage := Voltage/(MainCtrlPosNo-1);
-            Voltage := Min0R(Voltage,(1000.0 * tmp / ABS(Im)));
+            Voltage:=sqrt(ABS(sqr(DEList[MainCtrlPos].Umax)-sqr(DEList[MainCtrlPos].Umax*Im/DEList[MainCtrlPos].Imax)))*(MainCtrlPos-1)+
+                     (1-Im/DEList[MainCtrlPos].Imax)*DEList[MainCtrlPos].Umax*(MainCtrlPosNo-MainCtrlPos);
+            Voltage:=Voltage/(MainCtrlPosNo-1);
+            Voltage:=Min0R(Voltage,(1000.0 * tmp / ABS(Im)));
             if Voltage<(Im*0.05) then Voltage:=Im*0.05;
           end;
         if (Voltage > DEList[MainCtrlPos].Umax) or (Im = 0) then //gdy wychodzi za duze napiecie
-          Voltage := DEList[MainCtrlPos].Umax * byte(ConverterFlag);     //albo przy biegu jalowym (jest cos takiego?)
+          Voltage:=DEList[MainCtrlPos].Umax * byte(ConverterFlag);     //albo przy biegu jalowym (jest cos takiego?)
 
-        EnginePower := Voltage * Im / 1000.0;
+        EnginePower:=Voltage * Im / 1000.0;
 
         if (tmpV>2) and (EnginePower<tmp) then
           Ft:=Ft*EnginePower/tmp;
@@ -3620,7 +3628,7 @@ begin
 
      //przekazniki bocznikowania, kazdy inny dla kazdej pozycji
          if (MainCtrlPos = 0) or (ShuntMode) then
-           ScndCtrlPos := 0
+           ScndCtrlPos:=0
          else if AutoRelayFlag then
           case RelayType of
           0: begin
@@ -3909,7 +3917,7 @@ begin
      end;
     Ff:=TotalMassxg*(BearingF+RollF*V*V/10.0)/1000.0;
     {dorobic liczenie temperatury lozyska!}
-    FrictConst1 :=((TotalMassxg*RollF)/10000.0)+(Cx*W*H);
+    FrictConst1:=((TotalMassxg*RollF)/10000.0)+(Cx*W*H);
     FrictConst2s:= (TotalMassxg*(2.5 - HideModifier + 2*BearingF/dtrain_bearing))/1000.0;
     FrictConst2d:= (TotalMassxg*(2.0 - HideModifier + BearingF/dtrain_bearing))/1000.0;
    end;
@@ -3928,7 +3936,8 @@ function TMoverParameters.AddPulseForce(Multipler:integer): boolean; {dla drezyn
 begin
   if (EngineType=WheelsDriven) and (EnginePowerSource.SourceType=InternalSource) and (EnginePowerSource.PowerType=BioPower) then
    begin
-     ActiveDir:=cabno;
+     ActiveDir:=CabNo;
+     DirAbsolute:=ActiveDir*CabNo;
      if Vel>0 then
        PulseForce:=Min0R(1000.0*Power/(Abs(V)+0.1),Ftmax)
       else PulseForce:=Ftmax;
@@ -4012,7 +4021,7 @@ begin
           if CabNo=0 then
              Voltage:=RunningTraction.TractionVoltage*ActiveDir
           else
-             Voltage:=RunningTraction.TractionVoltage*ActiveDir*CabNo;
+             Voltage:=RunningTraction.TractionVoltage*DirAbsolute; //ActiveDir*CabNo;
           end {bo nie dzialalo}
        else
           Voltage:=0;
@@ -4498,8 +4507,8 @@ Begin
    end //youby - odluzniacz hamulcow, przyda sie
   else if command='BrakeReleaser' then
    begin
-     BrakeReleaser;
-     OK:=SendCtrlToNext(command,CValue1,CValue2);
+     OK:=BrakeReleaser; //samo siê przesy³a dalej
+     //OK:=SendCtrlToNext(command,CValue1,CValue2); //to robi³o kaskadê 2^n
    end
   else if command='MainSwitch' then
    begin
@@ -4515,6 +4524,7 @@ Begin
   else if command='Direction' then
    begin
      ActiveDir:=Trunc(CValue1);
+     DirAbsolute:=ActiveDir*CabNo;
      OK:=SendCtrlToNext(command,CValue1,CValue2);
    end
   else if command='CabActivisation' then
@@ -4527,6 +4537,7 @@ Begin
        1 : CabNo:= 1;
       -1 : CabNo:=-1;
       else CabNo:=0;
+      DirAbsolute:=ActiveDir*CabNo;
       PantCheck;
       end;
      OK:=SendCtrlToNext(command,CValue1,CValue2);
@@ -4915,6 +4926,7 @@ begin
   Heating:=false;
   Mains:=False;
   ActiveDir:=0; CabNo:=Cab;
+  DirAbsolute:=0;
   LastCab:=Cab;
   SlippingWheels:=False;
   SandDose:=False;
@@ -5117,6 +5129,7 @@ begin
      PantRear(true);
      MainSwitch(true);
      ActiveDir:=Dir;
+     DirAbsolute:=ActiveDir*CabNo;
      LimPipePress:=CntrlPipePress;
    end
   else
@@ -5996,7 +6009,7 @@ begin
                  s:=ExtractKeyWord(lines,'Ftmax=');
                  Ftmax:=s2rE(DUE(s));
                  s:=ExtractKeyWord(lines,'Flat=');
-                 Flat := Boolean(s2b(DUE(s)));
+                 Flat:=Boolean(s2b(DUE(s)));
                  s:=ExtractKeyWord(lines,'Vhyp=');
                  Vhyp:=s2rE(DUE(s))/3.6;
                  s:=ExtractKeyWord(lines,'Vadd=');
@@ -6006,14 +6019,14 @@ begin
                  s:=ExtractKeyWord(lines,'RelayType=');
                  RelayType:=s2b(DUE(s));
                  s:=ExtractKeyWord(lines,'ShuntMode=');
-                 ShuntModeAllow := Boolean(s2b(DUE(s)));
+                 ShuntModeAllow:=Boolean(s2b(DUE(s)));
                  if (ShuntModeAllow) then
                  begin
-                   ShuntModeAllow := True;
-                   ShuntMode := False;
-                   AnPos := 0;
-                   ImaxHi := 2;
-                   ImaxLo := 1;
+                   ShuntModeAllow:=True;
+                   ShuntMode:=False;
+                   AnPos:=0;
+                   ImaxHi:=2;
+                   ImaxLo:=1;
                  end;
                end;               
              { EZT:  {NBMX ¿eby kibel dzialal}
@@ -6061,7 +6074,7 @@ begin
 //youBy
             DieselElectric:
              begin
-//               WW_MPTRelayNo := ScndCtrlPosNo;
+//               WW_MPTRelayNo:= ScndCtrlPosNo;
                for k:=0 to ScndCtrlPosNo do
                 begin
                   with MotorParam[k] do
@@ -6174,7 +6187,7 @@ begin
 //youBy
           if (Pos('WWList:',lines)>0) then  {dla spal-ele}
           begin
-            RlistSize := s2b(DUE(ExtractKeyWord(lines,'Size=')));
+            RlistSize:=s2b(DUE(ExtractKeyWord(lines,'Size=')));
             for k:=0 to RlistSize do
             begin
               if not (ShuntModeAllow) then

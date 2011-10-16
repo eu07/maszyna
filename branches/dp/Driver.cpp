@@ -180,8 +180,8 @@ __fastcall TController::TController
  WaitingTime=0.0;
  fMinProximityDist=30.0; //stawanie miêdzy 30 a 60 m przed przeszkod¹
  fMaxProximityDist=50.0;
- iVehicleCount=-2;
- Prepare2press=false;
+ iVehicleCount=-2; //wartoœæ neutralna
+ Prepare2press=false; //bez dociskania
  eStopReason=stopSleep; //na pocz¹tku œpi
  fLength=0.0;
  eSignSkip=eSignLast=NULL; //miniêty semafor
@@ -214,6 +214,8 @@ AnsiString __fastcall TController::Order2Str(TOrders Order)
  if      (Order==Wait_for_orders)     return "Wait_for_orders";
  else if (Order==Prepare_engine)      return "Prepare_engine";
  else if (Order==Shunt)               return "Shunt";
+ else if (Order==Connect)             return "Connect";
+ else if (Order==Disconnect)          return "Disconnect";
  else if (Order==Change_direction)    return "Change_direction";
  else if (Order==Obey_train)          return "Obey_train";
  else if (Order==Release_engine)      return "Release_engine";
@@ -283,7 +285,7 @@ void __fastcall TController::ResetSKP()
 }
 
 int __fastcall TController::OrderDirectionChange(int newdir,Mover::TMoverParameters *Vehicle)
-{//zmiana kierunku
+{//zmiana kierunku jazdy, niezale¿nie od kabiny
  int testd;
  testd=newdir;
  if (Vehicle->Vel<0.1)
@@ -374,7 +376,7 @@ void __fastcall TController::SetDriverPsyche()
   if ((Controlling->V>0.1)&&(Controlling->Couplers[0].Connected)) //dopisac to samo dla V<-0.1 i zaleznie od Psyche
    if (Controlling->Couplers[0].CouplingFlag==0)
    {//Ra: funkcje s¹ odpowiednie?
-    AccPreferred=((Mover::TMoverParameters*)(Controlling->Couplers[0].Connected))->V; //tymczasowa wartoœæ
+    AccPreferred=(*Controlling->Couplers[0].Connected)->V; //tymczasowa wartoœæ
     AccPreferred=(AccPreferred*AccPreferred-Controlling->V*Controlling->V)/(25.92*(Controlling->Couplers[0].Dist-maxdist*fabs(Controlling->V)));
     AccPreferred=Min0R(AccPreferred,EasyAcceleration);
    }
@@ -775,9 +777,9 @@ void __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
   if (!EngineActive)
    OrderNext(Prepare_engine); //trzeba odpaliæ silnik najpierw
   OrderNext(Shunt); //zamieniamy w aktualnej pozycji
-  if (NewValue1!=0)
-   iVehicleCount=-2;
-  Prepare2press=false;
+  if (NewValue1!=0.0)
+   iVehicleCount=-2; //wartoœæ neutralna
+  Prepare2press=false; //bez dociskania
   SetVelocity(NewValue1,NewValue2,reason);
   if (NewValue1!=0.0)
   {bCheckVehicles=true; //sprawdziæ œwiat³a
@@ -798,12 +800,15 @@ void __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
  }
  else if (NewCommand=="Change_direction")
  {
+  TOrders o=OrderList[OrderPos]; //co robi przed zmian¹ kierunku
   if (!EngineActive)
    OrderNext(Prepare_engine); //trzeba odpaliæ silnik najpierw
   if (NewValue1>0.0) iDirectionOrder=1;
   else if (NewValue1<0.0) iDirectionOrder=-1;
   else iDirectionOrder=-iDirection; //zmiana na przeciwny ni¿ obecny
   OrderNext(Change_direction);
+  if (o>=Shunt)
+   OrderNext(o); //to samo robiæ po zmianie
  }
  else if (NewCommand=="Obey_train")
  {
@@ -840,13 +845,20 @@ void __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
  }
  else if (NewCommand=="Shunt")
  {//NewValue1 - iloœæ wagonów (-1=wszystkie), NewValue2: 0=odczep, 1=do³¹cz, -1=bez zmian
+  //-1,-1 - tryb manewrowy bez zmian w sk³adzie
+  //-1, 1 - pod³¹czyæ do ca³ego stoj¹cego sk³adu (do skutku)
+  // 1, 1 - pod³¹czyæ do pierwszego wagonu w sk³adzie i odczepiæ go od reszty
+  //-1, 0 - tryb manewrowy bez zmian (odczepianie z pozostawieniem wagonów nie ma sensu)
+  // 0, 0 - odczepienie lokomotywy
+  // 1, 0 - odczepienie lokomotywy z jednym wagonem
   if (!EngineActive)
    OrderNext(Prepare_engine); //trzeba odpaliæ silnik najpierw
   if (NewValue2>0)
-   OrderNext(Connect); //po³¹cz (NewValue2) wagonów
+   OrderNext(Connect); //po³¹cz (NewValue1) wagonów
   else if (NewValue2==0.0)
-   OrderNext(Disconnect); //odczep (NewValue2) wagonów
-  OrderNext(Shunt); //i manewruj dalej
+   if (NewValue1>=0.0) //jeœli iloœæ wagonów inna ni¿ wszystkie
+    OrderNext(Disconnect); //odczep (NewValue1) wagonów
+  OrderNext(Shunt); //potem manewruj dalej
   bCheckVehicles=true; //sprawdziæ œwiat³a
   if (NewValue1!=iVehicleCount)
    iVehicleCount=floor(NewValue1); //i co potem ? - trzeba zaprogramowac odczepianie
@@ -974,62 +986,68 @@ bool __fastcall TController::UpdateSituation(double dt)
    switch (OrderList[OrderPos])
    {//na jaka odleglosc i z jaka predkoscia ma podjechac
     case Shunt:
+    case Connect:
+    case Disconnect:
      fMinProximityDist=1.0; fMaxProximityDist=10.0; //[m]
      VelReduced=5; //[km/h]
-      //20.07.03 - manewrowanie wagonami
-      if (iVehicleCount>=0)
+     //20.07.03 - manewrowanie wagonami
+     if (iVehicleCount>=0) //jeœli by³a podana iloœæ wagonów
+     {
+      if (Prepare2press) //jeœli dociskanie
       {
-       if (Prepare2press)
+       SetVelocity(3,0); //jazda w ustawionym kierunku z prêdkoœci¹ 3
+       if (Controlling->MainCtrlPos>0) //jeœli jazda
        {
-        SetVelocity(3,0);
-        if (Controlling->MainCtrlPos>0)
+        if ((Controlling->DirAbsolute>0)&&(Controlling->Couplers[0].CouplingFlag>0))
         {
-         if ((Controlling->ActiveDir>0)&&(Controlling->Couplers[0].CouplingFlag>0))
+         Controlling->Dettach(0);
+         iVehicleCount=-2;
+         SetVelocity(0,0,stopJoin);
+         bCheckVehicles=true;
+        }
+        else
+         if ((Controlling->DirAbsolute<0)&&(Controlling->Couplers[1].CouplingFlag>0))
          {
-          Controlling->Dettach(0);
+          Controlling->Dettach(1);
           iVehicleCount=-2;
           SetVelocity(0,0,stopJoin);
-          bCheckVehicles=true;
          }
-         else
-          if ((Controlling->ActiveDir<0)&&(Controlling->Couplers[1].CouplingFlag>0))
-          {
-           Controlling->Dettach(1);
-           iVehicleCount=-2;
-           SetVelocity(0,0,stopJoin);
-          }
-          else HelpMeFlag=true; //cos nie tak z kierunkiem dociskania
-        }
-        if (iVehicleCount>=0)
-         if (!Controlling->DecLocalBrakeLevel(1))
-         {
-          Controlling->BrakeReleaser();
-          IncSpeed(); //docisnij sklad
-         }
+         else HelpMeFlag=true; //cos nie tak z kierunkiem dociskania
        }
-       if ((Controlling->Vel==0)&&!Prepare2press)
-       {//zmieñ kierunek na przeciwny
-        Prepare2press=true;
+       if (iVehicleCount>=0)
+        if (!Controlling->DecLocalBrakeLevel(1))
+        {
+         Controlling->BrakeReleaser();
+         IncSpeed(); //docisnij sklad
+        }
+      }
+      if ((Controlling->Vel==0)&&!Prepare2press)
+      {//2. faza odczepiania: zmieñ kierunek na przeciwny i dociœnij
+       Prepare2press=true; //dociœnij
+       if (Controlling->ActiveDir>=0)
+        while (Controlling->ActiveDir>=0)
+         Controlling->DirectionBackward();
+       else
+        while (Controlling->ActiveDir<=0)
+         Controlling->DirectionForward();
+      }
+     } //odczepiania
+     else //iloœæ wagonów ujemna
+      if (Prepare2press)
+      {//4. faza odczepiania: zwolnij i zmieñ kierunek
+       if (!DecSpeed()) //jeœli ju¿ bardziej wy³¹czyæ siê nie da
+       {//ponowna zmiana kierunku
         if (Controlling->ActiveDir>=0)
          while (Controlling->ActiveDir>=0)
           Controlling->DirectionBackward();
-        else
-         while (Controlling->ActiveDir<=0)
-          Controlling->DirectionForward();
+         else
+          while (Controlling->ActiveDir<=0)
+           Controlling->DirectionForward();
+        Prepare2press=false;
+        JumpToNextOrder();
+        SetVelocity(fShuntVelocity,fShuntVelocity);
        }
-      } //odczepiania
-      else
-       if (Prepare2press&&!DecSpeed()) //nie ma nic do odczepiania
-        {//ponowna zmiana kierunku
-         if (Controlling->ActiveDir>=0)
-          while (Controlling->ActiveDir>=0)
-           Controlling->DirectionBackward();
-          else
-           while (Controlling->ActiveDir<=0)
-            Controlling->DirectionForward();
-         Prepare2press=false;
-         SetVelocity(10,10);
-        }
+      }
      break;
     case Obey_train:
      if (Controlling->CategoryFlag==1) //jazda pociagowa
@@ -1072,13 +1090,15 @@ bool __fastcall TController::UpdateSituation(double dt)
       ++OrderPos;
      break;
     case Shunt:
+    case Connect:
+    case Disconnect:
     case Obey_train:
     case Change_direction:
-     if (OrderList[OrderPos]==Shunt) //spokojne manewry
+     if (OrderList[OrderPos]&(Shunt|Connect|Disconnect)) //spokojne manewry
      {
       VelActual=Min0R(VelActual,40); //jeœli manewry, to ograniczamy prêdkoœæ
       if ((iVehicleCount>=0)&&!Prepare2press)
-       SetVelocity(0,0,stopJoin); //dorobic potem doczepianie
+       SetVelocity(0,0,stopJoin); //1. faza odczepiania: zatrzymanie
      }
      else
       SetDriverPsyche();
@@ -1095,8 +1115,8 @@ bool __fastcall TController::UpdateSituation(double dt)
        }
 */
       PrepareEngine();
-      WaitingTime=0.0;
       SetVelocity(20,20); //jak siê nasta³, to niech jedzie
+      WaitingTime=0.0;
       fWarningDuration=1.5; //a zatr¹biæ trochê
       Controlling->WarningSignal=1;
      }
@@ -1136,18 +1156,25 @@ bool __fastcall TController::UpdateSituation(double dt)
          pVehicle->Mechanik=NULL; //tam ju¿ nikogo nie ma
          pVehicle->MoverParameters->CabNo=iDirection; //aktywacja wirtualnych kabin po drodze
          pVehicle->MoverParameters->ActiveCab=iDirection;
+         pVehicle->MoverParameters->DirAbsolute=pVehicle->MoverParameters->ActiveDir*pVehicle->MoverParameters->CabNo;
          pVehicle=d; //a mechu ma nowy pojazd (no, cz³on)
         }
         else break; //jak zajête, albo koniec sk³adu, to mechanik dalej nie idzie
        }
        Controlling=pVehicle->MoverParameters; //skrót do obiektu parametrów, moze byæ nowy
-       Controlling->CabNo=iDirection;
+       //Ra: to prze³¹czanie poni¿ej jest tu bez sensu
+       Controlling->CabNo=iDirection; //aktywacja wirtualnych kabin po drodze
        Controlling->ActiveCab=iDirection;
+       Controlling->DirAbsolute=Controlling->ActiveDir*Controlling->CabNo;
        Controlling->PantFront(true);
        Controlling->PantRear(true);
-       JumpToNextOrder(); //nastêpnie robimy, co jest do zrobienia
-       if (OrderList[OrderPos]==Shunt) //jeœli dalej mamy manewry
-        SetVelocity(fShuntVelocity,fShuntVelocity); //to od razu jedziemy
+       JumpToNextOrder(); //nastêpnie robimy, co jest do zrobienia (Shunt albo Obey_train)
+       if (WaitingTime>0.0) //je¿eli nie trzeba poczekaæ
+        if (OrderList[OrderPos]==Shunt) //jeœli dalej mamy manewry
+         SetVelocity(fShuntVelocity,fShuntVelocity); //to od razu jedziemy
+       eSignSkip=NULL; //nie ignorujemy przy poszukiwaniu nowego sygnalizatora
+       eSignLast=NULL; //¿eby jakiœ nowy by³ poszukiwany
+
 /*
        if (WriteLogFlag)
        {
@@ -1316,7 +1343,7 @@ bool __fastcall TController::UpdateSituation(double dt)
       //zapobieganie poslizgowi w czlonie silnikowym
       if (Controlling->Couplers[0].Connected!=NULL)
        if (TestFlag(Controlling->Couplers[0].CouplingFlag,ctrain_controll))
-        if (((Mover::TMoverParameters*)(Controlling->Couplers[0].Connected))->SlippingWheels)
+        if ((*Controlling->Couplers[0].Connected)->SlippingWheels)
          if (!Controlling->DecScndCtrl(1))
          {
           if (!Controlling->DecMainCtrl(1))
@@ -1368,6 +1395,8 @@ bool __fastcall TController::UpdateSituation(double dt)
    if (fWarningDuration<0.1)
     Controlling->WarningSignal=0.0; //a tu siê koñczy
   }
+  if (UpdateOK)
+   ScanEventTrack(); //skanowanie torów przeniesione z DynObj
   return UpdateOK;
  }
  else //if (AIControllFlag)
@@ -1385,6 +1414,10 @@ void __fastcall TController::JumpToNextOrder()
  }
  if (OrderList[OrderPos]>=Shunt)
   bCheckVehicles=true;
+ else if (OrderList[OrderPos]==Change_direction)
+  iDirectionOrder=-iDirection; //trzeba zmieniæ jawnie, bo siê nie domyœli
+ else if (OrderList[OrderPos]==Disconnect)
+  iVehicleCount=0; //odczepianie lokomotywy
 };
 
 void __fastcall TController::JumpToFirstOrder()
@@ -1756,7 +1789,7 @@ void __fastcall TController::ScanEventTrack()
 #endif
           }
         }
-      if (OrderCurrentGet()!=Obey_train) //w Wait_for_orders te¿ widzi tarcze
+      if (OrderCurrentGet()==Shunt) //w Wait_for_orders te¿ widzi tarcze?
       {//reakcja AI w trybie manewrowym dodatkowo na sygna³y manewrowe
        if (move?true:strcmp(e->Params[9].asMemCell->szText,"ShuntVelocity")==0)
        {//jeœli powy¿ej by³o SetVelocity 0 0, to doci¹gamy pod S1
@@ -1900,7 +1933,7 @@ void __fastcall TController::ScanEventTrack()
            if (TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,asNextStop.SubString(20,asNextStop.Length())))
            {//to siê wykona tylko raz po zatrzymaniu na W4
             if ((Controlling->TrainType==dt_EZT)?TrainParams->DirectionChange():false) //jeœli zmiana kierunku jazdy
-            {iDirectionOrder=-iDirection; //zmiana na przeciwny ni¿ obecny
+            {//iDirectionOrder=-iDirection; //zmiana na przeciwny ni¿ obecny
              JumpToNextOrder(); //wykonanie kolejnego rozkazu (zmiana kierunku), tylko dla EZT (SZT te¿...)
              eSignLast=NULL; //niech skanuje od nowa, w przeciwnym kierunku
             }
@@ -1937,7 +1970,7 @@ void __fastcall TController::ScanEventTrack()
             eSignSkip=e; //wtedy W4 uznajemy za ignorowany
             eSignLast=NULL; //¿eby jakiœ nowy sygna³ by³ poszukiwany
             WaitingSet(180); //tak ze 3 minuty, a¿ wszyscy wysi¹d¹
-            JumpToNextOrder(); //wykonanie kolejnego rozkazu
+            JumpToNextOrder(); //wykonanie kolejnego rozkazu (Change_direction albo Shunt)
 #if LOGSTOPS
             WriteLog(edir+AnsiString(GlobalTime->hh)+":"+AnsiString(GlobalTime->mm)+" Next stop: "+asNextStop.SubString(20,asNextStop.Length())); //informacja
 #endif

@@ -1082,8 +1082,8 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    break;
   case TP_TRACK :
    tmp->pTrack=new TTrack(tmp);
-   if ((DebugModeFlag) && (tmp->asName!=AnsiString("")))
-     WriteLog(tmp->asName.c_str());
+   //if ((DebugModeFlag) && (tmp->asName!=AnsiString("")))
+   //  WriteLog(tmp->asName.c_str());
    tmp->pTrack->Load(parser,pOrigin,tmp->asName); //w nazwie mo¿e byæ nazwa odcinka izolowanego
 
 //            str=Parser->GetNextSymbol().LowerCase();
