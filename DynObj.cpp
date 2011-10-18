@@ -879,6 +879,16 @@ TDynamicObject* __fastcall ABuFindObject(TTrack *Track,TDynamicObject *MyPointer
  return NULL; //nie ma pojazdów na torze, to jest NULL
 }
 
+int TDynamicObject::Dettach(int dir)
+{//roz³¹czenie sprzêgów rzeczywistych od strony (dir): 0=przód,1=ty³
+ //zwraca zakres maskê bitow¹ od³¹czanych sprzegów
+ int i=MoverParameters->Couplers[dir].CouplingFlag; //zapamiêtanie co by³o pod³¹czone
+ if (i)
+  if (MoverParameters->Dettach(dir))
+   return i;
+ return 0; //nic nie pod³¹czone
+}
+
 void TDynamicObject::CouplersDettach(double MinDist,int MyScanDir)
 {//funkcja roz³¹czajaca pod³¹czone sprzêgi
  //MinDist - dystans minimalny, dla ktorego mozna roz³¹czaæ
@@ -1286,7 +1296,6 @@ double __fastcall TDynamicObject::Init(
     {//inicjacja pierwszego przystanku i pobranie jego nazwy
      TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,TrainParams->NextStationName);
     }
-   //Mechanik=new TController(l,r,Controller,this,TrainParams,Aggressive);
    Mechanik=new TController(Controller,this,TrainParams,Aggressive);
    if (Controller==AIdriver)
    {//jeœli steruje komputer, okreœlamy dodatkowe parametry
@@ -1324,9 +1333,6 @@ double __fastcall TDynamicObject::Init(
      WriteLog("*/");
      Mechanik->OrderPush(Shunt); //po wykonaniu rozk³adu prze³¹czy siê na manewry
     }
-    //Mechanik->JumpToNextOrder();
-    //Mechanik->ChangeOrder(Shunt);
-    //Mechanik->JumpToNextOrder();
     //McZapkie-100302 - to ma byc wyzwalane ze scenerii
     //Mechanik->JumpToFirstOrder();
     if (fVel==0.0)
@@ -1670,162 +1676,25 @@ if (!MoverParameters->PhysicActivation)
 
     if (!bEnabled)
         return false;
-/*
-  if (bDynChangeStart)
-  {//ZiomalCl: zmieniamy czo³o poci¹gu
-    Mechanik->SetVelocity(0,0,stopDir);
-    if (MoverParameters->Vel==0)
-    {
-      if(!MoverParameters->DecBrakeLevel())
-      {
-        MoverParameters->PantFront(true);
-        MoverParameters->PantRear(true);
-        int dir=-MoverParameters->CabNo;
-        if(MoverParameters->Couplers[0].Connected==NULL)
-        {
-         if (MoverParameters->ActiveDir==1)
-          {
-            if(Mechanik->OrderCurrentGet()==Obey_train)
-             RaLightsSet(-1,2+32);
-            else
-             RaLightsSet(-1,1);
-          }
-          else
-          {
-            if (Mechanik->OrderCurrentGet()==Obey_train)
-             RaLightsSet(2+32,-1);
-            else
-             RaLightsSet(1,-1);
-          }
-        }
-        else if(MoverParameters->Couplers[1].Connected==NULL)
-        {
-          if(MoverParameters->ActiveDir==1)
-          {
-            if (Mechanik->OrderCurrentGet()==Obey_train)
-             RaLightsSet(-1,2+32);
-            else
-             RaLightsSet(-1,1);
-          }
-          else
-          {
-            if (Mechanik->OrderCurrentGet()==Obey_train)
-             RaLightsSet(2+32,-1);
-            else
-             RaLightsSet(1,-1);
-          }
-       }
-        if(dir==-1)
-        {
-          MoverParameters->DecScndCtrl(2);
-          MoverParameters->DecMainCtrl(2);
-        }
-        else if(dir==1)
-        {
-          MoverParameters->DecScndCtrl(2);
-          MoverParameters->DecMainCtrl(2);
-        }
-        MoverParameters->ActiveCab=0;
-        if (MoverParameters->Couplers[1].CouplingFlag!=0||MoverParameters->Couplers[0].CouplingFlag!=0)
-        {
-          TDynamicObject* temp = NULL;
-            if (this->PrevConnected)
-              temp=this->PrevConnected;
-            if(temp==NULL)
-              if(this->NextConnected)
-                temp=this->NextConnected;
-        }
-        SafeDelete(Mechanik);
-        MoverParameters->DecLocalBrakeLevelFAST();
-        bDynChangeStart=false;
-        NewDynamic->DynChangeEnd();
-      }
-    }
-  }
-*/
 
-/*
-  if (bDynChangeEnd)
-  {//ZiomalCl: inicjalizacja AI po zmianie czo³a poci¹gu
-   //Ra: nie tu, kurna, nie tu!!!!
-    TLocation l;
-    l.X=l.Y=l.Z=0;
-    TRotation r;
-    r.Rx=r.Ry=r.Rz=0;
-    int dir=-MoverParameters->CabNo;
-    TrainParams=new TTrainParameters("rozklad");
-    if (TrainParams->TrainName!=AnsiString("none"))
-     if (!TrainParams->LoadTTfile(Global::asCurrentSceneryPath))
-      Error("Cannot load timetable file "+TrainParams->TrainName+": Error="+ConversionError+" in position "+TrainParams->StationCount);
-    Mechanik=new TController(l,r,true,this,TrainParams,Aggressive);
-    AnsiString t1=asName;
-    Mechanik->Ready=false;
-    Mechanik->ChangeOrder(Prepare_engine);
-    Mechanik->JumpToNextOrder();
-    Mechanik->ChangeOrder(Shunt);
-    Mechanik->JumpToNextOrder();
-    Mechanik->SetVelocity(20,-1);
-    Mechanik->JumpToFirstOrder();
-    if (dir==-1)
-    {
-      if(MoverParameters->ActiveDir!=dir)
-        MoverParameters->DirectionForward();
-      if(MoverParameters->ActiveDir!=dir)
-        MoverParameters->DirectionForward();
-      MoverParameters->ActiveDir=1;
-      MoverParameters->ActiveCab=-1;
-      MoverParameters->CabNo=-1;
-      MoverParameters->CabDeactivisation();
-      MoverParameters->CabActivisation();
-    }
-    else if(dir==1)
-    {
-      if(MoverParameters->ActiveDir!=dir)
-        MoverParameters->DirectionForward();
-      if(MoverParameters->ActiveDir!=dir)
-        MoverParameters->DirectionForward();
-      MoverParameters->ActiveCab=1;
-      MoverParameters->CabNo=1;
-      MoverParameters->ActiveDir=1;
-      MoverParameters->CabDeactivisation();
-      MoverParameters->CabActivisation();
-    }
-    if (MoverParameters->Couplers[1].CouplingFlag!=0||MoverParameters->Couplers[0].CouplingFlag!=0)
-    {
-      TDynamicObject* temp = NULL;
-      if (this->PrevConnected)
-        temp=this->PrevConnected;
-      if(temp==NULL)
-        if(this->NextConnected)
-          temp=this->NextConnected;
-    }
-    bDynChangeEnd=false;
-  }
-*/
 //McZapkie-260202
-    MoverParameters->BatteryVoltage=90;
-if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
-    if ((MechInside) || (MoverParameters->TrainType==dt_EZT))
-{
+  MoverParameters->BatteryVoltage=90;
+  if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
+   if ((MechInside) || (MoverParameters->TrainType==dt_EZT))
+   {
     if ((!MoverParameters->PantCompFlag) && (MoverParameters->CompressedVolume>=2.8))
-      MoverParameters->PantVolume= MoverParameters->CompressedVolume;
+     MoverParameters->PantVolume= MoverParameters->CompressedVolume;
     if ((MoverParameters->CompressedVolume<2) && (MoverParameters->PantVolume<3))
-      {
-      if (!MoverParameters->PantCompFlag)
-       MoverParameters->PantVolume= MoverParameters->CompressedVolume;
-      MoverParameters->PantFront(false);
-      MoverParameters->PantRear(false);
-      }
- //Winger - automatyczne wylaczanie malej sprezarki.
+    {
+     if (!MoverParameters->PantCompFlag)
+      MoverParameters->PantVolume= MoverParameters->CompressedVolume;
+     MoverParameters->PantFront(false);
+     MoverParameters->PantRear(false);
+    }
+    //Winger - automatyczne wylaczanie malej sprezarki.
     if (MoverParameters->PantVolume>=5)
      MoverParameters->PantCompFlag=false;
-}
-
-//Winger - odhamowywanie w EZT
-//    if ((MoverParameters->TrainType==dt_EZT) && (MoverParameters->BrakeCtrlPos==-1) && (!MoverParameters->UnBrake))
-//     {
-//     MoverParameters->IncBrakeLevel(); // >BrakeCtrlPosNo=0;
-//     }
+   }
 
     double dDOMoveLen;
 
@@ -1869,28 +1738,28 @@ if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
    if ((MoverParameters->EnginePowerSource.SourceType==CurrentCollector)||(MoverParameters->TrainType==dt_EZT))
    {
     if (Global::bLiveTraction)
-     {
-     if ((MoverParameters->PantFrontVolt) || (MoverParameters->PantRearVolt) ||
-        //ABu: no i sprawdzenie dla EZT:
-        ((MoverParameters->TrainType==dt_EZT)&&(MoverParameters->GetTrainsetVoltage())))
+    {
+     if ((MoverParameters->PantFrontVolt)||(MoverParameters->PantRearVolt)||
+      //ABu: no i sprawdzenie dla EZT:
+      ((MoverParameters->TrainType==dt_EZT)&&(MoverParameters->GetTrainsetVoltage())))
       NoVoltTime=0;
      else
       NoVoltTime=NoVoltTime+dt;
-     if (NoVoltTime>1)
+     if (NoVoltTime>1.0) //jeœli brak zasilania d³u¿ej ni¿ przez 1 sekundê
       tmpTraction.TractionVoltage=0;
      else
-       tmpTraction.TractionVoltage=3400; //3550
-     }
+      tmpTraction.TractionVoltage=3400; //3550
+    }
     else
+     tmpTraction.TractionVoltage=3400;
+   }
+   else
     tmpTraction.TractionVoltage=3400;
-}
-else
-tmpTraction.TractionVoltage=3400;
-     tmpTraction.TractionFreq=0;
-     tmpTraction.TractionMaxCurrent=7500;
-     tmpTraction.TractionResistivity=0.3;
+   tmpTraction.TractionFreq=0;
+   tmpTraction.TractionMaxCurrent=7500; //Ra: chyba za du¿o? powinno wywalaæ przy 1500
+   tmpTraction.TractionResistivity=0.3;
 
-     
+
 
 
 //McZapkie: predkosc w torze przekazac do TrackParam
@@ -2329,7 +2198,7 @@ if (tmpTraction.TractionVoltage==0)
 bool __fastcall TDynamicObject::FastUpdate(double dt)
 {
 #ifdef _DEBUG
-    if (dt==0) return true; //Ra: pauza
+    if (dt==0.0) return true; //Ra: pauza
 /*
     {
         Error("dt==0");
@@ -3455,6 +3324,13 @@ void __fastcall TDynamicObject::RadioStop()
 
 void __fastcall TDynamicObject::RaLightsSet(int head,int rear)
 {//zapalenie œwiate³ z przodu i z ty³u, zale¿ne od kierunku pojazdu
+ if (rear==2+32+64)
+ {//jeœli koniec poci¹gu, to trzeba ustaliæ, czy jest tam czynna lokomotywa
+  if (btEndSignals11.Active()||btEndSignals1.Active())
+   rear=2+32; //œwiat³a czerwone
+  else
+   rear=64; //tablice blaszane
+ }
  if (iDirection>0) //w zale¿noœci od kierunku pojazdu w sk³adzie
  {//jesli pojazd stoi sprzêgiem 0 w stronê czo³a
   if (head>=0) iLights[0]=head;
@@ -3482,7 +3358,7 @@ void __fastcall TDynamicObject::RaAxleEvent(TEvent *e)
   }
  }
  else
-  if (!Mechanik->CheckEvent(e,true)) //czy dodawany do kolejki
+  if (!Mechanik->CheckEvent(e,true)) //czy dodawany do kolejki, funkcja prawie statyczna
    Global::pGround->AddToQuery(e,this); //dodanie do kolejki
 };
 
@@ -3491,3 +3367,17 @@ int __fastcall TDynamicObject::DirectionSet(int d)
  iDirection=d?1:-1; //1=zgodny,-1=przeciwny
  return 1-(d?NextConnectedNo:PrevConnectedNo); //informacja o po³o¿eniu nastêpnego
 };
+
+TDynamicObject* __fastcall TDynamicObject::Prev()
+{
+ if (MoverParameters->Couplers[iDirection>0?0:1].CouplingFlag)
+  return iDirection>0?PrevConnected:NextConnected;
+ return NULL; //gdy sprzêg wirtualny, to jakby nic nie by³o
+};
+TDynamicObject* __fastcall TDynamicObject::Next()
+{
+ if (MoverParameters->Couplers[iDirection>0?1:0].CouplingFlag)
+  return iDirection>0?NextConnected:PrevConnected;
+ return NULL; //gdy sprzêg wirtualny, to jakby nic nie by³o
+};
+

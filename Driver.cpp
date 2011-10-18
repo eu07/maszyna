@@ -267,7 +267,7 @@ bool __fastcall TController::CheckSKP()
  }
 */
  if (OrderCurrentGet()==Obey_train) //jeœli jazda poci¹gowa
-  Lights(1+4+16,2+32); //œwiat³a poci¹gowe (Pc1) i koñcówki (Pc5)
+  Lights(1+4+16,2+32+64); //œwiat³a poci¹gowe (Pc1) i koñcówki (Pc5)
  else if (OrderCurrentGet()>Wait_for_orders)
   Lights(16,1); //œwiat³a manewrowe (Tb1)
  return bCheckVehicles;
@@ -290,8 +290,8 @@ int __fastcall TController::OrderDirectionChange(int newdir,Mover::TMoverParamet
  testd=newdir;
  if (Vehicle->Vel<0.1)
  {
-  switch (newdir)
-  {
+  switch (newdir*Vehicle->CabNo)
+  {//DirectionBackward() i DirectionForward() to zmiany wzglêdem kabiny
    case -1: if (!Vehicle->DirectionBackward()) testd=0; break;
    case  1: if (!Vehicle->DirectionForward()) testd=0; break;
   }
@@ -440,23 +440,7 @@ bool __fastcall TController::PrepareEngine()
  //  Controlling->DoorRight(true);  //McZapkie: taka prowizorka bo powinien wiedziec gdzie peron
 //voltfront:=true;
  if (Controlling->PantFrontVolt||Controlling->PantRearVolt||voltfront||voltrear)
- {
-  if (!Controlling->Mains)
-  {
-   //if TrainType=dt_SN61)
-   //   begin
-   //      OK:=(OrderDirectionChange(ChangeDir,Controlling)=-1);
-   //      OK:=IncMainCtrl(1);
-   //   end;
-   OK=Controlling->MainSwitch(true);
-  }
-  else
-  {
-   OK=(OrderDirectionChange(iDirection,Controlling)==-1);
-   Controlling->CompressorSwitch(true);
-   Controlling->ConverterSwitch(true);
-   Controlling->CompressorSwitch(true);
-  }
+ {//najpierw ustalamy kierunek, jeœli nie zosta³ ustalony
   if (!iDirection) //jeœli nie ma ustalonego kierunku
    if (Controlling->V==0)
    {//ustalenie kierunku, gdy stoi
@@ -474,6 +458,22 @@ bool __fastcall TController::PrepareEngine()
      else //jak nie do ty³u, to do przodu
       if (Controlling->PantFrontVolt||Controlling->PantRearVolt||voltfront||voltrear)
        iDirection=1; //jazda w kierunku sprzêgu 0
+  if (!Controlling->Mains)
+  {
+   //if TrainType=dt_SN61)
+   //   begin
+   //      OK:=(OrderDirectionChange(ChangeDir,Controlling)=-1);
+   //      OK:=IncMainCtrl(1);
+   //   end;
+   OK=Controlling->MainSwitch(true);
+  }
+  else
+  {
+   OK=(OrderDirectionChange(iDirection,Controlling)==-1);
+   Controlling->CompressorSwitch(true);
+   Controlling->ConverterSwitch(true);
+   Controlling->CompressorSwitch(true);
+  }
  }
  else
   OK=false;
@@ -1000,17 +1000,24 @@ bool __fastcall TController::UpdateSituation(double dt)
        {
         if ((Controlling->DirAbsolute>0)&&(Controlling->Couplers[0].CouplingFlag>0))
         {
-         Controlling->Dettach(0);
-         iVehicleCount=-2;
-         SetVelocity(0,0,stopJoin);
-         bCheckVehicles=true;
+         if (pVehicle->Dettach(0))
+         {//tylko jeœli odepnie
+          iVehicleCount=-2;
+          SetVelocity(0,0,stopJoin);
+          bCheckVehicles=true;
+          CheckSKP(); //od razu zmieniæ œwiat³a
+         } //a jak nie, to dociskaæ dalej
         }
         else
          if ((Controlling->DirAbsolute<0)&&(Controlling->Couplers[1].CouplingFlag>0))
          {
-          Controlling->Dettach(1);
-          iVehicleCount=-2;
-          SetVelocity(0,0,stopJoin);
+          if (pVehicle->Dettach(1))
+          {//tylko jeœli odepnie
+           iVehicleCount=-2;
+           SetVelocity(0,0,stopJoin);
+           bCheckVehicles=true;
+           CheckSKP(); //od razu zmieniæ œwiat³a
+          } //a jak nie, to dociskaæ dalej
          }
          else HelpMeFlag=true; //cos nie tak z kierunkiem dociskania
        }
@@ -1155,7 +1162,7 @@ bool __fastcall TController::UpdateSituation(double dt)
           iDirection=-iDirection; //to bêdziemy jechaæ w drug¹ stronê wzglêdem zasiedzianego pojazdu
          pVehicle->Mechanik=NULL; //tam ju¿ nikogo nie ma
          pVehicle->MoverParameters->CabNo=iDirection; //aktywacja wirtualnych kabin po drodze
-         pVehicle->MoverParameters->ActiveCab=iDirection;
+         pVehicle->MoverParameters->ActiveCab=0;
          pVehicle->MoverParameters->DirAbsolute=pVehicle->MoverParameters->ActiveDir*pVehicle->MoverParameters->CabNo;
          pVehicle=d; //a mechu ma nowy pojazd (no, cz³on)
         }
@@ -1163,15 +1170,16 @@ bool __fastcall TController::UpdateSituation(double dt)
        }
        Controlling=pVehicle->MoverParameters; //skrót do obiektu parametrów, moze byæ nowy
        //Ra: to prze³¹czanie poni¿ej jest tu bez sensu
-       Controlling->CabNo=iDirection; //aktywacja wirtualnych kabin po drodze
+       Controlling->CabNo=iDirection; //ustawienie aktywnej kabiny w prowadzonym poje¿dzie
        Controlling->ActiveCab=iDirection;
-       Controlling->DirAbsolute=Controlling->ActiveDir*Controlling->CabNo;
-       Controlling->PantFront(true);
-       Controlling->PantRear(true);
+       Controlling->ActiveDir=0; //¿eby sam ustawi³ kierunek
+       PrepareEngine();
+       //while (Controlling->ActiveDir<=0)
+       // Controlling->DirectionForward(); //po zmianie kabiny jedziemy do przodu
        JumpToNextOrder(); //nastêpnie robimy, co jest do zrobienia (Shunt albo Obey_train)
-       if (WaitingTime>0.0) //je¿eli nie trzeba poczekaæ
-        if (OrderList[OrderPos]==Shunt) //jeœli dalej mamy manewry
-         SetVelocity(fShuntVelocity,fShuntVelocity); //to od razu jedziemy
+       //if (WaitingTime>0.0) //je¿eli nie trzeba poczekaæ
+       if (OrderList[OrderPos]==Shunt) //jeœli dalej mamy manewry
+        SetVelocity(fShuntVelocity,fShuntVelocity); //to od razu jedziemy
        eSignSkip=NULL; //nie ignorujemy przy poszukiwaniu nowego sygnalizatora
        eSignLast=NULL; //¿eby jakiœ nowy by³ poszukiwany
 
