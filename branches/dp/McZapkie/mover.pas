@@ -1187,97 +1187,97 @@ function TMoverParameters.IncMainCtrl(CtrlSpeed:integer): boolean;
 var //b:byte;
     OK:boolean;
 begin
-  OK:=false;
-  if (MainCtrlPosNo>0) and (CabNo<>0) then
-    begin
-      if MainCtrlPos<MainCtrlPosNo then
-       case EngineType of
-        None, Dumb, DieselElectric:      { EZT:}
-         if CtrlSpeed=1 then
-          begin
-            inc(MainCtrlPos);
-            OK:=True;
-          end
-         else
-          if CtrlSpeed>1 then
-            OK:=IncMainCtrl(1) and IncMainCtrl(CtrlSpeed-1);
-        ElectricSeriesMotor:
-         if (CtrlSpeed=1) and (ActiveDir<>0) then
-          begin
-            inc(MainCtrlPos);
-            OK:=True;
-             if Imax=ImaxHi then
-              if RList[MainCtrlPos].Bn>1 then
-               begin
-                if(TrainType=dt_ET42)then
-                 begin
-                  dec(MainCtrlPos);
-                  OK:=false;
-                 end;
-                if MaxCurrentSwitch(false) then
-                  SetFlag(SoundFlag,sound_relay); {wylaczanie wysokiego rozruchu}
- {            if (EngineType=ElectricSeriesMotor) and (MainCtrlPos=1) then
-              MainCtrlActualPos:=1;
- }             end;
-            if(DynamicBrakeFlag)then
-              if(TrainType=dt_ET42)then
-                if MainCtrlPos>20 then
-                 begin
-                  dec(MainCtrlPos);
-                  OK:=false;
-                 end;
-          end
-          else
-          if (CtrlSpeed>1) and (ActiveDir<>0) then
-           begin
-             while (RList[MainCtrlPos].R>0) and IncMainCtrl(1) do
-              OK:=True ; {takie chamskie, potem poprawie}
-            if(DynamicBrakeFlag)then
-              if(TrainType=dt_ET42)then
-                while(MainCtrlPos>20)do
-                  dec(MainCtrlPos);
-            OK:=false;
-           end;
-        DieselEngine:
-         if CtrlSpeed=1 then
-          begin
-            inc(MainCtrlPos);
-            OK:=True;
-            if MainCtrlPos>0 then
-             CompressorAllow:=true
-            else
-             CompressorAllow:=false;
-          end
-          else
-          if CtrlSpeed>1 then
-           begin
-             while (MainCtrlPos<MainCtrlPosNo) do
-              IncMainCtrl(1);
-             OK:=True ;
-           end;
-        WheelsDriven:
-         OK:=AddPulseForce(CtrlSpeed);
-       end {case EngineType}
-      else
-       if CoupledCtrl then {wspolny wal}
-         begin //Ra:tu jest coœ bez sensu, OK=False i EN57 stoi
-           if ScndCtrlPos<ScndCtrlPosNo then //3<3 -> false
-             begin
-               inc(ScndCtrlPos);
-               OK:=True;
-             end
-            else OK:=False;
-         end;
-      if OK then
+ OK:=false;
+ if (MainCtrlPosNo>0) and (CabNo<>0) then
+  begin
+   if MainCtrlPos<MainCtrlPosNo then
+    case EngineType of
+     None, Dumb, DieselElectric:      { EZT:}
+      if CtrlSpeed=1 then
        begin
-          {OK:=}SendCtrlToNext('MainCtrl',MainCtrlPos,CabNo);  {???}
-          {OK:=}SendCtrlToNext('ScndCtrl',ScndCtrlPos,CabNo);
-       end;
-    end
-  else {nie ma sterowania}
-   OK:=False;
-  if OK then LastRelayTime:=0;
-  IncMainCtrl:=OK;
+        inc(MainCtrlPos);
+        OK:=True;
+       end
+      else
+       if CtrlSpeed>1 then
+         OK:=IncMainCtrl(1) and IncMainCtrl(CtrlSpeed-1);
+     ElectricSeriesMotor:
+      if (CtrlSpeed=1) and (ActiveDir<>0) then
+       begin
+        inc(MainCtrlPos);
+        OK:=True;
+         if Imax=ImaxHi then
+          if RList[MainCtrlPos].Bn>1 then
+           begin
+            if(TrainType=dt_ET42)then
+             begin
+              dec(MainCtrlPos);
+              OK:=false;
+             end;
+            if MaxCurrentSwitch(false) then
+              SetFlag(SoundFlag,sound_relay); {wylaczanie wysokiego rozruchu}
+{         if (EngineType=ElectricSeriesMotor) and (MainCtrlPos=1) then
+          MainCtrlActualPos:=1;
+}          end;
+        if(DynamicBrakeFlag)then
+          if(TrainType=dt_ET42)then
+            if MainCtrlPos>20 then
+             begin
+              dec(MainCtrlPos);
+              OK:=false;
+             end;
+       end
+      else
+       if (CtrlSpeed>1) and (ActiveDir<>0) then
+        begin
+          while (RList[MainCtrlPos].R>0) and IncMainCtrl(1) do
+           OK:=True ; {takie chamskie, potem poprawie}
+         if(DynamicBrakeFlag)then
+           if(TrainType=dt_ET42)then
+             while(MainCtrlPos>20)do
+               dec(MainCtrlPos);
+         OK:=false;
+        end;
+     DieselEngine:
+      if CtrlSpeed=1 then
+       begin
+        inc(MainCtrlPos);
+        OK:=True;
+        if MainCtrlPos>0 then
+         CompressorAllow:=true
+        else
+         CompressorAllow:=false;
+       end
+      else
+       if CtrlSpeed>1 then
+        begin
+          while (MainCtrlPos<MainCtrlPosNo) do
+           IncMainCtrl(1);
+          OK:=True ;
+        end;
+     WheelsDriven:
+      OK:=AddPulseForce(CtrlSpeed);
+    end {case EngineType}
+   else
+    if CoupledCtrl then {wspolny wal}
+      begin //Ra:tu jest coœ bez sensu, OK=False i EN57 stoi
+        if ScndCtrlPos<ScndCtrlPosNo then //3<3 -> false
+          begin
+            inc(ScndCtrlPos);
+            OK:=True;
+          end
+         else OK:=False;
+      end;
+   if OK then
+    begin
+     {OK:=}SendCtrlToNext('MainCtrl',MainCtrlPos,CabNo);  {???}
+     {OK:=}SendCtrlToNext('ScndCtrl',ScndCtrlPos,CabNo);
+    end;
+  end
+ else {nie ma sterowania}
+  OK:=False;
+ if OK then LastRelayTime:=0;
+ IncMainCtrl:=OK;
 end;
 
 
@@ -1461,10 +1461,10 @@ begin
     if EngineType=WheelsDriven then
      dec(CabNo);
 {    else}
-     dec(ActiveDir);
-     DirAbsolute:=ActiveDir*CabNo;
-     DirectionBackward:=True;
-     SendCtrltoNext('Direction',ActiveDir,CabNo);
+    dec(ActiveDir);
+    DirAbsolute:=ActiveDir*CabNo;
+    DirectionBackward:=True;
+    SendCtrltoNext('Direction',ActiveDir,CabNo);
    end
   else
    DirectionBackward:=False;
@@ -2068,7 +2068,7 @@ begin
             if TestFlag(BrakeDelays,bdelay_R)then
               if(not TestFlag(BrakeStatus,b_Ractive)and(BrakeCtrlPosNo=0)and((BrakeMethod and 1)=0))then
                 sm:=sm*0.5;
-                
+
             Speed:=RealPipeRatio*sm;
 
                                                         {(Volume/(10*BrakeVVol ume+0.1)>MaxBrakePress/2))}
@@ -2379,7 +2379,7 @@ begin
         BrakeStatus:=(BrakeStatus and 254);
         HighPipePress:=0.00002;
         LowPipePress:= 0.00001;
-       end 
+       end
       else
        if(dpBrake<0)then
         BrakePress:=BrakePress-dpBrake;
@@ -2615,7 +2615,8 @@ end;
 {sprzegi}
 
 function TMoverParameters.Attach(ConnectNo:byte;ConnectToNr:byte;ConnectTo:PMoverParameters;CouplingType:byte):boolean;
-{³¹czenie do (ConnectNo) pojazdu (ConnectTo) stron¹ (ConnectToNr) }
+//³¹czenie do (ConnectNo) pojazdu (ConnectTo) stron¹ (ConnectToNr)
+//Ra: zwykle wykonywane dwukrotnie, dla ka¿dego pojazdu oddzielnie
 const dEpsilon=0.001;
 var ct:TCouplerType;
 begin
@@ -2623,24 +2624,24 @@ begin
   begin
    if (ConnectTo<>nil) then
     begin
-      if (ConnectToNr<>2) then CouplerNr[ConnectNo]:=ConnectToNr; {2=nic nie pod³¹czone}
-      ct:=ConnectTo^.Couplers[CouplerNr[ConnectNo]].CouplerType; //typ sprzêgu pod³¹czanego pojazdu
-      CoupleDist:=Distance(Loc,ConnectTo^.Loc,Dim,ConnectTo^.Dim); //odleg³oœæ pomiêdzy sprzêgami
-      if (((CoupleDist<=dEpsilon) and (CouplerType<>NoCoupler) and (CouplerType=ct))
-         or (CouplingType and ctrain_coupler=0))
-       then
-        begin  {stykaja sie zderzaki i kompatybilne typy sprzegow chyba ze wirtualnie}
-          Connected:=ConnectTo;
-          CouplingFlag:=CouplingType;
-          if (CouplingType<>ctrain_virtual) //Ra: wirtualnego nie ³¹czymy zwrotnie!
-           then Connected.Couplers[CouplerNr[ConnectNo]].CouplingFlag:=CouplingType;
-          Attach:=True;
-        end
-       else
-        Attach:=False;
-    end
+     if (ConnectToNr<>2) then CouplerNr[ConnectNo]:=ConnectToNr; {2=nic nie pod³¹czone}
+     ct:=ConnectTo^.Couplers[CouplerNr[ConnectNo]].CouplerType; //typ sprzêgu pod³¹czanego pojazdu
+     CoupleDist:=Distance(Loc,ConnectTo^.Loc,Dim,ConnectTo^.Dim); //odleg³oœæ pomiêdzy sprzêgami
+     if (((CoupleDist<=dEpsilon) and (CouplerType<>NoCoupler) and (CouplerType=ct))
+        or (CouplingType and ctrain_coupler=0))
+     then
+      begin  {stykaja sie zderzaki i kompatybilne typy sprzegow chyba ze wirtualnie}
+        Connected:=ConnectTo;
+        CouplingFlag:=CouplingType;
+        if (CouplingType<>ctrain_virtual) //Ra: wirtualnego nie ³¹czymy zwrotnie!
+         then Connected.Couplers[CouplerNr[ConnectNo]].CouplingFlag:=CouplingType;
+        Attach:=True;
+      end
      else
       Attach:=False;
+    end
+   else
+    Attach:=False;
   end;
 end;
 
@@ -2655,8 +2656,8 @@ begin
     then
      begin  {gdy podlaczony oraz scisniete zderzaki chyba ze zerwany sprzeg albo tylko wirtualnie}
 {       Connected:=nil;  } {lepiej zostawic bo przeciez trzeba kontrolowac zderzenia odczepionych}
-       CouplingFlag:=0;
-       Connected.Couplers[CouplerNr[ConnectNo]].CouplingFlag:=0;
+       CouplingFlag:=0; //pozostaje sprzêg wirtualny
+       Connected.Couplers[CouplerNr[ConnectNo]].CouplingFlag:=0; //pozostaje sprzêg wirtualny
        Dettach:=True;
      end
    else
@@ -2687,37 +2688,39 @@ end;
 function TMoverParameters.FuseFlagCheck: boolean;
 var b:byte;
 begin
-  FuseFlagCheck:=false;
-  if Power>0.01 then FuseFlagCheck:=FuseFlag
-  else               {pobor pradu jezeli niema mocy}
-   for b:=0 to 1 do
-    with Couplers[b] do
-     if TestFlag(CouplingFlag,ctrain_controll) then
-      if Connected^.Power>0.01 then
-       FuseFlagCheck:=Connected^.FuseFlagCheck();
+ FuseFlagCheck:=false;
+ if Power>0.01 then FuseFlagCheck:=FuseFlag
+ else               {pobor pradu jezeli niema mocy}
+  for b:=0 to 1 do
+   with Couplers[b] do
+    if TestFlag(CouplingFlag,ctrain_controll) then
+     if Connected^.Power>0.01 then
+      FuseFlagCheck:=Connected^.FuseFlagCheck();
 end;
 
 function TMoverParameters.FuseOn: boolean;
 begin
-if (MainCtrlPos=0) and (ScndCtrlPos=0) and Mains then
- begin
-  SendCtrlToNext('FuseSwitch',1,CabNo);
-  if (EngineType=ElectricSeriesMotor) and FuseFlag then
+ if (MainCtrlPos=0) and (ScndCtrlPos=0) and Mains then
+  begin
+   SendCtrlToNext('FuseSwitch',1,CabNo);
+   if (EngineType=ElectricSeriesMotor) and FuseFlag then
     begin
-       FuseFlag:=False;  {wlaczenie ponowne obwodu}
-       FuseOn:=True;
-       SetFlag(SoundFlag,sound_relay); SetFlag(SoundFlag,sound_loud);
-      end;
+     FuseFlag:=False;  {wlaczenie ponowne obwodu}
+     FuseOn:=True;
+     SetFlag(SoundFlag,sound_relay); SetFlag(SoundFlag,sound_loud);
     end;
+  end;
 end;
 
 procedure TMoverParameters.FuseOff;
 begin
-  if not FuseFlag then
-   begin
-     FuseFlag:=True; EventFlag:=True;
-     SetFlag(SoundFlag,sound_relay); SetFlag(SoundFlag,sound_loud);
-   end;
+ if not FuseFlag then
+  begin
+   FuseFlag:=True;
+   EventFlag:=True;
+   SetFlag(SoundFlag,sound_relay);
+   SetFlag(SoundFlag,sound_loud);
+  end;
 end;
 
 

@@ -150,16 +150,16 @@ protected:
 public:
  int iLights[2]; //bity zapalonych œwiate³
  double fTrackBlock; //odleg³oœæ do przeszkody do dalszego ruchu
- TDynamicObject* __fastcall Prev(){return iDirection>0?PrevConnected:NextConnected;};
- TDynamicObject* __fastcall Next(){return iDirection>0?NextConnected:PrevConnected;};
+ TDynamicObject* __fastcall Prev();
+ TDynamicObject* __fastcall Next();
     void __fastcall SetdMoveLen(double dMoveLen) {MoverParameters->dMoveLen=dMoveLen;}
     void __fastcall ResetdMoveLen() {MoverParameters->dMoveLen=0;}
     double __fastcall GetdMoveLen() {return MoverParameters->dMoveLen;}
 
-    bool __fastcall EndSignalsLight1Active() {return btEndSignals11.Active();};
-    bool __fastcall EndSignalsLight2Active() {return btEndSignals21.Active();};
-    bool __fastcall EndSignalsLight1oldActive() {return btEndSignals1.Active();};
-    bool __fastcall EndSignalsLight2oldActive() {return btEndSignals2.Active();};
+    //bool __fastcall EndSignalsLight1Active() {return btEndSignals11.Active();};
+    //bool __fastcall EndSignalsLight2Active() {return btEndSignals21.Active();};
+    //bool __fastcall EndSignalsLight1oldActive() {return btEndSignals1.Active();};
+    //bool __fastcall EndSignalsLight2oldActive() {return btEndSignals2.Active();};
     int __fastcall GetPneumatic(bool front, bool red);
     void __fastcall SetPneumatic(bool front, bool red);
 		AnsiString asName;
@@ -296,6 +296,7 @@ public:
  TDynamicObject* __fastcall FirstFind(int &coupler_nr);
  int __fastcall DirectionSet(int d); //ustawienie kierunku w sk³adzie
  int __fastcall DirectionGet() {return iDirection;}; //ustawienie kierunku w sk³adzie
+ int Dettach(int dir);
 };
 
 
