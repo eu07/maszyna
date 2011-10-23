@@ -297,14 +297,15 @@ void __fastcall TTrain::OnKeyPress(int cKey)
        {DynamicObject->Mechanik->Ready=false;
         DynamicObject->Mechanik->AIControllFlag=AIdriver;
         DynamicObject->Controller=AIdriver;
-        if (DynamicObject->Mechanik->OrderCurrentGet()<Shunt)
-        {DynamicObject->Mechanik->OrderNext(Prepare_engine);
-         if (DynamicObject->iLights[DynamicObject->MoverParameters->CabNo<0?1:0]&4) //górne œwiat³o
-          DynamicObject->Mechanik->OrderNext(Obey_train); //jazda poci¹gowa
-         else
-          DynamicObject->Mechanik->OrderNext(Shunt); //jazda manewrowa
+        if (DynamicObject->Mechanik->OrderCurrentGet())
+         if (DynamicObject->Mechanik->OrderCurrentGet()<Shunt)
+         {DynamicObject->Mechanik->OrderNext(Prepare_engine);
+          if (DynamicObject->iLights[DynamicObject->MoverParameters->CabNo<0?1:0]&4) //górne œwiat³o
+           DynamicObject->Mechanik->OrderNext(Obey_train); //jazda poci¹gowa
+          else
+           DynamicObject->Mechanik->OrderNext(Shunt); //jazda manewrowa
          //DynamicObject->Mechanik->JumpToFirstOrder(); //a to co?
-        }
+         }
   // czy dac ponizsze? to problematyczne
         DynamicObject->Mechanik->SetVelocity(DynamicObject->GetVelocity(),-1); //utrzymanie dotychczasowej?
        }
@@ -994,8 +995,10 @@ void __fastcall TTrain::OnKeyPress(int cKey)
   //McZapkie-240302 - wylaczanie automatycznego pilota (w trybie ~debugmode mozna tylko raz)
       if (cKey==VkKeyScan('q'))
       {
-        DynamicObject->Mechanik->AIControllFlag= Humandriver;
-        DynamicObject->Controller= Humandriver;
+        if (DynamicObject->Mechanik)
+        {DynamicObject->Mechanik->AIControllFlag=Humandriver;
+         DynamicObject->Controller=Humandriver;
+        }
       }
       else
       if (cKey==Global::Keys[k_MaxCurrent])   //McZapkie-160502: f - niski rozruch
@@ -1115,7 +1118,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
               if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,tmp->MoverParameters->Couplers[CouplNr].CouplingFlag+ctrain_pneumatic))
               {
                rsHiss.Play(1,DSBPLAY_LOOPING,true,tmp->GetPosition());
-               DynamicObject->SetPneumatic(CouplNr,1);
+               DynamicObject->SetPneumatic(CouplNr,1); //Ra: to mi siê nie podoba !!!!
                tmp->SetPneumatic(CouplNr,1);
               }
              }
@@ -1127,7 +1130,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
 //               rsHiss.Play(1,DSBPLAY_LOOPING,true,tmp->GetPosition());
                dsbCouplerDetach->SetVolume(DSBVOLUME_MAX);
                dsbCouplerDetach->Play(0,0,0);
-               DynamicObject->SetPneumatic(CouplNr,0);
+               DynamicObject->SetPneumatic(CouplNr,0); //Ra: to mi siê nie podoba !!!!
                tmp->SetPneumatic(CouplNr,0);
               }
              }
@@ -1151,7 +1154,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
         {
           if (!FreeFlyModeFlag) //tryb 'kabinowy'
           {
-           if (DynamicObject->Dettach(iCabn-1))
+           if (DynamicObject->Dettach(iCabn-1,0))
            {
             dsbCouplerDetach->SetVolume(DSBVOLUME_MAX);
             dsbCouplerDetach->Play(0,0,0);
@@ -1167,7 +1170,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
              tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 500, CouplNr);
             if (tmp&&(CouplNr!=-1))
             {
-             if (tmp->Dettach(CouplNr))
+             if (tmp->Dettach(CouplNr,0))
              {
               dsbCouplerDetach->SetVolume(DSBVOLUME_MAX);
               dsbCouplerDetach->Play(0,0,0);

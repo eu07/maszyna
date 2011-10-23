@@ -69,7 +69,6 @@ class TController
 {
  double fShuntVelocity; //maksymalna prêdkoœæ manewrowania, zale¿y m.in. od sk³adu
  double fLength; //d³ugoœæ sk³adu (dla ograniczeñ i stawania przed semaforami)
- bool bCheckVehicles; //nale¿y sprawdziæ pojazdy i ustawiæ œwiat³a
  int iVehicles; //iloœæ pojazdów w sk³adzie 
  bool EngineActive; //ABu: Czy silnik byl juz zalaczony
  //Mover::TLocation MechLoc;
@@ -159,9 +158,8 @@ public:
  void __fastcall OrderPush(TOrders NewOrder);
  void __fastcall OrderNext(TOrders NewOrder);
  TOrders __fastcall OrderCurrentGet();
- bool __fastcall CheckSKP();
- void __fastcall ResetSKP();
 private:
+ bool __fastcall CheckVehicles();
  void __fastcall CloseLog();
 public:
  __fastcall TController
@@ -180,6 +178,7 @@ private:
  AnsiString VehicleName;
  double VelMargin;
  double fWarningDuration; //ile czasu jeszcze tr¹biæ
+ double fStopTime; //czas postoju przed dalsz¹ jazd¹ (np. na przystanku)
  double WaitingTime; //zliczany czas oczekiwania do samoistnego ruszenia
  double WaitingExpireTime; //maksymlany czas oczekiwania do samoistnego ruszenia
  AnsiString __fastcall Order2Str(TOrders Order);

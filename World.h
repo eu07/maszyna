@@ -41,6 +41,7 @@ private:
     TCamera Camera;
     TGround Ground;
     TTrain *Train;
+    TDynamicObject *pDynamicNearest;
     bool Paused;
 
     GLuint	base;

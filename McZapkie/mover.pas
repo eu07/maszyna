@@ -708,6 +708,7 @@ TYPE
 
                {! funkcje laczace/rozlaczajace sprzegi}
                function Attach(ConnectNo: byte; ConnectToNr: byte; ConnectTo:PMoverParameters; CouplingType: byte):boolean; {laczenie}
+               function DettachDistance(ConnectNo: byte):boolean; //odleg³oœæ roz³¹czania
                function Dettach(ConnectNo: byte):boolean;                    {rozlaczanie}
 
                {funkcje obliczajace sily}
@@ -2645,6 +2646,20 @@ begin
   end;
 end;
 
+function TMoverParameters.DettachDistance(ConnectNo: byte): boolean;
+//Ra: sprawdzenie, czy odleg³oœæ jest dobra do roz³¹czania
+begin
+ with Couplers[ConnectNo] do
+  if (Connected<>nil) and
+  {ABu021104: zakomentowane 'and (CouplerType<>Articulated)' w warunku, nie wiem co to bylo, ale za to teraz dziala odczepianie... :) }
+  (((Distance(Loc,Connected^.Loc,Dim,Connected^.Dim)>0) {and (CouplerType<>Articulated)}) or
+   (TestFlag(DamageFlag,dtrain_coupling) or (CouplingFlag and ctrain_coupler=0)))
+   then
+    DettachDistance:=FALSE
+   else
+    DettachDistance:=TRUE;
+end;
+
 function TMoverParameters.Dettach(ConnectNo: byte): boolean; {rozlaczanie}
 begin
  with Couplers[ConnectNo] do
@@ -4532,18 +4547,18 @@ Begin
    end
   else if command='CabActivisation' then
    begin
-//     OK:=Power>0.01;
-//     if OK then
-      if (CabNo<>0) then
-        LastCab:=CabNo;
-      case Trunc(CValue1) of
-       1 : CabNo:= 1;
-      -1 : CabNo:=-1;
-      else CabNo:=0;
-      DirAbsolute:=ActiveDir*CabNo;
-      PantCheck;
-      end;
-     OK:=SendCtrlToNext(command,CValue1,CValue2);
+//  OK:=Power>0.01;
+//  if OK then
+    if (CabNo<>0) then
+     LastCab:=CabNo;
+    case Trunc(CValue1) of
+      1 : CabNo:= 1;
+     -1 : CabNo:=-1;
+    else CabNo:=0;
+    end;
+    DirAbsolute:=ActiveDir*CabNo;
+    PantCheck; //ewentualnie automatyczna zamiana podniesionych pantografów
+    OK:=SendCtrlToNext(command,CValue1,CValue2);
    end
   else if command='AutoRelaySwitch' then
    begin

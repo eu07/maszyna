@@ -12,7 +12,7 @@
       RealSound.obj EvLaunch.obj FadeSound.obj Traction.obj TractionPower.obj 
       parser.obj sky.obj AirCoupler.obj glew.obj ResourceManager.obj VBO.obj 
       Feedback.obj TextureDDS.obj opengl\ARB_Multisample.obj Float3d.obj 
-      Classes.obj Driver.obj"/>
+      Classes.obj Driver.obj Names.obj"/>
     <RESFILES value="EU07.res"/>
     <IDLFILES value=""/>
     <IDLGENFILES value=""/>
@@ -36,13 +36,13 @@
     <USERDEFINES value="GLEW_STATIC;_DEBUG;USE_VBO"/>
     <SYSDEFINES value="_RTLDLL;NO_STRICT"/>
     <MAINSOURCE value="EU07.cpp"/>
-    <INCLUDEPATH value="opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
-    <LIBPATH value="opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
+    <INCLUDEPATH value="C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
+    <LIBPATH value="C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
     <WARNINGS value="-w-par"/>
   </MACROS>
   <OPTIONS>
-    <IDLCFLAGS value="-Iopengl -IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl -src_suffix cpp 
-      -DGLEW_STATIC -D_DEBUG -DUSE_VBO -boa"/>
+    <IDLCFLAGS value="-IC:\ProgsWin\CBuilder5\Projects\. -Iopengl -IMcZapkie -I$(BCB)\include 
+      -I$(BCB)\include\vcl -src_suffix cpp -DGLEW_STATIC -D_DEBUG -DUSE_VBO -boa"/>
     <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a4 -6 -b- -k -y -v -vi- 
       -c -tW -tWM"/>
     <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
@@ -61,8 +61,8 @@ IncludeVerInfo=1
 AutoIncBuild=1
 MajorVer=1
 MinorVer=3
-Release=264
-Build=258
+Release=265
+Build=264
 Debug=1
 PreRelease=0
 Special=0
@@ -74,7 +74,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.3.264.258
+FileVersion=1.3.265.264
 InternalName=5th plus by Ra
 LegalCopyright=
 LegalTrademarks=
@@ -84,12 +84,16 @@ ProductVersion=1.3
 Comments=
 
 [HistoryLists\hlIncludePath]
-Count=1
-Item0=opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Count=3
+Item0=C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item1=C:\ProgsWin\CBuilder5\Projects;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item2=opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
 
 [HistoryLists\hlLibraryPath]
-Count=1
-Item0=opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Count=3
+Item0=C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item1=C:\ProgsWin\CBuilder5\Projects;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item2=opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
 
 [HistoryLists\hlDebugSourcePath]
 Count=3
@@ -123,7 +127,7 @@ Item6=M:\aEU07\EU07
 DebugSourceDirs=C:\Ra\dp\McZapkie\
 
 [Parameters]
-RunParams=-s AI_start1.scn -v ET22-135
+RunParams=-s AI_start1.scn -v ghostview
 HostApplication=
 RemoteHost=
 RemotePath=

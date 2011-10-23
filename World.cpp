@@ -67,6 +67,7 @@ __fastcall TWorld::TWorld()
  OutText2="";
  OutText3="";
  iCheckFPS=0; //kiedy znów sprawdziæ FPS, ¿eby wy³¹czaæ optymalizacji od razu do zera
+ pDynamicNearest=NULL;
 }
 
 __fastcall TWorld::~TWorld()
@@ -882,11 +883,17 @@ bool __fastcall TWorld::Update()
    Camera.Reset(); //likwidacja obrotów - patrzy horyzontalnie na po³udnie
    //if (!FreeFlyModeFlag) //jeœli wewn¹trz - patrzymy do ty³u
    // Camera.LookAt=Train->pMechPosition-Normalize(Train->GetDirection())*10;
-   if (Controlled)
+   if (Controlled?LengthSquared3(Controlled->GetPosition()-Camera.Pos)<2250000:false) //gdy bli¿ej ni¿ 1.5km
     Camera.LookAt=Controlled->GetPosition();
    else
    {TDynamicObject *d=Ground.DynamicNearest(Camera.Pos,300); //szukaj w promieniu 300m
-    if (d) Camera.LookAt=d->GetPosition();
+    if (!d)
+     d=Ground.DynamicNearest(Camera.Pos,1000); //dalej szukanie, jesli bli¿ej nie ma
+    if (d&&pDynamicNearest) //jeœli jakiœ jest znaleziony wczeœniej
+     if (100.0*LengthSquared3(d->GetPosition()-Camera.Pos)>LengthSquared3(pDynamicNearest->GetPosition()-Camera.Pos))
+      d=pDynamicNearest; //jeœli najbli¿szy nie jest 10 razy bli¿ej ni¿ poprzedni najbli¿szy, zostaje poprzedni
+    if (d) pDynamicNearest=d; //zmiana nanowy, jeœli coœ znaleziony niepusty
+    if (pDynamicNearest) Camera.LookAt=pDynamicNearest->GetPosition();
    }
    if (FreeFlyModeFlag)
     Camera.RaLook(); //jednorazowe przestawienie kamery
@@ -899,7 +906,7 @@ bool __fastcall TWorld::Update()
    if (Controlled) //jest pojazd do prowadzenia?
    {
     if (FreeFlyModeFlag)
-    {//je¿eli poza kabin¹, przestawiamy w jej okolicê - nie OK
+    {//je¿eli poza kabin¹, przestawiamy w jej okolicê - OK
      //Camera.Pos=Train->pMechPosition+Normalize(Train->GetDirection())*20;
      Camera.Pos=Controlled->GetPosition()+(Controlled->MoverParameters->ActiveCab>=0?30:-30)*Normalize(Train->GetDirection())+vector3(0,5,0);
      Camera.LookAt=Controlled->GetPosition();//Train->pMechPosition;
@@ -923,6 +930,12 @@ bool __fastcall TWorld::Update()
      Train->pMechOffset.z=Train->pMechSittingPosition.z;
      Train->DynamicObject->bDisplayCab=true;
     }
+   }
+   else if (pDynamicNearest) //jeœli jest pojazd wykryty blisko
+   {//patrzenie na najbli¿szy pojazd
+    Camera.Pos=pDynamicNearest->GetPosition()+(pDynamicNearest->MoverParameters->ActiveCab>=0?30:-30)*Normalize(pDynamicNearest->GetDirection())+vector3(0,5,0);
+    Camera.LookAt=pDynamicNearest->GetPosition();//Train->pMechPosition;
+    Camera.RaLook(); //jednorazowe przestawienie kamery
    }
   }
   else if (Global::iTextMode==-1)
@@ -950,6 +963,12 @@ bool __fastcall TWorld::Update()
    Ground.Update(dt,n);
    Ground.Update(dt,n);
    Ground.Update(dt,n);
+   Ground.Update(dt,n); //5 razy
+   //Ground.Update(dt,n); //jak jest za du¿o, to gubi eventy
+   //Ground.Update(dt,n);
+   //Ground.Update(dt,n);
+   //Ground.Update(dt,n);
+   //Ground.Update(dt,n); //10 razy
   }
  //Ground.Update(0.01,Camera.Type==tp_Follow);
  dt=GetDeltaTime();
@@ -1226,13 +1245,6 @@ bool __fastcall TWorld::Update()
         temp=Train->DynamicObject->PrevConnected; //pojazd od strony sprzêgu 0
         CabNr=(Train->DynamicObject->PrevConnectedNo==0)?1:-1;
        }
-/*
-       TLocation l;
-       l.X=l.Y=l.Z= 0;
-       TRotation r;
-       r.Rx=r.Ry=r.Rz= 0;
-*/
-
        Train->DynamicObject->Controller=AIdriver;
        Train->DynamicObject->bDisplayCab=false;
        Train->DynamicObject->MechInside=false;
@@ -1280,7 +1292,8 @@ bool __fastcall TWorld::Update()
       if (Controlled->TrainParams)
       {OutText2=Controlled->TrainParams->ShowRelation();
        if (!OutText2.IsEmpty())
-        OutText2=Bezogonkow(OutText2+", "+Controlled->Mechanik->NextStop()); //dopisanie punktu zatrzymania
+        if (Controlled->Mechanik)
+         OutText2=Bezogonkow(OutText2+": -> "+Controlled->Mechanik->NextStop()); //dopisanie punktu zatrzymania
       }
      //double CtrlPos=Controlled->MoverParameters->MainCtrlPos;
      //double CtrlPosNo=Controlled->MoverParameters->MainCtrlPosNo;
@@ -1446,9 +1459,9 @@ bool __fastcall TWorld::Update()
       OutText1+=AnsiString("; d_omega ")+FloatToStrF(Controlled->MoverParameters->dizel_engagedeltaomega,ffFixed,6,3);
       OutText2 =AnsiString("ham zesp ")+FloatToStrF(Controlled->MoverParameters->BrakeCtrlPos,ffFixed,6,0);
       OutText2+=AnsiString("; ham pom ")+FloatToStrF(Controlled->MoverParameters->LocalBrakePos,ffFixed,6,0);
-      Controlled->MoverParameters->MainCtrlPos;
-      if (Controlled->MoverParameters->MainCtrlPos<0)
-          OutText2+= AnsiString("; nastawnik 0");
+      //Controlled->MoverParameters->MainCtrlPos;
+      //if (Controlled->MoverParameters->MainCtrlPos<0)
+      //    OutText2+= AnsiString("; nastawnik 0");
 //      if (Controlled->MoverParameters->MainCtrlPos>iPozSzereg)
           OutText2+= AnsiString("; nastawnik ") + (Controlled->MoverParameters->MainCtrlPos);
 //      else
@@ -1511,15 +1524,14 @@ bool __fastcall TWorld::Update()
        {OutText3+=AnsiString(" zb.pant. ")+FloatToStrF(Controlled->MoverParameters->PantVolume,ffFixed,8,2);}
   //McZapkie: komenda i jej parametry
        if (Controlled->MoverParameters->CommandIn.Command!=AnsiString(""))
-        OutText3+=AnsiString(" C:")+AnsiString(Controlled->MoverParameters->CommandIn.Command)
+        OutText4=AnsiString("C:")+AnsiString(Controlled->MoverParameters->CommandIn.Command)
         +AnsiString(" V1=")+FloatToStrF(Controlled->MoverParameters->CommandIn.Value1,ffFixed,5,0)
         +AnsiString(" V2=")+FloatToStrF(Controlled->MoverParameters->CommandIn.Value2,ffFixed,5,0);
-       if (Controlled->Mechanik && Controlled->Mechanik->AIControllFlag==AIdriver)
-        OutText3+=AnsiString(" Vd:")+FloatToStrF(Controlled->Mechanik->VelDesired,ffFixed,4,0)
+       if (Controlled->Mechanik && (Controlled->Mechanik->AIControllFlag==AIdriver))
+        OutText4+=AnsiString("AI: Vd=")+FloatToStrF(Controlled->Mechanik->VelDesired,ffFixed,4,0)
         +AnsiString(" ad=")+FloatToStrF(Controlled->Mechanik->AccDesired,ffFixed,5,2)
         +AnsiString(" Pd=")+FloatToStrF(Controlled->Mechanik->ActualProximityDist,ffFixed,4,0)
         +AnsiString(" Vn=")+FloatToStrF(Controlled->Mechanik->VelNext,ffFixed,4,0);
-
      }
 
  glDisable(GL_LIGHTING);

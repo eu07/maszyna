@@ -79,6 +79,7 @@ USEUNIT("opengl\ARB_Multisample.cpp");
 USEUNIT("Float3d.cpp");
 USEUNIT("Classes.cpp");
 USEUNIT("Driver.cpp");
+USEUNIT("Names.cpp");
 //---------------------------------------------------------------------------
 #include "World.h"
 
