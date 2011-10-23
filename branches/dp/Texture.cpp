@@ -233,7 +233,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadBMP(std::string fileName)
 TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName,int filter)
 {
  AlphaValue fail(0,false);
- bool writeback=false; //czy zapisaæ
+ int writeback=-1; //-1 plik jest OK, >=0 - od którego bajtu zapisaæ poprawiony plik
  GLubyte TGACompheader[]={0,0,10,0,0,0,0,0,0,0,0,0}; //uncompressed TGA header
  GLubyte TGAcompare[12]; //used to compare TGA header
  GLubyte header[6]; //first 6 useful bytes from the header
@@ -278,11 +278,11 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName,int 
   file.seekg(18,ios::beg); //ponownie za nag³ówkiem
   GLubyte *copyto=imageData; //gdzie wstawiaæ w buforze
   GLubyte *copyend=imageData+imageSize; //za ostatnim bajtem bufora
+  GLubyte *copyfrom=imageData+imageSize-filesize; //gdzie jest pocz¹tek
   int chunkheader=0; //Ra: bêdziemy wczytywaæ najm³odszy bajt
   if (filesize<imageSize) //jeœli po kompresji jest mniejszy ni¿ przed
   {//Ra: nowe wczytywanie skompresowanych: czytamy ca³e od razu, dekompresja w pamiêci
    GLuint copybytes;
-   GLubyte *copyfrom=imageData+imageSize-filesize; //gdzie jest pocz¹tek
    file.read(copyfrom,filesize); //wczytanie reszty po nag³ówku
    //najpierw trzeba ustaliæ, ile skopiowanych pikseli jest na samym koñcu
    copyto=copyfrom; //roboczo przelatujemy wczytane dane
@@ -334,7 +334,12 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName,int 
    {
     if (copyto>=copyfrom)
     {WriteLog("Decompression problem at pixel "+AnsiString((copyto-imageData)/bytesPerPixel)+"+"+AnsiString((copyend-copyto)/bytesPerPixel));
-     file.seekg(copyfrom-imageData-imageSize-extraend,ios::end); //odleg³oœæ od koñca (ujemna)
+     writeback=imageData+imageSize+extraend-copyfrom; //ile bajtów zosta³o do koñca
+     //tê pozycjê w pliku trzeba by zapamietaæ i po wczytaniu reszty pikseli star¹ metod¹
+     //zapisaæ od niej dane od (copyfrom), poprzedzone bajtem o wartoœci ((copyend-copyto)/bytesPerPixel-1)
+     file.seekg(-writeback,ios::end); //odleg³oœæ od koñca (ujemna)
+     //if (writeback<128) //mo¿liwe tylko jeœli iloœæ problematycznych pikseli nie przekaracza 128
+     writeback=-1; //na razie wy³¹czone
      break; //bufor siê zatka³, dalej w ten sposób siê nie da
     }
     chunkheader=(unsigned char)*copyfrom; //jeden bajt, pozosta³e zawsze zerowe
@@ -372,7 +377,8 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName,int 
   }
   else
   {WriteLog("Compressed file is larger than uncompressed!");
-   writeback=Global::iModifyTGA&1; //no zapisaæ ten krótszy...
+   if (Global::iModifyTGA&1)
+    writeback=0; //no zapisaæ ten krótszy zaczynajac od pocz¹tku...
   }
   if (copyto<copyend) WriteLog("Slow loader...");
   while (copyto<copyend)
@@ -413,15 +419,24 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName,int 
      }
    }
   } //while (copyto<copyend)
-  if (writeback)
+  if (writeback>=0)
   {//zapisanie pliku
    WriteLog("Writing uncompressed file...");
    TGAcompare[2]=2; //bez kompresji
    file.close(); //tamten zamykamy i robimy nowy
-   file.open(fileName.c_str(),std::ios::binary|std::ios::out|std::ios::trunc);
-   file.write((char*)TGAcompare,sizeof(TGAcompare));
-   file.write((char*)header,sizeof(header));
-   file.write(imageData,imageSize);
+   if (writeback)
+   {//zapisanie samej koñcówki pliku, która utrudnia dekompresjê w buforze
+    //file.open(fileName.c_str(),std::ios::binary|std::ios::out|std::ios::in);
+    file.seekg(-writeback,ios::end); //odleg³oœæ od koñca (ujemna)
+    file.write(copyfrom,imageSize);
+   }
+   else
+   {//zapisywanie ca³oœci pliku, bêdzie krótszy, wiêc trzeba usun¹æ go w ca³oœci
+    file.open(fileName.c_str(),std::ios::binary|std::ios::out|std::ios::trunc);
+    file.write((char*)TGAcompare,sizeof(TGAcompare));
+    file.write((char*)header,sizeof(header));
+    file.write(imageData,imageSize);
+   }
   }
  };
  file.close(); //plik zamykamy dopiero na samym koñcu

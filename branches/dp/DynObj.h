@@ -129,6 +129,7 @@ private:
     char cp1, sp1, cp2, sp2; //ustawienia wezy
     TRealSound sBrakeAcc; //dzwiek przyspieszacza
  int iAxleFirst; //numer pierwszej oœ w kierunku ruchu
+ int iInventory; //flagi bitowe posiadanych submodeli
  	TDynamicObject *NewDynamic;
 		bool bDynChangeEnd;
 		bool bDynChangeStart;
@@ -143,7 +144,7 @@ protected:
     //Byte PrevConnectedNo;
     int CouplCounter;
     AnsiString asModel;
-    int iDirection; //kierunek wzglêdem czo³a sk³adu (1=zgodny,-1=przeciwny)
+    int iDirection; //kierunek wzglêdem czo³a sk³adu (1=zgodny,0=przeciwny)
     void ABuScanObjects(int ScanDir,double ScanDist);
     void __fastcall ABuCheckMyTrack();
 
@@ -295,8 +296,9 @@ public:
  void __fastcall RaAxleEvent(TEvent *e);
  TDynamicObject* __fastcall FirstFind(int &coupler_nr);
  int __fastcall DirectionSet(int d); //ustawienie kierunku w sk³adzie
- int __fastcall DirectionGet() {return iDirection;}; //ustawienie kierunku w sk³adzie
- int Dettach(int dir);
+ int __fastcall DirectionGet() {return iDirection?1:-1;}; //ustawienie kierunku w sk³adzie
+ bool DettachDistance(int dir);
+ int Dettach(int dir,int cnt);
 };
 
 

@@ -604,6 +604,7 @@ public:
 	void __fastcall UpdateScndPipePressure(double dt);
 	bool __fastcall Attach(Byte ConnectNo, Byte ConnectToNr, PMoverParameters ConnectTo, Byte CouplingType
 		);
+	bool __fastcall DettachDistance(Byte ConnectNo);
 	bool __fastcall Dettach(Byte ConnectNo);
 	void __fastcall ComputeConstans(void);
 	void __fastcall SetCoupleDist(void);
