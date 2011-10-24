@@ -1352,6 +1352,8 @@ double __fastcall TDynamicObject::Init(
      Mechanik->SetVelocity(0,0,stopSleep); //jeœli nie ma prêdkoœci pocz¹tkowej, to œpi
     else
     {
+     if (fVel>=1.0) //jeœli jedzie
+      Mechanik->iDrivigFlags|=1; //to do nastêpnego W4 ma podjechaæ blisko
      Mechanik->SetVelocity(fVel,-1); //ma ustawiæ ¿¹dan¹ prêdkoœæ
      Mechanik->JumpToFirstOrder();
     }

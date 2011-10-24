@@ -1127,6 +1127,7 @@ begin
 end;
 
 function TMoverParameters.CabActivisation:boolean;
+//za³¹czenie rozrz¹du
 var OK:boolean;
 begin
   OK:=(CabNo=0);
@@ -1141,6 +1142,7 @@ begin
 end;
 
 function TMoverParameters.CabDeactivisation:boolean;
+//wy³¹czenie rozrz¹du
 var OK:boolean;
 begin
   OK:=(CabNo=ActiveCab);
@@ -1966,7 +1968,8 @@ end;
 
 function TMoverParameters.IncBrakePress(var brake:real;PressLimit,dp:real):boolean;
 begin
-    if (DynamicBrakeType<>dbrake_switch) and (DynamicBrakeType<>dbrake_none) and ((BrakePress>0.2) or (PipePress<0.37{(LowPipePress+0.05)})) then
+//  if (DynamicBrakeType<>dbrake_switch) and (DynamicBrakeType<>dbrake_none) and ((BrakePress>0.2) or (PipePress<0.37{(LowPipePress+0.05)})) then
+    if (DynamicBrakeType<>dbrake_switch) and (DynamicBrakeType<>dbrake_none) and (BrakePress>0.2) then //yB radzi nie sprawdzaæ ciœnienia w przewodzie
      begin
        DynamicBrakeFlag:=True;                 {uruchamianie hamulca ED albo odlaczanie silnikow}
        if (DynamicBrakeType=dbrake_automatic) and (abs(Im)>60) then            {nie napelniaj wiecej, jak na EP09}
@@ -1996,7 +1999,8 @@ begin
        DecBrakePress:=False;
        brake:=PressLimit;
      end;
-    if (DynamicBrakeType<>dbrake_switch) and ((BrakePress<0.1) and (PipePress>0.45{(LowPipePress+0.06)})) then
+//  if (DynamicBrakeType<>dbrake_switch) and ((BrakePress<0.1) and (PipePress>0.45{(LowPipePress+0.06)})) then
+    if (DynamicBrakeType<>dbrake_switch) and (BrakePress<0.1) then //yB radzi nie sprawdzaæ ciœnienia w przewodzie
      DynamicBrakeFlag:=False;                {wylaczanie hamulca ED i/albo zalaczanie silnikow}
 end;
 
