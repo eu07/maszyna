@@ -69,7 +69,7 @@ class TController
 {
  double fShuntVelocity; //maksymalna prêdkoœæ manewrowania, zale¿y m.in. od sk³adu
  double fLength; //d³ugoœæ sk³adu (dla ograniczeñ i stawania przed semaforami)
- int iVehicles; //iloœæ pojazdów w sk³adzie 
+ int iVehicles; //iloœæ pojazdów w sk³adzie
  bool EngineActive; //ABu: Czy silnik byl juz zalaczony
  //Mover::TLocation MechLoc;
  //Mover::TRotation MechRot;
@@ -77,6 +77,7 @@ class TController
  //vector3 vMechRot;
  bool Psyche;
 public:
+ int iDrivigFlags; //flagi bitowe ruchu: 1=podjechaæ blisko W4, 2=stawaæ na W4
  double ReactionTime; //czas reakcji Ra: czego?
  bool Ready; //ABu: stan gotowosci do odjazdu - sprawdzenie odhamowania wagonow jest ustawiane w dynobj->cpp
 private:
@@ -161,13 +162,10 @@ public:
 private:
  bool __fastcall CheckVehicles();
  void __fastcall CloseLog();
+ void __fastcall OrderCheck();
 public:
  __fastcall TController
- (//const Mover::TLocation &LocInitial,
-  //const Mover::TRotation &RotInitial,
-  //const vector3 &vLocInitial,
-  //const vector3 &vRotInitial,
-  bool AI,
+ (bool AI,
   TDynamicObject *NewControll,
   Mtable::TTrainParameters *NewTrainParams,
   bool InitPsyche
@@ -186,7 +184,6 @@ private:
  void __fastcall Lights(int head,int rear);
  //Ra: poni¿sze przenieœæ do modu³u AI:
  TEvent* eSignSkip; //miniêty sygna³ zezwalaj¹cy na jazdê, pomijany przy szukaniu
- double fSignSpeed; //prêdkoœæ w moemcie zobaczenia W4
  AnsiString asNextStop; //nazwa nastêpnego punktu zatrzymania wg rozk³adu
 public:
  TEvent* eSignLast; //ostatnio znaleziony sygna³, o ile nie miniêty
