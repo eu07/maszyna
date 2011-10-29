@@ -153,7 +153,7 @@ __fastcall TController::TController
  for (int b=0;b<=maxorders;b++)
   OrderList[b]=Wait_for_orders;
  MaxVelFlag=false; MinVelFlag=false;
- iDirection=iDirectionOrder=1; //normalnie do przodu (w kierunku sprzêgu 0)
+ iDirection=iDirectionOrder=0; //1=do przodu (w kierunku sprzêgu 0)
  iDriverFailCount=0;
  Need_TryAgain=false;
  Need_BrakeRelease=true;
@@ -442,12 +442,15 @@ bool __fastcall TController::PrepareEngine()
   if (!iDirection) //jeœli nie ma ustalonego kierunku
    if (Controlling->V==0)
    {//ustalenie kierunku, gdy stoi
-    if (Controlling->Couplers[1].CouplingFlag==ctrain_virtual) //jeœli z ty³u nie ma nic
-     if (Controlling->PantFrontVolt||Controlling->PantRearVolt||voltfront||voltrear)
-      iDirection=-1; //jazda w kierunku sprzêgu 1
-    if (Controlling->Couplers[0].CouplingFlag==ctrain_virtual) //jeœli z przodu nie ma nic
-     if (Controlling->PantFrontVolt||Controlling->PantRearVolt||voltfront||voltrear)
-      iDirection=1; //jazda w kierunku sprzêgu 0
+    iDirection=Controlling->CabNo; //wg wybranej kabiny
+    if (!iDirection) //jeœli nie ma ustalonego kierunku
+    {if (Controlling->Couplers[1].CouplingFlag==ctrain_virtual) //jeœli z ty³u nie ma nic
+      if (Controlling->PantFrontVolt||Controlling->PantRearVolt||voltfront||voltrear)
+       iDirection=-1; //jazda w kierunku sprzêgu 1
+     if (Controlling->Couplers[0].CouplingFlag==ctrain_virtual) //jeœli z przodu nie ma nic
+      if (Controlling->PantFrontVolt||Controlling->PantRearVolt||voltfront||voltrear)
+       iDirection=1; //jazda w kierunku sprzêgu 0
+    }
    }
    else //ustalenie kierunku, gdy jedzie
     if (Controlling->V<0) //jedzie do ty³u
@@ -878,7 +881,9 @@ void __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
    JumpToNextOrder();
   else
    if ((NewValue1>=0)&&(NewValue1<=maxorders))
-    OrderPos=floor(NewValue1);
+   {OrderPos=floor(NewValue1);
+    if (!OrderPos) OrderPos=1; //dopiero pierwsza uruchamia
+   }
 /*
   if (WriteLogFlag)
   {
@@ -2048,6 +2053,9 @@ void __fastcall TController::ScanEventTrack()
      } //if (e->Type==tp_PutValues)
     }
    }
+   else //jeœli nic nie znaleziono
+    if (OrderCurrentGet()==Shunt) //a jest w trybie manewrowym
+     eSignSkip=NULL; //przywrócenie widocznoœci ewentualnie pominiêtej tarczy
    if (scandist<=scanmax) //jeœli ograniczenie jest dalej, ni¿ skanujemy, mo¿na je zignorowaæ
     if (vtrackmax>0.0) //jeœli w torze jest dodatnia
      if ((vmechmax<0) || (vtrackmax<vmechmax)) //i mniejsza od tej drugiej
@@ -2085,3 +2093,30 @@ AnsiString __fastcall TController::NextStop()
 
 //-----------koniec skanowania semaforow
 
+void __fastcall TController::TakeControl(bool yes)
+{//przejêcie kontroli przez AI albo oddanie
+ if (yes&&(AIControllFlag!=AIdriver))
+ {//teraz AI prowadzi
+  AIControllFlag=AIdriver;
+  pVehicle->Controller=AIdriver;
+  if (OrderCurrentGet())
+  {if (OrderCurrentGet()<Shunt)
+   {OrderNext(Prepare_engine);
+    if (pVehicle->iLights[Controlling->CabNo<0?1:0]&4) //górne œwiat³o
+     OrderNext(Obey_train); //jazda poci¹gowa
+    else
+     OrderNext(Shunt); //jazda manewrowa
+   }
+  }
+  else //jeœli jest w stanie Wait_for_orders
+   JumpToFirstOrder(); //uruchomienie?
+  // czy dac ponizsze? to problematyczne
+  SetVelocity(pVehicle->GetVelocity(),-1); //utrzymanie dotychczasowej?
+  CheckVehicles(); //ustawienie œwiate³
+ }
+ else if (AIControllFlag==AIdriver)
+ {//a teraz u¿ytkownik
+  AIControllFlag=Humandriver;
+  pVehicle->Controller=Humandriver;
+ }
+};

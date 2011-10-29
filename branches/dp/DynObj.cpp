@@ -2168,13 +2168,13 @@ if (tmpTraction.TractionVoltage==0)
   if (MoverParameters->V>0.1) //jeœli jedzie do przodu (w kierunku Coupler 0)
   {if (MoverParameters->Couplers[0].CouplingFlag==ctrain_virtual) //brak pojazdu podpiêtego?
    {ABuScanObjects(1,300); //szukanie czegoœ do pod³¹czenia
-    //WriteLog("Block 0: "+AnsiString(fTrackBlock));
+    //WriteLog(asName+" - block 0: "+AnsiString(fTrackBlock));
    }
   }
   else if (MoverParameters->V<-0.1) //jeœli jedzie do ty³u (w kierunku Coupler 1)
    if (MoverParameters->Couplers[1].CouplingFlag==ctrain_virtual) //brak pojazdu podpiêtego?
    {ABuScanObjects(-1,300);
-    //WriteLog("Block 1: "+AnsiString(fTrackBlock));
+    //WriteLog(asName+" - block 1: "+AnsiString(fTrackBlock));
    }
   CouplCounter=random(20); //ponowne sprawdzenie po losowym czasie
  }
@@ -2183,11 +2183,12 @@ if (tmpTraction.TractionVoltage==0)
  else
  {CouplCounter=25; //a bezruch nie, ale mo¿na zaktualizowaæ odleg³oœæ
   if (MoverParameters->Couplers[1-iDirection].CouplingFlag==ctrain_virtual)
-  {if (MoverParameters->Couplers[1-iDirection].Connected)
-    fTrackBlock=MoverParameters->Couplers[1-iDirection].CoupleDist; //odleg³oœæ do najbli¿szego pojazdu
+  {if (MoverParameters->Couplers[1-iDirection].Connected) //jeœli jest pojazd na sprzêgu wirtualnym
+    fTrackBlock=MoverParameters->Couplers[1-iDirection].CoupleDist; //aktualizacja odleg³oœci od niego
    else
-    fTrackBlock=10000.0; //nic nie stoi na przeszkodzie
-   //WriteLog("Block x: "+AnsiString(fTrackBlock));
+    if (fTrackBlock<=50.0) //je¿eli pojazdu nie ma, a odleg³o¿æ jakoœ ma³a
+     ABuScanObjects(iDirection?1:-1,300); //skanowanie sprawdzaj¹ce
+   //WriteLog(asName+" - block x: "+AnsiString(fTrackBlock));
   }
  }
  return true; //Ra: chyba tak?

@@ -3227,7 +3227,7 @@ void __fastcall TGround::RadioStop(vector3 pPosition)
       node->pTrack->RadioStop(); //przekazanie do ka¿dego toru w ka¿dym segmencie
 };
 
-TDynamicObject* __fastcall TGround::DynamicNearest(vector3 pPosition,double distance)
+TDynamicObject* __fastcall TGround::DynamicNearest(vector3 pPosition,double distance,bool mech)
 {//wyszukanie pojazdu najbli¿szego wzglêdem (pPosition)
  TGroundNode *node;
  TSubRect *tmp;
@@ -3243,10 +3243,11 @@ TDynamicObject* __fastcall TGround::DynamicNearest(vector3 pPosition,double dist
      if (node->iType==TP_TRACK)
       for (k=0;k<node->pTrack->iNumDynamics;k++)
        if ((sqd=SquareMagnitude(node->pTrack->Dynamics[k]->GetPosition()-pPosition))<sqm)
-       {
-        sqm=sqd; //nowa odleg³oœæ
-        dyn=node->pTrack->Dynamics[k]; //nowy lider
-       }
+        if (mech?(node->pTrack->Dynamics[k]->Mechanik!=NULL):true) //czy ma mieæ obsadê
+        {
+         sqm=sqd; //nowa odleg³oœæ
+         dyn=node->pTrack->Dynamics[k]; //nowy lider
+        }
  return dyn;
 };
 //---------------------------------------------------------------------------
