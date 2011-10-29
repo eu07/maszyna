@@ -754,11 +754,11 @@ extern PACKAGE bool PhysicActivationFlag;
 static const Shortint dt_Default = 0x0;
 static const Shortint dt_EZT = 0x1;
 static const Shortint dt_ET41 = 0x2;
-static const Shortint dt_ET42 = 0x3;
-static const Shortint dt_PseudoDiesel = 0x4;
-static const Shortint dt_ET22 = 0x5;
-static const Shortint dt_SN61 = 0x6;
-static const Shortint dt_181 = 0x7;
+static const Shortint dt_ET42 = 0x4;
+static const Shortint dt_PseudoDiesel = 0x8;
+static const Shortint dt_ET22 = 0x10;
+static const Shortint dt_SN61 = 0x20;
+static const Shortint dt_181 = 0x40;
 extern PACKAGE double __fastcall Distance(const TLocation &Loc1, const TLocation &Loc2, const TDimension 
 	&Dim1, const TDimension &Dim2);
 

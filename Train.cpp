@@ -294,7 +294,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       if (cKey==VkKeyScan('q'))
       {
        if (DynamicObject->Mechanik->AIControllFlag==Humandriver)
-       {DynamicObject->Mechanik->Ready=false;
+       {//DynamicObject->Mechanik->Ready=false;
         DynamicObject->Mechanik->AIControllFlag=AIdriver;
         DynamicObject->Controller=AIdriver;
         if (DynamicObject->Mechanik->OrderCurrentGet())
@@ -310,7 +310,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
         DynamicObject->Mechanik->SetVelocity(DynamicObject->GetVelocity(),-1); //utrzymanie dotychczasowej?
        }
        else
-       {DynamicObject->Mechanik->Ready=false;
+       {//DynamicObject->Mechanik->Ready=false;
         DynamicObject->Mechanik->AIControllFlag=Humandriver;
         DynamicObject->Controller=Humandriver;
        }

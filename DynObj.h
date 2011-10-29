@@ -30,10 +30,10 @@ private:
     void ABuLittleUpdate(double ObjSqrDist);
     bool btnOn; //ABu: czy byly uzywane buttony, jesli tak, to po renderingu wylacz
                 //bo ten sam model moze byc jeszcze wykorzystany przez inny obiekt!
-    double __fastcall ComputeRadius(vector3 p1,vector3 p2,vector3 p3,vector3 p4);
-    //vector3 pOldPos1; //Ra: nie u¿ywane
-    //vector3 pOldPos4;
-    vector3 vPosition; //Ra: pozycja pojazdu liczona zaraz po przesuniêciu
+ double __fastcall ComputeRadius(vector3 p1,vector3 p2,vector3 p3,vector3 p4);
+ //vector3 pOldPos1; //Ra: nie u¿ywane
+ //vector3 pOldPos4;
+ vector3 vPosition; //Ra: pozycja pojazdu liczona zaraz po przesuniêciu
 //McZapkie-050402 - do krecenia kolami
     int iAnimatedAxles;
     int iAnimatedDoors;
@@ -129,10 +129,8 @@ private:
     char cp1, sp1, cp2, sp2; //ustawienia wezy
     TRealSound sBrakeAcc; //dzwiek przyspieszacza
  int iAxleFirst; //numer pierwszej oœ w kierunku ruchu
- int iInventory; //flagi bitowe posiadanych submodeli
- 	TDynamicObject *NewDynamic;
-		bool bDynChangeEnd;
-		bool bDynChangeStart;
+ int iInventory; //flagi bitowe posiadanych submodeli (np. œwiate³)
+ //TDynamicObject *NewDynamic; //Ra: nie u¿ywane
  TDynamicObject* __fastcall ABuFindNearestObject(TTrack *Track,TDynamicObject *MyPointer,int &CouplNr);
 protected:
     bool bEnabled;
@@ -257,9 +255,7 @@ public:
     inline double __fastcall GetLength() { return MoverParameters->Dim.L; };
     inline double __fastcall GetWidth() { return MoverParameters->Dim.W; };
     inline TTrack* __fastcall GetTrack() { return (iAxleFirst?Axle1.GetTrack():Axle0.GetTrack()); };
-    void __fastcall UpdatePos();
-    void __fastcall DynChangeStart(TDynamicObject *Dyn);
-    void __fastcall DynChangeEnd();
+    //void __fastcall UpdatePos();
 
  Mover::TMoverParameters *MoverParameters;
 

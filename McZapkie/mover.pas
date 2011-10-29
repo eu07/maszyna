@@ -117,12 +117,12 @@ CONST
 
    {typ sprzegu}
    ctrain_virtual=0;
-   ctrain_coupler=1;       {sprzeg fizyczny}
-   ctrain_pneumatic=2;     {przewody hamulcowe}
-   ctrain_controll=4;      {przewody sterujace}
-   ctrain_power=8;         {przewody zasilajace}
-   ctrain_passenger=16;    {mostek przejsciowy}
-   ctrain_scndpneumatic=32;{przewody 8 atm}
+   ctrain_coupler=1;        //sprzeg fizyczny
+   ctrain_pneumatic=2;      //przewody hamulcowe
+   ctrain_controll=4;       //przewody steruj¹ce (ukrotnienie)
+   ctrain_power=8;          //przewody zasilaj¹ce (WN)
+   ctrain_passenger=16;     //mostek przejœciowy
+   ctrain_scndpneumatic=32; //przewody 8 atm
 
    {typ hamulca elektrodynamicznego}
    dbrake_none=0;
@@ -173,14 +173,15 @@ CONST
    PhysicActivationFlag: boolean=False;
 
    //szczególne typy pojazdów (inna obs³uga) dla zmiennej TrainType
+   //zamienione na flagi bitowe, aby szybko wybieraæ grupê (np. EZT+SZT)
    dt_Default=0;
    dt_EZT=1;
    dt_ET41=2;
-   dt_ET42=3;
-   dt_PseudoDiesel=4;
-   dt_ET22=5; //nie u¿ywane
-   dt_SN61=6; //nie u¿ywane
-   dt_181=7;
+   dt_ET42=4;
+   dt_PseudoDiesel=8;
+   dt_ET22=$10; //nie u¿ywane w warunkach, ale ustawiane
+   dt_SN61=$20; //nie u¿ywane w warunkach, ale ustawiane
+   dt_181=$40;
 
 TYPE
     PMoverParameters=^TMoverParameters;

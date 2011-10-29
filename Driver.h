@@ -23,8 +23,16 @@ enum TOrders
  Jump_to_first_order=0x60 //zapêlenie do pierwszej pozycji (po co?)
 };
 
+enum TMovementStatus
+{//flagi bitowe ruchu
+ moveStopCloser=1, //podjechaæ blisko W4 (nie podje¿d¿aæ na pocz¹tku ani po zmianie czo³a)
+ moveStopPoint=2, //stawaæ na W4 (wy³¹czone podczas zmiany czo³a)
+ moveAvaken=4, //po w³¹czeniu silnika pojazd nie przemieœci³ siê
+ movePress=8 //dociskanie przy od³¹czeniu (zamiast zmiennej Prepare2press)
+};
+
 enum TStopReason
-{//powód zatrzymania
+{//powód zatrzymania, dodawany do SetVelocity 0
  stopNone,  //nie ma powodu - powinien jechaæ
  stopSleep, //nie zosta³ odpalony, to nie pojedzie
  stopSem,   //semafor zamkniêty
@@ -50,20 +58,13 @@ struct TProximityTablePos
 */
 
 //-- var, const, procedure ---------------------------------------------------
-static const bool Aggressive = true;
-static const bool Easyman = false;
-static const bool AIdriver = true;
-static const bool Humandriver = false;
-static const int maxorders = 0x10;
-static const int maxdriverfails = 0x4;
-extern bool WriteLogFlag;
-/*
-static const int rvTrack = 0x1;
-static const int rvSignal = 0x2;
-static const int rvVechicle = 0x3;
-static const int rvShunt = 0x4;
-static const int rvPassStop = 0x5;
-*/
+static const bool Aggressive=true;
+static const bool Easyman=false;
+static const bool AIdriver=true;
+static const bool Humandriver=false;
+static const int maxorders=0x10; //iloœæ rozkazów w tabelce
+static const int maxdriverfails=0x4; //ile b³êdów mo¿e zrobiæ AI zanim zmieni nastawienie
+extern bool WriteLogFlag; //logowanie parametrów fizycznych
 
 class TController
 {
@@ -71,16 +72,13 @@ class TController
  double fLength; //d³ugoœæ sk³adu (dla ograniczeñ i stawania przed semaforami)
  int iVehicles; //iloœæ pojazdów w sk³adzie
  bool EngineActive; //ABu: Czy silnik byl juz zalaczony
- //Mover::TLocation MechLoc;
- //Mover::TRotation MechRot;
  vector3 vMechLoc; //pozycja pojazdu do liczenia odleg³oœci od semafora (?)
- //vector3 vMechRot;
  bool Psyche;
 public:
- int iDrivigFlags; //flagi bitowe ruchu: 1=podjechaæ blisko W4, 2=stawaæ na W4
+ int iDrivigFlags; //flagi bitowe ruchu
  double ReactionTime; //czas reakcji Ra: czego?
- bool Ready; //ABu: stan gotowosci do odjazdu - sprawdzenie odhamowania wagonow jest ustawiane w dynobj->cpp
 private:
+ bool Ready; //ABu: stan gotowosci do odjazdu - sprawdzenie odhamowania wagonow jest ustawiane w dynobj->cpp
  double LastUpdatedTime; //czas od ostatniego logu
  double ElapsedTime; //czas od poczatku logu
  double deltalog; //przyrost czasu
@@ -127,7 +125,7 @@ private:
  int iDirection; //kierunek jazdy wzglêdem pojazdu, w którym siedzi AI (1=przód,-1=ty³)
  int iDirectionOrder; //¿adany kierunek jazdy (s³u¿y do zmiany kierunku)
  int iVehicleCount; //iloœæ pojazdów do od³¹czenia albo zabrania ze sk³adu (-1=wszystkie)
- bool Prepare2press; //
+ bool Prepare2press; //dociskanie w celu od³¹czenia
  int iDriverFailCount; //licznik b³êdów AI
  bool Need_TryAgain;
  bool Need_BrakeRelease;
