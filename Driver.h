@@ -197,6 +197,7 @@ public:
  void __fastcall ScanEventTrack();
  bool __fastcall CheckEvent(TEvent *e,bool prox);
  AnsiString __fastcall NextStop();
+ void __fastcall TakeControl(bool yes);
 };
 
 #endif

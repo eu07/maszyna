@@ -106,19 +106,19 @@ __fastcall TTrain::TTrain()
 
 __fastcall TTrain::~TTrain()
 {
+ if (DynamicObject)
+  if (DynamicObject->Mechanik)
+   DynamicObject->Mechanik->TakeControl(true);
 }
 
 bool __fastcall TTrain::Init(TDynamicObject *NewDynamicObject)
-{
-
-    DynamicObject= NewDynamicObject;
-
-    if (DynamicObject->Mechanik==NULL)
-     return false;
-    if (DynamicObject->Mechanik->AIControllFlag==AIdriver)
-      return false;
-
-    DynamicObject->MechInside= true;
+{//powi¹zanie rêcznego sterowania kabinmi z pojazdem
+ DynamicObject=NewDynamicObject;
+ if (DynamicObject->Mechanik==NULL)
+  return false;
+ if (DynamicObject->Mechanik->AIControllFlag==AIdriver)
+  return false;
+ DynamicObject->MechInside=true;
 
 /*    iPozSzereg= 28;
     for (int i=1; i<DynamicObject->MoverParameters->MainCtrlPosNo; i++)
@@ -130,19 +130,19 @@ bool __fastcall TTrain::Init(TDynamicObject *NewDynamicObject)
        }
      }
 */
-    MechSpring.Init(0,500);
-    vMechVelocity= vector3(0,0,0);
-    pMechOffset= vector3(-0.4,3.3,5.5);
-    fMechCroach=0.5;
-    fMechSpringX= 1;
-    fMechSpringY= 0.1;
-    fMechSpringZ= 0.1;
-    fMechMaxSpring= 0.15;
-    fMechRoll= 0.05;
-    fMechPitch= 0.1;
+ MechSpring.Init(0,500);
+ vMechVelocity=vector3(0,0,0);
+ pMechOffset=vector3(-0.4,3.3,5.5);
+ fMechCroach=0.5;
+ fMechSpringX=1;
+ fMechSpringY=0.1;
+ fMechSpringZ=0.1;
+ fMechMaxSpring=0.15;
+ fMechRoll=0.05;
+ fMechPitch=0.1;
 
-    if (!LoadMMediaFile(DynamicObject->asBaseDir+DynamicObject->MoverParameters->TypeName+".mmd"))
-       { return false; }
+ if (!LoadMMediaFile(DynamicObject->asBaseDir+DynamicObject->MoverParameters->TypeName+".mmd"))
+  return false;
 
 //McZapkie: w razie wykolejenia
 //    dsbDerailment= TSoundsManager::GetFromName("derail.wav");
@@ -291,29 +291,11 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       }
       else
   //McZapkie-240302 - wlaczanie automatycznego pilota (zadziala tylko w trybie debugmode)
-      if (cKey==VkKeyScan('q'))
+      if (cKey==VkKeyScan('q')) //ze Shiftem
       {
-       if (DynamicObject->Mechanik->AIControllFlag==Humandriver)
-       {//DynamicObject->Mechanik->Ready=false;
-        DynamicObject->Mechanik->AIControllFlag=AIdriver;
-        DynamicObject->Controller=AIdriver;
-        if (DynamicObject->Mechanik->OrderCurrentGet())
-         if (DynamicObject->Mechanik->OrderCurrentGet()<Shunt)
-         {DynamicObject->Mechanik->OrderNext(Prepare_engine);
-          if (DynamicObject->iLights[DynamicObject->MoverParameters->CabNo<0?1:0]&4) //górne œwiat³o
-           DynamicObject->Mechanik->OrderNext(Obey_train); //jazda poci¹gowa
-          else
-           DynamicObject->Mechanik->OrderNext(Shunt); //jazda manewrowa
-         //DynamicObject->Mechanik->JumpToFirstOrder(); //a to co?
-         }
-  // czy dac ponizsze? to problematyczne
-        DynamicObject->Mechanik->SetVelocity(DynamicObject->GetVelocity(),-1); //utrzymanie dotychczasowej?
-       }
-       else
-       {//DynamicObject->Mechanik->Ready=false;
-        DynamicObject->Mechanik->AIControllFlag=Humandriver;
-        DynamicObject->Controller=Humandriver;
-       }
+       if (DynamicObject->Mechanik)
+        if (DynamicObject->Mechanik->AIControllFlag==Humandriver)
+         DynamicObject->Mechanik->TakeControl(true);
       }
       else
       if (cKey==Global::Keys[k_MaxCurrent])   //McZapkie-160502: F - wysoki rozruch
@@ -991,14 +973,12 @@ void __fastcall TTrain::OnKeyPress(int cKey)
           }
        }
       }
-      else
   //McZapkie-240302 - wylaczanie automatycznego pilota (w trybie ~debugmode mozna tylko raz)
-      if (cKey==VkKeyScan('q'))
+      else if (cKey==VkKeyScan('q')) //bez Shift
       {
-        if (DynamicObject->Mechanik)
-        {DynamicObject->Mechanik->AIControllFlag=Humandriver;
-         DynamicObject->Controller=Humandriver;
-        }
+       if (DynamicObject->Mechanik)
+        if (DynamicObject->Mechanik->AIControllFlag==AIdriver)
+         DynamicObject->Mechanik->TakeControl(false);
       }
       else
       if (cKey==Global::Keys[k_MaxCurrent])   //McZapkie-160502: f - niski rozruch
@@ -1192,7 +1172,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                dsbDoorClose->Play(0,0,0);
            }
       }
-      if (cKey==Global::Keys[k_CloseRight])   //NBMX 17-09-2003: zamykanie drzwi
+      else if (cKey==Global::Keys[k_CloseRight])   //NBMX 17-09-2003: zamykanie drzwi
       {
            if (DynamicObject->MoverParameters->CabNo<0?DynamicObject->MoverParameters->DoorLeft(false):DynamicObject->MoverParameters->DoorRight(false))
 //           if (DynamicObject->MoverParameters->DoorRight(false))
@@ -1212,7 +1192,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                 dsbSwitch->Play(0,0,0);
             }
       }
-      if (cKey==Global::Keys[k_PantRearDown])   //Winger 160204: opuszczanie tyl. patyka
+      else if (cKey==Global::Keys[k_PantRearDown])   //Winger 160204: opuszczanie tyl. patyka
       {
            if (DynamicObject->MoverParameters->PantSwitchType=="impulse")
             PantFrontButtonOffGauge.PutValue(1);
@@ -1222,7 +1202,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                  dsbSwitch->Play(0,0,0);
              }
       }
-      if (cKey==Global::Keys[k_Heating])   //Winger 020304: ogrzewanie - wylaczenie
+      else if (cKey==Global::Keys[k_Heating])   //Winger 020304: ogrzewanie - wylaczenie
       {
        if (!FreeFlyModeFlag)
        {

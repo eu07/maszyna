@@ -353,7 +353,7 @@ public:
  void __fastcall WyslijWolny(const AnsiString &t);
  void __fastcall WyslijNamiary(TGroundNode* t);
  void __fastcall RadioStop(vector3 pPosition);
- TDynamicObject* __fastcall DynamicNearest(vector3 pPosition,double distance=20.0);
+ TDynamicObject* __fastcall DynamicNearest(vector3 pPosition,double distance=20.0,bool mech=false);
  void __fastcall DynamicRemove(TDynamicObject* dyn);
 };
 //---------------------------------------------------------------------------

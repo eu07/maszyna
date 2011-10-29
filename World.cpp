@@ -480,7 +480,7 @@ bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
       Camera.Init(Global::pFreeCameraInit[0],Global::pFreeCameraInitAngle[0]);
 
     char buff[255]= "Player train init: ";
-    if(Global::detonatoryOK)
+    if (Global::detonatoryOK)
     {
     glRasterPos2f(-0.25f, -0.18f);
     glPrint("Inicjalizacja wybranego pojazdu do sterowania...");
@@ -489,7 +489,7 @@ bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 
     strcat(buff,Global::asHumanCtrlVehicle.c_str());
     WriteLog(buff);
-    TGroundNode *PlayerTrain= Ground.FindDynamic(Global::asHumanCtrlVehicle);
+    TGroundNode *PlayerTrain=Ground.FindDynamic(Global::asHumanCtrlVehicle);
     if (PlayerTrain)
     {
 //   if (PlayerTrain->DynamicObject->MoverParameters->TypeName==AnsiString("machajka"))
@@ -630,7 +630,7 @@ void __fastcall TWorld::OnKeyPress(int cKey)
    {case VK_F1: //czas i relacja
     case VK_F2: //parametry pojazdu
     case VK_F3:
-    case VK_F5: //tabelka ograniczen
+    case VK_F5: //przesiadka do innego pojazdu
     case VK_F8: //FPS
     case VK_F9: //wersja, typ wyœwietlania, b³êdy OpenGL
     case VK_F10:
@@ -650,7 +650,7 @@ void __fastcall TWorld::OnKeyPress(int cKey)
  }
  else if (!Global::bPause||(cKey==VK_F4)) //podczas pauzy sterownaie nie dzia³a, F4 tak
   if (Controlled)
-   if ((Controlled->Controller==Humandriver)?true:DebugModeFlag||(cKey=='q')||(cKey==VK_F4))
+   if ((Controlled->Controller==Humandriver)?true:DebugModeFlag||(cKey=='Q')||(cKey==VK_F4))
     Train->OnKeyPress(cKey); //przekazanie klawisza do pojazdu
  //switch (cKey)
  //{case 'a': //ignorowanie repetycji
@@ -1409,19 +1409,28 @@ bool __fastcall TWorld::Update()
       //OutText3="; n="+FloatToStrF(Controlled->MoverParameters->n,ffFixed,6,2);
      }
     else if (Global::iTextMode==VK_F5)
-    {
-     TDynamicObject *tmp;
-     if (FreeFlyModeFlag)
-      tmp=Ground.DynamicNearest(Camera.Pos);
-     else
-      tmp=Controlled;
+    {//przesiadka do innego pojazdu
+     if (FreeFlyModeFlag) //jeœli tryb latania
+     {TDynamicObject *tmp=Ground.DynamicNearest(Camera.Pos,40,true); //³apiemy z obsad¹
+      if (tmp)
+       if (tmp!=Controlled)
+       {if (Controlled) //jeœli mielismy pojazd
+         Controlled->Mechanik->TakeControl(true); //oddajemy dotychczasowy AI
+        Controlled=tmp; //przejmujemy nowy
+        Controlled->Mechanik->TakeControl(false); //przejmujemy sterowanie
+        if (!Train) //jeœli niczym jeszcze nie jeŸdzilismy
+         Train=new TTrain();
+        Train->Init(Controlled);
+       }
+      Global::iTextMode=0; //tryb neutralny
+     }
+/*
 
      OutText1=OutText2=OutText3=OutText4="";
      AnsiString flag[10]={"vmax", "tory", "smfr", "pjzd", "mnwr", "pstk", "brak", "brak", "brak", "brak"};
      if(tmp)
      if(tmp->Mechanik)
      {
-/*
       for(int i=0;i<15;i++)
       {
        int tmppar=floor(tmp->Mechanik->ProximityTable[i].Vel);
@@ -1435,8 +1444,8 @@ bool __fastcall TWorld::Update()
        int tmppar=floor(tmp->Mechanik->ReducedTable[i]);
        OutText4+=flag[i]+":"+(tmppar<1000?(tmppar<100?((tmppar<10)&&(tmppar>=0)?"   ":"  "):" "):"")+IntToStr(tmppar)+" ";
       }
-*/
      }
+*/
     }
     else if (Global::iTextMode==VK_F10)
     {//tu mozna dodac dopisywanie do logu przebiegu lokomotywy
