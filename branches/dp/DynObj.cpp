@@ -574,7 +574,7 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
 
     if (smMechanik)
     {
-     if ((Mechanik)&&(Controller!=Humandriver))  //rysowanie figurki mechanika
+     if (Mechanik&&(Controller!=Humandriver))  //rysowanie figurki mechanika
       smMechanik->Visible=true;
      else
       smMechanik->Visible=false;
@@ -893,7 +893,7 @@ int TDynamicObject::Dettach(int dir,int cnt)
  if (i)
   if (MoverParameters->Dettach(dir))
    return i;
- return 0; //nic nie pod³¹czone
+ return -1; //nic nie pod³¹czone
 }
 
 void TDynamicObject::CouplersDettach(double MinDist,int MyScanDir)
@@ -1226,8 +1226,6 @@ double __fastcall TDynamicObject::Init(
  bool Reversed //true, jeœli ma staæ odwrotnie w sk³adzie
 )
 {//Ustawienie pocz¹tkowe pojazdu
- bDynChangeStart=false; //ZiomalCl: d¹¿enie do zatrzymania poci¹gu i zmiany czo³a poci¹gu przez AI
- bDynChangeEnd=false; //ZiomalCl: AI na starym czole sk³adu usuniête, tworzenie AI po nowej stronie
  iDirection=(Reversed?0:1); //Ra: 0, jeœli ma byæ wstawiony jako obrócony ty³em
  asBaseDir="dynamic\\"+BaseDir+"\\"; //McZapkie-310302
  asName=Name;
@@ -1311,13 +1309,13 @@ double __fastcall TDynamicObject::Init(
    Mechanik=new TController(Controller,this,TrainParams,Aggressive);
    //if (Controller==AIdriver)
    {//ustawienie kolejnoœci komend, niezale¿nie kto prowadzi
-    Mechanik->Ready=false;
     //Mechanik->OrderPush(Wait_for_orders); //czekanie na lepsze czasy
     Mechanik->OrderPush(Prepare_engine); //najpierw odpalenie silnika
     if (TrainName==AnsiString("none"))
      Mechanik->OrderPush(Shunt); //jeœli nie ma rozk³adu, to manewruje
     else
     {//jeœli z rozk³adem, to jedzie na szlak
+     //Mechanik->PutCommand("Timetable:"+TrainName,0,0);
      Mechanik->OrderPush(Obey_train);
      WriteLog("/* "+TrainParams->ShowRelation());
      TMTableLine *t;
@@ -1353,7 +1351,7 @@ double __fastcall TDynamicObject::Init(
     else
     {
      if (fVel>=1.0) //jeœli jedzie
-      Mechanik->iDrivigFlags|=1; //to do nastêpnego W4 ma podjechaæ blisko
+      Mechanik->iDrivigFlags|=moveStopCloser; //to do nastêpnego W4 ma podjechaæ blisko
      Mechanik->SetVelocity(fVel,-1); //ma ustawiæ ¿¹dan¹ prêdkoœæ
      Mechanik->JumpToFirstOrder();
     }
@@ -1364,6 +1362,7 @@ double __fastcall TDynamicObject::Init(
   else
    if (DriverType=="passenger")
    {//obserwator w charakterze pasazera
+    //Ra: to jest niebezpieczne, bo w razie co bêdzie pomaga³ hamulcem bezpieczeñstwa
     TrainParams=new TTrainParameters(TrainName);
     Mechanik=new TController(Controller,this,TrainParams,Easyman);
    }
@@ -1390,10 +1389,10 @@ double __fastcall TDynamicObject::Init(
  //sygnaly
  //ABu 060205: Zmiany dla koncowek swiecacych:
  btEndSignals11.Init("endsignal13",mdModel,false);
- btEndSignals13.Init("endsignal12",mdModel,false);
  btEndSignals21.Init("endsignal23",mdModel,false);
+ btEndSignals13.Init("endsignal12",mdModel,false);
  btEndSignals23.Init("endsignal22",mdModel,false);
- iInventory|=btEndSignals11.Active()  ?0x01:0;
+ iInventory|=btEndSignals11.Active()  ?0x01:0; //informacja, czy ma poszczególne œwiat³a
  iInventory|=btEndSignals21.Active()  ?0x02:0;
  iInventory|=btEndSignals13.Active()  ?0x04:0;
  iInventory|=btEndSignals23.Active()  ?0x08:0;
@@ -1404,7 +1403,7 @@ double __fastcall TDynamicObject::Init(
  btEndSignalsTab2.Init("endtab2",mdModel,false);
  iInventory|=btEndSignals1.Active()   ?0x10:0;
  iInventory|=btEndSignals2.Active()   ?0x20:0;
- iInventory|=btEndSignalsTab1.Active()?0x40:0;
+ iInventory|=btEndSignalsTab1.Active()?0x40:0; //tabliczki blaszane
  iInventory|=btEndSignalsTab2.Active()?0x80:0;
  //ABu Uwaga! tu zmienic w modelu!
  btHeadSignals11.Init("headlamp13",mdModel,false);
@@ -1654,23 +1653,14 @@ double __fastcall TDynamicObject::ComputeRadius()
 }
 */
 
+/* Ra: na razie nie potrzebne
 void __fastcall TDynamicObject::UpdatePos()
 {
   MoverParameters->Loc.X= -vPosition.x;
   MoverParameters->Loc.Y=  vPosition.z;
   MoverParameters->Loc.Z=  vPosition.y;
 }
-
-void __fastcall TDynamicObject::DynChangeStart(TDynamicObject *Dyn)
-{//ZiomalCl: rozpoczêcie zmiany czo³a przez AI (ca³ego sk³adu, nie tylko w obrêbie lokomotywy)
-  bDynChangeStart=true;
-  NewDynamic=Dyn;
-}
-
-void __fastcall TDynamicObject::DynChangeEnd()
-{//ZiomalCl: ci¹g dalszy i koñczenie zmiany czo³a przez AI (ca³ego sk³adu, nie tylko w obrêbie lokomotywy)
-  bDynChangeEnd=true;
-}
+*/
 
 bool __fastcall TDynamicObject::Update(double dt, double dt1)
 {
@@ -2165,47 +2155,41 @@ if (tmpTraction.TractionVoltage==0)
      dDoorMoveR=0;
    }
 
-   if (Mechanik)
-   {//ABu-160305 Testowanie gotowosci do jazdy
-    //Ra: przenieœæ to do AI
-    if (MoverParameters->BrakePress<0.03*MoverParameters->MaxBrakePress)
-     Mechanik->Ready=true; //wstêpnie gotowy
-    //Ra: trzeba by sprawdziæ wszystkie, a nie tylko skrajne
-    //sprawdzenie odhamowania skrajnych pojazdów
-    TDynamicObject *tmp;
-    tmp=GetFirstDynamic(1); //szukanie od strony sprzêgu 1
-    if (tmp?tmp!=this:false) //NULL zdarzy siê tylko w przypadku b³êdu
-     if (tmp->MoverParameters->BrakePress>0.03*tmp->MoverParameters->MaxBrakePress)
-      Mechanik->Ready=false; //nie gotowy
-    tmp=GetFirstDynamic(0); //szukanie od strony sprzêgu 0
-    if (tmp?tmp!=this:false)
-     if (tmp->MoverParameters->BrakePress>0.03*tmp->MoverParameters->MaxBrakePress)
-      Mechanik->Ready=false; //nie gotowy
-    //if (Mechanik->Ready)
-    // Mechanik->CheckSKP(); //sprawdzenie sk³adu - czy tu potrzebne?
-   }
 
 //ABu-160303 sledzenie toru przed obiektem: *******************************
  //Z obserwacji: v>0 -> Coupler 0; v<0 ->coupler1 (Ra: prêdkoœæ jest zwi¹zana z pojazdem)
  //Rozroznienie jest tutaj, zeby niepotrzebnie nie skakac do funkcji. Nie jest uzaleznione
  //od obecnosci AI, zeby uwzglednic np. jadace bez lokomotywy wagony.
  //Ra: mo¿na by przenieœæ na poziom obiektu reprezentuj¹cego sk³ad, aby nie sprawdzaæ œrodkowych
- fTrackBlock=10000.0; //na razie nie ma przeszkód
  if (CouplCounter>25) //licznik, aby nie robiæ za ka¿dym razem
  {//poszukiwanie czegoœ do zderzenia siê
-  if (MoverParameters->V>0.0) //jeœli jedzie do przodu (w kierunku Coupler 0)
+  fTrackBlock=10000.0; //na razie nie ma przeszkód
+  //jeœli nie ma zwrotnicy po drodze, to tylko przeliczyæ odleg³oœæ?
+  if (MoverParameters->V>0.1) //jeœli jedzie do przodu (w kierunku Coupler 0)
   {if (MoverParameters->Couplers[0].CouplingFlag==ctrain_virtual) //brak pojazdu podpiêtego?
-    ABuScanObjects(1,300); //szukanie czegoœ do pod³¹czenia
+   {ABuScanObjects(1,300); //szukanie czegoœ do pod³¹czenia
+    //WriteLog("Block 0: "+AnsiString(fTrackBlock));
+   }
   }
-  else if (MoverParameters->V<0.0) //jeœli jedzie do ty³u (w kierunku Coupler 1)
+  else if (MoverParameters->V<-0.1) //jeœli jedzie do ty³u (w kierunku Coupler 1)
    if (MoverParameters->Couplers[1].CouplingFlag==ctrain_virtual) //brak pojazdu podpiêtego?
-    ABuScanObjects(-1,300);
+   {ABuScanObjects(-1,300);
+    //WriteLog("Block 1: "+AnsiString(fTrackBlock));
+   }
   CouplCounter=random(20); //ponowne sprawdzenie po losowym czasie
  }
  if (MoverParameters->V!=0.0)
   ++CouplCounter; //jazda sprzyja poszukiwaniu po³¹czenia
  else
-  CouplCounter=25; //a bezruch nie
+ {CouplCounter=25; //a bezruch nie, ale mo¿na zaktualizowaæ odleg³oœæ
+  if (MoverParameters->Couplers[1-iDirection].CouplingFlag==ctrain_virtual)
+  {if (MoverParameters->Couplers[1-iDirection].Connected)
+    fTrackBlock=MoverParameters->Couplers[1-iDirection].CoupleDist; //odleg³oœæ do najbli¿szego pojazdu
+   else
+    fTrackBlock=10000.0; //nic nie stoi na przeszkodzie
+   //WriteLog("Block x: "+AnsiString(fTrackBlock));
+  }
+ }
  return true; //Ra: chyba tak?
 }
 
@@ -3341,7 +3325,7 @@ void __fastcall TDynamicObject::RaLightsSet(int head,int rear)
  if (rear==2+32+64)
  {//jeœli koniec poci¹gu, to trzeba ustaliæ, czy jest tam czynna lokomotywa
   //EN57 mo¿e nie mieæ koñcówek od œrodka cz³onu
-  if (iInventory&(iDirection?0xAA:0x55)) //czy ma jakieœ œwiat³a czerowone od danej strony
+  if (iInventory&(iDirection?0x2A:0x15)) //czy ma jakieœ œwiat³a czerowone od danej strony
    rear=2+32; //dwa œwiat³a czerwone
   else
    rear=64; //tablice blaszane
