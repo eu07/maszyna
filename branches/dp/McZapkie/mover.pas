@@ -2638,9 +2638,15 @@ begin
      then
       begin  {stykaja sie zderzaki i kompatybilne typy sprzegow chyba ze wirtualnie}
         Connected:=ConnectTo;
+        if CouplingFlag=ctrain_virtual then //jeœli wczeœniej nie by³o po³¹czone
+         begin //ustalenie z której strony rysowaæ sprzêg
+          Render:=True; //tego rysowaæ
+          Connected.Couplers[CouplerNr[ConnectNo]].Render:=false; //a tego nie
+         end;
         CouplingFlag:=CouplingType;
         if (CouplingType<>ctrain_virtual) //Ra: wirtualnego nie ³¹czymy zwrotnie!
-         then Connected.Couplers[CouplerNr[ConnectNo]].CouplingFlag:=CouplingType;
+        then //jeœli ³¹czenie sprzêgiem niewirtualnym, ustawiamy po³¹czenie zwrotne
+         Connected.Couplers[CouplerNr[ConnectNo]].CouplingFlag:=CouplingType;
         Attach:=True;
       end
      else
@@ -2720,6 +2726,7 @@ end;
 
 function TMoverParameters.FuseOn: boolean;
 begin
+ FuseOn:=False;
  if (MainCtrlPos=0) and (ScndCtrlPos=0) and Mains then
   begin
    SendCtrlToNext('FuseSwitch',1,CabNo);
@@ -5252,6 +5259,7 @@ end;
 function TMoverParameters.PantFront(State: Boolean):Boolean;
 var pf1: Real;
 begin
+ PantFront:=true;
  if (State=true) then pf1:=1
   else pf1:=0;
  if (PantFrontUp<>State) then
@@ -5259,7 +5267,6 @@ begin
   PantFrontUp:=State;
   if (State=true) then
    begin
-      PantFront:=true;
       PantFrontStart:=0;
       SendCtrlToNext('PantFront',1,CabNo);
    end
@@ -5283,6 +5290,7 @@ end;
 function TMoverParameters.PantRear(State: Boolean):Boolean;
 var pf1: Real;
 begin
+ PantRear:=true;
  if (State=true) then pf1:=1
  else pf1:=0;
  if (PantRearUp<>State) then
@@ -5290,7 +5298,6 @@ begin
   PantRearUp:=State;
   if (State=true) then
    begin
-     PantRear:=true;
      PantRearStart:=0;
      SendCtrlToNext('PantRear',1,CabNo);
    end
@@ -5414,7 +5421,7 @@ function PowerDecode(s:string): TPowerType;
      end;
   end;
 begin
-  OK:=True;
+  //OK:=True;
   OKflag:=0;
   LineCount:=0;
   ConversionError:=666;

@@ -255,6 +255,9 @@ bool __fastcall TController::CheckVehicles()
  fLength=0.0;
  while (p)
  {
+  if (TrainParams)
+   if (p->asDestination.IsEmpty())
+    p->asDestination=TrainParams->Relation2; //relacja docelowa, jeœli nie by³o
   p->RaLightsSet(0,0); //gasimy œwiat³a
   ++iVehicles; //jest jeden pojazd wiêcej
   pVehicles[1]=p; //zapamiêtanie ostatniego
@@ -762,11 +765,10 @@ void __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
   if (NewValue1!=0.0)
   {//o ile jazda
    if (!EngineActive)
-    OrderNext(Prepare_engine); //trzeba odpaliæ silnik najpierw
+    OrderNext(Prepare_engine); //trzeba odpaliæ silnik najpierw, œwiat³a ustawi JumpToNextOrder()
    if (OrderList[OrderPos]!=Obey_train) //jeœli nie poci¹gowa
-   {OrderNext(Obey_train); //to uruchomiæ jazdê poci¹gow¹
-    CheckVehicles(); //oraz sprawdziæ stan posiadania i zapaliæ œwiat³a
-   } //jeœli z odpalaniem silnika, to œwiat³a ustawi JumpToNextOrder()
+    OrderNext(Obey_train); //to uruchomiæ jazdê poci¹gow¹ (od razu albo po odpaleniu silnika
+   OrderCheck(); //jeœli jazda poci¹gowa teraz, to wykonaæ niezbêdne operacje
   }
   SetVelocity(NewValue1,NewValue2,reason); //bylo: nic nie rob bo SetVelocity zewnetrznie jest wywolywane przez dynobj.cpp
  }
@@ -775,7 +777,6 @@ void __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
   if (SetProximityVelocity(NewValue1,NewValue2))
    if (NewLocation)
     vCommandLocation=*NewLocation;
-  //if Order=Shunt) Order=Obey_train;
  }
  else if (NewCommand=="ShuntVelocity")
  {//uruchomienie jazdy manewrowej b¹dŸ zmiana prêdkoœci
@@ -784,41 +785,46 @@ void __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
   //if (OrderList[OrderPos]=Obey_train) and (NewValue1<>0))
   if (!EngineActive)
    OrderNext(Prepare_engine); //trzeba odpaliæ silnik najpierw
-  OrderNext(Shunt); //zamieniamy w aktualnej pozycji
+  OrderNext(Shunt); //zamieniamy w aktualnej pozycji, albo dodajey za odpaleniem silnika
   if (NewValue1!=0.0)
-   iVehicleCount=-2; //wartoœæ neutralna
+  {iVehicleCount=-2; //wartoœæ neutralna
+   CheckVehicles(); //zabraæ to do OrderCheck()
+  }
+  //dla prêdkoœci ujemnej przestawiæ nawrotnik do ty³u? ale -1=brak ograniczenia !!!!
   Prepare2press=false; //bez dociskania
   SetVelocity(NewValue1,NewValue2,reason);
-  if (fabs(NewValue1)>2.0) //o ile wartoœæ jest sensowna
-  {CheckVehicles(); //sprawdziæ œwiat³a
+  if (fabs(NewValue1)>2.0) //o ile wartoœæ jest sensowna (-1 nie jest konkretn¹ wartoœci¹)
    fShuntVelocity=fabs(NewValue1); //zapamiêtanie obowi¹zuj¹cej prêdkoœci dla manewrów
-  }
  }
  else if (NewCommand=="Wait_for_orders")
- {//oczekiwanie
-  OrderList[OrderPos]=Wait_for_orders;
-  //NewValue1 - czas oczekiwania, -1 - na inn¹ komendê
+ {//oczekiwanie; NewValue1 - czas oczekiwania, -1 = na inn¹ komendê
+  if (NewValue1>0.0?NewValue1>fStopTime:false)
+   fStopTime=NewValue1; //Ra: w³¹czenie czekania bez zmiany komendy
+  else
+   OrderList[OrderPos]=Wait_for_orders; //czekanie na komendê (albo daæ OrderPos=0)
  }
  else if (NewCommand=="Prepare_engine")
- {
+ {//w³¹czenie albo wy³¹czenie silnika (w szerokim sensie)
   if (NewValue1==0.0)
-   OrderNext(Release_engine); //wy³¹czyæ silnik
+   OrderNext(Release_engine); //wy³¹czyæ silnik (przygotowaæ pojazd do jazdy)
   else if (NewValue1>0.0)
-   OrderNext(Prepare_engine); //odpaliæ silnik
+   OrderNext(Prepare_engine); //odpaliæ silnik (wy³¹czyæ wszystko, co siê da)
+  //po za³¹czeniu przejdzie do kolejnej komendy, po wy³¹czeniu na Wait_for_orders
  }
  else if (NewCommand=="Change_direction")
  {
-  TOrders o=OrderList[OrderPos]; //co robi przed zmian¹ kierunku
+  TOrders o=OrderList[OrderPos]; //co robi³ przed zmian¹ kierunku
   if (!EngineActive)
    OrderNext(Prepare_engine); //trzeba odpaliæ silnik najpierw
   if (NewValue1>0.0) iDirectionOrder=1;
   else if (NewValue1<0.0) iDirectionOrder=-1;
   else iDirectionOrder=-iDirection; //zmiana na przeciwny ni¿ obecny
-  OrderNext(Change_direction);
+  OrderNext(Change_direction); //zadanie komendy do wykonania
   if (o>=Shunt) //jeœli jazda manewrowa albo poci¹gowa
    OrderNext(o); //to samo robiæ po zmianie
   else if (!o) //jeœli wczeœniej by³o czekanie
    OrderNext(Shunt); //to dalej jazda manewrowa
+  //Change_direction wykona siê samo i nastêpnie przejdzie do kolejnej komendy
  }
  else if (NewCommand=="Obey_train")
  {
@@ -827,19 +833,20 @@ void __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
   OrderNext(Obey_train);
   if (NewValue1>0)
    TrainNumber=floor(NewValue1); //i co potem ???
+  OrderCheck(); //jeœli jazda poci¹gowa teraz, to wykonaæ niezbêdne operacje
  }
  else if (NewCommand.Pos("Timetable:")==1)
  {//przypisanie nowego rozk³adu jazdy
-  if (!EngineActive)
-   OrderNext(Prepare_engine); //trzeba odpaliæ silnik najpierw
-  OrderNext(Obey_train); //¿e do jazdy
-  NewCommand.Delete(1,5); //zostanie nazwa pliku z rozk³adem
+  NewCommand.Delete(1,10); //zostanie nazwa pliku z rozk³adem
   TrainParams->NewName(NewCommand);
   if (NewCommand!="none")
-   if (!TrainParams->LoadTTfile(Global::asCurrentSceneryPath))
+  {if (!TrainParams->LoadTTfile(Global::asCurrentSceneryPath))
     Error("Cannot load timetable file "+NewCommand+"\r\nError "+ConversionError+" in position "+TrainParams->StationCount);
    else
    {//inicjacja pierwszego przystanku i pobranie jego nazwy
+    if (!EngineActive)
+     OrderNext(Prepare_engine); //trzeba odpaliæ silnik najpierw
+    OrderNext(Obey_train); //¿e do jazdy
     TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,TrainParams->NextStationName);
     asNextStop=TrainParams->NextStop();
     WriteLog("/* Timetable: "+TrainParams->ShowRelation());
@@ -850,6 +857,7 @@ void __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
     }
     WriteLog("*/");
    }
+  }
   if (NewValue1>0)
    TrainNumber=floor(NewValue1); //i co potem ???
  }
@@ -1743,7 +1751,7 @@ void __fastcall TController::ScanEventTrack()
     if (pVehicles[0]->fTrackBlock>50.0) //je¿eli nie ma zawalidrogi w tej odleg³oœci
     {
      //scandist=(scandist>5?scandist-5:0); //10m do zatrzymania
-     vector3 pos=pVehicles[0]->GetPosition()+scandist*SafeNormalize(startdir*pVehicles[0]->GetDirection());
+     vector3 pos=pVehicles[0]->AxlePositionGet()+scandist*SafeNormalize(startdir*pVehicles[0]->GetDirection());
 #if LOGVELOCITY
      WriteLog("End of track:");
 #endif

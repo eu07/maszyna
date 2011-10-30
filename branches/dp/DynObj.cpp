@@ -126,89 +126,68 @@ void TDynamicObject::ABuSetModelShake(vector3 mShake)
 
 int __fastcall TDynamicObject::GetPneumatic(bool front, bool red)
 {
-  int x, y, z;
+ int x,y,z; //1=prosty, 2=skoœny
+ if (red)
+ {
   if (front)
-    if (red)
-      {
-        x= btCPneumatic1.GetStatus();
-        y= btCPneumatic1r.GetStatus();
-      }
-    else
-      {
-        x= btPneumatic1.GetStatus();
-        y= btPneumatic1r.GetStatus();
-      }
+  {
+   x=btCPneumatic1.GetStatus();
+   y=btCPneumatic1r.GetStatus();
+  }
   else
-    if (red)
-      {
-        x= btCPneumatic2.GetStatus();
-        y= btCPneumatic2r.GetStatus();
-      }
-    else
-      {
-        x= btPneumatic2.GetStatus();
-        y= btPneumatic2r.GetStatus();
-      }
-  z=0;
+  {
+   x=btCPneumatic2.GetStatus();
+   y=btCPneumatic2r.GetStatus();
+  }
+ }
+ else
+  if (front)
+  {
+   x=btPneumatic1.GetStatus();
+   y=btPneumatic1r.GetStatus();
+  }
+  else
+  {
+   x=btPneumatic2.GetStatus();
+   y=btPneumatic2r.GetStatus();
+  }
+ z=0; //brak wê¿y?
+ if ((x==1)&&(y==1)) z=3; //dwa proste
+ if ((x==2)&&(y==0)) z=1; //lewy skoœny, brak prawego
+ if ((x==0)&&(y==2)) z=2; //brak lewego, prawy skoœny
 
-  if ((x==1)&&(y==1)) z=3;
-  if ((x==2)&&(y==0)) z=1;
-  if ((x==0)&&(y==2)) z=2;
-
-  return z;
+ return z;
 }
 
-void __fastcall TDynamicObject::SetPneumatic(bool front, bool red)
+void __fastcall TDynamicObject::SetPneumatic(bool front,bool red)
 {
-  int x, ten, tamten;
-  ten = GetPneumatic(front, red);
-  if (front)
-   if (PrevConnected) //pojazd od strony sprzêgu 0
-    tamten=PrevConnected->GetPneumatic((PrevConnectedNo==0?true:false),red);
-  if (!front)
-   if (NextConnected) //pojazd od strony sprzêgu 1
-    tamten=NextConnected->GetPneumatic((NextConnectedNo==0?true:false),red);
-  x=0;
-
-  if (ten==tamten)
-    switch (ten)
-     {
-      case 1: x=2;
-      break;
-      case 2: x=3;
-      break;
-      case 3:{ int bleee=0;
-              if (!front) bleee=1;
-              if (MoverParameters->Couplers[bleee].Render)
-                x=1;
-              else
-                x=4;
-             }
-      break;
-     }
-  else
+ int x=0,ten,tamten;
+ ten=GetPneumatic(front,red); //1=lewy skos,2=prawy skos,3=dwa proste
+ if (front)
+  if (PrevConnected) //pojazd od strony sprzêgu 0
+   tamten=PrevConnected->GetPneumatic((PrevConnectedNo==0?true:false),red);
+ if (!front)
+  if (NextConnected) //pojazd od strony sprzêgu 1
+   tamten=NextConnected->GetPneumatic((NextConnectedNo==0?true:false),red);
+ if (ten==tamten) //jeœli uk³ad jest symetryczny
+  switch (ten)
    {
-   if (ten==2)
-   x=4;
-   if (ten==1)
-   x=1;
-   if (ten==3)
-    if (tamten==1)
-      x=4;
-    else
-      x=1;  
+    case 1: x=2; break; //mamy lewy skos, daæ lewe skosy
+    case 2: x=3; break; //mamy prawy skos, daæ prawe skosy
+    case 3: //wszystkie cztery na prosto
+     if (MoverParameters->Couplers[front?0:1].Render) x=1; else x=4;
+     break;
    }
-
-  if(front)
-    if(red)
-      cp1=x;
-    else
-      sp1=x;
-  else
-    if(red)
-      cp2=x;
-    else
-      sp2=x;
+ else
+ {
+  if (ten==2) x=4;
+  if (ten==1) x=1;
+  if (ten==3) if (tamten==1) x=4; else x=1;
+ }
+ if (front)
+ {if (red) cp1=x; else sp1=x;} //który pokazywaæ z przodu
+ else
+ {if (red) cp2=x; else sp2=x;} //który pokazywaæ z ty³u
 }
 
 //ABu 29.01.05 przeklejone z render i renderalpha: *********************
@@ -294,73 +273,73 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
     SetPneumatic(false,true);  //wyswietlic w tej klatce
 
     if (TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_pneumatic))
+    {
+     switch (cp1)
      {
-      switch(cp1)
-        {
-         case 1: btCPneumatic1.TurnOn(); break;
-         case 2: btCPneumatic1.TurnxOn(); break;
-         case 3: btCPneumatic1r.TurnxOn(); break;
-         case 4: btCPneumatic1r.TurnOn(); break;
-        }
-      btnOn=true;
+      case 1: btCPneumatic1.TurnOn(); break;
+      case 2: btCPneumatic1.TurnxOn(); break;
+      case 3: btCPneumatic1r.TurnxOn(); break;
+      case 4: btCPneumatic1r.TurnOn(); break;
      }
+     btnOn=true;
+    }
     else
-     {
-      btCPneumatic1.TurnOff();
-      btCPneumatic1r.TurnOff();
-     }
+    {
+     btCPneumatic1.TurnOff();
+     btCPneumatic1r.TurnOff();
+    }
 
     if (TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_pneumatic))
+    {
+     switch (cp2)
      {
-      switch(cp2)
-        {
-         case 1: btCPneumatic2.TurnOn(); break;
-         case 2: btCPneumatic2.TurnxOn(); break;
-         case 3: btCPneumatic2r.TurnxOn(); break;
-         case 4: btCPneumatic2r.TurnOn(); break;
-        }
-      btnOn=true;
+      case 1: btCPneumatic2.TurnOn(); break;
+      case 2: btCPneumatic2.TurnxOn(); break;
+      case 3: btCPneumatic2r.TurnxOn(); break;
+      case 4: btCPneumatic2r.TurnOn(); break;
      }
+     btnOn=true;
+    }
     else
-     {
-      btCPneumatic2.TurnOff();
-      btCPneumatic2r.TurnOff();
-     }
+    {
+     btCPneumatic2.TurnOff();
+     btCPneumatic2r.TurnOff();
+    }
 
     //przewody zasilajace, j.w. (yB)
     if (TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_scndpneumatic))
+    {
+     switch (sp1)
      {
-      switch(sp1)
-        {
-         case 1: btPneumatic1.TurnOn(); break;
-         case 2: btPneumatic1.TurnxOn(); break;
-         case 3: btPneumatic1r.TurnxOn(); break;
-         case 4: btPneumatic1r.TurnOn(); break;
-        }
-      btnOn=true;
+      case 1: btPneumatic1.TurnOn(); break;
+      case 2: btPneumatic1.TurnxOn(); break;
+      case 3: btPneumatic1r.TurnxOn(); break;
+      case 4: btPneumatic1r.TurnOn(); break;
      }
+     btnOn=true;
+    }
     else
-     {
-      btPneumatic1.TurnOff();
-      btPneumatic1r.TurnOff();
-     }
+    {
+     btPneumatic1.TurnOff();
+     btPneumatic1r.TurnOff();
+    }
 
     if (TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_scndpneumatic))
+    {
+     switch (sp2)
      {
-      switch(sp2)
-        {
-         case 1: btPneumatic2.TurnOn(); break;
-         case 2: btPneumatic2.TurnxOn(); break;
-         case 3: btPneumatic2r.TurnxOn(); break;
-         case 4: btPneumatic2r.TurnOn(); break;
-        }
-      btnOn=true;
+      case 1: btPneumatic2.TurnOn(); break;
+      case 2: btPneumatic2.TurnxOn(); break;
+      case 3: btPneumatic2r.TurnxOn(); break;
+      case 4: btPneumatic2r.TurnOn(); break;
      }
+     btnOn=true;
+    }
     else
-     {
-      btPneumatic2.TurnOff();
-      btPneumatic2r.TurnOff();
-     }
+    {
+     btPneumatic2.TurnOff();
+     btPneumatic2r.TurnOff();
+    }
    }
 //*********************************************************************************/
    else //po staremu ABu'oewmu
@@ -2924,6 +2903,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
 {
  double dSDist;
  TFileStream *fs;
+ Global::asCurrentDynamicPath=BaseDir;
  AnsiString asFileName=BaseDir+TypeName+".mmd";
  AnsiString asLoadName=BaseDir+MoverParameters->LoadType+".t3d";
  fs=new TFileStream(asFileName,fmOpenRead|fmShareCompat);
@@ -3173,7 +3153,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
            dWheelsPosition[i]=str.ToDouble();
            str= Parser->GetNextSymbol().LowerCase();
            if (str!=AnsiString("end"))
-             rsStukot[i].Init(str.c_str(),dSDist,GetPosition().x,GetPosition().y+dWheelsPosition[i],GetPosition().z);
+             rsStukot[i].Init(str.c_str(),dSDist,GetPosition().x,GetPosition().y+dWheelsPosition[i],GetPosition().z,true);
          }
          if (str!=AnsiString("end"))
           str= Parser->GetNextSymbol();
@@ -3182,7 +3162,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
        if ((str==AnsiString("engine:")) && (MoverParameters->Power>0))   //plik z dzwiekiem silnika, mnozniki i ofsety amp. i czest.
         {
          str= Parser->GetNextSymbol();
-         rsSilnik.Init(str.c_str(),Parser->GetNextSymbol().ToDouble(),GetPosition().x,GetPosition().y,GetPosition().z);
+         rsSilnik.Init(str.c_str(),Parser->GetNextSymbol().ToDouble(),GetPosition().x,GetPosition().y,GetPosition().z,true);
          if (MoverParameters->EngineType==DieselEngine)
           rsSilnik.AM=Parser->GetNextSymbol().ToDouble()/(MoverParameters->Power+MoverParameters->nmax*60);
          else if (MoverParameters->EngineType==DieselElectric)
@@ -3197,7 +3177,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
        if ((str==AnsiString("ventilator:")) && (MoverParameters->EngineType==ElectricSeriesMotor))    //plik z dzwiekiem wentylatora, mnozniki i ofsety amp. i czest.
         {
          str= Parser->GetNextSymbol();
-         rsWentylator.Init(str.c_str(),Parser->GetNextSymbol().ToDouble(),GetPosition().x,GetPosition().y,GetPosition().z);
+         rsWentylator.Init(str.c_str(),Parser->GetNextSymbol().ToDouble(),GetPosition().x,GetPosition().y,GetPosition().z,true);
          rsWentylator.AM=Parser->GetNextSymbol().ToDouble()/MoverParameters->RVentnmax;
          rsWentylator.AA=Parser->GetNextSymbol().ToDouble();
          rsWentylator.FM=Parser->GetNextSymbol().ToDouble()/MoverParameters->RVentnmax;
@@ -3207,7 +3187,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
        if (str==AnsiString("brake:"))                      //plik z piskiem hamulca, mnozniki i ofsety amplitudy.
         {
          str= Parser->GetNextSymbol();
-         rsPisk.Init(str.c_str(),Parser->GetNextSymbol().ToDouble(),GetPosition().x,GetPosition().y,GetPosition().z);
+         rsPisk.Init(str.c_str(),Parser->GetNextSymbol().ToDouble(),GetPosition().x,GetPosition().y,GetPosition().z,true);
          rsPisk.AM=Parser->GetNextSymbol().ToDouble();
          rsPisk.AA=Parser->GetNextSymbol().ToDouble()*(105-random(10))/100;
          rsPisk.FM=1.0;
@@ -3217,7 +3197,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
        if (str==AnsiString("brakeacc:"))                      //plik z przyspieszaczem (upust po zlapaniu hamowania)
         {
          str= Parser->GetNextSymbol();
-         sBrakeAcc.Init(str.c_str(),Parser->GetNextSymbol().ToDouble(),GetPosition().x,GetPosition().y,GetPosition().z);
+         sBrakeAcc.Init(str.c_str(),Parser->GetNextSymbol().ToDouble(),GetPosition().x,GetPosition().y,GetPosition().z,true);
          sBrakeAcc.AM=1.0;
          sBrakeAcc.AA=0.0;
          sBrakeAcc.FM=1.0;
@@ -3227,7 +3207,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
        if (str==AnsiString("derail:"))                      //dzwiek przy wykolejeniu
         {
          str= Parser->GetNextSymbol();
-         rsDerailment.Init(str.c_str(),Parser->GetNextSymbol().ToDouble(),GetPosition().x,GetPosition().y,GetPosition().z);
+         rsDerailment.Init(str.c_str(),Parser->GetNextSymbol().ToDouble(),GetPosition().x,GetPosition().y,GetPosition().z,true);
          rsDerailment.AM=1.0;
          rsDerailment.AA=0.0;
          rsDerailment.FM=1.0;
@@ -3237,7 +3217,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
        if (str==AnsiString("dieselinc:"))                      //dzwiek przy wlazeniu na obroty woodwarda
         {
          str= Parser->GetNextSymbol();
-         rsDiesielInc.Init(str.c_str(),Parser->GetNextSymbol().ToDouble(),GetPosition().x,GetPosition().y,GetPosition().z);
+         rsDiesielInc.Init(str.c_str(),Parser->GetNextSymbol().ToDouble(),GetPosition().x,GetPosition().y,GetPosition().z,true);
          rsDiesielInc.AM=1.0;
          rsDiesielInc.AA=0.0;
          rsDiesielInc.FM=1.0;
@@ -3247,7 +3227,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
        if (str==AnsiString("curve:"))
         {
          str= Parser->GetNextSymbol();
-         rscurve.Init(str.c_str(),Parser->GetNextSymbol().ToDouble(),GetPosition().x,GetPosition().y,GetPosition().z);
+         rscurve.Init(str.c_str(),Parser->GetNextSymbol().ToDouble(),GetPosition().x,GetPosition().y,GetPosition().z,true);
          rscurve.AM=1.0;
          rscurve.AA=0.0;
          rscurve.FM=1.0;
@@ -3269,7 +3249,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
        if (str==AnsiString("pantographup:"))            //pliki dzwiekow pantografow
         {
          str= Parser->GetNextSymbol();
-         sPantUp.Init(str.c_str(),50,GetPosition().x,GetPosition().y,GetPosition().z);
+         sPantUp.Init(str.c_str(),50,GetPosition().x,GetPosition().y,GetPosition().z,true);
          sPantUp.AM=50000;
          sPantUp.AA=-1*(105-random(10))/100;
          sPantUp.FM=1.0;
@@ -3278,7 +3258,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
        if (str==AnsiString("pantographdown:"))            //pliki dzwiekow pantografow
         {
          str= Parser->GetNextSymbol();
-         sPantDown.Init(str.c_str(),50,GetPosition().x,GetPosition().y,GetPosition().z);
+         sPantDown.Init(str.c_str(),50,GetPosition().x,GetPosition().y,GetPosition().z,true);
          sPantDown.AM=50000;
          sPantDown.AA=-1*(105-random(10))/100;
          sPantDown.FM=1.0;

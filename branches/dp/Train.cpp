@@ -294,8 +294,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       if (cKey==VkKeyScan('q')) //ze Shiftem
       {
        if (DynamicObject->Mechanik)
-        if (DynamicObject->Mechanik->AIControllFlag==Humandriver)
-         DynamicObject->Mechanik->TakeControl(true);
+        DynamicObject->Mechanik->TakeControl(true);
       }
       else
       if (cKey==Global::Keys[k_MaxCurrent])   //McZapkie-160502: F - wysoki rozruch
@@ -977,8 +976,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else if (cKey==VkKeyScan('q')) //bez Shift
       {
        if (DynamicObject->Mechanik)
-        if (DynamicObject->Mechanik->AIControllFlag==AIdriver)
-         DynamicObject->Mechanik->TakeControl(false);
+        DynamicObject->Mechanik->TakeControl(false);
       }
       else
       if (cKey==Global::Keys[k_MaxCurrent])   //McZapkie-160502: f - niski rozruch
@@ -1076,54 +1074,54 @@ void __fastcall TTrain::OnKeyPress(int cKey)
           }
           else
           { //tryb freefly
-            int CouplNr=-1; //normalnie ¿aden ze sprzêgów
-            TDynamicObject *tmp;
-            tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1,500,CouplNr);
-            if (tmp==NULL)
-             tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1,500,CouplNr);
-            if (tmp&&(CouplNr!=-1))
+           int CouplNr=-1; //normalnie ¿aden ze sprzêgów
+           TDynamicObject *tmp;
+           tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1,500,CouplNr);
+           if (tmp==NULL)
+            tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1,500,CouplNr);
+           if (tmp&&(CouplNr!=-1))
+           {
+            if (tmp->MoverParameters->Couplers[CouplNr].CouplingFlag==0) //najpierw hak
             {
-             if (tmp->MoverParameters->Couplers[CouplNr].CouplingFlag==0)        //hak
+             if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,ctrain_coupler))
              {
-              if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,ctrain_coupler))
-              {
-               tmp->MoverParameters->Couplers[CouplNr].Render=true; //pod³¹czony sprzêg bêdzie widoczny
-               dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
-               dsbCouplerAttach->Play(0,0,0);
-              }
-             }
-             else
-             if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag,ctrain_pneumatic))    //pneumatyka
-             {
-              if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,tmp->MoverParameters->Couplers[CouplNr].CouplingFlag+ctrain_pneumatic))
-              {
-               rsHiss.Play(1,DSBPLAY_LOOPING,true,tmp->GetPosition());
-               DynamicObject->SetPneumatic(CouplNr,1); //Ra: to mi siê nie podoba !!!!
-               tmp->SetPneumatic(CouplNr,1);
-              }
-             }
-             else
-             if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag,ctrain_scndpneumatic))     //zasilajacy
-             {
-              if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,tmp->MoverParameters->Couplers[CouplNr].CouplingFlag+ctrain_scndpneumatic))
-              {
-//               rsHiss.Play(1,DSBPLAY_LOOPING,true,tmp->GetPosition());
-               dsbCouplerDetach->SetVolume(DSBVOLUME_MAX);
-               dsbCouplerDetach->Play(0,0,0);
-               DynamicObject->SetPneumatic(CouplNr,0); //Ra: to mi siê nie podoba !!!!
-               tmp->SetPneumatic(CouplNr,0);
-              }
-             }
-             else
-             if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag,ctrain_controll))     //ukrotnionko
-             {
-              if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,tmp->MoverParameters->Couplers[CouplNr].CouplingFlag+ctrain_controll))
-              {
-               dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
-               dsbCouplerAttach->Play(0,0,0);
-              }
+              //tmp->MoverParameters->Couplers[CouplNr].Render=true; //pod³¹czony sprzêg bêdzie widoczny
+              dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
+              dsbCouplerAttach->Play(0,0,0);
              }
             }
+            else
+            if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag,ctrain_pneumatic))    //pneumatyka
+            {
+             if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,tmp->MoverParameters->Couplers[CouplNr].CouplingFlag+ctrain_pneumatic))
+             {
+              rsHiss.Play(1,DSBPLAY_LOOPING,true,tmp->GetPosition());
+              DynamicObject->SetPneumatic(CouplNr,1); //Ra: to mi siê nie podoba !!!!
+              tmp->SetPneumatic(CouplNr,1);
+             }
+            }
+            else
+            if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag,ctrain_scndpneumatic))     //zasilajacy
+            {
+             if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,tmp->MoverParameters->Couplers[CouplNr].CouplingFlag+ctrain_scndpneumatic))
+             {
+//              rsHiss.Play(1,DSBPLAY_LOOPING,true,tmp->GetPosition());
+              dsbCouplerDetach->SetVolume(DSBVOLUME_MAX);
+              dsbCouplerDetach->Play(0,0,0);
+              DynamicObject->SetPneumatic(CouplNr,0); //Ra: to mi siê nie podoba !!!!
+              tmp->SetPneumatic(CouplNr,0);
+             }
+            }
+            else
+            if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag,ctrain_controll))     //ukrotnionko
+            {
+             if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,tmp->MoverParameters->Couplers[CouplNr].CouplingFlag+ctrain_controll))
+             {
+              dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
+              dsbCouplerAttach->Play(0,0,0);
+             }
+            }
+           }
           }
         }
       }
@@ -1796,7 +1794,7 @@ bool __fastcall TTrain::Update()
         float am=rsRunningNoise.AM;
         float fa=rsRunningNoise.FA;
         float fm=rsRunningNoise.FM;
-        rsRunningNoise.Init("lomotpodkucia.wav",-1,0,0,0);    //MC: zmiana szumu na lomot
+        rsRunningNoise.Init("lomotpodkucia.wav",-1,0,0,0,true);    //MC: zmiana szumu na lomot
         if (rsRunningNoise.AM==1)
          rsRunningNoise.AM=am;
         rsRunningNoise.AA=0.7;
@@ -2913,7 +2911,7 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
 //    Parser->LoadStringToParse(asFile);
     Parser->First();
     str="";
-    dsbPneumaticSwitch= TSoundsManager::GetFromName("silence1.wav");
+    dsbPneumaticSwitch= TSoundsManager::GetFromName("silence1.wav",true);
     while ((!Parser->EndOfFile) && (str!=AnsiString("internaldata:")))
     {
         str= Parser->GetNextSymbol().LowerCase();
@@ -2927,77 +2925,77 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
         if (str==AnsiString("ctrl:"))                    //nastawnik:
          {
           str= Parser->GetNextSymbol().LowerCase();
-          dsbNastawnik= TSoundsManager::GetFromName(str.c_str());
+          dsbNastawnik= TSoundsManager::GetFromName(str.c_str(),true);
          }
         else
         if (str==AnsiString("buzzer:"))                    //bzyczek shp:
          {
           str= Parser->GetNextSymbol().LowerCase();
-          dsbBuzzer= TSoundsManager::GetFromName(str.c_str());
+          dsbBuzzer= TSoundsManager::GetFromName(str.c_str(),true);
          }
         else
         if (str==AnsiString("slipalarm:")) //Bombardier 011010: alarm przy poslizgu:
         {
          str=Parser->GetNextSymbol().LowerCase();
-         dsbSlipAlarm=TSoundsManager::GetFromName(str.c_str());
+         dsbSlipAlarm=TSoundsManager::GetFromName(str.c_str(),true);
         }
         else
         if (str==AnsiString("tachoclock:"))                 //cykanie rejestratora:
          {
           str= Parser->GetNextSymbol().LowerCase();
-          dsbHasler= TSoundsManager::GetFromName(str.c_str());
+          dsbHasler= TSoundsManager::GetFromName(str.c_str(),true);
          }
         else
         if (str==AnsiString("switch:"))                   //przelaczniki:
          {
           str= Parser->GetNextSymbol().LowerCase();
-          dsbSwitch= TSoundsManager::GetFromName(str.c_str());
+          dsbSwitch= TSoundsManager::GetFromName(str.c_str(),true);
          }
         else
         if (str==AnsiString("pneumaticswitch:"))                   //stycznik EP:
          {
           str= Parser->GetNextSymbol().LowerCase();
-          dsbPneumaticSwitch= TSoundsManager::GetFromName(str.c_str());
+          dsbPneumaticSwitch= TSoundsManager::GetFromName(str.c_str(),true);
          }
         else
         if (str==AnsiString("relay:"))                   //styczniki itp:
          {
           str= Parser->GetNextSymbol().LowerCase();
-          dsbRelay= TSoundsManager::GetFromName(str.c_str());
-          dsbWejscie_na_bezoporow= TSoundsManager::GetFromName("wejscie_na_bezoporow.wav");
-          dsbWescie_na_drugi_uklad= TSoundsManager::GetFromName("wescie_na_drugi_uklad.wav");
+          dsbRelay= TSoundsManager::GetFromName(str.c_str(),true);
+          dsbWejscie_na_bezoporow= TSoundsManager::GetFromName("wejscie_na_bezoporow.wav",true);
+          dsbWescie_na_drugi_uklad= TSoundsManager::GetFromName("wescie_na_drugi_uklad.wav",true);
          }
         else
         if (str==AnsiString("pneumaticrelay:"))           //wylaczniki pneumatyczne:
          {
           str= Parser->GetNextSymbol().LowerCase();
-          dsbPneumaticRelay= TSoundsManager::GetFromName(str.c_str());
+          dsbPneumaticRelay= TSoundsManager::GetFromName(str.c_str(),true);
          }
         else
         if (str==AnsiString("couplerattach:"))           //laczenie:
          {
           str= Parser->GetNextSymbol().LowerCase();
-          dsbCouplerAttach= TSoundsManager::GetFromName(str.c_str());
-          dsbCouplerStretch= TSoundsManager::GetFromName("en57_couplerstretch.wav"); //McZapkie-090503: PROWIZORKA!!!
+          dsbCouplerAttach= TSoundsManager::GetFromName(str.c_str(),true);
+          dsbCouplerStretch= TSoundsManager::GetFromName("en57_couplerstretch.wav",true); //McZapkie-090503: PROWIZORKA!!!
          }
         else
         if (str==AnsiString("couplerdetach:"))           //rozlaczanie:
          {
           str= Parser->GetNextSymbol().LowerCase();
-          dsbCouplerDetach= TSoundsManager::GetFromName(str.c_str());
-          dsbBufferClamp= TSoundsManager::GetFromName("en57_bufferclamp.wav"); //McZapkie-090503: PROWIZORKA!!!
+          dsbCouplerDetach= TSoundsManager::GetFromName(str.c_str(),true);
+          dsbBufferClamp= TSoundsManager::GetFromName("en57_bufferclamp.wav",true); //McZapkie-090503: PROWIZORKA!!!
          }
         else
         if (str==AnsiString("ignition:"))           //rozlaczanie:
          {
           str= Parser->GetNextSymbol().LowerCase();
-          dsbDieselIgnition= TSoundsManager::GetFromName(str.c_str());
+          dsbDieselIgnition= TSoundsManager::GetFromName(str.c_str(),true);
          }
         else
         if (str==AnsiString("brakesound:"))                    //hamowanie zwykle:
          {
           str= Parser->GetNextSymbol();
-          rsBrake.Init(str.c_str(),-1,0,0,0);
+          rsBrake.Init(str.c_str(),-1,0,0,0,true);
           rsBrake.AM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->MaxBrakeForce*1000);
           rsBrake.AA=Parser->GetNextSymbol().ToDouble();
           rsBrake.FM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
@@ -3007,7 +3005,7 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
         if (str==AnsiString("slipperysound:"))                    //sanie:
          {
           str= Parser->GetNextSymbol();
-          rsSlippery.Init(str.c_str(),-1,0,0,0);
+          rsSlippery.Init(str.c_str(),-1,0,0,0,true);
           rsSlippery.AM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
           rsSlippery.AA=Parser->GetNextSymbol().ToDouble();
           rsSlippery.FM=0.0;
@@ -3017,7 +3015,7 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
         if (str==AnsiString("airsound:"))                    //syk:
          {
           str= Parser->GetNextSymbol();
-          rsHiss.Init(str.c_str(),-1,0,0,0);
+          rsHiss.Init(str.c_str(),-1,0,0,0,true);
           rsHiss.AM=Parser->GetNextSymbol().ToDouble();
           rsHiss.AA=Parser->GetNextSymbol().ToDouble();
           rsHiss.FM=0.0;
@@ -3027,7 +3025,7 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
         if (str==AnsiString("fadesound:"))                    //syk:
          {
           str= Parser->GetNextSymbol();
-          rsFadeSound.Init(str.c_str(),-1,0,0,0);
+          rsFadeSound.Init(str.c_str(),-1,0,0,0,true);
           rsFadeSound.AM=1.0;
           rsFadeSound.AA=1.0;
           rsFadeSound.FM=1.0;
@@ -3037,7 +3035,7 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
         if (str==AnsiString("localbrakesound:"))                    //syk:
          {
           str= Parser->GetNextSymbol();
-          rsSBHiss.Init(str.c_str(),-1,0,0,0);
+          rsSBHiss.Init(str.c_str(),-1,0,0,0,true);
           rsSBHiss.AM=Parser->GetNextSymbol().ToDouble();
           rsSBHiss.AA=Parser->GetNextSymbol().ToDouble();
           rsSBHiss.FM=0.0;
@@ -3047,7 +3045,7 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
         if (str==AnsiString("runningnoise:"))                    //szum podczas jazdy:
          {
           str= Parser->GetNextSymbol();
-          rsRunningNoise.Init(str.c_str(),-1,0,0,0);
+          rsRunningNoise.Init(str.c_str(),-1,0,0,0,true);
           rsRunningNoise.AM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
           rsRunningNoise.AA=Parser->GetNextSymbol().ToDouble();
           rsRunningNoise.FM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
@@ -3057,7 +3055,7 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
         if (str==AnsiString("engageslippery:"))                    //tarcie tarcz sprzegla:
          {
           str= Parser->GetNextSymbol();
-          rsEngageSlippery.Init(str.c_str(),-1,0,0,0);
+          rsEngageSlippery.Init(str.c_str(),-1,0,0,0,true);
           rsEngageSlippery.AM=Parser->GetNextSymbol().ToDouble();
           rsEngageSlippery.AA=Parser->GetNextSymbol().ToDouble();
           rsEngageSlippery.FM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->nmax);
@@ -3079,25 +3077,25 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
         if (str==AnsiString("pantographup:"))           //podniesienie patyka:
          {
           str= Parser->GetNextSymbol().LowerCase();
-          dsbPantUp= TSoundsManager::GetFromName(str.c_str());
+          dsbPantUp= TSoundsManager::GetFromName(str.c_str(),true);
          }
                  else
         if (str==AnsiString("pantographdown:"))           //podniesienie patyka:
          {
           str= Parser->GetNextSymbol().LowerCase();
-          dsbPantDown= TSoundsManager::GetFromName(str.c_str());
+          dsbPantDown= TSoundsManager::GetFromName(str.c_str(),true);
          }
                  else
         if (str==AnsiString("doorclose:"))           //zamkniecie drzwi:
          {
           str= Parser->GetNextSymbol().LowerCase();
-          dsbDoorClose= TSoundsManager::GetFromName(str.c_str());
+          dsbDoorClose= TSoundsManager::GetFromName(str.c_str(),true);
          }
                  else
         if (str==AnsiString("dooropen:"))           //wotwarcie drzwi:
          {
           str= Parser->GetNextSymbol().LowerCase();
-          dsbDoorOpen= TSoundsManager::GetFromName(str.c_str());
+          dsbDoorOpen= TSoundsManager::GetFromName(str.c_str(),true);
          }
       }
     }

@@ -49,10 +49,10 @@ void __fastcall TRealSound::Free()
 {
 }
 
-void __fastcall TRealSound::Init(char *SoundName, double DistanceAttenuation, double X, double Y, double Z)
+void __fastcall TRealSound::Init(char *SoundName, double DistanceAttenuation, double X, double Y, double Z,bool Dynamic)
 {
 //    Nazwa= SoundName;
-    pSound= TSoundsManager::GetFromName(SoundName);
+    pSound= TSoundsManager::GetFromName(SoundName,Dynamic);
     if (pSound!=NULL)
     {
      AM= 1.0;
@@ -169,11 +169,11 @@ void __fastcall TRealSound::AdjFreq(double Freq, double dt) //McZapkie TODO: dor
 double TRealSound::GetWaveTime() //McZapkie: na razie tylko dla 22KHz/8bps
 {
  if (!pSound) return 0.0;
- double WaveTime=0;
+ double WaveTime;
  DSBCAPS caps;
- caps.dwSize= sizeof(caps);
+ caps.dwSize=sizeof(caps);
  pSound->GetCaps(&caps);
- WaveTime= caps.dwBufferBytes;
+ WaveTime=caps.dwBufferBytes;
  return WaveTime/22000;  // wielkosc w bajtach przez czestotliwosc probkowania
 }
 
