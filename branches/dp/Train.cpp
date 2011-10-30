@@ -1132,7 +1132,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
         {
           if (!FreeFlyModeFlag) //tryb 'kabinowy'
           {
-           if (DynamicObject->Dettach(iCabn-1,0))
+           if (!DynamicObject->Dettach(iCabn-1,0))
            {
             dsbCouplerDetach->SetVolume(DSBVOLUME_MAX);
             dsbCouplerDetach->Play(0,0,0);
@@ -1148,7 +1148,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
              tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 500, CouplNr);
             if (tmp&&(CouplNr!=-1))
             {
-             if (tmp->Dettach(CouplNr,0))
+             if (!tmp->Dettach(CouplNr,0))
              {
               dsbCouplerDetach->SetVolume(DSBVOLUME_MAX);
               dsbCouplerDetach->Play(0,0,0);

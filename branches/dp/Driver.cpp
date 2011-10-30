@@ -457,11 +457,12 @@ bool __fastcall TController::PrepareEngine()
    }
    else //ustalenie kierunku, gdy jedzie
     if (Controlling->V<0) //jedzie do ty³u
-     if (Controlling->PantFrontVolt||Controlling->PantRearVolt||voltfront||voltrear)
+    {if (Controlling->PantFrontVolt||Controlling->PantRearVolt||voltfront||voltrear)
       iDirection=-1; //jazda w kierunku sprzêgu 1
-     else //jak nie do ty³u, to do przodu
-      if (Controlling->PantFrontVolt||Controlling->PantRearVolt||voltfront||voltrear)
-       iDirection=1; //jazda w kierunku sprzêgu 0
+    }
+    else //jak nie do ty³u, to do przodu
+     if (Controlling->PantFrontVolt||Controlling->PantRearVolt||voltfront||voltrear)
+      iDirection=1; //jazda w kierunku sprzêgu 0
   if (!Controlling->Mains)
   {
    //if TrainType=dt_SN61)
@@ -1033,7 +1034,7 @@ bool __fastcall TController::UpdateSituation(double dt)
        {
         if ((Controlling->DirAbsolute>0)&&(Controlling->Couplers[0].CouplingFlag>0))
         {
-         if (pVehicle->Dettach(0,iVehicleCount))
+         if (!pVehicle->Dettach(0,iVehicleCount)) //zwraca maskê bitow¹ po³¹czenia
          {//tylko jeœli odepnie
           iVehicleCount=-2;
           SetVelocity(0,0,stopJoin);
@@ -1041,7 +1042,7 @@ bool __fastcall TController::UpdateSituation(double dt)
         }
         else if ((Controlling->DirAbsolute<0)&&(Controlling->Couplers[1].CouplingFlag>0))
         {
-         if (pVehicle->Dettach(1,iVehicleCount))
+         if (!pVehicle->Dettach(1,iVehicleCount)) //zwraca maskê bitow¹ po³¹czenia
          {//tylko jeœli odepnie
           iVehicleCount=-2;
           SetVelocity(0,0,stopJoin);

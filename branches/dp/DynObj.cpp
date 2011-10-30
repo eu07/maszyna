@@ -867,12 +867,10 @@ bool TDynamicObject::DettachDistance(int dir)
 
 int TDynamicObject::Dettach(int dir,int cnt)
 {//roz³¹czenie sprzêgów rzeczywistych od strony (dir): 0=przód,1=ty³
- //zwraca zakres maskê bitow¹ od³¹czanych sprzegów
- int i=MoverParameters->Couplers[dir].CouplingFlag; //zapamiêtanie co by³o pod³¹czone
- if (i)
-  if (MoverParameters->Dettach(dir))
-   return i;
- return -1; //nic nie pod³¹czone
+ //zwraca maskê bitow¹ aktualnych sprzegów (0 jeœli roz³¹czony)
+ if (MoverParameters->Couplers[dir].CouplingFlag) //zapamiêtanie co by³o pod³¹czone
+  MoverParameters->Dettach(dir);
+ return MoverParameters->Couplers[dir].CouplingFlag; //sprzêg po roz³¹czaniu
 }
 
 void TDynamicObject::CouplersDettach(double MinDist,int MyScanDir)
