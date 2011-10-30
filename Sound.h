@@ -36,21 +36,22 @@ public:
 
 class TSoundsManager
 {
+private:
  static LPDIRECTSOUND       pDS;
  static LPDIRECTSOUNDNOTIFY pDSNotify;
 // static char Directory[80];
  static int Count;
  static TSoundContainer *First;
+ static TSoundContainer* __fastcall LoadFromFile(char *Dir,char *Name,int Concurrent);
 public:
 // __fastcall TSoundsManager(HWND hWnd);
 // static void __fastcall Init(HWND hWnd, char *NDirectory);
  static void __fastcall Init(HWND hWnd);
  __fastcall ~TSoundsManager();
- static __fastcall Free();
+ static void __fastcall Free();
  static void __fastcall Init(char *Name, int Concurrent);
- static TSoundContainer* __fastcall LoadFromFile(char *Name,int Concurrent);
  static void __fastcall LoadSounds(char *Directory);
- static LPDIRECTSOUNDBUFFER __fastcall GetFromName(char *Name);
+ static LPDIRECTSOUNDBUFFER __fastcall GetFromName(char *Name,bool Dynamic);
  static void __fastcall RestoreAll();
 };
 

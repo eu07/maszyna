@@ -85,6 +85,7 @@ char Global::szSceneryFile[256]="td.scn";
 AnsiString Global::asCurrentSceneryPath="scenery/";
 AnsiString Global::asHumanCtrlVehicle="EU07-424";
 AnsiString Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath);
+AnsiString Global::asCurrentDynamicPath="";
 int Global::iSlowMotion=0; //info o malym FPS: 0-OK, 1-wy³¹czyæ multisampling 3-zmniejszenie promienia
 bool Global::changeDynObj; //info o zmianie pojazdu
 bool Global::detonatoryOK; //info o nowych detonatorach
@@ -103,7 +104,7 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iMultiplayer=0; //blokada dzia³ania niektórych funkcji na rzecz kominikacji
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asVersion="Compilation 2011-10-29, release 1.3.268.268."; //tutaj, bo wysy³any
+AnsiString Global::asVersion="Compilation 2011-10-30, release 1.3.269.269."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 GLint Global::iMaxTextureSize=16384; //maksymalny rozmiar tekstury
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
@@ -434,10 +435,10 @@ void __fastcall Global::InitKeys(AnsiString asFileName)
         Keys[k_DepartureSignal]=VkKeyScan('/');
 
 //Winger 160204 - obsluga pantografow
-        Keys[k_PantFrontUp]=VkKeyScan('o');
-        Keys[k_PantFrontDown]=VkKeyScan('o');
-        Keys[k_PantRearUp]=VkKeyScan('p');
-        Keys[k_PantRearDown]=VkKeyScan('p');
+        Keys[k_PantFrontUp]=VkKeyScan('p'); //Ra: zamieniony przedni z tylnym
+        Keys[k_PantFrontDown]=VkKeyScan('p');
+        Keys[k_PantRearUp]=VkKeyScan('o');
+        Keys[k_PantRearDown]=VkKeyScan('o');
 //Winger 020304 - ogrzewanie
         Keys[k_Heating]=VkKeyScan('h');
         Keys[k_LeftSign]=VkKeyScan('y');

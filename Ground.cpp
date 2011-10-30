@@ -1101,7 +1101,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    parser->getTokens();
    *parser >> token;
    str=AnsiString(token.c_str());
-   tmp->pStaticSound->Init(str.c_str(),sqrt(tmp->fSquareRadius),tmp->pCenter.x,tmp->pCenter.y,tmp->pCenter.z);
+   tmp->pStaticSound->Init(str.c_str(),sqrt(tmp->fSquareRadius),tmp->pCenter.x,tmp->pCenter.y,tmp->pCenter.z,false);
 
 //            tmp->pDirectSoundBuffer=TSoundsManager::GetFromName(str.c_str());
 //            tmp->iState=(Parser->GetNextSymbol().LowerCase()=="loop"?DSBPLAY_LOOPING:0);
