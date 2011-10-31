@@ -465,10 +465,10 @@ begin
 end;
 
 function TTrainParameters.DirectionChange():boolean;
-//sprawdzenie, czy po zatrzymaniu zmieniæ kierunek jazdy
+//sprawdzenie, czy po zatrzymaniu wykonaæ kolejne komendy
 begin
  DirectionChange:=false; //przed pierwsz¹ bez zmiany
- if (StationIndex>0) and (StationIndex<=StationCount) then
+ if (StationIndex>0) and (StationIndex<=StationCount) then //dla ostatniej stacji nie
   if (Pos('@',TimeTable[StationIndex-1].StationWare)>0) then
    DirectionChange:=true;
 end;

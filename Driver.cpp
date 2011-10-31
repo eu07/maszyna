@@ -150,7 +150,7 @@ __fastcall TController::TController
  OrderValue=0;
  OrderPos=0;
  OrderTop=1; //szczyt stosu rozkazów
- for (int b=0;b<=maxorders;b++)
+ for (int b=0;b<maxorders;b++)
   OrderList[b]=Wait_for_orders;
  MaxVelFlag=false; MinVelFlag=false;
  iDirection=iDirectionOrder=0; //1=do przodu (w kierunku sprzêgu 0)
@@ -788,10 +788,15 @@ void __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
    OrderNext(Prepare_engine); //trzeba odpaliæ silnik najpierw
   OrderNext(Shunt); //zamieniamy w aktualnej pozycji, albo dodajey za odpaleniem silnika
   if (NewValue1!=0.0)
-  {iVehicleCount=-2; //wartoœæ neutralna
+  {
+   if (iVehicleCount>=0)
+    WriteLog("Skasowano ilosæ wagonów w ShuntVelocity!");
+   iVehicleCount=-2; //wartoœæ neutralna
    CheckVehicles(); //zabraæ to do OrderCheck()
   }
   //dla prêdkoœci ujemnej przestawiæ nawrotnik do ty³u? ale -1=brak ograniczenia !!!!
+   if (Prepare2press)
+    WriteLog("Skasowano docisk w ShuntVelocity!");
   Prepare2press=false; //bez dociskania
   SetVelocity(NewValue1,NewValue2,reason);
   if (fabs(NewValue1)>2.0) //o ile wartoœæ jest sensowna (-1 nie jest konkretn¹ wartoœci¹)
@@ -879,6 +884,8 @@ void __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
     OrderNext(Disconnect); //odczep (NewValue1) wagonów
   OrderNext(Shunt); //potem manewruj dalej
   CheckVehicles(); //sprawdziæ œwiat³a
+   if ((iVehicleCount>=0)&&(NewValue1<0))
+    WriteLog("Skasowano ilosæ wagonów w Shunt!");
   if (NewValue1!=iVehicleCount)
    iVehicleCount=floor(NewValue1); //i co potem ? - trzeba zaprogramowac odczepianie
  }
@@ -889,7 +896,7 @@ void __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
   if (NewValue1==-1.0)
    JumpToNextOrder();
   else
-   if ((NewValue1>=0)&&(NewValue1<=maxorders))
+   if ((NewValue1>=0)&&(NewValue1<maxorders))
    {OrderPos=floor(NewValue1);
     if (!OrderPos) OrderPos=1; //dopiero pierwsza uruchamia
    }
@@ -1032,10 +1039,12 @@ bool __fastcall TController::UpdateSituation(double dt)
        SetVelocity(3,0); //jazda w ustawionym kierunku z prêdkoœci¹ 3
        if (Controlling->MainCtrlPos>0) //jeœli jazda
        {
+        WriteLog("Odczepianie w kierunku "+AnsiString(Controlling->DirAbsolute));
         if ((Controlling->DirAbsolute>0)&&(Controlling->Couplers[0].CouplingFlag>0))
         {
          if (!pVehicle->Dettach(0,iVehicleCount)) //zwraca maskê bitow¹ po³¹czenia
          {//tylko jeœli odepnie
+          WriteLog("Odczepiony od strony 0");
           iVehicleCount=-2;
           SetVelocity(0,0,stopJoin);
          } //a jak nie, to dociskaæ dalej
@@ -1044,12 +1053,14 @@ bool __fastcall TController::UpdateSituation(double dt)
         {
          if (!pVehicle->Dettach(1,iVehicleCount)) //zwraca maskê bitow¹ po³¹czenia
          {//tylko jeœli odepnie
+          WriteLog("Odczepiony od strony 1");
           iVehicleCount=-2;
           SetVelocity(0,0,stopJoin);
          } //a jak nie, to dociskaæ dalej
         }
         else
         {//jak nic nie jest podpiête od ustawionego kierunku ruchu, to nic nie odczepimy
+         WriteLog("Nie ma co odczepiaæ?");
          HelpMeFlag=true; //cos nie tak z kierunkiem dociskania
          iVehicleCount=-2;
          SetVelocity(0,0,stopJoin);
@@ -1058,6 +1069,7 @@ bool __fastcall TController::UpdateSituation(double dt)
        if (iVehicleCount>=0) //zmieni siê po odczepieniu
         if (!Controlling->DecLocalBrakeLevel(1))
         {//dociœnij sklad
+         WriteLog("Dociskanie");
          Controlling->BrakeReleaser(); //wyluzuj lokomotywê
          Ready=true; //zamiast sprawdzenia odhamowania ca³ego sk³adu
          IncSpeed(); //dla (Ready)==false nie ruszy
@@ -1066,10 +1078,12 @@ bool __fastcall TController::UpdateSituation(double dt)
       if ((Controlling->Vel==0.0)&&!Prepare2press)
       {//2. faza odczepiania: zmieñ kierunek na przeciwny i dociœnij
        //za rad¹ yB ustawiamy pozycjê 3 kranu (na razie 4, bo gdzieœ siê DecBrake() wykonuje)
+       WriteLog("Zahamowanie sk³adu");
        while ((Controlling->BrakeCtrlPos>4)&&Controlling->DecBrakeLevel());
        while ((Controlling->BrakeCtrlPos<4)&&Controlling->IncBrakeLevel());
        if (Controlling->PipePress-Controlling->BrakePressureTable[Controlling->BrakeCtrlPos-1+2].PipePressureVal<0.01)
        {//jeœli w miarê zosta³ zahamowany
+        WriteLog("Luzowanie lokomotywy i zmiana kierunku");
         Controlling->BrakeReleaser(); //wyluzuj lokomotywê; a ST45?
         Controlling->DecLocalBrakeLevel(10); //zwolnienie hamulca
         Prepare2press=true; //nastêpnie bêdzie dociskanie
@@ -1088,6 +1102,7 @@ bool __fastcall TController::UpdateSituation(double dt)
       {//4. faza odczepiania: zwolnij i zmieñ kierunek
        if (!DecSpeed()) //jeœli ju¿ bardziej wy³¹czyæ siê nie da
        {//ponowna zmiana kierunku
+        WriteLog("Ponowna zmiana kierunku");
         if (Controlling->ActiveDir>=0)
          while (Controlling->ActiveDir>=0)
           Controlling->DirectionBackward();
@@ -1151,7 +1166,9 @@ bool __fastcall TController::UpdateSituation(double dt)
      {
       VelActual=Min0R(VelActual,40); //jeœli manewry, to ograniczamy prêdkoœæ
       if ((iVehicleCount>=0)&&!Prepare2press)
-       SetVelocity(0,0,stopJoin); //1. faza odczepiania: zatrzymanie
+      {SetVelocity(0,0,stopJoin); //1. faza odczepiania: zatrzymanie
+       WriteLog("Zatrzymanie w celu odczepienia");
+      }
      }
      else
       SetDriverPsyche();
@@ -1471,7 +1488,7 @@ void __fastcall TController::JumpToNextOrder()
 {
  if (OrderList[OrderPos]!=Wait_for_orders)
  {
-  if (OrderPos<maxorders)
+  if (OrderPos<maxorders-1)
    ++OrderPos;
   else
    OrderPos=0;
@@ -1530,6 +1547,12 @@ void __fastcall TController::OrderPush(TOrders NewOrder)
   OrderList[OrderTop++]=NewOrder; //dodanie rozkazu na stos
  //if (OrderTop<OrderPos) OrderTop=OrderPos;
 }
+
+void __fastcall TController::OrdersDump()
+{//wypisanie kolejnych rozkazów do logu
+ for (int b=0;b<maxorders;b++)
+  WriteLog(AnsiString(b)+": "+Order2Str(OrderList[b])+(OrderPos==b?" <-":""));
+};
 
 TOrders __fastcall TController::OrderCurrentGet()
 {
@@ -2001,15 +2024,23 @@ void __fastcall TController::ScanEventTrack()
             if (!Controlling->DoorLeftOpened&&!Controlling->DoorRightOpened)
             {//otwieranie drzwi
              int i=floor(e->Params[2].asdouble); //p7=platform side (1:left, 2:right, 3:both)
-             if (i&1) Controlling->DoorLeft(true);
-             if (i&2) Controlling->DoorRight(true);
+             if (iDirection>=0)
+             {if (i&1) Controlling->DoorLeft(true);
+              if (i&2) Controlling->DoorRight(true);
+             }
+             else
+             {//jeœli jedzie do ty³u, to drzwi otwiera odwrotnie
+              if (i&1) Controlling->DoorRight(true);
+              if (i&2) Controlling->DoorLeft(true);
+             }
              if (i&3) //¿eby jeszcze poczeka³ chwilê, zanim zamknie
               WaitingSet(10); //10 sekund (wzi¹æ z rozk³adu????)
             }
            if (TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,asNextStop.SubString(20,asNextStop.Length())))
            {//to siê wykona tylko raz po zatrzymaniu na W4
             if (TrainParams->DirectionChange()) //jeœli '@" w rozk³adzie, to wykonanie dalszych komend
-            {//iDirectionOrder=-iDirection; //zmiana na przeciwny ni¿ obecny
+            {//wykonanie kolejnej komendy, nie dotyczy ostatniej stacji
+             OrdersDump();
              JumpToNextOrder(); //przejœcie do kolejnego rozkazu (zmiana kierunku, odczepianie)
              //if (OrderCurrentGet()==Change_direction) //jeœli ma zmieniæ kierunek
              iDrivigFlags&=~moveStopCloser; //ma nie podje¿d¿aæ pod W4 po przeciwnej stronie
@@ -2050,6 +2081,7 @@ void __fastcall TController::ScanEventTrack()
             eSignLast=NULL; //¿eby jakiœ nowy sygna³ by³ poszukiwany
             iDrivigFlags&=~moveStopCloser; //ma nie podje¿d¿aæ pod W4
             WaitingSet(60); //tak ze 2 minuty, a¿ wszyscy wysi¹d¹
+            OrdersDump();
             JumpToNextOrder(); //wykonanie kolejnego rozkazu (Change_direction albo Shunt)
 #if LOGSTOPS
             WriteLog(edir+AnsiString(GlobalTime->hh)+":"+AnsiString(GlobalTime->mm)+" Next stop: "+asNextStop.SubString(20,asNextStop.Length())); //informacja
