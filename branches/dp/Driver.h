@@ -62,7 +62,7 @@ static const bool Aggressive=true;
 static const bool Easyman=false;
 static const bool AIdriver=true;
 static const bool Humandriver=false;
-static const int maxorders=0x10; //iloœæ rozkazów w tabelce
+static const int maxorders=0x20; //iloœæ rozkazów w tabelce
 static const int maxdriverfails=0x4; //ile b³êdów mo¿e zrobiæ AI zanim zmieni nastawienie
 extern bool WriteLogFlag; //logowanie parametrów fizycznych
 
@@ -161,6 +161,7 @@ private:
  bool __fastcall CheckVehicles();
  void __fastcall CloseLog();
  void __fastcall OrderCheck();
+ void __fastcall OrdersDump();
 public:
  __fastcall TController
  (bool AI,
