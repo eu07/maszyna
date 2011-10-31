@@ -152,11 +152,11 @@ CONST
    bp_magnetic=2;
 
    {status czuwaka/SHP}
-   s_waiting=1;
-   s_aware=2;
-   s_active=4;
-   s_alarm=8;
-   s_ebrake=16;
+   s_waiting=1; //dzia³a
+   s_aware=2;   //czuwak miga
+   s_active=4;  //SHP œwieci
+   s_alarm=8;   //buczy
+   s_ebrake=16; //hamuje
 
    {dzwieki}
    sound_none=0;
@@ -1146,15 +1146,15 @@ function TMoverParameters.CabDeactivisation:boolean;
 //wy³¹czenie rozrz¹du
 var OK:boolean;
 begin
-  OK:=(CabNo=ActiveCab);
-  if(OK)then
-   begin
-     LastCab:=CabNo;
-     CabNo:=0;
-     DirAbsolute:=ActiveDir*CabNo;
-     SendCtrlToNext('CabActivisation',0,ActiveCab);
-   end;
-  CabDeactivisation:=OK;
+ OK:=(CabNo=ActiveCab);
+ if(OK)then
+  begin
+   LastCab:=CabNo;
+   CabNo:=0;
+   DirAbsolute:=ActiveDir*CabNo;
+   SendCtrlToNext('CabActivisation',0,ActiveCab);
+  end;
+ CabDeactivisation:=OK;
 end;
 
 {
@@ -1481,24 +1481,24 @@ begin
    begin
     if (State=False) or ({(MainCtrlPos=0) and} (ScndCtrlPos=0) and (LastSwitchingTime>CtrlDelay) and not TestFlag(DamageFlag,dtrain_out)) then
      begin
-       if Mains then
-        SendCtrlToNext('MainSwitch',ord(State),CabNo);
+       if Mains then //jeœli by³ za³¹czony
+        SendCtrlToNext('MainSwitch',ord(State),CabNo); //wys³anie wy³¹czenia do pozosta³ych?
        Mains:=State;
-       if Mains then
-        SendCtrlToNext('MainSwitch',ord(State),CabNo); {wyslanie po wlaczeniu albo przed wylaczeniem}
-       MainSwitch:=True;
+       if Mains then //jeœli zosta³ za³¹czony
+        SendCtrlToNext('MainSwitch',ord(State),CabNo); //wyslanie po wlaczeniu albo przed wylaczeniem
+       MainSwitch:=True; //wartoœæ zwrotna
        LastSwitchingTime:=0;
        if (EngineType=DieselEngine) and Mains then
         begin
           dizel_enginestart:=State;
         end;
-       if (State=False) then
+       if (State=False) then //jeœli wy³¹czony
         begin
-          SetFlag(SoundFlag,sound_relay);
-          SecuritySystem.Status:=0;
+         SetFlag(SoundFlag,sound_relay);
+         SecuritySystem.Status:=0; //deaktywacja czuwaka
         end
        else
-        SecuritySystem.Status:=s_waiting;
+        SecuritySystem.Status:=s_waiting; //aktywacja czuwaka
      end
    end
   //else MainSwitch:=False;
@@ -1605,14 +1605,14 @@ begin
    SandDoseOn:=False;
 end;
 
-{reset czuwaka/SHP}
 function TMoverParameters.SecuritySystemReset : boolean;
+//zbijanie czuwaka/SHP
  procedure Reset;
   begin
     SecuritySystem.SystemTimer:=0;
     SecuritySystem.SystemBrakeTimer:=0;
     SecuritySystem.SystemSoundTimer:=0;
-    SecuritySystem.Status:=s_waiting;
+    SecuritySystem.Status:=s_waiting; //aktywacja czuwaka
     SecuritySystem.VelocityAllowed:=-1;
   end;
 begin
@@ -1639,9 +1639,9 @@ begin
      if (SystemType>0) and (Status>0) then
       begin
         SystemTimer:=SystemTimer+dt;
-        if TestFlag(Status,s_aware) or TestFlag(Status,s_active) then
+        if TestFlag(Status,s_aware) or TestFlag(Status,s_active) then //jeœli œwieci albo miga
          SystemSoundTimer:=SystemSoundTimer+dt;
-        if TestFlag(Status,s_alarm) then
+        if TestFlag(Status,s_alarm) then //jeœli buczy
          SystemBrakeTimer:=SystemBrakeTimer+dt;
         if TestFlag(SystemType,1) then
          if (SystemTimer>AwareDelay) and (AwareDelay>=0) then  {-1 blokuje}

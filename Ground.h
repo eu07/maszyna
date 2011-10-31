@@ -239,7 +239,7 @@ class TGround
  int hh,mm,srh,srm,ssh,ssm; //ustawienia czasu
 public:
  TDynamicObject *LastDyn; //ABu: paskudnie, ale na bardzo szybko moze jakos przejdzie...
- TTrain *pTrain;
+ //TTrain *pTrain;
  //double fVDozwolona;
  //bool bTrabil;
 
