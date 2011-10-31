@@ -1090,7 +1090,7 @@ __fastcall TDynamicObject::TDynamicObject()
  MoverParameters=NULL;
  Mechanik=NULL;
  MechInside=false;
- TrainParams=NULL;
+ TrainParams=NULL; //Ra: wywaliæ to st¹d!
  //McZapkie-270202
  Controller=AIdriver;
  bDisplayCab=false; //030303
@@ -1185,7 +1185,7 @@ __fastcall TDynamicObject::~TDynamicObject()
 {//McZapkie-250302 - zamykanie logowania parametrow fizycznych
  SafeDelete(Mechanik);
  SafeDelete(MoverParameters);
- SafeDelete(TrainParams);
+ SafeDelete(TrainParams); //Ra: wywaliæ to st¹d!
 }
 
 double __fastcall TDynamicObject::Init(
@@ -1275,7 +1275,7 @@ double __fastcall TDynamicObject::Init(
     MoverParameters->CabDeactivisation();
     MoverParameters->CabActivisation();
    }
-   TrainParams=new TTrainParameters(TrainName); //rozk³¹d jazdy
+   TrainParams=new TTrainParameters(TrainName); //rozk³¹d jazdy //Ra: wywaliæ to st¹d!
    if (TrainName!="none")
     if (!TrainParams->LoadTTfile(Global::asCurrentSceneryPath))
      Error("Cannot load timetable file "+TrainName+"\r\nError "+ConversionError+" in position "+TrainParams->StationCount);
@@ -1284,63 +1284,13 @@ double __fastcall TDynamicObject::Init(
      TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,TrainParams->NextStationName);
     }
    Mechanik=new TController(Controller,this,TrainParams,Aggressive);
-   //if (Controller==AIdriver)
-   {//ustawienie kolejnoœci komend, niezale¿nie kto prowadzi
-    //Mechanik->OrderPush(Wait_for_orders); //czekanie na lepsze czasy
-    Mechanik->OrderPush(Prepare_engine); //najpierw odpalenie silnika
-    if (TrainName==AnsiString("none"))
-     Mechanik->OrderPush(Shunt); //jeœli nie ma rozk³adu, to manewruje
-    else
-    {//jeœli z rozk³adem, to jedzie na szlak
-     //Mechanik->PutCommand("Timetable:"+TrainName,0,0);
-     Mechanik->OrderPush(Obey_train);
-     WriteLog("/* "+TrainParams->ShowRelation());
-     TMTableLine *t;
-     for (int i=0;i<=TrainParams->StationCount;++i)
-     {t=TrainParams->TimeTable+i;
-      WriteLog(AnsiString(t->StationName)+" "+AnsiString((int)t->Ah)+":"+AnsiString((int)t->Am)+", "+AnsiString((int)t->Dh)+":"+AnsiString((int)t->Dm));
-      if (AnsiString(t->StationWare).Pos("@"))
-      {//zmiana kierunku i dalsza jazda wg rozk³adu
-       if (MoverParameters->TrainType==dt_EZT) //SZT równie¿!
-       {//jeœli sk³ad zespolony, wystarczy zmieniæ kierunek jazdy
-        Mechanik->OrderPush(Change_direction); //zmiana kierunku
-       }
-       else
-       {//dla zwyk³ego sk³adu wagonowego odczepiamy lokomotywê
-        Mechanik->OrderPush(Disconnect); //odczepienie lokomotywy
-        Mechanik->OrderPush(Shunt); //a dalej manewry
-        Mechanik->OrderPush(Change_direction); //zmiana kierunku
-        Mechanik->OrderPush(Shunt); //jazda na drug¹ stronê sk³adu
-        Mechanik->OrderPush(Change_direction); //zmiana kierunku
-        Mechanik->OrderPush(Connect); //jazda pod wagony
-       }
-       if (i<TrainParams->StationCount) //jak nie ostatnia stacja
-        Mechanik->OrderPush(Obey_train); //to dalej wg rozk³adu
-      }
-     }
-     WriteLog("*/");
-     Mechanik->OrderPush(Shunt); //po wykonaniu rozk³adu prze³¹czy siê na manewry
-    }
-    //McZapkie-100302 - to ma byc wyzwalane ze scenerii
-    //Mechanik->JumpToFirstOrder();
-    if (fVel==0.0)
-     Mechanik->SetVelocity(0,0,stopSleep); //jeœli nie ma prêdkoœci pocz¹tkowej, to œpi
-    else
-    {
-     if (fVel>=1.0) //jeœli jedzie
-      Mechanik->iDrivigFlags|=moveStopCloser; //to do nastêpnego W4 ma podjechaæ blisko
-     Mechanik->SetVelocity(fVel,-1); //ma ustawiæ ¿¹dan¹ prêdkoœæ
-     Mechanik->JumpToFirstOrder();
-    }
-   }
-   //McZapkie! - zeby w ogole AI ruszyl to musi wykonac powyzsze rozkazy
-   //Ale mozna by je zapodac ze scenerii
+   Mechanik->OrdersInit(fVel); //ustalenie tabelki komend wg rozk³adu
   }
   else
    if (DriverType=="passenger")
    {//obserwator w charakterze pasazera
     //Ra: to jest niebezpieczne, bo w razie co bêdzie pomaga³ hamulcem bezpieczeñstwa
-    TrainParams=new TTrainParameters(TrainName);
+    TrainParams=new TTrainParameters(TrainName); //Ra: wywaliæ to st¹d!
     Mechanik=new TController(Controller,this,TrainParams,Easyman);
    }
  }

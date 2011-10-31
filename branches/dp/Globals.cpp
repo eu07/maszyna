@@ -104,7 +104,7 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iMultiplayer=0; //blokada dzia³ania niektórych funkcji na rzecz kominikacji
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asVersion="Compilation 2011-10-30, release 1.3.271.271."; //tutaj, bo wysy³any
+AnsiString Global::asVersion="Compilation 2011-10-31, release 1.6.272.272."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 GLint Global::iMaxTextureSize=16384; //maksymalny rozmiar tekstury
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
@@ -361,9 +361,9 @@ void __fastcall Global::InitKeys(AnsiString asFileName)
         Keys[k_DecScndCtrlFAST]=VK_MULTIPLY;
 ///*NORMALNE
         Keys[k_IncLocalBrakeLevel]=VK_NUMPAD1;  //VK_NUMPAD7;
-        Keys[k_IncLocalBrakeLevelFAST]=VK_END;  //VK_HOME;
+        //Keys[k_IncLocalBrakeLevelFAST]=VK_END;  //VK_HOME;
         Keys[k_DecLocalBrakeLevel]=VK_NUMPAD7;  //VK_NUMPAD1;
-        Keys[k_DecLocalBrakeLevelFAST]=VK_HOME; //VK_END;
+        //Keys[k_DecLocalBrakeLevelFAST]=VK_HOME; //VK_END;
         Keys[k_IncBrakeLevel]=VK_NUMPAD3;  //VK_NUMPAD9;
         Keys[k_DecBrakeLevel]=VK_NUMPAD9;   //VK_NUMPAD3;
         Keys[k_Releaser]=VK_NUMPAD6;

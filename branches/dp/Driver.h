@@ -28,7 +28,8 @@ enum TMovementStatus
  moveStopCloser=1, //podjechaæ blisko W4 (nie podje¿d¿aæ na pocz¹tku ani po zmianie czo³a)
  moveStopPoint=2, //stawaæ na W4 (wy³¹czone podczas zmiany czo³a)
  moveAvaken=4, //po w³¹czeniu silnika pojazd nie przemieœci³ siê
- movePress=8 //dociskanie przy od³¹czeniu (zamiast zmiennej Prepare2press)
+ movePress=8, //dociskanie przy od³¹czeniu (zamiast zmiennej Prepare2press)
+ moveBackwardLook=16 //skanowanie torów w przeciwn¹ stronê w celu zmiany kierunku
 };
 
 enum TStopReason
@@ -74,8 +75,8 @@ class TController
  bool EngineActive; //ABu: Czy silnik byl juz zalaczony
  vector3 vMechLoc; //pozycja pojazdu do liczenia odleg³oœci od semafora (?)
  bool Psyche;
-public:
  int iDrivigFlags; //flagi bitowe ruchu
+public:
  double ReactionTime; //czas reakcji Ra: czego?
 private:
  bool Ready; //ABu: stan gotowosci do odjazdu - sprawdzenie odhamowania wagonow jest ustawiane w dynobj->cpp
@@ -93,8 +94,8 @@ private:
  Mover::TMoverParameters *Controlling; //jakim pojazdem steruje
  Mtable::TTrainParameters *TrainParams; //do jakiego pociagu nalezy
  int TrainNumber; //numer rozkladowy tego pociagu
- AnsiString OrderCommand; //komenda pobierana z pojazdu
- double OrderValue; //argument komendy
+ //AnsiString OrderCommand; //komenda pobierana z pojazdu
+ //double OrderValue; //argument komendy
  double AccPreferred; //preferowane przyspieszenie
 public:
  double AccDesired; //chwilowe przyspieszenie
@@ -157,12 +158,14 @@ public:
  void __fastcall OrderPush(TOrders NewOrder);
  void __fastcall OrderNext(TOrders NewOrder);
  TOrders __fastcall OrderCurrentGet();
+ TOrders __fastcall OrderNextGet();
 private:
  bool __fastcall CheckVehicles();
  void __fastcall CloseLog();
  void __fastcall OrderCheck();
- void __fastcall OrdersDump();
 public:
+ void __fastcall OrdersInit(double fVel);
+ void __fastcall OrdersDump();
  __fastcall TController
  (bool AI,
   TDynamicObject *NewControll,
@@ -189,8 +192,8 @@ public:
 private:
  TEvent* __fastcall CheckTrackEvent(double fDirection,TTrack *Track);
  TTrack* __fastcall TraceRoute(double &fDistance,double &fDirection,TTrack *Track,TEvent*&Event);
- void SetProximityVelocity(double dist,double vel,const vector3 *pos);
- //Ra: koniec tych do przeniesienia do AI
+ void __fastcall SetProximityVelocity(double dist,double vel,const vector3 *pos);
+ void __fastcall DirectionSet(bool forward);
 public:
  //inline __fastcall TController() { };
  AnsiString __fastcall StopReasonText();

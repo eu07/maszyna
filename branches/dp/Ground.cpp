@@ -825,7 +825,7 @@ __fastcall TGround::TGround()
  OldQRE=NULL;
  RootEvent=NULL;
  iNumNodes=0;
- pTrain=NULL;
+ //pTrain=NULL;
  Global::pGround=this;
  bInitDone=false; //Ra: ¿eby nie robi³o dwa razy FirstInit
  for (int i=0;i<TP_LAST;i++)
@@ -1498,12 +1498,13 @@ void __fastcall TGround::FirstInit()
  //ABu 160205: juz nie TODO :)
  GlobalTime=new TMTableTime(hh,mm,srh,srm,ssh,ssm); //McZapkie-300302: inicjacja czasu rozkladowego - TODO: czytac z trasy!
  WriteLog("InitGlobalTime OK");
+ WriteLog("FirstInit done");
 };
 
 bool __fastcall TGround::Init(AnsiString asFile)
 {
     Global::pGround=this;
-    pTrain=NULL;
+    //pTrain=NULL;
 
     pOrigin=aRotate=vector3(0,0,0); //zerowanie przesuniêcia i obrotu
 
