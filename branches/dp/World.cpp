@@ -1414,7 +1414,7 @@ bool __fastcall TWorld::Update()
     else if (Global::iTextMode==VK_F5)
     {//przesiadka do innego pojazdu
      if (FreeFlyModeFlag) //jeœli tryb latania
-     {TDynamicObject *tmp=Ground.DynamicNearest(Camera.Pos,40,true); //³apiemy z obsad¹
+     {TDynamicObject *tmp=Ground.DynamicNearest(Camera.Pos,50,true); //³apiemy z obsad¹
       if (tmp)
        if (tmp!=Controlled)
        {if (Controlled) //jeœli mielismy pojazd

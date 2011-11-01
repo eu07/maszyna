@@ -112,12 +112,12 @@ __fastcall TTrain::~TTrain()
 }
 
 bool __fastcall TTrain::Init(TDynamicObject *NewDynamicObject)
-{//powi¹zanie rêcznego sterowania kabinmi z pojazdem
+{//powi¹zanie rêcznego sterowania kabin¹ z pojazdem
  DynamicObject=NewDynamicObject;
  if (DynamicObject->Mechanik==NULL)
   return false;
- if (DynamicObject->Mechanik->AIControllFlag==AIdriver)
-  return false;
+ //if (DynamicObject->Mechanik->AIControllFlag==AIdriver)
+ // return false;
  DynamicObject->MechInside=true;
 
 /*    iPozSzereg=28;

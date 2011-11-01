@@ -2115,21 +2115,22 @@ void __fastcall TController::ScanEventTrack()
 #if LOGVELOCITY
             WriteLog(edir+asNextStop); //informacja o zatrzymaniu na stopie
 #endif
-            if (TrainParams->IsTimeToGo(GlobalTime->hh,GlobalTime->mm))
-            {//z dalsz¹ akcj¹ czekamy do godziny odjazdu
-             asNextStop=TrainParams->NextStop(); //pobranie kolejnego miejsca zatrzymania
+            if (iDrivigFlags&moveStopPoint) //jeœli pomijanie W4, to nie sprawdza czasu odjazdu
+             if (TrainParams->IsTimeToGo(GlobalTime->hh,GlobalTime->mm))
+             {//z dalsz¹ akcj¹ czekamy do godziny odjazdu
+              asNextStop=TrainParams->NextStop(); //pobranie kolejnego miejsca zatrzymania
 #if LOGSTOPS
-             WriteLog(edir+AnsiString(GlobalTime->hh)+":"+AnsiString(GlobalTime->mm)+" Next stop: "+asNextStop.SubString(20,asNextStop.Length())); //informacja
+              WriteLog(edir+AnsiString(GlobalTime->hh)+":"+AnsiString(GlobalTime->mm)+" Next stop: "+asNextStop.SubString(20,asNextStop.Length())); //informacja
 #endif
-             eSignSkip=e; //wtedy uznajemy go za ignorowany przy poszukiwaniu nowego
-             eSignLast=NULL; //¿eby jakiœ nowy by³ poszukiwany
-             iDrivigFlags|=moveStopCloser; //do nastêpnego W4 podjechaæ blisko
-             vmechmax=vtrackmax; //odjazd po zatrzymaniu - informacja dla dalszego kodu
-             PutCommand("SetVelocity",vmechmax,vmechmax,&sl);
+              eSignSkip=e; //wtedy uznajemy go za ignorowany przy poszukiwaniu nowego
+              eSignLast=NULL; //¿eby jakiœ nowy by³ poszukiwany
+              iDrivigFlags|=moveStopCloser; //do nastêpnego W4 podjechaæ blisko
+              vmechmax=vtrackmax; //odjazd po zatrzymaniu - informacja dla dalszego kodu
+              PutCommand("SetVelocity",vmechmax,vmechmax,&sl);
 #if LOGVELOCITY
-             WriteLog(edir+"SetVelocity "+AnsiString(vtrackmax)+" "+AnsiString(vtrackmax));
+              WriteLog(edir+"SetVelocity "+AnsiString(vtrackmax)+" "+AnsiString(vtrackmax));
 #endif
-            } //koniec startu z zatrzymania
+             } //koniec startu z zatrzymania
            } //koniec obs³ugi pocz¹tkowych stacji
            else
            {//jeœli dojechaliœmy do koñca rozk³adu
