@@ -1402,6 +1402,12 @@ bool __fastcall TWorld::Update()
         }
          //OutText4+="  LPTI@A: "+IntToStr(tmp->Mechanik->LPTI)+"@"+IntToStr(tmp->Mechanik->LPTA);
        }
+       if (Pressed(VK_F2))
+       {WriteLog(OutText1);
+        WriteLog(OutText2);
+        WriteLog(OutText3);
+        WriteLog(OutText4);
+       }
       }
       else
       {
@@ -1419,13 +1425,15 @@ bool __fastcall TWorld::Update()
        if (tmp!=Controlled)
        {if (Controlled) //jeœli mielismy pojazd
          Controlled->Mechanik->TakeControl(true); //oddajemy dotychczasowy AI
-        Controlled=tmp; //przejmujemy nowy
-        if (!Train) //jeœli niczym jeszcze nie jeŸdzilismy
-         Train=new TTrain();
-        if (Train->Init(Controlled))
-         Controlled->Mechanik->TakeControl(false); //przejmujemy sterowanie
-        else
-         SafeDelete(Train); //i nie ma czym sterowaæ
+        if (DebugModeFlag?true:tmp->MoverParameters->Vel<=5.0)
+        {Controlled=tmp; //przejmujemy nowy
+         if (!Train) //jeœli niczym jeszcze nie jeŸdzilismy
+          Train=new TTrain();
+         if (Train->Init(Controlled))
+          Controlled->Mechanik->TakeControl(false); //przejmujemy sterowanie
+         else
+          SafeDelete(Train); //i nie ma czym sterowaæ
+        }
        }
       Global::iTextMode=0; //tryb neutralny
      }

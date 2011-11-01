@@ -37,8 +37,6 @@
 #include "Event.h"
 #include "Driver.h"
 
-#define LOGVELOCITY 0
-#define LOGSTOPS 1
 #pragma package(smart_init)
 
 const float maxrot=(M_PI/3.0); //60°
@@ -1282,6 +1280,7 @@ double __fastcall TDynamicObject::Init(
     else
     {//inicjacja pierwszego przystanku i pobranie jego nazwy
      TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,TrainParams->NextStationName);
+     TrainParams->StationIndexInc(); //przejœcie do nastêpnej
     }
    Mechanik=new TController(Controller,this,TrainParams,Aggressive);
    Mechanik->OrdersInit(fVel); //ustalenie tabelki komend wg rozk³adu
@@ -3293,6 +3292,7 @@ void __fastcall TDynamicObject::RaAxleEvent(TEvent *e)
 int __fastcall TDynamicObject::DirectionSet(int d)
 {//ustawienie kierunku w sk³adzie (wykonuje AI)
  iDirection=d; //1=zgodny,-1=przeciwny
+ CouplCounter=26; //do przeskanowania s¹ kolizje
  return 1-(d?NextConnectedNo:PrevConnectedNo); //informacja o po³o¿eniu nastêpnego
 };
 
