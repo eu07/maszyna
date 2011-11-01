@@ -41,8 +41,9 @@
     <WARNINGS value="-w-par"/>
   </MACROS>
   <OPTIONS>
-    <IDLCFLAGS value="-IC:\ProgsWin\CBuilder5\Projects\. -Iopengl -IMcZapkie -I$(BCB)\include 
-      -I$(BCB)\include\vcl -src_suffix cpp -DGLEW_STATIC -D_DEBUG -DUSE_VBO -boa"/>
+    <IDLCFLAGS value="-src_suffix cpp -DGLEW_STATIC -D_DEBUG -DUSE_VBO 
+      -IC:\ProgsWin\CBuilder5\Projects\. -Iopengl -IMcZapkie -I$(BCB)\include 
+      -I$(BCB)\include\vcl -boa"/>
     <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a4 -6 -b- -k -y -v -vi- 
       -c -tW -tWM"/>
     <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
@@ -61,8 +62,8 @@ IncludeVerInfo=1
 AutoIncBuild=1
 MajorVer=1
 MinorVer=6
-Release=272
-Build=272
+Release=273
+Build=273
 Debug=1
 PreRelease=0
 Special=0
@@ -74,7 +75,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.6.272.272
+FileVersion=1.6.273.273
 InternalName=6th by Ra
 LegalCopyright=
 LegalTrademarks=
@@ -128,7 +129,7 @@ Item7=M:\aEU07\EU07
 DebugSourceDirs=C:\Ra\dp\McZapkie\
 
 [Parameters]
-RunParams=-s calkowo2_test4.scn -v ghostview
+RunParams=-s AI_start1.scn -v ghostview
 HostApplication=
 RemoteHost=
 RemotePath=
