@@ -2687,7 +2687,11 @@ begin
        Dettach:=True;
      end
    else
-    Dettach:=False;
+     begin //od³¹czamy wê¿e i resztê, pozostaje sprzêg fizyczny
+       CouplingFlag:=CouplingFlag and ctrain_coupler;
+       Connected.Couplers[CouplerNr[ConnectNo]].CouplingFlag:=CouplingFlag;
+       Dettach:=False; //jeszcze nie roz³¹czony
+     end
   end;
 end;
 

@@ -31,6 +31,9 @@
 #include "Event.h"
 #include "Ground.h"
 #include "MemCell.h"
+
+#define LOGVELOCITY 0
+#define LOGSTOPS 1
 /*
 
 Modu³ obs³uguj¹cy sterowanie pojazdami (sk³adami poci¹gów, samochodami).
@@ -630,9 +633,10 @@ bool __fastcall TController::DecBrake()
 bool __fastcall TController::IncSpeed()
 {//zwiêkszenie prêdkoœci
  bool OK=true;
- if ((Controlling->DoorOpenCtrl==1)&&(Controlling->Vel==0)&&(Controlling->DoorLeftOpened||Controlling->DoorRightOpened))  //AI zamyka drzwi przed odjazdem
+ if ((Controlling->DoorOpenCtrl==1)&&(Controlling->Vel==0.0)&&(Controlling->DoorLeftOpened||Controlling->DoorRightOpened))  //AI zamyka drzwi przed odjazdem
  {
-  Controlling->DepartureSignal=true; //za³¹cenie bzyczka
+  if (Controlling->DoorClosureWarning)
+   Controlling->DepartureSignal=true; //za³¹cenie bzyczka
   Controlling->DoorLeft(false); //zamykanie drzwi
   Controlling->DoorRight(false);
   //Ra: trzeba by ustawiæ jakiœ czas oczekiwania na zamkniêcie siê drzwi
@@ -656,7 +660,7 @@ bool __fastcall TController::IncSpeed()
     break;
    case ElectricSeriesMotor :
     if (!Controlling->FuseFlag)
-     if ((Controlling->Im<=Controlling->Imin)&&Ready) //{(Controlling->BrakePress<=0.01*Controlling->MaxBrakePress)}
+     if ((Controlling->Im<=Controlling->Imin)&&(Ready||Prepare2press))
      {
       OK=Controlling->IncMainCtrl(1);
       if ((Controlling->MainCtrlPos>2)&&(Controlling->Im==0))
@@ -668,7 +672,7 @@ bool __fastcall TController::IncSpeed()
     break;
    case Dumb:
    case DieselElectric:
-    if (Ready) //{(BrakePress<=0.01*MaxBrakePress)}
+    if (Ready||Prepare2press) //{(BrakePress<=0.01*MaxBrakePress)}
     {
      OK=Controlling->IncMainCtrl(1);
      if (!OK)
@@ -851,6 +855,7 @@ void __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
      OrderNext(Prepare_engine); //trzeba odpaliæ silnik najpierw
     OrderNext(Obey_train); //¿e do jazdy
     TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,TrainParams->NextStationName);
+    TrainParams->StationIndexInc(); //przejœcie do nastêpnej
     asNextStop=TrainParams->NextStop();
     WriteLog("/* Timetable: "+TrainParams->ShowRelation());
     TMTableLine *t;
@@ -1042,7 +1047,6 @@ bool __fastcall TController::UpdateSituation(double dt)
          {//tylko jeœli odepnie
           //WriteLog("Odczepiony od strony 0");
           iVehicleCount=-2;
-          //SetVelocity(0,0,stopJoin);
          } //a jak nie, to dociskaæ dalej
         }
         else if ((Controlling->DirAbsolute<0)&&(Controlling->Couplers[1].CouplingFlag>0))
@@ -1051,7 +1055,6 @@ bool __fastcall TController::UpdateSituation(double dt)
          {//tylko jeœli odepnie
           //WriteLog("Odczepiony od strony 1");
           iVehicleCount=-2;
-          //SetVelocity(0,0,stopJoin);
          } //a jak nie, to dociskaæ dalej
         }
         else
@@ -1059,7 +1062,6 @@ bool __fastcall TController::UpdateSituation(double dt)
          //WriteLog("Nie ma co odczepiaæ?");
          HelpMeFlag=true; //cos nie tak z kierunkiem dociskania
          iVehicleCount=-2;
-         //SetVelocity(0,0,stopJoin);
         }
        }
        if (iVehicleCount>=0) //zmieni siê po odczepieniu
@@ -1067,7 +1069,7 @@ bool __fastcall TController::UpdateSituation(double dt)
         {//dociœnij sklad
          //WriteLog("Dociskanie");
          Controlling->BrakeReleaser(); //wyluzuj lokomotywê
-         Ready=true; //zamiast sprawdzenia odhamowania ca³ego sk³adu
+         //Ready=true; //zamiast sprawdzenia odhamowania ca³ego sk³adu
          IncSpeed(); //dla (Ready)==false nie ruszy
         }
       }
@@ -1081,16 +1083,18 @@ bool __fastcall TController::UpdateSituation(double dt)
        {//jeœli w miarê zosta³ zahamowany
         //WriteLog("Luzowanie lokomotywy i zmiana kierunku");
         Controlling->BrakeReleaser(); //wyluzuj lokomotywê; a ST45?
-        //Controlling->DecLocalBrakeLevel(10); //zwolnienie hamulca
+        Controlling->DecLocalBrakeLevel(10); //zwolnienie hamulca
         Prepare2press=true; //nastêpnie bêdzie dociskanie
         DirectionSet(iDirection<0); //zmiana kierunku jazdy na przeciwny
         CheckVehicles(); //od razu zmieniæ œwiat³a (zgasiæ)
+        fStopTime=0.0; //nie ma na co czekaæ z odczepianiem
        }
       }
      } //odczepiania
      else //to poni¿ej jeœli iloœæ wagonów ujemna
       if (Prepare2press)
       {//4. faza odczepiania: zwolnij i zmieñ kierunek
+       SetVelocity(0,0,stopJoin); //wy³¹czyæ przyspieszanie
        if (!DecSpeed()) //jeœli ju¿ bardziej wy³¹czyæ siê nie da
        {//ponowna zmiana kierunku
         //WriteLog("Ponowna zmiana kierunku");
@@ -1151,10 +1155,12 @@ bool __fastcall TController::UpdateSituation(double dt)
      if (OrderList[OrderPos]!=Obey_train) //spokojne manewry
      {
       VelActual=Min0R(VelActual,40); //jeœli manewry, to ograniczamy prêdkoœæ
-      if ((iVehicleCount>=0)&&!Prepare2press)
-      {SetVelocity(0,0,stopJoin); //1. faza odczepiania: zatrzymanie
-       //WriteLog("Zatrzymanie w celu odczepienia");
-      }
+      if (iVehicleCount>=0)
+       if (!Prepare2press)
+        if (Controlling->Vel>0.0)
+        {SetVelocity(0,0,stopJoin); //1. faza odczepiania: zatrzymanie
+         //WriteLog("Zatrzymanie w celu odczepienia");
+        }
      }
      else
       SetDriverPsyche();
@@ -1231,10 +1237,8 @@ bool __fastcall TController::UpdateSituation(double dt)
        Controlling->CabActivisation();
        Controlling->IncLocalBrakeLevel(10); //zaci¹gniêcie hamulca
        PrepareEngine();
-       //while (Controlling->ActiveDir<=0)
-       // Controlling->DirectionForward(); //po zmianie kabiny jedziemy do przodu
+       //DirectionSet(true); //po zmianie kabiny jedziemy do przodu
        JumpToNextOrder(); //nastêpnie robimy, co jest do zrobienia (Shunt albo Obey_train)
-       //if (WaitingTime>0.0) //je¿eli nie trzeba poczekaæ
        if (OrderList[OrderPos]==Shunt) //jeœli dalej mamy manewry
         SetVelocity(fShuntVelocity,fShuntVelocity); //to od razu jedziemy
        eSignSkip=NULL; //nie ignorujemy przy poszukiwaniu nowego sygnalizatora
@@ -1371,9 +1375,13 @@ bool __fastcall TController::UpdateSituation(double dt)
            //DecBrakeLevel(); //z tym by jeszcze mia³o jakiœ sens
           }
        }
+
       if (AccDesired>=0.0)
-       while (DecBrake());  //jeœli przyspieszamy, to nie hamujemy
-      //Ra: zmieni³em 0.95 na 1.0 - trzeba ustaliæ, sk¹d sie takie wartoœci bior¹
+       if (Prepare2press)
+        Controlling->BrakeReleaser(); //wyluzuj lokomotywê
+       else
+        while (DecBrake());  //jeœli przyspieszamy, to nie hamujemy
+             //Ra: zmieni³em 0.95 na 1.0 - trzeba ustaliæ, sk¹d sie takie wartoœci bior¹
       if ((AccDesired<=0.0)||(Controlling->Vel+VelMargin>VelDesired*1.0))
        while (DecSpeed()); //jeœli hamujemy, to nie przyspieszamy
       //yB: usuniête ró¿ne dziwne warunki, oddzielamy czêœæ zadaj¹c¹ od wykonawczej
@@ -1859,7 +1867,7 @@ void __fastcall TController::ScanEventTrack()
    if (e)
    {//jeœli jest jakiœ sygna³ na widoku
 #if LOGVELOCITY + LOGSTOPS
-    AnsiString edir=asName+" - "+AnsiString((scandir>0)?"Event2 ":"Event1 ");
+    AnsiString edir=pVehicle->asName+" - "+AnsiString((scandir>0)?"Event2 ":"Event1 ");
 #endif
     if (pVehicles[0]->fTrackBlock>50.0)
     {
@@ -1892,7 +1900,7 @@ void __fastcall TController::ScanEventTrack()
 
       //Ra: takie rozpisanie wcale nie robi proœciej
       int mode=(vmechmax!=0.0)?1:0; //tryb jazdy - prêdkoœæ podawana sygna³em
-      mode|=(Controlling->Vel!=0.0)?2:0; //stan aktualny: jedzie albo stoi
+      mode|=(Controlling->Vel>0.0)?2:0; //stan aktualny: jedzie albo stoi
       mode|=(scandist>fMinProximityDist)?4:0;
       if (OrderList[OrderPos]!=Obey_train)
       {mode|=8; //tryb manewrowy
@@ -1928,7 +1936,7 @@ void __fastcall TController::ScanEventTrack()
        {//
         eSignLast=(scandist<200)?e:NULL; //zapamiêtanie na wypadek przejechania albo Ÿle podpiêtego toru
         if (pVehicles[0]->fTrackBlock>50.0) //je¿eli nie ma zawalidrogi w tej odleg³oœci
-         if ((scandist>fMinProximityDist)?(Controlling->Vel!=0.0)&&(OrderCurrentGet()!=Shunt):false)
+         if ((scandist>fMinProximityDist)?(Controlling->Vel>0.0)&&(OrderCurrentGet()!=Shunt):false)
          {//jeœli semafor jest daleko, a pojazd jedzie, to informujemy o zmianie prêdkoœci
           //jeœli jedzie manewrowo, musi dostaæ SetVelocity, ¿eby sie na poci¹gowy prze³¹czy³
           //Mechanik->PutCommand("SetProximityVelocity",scandist,vmechmax,sl);
@@ -1954,11 +1962,11 @@ void __fastcall TController::ScanEventTrack()
        {//jeœli powy¿ej by³o SetVelocity 0 0, to doci¹gamy pod S1
         eSignLast=(scandist<200)?e:NULL; //zapamiêtanie na wypadek przejechania albo Ÿle podpiêtego toru
         if (pVehicles[0]->fTrackBlock>50.0) //je¿eli nie ma zawalidrogi w tej odleg³oœci
-        {if ((scandist>fMinProximityDist)?(Controlling->Vel!=0.0)||(vmechmax==0.0):false)
+        {if ((scandist>fMinProximityDist)?(Controlling->Vel>0.0)||(vmechmax==0.0):false)
          {//jeœli tarcza jest daleko, to:
           //- jesli pojazd jedzie, to informujemy o zmianie prêdkoœci
           //- jeœli stoi, to z w³asnej inicjatywy mo¿e podjechaæ pod zamkniêt¹ tarczê
-          if (Controlling->Vel!=0.0) //tylko jeœli jedzie
+          if (Controlling->Vel>0.0) //tylko jeœli jedzie
           {//Mechanik->PutCommand("SetProximityVelocity",scandist,vmechmax,sl);
 #if LOGVELOCITY
            //WriteLog(edir+"SetProximityVelocity "+AnsiString(scandist)+" "+AnsiString(vmechmax));
@@ -2038,6 +2046,7 @@ void __fastcall TController::ScanEventTrack()
          WriteLog(edir+AnsiString(GlobalTime->hh)+":"+AnsiString(GlobalTime->mm)+" Skipped stop: "+asNextStop.SubString(20,asNextStop.Length())); //informacja
 #endif
          TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,asNextStop.SubString(20,asNextStop.Length()));
+         TrainParams->StationIndexInc(); //przejœcie do nastêpnej
          asNextStop=TrainParams->NextStop(); //pobranie kolejnego miejsca zatrzymania
          eSignSkip=e; //wtedy uznajemy go za ignorowany przy poszukiwaniu nowego
          eSignLast=NULL; //¿eby jakiœ nowy by³ poszukiwany
@@ -2050,7 +2059,7 @@ void __fastcall TController::ScanEventTrack()
         sl.y=e->Params[4].asdouble;
         sl.z=e->Params[5].asdouble;
         eSignLast=(scandist<200.0)?e:NULL; //zapamiêtanie na wypadek przejechania albo Ÿle podpiêtego toru
-        if ((scandist>fMinProximityDist)?(Controlling->Vel!=0.0):false)
+        if ((scandist>fMinProximityDist)?(Controlling->Vel>0.0):false)
         //if ((scandist>Mechanik->MinProximityDist)?(fSignSpeed>0.0):false)
         {//jeœli jedzie, informujemy o zatrzymaniu na wykrytym stopie
          //Mechanik->PutCommand("SetProximityVelocity",scandist,0,sl);
@@ -2110,7 +2119,7 @@ void __fastcall TController::ScanEventTrack()
            {OrderNext(Obey_train); //uruchomiæ jazdê poci¹gow¹
             CheckVehicles(); //zmieniæ œwiat³a
            }
-           if (TrainParams->StationIndex<=TrainParams->StationCount)
+           if (TrainParams->StationIndex<TrainParams->StationCount)
            {//jeœli s¹ dalsze stacje, czekamy do godziny odjazdu
 #if LOGVELOCITY
             WriteLog(edir+asNextStop); //informacja o zatrzymaniu na stopie
@@ -2118,6 +2127,7 @@ void __fastcall TController::ScanEventTrack()
             if (iDrivigFlags&moveStopPoint) //jeœli pomijanie W4, to nie sprawdza czasu odjazdu
              if (TrainParams->IsTimeToGo(GlobalTime->hh,GlobalTime->mm))
              {//z dalsz¹ akcj¹ czekamy do godziny odjazdu
+              TrainParams->StationIndexInc(); //przejœcie do nastêpnej
               asNextStop=TrainParams->NextStop(); //pobranie kolejnego miejsca zatrzymania
 #if LOGSTOPS
               WriteLog(edir+AnsiString(GlobalTime->hh)+":"+AnsiString(GlobalTime->mm)+" Next stop: "+asNextStop.SubString(20,asNextStop.Length())); //informacja
@@ -2220,7 +2230,7 @@ void __fastcall TController::TakeControl(bool yes)
 };
 
 void __fastcall TController::DirectionSet(bool forward)
-{//ustawienie jazdy w kierunku sprzêgu 1
+{//ustawienie jazdy w kierunku sprzêgu 0 dla true i 1 dla false 
  if (forward)
   while (Controlling->ActiveDir<=0)
    Controlling->DirectionForward();
