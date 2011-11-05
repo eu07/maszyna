@@ -1026,13 +1026,10 @@ bool __fastcall TController::UpdateSituation(double dt)
      if (TestFlag(Controlling->SecuritySystem.Status,s_ebrake)&&(Controlling->BrakeCtrlPos==0)&&(AccDesired>0.0))
       Controlling->DecBrakeLevel();
    switch (OrderList[OrderPos])
-   {//na jaka odleglosc i z jaka predkoscia ma podjechac
-    case Shunt:
+   {
     case Connect:
-    case Disconnect:
-     fMinProximityDist=1.0; fMaxProximityDist=10.0; //[m]
-     VelReduced=5; //[km/h]
-     //20.07.03 - manewrowanie wagonami
+     break;
+    case Disconnect: //20.07.03 - manewrowanie wagonami
      if (iVehicleCount>=0) //jeœli by³a podana iloœæ wagonów
      {
       if (Prepare2press) //jeœli dociskanie w celu odczepienia
@@ -1106,7 +1103,13 @@ bool __fastcall TController::UpdateSituation(double dt)
        }
       }
      break;
+    case Shunt:
+     //na jaka odleglosc i z jaka predkoscia ma podjechac
+     fMinProximityDist=1.0; fMaxProximityDist=10.0; //[m]
+     VelReduced=5; //[km/h]
+     break;
     case Obey_train:
+     //na jaka odleglosc i z jaka predkoscia ma podjechac
      if (Controlling->CategoryFlag==1) //jazda pociagowa
      {
       fMinProximityDist=30.0; fMaxProximityDist=60.0; //[m]
@@ -1834,7 +1837,7 @@ void __fastcall TController::ScanEventTrack()
   //Ra: znaleziony semafor trzeba zapamiêtaæ, bo mo¿e byæ wpisany we wczeœniejszy tor
   //Ra: oprócz semafora szukamy najbli¿szego ograniczenia (koniec/brak toru to ograniczenie do zera)
   TEvent *ev=NULL; //event potencjalnie od semafora
-  TTrack *scantrack=TraceRoute(scandist,scandir,pVehicles[0]->RaTrackGet(),ev); //wg pierwszej osi w kierunku ruchu
+  TTrack *scantrack=TraceRoute(scandist,scandir,pVehicles[0]->RaTrackGet(),ev); //wg drugiej osi w kierunku ruchu
   if (!scantrack) //jeœli wykryto koniec toru albo zerow¹ prêdkoœæ
   {
    {//if (!Mechanik->SetProximityVelocity(0.7*fabs(scandist),0))
@@ -1846,7 +1849,7 @@ void __fastcall TController::ScanEventTrack()
 #if LOGVELOCITY
      WriteLog("End of track:");
 #endif
-     if (scandist>10) //jeœli zosta³o wiêcej ni¿ 15m do koñca toru
+     if (scandist>10) //jeœli zosta³o wiêcej ni¿ 10m do koñca toru
       SetProximityVelocity(scandist,0,&pos); //informacja o zbli¿aniu siê do koñca
      else
      {PutCommand("SetVelocity",0,0,&pos,stopEnd); //na koñcu toru ma staæ
