@@ -193,7 +193,7 @@ private:
  TEvent* __fastcall CheckTrackEvent(double fDirection,TTrack *Track);
  TTrack* __fastcall TraceRoute(double &fDistance,double &fDirection,TTrack *Track,TEvent*&Event);
  void __fastcall SetProximityVelocity(double dist,double vel,const vector3 *pos);
- void __fastcall DirectionSet(bool forward);
+ void __fastcall DirectionForward(bool forward);
 public:
  //inline __fastcall TController() { };
  AnsiString __fastcall StopReasonText();

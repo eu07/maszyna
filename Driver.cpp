@@ -254,7 +254,7 @@ bool __fastcall TController::CheckVehicles()
  int d=iDirection>0?0:1; //kierunek szukania czo³a (numer sprzêgu)
  pVehicles[0]=p=pVehicle->FirstFind(d); //pojazd na czele sk³adu
  //liczenie i ustawianie kierunku
- d=1-d; //bêdziemy zliczaæ od czo³a do ty³u
+ d=1-d; //a dalej bêdziemy zliczaæ od czo³a do ty³u
  fLength=0.0;
  while (p)
  {
@@ -265,7 +265,8 @@ bool __fastcall TController::CheckVehicles()
   ++iVehicles; //jest jeden pojazd wiêcej
   pVehicles[1]=p; //zapamiêtanie ostatniego
   fLength+=p->MoverParameters->Dim.L; //dodanie d³ugoœci pojazdu
-  d=p->DirectionSet(d); //zwraca po³o¿enie nastêpnego (1=zgodny,0=odwrócony)
+  d=p->DirectionSet(d?1:-1); //zwraca po³o¿enie nastêpnego (1=zgodny,0=odwrócony)
+  //1=zgodny: sprzêg 0 od czo³a; 0=odwrócony: sprzêg 1 od czo³a
   p=p->Next(); //pojazd pod³¹czony od ty³u (licz¹c od czo³a)
  }
 /* //tabelka z list¹ pojazdów jest na razie nie potrzebna
@@ -766,12 +767,12 @@ void __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
  {
   if (NewLocation)
    vCommandLocation=*NewLocation;
-  if (NewValue1!=0.0)
+  if ((NewValue1!=0.0)&&(OrderList[OrderPos]!=Obey_train))
   {//o ile jazda
    if (!EngineActive)
     OrderNext(Prepare_engine); //trzeba odpaliæ silnik najpierw, œwiat³a ustawi JumpToNextOrder()
-   if (OrderList[OrderPos]!=Obey_train) //jeœli nie poci¹gowa
-    OrderNext(Obey_train); //to uruchomiæ jazdê poci¹gow¹ (od razu albo po odpaleniu silnika
+   //if (OrderList[OrderPos]!=Obey_train) //jeœli nie poci¹gowa
+   OrderNext(Obey_train); //to uruchomiæ jazdê poci¹gow¹ (od razu albo po odpaleniu silnika
    OrderCheck(); //jeœli jazda poci¹gowa teraz, to wykonaæ niezbêdne operacje
   }
   SetVelocity(NewValue1,NewValue2,reason); //bylo: nic nie rob bo SetVelocity zewnetrznie jest wywolywane przez dynobj.cpp
@@ -1082,7 +1083,7 @@ bool __fastcall TController::UpdateSituation(double dt)
         Controlling->BrakeReleaser(); //wyluzuj lokomotywê; a ST45?
         Controlling->DecLocalBrakeLevel(10); //zwolnienie hamulca
         Prepare2press=true; //nastêpnie bêdzie dociskanie
-        DirectionSet(iDirection<0); //zmiana kierunku jazdy na przeciwny
+        DirectionForward(iDirection<0); //zmiana kierunku jazdy na przeciwny
         CheckVehicles(); //od razu zmieniæ œwiat³a (zgasiæ)
         fStopTime=0.0; //nie ma na co czekaæ z odczepianiem
        }
@@ -1095,7 +1096,7 @@ bool __fastcall TController::UpdateSituation(double dt)
        if (!DecSpeed()) //jeœli ju¿ bardziej wy³¹czyæ siê nie da
        {//ponowna zmiana kierunku
         //WriteLog("Ponowna zmiana kierunku");
-        DirectionSet(iDirection>=0); //zmiana kierunku jazdy na w³aœciwy
+        DirectionForward(iDirection>=0); //zmiana kierunku jazdy na w³aœciwy
         Prepare2press=false; //koniec dociskania
         CheckVehicles(); //od razu zmieniæ œwiat³a
         JumpToNextOrder();
@@ -2232,7 +2233,7 @@ void __fastcall TController::TakeControl(bool yes)
  }
 };
 
-void __fastcall TController::DirectionSet(bool forward)
+void __fastcall TController::DirectionForward(bool forward)
 {//ustawienie jazdy w kierunku sprzêgu 0 dla true i 1 dla false 
  if (forward)
   while (Controlling->ActiveDir<=0)

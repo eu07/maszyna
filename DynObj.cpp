@@ -3291,9 +3291,9 @@ void __fastcall TDynamicObject::RaAxleEvent(TEvent *e)
 
 int __fastcall TDynamicObject::DirectionSet(int d)
 {//ustawienie kierunku w sk³adzie (wykonuje AI)
- iDirection=d; //1=zgodny,-1=przeciwny
+ iDirection=d>0?1:0; //d:1=zgodny,-1=przeciwny; iDirection:1=zgodny,0=przeciwny; 
  CouplCounter=26; //do przeskanowania s¹ kolizje
- return 1-(d?NextConnectedNo:PrevConnectedNo); //informacja o po³o¿eniu nastêpnego
+ return 1-(iDirection?NextConnectedNo:PrevConnectedNo); //informacja o po³o¿eniu nastêpnego
 };
 
 TDynamicObject* __fastcall TDynamicObject::Prev()
