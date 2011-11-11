@@ -92,6 +92,7 @@ private:
  int iTrapezoid; //0-standard, 1-przechy³ka, 2-trapez, 3-oba
  GLuint DisplayListID;
  TIsolated *pIsolated; //obwód izolowany obs³uguj¹cy zajêcia/zwolnienia grupy torów
+ TGroundNode *pMyNode; //Ra: proteza, ¿eby tor zna³ swoj¹ nazwê TODO: odziedziczyæ TTrack z TGroundNode
 public:
  int iNumDynamics;
  TDynamicObject *Dynamics[iMaxNumDynamics];
@@ -129,7 +130,7 @@ public:
  bool ScannedFlag; //McZapkie: do zaznaczania kolorem torów skanowanych przez AI
  TTraction *pTraction; //drut zasilaj¹cy
 
- __fastcall TTrack();
+ __fastcall TTrack(TGroundNode *g);
  __fastcall ~TTrack();
  void __fastcall Init();
  TTrack* __fastcall NullCreate(int dir);

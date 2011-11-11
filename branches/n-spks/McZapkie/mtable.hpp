@@ -66,7 +66,9 @@ public:
 	bool __fastcall IsTimeToGo(double hh, double mm);
 	bool __fastcall UpdateMTable(double hh, double mm, AnsiString NewName);
 	__fastcall TTrainParameters(AnsiString NewTrainName);
+	void __fastcall NewName(AnsiString NewTrainName);
 	bool __fastcall LoadTTfile(AnsiString scnpath);
+	bool __fastcall DirectionChange(void);
 public:
 	#pragma option push -w-inl
 	/* TObject.Create */ inline __fastcall TTrainParameters(void) : System::TObject() { }

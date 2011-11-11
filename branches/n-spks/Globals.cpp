@@ -27,7 +27,7 @@
 #include "QueryParserComp.hpp"
 #include "usefull.h"
 #include "mover.hpp"
-#include "ai_driver.hpp"
+#include "Driver.h"
 #include "Feedback.h"
 #include <Controls.hpp>
 
@@ -103,7 +103,7 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iMultiplayer=0; //blokada dzia³ania niektórych funkcji na rzecz kominikacji
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asVersion="Compilation 2011-09-25, release 1.3.255.235."; //tutaj, bo wysy³any
+AnsiString Global::asVersion="Compilation 2011-10-18, release 1.3.264.258."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 GLint Global::iMaxTextureSize=16384;//maksymalny rozmiar tekstury
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
@@ -128,6 +128,7 @@ int Global::iErorrCounter=0; //licznik sprawdzañ do œledzenia b³êdów OpenGL
 bool Global::bInactivePause=true; //automatyczna pauza, gdy okno nieaktywne
 int Global::iTextures=0; //licznik u¿ytych tekstur
 int Global::iSlowMotionMask=-1; //maska wy³¹czanych w³aœciwoœci
+int Global::iModifyTGA=3; //czy korygowaæ pliki TGA dla szybszego wczytywania
 
 /* Ra: trzeba by przerobiæ na cParser, ¿eby to dzia³a³o w scenerii
 void __fastcall Global::ParseConfig(TQueryParserComp *Parser)
@@ -292,10 +293,6 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
           fSunDeclination=0.006918-0.3999120*cos(  fMoveLight)+0.0702570*sin(  fMoveLight)
                                   -0.0067580*cos(2*fMoveLight)+0.0009070*sin(2*fMoveLight)
                                   -0.0026970*cos(3*fMoveLight)+0.0014800*sin(3*fMoveLight);
-          //Declination=((0.322003-22.971*cos(t)-0.357898*cos(2*t)-0.14398*cos(3*t)+3.94638*sin(t)+0.019334*sin(2*t)+0.05928*sin(3*t)))*Pi/180
-          //fSunDeclination=0.005620-0.4009196*cos(  fMoveLight)+0.0688773*sin(  fMoveLight)
-          //                        -0.0062465*cos(2*fMoveLight)+0.0003374*sin(2*fMoveLight)
-          //                        -0.0025129*cos(3*fMoveLight)+0.0010346*sin(3*fMoveLight);
          }
         }
         else if (str==AnsiString("smoothtraction")) //podwójna jasnoœæ ambient
@@ -314,6 +311,8 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
          bInactivePause=(Parser->GetNextSymbol().LowerCase()==AnsiString("yes"));
         else if (str==AnsiString("slowmotion")) //tworzenie plików binarnych
          iSlowMotionMask=Parser->GetNextSymbol().ToIntDef(-1); //domyœlnie -1
+        else if (str==AnsiString("modifytga")) //czy korygowaæ pliki TGA dla szybszego wczytywania
+         iModifyTGA=Parser->GetNextSymbol().ToIntDef(0); //domyœlnie 0
     }
  //na koniec trochê zale¿noœci
  if (!bLoadTraction)

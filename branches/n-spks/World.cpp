@@ -34,6 +34,8 @@
 #include "Camera.h"
 #include "ResourceManager.h"
 #include "Event.h"
+#include "Train.h"
+#include "Driver.h"
 
 #define TEXTURE_FILTER_CONTROL_EXT      0x8500
 #define TEXTURE_LOD_BIAS_EXT            0x8501
@@ -399,8 +401,8 @@ bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 
   	glEnable(GL_LIGHTING);
 /*-----------------------Sound Initialization-----------------------*/
-    TSoundsManager::Init( hWnd );
-    TSoundsManager::LoadSounds( "" );
+    TSoundsManager::Init(hWnd);
+    //TSoundsManager::LoadSounds( "" );
 /*---------------------Sound Initialization End---------------------*/
     WriteLog("Sound Init OK");
     if(Global::detonatoryOK)
@@ -933,22 +935,22 @@ bool __fastcall TWorld::Update()
  double dt=GetDeltaTime();
  double iter;
  int n=1;
- if (dt>fMaxDt)
+ if (dt>fMaxDt) //normalnie 0.01s
  {
   iter=ceil(dt/fMaxDt);
   n=iter;
-  dt=dt/iter;
+  dt=dt/iter; //Ra: fizykê lepiej by by³o przeliczaæ ze sta³ym krokiem
  }
  if (n>20) n=20; //McZapkie-081103: przesuniecie granicy FPS z 10 na 5
  //blablabla
- //Sleep(50);
  Ground.Update(dt,n); //ABu: zamiast 'n' bylo: 'Camera.Type==tp_Follow'
- if (GetAsyncKeyState(VK_ESCAPE)<0)
- {
-  Ground.Update(dt,n); //ABu: zamiast 'n' bylo: 'Camera.Type==tp_Follow'
-   Ground.Update(dt,n); //ABu: zamiast 'n' bylo: 'Camera.Type==tp_Follow'
-    Ground.Update(dt,n); //ABu: zamiast 'n' bylo: 'Camera.Type==tp_Follow'
-    }
+ if (DebugModeFlag)
+  if (GetAsyncKeyState(VK_ESCAPE)<0)
+  {//yB doda³ przyspieszacz fizyki
+   Ground.Update(dt,n);
+   Ground.Update(dt,n);
+   Ground.Update(dt,n);
+  }
  //Ground.Update(0.01,Camera.Type==tp_Follow);
  dt=GetDeltaTime();
  if (Camera.Type==tp_Follow)
@@ -1021,15 +1023,15 @@ bool __fastcall TWorld::Update()
     glColor4f(1.0f,1.0f,1.0f,1.0f);
     glBindTexture(GL_TEXTURE_2D, light);       // Select our texture
     glBegin(GL_QUADS);
-     if (Train->DynamicObject->MoverParameters->EndSignalsFlag&21)
-     {//wystarczy jeden zapalony
+     if (Train->DynamicObject->iLights[0]&21)
+     {//wystarczy jeden zapalony z przodu
       glTexCoord2f(0,0); glVertex3f( 15.0,0.0,  15.0);
       glTexCoord2f(1,0); glVertex3f(-15.0,0.0,  15.0);
       glTexCoord2f(1,1); glVertex3f(-15.0,2.5, 250.0);
       glTexCoord2f(0,1); glVertex3f( 15.0,2.5, 250.0);
      }
-     if (Train->DynamicObject->MoverParameters->HeadSignalsFlag&21)
-     {//wystarczy jeden zapalony
+     if (Train->DynamicObject->iLights[1]&21)
+     {//wystarczy jeden zapalony z ty³u
       glTexCoord2f(0,0); glVertex3f(-15.0,0.0, -15.0);
       glTexCoord2f(1,0); glVertex3f( 15.0,0.0, -15.0);
       glTexCoord2f(1,1); glVertex3f( 15.0,2.5,-250.0);
@@ -1278,7 +1280,7 @@ bool __fastcall TWorld::Update()
       if (Controlled->TrainParams)
       {OutText2=Controlled->TrainParams->ShowRelation();
        if (!OutText2.IsEmpty())
-        OutText2=Bezogonkow(OutText2+", "+Controlled->asNextStop); //dopisanie punktu zatrzymania
+        OutText2=Bezogonkow(OutText2+", "+Controlled->Mechanik->NextStop()); //dopisanie punktu zatrzymania
       }
      //double CtrlPos=Controlled->MoverParameters->MainCtrlPos;
      //double CtrlPosNo=Controlled->MoverParameters->MainCtrlPosNo;
@@ -1391,11 +1393,16 @@ bool __fastcall TWorld::Update()
        OutText4="";
        //OutText4+="Coupler 0: "+(tmp->PrevConnected?tmp->PrevConnected->GetName():AnsiString("NULL"))+" ("+AnsiString(tmp->MoverParameters->Couplers[0].CouplingFlag)+"), ";
        //OutText4+="Coupler 1: "+(tmp->NextConnected?tmp->NextConnected->GetName():AnsiString("NULL"))+" ("+AnsiString(tmp->MoverParameters->Couplers[1].CouplingFlag)+")";
-       if (tmp->eSignLast) OutText4+="Control event: "+Bezogonkow(tmp->eSignLast->asName); //nazwa eventu semafora
        if (tmp->Mechanik)
-        {
-         //OutText4+="  LPTI@A: "+IntToStr(tmp->Mechanik->LPTI)+"@"+IntToStr(tmp->Mechanik->LPTA);
+       {//o ile jest ktoœ w œrodku
+        OutText4=tmp->Mechanik->StopReasonText();
+        if (tmp->Mechanik->eSignLast)
+        {//jeœli ma zapamiêtany event semafora
+         if (!OutText4.IsEmpty()) OutText4+=", "; //aby ³adniejszy odstêp by³
+         OutText4+="Control event: "+Bezogonkow(tmp->Mechanik->eSignLast->asName); //nazwa eventu semafora
         }
+         //OutText4+="  LPTI@A: "+IntToStr(tmp->Mechanik->LPTI)+"@"+IntToStr(tmp->Mechanik->LPTA);
+       }
       }
       else
       {
@@ -1842,57 +1849,8 @@ void __fastcall TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
      TGroundNode* t=Ground.FindDynamic(AnsiString(pRozkaz->cString+11+i,(unsigned)pRozkaz->cString[10+i])); //nazwa pojazdu jest druga
      if (t)
      {
-        TDynamicObject* tmp2=NULL;
-          if(t->DynamicObject->Mechanik!=NULL)
-          {
-            if((AnsiString(pRozkaz->cString+9,i)=="Change_direction"||(AnsiString(pRozkaz->cString+9,i)=="OutsideStation"&&t->DynamicObject->Mechanik->OrderList[t->DynamicObject->Mechanik->OrderPos]!=Obey_train))&&pRozkaz->fPar[0]!=t->DynamicObject->MoverParameters->CabNo)
-            {
-              if(t->DynamicObject->GetName()!=Global::asHumanCtrlVehicle)
-              {
-                TDynamicObject* tmp1;
-                tmp1 = t->DynamicObject->GetFirstDynamic(1);
-                if(tmp1!=t->DynamicObject)
-                {
-                  tmp2 = tmp1->GetFirstCabDynamic(0);
-                  if(tmp2==NULL)
-                    tmp2 = tmp1->GetFirstCabDynamic(1);
-                  if(tmp2!=NULL&&tmp2!=t)
-                    t->DynamicObject->DynChangeStart(tmp2);
-                  else
-                  {
-                    TLocation l;
-                    l.X=l.Y=l.Z= 0;
-                    t->DynamicObject->Mechanik->PutCommand(AnsiString(pRozkaz->cString+9,i),pRozkaz->fPar[0],pRozkaz->fPar[1],l); //floaty s¹ z przodu
-                  }
-                }
-                else
-                {
-                  tmp1 = t->DynamicObject->GetFirstDynamic(0);
-                  if(tmp1!=t->DynamicObject)
-                  {
-                    tmp2 = tmp1->GetFirstCabDynamic(1);
-                    if(tmp2==NULL)
-                      tmp2 = tmp1->GetFirstCabDynamic(0);
-                    if(tmp2!=NULL&&tmp2!=t)
-                      t->DynamicObject->DynChangeStart(tmp2);
-                    else
-                    {
-                      TLocation l;
-                      l.X=l.Y=l.Z= 0;
-                      t->DynamicObject->Mechanik->PutCommand(AnsiString(pRozkaz->cString+9,i),pRozkaz->fPar[0],pRozkaz->fPar[1],l); //floaty s¹ z przodu
-                    }
-                  }
-                }
-              }
-            }
-          }
-          if(tmp2==NULL)
-          {
-            TLocation l;
-            l.X=l.Y=l.Z= 0;
-            t->DynamicObject->Mechanik->PutCommand(AnsiString(pRozkaz->cString+9,i),pRozkaz->fPar[0],pRozkaz->fPar[1],l); //floaty s¹ z przodu
-          }
-        WriteLog("AI command: "+AnsiString(pRozkaz->cString+9,i));
+      t->DynamicObject->Mechanik->PutCommand(AnsiString(pRozkaz->cString+9,i),pRozkaz->fPar[0],pRozkaz->fPar[1],NULL,stopExt); //floaty s¹ z przodu
+      WriteLog("AI command: "+AnsiString(pRozkaz->cString+9,i));
      }
     }
     break;

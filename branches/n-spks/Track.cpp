@@ -116,7 +116,7 @@ void __fastcall TIsolated::Modify(int i,TDynamicObject *o)
 };
 
 
-__fastcall TTrack::TTrack()
+__fastcall TTrack::TTrack(TGroundNode *g)
 {//tworzenie nowego odcinka ruchu
  pNext=pPrev=NULL; //s¹siednie
  Segment=NULL; //dane odcinka
@@ -158,6 +158,7 @@ __fastcall TTrack::TTrack()
  iPrevDirection=0; //domyœlnie wirtualne odcinki do³¹czamy stron¹ od Point1
  iNextDirection=0;
  pIsolated=NULL;
+ pMyNode=g; //Ra: proteza, ¿eby tor zna³ swoj¹ nazwê TODO: odziedziczyæ TTrack z TGroundNode
 }
 
 __fastcall TTrack::~TTrack()
@@ -190,7 +191,7 @@ TTrack* __fastcall TTrack::NullCreate(int dir)
 {//tworzenie toru wykolejaj¹cego od strony (dir)
  TGroundNode *tmp=new TGroundNode(); //node
  tmp->iType=TP_TRACK;
- TTrack* trk=new TTrack(); //tor; UWAGA! obrotnica mo¿e generowaæ du¿e iloœci tego
+ TTrack* trk=new TTrack(tmp); //tor; UWAGA! obrotnica mo¿e generowaæ du¿e iloœci tego
  tmp->pTrack=trk;
  trk->bVisible=false; //nie potrzeba pokazywaæ, zreszt¹ i tak nie ma tekstur
  //trk->iTrapezoid=1; //s¹ przechy³ki do uwzglêdniania w rysowaniu
@@ -352,8 +353,8 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
  }
  else
   eType=tt_Unknown;
- if (DebugModeFlag)
-  WriteLog(str.c_str());
+ //if (DebugModeFlag)
+ // WriteLog(str.c_str());
  parser->getTokens(4);
  *parser >> fTrackLength >> fTrackWidth >> fFriction >> fSoundDistance;
 //    fTrackLength=Parser->GetNextSymbol().ToDouble();                       //track length 100502
@@ -408,8 +409,7 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
    if (iCategoryFlag==4)
     fTexHeight=-fTexHeight; //rzeki maj¹ wysokoœæ odwrotnie ni¿ drogi
   }
- else
-  if (DebugModeFlag) WriteLog("unvis");
+ //else if (DebugModeFlag) WriteLog("unvis");
  Init();
  double segsize=5.0f; //d³ugoœæ odcinka segmentowania
  switch (eType)
@@ -424,7 +424,12 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
    p2=LoadPoint(parser)+pOrigin; //pobranie wspó³rzêdnych P2
    parser->getTokens(2);
    *parser >> r2 >> fRadius; //pobranie przechy³ki w P1 i promienia
-
+   if (iCategoryFlag&1)
+   {//zero na g³ówce szyny
+    p1.y+=0.18;
+    p2.y+=0.18;
+    //na przechy³ce doliczyæ jeszcze pó³ przechy³ki
+   }
    if (fRadius!=0) //gdy podany promieñ
       segsize=Min0R(5.0,0.3+fabs(fRadius)*0.03); //do 250m - 5, potem 1 co 50m
 
@@ -472,9 +477,14 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
    p2=LoadPoint(parser)+pOrigin; //pobranie wspó³rzêdnych P2
    parser->getTokens(2);
    *parser >> r2 >> fRadiusTable[0];
-
+   if (iCategoryFlag&1)
+   {//zero na g³ówce szyny
+    p1.y+=0.18;
+    p2.y+=0.18;
+    //na przechy³ce doliczyæ jeszcze pó³ przechy³ki?
+   }
    if (fRadiusTable[0]>0)
-      segsize=Min0R(5.0,0.2+fRadiusTable[0]*0.02);
+    segsize=Min0R(5.0,0.2+fRadiusTable[0]*0.02);
    else
     if (eType!=tt_Cross)
     {//jak promieñ zerowy, to przeliczamy punkty kontrolne
@@ -482,7 +492,6 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
      cp2=(p1+p2+p2)/3.0-p2;
      segsize=5.0;
     } //u³omny prosty
-
    if (!(cp1==vector3(0,0,0)) && !(cp2==vector3(0,0,0)))
     SwitchExtension->Segments[0]->Init(p1,cp1+p1,cp2+p2,p2,segsize,r1,r2);
    else
@@ -496,6 +505,12 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
    p2=LoadPoint(parser)+pOrigin; //pobranie wspó³rzêdnych P4
    parser->getTokens(2);
    *parser >> r2 >> fRadiusTable[1];
+   if (iCategoryFlag&1)
+   {//zero na g³ówce szyny
+    p1.y+=0.18;
+    p2.y+=0.18;
+    //na przechy³ce doliczyæ jeszcze pó³ przechy³ki?
+   }
 
    if (fRadiusTable[1]>0)
       segsize=Min0R(5.0,0.2+fRadiusTable[1]*0.02);
@@ -779,6 +794,12 @@ bool __fastcall TTrack::IsolatedEventsAssign(TEvent *busy, TEvent *free)
 //ABu: przeniesione z Track.h i poprawione!!!
 bool __fastcall TTrack::AddDynamicObject(TDynamicObject *Dynamic)
 {//dodanie pojazdu do trajektorii
+ //Ra: tymczasowo wysy³anie informacji o zajêtoœci konkretnego toru
+ //Ra: usun¹æ po upowszechnieniu siê odcinków izolowanych
+ if (Global::iMultiplayer) //jeœli multiplayer
+  if (!iNumDynamics) //pierwszy zajmuj¹cy
+   if (pMyNode->asName!="none")
+    Global::pGround->WyslijString(pMyNode->asName,8); //przekazanie informacji o zajêtoœci toru
  if (iNumDynamics<iMaxNumDynamics)
  {//jeœli jest miejsce, dajemy na koniec
   Dynamics[iNumDynamics++]=Dynamic;
@@ -812,32 +833,32 @@ void __fastcall TTrack::MoveMe(vector3 pPosition)
 const int numPts=4;
 const int nnumPts=12;
 const vector6 szyna[nnumPts]= //szyna - vextor3(x,y,mapowanie tekstury)
-{vector6( 0.111,0.000,0.00, 1.000, 0.000,0.000),
- vector6( 0.045,0.025,0.15, 0.707, 0.707,0.000),
- vector6( 0.045,0.110,0.25, 0.707,-0.707,0.000),
- vector6( 0.071,0.140,0.35, 0.707,-0.707,0.000), //albo tu 0.073
- vector6( 0.072,0.170,0.40, 0.707, 0.707,0.000),
- vector6( 0.052,0.180,0.45, 0.000, 1.000,0.000),
- vector6( 0.020,0.180,0.55, 0.000, 1.000,0.000),
- vector6( 0.000,0.170,0.60,-0.707, 0.707,0.000),
- vector6( 0.001,0.140,0.65,-0.707,-0.707,0.000), //albo tu -0.001
- vector6( 0.027,0.110,0.75,-0.707,-0.707,0.000), //albo zostanie asymetryczna
- vector6( 0.027,0.025,0.85,-0.707, 0.707,0.000),
- vector6(-0.039,0.000,1.00,-1.000, 0.000,0.000)
+{vector6( 0.111,-0.180,0.00, 1.000, 0.000,0.000),
+ vector6( 0.045,-0.155,0.15, 0.707, 0.707,0.000),
+ vector6( 0.045,-0.070,0.25, 0.707,-0.707,0.000),
+ vector6( 0.071,-0.040,0.35, 0.707,-0.707,0.000), //albo tu 0.073
+ vector6( 0.072,-0.010,0.40, 0.707, 0.707,0.000),
+ vector6( 0.052,-0.000,0.45, 0.000, 1.000,0.000),
+ vector6( 0.020,-0.000,0.55, 0.000, 1.000,0.000),
+ vector6( 0.000,-0.010,0.60,-0.707, 0.707,0.000),
+ vector6( 0.001,-0.040,0.65,-0.707,-0.707,0.000), //albo tu -0.001
+ vector6( 0.027,-0.070,0.75,-0.707,-0.707,0.000), //albo zostanie asymetryczna
+ vector6( 0.027,-0.155,0.85,-0.707, 0.707,0.000),
+ vector6(-0.039,-0.180,1.00,-1.000, 0.000,0.000)
 };
 const vector6 iglica[nnumPts]= //iglica - vextor3(x,y,mapowanie tekstury)
-{vector6( 0.010,0.000,0.00, 1.000, 0.000,0.000),
- vector6( 0.010,0.025,0.15, 1.000, 0.000,0.000),
- vector6( 0.010,0.110,0.25, 1.000, 0.000,0.000),
- vector6( 0.010,0.140,0.35, 1.000, 0.000,0.000),
- vector6( 0.010,0.170,0.40, 1.000, 0.000,0.000),
- vector6( 0.010,0.180,0.45, 0.707, 0.707,0.000),
- vector6( 0.000,0.180,0.55, 0.707, 0.707,0.000),
- vector6( 0.000,0.170,0.60,-1.000, 0.000,0.000),
- vector6( 0.000,0.140,0.65,-1.000, 0.000,0.000),
- vector6( 0.000,0.110,0.75,-1.000, 0.000,0.000),
- vector6( 0.000,0.025,0.85,-0.707, 0.707,0.000),
- vector6(-0.040,0.000,1.00,-1.000, 0.000,0.000) //1mm wiêcej, ¿eby nie nachodzi³y tekstury?
+{vector6( 0.010,-0.180,0.00, 1.000, 0.000,0.000),
+ vector6( 0.010,-0.155,0.15, 1.000, 0.000,0.000),
+ vector6( 0.010,-0.070,0.25, 1.000, 0.000,0.000),
+ vector6( 0.010,-0.040,0.35, 1.000, 0.000,0.000),
+ vector6( 0.010,-0.010,0.40, 1.000, 0.000,0.000),
+ vector6( 0.010,-0.000,0.45, 0.707, 0.707,0.000),
+ vector6( 0.000,-0.000,0.55, 0.707, 0.707,0.000),
+ vector6( 0.000,-0.010,0.60,-1.000, 0.000,0.000),
+ vector6( 0.000,-0.040,0.65,-1.000, 0.000,0.000),
+ vector6( 0.000,-0.070,0.75,-1.000, 0.000,0.000),
+ vector6( 0.000,-0.155,0.85,-0.707, 0.707,0.000),
+ vector6(-0.040,-0.180,1.00,-1.000, 0.000,0.000) //1mm wiêcej, ¿eby nie nachodzi³y tekstury?
 };
 
 
@@ -880,7 +901,7 @@ void __fastcall TTrack::Compile()
  double roll1,roll2;
  switch (iCategoryFlag)
  {
-  case 1:   //tor
+  case 1: //tor
   {
    Segment->GetRolls(roll1,roll2);
    double sin1=sin(roll1),cos1=cos(roll1),sin2=sin(roll2),cos2=cos(roll2);
@@ -918,20 +939,21 @@ void __fastcall TTrack::Compile()
       {//podsypka z podkladami trapezowata
        //ewentualnie poprawiæ mapowanie, ¿eby œrodek mapowa³ siê na 1.435/4.671 ((0.3464,0.6536)
        //bo siê tekstury podsypki rozje¿d¿aj¹ po zmianie proporcji profilu
-       bpts1[0]=vector6(rozp,-fTexHeight,0.0,normal1.x,-normal1.y,0.0); //lewy brzeg
-       bpts1[1]=vector6((fHTW+side)*cos1,-(fHTW+side)*sin1,0.33,0.0,1.0,0.0); //krawêdŸ za³amania
-       bpts1[2]=vector6(-bpts1[1].x,-bpts1[1].y,0.67,-normal1.x,-normal1.y,0.0); //prawy brzeg pocz¹tku symetrycznie
-       bpts1[3]=vector6(-rozp,-fTexHeight,1.0,-normal1.x,-normal1.y,0.0); //prawy skos
-       bpts1[4]=vector6(rozp2,-fTexHeight2,0.0,normal2.x,-normal2.y,0.0); //lewy brzeg
-       bpts1[5]=vector6((fHTW2+side2)*cos2,-(fHTW2+side2)*sin2,0.33,0.0,1.0,0.0); //krawêdŸ za³amania
-       bpts1[6]=vector6(-bpts1[5].x,-bpts1[5].y,0.67,0.0,1.0,0.0); //prawy brzeg pocz¹tku symetrycznie
-       bpts1[7]=vector6(-rozp2,-fTexHeight2,1.0,-normal2.x,-normal2.y,0.0); //prawy skos
+       bpts1[0]=vector6(rozp,              -fTexHeight-0.18,        0.00,normal1.x,-normal1.y,0.0); //lewy brzeg
+       bpts1[1]=vector6((fHTW+side)*cos1,  -(fHTW+side)*sin1-0.18,  0.33,0.0,1.0,0.0); //krawêdŸ za³amania
+       bpts1[2]=vector6(-bpts1[1].x,       +(fHTW+side)*sin1-0.18,  0.67,-normal1.x,-normal1.y,0.0); //prawy brzeg pocz¹tku symetrycznie
+       bpts1[3]=vector6(-rozp,             -fTexHeight-0.18,        1.00,-normal1.x,-normal1.y,0.0); //prawy skos
+       //przekrój koñcowy
+       bpts1[4]=vector6(rozp2,             -fTexHeight2-0.18,       0.00,normal2.x,-normal2.y,0.0); //lewy brzeg
+       bpts1[5]=vector6((fHTW2+side2)*cos2,-(fHTW2+side2)*sin2-0.18,0.33,0.0,1.0,0.0); //krawêdŸ za³amania
+       bpts1[6]=vector6(-bpts1[5].x,       +(fHTW2+side2)*sin2-0.18,0.67,0.0,1.0,0.0); //prawy brzeg pocz¹tku symetrycznie
+       bpts1[7]=vector6(-rozp2,            -fTexHeight2-0.18,       1.00,-normal2.x,-normal2.y,0.0); //prawy skos
       }
       else
-      {bpts1[0]=vector6(rozp,-fTexHeight,0.0,normal1.x,-normal1.y,0.0); //lewy brzeg
-       bpts1[1]=vector6(fHTW+side,0.0,0.33,normal1.x,-normal1.y,0.0); //krawêdŸ za³amania
-       bpts1[2]=vector6(-fHTW-side,0.0,0.67,-normal1.x,-normal1.y,0.0); //druga
-       bpts1[3]=vector6(-rozp,-fTexHeight,1.0,-normal1.x,-normal1.y,0.0); //prawy skos
+      {bpts1[0]=vector6(rozp,      -fTexHeight-0.18,0.0,+normal1.x,-normal1.y,0.0); //lewy brzeg
+       bpts1[1]=vector6(fHTW+side, -0.18,0.33,          +normal1.x,-normal1.y,0.0); //krawêdŸ za³amania
+       bpts1[2]=vector6(-fHTW-side,-0.18,0.67,          -normal1.x,-normal1.y,0.0); //druga
+       bpts1[3]=vector6(-rozp,     -fTexHeight-0.18,1.0,-normal1.x,-normal1.y,0.0); //prawy skos
       }
       glBindTexture(GL_TEXTURE_2D,TextureID2);
       Segment->RenderLoft(bpts1,iTrapezoid?-4:4,fTexLength);
@@ -1357,17 +1379,16 @@ void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Star
  {//Ra: jest OK
   fHTW2=0.5*fabs(pNext->fTrackWidth); //po³owa rozstawu/nawierzchni
   side2=fabs(pNext->fTexWidth);
-  slop2=fabs(pNext->fTexSlope);
+  slop2=fabs(pNext->fTexSlope); //nie jest u¿ywane póŸniej
   rozp2=fHTW2+side2+slop2;
   fTexHeight2=pNext->fTexHeight;
-  //zabezpieczenia przed zawieszeniem - jest OK, ju¿ siê nie wiesza
  }
  else //gdy nie ma nastêpnego albo jest nieodpowiednim koñcem podpiêty
- {fHTW2=fHTW; side2=side; slop2=slop; rozp2=rozp; fTexHeight2=fTexHeight;}
+ {fHTW2=fHTW; side2=side; /*slop2=slop;*/ rozp2=rozp; fTexHeight2=fTexHeight;}
  double roll1,roll2;
  switch (iCategoryFlag)
  {
-  case 1:   //tor
+  case 1: //tor
   {
    if (Segment)
     Segment->GetRolls(roll1,roll2);
@@ -1398,20 +1419,21 @@ void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Star
       {//podsypka z podkladami trapezowata
        //ewentualnie poprawiæ mapowanie, ¿eby œrodek mapowa³ siê na 1.435/4.671 ((0.3464,0.6536)
        //bo siê tekstury podsypki rozje¿d¿aj¹ po zmianie proporcji profilu
-       bpts1[0]=vector6(rozp,-fTexHeight,0.0,-0.707,0.707,0.0); //lewy brzeg
-       bpts1[1]=vector6((fHTW+side)*cos1,-(fHTW+side)*sin1,0.33,-0.707,0.707,0.0); //krawêdŸ za³amania
-       bpts1[2]=vector6(-bpts1[1].x,-bpts1[1].y,0.67,0.707,0.707,0.0); //prawy brzeg pocz¹tku symetrycznie
-       bpts1[3]=vector6(-rozp,-fTexHeight,1.0,0.707,0.707,0.0); //prawy skos
-       bpts1[4]=vector6(rozp2,-fTexHeight2,0.0,-0.707,0.707,0.0); //lewy brzeg
-       bpts1[5]=vector6((fHTW2+side2)*cos2,-(fHTW2+side2)*sin2,0.33,-0.707,0.707,0.0); //krawêdŸ za³amania
-       bpts1[6]=vector6(-bpts1[5].x,-bpts1[5].y,0.67,0.707,0.707,0.0); //prawy brzeg pocz¹tku symetrycznie
-       bpts1[7]=vector6(-rozp2,-fTexHeight2,1.0,0.707,0.707,0.0); //prawy skos
+       bpts1[0]=vector6(rozp,              -fTexHeight-0.18,        0.00,-0.707,0.707,0.0); //lewy brzeg
+       bpts1[1]=vector6((fHTW+side)*cos1,  -(fHTW+side)*sin1-0.18,  0.33,-0.707,0.707,0.0); //krawêdŸ za³amania
+       bpts1[2]=vector6(-bpts1[1].x,       +(fHTW+side)*sin1-0.18,  0.67,0.707,0.707,0.0); //prawy brzeg pocz¹tku symetrycznie
+       bpts1[3]=vector6(-rozp,             -fTexHeight-0.18,        1.00,0.707,0.707,0.0); //prawy skos
+       //koñcowy przekrój
+       bpts1[4]=vector6(rozp2,             -fTexHeight2-0.18,       0.00,-0.707,0.707,0.0); //lewy brzeg
+       bpts1[5]=vector6((fHTW2+side2)*cos2,-(fHTW2+side2)*sin2-0.18,0.33,-0.707,0.707,0.0); //krawêdŸ za³amania
+       bpts1[6]=vector6(-bpts1[5].x,       +(fHTW2+side2)*sin2-0.18,0.67,0.707,0.707,0.0); //prawy brzeg pocz¹tku symetrycznie
+       bpts1[7]=vector6(-rozp2,            -fTexHeight2-0.18,       1.00,0.707,0.707,0.0); //prawy skos
       }
       else
-      {bpts1[0]=vector6(rozp,-fTexHeight,0.0,-0.707,0.707,0.0); //lewy brzeg
-       bpts1[1]=vector6(fHTW+side,0.0,0.33,-0.707,0.707,0.0); //krawêdŸ za³amania
-       bpts1[2]=vector6(-fHTW-side,0.0,0.67,0.707,0.707,0.0); //druga
-       bpts1[3]=vector6(-rozp,-fTexHeight,1.0,0.707,0.707,0.0); //prawy skos
+      {bpts1[0]=vector6(rozp,      -fTexHeight-0.18,0.0,-0.707,0.707,0.0); //lewy brzeg
+       bpts1[1]=vector6(fHTW+side, -0.18,0.33,-0.707,0.707,0.0); //krawêdŸ za³amania
+       bpts1[2]=vector6(-fHTW-side,-0.18,0.67,0.707,0.707,0.0); //druga
+       bpts1[3]=vector6(-rozp,     -fTexHeight-0.18,1.0,0.707,0.707,0.0); //prawy skos
       }
       Segment->RaRenderLoft(Vert,bpts1,iTrapezoid?-4:4,fTexLength);
      }
@@ -1426,10 +1448,10 @@ void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Star
      {//iglice liczone tylko dla zwrotnic
       vector6 rpts3[24],rpts4[24];
       for (i=0;i<12;++i)
-      {rpts3[i]   =vector6((fHTW+iglica[i].x)*cos1+iglica[i].y*sin1,-(fHTW+iglica[i].x)*sin1+iglica[i].y*cos1,iglica[i].z);
-       rpts3[i+12]=vector6((fHTW2+szyna[i].x)*cos2+szyna[i].y*sin2,-(fHTW2+szyna[i].x)*sin2+iglica[i].y*cos2,szyna[i].z);
+      {rpts3[i]   =vector6(+(fHTW+iglica[i].x)*cos1+iglica[i].y*sin1,-(+fHTW+iglica[i].x)*sin1+iglica[i].y*cos1,iglica[i].z);
+       rpts3[i+12]=vector6(+(fHTW2+szyna[i].x)*cos2+ szyna[i].y*sin2,-(+fHTW2+szyna[i].x)*sin2+iglica[i].y*cos2, szyna[i].z);
        rpts4[11-i]=vector6((-fHTW-iglica[i].x)*cos1+iglica[i].y*sin1,-(-fHTW-iglica[i].x)*sin1+iglica[i].y*cos1,iglica[i].z);
-       rpts4[23-i]=vector6((-fHTW2-szyna[i].x)*cos2+szyna[i].y*sin2,-(-fHTW2-szyna[i].x)*sin2+iglica[i].y*cos2,szyna[i].z);
+       rpts4[23-i]=vector6((-fHTW2-szyna[i].x)*cos2+ szyna[i].y*sin2,-(-fHTW2-szyna[i].x)*sin2+iglica[i].y*cos2, szyna[i].z);
       }
       if (SwitchExtension->RightSwitch)
       {//nowa wersja z SPKS, ale odwrotnie lewa/prawa

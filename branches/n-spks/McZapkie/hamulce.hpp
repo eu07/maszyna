@@ -261,6 +261,7 @@ private:
 	double CylFlowSpeed[2][2];
 	double LBP;
 	double RM;
+	bool EDFlag;
 	
 public:
 	void __fastcall SetLBP(double P);
@@ -268,6 +269,8 @@ public:
 	virtual double __fastcall GetPF(double PP, double dt, double Vel);
 	virtual double __fastcall GetHPFlow(double HP, double dt);
 	virtual void __fastcall Init(double PP, double HPP, double LPP, double BP, Byte BDF);
+	double __fastcall GetEDBCP(void);
+	void __fastcall SetED(bool EDstate);
 public:
 	#pragma option push -w-inl
 	/* TBrake.Create */ inline __fastcall TLSt(double i_mbp, double i_bcr, double i_bcd, double i_brc, 

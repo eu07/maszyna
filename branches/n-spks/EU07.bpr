@@ -4,15 +4,15 @@
   <MACROS>
     <VERSION value="BCB.05.03"/>
     <PROJECT value="D:\!PC2010_DDS_SPKS\EU07.exe"/>
-    <OBJFILES value="McZapkie\mover.obj McZapkie\ai_driver.obj QueryParserComp.obj 
-      McZapkie\mtable.obj EU07.obj dumb3d.obj Camera.obj Texture.obj World.obj 
-      Model3d.obj geometry.obj MdlMngr.obj Train.obj wavread.obj Timer.obj 
-      Event.obj MemCell.obj Logs.obj Spring.obj Button.obj Globals.obj Gauge.obj 
-      AnimModel.obj Ground.obj TrkFoll.obj Segment.obj Sound.obj AdvSound.obj 
-      Track.obj DynObj.obj RealSound.obj EvLaunch.obj FadeSound.obj Traction.obj 
-      TractionPower.obj parser.obj sky.obj AirCoupler.obj glew.obj 
-      ResourceManager.obj VBO.obj Feedback.obj TextureDDS.obj 
-      opengl\ARB_Multisample.obj Float3d.obj Classes.obj"/>
+    <OBJFILES value="McZapkie\mover.obj QueryParserComp.obj McZapkie\mtable.obj EU07.obj 
+      dumb3d.obj Camera.obj Texture.obj World.obj Model3d.obj geometry.obj 
+      MdlMngr.obj Train.obj wavread.obj Timer.obj Event.obj MemCell.obj Logs.obj 
+      Spring.obj Button.obj Globals.obj Gauge.obj AnimModel.obj Ground.obj 
+      TrkFoll.obj Segment.obj Sound.obj AdvSound.obj Track.obj DynObj.obj 
+      RealSound.obj EvLaunch.obj FadeSound.obj Traction.obj TractionPower.obj 
+      parser.obj sky.obj AirCoupler.obj glew.obj ResourceManager.obj VBO.obj 
+      Feedback.obj TextureDDS.obj opengl\ARB_Multisample.obj Float3d.obj 
+      Classes.obj Driver.obj"/>
     <RESFILES value="EU07.res"/>
     <IDLFILES value=""/>
     <IDLGENFILES value=""/>
@@ -36,13 +36,13 @@
     <USERDEFINES value="GLEW_STATIC;_DEBUG;USE_VBO"/>
     <SYSDEFINES value="_RTLDLL;NO_STRICT"/>
     <MAINSOURCE value="EU07.cpp"/>
-    <INCLUDEPATH value="opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
-    <LIBPATH value="opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
+    <INCLUDEPATH value="C:\Users\Xoov;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
+    <LIBPATH value="C:\Users\Xoov;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
     <WARNINGS value="-w-par"/>
   </MACROS>
   <OPTIONS>
-    <IDLCFLAGS value="-Iopengl -IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl -src_suffix cpp 
-      -DGLEW_STATIC -D_DEBUG -DUSE_VBO -boa"/>
+    <IDLCFLAGS value="-src_suffix cpp -DGLEW_STATIC -D_DEBUG -DUSE_VBO -IC:\Users\Xoov -Iopengl 
+      -IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl -boa"/>
     <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a4 -6 -b- -k -y -v -vi- 
       -c -tW -tWM"/>
     <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
@@ -61,8 +61,8 @@ IncludeVerInfo=1
 AutoIncBuild=1
 MajorVer=0
 MinorVer=666
-Release=255
-Build=235
+Release=264
+Build=260
 Debug=1
 PreRelease=0
 Special=0
@@ -74,7 +74,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=0.666.255.235
+FileVersion=0.666.264.260
 InternalName=5th plus by Ra with SPKS
 LegalCopyright=
 LegalTrademarks=
@@ -87,7 +87,7 @@ Comments=
 DebugSourceDirs=
 
 [Parameters]
-RunParams=-s AI_start.scn -v ET22-135
+RunParams=
 HostApplication=
 RemoteHost=
 RemotePath=

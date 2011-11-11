@@ -227,6 +227,7 @@ public:
  static bool bInactivePause; //automatyczna pauza, gdy okno nieaktywne
  static int iTextures; //licznik u¿ytych tekstur
  static int iSlowMotionMask; //maska wy³¹czanych w³aœciwoœci
+ static int iModifyTGA; //czy korygowaæ pliki TGA dla szybszego wczytywania
 };
 
 //---------------------------------------------------------------------------

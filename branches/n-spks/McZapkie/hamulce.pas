@@ -222,14 +222,17 @@ TYPE
     TLSt= class(TESt4R)
       private
         CylFlowSpeed: array[0..1] of array [0..1] of real;
-        LBP: real;     //cisnienie hamulca pomocniczego
-        RM: real;      //przelozenie rapida
+        LBP: real;       //cisnienie hamulca pomocniczego
+        RM: real;        //przelozenie rapida
+        EDFlag: boolean; //luzowanie hamulca z powodu zalaczonego ED
       public
         procedure SetLBP(P: real);   //cisnienie z hamulca pomocniczego
         procedure SetRM(RMR: real);   //ustalenie przelozenia rapida
         function GetPF(PP, dt, Vel: real): real; override;     //przeplyw miedzy komora wstepna i PG
         function GetHPFlow(HP, dt: real): real; override; //przeplyw - 8 bar
         procedure Init(PP, HPP, LPP, BP: real; BDF: byte); override;
+        function GetEDBCP: real;    //cisnienie tylko z hamulca zasadniczego, uzywane do hamulca ED w EP09
+        procedure SetED(EDstate: boolean); //stan hamulca ED do luzowania
       end;
 
     TEStEP2= class(TLSt)
@@ -347,23 +350,24 @@ var ph,pl: real;
 begin
   PH:=Max0R(P1,P2)+1;
   PL:=P1+P2-PH+2;
-  if  PH-PL<0.0001 then PF:=0 else
+  if  PH-PL<0.0001 then PF_old:=0 else
   if (PH-PL)<0.05 then
-    PF:=20*(PH-PL)*(PH+1)*222*S*(P2-P1)/(1.13*ph-pl)
+    PF_old:=20*(PH-PL)*(PH+1)*222*S*(P2-P1)/(1.13*ph-pl)
   else
-    PF:=(PH+1)*222*S*(P2-P1)/(1.13*ph-pl);
+    PF_old:=(PH+1)*222*S*(P2-P1)/(1.13*ph-pl);
 end;
 
 function PF(P1,P2,S:real):real;
-var ph,pl: real;
+var ph,pl,sg,fm: real;
 begin
-  PH:=Max0R(P1,P2)+1;
-  PL:=P1+P2-PH+2;
-  if  PH-PL<0.0001 then PF:=0 else
-  if (PH-PL)<0.05 then
-    PF:=20*(PH-PL)*(PH)*197*S*(P2-P1)/(1.13*ph-pl)
-  else
-    PF:=(PH)*197*S*SQRT((PL/PH)*(1-PL/PH));
+  PH:=Max0R(P1,P2)+1; //wyzsze cisnienie absolutne
+  PL:=P1+P2-PH+2;  //nizsze cisnienie absolutne
+  sg:=PL/PH; //bezwymiarowy stosunek cisnien
+  fm:=PH*197*S*sign(P2-P1); //najwyzszy mozliwy przeplyw, wraz z kierunkiem
+  if (SG>0.5) then //jesli ponizej stosunku krytycznego
+    PF:=fm*SQRT((sg)*(1-sg))
+  else             //powyzej stosunku krytycznego
+    PF:=fm;
 end;
 
 
@@ -1244,6 +1248,7 @@ begin
 //  if Vel>55 then temp:=0.72 else
 //    temp:=1;{R}
   temp:=1-RM*Byte((Vel>55)and(BrakeDelayFlag=bdelay_R));
+  if EDFlag then temp:=10000;
 
 //powtarzacz — podwojny zawor zwrotny
   temp:=Max0R((CVP-BCP)*BVM/temp,LBP);
@@ -1278,12 +1283,27 @@ begin
   BrakeRes.CreatePress(8);
   ValveRes.CreatePress(PP);
 
+  EDFlag:=False;
+
   BrakeDelayFlag:=BDF;
 end;
 
 procedure TLSt.SetLBP(P: real);
 begin
   LBP:=P;
+end;
+
+function TLSt.GetEDBCP: real;
+var CVP, BCP: real;
+begin
+  CVP:=CntrlRes.P;
+  BCP:=ImplsRes.P;
+  GetEDBCP:=(CVP-BCP)*BVM;
+end;
+
+procedure TLSt.SetED(EDstate: boolean);
+begin
+  EDFlag:=EDstate
 end;
 
 procedure TLSt.SetRM(RMR: real);
