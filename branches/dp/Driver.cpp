@@ -277,7 +277,7 @@ bool __fastcall TController::CheckVehicles()
  if (OrderCurrentGet()==Obey_train) //jeœli jazda poci¹gowa
   Lights(1+4+16,2+32+64); //œwiat³a poci¹gowe (Pc1) i koñcówki (Pc5)
  else if (OrderCurrentGet()&(Shunt|Connect))
-  Lights(16,1); //œwiat³a manewrowe (Tb1)
+  Lights(16,(Controlling->TrainType&dt_EZT)?2+32:1); //œwiat³a manewrowe (Tb1)
  else if (OrderCurrentGet()==Disconnect)
   Lights(16,0); //œwiat³a manewrowe (Tb1) tylko z przodu, aby nie pozostawiæ sk³adu ze œwiat³em
  return true;
@@ -307,7 +307,7 @@ int __fastcall TController::OrderDirectionChange(int newdir,Mover::TMoverParamet
   VelforDriver=0;
  if ((Vehicle->ActiveDir==0)&&(VelforDriver<Vehicle->Vel))
   IncBrake();
- if (Vehicle->ActiveDir==testd)
+ if (Vehicle->ActiveDir==testd*Vehicle->CabNo)
   VelforDriver=-1;
  if ((Vehicle->ActiveDir>0)&&(Vehicle->TrainType==dt_EZT))
   Vehicle->DirectionForward(); //Ra: z przekazaniem do silnikowego
@@ -451,21 +451,18 @@ bool __fastcall TController::PrepareEngine()
    {//ustalenie kierunku, gdy stoi
     iDirection=Controlling->CabNo; //wg wybranej kabiny
     if (!iDirection) //jeœli nie ma ustalonego kierunku
-    {if (Controlling->Couplers[1].CouplingFlag==ctrain_virtual) //jeœli z ty³u nie ma nic
-      if (Controlling->PantFrontVolt||Controlling->PantRearVolt||voltfront||voltrear)
+     if (Controlling->PantFrontVolt||Controlling->PantRearVolt||voltfront||voltrear)
+     {if (Controlling->Couplers[1].CouplingFlag==ctrain_virtual) //jeœli z ty³u nie ma nic
        iDirection=-1; //jazda w kierunku sprzêgu 1
-     if (Controlling->Couplers[0].CouplingFlag==ctrain_virtual) //jeœli z przodu nie ma nic
-      if (Controlling->PantFrontVolt||Controlling->PantRearVolt||voltfront||voltrear)
+      if (Controlling->Couplers[0].CouplingFlag==ctrain_virtual) //jeœli z przodu nie ma nic
        iDirection=1; //jazda w kierunku sprzêgu 0
-    }
+     }
    }
    else //ustalenie kierunku, gdy jedzie
-    if (Controlling->V<0) //jedzie do ty³u
-    {if (Controlling->PantFrontVolt||Controlling->PantRearVolt||voltfront||voltrear)
+    if (Controlling->PantFrontVolt||Controlling->PantRearVolt||voltfront||voltrear)
+     if (Controlling->V<0) //jedzie do ty³u
       iDirection=-1; //jazda w kierunku sprzêgu 1
-    }
-    else //jak nie do ty³u, to do przodu
-     if (Controlling->PantFrontVolt||Controlling->PantRearVolt||voltfront||voltrear)
+     else //jak nie do ty³u, to do przodu
       iDirection=1; //jazda w kierunku sprzêgu 0
   if (!Controlling->Mains)
   {
@@ -1575,7 +1572,14 @@ void __fastcall TController::OrdersInit(double fVel)
  else
  {//jeœli z rozk³adem, to jedzie na szlak
   //Mechanik->PutCommand("Timetable:"+TrainName,0,0);
-  OrderPush(Obey_train);
+  if (TrainParams?
+   (AnsiString(TrainParams->TimeTable[1].StationWare).Pos("@")? //jeœli obrót na pierwszym przystanku
+   (Controlling->TrainType&(dt_EZT)? //SZT równie¿! SN61 zale¿nie od wagonów...
+   (AnsiString(TrainParams->TimeTable[1].StationName)==TrainParams->Relation1):false):false):true)
+   OrderPush(Shunt); //a teraz start bêdzie w manewrowym, a tryb poci¹gowy w³¹czy W4
+  else
+  //jeœli start z pierwszej stacji i jednoczeœnie jest na niej zmiana kierunku, to EZT ma mieæ Shunt
+   OrderPush(Obey_train); //dla starych scenerii start w trybie pociagowym
   WriteLog("/* "+TrainParams->ShowRelation());
   TMTableLine *t;
   for (int i=0;i<=TrainParams->StationCount;++i)
@@ -1858,6 +1862,7 @@ void __fastcall TController::ScanEventTrack()
       WriteLog("-> SetVelocity 0 0");
 #endif
      }
+     return;
     }
    }
   }
@@ -1949,6 +1954,7 @@ void __fastcall TController::ScanEventTrack()
           WriteLog(edir);
 #endif
           SetProximityVelocity(scandist,vmechmax,&sl);
+          return;
          }
          else  //ustawiamy prêdkoœæ tylko wtedy, gdy ma ruszyæ, stan¹æ albo ma staæ
           //if ((MoverParameters->Vel==0.0)||(vmechmax==0.0)) //jeœli stoi lub ma stan¹æ/staæ
@@ -1958,6 +1964,7 @@ void __fastcall TController::ScanEventTrack()
 #if LOGVELOCITY
            WriteLog(edir+"SetVelocity "+AnsiString(vmechmax)+" "+AnsiString(e->Params[9].asMemCell->fValue2));
 #endif
+           return;
           }
         }
       if (OrderCurrentGet()==Shunt) //w Wait_for_orders te¿ widzi tarcze?
@@ -1977,6 +1984,7 @@ void __fastcall TController::ScanEventTrack()
            WriteLog(edir);
 #endif
            SetProximityVelocity(scandist,vmechmax,&sl);
+           return;
           }
          }
          else //ustawiamy prêdkoœæ tylko wtedy, gdy ma ruszyæ, albo stan¹æ albo ma staæ pod tarcz¹
@@ -1987,6 +1995,7 @@ void __fastcall TController::ScanEventTrack()
 #if LOGVELOCITY
            WriteLog(edir+"ShuntVelocity "+AnsiString(vmechmax)+" "+AnsiString(e->Params[9].asMemCell->fValue2));
 #endif
+           return;
           }
          }
          if ((vmechmax!=0.0)&&(scandist<100.0))
@@ -1996,6 +2005,7 @@ void __fastcall TController::ScanEventTrack()
 #if LOGVELOCITY
           WriteLog(edir+"- will be ignored due to Ms2");
 #endif
+          return;
          }
         }
        }
@@ -2027,6 +2037,7 @@ void __fastcall TController::ScanEventTrack()
 #if LOGVELOCITY
          WriteLog("PutValues: SetVelocity "+AnsiString(vmechmax)+" "+AnsiString(e->Params[2].asdouble));
 #endif
+         return;
         }
         else
         {//Mechanik->PutCommand("SetProximityVelocity",scandist,e->Params[1].asdouble,sl);
@@ -2035,6 +2046,7 @@ void __fastcall TController::ScanEventTrack()
           WriteLog("PutValues:");
 #endif
          SetProximityVelocity(scandist,e->Params[1].asdouble,&sl);
+         return;
         }
       }
       else if ((iDrivigFlags&moveStopPoint)?strcmp(e->Params[0].asText,asNextStop.c_str())==0:false)
@@ -2160,6 +2172,7 @@ void __fastcall TController::ScanEventTrack()
            } //koniec obs³ugi ostatniej stacji
           } //if (MoverParameters->Vel==0.0)
          } //koniec obs³ugi W4 z zatrzymaniem
+        return;
        } //koniec obs³ugi zatrzymania na W4
       } //koniec obs³ugi PassengerStopPoint
      } //if (e->Type==tp_PutValues)

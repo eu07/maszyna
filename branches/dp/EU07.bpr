@@ -62,7 +62,7 @@ AutoIncBuild=1
 MajorVer=1
 MinorVer=6
 Release=276
-Build=276
+Build=277
 Debug=1
 PreRelease=0
 Special=0
@@ -74,7 +74,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.6.276.276
+FileVersion=1.6.276.277
 InternalName=6th by Ra
 LegalCopyright=
 LegalTrademarks=
@@ -128,7 +128,7 @@ Item7=M:\aEU07\EU07
 DebugSourceDirs=C:\Ra\dp\McZapkie\
 
 [Parameters]
-RunParams=-s wroclaw12a.scn -v ghostview
+RunParams=-s AI_start1.scn -v ghostview
 HostApplication=
 RemoteHost=
 RemotePath=
