@@ -101,7 +101,7 @@ CONST
                 //a predkosc przeplywu w m/s
 
 //   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (14, 5.4), (9, 5.0), (6, 4.6), (9, 4.5), (9, 4.0), (9, 3.5), (9, 2.8), (34, 2.8));
-   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (7.5, 5.4), (5, 5.0), (5, 4.6), (5, 4.5), (5, 4.0), (5, 3.5), (5, 2.8), (13, 2.8));
+   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (7.5, 5.4), (5, 5.0), (5, 4.6), (5, 4.3), (5, 4.0), (5, 3.5), (5, 2.8), (13, 2.8));
 //   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (12, 5.4), (9, 5.0), (9, 4.6), (9, 4.2), (9, 3.8), (9, 3.4), (9, 2.8), (34, 2.8));
 //      BPT: array[-2..6] of array [0..1] of real= ((0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0));
    i_bcpno= 6;
@@ -365,7 +365,10 @@ begin
   sg:=PL/PH; //bezwymiarowy stosunek cisnien
   fm:=PH*197*S*sign(P2-P1); //najwyzszy mozliwy przeplyw, wraz z kierunkiem
   if (SG>0.5) then //jesli ponizej stosunku krytycznego
-    PF:=fm*SQRT((sg)*(1-sg))
+    if (PH-PL)<0.1 then //niewielka roznica cisnien
+      PF:=10*(PH-PL)*fm*2*SQRT((sg)*(1-sg))
+    else
+      PF:=fm*2*SQRT((sg)*(1-sg))
   else             //powyzej stosunku krytycznego
     PF:=fm;
 end;
@@ -1253,13 +1256,13 @@ begin
 //powtarzacz — podwojny zawor zwrotny
   temp:=Max0R((CVP-BCP)*BVM/temp,LBP);
 //luzowanie CH
-  if(BrakeCyl.P>temp+0.005)or(temp<0.15) then
+  if(BrakeCyl.P>temp+0.005)or(temp<0.28) then
 //   dV:=PF(0,BrakeCyl.P,0.0015*3*sizeBC)*dt
    dV:=PF(0,BrakeCyl.P,0.005*3*sizeBC)*dt
   else dV:=0;
   BrakeCyl.Flow(-dV);
 //przeplyw ZP <-> CH
-  if(BrakeCyl.P<temp-0.005)and(temp>0.2) then
+  if(BrakeCyl.P<temp-0.005)and(temp>0.29) then
    dV:=PF(BVP,BrakeCyl.P,0.002*3*sizeBC*2)*dt
   else dV:=0;
   BrakeRes.Flow(dV);

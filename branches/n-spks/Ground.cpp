@@ -825,7 +825,7 @@ __fastcall TGround::TGround()
  OldQRE=NULL;
  RootEvent=NULL;
  iNumNodes=0;
- pTrain=NULL;
+ //pTrain=NULL;
  Global::pGround=this;
  bInitDone=false; //Ra: ¿eby nie robi³o dwa razy FirstInit
  for (int i=0;i<TP_LAST;i++)
@@ -1101,7 +1101,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    parser->getTokens();
    *parser >> token;
    str=AnsiString(token.c_str());
-   tmp->pStaticSound->Init(str.c_str(),sqrt(tmp->fSquareRadius),tmp->pCenter.x,tmp->pCenter.y,tmp->pCenter.z);
+   tmp->pStaticSound->Init(str.c_str(),sqrt(tmp->fSquareRadius),tmp->pCenter.x,tmp->pCenter.y,tmp->pCenter.z,false);
 
 //            tmp->pDirectSoundBuffer=TSoundsManager::GetFromName(str.c_str());
 //            tmp->iState=(Parser->GetNextSymbol().LowerCase()=="loop"?DSBPLAY_LOOPING:0);
@@ -1498,12 +1498,13 @@ void __fastcall TGround::FirstInit()
  //ABu 160205: juz nie TODO :)
  GlobalTime=new TMTableTime(hh,mm,srh,srm,ssh,ssm); //McZapkie-300302: inicjacja czasu rozkladowego - TODO: czytac z trasy!
  WriteLog("InitGlobalTime OK");
+ WriteLog("FirstInit done");
 };
 
 bool __fastcall TGround::Init(AnsiString asFile)
 {
     Global::pGround=this;
-    pTrain=NULL;
+    //pTrain=NULL;
 
     pOrigin=aRotate=vector3(0,0,0); //zerowanie przesuniêcia i obrotu
 
@@ -3227,7 +3228,7 @@ void __fastcall TGround::RadioStop(vector3 pPosition)
       node->pTrack->RadioStop(); //przekazanie do ka¿dego toru w ka¿dym segmencie
 };
 
-TDynamicObject* __fastcall TGround::DynamicNearest(vector3 pPosition,double distance)
+TDynamicObject* __fastcall TGround::DynamicNearest(vector3 pPosition,double distance,bool mech)
 {//wyszukanie pojazdu najbli¿szego wzglêdem (pPosition)
  TGroundNode *node;
  TSubRect *tmp;
@@ -3243,10 +3244,11 @@ TDynamicObject* __fastcall TGround::DynamicNearest(vector3 pPosition,double dist
      if (node->iType==TP_TRACK)
       for (k=0;k<node->pTrack->iNumDynamics;k++)
        if ((sqd=SquareMagnitude(node->pTrack->Dynamics[k]->GetPosition()-pPosition))<sqm)
-       {
-        sqm=sqd; //nowa odleg³oœæ
-        dyn=node->pTrack->Dynamics[k]; //nowy lider
-       }
+        if (mech?(node->pTrack->Dynamics[k]->Mechanik!=NULL):true) //czy ma mieæ obsadê
+        {
+         sqm=sqd; //nowa odleg³oœæ
+         dyn=node->pTrack->Dynamics[k]; //nowy lider
+        }
  return dyn;
 };
 //---------------------------------------------------------------------------

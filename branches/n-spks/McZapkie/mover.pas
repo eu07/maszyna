@@ -117,12 +117,12 @@ CONST
 
    {typ sprzegu}
    ctrain_virtual=0;
-   ctrain_coupler=1;       {sprzeg fizyczny}
-   ctrain_pneumatic=2;     {przewody hamulcowe}
-   ctrain_controll=4;      {przewody sterujace}
-   ctrain_power=8;         {przewody zasilajace}
-   ctrain_passenger=16;    {mostek przejsciowy}
-   ctrain_scndpneumatic=32;{przewody 8 atm}
+   ctrain_coupler=1;        //sprzeg fizyczny
+   ctrain_pneumatic=2;      //przewody hamulcowe
+   ctrain_controll=4;       //przewody steruj¹ce (ukrotnienie)
+   ctrain_power=8;          //przewody zasilaj¹ce (WN)
+   ctrain_passenger=16;     //mostek przejœciowy
+   ctrain_scndpneumatic=32; //przewody 8 atm
    ctrain_localbrake=64;   {przewód hamulca niesamoczynnego}
 
    {typ hamulca elektrodynamicznego}
@@ -133,11 +133,11 @@ CONST
    dbrake_automatic=8;
 
    {status czuwaka/SHP}
-   s_waiting=1;
-   s_aware=2;
-   s_active=4;
-   s_alarm=8;
-   s_ebrake=16;
+   s_waiting=1; //dzia³a
+   s_aware=2;   //czuwak miga
+   s_active=4;  //SHP œwieci
+   s_alarm=8;   //buczy
+   s_ebrake=16; //hamuje
 
    {dzwieki}
    sound_none=0;
@@ -154,14 +154,15 @@ CONST
    PhysicActivationFlag: boolean=False;
 
    //szczególne typy pojazdów (inna obs³uga) dla zmiennej TrainType
+   //zamienione na flagi bitowe, aby szybko wybieraæ grupê (np. EZT+SZT)
    dt_Default=0;
    dt_EZT=1;
    dt_ET41=2;
-   dt_ET42=3;
-   dt_PseudoDiesel=4;
-   dt_ET22=5; //nie u¿ywane
-   dt_SN61=6; //nie u¿ywane
-   dt_181=7;
+   dt_ET42=4;
+   dt_PseudoDiesel=8;
+   dt_ET22=$10; //nie u¿ywane w warunkach, ale ustawiane
+   dt_SN61=$20; //nie u¿ywane w warunkach, ale ustawiane
+   dt_181=$40;
 
 TYPE
     PMoverParameters=^TMoverParameters;
@@ -706,6 +707,7 @@ TYPE
 
                {! funkcje laczace/rozlaczajace sprzegi}
                function Attach(ConnectNo: byte; ConnectToNr: byte; ConnectTo:PMoverParameters; CouplingType: byte):boolean; {laczenie}
+               function DettachDistance(ConnectNo: byte):boolean; //odleg³oœæ roz³¹czania
                function Dettach(ConnectNo: byte):boolean;                    {rozlaczanie}
 
                {funkcje obliczajace sily}
@@ -1124,6 +1126,7 @@ begin
 end;
 
 function TMoverParameters.CabActivisation:boolean;
+//za³¹czenie rozrz¹du
 var OK:boolean;
 begin
   OK:=(CabNo=0);
@@ -1138,17 +1141,18 @@ begin
 end;
 
 function TMoverParameters.CabDeactivisation:boolean;
+//wy³¹czenie rozrz¹du
 var OK:boolean;
 begin
-  OK:=(CabNo=ActiveCab);
-  if(OK)then
-   begin
-     LastCab:=CabNo;
-     CabNo:=0;
-     DirAbsolute:=ActiveDir*CabNo;
-     SendCtrlToNext('CabActivisation',0,ActiveCab);
-   end;
-  CabDeactivisation:=OK;
+ OK:=(CabNo=ActiveCab);
+ if(OK)then
+  begin
+   LastCab:=CabNo;
+   CabNo:=0;
+   DirAbsolute:=ActiveDir*CabNo;
+   SendCtrlToNext('CabActivisation',0,ActiveCab);
+  end;
+ CabDeactivisation:=OK;
 end;
 
 {
@@ -1475,24 +1479,24 @@ begin
    begin
     if (State=False) or ({(MainCtrlPos=0) and} (ScndCtrlPos=0) and (LastSwitchingTime>CtrlDelay) and not TestFlag(DamageFlag,dtrain_out)) then
      begin
-       if Mains then
-        SendCtrlToNext('MainSwitch',ord(State),CabNo);
+       if Mains then //jeœli by³ za³¹czony
+        SendCtrlToNext('MainSwitch',ord(State),CabNo); //wys³anie wy³¹czenia do pozosta³ych?
        Mains:=State;
-       if Mains then
-        SendCtrlToNext('MainSwitch',ord(State),CabNo); {wyslanie po wlaczeniu albo przed wylaczeniem}
-       MainSwitch:=True;
+       if Mains then //jeœli zosta³ za³¹czony
+        SendCtrlToNext('MainSwitch',ord(State),CabNo); //wyslanie po wlaczeniu albo przed wylaczeniem
+       MainSwitch:=True; //wartoœæ zwrotna
        LastSwitchingTime:=0;
        if (EngineType=DieselEngine) and Mains then
         begin
           dizel_enginestart:=State;
         end;
-       if (State=False) then
+       if (State=False) then //jeœli wy³¹czony
         begin
-          SetFlag(SoundFlag,sound_relay);
-          SecuritySystem.Status:=0;
+         SetFlag(SoundFlag,sound_relay);
+         SecuritySystem.Status:=0; //deaktywacja czuwaka
         end
        else
-        SecuritySystem.Status:=s_waiting;
+        SecuritySystem.Status:=s_waiting; //aktywacja czuwaka
      end
    end
   //else MainSwitch:=False;
@@ -1599,14 +1603,14 @@ begin
    SandDoseOn:=False;
 end;
 
-{reset czuwaka/SHP}
 function TMoverParameters.SecuritySystemReset : boolean;
+//zbijanie czuwaka/SHP
  procedure Reset;
   begin
     SecuritySystem.SystemTimer:=0;
     SecuritySystem.SystemBrakeTimer:=0;
     SecuritySystem.SystemSoundTimer:=0;
-    SecuritySystem.Status:=s_waiting;
+    SecuritySystem.Status:=s_waiting; //aktywacja czuwaka
     SecuritySystem.VelocityAllowed:=-1;
   end;
 begin
@@ -1633,9 +1637,9 @@ begin
      if (SystemType>0) and (Status>0) then
       begin
         SystemTimer:=SystemTimer+dt;
-        if TestFlag(Status,s_aware) or TestFlag(Status,s_active) then
+        if TestFlag(Status,s_aware) or TestFlag(Status,s_active) then //jeœli œwieci albo miga
          SystemSoundTimer:=SystemSoundTimer+dt;
-        if TestFlag(Status,s_alarm) then
+        if TestFlag(Status,s_alarm) then //jeœli buczy
          SystemBrakeTimer:=SystemBrakeTimer+dt;
         if TestFlag(SystemType,1) then
          if (SystemTimer>AwareDelay) and (AwareDelay>=0) then  {-1 blokuje}
@@ -1943,7 +1947,8 @@ end;
 
 function TMoverParameters.IncBrakePress(var brake:real;PressLimit,dp:real):boolean;
 begin
-    if (DynamicBrakeType<>dbrake_switch) and (DynamicBrakeType<>dbrake_none) and ((BrakePress>0.2) or (PipePress<0.37{(LowPipePress+0.05)})) then
+//  if (DynamicBrakeType<>dbrake_switch) and (DynamicBrakeType<>dbrake_none) and ((BrakePress>0.2) or (PipePress<0.37{(LowPipePress+0.05)})) then
+    if (DynamicBrakeType<>dbrake_switch) and (DynamicBrakeType<>dbrake_none) and (BrakePress>0.2) then //yB radzi nie sprawdzaæ ciœnienia w przewodzie
      begin
        DynamicBrakeFlag:=True;                 {uruchamianie hamulca ED albo odlaczanie silnikow}
        if (DynamicBrakeType=dbrake_automatic) and (abs(Im)>60) then            {nie napelniaj wiecej, jak na EP09}
@@ -1973,7 +1978,8 @@ begin
        DecBrakePress:=False;
        brake:=PressLimit;
      end;
-    if (DynamicBrakeType<>dbrake_switch) and ((BrakePress<0.1) and (PipePress>0.45{(LowPipePress+0.06)})) then
+//  if (DynamicBrakeType<>dbrake_switch) and ((BrakePress<0.1) and (PipePress>0.45{(LowPipePress+0.06)})) then
+    if (DynamicBrakeType<>dbrake_switch) and (BrakePress<0.1) then //yB radzi nie sprawdzaæ ciœnienia w przewodzie
      DynamicBrakeFlag:=False;                {wylaczanie hamulca ED i/albo zalaczanie silnikow}
 end;
 
@@ -2083,7 +2089,11 @@ end;
 
       Pipe.Act;
       PipePress:=Pipe.P;
-      Pipe.Flow(Hamulec.GetPF(PipePress,dt,Vel)+GetDVc(dt));
+      if (BrakeStatus and 128)=128 then //jesli hamulec wy³¹czony
+        temp:=0  //odetnij
+      else
+        temp:=1; //po³¹cz
+      Pipe.Flow(temp*Hamulec.GetPF(temp*PipePress,dt,Vel)+GetDVc(dt));
 
       dpPipe:=0;
 
@@ -2227,9 +2237,15 @@ begin
      then
       begin  {stykaja sie zderzaki i kompatybilne typy sprzegow chyba ze wirtualnie}
         Connected:=ConnectTo;
+        if CouplingFlag=ctrain_virtual then //jeœli wczeœniej nie by³o po³¹czone
+         begin //ustalenie z której strony rysowaæ sprzêg
+          Render:=True; //tego rysowaæ
+          Connected.Couplers[CouplerNr[ConnectNo]].Render:=false; //a tego nie
+         end;
         CouplingFlag:=CouplingType;
         if (CouplingType<>ctrain_virtual) //Ra: wirtualnego nie ³¹czymy zwrotnie!
-         then Connected.Couplers[CouplerNr[ConnectNo]].CouplingFlag:=CouplingType;
+        then //jeœli ³¹czenie sprzêgiem niewirtualnym, ustawiamy po³¹czenie zwrotne
+         Connected.Couplers[CouplerNr[ConnectNo]].CouplingFlag:=CouplingType;
         Attach:=True;
       end
      else
@@ -2238,6 +2254,20 @@ begin
    else
     Attach:=False;
   end;
+end;
+
+function TMoverParameters.DettachDistance(ConnectNo: byte): boolean;
+//Ra: sprawdzenie, czy odleg³oœæ jest dobra do roz³¹czania
+begin
+ with Couplers[ConnectNo] do
+  if (Connected<>nil) and
+  {ABu021104: zakomentowane 'and (CouplerType<>Articulated)' w warunku, nie wiem co to bylo, ale za to teraz dziala odczepianie... :) }
+  (((Distance(Loc,Connected^.Loc,Dim,Connected^.Dim)>0) {and (CouplerType<>Articulated)}) or
+   (TestFlag(DamageFlag,dtrain_coupling) or (CouplingFlag and ctrain_coupler=0)))
+   then
+    DettachDistance:=FALSE
+   else
+    DettachDistance:=TRUE;
 end;
 
 function TMoverParameters.Dettach(ConnectNo: byte): boolean; {rozlaczanie}
@@ -2256,7 +2286,13 @@ begin
        Dettach:=True;
      end
    else
-    Dettach:=False;
+     begin //od³¹czamy wê¿e i resztê, pozostaje sprzêg fizyczny
+       CouplingFlag:=CouplingFlag and ctrain_coupler;
+       Connected.Couplers[CouplerNr[ConnectNo]].CouplingFlag:=CouplingFlag;
+       Pipe.Flow(-3);
+       Connected.Pipe.Flow(-3);
+       Dettach:=False; //jeszcze nie roz³¹czony
+     end
   end;
 end;
 
@@ -2295,6 +2331,7 @@ end;
 
 function TMoverParameters.FuseOn: boolean;
 begin
+ FuseOn:=False;
  if (MainCtrlPos=0) and (ScndCtrlPos=0) and Mains then
   begin
    SendCtrlToNext('FuseSwitch',1,CabNo);
@@ -4109,18 +4146,18 @@ Begin
    end
   else if command='CabActivisation' then
    begin
-//     OK:=Power>0.01;
-//     if OK then
-      if (CabNo<>0) then
-        LastCab:=CabNo;
-      case Trunc(CValue1) of
-       1 : CabNo:= 1;
-      -1 : CabNo:=-1;
-      else CabNo:=0;
-      DirAbsolute:=ActiveDir*CabNo;
-      PantCheck;
-      end;
-     OK:=SendCtrlToNext(command,CValue1,CValue2);
+//  OK:=Power>0.01;
+//  if OK then
+    if (CabNo<>0) then
+     LastCab:=CabNo;
+    case Trunc(CValue1) of
+      1 : CabNo:= 1;
+     -1 : CabNo:=-1;
+    else CabNo:=0;
+    end;
+    DirAbsolute:=ActiveDir*CabNo;
+    PantCheck; //ewentualnie automatyczna zamiana podniesionych pantografów
+    OK:=SendCtrlToNext(command,CValue1,CValue2);
    end
   else if command='AutoRelaySwitch' then
    begin
@@ -4877,6 +4914,7 @@ end;
 function TMoverParameters.PantFront(State: Boolean):Boolean;
 var pf1: Real;
 begin
+ PantFront:=true;
  if (State=true) then pf1:=1
   else pf1:=0;
  if (PantFrontUp<>State) then
@@ -4884,7 +4922,6 @@ begin
   PantFrontUp:=State;
   if (State=true) then
    begin
-      PantFront:=true;
       PantFrontStart:=0;
       SendCtrlToNext('PantFront',1,CabNo);
    end
@@ -4908,6 +4945,7 @@ end;
 function TMoverParameters.PantRear(State: Boolean):Boolean;
 var pf1: Real;
 begin
+ PantRear:=true;
  if (State=true) then pf1:=1
  else pf1:=0;
  if (PantRearUp<>State) then
@@ -4915,7 +4953,6 @@ begin
   PantRearUp:=State;
   if (State=true) then
    begin
-     PantRear:=true;
      PantRearStart:=0;
      SendCtrlToNext('PantRear',1,CabNo);
    end
@@ -5093,7 +5130,7 @@ function PowerDecode(s:string): TPowerType;
      end;
   end;
 begin
-  OK:=True;
+  //OK:=True;
   OKflag:=0;
   LineCount:=0;
   ConversionError:=666;

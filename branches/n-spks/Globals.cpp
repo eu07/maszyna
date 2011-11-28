@@ -33,36 +33,51 @@
 
 
 //namespace Global {
-int Global::Keys[MaxKeys];
+
+//parametry do u¿ytku wewnêtrznego
+//double Global::tSinceStart=0;
+TGround *Global::pGround=NULL;
+//char Global::CreatorName1[30]="Maciej Czapkiewicz";
+//char Global::CreatorName2[30]="Marcin Wozniak <Marcin_EU>";
+//char Global::CreatorName3[20]="Adam Bugiel <ABu>";
+//char Global::CreatorName4[30]="Arkadiusz Slusarczyk <Winger>";
+//char Global::CreatorName5[30]="Lukasz Kirchner <Nbmx>";
+AnsiString Global::asCurrentSceneryPath="scenery/";
+AnsiString Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath);
+AnsiString Global::asCurrentDynamicPath="";
+int Global::iSlowMotion=0; //info o malym FPS: 0-OK, 1-wy³¹czyæ multisampling 3-zmniejszenie promienia
+bool Global::changeDynObj; //info o zmianie pojazdu
+bool Global::detonatoryOK; //info o nowych detonatorach
+double Global::ABuDebug=0;
+AnsiString Global::asSky="1";
+double Global::fOpenGL=0.0; //wersja OpenGL - przyda siê
+bool Global::bOpenGL_1_5=false; //czy s¹ dostêpne funkcje OpenGL 1.5
+double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
+bool Global::bReCompile=false; //czy odœwie¿yæ siatki
+HWND Global::hWnd=NULL; //uchwyt okna
+int Global::iCameraLast=-1;
+AnsiString Global::asVersion="Compilation 2011-11-22, release 1.6.276.277."; //tutaj, bo wysy³any
+int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
+int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
+double Global::fSunDeclination=0.0; //deklinacja S³oñca
+double Global::fTimeAngleDeg=0.0; //godzina w postaci k¹ta
+char* Global::szTexturesTGA[4]={"tga","dds","tex","bmp"}; //lista tekstur od TGA
+char* Global::szTexturesDDS[4]={"dds","tga","tex","bmp"}; //lista tekstur od DDS
+int Global::iKeyLast=0; //ostatnio naciœniêty klawisz w celu logowania
+GLuint Global::iTextureId=0; //ostatnio u¿yta tekstura 2D
+bool Global::bPause=false; //globalna pauza ruchu
+bool Global::bActive=true; //czy jest aktywnym oknem
+int Global::iErorrCounter=0; //licznik sprawdzañ do œledzenia b³êdów OpenGL
+int Global::iTextures=0; //licznik u¿ytych tekstur
+
+//parametry scenerii
 vector3 Global::pCameraPosition;
 double Global::pCameraRotation;
 double Global::pCameraRotationDeg;
 vector3 Global::pFreeCameraInit[10];
 vector3 Global::pFreeCameraInitAngle[10];
-int Global::iWindowWidth=800;
-int Global::iWindowHeight=600;
-int Global::iBpp=32;
-bool Global::bFullScreen=false;
-bool Global::bFreeFly=false;
-bool Global::bWireFrame=false;
-bool Global::bTimeChange=false;
-bool Global::bSoundEnabled=true;
-bool Global::bRenderAlpha=true; //Ra: wywalam tê flagê
-bool Global::bWriteLogEnabled=true;
-bool Global::bAdjustScreenFreq=true;
-bool Global::bEnableTraction=true;
-bool Global::bLoadTraction=true;
-bool Global::bLiveTraction=true;
-bool Global::bManageNodes=true;
-bool Global::bnewAirCouplers=true;
-bool Global::bDecompressDDS=false;
-
-//bool Global::WFreeFly=false;
-float Global::fMouseXScale=3.2;
-float Global::fMouseYScale=0.5;
 double Global::fFogStart=1300;
 double Global::fFogEnd=2000;
-//double Global::tSinceStart=0;
 GLfloat Global::AtmoColor[]={0.6f,0.7f,0.8f};
 GLfloat Global::FogColor[]={0.6f,0.7f,0.8f};
 GLfloat Global::ambientDayLight[] ={0.40f,0.40f,0.45f,1.0f}; //robocze
@@ -75,60 +90,57 @@ GLfloat Global::whiteLight[]      ={1.00f,1.00f,1.00f,1.0f};
 GLfloat Global::noLight[]         ={0.00f,0.00f,0.00f,1.0f};
 GLfloat Global::darkLight[]       ={0.03f,0.03f,0.03f,1.0f}; //œladowe
 GLfloat Global::lightPos[4];
-TGround *Global::pGround=NULL;
-//char Global::CreatorName1[30]="Maciej Czapkiewicz";
-//char Global::CreatorName2[30]="Marcin Wozniak <Marcin_EU>";
-//char Global::CreatorName3[20]="Adam Bugiel <ABu>";
-//char Global::CreatorName4[30]="Arkadiusz Slusarczyk <Winger>";
-//char Global::CreatorName5[30]="Lukasz Kirchner <Nbmx>";
+
+//parametry u¿ytkowe (jak komu pasuje)
+int Global::Keys[MaxKeys];
+int Global::iWindowWidth=800;
+int Global::iWindowHeight=600;
+int Global::iBpp=32;
+int Global::iFeedbackMode=1; //tryb pracy informacji zwrotnej
+bool Global::bFreeFly=false;
+bool Global::bFullScreen=false;
+bool Global::bInactivePause=true; //automatyczna pauza, gdy okno nieaktywne
+float Global::fMouseXScale=3.2;
+float Global::fMouseYScale=0.5;
 char Global::szSceneryFile[256]="td.scn";
-AnsiString Global::asCurrentSceneryPath="scenery/";
 AnsiString Global::asHumanCtrlVehicle="EU07-424";
-AnsiString Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath);
-int Global::iSlowMotion=0; //info o malym FPS: 0-OK, 1-wy³¹czyæ multisampling 3-zmniejszenie promienia
-bool Global::changeDynObj; //info o zmianie pojazdu
-bool Global::detonatoryOK; //info o nowych detonatorach
-double Global::ABuDebug=0;
-AnsiString Global::asSky="1";
+int Global::iMultiplayer=0; //blokada dzia³ania niektórych funkcji na rzecz kominikacji
+double Global::fMoveLight=-1; //ruchome œwiat³o
+double Global::fLatitudeDeg=52.0; //szerokoœæ geograficzna
+
+//parametry wydajnoœciowe (np. regulacja FPS, szybkoœæ wczytywania)
+bool Global::bAdjustScreenFreq=true;
+bool Global::bEnableTraction=true;
+bool Global::bLoadTraction=true;
+bool Global::bLiveTraction=true;
 int Global::iDefaultFiltering=9; //domyœlne rozmywanie tekstur TGA bez alfa
 int Global::iBallastFiltering=9; //domyœlne rozmywanie tekstur podsypki
 int Global::iRailProFiltering=5; //domyœlne rozmywanie tekstur szyn
 int Global::iDynamicFiltering=5; //domyœlne rozmywanie tekstur pojazdów
-bool Global::bReCompile=false; //czy odœwie¿yæ siatki
 bool Global::bUseVBO=false; //czy jest VBO w karcie graficznej
-int Global::iFeedbackMode=1; //tryb pracy informacji zwrotnej
-double Global::fOpenGL=0.0; //wersja OpenGL - przyda siê
-bool Global::bOpenGL_1_5=false; //czy s¹ dostêpne funkcje OpenGL 1.5
-double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
-int Global::iMultiplayer=0; //blokada dzia³ania niektórych funkcji na rzecz kominikacji
-HWND Global::hWnd=NULL; //uchwyt okna
-int Global::iCameraLast=-1;
-AnsiString Global::asVersion="Compilation 2011-10-18, release 1.3.264.258."; //tutaj, bo wysy³any
-int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
-GLint Global::iMaxTextureSize=16384;//maksymalny rozmiar tekstury
-int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
-bool Global::bDoubleAmbient=true; //podwójna jasnoœæ ambient
-double Global::fMoveLight=-1; //ruchome œwiat³o
+GLint Global::iMaxTextureSize=16384; //maksymalny rozmiar tekstury
 bool Global::bSmoothTraction=false; //wyg³adzanie drutów
-double Global::fSunDeclination=0.0; //deklinacja S³oñca
-double Global::fSunSpeed=1.0; //prêdkoœæ ruchu S³oñca, zmienna do testów
-double Global::fTimeAngleDeg=0.0; //godzina w postaci k¹ta
-double Global::fLatitudeDeg=52.0; //szerokoœæ geograficzna
-char* Global::szTexturesTGA[4]={"tga","dds","tex","bmp"}; //lista tekstur od TGA
-char* Global::szTexturesDDS[4]={"dds","tga","tex","bmp"}; //lista tekstur od DDS
 char** Global::szDefaultExt=Global::szTexturesDDS; //domyœlnie od DDS
 int Global::iMultisampling=2; //tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
 bool Global::bGlutFont=false; //tekst generowany przez GLUT
-int Global::iKeyLast=0; //ostatnio naciœniêty klawisz w celu logowania
-GLuint Global::iTextureId=0; //ostatnio u¿yta tekstura 2D
-bool Global::bPause=false; //globalna pauza ruchu
-bool Global::bActive=true; //czy jest aktywnym oknem
 int Global::iConvertModels=2; //tworzenie plików binarnych, 2-optymalizacja transformów
-int Global::iErorrCounter=0; //licznik sprawdzañ do œledzenia b³êdów OpenGL
-bool Global::bInactivePause=true; //automatyczna pauza, gdy okno nieaktywne
-int Global::iTextures=0; //licznik u¿ytych tekstur
 int Global::iSlowMotionMask=-1; //maska wy³¹czanych w³aœciwoœci
 int Global::iModifyTGA=3; //czy korygowaæ pliki TGA dla szybszego wczytywania
+
+//parametry testowe (do testowania scenerii i obiektów)
+bool Global::bWireFrame=false;
+bool Global::bSoundEnabled=true;
+bool Global::bWriteLogEnabled=true;
+bool Global::bManageNodes=true;
+bool Global::bDecompressDDS=false;
+
+//parametry przejœciowe (do usuniêcia)
+bool Global::bTimeChange=false; //usuniêty?
+bool Global::bRenderAlpha=true; //Ra: wywalam tê flagê
+bool Global::bnewAirCouplers=true;
+bool Global::bDoubleAmbient=true; //podwójna jasnoœæ ambient
+double Global::fSunSpeed=1.0; //prêdkoœæ ruchu S³oñca, zmienna do testów
+
 
 /* Ra: trzeba by przerobiæ na cParser, ¿eby to dzia³a³o w scenerii
 void __fastcall Global::ParseConfig(TQueryParserComp *Parser)
@@ -360,9 +372,9 @@ void __fastcall Global::InitKeys(AnsiString asFileName)
         Keys[k_DecScndCtrlFAST]=VK_MULTIPLY;
 ///*NORMALNE
         Keys[k_IncLocalBrakeLevel]=VK_NUMPAD1;  //VK_NUMPAD7;
-        Keys[k_IncLocalBrakeLevelFAST]=VK_END;  //VK_HOME;
+        //Keys[k_IncLocalBrakeLevelFAST]=VK_END;  //VK_HOME;
         Keys[k_DecLocalBrakeLevel]=VK_NUMPAD7;  //VK_NUMPAD1;
-        Keys[k_DecLocalBrakeLevelFAST]=VK_HOME; //VK_END;
+        //Keys[k_DecLocalBrakeLevelFAST]=VK_HOME; //VK_END;
         Keys[k_IncBrakeLevel]=VK_NUMPAD3;  //VK_NUMPAD9;
         Keys[k_DecBrakeLevel]=VK_NUMPAD9;   //VK_NUMPAD3;
         Keys[k_Releaser]=VK_NUMPAD6;
@@ -434,10 +446,10 @@ void __fastcall Global::InitKeys(AnsiString asFileName)
         Keys[k_DepartureSignal]=VkKeyScan('/');
 
 //Winger 160204 - obsluga pantografow
-        Keys[k_PantFrontUp]=VkKeyScan('o');
-        Keys[k_PantFrontDown]=VkKeyScan('o');
-        Keys[k_PantRearUp]=VkKeyScan('p');
-        Keys[k_PantRearDown]=VkKeyScan('p');
+        Keys[k_PantFrontUp]=VkKeyScan('p'); //Ra: zamieniony przedni z tylnym
+        Keys[k_PantFrontDown]=VkKeyScan('p');
+        Keys[k_PantRearUp]=VkKeyScan('o');
+        Keys[k_PantRearDown]=VkKeyScan('o');
 //Winger 020304 - ogrzewanie
         Keys[k_Heating]=VkKeyScan('h');
         Keys[k_LeftSign]=VkKeyScan('y');

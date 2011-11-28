@@ -67,6 +67,7 @@ __fastcall TWorld::TWorld()
  OutText2="";
  OutText3="";
  iCheckFPS=0; //kiedy znów sprawdziæ FPS, ¿eby wy³¹czaæ optymalizacji od razu do zera
+ pDynamicNearest=NULL;
 }
 
 __fastcall TWorld::~TWorld()
@@ -479,7 +480,7 @@ bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
       Camera.Init(Global::pFreeCameraInit[0],Global::pFreeCameraInitAngle[0]);
 
     char buff[255]= "Player train init: ";
-    if(Global::detonatoryOK)
+    if (Global::detonatoryOK)
     {
     glRasterPos2f(-0.25f, -0.18f);
     glPrint("Inicjalizacja wybranego pojazdu do sterowania...");
@@ -488,7 +489,7 @@ bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 
     strcat(buff,Global::asHumanCtrlVehicle.c_str());
     WriteLog(buff);
-    TGroundNode *PlayerTrain= Ground.FindDynamic(Global::asHumanCtrlVehicle);
+    TGroundNode *PlayerTrain=Ground.FindDynamic(Global::asHumanCtrlVehicle);
     if (PlayerTrain)
     {
 //   if (PlayerTrain->DynamicObject->MoverParameters->TypeName==AnsiString("machajka"))
@@ -538,7 +539,7 @@ bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
      Camera.Type=tp_Free;
     }
     glEnable(GL_DEPTH_TEST);
-    Ground.pTrain=Train;
+    //Ground.pTrain=Train;
     //if (!Global::bMultiplayer) //na razie w³¹czone
     {//eventy aktywowane z klawiatury tylko dla jednego u¿ytkownika
      KeyEvents[0]=Ground.FindEvent("keyctrl00");
@@ -629,7 +630,7 @@ void __fastcall TWorld::OnKeyPress(int cKey)
    {case VK_F1: //czas i relacja
     case VK_F2: //parametry pojazdu
     case VK_F3:
-    case VK_F5: //tabelka ograniczen
+    case VK_F5: //przesiadka do innego pojazdu
     case VK_F8: //FPS
     case VK_F9: //wersja, typ wyœwietlania, b³êdy OpenGL
     case VK_F10:
@@ -648,9 +649,10 @@ void __fastcall TWorld::OnKeyPress(int cKey)
   Ground.RadioStop(Camera.Pos);
  }
  else if (!Global::bPause||(cKey==VK_F4)) //podczas pauzy sterownaie nie dzia³a, F4 tak
-  if (Controlled)
-   if ((Controlled->Controller==Humandriver)?true:DebugModeFlag||(cKey=='q')||(cKey==VK_F4))
-    Train->OnKeyPress(cKey); //przekazanie klawisza do pojazdu
+  if (Train)
+   if (Controlled)
+    if ((Controlled->Controller==Humandriver)?true:DebugModeFlag||(cKey=='Q')||(cKey==VK_F4))
+     Train->OnKeyPress(cKey); //przekazanie klawisza do pojazdu
  //switch (cKey)
  //{case 'a': //ignorowanie repetycji
  // case 'A': Global::iKeyLast=cKey; break;
@@ -882,11 +884,17 @@ bool __fastcall TWorld::Update()
    Camera.Reset(); //likwidacja obrotów - patrzy horyzontalnie na po³udnie
    //if (!FreeFlyModeFlag) //jeœli wewn¹trz - patrzymy do ty³u
    // Camera.LookAt=Train->pMechPosition-Normalize(Train->GetDirection())*10;
-   if (Controlled)
+   if (Controlled?LengthSquared3(Controlled->GetPosition()-Camera.Pos)<2250000:false) //gdy bli¿ej ni¿ 1.5km
     Camera.LookAt=Controlled->GetPosition();
    else
    {TDynamicObject *d=Ground.DynamicNearest(Camera.Pos,300); //szukaj w promieniu 300m
-    if (d) Camera.LookAt=d->GetPosition();
+    if (!d)
+     d=Ground.DynamicNearest(Camera.Pos,1000); //dalej szukanie, jesli bli¿ej nie ma
+    if (d&&pDynamicNearest) //jeœli jakiœ jest znaleziony wczeœniej
+     if (100.0*LengthSquared3(d->GetPosition()-Camera.Pos)>LengthSquared3(pDynamicNearest->GetPosition()-Camera.Pos))
+      d=pDynamicNearest; //jeœli najbli¿szy nie jest 10 razy bli¿ej ni¿ poprzedni najbli¿szy, zostaje poprzedni
+    if (d) pDynamicNearest=d; //zmiana nanowy, jeœli coœ znaleziony niepusty
+    if (pDynamicNearest) Camera.LookAt=pDynamicNearest->GetPosition();
    }
    if (FreeFlyModeFlag)
     Camera.RaLook(); //jednorazowe przestawienie kamery
@@ -899,16 +907,18 @@ bool __fastcall TWorld::Update()
    if (Controlled) //jest pojazd do prowadzenia?
    {
     if (FreeFlyModeFlag)
-    {//je¿eli poza kabin¹, przestawiamy w jej okolicê - nie OK
+    {//je¿eli poza kabin¹, przestawiamy w jej okolicê - OK
      //Camera.Pos=Train->pMechPosition+Normalize(Train->GetDirection())*20;
-     Camera.Pos=Controlled->GetPosition()+(Controlled->MoverParameters->ActiveCab>=0?30:-30)*Normalize(Train->GetDirection())+vector3(0,5,0);
-     Camera.LookAt=Controlled->GetPosition();//Train->pMechPosition;
+     Camera.Pos=Controlled->GetPosition()+(Controlled->MoverParameters->ActiveCab>=0?30:-30)*Normalize(Controlled->GetDirection())+vector3(0,5,0);
+     Camera.LookAt=Controlled->GetPosition();
      Camera.RaLook(); //jednorazowe przestawienie kamery
      //¿eby nie bylo numerów z 'fruwajacym' lokiem - konsekwencja bujania pud³a
-     Train->DynamicObject->ABuSetModelShake(vector3(0,0,0));
-     Train->DynamicObject->bDisplayCab=false;
+     if (Train)
+     {Train->DynamicObject->ABuSetModelShake(vector3(0,0,0));
+      Train->DynamicObject->bDisplayCab=false;
+     }
     }
-    else
+    else if (Train)
     {//korekcja ustawienia w kabinie - OK
      //Ra: czy to tu jest potrzebne, bo przelicza siê kawa³ek dalej?
      Camera.Pos=Train->pMechPosition;//Train.GetPosition1();
@@ -923,6 +933,12 @@ bool __fastcall TWorld::Update()
      Train->pMechOffset.z=Train->pMechSittingPosition.z;
      Train->DynamicObject->bDisplayCab=true;
     }
+   }
+   else if (pDynamicNearest) //jeœli jest pojazd wykryty blisko
+   {//patrzenie na najbli¿szy pojazd
+    Camera.Pos=pDynamicNearest->GetPosition()+(pDynamicNearest->MoverParameters->ActiveCab>=0?30:-30)*Normalize(pDynamicNearest->GetDirection())+vector3(0,5,0);
+    Camera.LookAt=pDynamicNearest->GetPosition();
+    Camera.RaLook(); //jednorazowe przestawienie kamery
    }
   }
   else if (Global::iTextMode==-1)
@@ -950,10 +966,16 @@ bool __fastcall TWorld::Update()
    Ground.Update(dt,n);
    Ground.Update(dt,n);
    Ground.Update(dt,n);
+   Ground.Update(dt,n); //5 razy
+   //Ground.Update(dt,n); //jak jest za du¿o, to gubi eventy
+   //Ground.Update(dt,n);
+   //Ground.Update(dt,n);
+   //Ground.Update(dt,n);
+   //Ground.Update(dt,n); //10 razy
   }
  //Ground.Update(0.01,Camera.Type==tp_Follow);
  dt=GetDeltaTime();
- if (Camera.Type==tp_Follow)
+ if (Train?Camera.Type==tp_Follow:false)
  {
   Train->UpdateMechPosition(dt);
   Camera.Pos=Train->pMechPosition;//Train.GetPosition1();
@@ -975,7 +997,7 @@ bool __fastcall TWorld::Update()
    Camera.LookAt=Train->pMechPosition+Train->GetDirection();
   else  //patrz w strone wlasciwej kabiny
    Camera.LookAt=Train->pMechPosition+Train->GetDirection()*Train->DynamicObject->MoverParameters->ActiveCab; //-1 albo 1
-  Camera.vUp= Train->GetUp();
+  Camera.vUp=Train->GetUp();
  }
  Ground.CheckQuery();
 
@@ -985,22 +1007,22 @@ bool __fastcall TWorld::Update()
 
  if (Train)
  {//rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
-  vector3 vFront= Train->DynamicObject->GetDirection();
+  vector3 vFront=Train->DynamicObject->GetDirection();
   if ((Train->DynamicObject->MoverParameters->CategoryFlag==2) && (Train->DynamicObject->MoverParameters->ActiveCab<0)) //TODO: zrobic to eleganciej z plynnym zawracaniem
-     vFront= -vFront;
-  vector3 vUp= vWorldUp; //sta³a
+     vFront=-vFront;
+  vector3 vUp=vWorldUp; //sta³a
   vFront.Normalize();
-  vector3 vLeft= CrossProduct(vUp,vFront);
+  vector3 vLeft=CrossProduct(vUp,vFront);
   vUp= CrossProduct(vFront,vLeft);
   matrix4x4 mat;
   mat.Identity();
   mat.BasisChange(vLeft,vUp,vFront);
   Train->DynamicObject->mMatrix= Inverse(mat);
-  glPushMatrix ( );
+  glPushMatrix();
   //ABu: Rendering kabiny jako ostatniej, zeby bylo widac przez szyby, tylko w widoku ze srodka
   if ((Train->DynamicObject->mdKabina!=Train->DynamicObject->mdModel) && Train->DynamicObject->bDisplayCab && !FreeFlyModeFlag)
   {
-    vector3 pos= Train->DynamicObject->GetPosition();
+    vector3 pos=Train->DynamicObject->GetPosition();
     glTranslatef(pos.x,pos.y,pos.z);
     glMultMatrixd(Train->DynamicObject->mMatrix.getArray());
 
@@ -1100,7 +1122,7 @@ bool __fastcall TWorld::Update()
     }
     glPopMatrix ( );
 //**********************************************************************************************************
-   } //koniec if (Train)
+ } //koniec if (Train)
 /*
  if (Global::fMoveLight>=0)
  {//Ra: tymczasowy "zegar s³oneczny"
@@ -1226,13 +1248,6 @@ bool __fastcall TWorld::Update()
         temp=Train->DynamicObject->PrevConnected; //pojazd od strony sprzêgu 0
         CabNr=(Train->DynamicObject->PrevConnectedNo==0)?1:-1;
        }
-/*
-       TLocation l;
-       l.X=l.Y=l.Z= 0;
-       TRotation r;
-       r.Rx=r.Ry=r.Rz= 0;
-*/
-
        Train->DynamicObject->Controller=AIdriver;
        Train->DynamicObject->bDisplayCab=false;
        Train->DynamicObject->MechInside=false;
@@ -1280,7 +1295,8 @@ bool __fastcall TWorld::Update()
       if (Controlled->TrainParams)
       {OutText2=Controlled->TrainParams->ShowRelation();
        if (!OutText2.IsEmpty())
-        OutText2=Bezogonkow(OutText2+", "+Controlled->Mechanik->NextStop()); //dopisanie punktu zatrzymania
+        if (Controlled->Mechanik)
+         OutText2=Bezogonkow(OutText2+": -> "+Controlled->Mechanik->NextStop()); //dopisanie punktu zatrzymania
       }
      //double CtrlPos=Controlled->MoverParameters->MainCtrlPos;
      //double CtrlPosNo=Controlled->MoverParameters->MainCtrlPosNo;
@@ -1403,6 +1419,12 @@ bool __fastcall TWorld::Update()
         }
          //OutText4+="  LPTI@A: "+IntToStr(tmp->Mechanik->LPTI)+"@"+IntToStr(tmp->Mechanik->LPTA);
        }
+       if (Pressed(VK_F2))
+       {WriteLog(OutText1);
+        WriteLog(OutText2);
+        WriteLog(OutText3);
+        WriteLog(OutText4);
+       }
       }
       else
       {
@@ -1413,19 +1435,32 @@ bool __fastcall TWorld::Update()
       //OutText3="; n="+FloatToStrF(Controlled->MoverParameters->n,ffFixed,6,2);
      }
     else if (Global::iTextMode==VK_F5)
-    {
-     TDynamicObject *tmp;
-     if (FreeFlyModeFlag)
-      tmp=Ground.DynamicNearest(Camera.Pos);
-     else
-      tmp=Controlled;
+    {//przesiadka do innego pojazdu
+     if (FreeFlyModeFlag) //jeœli tryb latania
+     {TDynamicObject *tmp=Ground.DynamicNearest(Camera.Pos,50,true); //³apiemy z obsad¹
+      if (tmp)
+       if (tmp!=Controlled)
+       {if (Controlled) //jeœli mielismy pojazd
+         Controlled->Mechanik->TakeControl(true); //oddajemy dotychczasowy AI
+        if (DebugModeFlag?true:tmp->MoverParameters->Vel<=5.0)
+        {Controlled=tmp; //przejmujemy nowy
+         if (!Train) //jeœli niczym jeszcze nie jeŸdzilismy
+          Train=new TTrain();
+         if (Train->Init(Controlled))
+          Controlled->Mechanik->TakeControl(false); //przejmujemy sterowanie
+         else
+          SafeDelete(Train); //i nie ma czym sterowaæ
+        }
+       }
+      Global::iTextMode=0; //tryb neutralny
+     }
+/*
 
      OutText1=OutText2=OutText3=OutText4="";
      AnsiString flag[10]={"vmax", "tory", "smfr", "pjzd", "mnwr", "pstk", "brak", "brak", "brak", "brak"};
      if(tmp)
      if(tmp->Mechanik)
      {
-/*
       for(int i=0;i<15;i++)
       {
        int tmppar=floor(tmp->Mechanik->ProximityTable[i].Vel);
@@ -1439,8 +1474,8 @@ bool __fastcall TWorld::Update()
        int tmppar=floor(tmp->Mechanik->ReducedTable[i]);
        OutText4+=flag[i]+":"+(tmppar<1000?(tmppar<100?((tmppar<10)&&(tmppar>=0)?"   ":"  "):" "):"")+IntToStr(tmppar)+" ";
       }
-*/
      }
+*/
     }
     else if (Global::iTextMode==VK_F10)
     {//tu mozna dodac dopisywanie do logu przebiegu lokomotywy
@@ -1463,9 +1498,9 @@ bool __fastcall TWorld::Update()
       OutText1+=AnsiString("; d_omega ")+FloatToStrF(Controlled->MoverParameters->dizel_engagedeltaomega,ffFixed,6,3);
       OutText2 =AnsiString("ham zesp ")+FloatToStrF(Controlled->MoverParameters->BrakeCtrlPos,ffFixed,6,0);
       OutText2+=AnsiString("; ham pom ")+FloatToStrF(Controlled->MoverParameters->LocalBrakePos,ffFixed,6,0);
-      Controlled->MoverParameters->MainCtrlPos;
-      if (Controlled->MoverParameters->MainCtrlPos<0)
-          OutText2+= AnsiString("; nastawnik 0");
+      //Controlled->MoverParameters->MainCtrlPos;
+      //if (Controlled->MoverParameters->MainCtrlPos<0)
+      //    OutText2+= AnsiString("; nastawnik 0");
 //      if (Controlled->MoverParameters->MainCtrlPos>iPozSzereg)
           OutText2+= AnsiString("; nastawnik ") + (Controlled->MoverParameters->MainCtrlPos);
 //      else
@@ -1528,15 +1563,14 @@ bool __fastcall TWorld::Update()
        {OutText3+=AnsiString(" zb.pant. ")+FloatToStrF(Controlled->MoverParameters->PantVolume,ffFixed,8,2);}
   //McZapkie: komenda i jej parametry
        if (Controlled->MoverParameters->CommandIn.Command!=AnsiString(""))
-        OutText3+=AnsiString(" C:")+AnsiString(Controlled->MoverParameters->CommandIn.Command)
+        OutText4=AnsiString("C:")+AnsiString(Controlled->MoverParameters->CommandIn.Command)
         +AnsiString(" V1=")+FloatToStrF(Controlled->MoverParameters->CommandIn.Value1,ffFixed,5,0)
         +AnsiString(" V2=")+FloatToStrF(Controlled->MoverParameters->CommandIn.Value2,ffFixed,5,0);
-       if (Controlled->Mechanik && Controlled->Mechanik->AIControllFlag==AIdriver)
-        OutText3+=AnsiString(" Vd:")+FloatToStrF(Controlled->Mechanik->VelDesired,ffFixed,4,0)
+       if (Controlled->Mechanik && (Controlled->Mechanik->AIControllFlag==AIdriver))
+        OutText4+=AnsiString("AI: Vd=")+FloatToStrF(Controlled->Mechanik->VelDesired,ffFixed,4,0)
         +AnsiString(" ad=")+FloatToStrF(Controlled->Mechanik->AccDesired,ffFixed,5,2)
         +AnsiString(" Pd=")+FloatToStrF(Controlled->Mechanik->ActualProximityDist,ffFixed,4,0)
         +AnsiString(" Vn=")+FloatToStrF(Controlled->Mechanik->VelNext,ffFixed,4,0);
-
      }
 
  glDisable(GL_LIGHTING);
@@ -1672,7 +1706,7 @@ bool __fastcall TWorld::Render()
     }
     TSubModel::iInstance=(int)(Train?Train->DynamicObject:0); //¿eby nie robiæ cudzych animacji
 //    if (Camera.Type==tp_Follow)
-    if (Controlled)
+    if (Train)
         Train->Update();
 //    if (Global::bRenderAlpha)
 //     if (Controlled)

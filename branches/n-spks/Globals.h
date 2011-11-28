@@ -160,6 +160,7 @@ public:
  static char CreatorName5[30];
  static AnsiString asCurrentSceneryPath;
  static AnsiString asCurrentTexturePath;
+ static AnsiString asCurrentDynamicPath;
  //McZapkie-170602: zewnetrzna definicja pojazdu uzytkownika
  static AnsiString asHumanCtrlVehicle;
  static void __fastcall LoadIniFile(AnsiString asFileName="eu07.ini");

@@ -30,10 +30,10 @@ private:
     void ABuLittleUpdate(double ObjSqrDist);
     bool btnOn; //ABu: czy byly uzywane buttony, jesli tak, to po renderingu wylacz
                 //bo ten sam model moze byc jeszcze wykorzystany przez inny obiekt!
-    double __fastcall ComputeRadius(vector3 p1,vector3 p2,vector3 p3,vector3 p4);
-    //vector3 pOldPos1; //Ra: nie u¿ywane
-    //vector3 pOldPos4;
-    vector3 vPosition; //Ra: pozycja pojazdu liczona zaraz po przesuniêciu
+ double __fastcall ComputeRadius(vector3 p1,vector3 p2,vector3 p3,vector3 p4);
+ //vector3 pOldPos1; //Ra: nie u¿ywane
+ //vector3 pOldPos4;
+ vector3 vPosition; //Ra: pozycja pojazdu liczona zaraz po przesuniêciu
 //McZapkie-050402 - do krecenia kolami
     int iAnimatedAxles;
     int iAnimatedDoors;
@@ -129,9 +129,8 @@ private:
     char cp1, sp1, cp2, sp2; //ustawienia wezy
     TRealSound sBrakeAcc; //dzwiek przyspieszacza
  int iAxleFirst; //numer pierwszej oœ w kierunku ruchu
- 	TDynamicObject *NewDynamic;
-		bool bDynChangeEnd;
-		bool bDynChangeStart;
+ int iInventory; //flagi bitowe posiadanych submodeli (np. œwiate³)
+ //TDynamicObject *NewDynamic; //Ra: nie u¿ywane
  TDynamicObject* __fastcall ABuFindNearestObject(TTrack *Track,TDynamicObject *MyPointer,int &CouplNr);
 protected:
     bool bEnabled;
@@ -143,7 +142,7 @@ protected:
     //Byte PrevConnectedNo;
     int CouplCounter;
     AnsiString asModel;
-    int iDirection; //kierunek wzglêdem czo³a sk³adu (1=zgodny,-1=przeciwny)
+    int iDirection; //kierunek wzglêdem czo³a sk³adu (1=zgodny,0=przeciwny)
     void ABuScanObjects(int ScanDir,double ScanDist);
     void __fastcall ABuCheckMyTrack();
 
@@ -251,14 +250,13 @@ public:
     bool __fastcall Render();
     bool __fastcall RenderAlpha();
     vector3 inline __fastcall GetPosition();
+    inline vector3 __fastcall AxlePositionGet() { return iAxleFirst?Axle1.pPosition:Axle0.pPosition; };
     inline vector3 __fastcall GetDirection() { return Axle0.pPosition-Axle1.pPosition; };
     inline double __fastcall GetVelocity() { return MoverParameters->Vel; };
     inline double __fastcall GetLength() { return MoverParameters->Dim.L; };
     inline double __fastcall GetWidth() { return MoverParameters->Dim.W; };
     inline TTrack* __fastcall GetTrack() { return (iAxleFirst?Axle1.GetTrack():Axle0.GetTrack()); };
-    void __fastcall UpdatePos();
-    void __fastcall DynChangeStart(TDynamicObject *Dyn);
-    void __fastcall DynChangeEnd();
+    //void __fastcall UpdatePos();
 
  Mover::TMoverParameters *MoverParameters;
 
@@ -295,8 +293,9 @@ public:
  void __fastcall RaAxleEvent(TEvent *e);
  TDynamicObject* __fastcall FirstFind(int &coupler_nr);
  int __fastcall DirectionSet(int d); //ustawienie kierunku w sk³adzie
- int __fastcall DirectionGet() {return iDirection;}; //ustawienie kierunku w sk³adzie
- int Dettach(int dir);
+ int __fastcall DirectionGet() {return iDirection?1:-1;}; //ustawienie kierunku w sk³adzie
+ bool DettachDistance(int dir);
+ int Dettach(int dir,int cnt);
 };
 
 

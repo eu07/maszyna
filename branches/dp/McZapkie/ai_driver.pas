@@ -565,7 +565,7 @@ begin
         None : if (MainCtrlPosNo>0) then {McZapkie-041003: wagon sterowniczy}
                 begin
 {TODO: sprawdzanie innego czlonu                  if not FuseFlagCheck() then }
-                    if (BrakePress<0.03*MaxBrakePress) then
+                    if (BrakePress<0.3) then
                       begin
                         if ActiveDir>0 then DirectionForward; //zeby EN57 jechaly na drugiej nastawie
                         OK:=IncMainCtrl(1);
@@ -908,6 +908,7 @@ begin
      if Controlling^.DoorRightOpened then
       with Controlling^ do
        DoorRight(false);  //Winger 090304 - jak jedzie to niech zamyka drzwi
+       //yB: ja bym powyzsz blok Wingera wywalil, bo mamy zamykanie w IncSpeed.
  if Controlling^.EnginePowerSource.SourceType=CurrentCollector then
   if Controlling^.Vel>0 then
    if AIControllFlag then
@@ -1216,8 +1217,8 @@ begin
                                 AccDesired:=0.5
                               else
                                 AccDesired:=0
-                            else // prostu hamuj (niski stopieñ)
-                              AccDesired:=(SQR(VelNext)-SQR(Vel))/(25.92*ActualProximityDist+0.1) {hamuj proporcjonalnie} //mniejsze opóŸnienie przy ma³ej ró¿nicy
+                            else // prostu hamuj (niski stopieñ) (na razie da³em 95% szybkosci, moze bedzie lepiej wchodzic)
+                              AccDesired:=(SQR(VelNext*0.95)-SQR(Vel))/(25.92*ActualProximityDist+0.1) {hamuj proporcjonalnie} //mniejsze opóŸnienie przy ma³ej ró¿nicy
                          else  //przy du¿ej ró¿nicy wysoki stopieñ (1,25 potrzebnego opoznienia)
                            AccDesired:=(SQR(VelNext)-SQR(Vel))/(20.73*ActualProximityDist+0.1); {hamuj proporcjonalnie} //najpierw hamuje mocniej, potem zluzuje
                          if AccPreferred<AccDesired then
@@ -1254,12 +1255,14 @@ begin
 //                  Accdesired:=-AccPreferred;
 				//koniec predkosci aktualnej
 
+//yB: Te warunki sa teraz bez sensu, bo AI skanuje sobie to z wyprzedzeniem i tak!
                 if (AccDesired>0) and (VelNext>=0) then //wybieg b¹dŸ lekkie hamowanie, warunki byly zamienione
-                 if (VelNext<Vel-100) then        {lepiej zaczac hamowac} 
+                 if (VelNext<Vel-100) then        {lepiej zaczac hamowac}
                   AccDesired:=-0.2
                  else
                   if (VelNext<Vel-70) then
                    AccDesired:=0;                {nie spiesz sie bo bedzie hamowanie}
+
 				//koniec wybiegu i hamowania
                 {wlaczanie bezpiecznika}
                 if EngineType=ElectricSeriesMotor then
@@ -1277,14 +1280,14 @@ begin
                           SetDriverPsyche;
                        end;
                 if BrakeSystem=Pneumatic then  {napelnianie uderzeniowe}
-                 if BrakeSubsystem=Oerlikon then
+                 if BrakeHandle=FV4a then
                   begin
                     if BrakeCtrlPos=-2 then BrakeCtrlPos:=0;
-                    if (BrakeCtrlPos<0)and (PipebrakePress<0.01){(CntrlPipePress-(Volume/BrakeVVolume/10)<0.01)} then
+                    if (BrakeCtrlPos<0)and (BrakePress<0.25){(CntrlPipePress-(Volume/BrakeVVolume/10)<0.01)} then
                      IncBrakeLevel;
                     if (BrakeCtrlPos=0) and (AbsAccS<0)and(AccDesired>0) then
 //                     if FuzzyLogicAI(CntrlPipePress-PipePress,0.01,1) then
-                     if PipebrakePress>0.01{((Volume/BrakeVVolume/10)<0.485)} then
+                     if BrakePress>0.3{((Volume/BrakeVVolume/10)<0.485)} then
                       DecBrakeLevel
                      else
                       if Need_BrakeRelease then
@@ -1293,6 +1296,12 @@ begin
 //                         DecBrakeLevel
 //                       end;
                   end;
+
+//                if BrakeSystem=ElectroPneumatic then  {napelnianie uderzeniowe}
+//                 begin
+//                  while BrakeCtrlPos>0 do DecBrakeLevel;
+//                  while BrakeCtrlPos<0 do IncBrakeLevel;
+//                 end;
 
                 if(AccDesired>=0) then while DecBrake do;  //jeœli przyspieszamy, to nie hamujemy
                 //Ra: zmieni³em 0.95 na 1.0 - trzeba ustaliæ, sk¹d sie takie wartoœci bior¹
@@ -1323,7 +1332,6 @@ begin
                  begin DecBrake; ReactionTime:=(BrakeDelay[1+2*BrakeDelayFlag])/3; end; //jak hamuje, to nie tykaj kranu za czêsto
 //                   end;
 //Mietek-end1
-
 
                 {zapobieganie poslizgowi w czlonie silnikowym}
                 if (Couplers[0].Connected<>NIL) then

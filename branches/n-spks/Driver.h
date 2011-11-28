@@ -23,8 +23,17 @@ enum TOrders
  Jump_to_first_order=0x60 //zapêlenie do pierwszej pozycji (po co?)
 };
 
+enum TMovementStatus
+{//flagi bitowe ruchu
+ moveStopCloser=1, //podjechaæ blisko W4 (nie podje¿d¿aæ na pocz¹tku ani po zmianie czo³a)
+ moveStopPoint=2, //stawaæ na W4 (wy³¹czone podczas zmiany czo³a)
+ moveAvaken=4, //po w³¹czeniu silnika pojazd nie przemieœci³ siê
+ movePress=8, //dociskanie przy od³¹czeniu (zamiast zmiennej Prepare2press)
+ moveBackwardLook=16 //skanowanie torów w przeciwn¹ stronê w celu zmiany kierunku
+};
+
 enum TStopReason
-{//powód zatrzymania
+{//powód zatrzymania, dodawany do SetVelocity 0
  stopNone,  //nie ma powodu - powinien jechaæ
  stopSleep, //nie zosta³ odpalony, to nie pojedzie
  stopSem,   //semafor zamkniêty
@@ -50,37 +59,27 @@ struct TProximityTablePos
 */
 
 //-- var, const, procedure ---------------------------------------------------
-static const bool Aggressive = true;
-static const bool Easyman = false;
-static const bool AIdriver = true;
-static const bool Humandriver = false;
-static const int maxorders = 0x10;
-static const int maxdriverfails = 0x4;
-extern bool WriteLogFlag;
-/*
-static const int rvTrack = 0x1;
-static const int rvSignal = 0x2;
-static const int rvVechicle = 0x3;
-static const int rvShunt = 0x4;
-static const int rvPassStop = 0x5;
-*/
+static const bool Aggressive=true;
+static const bool Easyman=false;
+static const bool AIdriver=true;
+static const bool Humandriver=false;
+static const int maxorders=0x20; //iloœæ rozkazów w tabelce
+static const int maxdriverfails=0x4; //ile b³êdów mo¿e zrobiæ AI zanim zmieni nastawienie
+extern bool WriteLogFlag; //logowanie parametrów fizycznych
 
 class TController
 {
  double fShuntVelocity; //maksymalna prêdkoœæ manewrowania, zale¿y m.in. od sk³adu
  double fLength; //d³ugoœæ sk³adu (dla ograniczeñ i stawania przed semaforami)
- bool bCheckVehicles; //nale¿y sprawdziæ pojazdy i ustawiæ œwiat³a
- int iVehicles; //iloœæ pojazdów w sk³adzie 
+ int iVehicles; //iloœæ pojazdów w sk³adzie
  bool EngineActive; //ABu: Czy silnik byl juz zalaczony
- //Mover::TLocation MechLoc;
- //Mover::TRotation MechRot;
  vector3 vMechLoc; //pozycja pojazdu do liczenia odleg³oœci od semafora (?)
- //vector3 vMechRot;
  bool Psyche;
+ int iDrivigFlags; //flagi bitowe ruchu
 public:
  double ReactionTime; //czas reakcji Ra: czego?
- bool Ready; //ABu: stan gotowosci do odjazdu - sprawdzenie odhamowania wagonow jest ustawiane w dynobj->cpp
 private:
+ bool Ready; //ABu: stan gotowosci do odjazdu - sprawdzenie odhamowania wagonow jest ustawiane w dynobj->cpp
  double LastUpdatedTime; //czas od ostatniego logu
  double ElapsedTime; //czas od poczatku logu
  double deltalog; //przyrost czasu
@@ -95,8 +94,8 @@ private:
  Mover::TMoverParameters *Controlling; //jakim pojazdem steruje
  Mtable::TTrainParameters *TrainParams; //do jakiego pociagu nalezy
  int TrainNumber; //numer rozkladowy tego pociagu
- AnsiString OrderCommand; //komenda pobierana z pojazdu
- double OrderValue; //argument komendy
+ //AnsiString OrderCommand; //komenda pobierana z pojazdu
+ //double OrderValue; //argument komendy
  double AccPreferred; //preferowane przyspieszenie
 public:
  double AccDesired; //chwilowe przyspieszenie
@@ -127,7 +126,7 @@ private:
  int iDirection; //kierunek jazdy wzglêdem pojazdu, w którym siedzi AI (1=przód,-1=ty³)
  int iDirectionOrder; //¿adany kierunek jazdy (s³u¿y do zmiany kierunku)
  int iVehicleCount; //iloœæ pojazdów do od³¹czenia albo zabrania ze sk³adu (-1=wszystkie)
- bool Prepare2press; //
+ bool Prepare2press; //dociskanie w celu od³¹czenia
  int iDriverFailCount; //licznik b³êdów AI
  bool Need_TryAgain;
  bool Need_BrakeRelease;
@@ -159,17 +158,16 @@ public:
  void __fastcall OrderPush(TOrders NewOrder);
  void __fastcall OrderNext(TOrders NewOrder);
  TOrders __fastcall OrderCurrentGet();
- bool __fastcall CheckSKP();
- void __fastcall ResetSKP();
+ TOrders __fastcall OrderNextGet();
 private:
+ bool __fastcall CheckVehicles();
  void __fastcall CloseLog();
+ void __fastcall OrderCheck();
 public:
+ void __fastcall OrdersInit(double fVel);
+ void __fastcall OrdersDump();
  __fastcall TController
- (//const Mover::TLocation &LocInitial,
-  //const Mover::TRotation &RotInitial,
-  //const vector3 &vLocInitial,
-  //const vector3 &vRotInitial,
-  bool AI,
+ (bool AI,
   TDynamicObject *NewControll,
   Mtable::TTrainParameters *NewTrainParams,
   bool InitPsyche
@@ -180,6 +178,7 @@ private:
  AnsiString VehicleName;
  double VelMargin;
  double fWarningDuration; //ile czasu jeszcze tr¹biæ
+ double fStopTime; //czas postoju przed dalsz¹ jazd¹ (np. na przystanku)
  double WaitingTime; //zliczany czas oczekiwania do samoistnego ruszenia
  double WaitingExpireTime; //maksymlany czas oczekiwania do samoistnego ruszenia
  AnsiString __fastcall Order2Str(TOrders Order);
@@ -187,15 +186,14 @@ private:
  void __fastcall Lights(int head,int rear);
  //Ra: poni¿sze przenieœæ do modu³u AI:
  TEvent* eSignSkip; //miniêty sygna³ zezwalaj¹cy na jazdê, pomijany przy szukaniu
- double fSignSpeed; //prêdkoœæ w moemcie zobaczenia W4
  AnsiString asNextStop; //nazwa nastêpnego punktu zatrzymania wg rozk³adu
 public:
  TEvent* eSignLast; //ostatnio znaleziony sygna³, o ile nie miniêty
 private:
  TEvent* __fastcall CheckTrackEvent(double fDirection,TTrack *Track);
  TTrack* __fastcall TraceRoute(double &fDistance,double &fDirection,TTrack *Track,TEvent*&Event);
- void SetProximityVelocity(double dist,double vel,const vector3 *pos);
- //Ra: koniec tych do przeniesienia do AI
+ void __fastcall SetProximityVelocity(double dist,double vel,const vector3 *pos);
+ void __fastcall DirectionForward(bool forward);
 public:
  //inline __fastcall TController() { };
  AnsiString __fastcall StopReasonText();
@@ -203,6 +201,7 @@ public:
  void __fastcall ScanEventTrack();
  bool __fastcall CheckEvent(TEvent *e,bool prox);
  AnsiString __fastcall NextStop();
+ void __fastcall TakeControl(bool yes);
 };
 
 #endif

@@ -33,7 +33,7 @@ Type
                         LocLoad: real;
                         TimeTable: TMTable;
                         StationCount: integer; //iloœæ przystanków (0-techniczny)
-                        StationIndex: integer; //numer nastêpnego przystanku
+                        StationIndex: integer; //numer najbli¿szego (aktualnego) przystanku
                         NextStationName: string;
                         LastStationLatency: real;
                         Direction: integer;        {kierunek jazdy w/g kilometrazu}
@@ -49,6 +49,7 @@ Type
                         procedure NewName(NewTrainName:string);
                         function LoadTTfile(scnpath:string):boolean;
                         function DirectionChange():boolean;
+                        procedure StationIndexInc();
                       end;
 
    TMTableTime = class(TObject)
@@ -139,11 +140,11 @@ begin
       Direction:=1; //prowizorka bo moze byc zmiana kilometrazu
      //ustalenie, czy opóŸniony (porównanie z czasem odjazdu)
      LastStationLatency:=CompareTime(hh,mm,TimeTable[StationIndex].Dh,TimeTable[StationIndex].Dm);
-     inc(StationIndex); //przejœcie do nastêpnej pozycji StationIndex<=StationCount
-     if StationIndex<=StationCount then //Ra: "<", bo dodaje 1 przy przejœciu do nastêpnej stacji
+     //inc(StationIndex); //przejœcie do nastêpnej pozycji StationIndex<=StationCount
+     if StationIndex<StationCount then //Ra: "<", bo dodaje 1 przy przejœciu do nastêpnej stacji
       begin //jeœli nie ostatnia stacja
-       NextStationName:=TimeTable[StationIndex].StationName; //zapamiêtanie nazwy
-       TTVmax:=TimeTable[StationIndex].vmax; //Ra: nowa prêdkoœæ rozk³adowa na kolejnym odcinku
+       NextStationName:=TimeTable[StationIndex+1].StationName; //zapamiêtanie nazwy
+       TTVmax:=TimeTable[StationIndex+1].vmax; //Ra: nowa prêdkoœæ rozk³adowa na kolejnym odcinku
       end
      else //gdy ostatnia stacja
       NextStationName:=''; //nie ma nastêpnej stacji
@@ -153,18 +154,23 @@ begin
  UpdateMTable:=OK; {czy jest nastepna stacja}
 end;
 
+procedure TTrainParameters.StationIndexInc();
+begin
+ Inc(StationIndex); //przejœcie do nastêpnej pozycji StationIndex<=StationCount
+end;
+
 function TTrainParameters.IsTimeToGo(hh,mm:real):boolean;
 //sprawdzenie, czy mo¿na ju¿ odjechaæ z aktualnego zatrzymania
 //StationIndex to numer nastêpnego po dodarciu do aktualnego
 begin
- if (StationIndex<=1) then
+ if (StationIndex<1) then
   IsTimeToGo:=true //przed pierwsz¹ jechaæ
- else if (StationIndex<=StationCount) then
+ else if (StationIndex<StationCount) then
   begin //oprócz ostatniego przystanku
-   if (TimeTable[StationIndex-1].Ah<0) then //odjazd z poprzedniego
+   if (TimeTable[StationIndex].Ah<0) then //odjazd z poprzedniego
     IsTimeToGo:=true //czas przyjazdu nie by³ podany - przelot
    else
-    IsTimeToGo:=CompareTime(hh,mm,TimeTable[StationIndex-1].Dh,TimeTable[StationIndex-1].Dm)<=0;
+    IsTimeToGo:=CompareTime(hh,mm,TimeTable[StationIndex].Dh,TimeTable[StationIndex].Dm)<=0;
   end
  else //gdy rozk³ad siê skoñczy³
   IsTimeToGo:=false; //dalej nie jechaæ
@@ -465,11 +471,11 @@ begin
 end;
 
 function TTrainParameters.DirectionChange():boolean;
-//sprawdzenie, czy po zatrzymaniu zmieniæ kierunek jazdy
+//sprawdzenie, czy po zatrzymaniu wykonaæ kolejne komendy
 begin
  DirectionChange:=false; //przed pierwsz¹ bez zmiany
- if (StationIndex>0) and (StationIndex<=StationCount) then
-  if (Pos('@',TimeTable[StationIndex-1].StationWare)>0) then
+ if (StationIndex>0) and (StationIndex<StationCount) then //dla ostatniej stacji nie
+  if (Pos('@',TimeTable[StationIndex].StationWare)>0) then
    DirectionChange:=true;
 end;
 

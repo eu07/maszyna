@@ -615,7 +615,7 @@ bool __fastcall TController::DecBrake()
     if (Controlling->BrakePressureTable[Controlling->BrakeCtrlPos-1+2].BrakeType==ElectroPneumatic) //+2 to indeks Pascala
      OK=Controlling->DecBrakeLevel();
     else
-    {if ((Controlling->BrakeSubsystem==Knorr)||(Controlling->BrakeSubsystem==Hik)||(Controlling->BrakeSubsystem==Kk))
+    {if ((Controlling->BrakeSubsystem==ss_W))
      {//jeœli Knorr
       Controlling->SwitchEPBrake((Controlling->BrakePress>0.0)?1:0);
      }
@@ -649,7 +649,7 @@ bool __fastcall TController::IncSpeed()
     if (Controlling->MainCtrlPosNo>0) //McZapkie-041003: wagon sterowniczy
     {
      //TODO: sprawdzanie innego czlonu //if (!FuseFlagCheck())
-     if (Controlling->BrakePress<0.05*Controlling->MaxBrakePress)
+     if (Controlling->BrakePress<0.3)
      {
       if (Controlling->ActiveDir>0) Controlling->DirectionForward(); //zeby EN57 jechaly na drugiej nastawie
       OK=Controlling->IncMainCtrl(1);
@@ -943,8 +943,8 @@ bool __fastcall TController::UpdateSituation(double dt)
  //yb: zeby EP nie musial sie bawic z ciesnieniem w PG
  if (AIControllFlag)
  {
-  if (Controlling->BrakeSystem==ElectroPneumatic)
-   Controlling->PipePress=0.5;
+//  if (Controlling->BrakeSystem==ElectroPneumatic)
+//   Controlling->PipePress=0.5; //yB: w SPKS s¹ poprawnie zrobione pozycje
   if (Controlling->SlippingWheels)
   {
    Controlling->SandDoseOn();
@@ -953,13 +953,13 @@ bool __fastcall TController::UpdateSituation(double dt)
  }
  {//ABu-160305 Testowanie gotowoœci do jazdy
   //Ra: przeniesione z DynObj
-  if (Controlling->BrakePress<0.03*Controlling->MaxBrakePress)
+  if (Controlling->BrakePress<0.3)
    Ready=true; //wstêpnie gotowy
   //Ra: trzeba by sprawdziæ wszystkie, a nie tylko skrajne
   //sprawdzenie odhamowania skrajnych pojazdów
-  if (pVehicles[1]->MoverParameters->BrakePress>0.03*pVehicles[1]->MoverParameters->MaxBrakePress)
+  if (pVehicles[1]->MoverParameters->BrakePress>0.3)
    Ready=false; //nie gotowy
-  if (pVehicles[0]->MoverParameters->BrakePress>0.03*pVehicles[0]->MoverParameters->MaxBrakePress)
+  if (pVehicles[0]->MoverParameters->BrakePress>0.3)
    Ready=false; //nie gotowy
   //if (Ready)
   // Mechanik->CheckSKP(); //sprawdzenie sk³adu - czy tu potrzebne?
@@ -1359,15 +1359,13 @@ bool __fastcall TController::UpdateSituation(double dt)
              SetDriverPsyche();
            }
       if (Controlling->BrakeSystem==Pneumatic) //napelnianie uderzeniowe
-       if (Controlling->BrakeSubsystem==Oerlikon)
+       if (Controlling->BrakeHandle==FV4a)
        {
         if (Controlling->BrakeCtrlPos==-2)
          Controlling->BrakeCtrlPos=0;
-        if ((Controlling->BrakeCtrlPos<0)&&(Controlling->PipeBrakePress<0.01))//{(CntrlPipePress-(Volume/BrakeVVolume/10)<0.01)})
-         Controlling->IncBrakeLevel();
         if ((Controlling->BrakeCtrlPos==0)&&(AbsAccS<0.0)&&(AccDesired>0.0))
         //if FuzzyLogicAI(CntrlPipePress-PipePress,0.01,1))
-         if (Controlling->PipeBrakePress>0.01)//{((Volume/BrakeVVolume/10)<0.485)})
+         if (Controlling->BrakePress>0.4)//{((Volume/BrakeVVolume/10)<0.485)})
           Controlling->DecBrakeLevel();
          else
           if (Need_BrakeRelease)
@@ -1375,6 +1373,8 @@ bool __fastcall TController::UpdateSituation(double dt)
            Need_BrakeRelease=false;
            //DecBrakeLevel(); //z tym by jeszcze mia³o jakiœ sens
           }
+        if ((Controlling->BrakeCtrlPos<0)&&(Controlling->BrakePress<0.3))//{(CntrlPipePress-(Volume/BrakeVVolume/10)<0.01)})
+         Controlling->IncBrakeLevel();          
        }
 
       if (AccDesired>=0.0)
