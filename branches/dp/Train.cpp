@@ -243,11 +243,11 @@ void __fastcall TTrain::OnKeyPress(int cKey)
               else
               {
                  TDynamicObject *temp;
-                 temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 500, CouplNr));
+                 temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 1500, CouplNr));
                  if (temp==NULL)
                  {
                     CouplNr=-2;
-                    temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1, 500, CouplNr));
+                    temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1, 1500, CouplNr));
                  }
                  if (temp)
                  {
@@ -406,11 +406,11 @@ void __fastcall TTrain::OnKeyPress(int cKey)
               {
                  int CouplNr=-2;
                  TDynamicObject *temp;
-                 temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 500, CouplNr));
+                 temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 1500, CouplNr));
                  if (temp==NULL)
                  {
                     CouplNr=-2;
-                    temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1, 500, CouplNr));
+                    temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1, 1500, CouplNr));
                  }
                  if (temp)
                  {
@@ -650,11 +650,11 @@ void __fastcall TTrain::OnKeyPress(int cKey)
               {
                  TDynamicObject *temp;
                  CouplNr=-2;
-                 temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 500, CouplNr));
+                 temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 1500, CouplNr));
                  if (temp==NULL)
                  {
                     CouplNr=-2;
-                    temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1, 500, CouplNr));
+                    temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1, 1500, CouplNr));
                  }
                  if (temp)
                  {
@@ -679,11 +679,11 @@ void __fastcall TTrain::OnKeyPress(int cKey)
               else
               {
                  TDynamicObject *temp;
-                 temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 500, CouplNr));
+                 temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 1500, CouplNr));
                  if (temp==NULL)
                  {
                     CouplNr=-2;
-                    temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1, 500, CouplNr));
+                    temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1, 1500, CouplNr));
                  }
                  if (temp)
                  {
@@ -892,11 +892,11 @@ void __fastcall TTrain::OnKeyPress(int cKey)
               else
               {
                  TDynamicObject *temp;
-                 temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 500, CouplNr));
+                 temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 1500, CouplNr));
                  if (temp==NULL)
                  {
                     CouplNr=-2;
-                    temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1, 500, CouplNr));
+                    temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1, 1500, CouplNr));
                  }
                  if (temp)
                  {
@@ -956,11 +956,11 @@ void __fastcall TTrain::OnKeyPress(int cKey)
        {
          int CouplNr=-2;
          TDynamicObject *temp;
-         temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 500, CouplNr));
+         temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 1500, CouplNr));
          if (temp==NULL)
           {
             CouplNr=-2;
-            temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1, 500, CouplNr));
+            temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1, 1500, CouplNr));
           }
          if (temp)
           {
@@ -1215,11 +1215,11 @@ void __fastcall TTrain::OnKeyPress(int cKey)
        {
         int CouplNr=-2;
         TDynamicObject *temp;
-        temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 500, CouplNr));
+        temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 1500, CouplNr));
         if (temp==NULL)
         {
          CouplNr=-2;
-         temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1, 500, CouplNr));
+         temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1, 1500, CouplNr));
         }
         if (temp)
         {
