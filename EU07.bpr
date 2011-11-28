@@ -3,7 +3,7 @@
 <PROJECT>
   <MACROS>
     <VERSION value="BCB.05.03"/>
-    <PROJECT value="EU07.exe"/>
+    <PROJECT value="D:\!PC2010_DDS_SPKS\EU07.exe"/>
     <OBJFILES value="McZapkie\mover.obj QueryParserComp.obj McZapkie\mtable.obj EU07.obj 
       dumb3d.obj Camera.obj Texture.obj World.obj Model3d.obj geometry.obj 
       MdlMngr.obj Train.obj wavread.obj Timer.obj Event.obj MemCell.obj Logs.obj 
@@ -36,12 +36,12 @@
     <USERDEFINES value="GLEW_STATIC;_DEBUG;USE_VBO"/>
     <SYSDEFINES value="_RTLDLL;NO_STRICT"/>
     <MAINSOURCE value="EU07.cpp"/>
-    <INCLUDEPATH value="C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
-    <LIBPATH value="C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
+    <INCLUDEPATH value="C:\Users\Xoov\;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
+    <LIBPATH value="C:\Users\Xoov\;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
     <WARNINGS value="-w-par"/>
   </MACROS>
   <OPTIONS>
-    <IDLCFLAGS value="-IC:\ProgsWin\CBuilder5\Projects\. -Iopengl -IMcZapkie -I$(BCB)\include 
+    <IDLCFLAGS value="-IC:\Users\Xoov\. -Iopengl -IMcZapkie -I$(BCB)\include 
       -I$(BCB)\include\vcl -src_suffix cpp -DGLEW_STATIC -D_DEBUG -DUSE_VBO -boa"/>
     <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a4 -6 -b- -k -y -v -vi- 
       -c -tW -tWM"/>
@@ -59,10 +59,10 @@
 [Version Info]
 IncludeVerInfo=1
 AutoIncBuild=1
-MajorVer=1
-MinorVer=3
+MajorVer=0
+MinorVer=666
 Release=279
-Build=279
+Build=290
 Debug=1
 PreRelease=0
 Special=0
@@ -74,8 +74,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.3.279.279
-InternalName=5th plus by Ra
+InternalName=6th by Ra with SPKS
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=eu07.exe
@@ -84,16 +83,20 @@ ProductVersion=1.3
 Comments=
 
 [HistoryLists\hlIncludePath]
-Count=3
-Item0=C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item1=C:\ProgsWin\CBuilder5\Projects;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item2=opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Count=5
+Item0=C:\Users\Xoov\;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item1=C:\Users\Xoov;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item2=C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item3=C:\ProgsWin\CBuilder5\Projects;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item4=opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
 
 [HistoryLists\hlLibraryPath]
-Count=3
-Item0=C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item1=C:\ProgsWin\CBuilder5\Projects;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item2=opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Count=5
+Item0=C:\Users\Xoov\;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item1=C:\Users\Xoov;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item2=C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item3=C:\ProgsWin\CBuilder5\Projects;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item4=opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
 
 [HistoryLists\hlDebugSourcePath]
 Count=3
@@ -114,21 +117,22 @@ Item7=GLEW_STATIC;_DEBUG;USE_VERTEX_ARRAYS
 Item8=_DEBUG
 
 [HistoryLists\hlFinalOutputDir]
-Count=8
-Item0=D:\EU07\
-Item1=D:\Rainsted\
-Item2=D:\EU07DDS\
-Item3=D:\EU07DDS
-Item4=M:\aEU07\EU07\
-Item5=G:\EU07\
-Item6=M:\aEU07\EU07-2006\
-Item7=M:\aEU07\EU07
+Count=9
+Item0=D:\!PC2010_DDS_SPKS\
+Item1=D:\EU07\
+Item2=D:\Rainsted\
+Item3=D:\EU07DDS\
+Item4=D:\EU07DDS
+Item5=M:\aEU07\EU07\
+Item6=G:\EU07\
+Item7=M:\aEU07\EU07-2006\
+Item8=M:\aEU07\EU07
 
 [Debugging]
-DebugSourceDirs=C:\Ra\dp\McZapkie\
+DebugSourceDirs=
 
 [Parameters]
-RunParams=-s AI_start1.scn -v ghostview
+RunParams=
 HostApplication=
 RemoteHost=
 RemotePath=
