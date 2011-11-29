@@ -1242,7 +1242,7 @@ double __fastcall TDynamicObject::Init(
   Error("Parameters mismatch: dynamic object "+asName+" from\n"+BaseDir+"\\"+Type_Name);
   return 0.0;
  }
- if (MoverParameters->CategoryFlag==2) //jeœli samochód
+ if (MoverParameters->CategoryFlag&2) //jeœli samochód
  {//ustawianie samochodow na poboczu albo na œrodku drogi
   if (Track->fTrackWidth<3.5) //jeœli droga w¹ska
    MoverParameters->OffsetTrackH=0.0; //to stawiamy na œrodku, niezale¿nie od stanu ruchu
@@ -1648,7 +1648,7 @@ if (!MoverParameters->PhysicActivation)
     tp.Width=MyTrack->fTrackWidth;
 //McZapkie-250202
     tp.friction=MyTrack->fFriction;
-    tp.CategoryFlag=MyTrack->iCategoryFlag;
+    tp.CategoryFlag=MyTrack->iCategoryFlag&15;
     tp.DamageFlag=MyTrack->iDamageFlag;
     tp.QualityFlag=MyTrack->iQualityFlag;
     if ((MoverParameters->Couplers[0].CouplingFlag>0)
@@ -2153,7 +2153,7 @@ bool __fastcall TDynamicObject::FastUpdate(double dt)
     //tp.Width=MyTrack->fTrackWidth;
     //McZapkie-250202
     //tp.friction= MyTrack->fFriction;
-    //tp.CategoryFlag= MyTrack->iCategoryFlag;
+    //tp.CategoryFlag= MyTrack->iCategoryFlag&15;
     //tp.DamageFlag=MyTrack->iDamageFlag;
     //tp.QualityFlag=MyTrack->iQualityFlag;
     //if (Mechanik)
@@ -2227,7 +2227,7 @@ bool __fastcall TDynamicObject::Render()
   AnsiString asLoadName="";
   //przejœcie na uk³ad wspó³rzêdnych modelu - tu siê zniekszta³ca?
   vFront=GetDirection();
-  if ((MoverParameters->CategoryFlag==2) && (MoverParameters->CabNo<0)) //TODO: zrobic to eleganciej z plynnym zawracaniem
+  if ((MoverParameters->CategoryFlag&2) && (MoverParameters->CabNo<0)) //TODO: zrobic to eleganciej z plynnym zawracaniem
    vFront=-vFront;
   vUp=vWorldUp; //sta³a
   vFront.Normalize();
@@ -2684,7 +2684,7 @@ bool __fastcall TDynamicObject::RenderAlpha()
  {
   TSubModel::iInstance=(int)this; //¿eby nie robiæ cudzych animacji
   vFront= GetDirection();
-  if ((MoverParameters->CategoryFlag==2) && (MoverParameters->CabNo<0)) //TODO: zrobic to eleganciej z plynnym zawracaniem
+  if ((MoverParameters->CategoryFlag&2) && (MoverParameters->CabNo<0)) //TODO: zrobic to eleganciej z plynnym zawracaniem
    vFront=-vFront;
   vUp=vWorldUp; //Ra: jeœli to wskazuje pionowo w górê
   vFront.Normalize(); //a to w dó³ lub w górê, to mamy problem z ortogonalnoœci¹ i skalowaniem

@@ -1008,7 +1008,7 @@ bool __fastcall TWorld::Update()
  if (Train)
  {//rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
   vector3 vFront=Train->DynamicObject->GetDirection();
-  if ((Train->DynamicObject->MoverParameters->CategoryFlag==2) && (Train->DynamicObject->MoverParameters->ActiveCab<0)) //TODO: zrobic to eleganciej z plynnym zawracaniem
+  if ((Train->DynamicObject->MoverParameters->CategoryFlag&2) && (Train->DynamicObject->MoverParameters->ActiveCab<0)) //TODO: zrobic to eleganciej z plynnym zawracaniem
      vFront=-vFront;
   vector3 vUp=vWorldUp; //sta³a
   vFront.Normalize();
