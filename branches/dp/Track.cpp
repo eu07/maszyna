@@ -195,7 +195,7 @@ TTrack* __fastcall TTrack::NullCreate(int dir)
  tmp->pTrack=trk;
  trk->bVisible=false; //nie potrzeba pokazywaæ, zreszt¹ i tak nie ma tekstur
  //trk->iTrapezoid=1; //s¹ przechy³ki do uwzglêdniania w rysowaniu
- trk->iCategoryFlag=iCategoryFlag; //taki sam typ
+ trk->iCategoryFlag=iCategoryFlag&15; //taki sam typ
  trk->iDamageFlag=128; //wykolejenie
  trk->fVelocity=0.0; //koniec jazdy
  trk->Init(); //utworzenie segmentu
@@ -393,7 +393,7 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
    parser->getTokens();
    *parser >> token;
    str=AnsiString(token.c_str());   //railtex
-   TextureID1=(str=="none"?0:TTexturesManager::GetTextureID(str.c_str(),(iCategoryFlag==1)?Global::iRailProFiltering:Global::iBallastFiltering));
+   TextureID1=(str=="none"?0:TTexturesManager::GetTextureID(str.c_str(),(iCategoryFlag&1)?Global::iRailProFiltering:Global::iBallastFiltering));
    parser->getTokens();
    *parser >> fTexLength; //tex tile length
    if (fTexLength<0.01) fTexLength=4; //Ra: zabezpiecznie przed zawieszeniem
@@ -406,7 +406,7 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
 //      fTexHeight=Parser->GetNextSymbol().ToDouble(); //tex sub height
 //      fTexWidth=Parser->GetNextSymbol().ToDouble(); //tex sub width
 //      fTexSlope=Parser->GetNextSymbol().ToDouble(); //tex sub slope width
-   if (iCategoryFlag==4)
+   if (iCategoryFlag&4)
     fTexHeight=-fTexHeight; //rzeki maj¹ wysokoœæ odwrotnie ni¿ drogi
   }
  //else if (DebugModeFlag) WriteLog("unvis");
@@ -445,7 +445,7 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
    {SwitchExtension=new TSwitchExtension(this); //zwrotnica ma doklejkê
     SwitchExtension->Segments[0]->Init(p1,p2,segsize); //kopia oryginalnego toru
    }
-   else if (iCategoryFlag==2)
+   else if (iCategoryFlag&2)
     if (TextureID1&&fTexLength)
     {//dla drogi trzeba ustaliæ proporcje boków nawierzchni
      float w,h;
@@ -899,7 +899,7 @@ void __fastcall TTrack::Compile()
  else //gdy nie ma nastêpnego albo jest nieodpowiednim koñcem podpiêty
  {fHTW2=fHTW; side2=side; slop2=slop; rozp2=rozp; fTexHeight2=fTexHeight; normal2=normal1;}
  double roll1,roll2;
- switch (iCategoryFlag)
+ switch (iCategoryFlag&15)
  {
   case 1: //tor
   {
@@ -1352,7 +1352,7 @@ void __fastcall TTrack::RaAssign(TGroundNode *gn,TAnimModel *am)
 int __fastcall TTrack::RaArrayPrepare()
 {//przygotowanie tablic do skopiowania do VBO (zliczanie wierzcho³ków)
  if (bVisible) //o ile w ogóle widaæ
-  switch (iCategoryFlag)
+  switch (iCategoryFlag&15)
   {
    case 1: //tor
     if (eType==tt_Switch) //dla zwrotnicy tylko szyny
@@ -1386,7 +1386,7 @@ void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Star
  else //gdy nie ma nastêpnego albo jest nieodpowiednim koñcem podpiêty
  {fHTW2=fHTW; side2=side; /*slop2=slop;*/ rozp2=rozp; fTexHeight2=fTexHeight;}
  double roll1,roll2;
- switch (iCategoryFlag)
+ switch (iCategoryFlag&15)
  {
   case 1: //tor
   {
@@ -1487,7 +1487,7 @@ void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Star
     {vector6 bpts1[4]; //punkty g³ównej p³aszczyzny przydaj¹ siê do robienia boków
      if (TextureID1||TextureID2) //punkty siê przydadz¹, nawet jeœli nawierzchni nie ma
      {//double max=2.0*(fHTW>fHTW2?fHTW:fHTW2); //z szerszej strony jest 100%
-      double max=(iCategoryFlag==4)?0.0:fTexLength; //test: szerokoœæ dróg proporcjonalna do d³ugoœci
+      double max=(iCategoryFlag&4)?0.0:fTexLength; //test: szerokoœæ dróg proporcjonalna do d³ugoœci
       double map1=max>0.0?fHTW/max:0.5; //obciêcie tekstury od strony 1
       double map2=max>0.0?fHTW2/max:0.5; //obciêcie tekstury od strony 2
       if (iTrapezoid) //trapez albo przechy³ki
@@ -1544,7 +1544,7 @@ void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Star
     {vector6 bpts1[4]; //punkty g³ównej p³aszczyzny przydaj¹ siê do robienia boków
      if (TextureID1||TextureID2) //punkty siê przydadz¹, nawet jeœli nawierzchni nie ma
      {//double max=2.0*(fHTW>fHTW2?fHTW:fHTW2); //z szerszej strony jest 100%
-      double max=(iCategoryFlag==4)?0.0:fTexLength; //test: szerokoœæ dróg proporcjonalna do d³ugoœci
+      double max=(iCategoryFlag&4)?0.0:fTexLength; //test: szerokoœæ dróg proporcjonalna do d³ugoœci
       double map1=max>0.0?fHTW/max:0.5; //obciêcie tekstury od strony 1
       double map2=max>0.0?fHTW2/max:0.5; //obciêcie tekstury od strony 2
       if (iTrapezoid) //trapez albo przechy³ki
@@ -1630,7 +1630,7 @@ void  __fastcall TTrack::RaRenderVBO(int iPtr)
  }
  int seg;
  int i;
- switch (iCategoryFlag)
+ switch (iCategoryFlag&15)
  {
   case 1: //tor
    if (eType==tt_Switch) //dla zwrotnicy tylko szyny
@@ -1967,7 +1967,7 @@ void __fastcall TTrack::RadioStop()
 
 double __fastcall TTrack::WidthTotal()
 {//szerokoœæ z poboczem
- if (iCategoryFlag==2) //jesli droga
+ if (iCategoryFlag&2) //jesli droga
   if (fTexHeight>=0.0) //i ma boki zagiête w dó³ (chodnik jest w górê)
    return 2.0*fabs(fTexWidth)+0.5*fabs(fTrackWidth+fTrackWidth2); //dodajemy pobocze
  return 0.5*fabs(fTrackWidth+fTrackWidth2); //a tak tylko zwyk³a œrednia szerokoœæ

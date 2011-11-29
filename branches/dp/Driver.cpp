@@ -361,7 +361,7 @@ void __fastcall TController::SetDriverPsyche()
   ReactionTime=HardReactionTime; //w zaleznosci od charakteru maszynisty
   AccPreferred=HardAcceleration; //agresywny
   if (Controlling!=NULL)
-   if (Controlling->CategoryFlag==2)
+   if (Controlling->CategoryFlag&2)
     WaitingExpireTime=11; //tyle ma czekaæ, zanim siê ruszy samochód
    else
     WaitingExpireTime=61; //tyle ma czekaæ, zanim siê ruszy
@@ -1026,6 +1026,10 @@ bool __fastcall TController::UpdateSituation(double dt)
    switch (OrderList[OrderPos])
    {
     case Connect:
+     if (pVehicles[0]->fTrackBlock>50)
+      SetVelocity(20,0); //jazda w ustawionym kierunku z prêdkoœci¹ 20
+     else
+      SetVelocity(2,0); //jazda w ustawionym kierunku z prêdkoœci¹ 2
      break;
     case Disconnect: //20.07.03 - manewrowanie wagonami
      if (iVehicleCount>=0) //jeœli by³a podana iloœæ wagonów
@@ -1108,7 +1112,7 @@ bool __fastcall TController::UpdateSituation(double dt)
      break;
     case Obey_train:
      //na jaka odleglosc i z jaka predkoscia ma podjechac
-     if (Controlling->CategoryFlag==1) //jazda pociagowa
+     if (Controlling->CategoryFlag&1) //jazda pociagowa
      {
       fMinProximityDist=30.0; fMaxProximityDist=60.0; //[m]
      }
@@ -1808,7 +1812,7 @@ int komenda[24]=
 
 void __fastcall TController::ScanEventTrack()
 {//sprawdzanie zdarzeñ semaforów i ograniczeñ szlakowych
- //Ra: AI mo¿e siê stoczyæ w przeciwnym kierunku, ni¿ oczekiwana jazda !!!! 
+ //Ra: AI mo¿e siê stoczyæ w przeciwnym kierunku, ni¿ oczekiwana jazda !!!!
  vector3 sl;
  //jeœli z przodu od kierunku ruchu jest jakiœ pojazd ze sprzêgiem wirtualnym
  if (pVehicles[0]->fTrackBlock<=50.0) //jak bli¿ej ni¿ 50m, to stop
@@ -1822,7 +1826,7 @@ void __fastcall TController::ScanEventTrack()
  if (startdir==0) //jeœli kabina i kierunek nie jest okreslony
   return; //nie robimy nic
  if (OrderList[OrderPos]==Shunt?OrderList[OrderPos+1]==Change_direction:false)
- {//jeœli jedzie manewrowo, ala nastêpnie w planie zmianê kierunku, to skanujemy te¿ w drug¹ stronê
+ {//jeœli jedzie manewrowo, ale nastêpnie ma w planie zmianê kierunku, to skanujemy te¿ w drug¹ stronê
   if (iDrivigFlags&moveBackwardLook) //jeœli ostatnio by³o skanowanie do ty³u
    iDrivigFlags&=~moveBackwardLook; //do przodu popatrzeæ trzeba
   else
@@ -1845,25 +1849,24 @@ void __fastcall TController::ScanEventTrack()
   TTrack *scantrack=TraceRoute(scandist,scandir,pVehicles[0]->RaTrackGet(),ev); //wg drugiej osi w kierunku ruchu
   if (!scantrack) //jeœli wykryto koniec toru albo zerow¹ prêdkoœæ
   {
-   {//if (!Mechanik->SetProximityVelocity(0.7*fabs(scandist),0))
-    // Mechanik->SetVelocity(Mechanik->VelActual*0.9,0);
-    if (pVehicles[0]->fTrackBlock>50.0) //je¿eli nie ma zawalidrogi w tej odleg³oœci
-    {
-     //scandist=(scandist>5?scandist-5:0); //10m do zatrzymania
-     vector3 pos=pVehicles[0]->AxlePositionGet()+scandist*SafeNormalize(startdir*pVehicles[0]->GetDirection());
+   //if (!Mechanik->SetProximityVelocity(0.7*fabs(scandist),0))
+   // Mechanik->SetVelocity(Mechanik->VelActual*0.9,0);
+   if (pVehicles[0]->fTrackBlock>50.0) //je¿eli nie ma zawalidrogi w tej odleg³oœci
+   {
+    //scandist=(scandist>5?scandist-5:0); //10m do zatrzymania
+    vector3 pos=pVehicles[0]->AxlePositionGet()+scandist*SafeNormalize(startdir*pVehicles[0]->GetDirection());
 #if LOGVELOCITY
-     WriteLog("End of track:");
+    WriteLog("End of track:");
 #endif
-     if (scandist>10) //jeœli zosta³o wiêcej ni¿ 10m do koñca toru
-      SetProximityVelocity(scandist,0,&pos); //informacja o zbli¿aniu siê do koñca
-     else
-     {PutCommand("SetVelocity",0,0,&pos,stopEnd); //na koñcu toru ma staæ
+    if (scandist>10) //jeœli zosta³o wiêcej ni¿ 10m do koñca toru
+     SetProximityVelocity(scandist,0,&pos); //informacja o zbli¿aniu siê do koñca
+    else
+    {PutCommand("SetVelocity",0,0,&pos,stopEnd); //na koñcu toru ma staæ
 #if LOGVELOCITY
-      WriteLog("-> SetVelocity 0 0");
+     WriteLog("-> SetVelocity 0 0");
 #endif
-     }
-     return;
     }
+    return;
    }
   }
   else
@@ -2181,6 +2184,8 @@ void __fastcall TController::ScanEventTrack()
    else //jeœli nic nie znaleziono
     if (OrderCurrentGet()==Shunt) //a jest w trybie manewrowym
      eSignSkip=NULL; //przywrócenie widocznoœci ewentualnie pominiêtej tarczy
+   if (iDrivigFlags&moveBackwardLook) //jeœli skanowanie do ty³u
+    return; //to nie analizujemy prêdkoœci w torach
    if (scandist<=scanmax) //jeœli ograniczenie jest dalej, ni¿ skanujemy, mo¿na je zignorowaæ
     if (vtrackmax>0.0) //jeœli w torze jest dodatnia
      if ((vmechmax<0) || (vtrackmax<vmechmax)) //i mniejsza od tej drugiej

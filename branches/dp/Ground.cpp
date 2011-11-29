@@ -428,6 +428,7 @@ void __fastcall TSubRect::AddNode(TGroundNode *Node)
  //pRender          - lista grup renderowanych z w³asnych VBO albo DL
  //pRenderAlpha     - lista grup renderowanych z w³asnych VBO z przezroczystoœci¹ albo DL
  //pRenderWires     - lista grup renderowanych z w³asnych VBO - druty
+ if (!this) return; //zabezpiecznie przed obiektami przekraczaj¹cymi obszar roboczy
  switch (Node->iType)
  {case TP_SOUND: //te obiekty s¹ sprawdzanie niezale¿nie od kierunku patrzenia
   case TP_EVLAUNCH:
@@ -1466,7 +1467,7 @@ void __fastcall TGround::FirstInit()
  for (int i=0;i<TP_LAST;++i)
  {for (TGroundNode *Current=nRootOfType[i];Current;Current=Current->Next)
   {
-   Current->InitNormals();
+   Current->InitNormals(); 
    if (Current->iType!=TP_DYNAMIC)
    {//pojazdów w ogóle nie dotyczy dodawanie do mapy
     if (i==TP_EVLAUNCH?Current->EvLaunch->IsGlobal():false)
