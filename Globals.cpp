@@ -56,7 +56,7 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 bool Global::bReCompile=false; //czy odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asVersion="Compilation 2011-11-22, release 1.6.276.277."; //tutaj, bo wysy³any
+AnsiString Global::asVersion="Compilation 2011-12-04, release 1.6.282.282."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 double Global::fSunDeclination=0.0; //deklinacja S³oñca
@@ -117,15 +117,15 @@ int Global::iDefaultFiltering=9; //domyœlne rozmywanie tekstur TGA bez alfa
 int Global::iBallastFiltering=9; //domyœlne rozmywanie tekstur podsypki
 int Global::iRailProFiltering=5; //domyœlne rozmywanie tekstur szyn
 int Global::iDynamicFiltering=5; //domyœlne rozmywanie tekstur pojazdów
-bool Global::bUseVBO=false; //czy jest VBO w karcie graficznej
+bool Global::bUseVBO=false; //czy jest VBO w karcie graficznej (czy u¿yæ)
 GLint Global::iMaxTextureSize=16384; //maksymalny rozmiar tekstury
-bool Global::bSmoothTraction=false; //wyg³adzanie drutów
+bool Global::bSmoothTraction=false; //wyg³adzanie drutów starym sposobem
 char** Global::szDefaultExt=Global::szTexturesDDS; //domyœlnie od DDS
 int Global::iMultisampling=2; //tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
-bool Global::bGlutFont=false; //tekst generowany przez GLUT
+bool Global::bGlutFont=false; //czy tekst generowany przez GLUT32.DLL
 int Global::iConvertModels=2; //tworzenie plików binarnych, 2-optymalizacja transformów
-int Global::iSlowMotionMask=-1; //maska wy³¹czanych w³aœciwoœci
-int Global::iModifyTGA=3; //czy korygowaæ pliki TGA dla szybszego wczytywania
+int Global::iSlowMotionMask=-1; //maska wy³¹czanych w³aœciwoœci dla zwiêkszenia FPS
+int Global::iModifyTGA=7; //czy korygowaæ pliki TGA dla szybszego wczytywania
 
 //parametry testowe (do testowania scenerii i obiektów)
 bool Global::bWireFrame=false;
@@ -135,8 +135,8 @@ bool Global::bManageNodes=true;
 bool Global::bDecompressDDS=false;
 
 //parametry przejœciowe (do usuniêcia)
-bool Global::bTimeChange=false; //usuniêty?
-bool Global::bRenderAlpha=true; //Ra: wywalam tê flagê
+bool Global::bTimeChange=false; //Ra: ZiomalCl wy³¹czy³ star¹ wersjê nocy
+bool Global::bRenderAlpha=true; //Ra: wywali³am tê flagê
 bool Global::bnewAirCouplers=true;
 bool Global::bDoubleAmbient=true; //podwójna jasnoœæ ambient
 double Global::fSunSpeed=1.0; //prêdkoœæ ruchu S³oñca, zmienna do testów
@@ -157,6 +157,7 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
  }
  TFileStream *fs;
  fs=new TFileStream(asFileName,fmOpenRead|fmShareCompat);
+ if (!fs) return;
  AnsiString str="";
  int size=fs->Size;
  str.SetLength(size);

@@ -10,7 +10,6 @@
 #pragma delphiheader begin
 #pragma option push -w-
 #pragma option push -Vx
-#include <hamulce.hpp>	// Pascal unit
 #include <SysUtils.hpp>	// Pascal unit
 #include <mctools.hpp>	// Pascal unit
 #include <SysInit.hpp>	// Pascal unit
@@ -111,16 +110,7 @@ enum TBrakeSystem { Individual, Pneumatic, ElectroPneumatic };
 #pragma option pop
 
 #pragma option push -b-
-enum TBrakeSubSystem { ss_None, ss_W, ss_K, ss_KK, ss_Hik, ss_ESt, ss_KE, ss_LSt, ss_MT, ss_Dako };
-#pragma option pop
-
-#pragma option push -b-
-enum TBrakeValve { NoValve, W, W_Lu_VI, W_Lu_L, W_Lu_XR, K, Kg, Kp, Kss, Kkg, Kkp, Kks, Hikg1, Hikss, 
-	Hikp1, KE1a, SW, ESt3, LSt, ESt4, ESt3AL2, EP1, EP2, M483, CV1_L_TR, CV1, CV1_R, Other };
-#pragma option pop
-
-#pragma option push -b-
-enum TBrakeHandle { NoHandle, West, FV4a, M394, M254, FVel1, FVel6, D2, Knorr, FD1, BS2, testH };
+enum TBrakeSubsystem { Standard, WeLu, Knorr, KE, Hik, Kk, Oerlikon };
 #pragma option pop
 
 #pragma option push -b-
@@ -344,22 +334,14 @@ public:
 	Byte NBpA;
 	int SandCapacity;
 	TBrakeSystem BrakeSystem;
-	TBrakeSubSystem BrakeSubsystem;
-	TBrakeValve BrakeValve;
-	TBrakeHandle BrakeHandle;
-	TBrakeHandle BrakeLocHandle;
+	TBrakeSubsystem BrakeSubsystem;
 	double MBPM;
-	Hamulce::TBrake* Hamulec;
-	Hamulce::THandle* Handle;
-	Hamulce::THandle* LocHandle;
-	Hamulce::TReservoir* Pipe;
-	Hamulce::TReservoir* Pipe2;
 	TLocalBrake LocalBrake;
 	TBrakePressure BrakePressureTable[13];
 	Byte ASBType;
 	Byte TurboTest;
 	double MaxBrakeForce;
-	double MaxBrakePress[4];
+	double MaxBrakePress;
 	double P2FTrans;
 	double TrackBrakeForce;
 	Byte BrakeMethod;
@@ -373,11 +355,8 @@ public:
 	int BrakeCylNo;
 	double BrakeCylRadius;
 	double BrakeCylDist;
-	double BrakeCylMult[3];
-	Byte LoadFlag;
-	double BrakeCylSpring;
-	double BrakeSlckAdj;
-	double RapidMult;
+	double BrakeCylMult[4];
+	Byte BCMFlag;
 	double MinCompressor;
 	double MaxCompressor;
 	double CompressorSpeed;
@@ -393,7 +372,6 @@ public:
 	mover__2 Transmision;
 	double NominalVoltage;
 	double WindingRes;
-	double u;
 	double CircuitRes;
 	int IminLo;
 	int IminHi;
@@ -489,7 +467,7 @@ public:
 	double LocBrakePress;
 	double PipeBrakePress;
 	double PipePress;
-	double EqvtPipePress;
+	double PPP;
 	double Volume;
 	double CompressedVolume;
 	double PantVolume;
@@ -501,7 +479,6 @@ public:
 	bool ConverterAllow;
 	int BrakeCtrlPos;
 	Byte LocalBrakePos;
-	double LocalBrakePosA;
 	Byte BrakeStatus;
 	bool EmergencyBrakeFlag;
 	Byte BrakeDelayFlag;
@@ -625,7 +602,6 @@ public:
 	void __fastcall CompressorCheck(double dt);
 	void __fastcall UpdatePantVolume(double dt);
 	void __fastcall UpdateScndPipePressure(double dt);
-	double __fastcall GetDVc(double dt);
 	bool __fastcall Attach(Byte ConnectNo, Byte ConnectToNr, PMoverParameters ConnectTo, Byte CouplingType
 		);
 	bool __fastcall DettachDistance(Byte ConnectNo);
@@ -740,12 +716,26 @@ static const Shortint ctrain_controll = 0x4;
 static const Shortint ctrain_power = 0x8;
 static const Shortint ctrain_passenger = 0x10;
 static const Shortint ctrain_scndpneumatic = 0x20;
-static const Shortint ctrain_localbrake = 0x40;
 static const Shortint dbrake_none = 0x0;
 static const Shortint dbrake_passive = 0x1;
 static const Shortint dbrake_switch = 0x2;
 static const Shortint dbrake_reversal = 0x4;
 static const Shortint dbrake_automatic = 0x8;
+static const Shortint bdelay_P = 0x0;
+static const Shortint bdelay_G = 0x1;
+static const Shortint bdelay_R = 0x2;
+static const Shortint bdelay_E = 0x4;
+static const Shortint b_off = 0x0;
+static const Shortint b_on = 0x1;
+static const Shortint b_dmg = 0x2;
+static const Shortint b_release = 0x4;
+static const Shortint b_antislip = 0x8;
+static const Shortint b_epused = 0x10;
+static const Shortint b_Rused = 0x20;
+static const Shortint b_Ractive = 0x40;
+static const Shortint bp_classic = 0x0;
+static const Shortint bp_diameter = 0x1;
+static const Shortint bp_magnetic = 0x2;
 static const Shortint s_waiting = 0x1;
 static const Shortint s_aware = 0x2;
 static const Shortint s_active = 0x4;
