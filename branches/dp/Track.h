@@ -157,28 +157,33 @@ public:
  void __fastcall MoveMe(vector3 pPosition);
 
  void Release();
- void __fastcall Compile();
+ void __fastcall Compile(GLuint tex=0);
 
- void __fastcall Render();
- void __fastcall RenderAlpha();
- bool __fastcall InMovement(); //czy w trakcie animacji?
+ void __fastcall Render(); //renderowanie z Display Lists
+ void __fastcall RenderDyn(); //renderowanie nieprzezroczystych pojazdów z Display Lists
+ void __fastcall RenderDynAlpha(); //renderowanie przezroczystych pojazdów z Display Lists
+ int __fastcall RaArrayPrepare(); //zliczanie rozmiaru dla VBO sektroa
+ void  __fastcall RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Start); //wype³nianie VBO
+ void  __fastcall RaRenderVBO(int iPtr); //renderowanie z VBO sektora
+ void  __fastcall RaRenderDyn(); //renderowanie przezroczystych pojazdów
+ void  __fastcall RaRenderDynAlpha(); //renderowanie przezroczystych pojazdów
 
- void __fastcall RaAssign(TGroundNode *gn,TAnimContainer *ac);
- void __fastcall RaAssign(TGroundNode *gn,TAnimModel *am);
- int __fastcall RaArrayPrepare();
- void  __fastcall RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Start);
- void  __fastcall RaRenderVBO(int iPtr);
- void  __fastcall RaRenderDynamic(); //pojazdy
  void __fastcall RaOwnerSet(TSubRect *o)
  {if (SwitchExtension) SwitchExtension->pOwner=o;};
+ bool __fastcall InMovement(); //czy w trakcie animacji?
+ void __fastcall RaAssign(TGroundNode *gn,TAnimContainer *ac);
+ void __fastcall RaAssign(TGroundNode *gn,TAnimModel *am);
  void __fastcall RaAnimListAdd(TTrack *t);
  TTrack* __fastcall RaAnimate();
+
  void __fastcall RadioStop();
  void __fastcall AxleCounter(int i,TDynamicObject *o)
  {if (pIsolated) pIsolated->Modify(i,o);}; //dodanie lub odjêcie osi
  AnsiString __fastcall IsolatedName();
  bool __fastcall IsolatedEventsAssign(TEvent *busy, TEvent *free);
  double __fastcall WidthTotal();
+ GLuint TextureGet(int i) {return i?TextureID1:TextureID2;};
+ bool __fastcall IsGroupable();
 };
 
 //---------------------------------------------------------------------------

@@ -59,7 +59,7 @@ void __fastcall TEvent::Init()
 
 }
 
-void __fastcall TEvent::Load(cParser* parser)
+void __fastcall TEvent::Load(cParser* parser,vector3 *org)
 {
     int i;
     int ti;
@@ -190,6 +190,12 @@ void __fastcall TEvent::Load(cParser* parser)
         case tp_PutValues:
             parser->getTokens(3);
             *parser >> Params[3].asdouble >> Params[4].asdouble >> Params[5].asdouble; //polozenie X,Y,Z
+            if (org)
+            {//przesuniêcie
+             Params[3].asdouble+=org->x;
+             Params[4].asdouble+=org->y;
+             Params[5].asdouble+=org->z;
+            }
             Params[12].asInt=0;
             parser->getTokens(1,false);  //komendy 'case sensitive'
             *parser >> token;

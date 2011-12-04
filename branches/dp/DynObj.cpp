@@ -1730,11 +1730,11 @@ if (!MoverParameters->PhysicActivation)
 //    { MoverParameters->SecuritySystemReset(); }
     if (MoverParameters->ActiveCab==0)
         MoverParameters->SecuritySystemReset();
-//    else                               
-//     if ((Controller!=Humandriver)&&(MoverParameters->BrakeCtrlPos<0)&&(!TestFlag(MoverParameters->BrakeStatus,1))&&((MoverParameters->CntrlPipePress)>0.51))
+    else                               
+     if ((Controller!=Humandriver)&&(MoverParameters->BrakeCtrlPos<0)&&(!TestFlag(MoverParameters->BrakeStatus,1))&&((MoverParameters->CntrlPipePress)>0.51))
 //       {
 ////        MoverParameters->PipePress=0.50;
-//        MoverParameters->BrakeCtrlPos=0;
+        MoverParameters->BrakeCtrlPos=0;
 //       }
 
 
@@ -1829,14 +1829,14 @@ if (!MoverParameters->PhysicActivation)
 //McZapkie-260202 end
 
 //yB: przyspieszacz (moze zadziala, ale dzwiek juz jest)
-//if(ObjectDist<50000)
-// if(TestFlag(MoverParameters->SoundFlag,sound_brakeacc))
-//   sBrakeAcc.Play(-1,0,MechInside,vPosition);
-// else;
+if(ObjectDist<50000)
+ if(TestFlag(MoverParameters->SoundFlag,sound_brakeacc))
+   sBrakeAcc.Play(-1,0,MechInside,vPosition);
+ else;
 // if(MoverParameters->BrakePress=0)
 //   sBrakeAcc.Stop();
-//else
-//  sBrakeAcc.Stop();
+else
+  sBrakeAcc.Stop();
 
 SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);
 
