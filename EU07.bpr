@@ -36,13 +36,14 @@
     <USERDEFINES value="GLEW_STATIC;_DEBUG;USE_VBO"/>
     <SYSDEFINES value="_RTLDLL;NO_STRICT"/>
     <MAINSOURCE value="EU07.cpp"/>
-    <INCLUDEPATH value="opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
-    <LIBPATH value="opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
+    <INCLUDEPATH value="C:\ProgsWin\CBuilder5\Projects;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
+    <LIBPATH value="C:\ProgsWin\CBuilder5\Projects;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
     <WARNINGS value="-w-par"/>
   </MACROS>
   <OPTIONS>
-    <IDLCFLAGS value="-Iopengl -IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl -src_suffix cpp 
-      -DGLEW_STATIC -D_DEBUG -DUSE_VBO -boa"/>
+    <IDLCFLAGS value="-src_suffix cpp -DGLEW_STATIC -D_DEBUG -DUSE_VBO 
+      -IC:\ProgsWin\CBuilder5\Projects -Iopengl -IMcZapkie -I$(BCB)\include 
+      -I$(BCB)\include\vcl -boa"/>
     <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a4 -6 -b- -k -y -v -vi- 
       -c -tW -tWM"/>
     <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
@@ -61,8 +62,8 @@ IncludeVerInfo=1
 AutoIncBuild=1
 MajorVer=1
 MinorVer=6
-Release=282
-Build=282
+Release=283
+Build=283
 Debug=1
 PreRelease=0
 Special=0
@@ -74,7 +75,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.6.282.282
+FileVersion=1.6.283.283
 InternalName=6th by Ra
 LegalCopyright=
 LegalTrademarks=
@@ -128,7 +129,7 @@ Item7=M:\aEU07\EU07
 DebugSourceDirs=C:\Ra\dp\McZapkie\
 
 [Parameters]
-RunParams=-s linia61_osobowy1.scn -v ghostview
+RunParams=-s EXPORT.SCN -v ghostview
 HostApplication=
 RemoteHost=
 RemotePath=
