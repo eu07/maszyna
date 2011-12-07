@@ -2034,4 +2034,59 @@ bool __fastcall TTrack::IsGroupable()
  return true;
 };
 
+bool __fastcall Equal(vector3 v1, vector3 *v2)
+{//sprawdzenie odleg³oœci punktów
+ if (fabs(v1.x-v2->x)>0.01) return false; //szeœcian zamiast kuli
+ if (fabs(v1.z-v2->z)>0.01) return false;
+ if (fabs(v1.y-v2->y)>0.01) return false;
+ return true;
+ //return (SquareMagnitude(v1-*v2)<0.00012); //0.011^2=0.00012
+};
+
+int __fastcall TTrack::TestPoint(vector3 *Point)
+{//sprawdzanie, czy tory mo¿na po³¹czyæ (TODO: przenieœæ to do TTrack)
+ switch (eType)
+ {
+  case tt_Normal :
+   if (pPrev==NULL)
+    if (Equal(Segment->FastGetPoint_0(),Point))
+     return 0;
+   if (pNext==NULL)
+    if (Equal(Segment->FastGetPoint_1(),Point))
+     return 1;
+   break;
+  case tt_Switch :
+  {//int state=GetSwitchState(); //po co?
+   //Switch(0);
+   if (pPrev==NULL)
+    if (Equal(SwitchExtension->Segments[0]->FastGetPoint_0(),Point))
+    {
+     //Switch(state);
+     return 2;
+    }
+   if (pNext==NULL)
+    if (Equal(SwitchExtension->Segments[0]->FastGetPoint_1(),Point))
+    {
+     //Switch(state);
+     return 3;
+    }
+   Switch(1); //mo¿na by siê pozbyæ tego prze³¹czania
+   if (pPrev==NULL)
+    if (Equal(Segment->FastGetPoint_0(),Point))
+    {
+     Switch(0);
+     return 4;
+    }
+   if (pNext==NULL)
+    if (Equal(Segment->FastGetPoint_1(),Point))
+    {
+     Switch(0);
+     return 5;
+    }
+   Switch(0);
+  }
+  break;
+ }
+ return -1;
+};
 

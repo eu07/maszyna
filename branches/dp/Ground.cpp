@@ -41,6 +41,7 @@
 #include "MemCell.h"
 #include "mtable.hpp"
 #include "DynObj.h"
+#include "Data.h"
 
 
 #include "parser.h" //Tolaris-010603
@@ -606,39 +607,59 @@ void __fastcall TSubRect::Sort()
   };
  }
  //wyrzucenie z listy obiektów pojedynczych (nie ma z czym ich grupowaæ)
- GLuint t=0; //pomocniczy kod tekstury
- n0=&nMeshed; //wskaŸnik niezbêdny do usuwania obiektów
- n1=nMeshed; //lista obiektów przetwarzanych na statyczne siatki
- while (n1)
- {//dla ka¿dej tekstury musz¹ istnieæ co najmniej dwa obiekty
-  n2=n1->nNext3; //kolejny z tej listy
-  if (n2) //jeœli istnieje kolejny
-   if (t<n1->TextureID) //tekstura nie ma potwierdzonych dwóch obiektów
-    if (n1->TextureID==n2->TextureID)
-    {//skoro s¹ co najmniej dwa obiekty, to mo¿na zrobiæ obiekt renderuj¹cy
-     t=n1->TextureID; //ta tekstura ma co najmniej dwa obiekty
-     *n0=new TGroundNode();
-     (*n0)->nNext2=nRootMesh; nRootMesh=*n0; //podczepienie do listy
-     nRootMesh->iType=TP_MESH; //obiekt renderuj¹cy siatki dla tekstury
-     nRootMesh->TextureID=t;
-     nRootMesh->nNode=n1; //pierwszy element z listy
-     nRootMesh->pCenter=n1->pCenter;
-     nRootMesh->fSquareRadius=1e8; //widaæ bez ograniczeñ
-     nRootMesh->fSquareMinRadius=0.0;
-     nRootMesh->iFlags=0x10;
-     RaNodeAdd(nRootMesh); //dodanie do odpowiedniej listy renderowania
-    }
+ //nawet jak s¹ pojedyncze, to i tak lepiej, aby by³y w jednym Display List
+/*
     else
     {//dodanie do zwyk³ej listy renderowania i usuniêcie z grupowego
      *n0=n2; //drugi bêdzie na pocz¹tku
      RaNodeAdd(n1); //nie ma go z czym zgrupowaæ; (n1->nNext3) zostanie nadpisane
      n1=n2; //potrzebne do ustawienia (n0)
     }
-  n0=&(n1->nNext3);
-  n1=n2;
- };
+*/
+ //...
  //przegl¹danie listy i tworzenie obiektów renderuj¹cych dla danej tekstury
+ GLuint t=0; //pomocniczy kod tekstury
+ n1=nMeshed; //lista obiektów przetwarzanych na statyczne siatki
+ while (n1)
+ {//dla ka¿dej tekstury powinny istnieæ co najmniej dwa obiekty, ale dla DL nie ma to znaczenia
+  if (t<n1->TextureID) //jeœli (n1) ma inn¹ teksturê ni¿ poprzednie
+  {//mo¿na zrobiæ obiekt renderuj¹cy
+   t=n1->TextureID;
+   n2=new TGroundNode();
+   n2->nNext2=nRootMesh; nRootMesh=n2; //podczepienie na pocz¹tku listy
+   nRootMesh->iType=TP_MESH; //obiekt renderuj¹cy siatki dla tekstury
+   nRootMesh->TextureID=t;
+   nRootMesh->nNode=n1; //pierwszy element z listy
+   nRootMesh->pCenter=n1->pCenter;
+   nRootMesh->fSquareRadius=1e8; //widaæ bez ograniczeñ
+   nRootMesh->fSquareMinRadius=0.0;
+   nRootMesh->iFlags=0x10;
+   RaNodeAdd(nRootMesh); //dodanie do odpowiedniej listy renderowania
+  }
+  n1=n1->nNext3; //kolejny z tej listy
+ };
 }
+
+TTrack* __fastcall TSubRect::FindTrack(vector3 *Point,int &iConnection,TTrack *Exclude)
+{//szukanie toru, którego koniec jest najbli¿szy (*Point)
+ TTrack *Track;
+ for (int i=0;i<iTracks;++i)
+  if (tTracks[i]!=Exclude) //mo¿na u¿yæ tabelê torów, bo jest mniejsza
+  {
+   iConnection=tTracks[i]->TestPoint(Point);
+   if (iConnection>=0) return tTracks[i]; //szukanie TGroundNode nie jest potrzebne
+  }
+/*
+ TGroundNode *Current;
+ for (Current=nRootNode;Current;Current=Current->Next)
+  if ((Current->iType==TP_TRACK)&&(Current->pTrack!=Exclude)) //mo¿na u¿yæ tabelê torów
+   {
+    iConnection=Current->pTrack->TestPoint(Point);
+    if (iConnection>=0) return Current;
+   }
+*/
+ return NULL;
+};
 
 bool __fastcall TSubRect::RaTrackAnimAdd(TTrack *t)
 {//aktywacja animacji torów w VBO (zwrotnica, obrotnica)
@@ -2093,7 +2114,7 @@ bool __fastcall TGround::Init(AnsiString asFile)
 //    DecimalSeparator=',';
 
     delete parser;
- if (!bInitDone) FirstInit(); //jeœli nie by³o w scenerii 
+ if (!bInitDone) FirstInit(); //jeœli nie by³o w scenerii
 
 //------------------------------------Init dynamic---------------------------------
   /*
@@ -2124,12 +2145,6 @@ bool __fastcall TGround::Init(AnsiString asFile)
     return true;
     */
     return true;
-}
-
-const double SqrError= 0.00012;
-bool __fastcall Equal(vector3 v1, vector3 v2)
-{
-    return (SquareMagnitude(v1-v2)<SqrError);
 }
 
 bool __fastcall TGround::InitEvents()
@@ -2306,10 +2321,12 @@ bool __fastcall TGround::InitEvents()
 
 bool __fastcall TGround::InitTracks()
 {//³¹czenie torów ze sob¹ i z eventami
- TGroundNode *Current,*tmp;
+ TGroundNode *Current,*Model;
+ TTrack *tmp; //znaleziony tor
  TTrack *Track;
  int iConnection,state;
  AnsiString name;
+ //tracks=tracksfar=0;
  for (Current=nRootOfType[TP_TRACK];Current;Current=Current->Next)
  {
   Track=Current->pTrack;
@@ -2324,11 +2341,11 @@ bool __fastcall TGround::InitTracks()
   switch (Track->eType)
   {
    case tt_Turn: //obrotnicê te¿ ³¹czymy na starcie z innymi torami
-    tmp=FindGroundNode(Current->asName,TP_MODEL); //szukamy modelu o tej samej nazwie
+    Model=FindGroundNode(Current->asName,TP_MODEL); //szukamy modelu o tej samej nazwie
     if (tmp) //mamy model, trzeba zapamiêtaæ wskaŸnik do jego animacji
     {//jak coœ pójdzie Ÿle, to robimy z tego normalny tor
      //Track->ModelAssign(tmp->Model->GetContainer(NULL)); //wi¹zanie toru z modelem obrotnicy
-     Track->RaAssign(Current,tmp->Model); //wi¹zanie toru z modelem obrotnicy
+     Track->RaAssign(Current,Model->Model); //wi¹zanie toru z modelem obrotnicy
      //break; //jednak po³¹czê z s¹siednim, jak ma siê wysypywaæ null track
     }
    case tt_Normal: //tylko proste s¹ pod³¹czane do rozjazdów, st¹d dwa rozjazdy siê nie po³¹cz¹ ze sob¹
@@ -2339,28 +2356,30 @@ bool __fastcall TGround::InitTracks()
      {
       case -1: break;
       case 0:
-       Track->ConnectPrevPrev(tmp->pTrack,0);
+       Track->ConnectPrevPrev(tmp,0);
       break;
       case 1:
-       Track->ConnectPrevNext(tmp->pTrack,1);
+       Track->ConnectPrevNext(tmp,1);
       break;
       case 2:
-       Track->ConnectPrevPrev(tmp->pTrack,0); //do Point1 pierwszego
-       tmp->pTrack->SetConnections(0); //zapamiêtanie ustawieñ w Segmencie
+       Track->ConnectPrevPrev(tmp,0); //do Point1 pierwszego
+       tmp->SetConnections(0); //zapamiêtanie ustawieñ w Segmencie
       break;
       case 3:
-       Track->ConnectPrevNext(tmp->pTrack,1); //do Point2 pierwszego
-       tmp->pTrack->SetConnections(0); //zapamiêtanie ustawieñ w Segmencie
+       Track->ConnectPrevNext(tmp,1); //do Point2 pierwszego
+       tmp->SetConnections(0); //zapamiêtanie ustawieñ w Segmencie
       break;
       case 4:
-       tmp->pTrack->Switch(1);
-       Track->ConnectPrevPrev(tmp->pTrack,0); //do Point1 drugiego
-       tmp->pTrack->SetConnections(1); //robi te¿ Switch(0)
+       tmp->Switch(1);
+       Track->ConnectPrevPrev(tmp,0); //do Point1 drugiego
+       tmp->SetConnections(1); //robi te¿ Switch(0)
+       tmp->Switch(0);
       break;
       case 5:
-       tmp->pTrack->Switch(1);
-       Track->ConnectPrevNext(tmp->pTrack,3); //do Point2 drugiego
-       tmp->pTrack->SetConnections(1); //robi te¿ Switch(0)
+       tmp->Switch(1);
+       Track->ConnectPrevNext(tmp,3); //do Point2 drugiego
+       tmp->SetConnections(1); //robi te¿ Switch(0)
+       tmp->Switch(0);
       break;
      }
     }
@@ -2371,28 +2390,30 @@ bool __fastcall TGround::InitTracks()
      {
       case -1: break;
       case 0:
-       Track->ConnectNextPrev(tmp->pTrack,0);
+       Track->ConnectNextPrev(tmp,0);
       break;
       case 1:
-       Track->ConnectNextNext(tmp->pTrack,1);
+       Track->ConnectNextNext(tmp,1);
       break;
       case 2:
-       Track->ConnectNextPrev(tmp->pTrack,0);
-       tmp->pTrack->SetConnections(0); //zapamiêtanie ustawieñ w Segmencie
+       Track->ConnectNextPrev(tmp,0);
+       tmp->SetConnections(0); //zapamiêtanie ustawieñ w Segmencie
       break;
       case 3:
-       Track->ConnectNextNext(tmp->pTrack,1);
-       tmp->pTrack->SetConnections(0); //zapamiêtanie ustawieñ w Segmencie
+       Track->ConnectNextNext(tmp,1);
+       tmp->SetConnections(0); //zapamiêtanie ustawieñ w Segmencie
       break;
       case 4:
-       tmp->pTrack->Switch(1);
-       Track->ConnectNextPrev(tmp->pTrack,0);
-       tmp->pTrack->SetConnections(1); //robi te¿ Switch(0)
+       tmp->Switch(1);
+       Track->ConnectNextPrev(tmp,0);
+       tmp->SetConnections(1); //robi te¿ Switch(0)
+       tmp->Switch(0);
       break;
       case 5:
-       tmp->pTrack->Switch(1);
-       Track->ConnectNextNext(tmp->pTrack,3);
-       tmp->pTrack->SetConnections(1); //robi te¿ Switch(0)
+       tmp->Switch(1);
+       Track->ConnectNextNext(tmp,3);
+       tmp->SetConnections(1); //robi te¿ Switch(0)
+       tmp->Switch(0);
       break;
      }
     }
@@ -2410,29 +2431,30 @@ bool __fastcall TGround::InitTracks()
    if (!Track->CurrentPrev()&&Track->CurrentNext())
     Track->iCategoryFlag|=0x100; //ustawienie flagi portalu
  }
+ //WriteLog("Total "+AnsiString(tracks)+", far "+AnsiString(tracksfar));
  return true;
 }
 
 void __fastcall TGround::TrackJoin(TGroundNode *Current)
 {//wyszukiwanie s¹siednich torów do pod³¹czenia (wydzielone na u¿ytek obrotnicy)
  TTrack *Track=Current->pTrack;
- TGroundNode *tmp;
+ TTrack *tmp;
  int iConnection;
  if (!Track->CurrentPrev())
  {tmp=FindTrack(Track->CurrentSegment()->FastGetPoint_0(),iConnection,Current); //Current do pominiêcia
   switch (iConnection)
   {
-   case 0: Track->ConnectPrevPrev(tmp->pTrack,0); break;
-   case 1: Track->ConnectPrevNext(tmp->pTrack,1); break;
+   case 0: Track->ConnectPrevPrev(tmp,0); break;
+   case 1: Track->ConnectPrevNext(tmp,1); break;
   }
  }
  if (!Track->CurrentNext())
  {
-  tmp= FindTrack(Track->CurrentSegment()->FastGetPoint_1(),iConnection,Current);
+  tmp=FindTrack(Track->CurrentSegment()->FastGetPoint_1(),iConnection,Current);
   switch (iConnection)
   {
-   case 0: Track->ConnectNextPrev(tmp->pTrack,0); break;
-   case 1: Track->ConnectNextNext(tmp->pTrack,1); break;
+   case 0: Track->ConnectNextPrev(tmp,0); break;
+   case 1: Track->ConnectNextNext(tmp,1); break;
   }
  }
 }
@@ -2463,76 +2485,51 @@ bool __fastcall TGround::InitLaunchers()
  return true;
 }
 
-TGroundNode* __fastcall TGround::FindTrack(vector3 Point, int &iConnection, TGroundNode *Exclude= NULL)
-{
- int state;
+TTrack* __fastcall TGround::FindTrack(vector3 Point,int &iConnection,TGroundNode *Exclude)
+{//wyszukiwanie innego toru koñcz¹cego siê w (Point)
  TTrack *Track;
- TGroundNode *Current,*tmp;
+ TGroundNode *Current;
+ TTrack *tmp;
  iConnection=-1;
+ TSubRect *sr;
+ //najpierw szukamy w okolicznych segmentach
+ int c=GetColFromX(Point.x);
+ int r=GetRowFromZ(Point.z);
+ if ((sr=FastGetSubRect(c,r))!=NULL) //75% torów jest w tym samym sektorze
+  if ((tmp=sr->FindTrack(&Point,iConnection,Exclude->pTrack))!=NULL)
+   return tmp;
+ int i,x,y;
+ for (i=1;i<9;++i) //sektory w kolejnoœci odleg³oœci, 4 jest tu wystarczaj¹ce, 9 na wszelki wypadek
+ {//niemal wszystkie pod³¹czone tory znajduj¹ siê w s¹siednich 8 sektorach
+  x=SectorOrder[i].x;
+  y=SectorOrder[i].y;
+  if ((sr=FastGetSubRect(c+y,r+x))!=NULL)
+   if ((tmp=sr->FindTrack(&Point,iConnection,Exclude->pTrack))!=NULL)
+    return tmp;
+  if ((sr=FastGetSubRect(c+y,r-x))!=NULL)
+   if ((tmp=sr->FindTrack(&Point,iConnection,Exclude->pTrack))!=NULL)
+    return tmp;
+  if ((sr=FastGetSubRect(c-y,r+x))!=NULL)
+   if ((tmp=sr->FindTrack(&Point,iConnection,Exclude->pTrack))!=NULL)
+    return tmp;
+  if ((sr=FastGetSubRect(c-y,r-x))!=NULL)
+   if ((tmp=sr->FindTrack(&Point,iConnection,Exclude->pTrack))!=NULL)
+    return tmp;
+ }
+#if 0
+ //wyszukiwanie czo³gowe (po wszystkich jak leci) - nie ma chyba sensu
  for (Current=nRootOfType[TP_TRACK];Current;Current=Current->Next)
  {
-        if ((Current->iType==TP_TRACK) && (Current!=Exclude))
-        {
-            Track= Current->pTrack;
-            switch (Track->eType)
-            {
-                case tt_Normal :
-                    if (Track->CurrentPrev()==NULL)
-                        if (Equal(Track->CurrentSegment()->FastGetPoint_0(),Point))
-                        {
-
-                            iConnection= 0;
-                            return Current;
-                        }
-                    if (Track->CurrentNext()==NULL)
-                        if (Equal(Track->CurrentSegment()->FastGetPoint_1(),Point))
-                        {
-                            iConnection= 1;
-                            return Current;
-                        }
-                break;
-
-                case tt_Switch :
-                    state= Track->GetSwitchState();
-                    Track->Switch(0);
-
-                    if (Track->CurrentPrev()==NULL)
-                        if (Equal(Track->CurrentSegment()->FastGetPoint_0(),Point))
-                        {
-                            iConnection= 2;
-                            Track->Switch(state);
-                            return Current;
-                        }
-                    if (Track->CurrentNext()==NULL)
-                        if (Equal(Track->CurrentSegment()->FastGetPoint_1(),Point))
-                        {
-                            iConnection= 3;
-                            Track->Switch(state);
-                            return Current;
-                        }
-                    Track->Switch(1);
-                    if (Track->CurrentPrev()==NULL)
-                        if (Equal(Track->CurrentSegment()->FastGetPoint_0(),Point))
-                        {
-                            iConnection= 4;
-                            Track->Switch(state);
-                            return Current;
-                        }
-                    if (Track->CurrentNext()==NULL)
-                        if (Equal(Track->CurrentSegment()->FastGetPoint_1(),Point))
-                        {
-                            iConnection= 5;
-                            Track->Switch(state);
-                            return Current;
-                        }
-                    Track->Switch(state);
-                break;
-            }
-        }
-    }
-    return NULL;
-
+  if ((Current->iType==TP_TRACK) && (Current!=Exclude))
+  {
+   iConnection=Current->pTrack->TestPoint(&Point);
+   if (iConnection>=0) return Current->pTrack;
+  }
+ }
+#endif
+ return NULL;
 }
+
 
 /*
 TGroundNode* __fastcall TGround::CreateGroundNode()
@@ -2947,7 +2944,7 @@ bool __fastcall TGround::GetTraction(vector3 pPosition, TDynamicObject *model)
     np2wy=1000;
     //p1wy=0;   
     //p2wy=0;
-    int n= 2; //iloœæ kwadratów hektometrowych mapy do przeszukania
+    int n= 1; //iloœæ sektorów mapy do przeszukania
     int c= GetColFromX(pPosition.x);
     int r= GetRowFromZ(pPosition.z);
     TSubRect *tmp,*tmp2;
@@ -2965,8 +2962,8 @@ bool __fastcall TGround::GetTraction(vector3 pPosition, TDynamicObject *model)
     bp2zl= pant2l.z;
     bp2xp= pant2p.x;
     bp2zp= pant2p.z;
-    for (int j= r-n; j<r+n; j++)
-        for (int i= c-n; i<c+n; i++)
+    for (int j= r-n; j<=r+n; j++)
+        for (int i= c-n; i<=c+n; i++)
         {
             tmp= FastGetSubRect(i,j);
             if (tmp)
@@ -3245,7 +3242,7 @@ bool __fastcall TGround::RaRenderAlpha(vector3 pPosition)
 
 bool __fastcall TGround::Render(vector3 pPosition)
 {//renderowanie scenerii z Display List - faza nieprzezroczystych
- ++TGroundRect::iFrameNumber; //zwiêszenie licznika ramek
+ ++TGroundRect::iFrameNumber; //zwiêszenie licznika ramek (do usuwniania nadanimacji)
  CameraDirection.x=sin(Global::pCameraRotation); //wektor kierunkowy
  CameraDirection.z=cos(Global::pCameraRotation);
  int tr,tc;
@@ -3272,6 +3269,17 @@ bool __fastcall TGround::Render(vector3 pPosition)
  //iRange=Global::slowmotion?AreaSlow:AreaFast;
  iRange=(Global::iSlowMotion&6)?((Global::iSlowMotion&4)?AreaMini:AreaSlow):AreaFast;
  n=(iRange[0]*n)/10; //przeliczenie (n) do aktualnego promienia rednerowania
+/* //przerobiæ na u¿ycie SectorOrder
+ for (k=1;k<max;++k) //sektory w kolejnoœci odleg³oœci
+ {//
+  i=SectorOrder[i].x;
+  j=SectorOrder[i].y;
+  while ((i>0)||(j<0)) //s¹ 4 przypadki, oprócz i=j=0
+  {
+   if (j<0) i=-i;
+   j=-j;
+  }
+*/
  for (j=-n;j<=n;j++)
  {k=iRange[j<0?-j:j]; //zasiêg na danym poziomie
   for (i=-k;i<=k;i++)

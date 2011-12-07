@@ -137,9 +137,10 @@ public:
 
 class TSubRect : public Resource, public CMesh
 {//sektor sk³adowy kwadratu kilometrowego
-private:
+public:
  int iTracks; //iloœæ torów w (tTracks)
  TTrack **tTracks; //tory do renderowania pojazdów
+private:
  TTrack *tTrackAnim; //obiekty do przeliczenia animacji
  TGroundNode *nRootMesh; //obiekty renderuj¹ce wg tekstury (wtórne, lista po nNext2)
  TGroundNode *nMeshed;   //lista obiektów dla których istniej¹ obiekty renderuj¹ce grupowo
@@ -162,6 +163,7 @@ public:
  void __fastcall NodeAdd(TGroundNode *Node); //dodanie obiektu do sektora na etapie rozdzielania na sektory
  void __fastcall RaNodeAdd(TGroundNode *Node); //dodanie obiektu do listy renderowania
  void __fastcall Sort(); //optymalizacja obiektów w sektorze (sortowanie wg tekstur)
+ TTrack* __fastcall FindTrack(vector3 *Point,int &iConnection,TTrack *Exclude);
  bool __fastcall StartVBO(); //ustwienie VBO sektora dla (nRenderRect), (nRenderRectAlpha) i (nRenderWires)
  bool __fastcall RaTrackAnimAdd(TTrack *t); //zg³oszenie toru do animacji
  void __fastcall RaAnimate(); //przeliczenie animacji torów
@@ -242,6 +244,7 @@ class TGround
  //TGroundNode *nLastOfType[TP_LAST]; //ostatnia
  TSubRect srGlobal; //zawiera obiekty globalne (na razie wyzwalacze czasowe)
  int hh,mm,srh,srm,ssh,ssm; //ustawienia czasu
+ //int tracks,tracksfar; //liczniki torów
 public:
  TDynamicObject *LastDyn; //ABu: paskudnie, ale na bardzo szybko moze jakos przejdzie...
  //TTrain *pTrain;
@@ -256,7 +259,7 @@ public:
     bool __fastcall InitEvents();
     bool __fastcall InitTracks();
     bool __fastcall InitLaunchers();
-    TGroundNode* __fastcall FindTrack(vector3 Point, int &iConnection, TGroundNode *Exclude);
+    TTrack* __fastcall FindTrack(vector3 Point,int &iConnection,TGroundNode *Exclude);
     TGroundNode* __fastcall CreateGroundNode();
     TGroundNode* __fastcall AddGroundNode(cParser* parser);
     bool __fastcall AddGroundNode(double x,double z,TGroundNode *Node)

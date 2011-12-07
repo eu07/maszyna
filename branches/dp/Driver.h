@@ -48,24 +48,42 @@ enum TStopReason
  stopExt,   //komenda z zewn¹trz
  stopError  //z powodu b³êdu w obliczeniu drogi hamowania
 };
-/*
-struct TProximityTablePos
-{
-	double Dist;
-	double Vel;
-	double Acc;
-	Byte Flag;
-} ;
-*/
 
-//-- var, const, procedure ---------------------------------------------------
+class TSpeedPos
+{//pozycja tabeli prêdkoœci dla AI
+ double fDist; //aktualna odleg³oœæ (ujemna gdy miniête)
+ double fVel; //prêdkoœæ obowi¹zuj¹ca od tego miejsca
+ //double fAcc;
+ int iFlag;
+ vector3 vPos; //wspó³rzêdne XYZ do liczenia odleg³oœci
+public:
+ void __fastcall Clear();
+ void __fastcall Calulate(vector3 *p,vector3 *dir);
+};
+
+class TSpeedTable
+{//tabela prêdkoœci dla AI wraz z obs³ug¹
+ TSpeedPos sSpeedTable[16]; //najbli¿sze zmiany prêdkoœci
+ //double ReducedTable[256];
+ int iFirst; //aktualna pozycja w tabeli
+ int iLast; //ostatnia wype³niona pozycja w tabeli
+ //Byte LPTA;
+ //Byte LPTI;
+ TTrack *tLast; //ostatni analizowany tor
+public:
+ __fastcall TSpeedTable();
+ __fastcall ~TSpeedTable();
+};
+
+//----------------------------------------------------------------------------
 static const bool Aggressive=true;
 static const bool Easyman=false;
 static const bool AIdriver=true;
 static const bool Humandriver=false;
-static const int maxorders=0x20; //iloœæ rozkazów w tabelce
-static const int maxdriverfails=0x4; //ile b³êdów mo¿e zrobiæ AI zanim zmieni nastawienie
+static const int maxorders=32; //iloœæ rozkazów w tabelce
+static const int maxdriverfails=4; //ile b³êdów mo¿e zrobiæ AI zanim zmieni nastawienie
 extern bool WriteLogFlag; //logowanie parametrów fizycznych
+//----------------------------------------------------------------------------
 
 class TController
 {
@@ -110,11 +128,7 @@ private:
 public:
  double ActualProximityDist; //ustawia nowa predkosc do ktorej ma dazyc oraz predkosc przy nastepnym obiekcie
 private:
- //TProximityTablePos ProximityTable[256];
- //double ReducedTable[256];
- //Byte ProximityTableIndex;
- //Byte LPTA;
- //Byte LPTI;
+ TSpeedTable sSpeedTable;
  vector3 vCommandLocation; //polozenie wskaznika, sygnalizatora lub innego obiektu do ktorego odnosi sie komenda
  TOrders OrderList[maxorders]; //lista rozkazów
  int OrderPos,OrderTop; //rozkaz aktualny oraz wolne miejsce do wstawiania nowych

@@ -23,6 +23,7 @@ TSoundContainer *TSoundsManager::First=NULL;
 __fastcall TSoundContainer::TSoundContainer( LPDIRECTSOUND pDS, char *Directory, char *strFileName, int NConcurrent)
 {//wczytanie pliku dŸwiêkowego
     int hr= 111;
+    DSBuffer=NULL; //na pocz¹tek, gdyby uruchomiæ dŸwiêków siê nie uda³o
 
     Concurrent= NConcurrent;
 
@@ -63,7 +64,8 @@ __fastcall TSoundContainer::TSoundContainer( LPDIRECTSOUND pDS, char *Directory,
 
     // Create the static DirectSound buffer
     if( FAILED( hr = pDS->CreateSoundBuffer( &dsbd, &(DSBuffer), NULL ) ) )
-        return;
+    //if (FAILED(pDS->CreateSoundBuffer(&dsbd,&(DSBuffer),NULL)))
+     return;
 
     // Remember how big the buffer is
     DWORD dwBufferBytes;
@@ -89,18 +91,20 @@ __fastcall TSoundContainer::TSoundContainer( LPDIRECTSOUND pDS, char *Directory,
     if( NULL == pbWavData )
         return ;//E_OUTOFMEMORY;
 
+    //if (FAILED(hr=pWaveSoundRead->Read( nWaveFileSize,pbWavData,&cbWavSize)))
     if( FAILED( hr = pWaveSoundRead->Read( nWaveFileSize,
                                            pbWavData,
                                            &cbWavSize ) ) )
-        return ;
+     return ;
 
     // Reset the file to the beginning
     pWaveSoundRead->Reset();
 
     // Lock the buffer down
+    //if (FAILED(hr=DSBuffer->Lock(0,dwBufferBytes,&pbData,&dwLength,&pbData2,&dwLength2,0)))
     if( FAILED( hr = DSBuffer->Lock( 0, dwBufferBytes, &pbData, &dwLength,
                                    &pbData2, &dwLength2, 0L ) ) )
-        return ;
+     return ;
 
     // Copy the memory to it.
     memcpy( pbData, pbWavData, dwBufferBytes );
@@ -144,11 +148,12 @@ __fastcall TSoundContainer::~TSoundContainer()
 
 LPDIRECTSOUNDBUFFER __fastcall TSoundContainer::GetUnique(LPDIRECTSOUND pDS)
 {
-
-    LPDIRECTSOUNDBUFFER buff;
-    pDS->DuplicateSoundBuffer(DSBuffer,&buff);
-    DSBuffers.push(buff);
-    return DSBuffers.top();
+ if (!DSBuffer) return NULL;
+ //jeœli siê dobrze zainicjowa³o
+ LPDIRECTSOUNDBUFFER buff;
+ pDS->DuplicateSoundBuffer(DSBuffer,&buff);
+ if (buff) DSBuffers.push(buff);
+ return DSBuffers.top();
 };
 
 
@@ -294,7 +299,7 @@ void __fastcall TSoundsManager::Init(HWND hWnd)
     pDS= NULL;
     pDSNotify= NULL;
 
-    HRESULT  hr=222;
+    HRESULT  hr; //=222;
     LPDIRECTSOUNDBUFFER pDSBPrimary = NULL;
 
 //    strcpy(Directory, NDirectory);

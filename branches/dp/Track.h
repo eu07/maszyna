@@ -184,6 +184,7 @@ public:
  double __fastcall WidthTotal();
  GLuint TextureGet(int i) {return i?TextureID1:TextureID2;};
  bool __fastcall IsGroupable();
+ int __fastcall TestPoint(vector3 *Point);
 };
 
 //---------------------------------------------------------------------------

@@ -45,18 +45,18 @@ TGround *Global::pGround=NULL;
 AnsiString Global::asCurrentSceneryPath="scenery/";
 AnsiString Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath);
 AnsiString Global::asCurrentDynamicPath="";
-int Global::iSlowMotion=0; //info o malym FPS: 0-OK, 1-wy³¹czyæ multisampling 3-zmniejszenie promienia
+int Global::iSlowMotion=0; //info o malym FPS: 0-OK, 1-wy³¹czyæ multisampling, 3-promieñ 1.5km, 7-1km
 bool Global::changeDynObj; //info o zmianie pojazdu
 bool Global::detonatoryOK; //info o nowych detonatorach
 double Global::ABuDebug=0;
 AnsiString Global::asSky="1";
-double Global::fOpenGL=0.0; //wersja OpenGL - przyda siê
+double Global::fOpenGL=0.0; //wersja OpenGL - do sprawdzania obecnoœci rozszerzeñ
 bool Global::bOpenGL_1_5=false; //czy s¹ dostêpne funkcje OpenGL 1.5
 double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 bool Global::bReCompile=false; //czy odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asVersion="Compilation 2011-12-04, release 1.6.282.282."; //tutaj, bo wysy³any
+AnsiString Global::asVersion="Compilation 2011-12-07, release 1.6.283.283."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 double Global::fSunDeclination=0.0; //deklinacja S³oñca
