@@ -48,10 +48,53 @@ HINSTANCE hinstGLUT32=NULL; //wskaŸnik do GLUT32.DLL
 //GLUTAPI void APIENTRY glutBitmapCharacterDLL(void *font, int character);
 
 
+AnsiString APPTITLE, CDATE, asSTARTLOAD, asENDLOAD;
+
 using namespace Timer;
 
 const double fMaxDt= 0.01;
 
+
+
+String  getexedate()
+    {
+    AnsiString fn = ExtractFileName(  ParamStr(0));
+    TDateTime Dt;
+    Dt = FileDateToDateTime(FileAge(Global::g___APPDIR + fn));
+    String Data = Dt.FormatString("ddmmyyyy-hhnnss");
+    return Data;
+    }
+
+__int64 getexesize()
+    {
+    AnsiString fn = ExtractFileName(  ParamStr(0));
+    TFileStream *Str = new TFileStream(Global::g___APPDIR + fn, fmOpenRead);
+
+    __int64 rozmiar1, rozmiar2;
+    rozmiar1 = Str->Size;
+    rozmiar2 = Str->Size / 1024;  // wlasciwy odczyt rozmiaru pliku w KB
+    delete Str;   // zwalnianie zasobu
+    return rozmiar1;
+    }
+
+int getprogressfile()
+    {
+     Global::iNODES = 1000000;
+     AnsiString asfile;
+     AnsiString cscn = Global::szSceneryFile;
+     asfile = "DATA\\pbars\\" + cscn + ".TXT";
+
+     if (FileExists(asfile))
+        {
+         //Global::OTHERS->LoadFromFile(asfile);
+         //if (Global::OTHERS->Strings[0] != "") return StrToInt(Global::OTHERS->Strings[0]);     // NA TYM SIE POTRAFI WYWALIC, CZEMU?
+        }
+       else return 1000000;
+    }
+
+
+
+    
 __fastcall TWorld::TWorld()
 {
  //randomize();
@@ -102,28 +145,153 @@ GLvoid __fastcall TWorld::glPrint(const char *txt) //custom GL "Print" routine
 
 TDynamicObject *Controlled=NULL; //pojazd, który prowadzimy
 
+
+AnsiString PrintFileVersion( AnsiString FILE )
+{
+DWORD      verHandle = NULL;
+UINT       size      = 0;
+LPBYTE     lpBuffer  = NULL;
+DWORD      verSize   = GetFileVersionInfoSize( FILE.c_str(), &verHandle);
+AnsiString VERSTR;
+
+if (verSize != NULL)
+{
+    LPSTR verData = new char[verSize];
+
+    if (GetFileVersionInfo( FILE.c_str(), verHandle, verSize, verData))
+    {
+        if (VerQueryValue(verData,"\\",(VOID FAR* FAR*)&lpBuffer,&size))
+        {
+                if (size)
+                {
+                        VS_FIXEDFILEINFO *verInfo = (VS_FIXEDFILEINFO *)lpBuffer;
+                        if (verInfo->dwSignature == 0xfeef04bd)
+                        {
+                                int major = HIWORD(verInfo->dwFileVersionMS);
+                                int minor = LOWORD(verInfo->dwFileVersionMS);
+                                int relea = HIWORD(verInfo->dwFileVersionLS);
+                                int build = LOWORD(verInfo->dwFileVersionLS);
+
+                                //WriteLog("MAJOR  : " + IntToStr( major ));
+                                //WriteLog("MINOR  : " + IntToStr( minor ));
+                                //WriteLog("RELEASE: " + IntToStr( relea ));
+                                //WriteLog("BUILD  : " + IntToStr( build ));
+
+                                VERSTR = IntToStr(major) + "." + IntToStr(minor) + "." + IntToStr(relea) + "." + IntToStr(build);
+                        }
+                }
+        }
+    }
+
+    return VERSTR;
+}
+
+
+}
+
 bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 {
- double time=(double)Now();
- Global::hWnd=NhWnd; //do WM_COPYDATA
- Global::detonatoryOK=true;
- WriteLog("--- MaSzyna ---"); //pierwsza linia jest gubiona
- WriteLog("Starting MaSzyna rail vehicle simulator.");
- WriteLog(Global::asVersion);
+
+    WriteLog("                                                                                                                                                        ");
+    WriteLog("888b     d888           .d8888b.                                        8888888888 888     888  .d8888b. 8888888888          d8888   .d8888b.      d8888");
+    WriteLog("8888b   d8888          d88P  Y88b                                       888        888     888 d88P  Y88b      d88P         d8P888  d88P  Y88b    d8P888");
+    WriteLog("88888b.d88888          Y88b.                                            888        888     888 888    888     d88P         d8P 888         888   d8P 888");
+    WriteLog("888Y88888P888  8888b.   'Y888b.  88888888 888  888 88888b.   8888b.     8888888    888     888 888    888    d88P         d8P  888       .d88P  d8P  888");
+    WriteLog("888 Y888P 888     '88b     'Y88b.   d88P  888  888 888 '88b     '88b    888        888     888 888    888 88888888       d88   888   .od888P'  d88   888");
+    WriteLog("888  Y8P  888 .d888888       '888  d88P   888  888 888  888 .d888888    888        888     888 888    888  d88P   888888 8888888888 d88P'      8888888888");
+    WriteLog("888   '   888 888  888 Y88b  d88P d88P    Y88b 888 888  888 888  888    888        Y88b. .d88P Y88b  d88P d88P                 888  888'             888");
+    WriteLog("888       888 'Y888888  'Y8888P' 88888888  'Y88888 888  888 'Y888888    8888888888  'Y88888P'   'Y8888P' d88P                  888  888888888        888");
+    WriteLog("                                               888                      ");
+    WriteLog("                                          Y8b d88P                      ");
+    WriteLog("                                           'Y88P'                       ");
+
+    WriteLog(" ");
+
+    APPTITLE = "Symulator Pojazdow Trakcyjnych MaSzyna EP07-424 - WERSJA DEWELOPERSKA, ";
+
+    //WriteLog("POBIERANIE CZASU ROZPOCZECIA LADOWANIA SCENERII...");
+    asSTARTLOAD = FormatDateTime("hh:mm:ss ", Now());
+    CDATE = FormatDateTime("ddmmyy hhmmss", Now());
+
+    //WriteLog("POBIERANIE SCIEZKI DO PLIKU EXE...");
+    Global::g___APPDIR = ExtractFilePath(ParamStr(0));
+
+
+    //WriteLog("USTAWIANIE KATALOGU DLA ZRZUTOW EKRANU...");                       // APPLICATION DIRECTORY CONTAINER
+    Global::asSSHOTDIR = Global::g___APPDIR + "screenshots\\" + Global::asSSHOTSUBDIR;       // SCREENSHOTS DIRECTORY CONTAINER
+    CreateDir(Global::g___APPDIR + "screenshots\\");
+    CreateDir(Global::asSSHOTDIR);
+    WriteLog(" ");
+
+
+    // POBIERANIE INFORMACJI O EXE ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+    AnsiString fn = ExtractFileName(  ParamStr(0));
+
+    Global::iNODES = getprogressfile();                                         // LOADING PROGRESSBAR BYTES
+
+    Global::APPDATE = getexedate();                                             // DATA MODYFIKACJI
+
+    Global::APPSIZE = AnsiString(getexesize()) + "B" ;                          // ROZMIAR PLIKU EXE
+
+
+
+ double time = (double)Now();
+ Global::hWnd = NhWnd;                                                          //do WM_COPYDATA
+ Global::detonatoryOK =true;
+ //WriteLog("--- MaSzyna ---");                                                 //pierwsza linia jest gubiona
+
+
 #if sizeof(TSubModel)!=256
- Error("Wrong sizeof(TSubModel) is "+AnsiString(sizeof(TSubModel)));
+ Error("Wrong sizeof(TSubModel) is " + AnsiString(sizeof(TSubModel)));
  return false;
 #endif
- WriteLog("Online documentation and additional files on http://eu07.pl");
- WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx_EU, OLO_EU, Bart, Quark-t, ShaXbee, Oli_EU, youBy, Ra and others");
- WriteLog("Renderer:");
- WriteLog( (char*) glGetString(GL_RENDERER));
- WriteLog("Vendor:");
+
+
+    WriteLog("Starting MaSzyna rail vehicle simulator.");
+    WriteLog(" ");
+    //WriteLog(Global::asVersion);
+
+    PrintFileVersion(ParamStr(0));
+    WriteLog("Compilation " + Global::APPDATE + ", release " + PrintFileVersion(ParamStr(0)) + " - UNOFFICIAL <wersja niepubliczna>");
+    WriteLog("Online documentation and additional files on http://www.eu07.pl");
+    WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx_EU, OlO_EU, Bart, Quark-t, ShaxBee, Oli_EU, youBy, Ra, QueuedEU, Bombardier and others");
+    WriteLog(" ");
+    WriteLog(" ");
+    WriteLog(" ");
+    WriteLog(" ");
+
+    WriteLog("ZMIENNE SRODOWISKOWE");
+    WriteLog(" ");
+    //SetCurrentDir(Global::g___APPDIR);
+    
+    WriteLog("EXE " + Global::APPDATE + " " + Global::APPSIZE + " (" + AnsiString(getexesize()/1024) + "KB)");
+
+    WriteLog(AnsiString("APPDIR= " + Global::g___APPDIR).c_str());
+
+    WriteLog(AnsiString("SCRDIR= " + Global::asSSHOTDIR).c_str());
+
+    WriteLog(AnsiString("SCENERY= ") + AnsiString(Global::szSceneryFile).c_str() );
+
+    WriteLog(AnsiString("RUN DATE= " + CDATE));
+    WriteLog(" ");
+
+    WriteLog(" ");
+    WriteLog(" ");
+    WriteLog("Compile machine windows xp pro 3GB, DirextX 9.0c || GFX GF8600GT CORE 560Mhz 256MB PCIE,  BIOS VIDEO: 60.84.5E.00.00, driver rev 2009-01-16 6.14.11.8151 ");
+    WriteLog(" ");
+
+
+
+
 //Winger030405: sprawdzanie sterownikow
- WriteLog( (char*) glGetString(GL_VENDOR));
+
+ Global::OTHERS = new TStringList();
+ 
+ AnsiString glrenderer= ((char*) glGetString(GL_RENDERER));
+ AnsiString glvendor= ((char*) glGetString(GL_VENDOR));
  AnsiString glver=((char*)glGetString(GL_VERSION));
- WriteLog("OpenGL Version:");
- WriteLog(glver);
+
  if ((glver=="1.5.1") || (glver=="1.5.2"))
  {
   Error("Niekompatybilna wersja openGL - dwuwymiarowy tekst nie bedzie wyswietlany!");
@@ -139,8 +307,23 @@ bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
  try {Global::fOpenGL=glver.ToDouble();} catch (...) {Global::fOpenGL=0.0;}
  Global::bOpenGL_1_5=(Global::fOpenGL>=1.5);
 
- WriteLog("Supported extensions:");
- WriteLog((char*)glGetString(GL_EXTENSIONS));
+    WriteLog("Renderer: " + AnsiString(glrenderer.c_str()));
+    WriteLog("Vendor: " + AnsiString(glvendor.c_str()));
+    WriteLog("OpenGL ver: " + AnsiString(glver.c_str()));
+    WriteLog("Supported Extensions:");
+
+    Global::OTHERS->Clear();
+    Global::OTHERS->Add((char*) glGetString(GL_EXTENSIONS));
+    GLint maxtexw, maxtexh, texsize;
+
+    AnsiString asext;
+    AnsiString what1 = Global::OTHERS->Strings[0];
+
+    for (int loop1=0; loop1<128; loop1++)
+    { asext = what1.SubString(1, what1.Pos(" ")-1); what1.Delete(1,what1.Pos(" ")); if (asext != "")  WriteLog(asext.c_str()); }
+
+    WriteLog(" ");
+
  if (glewGetExtension("GL_ARB_vertex_buffer_object")) //czy jest VBO w karcie graficznej
  {
 #ifdef USE_VBO
