@@ -3,7 +3,7 @@
 <PROJECT>
   <MACROS>
     <VERSION value="BCB.05.03"/>
-    <PROJECT value="D:\EU07\EU07.exe"/>
+    <PROJECT value="E:\PC-TGA\EU07.exe"/>
     <OBJFILES value="McZapkie\mover.obj QueryParserComp.obj McZapkie\mtable.obj EU07.obj 
       dumb3d.obj Camera.obj Texture.obj World.obj Model3d.obj geometry.obj 
       MdlMngr.obj Train.obj wavread.obj Timer.obj Event.obj MemCell.obj Logs.obj 
@@ -36,8 +36,8 @@
     <USERDEFINES value="GLEW_STATIC;_DEBUG;USE_VBO"/>
     <SYSDEFINES value="_RTLDLL;NO_STRICT"/>
     <MAINSOURCE value="EU07.cpp"/>
-    <INCLUDEPATH value="C:\ProgsWin\CBuilder5\Projects;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
-    <LIBPATH value="C:\ProgsWin\CBuilder5\Projects;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
+    <INCLUDEPATH value="C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
+    <LIBPATH value="C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
     <WARNINGS value="-w-par"/>
   </MACROS>
   <OPTIONS>
@@ -86,15 +86,15 @@ Comments=
 
 [HistoryLists\hlIncludePath]
 Count=3
-Item0=opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item1=C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item2=C:\ProgsWin\CBuilder5\Projects;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item0=C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item1=C:\ProgsWin\CBuilder5\Projects;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item2=opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
 
 [HistoryLists\hlLibraryPath]
 Count=3
-Item0=opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item1=C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item2=C:\ProgsWin\CBuilder5\Projects;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item0=C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item1=C:\ProgsWin\CBuilder5\Projects;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item2=opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
 
 [HistoryLists\hlDebugSourcePath]
 Count=3
@@ -115,15 +115,16 @@ Item7=GLEW_STATIC;_DEBUG;USE_VERTEX_ARRAYS
 Item8=_DEBUG
 
 [HistoryLists\hlFinalOutputDir]
-Count=8
-Item0=D:\EU07\
-Item1=D:\Rainsted\
-Item2=D:\EU07DDS\
-Item3=D:\EU07DDS
-Item4=M:\aEU07\EU07\
-Item5=G:\EU07\
-Item6=M:\aEU07\EU07-2006\
-Item7=M:\aEU07\EU07
+Count=9
+Item0=E:\PC-TGA\
+Item1=D:\EU07\
+Item2=D:\Rainsted\
+Item3=D:\EU07DDS\
+Item4=D:\EU07DDS
+Item5=M:\aEU07\EU07\
+Item6=G:\EU07\
+Item7=M:\aEU07\EU07-2006\
+Item8=M:\aEU07\EU07
 
 [Debugging]
 DebugSourceDirs=C:\Ra\dp\McZapkie\
@@ -138,10 +139,11 @@ RemoteDebug=0
 [Compiler]
 ShowInfoMsgs=0
 LinkDebugVcl=0
+LinkCGLIB=0
 
-[CORBA]
-AddServerUnit=1
-AddClientUnit=1
-PrecompiledHeaders=1
+[Language]
+ActiveLang=
+ProjectLang=
+RootDir=
   </IDEOPTIONS>
 </PROJECT>

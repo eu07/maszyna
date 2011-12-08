@@ -142,6 +142,24 @@ bool Global::bDoubleAmbient=true; //podwójna jasnoœæ ambient
 double Global::fSunSpeed=1.0; //prêdkoœæ ruchu S³oñca, zmienna do testów
 
 
+// QUEUEDEU VARS  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+AnsiString Global::g___APPDIR = "";
+AnsiString Global::asSSHOTDIR = "";
+AnsiString Global::asSSHOTSUBDIR = "99\\";
+AnsiString Global::APPDATE = "";
+AnsiString Global::APPSIZE = "";
+AnsiString Global::asMechanikVech = "";
+AnsiString Global::asCurrentNodeName = "none";
+AnsiString Global::asCurrentIncName = "none";
+
+bool Global::SCNLOADED = false;
+bool Global::bQueuedAdvLog = false;
+GLuint Global::bfonttex;
+int Global::iNODES = 100000;
+
+TStringList *Global::OTHERS;
+
 /* Ra: trzeba by przerobiæ na cParser, ¿eby to dzia³a³o w scenerii
 void __fastcall Global::ParseConfig(TQueryParserComp *Parser)
 {

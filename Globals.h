@@ -6,6 +6,7 @@
 #include <string>
 #include "opengl/glew.h"
 #include "dumb3d.h"
+#include "Logs.h"
 
 using namespace Math3D;
 
@@ -229,6 +230,26 @@ public:
  static int iTextures; //licznik u¿ytych tekstur
  static int iSlowMotionMask; //maska wy³¹czanych w³aœciwoœci
  static int iModifyTGA; //czy korygowaæ pliki TGA dla szybszego wczytywania
+
+// QUEUEDEU VARS ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+ static AnsiString g___APPDIR;
+ static AnsiString asSSHOTDIR;
+ static AnsiString asSSHOTSUBDIR;
+ static AnsiString APPDATE;
+ static AnsiString APPSIZE;
+ static AnsiString asMechanikVech;
+ static AnsiString asCurrentNodeName;
+ static AnsiString asCurrentIncName;
+
+ static bool SCNLOADED;
+ static bool bQueuedAdvLog;
+
+ static GLuint bfonttex;
+ static int iNODES;
+
+ static TStringList *OTHERS;
 };
 
 //---------------------------------------------------------------------------
