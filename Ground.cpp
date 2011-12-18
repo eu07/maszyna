@@ -99,6 +99,7 @@ __fastcall TGroundNode::TGroundNode()
  //bAllocated=true; //zawsze true
  nNext3=NULL; //nie wyœwietla innych
  iVboPtr=-1; //indeks w VBO sektora (-1: nie u¿ywa VBO)
+ iVersion=0; //wersja siatki
 }
 
 __fastcall TGroundNode::~TGroundNode()
@@ -260,11 +261,12 @@ void __fastcall TGroundRect::Render()
   // node->Render(); //nieprzezroczyste trójk¹ty kwadratu kilometrowego
   if (nRender)
   {//³¹czenie trójk¹tów w jedn¹ listê - trochê wioska
-   if (!nRender->DisplayListID)
+   if (!nRender->DisplayListID||(nRender->iVersion!=Global::iReCompile))
    {//je¿eli nie skompilowany, kompilujemy wszystkie trójk¹ty w jeden
     nRender->fSquareRadius=5000.0*5000.0; //aby agregat nigdy nie znika³
     nRender->DisplayListID=glGenLists(1);
     glNewList(nRender->DisplayListID,GL_COMPILE);
+    nRender->iVersion=Global::iReCompile; //aktualna wersja siatek
     for (TGroundNode* node=nRender;node;node=node->nNext3) //nastêpny tej grupy
      node->Compile(true);
     glEndList();
@@ -453,8 +455,9 @@ void __fastcall TSubRect::NodeAdd(TGroundNode *Node)
   case TP_TRACK: //TODO: tory z cieniem (tunel, canyon) te¿ daæ bez ³¹czenia?
    ++iTracks; //jeden tor wiêcej
    Node->pTrack->RaOwnerSet(this); //do którego sektora ma zg³aszaæ animacjê
-   if (Global::bUseVBO?false:!Node->pTrack->IsGroupable())
-    RaNodeAdd(Node); //tory ruchome nie s¹ grupowane przy Display Lists (wymagaj¹ odœwie¿ania)
+   //if (Global::bUseVBO?false:!Node->pTrack->IsGroupable())
+   if (Global::bUseVBO?true:!Node->pTrack->IsGroupable()) //TODO: tymczasowo dla VBO wy³¹czone
+    RaNodeAdd(Node); //tory ruchome nie s¹ grupowane przy Display Lists (wymagaj¹ odœwie¿ania DL)
    else
    {//tory nieruchome mog¹ byæ pogrupowane wg tekstury, przy VBO wszystkie
     Node->TextureID=Node->pTrack->TextureGet(0); //pobranie tekstury do sortowania
@@ -816,6 +819,7 @@ void __fastcall TGroundNode::Compile(bool many)
   {
    DisplayListID=glGenLists(1);
    glNewList(DisplayListID,GL_COMPILE);
+   iVersion=Global::iReCompile; //aktualna wersja siatek
   }
  }
  if ((iType==GL_LINES)||(iType==GL_LINE_STRIP)||(iType==GL_LINE_LOOP))
@@ -846,9 +850,9 @@ void __fastcall TGroundNode::Compile(bool many)
    glColor3ub(tri->Diffuse[0],tri->Diffuse[1],tri->Diffuse[2]);
    glBindTexture(GL_TEXTURE_2D,Global::bWireFrame?0:tri->TextureID);
 #ifdef USE_VERTEX_ARRAYS
-   glDrawArrays(Global::bWireFrame?GL_LINE_STRIP:tri->iType,0,tri->iNumVerts);
+   glDrawArrays(Global::bWireFrame?GL_LINE_LOOP:tri->iType,0,tri->iNumVerts);
 #else
-   glBegin(Global::bWireFrame?GL_LINE_STRIP:tri->iType);
+   glBegin(Global::bWireFrame?GL_LINE_LOOP:tri->iType);
    for (int i=0;i<tri->iNumVerts;i++)
    {
     glNormal3d(tri->Vertices[i].Normal.x,tri->Vertices[i].Normal.y,tri->Vertices[i].Normal.z);
@@ -941,7 +945,7 @@ void __fastcall TGroundNode::Render()
   //if ((iNumVerts&&(iFlags&0x10))||(iNumPts&&(fLineThickness<0)))
   if ((iFlags&0x10)||(fLineThickness<0))
   {
-   if (!DisplayListID||Global::bReCompile) //Ra: wymuszenie rekompilacji
+   if (!DisplayListID||(iVersion!=Global::iReCompile)) //Ra: wymuszenie rekompilacji
    {
     Compile();
     if (Global::bManageNodes)
@@ -1109,6 +1113,93 @@ void __fastcall TGround::RaTriangleDivider(TGroundNode* node)
   (node->Vertices[2].Point.z>=z0) && (node->Vertices[2].Point.z<=z1))
   return; //trójk¹t wystaj¹cy mniej ni¿ 200m z kw. kilometrowego jest do przyjêcia
  //Ra: przerobiæ na dzielenie na 2 trójk¹ty, podzia³ w przeciêciu z siatk¹ kilometrow¹
+ //Ra: i z rekurencj¹ bêdzie dzieliæ trzy trójk¹ty, jeœli bêdzie taka potrzeba
+ int divide=-1; //bok do podzielenia: 0=AB, 1=BC, 2=CA; +4=podzia³ po OZ; +8 na x1/z1
+ double min=0,mul; //jeœli przechodzi przez oœ, iloczyn bêdzie ujemny
+ x0+=200.0; x1-=200.0; //przestawienie na siatkê
+ z0+=200.0; z1-=200.0;
+ mul=(node->Vertices[0].Point.x-x0)*(node->Vertices[1].Point.x-x0); //AB na wschodzie
+ if (mul<min) min=mul,divide=0;
+ mul=(node->Vertices[1].Point.x-x0)*(node->Vertices[2].Point.x-x0); //BC na wschodzie
+ if (mul<min) min=mul,divide=1;
+ mul=(node->Vertices[2].Point.x-x0)*(node->Vertices[0].Point.x-x0); //CA na wschodzie
+ if (mul<min) min=mul,divide=2;
+ mul=(node->Vertices[0].Point.x-x1)*(node->Vertices[1].Point.x-x1); //AB na zachodzie
+ if (mul<min) min=mul,divide=8;
+ mul=(node->Vertices[1].Point.x-x1)*(node->Vertices[2].Point.x-x1); //BC na zachodzie
+ if (mul<min) min=mul,divide=9;
+ mul=(node->Vertices[2].Point.x-x1)*(node->Vertices[0].Point.x-x1); //CA na zachodzie
+ if (mul<min) min=mul,divide=10;
+ mul=(node->Vertices[0].Point.z-z0)*(node->Vertices[1].Point.z-z0); //AB na po³udniu
+ if (mul<min) min=mul,divide=4;
+ mul=(node->Vertices[1].Point.z-z0)*(node->Vertices[2].Point.z-z0); //BC na po³udniu
+ if (mul<min) min=mul,divide=5;
+ mul=(node->Vertices[2].Point.z-z0)*(node->Vertices[0].Point.z-z0); //CA na po³udniu
+ if (mul<min) min=mul,divide=6;
+ mul=(node->Vertices[0].Point.z-z1)*(node->Vertices[1].Point.z-z1); //AB na pó³nocy
+ if (mul<min) min=mul,divide=12;
+ mul=(node->Vertices[1].Point.z-z1)*(node->Vertices[2].Point.z-z1); //BC na pó³nocy
+ if (mul<min) min=mul,divide=13;
+ mul=(node->Vertices[2].Point.z-z1)*(node->Vertices[0].Point.z-z1); //CA na pó³nocy
+ if (mul<min) divide=14;
+ //tworzymy jeden dodatkowy trójk¹t, dziel¹c jeden bok na przeciêciu siatki kilometrowej
+ TGroundNode* ntri; //wskaŸnik na nowy trójk¹t
+ ntri=new TGroundNode(); //a ten jest nowy
+ ntri->iType=GL_TRIANGLES; //kopiowanie parametrów, przyda³by siê konstruktor kopiuj¹cy
+ ntri->Init(3);
+ ntri->TextureID=node->TextureID;
+ ntri->iFlags=node->iFlags;
+ for (int j=0;j<4;++j)
+ {ntri->Ambient[j]=node->Ambient[j];
+  ntri->Diffuse[j]=node->Diffuse[j];
+  ntri->Specular[j]=node->Specular[j];
+ }
+ ntri->asName=node->asName;
+ ntri->fSquareRadius=node->fSquareRadius;
+ ntri->fSquareMinRadius=node->fSquareMinRadius;
+ ntri->bVisible=node->bVisible; //a s¹ jakieœ niewidoczne?
+ ntri->Next=nRootOfType[GL_TRIANGLES];
+ nRootOfType[GL_TRIANGLES]=ntri; //dopisanie z przodu do listy
+ iNumNodes++;
+ switch (divide&3)
+ {//podzielenie jednego z boków, powstaje wierzcho³ek D
+  case 0: //podzia³ AB (0-1) -> ADC i DBC
+   ntri->Vertices[2]=node->Vertices[2]; //wierzcho³ek C jest wspólny
+   ntri->Vertices[1]=node->Vertices[1]; //wierzcho³ek B przechodzi do nowego
+   //node->Vertices[1].HalfSet(node->Vertices[0],node->Vertices[1]); //na razie D tak
+   if (divide&4)
+    node->Vertices[1].SetByZ(node->Vertices[0],node->Vertices[1],divide&8?z1:z0);
+   else
+    node->Vertices[1].SetByX(node->Vertices[0],node->Vertices[1],divide&8?x1:x0);
+   ntri->Vertices[0]=node->Vertices[1]; //wierzcho³ek D jest wspólny
+   break;
+  case 1: //podzia³ BC (1-2) -> ABD i ADC
+   ntri->Vertices[0]=node->Vertices[0]; //wierzcho³ek A jest wspólny
+   ntri->Vertices[2]=node->Vertices[2]; //wierzcho³ek C przechodzi do nowego
+   //node->Vertices[2].HalfSet(node->Vertices[1],node->Vertices[2]); //na razie D tak
+   if (divide&4)
+    node->Vertices[2].SetByZ(node->Vertices[1],node->Vertices[2],divide&8?z1:z0);
+   else
+    node->Vertices[2].SetByX(node->Vertices[1],node->Vertices[2],divide&8?x1:x0);
+   ntri->Vertices[1]=node->Vertices[2]; //wierzcho³ek D jest wspólny
+   break;
+  case 2: //podzia³ CA (2-0) -> ABD i DBC
+   ntri->Vertices[1]=node->Vertices[1]; //wierzcho³ek B jest wspólny
+   ntri->Vertices[2]=node->Vertices[2]; //wierzcho³ek C przechodzi do nowego
+   //node->Vertices[2].HalfSet(node->Vertices[2],node->Vertices[0]); //na razie D tak
+   if (divide&4)
+    node->Vertices[2].SetByZ(node->Vertices[2],node->Vertices[0],divide&8?z1:z0);
+   else
+    node->Vertices[2].SetByX(node->Vertices[2],node->Vertices[0],divide&8?x1:x0);
+   ntri->Vertices[0]=node->Vertices[2]; //wierzcho³ek D jest wspólny
+   break;
+ }
+ //przeliczenie œrodków ciê¿koœci obu
+ node->pCenter=(node->Vertices[0].Point+node->Vertices[1].Point+node->Vertices[2].Point)/3.0;
+ ntri->pCenter=(ntri->Vertices[0].Point+ntri->Vertices[1].Point+ntri->Vertices[2].Point)/3.0;
+ RaTriangleDivider(node); //rekurencja, bo nawet na TD raz nie wystarczy
+ RaTriangleDivider(ntri);
+/*
  //no to tworzymy trzy dodatkowe trójk¹ty
  TGroundNode* tri[4]; //zmiena robocza - trzy wskaŸniki
  tri[3]=node; //do kompletu
@@ -1152,6 +1243,7 @@ void __fastcall TGround::RaTriangleDivider(TGroundNode* node)
  }
  for (i=0;i<3;++i)
   RaTriangleDivider(tri[i]); //rekurencja, bo nawet na TD raz nie wystarczy
+*/
 }
 
 TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
@@ -2218,16 +2310,27 @@ bool __fastcall TGround::InitEvents()
               Error("Event \""+Current->asName+"\" cannot find model \""+Current->asNodeName+"\"");
              Current->asNodeName="";
             break;
-            case tp_Lights :
-                tmp= FindGroundNode(Current->asNodeName,TP_MODEL);
-                if (tmp)
-                    Current->Params[9].asModel= tmp->Model;
-                else
-                    Error("Event \""+Current->asName+"\" cannot find model \""+
-                                     Current->asNodeName+"\"");
-                Current->asNodeName="";
+            case tp_Lights:
+             tmp=FindGroundNode(Current->asNodeName,TP_MODEL);
+             if (tmp)
+              Current->Params[9].asModel= tmp->Model;
+             else
+              Error("Event \""+Current->asName+"\" cannot find model \""+
+                               Current->asNodeName+"\"");
+             Current->asNodeName="";
             break;
-            case tp_Switch :
+            case tp_Visible:
+             tmp=FindGroundNode(Current->asNodeName,TP_MODEL); //najpierw model
+             if (!tmp) tmp=FindGroundNode(Current->asNodeName,TP_TRACTION); //mo¿e druty?
+             if (!tmp) tmp=FindGroundNode(Current->asNodeName,TP_TRACK); //albo tory?
+             if (tmp)
+              Current->Params[9].asGroundNode=tmp;
+             else
+              Error("Event \""+Current->asName+"\" cannot find model \""+
+                               Current->asNodeName+"\"");
+             Current->asNodeName="";
+            break;
+            case tp_Switch:
                 tmp= FindGroundNode(Current->asNodeName,TP_TRACK);
                 if (tmp)
                     Current->Params[9].asTrack= tmp->pTrack;
@@ -2676,10 +2779,14 @@ if (QueryRootEvent)
              WriteLog("Type: PutValues");
             break;
             case tp_Lights :
-                if (QueryRootEvent->Params[9].asModel)
-                    for (i=0; i<iMaxNumLights; i++)
-                        if (QueryRootEvent->Params[i].asInt>=0)
-                            QueryRootEvent->Params[9].asModel->lsLights[i]=(TLightState)QueryRootEvent->Params[i].asInt;
+             if (QueryRootEvent->Params[9].asModel)
+              for (i=0; i<iMaxNumLights; i++)
+               if (QueryRootEvent->Params[i].asInt>=0) //-1 zostawia bez zmiany
+                QueryRootEvent->Params[9].asModel->lsLights[i]=(TLightState)QueryRootEvent->Params[i].asInt;
+            break;
+            case tp_Visible:
+             if (QueryRootEvent->Params[9].asGroundNode)
+              QueryRootEvent->Params[9].asGroundNode->bVisible=(QueryRootEvent->Params[i].asInt>0);
             break;
             case tp_Velocity :
                 Error("Not implemented yet :(");

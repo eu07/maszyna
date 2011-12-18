@@ -199,7 +199,7 @@ private:
  float8 *Vertices; //roboczy wskaŸnik - wczytanie T3D do VBO
  int iAnimOwner; //roboczy numer egzemplarza, który ustawi³ animacjê
  TAnimType b_aAnim; //kody animacji oddzielnie, bo zerowane
- char space[20];
+ char space[20]; //wolne miejsce na przysz³e zmienne (zmniejszyæ w miarê potrzeby)
 public:
  AnsiString asTexture; //robocza nazwa tekstury do zapisania w pliku binarnym
  bool Visible; //roboczy stan widocznoœci

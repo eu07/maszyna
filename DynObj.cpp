@@ -2117,6 +2117,15 @@ if (tmpTraction.TractionVoltage==0)
    //WriteLog(asName+" - block x: "+AnsiString(fTrackBlock));
   }
  }
+ if (MoverParameters->DerailReason>0)
+ {switch (MoverParameters->DerailReason)
+  {case 1: WriteLog(asName+" derailed due to end of track"); break;
+   case 2: WriteLog(asName+" derailed due to too high speed"); break;
+   case 3: WriteLog(asName+" derailed due to track width"); break;
+   case 4: WriteLog(asName+" derailed due to wrong track type"); break;
+  }
+  MoverParameters->DerailReason=0; //¿eby tylko raz
+ }
  return true; //Ra: chyba tak?
 }
 

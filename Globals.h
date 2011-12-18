@@ -6,7 +6,6 @@
 #include <string>
 #include "opengl/glew.h"
 #include "dumb3d.h"
-#include "Logs.h"
 
 using namespace Math3D;
 
@@ -196,7 +195,7 @@ public:
  static int iBallastFiltering; //domyœlne rozmywanie tekstury podsypki
  static int iRailProFiltering; //domyœlne rozmywanie tekstury szyn
  static int iDynamicFiltering; //domyœlne rozmywanie tekstur pojazdów
- static bool bReCompile; //czy odœwie¿yæ siatki
+ static int iReCompile; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
  static bool bUseVBO; //czy jest VBO w karcie graficznej
  static int iFeedbackMode; //tryb pracy informacji zwrotnej
  static double fOpenGL; //wersja OpenGL - przyda siê
@@ -230,26 +229,6 @@ public:
  static int iTextures; //licznik u¿ytych tekstur
  static int iSlowMotionMask; //maska wy³¹czanych w³aœciwoœci
  static int iModifyTGA; //czy korygowaæ pliki TGA dla szybszego wczytywania
-
-// QUEUEDEU VARS ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-
- static AnsiString g___APPDIR;
- static AnsiString asSSHOTDIR;
- static AnsiString asSSHOTSUBDIR;
- static AnsiString APPDATE;
- static AnsiString APPSIZE;
- static AnsiString asMechanikVech;
- static AnsiString asCurrentNodeName;
- static AnsiString asCurrentIncName;
-
- static bool SCNLOADED;
- static bool bQueuedAdvLog;
-
- static GLuint bfonttex;
- static int iNODES;
-
- static TStringList *OTHERS;
 };
 
 //---------------------------------------------------------------------------

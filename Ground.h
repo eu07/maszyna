@@ -46,10 +46,29 @@ struct TGroundVertex
  vector3 Normal;
  float tu,tv;
  void HalfSet(const TGroundVertex &v1,const TGroundVertex &v2)
- {Point=0.5*(v1.Point+v2.Point);
+ {//wyliczenie wspó³rzêdnych i mapowania punktu na œrodku odcinka v1<->v2 
+  Point=0.5*(v1.Point+v2.Point);
   Normal=0.5*(v1.Normal+v2.Normal);
   tu=0.5*(v1.tu+v2.tu);
   tv=0.5*(v1.tv+v2.tv);
+ }
+ void SetByX(const TGroundVertex &v1,const TGroundVertex &v2,double x)
+ {//wyliczenie wspó³rzêdnych i mapowania punktu na odcinku v1<->v2
+  double i=(x-v1.Point.x)/(v2.Point.x-v1.Point.x); //parametr równania
+  double j=1.0-i;
+  Point=j*v1.Point+i*v2.Point;
+  Normal=j*v1.Normal+i*v2.Normal;
+  tu=j*v1.tu+i*v2.tu;
+  tv=j*v1.tv+i*v2.tv;
+ }
+ void SetByZ(const TGroundVertex &v1,const TGroundVertex &v2,double z)
+ {//wyliczenie wspó³rzêdnych i mapowania punktu na odcinku v1<->v2
+  double i=(z-v1.Point.z)/(v2.Point.z-v1.Point.z); //parametr równania
+  double j=1.0-i;
+  Point=j*v1.Point+i*v2.Point;
+  Normal=j*v1.Normal+i*v2.Normal;
+  tu=j*v1.tu+i*v2.tu;
+  tv=j*v1.tv+i*v2.tv;
  }
 };
 
@@ -93,6 +112,7 @@ public:
  double fSquareRadius; //kwadrat widocznoœci do
  double fSquareMinRadius; //kwadrat widocznoœci od
  //TGroundNode *nMeshGroup; //Ra: obiekt grupuj¹cy trójk¹ty w TSubRect dla tekstury
+ int iVersion; //wersja siatki (do wykonania rekompilacji)
  //union ?
  GLuint DisplayListID; //numer siatki DisplayLists
  int iVboPtr; //indeks w buforze VBO

@@ -492,7 +492,7 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
       if (DebugModeFlag)
       {//siatki wyœwietlane tyko w trybie testowym
        Global::bWireFrame=!Global::bWireFrame;
-       Global::bReCompile=true; //czy odœwie¿yæ siatki
+       ++Global::iReCompile; //odœwie¿yæ siatki
        //Ra: jeszcze usun¹æ siatki ze skompilowanych obiektów!
       }
      break;

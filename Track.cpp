@@ -413,7 +413,7 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
   }
  //else if (DebugModeFlag) WriteLog("unvis");
  Init();
- double segsize=5.0f; //d³ugoœæ odcinka segmentowania
+ double segsize=5.0; //d³ugoœæ odcinka segmentowania
  switch (eType)
  {//Ra: ³uki segmentowane co 5m albo 314-k¹tem foremnym
   case tt_Turn: //obrotnica jest prawie jak zwyk³y tor
@@ -433,7 +433,7 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
     //na przechy³ce doliczyæ jeszcze pó³ przechy³ki
    }
    if (fRadius!=0) //gdy podany promieñ
-      segsize=Min0R(5.0,0.3+fabs(fRadius)*0.03); //do 250m - 5, potem 1 co 50m
+      segsize=Min0R(5.0,0.2+fabs(fRadius)*0.02); //do 250m - 5, potem 1 co 50m
 
    if ((((p1+p1+p2)/3.0-p1-cp1).Length()<0.02)||(((p1+p2+p2)/3.0-p2+cp1).Length()<0.02))
     cp1=cp2=vector3(0,0,0); //"prostowanie" prostych z kontrolnymi, dok³adnoœæ 2cm
@@ -2030,15 +2030,17 @@ double __fastcall TTrack::WidthTotal()
 bool __fastcall TTrack::IsGroupable()
 {//czy wyœwietlanie toru mo¿e byæ zgrupwane z innymi
  if ((eType==tt_Switch)||(eType==tt_Turn)) return false; //tory ruchome nie s¹ grupowane
- //if ((eEnvironment==e_canyon)||(eEnvironment==e_tunnel)) return false; //tory ze zmian¹ œwiat³a
+ if ((eEnvironment==e_canyon)||(eEnvironment==e_tunnel)) return false; //tory ze zmian¹ œwiat³a
  return true;
 };
 
 bool __fastcall Equal(vector3 v1, vector3 *v2)
 {//sprawdzenie odleg³oœci punktów
- if (fabs(v1.x-v2->x)>0.01) return false; //szeœcian zamiast kuli
- if (fabs(v1.z-v2->z)>0.01) return false;
- if (fabs(v1.y-v2->y)>0.01) return false;
+ //Ra: powinno byæ do 10cm wzd³u¿ toru i ze 2cm w poprzek
+ //Ra: z atomatycznie dodawanym stukiem, jeœli dziura jest wiêksza ni¿ 2mm.
+ if (fabs(v1.x-v2->x)>0.02) return false; //szeœcian zamiast kuli
+ if (fabs(v1.z-v2->z)>0.02) return false;
+ if (fabs(v1.y-v2->y)>0.02) return false;
  return true;
  //return (SquareMagnitude(v1-*v2)<0.00012); //0.011^2=0.00012
 };
