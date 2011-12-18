@@ -2310,6 +2310,17 @@ else
       btLampkaDoorRight.TurnOn();
     else
       btLampkaDoorRight.TurnOff();
+
+    if (DynamicObject->MoverParameters->ActiveDir>0)
+     btLampkaForward.TurnOn(); //jazda do przodu
+    else
+     btLampkaForward.TurnOff();
+
+    if (DynamicObject->MoverParameters->ActiveDir<0)
+     btLampkaBackward.TurnOn(); //jazda do ty³u
+    else
+     btLampkaBackward.TurnOff();
+
 //McZapkie-080602: obroty (albo translacje) regulatorow
     if (MainCtrlGauge.SubModel)
      {
@@ -3367,6 +3378,8 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     btLampkaStycznB.Clear();
     btLampkaNadmPrzetwB.Clear();
     btLampkaWylSzybkiB.Clear();
+    btLampkaForward.Clear();
+    btLampkaBackward.Clear();
     LeftLightButtonGauge.Clear();
     RightLightButtonGauge.Clear();
     UpperLightButtonGauge.Clear();
@@ -3614,6 +3627,10 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     btLampkaStycznB.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("i-conv_ovldb:"))
     btLampkaNadmPrzetwB.Load(Parser,DynamicObject->mdKabina);
+   else if (str==AnsiString("i-forward:"))
+    btLampkaForward.Load(Parser,DynamicObject->mdKabina);
+   else if (str==AnsiString("i-backward:"))
+    btLampkaBackward.Load(Parser,DynamicObject->mdKabina);
    //btLampkaUnknown.Init("unknown",mdKabina,false);
   }
  }
