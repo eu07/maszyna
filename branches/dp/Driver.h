@@ -54,8 +54,13 @@ class TSpeedPos
  double fDist; //aktualna odleg³oœæ (ujemna gdy miniête)
  double fVel; //prêdkoœæ obowi¹zuj¹ca od tego miejsca
  //double fAcc;
- int iFlag;
+ int iFlag; //1=istotny,2=tor,4=event,
  vector3 vPos; //wspó³rzêdne XYZ do liczenia odleg³oœci
+ struct
+ {
+  TTrack *tTrack; //wskaŸnik na tor o zmiennej prêdkoœci (zwrotnica, obrotnica)
+  TEvent *eEvent; //po³¹czenie z eventem albo komórk¹ pamiêci
+ };
 public:
  void __fastcall Clear();
  void __fastcall Calulate(vector3 *p,vector3 *dir);
@@ -70,9 +75,12 @@ class TSpeedTable
  //Byte LPTA;
  //Byte LPTI;
  TTrack *tLast; //ostatni analizowany tor
+ bool bDir; //kierunek na ostatnim torze
 public:
  __fastcall TSpeedTable();
  __fastcall ~TSpeedTable();
+ TEvent* __fastcall CheckTrackEvent(double fDirection,TTrack *Track);
+ void __fastcall TraceRoute(double &fDistance,double &fDirection,TTrack *Track);
 };
 
 //----------------------------------------------------------------------------

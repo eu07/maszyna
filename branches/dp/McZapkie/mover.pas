@@ -542,7 +542,8 @@ TYPE
                 ActFlowSpeed: real;                 {szybkosc stabilizatora}
 
 
-                DamageFlag: byte;  {kombinacja bitowa stalych dtrain_* }
+                DamageFlag: byte;  //kombinacja bitowa stalych dtrain_* }
+                DerailReason: byte; //przyczyna wykolejenia
 
                 //EndSignalsFlag: byte;  {ABu 060205: zmiany - koncowki: 1/16 - swiatla prz/tyl, 2/31 - blachy prz/tyl}
                 //HeadSignalsFlag: byte; {ABu 060205: zmiany - swiatla: 1/2/4 - przod, 16/32/63 - tyl}
@@ -4180,6 +4181,10 @@ begin
            EventFlag:=True;
            MainS:=False;
            RunningShape.R:=0;
+           if (TestFlag(Track.DamageFlag,dtrack_norail)) then
+            DerailReason:=1 //Ra: powód wykolejenia: brak szyn
+           else
+            DerailReason:=2; //Ra: powód wykolejenia: przewrócony na ³uku
          end;
      {wykolejanie na poszerzeniu toru}
         if FuzzyLogic(Abs(Track.Width-TrackW),TrackW/10.0,1) then
@@ -4188,6 +4193,7 @@ begin
             EventFlag:=True;
             MainS:=False;
             RunningShape.R:=0;
+            DerailReason:=3; //Ra: powód wykolejenia: za szeroki tor
           end;
       end;
      {wykolejanie wkutek niezgodnosci kategorii toru i pojazdu}
@@ -4196,6 +4202,7 @@ begin
         begin
           EventFlag:=True;
           MainS:=False;
+          DerailReason:=4; //Ra: powód wykolejenia: nieodpowiednia trajektoria
         end;
 
      V:=V+(3*AccS-AccSprev)*dt/2.0;                                  {przyrost predkosci}
@@ -5072,6 +5079,7 @@ begin
  }
 
   Name:=NameInit;
+ DerailReason:=0; //Ra: powód wykolejenia
 end;
 
 function TMoverParameters.EngineDescription(what:integer): string;  {opis stanu lokomotywy}

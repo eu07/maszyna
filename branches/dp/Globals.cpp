@@ -53,10 +53,10 @@ AnsiString Global::asSky="1";
 double Global::fOpenGL=0.0; //wersja OpenGL - do sprawdzania obecnoœci rozszerzeñ
 bool Global::bOpenGL_1_5=false; //czy s¹ dostêpne funkcje OpenGL 1.5
 double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
-bool Global::bReCompile=false; //czy odœwie¿yæ siatki
+int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asVersion="Compilation 2011-12-07, release 1.6.283.283."; //tutaj, bo wysy³any
+AnsiString Global::asVersion="Compilation 2011-12-17, release 1.6.286.285."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 double Global::fSunDeclination=0.0; //deklinacja S³oñca
@@ -141,24 +141,6 @@ bool Global::bnewAirCouplers=true;
 bool Global::bDoubleAmbient=true; //podwójna jasnoœæ ambient
 double Global::fSunSpeed=1.0; //prêdkoœæ ruchu S³oñca, zmienna do testów
 
-
-// QUEUEDEU VARS  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-AnsiString Global::g___APPDIR = "";
-AnsiString Global::asSSHOTDIR = "";
-AnsiString Global::asSSHOTSUBDIR = "99\\";
-AnsiString Global::APPDATE = "";
-AnsiString Global::APPSIZE = "";
-AnsiString Global::asMechanikVech = "";
-AnsiString Global::asCurrentNodeName = "none";
-AnsiString Global::asCurrentIncName = "none";
-
-bool Global::SCNLOADED = false;
-bool Global::bQueuedAdvLog = false;
-GLuint Global::bfonttex;
-int Global::iNODES = 100000;
-
-TStringList *Global::OTHERS;
 
 /* Ra: trzeba by przerobiæ na cParser, ¿eby to dzia³a³o w scenerii
 void __fastcall Global::ParseConfig(TQueryParserComp *Parser)
