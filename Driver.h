@@ -148,6 +148,7 @@ private:
  int iDirection; //kierunek jazdy wzglêdem pojazdu, w którym siedzi AI (1=przód,-1=ty³)
  int iDirectionOrder; //¿adany kierunek jazdy (s³u¿y do zmiany kierunku)
  int iVehicleCount; //iloœæ pojazdów do od³¹czenia albo zabrania ze sk³adu (-1=wszystkie)
+ int iCoupler; //sprzêg, który nale¿y u¿yæ przy ³¹czeniu
  bool Prepare2press; //dociskanie w celu od³¹czenia
  int iDriverFailCount; //licznik b³êdów AI
  bool Need_TryAgain;

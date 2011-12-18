@@ -1232,7 +1232,8 @@ void __fastcall TTrack::Render()
   glCallList(DisplayListID);
   if (InMovement()) Release(); //zwrotnica w trakcie animacji do odrysowania
  };
-#ifdef _DEBUG
+//#ifdef _DEBUG
+#if 0
  if (DebugModeFlag && ScannedFlag) //McZapkie-230702
  //if (iNumDynamics) //bêdzie kreska na zajêtym torze
  {
@@ -1560,36 +1561,7 @@ void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Star
 
 void  __fastcall TTrack::RaRenderVBO(int iPtr)
 {//renderowanie z u¿yciem VBO
- glColor3f(1.0f,1.0f,1.0f);
- //McZapkie-310702: zmiana oswietlenia w tunelu, wykopie
- GLfloat ambientLight[4] ={0.5f,0.5f,0.5f,1.0f};
- GLfloat diffuseLight[4] ={0.5f,0.5f,0.5f,1.0f};
- GLfloat specularLight[4]={0.5f,0.5f,0.5f,1.0f};
- switch (eEnvironment)
- {//modyfikacje oœwietlenia zale¿nie od œrodowiska
-  case e_canyon: //wykop
-   for (int li=0;li<3;li++)
-   {
-    //ambientLight[li]= Global::ambientDayLight[li]*0.7;
-    diffuseLight[li]= Global::diffuseDayLight[li]*0.3;
-    specularLight[li]=Global::specularDayLight[li]*0.4;
-   }
-   //glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
-   glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
-   glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
-  break;
-  case e_tunnel: //tunel
-   for (int li=0;li<3;li++)
-   {
-    ambientLight[li]= Global::ambientDayLight[li]*0.2;
-    diffuseLight[li]= Global::diffuseDayLight[li]*0.1;
-    specularLight[li]=Global::specularDayLight[li]*0.2;
-   }
-   glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
-   glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
-   glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
-  break;
- }
+ EnvironmentSet();
  int seg;
  int i;
  switch (iCategoryFlag&15)
@@ -1654,8 +1626,49 @@ void  __fastcall TTrack::RaRenderVBO(int iPtr)
    }
    break;
  }
+ EnvironmentReset();
+};
+
+void __fastcall TTrack::EnvironmentSet()
+{//ustawienie zmienionego œwiat³a
+ glColor3f(1.0f,1.0f,1.0f); //Ra: potrzebne to?
+ if (eEnvironment)
+ {//McZapkie-310702: zmiana oswietlenia w tunelu, wykopie
+  GLfloat ambientLight[4]= {0.5f,0.5f,0.5f,1.0f};
+  GLfloat diffuseLight[4]= {0.5f,0.5f,0.5f,1.0f};
+  GLfloat specularLight[4]={0.5f,0.5f,0.5f,1.0f};
+  switch (eEnvironment)
+  {//modyfikacje oœwietlenia zale¿nie od œrodowiska
+   case e_canyon:
+    for (int li=0;li<3;li++)
+    {
+     //ambientLight[li]= Global::ambientDayLight[li]*0.8; //0.7
+     diffuseLight[li]= Global::diffuseDayLight[li]*0.4;   //0.3
+     specularLight[li]=Global::specularDayLight[li]*0.5;  //0.4
+    }
+    //glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
+    glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
+    glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
+    break;
+   case e_tunnel:
+    for (int li=0;li<3;li++)
+    {
+     ambientLight[li]= Global::ambientDayLight[li]*0.2;
+     diffuseLight[li]= Global::diffuseDayLight[li]*0.1;
+     specularLight[li]=Global::specularDayLight[li]*0.2;
+    }
+    glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
+    glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
+    glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
+    break;
+  }
+ }
+};
+
+void __fastcall TTrack::EnvironmentReset()
+{//przywrócenie domyœlnego œwiat³a
  switch (eEnvironment)
- {//przywrócenie globalnych ustawieñ œwiat³a
+ {//przywrócenie globalnych ustawieñ œwiat³a, o ile by³o zmienione
   case e_canyon: //wykop
   case e_tunnel: //tunel
    glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
@@ -1665,142 +1678,21 @@ void  __fastcall TTrack::RaRenderVBO(int iPtr)
 };
 
 void __fastcall TTrack::RenderDyn()
-{//renderowanie nieprzezroczystych pojazdów z Display Lists
+{//renderowanie nieprzezroczystych pojazdów
  if (!iNumDynamics) return; //po co kombinowaæ, jeœli nie ma pojazdów?
- glColor3f(1.0f,1.0f,1.0f);
- if (eEnvironment)
- {//McZapkie-310702: zmiana oswietlenia w tunelu, wykopie
-  GLfloat ambientLight[4]= {0.5f,0.5f,0.5f,1.0f};
-  GLfloat diffuseLight[4]= {0.5f,0.5f,0.5f,1.0f};
-  GLfloat specularLight[4]={0.5f,0.5f,0.5f,1.0f};
-  switch (eEnvironment)
-  {
-   case e_canyon:
-    for (int li=0;li<3;li++)
-    {
-     //ambientLight[li]= Global::ambientDayLight[li]*0.8;
-     diffuseLight[li]= Global::diffuseDayLight[li]*0.4;
-     specularLight[li]=Global::specularDayLight[li]*0.5;
-    }
-    //glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
-    glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
-    glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
-    break;
-   case e_tunnel:
-    for (int li=0;li<3;li++)
-    {
-     ambientLight[li]= Global::ambientDayLight[li]*0.2;
-     diffuseLight[li]= Global::diffuseDayLight[li]*0.1;
-     specularLight[li]=Global::specularDayLight[li]*0.2;
-    }
-    glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
-    glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
-    glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
-    break;
-  }
- }
- for (int i=0; i<iNumDynamics; i++)
- {
-  Dynamics[i]->Render();
- }
+ EnvironmentSet();
+ for (int i=0;i<iNumDynamics;i++)
+  Dynamics[i]->Render(); //sam sprawdza, czy VBO; zmienia kontekst VBO!
+ EnvironmentReset();
 };
 
 void __fastcall TTrack::RenderDynAlpha()
-{//renderowanie przezroczystych pojazdów z Display Lists
+{//renderowanie przezroczystych pojazdów
  if (!iNumDynamics) return; //po co kombinowaæ, jeœli nie ma pojazdów?
- glColor3f(1.0f,1.0f,1.0f);
- if (eEnvironment)
- {//McZapkie-310702: zmiana oswietlenia w tunelu, wykopie
-  GLfloat ambientLight[4]= {0.5f,0.5f,0.5f,1.0f};
-  GLfloat diffuseLight[4]= {0.5f,0.5f,0.5f,1.0f};
-  GLfloat specularLight[4]={0.5f,0.5f,0.5f,1.0f};
-  switch (eEnvironment)
-  {
-   case e_canyon:
-    for (int li=0;li<3;li++)
-    {
-     //ambientLight[li]= Global::ambientDayLight[li]*0.8;
-     diffuseLight[li]= Global::diffuseDayLight[li]*0.4;
-     specularLight[li]=Global::specularDayLight[li]*0.5;
-    }
-    //glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
-    glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
-    glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
-    break;
-   case e_tunnel:
-    for (int li=0;li<3;li++)
-    {
-     ambientLight[li]= Global::ambientDayLight[li]*0.2;
-     diffuseLight[li]= Global::diffuseDayLight[li]*0.1;
-     specularLight[li]=Global::specularDayLight[li]*0.2;
-    }
-    glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
-    glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
-    glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
-    break;
-  }
- }
+ EnvironmentSet();
  for (int i=0;i<iNumDynamics;i++)
- {
-  Dynamics[i]->RenderAlpha(); //renderowanie przezroczystych czêœci pojazdów
- }
- switch (eEnvironment)
- {//przywrócenie globalnych ustawieñ œwiat³a
-  case e_canyon: //wykop
-  case e_tunnel: //tunel
-   glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
-   glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
-   glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
- }
-};
-
-void  __fastcall TTrack::RaRenderDyn()
-{//renderowanie pojazdów
- if (!iNumDynamics) return; //nie ma pojazdów
- glColor3f(1.0f,1.0f,1.0f);
- if (eEnvironment)
- {//McZapkie-310702: zmiana oswietlenia w tunelu, wykopie
-  GLfloat ambientLight[4]= {0.5f,0.5f,0.5f,1.0f};
-  GLfloat diffuseLight[4]= {0.5f,0.5f,0.5f,1.0f};
-  GLfloat specularLight[4]={0.5f,0.5f,0.5f,1.0f};
-  switch (eEnvironment)
-  {
-   case e_canyon:
-    for (int li=0;li<3;li++)
-    {
-     //ambientLight[li]= Global::ambientDayLight[li]*0.8;
-     diffuseLight[li]= Global::diffuseDayLight[li]*0.4;
-     specularLight[li]=Global::specularDayLight[li]*0.5;
-    }
-    //glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
-    glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
-    glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
-    break;
-   case e_tunnel:
-    for (int li=0;li<3;li++)
-    {
-     ambientLight[li]= Global::ambientDayLight[li]*0.2;
-     diffuseLight[li]= Global::diffuseDayLight[li]*0.1;
-     specularLight[li]=Global::specularDayLight[li]*0.2;
-    }
-    glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
-    glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
-    glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
-    break;
-  }
- }
- for (int i=0;i<iNumDynamics;i++)
- {Dynamics[i]->Render(); //zmieni kontekst VBO!
-  Dynamics[i]->RenderAlpha();
- }
- switch (eEnvironment)
- {//przywrócenie globalnych ustawieñ œwiat³a
-  case e_canyon: //wykop
-  case e_tunnel: //tunel
-   glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
-   glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
-   glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
- }
+  Dynamics[i]->RenderAlpha(); //sam sprawdza, czy VBO; zmienia kontekst VBO!
+ EnvironmentReset();
 };
 
 //---------------------------------------------------------------------------
@@ -2037,7 +1929,7 @@ bool __fastcall TTrack::IsGroupable()
 bool __fastcall Equal(vector3 v1, vector3 *v2)
 {//sprawdzenie odleg³oœci punktów
  //Ra: powinno byæ do 10cm wzd³u¿ toru i ze 2cm w poprzek
- //Ra: z atomatycznie dodawanym stukiem, jeœli dziura jest wiêksza ni¿ 2mm.
+ //Ra: z automatycznie dodawanym stukiem, jeœli dziura jest wiêksza ni¿ 2mm.
  if (fabs(v1.x-v2->x)>0.02) return false; //szeœcian zamiast kuli
  if (fabs(v1.z-v2->z)>0.02) return false;
  if (fabs(v1.y-v2->y)>0.02) return false;
@@ -2046,7 +1938,7 @@ bool __fastcall Equal(vector3 v1, vector3 *v2)
 };
 
 int __fastcall TTrack::TestPoint(vector3 *Point)
-{//sprawdzanie, czy tory mo¿na po³¹czyæ (TODO: przenieœæ to do TTrack)
+{//sprawdzanie, czy tory mo¿na po³¹czyæ
  switch (eType)
  {
   case tt_Normal :
@@ -2058,34 +1950,40 @@ int __fastcall TTrack::TestPoint(vector3 *Point)
      return 1;
    break;
   case tt_Switch :
-  {//int state=GetSwitchState(); //po co?
-   //Switch(0);
+  {int state=GetSwitchState(); //po co?
+   //Ra: TODO: jak siê zmieni na bezpoœrednie odwo³ania do segmentow zwrotnicy,
+   //to siê wykoleja, poniewa¿ pNext zale¿y od prze³o¿enia
+   Switch(0);
    if (pPrev==NULL)
-    if (Equal(SwitchExtension->Segments[0]->FastGetPoint_0(),Point))
+    //if (Equal(SwitchExtension->Segments[0]->FastGetPoint_0(),Point))
+    if (Equal(Segment->FastGetPoint_0(),Point))
     {
-     //Switch(state);
+     Switch(state);
      return 2;
     }
    if (pNext==NULL)
-    if (Equal(SwitchExtension->Segments[0]->FastGetPoint_1(),Point))
+    //if (Equal(SwitchExtension->Segments[0]->FastGetPoint_1(),Point))
+    if (Equal(Segment->FastGetPoint_1(),Point))
     {
-     //Switch(state);
+     Switch(state);
      return 3;
     }
    Switch(1); //mo¿na by siê pozbyæ tego prze³¹czania
-   if (pPrev==NULL)
+   if (pPrev==NULL) //Ra: z tym chyba nie potrzeba ³¹czyæ
+    //if (Equal(SwitchExtension->Segments[1]->FastGetPoint_0(),Point))
     if (Equal(Segment->FastGetPoint_0(),Point))
     {
-     Switch(0);
+     Switch(state);//Switch(0);
      return 4;
     }
-   if (pNext==NULL)
+   if (pNext==NULL) //TODO: to zale¿y od prze³o¿enia zwrotnicy
+    //if (Equal(SwitchExtension->Segments[1]->FastGetPoint_1(),Point))
     if (Equal(Segment->FastGetPoint_1(),Point))
     {
-     Switch(0);
+     Switch(state);//Switch(0);
      return 5;
     }
-   Switch(0);
+   Switch(state);
   }
   break;
  }

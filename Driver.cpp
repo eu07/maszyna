@@ -979,15 +979,17 @@ void __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
  else if (NewCommand=="Shunt")
  {//NewValue1 - iloœæ wagonów (-1=wszystkie), NewValue2: 0=odczep, 1=do³¹cz, -1=bez zmian
   //-1,-1 - tryb manewrowy bez zmian w sk³adzie
-  //-1, 1 - pod³¹czyæ do ca³ego stoj¹cego sk³adu (do skutku)
-  // 1, 1 - pod³¹czyæ do pierwszego wagonu w sk³adzie i odczepiæ go od reszty
+  //-1, x - pod³¹czyæ do ca³ego stoj¹cego sk³adu (do skutku), sprzêgiem x>1
+  // 1, x - pod³¹czyæ do pierwszego wagonu w sk³adzie i odczepiæ go od reszty, sprzêgiem x>1
   //-1, 0 - tryb manewrowy bez zmian (odczepianie z pozostawieniem wagonów nie ma sensu)
   // 0, 0 - odczepienie lokomotywy
   // 1, 0 - odczepienie lokomotywy z jednym wagonem
   if (!EngineActive)
    OrderNext(Prepare_engine); //trzeba odpaliæ silnik najpierw
   if (NewValue2>0)
-   OrderNext(Connect); //po³¹cz (NewValue1) wagonów
+  {OrderNext(Connect); //po³¹cz (NewValue1) wagonów
+   iCoupler=floor(NewValue2); //jakim sprzêgiem
+  }
   else if (NewValue2==0.0)
    if (NewValue1>=0.0) //jeœli iloœæ wagonów inna ni¿ wszystkie
     OrderNext(Disconnect); //odczep (NewValue1) wagonów
@@ -1134,12 +1136,45 @@ bool __fastcall TController::UpdateSituation(double dt)
       Controlling->DecBrakeLevel();
    switch (OrderList[OrderPos])
    {
-    case Connect:
-     if (pVehicles[0]->fTrackBlock>50)
+    case Connect: //pod³¹czanie do sk³adu
+     if (pVehicles[0]->fTrackBlock>50.0)
       SetVelocity(20,0); //jazda w ustawionym kierunku z prêdkoœci¹ 20
+     else
+     {//dociskanie i próba zaczepienia
+      bool ok=false;
+      if (Controlling->DirAbsolute>0)
+      {//sprzêg 0
+       if (Controlling->Couplers[0].CouplingFlag==iCoupler)
+        ok=true; //zaczepiony zgodnie z ¿yczeniem!
+       else
+        if (Controlling->Couplers[0].Connected) //jeœli jest coœ wykryte (a chyba jest, nie?)
+         if (Controlling->Attach(0,2,Controlling->Couplers[0].Connected,iCoupler))
+         {
+          //dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
+          //dsbCouplerAttach->Play(0,0,0);
+         }
+      }
+      else if (Controlling->DirAbsolute<0)
+      {//sprzêg 1
+       if (Controlling->Couplers[1].CouplingFlag==iCoupler)
+        ok=true; //zaczepiony zgodnie z ¿yczeniem!
+       else
+        if (Controlling->Couplers[1].Connected) //jeœli jest coœ wykryte (a chyba jest, nie?)
+         if (Controlling->Attach(0,2,Controlling->Couplers[1].Connected,iCoupler))
+         {
+          //dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
+          //dsbCouplerAttach->Play(0,0,0);
+         }
+     }
+     if (ok)
+     {//je¿eli zosta³ pod³¹czony 
+      SetVelocity(0,0,stopJoin); //wy³¹czyæ przyspieszanie
+      JumpToNextOrder(); //wykonanie nastêpnej komendy
+     }
      else
       SetVelocity(2,0); //jazda w ustawionym kierunku z prêdkoœci¹ 2
      break;
+    }
     case Disconnect: //20.07.03 - manewrowanie wagonami
      if (iVehicleCount>=0) //jeœli by³a podana iloœæ wagonów
      {

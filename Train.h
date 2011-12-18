@@ -210,6 +210,9 @@ public:
     TButton btLampkaDoorRight;
     TButton btLampkaDepartureSignal;
 
+    TButton btLampkaForward; //Ra: lampki w przód i w ty³ dla komputerowych kabin
+    TButton btLampkaBackward;
+
     vector3 pPosition;
     vector3 pMechOffset;
     vector3 vMechMovement;

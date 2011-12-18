@@ -160,13 +160,11 @@ public:
  void __fastcall Compile(GLuint tex=0);
 
  void __fastcall Render(); //renderowanie z Display Lists
- void __fastcall RenderDyn(); //renderowanie nieprzezroczystych pojazdów z Display Lists
- void __fastcall RenderDynAlpha(); //renderowanie przezroczystych pojazdów z Display Lists
  int __fastcall RaArrayPrepare(); //zliczanie rozmiaru dla VBO sektroa
  void  __fastcall RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Start); //wype³nianie VBO
  void  __fastcall RaRenderVBO(int iPtr); //renderowanie z VBO sektora
- void  __fastcall RaRenderDyn(); //renderowanie przezroczystych pojazdów
- void  __fastcall RaRenderDynAlpha(); //renderowanie przezroczystych pojazdów
+ void __fastcall RenderDyn(); //renderowanie nieprzezroczystych pojazdów (oba tryby)
+ void __fastcall RenderDynAlpha(); //renderowanie przezroczystych pojazdów (oba tryby)
 
  void __fastcall RaOwnerSet(TSubRect *o)
  {if (SwitchExtension) SwitchExtension->pOwner=o;};
@@ -185,6 +183,9 @@ public:
  GLuint TextureGet(int i) {return i?TextureID1:TextureID2;};
  bool __fastcall IsGroupable();
  int __fastcall TestPoint(vector3 *Point);
+private:
+ void __fastcall EnvironmentSet();
+ void __fastcall EnvironmentReset();
 };
 
 //---------------------------------------------------------------------------
