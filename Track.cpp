@@ -217,15 +217,21 @@ TTrack* __fastcall TTrack::NullCreate(int dir)
    ConnectNextPrev(trk,0);
    break;
   case 3: //na razie nie mo¿liwe
-   trk->ConnectPrevNext(trk,dir);
+   p1=SwitchExtension->Segments[1]->FastGetPoint_1(); //koniec toru drugiego zwrotnicy
+   p2=p1-450.0*Normalize(SwitchExtension->Segments[1]->GetDirection2()); //przed³u¿enie na wprost
+   trk->Segment->Init(p1,p2,5,RadToDeg(r2),70.0); //bo prosty, kontrolne wyliczane przy zmiennej przechy³ce
+   ConnectNextPrev(trk,0);
+   //trk->ConnectPrevNext(trk,dir);
+   SetConnections(1); //skopiowanie po³¹czeñ
+   Switch(1); //bo siê prze³¹czy na 0, a to coœ chce siê przecie¿ wykoleiæ na bok
    break; //do drugiego zwrotnicy... nie zadzia³a?
  }
  //trzeba jeszcze dodaæ do odpowiedniego segmentu, aby siê renderowa³y z niego pojazdy
  tmp->pCenter=(0.5*(p1+p2)); //œrodek, aby siê mog³o wyœwietliæ
  //Ra: to poni¿ej to pora¿ka, ale na razie siê nie da inaczej
  TSubRect *r=Global::pGround->GetSubRect(tmp->pCenter.x,tmp->pCenter.z);
- r->NodeAdd(tmp);
- r->Sort();
+ r->NodeAdd(tmp); //dodanie toru do segmentu
+ r->Sort(); //¿eby wyœwietla³ tabor z dodanego toru
  r->Release(); //usuniêcie skompilowanych zasobów
  return trk;
 };
@@ -798,6 +804,10 @@ bool __fastcall TTrack::AddDynamicObject(TDynamicObject *Dynamic)
 {//dodanie pojazdu do trajektorii
  //Ra: tymczasowo wysy³anie informacji o zajêtoœci konkretnego toru
  //Ra: usun¹æ po upowszechnieniu siê odcinków izolowanych
+ if (iCategoryFlag&0x100) //jeœli usuwaczek
+ {Dynamic->MyTrack=NULL;
+  return true;
+ }
  if (Global::iMultiplayer) //jeœli multiplayer
   if (!iNumDynamics) //pierwszy zajmuj¹cy
    if (pMyNode->asName!="none")
@@ -810,7 +820,7 @@ bool __fastcall TTrack::AddDynamicObject(TDynamicObject *Dynamic)
  }
  else
  {
-  Error("Too many dynamics on track.");
+  Error("Too many dynamics on track "+pMyNode->asName);
   return false;
  }
 };
