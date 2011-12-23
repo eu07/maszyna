@@ -1152,7 +1152,7 @@ __fastcall TDynamicObject::TDynamicObject()
  ReplacableSkinID[2]=0;
  ReplacableSkinID[3]=0;
  ReplacableSkinID[4]=0;
- iAlpha=0x30300030;
+ iAlpha=0x30300030; //tak gdy tekstury wymienne nie maj¹ przezroczystoœci
  smWiazary[0]=smWiazary[1]=NULL;
  smWahacze[0]=smWahacze[1]=smWahacze[2]=smWahacze[3]=NULL;
  fWahaczeAmp=0;
@@ -2269,7 +2269,7 @@ bool __fastcall TDynamicObject::Render()
   glTranslated(pos.x,pos.y,pos.z);
   glMultMatrixd(mMatrix.getArray());
   if (mdLowPolyInt)
-   if ((FreeFlyModeFlag)||((!FreeFlyModeFlag)&&(!mdKabina)))
+   if (FreeFlyModeFlag?true:!mdKabina)
 #ifdef USE_VBO
     if (Global::bUseVBO)
      mdLowPolyInt->RaRender(ObjSqrDist,ReplacableSkinID,iAlpha);
@@ -2308,19 +2308,19 @@ bool __fastcall TDynamicObject::Render()
 
 //rendering przedsionkow o ile istnieja
   if (mdPrzedsionek)
-   if (MoverParameters->filename==asBaseDir+"6ba.chk")
+   //if (MoverParameters->filename==asBaseDir+"6ba.chk") //Ra: to tu bez sensu by³o
 #ifdef USE_VBO
-    if (Global::bUseVBO)
-     mdPrzedsionek->RaRender(ObjSqrDist,ReplacableSkinID,iAlpha);
-    else
+   if (Global::bUseVBO)
+    mdPrzedsionek->RaRender(ObjSqrDist,ReplacableSkinID,iAlpha);
+   else
 #endif
-     mdPrzedsionek->Render(ObjSqrDist,ReplacableSkinID,iAlpha);
+    mdPrzedsionek->Render(ObjSqrDist,ReplacableSkinID,iAlpha);
 //rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
 //ABu: tylko w trybie FreeFly, zwykly tryb w world.cpp
 
   if ((mdKabina!=mdModel) && bDisplayCab && FreeFlyModeFlag)
   {//Ra: a œwiet³a nie zosta³y ju¿ ustawione dla toru?
-//oswietlenie kabiny
+   //oswietlenie kabiny
    GLfloat  ambientCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
    GLfloat  diffuseCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
    GLfloat  specularCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
@@ -2891,9 +2891,9 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
         ReplacableSkin=Global::asCurrentTexturePath+ReplacableSkin;      //skory tez z dynamic/...
         ReplacableSkinID[1]=TTexturesManager::GetTextureID(ReplacableSkin.c_str(),Global::iDynamicFiltering);
         if (TTexturesManager::GetAlpha(ReplacableSkinID[1]))
-         iAlpha=0x31310031; //tekstura z kana³em alfa - nie renderowaæ w cyklu nieprzezroczystych
+         iAlpha=0x31310031; //tekstura -1 z kana³em alfa - nie renderowaæ w cyklu nieprzezroczystych
         else
-         iAlpha=0x30300030; //tekstura nieprzezroczysta - nie renderowaæ w cyklu przezroczystych
+         iAlpha=0x30300030; //wszystkie tekstury nieprzezroczyste - nie renderowaæ w cyklu przezroczystych
        }
   //Winger 040304 - ladowanie przedsionkow dla EZT
        if (MoverParameters->TrainType==dt_EZT)

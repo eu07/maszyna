@@ -456,7 +456,7 @@ bool __fastcall TController::SetProximityVelocity(double NewDist,double NewVelNe
  {MaxVelFlag=False;
   MinVelFlag=False;
   VelNext=NewVelNext;
-  fProximityDist=NewDist;
+  fProximityDist=NewDist; //dodatnie: przeliczyæ do punktu; ujemne: wzi¹æ dos³ownie 
   return true;
  }
  //else return false
@@ -977,23 +977,28 @@ void __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
    TrainNumber=floor(NewValue1); //i co potem ???
  }
  else if (NewCommand=="Shunt")
- {//NewValue1 - iloœæ wagonów (-1=wszystkie), NewValue2: 0=odczep, 1=do³¹cz, -1=bez zmian
-  //-1,-1 - tryb manewrowy bez zmian w sk³adzie
-  //-1, x - pod³¹czyæ do ca³ego stoj¹cego sk³adu (do skutku), sprzêgiem x>1
-  // 1, x - pod³¹czyæ do pierwszego wagonu w sk³adzie i odczepiæ go od reszty, sprzêgiem x>1
+ {//NewValue1 - iloœæ wagonów (-1=wszystkie); NewValue2: 0=odczep, 1..63=do³¹cz, -1=bez zmian
+  //-2,-y - pod³¹czyæ do ca³ego stoj¹cego sk³adu (sprzêgiem y>=1), zmieniæ kierunek i czekaæ
+  //-2, y - pod³¹czyæ do ca³ego stoj¹cego sk³adu (sprzêgiem y>=1) i czekaæ
+  //-1,-y - pod³¹czyæ do ca³ego stoj¹cego sk³adu (sprzêgiem y>=1) i jechaæ w powrotn¹ stronê
+  //-1, y - pod³¹czyæ do ca³ego stoj¹cego sk³adu (sprzêgiem y>=1) i jechaæ dalej
   //-1, 0 - tryb manewrowy bez zmian (odczepianie z pozostawieniem wagonów nie ma sensu)
   // 0, 0 - odczepienie lokomotywy
+  // 1, y - pod³¹czyæ do pierwszego wagonu w sk³adzie (sprzêgiem y>=1) i odczepiæ go od reszty
   // 1, 0 - odczepienie lokomotywy z jednym wagonem
   if (!EngineActive)
    OrderNext(Prepare_engine); //trzeba odpaliæ silnik najpierw
-  if (NewValue2>0)
-  {OrderNext(Connect); //po³¹cz (NewValue1) wagonów
-   iCoupler=floor(NewValue2); //jakim sprzêgiem
+  if (NewValue2!=0) //jeœli podany jest sprzêg
+  {iCoupler=floor(fabs(NewValue2)); //jakim sprzêgiem
+   OrderNext(Connect); //po³¹cz (NewValue1) wagonów
+   if (NewValue2<0.0) //jeœli sprzêg ujemny, to zmiana kierunku
+    OrderNext(Change_direction);
   }
   else if (NewValue2==0.0)
    if (NewValue1>=0.0) //jeœli iloœæ wagonów inna ni¿ wszystkie
     OrderNext(Disconnect); //odczep (NewValue1) wagonów
-  OrderNext(Shunt); //potem manewruj dalej
+  if (NewValue1>=-1.0) //jeœli nie -2
+   OrderNext(Shunt); //to potem manewruj dalej
   CheckVehicles(); //sprawdziæ œwiat³a
   //if ((iVehicleCount>=0)&&(NewValue1<0)) WriteLog("Skasowano ilosæ wagonów w Shunt!");
   if (NewValue1!=iVehicleCount)
@@ -1122,11 +1127,11 @@ bool __fastcall TController::UpdateSituation(double dt)
   if ((LastReactionTime>Min0R(ReactionTime,2.0)))
   {
    vMechLoc=pVehicles[0]->GetPosition(); //uwzglednic potem polozenie kabiny
-   if (fProximityDist>=0) //jeœli jest znane
+   if (fProximityDist>=0) //przeliczyæ od zapamiêtanego punktu
     ActualProximityDist=Min0R(fProximityDist,hypot(vMechLoc.x-vCommandLocation.x,vMechLoc.z-vCommandLocation.z)-0.5*(Controlling->Dim.L+SignalDim.L));
    else
     if (fProximityDist<0)
-     ActualProximityDist=fProximityDist;
+     ActualProximityDist=fProximityDist; //odleg³oœæ ujemna podana bezpoœrednio
    if (Controlling->CommandIn.Command!="")
     if (!Controlling->RunInternalCommand()) //rozpoznaj komende bo lokomotywa jej nie rozpoznaje
      RecognizeCommand();
@@ -1137,44 +1142,53 @@ bool __fastcall TController::UpdateSituation(double dt)
    switch (OrderList[OrderPos])
    {
     case Connect: //pod³¹czanie do sk³adu
-     if (pVehicles[0]->fTrackBlock>50.0)
-      SetVelocity(20,0); //jazda w ustawionym kierunku z prêdkoœci¹ 20
-     else
-     {//dociskanie i próba zaczepienia
-      bool ok=false;
-      if (Controlling->DirAbsolute>0)
-      {//sprzêg 0
-       if (Controlling->Couplers[0].CouplingFlag==iCoupler)
-        ok=true; //zaczepiony zgodnie z ¿yczeniem!
-       else
-        if (Controlling->Couplers[0].Connected) //jeœli jest coœ wykryte (a chyba jest, nie?)
-         if (Controlling->Attach(0,2,Controlling->Couplers[0].Connected,iCoupler))
-         {
-          //dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
-          //dsbCouplerAttach->Play(0,0,0);
-         }
-      }
-      else if (Controlling->DirAbsolute<0)
-      {//sprzêg 1
-       if (Controlling->Couplers[1].CouplingFlag==iCoupler)
-        ok=true; //zaczepiony zgodnie z ¿yczeniem!
-       else
-        if (Controlling->Couplers[1].Connected) //jeœli jest coœ wykryte (a chyba jest, nie?)
-         if (Controlling->Attach(0,2,Controlling->Couplers[1].Connected,iCoupler))
-         {
-          //dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
-          //dsbCouplerAttach->Play(0,0,0);
-         }
+    {//sprzêgi sprawdzamy w pierwszej kolejnoœci, bo jak po³¹czony, to koniec
+     bool ok=false;
+     if (Controlling->DirAbsolute>0)
+     {//sprzêg 0 - próba podczepienia
+      if (pVehicles[0]->fTrackBlock<2.0) //ta odleg³oœæ mo¿e byæ rzadko odœwie¿ana
+       if (Controlling->Couplers[0].Connected) //jeœli jest coœ wykryte (a chyba jest, nie?)
+        if (Controlling->Attach(0,2,Controlling->Couplers[0].Connected,iCoupler))
+        {
+         //dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
+         //dsbCouplerAttach->Play(0,0,0);
+        }
+      if (Controlling->Couplers[0].CouplingFlag==iCoupler) //uda³o siê? (mog³o czêœciowo)
+       ok=true; //zaczepiony zgodnie z ¿yczeniem!
+     }
+     else if (Controlling->DirAbsolute<0)
+     {//sprzêg 1 - próba podczepienia
+      if (pVehicles[0]->fTrackBlock<2.0) //ta odleg³oœæ mo¿e byæ rzadko odœwie¿ana
+       if (Controlling->Couplers[1].Connected) //jeœli jest coœ wykryte (a chyba jest, nie?)
+        if (Controlling->Attach(0,2,Controlling->Couplers[1].Connected,iCoupler))
+        {
+         //dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
+         //dsbCouplerAttach->Play(0,0,0);
+        }
+      if (Controlling->Couplers[1].CouplingFlag==iCoupler) //uda³o siê? (mog³o czêœciowo)
+       ok=true; //zaczepiony zgodnie z ¿yczeniem!
      }
      if (ok)
-     {//je¿eli zosta³ pod³¹czony 
+     {//je¿eli zosta³ pod³¹czony
       SetVelocity(0,0,stopJoin); //wy³¹czyæ przyspieszanie
+      CheckVehicles(); //sprawdziæ œwiat³a nowego sk³adu
       JumpToNextOrder(); //wykonanie nastêpnej komendy
      }
      else
-      SetVelocity(2,0); //jazda w ustawionym kierunku z prêdkoœci¹ 2
+      if (pVehicles[0]->fTrackBlock>100.0) //ta odleg³oœæ mo¿e byæ rzadko odœwie¿ana
+      {SetVelocity(20.0,5.0); //jazda w ustawionym kierunku z prêdkoœci¹ 20
+       //SetProximityVelocity(-pVehicles[0]->fTrackBlock+50,0); //to nie dzia³a dobrze
+       //SetProximityVelocity(pVehicles[0]->fTrackBlock,0); //to te¿ nie dzia³a dobrze
+       //vCommandLocation=pVehicles[0]->AxlePositionGet()+pVehicles[0]->fTrackBlock*SafeNormalize(iDirection*pVehicles[0]->GetDirection());
+       //WriteLog(AnsiString(vCommandLocation.x)+" "+AnsiString(vCommandLocation.z));
+      }
+      else
+       if (pVehicles[0]->fTrackBlock>20.0)
+        SetVelocity(0.1*pVehicles[0]->fTrackBlock,2.0); //jazda w ustawionym kierunku z prêdkoœci¹ 5
+       else
+        SetVelocity(2.0,0.0); //jazda w ustawionym kierunku z prêdkoœci¹ 2 (18s)
      break;
-    }
+    } //nawias bo zmienna lokalna
     case Disconnect: //20.07.03 - manewrowanie wagonami
      if (iVehicleCount>=0) //jeœli by³a podana iloœæ wagonów
      {
@@ -1359,7 +1373,8 @@ bool __fastcall TController::UpdateSituation(double dt)
        //else
        iDirection=iDirectionOrder; //kierunek w³aœnie zosta³ zmieniony
        TDynamicObject *d=pVehicle; //w tym siedzi AI
-       Controlling->MainSwitch(false); //dezaktywacja czuwaka
+       if (TestFlag(d->MoverParameters->Couplers[iDirectionOrder*d->DirectionGet()<0?1:0].CouplingFlag,ctrain_controll))
+        Controlling->MainSwitch(false); //dezaktywacja czuwaka, jeœli przejœcie do innego cz³onu
        Controlling->CabDeactivisation(); //tak jest w Train.cpp
        Controlling->DecLocalBrakeLevel(10); //zwolnienie hamulca
        //przejœcie AI na drug¹ stronê EN57, ET41 itp.

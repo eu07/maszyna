@@ -146,8 +146,8 @@ private:
  //bit  1: =1 faza rysowania zale¿y od wymiennej tekstury 1
  //bit  2: =1 faza rysowania zale¿y od wymiennej tekstury 2
  //bit  3: =1 faza rysowania zale¿y od wymiennej tekstury 3
- //bit  4: =1 rysowany w fazie nieprzezroczystych
- //bit  5: =1 rysowany w fazie przezroczystych
+ //bit  4: =1 rysowany w fazie nieprzezroczystych (sta³a tekstura albo brak)
+ //bit  5: =1 rysowany w fazie przezroczystych (sta³a tekstura)
  //bit  7: =1 ta sama tekstura, co poprzedni albo nadrzêdny
  //bit  8: =1 wierzcho³ki wyœwietlane z indeksów
  //bit  9: =1 wczytano z pliku tekstowego (jest w³aœcicielem tablic)
@@ -181,10 +181,10 @@ private:
  float fCosFalloffAngle; //cosinus k¹ta sto¿ka pod którym widaæ œwiat³o
  float fCosHotspotAngle; //cosinus k¹ta sto¿ka pod którym widaæ aureolê i zwiêkszone natê¿enie œwiat³a
  float fCosViewAngle;    //cos kata pod jakim sie teraz patrzy
- //Ra: dalej s¹ zmienne robocze
+ //Ra: dalej s¹ zmienne robocze, mo¿na je przestawiaæ z zachowaniem rozmiaru klasy
  int TextureID; //numer tekstury, -1 wymienna, 0 brak
  bool bWire; //nie u¿ywane, ale wczytywane
- bool TexAlpha;        //McZapkie-141202: zeby bylo wiadomo czy sortowac ze wzgledu na przezroczystosc
+ bool TexAlpha;  //Ra: nie u¿ywane ju¿
  GLuint uiDisplayList; //roboczy numer listy wyœwietlania
  float Transparency; //nie u¿ywane, ale wczytywane
  //int Index;
@@ -195,7 +195,6 @@ private:
  float3 v_RotateAxis;
  float3 v_Angles;
  float3 v_TransVector;
- //vector3 HitBoxPts[6];
  float8 *Vertices; //roboczy wskaŸnik - wczytanie T3D do VBO
  int iAnimOwner; //roboczy numer egzemplarza, który ustawi³ animacjê
  TAnimType b_aAnim; //kody animacji oddzielnie, bo zerowane
@@ -203,7 +202,6 @@ private:
 public:
  AnsiString asTexture; //robocza nazwa tekstury do zapisania w pliku binarnym
  bool Visible; //roboczy stan widocznoœci
- //std::string Name; //robocza nazwa - ten typ nie lubi byc wczytywany z pliku
  AnsiString asName; //robocza nazwa
 private:
  //int __fastcall SeekFaceNormal(DWORD *Masks, int f,DWORD dwMask,vector3 *pt,GLVERTEX *Vertices);
@@ -212,7 +210,7 @@ private:
 public:
  static int iInstance; //identyfikator egzemplarza, który aktualnie renderuje model
  static GLuint *ReplacableSkinId;
- static int iAlpha;
+ static int iAlpha; //maska bitowa dla danego przebiegu
  __fastcall TSubModel();
  __fastcall ~TSubModel();
  void __fastcall FirstInit();
@@ -323,6 +321,5 @@ public:
  void __fastcall Init();
 };
 
-//typedef TModel3d *PModel3d;
 //---------------------------------------------------------------------------
 #endif

@@ -2543,13 +2543,13 @@ bool __fastcall TGround::InitTracks()
        tmp->Switch(1);
        Track->ConnectNextPrev(tmp,0);
        tmp->SetConnections(1); //robi te¿ Switch(0)
-       tmp->Switch(0);
+       //tmp->Switch(0);
       break;
       case 5:
        tmp->Switch(1);
        Track->ConnectNextNext(tmp,3);
        tmp->SetConnections(1); //robi te¿ Switch(0)
-       tmp->Switch(0);
+       //tmp->Switch(0);
       break;
      }
     }
@@ -3563,6 +3563,29 @@ void __fastcall TGround::DynamicRemove(TDynamicObject* dyn)
   DynamicRemove(d); //zaczynamy od tego z przodu
  else
  {//jeœli mamy ju¿ tego na pocz¹tku
+  TGroundNode **n,*node;
+  d=dyn; //od pierwszego
+  while (d)
+  {d->MyTrack->RemoveDynamicObject(d); //usuniêcie z toru
+   n=&nRootDynamic; //lista pojazdów od pocz¹tku
+   node=NULL; //nie znalezione
+   while (*n?(*n)->DynamicObject!=d:false)
+   {//usuwanie z listy pojazdów
+    if ((*n)->DynamicObject==d)
+    {//jeœli znaleziony
+     node=(*n); //zapamiêtanie wêz³a, aby go usun¹æ
+     (*n)=node->Next; //pominiêcie na liœcie
+     break;
+    }
+    n=&((*n)->Next); //sprawdzenie kolejnego pojazdu na liœcie
+   }
+   if (node) //na wszelki wypadek
+   {d=d->Next(); //przejœcie do kolejnego pojazdu, póki jeszcze jest
+    delete node; //usuwanie fizyczne z pamiêci
+   }
+   else
+    *n=NULL; //coœ nie tak!
+  }
  }
 };
 
