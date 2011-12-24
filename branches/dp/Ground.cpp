@@ -45,6 +45,8 @@
 
 
 #include "parser.h" //Tolaris-010603
+#include "Driver.h"
+
 //---------------------------------------------------------------------------
 
 #pragma package(smart_init)
@@ -2794,20 +2796,28 @@ if (QueryRootEvent)
               if (Global::iMultiplayer) //potwierdzenie wykonania dla serwera - najczêœciej odczyt semafora
                WyslijEvent(QueryRootEvent->asName,QueryRootEvent->Activator->GetName());
                //QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Activator->Mechanik,loc);
-               QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Activator->Mechanik,&QueryRootEvent->Params[8].asGroundNode->pCenter);
+              QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Activator->Mechanik,&QueryRootEvent->Params[8].asGroundNode->pCenter);
              }
              WriteLog("Type: GetValues");
             break;
             case tp_PutValues :
              if (QueryRootEvent->Activator)
              {
-              loc.X=QueryRootEvent->Params[3].asdouble;
-              loc.Y=QueryRootEvent->Params[4].asdouble;
-              loc.Z=QueryRootEvent->Params[5].asdouble;
-              if (QueryRootEvent->Activator->Mechanik)
+              loc.X=-QueryRootEvent->Params[3].asdouble; //zamiana, bo fizyka ma inaczej ni¿ sceneria
+              loc.Y= QueryRootEvent->Params[5].asdouble;
+              loc.Z= QueryRootEvent->Params[4].asdouble;
+              if (QueryRootEvent->Activator->Mechanik) //przekazanie rozkazu do AI
+               QueryRootEvent->Activator->Mechanik->PutCommand(QueryRootEvent->Params[0].asText,
+                                                               QueryRootEvent->Params[1].asdouble,
+                                                               QueryRootEvent->Params[2].asdouble,loc);
+              else
+              {//przekazanie do pojazdu
+               AnsiString load=QueryRootEvent->Activator->MoverParameters->LoadType; //co by³o
+               double amount=QueryRootEvent->Activator->MoverParameters->Load;
                QueryRootEvent->Activator->MoverParameters->PutCommand(QueryRootEvent->Params[0].asText,
                                                                       QueryRootEvent->Params[1].asdouble,
                                                                       QueryRootEvent->Params[2].asdouble,loc);
+              }
              }
              WriteLog("Type: PutValues");
             break;

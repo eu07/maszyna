@@ -860,7 +860,7 @@ void __fastcall TController::RecognizeCommand()
 void __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,double NewValue2,const Mover::TLocation &NewLocation,TStopReason reason)
 {//analiza komendy
  vector3 sl;
- sl.x=-NewLocation.X;
+ sl.x=-NewLocation.X; //zamiana na wspó³rzêdne scenerii
  sl.z= NewLocation.Y;
  sl.y= NewLocation.Z;
  PutCommand(NewCommand,NewValue1,NewValue2,&sl,reason);
@@ -2187,7 +2187,7 @@ void __fastcall TController::ScanEventTrack()
         return;
        }
        vmechmax=e->Params[1].asdouble;
-       sl.x=e->Params[3].asdouble;
+       sl.x=e->Params[3].asdouble; //wspó³rzêdne w scenerii
        sl.y=e->Params[4].asdouble;
        sl.z=e->Params[5].asdouble;
        if (pVehicles[0]->fTrackBlock>50.0) //je¿eli nie ma zawalidrogi w tej odleg³oœci

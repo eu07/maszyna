@@ -178,7 +178,7 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
             *parser >> Params[3].asdouble >> Params[4].asdouble >> Params[5].asdouble; //polozenie X,Y,Z
             if (org)
             {//przesuniêcie
-             Params[3].asdouble+=org->x;
+             Params[3].asdouble+=org->x; //wspó³rzêdne w scenerii
              Params[4].asdouble+=org->y;
              Params[5].asdouble+=org->z;
             }
