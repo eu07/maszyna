@@ -243,6 +243,7 @@ public:
     );
     void __fastcall AttachPrev(TDynamicObject *Object, int iType= 1);
     bool __fastcall UpdateForce(double dt, double dt1, bool FullVer);
+    void __fastcall LoadUpdate();
     bool __fastcall Update(double dt, double dt1);
     bool __fastcall FastUpdate(double dt);
     void __fastcall Move(double fDistance);

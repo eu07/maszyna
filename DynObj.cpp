@@ -1504,9 +1504,30 @@ bool __fastcall TDynamicObject::UpdateForce(double dt, double dt1, bool FullVer)
         return false;
     if (dt>0)
      MoverParameters->ComputeTotalForce(dt, dt1, FullVer);
- return true;    
+ return true;
 }
 
+void __fastcall TDynamicObject::LoadUpdate()
+{//prze³adowanie modelu ³adunku
+ // Ra: nie próbujemy wczytywaæ modeli miliony razy podczas renderowania!!!
+ if ((mdLoad==NULL)&&(MoverParameters->Load>0))
+ {
+  AnsiString asLoadName=asBaseDir+MoverParameters->LoadType+".t3d"; //zapamiêtany katalog pojazdu
+  //asLoadName=MoverParameters->LoadType;
+  //if (MoverParameters->LoadType!=AnsiString("passengers"))
+  Global::asCurrentTexturePath=asBaseDir; //bie¿¹ca œcie¿ka do tekstur to dynamic/...
+  mdLoad=TModelsManager::GetModel(asLoadName.c_str()); //nowy ³adunek
+  Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath); //z powrotem defaultowa sciezka do tekstur
+  //Ra: w MMD mo¿na by zapisaæ po³o¿enie modelu ³adunku (np. wêgiel) w zale¿noœci od za³adowania
+ }
+ else if (MoverParameters->Load==0)
+  mdLoad=NULL; //nie ma ³adunku
+ //if ((mdLoad==NULL)&&(MoverParameters->Load>0))
+ // {
+ //  mdLoad=NULL; //Ra: to jest tu bez sensu - co autor mia³ na myœli?
+ // }
+ MoverParameters->LoadStatus&=3; //po zakoñczeniu bêdzie równe zero
+};
 
 /*
 double __fastcall ComputeRadius(double p1x, double p1z, double p2x, double p2z,
@@ -1730,7 +1751,7 @@ if (!MoverParameters->PhysicActivation)
 //    { MoverParameters->SecuritySystemReset(); }
     if (MoverParameters->ActiveCab==0)
         MoverParameters->SecuritySystemReset();
-    else                               
+    else
      if ((Controller!=Humandriver)&&(MoverParameters->BrakeCtrlPos<0)&&(!TestFlag(MoverParameters->BrakeStatus,1))&&((MoverParameters->CntrlPipePress)>0.51))
 //       {
 ////        MoverParameters->PipePress=0.50;
@@ -2126,6 +2147,8 @@ if (tmpTraction.TractionVoltage==0)
   }
   MoverParameters->DerailReason=0; //¿eby tylko raz
  }
+ if (MoverParameters->LoadStatus)
+  LoadUpdate(); //zmiana modelu ³adunku
  return true; //Ra: chyba tak?
 }
 
@@ -2194,6 +2217,8 @@ else
   sBrakeAcc.Stop();
 
 SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);
+ if (MoverParameters->LoadStatus)
+  LoadUpdate(); //zmiana modelu ³adunku
  return true; //Ra: chyba tak?
 }
 
@@ -2283,21 +2308,6 @@ bool __fastcall TDynamicObject::Render()
   else
 #endif
    mdModel->Render(ObjSqrDist,ReplacableSkinID,iAlpha);
-/* Ra: nie próbujemy wczytywaæ modeli miliony razy podczas renderowania!!!
-  if ((mdLoad==NULL) && (MoverParameters->Load>0))
-  {
-   asLoadName=asBaseDir+MoverParameters->LoadType+".t3d";
-   //asLoadName=MoverParameters->LoadType;
-   //if (MoverParameters->LoadType!=AnsiString("passengers"))
-   Global::asCurrentTexturePath=asBaseDir; //biezaca sciezka do tekstur to dynamic/...
-   mdLoad=TModelsManager::GetModel(asLoadName.c_str()); //nowy ladunek
-   Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath); //z powrotem defaultowa sciezka do tekstur
-  }
-  if ((mdLoad==NULL) && (MoverParameters->Load>0))
-   {
-    mdLoad=NULL; //Ra: to jest tu bez sensu - co autor mia³ na myœli?
-   }
-*/
   if (mdLoad) //renderowanie nieprzezroczystego ³adunku
 #ifdef USE_VBO
    if (Global::bUseVBO)

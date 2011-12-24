@@ -62,8 +62,8 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=1
 MinorVer=6
-Release=288
-Build=290
+Release=289
+Build=291
 Debug=1
 PreRelease=0
 Special=0
@@ -75,7 +75,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.6.288.290
+FileVersion=1.6.289.291
 InternalName=6th by Ra
 LegalCopyright=
 LegalTrademarks=
@@ -121,7 +121,7 @@ Item2=M:\aEU07\EU07\
 DebugSourceDirs=C:\Ra\dp\McZapkie\
 
 [Parameters]
-RunParams=-s calkowo2_test.scn -v drezynka
+RunParams=-s quarkmce2007.scn -v sm48-114
 HostApplication=
 RemoteHost=
 RemotePath=
