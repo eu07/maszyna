@@ -168,7 +168,7 @@ private:
  void __fastcall RecognizeCommand(); //odczytuje komende przekazana lokomotywie
 public:
  void __fastcall PutCommand(AnsiString NewCommand,double NewValue1,double NewValue2,const Mover::TLocation &NewLocation,TStopReason reason=stopComm);
- void __fastcall PutCommand(AnsiString NewCommand,double NewValue1,double NewValue2,const vector3 *NewLocation,TStopReason reason=stopComm);
+ bool __fastcall PutCommand(AnsiString NewCommand,double NewValue1,double NewValue2,const vector3 *NewLocation,TStopReason reason=stopComm);
  bool __fastcall UpdateSituation(double dt); //uruchamiac przynajmniej raz na sekunde
  //procedury dotyczace rozkazow dla maszynisty
  void __fastcall SetVelocity(double NewVel,double NewVelNext,TStopReason r=stopNone); //uaktualnia informacje o predkosci
@@ -188,6 +188,7 @@ private:
  void __fastcall OrderCheck();
 public:
  void __fastcall OrdersInit(double fVel);
+ void __fastcall OrdersClear();
  void __fastcall OrdersDump();
  __fastcall TController
  (bool AI,

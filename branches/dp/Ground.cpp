@@ -1844,18 +1844,16 @@ void __fastcall TGround::FirstInit()
 };
 
 bool __fastcall TGround::Init(AnsiString asFile)
-{
+{//g³ówne wczytywanie scenerii
+ if (asFile.LowerCase().SubString(1,7)=="scenery")
+  asFile.Delete(1,8); //Ra: usuniêcie niepotrzebnych znaków - zgodnoœæ wstecz z 2003
  WriteLog("Loading scenery from "+asFile);
-    Global::pGround=this;
-    //pTrain=NULL;
-
-    pOrigin=aRotate=vector3(0,0,0); //zerowanie przesuniêcia i obrotu
-
-    AnsiString str="";
-  //  TFileStream *fs;
-//    int size;
-
-
+ Global::pGround=this;
+ //pTrain=NULL;
+ pOrigin=aRotate=vector3(0,0,0); //zerowanie przesuniêcia i obrotu
+ AnsiString str="";
+ //TFileStream *fs;
+ //int size;
  std::string subpath=Global::asCurrentSceneryPath.c_str(); //   "scenery/";
  cParser parser(asFile.c_str(),cParser::buffer_FILE,subpath,Global::bLoadTraction);
  std::string token;
@@ -2138,16 +2136,22 @@ bool __fastcall TGround::Init(AnsiString asFile)
         if (str==AnsiString("camera"))
         {
          vector3 xyz,abc;
+         xyz=abc=vector3(0,0,0); //wartoœci domyœlne, bo nie wszystie musz¹ byæ
+         int i=-1,into=-1; //do której definicji kamery wstawiæ
          WriteLog("Scenery camera definition");
-         parser.getTokens(3);
-         parser >> xyz.x >> xyz.y >> xyz.z;
-         parser.getTokens(3);
-         parser >> abc.x >> abc.y >> abc.z;
-         int into=-1; //do której definicji kamery wstawiæ
          do
-         {//opcjonalna siódma liczba okreœla numer kamery
+         {//opcjonalna siódma liczba okreœla numer kamery, a kiedyœ by³y tylko 3
           parser.getTokens(); parser >> token;
-          if (into<0) into=atoi(token.c_str()); //takie sobie, bo mo¿na wpisaæ -1
+          switch (++i)
+          {//kiedyœ camera mia³o tylko 3 wspó³rzêdne
+           case 0: xyz.x=atof(token.c_str()); break;
+           case 1: xyz.y=atof(token.c_str()); break;
+           case 2: xyz.z=atof(token.c_str()); break;
+           case 3: abc.x=atof(token.c_str()); break;
+           case 4: abc.y=atof(token.c_str()); break;
+           case 5: abc.z=atof(token.c_str()); break;
+           case 6: into=atoi(token.c_str()); //takie sobie, bo mo¿na wpisaæ -1
+          }
          } while (token.compare("endcamera")!=0);
          if (into<0) into=++Global::iCameraLast;
          if ((into>=0)&&(into<10))
