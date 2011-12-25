@@ -259,10 +259,7 @@ __fastcall TController::TController
   asNextStop=TrainParams->NextStop();
  //OrderCommand="";
  //OrderValue=0;
- OrderPos=0;
- OrderTop=1; //szczyt stosu rozkazów
- for (int b=0;b<maxorders;b++)
-  OrderList[b]=Wait_for_orders;
+ OrdersClear();
  MaxVelFlag=false; MinVelFlag=false;
  iDirection=iDirectionOrder=0; //1=do przodu (w kierunku sprzêgu 0)
  iDriverFailCount=0;
@@ -354,6 +351,14 @@ AnsiString __fastcall TController::OrderCurrent()
  return AnsiString(OrderPos)+". "+Order2Str(OrderList[OrderPos]);
 };
 
+void __fastcall TController::OrdersClear()
+{//czyszczenie tabeli rozkazów na starcie albo po dojœciu do koñca
+ OrderPos=0;
+ OrderTop=1; //szczyt stosu rozkazów
+ for (int b=0;b<maxorders;b++)
+  OrderList[b]=Wait_for_orders;
+};
+
 bool __fastcall TController::CheckVehicles()
 {//sprawdzenie stanu posiadanych pojazdów w sk³adzie i zapalenie œwiate³
  //ZiomalCl: sprawdzanie i zmiana SKP w skladzie prowadzonym przez AI
@@ -385,7 +390,7 @@ bool __fastcall TController::CheckVehicles()
  if (OrderCurrentGet()==Obey_train) //jeœli jazda poci¹gowa
   Lights(1+4+16,2+32+64); //œwiat³a poci¹gowe (Pc1) i koñcówki (Pc5)
  else if (OrderCurrentGet()&(Shunt|Connect))
-  Lights(16,(Controlling->TrainType&dt_EZT)?2+32:1); //œwiat³a manewrowe (Tb1)
+  Lights(16,(pVehicles[1]->MoverParameters->ActiveCab)?1:0); //œwiat³a manewrowe (Tb1) na pojeŸdzie z napêdem
  else if (OrderCurrentGet()==Disconnect)
   Lights(16,0); //œwiat³a manewrowe (Tb1) tylko z przodu, aby nie pozostawiæ sk³adu ze œwiat³em
  return true;
@@ -850,7 +855,7 @@ bool __fastcall TController::DecSpeed()
 }
 
 void __fastcall TController::RecognizeCommand()
-{//odczytuje i wykonuje komendê przekazana lokomotywie
+{//odczytuje i wykonuje komendê przekazan¹ lokomotywie
  TCommand *c=&Controlling->CommandIn;
  PutCommand(c->Command,c->Value1,c->Value2,c->Location,stopComm);
  c->Command=""; //usuniêcie obs³u¿onej komendy
@@ -858,17 +863,26 @@ void __fastcall TController::RecognizeCommand()
 
 
 void __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,double NewValue2,const Mover::TLocation &NewLocation,TStopReason reason)
-{//analiza komendy
+{//wys³anie komendy przez event PutValues, jak pojazd ma obsadê, to wysy³a tutaj, a nie do pojazdu bezpoœrednio
  vector3 sl;
  sl.x=-NewLocation.X; //zamiana na wspó³rzêdne scenerii
  sl.z= NewLocation.Y;
  sl.y= NewLocation.Z;
- PutCommand(NewCommand,NewValue1,NewValue2,&sl,reason);
+ if (!PutCommand(NewCommand,NewValue1,NewValue2,&sl,reason))
+  Controlling->PutCommand(NewCommand,NewValue1,NewValue2,NewLocation);
 }
 
 
-void __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,double NewValue2,const vector3 *NewLocation,TStopReason reason)
+bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,double NewValue2,const vector3 *NewLocation,TStopReason reason)
 {//analiza komendy
+ if (NewCommand=="Emergency_brake") //wymuszenie zatrzymania, niezale¿nie kto prowadzi
+ {//Ra: no nadal nie jest zbyt piêknie
+  SetVelocity(0,0,reason);
+  Controlling->PutCommand("Emergency_brake",1.0,1.0,Controlling->Loc);
+  return true; //za³atwione
+ }
+ if (AIControllFlag==AIdriver)
+  return false; //na razie reakcja na komendy nie jest odpowiednia dla pojazdu prowadzonego rêcznie
  if (NewCommand=="SetVelocity")
  {
   if (NewLocation)
@@ -949,7 +963,7 @@ void __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
    TrainNumber=floor(NewValue1); //i co potem ???
   OrderCheck(); //jeœli jazda poci¹gowa teraz, to wykonaæ niezbêdne operacje
  }
- else if (NewCommand.Pos("Timetable:")==1)
+ else if ((NewCommand.Pos("Timetable:")==1)||(NewCommand.Pos("Timetable=")==1))
  {//przypisanie nowego rozk³adu jazdy
   NewCommand.Delete(1,10); //zostanie nazwa pliku z rozk³adem
   TrainParams->NewName(NewCommand);
@@ -1043,11 +1057,8 @@ void __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
    OrderNext(Shunt); //a dalej manewry
   }
  }
- else if (NewCommand=="Emergency_brake") //wymuszenie zatrzymania
- {//Ra: no nadal nie jest zbyt piêknie
-  SetVelocity(0,0,reason);
-  Controlling->PutCommand("Emergency_brake",1.0,1.0,Controlling->Loc);
- }
+ else return false; //nierozpoznana - wys³aæ bezpoœrednio do pojazdu
+ return true; //komenda zosta³a przetworzona
 };
 
 const TDimension SignalDim={1,1,1};
@@ -1134,7 +1145,7 @@ bool __fastcall TController::UpdateSituation(double dt)
      ActualProximityDist=fProximityDist; //odleg³oœæ ujemna podana bezpoœrednio
    if (Controlling->CommandIn.Command!="")
     if (!Controlling->RunInternalCommand()) //rozpoznaj komende bo lokomotywa jej nie rozpoznaje
-     RecognizeCommand();
+     RecognizeCommand(); //samo czyta komendê wstawion¹ do pojazdu?
    if (Controlling->SecuritySystem.Status>1)
     if (!Controlling->SecuritySystemReset())
      if (TestFlag(Controlling->SecuritySystem.Status,s_ebrake)&&(Controlling->BrakeCtrlPos==0)&&(AccDesired>0.0))
@@ -1674,7 +1685,7 @@ void __fastcall TController::OrderCheck()
  else if (OrderList[OrderPos]==Disconnect)
   iVehicleCount=0; //odczepianie lokomotywy
  else if (OrderList[OrderPos]==Wait_for_orders)
-  OrderPos=0; //przeskok do zerowej pozycji
+  OrdersClear(); //czyszczenie rozkazów i przeskok do zerowej pozycji
 }
 
 void __fastcall TController::OrderNext(TOrders NewOrder)

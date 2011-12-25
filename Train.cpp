@@ -102,6 +102,7 @@ __fastcall TTrain::TTrain()
     pMechSittingPosition=vector3(0,0,0); //ABu: 180404
     LampkaUniversal3_st=false; //ABu: 030405
  dsbSlipAlarm=NULL;
+ dsbCouplerStretch=NULL;
 }
 
 __fastcall TTrain::~TTrain()
@@ -1773,15 +1774,15 @@ bool __fastcall TTrain::Update()
      dsbBufferClamp->SetVolume(-20);
     dsbBufferClamp->Play(0,0,0);
   }
-
-  if (TestFlag(DynamicObject->MoverParameters->SoundFlag,sound_couplerstretch)) // sprzegi sie rozciagaja
+  if (dsbCouplerStretch)
+   if (TestFlag(DynamicObject->MoverParameters->SoundFlag,sound_couplerstretch)) // sprzegi sie rozciagaja
    {
     if (TestFlag(DynamicObject->MoverParameters->SoundFlag,sound_loud))
      dsbCouplerStretch->SetVolume(DSBVOLUME_MAX);
     else
      dsbCouplerStretch->SetVolume(-20);
     dsbCouplerStretch->Play(0,0,0);
-  }
+   }
 
   if (DynamicObject->MoverParameters->SoundFlag==0)
    if (DynamicObject->MoverParameters->EventFlag)

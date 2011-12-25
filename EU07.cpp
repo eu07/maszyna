@@ -576,7 +576,7 @@ int WINAPI WinMain( HINSTANCE hInstance,     //instance
               str= Parser->GetNextSymbol().LowerCase();
               if (str==AnsiString("-s"))
                {
-                 str= Parser->GetNextSymbol().LowerCase();
+                 str=Parser->GetNextSymbol().LowerCase();
                  strcpy(Global::szSceneryFile,str.c_str());
                }
               else
