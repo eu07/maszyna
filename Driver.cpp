@@ -881,7 +881,7 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
   Controlling->PutCommand("Emergency_brake",1.0,1.0,Controlling->Loc);
   return true; //za³atwione
  }
- if (AIControllFlag==AIdriver)
+ if (AIControllFlag==Humandriver)
   return false; //na razie reakcja na komendy nie jest odpowiednia dla pojazdu prowadzonego rêcznie
  if (NewCommand=="SetVelocity")
  {
