@@ -59,14 +59,15 @@ Równie¿ niektóre funkcje dotycz¹ce sk³adów z DynObj.cpp.
 //7. przejscie na zestaw spokojny jesli wystepuje duzo poslizgow lub wybic nadmiarowego.
 //8. lagodne ruszanie (przedluzony czas reakcji na 2 pierwszych nastawnikach)
 //9. unikanie jazdy na oporach rozruchowych
-//10. logowanie fizyki
+//10. logowanie fizyki //Ra: nie przeniesione do C++
 //11. kasowanie czuwaka/SHP
 //12. procedury wspomagajace "patrzenie" na odlegle semafory
 //13. ulepszone procedury sterowania
 //14. zglaszanie problemow z dlugim staniem na sygnale S1
 //15. sterowanie EN57
-//16. zmiana kierunku
+//16. zmiana kierunku //Ra: z przesiadk¹ po ukrotnieniu
 //17. otwieranie/zamykanie drzwi
+//18. Ra: odczepianie z zahamowaniem i podczepianie
 
 //do zrobienia:
 //1. kierownik pociagu
@@ -1446,6 +1447,9 @@ bool __fastcall TController::UpdateSituation(double dt)
       if (TrainParams->CheckTrainLatency()<10.0)
        if (TrainParams->TTVmax>0.0)
         VelDesired=Min0R(VelDesired,TrainParams->TTVmax); //jesli nie spozniony to nie szybciej niz rozkladowa
+#if LOGVELOCITY
+      WriteLog("VelDesired="+AnsiString(VelDesired)+", VelActual="+AnsiString(VelActual));
+#endif
       AbsAccS=Controlling->AccS; //czy sie rozpedza czy hamuje
       if (Controlling->V<0.0) AbsAccS=-AbsAccS;
       else if (Controlling->V==0.0) AbsAccS=0.0;
@@ -1803,6 +1807,10 @@ AnsiString __fastcall TController::StopReasonText()
 };
 
 //----------------McZapkie: skanowanie semaforow:
+
+void __fastcall TController::Dostance(vector3 *p1,vector3 *n,vector3 *p2)
+{//Ra:obliczenie odleg³oœci punktu (p1) od p³aszczyzny o wektorze normalnym (n) przechodz¹cej przez (p2)
+};
 
 //pomocnicza funkcja sprawdzania czy do toru jest podpiety semafor
 bool __fastcall TController::CheckEvent(TEvent *e,bool prox)
@@ -2258,7 +2266,7 @@ void __fastcall TController::ScanEventTrack()
           WriteLog(edir);
 #endif
           //SetProximityVelocity(scandist,0,&sl); //staje 300m oe W4
-          SetProximityVelocity(scandist,scandist>100.0?30:0.3*scandist,&sl); //Ra: taka proteza
+          SetProximityVelocity(scandist,scandist>100.0?30:0.2*scandist,&sl); //Ra: taka proteza
          }
         }
         else //jeœli jest blisko, albo stoi
@@ -2322,8 +2330,9 @@ void __fastcall TController::ScanEventTrack()
 #endif
               eSignSkip=e; //wtedy uznajemy go za ignorowany przy poszukiwaniu nowego
               eSignLast=NULL; //¿eby jakiœ nowy by³ poszukiwany
-              iDrivigFlags|=moveStopCloser; //do nastêpnego W4 podjechaæ blisko
-              vmechmax=vtrackmax; //odjazd po zatrzymaniu - informacja dla dalszego kodu
+              iDrivigFlags|=moveStopCloser; //do nastêpnego W4 podjechaæ blisko (z doci¹ganiem)
+              //vmechmax=vtrackmax; //odjazd po zatrzymaniu - informacja dla dalszego kodu
+              vmechmax=-1; //odczytywanie prêdkoœci z toru ogranicza³o dalsz¹ jazdê 
               PutCommand("SetVelocity",vmechmax,vmechmax,&sl);
 #if LOGVELOCITY
               WriteLog(edir+"SetVelocity "+AnsiString(vtrackmax)+" "+AnsiString(vtrackmax));

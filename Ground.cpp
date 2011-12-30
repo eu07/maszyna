@@ -953,6 +953,7 @@ void __fastcall TGroundNode::RenderHidden()
    if (EvLaunch->Render())
     if ((EvLaunch->dRadius<0)||(mgn<EvLaunch->dRadius))
     {
+     WriteLog("Eventlauncher "+asName);
      if (Pressed(VK_SHIFT)&&(EvLaunch->Event2))
       Global::pGround->AddToQuery(EvLaunch->Event2,NULL);
      else
@@ -1422,8 +1423,8 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    break;
   case TP_TRACK :
    tmp->pTrack=new TTrack(tmp);
-   //if ((DebugModeFlag) && (tmp->asName!=AnsiString("")))
-   //  WriteLog(tmp->asName.c_str());
+   if ((DebugModeFlag) && (tmp->asName!=AnsiString("")))
+    WriteLog(tmp->asName.c_str());
    tmp->pTrack->Load(parser,pOrigin,tmp->asName); //w nazwie mo¿e byæ nazwa odcinka izolowanego
    //str=Parser->GetNextSymbol().LowerCase();
    //str=Parser->GetNextSymbol().LowerCase();
@@ -1840,6 +1841,27 @@ void __fastcall TGround::FirstInit()
  //ABu 160205: juz nie TODO :)
  GlobalTime=new TMTableTime(hh,mm,srh,srm,ssh,ssm); //McZapkie-300302: inicjacja czasu rozkladowego - TODO: czytac z trasy!
  WriteLog("InitGlobalTime OK");
+ //jeszcze ustawienie pogody, gdyby nie by³o w scenerii wpisów
+ glClearColor(Global::AtmoColor[0], Global::AtmoColor[1], Global::AtmoColor[2], 0.0);                  // Background Color
+ if (Global::fFogEnd>0)
+ {
+  glFogi(GL_FOG_MODE, GL_LINEAR);
+  glFogfv(GL_FOG_COLOR, Global::FogColor); // set fog color
+  glFogf(GL_FOG_START, Global::fFogStart); // fog start depth
+  glFogf(GL_FOG_END, Global::fFogEnd); // fog end depth
+  glEnable(GL_FOG);
+ }
+ else
+  glDisable(GL_FOG);
+ glDisable(GL_LIGHTING);
+ glLightfv(GL_LIGHT0,GL_POSITION,Global::lightPos);        //daylight position
+ glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);  //kolor wszechobceny
+ glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);  //kolor padaj¹cy
+ glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight); //kolor odbity
+ //musi byæ tutaj, bo wczeœniej nie mieliœmy wartoœci œwiat³a
+ if (Global::bDoubleAmbient) //Ra: wczeœniej by³o ambient dawane na obydwa œwiat³a
+  glLightModelfv(GL_LIGHT_MODEL_AMBIENT,Global::ambientDayLight);
+ glEnable(GL_LIGHTING);
  WriteLog("FirstInit done");
 };
 
@@ -2014,41 +2036,27 @@ bool __fastcall TGround::Init(AnsiString asFile)
             }
 
         }
-        else
-        if (str==AnsiString("atmo"))   //TODO: uporzadkowac gdzie maja byc parametry mgly!
-        {
-            WriteLog("Scenery atmo definition");
-            parser.getTokens(3);
-            parser >> Global::AtmoColor[0] >> Global::AtmoColor[1] >> Global::AtmoColor[2];
-            glClearColor (Global::AtmoColor[0], Global::AtmoColor[1], Global::AtmoColor[2], 0.0);                  // Background Color
-            parser.getTokens(2);
-            parser >> Global::fFogStart >> Global::fFogEnd;
-
-            if (Global::fFogStart==36)
-            Global::bTimeChange=true;
-
-            if (Global::fFogEnd>0)
-            {
-              parser.getTokens(3);
-              parser >> Global::FogColor[0] >> Global::FogColor[1] >> Global::FogColor[2];
-              glFogi(GL_FOG_MODE, GL_LINEAR);
-              glFogfv(GL_FOG_COLOR, Global::FogColor);				// Set Fog Color
-              glFogf(GL_FOG_START, Global::fFogStart);	        		// Fog Start Depth
-              glFogf(GL_FOG_END, Global::fFogEnd);         			// Fog End Depth
-              glEnable(GL_FOG);
-            }
-            else
-                glDisable(GL_FOG);
-            parser.getTokens();
-            parser >> token;
-            while (token.compare("endatmo")!=0)
-             {
-              parser.getTokens();
-              parser >> token;
-             }
+        else if (str==AnsiString("atmo"))   //TODO: uporzadkowac gdzie maja byc parametry mgly!
+        {//Ra: ustawienie parametrów OpenGL przeniesione do FirstInit
+         WriteLog("Scenery atmo definition");
+         parser.getTokens(3);
+         parser >> Global::AtmoColor[0] >> Global::AtmoColor[1] >> Global::AtmoColor[2];
+         parser.getTokens(2);
+         parser >> Global::fFogStart >> Global::fFogEnd;
+         if (Global::fFogEnd>0.0)
+         {//ostatnie 3 parametry s¹ opcjonalne
+           parser.getTokens(3);
+           parser >> Global::FogColor[0] >> Global::FogColor[1] >> Global::FogColor[2];
+         }
+         parser.getTokens();
+         parser >> token;
+         while (token.compare("endatmo")!=0)
+         {//a kolejne parametry s¹ pomijane
+          parser.getTokens();
+          parser >> token;
+         }
         }
-        else
-        if (str==AnsiString("time"))
+        else if (str==AnsiString("time"))
         {
            WriteLog("Scenery time definition");
            char temp_in[9];
@@ -2095,38 +2103,28 @@ bool __fastcall TGround::Init(AnsiString asFile)
         }
         else
         if (str==AnsiString("light"))
-        {
+        {//Ra: ustawianie œwiat³a przeniesione do FirstInit
          WriteLog("Scenery light definition");
-         glDisable(GL_LIGHTING);
          vector3 lp;
          parser.getTokens(); parser >> lp.x;
          parser.getTokens(); parser >> lp.y;
          parser.getTokens(); parser >> lp.z;
          lp=Normalize(lp);
-         Global::lightPos[0]=lp.x;
+         Global::lightPos[0]=lp.x; //daylight position
          Global::lightPos[1]=lp.y;
          Global::lightPos[2]=lp.z;
-         glLightfv(GL_LIGHT0,GL_POSITION,Global::lightPos);        //daylight position
-         parser.getTokens(); parser >> Global::ambientDayLight[0];
+         parser.getTokens(); parser >> Global::ambientDayLight[0]; //kolor wszechobceny
          parser.getTokens(); parser >> Global::ambientDayLight[1];
          parser.getTokens(); parser >> Global::ambientDayLight[2];
-         glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);  //kolor wszechobceny
 
-         parser.getTokens(); parser >> Global::diffuseDayLight[0];
+         parser.getTokens(); parser >> Global::diffuseDayLight[0]; //kolor padaj¹cy
          parser.getTokens(); parser >> Global::diffuseDayLight[1];
          parser.getTokens(); parser >> Global::diffuseDayLight[2];
-	 glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);  //kolor padaj¹cy
 
-         parser.getTokens(); parser >> Global::specularDayLight[0];
+         parser.getTokens(); parser >> Global::specularDayLight[0]; //kolor odbity
          parser.getTokens(); parser >> Global::specularDayLight[1];
          parser.getTokens(); parser >> Global::specularDayLight[2];
-  	 glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight); //kolor odbity
 
-         //musi byæ tutaj, bo wczeœniej nie mieliœmy wartoœci œwiat³a
-         if (Global::bDoubleAmbient) //Ra: wczeœniej by³o ambient dawane na obydwa œwiat³a
-          glLightModelfv(GL_LIGHT_MODEL_AMBIENT,Global::ambientDayLight);
-
-         glEnable(GL_LIGHTING);
          do
           {  parser.getTokens(); parser >> token;
           } while (token.compare("endlight")!=0);

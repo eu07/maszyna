@@ -56,7 +56,7 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asVersion="Compilation 2011-12-26, release 1.6.291.294."; //tutaj, bo wysy³any
+AnsiString Global::asVersion="Compilation 2011-12-30, release 1.6.292.295."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 double Global::fSunDeclination=0.0; //deklinacja S³oñca
@@ -76,9 +76,9 @@ double Global::pCameraRotation;
 double Global::pCameraRotationDeg;
 vector3 Global::pFreeCameraInit[10];
 vector3 Global::pFreeCameraInitAngle[10];
-double Global::fFogStart=1300;
+double Global::fFogStart=1700;
 double Global::fFogEnd=2000;
-GLfloat Global::AtmoColor[]={0.6f,0.7f,0.8f};
+GLfloat Global::AtmoColor[]={0.423f,0.702f,1.0f};
 GLfloat Global::FogColor[]={0.6f,0.7f,0.8f};
 GLfloat Global::ambientDayLight[] ={0.40f,0.40f,0.45f,1.0f}; //robocze
 GLfloat Global::diffuseDayLight[] ={0.55f,0.54f,0.50f,1.0f};
