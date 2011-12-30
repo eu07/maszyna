@@ -128,7 +128,7 @@ public:
  double VelDesired; //predkosc
 private:
  double VelforDriver; //predkosc dla manewrow
- double VelActual; //predkosc do której d¹zy
+ double VelActual; //predkosc ustawiana przez SetVelocity (zadawana semaforami) 
 public:
  double VelNext; //predkosc przy nastepnym obiekcie
 private:
@@ -208,6 +208,7 @@ private:
  AnsiString __fastcall Order2Str(TOrders Order);
  int __fastcall OrderDirectionChange(int newdir,Mover::TMoverParameters *Vehicle);
  void __fastcall Lights(int head,int rear);
+ void __fastcall Dostance(vector3 *p1,vector3 *n,vector3 *p2);
  //Ra: poni¿sze przenieœæ do modu³u AI:
  TEvent* eSignSkip; //miniêty sygna³ zezwalaj¹cy na jazdê, pomijany przy szukaniu
  AnsiString asNextStop; //nazwa nastêpnego punktu zatrzymania wg rozk³adu

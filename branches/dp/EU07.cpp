@@ -546,8 +546,6 @@ int WINAPI WinMain( HINSTANCE hInstance,     //instance
 {
  MSG msg; //windows message structure
  BOOL done=FALSE; //bool variable to exit loop
- //Form1= new TForm1(NULL);
- //Form1->Show();
  fullscreen=true;
  DecimalSeparator= '.';
 /* //Ra: tutaj to nie dzia³a - zwraca NULL

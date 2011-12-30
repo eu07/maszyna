@@ -141,7 +141,8 @@ bool __fastcall TEventLauncher::Render()
  bool bCond=false;
  if (iKey!=0)
  {
-  bCond=(Pressed(iKey)); //czy klawisz wciœniêty
+  if (Global::bActive) //tylko jeœli okno jest aktywne
+   bCond=(Pressed(iKey)); //czy klawisz wciœniêty
  }
  if (DeltaTime>0)
  {
