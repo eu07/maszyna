@@ -24,6 +24,7 @@ const int maxcab=2;
 
 // const double fCzuwakTime= 90.0f;
 const double fCzuwakBlink= 0.15f;
+const float fConverterPrzekaznik = 1.5f; //hunter-261211: do przekaznika nadmiarowego przetwornicy
                          //0.33f
 // const double fBuzzerTime= 5.0f;
 
@@ -132,6 +133,7 @@ public:
     TGauge ReleaserButtonGauge;
     TGauge AntiSlipButtonGauge;
     TGauge FuseButtonGauge;
+    TGauge ConverterFuseButtonGauge; //hunter-261211: przycisk odblokowania nadmiarowego przetwornic i ogrzewania
     TGauge StLinOffButtonGauge;
     TGauge RadioButtonGauge;
     TGauge UpperLightButtonGauge;
@@ -232,11 +234,13 @@ public:
     double fMechRoll;
     double fMechPitch;
 
-    PSound dsbNastawnik;
+    PSound dsbNastawnikJazdy;
+    PSound dsbNastawnikBocz; //hunter-081211
     PSound dsbRelay;
     PSound dsbPneumaticRelay;
     PSound dsbSwitch;
     PSound dsbPneumaticSwitch;    
+    PSound dsbReverserKey; //hunter-121211
 
     PSound dsbCouplerAttach;
     PSound dsbCouplerDetach;
@@ -251,7 +255,7 @@ public:
     PSound dsbPantDown;
 
     PSound dsbWejscie_na_bezoporow;
-    PSound dsbWescie_na_drugi_uklad;
+    PSound dsbWejscie_na_drugi_uklad; //hunter-081211: poprawka literowki
 
 
 //    PSound dsbHiss1;
@@ -284,6 +288,10 @@ private:
 //    TSubModel *smCzuwakShpOff;
 //    double fCzuwakTimer;
     double fBlinkTimer;
+    float fConverterTimer;  //hunter-261211: dla przekaznika
+    float fMainRelayTimer;  //hunter-141211: zalaczanie WSa z opoznieniem
+    int CAflag; //hunter-131211: dla osobnego zbijania CA i SHP
+
 //    double fShpTimer;
 //    double fDblClickTimer;
     //ABu: Przeniesione do public. - Wiem, ze to nieladnie...

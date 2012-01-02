@@ -524,6 +524,7 @@ public:
 	double LastRelayTime;
 	bool AutoRelayFlag;
 	bool FuseFlag;
+	bool ConvOvldFlag;
 	bool StLinFlag;
 	bool ResistorsFlag;
 	double RventRot;

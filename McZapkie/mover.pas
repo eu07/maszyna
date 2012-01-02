@@ -587,6 +587,7 @@ TYPE
                 LastRelayTime: real;     {czas ostatniego przelaczania stycznikow}
                 AutoRelayFlag: boolean;  {mozna zmieniac jesli AutoRelayType=2}
                 FuseFlag: boolean;       {!o bezpiecznik nadmiarowy}
+                ConvOvldFlag: boolean;              {!  nadmiarowy przetwornicy i ogrzewania}
                 StLinFlag: boolean;       {!o styczniki liniowe}
                 ResistorsFlag: boolean;  {!o jazda rezystorowa}
                 RventRot: real;          {!s obroty wentylatorow rozruchowych}
@@ -1483,7 +1484,7 @@ begin
  MainSwitch:=False; //Ra: przeniesione z koñca
   if ((Mains<>State) and (MainCtrlPosNo>0)) then
    begin
-    if (State=False) or ({(MainCtrlPos=0) and} (ScndCtrlPos=0) and (LastSwitchingTime>CtrlDelay) and not TestFlag(DamageFlag,dtrain_out)) then
+    if (State=False) or ({(MainCtrlPos=0) and} (ScndCtrlPos=0) and (ConvOvldFlag=false) and (LastSwitchingTime>CtrlDelay) and not TestFlag(DamageFlag,dtrain_out)) then
      begin
        if Mains then //jeœli by³ za³¹czony
         SendCtrlToNext('MainSwitch',ord(State),CabNo); //wys³anie wy³¹czenia do pozosta³ych?
@@ -1974,7 +1975,8 @@ end;
 function TMoverParameters.IncBrakePress(var brake:real;PressLimit,dp:real):boolean;
 begin
 //  if (DynamicBrakeType<>dbrake_switch) and (DynamicBrakeType<>dbrake_none) and ((BrakePress>0.2) or (PipePress<0.37{(LowPipePress+0.05)})) then
-    if (DynamicBrakeType<>dbrake_switch) and (DynamicBrakeType<>dbrake_none) and (BrakePress>0.2) then //yB radzi nie sprawdzaæ ciœnienia w przewodzie
+    if (DynamicBrakeType<>dbrake_switch) and (DynamicBrakeType<>dbrake_none) and (BrakePress>0.2) and (TrainType<>dt_EZT) then //yB radzi nie sprawdzaæ ciœnienia w przewodzie
+    //hunter-301211: dla EN57 silnikow nie odlaczamy
      begin
        DynamicBrakeFlag:=True;                 {uruchamianie hamulca ED albo odlaczanie silnikow}
        if (DynamicBrakeType=dbrake_automatic) and (abs(Im)>60) then            {nie napelniaj wiecej, jak na EP09}
@@ -3093,7 +3095,7 @@ begin
     MainCtrlActualPos:=0;
    end
   else
-  if (not Mains) or (FuseFlag) then
+  if (not Mains) or (FuseFlag) or (StLinFlag) then   //hunter-111211: wylacznik cisnieniowy
    begin
      AutoRelayCheck:=False;
      MainCtrlActualPos:=0;
@@ -3155,17 +3157,23 @@ begin
              if Rlist[MainCtrlActualPos].Relay<MainCtrlPos then
               begin
                 inc(MainCtrlActualPos);
+                //---------
+                //hunter-111211: poprawki
                 if MainCtrlActualPos>0 then
-                 if Rlist[MainCtrlActualPos].R=0 then  {dzwieki przechodzenia na bezoporowa}
+                 if (Rlist[MainCtrlActualPos].R=0) and (not (MainCtrlActualPos=MainCtrlPosNo)) then  //wejscie na bezoporowa
                   begin
                    SetFlag(SoundFlag,sound_manyrelay); SetFlag(SoundFlag,sound_loud);
+                  end
+                 else if (Rlist[MainCtrlActualPos].R>0) and (Rlist[MainCtrlActualPos-1].R=0) then //wejscie na drugi uklad
+                  begin
+                   SetFlag(SoundFlag,sound_manyrelay);
                   end;
               end
              else if Rlist[MainCtrlActualPos].Relay>MainCtrlPos then
               begin
                 dec(MainCtrlActualPos);
-                if MainCtrlActualPos>0 then
-                 if Rlist[MainCtrlActualPos+1].R=0 then  {dzwieki schodzenia z bezoporowej}
+                if MainCtrlActualPos>0 then  //hunter-111211: poprawki
+                 if Rlist[MainCtrlActualPos].R=0 then  {dzwieki schodzenia z bezoporowej}
                   begin
                    SetFlag(SoundFlag,sound_manyrelay);
                   end;
@@ -4987,6 +4995,7 @@ begin
   SlippingWheels:=False;
   SandDose:=False;
   FuseFlag:=False;
+  ConvOvldFlag:=false;   //hunter-251211
   StLinFlag:=False;
   ResistorsFlag:=False;
   Rventrot:=0;
