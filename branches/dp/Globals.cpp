@@ -140,7 +140,7 @@ bool Global::bRenderAlpha=true; //Ra: wywali³am tê flagê
 bool Global::bnewAirCouplers=true;
 bool Global::bDoubleAmbient=true; //podwójna jasnoœæ ambient
 double Global::fSunSpeed=1.0; //prêdkoœæ ruchu S³oñca, zmienna do testów
-
+bool Global::bHideConsole=false; //hunter-271211: ukrywanie konsoli
 
 /* Ra: trzeba by przerobiæ na cParser, ¿eby to dzia³a³o w scenerii
 void __fastcall Global::ParseConfig(TQueryParserComp *Parser)
@@ -326,6 +326,8 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
          iSlowMotionMask=Parser->GetNextSymbol().ToIntDef(-1); //domyœlnie -1
         else if (str==AnsiString("modifytga")) //czy korygowaæ pliki TGA dla szybszego wczytywania
          iModifyTGA=Parser->GetNextSymbol().ToIntDef(0); //domyœlnie 0
+        else if (str==AnsiString("hideconsole")) //hunter-271211: ukrywanie konsoli
+         bHideConsole=(Parser->GetNextSymbol().LowerCase()==AnsiString("yes"));
     }
  //na koniec trochê zale¿noœci
  if (!bLoadTraction)

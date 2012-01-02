@@ -58,7 +58,8 @@ void __fastcall TAdvancedSound::Load(TQueryParserComp *Parser, vector3 pPosition
 
 void __fastcall TAdvancedSound::TurnOn(bool ListenerInside, vector3 NewPosition)
 {
-    if ((State==ss_Off) && (SoundStart.AM>0))
+    //hunter-311211: nie trzeba czekac na ponowne odtworzenie dzwieku, az sie wylaczy
+    if ((State==ss_Off || State==ss_ShuttingDown) && (SoundStart.AM>0))
     {
         SoundStart.ResetPosition();
         SoundCommencing.ResetPosition();
@@ -88,6 +89,7 @@ void __fastcall TAdvancedSound::Update(bool ListenerInside, vector3 NewPosition)
     if ((State==ss_Commencing)  && (SoundCommencing.AM>0))
     {
 //        SoundCommencing->SetFrequency();
+        SoundShut.Stop(); //hunter-311211
         SoundCommencing.Play(1,DSBPLAY_LOOPING,ListenerInside,NewPosition);
     }
     else
@@ -125,6 +127,7 @@ void __fastcall TAdvancedSound::UpdateAF(double A, double F, bool ListenerInside
 {   //update, ale z amplituda i czestotliwoscia
     if ((State==ss_Commencing)  && (SoundCommencing.AM>0))
     {
+        SoundShut.Stop(); //hunter-311211
         SoundCommencing.Play(A,DSBPLAY_LOOPING,ListenerInside,NewPosition);
     }
     else

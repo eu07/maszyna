@@ -181,32 +181,48 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       {
           if (DynamicObject->MoverParameters->IncMainCtrl(2))
           {
-              dsbNastawnik->SetCurrentPosition(0);
-              dsbNastawnik->Play(0,0,0);
+              dsbNastawnikJazdy->SetCurrentPosition(0);
+              dsbNastawnikJazdy->Play(0,0,0);
           }
       }
       else
       if (cKey==Global::Keys[k_DecMainCtrlFAST])
           if (DynamicObject->MoverParameters->DecMainCtrl(2))
           {
-              dsbNastawnik->SetCurrentPosition(0);
-              dsbNastawnik->Play(0,0,0);
+              dsbNastawnikJazdy->SetCurrentPosition(0);
+              dsbNastawnikJazdy->Play(0,0,0);
           }
        else;
       else
       if (cKey==Global::Keys[k_IncScndCtrlFAST])
           if (DynamicObject->MoverParameters->IncScndCtrl(2))
           {
-              dsbNastawnik->SetCurrentPosition(0);
-              dsbNastawnik->Play(0,0,0);
+           if (dsbNastawnikBocz) //hunter-081211
+             {
+              dsbNastawnikBocz->SetCurrentPosition(0);
+              dsbNastawnikBocz->Play(0,0,0);
+             }
+           else if (!dsbNastawnikBocz)
+             {
+              dsbNastawnikJazdy->SetCurrentPosition(0);
+              dsbNastawnikJazdy->Play(0,0,0);
+             }
           }
        else;
       else
       if (cKey==Global::Keys[k_DecScndCtrlFAST])
           if (DynamicObject->MoverParameters->DecScndCtrl(2))
           {
-              dsbNastawnik->SetCurrentPosition(0);
-              dsbNastawnik->Play(0,0,0);
+           if (dsbNastawnikBocz) //hunter-081211
+             {
+              dsbNastawnikBocz->SetCurrentPosition(0);
+              dsbNastawnikBocz->Play(0,0,0);
+             }
+           else if (!dsbNastawnikBocz)
+             {
+              dsbNastawnikJazdy->SetCurrentPosition(0);
+              dsbNastawnikJazdy->Play(0,0,0);
+             }
           }
        else;
       else
@@ -218,7 +234,9 @@ void __fastcall TTrain::OnKeyPress(int cKey)
           if (DynamicObject->MoverParameters->DecLocalBrakeLevel(2));
           else;
   // McZapkie-240302 - wlaczanie glownego obwodu klawiszem M+shift
-      if (cKey==Global::Keys[k_Main])
+      //-----------
+      //hunter-141211: wyl. szybki zalaczony przeniesiony do TTrain::Update()
+      /* if (cKey==Global::Keys[k_Main])
       {
          MainOnButtonGauge.PutValue(1);
          if (DynamicObject->MoverParameters->MainSwitch(true))
@@ -229,7 +247,19 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                dsbNastawnik->Play(0,0,0);
            }
       }
+      else */
+
+      if (cKey==Global::Keys[k_Main])
+      {
+           if (fabs(MainOnButtonGauge.GetValue())<0.001)
+           {
+               dsbSwitch->SetVolume(DSBVOLUME_MAX);
+               dsbSwitch->Play(0,0,0);
+           }
+      }
       else
+      //-----------
+
       if (cKey==Global::Keys[k_BrakeProfile])   //McZapkie-240302-B: przelacznik opoznienia hamowania
       {//yB://ABu: male poprawki, zeby bylo mozna ustawic dowolny wagon
               int CouplNr=-2;
@@ -261,7 +291,9 @@ void __fastcall TTrain::OnKeyPress(int cKey)
               }
       }
       else
-      if (cKey==Global::Keys[k_Converter])   //NBMX 14-09-2003: przetwornica wl
+      //-----------
+      //hunter-261211: przetwornica i sprzezarka przeniesione do TTrain::Update()
+      /* if (cKey==Global::Keys[k_Converter])   //NBMX 14-09-2003: przetwornica wl
       {
         if ((DynamicObject->MoverParameters->PantFrontVolt) || (DynamicObject->MoverParameters->PantRearVolt) || (DynamicObject->MoverParameters->EnginePowerSource.SourceType!=CurrentCollector) || (!Global::bLiveTraction))
            if (DynamicObject->MoverParameters->ConverterSwitch(true))
@@ -280,7 +312,28 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                dsbSwitch->Play(0,0,0);
            }
       }
+      else */
+
+      if (cKey==Global::Keys[k_Converter])
+       {
+        if (ConverterButtonGauge.GetValue()==0)
+         {
+               dsbSwitch->SetVolume(DSBVOLUME_MAX);
+               dsbSwitch->Play(0,0,0);
+         }
+       }
       else
+      if ((cKey==Global::Keys[k_Compressor])&&(DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor))
+       {
+        if (CompressorButtonGauge.GetValue()==0)
+         {
+               dsbSwitch->SetVolume(DSBVOLUME_MAX);
+               dsbSwitch->Play(0,0,0);
+         }
+       }
+      else
+      //-----------
+
       if (cKey==Global::Keys[k_SmallCompressor])   //Winger 160404: mala sprezarka wl
       {
 //           if (DynamicObject->MoverParameters->CompressorSwitch(true))
@@ -361,6 +414,18 @@ void __fastcall TTrain::OnKeyPress(int cKey)
            }
       }
       else
+      //-----------
+      //hunter-131211: dzwiek dla przelacznika universala podniesionego
+      if (cKey==Global::Keys[k_Univ3])
+      {
+           if (Universal3ButtonGauge.GetValue()==0)
+           {
+               dsbSwitch->SetVolume(DSBVOLUME_MAX);
+               dsbSwitch->Play(0,0,0);
+           }
+      }
+      else
+      //-----------
       if (cKey==Global::Keys[k_PantFrontUp])   //Winger 160204: podn. przedn. pantografu
       {
            DynamicObject->MoverParameters->PantFrontSP=false;
@@ -584,8 +649,8 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       {
           if (DynamicObject->MoverParameters->IncMainCtrl(1))
           {
-              dsbNastawnik->SetCurrentPosition(0);
-              dsbNastawnik->Play(0,0,0);
+              dsbNastawnikJazdy->SetCurrentPosition(0);
+              dsbNastawnikJazdy->Play(0,0,0);
           }
          else;
       }
@@ -599,8 +664,8 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       if (cKey==Global::Keys[k_DecMainCtrl])
           if (DynamicObject->MoverParameters->DecMainCtrl(1))
           {
-              dsbNastawnik->SetCurrentPosition(0);
-              dsbNastawnik->Play(0,0,0);
+              dsbNastawnikJazdy->SetCurrentPosition(0);
+              dsbNastawnikJazdy->Play(0,0,0);
           }
          else;
       else
@@ -616,8 +681,16 @@ void __fastcall TTrain::OnKeyPress(int cKey)
           else
           if (DynamicObject->MoverParameters->IncScndCtrl(1))
           {
-              dsbNastawnik->SetCurrentPosition(0);
-              dsbNastawnik->Play(0,0,0);
+           if (dsbNastawnikBocz) //hunter-081211
+             {
+              dsbNastawnikBocz->SetCurrentPosition(0);
+              dsbNastawnikBocz->Play(0,0,0);
+             }
+           else if (!dsbNastawnikBocz)
+             {
+              dsbNastawnikJazdy->SetCurrentPosition(0);
+              dsbNastawnikJazdy->Play(0,0,0);
+             }
           }
          else;
       else
@@ -634,8 +707,16 @@ void __fastcall TTrain::OnKeyPress(int cKey)
           if (DynamicObject->MoverParameters->DecScndCtrl(1))
   //        if (MoverParameters->ScndCtrlPos>0)
           {
-              dsbNastawnik->SetCurrentPosition(0);
-              dsbNastawnik->Play(0,0,0);
+           if (dsbNastawnikBocz) //hunter-081211
+             {
+              dsbNastawnikBocz->SetCurrentPosition(0);
+              dsbNastawnikBocz->Play(0,0,0);
+             }
+           else if (!dsbNastawnikBocz)
+             {
+              dsbNastawnikJazdy->SetCurrentPosition(0);
+              dsbNastawnikJazdy->Play(0,0,0);
+             }
           }
          else;
       else
@@ -798,7 +879,9 @@ void __fastcall TTrain::OnKeyPress(int cKey)
           while (DynamicObject->MoverParameters->BrakeCtrlPos<-1 && DynamicObject->MoverParameters->IncBrakeLevel());
       }
       else
-      if (cKey==Global::Keys[k_Czuwak])
+      //---------------
+      //hunter-131211: zbicie czuwaka przeniesione do TTrain::Update()
+      /* if (cKey==Global::Keys[k_Czuwak]))
       {
 //          dsbBuzzer->Stop();
           if (DynamicObject->MoverParameters->SecuritySystemReset())
@@ -809,12 +892,24 @@ void __fastcall TTrain::OnKeyPress(int cKey)
             }
           SecurityResetButtonGauge.PutValue(1);
       }
+      else */
+
+      if (cKey==Global::Keys[k_Czuwak])
+      {
+       if (fabs(SecurityResetButtonGauge.GetValue())<0.001)
+        {
+               dsbSwitch->SetVolume(DSBVOLUME_MAX);
+               dsbSwitch->Play(0,0,0);
+        }
+      }
       else
+      //---------------
+      //hunter-221211: hamulec przeciwposlizgowy przeniesiony do TTrain::Update()
       if (cKey==Global::Keys[k_AntiSlipping])
       {
         if (DynamicObject->MoverParameters->BrakeSystem!=ElectroPneumatic)
          {
-          if (DynamicObject->MoverParameters->AntiSlippingButton())
+          //if (DynamicObject->MoverParameters->AntiSlippingButton())
            if (fabs(AntiSlipButtonGauge.GetValue())<0.001)
             {
               //Dlaczego bylo '-50'???
@@ -822,15 +917,25 @@ void __fastcall TTrain::OnKeyPress(int cKey)
               dsbSwitch->SetVolume(DSBVOLUME_MAX);
               dsbSwitch->Play(0,0,0);
             }
-          AntiSlipButtonGauge.PutValue(1);
+          //AntiSlipButtonGauge.PutValue(1);
          }
-//        else DynamicObject->MoverParameters->SwitchEPBrake(1);
       }
       else
+      //---------------
+
       if (cKey==Global::Keys[k_Fuse])
       {
-          FuseButtonGauge.PutValue(1);
-          DynamicObject->MoverParameters->FuseOn();
+       if (GetAsyncKeyState(VK_CONTROL)<0)  //z controlem
+        {
+         ConverterFuseButtonGauge.PutValue(1);   //hunter-261211
+         if ((DynamicObject->MoverParameters->Mains==false)&&(ConverterButtonGauge.GetValue()==0))
+          DynamicObject->MoverParameters->ConvOvldFlag=false;
+        }
+       else
+        {
+         FuseButtonGauge.PutValue(1);
+         DynamicObject->MoverParameters->FuseOn();
+        }
       }
       else
   // McZapkie-240302 - zmiana kierunku: 'd' do przodu, 'r' do tylu
@@ -838,8 +943,21 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       {
         if (DynamicObject->MoverParameters->DirectionForward())
           {
-            dsbSwitch->SetVolume(DSBVOLUME_MAX);
-            dsbSwitch->Play(0,0,0);
+           //------------
+           //hunter-121211: dzwiek kierunkowego
+            if (dsbReverserKey)
+             {
+              dsbReverserKey->SetCurrentPosition(0);
+              dsbReverserKey->SetVolume(DSBVOLUME_MAX);
+              dsbReverserKey->Play(0,0,0);
+             }
+            else if (!dsbReverserKey)
+             {
+              dsbSwitch->SetVolume(DSBVOLUME_MAX);
+              dsbSwitch->Play(0,0,0);
+             }
+           //------------
+
           }
       }
       else
@@ -847,21 +965,36 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       {
         if (DynamicObject->MoverParameters->DirectionBackward())
           {
-            dsbSwitch->SetVolume(DSBVOLUME_MAX);
-            dsbSwitch->Play(0,0,0);
+           //------------
+           //hunter-121211: dzwiek kierunkowego
+            if (dsbReverserKey)
+             {
+              dsbReverserKey->SetCurrentPosition(0);
+              dsbReverserKey->SetVolume(DSBVOLUME_MAX);
+              dsbReverserKey->Play(0,0,0);
+             }
+            else if (!dsbReverserKey)
+             {
+              dsbSwitch->SetVolume(DSBVOLUME_MAX);
+              dsbSwitch->Play(0,0,0);
+             }
+           //------------
           }
       }
       else
   // McZapkie-240302 - wylaczanie glownego obwodu
+      //-----------
+      //hunter-141211: wyl. szybki wylaczony przeniesiony do TTrain::Update()
       if (cKey==Global::Keys[k_Main])
       {
-        MainOffButtonGauge.PutValue(1);
-        if (DynamicObject->MoverParameters->MainSwitch(false))
+           if (fabs(MainOffButtonGauge.GetValue())<0.001)
            {
-              dsbNastawnik->Play(0,0,0);
+               dsbSwitch->SetVolume(DSBVOLUME_MAX);
+               dsbSwitch->Play(0,0,0);
            }
       }
       else
+      //-----------
 //      if (cKey==Global::Keys[k_Active])   //yB 300407: przelacznik rozrzadu
 //      {
 //        if (DynamicObject->MoverParameters->CabDeactivisation())
@@ -919,24 +1052,27 @@ void __fastcall TTrain::OnKeyPress(int cKey)
 
       }
       else
-      if (cKey==Global::Keys[k_Converter])       //NBMX wyl przetwornicy
-      {
-           if (DynamicObject->MoverParameters->ConverterSwitch(false))
-           {
-            dsbSwitch->SetVolume(DSBVOLUME_MAX);
-            dsbSwitch->Play(0,0,0);;
-           }
-      }
+      //-----------
+      //hunter-261211: przetwornica i sprzezarka przeniesione do TTrain::Update()
+      if (cKey==Global::Keys[k_Converter])
+       {
+        if (ConverterButtonGauge.GetValue()!=0)
+         {
+               dsbSwitch->SetVolume(DSBVOLUME_MAX);
+               dsbSwitch->Play(0,0,0);
+         }
+       }
       else
-      if (cKey==Global::Keys[k_Compressor])       //NBMX wyl sprezarka
-      {
-           if (DynamicObject->MoverParameters->CompressorSwitch(false))
-           {
-            dsbSwitch->SetVolume(DSBVOLUME_MAX);
-            dsbSwitch->Play(0,0,0);;
-           }
-      }
+      if ((cKey==Global::Keys[k_Compressor])&&(DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor))
+       {
+        if (CompressorButtonGauge.GetValue()!=0)
+         {
+               dsbSwitch->SetVolume(DSBVOLUME_MAX);
+               dsbSwitch->Play(0,0,0);
+         }
+       }
       else
+      //-----------
       if (cKey==Global::Keys[k_Releaser])   //odluzniacz
       {
        if (!FreeFlyModeFlag)
@@ -1010,6 +1146,8 @@ void __fastcall TTrain::OnKeyPress(int cKey)
            }
       }
       else
+      //hunter-201211: piasecznica poprawiona oraz przeniesiona do TTrain::Update()
+      /*
       if (cKey==Global::Keys[k_Sand])
       {
           if (DynamicObject->MoverParameters->SandDoseOn())
@@ -1020,6 +1158,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
             }
       }
       else
+      */
       if (cKey==Global::Keys[k_CabForward])
       {
           DynamicObject->MoverParameters->CabDeactivisation();
@@ -1183,6 +1322,18 @@ void __fastcall TTrain::OnKeyPress(int cKey)
            }
       }
       else
+      //-----------
+      //hunter-131211: dzwiek dla przelacznika universala
+      if (cKey==Global::Keys[k_Univ3])
+      {
+           if (Universal3ButtonGauge.GetValue()!=0)
+           {
+               dsbSwitch->SetVolume(DSBVOLUME_MAX);
+               dsbSwitch->Play(0,0,0);
+           }
+      }
+      else
+      //-----------
       if (cKey==Global::Keys[k_PantFrontDown])   //Winger 160204: opuszczanie prz. patyka
       {
            if (DynamicObject->MoverParameters->PantFront(false))
@@ -1583,6 +1734,28 @@ bool __fastcall TTrain::Update()
    iSekunda=floor(GlobalTime->mr);
   }
 */
+
+  //------------------
+  //hunter-261211: nadmiarowy przetwornicy i ogrzewania
+  if (DynamicObject->MoverParameters->ConverterFlag==true)
+   {
+    fConverterTimer+=dt;
+     if ((DynamicObject->MoverParameters->CompressorFlag==true)&&(DynamicObject->MoverParameters->CompressorPower!=0)&&(DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor))
+      {
+       if (fConverterTimer<fConverterPrzekaznik)
+        {
+         DynamicObject->MoverParameters->ConvOvldFlag=true;
+         DynamicObject->MoverParameters->MainSwitch(false);
+        }
+       else if (fConverterTimer>=fConverterPrzekaznik)
+        DynamicObject->MoverParameters->CompressorSwitch(true);
+      }
+   }
+  else
+   fConverterTimer=0;
+  //------------------
+
+
   double vol=0;
 //    int freq=1;
    double dfreq;
@@ -1762,7 +1935,7 @@ bool __fastcall TTrain::Update()
         if (TestFlag(DynamicObject->MoverParameters->SoundFlag,sound_loud))
          dsbWejscie_na_bezoporow->Play(0,0,0);
         else
-         dsbWescie_na_drugi_uklad->Play(0,0,0);
+         dsbWejscie_na_drugi_uklad->Play(0,0,0);
       }
   }
   // potem dorobic bufory, sprzegi jako RealSound.
@@ -2198,6 +2371,19 @@ else
         if (DynamicObject->MoverParameters->BrakePress < 0.1)
            btLampkaStyczn.TurnOn();      //mozna prowadzic rozruch
 
+        //hunter-111211: wylacznik cisnieniowy
+        if (DynamicObject->MoverParameters->TrainType!=dt_EZT)
+         if (((DynamicObject->MoverParameters->BrakePress > 0.2) || ( DynamicObject->MoverParameters->PipePress < 0.36 )) && ( DynamicObject->MoverParameters->MainCtrlPos != 0 ))
+          DynamicObject->MoverParameters->StLinFlag=true;
+        //-------
+
+        //hunter-121211: lampka zanikowo-pradowego wentylatorow:
+        if ((DynamicObject->MoverParameters->RventRot<5.0) && (DynamicObject->MoverParameters->ResistorsFlagCheck()))
+          btLampkaNadmWent.TurnOn();
+        else
+          btLampkaNadmWent.TurnOff();
+        //-------
+
         if ( DynamicObject->MoverParameters->FuseFlagCheck() )
           btLampkaNadmSil.TurnOn();
         else
@@ -2274,6 +2460,27 @@ else
         if (tmp->MoverParameters->BrakePress < 0.1)
            btLampkaStycznB.TurnOn();      //mozna prowadzic rozruch
 
+        //-----------------
+        //hunter-271211: brak jazdy w drugim czlonie, gdy w pierwszym tez nie ma (i odwrotnie)
+        if (tmp->MoverParameters->TrainType!=dt_EZT)
+         if (((tmp->MoverParameters->BrakePress > 0.2) || ( tmp->MoverParameters->PipePress < 0.36 )) && ( tmp->MoverParameters->MainCtrlPos != 0 ))
+          {
+           tmp->MoverParameters->MainCtrlActualPos=0; //inaczej StLinFlag nie zmienia sie na false w drugim pojezdzie
+           //tmp->MoverParameters->StLinFlag=true;
+           DynamicObject->MoverParameters->StLinFlag=true;
+          }
+        if (DynamicObject->MoverParameters->StLinFlag==true)
+         tmp->MoverParameters->MainCtrlActualPos=0; //tmp->MoverParameters->StLinFlag=true;
+
+        //-----------------
+        //hunter-271211: sygnalizacja poslizgu w pierwszym pojezdzie, gdy wystapi w drugim
+        if  (tmp->MoverParameters->SlippingWheels)
+         btLampkaPoslizg.TurnOn();
+        else
+         btLampkaPoslizg.TurnOff();
+        //-----------------
+
+
         if ( tmp->MoverParameters->CompressorFlag==true ) //mutopsitka dziala
          { btLampkaSprezarkaB.TurnOn(); }
         else
@@ -2288,11 +2495,12 @@ else
         btLampkaSprezarkaB.TurnOff();
       }
 
-   if (tmp)
-    if (tmp->MoverParameters->ConverterFlag==true)
-        btLampkaNadmPrzetwB.TurnOff();
-    else
-        btLampkaNadmPrzetwB.TurnOn();
+   //hunter-261211: jakis stary kod (i niezgodny z prawda), zahaszowalem
+   //if (tmp)
+   // if (tmp->MoverParameters->ConverterFlag==true)
+   //     btLampkaNadmPrzetwB.TurnOff();
+   // else
+   //     btLampkaNadmPrzetwB.TurnOn();
 
 } //**************************************************** */
 
@@ -2401,14 +2609,9 @@ else
      }
 
 //NBMX dzwignia sprezarki
-    if (CompressorButtonGauge.SubModel)
-     {
-     if (DynamicObject->MoverParameters->CompressorAllow)
-        CompressorButtonGauge.PutValue(1);
-     else
-        CompressorButtonGauge.PutValue(0);
+//NBMX dzwignia sprezarki
+    if (CompressorButtonGauge.SubModel)  //hunter-261211: poprawka
       CompressorButtonGauge.Update();
-     }
     if (MainButtonGauge.SubModel)
        MainButtonGauge.Update();
     if (RadioButtonGauge.SubModel)
@@ -2432,7 +2635,7 @@ else
      }
 
      //---------
-     //hunter-101212: poprawka na zle obracajace sie przelaczniki
+     //hunter-101211: poprawka na zle obracajace sie przelaczniki
      /*
      if (((DynamicObject->iLights[0]&1)==1)
       ||((DynamicObject->iLights[1]&1)==1))
@@ -2581,10 +2784,19 @@ else
     TrainHeatingButtonGauge.Update();
     }
 
-    if (DynamicObject->MoverParameters->ConverterFlag==true)
-        btLampkaNadmPrzetw.TurnOff();
+    //----------
+    //hunter-261211: jakis stary kod (i niezgodny z prawda),
+    //zahaszowalem i poprawilem
+    //if (DynamicObject->MoverParameters->ConverterFlag==true)
+    //    btLampkaNadmPrzetw.TurnOff();
+    //else
+    //    btLampkaNadmPrzetw.TurnOn();
+    if (DynamicObject->MoverParameters->ConvOvldFlag==true)
+     btLampkaNadmPrzetw.TurnOn();
     else
-        btLampkaNadmPrzetw.TurnOn();
+     btLampkaNadmPrzetw.TurnOff();
+    //----------
+
 
 //McZapkie-141102: SHP i czuwak, TODO: sygnalizacja kabinowa
     if (DynamicObject->MoverParameters->SecuritySystem.Status>0)
@@ -2631,6 +2843,8 @@ else
          dsbBuzzer->Stop();
      }
 
+    //******************************************
+    //przelaczniki
 
     if ( Pressed(Global::Keys[k_Horn]) )
      {
@@ -2661,6 +2875,197 @@ else
      {
         SetFlag(DynamicObject->MoverParameters->WarningSignal,2);
      }
+
+     //----------------
+     //hunter-141211: wyl. szybki zalaczony i wylaczony przeniesiony z OnKeyPress()
+     if ( Pressed(VK_SHIFT)&&Pressed(Global::Keys[k_Main]) )
+     {
+          fMainRelayTimer+=dt;
+          MainOnButtonGauge.PutValue(1);
+          DynamicObject->MoverParameters->ConverterSwitch(false);
+          if (fMainRelayTimer>DynamicObject->MoverParameters->InitialCtrlDelay) //wlaczanie WSa z opoznieniem
+            if (DynamicObject->MoverParameters->MainSwitch(true))
+            {
+              if (DynamicObject->MoverParameters->MainCtrlPos!=0) //zabezpieczenie, by po wrzuceniu pozycji przed wlaczonym
+               DynamicObject->MoverParameters->StLinFlag=true; //WSem nie wrzucilo na ta pozycje po jego zalaczeniu
+
+              if (DynamicObject->MoverParameters->EngineType==DieselEngine)
+               dsbDieselIgnition->Play(0,0,0);
+           }
+     }
+     else
+     {
+          if (ConverterButtonGauge.GetValue()!=0)    //po puszczeniu przycisku od WSa odpalanie potwora
+           DynamicObject->MoverParameters->ConverterSwitch(true);
+
+          fMainRelayTimer=0;
+          MainOnButtonGauge.UpdateValue(0);
+     }
+
+     //---
+
+     if ( !Pressed(VK_SHIFT)&&Pressed(Global::Keys[k_Main]) )
+     {
+          MainOffButtonGauge.PutValue(1);
+          if (DynamicObject->MoverParameters->MainSwitch(false))
+           dsbRelay->Play(0,0,0);
+     }
+     else
+     {
+          MainOffButtonGauge.UpdateValue(0);
+     }
+
+     /* if (cKey==Global::Keys[k_Main])     //z shiftem
+      {
+         MainOnButtonGauge.PutValue(1);
+         if (DynamicObject->MoverParameters->MainSwitch(true))
+           {
+              if (DynamicObject->MoverParameters->MainCtrlPos!=0) //hunter-131211: takie zabezpieczenie
+               DynamicObject->MoverParameters->StLinFlag=true;
+
+              if (DynamicObject->MoverParameters->EngineType==DieselEngine)
+               dsbDieselIgnition->Play(0,0,0);
+              else
+               dsbNastawnikJazdy->Play(0,0,0);
+           }
+      }
+      else */
+
+      /* if (cKey==Global::Keys[k_Main])    //bez shifta
+      {
+        MainOffButtonGauge.PutValue(1);
+        if (DynamicObject->MoverParameters->MainSwitch(false))
+           {
+              dsbNastawnikJazdy->Play(0,0,0);
+           }
+      }
+      else */
+
+     //----------------
+     //hunter-131211: czuwak przeniesiony z OnKeyPress
+     if ( Pressed(Global::Keys[k_Czuwak]) )
+     {
+      SecurityResetButtonGauge.PutValue(1);
+      if ((DynamicObject->MoverParameters->SecuritySystem.Status&s_aware)&&
+          (DynamicObject->MoverParameters->SecuritySystem.Status&s_active))                 
+       {
+        DynamicObject->MoverParameters->SecuritySystem.SystemTimer=0;
+        DynamicObject->MoverParameters->SecuritySystem.Status-=s_aware;
+        DynamicObject->MoverParameters->SecuritySystem.VelocityAllowed=-1;
+        CAflag=1;
+       }
+      else if (CAflag!=1)
+        DynamicObject->MoverParameters->SecuritySystemReset();
+     }
+     else
+     {
+      SecurityResetButtonGauge.UpdateValue(0);
+      CAflag=0;
+     }
+     //-----------------
+     //hunter-201211: piasecznica przeniesiona z OnKeyPress, wlacza sie tylko,
+     //gdy trzymamy przycisk, a nie tak jak wczesniej (raz nacisnelo sie 's'
+     //i sypala caly czas)
+      /*
+      if (cKey==Global::Keys[k_Sand])
+      {
+          if (DynamicObject->MoverParameters->SandDoseOn())
+           if (DynamicObject->MoverParameters->SandDose)
+            {
+              dsbPneumaticRelay->SetVolume(-30);
+              dsbPneumaticRelay->Play(0,0,0);
+            }
+      }
+     */
+
+
+     if ( Pressed(Global::Keys[k_Sand]) )
+     {
+      DynamicObject->MoverParameters->SandDose=true;
+      //DynamicObject->MoverParameters->SandDoseOn(true);
+     }
+     else
+     {
+      DynamicObject->MoverParameters->SandDose=false;
+      //DynamicObject->MoverParameters->SandDoseOn(false);
+      //dsbPneumaticRelay->SetVolume(-30);
+      //dsbPneumaticRelay->Play(0,0,0);
+     }
+     
+     //-----------------
+     //hunter-221211: hamowanie przy poslizgu
+     if ( Pressed(Global::Keys[k_AntiSlipping]) )
+     {
+      if (DynamicObject->MoverParameters->BrakeSystem!=ElectroPneumatic)
+      {
+       AntiSlipButtonGauge.PutValue(1);
+       DynamicObject->MoverParameters->AntiSlippingBrake();
+      }
+     }
+     else
+     {
+      AntiSlipButtonGauge.UpdateValue(0);
+     }
+     //-----------------
+     //hunter-261211: przetwornica i sprezarka
+     if ( Pressed(VK_SHIFT)&&Pressed(Global::Keys[k_Converter]) )   //NBMX 14-09-2003: przetwornica wl
+      {
+        ConverterButtonGauge.PutValue(1);
+        if ((DynamicObject->MoverParameters->PantFrontVolt) || (DynamicObject->MoverParameters->PantRearVolt) || (DynamicObject->MoverParameters->EnginePowerSource.SourceType!=CurrentCollector) || (!Global::bLiveTraction))
+         DynamicObject->MoverParameters->ConverterSwitch(true);
+        if (DynamicObject->MoverParameters->EngineType!=ElectricSeriesMotor)
+         DynamicObject->MoverParameters->CompressorSwitch(true);
+      }
+     else
+      {
+       if (DynamicObject->MoverParameters->ConvSwitchType=="impulse")
+        {
+         ConverterButtonGauge.PutValue(0);
+         ConverterOffButtonGauge.PutValue(0);
+        }
+      }
+
+     if ( Pressed(VK_SHIFT)&&Pressed(Global::Keys[k_Compressor])&&(DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor) )   //NBMX 14-09-2003: sprezarka wl
+      {
+        CompressorButtonGauge.PutValue(1);
+        DynamicObject->MoverParameters->CompressorSwitch(true);
+      }
+
+     if ( !Pressed(VK_SHIFT)&&Pressed(Global::Keys[k_Converter]) )   //NBMX 14-09-2003: przetwornica wl
+      {
+        ConverterButtonGauge.PutValue(0);
+        ConverterOffButtonGauge.PutValue(1);
+        DynamicObject->MoverParameters->ConverterSwitch(false);
+      }
+
+     if ( !Pressed(VK_SHIFT)&&Pressed(Global::Keys[k_Compressor])&&(DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor) )   //NBMX 14-09-2003: sprezarka wl
+      {
+        CompressorButtonGauge.PutValue(0);
+        DynamicObject->MoverParameters->CompressorSwitch(false);
+      }
+
+      /*
+      bez szifta
+      if (cKey==Global::Keys[k_Converter])       //NBMX wyl przetwornicy
+      {
+           if (DynamicObject->MoverParameters->ConverterSwitch(false))
+           {
+            dsbSwitch->SetVolume(DSBVOLUME_MAX);
+            dsbSwitch->Play(0,0,0);;
+           }
+      }
+      else
+      if (cKey==Global::Keys[k_Compressor])       //NBMX wyl sprezarka
+      {
+           if (DynamicObject->MoverParameters->CompressorSwitch(false))
+           {
+            dsbSwitch->SetVolume(DSBVOLUME_MAX);
+            dsbSwitch->Play(0,0,0);;
+           }
+      }
+      else
+      */
+     //-----------------
 
      if ( Pressed(Global::Keys[k_Univ1]) )
      {
@@ -2697,13 +3102,13 @@ else
         if (Universal3ButtonGauge.SubModel)
         if (Pressed(VK_SHIFT))
         {
-           Universal3ButtonGauge.UpdateValue(1);
+           Universal3ButtonGauge.PutValue(1);  //hunter-131211: z UpdateValue na PutValue - by zachowywal sie jak pozostale przelaczniki
            if (btLampkaUniversal3.Active())
               LampkaUniversal3_st=true;
         }
         else
         {
-           Universal3ButtonGauge.UpdateValue(0);
+           Universal3ButtonGauge.PutValue(0);  //hunter-131211: z UpdateValue na PutValue - by zachowywal sie jak pozostale przelaczniki
            if (btLampkaUniversal3.Active())
               LampkaUniversal3_st=false;
         }
@@ -2790,23 +3195,6 @@ else
        btLampkaDepartureSignal.TurnOff();
        DynamicObject->MoverParameters->DepartureSignal=false;
      }
-
-if ( Pressed(Global::Keys[k_Converter]) )                //[]
-     {
-      if (Pressed(VK_SHIFT))
-         ConverterButtonGauge.PutValue(1);
-      else
-      {
-         ConverterButtonGauge.PutValue(0);
-         ConverterOffButtonGauge.PutValue(1);
-      }
-     }
-    else
-      if (DynamicObject->MoverParameters->ConvSwitchType=="impulse")
-      {
-         ConverterButtonGauge.PutValue(0);
-         ConverterOffButtonGauge.PutValue(0);
-      }
 
 if ( Pressed(Global::Keys[k_Main]) )                //[]
      {
@@ -2936,6 +3324,7 @@ else
     ReleaserButtonGauge.Update();
     AntiSlipButtonGauge.Update();
     FuseButtonGauge.Update();
+    ConverterFuseButtonGauge.Update();    
     StLinOffButtonGauge.Update();
     RadioButtonGauge.Update();
     DepartureSignalButtonGauge.Update();
@@ -2966,6 +3355,7 @@ else
     AntiSlipButtonGauge.UpdateValue(0);
     DepartureSignalButtonGauge.UpdateValue(0);
     FuseButtonGauge.UpdateValue(0);
+    ConverterFuseButtonGauge.UpdateValue(0);    
   }
  return true; //(DynamicObject->Update(dt));
 }  //koniec update
@@ -3020,9 +3410,26 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
         if (str==AnsiString("ctrl:"))                    //nastawnik:
          {
           str=Parser->GetNextSymbol().LowerCase();
-          dsbNastawnik=TSoundsManager::GetFromName(str.c_str(),true);
+          dsbNastawnikJazdy=TSoundsManager::GetFromName(str.c_str(),true);
          }
         else
+        //---------------
+        //hunter-081211: nastawnik bocznikowania
+        if (str==AnsiString("ctrlscnd:"))                    //nastawnik bocznikowania:
+         {
+          str=Parser->GetNextSymbol().LowerCase();
+          dsbNastawnikBocz=TSoundsManager::GetFromName(str.c_str(),true);
+         }
+        else
+        //---------------
+        //hunter-131211: dzwiek kierunkowego
+        if (str==AnsiString("reverserkey:"))                    //nastawnik kierunkowy
+         {
+          str=Parser->GetNextSymbol().LowerCase();
+          dsbReverserKey=TSoundsManager::GetFromName(str.c_str(),true);
+         }
+        else
+        //---------------
         if (str==AnsiString("buzzer:"))                    //bzyczek shp:
          {
           str=Parser->GetNextSymbol().LowerCase();
@@ -3053,12 +3460,29 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
           dsbPneumaticSwitch=TSoundsManager::GetFromName(str.c_str(),true);
          }
         else
+        //---------------
+        //hunter-111211: wydzielenie wejscia na bezoporowa i na drugi uklad do pliku
+        if (str==AnsiString("wejscie_na_bezoporow:"))
+         {
+          str=Parser->GetNextSymbol().LowerCase();
+          dsbWejscie_na_bezoporow=TSoundsManager::GetFromName(str.c_str(),true);
+         }
+        else
+        if (str==AnsiString("wejscie_na_drugi_uklad:"))
+         {
+          str=Parser->GetNextSymbol().LowerCase();
+          dsbWejscie_na_drugi_uklad=TSoundsManager::GetFromName(str.c_str(),true);
+         }
+        else
+        //---------------
         if (str==AnsiString("relay:"))                   //styczniki itp:
          {
           str=Parser->GetNextSymbol().LowerCase();
           dsbRelay=TSoundsManager::GetFromName(str.c_str(),true);
-          dsbWejscie_na_bezoporow=TSoundsManager::GetFromName("wejscie_na_bezoporow.wav",true);
-          dsbWescie_na_drugi_uklad=TSoundsManager::GetFromName("wescie_na_drugi_uklad.wav",true);
+          if (!dsbWejscie_na_bezoporow) //hunter-111211: domyslne, gdy brak
+           dsbWejscie_na_bezoporow=TSoundsManager::GetFromName("wejscie_na_bezoporow.wav",true);
+          if (!dsbWejscie_na_drugi_uklad)
+           dsbWejscie_na_drugi_uklad=TSoundsManager::GetFromName("wescie_na_drugi_uklad.wav",true);
          }
         else
         if (str==AnsiString("pneumaticrelay:"))           //wylaczniki pneumatyczne:
@@ -3300,6 +3724,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     Universal3ButtonGauge.Clear();
     Universal4ButtonGauge.Clear();
     FuseButtonGauge.Clear();
+    ConverterFuseButtonGauge.Clear();    
     StLinOffButtonGauge.Clear();
     DoorLeftButtonGauge.Clear();
     DoorRightButtonGauge.Clear();
@@ -3431,6 +3856,8 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     HornButtonGauge.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("fuse_bt:"))                       //bezp. nadmiarowy
     FuseButtonGauge.Load(Parser,DynamicObject->mdKabina);
+   else if (str==AnsiString("converterfuse_bt:"))                       //hunter-261211: odblokowanie przekaznika nadm. przetw. i ogrz.
+    ConverterFuseButtonGauge.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("stlinoff_bt:"))                       //st. liniowe
     StLinOffButtonGauge.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("door_left_sw:"))                       //drzwi lewe

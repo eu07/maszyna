@@ -229,6 +229,7 @@ public:
  static int iTextures; //licznik u¿ytych tekstur
  static int iSlowMotionMask; //maska wy³¹czanych w³aœciwoœci
  static int iModifyTGA; //czy korygowaæ pliki TGA dla szybszego wczytywania
+ static bool bHideConsole; //hunter-271211: ukrywanie konsoli
 };
 
 //---------------------------------------------------------------------------

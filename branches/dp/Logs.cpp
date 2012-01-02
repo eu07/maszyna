@@ -61,7 +61,10 @@ void __fastcall WriteLog(const char* str)
         output << str << "\n";
         output.flush();
 
-        WriteConsoleOnly(str);
+        //hunter-271211: pisanie do konsoli tylko, gdy nie jest ukrywana
+        if (Global::bHideConsole==false)
+          WriteConsoleOnly(str);
+
     }
   };
 }
