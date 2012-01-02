@@ -1740,7 +1740,7 @@ bool __fastcall TTrain::Update()
   if (DynamicObject->MoverParameters->ConverterFlag==true)
    {
     fConverterTimer+=dt;
-     if ((DynamicObject->MoverParameters->CompressorFlag==true)&&(DynamicObject->MoverParameters->CompressorPower!=0)&&(DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor))
+     if ((DynamicObject->MoverParameters->CompressorFlag==true)&&(DynamicObject->MoverParameters->CompressorPower!=0)&&(DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)&&(DynamicObject->Controller==Humandriver))
       {
        if (fConverterTimer<fConverterPrzekaznik)
         {
