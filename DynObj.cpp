@@ -222,197 +222,195 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
      smAnimatedDoor[i]->SetRotate(float3(1,0,0),dDoorMoveR);
    }
   }
- }
- btnOn=false;
+ } //for (int i=0;i<iAnimatedDoors;i++)
+ btnOn=false; //czy przywróciæ stan domyœlny po renderowaniu
 
-  if (ObjSqrDist<160000) //gdy bli¿ej ni¿ 400m
+ if (ObjSqrDist<160000) //gdy bli¿ej ni¿ 400m
+ {
+  if (ObjSqrDist<2500) //gdy bli¿ej ni¿ 50m
   {
-   if (ObjSqrDist<2500) //gdy bli¿ej ni¿ 50m
-   {
-    //ABu290105: rzucanie pudlem
-    mdModel->GetSMRoot()->SetTranslate(modelShake);
-    if (mdKabina)
-     mdKabina->GetSMRoot()->SetTranslate(modelShake);
-    if (mdLoad)
-     mdLoad->GetSMRoot()->SetTranslate(modelShake);
-    if (mdLowPolyInt)
-     mdLowPolyInt->GetSMRoot()->SetTranslate(modelShake);
-    if (mdPrzedsionek)
-     mdPrzedsionek->GetSMRoot()->SetTranslate(modelShake);
-    //ABu: koniec rzucania
-    //ABu011104: liczenie obrotow wozkow
-    //if (Global::bEnableTraction) //Ra: bardziej potrzebne wózki ni¿ druty
-     ABuBogies();
-    //McZapkie-050402: obracanie kolami
-    for (int i=0; i<iAnimatedAxles; i++)
-     if (smAnimatedWheel[i])
-      smAnimatedWheel[i]->SetRotate(float3(1,0,0),dWheelAngle);
-    //Mczapkie-100402: rysowanie lub nie - sprzegow
-    //ABu-240105: Dodatkowy warunek: if (...).Render, zeby rysowal tylko jeden
-    //z polaczonych sprzegow
-    if ((TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_coupler))
-       &&(MoverParameters->Couplers[0].Render))
-     {btCoupler1.TurnOn(); btnOn=true;}
-    else
-     btCoupler1.TurnOff();
-    if ((TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_coupler))
-       &&(MoverParameters->Couplers[1].Render))
-     {btCoupler2.TurnOn(); btnOn=true;}
-    else
-     btCoupler2.TurnOff();
+   //ABu290105: rzucanie pudlem
+   mdModel->GetSMRoot()->SetTranslate(modelShake);
+   if (mdKabina)
+    mdKabina->GetSMRoot()->SetTranslate(modelShake);
+   if (mdLoad)
+    mdLoad->GetSMRoot()->SetTranslate(modelShake);
+   if (mdLowPolyInt)
+    mdLowPolyInt->GetSMRoot()->SetTranslate(modelShake);
+   if (mdPrzedsionek)
+    mdPrzedsionek->GetSMRoot()->SetTranslate(modelShake);
+   //ABu: koniec rzucania
+   //ABu011104: liczenie obrotow wozkow
+   //if (Global::bEnableTraction) //Ra: bardziej potrzebne wózki ni¿ druty
+    ABuBogies();
+   //McZapkie-050402: obracanie kolami
+   for (int i=0; i<iAnimatedAxles; i++)
+    if (smAnimatedWheel[i])
+     smAnimatedWheel[i]->SetRotate(float3(1,0,0),dWheelAngle);
+   //Mczapkie-100402: rysowanie lub nie - sprzegow
+   //ABu-240105: Dodatkowy warunek: if (...).Render, zeby rysowal tylko jeden
+   //z polaczonych sprzegow
+   if ((TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_coupler))
+      &&(MoverParameters->Couplers[0].Render))
+    {btCoupler1.TurnOn(); btnOn=true;}
+   //else btCoupler1.TurnOff();
+   if ((TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_coupler))
+      &&(MoverParameters->Couplers[1].Render))
+    {btCoupler2.TurnOn(); btnOn=true;}
+   //else btCoupler2.TurnOff();
   //********************************************************************************
   //przewody powietrzne j.w., ABu: decyzja czy rysowac tylko na podstawie 'render' - juz nie
   //przewody powietrzne, yB: decyzja na podstawie polaczen w t3d
   if (Global::bnewAirCouplers)
+  {
+   SetPneumatic(false,false); //wczytywanie z t3d ulozenia wezykow
+   SetPneumatic(true,false);  //i zapisywanie do zmiennej
+   SetPneumatic(true,true);   //ktore z nich nalezy
+   SetPneumatic(false,true);  //wyswietlic w tej klatce
+
+   if (TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_pneumatic))
    {
-    SetPneumatic(false,false); //wczytywanie z t3d ulozenia wezykow
-    SetPneumatic(true,false);  //i zapisywanie do zmiennej
-    SetPneumatic(true,true);   //ktore z nich nalezy
-    SetPneumatic(false,true);  //wyswietlic w tej klatce
-
-    if (TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_pneumatic))
+    switch (cp1)
     {
-     switch (cp1)
-     {
-      case 1: btCPneumatic1.TurnOn(); break;
-      case 2: btCPneumatic1.TurnxOn(); break;
-      case 3: btCPneumatic1r.TurnxOn(); break;
-      case 4: btCPneumatic1r.TurnOn(); break;
-     }
-     btnOn=true;
+     case 1: btCPneumatic1.TurnOn(); break;
+     case 2: btCPneumatic1.TurnxOn(); break;
+     case 3: btCPneumatic1r.TurnxOn(); break;
+     case 4: btCPneumatic1r.TurnOn(); break;
     }
-    else
-    {
-     btCPneumatic1.TurnOff();
-     btCPneumatic1r.TurnOff();
-    }
-
-    if (TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_pneumatic))
-    {
-     switch (cp2)
-     {
-      case 1: btCPneumatic2.TurnOn(); break;
-      case 2: btCPneumatic2.TurnxOn(); break;
-      case 3: btCPneumatic2r.TurnxOn(); break;
-      case 4: btCPneumatic2r.TurnOn(); break;
-     }
-     btnOn=true;
-    }
-    else
-    {
-     btCPneumatic2.TurnOff();
-     btCPneumatic2r.TurnOff();
-    }
-
-    //przewody zasilajace, j.w. (yB)
-    if (TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_scndpneumatic))
-    {
-     switch (sp1)
-     {
-      case 1: btPneumatic1.TurnOn(); break;
-      case 2: btPneumatic1.TurnxOn(); break;
-      case 3: btPneumatic1r.TurnxOn(); break;
-      case 4: btPneumatic1r.TurnOn(); break;
-     }
-     btnOn=true;
-    }
-    else
-    {
-     btPneumatic1.TurnOff();
-     btPneumatic1r.TurnOff();
-    }
-
-    if (TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_scndpneumatic))
-    {
-     switch (sp2)
-     {
-      case 1: btPneumatic2.TurnOn(); break;
-      case 2: btPneumatic2.TurnxOn(); break;
-      case 3: btPneumatic2r.TurnxOn(); break;
-      case 4: btPneumatic2r.TurnOn(); break;
-     }
-     btnOn=true;
-    }
-    else
-    {
-     btPneumatic2.TurnOff();
-     btPneumatic2r.TurnOff();
-    }
+    btnOn=true;
    }
+   //else
+   //{
+   // btCPneumatic1.TurnOff();
+   // btCPneumatic1r.TurnOff();
+   //}
+
+   if (TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_pneumatic))
+   {
+    switch (cp2)
+    {
+     case 1: btCPneumatic2.TurnOn(); break;
+     case 2: btCPneumatic2.TurnxOn(); break;
+     case 3: btCPneumatic2r.TurnxOn(); break;
+     case 4: btCPneumatic2r.TurnOn(); break;
+    }
+    btnOn=true;
+   }
+   //else
+   //{
+   // btCPneumatic2.TurnOff();
+   // btCPneumatic2r.TurnOff();
+   //}
+
+   //przewody zasilajace, j.w. (yB)
+   if (TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_scndpneumatic))
+   {
+    switch (sp1)
+    {
+     case 1: btPneumatic1.TurnOn(); break;
+     case 2: btPneumatic1.TurnxOn(); break;
+     case 3: btPneumatic1r.TurnxOn(); break;
+     case 4: btPneumatic1r.TurnOn(); break;
+    }
+    btnOn=true;
+   }
+   //else
+   //{
+   // btPneumatic1.TurnOff();
+   // btPneumatic1r.TurnOff();
+   //}
+
+   if (TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_scndpneumatic))
+   {
+    switch (sp2)
+    {
+     case 1: btPneumatic2.TurnOn(); break;
+     case 2: btPneumatic2.TurnxOn(); break;
+     case 3: btPneumatic2r.TurnxOn(); break;
+     case 4: btPneumatic2r.TurnOn(); break;
+    }
+    btnOn=true;
+   }
+   //else
+   //{
+   // btPneumatic2.TurnOff();
+   // btPneumatic2r.TurnOff();
+   //}
+  }
 //*********************************************************************************/
-   else //po staremu ABu'oewmu
+  else //po staremu ABu'oewmu
+  {
+   //przewody powietrzne j.w., ABu: decyzja czy rysowac tylko na podstawie 'render'
+   if (TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_pneumatic))
    {
-    //przewody powietrzne j.w., ABu: decyzja czy rysowac tylko na podstawie 'render'
-    if (TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_pneumatic))
-    {
-       if (MoverParameters->Couplers[0].Render)
-         btCPneumatic1.TurnOn();
-       else
-         btCPneumatic1r.TurnOn();
-       btnOn=true;
-    }
-    else
-    {
-     btCPneumatic1.TurnOff();
-     btCPneumatic1r.TurnOff();
-    }
-
-    if (TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_pneumatic))
-    {
-       if (MoverParameters->Couplers[1].Render)
-         btCPneumatic2.TurnOn();
-       else
-         btCPneumatic2r.TurnOn();
-       btnOn=true;
-    }
-    else
-    {
-     btCPneumatic2.TurnOff();
-     btCPneumatic2r.TurnOff();
-    }
-
-    //przewody powietrzne j.w., ABu: decyzja czy rysowac tylko na podstawie 'render' //yB - zasilajace
-    if (TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_scndpneumatic))
-    {
-       if (MoverParameters->Couplers[0].Render)
-         btPneumatic1.TurnOn();
-       else
-         btPneumatic1r.TurnOn();
-       btnOn=true;
-    }
-    else
-    {
-     btPneumatic1.TurnOff();
-     btPneumatic1r.TurnOff();
-    }
-
-    if (TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_scndpneumatic))
-    {
-       if (MoverParameters->Couplers[1].Render)
-         btPneumatic2.TurnOn();
-       else
-         btPneumatic2r.TurnOn();
-       btnOn=true;
-    }
-    else
-    {
-     btPneumatic2.TurnOff();
-     btPneumatic2r.TurnOff();
-    }
+      if (MoverParameters->Couplers[0].Render)
+        btCPneumatic1.TurnOn();
+      else
+        btCPneumatic1r.TurnOn();
+      btnOn=true;
    }
-//*************************************************************/// koniec wezykow
-     // uginanie zderzakow
-     for (int i=0; i<2; i++)
-     {
-       double dist=MoverParameters->Couplers[i].Dist/2;
-       if (smBuforLewy[i]!=NULL)
-         if (dist<0)
-           smBuforLewy[i]->SetTranslate(vector3(dist,0,0));
-       if (smBuforPrawy[i]!=NULL)
-         if (dist<0)
-           smBuforPrawy[i]->SetTranslate(vector3(dist,0,0));
-     }
+   //else
+   //{
+   // btCPneumatic1.TurnOff();
+   // btCPneumatic1r.TurnOff();
+   //}
+
+   if (TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_pneumatic))
+   {
+      if (MoverParameters->Couplers[1].Render)
+        btCPneumatic2.TurnOn();
+      else
+        btCPneumatic2r.TurnOn();
+      btnOn=true;
    }
+   //else
+   //{
+   // btCPneumatic2.TurnOff();
+   // btCPneumatic2r.TurnOff();
+   //}
+
+   //przewody powietrzne j.w., ABu: decyzja czy rysowac tylko na podstawie 'render' //yB - zasilajace
+   if (TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_scndpneumatic))
+   {
+      if (MoverParameters->Couplers[0].Render)
+        btPneumatic1.TurnOn();
+      else
+        btPneumatic1r.TurnOn();
+      btnOn=true;
+   }
+   //else
+   //{
+   // btPneumatic1.TurnOff();
+   // btPneumatic1r.TurnOff();
+   //}
+
+   if (TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_scndpneumatic))
+   {
+      if (MoverParameters->Couplers[1].Render)
+        btPneumatic2.TurnOn();
+      else
+        btPneumatic2r.TurnOn();
+      btnOn=true;
+   }
+   //else
+   //{
+   // btPneumatic2.TurnOff();
+   // btPneumatic2r.TurnOff();
+   //}
+  }
+  //*************************************************************/// koniec wezykow
+  // uginanie zderzakow
+  for (int i=0; i<2; i++)
+  {
+   double dist=MoverParameters->Couplers[i].Dist/2.0;
+   if (smBuforLewy[i])
+    if (dist<0)
+     smBuforLewy[i]->SetTranslate(vector3(dist,0,0));
+   if (smBuforPrawy[i])
+    if (dist<0)
+     smBuforPrawy[i]->SetTranslate(vector3(dist,0,0));
+  }
+ }
 
    //Winger 160204 - podnoszenie pantografow
 // Przedni patyk
@@ -450,21 +448,17 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
 //przewody sterowania ukrotnionego
     if (TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_controll))
      {btCCtrl1.TurnOn(); btnOn=true;}
-    else
-     btCCtrl1.TurnOff();
+    //else btCCtrl1.TurnOff();
     if (TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_controll))
      {btCCtrl2.TurnOn(); btnOn=true;}
-    else
-     btCCtrl2.TurnOff();
+    //else btCCtrl2.TurnOff();
 //McZapkie-181103: mostki przejsciowe
     if (TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_passenger))
      {btCPass1.TurnOn(); btnOn=true;}
-    else
-     btCPass1.TurnOff();
+    //else btCPass1.TurnOff();
     if (TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_passenger))
      {btCPass2.TurnOn(); btnOn=true;}
-    else
-     btCPass2.TurnOff();
+    //else btCPass2.TurnOff();
 
 // sygnaly konca pociagu
     if (btEndSignals1.Active())
@@ -472,19 +466,16 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
        if (TestFlag(iLights[0],2)
          ||TestFlag(iLights[0],32))
         {btEndSignals1.TurnOn(); btnOn=true;}
-       else
-        btEndSignals1.TurnOff();
+       //else btEndSignals1.TurnOff();
     }
     else
     {
        if (TestFlag(iLights[0],2))
         {btEndSignals11.TurnOn(); btnOn=true;}
-       else
-         btEndSignals11.TurnOff();
+       //else btEndSignals11.TurnOff();
        if (TestFlag(iLights[0],32))
         {btEndSignals13.TurnOn(); btnOn=true;}
-       else
-        btEndSignals13.TurnOff();
+       //else btEndSignals13.TurnOff();
     }
 
     if (btEndSignals2.Active())
@@ -492,57 +483,25 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
        if (TestFlag(iLights[1],2)
          ||TestFlag(iLights[1],32))
         {btEndSignals2.TurnOn(); btnOn=true;}
-       else
-        btEndSignals2.TurnOff();
+       //else btEndSignals2.TurnOff();
     }
     else
     {
        if (TestFlag(iLights[1],2))
         {btEndSignals21.TurnOn(); btnOn=true;}
-       else
-        btEndSignals21.TurnOff();
+       //else btEndSignals21.TurnOff();
        if (TestFlag(iLights[1],32))
         {btEndSignals23.TurnOn(); btnOn=true;}
-       else
-        btEndSignals23.TurnOff();
+       //else btEndSignals23.TurnOff();
     }
 
     //tablice blaszane:
     if (TestFlag(iLights[0],64))
      {btEndSignalsTab1.TurnOn(); btnOn=true;}
-    else
-     btEndSignalsTab1.TurnOff();
+    //else btEndSignalsTab1.TurnOff();
     if (TestFlag(iLights[1],64))
      {btEndSignalsTab2.TurnOn(); btnOn=true;}
-    else
-     btEndSignalsTab2.TurnOff();
-
-// sygnaly czola pociagu
-    if (TestFlag(iLights[0],1))
-     {btHeadSignals11.TurnOn(); btnOn=true;}
-    else
-     btHeadSignals11.TurnOff();
-    if (TestFlag(iLights[0],4))
-     {btHeadSignals12.TurnOn(); btnOn=true;}
-    else
-     btHeadSignals12.TurnOff();
-    if (TestFlag(iLights[0],16))
-     {btHeadSignals13.TurnOn(); btnOn=true;}
-    else
-     btHeadSignals13.TurnOff();
-
-    if (TestFlag(iLights[1],1))
-     {btHeadSignals21.TurnOn(); btnOn=true;}
-    else
-     btHeadSignals21.TurnOff();
-    if (TestFlag(iLights[1],4))
-     {btHeadSignals22.TurnOn(); btnOn=true;}
-    else
-     btHeadSignals22.TurnOff();
-    if (TestFlag(iLights[1],16))
-     {btHeadSignals23.TurnOn(); btnOn=true;}
-    else
-     btHeadSignals23.TurnOff();
+    //else btEndSignalsTab2.TurnOff();
 
 //McZapkie-181002: krecenie wahaczem (korzysta z kata obrotu silnika)
     for (int i=0; i<4; i++)
@@ -559,6 +518,25 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
     //ABu: Przechyly na zakretach
     if (ObjSqrDist<80000) ABuModelRoll(); //przechy³ki od 400m
  }
+ //sygnaly czola pociagu //Ra: wyœwietlamy bez ograniczeñ odleg³oœci, by by³y widoczne z daleka
+ if (TestFlag(iLights[0],1))
+  {btHeadSignals11.TurnOn(); btnOn=true;}
+ //else btHeadSignals11.TurnOff();
+ if (TestFlag(iLights[0],4))
+  {btHeadSignals12.TurnOn(); btnOn=true;}
+ //else btHeadSignals12.TurnOff();
+ if (TestFlag(iLights[0],16))
+  {btHeadSignals13.TurnOn(); btnOn=true;}
+ //else btHeadSignals13.TurnOff();
+ if (TestFlag(iLights[1],1))
+  {btHeadSignals21.TurnOn(); btnOn=true;}
+ //else btHeadSignals21.TurnOff();
+ if (TestFlag(iLights[1],4))
+  {btHeadSignals22.TurnOn(); btnOn=true;}
+ //else btHeadSignals22.TurnOff();
+ if (TestFlag(iLights[1],16))
+  {btHeadSignals23.TurnOn(); btnOn=true;}
+ //else btHeadSignals23.TurnOff();
 }
 //ABu 29.01.05 koniec przeklejenia *************************************
 
@@ -1061,17 +1039,6 @@ void TDynamicObject::ABuScanObjects(int ScanDir,double ScanDist)
    }
   }
   fTrackBlock=MoverParameters->Couplers[MyCouplFound].CoupleDist; //odleg³oœæ do najbli¿szego pojazdu
-//Ra: to tu nie mo¿e byæ, bo mechanik mo¿e siedzieæ w innym pojeŸdzie sk³adu
-/*
-  if (Mechanik)//&&(fTrackBlock>50.0))
-  {//jeœli z przodu od kierunku ruchu jest jakiœ pojazd ze sprzêgiem wirtualnym
-   if (fTrackBlock<50.0) //jak bli¿ej ni¿ 50m, to stop
-    Mechanik->SetVelocity(0,0,stopBlock); //zatrzymaæ
-   else
-    if (0.1*Mechanik->VelDesired*Mechanik->VelDesired>fTrackBlock) //droga hamowania wiêksza ni¿ odleg³oœæ
-     Mechanik->SetProximityVelocity(fTrackBlock-20,0); //spowolnienie jazdy
-  }
-*/
  }
 }
 //----------ABu: koniec skanowania pojazdow
@@ -1629,15 +1596,15 @@ if (!MoverParameters->PhysicActivation)
 //McZapkie-260202
   MoverParameters->BatteryVoltage=90;
   if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
-   if ((MechInside) || (MoverParameters->TrainType==dt_EZT))
+   if ((MechInside)||(MoverParameters->TrainType==dt_EZT))
    {
-    if ((!MoverParameters->PantCompFlag) && (MoverParameters->CompressedVolume>=2.8))
-     MoverParameters->PantVolume= MoverParameters->CompressedVolume;
+    if ((!MoverParameters->PantCompFlag)&&(MoverParameters->CompressedVolume>=2.8))
+     MoverParameters->PantVolume=MoverParameters->CompressedVolume;
     if ((MoverParameters->CompressedVolume<2) && (MoverParameters->PantVolume<3))
     {
      if (!MoverParameters->PantCompFlag)
-      MoverParameters->PantVolume= MoverParameters->CompressedVolume;
-     MoverParameters->PantFront(false);
+      MoverParameters->PantVolume=MoverParameters->CompressedVolume;
+     MoverParameters->PantFront(false); //opuszczenie pantografów przy niskim ciœnieniu
      MoverParameters->PantRear(false);
     }
     //Winger - automatyczne wylaczanie malej sprezarki.
@@ -2543,158 +2510,160 @@ if ((MoverParameters->ConverterFlag==false)&&(MoverParameters->CompressorPower!=
 
 
 
-   if (MoverParameters->TrainType==dt_PseudoDiesel)
-   {
-      //ABu: udawanie woodwarda dla lok. spalinowych
-      //jesli silnik jest podpiety pod dzwiek przetwornicy
-      if (MoverParameters->ConverterFlag)                 //NBMX dzwiek przetwornicy
-      {
-         sConverter.TurnOn(MechInside,GetPosition());
-      }
-      else
-         sConverter.TurnOff(MechInside,GetPosition());
-
-      //glosnosc zalezy od stosunku mocy silnika el. do mocy max
-         double eng_vol;
-         if (MoverParameters->Power>1)
-            //0.85+0.000015*(...)
-            eng_vol=0.8+0.00002*(MoverParameters->EnginePower/MoverParameters->Power);
-         else
-            eng_vol=1;
-
-         eng_dfrq=eng_dfrq+(eng_vol_act-eng_vol);
-         if(eng_dfrq>0)
-         {
-            eng_dfrq=eng_dfrq-0.025*dt;
-            if(eng_dfrq<0.025*dt)
-               eng_dfrq=0;
-         }
-         else
-         if(eng_dfrq<0)
-         {
-            eng_dfrq=eng_dfrq+0.025*dt;
-            if(eng_dfrq>-0.025*dt)
-               eng_dfrq=0;
-         }
-         double defrot;
-         if (MoverParameters->MainCtrlPos!=0)
-         {
-            double CtrlPos=MoverParameters->MainCtrlPos;
-            double CtrlPosNo=MoverParameters->MainCtrlPosNo;
-            //defrot=1+0.4*(CtrlPos/CtrlPosNo);
-            defrot=1+0.5*(CtrlPos/CtrlPosNo);
-         }
-         else
-            defrot=1;
-
-         if (eng_frq_act<defrot)
-         {
-            //if (MoverParameters->MainCtrlPos==1) eng_frq_act=eng_frq_act+0.1*dt;
-            eng_frq_act=eng_frq_act+0.4*dt; //0.05
-            if (eng_frq_act>defrot-0.4*dt)
-              eng_frq_act=defrot;
-         }
-         else
-         if (eng_frq_act>defrot)
-         {
-            eng_frq_act=eng_frq_act-0.1*dt; //0.05
-            if (eng_frq_act<defrot+0.1*dt)
-               eng_frq_act=defrot;
-         }
-         sConverter.UpdateAF(eng_vol_act,eng_frq_act+eng_dfrq,MechInside,GetPosition());
-         //udawanie turbo:  (6.66*(eng_vol-0.85))
-         if (eng_turbo>6.66*(eng_vol-0.8)+0.2*dt)
-            eng_turbo=eng_turbo-0.2*dt; //0.125
-         else
-         if (eng_turbo<6.66*(eng_vol-0.8)-0.4*dt)
-            eng_turbo=eng_turbo+0.4*dt;  //0.333
-         else
-            eng_turbo=6.66*(eng_vol-0.8);
-
-         sTurbo.TurnOn(MechInside,GetPosition());
-         //sTurbo.UpdateAF(eng_turbo,0.7+(eng_turbo*0.6),MechInside,GetPosition());
-         sTurbo.UpdateAF(3*eng_turbo-1,0.4+eng_turbo*0.4,MechInside,GetPosition());
-         eng_vol_act=eng_vol;
-         //eng_frq_act=eng_frq;
-   }
-   else
-   {
+ if (MoverParameters->TrainType==dt_PseudoDiesel)
+ {
+    //ABu: udawanie woodwarda dla lok. spalinowych
+    //jesli silnik jest podpiety pod dzwiek przetwornicy
     if (MoverParameters->ConverterFlag)                 //NBMX dzwiek przetwornicy
-     sConverter.TurnOn(MechInside,GetPosition());
-    else
-     sConverter.TurnOff(MechInside,GetPosition());
-    sConverter.Update(MechInside,GetPosition());
-   }
-   if (MoverParameters->WarningSignal>0)
-   {
-    if (TestFlag(MoverParameters->WarningSignal,1))
-     sHorn1.TurnOn(MechInside,GetPosition());
-    else
-     sHorn1.TurnOff(MechInside,GetPosition());
-    if (TestFlag(MoverParameters->WarningSignal,2))
-     sHorn2.TurnOn(MechInside,GetPosition());
-    else
-     sHorn2.TurnOff(MechInside,GetPosition());
-   }
-   else
-   {
-    sHorn1.TurnOff(MechInside,GetPosition());
-    sHorn2.TurnOff(MechInside,GetPosition());
-   }
-   if (MoverParameters->DoorClosureWarning)
-   {
-    if (MoverParameters->DepartureSignal) //NBMX sygnal odjazdu, MC: pod warunkiem ze jest zdefiniowane w chk
-     sDepartureSignal.TurnOn(MechInside,GetPosition());
-    else
-     sDepartureSignal.TurnOff(MechInside,GetPosition());
-    sDepartureSignal.Update(MechInside,GetPosition());
-   }
-   sHorn1.Update(MechInside,GetPosition());
-   sHorn2.Update(MechInside,GetPosition());
-   //McZapkie: w razie wykolejenia
-   if (MoverParameters->EventFlag)
     {
-     if (TestFlag(MoverParameters->DamageFlag,dtrain_out) && GetVelocity()>0)
-       rsDerailment.Play(1,0,true,GetPosition());
-     if (GetVelocity()==0)
-       rsDerailment.Stop();
+       sConverter.TurnOn(MechInside,GetPosition());
     }
-   if (MoverParameters->EventFlag)
-    {
-     if (TestFlag(MoverParameters->DamageFlag,dtrain_out) && GetVelocity()>0)
-       rsDerailment.Play(1,0,true,GetPosition());
-     if (GetVelocity()==0)
-       rsDerailment.Stop();
-    }
-    if (btnOn==true)
-    {
-     btnOn=false;
-     btCoupler1.TurnOff();
-     btCoupler2.TurnOff();
-     btCPneumatic1.TurnOff();
-     btCPneumatic1r.TurnOff();
-     btCPneumatic2.TurnOff();
-     btCPneumatic2r.TurnOff();
-     btCCtrl1.TurnOff();
-     btCCtrl2.TurnOff();
-     btCPass1.TurnOff();
-     btCPass2.TurnOff();
-     btEndSignals11.TurnOff();
-     btEndSignals13.TurnOff();
-     btEndSignals21.TurnOff();
-     btEndSignals23.TurnOff();
-     btEndSignals1.TurnOff();
-     btEndSignals2.TurnOff();
-     btEndSignalsTab1.TurnOff();
-     btEndSignalsTab2.TurnOff();
-     btHeadSignals11.TurnOff();
-     btHeadSignals12.TurnOff();
-     btHeadSignals13.TurnOff();
-     btHeadSignals21.TurnOff();
-     btHeadSignals22.TurnOff();
-     btHeadSignals23.TurnOff();
-    }
-    return true;
+    else
+       sConverter.TurnOff(MechInside,GetPosition());
+
+    //glosnosc zalezy od stosunku mocy silnika el. do mocy max
+       double eng_vol;
+       if (MoverParameters->Power>1)
+          //0.85+0.000015*(...)
+          eng_vol=0.8+0.00002*(MoverParameters->EnginePower/MoverParameters->Power);
+       else
+          eng_vol=1;
+
+       eng_dfrq=eng_dfrq+(eng_vol_act-eng_vol);
+       if(eng_dfrq>0)
+       {
+          eng_dfrq=eng_dfrq-0.025*dt;
+          if(eng_dfrq<0.025*dt)
+             eng_dfrq=0;
+       }
+       else
+       if(eng_dfrq<0)
+       {
+          eng_dfrq=eng_dfrq+0.025*dt;
+          if(eng_dfrq>-0.025*dt)
+             eng_dfrq=0;
+       }
+       double defrot;
+       if (MoverParameters->MainCtrlPos!=0)
+       {
+          double CtrlPos=MoverParameters->MainCtrlPos;
+          double CtrlPosNo=MoverParameters->MainCtrlPosNo;
+          //defrot=1+0.4*(CtrlPos/CtrlPosNo);
+          defrot=1+0.5*(CtrlPos/CtrlPosNo);
+       }
+       else
+          defrot=1;
+
+       if (eng_frq_act<defrot)
+       {
+          //if (MoverParameters->MainCtrlPos==1) eng_frq_act=eng_frq_act+0.1*dt;
+          eng_frq_act=eng_frq_act+0.4*dt; //0.05
+          if (eng_frq_act>defrot-0.4*dt)
+            eng_frq_act=defrot;
+       }
+       else
+       if (eng_frq_act>defrot)
+       {
+          eng_frq_act=eng_frq_act-0.1*dt; //0.05
+          if (eng_frq_act<defrot+0.1*dt)
+             eng_frq_act=defrot;
+       }
+       sConverter.UpdateAF(eng_vol_act,eng_frq_act+eng_dfrq,MechInside,GetPosition());
+       //udawanie turbo:  (6.66*(eng_vol-0.85))
+       if (eng_turbo>6.66*(eng_vol-0.8)+0.2*dt)
+          eng_turbo=eng_turbo-0.2*dt; //0.125
+       else
+       if (eng_turbo<6.66*(eng_vol-0.8)-0.4*dt)
+          eng_turbo=eng_turbo+0.4*dt;  //0.333
+       else
+          eng_turbo=6.66*(eng_vol-0.8);
+
+       sTurbo.TurnOn(MechInside,GetPosition());
+       //sTurbo.UpdateAF(eng_turbo,0.7+(eng_turbo*0.6),MechInside,GetPosition());
+       sTurbo.UpdateAF(3*eng_turbo-1,0.4+eng_turbo*0.4,MechInside,GetPosition());
+       eng_vol_act=eng_vol;
+       //eng_frq_act=eng_frq;
+ }
+ else
+ {
+  if (MoverParameters->ConverterFlag)                 //NBMX dzwiek przetwornicy
+   sConverter.TurnOn(MechInside,GetPosition());
+  else
+   sConverter.TurnOff(MechInside,GetPosition());
+  sConverter.Update(MechInside,GetPosition());
+ }
+ if (MoverParameters->WarningSignal>0)
+ {
+  if (TestFlag(MoverParameters->WarningSignal,1))
+   sHorn1.TurnOn(MechInside,GetPosition());
+  else
+   sHorn1.TurnOff(MechInside,GetPosition());
+  if (TestFlag(MoverParameters->WarningSignal,2))
+   sHorn2.TurnOn(MechInside,GetPosition());
+  else
+   sHorn2.TurnOff(MechInside,GetPosition());
+ }
+ else
+ {
+  sHorn1.TurnOff(MechInside,GetPosition());
+  sHorn2.TurnOff(MechInside,GetPosition());
+ }
+ if (MoverParameters->DoorClosureWarning)
+ {
+  if (MoverParameters->DepartureSignal) //NBMX sygnal odjazdu, MC: pod warunkiem ze jest zdefiniowane w chk
+   sDepartureSignal.TurnOn(MechInside,GetPosition());
+  else
+   sDepartureSignal.TurnOff(MechInside,GetPosition());
+  sDepartureSignal.Update(MechInside,GetPosition());
+ }
+ sHorn1.Update(MechInside,GetPosition());
+ sHorn2.Update(MechInside,GetPosition());
+ //McZapkie: w razie wykolejenia
+ if (MoverParameters->EventFlag)
+ {
+  if (TestFlag(MoverParameters->DamageFlag,dtrain_out) && GetVelocity()>0)
+    rsDerailment.Play(1,0,true,GetPosition());
+  if (GetVelocity()==0)
+    rsDerailment.Stop();
+ }
+/* //Ra: dwa razy?
+ if (MoverParameters->EventFlag)
+ {
+  if (TestFlag(MoverParameters->DamageFlag,dtrain_out) && GetVelocity()>0)
+    rsDerailment.Play(1,0,true,GetPosition());
+  if (GetVelocity()==0)
+    rsDerailment.Stop();
+ }
+*/
+ if (btnOn) //przywrócenie domyœlnych pozycji
+ {
+  btnOn=false;
+  btCoupler1.TurnOff();
+  btCoupler2.TurnOff();
+  btCPneumatic1.TurnOff();
+  btCPneumatic1r.TurnOff();
+  btCPneumatic2.TurnOff();
+  btCPneumatic2r.TurnOff();
+  btCCtrl1.TurnOff();
+  btCCtrl2.TurnOff();
+  btCPass1.TurnOff();
+  btCPass2.TurnOff();
+  btEndSignals11.TurnOff();
+  btEndSignals13.TurnOff();
+  btEndSignals21.TurnOff();
+  btEndSignals23.TurnOff();
+  btEndSignals1.TurnOff();
+  btEndSignals2.TurnOff();
+  btEndSignalsTab1.TurnOff();
+  btEndSignalsTab2.TurnOff();
+  btHeadSignals11.TurnOff();
+  btHeadSignals12.TurnOff();
+  btHeadSignals13.TurnOff();
+  btHeadSignals21.TurnOff();
+  btHeadSignals22.TurnOff();
+  btHeadSignals23.TurnOff();
+ }
+ return true;
 };
 
 bool __fastcall TDynamicObject::RenderAlpha()
@@ -2828,38 +2797,37 @@ bool __fastcall TDynamicObject::RenderAlpha()
       glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
     }
 */
-    glPopMatrix ( );
-    if (btnOn==true)
-    {
-     btnOn=false;
-     btCoupler1.TurnOff();
-     btCoupler2.TurnOff();
-     btCPneumatic1.TurnOff();
-     btCPneumatic1r.TurnOff();
-     btCPneumatic2.TurnOff();
-     btCPneumatic2r.TurnOff();
-     btCCtrl1.TurnOff();
-     btCCtrl2.TurnOff();
-     btCPass1.TurnOff();
-     btCPass2.TurnOff();
-     btEndSignals11.TurnOff();
-     btEndSignals13.TurnOff();
-     btEndSignals21.TurnOff();
-     btEndSignals23.TurnOff();
-     btEndSignals1.TurnOff();
-     btEndSignals2.TurnOff();
-     btEndSignalsTab1.TurnOff();
-     btEndSignalsTab2.TurnOff();
-     btHeadSignals11.TurnOff();
-     btHeadSignals12.TurnOff();
-     btHeadSignals13.TurnOff();
-     btHeadSignals21.TurnOff();
-     btHeadSignals22.TurnOff();
-     btHeadSignals23.TurnOff();
-    }
-}
-    return true;
-
+  glPopMatrix ( );
+  if (btnOn)  //przywrócenie domyœlnych pozycji
+  {
+   btnOn=false;
+   btCoupler1.TurnOff();
+   btCoupler2.TurnOff();
+   btCPneumatic1.TurnOff();
+   btCPneumatic1r.TurnOff();
+   btCPneumatic2.TurnOff();
+   btCPneumatic2r.TurnOff();
+   btCCtrl1.TurnOff();
+   btCCtrl2.TurnOff();
+   btCPass1.TurnOff();
+   btCPass2.TurnOff();
+   btEndSignals11.TurnOff();
+   btEndSignals13.TurnOff();
+   btEndSignals21.TurnOff();
+   btEndSignals23.TurnOff();
+   btEndSignals1.TurnOff();
+   btEndSignals2.TurnOff();
+   btEndSignalsTab1.TurnOff();
+   btEndSignalsTab2.TurnOff();
+   btHeadSignals11.TurnOff();
+   btHeadSignals12.TurnOff();
+   btHeadSignals13.TurnOff();
+   btHeadSignals21.TurnOff();
+   btHeadSignals22.TurnOff();
+   btHeadSignals23.TurnOff();
+  }
+ }
+ return true;
 } //koniec renderalpha
 
 

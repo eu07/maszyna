@@ -274,10 +274,10 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
   parser.getToken(fFarDecayRadius);
   parser.ignoreToken();
   parser.getToken(fCosFalloffAngle);
-  fCosFalloffAngle=cos(fCosFalloffAngle*M_PI/180);
+  fCosFalloffAngle=cos(fCosFalloffAngle*M_PI/180.0);
   parser.ignoreToken();
   parser.getToken(fCosHotspotAngle);
-  fCosHotspotAngle=cos(fCosHotspotAngle*M_PI/180);
+  fCosHotspotAngle=cos(fCosHotspotAngle*M_PI/180.0);
   iNumVerts=1;
   iFlags|=0x4010; //rysowane w cyklu nieprzezroczystych, macierz musi zostaæ bez zmiany
  }

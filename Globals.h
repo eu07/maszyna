@@ -163,8 +163,8 @@ public:
  static AnsiString asCurrentDynamicPath;
  //McZapkie-170602: zewnetrzna definicja pojazdu uzytkownika
  static AnsiString asHumanCtrlVehicle;
- static void __fastcall LoadIniFile(AnsiString asFileName="eu07.ini");
- static void __fastcall InitKeys(AnsiString asFileName="keys.ini");
+ static void __fastcall LoadIniFile(AnsiString asFileName);
+ static void __fastcall InitKeys(AnsiString asFileName);
  inline static vector3 __fastcall GetCameraPosition()
  {return pCameraPosition;};
  static void __fastcall SetCameraPosition(vector3 pNewCameraPosition);

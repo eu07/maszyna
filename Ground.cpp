@@ -2814,8 +2814,6 @@ if (QueryRootEvent)
                                                                QueryRootEvent->Params[2].asdouble,loc);
               else
               {//przekazanie do pojazdu
-               AnsiString load=QueryRootEvent->Activator->MoverParameters->LoadType; //co by³o
-               double amount=QueryRootEvent->Activator->MoverParameters->Load;
                QueryRootEvent->Activator->MoverParameters->PutCommand(QueryRootEvent->Params[0].asText,
                                                                       QueryRootEvent->Params[1].asdouble,
                                                                       QueryRootEvent->Params[2].asdouble,loc);
