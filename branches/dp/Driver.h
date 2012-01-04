@@ -29,7 +29,8 @@ enum TMovementStatus
  moveStopPoint=2, //stawaæ na W4 (wy³¹czone podczas zmiany czo³a)
  moveAvaken=4, //po w³¹czeniu silnika pojazd nie przemieœci³ siê
  movePress=8, //dociskanie przy od³¹czeniu (zamiast zmiennej Prepare2press)
- moveBackwardLook=16 //skanowanie torów w przeciwn¹ stronê w celu zmiany kierunku
+ moveBackwardLook=16, //skanowanie torów w przeciwn¹ stronê w celu zmiany kierunku
+ moveConnect=32 //jest blisko innego pojazdu i mo¿na próbowaæ pod³¹czyæ 
 };
 
 enum TStopReason
@@ -116,7 +117,7 @@ public:
  bool OnStationFlag; //Czy jest na peronie
 private:
  TDynamicObject *pVehicle; //pojazd w którym siedzi steruj¹cy
- TDynamicObject *pVehicles[2]; //skrajne pojazdy w sk³adzie
+ TDynamicObject *pVehicles[2]; //skrajne pojazdy w sk³adzie (niekoniecznie bezpoœrednio sterowane)
  Mover::TMoverParameters *Controlling; //jakim pojazdem steruje
  Mtable::TTrainParameters *TrainParams; //do jakiego pociagu nalezy
  int TrainNumber; //numer rozkladowy tego pociagu
@@ -208,7 +209,7 @@ private:
  AnsiString __fastcall Order2Str(TOrders Order);
  int __fastcall OrderDirectionChange(int newdir,Mover::TMoverParameters *Vehicle);
  void __fastcall Lights(int head,int rear);
- void __fastcall Dostance(vector3 *p1,vector3 *n,vector3 *p2);
+ double __fastcall Distance(vector3 &p1,vector3 &n,vector3 &p2);
  //Ra: poni¿sze przenieœæ do modu³u AI:
  TEvent* eSignSkip; //miniêty sygna³ zezwalaj¹cy na jazdê, pomijany przy szukaniu
  AnsiString asNextStop; //nazwa nastêpnego punktu zatrzymania wg rozk³adu

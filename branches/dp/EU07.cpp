@@ -558,8 +558,8 @@ int WINAPI WinMain( HINSTANCE hInstance,     //instance
  Global::bOpenGL_1_5=(Global::fOpenGL>=1.5);
 */
 
- Global::LoadIniFile(); //teraz dopiero mo¿na przejrzeæ plik z ustawieniami
- Global::InitKeys(); //wczytanie mapowania klawiszy - jest na sta³e
+ Global::LoadIniFile("eu07.ini"); //teraz dopiero mo¿na przejrzeæ plik z ustawieniami
+ Global::InitKeys("keys.ini"); //wczytanie mapowania klawiszy - jest na sta³e
 
  //hunter-271211: ukrywanie konsoli
  if (Global::bHideConsole==false)
