@@ -1,0 +1,20 @@
+class TczastkiS
+{
+	private:
+		float	
+				cz,cs;		 //czas zycia, czas smierci czastki
+							 //							   `						
+	public:
+		float	xp,xk,xa,   
+                        yp,yk,ya,
+                        zp,zk,za,
+                        rgba[4],     //kolor + alfa
+                        speed, rot;
+				
+		TczastkiS() {};
+		~TczastkiS() {};
+		void odswierz();
+};
+
+
+
