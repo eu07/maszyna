@@ -217,14 +217,22 @@ TTrack* __fastcall TTrack::NullCreate(int dir)
    ConnectNextPrev(trk,0);
    break;
   case 3: //na razie nie mo¿liwe
-   trk->ConnectPrevNext(trk,dir);
+   p1=SwitchExtension->Segments[1]->FastGetPoint_1(); //koniec toru drugiego zwrotnicy
+   p2=p1-450.0*Normalize(SwitchExtension->Segments[1]->GetDirection2()); //przed³u¿enie na wprost
+   trk->Segment->Init(p1,p2,5,RadToDeg(r2),70.0); //bo prosty, kontrolne wyliczane przy zmiennej przechy³ce
+   ConnectNextPrev(trk,0);
+   //trk->ConnectPrevNext(trk,dir);
+   SetConnections(1); //skopiowanie po³¹czeñ
+   Switch(1); //bo siê prze³¹czy na 0, a to coœ chce siê przecie¿ wykoleiæ na bok
    break; //do drugiego zwrotnicy... nie zadzia³a?
  }
  //trzeba jeszcze dodaæ do odpowiedniego segmentu, aby siê renderowa³y z niego pojazdy
  tmp->pCenter=(0.5*(p1+p2)); //œrodek, aby siê mog³o wyœwietliæ
  //Ra: to poni¿ej to pora¿ka, ale na razie siê nie da inaczej
- Global::pGround->GetSubRect(tmp->pCenter.x,tmp->pCenter.z)->AddNode(tmp);
- Global::pGround->GetSubRect(tmp->pCenter.x,tmp->pCenter.z)->Release(); //usuniêcie skompilowanych zasobów
+ TSubRect *r=Global::pGround->GetSubRect(tmp->pCenter.x,tmp->pCenter.z);
+ r->NodeAdd(tmp); //dodanie toru do segmentu
+ r->Sort(); //¿eby wyœwietla³ tabor z dodanego toru
+ r->Release(); //usuniêcie skompilowanych zasobów
  return trk;
 };
 
@@ -353,8 +361,8 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
  }
  else
   eType=tt_Unknown;
- //if (DebugModeFlag)
- // WriteLog(str.c_str());
+ if (DebugModeFlag)
+  WriteLog(str.c_str());
  parser->getTokens(4);
  *parser >> fTrackLength >> fTrackWidth >> fFriction >> fSoundDistance;
 //    fTrackLength=Parser->GetNextSymbol().ToDouble();                       //track length 100502
@@ -389,29 +397,30 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
  *parser >> token;
  bVisible=(token.compare( "vis" )==0);   //visible
  if (bVisible)
-  {
-   parser->getTokens();
-   *parser >> token;
-   str=AnsiString(token.c_str());   //railtex
-   TextureID1=(str=="none"?0:TTexturesManager::GetTextureID(str.c_str(),(iCategoryFlag==1)?Global::iRailProFiltering:Global::iBallastFiltering));
-   parser->getTokens();
-   *parser >> fTexLength; //tex tile length
-   if (fTexLength<0.01) fTexLength=4; //Ra: zabezpiecznie przed zawieszeniem
-   parser->getTokens();
-   *parser >> token;
-   str=AnsiString(token.c_str());   //sub || railtex
-   TextureID2=(str=="none"?0:TTexturesManager::GetTextureID(str.c_str(),(eType==tt_Normal)?Global::iBallastFiltering:Global::iRailProFiltering));
-   parser->getTokens(3);
-   *parser >> fTexHeight >> fTexWidth >> fTexSlope;
-//      fTexHeight=Parser->GetNextSymbol().ToDouble(); //tex sub height
-//      fTexWidth=Parser->GetNextSymbol().ToDouble(); //tex sub width
-//      fTexSlope=Parser->GetNextSymbol().ToDouble(); //tex sub slope width
-   if (iCategoryFlag==4)
-    fTexHeight=-fTexHeight; //rzeki maj¹ wysokoœæ odwrotnie ni¿ drogi
-  }
- //else if (DebugModeFlag) WriteLog("unvis");
+ {
+  parser->getTokens();
+  *parser >> token;
+  str=AnsiString(token.c_str());   //railtex
+  TextureID1=(str=="none"?0:TTexturesManager::GetTextureID(str.c_str(),(iCategoryFlag&1)?Global::iRailProFiltering:Global::iBallastFiltering));
+  parser->getTokens();
+  *parser >> fTexLength; //tex tile length
+  if (fTexLength<0.01) fTexLength=4; //Ra: zabezpiecznie przed zawieszeniem
+  parser->getTokens();
+  *parser >> token;
+  str=AnsiString(token.c_str());   //sub || railtex
+  TextureID2=(str=="none"?0:TTexturesManager::GetTextureID(str.c_str(),(eType==tt_Normal)?Global::iBallastFiltering:Global::iRailProFiltering));
+  parser->getTokens(3);
+  *parser >> fTexHeight >> fTexWidth >> fTexSlope;
+//     fTexHeight=Parser->GetNextSymbol().ToDouble(); //tex sub height
+//     fTexWidth=Parser->GetNextSymbol().ToDouble(); //tex sub width
+//     fTexSlope=Parser->GetNextSymbol().ToDouble(); //tex sub slope width
+  if (iCategoryFlag&4)
+   fTexHeight=-fTexHeight; //rzeki maj¹ wysokoœæ odwrotnie ni¿ drogi
+ }
+ else
+  if (DebugModeFlag) WriteLog("unvis");
  Init();
- double segsize=5.0f; //d³ugoœæ odcinka segmentowania
+ double segsize=5.0; //d³ugoœæ odcinka segmentowania
  switch (eType)
  {//Ra: ³uki segmentowane co 5m albo 314-k¹tem foremnym
   case tt_Turn: //obrotnica jest prawie jak zwyk³y tor
@@ -431,7 +440,7 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
     //na przechy³ce doliczyæ jeszcze pó³ przechy³ki
    }
    if (fRadius!=0) //gdy podany promieñ
-      segsize=Min0R(5.0,0.3+fabs(fRadius)*0.03); //do 250m - 5, potem 1 co 50m
+      segsize=Min0R(5.0,0.2+fabs(fRadius)*0.02); //do 250m - 5, potem 1 co 50m
 
    if ((((p1+p1+p2)/3.0-p1-cp1).Length()<0.02)||(((p1+p2+p2)/3.0-p2+cp1).Length()<0.02))
     cp1=cp2=vector3(0,0,0); //"prostowanie" prostych z kontrolnymi, dok³adnoœæ 2cm
@@ -796,6 +805,10 @@ bool __fastcall TTrack::AddDynamicObject(TDynamicObject *Dynamic)
 {//dodanie pojazdu do trajektorii
  //Ra: tymczasowo wysy³anie informacji o zajêtoœci konkretnego toru
  //Ra: usun¹æ po upowszechnieniu siê odcinków izolowanych
+ if (iCategoryFlag&0x100) //jeœli usuwaczek
+ {Dynamic->MyTrack=NULL;
+  return true;
+ }
  if (Global::iMultiplayer) //jeœli multiplayer
   if (!iNumDynamics) //pierwszy zajmuj¹cy
    if (pMyNode->asName!="none")
@@ -808,7 +821,7 @@ bool __fastcall TTrack::AddDynamicObject(TDynamicObject *Dynamic)
  }
  else
  {
-  Error("Too many dynamics on track.");
+  Error("Too many dynamics on track "+pMyNode->asName);
   return false;
  }
 };
@@ -1218,11 +1231,8 @@ void __fastcall TTrack::Render()
   glCallList(DisplayListID);
   if (InMovement()) Release(); //zwrotnica w trakcie animacji do odrysowania
  };
- for (int i=0; i<iNumDynamics; i++)
- {
-  Dynamics[i]->Render();
- }
-#ifdef _DEBUG
+//#ifdef _DEBUG
+#if 0
  if (DebugModeFlag && ScannedFlag) //McZapkie-230702
  //if (iNumDynamics) //bêdzie kreska na zajêtym torze
  {
@@ -1598,36 +1608,7 @@ void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Star
 
 void  __fastcall TTrack::RaRenderVBO(int iPtr)
 {//renderowanie z u¿yciem VBO
- glColor3f(1.0f,1.0f,1.0f);
- //McZapkie-310702: zmiana oswietlenia w tunelu, wykopie
- GLfloat ambientLight[4] ={0.5f,0.5f,0.5f,1.0f};
- GLfloat diffuseLight[4] ={0.5f,0.5f,0.5f,1.0f};
- GLfloat specularLight[4]={0.5f,0.5f,0.5f,1.0f};
- switch (eEnvironment)
- {//modyfikacje oœwietlenia zale¿nie od œrodowiska
-  case e_canyon: //wykop
-   for (int li=0;li<3;li++)
-   {
-    //ambientLight[li]= Global::ambientDayLight[li]*0.7;
-    diffuseLight[li]= Global::diffuseDayLight[li]*0.3;
-    specularLight[li]=Global::specularDayLight[li]*0.4;
-   }
-   //glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
-   glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
-   glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
-  break;
-  case e_tunnel: //tunel
-   for (int li=0;li<3;li++)
-   {
-    ambientLight[li]= Global::ambientDayLight[li]*0.2;
-    diffuseLight[li]= Global::diffuseDayLight[li]*0.1;
-    specularLight[li]=Global::specularDayLight[li]*0.2;
-   }
-   glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
-   glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
-   glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
-  break;
- }
+ EnvironmentSet();
  int seg;
  int i;
  switch (iCategoryFlag)
@@ -1692,26 +1673,49 @@ void  __fastcall TTrack::RaRenderVBO(int iPtr)
    }
    break;
  }
- switch (eEnvironment)
- {//przywrócenie globalnych ustawieñ œwiat³a
-  case e_canyon: //wykop
-  case e_tunnel: //tunel
-   glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
-   glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
-   glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
+ EnvironmentReset();
+};
+
+void __fastcall TTrack::EnvironmentSet()
+{//ustawienie zmienionego œwiat³a
+ glColor3f(1.0f,1.0f,1.0f); //Ra: potrzebne to?
+ if (eEnvironment)
+ {//McZapkie-310702: zmiana oswietlenia w tunelu, wykopie
+  GLfloat ambientLight[4]= {0.5f,0.5f,0.5f,1.0f};
+  GLfloat diffuseLight[4]= {0.5f,0.5f,0.5f,1.0f};
+  GLfloat specularLight[4]={0.5f,0.5f,0.5f,1.0f};
+  switch (eEnvironment)
+  {//modyfikacje oœwietlenia zale¿nie od œrodowiska
+   case e_canyon:
+    for (int li=0;li<3;li++)
+    {
+     //ambientLight[li]= Global::ambientDayLight[li]*0.8; //0.7
+     diffuseLight[li]= Global::diffuseDayLight[li]*0.4;   //0.3
+     specularLight[li]=Global::specularDayLight[li]*0.5;  //0.4
+    }
+    //glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
+    glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
+    glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
+    break;
+   case e_tunnel:
+    for (int li=0;li<3;li++)
+    {
+     ambientLight[li]= Global::ambientDayLight[li]*0.2;
+     diffuseLight[li]= Global::diffuseDayLight[li]*0.1;
+     specularLight[li]=Global::specularDayLight[li]*0.2;
+    }
+    glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
+    glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
+    glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
+    break;
+  }
  }
 };
 
-void  __fastcall TTrack::RaRenderDynamic()
-{//renderowanie pojazdów
- if (!iNumDynamics) return; //nie ma pojazdów
- glColor3f(1.0f,1.0f,1.0f);
- //McZapkie-310702: zmiana oswietlenia w tunelu, wykopie
- GLfloat ambientLight[4] ={0.5f,0.5f,0.5f,1.0f};
- GLfloat diffuseLight[4] ={0.5f,0.5f,0.5f,1.0f};
- GLfloat specularLight[4]={0.5f,0.5f,0.5f,1.0f};
+void __fastcall TTrack::EnvironmentReset()
+{//przywrócenie domyœlnego œwiat³a
  switch (eEnvironment)
- {//modyfikacje oœwietlenia zale¿nie od œrodowiska
+ {//przywrócenie globalnych ustawieñ œwiat³a, o ile by³o zmienione
   case e_canyon: //wykop
    for (int li=0;li<3;li++)
    {
@@ -1735,18 +1739,24 @@ void  __fastcall TTrack::RaRenderDynamic()
    glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
   break;
  }
+};
+
+void __fastcall TTrack::RenderDyn()
+{//renderowanie nieprzezroczystych pojazdów
+ if (!iNumDynamics) return; //po co kombinowaæ, jeœli nie ma pojazdów?
+ EnvironmentSet();
  for (int i=0;i<iNumDynamics;i++)
- {Dynamics[i]->Render(); //zmieni kontekst VBO!
-  Dynamics[i]->RenderAlpha();
- }
- switch (eEnvironment)
- {//przywrócenie globalnych ustawieñ œwiat³a
-  case e_canyon: //wykop
-  case e_tunnel: //tunel
-   glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
-   glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
-   glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
- }
+  Dynamics[i]->Render(); //sam sprawdza, czy VBO; zmienia kontekst VBO!
+ EnvironmentReset();
+};
+
+void __fastcall TTrack::RenderDynAlpha()
+{//renderowanie przezroczystych pojazdów
+ if (!iNumDynamics) return; //po co kombinowaæ, jeœli nie ma pojazdów?
+ EnvironmentSet();
+ for (int i=0;i<iNumDynamics;i++)
+  Dynamics[i]->RenderAlpha(); //sam sprawdza, czy VBO; zmienia kontekst VBO!
+ EnvironmentReset();
 };
 
 //---------------------------------------------------------------------------
@@ -1972,3 +1982,75 @@ double __fastcall TTrack::WidthTotal()
    return 2.0*fabs(fTexWidth)+0.5*fabs(fTrackWidth+fTrackWidth2); //dodajemy pobocze
  return 0.5*fabs(fTrackWidth+fTrackWidth2); //a tak tylko zwyk³a œrednia szerokoœæ
 };
+
+bool __fastcall TTrack::IsGroupable()
+{//czy wyœwietlanie toru mo¿e byæ zgrupwane z innymi
+ if ((eType==tt_Switch)||(eType==tt_Turn)) return false; //tory ruchome nie s¹ grupowane
+ if ((eEnvironment==e_canyon)||(eEnvironment==e_tunnel)) return false; //tory ze zmian¹ œwiat³a
+ return true;
+};
+
+bool __fastcall Equal(vector3 v1, vector3 *v2)
+{//sprawdzenie odleg³oœci punktów
+ //Ra: powinno byæ do 10cm wzd³u¿ toru i ze 2cm w poprzek
+ //Ra: z automatycznie dodawanym stukiem, jeœli dziura jest wiêksza ni¿ 2mm.
+ if (fabs(v1.x-v2->x)>0.02) return false; //szeœcian zamiast kuli
+ if (fabs(v1.z-v2->z)>0.02) return false;
+ if (fabs(v1.y-v2->y)>0.02) return false;
+ return true;
+ //return (SquareMagnitude(v1-*v2)<0.00012); //0.011^2=0.00012
+};
+
+int __fastcall TTrack::TestPoint(vector3 *Point)
+{//sprawdzanie, czy tory mo¿na po³¹czyæ
+ switch (eType)
+ {
+  case tt_Normal :
+   if (pPrev==NULL)
+    if (Equal(Segment->FastGetPoint_0(),Point))
+     return 0;
+   if (pNext==NULL)
+    if (Equal(Segment->FastGetPoint_1(),Point))
+     return 1;
+   break;
+  case tt_Switch :
+  {int state=GetSwitchState(); //po co?
+   //Ra: TODO: jak siê zmieni na bezpoœrednie odwo³ania do segmentow zwrotnicy,
+   //to siê wykoleja, poniewa¿ pNext zale¿y od prze³o¿enia
+   Switch(0);
+   if (pPrev==NULL)
+    //if (Equal(SwitchExtension->Segments[0]->FastGetPoint_0(),Point))
+    if (Equal(Segment->FastGetPoint_0(),Point))
+    {
+     Switch(state);
+     return 2;
+    }
+   if (pNext==NULL)
+    //if (Equal(SwitchExtension->Segments[0]->FastGetPoint_1(),Point))
+    if (Equal(Segment->FastGetPoint_1(),Point))
+    {
+     Switch(state);
+     return 3;
+    }
+   Switch(1); //mo¿na by siê pozbyæ tego prze³¹czania
+   if (pPrev==NULL) //Ra: z tym chyba nie potrzeba ³¹czyæ
+    //if (Equal(SwitchExtension->Segments[1]->FastGetPoint_0(),Point))
+    if (Equal(Segment->FastGetPoint_0(),Point))
+    {
+     Switch(state);//Switch(0);
+     return 4;
+    }
+   if (pNext==NULL) //TODO: to zale¿y od prze³o¿enia zwrotnicy
+    //if (Equal(SwitchExtension->Segments[1]->FastGetPoint_1(),Point))
+    if (Equal(Segment->FastGetPoint_1(),Point))
+    {
+     Switch(state);//Switch(0);
+     return 5;
+    }
+   Switch(state);
+  }
+  break;
+ }
+ return -1;
+};
+

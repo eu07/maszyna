@@ -159,9 +159,12 @@ public:
  void Release();
  void __fastcall Compile();
 
- void __fastcall Render();
- void __fastcall RenderAlpha();
- bool __fastcall InMovement(); //czy w trakcie animacji?
+ void __fastcall Render(); //renderowanie z Display Lists
+ int __fastcall RaArrayPrepare(); //zliczanie rozmiaru dla VBO sektroa
+ void  __fastcall RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Start); //wype³nianie VBO
+ void  __fastcall RaRenderVBO(int iPtr); //renderowanie z VBO sektora
+ void __fastcall RenderDyn(); //renderowanie nieprzezroczystych pojazdów (oba tryby)
+ void __fastcall RenderDynAlpha(); //renderowanie przezroczystych pojazdów (oba tryby)
 
  void __fastcall RaAssign(TGroundNode *gn,TAnimContainer *ac);
  void __fastcall RaAssign(TGroundNode *gn,TAnimModel *am);
@@ -179,6 +182,10 @@ public:
  AnsiString __fastcall IsolatedName();
  bool __fastcall IsolatedEventsAssign(TEvent *busy, TEvent *free);
  double __fastcall WidthTotal();
+ int __fastcall TestPoint(vector3 *Point);
+private:
+ void __fastcall EnvironmentSet();
+ void __fastcall EnvironmentReset();
 };
 
 //---------------------------------------------------------------------------

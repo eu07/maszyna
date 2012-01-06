@@ -79,57 +79,43 @@ void __fastcall TEvent::Load(cParser* parser)
     str=AnsiString(token.c_str());
 
     if (str==AnsiString("exit"))
-        Type=tp_Exit;
+     Type=tp_Exit;
+    else if (str==AnsiString("updatevalues"))
+     Type=tp_UpdateValues;
+    else if (str==AnsiString("getvalues"))
+     Type=tp_GetValues;
+    else if (str==AnsiString("putvalues"))
+     Type=tp_PutValues;
+    else if (str==AnsiString("disable"))
+     Type=tp_Disable;
+    else if (str==AnsiString("sound"))
+     Type=tp_Sound;
+    else if (str==AnsiString("velocity"))
+     Type=tp_Velocity;
+    else if (str==AnsiString("animation"))
+     Type=tp_Animation;
+    else if (str==AnsiString("lights"))
+     Type=tp_Lights;
+    else if (str==AnsiString("visible"))
+     Type=tp_Visible; //zmiana wyœwietlania obiektu
+    else if (str==AnsiString("switch"))
+     Type=tp_Switch;
+    else if (str==AnsiString("dynvel"))
+     Type=tp_DynVel;
+    else if (str==AnsiString("trackvel"))
+     Type=tp_TrackVel;
+    else if (str==AnsiString("multiple"))
+     Type=tp_Multiple;
+    else if (str==AnsiString("addvalues"))
+     Type=tp_AddValues;
+    else if (str==AnsiString("copyvalues"))
+     Type=tp_CopyValues;
+    else if (str==AnsiString("whois"))
+     Type=tp_WhoIs;
+    else if (str==AnsiString("logvalues"))
+     Type=tp_LogValues;
     else
-    if (str==AnsiString("updatevalues"))
-        Type=tp_UpdateValues;
-    else
-    if (str==AnsiString("getvalues"))
-        Type=tp_GetValues;
-    else
-    if (str==AnsiString("putvalues"))
-        Type=tp_PutValues;
-    else
-    if (str==AnsiString("disable"))
-        Type=tp_Disable;
-    else
-    if (str==AnsiString("sound"))
-        Type=tp_Sound;
-    else
-    if (str==AnsiString("velocity"))
-        Type=tp_Velocity;
-    else
-    if (str==AnsiString("animation"))
-        Type=tp_Animation;
-    else
-    if (str==AnsiString("lights"))
-        Type=tp_Lights;
-    else
-    if (str==AnsiString("switch"))
-        Type=tp_Switch;
-    else
-    if (str==AnsiString("dynvel"))
-        Type=tp_DynVel;
-    else
-    if (str==AnsiString("trackvel"))
-        Type=tp_TrackVel;
-    else
-    if (str==AnsiString("multiple"))
-        Type=tp_Multiple;
-    else
-    if (str==AnsiString("addvalues"))
-        Type=tp_AddValues;
-    else
-    if (str==AnsiString("copyvalues"))
-        Type=tp_CopyValues;
-    else
-    if (str==AnsiString("whois"))
-        Type=tp_WhoIs;
-    else
-    if (str==AnsiString("logvalues"))
-        Type=tp_LogValues;
-    else
-        Type=tp_Unknown;
+     Type=tp_Unknown;
 
     parser->getTokens();
     *parser >> fDelay;
@@ -190,6 +176,12 @@ void __fastcall TEvent::Load(cParser* parser)
         case tp_PutValues:
             parser->getTokens(3);
             *parser >> Params[3].asdouble >> Params[4].asdouble >> Params[5].asdouble; //polozenie X,Y,Z
+            if (org)
+            {//przesuniêcie
+             Params[3].asdouble+=org->x; //wspó³rzêdne w scenerii
+             Params[4].asdouble+=org->y;
+             Params[5].asdouble+=org->z;
+            }
             Params[12].asInt=0;
             parser->getTokens(1,false);  //komendy 'case sensitive'
             *parser >> token;
@@ -222,26 +214,34 @@ void __fastcall TEvent::Load(cParser* parser)
             *parser >> token;
         break;
         case tp_Lights:
-            i=0;
-            do {
-               parser->getTokens();
-               *parser >> token;
-               if (token.compare( "endevent" ) !=0 )
-                {
-                  str=AnsiString(token.c_str());
-                  if (i<8)
-                    Params[i].asInt=str.ToInt();
-                  i++;
-                }
-               } while ( token.compare( "endevent" ) !=0 );
-
-        break;
+         i=0;
+         do
+         {
+          parser->getTokens();
+          *parser >> token;
+          if (token.compare("endevent")!=0)
+          {
+           str=AnsiString(token.c_str());
+           if (i<8)
+            Params[i].asInt=str.ToInt();
+           i++;
+          }
+         }
+         while (token.compare("endevent")!=0);
+         break;
+        case tp_Visible: //zmiana wyœwietlania obiektu
+         parser->getTokens();
+         *parser >> token;
+         str=AnsiString(token.c_str());
+         Params[0].asInt=str.ToInt();
+         parser->getTokens(); *parser >> token;
+         break;
         case tp_Velocity:
-            parser->getTokens();
-            *parser >> token;
-            str=AnsiString(token.c_str());
-            Params[0].asdouble=str.ToDouble()*0.28;
-            parser->getTokens(); *parser >> token;
+         parser->getTokens();
+         *parser >> token;
+         str=AnsiString(token.c_str());
+         Params[0].asdouble=str.ToDouble()*0.28;
+         parser->getTokens(); *parser >> token;
         break;
         case tp_Sound:
 //            Params[0].asRealSound->Init(asNodeName.c_str(),Parser->GetNextSymbol().ToDouble(),Parser->GetNextSymbol().ToDouble(),Parser->GetNextSymbol().ToDouble(),Parser->GetNextSymbol().ToDouble());

@@ -94,17 +94,17 @@ struct TCoupling
 	double FmaxC;
 	TCouplerType CouplerType;
 	Byte CouplingFlag;
+	Byte AllowedFlag;
 	bool Render;
 	double CoupleDist;
 	TMoverParameters* *Connected;
+	Byte ConnectedNr;
 	double CForce;
 	double Dist;
 	bool CheckCollision;
 } ;
 
 typedef TCoupling TCouplers[2];
-
-typedef Byte TCouplerNr[2];
 
 #pragma option push -b-
 enum TBrakeSystem { Individual, Pneumatic, ElectroPneumatic };
@@ -404,7 +404,6 @@ public:
 	double CtrlDelay;
 	Byte AutoRelayType;
 	bool CoupledCtrl;
-	Byte CouplerNr[2];
 	bool IsCoupled;
 	Byte DynamicBrakeType;
 	Byte RVentType;
@@ -510,6 +509,7 @@ public:
 	double LimPipePress;
 	double ActFlowSpeed;
 	Byte DamageFlag;
+	Byte DerailReason;
 	TCommand CommandIn;
 	AnsiString CommandOut;
 	AnsiString CommandLast;
@@ -563,7 +563,7 @@ public:
 	double eAngle;
 	int Load;
 	AnsiString LoadType;
-	int LoadStatus;
+	Byte LoadStatus;
 	double LastLoadChangeTime;
 	bool DoorLeftOpened;
 	bool DoorRightOpened;

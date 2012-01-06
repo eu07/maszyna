@@ -195,7 +195,7 @@ public:
  static int iBallastFiltering; //domyœlne rozmywanie tekstury podsypki
  static int iRailProFiltering; //domyœlne rozmywanie tekstury szyn
  static int iDynamicFiltering; //domyœlne rozmywanie tekstur pojazdów
- static bool bReCompile; //czy odœwie¿yæ siatki
+ static int iReCompile; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
  static bool bUseVBO; //czy jest VBO w karcie graficznej
  static int iFeedbackMode; //tryb pracy informacji zwrotnej
  static double fOpenGL; //wersja OpenGL - przyda siê

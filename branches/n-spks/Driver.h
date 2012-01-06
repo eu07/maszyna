@@ -48,24 +48,50 @@ enum TStopReason
  stopExt,   //komenda z zewn¹trz
  stopError  //z powodu b³êdu w obliczeniu drogi hamowania
 };
-/*
-struct TProximityTablePos
-{
-	double Dist;
-	double Vel;
-	double Acc;
-	Byte Flag;
-} ;
-*/
 
-//-- var, const, procedure ---------------------------------------------------
+class TSpeedPos
+{//pozycja tabeli prêdkoœci dla AI
+ double fDist; //aktualna odleg³oœæ (ujemna gdy miniête)
+ double fVel; //prêdkoœæ obowi¹zuj¹ca od tego miejsca
+ //double fAcc;
+ int iFlag; //1=istotny,2=tor,4=event,
+ vector3 vPos; //wspó³rzêdne XYZ do liczenia odleg³oœci
+ struct
+ {
+  TTrack *tTrack; //wskaŸnik na tor o zmiennej prêdkoœci (zwrotnica, obrotnica)
+  TEvent *eEvent; //po³¹czenie z eventem albo komórk¹ pamiêci
+ };
+public:
+ void __fastcall Clear();
+ void __fastcall Calulate(vector3 *p,vector3 *dir);
+};
+
+class TSpeedTable
+{//tabela prêdkoœci dla AI wraz z obs³ug¹
+ TSpeedPos sSpeedTable[16]; //najbli¿sze zmiany prêdkoœci
+ //double ReducedTable[256];
+ int iFirst; //aktualna pozycja w tabeli
+ int iLast; //ostatnia wype³niona pozycja w tabeli
+ //Byte LPTA;
+ //Byte LPTI;
+ TTrack *tLast; //ostatni analizowany tor
+ bool bDir; //kierunek na ostatnim torze
+public:
+ __fastcall TSpeedTable();
+ __fastcall ~TSpeedTable();
+ TEvent* __fastcall CheckTrackEvent(double fDirection,TTrack *Track);
+ void __fastcall TraceRoute(double &fDistance,double &fDirection,TTrack *Track);
+};
+
+//----------------------------------------------------------------------------
 static const bool Aggressive=true;
 static const bool Easyman=false;
 static const bool AIdriver=true;
 static const bool Humandriver=false;
-static const int maxorders=0x20; //iloœæ rozkazów w tabelce
-static const int maxdriverfails=0x4; //ile b³êdów mo¿e zrobiæ AI zanim zmieni nastawienie
+static const int maxorders=32; //iloœæ rozkazów w tabelce
+static const int maxdriverfails=4; //ile b³êdów mo¿e zrobiæ AI zanim zmieni nastawienie
 extern bool WriteLogFlag; //logowanie parametrów fizycznych
+//----------------------------------------------------------------------------
 
 class TController
 {
@@ -102,7 +128,7 @@ public:
  double VelDesired; //predkosc
 private:
  double VelforDriver; //predkosc dla manewrow
- double VelActual; //predkosc do której d¹zy
+ double VelActual; //predkosc ustawiana przez SetVelocity (zadawana semaforami) 
 public:
  double VelNext; //predkosc przy nastepnym obiekcie
 private:
@@ -110,11 +136,7 @@ private:
 public:
  double ActualProximityDist; //ustawia nowa predkosc do ktorej ma dazyc oraz predkosc przy nastepnym obiekcie
 private:
- //TProximityTablePos ProximityTable[256];
- //double ReducedTable[256];
- //Byte ProximityTableIndex;
- //Byte LPTA;
- //Byte LPTI;
+ TSpeedTable sSpeedTable;
  vector3 vCommandLocation; //polozenie wskaznika, sygnalizatora lub innego obiektu do ktorego odnosi sie komenda
  TOrders OrderList[maxorders]; //lista rozkazów
  int OrderPos,OrderTop; //rozkaz aktualny oraz wolne miejsce do wstawiania nowych
@@ -126,6 +148,7 @@ private:
  int iDirection; //kierunek jazdy wzglêdem pojazdu, w którym siedzi AI (1=przód,-1=ty³)
  int iDirectionOrder; //¿adany kierunek jazdy (s³u¿y do zmiany kierunku)
  int iVehicleCount; //iloœæ pojazdów do od³¹czenia albo zabrania ze sk³adu (-1=wszystkie)
+ int iCoupler; //sprzêg, który nale¿y u¿yæ przy ³¹czeniu
  bool Prepare2press; //dociskanie w celu od³¹czenia
  int iDriverFailCount; //licznik b³êdów AI
  bool Need_TryAgain;
@@ -143,9 +166,9 @@ private:
  bool __fastcall IncSpeed();
  bool __fastcall DecSpeed();
  void __fastcall RecognizeCommand(); //odczytuje komende przekazana lokomotywie
- void __fastcall PutCommand(AnsiString NewCommand,double NewValue1,double NewValue2,const Mover::TLocation &NewLocation,TStopReason reason=stopComm);
 public:
- void __fastcall PutCommand(AnsiString NewCommand,double NewValue1,double NewValue2,const vector3 *NewLocation,TStopReason reason=stopComm);
+ void __fastcall PutCommand(AnsiString NewCommand,double NewValue1,double NewValue2,const Mover::TLocation &NewLocation,TStopReason reason=stopComm);
+ bool __fastcall PutCommand(AnsiString NewCommand,double NewValue1,double NewValue2,const vector3 *NewLocation,TStopReason reason=stopComm);
  bool __fastcall UpdateSituation(double dt); //uruchamiac przynajmniej raz na sekunde
  //procedury dotyczace rozkazow dla maszynisty
  void __fastcall SetVelocity(double NewVel,double NewVelNext,TStopReason r=stopNone); //uaktualnia informacje o predkosci
@@ -165,6 +188,7 @@ private:
  void __fastcall OrderCheck();
 public:
  void __fastcall OrdersInit(double fVel);
+ void __fastcall OrdersClear();
  void __fastcall OrdersDump();
  __fastcall TController
  (bool AI,
@@ -184,6 +208,7 @@ private:
  AnsiString __fastcall Order2Str(TOrders Order);
  int __fastcall OrderDirectionChange(int newdir,Mover::TMoverParameters *Vehicle);
  void __fastcall Lights(int head,int rear);
+ void __fastcall Dostance(vector3 *p1,vector3 *n,vector3 *p2);
  //Ra: poni¿sze przenieœæ do modu³u AI:
  TEvent* eSignSkip; //miniêty sygna³ zezwalaj¹cy na jazdê, pomijany przy szukaniu
  AnsiString asNextStop; //nazwa nastêpnego punktu zatrzymania wg rozk³adu

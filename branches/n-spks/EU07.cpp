@@ -492,7 +492,7 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
       if (DebugModeFlag)
       {//siatki wyœwietlane tyko w trybie testowym
        Global::bWireFrame=!Global::bWireFrame;
-       Global::bReCompile=true; //czy odœwie¿yæ siatki
+       ++Global::iReCompile; //odœwie¿yæ siatki
        //Ra: jeszcze usun¹æ siatki ze skompilowanych obiektów!
       }
      break;
@@ -546,8 +546,6 @@ int WINAPI WinMain( HINSTANCE hInstance,     //instance
 {
  MSG msg; //windows message structure
  BOOL done=FALSE; //bool variable to exit loop
- //Form1= new TForm1(NULL);
- //Form1->Show();
  fullscreen=true;
  DecimalSeparator= '.';
 /* //Ra: tutaj to nie dzia³a - zwraca NULL
@@ -576,7 +574,7 @@ int WINAPI WinMain( HINSTANCE hInstance,     //instance
               str= Parser->GetNextSymbol().LowerCase();
               if (str==AnsiString("-s"))
                {
-                 str= Parser->GetNextSymbol().LowerCase();
+                 str=Parser->GetNextSymbol().LowerCase();
                  strcpy(Global::szSceneryFile,str.c_str());
                }
               else

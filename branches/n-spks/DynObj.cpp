@@ -1152,7 +1152,7 @@ __fastcall TDynamicObject::TDynamicObject()
  ReplacableSkinID[2]=0;
  ReplacableSkinID[3]=0;
  ReplacableSkinID[4]=0;
- iAlpha=0x30300030;
+ iAlpha=0x30300030; //tak gdy tekstury wymienne nie maj¹ przezroczystoœci
  smWiazary[0]=smWiazary[1]=NULL;
  smWahacze[0]=smWahacze[1]=smWahacze[2]=smWahacze[3]=NULL;
  fWahaczeAmp=0;
@@ -1242,7 +1242,7 @@ double __fastcall TDynamicObject::Init(
   Error("Parameters mismatch: dynamic object "+asName+" from\n"+BaseDir+"\\"+Type_Name);
   return 0.0;
  }
- if (MoverParameters->CategoryFlag==2) //jeœli samochód
+ if (MoverParameters->CategoryFlag&2) //jeœli samochód
  {//ustawianie samochodow na poboczu albo na œrodku drogi
   if (Track->fTrackWidth<3.5) //jeœli droga w¹ska
    MoverParameters->OffsetTrackH=0.0; //to stawiamy na œrodku, niezale¿nie od stanu ruchu
@@ -1504,9 +1504,30 @@ bool __fastcall TDynamicObject::UpdateForce(double dt, double dt1, bool FullVer)
         return false;
     if (dt>0)
      MoverParameters->ComputeTotalForce(dt, dt1, FullVer);
- return true;    
+ return true;
 }
 
+void __fastcall TDynamicObject::LoadUpdate()
+{//prze³adowanie modelu ³adunku
+ // Ra: nie próbujemy wczytywaæ modeli miliony razy podczas renderowania!!!
+ if ((mdLoad==NULL)&&(MoverParameters->Load>0))
+ {
+  AnsiString asLoadName=asBaseDir+MoverParameters->LoadType+".t3d"; //zapamiêtany katalog pojazdu
+  //asLoadName=MoverParameters->LoadType;
+  //if (MoverParameters->LoadType!=AnsiString("passengers"))
+  Global::asCurrentTexturePath=asBaseDir; //bie¿¹ca œcie¿ka do tekstur to dynamic/...
+  mdLoad=TModelsManager::GetModel(asLoadName.c_str()); //nowy ³adunek
+  Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath); //z powrotem defaultowa sciezka do tekstur
+  //Ra: w MMD mo¿na by zapisaæ po³o¿enie modelu ³adunku (np. wêgiel) w zale¿noœci od za³adowania
+ }
+ else if (MoverParameters->Load==0)
+  mdLoad=NULL; //nie ma ³adunku
+ //if ((mdLoad==NULL)&&(MoverParameters->Load>0))
+ // {
+ //  mdLoad=NULL; //Ra: to jest tu bez sensu - co autor mia³ na myœli?
+ // }
+ MoverParameters->LoadStatus&=3; //po zakoñczeniu bêdzie równe zero
+};
 
 /*
 double __fastcall ComputeRadius(double p1x, double p1z, double p2x, double p2z,
@@ -1648,7 +1669,7 @@ if (!MoverParameters->PhysicActivation)
     tp.Width=MyTrack->fTrackWidth;
 //McZapkie-250202
     tp.friction=MyTrack->fFriction;
-    tp.CategoryFlag=MyTrack->iCategoryFlag;
+    tp.CategoryFlag=MyTrack->iCategoryFlag&15;
     tp.DamageFlag=MyTrack->iDamageFlag;
     tp.QualityFlag=MyTrack->iQualityFlag;
     if ((MoverParameters->Couplers[0].CouplingFlag>0)
@@ -2117,6 +2138,17 @@ if (tmpTraction.TractionVoltage==0)
    //WriteLog(asName+" - block x: "+AnsiString(fTrackBlock));
   }
  }
+ if (MoverParameters->DerailReason>0)
+ {switch (MoverParameters->DerailReason)
+  {case 1: WriteLog(asName+" derailed due to end of track"); break;
+   case 2: WriteLog(asName+" derailed due to too high speed"); break;
+   case 3: WriteLog(asName+" derailed due to track width"); break;
+   case 4: WriteLog(asName+" derailed due to wrong track type"); break;
+  }
+  MoverParameters->DerailReason=0; //¿eby tylko raz
+ }
+ if (MoverParameters->LoadStatus)
+  LoadUpdate(); //zmiana modelu ³adunku
  return true; //Ra: chyba tak?
 }
 
@@ -2153,7 +2185,7 @@ bool __fastcall TDynamicObject::FastUpdate(double dt)
     //tp.Width=MyTrack->fTrackWidth;
     //McZapkie-250202
     //tp.friction= MyTrack->fFriction;
-    //tp.CategoryFlag= MyTrack->iCategoryFlag;
+    //tp.CategoryFlag= MyTrack->iCategoryFlag&15;
     //tp.DamageFlag=MyTrack->iDamageFlag;
     //tp.QualityFlag=MyTrack->iQualityFlag;
     //if (Mechanik)
@@ -2185,6 +2217,8 @@ else
   sBrakeAcc.Stop();
 
 SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);
+ if (MoverParameters->LoadStatus)
+  LoadUpdate(); //zmiana modelu ³adunku
  return true; //Ra: chyba tak?
 }
 
@@ -2227,7 +2261,7 @@ bool __fastcall TDynamicObject::Render()
   AnsiString asLoadName="";
   //przejœcie na uk³ad wspó³rzêdnych modelu - tu siê zniekszta³ca?
   vFront=GetDirection();
-  if ((MoverParameters->CategoryFlag==2) && (MoverParameters->CabNo<0)) //TODO: zrobic to eleganciej z plynnym zawracaniem
+  if ((MoverParameters->CategoryFlag&2) && (MoverParameters->CabNo<0)) //TODO: zrobic to eleganciej z plynnym zawracaniem
    vFront=-vFront;
   vUp=vWorldUp; //sta³a
   vFront.Normalize();
@@ -2260,7 +2294,7 @@ bool __fastcall TDynamicObject::Render()
   glTranslated(pos.x,pos.y,pos.z);
   glMultMatrixd(mMatrix.getArray());
   if (mdLowPolyInt)
-   if ((FreeFlyModeFlag)||((!FreeFlyModeFlag)&&(!mdKabina)))
+   if (FreeFlyModeFlag?true:!mdKabina)
 #ifdef USE_VBO
     if (Global::bUseVBO)
      mdLowPolyInt->RaRender(ObjSqrDist,ReplacableSkinID,iAlpha);
@@ -2274,21 +2308,6 @@ bool __fastcall TDynamicObject::Render()
   else
 #endif
    mdModel->Render(ObjSqrDist,ReplacableSkinID,iAlpha);
-/* Ra: nie próbujemy wczytywaæ modeli miliony razy podczas renderowania!!!
-  if ((mdLoad==NULL) && (MoverParameters->Load>0))
-  {
-   asLoadName=asBaseDir+MoverParameters->LoadType+".t3d";
-   //asLoadName=MoverParameters->LoadType;
-   //if (MoverParameters->LoadType!=AnsiString("passengers"))
-   Global::asCurrentTexturePath=asBaseDir; //biezaca sciezka do tekstur to dynamic/...
-   mdLoad=TModelsManager::GetModel(asLoadName.c_str()); //nowy ladunek
-   Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath); //z powrotem defaultowa sciezka do tekstur
-  }
-  if ((mdLoad==NULL) && (MoverParameters->Load>0))
-   {
-    mdLoad=NULL; //Ra: to jest tu bez sensu - co autor mia³ na myœli?
-   }
-*/
   if (mdLoad) //renderowanie nieprzezroczystego ³adunku
 #ifdef USE_VBO
    if (Global::bUseVBO)
@@ -2299,19 +2318,19 @@ bool __fastcall TDynamicObject::Render()
 
 //rendering przedsionkow o ile istnieja
   if (mdPrzedsionek)
-   if (MoverParameters->filename==asBaseDir+"6ba.chk")
+   //if (MoverParameters->filename==asBaseDir+"6ba.chk") //Ra: to tu bez sensu by³o
 #ifdef USE_VBO
-    if (Global::bUseVBO)
-     mdPrzedsionek->RaRender(ObjSqrDist,ReplacableSkinID,iAlpha);
-    else
+   if (Global::bUseVBO)
+    mdPrzedsionek->RaRender(ObjSqrDist,ReplacableSkinID,iAlpha);
+   else
 #endif
-     mdPrzedsionek->Render(ObjSqrDist,ReplacableSkinID,iAlpha);
+    mdPrzedsionek->Render(ObjSqrDist,ReplacableSkinID,iAlpha);
 //rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
 //ABu: tylko w trybie FreeFly, zwykly tryb w world.cpp
 
   if ((mdKabina!=mdModel) && bDisplayCab && FreeFlyModeFlag)
   {//Ra: a œwiet³a nie zosta³y ju¿ ustawione dla toru?
-//oswietlenie kabiny
+   //oswietlenie kabiny
    GLfloat  ambientCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
    GLfloat  diffuseCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
    GLfloat  specularCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
@@ -2684,7 +2703,7 @@ bool __fastcall TDynamicObject::RenderAlpha()
  {
   TSubModel::iInstance=(int)this; //¿eby nie robiæ cudzych animacji
   vFront= GetDirection();
-  if ((MoverParameters->CategoryFlag==2) && (MoverParameters->CabNo<0)) //TODO: zrobic to eleganciej z plynnym zawracaniem
+  if ((MoverParameters->CategoryFlag&2) && (MoverParameters->CabNo<0)) //TODO: zrobic to eleganciej z plynnym zawracaniem
    vFront=-vFront;
   vUp=vWorldUp; //Ra: jeœli to wskazuje pionowo w górê
   vFront.Normalize(); //a to w dó³ lub w górê, to mamy problem z ortogonalnoœci¹ i skalowaniem
@@ -2882,9 +2901,9 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
         ReplacableSkin=Global::asCurrentTexturePath+ReplacableSkin;      //skory tez z dynamic/...
         ReplacableSkinID[1]=TTexturesManager::GetTextureID(ReplacableSkin.c_str(),Global::iDynamicFiltering);
         if (TTexturesManager::GetAlpha(ReplacableSkinID[1]))
-         iAlpha=0x31310031; //tekstura z kana³em alfa - nie renderowaæ w cyklu nieprzezroczystych
+         iAlpha=0x31310031; //tekstura -1 z kana³em alfa - nie renderowaæ w cyklu nieprzezroczystych
         else
-         iAlpha=0x30300030; //tekstura nieprzezroczysta - nie renderowaæ w cyklu przezroczystych
+         iAlpha=0x30300030; //wszystkie tekstury nieprzezroczyste - nie renderowaæ w cyklu przezroczystych
        }
   //Winger 040304 - ladowanie przedsionkow dla EZT
        if (MoverParameters->TrainType==dt_EZT)

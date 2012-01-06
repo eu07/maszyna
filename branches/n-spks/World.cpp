@@ -728,7 +728,7 @@ bool __fastcall TWorld::Update()
     if (Global::iMultisampling) //a multisampling jest w³¹czony
      glEnable(GL_MULTISAMPLE);
   }
-  iCheckFPS=2*GetFPS(); //tak ze 2 sekundy poczekaæ
+  iCheckFPS=0.5*GetFPS(); //tak ze 2 sekundy poczekaæ - zacina
  }
  UpdateTimers(Global::bPause);
  if (!Global::bPause)
@@ -820,62 +820,6 @@ bool __fastcall TWorld::Update()
     glFogfv(GL_FOG_COLOR,Global::FogColor); //kolor mg³y
    glClearColor(sky.x,sky.y,sky.z,0.0); //kolor nieba
   }
-
- /*
-//ZiomalCl: uzaleznienie pory dnia od godziny w takiej formie wylaczone
-//bo nie wyglada to ladnie wraz z tex nieba lub w nocy
-
-    //Winger - zmiana pory dnia
-    //ABu - maly lifting tego, co bylo:
-//if (Global::bTimeChange)
-//{
-    if(lastmm!=GlobalTime->mm)
-    {
-       double czas, arg;
-       float p1, p2, p3, p4, p5, p6, p7;
-       if ((GlobalTime->hh<GlobalTime->srh)||(GlobalTime->hh>(GlobalTime->ssh-1)))
-          {czas=0; p1=0; arg=0;}
-       else
-          {
-             czas=GlobalTime->mm+(GlobalTime->hh-GlobalTime->srh)*60;
-           //p1=(1-cos(((czas/((1440-((24-(SR+(24-SS)))*60))/360))/360)*2*M_PI))*100;
-             arg=(czas/((GlobalTime->ssh-GlobalTime->srh)*60))*2*M_PI;
-             p1=(1-cos(arg))*10;
-          }
-       //p1 = GameTime/3000;
-       //p2 = GameTime/6.2;
-       if(arg<M_PI)
-          p2 = p1*16*1.5;
-       else
-       if(arg<((3*M_PI)/2))
-          p2 = 320*1.5;
-       else
-          p2 = (1-(cos(arg)*cos(arg)))*320*1.5;
-
-       p3 = p1 + 0.0f;
-       p4 = p1 + 0.05f;
-       p5 = p1 + 0.2f;
-       p6 = p2 + 10.0f; //1.5f
-       p7 = (p2*3.45) + 125.0f;
-
-       if (p1<0.6f)
-       {
-       GLfloat  FogColor2[]    = { p3, p4, p5, 1.0f };
-       //dzien ladny:
-       glClearColor (0.0+p1, 0.05+p1, 0.2+p1, 0.0);
-       //dzien brzydki:
-       //glClearColor (0.02+p1, 0.02+p1, 0.02+p1, 0.0);
-       glFogfv(GL_FOG_COLOR, FogColor2);					// Set Fog Color
-       }
-       if (p6<300.0f)
-       {
-       glFogf(GL_FOG_START, p6);						// Fog Start Depth
-       glFogf(GL_FOG_END, p7);							// Fog End Depth
-       glEnable(GL_FOG);									// Enables GL_FOG
-       }
-       lastmm=GlobalTime->mm;
-    }
-    */
  } //koniec dzia³añ niewykonywanych podczas pauzy
  if (Global::bActive)
  {//obs³uga ruchu kamery tylko gdy okno jest aktywne
@@ -1712,7 +1656,7 @@ bool __fastcall TWorld::Render()
 //     if (Controlled)
 //        Train->RenderAlpha();
     glFlush();
-    Global::bReCompile=false; //Ra: ju¿ zrobiona rekompilacja
+    //Global::bReCompile=false; //Ra: ju¿ zrobiona rekompilacja
 
     ResourceManager::Sweep(Timer::GetSimulationTime());
 

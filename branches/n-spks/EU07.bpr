@@ -58,11 +58,11 @@
   <IDEOPTIONS>
 [Version Info]
 IncludeVerInfo=1
-AutoIncBuild=1
+AutoIncBuild=0
 MajorVer=0
 MinorVer=666
-Release=279
-Build=290
+Release=292
+Build=295
 Debug=1
 PreRelease=0
 Special=0
@@ -74,12 +74,13 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-InternalName=6th by Ra with SPKS
+FileVersion=0.666.292.295
+InternalName=6th by Ra + SPKS
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=eu07.exe
 ProductName=MaSzyna EU07-424
-ProductVersion=1.3
+ProductVersion=0.666
 Comments=
 
 [HistoryLists\hlIncludePath]

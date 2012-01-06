@@ -116,13 +116,14 @@ CONST
    p_slippdmg=0.001;
 
    {typ sprzegu}
-   ctrain_virtual=0;
+   ctrain_virtual=0;        //gdy pojazdy na tym samym torze siê widz¹ wzajemnie
    ctrain_coupler=1;        //sprzeg fizyczny
    ctrain_pneumatic=2;      //przewody hamulcowe
    ctrain_controll=4;       //przewody steruj¹ce (ukrotnienie)
    ctrain_power=8;          //przewody zasilaj¹ce (WN)
    ctrain_passenger=16;     //mostek przejœciowy
-   ctrain_scndpneumatic=32; //przewody 8 atm
+   ctrain_scndpneumatic=32; //przewody 8 atm (¿ó³te; zasilanie powietrzem)
+   ctrain_heating=64;       //ogrzewanie (elektryczne?)
    ctrain_localbrake=64;   {przewód hamulca niesamoczynnego}
 
    {typ hamulca elektrodynamicznego}
@@ -160,8 +161,8 @@ CONST
    dt_ET41=2;
    dt_ET42=4;
    dt_PseudoDiesel=8;
-   dt_ET22=$10; //nie u¿ywane w warunkach, ale ustawiane
-   dt_SN61=$20; //nie u¿ywane w warunkach, ale ustawiane
+   dt_ET22=$10; //nie u¿ywane w warunkach, ale ustawiane z CHK
+   dt_SN61=$20; //nie u¿ywane w warunkach, ale ustawiane z CHK
    dt_181=$40;
 
 TYPE
@@ -211,16 +212,18 @@ TYPE
                   CouplerType: TCouplerType;     {typ sprzegu}
                   {zmienne}
                   CouplingFlag : byte; {0 - wirtualnie, 1 - sprzegi, 2 - pneumatycznie, 4 - sterowanie, 8 - kabel mocy}
+                  AllowedFlag : byte;          //Ra: znaczenie jak wy¿ej, maska dostêpnych
                   Render: boolean;             {ABu: czy rysowac jak zaczepiony sprzeg}
                   CoupleDist: real;            {ABu: optymalizacja - liczenie odleglosci raz na klatkê, bez iteracji}
                   Connected: PMoverParameters; {co jest podlaczone}
+                  ConnectedNr: byte;           //Ra: od której strony pod³¹czony do (Connected): 0=przód, 1=ty³
                   CForce: real;                {sila z jaka dzialal}
                   Dist: real;                  {strzalka ugiecia zderzaków}
                   CheckCollision: boolean;     {czy sprawdzac sile czy pedy}
                 end;
 
     TCouplers= array[0..1] of TCoupling;
-    TCouplerNr= array[0..1] of byte; //ABu: nr sprzegu z ktorym polaczony; Ra: wrzuciæ do TCoupling
+    //TCouplerNr= array[0..1] of byte; //ABu: nr sprzegu z ktorym polaczony; Ra: wrzuciæ do TCoupling
 
     {typy hamulcow zespolonych}
     TBrakeSystem = (Individual, Pneumatic, ElectroPneumatic);
@@ -435,7 +438,7 @@ TYPE
                CtrlDelay: real;        { -//-  -//- miedzy kolejnymi poz.}
                AutoRelayType: byte;    {0 -brak, 1 - jest, 2 - opcja}
                CoupledCtrl: boolean;   {czy mainctrl i scndctrl sa sprzezone}
-               CouplerNr: TCouplerNr;  {ABu: nr sprzegu podlaczonego w drugim obiekcie}
+               //CouplerNr: TCouplerNr;  {ABu: nr sprzegu podlaczonego w drugim obiekcie}
                IsCoupled: boolean;     {czy jest sprzezony ale jedzie z tylu}
                DynamicBrakeType: byte; {patrz dbrake_*}
                RVentType: byte;        {0 - brak, 1 - jest, 2 - automatycznie wlaczany}
@@ -539,7 +542,8 @@ TYPE
                 ActFlowSpeed: real;                 {szybkosc stabilizatora}
 
 
-                DamageFlag: byte;  {kombinacja bitowa stalych dtrain_* }
+                DamageFlag: byte;  //kombinacja bitowa stalych dtrain_* }
+                DerailReason: byte; //przyczyna wykolejenia
 
                 //EndSignalsFlag: byte;  {ABu 060205: zmiany - koncowki: 1/16 - swiatla prz/tyl, 2/31 - blachy prz/tyl}
                 //HeadSignalsFlag: byte; {ABu 060205: zmiany - swiatla: 1/2/4 - przod, 16/32/63 - tyl}
@@ -547,8 +551,8 @@ TYPE
                 {komenda przekazywana przez PutCommand}
                 {i wykonywana przez RunInternalCommand}
                 CommandOut: string;        {komenda przekazywana przez ExternalCommand}
-                CommandLast: string; //Ra: ostatnio wykonana komenda podgl¹du
-                ValueOut: real;            {argument komendy ktora ma byc przekazana na zewnatrz}
+                CommandLast: string; //Ra: ostatnio wykonana komenda do podgl¹du
+                ValueOut: real;            {argument komendy która ma byc przekazana na zewnatrz}
 
                 RunningShape:TTrackShape;{geometria toru po ktorym jedzie pojazd}
                 RunningTrack:TTrackParam;{parametry toru po ktorym jedzie pojazd}
@@ -604,8 +608,8 @@ TYPE
                 {-dla wagonow}
                 Load: longint;      {masa w T lub ilosc w sztukach - zaladowane}
                 LoadType: string;   {co jest zaladowane}
-                LoadStatus: integer;{-1 - trwa rozladunek, 1 - trwa naladunek, 0 - gotowe}
-                LastLoadChangeTime: real;
+                LoadStatus: byte; //+1=trwa rozladunek,+2=trwa zaladunek,+4=zakoñczono,0=zaktualizowany model
+                LastLoadChangeTime: real; //raz (roz)³adowania
 
                 DoorLeftOpened: boolean;  //stan drzwi
                 DoorRightOpened: boolean;
@@ -1103,7 +1107,7 @@ begin
  if OK then
   with Couplers[d] do //w³asny sprzêg od strony (d)
    if TestFlag(CouplingFlag,ctrain_controll) then
-    if CouplerNr[d]<>d then //jeœli ten nastpêny jest zgodny z aktualnym
+    if ConnectedNr<>d then //jeœli ten nastpêny jest zgodny z aktualnym
      begin
       if Connected^.SetInternalCommand(CtrlCommand,ctrlvalue,dir) then
        OK:=Connected^.RunInternalCommand and OK;
@@ -2229,8 +2233,8 @@ begin
   begin
    if (ConnectTo<>nil) then
     begin
-     if (ConnectToNr<>2) then CouplerNr[ConnectNo]:=ConnectToNr; {2=nic nie pod³¹czone}
-     ct:=ConnectTo^.Couplers[CouplerNr[ConnectNo]].CouplerType; //typ sprzêgu pod³¹czanego pojazdu
+     if (ConnectToNr<>2) then ConnectedNr:=ConnectToNr; {2=nic nie pod³¹czone}
+     ct:=ConnectTo^.Couplers[ConnectedNr].CouplerType; //typ sprzêgu pod³¹czanego pojazdu
      CoupleDist:=Distance(Loc,ConnectTo^.Loc,Dim,ConnectTo^.Dim); //odleg³oœæ pomiêdzy sprzêgami
      if (((CoupleDist<=dEpsilon) and (CouplerType<>NoCoupler) and (CouplerType=ct))
         or (CouplingType and ctrain_coupler=0))
@@ -2240,12 +2244,12 @@ begin
         if CouplingFlag=ctrain_virtual then //jeœli wczeœniej nie by³o po³¹czone
          begin //ustalenie z której strony rysowaæ sprzêg
           Render:=True; //tego rysowaæ
-          Connected.Couplers[CouplerNr[ConnectNo]].Render:=false; //a tego nie
+          Connected.Couplers[ConnectedNr].Render:=false; //a tego nie
          end;
         CouplingFlag:=CouplingType;
         if (CouplingType<>ctrain_virtual) //Ra: wirtualnego nie ³¹czymy zwrotnie!
         then //jeœli ³¹czenie sprzêgiem niewirtualnym, ustawiamy po³¹czenie zwrotne
-         Connected.Couplers[CouplerNr[ConnectNo]].CouplingFlag:=CouplingType;
+         Connected.Couplers[ConnectedNr].CouplingFlag:=CouplingType;
         Attach:=True;
       end
      else
@@ -2282,13 +2286,13 @@ begin
      begin  {gdy podlaczony oraz scisniete zderzaki chyba ze zerwany sprzeg albo tylko wirtualnie}
 {       Connected:=nil;  } {lepiej zostawic bo przeciez trzeba kontrolowac zderzenia odczepionych}
        CouplingFlag:=0; //pozostaje sprzêg wirtualny
-       Connected.Couplers[CouplerNr[ConnectNo]].CouplingFlag:=0; //pozostaje sprzêg wirtualny
+       Connected.Couplers[ConnectedNr].CouplingFlag:=0; //pozostaje sprzêg wirtualny
        Dettach:=True;
      end
    else
      begin //od³¹czamy wê¿e i resztê, pozostaje sprzêg fizyczny
        CouplingFlag:=CouplingFlag and ctrain_coupler;
-       Connected.Couplers[CouplerNr[ConnectNo]].CouplingFlag:=CouplingFlag;
+       Connected.Couplers[ConnectedNr].CouplingFlag:=CouplingFlag;
        Pipe.Flow(-3);
        Connected.Pipe.Flow(-3);
        Dettach:=False; //jeszcze nie roz³¹czony
@@ -3401,7 +3405,7 @@ const MaxDist=405.0; {ustawione + 5 m, bo skanujemy do 400 m }
 begin
   CF:=0;
   //distDelta:=0; //Ra: value never used
-  CNext:=CouplerNr[CouplerN];
+  CNext:=Couplers[CouplerN].ConnectedNr;
 {  if Couplers[CouplerN].CForce=0 then  {nie bylo uzgadniane wiec policz}
    with Couplers[CouplerN] do
     begin
@@ -3411,14 +3415,14 @@ begin
       if (CouplerN=0) then
          begin
             //ABu: bylo newdist+10*((...
-            tempdist:=((Connected^.dMoveLen*DirPatch(0,CouplerNr[0]))-dMoveLen);
+            tempdist:=((Connected^.dMoveLen*DirPatch(0,ConnectedNr))-dMoveLen);
             newdist:=newdist+10.0*tempdist;
             tempdist:=tempdist+CoupleDist; //ABu: proby szybkiego naprawienia bledu
          end
       else
          begin
             //ABu: bylo newdist+10*((...
-            tempdist:=((dMoveLen-(Connected^.dMoveLen*DirPatch(1,CouplerNr[1]))));
+            tempdist:=((dMoveLen-(Connected^.dMoveLen*DirPatch(1,ConnectedNr))));
             newdist:=newdist+10.0*tempdist;
             tempdist:=tempdist+CoupleDist; //ABu: proby szybkiego naprawienia bledu
          end;
@@ -3512,8 +3516,8 @@ begin
         Vprev:=V;
         VprevC:=Connected^.V;
         case CouplerN of
-         0 : CCF:=ComputeCollision(V,Connected^.V,TotalMass,Connected^.TotalMass,(beta+Connected^.Couplers[CouplerNr[CouplerN]].beta)/2.0,VirtualCoupling)/(dt{+0.01}); //yB: ej ej ej, a po
-         1 : CCF:=ComputeCollision(Connected^.V,V,Connected^.TotalMass,TotalMass,(beta+Connected^.Couplers[CouplerNr[CouplerN]].beta)/2.0,VirtualCoupling)/(dt{+0.01}); //czemu tu jest +0.01??
+         0 : CCF:=ComputeCollision(V,Connected^.V,TotalMass,Connected^.TotalMass,(beta+Connected^.Couplers[ConnectedNr].beta)/2.0,VirtualCoupling)/(dt{+0.01}); //yB: ej ej ej, a po
+         1 : CCF:=ComputeCollision(Connected^.V,V,Connected^.TotalMass,TotalMass,(beta+Connected^.Couplers[ConnectedNr].beta)/2.0,VirtualCoupling)/(dt{+0.01}); //czemu tu jest +0.01??
         end;
         AccS:=AccS+(V-Vprev)/dt;
         Connected^.AccS:=Connected^.AccS+(Connected^.V-VprevC)/dt;
@@ -3595,42 +3599,48 @@ end;
 
 
 function TMoverParameters.LoadingDone(LSpeed:real; LoadInit:string): boolean;
+//test zakoñczenia za³adunku/roz³adunku
 var LoadChange:longint;
 begin
-  ClearPendingExceptions;
-  LoadingDone:=False;
-  if (LoadInit<>'') then
-   begin
-     if Load>MaxLoad then
-      LoadChange:=Abs(Trunc(LSpeed*LastLoadChangeTime/2.0))
-     else LoadChange:=Abs(Trunc(LSpeed*LastLoadChangeTime));
-     if LoadChange<>0 then
+ ClearPendingExceptions; //zabezpieczenie dla Trunc()
+ LoadingDone:=False; //nie zakoñczone
+ if (LoadInit<>'') then //nazwa ³adunku niepusta
+  begin
+   if Load>MaxLoad then
+    LoadChange:=Abs(Trunc(LSpeed*LastLoadChangeTime/2.0)) //prze³adowanie?
+   else
+    LoadChange:=Abs(Trunc(LSpeed*LastLoadChangeTime));
+   if LSpeed<0 then //gdy roz³adunek
+    begin
+     LoadStatus:=2; //trwa roz³adunek (w³¹czenie naliczania czasu)
+     if LoadChange<>0 then //jeœli coœ prze³adowano
       begin
-        LastLoadChangeTime:=0;
-        if LSpeed<0 then
-          begin
-            LoadStatus:=-1;
-            Load:=Load-LoadChange;
-            CommandIn.Value1:=CommandIn.Value1-LoadChange;
-            if Load<0 then
-             Load:=0;
-            if (Load=0) or (CommandIn.Value1<0) then
-             LoadingDone:=True;  {skonczony wyladunek}
-            if Load=0 then LoadType:='';
-          end
-        else
-         if LSpeed>0 then
-          begin
-            LoadType:=LoadInit;
-            LoadStatus:=1;
-            Load:=Load+LoadChange;
-            CommandIn.Value1:=CommandIn.Value1-LoadChange;
-            if (Load>=MaxLoad*(1+OverLoadFactor)) or (CommandIn.Value1<0) then
-             LoadingDone:=True;      {skonczony zaladunek}
-          end
-         else LoadingDone:=True;
-      end;
-   end;
+       LastLoadChangeTime:=0; //naliczony czas zosta³ zu¿yty
+       Load:=Load-LoadChange; //zmniejszenie iloœci ³adunku
+       CommandIn.Value1:=CommandIn.Value1-LoadChange; //zmniejszenie iloœci do roz³adowania
+       if Load<0 then
+        Load:=0; //³adunek nie mo¿e byæ ujemny
+       if (Load=0) or (CommandIn.Value1<0) then //pusto lub roz³adowano ¿¹dan¹ iloœæ
+        LoadStatus:=4; //skoñczony roz³adunek
+       if Load=0 then LoadType:=''; //jak nic nie ma, to nie ma te¿ nazwy
+      end
+    end
+   else if LSpeed>0 then //gdy za³adunek
+    begin
+     LoadStatus:=1; //trwa za³adunek (w³¹czenie naliczania czasu)
+     if LoadChange<>0 then //jeœli coœ prze³adowano
+      begin
+       LastLoadChangeTime:=0; //naliczony czas zosta³ zu¿yty
+       LoadType:=LoadInit; //nazwa
+       Load:=Load+LoadChange; //zwiêkszenie ³adunku
+       CommandIn.Value1:=CommandIn.Value1-LoadChange;
+       if (Load>=MaxLoad*(1+OverLoadFactor)) or (CommandIn.Value1<0) then
+        LoadStatus:=4; //skoñczony za³adunek
+      end
+    end
+   else LoadStatus:=4; //zerowa prêdkoœæ zmiany, to koniec
+  end;
+ LoadingDone:=(LoadStatus>=4);
 end;
 
 {-------------------------------------------------------------------}
@@ -3788,6 +3798,10 @@ begin
            EventFlag:=True;
            MainS:=False;
            RunningShape.R:=0;
+           if (TestFlag(Track.DamageFlag,dtrack_norail)) then
+            DerailReason:=1 //Ra: powód wykolejenia: brak szyn
+           else
+            DerailReason:=2; //Ra: powód wykolejenia: przewrócony na ³uku
          end;
      {wykolejanie na poszerzeniu toru}
         if FuzzyLogic(Abs(Track.Width-TrackW),TrackW/10.0,1) then
@@ -3796,6 +3810,7 @@ begin
             EventFlag:=True;
             MainS:=False;
             RunningShape.R:=0;
+            DerailReason:=3; //Ra: powód wykolejenia: za szeroki tor
           end;
       end;
      {wykolejanie wkutek niezgodnosci kategorii toru i pojazdu}
@@ -3804,6 +3819,7 @@ begin
         begin
           EventFlag:=True;
           MainS:=False;
+          DerailReason:=4; //Ra: powód wykolejenia: nieodpowiednia trajektoria
         end;
 
      V:=V+(3*AccS-AccSprev)*dt/2.0;                                  {przyrost predkosci}
@@ -3854,6 +3870,8 @@ begin
    {koniec procedury, tu nastepuja dodatkowe procedury pomocnicze}
 
 {sprawdzanie i ewentualnie wykonywanie->kasowanie polecen}
+ if (LoadStatus>0) then //czas doliczamy tylko jeœli trwa (roz)³adowanie
+  LastLoadChangeTime:=LastLoadChangeTime+dt; //czas (roz)³adunku
  RunInternalCommand;
 
 {automatyczny rozruch}
@@ -4006,6 +4024,8 @@ begin
    {koniec procedury, tu nastepuja dodatkowe procedury pomocnicze}
 
 {sprawdzanie i ewentualnie wykonywanie->kasowanie polecen}
+ if (LoadStatus>0) then //czas doliczamy tylko jeœli trwa (roz)³adowanie
+  LastLoadChangeTime:=LastLoadChangeTime+dt; //czas (roz)³adunku
  RunInternalCommand;
 
  if EngineType=DieselEngine then
@@ -4079,7 +4099,7 @@ begin
      Value1:=NewValue1;
      Value2:=NewValue2;
      SetInternalCommand:=True;
-     LastLoadChangeTime:=0;
+     LastLoadChangeTime:=0; //zerowanie czasu (roz)³adowania
     end;
 end;
 
@@ -4338,29 +4358,29 @@ else if command='PantFront' then         {Winger 160204}
  {naladunek/rozladunek}
   else if Pos('Load=',command)=1 then
    begin
-    OK:=False;
-    if (V=0) and (MaxLoad>0) and (Load<MaxLoad*(1+OverLoadFactor)) then {czy mozna ladowac?}
-     if Distance(Loc,CommandIn.Location,Dim,Dim)<3 then {ten peron/rampa}
+    OK:=False; //bêdzie powtarzane a¿ siê za³aduje
+    if (Vel=0) and (MaxLoad>0) and (Load<MaxLoad*(1+OverLoadFactor)) then //czy mo¿na ³adowac?
+     if Distance(Loc,CommandIn.Location,Dim,Dim)<10 then //ten peron/rampa
       begin
        testload:=LowerCase(DUE(command));
-       if Pos(testload,LoadAccepted)>0 then {mozna to zaladowac}
-        OK:=LoadingDone(Min0R(CValue2,LoadSpeed),testload);
+       if Pos(testload,LoadAccepted)>0 then //nazwa jest obecna w CHK
+        OK:=LoadingDone(Min0R(CValue2,LoadSpeed),testload); //zmienia LoadStatus
       end;
-    if OK then LoadStatus:=0; {nie udalo sie w ogole albo juz skonczone}
+    //if OK then LoadStatus:=0; //nie udalo sie w ogole albo juz skonczone
    end
   else if Pos('UnLoad=',command)=1 then
    begin
-    OK:=True;
-    if (V=0) and (Load>0) then                {czy jest co rozladowac?}
-     if Distance(Loc,CommandIn.Location,Dim,Dim)<10 then {ten peron}
+    OK:=False; //bêdzie powtarzane a¿ siê roz³aduje
+    if (Vel=0) and (Load>0) then //czy jest co rozladowac?
+     if Distance(Loc,CommandIn.Location,Dim,Dim)<10 then //ten peron
       begin
-        testload:=DUE(command);
-        if LoadType=testload then {mozna to rozladowac}
-         OK:=LoadingDone(-Min0R(CValue2,LoadSpeed),testload);
+       testload:=DUE(command); //zgodnoœæ nazwy ³adunku z CHK
+       if LoadType=testload then {mozna to rozladowac}
+        OK:=LoadingDone(-Min0R(CValue2,LoadSpeed),testload);
       end;
-    if OK then LoadStatus:=0;
+    //if OK then LoadStatus:=0;
    end;
-  RunCommand:=OK;
+  RunCommand:=OK; //dla true komenda bêdzie usuniêta, dla false wykonana ponownie
 {$B-}
 End;
 
@@ -4524,8 +4544,10 @@ begin
   for b:=0 to 1 do
    with Couplers[b] do
     begin
+      AllowedFlag:=255; //domyœlnie wszystkie
       CouplingFlag:=0;
       Connected:=nil;
+      ConnectedNr:=0; //Ra: to nie ma znaczenia jak nie pod³¹czony
       Render:=false;
       CForce:=0;
       Dist:=0;
@@ -4637,8 +4659,8 @@ begin
       RadioStop:=false; //domyœlnie nie ma
     end;
     //ABu 240105:
-    CouplerNr[0]:=1;
-    CouplerNr[1]:=0;
+    //CouplerNr[0]:=1;
+    //CouplerNr[1]:=0;
 
 {TO POTEM TU UAKTYWNIC A WYWALIC Z CHECKPARAM}
 {
@@ -4655,6 +4677,7 @@ begin
  }
 
   Name:=NameInit;
+ DerailReason:=0; //Ra: powód wykolejenia
 end;
 
 function TMoverParameters.EngineDescription(what:integer): string;  {opis stanu lokomotywy}
@@ -5336,7 +5359,7 @@ begin
               s:=ExtractKeyWord(lines,'CompressorSpeed=');
               CompressorSpeed:=s2r(DUE(s));
               s:=DUE(ExtractKeyWord(lines,'CompressorPower='));
-              if s='Converter' then    
+              if s='Converter' then
                CompressorPower:=2
               else if s='Main' then
                CompressorPower:=0;
@@ -5398,6 +5421,8 @@ begin
                  CouplerType:=Articulated
                 else
                  CouplerType:=NoCoupler;
+                s:=ExtractKeyWord(lines,'AllowedFlag=');
+                if s<>'' then AllowedFlag:=s2NNW(DUE(s));
                 if (CouplerType<>NoCoupler) and (CouplerType<>Bare) and (CouplerType<>Articulated) then
                  begin
                    s:=ExtractKeyWord(lines,'kC=');
@@ -5471,6 +5496,8 @@ begin
                  CouplerType:=Articulated
                 else
                  CouplerType:=NoCoupler;
+                s:=ExtractKeyWord(lines,'AllowedFlag=');
+                if s<>'' then AllowedFlag:=s2NNW(DUE(s));
                 if (CouplerType<>NoCoupler) and (CouplerType<>Bare) and (CouplerType<>Articulated) then
                  begin
                    s:=ExtractKeyWord(lines,'kC=');

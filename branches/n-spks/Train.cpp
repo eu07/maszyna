@@ -102,6 +102,7 @@ __fastcall TTrain::TTrain()
     pMechSittingPosition=vector3(0,0,0); //ABu: 180404
     LampkaUniversal3_st=false; //ABu: 030405
  dsbSlipAlarm=NULL;
+ dsbCouplerStretch=NULL;
 }
 
 __fastcall TTrain::~TTrain()
@@ -1782,15 +1783,15 @@ DynamicObject->MoverParameters->Hamulec->Releaser(0); //odluŸniacz rêczny
      dsbBufferClamp->SetVolume(-20);
     dsbBufferClamp->Play(0,0,0);
   }
-
-  if (TestFlag(DynamicObject->MoverParameters->SoundFlag,sound_couplerstretch)) // sprzegi sie rozciagaja
+  if (dsbCouplerStretch)
+   if (TestFlag(DynamicObject->MoverParameters->SoundFlag,sound_couplerstretch)) // sprzegi sie rozciagaja
    {
     if (TestFlag(DynamicObject->MoverParameters->SoundFlag,sound_loud))
      dsbCouplerStretch->SetVolume(DSBVOLUME_MAX);
     else
      dsbCouplerStretch->SetVolume(-20);
     dsbCouplerStretch->Play(0,0,0);
-  }
+   }
 
   if (DynamicObject->MoverParameters->SoundFlag==0)
    if (DynamicObject->MoverParameters->EventFlag)
@@ -2324,6 +2325,17 @@ else
       btLampkaDoorRight.TurnOn();
     else
       btLampkaDoorRight.TurnOff();
+
+    if (DynamicObject->MoverParameters->ActiveDir>0)
+     btLampkaForward.TurnOn(); //jazda do przodu
+    else
+     btLampkaForward.TurnOff();
+
+    if (DynamicObject->MoverParameters->ActiveDir<0)
+     btLampkaBackward.TurnOn(); //jazda do ty³u
+    else
+     btLampkaBackward.TurnOff();
+
 //McZapkie-080602: obroty (albo translacje) regulatorow
     if (MainCtrlGauge.SubModel)
      {
@@ -2422,6 +2434,7 @@ else
       ConverterButtonGauge.Update();
     if (ConverterOffButtonGauge.SubModel)
       ConverterOffButtonGauge.Update();
+
     if (((DynamicObject->iLights[0])==0)
       &&((DynamicObject->iLights[1])==0))
      {
@@ -2431,6 +2444,10 @@ else
         RightEndLightButtonGauge.PutValue(0);
         LeftEndLightButtonGauge.PutValue(0);
      }
+
+     //---------
+     //hunter-101212: poprawka na zle obracajace sie przelaczniki
+     /*
      if (((DynamicObject->iLights[0]&1)==1)
       ||((DynamicObject->iLights[1]&1)==1))
         LeftLightButtonGauge.PutValue(1);
@@ -2460,8 +2477,86 @@ else
         }
         else
            RightLightButtonGauge.PutValue(-1);
+      */
+
+     //--------------
+     //REFLEKTOR LEWY
+     //glowne oswietlenie
+     if ((DynamicObject->iLights[0]&1)==1)
+      if ((DynamicObject->MoverParameters->ActiveCab)==1)
+        LeftLightButtonGauge.PutValue(1);
+
+     if ((DynamicObject->iLights[1]&1)==1)
+      if ((DynamicObject->MoverParameters->ActiveCab)==-1)
+        LeftLightButtonGauge.PutValue(1);
 
 
+     //koncowki
+     if ((DynamicObject->iLights[0]&2)==2)
+      if ((DynamicObject->MoverParameters->ActiveCab)==1)
+        if (LeftEndLightButtonGauge.SubModel)
+        {
+           LeftEndLightButtonGauge.PutValue(1);
+           LeftLightButtonGauge.PutValue(0);
+        }
+        else
+           LeftLightButtonGauge.PutValue(-1);
+
+     if ((DynamicObject->iLights[1]&2)==2)
+      if ((DynamicObject->MoverParameters->ActiveCab)==-1)
+      {
+        if (LeftEndLightButtonGauge.SubModel)
+        {
+           LeftEndLightButtonGauge.PutValue(1);
+           LeftLightButtonGauge.PutValue(0);
+        }
+        else
+           LeftLightButtonGauge.PutValue(-1);
+      }
+     //--------------
+     //REFLEKTOR GORNY
+     if ((DynamicObject->iLights[0]&4)==4)
+      if ((DynamicObject->MoverParameters->ActiveCab)==1)
+        UpperLightButtonGauge.PutValue(1);
+
+     if ((DynamicObject->iLights[1]&4)==4)
+      if ((DynamicObject->MoverParameters->ActiveCab)==-1)
+        UpperLightButtonGauge.PutValue(1);
+     //--------------
+     //REFLEKTOR PRAWY
+     //glowne oswietlenie
+     if ((DynamicObject->iLights[0]&16)==16)
+      if ((DynamicObject->MoverParameters->ActiveCab)==1)
+        RightLightButtonGauge.PutValue(1);
+
+     if ((DynamicObject->iLights[1]&16)==16)
+      if ((DynamicObject->MoverParameters->ActiveCab)==-1)
+        RightLightButtonGauge.PutValue(1);
+
+
+     //koncowki
+     if ((DynamicObject->iLights[0]&32)==32)
+      if ((DynamicObject->MoverParameters->ActiveCab)==1)
+        if (RightEndLightButtonGauge.SubModel)
+        {
+           RightEndLightButtonGauge.PutValue(1);
+           RightLightButtonGauge.PutValue(0);
+        }
+        else
+           RightLightButtonGauge.PutValue(-1);
+
+     if ((DynamicObject->iLights[1]&32)==32)
+      if ((DynamicObject->MoverParameters->ActiveCab)==-1)
+      {
+        if (RightEndLightButtonGauge.SubModel)
+        {
+           RightEndLightButtonGauge.PutValue(1);
+           RightLightButtonGauge.PutValue(0);
+        }
+        else
+           RightLightButtonGauge.PutValue(-1);
+      }
+    //---------
 //Winger 010304 - pantografy
     if (PantFrontButtonGauge.SubModel)
     {
@@ -3298,6 +3393,8 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     btLampkaStycznB.Clear();
     btLampkaNadmPrzetwB.Clear();
     btLampkaWylSzybkiB.Clear();
+    btLampkaForward.Clear();
+    btLampkaBackward.Clear();
     LeftLightButtonGauge.Clear();
     RightLightButtonGauge.Clear();
     UpperLightButtonGauge.Clear();
@@ -3545,6 +3642,10 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     btLampkaStycznB.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("i-conv_ovldb:"))
     btLampkaNadmPrzetwB.Load(Parser,DynamicObject->mdKabina);
+   else if (str==AnsiString("i-forward:"))
+    btLampkaForward.Load(Parser,DynamicObject->mdKabina);
+   else if (str==AnsiString("i-backward:"))
+    btLampkaBackward.Load(Parser,DynamicObject->mdKabina);
    //btLampkaUnknown.Init("unknown",mdKabina,false);
   }
  }
