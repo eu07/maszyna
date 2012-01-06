@@ -11,11 +11,9 @@ Type
    TMTableLine=record
                 km:real;                //kilometraz linii
                 vmax:real;              //predkosc rozkladowa przed przystankiem
-                //StationName:string[32]; //nazwa stacji ('_' zamiast spacji)
-                //StationWare:string[32]; //typ i wyposazenie stacji, oddz. przecinkami}
-                StationName:string;     //nazwa stacji ('_' zamiast spacji)
-                StationWare:string;     //typ i wyposazenie stacji, oddz. przecinkami}
-                TrackNo:byte;           //ilosc torow szlakowych
+                StationName:string[32]; //nazwa stacji ('_' zamiast spacji)
+                StationWare:string[32]; //typ i wyposazenie stacji, oddz. przecinkami}
+                TrackNo:byte;           {ilosc torow szlakowych}
                 Ah,Am:integer;          //godz. i min. przyjazdu, -1 gdy bez postoju
                 Dh,Dm:integer;          //godz. i min. odjazdu
                 tm:real;                //czas jazdy do tej stacji w min. (z kolumny)

@@ -1242,7 +1242,7 @@ double __fastcall TDynamicObject::Init(
   Error("Parameters mismatch: dynamic object "+asName+" from\n"+BaseDir+"\\"+Type_Name);
   return 0.0;
  }
- if (MoverParameters->CategoryFlag&2) //jeœli samochód
+ if (MoverParameters->CategoryFlag==2) //jeœli samochód
  {//ustawianie samochodow na poboczu albo na œrodku drogi
   if (Track->fTrackWidth<3.5) //jeœli droga w¹ska
    MoverParameters->OffsetTrackH=0.0; //to stawiamy na œrodku, niezale¿nie od stanu ruchu
@@ -1648,7 +1648,7 @@ if (!MoverParameters->PhysicActivation)
     tp.Width=MyTrack->fTrackWidth;
 //McZapkie-250202
     tp.friction=MyTrack->fFriction;
-    tp.CategoryFlag=MyTrack->iCategoryFlag&15;
+    tp.CategoryFlag=MyTrack->iCategoryFlag;
     tp.DamageFlag=MyTrack->iDamageFlag;
     tp.QualityFlag=MyTrack->iQualityFlag;
     if ((MoverParameters->Couplers[0].CouplingFlag>0)
@@ -1730,11 +1730,11 @@ if (!MoverParameters->PhysicActivation)
 //    { MoverParameters->SecuritySystemReset(); }
     if (MoverParameters->ActiveCab==0)
         MoverParameters->SecuritySystemReset();
-    else                               
-     if ((Controller!=Humandriver)&&(MoverParameters->BrakeCtrlPos<0)&&(!TestFlag(MoverParameters->BrakeStatus,1))&&((MoverParameters->CntrlPipePress)>0.51))
+//    else                               
+//     if ((Controller!=Humandriver)&&(MoverParameters->BrakeCtrlPos<0)&&(!TestFlag(MoverParameters->BrakeStatus,1))&&((MoverParameters->CntrlPipePress)>0.51))
 //       {
 ////        MoverParameters->PipePress=0.50;
-        MoverParameters->BrakeCtrlPos=0;
+//        MoverParameters->BrakeCtrlPos=0;
 //       }
 
 
@@ -1829,14 +1829,14 @@ if (!MoverParameters->PhysicActivation)
 //McZapkie-260202 end
 
 //yB: przyspieszacz (moze zadziala, ale dzwiek juz jest)
-if(ObjectDist<50000)
- if(TestFlag(MoverParameters->SoundFlag,sound_brakeacc))
-   sBrakeAcc.Play(-1,0,MechInside,vPosition);
- else;
+//if(ObjectDist<50000)
+// if(TestFlag(MoverParameters->SoundFlag,sound_brakeacc))
+//   sBrakeAcc.Play(-1,0,MechInside,vPosition);
+// else;
 // if(MoverParameters->BrakePress=0)
 //   sBrakeAcc.Stop();
-else
-  sBrakeAcc.Stop();
+//else
+//  sBrakeAcc.Stop();
 
 SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);
 
@@ -2153,7 +2153,7 @@ bool __fastcall TDynamicObject::FastUpdate(double dt)
     //tp.Width=MyTrack->fTrackWidth;
     //McZapkie-250202
     //tp.friction= MyTrack->fFriction;
-    //tp.CategoryFlag= MyTrack->iCategoryFlag&15;
+    //tp.CategoryFlag= MyTrack->iCategoryFlag;
     //tp.DamageFlag=MyTrack->iDamageFlag;
     //tp.QualityFlag=MyTrack->iQualityFlag;
     //if (Mechanik)
@@ -2227,7 +2227,7 @@ bool __fastcall TDynamicObject::Render()
   AnsiString asLoadName="";
   //przejœcie na uk³ad wspó³rzêdnych modelu - tu siê zniekszta³ca?
   vFront=GetDirection();
-  if ((MoverParameters->CategoryFlag&2) && (MoverParameters->CabNo<0)) //TODO: zrobic to eleganciej z plynnym zawracaniem
+  if ((MoverParameters->CategoryFlag==2) && (MoverParameters->CabNo<0)) //TODO: zrobic to eleganciej z plynnym zawracaniem
    vFront=-vFront;
   vUp=vWorldUp; //sta³a
   vFront.Normalize();
@@ -2684,7 +2684,7 @@ bool __fastcall TDynamicObject::RenderAlpha()
  {
   TSubModel::iInstance=(int)this; //¿eby nie robiæ cudzych animacji
   vFront= GetDirection();
-  if ((MoverParameters->CategoryFlag&2) && (MoverParameters->CabNo<0)) //TODO: zrobic to eleganciej z plynnym zawracaniem
+  if ((MoverParameters->CategoryFlag==2) && (MoverParameters->CabNo<0)) //TODO: zrobic to eleganciej z plynnym zawracaniem
    vFront=-vFront;
   vUp=vWorldUp; //Ra: jeœli to wskazuje pionowo w górê
   vFront.Normalize(); //a to w dó³ lub w górê, to mamy problem z ortogonalnoœci¹ i skalowaniem

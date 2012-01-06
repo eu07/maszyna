@@ -26,11 +26,13 @@ class TLocation;
 class TRotation;
 };
 
+//namespace Ai_driver
+//{
+class TController;
+//};
+
 namespace Mtable
 {
-class TTrainParameters; //rozk³ad jazdy
+class TTrainParameters;
 };
-
-class TController; //obiekt steruj¹cy poci¹giem
-
 #endif

@@ -253,7 +253,7 @@ bool __fastcall TController::CheckVehicles()
  iVehicles=0; //iloœæ pojazdów w sk³adzie
  int d=iDirection>0?0:1; //kierunek szukania czo³a (numer sprzêgu)
  pVehicles[0]=p=pVehicle->FirstFind(d); //pojazd na czele sk³adu
- //liczenie pojazdów w sk³adzie i ustawianie kierunku
+ //liczenie i ustawianie kierunku
  d=1-d; //a dalej bêdziemy zliczaæ od czo³a do ty³u
  fLength=0.0;
  while (p)
@@ -361,7 +361,7 @@ void __fastcall TController::SetDriverPsyche()
   ReactionTime=HardReactionTime; //w zaleznosci od charakteru maszynisty
   AccPreferred=HardAcceleration; //agresywny
   if (Controlling!=NULL)
-   if (Controlling->CategoryFlag&2)
+   if (Controlling->CategoryFlag==2)
     WaitingExpireTime=11; //tyle ma czekaæ, zanim siê ruszy samochód
    else
     WaitingExpireTime=61; //tyle ma czekaæ, zanim siê ruszy
@@ -615,7 +615,7 @@ bool __fastcall TController::DecBrake()
     if (Controlling->BrakePressureTable[Controlling->BrakeCtrlPos-1+2].BrakeType==ElectroPneumatic) //+2 to indeks Pascala
      OK=Controlling->DecBrakeLevel();
     else
-    {if ((Controlling->BrakeSubsystem==Knorr)||(Controlling->BrakeSubsystem==Hik)||(Controlling->BrakeSubsystem==Kk))
+    {if ((Controlling->BrakeSubsystem==ss_W))
      {//jeœli Knorr
       Controlling->SwitchEPBrake((Controlling->BrakePress>0.0)?1:0);
      }
@@ -649,7 +649,7 @@ bool __fastcall TController::IncSpeed()
     if (Controlling->MainCtrlPosNo>0) //McZapkie-041003: wagon sterowniczy
     {
      //TODO: sprawdzanie innego czlonu //if (!FuseFlagCheck())
-     if (Controlling->BrakePress<0.05*Controlling->MaxBrakePress)
+     if (Controlling->BrakePress<0.3)
      {
       if (Controlling->ActiveDir>0) Controlling->DirectionForward(); //zeby EN57 jechaly na drugiej nastawie
       OK=Controlling->IncMainCtrl(1);
@@ -943,8 +943,8 @@ bool __fastcall TController::UpdateSituation(double dt)
  //yb: zeby EP nie musial sie bawic z ciesnieniem w PG
  if (AIControllFlag)
  {
-  if (Controlling->BrakeSystem==ElectroPneumatic)
-   Controlling->PipePress=0.5;
+//  if (Controlling->BrakeSystem==ElectroPneumatic)
+//   Controlling->PipePress=0.5; //yB: w SPKS s¹ poprawnie zrobione pozycje
   if (Controlling->SlippingWheels)
   {
    Controlling->SandDoseOn();
@@ -953,13 +953,13 @@ bool __fastcall TController::UpdateSituation(double dt)
  }
  {//ABu-160305 Testowanie gotowoœci do jazdy
   //Ra: przeniesione z DynObj
-  if (Controlling->BrakePress<0.03*Controlling->MaxBrakePress)
+  if (Controlling->BrakePress<0.3)
    Ready=true; //wstêpnie gotowy
   //Ra: trzeba by sprawdziæ wszystkie, a nie tylko skrajne
   //sprawdzenie odhamowania skrajnych pojazdów
-  if (pVehicles[1]->MoverParameters->BrakePress>0.03*pVehicles[1]->MoverParameters->MaxBrakePress)
+  if (pVehicles[1]->MoverParameters->BrakePress>0.3)
    Ready=false; //nie gotowy
-  if (pVehicles[0]->MoverParameters->BrakePress>0.03*pVehicles[0]->MoverParameters->MaxBrakePress)
+  if (pVehicles[0]->MoverParameters->BrakePress>0.3)
    Ready=false; //nie gotowy
   //if (Ready)
   // Mechanik->CheckSKP(); //sprawdzenie sk³adu - czy tu potrzebne?
@@ -1026,10 +1026,6 @@ bool __fastcall TController::UpdateSituation(double dt)
    switch (OrderList[OrderPos])
    {
     case Connect:
-     if (pVehicles[0]->fTrackBlock>50)
-      SetVelocity(20,0); //jazda w ustawionym kierunku z prêdkoœci¹ 20
-     else
-      SetVelocity(2,0); //jazda w ustawionym kierunku z prêdkoœci¹ 2
      break;
     case Disconnect: //20.07.03 - manewrowanie wagonami
      if (iVehicleCount>=0) //jeœli by³a podana iloœæ wagonów
@@ -1112,7 +1108,7 @@ bool __fastcall TController::UpdateSituation(double dt)
      break;
     case Obey_train:
      //na jaka odleglosc i z jaka predkoscia ma podjechac
-     if (Controlling->CategoryFlag&1) //jazda pociagowa
+     if (Controlling->CategoryFlag==1) //jazda pociagowa
      {
       fMinProximityDist=30.0; fMaxProximityDist=60.0; //[m]
      }
@@ -1363,15 +1359,13 @@ bool __fastcall TController::UpdateSituation(double dt)
              SetDriverPsyche();
            }
       if (Controlling->BrakeSystem==Pneumatic) //napelnianie uderzeniowe
-       if (Controlling->BrakeSubsystem==Oerlikon)
+       if (Controlling->BrakeHandle==FV4a)
        {
         if (Controlling->BrakeCtrlPos==-2)
          Controlling->BrakeCtrlPos=0;
-        if ((Controlling->BrakeCtrlPos<0)&&(Controlling->PipeBrakePress<0.01))//{(CntrlPipePress-(Volume/BrakeVVolume/10)<0.01)})
-         Controlling->IncBrakeLevel();
         if ((Controlling->BrakeCtrlPos==0)&&(AbsAccS<0.0)&&(AccDesired>0.0))
         //if FuzzyLogicAI(CntrlPipePress-PipePress,0.01,1))
-         if (Controlling->PipeBrakePress>0.01)//{((Volume/BrakeVVolume/10)<0.485)})
+         if (Controlling->BrakePress>0.4)//{((Volume/BrakeVVolume/10)<0.485)})
           Controlling->DecBrakeLevel();
          else
           if (Need_BrakeRelease)
@@ -1379,6 +1373,8 @@ bool __fastcall TController::UpdateSituation(double dt)
            Need_BrakeRelease=false;
            //DecBrakeLevel(); //z tym by jeszcze mia³o jakiœ sens
           }
+        if ((Controlling->BrakeCtrlPos<0)&&(Controlling->BrakePress<0.3))//{(CntrlPipePress-(Volume/BrakeVVolume/10)<0.01)})
+         Controlling->IncBrakeLevel();          
        }
 
       if (AccDesired>=0.0)
@@ -1577,9 +1573,9 @@ void __fastcall TController::OrdersInit(double fVel)
  {//jeœli z rozk³adem, to jedzie na szlak
   //Mechanik->PutCommand("Timetable:"+TrainName,0,0);
   if (TrainParams?
-   (TrainParams->TimeTable[1].StationWare.Pos("@")? //jeœli obrót na pierwszym przystanku
+   (AnsiString(TrainParams->TimeTable[1].StationWare).Pos("@")? //jeœli obrót na pierwszym przystanku
    (Controlling->TrainType&(dt_EZT)? //SZT równie¿! SN61 zale¿nie od wagonów...
-   (TrainParams->TimeTable[1].StationName==TrainParams->Relation1):false):false):true)
+   (AnsiString(TrainParams->TimeTable[1].StationName)==TrainParams->Relation1):false):false):true)
    OrderPush(Shunt); //a teraz start bêdzie w manewrowym, a tryb poci¹gowy w³¹czy W4
   else
   //jeœli start z pierwszej stacji i jednoczeœnie jest na niej zmiana kierunku, to EZT ma mieæ Shunt
@@ -1706,7 +1702,7 @@ TTrack* __fastcall TController::TraceRoute(double &fDistance,double &fDirection,
  }
  while (s<fDistance)
  {
-  //Track->ScannedFlag=true; //do pokazywania przeskanowanych torów
+  Track->ScannedFlag=false; //do pokazywania przeskanowanych torów
   s+=fCurrentDistance; //doliczenie kolejnego odcinka do przeskanowanej d³ugoœci
   if (fDirection>0)
   {//jeœli szukanie od Point1 w kierunku Point2
@@ -1826,7 +1822,7 @@ void __fastcall TController::ScanEventTrack()
  if (startdir==0) //jeœli kabina i kierunek nie jest okreslony
   return; //nie robimy nic
  if (OrderList[OrderPos]==Shunt?OrderList[OrderPos+1]==Change_direction:false)
- {//jeœli jedzie manewrowo, ale nastêpnie ma w planie zmianê kierunku, to skanujemy te¿ w drug¹ stronê
+ {//jeœli jedzie manewrowo, ala nastêpnie w planie zmianê kierunku, to skanujemy te¿ w drug¹ stronê
   if (iDrivigFlags&moveBackwardLook) //jeœli ostatnio by³o skanowanie do ty³u
    iDrivigFlags&=~moveBackwardLook; //do przodu popatrzeæ trzeba
   else
@@ -1849,7 +1845,7 @@ void __fastcall TController::ScanEventTrack()
   TTrack *scantrack=TraceRoute(scandist,scandir,pVehicles[0]->RaTrackGet(),ev); //wg drugiej osi w kierunku ruchu
   if (!scantrack) //jeœli wykryto koniec toru albo zerow¹ prêdkoœæ
   {
-   //if (!Mechanik->SetProximityVelocity(0.7*fabs(scandist),0))
+   {//if (!Mechanik->SetProximityVelocity(0.7*fabs(scandist),0))
     // Mechanik->SetVelocity(Mechanik->VelActual*0.9,0);
     if (pVehicles[0]->fTrackBlock>50.0) //je¿eli nie ma zawalidrogi w tej odleg³oœci
     {
@@ -1869,6 +1865,7 @@ void __fastcall TController::ScanEventTrack()
      return;
     }
    }
+  }
   else
   {//jeœli s¹ dalej tory
    double vtrackmax=scantrack->fVelocity;  //ograniczenie szlakowe
@@ -2073,7 +2070,7 @@ void __fastcall TController::ScanEventTrack()
        } //koniec obs³ugi przelotu na W4
        else
        {//zatrzymanie na W4
-        //vmechmax=0.0; //ma stan¹æ na W4 - informacja dla dalszego kodu
+        vmechmax=0.0; //ma stan¹æ na W4 - informacja dla dalszego kodu
         sl.x=e->Params[3].asdouble; //wyliczenie wspó³rzêdnych zatrzymania
         sl.y=e->Params[4].asdouble;
         sl.z=e->Params[5].asdouble;
@@ -2184,8 +2181,6 @@ void __fastcall TController::ScanEventTrack()
    else //jeœli nic nie znaleziono
     if (OrderCurrentGet()==Shunt) //a jest w trybie manewrowym
      eSignSkip=NULL; //przywrócenie widocznoœci ewentualnie pominiêtej tarczy
-   if (iDrivigFlags&moveBackwardLook) //jeœli skanowanie do ty³u
-    return; //to nie analizujemy prêdkoœci w torach
    if (scandist<=scanmax) //jeœli ograniczenie jest dalej, ni¿ skanujemy, mo¿na je zignorowaæ
     if (vtrackmax>0.0) //jeœli w torze jest dodatnia
      if ((vmechmax<0) || (vtrackmax<vmechmax)) //i mniejsza od tej drugiej

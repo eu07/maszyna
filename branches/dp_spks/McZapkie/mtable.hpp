@@ -24,8 +24,8 @@ struct TMTableLine
 {
 	double km;
 	double vmax;
-	AnsiString StationName;
-	AnsiString StationWare;
+	System::SmallString<32>  StationName;
+	System::SmallString<32>  StationWare;
 	Byte TrackNo;
 	int Ah;
 	int Am;
