@@ -1165,7 +1165,8 @@ double __fastcall TDynamicObject::Init(
  AnsiString TrainName, //nazwa sk³adu, np. "PE2307"
  float Load, //iloœæ ³adunku
  AnsiString LoadType, //nazwa ³adunku
- bool Reversed //true, jeœli ma staæ odwrotnie w sk³adzie
+ bool Reversed, //true, jeœli ma staæ odwrotnie w sk³adzie
+ AnsiString MoreParams //dodatkowe parametry wczytywane w postaci tekstowej
 )
 {//Ustawienie pocz¹tkowe pojazdu
  iDirection=(Reversed?0:1); //Ra: 0, jeœli ma byæ wstawiony jako obrócony ty³em
@@ -1209,6 +1210,47 @@ double __fastcall TDynamicObject::Init(
   Error("Parameters mismatch: dynamic object "+asName+" from\n"+BaseDir+"\\"+Type_Name);
   return 0.0;
  }
+
+//dodatkowe parametry yB
+ int ParPos;
+ ParPos=MoreParams.LastDelimiter(".B"); //hamulec zaczyna siê od B
+ if(ParPos>0) //jesli sa parametry hamulca
+ {
+  AnsiString ActPar;
+  ActPar=MoreParams.SubString(ParPos+1, 4); //wytnij parametry (3 znaki)
+  ActPar=ActPar.UpperCase();
+  //sprawdzanie kolejno nastaw
+  if (ActPar.Pos("G")>0) {MoverParameters->BrakeDelaySwitch(bdelay_G);}
+  if (ActPar.Pos("P")>0) {MoverParameters->BrakeDelaySwitch(bdelay_P);}
+  if (ActPar.Pos("R")>0) {MoverParameters->BrakeDelaySwitch(bdelay_R);}
+  if (ActPar.Pos("M")>0) {MoverParameters->BrakeDelaySwitch(bdelay_M);}
+  //wylaczanie hamulca
+  if (ActPar.Pos("0")>0) //wylaczanie na sztywno
+  {
+   MoverParameters->BrakeStatus|=128; //wylacz
+   MoverParameters->BrakeReleaser();  //odluznij automatycznie
+  }
+  if (ActPar.Pos("1")>0) //wylaczanie 10%
+  {
+   if (random(10)<1) //losowanie 1/10
+   {
+    MoverParameters->BrakeStatus|=128; //wylacz
+    MoverParameters->BrakeReleaser();  //odluznij automatycznie
+   }
+  }
+  //nastawianie ladunku
+  if (ActPar.Pos("T")>0) //prozny
+  { MoverParameters->DecBrakeMult(); MoverParameters->DecBrakeMult(); } //dwa razy w dol
+  if (ActPar.Pos("H")>0) //ladowny I (dla P-£ dalej prozny)
+  { MoverParameters->IncBrakeMult(); MoverParameters->IncBrakeMult(); MoverParameters->DecBrakeMult(); } //dwa razy w gore i obniz
+  if (ActPar.Pos("F")>0) //ladowny II
+  { MoverParameters->IncBrakeMult(); MoverParameters->IncBrakeMult(); } //dwa razy w gore
+  if (ActPar.Pos("N")>0) //parametr neutralny
+  { }
+
+
+ }
+
  if (MoverParameters->CategoryFlag&2) //jeœli samochód
  {//ustawianie samochodow na poboczu albo na œrodku drogi
   if (Track->fTrackWidth<3.5) //jeœli droga w¹ska

@@ -59,10 +59,10 @@
 [Version Info]
 IncludeVerInfo=1
 AutoIncBuild=0
-MajorVer=1
-MinorVer=6
+MajorVer=0
+MinorVer=666
 Release=296
-Build=296
+Build=297
 Debug=1
 PreRelease=0
 Special=0
@@ -74,8 +74,8 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.6.296.296
-InternalName=6th by Ra
+FileVersion=0.666.296.297
+InternalName=6th by Ra with SPKS
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=eu07.exe
@@ -112,14 +112,15 @@ Item6=GLEW_STATIC;_DEBUG;USE_VERTEX_ARRAYS
 Item7=_DEBUG
 
 [HistoryLists\hlFinalOutputDir]
-Count=7
-Item0=D:\!PC2010_DDS_SPKS
-Item1=D:\EU07\
-Item2=..\..\PC2010+patch\
-Item3=K:\Czesuaff\PC2010+patch
-Item4=D:\eu07-120303light\
-Item5=D:\EU07DDS\
-Item6=M:\aEU07\EU07\
+Count=8
+Item0=D:\!PC2010_DDS_SPKS\
+Item1=D:\!PC2010_DDS_SPKS
+Item2=D:\EU07\
+Item3=..\..\PC2010+patch\
+Item4=K:\Czesuaff\PC2010+patch
+Item5=D:\eu07-120303light\
+Item6=D:\EU07DDS\
+Item7=M:\aEU07\EU07\
 
 [Debugging]
 DebugSourceDirs=D:\!PC2010_DDS_SPKS

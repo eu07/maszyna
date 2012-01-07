@@ -239,7 +239,7 @@ public:
     (//zwraca d³ugoœæ pojazdu albo 0, jeœli b³¹d
      AnsiString Name, AnsiString BaseDir, AnsiString asReplacableSkin, AnsiString Type_Name,
      TTrack *Track, double fDist, AnsiString DriverType, double fVel, AnsiString TrainName,
-     float Load, AnsiString LoadType,bool Reversed
+     float Load, AnsiString LoadType,bool Reversed, AnsiString MoreParams
     );
     void __fastcall AttachPrev(TDynamicObject *Object, int iType= 1);
     bool __fastcall UpdateForce(double dt, double dt1, bool FullVer);

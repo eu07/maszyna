@@ -1101,10 +1101,18 @@ void __fastcall TTrain::OnKeyPress(int cKey)
           }
          if (temp)
           {
+           if (GetAsyncKeyState(VK_CONTROL)<0) //z ctrl odcinanie
+            {
+              temp->MoverParameters->BrakeStatus^=128;
+            }
+           else
+            {
            if (temp->MoverParameters->BrakeReleaser())
             {
              dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
              dsbPneumaticRelay->Play(0,0,0);
+            }
+
             }
           }
        }
