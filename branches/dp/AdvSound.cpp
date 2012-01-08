@@ -17,7 +17,10 @@ __fastcall TAdvancedSound::TAdvancedSound()
 }
 
 __fastcall TAdvancedSound::~TAdvancedSound()
-{
+{//Ra: stopowanie siê sypie
+ //SoundStart.Stop();
+ //SoundCommencing.Stop();
+ //SoundShut.Stop();
 }
 
 void __fastcall TAdvancedSound::Free()

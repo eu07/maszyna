@@ -101,8 +101,27 @@ __fastcall TTrain::TTrain()
     iCabLightFlag=0;
     pMechSittingPosition=vector3(0,0,0); //ABu: 180404
     LampkaUniversal3_st=false; //ABu: 030405
- dsbSlipAlarm=NULL;
+ dsbNastawnikJazdy=NULL;
+ dsbNastawnikBocz=NULL;
+ dsbRelay=NULL;
+ dsbPneumaticRelay=NULL;
+ dsbSwitch=NULL;
+ dsbPneumaticSwitch=NULL;
+ dsbReverserKey=NULL; //hunter-121211
+ dsbCouplerAttach=NULL;
+ dsbCouplerDetach=NULL;
+ dsbDieselIgnition=NULL;
+ dsbDoorClose=NULL;
+ dsbDoorOpen=NULL;
+ dsbPantUp=NULL;
+ dsbPantDown=NULL;
+ dsbWejscie_na_bezoporow=NULL;
+ dsbWejscie_na_drugi_uklad=NULL; //hunter-081211: poprawka literowki
+ dsbHasler=NULL;
+ dsbBuzzer=NULL;
+ dsbSlipAlarm=NULL; //Bombardier 011010: alarm przy poslizgu dla 181/182
  dsbCouplerStretch=NULL;
+ dsbBufferClamp=NULL;
 }
 
 __fastcall TTrain::~TTrain()
@@ -2947,7 +2966,7 @@ else
      {
       SecurityResetButtonGauge.PutValue(1);
       if ((DynamicObject->MoverParameters->SecuritySystem.Status&s_aware)&&
-          (DynamicObject->MoverParameters->SecuritySystem.Status&s_active))                 
+          (DynamicObject->MoverParameters->SecuritySystem.Status&s_active))
        {
         DynamicObject->MoverParameters->SecuritySystem.SystemTimer=0;
         DynamicObject->MoverParameters->SecuritySystem.Status-=s_aware;
@@ -2991,7 +3010,7 @@ else
       //dsbPneumaticRelay->SetVolume(-30);
       //dsbPneumaticRelay->Play(0,0,0);
      }
-     
+
      //-----------------
      //hunter-221211: hamowanie przy poslizgu
      if ( Pressed(Global::Keys[k_AntiSlipping]) )
@@ -3312,7 +3331,6 @@ else
           dsbHasler->Stop();
       }
     }
-
 
 // koniec mieszania z dzwiekami
 
