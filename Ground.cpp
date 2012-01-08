@@ -81,7 +81,6 @@ __fastcall TGroundNode::TGroundNode()
  TextureID=0;
  iFlags=0; //tryb przezroczystoœci nie zbadany
  DisplayListID = 0;
- //TexAlpha=false;
  Pointer=NULL; //zerowanie wskaŸnika kontekstowego
  iType=GL_POINTS;
  bVisible=false; //czy widoczny
@@ -1083,6 +1082,7 @@ __fastcall TGround::TGround()
  bInitDone=false; //Ra: ¿eby nie robi³o dwa razy FirstInit
  for (int i=0;i<TP_LAST;i++)
   nRootOfType[i]=NULL; //zerowanie tablic wyszukiwania
+ bDynamicRemove=false; //na razie nic do usuniêcia
 }
 
 __fastcall TGround::~TGround()
@@ -1092,32 +1092,32 @@ __fastcall TGround::~TGround()
 
 void __fastcall TGround::Free()
 {
-    TEvent *tmp;
-    for (TEvent *Current=RootEvent; Current!=NULL; )
-    {
-        tmp= Current;
-        Current= Current->Next2;
-        delete tmp;
-    }
-    TGroundNode *tmpn;
-    for (int i=0;i<TP_LAST;++i)
-    {for (TGroundNode *Current=nRootOfType[i];Current;)
-     {
-      tmpn=Current;
-      Current=Current->Next;
-      delete tmpn;
-     }
-     nRootOfType[i]=NULL;
-    }
-    for (TGroundNode *Current=nRootDynamic;Current; )
-    {
-        tmpn=Current;
-        Current=Current->Next;
-        delete tmpn;
-    }
-    iNumNodes=0;
-    //RootNode=NULL;
-    nRootDynamic=NULL;
+ TEvent *tmp;
+ for (TEvent *Current=RootEvent; Current!=NULL; )
+ {
+  tmp= Current;
+  Current= Current->Next2;
+  delete tmp;
+ }
+ TGroundNode *tmpn;
+ for (int i=0;i<TP_LAST;++i)
+ {for (TGroundNode *Current=nRootOfType[i];Current;)
+  {
+   tmpn=Current;
+   Current=Current->Next;
+   delete tmpn;
+  }
+  nRootOfType[i]=NULL;
+ }
+ for (TGroundNode *Current=nRootDynamic;Current;)
+ {
+  tmpn=Current;
+  Current=Current->Next;
+  delete tmpn;
+ }
+ iNumNodes=0;
+ //RootNode=NULL;
+ nRootDynamic=NULL;
 }
 
 
@@ -1547,13 +1547,17 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
      }
 */
     }
-    //else LastNode=NULL;
+    else
+    {//LastNode=NULL;
+     delete tmp;
+     tmp=NULL; //nie mo¿e byæ tu return, bo trzeba pomin¹æ jeszcze enddynamic
+    }
    }
    else
-   {
+   {//gdy tor nie znaleziony
     Error("Track does not exist \""+tmp->DynamicObject->asTrack+"\"");
     delete tmp;
-    return NULL;
+    tmp=NULL; //nie mo¿e byæ tu return, bo trzeba pomin¹æ jeszcze enddynamic
    }
    parser->getTokens();
    *parser >> token;
@@ -1561,7 +1565,8 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    {//dok¹d wagon ma jechaæ, uwzglêdniane przy manewrach
     parser->getTokens();
     *parser >> token;
-    tmp->DynamicObject->asDestination=AnsiString(token.c_str());
+    if (tmp)
+     tmp->DynamicObject->asDestination=AnsiString(token.c_str());
     *parser >> token;
    }
    if (token.compare("enddynamic")!=0)
@@ -1748,20 +1753,21 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    } while (token.compare("endisolated")!=0);
    break;
  }
- if (tmp->iType!=TP_DYNAMIC)
- {//jeœli nie jest pojazdem
-  if (Global::bLoadTraction?true:(tmp->iType!=TP_TRACTION))
-  {
-   tmp->Next=nRootOfType[tmp->iType]; //ostatni dodany do³¹czamy na koñcu nowego
-   nRootOfType[tmp->iType]=tmp; //ustawienie nowego na pocz¹tku listy
-   iNumNodes++;
+ if (tmp)
+  if (tmp->iType!=TP_DYNAMIC)
+  {//jeœli nie jest pojazdem
+   if (Global::bLoadTraction?true:(tmp->iType!=TP_TRACTION))
+   {
+    tmp->Next=nRootOfType[tmp->iType]; //ostatni dodany do³¹czamy na koñcu nowego
+    nRootOfType[tmp->iType]=tmp; //ustawienie nowego na pocz¹tku listy
+    iNumNodes++;
+   }
   }
- }
- else
- {//jeœli jest pojazdem
-  tmp->Next=nRootDynamic;
-  nRootDynamic=tmp; //dopisanie z przodu do listy
- }
+  else
+  {//jeœli jest pojazdem
+   tmp->Next=nRootDynamic;
+   nRootDynamic=tmp; //dopisanie z przodu do listy
+  }
  return tmp;
 }
 
@@ -1930,7 +1936,7 @@ bool __fastcall TGround::Init(AnsiString asFile)
          else
          {
           Error("Scene parse error near "+AnsiString(token.c_str()));
-          break;
+          //break;
          }
         }
         else
@@ -2214,8 +2220,9 @@ bool __fastcall TGround::Init(AnsiString asFile)
           do
           {
            parser.getTokens();
+           token="";
            parser >> token;
-          } while (token.compare(str.c_str())!=0);
+          } while ((token!="")&&(token.compare(str.c_str())!=0));
          }
          else //jak liczba to na pewno b³¹d
           Error(AnsiString("Unrecognized command: "+str));
@@ -3058,6 +3065,16 @@ bool __fastcall TGround::Update(double dt, int iter)
          }
       }
    }
+ if (bDynamicRemove)
+ {//jeœli jest coœ do usuniêcia z listy, to trzeba na koñcu
+  for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
+   if (!Current->DynamicObject->bEnabled)
+   {
+    DynamicRemove(Current->DynamicObject); //usuniêcie tego i pod³¹czonych
+    Current=nRootDynamic; //sprawdzanie listy od pocz¹tku
+   }
+  bDynamicRemove=false; //na razie koniec
+ }
  return true;
 }
 
@@ -3576,25 +3593,23 @@ void __fastcall TGround::DynamicRemove(TDynamicObject* dyn)
   TGroundNode **n,*node;
   d=dyn; //od pierwszego
   while (d)
-  {d->MyTrack->RemoveDynamicObject(d); //usuniêcie z toru
+  {if (d->MyTrack) d->MyTrack->RemoveDynamicObject(d); //usuniêcie z toru o ile nie usuniêty
    n=&nRootDynamic; //lista pojazdów od pocz¹tku
    node=NULL; //nie znalezione
    while (*n?(*n)->DynamicObject!=d:false)
    {//usuwanie z listy pojazdów
-    if ((*n)->DynamicObject==d)
-    {//jeœli znaleziony
-     node=(*n); //zapamiêtanie wêz³a, aby go usun¹æ
-     (*n)=node->Next; //pominiêcie na liœcie
-     break;
-    }
     n=&((*n)->Next); //sprawdzenie kolejnego pojazdu na liœcie
    }
-   if (node) //na wszelki wypadek
-   {d=d->Next(); //przejœcie do kolejnego pojazdu, póki jeszcze jest
+   if ((*n)->DynamicObject==d)
+   {//jeœli znaleziony
+    node=(*n); //zapamiêtanie wêz³a, aby go usun¹æ
+    (*n)=node->Next; //pominiêcie na liœcie
+    Global::TrainDelete(d);
+    d=d->Next(); //przejœcie do kolejnego pojazdu, póki jeszcze jest
     delete node; //usuwanie fizyczne z pamiêci
    }
    else
-    *n=NULL; //coœ nie tak!
+    d=NULL; //coœ nie tak!
   }
  }
 };

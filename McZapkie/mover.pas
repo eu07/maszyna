@@ -377,6 +377,8 @@ TYPE
                Dim: TDimension;          {wymiary}
                Cx: real;                 {wsp. op. aerodyn.}
                WheelDiameter : real;     {srednica kol napednych}
+               WheelDiameterL : real;    //Ra: srednica kol tocznych przednich
+               WheelDiameterT : real;    //Ra: srednica kol tocznych tylnych
                TrackW: real;             {nominalna szerokosc toru [m]}
                AxleInertialMoment: real; {moment bezwladnosci zestawu kolowego}
                AxleArangement : string;  {uklad osi np. Bo'Bo' albo 1'C}
@@ -2817,8 +2819,8 @@ function TMoverParameters.V2n:real;
 const dmgn=0.5;
 var n,deltan:real;
 begin
-  n:=V/(Pi*WheelDiameter);  {predkosc obrotowa wynikajaca z liniowej}
-  deltan:=n-nrot;
+  n:=V/(Pi*WheelDiameter); //predkosc obrotowa wynikajaca z liniowej [obr/s]
+  deltan:=n-nrot; //"pochodna" prêdkoœci obrotowej
   if SlippingWheels then
    if Abs(deltan)<0.1 then
     SlippingWheels:=False; {wygaszenie poslizgu}
@@ -4057,7 +4059,7 @@ begin
     //juz zoptymalizowane:
     FStand:=FrictionForce(RunningShape.R,RunningTrack.DamageFlag);
     Vel:=Abs(V)*3.6;
-    nrot:=V2n;
+    nrot:=V2n(); //przeliczenie prêdkoœci liniowej na obrotow¹
 
     if TestFlag(BrakeMethod,2) and (PipePress<CntrlPipePress/3.0)then
       FStand:=Fstand+(RunningTrack.friction)*TrackBrakeForce;
@@ -5528,8 +5530,8 @@ begin
               else if s='PSEUDODIESEL' then TrainType:=dt_PseudoDiesel
               else if s='181' then TrainType:=dt_181
               else if s='182' then TrainType:=dt_181; {na razie tak}
-            end;
-          if Pos('Load:',lines)>0 then      {stale parametry}
+            end
+          else if Pos('Load:',lines)>0 then      {stale parametry}
             begin
               LoadAccepted:=LowerCase(DUE(ExtractKeyWord(lines,'LoadAccepted=')));
               if LoadAccepted<>'' then
@@ -5544,10 +5546,11 @@ begin
                  s:=ExtractKeyWord(lines,'UnLoadSpeed=');
                  UnLoadSpeed:=s2rE(DUE(s));
                end;
-            end;
-          if Pos('Dimensions:',lines)>0 then      {wymiary}
-           with Dim do
-            begin
+            end
+          else if Pos('Dimensions:',lines)>0 then      {wymiary}
+           begin
+            with Dim do
+             begin
               SetFlag(OKFlag,dimensions_ok);
               s:=ExtractKeyWord(lines,'L=');
               L:=s2rE(DUE(s));
@@ -5558,12 +5561,23 @@ begin
               s:=ExtractKeyWord(lines,'Cx=');
               Cx:=s2r(DUE(s));
               if Cx=0 then Cx:=0.3;
-            end;
-          if Pos('Wheels:',lines)>0 then      {kola}
+             end;
+           end
+          else if Pos('Wheels:',lines)>0 then      {kola}
             begin
 {              SetFlag(OKFlag,wheels_ok);}
-              s:=ExtractKeyWord(lines,'D=');
+              s:=ExtractKeyWord(lines,'D='); //œrednica osi napêdzaj¹cych
               WheelDiameter:=s2rE(DUE(s));
+              s:=ExtractKeyWord(lines,'Dl='); //œrednica przednich osi tocznych
+              if s='' then
+               WheelDiameterL:=WheelDiameter //gdyby nie by³o parametru, lepsze to ni¿ zero
+              else
+               WheelDiameterL:=s2rE(DUE(s));
+              s:=ExtractKeyWord(lines,'Dt='); //œrednica tylnych osi tocznych
+              if s='' then
+               WheelDiameterT:=WheelDiameter //gdyby nie by³o parametru, lepsze to ni¿ zero
+              else
+               WheelDiameterT:=s2rE(DUE(s));
               s:=ExtractKeyWord(lines,'Tw=');
               TrackW:=s2rE(DUE(s));
               s:=ExtractKeyWord(lines,'AIM=');
@@ -5580,8 +5594,8 @@ begin
               ADist:=s2rE(DUE(s));
               s:=ExtractKeyWord(lines,'Bd=');
               BDist:=s2r(DUE(s));
-            end;
-          if Pos('Brake:',lines)>0 then      {hamulce}
+            end
+          else if Pos('Brake:',lines)>0 then      {hamulce}
             begin
               s:=DUE(ExtractKeyWord(lines,'BrakeType='));
               if s='Oerlikon' then BrakeSubSystem:=Oerlikon
@@ -5653,9 +5667,8 @@ begin
                CompressorPower:=2
               else if s='Main' then
                CompressorPower:=0;
-            end;
-
-          if Pos('Doors:',lines)>0 then      {drzwi}
+            end
+          else if Pos('Doors:',lines)>0 then      {drzwi}
             begin
               s:=DUE(ExtractKeyWord(lines,'OpenCtrl='));
               if s='DriverCtrl' then DoorOpenCtrl:=1
@@ -5689,8 +5702,8 @@ begin
                DoorClosureWarning:=true
               else
                DoorClosureWarning:=false;
-            end;
-          if (Pos('BuffCoupl.',lines)>0) or (Pos('BuffCoupl1.',lines)>0) then  {zderzaki i sprzegi}
+            end
+          else if (Pos('BuffCoupl.',lines)>0) or (Pos('BuffCoupl1.',lines)>0) then  {zderzaki i sprzegi}
             begin
              with Couplers[0] do
               begin
@@ -5765,8 +5778,8 @@ begin
                    Couplers[1].CouplerType:=Couplers[0].CouplerType;
                  end;
 {                CouplerTune:=(1+Mass)/100000; }
-              end;
-          if (Pos('BuffCoupl2.',lines)>0) then  {zderzaki i sprzegi jesli sa rozne}
+              end
+          else if (Pos('BuffCoupl2.',lines)>0) then  {zderzaki i sprzegi jesli sa rozne}
             with Couplers[1] do
               begin
                 s:=DUE(ExtractKeyWord(lines,'CType='));
@@ -5828,13 +5841,13 @@ begin
                     beta:=0.55;
                   end;
 {                CouplerTune:=(1+Mass)/100000; }
-              end;
-          if Pos('TurboPos:',lines)>0 then      {turbo zalezne od pozycji nastawnika}
+              end
+          else if Pos('TurboPos:',lines)>0 then      {turbo zalezne od pozycji nastawnika}
            begin
             s:=ExtractKeyWord(lines,'TurboPos=');
             TurboTest:=s2b(DUE(s));
-           end;
-          if Pos('Cntrl.',lines)>0 then      {nastawniki}
+           end
+          else if Pos('Cntrl.',lines)>0 then      {nastawniki}
             begin
               s:=DUE(ExtractKeyWord(lines,'BrakeSystem='));
               if s='Pneumatic' then BrakeSystem:=Pneumatic
@@ -5927,8 +5940,8 @@ begin
 {                      readln(fin); }
                     end;
                 end;
-            end;
-          if Pos('Light:',lines)>0 then      {zrodlo mocy dla oswietlenia}
+            end
+          else if Pos('Light:',lines)>0 then      {zrodlo mocy dla oswietlenia}
             begin
               s:=DUE(ExtractKeyWord(lines,'Light='));
               if s<>'' then
@@ -5944,8 +5957,8 @@ begin
                  else AlterLightPowerSource.SourceType:=NotDefined;
                end
               else LightPowerSource.SourceType:=NotDefined;
-            end;
-          if Pos('Security:',lines)>0 then      {zrodlo mocy dla oswietlenia}
+            end
+          else if Pos('Security:',lines)>0 then      {zrodlo mocy dla oswietlenia}
             with SecuritySystem do
              begin
                s:=DUE(ExtractKeyWord(lines,'AwareSystem='));
@@ -5966,8 +5979,8 @@ begin
                if s<>'' then
                 if Pos('Yes',s)>0 then
                  RadioStop:=true;
-             end;
-          if Pos('Clima:',lines)>0 then      {zrodlo mocy dla ogrzewania itp}
+             end
+          else if Pos('Clima:',lines)>0 then      {zrodlo mocy dla ogrzewania itp}
             begin
               s:=DUE(ExtractKeyWord(lines,'Heating='));
               if s<>'' then
@@ -5983,8 +5996,8 @@ begin
                  else AlterHeatPowerSource.SourceType:=NotDefined;
                end
               else HeatingPowerSource.SourceType:=NotDefined;
-            end;
-          if Pos('Power:',lines)>0 then      {zrodlo mocy dla silnikow trakcyjnych itp}
+            end
+          else if Pos('Power:',lines)>0 then      {zrodlo mocy dla silnikow trakcyjnych itp}
             begin
               s:=DUE(ExtractKeyWord(lines,'EnginePower='));
               if s<>'' then
@@ -6006,8 +6019,8 @@ begin
                  else EnginePowerSource.SourceType:=NotDefined;
                end
               else SystemPowerSource.SourceType:=InternalSource;
-            end;
-          if Pos('Engine:',lines)>0 then    {stale parametry silnika}
+            end
+          else if Pos('Engine:',lines)>0 then    {stale parametry silnika}
           begin
            EngineType:=EngineDecode(DUE(ExtractKeyWord(lines,'EngineType=')));
            case EngineType of
@@ -6104,9 +6117,9 @@ begin
                end;}
            else ConversionError:=-13; {not implemented yet!}
            end;
-          end;
+          end
            { Typy przelacznika 'Winger 010304 }
-          if Pos('Switches:',lines)>0 then
+          else if Pos('Switches:',lines)>0 then
           begin
            s:=DUE(ExtractKeyWord(lines,'Pantograph='));
            PantSwitchType:=s;
@@ -6121,9 +6134,9 @@ begin
                begin
                PantSwitchType:='impulse';
                end;     }
-          end;
+          end
 
-          if Pos('MotorParamTable:',lines)>0 then
+          else if Pos('MotorParamTable:',lines)>0 then
            case EngineType of
             ElectricSeriesMotor:
              begin
@@ -6180,8 +6193,8 @@ begin
                 end;
              end
             else ConversionError:=-3;
-           end;
-          if Pos('Circuit:',lines)>0 then
+           end
+          else if Pos('Circuit:',lines)>0 then
            begin
              s:=ExtractKeyWord(lines,'CircuitRes=');
              CircuitRes:=s2r(DUE(s));
@@ -6195,8 +6208,8 @@ begin
              ImaxHi:=s2i(DUE(s));
              Imin:=IminLo;
              Imax:=ImaxLo;
-           end;
-          if Pos('RList:',lines)>0 then
+           end
+          else if Pos('RList:',lines)>0 then
            begin
              s:=DUE(ExtractKeyWord(lines,'RVent='));
              if s='Automatic' then RventType:=2
@@ -6230,8 +6243,8 @@ begin
                   end
                  else readln(fin);
                end;
-           end;
-          if Pos('DList:',lines)>0 then  {dla spalinowego silnika}
+           end
+          else if Pos('DList:',lines)>0 then  {dla spalinowego silnika}
            begin
              s:=ExtractKeyWord(lines,'Mmax=');
              dizel_Mmax:=s2rE(DUE(s));
@@ -6253,9 +6266,9 @@ begin
                begin
                  readln(fin, Rlist[k].Relay, Rlist[k].R, Rlist[k].Mn);
                end;
-           end;
+           end
 //youBy
-          if (Pos('WWList:',lines)>0) then  {dla spal-ele}
+          else if (Pos('WWList:',lines)>0) then  {dla spal-ele}
           begin
             RlistSize:=s2b(DUE(ExtractKeyWord(lines,'Size=')));
             for k:=0 to RlistSize do

@@ -41,7 +41,7 @@ int TSubModel::iAlpha=0x30300030; //maska do testowania flag tekstur wymiennych
 // 0x34340034 - tekstura -3 u¿ywana w danym cyklu, pozosta³e nie
 // 0x38380038 - tekstura -4 u¿ywana w danym cyklu, pozosta³e nie
 // 0x3F3F003F - wszystkie wymienne tekstury u¿ywane w danym cyklu
-//Ale w TModel3d okerœla przezroczystoœæ tekstury wymiennych!
+//Ale w TModel3d okerœla przezroczystoœæ tekstur wymiennych!
 
 int TSubModelInfo::iTotalTransforms=0; //iloœæ transformów
 int TSubModelInfo::iTotalNames=0; //d³ugoœæ obszaru nazw

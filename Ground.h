@@ -266,6 +266,7 @@ class TGround
  int hh,mm,srh,srm,ssh,ssm; //ustawienia czasu
  //int tracks,tracksfar; //liczniki torów
 public:
+ bool bDynamicRemove; //czy uruchomiæ procedurê usuwania pojazdów
  TDynamicObject *LastDyn; //ABu: paskudnie, ale na bardzo szybko moze jakos przejdzie...
  //TTrain *pTrain;
  //double fVDozwolona;

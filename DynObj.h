@@ -31,18 +31,19 @@ private:
     bool btnOn; //ABu: czy byly uzywane buttony, jesli tak, to po renderingu wylacz
                 //bo ten sam model moze byc jeszcze wykorzystany przez inny obiekt!
  double __fastcall ComputeRadius(vector3 p1,vector3 p2,vector3 p3,vector3 p4);
- //vector3 pOldPos1; //Ra: nie u¿ywane
- //vector3 pOldPos4;
  vector3 vPosition; //Ra: pozycja pojazdu liczona zaraz po przesuniêciu
-//McZapkie-050402 - do krecenia kolami
-    int iAnimatedAxles;
-    int iAnimatedDoors;
-    double DoorSpeedFactor[MaxAnimatedDoors];
-    double tempdoorfactor;
-    double tempdoorfactor2;
-    double pantspeedfactor;
-    TSubModel *smAnimatedWheel[MaxAnimatedAxles];
-    TSubModel *smAnimatedDoor[MaxAnimatedDoors];
+ //McZapkie-050402 - do krecenia kolami
+ int iAnimatedAxles; //iloœæ u¿ywanych (krêconych) osi
+ TSubModel *smAnimatedWheel[MaxAnimatedAxles]; //submodele poszczególnych osi
+ double *pWheelAngle[MaxAnimatedAxles]; //wska¿niki do odczytu k¹ta obrotu danej osi
+ double dWheelAngle[3]; //k¹t obrotu kó³: 0=przednie toczne, 1=napêdzaj¹ce i wi¹zary, 2=tylne toczne
+ //drzwi
+ int iAnimatedDoors;
+ TSubModel *smAnimatedDoor[MaxAnimatedDoors];
+ double DoorSpeedFactor[MaxAnimatedDoors];
+ double tempdoorfactor;
+ double tempdoorfactor2;
+ double pantspeedfactor;
     TButton btCoupler1;     //sprzegi
     TButton btCoupler2;
     TAirCoupler btCPneumatic1;  //sprzegi powietrzne //yB - zmienione z Button na AirCoupler - krzyzyki
@@ -130,10 +131,11 @@ private:
     TRealSound sBrakeAcc; //dzwiek przyspieszacza
  int iAxleFirst; //numer pierwszej oœ w kierunku ruchu
  int iInventory; //flagi bitowe posiadanych submodeli (np. œwiate³)
- //TDynamicObject *NewDynamic; //Ra: nie u¿ywane
  TDynamicObject* __fastcall ABuFindNearestObject(TTrack *Track,TDynamicObject *MyPointer,int &CouplNr);
+ void __fastcall TurnOff();
+public:
+ bool bEnabled; //Ra: wyjecha³ na portal i ma byæ usuniêty
 protected:
-    bool bEnabled;
 
     //TTrackFollower Axle2; //dwie osie z czterech (te s¹ protected)
     //TTrackFollower Axle3; //Ra: wy³¹czy³em, bo k¹ty s¹ liczone w Segment.cpp
@@ -155,10 +157,6 @@ public:
     void __fastcall ResetdMoveLen() {MoverParameters->dMoveLen=0;}
     double __fastcall GetdMoveLen() {return MoverParameters->dMoveLen;}
 
-    //bool __fastcall EndSignalsLight1Active() {return btEndSignals11.Active();};
-    //bool __fastcall EndSignalsLight2Active() {return btEndSignals21.Active();};
-    //bool __fastcall EndSignalsLight1oldActive() {return btEndSignals1.Active();};
-    //bool __fastcall EndSignalsLight2oldActive() {return btEndSignals2.Active();};
     int __fastcall GetPneumatic(bool front, bool red);
     void __fastcall SetPneumatic(bool front, bool red);
 		AnsiString asName;
@@ -199,7 +197,6 @@ public:
     double pcabe2;
     bool pcabc1x;
     double lastcabf;
-    double dWheelAngle;
     double StartTime;
     double PantTraction1; //Winger 170204
     double PantTraction2; //Winger 170204

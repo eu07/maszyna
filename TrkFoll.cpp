@@ -79,6 +79,7 @@ void __fastcall TTrackFollower::SetCurrentTrack(TTrack *pTrack,int end)
 bool __fastcall TTrackFollower::Move(double fDistance,bool bPrimary)
 {//przesuwanie wózka po torach o odleg³oœæ (fDistance), z wyzwoleniem eventów
  //bPrimary=true - jest pierwsz¹ osi¹ w pojeŸdzie, czyli generuje eventy i przepisuje pojazd
+ //Ra: zwraca false, jeœli pojazd ma byæ usuniêty
  fDistance*=fDirection; //dystans mno¿nony przez kierunek
  double s;
  bool bCanSkip; //czy przemieœciæ pojazd na inny tor
@@ -174,6 +175,7 @@ bool __fastcall TTrackFollower::Move(double fDistance,bool bPrimary)
     pCurrentTrack->AddDynamicObject(Owner);
     iEventFlag=3; //McZapkie-020602: umozliwienie uruchamiania event1,2 po zmianie toru
     iEventallFlag=3; //McZapkie-280503: jw, dla eventall1,2
+    if (!Owner->MyTrack) return false;
    }
    continue;
   }
@@ -211,6 +213,7 @@ bool __fastcall TTrackFollower::Move(double fDistance,bool bPrimary)
     pCurrentTrack->AddDynamicObject(Owner);
     iEventFlag=3; //McZapkie-020602: umozliwienie uruchamiania event1,2 po zmianie toru
     iEventallFlag=3;
+    if (!Owner->MyTrack) return false;
    }
    continue;
   }

@@ -323,6 +323,8 @@ public:
 	TDimension Dim;
 	double Cx;
 	double WheelDiameter;
+	double WheelDiameterL;
+	double WheelDiameterT;
 	double TrackW;
 	double AxleInertialMoment;
 	AnsiString AxleArangement;
