@@ -96,6 +96,7 @@ __fastcall TTrain::TTrain()
     vMechMovement=vector3(0,0,0);
     pMechOffset=vector3(0,0,0);
     fBlinkTimer=0;
+	fHaslerTimer=0;
     keybrakecount=0;
     DynamicObject=NULL;
     iCabLightFlag=0;
@@ -2511,13 +2512,34 @@ else
 
 //McZapkie-240302    VelocityGauge.UpdateValue(DynamicObject->GetVelocity());
     if (VelocityGauge.SubModel)
-     {
-      VelocityGauge.UpdateValue(fTachoVelocity);
+    {
+      //ZiomalCl: wskazanie Haslera w kabinie A ze zwloka czasowa oraz odpowiednia tolerancja
+	    //Nalezy sie zastanowic na przyszlosc nad rozroznieniem predkosciomierzy (dokladnosc wskazan, zwloka czasowa wskazania, inne funkcje)
+      fHaslerTimer+=dt;
+      if(fHaslerTimer>fHaslerTime)
+      {
+		    if(DynamicObject->MoverParameters->TrainType==dt_EZT) //ZiomalCl: W ezt typu stare EN57 wskazania haslera sa mniej dokladne (linka)
+          VelocityGauge.UpdateValue(fTachoVelocity>2?fTachoVelocity+0.5-random(5)/2:0);
+		    else
+		      VelocityGauge.UpdateValue(fTachoVelocity>2?fTachoVelocity+0.5-random(2)/2:0);
+        fHaslerTimer-=fHaslerTime;
+      }
       VelocityGauge.Update();
-     }
+    }
+
     if (VelocityGaugeB.SubModel)
-     {
-      VelocityGaugeB.UpdateValue(fTachoVelocity);
+    {
+      //ZiomalCl: wskazanie Haslera w kabinie B ze zwloka czasowa oraz odpowiednia tolerancja
+	    //Nalezy sie zastanowic na przyszlosc nad rozroznieniem predkosciomierzy (dokladnosc wskazan, zwloka czasowa wskazania, inne funkcje)
+      fHaslerTimer+=dt;
+      if(fHaslerTimer>fHaslerTime)
+      {
+		    if(DynamicObject->MoverParameters->TrainType==dt_EZT) //ZiomalCl: W ezt typu stare EN57 wskazania haslera sa mniej dokladne (linka)
+          VelocityGaugeB.UpdateValue(fTachoVelocity>2?fTachoVelocity+0.5-random(5)/2:0);
+		    else
+		      VelocityGaugeB.UpdateValue(fTachoVelocity>2?fTachoVelocity+0.5-random(2)/2:0);
+        fHaslerTimer-=fHaslerTime;
+      }
       VelocityGaugeB.Update();
      }
 //McZapkie-300302: zegarek
