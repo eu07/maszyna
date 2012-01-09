@@ -27,6 +27,7 @@ const double fCzuwakBlink= 0.15f;
 const float fConverterPrzekaznik = 1.5f; //hunter-261211: do przekaznika nadmiarowego przetwornicy
                          //0.33f
 // const double fBuzzerTime= 5.0f;
+const float fHaslerTime = 1.2f;
 
 // const double fStycznTime= 0.5f;
 // const double fDblClickTime= 0.2f;
@@ -295,6 +296,7 @@ private:
 //    TSubModel *smCzuwakShpOff;
 //    double fCzuwakTimer;
     double fBlinkTimer;
+	float fHaslerTimer;
     float fConverterTimer;  //hunter-261211: dla przekaznika
     float fMainRelayTimer;  //hunter-141211: zalaczanie WSa z opoznieniem
     int CAflag; //hunter-131211: dla osobnego zbijania CA i SHP
