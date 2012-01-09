@@ -1010,14 +1010,14 @@ void __fastcall TTrain::OnKeyPress(int cKey)
               if (!FreeFlyModeFlag)
               {
                   if (GetAsyncKeyState(VK_CONTROL)<0)
-                   if (DynamicObject->MoverParameters->BrakeDelaySwitch(2))
+                   if (DynamicObject->MoverParameters->BrakeDelaySwitch(bdelay_R))
                      {
                        dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
                        dsbPneumaticRelay->Play(0,0,0);
                      }
                    else;
                   else
-                   if (DynamicObject->MoverParameters->BrakeDelaySwitch(1))
+                   if (DynamicObject->MoverParameters->BrakeDelaySwitch(bdelay_G))
                      {
                        dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
                        dsbPneumaticRelay->Play(0,0,0);
@@ -1035,14 +1035,14 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                  if (temp)
                  {
                   if (GetAsyncKeyState(VK_CONTROL)<0)
-                    if (temp->MoverParameters->BrakeDelaySwitch(2))
+                    if (temp->MoverParameters->BrakeDelaySwitch(bdelay_R))
                      {
                        dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
                        dsbPneumaticRelay->Play(0,0,0);
                      }
                     else;
                   else
-                    if (temp->MoverParameters->BrakeDelaySwitch(1))
+                    if (temp->MoverParameters->BrakeDelaySwitch(bdelay_G))
                      {
                        dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
                        dsbPneumaticRelay->Play(0,0,0);
