@@ -1,0 +1,141 @@
+<?xml version='1.0' encoding='utf-8' ?>
+<!-- C++Builder XML Project -->
+<PROJECT>
+  <MACROS>
+    <VERSION value="BCB.05.03"/>
+    <PROJECT value="D:\EU07\EU07.exe"/>
+    <OBJFILES value="McZapkie\mover.obj QueryParserComp.obj McZapkie\mtable.obj EU07.obj 
+      dumb3d.obj Camera.obj Texture.obj World.obj Model3d.obj geometry.obj 
+      MdlMngr.obj Train.obj wavread.obj Timer.obj Event.obj MemCell.obj Logs.obj 
+      Spring.obj Button.obj Globals.obj Gauge.obj AnimModel.obj Ground.obj 
+      TrkFoll.obj Segment.obj Sound.obj AdvSound.obj Track.obj DynObj.obj 
+      RealSound.obj EvLaunch.obj FadeSound.obj Traction.obj TractionPower.obj 
+      parser.obj sky.obj AirCoupler.obj glew.obj ResourceManager.obj VBO.obj 
+      Feedback.obj TextureDDS.obj opengl\ARB_Multisample.obj Float3d.obj 
+      Classes.obj Driver.obj Names.obj"/>
+    <RESFILES value="EU07.res"/>
+    <IDLFILES value=""/>
+    <IDLGENFILES value=""/>
+    <DEFFILE value=""/>
+    <RESDEPEN value="$(RESFILES)"/>
+    <LIBFILES value="opengl\glut32.lib DirectX\Dsound.lib"/>
+    <LIBRARIES value="VCLX50.lib bcbsmp50.lib Vcl50.lib"/>
+    <SPARELIBS value="Vcl50.lib bcbsmp50.lib VCLX50.lib"/>
+    <PACKAGES value="Vcl50.bpi Vclx50.bpi bcbsmp50.bpi Vcldb50.bpi vclado50.bpi ibsmp50.bpi 
+      VCLBDE50.bpi vcldbx50.bpi Qrpt50.bpi TeeUI50.bpi TeeDB50.bpi Tee50.bpi 
+      Dss50.bpi TeeQR50.bpi VCLIB50.bpi Vclmid50.bpi vclie50.bpi Inetdb50.bpi 
+      Inet50.bpi NMFast50.bpi webmid50.bpi bcbie50.bpi dclocx50.bpi 
+      bcb2kaxserver50.bpi"/>
+    <PATHCPP value=".;opengl"/>
+    <PATHPAS value=".;McZapkie"/>
+    <PATHRC value=".;"/>
+    <PATHASM value=".;"/>
+    <DEBUGLIBPATH value="$(BCB)\lib\debug"/>
+    <RELEASELIBPATH value="$(BCB)\lib\release"/>
+    <LINKER value="tlink32"/>
+    <USERDEFINES value="GLEW_STATIC;_DEBUG;USE_VBO"/>
+    <SYSDEFINES value="_RTLDLL;NO_STRICT"/>
+    <MAINSOURCE value="EU07.cpp"/>
+    <INCLUDEPATH value="C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
+    <LIBPATH value="C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
+    <WARNINGS value="-w-par"/>
+  </MACROS>
+  <OPTIONS>
+    <IDLCFLAGS value="-IC:\ProgsWin\CBuilder5\Projects\. -Iopengl -IMcZapkie -I$(BCB)\include 
+      -I$(BCB)\include\vcl -src_suffix cpp -DGLEW_STATIC -D_DEBUG -DUSE_VBO -boa"/>
+    <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a4 -6 -b- -k -y -v -vi- 
+      -c -tW -tWM"/>
+    <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
+    <RFLAGS value=""/>
+    <AFLAGS value="/mx /w2 /zi"/>
+    <LFLAGS value="-D&quot;&quot; -aa -Tpe -x -v"/>
+  </OPTIONS>
+  <LINKER>
+    <ALLOBJ value="c0w32.obj Memmgr.Lib sysinit.obj $(OBJFILES)"/>
+    <ALLRES value="$(RESFILES)"/>
+    <ALLLIB value="$(LIBFILES) $(LIBRARIES) import32.lib cp32mti.lib"/>
+  </LINKER>
+  <IDEOPTIONS>
+[Version Info]
+IncludeVerInfo=1
+AutoIncBuild=0
+MajorVer=1
+MinorVer=6
+Release=469
+Build=299
+Debug=1
+PreRelease=0
+Special=0
+Private=0
+DLL=0
+Locale=1045
+CodePage=1250
+
+[Version Info Keys]
+CompanyName=EU07 Team
+FileDescription=MaSzyna EU07-424
+FileVersion=1.6.469.299
+InternalName=6th by Ra
+LegalCopyright=
+LegalTrademarks=
+OriginalFilename=eu07.exe
+ProductName=MaSzyna EU07-424
+ProductVersion=1.6
+Comments=
+
+[HistoryLists\hlIncludePath]
+Count=2
+Item0=C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item1=opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+
+[HistoryLists\hlLibraryPath]
+Count=2
+Item0=C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item1=opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+
+[HistoryLists\hlDebugSourcePath]
+Count=3
+Item0=C:\Ra\dp\McZapkie\
+Item1=c:\lang\borland\cbuilder5\source\vcl;D:\USER\MCZAPKIE\PROGRAMY\rail\symul\source\zmiany\McZapkie\;D:\USER\MCZAPKIE\PROGRAMY\rail\symul\source\zmiany\
+Item2=$(BCB)\source\vcl
+
+[HistoryLists\hlConditionals]
+Count=8
+Item0=GLEW_STATIC;_DEBUG;USE_VBO
+Item1=GLEW_STATIC;_DEBUG
+Item2=GLEW_STATIC;_DEBUG;_USE_OLD_RW_STL
+Item3=GLEW_STATIC
+Item4=GLEW_STATIC;USE_VERTEX_ARRAYS;_DEBUG
+Item5=GLEW_STATIC;USE_VERTEX_ARRAYS
+Item6=GLEW_STATIC;_DEBUG;USE_VERTEX_ARRAYS
+Item7=_DEBUG
+
+[HistoryLists\hlFinalOutputDir]
+Count=6
+Item0=D:\EU07\
+Item1=..\..\PC2010+patch\
+Item2=K:\Czesuaff\PC2010+patch
+Item3=D:\eu07-120303light\
+Item4=D:\EU07DDS\
+Item5=M:\aEU07\EU07\
+
+[Debugging]
+DebugSourceDirs=C:\Ra\dp\McZapkie\
+
+[Parameters]
+RunParams=
+HostApplication=
+RemoteHost=
+RemotePath=
+RemoteDebug=0
+
+[Compiler]
+ShowInfoMsgs=0
+LinkDebugVcl=0
+
+[CORBA]
+AddServerUnit=1
+AddClientUnit=1
+PrecompiledHeaders=1
+  </IDEOPTIONS>
+</PROJECT>
