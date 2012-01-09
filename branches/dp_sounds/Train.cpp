@@ -3634,7 +3634,7 @@ else
 */
 
 //  if (fabs(DynamicObject->GetVelocity())>0.5)
-    if (fTachoCount>maxtacho)
+    if (fTachoCount>maxtacho && FreeFlyModeFlag==false)
     {
         dsbHasler->GetStatus(&stat);
         if (!(stat&DSBSTATUS_PLAYING))
@@ -3642,7 +3642,7 @@ else
     }
    else
     {
-     if (fTachoCount<1)
+     if (fTachoCount<1 || FreeFlyModeFlag==true) //zeby Hasler byl slyszalny tylko wewnatrz
       {
        dsbHasler->GetStatus(&stat);
        if (stat&DSBSTATUS_PLAYING)
