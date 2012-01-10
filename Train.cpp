@@ -95,7 +95,8 @@ __fastcall TTrain::TTrain()
     pMechShake=vector3(0,0,0);
     vMechMovement=vector3(0,0,0);
     pMechOffset=vector3(0,0,0);
-    fBlinkTimer=0;
+ fBlinkTimer=0;
+ fHaslerTimer=0;
     keybrakecount=0;
     DynamicObject=NULL;
     iCabLightFlag=0;
@@ -2192,16 +2193,27 @@ else
 //}catch(...){WriteLog("!!!! Problem z amperomierzami");}; //trykacz i tak nie dzia³a
 
 //McZapkie-240302    VelocityGauge.UpdateValue(DynamicObject->GetVelocity());
-    if (VelocityGauge.SubModel)
-     {
+    //fHaslerTimer+=dt;
+    //if (fHaslerTimer>fHaslerTime)
+    {//Ra: ryzykowne jest to, gdy¿ mo¿e siê nie uaktualniaæ prêdkoœæ
+     //Ra: prêdkoœæ siê powinna zaokr¹glaæ tam gdzie siê liczy fTachoVelocity
+     if (VelocityGauge.SubModel)
+     {//ZiomalCl: wskazanie Haslera w kabinie A ze zwloka czasowa oraz odpowiednia tolerancja
+      //Nalezy sie zastanowic na przyszlosc nad rozroznieniem predkosciomierzy (dokladnosc wskazan, zwloka czasowa wskazania, inne funkcje)
+      //ZiomalCl: W ezt typu stare EN57 wskazania haslera sa mniej dokladne (linka)
+      //VelocityGauge.UpdateValue(fTachoVelocity>2?fTachoVelocity+0.5-random(DynamicObject->MoverParameters->TrainType==dt_EZT?5:2)/2:0);
       VelocityGauge.UpdateValue(fTachoVelocity);
       VelocityGauge.Update();
      }
-    if (VelocityGaugeB.SubModel)
-     {
+     if (VelocityGaugeB.SubModel)
+     {//ZiomalCl: wskazanie Haslera w kabinie B ze zwloka czasowa oraz odpowiednia tolerancja
+      //Nalezy sie zastanowic na przyszlosc nad rozroznieniem predkosciomierzy (dokladnosc wskazan, zwloka czasowa wskazania, inne funkcje)
+      //VelocityGaugeB.UpdateValue(fTachoVelocity>2?fTachoVelocity+0.5-random(DynamicObject->MoverParameters->TrainType==dt_EZT?5:2)/2:0);
       VelocityGaugeB.UpdateValue(fTachoVelocity);
       VelocityGaugeB.Update();
      }
+     //fHaslerTimer-=fHaslerTime; //1.2s (???)
+    }
 //McZapkie-300302: zegarek
     if (ClockMInd.SubModel)
      {
@@ -3316,21 +3328,21 @@ else
 */
 
 //  if (fabs(DynamicObject->GetVelocity())>0.5)
-    if (fTachoCount>maxtacho)
-    {
-        dsbHasler->GetStatus(&stat);
-        if (!(stat&DSBSTATUS_PLAYING))
-            dsbHasler->Play( 0, 0, DSBPLAY_LOOPING );
-    }
+   if (FreeFlyModeFlag?false:fTachoCount>maxtacho)
+   {
+    dsbHasler->GetStatus(&stat);
+    if (!(stat&DSBSTATUS_PLAYING))
+     dsbHasler->Play(0,0,DSBPLAY_LOOPING );
+   }
    else
+   {
+    if (FreeFlyModeFlag?true:fTachoCount<1)
     {
-     if (fTachoCount<1)
-      {
-       dsbHasler->GetStatus(&stat);
-       if (stat&DSBSTATUS_PLAYING)
-          dsbHasler->Stop();
-      }
+     dsbHasler->GetStatus(&stat);
+     if (stat&DSBSTATUS_PLAYING)
+      dsbHasler->Stop();
     }
+   }
 
 // koniec mieszania z dzwiekami
 

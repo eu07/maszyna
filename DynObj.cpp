@@ -204,12 +204,12 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
    {
     if ((i%2)==0)
     {
-     smAnimatedDoor[i]->SetTranslate(vector3(0,0,1)*dDoorMoveL*DoorSpeedFactor[i]);
+     smAnimatedDoor[i]->SetTranslate(vector3(0,0,dDoorMoveL*DoorSpeedFactor[i]));
     //dDoorMoveL=dDoorMoveL*DoorSpeedFactor[i];
     }
     else
     {
-     smAnimatedDoor[i]->SetTranslate(vector3(0,0,1)*dDoorMoveR*DoorSpeedFactor[i]);
+     smAnimatedDoor[i]->SetTranslate(vector3(0,0,dDoorMoveR*DoorSpeedFactor[i]));
     //dDoorMoveR=dDoorMoveR*DoorSpeedFactor[i];
     }
    }
@@ -2066,6 +2066,25 @@ if (tmpTraction.TractionVoltage==0)
     MoverParameters->CompressorFlag=false;
     }
 }
+ else if (MoverParameters->EnginePowerSource.SourceType==InternalSource)
+  if (MoverParameters->EnginePowerSource.PowerType==SteamPower)
+  {//animacja t³oków
+   double fi,dx;
+   fi=DegToRad(dWheelAngle[1]+pant1x); //k¹t obrotu ko³a dla t³oka 1
+   dx=panty*cos(fi)+sqrt(panth*panth-panty*panty*sin(fi)*sin(fi))-panth; //nieoptymalne
+   smPatykird1[0]->SetTranslate(float3(dx,0,0)); //suwamy
+   fi=-atan2(panty,panth)*sin(fi);
+   smPatykirg1[0]->SetRotateXYZ(vector3(RadToDeg(fi),0,0));
+   //smPatykirg1[0]->SetRotate(float3(0,1,0),RadToDeg(fi)); //obracamy
+   //smPatykirg1[0]->SetTranslate(float3(fi,0,0)); //suwamy
+   fi=DegToRad(dWheelAngle[1]+pant2x); //k¹t obrotu ko³a dla t³oka 1
+   dx=panty*cos(fi)+sqrt(panth*panth-panty*panty*sin(fi)*sin(fi))-panth; //nieoptymalne
+   smPatykird1[1]->SetTranslate(float3(dx,0,0));
+   fi=-atan2(panty,panth)*sin(fi);
+   smPatykirg1[1]->SetRotateXYZ(vector3(RadToDeg(fi),0,0));
+   //smPatykirg1[1]->SetRotate(float3(0,1,0),RadToDeg(fi));
+   //smPatykirg1[1]->SetTranslate(float3(fi,0,0)); //suwamy
+  }
 
 //NBMX Obsluga drzwi, MC: zuniwersalnione
 //   if (tempdoorfactor2!=120)
@@ -2884,7 +2903,6 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
         {
          int i,j,k,m;
          str=Parser->GetNextSymbol();
-         asAnimName="";
          for (i=1; i<=MaxAnimatedAxles; i++)
          {//McZapkie-050402: wyszukiwanie kol o nazwie str*
           asAnimName=str+i;
@@ -2918,7 +2936,6 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
         else if (str==AnsiString("animrodprefix:")) //prefiks wiazarow dwoch
          {
           str= Parser->GetNextSymbol();
-          asAnimName="";
           for (int i=1; i<=2; i++)
            {
  //McZapkie-050402: wyszukiwanie max 2 wiazarow o nazwie str*
@@ -2932,7 +2949,6 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
         if (str==AnsiString("animpantrd1prefix:"))              //prefiks ramion dolnych 1
          {
           str= Parser->GetNextSymbol();
-          asAnimName="";
           for (int i=1; i<=2; i++)
            {
  //Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
@@ -2945,7 +2961,6 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
         if (str==AnsiString("animpantrd2prefix:"))              //prefiks ramion dolnych 2
          {
           str= Parser->GetNextSymbol();
-          asAnimName="";
           for (int i=1; i<=2; i++)
            {
  //Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
@@ -2958,7 +2973,6 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
         if (str==AnsiString("animpantrg1prefix:"))              //prefiks ramion gornych 1
          {
           str= Parser->GetNextSymbol();
-          asAnimName="";
           for (int i=1; i<=2; i++)
            {
  //Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
@@ -2971,7 +2985,6 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
         if (str==AnsiString("animpantrg2prefix:"))              //prefiks ramion gornych 2
          {
           str= Parser->GetNextSymbol();
-          asAnimName="";
           for (int i=1; i<=2; i++)
            {
  //Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
@@ -2984,7 +2997,6 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
         if (str==AnsiString("animpantslprefix:"))              //prefiks slizgaczy
          {
           str= Parser->GetNextSymbol();
-          asAnimName="";
           for (int i=1; i<=2; i++)
            {
  //Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
@@ -2993,16 +3005,41 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
             smPatykisl[i-1]->WillBeAnimated();
            }
          }
-        else
- //Winger 010304: parametry pantografow
-        if (str==AnsiString("pantfactors:"))              //prefiks slizgaczy
+        else if (str==AnsiString("pantfactors:"))
+        {//Winger 010304: parametry pantografow
+         pant1x=Parser->GetNextSymbol().ToDouble();
+         pant2x=Parser->GetNextSymbol().ToDouble();
+         panty=Parser->GetNextSymbol().ToDouble();
+         panth=Parser->GetNextSymbol().ToDouble();
+        }
+        else if (str==AnsiString("animpistonprefix:"))
+        {//prefiks t³oków - na razie u¿ywamy modeli pantografów
+         str=Parser->GetNextSymbol();
+         for (int i=1;i<=2;i++)
          {
-          pant1x= Parser->GetNextSymbol().ToDouble();
-          pant2x= Parser->GetNextSymbol().ToDouble();
-          panty= Parser->GetNextSymbol().ToDouble();
-          panth= Parser->GetNextSymbol().ToDouble();
-          //              asAnimName="";
+          asAnimName=str+i;
+          smPatykird1[i-1]=mdModel->GetFromName(asAnimName.c_str());
+          smPatykird1[i-1]->WillBeAnimated();
          }
+        }
+        else if (str==AnsiString("animconrodprefix:"))
+        {//prefiks korbowodów - na razie u¿ywamy modeli pantografów
+         str=Parser->GetNextSymbol();
+         for (int i=1;i<=2;i++)
+         {
+          asAnimName=str+i;
+          smPatykirg1[i-1]=mdModel->GetFromName(asAnimName.c_str());
+          smPatykirg1[i-1]->WillBeAnimated();
+         }
+        }
+        else if (str==AnsiString("pistonfactors:"))
+        {//Ra: parametry silnika parowego (t³oka)
+         pant1x=Parser->GetNextSymbol().ToDouble(); //k¹t przesuniêcia dla pierwszego t³oka
+         pant2x=Parser->GetNextSymbol().ToDouble(); //k¹t przesuniêcia dla drugiego t³oka
+         panty=Parser->GetNextSymbol().ToDouble(); //d³ugoœæ korby (r)
+         panth=Parser->GetNextSymbol().ToDouble(); //d³ugoœ korbowodu (k)
+         MoverParameters->EnginePowerSource.PowerType=SteamPower; //Ra: po chamsku, ale z CHK nie dzia³a
+        }
         else
         if (str==AnsiString("animpendulumprefix:"))              //prefiks wahaczy
          {
