@@ -2085,6 +2085,325 @@ double freq; //taka prowizorka zeby sciszyc stukot dalekiej lokomotywy
        else
         rsOuterNoise5.Stop();
      }
+             if (rsOuterNoise6.AM!=0)
+     {
+       if ((MoverParameters->Vel!=0 && Global::asHumanVehicle!=MoverParameters->Name && FreeFlyModeFlag==false && MoverParameters->Vel>=rsOuterNoise6.Vmin && MoverParameters->Vel<=rsOuterNoise6.Vmax) || (MoverParameters->Vel!=0 && FreeFlyModeFlag==true && MoverParameters->Vel>=rsOuterNoise6.Vmin && MoverParameters->Vel<=rsOuterNoise6.Vmax))
+        {
+          if (!TestFlag(MoverParameters->DamageFlag,dtrain_wheelwear)) //McZpakie-221103: halas zalezny od kola
+           {
+             dfreq=rsOuterNoise6.FM*MoverParameters->Vel+rsOuterNoise6.FA;
+             vol=rsOuterNoise6.AM*MoverParameters->Vel+rsOuterNoise6.AA;
+              switch (MyTrack->eEnvironment)
+              {
+                  case e_tunnel:
+                   {
+                    vol*=3;
+                    dfreq*=0.95;
+                   }
+                  break;
+                  case e_canyon:
+                   {
+                    vol*=1.1;
+                   }
+                  break;
+                  case e_bridge:
+                   {
+                    vol*=2;
+                    dfreq*=0.98;
+                   }
+                  break;
+              }
+
+           }
+          else                                                   //uszkodzone kolo (podkucie)
+           if (fabs(MoverParameters->nrot)>0.01)
+           {
+             dfreq=rsOuterNoise6.FM*MoverParameters->Vel+rsOuterNoise6.FA;
+             vol=rsOuterNoise6.AM*MoverParameters->Vel+rsOuterNoise6.AA;
+              switch (MyTrack->eEnvironment)
+              {
+                  case e_tunnel:
+                   {
+                    vol*=2;
+                   }
+                  break;
+                  case e_canyon:
+                   {
+                    vol*=1.1;
+                   }
+                  break;
+                  case e_bridge:
+                   {
+                    vol*=1.5;
+                   }
+                  break;
+              }
+           }
+          if (fabs(MoverParameters->nrot)>0.01)
+           vol*=1+MoverParameters->UnitBrakeForce/(1+MoverParameters->MaxBrakeForce); //hamulce wzmagaja halas
+          vol=vol*(20.0+MyTrack->iDamageFlag)/21;
+          rsOuterNoise6.AdjFreq(dfreq,0);
+          rsOuterNoise6.Play(vol, DSBPLAY_LOOPING, true, GetPosition());
+        }
+       else
+        rsOuterNoise6.Stop();
+     }
+
+        if (rsOuterNoise7.AM!=0)
+     {
+       if ((MoverParameters->Vel!=0 && Global::asHumanVehicle!=MoverParameters->Name && FreeFlyModeFlag==false && MoverParameters->Vel>=rsOuterNoise7.Vmin && MoverParameters->Vel<=rsOuterNoise7.Vmax) || (MoverParameters->Vel!=0 && FreeFlyModeFlag==true && MoverParameters->Vel>=rsOuterNoise7.Vmin && MoverParameters->Vel<=rsOuterNoise7.Vmax))
+        {
+          if (!TestFlag(MoverParameters->DamageFlag,dtrain_wheelwear)) //McZpakie-221103: halas zalezny od kola
+           {
+             dfreq=rsOuterNoise7.FM*MoverParameters->Vel+rsOuterNoise7.FA;
+             vol=rsOuterNoise7.AM*MoverParameters->Vel+rsOuterNoise7.AA;
+              switch (MyTrack->eEnvironment)
+              {
+                  case e_tunnel:
+                   {
+                    vol*=3;
+                    dfreq*=0.95;
+                   }
+                  break;
+                  case e_canyon:
+                   {
+                    vol*=1.1;
+                   }
+                  break;
+                  case e_bridge:
+                   {
+                    vol*=2;
+                    dfreq*=0.98;
+                   }
+                  break;
+              }
+
+           }
+          else                                                   //uszkodzone kolo (podkucie)
+           if (fabs(MoverParameters->nrot)>0.01)
+           {
+             dfreq=rsOuterNoise7.FM*MoverParameters->Vel+rsOuterNoise7.FA;
+             vol=rsOuterNoise7.AM*MoverParameters->Vel+rsOuterNoise7.AA;
+              switch (MyTrack->eEnvironment)
+              {
+                  case e_tunnel:
+                   {
+                    vol*=2;
+                   }
+                  break;
+                  case e_canyon:
+                   {
+                    vol*=1.1;
+                   }
+                  break;
+                  case e_bridge:
+                   {
+                    vol*=1.5;
+                   }
+                  break;
+              }
+           }
+          if (fabs(MoverParameters->nrot)>0.01)
+           vol*=1+MoverParameters->UnitBrakeForce/(1+MoverParameters->MaxBrakeForce); //hamulce wzmagaja halas
+          vol=vol*(20.0+MyTrack->iDamageFlag)/21;
+          rsOuterNoise7.AdjFreq(dfreq,0);
+          rsOuterNoise7.Play(vol, DSBPLAY_LOOPING, true, GetPosition());
+        }
+       else
+        rsOuterNoise7.Stop();
+     }
+     
+             if (rsOuterNoise8.AM!=0)
+     {
+       if ((MoverParameters->Vel!=0 && Global::asHumanVehicle!=MoverParameters->Name && FreeFlyModeFlag==false && MoverParameters->Vel>=rsOuterNoise8.Vmin && MoverParameters->Vel<=rsOuterNoise8.Vmax) || (MoverParameters->Vel!=0 && FreeFlyModeFlag==true && MoverParameters->Vel>=rsOuterNoise8.Vmin && MoverParameters->Vel<=rsOuterNoise8.Vmax))
+        {
+          if (!TestFlag(MoverParameters->DamageFlag,dtrain_wheelwear)) //McZpakie-221103: halas zalezny od kola
+           {
+             dfreq=rsOuterNoise8.FM*MoverParameters->Vel+rsOuterNoise8.FA;
+             vol=rsOuterNoise8.AM*MoverParameters->Vel+rsOuterNoise8.AA;
+              switch (MyTrack->eEnvironment)
+              {
+                  case e_tunnel:
+                   {
+                    vol*=3;
+                    dfreq*=0.95;
+                   }
+                  break;
+                  case e_canyon:
+                   {
+                    vol*=1.1;
+                   }
+                  break;
+                  case e_bridge:
+                   {
+                    vol*=2;
+                    dfreq*=0.98;
+                   }
+                  break;
+              }
+
+           }
+          else                                                   //uszkodzone kolo (podkucie)
+           if (fabs(MoverParameters->nrot)>0.01)
+           {
+             dfreq=rsOuterNoise8.FM*MoverParameters->Vel+rsOuterNoise8.FA;
+             vol=rsOuterNoise8.AM*MoverParameters->Vel+rsOuterNoise8.AA;
+              switch (MyTrack->eEnvironment)
+              {
+                  case e_tunnel:
+                   {
+                    vol*=2;
+                   }
+                  break;
+                  case e_canyon:
+                   {
+                    vol*=1.1;
+                   }
+                  break;
+                  case e_bridge:
+                   {
+                    vol*=1.5;
+                   }
+                  break;
+              }
+           }
+          if (fabs(MoverParameters->nrot)>0.01)
+           vol*=1+MoverParameters->UnitBrakeForce/(1+MoverParameters->MaxBrakeForce); //hamulce wzmagaja halas
+          vol=vol*(20.0+MyTrack->iDamageFlag)/21;
+          rsOuterNoise8.AdjFreq(dfreq,0);
+          rsOuterNoise8.Play(vol, DSBPLAY_LOOPING, true, GetPosition());
+        }
+       else
+        rsOuterNoise8.Stop();
+     }
+     
+             if (rsOuterNoise9.AM!=0)
+     {
+       if ((MoverParameters->Vel!=0 && Global::asHumanVehicle!=MoverParameters->Name && FreeFlyModeFlag==false && MoverParameters->Vel>=rsOuterNoise9.Vmin && MoverParameters->Vel<=rsOuterNoise9.Vmax) || (MoverParameters->Vel!=0 && FreeFlyModeFlag==true && MoverParameters->Vel>=rsOuterNoise9.Vmin && MoverParameters->Vel<=rsOuterNoise9.Vmax))
+        {
+          if (!TestFlag(MoverParameters->DamageFlag,dtrain_wheelwear)) //McZpakie-221103: halas zalezny od kola
+           {
+             dfreq=rsOuterNoise9.FM*MoverParameters->Vel+rsOuterNoise9.FA;
+             vol=rsOuterNoise9.AM*MoverParameters->Vel+rsOuterNoise9.AA;
+              switch (MyTrack->eEnvironment)
+              {
+                  case e_tunnel:
+                   {
+                    vol*=3;
+                    dfreq*=0.95;
+                   }
+                  break;
+                  case e_canyon:
+                   {
+                    vol*=1.1;
+                   }
+                  break;
+                  case e_bridge:
+                   {
+                    vol*=2;
+                    dfreq*=0.98;
+                   }
+                  break;
+              }
+
+           }
+          else                                                   //uszkodzone kolo (podkucie)
+           if (fabs(MoverParameters->nrot)>0.01)
+           {
+             dfreq=rsOuterNoise9.FM*MoverParameters->Vel+rsOuterNoise9.FA;
+             vol=rsOuterNoise9.AM*MoverParameters->Vel+rsOuterNoise9.AA;
+              switch (MyTrack->eEnvironment)
+              {
+                  case e_tunnel:
+                   {
+                    vol*=2;
+                   }
+                  break;
+                  case e_canyon:
+                   {
+                    vol*=1.1;
+                   }
+                  break;
+                  case e_bridge:
+                   {
+                    vol*=1.5;
+                   }
+                  break;
+              }
+           }
+          if (fabs(MoverParameters->nrot)>0.01)
+           vol*=1+MoverParameters->UnitBrakeForce/(1+MoverParameters->MaxBrakeForce); //hamulce wzmagaja halas
+          vol=vol*(20.0+MyTrack->iDamageFlag)/21;
+          rsOuterNoise9.AdjFreq(dfreq,0);
+          rsOuterNoise9.Play(vol, DSBPLAY_LOOPING, true, GetPosition());
+        }
+       else
+        rsOuterNoise9.Stop();
+     }
+     
+             if (rsOuterNoise10.AM!=0)
+     {
+       if ((MoverParameters->Vel!=0 && Global::asHumanVehicle!=MoverParameters->Name && FreeFlyModeFlag==false && MoverParameters->Vel>=rsOuterNoise10.Vmin && MoverParameters->Vel<=rsOuterNoise10.Vmax) || (MoverParameters->Vel!=0 && FreeFlyModeFlag==true && MoverParameters->Vel>=rsOuterNoise10.Vmin && MoverParameters->Vel<=rsOuterNoise10.Vmax))
+        {
+          if (!TestFlag(MoverParameters->DamageFlag,dtrain_wheelwear)) //McZpakie-221103: halas zalezny od kola
+           {
+             dfreq=rsOuterNoise10.FM*MoverParameters->Vel+rsOuterNoise10.FA;
+             vol=rsOuterNoise10.AM*MoverParameters->Vel+rsOuterNoise10.AA;
+              switch (MyTrack->eEnvironment)
+              {
+                  case e_tunnel:
+                   {
+                    vol*=3;
+                    dfreq*=0.95;
+                   }
+                  break;
+                  case e_canyon:
+                   {
+                    vol*=1.1;
+                   }
+                  break;
+                  case e_bridge:
+                   {
+                    vol*=2;
+                    dfreq*=0.98;
+                   }
+                  break;
+              }
+
+           }
+          else                                                   //uszkodzone kolo (podkucie)
+           if (fabs(MoverParameters->nrot)>0.01)
+           {
+             dfreq=rsOuterNoise10.FM*MoverParameters->Vel+rsOuterNoise10.FA;
+             vol=rsOuterNoise10.AM*MoverParameters->Vel+rsOuterNoise10.AA;
+              switch (MyTrack->eEnvironment)
+              {
+                  case e_tunnel:
+                   {
+                    vol*=2;
+                   }
+                  break;
+                  case e_canyon:
+                   {
+                    vol*=1.1;
+                   }
+                  break;
+                  case e_bridge:
+                   {
+                    vol*=1.5;
+                   }
+                  break;
+              }
+           }
+          if (fabs(MoverParameters->nrot)>0.01)
+           vol*=1+MoverParameters->UnitBrakeForce/(1+MoverParameters->MaxBrakeForce); //hamulce wzmagaja halas
+          vol=vol*(20.0+MyTrack->iDamageFlag)/21;
+          rsOuterNoise10.AdjFreq(dfreq,0);
+          rsOuterNoise10.Play(vol, DSBPLAY_LOOPING, true, GetPosition());
+        }
+       else
+        rsOuterNoise10.Stop();
+     }
 
 //McZapkie-260202 - dMoveLen przyda sie przy stukocie kol
     dDOMoveLen=GetdMoveLen()+MoverParameters->ComputeMovement(dt,dt1,ts,tp,tmpTraction,l,r);
@@ -3447,6 +3766,77 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
           
          }
          else
+                                if (str==AnsiString("outernoise6:"))                    //szum podczas jazdy:
+         {
+          str=Parser->GetNextSymbol();
+          rsOuterNoise.Init(str.c_str(),rsOuterNoise6.dSoundAtt,0,0,0,true);
+          rsOuterNoise6.AM=Parser->GetNextSymbol().ToDouble()/(1+MoverParameters->Vmax);
+          rsOuterNoise6.AA=Parser->GetNextSymbol().ToDouble();
+          rsOuterNoise6.FM=Parser->GetNextSymbol().ToDouble()/(1+MoverParameters->Vmax);
+          rsOuterNoise6.FA=Parser->GetNextSymbol().ToDouble();
+          rsOuterNoise6.Vmin=Parser->GetNextSymbol().ToDouble();
+          rsOuterNoise6.Vmax=Parser->GetNextSymbol().ToDouble();
+          rsOuterNoise6.dSoundAtt=Parser->GetNextSymbol().ToDouble();
+          
+         }
+         else
+                                if (str==AnsiString("outernoise7:"))                    //szum podczas jazdy:
+         {
+          str=Parser->GetNextSymbol();
+          rsOuterNoise7.Init(str.c_str(),rsOuterNoise7.dSoundAtt,0,0,0,true);
+          rsOuterNoise7.AM=Parser->GetNextSymbol().ToDouble()/(1+MoverParameters->Vmax);
+          rsOuterNoise7.AA=Parser->GetNextSymbol().ToDouble();
+          rsOuterNoise7.FM=Parser->GetNextSymbol().ToDouble()/(1+MoverParameters->Vmax);
+          rsOuterNoise7.FA=Parser->GetNextSymbol().ToDouble();
+          rsOuterNoise7.Vmin=Parser->GetNextSymbol().ToDouble();
+          rsOuterNoise7.Vmax=Parser->GetNextSymbol().ToDouble();
+          rsOuterNoise7.dSoundAtt=Parser->GetNextSymbol().ToDouble();
+          
+         }
+         else
+         
+                                if (str==AnsiString("outernoise8:"))                    //szum podczas jazdy:
+         {
+          str=Parser->GetNextSymbol();
+          rsOuterNoise8.Init(str.c_str(),rsOuterNoise8.dSoundAtt,0,0,0,true);
+          rsOuterNoise8.AM=Parser->GetNextSymbol().ToDouble()/(1+MoverParameters->Vmax);
+          rsOuterNoise8.AA=Parser->GetNextSymbol().ToDouble();
+          rsOuterNoise8.FM=Parser->GetNextSymbol().ToDouble()/(1+MoverParameters->Vmax);
+          rsOuterNoise8.FA=Parser->GetNextSymbol().ToDouble();
+          rsOuterNoise8.Vmin=Parser->GetNextSymbol().ToDouble();
+          rsOuterNoise8.Vmax=Parser->GetNextSymbol().ToDouble();
+          rsOuterNoise8.dSoundAtt=Parser->GetNextSymbol().ToDouble();
+          
+         }
+         else
+                                if (str==AnsiString("outernoise9:"))                    //szum podczas jazdy:
+         {
+          str=Parser->GetNextSymbol();
+          rsOuterNoise9.Init(str.c_str(),rsOuterNoise9.dSoundAtt,0,0,0,true);
+          rsOuterNoise9.AM=Parser->GetNextSymbol().ToDouble()/(1+MoverParameters->Vmax);
+          rsOuterNoise9.AA=Parser->GetNextSymbol().ToDouble();
+          rsOuterNoise9.FM=Parser->GetNextSymbol().ToDouble()/(1+MoverParameters->Vmax);
+          rsOuterNoise9.FA=Parser->GetNextSymbol().ToDouble();
+          rsOuterNoise9.Vmin=Parser->GetNextSymbol().ToDouble();
+          rsOuterNoise9.Vmax=Parser->GetNextSymbol().ToDouble();
+          rsOuterNoise9.dSoundAtt=Parser->GetNextSymbol().ToDouble();
+          
+         }
+         else
+         
+                                if (str==AnsiString("outernoise10:"))                    //szum podczas jazdy:
+         {
+          str=Parser->GetNextSymbol();
+          rsOuterNoise10.Init(str.c_str(),rsOuterNoise10.dSoundAtt,0,0,0,true);
+          rsOuterNoise10.AM=Parser->GetNextSymbol().ToDouble()/(1+MoverParameters->Vmax);
+          rsOuterNoise10.AA=Parser->GetNextSymbol().ToDouble();
+          rsOuterNoise10.FM=Parser->GetNextSymbol().ToDouble()/(1+MoverParameters->Vmax);
+          rsOuterNoise10.FA=Parser->GetNextSymbol().ToDouble();
+          rsOuterNoise10.Vmin=Parser->GetNextSymbol().ToDouble();
+          rsOuterNoise10.Vmax=Parser->GetNextSymbol().ToDouble();
+          rsOuterNoise10.dSoundAtt=Parser->GetNextSymbol().ToDouble();
+          }
+          else
        if (str==AnsiString("wheel_clatter:"))                    //polozenia osi w/m srodka pojazdu
         {
          dSDist=Parser->GetNextSymbol().ToDouble();
