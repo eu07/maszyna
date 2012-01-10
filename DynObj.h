@@ -121,6 +121,11 @@ private:
     TRealSound rsOuterNoise3;
     TRealSound rsOuterNoise4;
     TRealSound rsOuterNoise5;
+    TRealSound rsOuterNoise6;
+    TRealSound rsOuterNoise7;
+    TRealSound rsOuterNoise8;
+    TRealSound rsOuterNoise9;
+    TRealSound rsOuterNoise10;
 
     double eng_vol_act;
     double eng_frq_act;
