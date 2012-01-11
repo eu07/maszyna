@@ -2085,7 +2085,8 @@ double freq; //taka prowizorka zeby sciszyc stukot dalekiej lokomotywy
        else
         rsOuterNoise5.Stop();
      }
-             if (rsOuterNoise6.AM!=0)
+     
+                  if (rsOuterNoise6.AM!=0)
      {
        if ((MoverParameters->Vel!=0 && Global::asHumanVehicle!=MoverParameters->Name && FreeFlyModeFlag==false && MoverParameters->Vel>=rsOuterNoise6.Vmin && MoverParameters->Vel<=rsOuterNoise6.Vmax) || (MoverParameters->Vel!=0 && FreeFlyModeFlag==true && MoverParameters->Vel>=rsOuterNoise6.Vmin && MoverParameters->Vel<=rsOuterNoise6.Vmax))
         {
@@ -2148,8 +2149,8 @@ double freq; //taka prowizorka zeby sciszyc stukot dalekiej lokomotywy
        else
         rsOuterNoise6.Stop();
      }
-
-        if (rsOuterNoise7.AM!=0)
+     
+                       if (rsOuterNoise7.AM!=0)
      {
        if ((MoverParameters->Vel!=0 && Global::asHumanVehicle!=MoverParameters->Name && FreeFlyModeFlag==false && MoverParameters->Vel>=rsOuterNoise7.Vmin && MoverParameters->Vel<=rsOuterNoise7.Vmax) || (MoverParameters->Vel!=0 && FreeFlyModeFlag==true && MoverParameters->Vel>=rsOuterNoise7.Vmin && MoverParameters->Vel<=rsOuterNoise7.Vmax))
         {
@@ -2213,7 +2214,7 @@ double freq; //taka prowizorka zeby sciszyc stukot dalekiej lokomotywy
         rsOuterNoise7.Stop();
      }
      
-             if (rsOuterNoise8.AM!=0)
+                            if (rsOuterNoise8.AM!=0)
      {
        if ((MoverParameters->Vel!=0 && Global::asHumanVehicle!=MoverParameters->Name && FreeFlyModeFlag==false && MoverParameters->Vel>=rsOuterNoise8.Vmin && MoverParameters->Vel<=rsOuterNoise8.Vmax) || (MoverParameters->Vel!=0 && FreeFlyModeFlag==true && MoverParameters->Vel>=rsOuterNoise8.Vmin && MoverParameters->Vel<=rsOuterNoise8.Vmax))
         {
@@ -2277,7 +2278,7 @@ double freq; //taka prowizorka zeby sciszyc stukot dalekiej lokomotywy
         rsOuterNoise8.Stop();
      }
      
-             if (rsOuterNoise9.AM!=0)
+                            if (rsOuterNoise9.AM!=0)
      {
        if ((MoverParameters->Vel!=0 && Global::asHumanVehicle!=MoverParameters->Name && FreeFlyModeFlag==false && MoverParameters->Vel>=rsOuterNoise9.Vmin && MoverParameters->Vel<=rsOuterNoise9.Vmax) || (MoverParameters->Vel!=0 && FreeFlyModeFlag==true && MoverParameters->Vel>=rsOuterNoise9.Vmin && MoverParameters->Vel<=rsOuterNoise9.Vmax))
         {
@@ -2341,7 +2342,7 @@ double freq; //taka prowizorka zeby sciszyc stukot dalekiej lokomotywy
         rsOuterNoise9.Stop();
      }
      
-             if (rsOuterNoise10.AM!=0)
+                                 if (rsOuterNoise10.AM!=0)
      {
        if ((MoverParameters->Vel!=0 && Global::asHumanVehicle!=MoverParameters->Name && FreeFlyModeFlag==false && MoverParameters->Vel>=rsOuterNoise10.Vmin && MoverParameters->Vel<=rsOuterNoise10.Vmax) || (MoverParameters->Vel!=0 && FreeFlyModeFlag==true && MoverParameters->Vel>=rsOuterNoise10.Vmin && MoverParameters->Vel<=rsOuterNoise10.Vmax))
         {
@@ -2404,6 +2405,7 @@ double freq; //taka prowizorka zeby sciszyc stukot dalekiej lokomotywy
        else
         rsOuterNoise10.Stop();
      }
+
 
 //McZapkie-260202 - dMoveLen przyda sie przy stukocie kol
     dDOMoveLen=GetdMoveLen()+MoverParameters->ComputeMovement(dt,dt1,ts,tp,tmpTraction,l,r);
@@ -3766,10 +3768,11 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
           
          }
          else
-                                if (str==AnsiString("outernoise6:"))                    //szum podczas jazdy:
+         
+                                         if (str==AnsiString("outernoise6:"))                    //szum podczas jazdy:
          {
           str=Parser->GetNextSymbol();
-          rsOuterNoise.Init(str.c_str(),rsOuterNoise6.dSoundAtt,0,0,0,true);
+          rsOuterNoise6.Init(str.c_str(),rsOuterNoise6.dSoundAtt,0,0,0,true);
           rsOuterNoise6.AM=Parser->GetNextSymbol().ToDouble()/(1+MoverParameters->Vmax);
           rsOuterNoise6.AA=Parser->GetNextSymbol().ToDouble();
           rsOuterNoise6.FM=Parser->GetNextSymbol().ToDouble()/(1+MoverParameters->Vmax);
@@ -3780,7 +3783,8 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
           
          }
          else
-                                if (str==AnsiString("outernoise7:"))                    //szum podczas jazdy:
+         
+                     if (str==AnsiString("outernoise7:"))                    //szum podczas jazdy:
          {
           str=Parser->GetNextSymbol();
           rsOuterNoise7.Init(str.c_str(),rsOuterNoise7.dSoundAtt,0,0,0,true);
@@ -3795,7 +3799,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
          }
          else
          
-                                if (str==AnsiString("outernoise8:"))                    //szum podczas jazdy:
+                              if (str==AnsiString("outernoise8:"))                    //szum podczas jazdy:
          {
           str=Parser->GetNextSymbol();
           rsOuterNoise8.Init(str.c_str(),rsOuterNoise8.dSoundAtt,0,0,0,true);
@@ -3809,7 +3813,8 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
           
          }
          else
-                                if (str==AnsiString("outernoise9:"))                    //szum podczas jazdy:
+         
+                              if (str==AnsiString("outernoise9:"))                    //szum podczas jazdy:
          {
           str=Parser->GetNextSymbol();
           rsOuterNoise9.Init(str.c_str(),rsOuterNoise9.dSoundAtt,0,0,0,true);
@@ -3824,7 +3829,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
          }
          else
          
-                                if (str==AnsiString("outernoise10:"))                    //szum podczas jazdy:
+                                       if (str==AnsiString("outernoise10:"))                    //szum podczas jazdy:
          {
           str=Parser->GetNextSymbol();
           rsOuterNoise10.Init(str.c_str(),rsOuterNoise10.dSoundAtt,0,0,0,true);
@@ -3835,8 +3840,10 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
           rsOuterNoise10.Vmin=Parser->GetNextSymbol().ToDouble();
           rsOuterNoise10.Vmax=Parser->GetNextSymbol().ToDouble();
           rsOuterNoise10.dSoundAtt=Parser->GetNextSymbol().ToDouble();
-          }
-          else
+          
+         }
+         else
+
        if (str==AnsiString("wheel_clatter:"))                    //polozenia osi w/m srodka pojazdu
         {
          dSDist=Parser->GetNextSymbol().ToDouble();
