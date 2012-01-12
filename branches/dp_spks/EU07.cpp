@@ -56,6 +56,8 @@ USEUNIT("Ground.cpp");
 USEUNIT("TrkFoll.cpp");
 USEUNIT("Segment.cpp");
 USEUNIT("McZapkie\mover.pas");
+USEUNIT("McZapkie\hamulce.pas");
+USEUNIT("McZapkie\friction.pas");
 USEUNIT("Sound.cpp");
 USEUNIT("AdvSound.cpp");
 USEUNIT("Track.cpp");

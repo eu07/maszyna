@@ -22,7 +22,7 @@ unit hamulce;          {fizyka hamulcow dla symulatora}
 (*
     MaSzyna EU07 - SPKS
     Brakes.
-    Copyright (C) 2007-2011 Maciej Cierniak
+    Copyright (C) 2007-2012 Maciej Cierniak
 *)
 
 
@@ -94,14 +94,15 @@ CONST
    bp_P10yBg =  15; //¿eliwo fosforowe P10
    bp_P10yBgu=  16;
 
-   Spg=0.5067;  //przekroj przewodu 1" w l/m
+   Spg=0.7917;
+   SpO=0.5067;  //przekroj przewodu 1" w l/m
                 //wyj: jednostka dosyc dziwna, ale wszystkie obliczenia
                 //i pojemnosci sa podane w litrach (rozsadne wielkosci)
                 //zas dlugosc pojazdow jest podana w metrach
                 //a predkosc przeplywu w m/s
 
 //   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (14, 5.4), (9, 5.0), (6, 4.6), (9, 4.5), (9, 4.0), (9, 3.5), (9, 2.8), (34, 2.8));
-   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (7.5, 5.4), (5, 5.0), (5, 4.6), (5, 4.3), (5, 4.0), (5, 3.5), (5, 2.8), (13, 2.8));
+   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (16.5, 5.4), (5, 5.0), (5, 4.6), (5, 4.3), (5, 4.0), (5, 3.5), (5, 2.8), (13, 2.8));
 //   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (12, 5.4), (9, 5.0), (9, 4.6), (9, 4.2), (9, 3.8), (9, 3.4), (9, 2.8), (34, 2.8));
 //      BPT: array[-2..6] of array [0..1] of real= ((0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0));
    i_bcpno= 6;
@@ -373,6 +374,51 @@ begin
     PF:=fm;
 end;
 
+function PFVa(PH,PL,S,LIM:real):real; //zawor napelniajacy z PH do PL, PL do LIM
+var sg,fm: real;
+begin
+  if LIM>PL then
+   begin
+    LIM:=LIM+1;   
+    PH:=PH+1; //wyzsze cisnienie absolutne
+    PL:=PL+1;  //nizsze cisnienie absolutne
+    sg:=PL/PH; //bezwymiarowy stosunek cisnien
+    fm:=PH*197*S; //najwyzszy mozliwy przeplyw, wraz z kierunkiem
+    if (LIM-PL)<0.1 then fm:=fm*10*(LIM-PL); //jesli jestesmy przy nastawieniu, to zawor sie przymyka
+    if (SG>0.5) then //jesli ponizej stosunku krytycznego
+      if (PH-PL)<0.1 then //niewielka roznica cisnien
+        PFVa:=10*(PH-PL)*fm*2*SQRT((sg)*(1-sg))
+      else
+        PFVa:=fm*2*SQRT((sg)*(1-sg))
+    else             //powyzej stosunku krytycznego
+      PFVa:=fm;
+   end
+  else
+    PFVa:=0;
+end;
+
+function PFVd(PH,PL,S,LIM:real):real; //zawor wypuszczajacy z PH do PL, PH do LIM
+var sg,fm: real;
+begin
+  if LIM<PH then
+   begin
+    LIM:=LIM+1;
+    PH:=PH+1; //wyzsze cisnienie absolutne
+    PL:=PL+1;  //nizsze cisnienie absolutne
+    sg:=PL/PH; //bezwymiarowy stosunek cisnien
+    fm:=PH*197*S; //najwyzszy mozliwy przeplyw, wraz z kierunkiem
+    if (PH-LIM)<0.1 then fm:=fm*10*(PH-LIM); //jesli jestesmy przy nastawieniu, to zawor sie przymyka
+    if (SG>0.5) then //jesli ponizej stosunku krytycznego
+    if (PH-PL)<0.1 then //niewielka roznica cisnien
+        PFVd:=10*(PH-PL)*fm*2*SQRT((sg)*(1-sg))
+      else
+        PFVd:=fm*2*SQRT((sg)*(1-sg))
+    else             //powyzej stosunku krytycznego
+      PFVd:=fm;
+   end
+  else
+    PFVd:=0;
+end;
 
 //---ZBIORNIKI---
 
@@ -701,7 +747,7 @@ begin
   VVP:=ValveRes.P;
 
 //przeplyw ZS <-> PG
-  if(BVP<CVP-0.2)or(BrakeStatus>0)or(bp>0.25)then
+  if(BVP<CVP-0.05)or(BrakeStatus>0)or(bp>0.25)then
     CVs:=0
   else
     if(VVP>CVP+0.4)then
@@ -724,8 +770,8 @@ begin
   VVP:=ValveRes.P;
 
 //przeplyw ZP <-> rozdzielacz
-  if(BVP<CVP-0.2)then
-    BVs:=1
+  if(BVP<CVP-0.05)then
+    BVs:=0.6
   else
     if(BCP<0.5) then
       if(VVP>CVP+0.4)then
@@ -1062,19 +1108,20 @@ begin
 
   RapidStatus:=(BrakeDelayFlag=bdelay_R)and(((Vel>55)and(RapidStatus))or(Vel>70));
 
-  temp:=2-Byte(RapidStatus);
+  temp:=1.9-0.9*Byte(RapidStatus);
 
 //luzowanie CH
   if(BrakeCyl.P*temp>ImplsRes.P+0.005)or(ImplsRes.P<0.25) then
-   dV:=PF(0,BrakeCyl.P,0.015*sizeBC)*dt
+//   dV:=PF(0,BrakeCyl.P,0.115*sizeBC/2)*dt
+   dV:=PFVd(BrakeCyl.P,0,0.015*sizeBC/2,ImplsRes.P/temp)*dt
   else dV:=0;
   BrakeCyl.Flow(-dV);
 //przeplyw ZP <-> CH
   if(BrakeCyl.P*temp<ImplsRes.P-0.005)and(ImplsRes.P>0.3) then
-   dV:=PF(BVP,BrakeCyl.P,0.020*sizeBC)*dt
+   dV:=PFVa(BVP,BrakeCyl.P,0.020*sizeBC,ImplsRes.P/temp)*dt
   else dV:=0;
-  BrakeRes.Flow(dV);
-  BrakeCyl.Flow(-dV);
+  BrakeRes.Flow(-dV);
+  BrakeCyl.Flow(+dV);
 
   ImplsRes.Act;
   ValveRes.Act;
@@ -1601,7 +1648,7 @@ begin
               if(tp<5)then tp:=tp+dt;
 //            if(cp+0.03<5.4)then
             if(rp+0.03<5.4)or(cp+0.03<5.4)then //fala
-              dpMainValve:=PF(Min0R(HP,7.1),pp,(ActFlowSpeed)/(LBDelay))*dt
+              dpMainValve:=PF(Min0R(HP,17.1),pp,(ActFlowSpeed)/(LBDelay))*dt
 //              dpMainValve:=20*Min0R(abs(ep-7.1),0.05)*PF(HP,pp,(ActFlowSpeed)/(LBDelay))*dt
             else
              begin

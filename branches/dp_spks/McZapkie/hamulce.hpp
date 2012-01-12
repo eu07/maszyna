@@ -555,7 +555,8 @@ static const Shortint bp_PKPBgu = 0xe;
 static const Byte bp_MHS = 0x80;
 static const Shortint bp_P10yBg = 0xf;
 static const Shortint bp_P10yBgu = 0x10;
-#define Spg  (5.067000E-01)
+#define Spg  (7.917000E-01)
+#define SpO  (5.067000E-01)
 extern PACKAGE double BPT[9][2];
 static const Shortint i_bcpno = 0x6;
 extern PACKAGE double __fastcall PF(double P1, double P2, double S);

@@ -4811,8 +4811,8 @@ end;
 
   Pipe:= TReservoir.Create;
   Pipe2:= TReservoir.Create;
-  Pipe.CreateCap((Dim.L+0.5)*Spg);
-  Pipe2.CreateCap((Dim.L+0.5)*Spg);
+  Pipe.CreateCap((Dim.L+0.5)*Spg*1.1); //dlugosc x przekroj x odejscia i takie tam
+  Pipe2.CreateCap((Dim.L+0.5)*Spg*1.1);
 
  {to dac potem do init}
   if ReadyFlag then     {gotowy do drogi}
