@@ -1781,7 +1781,7 @@ bool __fastcall TTrain::Update()
    double dfreq;
 
 //McZapkie-280302 - syczenie
-      if (rsHiss.AM!=0)
+      if (rsHiss.AM!=0 && FreeFlyModeFlag==false)
        {
           fPPress=(fPPress+Max0R(DynamicObject->MoverParameters->dpLocalValve,DynamicObject->MoverParameters->dpMainValve))/2;
           if (fPPress>0)
@@ -3158,7 +3158,7 @@ else
 
 
 //McZapkie-141102: SHP i czuwak, TODO: sygnalizacja kabinowa
-    if (DynamicObject->MoverParameters->SecuritySystem.Status>0)
+    if (DynamicObject->MoverParameters->SecuritySystem.Status>0 && FreeFlyModeFlag==false)
      {
        if (fBlinkTimer>fCzuwakBlink)
            fBlinkTimer=-fCzuwakBlink;
