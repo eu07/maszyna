@@ -1727,7 +1727,7 @@ if (!MoverParameters->PhysicActivation)
     }
 //    else
 //    { MoverParameters->SecuritySystemReset(); }
-    if (MoverParameters->ActiveCab==0)
+    if (MoverParameters->ActiveCab==0 || FreeFlyModeFlag==true)
         MoverParameters->SecuritySystemReset();
     else
      if ((Controller!=Humandriver)&&(MoverParameters->BrakeCtrlPos<0)&&(!TestFlag(MoverParameters->BrakeStatus,1))&&((MoverParameters->CntrlPipePress)>0.51))
@@ -1759,12 +1759,31 @@ if (!MoverParameters->PhysicActivation)
 // Szociu - 09.01.2012 - przeniesione deklaracje zmiennych, jedna potrzebna w outernoise
 DWORD stat;
 double vol=0;
+double vol1;
+double vol2;
+double vol3;
+double vol4;
+double vol5;
+double vol6;
+double vol7;
+double vol8;
+double vol9;
+double vol10;
 double dfreq;
+double dfreq2;
+double dfreq3;
+double dfreq4;
+double dfreq5;
+double dfreq6;
+double dfreq7;
+double dfreq8;
+double dfreq9;
+double dfreq10;
 double ObjectDist;
 double freq; //taka prowizorka zeby sciszyc stukot dalekiej lokomotywy
 
 // Szociu - 09.01.2012 - dodane 5 Outernoise, parametry w mmd to nazwa pliku,(1) modulacja (4), vmin, vmax (2) i promien (1) - w sumie 8
-    vol=0.0;
+    vol1=0.0;
     dfreq=1.0;
         if (rsOuterNoise.AM!=0)
      {
@@ -1773,23 +1792,23 @@ double freq; //taka prowizorka zeby sciszyc stukot dalekiej lokomotywy
           if (!TestFlag(MoverParameters->DamageFlag,dtrain_wheelwear)) //McZpakie-221103: halas zalezny od kola
            {
              dfreq=rsOuterNoise.FM*MoverParameters->Vel+rsOuterNoise.FA;
-             vol=rsOuterNoise.AM*MoverParameters->Vel+rsOuterNoise.AA;
+             vol1=rsOuterNoise.AM*MoverParameters->Vel+rsOuterNoise.AA;
               switch (MyTrack->eEnvironment)
               {
                   case e_tunnel:
                    {
-                    vol*=3;
+                    vol1*=3;
                     dfreq*=0.95;
                    }
                   break;
                   case e_canyon:
                    {
-                    vol*=1.1;
+                    vol1*=1.1;
                    }
                   break;
                   case e_bridge:
                    {
-                    vol*=2;
+                    vol1*=2;
                     dfreq*=0.98;
                    }
                   break;
@@ -1800,61 +1819,62 @@ double freq; //taka prowizorka zeby sciszyc stukot dalekiej lokomotywy
            if (fabs(MoverParameters->nrot)>0.01)
            {
              dfreq=rsOuterNoise.FM*MoverParameters->Vel+rsOuterNoise.FA;
-             vol=rsOuterNoise.AM*MoverParameters->Vel+rsOuterNoise.AA;
+             vol1=rsOuterNoise.AM*MoverParameters->Vel+rsOuterNoise.AA;
               switch (MyTrack->eEnvironment)
               {
                   case e_tunnel:
                    {
-                    vol*=2;
+                    vol1*=2;
                    }
                   break;
                   case e_canyon:
                    {
-                    vol*=1.1;
+                    vol1*=1.1;
                    }
                   break;
                   case e_bridge:
                    {
-                    vol*=1.5;
+                    vol1*=1.5;
                    }
                   break;
               }
            }
           if (fabs(MoverParameters->nrot)>0.01)
-           vol*=1+MoverParameters->UnitBrakeForce/(1+MoverParameters->MaxBrakeForce); //hamulce wzmagaja halas
-          vol=vol*(20.0+MyTrack->iDamageFlag)/21;
+           vol1*=1+MoverParameters->UnitBrakeForce/(1+MoverParameters->MaxBrakeForce); //hamulce wzmagaja halas
+          vol1=vol1*(20.0+MyTrack->iDamageFlag)/21;
           rsOuterNoise.AdjFreq(dfreq,0);
-          rsOuterNoise.Play(vol, DSBPLAY_LOOPING, true, GetPosition());
+          rsOuterNoise.Play(vol1, DSBPLAY_LOOPING, true, GetPosition());
         }
        else
         rsOuterNoise.Stop();
      }
-
+    vol2=0.0;
+    dfreq2=1.0;
         if (rsOuterNoise2.AM!=0)
      {
        if ((MoverParameters->Vel!=0 && Global::asHumanVehicle!=MoverParameters->Name && FreeFlyModeFlag==false && MoverParameters->Vel>=rsOuterNoise2.Vmin && MoverParameters->Vel<=rsOuterNoise2.Vmax) || (MoverParameters->Vel!=0 && FreeFlyModeFlag==true && MoverParameters->Vel>=rsOuterNoise2.Vmin && MoverParameters->Vel<=rsOuterNoise2.Vmax))
         {
           if (!TestFlag(MoverParameters->DamageFlag,dtrain_wheelwear)) //McZpakie-221103: halas zalezny od kola
            {
-             dfreq=rsOuterNoise2.FM*MoverParameters->Vel+rsOuterNoise2.FA;
-             vol=rsOuterNoise2.AM*MoverParameters->Vel+rsOuterNoise2.AA;
+             dfreq2=rsOuterNoise2.FM*MoverParameters->Vel+rsOuterNoise2.FA;
+             vol2=rsOuterNoise2.AM*MoverParameters->Vel+rsOuterNoise2.AA;
               switch (MyTrack->eEnvironment)
               {
                   case e_tunnel:
                    {
-                    vol*=3;
-                    dfreq*=0.95;
+                    vol2*=3;
+                    dfreq2*=0.95;
                    }
                   break;
                   case e_canyon:
                    {
-                    vol*=1.1;
+                    vol2*=1.1;
                    }
                   break;
                   case e_bridge:
                    {
-                    vol*=2;
-                    dfreq*=0.98;
+                    vol2*=2;
+                    dfreq2*=0.98;
                    }
                   break;
               }
@@ -1863,62 +1883,63 @@ double freq; //taka prowizorka zeby sciszyc stukot dalekiej lokomotywy
           else                                                   //uszkodzone kolo (podkucie)
            if (fabs(MoverParameters->nrot)>0.01)
            {
-             dfreq=rsOuterNoise2.FM*MoverParameters->Vel+rsOuterNoise2.FA;
-             vol=rsOuterNoise2.AM*MoverParameters->Vel+rsOuterNoise2.AA;
+             dfreq2=rsOuterNoise2.FM*MoverParameters->Vel+rsOuterNoise2.FA;
+             vol2=rsOuterNoise2.AM*MoverParameters->Vel+rsOuterNoise2.AA;
               switch (MyTrack->eEnvironment)
               {
                   case e_tunnel:
                    {
-                    vol*=2;
+                    vol2*=2;
                    }
                   break;
                   case e_canyon:
                    {
-                    vol*=1.1;
+                    vol2*=1.1;
                    }
                   break;
                   case e_bridge:
                    {
-                    vol*=1.5;
+                    vol2*=1.5;
                    }
                   break;
               }
            }
           if (fabs(MoverParameters->nrot)>0.01)
-           vol*=1+MoverParameters->UnitBrakeForce/(1+MoverParameters->MaxBrakeForce); //hamulce wzmagaja halas
-          vol=vol*(20.0+MyTrack->iDamageFlag)/21;
-          rsOuterNoise2.AdjFreq(dfreq,0);
-          rsOuterNoise2.Play(vol, DSBPLAY_LOOPING, true, GetPosition());
+           vol2*=1+MoverParameters->UnitBrakeForce/(1+MoverParameters->MaxBrakeForce); //hamulce wzmagaja halas
+          vol2=vol2*(20.0+MyTrack->iDamageFlag)/21;
+          rsOuterNoise2.AdjFreq(dfreq2,0);
+          rsOuterNoise2.Play(vol2, DSBPLAY_LOOPING, true, GetPosition());
         }
        else
         rsOuterNoise2.Stop();
      }
-     
+         vol3=0.0;
+    dfreq3=1.0;
              if (rsOuterNoise3.AM!=0)
      {
        if ((MoverParameters->Vel!=0 && Global::asHumanVehicle!=MoverParameters->Name && FreeFlyModeFlag==false && MoverParameters->Vel>=rsOuterNoise3.Vmin && MoverParameters->Vel<=rsOuterNoise3.Vmax) || (MoverParameters->Vel!=0 && FreeFlyModeFlag==true && MoverParameters->Vel>=rsOuterNoise3.Vmin && MoverParameters->Vel<=rsOuterNoise3.Vmax))
         {
           if (!TestFlag(MoverParameters->DamageFlag,dtrain_wheelwear)) //McZpakie-221103: halas zalezny od kola
            {
-             dfreq=rsOuterNoise3.FM*MoverParameters->Vel+rsOuterNoise3.FA;
-             vol=rsOuterNoise3.AM*MoverParameters->Vel+rsOuterNoise3.AA;
+             dfreq3=rsOuterNoise3.FM*MoverParameters->Vel+rsOuterNoise3.FA;
+             vol3=rsOuterNoise3.AM*MoverParameters->Vel+rsOuterNoise3.AA;
               switch (MyTrack->eEnvironment)
               {
                   case e_tunnel:
                    {
-                    vol*=3;
-                    dfreq*=0.95;
+                    vol3*=3;
+                    dfreq3*=0.95;
                    }
                   break;
                   case e_canyon:
                    {
-                    vol*=1.1;
+                    vol3*=1.1;
                    }
                   break;
                   case e_bridge:
                    {
-                    vol*=2;
-                    dfreq*=0.98;
+                    vol3*=2;
+                    dfreq3*=0.98;
                    }
                   break;
               }
@@ -1927,51 +1948,52 @@ double freq; //taka prowizorka zeby sciszyc stukot dalekiej lokomotywy
           else                                                   //uszkodzone kolo (podkucie)
            if (fabs(MoverParameters->nrot)>0.01)
            {
-             dfreq=rsOuterNoise3.FM*MoverParameters->Vel+rsOuterNoise3.FA;
+             dfreq3=rsOuterNoise3.FM*MoverParameters->Vel+rsOuterNoise3.FA;
              vol=rsOuterNoise3.AM*MoverParameters->Vel+rsOuterNoise3.AA;
               switch (MyTrack->eEnvironment)
               {
                   case e_tunnel:
                    {
-                    vol*=2;
+                    vol3*=2;
                    }
                   break;
                   case e_canyon:
                    {
-                    vol*=1.1;
+                    vol3*=1.1;
                    }
                   break;
                   case e_bridge:
                    {
-                    vol*=1.5;
+                    vol3*=1.5;
                    }
                   break;
               }
            }
           if (fabs(MoverParameters->nrot)>0.01)
-           vol*=1+MoverParameters->UnitBrakeForce/(1+MoverParameters->MaxBrakeForce); //hamulce wzmagaja halas
-          vol=vol*(20.0+MyTrack->iDamageFlag)/21;
-          rsOuterNoise3.AdjFreq(dfreq,0);
-          rsOuterNoise3.Play(vol, DSBPLAY_LOOPING, true, GetPosition());
+           vol3*=1+MoverParameters->UnitBrakeForce/(1+MoverParameters->MaxBrakeForce); //hamulce wzmagaja halas
+          vol3=vol3*(20.0+MyTrack->iDamageFlag)/21;
+          rsOuterNoise3.AdjFreq(dfreq3,0);
+          rsOuterNoise3.Play(vol3, DSBPLAY_LOOPING, true, GetPosition());
         }
        else
         rsOuterNoise3.Stop();
      }
-     
+         vol4=0.0;
+    dfreq4=1.0;
              if (rsOuterNoise4.AM!=0)
      {
        if ((MoverParameters->Vel!=0 && Global::asHumanVehicle!=MoverParameters->Name && FreeFlyModeFlag==false && MoverParameters->Vel>=rsOuterNoise4.Vmin && MoverParameters->Vel<=rsOuterNoise4.Vmax) || (MoverParameters->Vel!=0 && FreeFlyModeFlag==true && MoverParameters->Vel>=rsOuterNoise4.Vmin && MoverParameters->Vel<=rsOuterNoise4.Vmax))
         {
           if (!TestFlag(MoverParameters->DamageFlag,dtrain_wheelwear)) //McZpakie-221103: halas zalezny od kola
            {
-             dfreq=rsOuterNoise4.FM*MoverParameters->Vel+rsOuterNoise4.FA;
-             vol=rsOuterNoise4.AM*MoverParameters->Vel+rsOuterNoise4.AA;
+             dfreq4=rsOuterNoise4.FM*MoverParameters->Vel+rsOuterNoise4.FA;
+             vol4=rsOuterNoise4.AM*MoverParameters->Vel+rsOuterNoise4.AA;
               switch (MyTrack->eEnvironment)
               {
                   case e_tunnel:
                    {
-                    vol*=3;
-                    dfreq*=0.95;
+                    vol4*=3;
+                    dfreq4*=0.95;
                    }
                   break;
                   case e_canyon:
@@ -1981,8 +2003,8 @@ double freq; //taka prowizorka zeby sciszyc stukot dalekiej lokomotywy
                   break;
                   case e_bridge:
                    {
-                    vol*=2;
-                    dfreq*=0.98;
+                    vol4*=2;
+                    dfreq4*=0.98;
                    }
                   break;
               }
@@ -1991,62 +2013,63 @@ double freq; //taka prowizorka zeby sciszyc stukot dalekiej lokomotywy
           else                                                   //uszkodzone kolo (podkucie)
            if (fabs(MoverParameters->nrot)>0.01)
            {
-             dfreq=rsOuterNoise4.FM*MoverParameters->Vel+rsOuterNoise4.FA;
-             vol=rsOuterNoise4.AM*MoverParameters->Vel+rsOuterNoise4.AA;
+             dfreq4=rsOuterNoise4.FM*MoverParameters->Vel+rsOuterNoise4.FA;
+             vol4=rsOuterNoise4.AM*MoverParameters->Vel+rsOuterNoise4.AA;
               switch (MyTrack->eEnvironment)
               {
                   case e_tunnel:
                    {
-                    vol*=2;
+                    vol4*=2;
                    }
                   break;
                   case e_canyon:
                    {
-                    vol*=1.1;
+                    vol4*=1.1;
                    }
                   break;
                   case e_bridge:
                    {
-                    vol*=1.5;
+                    vol4*=1.5;
                    }
                   break;
               }
            }
           if (fabs(MoverParameters->nrot)>0.01)
            vol*=1+MoverParameters->UnitBrakeForce/(1+MoverParameters->MaxBrakeForce); //hamulce wzmagaja halas
-          vol=vol*(20.0+MyTrack->iDamageFlag)/21;
-          rsOuterNoise4.AdjFreq(dfreq,0);
-          rsOuterNoise4.Play(vol, DSBPLAY_LOOPING, true, GetPosition());
+          vol4=vol4*(20.0+MyTrack->iDamageFlag)/21;
+          rsOuterNoise4.AdjFreq(dfreq4,0);
+          rsOuterNoise4.Play(vol4, DSBPLAY_LOOPING, true, GetPosition());
         }
        else
         rsOuterNoise4.Stop();
      }
-     
+         vol5=0.0;
+    dfreq5=1.0;
              if (rsOuterNoise5.AM!=0)
      {
        if ((MoverParameters->Vel!=0 && Global::asHumanVehicle!=MoverParameters->Name && FreeFlyModeFlag==false && MoverParameters->Vel>=rsOuterNoise5.Vmin && MoverParameters->Vel<=rsOuterNoise5.Vmax) || (MoverParameters->Vel!=0 && FreeFlyModeFlag==true && MoverParameters->Vel>=rsOuterNoise5.Vmin && MoverParameters->Vel<=rsOuterNoise5.Vmax))
         {
           if (!TestFlag(MoverParameters->DamageFlag,dtrain_wheelwear)) //McZpakie-221103: halas zalezny od kola
            {
-             dfreq=rsOuterNoise5.FM*MoverParameters->Vel+rsOuterNoise5.FA;
-             vol=rsOuterNoise5.AM*MoverParameters->Vel+rsOuterNoise5.AA;
+             dfreq5=rsOuterNoise5.FM*MoverParameters->Vel+rsOuterNoise5.FA;
+             vol5=rsOuterNoise5.AM*MoverParameters->Vel+rsOuterNoise5.AA;
               switch (MyTrack->eEnvironment)
               {
                   case e_tunnel:
                    {
-                    vol*=3;
-                    dfreq*=0.95;
+                    vol5*=3;
+                    dfreq5*=0.95;
                    }
                   break;
                   case e_canyon:
                    {
-                    vol*=1.1;
+                    vol5*=1.1;
                    }
                   break;
                   case e_bridge:
                    {
-                    vol*=2;
-                    dfreq*=0.98;
+                    vol5*=2;
+                    dfreq5*=0.98;
                    }
                   break;
               }
@@ -2055,62 +2078,63 @@ double freq; //taka prowizorka zeby sciszyc stukot dalekiej lokomotywy
           else                                                   //uszkodzone kolo (podkucie)
            if (fabs(MoverParameters->nrot)>0.01)
            {
-             dfreq=rsOuterNoise5.FM*MoverParameters->Vel+rsOuterNoise5.FA;
-             vol=rsOuterNoise5.AM*MoverParameters->Vel+rsOuterNoise5.AA;
+             dfreq5=rsOuterNoise5.FM*MoverParameters->Vel+rsOuterNoise5.FA;
+             vol5=rsOuterNoise5.AM*MoverParameters->Vel+rsOuterNoise5.AA;
               switch (MyTrack->eEnvironment)
               {
                   case e_tunnel:
                    {
-                    vol*=2;
+                    vol5*=2;
                    }
                   break;
                   case e_canyon:
                    {
-                    vol*=1.1;
+                    vol5*=1.1;
                    }
                   break;
                   case e_bridge:
                    {
-                    vol*=1.5;
+                    vol5*=1.5;
                    }
                   break;
               }
            }
           if (fabs(MoverParameters->nrot)>0.01)
-           vol*=1+MoverParameters->UnitBrakeForce/(1+MoverParameters->MaxBrakeForce); //hamulce wzmagaja halas
-          vol=vol*(20.0+MyTrack->iDamageFlag)/21;
-          rsOuterNoise5.AdjFreq(dfreq,0);
-          rsOuterNoise5.Play(vol, DSBPLAY_LOOPING, true, GetPosition());
+           vol5*=1+MoverParameters->UnitBrakeForce/(1+MoverParameters->MaxBrakeForce); //hamulce wzmagaja halas
+          vol5=vol5*(20.0+MyTrack->iDamageFlag)/21;
+          rsOuterNoise5.AdjFreq(dfreq5,0);
+          rsOuterNoise5.Play(vol5, DSBPLAY_LOOPING, true, GetPosition());
         }
        else
         rsOuterNoise5.Stop();
      }
-     
+         vol6=0.0;
+    dfreq6=1.0;
                   if (rsOuterNoise6.AM!=0)
      {
        if ((MoverParameters->Vel!=0 && Global::asHumanVehicle!=MoverParameters->Name && FreeFlyModeFlag==false && MoverParameters->Vel>=rsOuterNoise6.Vmin && MoverParameters->Vel<=rsOuterNoise6.Vmax) || (MoverParameters->Vel!=0 && FreeFlyModeFlag==true && MoverParameters->Vel>=rsOuterNoise6.Vmin && MoverParameters->Vel<=rsOuterNoise6.Vmax))
         {
           if (!TestFlag(MoverParameters->DamageFlag,dtrain_wheelwear)) //McZpakie-221103: halas zalezny od kola
            {
-             dfreq=rsOuterNoise6.FM*MoverParameters->Vel+rsOuterNoise6.FA;
-             vol=rsOuterNoise6.AM*MoverParameters->Vel+rsOuterNoise6.AA;
+             dfreq6=rsOuterNoise6.FM*MoverParameters->Vel+rsOuterNoise6.FA;
+             vol6=rsOuterNoise6.AM*MoverParameters->Vel+rsOuterNoise6.AA;
               switch (MyTrack->eEnvironment)
               {
                   case e_tunnel:
                    {
-                    vol*=3;
-                    dfreq*=0.95;
+                    vol6*=3;
+                    dfreq6*=0.95;
                    }
                   break;
                   case e_canyon:
                    {
-                    vol*=1.1;
+                    vol6*=1.1;
                    }
                   break;
                   case e_bridge:
                    {
-                    vol*=2;
-                    dfreq*=0.98;
+                    vol6*=2;
+                    dfreq6*=0.98;
                    }
                   break;
               }
@@ -2119,62 +2143,63 @@ double freq; //taka prowizorka zeby sciszyc stukot dalekiej lokomotywy
           else                                                   //uszkodzone kolo (podkucie)
            if (fabs(MoverParameters->nrot)>0.01)
            {
-             dfreq=rsOuterNoise6.FM*MoverParameters->Vel+rsOuterNoise6.FA;
-             vol=rsOuterNoise6.AM*MoverParameters->Vel+rsOuterNoise6.AA;
+             dfreq6=rsOuterNoise6.FM*MoverParameters->Vel+rsOuterNoise6.FA;
+             vol6=rsOuterNoise6.AM*MoverParameters->Vel+rsOuterNoise6.AA;
               switch (MyTrack->eEnvironment)
               {
                   case e_tunnel:
                    {
-                    vol*=2;
+                    vol6*=2;
                    }
                   break;
                   case e_canyon:
                    {
-                    vol*=1.1;
+                    vol6*=1.1;
                    }
                   break;
                   case e_bridge:
                    {
-                    vol*=1.5;
+                    vol6*=1.5;
                    }
                   break;
               }
            }
           if (fabs(MoverParameters->nrot)>0.01)
-           vol*=1+MoverParameters->UnitBrakeForce/(1+MoverParameters->MaxBrakeForce); //hamulce wzmagaja halas
-          vol=vol*(20.0+MyTrack->iDamageFlag)/21;
-          rsOuterNoise6.AdjFreq(dfreq,0);
-          rsOuterNoise6.Play(vol, DSBPLAY_LOOPING, true, GetPosition());
+           vol6*=1+MoverParameters->UnitBrakeForce/(1+MoverParameters->MaxBrakeForce); //hamulce wzmagaja halas
+          vol6=vol6*(20.0+MyTrack->iDamageFlag)/21;
+          rsOuterNoise6.AdjFreq(dfreq6,0);
+          rsOuterNoise6.Play(vol6, DSBPLAY_LOOPING, true, GetPosition());
         }
        else
         rsOuterNoise6.Stop();
      }
-     
+         vol7=0.0;
+    dfreq7=1.0;
                        if (rsOuterNoise7.AM!=0)
      {
        if ((MoverParameters->Vel!=0 && Global::asHumanVehicle!=MoverParameters->Name && FreeFlyModeFlag==false && MoverParameters->Vel>=rsOuterNoise7.Vmin && MoverParameters->Vel<=rsOuterNoise7.Vmax) || (MoverParameters->Vel!=0 && FreeFlyModeFlag==true && MoverParameters->Vel>=rsOuterNoise7.Vmin && MoverParameters->Vel<=rsOuterNoise7.Vmax))
         {
           if (!TestFlag(MoverParameters->DamageFlag,dtrain_wheelwear)) //McZpakie-221103: halas zalezny od kola
            {
-             dfreq=rsOuterNoise7.FM*MoverParameters->Vel+rsOuterNoise7.FA;
-             vol=rsOuterNoise7.AM*MoverParameters->Vel+rsOuterNoise7.AA;
+             dfreq7=rsOuterNoise7.FM*MoverParameters->Vel+rsOuterNoise7.FA;
+             vol7=rsOuterNoise7.AM*MoverParameters->Vel+rsOuterNoise7.AA;
               switch (MyTrack->eEnvironment)
               {
                   case e_tunnel:
                    {
-                    vol*=3;
-                    dfreq*=0.95;
+                    vol7*=3;
+                    dfreq7*=0.95;
                    }
                   break;
                   case e_canyon:
                    {
-                    vol*=1.1;
+                    vol7*=1.1;
                    }
                   break;
                   case e_bridge:
                    {
-                    vol*=2;
-                    dfreq*=0.98;
+                    vol7*=2;
+                    dfreq7*=0.98;
                    }
                   break;
               }
@@ -2183,62 +2208,63 @@ double freq; //taka prowizorka zeby sciszyc stukot dalekiej lokomotywy
           else                                                   //uszkodzone kolo (podkucie)
            if (fabs(MoverParameters->nrot)>0.01)
            {
-             dfreq=rsOuterNoise7.FM*MoverParameters->Vel+rsOuterNoise7.FA;
-             vol=rsOuterNoise7.AM*MoverParameters->Vel+rsOuterNoise7.AA;
+             dfreq7=rsOuterNoise7.FM*MoverParameters->Vel+rsOuterNoise7.FA;
+             vol7=rsOuterNoise7.AM*MoverParameters->Vel+rsOuterNoise7.AA;
               switch (MyTrack->eEnvironment)
               {
                   case e_tunnel:
                    {
-                    vol*=2;
+                    vol7*=2;
                    }
                   break;
                   case e_canyon:
                    {
-                    vol*=1.1;
+                    vol7*=1.1;
                    }
                   break;
                   case e_bridge:
                    {
-                    vol*=1.5;
+                    vol7*=1.5;
                    }
                   break;
               }
            }
           if (fabs(MoverParameters->nrot)>0.01)
-           vol*=1+MoverParameters->UnitBrakeForce/(1+MoverParameters->MaxBrakeForce); //hamulce wzmagaja halas
-          vol=vol*(20.0+MyTrack->iDamageFlag)/21;
-          rsOuterNoise7.AdjFreq(dfreq,0);
-          rsOuterNoise7.Play(vol, DSBPLAY_LOOPING, true, GetPosition());
+           vol7*=1+MoverParameters->UnitBrakeForce/(1+MoverParameters->MaxBrakeForce); //hamulce wzmagaja halas
+          vol7=vol7*(20.0+MyTrack->iDamageFlag)/21;
+          rsOuterNoise7.AdjFreq(dfreq7,0);
+          rsOuterNoise7.Play(vol7, DSBPLAY_LOOPING, true, GetPosition());
         }
        else
         rsOuterNoise7.Stop();
      }
-     
+         vol8=0.0;
+    dfreq8=1.0;
                             if (rsOuterNoise8.AM!=0)
      {
        if ((MoverParameters->Vel!=0 && Global::asHumanVehicle!=MoverParameters->Name && FreeFlyModeFlag==false && MoverParameters->Vel>=rsOuterNoise8.Vmin && MoverParameters->Vel<=rsOuterNoise8.Vmax) || (MoverParameters->Vel!=0 && FreeFlyModeFlag==true && MoverParameters->Vel>=rsOuterNoise8.Vmin && MoverParameters->Vel<=rsOuterNoise8.Vmax))
         {
           if (!TestFlag(MoverParameters->DamageFlag,dtrain_wheelwear)) //McZpakie-221103: halas zalezny od kola
            {
-             dfreq=rsOuterNoise8.FM*MoverParameters->Vel+rsOuterNoise8.FA;
-             vol=rsOuterNoise8.AM*MoverParameters->Vel+rsOuterNoise8.AA;
+             dfreq8=rsOuterNoise8.FM*MoverParameters->Vel+rsOuterNoise8.FA;
+             vol8=rsOuterNoise8.AM*MoverParameters->Vel+rsOuterNoise8.AA;
               switch (MyTrack->eEnvironment)
               {
                   case e_tunnel:
                    {
-                    vol*=3;
+                    vol8*=3;
                     dfreq*=0.95;
                    }
                   break;
                   case e_canyon:
                    {
-                    vol*=1.1;
+                    vol8*=1.1;
                    }
                   break;
                   case e_bridge:
                    {
-                    vol*=2;
-                    dfreq*=0.98;
+                    vol8*=2;
+                    dfreq8*=0.98;
                    }
                   break;
               }
@@ -2247,61 +2273,62 @@ double freq; //taka prowizorka zeby sciszyc stukot dalekiej lokomotywy
           else                                                   //uszkodzone kolo (podkucie)
            if (fabs(MoverParameters->nrot)>0.01)
            {
-             dfreq=rsOuterNoise8.FM*MoverParameters->Vel+rsOuterNoise8.FA;
-             vol=rsOuterNoise8.AM*MoverParameters->Vel+rsOuterNoise8.AA;
+             dfreq8=rsOuterNoise8.FM*MoverParameters->Vel+rsOuterNoise8.FA;
+             vol8=rsOuterNoise8.AM*MoverParameters->Vel+rsOuterNoise8.AA;
               switch (MyTrack->eEnvironment)
               {
                   case e_tunnel:
                    {
-                    vol*=2;
+                    vol8*=2;
                    }
                   break;
                   case e_canyon:
                    {
-                    vol*=1.1;
+                    vol8*=1.1;
                    }
                   break;
                   case e_bridge:
                    {
-                    vol*=1.5;
+                    vol8*=1.5;
                    }
                   break;
               }
            }
           if (fabs(MoverParameters->nrot)>0.01)
-           vol*=1+MoverParameters->UnitBrakeForce/(1+MoverParameters->MaxBrakeForce); //hamulce wzmagaja halas
-          vol=vol*(20.0+MyTrack->iDamageFlag)/21;
-          rsOuterNoise8.AdjFreq(dfreq,0);
-          rsOuterNoise8.Play(vol, DSBPLAY_LOOPING, true, GetPosition());
+           vol8*=1+MoverParameters->UnitBrakeForce/(1+MoverParameters->MaxBrakeForce); //hamulce wzmagaja halas
+          vol8=vol8*(20.0+MyTrack->iDamageFlag)/21;
+          rsOuterNoise8.AdjFreq(dfreq8,0);
+          rsOuterNoise8.Play(vol8, DSBPLAY_LOOPING, true, GetPosition());
         }
        else
         rsOuterNoise8.Stop();
      }
-     
+         vol9=0.0;
+    dfreq9=1.0;
                             if (rsOuterNoise9.AM!=0)
      {
        if ((MoverParameters->Vel!=0 && Global::asHumanVehicle!=MoverParameters->Name && FreeFlyModeFlag==false && MoverParameters->Vel>=rsOuterNoise9.Vmin && MoverParameters->Vel<=rsOuterNoise9.Vmax) || (MoverParameters->Vel!=0 && FreeFlyModeFlag==true && MoverParameters->Vel>=rsOuterNoise9.Vmin && MoverParameters->Vel<=rsOuterNoise9.Vmax))
         {
           if (!TestFlag(MoverParameters->DamageFlag,dtrain_wheelwear)) //McZpakie-221103: halas zalezny od kola
            {
-             dfreq=rsOuterNoise9.FM*MoverParameters->Vel+rsOuterNoise9.FA;
-             vol=rsOuterNoise9.AM*MoverParameters->Vel+rsOuterNoise9.AA;
+             dfreq9=rsOuterNoise9.FM*MoverParameters->Vel+rsOuterNoise9.FA;
+             vol9=rsOuterNoise9.AM*MoverParameters->Vel+rsOuterNoise9.AA;
               switch (MyTrack->eEnvironment)
               {
                   case e_tunnel:
                    {
-                    vol*=3;
+                    vol9*=3;
                     dfreq*=0.95;
                    }
                   break;
                   case e_canyon:
                    {
-                    vol*=1.1;
+                    vol9*=1.1;
                    }
                   break;
                   case e_bridge:
                    {
-                    vol*=2;
+                    vol9*=2;
                     dfreq*=0.98;
                    }
                   break;
@@ -2311,36 +2338,38 @@ double freq; //taka prowizorka zeby sciszyc stukot dalekiej lokomotywy
           else                                                   //uszkodzone kolo (podkucie)
            if (fabs(MoverParameters->nrot)>0.01)
            {
-             dfreq=rsOuterNoise9.FM*MoverParameters->Vel+rsOuterNoise9.FA;
-             vol=rsOuterNoise9.AM*MoverParameters->Vel+rsOuterNoise9.AA;
+             dfreq9=rsOuterNoise9.FM*MoverParameters->Vel+rsOuterNoise9.FA;
+             vol9=rsOuterNoise9.AM*MoverParameters->Vel+rsOuterNoise9.AA;
               switch (MyTrack->eEnvironment)
               {
                   case e_tunnel:
                    {
-                    vol*=2;
+                    vol9*=2;
                    }
                   break;
                   case e_canyon:
                    {
-                    vol*=1.1;
+                    vol9*=1.1;
                    }
                   break;
                   case e_bridge:
                    {
-                    vol*=1.5;
+                    vol9*=1.5;
                    }
                   break;
               }
            }
           if (fabs(MoverParameters->nrot)>0.01)
-           vol*=1+MoverParameters->UnitBrakeForce/(1+MoverParameters->MaxBrakeForce); //hamulce wzmagaja halas
-          vol=vol*(20.0+MyTrack->iDamageFlag)/21;
-          rsOuterNoise9.AdjFreq(dfreq,0);
-          rsOuterNoise9.Play(vol, DSBPLAY_LOOPING, true, GetPosition());
+           vol9*=1+MoverParameters->UnitBrakeForce/(1+MoverParameters->MaxBrakeForce); //hamulce wzmagaja halas
+          vol9=vol9*(20.0+MyTrack->iDamageFlag)/21;
+          rsOuterNoise9.AdjFreq(dfreq9,0);
+          rsOuterNoise9.Play(vol9, DSBPLAY_LOOPING, true, GetPosition());
         }
        else
         rsOuterNoise9.Stop();
      }
+         vol10=0.0;
+    dfreq10=1.0;
      
                                  if (rsOuterNoise10.AM!=0)
      {
@@ -2348,25 +2377,25 @@ double freq; //taka prowizorka zeby sciszyc stukot dalekiej lokomotywy
         {
           if (!TestFlag(MoverParameters->DamageFlag,dtrain_wheelwear)) //McZpakie-221103: halas zalezny od kola
            {
-             dfreq=rsOuterNoise10.FM*MoverParameters->Vel+rsOuterNoise10.FA;
-             vol=rsOuterNoise10.AM*MoverParameters->Vel+rsOuterNoise10.AA;
+             dfreq10=rsOuterNoise10.FM*MoverParameters->Vel+rsOuterNoise10.FA;
+             vol10=rsOuterNoise10.AM*MoverParameters->Vel+rsOuterNoise10.AA;
               switch (MyTrack->eEnvironment)
               {
                   case e_tunnel:
                    {
-                    vol*=3;
-                    dfreq*=0.95;
+                    vol10*=3;
+                    dfreq10*=0.95;
                    }
                   break;
                   case e_canyon:
                    {
-                    vol*=1.1;
+                    vol10*=1.1;
                    }
                   break;
                   case e_bridge:
                    {
-                    vol*=2;
-                    dfreq*=0.98;
+                    vol10*=2;
+                    dfreq10*=0.98;
                    }
                   break;
               }
@@ -2375,32 +2404,32 @@ double freq; //taka prowizorka zeby sciszyc stukot dalekiej lokomotywy
           else                                                   //uszkodzone kolo (podkucie)
            if (fabs(MoverParameters->nrot)>0.01)
            {
-             dfreq=rsOuterNoise10.FM*MoverParameters->Vel+rsOuterNoise10.FA;
-             vol=rsOuterNoise10.AM*MoverParameters->Vel+rsOuterNoise10.AA;
+             dfreq10=rsOuterNoise10.FM*MoverParameters->Vel+rsOuterNoise10.FA;
+             vol10=rsOuterNoise10.AM*MoverParameters->Vel+rsOuterNoise10.AA;
               switch (MyTrack->eEnvironment)
               {
                   case e_tunnel:
                    {
-                    vol*=2;
+                    vol10*=2;
                    }
                   break;
                   case e_canyon:
                    {
-                    vol*=1.1;
+                    vol10*=1.1;
                    }
                   break;
                   case e_bridge:
                    {
-                    vol*=1.5;
+                    vol10*=1.5;
                    }
                   break;
               }
            }
           if (fabs(MoverParameters->nrot)>0.01)
-           vol*=1+MoverParameters->UnitBrakeForce/(1+MoverParameters->MaxBrakeForce); //hamulce wzmagaja halas
-          vol=vol*(20.0+MyTrack->iDamageFlag)/21;
-          rsOuterNoise10.AdjFreq(dfreq,0);
-          rsOuterNoise10.Play(vol, DSBPLAY_LOOPING, true, GetPosition());
+           vol10*=1+MoverParameters->UnitBrakeForce/(1+MoverParameters->MaxBrakeForce); //hamulce wzmagaja halas
+          vol10=vol10*(20.0+MyTrack->iDamageFlag)/21;
+          rsOuterNoise10.AdjFreq(dfreq10,0);
+          rsOuterNoise10.Play(vol10, DSBPLAY_LOOPING, true, GetPosition());
         }
        else
         rsOuterNoise10.Stop();
