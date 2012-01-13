@@ -46,7 +46,7 @@ typedef void (APIENTRY *FglutBitmapCharacter)(void *font,int character); //typ f
 FglutBitmapCharacter glutBitmapCharacterDLL=NULL; //deklaracja zmiennej
 HINSTANCE hinstGLUT32=NULL; //wskaŸnik do GLUT32.DLL
 //GLUTAPI void APIENTRY glutBitmapCharacterDLL(void *font, int character);
-
+TDynamicObject *Controlled=NULL; //pojazd, który prowadzimy
 
 using namespace Timer;
 
@@ -73,7 +73,8 @@ __fastcall TWorld::TWorld()
 __fastcall TWorld::~TWorld()
 {
  Global::bManageNodes=false; //Ra: wy³¹czenie wyrejestrowania, bo siê sypie
- SafeDelete(Train);
+ TrainDelete();
+ //Ground.Free(); //Ra: usuniêcie obiektów przed usuniêciem dŸwiêków - sypie siê
  TSoundsManager::Free();
  TModelsManager::Free();
  TTexturesManager::Free();
@@ -81,6 +82,16 @@ __fastcall TWorld::~TWorld()
  if (hinstGLUT32)
   FreeLibrary(hinstGLUT32);
 }
+
+void __fastcall TWorld::TrainDelete(TDynamicObject *d)
+{//usuniêcie pojazdu prowadzonego przez u¿ytkownika
+ if (d)
+  if (Train->DynamicObject!=d)
+   return; //nie tego usuwaæ
+ delete Train; //i nie ma czym sterowaæ
+ Train=NULL;
+ Controlled=NULL; //tego te¿ ju¿ nie ma
+};
 
 GLvoid __fastcall TWorld::glPrint(const char *txt) //custom GL "Print" routine
 {//wypisywanie tekstu 2D na ekranie
@@ -100,8 +111,6 @@ GLvoid __fastcall TWorld::glPrint(const char *txt) //custom GL "Print" routine
  }
 }
 
-TDynamicObject *Controlled=NULL; //pojazd, który prowadzimy
-
 bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 {
  double time=(double)Now();
@@ -115,7 +124,7 @@ bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
  return false;
 #endif
  WriteLog("Online documentation and additional files on http://eu07.pl");
- WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx_EU, OLO_EU, Bart, Quark-t, ShaXbee, Oli_EU, youBy, Ra and others");
+ WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx_EU, OLO_EU, Bart, Quark-t, ShaXbee, Oli_EU, youBy, Ra, hunter and others");
  WriteLog("Renderer:");
  WriteLog( (char*) glGetString(GL_RENDERER));
  WriteLog("Vendor:");
@@ -957,7 +966,7 @@ bool __fastcall TWorld::Update()
   vector3 vUp=vWorldUp; //sta³a
   vFront.Normalize();
   vector3 vLeft=CrossProduct(vUp,vFront);
-  vUp= CrossProduct(vFront,vLeft);
+  vUp=CrossProduct(vFront,vLeft);
   matrix4x4 mat;
   mat.Identity();
   mat.BasisChange(vLeft,vUp,vFront);

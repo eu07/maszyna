@@ -204,12 +204,12 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
    {
     if ((i%2)==0)
     {
-     smAnimatedDoor[i]->SetTranslate(vector3(0,0,1)*dDoorMoveL*DoorSpeedFactor[i]);
+     smAnimatedDoor[i]->SetTranslate(vector3(0,0,dDoorMoveL*DoorSpeedFactor[i]));
     //dDoorMoveL=dDoorMoveL*DoorSpeedFactor[i];
     }
     else
     {
-     smAnimatedDoor[i]->SetTranslate(vector3(0,0,1)*dDoorMoveR*DoorSpeedFactor[i]);
+     smAnimatedDoor[i]->SetTranslate(vector3(0,0,dDoorMoveR*DoorSpeedFactor[i]));
     //dDoorMoveR=dDoorMoveR*DoorSpeedFactor[i];
     }
    }
@@ -241,12 +241,12 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
     mdPrzedsionek->GetSMRoot()->SetTranslate(modelShake);
    //ABu: koniec rzucania
    //ABu011104: liczenie obrotow wozkow
-   //if (Global::bEnableTraction) //Ra: bardziej potrzebne wózki ni¿ druty
     ABuBogies();
    //McZapkie-050402: obracanie kolami
    for (int i=0; i<iAnimatedAxles; i++)
     if (smAnimatedWheel[i])
-     smAnimatedWheel[i]->SetRotate(float3(1,0,0),dWheelAngle);
+     smAnimatedWheel[i]->SetRotate(float3(1,0,0),*pWheelAngle[i]);
+     //smAnimatedWheel[i]->SetRotate(float3(1,0,0),dWheelAngle[1]);
    //Mczapkie-100402: rysowanie lub nie - sprzegow
    //ABu-240105: Dodatkowy warunek: if (...).Render, zeby rysowal tylko jeden
    //z polaczonych sprzegow
@@ -442,25 +442,24 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
        smPatykisl[1]->SetRotate(float3(1,0,0),dPantAngleR*0.81);
    }
     if (smWiazary[0])
-       smWiazary[0]->SetRotate(float3(1,0,0),-dWheelAngle);
+     smWiazary[0]->SetRotate(float3(1,0,0),-dWheelAngle[1]);
     if (smWiazary[1])
-       smWiazary[1]->SetRotate(float3(1,0,0),-dWheelAngle);
-//przewody sterowania ukrotnionego
+     smWiazary[1]->SetRotate(float3(1,0,0),-dWheelAngle[1]);
+  //przewody sterowania ukrotnionego
     if (TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_controll))
      {btCCtrl1.TurnOn(); btnOn=true;}
     //else btCCtrl1.TurnOff();
     if (TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_controll))
      {btCCtrl2.TurnOn(); btnOn=true;}
     //else btCCtrl2.TurnOff();
-//McZapkie-181103: mostki przejsciowe
+  //McZapkie-181103: mostki przejsciowe
     if (TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_passenger))
      {btCPass1.TurnOn(); btnOn=true;}
     //else btCPass1.TurnOff();
     if (TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_passenger))
      {btCPass2.TurnOn(); btnOn=true;}
     //else btCPass2.TurnOff();
-
-// sygnaly konca pociagu
+  //sygnaly konca pociagu
     if (btEndSignals1.Active())
     {
        if (TestFlag(iLights[0],2)
@@ -494,7 +493,6 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
         {btEndSignals23.TurnOn(); btnOn=true;}
        //else btEndSignals23.TurnOff();
     }
-
     //tablice blaszane:
     if (TestFlag(iLights[0],64))
      {btEndSignalsTab1.TurnOn(); btnOn=true;}
@@ -502,12 +500,10 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
     if (TestFlag(iLights[1],64))
      {btEndSignalsTab2.TurnOn(); btnOn=true;}
     //else btEndSignalsTab2.TurnOff();
-
-//McZapkie-181002: krecenie wahaczem (korzysta z kata obrotu silnika)
+  //McZapkie-181002: krecenie wahaczem (korzysta z kata obrotu silnika)
     for (int i=0; i<4; i++)
      if (smWahacze[i])
       smWahacze[i]->SetRotate(float3(1,0,0),fWahaczeAmp*cos(MoverParameters->eAngle));
-
     if (smMechanik)
     {
      if (Mechanik&&(Controller!=Humandriver))  //rysowanie figurki mechanika
@@ -1072,7 +1068,9 @@ __fastcall TDynamicObject::TDynamicObject()
  for (int i=0;i<MaxAxles;i++)
   dWheelsPosition[i]=0.0; //bêdzie wczytane z MMD
  iAxles=0;
- dWheelAngle=0.0;
+ dWheelAngle[0]=0.0;
+ dWheelAngle[1]=0.0;
+ dWheelAngle[2]=0.0;
  //Winger 160204 - pantografy
  //PantVolume = 3.5;
  StartTime=0;
@@ -1106,7 +1104,7 @@ __fastcall TDynamicObject::TDynamicObject()
   DoorSpeedFactor[i]=random(150);
   DoorSpeedFactor[i]=(DoorSpeedFactor[i]+100)/100;
  }
- iAnimatedAxles=0;
+ iAnimatedAxles=0; //iloœæ obracanych osi
  iAnimatedDoors=0;
  for (int i=0;i<MaxAnimatedAxles;i++)
   smAnimatedWheel[i]=NULL;
@@ -1123,8 +1121,6 @@ __fastcall TDynamicObject::TDynamicObject()
  smWiazary[0]=smWiazary[1]=NULL;
  smWahacze[0]=smWahacze[1]=smWahacze[2]=smWahacze[3]=NULL;
  fWahaczeAmp=0;
- iAnimatedAxles=0;
- iAnimatedDoors=0;
  mdLoad=NULL;
  mdLowPolyInt=NULL;
  mdPrzedsionek=NULL;
@@ -1151,6 +1147,20 @@ __fastcall TDynamicObject::~TDynamicObject()
  SafeDelete(Mechanik);
  SafeDelete(MoverParameters);
  SafeDelete(TrainParams); //Ra: wywaliæ to st¹d!
+ //Ra: wy³¹czanie dŸwiêków powinno byæ dodane w ich destruktorach, ale siê sypie
+/* to te¿ siê sypie
+ for (int i=0;i<MaxAxles;++i)
+  rsStukot[i].Stop();   //dzwieki poszczegolnych osi
+ rsSilnik.Stop();
+ rsWentylator.Stop();
+ rsPisk.Stop();
+ rsDerailment.Stop();
+ sPantUp.Stop();
+ sPantDown.Stop();
+ sBrakeAcc.Stop(); //dzwiek przyspieszacza
+ rsDiesielInc.Stop();
+ rscurve.Stop();
+*/
 }
 
 double __fastcall TDynamicObject::Init(
@@ -1347,6 +1357,7 @@ double __fastcall TDynamicObject::Init(
  btHeadSignals21.Init("headlamp23",mdModel,false);
  btHeadSignals22.Init("headlamp21",mdModel,false);
  btHeadSignals23.Init("headlamp22",mdModel,false);
+ TurnOff(); //resetowanie zmiennych submodeli
  //wyszukiwanie zderzakow
  for (int i=0;i<2;i++)
  {
@@ -1794,6 +1805,11 @@ if (!MoverParameters->PhysicActivation)
 //yB: zeby zawsze wrzucalo w jedna strone zakretu
     MoverParameters->AccN*=-ABuGetDirection();
     Move(dDOMoveLen);
+    if (!bEnabled) //usuwane pojazdy nie maj¹ toru
+    {//pojazd do usuniêcia
+     Global::pGround->bDynamicRemove=true; //sprawdziæ
+     return false;
+    }
     Global::ABuDebug=dDOMoveLen/dt1;
     ResetdMoveLen();
 //McZapkie-260202
@@ -1904,13 +1920,15 @@ SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);
         }
 */
 
-//McZapkie-050402: krecenie kolami:
-if (MoverParameters->Vel!=0)
-   dWheelAngle+=MoverParameters->nrot*dt1*360;
-
-   if (dWheelAngle>360)
-    dWheelAngle-=360;
-
+ if (MoverParameters->Vel!=0)
+ {//McZapkie-050402: krecenie kolami:
+  dWheelAngle[0]+=114.59155902616464175359630962821*MoverParameters->V*dt1/MoverParameters->WheelDiameterL; //przednie toczne
+  dWheelAngle[1]+=MoverParameters->nrot*dt1*360.0; //napêdne
+  dWheelAngle[2]+=114.59155902616464175359630962821*MoverParameters->V*dt1/MoverParameters->WheelDiameterT; //tylne toczne
+  if (dWheelAngle[0]>360.0) dWheelAngle[0]-=360.0; //a w drug¹ stronê jak siê krêc¹?
+  if (dWheelAngle[1]>360.0) dWheelAngle[1]-=360.0;
+  if (dWheelAngle[2]>360.0) dWheelAngle[2]-=360.0;
+ }
 //Winger 160204 - pantografy
 if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
 {
@@ -2090,6 +2108,25 @@ if (tmpTraction.TractionVoltage==0)
     MoverParameters->CompressorFlag=false;
     }
 }
+ else if (MoverParameters->EnginePowerSource.SourceType==InternalSource)
+  if (MoverParameters->EnginePowerSource.PowerType==SteamPower)
+  {//animacja t³oków
+   double fi,dx;
+   fi=DegToRad(dWheelAngle[1]+pant1x); //k¹t obrotu ko³a dla t³oka 1
+   dx=panty*cos(fi)+sqrt(panth*panth-panty*panty*sin(fi)*sin(fi))-panth; //nieoptymalne
+   smPatykird1[0]->SetTranslate(float3(dx,0,0)); //suwamy
+   fi=-atan2(panty,panth)*sin(fi);
+   smPatykirg1[0]->SetRotateXYZ(vector3(RadToDeg(fi),0,0));
+   //smPatykirg1[0]->SetRotate(float3(0,1,0),RadToDeg(fi)); //obracamy
+   //smPatykirg1[0]->SetTranslate(float3(fi,0,0)); //suwamy
+   fi=DegToRad(dWheelAngle[1]+pant2x); //k¹t obrotu ko³a dla t³oka 1
+   dx=panty*cos(fi)+sqrt(panth*panth-panty*panty*sin(fi)*sin(fi))-panth; //nieoptymalne
+   smPatykird1[1]->SetTranslate(float3(dx,0,0));
+   fi=-atan2(panty,panth)*sin(fi);
+   smPatykirg1[1]->SetRotateXYZ(vector3(RadToDeg(fi),0,0));
+   //smPatykirg1[1]->SetRotate(float3(0,1,0),RadToDeg(fi));
+   //smPatykirg1[1]->SetTranslate(float3(fi,0,0)); //suwamy
+  }
 
 //NBMX Obsluga drzwi, MC: zuniwersalnione
 //   if (tempdoorfactor2!=120)
@@ -2237,6 +2274,39 @@ vector3 inline __fastcall TDynamicObject::GetPosition()
  return vPosition;
 }
 
+void __fastcall TDynamicObject::TurnOff()
+{//wy³¹czenie rysowania submodeli zmiennych dla egemplarza pojazdu
+ btnOn=false;
+ btCoupler1.TurnOff();
+ btCoupler2.TurnOff();
+ btCPneumatic1.TurnOff();
+ btCPneumatic1r.TurnOff();
+ btCPneumatic2.TurnOff();
+ btCPneumatic2r.TurnOff();
+ btPneumatic1.TurnOff();
+ btPneumatic1r.TurnOff();
+ btPneumatic2.TurnOff();
+ btPneumatic2r.TurnOff();
+ btCCtrl1.TurnOff();
+ btCCtrl2.TurnOff();
+ btCPass1.TurnOff();
+ btCPass2.TurnOff();
+ btEndSignals11.TurnOff();
+ btEndSignals13.TurnOff();
+ btEndSignals21.TurnOff();
+ btEndSignals23.TurnOff();
+ btEndSignals1.TurnOff();
+ btEndSignals2.TurnOff();
+ btEndSignalsTab1.TurnOff();
+ btEndSignalsTab2.TurnOff();
+ btHeadSignals11.TurnOff();
+ btHeadSignals12.TurnOff();
+ btHeadSignals13.TurnOff();
+ btHeadSignals21.TurnOff();
+ btHeadSignals22.TurnOff();
+ btHeadSignals23.TurnOff();
+};
+
 bool __fastcall TDynamicObject::Render()
 {//rysowanie elementów nieprzezroczystych
  //youBy - sprawdzamy, czy jest sens renderowac
@@ -2284,7 +2354,7 @@ bool __fastcall TDynamicObject::Render()
 
   vector3 pos=vPosition;
   double ObjSqrDist=SquareMagnitude(Global::pCameraPosition-pos);
-  ABuLittleUpdate(ObjSqrDist);
+  ABuLittleUpdate(ObjSqrDist); //ustawianie zmiennych submodeli
 
   //ActualTrack= GetTrack(); //McZapkie-240702
 
@@ -2385,6 +2455,7 @@ bool __fastcall TDynamicObject::Render()
    glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
   }
   glPopMatrix();
+  if (btnOn) TurnOff(); //przywrócenie domyœlnych pozycji submodeli
  } //yB - koniec mieszania z grafika
 
 
@@ -2677,34 +2748,6 @@ if ((MoverParameters->ConverterFlag==false)&&(MoverParameters->CompressorPower!=
     rsDerailment.Stop();
  }
 */
- if (btnOn) //przywrócenie domyœlnych pozycji
- {
-  btnOn=false;
-  btCoupler1.TurnOff();
-  btCoupler2.TurnOff();
-  btCPneumatic1.TurnOff();
-  btCPneumatic1r.TurnOff();
-  btCPneumatic2.TurnOff();
-  btCPneumatic2r.TurnOff();
-  btCCtrl1.TurnOff();
-  btCCtrl2.TurnOff();
-  btCPass1.TurnOff();
-  btCPass2.TurnOff();
-  btEndSignals11.TurnOff();
-  btEndSignals13.TurnOff();
-  btEndSignals21.TurnOff();
-  btEndSignals23.TurnOff();
-  btEndSignals1.TurnOff();
-  btEndSignals2.TurnOff();
-  btEndSignalsTab1.TurnOff();
-  btEndSignalsTab2.TurnOff();
-  btHeadSignals11.TurnOff();
-  btHeadSignals12.TurnOff();
-  btHeadSignals13.TurnOff();
-  btHeadSignals21.TurnOff();
-  btHeadSignals22.TurnOff();
-  btHeadSignals23.TurnOff();
- }
  return true;
 };
 
@@ -2727,49 +2770,7 @@ bool __fastcall TDynamicObject::RenderAlpha()
   vector3 pos=GetPosition();
   double ObjSqrDist=SquareMagnitude(Global::pCameraPosition-pos);
   ABuLittleUpdate(ObjSqrDist);
-
-/*    for (int i=0; i<iAnimatedAxles; i++)
-     if (smAnimatedWheel[i])
-      smAnimatedWheel[i]->SetRotate(vector3(1,0,0),dWheelAngle);
-           //NBMX wrzesien 2003, MC zuniwersalnione
-   for (int i=0; i<iAnimatedDoors ; i++)
-    {
-    if (smAnimatedDoor[i]!=NULL)
-     {
-      if (MoverParameters->DoorOpenMethod==1)
-       {
-        if ((i % 2)==0)
-         (smAnimatedDoor[i]->SetTranslate(vector3(0,0,1)*dDoorMoveL));
-        else
-         (smAnimatedDoor[i]->SetTranslate(vector3(0,0,1)*dDoorMoveR));
-       }
-      else
-      if (MoverParameters->DoorOpenMethod==2)
-       {
-        if ((i % 2)==0)
-         smAnimatedDoor[i]->SetRotate(vector3(1,0,0),dDoorMoveL);
-        else
-         smAnimatedDoor[i]->SetRotate(vector3(1,0,0),dDoorMoveR);
-       }
-     }
-    }
-//
-    if (smWiazary[0])
-       smWiazary[0]->SetRotate(vector3(1,0,0),-dWheelAngle);
-    if (smWiazary[1])
-       smWiazary[1]->SetRotate(vector3(1,0,0),-dWheelAngle);
-
-    if (TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_coupler))
-     btCoupler1.TurnOn();
-    else
-     btCoupler1.TurnOff();
-    if (TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_coupler))
-     btCoupler2.TurnOn();
-    else
-     btCoupler2.TurnOff();*/
     glPushMatrix ( );
-    //vector3 pos= GetPosition();
-    //double ObjDist= SquareMagnitude(Global::pCameraPosition-pos);
     glTranslated(pos.x,pos.y,pos.z);
     glMultMatrixd(mMatrix.getArray());
 
@@ -2840,35 +2841,8 @@ bool __fastcall TDynamicObject::RenderAlpha()
     }
 */
   glPopMatrix ( );
-  if (btnOn)  //przywrócenie domyœlnych pozycji
-  {
-   btnOn=false;
-   btCoupler1.TurnOff();
-   btCoupler2.TurnOff();
-   btCPneumatic1.TurnOff();
-   btCPneumatic1r.TurnOff();
-   btCPneumatic2.TurnOff();
-   btCPneumatic2r.TurnOff();
-   btCCtrl1.TurnOff();
-   btCCtrl2.TurnOff();
-   btCPass1.TurnOff();
-   btCPass2.TurnOff();
-   btEndSignals11.TurnOff();
-   btEndSignals13.TurnOff();
-   btEndSignals21.TurnOff();
-   btEndSignals23.TurnOff();
-   btEndSignals1.TurnOff();
-   btEndSignals2.TurnOff();
-   btEndSignalsTab1.TurnOff();
-   btEndSignalsTab2.TurnOff();
-   btHeadSignals11.TurnOff();
-   btHeadSignals12.TurnOff();
-   btHeadSignals13.TurnOff();
-   btHeadSignals21.TurnOff();
-   btHeadSignals22.TurnOff();
-   btHeadSignals23.TurnOff();
+  if (btnOn) TurnOff(); //przywrócenie domyœlnych pozycji submodeli
   }
- }
  return true;
 } //koniec renderalpha
 
@@ -2967,29 +2941,43 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
          Global::asCurrentTexturePath=BaseDir;                    //biezaca sciezka do tekstur to dynamic/...
          mdLowPolyInt=TModelsManager::GetModel(asModel.c_str(),true);
         }
-        else
-        if (str==AnsiString("animwheelprefix:"))              //prefiks krecacych sie kol
+        else if (str==AnsiString("animwheelprefix:")) //prefiks krecacych sie kol
          {
+         int i,j,k,m;
           str=Parser->GetNextSymbol();
-          asAnimName="";
-          for (int i=1; i<=MaxAnimatedAxles; i++)
-           {
- //McZapkie-050402: wyszukiwanie kol o nazwie str*
+         for (i=1; i<=MaxAnimatedAxles; i++)
+         {//McZapkie-050402: wyszukiwanie kol o nazwie str*
             asAnimName=str+i;
             smAnimatedWheel[i-1]=mdModel->GetFromName(asAnimName.c_str());
             if (smAnimatedWheel[i-1])
-            {iAnimatedAxles+=1;
-             smAnimatedWheel[i-1]->WillBeAnimated();
+          {++iAnimatedAxles;
+           smAnimatedWheel[i-1]->WillBeAnimated(); //wy³¹czenie optymalizacji transformu
             }
-            else
-             i=MaxAnimatedAxles+1;
+          else break; //wyjœcie z pêtli
            }
+         //Ra: ustawianie indeksów osi
+         for (i=0;i<=MaxAnimatedAxles;++i) //zabezpieczenie przed b³êdami w CHK
+          pWheelAngle[i]=dWheelAngle+1; //domyœlnie wskaŸnik na napêdzaj¹ce
+         i=0; j=1; k=0; m=0; //numer osi; kolejny znak; ile osi danego typu; która œrednica
+         if ((MoverParameters->WheelDiameterL!=MoverParameters->WheelDiameter)||(MoverParameters->WheelDiameterT!=MoverParameters->WheelDiameter))
+          while ((i<iAnimatedAxles)&&(j<=MoverParameters->AxleArangement.Length()))
+          {//wersja ze wskaŸnikami jest bardziej elatyczna na nietypowe uk³ady
+           if ((k>='A')&&(k<='J')) //10 chyba maksimum?
+           {pWheelAngle[i++]=dWheelAngle+1; //obrót osi napêdzaj¹cych
+            --k; //nastêpna bêdzie albo taka sama, albo bierzemy kolejny znak
+            m=2; //nastêpuj¹ce toczne bêd¹ mia³y inn¹ œrednicê
          }
+           else if ((k>='1')&&(k<='9'))
+           {pWheelAngle[i++]=dWheelAngle+m; //obrót osi tocznych
+            --k; //nastêpna bêdzie albo taka sama, albo bierzemy kolejny znak
+           }
         else
-        if (str==AnsiString("animrodprefix:"))              //prefiks wiazarow dwoch
+            k=MoverParameters->AxleArangement[j++]; //pobranie kolejnego znaku
+          } //Ra: pêtla uruchamiana tylko jeœli s¹ ró¿ne œrednice
+        }
+        else if (str==AnsiString("animrodprefix:")) //prefiks wiazarow dwoch
          {
           str= Parser->GetNextSymbol();
-          asAnimName="";
           for (int i=1; i<=2; i++)
            {
  //McZapkie-050402: wyszukiwanie max 2 wiazarow o nazwie str*
@@ -3003,7 +2991,6 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
         if (str==AnsiString("animpantrd1prefix:"))              //prefiks ramion dolnych 1
          {
           str= Parser->GetNextSymbol();
-          asAnimName="";
           for (int i=1; i<=2; i++)
            {
  //Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
@@ -3016,7 +3003,6 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
         if (str==AnsiString("animpantrd2prefix:"))              //prefiks ramion dolnych 2
          {
           str= Parser->GetNextSymbol();
-          asAnimName="";
           for (int i=1; i<=2; i++)
            {
  //Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
@@ -3029,7 +3015,6 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
         if (str==AnsiString("animpantrg1prefix:"))              //prefiks ramion gornych 1
          {
           str= Parser->GetNextSymbol();
-          asAnimName="";
           for (int i=1; i<=2; i++)
            {
  //Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
@@ -3042,7 +3027,6 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
         if (str==AnsiString("animpantrg2prefix:"))              //prefiks ramion gornych 2
          {
           str= Parser->GetNextSymbol();
-          asAnimName="";
           for (int i=1; i<=2; i++)
            {
  //Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
@@ -3055,7 +3039,6 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
         if (str==AnsiString("animpantslprefix:"))              //prefiks slizgaczy
          {
           str= Parser->GetNextSymbol();
-          asAnimName="";
           for (int i=1; i<=2; i++)
            {
  //Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
@@ -3064,16 +3047,41 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
             smPatykisl[i-1]->WillBeAnimated();
            }
          }
-        else
- //Winger 010304: parametry pantografow
-        if (str==AnsiString("pantfactors:"))              //prefiks slizgaczy
+        else if (str==AnsiString("pantfactors:"))
+        {//Winger 010304: parametry pantografow
+         pant1x=Parser->GetNextSymbol().ToDouble();
+         pant2x=Parser->GetNextSymbol().ToDouble();
+         panty=Parser->GetNextSymbol().ToDouble();
+         panth=Parser->GetNextSymbol().ToDouble();
+        }
+        else if (str==AnsiString("animpistonprefix:"))
+        {//prefiks t³oków - na razie u¿ywamy modeli pantografów
+         str=Parser->GetNextSymbol();
+         for (int i=1;i<=2;i++)
          {
-          pant1x= Parser->GetNextSymbol().ToDouble();
-          pant2x= Parser->GetNextSymbol().ToDouble();
-          panty= Parser->GetNextSymbol().ToDouble();
-          panth= Parser->GetNextSymbol().ToDouble();
-          //              asAnimName="";
+          asAnimName=str+i;
+          smPatykird1[i-1]=mdModel->GetFromName(asAnimName.c_str());
+          smPatykird1[i-1]->WillBeAnimated();
          }
+        }
+        else if (str==AnsiString("animconrodprefix:"))
+        {//prefiks korbowodów - na razie u¿ywamy modeli pantografów
+         str=Parser->GetNextSymbol();
+         for (int i=1;i<=2;i++)
+         {
+          asAnimName=str+i;
+          smPatykirg1[i-1]=mdModel->GetFromName(asAnimName.c_str());
+          smPatykirg1[i-1]->WillBeAnimated();
+         }
+        }
+        else if (str==AnsiString("pistonfactors:"))
+        {//Ra: parametry silnika parowego (t³oka)
+         pant1x=Parser->GetNextSymbol().ToDouble(); //k¹t przesuniêcia dla pierwszego t³oka
+         pant2x=Parser->GetNextSymbol().ToDouble(); //k¹t przesuniêcia dla drugiego t³oka
+         panty=Parser->GetNextSymbol().ToDouble(); //d³ugoœæ korby (r)
+         panth=Parser->GetNextSymbol().ToDouble(); //d³ugoœ korbowodu (k)
+         MoverParameters->EnginePowerSource.PowerType=SteamPower; //Ra: po chamsku, ale z CHK nie dzia³a
+        }
         else
         if (str==AnsiString("animpendulumprefix:"))              //prefiks wahaczy
          {

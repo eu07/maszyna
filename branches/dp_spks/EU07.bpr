@@ -62,8 +62,8 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=0
 MinorVer=666
-Release=296
-Build=297
+Release=474
+Build=301
 Debug=1
 PreRelease=0
 Special=0
@@ -75,7 +75,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=0.666.296.297
+FileVersion=0.666.474.301
 InternalName=6th by Ra with SPKS
 LegalCopyright=
 LegalTrademarks=
@@ -127,7 +127,7 @@ Item7=M:\aEU07\EU07\
 DebugSourceDirs=D:\!PC2010_DDS_SPKS
 
 [Parameters]
-RunParams=-s calkowo2_test.scn -v SU45-245
+RunParams=
 HostApplication=
 RemoteHost=
 RemotePath=

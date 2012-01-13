@@ -29,7 +29,8 @@
 #include "mover.hpp"
 #include "Driver.h"
 #include "Feedback.h"
-#include <Controls.hpp>
+#include <Controls.hpp> //do odczytu daty
+#include "World.h"
 
 
 //namespace Global {
@@ -56,7 +57,7 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asVersion="Compilation 2012-01-03, release 1.6.296.296."; //tutaj, bo wysy³any
+AnsiString Global::asVersion="Compilation 2012-01-10, release 1.6.474.301."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 double Global::fSunDeclination=0.0; //deklinacja S³oñca
@@ -69,6 +70,7 @@ bool Global::bPause=false; //globalna pauza ruchu
 bool Global::bActive=true; //czy jest aktywnym oknem
 int Global::iErorrCounter=0; //licznik sprawdzañ do œledzenia b³êdów OpenGL
 int Global::iTextures=0; //licznik u¿ytych tekstur
+TWorld* Global::pWorld=NULL;
 
 //parametry scenerii
 vector3 Global::pCameraPosition;
@@ -493,6 +495,11 @@ void __fastcall Global::BindTexture(GLuint t)
  if (t!=iTextureId)
  {iTextureId=t;
  }
+};
+
+void __fastcall Global::TrainDelete(TDynamicObject *d)
+{//usuniêcie pojazdu prowadzonego przez u¿ytkownika
+ if (pWorld) pWorld->TrainDelete(d);
 };
 
 

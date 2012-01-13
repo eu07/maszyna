@@ -494,7 +494,7 @@ void __fastcall TController::SetDriverPsyche()
   if (Controlling->BrakeCtrlPos>1)
    ReactionTime=0.5*ReactionTime;
   if ((Controlling->V>0.1)&&(Controlling->Couplers[0].Connected)) //dopisac to samo dla V<-0.1 i zaleznie od Psyche
-   if (Controlling->Couplers[0].CouplingFlag==0)
+   if (Controlling->Couplers[0].CouplingFlag==0) //jeœli nie ma nic z przodu
    {//Ra: funkcje s¹ odpowiednie?
     AccPreferred=(*Controlling->Couplers[0].Connected)->V; //tymczasowa wartoœæ
     AccPreferred=(AccPreferred*AccPreferred-Controlling->V*Controlling->V)/(25.92*(Controlling->Couplers[0].Dist-maxdist*fabs(Controlling->V)));
@@ -1147,7 +1147,7 @@ bool __fastcall TController::UpdateSituation(double dt)
     ActualProximityDist=Min0R(fProximityDist,hypot(vMechLoc.x-vCommandLocation.x,vMechLoc.z-vCommandLocation.z)-0.5*(Controlling->Dim.L+SignalDim.L));
    else
     if (fProximityDist<0)
-     ActualProximityDist=-fProximityDist; //odleg³oœæ ujemna podana bezpoœrednio
+     ActualProximityDist=fProximityDist; //odleg³oœæ ujemna podana bezpoœrednio (powinno byæ ...=-...)
    if (Controlling->CommandIn.Command!="")
     if (!Controlling->RunInternalCommand()) //rozpoznaj komende bo lokomotywa jej nie rozpoznaje
      RecognizeCommand(); //samo czyta komendê wstawion¹ do pojazdu?
@@ -1211,6 +1211,8 @@ bool __fastcall TController::UpdateSituation(double dt)
      break;
     } //nawias bo by³a zmienna lokalna
     case Disconnect: //20.07.03 - manewrowanie wagonami
+     fMinProximityDist=1.0; fMaxProximityDist=10.0; //[m]
+     VelReduced=5; //[km/h]
      if (iVehicleCount>=0) //jeœli by³a podana iloœæ wagonów
      {
       if (Prepare2press) //jeœli dociskanie w celu odczepienia
@@ -1569,7 +1571,8 @@ bool __fastcall TController::UpdateSituation(double dt)
        else
         while (DecBrake());  //jeœli przyspieszamy, to nie hamujemy
       //Ra: zmieni³em 0.95 na 1.0 - trzeba ustaliæ, sk¹d sie takie wartoœci bior¹
-      if ((AccDesired<=0.0)||(Controlling->Vel+VelMargin>VelDesired*1.0))
+      //margines dla prêdkoœci jest doliczany tylko jeœli oczekiwana prêdkoœæ jest wiêksza od 5km/h
+      if ((AccDesired<=0.0)||(Controlling->Vel+(VelDesired>5.0?VelMargin:0.0)>VelDesired*1.0))
        while (DecSpeed()); //jeœli hamujemy, to nie przyspieszamy
       //yB: usuniête ró¿ne dziwne warunki, oddzielamy czêœæ zadaj¹c¹ od wykonawczej
       //zwiekszanie predkosci

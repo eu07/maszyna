@@ -120,6 +120,7 @@ int InitGL(GLvoid)										// All Setup For OpenGL Goes Here
     glEnableClientState(GL_NORMAL_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
+ Global::pWorld=&World;
  return World.Init(hWnd,hDC); //true jeœli wszystko pójdzie dobrze
 }
 //---------------------------------------------------------------------------

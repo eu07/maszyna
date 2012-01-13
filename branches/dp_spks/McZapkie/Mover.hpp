@@ -234,6 +234,8 @@ struct TPowerParameters
 	};
 } ;
 
+typedef TPowerParameters *PPowerParameters;
+
 struct TScheme
 {
 	Byte Relay;
@@ -333,6 +335,8 @@ public:
 	TDimension Dim;
 	double Cx;
 	double WheelDiameter;
+	double WheelDiameterL;
+	double WheelDiameterT;
 	double TrackW;
 	double AxleInertialMoment;
 	AnsiString AxleArangement;

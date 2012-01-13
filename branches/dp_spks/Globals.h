@@ -116,6 +116,8 @@ const int MaxKeys= 73;
 
 //klasy dla wskaŸników globalnych
 class TGround;
+class TWorld;
+class TDynamicObject;
 
 class Global
 {
@@ -230,6 +232,8 @@ public:
  static int iSlowMotionMask; //maska wy³¹czanych w³aœciwoœci
  static int iModifyTGA; //czy korygowaæ pliki TGA dla szybszego wczytywania
  static bool bHideConsole; //hunter-271211: ukrywanie konsoli
+ static TWorld *pWorld;
+ static void __fastcall TrainDelete(TDynamicObject *d);
 };
 
 //---------------------------------------------------------------------------

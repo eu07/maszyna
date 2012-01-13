@@ -29,20 +29,21 @@
 
 __fastcall TRealSound::TRealSound()
 {
-  pSound= NULL;
-  dSoundAtt=-1;
-  AM=0.0;
-  AA=0.0;
-  FM=0.0;
-  FA=0.0;
-  vSoundPosition.x=0;
-  vSoundPosition.y=0;
-  vSoundPosition.z=0;
-  fDistance=fPreviousDistance=0.0;
+ pSound=NULL;
+ dSoundAtt=-1;
+ AM=0.0;
+ AA=0.0;
+ FM=0.0;
+ FA=0.0;
+ vSoundPosition.x=0;
+ vSoundPosition.y=0;
+ vSoundPosition.z=0;
+ fDistance=fPreviousDistance=0.0;
 }
 
 __fastcall TRealSound::~TRealSound()
 {
+ //if (this) if (pSound) pSound->Stop();
 }
 
 void __fastcall TRealSound::Free()

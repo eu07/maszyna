@@ -96,13 +96,33 @@ __fastcall TTrain::TTrain()
     vMechMovement=vector3(0,0,0);
     pMechOffset=vector3(0,0,0);
     fBlinkTimer=0;
+ fHaslerTimer=0;
     keybrakecount=0;
     DynamicObject=NULL;
     iCabLightFlag=0;
     pMechSittingPosition=vector3(0,0,0); //ABu: 180404
     LampkaUniversal3_st=false; //ABu: 030405
- dsbSlipAlarm=NULL;
+ dsbNastawnikJazdy=NULL;
+ dsbNastawnikBocz=NULL;
+ dsbRelay=NULL;
+ dsbPneumaticRelay=NULL;
+ dsbSwitch=NULL;
+ dsbPneumaticSwitch=NULL;
+ dsbReverserKey=NULL; //hunter-121211
+ dsbCouplerAttach=NULL;
+ dsbCouplerDetach=NULL;
+ dsbDieselIgnition=NULL;
+ dsbDoorClose=NULL;
+ dsbDoorOpen=NULL;
+ dsbPantUp=NULL;
+ dsbPantDown=NULL;
+ dsbWejscie_na_bezoporow=NULL;
+ dsbWejscie_na_drugi_uklad=NULL; //hunter-081211: poprawka literowki
+ dsbHasler=NULL;
+ dsbBuzzer=NULL;
+ dsbSlipAlarm=NULL; //Bombardier 011010: alarm przy poslizgu dla 181/182
  dsbCouplerStretch=NULL;
+ dsbBufferClamp=NULL;
 }
 
 __fastcall TTrain::~TTrain()
@@ -2182,16 +2202,27 @@ else
 //}catch(...){WriteLog("!!!! Problem z amperomierzami");}; //trykacz i tak nie dzia³a
 
 //McZapkie-240302    VelocityGauge.UpdateValue(DynamicObject->GetVelocity());
+    //fHaslerTimer+=dt;
+    //if (fHaslerTimer>fHaslerTime)
+    {//Ra: ryzykowne jest to, gdy¿ mo¿e siê nie uaktualniaæ prêdkoœæ
+     //Ra: prêdkoœæ siê powinna zaokr¹glaæ tam gdzie siê liczy fTachoVelocity
     if (VelocityGauge.SubModel)
-     {
+     {//ZiomalCl: wskazanie Haslera w kabinie A ze zwloka czasowa oraz odpowiednia tolerancja
+      //Nalezy sie zastanowic na przyszlosc nad rozroznieniem predkosciomierzy (dokladnosc wskazan, zwloka czasowa wskazania, inne funkcje)
+      //ZiomalCl: W ezt typu stare EN57 wskazania haslera sa mniej dokladne (linka)
+      //VelocityGauge.UpdateValue(fTachoVelocity>2?fTachoVelocity+0.5-random(DynamicObject->MoverParameters->TrainType==dt_EZT?5:2)/2:0);
       VelocityGauge.UpdateValue(fTachoVelocity);
       VelocityGauge.Update();
      }
     if (VelocityGaugeB.SubModel)
-     {
+     {//ZiomalCl: wskazanie Haslera w kabinie B ze zwloka czasowa oraz odpowiednia tolerancja
+      //Nalezy sie zastanowic na przyszlosc nad rozroznieniem predkosciomierzy (dokladnosc wskazan, zwloka czasowa wskazania, inne funkcje)
+      //VelocityGaugeB.UpdateValue(fTachoVelocity>2?fTachoVelocity+0.5-random(DynamicObject->MoverParameters->TrainType==dt_EZT?5:2)/2:0);
       VelocityGaugeB.UpdateValue(fTachoVelocity);
       VelocityGaugeB.Update();
      }
+     //fHaslerTimer-=fHaslerTime; //1.2s (???)
+    }
 //McZapkie-300302: zegarek
     if (ClockMInd.SubModel)
      {
@@ -2956,7 +2987,7 @@ else
      {
       SecurityResetButtonGauge.PutValue(1);
       if ((DynamicObject->MoverParameters->SecuritySystem.Status&s_aware)&&
-          (DynamicObject->MoverParameters->SecuritySystem.Status&s_active))                 
+          (DynamicObject->MoverParameters->SecuritySystem.Status&s_active))
        {
         DynamicObject->MoverParameters->SecuritySystem.SystemTimer=0;
         DynamicObject->MoverParameters->SecuritySystem.Status-=s_aware;
@@ -3000,7 +3031,7 @@ else
       //dsbPneumaticRelay->SetVolume(-30);
       //dsbPneumaticRelay->Play(0,0,0);
      }
-     
+
      //-----------------
      //hunter-221211: hamowanie przy poslizgu
      if ( Pressed(Global::Keys[k_AntiSlipping]) )
@@ -3306,22 +3337,21 @@ else
 */
 
 //  if (fabs(DynamicObject->GetVelocity())>0.5)
-    if (fTachoCount>maxtacho)
+   if (FreeFlyModeFlag?false:fTachoCount>maxtacho)
     {
         dsbHasler->GetStatus(&stat);
         if (!(stat&DSBSTATUS_PLAYING))
-            dsbHasler->Play( 0, 0, DSBPLAY_LOOPING );
+     dsbHasler->Play(0,0,DSBPLAY_LOOPING );
     }
    else
     {
-     if (fTachoCount<1)
+    if (FreeFlyModeFlag?true:fTachoCount<1)
       {
        dsbHasler->GetStatus(&stat);
        if (stat&DSBSTATUS_PLAYING)
           dsbHasler->Stop();
       }
     }
-
 
 // koniec mieszania z dzwiekami
 

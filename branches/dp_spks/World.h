@@ -25,6 +25,7 @@ public:
     void __fastcall OnMouseMove(double x, double y);
     void __fastcall OnCommandGet(DaneRozkaz *pRozkaz);
     bool __fastcall Update();
+    void __fastcall TrainDelete(TDynamicObject *d=NULL);
     __fastcall TWorld();
     __fastcall ~TWorld();
 
