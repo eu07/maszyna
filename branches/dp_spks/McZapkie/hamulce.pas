@@ -102,7 +102,7 @@ CONST
                 //a predkosc przeplywu w m/s
 
 //   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (14, 5.4), (9, 5.0), (6, 4.6), (9, 4.5), (9, 4.0), (9, 3.5), (9, 2.8), (34, 2.8));
-   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (16.5, 5.4), (5, 5.0), (5, 4.6), (5, 4.3), (5, 4.0), (5, 3.5), (5, 2.8), (13, 2.8));
+   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (10, 5.0), (5, 5.0), (5, 4.6), (5, 4.3), (5, 4.0), (5, 3.5), (5, 2.8), (13, 2.8));
 //   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (12, 5.4), (9, 5.0), (9, 4.6), (9, 4.2), (9, 3.8), (9, 3.4), (9, 2.8), (34, 2.8));
 //      BPT: array[-2..6] of array [0..1] of real= ((0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0));
    i_bcpno= 6;
@@ -297,6 +297,14 @@ TYPE
       end;
 
     TFV4a= class(THandle)
+      private
+        CP, TP, RP: real;      //zbiornik steruj¹cy, czasowy, redukcyjny
+      public
+        function GetPF(i_bcp:real; pp, hp, dt, ep: real): real; override;
+        procedure Init(press: real); override;
+      end;
+
+    TFV4aM= class(THandle)
       private
         CP, TP, RP: real;      //zbiornik steruj¹cy, czasowy, redukcyjny
       public
@@ -1685,6 +1693,94 @@ begin
 end;
 
 procedure TFV4a.Init(press: real);
+begin
+  CP:= press;
+  TP:= 0;
+  RP:= press;
+end;
+
+
+//---FV4a/M--- nowonapisany kran + poprawki IC
+
+function TFV4aM.GetPF(i_bcp:real; pp, hp, dt, ep: real): real;
+const
+  LBDelay = 100;
+var
+  LimPP, dpPipe, dpMainValve, ActFlowSpeed: real;
+begin
+//          ep:=pp; //SPKS!!
+
+          if(tp>0)then  //jesli czasowy jest niepusty
+            tp:=tp-dt*0.08 //od cisnienia 5 do 0 w 60 sekund ((5-0)*dt/60)
+          else
+            tp:=0;         //jak pusty, to pusty
+
+          Limpp:=Min0R(BPT[Round(i_bcp)][1]+tp*0.08,HP); //pozycja + czasowy lub zasilanie
+          ActFlowSpeed:=BPT[Round(i_bcp)][0];
+
+//          if(i_bcp=i_bcpNo)then limpp:=Min0R(BPT[Round(i_bcp-1)][1]+tp*0.08,HP);
+          if(Limpp>cp)then //podwyzszanie szybkie
+            cp:=cp+30*Min0R(abs(Limpp-cp),0.05)*PR(cp,Limpp)*dt //zbiornik sterujacy
+          else
+            cp:=cp+17*Min0R(abs(Limpp-cp),0.05)*PR(cp,Limpp)*dt; //zbiornik sterujacy
+
+          if(rp>ep)then //zaworek zwrotny do opozniajacego
+            rp:=rp+PF(rp,ep,0.01)*dt //szybki upust
+          else
+            rp:=rp+PF(rp,ep,0.0002)*dt; //powolne wzrastanie
+          if (rp<ep) and (rp<BPT[Round(i_bcpNo)][1])then //jesli jestesmy ponizej cisnienia w sterujacym
+            rp:=rp+PF(rp,cp,0.001)*dt; //przypisz cisnienie w PG - wydluzanie napelniania o czas potrzebny do napelnienia PG
+
+
+          Limpp:=cp;
+          dpPipe:=Min0R(HP,Limpp);
+
+          if(dpPipe>pp)then //napelnianie
+           begin
+            if(Round(i_bcp)=0)and(tp>2)then //na pozycji jazdy mamy mocniejsze napelnianie z czasowym
+//              dpMainValve:=PF(dpPipe,pp,ActFlowSpeed*4/(LBDelay))*dt
+                dpMainValve:=-PFVa(Min0R(dpPipe+0.1,HP),pp,ActFlowSpeed/(LBDelay),dpPipe)
+            else //normalne napelnianie
+              dpMainValve:=PF(dpPipe,pp,ActFlowSpeed/(LBDelay))*dt
+           end
+          else //spuszczanie
+            if i_bcp>0.2  then //na pozycjach hamulcowych
+              dpMainValve:=PF(dpPipe,pp,ActFlowSpeed/(LBDelay))*dt
+            else //na luzowaniu
+              dpMainValve:=PF(dpPipe,pp,ActFlowSpeed/(4*LBDelay))*dt;
+
+          if(cp>rp+0.05)then
+            dpMainValve:=PF(Min0R(cp+1.2,HP),pp,(ActFlowSpeed)/(LBDelay))*dt;
+
+
+          if Round(i_bcp)=-1 then
+           begin
+//            cp:=cp+5*Min0R(abs(Limpp-cp),0.2)*PR(cp,Limpp)*dt/2;
+            if(tp<5)then tp:=tp+1.5*dt;
+//            if(cp+0.03<5.4)then
+            if(cp>rp+0.05){or(tp<4.5)}then
+//            if(rp+0.03<5.4)or(cp+0.03<5.4)then //fala
+              dpMainValve:=Max0R(dpMainValve,0)+PF(Min0R(HP,cp+1.8),pp,(ActFlowSpeed)/(LBDelay))*dt//coby nie przeszkadzal przy ladowaniu z zaworu obok
+//              dpMainValve:=20*Min0R(abs(ep-7.1),0.05)*PF(HP,pp,(ActFlowSpeed)/(LBDelay))*dt
+{            else
+             begin
+             rp:=5.45;
+              if (cp<pp-0.01) then                  //: /34*9
+                dpMainValve:=PF(dpPipe,pp,(ActFlowSpeed)/34*9/(LBDelay))*dt
+              else
+                dpMainValve:=PF(dpPipe,pp,(ActFlowSpeed)/(LBDelay))*dt
+             end; }
+           end; 
+
+          if(Round(i_bcp)=i_bcpNo)then
+           begin
+            dpMainValve:=PF(0,pp,(ActFlowSpeed)/(LBDelay))*dt;
+           end;
+
+  GetPF:=dpMainValve;
+end;
+
+procedure TFV4aM.Init(press: real);
 begin
   CP:= press;
   TP:= 0;

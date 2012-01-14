@@ -4794,7 +4794,7 @@ else
 end;
 
 case BrakeHandle of
-  FV4a: Handle := TFV4a.Create;
+  FV4a: Handle := TFV4aM.Create;
   FVel6: Handle := TFVel6.Create;
   testH: Handle := Ttest.Create;
 else
@@ -4853,6 +4853,8 @@ end;
   Pipe.CreatePress(PipePress);
   Pipe2.CreatePress(ScndPipePress);
   Pipe.Act;Pipe2.Act;
+
+  EqvtPipePress:=PipePress;
 
 ////  fv4ac:=Pipe.P;
 ////  fv4ar:=Pipe.P;

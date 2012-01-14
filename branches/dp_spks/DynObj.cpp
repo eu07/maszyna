@@ -78,6 +78,83 @@ TDynamicObject* __fastcall TDynamicObject::FirstFind(int &coupler_nr)
 };
 
 //---------------------------------------------------------------------------
+float __fastcall TDynamicObject::GetEPP()
+{//szukanie skrajnego po³¹czonego pojazdu w pociagu
+ //od strony sprzegu (coupler_nr) obiektu (start)
+ TDynamicObject* temp=this;
+ int coupler_nr=0;
+ float eq=0,am=0;
+
+ for (int i=0;i<300;i++) //ograniczenie do 300 na wypadek zapêtlenia sk³adu
+ {
+  if (!temp)
+   break; //Ra: zabezpieczenie przed ewentaulnymi b³êdami sprzêgów
+  eq+=temp->MoverParameters->PipePress*temp->MoverParameters->Dim.L;
+  am+=temp->MoverParameters->Dim.L;
+  if ((temp->MoverParameters->Couplers[coupler_nr].CouplingFlag&2)!=2)
+   break; //nic nie ma ju¿ dalej pod³¹czone
+  if (coupler_nr==0)
+  {//je¿eli szukamy od sprzêgu 0
+   if (temp->PrevConnected) //jeœli mamy coœ z przodu
+   {
+    if (temp->PrevConnectedNo==0) //jeœli pojazd od strony sprzêgu 0 jest odwrócony
+     coupler_nr=1-coupler_nr; //to zmieniamy kierunek sprzêgu
+    temp=temp->PrevConnected; //ten jest od strony 0
+   }
+   else
+    break; //jeœli jednak z przodu nic nie ma
+  }
+  else
+  {
+   if (temp->NextConnected)
+   {if (temp->NextConnectedNo==1) //jeœli pojazd od strony sprzêgu 1 jest odwrócony
+     coupler_nr=1-coupler_nr; //to zmieniamy kierunek sprzêgu
+    temp=temp->NextConnected; //ten pojazd jest od strony 1
+   }
+   else
+    break; //jeœli jednak z ty³u nic nie ma
+  }
+ }
+
+ temp=this;
+ coupler_nr=1;
+ for (int i=0;i<300;i++) //ograniczenie do 300 na wypadek zapêtlenia sk³adu
+ {
+  if (!temp)
+   break; //Ra: zabezpieczenie przed ewentaulnymi b³êdami sprzêgów
+  eq+=temp->MoverParameters->PipePress*temp->MoverParameters->Dim.L;
+  am+=temp->MoverParameters->Dim.L;
+  if ((temp->MoverParameters->Couplers[coupler_nr].CouplingFlag&2)!=2)
+   break; //nic nie ma ju¿ dalej pod³¹czone
+  if (coupler_nr==0)
+  {//je¿eli szukamy od sprzêgu 0
+   if (temp->PrevConnected) //jeœli mamy coœ z przodu
+   {
+    if (temp->PrevConnectedNo==0) //jeœli pojazd od strony sprzêgu 0 jest odwrócony
+     coupler_nr=1-coupler_nr; //to zmieniamy kierunek sprzêgu
+    temp=temp->PrevConnected; //ten jest od strony 0
+   }
+   else
+    break; //jeœli jednak z przodu nic nie ma
+  }
+  else
+  {
+   if (temp->NextConnected)
+   {if (temp->NextConnectedNo==1) //jeœli pojazd od strony sprzêgu 1 jest odwrócony
+     coupler_nr=1-coupler_nr; //to zmieniamy kierunek sprzêgu
+    temp=temp->NextConnected; //ten pojazd jest od strony 1
+   }
+   else
+    break; //jeœli jednak z ty³u nic nie ma
+  }
+ }
+ eq-=MoverParameters->PipePress*MoverParameters->Dim.L;
+ am-=MoverParameters->Dim.L;
+ return eq/am;
+};
+
+
+//---------------------------------------------------------------------------
 TDynamicObject* __fastcall TDynamicObject::GetFirstDynamic(int cpl_type)
 {//Szukanie skrajnego po³¹czonego pojazdu w pociagu
  //od strony sprzegu (cpl_type) obiektu szukajacego
@@ -1737,6 +1814,8 @@ if (!MoverParameters->PhysicActivation)
 
     if (Mechanik)
     {
+     MoverParameters->EqvtPipePress= GetEPP(); //srednie cisnienie w PG
+
 /*
      //ABu: proba szybkiego naprawienia bledu z zatrzymujacymi sie bez powodu skladami
      if ((MoverParameters->CabNo!=0)&&(Controller!=Humandriver)&&(!MoverParameters->Mains)&&(Mechanik->EngineActive))

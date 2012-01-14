@@ -446,6 +446,30 @@ public:
 };
 
 
+class DELPHICLASS TFV4aM;
+class PASCALIMPLEMENTATION TFV4aM : public THandle 
+{
+	typedef THandle inherited;
+	
+private:
+	double CP;
+	double TP;
+	double RP;
+	
+public:
+	virtual double __fastcall GetPF(double i_bcp, double pp, double hp, double dt, double ep);
+	virtual void __fastcall Init(double press);
+public:
+	#pragma option push -w-inl
+	/* TObject.Create */ inline __fastcall TFV4aM(void) : THandle() { }
+	#pragma option pop
+	#pragma option push -w-inl
+	/* TObject.Destroy */ inline __fastcall virtual ~TFV4aM(void) { }
+	#pragma option pop
+	
+};
+
+
 class DELPHICLASS Ttest;
 class PASCALIMPLEMENTATION Ttest : public THandle 
 {

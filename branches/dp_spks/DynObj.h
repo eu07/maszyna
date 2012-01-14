@@ -290,6 +290,7 @@ public:
  void __fastcall RaLightsSet(int head,int rear);
  void __fastcall RaAxleEvent(TEvent *e);
  TDynamicObject* __fastcall FirstFind(int &coupler_nr);
+ float __fastcall GetEPP(); //wyliczanie sredniego cisnienia w PG
  int __fastcall DirectionSet(int d); //ustawienie kierunku w sk³adzie
  int __fastcall DirectionGet() {return iDirection?1:-1;}; //ustawienie kierunku w sk³adzie
  bool DettachDistance(int dir);
