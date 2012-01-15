@@ -127,7 +127,7 @@ void __fastcall TRealSound::Play(double Volume, int Looping, bool ListenerInside
   }
   else //wylacz dzwiek bo daleko
   {
-   pSound->Play(0,0,Looping);   //ZiomalCl: wlaczenie odtwarzania rowniez i tu, gdyz jesli uruchamiamy dzwiek poza promieniem, nie uruchomi sie on w ogole
+   pSound->Play(0,0,Looping);   //ZiomalCl: wlaczenie odtwarzania rowniez i tu, gdyz jesli uruchamiamy dzwiek poza dystansem, nie uruchomi sie w ogole
    pSound->GetStatus(&stat);
     if (stat&DSBSTATUS_PLAYING)                //ZiomalCl: dzwiek po wylaczeniu sam sie nie wlaczy, gdy wrocimy w rejon odtwarzania
       pSound->SetVolume(DSBVOLUME_MIN);        //dlatego lepiej go wyciszyc na czas oddalenia sie
