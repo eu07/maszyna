@@ -806,7 +806,7 @@ bool __fastcall TTrack::AddDynamicObject(TDynamicObject *Dynamic)
  //Ra: tymczasowo wysy³anie informacji o zajêtoœci konkretnego toru
  //Ra: usun¹æ po upowszechnieniu siê odcinków izolowanych
  if (iCategoryFlag&0x100) //jeœli usuwaczek
- {Dynamic->MyTrack=NULL;
+ {Dynamic->MyTrack=NULL; //trzeba by to uzale¿niæ od kierunku ruchu...
   return true;
  }
  if (Global::iMultiplayer) //jeœli multiplayer

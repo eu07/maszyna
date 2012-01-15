@@ -2068,22 +2068,46 @@ if (tmpTraction.TractionVoltage==0)
 }
  else if (MoverParameters->EnginePowerSource.SourceType==InternalSource)
   if (MoverParameters->EnginePowerSource.PowerType==SteamPower)
-  {//animacja t³oków
-   double fi,dx;
+  {//Ra: animacja rozrz¹du parowozu, na razie nieoptymalizowane
+   double fi,dx,c2,ka,kc;
+   //ruch t³oków oraz korbowodów
    fi=DegToRad(dWheelAngle[1]+pant1x); //k¹t obrotu ko³a dla t³oka 1
    dx=panty*cos(fi)+sqrt(panth*panth-panty*panty*sin(fi)*sin(fi))-panth; //nieoptymalne
    smPatykird1[0]->SetTranslate(float3(dx,0,0)); //suwamy
-   fi=-atan2(panty,panth)*sin(fi);
-   smPatykirg1[0]->SetRotateXYZ(vector3(RadToDeg(fi),0,0));
+   ka=-asin(panty/panth)*sin(fi);
+   smPatykirg1[0]->SetRotateXYZ(vector3(RadToDeg(ka),0,0));
    //smPatykirg1[0]->SetRotate(float3(0,1,0),RadToDeg(fi)); //obracamy
-   //smPatykirg1[0]->SetTranslate(float3(fi,0,0)); //suwamy
+   //smPatykirg1[0]->SetTranslate(float3(fi,0,0)); //suwamy - test wykrycia submodelu
    fi=DegToRad(dWheelAngle[1]+pant2x); //k¹t obrotu ko³a dla t³oka 1
    dx=panty*cos(fi)+sqrt(panth*panth-panty*panty*sin(fi)*sin(fi))-panth; //nieoptymalne
    smPatykird1[1]->SetTranslate(float3(dx,0,0));
-   fi=-atan2(panty,panth)*sin(fi);
-   smPatykirg1[1]->SetRotateXYZ(vector3(RadToDeg(fi),0,0));
+   ka=-asin(panty/panth)*sin(fi);
+   smPatykirg1[1]->SetRotateXYZ(vector3(RadToDeg(ka),0,0));
    //smPatykirg1[1]->SetRotate(float3(0,1,0),RadToDeg(fi));
-   //smPatykirg1[1]->SetTranslate(float3(fi,0,0)); //suwamy
+   //smPatykirg1[1]->SetTranslate(float3(fi,0,0)); //suwamy - test wykrycia submodelu
+/*
+   //ruch dr¹¿ka mimoœrodkowego oraz jarzma
+   //korzysta³em z pliku PDF "miller2.pdf" (opis czworoboku korbowo-wahaczowego):
+   //"TEORIA MASZYN I MECHANIZMÓW. Analiza uk³adów Kinematycznych" Stefan Miller 2007, Politechnika Wroc³awska
+   //http://www.dbc.wroc.pl/Content/1636/miller2.pdf
+   a=l1+l2*cos(fi);
+   b=l2*sin(fi);
+   A=a*a+b*b+l3*l3+l4*l4; //w skrypcie jest b³¹d - dwa razy l3*l3
+   B=b/a;
+   A2=A*A;
+   B2=B*B;
+   //równanie kwadratowe: (1+B*B)*cos(fi3)*cos(fi3)+2*A*cos(fi3)+(A*A+B*B)=0
+   delta=4*A2-4*(1+B2)*(A2+B2);
+   cosfi3=-2*A+sqrt(delta)/(2*(1+B2));
+
+   fi4=acos((l1+l2*cos(fi2)+l3*cos(fi3))/-l4); //k¹t obrotu dr¹¿ka mimoœrodowego wzglêdem jarzma
+   fi=DegToRad(dWheelAngle[1]+pant1x); //k¹t obrotu mimoœrodu 1 wzglêdem osi jarzma
+   c2=rm*rm*sin(fi)*sin(fi)+(d-rm*cos(fi))*(d-rm*cos(fi)); //kw. odleg³oœci osi mimoœrodu od osi jarzma
+   ka=acos((-a*a+b*b+c2)/(2.0*b*sqrt(c)))+kj; //k¹t jarzma
+   smPatykirg2[0]->SetRotateXYZ(vector3(RadToDeg(ka),0,0)); //obrócenie jarzma
+   kc=acos((-c2+b*b+a*a)/(2.0*b*a))+kd; //k¹t dr¹¿ka mimoœrodowego (jest zaczepiony do jarzma)
+   smPatykird2[0]->SetRotateXYZ(vector3(RadToDeg(ka),0,0)); //obrócenie dr¹¿ka mimoœrodowego
+*/
   }
 
 //NBMX Obsluga drzwi, MC: zuniwersalnione
