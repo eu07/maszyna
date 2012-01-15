@@ -224,8 +224,6 @@ struct TPowerParameters
 	};
 } ;
 
-typedef TPowerParameters *PPowerParameters;
-
 struct TScheme
 {
 	Byte Relay;
