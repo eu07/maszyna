@@ -2501,7 +2501,10 @@ bool __fastcall TGround::InitTracks()
      tmp=FindTrack(Track->CurrentSegment()->FastGetPoint_0(),iConnection,Current);
      switch (iConnection)
      {
-      case -1: break;
+      case -1: //Ra: pierwsza koncepcja zawijania samochodów i statków
+       if ((Track->iCategoryFlag&1)==0) //jeœli nie jest torem szynowym
+        Track->ConnectPrevPrev(Track,0); //³¹czenie koñca odcinka do samego siebie
+       break;
       case 0:
        Track->ConnectPrevPrev(tmp,0);
       break;
@@ -2535,7 +2538,10 @@ bool __fastcall TGround::InitTracks()
      tmp=FindTrack(Track->CurrentSegment()->FastGetPoint_1(),iConnection,Current);
      switch (iConnection)
      {
-      case -1: break;
+      case -1: //Ra: pierwsza koncepcja zawijania samochodów i statków
+       if ((Track->iCategoryFlag&1)==0) //jeœli nie jest torem szynowym
+        Track->ConnectNextNext(Track,1); //³¹czenie koñca odcinka do samego siebie
+      break;
       case 0:
        Track->ConnectNextPrev(tmp,0);
       break;
