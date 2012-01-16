@@ -2051,7 +2051,11 @@ if (BrakeCtrlPosNo>1) and (ActiveCab*ActiveCab>0)then
 with BrakePressureTable[BrakeCtrlPos] do
 begin
           dpLocalValve:=LocHandle.GetPF(LocalBrakePos/LocalBrakePosNo, 0, ScndPipePress, dt, 0);
-          dpMainValve:=Handle.GetPF(BrakeCtrlPos, PipePress, ScndPipePress, dt, EqvtPipePress);
+          if(PipePress>2.75)or((Hamulec.GetStatus and b_rls)=b_rls) then
+            temp:=1
+          else
+            temp:=0;
+          dpMainValve:=Handle.GetPF(BrakeCtrlPos, PipePress, temp*ScndPipePress, dt, EqvtPipePress);
           if (dpMainValve<0)and(PipePressureVal>0.01) then             {50}
             Pipe2.Flow(dpMainValve);
 end;
@@ -3358,7 +3362,7 @@ begin
   case LocalBrake of
    NoBrake :      K:=0;
    ManualBrake :  K:=MaxBrakeForce*LocalBrakeRatio;
-   HydraulicBrake : K:=0;
+   HydraulicBrake : K:=MaxBrakeForce*LocalBrakeRatio;
    PneumaticBrake:if Compressor<MaxBrakePress[3] then
                    K:=MaxBrakeForce*LocalBrakeRatio/2.0
                   else
@@ -3366,14 +3370,20 @@ begin
   end;
 
                 //0.03
+
   u:=((BrakePress*P2FTrans)-BrakeCylSpring)*BrakeCylMult[0]-BrakeSlckAdj;
   if u>0 then         {nie luz}
    begin
      K:=K+u;                     {w kN}
      K:=K*BrakeCylNo/(NBrakeAxles*NBpA);            {w kN na os}
    end;
-  u:=Hamulec.GetFC(Vel, K);
-  UnitBrakeForce:=u*K*1000;                     {sila na jeden klocek w N}
+  if BrakeSystem=Pneumatic then
+   begin
+    u:=Hamulec.GetFC(Vel, K);
+    UnitBrakeForce:=u*K*1000;                     {sila na jeden klocek w N}
+   end
+  else
+    UnitBrakeForce:=K*1000;
   if (NBpA*UnitBrakeForce>TotalMassxg*Adhesive(RunningTrack.friction)/NAxles) and (Abs(V)>0.001) then
    {poslizg}
    begin

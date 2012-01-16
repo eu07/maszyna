@@ -3107,6 +3107,22 @@ else
       */
      //-----------------
 
+    if ( Pressed(Global::Keys[k_Releaser])) //yB: odluzniacz caly czas trzymany, warunki powinny byc takie same, jak przy naciskaniu. Wlasciwie stamtad mozna wyrzucic sprawdzanie nacisniecia.
+     {
+        if (!FreeFlyModeFlag)
+         {
+         if ((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)||(DynamicObject->MoverParameters->EngineType==DieselElectric))
+          if (DynamicObject->MoverParameters->TrainType!=dt_EZT)
+           if (DynamicObject->MoverParameters->BrakeCtrlPosNo>0)
+            {
+             ReleaserButtonGauge.PutValue(1);
+             DynamicObject->MoverParameters->BrakeReleaser();
+            }
+         } //FFMF
+     } //releaser
+
+
+
      if ( Pressed(Global::Keys[k_Univ1]) )
      {
         if (!DebugModeFlag)
@@ -4120,3 +4136,4 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
 //---------------------------------------------------------------------------
 
 #pragma package(smart_init)
+

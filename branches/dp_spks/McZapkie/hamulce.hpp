@@ -104,6 +104,7 @@ public:
 	virtual void __fastcall Init(double PP, double HPP, double LPP, double BP, Byte BDF);
 	bool __fastcall SetBDF(Byte nBDF);
 	void __fastcall Releaser(Byte state);
+	Byte __fastcall GetStatus(void);
 public:
 	#pragma option push -w-inl
 	/* TObject.Destroy */ inline __fastcall virtual ~TBrake(void) { }
@@ -455,6 +456,7 @@ private:
 	double CP;
 	double TP;
 	double RP;
+	double XP;
 	
 public:
 	virtual double __fastcall GetPF(double i_bcp, double pp, double hp, double dt, double ep);

@@ -37,13 +37,13 @@
     <USERDEFINES value="GLEW_STATIC;_DEBUG;USE_VBO"/>
     <SYSDEFINES value="_RTLDLL;NO_STRICT"/>
     <MAINSOURCE value="EU07.cpp"/>
-    <INCLUDEPATH value="C:\Users\Xoov;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
-    <LIBPATH value="C:\Users\Xoov;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
+    <INCLUDEPATH value="C:\Users\Xoov\;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
+    <LIBPATH value="C:\Users\Xoov\;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
     <WARNINGS value="-w-par"/>
   </MACROS>
   <OPTIONS>
-    <IDLCFLAGS value="-IC:\Users\Xoov -Iopengl -IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl 
-      -src_suffix cpp -DGLEW_STATIC -D_DEBUG -DUSE_VBO -boa"/>
+    <IDLCFLAGS value="-IC:\Users\Xoov\. -Iopengl -IMcZapkie -I$(BCB)\include 
+      -I$(BCB)\include\vcl -src_suffix cpp -DGLEW_STATIC -D_DEBUG -DUSE_VBO -boa"/>
     <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a4 -6 -b- -k -y -v -vi- 
       -c -tW -tWM"/>
     <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
@@ -62,8 +62,8 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=0
 MinorVer=666
-Release=474
-Build=301
+Release=487
+Build=302
 Debug=1
 PreRelease=0
 Special=0
@@ -75,7 +75,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=0.666.474.301
+FileVersion=0.666.487.302
 InternalName=6th by Ra with SPKS
 LegalCopyright=
 LegalTrademarks=
@@ -85,14 +85,16 @@ ProductVersion=1.6
 Comments=
 
 [HistoryLists\hlIncludePath]
-Count=2
-Item0=opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item1=C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Count=3
+Item0=C:\Users\Xoov;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item1=opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item2=C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
 
 [HistoryLists\hlLibraryPath]
-Count=2
-Item0=opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item1=C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Count=3
+Item0=C:\Users\Xoov;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item1=opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item2=C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
 
 [HistoryLists\hlDebugSourcePath]
 Count=4
