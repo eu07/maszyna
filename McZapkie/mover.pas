@@ -3741,33 +3741,40 @@ begin
   case LocalBrake of
    NoBrake :      K:=0;
    ManualBrake :  K:=MaxBrakeForce*LocalBrakeRatio;
-   HydraulicBrake : K:=0;
+   HydraulicBrake : K:=MaxBrakeForce*LocalBrakeRatio;
    PneumaticBrake:if Compressor<MaxBrakePress then
                    K:=MaxBrakeForce*LocalBrakeRatio/2.0
                   else
                    K:=0;
   end;
 
-  sm:=1;
-  //test pozycji pospiesznej
-  if TestFlag(BrakeDelays,bdelay_R)then
-   if(not TestFlag(BrakeStatus,b_Ractive)and(BrakeCtrlPosNo=0))then
-     sm:=0.5
-   else if(TestFlag(BrakeStatus,b_Ractive)and(BrakeCtrlPosNo>0))then
-     sm:=1.5;
-                //0.03
-  if (BrakePress)>(0.05*MaxBrakePress*sm) then         {nie luz}
-   begin
-//     if (BrakeSubsystem=Oerlikon) and (Vel>50) then //yB: to na razie komentuje, potem sie zrobi lepiej
-//      K:=K+BrakePress*P2FTrans*OerlikonForceFactor  {w kN}
-//     else
-      K:=K+BrakePress*P2FTrans;                     {w kN}
-     K:=K*BrakeCylNo/(NBrakeAxles*NBpA);            {w kN na os}
-   end;
-  if (BrakeMethod and 1 = 0) then
-    u:=60*(0.16*K+100.0)/((0.8*K+100.0)*(3.0*Vel+100.0)) {wsp. tarcia}
- else
-    u:=0.4*(0.4*K+100.0)*(Vel+80.0)/((0.8*K+100.0)*(2.0*Vel+80.0)); {wsp. tarcia}
+  if BrakeSystem=Pneumatic then
+  begin
+   sm:=1;
+   //test pozycji pospiesznej
+   if TestFlag(BrakeDelays,bdelay_R)then
+    if(not TestFlag(BrakeStatus,b_Ractive)and(BrakeCtrlPosNo=0))then
+      sm:=0.5
+    else if(TestFlag(BrakeStatus,b_Ractive)and(BrakeCtrlPosNo>0))then
+      sm:=1.5;
+                 //0.03
+   if (BrakePress)>(0.05*MaxBrakePress*sm) then         {nie luz}
+    begin
+ //     if (BrakeSubsystem=Oerlikon) and (Vel>50) then //yB: to na razie komentuje, potem sie zrobi lepiej
+ //      K:=K+BrakePress*P2FTrans*OerlikonForceFactor  {w kN}
+ //     else
+       K:=K+BrakePress*P2FTrans;                     {w kN}
+      K:=K*BrakeCylNo/(NBrakeAxles*NBpA);            {w kN na os}
+    end;
+   if (BrakeMethod and 1 = 0) then
+     u:=60*(0.16*K+100.0)/((0.8*K+100.0)*(3.0*Vel+100.0)) {wsp. tarcia}
+   else
+     u:=0.4*(0.4*K+100.0)*(Vel+80.0)/((0.8*K+100.0)*(2.0*Vel+80.0)); {wsp. tarcia}
+  end //BrakeSystem=Pneumatic
+  else
+  begin
+   u:=1;
+  end; //else BrakeSystem=Pneumatic
   UnitBrakeForce:=u*K*1000;                     {sila na jeden klocek w N}
   if (NBpA*UnitBrakeForce>TotalMassxg*Adhesive(RunningTrack.friction)/NAxles) and (Abs(V)>0.001) then
    {poslizg}

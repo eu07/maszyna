@@ -23,11 +23,11 @@
 const int maxcab=2;
 
 // const double fCzuwakTime= 90.0f;
-const double fCzuwakBlink= 0.15f;
-const float fConverterPrzekaznik = 1.5f; //hunter-261211: do przekaznika nadmiarowego przetwornicy
+const double fCzuwakBlink=0.15;
+const float fConverterPrzekaznik=1.5; //hunter-261211: do przekaznika nadmiarowego przetwornicy
                          //0.33f
 // const double fBuzzerTime= 5.0f;
-const float fHaslerTime = 1.2f;
+const float fHaslerTime=1.2;
 
 // const double fStycznTime= 0.5f;
 // const double fDblClickTime= 0.2f;
@@ -267,16 +267,21 @@ public:
     TRealSound rsSlippery;
     TRealSound rsHiss;
     TRealSound rsSBHiss;
-
+    TRealSound rsRunningNoise[10];
     TRealSound rsEngageSlippery;
     TRealSound rsFadeSound;
-//Szociu - 090112
-    TRealSound rsRunningNoise;
-    TRealSound rsRunningNoise2;
-    TRealSound rsRunningNoise3;
-    TRealSound rsRunningNoise4;
-    TRealSound rsRunningNoise5;
-    TRealSound rsRunningNoise6;
+    
+//    char dzwiek[10];
+ //   dzwiek[0]=1;
+ //   dzwiek[1]=2;
+ //   dzwiek[2]=3;
+//    dzwiek[3]=4;
+ //   dzwiek[4]=5;
+//    dzwiek[5]=6;
+//    dzwiek[6]=7;
+//    dzwiek[7]=8;
+//    dzwiek[8]=9;
+//    dzwiek[9]=10;
 
     PSound dsbHasler;
     PSound dsbBuzzer;
@@ -295,8 +300,8 @@ private:
 //    TSubModel *smShpOn;
 //    TSubModel *smCzuwakShpOff;
 //    double fCzuwakTimer;
-    double fBlinkTimer;
-	float fHaslerTimer;
+ double fBlinkTimer;
+ float fHaslerTimer;
     float fConverterTimer;  //hunter-261211: dla przekaznika
     float fMainRelayTimer;  //hunter-141211: zalaczanie WSa z opoznieniem
     int CAflag; //hunter-131211: dla osobnego zbijania CA i SHP

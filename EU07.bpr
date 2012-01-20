@@ -61,8 +61,8 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=1
 MinorVer=6
-Release=469
-Build=299
+Release=486
+Build=303
 Debug=1
 PreRelease=0
 Special=0
@@ -74,7 +74,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.6.469.299
+FileVersion=1.6.486.303
 InternalName=6th by Ra
 LegalCopyright=
 LegalTrademarks=
@@ -95,7 +95,7 @@ Item1=opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
 
 [HistoryLists\hlDebugSourcePath]
 Count=4
-Item0=E:\EXE_Ra\dp\McZapkie
+Item0=E:\dp_sounds\McZapkie
 Item1=C:\Ra\dp\McZapkie\
 Item2=c:\lang\borland\cbuilder5\source\vcl;D:\USER\MCZAPKIE\PROGRAMY\rail\symul\source\zmiany\McZapkie\;D:\USER\MCZAPKIE\PROGRAMY\rail\symul\source\zmiany\
 Item3=$(BCB)\source\vcl
@@ -122,10 +122,10 @@ Item5=D:\EU07DDS\
 Item6=M:\aEU07\EU07\
 
 [Debugging]
-DebugSourceDirs=E:\EXE_Ra\dp\McZapkie
+DebugSourceDirs=E:\dp_sounds\McZapkie
 
 [Parameters]
-RunParams=
+RunParams=-s AIdrogtest.scn -v Autobus01
 HostApplication=
 RemoteHost=
 RemotePath=

@@ -95,8 +95,8 @@ __fastcall TTrain::TTrain()
     pMechShake=vector3(0,0,0);
     vMechMovement=vector3(0,0,0);
     pMechOffset=vector3(0,0,0);
-    fBlinkTimer=0;
-	fHaslerTimer=0;
+ fBlinkTimer=0;
+ fHaslerTimer=0;
     keybrakecount=0;
     DynamicObject=NULL;
     iCabLightFlag=0;
@@ -1781,7 +1781,7 @@ bool __fastcall TTrain::Update()
    double dfreq;
 
 //McZapkie-280302 - syczenie
-      if (rsHiss.AM!=0 && FreeFlyModeFlag==false)
+      if (rsHiss.AM!=0)
        {
           fPPress=(fPPress+Max0R(DynamicObject->MoverParameters->dpLocalValve,DynamicObject->MoverParameters->dpMainValve))/2;
           if (fPPress>0)
@@ -1824,16 +1824,17 @@ bool __fastcall TTrain::Update()
 //szum w czasie jazdy
     vol=0.0;
     dfreq=1.0;
-    
-    //Szociu - 090112 - nowe dzwieki Runningnoise
-    if (rsRunningNoise.AM!=0)
+    int i = 0; 
+    while (i<1)
+    {
+   if (rsRunningNoise[i].AM!=0)
      {
        if (DynamicObject->GetVelocity()!=0 && FreeFlyModeFlag==false)
         {
           if (!TestFlag(DynamicObject->MoverParameters->DamageFlag,dtrain_wheelwear)) //McZpakie-221103: halas zalezny od kola
            {
-             dfreq=rsRunningNoise.FM*DynamicObject->MoverParameters->Vel+rsRunningNoise.FA;
-             vol=rsRunningNoise.AM*DynamicObject->MoverParameters->Vel+rsRunningNoise.AA;
+             dfreq=rsRunningNoise[i].FM*DynamicObject->MoverParameters->Vel+rsRunningNoise[i].FA;
+             vol=rsRunningNoise[i].AM*DynamicObject->MoverParameters->Vel+rsRunningNoise[i].AA;
               switch (tor->eEnvironment)
               {
                   case e_tunnel:
@@ -1859,8 +1860,8 @@ bool __fastcall TTrain::Update()
           else                                                   //uszkodzone kolo (podkucie)
            if (fabs(DynamicObject->MoverParameters->nrot)>0.01)
            {
-             dfreq=rsRunningNoise.FM*DynamicObject->MoverParameters->Vel+rsRunningNoise.FA;
-             vol=rsRunningNoise.AM*DynamicObject->MoverParameters->Vel+rsRunningNoise.AA;
+             dfreq=rsRunningNoise[i].FM*DynamicObject->MoverParameters->Vel+rsRunningNoise[i].FA;
+             vol=rsRunningNoise[i].AM*DynamicObject->MoverParameters->Vel+rsRunningNoise[i].AA;
               switch (tor->eEnvironment)
               {
                   case e_tunnel:
@@ -1883,83 +1884,29 @@ bool __fastcall TTrain::Update()
           if (fabs(DynamicObject->MoverParameters->nrot)>0.01)
            vol*=1+DynamicObject->MoverParameters->UnitBrakeForce/(1+DynamicObject->MoverParameters->MaxBrakeForce); //hamulce wzmagaja halas
           vol=vol*(20.0+tor->iDamageFlag)/21;
-          rsRunningNoise.AdjFreq(dfreq,0);
-          rsRunningNoise.Play(vol, DSBPLAY_LOOPING, true, DynamicObject->GetPosition());
+          rsRunningNoise[i].AdjFreq(dfreq,0);
+          rsRunningNoise[i].Play(vol, DSBPLAY_LOOPING, true, DynamicObject->GetPosition());
         }
        else
-        rsRunningNoise.Stop();
+        rsRunningNoise[i].Stop();
      }
-    if (rsRunningNoise2.AM!=0)
-     {
-       if (DynamicObject->GetVelocity()!=0 && DynamicObject->GetVelocity()>=rsRunningNoise2.Vmin && DynamicObject->GetVelocity()<=rsRunningNoise2.Vmax && FreeFlyModeFlag==false)
-        {
-          if (!TestFlag(DynamicObject->MoverParameters->DamageFlag,dtrain_wheelwear)) //McZpakie-221103: halas zalezny od kola
-           {
-             dfreq=rsRunningNoise2.FM*DynamicObject->MoverParameters->Vel+rsRunningNoise2.FA;
-             vol=rsRunningNoise2.AM*DynamicObject->MoverParameters->Vel+rsRunningNoise2.AA;
-              switch (tor->eEnvironment)
-              {
-                  case e_tunnel:
-                   {
-                    vol*=3;
-                    dfreq*=0.95;
-                   }
-                  break;
-                  case e_canyon:
-                   {
-                    vol*=1.1;
-                   }
-                  break;
-                  case e_bridge:
-                   {
-                    vol*=2;
-                    dfreq*=0.98;
-                   }
-                  break;
-              }
-
-           }
-          else                                                   //uszkodzone kolo (podkucie)
-           if (fabs(DynamicObject->MoverParameters->nrot)>0.01)
-           {
-             dfreq=rsRunningNoise2.FM*DynamicObject->MoverParameters->Vel+rsRunningNoise2.FA;
-             vol=rsRunningNoise2.AM*DynamicObject->MoverParameters->Vel+rsRunningNoise2.AA;
-              switch (tor->eEnvironment)
-              {
-                  case e_tunnel:
-                   {
-                    vol*=2;
-                   }
-                  break;
-                  case e_canyon:
-                   {
-                    vol*=1.1;
-                   }
-                  break;
-                  case e_bridge:
-                   {
-                    vol*=1.5;
-                   }
-                  break;
-              }
-           }
-          if (fabs(DynamicObject->MoverParameters->nrot)>0.01)
-           vol*=1+DynamicObject->MoverParameters->UnitBrakeForce/(1+DynamicObject->MoverParameters->MaxBrakeForce); //hamulce wzmagaja halas
-          vol=vol*(20.0+tor->iDamageFlag)/21;
-          rsRunningNoise2.AdjFreq(dfreq,0);
-          rsRunningNoise2.Play(vol, DSBPLAY_LOOPING, true, DynamicObject->GetPosition());
-        }
-       else
-        rsRunningNoise2.Stop();
+      i++;
      }
-    if (rsRunningNoise3.AM!=0)
+     
+     
+     while (i>=1 && i<10) 
      {
-       if (DynamicObject->GetVelocity()!=0 && DynamicObject->GetVelocity()>=rsRunningNoise3.Vmin && DynamicObject->GetVelocity()<=rsRunningNoise3.Vmax && FreeFlyModeFlag==false)
+     
+ 
+     
+         if (rsRunningNoise[i].AM!=0)
+     {
+       if (DynamicObject->GetVelocity()!=0 && DynamicObject->GetVelocity()>=rsRunningNoise[i].Vmin && DynamicObject->GetVelocity()<=rsRunningNoise[i].Vmax && FreeFlyModeFlag==false)
         {
           if (!TestFlag(DynamicObject->MoverParameters->DamageFlag,dtrain_wheelwear)) //McZpakie-221103: halas zalezny od kola
            {
-             dfreq=rsRunningNoise3.FM*DynamicObject->MoverParameters->Vel+rsRunningNoise3.FA;
-             vol=rsRunningNoise3.AM*DynamicObject->MoverParameters->Vel+rsRunningNoise3.AA;
+             dfreq=rsRunningNoise[i].FM*DynamicObject->MoverParameters->Vel+rsRunningNoise[i].FA;
+             vol=rsRunningNoise[i].AM*DynamicObject->MoverParameters->Vel+rsRunningNoise[i].AA;
               switch (tor->eEnvironment)
               {
                   case e_tunnel:
@@ -1985,8 +1932,8 @@ bool __fastcall TTrain::Update()
           else                                                   //uszkodzone kolo (podkucie)
            if (fabs(DynamicObject->MoverParameters->nrot)>0.01)
            {
-             dfreq=rsRunningNoise3.FM*DynamicObject->MoverParameters->Vel+rsRunningNoise3.FA;
-             vol=rsRunningNoise3.AM*DynamicObject->MoverParameters->Vel+rsRunningNoise3.AA;
+             dfreq=rsRunningNoise[i].FM*DynamicObject->MoverParameters->Vel+rsRunningNoise[i].FA;
+             vol=rsRunningNoise[i].AM*DynamicObject->MoverParameters->Vel+rsRunningNoise[i].AA;
               switch (tor->eEnvironment)
               {
                   case e_tunnel:
@@ -2009,203 +1956,14 @@ bool __fastcall TTrain::Update()
           if (fabs(DynamicObject->MoverParameters->nrot)>0.01)
            vol*=1+DynamicObject->MoverParameters->UnitBrakeForce/(1+DynamicObject->MoverParameters->MaxBrakeForce); //hamulce wzmagaja halas
           vol=vol*(20.0+tor->iDamageFlag)/21;
-          rsRunningNoise3.AdjFreq(dfreq,0);
-          rsRunningNoise3.Play(vol, DSBPLAY_LOOPING, true, DynamicObject->GetPosition());
+          rsRunningNoise[i].AdjFreq(dfreq,0);
+          rsRunningNoise[i].Play(vol, DSBPLAY_LOOPING, true, DynamicObject->GetPosition());
         }
        else
-        rsRunningNoise3.Stop();
-     }
-        if (rsRunningNoise4.AM!=0)
-     {
-       if (DynamicObject->GetVelocity()!=0 && DynamicObject->GetVelocity()>=rsRunningNoise4.Vmin && DynamicObject->GetVelocity()<=rsRunningNoise4.Vmax && FreeFlyModeFlag==false)
-        {
-          if (!TestFlag(DynamicObject->MoverParameters->DamageFlag,dtrain_wheelwear)) //McZpakie-221103: halas zalezny od kola
-           {
-             dfreq=rsRunningNoise4.FM*DynamicObject->MoverParameters->Vel+rsRunningNoise4.FA;
-             vol=rsRunningNoise4.AM*DynamicObject->MoverParameters->Vel+rsRunningNoise4.AA;
-              switch (tor->eEnvironment)
-              {
-                  case e_tunnel:
-                   {
-                    vol*=3;
-                    dfreq*=0.95;
-                   }
-                  break;
-                  case e_canyon:
-                   {
-                    vol*=1.1;
-                   }
-                  break;
-                  case e_bridge:
-                   {
-                    vol*=2;
-                    dfreq*=0.98;
-                   }
-                  break;
-              }
-
-           }
-          else                                                   //uszkodzone kolo (podkucie)
-           if (fabs(DynamicObject->MoverParameters->nrot)>0.01)
-           {
-             dfreq=rsRunningNoise4.FM*DynamicObject->MoverParameters->Vel+rsRunningNoise4.FA;
-             vol=rsRunningNoise4.AM*DynamicObject->MoverParameters->Vel+rsRunningNoise4.AA;
-              switch (tor->eEnvironment)
-              {
-                  case e_tunnel:
-                   {
-                    vol*=2;
-                   }
-                  break;
-                  case e_canyon:
-                   {
-                    vol*=1.1;
-                   }
-                  break;
-                  case e_bridge:
-                   {
-                    vol*=1.5;
-                   }
-                  break;
-              }
-           }
-          if (fabs(DynamicObject->MoverParameters->nrot)>0.01)
-           vol*=1+DynamicObject->MoverParameters->UnitBrakeForce/(1+DynamicObject->MoverParameters->MaxBrakeForce); //hamulce wzmagaja halas
-          vol=vol*(20.0+tor->iDamageFlag)/21;
-          rsRunningNoise4.AdjFreq(dfreq,0);
-          rsRunningNoise4.Play(vol, DSBPLAY_LOOPING, true, DynamicObject->GetPosition());
+        rsRunningNoise[i].Stop();
         }
-       else
-        rsRunningNoise4.Stop();
-        }
-                if (rsRunningNoise5.AM!=0)
-     {
-       if (DynamicObject->GetVelocity()!=0 && DynamicObject->GetVelocity()>=rsRunningNoise5.Vmin && DynamicObject->GetVelocity()<=rsRunningNoise5.Vmax && FreeFlyModeFlag==false)
-        {
-          if (!TestFlag(DynamicObject->MoverParameters->DamageFlag,dtrain_wheelwear)) //McZpakie-221103: halas zalezny od kola
-           {
-             dfreq=rsRunningNoise5.FM*DynamicObject->MoverParameters->Vel+rsRunningNoise5.FA;
-             vol=rsRunningNoise5.AM*DynamicObject->MoverParameters->Vel+rsRunningNoise5.AA;
-              switch (tor->eEnvironment)
-              {
-                  case e_tunnel:
-                   {
-                    vol*=3;
-                    dfreq*=0.95;
-                   }
-                  break;
-                  case e_canyon:
-                   {
-                    vol*=1.1;
-                   }
-                  break;
-                  case e_bridge:
-                   {
-                    vol*=2;
-                    dfreq*=0.98;
-                   }
-                  break;
-              }
-
-           }
-          else                                                   //uszkodzone kolo (podkucie)
-           if (fabs(DynamicObject->MoverParameters->nrot)>0.01)
-           {
-             dfreq=rsRunningNoise5.FM*DynamicObject->MoverParameters->Vel+rsRunningNoise5.FA;
-             vol=rsRunningNoise5.AM*DynamicObject->MoverParameters->Vel+rsRunningNoise5.AA;
-              switch (tor->eEnvironment)
-              {
-                  case e_tunnel:
-                   {
-                    vol*=2;
-                   }
-                  break;
-                  case e_canyon:
-                   {
-                    vol*=1.1;
-                   }
-                  break;
-                  case e_bridge:
-                   {
-                    vol*=1.5;
-                   }
-                  break;
-              }
-           }
-          if (fabs(DynamicObject->MoverParameters->nrot)>0.01)
-           vol*=1+DynamicObject->MoverParameters->UnitBrakeForce/(1+DynamicObject->MoverParameters->MaxBrakeForce); //hamulce wzmagaja halas
-          vol=vol*(20.0+tor->iDamageFlag)/21;
-          rsRunningNoise5.AdjFreq(dfreq,0);
-          rsRunningNoise5.Play(vol, DSBPLAY_LOOPING, true, DynamicObject->GetPosition());
-        }
-       else
-        rsRunningNoise5.Stop();
-        }
-        
-                               if (rsRunningNoise6.AM!=0)
-     {
-       if (DynamicObject->GetVelocity()!=0 && DynamicObject->GetVelocity()>=rsRunningNoise6.Vmin && DynamicObject->GetVelocity()<=rsRunningNoise6.Vmax && FreeFlyModeFlag==false)
-        {
-          if (!TestFlag(DynamicObject->MoverParameters->DamageFlag,dtrain_wheelwear)) //McZpakie-221103: halas zalezny od kola
-           {
-             dfreq=rsRunningNoise6.FM*DynamicObject->MoverParameters->Vel+rsRunningNoise6.FA;
-             vol=rsRunningNoise6.AM*DynamicObject->MoverParameters->Vel+rsRunningNoise6.AA;
-              switch (tor->eEnvironment)
-              {
-                  case e_tunnel:
-                   {
-                    vol*=3;
-                    dfreq*=0.95;
-                   }
-                  break;
-                  case e_canyon:
-                   {
-                    vol*=1.1;
-                   }
-                  break;
-                  case e_bridge:
-                   {
-                    vol*=2;
-                    dfreq*=0.98;
-                   }
-                  break;
-              }
-
-           }
-          else                                                   //uszkodzone kolo (podkucie)
-           if (fabs(DynamicObject->MoverParameters->nrot)>0.01)
-           {
-             dfreq=rsRunningNoise6.FM*DynamicObject->MoverParameters->Vel+rsRunningNoise6.FA;
-             vol=rsRunningNoise6.AM*DynamicObject->MoverParameters->Vel+rsRunningNoise6.AA;
-              switch (tor->eEnvironment)
-              {
-                  case e_tunnel:
-                   {
-                    vol*=2;
-                   }
-                  break;
-                  case e_canyon:
-                   {
-                    vol*=1.1;
-                   }
-                  break;
-                  case e_bridge:
-                   {
-                    vol*=1.5;
-                   }
-                  break;
-              }
-           }
-          if (fabs(DynamicObject->MoverParameters->nrot)>0.01)
-           vol*=1+DynamicObject->MoverParameters->UnitBrakeForce/(1+DynamicObject->MoverParameters->MaxBrakeForce); //hamulce wzmagaja halas
-          vol=vol*(20.0+tor->iDamageFlag)/21;
-          rsRunningNoise6.AdjFreq(dfreq,0);
-          rsRunningNoise6.Play(vol, DSBPLAY_LOOPING, true, DynamicObject->GetPosition());
-        }
-       else
-        rsRunningNoise6.Stop();
-        }
-
+        i++;
+    }
     if (rsBrake.AM!=0)
      {
       if ((!DynamicObject->MoverParameters->SlippingWheels) && (DynamicObject->MoverParameters->UnitBrakeForce>10.0) && (DynamicObject->GetVelocity()>0.01))
@@ -2299,19 +2057,19 @@ bool __fastcall TTrain::Update()
    if (DynamicObject->MoverParameters->EventFlag)
     if (TestFlag(DynamicObject->MoverParameters->DamageFlag,dtrain_wheelwear))
      {
-      if (rsRunningNoise.AM!=0)
+      if (rsRunningNoise[0].AM!=0)
        {
-        rsRunningNoise.Stop();
-        //float aa=rsRunningNoise.AA;
-        float am=rsRunningNoise.AM;
-        float fa=rsRunningNoise.FA;
-        float fm=rsRunningNoise.FM;
-        rsRunningNoise.Init("lomotpodkucia.wav",-1,0,0,0,true);    //MC: zmiana szumu na lomot
-        if (rsRunningNoise.AM==1)
-         rsRunningNoise.AM=am;
-        rsRunningNoise.AA=0.7;
-        rsRunningNoise.FA=fa;
-        rsRunningNoise.FM-fm;
+        rsRunningNoise[0].Stop();
+        //float aa=rsRunningNoise[0].AA;
+        float am=rsRunningNoise[0].AM;
+        float fa=rsRunningNoise[0].FA;
+        float fm=rsRunningNoise[0].FM;
+        rsRunningNoise[0].Init("lomotpodkucia.wav",-1,0,0,0,true);    //MC: zmiana szumu na lomot
+        if (rsRunningNoise[0].AM==1)
+         rsRunningNoise[0].AM=am;
+        rsRunningNoise[0].AA=0.7;
+        rsRunningNoise[0].FA=fa;
+        rsRunningNoise[0].FM-fm;
        }
       DynamicObject->MoverParameters->EventFlag=False;
      }
@@ -2511,37 +2269,27 @@ else
 //}catch(...){WriteLog("!!!! Problem z amperomierzami");}; //trykacz i tak nie dzia³a
 
 //McZapkie-240302    VelocityGauge.UpdateValue(DynamicObject->GetVelocity());
-    if (VelocityGauge.SubModel)
-    {
-      //ZiomalCl: wskazanie Haslera w kabinie A ze zwloka czasowa oraz odpowiednia tolerancja
-	    //Nalezy sie zastanowic na przyszlosc nad rozroznieniem predkosciomierzy (dokladnosc wskazan, zwloka czasowa wskazania, inne funkcje)
-      fHaslerTimer+=dt;
-      if(fHaslerTimer>fHaslerTime)
-      {
-		    if(DynamicObject->MoverParameters->TrainType==dt_EZT) //ZiomalCl: W ezt typu stare EN57 wskazania haslera sa mniej dokladne (linka)
-          VelocityGauge.UpdateValue(fTachoVelocity>2?fTachoVelocity+0.5-random(5)/2:0);
-		    else
-		      VelocityGauge.UpdateValue(fTachoVelocity>2?fTachoVelocity+0.5-random(2)/2:0);
-        fHaslerTimer-=fHaslerTime;
-      }
+    //fHaslerTimer+=dt;
+    //if (fHaslerTimer>fHaslerTime)
+    {//Ra: ryzykowne jest to, gdy¿ mo¿e siê nie uaktualniaæ prêdkoœæ
+     //Ra: prêdkoœæ siê powinna zaokr¹glaæ tam gdzie siê liczy fTachoVelocity
+     if (VelocityGauge.SubModel)
+     {//ZiomalCl: wskazanie Haslera w kabinie A ze zwloka czasowa oraz odpowiednia tolerancja
+      //Nalezy sie zastanowic na przyszlosc nad rozroznieniem predkosciomierzy (dokladnosc wskazan, zwloka czasowa wskazania, inne funkcje)
+      //ZiomalCl: W ezt typu stare EN57 wskazania haslera sa mniej dokladne (linka)
+      //VelocityGauge.UpdateValue(fTachoVelocity>2?fTachoVelocity+0.5-random(DynamicObject->MoverParameters->TrainType==dt_EZT?5:2)/2:0);
+      VelocityGauge.UpdateValue(fTachoVelocity);
       VelocityGauge.Update();
-    }
-
-    if (VelocityGaugeB.SubModel)
-    {
-      //ZiomalCl: wskazanie Haslera w kabinie B ze zwloka czasowa oraz odpowiednia tolerancja
-	    //Nalezy sie zastanowic na przyszlosc nad rozroznieniem predkosciomierzy (dokladnosc wskazan, zwloka czasowa wskazania, inne funkcje)
-      fHaslerTimer+=dt;
-      if(fHaslerTimer>fHaslerTime)
-      {
-		    if(DynamicObject->MoverParameters->TrainType==dt_EZT) //ZiomalCl: W ezt typu stare EN57 wskazania haslera sa mniej dokladne (linka)
-          VelocityGaugeB.UpdateValue(fTachoVelocity>2?fTachoVelocity+0.5-random(5)/2:0);
-		    else
-		      VelocityGaugeB.UpdateValue(fTachoVelocity>2?fTachoVelocity+0.5-random(2)/2:0);
-        fHaslerTimer-=fHaslerTime;
-      }
+     }
+     if (VelocityGaugeB.SubModel)
+     {//ZiomalCl: wskazanie Haslera w kabinie B ze zwloka czasowa oraz odpowiednia tolerancja
+      //Nalezy sie zastanowic na przyszlosc nad rozroznieniem predkosciomierzy (dokladnosc wskazan, zwloka czasowa wskazania, inne funkcje)
+      //VelocityGaugeB.UpdateValue(fTachoVelocity>2?fTachoVelocity+0.5-random(DynamicObject->MoverParameters->TrainType==dt_EZT?5:2)/2:0);
+      VelocityGaugeB.UpdateValue(fTachoVelocity);
       VelocityGaugeB.Update();
      }
+     //fHaslerTimer-=fHaslerTime; //1.2s (???)
+    }
 //McZapkie-300302: zegarek
     if (ClockMInd.SubModel)
      {
@@ -3158,7 +2906,7 @@ else
 
 
 //McZapkie-141102: SHP i czuwak, TODO: sygnalizacja kabinowa
-    if (DynamicObject->MoverParameters->SecuritySystem.Status>0 && FreeFlyModeFlag==false)
+    if (DynamicObject->MoverParameters->SecuritySystem.Status>0)
      {
        if (fBlinkTimer>fCzuwakBlink)
            fBlinkTimer=-fCzuwakBlink;
@@ -3656,21 +3404,21 @@ else
 */
 
 //  if (fabs(DynamicObject->GetVelocity())>0.5)
-    if (fTachoCount>maxtacho && FreeFlyModeFlag==false)
-    {
-        dsbHasler->GetStatus(&stat);
-        if (!(stat&DSBSTATUS_PLAYING))
-            dsbHasler->Play( 0, 0, DSBPLAY_LOOPING );
-    }
+   if (FreeFlyModeFlag?false:fTachoCount>maxtacho)
+   {
+    dsbHasler->GetStatus(&stat);
+    if (!(stat&DSBSTATUS_PLAYING))
+     dsbHasler->Play(0,0,DSBPLAY_LOOPING );
+   }
    else
+   {
+    if (FreeFlyModeFlag?true:fTachoCount<1)
     {
-     if (fTachoCount<1 || FreeFlyModeFlag==true) //zeby Hasler byl slyszalny tylko wewnatrz
-      {
-       dsbHasler->GetStatus(&stat);
-       if (stat&DSBSTATUS_PLAYING)
-          dsbHasler->Stop();
-      }
+     dsbHasler->GetStatus(&stat);
+     if (stat&DSBSTATUS_PLAYING)
+      dsbHasler->Stop();
     }
+   }
 
 // koniec mieszania z dzwiekami
 
@@ -3919,78 +3667,123 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
           rsSBHiss.FA=1.0;
          }
         else
-        //Szociu - 090112 - nowe Runningnoise - dodana zmienna odpowiedzialna za minimaln¹ i maksymaln¹ prêdkoœæ przy jakiej bêdzie odtwarzany dŸwiêk (+ 2 parametry w mmd)
-         if (str==AnsiString("runningnoise:"))                    //szum podczas jazdy:
-         {
+        if (str==AnsiString("runningnoise:"))                    //szum podczas jazdy:
+        {
           str=Parser->GetNextSymbol();
-          rsRunningNoise.Init(str.c_str(),-1,0,0,0,true);
-          rsRunningNoise.AM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
-          rsRunningNoise.AA=Parser->GetNextSymbol().ToDouble();
-          rsRunningNoise.FM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
-          rsRunningNoise.FA=Parser->GetNextSymbol().ToDouble();
-          //rsRunningNoise.Vmin=Parser->GetNextSymbol().ToDouble();
-          //rsRunningNoise.Vmax=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[0].Init(str.c_str(),-1,0,0,0,true);
+          rsRunningNoise[0].AM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
+          rsRunningNoise[0].AA=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[0].FM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
+          rsRunningNoise[0].FA=Parser->GetNextSymbol().ToDouble();
          }
-         else
+        else
           if (str==AnsiString("runningnoise2:"))                    //szum podczas jazdy:
          {
           str=Parser->GetNextSymbol();
-          rsRunningNoise2.Init(str.c_str(),-1,0,0,0,true);
-          rsRunningNoise2.AM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
-          rsRunningNoise2.AA=Parser->GetNextSymbol().ToDouble();
-          rsRunningNoise2.FM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
-          rsRunningNoise2.FA=Parser->GetNextSymbol().ToDouble();
-          rsRunningNoise2.Vmin=Parser->GetNextSymbol().ToDouble();
-          rsRunningNoise2.Vmax=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[1].Init(str.c_str(),-1,0,0,0,true);
+          rsRunningNoise[1].AM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
+          rsRunningNoise[1].AA=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[1].FM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
+          rsRunningNoise[1].FA=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[1].Vmin=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[1].Vmax=Parser->GetNextSymbol().ToDouble();
          }
         else
                   if (str==AnsiString("runningnoise3:"))                    //szum podczas jazdy:
          {
           str=Parser->GetNextSymbol();
-          rsRunningNoise3.Init(str.c_str(),-1,0,0,0,true);
-          rsRunningNoise3.AM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
-          rsRunningNoise3.AA=Parser->GetNextSymbol().ToDouble();
-          rsRunningNoise3.FM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
-          rsRunningNoise3.FA=Parser->GetNextSymbol().ToDouble();
-          rsRunningNoise3.Vmin=Parser->GetNextSymbol().ToDouble();
-          rsRunningNoise3.Vmax=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[2].Init(str.c_str(),-1,0,0,0,true);
+          rsRunningNoise[2].AM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
+          rsRunningNoise[2].AA=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[2].FM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
+          rsRunningNoise[2].FA=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[2].Vmin=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[2].Vmax=Parser->GetNextSymbol().ToDouble();
          }
         else
                           if (str==AnsiString("runningnoise4:"))                    //szum podczas jazdy:
          {
           str=Parser->GetNextSymbol();
-          rsRunningNoise4.Init(str.c_str(),-1,0,0,0,true);
-          rsRunningNoise4.AM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
-          rsRunningNoise4.AA=Parser->GetNextSymbol().ToDouble();
-          rsRunningNoise4.FM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
-          rsRunningNoise4.FA=Parser->GetNextSymbol().ToDouble();
-          rsRunningNoise4.Vmin=Parser->GetNextSymbol().ToDouble();
-          rsRunningNoise4.Vmax=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[3].Init(str.c_str(),-1,0,0,0,true);
+          rsRunningNoise[3].AM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
+          rsRunningNoise[3].AA=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[3].FM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
+          rsRunningNoise[3].FA=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[3].Vmin=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[3].Vmax=Parser->GetNextSymbol().ToDouble();
          }
         else
                           if (str==AnsiString("runningnoise5:"))                    //szum podczas jazdy:
          {
           str=Parser->GetNextSymbol();
-          rsRunningNoise5.Init(str.c_str(),-1,0,0,0,true);
-          rsRunningNoise5.AM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
-          rsRunningNoise5.AA=Parser->GetNextSymbol().ToDouble();
-          rsRunningNoise5.FM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
-          rsRunningNoise5.FA=Parser->GetNextSymbol().ToDouble();
-          rsRunningNoise5.Vmin=Parser->GetNextSymbol().ToDouble();
-          rsRunningNoise5.Vmax=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[4].Init(str.c_str(),-1,0,0,0,true);
+          rsRunningNoise[4].AM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
+          rsRunningNoise[4].AA=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[4].FM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
+          rsRunningNoise[4].FA=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[4].Vmin=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[4].Vmax=Parser->GetNextSymbol().ToDouble();
          }
         else
         
                                   if (str==AnsiString("runningnoise6:"))                    //szum podczas jazdy:
          {
           str=Parser->GetNextSymbol();
-          rsRunningNoise6.Init(str.c_str(),-1,0,0,0,true);
-          rsRunningNoise6.AM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
-          rsRunningNoise6.AA=Parser->GetNextSymbol().ToDouble();
-          rsRunningNoise6.FM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
-          rsRunningNoise6.FA=Parser->GetNextSymbol().ToDouble();
-          rsRunningNoise6.Vmin=Parser->GetNextSymbol().ToDouble();
-          rsRunningNoise6.Vmax=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[5].Init(str.c_str(),-1,0,0,0,true);
+          rsRunningNoise[5].AM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
+          rsRunningNoise[5].AA=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[5].FM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
+          rsRunningNoise[5].FA=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[5].Vmin=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[5].Vmax=Parser->GetNextSymbol().ToDouble();
+         }
+        else
+                                  if (str==AnsiString("runningnoise7:"))                    //szum podczas jazdy:
+         {
+          str=Parser->GetNextSymbol();
+          rsRunningNoise[6].Init(str.c_str(),-1,0,0,0,true);
+          rsRunningNoise[6].AM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
+          rsRunningNoise[6].AA=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[6].FM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
+          rsRunningNoise[6].FA=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[6].Vmin=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[6].Vmax=Parser->GetNextSymbol().ToDouble();
+         }
+        else
+                                          if (str==AnsiString("runningnoise8:"))                    //szum podczas jazdy:
+         {
+          str=Parser->GetNextSymbol();
+          rsRunningNoise[7].Init(str.c_str(),-1,0,0,0,true);
+          rsRunningNoise[7].AM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
+          rsRunningNoise[7].AA=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[7].FM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
+          rsRunningNoise[7].FA=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[7].Vmin=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[7].Vmax=Parser->GetNextSymbol().ToDouble();
+         }
+        else
+                                          if (str==AnsiString("runningnoise9:"))                    //szum podczas jazdy:
+         {
+          str=Parser->GetNextSymbol();
+          rsRunningNoise[8].Init(str.c_str(),-1,0,0,0,true);
+          rsRunningNoise[8].AM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
+          rsRunningNoise[8].AA=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[8].FM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
+          rsRunningNoise[8].FA=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[8].Vmin=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[8].Vmax=Parser->GetNextSymbol().ToDouble();
+         }
+        else
+                                          if (str==AnsiString("runningnoise10:"))                    //szum podczas jazdy:
+         {
+          str=Parser->GetNextSymbol();
+          rsRunningNoise[9].Init(str.c_str(),-1,0,0,0,true);
+          rsRunningNoise[9].AM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
+          rsRunningNoise[9].AA=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[9].FM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
+          rsRunningNoise[9].FA=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[9].Vmin=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[9].Vmax=Parser->GetNextSymbol().ToDouble();
          }
         else
         if (str==AnsiString("engageslippery:"))                    //tarcie tarcz sprzegla:
