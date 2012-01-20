@@ -21,6 +21,17 @@
   const MaxAxles=16; //ABu 280105: zmienione z 8 na 16
   const MaxAnimatedAxles=16; //i to tez.
   const MaxAnimatedDoors=8;  //NBMX  wrzesien 2003
+/*
+Ra: Utworzyæ klasê wyposa¿enia opcjonalnego, z której bêd¹ dziedziczyæ klasy drzwi,
+pantografów, napêdu parowozu i innych ruchomych czêœci pojazdów. Klasy powinny byæ
+pseudo-wirtualne, bo wirtualne mog¹ obni¿aæ wydajnosœæ.
+Przy wczytywaniu MMD utworzyæ tabelê wskaŸnikow na te dodatki. Przy wyœwietlaniu
+pojazdu wykonywaæ Update() na kolejnych obiektach wyposa¿enia.
+Rozwa¿yæ u¿ycie oddzielnych modeli dla niektórych pojazdów (np. lokomotywy), co
+zaoszczêdzi³o by czas ustawiania animacji na modelu wspólnym dla kilku pojazdów,
+szczególnie dla pojazdów w danej chwili nieruchomych (przy du¿ym zagêszczeniu
+modeli na stacjach na ogó³ przewaga jest tych nieruchomych).
+*/
 
 class TDynamicObject
 {
@@ -115,17 +126,7 @@ private:
     TRealSound sPantUp;
     TRealSound sPantDown;
     
-     //Szociu - 08012012
-    TRealSound rsOuterNoise;
-    TRealSound rsOuterNoise2;
-    TRealSound rsOuterNoise3;
-    TRealSound rsOuterNoise4;
-    TRealSound rsOuterNoise5;
-    TRealSound rsOuterNoise6;
-    TRealSound rsOuterNoise7;
-    TRealSound rsOuterNoise8;
-    TRealSound rsOuterNoise9;
-    TRealSound rsOuterNoise10;
+    TRealSound rsOuterNoise[10];
 
     double eng_vol_act;
     double eng_frq_act;

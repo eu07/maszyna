@@ -61,8 +61,8 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=1
 MinorVer=6
-Release=469
-Build=299
+Release=486
+Build=303
 Debug=1
 PreRelease=0
 Special=0
@@ -74,7 +74,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.6.469.299
+FileVersion=1.6.486.303
 InternalName=6th by Ra
 LegalCopyright=
 LegalTrademarks=
@@ -123,7 +123,7 @@ Item5=M:\aEU07\EU07\
 DebugSourceDirs=C:\Ra\dp\McZapkie\
 
 [Parameters]
-RunParams=
+RunParams=-s AIdrogtest.scn -v Autobus01
 HostApplication=
 RemoteHost=
 RemotePath=

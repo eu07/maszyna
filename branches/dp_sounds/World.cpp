@@ -564,14 +564,12 @@ bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
     }
     //matrix4x4 ident2;
     //ident2.Identity();
-
-// glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);  //{Texture blends with object background}
  Global::asHumanVehicle = Controlled->MoverParameters->Name; //ladowanie nazwy prowadzonego pojazdu, potrzebne do OuterNoise
+// glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);  //{Texture blends with object background}
  light=TTexturesManager::GetTextureID("smuga.tga");
 // Camera.Reset();
  ResetTimers();
  WriteLog("Load time: "+AnsiString(0.1*floor(864000.0*((double)Now()-time)))+" seconds");
-
  return true;
 };
 
@@ -1186,7 +1184,7 @@ bool __fastcall TWorld::Update()
        if (Train->dsbSlipAlarm) Train->dsbSlipAlarm->Stop(); //dŸwiêk alarmu przy poœlizgu
        Train->rsHiss.Stop();
        Train->rsSBHiss.Stop();
-       Train->rsRunningNoise.Stop();
+       Train->rsRunningNoise[0].Stop();
        Train->rsBrake.Stop();
        Train->rsEngageSlippery.Stop();
        Train->rsSlippery.Stop();

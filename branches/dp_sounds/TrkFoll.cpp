@@ -66,7 +66,10 @@ void __fastcall TTrackFollower::SetCurrentTrack(TTrack *pTrack,int end)
    pTrack->SwitchForced(i>>1,Owner); //to prze³o¿enie zwrotnicy - rozprucie!
  }
  if (!pTrack)
-  pTrack=pCurrentTrack->NullCreate(end); //tworzenie toru wykolej¹cego na przed³u¿eniu pCurrentTrack
+ {//gdy nie ma toru w kierunku jazdy
+  if (pCurrentTrack->iCategoryFlag&1) //jeœli tor kolejowy
+   pTrack=pCurrentTrack->NullCreate(end); //tworzenie toru wykolej¹cego na przed³u¿eniu pCurrentTrack
+ }
  else
  {//najpierw +1, póŸniej -1, aby odcinek izolowany wspólny dla tych torów nie wykry³ zera
   pTrack->AxleCounter(+1,Owner); //zajêcie nowego toru
@@ -90,7 +93,6 @@ bool __fastcall TTrackFollower::Move(double fDistance,bool bPrimary)
   {//omijamy ca³y ten blok, gdy tor nie ma on ¿adnych eventów (wiêkszoœc nie ma)
    if (fDistance<0)
    {
-    //if (Owner->MoverParameters->CabNo!=0)
     if (Owner->Mechanik) //tylko dla jednego cz³onu
      if (TestFlag(iEventFlag,1)) //McZapkie-280503: wyzwalanie event tylko dla pojazdow z obsada
       if (iSetFlag(iEventFlag,-1))
@@ -105,7 +107,6 @@ bool __fastcall TTrackFollower::Move(double fDistance,bool bPrimary)
    }
    else if (fDistance>0)
    {
-    //if (Owner->MoverParameters->CabNo!=0) //dla ka¿dego cz³onu
     if (Owner->Mechanik) //tylko dla jednego cz³onu
      if (TestFlag(iEventFlag,2))
       if (iSetFlag(iEventFlag,-2))
@@ -120,14 +121,13 @@ bool __fastcall TTrackFollower::Move(double fDistance,bool bPrimary)
    }
    else //if (fDistance==0) //McZapkie-140602: wyzwalanie zdarzenia gdy pojazd stoi
    {
-    //if (Owner->MoverParameters->CabNo!=0) //dla ka¿dego cz³onu
     if (Owner->Mechanik) //tylko dla jednego cz³onu
      if (pCurrentTrack->Event0)
-      if (pCurrentTrack->Event0->fStartTime<=0 && (pCurrentTrack->Event0->fDelay!=0))
+      if ((pCurrentTrack->Event0->fStartTime<=0)&&(pCurrentTrack->Event0->fDelay!=0))
        //Global::pGround->AddToQuery(pCurrentTrack->Event0,Owner);
        Owner->RaAxleEvent(pCurrentTrack->Event0); //Ra: dynamic zdecyduje, czy dodaæ do kolejki
     if (pCurrentTrack->Eventall0)
-     if (pCurrentTrack->Eventall0->fStartTime<=0 && (pCurrentTrack->Eventall0->fDelay!=0))
+     if ((pCurrentTrack->Eventall0->fStartTime<=0)&&(pCurrentTrack->Eventall0->fDelay!=0))
       //Global::pGround->AddToQuery(pCurrentTrack->Eventall0,Owner);
       Owner->RaAxleEvent(pCurrentTrack->Eventall0); //Ra: dynamic zdecyduje, czy dodaæ do kolejki
    }
@@ -136,7 +136,6 @@ bool __fastcall TTrackFollower::Move(double fDistance,bool bPrimary)
    return false;
   //if (fDistance==0.0) return true; //Ra: jak stoi, to chyba dalej nie ma co kombinowaæ?
   s=fCurrentDistance+fDistance; //doliczenie przesuniêcia
-  //(pCurrentTrack->eType); //Ra: to nic nie daje, bo to nie funkcja
   //Ra: W Point1 toru mo¿e znajdowaæ siê "dziura", która zamieni energiê kinetyczn¹
   // ruchu wzd³u¿nego na energiê potencjaln¹, zamieniaj¹c¹ siê potem na energiê
   // sprê¿ystoœci na amortyzatorach. Nale¿a³oby we wpisie toru umieœciæ wspó³czynnik
@@ -146,7 +145,6 @@ bool __fastcall TTrackFollower::Move(double fDistance,bool bPrimary)
    bCanSkip=bPrimary?pCurrentTrack->CheckDynamicObject(Owner):false;
    if (bCanSkip) //tylko g³ówna oœ przenosi pojazd do innego toru
     Owner->MyTrack->RemoveDynamicObject(Owner); //zdejmujemy pojazd z dotychczasowego toru
-    //pCurrentTrack->RemoveDynamicObject(Owner); //usuniêcie z aktualnego toru
    if (pCurrentTrack->iPrevDirection)
    {//gdy kierunek bez zmiany (Point1->Point2)
     SetCurrentTrack(pCurrentTrack->CurrentPrev(),0);
@@ -184,7 +182,6 @@ bool __fastcall TTrackFollower::Move(double fDistance,bool bPrimary)
    bCanSkip=bPrimary?pCurrentTrack->CheckDynamicObject(Owner):false;
    if (bCanSkip) //tylko g³ówna oœ przenosi pojazd do innego toru
     Owner->MyTrack->RemoveDynamicObject(Owner); //zdejmujemy pojazd z dotychczasowego toru
-    //pCurrentTrack->RemoveDynamicObject(Owner); //usuniêcie z aktualnego toru
    if (pCurrentTrack->iNextDirection)
    {//gdy zmiana kierunku toru (Point2->Point2)
     fDistance=-(s-pCurrentSegment->GetLength());
