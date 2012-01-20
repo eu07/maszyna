@@ -1759,11 +1759,12 @@ if (!MoverParameters->PhysicActivation)
 double volO[10];
 double dfreq[10]={0,0,0,0,0,0,0,0,0};
 int i=0;
+if (FreeFlyModeFlag==true||Global::asHumanVehicle!=MoverParameters->Name)
 while (i<10)
 {
         if (rsOuterNoise[i].AM!=0)
      {
-       if ((MoverParameters->Vel!=0 && Global::asHumanVehicle!=MoverParameters->Name && FreeFlyModeFlag==false && MoverParameters->Vel>=rsOuterNoise[i].Vmin && MoverParameters->Vel<=rsOuterNoise[i].Vmax) || (MoverParameters->Vel!=0 && FreeFlyModeFlag==true && MoverParameters->Vel>=rsOuterNoise[i].Vmin && MoverParameters->Vel<=rsOuterNoise[i].Vmax))
+       if (MoverParameters->Vel>=rsOuterNoise[i].Vmin && MoverParameters->Vel<=rsOuterNoise[i].Vmax)
         {
           if (!TestFlag(MoverParameters->DamageFlag,dtrain_wheelwear)) //McZpakie-221103: halas zalezny od kola
            {
@@ -1826,6 +1827,7 @@ while (i<10)
      }
      i++;
      }
+     else rsOuterNoise[i].Stop();
 
 //McZapkie-260202 - dMoveLen przyda sie przy stukocie kol
     dDOMoveLen=GetdMoveLen()+MoverParameters->ComputeMovement(dt,dt1,ts,tp,tmpTraction,l,r);
