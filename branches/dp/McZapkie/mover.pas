@@ -3748,7 +3748,7 @@ begin
                    K:=0;
   end;
 
-  if BrakeSystem=Pneumatic then
+  if (BrakeSystem=Pneumatic)or(BrakeSystem=ElectroPneumatic) then
   begin
    sm:=1;
    //test pozycji pospiesznej
