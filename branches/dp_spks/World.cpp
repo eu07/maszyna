@@ -1297,13 +1297,14 @@ bool __fastcall TWorld::Update()
        OutText1+=AnsiString(", put: ")+tmp->MoverParameters->CommandLast;
       OutText2="Damage status: "+tmp->MoverParameters->EngineDescription(0);//+" Engine status: ";
       OutText2+="; Brake delay: ";
-      if(tmp->MoverParameters->BrakeDelayFlag>1)
-       if(tmp->MoverParameters->BrakeDelayFlag>2)
-        OutText2+="R";
-       else
-       OutText2+="P";
-      else
+      if((tmp->MoverParameters->BrakeDelayFlag&bdelay_G)==bdelay_G)
        OutText2+="G";
+      if((tmp->MoverParameters->BrakeDelayFlag&bdelay_P)==bdelay_P)
+       OutText2+="P";
+      if((tmp->MoverParameters->BrakeDelayFlag&bdelay_R)==bdelay_R)
+       OutText2+="R";
+      if((tmp->MoverParameters->BrakeDelayFlag&bdelay_M)==bdelay_M)
+       OutText2+="+Mg";
       OutText2+=AnsiString(", BTP:")+FloatToStrF(tmp->MoverParameters->LoadFlag,ffFixed,5,0);
 
 //          OutText2+=AnsiString(", u:")+FloatToStrF(tmp->MoverParameters->u,ffFixed,3,3);

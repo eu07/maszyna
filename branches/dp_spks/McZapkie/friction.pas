@@ -22,7 +22,7 @@ unit friction;          {fizyka ruchu dla symulatora lokomotywy}
 (*
     MaSzyna EU07 - SPKS
     Friction coefficient.
-    Copyright (C) 2007-2010 Maciej Cierniak
+    Copyright (C) 2007-2012 Maciej Cierniak
 *)
 
 
@@ -82,6 +82,11 @@ TYPE
   end;
 
   TCosid = class(TFricMat)
+    public
+    function GetFC(N, Vel: real): real; override;
+  end;
+
+  TDisk1 = class(TFricMat)
     public
     function GetFC(N, Vel: real): real; override;
   end;
@@ -157,6 +162,11 @@ end;
 function TCosid.GetFC(N, Vel: real): real;
 begin
   GetFC:=0.27;
+end;
+
+function TDisk1.GetFC(N, Vel: real): real;
+begin
+  GetFC:=0.2375+0.000885*N-0.000345*N*N;
 end;
 
 end.

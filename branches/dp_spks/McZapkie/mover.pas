@@ -228,7 +228,7 @@ TYPE
     TBrakeSystem = (Individual, Pneumatic, ElectroPneumatic);
     {podtypy hamulcow zespolonych}
     TBrakeSubSystem = (ss_None, ss_W, ss_K, ss_KK, ss_Hik, ss_ESt, ss_KE, ss_LSt, ss_MT, ss_Dako);
-    TBrakeValve = (NoValve, W, W_Lu_VI, W_Lu_L, W_Lu_XR, K, Kg, Kp, Kss, Kkg, Kkp, Kks, Hikg1, Hikss, Hikp1, KE1a, SW, ESt3, LSt, ESt4, ESt3AL2, EP1, EP2, M483, CV1_L_TR, CV1, CV1_R, Other);
+    TBrakeValve = (NoValve, W, W_Lu_VI, W_Lu_L, W_Lu_XR, K, Kg, Kp, Kss, Kkg, Kkp, Kks, Hikg1, Hikss, Hikp1, KE, SW, ESt3, LSt, ESt4, ESt3AL2, EP1, EP2, M483, CV1_L_TR, CV1, CV1_R, Other);
     TBrakeHandle = (NoHandle, West, FV4a, M394, M254, FVel1, FVel6, D2, Knorr, FD1, BS2, testH);
     {typy hamulcow indywidualnych}
     TLocalBrake = (NoBrake, ManualBrake, PneumaticBrake, HydraulicBrake);
@@ -2051,7 +2051,7 @@ if (BrakeCtrlPosNo>1) and (ActiveCab*ActiveCab>0)then
 with BrakePressureTable[BrakeCtrlPos] do
 begin
           dpLocalValve:=LocHandle.GetPF(LocalBrakePos/LocalBrakePosNo, 0, ScndPipePress, dt, 0);
-          if(PipePress>2.75)or((Hamulec.GetStatus and b_rls)=b_rls) then
+          if(BrakeHandle=FV4a)and((PipePress>2.75)or((Hamulec.GetStatus and b_rls)=b_rls)) then
             temp:=1
           else
             temp:=0;
@@ -2060,7 +2060,8 @@ begin
             Pipe2.Flow(dpMainValve);
 end;
 
-      if(EmergencyBrakeFlag)and(BrakeCtrlPosNo=0)then         {ulepszony hamulec bezp.}
+//      if(EmergencyBrakeFlag)and(BrakeCtrlPosNo=0)then         {ulepszony hamulec bezp.}
+      if(EmergencyBrakeFlag)then         {ulepszony hamulec bezp.}
         dpMainValve:=PF(0,PipePress,0.2*Spg)*dt;
 
       Pipe.Flow(-dpMainValve);
@@ -2087,6 +2088,11 @@ end;
           (Hamulec as TESt3AL2).PLC(MaxBrakePress[LoadFlag])
         else
           (Hamulec as TESt3AL2).PLC(TotalMass);
+       KE:
+         if MBPM<2 then
+          (Hamulec as TKE).PLC(MaxBrakePress[LoadFlag])
+        else
+          (Hamulec as TKE).PLC(TotalMass);
       end;
 
       if (BrakeHandle = FVel6) and (ActiveCab*ActiveCab>0) then
@@ -3677,8 +3683,8 @@ begin
     Vel:=Abs(V)*3.6;
     nrot:=V2n(); //przeliczenie prêdkoœci liniowej na obrotow¹
 
-    if TestFlag(BrakeMethod,2) and (PipePress<CntrlPipePress/3.0)then
-      FStand:=Fstand+(RunningTrack.friction)*TrackBrakeForce;
+    if TestFlag(BrakeMethod,bp_MHS) and (PipePress<3.0) and (Vel>45) then //ustawione na sztywno na 3 bar
+      FStand:=Fstand+TrackBrakeForce;
 
 //    if(FullVer=True) then
 //    begin //ABu: to dla optymalizacji, bo chyba te rzeczy wystarczy sprawdzac 1 raz na klatke?
@@ -4532,6 +4538,7 @@ begin
     BrakeCylMult[b]:=0;
   VeselVolume:=0;
   BrakeVolume:=0;
+  RapidMult:=1;
   dizel_Mmax:=1; dizel_nMmax:=1; dizel_Mnmax:=2; dizel_nmax:=2; dizel_nominalfill:=0;
   dizel_Mstand:=0;
   dizel_nmax_cutoff:=0;
@@ -4774,7 +4781,15 @@ begin
 //(i_mbp, i_bcr, i_bcd, i_brc: real; i_bcn, i_BD, i_mat, i_ba, i_nbpa: byte)
 
 case BrakeValve of
-  W, K  : Hamulec := TWest.Create(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
+  W, K : Hamulec := TWest.Create(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
+  KE :   begin
+          Hamulec := TKE.Create(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
+         (Hamulec as TKE).SetRM(RapidMult);
+          if(MBPM<2)then //jesli przystawka wazaca
+           (Hamulec as TKE).SetLP(0,MaxBrakePress[3],0)
+         else
+           (Hamulec as TKE).SetLP(Mass, MBPM, MaxBrakePress[1])
+         end;
   ESt3, ESt3AL2: if (MaxBrakePress[1])>0 then
          begin
           Hamulec := TESt3AL2.Create(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
@@ -5063,6 +5078,8 @@ begin
      BrakeValve:=Hikss
    else if s='Hikg1' then
      BrakeValve:=Hikg1
+   else if s='KE' then
+     BrakeValve:=KE
    else if s='ESt3' then
      BrakeValve:=ESt3
    else if s='ESt3AL2' then
@@ -5087,6 +5104,7 @@ begin
   case BrakeValve of
     W,W_Lu_L,W_Lu_VI,W_Lu_XR: BrakeSubsystem:=ss_W;
     ESt3,ESt3AL2,ESt4,EP2,EP1: BrakeSubsystem:=ss_ESt;
+    KE: BrakeSubsystem:=ss_KE;
     CV1, CV1_L_TR: BrakeSubsystem:=ss_Dako;
     LSt: BrakeSubsystem:=ss_LSt;
   else
@@ -5363,6 +5381,8 @@ begin
                    if s='Cosid'     then BrakeMethod:=bp_Cosid else
                    if s='P10yBg'    then BrakeMethod:=bp_P10yBg else
                    if s='P10yBgu'   then BrakeMethod:=bp_P10yBgu else
+                   if s='Disk1'     then BrakeMethod:=bp_D1 else
+                   if s='Disk1+Mg'  then BrakeMethod:=bp_D1+bp_MHS else                                      
                                          BrakeMethod:=0;
 
                    s:=ExtractKeyWord(lines,'RM=');
@@ -5592,12 +5612,15 @@ begin
                   end;
 
                  s:=DUE(ExtractKeyWord(lines,'BrakeDelays='));
-                 if s='GPR' then Brakedelays:=bdelay_G+bdelay_P+bdelay_R
-                 else if s='PR' then Brakedelays:=bdelay_P+bdelay_R
-                 else if s='GP' then Brakedelays:=bdelay_G+bdelay_P
+                 if s='GPR' then BrakeDelays:=bdelay_G+bdelay_P+bdelay_R
+                 else if s='PR' then BrakeDelays:=bdelay_P+bdelay_R
+                 else if s='GP' then BrakeDelays:=bdelay_G+bdelay_P
                  else if s='R' then begin BrakeDelays:=bdelay_R; BrakeDelayFlag:=bdelay_R; end
                  else if s='P' then begin BrakeDelays:=bdelay_P; BrakeDelayFlag:=bdelay_P; end
-                 else if s='G' then begin BrakeDelays:=bdelay_G; BrakeDelayFlag:=bdelay_G; end;
+                 else if s='G' then begin BrakeDelays:=bdelay_G; BrakeDelayFlag:=bdelay_G; end
+                 else if s='GPR+Mg' then BrakeDelays:=bdelay_G+bdelay_P+bdelay_R+bdelay_M
+                 else if s='PR+Mg' then BrakeDelays:=bdelay_P+bdelay_R+bdelay_M;
+
 {                 else if s='DPR+Mg' then begin Brakedelays:=bdelay_R; BrakeMethod:=3; end
                  else if s='DGPR+Mg' then begin Brakedelays:=bdelay_G+bdelay_R; BrakeMethod:=3; end
                  else if s='DGPR' then begin Brakedelays:=bdelay_G+bdelay_R; BrakeMethod:=1; end
@@ -5607,7 +5630,7 @@ begin
 
                  s:=DUE(ExtractKeyWord(lines,'BrakeHandle='));
                       if s='FV4a' then BrakeHandle:=FV4a
-                 else if s='test' then BrakeHandle:=testH     
+                 else if s='test' then BrakeHandle:=testH
                  else if s='D2' then BrakeHandle:=D2
                  else if s='M394' then BrakeHandle:=M394
                  else if s='Knorr' then BrakeHandle:=Knorr

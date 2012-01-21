@@ -403,6 +403,50 @@ public:
 };
 
 
+class DELPHICLASS TKE;
+class PASCALIMPLEMENTATION TKE : public TBrake 
+{
+	typedef TBrake inherited;
+	
+private:
+	bool RapidStatus;
+	TReservoir* ImplsRes;
+	TReservoir* CntrlRes;
+	TReservoir* Brak2Res;
+	double BVM;
+	double TareM;
+	double LoadM;
+	double TareBP;
+	double LoadC;
+	double RM;
+	
+public:
+	void __fastcall SetRM(double RMR);
+	virtual double __fastcall GetPF(double PP, double dt, double Vel);
+	virtual void __fastcall Init(double PP, double HPP, double LPP, double BP, Byte BDF);
+	virtual double __fastcall GetHPFlow(double HP, double dt);
+	virtual double __fastcall GetCRP(void);
+	void __fastcall CheckState(double BCP, double &dV1);
+	void __fastcall CheckReleaser(double dt);
+	double __fastcall CVs(double bp);
+	double __fastcall BVs(double BCP);
+	void __fastcall PLC(double mass);
+	void __fastcall SetLP(double TM, double LM, double TBP);
+public:
+	#pragma option push -w-inl
+	/* TBrake.Create */ inline __fastcall TKE(double i_mbp, double i_bcr, double i_bcd, double i_brc, Byte 
+		i_bcn, Byte i_BD, Byte i_mat, Byte i_ba, Byte i_nbpa) : TBrake(i_mbp, i_bcr, i_bcd, i_brc, i_bcn, 
+		i_BD, i_mat, i_ba, i_nbpa) { }
+	#pragma option pop
+	
+public:
+	#pragma option push -w-inl
+	/* TObject.Destroy */ inline __fastcall virtual ~TKE(void) { }
+	#pragma option pop
+	
+};
+
+
 class DELPHICLASS THandle;
 class PASCALIMPLEMENTATION THandle : public System::TObject 
 {

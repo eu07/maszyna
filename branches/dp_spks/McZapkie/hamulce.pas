@@ -36,6 +36,7 @@ tarcze hamulcowe i magnetyki
 Zrobione:
 ESt3, ESt3AL2, ESt4R, LSt, FV4a, FD1, EP2, prosty westinghouse
 duzo wersji ¿eliwa
+KE
 *)
 
 interface
@@ -51,7 +52,7 @@ CONST
    bdelay_G=1;    //G
    bdelay_P=2;    //P
    bdelay_R=4;    //R
-   bdelay_M=8;    //R+Mg
+   bdelay_M=8;    //Mg
    bdelay_GR=128; //G-R
 
 
@@ -277,13 +278,39 @@ TYPE
     TCV1L_TR= class(TCV1)
       private
         ImplsRes: TReservoir;      //komora impulsowa
-        LBP: real;     //cisnienie hamulca pomocniczego        
+        LBP: real;     //cisnienie hamulca pomocniczego
       public
         function GetPF(PP, dt, Vel: real): real; override;     //przeplyw miedzy komora wstepna i PG
         procedure Init(PP, HPP, LPP, BP: real; BDF: byte); override;
         procedure SetLBP(P: real);   //cisnienie z hamulca pomocniczego
         function GetHPFlow(HP, dt: real): real; override; //przeplyw - 8 bar
       end;
+
+    TKE= class(TBrake) //Knorr Einheitsbauart — jeden do wszystkiego
+      private
+        RapidStatus: boolean;
+        ImplsRes: TReservoir;      //komora impulsowa
+        CntrlRes: TReservoir;      //zbiornik steruj¹cy
+        Brak2Res: TReservoir;      //zbiornik pomocniczy 2        
+        BVM: real;                 //przelozenie PG-CH
+        TareM, LoadM: real;        //masa proznego i pelnego
+        TareBP: real;              //cisnienie dla proznego
+        LoadC: real;               //wspolczynnik zaladowania
+        RM: real;                  //przelozenie rapida
+      public
+        procedure SetRM(RMR: real);   //ustalenie przelozenia rapida
+        function GetPF(PP, dt, Vel: real): real; override;     //przeplyw miedzy komora wstepna i PG
+        procedure Init(PP, HPP, LPP, BP: real; BDF: byte); override;
+        function GetHPFlow(HP, dt: real): real; override; //przeplyw - 8 bar        
+        function GetCRP: real; override;
+        procedure CheckState(BCP: real; var dV1: real);
+        procedure CheckReleaser(dt: real); //odluzniacz
+        function CVs(bp: real): real;      //napelniacz sterujacego
+        function BVs(BCP: real): real;     //napelniacz pomocniczego
+        procedure PLC(mass: real);  //wspolczynnik cisnienia przystawki wazacej
+        procedure SetLP(TM, LM, TBP: real);  //parametry przystawki wazacej
+      end;
+
 
 
 
@@ -559,6 +586,7 @@ begin
 
 //  FM.Free;
 //materialy cierne
+  i_mat:=i_mat and (255-bp_MHS);
   case i_mat of
   bp_P10Bg:   FM:=TP10Bg.Create;
   bp_P10Bgu:  FM:=TP10Bgu.Create;
@@ -566,6 +594,7 @@ begin
   bp_Cosid:   FM:=TCosid.Create;
   bp_P10yBg:  FM:=TP10yBg.Create;
   bp_P10yBgu: FM:=TP10yBgu.Create;
+  bp_D1:      FM:=TDisk1.Create;
   else //domyslnie
   FM:=TP10.Create;
   end;
@@ -1530,8 +1559,9 @@ function TCV1L_TR.GetHPFlow(HP, dt: real): real;
 var dV: real;
 begin
   dV:=PF(HP,BrakeRes.P,0.01)*dt;
+  dV:=Min0R(0,dV);
   BrakeRes.Flow(-dV);
-  GetHPFlow:=Max0R(0,dV);
+  GetHPFlow:=dV;
 end;
 
 procedure TCV1L_TR.Init(PP, HPP, LPP, BP: real; BDF: byte);
@@ -1609,6 +1639,235 @@ begin
   BrakeCyl.Act;
   BrakeRes.Act;
   CntrlRes.Act;
+end;
+
+
+
+//--- KNORR KE ---
+procedure TKE.CheckReleaser(dt: real);
+var VVP, CVP: real;
+begin
+  VVP:=ValveRes.P;
+  CVP:=CntrlRes.P;
+
+//odluzniacz
+ if(BrakeStatus and b_rls=b_rls)then
+   if(CVP-VVP<0)then
+    BrakeStatus:=BrakeStatus and 247
+   else
+    begin
+     CntrlRes.Flow(+PF(CVP,0,0.1)*dt);
+    end;
+end;
+
+procedure TKE.CheckState(BCP: real; var dV1: real);
+var VVP, BVP, CVP: real;
+begin
+  BVP:=BrakeRes.P;
+  VVP:=ValveRes.P;
+  CVP:=CntrlRes.P;
+
+//sprawdzanie stanu
+ if (BrakeStatus and 1)=1 then
+   if(VVP+0.003+BCP/BVM<CVP)then
+     BrakeStatus:=(BrakeStatus or 2) //hamowanie stopniowe
+   else if(VVP-0.003+BCP/BVM>CVP) then
+     BrakeStatus:=(BrakeStatus and 252) //luzowanie
+   else if(VVP+BCP/BVM>CVP) then
+     BrakeStatus:=(BrakeStatus and 253) //zatrzymanie napelaniania
+   else
+ else
+   if(VVP+0.10<CVP)and(BCP<0.1)then    //poczatek hamowania
+    begin
+     BrakeStatus:=(BrakeStatus or 3);
+     ValveRes.CreatePress(0.8*VVP); //przyspieszacz
+    end
+   else if(VVP+BCP/BVM<CVP)and((CVP-VVP)*BVM>0.25) then //zatrzymanie luzowanie
+     BrakeStatus:=(BrakeStatus or 1);
+end;
+
+function TKE.CVs(bp: real): real;
+var VVP, BVP, CVP: real;
+begin
+  BVP:=BrakeRes.P;
+  CVP:=CntrlRes.P;
+  VVP:=ValveRes.P;
+
+//przeplyw ZS <-> PG
+  if(bp>0.2)then
+    CVs:=0
+  else
+    if(VVP>CVP+0.4)then
+        CVs:=0.05
+      else
+        CVs:=0.23
+end;
+
+function TKE.BVs(BCP: real): real;
+var VVP, BVP, CVP: real;
+begin
+  BVP:=BrakeRes.P;
+  CVP:=CntrlRes.P;
+  VVP:=ValveRes.P;
+
+//przeplyw ZP <-> rozdzielacz
+  if (BVP>VVP) then
+    BVs:=0
+  else
+  if(BVP<CVP-0.3)then
+    BVs:=0.6
+  else
+    BVs:=0.13
+end;
+
+function TKE.GetPF(PP, dt, Vel: real): real;
+var dv, dv1, temp:real;
+    VVP, BVP, BCP, IMP, CVP: real;
+begin
+ BVP:=BrakeRes.P;
+ VVP:=ValveRes.P;
+ BCP:=BrakeCyl.P;
+ IMP:=ImplsRes.P;
+ CVP:=CntrlRes.P;
+
+ dV:=0; dV1:=0;
+
+//sprawdzanie stanu
+  CheckState(IMP, dV1);
+  CheckReleaser(dt);
+
+//przeplyw ZS <-> PG
+  temp:=CVs(IMP);
+  dV:=PF(CVP,VVP,0.0015*temp)*dt;
+  CntrlRes.Flow(+dV);
+  ValveRes.Flow(-0.04*dV);
+  dV1:=dV1-0.96*dV;
+
+//luzowanie
+  if(BrakeStatus and b_hld)=b_off then
+   begin
+    if ((BrakeDelayFlag and bdelay_G)=0) then
+      temp:=0.283+0.139
+    else
+      temp:=0.139;
+    dV:=PF(0,IMP,0.001*temp)*dt
+   end
+  else dV:=0;
+  ImplsRes.Flow(-dV);
+
+//przeplyw ZP <-> silowniki
+  if((BrakeStatus and b_on)=b_on)and(IMP<MaxBP)then
+   begin
+    temp:=0.113;
+    if ((BrakeDelayFlag and bdelay_G)=0) then
+      temp:=temp+0.636;
+    if (BCP<0.5) then
+      temp:=temp+0.785;
+    dV:=PF(BVP,IMP,0.001*temp)*dt
+   end
+  else dV:=0;
+  BrakeRes.Flow(dV);
+  ImplsRes.Flow(-dV);
+
+
+//rapid
+  if not (FM is TDisk1) then   //jesli zeliwo to schodz
+    RapidStatus:=((BrakeDelayFlag and bdelay_R)=bdelay_R)and(((Vel>50)and(RapidStatus))or(Vel>70))
+  else                         //jesli tarczowki, to zostan
+    RapidStatus:=((BrakeDelayFlag and bdelay_R)=bdelay_R);
+
+//  temp:=1.9-0.9*Byte(RapidStatus);
+
+  if(RM*RM>0.1)then //jesli jest rapid
+    if(RM>0)then //jesli dodatni (naddatek);
+      temp:=1-RM*Byte(RapidStatus)
+    else
+      temp:=1-RM*(1-Byte(RapidStatus))
+  else
+    temp:=1;
+  temp:=temp/LoadC;  
+//luzowanie CH
+  if(BCP*temp>IMP+0.005)or(IMP<0.25) then
+   dV:=PFVd(BCP,0,0.1,ImplsRes.P/temp)*dt
+  else dV:=0;
+  BrakeCyl.Flow(-dV);
+  if(BCP*temp<IMP-0.005)and(IMP>0.3) then
+   dV:=PFVa(BVP,BCP,0.1,ImplsRes.P/temp)*dt
+  else dV:=0;
+  BrakeRes.Flow(-dV);
+  BrakeCyl.Flow(+dV);
+
+//przeplyw ZP <-> rozdzielacz
+  temp:=BVs(IMP);
+//  if(BrakeStatus and b_hld)=b_off then
+  if(IMP<0.25)or(VVP+0.05>BVP)then
+   dV:=PF(BVP,VVP,0.02*sizeBR*temp/1.87)*dt
+  else dV:=0;
+  BrakeRes.Flow(dV);
+  dV1:=dV1+dV*0.96;
+  ValveRes.Flow(-0.04*dV);
+//przeplyw PG <-> rozdzielacz
+  dV:=PF(PP,VVP,0.01)*dt;
+  ValveRes.Flow(-dV);
+
+  ValveRes.Act;
+  BrakeCyl.Act;
+  BrakeRes.Act;
+  CntrlRes.Act;
+  ImplsRes.Act;
+  GetPF:=dV-dV1;
+end;
+
+procedure TKE.Init(PP, HPP, LPP, BP: real; BDF: byte);
+begin
+   ValveRes.CreatePress(PP);
+   BrakeCyl.CreatePress(BP);
+   BrakeRes.CreatePress(PP);
+
+   CntrlRes:=TReservoir.Create; //komora sterujaca
+   CntrlRes.CreateCap(5);
+   CntrlRes.CreatePress(HPP);
+
+   ImplsRes:=TReservoir.Create; //komora zastepcza silownika
+   ImplsRes.CreateCap(1);
+   ImplsRes.CreatePress(BP);
+
+   BrakeStatus:=0;
+
+   BVM:=1/(HPP-LPP)*MaxBP;
+
+   BrakeDelayFlag:=BDF;
+end;
+
+function TKE.GetCRP: real;
+begin
+  GetCRP:=CntrlRes.P;
+end;
+
+function TKE.GetHPFlow(HP, dt: real): real;
+var dV: real;
+begin
+  dV:=PF(HP,BrakeRes.P,0.01)*dt;
+  dV:=Min0R(0,dV);
+  BrakeRes.Flow(-dV);
+  GetHPFlow:=dV;
+end;
+
+procedure TKE.PLC(mass: real);
+begin
+  LoadC:=1+Byte(Mass<LoadM)*((TareBP+(MaxBP-TareBP)*(mass-TareM)/(LoadM-TareM))/MaxBP-1);
+end;
+
+procedure TKE.SetLP(TM, LM, TBP: real);
+begin
+  TareM:=TM;
+  LoadM:=LM;
+  TareBP:=TBP;
+end;
+
+procedure TKE.SetRM(RMR: real);
+begin
+  RM:=1-RMR;
 end;
 
 

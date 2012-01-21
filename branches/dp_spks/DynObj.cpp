@@ -1310,7 +1310,7 @@ double __fastcall TDynamicObject::Init(
   if (ActPar.Pos("G")>0) {MoverParameters->BrakeDelaySwitch(bdelay_G);}
   if (ActPar.Pos("P")>0) {MoverParameters->BrakeDelaySwitch(bdelay_P);}
   if (ActPar.Pos("R")>0) {MoverParameters->BrakeDelaySwitch(bdelay_R);}
-  if (ActPar.Pos("M")>0) {MoverParameters->BrakeDelaySwitch(bdelay_M);}
+  if (ActPar.Pos("M")>0) {MoverParameters->BrakeDelaySwitch(bdelay_R);MoverParameters->BrakeDelaySwitch(bdelay_R+bdelay_M);}
   //wylaczanie hamulca
   if (ActPar.Pos("0")>0) //wylaczanie na sztywno
   {
