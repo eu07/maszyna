@@ -218,6 +218,8 @@ public:
  void __fastcall ChildAdd(TSubModel *SubModel);
  void __fastcall NextAdd(TSubModel *SubModel);
  TSubModel* __fastcall NextGet() {return Next;};
+ void __fastcall TriangleAdd(const char *tex,int tri=1);
+ float8* __fastcall TrianglesPtr(int &pos);
  //void __fastcall SetRotate(vector3 vNewRotateAxis,float fNewAngle);
  void __fastcall SetRotate(float3 vNewRotateAxis,float fNewAngle);
  void __fastcall SetRotateXYZ(vector3 vNewAngles);
@@ -232,7 +234,7 @@ public:
  //inline matrix4x4* __fastcall GetMatrix() { return dMatrix; };
  inline float4x4* __fastcall GetMatrix() { return fMatrix; };
  //matrix4x4* __fastcall GetTransform() {return Matrix;};
- inline void __fastcall Hide() { Visible= false; };
+ inline void __fastcall Hide() { Visible=false; };
  void __fastcall RaArrayFill(CVertNormTex *Vert);
  //void __fastcall Render();
  int __fastcall Flags();

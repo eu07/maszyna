@@ -1884,7 +1884,7 @@ TTrack* __fastcall TTrack::RaAnimate()
     }
   }
   else //gdy Display List
-   Release(); //niszczenie skompilowanej listy
+   Release(); //niszczenie skompilowanej listy, aby siê wygenerowa³a nowa
  }
  else if (eType==tt_Turn) //dla obrotnicy - szyny i podsypka
  {
@@ -1901,7 +1901,7 @@ TTrack* __fastcall TTrack::RaAnimate()
     if (Global::bUseVBO)
     {//dla OpenGL 1.4 odœwie¿y siê ca³y sektor, w póŸniejszych poprawiamy fragment
      if (Global::bOpenGL_1_5) //dla OpenGL 1.4 to siê nie wykona poprawnie
-     {int size=RaArrayPrepare();
+     {int size=RaArrayPrepare(); //wielkoœæ tabeli potrzebna dla tej obrotnicy
       CVertNormTex *Vert=new CVertNormTex[size]; //bufor roboczy
       //CVertNormTex *v=Vert; //zmieniane przez
       RaArrayFill(Vert,Vert-SwitchExtension->iLeftVBO); //iLeftVBO powinno zostaæ niezmienione

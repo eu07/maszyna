@@ -305,6 +305,7 @@ public:
  int __fastcall DirectionGet() {return iDirection?1:-1;}; //ustawienie kierunku w sk³adzie
  bool DettachDistance(int dir);
  int Dettach(int dir,int cnt);
+ TDynamicObject* __fastcall Neightbour(int &dir);
 };
 
 
