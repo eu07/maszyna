@@ -3272,6 +3272,8 @@ void __fastcall TDynamicObject::RaLightsSet(int head,int rear)
  if (rear==2+32+64)
  {//jeœli koniec poci¹gu, to trzeba ustaliæ, czy jest tam czynna lokomotywa
   //EN57 mo¿e nie mieæ koñcówek od œrodka cz³onu
+  //jeœli ma zarówno œwiat³a jak i koñcówki, ustaliæ, czy jest w stanie aktywnym
+  //np. lokomotywa na zimno bêdzie mieæ koñcówki a nie œwiat³a
   if (iInventory&(iDirection?0x2A:0x15)) //czy ma jakieœ œwiat³a czerowone od danej strony
    rear=2+32; //dwa œwiat³a czerwone
   else
@@ -3326,5 +3328,20 @@ TDynamicObject* __fastcall TDynamicObject::Next()
  if (MoverParameters->Couplers[iDirection].CouplingFlag)
   return iDirection?NextConnected:PrevConnected;
  return NULL; //gdy sprzêg wirtualny, to jakby nic nie by³o
+};
+
+TDynamicObject* __fastcall TDynamicObject::Neightbour(int &dir)
+{//ustalenie nastêpnego w sk³adzie bez wzglêdu na prawid³owoœæ iDirection
+ int d=1-(iDirection?NextConnectedNo:PrevConnectedNo);
+ switch (d)
+ {case  0:
+   dir=(iDirection?NextConnectedNo:PrevConnectedNo)?1:-1;
+   return (iDirection>0)?NextConnected:PrevConnected;
+  case  1: d=iDirection?1:-1;
+   return d>0?NextConnected:PrevConnected;
+  case -1: d=iDirection?1:-1;
+   return d>0?NextConnected:PrevConnected;
+ }
+ return NULL;
 };
 

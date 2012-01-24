@@ -196,7 +196,7 @@ public:
 //Ra: trzeba sprawdziæ wydajnoœæ siatki
 const int iNumSubRects=5; //na ile dzielimy kilometr
 const int iNumRects=500;
-const double fHalfNumRects=iNumRects/2.0; //po³owa do wyznaczenia œrodka
+//const double fHalfNumRects=iNumRects/2.0; //po³owa do wyznaczenia œrodka
 const int iTotalNumSubRects=iNumRects*iNumSubRects;
 const double fHalfTotalNumSubRects=iTotalNumSubRects/2.0;
 const double fSubRectSize=1000.0/iNumSubRects;
@@ -384,6 +384,8 @@ public:
  void __fastcall RadioStop(vector3 pPosition);
  TDynamicObject* __fastcall DynamicNearest(vector3 pPosition,double distance=20.0,bool mech=false);
  void __fastcall DynamicRemove(TDynamicObject* dyn);
+ void __fastcall TerrainRead(const AnsiString &f); 
+ void __fastcall TerrainWrite();
 };
 //---------------------------------------------------------------------------
 #endif

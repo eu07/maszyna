@@ -370,12 +370,27 @@ bool __fastcall TController::CheckVehicles()
  //liczenie pojazdów w sk³adzie i ustawianie kierunku
  d=1-d; //a dalej bêdziemy zliczaæ od czo³a do ty³u
  fLength=0.0; //d³ugoœæ sk³adu do badania wyjechania za ograniczenie
+/*
+ bool main=true; //czy jest g³ównym steruj¹cym
+ int dir=????; //od pierwszego w drug¹ stronê
+ while (p)
+ {//sprawdzanie, czy jest g³ównym steruj¹cym, ¿eby nie by³o konfliktu
+  //kierunek pojazdów w sk³adzie jest ustalany tylko dla glównego steruj¹cego
+  if (p->Mechanik) //jeœli ma obsadê
+   if (p!=this) //ale chodzi o inny pojazd, ni¿ aktualnie sprawdzaj¹cy
+    if (p->Mechanik->iDrivigFlags&movePrimary) //a tamten ma priorytet
+     main=false;
+  p=p->Neighbour(dir); //pojazd pod³¹czony od wskazanej strony
+ }
+ p=pVehicle->FirstFind(d);
+*/
  while (p)
  {
   if (TrainParams)
    if (p->asDestination.IsEmpty())
     p->asDestination=TrainParams->Relation2; //relacja docelowa, jeœli nie by³o
-  p->RaLightsSet(0,0); //gasimy œwiat³a
+  if (AIControllFlag) //jeœli prowadzi komputer
+   p->RaLightsSet(0,0); //gasimy œwiat³a
   ++iVehicles; //jest jeden pojazd wiêcej
   pVehicles[1]=p; //zapamiêtanie ostatniego
   fLength+=p->MoverParameters->Dim.L; //dodanie d³ugoœci pojazdu
@@ -388,12 +403,13 @@ bool __fastcall TController::CheckVehicles()
  {delete[] pVehicle
  }
 */
- if (OrderCurrentGet()==Obey_train) //jeœli jazda poci¹gowa
-  Lights(1+4+16,2+32+64); //œwiat³a poci¹gowe (Pc1) i koñcówki (Pc5)
- else if (OrderCurrentGet()&(Shunt|Connect))
-  Lights(16,(pVehicles[1]->MoverParameters->ActiveCab)?1:0); //œwiat³a manewrowe (Tb1) na pojeŸdzie z napêdem
- else if (OrderCurrentGet()==Disconnect)
-  Lights(16,0); //œwiat³a manewrowe (Tb1) tylko z przodu, aby nie pozostawiæ sk³adu ze œwiat³em
+ if (AIControllFlag) //jeœli prowadzi komputer
+  if (OrderCurrentGet()==Obey_train) //jeœli jazda poci¹gowa
+   Lights(1+4+16,2+32+64); //œwiat³a poci¹gowe (Pc1) i koñcówki (Pc5)
+  else if (OrderCurrentGet()&(Shunt|Connect))
+   Lights(16,(pVehicles[1]->MoverParameters->ActiveCab)?1:0); //œwiat³a manewrowe (Tb1) na pojeŸdzie z napêdem
+  else if (OrderCurrentGet()==Disconnect)
+   Lights(16,0); //œwiat³a manewrowe (Tb1) tylko z przodu, aby nie pozostawiæ sk³adu ze œwiat³em
  return true;
 }
 
@@ -1082,6 +1098,7 @@ bool __fastcall TController::UpdateSituation(double dt)
  {//ABu-160305 Testowanie gotowoœci do jazdy
   //Ra: przeniesione z DynObj
   TDynamicObject* p=pVehicles[0]; //pojazd na czele sk³adu
+  //int dir=0;
   Ready=true; //wstêpnie gotowy
   while (p)
   {//sprawdzenie odhamowania wszystkich po³¹czonych pojazdów
@@ -1089,6 +1106,7 @@ bool __fastcall TController::UpdateSituation(double dt)
    {Ready=false; //nie gotowy
     break; //dalej nie ma co sprawdzaæ
    }
+   //p=p->Neightbour(dir); //pojazd pod³¹czony od ty³u (licz¹c od czo³a)
    p=p->Next(); //pojazd pod³¹czony od ty³u (licz¹c od czo³a)
   }
   //if (Ready)
