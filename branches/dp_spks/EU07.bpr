@@ -62,7 +62,7 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=0
 MinorVer=666
-Release=487
+Release=496
 Build=302
 Debug=1
 PreRelease=0
@@ -75,7 +75,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=0.666.487.302
+FileVersion=0.666.496.302
 InternalName=6th by Ra with SPKS
 LegalCopyright=
 LegalTrademarks=
@@ -85,16 +85,18 @@ ProductVersion=1.6
 Comments=
 
 [HistoryLists\hlIncludePath]
-Count=3
-Item0=C:\Users\Xoov;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item1=opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item2=C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Count=4
+Item0=C:\Users\Xoov\;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item1=C:\Users\Xoov;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item2=opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item3=C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
 
 [HistoryLists\hlLibraryPath]
-Count=3
-Item0=C:\Users\Xoov;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item1=opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item2=C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Count=4
+Item0=C:\Users\Xoov\;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item1=C:\Users\Xoov;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item2=opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item3=C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
 
 [HistoryLists\hlDebugSourcePath]
 Count=4
