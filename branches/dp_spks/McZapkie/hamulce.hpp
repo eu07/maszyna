@@ -419,6 +419,7 @@ private:
 	double TareBP;
 	double LoadC;
 	double RM;
+	double LBP;
 	
 public:
 	void __fastcall SetRM(double RMR);
@@ -432,6 +433,7 @@ public:
 	double __fastcall BVs(double BCP);
 	void __fastcall PLC(double mass);
 	void __fastcall SetLP(double TM, double LM, double TBP);
+	void __fastcall SetLBP(double P);
 public:
 	#pragma option push -w-inl
 	/* TBrake.Create */ inline __fastcall TKE(double i_mbp, double i_bcr, double i_bcd, double i_brc, Byte 

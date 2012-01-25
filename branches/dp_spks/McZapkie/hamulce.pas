@@ -297,6 +297,7 @@ TYPE
         TareBP: real;              //cisnienie dla proznego
         LoadC: real;               //wspolczynnik zaladowania
         RM: real;                  //przelozenie rapida
+        LBP: real;                 //cisnienie hamulca pomocniczego
       public
         procedure SetRM(RMR: real);   //ustalenie przelozenia rapida
         function GetPF(PP, dt, Vel: real): real; override;     //przeplyw miedzy komora wstepna i PG
@@ -309,6 +310,7 @@ TYPE
         function BVs(BCP: real): real;     //napelniacz pomocniczego
         procedure PLC(mass: real);  //wspolczynnik cisnienia przystawki wazacej
         procedure SetLP(TM, LM, TBP: real);  //parametry przystawki wazacej
+        procedure SetLBP(P: real);   //cisnienie z hamulca pomocniczego        
       end;
 
 
@@ -1785,14 +1787,18 @@ begin
       temp:=1-RM*(1-Byte(RapidStatus))
   else
     temp:=1;
-  temp:=temp/LoadC;  
+  temp:=temp/LoadC;
 //luzowanie CH
-  if(BCP*temp>IMP+0.005)or(IMP<0.25) then
-   dV:=PFVd(BCP,0,0.1,ImplsRes.P/temp)*dt
+//  temp:=Max0R(BCP,LBP);
+  IMP:=Max0R(IMP/temp,LBP);
+
+//luzowanie CH
+  if(BCP>IMP+0.005)or(Max0R(ImplsRes.P,8*LBP)<0.25) then
+   dV:=PFVd(BCP,0,0.05,IMP)*dt
   else dV:=0;
   BrakeCyl.Flow(-dV);
-  if(BCP*temp<IMP-0.005)and(IMP>0.3) then
-   dV:=PFVa(BVP,BCP,0.1,ImplsRes.P/temp)*dt
+  if(BCP<IMP-0.005)and(Max0R(ImplsRes.P,8*LBP)>0.3) then
+   dV:=PFVa(BVP,BCP,0.02,IMP)*dt
   else dV:=0;
   BrakeRes.Flow(-dV);
   BrakeCyl.Flow(+dV);
@@ -1868,6 +1874,11 @@ end;
 procedure TKE.SetRM(RMR: real);
 begin
   RM:=1-RMR;
+end;
+
+procedure TKE.SetLBP(P: real);
+begin
+  LBP:=P;
 end;
 
 
@@ -2106,8 +2117,9 @@ function TFD1.GetPF(i_bcp:real; pp, hp, dt, ep: real): real;
 var dp, temp: real;
 begin
 //  MaxBP:=4;
-  temp:=Min0R(i_bcp*MaxBP,Min0R(5.0,HP));
-  dp:=10*Min0R(abs(temp-BP),0.1)*PF(temp,BP,0.0011*(2+Byte(temp>BP)))*dt;
+//  temp:=Min0R(i_bcp*MaxBP,Min0R(5.0,HP));
+  temp:=Min0R(i_bcp*MaxBP,HP);              //0011
+  dp:=10*Min0R(abs(temp-BP),0.1)*PF(temp,BP,0.0006*(2+Byte(temp>BP)))*dt;
   BP:=BP-dp;
   GetPF:=-dp;
 end;

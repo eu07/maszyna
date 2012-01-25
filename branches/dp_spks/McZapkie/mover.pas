@@ -2089,10 +2089,14 @@ end;
         else
           (Hamulec as TESt3AL2).PLC(TotalMass);
        KE:
+        begin
+         LocBrakePress:=LocHandle.GetCP;
+        (Hamulec as TKE).SetLBP(LocBrakePress);
          if MBPM<2 then
           (Hamulec as TKE).PLC(MaxBrakePress[LoadFlag])
         else
           (Hamulec as TKE).PLC(TotalMass);
+        end;
       end;
 
       if (BrakeHandle = FVel6) and (ActiveCab*ActiveCab>0) then
