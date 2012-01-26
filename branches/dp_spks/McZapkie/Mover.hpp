@@ -501,6 +501,8 @@ public:
 	bool ConverterFlag;
 	bool ConverterAllow;
 	int BrakeCtrlPos;
+	double BrakeCtrlPosR;
+	double BrakeCtrlPos2;
 	Byte LocalBrakePos;
 	double LocalBrakePosA;
 	Byte BrakeStatus;

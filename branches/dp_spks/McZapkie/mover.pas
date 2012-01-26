@@ -531,6 +531,8 @@ TYPE
                 ConverterFlag: boolean;              {!  czy wlaczona przetwornica NBMX}
                 ConverterAllow: boolean;             {zezwolenie na prace przetwornicy NBMX}
                 BrakeCtrlPos:integer;               {nastawa hamulca zespolonego}
+                BrakeCtrlPosR:real;                 {nastawa hamulca zespolonego - plynna dla FV4a}
+                BrakeCtrlPos2:real;                 {nastawa hamulca zespolonego - kapturek dla FV4a}
                 LocalBrakePos:byte;                 {nastawa hamulca indywidualnego}
                 LocalBrakePosA: real;
                 BrakeStatus: byte; {0 - odham, 1 - ham., 2 - uszk., 4 - odluzniacz, 8 - antyposlizg, 16 - uzyte EP, 32 - pozycja R, 64 - powrot z R}
@@ -1520,11 +1522,13 @@ begin
    if (BrakeSystem=Pneumatic) and (BrakeCtrlPosNo>0) then
     begin
      BrakeCtrlPos:=-2;
+     BrakeCtrlPosR:=-2;
      LimPipePress:=PipePress;
      ActFlowSpeed:= 0;
     end
    else
     BrakeCtrlPos:=0;
+    BrakeCtrlPosR:=0;
 //   if not TestFlag(BrakeStatus,b_dmg) then
 //    BrakeStatus:=b_off;
    MainCtrlPos:=0;
@@ -1680,6 +1684,7 @@ begin
      if BrakeCtrlPos<BrakeCtrlPosNo then
       begin
         inc(BrakeCtrlPos);
+        BrakeCtrlPosR:=BrakeCtrlPos;
 
 //youBy: wywalilem to, jak jest EP, to sa przenoszone sygnaly nt. co ma robic, a nie poszczegolne pozycje;
 //       wystarczy spojrzec na Knorra i Oerlikona EP w EN57; mogly ze soba wspolapracowac
@@ -1736,6 +1741,7 @@ begin
      if (BrakeCtrlPos>-1-Byte(BrakeHandle=FV4a)) then
       begin
         dec(BrakeCtrlPos);
+        BrakeCtrlPosR:=BrakeCtrlPos;
         if EmergencyBrakeFlag then
           begin
              EmergencyBrakeFlag:=false; {!!!}
@@ -1758,8 +1764,8 @@ begin
 
 //youBy: EP po nowemu
         DecBrakeLevel:=True;
-        if (BrakePressureTable[BrakeCtrlPos].PipePressureVal<0.0)and(BrakePressureTable[BrakeCtrlPos+1].PipePressureVal>0) then
-          LimPipePress:=PipePress;
+//        if (BrakePressureTable[BrakeCtrlPos].PipePressureVal<0.0)and(BrakePressureTable[BrakeCtrlPos+1].PipePressureVal>0) then
+//          LimPipePress:=PipePress;
 
         if (BrakeSystem=ElectroPneumatic) then
           if (BrakeSubSystem<>ss_K) then
@@ -2055,7 +2061,8 @@ begin
             temp:=1
           else
             temp:=0;
-          dpMainValve:=Handle.GetPF(BrakeCtrlPos, PipePress, temp*ScndPipePress, dt, EqvtPipePress);
+          Handle.SetReductor(BrakeCtrlPos2);  
+          dpMainValve:=Handle.GetPF(BrakeCtrlPosR, PipePress, temp*ScndPipePress, dt, EqvtPipePress);
           if (dpMainValve<0)and(PipePressureVal>0.01) then             {50}
             Pipe2.Flow(dpMainValve);
 end;

@@ -103,7 +103,7 @@ CONST
                 //a predkosc przeplywu w m/s
 
 //   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (14, 5.4), (9, 5.0), (6, 4.6), (9, 4.5), (9, 4.0), (9, 3.5), (9, 2.8), (34, 2.8));
-   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (10, 5.0), (5, 5.0), (5, 4.6), (5, 4.3), (5, 4.0), (5, 3.5), (5, 2.8), (13, 2.8));
+   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (10, 5.0), (5, 5.0), (5, 4.6), (5, 4.2), (5, 3.8), (5, 3.4), (5, 2.8), (13, 2.8));
 //   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (12, 5.4), (9, 5.0), (9, 4.6), (9, 4.2), (9, 3.8), (9, 3.4), (9, 2.8), (34, 2.8));
 //      BPT: array[-2..6] of array [0..1] of real= ((0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0));
    i_bcpno= 6;
@@ -310,7 +310,7 @@ TYPE
         function BVs(BCP: real): real;     //napelniacz pomocniczego
         procedure PLC(mass: real);  //wspolczynnik cisnienia przystawki wazacej
         procedure SetLP(TM, LM, TBP: real);  //parametry przystawki wazacej
-        procedure SetLBP(P: real);   //cisnienie z hamulca pomocniczego        
+        procedure SetLBP(P: real);   //cisnienie z hamulca pomocniczego
       end;
 
 
@@ -324,6 +324,7 @@ TYPE
         function GetPF(i_bcp:real; pp, hp, dt, ep: real): real; virtual;
         procedure Init(press: real); virtual;
         function GetCP(): real; virtual;
+        procedure SetReductor(nAdj: real); virtual;        
       end;
 
     TFV4a= class(THandle)
@@ -337,10 +338,12 @@ TYPE
     TFV4aM= class(THandle)
       private
         CP, TP, RP: real;      //zbiornik steruj¹cy, czasowy, redukcyjny
-        XP: real;              //komora powietrzna w reduktorze — jest potrzebna do odwzorowania fali 
+        XP: real;              //komora powietrzna w reduktorze — jest potrzebna do odwzorowania fali
+        RedAdj: real;          //dostosowanie reduktora cisnienia (krecenie kapturkiem)
       public
         function GetPF(i_bcp:real; pp, hp, dt, ep: real): real; override;
         procedure Init(press: real); override;
+        procedure SetReductor(nAdj: real); override;
       end;
 
     Ttest= class(THandle)
@@ -1893,6 +1896,11 @@ procedure THandle.Init(press: real);
 begin
 end;
 
+procedure THandle.SetReductor(nAdj: real);
+begin
+
+end;
+
 function THandle.GetCP: real;
 begin
   GetCP:=0;
@@ -1980,6 +1988,12 @@ end;
 //---FV4a/M--- nowonapisany kran + poprawki IC
 
 function TFV4aM.GetPF(i_bcp:real; pp, hp, dt, ep: real): real;
+function LPP_RP(pos: real): real; //cisnienie z zaokraglonej pozycji;
+var i_pos: integer;
+begin
+  i_pos:=Round(pos-0.5); //zaokraglone w dol
+  LPP_RP:=BPT[i_pos][1]+(BPT[i_pos+1][1]-BPT[i_pos][1])*(pos-i_pos); //interpolacja liniowa
+end;
 const
   LBDelay = 100;
   xpM = 0.3; //mnoznik membrany komory pod
@@ -1987,6 +2001,8 @@ var
   LimPP, dpPipe, dpMainValve, ActFlowSpeed: real;
 begin
           ep:=pp; //SPKS!!
+
+          i_bcp:=Max0R(Min0R(i_bcp,5.999),-1.999); //na wszelki wypadek, zeby nie wyszlo poza zakres
 
           if(tp>0)then  //jesli czasowy jest niepusty
             tp:=tp-dt*0.08 //od cisnienia 5 do 0 w 60 sekund ((5-0)*dt/60)
@@ -2004,7 +2020,8 @@ begin
             else
               xp:=xp-3*(cp-(rp+0.05))/(0.1)*PR(cp,xp)*dt;
 
-          Limpp:=Min0R(BPT[Round(i_bcp)][1]+tp*0.08,HP); //pozycja + czasowy lub zasilanie
+//          Limpp:=Min0R(BPT[Round(i_bcp)][1]+tp*0.08,HP); //pozycja + czasowy lub zasilanie
+          Limpp:=Min0R(LPP_RP(i_bcp)+tp*0.08+RedAdj,HP); //pozycja + czasowy lub zasilanie
           ActFlowSpeed:=BPT[Round(i_bcp)][0];
 
 //          if(i_bcp=i_bcpNo)then limpp:=Min0R(BPT[Round(i_bcp-1)][1]+tp*0.08,HP);
@@ -2055,7 +2072,7 @@ begin
               else
                 dpMainValve:=PF(dpPipe,pp,(ActFlowSpeed)/(LBDelay))*dt
              end; }
-           end; 
+           end;
 
           if(Round(i_bcp)=i_bcpNo)then
            begin
@@ -2071,6 +2088,11 @@ begin
   TP:= 0;
   RP:= press;
   XP:= 0;
+end;
+
+procedure TFV4aM.SetReductor(nAdj: real);
+begin
+  RedAdj:= nAdj;
 end;
 
 

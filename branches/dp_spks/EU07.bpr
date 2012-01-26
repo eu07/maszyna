@@ -62,7 +62,7 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=0
 MinorVer=666
-Release=496
+Release=497
 Build=302
 Debug=1
 PreRelease=0
@@ -75,7 +75,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=0.666.496.302
+FileVersion=0.666.497.302
 InternalName=6th by Ra with SPKS
 LegalCopyright=
 LegalTrademarks=

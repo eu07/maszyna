@@ -1450,7 +1450,16 @@ bool __fastcall TWorld::Update()
       //double a= acos( DotProduct(Normalize(Controlled->GetDirection()),vWorldFront));
 //      OutText+= AnsiString(";   angle ")+FloatToStrF(a/M_PI*180,ffFixed,6,2);
       OutText1+=AnsiString("; d_omega ")+FloatToStrF(Controlled->MoverParameters->dizel_engagedeltaomega,ffFixed,6,3);
-      OutText2 =AnsiString("ham zesp ")+FloatToStrF(Controlled->MoverParameters->BrakeCtrlPos,ffFixed,6,0);
+      OutText2 =AnsiString("ham zesp ");
+      if(Controlled->MoverParameters->BrakeHandle!=FV4a)
+       {
+        OutText2+=FloatToStrF(Controlled->MoverParameters->BrakeCtrlPos,ffFixed,6,0);
+       }
+      else
+       {
+        OutText2+=FloatToStrF(Controlled->MoverParameters->BrakeCtrlPosR,ffFixed,6,1);
+        OutText2+=(Controlled->MoverParameters->BrakeCtrlPos2>=0?"+":"-")+FloatToStrF(sqrt(Controlled->MoverParameters->BrakeCtrlPos2*Controlled->MoverParameters->BrakeCtrlPos2),ffFixed,6,1);
+       }
       OutText2+=AnsiString("; ham pom ")+FloatToStrF(Controlled->MoverParameters->LocalBrakePos,ffFixed,6,0);
       //Controlled->MoverParameters->MainCtrlPos;
       //if (Controlled->MoverParameters->MainCtrlPos<0)

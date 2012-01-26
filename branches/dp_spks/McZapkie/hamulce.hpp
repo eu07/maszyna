@@ -458,6 +458,7 @@ public:
 	virtual double __fastcall GetPF(double i_bcp, double pp, double hp, double dt, double ep);
 	virtual void __fastcall Init(double press);
 	virtual double __fastcall GetCP(void);
+	virtual void __fastcall SetReductor(double nAdj);
 public:
 	#pragma option push -w-inl
 	/* TObject.Create */ inline __fastcall THandle(void) : System::TObject() { }
@@ -503,10 +504,12 @@ private:
 	double TP;
 	double RP;
 	double XP;
+	double RedAdj;
 	
 public:
 	virtual double __fastcall GetPF(double i_bcp, double pp, double hp, double dt, double ep);
 	virtual void __fastcall Init(double press);
+	virtual void __fastcall SetReductor(double nAdj);
 public:
 	#pragma option push -w-inl
 	/* TObject.Create */ inline __fastcall TFV4aM(void) : THandle() { }

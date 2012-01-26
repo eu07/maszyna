@@ -820,7 +820,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
               }
           }
       else
-      if (cKey==Global::Keys[k_IncBrakeLevel])
+      if ((cKey==Global::Keys[k_IncBrakeLevel])&&(DynamicObject->MoverParameters->BrakeHandle!=FV4a))
           if (DynamicObject->MoverParameters->IncBrakeLevel())
           {
            keybrakecount=0;
@@ -832,7 +832,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
            }
           else;
       else
-      if (cKey==Global::Keys[k_DecBrakeLevel])
+      if ((cKey==Global::Keys[k_DecBrakeLevel])&&(DynamicObject->MoverParameters->BrakeHandle!=FV4a))
        {
          if ((DynamicObject->MoverParameters->BrakeCtrlPos>-1) || (keybrakecount>1))
           {
@@ -884,7 +884,10 @@ void __fastcall TTrain::OnKeyPress(int cKey)
 
           if (GetAsyncKeyState(VK_CONTROL)<0)
             if ((DynamicObject->MoverParameters->BrakeHandle==FV4a)&&(DynamicObject->MoverParameters->BrakeSystem==Pneumatic))
+             {
               DynamicObject->MoverParameters->BrakeCtrlPos=-2;
+              DynamicObject->MoverParameters->BrakeCtrlPosR=-2;
+             }
       }
       else
       if (cKey==Global::Keys[k_Brake1])
@@ -900,6 +903,12 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else
       if (cKey==Global::Keys[k_Brake0])
       {
+        if (Pressed2(VK_CONTROL))
+         {
+          DynamicObject->MoverParameters->BrakeCtrlPos2= 0; //wyrownaj kapturek
+         }
+        else
+         {
           if ((isEztOer) && ((DynamicObject->MoverParameters->BrakeCtrlPos==1)||(DynamicObject->MoverParameters->BrakeCtrlPos==-1)))
             {
              dsbPneumaticSwitch->SetVolume(-10);
@@ -907,6 +916,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
             }
           while (DynamicObject->MoverParameters->BrakeCtrlPos>0 && DynamicObject->MoverParameters->DecBrakeLevel());
           while (DynamicObject->MoverParameters->BrakeCtrlPos<0 && DynamicObject->MoverParameters->IncBrakeLevel());
+         }
       }
       else
       if (cKey==Global::Keys[k_WaveBrake])
@@ -2625,7 +2635,7 @@ else
      }
     if (BrakeCtrlGauge.SubModel)
      {
-      BrakeCtrlGauge.UpdateValue(double(DynamicObject->MoverParameters->BrakeCtrlPos));
+      BrakeCtrlGauge.UpdateValue(double(DynamicObject->MoverParameters->BrakeCtrlPosR));
       BrakeCtrlGauge.Update();
      }
     if (LocalBrakeGauge.SubModel)
@@ -3239,6 +3249,36 @@ else
      }
 
 
+    if ((DynamicObject->MoverParameters->BrakeHandle==FV4a)&&(Pressed2(Global::Keys[k_IncBrakeLevel])))
+     {
+      if (Pressed2(VK_CONTROL))
+       {
+        DynamicObject->MoverParameters->BrakeCtrlPos2-=dt/20.0;
+        if(DynamicObject->MoverParameters->BrakeCtrlPos2<-1.5) DynamicObject->MoverParameters->BrakeCtrlPos2=-1.5;
+       }
+      else
+       {
+        DynamicObject->MoverParameters->BrakeCtrlPosR+=(DynamicObject->MoverParameters->BrakeCtrlPosR>DynamicObject->MoverParameters->BrakeCtrlPosNo?0:dt);
+        DynamicObject->MoverParameters->BrakeCtrlPos= floor(DynamicObject->MoverParameters->BrakeCtrlPosR+0.499);
+       }
+     }
+
+    if ((DynamicObject->MoverParameters->BrakeHandle==FV4a)&&(Pressed2(Global::Keys[k_DecBrakeLevel])))
+     {
+      if (Pressed2(VK_CONTROL))
+       {
+        DynamicObject->MoverParameters->BrakeCtrlPos2+=(DynamicObject->MoverParameters->BrakeCtrlPos2>2?0:dt/20.0);
+        if(DynamicObject->MoverParameters->BrakeCtrlPos2<-3) DynamicObject->MoverParameters->BrakeCtrlPos2=-3;
+       }
+      else
+       {
+        DynamicObject->MoverParameters->BrakeCtrlPosR-=(DynamicObject->MoverParameters->BrakeCtrlPosR<-1?0:dt);
+        DynamicObject->MoverParameters->BrakeCtrlPos= floor(DynamicObject->MoverParameters->BrakeCtrlPosR+0.49);
+       }
+     }
+
+
+
 //    bool kEP;
 //    kEP=(DynamicObject->MoverParameters->BrakeSubsystem==Knorr)||(DynamicObject->MoverParameters->BrakeSubsystem==Hik)||(DynamicObject->MoverParameters->BrakeSubsystem==Kk);
     if ((DynamicObject->MoverParameters->BrakeSystem==ElectroPneumatic)&&((DynamicObject->MoverParameters->BrakeSubsystem==ss_K)))
@@ -3309,6 +3349,7 @@ else
          }
       }
    }
+
 
 //Winger 010304  PantAllDownButton
     if ( Pressed2(Global::Keys[k_PantFrontUp]) )
