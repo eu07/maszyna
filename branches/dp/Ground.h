@@ -115,6 +115,7 @@ public:
  int iVersion; //wersja siatki (do wykonania rekompilacji)
  //union ?
  GLuint DisplayListID; //numer siatki DisplayLists
+ bool PROBLEND;
  int iVboPtr; //indeks w buforze VBO
  GLuint TextureID; //g³ówna (jedna) tekstura obiektu
  int iFlags; //tryb przezroczystoœci: 0x10-nieprz.,0x20-przezroczysty,0x30-mieszany
@@ -375,6 +376,7 @@ private:
  void __fastcall OpenGLUpdate(HDC hDC);
  void __fastcall RaTriangleDivider(TGroundNode* node);
  void __fastcall Navigate(String ClassName,UINT Msg,WPARAM wParam,LPARAM lParam);
+ bool PROBLEND;
 public:
  void __fastcall WyslijEvent(const AnsiString &e,const AnsiString &d);
  int iRendered; //iloœæ renderowanych sektorów, pobierana przy pokazywniu FPS
