@@ -1009,6 +1009,23 @@ void __fastcall TGroundNode::Render()
 
 void __fastcall TGroundNode::RenderAlpha()
 {
+// SPOSOB NA POZBYCIE SIE RAMKI DOOKOLA TEXTURY ALPHA DLA OBIEKTOW ZAGNIEZDZONYCH W SCN JAKO NODE
+
+//W GROUND.H dajemy do klasy TGroundNode zmienna bool PROBLEND to samo robimy w klasie TGround
+//nastepnie podczas wczytywania textury dla TRIANGLES w TGround::AddGroundNode
+//sprawdzamy czy w nazwie jest @ i wg tego
+//ustawiamy PROBLEND na true dla wlasnie wczytywanego trojkata (kazdy trojkat jest osobnym nodem)
+//nastepnie podczas renderowania w bool __fastcall TGroundNode::RenderAlpha()
+//na poczatku ustawiamy standardowe GL_GREATER = 0.04
+//pozniej sprawdzamy czy jest wlaczony PROBLEND dla aktualnie renderowanego noda TRIANGLE, wlasciwie dla kazdego node'a
+//i jezeli tak to odpowiedni GL_GREATER w przeciwnym wypadku standardowy 0.04
+
+   glEnable(GL_BLEND);
+   glEnable(GL_ALPHA_TEST);
+   glAlphaFunc(GL_GREATER,0.04);
+   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+   glDepthFunc(GL_LEQUAL);
+
  //if (pTriGroup) if (pTriGroup!=this) return; //wyœwietla go inny obiekt
  double mgn=SquareMagnitude(pCenter-Global::pCameraPosition);
  float r,g,b;
@@ -1036,6 +1053,22 @@ void __fastcall TGroundNode::RenderAlpha()
      (iNumVerts && (iFlags&0x20)) ||
      (iNumPts && (fLineThickness > 0)))
  {
+
+     if ((PROBLEND) ) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
+          {
+               glDisable(GL_BLEND);
+               glEnable(GL_ALPHA_TEST);
+               glAlphaFunc(GL_GREATER,0.45);     // im mniejsza wartoœæ, tym wiêksza ramka, domyœlnie 0.1f
+               glDepthFunc(GL_LEQUAL);
+          }
+         else
+          {
+               glEnable(GL_BLEND);
+               glEnable(GL_ALPHA_TEST);
+               glAlphaFunc(GL_GREATER,0.04);
+               glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+               glDepthFunc(GL_LEQUAL);
+          }
 
      if (!DisplayListID) //||Global::bReCompile) //Ra: wymuszenie rekompilacji
      {
@@ -1633,6 +1666,14 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
     *parser >> token;
    }
    str=AnsiString(token.c_str());
+       // PROBLEND Q: 13122011 - Szociu: 27012012
+           PROBLEND = true;     // domyslnie uruchomione nowe wyœwietlanie
+           tmp->PROBLEND = true;  // odwolanie do tgroundnode, bo rendering jest w tej klasie
+           if (str.Pos("@") > 0)     // sprawdza, czy w nazwie tekstury jest znak "@"
+               {
+                PROBLEND = false;     // jeœli jest, wyswietla po staremu
+                tmp->PROBLEND = false;
+               }
    tmp->TextureID=TTexturesManager::GetTextureID(str.c_str());
    tmp->iFlags=TTexturesManager::GetAlpha(tmp->TextureID)?0x20:0x10;
    i=0;
