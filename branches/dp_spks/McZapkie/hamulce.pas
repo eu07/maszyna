@@ -1311,9 +1311,9 @@ begin
      BrakeStatus:=BrakeStatus and 247
    else
     begin
-     dV:=PF(CVP,PP,0.008)*dt;
+     dV:=PF(CVP,BCP,0.008)*dt;
      CntrlRes.Flow(+dV);
-     dV1:=+dV; //minus potem jest
+//     dV1:=+dV; //minus potem jest
 //     ImplsRes.Flow(-dV1);
     end;
 
