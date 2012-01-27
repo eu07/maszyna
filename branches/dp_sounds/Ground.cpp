@@ -1131,8 +1131,8 @@ AnsiString asTrainName= "";
 int iTrainSetWehicleNumber= 0;
 TGroundNode *TrainSetNode= NULL;
 
-TGroundVertex TempVerts[100];
-Byte TempConnectionType[200]; //Ra: ujemne, gdy odwrotnie
+TGroundVertex TempVerts[10000]; //tu wczytywane s¹ trójk¹ty
+Byte TempConnectionType[200]; //Ra: sprzêgi w sk³adzie; ujemne, gdy odwrotnie
 
 void __fastcall TGround::RaTriangleDivider(TGroundNode* node)
 {//tworzy dodatkowe trójk¹ty i zmiejsza podany
@@ -2249,38 +2249,11 @@ bool __fastcall TGround::Init(AnsiString asFile)
 //    while(token!="");
 //    DecimalSeparator=',';
 
-    delete parser;
+ delete parser;
  if (!bInitDone) FirstInit(); //jeœli nie by³o w scenerii
-
-//------------------------------------Init dynamic---------------------------------
-  /*
-    for (Current=RootDynamic; Current!=NULL; Current=Current->Next)
-    {
-        if (Current->iType==TP_DYNAMIC)
-        {
-            tmp= FindGroundNode(Current->DynamicObject->asTrack,TP_TRACK);
-            if (tmp && tmp->pTrack)
-            {
-                Track= tmp->pTrack;
-                Current->DynamicObject->Init(Track,2);
-                Current->pCenter= Current->DynamicObject->GetPosition();
-//                Track->AddDynamicObject(Current->DynamicObject);
-
-//                GetSubRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
-            }
-            else
-            {
-                Error("Track does not exist \""+Current->DynamicObject->asTrack+"\"");
-                return false;
-            }
-        }
-        else
-            Error("Node is not dynamic \""+Current->asName+"\"");
-
-    }
-    return true;
-    */
-    return true;
+ if (Global::bTerrainCompact)
+  TerrainWrite(); //Ra: teraz mo¿na zapisaæ teren w jednym pliku
+ return true;
 }
 
 bool __fastcall TGround::InitEvents()
@@ -3601,7 +3574,7 @@ void __fastcall TGround::DynamicRemove(TDynamicObject* dyn)
   while (d)
   {if (d->MyTrack) d->MyTrack->RemoveDynamicObject(d); //usuniêcie z toru o ile nie usuniêty
    n=&nRootDynamic; //lista pojazdów od pocz¹tku
-   node=NULL; //nie znalezione
+   //node=NULL; //nie znalezione
    while (*n?(*n)->DynamicObject!=d:false)
    {//usuwanie z listy pojazdów
     n=&((*n)->Next); //sprawdzenie kolejnego pojazdu na liœcie
@@ -3620,5 +3593,51 @@ void __fastcall TGround::DynamicRemove(TDynamicObject* dyn)
  }
 };
 
+//---------------------------------------------------------------------------
+void __fastcall TGround::TerrainRead(const AnsiString &f)
+{//Ra: wczytanie trójk¹tów terenu z pliku E3D
+};
+
+//---------------------------------------------------------------------------
+void __fastcall TGround::TerrainWrite()
+{//Ra: zapisywanie trójk¹tów terenu do pliku E3D
+ //Trójk¹ty s¹ zapisywane kwadratami kilometrowymi.
+ //Kwadrat 500500 jest na œrodku (od 0.0 do 1000.0 na OX oraz OZ).
+ //Ewentualnie w numerowaniu kwadratów uwzglêdnic wpis //$g.
+ //Trójk¹ty s¹ grupowane w submodele wg tekstury.
+ //Triangle_strip oraz triangle_fan s¹ rozpisywane na pojedyncze trójk¹ty,
+ // chyba ¿e dla danej tekstury wychodzi tylko jeden submodel.
+ TModel3d *m=new TModel3d(); //wirtualny model roboczy
+ TSubModel *sk; //wskaŸnik roboczy na submodel kwadratu
+ TSubModel *st; //wskaŸnik roboczy na submodel tekstury
+ //Zliczamy kwadraty z trójk¹tami, iloœæ tekstur oraz wierzcho³ków.
+ //Iloœæ kwadratów i iloœæ tekstur okreœli iloœæ submodeli.
+ //int sub=0; //ca³kowita iloœæ submodeli
+ //int ver=0; //ca³kowita iloœæ wierzcho³ków
+ int i,j; //indeksy w pêtli
+ TGroundNode *Current;
+ float8 *ver; //trójk¹ty
+ for (i=0;i<iNumRects;++i) //pêtla po wszystkich kwadratach kilometrowych
+  for (j=0;j<iNumRects;++j)
+   if (Rects[i][j].iNodeCount)
+   {//o ile s¹ jakieœ trójk¹ty w œrodku
+    sk=new TSubModel(); //nowy submodel dla kawadratu
+    sk->asName=AnsiString(1000*(i+500-iNumRects/2)+(j+500-iNumRects/2));
+    m->AddTo("",sk); //dodanie submodelu dla kwadratu
+    for (Current=Rects[i][j].nRootNode;Current;Current=Current->Next)
+     if ((Current->iType==GL_TRIANGLES))//||(Current->iType==GL_TRIANGLE_STRIP)||(Current->iType==GL_TRIANGLE_FAN))
+     {//pêtla po trójk¹tach - zliczanie wierzcho³ków
+      sk->TriangleAdd(TTexturesManager::GetName(Current->TextureID).c_str(),Current->iNumVerts); //zwiêkszenie iloœci trójk¹tów w submodelu
+      //dodanie submodelu dla kolejnej tekstury
+      //m->AddTo(sk->asName,st); //dodanie submodelu dla kwadratu
+     }
+    for (Current=Rects[i][j].nRootNode;Current;Current=Current->Next)
+     if ((Current->iType==GL_TRIANGLES))//||(Current->iType==GL_TRIANGLE_STRIP)||(Current->iType==GL_TRIANGLE_FAN))
+     {//pêtla po trójk¹tach - dopisywanie wierzcho³ków
+      //ver=sk->
+     }
+   }
+ //m->SaveToBinFile("terrain.e3d");
+};
 //---------------------------------------------------------------------------
 

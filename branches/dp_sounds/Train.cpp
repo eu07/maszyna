@@ -264,7 +264,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
               if (DynamicObject->MoverParameters->EngineType==DieselEngine)
                dsbDieselIgnition->Play(0,0,0);
               else
-               dsbNastawnik->Play(0,0,0);
+               dsbNastawnikJazdy->Play(0,0,0);
            }
       }
       else */
@@ -637,9 +637,9 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       {
          int CouplNr=-1;
          TDynamicObject *tmp;
-         tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), 1, 500, CouplNr);
+         tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), 1, 1500, CouplNr);
          if (tmp==NULL)
-            tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 500, CouplNr);
+            tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 1500, CouplNr);
          if (tmp&&(CouplNr!=-1))
          {
             if (CouplNr==0)
@@ -1236,9 +1236,9 @@ void __fastcall TTrain::OnKeyPress(int cKey)
           { //tryb freefly
            int CouplNr=-1; //normalnie ¿aden ze sprzêgów
            TDynamicObject *tmp;
-           tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1,500,CouplNr);
+           tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1,1500,CouplNr);
            if (tmp==NULL)
-            tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1,500,CouplNr);
+            tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1,1500,CouplNr);
            if (tmp&&(CouplNr!=-1))
            {
             if (tmp->MoverParameters->Couplers[CouplNr].CouplingFlag==0) //najpierw hak
@@ -1246,6 +1246,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
              if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,ctrain_coupler))
              {
               //tmp->MoverParameters->Couplers[CouplNr].Render=true; //pod³¹czony sprzêg bêdzie widoczny
+              DynamicObject->Mechanik->CheckVehicles(); //aktualizacja flag kierunku w sk³adzie
               dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
               dsbCouplerAttach->Play(0,0,0);
              }
@@ -1303,9 +1304,9 @@ void __fastcall TTrain::OnKeyPress(int cKey)
           { //tryb freefly
             int CouplNr=-1;
             TDynamicObject *tmp;
-            tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), 1, 500, CouplNr);
+            tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), 1, 1500, CouplNr);
             if (tmp==NULL)
-             tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 500, CouplNr);
+             tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 1500, CouplNr);
             if (tmp&&(CouplNr!=-1))
             {
              if (!tmp->Dettach(CouplNr,0))
@@ -1316,6 +1317,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
              }
             }
           }
+          DynamicObject->Mechanik->CheckVehicles(); //aktualizacja skrajnych pojazdów w sk³adzie
         }
       }
       else
