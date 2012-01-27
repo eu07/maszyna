@@ -439,6 +439,17 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
  return iNumVerts; //do okreœlenia wielkoœci VBO
 };
 
+float8* __fastcall TSubModel::TrianglesPtr(int &pos)
+{//zwraca wskaŸnik do wype³nienia tabeli wierzcho³ków
+ if (!Vertices)
+ {//utworznie tabeli trójk¹tów
+  Vertices=new float8[iNumVerts];
+  iVboPtr=pos; //pozycja submodelu w tabeli wierzcho³ków
+  pos+=iNumVerts; //rezerwacja miejsca w tabeli
+ }
+ return Vertices+iInstance; //wskaŸnik na wolne miejsce w tabeli wierzcho³ków
+};
+
 void __fastcall TSubModel::DisplayLists()
 {//utworznie po jednej skompilowanej liœcie dla ka¿dego submodelu
  if (Global::bUseVBO) return; //Ra: przy VBO to siê nie przyda
@@ -589,6 +600,37 @@ void __fastcall TSubModel::NextAdd(TSubModel *SubModel)
   Next->NextAdd(SubModel);
  else
   Next=SubModel;
+};
+
+void __fastcall TSubModel::TriangleAdd(const char *tex,int tri)
+{//dodanie trójk¹tów do submodelu, u¿ywane przy tworzeniu E3D terenu
+ TSubModel *s=this,**p;
+ AnsiString t=AnsiString(tex);
+ while (s?s->asTexture!=t:false)
+ {//szukanie submodelu o danej teksturze
+  if (s==this)
+   s=Child;
+  else
+   s=s->Next;
+ }
+ if (!s)
+ {if (asTexture.IsEmpty())
+  {//u¿ycie g³ównego
+   asTexture=t;
+   s=this;
+  }
+  else
+  {//dodanie nowego submodelu do listy potomnych
+   s=new TSubModel();
+   ChildAdd(s);
+   s->asTexture=t;
+  }
+  iInstance=0; //roboczy wskaŸnik na wierzcho³ek
+ }
+ if (s->iNumVerts<0)
+  s->iNumVerts=tri; //bo na pocz¹tku jest -1, czyli ¿e nie wiadomo
+ else
+  s->iNumVerts+=tri; //aktualizacja iloœci wierzcho³ków
 };
 
 int __fastcall TSubModel::Flags()
@@ -1303,7 +1345,7 @@ void __fastcall TModel3d::LoadFromBinFile(char *FileName)
      case 'TRA0': //transformy: 'TRA0',len,(64 bajty na transform)
       m=(float4x4*)(iModel+i+2); //tabela transformów
       break;
-     case 'TRA1': //transformy: 'TRA0',len,(64 bajty na transform)
+     case 'TRA1': //transformy: 'TRA1',len,(128 bajtów na transform)
       m=(float4x4*)(iModel+i+2); //tabela transformów
       for (ch=0;ch<((k-2)>>1);++ch)
        *(((float*)m)+ch)=*(((double*)m)+ch); //przepisanie double do float

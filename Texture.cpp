@@ -743,11 +743,16 @@ GLuint TTexturesManager::CreateTexture(char* buff,GLint bpp,int width,int height
 
 void TTexturesManager::Free()
 {
-
-    for(Names::iterator iter = _names.begin(); iter != _names.end(); iter++)
-        glDeleteTextures(1, &(iter->second));
-
+ for (Names::iterator iter=_names.begin();iter!=_names.end();iter++)
+  glDeleteTextures(1,&(iter->second));
 }
 
+std::string TTexturesManager::GetName(GLuint id)
+{//pobranie nazwy tekstury
+ for (Names::iterator iter=_names.begin();iter!=_names.end();iter++)
+  if (iter->second==id)
+   return iter->first;
+ return "";  
+};
 #pragma package(smart_init)
 
