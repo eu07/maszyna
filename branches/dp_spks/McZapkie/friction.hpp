@@ -146,6 +146,24 @@ public:
 };
 
 
+class DELPHICLASS TFR510;
+class PASCALIMPLEMENTATION TFR510 : public TFricMat 
+{
+	typedef TFricMat inherited;
+	
+public:
+	virtual double __fastcall GetFC(double N, double Vel);
+public:
+	#pragma option push -w-inl
+	/* TObject.Create */ inline __fastcall TFR510(void) : TFricMat() { }
+	#pragma option pop
+	#pragma option push -w-inl
+	/* TObject.Destroy */ inline __fastcall virtual ~TFR510(void) { }
+	#pragma option pop
+	
+};
+
+
 class DELPHICLASS TCosid;
 class PASCALIMPLEMENTATION TCosid : public TFricMat 
 {

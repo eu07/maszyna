@@ -1879,8 +1879,8 @@ begin
  AntiSlippingBrake:=False; //Ra: przeniesione z koñca
   if ASBType=1 then
    begin
-//     if SetFlag(BrakeStatus,b_antislip) then
-//       AntiSlippingBrake:=True;  //SPKS!!
+     AntiSlippingBrake:=True;  //SPKS!!
+     Hamulec.ASB(1);
      BrakeSlippingTimer:=0;
    end
 end;
@@ -2061,7 +2061,8 @@ begin
             temp:=1
           else
             temp:=0;
-          Handle.SetReductor(BrakeCtrlPos2);  
+          Handle.SetReductor(BrakeCtrlPos2);
+
           dpMainValve:=Handle.GetPF(BrakeCtrlPosR, PipePress, temp*ScndPipePress, dt, EqvtPipePress);
           if (dpMainValve<0)and(PipePressureVal>0.01) then             {50}
             Pipe2.Flow(dpMainValve);
@@ -3946,6 +3947,7 @@ begin
 
 {hamulec antyposlizgowy - wylaczanie}
  if BrakeSlippingTimer>ASBSpeed then
+   Hamulec.ASB(0);
 //  SetFlag(BrakeStatus,-b_antislip);
  BrakeSlippingTimer:=BrakeSlippingTimer+dt;
 {sypanie piasku - wylaczone i piasek sie nie konczy - bledy AI}
@@ -4084,7 +4086,7 @@ begin
 
 {hamulec antyposlizgowy - wylaczanie}
  if BrakeSlippingTimer>ASBSpeed then
-//  SetFlag(BrakeStatus,-b_antislip);
+   Hamulec.ASB(0);
  BrakeSlippingTimer:=BrakeSlippingTimer+dt;
 end; {FastComputeMovement}
 

@@ -30,13 +30,14 @@ unit hamulce;          {fizyka hamulcow dla symulatora}
 (C) youBy
 Co brakuje:
 Knorr, knorr, knorr i moze jeszcze jakis knorr albo SW
-tarcze hamulcowe i magnetyki
 *)
 (*
 Zrobione:
 ESt3, ESt3AL2, ESt4R, LSt, FV4a, FD1, EP2, prosty westinghouse
 duzo wersji ¿eliwa
 KE
+Tarcze od 152A
+Magnetyki (implementacja w mover.pas)
 *)
 
 interface
@@ -63,6 +64,7 @@ CONST
    b_rfl =  4;   //uzupelnianie
    b_rls =  8;   //odluzniacz
    b_ep  = 16;   //elektropneumatyczny
+   b_asb = 32;   //elektropneumatyczny   
    b_dmg =128;   //wylaczony z dzialania
 
    {uszkodzenia hamulca}
@@ -150,7 +152,7 @@ TYPE
         SizeBC: real;              //rozmiar^2 CH (w stosunku do 14")
 
 
-        BrakeStatus: byte;
+        BrakeStatus: byte; //flaga stamnu
       public
         constructor Create(i_mbp, i_bcr, i_bcd, i_brc: real;
                            i_bcn, i_BD, i_mat, i_ba, i_nbpa: byte);
@@ -161,14 +163,15 @@ TYPE
         function GetPF(PP, dt, Vel: real): real; virtual;     //przeplyw miedzy komora wstepna i PG
         function GetBCF: real;                           //sila tlokowa z tloka
         function GetHPFlow(HP, dt: real): real; virtual; //przeplyw - 8 bar
-        function GetBCP: real; virtual;
-        function GetBRP: real;
-        function GetVRP: real;
-        function GetCRP: real; virtual;
-        procedure Init(PP, HPP, LPP, BP: real; BDF: byte); virtual;
-        function SetBDF(nBDF: byte): boolean;
-        procedure Releaser(state: byte);
-        function GetStatus(): byte;
+        function GetBCP: real; virtual; //cisnienie cylindrow hamulcowych
+        function GetBRP: real; //cisnienie zbiornika pomocniczego
+        function GetVRP: real; //cisnienie komory wstepnej rozdzielacza
+        function GetCRP: real; virtual; //cisnienie zbiornika sterujacego
+        procedure Init(PP, HPP, LPP, BP: real; BDF: byte); virtual; //inicjalizacja hamulca
+        function SetBDF(nBDF: byte): boolean; //nastawiacz GPRM
+        procedure Releaser(state: byte); //odluzniacz
+        procedure ASB(state: byte); //hamulec przeciwposlizgowy
+        function GetStatus(): byte; //flaga statusu, moze sie przydac do odglosow
 //        procedure
     end;
 
@@ -187,7 +190,7 @@ TYPE
         procedure EStParams(i_crc: real);                 //parametry charakterystyczne dla ESt
         procedure Init(PP, HPP, LPP, BP: real; BDF: byte); override;
         function GetCRP: real; override;
-        procedure CheckState(BCP: real; var dV1: real);
+        procedure CheckState(BCP: real; var dV1: real); //glowny przyrzad rozrzadczy
         procedure CheckReleaser(dt: real); //odluzniacz
         function CVs(bp: real): real;      //napelniacz sterujacego
         function BVs(BCP: real): real;     //napelniacz pomocniczego
@@ -675,6 +678,11 @@ end;
 procedure TBrake.Releaser(state: byte);
 begin
   BrakeStatus:=(BrakeStatus and 247) or state*b_rls;
+end;
+
+procedure TBrake.ASB(state: byte);
+begin                           //255-b_asb(32)
+  BrakeStatus:=(BrakeStatus and 223) or state*b_asb;
 end;
 
 function TBrake.GetStatus(): byte;
@@ -1303,9 +1311,10 @@ begin
      BrakeStatus:=BrakeStatus and 247
    else
     begin
-     dV:=PF(CVP,BCP,0.1)*dt;
+     dV:=PF(CVP,PP,0.008)*dt;
      CntrlRes.Flow(+dV);
-     ImplsRes.Flow(-dV);
+     dV1:=+dV; //minus potem jest
+//     ImplsRes.Flow(-dV1);
     end;
 
   VVP:=ValveRes.P;
@@ -1346,11 +1355,12 @@ begin
 
 //  if Vel>55 then temp:=0.72 else
 //    temp:=1;{R}
+//cisnienie PP
   temp:=1-RM*Byte((Vel>55)and(BrakeDelayFlag=bdelay_R));
   if EDFlag then temp:=10000;
 
 //powtarzacz — podwojny zawor zwrotny
-  temp:=Max0R((CVP-BCP)*BVM/temp,LBP);
+  temp:=Max0R(((CVP-BCP)*BVM+1.6*Byte((BrakeStatus and b_asb)=b_asb))/temp,LBP);
 //luzowanie CH
   if(BrakeCyl.P>temp+0.005)or(temp<0.28) then
 //   dV:=PF(0,BrakeCyl.P,0.0015*3*sizeBC)*dt

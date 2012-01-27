@@ -37,6 +37,7 @@ Co brakuje:
 Zrobione:
 1) zadeklarowane niektore typy
 2) wzor jubaja na tarcie wstawek Bg i Bgu z zeliwa P10
+3) hamulec tarczowy marki 152A ;)
 *)
 
 interface
@@ -77,6 +78,11 @@ TYPE
   end;
 
   TFR513 = class(TFricMat)
+    public
+    function GetFC(N, Vel: real): real; override;
+  end;
+
+  TFR510 = class(TFricMat)
     public
     function GetFC(N, Vel: real): real; override;
   end;
@@ -167,6 +173,11 @@ end;
 function TDisk1.GetFC(N, Vel: real): real;
 begin
   GetFC:=0.2375+0.000885*N-0.000345*N*N;
+end;
+
+function TFR510.GetFC(N, Vel: real): real;
+begin
+  GetFC:=0.15;
 end;
 
 end.

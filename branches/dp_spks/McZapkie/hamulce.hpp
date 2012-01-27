@@ -104,6 +104,7 @@ public:
 	virtual void __fastcall Init(double PP, double HPP, double LPP, double BP, Byte BDF);
 	bool __fastcall SetBDF(Byte nBDF);
 	void __fastcall Releaser(Byte state);
+	void __fastcall ASB(Byte state);
 	Byte __fastcall GetStatus(void);
 public:
 	#pragma option push -w-inl
@@ -603,6 +604,7 @@ static const Shortint b_on = 0x2;
 static const Shortint b_rfl = 0x4;
 static const Shortint b_rls = 0x8;
 static const Shortint b_ep = 0x10;
+static const Shortint b_asb = 0x20;
 static const Byte b_dmg = 0x80;
 static const Shortint df_on = 0x1;
 static const Shortint df_off = 0x2;
