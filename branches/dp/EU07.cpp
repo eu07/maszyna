@@ -103,22 +103,18 @@ LRESULT	CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);	// Declaration For WndProc
 
 int InitGL(GLvoid)										// All Setup For OpenGL Goes Here
 {
+ _clear87();
+ _control87(MCW_EM,MCW_EM);
+ glewInit();
+ //hunter-271211: przeniesione
+ //AllocConsole();
+ //SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),FOREGROUND_GREEN);
 
-    _clear87();
-    _control87(MCW_EM, MCW_EM);
-
-    glewInit();
-
-    //hunter-271211: przeniesione
-    //AllocConsole();
-    //SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),FOREGROUND_GREEN);
-
-    // ShaXbee-121209: Wlaczenie obslugi tablic wierzcholkow
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glEnableClientState(GL_NORMAL_ARRAY);
-    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-
- Global::pWorld=&World;
+ // ShaXbee-121209: Wlaczenie obslugi tablic wierzcholkow
+ glEnableClientState(GL_VERTEX_ARRAY);
+ glEnableClientState(GL_NORMAL_ARRAY);
+ glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+ Global::pWorld=&World; //Ra: wskaŸnik potrzebny do usuwania pojazdów
  return World.Init(hWnd,hDC); //true jeœli wszystko pójdzie dobrze
 }
 //---------------------------------------------------------------------------
@@ -564,46 +560,43 @@ int WINAPI WinMain( HINSTANCE hInstance,     //instance
 
  //hunter-271211: ukrywanie konsoli
  if (Global::bHideConsole==false)
+ {
+  AllocConsole();
+  SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),FOREGROUND_GREEN);
+ }
+ AnsiString str=lpCmdLine; //parametry uruchomienia
+ if (!str.IsEmpty())
+ {//analizowanie parametrów
+  TQueryParserComp *Parser;
+  Parser=new TQueryParserComp(NULL);
+  Parser->TextToParse=lpCmdLine;
+  Parser->First();
+  while (!Parser->EndOfFile)
   {
-    AllocConsole();
-    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),FOREGROUND_GREEN);
+   str=Parser->GetNextSymbol().LowerCase();
+   if (str==AnsiString("-s"))
+   {//nazwa scenerii
+    str=Parser->GetNextSymbol().LowerCase();
+    strcpy(Global::szSceneryFile,str.c_str());
+   }
+   else if (str==AnsiString("-v"))
+   {//nazwa wybranego pojazdu
+    str=Parser->GetNextSymbol().LowerCase();
+    Global::asHumanCtrlVehicle=str;
+   }
+   else if (str==AnsiString("-modifytga"))
+   {//wykonanie modyfikacji wszystkich plików TGA
+    Global::iModifyTGA=-1; //specjalny tryb wykonania totalnej modyfikacji
+   }
+   else
+    Error("Program usage: EU07 [-s sceneryfilepath] [-v vehiclename]",!Global::bWriteLogEnabled);
   }
-
-
-//    if (FileExists(lpCmdLine))
-    AnsiString str;
-    str=lpCmdLine;
-    if (str!=AnsiString(""))
-     {
-      TQueryParserComp *Parser;
-      Parser= new TQueryParserComp(NULL);
-      Parser->TextToParse= lpCmdLine;
-      Parser->First();
-      while (!Parser->EndOfFile)
-          {
-              str= Parser->GetNextSymbol().LowerCase();
-              if (str==AnsiString("-s"))
-               {
-                 str=Parser->GetNextSymbol().LowerCase();
-                 strcpy(Global::szSceneryFile,str.c_str());
-               }
-              else
-              if (str==AnsiString("-v"))
-               {
-                 str= Parser->GetNextSymbol().LowerCase();
-                 Global::asHumanCtrlVehicle= str;
-               }
-              else
-               Error("Program usage: EU07 [-s sceneryfilepath] [-v vehiclename]",!Global::bWriteLogEnabled);
-          }
-          //ABu 050205: tego wczesniej nie bylo:
-          delete Parser;
-     }
-
+  delete Parser; //ABu 050205: tego wczesniej nie bylo
+ }
 /* MC: usunalem tymczasowo bo sie gryzlo z nowym parserem - 8.6.2003
     AnsiString csp=AnsiString(Global::szSceneryFile);
     csp=csp.Delete(csp.Pos(AnsiString(strrchr(Global::szSceneryFile,'/')))+1,csp.Length());
-    Global::asCurrentSceneryPath= csp;
+    Global::asCurrentSceneryPath=csp;
 */
 
  fullscreen=Global::bFullScreen;
@@ -623,34 +616,35 @@ int WINAPI WinMain( HINSTANCE hInstance,     //instance
  SystemParametersInfo(SPI_GETKEYBOARDDELAY,0,&iOldDelay,0);
  SystemParametersInfo(SPI_SETKEYBOARDSPEED,20,NULL,0);
  //SystemParametersInfo(SPI_SETKEYBOARDDELAY,10,NULL,0);
- while (!done) //loop that runs while done=FALSE
- {
- if (PeekMessage(&msg,NULL,0,0,PM_REMOVE)) //is there a message waiting?
+ if (Global::iModifyTGA==-1)
+  World.ModifyTGA(); //tylko modyfikacja TGA
+ else
+  while (!done) //loop that runs while done=FALSE
   {
-   if (msg.message==WM_QUIT) //have we received a quit message?
+   if (PeekMessage(&msg,NULL,0,0,PM_REMOVE)) //is there a message waiting?
    {
-    done=TRUE;	//if so
+    if (msg.message==WM_QUIT) //have we received a quit message?
+     done=TRUE;	//if so
+    else //if not, deal with window messages
+    {
+     //if (msg.message==WM_CHAR)
+     //World.OnKeyPress(msg.wParam);
+     TranslateMessage(&msg); //translate the message
+     DispatchMessage(&msg); //dispatch the message
+    }
    }
-   else //if not, deal with window messages
+   else //if there are no messages
    {
-    //if (msg.message==WM_CHAR)
-    //World.OnKeyPress(msg.wParam);
-    TranslateMessage(&msg); //translate the message
-    DispatchMessage(&msg); //dispatch the message
+    //draw the scene, watch for quit messages
+    //DrawGLScene()
+    //if (!pause)
+    //if (Global::bInactivePause?Global::bActive:true) //tak nie, bo spada z góry
+    if (World.Update()) // Was There A Quit Received?
+     SwapBuffers(hDC);	// Swap Buffers (Double Buffering)
+    else
+     done=TRUE; //[F10] or DrawGLScene signalled a quit
    }
   }
-  else //if there are no messages
-  {
-   //draw the scene, watch for quit messages
-   //DrawGLScene()
-   //if (!pause)
-   //if (Global::bInactivePause?Global::bActive:true) //tak nie, bo spada z góry
-   if (World.Update()) // Was There A Quit Received?
-    SwapBuffers(hDC);	// Swap Buffers (Double Buffering)
-   else
-    done=TRUE; //[F10] or DrawGLScene signalled a quit
-  }
- }
  Feedback::BitsClear(-1); //wy³¹czenie komunikacji zwrotnej
  SystemParametersInfo(SPI_SETKEYBOARDSPEED,iOldSpeed,NULL,0);
  SystemParametersInfo(SPI_SETKEYBOARDDELAY,iOldDelay,NULL,0);

@@ -3,7 +3,7 @@
 <PROJECT>
   <MACROS>
     <VERSION value="BCB.05.03"/>
-    <PROJECT value="D:\EU07DDS\EU07.exe"/>
+    <PROJECT value="D:\EU07\EU07.exe"/>
     <OBJFILES value="McZapkie\mover.obj QueryParserComp.obj McZapkie\mtable.obj EU07.obj 
       dumb3d.obj Camera.obj Texture.obj World.obj Model3d.obj geometry.obj 
       MdlMngr.obj Train.obj wavread.obj Timer.obj Event.obj MemCell.obj Logs.obj 
@@ -61,8 +61,8 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=1
 MinorVer=6
-Release=494
-Build=308
+Release=502
+Build=309
 Debug=1
 PreRelease=0
 Special=0
@@ -74,7 +74,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.6.494.308
+FileVersion=1.6.502.309
 InternalName=6th by Ra
 LegalCopyright=
 LegalTrademarks=
@@ -112,8 +112,8 @@ Item7=_DEBUG
 
 [HistoryLists\hlFinalOutputDir]
 Count=4
-Item0=D:\EU07DDS\
-Item1=D:\EU07\
+Item0=D:\EU07\
+Item1=D:\EU07DDS\
 Item2=D:\eu07-120303light\
 Item3=M:\aEU07\EU07\
 
@@ -121,7 +121,7 @@ Item3=M:\aEU07\EU07\
 DebugSourceDirs=C:\Ra\dp\McZapkie\
 
 [Parameters]
-RunParams=-s elektrocieplownia_dobre.scn -v sm42-907
+RunParams=
 HostApplication=
 RemoteHost=
 RemotePath=

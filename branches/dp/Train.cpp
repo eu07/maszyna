@@ -1181,26 +1181,25 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       */
       if (cKey==Global::Keys[k_CabForward])
       {
-          DynamicObject->MoverParameters->CabDeactivisation();
-          if (!CabChange(1))
-           if (TestFlag(DynamicObject->MoverParameters->Couplers[0].CouplingFlag,ctrain_passenger))
-           {
+       DynamicObject->MoverParameters->CabDeactivisation();
+       if (!CabChange(1))
+        if (TestFlag(DynamicObject->MoverParameters->Couplers[0].CouplingFlag,ctrain_passenger))
+        {
 //TODO: przejscie do nastepnego pojazdu, wskaznik do niego: DynamicObject->MoverParameters->Couplers[0].Connected
-              Global::changeDynObj=true;
-           }
-          DynamicObject->MoverParameters->CabActivisation();
+         Global::changeDynObj=true;
+        }
+       DynamicObject->MoverParameters->CabActivisation();
       }
-      else
-      if (cKey==Global::Keys[k_CabBackward])
+      else if (cKey==Global::Keys[k_CabBackward])
       {
-          DynamicObject->MoverParameters->CabDeactivisation();
-          if (!CabChange(-1))
-           if (TestFlag(DynamicObject->MoverParameters->Couplers[1].CouplingFlag,ctrain_passenger))
-          {
+       DynamicObject->MoverParameters->CabDeactivisation();
+       if (!CabChange(-1))
+        if (TestFlag(DynamicObject->MoverParameters->Couplers[1].CouplingFlag,ctrain_passenger))
+        {
 //TODO: przejscie do poprzedniego, wskaznik do niego: DynamicObject->MoverParameters->Couplers[1].Connected
-              Global::changeDynObj=true;
-          }
-          DynamicObject->MoverParameters->CabActivisation();
+         Global::changeDynObj=true;
+        }
+       DynamicObject->MoverParameters->CabActivisation();
       }
       else
       if (cKey==Global::Keys[k_Couple])
@@ -1246,7 +1245,8 @@ void __fastcall TTrain::OnKeyPress(int cKey)
              if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,ctrain_coupler))
              {
               //tmp->MoverParameters->Couplers[CouplNr].Render=true; //pod³¹czony sprzêg bêdzie widoczny
-              DynamicObject->Mechanik->CheckVehicles(); //aktualizacja flag kierunku w sk³adzie
+              if (DynamicObject->Mechanik) //na wszelki wypadek
+               DynamicObject->Mechanik->CheckVehicles(); //aktualizacja flag kierunku w sk³adzie
               dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
               dsbCouplerAttach->Play(0,0,0);
              }
@@ -1317,7 +1317,8 @@ void __fastcall TTrain::OnKeyPress(int cKey)
              }
             }
           }
-          DynamicObject->Mechanik->CheckVehicles(); //aktualizacja skrajnych pojazdów w sk³adzie
+          if (DynamicObject->Mechanik) //na wszelki wypadek
+           DynamicObject->Mechanik->CheckVehicles(); //aktualizacja skrajnych pojazdów w sk³adzie
         }
       }
       else
@@ -3393,19 +3394,18 @@ else
 }  //koniec update
 
 
-//McZapkie-090902: zmiana kabiny 1->0->2 i z powrotem
 bool TTrain::CabChange(int iDirection)
-{
-   if (DynamicObject->MoverParameters->ChangeCab(iDirection))
-    {
-      if (InitializeCab(DynamicObject->MoverParameters->ActiveCab,DynamicObject->asBaseDir+DynamicObject->MoverParameters->TypeName+".mmd"))
-       {
-         return true;
-       }
-      else return false;
-    }
-  // else return false;
-  return false;
+{//McZapkie-090902: zmiana kabiny 1->0->2 i z powrotem
+ if (DynamicObject->MoverParameters->ChangeCab(iDirection))
+ {
+  if (InitializeCab(DynamicObject->MoverParameters->ActiveCab,DynamicObject->asBaseDir+DynamicObject->MoverParameters->TypeName+".mmd"))
+  {
+   return true;
+  }
+  else return false;
+ }
+ // else return false;
+ return false;
 }
 
 //McZapkie-310302

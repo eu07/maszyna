@@ -1179,57 +1179,59 @@ bool __fastcall TWorld::Update()
 
     if (Global::changeDynObj==true)
     {//ABu zmiana pojazdu - przejœcie do innego
-       Train->dsbHasler->Stop();
-       Train->dsbBuzzer->Stop();
-       if (Train->dsbSlipAlarm) Train->dsbSlipAlarm->Stop(); //dŸwiêk alarmu przy poœlizgu
-       Train->rsHiss.Stop();
-       Train->rsSBHiss.Stop();
-       Train->rsRunningNoise.Stop();
-       Train->rsBrake.Stop();
-       Train->rsEngageSlippery.Stop();
-       Train->rsSlippery.Stop();
-       Train->DynamicObject->MoverParameters->CabDeactivisation();
-       int CabNr;
-       TDynamicObject *temp;
-       if (Train->DynamicObject->MoverParameters->ActiveCab==-1)
-       {
-        temp=Train->DynamicObject->NextConnected; //pojazd od strony sprzêgu 1
-        CabNr=(Train->DynamicObject->NextConnectedNo==0)?1:-1;
-       }
-       else
-       {
-        temp=Train->DynamicObject->PrevConnected; //pojazd od strony sprzêgu 0
-        CabNr=(Train->DynamicObject->PrevConnectedNo==0)?1:-1;
-       }
-       Train->DynamicObject->Controller=AIdriver;
-       Train->DynamicObject->bDisplayCab=false;
-       Train->DynamicObject->MechInside=false;
-       Train->DynamicObject->MoverParameters->SecuritySystem.Status=0;
-       Train->DynamicObject->ABuSetModelShake(vector3(0,0,0));
-       Train->DynamicObject->MoverParameters->ActiveCab=0;
-       Train->DynamicObject->MoverParameters->BrakeCtrlPos=-2;
-///       Train->DynamicObject->MoverParameters->LimPipePress=-1;
-///       Train->DynamicObject->MoverParameters->ActFlowSpeed=0;
-///       Train->DynamicObject->Mechanik->CloseLog();
-///       SafeDelete(Train->DynamicObject->Mechanik);
+     Train->dsbHasler->Stop(); //wy³¹czenie dŸwiêków opuszczanej kabiny
+     Train->dsbBuzzer->Stop();
+     if (Train->dsbSlipAlarm) Train->dsbSlipAlarm->Stop(); //dŸwiêk alarmu przy poœlizgu
+     Train->rsHiss.Stop();
+     Train->rsSBHiss.Stop();
+     Train->rsRunningNoise.Stop();
+     Train->rsBrake.Stop();
+     Train->rsEngageSlippery.Stop();
+     Train->rsSlippery.Stop();
+     Train->DynamicObject->MoverParameters->CabDeactivisation();
+     int CabNr;
+     TDynamicObject *temp;
+     if (Train->DynamicObject->MoverParameters->ActiveCab==-1)
+     {
+      temp=Train->DynamicObject->NextConnected; //pojazd od strony sprzêgu 1
+      CabNr=(Train->DynamicObject->NextConnectedNo==0)?1:-1;
+     }
+     else
+     {
+      temp=Train->DynamicObject->PrevConnected; //pojazd od strony sprzêgu 0
+      CabNr=(Train->DynamicObject->PrevConnectedNo==0)?1:-1;
+     }
+     Train->DynamicObject->Controller=AIdriver;
+     Train->DynamicObject->bDisplayCab=false;
+     Train->DynamicObject->MechInside=false;
+     Train->DynamicObject->MoverParameters->SecuritySystem.Status=0;
+     Train->DynamicObject->ABuSetModelShake(vector3(0,0,0));
+     Train->DynamicObject->MoverParameters->ActiveCab=0;
+     Train->DynamicObject->MoverParameters->BrakeCtrlPos=-2;
+///     Train->DynamicObject->MoverParameters->LimPipePress=-1;
+///     Train->DynamicObject->MoverParameters->ActFlowSpeed=0;
+///     Train->DynamicObject->Mechanik->CloseLog();
+///     SafeDelete(Train->DynamicObject->Mechanik);
 
-       //Train->DynamicObject->mdKabina=NULL;
-       Train->DynamicObject=temp;
-       Controlled=Train->DynamicObject;
-       Global::asHumanCtrlVehicle=Train->DynamicObject->GetName();
-//       Train->DynamicObject->MoverParameters->BrakeCtrlPos=-2;
-       Train->DynamicObject->MoverParameters->LimPipePress=Controlled->MoverParameters->PipePress;
-//       Train->DynamicObject->MoverParameters->ActFlowSpeed=0;
-       Train->DynamicObject->MoverParameters->SecuritySystem.Status=1;
-       Train->DynamicObject->MoverParameters->ActiveCab=CabNr;
-       Train->DynamicObject->MoverParameters->CabDeactivisation();
-       Train->DynamicObject->Controller=Humandriver;
-       Train->DynamicObject->MechInside=true;
-///       Train->DynamicObject->Mechanik=new TController(l,r,Controlled->Controller,&Controlled->MoverParameters,&Controlled->TrainParams,Aggressive);
-       //Train->InitializeCab(Train->DynamicObject->MoverParameters->CabNo,Train->DynamicObject->asBaseDir+Train->DynamicObject->MoverParameters->TypeName+".mmd");
-       Train->InitializeCab(CabNr,Train->DynamicObject->asBaseDir+Train->DynamicObject->MoverParameters->TypeName+".mmd");
-       if (!FreeFlyModeFlag) Train->DynamicObject->bDisplayCab=true;
-       Global::changeDynObj=false;
+     //Train->DynamicObject->mdKabina=NULL;
+     temp->Mechanik=Train->DynamicObject->Mechanik; //przejêcie obiektu zarz¹dzaj¹cego
+     Train->DynamicObject=NULL;
+     Train->DynamicObject=temp;
+     Controlled=Train->DynamicObject;
+     Global::asHumanCtrlVehicle=Train->DynamicObject->GetName();
+//     Train->DynamicObject->MoverParameters->BrakeCtrlPos=-2;
+     Train->DynamicObject->MoverParameters->LimPipePress=Controlled->MoverParameters->PipePress;
+//     Train->DynamicObject->MoverParameters->ActFlowSpeed=0;
+     Train->DynamicObject->MoverParameters->SecuritySystem.Status=1;
+     Train->DynamicObject->MoverParameters->ActiveCab=CabNr;
+     Train->DynamicObject->MoverParameters->CabDeactivisation();
+     Train->DynamicObject->Controller=Humandriver;
+     Train->DynamicObject->MechInside=true;
+///     Train->DynamicObject->Mechanik=new TController(l,r,Controlled->Controller,&Controlled->MoverParameters,&Controlled->TrainParams,Aggressive);
+     //Train->InitializeCab(Train->DynamicObject->MoverParameters->CabNo,Train->DynamicObject->asBaseDir+Train->DynamicObject->MoverParameters->TypeName+".mmd");
+     Train->InitializeCab(CabNr,Train->DynamicObject->asBaseDir+Train->DynamicObject->MoverParameters->TypeName+".mmd");
+     if (!FreeFlyModeFlag) Train->DynamicObject->bDisplayCab=true;
+     Global::changeDynObj=false;
     }
 
     if (Global::iTextMode==VK_F1)
@@ -1855,5 +1857,22 @@ void __fastcall TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
   }
 };
 
+//---------------------------------------------------------------------------
+void __fastcall TWorld::ModifyTGA(const AnsiString &dir)
+{//rekurencyjna modyfikacje plików TGA
+ TSearchRec sr;
+ if (FindFirst(dir+"*.*",faDirectory|faArchive,sr)==0)
+ {do
+  {
+   if (sr.Name[1]!='.')
+    if ((sr.Attr&faDirectory)) //jeœli katalog, to rekurencja
+     ModifyTGA(dir+sr.Name+"/");
+    else
+     if (sr.Name.LowerCase().SubString(sr.Name.Length()-3,4)==".tga")
+      TTexturesManager::GetTextureID(AnsiString(dir+sr.Name).c_str());
+  } while (FindNext(sr)==0);
+  FindClose(sr);
+ }
+};
 //---------------------------------------------------------------------------
 

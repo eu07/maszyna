@@ -33,8 +33,12 @@ szczególnie dla pojazdów w danej chwili nieruchomych (przy du¿ym zagêszczeniu
 modeli na stacjach na ogó³ przewaga jest tych nieruchomych).
 */
 
+class TDynamicAnim
+{//klasa animowanej czêœci pojazdu (ko³a, drzwi, pantografy, burty, napêd parowozu itd.)
+};
+
 class TDynamicObject
-{
+{//klasa pojazdu
 private:
     TTrackShape ts;
     TTrackParam tp;
