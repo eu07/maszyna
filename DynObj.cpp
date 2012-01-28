@@ -2070,44 +2070,77 @@ if (tmpTraction.TractionVoltage==0)
   if (MoverParameters->EnginePowerSource.PowerType==SteamPower)
   {//Ra: animacja rozrz¹du parowozu, na razie nieoptymalizowane
    double fi,dx,c2,ka,kc;
+   double sin_fi,cos_fi;
+   double L1=1.6688888888888889;
+   double L2=5.6666666666666667;
+   double Lc=0.4;
+   double L=5.6864222;
+   double G1,G2,G3,ksi;
+   double G1_2,G2_2,G3_2; //kwadraty
    //ruch t³oków oraz korbowodów
    fi=DegToRad(dWheelAngle[1]+pant1x); //k¹t obrotu ko³a dla t³oka 1
-   dx=panty*cos(fi)+sqrt(panth*panth-panty*panty*sin(fi)*sin(fi))-panth; //nieoptymalne
-   smPatykird1[0]->SetTranslate(float3(dx,0,0)); //suwamy
-   ka=-asin(panty/panth)*sin(fi);
+   sin_fi=sin(fi);
+   cos_fi=cos(fi);
+   dx=panty*cos_fi+sqrt(panth*panth-panty*panty*sin_fi*sin_fi)-panth; //nieoptymalne
+   smPatykird1[0]->SetTranslate(float3(dx,0,0));
+   ka=-asin(panty/panth)*sin_fi;
    smPatykirg1[0]->SetRotateXYZ(vector3(RadToDeg(ka),0,0));
    //smPatykirg1[0]->SetRotate(float3(0,1,0),RadToDeg(fi)); //obracamy
-   //smPatykirg1[0]->SetTranslate(float3(fi,0,0)); //suwamy - test wykrycia submodelu
+   //ruch dr¹¿ka mimoœrodkowego oraz jarzma
+   //korzysta³em z pliku PDF "mm.pdf" (opis czworoboku korbowo-wahaczowego):
+   //"MECHANIKA MASZYN. Szkic wyk³adu i laboratorium komputerowego."
+   //Prof. dr hab. in¿. Jerzy Zaj¹czkowski, 2007, Politechnika £ódzka
+   //L1 - wysokoœæ (w pionie) osi jarzma ponad osi¹ ko³a
+   //L2 - odleg³oœæ w poziomie osi jarzma od osi ko³a
+   //Lc - d³ugoœæ korby mimoœrodu na kole
+   //Lr - promieñ jarzma =1.0 (pozosta³e przeliczone proporcjonalnie)
+   //L - d³ugoœæ dr¹¿ka mimoœrodowego
+   //fi - k¹t obrotu ko³a
+   //ksi - k¹t obrotu jarzma (od pionu)
+   //gam - odchylenie dr¹¿ka mimoœrodowego od poziomu
+   //G1=(Lr*Lr+L1*L1+L2*L2+Kc*Lc-L*L-2.0*Lc*L2*cos(fi)+2.0*Lc*L1*sin(fi))/(Lr*Lr);
+   //G2=2.0*(L2-Lc*cos(fi))/Lr;
+   //G3=2.0*(L1-Lc*sin(fi))/Lr;
+   fi=DegToRad(dWheelAngle[1]+pant1x+96.77416667); //k¹t obrotu ko³a dla t³oka 1
+   sin_fi=sin(fi);
+   cos_fi=cos(fi);
+   G1=(1.0+L1*L1+L2*L2+Lc*Lc-L*L-2.0*Lc*L2*cos_fi+2.0*Lc*L1*sin_fi);
+   G1_2=G1*G1;
+   G2=2.0*(L2-Lc*cos_fi);
+   G2_2=G2*G2;
+   G3=2.0*(L1-Lc*sin_fi);
+   G3_2=G3*G3;
+   ksi=asin((G1*G2-G3*_fm_sqrt(G2_2+G3_2-G1_2))/(G2_2+G3_2)); //k¹t jarzma
+   //gam=acos((L2-sin_ksi-Lc*cos_fi)/L);
+   //gam=asin((L1-cos_ksi-Lc*sin_fi)/L);
+   //fi4=acos((l1+l2*cos(fi2)+l3*cos(fi3))/-l4); //k¹t obrotu dr¹¿ka mimoœrodowego wzglêdem jarzma
+   //c2=rm*rm*sin(fi)*sin(fi)+(d-rm*cos(fi))*(d-rm*cos(fi)); //kw. odleg³oœci osi mimoœrodu od osi jarzma
+   //ka=acos((-a*a+b*b+c2)/(2.0*b*sqrt(c)))+kj; //k¹t jarzma
+   if (smPatykirg2[0])
+    smPatykirg2[0]->SetRotateXYZ(vector3(RadToDeg(ksi),0,0)); //obrócenie jarzma
+   //kc=acos((-c2+b*b+a*a)/(2.0*b*a))+kd; //k¹t dr¹¿ka mimoœrodowego (jest zaczepiony do jarzma)
+   //smPatykird2[0]->SetRotateXYZ(vector3(RadToDeg(ka),0,0)); //obrócenie dr¹¿ka mimoœrodowego
+//--- druga strona---
    fi=DegToRad(dWheelAngle[1]+pant2x); //k¹t obrotu ko³a dla t³oka 1
-   dx=panty*cos(fi)+sqrt(panth*panth-panty*panty*sin(fi)*sin(fi))-panth; //nieoptymalne
+   sin_fi=sin(fi);
+   cos_fi=cos(fi);
+   dx=panty*cos_fi+sqrt(panth*panth-panty*panty*sin_fi*sin_fi)-panth; //nieoptymalne
    smPatykird1[1]->SetTranslate(float3(dx,0,0));
-   ka=-asin(panty/panth)*sin(fi);
+   ka=-asin(panty/panth)*sin_fi;
    smPatykirg1[1]->SetRotateXYZ(vector3(RadToDeg(ka),0,0));
    //smPatykirg1[1]->SetRotate(float3(0,1,0),RadToDeg(fi));
-   //smPatykirg1[1]->SetTranslate(float3(fi,0,0)); //suwamy - test wykrycia submodelu
-/*
-   //ruch dr¹¿ka mimoœrodkowego oraz jarzma
-   //korzysta³em z pliku PDF "miller2.pdf" (opis czworoboku korbowo-wahaczowego):
-   //"TEORIA MASZYN I MECHANIZMÓW. Analiza uk³adów Kinematycznych" Stefan Miller 2007, Politechnika Wroc³awska
-   //http://www.dbc.wroc.pl/Content/1636/miller2.pdf
-   a=l1+l2*cos(fi);
-   b=l2*sin(fi);
-   A=a*a+b*b+l3*l3+l4*l4; //w skrypcie jest b³¹d - dwa razy l3*l3
-   B=b/a;
-   A2=A*A;
-   B2=B*B;
-   //równanie kwadratowe: (1+B*B)*cos(fi3)*cos(fi3)+2*A*cos(fi3)+(A*A+B*B)=0
-   delta=4*A2-4*(1+B2)*(A2+B2);
-   cosfi3=-2*A+sqrt(delta)/(2*(1+B2));
-
-   fi4=acos((l1+l2*cos(fi2)+l3*cos(fi3))/-l4); //k¹t obrotu dr¹¿ka mimoœrodowego wzglêdem jarzma
-   fi=DegToRad(dWheelAngle[1]+pant1x); //k¹t obrotu mimoœrodu 1 wzglêdem osi jarzma
-   c2=rm*rm*sin(fi)*sin(fi)+(d-rm*cos(fi))*(d-rm*cos(fi)); //kw. odleg³oœci osi mimoœrodu od osi jarzma
-   ka=acos((-a*a+b*b+c2)/(2.0*b*sqrt(c)))+kj; //k¹t jarzma
-   smPatykirg2[0]->SetRotateXYZ(vector3(RadToDeg(ka),0,0)); //obrócenie jarzma
-   kc=acos((-c2+b*b+a*a)/(2.0*b*a))+kd; //k¹t dr¹¿ka mimoœrodowego (jest zaczepiony do jarzma)
-   smPatykird2[0]->SetRotateXYZ(vector3(RadToDeg(ka),0,0)); //obrócenie dr¹¿ka mimoœrodowego
-*/
+   fi=DegToRad(dWheelAngle[1]+pant2x+96.77416667); //k¹t obrotu ko³a dla t³oka 1
+   sin_fi=sin(fi);
+   cos_fi=cos(fi);
+   G1=(1.0+L1*L1+L2*L2+Lc*Lc-L*L-2.0*Lc*L2*cos_fi+2.0*Lc*L1*sin_fi);
+   G1_2=G1*G1;
+   G2=2.0*(L2-Lc*cos_fi);
+   G2_2=G2*G2;
+   G3=2.0*(L1-Lc*sin_fi);
+   G3_2=G3*G3;
+   ksi=asin((G1*G2-G3*_fm_sqrt(G2_2+G3_2-G1_2))/(G2_2+G3_2)); //k¹t jarzma
+   if (smPatykirg2[1])
+    smPatykirg2[1]->SetRotateXYZ(vector3(RadToDeg(ksi),0,0)); //obrócenie jarzma
   }
 
 //NBMX Obsluga drzwi, MC: zuniwersalnione
@@ -3037,7 +3070,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
          panth=Parser->GetNextSymbol().ToDouble();
         }
         else if (str==AnsiString("animpistonprefix:"))
-        {//prefiks t³oków - na razie u¿ywamy modeli pantografów
+        {//prefiks t³oczysk - na razie u¿ywamy modeli pantografów
          str=Parser->GetNextSymbol();
          for (int i=1;i<=2;i++)
          {
@@ -3064,9 +3097,28 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
          panth=Parser->GetNextSymbol().ToDouble(); //d³ugoœ korbowodu (k)
          MoverParameters->EnginePowerSource.PowerType=SteamPower; //Ra: po chamsku, ale z CHK nie dzia³a
         }
-        else
-        if (str==AnsiString("animpendulumprefix:"))              //prefiks wahaczy
+        else if (str==AnsiString("animreturnprefix:"))
+        {//prefiks dr¹¿ka mimoœrodowego - na razie u¿ywamy modeli pantografów
+         str=Parser->GetNextSymbol();
+         for (int i=1;i<=2;i++)
          {
+          asAnimName=str+i;
+          smPatykird2[i-1]=mdModel->GetFromName(asAnimName.c_str());
+          smPatykird2[i-1]->WillBeAnimated();
+         }
+        }
+        else if (str==AnsiString("animexplinkprefix:")) //animreturnprefix:
+        {//prefiks jarzma - na razie u¿ywamy modeli pantografów
+         str=Parser->GetNextSymbol();
+         for (int i=1;i<=2;i++)
+         {
+          asAnimName=str+i;
+          smPatykirg2[i-1]=mdModel->GetFromName(asAnimName.c_str());
+          smPatykirg2[i-1]->WillBeAnimated();
+         }
+        }
+        else if (str==AnsiString("animpendulumprefix:"))
+        {//prefiks wahaczy
           str= Parser->GetNextSymbol();
           asAnimName="";
           for (int i=1; i<=4; i++)

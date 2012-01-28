@@ -730,10 +730,10 @@ GLuint TTexturesManager::CreateTexture(char* buff,GLint bpp,int width,int height
   SetFiltering(filter); //cyfra po % w nazwie
  else
   SetFiltering(bHasAlpha&&bDollar,bHash); //znaki #, $ i kana³ alfa w nazwie
- glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
- glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
- glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
- glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
+ glPixelStorei(GL_UNPACK_ALIGNMENT,1);
+ glPixelStorei(GL_UNPACK_ROW_LENGTH,0);
+ glPixelStorei(GL_UNPACK_SKIP_ROWS,0);
+ glPixelStorei(GL_UNPACK_SKIP_PIXELS,0);
  if (bHasAlpha || bHash || (filter==0))
   glTexImage2D(GL_TEXTURE_2D,0,(bHasAlpha?GL_RGBA:GL_RGB),width,height,0,bpp,GL_UNSIGNED_BYTE,buff);
  else
@@ -742,7 +742,7 @@ GLuint TTexturesManager::CreateTexture(char* buff,GLint bpp,int width,int height
 }
 
 void TTexturesManager::Free()
-{
+{//usuniêcie wszyskich tekstur (bez usuwania struktury)
  for (Names::iterator iter=_names.begin();iter!=_names.end();iter++)
   glDeleteTextures(1,&(iter->second));
 }

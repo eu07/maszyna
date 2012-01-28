@@ -54,7 +54,7 @@ void __fastcall TRealSound::Init(char *SoundName, double DistanceAttenuation, do
 {
 //    Nazwa= SoundName;
     pSound= TSoundsManager::GetFromName(SoundName,Dynamic);
-    if (pSound!=NULL)
+    if (pSound)
     {
      AM= 1.0;
      pSound->SetVolume(DSBVOLUME_MIN);
@@ -132,18 +132,19 @@ void __fastcall TRealSound::Play(double Volume, int Looping, bool ListenerInside
      pSound->Stop();
   }
  }
-}
+};
 
 void __fastcall TRealSound::Stop()
 {
-DWORD stat;
- if ((Global::bSoundEnabled) && (AM!=0))
- {
-  pSound->GetStatus(&stat);
-  if (stat&DSBSTATUS_PLAYING)
-   pSound->Stop();
- }
-}
+ DWORD stat;
+ if (pSound)
+  if ((Global::bSoundEnabled)&&(AM!=0))
+  {
+   pSound->GetStatus(&stat);
+   if (stat&DSBSTATUS_PLAYING)
+    pSound->Stop();
+  }
+};
 
 void __fastcall TRealSound::AdjFreq(double Freq, double dt) //McZapkie TODO: dorobic tu efekt Dopplera
 //Freq moze byc liczba dodatnia mniejsza od 1 lub wieksza od 1
