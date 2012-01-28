@@ -2074,7 +2074,7 @@ end;
 
       Pipe.Flow(-dpMainValve);
       Pipe.Flow(-(Pipe.P)*0.01*dt);
-      dpMainValve:=dpMainValve/(Dim.L*Spg*20);
+//      dpMainValve:=dpMainValve/(Dim.L*Spg*20);
 
       CntrlPipePress:=Hamulec.GetVRP;
 

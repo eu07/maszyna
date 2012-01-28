@@ -1821,25 +1821,95 @@ DynamicObject->MoverParameters->Hamulec->Releaser(0); //odluŸniacz rêczny
    double dfreq;
 
 //McZapkie-280302 - syczenie
+      if ((rsHissEB.AM!=0)&&((DynamicObject->MoverParameters->BrakeCtrlPosNo==DynamicObject->MoverParameters->BrakeCtrlPos || DynamicObject->MoverParameters->EmergencyBrakeFlag)))
+       {
+          fPPress=(fPPress+DynamicObject->MoverParameters->dpMainValve)/2;
+          if (fPPress>0)
+           {
+            vol=2*rsHissEB.AM*fPPress;
+           }
+          else
+            vol=0;
+          if (vol>0.02)
+           {
+            rsHissEB.Play(vol,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
+            rsHiss.Stop();
+           } 
+          else
+           {
+            rsHissEB.Stop();
+           }
+       }
+      else
       if (rsHiss.AM!=0)
        {
-          fPPress=(fPPress+Max0R(DynamicObject->MoverParameters->dpLocalValve,DynamicObject->MoverParameters->dpMainValve))/2;
+          fPPress=(fPPress+DynamicObject->MoverParameters->dpMainValve)/2;
           if (fPPress>0)
            {
             vol=2*rsHiss.AM*fPPress;
            }
-          fNPress=(fNPress+Min0R(DynamicObject->MoverParameters->dpLocalValve,DynamicObject->MoverParameters->dpMainValve))/2;
-          if (fNPress<0 && -fNPress>fPPress)
-           {
-            vol=-2*rsHiss.AM*fNPress;
-           }
-          if (vol>0.1)
+          else
+            vol=0;
+          if (vol>0.02)
            {
             rsHiss.Play(vol,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
+            rsHissEB.Stop();
            }
           else
            {
             rsHiss.Stop();
+           }
+       }
+      if (rsHiss2.AM!=0)
+       {
+          fNPress=(fNPress+DynamicObject->MoverParameters->dpMainValve)/2;
+          if (fNPress<0)
+           {
+            vol=-2*rsHiss2.AM*fNPress;
+           }
+          else
+            vol=0;           
+          if (vol>0.02)
+           {
+            rsHiss2.Play(vol,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
+           }
+          else
+           {
+            rsHiss2.Stop();
+           }
+       }
+      if (rsHiss3.AM!=0)
+       {
+          if (DynamicObject->MoverParameters->dpLocalValve>0)
+           {
+            vol=2*rsHiss3.AM*DynamicObject->MoverParameters->dpLocalValve;
+           }
+          else
+            vol=0;
+          if (vol>0.02)
+           {
+            rsHiss3.Play(vol,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
+           }
+          else
+           {
+            rsHiss3.Stop();
+           }
+       }
+      if (rsHiss4.AM!=0)
+       {
+          if (DynamicObject->MoverParameters->dpLocalValve<0)
+           {
+            vol=-2*rsHiss4.AM*fNPress;
+           }
+          else
+            vol=0;           
+          if (vol>0.02)
+           {
+            rsHiss4.Play(vol,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
+           }
+          else
+           {
+            rsHiss4.Stop();
            }
        }
 
@@ -3656,6 +3726,46 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
           rsHiss.AA=Parser->GetNextSymbol().ToDouble();
           rsHiss.FM=0.0;
           rsHiss.FA=1.0;
+         }
+        else
+        if (str==AnsiString("airsound2:"))                    //syk:
+         {
+          str=Parser->GetNextSymbol();
+          rsHiss2.Init(str.c_str(),-1,0,0,0,true);
+          rsHiss2.AM=Parser->GetNextSymbol().ToDouble();
+          rsHiss2.AA=Parser->GetNextSymbol().ToDouble();
+          rsHiss2.FM=0.0;
+          rsHiss2.FA=1.0;
+         }
+        else
+        if (str==AnsiString("airsound3:"))                    //syk:
+         {
+          str=Parser->GetNextSymbol();
+          rsHiss3.Init(str.c_str(),-1,0,0,0,true);
+          rsHiss3.AM=Parser->GetNextSymbol().ToDouble();
+          rsHiss3.AA=Parser->GetNextSymbol().ToDouble();
+          rsHiss3.FM=0.0;
+          rsHiss3.FA=1.0;
+         }
+        else
+        if (str==AnsiString("airsound4:"))                    //syk:
+         {
+          str=Parser->GetNextSymbol();
+          rsHiss4.Init(str.c_str(),-1,0,0,0,true);
+          rsHiss4.AM=Parser->GetNextSymbol().ToDouble();
+          rsHiss4.AA=Parser->GetNextSymbol().ToDouble();
+          rsHiss4.FM=0.0;
+          rsHiss4.FA=1.0;
+         }
+        else
+        if (str==AnsiString("airsoundeb:"))                    //syk:
+         {
+          str=Parser->GetNextSymbol();
+          rsHissEB.Init(str.c_str(),-1,0,0,0,true);
+          rsHissEB.AM=Parser->GetNextSymbol().ToDouble();
+          rsHissEB.AA=Parser->GetNextSymbol().ToDouble();
+          rsHissEB.FM=0.0;
+          rsHissEB.FA=1.0;
          }
         else
         if (str==AnsiString("fadesound:"))                    //syk:

@@ -266,6 +266,10 @@ public:
     TRealSound rsBrake;
     TRealSound rsSlippery;
     TRealSound rsHiss;
+    TRealSound rsHissEB;    
+    TRealSound rsHiss2;
+    TRealSound rsHiss3;
+    TRealSound rsHiss4;
     TRealSound rsSBHiss;
     TRealSound rsRunningNoise;
     TRealSound rsEngageSlippery;
