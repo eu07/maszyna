@@ -2072,19 +2072,21 @@ if (tmpTraction.TractionVoltage==0)
    double fi,dx,c2,ka,kc;
    double sin_fi,cos_fi;
    double L1=1.6688888888888889;
-   double L2=5.6666666666666667;
+   double L2=5.6666666666666667; //2550/450
    double Lc=0.4;
-   double L=5.6864222;
-   double G1,G2,G3,ksi;
+   double L=5.686422222; //2558.89/450
+   double G1,G2,G3,ksi,sin_ksi,gam;
    double G1_2,G2_2,G3_2; //kwadraty
    //ruch t³oków oraz korbowodów
    fi=DegToRad(dWheelAngle[1]+pant1x); //k¹t obrotu ko³a dla t³oka 1
    sin_fi=sin(fi);
    cos_fi=cos(fi);
    dx=panty*cos_fi+sqrt(panth*panth-panty*panty*sin_fi*sin_fi)-panth; //nieoptymalne
-   smPatykird1[0]->SetTranslate(float3(dx,0,0));
+   if (smPatykird1[0]) //na razie zabezpieczenie
+    smPatykird1[0]->SetTranslate(float3(dx,0,0));
    ka=-asin(panty/panth)*sin_fi;
-   smPatykirg1[0]->SetRotateXYZ(vector3(RadToDeg(ka),0,0));
+   if (smPatykirg1[0]) //na razie zabezpieczenie
+    smPatykirg1[0]->SetRotateXYZ(vector3(RadToDeg(ka),0,0));
    //smPatykirg1[0]->SetRotate(float3(0,1,0),RadToDeg(fi)); //obracamy
    //ruch dr¹¿ka mimoœrodkowego oraz jarzma
    //korzysta³em z pliku PDF "mm.pdf" (opis czworoboku korbowo-wahaczowego):
@@ -2101,7 +2103,9 @@ if (tmpTraction.TractionVoltage==0)
    //G1=(Lr*Lr+L1*L1+L2*L2+Kc*Lc-L*L-2.0*Lc*L2*cos(fi)+2.0*Lc*L1*sin(fi))/(Lr*Lr);
    //G2=2.0*(L2-Lc*cos(fi))/Lr;
    //G3=2.0*(L1-Lc*sin(fi))/Lr;
-   fi=DegToRad(dWheelAngle[1]+pant1x+96.77416667); //k¹t obrotu ko³a dla t³oka 1
+   fi=DegToRad(dWheelAngle[1]+pant1x-96.77416667); //k¹t obrotu ko³a dla t³oka 1
+   //1) dla dWheelAngle[1]=0° korba jest w dó³, a mimoœród w stronê jarzma, czyli fi=-7°
+   //2) dla dWheelAngle[1]=90° korba jest do ty³u, a mimoœród w dó³, czyli fi=83°
    sin_fi=sin(fi);
    cos_fi=cos(fi);
    G1=(1.0+L1*L1+L2*L2+Lc*Lc-L*L-2.0*Lc*L2*cos_fi+2.0*Lc*L1*sin_fi);
@@ -2110,24 +2114,31 @@ if (tmpTraction.TractionVoltage==0)
    G2_2=G2*G2;
    G3=2.0*(L1-Lc*sin_fi);
    G3_2=G3*G3;
-   ksi=asin((G1*G2-G3*_fm_sqrt(G2_2+G3_2-G1_2))/(G2_2+G3_2)); //k¹t jarzma
-   //gam=acos((L2-sin_ksi-Lc*cos_fi)/L);
-   //gam=asin((L1-cos_ksi-Lc*sin_fi)/L);
+   sin_ksi=(G1*G2-G3*_fm_sqrt(G2_2+G3_2-G1_2))/(G2_2+G3_2); //x1 (minus delta)
+   ksi=asin(sin_ksi); //k¹t jarzma
+   if (smPatykirg2[0])
+    smPatykirg2[0]->SetRotateXYZ(vector3(RadToDeg(ksi),0,0)); //obrócenie jarzma
+   //1) ksi=-23°, gam=
+   //2) ksi=10°, gam=
+   //gam=acos((L2-sin_ksi-Lc*cos_fi)/L); //k¹t od poziomu, liczony wzglêdem poziomu
+   //gam=asin((L1-cos_ksi-Lc*sin_fi)/L); //k¹t od poziomu, liczony wzglêdem pionu
+   gam=atan2((L1-cos(ksi)+Lc*sin_fi),(L2-sin_ksi-Lc*cos_fi)); //k¹t od poziomu
    //fi4=acos((l1+l2*cos(fi2)+l3*cos(fi3))/-l4); //k¹t obrotu dr¹¿ka mimoœrodowego wzglêdem jarzma
    //c2=rm*rm*sin(fi)*sin(fi)+(d-rm*cos(fi))*(d-rm*cos(fi)); //kw. odleg³oœci osi mimoœrodu od osi jarzma
    //ka=acos((-a*a+b*b+c2)/(2.0*b*sqrt(c)))+kj; //k¹t jarzma
-   if (smPatykirg2[0])
-    smPatykirg2[0]->SetRotateXYZ(vector3(RadToDeg(ksi),0,0)); //obrócenie jarzma
    //kc=acos((-c2+b*b+a*a)/(2.0*b*a))+kd; //k¹t dr¹¿ka mimoœrodowego (jest zaczepiony do jarzma)
-   //smPatykird2[0]->SetRotateXYZ(vector3(RadToDeg(ka),0,0)); //obrócenie dr¹¿ka mimoœrodowego
+   if (smPatykird2[0]) //na razie zabezpieczenie
+    smPatykird2[0]->SetRotateXYZ(vector3(-90.0+RadToDeg(+gam+ksi),0,0)); //obrócenie dr¹¿ka mimoœrodowego
 //--- druga strona---
    fi=DegToRad(dWheelAngle[1]+pant2x); //k¹t obrotu ko³a dla t³oka 1
    sin_fi=sin(fi);
    cos_fi=cos(fi);
    dx=panty*cos_fi+sqrt(panth*panth-panty*panty*sin_fi*sin_fi)-panth; //nieoptymalne
-   smPatykird1[1]->SetTranslate(float3(dx,0,0));
+   if (smPatykird1[1]) //na razie zabezpieczenie
+    smPatykird1[1]->SetTranslate(float3(dx,0,0));
    ka=-asin(panty/panth)*sin_fi;
-   smPatykirg1[1]->SetRotateXYZ(vector3(RadToDeg(ka),0,0));
+   if (smPatykirg1[1]) //na razie zabezpieczenie
+    smPatykirg1[1]->SetRotateXYZ(vector3(RadToDeg(ka),0,0));
    //smPatykirg1[1]->SetRotate(float3(0,1,0),RadToDeg(fi));
    fi=DegToRad(dWheelAngle[1]+pant2x+96.77416667); //k¹t obrotu ko³a dla t³oka 1
    sin_fi=sin(fi);
@@ -2141,6 +2152,9 @@ if (tmpTraction.TractionVoltage==0)
    ksi=asin((G1*G2-G3*_fm_sqrt(G2_2+G3_2-G1_2))/(G2_2+G3_2)); //k¹t jarzma
    if (smPatykirg2[1])
     smPatykirg2[1]->SetRotateXYZ(vector3(RadToDeg(ksi),0,0)); //obrócenie jarzma
+   gam=atan2((L1-cos(ksi)+Lc*sin_fi),(L2-sin_ksi-Lc*cos_fi)); //k¹t od poziomu
+   if (smPatykird2[1]) //na razie zabezpieczenie
+    smPatykird2[1]->SetRotateXYZ(vector3(-90.0+RadToDeg(+gam+ksi),0,0)); //obrócenie dr¹¿ka mimoœrodowego
   }
 
 //NBMX Obsluga drzwi, MC: zuniwersalnione

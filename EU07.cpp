@@ -617,7 +617,10 @@ int WINAPI WinMain( HINSTANCE hInstance,     //instance
  SystemParametersInfo(SPI_SETKEYBOARDSPEED,20,NULL,0);
  //SystemParametersInfo(SPI_SETKEYBOARDDELAY,10,NULL,0);
  if (Global::iModifyTGA==-1)
-  World.ModifyTGA(); //tylko modyfikacja TGA
+ {//tylko modyfikacja TGA, bez uruchamiania symulacji
+  Global::iMaxTextureSize=64; //¿eby nie zamulaæ pamiêci
+  World.ModifyTGA(); //rekurencyjne przegl¹danie katalogów
+ }
  else
   while (!done) //loop that runs while done=FALSE
   {
