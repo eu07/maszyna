@@ -381,11 +381,19 @@ void __fastcall TGroundNode::RaRender()
 
 void __fastcall TGroundNode::RaRenderAlpha()
 {//renderowanie obiektu z VBO - faza przezroczystych
+ glEnable(GL_BLEND);
+ glAlphaFunc(GL_GREATER,0.04);
+ glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
  double mgn=SquareMagnitude(pCenter-Global::pCameraPosition);
  float r,g,b;
  if (mgn<fSquareMinRadius) return;
  if (mgn>fSquareRadius) return;
  int i,a;
+ if ((PROBLEND) ) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
+ {
+ glDisable(GL_BLEND);
+ glAlphaFunc(GL_GREATER,0.45);     // im mniejsza wartoœæ, tym wiêksza ramka, domyœlnie 0.1f
+ };
  switch (iType)
  {
   case TP_TRACTION:
@@ -407,6 +415,10 @@ void __fastcall TGroundNode::RaRenderAlpha()
     glDisable(GL_LIGHTING); //nie powinny œwieciæ
     glDrawArrays(iType,iVboPtr,iNumPts); //rysowanie linii
     glEnable(GL_LIGHTING);
+    //przywraca domyœlne renderowanie przeŸroczystoœci
+    glEnable(GL_BLEND);
+    glAlphaFunc(GL_GREATER,0.04);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
    }
    return;
   default:
@@ -416,6 +428,9 @@ void __fastcall TGroundNode::RaRenderAlpha()
    }
  };
  return;
+ glEnable(GL_BLEND);
+ glAlphaFunc(GL_GREATER,0.04);
+ glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 //------------------------------------------------------------------------------
@@ -1020,11 +1035,6 @@ void __fastcall TGroundNode::RenderAlpha()
 //pozniej sprawdzamy czy jest wlaczony PROBLEND dla aktualnie renderowanego noda TRIANGLE, wlasciwie dla kazdego node'a
 //i jezeli tak to odpowiedni GL_GREATER w przeciwnym wypadku standardowy 0.04
 
-   glEnable(GL_BLEND);
-   glEnable(GL_ALPHA_TEST);
-   glAlphaFunc(GL_GREATER,0.04);
-   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-   glDepthFunc(GL_LEQUAL);
 
  //if (pTriGroup) if (pTriGroup!=this) return; //wyœwietla go inny obiekt
  double mgn=SquareMagnitude(pCenter-Global::pCameraPosition);
@@ -1057,18 +1067,8 @@ void __fastcall TGroundNode::RenderAlpha()
      if ((PROBLEND) ) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
           {
                glDisable(GL_BLEND);
-               glEnable(GL_ALPHA_TEST);
                glAlphaFunc(GL_GREATER,0.45);     // im mniejsza wartoœæ, tym wiêksza ramka, domyœlnie 0.1f
-               glDepthFunc(GL_LEQUAL);
-          }
-         else
-          {
-               glEnable(GL_BLEND);
-               glEnable(GL_ALPHA_TEST);
-               glAlphaFunc(GL_GREATER,0.04);
-               glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-               glDepthFunc(GL_LEQUAL);
-          }
+          };
 
      if (!DisplayListID) //||Global::bReCompile) //Ra: wymuszenie rekompilacji
      {
@@ -1094,6 +1094,9 @@ void __fastcall TGroundNode::RenderAlpha()
       glCallList(DisplayListID);
      SetLastUsage(Timer::GetSimulationTime());
  };
+ glEnable(GL_BLEND);
+ glAlphaFunc(GL_GREATER,0.04);
+ glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 //---------------------------------------------------------------------------
