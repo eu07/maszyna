@@ -381,15 +381,12 @@ void __fastcall TGroundNode::RaRender()
 
 void __fastcall TGroundNode::RaRenderAlpha()
 {//renderowanie obiektu z VBO - faza przezroczystych
- glEnable(GL_BLEND);
- glAlphaFunc(GL_GREATER,0.04);
- glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
  double mgn=SquareMagnitude(pCenter-Global::pCameraPosition);
  float r,g,b;
  if (mgn<fSquareMinRadius) return;
  if (mgn>fSquareRadius) return;
  int i,a;
- if ((PROBLEND) ) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
+ if ((PROBLEND)) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
  {
  glDisable(GL_BLEND);
  glAlphaFunc(GL_GREATER,0.45);     // im mniejsza wartoœæ, tym wiêksza ramka, domyœlnie 0.1f
@@ -398,9 +395,15 @@ void __fastcall TGroundNode::RaRenderAlpha()
  {
   case TP_TRACTION:
    if (bVisible)
+    glEnable(GL_BLEND);
+    glAlphaFunc(GL_GREATER,0.04);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     Traction->RaRenderVBO(mgn,iVboPtr);
    return;
   case TP_MODEL:
+    glEnable(GL_BLEND);
+    glAlphaFunc(GL_GREATER,0.04);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
    Model->RaRenderAlpha(&pCenter); return;
   case GL_LINES:
   case GL_LINE_STRIP:
@@ -415,22 +418,27 @@ void __fastcall TGroundNode::RaRenderAlpha()
     glDisable(GL_LIGHTING); //nie powinny œwieciæ
     glDrawArrays(iType,iVboPtr,iNumPts); //rysowanie linii
     glEnable(GL_LIGHTING);
-    //przywraca domyœlne renderowanie przeŸroczystoœci
     glEnable(GL_BLEND);
     glAlphaFunc(GL_GREATER,0.04);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
    }
+   glEnable(GL_BLEND);
+   glAlphaFunc(GL_GREATER,0.04);
+   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
    return;
   default:
    if (iVboPtr>=0)
    {RaRenderVBO();
+    glEnable(GL_BLEND);
+    glAlphaFunc(GL_GREATER,0.04);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     return;
    }
  };
- return;
  glEnable(GL_BLEND);
  glAlphaFunc(GL_GREATER,0.04);
  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+ return;
 }
 
 //------------------------------------------------------------------------------
@@ -1094,9 +1102,11 @@ void __fastcall TGroundNode::RenderAlpha()
       glCallList(DisplayListID);
      SetLastUsage(Timer::GetSimulationTime());
  };
- glEnable(GL_BLEND);
+ if ((PROBLEND)) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
+ {glEnable(GL_BLEND);
  glAlphaFunc(GL_GREATER,0.04);
  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+ };
 }
 
 //---------------------------------------------------------------------------

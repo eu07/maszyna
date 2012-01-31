@@ -2818,12 +2818,7 @@ bool __fastcall TDynamicObject::RenderAlpha()
 
 #ifdef USE_VBO
     if (Global::bUseVBO)
-    {glEnable(GL_BLEND); //dodane zabezpieczenie przed problemami z wyœwietlaniem cieni przy VBO
-    glEnable(GL_ALPHA_TEST);
-    glAlphaFunc(GL_GREATER,0.04);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDepthFunc(GL_LEQUAL); 
-    mdModel->RaRenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);}
+    mdModel->RaRenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
     else
 #endif
      mdModel->RenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
