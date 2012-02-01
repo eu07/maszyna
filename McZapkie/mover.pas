@@ -156,8 +156,11 @@ CONST
    s_waiting=1; //dzia³a
    s_aware=2;   //czuwak miga
    s_active=4;  //SHP œwieci
-   s_alarm=8;   //buczy
-   s_ebrake=16; //hamuje
+   s_CAalarm=8;   //buczy
+   s_SHPalarm=16;   //buczy
+   s_CAebrake=32; //hamuje
+   s_SHPebrake=64; //hamuje
+   s_CAtest=128;
 
    {dzwieki}
    sound_none=0;
@@ -345,7 +348,7 @@ TYPE
                        SystemType: byte; {0: brak, 1: czuwak aktywny, 2: SHP/sygnalizacja kabinowa}
                        AwareDelay,SoundSignalDelay,EmergencyBrakeDelay:real;
                        Status: byte;     {0: wylaczony, 1: wlaczony, 2: czuwak, 4: shp, 8: alarm, 16: hamowanie awaryjne}
-                       SystemTimer, SystemSoundTimer, SystemBrakeTimer: real;
+                       SystemTimer, SystemSoundCATimer, SystemSoundSHPTimer, SystemBrakeCATimer, SystemBrakeSHPTimer, SystemBrakeCATestTimer: real;
                        VelocityAllowed, NextVelocityAllowed: integer; {predkosc pokazywana przez sygnalizacje kabinowa}
                        RadioStop:boolean; //czy jest RadioStop
                      end;
@@ -592,6 +595,10 @@ TYPE
                 ResistorsFlag: boolean;  {!o jazda rezystorowa}
                 RventRot: real;          {!s obroty wentylatorow rozruchowych}
                 UnBrake: boolean;       {w EZT - nacisniete odhamowywanie}
+
+
+                s_CAtestebrake: boolean;
+
 
                 {-zmienne dla lokomotywy spalinowej z przekladnia mechaniczna}
                 dizel_fill: real; {napelnienie}
@@ -1497,12 +1504,12 @@ begin
         begin
           dizel_enginestart:=State;
         end;
-       if (State=False) then //jeœli wy³¹czony
-        begin
-         SetFlag(SoundFlag,sound_relay);
-         SecuritySystem.Status:=0; //deaktywacja czuwaka
-        end
-       else
+       //if (State=False) then //jeœli wy³¹czony
+       // begin
+       //  SetFlag(SoundFlag,sound_relay);
+       //  SecuritySystem.Status:=0; //deaktywacja czuwaka
+       // end
+       //else
         SecuritySystem.Status:=s_waiting; //aktywacja czuwaka
      end
    end
@@ -1614,22 +1621,39 @@ function TMoverParameters.SecuritySystemReset : boolean;
 //zbijanie czuwaka/SHP
  procedure Reset;
   begin
-    SecuritySystem.SystemTimer:=0;
-    SecuritySystem.SystemBrakeTimer:=0;
-    SecuritySystem.SystemSoundTimer:=0;
-    SecuritySystem.Status:=s_waiting; //aktywacja czuwaka
-    SecuritySystem.VelocityAllowed:=-1;
+   if TestFlag(SecuritySystem.Status,s_aware) then
+    begin
+     SecuritySystem.SystemTimer:=0;
+     SecuritySystem.SystemBrakeCATimer:=0;
+     SecuritySystem.SystemSoundCATimer:=0;
+     SetFlag(SecuritySystem.Status,-s_aware);
+     SetFlag(SecuritySystem.Status,-s_CAalarm);
+     SetFlag(SecuritySystem.Status,-s_CAebrake);
+     EmergencyBrakeFlag:=false;
+     SecuritySystem.VelocityAllowed:=-1;
+    end
+   else if TestFlag(SecuritySystem.Status,s_active) then
+    begin
+     SecuritySystem.SystemBrakeSHPTimer:=0;
+     SecuritySystem.SystemSoundSHPTimer:=0;
+     SetFlag(SecuritySystem.Status,-s_active);
+     SetFlag(SecuritySystem.Status,-s_SHPalarm);
+     SetFlag(SecuritySystem.Status,-s_SHPebrake);
+     EmergencyBrakeFlag:=false;
+     SecuritySystem.VelocityAllowed:=-1;
+    end;
   end;
 begin
   with SecuritySystem do
     if (SystemType>0) and (Status>0) then
       begin
         SecuritySystemReset:=True;
-        if (Status<s_ebrake) then
-         Reset
-        else
-          if EmergencyBrakeSwitch(False) then
-           Reset;
+        if not (ActiveDir=0) then
+         if not TestFlag(Status,s_CAebrake) or not TestFlag(Status,s_SHPebrake) then
+          Reset;
+        //else
+        //  if EmergencyBrakeSwitch(False) then
+        //   Reset;
       end
     else
      SecuritySystemReset:=False;
@@ -1637,38 +1661,62 @@ begin
 end;
 
 {testowanie czuwaka/SHP}
+
 procedure TMoverParameters.SecuritySystemCheck(dt:real);
 begin
   with SecuritySystem do
    begin
      if (SystemType>0) and (Status>0) then
       begin
+       //CA
+       if (Vel>(0.1*Vmax)) then  //predkosc wieksza od 10% Vmax
+       begin
         SystemTimer:=SystemTimer+dt;
-        if TestFlag(Status,s_aware) or TestFlag(Status,s_active) then //jeœli œwieci albo miga
-         SystemSoundTimer:=SystemSoundTimer+dt;
-        if TestFlag(Status,s_alarm) then //jeœli buczy
-         SystemBrakeTimer:=SystemBrakeTimer+dt;
+        if TestFlag(SystemType,1) and TestFlag(Status,s_aware) then //jeœli œwieci albo miga
+         SystemSoundCATimer:=SystemSoundCATimer+dt;
+        if TestFlag(SystemType,1) and TestFlag(Status,s_CAalarm) then //jeœli buczy
+         SystemBrakeCATimer:=SystemBrakeCATimer+dt;
         if TestFlag(SystemType,1) then
          if (SystemTimer>AwareDelay) and (AwareDelay>=0) then  {-1 blokuje}
            if not SetFlag(Status,s_aware) then {juz wlaczony sygnal swietlny}
-             if (SystemSoundTimer>SoundSignalDelay) and (SoundSignalDelay>=0) then
-               if not SetFlag(Status,s_alarm) then {juz wlaczony sygnal dzwiekowy}
-                 if (SystemBrakeTimer>EmergencyBrakeDelay) and (EmergencyBrakeDelay>=0) then
-                   SetFlag(Status,s_ebrake);        {przeterminowanie czuwaka, hamowanie awaryjne}
+             if (SystemSoundCATimer>SoundSignalDelay) and (SoundSignalDelay>=0) then
+               if not SetFlag(Status,s_CAalarm) then {juz wlaczony sygnal dzwiekowy}
+                 if (SystemBrakeCATimer>EmergencyBrakeDelay) and (EmergencyBrakeDelay>=0) then
+                   SetFlag(Status,s_CAebrake);
+
+
+       //SHP
+        if TestFlag(SystemType,2) and TestFlag(Status,s_active) then //jeœli œwieci albo miga
+         SystemSoundSHPTimer:=SystemSoundSHPTimer+dt;
+        if TestFlag(SystemType,2) and TestFlag(Status,s_SHPalarm) then //jeœli buczy
+         SystemBrakeSHPTimer:=SystemBrakeSHPTimer+dt;
         if TestFlag(SystemType,2) and TestFlag(Status,s_active) then
          if (Vel>VelocityAllowed) and (VelocityAllowed>=0) then
-          SetFlag(Status,s_ebrake)
+          SetFlag(Status,s_SHPebrake)
          else
-          if ((SystemSoundTimer>SoundSignalDelay) and (SoundSignalDelay>=0)) or ((Vel>NextVelocityAllowed) and (NextVelocityAllowed>=0)) then
-            if not SetFlag(Status,s_alarm) then {juz wlaczony sygnal dzwiekowy}
-              if (SystemBrakeTimer>EmergencyBrakeDelay) and (EmergencyBrakeDelay>=0) then
-               SetFlag(Status,s_ebrake);
-        if TestFlag(Status,s_ebrake) then
-         if not EmergencyBrakeFlag then
-           EmergencyBrakeSwitch(True);
+          if ((SystemSoundSHPTimer>SoundSignalDelay) and (SoundSignalDelay>=0)) or ((Vel>NextVelocityAllowed) and (NextVelocityAllowed>=0)) then
+            if not SetFlag(Status,s_SHPalarm) then {juz wlaczony sygnal dzwiekowy}
+              if (SystemBrakeSHPTimer>EmergencyBrakeDelay) and (EmergencyBrakeDelay>=0) then
+               SetFlag(Status,s_SHPebrake);
+
+       end else SystemTimer:=0;
+
+       //TEST CA
+        if TestFlag(Status,s_CAtest) then //jeœli œwieci albo miga
+         SystemBrakeCATestTimer:=SystemBrakeCATestTimer+dt;
+        if TestFlag(SystemType,1) then
+           if TestFlag(Status,s_CAtest) then {juz wlaczony sygnal swietlny}
+               if (SystemBrakeCATestTimer>EmergencyBrakeDelay) and (EmergencyBrakeDelay>=0) then
+                   s_CAtestebrake:=true;
+
+       //wdrazanie hamowania naglego
+        if TestFlag(Status,s_SHPebrake) or TestFlag(Status,s_CAebrake) or (s_CAtestebrake=true) then
+         EmergencyBrakeFlag:=True;
       end;
    end;
 end;
+
+
 
 
 {nastawy hamulca}
@@ -4327,8 +4375,8 @@ begin
 //     Sand:=0;
 //   end;
 {czuwak/SHP}
- if (Vel>10) and (not DebugmodeFlag) then
-  SecuritySystemCheck(dt1);
+ if (not DebugmodeFlag) then SecuritySystemCheck(dt1);
+
 end; {ComputeMovement}
 
 {blablabla}
@@ -4774,7 +4822,7 @@ else if command='PantFront' then         {Winger 160204}
        begin
          VelocityAllowed:=Trunc(CValue1);
          NextVelocityAllowed:=Trunc(CValue2);
-         SystemSoundTimer:=0;
+         SystemSoundSHPTimer:=0;
          SetFlag(Status,s_active);
          OK:=True;
        end
@@ -5080,7 +5128,7 @@ begin
       SystemType:=0;
       AwareDelay:=-1; SoundSignalDelay:=-1; EmergencyBrakeDelay:=-1;
       Status:=0;
-      SystemTimer:=0; SystemBrakeTimer:=0;
+      SystemTimer:=0; SystemBrakeCATimer:=0; SystemBrakeSHPTimer:=0;
       VelocityAllowed:=-1; NextVelocityAllowed:=-1;
       RadioStop:=false; //domyœlnie nie ma
     end;

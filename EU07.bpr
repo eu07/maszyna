@@ -3,7 +3,7 @@
 <PROJECT>
   <MACROS>
     <VERSION value="BCB.05.03"/>
-    <PROJECT value="D:\EU07\EU07.exe"/>
+    <PROJECT value="D:\MaSzyna\EU07.exe"/>
     <OBJFILES value="McZapkie\mover.obj QueryParserComp.obj McZapkie\mtable.obj EU07.obj 
       dumb3d.obj Camera.obj Texture.obj World.obj Model3d.obj geometry.obj 
       MdlMngr.obj Train.obj wavread.obj Timer.obj Event.obj MemCell.obj Logs.obj 
@@ -112,13 +112,15 @@ Item6=GLEW_STATIC;_DEBUG;USE_VERTEX_ARRAYS
 Item7=_DEBUG
 
 [HistoryLists\hlFinalOutputDir]
-Count=6
-Item0=D:\EU07\
-Item1=..\..\PC2010+patch\
-Item2=K:\Czesuaff\PC2010+patch
-Item3=D:\eu07-120303light\
-Item4=D:\EU07DDS\
-Item5=M:\aEU07\EU07\
+Count=8
+Item0=D:\MaSzyna\
+Item1=D:\MaSzyna
+Item2=..\..\PC2010+patch\
+Item3=K:\Czesuaff\PC2010+patch
+Item4=D:\EU07\
+Item5=D:\eu07-120303light\
+Item6=D:\EU07DDS\
+Item7=M:\aEU07\EU07\
 
 [Debugging]
 DebugSourceDirs=C:\Ra\dp\McZapkie\
@@ -133,10 +135,6 @@ RemoteDebug=0
 [Compiler]
 ShowInfoMsgs=0
 LinkDebugVcl=0
-
-[CORBA]
-AddServerUnit=1
-AddClientUnit=1
-PrecompiledHeaders=1
+LinkCGLIB=0
   </IDEOPTIONS>
 </PROJECT>
