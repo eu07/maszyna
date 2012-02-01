@@ -1303,7 +1303,13 @@ bool __fastcall TWorld::Update()
 //yB      if(tmp->MoverParameters->BrakeSubsystem==WeLu) OutText2+=" £estingha³s";
       //OutText2= " GetFirst: "+AnsiString(tmp->GetFirstDynamic(1)->MoverParameters->Name)+" Damage status="+tmp->MoverParameters->EngineDescription(0)+" Engine status: ";
       //OutText2+= " GetLast: "+AnsiString(tmp->GetLastDynamic(1)->MoverParameters->Name)+" Damage status="+tmp->MoverParameters->EngineDescription(0)+" Engine status: ";
-      OutText3= AnsiString("Brake press: ")+FloatToStrF(tmp->MoverParameters->BrakePress,ffFixed,5,2)+AnsiString(", ");
+      OutText3= AnsiString("S: ")+FloatToStrF(tmp->MoverParameters->SecuritySystem.Status,ffFixed,5,0);
+      OutText3+= AnsiString(", S_T: ")+FloatToStrF(tmp->MoverParameters->SecuritySystem.SystemTimer,ffFixed,5,1);
+      OutText3+= AnsiString(", SS_CT: ")+FloatToStrF(tmp->MoverParameters->SecuritySystem.SystemSoundCATimer,ffFixed,5,1);
+      OutText3+= AnsiString(", SB_CT: ")+FloatToStrF(tmp->MoverParameters->SecuritySystem.SystemBrakeCATimer,ffFixed,5,1);
+      OutText3+= AnsiString(", SS_ST: ")+FloatToStrF(tmp->MoverParameters->SecuritySystem.SystemSoundSHPTimer,ffFixed,5,1);
+      OutText3+= AnsiString(", SB_ST: ")+FloatToStrF(tmp->MoverParameters->SecuritySystem.SystemBrakeSHPTimer,ffFixed,5,1);
+      OutText3+= AnsiString("Brake press: ")+FloatToStrF(tmp->MoverParameters->BrakePress,ffFixed,5,2)+AnsiString(", ");
       OutText3+= AnsiString("Pipe press: ")+FloatToStrF(tmp->MoverParameters->PipePress,ffFixed,5,2)+AnsiString(", ");
       OutText3+= AnsiString("BVP: ")+FloatToStrF(tmp->MoverParameters->BrakeVP(),ffFixed,5,2)+AnsiString(", ");
       OutText3+= FloatToStrF(tmp->MoverParameters->CntrlPipePress,ffFixed,5,2)+AnsiString(", ");
@@ -1655,7 +1661,7 @@ void TWorld::ShowHints(void)
    //glRasterPos2f(-0.25f, 0.20f);
    //OutText1="Uruchamianie lokomotywy - pomoc dla niezaawansowanych";
    //glPrint(OutText1.c_str());
-   if(TestFlag(Controlled->MoverParameters->SecuritySystem.Status,s_ebrake))
+   if(TestFlag(Controlled->MoverParameters->SecuritySystem.Status,s_SHPebrake)||TestFlag(Controlled->MoverParameters->SecuritySystem.Status,s_CAebrake))
       {
         OutText1="Gosciu, ale refleks to ty masz szachisty. Teraz zaczekaj.";
         OutText2="W tej sytuacji czuwak mozesz zbic dopiero po zatrzymaniu pociagu. ";
@@ -1663,7 +1669,7 @@ void TWorld::ShowHints(void)
         OutText3="   (mozesz juz nacisnac spacje)";
       }
    else
-   if(TestFlag(Controlled->MoverParameters->SecuritySystem.Status,s_alarm))
+   if(TestFlag(Controlled->MoverParameters->SecuritySystem.Status,s_CAalarm)||TestFlag(Controlled->MoverParameters->SecuritySystem.Status,s_SHPalarm))
       {
         OutText1="Natychmiast zbij czuwak, bo pociag sie zatrzyma!";
         OutText2="   (szybko nacisnij spacje!)";

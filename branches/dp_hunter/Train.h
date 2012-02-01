@@ -141,6 +141,15 @@ public:
     TGauge RightLightButtonGauge;
     TGauge LeftEndLightButtonGauge;
     TGauge RightEndLightButtonGauge;
+
+    //hunter-230112: przelacznik swiatel tylnich
+    TGauge RearUpperLightButtonGauge;
+    TGauge RearLeftLightButtonGauge;
+    TGauge RearRightLightButtonGauge;
+    TGauge RearLeftEndLightButtonGauge;
+    TGauge RearRightEndLightButtonGauge;
+    //------------
+
     TGauge IgnitionKeyGauge;
 
     TGauge CompressorButtonGauge;
@@ -290,6 +299,7 @@ private:
     double fBlinkTimer;
     float fConverterTimer;  //hunter-261211: dla przekaznika
     float fMainRelayTimer;  //hunter-141211: zalaczanie WSa z opoznieniem
+    float fCzuwakTestTimer;
     int CAflag; //hunter-131211: dla osobnego zbijania CA i SHP
 
 //    double fShpTimer;

@@ -101,8 +101,27 @@ __fastcall TTrain::TTrain()
     iCabLightFlag=0;
     pMechSittingPosition=vector3(0,0,0); //ABu: 180404
     LampkaUniversal3_st=false; //ABu: 030405
- dsbSlipAlarm=NULL;
+ dsbNastawnikJazdy=NULL;
+ dsbNastawnikBocz=NULL;
+ dsbRelay=NULL;
+ dsbPneumaticRelay=NULL;
+ dsbSwitch=NULL;
+ dsbPneumaticSwitch=NULL;
+ dsbReverserKey=NULL; //hunter-121211
+ dsbCouplerAttach=NULL;
+ dsbCouplerDetach=NULL;
+ dsbDieselIgnition=NULL;
+ dsbDoorClose=NULL;
+ dsbDoorOpen=NULL;
+ dsbPantUp=NULL;
+ dsbPantDown=NULL;
+ dsbWejscie_na_bezoporow=NULL;
+ dsbWejscie_na_drugi_uklad=NULL; //hunter-081211: poprawka literowki
+ dsbHasler=NULL;
+ dsbBuzzer=NULL;
+ dsbSlipAlarm=NULL; //Bombardier 011010: alarm przy poslizgu dla 181/182
  dsbCouplerStretch=NULL;
+ dsbBufferClamp=NULL;
 }
 
 __fastcall TTrain::~TTrain()
@@ -492,6 +511,59 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       //ABu 060205: dzielo Wingera po malutkim liftingu:
       if (cKey==Global::Keys[k_LeftSign]) //lewe swiatlo - w³¹czenie
       {
+      if ((GetAsyncKeyState(VK_CONTROL)<0)&&(RearLeftLightButtonGauge.SubModel))  //hunter-230112 - z controlem zapala z tylu
+      {
+      //------------------------------
+       if (DynamicObject->MoverParameters->ActiveCab==1)
+       {//kabina 1
+        if (((DynamicObject->iLights[1])&3)==0)
+        {
+         DynamicObject->iLights[1]|=1;
+         dsbSwitch->SetVolume(DSBVOLUME_MAX);
+         dsbSwitch->Play(0,0,0);
+         RearLeftLightButtonGauge.PutValue(1);
+        }
+        if (((DynamicObject->iLights[1])&3)==2)
+        {
+         DynamicObject->iLights[1]&=(255-2);
+         dsbSwitch->SetVolume(DSBVOLUME_MAX);
+         dsbSwitch->Play(0,0,0);
+         if (RearLeftEndLightButtonGauge.SubModel)
+         {
+          RearLeftEndLightButtonGauge.PutValue(0);
+          RearLeftLightButtonGauge.PutValue(0);
+         }
+         else
+          RearLeftLightButtonGauge.PutValue(0);
+        }
+       }
+       else
+       {//kabina -1
+        if (((DynamicObject->iLights[0])&3)==0)
+        {
+         DynamicObject->iLights[0]|=1;
+         dsbSwitch->SetVolume(DSBVOLUME_MAX);
+         dsbSwitch->Play(0,0,0);
+         RearLeftLightButtonGauge.PutValue(1);
+        }
+        if (((DynamicObject->iLights[0])&3)==2)
+        {
+         DynamicObject->iLights[0]&=(255-2);
+         dsbSwitch->SetVolume(DSBVOLUME_MAX);
+         dsbSwitch->Play(0,0,0);
+         if (RearLeftEndLightButtonGauge.SubModel)
+         {
+          RearLeftEndLightButtonGauge.PutValue(0);
+          RearLeftLightButtonGauge.PutValue(0);
+         }
+         else
+          RearLeftLightButtonGauge.PutValue(0);
+        }
+       }
+      //----------------------
+      }
+      else
+      {
        if (DynamicObject->MoverParameters->ActiveCab==1)
        {//kabina 1
         if (((DynamicObject->iLights[0])&3)==0)
@@ -538,9 +610,36 @@ void __fastcall TTrain::OnKeyPress(int cKey)
           LeftLightButtonGauge.PutValue(0);
         }
        }
+      } //-----------
       }
       else
       if (cKey==Global::Keys[k_UpperSign]) //ABu 060205: œwiat³o górne - w³¹czenie
+      {
+      if ((GetAsyncKeyState(VK_CONTROL)<0)&&(RearUpperLightButtonGauge.SubModel))  //hunter-230112 - z controlem zapala z tylu
+      {
+      //------------------------------
+       if ((DynamicObject->MoverParameters->ActiveCab)==1)
+       { //kabina 1
+        if (((DynamicObject->iLights[1])&12)==0)
+        {
+         DynamicObject->iLights[1]|=4;
+         dsbSwitch->SetVolume(DSBVOLUME_MAX);
+         dsbSwitch->Play(0,0,0);
+         RearUpperLightButtonGauge.PutValue(1);
+        }
+       }
+       else
+       {//kabina -1
+        if (((DynamicObject->iLights[0])&12)==0)
+        {
+         DynamicObject->iLights[0]|=4;
+         dsbSwitch->SetVolume(DSBVOLUME_MAX);
+         dsbSwitch->Play(0,0,0);
+         RearUpperLightButtonGauge.PutValue(1);
+        }
+       }
+      } //------------------------------
+      else
       {
        if ((DynamicObject->MoverParameters->ActiveCab)==1)
        { //kabina 1
@@ -563,8 +662,61 @@ void __fastcall TTrain::OnKeyPress(int cKey)
         }
        }
       }
+      }
       else
       if (cKey==Global::Keys[k_RightSign])   //Winger 070304: swiatla tylne (koncowki) - wlaczenie
+      {
+      if ((GetAsyncKeyState(VK_CONTROL)<0)&&(RearRightLightButtonGauge.SubModel))  //hunter-230112 - z controlem zapala z tylu
+      {
+      //------------------------------
+       if (DynamicObject->MoverParameters->ActiveCab==1)
+       {//kabina 1
+        if (((DynamicObject->iLights[1])&48)==0)
+        {
+         DynamicObject->iLights[1]|=16;
+         dsbSwitch->SetVolume(DSBVOLUME_MAX);
+         dsbSwitch->Play(0,0,0);
+         RearRightLightButtonGauge.PutValue(1);
+        }
+        if (((DynamicObject->iLights[1])&48)==32)
+        {
+         DynamicObject->iLights[1]&=(255-32);
+         dsbSwitch->SetVolume(DSBVOLUME_MAX);
+         dsbSwitch->Play(0,0,0);
+         if (RearRightEndLightButtonGauge.SubModel)
+         {
+          RearRightEndLightButtonGauge.PutValue(0);
+          RearRightLightButtonGauge.PutValue(0);
+         }
+         else
+          RearRightLightButtonGauge.PutValue(0);
+        }
+       }
+       else
+       {//kabina -1
+        if (((DynamicObject->iLights[0])&48)==0)
+        {
+         DynamicObject->iLights[0]|=16;
+         dsbSwitch->SetVolume(DSBVOLUME_MAX);
+         dsbSwitch->Play(0,0,0);
+         RearRightLightButtonGauge.PutValue(1);
+        }
+        if (((DynamicObject->iLights[0])&48)==32)
+        {
+         DynamicObject->iLights[0]&=(255-32);
+         dsbSwitch->SetVolume(DSBVOLUME_MAX);
+         dsbSwitch->Play(0,0,0);
+         if (RearRightEndLightButtonGauge.SubModel)
+         {
+          RearRightEndLightButtonGauge.PutValue(0);
+          RearRightLightButtonGauge.PutValue(0);
+         }
+         else
+          RearRightLightButtonGauge.PutValue(0);
+        }
+       }
+      } //------------------------------
+      else
       {
        if (DynamicObject->MoverParameters->ActiveCab==1)
        {//kabina 1
@@ -612,6 +764,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
           RightLightButtonGauge.PutValue(0);
         }
        }
+      }
       }
       if (cKey==Global::Keys[k_EndSign])
       {
@@ -1386,6 +1539,58 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else
       if (cKey==Global::Keys[k_LeftSign])   //ABu 060205: lewe swiatlo - wylaczenie
       {
+      if ((GetAsyncKeyState(VK_CONTROL)<0)&&(RearLeftLightButtonGauge.SubModel))  //hunter-230112 - z controlem gasi z tylu
+      {
+      //------------------------------
+       if (DynamicObject->MoverParameters->ActiveCab==1)
+       {//kabina 1
+        if (((DynamicObject->iLights[1])&3)==0)
+        {
+         DynamicObject->iLights[1]|=2;
+         dsbSwitch->SetVolume(DSBVOLUME_MAX);
+         dsbSwitch->Play(0,0,0);
+         if (RearLeftEndLightButtonGauge.SubModel)
+         {
+          RearLeftEndLightButtonGauge.PutValue(1);
+          RearLeftLightButtonGauge.PutValue(0);
+         }
+         else
+          RearLeftLightButtonGauge.PutValue(-1);
+        }
+        if (((DynamicObject->iLights[1])&3)==1)
+        {
+         DynamicObject->iLights[1]&=(255-1);
+         dsbSwitch->SetVolume(DSBVOLUME_MAX);
+         dsbSwitch->Play(0,0,0);
+         RearLeftLightButtonGauge.PutValue(0);
+        }
+       }
+       else
+       {//kabina -1
+        if (((DynamicObject->iLights[0])&3)==0)
+        {
+         DynamicObject->iLights[0]|=2;
+         dsbSwitch->SetVolume(DSBVOLUME_MAX);
+         dsbSwitch->Play(0,0,0);
+         if (RearLeftEndLightButtonGauge.SubModel)
+         {
+          RearLeftEndLightButtonGauge.PutValue(1);
+          RearLeftLightButtonGauge.PutValue(0);
+         }
+         else
+          RearLeftLightButtonGauge.PutValue(-1);
+        }
+        if (((DynamicObject->iLights[1])&3)==1)
+        {
+         DynamicObject->iLights[1]&=(255-1);
+         dsbSwitch->SetVolume(DSBVOLUME_MAX);
+         dsbSwitch->Play(0,0,0);
+         LeftLightButtonGauge.PutValue(0);
+        }
+       }
+      } //------------------------------
+      else
+      {
        if (DynamicObject->MoverParameters->ActiveCab==1)
        {//kabina 1
         if (((DynamicObject->iLights[0])&3)==0)
@@ -1433,8 +1638,35 @@ void __fastcall TTrain::OnKeyPress(int cKey)
         }
        }
       }
+      }
       else
       if (cKey==Global::Keys[k_UpperSign]) //ABu 060205: œwiat³o górne - wy³¹czenie
+      {
+      if ((GetAsyncKeyState(VK_CONTROL)<0)&&(RearUpperLightButtonGauge.SubModel))  //hunter-230112 - z controlem gasi z tylu
+      {
+      //------------------------------
+       if (DynamicObject->MoverParameters->ActiveCab==1)
+       {//kabina 1
+        if (((DynamicObject->iLights[1])&12)==4)
+        {
+         DynamicObject->iLights[1]&=(255-4);
+         dsbSwitch->SetVolume(DSBVOLUME_MAX);
+         dsbSwitch->Play(0,0,0);
+         RearUpperLightButtonGauge.PutValue(0);
+        }
+       }
+       else
+       {//kabina -1
+        if (((DynamicObject->iLights[0])&12)==4)
+        {
+         DynamicObject->iLights[0]&=(255-4);
+         dsbSwitch->SetVolume(DSBVOLUME_MAX);
+         dsbSwitch->Play(0,0,0);
+         RearUpperLightButtonGauge.PutValue(0);
+        }
+       }
+      } //------------------------------
+      else
       {
        if (DynamicObject->MoverParameters->ActiveCab==1)
        {//kabina 1
@@ -1456,6 +1688,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
          UpperLightButtonGauge.PutValue(0);
         }
        }
+      }
       }
       else
       if (cKey==Global::Keys[k_EndSign])   //ABu 060205: koncowki - sciagniecie
@@ -1488,6 +1721,58 @@ void __fastcall TTrain::OnKeyPress(int cKey)
        }
       }
       if (cKey==Global::Keys[k_RightSign])   //Winger 070304: swiatla tylne (koncowki) - wlaczenie
+      {
+      if ((GetAsyncKeyState(VK_CONTROL)<0)&&(RearRightLightButtonGauge.SubModel))  //hunter-230112 - z controlem gasi z tylu
+      {
+      //------------------------------
+       if (DynamicObject->MoverParameters->ActiveCab==1)
+       { //kabina 0
+        if (((DynamicObject->iLights[1])&48)==0)
+        {
+         DynamicObject->iLights[1]|=32;
+         dsbSwitch->SetVolume(DSBVOLUME_MAX);
+         dsbSwitch->Play(0,0,0);
+         if (RearRightEndLightButtonGauge.SubModel)
+         {
+          RearRightEndLightButtonGauge.PutValue(1);
+          RearRightLightButtonGauge.PutValue(0);
+         }
+        else
+         RearRightLightButtonGauge.PutValue(-1);
+        }
+        if (((DynamicObject->iLights[1])&48)==16)
+        {
+         DynamicObject->iLights[1]&=(255-16);
+         dsbSwitch->SetVolume(DSBVOLUME_MAX);
+         dsbSwitch->Play(0,0,0);
+         RearRightLightButtonGauge.PutValue(0);
+        }
+       }
+       else
+       {//kabina -1
+        if (((DynamicObject->iLights[0])&48)==0)
+        {
+         DynamicObject->iLights[0]|=32;
+         dsbSwitch->SetVolume(DSBVOLUME_MAX);
+         dsbSwitch->Play(0,0,0);
+         if (RearRightEndLightButtonGauge.SubModel)
+         {
+          RearRightEndLightButtonGauge.PutValue(1);
+          RearRightLightButtonGauge.PutValue(0);
+         }
+        else
+         RearRightLightButtonGauge.PutValue(-1);
+        }
+        if (((DynamicObject->iLights[0])&48)==16)
+        {
+         DynamicObject->iLights[0]&=(255-16);
+         dsbSwitch->SetVolume(DSBVOLUME_MAX);
+         dsbSwitch->Play(0,0,0);
+         RearRightLightButtonGauge.PutValue(0);
+        }
+       }
+      } //------------------------------
+      else
       {
        if (DynamicObject->MoverParameters->ActiveCab==1)
        { //kabina 0
@@ -1535,6 +1820,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
          RightLightButtonGauge.PutValue(0);
         }
        }
+      }
       }
       else
       if (cKey==Global::Keys[k_StLinOff])   //Winger 110904: wylacznik st. liniowych
@@ -2674,15 +2960,20 @@ else
      if ((DynamicObject->iLights[0]&1)==1)
       if ((DynamicObject->MoverParameters->ActiveCab)==1)
         LeftLightButtonGauge.PutValue(1);
+      else if ((DynamicObject->MoverParameters->ActiveCab)==-1)
+        RearLeftLightButtonGauge.PutValue(1);
 
      if ((DynamicObject->iLights[1]&1)==1)
       if ((DynamicObject->MoverParameters->ActiveCab)==-1)
         LeftLightButtonGauge.PutValue(1);
+      else if ((DynamicObject->MoverParameters->ActiveCab)==1)
+        RearLeftLightButtonGauge.PutValue(1);
 
 
      //koncowki
      if ((DynamicObject->iLights[0]&2)==2)
       if ((DynamicObject->MoverParameters->ActiveCab)==1)
+       {
         if (LeftEndLightButtonGauge.SubModel)
         {
            LeftEndLightButtonGauge.PutValue(1);
@@ -2690,6 +2981,17 @@ else
         }
         else
            LeftLightButtonGauge.PutValue(-1);
+       }
+      else if ((DynamicObject->MoverParameters->ActiveCab)==-1)
+       {
+        if (RearLeftEndLightButtonGauge.SubModel)
+        {
+           RearLeftEndLightButtonGauge.PutValue(1);
+           RearLeftLightButtonGauge.PutValue(0);
+        }
+        else
+           RearLeftLightButtonGauge.PutValue(-1);
+       }
 
      if ((DynamicObject->iLights[1]&2)==2)
       if ((DynamicObject->MoverParameters->ActiveCab)==-1)
@@ -2702,30 +3004,49 @@ else
         else
            LeftLightButtonGauge.PutValue(-1);
       }
+      else if ((DynamicObject->MoverParameters->ActiveCab)==1)
+      {
+        if (RearLeftEndLightButtonGauge.SubModel)
+        {
+           RearLeftEndLightButtonGauge.PutValue(1);
+           RearLeftLightButtonGauge.PutValue(0);
+        }
+        else
+           RearLeftLightButtonGauge.PutValue(-1);
+      }
      //--------------
      //REFLEKTOR GORNY
      if ((DynamicObject->iLights[0]&4)==4)
       if ((DynamicObject->MoverParameters->ActiveCab)==1)
         UpperLightButtonGauge.PutValue(1);
+      else if ((DynamicObject->MoverParameters->ActiveCab)==-1)
+        RearUpperLightButtonGauge.PutValue(1);
 
      if ((DynamicObject->iLights[1]&4)==4)
       if ((DynamicObject->MoverParameters->ActiveCab)==-1)
         UpperLightButtonGauge.PutValue(1);
+      else if ((DynamicObject->MoverParameters->ActiveCab)==1)
+        RearUpperLightButtonGauge.PutValue(1);
      //--------------
      //REFLEKTOR PRAWY
      //glowne oswietlenie
      if ((DynamicObject->iLights[0]&16)==16)
       if ((DynamicObject->MoverParameters->ActiveCab)==1)
         RightLightButtonGauge.PutValue(1);
+      else if ((DynamicObject->MoverParameters->ActiveCab)==-1)
+        RearRightLightButtonGauge.PutValue(1);
 
      if ((DynamicObject->iLights[1]&16)==16)
       if ((DynamicObject->MoverParameters->ActiveCab)==-1)
         RightLightButtonGauge.PutValue(1);
+      else if ((DynamicObject->MoverParameters->ActiveCab)==1)
+        RearRightLightButtonGauge.PutValue(1);
 
 
      //koncowki
      if ((DynamicObject->iLights[0]&32)==32)
       if ((DynamicObject->MoverParameters->ActiveCab)==1)
+       {
         if (RightEndLightButtonGauge.SubModel)
         {
            RightEndLightButtonGauge.PutValue(1);
@@ -2733,6 +3054,17 @@ else
         }
         else
            RightLightButtonGauge.PutValue(-1);
+       }
+      else if ((DynamicObject->MoverParameters->ActiveCab)==-1)
+       {
+        if (RearRightEndLightButtonGauge.SubModel)
+        {
+           RearRightEndLightButtonGauge.PutValue(1);
+           RearRightLightButtonGauge.PutValue(0);
+        }
+        else
+           RearRightLightButtonGauge.PutValue(-1);
+       }
 
      if ((DynamicObject->iLights[1]&32)==32)
       if ((DynamicObject->MoverParameters->ActiveCab)==-1)
@@ -2745,6 +3077,17 @@ else
         else
            RightLightButtonGauge.PutValue(-1);
       }
+      else if ((DynamicObject->MoverParameters->ActiveCab)==1)
+      {
+        if (RearRightEndLightButtonGauge.SubModel)
+        {
+           RearRightEndLightButtonGauge.PutValue(1);
+           RearRightLightButtonGauge.PutValue(0);
+        }
+        else
+           RearRightLightButtonGauge.PutValue(-1);
+      }
+
     //---------
 //Winger 010304 - pantografy
     if (PantFrontButtonGauge.SubModel)
@@ -2805,7 +3148,7 @@ else
            fBlinkTimer=-fCzuwakBlink;
        else
            fBlinkTimer+=dt;
-       if (TestFlag(DynamicObject->MoverParameters->SecuritySystem.Status,s_aware))
+       if (TestFlag(DynamicObject->MoverParameters->SecuritySystem.Status,s_aware)||TestFlag(DynamicObject->MoverParameters->SecuritySystem.Status,s_CAtest))
         {
          if (fBlinkTimer>0)
           btLampkaCzuwaka.TurnOn();
@@ -2821,7 +3164,7 @@ else
 //          btLampkaSHP.TurnOff();
         }
         else btLampkaSHP.TurnOff();
-       if (TestFlag(DynamicObject->MoverParameters->SecuritySystem.Status,s_alarm))
+       if (TestFlag(DynamicObject->MoverParameters->SecuritySystem.Status,s_CAalarm)||TestFlag(DynamicObject->MoverParameters->SecuritySystem.Status,s_SHPalarm))
         {
           dsbBuzzer->GetStatus(&stat);
           if (!(stat&DSBSTATUS_PLAYING))
@@ -2945,21 +3288,31 @@ else
      //hunter-131211: czuwak przeniesiony z OnKeyPress
      if ( Pressed(Global::Keys[k_Czuwak]) )
      {
+      fCzuwakTestTimer+=dt;
       SecurityResetButtonGauge.PutValue(1);
-      if ((DynamicObject->MoverParameters->SecuritySystem.Status&s_aware)&&
-          (DynamicObject->MoverParameters->SecuritySystem.Status&s_active))                 
-       {
-        DynamicObject->MoverParameters->SecuritySystem.SystemTimer=0;
-        DynamicObject->MoverParameters->SecuritySystem.Status-=s_aware;
-        DynamicObject->MoverParameters->SecuritySystem.VelocityAllowed=-1;
-        CAflag=1;
-       }
-      else if (CAflag!=1)
-        DynamicObject->MoverParameters->SecuritySystemReset();
+        if (CAflag<1)
+         {
+          CAflag=1;
+          DynamicObject->MoverParameters->SecuritySystemReset();
+         }
+        else if (fCzuwakTestTimer>1.0)
+         {
+          SetFlag(DynamicObject->MoverParameters->SecuritySystem.Status,s_CAtest);
+         }
      }
      else
      {
+      fCzuwakTestTimer=0;
       SecurityResetButtonGauge.UpdateValue(0);
+      if (TestFlag(DynamicObject->MoverParameters->SecuritySystem.Status,s_CAtest))//&&(!TestFlag(DynamicObject->MoverParameters->SecuritySystem.Status,s_CAebrake)))
+       {
+        SetFlag(DynamicObject->MoverParameters->SecuritySystem.Status,-s_CAtest);
+        DynamicObject->MoverParameters->s_CAtestebrake=false;
+        DynamicObject->MoverParameters->SecuritySystem.SystemBrakeCATestTimer=0;
+        if ((!TestFlag(DynamicObject->MoverParameters->SecuritySystem.Status,s_SHPebrake))
+         ||(!TestFlag(DynamicObject->MoverParameters->SecuritySystem.Status,s_CAebrake)))
+        DynamicObject->MoverParameters->EmergencyBrakeFlag=false;
+       }
       CAflag=0;
      }
      //-----------------
@@ -3336,6 +3689,13 @@ else
     RightLightButtonGauge.Update();
     LeftEndLightButtonGauge.Update();
     RightEndLightButtonGauge.Update();
+    //hunter-230112
+    RearUpperLightButtonGauge.Update();
+    RearLeftLightButtonGauge.Update();
+    RearRightLightButtonGauge.Update();
+    RearLeftEndLightButtonGauge.Update();
+    RearRightEndLightButtonGauge.Update();
+    //------------
     PantAllDownButtonGauge.Update();
     ConverterButtonGauge.Update();
     ConverterOffButtonGauge.Update();
@@ -3811,6 +4171,13 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     UpperLightButtonGauge.Clear();
     LeftEndLightButtonGauge.Clear();
     RightEndLightButtonGauge.Clear();
+    //hunter-230112
+    RearLeftLightButtonGauge.Clear();
+    RearRightLightButtonGauge.Clear();
+    RearUpperLightButtonGauge.Clear();
+    RearLeftEndLightButtonGauge.Clear();
+    RearRightEndLightButtonGauge.Clear();
+    //-------------
    }
    //SEKCJA REGULATOROW
    else if (str==AnsiString("mainctrl:"))                    //nastawnik
@@ -3876,6 +4243,19 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     LeftEndLightButtonGauge.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("rightend_sw:"))                       //swiatlo
     RightEndLightButtonGauge.Load(Parser,DynamicObject->mdKabina);
+   //---------------------
+   //hunter-230112: przelaczniki swiatel tylnich
+   else if (str==AnsiString("rearupperlight_sw:"))                       //swiatlo
+    RearUpperLightButtonGauge.Load(Parser,DynamicObject->mdKabina);
+   else if (str==AnsiString("rearleftlight_sw:"))                       //swiatlo
+    RearLeftLightButtonGauge.Load(Parser,DynamicObject->mdKabina);
+   else if (str==AnsiString("rearrightlight_sw:"))                       //swiatlo
+    RearRightLightButtonGauge.Load(Parser,DynamicObject->mdKabina);
+   else if (str==AnsiString("rearleftend_sw:"))                       //swiatlo
+    RearLeftEndLightButtonGauge.Load(Parser,DynamicObject->mdKabina);
+   else if (str==AnsiString("rearrightend_sw:"))                       //swiatlo
+    RearRightEndLightButtonGauge.Load(Parser,DynamicObject->mdKabina);
+   //------------------
    else if (str==AnsiString("compressor_sw:"))                       //sprezarka
     CompressorButtonGauge.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("converter_sw:"))                       //przetwornica
