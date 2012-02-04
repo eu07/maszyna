@@ -2548,13 +2548,9 @@ bool __fastcall TDynamicObject::Render()
                  }
                 break;
             }
-            if (MoverParameters->DynamicBrakeFlag==true) //Szociu - 29012012 - je¿eli uruchomiony jest  hamulec elektrodynamiczny, odtwarzany jest dŸwiêk silnika
-            {
+            if ((MoverParameters->DynamicBrakeFlag) && (MoverParameters->EnginePower>0.1)) //Szociu - 29012012 - je¿eli uruchomiony jest  hamulec elektrodynamiczny, odtwarzany jest dŸwiêk silnika
              vol +=0.8;
-            }
-            else
-            {
-            }
+
             if (enginevolume>0.0001)
               if (MoverParameters->EngineType!=DieselElectric)
                { rsSilnik.Play(enginevolume,DSBPLAY_LOOPING,MechInside,GetPosition()); }
