@@ -386,24 +386,30 @@ void __fastcall TGroundNode::RaRenderAlpha()
  if (mgn<fSquareMinRadius) return;
  if (mgn>fSquareRadius) return;
  int i,a;
+ #if (false)
  if ((PROBLEND)) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
  {
  glDisable(GL_BLEND);
  glAlphaFunc(GL_GREATER,0.45);     // im mniejsza wartoœæ, tym wiêksza ramka, domyœlnie 0.1f
  };
+ #endif
  switch (iType)
  {
   case TP_TRACTION:
    if (bVisible)
+    #if (false)
     glEnable(GL_BLEND);
     glAlphaFunc(GL_GREATER,0.04);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    #endif
     Traction->RaRenderVBO(mgn,iVboPtr);
    return;
   case TP_MODEL:
+    #if (false)
     glEnable(GL_BLEND);
     glAlphaFunc(GL_GREATER,0.04);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    #endif
    Model->RaRenderAlpha(&pCenter); return;
   case GL_LINES:
   case GL_LINE_STRIP:
@@ -418,26 +424,34 @@ void __fastcall TGroundNode::RaRenderAlpha()
     glDisable(GL_LIGHTING); //nie powinny œwieciæ
     glDrawArrays(iType,iVboPtr,iNumPts); //rysowanie linii
     glEnable(GL_LIGHTING);
+    #if (false)
     glEnable(GL_BLEND);
     glAlphaFunc(GL_GREATER,0.04);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    #endif
    }
-   glEnable(GL_BLEND);
-   glAlphaFunc(GL_GREATER,0.04);
-   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    #if (false)
+    glEnable(GL_BLEND);
+    glAlphaFunc(GL_GREATER,0.04);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    #endif
    return;
   default:
    if (iVboPtr>=0)
    {RaRenderVBO();
+    #if (false)
     glEnable(GL_BLEND);
     glAlphaFunc(GL_GREATER,0.04);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    #endif
     return;
    }
  };
- glEnable(GL_BLEND);
- glAlphaFunc(GL_GREATER,0.04);
- glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    #if (false)
+    glEnable(GL_BLEND);
+    glAlphaFunc(GL_GREATER,0.04);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    #endif
  return;
 }
 
@@ -1071,13 +1085,13 @@ void __fastcall TGroundNode::RenderAlpha()
      (iNumVerts && (iFlags&0x20)) ||
      (iNumPts && (fLineThickness > 0)))
  {
-
+#if (false)
      if ((PROBLEND) ) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
           {
                glDisable(GL_BLEND);
                glAlphaFunc(GL_GREATER,0.45);     // im mniejsza wartoœæ, tym wiêksza ramka, domyœlnie 0.1f
           };
-
+#endif
      if (!DisplayListID) //||Global::bReCompile) //Ra: wymuszenie rekompilacji
      {
          Compile();
@@ -1102,11 +1116,13 @@ void __fastcall TGroundNode::RenderAlpha()
       glCallList(DisplayListID);
      SetLastUsage(Timer::GetSimulationTime());
  };
+ #if (false)
  if ((PROBLEND)) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
  {glEnable(GL_BLEND);
  glAlphaFunc(GL_GREATER,0.04);
  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
  };
+ #endif
 }
 
 //---------------------------------------------------------------------------
@@ -1679,14 +1695,16 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
     *parser >> token;
    }
    str=AnsiString(token.c_str());
-       // PROBLEND Q: 13122011 - Szociu: 27012012
-           PROBLEND = true;     // domyslnie uruchomione nowe wyœwietlanie
-           tmp->PROBLEND = true;  // odwolanie do tgroundnode, bo rendering jest w tej klasie
-           if (str.Pos("@") > 0)     // sprawdza, czy w nazwie tekstury jest znak "@"
-               {
-                PROBLEND = false;     // jeœli jest, wyswietla po staremu
-                tmp->PROBLEND = false;
-               }
+   #if (false)
+   // PROBLEND Q: 13122011 - Szociu: 27012012
+   PROBLEND = true;     // domyslnie uruchomione nowe wyœwietlanie
+   tmp->PROBLEND = true;  // odwolanie do tgroundnode, bo rendering jest w tej klasie
+   if (str.Pos("@") > 0)     // sprawdza, czy w nazwie tekstury jest znak "@"
+       {
+       PROBLEND = false;     // jeœli jest, wyswietla po staremu
+       tmp->PROBLEND = false;
+       }
+   #endif
    tmp->TextureID=TTexturesManager::GetTextureID(str.c_str());
    tmp->iFlags=TTexturesManager::GetAlpha(tmp->TextureID)?0x20:0x10;
    i=0;
