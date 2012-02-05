@@ -386,31 +386,34 @@ void __fastcall TGroundNode::RaRenderAlpha()
  if (mgn<fSquareMinRadius) return;
  if (mgn>fSquareRadius) return;
  int i,a;
- #if (false)
+#ifdef _PROBLEND
  if ((PROBLEND)) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
  {
  glDisable(GL_BLEND);
  glAlphaFunc(GL_GREATER,0.45);     // im mniejsza wartoœæ, tym wiêksza ramka, domyœlnie 0.1f
  };
- #endif
+#endif
  switch (iType)
  {
   case TP_TRACTION:
    if (bVisible)
-    #if (false)
+   {
+#ifdef _PROBLEND
     glEnable(GL_BLEND);
     glAlphaFunc(GL_GREATER,0.04);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    #endif
+#endif
     Traction->RaRenderVBO(mgn,iVboPtr);
+   }
    return;
   case TP_MODEL:
-    #if (false)
+#ifdef _PROBLEND
     glEnable(GL_BLEND);
     glAlphaFunc(GL_GREATER,0.04);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    #endif
-   Model->RaRenderAlpha(&pCenter); return;
+#endif
+   Model->RaRenderAlpha(&pCenter);
+   return;
   case GL_LINES:
   case GL_LINE_STRIP:
   case GL_LINE_LOOP:
@@ -424,34 +427,34 @@ void __fastcall TGroundNode::RaRenderAlpha()
     glDisable(GL_LIGHTING); //nie powinny œwieciæ
     glDrawArrays(iType,iVboPtr,iNumPts); //rysowanie linii
     glEnable(GL_LIGHTING);
-    #if (false)
+#ifdef _PROBLEND
     glEnable(GL_BLEND);
     glAlphaFunc(GL_GREATER,0.04);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    #endif
+#endif
    }
-    #if (false)
+#ifdef _PROBLEND
     glEnable(GL_BLEND);
     glAlphaFunc(GL_GREATER,0.04);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    #endif
+#endif
    return;
   default:
    if (iVboPtr>=0)
    {RaRenderVBO();
-    #if (false)
+#ifdef _PROBLEND
     glEnable(GL_BLEND);
     glAlphaFunc(GL_GREATER,0.04);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    #endif
+#endif
     return;
    }
- };
-    #if (false)
+ }
+#ifdef _PROBLEND
     glEnable(GL_BLEND);
     glAlphaFunc(GL_GREATER,0.04);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    #endif
+#endif
  return;
 }
 
@@ -1085,7 +1088,7 @@ void __fastcall TGroundNode::RenderAlpha()
      (iNumVerts && (iFlags&0x20)) ||
      (iNumPts && (fLineThickness > 0)))
  {
-#if (false)
+#ifdef _PROBLEND
      if ((PROBLEND) ) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
           {
                glDisable(GL_BLEND);
@@ -1116,13 +1119,13 @@ void __fastcall TGroundNode::RenderAlpha()
       glCallList(DisplayListID);
      SetLastUsage(Timer::GetSimulationTime());
  };
- #if (false)
+#ifdef _PROBLEND
  if ((PROBLEND)) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
  {glEnable(GL_BLEND);
- glAlphaFunc(GL_GREATER,0.04);
- glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glAlphaFunc(GL_GREATER,0.04);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
  };
- #endif
+#endif
 }
 
 //---------------------------------------------------------------------------
@@ -1198,6 +1201,9 @@ Byte TempConnectionType[200]; //Ra: sprzêgi w sk³adzie; ujemne, gdy odwrotnie
 
 void __fastcall TGround::RaTriangleDivider(TGroundNode* node)
 {//tworzy dodatkowe trójk¹ty i zmiejsza podany
+ //to jest wywo³ywane przy wczytywaniu trójk¹tów
+ //dodatkowe trójk¹ty s¹ dodawane do g³ównej listy trójk¹tów
+ //podzia³ trójk¹tów na sektory i kwadraty jest dokonywany póŸniej w FirstInit
  if (node->iType!=GL_TRIANGLES) return; //tylko pojedyncze trójk¹ty
  if (node->iNumVerts!=3) return; //tylko gdy jeden trójk¹t
  double x0=1000.0*floor(0.001*node->pCenter.x)-200.0; double x1=x0+1400.0;
@@ -1297,52 +1303,7 @@ void __fastcall TGround::RaTriangleDivider(TGroundNode* node)
  ntri->pCenter=(ntri->Vertices[0].Point+ntri->Vertices[1].Point+ntri->Vertices[2].Point)/3.0;
  RaTriangleDivider(node); //rekurencja, bo nawet na TD raz nie wystarczy
  RaTriangleDivider(ntri);
-/*
- //no to tworzymy trzy dodatkowe trójk¹ty
- TGroundNode* tri[4]; //zmiena robocza - trzy wskaŸniki
- tri[3]=node; //do kompletu
- int i,j;
- for (i=0;i<3;++i)
- {//skopiowanie parametrów do nowych trzech trójk¹tów
-  tri[i]=new TGroundNode();
-  tri[i]->iType=GL_TRIANGLES;
-  tri[i]->Init(3);
-  tri[i]->TextureID=node->TextureID;
-  tri[i]->iFlags=node->iFlags;
-  for (j=0;j<4;++j)
-  {tri[i]->Ambient[j]=node->Ambient[j];
-   tri[i]->Diffuse[j]=node->Diffuse[j];
-   tri[i]->Specular[j]=node->Specular[j];
-  }
-  tri[i]->asName=node->asName;
-  tri[i]->fSquareRadius=node->fSquareRadius;
-  tri[i]->fSquareMinRadius=node->fSquareMinRadius;
-  tri[i]->bVisible=node->bVisible;
-  //tri[i]->bStatic=node->bStatic;
-  tri[i]->Next=nRootOfType[GL_TRIANGLES];
-  nRootOfType[GL_TRIANGLES]=tri[i]; //dopisanie z przodu do listy
-  iNumNodes++;
- }
- tri[0]->Vertices[0]=node->Vertices[0]; //przepisanie wspó³rzêdnych
- tri[1]->Vertices[1]=node->Vertices[1];
- tri[2]->Vertices[2]=node->Vertices[2];
- tri[3]->Vertices[0].HalfSet(tri[1]->Vertices[1],tri[2]->Vertices[2]);
- tri[3]->Vertices[1].HalfSet(tri[0]->Vertices[0],tri[2]->Vertices[2]);
- tri[3]->Vertices[2].HalfSet(tri[1]->Vertices[1],tri[0]->Vertices[0]);
- tri[0]->Vertices[1]=tri[3]->Vertices[2];
- tri[0]->Vertices[2]=tri[3]->Vertices[1];
- tri[1]->Vertices[0]=tri[3]->Vertices[2];
- tri[1]->Vertices[2]=tri[3]->Vertices[0];
- tri[2]->Vertices[0]=tri[3]->Vertices[1];
- tri[2]->Vertices[1]=tri[3]->Vertices[0];
- for (i=0;i<4;++i)
- {//przeliczenie œrodka ciê¿koœci wszystkich czterech
-  tri[i]->pCenter=(tri[i]->Vertices[0].Point+tri[i]->Vertices[1].Point+tri[i]->Vertices[2].Point)/3;
- }
- for (i=0;i<3;++i)
-  RaTriangleDivider(tri[i]); //rekurencja, bo nawet na TD raz nie wystarczy
-*/
-}
+};
 
 TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
 {//wczytanie wpisu typu "node"
@@ -1695,7 +1656,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
     *parser >> token;
    }
    str=AnsiString(token.c_str());
-   #if (false)
+#ifdef _PROBLEND
    // PROBLEND Q: 13122011 - Szociu: 27012012
    PROBLEND = true;     // domyslnie uruchomione nowe wyœwietlanie
    tmp->PROBLEND = true;  // odwolanie do tgroundnode, bo rendering jest w tej klasie
@@ -1704,7 +1665,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
        PROBLEND = false;     // jeœli jest, wyswietla po staremu
        tmp->PROBLEND = false;
        }
-   #endif
+#endif
    tmp->TextureID=TTexturesManager::GetTextureID(str.c_str());
    tmp->iFlags=TTexturesManager::GetAlpha(tmp->TextureID)?0x20:0x10;
    i=0;
@@ -3679,37 +3640,63 @@ void __fastcall TGround::TerrainWrite()
  //Trójk¹ty s¹ grupowane w submodele wg tekstury.
  //Triangle_strip oraz triangle_fan s¹ rozpisywane na pojedyncze trójk¹ty,
  // chyba ¿e dla danej tekstury wychodzi tylko jeden submodel.
- TModel3d *m=new TModel3d(); //wirtualny model roboczy
+ TModel3d *m=new TModel3d(); //wirtualny model roboczy z oddzielnymi submodelami
  TSubModel *sk; //wskaŸnik roboczy na submodel kwadratu
  TSubModel *st; //wskaŸnik roboczy na submodel tekstury
  //Zliczamy kwadraty z trójk¹tami, iloœæ tekstur oraz wierzcho³ków.
  //Iloœæ kwadratów i iloœæ tekstur okreœli iloœæ submodeli.
  //int sub=0; //ca³kowita iloœæ submodeli
  //int ver=0; //ca³kowita iloœæ wierzcho³ków
- int i,j; //indeksy w pêtli
+ int i,j,k; //indeksy w pêtli
  TGroundNode *Current;
  float8 *ver; //trójk¹ty
+ TSubModel::iInstance=0; //pozycja w tabeli wierzcho³ków liczona narastaj¹co
  for (i=0;i<iNumRects;++i) //pêtla po wszystkich kwadratach kilometrowych
   for (j=0;j<iNumRects;++j)
    if (Rects[i][j].iNodeCount)
    {//o ile s¹ jakieœ trójk¹ty w œrodku
     sk=new TSubModel(); //nowy submodel dla kawadratu
-    sk->asName=AnsiString(1000*(i+500-iNumRects/2)+(j+500-iNumRects/2));
-    m->AddTo("",sk); //dodanie submodelu dla kwadratu
-    for (Current=Rects[i][j].nRootNode;Current;Current=Current->Next)
-     if ((Current->iType==GL_TRIANGLES))//||(Current->iType==GL_TRIANGLE_STRIP)||(Current->iType==GL_TRIANGLE_FAN))
-     {//pêtla po trójk¹tach - zliczanie wierzcho³ków
-      sk->TriangleAdd(TTexturesManager::GetName(Current->TextureID).c_str(),Current->iNumVerts); //zwiêkszenie iloœci trójk¹tów w submodelu
-      //dodanie submodelu dla kolejnej tekstury
-      //m->AddTo(sk->asName,st); //dodanie submodelu dla kwadratu
+    //sk->asName=AnsiString(1000*(i+500-iNumRects/2)+(j+500-iNumRects/2)); //nazwa=numer kwadratu
+    sk->NameSet(AnsiString(1000*(i+500-iNumRects/2)+(j+500-iNumRects/2)).c_str()); //nazwa=numer kwadratu
+    m->AddTo(NULL,sk); //dodanie submodelu dla kwadratu
+    for (Current=Rects[i][j].nRootNode;Current;Current=Current->nNext2)
+     switch (Current->iType)
+     {//pêtla po trójk¹tach - zliczanie wierzcho³ków, dodaje submodel dla ka¿dej tekstury
+      case GL_TRIANGLES:
+       Current->iVboPtr=sk->TriangleAdd(m,Current->TextureID,Current->iNumVerts); //zwiêkszenie iloœci trójk¹tów w submodelu
+       m->iNumVerts+=Current->iNumVerts; //zwiêkszenie ca³kowitej iloœci wierzcho³ków
+       break;
+      case GL_TRIANGLE_STRIP: //na razie nie, bo trzeba przerabiaæ na pojedyncze trójk¹ty
+       break;
+      case GL_TRIANGLE_FAN: //na razie nie, bo trzeba przerabiaæ na pojedyncze trójk¹ty
+       break;
      }
-    for (Current=Rects[i][j].nRootNode;Current;Current=Current->Next)
-     if ((Current->iType==GL_TRIANGLES))//||(Current->iType==GL_TRIANGLE_STRIP)||(Current->iType==GL_TRIANGLE_FAN))
+    for (Current=Rects[i][j].nRootNode;Current;Current=Current->nNext2)
+     switch (Current->iType)
      {//pêtla po trójk¹tach - dopisywanie wierzcho³ków
-      //ver=sk->
+      case GL_TRIANGLES:
+       //ver=sk->TrianglePtr(TTexturesManager::GetName(Current->TextureID).c_str(),Current->iNumVerts); //wskaŸnik na pocz¹tek
+       ver=sk->TrianglePtr(Current->TextureID,Current->iVboPtr); //wskaŸnik na pocz¹tek
+       Current->iVboPtr=-1; //bo to by³o tymczasowo u¿ywane
+       for (k=0;k<Current->iNumVerts;++k)
+       {//przepisanie wspó³rzêdnych
+        ver[k].Point.x=Current->Vertices[k].Point.x;
+        ver[k].Point.y=Current->Vertices[k].Point.y;
+        ver[k].Point.z=Current->Vertices[k].Point.z;
+        ver[k].Normal.x=Current->Vertices[k].Normal.x;
+        ver[k].Normal.y=Current->Vertices[k].Normal.y;
+        ver[k].Normal.z=Current->Vertices[k].Normal.z;
+        ver[k].tu=Current->Vertices[k].tu;
+        ver[k].tv=Current->Vertices[k].tv;
+       }
+       break;
+      case GL_TRIANGLE_STRIP: //na razie nie, bo trzeba przerabiaæ na pojedyncze trójk¹ty
+       break;
+      case GL_TRIANGLE_FAN: //na razie nie, bo trzeba przerabiaæ na pojedyncze trójk¹ty
+       break;
      }
    }
- //m->SaveToBinFile("terrain.e3d");
+ m->SaveToBinFile("terrain.e3d");
 };
 //---------------------------------------------------------------------------
 

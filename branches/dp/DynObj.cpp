@@ -2125,42 +2125,9 @@ if (tmpTraction.TractionVoltage==0)
     //gam=acos((L2-sin_ksi-Lc*cos_fi)/L); //k¹t od poziomu, liczony wzglêdem poziomu
     //gam=asin((L1-cos_ksi-Lc*sin_fi)/L); //k¹t od poziomu, liczony wzglêdem pionu
     gam=atan2((L1-cos(ksi)+Lc*sin_fi),(L2-sin_ksi+Lc*cos_fi)); //k¹t od poziomu
-    //fi4=acos((l1+l2*cos(fi2)+l3*cos(fi3))/-l4); //k¹t obrotu dr¹¿ka mimoœrodowego wzglêdem jarzma
-    //c2=rm*rm*sin(fi)*sin(fi)+(d-rm*cos(fi))*(d-rm*cos(fi)); //kw. odleg³oœci osi mimoœrodu od osi jarzma
-    //ka=acos((-a*a+b*b+c2)/(2.0*b*sqrt(c)))+kj; //k¹t jarzma
-    //kc=acos((-c2+b*b+a*a)/(2.0*b*a))+kd; //k¹t dr¹¿ka mimoœrodowego (jest zaczepiony do jarzma)
     if (smPatykird2[i]) //na razie zabezpieczenie
      smPatykird2[i]->SetRotateXYZ(vector3(RadToDeg(-gam-ksi),0,0)); //obrócenie dr¹¿ka mimoœrodowego
    }
-//--- druga strona---
-/*
-   fi=DegToRad(dWheelAngle[1]+pant2x); //k¹t obrotu ko³a dla t³oka 1
-   sin_fi=sin(fi);
-   cos_fi=cos(fi);
-   dx=panty*cos_fi+sqrt(panth*panth-panty*panty*sin_fi*sin_fi)-panth; //nieoptymalne
-   if (smPatykird1[1]) //na razie zabezpieczenie
-    smPatykird1[1]->SetTranslate(float3(dx,0,0));
-   ka=-asin(panty/panth)*sin_fi;
-   if (smPatykirg1[1]) //na razie zabezpieczenie
-    smPatykirg1[1]->SetRotateXYZ(vector3(RadToDeg(ka),0,0));
-   //smPatykirg1[1]->SetRotate(float3(0,1,0),RadToDeg(fi));
-   fi=DegToRad(dWheelAngle[1]+pant2x-96.77416667); //k¹t obrotu ko³a dla t³oka 2
-   sin_fi=sin(fi);
-   cos_fi=cos(fi);
-   G1=(1.0+L1*L1+L2*L2+Lc*Lc-L*L-2.0*Lc*L2*cos_fi+2.0*Lc*L1*sin_fi);
-   G1_2=G1*G1;
-   G2=2.0*(L2-Lc*cos_fi);
-   G2_2=G2*G2;
-   G3=2.0*(L1-Lc*sin_fi);
-   G3_2=G3*G3;
-   sin_ksi=(G1*G2-G3*_fm_sqrt(G2_2+G3_2-G1_2))/(G2_2+G3_2); //x1 (minus delta)
-   ksi=asin(sin_ksi); //k¹t jarzma
-   if (smPatykirg2[1])
-    smPatykirg2[1]->SetRotateXYZ(vector3(RadToDeg(ksi),0,0)); //obrócenie jarzma
-   gam=atan2((L1-cos(ksi)+Lc*sin_fi),(L2-sin_ksi-Lc*cos_fi)); //k¹t od poziomu
-   if (smPatykird2[1]) //na razie zabezpieczenie
-    smPatykird2[1]->SetRotateXYZ(vector3(-RadToDeg(-gam-ksi),0,0)); //obrócenie dr¹¿ka mimoœrodowego
-*/
   }
 
 //NBMX Obsluga drzwi, MC: zuniwersalnione

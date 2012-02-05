@@ -234,7 +234,7 @@ bool __fastcall TAnimModel::Load(cParser *parser)
   LightsOff[6]=pModel->GetFromName("Light_Off06");
   LightsOff[7]=pModel->GetFromName("Light_Off07");
  }
- for (int i=0; i<iMaxNumLights;++i)
+ for (int i=0;i<iMaxNumLights;++i)
   if (LightsOn[i]||LightsOff[i]) //Ra: zlikwidowa³em wymóg istnienia obu
    iNumLights=i+1;
 

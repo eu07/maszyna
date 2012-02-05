@@ -16,7 +16,9 @@
 #include "AdvSound.h"
 #include "Button.h"
 #include "AirCoupler.h"
-
+//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
 //McZapkie-250202
   const MaxAxles=16; //ABu 280105: zmienione z 8 na 16
   const MaxAnimatedAxles=16; //i to tez.
@@ -33,9 +35,35 @@ szczególnie dla pojazdów w danej chwili nieruchomych (przy du¿ym zagêszczeniu
 modeli na stacjach na ogó³ przewaga jest tych nieruchomych).
 */
 
-class TDynamicAnim
+class TAnim
 {//klasa animowanej czêœci pojazdu (ko³a, drzwi, pantografy, burty, napêd parowozu itd.)
 };
+
+class TAnimWheel : public TAnim
+{//klasa animowanych osi i wi¹zarów
+ TSubModel *smWheel;
+};
+
+class TAnimDoor : public TAnim
+{//klasa animowanych drzwi, klap, burt itp. (pojedyncze skrzyd³o)
+ TSubModel *smDoor;
+};
+
+class TAnimPant : public TAnim
+{//klasa animowanego pantografu
+ TSubModel *smPantLower; //dolna czêœæ
+ TSubModel *smPantUpper; //górna czêœæ
+};
+
+class TAnimEccentric : public TAnim
+{//napêd i rozrz¹d t³oka parowozu (na parowóz od 2 do 4)
+ //kolejno: t³oczysko, korbowód, dr¹¿ek, jarzmo, trzon suwaka, wahacz, dr. wahacza, dr. krzy¿ulca
+ TSubModel *smElement[8]; //elementy napêdu i rozrz¹du
+};
+
+//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
 
 class TDynamicObject
 {//klasa pojazdu
