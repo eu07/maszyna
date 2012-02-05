@@ -89,7 +89,7 @@ __fastcall TTrain::TTrain()
     fTachoVelocity=0;
     fTachoCount=0;
     fPPress=fNPress=0;
-
+    CAflag=false; //hunter-131211: dla osobnego zbijania CA i SHP
     asMessage="";
     fMechCroach=0.25;
     pMechShake=vector3(0,0,0);
@@ -438,6 +438,12 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       if (cKey==Global::Keys[k_Univ3])
       {
            if (Universal3ButtonGauge.GetValue()==0)
+           {
+               dsbSwitch->SetVolume(DSBVOLUME_MAX);
+               dsbSwitch->Play(0,0,0);
+           }
+           //hunter-050212: oswietlenie kabiny
+           else if (CabLightButtonGauge.GetValue()==0)
            {
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
                dsbSwitch->Play(0,0,0);
@@ -1484,6 +1490,12 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
                dsbSwitch->Play(0,0,0);
            }
+           //hunter-050212: oswietlenie kabiny
+           else if (CabLightButtonGauge.GetValue()!=0)
+           {
+               dsbSwitch->SetVolume(DSBVOLUME_MAX);
+               dsbSwitch->Play(0,0,0);
+           }
       }
       else
       //-----------
@@ -1997,6 +2009,12 @@ bool __fastcall TTrain::Update()
   else
    if (fTachoCount>0)
     fTachoCount-=dt;
+
+  //hunter-060112: blokada haslera po przekroczeniu zakresu
+  //(o ile zdefiniowany w pliku mmd pojazdu)
+  if (fMaxTachoVelocity)
+   if (fTachoVelocity>fMaxTachoVelocity)
+    fTachoVelocity=fMaxTachoVelocity;
 
 /* Ra: to by trzeba by³o przemyœleæ, zmienione na szybko problemy robi
   //McZapkie: predkosc wyswietlana na tachometrze brana jest z obrotow kol
@@ -3290,9 +3308,9 @@ else
      {
       fCzuwakTestTimer+=dt;
       SecurityResetButtonGauge.PutValue(1);
-        if (CAflag<1)
+        if (CAflag==false)
          {
-          CAflag=1;
+          CAflag=true;
           DynamicObject->MoverParameters->SecuritySystemReset();
          }
         else if (fCzuwakTestTimer>1.0)
@@ -3313,7 +3331,7 @@ else
          ||(!TestFlag(DynamicObject->MoverParameters->SecuritySystem.Status,s_CAebrake)))
         DynamicObject->MoverParameters->EmergencyBrakeFlag=false;
        }
-      CAflag=0;
+      CAflag=false;
      }
      //-----------------
      //hunter-201211: piasecznica przeniesiona z OnKeyPress, wlacza sie tylko,
@@ -3452,19 +3470,46 @@ else
      }
      if ( Pressed(Global::Keys[k_Univ3]) )
      {
-        if (Universal3ButtonGauge.SubModel)
-        if (Pressed(VK_SHIFT))
-        {
-           Universal3ButtonGauge.PutValue(1);  //hunter-131211: z UpdateValue na PutValue - by zachowywal sie jak pozostale przelaczniki
-           if (btLampkaUniversal3.Active())
-              LampkaUniversal3_st=true;
-        }
-        else
-        {
-           Universal3ButtonGauge.PutValue(0);  //hunter-131211: z UpdateValue na PutValue - by zachowywal sie jak pozostale przelaczniki
-           if (btLampkaUniversal3.Active())
-              LampkaUniversal3_st=false;
-        }
+          if (Pressed(VK_SHIFT))
+           {
+            if (GetAsyncKeyState(VK_CONTROL)<0)  //hunter-050212: oswietlenie kabiny
+             {
+              if (CabLightButtonGauge.SubModel)
+               {
+                if (Pressed(VK_SHIFT))
+                 {
+                  CabLightButtonGauge.PutValue(1);
+                  iCabLightFlag=1;
+                 }
+               }
+             }
+            else
+             {
+              if (Universal3ButtonGauge.SubModel)
+               {
+                Universal3ButtonGauge.PutValue(1);  //hunter-131211: z UpdateValue na PutValue - by zachowywal sie jak pozostale przelaczniki
+                if (btLampkaUniversal3.Active())
+                  LampkaUniversal3_st=true;
+               }
+             }
+           }
+          else
+           {
+            if (GetAsyncKeyState(VK_CONTROL)<0)  //hunter-050212: oswietlenie kabiny
+             {
+               CabLightButtonGauge.PutValue(0);  //hunter-131211: z UpdateValue na PutValue - by zachowywal sie jak pozostale przelaczniki
+               iCabLightFlag=0;
+             }
+            else
+             {
+              if (Universal3ButtonGauge.SubModel)
+               {
+                Universal3ButtonGauge.PutValue(0);  //hunter-131211: z UpdateValue na PutValue - by zachowywal sie jak pozostale przelaczniki
+                if (btLampkaUniversal3.Active())
+                 LampkaUniversal3_st=false;
+               }
+             }
+           }
      }
      //ABu030405 obsluga lampki uniwersalnej:
      if ((LampkaUniversal3_st)&&(btLampkaUniversal3.Active()))
@@ -3677,7 +3722,7 @@ else
     ReleaserButtonGauge.Update();
     AntiSlipButtonGauge.Update();
     FuseButtonGauge.Update();
-    ConverterFuseButtonGauge.Update();    
+    ConverterFuseButtonGauge.Update();
     StLinOffButtonGauge.Update();
     RadioButtonGauge.Update();
     DepartureSignalButtonGauge.Update();
@@ -3708,6 +3753,7 @@ else
     if (ActiveUniversal4)
        Universal4ButtonGauge.PermIncValue(dt);
     Universal4ButtonGauge.Update();
+    CabLightButtonGauge.Update(); //hunter-050212: oswietlenie kabiny 
     MainOffButtonGauge.UpdateValue(0);
     MainOnButtonGauge.UpdateValue(0);
     SecurityResetButtonGauge.UpdateValue(0);
@@ -3952,7 +3998,13 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
           fMechRoll=Parser->GetNextSymbol().ToDouble();
           fMechPitch=Parser->GetNextSymbol().ToDouble();
          }
-                 else
+        else
+        if (str==AnsiString("maxtachovel:"))           //hunter-060112: maksymalny zakres predkosciomierza
+         {
+          str=Parser->GetNextSymbol();
+          fMaxTachoVelocity=str.ToDouble();
+         }
+        else
         if (str==AnsiString("pantographup:"))           //podniesienie patyka:
          {
           str=Parser->GetNextSymbol().LowerCase();
@@ -4083,6 +4135,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     Universal2ButtonGauge.Clear();
     Universal3ButtonGauge.Clear();
     Universal4ButtonGauge.Clear();
+    CabLightButtonGauge.Clear(); //hunter-050212: oswietlenie kabiny
     FuseButtonGauge.Clear();
     ConverterFuseButtonGauge.Clear();    
     StLinOffButtonGauge.Clear();
@@ -4215,8 +4268,6 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     SecurityResetButtonGauge.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("releaser_bt:"))                   //przycisk odluzniacza
     ReleaserButtonGauge.Load(Parser,DynamicObject->mdKabina);
-   else if (str==AnsiString("releaser_bt:"))                   //przycisk odluzniacza
-    ReleaserButtonGauge.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("antislip_bt:"))                   //przycisk antyposlizgowy
     AntiSlipButtonGauge.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("horn_bt:"))                       //dzwignia syreny
@@ -4287,6 +4338,9 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     Universal3ButtonGauge.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("universal4:"))
     Universal4ButtonGauge.Load(Parser,DynamicObject->mdKabina);
+   //hunter-050212: oswietlenie kabiny
+   else if (str==AnsiString("cablight_sw:"))
+    CabLightButtonGauge.Load(Parser,DynamicObject->mdKabina);
    //SEKCJA WSKAZNIKOW
    else if (str==AnsiString("tachometer:"))                    //predkosciomierz
     VelocityGauge.Load(Parser,DynamicObject->mdKabina);

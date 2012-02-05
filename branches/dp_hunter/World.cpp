@@ -1044,6 +1044,17 @@ bool __fastcall TWorld::Update()
        }
        break;
       }
+      //hunter-050212: oswietlenie kabiny
+      if (Train->iCabLightFlag==1)
+       {
+        for (int li=0; li<3; li++)
+        {
+         ambientCabLight[li] =2.0;
+         diffuseCabLight[li] =2.0;
+         specularCabLight[li]=2.0;
+        }
+       }
+
       glLightfv(GL_LIGHT0,GL_AMBIENT,ambientCabLight);
       glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseCabLight);
       glLightfv(GL_LIGHT0,GL_SPECULAR,specularCabLight);
