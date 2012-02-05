@@ -18,15 +18,112 @@ hunter-020112:
 - wydzielenie dzwiekow wejscia na drugi uklad i wejscia na bezoporowa do mmd, definiowanie: wejscie_na_bezoporow: nazwadzwieku.wav, wejscie_na_drugi_uklad: nazwadzwieku.wav, musza byc zdefiniowane PRZED relay:
 - poprawka dla dzwiekow zlozonych z trzech plikow - nie trzeba czekac do momentu zakonczenia odgrywania dzwieku "stop", by odtwarzal sie dzwiek "start" po ponownym zalaczeniu np. przetwornicy/sprezarki
 
+hunter-060112:
+- dodany maksymalny zakres pokazywany przez predkosciomierz, definiowanie w mmd w internaldata (np. za mechspring): maxtachovel: (predkosc maksymalna)
+
 hunter-230112:
 - zapalanie tylnich reflektorow z przedniej kabiny i odwrotnie (jezeli przelaczniki sa zdefiniowane w mmd, czyli rearleftlight_sw, rearupperlight_sw, rearrightlight_sw, opcjonalnie rearleftend_sw, rearrightend_sw), zapalanie ctrl+shift+(y/u/i), gaszenie ctrl+(y/u/i)
 - dodany test czuwaka
 
 hunter-050212:
-- dodane oswietlenie kabiny, zapalanie ctrl+shift+; , gaszenie ctrl+; , przykladowa definicja w mmd: 
-cablight_sw: nazwaprzelacznika rot -0.2 0 0.2
-- dodany maksymalny zakres pokazywany przez predkosciomierz, definiowanie w mmd w internaldata (np. za mechspring): maxtachovel: (predkosc maksymalna)
+- dodane oswietlenie kabiny (na razie tylko nad mechanikiem), zapalanie ctrl+shift+; , gaszenie ctrl+; , przykladowa definicja w mmd: 
+cablight1_sw: nazwaprzelacznika rot -0.2 0 0.2
 
+
+
+
+
+
+
+
+
+
+
+
+***********************************************************************************************************
 
 todo:
-dla ep02 pod jednym heblem obydwie koncowki dla przodu i dla tylu, sygnalizacja zapalonych koncowek
+- sciemnianie swiatla po wylaczeniu przetwornicy
+- drugie swiatlo (nad glowa pomocnika, definiowane pod cablight2_sw)
+- bardziej pomaranczowa barwa zapalonego swiatla
+- dla ep02 pod jednym heblem obydwie koncowki dla przodu i dla tylu, sygnalizacja zapalonych koncowek
+
+
+--------OD RULZA----------
+- oddzielenie mmd kabiny A i B - np. do wylaczania dzwieku Haslera w kabinie B EU05 i innych dzwiekow np. na pomostach SM42
+- zalaczanie baterii
+- lampki bocznikowania w spalinkach
+- zmiana natezenia swiatla kontrolek przy wylaczonej przetwornicy, rowniez dzialajacy woltomierz nn
+- przelaczniki zalaczania koncowek z kabiny przedniej oraz kontrolki zalaczonych koncowek z przodu i z tylu (osobne)
+- dla ET22 blokada nastawnika przy zalaczonych bokach, blokada bocznikow na innych niz bezoporowych (nie wystepuje w EU07)
+- przelacznik WS obslugiwany stabilny hebelkiem
+- buczki przy jezdzie ponad 5 minut na wysokim rozruchu na pozycjach oporowych (EU07, ET22 i pochodne)
+- buczek przy poslizgu na ET22
+- zmiana predkosci przetwornicy w zaleznosci od napiecia sieciowego
+- poprawa zaleznosci przekaznika jazdy rownoleglej dla EU07 i pochodnych
+- mozliwosc wylaczenia wentylatorow oporow rozruchowych dla lokomotyw w ktorych mozliwe (niemozliwe w np. EU05)
+- mozliwosc zdefiniowania innego niz prostokat ksztaltu zakresu poruszania sie w kabinach i przedzialach maszynowych
+- kontrolka poslizgu powinna sie swiecic dopiero po przekroczeniu roznicy predkosci obrotowej wobec liniowej o 180 obr/min (na silniku, dla EU07 to jest 8 km/h) 
+
+EU07:
+- rozruch na "wysokim" pradzie dziala tylko w trakcji pojedynczej
+
+EU04, EU20 (zrobione przez KURS90):
+- przywrocenie kontrolek jazdy na oporach dla drugiej lokomotywy przy ukrutnieniu
+- przywrocenie kontrolek jazdy bezoporowej dla pierwszej i drugiej lokomotywy (dzialaja na  bezoporowych ale nie na 0)
+- przywrocenie kontrolki sterowania wielokrotnego - swieci sie przy polaczeniu sprzegiem sterowania wielokrotnego
+- przywrocenie jednokierunkowego walu bocznikowania, cofniecie z np. 7 na 6 bok mozliwe dopiero po cofnieciu raczki na 0
+
+EW58:
+- zwiekszyc MPT do 10 pozycji
+- 3 nastawy PSR (niska, srednia, wysoka) - wybierane nastawnikiem w nastepujacy sposob:
+  * wybranie pozycji M nastawnikiem - 1 pozycja oporowa
+  * wybranie pozycji P nastawnikiem - 1 nastawa PSR az do osiagniecia bezoporowej
+  * wybranie pozycji B1 nastawnikiem - 2 nastawa PSR az do osiagniecia 5 bocznika
+  * wybranie pozycji B2 nastawnikiem - 3 nastawa PSR az do osiagniecia 9 bocznika
+  (sugeruje wybor konkretnej nastawy jaka bedzie uzywana poprzez dodatkowa kolumne w RList i MPT)
+- dwukierunkowy wal kulakowy
+- osobny amperomierz pradu rozruchu i hamowania ED
+- 3 stopniowe hamowanie ED (1 stopien dzialajacy w zakresie 100-120 km/h)
+- mozliwosc zalaczania hamowania EP konkretnego czlonu od konkretnej predkosci (przy hamowaniu ED)
+
+EP01, EP02:
+- po przejsciu na pierwsza oporowa R, cofniecie sie na uklad szeregowy (w tym boczniki szeregowego) jest mozliwe dopiero po cofnieciu na 0 - prawdopodobnie po cofnieciu na S nie ma zmian i wciaz jest 1. oporowa R ale to sprawdze
+
+SM03:
+- mozliwosc umieszczenia w jednej chk dwoch skrzyni biegow (niski, wysoki zakres predkosci) przelaczanych przelacznikiem, przelaczanie wylacznie na luzie
+
+SM42:
+- wylaczania bocznikowanie poprzez cofniecie nastawnika ponizej pewnej pozycje (upewnie sie ktora)
+
+INNE SPALINOWE:
+- przelacznik jalowych obrotow - pozwala krecic silnikiem bez jazdy
+
+EU06 i EU07 (historyczne), ET41 (trakcja wielokrotna?):
+Wykonanie PSR dla historycznych wersji EU06 i EU07 na zasadzie:
+Rozruch asystoswany PSRem mozliwy jest od 4 pozycji nastawnika jazdy. Imin reguluje sie potencjometrem na pulpicie. Mozliwe konfiguracje:
+1) Rozruch "niski", dostosowanie naciskow "wyl":
+wowczas Imin, w polozeniu min potencjometra - 244 A, max - 454 A
+2) Rozruch "niski", dostosowanie naciskow "wl":
+wowczas Imin, w polozeniu min potencjometra - 352 A, max - 490 A
+3) Rozruch "wysoki", dostosowanie naciskow "wyl":
+wowczas Imin, w polozeniu min potencjometra - 450 A, max - 584 A
+4) Rozruch "wysoki", dostosowanie naciskow "wl":
+wowczas Imin, w polozeniu min potencjometra - 480 A, max - 635 A
+5) Trakcja wielokrotna:
+wowczas Imin jest stale i wynosi 354 A
+
+Pokretlo sterowane w podobny sposob jak plynna regulacja wzbudzania w SM42 (moze zamiast / * - ctrl+/ i ctrl+* ?)
+
+EP09:
+- kontrolka "jazda" - chyba byly z tym problemy jakies?
+
+EU05, EP05:
+- przelacznik pantografu na zasadzie 4 pozycyjnego jednego przelacznika - opuszczone,przedni, oba, tylny (sprawdzic czy poprawna kolejnosc), pod shift+o bylby 4 pozycyjny dla lokomotywy 1, a pod shift+p 4 pozycyjny dla lokomotywy 2 (w sterowaniu wielokrotnym)
+- sterowanie walem kulakowym (szczegoly podam pozniej. bycmoze tez ET40 i 181/2?)
+
+SYMULACJA OBWODOW NN:
+- prad ladowania i wyladowania w zaleznosci od zalaczonych urzadzen:
+  * sama bateria, brak odbiornikow - w  zasadzie 0 A
+  * wlaczona przetwornica, brak odbiornikow - prad w zakresie ladowania
+  * wlaczona przetwornica, zmiana pradu w zaleznosci od mocy odbiornikow (oswietlenie itd., dane o mocy poszczegolnych urzadzen NN pozniej podam dla poszczegolnych lokomotyw)

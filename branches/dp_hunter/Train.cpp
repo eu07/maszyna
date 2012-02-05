@@ -437,17 +437,23 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       //hunter-131211: dzwiek dla przelacznika universala podniesionego
       if (cKey==Global::Keys[k_Univ3])
       {
-           if (Universal3ButtonGauge.GetValue()==0)
-           {
-               dsbSwitch->SetVolume(DSBVOLUME_MAX);
-               dsbSwitch->Play(0,0,0);
-           }
+        if (GetAsyncKeyState(VK_CONTROL)<0)  //hunter-050212: oswietlenie kabiny
+         {
            //hunter-050212: oswietlenie kabiny
-           else if (CabLightButtonGauge.GetValue()==0)
+           if ((CabLight1ButtonGauge.SubModel)&&(CabLight1ButtonGauge.GetValue()==0))
            {
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
                dsbSwitch->Play(0,0,0);
            }
+         }
+        else
+         {
+           if (((Universal3ButtonGauge.SubModel)&&(Universal3ButtonGauge.GetValue()==0))
+           {
+               dsbSwitch->SetVolume(DSBVOLUME_MAX);
+               dsbSwitch->Play(0,0,0);
+           }
+         }
       }
       else
       //-----------
@@ -1485,17 +1491,23 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       //hunter-131211: dzwiek dla przelacznika universala
       if (cKey==Global::Keys[k_Univ3])
       {
-           if (Universal3ButtonGauge.GetValue()!=0)
-           {
-               dsbSwitch->SetVolume(DSBVOLUME_MAX);
-               dsbSwitch->Play(0,0,0);
-           }
+        if (GetAsyncKeyState(VK_CONTROL)<0)  //hunter-050212: oswietlenie kabiny
+         {
            //hunter-050212: oswietlenie kabiny
-           else if (CabLightButtonGauge.GetValue()!=0)
+           if ((CabLight1ButtonGauge.SubModel)&&(CabLight1ButtonGauge.GetValue()!=0))
+           {
+               dsbSwitch->SetVolume(DSBVOLUME_MAX);
+               dsbSwitch->Play(0,0,0);
+           }         
+         }
+        else
+         {
+           if ((Universal3ButtonGauge.SubModel)&&(Universal3ButtonGauge.GetValue()!=0))
            {
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
                dsbSwitch->Play(0,0,0);
            }
+         }
       }
       else
       //-----------
@@ -3474,12 +3486,13 @@ else
            {
             if (GetAsyncKeyState(VK_CONTROL)<0)  //hunter-050212: oswietlenie kabiny
              {
-              if (CabLightButtonGauge.SubModel)
+              if (CabLight1ButtonGauge.SubModel)
                {
                 if (Pressed(VK_SHIFT))
                  {
-                  CabLightButtonGauge.PutValue(1);
+                  CabLight1ButtonGauge.PutValue(1);
                   iCabLightFlag=1;
+                  btCabLight1.TurnOn();
                  }
                }
              }
@@ -3497,8 +3510,9 @@ else
            {
             if (GetAsyncKeyState(VK_CONTROL)<0)  //hunter-050212: oswietlenie kabiny
              {
-               CabLightButtonGauge.PutValue(0);  //hunter-131211: z UpdateValue na PutValue - by zachowywal sie jak pozostale przelaczniki
+               CabLight1ButtonGauge.PutValue(0);  //hunter-131211: z UpdateValue na PutValue - by zachowywal sie jak pozostale przelaczniki
                iCabLightFlag=0;
+               btCabLight1.TurnOff();
              }
             else
              {
@@ -3753,7 +3767,7 @@ else
     if (ActiveUniversal4)
        Universal4ButtonGauge.PermIncValue(dt);
     Universal4ButtonGauge.Update();
-    CabLightButtonGauge.Update(); //hunter-050212: oswietlenie kabiny 
+    CabLight1ButtonGauge.Update(); //hunter-050212: oswietlenie kabiny
     MainOffButtonGauge.UpdateValue(0);
     MainOnButtonGauge.UpdateValue(0);
     SecurityResetButtonGauge.UpdateValue(0);
@@ -4135,7 +4149,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     Universal2ButtonGauge.Clear();
     Universal3ButtonGauge.Clear();
     Universal4ButtonGauge.Clear();
-    CabLightButtonGauge.Clear(); //hunter-050212: oswietlenie kabiny
+    CabLight1ButtonGauge.Clear(); //hunter-050212: oswietlenie kabiny
     FuseButtonGauge.Clear();
     ConverterFuseButtonGauge.Clear();    
     StLinOffButtonGauge.Clear();
@@ -4219,6 +4233,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     btLampkaWylSzybkiB.Clear();
     btLampkaForward.Clear();
     btLampkaBackward.Clear();
+    btCabLight1.Clear();
     LeftLightButtonGauge.Clear();
     RightLightButtonGauge.Clear();
     UpperLightButtonGauge.Clear();
@@ -4339,8 +4354,8 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
    else if (str==AnsiString("universal4:"))
     Universal4ButtonGauge.Load(Parser,DynamicObject->mdKabina);
    //hunter-050212: oswietlenie kabiny
-   else if (str==AnsiString("cablight_sw:"))
-    CabLightButtonGauge.Load(Parser,DynamicObject->mdKabina);
+   else if (str==AnsiString("cablight1_sw:"))
+    CabLight1ButtonGauge.Load(Parser,DynamicObject->mdKabina);
    //SEKCJA WSKAZNIKOW
    else if (str==AnsiString("tachometer:"))                    //predkosciomierz
     VelocityGauge.Load(Parser,DynamicObject->mdKabina);
@@ -4493,6 +4508,8 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     btLampkaForward.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("i-backward:"))
     btLampkaBackward.Load(Parser,DynamicObject->mdKabina);
+   else if (str==AnsiString("i-cablight1:"))
+    btCabLight1.Load(Parser,DynamicObject->mdKabina);
    //btLampkaUnknown.Init("unknown",mdKabina,false);
   }
  }

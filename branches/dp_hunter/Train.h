@@ -165,7 +165,7 @@ public:
     TGauge Universal3ButtonGauge;
     TGauge Universal4ButtonGauge;
 
-    TGauge CabLightButtonGauge; //hunter-050212: przelacznik oswietlania kabiny
+    TGauge CabLight1ButtonGauge; //hunter-050212: przelacznik oswietlania kabiny
 //NBMX wrzesien 2003 - obsluga drzwi
     TGauge DoorLeftButtonGauge;
     TGauge DoorRightButtonGauge;
@@ -225,6 +225,8 @@ public:
 
     TButton btLampkaForward; //Ra: lampki w przód i w ty³ dla komputerowych kabin
     TButton btLampkaBackward;
+
+    TButton btCabLight1; //hunter-050212;
 
     vector3 pPosition;
     vector3 pMechOffset;
