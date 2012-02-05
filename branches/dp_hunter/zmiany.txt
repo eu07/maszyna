@@ -26,8 +26,10 @@ hunter-230112:
 - dodany test czuwaka
 
 hunter-050212:
-- dodane oswietlenie kabiny (na razie tylko nad mechanikiem), zapalanie ctrl+shift+; , gaszenie ctrl+; , przykladowa definicja w mmd: 
-cablight1_sw: nazwaprzelacznika rot -0.2 0 0.2
+- dodane oswietlenie kabiny (na razie tylko nad mechanikiem), zapalanie ctrl+shift+; , gaszenie ctrl+; , dziala TYLKO po zdefiniowaniu przelacznika odpowiedzialnego za swiatlo, przykladowa definicja w mmd: 
+cablight1_sw: nazwaprzelacznika rot -0.2 0 0.2  . DODATKOWO mozemy zdefiniowac lampe: i-cablight1: lampanadmechanikiem , w t3d obiekt lampanadmechanikiem_on
+- dodany wylacznik wentylatorow oporow rozruchowych, domyslnie zalaczone, ctrl+shift+W zalaczenie, ctrl+w wylaczenie wentylatorow
+
 
 
 
@@ -47,7 +49,7 @@ todo:
 - drugie swiatlo (nad glowa pomocnika, definiowane pod cablight2_sw)
 - bardziej pomaranczowa barwa zapalonego swiatla
 - dla ep02 pod jednym heblem obydwie koncowki dla przodu i dla tylu, sygnalizacja zapalonych koncowek
-
+- dla wentylatorow oporow rozruchowych zaleznosc dzialania wylacznika od istnienia wpisu w chk
 
 --------OD RULZA----------
 - oddzielenie mmd kabiny A i B - np. do wylaczania dzwieku Haslera w kabinie B EU05 i innych dzwiekow np. na pomostach SM42
