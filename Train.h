@@ -164,6 +164,8 @@ public:
     TGauge Universal2ButtonGauge;
     TGauge Universal3ButtonGauge;
     TGauge Universal4ButtonGauge;
+
+    TGauge CabLightButtonGauge; //hunter-050212: przelacznik oswietlania kabiny
 //NBMX wrzesien 2003 - obsluga drzwi
     TGauge DoorLeftButtonGauge;
     TGauge DoorRightButtonGauge;
@@ -282,8 +284,8 @@ public:
     PSound dsbHasler;
     PSound dsbBuzzer;
     PSound dsbSlipAlarm; //Bombardier 011010: alarm przy poslizgu dla 181/182
-    TFadeSound sConverter;  //przetwornica
-    TFadeSound sSmallCompressor;  //przetwornica
+    //TFadeSound sConverter;  //przetwornica, hunter-050212: nieuzywane
+    //TFadeSound sSmallCompressor;  //przetwornica, hunter-050212: nieuzywane
 
     int iCabLightFlag; //McZapkie:120503: oswietlenie kabiny (0: wyl, 1: przyciemnione, 2: pelne)
     vector3 pMechSittingPosition; //ABu 180404
@@ -297,10 +299,12 @@ private:
 //    TSubModel *smCzuwakShpOff;
 //    double fCzuwakTimer;
     double fBlinkTimer;
-    float fConverterTimer;  //hunter-261211: dla przekaznika
+    
+    bool CAflag; //hunter-131211: dla osobnego zbijania CA i SHP
     float fMainRelayTimer;  //hunter-141211: zalaczanie WSa z opoznieniem
-    float fCzuwakTestTimer;
-    int CAflag; //hunter-131211: dla osobnego zbijania CA i SHP
+    float fConverterTimer;  //hunter-261211: dla przekaznika
+    float fMaxTachoVelocity; //hunter-060112: maksymalny zakres predkosciomierza
+    float fCzuwakTestTimer;  //hunter-230112: dla testu czuwaka
 
 //    double fShpTimer;
 //    double fDblClickTimer;

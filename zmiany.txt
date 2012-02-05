@@ -1,0 +1,32 @@
+hunter-020112:
+- ukrywanie konsoli po dodaniu hideconsole yes w eu07.ini
+- poprawki w dzwiekach stycznikow
+- dodanie wylacznika cisnienowego z uzaleznieniem od drugiego pojazdu w ukrotnieniu (np. ET41), usuniecie wylacznika w EN57
+- sygnalizacja poslizgu w pierwszym pojezdzie w przypadku ukrotnienia (np. ET41)
+- dodanie przekaznika nadmiarowego przetwornicy i ogrzewania (do przetestowania, szczegolnie w przypadku AI)
+- dodanie przycisku odblokowania przekaznika nadmiarowego przetwornicy i ogrzewania (klawisz ctrl+n)
+- dodanie guzika w kabinie dla przycisku odblokowania nadmiarowego przetwornicy i ogrzewania, definiowanie w mmd: converterfuse_bt: + parametry takie, jak dla pozostalych przelacznikow/grzybkow
+- zalaczanie wylacznika szybkiego z opoznieniem (opoznienie zalezne od IniCDelay w pliku chk pojazdu)
+- poprawienie piasecznicy - sypie tylko, gdy trzymamy klawisz "s", na razie usuniety dzwiek
+- usuniete sypanie piachu przy przycisku hamowania przy poslizgu
+- poprawa zbicia CA/SHP - gdy pala sie dwie lampki rownoczesnie, najpierw zbija sie czuwak, potem SHP
+- zmiana nazwy zmiennej z dsbNastawnik na dsbNastawnikJazdy
+- poprawa literowki - dsbWescie_na_drugi_uklad na dsbWejscie_na_drugi_uklad
+- dodanie dzwieku nastawnika bocznikowania, definiowanie w mmd: ctrlscnd: nazwadzwieku.wav
+- dodanie dzwieku nastawnika kierunkowego, definiowanie w mmd: reverserkey: nazwadzwieku.wav
+- dodanie dzwieku przelacznika dla universala3, zmiana z UpdateValue na PutValue (brak plynnej animacji, przez co zachowuje sie jak pozostale przelaczniki)
+- wydzielenie dzwiekow wejscia na drugi uklad i wejscia na bezoporowa do mmd, definiowanie: wejscie_na_bezoporow: nazwadzwieku.wav, wejscie_na_drugi_uklad: nazwadzwieku.wav, musza byc zdefiniowane PRZED relay:
+- poprawka dla dzwiekow zlozonych z trzech plikow - nie trzeba czekac do momentu zakonczenia odgrywania dzwieku "stop", by odtwarzal sie dzwiek "start" po ponownym zalaczeniu np. przetwornicy/sprezarki
+
+hunter-230112:
+- zapalanie tylnich reflektorow z przedniej kabiny i odwrotnie (jezeli przelaczniki sa zdefiniowane w mmd, czyli rearleftlight_sw, rearupperlight_sw, rearrightlight_sw, opcjonalnie rearleftend_sw, rearrightend_sw), zapalanie ctrl+shift+(y/u/i), gaszenie ctrl+(y/u/i)
+- dodany test czuwaka
+
+hunter-050212:
+- dodane oswietlenie kabiny, zapalanie ctrl+shift+; , gaszenie ctrl+; , przykladowa definicja w mmd: 
+cablight_sw: nazwaprzelacznika rot -0.2 0 0.2
+- dodany maksymalny zakres pokazywany przez predkosciomierz, definiowanie w mmd w internaldata (np. za mechspring): maxtachovel: (predkosc maksymalna)
+
+
+todo:
+dla ep02 pod jednym heblem obydwie koncowki dla przodu i dla tylu, sygnalizacja zapalonych koncowek
