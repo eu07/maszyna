@@ -29,6 +29,8 @@
 #include "Globals.h"
 #include "Timer.h"
 #include "mtable.hpp"
+//---------------------------------------------------------------------------
+#pragma package(smart_init)
 
 double fSquareDist=0;
 int TSubModel::iInstance; //numer renderowanego egzemplarza obiektu
@@ -112,8 +114,9 @@ void __fastcall TSubModel::FirstInit()
  fSquareMinDist=0;
  iName=-1; //brak nazwy
  iTexture=0; //brak tekstury
- asName="";
- asTexture="";
+ //asName="";
+ //asTexture="";
+ pName=pTexture=NULL;
  f4Ambient[0]=f4Ambient[1]=f4Ambient[2]=f4Ambient[3]=1.0; //{1,1,1,1};
  f4Diffuse[0]=f4Diffuse[1]=f4Diffuse[2]=f4Diffuse[3]=1.0; //{1,1,1,1};
  f4Specular[0]=f4Specular[1]=f4Specular[2]=0.0; f4Specular[3]=1.0; //{0,0,0,1};
@@ -130,12 +133,46 @@ __fastcall TSubModel::~TSubModel()
   SafeDelete(Child);
   delete fMatrix; //w³asny transform trzeba usun¹æ (zawsze jeden)
   delete[] Vertices;
+  delete[] pTexture;
+  delete[] pName;
  }
 /*
  else
  {//wczytano z pliku binarnego (nie jest w³aœcicielem tablic)
  }
 */
+};
+
+void __fastcall TSubModel::TextureNameSet(const char *n)
+{//ustawienie nazwy submodelu, o ile nie jest wczytany z E3D
+ if (iFlags&0x0200)
+ {//tylko je¿eli submodel zosta utworzony przez new
+  delete[] pTexture; //usuniêcie poprzedniej
+  int i=strlen(n);
+  if (i)
+  {//utworzenie nowej
+   pTexture=new char[i+1];
+   strcpy(pTexture,n);
+  }
+  else
+   pTexture=NULL;
+ }
+};
+
+void __fastcall TSubModel::NameSet(const char *n)
+{//ustawienie nazwy submodelu, o ile nie jest wczytany z E3D
+ if (iFlags&0x0200)
+ {//tylko je¿eli submodel zosta utworzony przez new
+  delete[] pName; //usuniêcie poprzedniej
+  int i=strlen(n);
+  if (i)
+  {//utworzenie nowej
+   pName=new char[i+1];
+   strcpy(pName,n);
+  }
+  else
+   pName=NULL;
+ }
 };
 
 //int __fastcall TSubModel::SeekFaceNormal(DWORD *Masks, int f,DWORD dwMask,vector3 *pt,GLVERTEX *Vertices)
@@ -223,7 +260,8 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
  parser.ignoreToken();
  std::string token;
  parser.getToken(token); //ze zmian¹ na ma³e!
- asName=AnsiString(token.c_str());
+ //asName=AnsiString(token.c_str());
+ NameSet(token.c_str());
 
  if (parser.expectToken("anim:")) //Ra: ta informacja by siê przyda³a!
  {//rodzaj animacji
@@ -305,7 +343,8 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
   }
   else
   {//jesli tylko nazwa pliku to dawac biezaca sciezke do tekstur
-   asTexture=AnsiString(texture.c_str()); //zapamiêtanie nazwy tekstury
+   //asTexture=AnsiString(texture.c_str()); //zapamiêtanie nazwy tekstury
+   TextureNameSet(token.c_str());
    if (texture.find_first_of("/\\")==texture.npos)
     texture.insert(0,Global::asCurrentTexturePath.c_str());
    TextureID=TTexturesManager::GetTextureID(texture);
@@ -364,7 +403,8 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
       --iNumFaces; //o jeden trójk¹t mniej
       iNumVerts-=3; //czyli o 3 wierzcho³ki
       i-=3; //wczytanie kolejnego w to miejsce
-      WriteLog(AnsiString("Degenerated triangle ignored in: \"")+asName+"\"");
+      //WriteLog(AnsiString("Degenerated triangle ignored in: \"")+asName+"\"");
+      WriteLog(AnsiString("Degenerated triangle ignored in: \"")+AnsiString(pName)+"\"");
      }
      if (((Vertices[i  ].Point-Vertices[i-1].Point).Length()>2000.0) ||
          ((Vertices[i-1].Point-Vertices[i-2].Point).Length()>2000.0) ||
@@ -373,7 +413,7 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
       --iNumFaces; //o jeden trójk¹t mniej
       iNumVerts-=3; //czyli o 3 wierzcho³ki
       i-=3; //wczytanie kolejnego w to miejsce
-      WriteLog(AnsiString("Too large triangle ignored in: \"")+asName+"\"");
+      WriteLog(AnsiString("Too large triangle ignored in: \"")+AnsiString(pName)+"\"");
      }
     }
    }
@@ -439,15 +479,59 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
  return iNumVerts; //do okreœlenia wielkoœci VBO
 };
 
-float8* __fastcall TSubModel::TrianglesPtr(int &pos)
-{//zwraca wskaŸnik do wype³nienia tabeli wierzcho³ków
- if (!Vertices)
- {//utworznie tabeli trójk¹tów
-  Vertices=new float8[iNumVerts];
-  iVboPtr=pos; //pozycja submodelu w tabeli wierzcho³ków
-  pos+=iNumVerts; //rezerwacja miejsca w tabeli
+int __fastcall TSubModel::TriangleAdd(TModel3d *m,int tex,int tri)
+{//dodanie trójk¹tów do submodelu, u¿ywane przy tworzeniu E3D terenu
+ TSubModel *s=this,**p;
+ while (s?(s->TextureID!=tex):false)
+ {//szukanie submodelu o danej teksturze
+  if (s==this)
+   s=Child;
+  else
+   s=s->Next;
  }
- return Vertices+iInstance; //wskaŸnik na wolne miejsce w tabeli wierzcho³ków
+ if (!s)
+ {if (TextureID<=0)
+   s=this; //u¿ycie g³ównego
+  else
+  {//dodanie nowego submodelu do listy potomnych
+   s=new TSubModel();
+   m->AddTo(this,s);
+  }
+  //s->asTexture=AnsiString(TTexturesManager::GetName(tex).c_str());
+  s->TextureNameSet(TTexturesManager::GetName(tex).c_str());
+  s->TextureID=tex;
+  s->eType=GL_TRIANGLES;
+  //iAnimOwner=0; //roboczy wskaŸnik na wierzcho³ek
+ }
+ if (s->iNumVerts<0)
+  s->iNumVerts=tri; //bo na pocz¹tku jest -1, czyli ¿e nie wiadomo
+ else
+  s->iNumVerts+=tri; //aktualizacja iloœci wierzcho³ków
+ return s->iNumVerts-tri; //zwraca pozycjê tych trójk¹tów w submodelu
+};
+
+float8* __fastcall TSubModel::TrianglePtr(int tex,int pos)
+{//zwraca wskaŸnik do wype³nienia tabeli wierzcho³ków, u¿ywane przy tworzeniu E3D terenu
+ TSubModel *s=this;
+ while (s?s->TextureID!=tex:false)
+ {//szukanie submodelu o danej teksturze
+  if (s==this)
+   s=Child;
+  else
+   s=s->Next;
+ }
+ if (!s)
+  return NULL; //coœ nie tak posz³o
+ //WriteLog("Zapis "+t+" od "+pos);
+ if (!s->Vertices)
+ {//utworznie tabeli trójk¹tów
+  s->Vertices=new float8[s->iNumVerts];
+  //iVboPtr=pos; //pozycja submodelu w tabeli wierzcho³ków
+  //pos+=iNumVerts; //rezerwacja miejsca w tabeli
+  s->iVboPtr=iInstance; //pozycja submodelu w tabeli wierzcho³ków
+  iInstance+=s->iNumVerts; //pozycja dla nastêpnego
+ }
+ return s->Vertices+pos; //wskaŸnik na wolne miejsce w tabeli wierzcho³ków
 };
 
 void __fastcall TSubModel::DisplayLists()
@@ -602,37 +686,6 @@ void __fastcall TSubModel::NextAdd(TSubModel *SubModel)
   Next=SubModel;
 };
 
-void __fastcall TSubModel::TriangleAdd(const char *tex,int tri)
-{//dodanie trójk¹tów do submodelu, u¿ywane przy tworzeniu E3D terenu
- TSubModel *s=this,**p;
- AnsiString t=AnsiString(tex);
- while (s?s->asTexture!=t:false)
- {//szukanie submodelu o danej teksturze
-  if (s==this)
-   s=Child;
-  else
-   s=s->Next;
- }
- if (!s)
- {if (asTexture.IsEmpty())
-  {//u¿ycie g³ównego
-   asTexture=t;
-   s=this;
-  }
-  else
-  {//dodanie nowego submodelu do listy potomnych
-   s=new TSubModel();
-   ChildAdd(s);
-   s->asTexture=t;
-  }
-  iInstance=0; //roboczy wskaŸnik na wierzcho³ek
- }
- if (s->iNumVerts<0)
-  s->iNumVerts=tri; //bo na pocz¹tku jest -1, czyli ¿e nie wiadomo
- else
-  s->iNumVerts+=tri; //aktualizacja iloœci wierzcho³ków
-};
-
 int __fastcall TSubModel::Flags()
 {//analiza koniecznych zmian pomiêdzy submodelami
  //samo pomijanie glBindTexture() nie poprawi wydajnoœci
@@ -715,7 +768,7 @@ TSubModel* __fastcall TSubModel::GetFromName(AnsiString search)
  TSubModel* result;
  //std::transform(search.begin(),search.end(),search.begin(),ToLower());
  search=search.LowerCase();
- if (search==asName) return this;
+ if (search==AnsiString(pName)) return this;
  if (Next)
  {
   result=Next->GetFromName(search);
@@ -1135,24 +1188,32 @@ void __fastcall TSubModel::Info()
  if (fMatrix&&(iFlags&0x8000)) //ma matrycê i jest ona niejednostkowa
   info->iTransform=info->iTotalTransforms++;
  if (TextureID>0)
- {for (int i=0;i<info->iCurrent;++i)
+ {//jeœli ma teksturê niewymienn¹
+  for (int i=0;i<info->iCurrent;++i)
    if (TextureID==info->pTable[i].pSubModel->TextureID) //porównanie z wczeœniejszym
    {info->iTexture=info->pTable[i].iTexture; //taki jaki ju¿ by³
     break; //koniec sprawdzania
    }
   if (info->iTexture<0) //jeœli nie znaleziono we wczeœniejszych
   {info->iTexture=++info->iTotalTextures; //przydzielenie numeru tekstury w pliku (od 1)
-   if (asTexture.SubString(asTexture.Length()-3,4)==".tga")
-    asTexture.Delete(asTexture.Length()-3,4);
-   else if (asTexture.SubString(asTexture.Length()-3,4)==".dds")
-    asTexture.Delete(asTexture.Length()-3,4);
-   info->iTextureLen=asTexture.Length()+1; //z zerem na koñcu
+   AnsiString t=AnsiString(pTexture);
+   if (t.SubString(t.Length()-3,4)==".tga")
+    t.Delete(t.Length()-3,4);
+   else if (t.SubString(t.Length()-3,4)==".dds")
+    t.Delete(t.Length()-3,4);
+   if (t!=AnsiString(pTexture))
+   {//jeœli siê zmieni³o
+    //pName=new char[token.length()+1]; //nie ma sensu skracaæ tabeli
+    strcpy(pTexture,t.c_str());
+   }
+   info->iTextureLen=t.Length()+1; //przygotowanie do zapisania, z zerem na koñcu
   }
  }
  else info->iTexture=TextureID; //nie ma albo wymienna
- if (asName.Length())
+ //if (asName.Length())
+ if (pName)
  {info->iName=info->iTotalNames++; //przydzielenie numeru nazwy w pliku (od 0)
-  info->iNameLen=asName.Length()+1; //z zerem na koñcu
+  info->iNameLen=strlen(pName)+1; //z zerem na koñcu
  }
  ++info->iCurrent; //przejœcie do kolejnego obiektu pomocniczego
  if (Child)
@@ -1177,8 +1238,8 @@ void __fastcall TSubModel::InfoSet(TSubModelInfo *info)
  Next=(TSubModel*)info->iNext; //numer nastêpnego
  Child=(TSubModel*)info->iChild; //numer potomnego
  iFlags&=~0x200; //nie jest wczytany z tekstowego
- asName="";
- asTexture="";
+ //asTexture=asName="";
+ pTexture=pName=NULL;
 };
 
 void __fastcall TSubModel::BinInit(TSubModel *s,float4x4 *m,float8 *v,TStringPack *t,TStringPack *n)
@@ -1186,14 +1247,17 @@ void __fastcall TSubModel::BinInit(TSubModel *s,float4x4 *m,float8 *v,TStringPac
  Child=((int)Child>0)?s+(int)Child:NULL; //zerowy nie mo¿e byæ potomnym
  Next=((int)Next>0)?s+(int)Next:NULL; //zerowy nie mo¿e byæ nastêpnym
  fMatrix=((iMatrix>=0)&&m)?m+iMatrix:NULL;
- if (n&&(iName>=0)) asName=AnsiString(n->String(iName)); else asName="";
+ //if (n&&(iName>=0)) asName=AnsiString(n->String(iName)); else asName="";
+ if (n&&(iName>=0)) pName=n->String(iName); else pName=NULL;
  if (iTexture>0)
  {//obs³uga sta³ej tekstury
   //TextureID=TTexturesManager::GetTextureID(t->String(TextureID));
-  asTexture=AnsiString(t->String(iTexture));
-  if (asTexture.LastDelimiter("/\\")==0)
-   asTexture.Insert(Global::asCurrentTexturePath,1);
-  TextureID=TTexturesManager::GetTextureID(asTexture.c_str());
+  //asTexture=AnsiString(t->String(iTexture));
+  pTexture=t->String(iTexture);
+  AnsiString t=AnsiString(pTexture);
+  if (t.LastDelimiter("/\\")==0)
+   t.Insert(Global::asCurrentTexturePath,1);
+  TextureID=TTexturesManager::GetTextureID(t.c_str());
   //TexAlpha=TTexturesManager::GetAlpha(TextureID); //zmienna robocza
   //ustawienie cyklu przezroczyste/nieprzezroczyste zale¿nie od w³asnoœci sta³ej tekstury
   iFlags=(iFlags&~0x30)|(TTexturesManager::GetAlpha(TextureID)?0x20:0x10); //0x10-nieprzezroczysta, 0x20-przezroczysta
@@ -1214,6 +1278,7 @@ __fastcall TModel3d::TModel3d()
  iFlags=0;
  iSubModelsCount=0;
  iModel=NULL; //tylko jak wczytany model binarny
+ iNumVerts=0; //nie ma jeszcze wierzcho³ków
 };
 /*
 __fastcall TModel3d::TModel3d(char *FileName)
@@ -1243,9 +1308,13 @@ __fastcall TModel3d::~TModel3d()
  //póŸniej siê jeszcze usuwa obiekt z którego dziedziczymy tabelê VBO
 };
 
-void __fastcall TModel3d::AddTo(const char *Name,TSubModel *SubModel)
+void __fastcall TModel3d::AddToNamed(const char *Name,TSubModel *SubModel)
 {
- TSubModel *tmp=GetFromName(Name); //szukanie nadrzêdnego
+ AddTo(Name?GetFromName(Name):NULL,SubModel); //szukanie nadrzêdnego
+};
+
+void __fastcall TModel3d::AddTo(TSubModel *tmp,TSubModel *SubModel)
+{//jedyny poprawny sposób dodawania submodeli, inaczej mog¹ zgin¹æ przy zapisie E3D
  if (tmp)
  {//jeœli znaleziony, pod³¹czamy mu jako potomny
   tmp->ChildAdd(SubModel);
@@ -1255,6 +1324,8 @@ void __fastcall TModel3d::AddTo(const char *Name,TSubModel *SubModel)
   SubModel->NextAdd(Root); //Ra: zmiana kolejnoœci renderowania wymusza zmianê tu
   Root=SubModel;
  }
+ ++iSubModelsCount; //teraz jest o 1 submodel wiêcej
+ iFlags|=0x0200; //submodele s¹ oddzielne
 };
 
 TSubModel* __fastcall TModel3d::GetFromName(const char *sName)
@@ -1388,7 +1459,7 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName,bool dynamic)
  TSubModel *SubModel;
  std::string token;
  parser.getToken(token);
- iNumVerts=0;
+ iNumVerts=0; //w konstruktorze to jest
  while (token!="" || parser.eof())
  {
   std::string parent;
@@ -1396,8 +1467,8 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName,bool dynamic)
   if (parent=="") break;
   SubModel=new TSubModel();
   iNumVerts+=SubModel->Load(parser,this,iNumVerts);
-  AddTo(parent.c_str(),SubModel);
-  iSubModelsCount++;
+  AddToNamed(parent.c_str(),SubModel);
+  //iSubModelsCount++;
   parser.getToken(token);
  }
  if (dynamic&&Root)
@@ -1477,7 +1548,9 @@ void __fastcall TModel3d::SaveToBinFile(char *FileName)
  if (tex) tex+=9; //8 na nag³ówek i jeden ci¹g pusty (tylko znacznik koñca)
  if (nam) nam+=8;
  len=8+sub+tra+vnt+tex+((-tex)&3)+nam+((-nam)&3);
- TSubModel *roboczy=new TSubModel();
+ TSubModel *roboczy=new TSubModel(); //bufor u¿ywany do zapisywania
+ //AnsiString *asN=&roboczy->asName,*asT=&roboczy->asTexture;
+ //roboczy->FirstInit(); //¿eby delete nie usuwa³o czego nie powinno
  TFileStream *fs=new TFileStream(AnsiString(FileName),fmCreate);
  fs->Write("E3D0",4); //kromka g³ówna
  fs->Write(&len,4);
@@ -1511,8 +1584,8 @@ void __fastcall TModel3d::SaveToBinFile(char *FileName)
   fs->Write(&zero,1); //ci¹g o numerze zero nie jest u¿ywany, ma tylko znacznik koñca
   for (i=0;i<iSubModelsCount;++i)
    if (info[i].iTextureLen)
-    fs->Write(info[i].pSubModel->asTexture.c_str(),info[i].iTextureLen);
-  if ((-tex)&3) fs->Write(&zero,((-tex)&3)); //wyrównanie
+    fs->Write(info[i].pSubModel->pTexture,info[i].iTextureLen);
+  if ((-tex)&3) fs->Write(&zero,((-tex)&3)); //wyrównanie do wielokrotnoœci 4 bajtów
  }
  if (nam) //mo¿e byæ jeden anonimowy submodel w modelu
  {//zapis nazw submodeli
@@ -1521,18 +1594,21 @@ void __fastcall TModel3d::SaveToBinFile(char *FileName)
   fs->Write(&i,4);
   for (i=0;i<iSubModelsCount;++i)
    if (info[i].iNameLen)
-    fs->Write(info[i].pSubModel->asName.c_str(),info[i].iNameLen);
-  if ((-nam)&3) fs->Write(&zero,((-nam)&3)); //wyrównanie
+    fs->Write(info[i].pSubModel->pName,info[i].iNameLen);
+  if ((-nam)&3) fs->Write(&zero,((-nam)&3)); //wyrównanie do wielokrotnoœci 4 bajtów
  }
  delete fs;
- roboczy->FirstInit(); //¿eby delete nie usuwa³o czego nie powinno
+ //roboczy->FirstInit(); //¿eby delete nie usuwa³o czego nie powinno
+ //roboczy->iFlags=0; //¿eby delete nie usuwa³o czego nie powinno
+ //roboczy->asName)=asN;
+ //&roboczy->asTexture=asT;
  delete roboczy;
  delete[] info;
 };
 
 void __fastcall TModel3d::BreakHierarhy()
 {
-    Error("Not implemented yet :(");
+ Error("Not implemented yet :(");
 };
 
 /*
@@ -1722,5 +1798,4 @@ void __fastcall TModel3d::RaRenderAlpha(vector3* vPosition,vector3* vAngle,GLuin
  glPopMatrix();
 };
 
-//---------------------------------------------------------------------------
-#pragma package(smart_init)
+
