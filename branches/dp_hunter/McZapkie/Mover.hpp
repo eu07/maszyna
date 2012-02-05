@@ -390,6 +390,7 @@ public:
 	Byte RVentType;
 	double RVentnmax;
 	double RVentCutOff;
+	bool RVentSwitch;
 	int CompressorPower;
 	int SmallCompressorPower;
 	double dizel_Mmax;

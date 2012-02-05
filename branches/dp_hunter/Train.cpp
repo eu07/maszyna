@@ -184,6 +184,7 @@ bool __fastcall TTrain::Init(TDynamicObject *NewDynamicObject)
 
 //  sConverter.Init("converter.wav",1.5); //NBMX obsluga przez AdvSound
   iCabn=0;
+    DynamicObject->MoverParameters->RVentSwitch=true; //hunter-050212: przelacznik wentylatorow oporow rozruchowych  
   return true;
 }
 
@@ -479,15 +480,24 @@ void __fastcall TTrain::OnKeyPress(int cKey)
             }
       }
       else
-//      if (cKey==Global::Keys[k_Active])   //yB 300407: przelacznik rozrzadu
-//      {
-//        if (DynamicObject->MoverParameters->CabActivisation())
-//           {
-//            dsbSwitch->SetVolume(DSBVOLUME_MAX);
-//            dsbSwitch->Play(0,0,0);
-//           }
-//      }
-//      else
+      //hunter-050212: prygotowanie pod rozrzad, pod ctrl wylaczanie wentylatorow
+      if (cKey==Global::Keys[k_Rozrzad])
+      {
+        if (GetAsyncKeyState(VK_CONTROL)<0)  //hunter-050212: wentylatory oporow rozruchowych
+         {
+          if (DynamicObject->MoverParameters->RVentSwitch==false)
+           {
+            dsbSwitch->SetVolume(DSBVOLUME_MAX);
+            dsbSwitch->Play(0,0,0);
+           }
+         }
+        /*
+        else
+         {
+         }
+        */
+      }
+      else
       if (cKey==Global::Keys[k_Heating])   //Winger 020304: ogrzewanie skladu - wlaczenie
       {
               if (!FreeFlyModeFlag)
@@ -1160,15 +1170,24 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       }
       else
       //-----------
-//      if (cKey==Global::Keys[k_Active])   //yB 300407: przelacznik rozrzadu
-//      {
-//        if (DynamicObject->MoverParameters->CabDeactivisation())
-//           {
-//            dsbSwitch->SetVolume(DSBVOLUME_MAX);
-//            dsbSwitch->Play(0,0,0);
-//           }
-//      }
-//      else
+      //hunter-050212: prygotowanie pod rozrzad, pod ctrl wylaczanie wentylatorow  
+      if (cKey==Global::Keys[k_Rozrzad])
+      {
+        if (GetAsyncKeyState(VK_CONTROL)<0)  //hunter-050212: wentylatory oporow rozruchowych
+         {
+          if (DynamicObject->MoverParameters->RVentSwitch==true)
+           {
+            dsbSwitch->SetVolume(DSBVOLUME_MAX);
+            dsbSwitch->Play(0,0,0);
+           }
+         }
+        /*
+        else
+         {
+         }
+        */
+      }
+      else
       if (cKey==Global::Keys[k_BrakeProfile])
       {//yB://ABu: male poprawki, zeby bylo mozna ustawic dowolny wagon
               int CouplNr=-2;
@@ -3558,6 +3577,22 @@ else
            ActiveUniversal4=false;
            //Universal4ButtonGauge.UpdateValue(0);
         }
+     }
+     //hunter-050212: prygotowanie pod rozrzad, pod ctrl wylaczanie wentylatorow
+     if ( Pressed(Global::Keys[k_Rozrzad]) )
+     {
+        if (GetAsyncKeyState(VK_CONTROL)<0)  //hunter-050212: wentylatory oporow rozruchowych
+         {
+          if (Pressed(VK_SHIFT))
+           DynamicObject->MoverParameters->RVentSwitch=true;
+          else
+           DynamicObject->MoverParameters->RVentSwitch=false;
+         }
+        /*
+        else
+         {
+         }
+        */
      }
 
      // Odskakiwanie hamulce EP
