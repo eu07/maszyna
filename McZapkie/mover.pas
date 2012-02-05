@@ -451,6 +451,7 @@ TYPE
                RVentType: byte;        {0 - brak, 1 - jest, 2 - automatycznie wlaczany}
                RVentnmax: real;      {maks. obroty wentylatorow oporow rozruchowych}
                RVentCutOff: real;      {rezystancja wylaczania wentylatorow dla RVentType=2}
+               RVentSwitch: boolean;   {hunter-050212: przelacznik wentylatora oporow rozruchowych}
                CompressorPower: integer; {0: bezp. z obwodow silnika, 1: z przetwornicy, reczne, 2: w przetwornicy, stale}
                SmallCompressorPower: integer; {Winger ZROBIC}
 
@@ -3615,19 +3616,27 @@ begin
         Mw:=Mm*Transmision.Ratio;
         Fw:=Mw*2.0/WheelDiameter;
         Ft:=Fw*NPoweredAxles;                {sila trakcyjna}
-        case RVentType of {wentylatory rozruchowe}
-        1: if ActiveDir<>0 then
-            RventRot:=RventRot+(RVentnmax-RventRot)*RVentSpeed*dt
-           else
-            RventRot:=RventRot*(1-RVentSpeed*dt);
-        2: if (Abs(Itot)>RVentMinI) and (RList[MainCtrlActualPos].R>RVentCutOff) then
-            RventRot:=RventRot+(RVentnmax*Abs(Itot)/(ImaxLo*RList[MainCtrlActualPos].Bn)-RventRot)*RVentSpeed*dt
-           else
-            begin
-              RventRot:=RventRot*(1-RVentSpeed*dt);
-              if RventRot<0.1 then RventRot:=0;
-            end;
-        end; {case}
+        if (RVentSwitch=true) then //hunter-050212: przelacznik wentylatora oporow rozruchowych
+         begin
+          case RVentType of {wentylatory rozruchowe}
+           1: if ActiveDir<>0 then
+             RventRot:=RventRot+(RVentnmax-RventRot)*RVentSpeed*dt
+            else
+             RventRot:=RventRot*(1-RVentSpeed*dt);
+           2: if (Abs(Itot)>RVentMinI) and (RList[MainCtrlActualPos].R>RVentCutOff) then
+             RventRot:=RventRot+(RVentnmax*Abs(Itot)/(ImaxLo*RList[MainCtrlActualPos].Bn)-RventRot)*RVentSpeed*dt
+            else
+             begin
+               RventRot:=RventRot*(1-RVentSpeed*dt);
+               if RventRot<0.1 then RventRot:=0;
+             end;
+          end; {case}
+         end {if}
+        else
+         begin
+          RventRot:=RventRot*(1-RVentSpeed*dt);
+          if RventRot<0.1 then RventRot:=0;
+         end;
       end;
    DieselEngine: begin
                    EnginePower:=dmoment*enrot;

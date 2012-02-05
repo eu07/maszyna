@@ -109,7 +109,7 @@ const int k_Univ3=68;
 const int k_Univ4=69;
 const int k_EndSign=70;
 
-const int k_Active=71;
+const int k_Rozrzad=71;
                         //Winger 020304
 const int k_WalkMode= 72;
 const int MaxKeys= 73;

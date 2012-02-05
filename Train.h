@@ -291,6 +291,7 @@ public:
 
     int iCabLightFlag; //McZapkie:120503: oswietlenie kabiny (0: wyl, 1: przyciemnione, 2: pelne)
     vector3 pMechSittingPosition; //ABu 180404
+
 private:
     //PSound dsbBuzzer;
         PSound dsbCouplerStretch;

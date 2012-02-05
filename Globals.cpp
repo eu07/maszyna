@@ -406,7 +406,7 @@ void __fastcall Global::InitKeys(AnsiString asFileName)
         Keys[k_AntiSlipping]=VK_RETURN;
         Keys[k_Sand]=VkKeyScan('s');
         Keys[k_Main]=VkKeyScan('m');
-        Keys[k_Active]=VkKeyScan('w');
+        Keys[k_Rozrzad]=VkKeyScan('w');
         Keys[k_DirectionForward]=VkKeyScan('d');
         Keys[k_DirectionBackward]=VkKeyScan('r');
         Keys[k_Fuse]=VkKeyScan('n');
