@@ -448,7 +448,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
          }
         else
          {
-           if (((Universal3ButtonGauge.SubModel)&&(Universal3ButtonGauge.GetValue()==0))
+           if ((Universal3ButtonGauge.SubModel)&&(Universal3ButtonGauge.GetValue()==0))
            {
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
                dsbSwitch->Play(0,0,0);
