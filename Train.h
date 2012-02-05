@@ -165,7 +165,8 @@ public:
     TGauge Universal3ButtonGauge;
     TGauge Universal4ButtonGauge;
 
-    TGauge CabLight1ButtonGauge; //hunter-050212: przelacznik oswietlania kabiny
+    TGauge CabLight1ButtonGauge; //hunter-050212: przelacznik oswietlania kabiny nad maszynista
+    TGauge DimCabLight1ButtonGauge; //hunter-050212: przelacznik przyciemnienia oswietlenia kabiny nad maszynista
 //NBMX wrzesien 2003 - obsluga drzwi
     TGauge DoorLeftButtonGauge;
     TGauge DoorRightButtonGauge;
@@ -289,7 +290,8 @@ public:
     //TFadeSound sConverter;  //przetwornica, hunter-050212: nieuzywane
     //TFadeSound sSmallCompressor;  //przetwornica, hunter-050212: nieuzywane
 
-    int iCabLightFlag; //McZapkie:120503: oswietlenie kabiny (0: wyl, 1: przyciemnione, 2: pelne)
+    bool bCabLightFlag[2]; //hunter-050212: oswietlenie kabiny nad maszynista i pomocnikiem
+    bool bDimCabLightFlag[2]; //hunter-050212: przyciemnienie oswietlenia kabiny nad maszynista i pomocnikiem
     vector3 pMechSittingPosition; //ABu 180404
 
 private:

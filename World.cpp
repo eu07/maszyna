@@ -1045,14 +1045,45 @@ bool __fastcall TWorld::Update()
        break;
       }
       //hunter-050212: oswietlenie kabiny
-      if (Train->iCabLightFlag==1)
+      if (Train->bCabLightFlag[0]==1)
        {
+
         for (int li=0; li<3; li++)
-        {
-         ambientCabLight[li] =2.0;
-         diffuseCabLight[li] =2.0;
-         specularCabLight[li]=2.0;
-        }
+         {
+          if (((Global::diffuseDayLight[li]*0.5)<0.1)&&((Global::specularDayLight[li]*0.5)<0.2))
+           {
+            diffuseCabLight[li] =0.1;
+            specularCabLight[li]=0.2;
+           }
+         }
+
+        //hunter-050212: intensywnosc oswietlenia zalezna od wlaczonej przetwornicy
+        if (Train->DynamicObject->MoverParameters->ConverterFlag==true) //jasnosc dla zalaczonej przetwornicy
+         {
+          if (((Global::ambientDayLight[0]*0.9)<0.9)&&((Global::ambientDayLight[1]*0.9)<0.85)&&((Global::ambientDayLight[2]*0.9)<0.7))
+           {
+            ambientCabLight[0]=0.9;
+            ambientCabLight[1]=0.85;
+            ambientCabLight[2]=0.7;
+           }
+         }
+        else   //jasnosc dla wylaczonej przetwornicy
+         {
+          if (((Global::ambientDayLight[0]*0.9)<0.5)&&((Global::ambientDayLight[1]*0.9)<0.45)&&((Global::ambientDayLight[2]*0.9)<0.3))
+           {
+            ambientCabLight[0]=0.5;
+            ambientCabLight[1]=0.45;
+            ambientCabLight[2]=0.3;
+           }
+         }
+
+        //hunter-050212: przyciemnienie oswietlenia (do poprawki)
+        if (Train->bDimCabLightFlag[0]==1)
+         {
+          if (((Global::ambientDayLight[0]*0.9)<0.9)&&((Global::ambientDayLight[1]*0.9)<0.85)&&((Global::ambientDayLight[2]*0.9)<0.7))
+           for (int li=0;li<3;li++)
+            ambientCabLight[li] *= 0.5;
+         }
        }
 
       glLightfv(GL_LIGHT0,GL_AMBIENT,ambientCabLight);
