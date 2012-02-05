@@ -28,6 +28,9 @@ hunter-230112:
 hunter-050212:
 - dodane oswietlenie kabiny (na razie tylko nad mechanikiem), zapalanie ctrl+shift+; , gaszenie ctrl+; , dziala TYLKO po zdefiniowaniu przelacznika odpowiedzialnego za swiatlo, przykladowa definicja w mmd: 
 cablight1_sw: nazwaprzelacznika rot -0.2 0 0.2  . DODATKOWO mozemy zdefiniowac lampe: i-cablight1: lampanadmechanikiem , w t3d obiekt lampanadmechanikiem_on
+- dodane przyciemnienie oswietlenia kabiny (tez nad mechanikiem), zalaczanie ctrl+shift+[ , wylaczanie ctrl+[ , dziala TYLKO po zdefiniowaniu przelacznika, przykladowa definicja w mmd: 
+dimcablight1_sw: nazwaprzelacznika rot -0.2 0 0.2  .
+- zrobiona zaleznosc intensywnosci swiatla od zalaczonej/wylaczonej przetwornicy
 - dodany wylacznik wentylatorow oporow rozruchowych, domyslnie zalaczone, ctrl+shift+W zalaczenie, ctrl+w wylaczenie wentylatorow
 
 
@@ -45,9 +48,8 @@ cablight1_sw: nazwaprzelacznika rot -0.2 0 0.2  . DODATKOWO mozemy zdefiniowac l
 ***********************************************************************************************************
 
 todo:
-- sciemnianie swiatla po wylaczeniu przetwornicy
 - drugie swiatlo (nad glowa pomocnika, definiowane pod cablight2_sw)
-- bardziej pomaranczowa barwa zapalonego swiatla
+- definiowanie kolorow swiatla z mmd
 - dla ep02 pod jednym heblem obydwie koncowki dla przodu i dla tylu, sygnalizacja zapalonych koncowek
 - dla wentylatorow oporow rozruchowych zaleznosc dzialania wylacznika od istnienia wpisu w chk
 

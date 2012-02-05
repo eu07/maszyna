@@ -98,7 +98,10 @@ __fastcall TTrain::TTrain()
     fBlinkTimer=0;
     keybrakecount=0;
     DynamicObject=NULL;
-    iCabLightFlag=0;
+    bCabLightFlag[0]=false;
+    bCabLightFlag[1]=false;
+    bDimCabLightFlag[0]=false;
+    bDimCabLightFlag[1]=false;
     pMechSittingPosition=vector3(0,0,0); //ABu: 180404
     LampkaUniversal3_st=false; //ABu: 030405
  dsbNastawnikJazdy=NULL;
@@ -435,12 +438,25 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       }
       else
       //-----------
+      //hunter-050212: dzwiek dla przelacznika universala podniesionego
+      if (cKey==Global::Keys[k_Univ1])
+      {
+        if (GetAsyncKeyState(VK_CONTROL)<0)  //hunter-050212: przyciemnienie oswietlenia kabiny nad maszynista
+         {
+           if ((DimCabLight1ButtonGauge.SubModel)&&(DimCabLight1ButtonGauge.GetValue()==0))
+           {
+               dsbSwitch->SetVolume(DSBVOLUME_MAX);
+               dsbSwitch->Play(0,0,0);
+           }
+         }
+      }
+      else
+      //-----------
       //hunter-131211: dzwiek dla przelacznika universala podniesionego
       if (cKey==Global::Keys[k_Univ3])
       {
-        if (GetAsyncKeyState(VK_CONTROL)<0)  //hunter-050212: oswietlenie kabiny
+        if (GetAsyncKeyState(VK_CONTROL)<0)  //hunter-050212: oswietlenie kabiny nad maszynista
          {
-           //hunter-050212: oswietlenie kabiny
            if ((CabLight1ButtonGauge.SubModel)&&(CabLight1ButtonGauge.GetValue()==0))
            {
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
@@ -977,7 +993,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
              dsbPneumaticSwitch->Play(0,0,0);
             }
             DynamicObject->MoverParameters->DecBrakeLevel();
-			
+
              /*
 			 if ((isEztOer) && (DynamicObject->MoverParameters->BrakeCtrlPos<2))
               {
@@ -1507,17 +1523,30 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       }
       else
       //-----------
+      //hunter-050212: dzwiek dla przelacznika universala podniesionego
+      if (cKey==Global::Keys[k_Univ1])
+      {
+        if (GetAsyncKeyState(VK_CONTROL)<0)  //hunter-050212: przyciemnienie oswietlenia kabiny nad maszynista
+         {
+           if ((DimCabLight1ButtonGauge.SubModel)&&(DimCabLight1ButtonGauge.GetValue()!=0))
+           {
+               dsbSwitch->SetVolume(DSBVOLUME_MAX);
+               dsbSwitch->Play(0,0,0);
+           }
+         }
+      }
+      else
+      //-----------
       //hunter-131211: dzwiek dla przelacznika universala
       if (cKey==Global::Keys[k_Univ3])
       {
-        if (GetAsyncKeyState(VK_CONTROL)<0)  //hunter-050212: oswietlenie kabiny
+        if (GetAsyncKeyState(VK_CONTROL)<0)  //hunter-050212: oswietlenie kabiny nad maszynista
          {
-           //hunter-050212: oswietlenie kabiny
            if ((CabLight1ButtonGauge.SubModel)&&(CabLight1ButtonGauge.GetValue()!=0))
            {
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
                dsbSwitch->Play(0,0,0);
-           }         
+           }
          }
         else
          {
@@ -3274,7 +3303,10 @@ else
      {
           fMainRelayTimer+=dt;
           MainOnButtonGauge.PutValue(1);
-          DynamicObject->MoverParameters->ConverterSwitch(false);
+          if (DynamicObject->MoverParameters->Mains==false)  //hunter-050212: teraz, gdy przetwornica i WS sa zalaczone, po nacisnieciu grzybka przetwornica nie wylacza sie
+            DynamicObject->MoverParameters->ConverterSwitch(false);
+
+          //hunter-050212: TODO: zrobic opoznienie w zaleznosci od istnienia wpisu w chk            
           if (fMainRelayTimer>DynamicObject->MoverParameters->InitialCtrlDelay) //wlaczanie WSa z opoznieniem
             if (DynamicObject->MoverParameters->MainSwitch(true))
             {
@@ -3473,15 +3505,38 @@ else
      {
         if (!DebugModeFlag)
         {
-           if (Universal1ButtonGauge.SubModel)
            if (Pressed(VK_SHIFT))
-           {
-              Universal1ButtonGauge.IncValue(dt/2);
-           }
+            {
+             if (GetAsyncKeyState(VK_CONTROL)<0) //hunter-050212: przyciemnienie oswietlenia kabiny nad maszynista
+              {
+               if (DimCabLight1ButtonGauge.SubModel)
+                {
+                 DimCabLight1ButtonGauge.PutValue(1);
+                 bDimCabLightFlag[0]=true;
+                }
+              }
+             else
+              {
+               if (Universal1ButtonGauge.SubModel)
+                Universal1ButtonGauge.IncValue(dt/2);
+              }
+            }
            else
-           {
-              Universal1ButtonGauge.DecValue(dt/2);
-           }
+            {
+             if (GetAsyncKeyState(VK_CONTROL)<0) //hunter-050212: przyciemnienie oswietlenia kabiny nad maszynista
+              {
+               if (DimCabLight1ButtonGauge.SubModel)
+                {
+                 DimCabLight1ButtonGauge.PutValue(0);
+                 bDimCabLightFlag[0]=false;
+                }
+              }
+             else
+              {
+               if (Universal1ButtonGauge.SubModel)
+                Universal1ButtonGauge.DecValue(dt/2);
+              }
+            }
         }
      }
      if ( Pressed(Global::Keys[k_Univ2]) )
@@ -3503,16 +3558,13 @@ else
      {
           if (Pressed(VK_SHIFT))
            {
-            if (GetAsyncKeyState(VK_CONTROL)<0)  //hunter-050212: oswietlenie kabiny
+            if (GetAsyncKeyState(VK_CONTROL)<0)  //hunter-050212: oswietlenie kabiny nad maszynista
              {
               if (CabLight1ButtonGauge.SubModel)
                {
-                if (Pressed(VK_SHIFT))
-                 {
-                  CabLight1ButtonGauge.PutValue(1);
-                  iCabLightFlag=1;
-                  btCabLight1.TurnOn();
-                 }
+                CabLight1ButtonGauge.PutValue(1);
+                bCabLightFlag[0]=true;
+                btCabLight1.TurnOn();
                }
              }
             else
@@ -3527,10 +3579,10 @@ else
            }
           else
            {
-            if (GetAsyncKeyState(VK_CONTROL)<0)  //hunter-050212: oswietlenie kabiny
+            if (GetAsyncKeyState(VK_CONTROL)<0)  //hunter-050212: oswietlenie kabiny nad maszynista
              {
                CabLight1ButtonGauge.PutValue(0);  //hunter-131211: z UpdateValue na PutValue - by zachowywal sie jak pozostale przelaczniki
-               iCabLightFlag=0;
+               bCabLightFlag[0]=false;
                btCabLight1.TurnOff();
              }
             else
@@ -3802,7 +3854,8 @@ else
     if (ActiveUniversal4)
        Universal4ButtonGauge.PermIncValue(dt);
     Universal4ButtonGauge.Update();
-    CabLight1ButtonGauge.Update(); //hunter-050212: oswietlenie kabiny
+    CabLight1ButtonGauge.Update(); //hunter-050212: oswietlenie kabiny nad maszynista
+    DimCabLight1ButtonGauge.Update(); //hunter-050212: przyciemnienie oswietlenia kabiny nad maszynista
     MainOffButtonGauge.UpdateValue(0);
     MainOnButtonGauge.UpdateValue(0);
     SecurityResetButtonGauge.UpdateValue(0);
@@ -4184,7 +4237,8 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     Universal2ButtonGauge.Clear();
     Universal3ButtonGauge.Clear();
     Universal4ButtonGauge.Clear();
-    CabLight1ButtonGauge.Clear(); //hunter-050212: oswietlenie kabiny
+    CabLight1ButtonGauge.Clear(); //hunter-050212: oswietlenie kabiny nad maszynista
+    DimCabLight1ButtonGauge.Clear(); //hunter-050212: przyciemnienie oswietlenia kabiny nad maszynista
     FuseButtonGauge.Clear();
     ConverterFuseButtonGauge.Clear();    
     StLinOffButtonGauge.Clear();
@@ -4388,9 +4442,12 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     Universal3ButtonGauge.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("universal4:"))
     Universal4ButtonGauge.Load(Parser,DynamicObject->mdKabina);
-   //hunter-050212: oswietlenie kabiny
+   //hunter-050212: oswietlenie kabiny nad maszynista
    else if (str==AnsiString("cablight1_sw:"))
     CabLight1ButtonGauge.Load(Parser,DynamicObject->mdKabina);
+   //hunter-050212: przyciemnienie oswietlenia kabiny nad maszynista
+   else if (str==AnsiString("dimcablight1_sw:"))
+    DimCabLight1ButtonGauge.Load(Parser,DynamicObject->mdKabina);
    //SEKCJA WSKAZNIKOW
    else if (str==AnsiString("tachometer:"))                    //predkosciomierz
     VelocityGauge.Load(Parser,DynamicObject->mdKabina);
