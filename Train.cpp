@@ -3447,8 +3447,8 @@ else
         ConverterButtonGauge.PutValue(1);
         if ((DynamicObject->MoverParameters->PantFrontVolt) || (DynamicObject->MoverParameters->PantRearVolt) || (DynamicObject->MoverParameters->EnginePowerSource.SourceType!=CurrentCollector) || (!Global::bLiveTraction))
          DynamicObject->MoverParameters->ConverterSwitch(true);
-        if ((DynamicObject->MoverParameters->EngineType!=ElectricSeriesMotor)||(DynamicObject->MoverParameters->TrainType!=dt_EZT)) //hunter-110212: poprawka dla EZT
-         DynamicObject->MoverParameters->CompressorSwitch(true);
+        if ((DynamicObject->MoverParameters->EngineType!=ElectricSeriesMotor)&&(DynamicObject->MoverParameters->TrainType!=dt_EZT)) //hunter-110212: poprawka dla EZT
+         DynamicObject->MoverParameters->CompressorSwitch(true); //hunter-121112: poprawka "poprawki"
       }
      else
       {
