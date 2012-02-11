@@ -1,3 +1,6 @@
+hunter-120212:
+- "poprawka poprawki" na sprezarke (przy poprzednim kodzie po zalaczeniu przetwornicy wyrzucalo nadmiara)
+
 hunter-110212:
 - zaleznosc przelaczenia wylacznika wentylatorow oporow rozruchowych od wpisu w chk (RVentSwitch=Yes w RList:)
 - poprawka w kodzie - teraz w EZT sprezarka nie wlacza sie rownoczesnie z przetwornica
