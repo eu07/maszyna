@@ -391,6 +391,7 @@ public:
 	double RVentnmax;
 	double RVentCutOff;
 	bool RVentSwitch;
+	bool RVentSwitchChange;
 	int CompressorPower;
 	int SmallCompressorPower;
 	double dizel_Mmax;

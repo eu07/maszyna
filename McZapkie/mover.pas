@@ -452,6 +452,7 @@ TYPE
                RVentnmax: real;      {maks. obroty wentylatorow oporow rozruchowych}
                RVentCutOff: real;      {rezystancja wylaczania wentylatorow dla RVentType=2}
                RVentSwitch: boolean;   {hunter-050212: przelacznik wentylatora oporow rozruchowych}
+               RVentSwitchChange: boolean; {hunter-110212: zaleznosc zmiany przelacznika od istnienia wpisu w chk}
                CompressorPower: integer; {0: bezp. z obwodow silnika, 1: z przetwornicy, reczne, 2: w przetwornicy, stale}
                SmallCompressorPower: integer; {Winger ZROBIC}
 
@@ -6267,6 +6268,9 @@ begin
                 RVentnmax:=s2rE(DUE(s))/60.0;
                 s:=ExtractKeyWord(lines,'RVentCutOff=');
                 RVentCutOff:=s2r(DUE(s));
+                s:=DUE(ExtractKeyWord(lines,'RVentSwitch=')); //hunter-110212: zaleznosc zmiany przelacznika od istnienia wpisu w chk
+                if s='Yes' then RVentSwitchChange:=true
+                else RVentSwitchChange:=false;
               end;
              RlistSize:=s2b(DUE(ExtractKeyWord(lines,'Size=')));
              if RlistSize>ResArraySize then

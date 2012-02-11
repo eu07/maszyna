@@ -1,3 +1,22 @@
+hunter-110212:
+- zaleznosc przelaczenia wylacznika wentylatorow oporow rozruchowych od wpisu w chk (RVentSwitch=Yes w RList:)
+- poprawka w kodzie - teraz w EZT sprezarka nie wlacza sie rownoczesnie z przetwornica
+
+hunter-050212:
+- dodane oswietlenie kabiny (na razie tylko nad mechanikiem), zapalanie ctrl+shift+; , gaszenie ctrl+; , dziala TYLKO po zdefiniowaniu przelacznika odpowiedzialnego za swiatlo, przykladowa definicja w mmd: 
+cablight1_sw: nazwaprzelacznika rot -0.2 0 0.2  . DODATKOWO mozemy zdefiniowac lampe: i-cablight1: lampanadmechanikiem , w t3d obiekt lampanadmechanikiem_on
+- dodane przyciemnienie oswietlenia kabiny (tez nad mechanikiem), zalaczanie ctrl+shift+[ , wylaczanie ctrl+[ , dziala TYLKO po zdefiniowaniu przelacznika, przykladowa definicja w mmd: 
+dimcablight1_sw: nazwaprzelacznika rot -0.2 0 0.2  .
+- zrobiona zaleznosc intensywnosci swiatla od zalaczonej/wylaczonej przetwornicy
+- dodany wylacznik wentylatorow oporow rozruchowych, domyslnie zalaczone, ctrl+shift+W zalaczenie, ctrl+w wylaczenie wentylatorow
+
+hunter-230112:
+- zapalanie tylnich reflektorow z przedniej kabiny i odwrotnie (jezeli przelaczniki sa zdefiniowane w mmd, czyli rearleftlight_sw, rearupperlight_sw, rearrightlight_sw, opcjonalnie rearleftend_sw, rearrightend_sw), zapalanie ctrl+shift+(y/u/i), gaszenie ctrl+(y/u/i)
+- dodany test czuwaka
+
+hunter-060112:
+- dodany maksymalny zakres pokazywany przez predkosciomierz, definiowanie w mmd w internaldata (np. za mechspring): maxtachovel: (predkosc maksymalna)
+
 hunter-020112:
 - ukrywanie konsoli po dodaniu hideconsole yes w eu07.ini
 - poprawki w dzwiekach stycznikow
@@ -18,20 +37,9 @@ hunter-020112:
 - wydzielenie dzwiekow wejscia na drugi uklad i wejscia na bezoporowa do mmd, definiowanie: wejscie_na_bezoporow: nazwadzwieku.wav, wejscie_na_drugi_uklad: nazwadzwieku.wav, musza byc zdefiniowane PRZED relay:
 - poprawka dla dzwiekow zlozonych z trzech plikow - nie trzeba czekac do momentu zakonczenia odgrywania dzwieku "stop", by odtwarzal sie dzwiek "start" po ponownym zalaczeniu np. przetwornicy/sprezarki
 
-hunter-060112:
-- dodany maksymalny zakres pokazywany przez predkosciomierz, definiowanie w mmd w internaldata (np. za mechspring): maxtachovel: (predkosc maksymalna)
 
-hunter-230112:
-- zapalanie tylnich reflektorow z przedniej kabiny i odwrotnie (jezeli przelaczniki sa zdefiniowane w mmd, czyli rearleftlight_sw, rearupperlight_sw, rearrightlight_sw, opcjonalnie rearleftend_sw, rearrightend_sw), zapalanie ctrl+shift+(y/u/i), gaszenie ctrl+(y/u/i)
-- dodany test czuwaka
 
-hunter-050212:
-- dodane oswietlenie kabiny (na razie tylko nad mechanikiem), zapalanie ctrl+shift+; , gaszenie ctrl+; , dziala TYLKO po zdefiniowaniu przelacznika odpowiedzialnego za swiatlo, przykladowa definicja w mmd: 
-cablight1_sw: nazwaprzelacznika rot -0.2 0 0.2  . DODATKOWO mozemy zdefiniowac lampe: i-cablight1: lampanadmechanikiem , w t3d obiekt lampanadmechanikiem_on
-- dodane przyciemnienie oswietlenia kabiny (tez nad mechanikiem), zalaczanie ctrl+shift+[ , wylaczanie ctrl+[ , dziala TYLKO po zdefiniowaniu przelacznika, przykladowa definicja w mmd: 
-dimcablight1_sw: nazwaprzelacznika rot -0.2 0 0.2  .
-- zrobiona zaleznosc intensywnosci swiatla od zalaczonej/wylaczonej przetwornicy
-- dodany wylacznik wentylatorow oporow rozruchowych, domyslnie zalaczone, ctrl+shift+W zalaczenie, ctrl+w wylaczenie wentylatorow
+
 
 
 
@@ -51,8 +59,8 @@ todo:
 - drugie swiatlo (nad glowa pomocnika, definiowane pod cablight2_sw)
 - definiowanie kolorow swiatla z mmd
 - dla ep02 pod jednym heblem obydwie koncowki dla przodu i dla tylu, sygnalizacja zapalonych koncowek
-- dla wentylatorow oporow rozruchowych zaleznosc dzialania wylacznika od istnienia wpisu w chk
-
+- opoznienie zalaczenia szybkiego zalezne od wpisu w chk
+- dzialanie przek. nadm. przetwornicy i ogrzewania zalezne od wpisu w chk
 --------OD RULZA----------
 - oddzielenie mmd kabiny A i B - np. do wylaczania dzwieku Haslera w kabinie B EU05 i innych dzwiekow np. na pomostach SM42
 - zalaczanie baterii

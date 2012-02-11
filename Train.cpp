@@ -346,7 +346,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
          }
        }
       else
-      if ((cKey==Global::Keys[k_Compressor])&&(DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor))
+      if ((cKey==Global::Keys[k_Compressor])&&((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)||(DynamicObject->MoverParameters->TrainType==dt_EZT))) //hunter-110212: poprawka dla EZT
        {
         if (CompressorButtonGauge.GetValue()==0)
          {
@@ -501,7 +501,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       {
         if (GetAsyncKeyState(VK_CONTROL)<0)  //hunter-050212: wentylatory oporow rozruchowych
          {
-          if (DynamicObject->MoverParameters->RVentSwitch==false)
+          if ((DynamicObject->MoverParameters->RVentSwitchChange==true)&&(DynamicObject->MoverParameters->RVentSwitch==false)) //hunter-110212: przelacznik zalezny od wpisu w chk
            {
             dsbSwitch->SetVolume(DSBVOLUME_MAX);
             dsbSwitch->Play(0,0,0);
@@ -1186,12 +1186,12 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       }
       else
       //-----------
-      //hunter-050212: prygotowanie pod rozrzad, pod ctrl wylaczanie wentylatorow  
+      //hunter-050212: prygotowanie pod rozrzad, pod ctrl wylaczanie wentylatorow
       if (cKey==Global::Keys[k_Rozrzad])
       {
         if (GetAsyncKeyState(VK_CONTROL)<0)  //hunter-050212: wentylatory oporow rozruchowych
          {
-          if (DynamicObject->MoverParameters->RVentSwitch==true)
+          if ((DynamicObject->MoverParameters->RVentSwitchChange==true)&&(DynamicObject->MoverParameters->RVentSwitch==true)) //hunter-110212: przelacznik zalezny od wpisu w chk
            {
             dsbSwitch->SetVolume(DSBVOLUME_MAX);
             dsbSwitch->Play(0,0,0);
@@ -1263,7 +1263,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
          }
        }
       else
-      if ((cKey==Global::Keys[k_Compressor])&&(DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor))
+      if ((cKey==Global::Keys[k_Compressor])&&((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)||(DynamicObject->MoverParameters->TrainType==dt_EZT))) //hunter-110212: poprawka dla EZT
        {
         if (CompressorButtonGauge.GetValue()!=0)
          {
@@ -2104,7 +2104,7 @@ bool __fastcall TTrain::Update()
   if (DynamicObject->MoverParameters->ConverterFlag==true)
    {
     fConverterTimer+=dt;
-     if ((DynamicObject->MoverParameters->CompressorFlag==true)&&(DynamicObject->MoverParameters->CompressorPower!=0)&&(DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)&&(DynamicObject->Controller==Humandriver))
+     if ((DynamicObject->MoverParameters->CompressorFlag==true)&&(DynamicObject->MoverParameters->CompressorPower!=0)&&((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)||(DynamicObject->MoverParameters->TrainType==dt_EZT))&&(DynamicObject->Controller==Humandriver)) //hunter-110212: poprawka dla EZT
       {
        if (fConverterTimer<fConverterPrzekaznik)
         {
@@ -3447,7 +3447,7 @@ else
         ConverterButtonGauge.PutValue(1);
         if ((DynamicObject->MoverParameters->PantFrontVolt) || (DynamicObject->MoverParameters->PantRearVolt) || (DynamicObject->MoverParameters->EnginePowerSource.SourceType!=CurrentCollector) || (!Global::bLiveTraction))
          DynamicObject->MoverParameters->ConverterSwitch(true);
-        if (DynamicObject->MoverParameters->EngineType!=ElectricSeriesMotor)
+        if ((DynamicObject->MoverParameters->EngineType!=ElectricSeriesMotor)||(DynamicObject->MoverParameters->TrainType!=dt_EZT)) //hunter-110212: poprawka dla EZT
          DynamicObject->MoverParameters->CompressorSwitch(true);
       }
      else
@@ -3459,8 +3459,8 @@ else
         }
       }
 
-     if ( Pressed(VK_SHIFT)&&Pressed(Global::Keys[k_Compressor])&&(DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor) )   //NBMX 14-09-2003: sprezarka wl
-      {
+     if ( Pressed(VK_SHIFT)&&Pressed(Global::Keys[k_Compressor])&&((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)||(DynamicObject->MoverParameters->TrainType==dt_EZT)) )   //NBMX 14-09-2003: sprezarka wl
+      { //hunter-110212: poprawka dla EZT
         CompressorButtonGauge.PutValue(1);
         DynamicObject->MoverParameters->CompressorSwitch(true);
       }
@@ -3472,8 +3472,8 @@ else
         DynamicObject->MoverParameters->ConverterSwitch(false);
       }
 
-     if ( !Pressed(VK_SHIFT)&&Pressed(Global::Keys[k_Compressor])&&(DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor) )   //NBMX 14-09-2003: sprezarka wl
-      {
+     if ( !Pressed(VK_SHIFT)&&Pressed(Global::Keys[k_Compressor])&&((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)||(DynamicObject->MoverParameters->TrainType==dt_EZT)) )   //NBMX 14-09-2003: sprezarka wl
+      { //hunter-110212: poprawka dla EZT
         CompressorButtonGauge.PutValue(0);
         DynamicObject->MoverParameters->CompressorSwitch(false);
       }
@@ -3636,9 +3636,15 @@ else
         if (GetAsyncKeyState(VK_CONTROL)<0)  //hunter-050212: wentylatory oporow rozruchowych
          {
           if (Pressed(VK_SHIFT))
-           DynamicObject->MoverParameters->RVentSwitch=true;
+           {
+            if (DynamicObject->MoverParameters->RVentSwitchChange==true) //hunter-110212: przelacznik zalezny od wpisu w chk
+             DynamicObject->MoverParameters->RVentSwitch=true;
+           }
           else
-           DynamicObject->MoverParameters->RVentSwitch=false;
+           {
+            if (DynamicObject->MoverParameters->RVentSwitchChange==true) //hunter-110212: przelacznik zalezny od wpisu w chk
+             DynamicObject->MoverParameters->RVentSwitch=false;
+           }
          }
         /*
         else
