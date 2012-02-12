@@ -152,10 +152,8 @@ bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
  WriteLog((char*)glGetString(GL_EXTENSIONS));
  if (glewGetExtension("GL_ARB_vertex_buffer_object")) //czy jest VBO w karcie graficznej
  {
-#ifdef USE_VBO
   if (AnsiString((char*)glGetString(GL_VENDOR)).Pos("Intel")) //wymuszenie tylko dla kart Intel
    Global::bUseVBO=true; //VBO w³¹czane tylko, jeœli jest obs³uga
-#endif
   if (Global::bUseVBO)
    WriteLog("Ra: The VBO is found and will be used.");
   else
@@ -1056,14 +1054,12 @@ bool __fastcall TWorld::Update()
       glLightfv(GL_LIGHT0,GL_AMBIENT,ambientCabLight);
       glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseCabLight);
       glLightfv(GL_LIGHT0,GL_SPECULAR,specularCabLight);
-#ifdef USE_VBO
       if (Global::bUseVBO)
       {//renderowanie z u¿yciem VBO
        Train->DynamicObject->mdKabina->RaRender(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->iAlpha);
        Train->DynamicObject->mdKabina->RaRenderAlpha(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->iAlpha);
       }
       else
-#endif
       {//renderowanie z Display List
        Train->DynamicObject->mdKabina->Render(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->iAlpha);
        Train->DynamicObject->mdKabina->RenderAlpha(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->iAlpha);
@@ -1626,7 +1622,6 @@ bool __fastcall TWorld::Render()
      modelrotate=ABuAcos(tempangle);
      Global::SetCameraRotation(Camera.Yaw-modelrotate);
      }
-#ifdef USE_VBO
     if (Global::bUseVBO)
     {//renderowanie przez VBO
      if (!Ground.RaRender(Camera.Pos)) return false;
@@ -1635,7 +1630,6 @@ bool __fastcall TWorld::Render()
        return false;
     }
     else
-#endif
     {//renderowanie przez Display List
      if (!Ground.Render(Camera.Pos)) return false;
      //if (Global::bRenderAlpha) //Ra: wywalam tê flagê

@@ -2202,15 +2202,7 @@ if (tmpTraction.TractionVoltage==0)
 
 bool __fastcall TDynamicObject::FastUpdate(double dt)
 {
-#ifdef _DEBUG
     if (dt==0.0) return true; //Ra: pauza
-/*
-    {
-        Error("dt==0");
-        dt= 0.001;
-    }
-*/
-#endif
     double dDOMoveLen;
     if (!MoverParameters->PhysicActivation)
      return true;   //McZapkie: wylaczanie fizyki gdy nie potrzeba
@@ -2376,35 +2368,27 @@ bool __fastcall TDynamicObject::Render()
   glMultMatrixd(mMatrix.getArray());
   if (mdLowPolyInt)
    if (FreeFlyModeFlag?true:!mdKabina)
-#ifdef USE_VBO
     if (Global::bUseVBO)
      mdLowPolyInt->RaRender(ObjSqrDist,ReplacableSkinID,iAlpha);
     else
-#endif
      mdLowPolyInt->Render(ObjSqrDist,ReplacableSkinID,iAlpha);
 
-#ifdef USE_VBO
   if (Global::bUseVBO)
    mdModel->RaRender(ObjSqrDist,ReplacableSkinID,iAlpha);
   else
-#endif
    mdModel->Render(ObjSqrDist,ReplacableSkinID,iAlpha);
   if (mdLoad) //renderowanie nieprzezroczystego ³adunku
-#ifdef USE_VBO
    if (Global::bUseVBO)
     mdLoad->RaRender(ObjSqrDist,ReplacableSkinID,iAlpha);
    else
-#endif
     mdLoad->Render(ObjSqrDist,ReplacableSkinID,iAlpha);
 
 //rendering przedsionkow o ile istnieja
   if (mdPrzedsionek)
    //if (MoverParameters->filename==asBaseDir+"6ba.chk") //Ra: to tu bez sensu by³o
-#ifdef USE_VBO
    if (Global::bUseVBO)
     mdPrzedsionek->RaRender(ObjSqrDist,ReplacableSkinID,iAlpha);
    else
-#endif
     mdPrzedsionek->Render(ObjSqrDist,ReplacableSkinID,iAlpha);
 //rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
 //ABu: tylko w trybie FreeFly, zwykly tryb w world.cpp
@@ -2446,11 +2430,9 @@ bool __fastcall TDynamicObject::Render()
    glLightfv(GL_LIGHT0,GL_AMBIENT,ambientCabLight);
    glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseCabLight);
    glLightfv(GL_LIGHT0,GL_SPECULAR,specularCabLight);
-#ifdef USE_VBO
    if (Global::bUseVBO)
     mdKabina->RaRender(ObjSqrDist,0);
    else
-#endif
     mdKabina->Render(ObjSqrDist,0);
    glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
    glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
@@ -2779,19 +2761,15 @@ bool __fastcall TDynamicObject::RenderAlpha()
     glTranslated(pos.x,pos.y,pos.z);
     glMultMatrixd(mMatrix.getArray());
 
-#ifdef USE_VBO
     if (Global::bUseVBO)
     mdModel->RaRenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
     else
-#endif
      mdModel->RenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
 
     if (mdLoad) //Ra: dodane renderowanie przezroczystego ³adunku
-#ifdef USE_VBO
      if (Global::bUseVBO)
       mdLoad->RaRenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
      else
-#endif
       mdLoad->RenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
 
 /* skoro false to mo¿na wyci¹c

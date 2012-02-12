@@ -10,6 +10,7 @@ class TEvent;
 class TTrain;
 class TDynamicObject;
 class TGroundNode;
+class TModel3d;
 class TAnimModel;
 class TAnimContainer;
 class TMemCell;

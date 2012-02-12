@@ -339,12 +339,31 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
   else if (texture.find("replacableskin")!=texture.npos)
   {// McZapkie-060702: zmienialne skory modelu
    TextureID=-1;
-   iFlags|=1; //zmienna tekstura 0
+   iFlags|=1; //zmienna tekstura 1
   }
-  else
+  else if (texture=="-1")
+  {
+   TextureID=-1;
+   iFlags|=1; //zmienna tekstura 1
+  }
+  else if (texture=="-2")
+  {
+   TextureID=-2;
+   iFlags|=2; //zmienna tekstura 2
+  }
+  else if (texture=="-3")
+  {
+   TextureID=-3;
+   iFlags|=4; //zmienna tekstura 3
+  }
+  else if (texture=="-4")
+  {
+   TextureID=-4;
+   iFlags|=8; //zmienna tekstura 4
+  }
   {//jesli tylko nazwa pliku to dawac biezaca sciezke do tekstur
    //asTexture=AnsiString(texture.c_str()); //zapamiêtanie nazwy tekstury
-   TextureNameSet(token.c_str());
+   TextureNameSet(texture.c_str());
    if (texture.find_first_of("/\\")==texture.npos)
     texture.insert(0,Global::asCurrentTexturePath.c_str());
    TextureID=TTexturesManager::GetTextureID(texture);
@@ -1329,7 +1348,8 @@ void __fastcall TModel3d::AddTo(TSubModel *tmp,TSubModel *SubModel)
 };
 
 TSubModel* __fastcall TModel3d::GetFromName(const char *sName)
-{
+{//wyszukanie submodelu po nazwie
+ if (!sName) return Root; //potrzebne do terenu z E3D
  if (iFlags&0x0200) //wczytany z pliku tekstowego, wyszukiwanie rekurencyjne
   return Root?Root->GetFromName(AnsiString(sName)):NULL;
  else //wczytano z pliku binarnego, mo¿na wyszukaæ iteracyjnie
@@ -1503,7 +1523,6 @@ void __fastcall TModel3d::Init()
   }
   if (iNumVerts)
   {
-#ifdef USE_VBO
    if (Global::bUseVBO)
    {if (!m_pVNT) //jeœli nie ma jeszcze tablicy (wczytano z pliku tekstowego)
     {//tworzenie tymczasowej tablicy z wierzcho³kami ca³ego modelu
@@ -1515,7 +1534,6 @@ void __fastcall TModel3d::Init()
      BuildVBOs(false); //tworzenie VBO bez usuwania tablicy z pamiêci
    }
    else
-#endif
    {//przygotowanie skompilowanych siatek dla DisplayLists
     Root->DisplayLists(); //tworzenie skompilowanej listy dla submodelu
    }

@@ -1241,8 +1241,8 @@ begin
       else
        if (CtrlSpeed>1) and (ActiveDir<>0) then
         begin
-          while (RList[MainCtrlPos].R>0) and IncMainCtrl(1) do
-           OK:=True ; {takie chamskie, potem poprawie}
+          while (RList[MainCtrlPos].R>0) and IncMainCtrl(1) do ;
+           //OK:=True ; {takie chamskie, potem poprawie} <-Ra: kto mia³ to poprawiæ i po co?
          if(DynamicBrakeFlag)then
            if(TrainType=dt_ET42)then
              while(MainCtrlPos>20)do
@@ -1947,7 +1947,8 @@ end;
 function TMoverParameters.BrakeReleaser: boolean;
 var OK:boolean;
 begin
-  if (BrakeCtrlPosNo>-1) and (PipePress<CntrlPipePress) and {(BrakeStatus=b_on)}(not TestFlag(BrakeStatus,b_dmg)) then
+  //Ra: BrakeCtrlPosNo jest typu Byte, wiêc nie mo¿e byæ mniejsze od 0!
+  if {(BrakeCtrlPosNo>-1) and} (PipePress<CntrlPipePress) and {(BrakeStatus=b_on)}(not TestFlag(BrakeStatus,b_dmg)) then
    begin
      OK:=SetFlag(BrakeStatus,b_release);
      CntrlPipePress:=PipePress+0.015-0.0075*ord((BrakeSubsystem=Oerlikon)or(BrakeSubsystem=KE));
@@ -2019,6 +2020,7 @@ var Rate,Speed,dp,sm:real;
 begin
   dpLocalValve:=0;
   dpBrake:=0;
+  sm:=1.0; //Ra: a ile powinno byæ i co to w³aœciwie jest?
   if (MaxBrakePress>0) and (not TestFlag(BrakeStatus,b_dmg)) then
    begin
        {hydrauliczny hamulec pomocniczy}
@@ -3004,16 +3006,15 @@ end;
 
 function TMoverParameters.CutOffEngine: boolean; {wylacza uszkodzony silnik}
 begin
-  if (NPoweredAxles>0) and (CabNo=0) and (EngineType=ElectricSeriesMotor) then
-   begin
-     if SetFlag(DamageFlag,-dtrain_engine) then
-      begin
-        NPoweredAxles:=NPoweredAxles div 2;
-        CutOffEngine:=True;
-      end;
-   end
-  else
-   CutOffEngine:=False;
+ CutOffEngine:=False; //Ra: wartoœæ domyœlna, sprawdziæ to trzeba 
+ if (NPoweredAxles>0) and (CabNo=0) and (EngineType=ElectricSeriesMotor) then
+  begin
+   if SetFlag(DamageFlag,-dtrain_engine) then
+    begin
+     NPoweredAxles:=NPoweredAxles div 2;
+     CutOffEngine:=True;
+    end;
+  end
 end;
 
 {przelacznik pradu wysokiego rozruchu}
@@ -3826,14 +3827,14 @@ begin
             //ABu: bylo newdist+10*((...
             tempdist:=((Connected^.dMoveLen*DirPatch(0,ConnectedNr))-dMoveLen);
             newdist:=newdist+10.0*tempdist;
-            tempdist:=tempdist+CoupleDist; //ABu: proby szybkiego naprawienia bledu
+            //tempdist:=tempdist+CoupleDist; //ABu: proby szybkiego naprawienia bledu
          end
       else
          begin
             //ABu: bylo newdist+10*((...
             tempdist:=((dMoveLen-(Connected^.dMoveLen*DirPatch(1,ConnectedNr))));
             newdist:=newdist+10.0*tempdist;
-            tempdist:=tempdist+CoupleDist; //ABu: proby szybkiego naprawienia bledu
+            //tempdist:=tempdist+CoupleDist; //ABu: proby szybkiego naprawienia bledu
          end;
 
       //blablabla
@@ -4012,7 +4013,7 @@ function TMoverParameters.LoadingDone(LSpeed:real; LoadInit:string): boolean;
 var LoadChange:longint;
 begin
  ClearPendingExceptions; //zabezpieczenie dla Trunc()
- LoadingDone:=False; //nie zakoñczone
+ //LoadingDone:=False; //nie zakoñczone
  if (LoadInit<>'') then //nazwa ³adunku niepusta
   begin
    if Load>MaxLoad then
@@ -4053,7 +4054,7 @@ begin
 end;
 
 {-------------------------------------------------------------------}
-{WAZNA FUNKCJA - oblicza sile wypadkowa}
+{WAZNA FUNKCJA - oblicza si³ê wypadkow¹}
 procedure TMoverParameters.ComputeTotalForce(dt: real; dt1: real; FullVer: boolean);
 var b: byte;
 begin
