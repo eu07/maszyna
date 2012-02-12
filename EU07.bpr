@@ -33,7 +33,7 @@
     <DEBUGLIBPATH value="$(BCB)\lib\debug"/>
     <RELEASELIBPATH value="$(BCB)\lib\release"/>
     <LINKER value="tlink32"/>
-    <USERDEFINES value="GLEW_STATIC;_DEBUG;USE_VBO"/>
+    <USERDEFINES value="GLEW_STATIC;_DEBUG"/>
     <SYSDEFINES value="_RTLDLL;NO_STRICT"/>
     <MAINSOURCE value="EU07.cpp"/>
     <INCLUDEPATH value="C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
@@ -42,7 +42,7 @@
   </MACROS>
   <OPTIONS>
     <IDLCFLAGS value="-IC:\ProgsWin\CBuilder5\Projects\. -Iopengl -IMcZapkie -I$(BCB)\include 
-      -I$(BCB)\include\vcl -src_suffix cpp -DGLEW_STATIC -D_DEBUG -DUSE_VBO -boa"/>
+      -I$(BCB)\include\vcl -src_suffix cpp -DGLEW_STATIC -D_DEBUG -boa"/>
     <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a4 -6 -b- -k -y -v -vi- 
       -c -tW -tWM"/>
     <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
@@ -61,8 +61,8 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=1
 MinorVer=6
-Release=507
-Build=314
+Release=521
+Build=317
 Debug=1
 PreRelease=0
 Special=0
@@ -74,7 +74,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.6.507.314
+FileVersion=1.6.521.317
 InternalName=6th by Ra
 LegalCopyright=
 LegalTrademarks=
@@ -101,8 +101,8 @@ Item2=$(BCB)\source\vcl
 
 [HistoryLists\hlConditionals]
 Count=8
-Item0=GLEW_STATIC;_DEBUG;USE_VBO
-Item1=GLEW_STATIC;_DEBUG
+Item0=GLEW_STATIC;_DEBUG
+Item1=GLEW_STATIC;_DEBUG;USE_VBO
 Item2=GLEW_STATIC;_DEBUG;_USE_OLD_RW_STL
 Item3=GLEW_STATIC
 Item4=GLEW_STATIC;USE_VERTEX_ARRAYS;_DEBUG

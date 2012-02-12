@@ -119,7 +119,7 @@ __fastcall TGroundNode::~TGroundNode()
             SafeDelete(pTrack);
         if (iType==TP_DYNAMIC)
             SafeDelete(DynamicObject);
-        if (iType==TP_MODEL)
+        if ((iType==TP_MODEL)||(iType==TP_TERRAIN))
             SafeDelete(Model);
         if (iType==GL_LINES || iType==GL_LINE_STRIP || iType==GL_LINE_LOOP )
             SafeDeleteArray(Points);
@@ -1340,7 +1340,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
  else if (str=="line_strip")          tmp->iType=GL_LINE_STRIP;
  else if (str=="line_loop")           tmp->iType=GL_LINE_LOOP;
  else if (str=="model")               tmp->iType=TP_MODEL;
- //else if (str=="semaphore")           tmp->iType=TP_SEMAPHORE;
+ else if (str=="terrain")             tmp->iType=TP_TERRAIN;
  else if (str=="dynamic")             tmp->iType=TP_DYNAMIC;
  else if (str=="sound")               tmp->iType=TP_SOUND;
  else if (str=="track")               tmp->iType=TP_TRACK;
@@ -1596,7 +1596,8 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
     Error("enddynamic statement missing");
    //tmp->bStatic=false;
    break;
-  case TP_MODEL :
+  case TP_TERRAIN:
+  case TP_MODEL:
    parser->getTokens(3);
    *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
    parser->getTokens();
@@ -1606,13 +1607,30 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    //McZapkie-260402: model tez ma wspolrzedne wzgledne
    tmp->pCenter+=pOrigin;
    //tmp->fAngle+=aRotate.y; // /180*M_PI
-   tmp->Model=new TAnimModel();
-   tmp->Model->RaAnglesSet(aRotate.x,tf1+aRotate.y,aRotate.z); //dostosowanie do pochylania linii
-   //tmp->Model->RaAnglesSet(0,tf1+aRotate.y,0);
-//   str=Parser->GetNextSymbol().LowerCase();
-   if (!tmp->Model->Load(parser))
-    return NULL;
-   tmp->iFlags=tmp->Model->Flags(); //ustalenie, czy przezroczysty
+   if (tmp->iType==TP_MODEL)
+   {//jeœli standardowy model
+    tmp->Model=new TAnimModel();
+    tmp->Model->RaAnglesSet(aRotate.x,tf1+aRotate.y,aRotate.z); //dostosowanie do pochylania linii
+    if (tmp->Model->Load(parser)) //wczytanie modelu, tekstury i stanu œwiate³...
+     tmp->iFlags=tmp->Model->Flags(); //ustalenie, czy przezroczysty
+    else
+    {//model nie wczyta³ siê - ignorowanie node
+     delete tmp;
+     tmp=NULL; //nie mo¿e byæ tu return
+     break; //nie mo¿e byæ tu return?
+    }
+   }
+   else if (tmp->iType==TP_TERRAIN)
+   {//nie potrzeba nak³adki animuj¹cej submodele
+    *parser >> token;
+    tmp->pModel3D=TModelsManager::GetModel(token.c_str(),false);
+    do //Ra: z tym to trochê bez sensu jest
+    {parser->getTokens();
+     *parser >> token;
+     str=AnsiString(token.c_str());
+    } while (str!="endmodel");
+   }
+   //str=Parser->GetNextSymbol().LowerCase();
    break;
   case TP_GEOMETRY :
   case GL_TRIANGLES :
@@ -1839,7 +1857,7 @@ TEvent* __fastcall TGround::FindEvent(const AnsiString &asEventName)
 
 void __fastcall TGround::FirstInit()
 {//ustalanie zale¿noœci na scenerii przed wczytaniem pojazdów
- if (bInitDone) return;//Ra: ¿eby nie robi³o siê dwa razy
+ if (bInitDone) return; //Ra: ¿eby nie robi³o siê dwa razy
  bInitDone=true;
  WriteLog("InitNormals");
  for (int i=0;i<TP_LAST;++i)
@@ -1850,6 +1868,18 @@ void __fastcall TGround::FirstInit()
    {//pojazdów w ogóle nie dotyczy dodawanie do mapy
     if (i==TP_EVLAUNCH?Current->EvLaunch->IsGlobal():false)
      srGlobal.NodeAdd(Current); //dodanie do globalnego obiektu
+    else if (i==TP_TERRAIN)
+    {//specjalne przetwarzanie terenu wczytanego z pliku E3D
+     TSubModel *sm=Current->pModel3D->GetFromName(NULL); //pobranie g³ównego
+     AnsiString xxxzzz;
+     TGroundRect *gr;
+     while (sm)
+     {//trzeba przejrzeæ g³ówn¹ listê submodeli i porozdzielaæ je na kwadraty
+      xxxzzz=AnsiString(sm->pName); //pobranie nazwy
+      gr=GetRect(xxxzzz.SubString(1,3).ToIntDef(0)-500+iNumRects/2,-xxxzzz.SubString(4,3).ToIntDef(0)-500+iNumRects/2);
+      //gr->NodeAdd(Current);
+     }
+    }
     else if ((Current->iType!=GL_TRIANGLES)&&(Current->iType!=GL_TRIANGLE_STRIP)?true //~czy trójk¹t?
      :(Current->iFlags&0x20)?true //~czy teksturê ma nieprzezroczyst¹?
       //:(Current->iNumVerts!=3)?true //~czy tylko jeden trójk¹t?
@@ -2346,7 +2376,7 @@ bool __fastcall TGround::InitEvents()
              else
               Error("Event \""+Current->asName+"\" cannot find memcell \""+Current->asNodeName+"\"");
             break;
-            case tp_Animation :
+            case tp_Animation:
              tmp=FindGroundNode(Current->asNodeName,TP_MODEL); //egzemplarza modelu do animowania
              if (tmp)
              {
@@ -3656,8 +3686,8 @@ void __fastcall TGround::TerrainWrite()
    if (Rects[i][j].iNodeCount)
    {//o ile s¹ jakieœ trójk¹ty w œrodku
     sk=new TSubModel(); //nowy submodel dla kawadratu
-    //sk->asName=AnsiString(1000*(i+500-iNumRects/2)+(j+500-iNumRects/2)); //nazwa=numer kwadratu
-    sk->NameSet(AnsiString(1000*(i+500-iNumRects/2)+(j+500-iNumRects/2)).c_str()); //nazwa=numer kwadratu
+    //numer kwadratu XXXZZZ, przy czym X jest ujemne - XXX roœnie na wschód, ZZZ roœnie na pó³noc 
+    sk->NameSet(AnsiString(1000*(500-i+iNumRects/2)+(500+j-iNumRects/2)).c_str()); //nazwa=numer kwadratu
     m->AddTo(NULL,sk); //dodanie submodelu dla kwadratu
     for (Current=Rects[i][j].nRootNode;Current;Current=Current->nNext2)
      switch (Current->iType)

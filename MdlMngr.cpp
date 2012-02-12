@@ -132,7 +132,7 @@ TModel3d*  __fastcall TModelsManager::LoadModel(char *Name,bool dynamic)
  return mdl;
 }
 
-TModel3d* __fastcall TModelsManager::GetModel(char *Name,bool dynamic)
+TModel3d* __fastcall TModelsManager::GetModel(const char *Name,bool dynamic)
 {
  char buf[255];
  AnsiString buftp=Global::asCurrentTexturePath;

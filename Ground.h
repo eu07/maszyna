@@ -14,6 +14,7 @@ using namespace Math3D;
 const int TP_MODEL=10;
 const int TP_MESH=11; //Ra: specjalny obiekt grupoj¹cy siatki dla tekstury
 const int TP_DUMMYTRACK=12; //Ra: zdublowanie obiektu toru dla rozdzielenia tekstur
+const int TP_TERRAIN=13; //Ra: specjalny model dla terenu
 const int TP_DYNAMIC=14;
 const int TP_SOUND=15;
 const int TP_TRACK=16;
@@ -82,6 +83,7 @@ public:
  union
  {//Ra: wska¿niki zale¿ne od typu - zrobiæ klasy dziedziczone zamiast
   void *Pointer; //do przypisywania NULL
+  TModel3d *pModel3D; //model scenerii z animacjami
   TAnimModel *Model; //model scenerii z animacjami
   TDynamicObject *DynamicObject; //pojazd
   vector3 *Points; //punkty dla linii
