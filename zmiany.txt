@@ -1,3 +1,6 @@
+hunter-220212:
+- opoznienie zadzialania wylacznika szybkiego zalezne od wpisu w chk (MainSwitchDelay= w linijce Cntrl.), przy braku zdefiniowania brak opoznienia
+
 hunter-120212:
 - "poprawka poprawki" na sprezarke (przy poprzednim kodzie po zalaczeniu przetwornicy wyrzucalo nadmiara)
 
@@ -62,7 +65,6 @@ todo:
 - drugie swiatlo (nad glowa pomocnika, definiowane pod cablight2_sw)
 - definiowanie kolorow swiatla z mmd
 - dla ep02 pod jednym heblem obydwie koncowki dla przodu i dla tylu, sygnalizacja zapalonych koncowek
-- opoznienie zalaczenia szybkiego zalezne od wpisu w chk
 - dzialanie przek. nadm. przetwornicy i ogrzewania zalezne od wpisu w chk
 --------OD RULZA----------
 - oddzielenie mmd kabiny A i B - np. do wylaczania dzwieku Haslera w kabinie B EU05 i innych dzwiekow np. na pomostach SM42
@@ -76,7 +78,6 @@ todo:
 - buczek przy poslizgu na ET22
 - zmiana predkosci przetwornicy w zaleznosci od napiecia sieciowego
 - poprawa zaleznosci przekaznika jazdy rownoleglej dla EU07 i pochodnych
-- mozliwosc wylaczenia wentylatorow oporow rozruchowych dla lokomotyw w ktorych mozliwe (niemozliwe w np. EU05)
 - mozliwosc zdefiniowania innego niz prostokat ksztaltu zakresu poruszania sie w kabinach i przedzialach maszynowych
 - kontrolka poslizgu powinna sie swiecic dopiero po przekroczeniu roznicy predkosci obrotowej wobec liniowej o 180 obr/min (na silniku, dla EU07 to jest 8 km/h) 
 

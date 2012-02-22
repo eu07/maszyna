@@ -3306,8 +3306,8 @@ else
           if (DynamicObject->MoverParameters->Mains==false)  //hunter-050212: teraz, gdy przetwornica i WS sa zalaczone, po nacisnieciu grzybka przetwornica nie wylacza sie
             DynamicObject->MoverParameters->ConverterSwitch(false);
 
-          //hunter-050212: TODO: zrobic opoznienie w zaleznosci od istnienia wpisu w chk            
-          if (fMainRelayTimer>DynamicObject->MoverParameters->InitialCtrlDelay) //wlaczanie WSa z opoznieniem
+          //hunter-220212: opoznienie w zaleznosci od istnienia wpisu w chk            
+          if (fMainRelayTimer>DynamicObject->MoverParameters->MainSwitchDelay) //wlaczanie WSa z opoznieniem
             if (DynamicObject->MoverParameters->MainSwitch(true))
             {
               if (DynamicObject->MoverParameters->MainCtrlPos!=0) //zabezpieczenie, by po wrzuceniu pozycji przed wlaczonym

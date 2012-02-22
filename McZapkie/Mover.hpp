@@ -383,6 +383,7 @@ public:
 	double nmax;
 	double InitialCtrlDelay;
 	double CtrlDelay;
+	double MainSwitchDelay;
 	Byte AutoRelayType;
 	bool CoupledCtrl;
 	bool IsCoupled;
