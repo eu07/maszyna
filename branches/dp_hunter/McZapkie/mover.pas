@@ -443,6 +443,7 @@ TYPE
                nmax: real;             {maksymalna dop. ilosc obrotow /s}
                InitialCtrlDelay,       {ile sek. opoznienia po wl. silnika}
                CtrlDelay: real;        { -//-  -//- miedzy kolejnymi poz.}
+               MainSwitchDelay: real;  {hunter-220212: opoznienie zalaczania WS'a}
                AutoRelayType: byte;    {0 -brak, 1 - jest, 2 - opcja}
                CoupledCtrl: boolean;   {czy mainctrl i scndctrl sa sprzezone}
                //CouplerNr: TCouplerNr;  {ABu: nr sprzegu podlaczonego w drugim obiekcie}
@@ -5090,6 +5091,7 @@ begin
   Vel:=Abs(VelInitial); V:=VelInitial/3.6;
   LastSwitchingTime:=0;
   LastRelayTime:=0;
+  MainSwitchDelay:=0;
   //EndSignalsFlag:=0;
   //HeadSignalsFlag:=0;
   DistCounter:=0;
@@ -5969,6 +5971,8 @@ begin
               InitialCtrlDelay:=s2r(DUE(s));
               s:=ExtractKeyWord(lines,'SCDelay=');
               CtrlDelay:=s2r(DUE(s));
+              s:=ExtractKeyWord(lines,'MainSwitchDelay='); //hunter-220212
+              MainSwitchDelay:=s2r(DUE(s));
               if BrakeCtrlPosNo>0 then
                for i:=0 to BrakeCtrlPosNo+1 do
                 begin
