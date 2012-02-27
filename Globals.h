@@ -118,6 +118,7 @@ const int MaxKeys= 73;
 class TGround;
 class TWorld;
 class TDynamicObject;
+class TAnimModel; //obiekt terenu
 
 class Global
 {
@@ -233,7 +234,7 @@ public:
  static int iModifyTGA; //czy korygowaæ pliki TGA dla szybszego wczytywania
  static bool bHideConsole; //hunter-271211: ukrywanie konsoli
  static TWorld *pWorld; //wskaŸnik na œwiat do usuwania pojazdów
- static bool bTerrainCompact; //czy zapisaæ teren w pliku
+ static TAnimModel *pTerrainCompact; //obiekt terenu do ewentualnego zapisania w pliku
  //metody
  static void __fastcall TrainDelete(TDynamicObject *d);
 };

@@ -42,6 +42,24 @@
 const float maxrot=(M_PI/3.0); //60°
 
 //---------------------------------------------------------------------------
+int __fastcall TAnim::TypeSet(int i)
+{//ustawienie typu animacji i zale¿nej od niego iloœci animowanych submodeli
+ switch (i)
+ {case 0: iFlags=0x01; break; //0-oœ
+  case 1: iFlags=0x11; break; //1-wi¹zar
+  case 2: iFlags=0x21; break; //2-wózek
+  case 3: iFlags=0x31; break; //3-wahacz
+  case 4: iFlags=0x45; break; //4-pantograf
+  case 5: iFlags=0x51; break; //5-drzwi
+  case 6: iFlags=0x68; break; //6-t³ok i rozrz¹d
+  default: iFlags=0;
+ }
+ return iFlags&15; //ile jest animowanych elementów
+};
+void __fastcall TAnim::Parovoz()
+{//animowanie t³oka i rozrz¹du parowozu
+};
+//---------------------------------------------------------------------------
 TDynamicObject* __fastcall TDynamicObject::FirstFind(int &coupler_nr)
 {//szukanie skrajnego po³¹czonego pojazdu w pociagu
  //od strony sprzegu (coupler_nr) obiektu (start)
@@ -501,7 +519,7 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
    {btEndSignalsTab2.TurnOn(); btnOn=true;}
   //else btEndSignalsTab2.TurnOff();
   //McZapkie-181002: krecenie wahaczem (korzysta z kata obrotu silnika)
-  for (int i=0; i<4; i++)
+  for (int i=0;i<4;++i)
    if (smWahacze[i])
     smWahacze[i]->SetRotate(float3(1,0,0),fWahaczeAmp*cos(MoverParameters->eAngle));
   if (smMechanik)
@@ -1055,7 +1073,7 @@ __fastcall TDynamicObject::TDynamicObject()
  //McZapkie-270202
  Controller=AIdriver;
  bDisplayCab=false; //030303
- NextConnected=PrevConnected= NULL;
+ NextConnected=PrevConnected=NULL;
  NextConnectedNo=PrevConnectedNo=2; //ABu: Numery sprzegow. 2=nie pod³¹czony
  CouplCounter=50; //bêdzie sprawdzaæ na pocz¹tku
  asName="";
@@ -1140,6 +1158,19 @@ __fastcall TDynamicObject::TDynamicObject()
  iAxleFirst=0; //numer pierwszej osi w kierunku ruchu (na ogó³)
  iInventory=0; //flagi bitowe posiadanych submodeli
  RaLightsSet(0,0); //pocz¹tkowe zerowanie stanu œwiate³
+ //Ra: domyœlne iloœci animacji zgodne wstecz
+ iAnimType[0]=8; //0-osie (8)
+ iAnimType[1]=2; //1-wi¹zary (2) - mo¿na zast¹piæ osiami...
+ iAnimType[2]=2; //2-wózki (2)
+ iAnimType[3]=4; //3-wahacze (4) - np. nogi konia
+ iAnimType[4]=2; //4-pantografy (2)
+ iAnimType[5]=8; //5-drzwi (8)
+ iAnimType[6]=0; //6-t³oki (napêd parowozu)
+ //iAnimType[7]=8; //7-przestawiacze?
+ //iAnimType[8]=8; //8-cylindry hamulcowe?
+ iAnimations=26; //tyle by³o kiedyœ
+ pAnimations=NULL;
+ pAnimated=NULL;
 }
 
 __fastcall TDynamicObject::~TDynamicObject()
@@ -1161,6 +1192,8 @@ __fastcall TDynamicObject::~TDynamicObject()
  rsDiesielInc.Stop();
  rscurve.Stop();
 */
+ delete pAnimations; //obiekty obs³uguj¹ce animacjê
+ delete pAnimated; //lista animowanych submodeli
 }
 
 double __fastcall TDynamicObject::Init(
@@ -1321,10 +1354,12 @@ double __fastcall TDynamicObject::Init(
  {
   asAnimName=AnsiString("buffer_left0")+(i+1);
   smBuforLewy[i]=mdModel->GetFromName(asAnimName.c_str());
-  smBuforLewy[i]->WillBeAnimated(); //ustawienie flagi animacji
+  if (smBuforLewy[i])
+   smBuforLewy[i]->WillBeAnimated(); //ustawienie flagi animacji
   asAnimName=AnsiString("buffer_right0")+(i+1);
   smBuforPrawy[i]=mdModel->GetFromName(asAnimName.c_str());
-  smBuforPrawy[i]->WillBeAnimated();
+  if (smBuforPrawy[i])
+   smBuforPrawy[i]->WillBeAnimated();
  }
  for (int i=0;i<iAxles;i++) //wyszukiwanie osi (0 jest na koñcu, dlatego dodajemy d³ugoœæ?)
   dRailPosition[i]=(Reversed?-dWheelsPosition[i]:(dWheelsPosition[i]+MoverParameters->Dim.L))+fDist;
@@ -1374,8 +1409,10 @@ double __fastcall TDynamicObject::Init(
   smBogie[0]=mdModel->GetFromName("boogie01"); //Ra: alternatywna nazwa
  if (!smBogie[1])
   smBogie[1]=mdModel->GetFromName("boogie02"); //Ra: alternatywna nazwa
- smBogie[0]->WillBeAnimated();
- smBogie[1]->WillBeAnimated();
+ if (smBogie[0])
+  smBogie[0]->WillBeAnimated();
+ if (smBogie[1])
+  smBogie[1]->WillBeAnimated();
  //ABu: zainicjowanie zmiennej, zeby nic sie nie ruszylo
  //w pierwszej klatce, potem juz liczona prawidlowa wartosc masy
  MoverParameters->ComputeConstans();
@@ -2917,11 +2954,36 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
        while (!Parser->EndOfFile && str!=AnsiString("endmodels"))
        {
         str=Parser->GetNextSymbol().LowerCase();
+        if (str==AnsiString("animations:"))
+        {//Ra: ustawienie iloœci poszczególnych animacji - musi byæ jako pierwsze, inaczej iloœci bêd¹ domyœlne
+         int co=0,ile;
+         do
+         {//kolejne liczby to iloœæ animacj, -1 to znacznik koñca
+          ile=Parser->GetNextSymbol().ToIntDef(-1); //iloœæ danego typu animacji
+          if (co<ANIM_TYPES)
+           if (ile>=0)
+           {iAnimType[co]=ile; //zapamiêtanie
+            ++iAnimations; //ogólna iloœæ animacji
+           }
+          ++co;
+         } while (ile>=0);
+         while (co<ANIM_TYPES) iAnimType[co++]=0; //zerowanie pozosta³ych
+         str=Parser->GetNextSymbol().LowerCase();
+        }
+        if (!pAnimations)
+        {//Ra: tworzenie tabeli animacji, jeœli jeszcze nie by³o
+         pAnimations=new TAnim[iAnimations];
+         int i,j,k=0,sm=0;
+         for (j=0;j<ANIM_TYPES;++j)
+          for (i=0;i<iAnimType[j];++i)
+           sm+=pAnimations[k++].TypeSet(j); //ustawienie typu animacji i zliczanie submodeli
+         pAnimated=new TSubModel*[sm]; //tabela na animowane submodele
+        }
         if (str==AnsiString("lowpolyinterior:")) //ABu: wnetrze lowpoly
         {
          asModel=Parser->GetNextSymbol().LowerCase();
-         asModel=BaseDir+asModel; //McZapkie-200702 - dynamics maja swoje modele w dynamics/basedir
-         Global::asCurrentTexturePath=BaseDir;                    //biezaca sciezka do tekstur to dynamic/...
+         asModel=BaseDir+asModel; //McZapkie-200702 - dynamics maja swoje modele w dynamic/basedir
+         Global::asCurrentTexturePath=BaseDir; //biezaca sciezka do tekstur to dynamic/...
          mdLowPolyInt=TModelsManager::GetModel(asModel.c_str(),true);
         }
         else if (str==AnsiString("animwheelprefix:")) //prefiks krecacych sie kol
@@ -2939,12 +3001,12 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
           else break; //wyjœcie z pêtli
          }
          //Ra: ustawianie indeksów osi
-         for (i=0;i<=MaxAnimatedAxles;++i) //zabezpieczenie przed b³êdami w CHK
+         for (i=0;i<MaxAnimatedAxles;++i) //zabezpieczenie przed b³êdami w CHK
           pWheelAngle[i]=dWheelAngle+1; //domyœlnie wskaŸnik na napêdzaj¹ce
          i=0; j=1; k=0; m=0; //numer osi; kolejny znak; ile osi danego typu; która œrednica
          if ((MoverParameters->WheelDiameterL!=MoverParameters->WheelDiameter)||(MoverParameters->WheelDiameterT!=MoverParameters->WheelDiameter))
           while ((i<iAnimatedAxles)&&(j<=MoverParameters->AxleArangement.Length()))
-          {//wersja ze wskaŸnikami jest bardziej elatyczna na nietypowe uk³ady
+          {//wersja ze wskaŸnikami jest bardziej elastyczna na nietypowe uk³ady
            if ((k>='A')&&(k<='J')) //10 chyba maksimum?
            {pWheelAngle[i++]=dWheelAngle+1; //obrót osi napêdzaj¹cych
             --k; //nastêpna bêdzie albo taka sama, albo bierzemy kolejny znak

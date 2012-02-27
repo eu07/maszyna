@@ -32,7 +32,7 @@
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
 
-double fSquareDist=0;
+double TSubModel::fSquareDist=0;
 int TSubModel::iInstance; //numer renderowanego egzemplarza obiektu
 GLuint *TSubModel::ReplacableSkinId=NULL;
 int TSubModel::iAlpha=0x30300030; //maska do testowania flag tekstur wymiennych
@@ -361,6 +361,7 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
    TextureID=-4;
    iFlags|=8; //zmienna tekstura 4
   }
+  else
   {//jesli tylko nazwa pliku to dawac biezaca sciezke do tekstur
    //asTexture=AnsiString(texture.c_str()); //zapamiÍtanie nazwy tekstury
    TextureNameSet(texture.c_str());
@@ -705,7 +706,7 @@ void __fastcall TSubModel::NextAdd(TSubModel *SubModel)
   Next=SubModel;
 };
 
-int __fastcall TSubModel::Flags()
+int __fastcall TSubModel::FlagsCheck()
 {//analiza koniecznych zmian pomiÍdzy submodelami
  //samo pomijanie glBindTexture() nie poprawi wydajnoúci
  //ale moøna sprawdziÊ, czy moøna w ogÛle pominπÊ kod do tekstur (sprawdzanie replaceskin)
@@ -715,7 +716,7 @@ int __fastcall TSubModel::Flags()
   if (Child->TextureID) //o ile ma teksturÍ
    if (Child->TextureID!=TextureID) //i jest ona inna niø rodzica
     Child->iFlags|=0x80; //to trzeba sprawdzaÊ, jak z teksturami jest
-  i=Child->Flags();
+  i=Child->FlagsCheck();
   iFlags|=0x00FF0000&((i<<16)|(i)|(i>>8)); //potomny, rodzeÒstwo i dzieci
  }
  if (Next)
@@ -723,7 +724,7 @@ int __fastcall TSubModel::Flags()
   if (TextureID) //o ile dany ma teksturÍ
    if ((TextureID!=Next->TextureID)||(i&0x00800000)) //a ma innπ albo dzieci zmieniajπ
     iFlags|=0x80; //to dany submodel musi sobie jπ ustawiaÊ
-  i=Next->Flags();
+  i=Next->FlagsCheck();
   iFlags|=0xFF000000&((i<<24)|(i<<8)|(i)); //nastÍpny, kolejne i ich dzieci
   //tekstury nie ustawiamy tylko wtedy, gdy jest taka sama jak Next i jego dzieci nie zmieniajπ
  }
@@ -787,7 +788,9 @@ TSubModel* __fastcall TSubModel::GetFromName(AnsiString search)
  TSubModel* result;
  //std::transform(search.begin(),search.end(),search.begin(),ToLower());
  search=search.LowerCase();
- if (search==AnsiString(pName)) return this;
+ AnsiString name=AnsiString(pName);
+ if (name==search)
+  return this;
  if (Next)
  {
   result=Next->GetFromName(search);
@@ -1515,7 +1518,7 @@ void __fastcall TModel3d::Init()
    p->InitialRotate(true); //ostatniemu naleøy siÍ konwersja uk≥adu wspÛ≥rzÍdnych
    Root->InitialRotate(false); //a poprzednim tylko optymalizacja
   }
-  iFlags|=Root->Flags()|0x8000; //flagi ca≥ego modelu
+  iFlags|=Root->FlagsCheck()|0x8000; //flagi ca≥ego modelu
   if (!asBinary.IsEmpty()) //jeúli jest podana nazwa
   {if (Global::iConvertModels) //i w≥πczony zapis
     SaveToBinFile(asBinary.c_str()); //utworzy tablicÍ (m_pVNT)
@@ -1665,7 +1668,7 @@ void __fastcall TModel3d::Render(double fSquareDistance,GLuint *ReplacableSkinId
 {
  iAlpha^=0x0F0F000F; //odwrÛcenie flag tekstur, aby wy≥apaÊ nieprzezroczyste
  if (iAlpha&iFlags&0x1F1F001F) //czy w ogÛle jest co robiÊ w tym cyklu?
- {fSquareDist=fSquareDistance; //zmienna globalna!
+ {TSubModel::fSquareDist=fSquareDistance; //zmienna globalna!
   Root->ReplacableSet(ReplacableSkinId,iAlpha);
   Root->Render();
  }
@@ -1675,7 +1678,7 @@ void __fastcall TModel3d::RenderAlpha(double fSquareDistance,GLuint *ReplacableS
 {
  if (iAlpha&iFlags&0x2F2F002F)
  {
-  fSquareDist=fSquareDistance; //zmienna globalna!
+  TSubModel::fSquareDist=fSquareDistance; //zmienna globalna!
   Root->ReplacableSet(ReplacableSkinId,iAlpha);
   Root->RenderAlpha();
  }
@@ -1716,7 +1719,7 @@ void __fastcall TModel3d::RaRender(double fSquareDistance,GLuint *ReplacableSkin
 {//renderowanie specjalne, np. kabiny
  iAlpha^=0x0F0F000F; //odwrÛcenie flag tekstur, aby wy≥apaÊ nieprzezroczyste
  if (iAlpha&iFlags&0x1F1F001F) //czy w ogÛle jest co robiÊ w tym cyklu?
- {fSquareDist=fSquareDistance; //zmienna globalna!
+ {TSubModel::fSquareDist=fSquareDistance; //zmienna globalna!
   if (StartVBO())
   {//odwrÛcenie flag, aby wy≥apaÊ nieprzezroczyste
    Root->ReplacableSet(ReplacableSkinId,iAlpha);
@@ -1729,7 +1732,7 @@ void __fastcall TModel3d::RaRender(double fSquareDistance,GLuint *ReplacableSkin
 void __fastcall TModel3d::RaRenderAlpha(double fSquareDistance,GLuint *ReplacableSkinId,int iAlpha)
 {//renderowanie specjalne, np. kabiny
  if (iAlpha&iFlags&0x2F2F002F) //czy w ogÛle jest co robiÊ w tym cyklu?
- {fSquareDist=fSquareDistance; //zmienna globalna!
+ {TSubModel::fSquareDist=fSquareDistance; //zmienna globalna!
   if (StartVBO())
   {Root->ReplacableSet(ReplacableSkinId,iAlpha);
    Root->RaRenderAlpha();
@@ -1766,7 +1769,7 @@ void __fastcall TModel3d::Render(vector3 *vPosition,vector3 *vAngle,GLuint *Repl
  if (vAngle->y!=0.0) glRotated(vAngle->y,0.0,1.0,0.0);
  if (vAngle->x!=0.0) glRotated(vAngle->x,1.0,0.0,0.0);
  if (vAngle->z!=0.0) glRotated(vAngle->z,0.0,0.0,1.0);
- fSquareDist=SquareMagnitude(*vPosition-Global::GetCameraPosition()); //zmienna globalna!
+ TSubModel::fSquareDist=SquareMagnitude(*vPosition-Global::GetCameraPosition()); //zmienna globalna!
  //odwrÛcenie flag, aby wy≥apaÊ nieprzezroczyste
  Root->ReplacableSet(ReplacableSkinId,iAlpha^0x0F0F000F);
  Root->Render();
@@ -1779,7 +1782,7 @@ void __fastcall TModel3d::RenderAlpha(vector3* vPosition,vector3* vAngle,GLuint 
  if (vAngle->y!=0.0) glRotated(vAngle->y,0.0,1.0,0.0);
  if (vAngle->x!=0.0) glRotated(vAngle->x,1.0,0.0,0.0);
  if (vAngle->z!=0.0) glRotated(vAngle->z,0.0,0.0,1.0);
- fSquareDist=SquareMagnitude(*vPosition-Global::GetCameraPosition()); //zmienna globalna!
+ TSubModel::fSquareDist=SquareMagnitude(*vPosition-Global::GetCameraPosition()); //zmienna globalna!
  Root->ReplacableSet(ReplacableSkinId,iAlpha);
  Root->RenderAlpha();
  glPopMatrix();
@@ -1791,7 +1794,7 @@ void __fastcall TModel3d::RaRender(vector3* vPosition,vector3* vAngle,GLuint *Re
  if (vAngle->y!=0.0) glRotated(vAngle->y,0.0,1.0,0.0);
  if (vAngle->x!=0.0) glRotated(vAngle->x,1.0,0.0,0.0);
  if (vAngle->z!=0.0) glRotated(vAngle->z,0.0,0.0,1.0);
- fSquareDist=SquareMagnitude(*vPosition-Global::GetCameraPosition()); //zmienna globalna!
+ TSubModel::fSquareDist=SquareMagnitude(*vPosition-Global::GetCameraPosition()); //zmienna globalna!
  if (StartVBO())
  {//odwrÛcenie flag, aby wy≥apaÊ nieprzezroczyste
   Root->ReplacableSet(ReplacableSkinId,iAlpha^0x0F0F000F);
@@ -1807,13 +1810,39 @@ void __fastcall TModel3d::RaRenderAlpha(vector3* vPosition,vector3* vAngle,GLuin
  if (vAngle->y!=0.0) glRotated(vAngle->y,0.0,1.0,0.0);
  if (vAngle->x!=0.0) glRotated(vAngle->x,1.0,0.0,0.0);
  if (vAngle->z!=0.0) glRotated(vAngle->z,0.0,0.0,1.0);
- fSquareDist=SquareMagnitude(*vPosition-Global::GetCameraPosition()); //zmienna globalna!
+ TSubModel::fSquareDist=SquareMagnitude(*vPosition-Global::GetCameraPosition()); //zmienna globalna!
  if (StartVBO())
  {Root->ReplacableSet(ReplacableSkinId,iAlpha);
   Root->RaRenderAlpha();
   EndVBO();
  }
  glPopMatrix();
+};
+
+//-----------------------------------------------------------------------------
+//2012-02 funkcje do tworzenia terenu z E3D
+//-----------------------------------------------------------------------------
+
+int __fastcall TModel3d::TerrainCount()
+{//zliczanie kwadratÛw kilometrowych (g≥Ûwna linia po Next) do tworznia tablicy
+ int i=0;
+ TSubModel *r=Root;
+ while (r)
+ {r=r->NextGet();
+  ++i;
+ }
+ return i;
+};
+TSubModel* __fastcall TModel3d::TerrainSquare(int n)
+{//pobieranie wskaünika do pierwszego submodelu
+ int i=0;
+ TSubModel *r=Root;
+ while (i<n)
+ {r=r->NextGet();
+  ++i;
+ }
+ r->UnFlagNext();
+ return r;
 };
 
 

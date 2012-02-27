@@ -1624,16 +1624,16 @@ bool __fastcall TWorld::Render()
      }
     if (Global::bUseVBO)
     {//renderowanie przez VBO
-     if (!Ground.RaRender(Camera.Pos)) return false;
+     if (!Ground.RenderVBO(Camera.Pos)) return false;
      //if (Global::bRenderAlpha) //Ra: wywalam tê flagê
-      if (!Ground.RaRenderAlpha(Camera.Pos))
+      if (!Ground.RenderAlphaVBO(Camera.Pos))
        return false;
     }
     else
     {//renderowanie przez Display List
-     if (!Ground.Render(Camera.Pos)) return false;
+     if (!Ground.RenderDL(Camera.Pos)) return false;
      //if (Global::bRenderAlpha) //Ra: wywalam tê flagê
-      if (!Ground.RenderAlpha(Camera.Pos))
+      if (!Ground.RenderAlphaDL(Camera.Pos))
        return false;
     }
     TSubModel::iInstance=(int)(Train?Train->DynamicObject:0); //¿eby nie robiæ cudzych animacji

@@ -258,7 +258,7 @@ bool __fastcall TAnimModel::Load(cParser *parser)
    parser->getTokens();
    *parser >> token;
    str=AnsiString(token.c_str());
-  } while (str!="endmodel");
+  } while ((str!="endmodel")&&(str!="endterrain"));
  }
  return true;
 }
@@ -383,6 +383,18 @@ void __fastcall TAnimModel::RaRenderAlpha(vector3* vPosition)
 };
 
 //---------------------------------------------------------------------------
-
+bool __fastcall TAnimModel::TerrainLoded()
+{//zliczanie kwadratów kilometrowych (g³ówna linia po Next) do tworznia tablicy
+ return pModel;
+};
+int __fastcall TAnimModel::TerrainCount()
+{//zliczanie kwadratów kilometrowych (g³ówna linia po Next) do tworznia tablicy
+ return pModel?pModel->TerrainCount():0;
+};
+TSubModel* __fastcall TAnimModel::TerrainSquare(int n)
+{//pobieranie wskaŸników do pierwszego submodelu
+ return pModel?pModel->TerrainSquare(n):0;
+};
+//---------------------------------------------------------------------------
 #pragma package(smart_init)
 

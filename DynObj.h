@@ -20,9 +20,10 @@
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 //McZapkie-250202
-  const MaxAxles=16; //ABu 280105: zmienione z 8 na 16
-  const MaxAnimatedAxles=16; //i to tez.
-  const MaxAnimatedDoors=8;  //NBMX  wrzesien 2003
+ const MaxAxles=16; //ABu 280105: zmienione z 8 na 16
+ const MaxAnimatedAxles=16; //i to tez.
+ const MaxAnimatedDoors=8;  //NBMX  wrzesien 2003
+ const ANIM_TYPES=7; //Ra: iloœæ typów animacji
 /*
 Ra: Utworzyæ klasê wyposa¿enia opcjonalnego, z której bêd¹ dziedziczyæ klasy drzwi,
 pantografów, napêdu parowozu i innych ruchomych czêœci pojazdów. Klasy powinny byæ
@@ -34,31 +35,29 @@ zaoszczêdzi³o by czas ustawiania animacji na modelu wspólnym dla kilku pojazdów,
 szczególnie dla pojazdów w danej chwili nieruchomych (przy du¿ym zagêszczeniu
 modeli na stacjach na ogó³ przewaga jest tych nieruchomych).
 */
+class TAnimValveGear
+{//wspó³czynniki do animacji parowozu
+};
 
 class TAnim
-{//klasa animowanej czêœci pojazdu (ko³a, drzwi, pantografy, burty, napêd parowozu itd.)
-};
-
-class TAnimWheel : public TAnim
-{//klasa animowanych osi i wi¹zarów
- TSubModel *smWheel;
-};
-
-class TAnimDoor : public TAnim
-{//klasa animowanych drzwi, klap, burt itp. (pojedyncze skrzyd³o)
- TSubModel *smDoor;
-};
-
-class TAnimPant : public TAnim
-{//klasa animowanego pantografu
- TSubModel *smPantLower; //dolna czêœæ
- TSubModel *smPantUpper; //górna czêœæ
-};
-
-class TAnimEccentric : public TAnim
-{//napêd i rozrz¹d t³oka parowozu (na parowóz od 2 do 4)
- //kolejno: t³oczysko, korbowód, dr¹¿ek, jarzmo, trzon suwaka, wahacz, dr. wahacza, dr. krzy¿ulca
- TSubModel *smElement[8]; //elementy napêdu i rozrz¹du
+{//klasa animowanej czêœci pojazdu (ko³a, drzwi, pantografy, burty, napêd parowozu, si³owniki itd.)
+ union
+ {
+  TSubModel *smAnimated; //animowany submodel
+  TSubModel **smElement; //jeœli animowanych elementów jest wiêcej (pantograf, napêd parowozu)
+ };
+ union
+ {//kolejno: t³oczysko, korbowód, dr¹¿ek, jarzmo, trzon suwaka, wahacz, dr. wahacza, dr. wahacza
+  TAnimValveGear *pValveGear; //wspó³czynniki do animacji parowozu
+  double *pWheelAngle; //wskaŸnik na k¹t obrotu osi
+  struct
+  {//dla
+  };
+ };
+ int iFlags; //flagi animacji
+public:
+ int __fastcall TypeSet(int i); //ustawienie typu
+ void __fastcall Parovoz(); //wykonanie obliczeñ animacji
 };
 
 //---------------------------------------------------------------------------
@@ -68,25 +67,49 @@ class TAnimEccentric : public TAnim
 class TDynamicObject
 {//klasa pojazdu
 private:
-    TTrackShape ts;
-    TTrackParam tp;
-    void ABuLittleUpdate(double ObjSqrDist);
-    bool btnOn; //ABu: czy byly uzywane buttony, jesli tak, to po renderingu wylacz
-                //bo ten sam model moze byc jeszcze wykorzystany przez inny obiekt!
- double __fastcall ComputeRadius(vector3 p1,vector3 p2,vector3 p3,vector3 p4);
  vector3 vPosition; //Ra: pozycja pojazdu liczona zaraz po przesuniêciu
+ //Ra: sprzatam animacje w pojeŸdzie
+ int iAnimType[ANIM_TYPES]; //0-osie,1-wi¹zary,2-wózki,3-wahacze,4-pantografy,5-drzwi,6-t³oki
+ int iAnimations; //ogólna iloœæ obiektów animuj¹cych
+ TAnim *pAnimations; //obiekty animuj¹ce
+ TSubModel **pAnimated; //lista animowanych submodeli (mo¿e byæ ich wiêcej ni¿ obiektów animuj¹cych)
+ double dWheelAngle[3]; //k¹ty obrotu kó³: 0=przednie toczne, 1=napêdzaj¹ce i wi¹zary, 2=tylne toczne
+private:
+//Ra: pocz¹tek animacji do ogarniêcia
  //McZapkie-050402 - do krecenia kolami
  int iAnimatedAxles; //iloœæ u¿ywanych (krêconych) osi
  TSubModel *smAnimatedWheel[MaxAnimatedAxles]; //submodele poszczególnych osi
  double *pWheelAngle[MaxAnimatedAxles]; //wska¿niki do odczytu k¹ta obrotu danej osi
- double dWheelAngle[3]; //k¹t obrotu kó³: 0=przednie toczne, 1=napêdzaj¹ce i wi¹zary, 2=tylne toczne
+ //wi¹zary
+ TSubModel *smWiazary[2];
+ //ABuWozki 060504
+ vector3 bogieRot[2];   //Obroty wozkow w/m korpusu
+ TSubModel *smBogie[2]; //Wyszukiwanie max 2 wozkow
+ //wahacze
+ TSubModel *smWahacze[4];
+ double fWahaczeAmp;
  //drzwi
  int iAnimatedDoors;
  TSubModel *smAnimatedDoor[MaxAnimatedDoors];
  double DoorSpeedFactor[MaxAnimatedDoors];
- double tempdoorfactor;
- double tempdoorfactor2;
+ //double tempdoorfactor;
+ //double tempdoorfactor2;
+ //Winger 160204 - pantografy
  double pantspeedfactor;
+ TSubModel *smPatykird1[2];
+ TSubModel *smPatykird2[2];
+ TSubModel *smPatykirg1[2];
+ TSubModel *smPatykirg2[2];
+ TSubModel *smPatykisl[2];
+//Ra: koneic animacji do ogarniêcia
+private:
+ TTrackShape ts;
+ TTrackParam tp;
+ void ABuLittleUpdate(double ObjSqrDist);
+ bool btnOn; //ABu: czy byly uzywane buttony, jesli tak, to po renderingu wylacz
+             //bo ten sam model moze byc jeszcze wykorzystany przez inny obiekt!
+ double __fastcall ComputeRadius(vector3 p1,vector3 p2,vector3 p3,vector3 p4);
+
     TButton btCoupler1;     //sprzegi
     TButton btCoupler2;
     TAirCoupler btCPneumatic1;  //sprzegi powietrzne //yB - zmienione z Button na AirCoupler - krzyzyki
@@ -116,15 +139,6 @@ private:
     TButton btHeadSignals21;  //oswietlenie czolowe - tyl
     TButton btHeadSignals22;
     TButton btHeadSignals23;
-//Winger 160204 - pantografy
-    TSubModel *smPatykird1[2];
-    TSubModel *smPatykird2[2];
-    TSubModel *smPatykirg1[2];
-    TSubModel *smPatykirg2[2];
-    TSubModel *smPatykisl[2];
-    TSubModel *smWiazary[2];
-    TSubModel *smWahacze[4];
-    double fWahaczeAmp;
     TSubModel *smMechanik;
     TSubModel *smBuforLewy[2];
     TSubModel *smBuforPrawy[2];
@@ -162,9 +176,6 @@ private:
     double eng_frq_act;
     double eng_dfrq;
     double eng_turbo;
-    //ABuWozki 060504
-    vector3 bogieRot[2];   //Obroty wozkow w/m korpusu
-    TSubModel *smBogie[2]; //Wyszukiwanie max 2 wozkow
     void __fastcall ABuBogies();
     void __fastcall ABuModelRoll();
     vector3 modelShake;

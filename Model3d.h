@@ -212,6 +212,7 @@ public:
  static int iInstance; //identyfikator egzemplarza, który aktualnie renderuje model
  static GLuint *ReplacableSkinId;
  static int iAlpha; //maska bitowa dla danego przebiegu
+ static double fSquareDist;
  __fastcall TSubModel();
  __fastcall ~TSubModel();
  void __fastcall FirstInit();
@@ -233,13 +234,13 @@ public:
  void __fastcall RenderAlpha();
  void __fastcall RaRender();
  void __fastcall RaRenderAlpha();
- //inline matrix4x4* __fastcall GetMatrix() { return dMatrix; };
- inline float4x4* __fastcall GetMatrix() { return fMatrix; };
+ //inline matrix4x4* __fastcall GetMatrix() {return dMatrix;};
+ inline float4x4* __fastcall GetMatrix() {return fMatrix;};
  //matrix4x4* __fastcall GetTransform() {return Matrix;};
- inline void __fastcall Hide() { Visible=false; };
+ inline void __fastcall Hide() {Visible=false;};
  void __fastcall RaArrayFill(CVertNormTex *Vert);
  //void __fastcall Render();
- int __fastcall Flags();
+ int __fastcall FlagsCheck();
  void __fastcall WillBeAnimated() {if (this) iFlags|=0x4000;};
  void __fastcall InitialRotate(bool doit);
  void __fastcall DisplayLists();
@@ -250,6 +251,9 @@ public:
  {ReplacableSkinId=r; iAlpha=a;};
  void __fastcall TextureNameSet(const char *n);
  void __fastcall NameSet(const char *n);
+ //Ra: funkcje do budowania terenu z E3D
+ int __fastcall Flags() {return iFlags;};
+ void __fastcall UnFlagNext() {iFlags&=0x00FFFFFF;};
 };
 
 class TSubModelInfo
@@ -328,6 +332,9 @@ public:
  //inline int __fastcall GetSubModelsCount() { return (SubModelsCount); };
  int __fastcall Flags() {return iFlags;};
  void __fastcall Init();
+ char* __fastcall NameGet() {return Root?Root->pName:NULL;};
+ int __fastcall TerrainCount();
+ TSubModel* __fastcall TerrainSquare(int n);
 };
 
 //---------------------------------------------------------------------------
