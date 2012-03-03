@@ -1733,7 +1733,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
 #endif
    tmp->TextureID=TTexturesManager::GetTextureID(str.c_str());
    tmp->iFlags=TTexturesManager::GetAlpha(tmp->TextureID)?0x220:0x210; //z usuwaniem
-   if ((tmp->iFlags&0x10)?Global::pTerrainCompact->TerrainCount():false)
+   if ((tmp->iFlags&0x10)?Global::pTerrainCompact->TerrainLoaded():false)
    {//jeœli jest tekstura nieprzezroczysta, a teren za³adowany, to pomijamy trójk¹ty
     do
     {//pomijanie wtrójk¹tów
@@ -3721,7 +3721,7 @@ void __fastcall TGround::TerrainRead(const AnsiString &f)
 //---------------------------------------------------------------------------
 void __fastcall TGround::TerrainWrite()
 {//Ra: zapisywanie trójk¹tów terenu do pliku E3D
- if (Global::pTerrainCompact->TerrainCount())
+ if (Global::pTerrainCompact->TerrainLoaded())
   return; //jeœli zosta³o wczytane, to nie ma co dalej robiæ
  //Trójk¹ty s¹ zapisywane kwadratami kilometrowymi.
  //Kwadrat 500500 jest na œrodku (od 0.0 do 1000.0 na OX oraz OZ).

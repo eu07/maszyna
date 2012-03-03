@@ -11,8 +11,8 @@
       TrkFoll.obj Segment.obj Sound.obj AdvSound.obj Track.obj DynObj.obj 
       RealSound.obj EvLaunch.obj FadeSound.obj Traction.obj TractionPower.obj 
       parser.obj sky.obj AirCoupler.obj glew.obj ResourceManager.obj VBO.obj 
-      Feedback.obj TextureDDS.obj opengl\ARB_Multisample.obj Float3d.obj 
-      Classes.obj Driver.obj Names.obj"/>
+      TextureDDS.obj opengl\ARB_Multisample.obj Float3d.obj Classes.obj 
+      Driver.obj Names.obj Console.obj"/>
     <RESFILES value="EU07.res"/>
     <IDLFILES value=""/>
     <IDLGENFILES value=""/>
@@ -61,8 +61,8 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=1
 MinorVer=7
-Release=523
-Build=318
+Release=525
+Build=320
 Debug=1
 PreRelease=0
 Special=0
@@ -74,7 +74,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.7.523.318
+FileVersion=1.7.525.320
 InternalName=6th by Ra
 LegalCopyright=
 LegalTrademarks=

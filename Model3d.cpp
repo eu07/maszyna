@@ -470,7 +470,7 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
    delete[] sg;
   }
   else //gdy brak wierzcho³ków
-   eType=-1; //submodel pomocniczy, ma tylko macierz przekszta³cenia
+   eType=TP_ROTATOR; //submodel pomocniczy, ma tylko macierz przekszta³cenia
  }
  else if (eType==TP_STARS)
  {//punkty œwiec¹ce dookólnie - sk³adnia jak dla smt_Mesh
@@ -845,7 +845,7 @@ void __fastcall TSubModel::RaAnimation(TAnimType a)
    break;
   case at_Hours: //godziny p³ynnie 12h/360°
    //glRotatef(GlobalTime->hh*30.0+GlobalTime->mm*0.5+GlobalTime->mr/120.0,0.0,1.0,0.0);
-   glRotatef(0.5*Global::fTimeAngleDeg,0.0,1.0,0.0);
+   glRotatef(2.0*Global::fTimeAngleDeg,0.0,1.0,0.0);
    break;
   case at_Hours24: //godziny p³ynnie 24h/360°
    //glRotatef(GlobalTime->hh*15.0+GlobalTime->mm*0.25+GlobalTime->mr/240.0,0.0,1.0,0.0);

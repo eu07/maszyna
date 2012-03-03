@@ -5,7 +5,7 @@
 #pragma hdrstop
 
 #include "Button.h"
-#include "Feedback.h"
+#include "Console.h"
 
 //---------------------------------------------------------------------------
 
@@ -55,9 +55,9 @@ void __fastcall TButton::Update()
  if (pModelOff) pModelOff->Visible=!bOn;
  if (iFeedbackBit) //je¿eli generuje informacjê zwrotn¹
  {if (bOn) //zapalenie
-   Feedback::BitsSet(iFeedbackBit);
+   Console::BitsSet(iFeedbackBit);
   else
-   Feedback::BitsClear(iFeedbackBit);
+   Console::BitsClear(iFeedbackBit);
  }
 };
 
