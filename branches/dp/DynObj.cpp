@@ -1260,7 +1260,7 @@ double __fastcall TDynamicObject::Init(
   if (driveractive) //od 3.5m do 6.0m jedzie po œrodku pasa, dla szerszych w odleg³oœci 1.5m
    MoverParameters->OffsetTrackH=Track->fTrackWidth<6.0?-Track->fTrackWidth*0.25:-1.5;
   else //jak stoi, to ko³em na poboczu i pobieramy szerokoœæ razem z poboczem, ale nie z chodnikiem
-   MoverParameters->OffsetTrackH=-Track->WidthTotal()*0.5+MoverParameters->Dim.W;
+   MoverParameters->OffsetTrackH=-0.5*(Track->WidthTotal()-MoverParameters->Dim.W)+0.05;
  }
  //w wagonie tez niech jedzie
  //if (MoverParameters->MainCtrlPosNo>0 &&
@@ -3034,64 +3034,56 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
         else
 //Pantografy - Winger 160204
         if (str==AnsiString("animpantrd1prefix:"))              //prefiks ramion dolnych 1
-         {
-          str= Parser->GetNextSymbol();
-          for (int i=1; i<=2; i++)
-           {
- //Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
-            asAnimName=str+i;
-            smPatykird1[i-1]=mdModel->GetFromName(asAnimName.c_str());
-            smPatykird1[i-1]->WillBeAnimated();
-           }
+        {
+         str=Parser->GetNextSymbol();
+         for (int i=1;i<=2;i++)
+         {//Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
+          asAnimName=str+i;
+          smPatykird1[i-1]=mdModel->GetFromName(asAnimName.c_str());
+          smPatykird1[i-1]->WillBeAnimated();
          }
+        }
+        else if (str==AnsiString("animpantrd2prefix:"))              //prefiks ramion dolnych 2
+        {
+         str=Parser->GetNextSymbol();
+         for (int i=1;i<=2;i++)
+         {//Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
+          asAnimName=str+i;
+          smPatykird2[i-1]=mdModel->GetFromName(asAnimName.c_str());
+          smPatykird2[i-1]->WillBeAnimated();
+         }
+        }
+        else if (str==AnsiString("animpantrg1prefix:")) //prefiks ramion gornych 1
+        {
+         str=Parser->GetNextSymbol();
+         for (int i=1;i<=2;i++)
+         {//Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
+          asAnimName=str+i;
+          smPatykirg1[i-1]=mdModel->GetFromName(asAnimName.c_str());
+          smPatykirg1[i-1]->WillBeAnimated();
+         }
+        }
         else
-        if (str==AnsiString("animpantrd2prefix:"))              //prefiks ramion dolnych 2
-         {
-          str= Parser->GetNextSymbol();
-          for (int i=1; i<=2; i++)
-           {
- //Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
-            asAnimName=str+i;
-            smPatykird2[i-1]=mdModel->GetFromName(asAnimName.c_str());
-            smPatykird2[i-1]->WillBeAnimated();
-           }
+        if (str==AnsiString("animpantrg2prefix:")) //prefiks ramion gornych 2
+        {
+         str=Parser->GetNextSymbol();
+         for (int i=1;i<=2;i++)
+         {//Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
+          asAnimName=str+i;
+          smPatykirg2[i-1]=mdModel->GetFromName(asAnimName.c_str());
+          smPatykirg2[i-1]->WillBeAnimated();
          }
-        else
-        if (str==AnsiString("animpantrg1prefix:"))              //prefiks ramion gornych 1
-         {
-          str= Parser->GetNextSymbol();
-          for (int i=1; i<=2; i++)
-           {
- //Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
-            asAnimName=str+i;
-            smPatykirg1[i-1]=mdModel->GetFromName(asAnimName.c_str());
-            smPatykirg1[i-1]->WillBeAnimated();
-           }
+        }
+        else if (str==AnsiString("animpantslprefix:")) //prefiks slizgaczy
+        {
+         str=Parser->GetNextSymbol();
+         for (int i=1;i<=2;i++)
+         {//Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
+          asAnimName=str+i;
+          smPatykisl[i-1]=mdModel->GetFromName(asAnimName.c_str());
+          smPatykisl[i-1]->WillBeAnimated();
          }
-        else
-        if (str==AnsiString("animpantrg2prefix:"))              //prefiks ramion gornych 2
-         {
-          str= Parser->GetNextSymbol();
-          for (int i=1; i<=2; i++)
-           {
- //Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
-            asAnimName=str+i;
-            smPatykirg2[i-1]=mdModel->GetFromName(asAnimName.c_str());
-            smPatykirg2[i-1]->WillBeAnimated();
-           }
-         }
-        else
-        if (str==AnsiString("animpantslprefix:"))              //prefiks slizgaczy
-         {
-          str= Parser->GetNextSymbol();
-          for (int i=1; i<=2; i++)
-           {
- //Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
-            asAnimName=str+i;
-            smPatykisl[i-1]=mdModel->GetFromName(asAnimName.c_str());
-            smPatykisl[i-1]->WillBeAnimated();
-           }
-         }
+        }
         else if (str==AnsiString("pantfactors:"))
         {//Winger 010304: parametry pantografow
          pant1x=Parser->GetNextSymbol().ToDouble();

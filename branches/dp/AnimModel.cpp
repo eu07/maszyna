@@ -264,7 +264,7 @@ bool __fastcall TAnimModel::Load(cParser *parser)
 }
 
 TAnimContainer* __fastcall TAnimModel::AddContainer(char *pName)
-{//dodanie submodelu do egzemplarza
+{//dodanie sterowania submodelem dla egzemplarza
  if (!pModel) return NULL;
  TSubModel *tsb=pModel->GetFromName(pName);
  if (tsb)
@@ -279,7 +279,7 @@ TAnimContainer* __fastcall TAnimModel::AddContainer(char *pName)
 }
 
 TAnimContainer* __fastcall TAnimModel::GetContainer(char *pName)
-{
+{//szukanie/dodanie sterowania submodelem dla egzemplarza
  if (!pName) return pRoot; //pobranie pierwszego (dla obrotnicy)
  TAnimContainer *pCurrent;
  for (pCurrent=pRoot;pCurrent!=NULL;pCurrent=pCurrent->pNext)
@@ -383,9 +383,9 @@ void __fastcall TAnimModel::RaRenderAlpha(vector3* vPosition)
 };
 
 //---------------------------------------------------------------------------
-bool __fastcall TAnimModel::TerrainLoded()
+bool __fastcall TAnimModel::TerrainLoaded()
 {//zliczanie kwadratów kilometrowych (g³ówna linia po Next) do tworznia tablicy
- return pModel;
+ return (this?pModel!=NULL:false);
 };
 int __fastcall TAnimModel::TerrainCount()
 {//zliczanie kwadratów kilometrowych (g³ówna linia po Next) do tworznia tablicy

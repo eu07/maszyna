@@ -25,7 +25,7 @@
 #include "system.hpp"
 #include "classes.hpp"
 #include "Globals.h"
-#include "Feedback.h"
+#include "Console.h"
 #include "QueryParserComp.hpp"
 #include <Mover.hpp>
 #include "Train.h" //to tu bez sensu jest
@@ -72,7 +72,6 @@ USEUNIT("AirCoupler.cpp");
 USEUNIT("glew.c");
 USEUNIT("ResourceManager.cpp");
 USEUNIT("VBO.cpp");
-USEUNIT("Feedback.cpp");
 USEUNIT("McZapkie\mtable.pas");
 USEUNIT("TextureDDS.cpp");
 USEUNIT("opengl\ARB_Multisample.cpp");
@@ -80,6 +79,7 @@ USEUNIT("Float3d.cpp");
 USEUNIT("Classes.cpp");
 USEUNIT("Driver.cpp");
 USEUNIT("Names.cpp");
+USEUNIT("Console.cpp");
 //---------------------------------------------------------------------------
 #include "World.h"
 
@@ -622,6 +622,8 @@ int WINAPI WinMain( HINSTANCE hInstance,     //instance
   World.ModifyTGA(); //rekurencyjne przegl¹danie katalogów
  }
  else
+ {//g³ówna pêtla programu
+  Console::On(); //w³¹czenie konsoli
   while (!done) //loop that runs while done=FALSE
   {
    if (PeekMessage(&msg,NULL,0,0,PM_REMOVE)) //is there a message waiting?
@@ -648,7 +650,8 @@ int WINAPI WinMain( HINSTANCE hInstance,     //instance
      done=TRUE; //[F10] or DrawGLScene signalled a quit
    }
   }
- Feedback::BitsClear(-1); //wy³¹czenie komunikacji zwrotnej
+  Console::Off(); //wy³¹czenie konsoli (komunikacji zwrotnej)
+ }
  SystemParametersInfo(SPI_SETKEYBOARDSPEED,iOldSpeed,NULL,0);
  SystemParametersInfo(SPI_SETKEYBOARDDELAY,iOldDelay,NULL,0);
  //shutdown

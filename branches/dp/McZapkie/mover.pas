@@ -4642,19 +4642,19 @@ Begin
      OK:=SendCtrlToNext(command,CValue1,CValue2);
    end
   else if command='DoorLeft' then         {NBMX}
-   begin
+   begin //Ra: uwzglêdniæ trzeba jeszcze zgodnoœæ sprzêgów
      if (CValue1=1) then DoorLeftOpened:=true
      else if (CValue1=0) then DoorLeftOpened:=false;
      OK:=SendCtrlToNext(command,CValue1,CValue2);
    end
   else if command='DoorRight' then         {NBMX}
-   begin
+   begin //Ra: uwzglêdniæ trzeba jeszcze zgodnoœæ sprzêgów
      if (CValue1=1) then DoorRightOpened:=true
      else if (CValue1=0) then DoorRightOpened:=false;
      OK:=SendCtrlToNext(command,CValue1,CValue2);
    end
 else if command='PantFront' then         {Winger 160204}
-   begin
+   begin //Ra: uwzglêdniæ trzeba jeszcze zgodnoœæ sprzêgów
      if (TrainType=dt_EZT) then
      begin {'ezt'}
        if (CValue1=1) then
@@ -4700,7 +4700,7 @@ else if command='PantFront' then         {Winger 160204}
      OK:=SendCtrlToNext(command,CValue1,CValue2);
    end
   else if command='PantRear' then         {Winger 160204, ABu 310105 i 030305}
-   begin
+   begin //Ra: uwzglêdniæ trzeba jeszcze zgodnoœæ sprzêgów
      if (TrainType=dt_EZT) then
      begin {'ezt'}
       if (CValue1=1) then
@@ -4853,13 +4853,14 @@ begin
    end;                         {czy uruchomic tu RunInternalCommand? nie wiem}
 end;
 
-{dla samochodow}
+{dla samochodow - kolej nie wê¿ykuje}
 function TMoverParameters.ChangeOffsetH(DeltaOffset:real):boolean;
 begin
   if TestFlag(CategoryFlag,2) and TestFlag(RunningTrack.CategoryFlag,2) then
    begin
      OffsetTrackH:=OffsetTrackH+DeltaOffset;
-     if abs(OffsetTrackH)>(RunningTrack.Width/1.95-TrackW/2.0) then
+//     if abs(OffsetTrackH)>(RunningTrack.Width/1.95-TrackW/2.0) then
+     if abs(OffsetTrackH)>(0.5*(RunningTrack.Width-Dim.W)-0.05) then //Ra: mo¿e pó³ pojazdu od brzegu?
       ChangeOffsetH:=False  {kola na granicy drogi}
      else
       ChangeOffsetH:=True;
@@ -5321,12 +5322,14 @@ begin
       PantFront:=false;
       PantFrontStart:=1;
       SendCtrlToNext('PantFront',0,CabNo);
+{Ra: nie ma potrzeby opuszczaæ obydwu na raz, jak mozemy ka¿dy osobno
       if (TrainType=dt_EZT) then
        begin
         PantRearUp:=false;
         PantRearStart:=1;
         SendCtrlToNext('PantRear',0,CabNo);
        end;
+}
    end;
  end
  else

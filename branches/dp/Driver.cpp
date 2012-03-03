@@ -1115,23 +1115,20 @@ bool __fastcall TController::UpdateSituation(double dt)
  HelpMeFlag=false;
  //Winger 020304
  if (Controlling->Vel>0.0)
- {/* zamykanie drzwi jest w IncSpeed(), ¿eby móg³ poczekaæ trochê
-  if (AIControllFlag)
-   if (Controlling->DoorOpenCtrl==1)
-    if (Controlling->DoorRightOpened)
-     Controlling->DoorRight(false);  //Winger 090304 - jak jedzie to niech zamyka drzwi
-  */
-  if (Controlling->EnginePowerSource.SourceType==CurrentCollector)
-   if (AIControllFlag)
-    Controlling->PantRear(true); //jazda na tylnym
+ {//je¿eli jedzie
   if (TestFlag(Controlling->CategoryFlag,2)) //jeœli samochód
-   if (fabs(Controlling->OffsetTrackH)<Controlling->Dim.W)
+   //if (fabs(Controlling->OffsetTrackH)<Controlling->Dim.W) //Ra: szerokoœæ drogi tu powinna byæ?
     if (!Controlling->ChangeOffsetH(-0.1*Controlling->Vel*dt))
-     Controlling->ChangeOffsetH(0.1*Controlling->Vel*dt);
-  if (Controlling->Vel>30) //opuszczenie przedniego po rozpêdzeniu siê
-   if (Controlling->EnginePowerSource.SourceType==CurrentCollector)
-    if (AIControllFlag)
+     Controlling->ChangeOffsetH(0.1*Controlling->Vel*dt); //Ra: co to mia³o byæ, to nie wiem
+  if (Controlling->EnginePowerSource.SourceType==CurrentCollector)
+  {if (AIControllFlag)
+   {Controlling->PantRear(true); //jazda na tylnym
+    if (Controlling->Vel>30) //opuszczenie przedniego po rozpêdzeniu siê
+    //if (Controlling->EnginePowerSource.SourceType==CurrentCollector)
+    //if (AIControllFlag)
      Controlling->PantFront(false);
+   }
+  }
  }
  ElapsedTime+=dt;
  WaitingTime+=dt;

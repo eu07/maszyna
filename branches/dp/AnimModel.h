@@ -46,7 +46,7 @@ public:
 class TAnimModel
 {//opakowanie modelu, okreœlaj¹ce stan egzemplarza
 private:
- TAnimContainer *pRoot;
+ TAnimContainer *pRoot; //pojemniki steruj¹ce, tylko dla aniomowanych submodeli
  TModel3d *pModel;
  double fBlinkTimer;
  int iNumLights;
@@ -76,7 +76,7 @@ public:
  int __fastcall Flags();
  void __fastcall RaAnglesSet(double a,double b,double c)
  {vAngle.x=a; vAngle.y=b; vAngle.z=c;};
- bool __fastcall TerrainLoded();
+ bool __fastcall TerrainLoaded();
  int __fastcall TerrainCount();
  TSubModel* __fastcall TerrainSquare(int n);
 };

@@ -85,7 +85,7 @@ private:
  float fTexLength; //d³ugoœæ powtarzania tekstury w metrach
  float fTexRatio1; //proporcja rozmiarów tekstury dla nawierzchni drogi
  float fTexRatio2; //proporcja rozmiarów tekstury dla chodnika
- float fTexHeight; //wysokoœ brzegu wzglêdem trajektorii
+ float fTexHeight1; //wysokoœ brzegu wzglêdem trajektorii
  float fTexWidth; //szerokoœæ boku
  float fTexSlope;
  double fRadiusTable[2]; //dwa promienie, drugi dla zwrotnicy
