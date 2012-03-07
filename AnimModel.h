@@ -61,7 +61,7 @@ public:
  __fastcall ~TAnimModel();
  bool __fastcall Init(TModel3d *pNewModel);
  bool __fastcall Init(AnsiString asName,AnsiString asReplacableTexture);
- bool __fastcall Load(cParser *parser);
+ bool __fastcall Load(cParser *parser, bool ter=false);
  TAnimContainer* __fastcall AddContainer(char *pName);
  TAnimContainer* __fastcall GetContainer(char *pName);
  void __fastcall Render(vector3 pPosition=vector3(0,0,0),double fAngle=0);
