@@ -94,6 +94,7 @@ public:
  void __fastcall RaAnimate(CVertNormTex* &Vert,const vector6 *ShapePoints,int iNumShapePoints,
   double fTextureLength,int iSkip=0,int iEnd=0,double fOffsetX=0.0);
  void __fastcall AngleSet(int i,double a) {fAngle[i]=a;};
+ void __fastcall Rollment(double w1,double w2); //poprawianie przechy³ki
 };
 
 //---------------------------------------------------------------------------

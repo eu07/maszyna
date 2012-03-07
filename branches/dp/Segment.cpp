@@ -7,6 +7,7 @@
 
 #include "Segment.h"
 #include "Usefull.h"
+#include "Globals.h"
 
 #define Precision 10000
 
@@ -63,6 +64,29 @@ bool __fastcall TSegment::Init(
  CPointOut=NewCPointOut;
  CPointIn=NewCPointIn;
  Point2=NewPoint2;
+ //poprawienie przechy³ki
+ if (!/*na razie tak, bo wy³¹czone*/Global::bRollFix) 
+ {//Ra: poprawianie przechy³ki
+  // Przechy³ka powinna byæ na œrodku wewnêtrznej szyny, a domyœlnie jest w osi
+  // toru. Dlatego trzeba podnieœæ tor oraz odpowiednio podwy¿szyæ podsypkê.
+  // Nie wykonywaæ tej funkcji, jeœli podwy¿szenie zosta³o uwzglêdnione w edytorze.
+  // Problematyczne mog¹ byc rozjazdy na przechy³ce - lepiej je modelowaæ w edytorze.
+  // Na razie wszystkie scenerie powinny byæ poprawiane.
+  if (fNewRoll1!=0.0)
+  {//tylko jeœli jest przechy³ka
+   double w1=sin(fNewRoll2)*0.75; //0.5*w2+0.0325; //0.75m dla 1.435
+   Point1.y+=w1; //modyfikacja musi byæ przed policzeniem dalszych parametrów
+   if (bCurve) CPointOut.y+=w1; //prosty ma wektory jednostkowe
+   //zwróciæ trzeba informacjê o podwy¿szeniu podsypki
+  }
+  if (fNewRoll2!=0.0)
+  {
+   double w2=sin(fNewRoll2)*0.75; //0.5*w2+0.0325; //0.75m dla 1.435
+   Point2.y+=w2; //modyfikacja musi byæ przed policzeniem dalszych parametrów
+   if (bCurve) CPointIn.y+=w2; //prosty ma wektory jednostkowe
+   //zwróciæ trzeba informacjê o podwy¿szeniu podsypki
+  }
+ }
  fStoop=atan2((Point2.y-Point1.y),fLength); //pochylenie toru prostego, ¿eby nie liczyæ wielokrotnie
  //Ra: ten k¹t jeszcze do przemyœlenia jest
  fDirection=-atan2(Point2.x-Point1.x,Point2.z-Point1.z); //k¹t w planie, ¿eby nie liczyæ wielokrotnie
@@ -850,5 +874,6 @@ void __fastcall TSegment::RaAnimate(
   }
  }
 };
+//---------------------------------------------------------------------------
 
 

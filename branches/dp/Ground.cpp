@@ -1636,7 +1636,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
 */
     tmp->Model=new TAnimModel();
     tmp->Model->RaAnglesSet(aRotate.x,tf1+aRotate.y,aRotate.z); //dostosowanie do pochylania linii
-    if (tmp->Model->Load(parser)) //wczytanie modelu, tekstury i stanu œwiate³...
+    if (tmp->Model->Load(parser,tmp->iType==TP_TERRAIN)) //wczytanie modelu, tekstury i stanu œwiate³...
      tmp->iFlags=tmp->Model->Flags()|0x200; //ustalenie, czy przezroczysty; flaga usuwania
     else
      if (tmp->iType!=TP_TERRAIN)
@@ -3723,6 +3723,7 @@ void __fastcall TGround::TerrainWrite()
 {//Ra: zapisywanie trójk¹tów terenu do pliku E3D
  if (Global::pTerrainCompact->TerrainLoaded())
   return; //jeœli zosta³o wczytane, to nie ma co dalej robiæ
+ if (Global::asTerrainModel.IsEmpty()) return;
  //Trójk¹ty s¹ zapisywane kwadratami kilometrowymi.
  //Kwadrat 500500 jest na œrodku (od 0.0 do 1000.0 na OX oraz OZ).
  //Ewentualnie w numerowaniu kwadratów uwzglêdnic wpis //$g.
@@ -3785,7 +3786,7 @@ void __fastcall TGround::TerrainWrite()
        break;
      }
    }
- m->SaveToBinFile("terrain.e3d");
+ m->SaveToBinFile(AnsiString("models\\"+Global::asTerrainModel).c_str());
 };
 //---------------------------------------------------------------------------
 

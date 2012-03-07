@@ -57,7 +57,7 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asVersion="Compilation 2012-03-03, release 1.7.525.320."; //tutaj, bo wysy³any
+AnsiString Global::asVersion="Compilation 2012-03-07, release 1.7.526.321."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 double Global::fSunDeclination=0.0; //deklinacja S³oñca
@@ -92,6 +92,7 @@ GLfloat Global::whiteLight[]      ={1.00f,1.00f,1.00f,1.0f};
 GLfloat Global::noLight[]         ={0.00f,0.00f,0.00f,1.0f};
 GLfloat Global::darkLight[]       ={0.03f,0.03f,0.03f,1.0f}; //œladowe
 GLfloat Global::lightPos[4];
+bool Global::bRollFix=true; //czy wykonaæ przeliczanie przechy³ki
 
 //parametry u¿ytkowe (jak komu pasuje)
 int Global::Keys[MaxKeys];
@@ -130,7 +131,7 @@ int Global::iSlowMotionMask=-1; //maska wy³¹czanych w³aœciwoœci dla zwiêkszenia 
 int Global::iModifyTGA=7; //czy korygowaæ pliki TGA dla szybszego wczytywania
 //bool Global::bTerrainCompact=true; //czy zapisaæ teren w pliku
 TAnimModel *Global::pTerrainCompact=NULL; //do zapisania terenu w pliku
-
+AnsiString Global::asTerrainModel=""; //nazwa obiektu terenu do zapisania w pliku
 
 //parametry testowe (do testowania scenerii i obiektów)
 bool Global::bWireFrame=false;

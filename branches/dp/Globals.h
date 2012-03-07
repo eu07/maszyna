@@ -235,6 +235,8 @@ public:
  static bool bHideConsole; //hunter-271211: ukrywanie konsoli
  static TWorld *pWorld; //wskaŸnik na œwiat do usuwania pojazdów
  static TAnimModel *pTerrainCompact; //obiekt terenu do ewentualnego zapisania w pliku
+ static AnsiString asTerrainModel; //nazwa obiektu terenu do zapisania w pliku
+ static bool bRollFix; //czy wykonaæ przeliczanie przechy³ki
  //metody
  static void __fastcall TrainDelete(TDynamicObject *d);
 };

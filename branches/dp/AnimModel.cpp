@@ -200,19 +200,26 @@ bool __fastcall TAnimModel::Init(AnsiString asName, AnsiString asReplacableTextu
  return (Init(TModelsManager::GetModel(asName.c_str())));
 }
 
-bool __fastcall TAnimModel::Load(cParser *parser)
+bool __fastcall TAnimModel::Load(cParser *parser, bool ter)
 {//rozpoznanie wpisu modelu i ustawienie œwiate³
  AnsiString str;
  std::string token;
- parser->getTokens();
+ parser->getTokens(); //nazwa modelu
  *parser >> token;
  str=AnsiString(token.c_str());
- parser->getTokens();
+ parser->getTokens(); //tekstura
  *parser >> token;
  if (!Init(str,AnsiString(token.c_str())))
  {if (str!="notload")
   {//gdy brak modelu
-   Error(AnsiString("Model: "+str+" does not exist"));
+   if (ter) //jeœli teren
+   {if (str.SubString(str.Length()-3,4)==".t3d")
+     str[str.Length()-2]='e';
+    Global::asTerrainModel=str;
+    WriteLog(AnsiString("Terrain model \""+str+"\" will be created."));
+   }
+   else
+    Error(AnsiString("Model: "+str+" does not exist"));
   }
  }
  else
@@ -237,7 +244,6 @@ bool __fastcall TAnimModel::Load(cParser *parser)
  for (int i=0;i<iMaxNumLights;++i)
   if (LightsOn[i]||LightsOff[i]) //Ra: zlikwidowa³em wymóg istnienia obu
    iNumLights=i+1;
-
  int i=0;
  int ti;
 
