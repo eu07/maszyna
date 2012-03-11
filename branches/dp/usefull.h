@@ -11,7 +11,7 @@
 #define	B4(t)     ((1-t)*(1-t)*(1-t))
 //Ra: to jest mocno nieoptymalne: 10+3*4=22 mno¿enia, 6 odejmowañ, 3*3=9 dodawañ
 //Ra: po przeliczeniu wspó³czynników mamy: 3*3=9 mno¿eñ i 3*3=9 dodawañ
-#define	Interpolate(t,p1,cp1,cp2,p2)     (B4(t)*p1+B3(t)*cp1+B2(t)*cp2+B1(t)*p2)
+//#define	Interpolate(t,p1,cp1,cp2,p2)     (B4(t)*p1+B3(t)*cp1+B2(t)*cp2+B1(t)*p2)
 
 #define Pressed(x) (GetKeyState(x)<0)
 

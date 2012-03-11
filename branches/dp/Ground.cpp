@@ -47,6 +47,8 @@
 #include "parser.h" //Tolaris-010603
 #include "Driver.h"
 
+
+//#define _PROBLEND 0
 //---------------------------------------------------------------------------
 
 #pragma package(smart_init)
@@ -1733,7 +1735,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
 #endif
    tmp->TextureID=TTexturesManager::GetTextureID(str.c_str());
    tmp->iFlags=TTexturesManager::GetAlpha(tmp->TextureID)?0x220:0x210; //z usuwaniem
-   if ((tmp->iFlags&0x10)?Global::pTerrainCompact->TerrainLoaded():false)
+   if (((tmp->iType==GL_TRIANGLES)&&(tmp->iFlags&0x10))?Global::pTerrainCompact->TerrainLoaded():false)
    {//jeœli jest tekstura nieprzezroczysta, a teren za³adowany, to pomijamy trójk¹ty
     do
     {//pomijanie wtrójk¹tów
@@ -1925,7 +1927,8 @@ void __fastcall TGround::FirstInit()
       gr->RaNodeAdd(&Current->nNode[j]);
      }
     }
-    else if ((Current->iType!=GL_TRIANGLES)&&(Current->iType!=GL_TRIANGLE_STRIP)?true //~czy trójk¹t?
+//    else if ((Current->iType!=GL_TRIANGLES)&&(Current->iType!=GL_TRIANGLE_STRIP)?true //~czy trójk¹t?
+    else if ((Current->iType!=GL_TRIANGLES)?true //~czy trójk¹t?
      :(Current->iFlags&0x20)?true //~czy teksturê ma nieprzezroczyst¹?
       :(Current->fSquareMinRadius!=0.0)?true //~czy widoczny z bliska?
        :(Current->fSquareRadius<=90000.0)) //~czy widoczny z daleka?

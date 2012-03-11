@@ -579,7 +579,7 @@ void __fastcall TWorld::OnKeyPress(int cKey)
   AnsiString info="Key pressed: [";
   if (Pressed(VK_SHIFT)) info+="Shift]+[";
   if (Pressed(VK_CONTROL)) info+="Ctrl]+[";
-  if (cKey>123) //coœ tam jeszcze jest?
+  if (cKey>123) //coœ tam jeszcze ciekawego jest?
    WriteLog(info+AnsiString((char)(cKey-128))+"]");
   else if (cKey>=112) //funkcyjne
    WriteLog(info+"F"+AnsiString(cKey-111)+"]");
@@ -616,15 +616,15 @@ void __fastcall TWorld::OnKeyPress(int cKey)
      Global::pFreeCameraInitAngle[i].z=Camera.Roll;
      //logowanie, ¿eby mo¿na by³o do scenerii przepisaæ
      WriteLog("camera "
-      +AnsiString(Global::pFreeCameraInit[i].x)+" "
-      +AnsiString(Global::pFreeCameraInit[i].y)+" "
-      +AnsiString(Global::pFreeCameraInit[i].z)+" "
-      +AnsiString(RadToDeg(Global::pFreeCameraInitAngle[i].x))+" "
-      +AnsiString(RadToDeg(Global::pFreeCameraInitAngle[i].y))+" "
-      +AnsiString(RadToDeg(Global::pFreeCameraInitAngle[i].z))+" "
+      +AnsiString(0.001*floor(1000.0*Global::pFreeCameraInit[i].x+0.5))+" "
+      +AnsiString(0.001*floor(1000.0*Global::pFreeCameraInit[i].y+0.5))+" "
+      +AnsiString(0.001*floor(1000.0*Global::pFreeCameraInit[i].z+0.5))+" "
+      +AnsiString(0.001*floor(1000.0*RadToDeg(Global::pFreeCameraInitAngle[i].x)+0.5))+" "
+      +AnsiString(0.001*floor(1000.0*RadToDeg(Global::pFreeCameraInitAngle[i].y)+0.5))+" "
+      +AnsiString(0.001*floor(1000.0*RadToDeg(Global::pFreeCameraInitAngle[i].z)+0.5))+" "
       +AnsiString(i)+" endcamera");
     }
-    else //równie¿ przeskaliwanie
+    else //równie¿ przeskakiwanie
      Camera.Init(Global::pFreeCameraInit[i],Global::pFreeCameraInitAngle[i]);
    }
   //bêdzie jeszcze za³¹czanie sprzêgów z [Ctrl]
@@ -659,7 +659,7 @@ void __fastcall TWorld::OnKeyPress(int cKey)
   if (Train)
    if (Controlled)
     if ((Controlled->Controller==Humandriver)?true:DebugModeFlag||(cKey=='Q')||(cKey==VK_F4))
-     Train->OnKeyPress(cKey); //przekazanie klawisza do pojazdu
+     Train->OnKeyPress(cKey); //przekazanie klawisza do kabiny
  //switch (cKey)
  //{case 'a': //ignorowanie repetycji
  // case 'A': Global::iKeyLast=cKey; break;

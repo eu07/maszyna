@@ -571,7 +571,7 @@ TYPE
                 //wzglêdem wybranej kabiny: -1 - do tylu, +1 - do przodu, 0 - wylaczona
                 CabNo: integer;    {! numer kabiny: 1 lub -1. W przeciwnym razie brak sterowania - rozrzad}
                 DirAbsolute: integer; //zadany kierunek jazdy wzglêdem sprzêgów (1=w strone 0,-1=w stronê 1) 
-                ActiveCab: integer; {! numer kabiny, w ktorej sie jest}
+                ActiveCab: integer; //numer kabiny, w ktorej jest obsada (zwykle jedna na sk³ad)
                 LastCab: integer;       { numer kabiny przed zmiana }
                 LastSwitchingTime: real; {czas ostatniego przelaczania czegos}
                 WarningSignal: byte;     {0: nie trabi, 1,2: trabi}
@@ -1154,7 +1154,7 @@ function TMoverParameters.CabDeactivisation:boolean;
 var OK:boolean;
 begin
  OK:=(CabNo=ActiveCab);
- if(OK)then
+ if (OK) then
   begin
    LastCab:=CabNo;
    CabNo:=0;
@@ -4778,15 +4778,15 @@ else if command='PantFront' then         {Winger 160204}
      else OK:=False;
    end
   else if command='CabSignal' then {SHP,Indusi}
-   begin
-     if SecuritySystem.SystemType>1 then
+   begin //Ra: to powinno dzia³aæ tylko w cz³onie obsadzonym
+     if (ActiveCab<>0) and (SecuritySystem.SystemType>1) then //jeœli kabina jest obsadzona
       with SecuritySystem do
        begin
-         VelocityAllowed:=Trunc(CValue1);
-         NextVelocityAllowed:=Trunc(CValue2);
-         SystemSoundTimer:=0;
-         SetFlag(Status,s_active);
-         OK:=True;
+        VelocityAllowed:=Trunc(CValue1);
+        NextVelocityAllowed:=Trunc(CValue2);
+        SystemSoundTimer:=0;
+        SetFlag(Status,s_active);
+        OK:=True;
        end
       else OK:=False;
    end
