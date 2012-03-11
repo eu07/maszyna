@@ -1463,7 +1463,7 @@ bool __fastcall TController::UpdateSituation(double dt)
       if (fStopTime<=0) //czas postoju przed dalsz¹ jazd¹ (np. na przystanku)
        VelDesired=0.0; //jak ma czekaæ, to nie ma jazdy
       else if (VelActual<0)
-       VelDesired=Controlling->Vmax; //ile fabryka dala
+       VelDesired=Controlling->Vmax; //ile fabryka dala (Ra: uwzglêdniæ wagony!!!)
       else
        VelDesired=Min0R(Controlling->Vmax,VelActual);
       if (Controlling->RunningTrack.Velmax>=0)
@@ -1474,7 +1474,7 @@ bool __fastcall TController::UpdateSituation(double dt)
        if (TrainParams->TTVmax>0.0)
         VelDesired=Min0R(VelDesired,TrainParams->TTVmax); //jesli nie spozniony to nie szybciej niz rozkladowa
 #if LOGVELOCITY
-      WriteLog("VelDesired="+AnsiString(VelDesired)+", VelActual="+AnsiString(VelActual));
+      //WriteLog("VelDesired="+AnsiString(VelDesired)+", VelActual="+AnsiString(VelActual));
 #endif
       AbsAccS=Controlling->AccS; //czy sie rozpedza czy hamuje
       if (Controlling->V<0.0) AbsAccS=-AbsAccS;
@@ -1579,6 +1579,9 @@ bool __fastcall TController::UpdateSituation(double dt)
            //DecBrakeLevel(); //z tym by jeszcze mia³o jakiœ sens
           }
        }
+#if LOGVELOCITY
+      WriteLog("VelDesired="+AnsiString(VelDesired)+", AccDesired="+AnsiString(AccDesired)+", VelActual="+AnsiString(VelActual)+", VelNext="+AnsiString(VelNext)+", Vel="+AnsiString(Controlling->Vel));
+#endif
 
       if (AccDesired>=0.0)
        if (Prepare2press)
@@ -2026,7 +2029,7 @@ void __fastcall TController::ScanEventTrack()
   return; //i dalej nie ma co analizowaæ innych przypadków (!!!! do przemyœlenia)
  }
  else
-  if (0.5*VelDesired*VelDesired>pVehicles[0]->fTrackBlock) //droga hamowania wiêksza ni¿ odleg³oœæ
+  if (0.1*VelDesired*VelDesired>pVehicles[0]->fTrackBlock) //droga hamowania wiêksza ni¿ odleg³oœæ kolizyjna
    SetProximityVelocity(pVehicles[0]->fTrackBlock-50,0); //spowolnienie jazdy
  int startdir=iDirection; //kierunek jazdy wzglêdem pojazdu, w którym siedzi AI (1=przód,-1=ty³)
  if (startdir==0) //jeœli kabina i kierunek nie jest okreœlony

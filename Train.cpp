@@ -1730,7 +1730,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       {
       //------------------------------
        if (DynamicObject->MoverParameters->ActiveCab==1)
-       { //kabina 0
+       {//kabina 1 (od strony 0)
         if (((DynamicObject->iLights[1])&48)==0)
         {
          DynamicObject->iLights[1]|=32;
@@ -1829,19 +1829,18 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else
       if (cKey==Global::Keys[k_StLinOff])   //Winger 110904: wylacznik st. liniowych
       {
-         if (DynamicObject->MoverParameters->TrainType!=dt_EZT)
-          {
-                   StLinOffButtonGauge.PutValue(1); //Ra: by³o Fuse...
-                   dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                   dsbSwitch->Play(0,0,0);
-                if (DynamicObject->MoverParameters->MainCtrlPosNo>0)
-                  {
-                  DynamicObject->MoverParameters->StLinFlag=true;
-                  dsbRelay->SetVolume(DSBVOLUME_MAX);
-                  dsbRelay->Play(0,0,0);
-                  }
-          }
-
+       if (DynamicObject->MoverParameters->TrainType!=dt_EZT)
+       {
+        StLinOffButtonGauge.PutValue(1); //Ra: by³o Fuse...
+        dsbSwitch->SetVolume(DSBVOLUME_MAX);
+        dsbSwitch->Play(0,0,0);
+        if (DynamicObject->MoverParameters->MainCtrlPosNo>0)
+        {
+         DynamicObject->MoverParameters->StLinFlag=true;
+         dsbRelay->SetVolume(DSBVOLUME_MAX);
+         dsbRelay->Play(0,0,0);
+        }
+       }
       }
       else
       {
@@ -1867,21 +1866,28 @@ void __fastcall TTrain::OnKeyPress(int cKey)
               vMechMovement.z+=fMechCroach;
           else
           if (cKey==Global::Keys[k_MechUp])
-              pMechOffset.y+=0.3; //McZapkie-120302 - wstawanie
+              pMechOffset.y+=0.2; //McZapkie-120302 - wstawanie
           else
           if (cKey==Global::Keys[k_MechDown])
-              pMechOffset.y-=0.3; //McZapkie-120302 - siadanie
+              pMechOffset.y-=0.2; //McZapkie-120302 - siadanie
          }
        }
 
   //    else
       if (DebugModeFlag)
-      {
-          if (cKey==VkKeyScan('['))
-              DynamicObject->Move(100.0);
-          else
-          if (cKey==VkKeyScan(']'))
-              DynamicObject->Move(-100.0);
+      {//przesuwanie sk³adu o 100m
+       TDynamicObject *d=DynamicObject;
+       if (cKey==VkKeyScan('['))
+        while (d)
+        {d->Move(100.0);
+         d=d->Next(); //pozosta³e te¿
+        }
+       else
+       if (cKey==VkKeyScan(']'))
+        while (d)
+        {d->Move(-100.0);
+         d=d->Next(); //pozosta³e te¿
+        }
       }
    }
 }
