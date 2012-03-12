@@ -1290,6 +1290,14 @@ void __fastcall TSubModel::BinInit(TSubModel *s,float4x4 *m,float8 *v,TStringPac
  Visible=true; //tymczasowo u¿ywane
  //if (!iNumVerts) eType=-1; //tymczasowo zmiana typu, ¿eby siê nie renderowa³o na si³ê
 };
+
+void __fastcall TSubModel::ColorsSet(int *a,int *d,int*s)
+{//ustawienie kolorów dla modelu terenu
+ int i;
+ if (a) for (i=0;i<4;++i) f4Ambient[i]=a[i]/255.0;
+ if (d) for (i=0;i<4;++i) f4Diffuse[i]=d[i]/255.0;
+ if (s) for (i=0;i<4;++i) f4Specular[i]=s[i]/255.0;
+};
 //---------------------------------------------------------------------------
 
 __fastcall TModel3d::TModel3d()

@@ -254,6 +254,7 @@ public:
  //Ra: funkcje do budowania terenu z E3D
  int __fastcall Flags() {return iFlags;};
  void __fastcall UnFlagNext() {iFlags&=0x00FFFFFF;};
+ void __fastcall ColorsSet(int *a,int *d,int*s);
 };
 
 class TSubModelInfo

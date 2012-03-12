@@ -81,7 +81,7 @@ private:
  TSubModel *smAnimatedWheel[MaxAnimatedAxles]; //submodele poszczególnych osi
  double *pWheelAngle[MaxAnimatedAxles]; //wska¿niki do odczytu k¹ta obrotu danej osi
  //wi¹zary
- TSubModel *smWiazary[2];
+ TSubModel *smWiazary[2]; //mo¿na zast¹piæ je osiami
  //ABuWozki 060504
  vector3 bogieRot[2];   //Obroty wozkow w/m korpusu
  TSubModel *smBogie[2]; //Wyszukiwanie max 2 wozkow
@@ -181,9 +181,9 @@ private:
     vector3 modelShake;
 
     bool renderme; //yB - czy renderowac
-    char cp1, sp1, cp2, sp2; //ustawienia wezy
-    TRealSound sBrakeAcc; //dzwiek przyspieszacza
- int iAxleFirst; //numer pierwszej oœ w kierunku ruchu
+    char cp1, sp1, cp2, sp2; //ustawienia wê¿y
+    TRealSound sBrakeAcc; //dŸwiêk przyspieszacza
+ int iAxleFirst; //numer pierwszej osi w kierunku ruchu
  int iInventory; //flagi bitowe posiadanych submodeli (np. œwiate³)
  TDynamicObject* __fastcall ABuFindNearestObject(TTrack *Track,TDynamicObject *MyPointer,int &CouplNr);
  void __fastcall TurnOff();
@@ -203,6 +203,8 @@ protected:
     void __fastcall ABuCheckMyTrack();
 
 public:
+ float fHalfMaxAxleDist; //rozstaw wózków albo osi
+ float fShade; //0:normalnie, -1:w ciemnoœci, +1:dodatkowe œwiat³o (brak koloru?)
  int iLights[2]; //bity zapalonych œwiate³
  double fTrackBlock; //odleg³oœæ do przeszkody do dalszego ruchu
  TDynamicObject* __fastcall Prev();
