@@ -1369,15 +1369,15 @@ double __fastcall TDynamicObject::Init(
  //iNumAxles=(MoverParameters->NAxles>3 ? 4 : 2 );
  iNumAxles=2;
  //McZapkie-090402: odleglosc miedzy czopami skretu lub osiami
- double HalfMaxAxleDist=Max0R(MoverParameters->BDist,MoverParameters->ADist)*0.5;
- fDist-=0.5*MoverParameters->Dim.L; //dodajemy pó³ d³ugoœci pojazdu
+ fHalfMaxAxleDist=Max0R(MoverParameters->BDist,MoverParameters->ADist)*0.5;
+ fDist-=0.5*MoverParameters->Dim.L; //dodajemy pó³ d³ugoœci pojazdu, aby przód by³ w sta³ym miejscu
  switch (iNumAxles)
  {//Ra: pojazdy wstawiane s¹ na tor pocz¹tkowy, a potem przesuwane
   case 2: //ustawianie osi na torze
    Axle0.Init(Track,this,iDirection?1:-1);
-   Axle0.Move((iDirection?fDist:-fDist)+HalfMaxAxleDist+0.01,false);
+   Axle0.Move((iDirection?fDist:-fDist)+fHalfMaxAxleDist+0.01,false);
    Axle1.Init(Track,this,iDirection?1:-1);
-   Axle1.Move((iDirection?fDist:-fDist)-HalfMaxAxleDist-0.01,false); //false, ¿eby nie generowaæ eventów
+   Axle1.Move((iDirection?fDist:-fDist)-fHalfMaxAxleDist-0.01,false); //false, ¿eby nie generowaæ eventów
    //Axle2.Init(Track,this,iDirection?1:-1);
    //Axle2.Move((iDirection?fDist:-fDist)-HalfMaxAxleDist+0.01),false);
    //Axle3.Init(Track,this,iDirection?1:-1);
@@ -1385,9 +1385,9 @@ double __fastcall TDynamicObject::Init(
   break;
   case 4:
    Axle0.Init(Track,this,iDirection?1:-1);
-   Axle0.Move((iDirection?fDist:-fDist)+(HalfMaxAxleDist+MoverParameters->ADist*0.5),false);
+   Axle0.Move((iDirection?fDist:-fDist)+(fHalfMaxAxleDist+MoverParameters->ADist*0.5),false);
    Axle1.Init(Track,this,iDirection?1:-1);
-   Axle1.Move((iDirection?fDist:-fDist)-(HalfMaxAxleDist+MoverParameters->ADist*0.5),false);
+   Axle1.Move((iDirection?fDist:-fDist)-(fHalfMaxAxleDist+MoverParameters->ADist*0.5),false);
    //Axle2.Init(Track,this,iDirection?1:-1);
    //Axle2.Move((iDirection?fDist:-fDist)-(HalfMaxAxleDist-MoverParameters->ADist*0.5),false);
    //Axle3.Init(Track,this,iDirection?1:-1);
@@ -1443,13 +1443,13 @@ bool __fastcall TDynamicObject::Move(double fDistance)
 
 void __fastcall TDynamicObject::FastMove(double fDistance)
 {
-   MoverParameters->dMoveLen=MoverParameters->dMoveLen+fDistance;
+ MoverParameters->dMoveLen=MoverParameters->dMoveLen+fDistance;
 }
 
 void __fastcall TDynamicObject::Move(double fDistance)
 {//przesuwanie pojazdu po trajektorii polega na przesuwaniu poszczególnych osi
  //Ra: wartoœæ prêdkoœci 2km/h ma ograniczyæ aktywacjê eventów w przypadku drgañ
- if (Axle0.GetTrack()==Axle1.GetTrack())
+ if (Axle0.GetTrack()==Axle1.GetTrack()) //przed przesuniêciem
  {//powi¹zanie pojazdu z osi¹ mo¿na zmieniæ tylko wtedy, gdy skrajne osie s¹ na tym samym torze
   if (MoverParameters->Vel>2) //|[km/h]| nie ma sensu zmiana osi, jesli pojazd drga na postoju
    iAxleFirst=(MoverParameters->V>=0.0)?1:0; //[m/s] ?1:0 - aktywna druga oœ w kierunku jazdy
@@ -1467,6 +1467,40 @@ void __fastcall TDynamicObject::Move(double fDistance)
   vPosition.z+=MoverParameters->OffsetTrackH*vLeft.z; //vLeft jest wektorem poprzecznym
   //if () na przechy³ce bêdzie dodatkowo zmiana wysokoœci samochodu
   vPosition.y+=MoverParameters->OffsetTrackV;   //te offsety sa liczone przez moverparam
+ }
+ //if (bTakeCare) //jeœli istotne s¹ szczegó³y (blisko kamery)
+ {//przeliczenie cienia
+  TTrack *t0=Axle0.GetTrack(); //ju¿ po przesuniêciu
+  TTrack *t1=Axle1.GetTrack();
+  if ((t0->eEnvironment==e_flat)&&(t1->eEnvironment==e_flat))
+   fShade=0.0; //standardowe oœwietlenie
+  else
+  {//je¿eli te tory maj¹ niestandardowy stopieñ zacienienia (e_canyon, e_tunnel)
+   if (t0->eEnvironment==t1->eEnvironment)
+   {switch (t0->eEnvironment)
+    {//typ zmiany oœwietlenia
+     case e_canyon: fShade=0.65; break; //zacienienie w kanionie
+     case e_tunnel: fShade=0.20; break; //zacienienie w tunelu
+    }
+   }
+   else //dwa ró¿ne
+   {//liczymy proporcjê
+    double d=Axle0.GetTranslation(); //aktualne po³o¿enie na torze
+    if (Axle0.GetDirection()<0)
+     d=t0->fTrackLength-d; //od drugiej strony liczona d³ugoœæ
+    d/=2.0*fHalfMaxAxleDist; //rozsataw osi procentowe znajdowanie siê na torze
+    switch (t0->eEnvironment)
+    {//typ zmiany oœwietlenia - zak³adam, ¿e drugi tor ma e_flat
+     case e_canyon: fShade=(d*0.65)+(1.0-d); break; //zacienienie w kanionie
+     case e_tunnel: fShade=(d*0.20)+(1.0-d); break; //zacienienie w tunelu
+    }
+    switch (t1->eEnvironment)
+    {//typ zmiany oœwietlenia - zak³adam, ¿e pierwszy tor ma e_flat
+     case e_canyon: fShade=d+(1.0-d)*0.65; break; //zacienienie w kanionie
+     case e_tunnel: fShade=d+(1.0-d)*0.20; break; //zacienienie w tunelu
+    }
+   }
+  }
  }
 };
 
@@ -2373,8 +2407,8 @@ bool __fastcall TDynamicObject::Render()
   vFront=GetDirection();
   if ((MoverParameters->CategoryFlag&2) && (MoverParameters->CabNo<0)) //TODO: zrobic to eleganciej z plynnym zawracaniem
    vFront=-vFront;
-  vUp=vWorldUp; //sta³a
-  vFront.Normalize();
+  vUp=vWorldUp; //Ra: jeœli to wskazuje pionowo w górê
+  vFront.Normalize(); //a to leci w dó³ lub w górê, to mamy problem z ortogonalnoœci¹ i skalowaniem
   vLeft=CrossProduct(vUp,vFront);
   vUp=CrossProduct(vFront,vLeft);
   matrix4x4 mat;
@@ -2385,7 +2419,7 @@ bool __fastcall TDynamicObject::Render()
 
   vector3 pos=vPosition;
   double ObjSqrDist=SquareMagnitude(Global::pCameraPosition-pos);
-  ABuLittleUpdate(ObjSqrDist); //ustawianie zmiennych submodeli
+  ABuLittleUpdate(ObjSqrDist); //ustawianie zmiennych submodeli dla wspólnego modelu
 
   //ActualTrack= GetTrack(); //McZapkie-240702
 
@@ -2403,6 +2437,22 @@ bool __fastcall TDynamicObject::Render()
   //double ObjDist= SquareMagnitude(Global::pCameraPosition-pos);
   glTranslated(pos.x,pos.y,pos.z);
   glMultMatrixd(mMatrix.getArray());
+  if (fShade>0.0)
+  {//Ra: zmiana oswietlenia w tunelu, wykopie
+   GLfloat ambientLight[4]= {0.5f,0.5f,0.5f,1.0f};
+   GLfloat diffuseLight[4]= {0.5f,0.5f,0.5f,1.0f};
+   GLfloat specularLight[4]={0.5f,0.5f,0.5f,1.0f};
+   //trochê problem z ambientem w wykopie...
+   for (int li=0;li<3;li++)
+   {
+    ambientLight[li]= Global::ambientDayLight[li]*fShade;
+    diffuseLight[li]= Global::diffuseDayLight[li]*fShade;
+    specularLight[li]=Global::specularDayLight[li]*fShade;
+   }
+   glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
+   glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
+   glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
+  }
   if (mdLowPolyInt)
    if (FreeFlyModeFlag?true:!mdKabina)
     if (Global::bUseVBO)
@@ -2471,6 +2521,12 @@ bool __fastcall TDynamicObject::Render()
     mdKabina->RaRender(ObjSqrDist,0);
    else
     mdKabina->Render(ObjSqrDist,0);
+   glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
+   glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
+   glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
+  }
+  if (fShade!=0.0) //tylko jeœli by³o zmieniane
+  {//przywrócenie standardowego oœwietlenia
    glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
    glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
    glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
@@ -2783,8 +2839,8 @@ bool __fastcall TDynamicObject::RenderAlpha()
   vFront= GetDirection();
   if ((MoverParameters->CategoryFlag&2) && (MoverParameters->CabNo<0)) //TODO: zrobic to eleganciej z plynnym zawracaniem
    vFront=-vFront;
-  vUp=vWorldUp; //Ra: jeœli to wskazuje pionowo w górê
-  vFront.Normalize(); //a to w dó³ lub w górê, to mamy problem z ortogonalnoœci¹ i skalowaniem
+  vUp=vWorldUp;
+  vFront.Normalize(); //Ra: Po cholerê to jest drugi raz liczone? By³o w Render() i powinno zostaæ bez zmian.
   vLeft=CrossProduct(vUp,vFront);
   vUp=CrossProduct(vFront,vLeft);
   matrix4x4 mat;
@@ -2793,11 +2849,26 @@ bool __fastcall TDynamicObject::RenderAlpha()
   mMatrix=Inverse(mat);
   vector3 pos=GetPosition();
   double ObjSqrDist=SquareMagnitude(Global::pCameraPosition-pos);
-  ABuLittleUpdate(ObjSqrDist);
-    glPushMatrix ( );
-    glTranslated(pos.x,pos.y,pos.z);
-    glMultMatrixd(mMatrix.getArray());
-
+  ABuLittleUpdate(ObjSqrDist); //ustawianie zmiennych submodeli dla wspólnego modelu
+  glPushMatrix ( );
+  glTranslated(pos.x,pos.y,pos.z);
+  glMultMatrixd(mMatrix.getArray());
+  if (fShade>0.0)
+  {//Ra: zmiana oswietlenia w tunelu, wykopie
+   GLfloat ambientLight[4]= {0.5f,0.5f,0.5f,1.0f};
+   GLfloat diffuseLight[4]= {0.5f,0.5f,0.5f,1.0f};
+   GLfloat specularLight[4]={0.5f,0.5f,0.5f,1.0f};
+   //trochê problem z ambientem w wykopie...
+   for (int li=0;li<3;li++)
+   {
+    ambientLight[li]= Global::ambientDayLight[li]*fShade;
+    diffuseLight[li]= Global::diffuseDayLight[li]*fShade;
+    specularLight[li]=Global::specularDayLight[li]*fShade;
+   }
+   glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
+   glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
+   glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
+  }
     if (Global::bUseVBO)
     mdModel->RaRenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
     else
@@ -2860,6 +2931,12 @@ bool __fastcall TDynamicObject::RenderAlpha()
       glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
     }
 */
+  if (fShade!=0.0) //tylko jeœli by³o zmieniane
+  {//przywrócenie standardowego oœwietlenia
+   glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
+   glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
+   glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
+  }
   glPopMatrix ( );
   if (btnOn) TurnOff(); //przywrócenie domyœlnych pozycji submodeli
  }

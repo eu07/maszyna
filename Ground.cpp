@@ -48,7 +48,7 @@
 #include "Driver.h"
 
 
-//#define _PROBLEND 0
+//#define _PROBLEND 1
 //---------------------------------------------------------------------------
 
 #pragma package(smart_init)
@@ -2330,11 +2330,7 @@ bool __fastcall TGround::Init(AnsiString asFile)
      }
      else if (str==AnsiString("config"))
      {//mo¿liwoœæ przedefiniowania parametrów w scenerii
-      do
-      {
-       parser.getTokens();
-       parser >> token;
-      } while (token.compare("endconfig")!=0);
+      Global::ConfigParse(NULL,&parser); //parsowanie dodatkowych ustawieñ
      }
      else if (str!=AnsiString(""))
      {//pomijanie od nierozpoznanej komendy do jej zakoñczenia
@@ -3751,6 +3747,7 @@ void __fastcall TGround::TerrainWrite()
     sk=new TSubModel(); //nowy submodel dla kawadratu
     //numer kwadratu XXXZZZ, przy czym X jest ujemne - XXX roœnie na wschód, ZZZ roœnie na pó³noc 
     sk->NameSet(AnsiString(1000*(500+i-iNumRects/2)+(500+j-iNumRects/2)).c_str()); //nazwa=numer kwadratu
+    sk->ColorsSet(Current->Ambient,Current->Diffuse,Current->Specular);
     m->AddTo(NULL,sk); //dodanie submodelu dla kwadratu
     for (Current=Rects[i][j].nRootNode;Current;Current=Current->nNext2)
      switch (Current->iType)

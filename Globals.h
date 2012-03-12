@@ -119,6 +119,11 @@ class TGround;
 class TWorld;
 class TDynamicObject;
 class TAnimModel; //obiekt terenu
+namespace Queryparsercomp
+{
+class TQueryParserComp; //stary(?) parser
+}
+class cParser; //nowy (powolny!) parser
 
 class Global
 {
@@ -237,8 +242,12 @@ public:
  static TAnimModel *pTerrainCompact; //obiekt terenu do ewentualnego zapisania w pliku
  static AnsiString asTerrainModel; //nazwa obiektu terenu do zapisania w pliku
  static bool bRollFix; //czy wykonaæ przeliczanie przechy³ki
+ static Queryparsercomp::TQueryParserComp *qParser;
+ static cParser *pParser;
  //metody
  static void __fastcall TrainDelete(TDynamicObject *d);
+ static void __fastcall ConfigParse(Queryparsercomp::TQueryParserComp *qp,cParser *cp=NULL);
+ static AnsiString __fastcall GetNextSymbol();
 };
 
 //---------------------------------------------------------------------------

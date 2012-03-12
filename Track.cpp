@@ -1232,7 +1232,8 @@ void TTrack::Release()
 
 void __fastcall TTrack::Render()
 {
- if (bVisible && SquareMagnitude(Global::pCameraPosition-Segment->FastGetPoint(0.5)) < 810000)
+ //if (bVisible && SquareMagnitude(Global::pCameraPosition-Segment->FastGetPoint(0.5)) < 810000)
+ if (bVisible) //Ra: tory s¹ renderowane sektorami i nie ma sensu ka¿dorazowo liczyæ odleg³oœci 
  {
   if (!DisplayListID)
   {
@@ -1241,7 +1242,9 @@ void __fastcall TTrack::Render()
     ResourceManager::Register(this);
   };
   SetLastUsage(Timer::GetSimulationTime());
+  EnvironmentSet(); //oœwietlenie nie mo¿e byæ skompilowane, bo mo¿e siê zmieniaæ z czasem 
   glCallList(DisplayListID);
+  EnvironmentReset(); //ustawienie oœwietlenia na zwyk³e
   if (InMovement()) Release(); //zwrotnica w trakcie animacji do odrysowania
  };
 //#ifdef _DEBUG
@@ -1267,9 +1270,9 @@ void __fastcall TTrack::Render()
   ScannedFlag=false;
  }
 #endif
- glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
- glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
- glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
+ //glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
+ //glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
+ //glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
 };
 
 bool __fastcall TTrack::CheckDynamicObject(TDynamicObject *Dynamic)
@@ -1690,21 +1693,21 @@ void __fastcall TTrack::EnvironmentReset()
 };
 
 void __fastcall TTrack::RenderDyn()
-{//renderowanie nieprzezroczystych pojazdów
+{//renderowanie nieprzezroczystych fragmentów pojazdów
  if (!iNumDynamics) return; //po co kombinowaæ, jeœli nie ma pojazdów?
- EnvironmentSet();
+ //EnvironmentSet(); //Ra: pojazdy sobie same teraz licz¹ cienie
  for (int i=0;i<iNumDynamics;i++)
   Dynamics[i]->Render(); //sam sprawdza, czy VBO; zmienia kontekst VBO!
- EnvironmentReset();
+ //EnvironmentReset();
 };
 
 void __fastcall TTrack::RenderDynAlpha()
-{//renderowanie przezroczystych pojazdów
+{//renderowanie przezroczystych fragmentów pojazdów
  if (!iNumDynamics) return; //po co kombinowaæ, jeœli nie ma pojazdów?
- EnvironmentSet();
+ //EnvironmentSet(); //Ra: pojazdy sobie same teraz licz¹ cienie
  for (int i=0;i<iNumDynamics;i++)
   Dynamics[i]->RenderAlpha(); //sam sprawdza, czy VBO; zmienia kontekst VBO!
- EnvironmentReset();
+ //EnvironmentReset();
 };
 
 //---------------------------------------------------------------------------
@@ -1940,7 +1943,7 @@ bool __fastcall TTrack::IsGroupable()
 
 bool __fastcall Equal(vector3 v1, vector3 *v2)
 {//sprawdzenie odleg³oœci punktów
- //Ra: powinno byæ do 10cm wzd³u¿ toru i ze 2cm w poprzek
+ //Ra: powinno byæ do 100cm wzd³u¿ toru i ze 2cm w poprzek (na prostej mo¿e nie byæ d³ugiego kawa³ka)
  //Ra: z automatycznie dodawanym stukiem, jeœli dziura jest wiêksza ni¿ 2mm.
  if (fabs(v1.x-v2->x)>0.02) return false; //szeœcian zamiast kuli
  if (fabs(v1.z-v2->z)>0.02) return false;

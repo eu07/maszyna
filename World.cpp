@@ -985,9 +985,9 @@ bool __fastcall TWorld::Update()
   //  lightsum+=Global::diffuseDayLight[i];
   //  lightsum+=Global::ambientDayLight[i];
   // }
-  if (Global::fLuminance<=0.25)
-   {
-    glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_ONE);
+  if ((Train->DynamicObject->fShade<=0.0)?(Global::fLuminance<=0.25):(Train->DynamicObject->fShade*Global::fLuminance<=0.25))
+  {//Ra: uwzglêdni³em zacienienie pojazdu (Train->DynamicObject->fShade)
+   glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_ONE);
 //    glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_DST_COLOR);
 //    glBlendFunc(GL_SRC_ALPHA_SATURATE,GL_ONE);
     glDisable(GL_DEPTH_TEST);
