@@ -221,7 +221,7 @@ public:
  void __fastcall NextAdd(TSubModel *SubModel);
  TSubModel* __fastcall NextGet() {return Next;};
  int __fastcall TriangleAdd(TModel3d *m,int tex,int tri);
- float8* __fastcall TrianglePtr(int tex,int pos);
+ float8* __fastcall TrianglePtr(int tex,int pos,int *la,int *ld,int*ls);
  //float8* __fastcall TrianglePtr(const char *tex,int tri);
  //void __fastcall SetRotate(vector3 vNewRotateAxis,float fNewAngle);
  void __fastcall SetRotate(float3 vNewRotateAxis,float fNewAngle);

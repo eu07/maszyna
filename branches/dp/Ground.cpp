@@ -48,7 +48,7 @@
 #include "Driver.h"
 
 
-//#define _PROBLEND 1
+#define _PROBLEND 1
 //---------------------------------------------------------------------------
 
 #pragma package(smart_init)
@@ -3745,9 +3745,8 @@ void __fastcall TGround::TerrainWrite()
    if (Rects[i][j].iNodeCount)
    {//o ile s¹ jakieœ trójk¹ty w œrodku
     sk=new TSubModel(); //nowy submodel dla kawadratu
-    //numer kwadratu XXXZZZ, przy czym X jest ujemne - XXX roœnie na wschód, ZZZ roœnie na pó³noc 
+    //numer kwadratu XXXZZZ, przy czym X jest ujemne - XXX roœnie na wschód, ZZZ roœnie na pó³noc
     sk->NameSet(AnsiString(1000*(500+i-iNumRects/2)+(500+j-iNumRects/2)).c_str()); //nazwa=numer kwadratu
-    sk->ColorsSet(Current->Ambient,Current->Diffuse,Current->Specular);
     m->AddTo(NULL,sk); //dodanie submodelu dla kwadratu
     for (Current=Rects[i][j].nRootNode;Current;Current=Current->nNext2)
      switch (Current->iType)
@@ -3766,7 +3765,7 @@ void __fastcall TGround::TerrainWrite()
      {//pêtla po trójk¹tach - dopisywanie wierzcho³ków
       case GL_TRIANGLES:
        //ver=sk->TrianglePtr(TTexturesManager::GetName(Current->TextureID).c_str(),Current->iNumVerts); //wskaŸnik na pocz¹tek
-       ver=sk->TrianglePtr(Current->TextureID,Current->iVboPtr); //wskaŸnik na pocz¹tek
+       ver=sk->TrianglePtr(Current->TextureID,Current->iVboPtr,Current->Ambient,Current->Diffuse,Current->Specular); //wskaŸnik na pocz¹tek
        Current->iVboPtr=-1; //bo to by³o tymczasowo u¿ywane
        for (k=0;k<Current->iNumVerts;++k)
        {//przepisanie wspó³rzêdnych
