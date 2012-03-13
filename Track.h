@@ -86,7 +86,7 @@ private:
  float fTexLength; //d³ugoœæ powtarzania tekstury w metrach
  float fTexRatio1; //proporcja rozmiarów tekstury dla nawierzchni drogi
  float fTexRatio2; //proporcja rozmiarów tekstury dla chodnika
- float fTexHeight1; //wysokoœ brzegu wzglêdem trajektorii
+ float fTexHeight1; //wysokoœæ brzegu wzglêdem trajektorii
  float fTexWidth; //szerokoœæ boku
  float fTexSlope;
  double fRadiusTable[2]; //dwa promienie, drugi dla zwrotnicy
@@ -184,6 +184,7 @@ public:
  GLuint TextureGet(int i) {return i?TextureID1:TextureID2;};
  bool __fastcall IsGroupable();
  int __fastcall TestPoint(vector3 *Point);
+ void __fastcall MovedUp1(double dh);
 private:
  void __fastcall EnvironmentSet();
  void __fastcall EnvironmentReset();

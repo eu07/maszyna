@@ -8,6 +8,7 @@
 #include "Segment.h"
 #include "Usefull.h"
 #include "Globals.h"
+#include "Track.h"
 
 #define Precision 10000
 
@@ -26,7 +27,7 @@ __fastcall TSegment::TSegment(TTrack *owner)
  fTsBuffer=NULL;
  fStep=0;
  pOwner=owner;
-}
+};
 
 __fastcall TSegment::~TSegment()
 {
@@ -54,7 +55,7 @@ bool __fastcall TSegment::Init(
    fNewStep,fNewRoll1,fNewRoll2,
    true);
  }
-}
+};
 
 bool __fastcall TSegment::Init(
  vector3 NewPoint1,vector3 NewCPointOut,vector3 NewCPointIn,vector3 NewPoint2,
@@ -65,23 +66,27 @@ bool __fastcall TSegment::Init(
  CPointIn=NewCPointIn;
  Point2=NewPoint2;
  //poprawienie przechy³ki
- if (!/*na razie tak, bo wy³¹czone*/Global::bRollFix) 
+ fRoll1=DegToRad(fNewRoll1); //Ra: przeliczone jest bardziej przydatne do obliczeñ
+ fRoll2=DegToRad(fNewRoll2);
+ if (Global::bRollFix)
  {//Ra: poprawianie przechy³ki
-  // Przechy³ka powinna byæ na œrodku wewnêtrznej szyny, a domyœlnie jest w osi
+  // Przechy³ka powinna byæ na œrodku wewnêtrznej szyny, a standardowo jest w osi
   // toru. Dlatego trzeba podnieœæ tor oraz odpowiednio podwy¿szyæ podsypkê.
   // Nie wykonywaæ tej funkcji, jeœli podwy¿szenie zosta³o uwzglêdnione w edytorze.
   // Problematyczne mog¹ byc rozjazdy na przechy³ce - lepiej je modelowaæ w edytorze.
   // Na razie wszystkie scenerie powinny byæ poprawiane.
-  if (fNewRoll1!=0.0)
+  // Jedynie problem bêdzie z podwójn¹ ramp¹ przechy³kow¹, która w œrodku bêdzie
+  // mieæ moment wypoziomowania, ale musi on byæ równie¿ podniesiony.
+  if (fRoll1!=0.0)
   {//tylko jeœli jest przechy³ka
-   double w1=sin(fNewRoll2)*0.75; //0.5*w2+0.0325; //0.75m dla 1.435
+   double w1=fabs(sin(fRoll1)*0.75); //0.5*w2+0.0325; //0.75m dla 1.435
    Point1.y+=w1; //modyfikacja musi byæ przed policzeniem dalszych parametrów
    if (bCurve) CPointOut.y+=w1; //prosty ma wektory jednostkowe
-   //zwróciæ trzeba informacjê o podwy¿szeniu podsypki
+   pOwner->MovedUp1(w1);//zwróciæ trzeba informacjê o podwy¿szeniu podsypki
   }
-  if (fNewRoll2!=0.0)
+  if (fRoll2!=0.0)
   {
-   double w2=sin(fNewRoll2)*0.75; //0.5*w2+0.0325; //0.75m dla 1.435
+   double w2=fabs(sin(fRoll2)*0.75); //0.5*w2+0.0325; //0.75m dla 1.435
    Point2.y+=w2; //modyfikacja musi byæ przed policzeniem dalszych parametrów
    if (bCurve) CPointIn.y+=w2; //prosty ma wektory jednostkowe
    //zwróciæ trzeba informacjê o podwy¿szeniu podsypki
@@ -100,8 +105,6 @@ bool __fastcall TSegment::Init(
  }
  else
   fLength=(Point1-Point2).Length();
- fRoll1=DegToRad(fNewRoll1); //Ra: przeliczone jest bardziej przydatne
- fRoll2=DegToRad(fNewRoll2);
  fStep=fNewStep;
  if (fLength<=0)
  {

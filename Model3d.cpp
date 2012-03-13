@@ -107,8 +107,8 @@ void __fastcall TSubModel::FirstInit()
  bUseNearAtten=false;
  iFarAttenDecay=0;
  fFarDecayRadius=100;
- fCosFalloffAngle=0.5;
- fCosHotspotAngle=0.3;
+ fCosFalloffAngle=0.5; //120°?
+ fCosHotspotAngle=0.3; //145°?
  fCosViewAngle=0;
  fSquareMaxDist=10000*10000; //10km
  fSquareMinDist=0;
@@ -311,11 +311,11 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
   parser.ignoreToken();
   parser.getToken(fFarDecayRadius);
   parser.ignoreToken();
-  parser.getToken(fCosFalloffAngle);
-  fCosFalloffAngle=cos(fCosFalloffAngle*M_PI/180.0);
+  parser.getToken(fCosFalloffAngle); //k¹t liczony dla œrednicy, a nie promienia
+  fCosFalloffAngle=cos(DegToRad(0.5*fCosFalloffAngle));
   parser.ignoreToken();
-  parser.getToken(fCosHotspotAngle);
-  fCosHotspotAngle=cos(fCosHotspotAngle*M_PI/180.0);
+  parser.getToken(fCosHotspotAngle); //k¹t liczony dla œrednicy, a nie promienia
+  fCosHotspotAngle=cos(DegToRad(0.5*fCosHotspotAngle));
   iNumVerts=1;
   iFlags|=0x4010; //rysowane w cyklu nieprzezroczystych, macierz musi zostaæ bez zmiany
  }
@@ -530,7 +530,7 @@ int __fastcall TSubModel::TriangleAdd(TModel3d *m,int tex,int tri)
  return s->iNumVerts-tri; //zwraca pozycjê tych trójk¹tów w submodelu
 };
 
-float8* __fastcall TSubModel::TrianglePtr(int tex,int pos)
+float8* __fastcall TSubModel::TrianglePtr(int tex,int pos,int *la,int *ld,int*ls)
 {//zwraca wskaŸnik do wype³nienia tabeli wierzcho³ków, u¿ywane przy tworzeniu E3D terenu
  TSubModel *s=this;
  while (s?s->TextureID!=tex:false)
@@ -551,6 +551,7 @@ float8* __fastcall TSubModel::TrianglePtr(int tex,int pos)
   s->iVboPtr=iInstance; //pozycja submodelu w tabeli wierzcho³ków
   iInstance+=s->iNumVerts; //pozycja dla nastêpnego
  }
+ s->ColorsSet(la,ld,ls); //ustawienie kolorów œwiate³
  return s->Vertices+pos; //wskaŸnik na wolne miejsce w tabeli wierzcho³ków
 };
 
@@ -907,7 +908,7 @@ void __fastcall TSubModel::Render()
    //k¹t miêdzy kierunkiem œwiat³a a wspó³rzêdnymi kamery
    vector3 gdzie=mat*vector3(0,0,0); //pozycja wzglêdna punktu œwiec¹cego
    fCosViewAngle=DotProduct(Normalize(mat*vector3(0,0,1)-gdzie),Normalize(gdzie));
-   if (fCosViewAngle>fCosFalloffAngle)  //kat wiekszy niz max stozek swiatla
+   if (fCosViewAngle>fCosFalloffAngle)  //k¹t wiêkszy ni¿ maksymalny sto¿ek swiat³a
    {
     double Distdimm=1.0;
     if (fCosViewAngle<fCosHotspotAngle) //zmniejszona jasnoœæ miêdzy Hotspot a Falloff

@@ -2005,3 +2005,7 @@ int __fastcall TTrack::TestPoint(vector3 *Point)
  return -1;
 };
 
+void __fastcall TTrack::MovedUp1(double dh)
+{//poprawienie przechy³ki wymaga wyd³u¿enia podsypki
+ fTexHeight1+=dh;
+};

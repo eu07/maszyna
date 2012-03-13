@@ -57,7 +57,7 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asVersion="Compilation 2012-03-12, release 1.7.528.324."; //tutaj, bo wysy³any
+AnsiString Global::asVersion="Compilation 2012-03-13, release 1.7.530.325."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 double Global::fSunDeclination=0.0; //deklinacja S³oñca
@@ -357,6 +357,8 @@ void __fastcall Global::ConfigParse(TQueryParserComp *qp,cParser *cp)
    iModifyTGA=GetNextSymbol().ToIntDef(0); //domyœlnie 0
   else if (str==AnsiString("hideconsole")) //hunter-271211: ukrywanie konsoli
    bHideConsole=(GetNextSymbol().LowerCase()==AnsiString("yes"));
+  else if (str==AnsiString("rollfix")) //Ra: poprawianie przechy³ki, aby wewnêtrzna szyna by³a "pozioma"
+   bRollFix=(GetNextSymbol().LowerCase()==AnsiString("yes"));
  }
  while (str!="endconfig"); //(!Parser->EndOfFile)
  //na koniec trochê zale¿noœci
