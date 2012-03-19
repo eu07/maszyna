@@ -1069,7 +1069,7 @@ __fastcall TDynamicObject::TDynamicObject()
  MoverParameters=NULL;
  Mechanik=NULL;
  MechInside=false;
- TrainParams=NULL; //Ra: wywaliæ to st¹d!
+ //TrainParams=NULL; //Ra: wywaliæ to st¹d!
  //McZapkie-270202
  Controller=AIdriver;
  bDisplayCab=false; //030303
@@ -1171,13 +1171,14 @@ __fastcall TDynamicObject::TDynamicObject()
  iAnimations=26; //tyle by³o kiedyœ
  pAnimations=NULL;
  pAnimated=NULL;
+ fShade=0.0; //standardowe oœwietlenie na starcie
 }
 
 __fastcall TDynamicObject::~TDynamicObject()
 {//McZapkie-250302 - zamykanie logowania parametrow fizycznych
  SafeDelete(Mechanik);
  SafeDelete(MoverParameters);
- SafeDelete(TrainParams); //Ra: wywaliæ to st¹d!
+ //SafeDelete(TrainParams); //Ra: wywaliæ to st¹d!
  //Ra: wy³¹czanie dŸwiêków powinno byæ dodane w ich destruktorach, ale siê sypie
 /* to te¿ siê sypie
  for (int i=0;i<MaxAxles;++i)
@@ -1221,7 +1222,7 @@ double __fastcall TDynamicObject::Init(
  r.Rx=r.Ry=r.Rz=0;
  int Cab; //numer kabiny z obsad¹ (nie mo¿na zaj¹æ obu)
  if (DriverType==AnsiString("headdriver")) //od przodu sk³adu
-  Cab=iDirection?1:-1;
+  Cab=iDirection?1:-1; //iDirection=1 gdy normalnie, =0 odwrotnie
  else if (DriverType==AnsiString("reardriver")) //od ty³u sk³adu
   Cab=iDirection?-1:1;
  else if (DriverType==AnsiString("connected")) //uaktywnianie wirtualnej kabiny
@@ -1280,9 +1281,11 @@ double __fastcall TDynamicObject::Init(
    {//ZiomalCl: jeœli AI prowadzi sk³ad w drugiej kabinie (inny kierunek),
     //to musimy zmieniæ kabiny (kierunki) w pozosta³ych wagonach/cz³onach
     //inaczej np. cz³on A ET41 bêdzie jecha³ w jedn¹ stronê, a cz³on B w drug¹
+    //Ra: tylko ¿e podczas wstawiania sk³adu nie ma jeszcze tego kolejnego cz³onu...
     MoverParameters->CabDeactivisation();
     MoverParameters->CabActivisation();
    }
+/*
    TrainParams=new TTrainParameters(TrainName); //rozk³¹d jazdy //Ra: wywaliæ to st¹d!
    if (TrainName!="none")
     if (!TrainParams->LoadTTfile(Global::asCurrentSceneryPath))
@@ -1292,15 +1295,18 @@ double __fastcall TDynamicObject::Init(
      TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,TrainParams->NextStationName);
      TrainParams->StationIndexInc(); //przejœcie do nastêpnej
     }
-   Mechanik=new TController(Controller,this,TrainParams,Aggressive);
-   Mechanik->OrdersInit(fVel); //ustalenie tabelki komend wg rozk³adu
+*/
+   Mechanik=new TController(Controller,this,NULL,Aggressive);
+   //if (TrainName!="none")
+   // Mechanik->PutCommand("Timetable:"+TrainName,fVel,0,NULL);
+   //Mechanik->OrdersInit(fVel); //ustalenie tabelki komend wg rozk³adu
   }
   else
    if (DriverType=="passenger")
-   {//obserwator w charakterze pasazera
+   {//obserwator w charakterze pasa¿era
     //Ra: to jest niebezpieczne, bo w razie co bêdzie pomaga³ hamulcem bezpieczeñstwa
-    TrainParams=new TTrainParameters(TrainName); //Ra: wywaliæ to st¹d!
-    Mechanik=new TController(Controller,this,TrainParams,Easyman);
+    //TrainParams=new TTrainParameters(TrainName); //Ra: wywaliæ to st¹d!
+    Mechanik=new TController(Controller,this,NULL,Easyman);
    }
  }
  // McZapkie-250202
@@ -1938,11 +1944,11 @@ SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);
           MoverParameters->DecMainCtrl(1);
           } */
 /*
-          if (( !Pressed(Global::Keys[k_IncMainCtrl]))&&(MoverParameters->MainCtrlPos>MoverParameters->MainCtrlActualPos))
+          if (( !Console::Pressed(Global::Keys[k_IncMainCtrl]))&&(MoverParameters->MainCtrlPos>MoverParameters->MainCtrlActualPos))
           {
           MoverParameters->DecMainCtrl(1);
           }
-          if (( !Pressed(Global::Keys[k_DecMainCtrl]))&&(MoverParameters->MainCtrlPos<MoverParameters->MainCtrlActualPos))
+          if (( !Console::Pressed(Global::Keys[k_DecMainCtrl]))&&(MoverParameters->MainCtrlPos<MoverParameters->MainCtrlActualPos))
           {
           MoverParameters->IncMainCtrl(1);
           }
@@ -2477,11 +2483,12 @@ bool __fastcall TDynamicObject::Render()
     mdPrzedsionek->RaRender(ObjSqrDist,ReplacableSkinID,iAlpha);
    else
     mdPrzedsionek->Render(ObjSqrDist,ReplacableSkinID,iAlpha);
-//rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
-//ABu: tylko w trybie FreeFly, zwykly tryb w world.cpp
 
+  if (mdKabina) //jeœli ma model kabiny
   if ((mdKabina!=mdModel) && bDisplayCab && FreeFlyModeFlag)
-  {//Ra: a œwiet³a nie zosta³y ju¿ ustawione dla toru?
+  {//rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
+   //ABu: tylko w trybie FreeFly, zwykly tryb w world.cpp
+   //Ra: œwiet³a s¹ ustawione dla zewnêtrza danego pojazdu
    //oswietlenie kabiny
    GLfloat  ambientCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
    GLfloat  diffuseCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };

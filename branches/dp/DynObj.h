@@ -3,12 +3,12 @@
 #ifndef DynObjH
 #define DynObjH
 
+#include "Classes.h"
 #include "TrkFoll.h"
-#include "Track.h"
+//#include "Track.h"
 #include "QueryParserComp.hpp"
 #include "AnimModel.h"
 #include "Mover.hpp"
-#include "mtable.hpp"
 #include "TractionPower.h"
 //McZapkie:
 #include "MdlMngr.h"
@@ -275,7 +275,7 @@ public:
 
 //McZapkie-010302
     TController *Mechanik;
-    TTrainParameters *TrainParams;
+    //TTrainParameters *TrainParams; //Ra: rozk³ad jest na poziomie Driver, a nie pojazdu
     bool MechInside;
     TTrackFollower Axle0; //oœ z przodu (od sprzêgu 0)
     TTrackFollower Axle1; //oœ z ty³u (od sprzêgu 1)

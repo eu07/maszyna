@@ -21,6 +21,7 @@ public:
  static void __fastcall BitsClear(int mask,int entry=0);
  static void __fastcall On();
  static void __fastcall Off();
+ static bool __fastcall Pressed(int x);
 };
 
 #endif

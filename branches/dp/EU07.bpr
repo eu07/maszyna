@@ -61,8 +61,8 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=1
 MinorVer=7
-Release=530
-Build=325
+Release=531
+Build=327
 Debug=1
 PreRelease=0
 Special=0
@@ -74,13 +74,13 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.7.530.325
+FileVersion=1.7.531.327
 InternalName=7th by Ra
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=eu07.exe
 ProductName=MaSzyna EU07-424
-ProductVersion=1.6
+ProductVersion=1.7
 Comments=
 
 [HistoryLists\hlIncludePath]

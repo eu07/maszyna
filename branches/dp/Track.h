@@ -22,8 +22,6 @@ class TGroundNode;
 class TSubRect;
 class TTraction;
 
-static const double fMaxOffset=0.1f;
-
 class TSwitchExtension
 {//dodatkowe dane do toru, który jest zwrotnic¹
 public:
@@ -54,8 +52,6 @@ private:
 };
 
 const int iMaxNumDynamics=40; //McZapkie-100303
-const int NextMask[4]={0,1,0,1}; //tor nastêpny dla stanów 0, 1, 2, 3
-const int PrevMask[4]={0,0,1,1}; //tor poprzedni dla stanów 0, 1, 2, 3
 
 class TIsolated
 {//obiekt zbieraj¹cy zajêtoœci z kilku odcinków

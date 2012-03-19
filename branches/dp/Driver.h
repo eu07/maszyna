@@ -4,7 +4,6 @@
 #define DriverH
 
 #include "Classes.h"
-#include <mover.hpp>	// Pascal unit
 #include "dumb3d.h"
 using namespace Math3D;
 
@@ -120,7 +119,7 @@ private:
  TDynamicObject *pVehicle; //pojazd w którym siedzi steruj¹cy
  TDynamicObject *pVehicles[2]; //skrajne pojazdy w sk³adzie (niekoniecznie bezpoœrednio sterowane)
  Mover::TMoverParameters *Controlling; //jakim pojazdem steruje
- Mtable::TTrainParameters *TrainParams; //do jakiego pociagu nalezy
+ Mtable::TTrainParameters *TrainParams; //rozk³ad jazdy; do jakiego pociagu nalezy
  int TrainNumber; //numer rozkladowy tego pociagu
  //AnsiString OrderCommand; //komenda pobierana z pojazdu
  //double OrderValue; //argument komendy
@@ -229,6 +228,10 @@ public:
  bool __fastcall CheckEvent(TEvent *e,bool prox);
  AnsiString __fastcall NextStop();
  void __fastcall TakeControl(bool yes);
+ AnsiString __fastcall Relation();
+ AnsiString __fastcall TrainName();
+ double __fastcall StationCount();
+ double __fastcall StationIndex();
 };
 
 #endif

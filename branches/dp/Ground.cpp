@@ -42,15 +42,13 @@
 #include "mtable.hpp"
 #include "DynObj.h"
 #include "Data.h"
-
-
 #include "parser.h" //Tolaris-010603
 #include "Driver.h"
+#include "Console.h"
 
 
 #define _PROBLEND 1
 //---------------------------------------------------------------------------
-
 #pragma package(smart_init)
 
 
@@ -287,7 +285,7 @@ void __fastcall TGroundNode::RenderVBO()
    if (EvLaunch->Render())
     if ((EvLaunch->dRadius<0)||(mgn<EvLaunch->dRadius))
     {
-     if (Pressed(VK_SHIFT) && EvLaunch->Event2!=NULL)
+     if (Console::Pressed(VK_SHIFT) && EvLaunch->Event2!=NULL)
       Global::pGround->AddToQuery(EvLaunch->Event2,NULL);
      else
       if (EvLaunch->Event1!=NULL)
@@ -936,7 +934,7 @@ void __fastcall TGroundNode::RenderHidden()
     if ((EvLaunch->dRadius<0)||(mgn<EvLaunch->dRadius))
     {
      WriteLog("Eventlauncher "+asName);
-     if (Pressed(VK_SHIFT)&&(EvLaunch->Event2))
+     if (Console::Pressed(VK_SHIFT)&&(EvLaunch->Event2))
       Global::pGround->AddToQuery(EvLaunch->Event2,NULL);
      else
       if (EvLaunch->Event1)
@@ -1220,7 +1218,8 @@ int iTrainSetConnection= 0;
 bool bTrainSet= false;
 AnsiString asTrainName= "";
 int iTrainSetWehicleNumber= 0;
-TGroundNode *TrainSetNode= NULL;
+TGroundNode *TrainSetNode=NULL; //poprzedni pojazd do ³¹czenia
+TGroundNode *TrainSetDriver=NULL; //pojazd, któremu zostanie wys³any rozk³ad
 
 TGroundVertex TempVerts[10000]; //tu wczytywane s¹ trójk¹ty
 Byte TempConnectionType[200]; //Ra: sprzêgi w sk³adzie; ujemne, gdy odwrotnie
@@ -1978,7 +1977,7 @@ void __fastcall TGround::FirstInit()
  if (Global::bDoubleAmbient) //Ra: wczeœniej by³o ambient dawane na obydwa œwiat³a
   glLightModelfv(GL_LIGHT_MODEL_AMBIENT,Global::ambientDayLight);
  glEnable(GL_LIGHTING);
- WriteLog("FirstInit done");
+ WriteLog("FirstInit is done");
 };
 
 bool __fastcall TGround::Init(AnsiString asFile)
@@ -2055,6 +2054,8 @@ bool __fastcall TGround::Init(AnsiString asFile)
         }
         else
         {//jeœli jest pojazdem
+         if (LastNode->DynamicObject->Mechanik)
+          TrainSetDriver=LastNode; //pojazd, któremu zostanie wys³any rozk³ad
          LastNode->Next=nRootDynamic;
          nRootDynamic=LastNode; //dopisanie z przodu do listy
         }
@@ -2070,6 +2071,7 @@ bool __fastcall TGround::Init(AnsiString asFile)
      {
       iTrainSetWehicleNumber=0;
       TrainSetNode=NULL;
+      TrainSetDriver=NULL; //pojazd, któremu zostanie wys³any rozk³ad
       bTrainSet=true;
       parser.getTokens();
       parser >> token;
@@ -2083,8 +2085,11 @@ bool __fastcall TGround::Init(AnsiString asFile)
      else
      if (str==AnsiString("endtrainset"))
      {//McZapkie-110103: sygnaly konca pociagu ale tylko dla pociagow rozkladowych
-      if (asTrainName!=AnsiString("none"))
-       if (TrainSetNode) //trainset bez dynamic siê sypa³
+      if (TrainSetNode) //trainset bez dynamic siê sypa³
+      {
+       if (TrainSetDriver) //pojazd, któremu zostanie wys³any rozk³ad
+        TrainSetDriver->DynamicObject->Mechanik->PutCommand("Timetable:"+asTrainName,fTrainSetVel,0,NULL);
+       if (asTrainName!="none")
        {//gdy podana nazwa, w³¹czenie jazdy poci¹gowej
 /*
         if((TrainSetNode->DynamicObject->EndSignalsLight1Active())
@@ -2094,6 +2099,7 @@ bool __fastcall TGround::Init(AnsiString asFile)
          TrainSetNode->DynamicObject->MoverParameters->EndSignalsFlag=64;
 */
        }
+      }
       bTrainSet=false;
       fTrainSetVel=0;
       //iTrainSetConnection=0;
@@ -2365,8 +2371,6 @@ bool __fastcall TGround::Init(AnsiString asFile)
      parser.getTokens();
      parser >> token;
     }
-//    while(token!="");
-//    DecimalSeparator=',';
 
  delete parser;
  if (!bInitDone) FirstInit(); //jeœli nie by³o w scenerii
@@ -3043,12 +3047,15 @@ if (QueryRootEvent)
                }
             break;
             case tp_WhoIs: //pobranie nazwy poci¹gu do komórki pamiêci
-             QueryRootEvent->Params[9].asMemCell->UpdateValues(
-              QueryRootEvent->Activator->TrainParams->TrainName.c_str(),
-              QueryRootEvent->Activator->TrainParams->StationCount,
-              QueryRootEvent->Activator->TrainParams->StationIndex,
-              conditional_memstring|conditional_memval1|conditional_memval2);
-             WriteLog("Train detected: "+QueryRootEvent->Activator->TrainParams->TrainName);
+             if (QueryRootEvent->Activator->Mechanik)
+             {//tylko jeœli ktoœ tam siedzi - nie powinno dotyczyæ pasa¿era!
+              QueryRootEvent->Params[9].asMemCell->UpdateValues(
+               QueryRootEvent->Activator->Mechanik->TrainName().c_str(),
+               QueryRootEvent->Activator->Mechanik->StationCount(),
+               QueryRootEvent->Activator->Mechanik->StationIndex(),
+               conditional_memstring|conditional_memval1|conditional_memval2);
+              WriteLog("Train detected: "+QueryRootEvent->Activator->Mechanik->TrainName());
+             }
             break;
             case tp_LogValues: //zapisanie zawartoœci komórki pamiêci do logu
              WriteLog("Memcell \""+QueryRootEvent->asNodeName+"\": "+
@@ -3666,8 +3673,8 @@ TDynamicObject* __fastcall TGround::DynamicNearest(vector3 pPosition,double dist
  int r=GetRowFromZ(pPosition.z);
  int i,j,k;
  double sqm=distance*distance,sqd; //maksymalny promien poszukiwañ do kwadratu
- for (j=r-1;j<r+1;j++) //plus dwa zewnêtrzne sektory, ³¹cznie 9
-  for (i=c-1;i<c+1;i++)
+ for (j=r-1;j<=r+1;j++) //plus dwa zewnêtrzne sektory, ³¹cznie 9
+  for (i=c-1;i<=c+1;i++)
    if ((tmp=FastGetSubRect(i,j))!=NULL)
     for (node=tmp->nRootNode;node;node=node->nNext2) //nastêpny z sektora
      if (node->iType==TP_TRACK)
