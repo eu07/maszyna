@@ -69,6 +69,16 @@ void __fastcall WriteLog(const char* str)
   };
 }
 
+void __fastcall Error(const AnsiString &asMessage,bool box)
+{
+ if (box)
+  MessageBox(NULL,asMessage.c_str(),"EU07-424",MB_OK);
+ WriteLog(asMessage.c_str());
+}
+void __fastcall WriteLog(const AnsiString &str)
+{//Ra: wersja z AnsiString jest zamienna z Error()
+ WriteLog(str.c_str());
+};
 //---------------------------------------------------------------------------
 
 #pragma package(smart_init)

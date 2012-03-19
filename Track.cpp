@@ -37,6 +37,9 @@
 //101206 Ra: trapezoidalne drogi i tory
 //110720 Ra: rozprucie zwrotnicy i odcinki izolowane
 
+static const double fMaxOffset=0.1f;
+const int NextMask[4]={0,1,0,1}; //tor nastêpny dla stanów 0, 1, 2, 3
+const int PrevMask[4]={0,0,1,1}; //tor poprzedni dla stanów 0, 1, 2, 3
 TIsolated *TIsolated::pRoot=NULL;
 
 __fastcall TSwitchExtension::TSwitchExtension(TTrack *owner)

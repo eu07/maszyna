@@ -258,6 +258,8 @@ __fastcall TController::TController
  TrainParams=NewTrainParams;
  if (TrainParams)
   asNextStop=TrainParams->NextStop();
+ else
+  TrainParams=new TTrainParameters("none"); //rozk³ad jazdy
  //OrderCommand="";
  //OrderValue=0;
  OrdersClear();
@@ -898,6 +900,40 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
   Controlling->PutCommand("Emergency_brake",1.0,1.0,Controlling->Loc);
   return true; //za³atwione
  }
+ else if ((NewCommand.Pos("Timetable:")==1)||(NewCommand.Pos("Timetable=")==1))
+ {//przypisanie nowego rozk³adu jazdy, równie¿ prowadzonemu przez u¿ytkownika
+  NewCommand.Delete(1,10); //zostanie nazwa pliku z rozk³adem
+  if (!TrainParams)
+   TrainParams=new TTrainParameters(NewCommand); //rozk³ad jazdy
+  else
+   TrainParams->NewName(NewCommand); //czyœci tabelkê przystanków
+  if (NewCommand!="none")
+  {if (!TrainParams->LoadTTfile(Global::asCurrentSceneryPath))
+    WriteLog("Cannot load timetable file "+NewCommand+"\r\nError "+ConversionError+" in position "+TrainParams->StationCount);
+   else
+   {//inicjacja pierwszego przystanku i pobranie jego nazwy
+    //if (!EngineActive)
+    // OrderNext(Prepare_engine); //trzeba odpaliæ silnik najpierw
+    //OrderNext(Obey_train); //¿e do jazdy
+    TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,TrainParams->NextStationName);
+    TrainParams->StationIndexInc(); //przejœcie do nastêpnej
+    asNextStop=TrainParams->NextStop();
+    WriteLog("/* Timetable: "+TrainParams->ShowRelation());
+    TMTableLine *t;
+    for (int i=0;i<=TrainParams->StationCount;++i)
+    {t=TrainParams->TimeTable+i;
+     WriteLog(AnsiString(t->StationName)+" "+AnsiString((int)t->Ah)+":"+AnsiString((int)t->Am)+", "+AnsiString((int)t->Dh)+":"+AnsiString((int)t->Dm));
+    }
+    WriteLog("*/");
+   }
+  }
+  CheckVehicles(); //sprawdzenie sk³adu, AI zapali œwiat³a
+  OrdersInit(NewValue1); //ustalenie tabelki komend wg rozk³adu oraz prêdkoœci pocz¹tkowej
+  //if (NewValue1!=0.0) if (!AIControllFlag) DirectionForward(NewValue1>0.0); //ustawienie nawrotnika u¿ytkownikowi (propaguje siê do cz³onów)
+  //if (NewValue1>0)
+  // TrainNumber=floor(NewValue1); //i co potem ???
+  return true; //za³atwione
+ }
  if (AIControllFlag==Humandriver)
   return false; //na razie reakcja na komendy nie jest odpowiednia dla pojazdu prowadzonego rêcznie
  if (NewCommand=="SetVelocity")
@@ -979,33 +1015,6 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
   if (NewValue1>0)
    TrainNumber=floor(NewValue1); //i co potem ???
   OrderCheck(); //jeœli jazda poci¹gowa teraz, to wykonaæ niezbêdne operacje
- }
- else if ((NewCommand.Pos("Timetable:")==1)||(NewCommand.Pos("Timetable=")==1))
- {//przypisanie nowego rozk³adu jazdy
-  NewCommand.Delete(1,10); //zostanie nazwa pliku z rozk³adem
-  TrainParams->NewName(NewCommand);
-  if (NewCommand!="none")
-  {if (!TrainParams->LoadTTfile(Global::asCurrentSceneryPath))
-    WriteLog("Cannot load timetable file "+NewCommand+"\r\nError "+ConversionError+" in position "+TrainParams->StationCount);
-   else
-   {//inicjacja pierwszego przystanku i pobranie jego nazwy
-    if (!EngineActive)
-     OrderNext(Prepare_engine); //trzeba odpaliæ silnik najpierw
-    OrderNext(Obey_train); //¿e do jazdy
-    TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,TrainParams->NextStationName);
-    TrainParams->StationIndexInc(); //przejœcie do nastêpnej
-    asNextStop=TrainParams->NextStop();
-    WriteLog("/* Timetable: "+TrainParams->ShowRelation());
-    TMTableLine *t;
-    for (int i=0;i<=TrainParams->StationCount;++i)
-    {t=TrainParams->TimeTable+i;
-     WriteLog(AnsiString(t->StationName)+" "+AnsiString((int)t->Ah)+":"+AnsiString((int)t->Am)+", "+AnsiString((int)t->Dh)+":"+AnsiString((int)t->Dm));
-    }
-    WriteLog("*/");
-   }
-  }
-  if (NewValue1>0)
-   TrainNumber=floor(NewValue1); //i co potem ???
  }
  else if (NewCommand=="Shunt")
  {//NewValue1 - iloœæ wagonów (-1=wszystkie); NewValue2: 0=odczep, 1..63=do³¹cz, -1=bez zmian
@@ -1470,9 +1479,10 @@ bool __fastcall TController::UpdateSituation(double dt)
        VelDesired=Min0R(VelDesired,Controlling->RunningTrack.Velmax); //uwaga na ograniczenia szlakowej!
       if (VelforDriver>=0)
        VelDesired=Min0R(VelDesired,VelforDriver);
-      if (TrainParams->CheckTrainLatency()<10.0)
-       if (TrainParams->TTVmax>0.0)
-        VelDesired=Min0R(VelDesired,TrainParams->TTVmax); //jesli nie spozniony to nie szybciej niz rozkladowa
+      if (TrainParams)
+       if (TrainParams->CheckTrainLatency()<10.0)
+        if (TrainParams->TTVmax>0.0)
+         VelDesired=Min0R(VelDesired,TrainParams->TTVmax); //jesli nie spozniony to nie szybciej niz rozkladowa
 #if LOGVELOCITY
       //WriteLog("VelDesired="+AnsiString(VelDesired)+", VelActual="+AnsiString(VelActual));
 #endif
@@ -2449,7 +2459,7 @@ void __fastcall TController::TakeControl(bool yes)
 };
 
 void __fastcall TController::DirectionForward(bool forward)
-{//ustawienie jazdy w kierunku sprzêgu 0 dla true i 1 dla false 
+{//ustawienie jazdy w kierunku sprzêgu 0 dla true i 1 dla false
  if (forward)
   while (Controlling->ActiveDir<=0)
    Controlling->DirectionForward();
@@ -2457,4 +2467,25 @@ void __fastcall TController::DirectionForward(bool forward)
   while (Controlling->ActiveDir>=0)
    Controlling->DirectionBackward();
 };
+
+AnsiString __fastcall TController::Relation()
+{//zwraca relacjê poci¹gu
+ return TrainParams->ShowRelation();
+};
+
+AnsiString __fastcall TController::TrainName()
+{//zwraca relacjê poci¹gu
+ return TrainParams->TrainName;
+};
+
+double __fastcall TController::StationCount()
+{//zwraca iloœæ stacji (miejsc zatrzymania)
+ return TrainParams->StationCount;
+};
+
+double __fastcall TController::StationIndex()
+{//zwraca indeks aktualnej stacji (miejsca zatrzymania)
+ return TrainParams->StationIndex;
+};
+
 

@@ -36,6 +36,7 @@
 #include "Event.h"
 #include "Train.h"
 #include "Driver.h"
+#include "Console.h"
 
 #define TEXTURE_FILTER_CONTROL_EXT      0x8500
 #define TEXTURE_LOD_BIAS_EXT            0x8501
@@ -567,7 +568,7 @@ bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
  light=TTexturesManager::GetTextureID("smuga.tga");
 // Camera.Reset();
  ResetTimers();
- WriteLog("Load time: "+AnsiString(0.1*floor(864000.0*((double)Now()-time)))+" seconds");
+ WriteLog("Load time: "+FloatToStrF((864000.0*((double)Now()-time)),ffFixed,7,1)+" seconds");
  return true;
 };
 
@@ -577,8 +578,8 @@ void __fastcall TWorld::OnKeyPress(int cKey)
  if (!Global::bPause)
  {//podczas pauzy klawisze nie dzia³aj¹
   AnsiString info="Key pressed: [";
-  if (Pressed(VK_SHIFT)) info+="Shift]+[";
-  if (Pressed(VK_CONTROL)) info+="Ctrl]+[";
+  if (Console::Pressed(VK_SHIFT)) info+="Shift]+[";
+  if (Console::Pressed(VK_CONTROL)) info+="Ctrl]+[";
   if (cKey>123) //coœ tam jeszcze ciekawego jest?
    WriteLog(info+AnsiString((char)(cKey-128))+"]");
   else if (cKey>=112) //funkcyjne
@@ -600,7 +601,7 @@ void __fastcall TWorld::OnKeyPress(int cKey)
  }
  if ((cKey<='9')?(cKey>='0'):false) //klawisze cyfrowe
  {int i=cKey-'0'; //numer klawisza
-  if (Pressed(VK_SHIFT))
+  if (Console::Pressed(VK_SHIFT))
   {//z [Shift] uruchomienie eventu
    if (!Global::bPause) //podczas pauzy klawisze nie dzia³aj¹
     if (KeyEvents[i])
@@ -830,7 +831,7 @@ bool __fastcall TWorld::Update()
  } //koniec dzia³añ niewykonywanych podczas pauzy
  if (Global::bActive)
  {//obs³uga ruchu kamery tylko gdy okno jest aktywne
-  if (Pressed(VK_LBUTTON))
+  if (Console::Pressed(VK_LBUTTON))
   {
    Camera.Reset(); //likwidacja obrotów - patrzy horyzontalnie na po³udnie
    //if (!FreeFlyModeFlag) //jeœli wewn¹trz - patrzymy do ty³u
@@ -850,9 +851,9 @@ bool __fastcall TWorld::Update()
    if (FreeFlyModeFlag)
     Camera.RaLook(); //jednorazowe przestawienie kamery
   }
-  else if (Pressed(VK_RBUTTON)||Pressed(VK_F4))
+  else if (Console::Pressed(VK_RBUTTON)||Console::Pressed(VK_F4))
   {//ABu 180404 powrot mechanika na siedzenie albo w okolicê pojazdu
-   //if (Pressed(VK_F4)) Global::iViewMode=VK_F4;
+   //if (Console::Pressed(VK_F4)) Global::iViewMode=VK_F4;
    //Ra: na zewn¹trz wychodzimy w Train.cpp
    Camera.Reset(); //likwidacja obrotów - patrzy horyzontalnie na po³udnie
    if (Controlled) //jest pojazd do prowadzenia?
@@ -978,13 +979,6 @@ bool __fastcall TWorld::Update()
     glMultMatrixd(Train->DynamicObject->mMatrix.getArray());
 
 //*yB: moje smuuugi 1
-  //float lightsum=0;
-  //int i;
-  //for(i=1;i<3;i++)
-  // {
-  //  lightsum+=Global::diffuseDayLight[i];
-  //  lightsum+=Global::ambientDayLight[i];
-  // }
   if ((Train->DynamicObject->fShade<=0.0)?(Global::fLuminance<=0.25):(Train->DynamicObject->fShade*Global::fLuminance<=0.25))
   {//Ra: uwzglêdni³em zacienienie pojazdu (Train->DynamicObject->fShade)
    glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_ONE);
@@ -1103,9 +1097,9 @@ bool __fastcall TWorld::Update()
             OutText1+= " Slowing Down !!! ";
         }
      }
-    /*if (Pressed(VK_F5))
+    /*if (Console::Pressed(VK_F5))
        {Global::slowmotion=true;};
-    if (Pressed(VK_F6))
+    if (Console::Pressed(VK_F6))
        {Global::slowmotion=false;};*/
 
     if (Global::iTextMode==VK_F8)
@@ -1119,7 +1113,7 @@ bool __fastcall TWorld::Update()
      OutText1+=AnsiString(Ground.iRendered);
     }
 
-    //if (Pressed(VK_F7))
+    //if (Console::Pressed(VK_F7))
     //{
     //  OutText1=FloatToStrF(Controlled->MoverParameters->Couplers[0].CouplingFlag,ffFixed,2,0)+", ";
     //  OutText1+=FloatToStrF(Controlled->MoverParameters->Couplers[1].CouplingFlag,ffFixed,2,0);
@@ -1127,7 +1121,7 @@ bool __fastcall TWorld::Update()
 
 
     /*
-    if (Pressed(VK_F5))
+    if (Console::Pressed(VK_F5))
        {
           int line=2;
           OutText1="Time: "+FloatToStrF(GlobalTime->hh,ffFixed,2,0)+":"
@@ -1154,7 +1148,7 @@ bool __fastcall TWorld::Update()
        };
 //    */
     /*
-    if (Pressed(VK_F6))
+    if (Console::Pressed(VK_F6))
     {
        //GlobalTime->UpdateMTableTime(100);
        //OutText1=FloatToStrF(SquareMagnitude(Global::pCameraPosition-Controlled->GetPosition()),ffFixed,10,0);
@@ -1164,7 +1158,7 @@ bool __fastcall TWorld::Update()
        OutText1+= FloatToStrF(Global::ABuDebug,ffFixed,6,15);
     };
     */
-    if (Pressed(VK_F6)&&(DebugModeFlag))
+    if (Console::Pressed(VK_F6)&&(DebugModeFlag))
     {
      Global::iViewMode=VK_F6;
        //OutText1=FloatToStrF(arg,ffFixed,2,4)+", ";
@@ -1243,11 +1237,10 @@ bool __fastcall TWorld::Update()
      OutText1+=AnsiString(i);
      if (Global::bPause) OutText1+=" - paused";
      if (Controlled)
-      if (Controlled->TrainParams)
-      {OutText2=Controlled->TrainParams->ShowRelation();
-       if (!OutText2.IsEmpty())
-        if (Controlled->Mechanik)
-         OutText2=Bezogonkow(OutText2+": -> "+Controlled->Mechanik->NextStop()); //dopisanie punktu zatrzymania
+      if (Controlled->Mechanik)
+      {OutText2=Controlled->Mechanik->Relation();
+       if (!OutText2.IsEmpty()) //jeœli jest podana relacja, to dodajemy punkt nastêpnego zatrzymania
+        OutText2=Bezogonkow(OutText2+": -> "+Controlled->Mechanik->NextStop()); //dopisanie punktu zatrzymania
       }
      //double CtrlPos=Controlled->MoverParameters->MainCtrlPos;
      //double CtrlPosNo=Controlled->MoverParameters->MainCtrlPosNo;
@@ -1353,7 +1346,7 @@ bool __fastcall TWorld::Update()
         }
          //OutText4+="  LPTI@A: "+IntToStr(tmp->Mechanik->LPTI)+"@"+IntToStr(tmp->Mechanik->LPTA);
        }
-       if (Pressed(VK_F2))
+       if (Console::Pressed(VK_F2))
        {WriteLog(OutText1);
         WriteLog(OutText2);
         WriteLog(OutText3);
@@ -1520,7 +1513,7 @@ bool __fastcall TWorld::Update()
 
  if (Global::detonatoryOK)
  {
-  //if (Pressed(VK_F9)) ShowHints(); //to nie dzia³a prawid³owo - prosili wy³¹czyæ
+  //if (Console::Pressed(VK_F9)) ShowHints(); //to nie dzia³a prawid³owo - prosili wy³¹czyæ
   if (Global::iTextMode==VK_F9)
   {//informacja o wersji, sposobie wyœwietlania i b³êdach OpenGL
    //Global::iViewMode=VK_F9;

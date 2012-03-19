@@ -29,6 +29,7 @@
 #include "QueryParserComp.hpp"
 #include <Mover.hpp>
 #include "Train.h" //to tu bez sensu jest
+#include "Logs.h"
 #pragma hdrstop
 
 USERES("EU07.res");
@@ -483,7 +484,7 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
     {
      case 19: //[Pause]
       if (!Global::iMultiplayer) //w multiplayerze pauza nie ma sensu
-       if (!Pressed(VK_CONTROL))
+       if (!Console::Pressed(VK_CONTROL))
         Global::bPause=!Global::bPause; //zmiana stanu zapauzowania
       break;
      case VK_F7:
@@ -609,7 +610,7 @@ int WINAPI WinMain( HINSTANCE hInstance,     //instance
   return 0; //quit if window was not created
  SetForegroundWindow(hWnd);
  //McZapkie: proba przeplukania klawiatury
- while (Pressed(VK_F10))
+ while (Console::Pressed(VK_F10))
   Error("Keyboard buffer problem - press F10");
  int iOldSpeed, iOldDelay;
  SystemParametersInfo(SPI_GETKEYBOARDSPEED,0,&iOldSpeed,0);

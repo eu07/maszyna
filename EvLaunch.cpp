@@ -33,6 +33,7 @@
 #include "Usefull.h"
 #include "MemCell.h"
 #include "parser.h"
+#include "Console.h"
 
 
 
@@ -142,7 +143,7 @@ bool __fastcall TEventLauncher::Render()
  if (iKey!=0)
  {
   if (Global::bActive) //tylko jeœli okno jest aktywne
-   bCond=(Pressed(iKey)); //czy klawisz wciœniêty
+   bCond=(Console::Pressed(iKey)); //czy klawisz wciœniêty
  }
  if (DeltaTime>0)
  {

@@ -12,6 +12,7 @@
 #include "Globals.h"
 #include "Timer.h"
 #include "mover.hpp"
+#include "Console.h"
 
 //TViewPyramid TCamera::OrgViewPyramid;
 //={vector3(-1,1,1),vector3(1,1,1),vector3(-1,-1,1),vector3(1,-1,1),vector3(0,0,0)};
@@ -57,8 +58,8 @@ void __fastcall TCamera::OnCursorMove(double x, double y)
 void __fastcall TCamera::Update()
 {
     //ABu: zmiana i uniezaleznienie predkosci od FPS
-    double a= (Pressed(VK_SHIFT)?5.00:1.00);
-    if (Pressed(VK_CONTROL))
+    double a= (Console::Pressed(VK_SHIFT)?5.00:1.00);
+    if (Console::Pressed(VK_CONTROL))
      a=a*100;
 //    OldVelocity=Velocity;
     if (FreeFlyModeFlag==true)
@@ -67,47 +68,47 @@ void __fastcall TCamera::Update()
       Type=tp_Follow;
     if (Type==tp_Free)
     {
-        if (Pressed(Global::Keys[k_MechUp]))   Velocity.y+= a;
-        if (Pressed(Global::Keys[k_MechDown])) Velocity.y-= a;
+        if (Console::Pressed(Global::Keys[k_MechUp]))   Velocity.y+= a;
+        if (Console::Pressed(Global::Keys[k_MechDown])) Velocity.y-= a;
 //McZapkie-170402: zeby nie bylo konfliktow
 /*
-        if (Pressed(VkKeyScan('d')))
+        if (Console::Pressed(VkKeyScan('d')))
             Velocity.x+= a*Timer::GetDeltaTime();
-        if (Pressed(VkKeyScan('a')))
+        if (Console::Pressed(VkKeyScan('a')))
             Velocity.x-= a*Timer::GetDeltaTime();
-        if (Pressed(VkKeyScan('w')))
+        if (Console::Pressed(VkKeyScan('w')))
             Velocity.z-= a*Timer::GetDeltaTime();
-        if (Pressed(VkKeyScan('s')))
+        if (Console::Pressed(VkKeyScan('s')))
             Velocity.z+= a*Timer::GetDeltaTime();
 
-        if (Pressed(VK_NUMPAD4) || Pressed(VK_NUMPAD7) || Pressed(VK_NUMPAD1))
+        if (Console::Pressed(VK_NUMPAD4) || Console::Pressed(VK_NUMPAD7) || Console::Pressed(VK_NUMPAD1))
             Yaw+= +1*M_PI*Timer::GetDeltaTime();
 
-        if (Pressed(VK_NUMPAD6) || Pressed(VK_NUMPAD9) || Pressed(VK_NUMPAD3))
+        if (Console::Pressed(VK_NUMPAD6) || Console::Pressed(VK_NUMPAD9) || Console::Pressed(VK_NUMPAD3))
             Yaw+= -1*M_PI*Timer::GetDeltaTime();
 
-        if (Pressed(VK_NUMPAD2) || Pressed(VK_NUMPAD1) || Pressed(VK_NUMPAD3))
+        if (Pressed(VK_NUMPAD2) || Console::Pressed(VK_NUMPAD1) || Console::Pressed(VK_NUMPAD3))
             Pitch+= -1*M_PI*Timer::GetDeltaTime();
 
-        if (Pressed(VK_NUMPAD8) || Pressed(VK_NUMPAD7) || Pressed(VK_NUMPAD9))
+        if (Console::Pressed(VK_NUMPAD8) || Console::Pressed(VK_NUMPAD7) || Console::Pressed(VK_NUMPAD9))
             Pitch+= +1*M_PI*Timer::GetDeltaTime();
-        if (Pressed(VkKeyScan('.')))
+        if (Console::Pressed(VkKeyScan('.')))
             Roll+= -1*M_PI*Timer::GetDeltaTime();
-        if (Pressed(VkKeyScan(',')))
+        if (Console::Pressed(VkKeyScan(',')))
             Roll+= +1*M_PI*Timer::GetDeltaTime();
 
-        if (Pressed(VK_NUMPAD5))
+        if (Console::Pressed(VK_NUMPAD5))
             Pitch=Roll= 0.0f;
 */
 
 //McZapkie-170402: poruszanie i rozgladanie we free takie samo jak w follow
-        if (Pressed(Global::Keys[k_MechRight]))    Velocity.x+=a;
-        if (Pressed(Global::Keys[k_MechLeft]))     Velocity.x-=a;
-        if (Pressed(Global::Keys[k_MechForward]))  Velocity.z-=a;
-        if (Pressed(Global::Keys[k_MechBackward])) Velocity.z+=a;
+        if (Console::Pressed(Global::Keys[k_MechRight]))    Velocity.x+=a;
+        if (Console::Pressed(Global::Keys[k_MechLeft]))     Velocity.x-=a;
+        if (Console::Pressed(Global::Keys[k_MechForward]))  Velocity.z-=a;
+        if (Console::Pressed(Global::Keys[k_MechBackward])) Velocity.z+=a;
 //gora-dol
-        if (Pressed(VK_NUMPAD9)) Pos.y+=0.1;
-        if (Pressed(VK_NUMPAD3)) Pos.y-=0.1;
+        if (Console::Pressed(VK_NUMPAD9)) Pos.y+=0.1;
+        if (Console::Pressed(VK_NUMPAD3)) Pos.y-=0.1;
 
 //McZapkie: zeby nie hustalo przy malym FPS:
 //        Velocity= (Velocity+OldVelocity)/2;

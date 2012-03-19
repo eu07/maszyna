@@ -4,6 +4,7 @@
 #pragma hdrstop
 
 #include "Console.h"
+#include "Globals.h"
 
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
@@ -144,4 +145,7 @@ void __fastcall Console::BitsUpdate(int mask)
  }
 };
 
-
+bool __fastcall Console::Pressed(int x)
+{//na razie tak
+ return Global::bActive&&(GetKeyState(x)<0);
+};

@@ -27,6 +27,7 @@
 #include "Globals.h"
 #include "Timer.h"
 #include "Driver.h"
+#include "Console.h"
 
 using namespace Timer;
 
@@ -185,6 +186,16 @@ bool __fastcall TTrain::Init(TDynamicObject *NewDynamicObject)
 
 //  sConverter.Init("converter.wav",1.5); //NBMX obsluga przez AdvSound
   iCabn=0;
+  //Ra: taka proteza - przes³anie kierunku do cz³onów connected
+  if (DynamicObject->MoverParameters->ActiveDir>0)
+  {//by³o do przodu
+   DynamicObject->MoverParameters->DirectionBackward();
+   DynamicObject->MoverParameters->DirectionForward();
+  }
+  else if (DynamicObject->MoverParameters->ActiveDir<0)
+  {DynamicObject->MoverParameters->DirectionForward();
+   DynamicObject->MoverParameters->DirectionBackward();
+  }
   return true;
 }
 
@@ -3212,9 +3223,9 @@ else
     //******************************************
     //przelaczniki
 
-    if ( Pressed(Global::Keys[k_Horn]) )
+    if (Console::Pressed(Global::Keys[k_Horn]))
      {
-      if (Pressed(VK_SHIFT))
+      if (Console::Pressed(VK_SHIFT))
          {
          SetFlag(DynamicObject->MoverParameters->WarningSignal,2);
          DynamicObject->MoverParameters->WarningSignal&=(255-1);
@@ -3236,7 +3247,7 @@ else
            HornButtonGauge.UpdateValue(0);
      }
 
-    if ( Pressed(Global::Keys[k_Horn2]) )
+    if ( Console::Pressed(Global::Keys[k_Horn2]) )
      if (Global::Keys[k_Horn2]!=Global::Keys[k_Horn])
      {
         SetFlag(DynamicObject->MoverParameters->WarningSignal,2);
@@ -3244,7 +3255,7 @@ else
 
      //----------------
      //hunter-141211: wyl. szybki zalaczony i wylaczony przeniesiony z OnKeyPress()
-     if ( Pressed(VK_SHIFT)&&Pressed(Global::Keys[k_Main]) )
+     if ( Console::Pressed(VK_SHIFT)&&Console::Pressed(Global::Keys[k_Main]) )
      {
           fMainRelayTimer+=dt;
           MainOnButtonGauge.PutValue(1);
@@ -3270,7 +3281,7 @@ else
 
      //---
 
-     if ( !Pressed(VK_SHIFT)&&Pressed(Global::Keys[k_Main]) )
+     if ( !Console::Pressed(VK_SHIFT)&&Console::Pressed(Global::Keys[k_Main]) )
      {
           MainOffButtonGauge.PutValue(1);
           if (DynamicObject->MoverParameters->MainSwitch(false))
@@ -3309,7 +3320,7 @@ else
 
      //----------------
      //hunter-131211: czuwak przeniesiony z OnKeyPress
-     if ( Pressed(Global::Keys[k_Czuwak]) )
+     if ( Console::Pressed(Global::Keys[k_Czuwak]) )
      {
       SecurityResetButtonGauge.PutValue(1);
       if ((DynamicObject->MoverParameters->SecuritySystem.Status&s_aware)&&
@@ -3345,7 +3356,7 @@ else
      */
 
 
-     if ( Pressed(Global::Keys[k_Sand]) )
+     if ( Console::Pressed(Global::Keys[k_Sand]) )
      {
       DynamicObject->MoverParameters->SandDose=true;
       //DynamicObject->MoverParameters->SandDoseOn(true);
@@ -3360,7 +3371,7 @@ else
 
      //-----------------
      //hunter-221211: hamowanie przy poslizgu
-     if ( Pressed(Global::Keys[k_AntiSlipping]) )
+     if ( Console::Pressed(Global::Keys[k_AntiSlipping]) )
      {
       if (DynamicObject->MoverParameters->BrakeSystem!=ElectroPneumatic)
       {
@@ -3374,7 +3385,7 @@ else
      }
      //-----------------
      //hunter-261211: przetwornica i sprezarka
-     if ( Pressed(VK_SHIFT)&&Pressed(Global::Keys[k_Converter]) )   //NBMX 14-09-2003: przetwornica wl
+     if ( Console::Pressed(VK_SHIFT)&&Console::Pressed(Global::Keys[k_Converter]) )   //NBMX 14-09-2003: przetwornica wl
       {
         ConverterButtonGauge.PutValue(1);
         if ((DynamicObject->MoverParameters->PantFrontVolt) || (DynamicObject->MoverParameters->PantRearVolt) || (DynamicObject->MoverParameters->EnginePowerSource.SourceType!=CurrentCollector) || (!Global::bLiveTraction))
@@ -3391,20 +3402,20 @@ else
         }
       }
 
-     if ( Pressed(VK_SHIFT)&&Pressed(Global::Keys[k_Compressor])&&((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)||(DynamicObject->MoverParameters->TrainType==dt_EZT)) )   //NBMX 14-09-2003: sprezarka wl
+     if ( Console::Pressed(VK_SHIFT)&&Console::Pressed(Global::Keys[k_Compressor])&&((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)||(DynamicObject->MoverParameters->TrainType==dt_EZT)) )   //NBMX 14-09-2003: sprezarka wl
       { //hunter-110212: poprawka dla EZT
         CompressorButtonGauge.PutValue(1);
         DynamicObject->MoverParameters->CompressorSwitch(true);
       }
 
-     if ( !Pressed(VK_SHIFT)&&Pressed(Global::Keys[k_Converter]) )   //NBMX 14-09-2003: przetwornica wl
+     if ( !Console::Pressed(VK_SHIFT)&&Console::Pressed(Global::Keys[k_Converter]) )   //NBMX 14-09-2003: przetwornica wl
       {
         ConverterButtonGauge.PutValue(0);
         ConverterOffButtonGauge.PutValue(1);
         DynamicObject->MoverParameters->ConverterSwitch(false);
       }
 
-     if ( !Pressed(VK_SHIFT)&&Pressed(Global::Keys[k_Compressor])&&((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)||(DynamicObject->MoverParameters->TrainType==dt_EZT)) )   //NBMX 14-09-2003: sprezarka wl
+     if ( !Console::Pressed(VK_SHIFT)&&Console::Pressed(Global::Keys[k_Compressor])&&((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)||(DynamicObject->MoverParameters->TrainType==dt_EZT)) )   //NBMX 14-09-2003: sprezarka wl
       { //hunter-110212: poprawka dla EZT
         CompressorButtonGauge.PutValue(0);
         DynamicObject->MoverParameters->CompressorSwitch(false);
@@ -3433,12 +3444,12 @@ else
       */
      //-----------------
 
-     if ( Pressed(Global::Keys[k_Univ1]) )
+     if ( Console::Pressed(Global::Keys[k_Univ1]) )
      {
         if (!DebugModeFlag)
         {
            if (Universal1ButtonGauge.SubModel)
-           if (Pressed(VK_SHIFT))
+           if (Console::Pressed(VK_SHIFT))
            {
               Universal1ButtonGauge.IncValue(dt/2);
            }
@@ -3448,12 +3459,12 @@ else
            }
         }
      }
-     if ( Pressed(Global::Keys[k_Univ2]) )
+     if ( Console::Pressed(Global::Keys[k_Univ2]) )
      {
         if (!DebugModeFlag)
         {
            if (Universal2ButtonGauge.SubModel)
-           if (Pressed(VK_SHIFT))
+           if (Console::Pressed(VK_SHIFT))
            {
               Universal2ButtonGauge.IncValue(dt/2);
            }
@@ -3463,10 +3474,10 @@ else
            }
         }
      }
-     if ( Pressed(Global::Keys[k_Univ3]) )
+     if ( Console::Pressed(Global::Keys[k_Univ3]) )
      {
         if (Universal3ButtonGauge.SubModel)
-        if (Pressed(VK_SHIFT))
+        if (Console::Pressed(VK_SHIFT))
         {
            Universal3ButtonGauge.PutValue(1);  //hunter-131211: z UpdateValue na PutValue - by zachowywal sie jak pozostale przelaczniki
            if (btLampkaUniversal3.Active())
@@ -3499,10 +3510,10 @@ else
            btLampkaUniversal3.TurnOff();
      }
 
-     if ( Pressed(Global::Keys[k_Univ4]) )
+     if (Console::Pressed(Global::Keys[k_Univ4]))
      {
         if (Universal4ButtonGauge.SubModel)
-        if (Pressed(VK_SHIFT))
+        if (Console::Pressed(VK_SHIFT))
         {
            ActiveUniversal4=true;
            //Universal4ButtonGauge.UpdateValue(1);
@@ -3515,7 +3526,7 @@ else
      }
 
      // Odskakiwanie hamulce EP
-     if (( !Pressed(Global::Keys[k_DecBrakeLevel]) )&&( !Pressed(Global::Keys[k_WaveBrake]) )&&(DynamicObject->MoverParameters->BrakeCtrlPos==-1)&&(DynamicObject->MoverParameters->BrakeSubsystem==Oerlikon)&&(DynamicObject->MoverParameters->BrakeSystem==ElectroPneumatic)&&(DynamicObject->Controller!=AIdriver))
+     if ((!Console::Pressed(Global::Keys[k_DecBrakeLevel]))&&(!Console::Pressed(Global::Keys[k_WaveBrake]) )&&(DynamicObject->MoverParameters->BrakeCtrlPos==-1)&&(DynamicObject->MoverParameters->BrakeSubsystem==Oerlikon)&&(DynamicObject->MoverParameters->BrakeSystem==ElectroPneumatic)&&(DynamicObject->Controller!=AIdriver))
      {
      //DynamicObject->MoverParameters->BrakeCtrlPos=(DynamicObject->MoverParameters->BrakeCtrlPos)+1;
      DynamicObject->MoverParameters->IncBrakeLevel();
@@ -3531,7 +3542,7 @@ else
 //    bool kEP;
 //    kEP=(DynamicObject->MoverParameters->BrakeSubsystem==Knorr)||(DynamicObject->MoverParameters->BrakeSubsystem==Hik)||(DynamicObject->MoverParameters->BrakeSubsystem==Kk);
     if ((DynamicObject->MoverParameters->BrakeSystem==ElectroPneumatic)&&((DynamicObject->MoverParameters->BrakeSubsystem==Knorr)||(DynamicObject->MoverParameters->BrakeSubsystem==Hik)||(DynamicObject->MoverParameters->BrakeSubsystem==Kk)))
-     if (Pressed(Global::Keys[k_AntiSlipping]))                             //kEP
+     if (Console::Pressed(Global::Keys[k_AntiSlipping]))                             //kEP
 //     if (GetAsyncKeyState(VK_RETURN)<0)
       {
        AntiSlipButtonGauge.UpdateValue(1);
@@ -3550,7 +3561,7 @@ else
         }
       }
 
-    if ( Pressed(Global::Keys[k_DepartureSignal]) )
+    if ( Console::Pressed(Global::Keys[k_DepartureSignal]) )
      {
       DepartureSignalButtonGauge.PutValue(1);
       btLampkaDepartureSignal.TurnOn();
@@ -3562,9 +3573,9 @@ else
        DynamicObject->MoverParameters->DepartureSignal=false;
      }
 
-if ( Pressed(Global::Keys[k_Main]) )                //[]
+if ( Console::Pressed(Global::Keys[k_Main]) )                //[]
      {
-      if (Pressed(VK_SHIFT))
+      if (Console::Pressed(VK_SHIFT))
          MainButtonGauge.PutValue(1);
       else
          MainButtonGauge.PutValue(0);
@@ -3572,7 +3583,7 @@ if ( Pressed(Global::Keys[k_Main]) )                //[]
     else
          MainButtonGauge.PutValue(0);
 
-if ( Pressed(Global::Keys[k_CurrentNext]))
+if ( Console::Pressed(Global::Keys[k_CurrentNext]))
    {
       if (ShowNextCurrent==false)
       {
@@ -3600,9 +3611,9 @@ else
    }
 
 //Winger 010304  PantAllDownButton
-    if ( Pressed(Global::Keys[k_PantFrontUp]) )
+    if ( Console::Pressed(Global::Keys[k_PantFrontUp]) )
      {
-      if (Pressed(VK_SHIFT))
+      if (Console::Pressed(VK_SHIFT))
       PantFrontButtonGauge.PutValue(1);
       else
       PantAllDownButtonGauge.PutValue(1);
@@ -3614,9 +3625,9 @@ else
       PantAllDownButtonGauge.PutValue(0);
       }
 
-    if ( Pressed(Global::Keys[k_PantRearUp]) )
+    if ( Console::Pressed(Global::Keys[k_PantRearUp]) )
      {
-      if (Pressed(VK_SHIFT))
+      if (Console::Pressed(VK_SHIFT))
       PantRearButtonGauge.PutValue(1);
       else
       PantFrontButtonOffGauge.PutValue(1);
