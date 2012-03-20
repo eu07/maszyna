@@ -498,7 +498,7 @@ TYPE
 
                         {--sekcja zmiennych}
                         {--opis konkretnego egzemplarza taboru}
-                Loc: TLocation;
+                Loc: TLocation; //pozycja pojazdów do wyznaczenia odleg³oœci pomiêdzy sprzêgami
                 Rot: TRotation;
                 Name: string;                       {nazwa wlasna}
                 Couplers: TCouplers;                {urzadzenia zderzno-sprzegowe, polaczenia miedzy wagonami}
@@ -815,7 +815,7 @@ TYPE
                 function ChangeOffsetH(DeltaOffset:real): boolean;
 
                 {! procedury I/O}
-                constructor Init(LocInitial:TLocation; RotInitial:TRotation;
+                constructor Init(//LocInitial:TLocation; RotInitial:TRotation;
                                  VelInitial:real; TypeNameInit, NameInit: string; LoadInitial:longint; LoadTypeInitial: string; Cab:integer);
                                                               {wywolac najpierw to}
                 function LoadChkFile(chkpath:string):Boolean;   {potem zaladowac z pliku}
@@ -4870,7 +4870,7 @@ end;
 
 {inicjalizacja}
 
-constructor TMoverParameters.Init(LocInitial:TLocation; RotInitial:TRotation;
+constructor TMoverParameters.Init(//LocInitial:TLocation; RotInitial:TRotation;
                                   VelInitial:real; TypeNameInit, NameInit: string; LoadInitial:longint; LoadTypeInitial: string; Cab:integer);
                                  {predkosc pocz. w km/h, ilosc ladunku, typ ladunku, numer kabiny}
 var b,k:integer;
@@ -4975,8 +4975,8 @@ begin
   PowerCorRatio:=1;
 
   {inicjalizacja zmiennych}
-  Loc:=LocInitial;
-  Rot:=RotInitial;
+  //Loc:=LocInitial; //Ra: to i tak trzeba potem przesun¹æ, po ustaleniu pozycji na torze (potrzebna d³ugoœæ)
+  //Rot:=RotInitial;
   for b:=0 to 1 do
    with Couplers[b] do
     begin
