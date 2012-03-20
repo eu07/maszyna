@@ -64,7 +64,7 @@ bool __fastcall TEventLauncher::Load(cParser *parser)
 {//wczytanie wyzwalacza zdarzeñ
  AnsiString str;
  std::string token;
- char *szKey;
+ //char *szKey;
  parser->getTokens();
  *parser >> dRadius; //promieñ dzia³ania
  if (dRadius>0.0)
@@ -74,9 +74,13 @@ bool __fastcall TEventLauncher::Load(cParser *parser)
  str=AnsiString(token.c_str());
  if (str!="none")
  {
-  szKey=new char[1];
-  strcpy(szKey,str.c_str()); //Ra: to jest nieco niezwyk³e
-  iKey=VkKeyScan(szKey[0]);
+  if (str.Length()==1)
+   iKey=VkKeyScan(str[0]); //jeden znak jest konwertowany na kod klawisza
+  else
+   iKey=str.ToIntDef(0); //a jak wiêcej, to jakby numer klawisza jest
+  //szKey=new char[1];
+  //strcpy(szKey,str.c_str()); //Ra: to jest nieco niezwyk³e
+  //iKey=VkKeyScan(szKey[0]);
  }
  else
   iKey=0;
@@ -111,11 +115,11 @@ bool __fastcall TEventLauncher::Load(cParser *parser)
   SafeDeleteArray(szText);
   szText=new char[256];
   strcpy(szText,token.c_str());
-  if (token.compare("*")!=0)       //*=nie brac command pod uwage
+  if (token.compare("*")!=0)       //*=nie braæ command pod uwagê
     iCheckMask|=conditional_memstring;
   parser->getTokens();
   *parser >> token;
-  if (token.compare("*")!=0)       //*=nie brac command pod uwage
+  if (token.compare("*")!=0)       //*=nie braæ command pod uwagê
   {
    iCheckMask|=conditional_memval1;
    str= AnsiString(token.c_str());
@@ -124,7 +128,7 @@ bool __fastcall TEventLauncher::Load(cParser *parser)
   else fVal1= 0;
   parser->getTokens();
   *parser >> token;
-  if (token.compare("*")!=0)       //*=nie brac command pod uwage
+  if (token.compare("*")!=0)       //*=nie braæ command pod uwagê
   {
    iCheckMask|=conditional_memval2;
    str=AnsiString(token.c_str());

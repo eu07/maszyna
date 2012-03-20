@@ -1525,7 +1525,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    else
    {//pojazd wstawiony luzem
     fTrainSetDist=0; //zerowanie dodatkowego przesuniêcia
-    asTrainName="none";
+    asTrainName=""; //puste oznacza jazdê pojedynczego bez rozk³adu, "none" jest dla sk³adu (trainset)
     parser->getTokens();
     *parser >> token;
     str=AnsiString(token.c_str()); //track

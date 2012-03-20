@@ -850,6 +850,7 @@ TDynamicObject* __fastcall ABuFindObject(TTrack *Track,TDynamicObject *MyPointer
 
 bool TDynamicObject::DettachDistance(int dir)
 {//sprawdzenie odleg³oœci sprzêgów rzeczywistych od strony (dir): 0=przód,1=ty³
+ //Ra: dziwne, ¿e ta funkcja nie jest u¿ywana
  if (!MoverParameters->Couplers[dir].CouplingFlag)
   return true; //jeœli nic nie pod³¹czone, to jest OK
  return (MoverParameters->DettachDistance(dir)); //czy jest w odpowiedniej odleg³oœci?
@@ -1216,10 +1217,10 @@ double __fastcall TDynamicObject::Init(
  asBaseDir="dynamic\\"+BaseDir+"\\"; //McZapkie-310302
  asName=Name;
  AnsiString asAnimName=""; //zmienna robocza do wyszukiwania osi i wózków
- TLocation l; //wspó³rzêdne w scenerii
- l.X=l.Y=l.Z=0;
- TRotation r;
- r.Rx=r.Ry=r.Rz=0;
+ //TLocation l; //wspó³rzêdne w scenerii
+ //l.X=l.Y=l.Z=0; //Ra: ustawianie tego teraz nie ma sensu, najpierw trzeba ustawiæ na torze
+ //TRotation r;
+ //r.Rx=r.Ry=r.Rz=0;
  int Cab; //numer kabiny z obsad¹ (nie mo¿na zaj¹æ obu)
  if (DriverType==AnsiString("headdriver")) //od przodu sk³adu
   Cab=iDirection?1:-1; //iDirection=1 gdy normalnie, =0 odwrotnie
@@ -1240,18 +1241,18 @@ double __fastcall TDynamicObject::Init(
   DriverType="nobody";
  }
  //utworzenie parametrów fizyki
- MoverParameters=new TMoverParameters(l,r,iDirection?fVel:-fVel,Type_Name,asName,Load,LoadType,Cab);
+ MoverParameters=new TMoverParameters(iDirection?fVel:-fVel,Type_Name,asName,Load,LoadType,Cab);
  //McZapkie: TypeName musi byc nazw¹ CHK/MMD pojazdu
  if (!MoverParameters->LoadChkFile(asBaseDir))
  {//jak wczytanie CHK siê nie uda, to b³¹d
   Error("Cannot load dynamic object "+asName+" from:\r\n"+BaseDir+"\\"+Type_Name+"\r\nError "+ConversionError+" in line "+LineCount);
-  return 0.0;
+  return 0.0; //zerowa d³ugoœæ to brak pojazdu
  }
  bool driveractive=(fVel!=0.0); //jeœli prêdkoœæ niezerowa, to aktywujemy ruch
  if (!MoverParameters->CheckLocomotiveParameters(driveractive,iDirection?1:-1)) //jak jedzie lub obsadzony to gotowy do drogi
  {
   Error("Parameters mismatch: dynamic object "+asName+" from\n"+BaseDir+"\\"+Type_Name);
-  return 0.0;
+  return 0.0; //zerowa d³ugoœæ to brak pojazdu
  }
  if (MoverParameters->CategoryFlag&2) //jeœli samochód
  {//ustawianie samochodow na poboczu albo na œrodku drogi
@@ -1297,9 +1298,10 @@ double __fastcall TDynamicObject::Init(
     }
 */
    Mechanik=new TController(Controller,this,NULL,Aggressive);
+   if (TrainName.IsEmpty()) //jeœli nie w sk³adzie
+    Mechanik->PutCommand("Timetable:none",fVel,0,NULL); //tryb manewrowy z ustalon¹ prêdkoœci¹
    //if (TrainName!="none")
    // Mechanik->PutCommand("Timetable:"+TrainName,fVel,0,NULL);
-   //Mechanik->OrdersInit(fVel); //ustalenie tabelki komend wg rozk³adu
   }
   else
    if (DriverType=="passenger")
@@ -1376,7 +1378,10 @@ double __fastcall TDynamicObject::Init(
  iNumAxles=2;
  //McZapkie-090402: odleglosc miedzy czopami skretu lub osiami
  fHalfMaxAxleDist=Max0R(MoverParameters->BDist,MoverParameters->ADist)*0.5;
- fDist-=0.5*MoverParameters->Dim.L; //dodajemy pó³ d³ugoœci pojazdu, aby przód by³ w sta³ym miejscu
+ if (fHalfMaxAxleDist>0.5*MoverParameters->Dim.L-0.1) //nie mog¹ byæ za daleko
+  fHalfMaxAxleDist=0.5*MoverParameters->Dim.L-0.1; //bo bêdzie "walenie w mur"
+ //WriteLog("Dynamic "+Type_Name+" of length "+MoverParameters->Dim.L+" at "+AnsiString(fDist));
+ fDist-=0.5*MoverParameters->Dim.L; //dodajemy pó³ d³ugoœci pojazdu (zliczanie na minus)
  switch (iNumAxles)
  {//Ra: pojazdy wstawiane s¹ na tor pocz¹tkowy, a potem przesuwane
   case 2: //ustawianie osi na torze
@@ -1401,10 +1406,13 @@ double __fastcall TDynamicObject::Init(
   break;
  }
  Move(0.0); //potrzebne do wyliczenia aktualnej pozycji
- //teraz jeszcze trzeba przypisaæ pojazdy do nowego toru,
- //bo przesuwanie pocz¹tkowe osi nie zrobi³o tego
- //if (fDist!=0.0) //Ra: taki ma³y patent, ¿eby lokomotywa ruszy³a, mimo ¿e stoi na innym torze
+ //teraz jeszcze trzeba przypisaæ pojazdy do nowego toru, bo przesuwanie pocz¹tkowe osi nie zrobi³o tego
  ABuCheckMyTrack(); //zmiana toru na ten, co oœ Axle0 (oœ z przodu)
+ TLocation loc; //Ra: ustawienie pozycji do obliczania sprzêgów
+ loc.X=-vPosition.x;
+ loc.Y=vPosition.z;
+ loc.Z=vPosition.y;
+ MoverParameters->Loc=loc; //normalnie przesuwa ComputeMovement() w Update()
  //pOldPos4=Axle1.pPosition; //Ra: nie u¿ywane
  //pOldPos1=Axle0.pPosition;
  //ActualTrack= GetTrack(); //McZapkie-030303
@@ -1426,7 +1434,7 @@ double __fastcall TDynamicObject::Init(
   if (MoverParameters->CabNo!=0) //i ma kogoœ w kabinie
    if (Track->Event0) //a jest w tym torze event od stania
     RaAxleEvent(Track->Event0); //dodanie eventu stania do kolejki
- return MoverParameters->Dim.L; //d³ugoœæ wiêksza od zera oznacza OK
+ return MoverParameters->Dim.L-0.005; //d³ugoœæ wiêksza od zera oznacza OK; 5mm docisku
 }
 /*
 bool __fastcall TDynamicObject::Move(double fDistance)
@@ -1474,11 +1482,15 @@ void __fastcall TDynamicObject::Move(double fDistance)
   //if () na przechy³ce bêdzie dodatkowo zmiana wysokoœci samochodu
   vPosition.y+=MoverParameters->OffsetTrackV;   //te offsety sa liczone przez moverparam
  }
+ //Ra: skopiowanie pozycji do fizyki, tam potrzebna do zrywania sprzêgów
+ //MoverParameters->Loc.X=-vPosition.x; //robi to {Fast}ComputeMovement()
+ //MoverParameters->Loc.Y= vPosition.z;
+ //MoverParameters->Loc.Z= vPosition.y;
  //if (bTakeCare) //jeœli istotne s¹ szczegó³y (blisko kamery)
  {//przeliczenie cienia
   TTrack *t0=Axle0.GetTrack(); //ju¿ po przesuniêciu
   TTrack *t1=Axle1.GetTrack();
-  if ((t0->eEnvironment==e_flat)&&(t1->eEnvironment==e_flat))
+  if ((t0->eEnvironment==e_flat)&&(t1->eEnvironment==e_flat)) //mo¿e byæ e_bridge...
    fShade=0.0; //standardowe oœwietlenie
   else
   {//je¿eli te tory maj¹ niestandardowy stopieñ zacienienia (e_canyon, e_tunnel)
@@ -1513,15 +1525,18 @@ void __fastcall TDynamicObject::Move(double fDistance)
 void __fastcall TDynamicObject::AttachPrev(TDynamicObject *Object, int iType)
 {//Ra: doczepia Object na koñcu sk³adu (nazwa funkcji mo¿e byæ myl¹ca)
  //Ra: u¿ywane tylko przy wczytywaniu scenerii
+ /*
+ //Ra: po wstawieniu pojazdu do scenerii nie mia³ on ustawionej pozycji, teraz ju¿ ma
  TLocation loc;
  loc.X=-vPosition.x;
  loc.Y=vPosition.z;
- loc.Z=vPosition.y;                   /* TODO -cBUG : Remove this */
- MoverParameters->Loc=loc; //Ra: ustawienie siebie? po co?
+ loc.Z=vPosition.y;
+ MoverParameters->Loc=loc; //Ra: do obliczania sprzêgów, na starcie nie s¹ przesuniête
  loc.X=-Object->vPosition.x;
  loc.Y=Object->vPosition.z;
  loc.Z=Object->vPosition.y;
  Object->MoverParameters->Loc=loc; //ustawienie dodawanego pojazdu
+ */
  MoverParameters->Attach(iDirection,Object->iDirection^1,&(Object->MoverParameters),iType);
  MoverParameters->Couplers[iDirection].Render=false;
  Object->MoverParameters->Attach(Object->iDirection^1,iDirection,&MoverParameters,iType);
@@ -1546,7 +1561,7 @@ void __fastcall TDynamicObject::AttachPrev(TDynamicObject *Object, int iType)
   Object->PrevConnected=this; //on ma nas z przodu
   Object->PrevConnectedNo=iDirection;
  }
- return;// r;
+ return;
  //SetPneumatic(1,1); //Ra: to i tak siê nie wykonywa³o po return
  //SetPneumatic(1,0);
  //SetPneumatic(0,1);
@@ -1703,7 +1718,7 @@ if (!MoverParameters->PhysicActivation)
     double dDOMoveLen;
 
     TLocation l;
-    l.X=-vPosition.x;
+    l.X=-vPosition.x; //przekazanie pozycji do fizyki
     l.Y=vPosition.z;
     l.Z=vPosition.y;
     TRotation r;

@@ -659,9 +659,8 @@ public:
 	double __fastcall FastComputeMovement(double dt, const TTrackShape &Shape, TTrackParam &Track, const 
 		TLocation &NewLoc, TRotation &NewRot);
 	bool __fastcall ChangeOffsetH(double DeltaOffset);
-	__fastcall TMoverParameters(const TLocation &LocInitial, const TRotation &RotInitial, double VelInitial
-		, AnsiString TypeNameInit, AnsiString NameInit, int LoadInitial, AnsiString LoadTypeInitial, int Cab
-		);
+	__fastcall TMoverParameters(double VelInitial, AnsiString TypeNameInit, AnsiString NameInit, int LoadInitial
+		, AnsiString LoadTypeInitial, int Cab);
 	bool __fastcall LoadChkFile(AnsiString chkpath);
 	bool __fastcall CheckLocomotiveParameters(bool ReadyFlag, int Dir);
 	AnsiString __fastcall EngineDescription(int what);
