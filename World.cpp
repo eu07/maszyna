@@ -112,7 +112,7 @@ GLvoid __fastcall TWorld::glPrint(const char *txt) //custom GL "Print" routine
  }
 }
 
-bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
+bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
 {
  double time=(double)Now();
  Global::hWnd=NhWnd; //do WM_COPYDATA
@@ -467,7 +467,7 @@ bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
     }
     SwapBuffers(hDC);					// Swap Buffers (Double Buffering)
 
-    Ground.Init(Global::szSceneryFile);
+    Ground.Init(Global::szSceneryFile,hDC);
 //    Global::tSinceStart= 0;
     Clouds.Init();
     WriteLog("Ground init OK");
@@ -476,7 +476,7 @@ bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
      glRasterPos2f(-0.25f, -0.17f);
      glPrint("OK.");
     }
-    SwapBuffers(hDC);					// Swap Buffers (Double Buffering)
+    SwapBuffers(hDC); // Swap Buffers (Double Buffering)
 
 //    TTrack *Track= Ground.FindGroundNode("train_start",TP_TRACK)->pTrack;
 
@@ -487,13 +487,13 @@ bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 //      Camera.Init(Global::pFreeCameraInit,0,M_PI,0);
       Camera.Init(Global::pFreeCameraInit[0],Global::pFreeCameraInitAngle[0]);
 
-    char buff[255]= "Player train init: ";
+    char buff[255]="Player train init: ";
     if (Global::detonatoryOK)
     {
     glRasterPos2f(-0.25f, -0.18f);
     glPrint("Inicjalizacja wybranego pojazdu do sterowania...");
     }
-    SwapBuffers(hDC);					// Swap Buffers (Double Buffering)
+    SwapBuffers(hDC); // Swap Buffers (Double Buffering)
 
     strcat(buff,Global::asHumanCtrlVehicle.c_str());
     WriteLog(buff);
@@ -516,7 +516,7 @@ bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
        glRasterPos2f(-0.25f, -0.19f);
        glPrint("OK.");
       }
-      SwapBuffers(hDC);					// Swap Buffers (Double Buffering)
+      SwapBuffers(hDC); // Swap Buffers (Double Buffering)
      }
      else
      {
@@ -527,7 +527,7 @@ bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
        glRasterPos2f(-0.25f, -0.20f);
        glPrint("Blad inicjalizacji sterowanego pojazdu!");
       }
-      SwapBuffers(hDC);					// Swap Buffers (Double Buffering)
+      SwapBuffers(hDC); // Swap Buffers (Double Buffering)
       Controlled=NULL;
       Camera.Type=tp_Free;
      }
@@ -568,7 +568,7 @@ bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
  light=TTexturesManager::GetTextureID("smuga.tga");
 // Camera.Reset();
  ResetTimers();
- WriteLog("Load time: "+FloatToStrF((864000.0*((double)Now()-time)),ffFixed,7,1)+" seconds");
+ WriteLog("Load time: "+FloatToStrF((86400.0*((double)Now()-time)),ffFixed,7,1)+" seconds");
  return true;
 };
 

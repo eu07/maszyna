@@ -103,6 +103,9 @@ class TController
  vector3 vMechLoc; //pozycja pojazdu do liczenia odleg³oœci od semafora (?)
  bool Psyche;
  int iDrivigFlags; //flagi bitowe ruchu
+ double fDriverMass; //"masa hamuj¹ca", po pomno¿eniu przez v^2 [km/h] daje ~drogê hamowania
+ double fDriverDist; //dopuszczalna odleg³oœæ podjechania do przeszkody
+ double fVelMax; //maksymalna prêdkoœæ sk³adu (sprawdzany ka¿dy pojazd) 
 public:
  double ReactionTime; //czas reakcji Ra: czego?
 private:
@@ -120,7 +123,7 @@ private:
  TDynamicObject *pVehicles[2]; //skrajne pojazdy w sk³adzie (niekoniecznie bezpoœrednio sterowane)
  Mover::TMoverParameters *Controlling; //jakim pojazdem steruje
  Mtable::TTrainParameters *TrainParams; //rozk³ad jazdy; do jakiego pociagu nalezy
- int TrainNumber; //numer rozkladowy tego pociagu
+ //int TrainNumber; //numer rozkladowy tego pociagu
  //AnsiString OrderCommand; //komenda pobierana z pojazdu
  //double OrderValue; //argument komendy
  double AccPreferred; //preferowane przyspieszenie
@@ -129,7 +132,7 @@ public:
  double VelDesired; //predkosc
 private:
  double VelforDriver; //predkosc dla manewrow
- double VelActual; //predkosc ustawiana przez SetVelocity (zadawana semaforami) 
+ double VelActual; //predkosc ustawiana przez SetVelocity (zadawana semaforami)
 public:
  double VelNext; //predkosc przy nastepnym obiekcie
 private:
@@ -167,6 +170,7 @@ private:
  bool __fastcall IncSpeed();
  bool __fastcall DecSpeed();
  void __fastcall RecognizeCommand(); //odczytuje komende przekazana lokomotywie
+ void __fastcall Activation(); //umieszczenie obsady w odpowiednim cz³onie
 public:
  void __fastcall PutCommand(AnsiString NewCommand,double NewValue1,double NewValue2,const Mover::TLocation &NewLocation,TStopReason reason=stopComm);
  bool __fastcall PutCommand(AnsiString NewCommand,double NewValue1,double NewValue2,const vector3 *NewLocation,TStopReason reason=stopComm);
