@@ -561,7 +561,7 @@ TYPE
 
                 RunningShape:TTrackShape;{geometria toru po ktorym jedzie pojazd}
                 RunningTrack:TTrackParam;{parametry toru po ktorym jedzie pojazd}
-                OffsetTrackH, OffsetTrackV: real;  {przesuniecie poz. i pion. w/m toru}
+                OffsetTrackH, OffsetTrackV: real;  {przesuniecie poz. i pion. w/m osi toru}
 
                 {-zmienne dla lokomotyw}
                 Mains: boolean;    {polozenie glownego wylacznika}
@@ -1139,7 +1139,7 @@ function TMoverParameters.CabActivisation:boolean;
 var OK:boolean;
 begin
   OK:=(CabNo=0);
-  if(OK)then
+  if (OK) then
    begin
      CabNo:=ActiveCab;
      DirAbsolute:=ActiveDir*CabNo;

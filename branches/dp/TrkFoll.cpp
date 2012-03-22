@@ -40,6 +40,7 @@ __fastcall TTrackFollower::TTrackFollower()
  fCurrentDistance=0;
  pPosition=vAngles=vector3(0,0,0);
  fDirection=1; //jest przodem do Point2
+ fOffsetH=0.0; //na starcie stoi na œrodku
 }
 
 __fastcall TTrackFollower::~TTrackFollower()
@@ -247,6 +248,10 @@ bool __fastcall TTrackFollower::ComputatePosition()
   {vAngles.x=-vAngles.x; //przechy³ka jest w przecinw¹ stronê
    vAngles.y=-vAngles.y; //pochylenie jest w przecinw¹ stronê
    vAngles.z+=M_PI; //ale kierunek w planie jest obrócony o 180° 
+  }
+  if (fOffsetH!=0.0)
+  {//jeœli przesuniêcie wzglêdem osi toru, to je doliczyæ
+
   }
   return true;
  }

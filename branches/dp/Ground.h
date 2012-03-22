@@ -278,7 +278,7 @@ public:
  __fastcall TGround();
  __fastcall ~TGround();
  void __fastcall Free();
- bool __fastcall Init(AnsiString asFile);
+ bool __fastcall Init(AnsiString asFile,HDC hDC);
  void __fastcall FirstInit();
  bool __fastcall InitEvents();
  bool __fastcall InitTracks();

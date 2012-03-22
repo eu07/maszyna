@@ -801,8 +801,9 @@ TDynamicObject* __fastcall ABuFindObject(TTrack *Track,TDynamicObject *MyPointer
         //dla CouplFound=0 s¹ zwroty przeciwne - przesuniêcia sumuj¹ siê
         RelOffsetH=(MyPointer->MoverParameters->OffsetTrackH+Track->Dynamics[i]->MoverParameters->OffsetTrackH);
        if (RelOffsetH<0) RelOffsetH=-RelOffsetH;
-       if (RelOffsetH+RelOffsetH>MyPointer->MoverParameters->Dim.W)+(Track->Dynamics[i]->MoverParameters->Dim.W);
+       if (RelOffsetH+RelOffsetH>MyPointer->MoverParameters->Dim.W+Track->Dynamics[i]->MoverParameters->Dim.W)
         continue; //odleg³oœæ wiêksza od po³owy sumy szerokoœci - kolizji nie bêdzie
+       //jeœli zahaczenie jest niewielkie, a jest miejsce na poboczu, to zjechaæ na pobocze
       }
       iMinDist=i; //potencjalna kolizja
       MinDist=TestDist;
@@ -1278,6 +1279,7 @@ double __fastcall TDynamicObject::Init(
   if ((DriverType=="headdriver")||(DriverType=="reardriver"))
   {//McZapkie-110303: mechanik i rozklad tylko gdy jest obsada
    MoverParameters->ActiveCab=MoverParameters->CabNo; //ustalenie aktywnej kabiny (rozrz¹d)
+/*
    if (MoverParameters->CabNo==-1)
    {//ZiomalCl: jeœli AI prowadzi sk³ad w drugiej kabinie (inny kierunek),
     //to musimy zmieniæ kabiny (kierunki) w pozosta³ych wagonach/cz³onach
@@ -1286,20 +1288,10 @@ double __fastcall TDynamicObject::Init(
     MoverParameters->CabDeactivisation();
     MoverParameters->CabActivisation();
    }
-/*
-   TrainParams=new TTrainParameters(TrainName); //rozk³¹d jazdy //Ra: wywaliæ to st¹d!
-   if (TrainName!="none")
-    if (!TrainParams->LoadTTfile(Global::asCurrentSceneryPath))
-     Error("Cannot load timetable file "+TrainName+"\r\nError "+ConversionError+" in position "+TrainParams->StationCount);
-    else
-    {//inicjacja pierwszego przystanku i pobranie jego nazwy
-     TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,TrainParams->NextStationName);
-     TrainParams->StationIndexInc(); //przejœcie do nastêpnej
-    }
 */
    Mechanik=new TController(Controller,this,NULL,Aggressive);
    if (TrainName.IsEmpty()) //jeœli nie w sk³adzie
-    Mechanik->PutCommand("Timetable:none",fVel,0,NULL); //tryb manewrowy z ustalon¹ prêdkoœci¹
+    Mechanik->PutCommand("Timetable:",fVel,0,NULL); //tryb poci¹gowy z ustalon¹ prêdkoœci¹
    //if (TrainName!="none")
    // Mechanik->PutCommand("Timetable:"+TrainName,fVel,0,NULL);
   }
@@ -1475,8 +1467,8 @@ void __fastcall TDynamicObject::Move(double fDistance)
  //Axle3.Move(fDistance,false);
  //liczenie pozycji pojazdu tutaj, bo jest u¿ywane w wielu miejscach
  vPosition=0.5*(Axle1.pPosition+Axle0.pPosition); //œrodek miêdzy skrajnymi osiami
- if (MoverParameters->CategoryFlag&2)
- {
+ //if (MoverParameters->CategoryFlag&2)
+ {//przesuniêcia s¹ u¿ywane po wyrzuceniu poci¹gu z toru
   vPosition.x+=MoverParameters->OffsetTrackH*vLeft.x; //dodanie przesuniêcia w bok
   vPosition.z+=MoverParameters->OffsetTrackH*vLeft.z; //vLeft jest wektorem poprzecznym
   //if () na przechy³ce bêdzie dodatkowo zmiana wysokoœci samochodu
@@ -2273,7 +2265,7 @@ if (tmpTraction.TractionVoltage==0)
   {if (MoverParameters->Couplers[1-iDirection].Connected) //jeœli jest pojazd na sprzêgu wirtualnym
     fTrackBlock=MoverParameters->Couplers[1-iDirection].CoupleDist; //aktualizacja odleg³oœci od niego
    else
-    if (fTrackBlock<=50.0) //je¿eli pojazdu nie ma, a odleg³o¿æ jakoœ ma³a
+    if (fTrackBlock<1000.0) //je¿eli pojazdu nie ma, a odleg³o¿æ jakoœ ma³a
      ABuScanObjects(iDirection?1:-1,300); //skanowanie sprawdzaj¹ce
    //WriteLog(asName+" - block x: "+AnsiString(fTrackBlock));
   }

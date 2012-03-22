@@ -1980,7 +1980,7 @@ void __fastcall TGround::FirstInit()
  WriteLog("FirstInit is done");
 };
 
-bool __fastcall TGround::Init(AnsiString asFile)
+bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
 {//g³ówne wczytywanie scenerii
  if (asFile.LowerCase().SubString(1,7)=="scenery")
   asFile.Delete(1,8); //Ra: usuniêcie niepotrzebnych znaków - zgodnoœæ wstecz z 2003
@@ -2033,6 +2033,7 @@ bool __fastcall TGround::Init(AnsiString asFile)
 
     while (token!="") //(!Parser->EndOfFile)
     {
+     SwapBuffers(hDC); //Ra: bêdzie spowalniaæ, ale ekran siê nie zawiesi 
      str=AnsiString(token.c_str());
      if (str==AnsiString("node"))
      {

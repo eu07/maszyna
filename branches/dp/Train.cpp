@@ -207,7 +207,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
   isEztOer=(DynamicObject->MoverParameters->TrainType==dt_EZT)&&(DynamicObject->MoverParameters->Mains)&&(DynamicObject->MoverParameters->BrakeSubsystem==Oerlikon)&&(DynamicObject->MoverParameters->ActiveDir!=0);
 
   if (GetAsyncKeyState(VK_SHIFT)<0)
-   {
+   {//wciœniêty [Shift]
       if (cKey==Global::Keys[k_IncMainCtrlFAST])   //McZapkie-200702: szybkie przelaczanie na poz. bezoporowa
       {
           if (DynamicObject->MoverParameters->IncMainCtrl(2))
@@ -376,13 +376,12 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       }
       else
   //McZapkie-240302 - wlaczanie automatycznego pilota (zadziala tylko w trybie debugmode)
-      if (cKey==VkKeyScan('q')) //ze Shiftem
+      if (cKey==VkKeyScan('q')) //ze Shiftem - w³¹czenie AI
       {
        if (DynamicObject->Mechanik)
         DynamicObject->Mechanik->TakeControl(true);
       }
-      else
-      if (cKey==Global::Keys[k_MaxCurrent])   //McZapkie-160502: F - wysoki rozruch
+      else if (cKey==Global::Keys[k_MaxCurrent])   //McZapkie-160502: F - wysoki rozruch
       {
            if ((DynamicObject->MoverParameters->EngineType==DieselElectric) && (DynamicObject->MoverParameters->ShuntModeAllow) && (DynamicObject->MoverParameters->MainCtrlPos==0))
            {

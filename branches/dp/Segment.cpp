@@ -289,8 +289,8 @@ void __fastcall TSegment::RaPositionGet(double fDistance,vector3 &p,vector3 &a)
   p=RaInterpolate(t);
   a.x=(1.0-t)*fRoll1+(t)*fRoll2; //przechy³ka w danym miejscu (zmienia siê liniowo)
   //pochodna jest 3*A*t^2+2*B*t+C
-  a.y=atan(t*(t*3.0*vA.y+2.0*vB.y)+vC.y); //pochylenie krzywej
-  a.z=-atan2(t*(t*3.0*vA.x+2.0*vB.x)+vC.x,t*(t*3.0*vA.z+2.0*vB.z)+vC.z); //kierunek krzywej w planie
+  a.y=atan(t*(t*3.0*vA.y+vB.y+vB.y)+vC.y); //pochylenie krzywej (w pionie)
+  a.z=-atan2(t*(t*3.0*vA.x+vB.x+vB.x)+vC.x,t*(t*3.0*vA.z+vB.z+vB.z)+vC.z); //kierunek krzywej w planie
  }
  else
  {//wyliczenie dla odcinka prostego jest prostsze

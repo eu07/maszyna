@@ -75,7 +75,7 @@ bool __fastcall TEventLauncher::Load(cParser *parser)
  if (str!="none")
  {
   if (str.Length()==1)
-   iKey=VkKeyScan(str[0]); //jeden znak jest konwertowany na kod klawisza
+   iKey=VkKeyScan(str[1]); //jeden znak jest konwertowany na kod klawisza
   else
    iKey=str.ToIntDef(0); //a jak wiêcej, to jakby numer klawisza jest
   //szKey=new char[1];

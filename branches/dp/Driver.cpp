@@ -254,6 +254,8 @@ __fastcall TController::TController
   default: AIControllFlag:=False; //na wszelki wypadek
  }
 */
+ iDirection=0;
+ iDirectionOrder=Controlling->CabNo; //1=do przodu (w kierunku sprzêgu 0)
  VehicleName=Controlling->Name;
  TrainParams=NewTrainParams;
  if (TrainParams)
@@ -264,7 +266,6 @@ __fastcall TController::TController
  //OrderValue=0;
  OrdersClear();
  MaxVelFlag=false; MinVelFlag=false;
- iDirection=iDirectionOrder=0; //1=do przodu (w kierunku sprzêgu 0)
  iDriverFailCount=0;
  Need_TryAgain=false;
  Need_BrakeRelease=true;
@@ -301,6 +302,17 @@ __fastcall TController::TController
  iDrivigFlags=moveStopPoint; //flagi bitowe ruchu
  Ready=false;
  SetDriverPsyche(); //na koñcu, bo wymaga ustawienia zmiennych
+ if (Controlling->CategoryFlag&2)
+ {//samochody
+  fDriverMass=0.02; //mno¿one przez v^2 [km/h] daje drogê skanowania [m]
+  fDriverDist=10.0; //10m - zachowywany odstêp przed kolizj¹
+ }
+ else
+ {//poci¹gi i statki
+  fDriverMass=0.1; //mno¿one przez v^2 [km/h] daje drogê skanowania [m]
+  fDriverDist=50.0; //50m - zachowywany odstêp przed kolizj¹
+ }
+ fVelMax=-1; //ustalenie prêdkoœci dla sk³adu
 }
 
 void __fastcall TController::CloseLog()
@@ -362,6 +374,39 @@ void __fastcall TController::OrdersClear()
   OrderList[b]=Wait_for_orders;
 };
 
+void __fastcall TController::Activation()
+{//umieszczenie obsady w odpowiednim cz³onie
+ iDirection=iDirectionOrder; //kierunek w³aœnie zosta³ ustalony (zmieniony)
+ TDynamicObject *d=pVehicle; //w tym siedzi AI
+ if (TestFlag(d->MoverParameters->Couplers[iDirectionOrder*d->DirectionGet()<0?1:0].CouplingFlag,ctrain_controll))
+  Controlling->MainSwitch(false); //dezaktywacja czuwaka, jeœli przejœcie do innego cz³onu
+ Controlling->CabDeactivisation(); //tak jest w Train.cpp
+ Controlling->DecLocalBrakeLevel(10); //zwolnienie hamulca
+ //przejœcie AI na drug¹ stronê EN57, ET41 itp.
+ while (TestFlag(d->MoverParameters->Couplers[iDirectionOrder*d->DirectionGet()<0?1:0].CouplingFlag,ctrain_controll))
+ {//jeœli pojazd z przodu jest ukrotniony, to przechodzimy do niego
+  d=iDirectionOrder<0?d->Next():d->Prev(); //przechodzimy do nastêpnego cz³onu
+  if (d?!d->Mechanik:false)
+  {d->Mechanik=this; //na razie bilokacja
+   if (d->DirectionGet()!=pVehicle->DirectionGet()) //jeœli s¹ przeciwne do siebie
+    iDirection=-iDirection; //to bêdziemy jechaæ w drug¹ stronê wzglêdem zasiedzianego pojazdu
+   pVehicle->Mechanik=NULL; //tam ju¿ nikogo nie ma
+   pVehicle->MoverParameters->CabNo=0; //wy³¹czanie kabin po drodze
+   //pVehicle->MoverParameters->ActiveCab=0;
+   //pVehicle->MoverParameters->DirAbsolute=pVehicle->MoverParameters->ActiveDir*pVehicle->MoverParameters->CabNo;
+   pVehicle=d; //a mechu ma nowy pojazd (no, cz³on)
+  }
+  else break; //jak zajête, albo koniec sk³adu, to mechanik dalej nie idzie (wywaliæ drugiego?)
+ }
+ Controlling=pVehicle->MoverParameters; //skrót do obiektu parametrów, mo¿e byæ nowy
+ //Ra: to prze³¹czanie poni¿ej jest tu bez sensu
+ Controlling->ActiveCab=iDirection; //aktywacja kabiny w prowadzonym poje¿dzie
+ //Controlling->CabNo=iDirection;
+ //Controlling->ActiveDir=0; //¿eby sam ustawi³ kierunek
+ Controlling->CabActivisation(); //uruchomienie kabin w cz³onach
+ Controlling->IncLocalBrakeLevel(10); //zaci¹gniêcie hamulca
+};
+
 bool __fastcall TController::CheckVehicles()
 {//sprawdzenie stanu posiadanych pojazdów w sk³adzie i zapalenie œwiate³
  //ZiomalCl: sprawdzanie i zmiana SKP w skladzie prowadzonym przez AI
@@ -372,6 +417,7 @@ bool __fastcall TController::CheckVehicles()
  //liczenie pojazdów w sk³adzie i ustawianie kierunku
  d=1-d; //a dalej bêdziemy zliczaæ od czo³a do ty³u
  fLength=0.0; //d³ugoœæ sk³adu do badania wyjechania za ograniczenie
+ fVelMax=-1; //ustalenie prêdkoœci dla sk³adu
 /*
  bool main=true; //czy jest g³ównym steruj¹cym
  int dir=????; //od pierwszego w drug¹ stronê
@@ -398,6 +444,8 @@ bool __fastcall TController::CheckVehicles()
   fLength+=p->MoverParameters->Dim.L; //dodanie d³ugoœci pojazdu
   d=p->DirectionSet(d?1:-1); //zwraca po³o¿enie nastêpnego (1=zgodny,0=odwrócony)
   //1=zgodny: sprzêg 0 od czo³a; 0=odwrócony: sprzêg 1 od czo³a
+  if (fVelMax<0?true:p->MoverParameters->Vmax<fVelMax)
+   fVelMax=p->MoverParameters->Vmax; //ustalenie maksymalnej prêdkoœci dla sk³adu
   p=p->Next(); //pojazd pod³¹czony od ty³u (licz¹c od czo³a)
  }
 /* //tabelka z list¹ pojazdów jest na razie nie potrzebna
@@ -480,7 +528,7 @@ bool __fastcall TController::SetProximityVelocity(double NewDist,double NewVelNe
  {MaxVelFlag=False;
   MinVelFlag=False;
   VelNext=NewVelNext;
-  fProximityDist=NewDist; //dodatnie: przeliczyæ do punktu; ujemne: wzi¹æ dos³ownie 
+  fProximityDist=NewDist; //dodatnie: przeliczyæ do punktu; ujemne: wzi¹æ dos³ownie
   return true;
  }
  //else return false
@@ -493,17 +541,20 @@ void __fastcall TController::SetDriverPsyche()
  {
   ReactionTime=HardReactionTime; //w zaleznosci od charakteru maszynisty
   AccPreferred=HardAcceleration; //agresywny
-  if (Controlling)
-   if (Controlling->CategoryFlag&2)
-    WaitingExpireTime=11; //tyle ma czekaæ, zanim siê ruszy samochód
-   else
-    WaitingExpireTime=61; //tyle ma czekaæ, zanim siê ruszy
+  //if (Controlling)
+  if (Controlling->CategoryFlag&2)
+   WaitingExpireTime=3; //tyle ma czekaæ samochód, zanim siê ruszy
+  else
+   WaitingExpireTime=61; //tyle ma czekaæ, zanim siê ruszy
  }
  else
  {
   ReactionTime=EasyReactionTime; //spokojny
   AccPreferred=EasyAcceleration;
-  WaitingExpireTime=65; //tyle ma czekaæ, zanim siê ruszy
+  if (Controlling->CategoryFlag&2)
+   WaitingExpireTime=5; //tyle ma czekaæ samochód, zanim siê ruszy
+  else
+   WaitingExpireTime=65; //tyle ma czekaæ, zanim siê ruszy
  }
  if (Controlling)
  {//with Controlling do
@@ -908,27 +959,21 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
   else
    TrainParams->NewName(NewCommand); //czyœci tabelkê przystanków
   if (NewCommand!="none")
-  {if (!TrainParams->LoadTTfile(Global::asCurrentSceneryPath))
+  {if (!TrainParams->LoadTTfile(Global::asCurrentSceneryPath,NewValue1))
     WriteLog("Cannot load timetable file "+NewCommand+"\r\nError "+ConversionError+" in position "+TrainParams->StationCount);
    else
    {//inicjacja pierwszego przystanku i pobranie jego nazwy
-    //if (!EngineActive)
-    // OrderNext(Prepare_engine); //trzeba odpaliæ silnik najpierw
-    //OrderNext(Obey_train); //¿e do jazdy
     TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,TrainParams->NextStationName);
     TrainParams->StationIndexInc(); //przejœcie do nastêpnej
     asNextStop=TrainParams->NextStop();
-    WriteLog("/* Timetable: "+TrainParams->ShowRelation());
-    TMTableLine *t;
-    for (int i=0;i<=TrainParams->StationCount;++i)
-    {t=TrainParams->TimeTable+i;
-     WriteLog(AnsiString(t->StationName)+" "+AnsiString((int)t->Ah)+":"+AnsiString((int)t->Am)+", "+AnsiString((int)t->Dh)+":"+AnsiString((int)t->Dm));
-    }
-    WriteLog("*/");
    }
   }
+  //if (iDirectionOrder==0) //jeœli kierunek ma nieokreœlony
+  if (NewValue1!=0.0) //a ma jechaæ
+   iDirectionOrder=NewValue1>0?1:-1; //ustalenie kierunku jazdy
+  Activation(); //umieszczenie obs³ugi we w³aœciwym cz³onie
   CheckVehicles(); //sprawdzenie sk³adu, AI zapali œwiat³a
-  OrdersInit(NewValue1); //ustalenie tabelki komend wg rozk³adu oraz prêdkoœci pocz¹tkowej
+  OrdersInit(fabs(NewValue1)); //ustalenie tabelki komend wg rozk³adu oraz prêdkoœci pocz¹tkowej
   //if (NewValue1!=0.0) if (!AIControllFlag) DirectionForward(NewValue1>0.0); //ustawienie nawrotnika u¿ytkownikowi (propaguje siê do cz³onów)
   //if (NewValue1>0)
   // TrainNumber=floor(NewValue1); //i co potem ???
@@ -1012,8 +1057,7 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
   if (!EngineActive)
    OrderNext(Prepare_engine); //trzeba odpaliæ silnik najpierw
   OrderNext(Obey_train);
-  if (NewValue1>0)
-   TrainNumber=floor(NewValue1); //i co potem ???
+  //if (NewValue1>0) TrainNumber=floor(NewValue1); //i co potem ???
   OrderCheck(); //jeœli jazda poci¹gowa teraz, to wykonaæ niezbêdne operacje
  }
  else if (NewCommand=="Shunt")
@@ -1125,10 +1169,10 @@ bool __fastcall TController::UpdateSituation(double dt)
  //Winger 020304
  if (Controlling->Vel>0.0)
  {//je¿eli jedzie
-  if (TestFlag(Controlling->CategoryFlag,2)) //jeœli samochód
+  if (Controlling->CategoryFlag&2) //jeœli samochód
    //if (fabs(Controlling->OffsetTrackH)<Controlling->Dim.W) //Ra: szerokoœæ drogi tu powinna byæ?
-    if (!Controlling->ChangeOffsetH(-0.1*Controlling->Vel*dt))
-     Controlling->ChangeOffsetH(0.1*Controlling->Vel*dt); //Ra: co to mia³o byæ, to nie wiem
+    if (!Controlling->ChangeOffsetH(-0.01*Controlling->Vel*dt)) //ruch w poprzek drogi
+     Controlling->ChangeOffsetH(0.01*Controlling->Vel*dt); //Ra: co to mia³o byæ, to nie wiem
   if (Controlling->EnginePowerSource.SourceType==CurrentCollector)
   {if (AIControllFlag)
    {Controlling->PantRear(true); //jazda na tylnym
@@ -1388,11 +1432,22 @@ bool __fastcall TController::UpdateSituation(double dt)
          close(AILogFile);
        }
 */
-       PrepareEngine(); //zmieni ustawiony kierunek
-       SetVelocity(20,20); //jak siê nasta³, to niech jedzie
-       WaitingTime=0.0;
-       fWarningDuration=1.5; //a zatr¹biæ trochê
-       Controlling->WarningSignal=1;
+       if (Controlling->CategoryFlag&1)
+       {//jeœli poci¹g
+        PrepareEngine(); //zmieni ustawiony kierunek
+        SetVelocity(20,20); //jak siê nasta³, to niech jedzie
+        WaitingTime=0.0;
+        fWarningDuration=1.5; //a zatr¹biæ trochê
+        Controlling->WarningSignal=1;
+       }
+       else
+       {//samochód ma staæ, a¿ dostanie odjazd, chyba ¿e kolizja
+        if (eStopReason==stopBlock)
+        {PrepareEngine(); //zmieni ustawiony kierunek
+         SetVelocity(-1,-1); //jak siê nasta³, to niech jedzie
+         WaitingTime=0.0;
+        }
+       }
       }
       else if ((VelActual==0.0)&&(VelNext>0.0)&&(Controlling->Vel<1.0))
        SetVelocity(VelNext,VelNext,stopSem); //omijanie SBL
@@ -1418,35 +1473,7 @@ bool __fastcall TController::UpdateSituation(double dt)
        //if (iDirectionOrder==0) //jeœli na przeciwny
        // iDirection=-(Controlling->ActiveDir*Controlling->CabNo);
        //else
-       iDirection=iDirectionOrder; //kierunek w³aœnie zosta³ zmieniony
-       TDynamicObject *d=pVehicle; //w tym siedzi AI
-       if (TestFlag(d->MoverParameters->Couplers[iDirectionOrder*d->DirectionGet()<0?1:0].CouplingFlag,ctrain_controll))
-        Controlling->MainSwitch(false); //dezaktywacja czuwaka, jeœli przejœcie do innego cz³onu
-       Controlling->CabDeactivisation(); //tak jest w Train.cpp
-       Controlling->DecLocalBrakeLevel(10); //zwolnienie hamulca
-       //przejœcie AI na drug¹ stronê EN57, ET41 itp.
-       while (TestFlag(d->MoverParameters->Couplers[iDirectionOrder*d->DirectionGet()<0?1:0].CouplingFlag,ctrain_controll))
-       {//jeœli pojazd z przodu jest ukrotniony, to przechodzimy do niego
-        d=iDirectionOrder<0?d->Next():d->Prev(); //przechodzimy do nastêpnego cz³onu
-        if (d?!d->Mechanik:false)
-        {d->Mechanik=this; //na razie bilokacja
-         if (d->DirectionGet()!=pVehicle->DirectionGet()) //jeœli s¹ przeciwne do siebie
-          iDirection=-iDirection; //to bêdziemy jechaæ w drug¹ stronê wzglêdem zasiedzianego pojazdu
-         pVehicle->Mechanik=NULL; //tam ju¿ nikogo nie ma
-         //pVehicle->MoverParameters->CabNo=iDirection; //aktywacja wirtualnych kabin po drodze
-         //pVehicle->MoverParameters->ActiveCab=0;
-         //pVehicle->MoverParameters->DirAbsolute=pVehicle->MoverParameters->ActiveDir*pVehicle->MoverParameters->CabNo;
-         pVehicle=d; //a mechu ma nowy pojazd (no, cz³on)
-        }
-        else break; //jak zajête, albo koniec sk³adu, to mechanik dalej nie idzie
-       }
-       Controlling=pVehicle->MoverParameters; //skrót do obiektu parametrów, mo¿e byæ nowy
-       //Ra: to prze³¹czanie poni¿ej jest tu bez sensu
-       Controlling->ActiveCab=iDirection;
-       //Controlling->CabNo=iDirection; //ustawienie aktywnej kabiny w prowadzonym poje¿dzie
-       //Controlling->ActiveDir=0; //¿eby sam ustawi³ kierunek
-       Controlling->CabActivisation();
-       Controlling->IncLocalBrakeLevel(10); //zaci¹gniêcie hamulca
+       Activation();
        PrepareEngine();
        //DirectionSet(true); //po zmianie kabiny jedziemy do przodu
        JumpToNextOrder(); //nastêpnie robimy, co jest do zrobienia (Shunt albo Obey_train)
@@ -1472,9 +1499,9 @@ bool __fastcall TController::UpdateSituation(double dt)
       if (fStopTime<=0) //czas postoju przed dalsz¹ jazd¹ (np. na przystanku)
        VelDesired=0.0; //jak ma czekaæ, to nie ma jazdy
       else if (VelActual<0)
-       VelDesired=Controlling->Vmax; //ile fabryka dala (Ra: uwzglêdniæ wagony!!!)
+       VelDesired=fVelMax; //ile fabryka dala (Ra: uwzglêdione wagony)
       else
-       VelDesired=Min0R(Controlling->Vmax,VelActual);
+       VelDesired=Min0R(fVelMax,VelActual);
       if (Controlling->RunningTrack.Velmax>=0)
        VelDesired=Min0R(VelDesired,Controlling->RunningTrack.Velmax); //uwaga na ograniczenia szlakowej!
       if (VelforDriver>=0)
@@ -1778,16 +1805,15 @@ TOrders __fastcall TController::OrderNextGet()
 
 void __fastcall TController::OrdersInit(double fVel)
 {//wype³nianie tabelki rozkazów na podstawie rozk³adu
- //if (Controller==AIdriver)
  //ustawienie kolejnoœci komend, niezale¿nie kto prowadzi
  //Mechanik->OrderPush(Wait_for_orders); //czekanie na lepsze czasy
- OrderPos=OrderTop=0; //wype³niamy od pozycji 0
+ //OrderPos=OrderTop=0; //wype³niamy od pozycji 0
+ OrdersClear(); //usuniêcie poprzedniej tabeli
  OrderPush(Prepare_engine); //najpierw odpalenie silnika
  if (TrainParams->TrainName==AnsiString("none"))
   OrderPush(Shunt); //jeœli nie ma rozk³adu, to manewruje
  else
  {//jeœli z rozk³adem, to jedzie na szlak
-  //Mechanik->PutCommand("Timetable:"+TrainName,0,0);
   if (TrainParams?
    (TrainParams->TimeTable[1].StationWare.Pos("@")? //jeœli obrót na pierwszym przystanku
    (Controlling->TrainType&(dt_EZT)? //SZT równie¿! SN61 zale¿nie od wagonów...
@@ -1796,7 +1822,7 @@ void __fastcall TController::OrdersInit(double fVel)
   else
   //jeœli start z pierwszej stacji i jednoczeœnie jest na niej zmiana kierunku, to EZT ma mieæ Shunt
    OrderPush(Obey_train); //dla starych scenerii start w trybie pociagowym
-  WriteLog("/* "+TrainParams->ShowRelation());
+  WriteLog("/* Timetable: "+TrainParams->ShowRelation());
   TMTableLine *t;
   for (int i=0;i<=TrainParams->StationCount;++i)
   {t=TrainParams->TimeTable+i;
@@ -1824,15 +1850,14 @@ void __fastcall TController::OrdersInit(double fVel)
   OrderPush(Shunt); //po wykonaniu rozk³adu prze³¹czy siê na manewry
  }
  //McZapkie-100302 - to ma byc wyzwalane ze scenerii
- //Mechanik->JumpToFirstOrder();
  if (fVel==0.0)
   SetVelocity(0,0,stopSleep); //jeœli nie ma prêdkoœci pocz¹tkowej, to œpi
  else
- {
-  if (fVel>=1.0) //jeœli jedzie
+ {//jeœli podana niezerowa prêdkoœæ
+  if (fVel>=1.0) //jeœli ma jechaæ
    iDrivigFlags|=moveStopCloser; //to do nastêpnego W4 ma podjechaæ blisko
-  SetVelocity(fVel,-1); //ma ustawiæ ¿¹dan¹ prêdkoœæ
   JumpToFirstOrder();
+  SetVelocity(fVel,-1); //ma ustawiæ ¿¹dan¹ prêdkoœæ
  }
  OrdersDump(); //wypisanie kontrolne tabelki rozkazów
  //McZapkie! - zeby w ogole AI ruszyl to musi wykonac powyzsze rozkazy
@@ -2034,13 +2059,13 @@ void __fastcall TController::ScanEventTrack()
  //Ra: AI mo¿e siê stoczyæ w przeciwnym kierunku, ni¿ oczekiwana jazda !!!!
  vector3 sl;
  //jeœli z przodu od kierunku ruchu jest jakiœ pojazd ze sprzêgiem wirtualnym
- if (pVehicles[0]->fTrackBlock<=50.0) //jak bli¿ej ni¿ 50m, to stop
+ if (pVehicles[0]->fTrackBlock<=fDriverDist) //jak odleg³oœæ kolizyjna, to stop
  {SetVelocity(0,0,stopBlock); //zatrzymaæ
   return; //i dalej nie ma co analizowaæ innych przypadków (!!!! do przemyœlenia)
  }
  else
-  if (0.1*VelDesired*VelDesired>pVehicles[0]->fTrackBlock) //droga hamowania wiêksza ni¿ odleg³oœæ kolizyjna
-   SetProximityVelocity(pVehicles[0]->fTrackBlock-50,0); //spowolnienie jazdy
+  if (fDriverMass*VelDesired*VelDesired>pVehicles[0]->fTrackBlock) //droga hamowania wiêksza ni¿ odleg³oœæ kolizyjna
+   SetProximityVelocity(pVehicles[0]->fTrackBlock-fDriverDist,0); //spowolnienie jazdy
  int startdir=iDirection; //kierunek jazdy wzglêdem pojazdu, w którym siedzi AI (1=przód,-1=ty³)
  if (startdir==0) //jeœli kabina i kierunek nie jest okreœlony
   return; //nie robimy nic
@@ -2060,7 +2085,7 @@ void __fastcall TController::ScanEventTrack()
  if (scandir!=0.0) //skanowanie toru w poszukiwaniu eventów GetValues/PutValues
  {//Ra: skanowanie drogi proporcjonalnej do kwadratu aktualnej prêdkoœci (+150m), no chyba ¿e stoi (wtedy 500m)
   //Ra: tymczasowo, dla wiêkszej zgodnoœci wstecz, szukanie semafora na postoju zwiêkszone do 2km
-  double scanmax=(Controlling->Vel>0.0)?150+0.1*Controlling->Vel*Controlling->Vel:500; //fabs(Mechanik->ProximityDist);
+  double scanmax=(Controlling->Vel>0.0)?3*fDriverDist+fDriverMass*Controlling->Vel*Controlling->Vel:500; //fabs(Mechanik->ProximityDist);
   double scandist=scanmax; //zmodyfikuje na rzeczywiœcie przeskanowane
   //Ra: znaleziony semafor trzeba zapamiêtaæ, bo mo¿e byæ wpisany we wczeœniejszy tor
   //Ra: oprócz semafora szukamy najbli¿szego ograniczenia (koniec/brak toru to ograniczenie do zera)
@@ -2110,7 +2135,7 @@ void __fastcall TController::ScanEventTrack()
 #endif
      //sem=*e->PositionGet()-pos; //wektor do komórki pamiêci
      sem=e->Params[8].asGroundNode->pCenter-pos; //wektor do komórki pamiêci
-     if (dir.x*sem.x+dir.z*sem.z<0)
+     if ((dir.x*sem.x+dir.z*sem.z<0)&&(VelNext!=0.0)) //wymagany sygna³ zezwalaj¹cy
      {//iloczyn skalarny jest ujemny, gdy sygna³ stoi z ty³u
       eSignSkip=e; //wtedy uznajemy go za ignorowany przy poszukiwaniu nowego
       eSignLast=NULL; //¿eby jakiœ nowy by³ poszukiwany
@@ -2304,8 +2329,8 @@ void __fastcall TController::ScanEventTrack()
        else //jeœli jest blisko, albo stoi
         if ((iDrivigFlags&moveStopCloser)&&(scandist>25.0)) //jeœli ma podjechac pod W4, a jest daleko
         {
-         if (pVehicles[0]->fTrackBlock>50.0) //je¿eli nie ma zawalidrogi w tej odleg³oœci
-          PutCommand("SetVelocity",scandist>100.0?40:0.4*scandist,0,&sl); //doci¹ganie do przystanku
+         //if (pVehicles[0]->fTrackBlock>fDriverDist) //je¿eli nie ma zawalidrogi w tej odleg³oœci
+         PutCommand("SetVelocity",scandist>100.0?40:0.4*scandist,0,&sl); //doci¹ganie do przystanku
         } //koniec obs³ugi odleg³ego zatrzymania
         else
         {//jeœli pierwotnie sta³ lub zatrzyma³ siê wystarczaj¹co blisko
@@ -2449,6 +2474,7 @@ void __fastcall TController::TakeControl(bool yes)
    JumpToFirstOrder(); //uruchomienie?
   // czy dac ponizsze? to problematyczne
   SetVelocity(pVehicle->GetVelocity(),-1); //utrzymanie dotychczasowej?
+  //SetVelocity(-1,-1); //AI ustali sobie odpowiedni¹ prêdkoœæ
   CheckVehicles(); //ustawienie œwiate³
  }
  else if (AIControllFlag==AIdriver)
