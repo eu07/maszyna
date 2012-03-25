@@ -11,7 +11,7 @@
 #include "Usefull.h"
 #include "Globals.h"
 #include "Timer.h"
-#include "mover.hpp"
+#include "mover.h"
 #include "Console.h"
 
 //TViewPyramid TCamera::OrgViewPyramid;

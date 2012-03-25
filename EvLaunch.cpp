@@ -22,7 +22,7 @@
 #include    "system.hpp"
 #pragma hdrstop
 
-#include "Mover.hpp"
+#include "Mover.h"
 #include "mctools.hpp"
 #include "mtable.hpp"
 #include "Timer.h"

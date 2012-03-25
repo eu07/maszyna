@@ -4,7 +4,7 @@
   <MACROS>
     <VERSION value="BCB.05.03"/>
     <PROJECT value="D:\EU07\EU07.exe"/>
-    <OBJFILES value="McZapkie\mover.obj QueryParserComp.obj McZapkie\mtable.obj EU07.obj 
+    <OBJFILES value="QueryParserComp.obj McZapkie\mtable.obj McZapkie\_mover.obj EU07.obj 
       dumb3d.obj Camera.obj Texture.obj World.obj Model3d.obj geometry.obj 
       MdlMngr.obj Train.obj wavread.obj Timer.obj Event.obj MemCell.obj Logs.obj 
       Spring.obj Button.obj Globals.obj Gauge.obj AnimModel.obj Ground.obj 
@@ -12,7 +12,7 @@
       RealSound.obj EvLaunch.obj FadeSound.obj Traction.obj TractionPower.obj 
       parser.obj sky.obj AirCoupler.obj glew.obj ResourceManager.obj VBO.obj 
       TextureDDS.obj opengl\ARB_Multisample.obj Float3d.obj Classes.obj 
-      Driver.obj Names.obj Console.obj"/>
+      Driver.obj Names.obj Console.obj Mover.obj"/>
     <RESFILES value="EU07.res"/>
     <IDLFILES value=""/>
     <IDLGENFILES value=""/>
@@ -61,8 +61,8 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=1
 MinorVer=7
-Release=533
-Build=330
+Release=534
+Build=331
 Debug=1
 PreRelease=0
 Special=0
@@ -74,7 +74,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.7.533.330
+FileVersion=1.7.534.331
 InternalName=7th by Ra
 LegalCopyright=
 LegalTrademarks=
@@ -121,7 +121,7 @@ Item3=M:\aEU07\EU07\
 DebugSourceDirs=C:\Ra\dp\McZapkie\
 
 [Parameters]
-RunParams=-s AI_start3.scn -v ghostview
+RunParams=
 HostApplication=
 RemoteHost=
 RemotePath=

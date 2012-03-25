@@ -21,9 +21,9 @@ class TEventLauncher;
 class TTraction; //drut
 class TTractionPowerSource; //zasilanie drutów
 
-namespace Mover
-{
 class TMoverParameters;
+namespace _mover
+{
 class TLocation;
 class TRotation;
 };

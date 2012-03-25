@@ -1906,12 +1906,12 @@ void __fastcall TTrain::OnKeyPress(int cKey)
 void __fastcall TTrain::UpdateMechPosition(double dt)
 {
 
- DynamicObject->vFront=DynamicObject->GetDirection();
+ //DynamicObject->vFront=DynamicObject->GetDirection(); //to jest ju¿ policzone
 
- DynamicObject->vUp=vWorldUp;
- DynamicObject->vFront.Normalize();
- DynamicObject->vLeft=CrossProduct(DynamicObject->vUp,DynamicObject->vFront);
- DynamicObject->vUp=CrossProduct(DynamicObject->vFront,DynamicObject->vLeft);
+ //DynamicObject->vUp=vWorldUp;
+ //DynamicObject->vFront.Normalize();
+ //DynamicObject->vLeft=CrossProduct(DynamicObject->vUp,DynamicObject->vFront);
+ //DynamicObject->vUp=CrossProduct(DynamicObject->vFront,DynamicObject->vLeft);
  matrix4x4 mat;
 
  double a1,a2,atmp;
@@ -1919,12 +1919,12 @@ void __fastcall TTrain::UpdateMechPosition(double dt)
  a2=(DynamicObject->Axle0.GetRoll()); //uwzglêdnia ju¿ kierunek ruchu
  atmp=(a1+a2); //k¹t przechy³u pud³a
  //mat.Rotation(((Axle1.GetRoll()+Axle0.GetRoll()))*0.5f,vFront); //przedtem by³o bez zmiennych
- mat.Rotation(atmp*0.5f,DynamicObject->vFront); //obrót matrycy o k¹t pud³a
+ mat.Rotation(atmp*0.5f,DynamicObject->VectorFront()); //obrót matrycy o k¹t pud³a
  //Ra: tu by siê przyda³o uwzglêdniæ rozk³ad si³:
  // - na postoju horyzont prosto, kabina skosem
  // - przy szybkiej jeŸdzie kabina prosto, horyzont pochylony
 
- DynamicObject->vUp=mat*DynamicObject->vUp;
+ DynamicObject->vUp=mat*DynamicObject->VectorUp();
  DynamicObject->vLeft=mat*DynamicObject->vLeft;
 
 

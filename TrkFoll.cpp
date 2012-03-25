@@ -68,7 +68,7 @@ void __fastcall TTrackFollower::SetCurrentTrack(TTrack *pTrack,int end)
  }
  if (!pTrack)
  {//gdy nie ma toru w kierunku jazdy
-  if (pCurrentTrack->iCategoryFlag&1) //jeœli tor kolejowy
+  //if (pCurrentTrack->iCategoryFlag&1) //jeœli tor kolejowy
    pTrack=pCurrentTrack->NullCreate(end); //tworzenie toru wykolej¹cego na przed³u¿eniu pCurrentTrack
  }
  else

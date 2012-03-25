@@ -24,7 +24,7 @@
 #include    "classes.hpp"
 #pragma hdrstop
 
-#include "Mover.hpp"
+#include "Mover.h"
 #include "mctools.hpp"
 #include "Timer.h"
 #include "Globals.h"

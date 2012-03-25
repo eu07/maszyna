@@ -121,7 +121,7 @@ public:
 private:
  TDynamicObject *pVehicle; //pojazd w którym siedzi steruj¹cy
  TDynamicObject *pVehicles[2]; //skrajne pojazdy w sk³adzie (niekoniecznie bezpoœrednio sterowane)
- Mover::TMoverParameters *Controlling; //jakim pojazdem steruje
+ TMoverParameters *Controlling; //jakim pojazdem steruje
  Mtable::TTrainParameters *TrainParams; //rozk³ad jazdy; do jakiego pociagu nalezy
  //int TrainNumber; //numer rozkladowy tego pociagu
  //AnsiString OrderCommand; //komenda pobierana z pojazdu
@@ -172,7 +172,7 @@ private:
  void __fastcall RecognizeCommand(); //odczytuje komende przekazana lokomotywie
  void __fastcall Activation(); //umieszczenie obsady w odpowiednim cz³onie
 public:
- void __fastcall PutCommand(AnsiString NewCommand,double NewValue1,double NewValue2,const Mover::TLocation &NewLocation,TStopReason reason=stopComm);
+ void __fastcall PutCommand(AnsiString NewCommand,double NewValue1,double NewValue2,const _mover::TLocation &NewLocation,TStopReason reason=stopComm);
  bool __fastcall PutCommand(AnsiString NewCommand,double NewValue1,double NewValue2,const vector3 *NewLocation,TStopReason reason=stopComm);
  bool __fastcall UpdateSituation(double dt); //uruchamiac przynajmniej raz na sekunde
  //procedury dotyczace rozkazow dla maszynisty
@@ -211,7 +211,7 @@ private:
  double WaitingTime; //zliczany czas oczekiwania do samoistnego ruszenia
  double WaitingExpireTime; //maksymlany czas oczekiwania do samoistnego ruszenia
  AnsiString __fastcall Order2Str(TOrders Order);
- int __fastcall OrderDirectionChange(int newdir,Mover::TMoverParameters *Vehicle);
+ int __fastcall OrderDirectionChange(int newdir,TMoverParameters *Vehicle);
  void __fastcall Lights(int head,int rear);
  double __fastcall Distance(vector3 &p1,vector3 &n,vector3 &p2);
  //Ra: poni¿sze przenieœæ do modu³u AI:

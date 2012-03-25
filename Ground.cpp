@@ -145,6 +145,20 @@ void __fastcall TGroundNode::Init(int n)
  Vertices=new TGroundVertex[iNumVerts];
 }
 
+__fastcall TGroundNode::TGroundNode(TGroundNodeType t,int n)
+{//utworzenie obiektu
+ TGroundNode(); //domyœlne ustawienia
+ iNumVerts=n;
+ if (iNumVerts) Vertices=new TGroundVertex[iNumVerts];
+ iType=t;
+ switch (iType)
+ {//zale¿nie od typu
+  case TP_TRACK:
+   pTrack=new TTrack(this);
+  break;
+ }
+}
+
 void __fastcall TGroundNode::InitCenter()
 {//obliczenie œrodka ciê¿koœci obiektu
  for (int i=0;i<iNumVerts;i++)
@@ -2030,10 +2044,15 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
     token="";
     parser.getTokens();
     parser >> token;
+    int refresh=0;
 
     while (token!="") //(!Parser->EndOfFile)
     {
-     SwapBuffers(hDC); //Ra: bêdzie spowalniaæ, ale ekran siê nie zawiesi 
+     if (refresh==100)
+     {SwapBuffers(hDC); //Ra: bez ogranicznika za bardzo spowalnia :(
+      refresh=0;
+     }
+     else ++refresh;
      str=AnsiString(token.c_str());
      if (str==AnsiString("node"))
      {
@@ -2599,8 +2618,8 @@ bool __fastcall TGround::InitTracks()
      switch (iConnection)
      {
       case -1: //Ra: pierwsza koncepcja zawijania samochodów i statków
-       if ((Track->iCategoryFlag&1)==0) //jeœli nie jest torem szynowym
-        Track->ConnectPrevPrev(Track,0); //³¹czenie koñca odcinka do samego siebie
+       //if ((Track->iCategoryFlag&1)==0) //jeœli nie jest torem szynowym
+       // Track->ConnectPrevPrev(Track,0); //³¹czenie koñca odcinka do samego siebie
        break;
       case 0:
        Track->ConnectPrevPrev(tmp,0);
@@ -2636,8 +2655,8 @@ bool __fastcall TGround::InitTracks()
      switch (iConnection)
      {
       case -1: //Ra: pierwsza koncepcja zawijania samochodów i statków
-       if ((Track->iCategoryFlag&1)==0) //jeœli nie jest torem szynowym
-        Track->ConnectNextNext(Track,1); //³¹czenie koñca odcinka do samego siebie
+       //if ((Track->iCategoryFlag&1)==0) //jeœli nie jest torem szynowym
+       // Track->ConnectNextNext(Track,1); //³¹czenie koñca odcinka do samego siebie
       break;
       case 0:
        Track->ConnectNextPrev(tmp,0);
@@ -3088,7 +3107,7 @@ bool __fastcall TGround::Update(double dt, int iter)
       for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
       {
          Current->DynamicObject->MoverParameters->ComputeConstans();
-         Current->DynamicObject->MoverParameters->SetCoupleDist();
+         Current->DynamicObject->CoupleDist();
          Current->DynamicObject->UpdateForce(dt,dt,false);
       }
       for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
@@ -3149,7 +3168,7 @@ bool __fastcall TGround::Update(double dt, int iter)
                &&(Current->DynamicObject->MoverParameters->CabNo!=0))
                GetTraction(Current->DynamicObject->GetPosition(), Current->DynamicObject);
             Current->DynamicObject->MoverParameters->ComputeConstans();
-            Current->DynamicObject->MoverParameters->SetCoupleDist();
+            Current->DynamicObject->CoupleDist();
             Current->DynamicObject->UpdateForce(dt,dt,true);//,true);
          }
          for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
@@ -3162,7 +3181,7 @@ bool __fastcall TGround::Update(double dt, int iter)
          for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
          {
             Current->DynamicObject->MoverParameters->ComputeConstans();
-            Current->DynamicObject->MoverParameters->SetCoupleDist();
+            Current->DynamicObject->CoupleDist();
             Current->DynamicObject->UpdateForce(dt,dt,true);//,true);
          }
          for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)

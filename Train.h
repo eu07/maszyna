@@ -67,8 +67,8 @@ public:
 
 //    bool __fastcall SHP() { fShpTimer= 0; };
 
-    inline vector3 __fastcall GetDirection() { return DynamicObject->GetDirection(); };
-    inline vector3 __fastcall GetUp() { return DynamicObject->vUp; };
+    inline vector3 __fastcall GetDirection() { return DynamicObject->VectorFront(); };
+    inline vector3 __fastcall GetUp() { return DynamicObject->VectorUp(); };
     void __fastcall UpdateMechPosition(double dt);
     bool __fastcall Update();
 //    virtual bool __fastcall RenderAlpha();

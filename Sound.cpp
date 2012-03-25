@@ -272,7 +272,7 @@ void __fastcall TSoundsManager::RestoreAll()
                 if( hr == DSERR_BUFFERLOST )
                     Sleep( 10 );
             }
-            while ( hr = Next->DSBuffer->Restore() );
+            while ((hr=Next->DSBuffer->Restore())!=NULL);
 
 //          char *Name= Next->Name;
 //          int cc= Next->Concurrent;

@@ -6,7 +6,7 @@
 #include "Classes.h"
 #include "dumb3d.h"
 using namespace Math3D;
-using namespace Mover;
+using namespace _mover;
 
 class TMemCell
 {

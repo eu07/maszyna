@@ -129,6 +129,7 @@ public:
  TGroundNode *nNext2; //lista obiektów w sektorze
  TGroundNode *nNext3; //lista obiektów renderowanych we wspólnym cyklu
  __fastcall TGroundNode();
+ __fastcall TGroundNode(TGroundNodeType t,int n=0);
  __fastcall ~TGroundNode();
  void __fastcall Init(int n);
  void __fastcall InitCenter(); //obliczenie wspó³rzêdnych œrodka
