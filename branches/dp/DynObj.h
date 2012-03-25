@@ -8,7 +8,8 @@
 //#include "Track.h"
 #include "QueryParserComp.hpp"
 #include "AnimModel.h"
-#include "Mover.hpp"
+//#include "Mover.hpp"
+#include "Mover.h"
 #include "TractionPower.h"
 //McZapkie:
 #include "MdlMngr.h"
@@ -74,6 +75,10 @@ private:
  TAnim *pAnimations; //obiekty animuj¹ce
  TSubModel **pAnimated; //lista animowanych submodeli (mo¿e byæ ich wiêcej ni¿ obiektów animuj¹cych)
  double dWheelAngle[3]; //k¹ty obrotu kó³: 0=przednie toczne, 1=napêdzaj¹ce i wi¹zary, 2=tylne toczne
+ vector3 vCoulpler[2]; //wspó³rzêdne sprzêgów do liczenia zderzeñ
+public:
+ // !!!! kabina to modyfikuje !!!!
+ vector3 vUp,vFront,vLeft; //wektory jednostkowe ustawienia pojazdu
 private:
 //Ra: pocz¹tek animacji do ogarniêcia
  //McZapkie-050402 - do krecenia kolami
@@ -200,6 +205,7 @@ protected:
     AnsiString asModel;
     int iDirection; //kierunek wzglêdem czo³a sk³adu (1=zgodny,0=przeciwny)
     void ABuScanObjects(int ScanDir,double ScanDist);
+    TDynamicObject* __fastcall ABuFindObject(TTrack *Track,int ScanDir,Byte &CouplFound,double &dist);
     void __fastcall ABuCheckMyTrack();
 
 public:
@@ -305,16 +311,16 @@ public:
     bool __fastcall RenderAlpha();
     vector3 inline __fastcall GetPosition();
     inline vector3 __fastcall AxlePositionGet() { return iAxleFirst?Axle1.pPosition:Axle0.pPosition; };
-    inline vector3 __fastcall GetDirection() { return Axle0.pPosition-Axle1.pPosition; };
+    inline vector3 __fastcall VectorFront() {return vFront;};
+    inline vector3 __fastcall VectorUp() {return vUp;};
     inline double __fastcall GetVelocity() { return MoverParameters->Vel; };
     inline double __fastcall GetLength() { return MoverParameters->Dim.L; };
     inline double __fastcall GetWidth() { return MoverParameters->Dim.W; };
     inline TTrack* __fastcall GetTrack() { return (iAxleFirst?Axle1.GetTrack():Axle0.GetTrack()); };
     //void __fastcall UpdatePos();
 
- Mover::TMoverParameters *MoverParameters;
+ TMoverParameters *MoverParameters;
 
- vector3 vUp,vFront,vLeft;
  matrix4x4 mMatrix;
  AnsiString asTrack;
  AnsiString asDestination; //dok¹d pojazd ma byæ kierowany "(stacja):(tor)"
@@ -325,10 +331,10 @@ public:
  {
   return (Axle1.GetTrack()==MyTrack?Axle1.GetDirection():Axle0.GetDirection());
  };
- inline double __fastcall ABuGetTranslation() //ABu.
- {//zwraca przesuniêcie wózka wzglêdem Point1 toru
-  return (Axle1.GetTrack()==MyTrack?Axle1.GetTranslation():Axle0.GetTranslation());
- };
+// inline double __fastcall ABuGetTranslation() //ABu.
+// {//zwraca przesuniêcie wózka wzglêdem Point1 toru
+//  return (Axle1.GetTrack()==MyTrack?Axle1.GetTranslation():Axle0.GetTranslation());
+// };
  inline double __fastcall RaDirectionGet()
  {//zwraca kierunek pojazdu na torze z aktywn¹ os¹
   return iAxleFirst?Axle1.GetDirection():Axle0.GetDirection();
@@ -351,6 +357,7 @@ public:
  bool DettachDistance(int dir);
  int Dettach(int dir,int cnt);
  TDynamicObject* __fastcall Neightbour(int &dir);
+ void __fastcall CoupleDist();
 };
 
 

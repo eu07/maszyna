@@ -377,34 +377,41 @@ void __fastcall TController::OrdersClear()
 void __fastcall TController::Activation()
 {//umieszczenie obsady w odpowiednim cz³onie
  iDirection=iDirectionOrder; //kierunek w³aœnie zosta³ ustalony (zmieniony)
- TDynamicObject *d=pVehicle; //w tym siedzi AI
- if (TestFlag(d->MoverParameters->Couplers[iDirectionOrder*d->DirectionGet()<0?1:0].CouplingFlag,ctrain_controll))
-  Controlling->MainSwitch(false); //dezaktywacja czuwaka, jeœli przejœcie do innego cz³onu
- Controlling->CabDeactivisation(); //tak jest w Train.cpp
- Controlling->DecLocalBrakeLevel(10); //zwolnienie hamulca
- //przejœcie AI na drug¹ stronê EN57, ET41 itp.
- while (TestFlag(d->MoverParameters->Couplers[iDirectionOrder*d->DirectionGet()<0?1:0].CouplingFlag,ctrain_controll))
- {//jeœli pojazd z przodu jest ukrotniony, to przechodzimy do niego
-  d=iDirectionOrder<0?d->Next():d->Prev(); //przechodzimy do nastêpnego cz³onu
-  if (d?!d->Mechanik:false)
-  {d->Mechanik=this; //na razie bilokacja
-   if (d->DirectionGet()!=pVehicle->DirectionGet()) //jeœli s¹ przeciwne do siebie
-    iDirection=-iDirection; //to bêdziemy jechaæ w drug¹ stronê wzglêdem zasiedzianego pojazdu
-   pVehicle->Mechanik=NULL; //tam ju¿ nikogo nie ma
-   pVehicle->MoverParameters->CabNo=0; //wy³¹czanie kabin po drodze
-   //pVehicle->MoverParameters->ActiveCab=0;
-   //pVehicle->MoverParameters->DirAbsolute=pVehicle->MoverParameters->ActiveDir*pVehicle->MoverParameters->CabNo;
-   pVehicle=d; //a mechu ma nowy pojazd (no, cz³on)
+ if (iDirection)
+ {//jeœli jest ustalony kierunek
+  TDynamicObject *d=pVehicle; //w tym siedzi AI
+  int brake=Controlling->LocalBrake;
+  if (TestFlag(d->MoverParameters->Couplers[iDirectionOrder*d->DirectionGet()<0?1:0].CouplingFlag,ctrain_controll))
+  {Controlling->MainSwitch(false); //dezaktywacja czuwaka, jeœli przejœcie do innego cz³onu
+   Controlling->DecLocalBrakeLevel(10); //zwolnienie hamulca w opuszczanym pojeŸdzie
   }
-  else break; //jak zajête, albo koniec sk³adu, to mechanik dalej nie idzie (wywaliæ drugiego?)
+  Controlling->CabDeactivisation(); //tak jest w Train.cpp
+  //przejœcie AI na drug¹ stronê EN57, ET41 itp.
+  while (TestFlag(d->MoverParameters->Couplers[iDirectionOrder*d->DirectionGet()<0?1:0].CouplingFlag,ctrain_controll))
+  {//jeœli pojazd z przodu jest ukrotniony, to przechodzimy do niego
+   d=iDirectionOrder<0?d->Next():d->Prev(); //przechodzimy do nastêpnego cz³onu
+   if (d?!d->Mechanik:false)
+   {d->Mechanik=this; //na razie bilokacja
+    if (d->DirectionGet()!=pVehicle->DirectionGet()) //jeœli s¹ przeciwne do siebie
+     iDirection=-iDirection; //to bêdziemy jechaæ w drug¹ stronê wzglêdem zasiedzianego pojazdu
+    pVehicle->Mechanik=NULL; //tam ju¿ nikogo nie ma
+    pVehicle->MoverParameters->CabNo=0; //wy³¹czanie kabin po drodze
+    //pVehicle->MoverParameters->ActiveCab=0;
+    //pVehicle->MoverParameters->DirAbsolute=pVehicle->MoverParameters->ActiveDir*pVehicle->MoverParameters->CabNo;
+    pVehicle=d; //a mechu ma nowy pojazd (no, cz³on)
+   }
+   else break; //jak zajête, albo koniec sk³adu, to mechanik dalej nie idzie (wywaliæ drugiego?)
+  }
+  Controlling=pVehicle->MoverParameters; //skrót do obiektu parametrów, mo¿e byæ nowy
+  //Ra: to prze³¹czanie poni¿ej jest tu bez sensu
+  Controlling->ActiveCab=iDirection; //aktywacja kabiny w prowadzonym poje¿dzie
+  //Controlling->CabNo=iDirection;
+  //Controlling->ActiveDir=0; //¿eby sam ustawi³ kierunek
+  Controlling->CabActivisation(); //uruchomienie kabin w cz³onach
+  if (AIControllFlag) //jeœli prowadzi komputer
+   if (brake) //hamowanie tylko jeœli by³ wczeœniej zahamowany (bo mo¿liwe, ¿e jedzie!)
+    Controlling->IncLocalBrakeLevel(brake); //zahamuj jak wczeœniej
  }
- Controlling=pVehicle->MoverParameters; //skrót do obiektu parametrów, mo¿e byæ nowy
- //Ra: to prze³¹czanie poni¿ej jest tu bez sensu
- Controlling->ActiveCab=iDirection; //aktywacja kabiny w prowadzonym poje¿dzie
- //Controlling->CabNo=iDirection;
- //Controlling->ActiveDir=0; //¿eby sam ustawi³ kierunek
- Controlling->CabActivisation(); //uruchomienie kabin w cz³onach
- Controlling->IncLocalBrakeLevel(10); //zaci¹gniêcie hamulca
 };
 
 bool __fastcall TController::CheckVehicles()
@@ -469,7 +476,7 @@ void __fastcall TController::Lights(int head,int rear)
  pVehicles[1]->RaLightsSet(-1,rear); //zapalenie koñcówek w ostatnim
 }
 
-int __fastcall TController::OrderDirectionChange(int newdir,Mover::TMoverParameters *Vehicle)
+int __fastcall TController::OrderDirectionChange(int newdir,TMoverParameters *Vehicle)
 {//zmiana kierunku jazdy, niezale¿nie od kabiny
  int testd;
  testd=newdir;
@@ -543,7 +550,7 @@ void __fastcall TController::SetDriverPsyche()
   AccPreferred=HardAcceleration; //agresywny
   //if (Controlling)
   if (Controlling->CategoryFlag&2)
-   WaitingExpireTime=3; //tyle ma czekaæ samochód, zanim siê ruszy
+   WaitingExpireTime=1; //tyle ma czekaæ samochód, zanim siê ruszy
   else
    WaitingExpireTime=61; //tyle ma czekaæ, zanim siê ruszy
  }
@@ -552,7 +559,7 @@ void __fastcall TController::SetDriverPsyche()
   ReactionTime=EasyReactionTime; //spokojny
   AccPreferred=EasyAcceleration;
   if (Controlling->CategoryFlag&2)
-   WaitingExpireTime=5; //tyle ma czekaæ samochód, zanim siê ruszy
+   WaitingExpireTime=3; //tyle ma czekaæ samochód, zanim siê ruszy
   else
    WaitingExpireTime=65; //tyle ma czekaæ, zanim siê ruszy
  }
@@ -565,7 +572,7 @@ void __fastcall TController::SetDriverPsyche()
   if ((Controlling->V>0.1)&&(Controlling->Couplers[0].Connected)) //dopisac to samo dla V<-0.1 i zaleznie od Psyche
    if (Controlling->Couplers[0].CouplingFlag==0) //jeœli nie ma nic z przodu
    {//Ra: funkcje s¹ odpowiednie?
-    AccPreferred=(*Controlling->Couplers[0].Connected)->V; //tymczasowa wartoœæ
+    AccPreferred=Controlling->Couplers[0].Connected->V; //tymczasowa wartoœæ
     AccPreferred=(AccPreferred*AccPreferred-Controlling->V*Controlling->V)/(25.92*(Controlling->Couplers[0].Dist-maxdist*fabs(Controlling->V)));
     AccPreferred=Min0R(AccPreferred,EasyAcceleration);
    }
@@ -932,7 +939,7 @@ void __fastcall TController::RecognizeCommand()
 }
 
 
-void __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,double NewValue2,const Mover::TLocation &NewLocation,TStopReason reason)
+void __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,double NewValue2,const TLocation &NewLocation,TStopReason reason)
 {//wys³anie komendy przez event PutValues, jak pojazd ma obsadê, to wysy³a tutaj, a nie do pojazdu bezpoœrednio
  vector3 sl;
  sl.x=-NewLocation.X; //zamiana na wspó³rzêdne scenerii
@@ -1663,7 +1670,7 @@ bool __fastcall TController::UpdateSituation(double dt)
       //zapobieganie poslizgowi w czlonie silnikowym
       if (Controlling->Couplers[0].Connected!=NULL)
        if (TestFlag(Controlling->Couplers[0].CouplingFlag,ctrain_controll))
-        if ((*Controlling->Couplers[0].Connected)->SlippingWheels)
+        if (Controlling->Couplers[0].Connected->SlippingWheels)
          if (!Controlling->DecScndCtrl(1))
          {
           if (!Controlling->DecMainCtrl(1))
@@ -1931,6 +1938,7 @@ TTrack* __fastcall TController::TraceRoute(double &fDistance,double &fDirection,
 {//szukanie semafora w kierunku jazdy (eventu odczytu komórki pamiêci)
  //albo ustawienia innej prêdkoœci albo koñca toru
  TTrack *pTrackChVel=Track; //tor ze zmian¹ prêdkoœci
+ TTrack *pTrackFrom; //odcinek poprzedni, do znajdywania koñca dróg
  double fDistChVel=-1; //odleg³oœæ do toru ze zmian¹ prêdkoœci
  double fCurrentDistance=pVehicle->RaTranslationGet(); //aktualna pozycja na torze
  double s=0;
@@ -1949,6 +1957,7 @@ TTrack* __fastcall TController::TraceRoute(double &fDistance,double &fDirection,
  while (s<fDistance)
  {
   //Track->ScannedFlag=true; //do pokazywania przeskanowanych torów
+  pTrackFrom=Track; //zapamiêtanie aktualnego odcinka
   s+=fCurrentDistance; //doliczenie kolejnego odcinka do przeskanowanej d³ugoœci
   if (fDirection>0)
   {//jeœli szukanie od Point1 w kierunku Point2
@@ -1962,6 +1971,7 @@ TTrack* __fastcall TController::TraceRoute(double &fDistance,double &fDirection,
     fDirection=-fDirection;
    Track=Track->CurrentPrev(); //mo¿e byæ NULL
   }
+  if (Track==pTrackFrom) Track=NULL; //koniec, tak jak dla torów
   if (Track?(Track->fVelocity==0.0)||(Track->iDamageFlag&128):true)
   {//gdy dalej toru nie ma albo zerowa prêdkoœæ, albo uszkadza pojazd
    fDistance=s;
@@ -2091,7 +2101,7 @@ void __fastcall TController::ScanEventTrack()
   //Ra: oprócz semafora szukamy najbli¿szego ograniczenia (koniec/brak toru to ograniczenie do zera)
   TEvent *ev=NULL; //event potencjalnie od semafora
   TTrack *scantrack=TraceRoute(scandist,scandir,pVehicles[0]->RaTrackGet(),ev); //wg drugiej osi w kierunku ruchu
-  vector3 dir=SafeNormalize(startdir*pVehicles[0]->GetDirection()); //wektor w kierunku jazdy/szukania
+  vector3 dir=startdir*pVehicles[0]->VectorFront(); //wektor w kierunku jazdy/szukania
   if (!scantrack) //jeœli wykryto koniec toru albo zerow¹ prêdkoœæ
   {
    //if (!Mechanik->SetProximityVelocity(0.7*fabs(scandist),0))
@@ -2101,10 +2111,11 @@ void __fastcall TController::ScanEventTrack()
 #if LOGVELOCITY
     WriteLog("End of track:");
 #endif
+    double vend=(Controlling->CategoryFlag&1)?0:20; //poci¹g ma stan¹æ, samochód zwolniæ
     if (scandist>10) //jeœli zosta³o wiêcej ni¿ 10m do koñca toru
-     SetProximityVelocity(scandist,0,&pos); //informacja o zbli¿aniu siê do koñca
+     SetProximityVelocity(scandist,vend,&pos); //informacja o zbli¿aniu siê do koñca
     else
-    {PutCommand("SetVelocity",0,0,&pos,stopEnd); //na koñcu toru ma staæ
+    {PutCommand("SetVelocity",vend,vend,&pos,stopEnd); //na koñcu toru ma staæ
 #if LOGVELOCITY
      WriteLog("-> SetVelocity 0 0");
 #endif

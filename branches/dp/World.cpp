@@ -87,8 +87,9 @@ __fastcall TWorld::~TWorld()
 void __fastcall TWorld::TrainDelete(TDynamicObject *d)
 {//usuniêcie pojazdu prowadzonego przez u¿ytkownika
  if (d)
-  if (Train->DynamicObject!=d)
-   return; //nie tego usuwaæ
+  if (Train)
+   if (Train->DynamicObject!=d)
+    return; //nie tego usuwaæ
  delete Train; //i nie ma czym sterowaæ
  Train=NULL;
  Controlled=NULL; //tego te¿ ju¿ nie ma
@@ -861,7 +862,7 @@ bool __fastcall TWorld::Update()
     if (FreeFlyModeFlag)
     {//je¿eli poza kabin¹, przestawiamy w jej okolicê - OK
      //Camera.Pos=Train->pMechPosition+Normalize(Train->GetDirection())*20;
-     Camera.Pos=Controlled->GetPosition()+(Controlled->MoverParameters->ActiveCab>=0?30:-30)*Normalize(Controlled->GetDirection())+vector3(0,5,0);
+     Camera.Pos=Controlled->GetPosition()+(Controlled->MoverParameters->ActiveCab>=0?30:-30)*Controlled->VectorFront()+vector3(0,5,0);
      Camera.LookAt=Controlled->GetPosition();
      Camera.RaLook(); //jednorazowe przestawienie kamery
      //¿eby nie bylo numerów z 'fruwajacym' lokiem - konsekwencja bujania pud³a
@@ -888,7 +889,7 @@ bool __fastcall TWorld::Update()
    }
    else if (pDynamicNearest) //jeœli jest pojazd wykryty blisko
    {//patrzenie na najbli¿szy pojazd
-    Camera.Pos=pDynamicNearest->GetPosition()+(pDynamicNearest->MoverParameters->ActiveCab>=0?30:-30)*Normalize(pDynamicNearest->GetDirection())+vector3(0,5,0);
+    Camera.Pos=pDynamicNearest->GetPosition()+(pDynamicNearest->MoverParameters->ActiveCab>=0?30:-30)*pDynamicNearest->VectorFront()+vector3(0,5,0);
     Camera.LookAt=pDynamicNearest->GetPosition();
     Camera.RaLook(); //jednorazowe przestawienie kamery
    }
@@ -959,17 +960,17 @@ bool __fastcall TWorld::Update()
 
  if (Train)
  {//rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
-  vector3 vFront=Train->DynamicObject->GetDirection();
+  vector3 vFront=Train->DynamicObject->VectorFront();
   if ((Train->DynamicObject->MoverParameters->CategoryFlag&2) && (Train->DynamicObject->MoverParameters->ActiveCab<0)) //TODO: zrobic to eleganciej z plynnym zawracaniem
      vFront=-vFront;
   vector3 vUp=vWorldUp; //sta³a
-  vFront.Normalize();
+  //vFront.Normalize();
   vector3 vLeft=CrossProduct(vUp,vFront);
   vUp=CrossProduct(vFront,vLeft);
   matrix4x4 mat;
   mat.Identity();
   mat.BasisChange(vLeft,vUp,vFront);
-  Train->DynamicObject->mMatrix= Inverse(mat);
+  Train->DynamicObject->mMatrix=Inverse(mat);
   glPushMatrix();
   //ABu: Rendering kabiny jako ostatniej, zeby bylo widac przez szyby, tylko w widoku ze srodka
   if ((Train->DynamicObject->mdKabina!=Train->DynamicObject->mdModel) && Train->DynamicObject->bDisplayCab && !FreeFlyModeFlag)
@@ -1611,7 +1612,7 @@ bool __fastcall TWorld::Render()
     {//kierunek pojazdu oraz kierunek wzglêdny
      vector3 tempangle;
      double modelrotate;
-     tempangle=Controlled->GetDirection()*(Controlled->MoverParameters->ActiveCab==-1 ? -1 : 1);
+     tempangle=Controlled->VectorFront()*(Controlled->MoverParameters->ActiveCab==-1 ? -1 : 1);
      modelrotate=ABuAcos(tempangle);
      Global::SetCameraRotation(Camera.Yaw-modelrotate);
      }
@@ -1857,6 +1858,23 @@ void __fastcall TWorld::ModifyTGA(const AnsiString &dir)
     else
      if (sr.Name.LowerCase().SubString(sr.Name.Length()-3,4)==".tga")
       TTexturesManager::GetTextureID(AnsiString(dir+sr.Name).c_str());
+  } while (FindNext(sr)==0);
+  FindClose(sr);
+ }
+};
+//---------------------------------------------------------------------------
+void __fastcall TWorld::CreateE3D(const AnsiString &dir)
+{//rekurencyjna generowanie plików E3D
+ TSearchRec sr;
+ if (FindFirst(dir+"*.*",faDirectory|faArchive,sr)==0)
+ {do
+  {
+   if (sr.Name[1]!='.')
+    if ((sr.Attr&faDirectory)) //jeœli katalog, to rekurencja
+     CreateE3D(dir+sr.Name+"/");
+    else
+     if (sr.Name.LowerCase().SubString(sr.Name.Length()-3,4)==".t3d")
+      TModelsManager::GetModel(AnsiString(dir+sr.Name).c_str());
   } while (FindNext(sr)==0);
   FindClose(sr);
  }

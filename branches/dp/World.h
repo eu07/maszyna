@@ -53,6 +53,7 @@ private:
     int iCheckFPS; //kiedy znów sprawdziæ FPS, ¿eby wy³¹czaæ optymalizacji od razu do zera
 public:
  void __fastcall ModifyTGA(const AnsiString &dir="");
+ void __fastcall CreateE3D(const AnsiString &dir="");
 };
 //---------------------------------------------------------------------------
 #endif

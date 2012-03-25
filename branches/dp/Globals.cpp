@@ -26,7 +26,7 @@
 #include "Globals.h"
 #include "QueryParserComp.hpp"
 #include "usefull.h"
-#include "mover.hpp"
+#include "Mover.h"
 #include "Driver.h"
 #include "Console.h"
 #include <Controls.hpp> //do odczytu daty
@@ -57,7 +57,7 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asVersion="Compilation 2012-03-22, release 1.7.533.330."; //tutaj, bo wysy³any
+AnsiString Global::asVersion="Compilation 2012-03-25, release 1.7.534.331."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 double Global::fSunDeclination=0.0; //deklinacja S³oñca

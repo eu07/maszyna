@@ -27,7 +27,7 @@
 #include "Globals.h"
 #include "Console.h"
 #include "QueryParserComp.hpp"
-#include <Mover.hpp>
+#include "Mover.h"
 #include "Train.h" //to tu bez sensu jest
 #include "Logs.h"
 #pragma hdrstop
@@ -56,7 +56,6 @@ USEUNIT("AnimModel.cpp");
 USEUNIT("Ground.cpp");
 USEUNIT("TrkFoll.cpp");
 USEUNIT("Segment.cpp");
-USEUNIT("McZapkie\mover.pas");
 USEUNIT("Sound.cpp");
 USEUNIT("AdvSound.cpp");
 USEUNIT("Track.cpp");
@@ -81,6 +80,8 @@ USEUNIT("Classes.cpp");
 USEUNIT("Driver.cpp");
 USEUNIT("Names.cpp");
 USEUNIT("Console.cpp");
+USEUNIT("Mover.cpp");
+USEUNIT("McZapkie\_mover.pas");
 //---------------------------------------------------------------------------
 #include "World.h"
 
@@ -589,6 +590,13 @@ int WINAPI WinMain( HINSTANCE hInstance,     //instance
    {//wykonanie modyfikacji wszystkich plików TGA
     Global::iModifyTGA=-1; //specjalny tryb wykonania totalnej modyfikacji
    }
+   else if (str==AnsiString("-e3d"))
+   {//wygenerowanie wszystkich plików E3D
+    if (Global::iConvertModels>0)
+     Global::iConvertModels=-Global::iConvertModels; //specjalny tryb
+    else
+     Global::iConvertModels=-2; //z optymalizacj¹
+   }
    else
     Error("Program usage: EU07 [-s sceneryfilepath] [-v vehiclename]",!Global::bWriteLogEnabled);
   }
@@ -617,10 +625,14 @@ int WINAPI WinMain( HINSTANCE hInstance,     //instance
  SystemParametersInfo(SPI_GETKEYBOARDDELAY,0,&iOldDelay,0);
  SystemParametersInfo(SPI_SETKEYBOARDSPEED,20,NULL,0);
  //SystemParametersInfo(SPI_SETKEYBOARDDELAY,10,NULL,0);
- if (Global::iModifyTGA==-1)
+ if (Global::iModifyTGA<0)
  {//tylko modyfikacja TGA, bez uruchamiania symulacji
   Global::iMaxTextureSize=64; //¿eby nie zamulaæ pamiêci
   World.ModifyTGA(); //rekurencyjne przegl¹danie katalogów
+ }
+ else if (Global::iConvertModels<0)
+ {Global::iConvertModels=-Global::iConvertModels;
+  World.CreateE3D(); //rekurencyjne przegl¹danie katalogów
  }
  else
  {//g³ówna pêtla programu

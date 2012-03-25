@@ -1,4 +1,4 @@
-unit mover;          {fizyka ruchu dla symulatora lokomotywy}
+unit _mover;          {fizyka ruchu dla symulatora lokomotywy}
 
 (*
     MaSzyna EU07 locomotive simulator
@@ -120,10 +120,10 @@ CONST
    ctrain_coupler=1;        //sprzeg fizyczny
    ctrain_pneumatic=2;      //przewody hamulcowe
    ctrain_controll=4;       //przewody steruj¹ce (ukrotnienie)
-   ctrain_power=8;          //przewody zasilaj¹ce (WN)
+   ctrain_power=8;          //przewody zasilaj¹ce (WN, ogrzewanie)
    ctrain_passenger=16;     //mostek przejœciowy
    ctrain_scndpneumatic=32; //przewody 8 atm (¿ó³te; zasilanie powietrzem)
-   ctrain_heating=64;       //ogrzewanie (elektryczne?)
+   ctrain_heating=64;       //nie u¿yawne
 
    {typ hamulca elektrodynamicznego}
    dbrake_none=0;
@@ -185,9 +185,7 @@ CONST
    dt_181=$40;
 
 TYPE
-    PMoverParameters=^TMoverParameters;
-
-        {ogolne}
+    {ogolne}
     TLocation = record
                   X,Y,Z: real;    {lokacja}
                 end;
@@ -221,28 +219,6 @@ TYPE
                       TractionResistivity: real; {rezystancja styku}
                     end;
     {powyzsze parametry zwiazane sa z torem po ktorym aktualnie pojazd jedzie}
-
-    {sprzegi}
-    TCouplerType=(NoCoupler,Articulated,Bare,Chain,Screw,Automatic);
-    TCoupling = record
-                  {parametry}
-                  SpringKB,SpringKC,beta:real;   {stala sprezystosci zderzaka/sprzegu, %tlumiennosci }
-                  DmaxB,FmaxB,DmaxC,FmaxC: real; {tolerancja scisku/rozciagania, sila rozerwania}
-                  CouplerType: TCouplerType;     {typ sprzegu}
-                  {zmienne}
-                  CouplingFlag : byte; {0 - wirtualnie, 1 - sprzegi, 2 - pneumatycznie, 4 - sterowanie, 8 - kabel mocy}
-                  AllowedFlag : byte;          //Ra: znaczenie jak wy¿ej, maska dostêpnych
-                  Render: boolean;             {ABu: czy rysowac jak zaczepiony sprzeg}
-                  CoupleDist: real;            {ABu: optymalizacja - liczenie odleglosci raz na klatkê, bez iteracji}
-                  Connected: PMoverParameters; {co jest podlaczone}
-                  ConnectedNr: byte;           //Ra: od której strony pod³¹czony do (Connected): 0=przód, 1=ty³
-                  CForce: real;                {sila z jaka dzialal}
-                  Dist: real;                  {strzalka ugiecia zderzaków}
-                  CheckCollision: boolean;     {czy sprawdzac sile czy pedy}
-                end;
-
-    TCouplers= array[0..1] of TCoupling;
-    //TCouplerNr= array[0..1] of byte; //ABu: nr sprzegu z ktorym polaczony; Ra: wrzuciæ do TCoupling
 
     {typy hamulcow zespolonych}
     TBrakeSystem = (Individual, Pneumatic, ElectroPneumatic);
@@ -328,7 +304,7 @@ TYPE
                 Pmin: real;
                 Pmax: real;
                 end;
-    TShuntSchemeTable = array[0..32] of TShuntScheme;            
+    TShuntSchemeTable = array[0..32] of TShuntScheme;
     TMPTRelay = record {lista przekaznikow bocznikowania}
                 Iup: real;
                 Idown: real;
@@ -336,8 +312,8 @@ TYPE
     TMPTRelayTable = array[0..7] of TMPTRelay;
 
     TMotorParameters = record
-                        mfi,mIsat:real; { aproksymacja M(I) silnika} {dla dizla mIsat=przekladnia biegu}
-                        fi,Isat: real;  { aproksymacja E(n)=fi*n}    {dla dizla fi, mfi: predkosci przelozenia biegu <-> }
+                        mfi,mIsat:real; // aproksymacja M(I) silnika} {dla dizla mIsat=przekladnia biegu
+                        fi,Isat: real;  // aproksymacja E(n)=fi*n}    {dla dizla fi, mfi: predkosci przelozenia biegu <->
                         AutoSwitch: boolean;
                        end;
 
@@ -350,9 +326,41 @@ TYPE
                        RadioStop:boolean; //czy jest RadioStop
                      end;
 
+ //Ra: to oddzielnie, bo siê kompilatorowi miesza
+ TTransmision=
+  record  //liczba zebow przekladni}
+   NToothM, NToothW : byte;
+   Ratio: real;  {NToothW/NToothM}
+  end;
+
+ {sprzegi}
+ TCouplerType=(NoCoupler,Articulated,Bare,Chain,Screw,Automatic);
+ //Ra: T_MoverParameters jako klasa jest ju¿ wskaŸnikiem na poziomie Pascala
+ //P_MoverParameters=^T_MoverParameters
+ T_MoverParameters=class;
+ TCoupling = record
+               {parametry}
+               SpringKB,SpringKC,beta:real;   {stala sprezystosci zderzaka/sprzegu, %tlumiennosci }
+               DmaxB,FmaxB,DmaxC,FmaxC: real; {tolerancja scisku/rozciagania, sila rozerwania}
+               CouplerType: TCouplerType;     {typ sprzegu}
+               {zmienne}
+               CouplingFlag : byte; {0 - wirtualnie, 1 - sprzegi, 2 - pneumatycznie, 4 - sterowanie, 8 - kabel mocy}
+               AllowedFlag : byte;          //Ra: znaczenie jak wy¿ej, maska dostêpnych
+               Render: boolean;             {ABu: czy rysowac jak zaczepiony sprzeg}
+               CoupleDist: real;            {ABu: optymalizacja - liczenie odleglosci raz na klatkê, bez iteracji}
+               Connected: T_MoverParameters; {co jest podlaczone}
+               ConnectedNr: byte;           //Ra: od której strony pod³¹czony do (Connected): 0=przód, 1=ty³
+               CForce: real;                {sila z jaka dzialal}
+               Dist: real;                  {strzalka ugiecia zderzaków}
+               CheckCollision: boolean;     {czy sprawdzac sile czy pedy}
+             end;
+
+ //TCouplers= array[0..1] of TCoupling;
+ //TCouplerNr= array[0..1] of byte; //ABu: nr sprzegu z ktorym polaczony; Ra: wrzuciæ do TCoupling
+
     {----------------------------------------------}
     {glowny obiekt}
-    TMoverParameters = class(TObject)
+    T_MoverParameters = class(TObject) //Ra: dodana kreska w celu zrobienia wrappera
                dMoveLen:real;
                filename:string;
                {---opis lokomotywy, wagonu itp}
@@ -430,10 +438,11 @@ TYPE
                MotorParam: array[0..MotorParametersArraySize] of TMotorParameters;
                                         {rozne parametry silnika przy bocznikowaniach}
                                         {dla lokomotywy spalinowej z przekladnia mechaniczna: przelozenia biegow}
-               Transmision : record   {liczba zebow przekladni}
-                               NToothM, NToothW : byte;
-                               Ratio: real;  {NToothW/NToothM}
-                             end;
+               Transmision : TTransmision;
+                // record   {liczba zebow przekladni}
+                //  NToothM, NToothW : byte;
+                //  Ratio: real;  {NToothW/NToothM}
+                // end;
                NominalVoltage: real;   {nominalne napiecie silnika}
                WindingRes : real;
                CircuitRes : real;      {rezystancje silnika i obwodu}
@@ -501,7 +510,7 @@ TYPE
                 Loc: TLocation; //pozycja pojazdów do wyznaczenia odleg³oœci pomiêdzy sprzêgami
                 Rot: TRotation;
                 Name: string;                       {nazwa wlasna}
-                Couplers: TCouplers;                {urzadzenia zderzno-sprzegowe, polaczenia miedzy wagonami}
+                Couplers: array[0..1] of TCoupling;  //urzadzenia zderzno-sprzegowe, polaczenia miedzy wagonami
                 ScanCounter: integer;   {pomocnicze do skanowania sprzegow}
                 EventFlag: boolean;                 {!o True jesli cos nietypowego sie wydarzy}
                 SoundFlag: byte;                    {!o patrz stale sound_ }
@@ -715,13 +724,14 @@ TYPE
                 procedure UpdateScndPipePressure(dt:real);
 
                {! funkcje laczace/rozlaczajace sprzegi}
-               function Attach(ConnectNo: byte; ConnectToNr: byte; ConnectTo:PMoverParameters; CouplingType: byte):boolean; {laczenie}
-               function DettachDistance(ConnectNo: byte):boolean; //odleg³oœæ roz³¹czania
-               function Dettach(ConnectNo: byte):boolean;                    {rozlaczanie}
+               //Ra: przeniesione do C++
+               //function Attach(ConnectNo: byte; ConnectToNr: byte; ConnectTo:P_MoverParameters; CouplingType: byte):boolean; {laczenie}
+               //function DettachDistance(ConnectNo: byte):boolean; //odleg³oœæ roz³¹czania
+               //function Dettach(ConnectNo: byte):boolean;                    {rozlaczanie}
 
                {funkcje obliczajace sily}
                 procedure ComputeConstans; //ABu: wczesniejsze wyznaczenie stalych dla liczenia sil
-                procedure SetCoupleDist;   //ABu: wyznaczenie odleglosci miedzy wagonami
+                //procedure SetCoupleDist;   //ABu: wyznaczenie odleglosci miedzy wagonami
                 function ComputeMass:real;
                 function Adhesive(staticfriction:real): real;
                 function TractionForce(dt:real):real;
@@ -838,7 +848,7 @@ TYPE
                 procedure SendAVL(AccS,AccN,V,dL:real; CN:byte); }
               end;    {ufff}
 
-{   PMoverParameters=^TMoverParameters; }
+{   P_MoverParameters=^T_MoverParameters; }
 function Distance(Loc1,Loc2: TLocation; Dim1,Dim2:TDimension) : real;
 
 {----------------------------------------------------------------}
@@ -889,7 +899,7 @@ begin
 end;
 
 function Distance(Loc1,Loc2:TLocation;Dim1,Dim2:TDimension):real;
-{zwraca odleg³oœæ pomiêdzy pojazdami (Loc1) i (Loc2) z uwzglêdnieneim ich d³ugoœci}
+//zwraca odleg³oœæ pomiêdzy pojazdami (Loc1) i (Loc2) z uwzglêdnieneim ich d³ugoœci (kule!)
 var Dist:real;
 begin
  Dist:=SQRT(SQR(Loc2.x-Loc1.x)+SQR(Loc1.y-Loc2.y));
@@ -960,15 +970,15 @@ function SPR(ph,pl:real): real;
 begin
   SPR:=0.674*(ph-pl)/(1.13*ph-pl+0.013);
 end;
-{---------rozwiniecie deklaracji metod obiektu TMoverParameters--------}
-function TMoverParameters.GetTrainsetVoltage: boolean;
-{ABu: funkcja zwracajaca napiecie dla calego skladu, przydatna dla EZT}
+{---------rozwiniecie deklaracji metod obiektu T_MoverParameters--------}
+function T_MoverParameters.GetTrainsetVoltage: boolean;
+//ABu: funkcja zwracajaca napiecie dla calego skladu, przydatna dla EZT
 var voltf: boolean;
     voltr: boolean;
   begin
     if Couplers[0].Connected<>nil then
       begin
-        if Couplers[0].Connected^.PantFrontVolt or Couplers[0].Connected^.PantRearVolt then
+        if Couplers[0].Connected.PantFrontVolt or Couplers[0].Connected.PantRearVolt then
           voltf:=true
         else
           voltf:=false;
@@ -977,7 +987,7 @@ var voltf: boolean;
         voltf:=false;
       if Couplers[1].Connected<>nil then
       begin
-        if Couplers[1].Connected^.PantFrontVolt or Couplers[1].Connected^.PantRearVolt then
+        if Couplers[1].Connected.PantFrontVolt or Couplers[1].Connected.PantRearVolt then
           voltr:=true
         else
           voltr:=false;
@@ -989,7 +999,7 @@ var voltf: boolean;
 
 
 
-function TMoverParameters.Physic_ReActivation: boolean;
+function T_MoverParameters.Physic_ReActivation: boolean;
  begin
    if PhysicActivation then
     Physic_Reactivation:=false
@@ -1004,7 +1014,7 @@ function TMoverParameters.Physic_ReActivation: boolean;
 
 {stosunek obecnego nastawienia sily hamowania do maksymalnej nastawy}
 {
-function TMoverParameters.BrakeRatio: real;
+function T_MoverParameters.BrakeRatio: real;
  begin
    if BrakeCtrlPosNo>0 then
     begin
@@ -1018,7 +1028,7 @@ function TMoverParameters.BrakeRatio: real;
  end;
 }
 
-function TMoverParameters.LocalBrakeRatio: real;
+function T_MoverParameters.LocalBrakeRatio: real;
 var LBR:real;
 begin
   if LocalBrakePosNo>0 then
@@ -1030,7 +1040,7 @@ begin
  LocalBrakeRatio:=LBR;
 end;
 
-function TMoverParameters.PipeRatio: real;
+function T_MoverParameters.PipeRatio: real;
 var pr:real;
 begin
   if DeltaPipePress>0 then
@@ -1050,7 +1060,7 @@ begin
   PipeRatio:=pr;
 end;
 
-function TMoverParameters.RealPipeRatio: real;
+function T_MoverParameters.RealPipeRatio: real;
 var rpp:real;
 begin
   if DeltaPipePress>0 then
@@ -1060,7 +1070,7 @@ begin
   RealPipeRatio:=rpp;
 end;
 
-function TMoverParameters.BrakeVP: real;
+function T_MoverParameters.BrakeVP: real;
 begin
   if BrakeVVolume>0 then
    BrakeVP:=Volume/(10.0*BrakeVVolume)
@@ -1068,7 +1078,7 @@ begin
 end;
 
 {reczne przelaczanie hamulca elektrodynamicznego}
-function TMoverParameters.DynamicBrakeSwitch(Switch:boolean):boolean;
+function T_MoverParameters.DynamicBrakeSwitch(Switch:boolean):boolean;
 var b:byte;
 begin
   if (DynamicBrakeType=dbrake_switch) and (MainCtrlPos=0) then
@@ -1078,14 +1088,14 @@ begin
      for b:=0 to 1 do
       with Couplers[b] do
        if TestFlag(CouplingFlag,ctrain_controll) then
-        Connected^.DynamicBrakeFlag:=DynamicBrakeFlag;
+        Connected.DynamicBrakeFlag:=DynamicBrakeFlag;
    end
   else
    DynamicBrakeSwitch:=False;
 end;
 
 
-function TMoverParameters.SendCtrlBroadcast(CtrlCommand:string;ctrlvalue:real):boolean;
+function T_MoverParameters.SendCtrlBroadcast(CtrlCommand:string;ctrlvalue:real):boolean;
 var b:byte; OK:boolean;
 begin
   OK:=((CtrlCommand<>CommandIn.Command) and (ctrlvalue<>CommandIn.Value1));
@@ -1093,13 +1103,13 @@ begin
    for b:=0 to 1 do
     with Couplers[b] do
      if TestFlag(CouplingFlag,ctrain_controll) then
-      if Connected^.SetInternalCommand(CtrlCommand,ctrlvalue,DirF(b)) then
-       OK:=Connected^.RunInternalCommand or OK;
+      if Connected.SetInternalCommand(CtrlCommand,ctrlvalue,DirF(b)) then
+       OK:=Connected.RunInternalCommand or OK;
   SendCtrlBroadcast:=OK;
 end;
 
 
-function TMoverParameters.SendCtrlToNext(CtrlCommand:string;ctrlvalue,dir:real):boolean;
+function T_MoverParameters.SendCtrlToNext(CtrlCommand:string;ctrlvalue,dir:real):boolean;
 //wys³anie komendy w kierunku dir (1=przod,-1=ty³)
 var
  OK:Boolean;
@@ -1114,16 +1124,16 @@ begin
    if TestFlag(CouplingFlag,ctrain_controll) then
     if ConnectedNr<>d then //jeœli ten nastpêny jest zgodny z aktualnym
      begin
-      if Connected^.SetInternalCommand(CtrlCommand,ctrlvalue,dir) then
-       OK:=Connected^.RunInternalCommand and OK;
+      if Connected.SetInternalCommand(CtrlCommand,ctrlvalue,dir) then
+       OK:=Connected.RunInternalCommand and OK;
      end
      else //jeœli nastêpny jest ustawiony przeciwnie, zmieniamy kierunek
-      if Connected^.SetInternalCommand(CtrlCommand,ctrlvalue,-dir) then
-       OK:=Connected^.RunInternalCommand and OK;
+      if Connected.SetInternalCommand(CtrlCommand,ctrlvalue,-dir) then
+       OK:=Connected.RunInternalCommand and OK;
  SendCtrlToNext:=OK;
 end;
 
-procedure TMoverParameters.PantCheck;
+procedure T_MoverParameters.PantCheck;
 var c: boolean;
 begin
   if (CabNo*LastCab<0) and (CabNo<>0) then
@@ -1134,7 +1144,7 @@ begin
    end;
 end;
 
-function TMoverParameters.CabActivisation:boolean;
+function T_MoverParameters.CabActivisation:boolean;
 //za³¹czenie rozrz¹du
 var OK:boolean;
 begin
@@ -1149,7 +1159,7 @@ begin
   CabActivisation:=OK;
 end;
 
-function TMoverParameters.CabDeactivisation:boolean;
+function T_MoverParameters.CabDeactivisation:boolean;
 //wy³¹czenie rozrz¹du
 var OK:boolean;
 begin
@@ -1194,7 +1204,7 @@ end;
 
 {funkcje zwiekszajace/zmniejszajace nastawniki}
 
-function TMoverParameters.IncMainCtrl(CtrlSpeed:integer): boolean;
+function T_MoverParameters.IncMainCtrl(CtrlSpeed:integer): boolean;
 var //b:byte;
     OK:boolean;
 begin
@@ -1292,7 +1302,7 @@ begin
 end;
 
 
-function TMoverParameters.DecMainCtrl(CtrlSpeed:integer): boolean;
+function T_MoverParameters.DecMainCtrl(CtrlSpeed:integer): boolean;
 var //b:byte;
     OK:boolean;
 begin
@@ -1367,7 +1377,7 @@ begin
   DecMainCtrl:=OK;
 end;
 
-function TMoverParameters.IncScndCtrl(CtrlSpeed:integer): boolean;
+function T_MoverParameters.IncScndCtrl(CtrlSpeed:integer): boolean;
 var //b:byte;
     OK:boolean;
 begin
@@ -1406,7 +1416,7 @@ begin
  IncScndCtrl:=OK;
 end;
 
-function TMoverParameters.DecScndCtrl(CtrlSpeed:integer): boolean;
+function T_MoverParameters.DecScndCtrl(CtrlSpeed:integer): boolean;
 var //b:byte;
     OK:boolean;
 begin
@@ -1444,7 +1454,7 @@ begin
  DecScndCtrl:=OK;
 end;
 
-function TMoverParameters.DirectionForward: boolean;
+function T_MoverParameters.DirectionForward: boolean;
 begin
   if (MainCtrlPosNo>0) and (ActiveDir<1) and (MainCtrlPos=0) then
    begin
@@ -1459,7 +1469,7 @@ begin
     DirectionForward:=False;
 end;
 
-function TMoverParameters.DirectionBackward: boolean;
+function T_MoverParameters.DirectionBackward: boolean;
 begin
   if (ActiveDir=1) and (MainCtrlPos=0) and (TrainType=dt_EZT) then
     if MinCurrentSwitch(false) then
@@ -1481,7 +1491,7 @@ begin
    DirectionBackward:=False;
 end;
 
-function TMoverParameters.MainSwitch(State:boolean): boolean;
+function T_MoverParameters.MainSwitch(State:boolean): boolean;
 begin
  MainSwitch:=False; //Ra: przeniesione z koñca
   if ((Mains<>State) and (MainCtrlPosNo>0)) then
@@ -1511,7 +1521,7 @@ begin
   //else MainSwitch:=False;
 end;
 
-function TMoverParameters.ChangeCab(direction:integer): boolean;
+function T_MoverParameters.ChangeCab(direction:integer): boolean;
 //var //b:byte;
 //    c:boolean;
 begin
@@ -1552,7 +1562,7 @@ begin
 end;
 
 {wl/wyl przetwornicy}
-function TMoverParameters.ConverterSwitch(State:boolean):boolean;
+function T_MoverParameters.ConverterSwitch(State:boolean):boolean;
 begin
  ConverterSwitch:=false; //Ra: normalnie chyba false?
  if (ConverterAllow<>State) then
@@ -1567,7 +1577,7 @@ begin
 end;
 
 {wl/wyl sprezarki}
-function TMoverParameters.CompressorSwitch(State:boolean):boolean;
+function T_MoverParameters.CompressorSwitch(State:boolean):boolean;
 begin
  CompressorSwitch:=false; //Ra: normalnie chyba tak?
 // if State=true then
@@ -1583,7 +1593,7 @@ begin
 end;
 
 {wl/wyl malej sprezarki}
-{function TMoverParameters.SmallCompressorSwitch(State:boolean):boolean;
+{function T_MoverParameters.SmallCompressorSwitch(State:boolean):boolean;
 begin
  if State=true then
   if ((SmallCompressorPower=1) then
@@ -1596,7 +1606,7 @@ begin
 end;
 }
 {sypanie piasku}
-function TMoverParameters.SandDoseOn : boolean;
+function T_MoverParameters.SandDoseOn : boolean;
 begin
   if (SandCapacity>0) then
    begin
@@ -1612,7 +1622,7 @@ begin
    SandDoseOn:=False;
 end;
 
-function TMoverParameters.SecuritySystemReset : boolean;
+function T_MoverParameters.SecuritySystemReset : boolean;
 //zbijanie czuwaka/SHP
  procedure Reset;
   begin
@@ -1639,7 +1649,7 @@ begin
 end;
 
 {testowanie czuwaka/SHP}
-procedure TMoverParameters.SecuritySystemCheck(dt:real);
+procedure T_MoverParameters.SecuritySystemCheck(dt:real);
 begin
   with SecuritySystem do
    begin
@@ -1675,7 +1685,7 @@ end;
 
 {nastawy hamulca}
 
-function TMoverParameters.IncBrakeLevel:boolean;
+function T_MoverParameters.IncBrakeLevel:boolean;
 //var b:byte;
 begin
   if (BrakeCtrlPosNo>0) {and (LocalBrakePos=0)} then
@@ -1740,7 +1750,7 @@ begin
    IncBrakeLevel:=False;
 end;
 
-function TMoverParameters.DecBrakeLevel:boolean;
+function T_MoverParameters.DecBrakeLevel:boolean;
 //var b:byte;
 begin
   if (BrakeCtrlPosNo>0) {and (LocalBrakePos=0)} then
@@ -1809,7 +1819,7 @@ begin
       DecBrakeLevel:=False;
 end;
 
-function TMoverParameters.IncLocalBrakeLevelFAST:boolean;
+function T_MoverParameters.IncLocalBrakeLevelFAST:boolean;
 begin
   if (LocalBrakePos<LocalBrakePosNo) then
    begin
@@ -1821,7 +1831,7 @@ begin
 UnBrake:=True;
 end;
 
-function TMoverParameters.IncLocalBrakeLevel(CtrlSpeed:byte):boolean;
+function T_MoverParameters.IncLocalBrakeLevel(CtrlSpeed:byte):boolean;
 begin
   if (LocalBrakePos<LocalBrakePosNo) {and (BrakeCtrlPos<1)} then
    begin
@@ -1837,7 +1847,7 @@ begin
 UnBrake:=True;
 end;
 
-function TMoverParameters.DecLocalBrakeLevelFAST():boolean;
+function T_MoverParameters.DecLocalBrakeLevelFAST():boolean;
 begin
   if LocalBrakePos>0 then
    begin
@@ -1849,7 +1859,7 @@ begin
 UnBrake:=True;
 end;
 
-function TMoverParameters.DecLocalBrakeLevel(CtrlSpeed:byte):boolean;
+function T_MoverParameters.DecLocalBrakeLevel(CtrlSpeed:byte):boolean;
 begin
   if LocalBrakePos>0 then
    begin
@@ -1865,7 +1875,7 @@ begin
 UnBrake:=True;
 end;
 
-function TMoverParameters.EmergencyBrakeSwitch(Switch:boolean): boolean;
+function T_MoverParameters.EmergencyBrakeSwitch(Switch:boolean): boolean;
 begin
   if (BrakeSystem<>Individual) and (BrakeCtrlPosNo>0) then
    begin
@@ -1889,7 +1899,7 @@ begin
    EmergencyBrakeSwitch:=False;   {nie ma hamulca bezpieczenstwa gdy nie ma hamulca zesp.}
 end;
 
-function TMoverParameters.AntiSlippingBrake: boolean;
+function T_MoverParameters.AntiSlippingBrake: boolean;
 begin
  AntiSlippingBrake:=False; //Ra: przeniesione z koñca
   if ASBType=1 then
@@ -1900,14 +1910,14 @@ begin
    end
 end;
 
-function TMoverParameters.AntiSlippingButton: boolean;
+function T_MoverParameters.AntiSlippingButton: boolean;
 var OK:boolean;
 begin
   OK:=SandDoseOn;
   AntiSlippingButton:=(AntiSlippingBrake or OK);
 end;
 
-function TMoverParameters.BrakeDelaySwitch(BDS:byte): boolean;
+function T_MoverParameters.BrakeDelaySwitch(BDS:byte): boolean;
 begin
 //  if BrakeCtrlPosNo>0 then
    if (BrakeDelayFlag<>BDS)and(TestFlag(BrakeDelays,BDS)) then
@@ -1922,7 +1932,7 @@ begin
    BrakeDelaySwitch:=False;
 end;
 
-function TMoverParameters.IncBrakeMult(): boolean;
+function T_MoverParameters.IncBrakeMult(): boolean;
 begin
   if (BCMFlag<3) and (BrakeCylMult[BCMFlag+1]>0) then
    begin
@@ -1933,7 +1943,7 @@ begin
  IncBrakeMult:=false;
 end;
 
-function TMoverParameters.DecBrakeMult(): boolean;
+function T_MoverParameters.DecBrakeMult(): boolean;
 begin
   if (BCMFlag>0) and (BrakeCylMult[BCMFlag-1]>0) then
    begin
@@ -1944,7 +1954,7 @@ begin
  DecBrakeMult:=false;
 end;
 
-function TMoverParameters.BrakeReleaser: boolean;
+function T_MoverParameters.BrakeReleaser: boolean;
 var OK:boolean;
 begin
   //Ra: BrakeCtrlPosNo jest typu Byte, wiêc nie mo¿e byæ mniejsze od 0!
@@ -1963,7 +1973,7 @@ begin
   BrakeReleaser:=OK;
 end;
 
-function TMoverParameters.SwitchEPBrake(state: byte):boolean;
+function T_MoverParameters.SwitchEPBrake(state: byte):boolean;
 var
   OK:boolean;
 begin
@@ -1975,7 +1985,7 @@ end;
 
 {uklady pneumatyczne}
 
-function TMoverParameters.IncBrakePress(var brake:real;PressLimit,dp:real):boolean;
+function T_MoverParameters.IncBrakePress(var brake:real;PressLimit,dp:real):boolean;
 begin
 //  if (DynamicBrakeType<>dbrake_switch) and (DynamicBrakeType<>dbrake_none) and ((BrakePress>0.2) or (PipePress<0.37{(LowPipePress+0.05)})) then
     if (DynamicBrakeType<>dbrake_switch) and (DynamicBrakeType<>dbrake_none) and (BrakePress>0.2) and (TrainType<>dt_EZT) then //yB radzi nie sprawdzaæ ciœnienia w przewodzie
@@ -1997,7 +2007,7 @@ begin
      end;
 end;
 
-function TMoverParameters.DecBrakePress(var brake:real;PressLimit,dp:real):boolean;
+function T_MoverParameters.DecBrakePress(var brake:real;PressLimit,dp:real):boolean;
 begin
     if brake-dp>PressLimit then
      begin
@@ -2014,7 +2024,7 @@ begin
      DynamicBrakeFlag:=False;                {wylaczanie hamulca ED i/albo zalaczanie silnikow}
 end;
 
-procedure TMoverParameters.UpdateBrakePressure(dt:real);
+procedure T_MoverParameters.UpdateBrakePressure(dt:real);
 const LBDelay=5.0; {stala czasowa hamulca}
 var Rate,Speed,dp,sm:real;
 begin
@@ -2155,9 +2165,9 @@ begin
 end;  {updatebrakepressure}
 
 
-procedure TMoverParameters.UpdatePipePressure(dt:real);
+procedure T_MoverParameters.UpdatePipePressure(dt:real);
 const LBDelay=15.0;kL=0.5;
-var {b: byte;} dV{,PWSpeed}:real; c: PMoverParameters;
+var {b: byte;} dV{,PWSpeed}:real; c: T_MoverParameters;
 begin
   //ABu: zmieniam na zlecenie Olo_EU
   //PWSpeed:=800/sqr(Dim.L); a
@@ -2306,25 +2316,25 @@ begin
        if TestFlag(Couplers[0].CouplingFlag,ctrain_pneumatic) then
          begin
            c:=Couplers[0].Connected; //skrot
-           dV:=PR(PipePress,c^.PipePress)*240.0*dt*sign(PipePress-c^.PipePress);
-           c^.PipePress:=c^.PipePress+dV/(10.0*c^.Dim.L);
-           if c^.PipePress<0 then begin dV:=dV+PipePress*10*c^.Dim.L*Spg; c^.PipePress:=0;end;
+           dV:=PR(PipePress,c.PipePress)*240.0*dt*sign(PipePress-c.PipePress);
+           c.PipePress:=c.PipePress+dV/(10.0*c.Dim.L);
+           if c.PipePress<0 then begin dV:=dV+PipePress*10*c.Dim.L*Spg; c.PipePress:=0;end;
            dpPipe:=dpPipe-dV/(10.0*Dim.L);
-           if not c^.PhysicActivation then
+           if not c.PhysicActivation then
             if Abs(dV)>0.000000001 then
-             c^.Physic_ReActivation;  {aktywacja fizyki podlaczonego skladu}
+             c.Physic_ReActivation;  {aktywacja fizyki podlaczonego skladu}
           end;
       if Couplers[1].Connected<>nil then
        if TestFlag(Couplers[1].CouplingFlag,ctrain_pneumatic) then
          begin
            c:=Couplers[1].Connected; //skrot
-           dV:=PR(PipePress,c^.PipePress)*240.0*dt*sign(PipePress-c^.PipePress);
-           c^.PipePress:=c^.PipePress+dV/(10.0*c^.Dim.L);
-           if c^.PipePress<0 then begin dV:=dV+PipePress*10*c^.Dim.L*Spg; c^.PipePress:=0;end;
+           dV:=PR(PipePress,c.PipePress)*240.0*dt*sign(PipePress-c.PipePress);
+           c.PipePress:=c.PipePress+dV/(10.0*c.Dim.L);
+           if c.PipePress<0 then begin dV:=dV+PipePress*10*c.Dim.L*Spg; c.PipePress:=0;end;
            dpPipe:=dpPipe-dV/(10.0*Dim.L);
-           if not c^.PhysicActivation then
+           if not c.PhysicActivation then
             if Abs(dV)>0.000000001 then
-             c^.Physic_ReActivation;  {aktywacja fizyki podlaczonego skladu}
+             c.Physic_ReActivation;  {aktywacja fizyki podlaczonego skladu}
      end;
                     //0.02+Random/140
       dpPipe:=(dpPipe-0.028*dt/(Dim.L*Spg*10.0))/(1+kL*byte((BrakeCtrlPosNo>0)and(Power>1)and(BrakeSystem=Pneumatic)));  //nieszczelnosci
@@ -2511,7 +2521,7 @@ begin
 end;  {updatepipepressure}
 
 
-procedure TMoverParameters.CompressorCheck(dt:real);
+procedure T_MoverParameters.CompressorCheck(dt:real);
  begin
    if VeselVolume>0 then
     begin
@@ -2552,7 +2562,7 @@ procedure TMoverParameters.CompressorCheck(dt:real);
     end;
  end;
 
-procedure TMoverParameters.UpdatePantVolume(dt:real);
+procedure T_MoverParameters.UpdatePantVolume(dt:real);
  begin
    if PantCompFlag=true then
     begin
@@ -2562,7 +2572,7 @@ procedure TMoverParameters.UpdatePantVolume(dt:real);
 end;
 
 
-procedure TMoverParameters.ConverterCheck;       {sprawdzanie przetwornicy}
+procedure T_MoverParameters.ConverterCheck;       {sprawdzanie przetwornicy}
 begin
 if (ConverterAllow=true)and(Mains=true) then
  ConverterFlag:=true
@@ -2571,10 +2581,10 @@ if (ConverterAllow=true)and(Mains=true) then
 end;
 
 //youBy - przewod zasilajacy
-procedure TMoverParameters.UpdateScndPipePressure(dt: real);
+procedure T_MoverParameters.UpdateScndPipePressure(dt: real);
 const Spz=0.5067;
 var USPP, dpSPipe,dpSpipeBV: real;
-    c: PMoverParameters;
+    c: T_MoverParameters;
 begin
 
   if (VeselVolume>0) then
@@ -2591,25 +2601,25 @@ begin
    if TestFlag(Couplers[0].CouplingFlag,ctrain_scndpneumatic) then
     begin
       c:=Couplers[0].Connected; //skrot
-      USPP:=PR(ScndPipePress,c^.ScndPipePress)*240.0*dt*sign(ScndPipePress-c^.ScndPipePress);
-      c^.ScndPipePress:=c^.ScndPipePress+USPP/(10.0*c^.Dim.L);
-      if c^.ScndPipePress<0 then begin USPP:=ScndPipePress*10*c^.Dim.L*Spz; c^.ScndPipePress:=0;end;
+      USPP:=PR(ScndPipePress,c.ScndPipePress)*240.0*dt*sign(ScndPipePress-c.ScndPipePress);
+      c.ScndPipePress:=c.ScndPipePress+USPP/(10.0*c.Dim.L);
+      if c.ScndPipePress<0 then begin USPP:=ScndPipePress*10*c.Dim.L*Spz; c.ScndPipePress:=0;end;
       dpSpipe:=dpSpipe-USPP/(10.0*Dim.L);
-      if not c^.PhysicActivation then
+      if not c.PhysicActivation then
        if Abs(USPP)>0.000000001 then
-        c^.Physic_ReActivation;  {aktywacja fizyki podlaczonego skladu}
+        c.Physic_ReActivation;  {aktywacja fizyki podlaczonego skladu}
     end;
   if Couplers[1].Connected<>nil then
    if TestFlag(Couplers[1].CouplingFlag,ctrain_scndpneumatic) then
      begin
        c:=Couplers[1].Connected; //skrot
-       USPP:=PR(ScndPipePress,c^.ScndPipePress)*240.0*dt*sign(ScndPipePress-c^.ScndPipePress);
-       c^.ScndPipePress:=c^.ScndPipePress+USPP/(10.0*c^.Dim.L);
-       if c^.ScndPipePress<0 then begin USPP:=ScndPipePress*10*c^.Dim.L*Spz; c^.ScndPipePress:=0;end;
+       USPP:=PR(ScndPipePress,c.ScndPipePress)*240.0*dt*sign(ScndPipePress-c.ScndPipePress);
+       c.ScndPipePress:=c.ScndPipePress+USPP/(10.0*c.Dim.L);
+       if c.ScndPipePress<0 then begin USPP:=ScndPipePress*10*c.Dim.L*Spz; c.ScndPipePress:=0;end;
        dpSpipe:=dpSpipe-USPP/(10.0*Dim.L);
-       if not c^.PhysicActivation then
+       if not c.PhysicActivation then
         if Abs(USPP)>0.000000001 then
-         c^.Physic_ReActivation;  {aktywacja fizyki podlaczonego skladu}
+         c.Physic_ReActivation;  {aktywacja fizyki podlaczonego skladu}
       end;
 
   dpSpipeBV:=0;
@@ -2629,8 +2639,8 @@ end;
 
 
 {sprzegi}
-
-function TMoverParameters.Attach(ConnectNo:byte;ConnectToNr:byte;ConnectTo:PMoverParameters;CouplingType:byte):boolean;
+{ Ra: przeniesione do C++
+function T_MoverParameters.Attach(ConnectNo:byte;ConnectToNr:byte;ConnectTo:P_MoverParameters;CouplingType:byte):boolean;
 //³¹czenie do (ConnectNo) pojazdu (ConnectTo) stron¹ (ConnectToNr)
 //Ra: zwykle wykonywane dwukrotnie, dla ka¿dego pojazdu oddzielnie
 const dEpsilon=0.001;
@@ -2640,13 +2650,13 @@ begin
   begin
    if (ConnectTo<>nil) then
     begin
-     if (ConnectToNr<>2) then ConnectedNr:=ConnectToNr; {2=nic nie pod³¹czone}
+     if (ConnectToNr<>2) then ConnectedNr:=ConnectToNr; //2=nic nie pod³¹czone
      ct:=ConnectTo^.Couplers[ConnectedNr].CouplerType; //typ sprzêgu pod³¹czanego pojazdu
      CoupleDist:=Distance(Loc,ConnectTo^.Loc,Dim,ConnectTo^.Dim); //odleg³oœæ pomiêdzy sprzêgami
      if (((CoupleDist<=dEpsilon) and (CouplerType<>NoCoupler) and (CouplerType=ct))
         or (CouplingType and ctrain_coupler=0))
      then
-      begin  {stykaja sie zderzaki i kompatybilne typy sprzegow chyba ze wirtualnie}
+      begin //stykaja sie zderzaki i kompatybilne typy sprzegow chyba ze wirtualnie
         Connected:=ConnectTo;
         if CouplingFlag=ctrain_virtual then //jeœli wczeœniej nie by³o po³¹czone
          begin //ustalenie z której strony rysowaæ sprzêg
@@ -2667,31 +2677,32 @@ begin
   end;
 end;
 
-function TMoverParameters.DettachDistance(ConnectNo: byte): boolean;
+
+function T_MoverParameters.DettachDistance(ConnectNo: byte): boolean;
 //Ra: sprawdzenie, czy odleg³oœæ jest dobra do roz³¹czania
 begin
  with Couplers[ConnectNo] do
   if (Connected<>nil) and
-  {ABu021104: zakomentowane 'and (CouplerType<>Articulated)' w warunku, nie wiem co to bylo, ale za to teraz dziala odczepianie... :) }
-  (((Distance(Loc,Connected^.Loc,Dim,Connected^.Dim)>0) {and (CouplerType<>Articulated)}) or
-   (TestFlag(DamageFlag,dtrain_coupling) or (CouplingFlag and ctrain_coupler=0)))
+  //ABu021104: zakomentowane 'and (CouplerType<>Articulated)' w warunku, nie wiem co to bylo, ale za to teraz dziala odczepianie... :)
+  (((Distance(Loc,Connected.Loc,Dim,Connected.Dim)>0) //and (CouplerType<>Articulated)
+   ) or (TestFlag(DamageFlag,dtrain_coupling) or (CouplingFlag and ctrain_coupler=0)))
    then
     DettachDistance:=FALSE
    else
     DettachDistance:=TRUE;
 end;
 
-function TMoverParameters.Dettach(ConnectNo: byte): boolean; {rozlaczanie}
+function T_MoverParameters.Dettach(ConnectNo: byte): boolean; //rozlaczanie
 begin
  with Couplers[ConnectNo] do
   begin
    if (Connected<>nil) and
-   {ABu021104: zakomentowane 'and (CouplerType<>Articulated)' w warunku, nie wiem co to bylo, ale za to teraz dziala odczepianie... :) }
-   (((Distance(Loc,Connected^.Loc,Dim,Connected^.Dim)<=0) {and (CouplerType<>Articulated)}) or
-    (TestFlag(DamageFlag,dtrain_coupling) or (CouplingFlag and ctrain_coupler=0)))
+   {ABu021104: zakomentowane 'and (CouplerType<>Articulated)' w warunku, nie wiem co to bylo, ale za to teraz dziala odczepianie... :)
+   (((Distance(Loc,Connected.Loc,Dim,Connected.Dim)<=0) //and (CouplerType<>Articulated)
+    ) or (TestFlag(DamageFlag,dtrain_coupling) or (CouplingFlag and ctrain_coupler=0)))
     then
-     begin  {gdy podlaczony oraz scisniete zderzaki chyba ze zerwany sprzeg albo tylko wirtualnie}
-{       Connected:=nil;  } {lepiej zostawic bo przeciez trzeba kontrolowac zderzenia odczepionych}
+     begin  //gdy podlaczony oraz scisniete zderzaki chyba ze zerwany sprzeg albo tylko wirtualnie
+       //Connected:=nil;  //lepiej zostawic bo przeciez trzeba kontrolowac zderzenia odczepionych
        CouplingFlag:=0; //pozostaje sprzêg wirtualny
        Connected.Couplers[ConnectedNr].CouplingFlag:=0; //pozostaje sprzêg wirtualny
        Dettach:=True;
@@ -2704,10 +2715,11 @@ begin
      end
   end;
 end;
+}
 
 {lokomotywy}
 
-function TMoverParameters.ComputeRotatingWheel(WForce,dt,n:real): real;
+function T_MoverParameters.ComputeRotatingWheel(WForce,dt,n:real): real;
 var newn,eps:real;
 begin
   if (n=0) and (WForce*Sign(V)<0) then
@@ -2725,7 +2737,7 @@ end;
 {----------------------}
 {LOKOMOTYWA ELEKTRYCZNA}
 
-function TMoverParameters.FuseFlagCheck: boolean;
+function T_MoverParameters.FuseFlagCheck: boolean;
 var b:byte;
 begin
  FuseFlagCheck:=false;
@@ -2734,11 +2746,11 @@ begin
   for b:=0 to 1 do
    with Couplers[b] do
     if TestFlag(CouplingFlag,ctrain_controll) then
-     if Connected^.Power>0.01 then
-      FuseFlagCheck:=Connected^.FuseFlagCheck();
+     if Connected.Power>0.01 then
+      FuseFlagCheck:=Connected.FuseFlagCheck();
 end;
 
-function TMoverParameters.FuseOn: boolean;
+function T_MoverParameters.FuseOn: boolean;
 begin
  FuseOn:=False;
  if (MainCtrlPos=0) and (ScndCtrlPos=0) and Mains then
@@ -2753,7 +2765,7 @@ begin
   end;
 end;
 
-procedure TMoverParameters.FuseOff;
+procedure T_MoverParameters.FuseOff;
 begin
  if not FuseFlag then
   begin
@@ -2765,7 +2777,7 @@ begin
 end;
 
 
-function TMoverParameters.ShowCurrent(AmpN:byte): integer;
+function T_MoverParameters.ShowCurrent(AmpN:byte): integer;
 var b,Bn:byte;
 begin
   ClearPendingExceptions;
@@ -2787,11 +2799,11 @@ begin
    for b:=0 to 1 do
     with Couplers[b] do
      if TestFlag(CouplingFlag,ctrain_controll) then
-      if Connected^.Power>0.01 then
-       ShowCurrent:=Connected^.ShowCurrent(AmpN);
+      if Connected.Power>0.01 then
+       ShowCurrent:=Connected.ShowCurrent(AmpN);
 end;
 
-function TMoverParameters.ShowEngineRotation(VehN:byte): integer;
+function T_MoverParameters.ShowEngineRotation(VehN:byte): integer;
 var b:Byte; //,Bn:byte;
 begin
   ClearPendingExceptions;
@@ -2801,14 +2813,14 @@ begin
    2: for b:=0 to 1 do
        with Couplers[b] do
         if TestFlag(CouplingFlag,ctrain_controll) then
-         if Connected^.Power>0.01 then
-          ShowEngineRotation:=Trunc(Abs(Connected^.enrot));
+         if Connected.Power>0.01 then
+          ShowEngineRotation:=Trunc(Abs(Connected.enrot));
    3: if Couplers[1].Connected<>nil then
        if TestFlag(Couplers[1].CouplingFlag,ctrain_controll) then
-        if Couplers[1].Connected^.Couplers[1].Connected<>nil then
-         if TestFlag(Couplers[1].Connected^.Couplers[1].CouplingFlag,ctrain_controll) then
-          if Couplers[1].Connected^.Couplers[1].Connected^.Power>0.01 then
-           ShowEngineRotation:=Trunc(Abs(Couplers[1].Connected^.Couplers[1].Connected^.enrot));
+        if Couplers[1].Connected.Couplers[1].Connected<>nil then
+         if TestFlag(Couplers[1].Connected.Couplers[1].CouplingFlag,ctrain_controll) then
+          if Couplers[1].Connected.Couplers[1].Connected.Power>0.01 then
+           ShowEngineRotation:=Trunc(Abs(Couplers[1].Connected.Couplers[1].Connected.enrot));
   end;
 end;
 
@@ -2816,7 +2828,7 @@ end;
 {funkcje uzalezniajace sile pociagowa od predkosci: V2n, n2R, Current, Momentum}
 {----------------}
 
-function TMoverParameters.V2n:real;
+function T_MoverParameters.V2n:real;
 {przelicza predkosc liniowa na obrotowa}
 const dmgn=0.5;
 var n,deltan:real;
@@ -2841,7 +2853,7 @@ begin
   V2n:=n;
 end;
 
-function TMoverParameters.Current(n,U:real): real;
+function T_MoverParameters.Current(n,U:real): real;
 {wazna funkcja - liczy prad plynacy przez silniki polaczone szeregowo lub rownolegle}
 {w zaleznosci od polozenia nastawnikow MainCtrl i ScndCtrl oraz predkosci obrotowej n}
 {a takze wywala bezpiecznik nadmiarowy gdy za duzy prad lub za male napiecie}
@@ -2944,7 +2956,7 @@ begin
   end;
 end;
 
-function TMoverParameters.Momentum(I:real): real;
+function T_MoverParameters.Momentum(I:real): real;
 {liczy moment sily wytwarzany przez silnik elektryczny}
 var SP: byte;
 begin
@@ -2956,7 +2968,7 @@ begin
      Momentum:=mfi*I*(1-1.0/(Abs(I)/mIsat+1));
 end;
 
-function TMoverParameters.dizel_Momentum(dizel_fill,n,dt:real): real;
+function T_MoverParameters.dizel_Momentum(dizel_fill,n,dt:real): real;
 {liczy moment sily wytwarzany przez silnik spalinowy}
 var Moment, enMoment, eps, newn, friction: real;
 begin
@@ -3004,7 +3016,7 @@ begin
    Mains:=False;
 end;
 
-function TMoverParameters.CutOffEngine: boolean; {wylacza uszkodzony silnik}
+function T_MoverParameters.CutOffEngine: boolean; {wylacza uszkodzony silnik}
 begin
  CutOffEngine:=False; //Ra: wartoœæ domyœlna, sprawdziæ to trzeba 
  if (NPoweredAxles>0) and (CabNo=0) and (EngineType=ElectricSeriesMotor) then
@@ -3018,7 +3030,7 @@ begin
 end;
 
 {przelacznik pradu wysokiego rozruchu}
-function TMoverParameters.MaxCurrentSwitch(State:boolean):boolean;
+function T_MoverParameters.MaxCurrentSwitch(State:boolean):boolean;
 begin
   MaxCurrentSwitch:=False;
   if (EngineType=ElectricSeriesMotor) then
@@ -3045,7 +3057,7 @@ end;
 
 
 {przelacznik pradu automatycznego rozruchu}
-function TMoverParameters.MinCurrentSwitch(State:boolean):boolean;
+function T_MoverParameters.MinCurrentSwitch(State:boolean):boolean;
 begin
   MinCurrentSwitch:=False;
   if ((EngineType=ElectricSeriesMotor) and (IminHi>IminLo)) or (TrainType=dt_EZT) then
@@ -3069,7 +3081,7 @@ end;
 
 
 {reczne przelaczanie samoczynnego rozruchu}
-function TMoverParameters.AutoRelaySwitch(State:boolean):boolean;
+function T_MoverParameters.AutoRelaySwitch(State:boolean):boolean;
  begin
    if (AutoRelayType=2) and (AutoRelayFlag<>State) then
     begin
@@ -3081,7 +3093,7 @@ function TMoverParameters.AutoRelaySwitch(State:boolean):boolean;
     AutoRelaySwitch:=False;
  end;
 
-function TMoverParameters.AutoRelayCheck: boolean;
+function T_MoverParameters.AutoRelayCheck: boolean;
 var OK:boolean; //b:byte;
 begin
 //  if ((TrainType=dt_EZT{) or (TrainType=dt_ET22)}) and (Imin=IminLo)) or ((ActiveDir<0) and (TrainType<>dt_PseudoDiesel')) then
@@ -3227,7 +3239,7 @@ begin
   end;
 end;
 
-function TMoverParameters.ResistorsFlagCheck:boolean;  {sprawdzanie wskaznika oporow}
+function T_MoverParameters.ResistorsFlagCheck:boolean;  {sprawdzanie wskaznika oporow}
 var b:byte;
 begin
   ResistorsFlagCheck:=false;
@@ -3236,11 +3248,11 @@ begin
    for b:=0 to 1 do
     with Couplers[b] do
      if TestFlag(CouplingFlag,ctrain_controll) then
-      if Connected^.Power>0.01 then
-       ResistorsFlagCheck:=Connected^.ResistorsFlagCheck();
+      if Connected.Power>0.01 then
+       ResistorsFlagCheck:=Connected.ResistorsFlagCheck();
 end;
 
-function TMoverParameters.dizel_EngageSwitch(state: real): boolean;
+function T_MoverParameters.dizel_EngageSwitch(state: real): boolean;
 {zmienia parametr do ktorego dazy sprzeglo}
 begin
  if (EngineType=DieselEngine) and (state<=1) and (state>=0) and (state<>dizel_engagestate) then
@@ -3252,7 +3264,7 @@ begin
   dizel_EngageSwitch:=False;
 end;
 
-function TMoverParameters.dizel_EngageChange(dt: real): boolean;
+function T_MoverParameters.dizel_EngageChange(dt: real): boolean;
 {zmienia parametr do ktorego dazy sprzeglo}
 const engagedownspeed=0.9; engageupspeed=0.5;
 var engagespeed:real; //OK:boolean;
@@ -3282,7 +3294,7 @@ begin
 end;
 
 (*
-function TMoverParameters.dizel_rotateengine(Momentum,dt,n,engage:real): real;
+function T_MoverParameters.dizel_rotateengine(Momentum,dt,n,engage:real): real;
 {oblicza obroty silnika}
 var newn,eps:real;
 begin
@@ -3316,7 +3328,7 @@ begin
 end;
 *)
 
-function TMoverParameters.dizel_fillcheck(mcp:byte): real;
+function T_MoverParameters.dizel_fillcheck(mcp:byte): real;
 {oblicza napelnienie, uzwglednia regulator obrotow}
 var realfill,nreg: real;
 begin
@@ -3348,7 +3360,7 @@ begin
   dizel_fillcheck:=realfill;
 end;
 
-function TMoverParameters.dizel_AutoGearCheck: boolean;
+function T_MoverParameters.dizel_AutoGearCheck: boolean;
 {automatycznie zmienia biegi gdy predkosc przekroczy widelki}
 var OK: boolean;
 begin
@@ -3408,7 +3420,7 @@ begin
   dizel_AutoGearCheck:=OK;
 end;
 
-function TMoverParameters.dizel_Update(dt:real): boolean;
+function T_MoverParameters.dizel_Update(dt:real): boolean;
 {odœwie¿a informacje o silniku}
 //var OK:boolean;
 const fillspeed=2;
@@ -3430,7 +3442,7 @@ end;
 
 
 {przyczepnosc}
-function TMoverParameters.Adhesive(staticfriction:real): real;
+function T_MoverParameters.Adhesive(staticfriction:real): real;
 //var Adhesion: real;
 begin
   {Adhesion:=0;
@@ -3470,7 +3482,7 @@ end;
 
 {SILY}
 
-function TMoverParameters.TractionForce(dt:real):real;
+function T_MoverParameters.TractionForce(dt:real):real;
 var PosRatio,dmoment,dtrans,tmp,tmpV: real;
     i: byte;
 {oblicza sile trakcyjna lokomotywy (dla elektrowozu tez calkowity prad)}
@@ -3730,7 +3742,7 @@ begin
   TractionForce:=Ft
 end;
 
-function TMoverParameters.BrakeForce(Track:TTrackParam):real;
+function T_MoverParameters.BrakeForce(Track:TTrackParam):real;
 var u,K,Fb,NBrakeAxles,sm:real;
 //const OerlikonForceFactor=1.5;
 begin
@@ -3795,18 +3807,30 @@ begin
   BrakeForce:=Fb;
 end;
 
-procedure TMoverParameters.SetCoupleDist;
-{przeliczenie odleg³oœci sprzêgów}
+{
+procedure T_MoverParameters.SetCoupleDist;
+//przeliczenie odleg³oœci sprzêgów
 begin
  with Couplers[0] do
   if (Connected<>nil) then
-   CoupleDist:=Distance(Loc,Connected^.Loc,Dim,Connected^.Dim);
+   begin
+    CoupleDist:=Distance(Loc,Connected.Loc,Dim,Connected.Dim);
+    if CategoryFlag=4 then
+     begin //Ra: dla samochodów zderzanie kul to za ma³o
+     end
+   end;
  with Couplers[1] do
   if (Connected<>nil) then
-   CoupleDist:=Distance(Loc,Connected^.Loc,Dim,Connected^.Dim);
+   begin
+    CoupleDist:=Distance(Loc,Connected.Loc,Dim,Connected.Dim);
+    if CategoryFlag=4 then
+     begin //Ra: dla samochodów zderzanie kul to za ma³o
+     end
+   end;
 end;
+}
 
-function TMoverParameters.CouplerForce(CouplerN:byte;dt:real):real;
+function T_MoverParameters.CouplerForce(CouplerN:byte;dt:real):real;
 //wyliczenie si³y na sprzêgu
 var tempdist,newdist,distDelta,CF,dV,absdv,Fmax,BetaAvg:real; CNext:byte;
 const MaxDist=405.0; {ustawione + 5 m, bo skanujemy do 400 m }
@@ -3825,14 +3849,14 @@ begin
       if (CouplerN=0) then
          begin
             //ABu: bylo newdist+10*((...
-            tempdist:=((Connected^.dMoveLen*DirPatch(0,ConnectedNr))-dMoveLen);
+            tempdist:=((Connected.dMoveLen*DirPatch(0,ConnectedNr))-dMoveLen);
             newdist:=newdist+10.0*tempdist;
             //tempdist:=tempdist+CoupleDist; //ABu: proby szybkiego naprawienia bledu
          end
       else
          begin
             //ABu: bylo newdist+10*((...
-            tempdist:=((dMoveLen-(Connected^.dMoveLen*DirPatch(1,ConnectedNr))));
+            tempdist:=((dMoveLen-(Connected.dMoveLen*DirPatch(1,ConnectedNr))));
             newdist:=newdist+10.0*tempdist;
             //tempdist:=tempdist+CoupleDist; //ABu: proby szybkiego naprawienia bledu
          end;
@@ -3847,7 +3871,7 @@ begin
          if (newdist>MaxDist) or ((ScanCounter>MaxCount)and(newdist>MinDist)) then
          //***if (tempdist>MaxDist) or ((ScanCounter>MaxCount)and(tempdist>MinDist)) then
           begin {zerwij kontrolnie wirtualny sprzeg}
-            Connected^.Couplers[CNext].Connected:=nil;
+            Connected.Couplers[CNext].Connected:=nil;
             Connected:=nil;
             ScanCounter:=Random(500);
           end;
@@ -3861,10 +3885,10 @@ begin
           end
          else            {usrednij bo wspolny sprzeg}
           begin
-            BetaAvg:=(beta+Connected^.Couplers[CNext].beta)/2.0;
-            Fmax:=(FmaxC+FmaxB+Connected^.Couplers[CNext].FmaxC+Connected^.Couplers[CNext].FmaxB)*CouplerTune/2.0;
+            BetaAvg:=(beta+Connected.Couplers[CNext].beta)/2.0;
+            Fmax:=(FmaxC+FmaxB+Connected.Couplers[CNext].FmaxC+Connected.Couplers[CNext].FmaxB)*CouplerTune/2.0;
           end;
-         dV:=V-DirPatch(CouplerN,CNext)*Connected^.V;
+         dV:=V-DirPatch(CouplerN,CNext)*Connected.V;
          absdv:=abs(dV);
          if (newdist<-0.001) and (Dist>=-0.001) and (absdv>0.010) then {090503: dzwieki pracy zderzakow}
           begin
@@ -3885,22 +3909,22 @@ begin
          if Dist>0 then
           begin
             if distDelta>0 then
-              CF:=(-(SpringKC+Connected^.Couplers[CNext].SpringKC)*Dist/2.0)*DirF(CouplerN)-Fmax*dV*betaAvg
+              CF:=(-(SpringKC+Connected.Couplers[CNext].SpringKC)*Dist/2.0)*DirF(CouplerN)-Fmax*dV*betaAvg
              else
-              CF:=(-(SpringKC+Connected^.Couplers[CNext].SpringKC)*Dist/2.0)*DirF(CouplerN)*betaAvg-Fmax*dV*betaAvg;
+              CF:=(-(SpringKC+Connected.Couplers[CNext].SpringKC)*Dist/2.0)*DirF(CouplerN)*betaAvg-Fmax*dV*betaAvg;
                 {liczenie sily ze sprezystosci sprzegu}
-            if Dist>(DmaxC+Connected^.Couplers[CNext].DmaxC) then {zderzenie}
+            if Dist>(DmaxC+Connected.Couplers[CNext].DmaxC) then {zderzenie}
             //***if tempdist>(DmaxC+Connected^.Couplers[CNext].DmaxC) then {zderzenie}
              CheckCollision:=True;
           end;
          if Dist<0 then
           begin
             if distDelta>0 then
-              CF:=(-(SpringKB+Connected^.Couplers[CNext].SpringKB)*Dist/2.0)*DirF(CouplerN)-Fmax*dV*betaAvg
+              CF:=(-(SpringKB+Connected.Couplers[CNext].SpringKB)*Dist/2.0)*DirF(CouplerN)-Fmax*dV*betaAvg
             else
-              CF:=(-(SpringKB+Connected^.Couplers[CNext].SpringKB)*Dist/2.0)*DirF(CouplerN)*betaAvg-Fmax*dV*betaAvg;
+              CF:=(-(SpringKB+Connected.Couplers[CNext].SpringKB)*Dist/2.0)*DirF(CouplerN)*betaAvg-Fmax*dV*betaAvg;
                 {liczenie sily ze sprezystosci zderzaka}
-           if -Dist>(DmaxB+Connected^.Couplers[CNext].DmaxB) then  {zderzenie}
+           if -Dist>(DmaxB+Connected.Couplers[CNext].DmaxB) then  {zderzenie}
             //***if -tempdist>(DmaxB+Connected^.Couplers[CNext].DmaxB)/10 then  {zderzenie}
              begin
                CheckCollision:=True;
@@ -3911,26 +3935,27 @@ begin
        end;
       if (CouplingFlag<>ctrain_virtual)
       then         {uzgadnianie prawa Newtona}
-       Connected^.Couplers[1-CouplerN].CForce:=-CF;
+       Connected.Couplers[1-CouplerN].CForce:=-CF;
     end;
   CouplerForce:=CF;
 end;
 
-procedure TMoverParameters.CollisionDetect(CouplerN:byte; dt:real);
+procedure T_MoverParameters.CollisionDetect(CouplerN:byte; dt:real);
 var CCF,Vprev,VprevC:real; VirtualCoupling:boolean;
 begin
      CCF:=0;
      with Couplers[CouplerN] do
+      if (Connected<>nil) then //Ra: siê wysypywa³o
       begin
         VirtualCoupling:=(CouplingFlag=ctrain_virtual);
         Vprev:=V;
-        VprevC:=Connected^.V;
+        VprevC:=Connected.V; //Ra: siê wysypywa³o tutaj
         case CouplerN of
-         0 : CCF:=ComputeCollision(V,Connected^.V,TotalMass,Connected^.TotalMass,(beta+Connected^.Couplers[ConnectedNr].beta)/2.0,VirtualCoupling)/(dt{+0.01}); //yB: ej ej ej, a po
-         1 : CCF:=ComputeCollision(Connected^.V,V,Connected^.TotalMass,TotalMass,(beta+Connected^.Couplers[ConnectedNr].beta)/2.0,VirtualCoupling)/(dt{+0.01}); //czemu tu jest +0.01??
+         0 : CCF:=ComputeCollision(V,Connected.V,TotalMass,Connected.TotalMass,(beta+Connected.Couplers[ConnectedNr].beta)/2.0,VirtualCoupling)/(dt{+0.01}); //yB: ej ej ej, a po
+         1 : CCF:=ComputeCollision(Connected.V,V,Connected.TotalMass,TotalMass,(beta+Connected.Couplers[ConnectedNr].beta)/2.0,VirtualCoupling)/(dt{+0.01}); //czemu tu jest +0.01??
         end;
         AccS:=AccS+(V-Vprev)/dt;
-        Connected^.AccS:=Connected^.AccS+(Connected^.V-VprevC)/dt;
+        Connected.AccS:=Connected.AccS+(Connected.V-VprevC)/dt;
         if (Dist>0) and (not VirtualCoupling) then
          if FuzzyLogic(Abs(CCF),5*(FmaxC+1),p_coupldmg) then
           begin                            {! zerwanie sprzegu}
@@ -3940,14 +3965,14 @@ begin
              EmergencyBrakeFlag:=True;   {hamowanie nagle - zerwanie przewodow hamulcowych}
             CouplingFlag:=0;
             case CouplerN of             {wyzerowanie flag podlaczenia ale ciagle sa wirtualnie polaczone}
-             0 : Connected^.Couplers[1].CouplingFlag:=0;
-             1 : Connected^.Couplers[0].CouplingFlag:=0;
+             0 : Connected.Couplers[1].CouplingFlag:=0;
+             1 : Connected.Couplers[0].CouplingFlag:=0;
             end
           end ;
       end;
 end;
 
-procedure TMoverParameters.ComputeConstans;
+procedure T_MoverParameters.ComputeConstans;
 var BearingF,RollF,HideModifier: real;
 begin
   TotalMass:=ComputeMass;
@@ -3979,7 +4004,7 @@ begin
    end;
 end;
 
-function TMoverParameters.FrictionForce(R:real;TDamage:byte):real;
+function T_MoverParameters.FrictionForce(R:real;TDamage:byte):real;
 begin
 //ABu 240205: chyba juz ekstremalnie zoptymalizowana funkcja liczaca sily tarcia
    if (abs(V)>0.01) then
@@ -3988,7 +4013,7 @@ begin
       FrictionForce:=(FrictConst1*V*V)+FrictConst2s;
 end;
 
-function TMoverParameters.AddPulseForce(Multipler:integer): boolean; {dla drezyny}
+function T_MoverParameters.AddPulseForce(Multipler:integer): boolean; {dla drezyny}
 begin
   if (EngineType=WheelsDriven) and (EnginePowerSource.SourceType=InternalSource) and (EnginePowerSource.PowerType=BioPower) then
    begin
@@ -4008,7 +4033,7 @@ begin
 end;
 
 
-function TMoverParameters.LoadingDone(LSpeed:real; LoadInit:string): boolean;
+function T_MoverParameters.LoadingDone(LSpeed:real; LoadInit:string): boolean;
 //test zakoñczenia za³adunku/roz³adunku
 var LoadChange:longint;
 begin
@@ -4055,7 +4080,7 @@ end;
 
 {-------------------------------------------------------------------}
 {WAZNA FUNKCJA - oblicza si³ê wypadkow¹}
-procedure TMoverParameters.ComputeTotalForce(dt: real; dt1: real; FullVer: boolean);
+procedure T_MoverParameters.ComputeTotalForce(dt: real; dt1: real; FullVer: boolean);
 var b: byte;
 begin
   if PhysicActivation then
@@ -4147,7 +4172,7 @@ end;
 
 {------------------------------------------------------------}
 {OBLICZENIE PRZEMIESZCZENIA}
-function TMoverParameters.ComputeMovement(dt:real; dt1:real; Shape:TTrackShape; var Track:TTrackParam; var ElectricTraction:TTractionParam; NewLoc:TLocation; var NewRot:TRotation):real;
+function T_MoverParameters.ComputeMovement(dt:real; dt1:real; Shape:TTrackShape; var Track:TTrackParam; var ElectricTraction:TTractionParam; NewLoc:TLocation; var NewRot:TRotation):real;
 var b:byte;
     Vprev,AccSprev:real;
 const Vepsilon=1e-5; Aepsilon=1e-3; ASBSpeed=0.8;
@@ -4343,7 +4368,7 @@ end; {ComputeMovement}
 
 {blablabla}
 {OBLICZENIE PRZEMIESZCZENIA}
-function TMoverParameters.FastComputeMovement(dt:real; Shape:TTrackShape; var Track:TTrackParam;NewLoc:TLocation; var NewRot:TRotation):real; //;var ElectricTraction:TTractionParam; NewLoc:TLocation; var NewRot:TRotation):real;
+function T_MoverParameters.FastComputeMovement(dt:real; Shape:TTrackShape; var Track:TTrackParam;NewLoc:TLocation; var NewRot:TRotation):real; //;var ElectricTraction:TTractionParam; NewLoc:TLocation; var NewRot:TRotation):real;
 var b:byte;
     Vprev,AccSprev:real;
 const Vepsilon=1e-5; Aepsilon=1e-3; ASBSpeed=0.8;
@@ -4465,7 +4490,7 @@ end; {FastComputeMovement}
 
 
 
-function TMoverParameters.ComputeMass: real;
+function T_MoverParameters.ComputeMass: real;
 var M:real;
 begin
  if Load>0 then
@@ -4498,7 +4523,7 @@ end;
 
 {przekazywanie komend i parametrow}
 
-function TMoverParameters.SetInternalCommand(NewCommand:string; NewValue1,NewValue2:real):boolean;
+function T_MoverParameters.SetInternalCommand(NewCommand:string; NewValue1,NewValue2:real):boolean;
 begin
   if (CommandIn.Command=Newcommand) and (commandIn.Value1=NewValue1) and (commandIn.Value2=NewValue2) then
    SetInternalCommand:=False
@@ -4513,13 +4538,13 @@ begin
     end;
 end;
 
-function TMoverParameters.GetExternalCommand(var Command:string):real;
+function T_MoverParameters.GetExternalCommand(var Command:string):real;
 begin
   Command:=CommandOut;
   GetExternalCommand:=ValueOut;
 end;
 
-function TMoverParameters.RunCommand(command:string; CValue1,CValue2:real):boolean;
+function T_MoverParameters.RunCommand(command:string; CValue1,CValue2:real):boolean;
 var OK:boolean; testload:string;
 Begin
 {$B+} {cholernie mi sie nie podoba ta dyrektywa!!!}
@@ -4819,7 +4844,7 @@ else if command='PantFront' then         {Winger 160204}
 {$B-}
 End;
 
-function TMoverParameters.RunInternalCommand:boolean;
+function T_MoverParameters.RunInternalCommand:boolean;
 var OK:boolean;
 begin
   if CommandIn.Command<>'' then
@@ -4841,7 +4866,7 @@ begin
   RunInternalCommand:=OK;
 end;
 
-procedure TMoverParameters.PutCommand(NewCommand:string; NewValue1,NewValue2:real; NewLocation:TLocation);
+procedure T_MoverParameters.PutCommand(NewCommand:string; NewValue1,NewValue2:real; NewLocation:TLocation);
 begin
  CommandLast:=NewCommand; //zapamiêtanie komendy
   with CommandIn do
@@ -4854,7 +4879,7 @@ begin
 end;
 
 {dla samochodow - kolej nie wê¿ykuje}
-function TMoverParameters.ChangeOffsetH(DeltaOffset:real):boolean;
+function T_MoverParameters.ChangeOffsetH(DeltaOffset:real):boolean;
 begin
   if TestFlag(CategoryFlag,2) and TestFlag(RunningTrack.CategoryFlag,2) then
    begin
@@ -4870,7 +4895,7 @@ end;
 
 {inicjalizacja}
 
-constructor TMoverParameters.Init(//LocInitial:TLocation; RotInitial:TRotation;
+constructor T_MoverParameters.Init(//LocInitial:TLocation; RotInitial:TRotation;
                                   VelInitial:real; TypeNameInit, NameInit: string; LoadInitial:longint; LoadTypeInitial: string; Cab:integer);
                                  {predkosc pocz. w km/h, ilosc ladunku, typ ladunku, numer kabiny}
 var b,k:integer;
@@ -5117,7 +5142,7 @@ begin
  DerailReason:=0; //Ra: powód wykolejenia
 end;
 
-function TMoverParameters.EngineDescription(what:integer): string;  {opis stanu lokomotywy}
+function T_MoverParameters.EngineDescription(what:integer): string;  {opis stanu lokomotywy}
 var outstr: string;
 begin
   outstr:='';
@@ -5161,7 +5186,7 @@ begin
   EngineDescription:=outstr;
 end;
 
-function TMoverParameters.CheckLocomotiveParameters(ReadyFlag:boolean;Dir:longint): boolean;
+function T_MoverParameters.CheckLocomotiveParameters(ReadyFlag:boolean;Dir:longint): boolean;
 var //k:integer;
     OK:boolean;
     b:byte;
@@ -5264,7 +5289,7 @@ begin
   CheckLocomotiveParameters:=OK;
 end;
 
-function TMoverParameters.DoorLeft(State: Boolean):Boolean;
+function T_MoverParameters.DoorLeft(State: Boolean):Boolean;
 begin
  if (DoorLeftOpened<>State) then
  begin
@@ -5283,7 +5308,7 @@ begin
     DoorLeft:=false;
 end;
 
-function TMoverParameters.DoorRight(State: Boolean):Boolean;
+function T_MoverParameters.DoorRight(State: Boolean):Boolean;
 begin
  if (DoorRightOpened<>State) then
   begin
@@ -5303,7 +5328,7 @@ begin
 end;
 
 //Winger 160204 - pantografy
-function TMoverParameters.PantFront(State: Boolean):Boolean;
+function T_MoverParameters.PantFront(State: Boolean):Boolean;
 var pf1: Real;
 begin
  PantFront:=true;
@@ -5336,7 +5361,7 @@ begin
  SendCtrlToNext('PantFront',pf1,CabNo);
 end;
 
-function TMoverParameters.PantRear(State: Boolean):Boolean;
+function T_MoverParameters.PantRear(State: Boolean):Boolean;
 var pf1: Real;
 begin
  PantRear:=true;
@@ -5363,7 +5388,7 @@ end;
 
 
 
-{function TMoverParameters.Heating(State: Boolean):Boolean;
+{function T_MoverParameters.Heating(State: Boolean):Boolean;
 begin
  if (Heating<>State) then
   begin
@@ -5381,7 +5406,7 @@ begin
   SendCtrlToNext('PantRear',0,CabNo); }
 {end;}
 
-function TMoverParameters.LoadChkFile(chkpath:string):Boolean;
+function T_MoverParameters.LoadChkFile(chkpath:string):Boolean;
 const param_ok=1; wheels_ok=2; dimensions_ok=4;
 var
   lines,s: string;
