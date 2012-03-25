@@ -3,7 +3,6 @@
 // All rights reserved
 
 // (DO NOT EDIT: machine generated header) '_mover.pas' rev: 5.00
-//Ra: eee... tam, sam siê generuje b³êdnie i trzeba rêcznie poprawiaæ!
 
 #ifndef _moverHPP
 #define _moverHPP
@@ -269,29 +268,10 @@ struct TTransmision
 #pragma option push -b-
 enum TCouplerType { NoCoupler, Articulated, Bare, Chain, Screw, Automatic };
 #pragma option pop
-class DELPHICLASS T_MoverParameters;
-struct TCoupling
-{
-	double SpringKB;            
-	double SpringKC;
-	double beta;
-	double DmaxB;
-	double FmaxB;
-	double DmaxC;
-	double FmaxC;
-	TCouplerType CouplerType;
-	Byte CouplingFlag;
-	Byte AllowedFlag;
-	bool Render;
-	double CoupleDist;
-	T_MoverParameters* Connected;
-	Byte ConnectedNr;
-	double CForce;
-	double Dist;
-	bool CheckCollision;
-} ;
 
-class PASCALIMPLEMENTATION T_MoverParameters : public System::TObject
+class DELPHICLASS T_MoverParameters;
+struct TCoupling;
+class PASCALIMPLEMENTATION T_MoverParameters : public System::TObject 
 {
 	typedef System::TObject inherited;
 	
@@ -669,6 +649,27 @@ public:
 	
 };
 
+
+struct TCoupling
+{
+	double SpringKB;
+	double SpringKC;
+	double beta;
+	double DmaxB;
+	double FmaxB;
+	double DmaxC;
+	double FmaxC;
+	TCouplerType CouplerType;
+	Byte CouplingFlag;
+	Byte AllowedFlag;
+	bool Render;
+	double CoupleDist;
+	T_MoverParameters* Connected;
+	Byte ConnectedNr;
+	double CForce;
+	double Dist;
+	bool CheckCollision;
+} ;
 
 //-- var, const, procedure ---------------------------------------------------
 static const bool Go = true;
