@@ -56,9 +56,9 @@ bool bCondition; //McZapkie: do testowania warunku na event multiple
 AnsiString LogComment;
 
 // tablica pozycji sektorów do renderowania progresywnego (zale¿nie od FPS)
-const int AreaFast[]={10,10,10,10,10,10,9,8,7,6,5}; //pe³ny zakres widocznoœci 2km
-const int AreaSlow[]={ 7, 7, 7, 7, 7, 6,5,4,0,0,0}; //ograniczenie widocznoœci 1.5km
-const int AreaMini[]={ 5, 5, 5, 5, 5, 4,0,0,0,0,0}; //ograniczenie widocznoœci 1km
+//const int AreaFast[]={10,10,10,10,10,10,9,8,7,6,5}; //pe³ny zakres widocznoœci 2km
+//const int AreaSlow[]={ 7, 7, 7, 7, 7, 6,5,4,0,0,0}; //ograniczenie widocznoœci 1.5km
+//const int AreaMini[]={ 5, 5, 5, 5, 5, 4,0,0,0,0,0}; //ograniczenie widocznoœci 1km
 //---------------------------------------------------------------------------
 // Obiekt renderuj¹cy siatkê jest sztucznie tworzonym obiektem pomocniczym,
 // grupuj¹cym siatki obiektów dla danej tekstury. Obiektami sk³adowymi mog¹
@@ -3452,24 +3452,20 @@ bool __fastcall TGround::RenderDL(vector3 pPosition)
  //renderowanie progresywne - zale¿ne od FPS oraz kierunku patrzenia
  iRendered=0; //iloœæ renderowanych sektorów
  vector3 direction;
- //iRange=Global::slowmotion?AreaSlow:AreaFast;
- iRange=(Global::iSlowMotion&6)?((Global::iSlowMotion&4)?AreaMini:AreaSlow):AreaFast;
- n=(iRange[0]*n)/10; //przeliczenie (n) do aktualnego promienia rednerowania
-/* //przerobiæ na u¿ycie SectorOrder
- for (k=1;k<max;++k) //sektory w kolejnoœci odleg³oœci
- {//
-  i=SectorOrder[i].x;
-  j=SectorOrder[i].y;
-  while ((i>0)||(j<0)) //s¹ 4 przypadki, oprócz i=j=0
+ //iRange=(Global::iSlowMotion&6)?((Global::iSlowMotion&4)?AreaMini:AreaSlow):AreaFast;
+ //n=(iRange[0]*n)/10; //przeliczenie (n) do aktualnego promienia rednerowania
+ n=(Global::iSlowMotion&6)?((Global::iSlowMotion&4)?25:52):90; //iloœæ sektorów w æwiartce (max 400)
+ for (k=0;k<n;++k) //sektory w kolejnoœci odleg³oœci
+ {//przerobione na u¿ycie SectorOrder
+  i=SectorOrder[k].x; //na starcie oba >=0
+  j=SectorOrder[k].y;
+  do
+ //for (j=-n;j<=n;j++)
+ //{k=iRange[j<0?-j:j]; //zasiêg na danym poziomie
+ // for (i=-k;i<=k;i++)
   {
-   if (j<0) i=-i;
-   j=-j;
-  }
-*/
- for (j=-n;j<=n;j++)
- {k=iRange[j<0?-j:j]; //zasiêg na danym poziomie
-  for (i=-k;i<=k;i++)
-  {
+   if (j<=0) i=-i; //pierwszy przebieg: j<=0, i>=0; drugi: j>=0, i<=0; trzeci: j<=0, i<=0 czwarty: j>=0, i>=0; 
+   j=-j; //i oraz j musi byæ zmienione wczeœniej, ¿eby continue dzia³a³o
    direction=vector3(i,0,j); //wektor od kamery do danego sektora
    if (LengthSquared3(direction)>5) //te blisko s¹ zawsze wyœwietlane
    {direction=SafeNormalize(direction); //normalizacja
@@ -3481,6 +3477,7 @@ bool __fastcall TGround::RenderDL(vector3 pPosition)
     if (tmp->iNodeCount) //o ile s¹ jakieœ obiekty, bo po co puste sektory przelatywaæ
      pRendered[iRendered++]=tmp; //tworzenie listy sektorów do renderowania
   }
+  while ((i<0)||(j<0)); //s¹ 4 przypadki, oprócz i=j=0
  }
  for (i=0;i<iRendered;i++)
   pRendered[i]->RenderDL(); //renderowanie nieprzezroczystych
@@ -3539,12 +3536,20 @@ bool __fastcall TGround::RenderVBO(vector3 pPosition)
  //renderowanie progresywne - zale¿ne od FPS oraz kierunku patrzenia
  iRendered=0; //iloœæ renderowanych sektorów
  vector3 direction;
- iRange=(Global::iSlowMotion&6)?((Global::iSlowMotion&4)?AreaMini:AreaSlow):AreaFast;
- n=(iRange[0]*n)/10; //przeliczenie (n) do aktualnego promienia rednerowania
- for (j=-n;j<=n;j++)
- {k=iRange[j<0?-j:j]; //zasiêg na danym poziomie
-  for (i=-k;i<=k;i++)
+ //iRange=(Global::iSlowMotion&6)?((Global::iSlowMotion&4)?AreaMini:AreaSlow):AreaFast;
+ //n=(iRange[0]*n)/10; //przeliczenie (n) do aktualnego promienia rednerowania
+ n=(Global::iSlowMotion&6)?((Global::iSlowMotion&4)?25:52):90; //iloœæ sektorów w æwiartce
+ for (k=0;k<n;++k) //sektory w kolejnoœci odleg³oœci
+ {//przerobione na u¿ycie SectorOrder
+  i=SectorOrder[k].x; //na starcie oba >=0
+  j=SectorOrder[k].y;
+  do
+ //for (j=-n;j<=n;j++)
+ //{k=iRange[j<0?-j:j]; //zasiêg na danym poziomie
+ // for (i=-k;i<=k;i++)
   {
+   if (j<=0) i=-i; //pierwszy przebieg: j<=0, i>=0; drugi: j>=0, i<=0; trzeci: j<=0, i<=0 czwarty: j>=0, i>=0; 
+   j=-j; //i oraz j musi byæ zmienione wczeœniej, ¿eby continue dzia³a³o
    direction=vector3(i,0,j); //wektor od kamery do danego sektora
    if (LengthSquared3(direction)>5) //te blisko s¹ zawsze wyœwietlane
    {direction=SafeNormalize(direction); //normalizacja
@@ -3556,6 +3561,7 @@ bool __fastcall TGround::RenderVBO(vector3 pPosition)
     if (tmp->iNodeCount) //je¿eli s¹ jakieœ obiekty, bo po co puste sektory przelatywaæ
      pRendered[iRendered++]=tmp; //tworzenie listy sektorów do renderowania
   }
+  while ((i<0)||(j<0)); //s¹ 4 przypadki, oprócz i=j=0
  }
  for (i=0;i<iRendered;i++)
  {//renderowanie nieprzezroczystych

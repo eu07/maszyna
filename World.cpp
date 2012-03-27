@@ -118,7 +118,7 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
  double time=(double)Now();
  Global::hWnd=NhWnd; //do WM_COPYDATA
  Global::detonatoryOK=true;
- WriteLog("--- MaSzyna ---"); //pierwsza linia jest gubiona
+ //WriteLog("--- MaSzyna ---"); //pierwsza linia jest gubiona - ju¿ nie
  WriteLog("Starting MaSzyna rail vehicle simulator.");
  WriteLog(Global::asVersion);
 #if sizeof(TSubModel)!=256
@@ -1355,8 +1355,9 @@ bool __fastcall TWorld::Update()
        }
       }
       else
-      {
-        OutText1="Camera position: "+FloatToStrF(Camera.Pos.x,ffFixed,6,2)+" "+FloatToStrF(Camera.Pos.y,ffFixed,6,2)+" "+FloatToStrF(Camera.Pos.z,ffFixed,6,2);
+      {//wyœwietlenie wspó³rzêdnych w scenerii oraz k¹ta kamery
+       OutText1="Camera position: "+FloatToStrF(Camera.Pos.x,ffFixed,6,2)+" "+FloatToStrF(Camera.Pos.y,ffFixed,6,2)+" "+FloatToStrF(Camera.Pos.z,ffFixed,6,2);
+       OutText1+=", direction: "+AnsiString("S SEE NEN NWW SW").SubString(1+2*floor(fmod(8+(Camera.Yaw+0.5*M_PI_4)/M_PI_4,8)),2);
       }
       //OutText3= AnsiString("  Online documentation (PL, ENG, DE, soon CZ): http://www.eu07.pl");
       //OutText3="enrot="+FloatToStrF(Controlled->MoverParameters->enrot,ffFixed,6,2);

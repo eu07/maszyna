@@ -967,7 +967,11 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
    TrainParams->NewName(NewCommand); //czyœci tabelkê przystanków
   if (NewCommand!="none")
   {if (!TrainParams->LoadTTfile(Global::asCurrentSceneryPath,NewValue1))
+   {
+    if (ConversionError==-8)
+     ErrorLog("Missed file: "+NewCommand);
     WriteLog("Cannot load timetable file "+NewCommand+"\r\nError "+ConversionError+" in position "+TrainParams->StationCount);
+   }
    else
    {//inicjacja pierwszego przystanku i pobranie jego nazwy
     TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,TrainParams->NextStationName);
@@ -1829,11 +1833,13 @@ void __fastcall TController::OrdersInit(double fVel)
   else
   //jeœli start z pierwszej stacji i jednoczeœnie jest na niej zmiana kierunku, to EZT ma mieæ Shunt
    OrderPush(Obey_train); //dla starych scenerii start w trybie pociagowym
-  WriteLog("/* Timetable: "+TrainParams->ShowRelation());
+  if (DebugModeFlag) //normalnie nie ma po co tego wypisywaæ
+   WriteLog("/* Timetable: "+TrainParams->ShowRelation());
   TMTableLine *t;
   for (int i=0;i<=TrainParams->StationCount;++i)
   {t=TrainParams->TimeTable+i;
-   WriteLog(AnsiString(t->StationName)+" "+AnsiString((int)t->Ah)+":"+AnsiString((int)t->Am)+", "+AnsiString((int)t->Dh)+":"+AnsiString((int)t->Dm)+" "+AnsiString(t->StationWare));
+   if (DebugModeFlag) //normalnie nie ma po co tego wypisywaæ
+    WriteLog(AnsiString(t->StationName)+" "+AnsiString((int)t->Ah)+":"+AnsiString((int)t->Am)+", "+AnsiString((int)t->Dh)+":"+AnsiString((int)t->Dm)+" "+AnsiString(t->StationWare));
    if (AnsiString(t->StationWare).Pos("@"))
    {//zmiana kierunku i dalsza jazda wg rozk³adu
     if (Controlling->TrainType&(dt_EZT)) //SZT równie¿! SN61 zale¿nie od wagonów...
@@ -1853,7 +1859,8 @@ void __fastcall TController::OrdersInit(double fVel)
      OrderPush(Obey_train); //to dalej wg rozk³adu
    }
   }
-  WriteLog("*/");
+  if (DebugModeFlag) //normalnie nie ma po co tego wypisywaæ
+   WriteLog("*/");
   OrderPush(Shunt); //po wykonaniu rozk³adu prze³¹czy siê na manewry
  }
  //McZapkie-100302 - to ma byc wyzwalane ze scenerii
@@ -1866,7 +1873,8 @@ void __fastcall TController::OrdersInit(double fVel)
   JumpToFirstOrder();
   SetVelocity(fVel,-1); //ma ustawiæ ¿¹dan¹ prêdkoœæ
  }
- OrdersDump(); //wypisanie kontrolne tabelki rozkazów
+ if (DebugModeFlag) //normalnie nie ma po co tego wypisywaæ
+  OrdersDump(); //wypisanie kontrolne tabelki rozkazów
  //McZapkie! - zeby w ogole AI ruszyl to musi wykonac powyzsze rozkazy
  //Ale mozna by je zapodac ze scenerii
 };

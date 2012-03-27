@@ -426,9 +426,10 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
       //WriteLog(AnsiString("Degenerated triangle ignored in: \"")+asName+"\"");
       WriteLog(AnsiString("Degenerated triangle ignored in: \"")+AnsiString(pName)+"\"");
      }
-     if (((Vertices[i  ].Point-Vertices[i-1].Point).Length()>2000.0) ||
-         ((Vertices[i-1].Point-Vertices[i-2].Point).Length()>2000.0) ||
-         ((Vertices[i-2].Point-Vertices[i  ].Point).Length()>2000.0))
+     if (i>0) //pierwszy trójk¹t mo¿e byæ zdegenerowany i zostanie usuniêty
+      if (((Vertices[i  ].Point-Vertices[i-1].Point).Length()>2000.0) ||
+          ((Vertices[i-1].Point-Vertices[i-2].Point).Length()>2000.0) ||
+          ((Vertices[i-2].Point-Vertices[i  ].Point).Length()>2000.0))
      {//je¿eli s¹ dalej ni¿ 2km od siebie
       --iNumFaces; //o jeden trójk¹t mniej
       iNumVerts-=3; //czyli o 3 wierzcho³ki

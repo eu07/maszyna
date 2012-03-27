@@ -239,7 +239,7 @@ begin
  ClearPendingExceptions;
  ConversionError:=0;
  EndTable:=False;
- if (scnpath='') then
+ if (TrainName='') then
   begin //jeœli pusty rozk³ad
    //UpdateVelocity(StationCount,vMax); //ograniczenie do prêdkoœci startowej
   end
@@ -269,9 +269,10 @@ begin
           repeat
           until (ReadWord(fin)='|') or (eof(fin)); {œrodkowy pion}
           s:=ReadWord(fin); {nazwa poci¹gu}
-          if LowerCase(s)<>ExtractFileName(TrainName) then {musi byæ taka sama, jak nazwa pliku}
-           ConversionError:=-7 {b³¹d niezgodnoœci}
-          else
+          //if LowerCase(s)<>ExtractFileName(TrainName) then {musi byæ taka sama, jak nazwa pliku}
+           //ConversionError:=-7 {b³¹d niezgodnoœci}
+           //TrainName=s; //nadanie nazwy z pliku
+          //else
            begin  {czytaj naglowek}
             repeat
             until (Pos('_______|',ReadWord(fin))>0) or eof(fin);

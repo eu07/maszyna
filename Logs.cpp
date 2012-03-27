@@ -11,7 +11,8 @@
 #include <iostream>
 #include <fstream>
 
-std::ofstream output;
+std::ofstream output; //standardowy "log.txt", mo¿na go wy³¹czyæ
+std::ofstream errors; //lista b³êdów "errors.txt", zawsze dziala
 
 bool first= true;
 char endstring[10]= "\n";
@@ -54,8 +55,7 @@ void __fastcall WriteLog(const char* str)
   {
     if (str)
     {
-
-        if(!output)
+        if (!output.is_open())
             output.open("log.txt", std::ios::trunc);
 
         output << str << "\n";
@@ -68,6 +68,14 @@ void __fastcall WriteLog(const char* str)
     }
   };
 }
+void __fastcall ErrorLog(const char* str)
+{//Ra: bezwarunkowa rejestracja powa¿nych b³êdów
+ if (!errors.is_open())
+  errors.open("errors.txt",std::ios::trunc);
+ if (str) errors << str;
+ errors << "\n";
+ errors.flush();
+};
 
 void __fastcall Error(const AnsiString &asMessage,bool box)
 {
@@ -75,6 +83,12 @@ void __fastcall Error(const AnsiString &asMessage,bool box)
   MessageBox(NULL,asMessage.c_str(),"EU07-424",MB_OK);
  WriteLog(asMessage.c_str());
 }
+void __fastcall ErrorLog(const AnsiString &asMessage)
+{//zapisywanie b³êdów "errors.txt"
+ ErrorLog(asMessage.c_str());
+ WriteLog(asMessage.c_str()); //do "log.txt" ewentualnie te¿
+}
+
 void __fastcall WriteLog(const AnsiString &str)
 {//Ra: wersja z AnsiString jest zamienna z Error()
  WriteLog(str.c_str());
