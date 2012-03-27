@@ -57,7 +57,7 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asVersion="Compilation 2012-03-25, release 1.7.534.331."; //tutaj, bo wysy³any
+AnsiString Global::asVersion="Compilation 2012-03-28, release 1.7.537.332."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 double Global::fSunDeclination=0.0; //deklinacja S³oñca
@@ -71,9 +71,9 @@ bool Global::bActive=true; //czy jest aktywnym oknem
 int Global::iErorrCounter=0; //licznik sprawdzañ do œledzenia b³êdów OpenGL
 int Global::iTextures=0; //licznik u¿ytych tekstur
 TWorld* Global::pWorld=NULL;
-Queryparsercomp::TQueryParserComp *Global::qParser;
-cParser *Global::pParser;
-
+Queryparsercomp::TQueryParserComp *Global::qParser=NULL;
+cParser *Global::pParser=NULL;
+int Global::iSegmentsRendered=90; //iloœæ segmentów do regulacji wydajnoœci
 
 //parametry scenerii
 vector3 Global::pCameraPosition;

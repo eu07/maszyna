@@ -219,7 +219,7 @@ bool __fastcall TAnimModel::Load(cParser *parser, bool ter)
     WriteLog(AnsiString("Terrain model \""+str+"\" will be created."));
    }
    else
-    Error(AnsiString("Model: "+str+" does not exist"));
+    ErrorLog(AnsiString("Missed file: "+str));
   }
  }
  else

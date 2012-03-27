@@ -23,9 +23,9 @@ double __fastcall TMoverParameters::CouplerDist(Byte Coupler)
 };
 
 bool __fastcall TMoverParameters::Attach(Byte ConnectNo,Byte ConnectToNr,TMoverParameters *ConnectTo,Byte CouplingType)
-{//³¹czenie do (ConnectNo) pojazdu (ConnectTo) stron¹ (ConnectToNr)
+{//³¹czenie do swojego sprzêgu (ConnectNo) pojazdu (ConnectTo) stron¹ (ConnectToNr)
  //Ra: zwykle wykonywane dwukrotnie, dla ka¿dego pojazdu oddzielnie
- //Ra: trzeba by odró¿niæ wymóg dociœniêcia od uszkodzenia sprzêgu
+ //Ra: trzeba by odró¿niæ wymóg dociœniêcia od uszkodzenia sprzêgu przy podczepianiu AI do sk³adu
  if (ConnectTo) //jeœli nie pusty
  {
   if (ConnectToNr!=2) Couplers[ConnectNo].ConnectedNr=ConnectToNr; //2=nic nie pod³¹czone
@@ -67,8 +67,9 @@ bool __fastcall TMoverParameters::DettachDistance(Byte ConnectNo)
  if (TestFlag(DamageFlag,dtrain_coupling)) return true; //hak urwany - roz³¹czanie jest OK
  //ABu021104: zakomentowane 'and (CouplerType<>Articulated)' w warunku, nie wiem co to bylo, ale za to teraz dziala odczepianie... :) }
  //if (CouplerType==Articulated) return false; //sprzêg nie do rozpiêcia - mo¿e byæ tylko urwany
- Couplers[ConnectNo].CoupleDist=Distance(Loc,Couplers[ConnectNo].Connected->Loc,Dim,Couplers[ConnectNo].Connected->Dim);
- return (Couplers[ConnectNo].CoupleDist<0.0); //mo¿na roz³¹czaæ, jeœli dociœniêty
+ //Couplers[ConnectNo].CoupleDist=Distance(Loc,Couplers[ConnectNo].Connected->Loc,Dim,Couplers[ConnectNo].Connected->Dim);
+ CouplerDist(ConnectNo);
+ return (Couplers[ConnectNo].CoupleDist<0.0)||(Couplers[ConnectNo].CoupleDist>0.2); //mo¿na roz³¹czaæ, jeœli dociœniêty
 };
 
 bool __fastcall TMoverParameters::Dettach(Byte ConnectNo)

@@ -220,24 +220,24 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
   {
    if (MoverParameters->DoorOpenMethod==1) //przesuwne
    {
-    if ((i%2)==0)
+    if (i&1)
     {
-     smAnimatedDoor[i]->SetTranslate(vector3(0,0,dDoorMoveL*DoorSpeedFactor[i]));
+     smAnimatedDoor[i]->SetTranslate(vector3(0,0,dDoorMoveR*DoorSpeedFactor[i]));
     //dDoorMoveL=dDoorMoveL*DoorSpeedFactor[i];
     }
     else
     {
-     smAnimatedDoor[i]->SetTranslate(vector3(0,0,dDoorMoveR*DoorSpeedFactor[i]));
+     smAnimatedDoor[i]->SetTranslate(vector3(0,0,dDoorMoveL*DoorSpeedFactor[i]));
     //dDoorMoveR=dDoorMoveR*DoorSpeedFactor[i];
     }
    }
    else
    if (MoverParameters->DoorOpenMethod==2) //obrotowe albo dwojlomne (trzeba kombinowac submodelami i ShiftL=90,R=180)
    {
-    if ((i%2)==0)
-     smAnimatedDoor[i]->SetRotate(float3(1,0,0),dDoorMoveL);
-    else
+    if (i&1)
      smAnimatedDoor[i]->SetRotate(float3(1,0,0),dDoorMoveR);
+    else
+     smAnimatedDoor[i]->SetRotate(float3(1,0,0),dDoorMoveL);
    }
   }
  } //for (int i=0;i<iAnimatedDoors;i++)
@@ -1689,20 +1689,13 @@ void __fastcall TDynamicObject::UpdatePos()
 
 bool __fastcall TDynamicObject::Update(double dt, double dt1)
 {
-#ifdef _DEBUG
-    if (dt==0) return true; //Ra: pauza
-/*
-    {
-        Error("dt==0");
-        dt= 0.001;
-    }
-*/
-#endif
-if (!MoverParameters->PhysicActivation)
-     return true;   //McZapkie: wylaczanie fizyki gdy nie potrzeba
-
-    if (!bEnabled)
-        return false;
+ if (dt==0) return true; //Ra: pauza
+ if (!MoverParameters->PhysicActivation)
+  return true;   //McZapkie: wylaczanie fizyki gdy nie potrzeba
+ if (!MyTrack)
+  return false; //pojazdy postawione na torach portalowych maj¹ MyTrack==NULL
+ if (!bEnabled)
+  return false; //a normalnie powinny mieæ bEnabled==false
 
 //McZapkie-260202
   MoverParameters->BatteryVoltage=90;
@@ -2467,8 +2460,8 @@ bool __fastcall TDynamicObject::Render()
   mat.BasisChange(vLeft,vUp,vFront);
   mMatrix=Inverse(mat);
 
-  vector3 pos=vPosition;
-  double ObjSqrDist=SquareMagnitude(Global::pCameraPosition-pos);
+  //vector3 pos=vPosition;
+  double ObjSqrDist=SquareMagnitude(Global::pCameraPosition-vPosition);
   ABuLittleUpdate(ObjSqrDist); //ustawianie zmiennych submodeli dla wspólnego modelu
 
   //Cone(vCoulpler[0],modelRot.z,0);
@@ -3553,7 +3546,7 @@ TDynamicObject* __fastcall TDynamicObject::Neightbour(int &dir)
 
 void __fastcall TDynamicObject::CoupleDist()
 {//obliczenie odleg³oœci sprzêgów
- if (MyTrack->iCategoryFlag&1)
+ if (MyTrack?(MyTrack->iCategoryFlag&1):true) //jeœli nie ma przypisanego toru, to liczyæ jak dla kolei
  {//jeœli jedzie po szynach (równie¿ unimog), liczenie kul wystarczy
   MoverParameters->SetCoupleDist();
  }

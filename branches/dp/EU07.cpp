@@ -143,11 +143,13 @@ GLvoid KillGLWindow(GLvoid) // properly kill the window
  {
   if (!wglMakeCurrent(NULL,NULL)) // are we able to release the DC and RC contexts?
   {
+   ErrorLog("Fail: window releasing");
    MessageBox(NULL,"Release of DC and RC failed.","SHUTDOWN ERROR",MB_OK | MB_ICONINFORMATION);
   }
 
   if (!wglDeleteContext(hRC)) // are we able to delete the RC?
   {
+   ErrorLog("Fail: rendering context releasing");
    MessageBox(NULL,"Release rendering context failed.","SHUTDOWN ERROR",MB_OK | MB_ICONINFORMATION);
   }
   hRC=NULL; // set RC to NULL
@@ -155,12 +157,14 @@ GLvoid KillGLWindow(GLvoid) // properly kill the window
 
  if (hDC && !ReleaseDC(hWnd,hDC)) // are we able to release the DC?
  {
+  ErrorLog("Fail: device context releasing");
   MessageBox(NULL,"Release device context failed.","SHUTDOWN ERROR",MB_OK | MB_ICONINFORMATION);
   hDC=NULL; // set DC to NULL
  }
 
  if (hWnd && !DestroyWindow(hWnd)) // are we able to destroy the window?
  {
+  ErrorLog("Fail: window destroying");
   MessageBox(NULL,"Could not release hWnd.","SHUTDOWN ERROR",MB_OK | MB_ICONINFORMATION);
   hWnd=NULL; // set hWnd to NULL
  }
@@ -210,7 +214,8 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
  if (!arbMultisampleSupported) //tylko dla pierwszego okna
   if (!RegisterClass(&wc))									// Attempt To Register The Window Class
   {
-   MessageBox(NULL,"Failed To Register The Window Class.","ERROR",MB_OK|MB_ICONEXCLAMATION);
+   ErrorLog("Fail: window class registeration");
+   MessageBox(NULL,"Failed to register the window class.","ERROR",MB_OK|MB_ICONEXCLAMATION);
    return FALSE;											// Return FALSE
   }
 
@@ -253,6 +258,7 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
   if (ChangeDisplaySettings(&dmScreenSettings,CDS_FULLSCREEN)!=DISP_CHANGE_SUCCESSFUL)
   {
    // If the mode fails, offer two options.  Quit or use windowed mode.
+   ErrorLog("Fail: full screen");
    if (MessageBox(NULL,"The requested fullscreen mode is not supported by\nyour video card. Use windowed mode instead?","EU07",MB_YESNO|MB_ICONEXCLAMATION)==IDYES)
    {
     fullscreen=FALSE;		// Windowed Mode Selected.  Fullscreen = FALSE
@@ -296,6 +302,7 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
  				NULL)))				  // Dont Pass Anything To WM_CREATE
  {
   KillGLWindow();						  // Reset The Display
+  ErrorLog("Fail: window creation");
   MessageBox(NULL,"Window creation error.","ERROR",MB_OK|MB_ICONEXCLAMATION);
   return FALSE;							  // Return FALSE
  }
@@ -325,7 +332,8 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
  if (NULL==(hDC=GetDC(hWnd))) // Did We Get A Device Context?
  {
   KillGLWindow();	      // Reset The Display
-  MessageBox(NULL,"Can't Create A GL Device Context.","ERROR",MB_OK|MB_ICONEXCLAMATION);
+  ErrorLog("Fail: device context");
+  MessageBox(NULL,"Can't create a GL device context.","ERROR",MB_OK|MB_ICONEXCLAMATION);
   return FALSE;		      // Return FALSE
  }
 
@@ -340,6 +348,7 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
   if (NULL==(PixelFormat=ChoosePixelFormat(hDC,&pfd)))	// Did Windows Find A Matching Pixel Format?
   {
    KillGLWindow();	      // Reset The Display
+   ErrorLog("Fail: pixelformat");
    MessageBox(NULL,"Can't find a suitable pixelformat.","ERROR",MB_OK|MB_ICONEXCLAMATION);
    return FALSE;		      // Return FALSE
   }
@@ -350,6 +359,7 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
  if (!SetPixelFormat(hDC,PixelFormat,&pfd))		// Are We Able To Set The Pixel Format?
  {
   KillGLWindow();	      // Reset The Display
+  ErrorLog("Fail: pixelformat");
   MessageBox(NULL,"Can't set the pixelformat.","ERROR",MB_OK|MB_ICONEXCLAMATION);
   return FALSE;		      // Return FALSE
  }
@@ -357,6 +367,7 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
  if (NULL==(hRC=wglCreateContext(hDC)))				// Are We Able To Get A Rendering Context?
  {
   KillGLWindow();	      // Reset The Display
+  ErrorLog("Fail: OpenGL rendering context creation");
   MessageBox(NULL,"Can't create a GL rendering context.","ERROR",MB_OK|MB_ICONEXCLAMATION);
   return FALSE;		      // Return FALSE
  }
@@ -364,6 +375,7 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
  if (!wglMakeCurrent(hDC,hRC))					// Try To Activate The Rendering Context
  {
   KillGLWindow();	      // Reset The Display
+  ErrorLog("Fail: OpenGL rendering context activation");
   MessageBox(NULL,"Can't activate the GL rendering context.","ERROR",MB_OK|MB_ICONEXCLAMATION);
   return FALSE;		      // Return FALSE
  }
@@ -391,6 +403,7 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
  if (!InitGL())		       // initialize our newly created GL Window
  {
   KillGLWindow();	       // reset the display
+  ErrorLog("Fail: OpenGL initialization");
   MessageBox(NULL,"Initialization Failed.","ERROR",MB_OK|MB_ICONEXCLAMATION);
   return FALSE;	       // return FALSE
  }
