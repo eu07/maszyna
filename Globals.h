@@ -212,7 +212,8 @@ public:
  static int iMultiplayer; //blokada dzia³ania niektórych eventów na rzecz kominikacji
  static HWND hWnd; //uchwyt okna
  static int iCameraLast;
- static AnsiString asVersion;
+ static AnsiString asRelease; //numer
+ static AnsiString asVersion; //z opisem
  static int iViewMode; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty, 4-obwody
  static GLint iMaxTextureSize; //maksymalny rozmiar tekstury
  static int iTextMode; //tryb pracy wyœwietlacza tekstowego

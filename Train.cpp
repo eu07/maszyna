@@ -130,7 +130,7 @@ __fastcall TTrain::~TTrain()
 {
  if (DynamicObject)
   if (DynamicObject->Mechanik)
-   DynamicObject->Mechanik->TakeControl(true);
+   DynamicObject->Mechanik->TakeControl(true); //likwidacja kabiny wymaga przejêcia przez AI
 }
 
 bool __fastcall TTrain::Init(TDynamicObject *NewDynamicObject)
@@ -374,10 +374,8 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                dsbSwitch->Play(0,0,0);
 //           }
       }
-      else
-  //McZapkie-240302 - wlaczanie automatycznego pilota (zadziala tylko w trybie debugmode)
-      if (cKey==VkKeyScan('q')) //ze Shiftem - w³¹czenie AI
-      {
+      else if (cKey==VkKeyScan('q')) //ze Shiftem - w³¹czenie AI
+      {//McZapkie-240302 - wlaczanie automatycznego pilota (zadziala tylko w trybie debugmode)
        if (DynamicObject->Mechanik)
         DynamicObject->Mechanik->TakeControl(true);
       }

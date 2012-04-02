@@ -2476,7 +2476,8 @@ AnsiString __fastcall TController::NextStop()
 
 void __fastcall TController::TakeControl(bool yes)
 {//przejêcie kontroli przez AI albo oddanie
- if (yes&&(AIControllFlag!=AIdriver))
+ if (AIControllFlag==yes) return; //ju¿ jest jak ma byæ
+ if (yes) //¿eby nie wykonywaæ dwa razy
  {//teraz AI prowadzi
   AIControllFlag=AIdriver;
   pVehicle->Controller=AIdriver;
@@ -2496,7 +2497,7 @@ void __fastcall TController::TakeControl(bool yes)
   //SetVelocity(-1,-1); //AI ustali sobie odpowiedni¹ prêdkoœæ
   CheckVehicles(); //ustawienie œwiate³
  }
- else if (AIControllFlag==AIdriver)
+ else
  {//a teraz u¿ytkownik
   AIControllFlag=Humandriver;
   pVehicle->Controller=Humandriver;

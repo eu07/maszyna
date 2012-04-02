@@ -15,6 +15,19 @@ __fastcall TMoverParameters::TMoverParameters(double VelInitial,AnsiString TypeN
  int LoadInitial,AnsiString LoadTypeInitial,int Cab)
  : T_MoverParameters(VelInitial,TypeNameInit,NameInit,LoadInitial,LoadTypeInitial,Cab)
 {//g³ówny konstruktor
+ DimHalf.x=0.5*Dim.W; //po³owa szerokoœci
+ DimHalf.y=0.5*Dim.L; //po³owa d³ugoœci
+ DimHalf.z=0.5*Dim.H; //po³owa wysokoœci
+};
+
+
+double __fastcall TMoverParameters::Distance(const TLocation &Loc1,const TLocation &Loc2,const TDimension &Dim1,const TDimension &Dim2)
+{//zwraca odleg³oœæ pomiêdzy pojazdami (Loc1) i (Loc2) z uwzglêdnieneim ich d³ugoœci (kule!)
+ return hypot(Loc2.X-Loc1.X,Loc1.Y-Loc2.Y)-0.5*(Dim2.L+Dim1.L);
+};
+
+double __fastcall TMoverParameters::Distance(const vector3 &s1, const vector3 &s2, const vector3 &d1, const vector3 &d2)
+{//obliczenie odleg³oœci prostopad³oœcianów o œrodkach (s1) i (s2) i wymiarach (d1) i (d2)
 };
 
 double __fastcall TMoverParameters::CouplerDist(Byte Coupler)
