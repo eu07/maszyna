@@ -1226,30 +1226,40 @@ double __fastcall TDynamicObject::Init(
  //l.X=l.Y=l.Z=0; //Ra: ustawianie tego teraz nie ma sensu, najpierw trzeba ustawiæ na torze
  //TRotation r;
  //r.Rx=r.Ry=r.Rz=0;
+ //Ra: zmieniamy znaczenie obsady na jednoliterowe, ¿eby dosadziæ kierownika
+ if (DriverType=="headdriver") DriverType="h"; //steruj¹cy kabin¹ +1
+ else if (DriverType=="reardriver") DriverType="r"; //steruj¹cy kabin¹ -1
+ else if (DriverType=="connected") DriverType="c"; //tego trzeba siê pozbyæ na rzecz ukrotnienia
+ else if (DriverType=="passenger") DriverType="p"; //to do przemyœlenia
+ else DriverType=""; //nikt nie siedzi
  int Cab; //numer kabiny z obsad¹ (nie mo¿na zaj¹æ obu)
- if (DriverType==AnsiString("headdriver")) //od przodu sk³adu
+ if (DriverType.Pos("h")) //od przodu sk³adu
   Cab=iDirection?1:-1; //iDirection=1 gdy normalnie, =0 odwrotnie
- else if (DriverType==AnsiString("reardriver")) //od ty³u sk³adu
+ else if (DriverType.Pos("r")) //od ty³u sk³adu
   Cab=iDirection?-1:1;
- else if (DriverType==AnsiString("connected")) //uaktywnianie wirtualnej kabiny
+ else if (DriverType=="c") //uaktywnianie wirtualnej kabiny
   Cab=iDirection?1:-1;
- else if (DriverType==AnsiString("passenger"))
+ else if (DriverType=="p")
  {
   if (random(6)<3) Cab=1; else Cab=-1; //losowy przydzia³ kabiny
  }
- else if (DriverType==AnsiString("nobody"))
+ else if (DriverType=="")
   Cab=0;
+/* to nie ma uzasadnienia
  else
  {//obsada nie rozpoznana
   Cab=0;  //McZapkie-010303: w przyszlosci dac tez pomocnika, palacza, konduktora itp.
   Error("Unknown DriverType description: "+DriverType);
   DriverType="nobody";
  }
+*/
  //utworzenie parametrów fizyki
  MoverParameters=new TMoverParameters(iDirection?fVel:-fVel,Type_Name,asName,Load,LoadType,Cab);
  //McZapkie: TypeName musi byc nazw¹ CHK/MMD pojazdu
  if (!MoverParameters->LoadChkFile(asBaseDir))
  {//jak wczytanie CHK siê nie uda, to b³¹d
+  if (ConversionError==-8)
+   ErrorLog("Missed file: "+BaseDir+"\\"+Type_Name);
   Error("Cannot load dynamic object "+asName+" from:\r\n"+BaseDir+"\\"+Type_Name+"\r\nError "+ConversionError+" in line "+LineCount);
   return 0.0; //zerowa d³ugoœæ to brak pojazdu
  }
@@ -1272,7 +1282,7 @@ double __fastcall TDynamicObject::Init(
  //w wagonie tez niech jedzie
  //if (MoverParameters->MainCtrlPosNo>0 &&
  // if (MoverParameters->CabNo!=0)
- if (DriverType!="nobody")
+ if (DriverType!="")
  {//McZapkie-040602: jeœli coœ siedzi w pojeŸdzie
   if (Name==AnsiString(Global::asHumanCtrlVehicle)) //jeœli pojazd wybrany do prowadzenia
   {
@@ -1280,7 +1290,7 @@ double __fastcall TDynamicObject::Init(
     Controller=Humandriver; //wsadzamy tam steruj¹cego
   }
   //McZapkie-151102: rozk³ad jazdy czytany z pliku *.txt z katalogu w którym jest sceneria
-  if ((DriverType=="headdriver")||(DriverType=="reardriver"))
+  if (DriverType.Pos("h")||DriverType.Pos("r"))
   {//McZapkie-110303: mechanik i rozklad tylko gdy jest obsada
    MoverParameters->ActiveCab=MoverParameters->CabNo; //ustalenie aktywnej kabiny (rozrz¹d)
 /*
@@ -1300,11 +1310,11 @@ double __fastcall TDynamicObject::Init(
    // Mechanik->PutCommand("Timetable:"+TrainName,fVel,0,NULL);
   }
   else
-   if (DriverType=="passenger")
+   if (DriverType=="p")
    {//obserwator w charakterze pasa¿era
     //Ra: to jest niebezpieczne, bo w razie co bêdzie pomaga³ hamulcem bezpieczeñstwa
     //TrainParams=new TTrainParameters(TrainName); //Ra: wywaliæ to st¹d!
-    Mechanik=new TController(Controller,this,NULL,Easyman);
+    //Mechanik=new TController(Controller,this,NULL,Easyman);
    }
  }
  // McZapkie-250202

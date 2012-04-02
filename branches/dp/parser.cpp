@@ -36,7 +36,7 @@ cParser::cParser(std::string Stream,buffertype Type,std::string Path,bool tr)
  // build comments map
  mComments.insert(commentmap::value_type("/*","*/"));
  mComments.insert(commentmap::value_type("//","\n"));
- mComments.insert(commentmap::value_type("--","\n"));
+ //mComments.insert(commentmap::value_type("--","\n")); //Ra: to chyba nie u¿ywane
  // store to calculate sub-sequent includes from relative path
  mPath=Path;
  // reset pointers and attach proper type of buffer

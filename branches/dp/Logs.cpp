@@ -71,7 +71,9 @@ void __fastcall WriteLog(const char* str)
 void __fastcall ErrorLog(const char* str)
 {//Ra: bezwarunkowa rejestracja powa¿nych b³êdów
  if (!errors.is_open())
-  errors.open("errors.txt",std::ios::trunc);
+ {errors.open("errors.txt",std::ios::trunc);
+  errors << AnsiString("EU07.EXE "+Global::asRelease).c_str() << "\n";
+ }
  if (str) errors << str;
  errors << "\n";
  errors.flush();
@@ -80,7 +82,7 @@ void __fastcall ErrorLog(const char* str)
 void __fastcall Error(const AnsiString &asMessage,bool box)
 {
  if (box)
-  MessageBox(NULL,asMessage.c_str(),"EU07-424",MB_OK);
+  MessageBox(NULL,asMessage.c_str(),AnsiString("EU07 "+Global::asRelease).c_str(),MB_OK);
  WriteLog(asMessage.c_str());
 }
 void __fastcall ErrorLog(const AnsiString &asMessage)

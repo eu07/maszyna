@@ -479,7 +479,7 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
     }
     SwapBuffers(hDC); // Swap Buffers (Double Buffering)
 
-//    TTrack *Track= Ground.FindGroundNode("train_start",TP_TRACK)->pTrack;
+//    TTrack *Track=Ground.FindGroundNode("train_start",TP_TRACK)->pTrack;
 
 //    Camera.Init(vector3(2700,10,6500),0,M_PI,0);
 //    Camera.Init(vector3(00,40,000),0,M_PI,0);
@@ -618,12 +618,12 @@ void __fastcall TWorld::OnKeyPress(int cKey)
      Global::pFreeCameraInitAngle[i].z=Camera.Roll;
      //logowanie, ¿eby mo¿na by³o do scenerii przepisaæ
      WriteLog("camera "
-      +AnsiString(0.001*floor(1000.0*Global::pFreeCameraInit[i].x+0.5))+" "
-      +AnsiString(0.001*floor(1000.0*Global::pFreeCameraInit[i].y+0.5))+" "
-      +AnsiString(0.001*floor(1000.0*Global::pFreeCameraInit[i].z+0.5))+" "
-      +AnsiString(0.001*floor(1000.0*RadToDeg(Global::pFreeCameraInitAngle[i].x)+0.5))+" "
-      +AnsiString(0.001*floor(1000.0*RadToDeg(Global::pFreeCameraInitAngle[i].y)+0.5))+" "
-      +AnsiString(0.001*floor(1000.0*RadToDeg(Global::pFreeCameraInitAngle[i].z)+0.5))+" "
+      +FloatToStrF(Global::pFreeCameraInit[i].x,ffFixed,7,3)+" "
+      +FloatToStrF(Global::pFreeCameraInit[i].y,ffFixed,7,3)+" "
+      +FloatToStrF(Global::pFreeCameraInit[i].z,ffFixed,7,3)+" "
+      +FloatToStrF(RadToDeg(Global::pFreeCameraInitAngle[i].x),ffFixed,7,3)+" "
+      +FloatToStrF(RadToDeg(Global::pFreeCameraInitAngle[i].y),ffFixed,7,3)+" "
+      +FloatToStrF(RadToDeg(Global::pFreeCameraInitAngle[i].z),ffFixed,7,3)+" "
       +AnsiString(i)+" endcamera");
     }
     else //równie¿ przeskakiwanie
@@ -724,6 +724,17 @@ bool __fastcall TWorld::Update()
   --iCheckFPS;
  else
  {//jak dosz³o do zera, to sprawdzamy wydajnoœæ
+  if (GetFPS()<16)
+  {Global::iSegmentsRendered=Global::iSegmentsRendered*GetFPS()/20.0;
+   if (Global::iSegmentsRendered<28) //jeœli jest co zmniejszaæ
+    Global::iSegmentsRendered=28; //minimalny promieñ to 600m (3*3*M_PI)
+  }
+  else if (GetFPS()>25) //jeœli jest du¿o FPS
+   if (Global::iSegmentsRendered<1500) //jeœli jest co zmniejszaæ
+   {Global::iSegmentsRendered=Global::iSegmentsRendered*GetFPS()/20.0;
+    if (Global::iSegmentsRendered>1500) //4.4km (22*22*M_PI)
+     if (Global::iSegmentsRendered=1500);
+   }
   if ((GetFPS()<16)&&(Global::iSlowMotion<7))
   {Global::iSlowMotion=(Global::iSlowMotion<<1)+1; //zapalenie kolejnego bitu
    if (Global::iSlowMotionMask&1)
@@ -737,7 +748,7 @@ bool __fastcall TWorld::Update()
     if (Global::iMultisampling) //a multisampling jest w³¹czony
      glEnable(GL_MULTISAMPLE);
   }
-  iCheckFPS=0.5*GetFPS(); //tak ze 2 sekundy poczekaæ - zacina
+  iCheckFPS=0.5*GetFPS(); //tak za 0.5 sekundy sprawdziæ ponownie - zacina
  }
  UpdateTimers(Global::bPause);
  if (!Global::bPause)
