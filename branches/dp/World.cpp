@@ -730,10 +730,10 @@ bool __fastcall TWorld::Update()
     Global::iSegmentsRendered=28; //minimalny promieñ to 600m (3*3*M_PI)
   }
   else if (GetFPS()>25) //jeœli jest du¿o FPS
-   if (Global::iSegmentsRendered<1500) //jeœli jest co zmniejszaæ
+   if (Global::iSegmentsRendered<400) //jeœli jest co zmniejszaæ
    {Global::iSegmentsRendered=Global::iSegmentsRendered*GetFPS()/20.0;
-    if (Global::iSegmentsRendered>1500) //4.4km (22*22*M_PI)
-     if (Global::iSegmentsRendered=1500);
+    if (Global::iSegmentsRendered>400) //4.4km (22*22*M_PI)
+     Global::iSegmentsRendered=400;
    }
   if ((GetFPS()<16)&&(Global::iSlowMotion<7))
   {Global::iSlowMotion=(Global::iSlowMotion<<1)+1; //zapalenie kolejnego bitu
@@ -971,24 +971,24 @@ bool __fastcall TWorld::Update()
 
  if (Train)
  {//rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
-  vector3 vFront=Train->DynamicObject->VectorFront();
-  if ((Train->DynamicObject->MoverParameters->CategoryFlag&2) && (Train->DynamicObject->MoverParameters->ActiveCab<0)) //TODO: zrobic to eleganciej z plynnym zawracaniem
-     vFront=-vFront;
-  vector3 vUp=vWorldUp; //sta³a
+  //vector3 vFront=Train->DynamicObject->VectorFront();
+  //if ((Train->DynamicObject->MoverParameters->CategoryFlag&2) && (Train->DynamicObject->MoverParameters->ActiveCab<0)) //TODO: zrobic to eleganciej z plynnym zawracaniem
+  //   vFront=-vFront;
+  //vector3 vUp=vWorldUp; //sta³a
   //vFront.Normalize();
-  vector3 vLeft=CrossProduct(vUp,vFront);
-  vUp=CrossProduct(vFront,vLeft);
-  matrix4x4 mat;
-  mat.Identity();
-  mat.BasisChange(vLeft,vUp,vFront);
-  Train->DynamicObject->mMatrix=Inverse(mat);
+  //vector3 vLeft=CrossProduct(vUp,vFront);
+  //vUp=CrossProduct(vFront,vLeft);
+  //matrix4x4 mat;
+  //mat.Identity();
+  //mat.BasisChange(vLeft,vUp,vFront);
+  //Train->DynamicObject->mMatrix=Inverse(mat);
   glPushMatrix();
   //ABu: Rendering kabiny jako ostatniej, zeby bylo widac przez szyby, tylko w widoku ze srodka
   if ((Train->DynamicObject->mdKabina!=Train->DynamicObject->mdModel) && Train->DynamicObject->bDisplayCab && !FreeFlyModeFlag)
   {
-    vector3 pos=Train->DynamicObject->GetPosition();
-    glTranslatef(pos.x,pos.y,pos.z);
-    glMultMatrixd(Train->DynamicObject->mMatrix.getArray());
+   vector3 pos=Train->DynamicObject->GetPosition();
+   glTranslatef(pos.x,pos.y,pos.z);
+   glMultMatrixd(Train->DynamicObject->mMatrix.getArray());
 
 //*yB: moje smuuugi 1
   if ((Train->DynamicObject->fShade<=0.0)?(Global::fLuminance<=0.25):(Train->DynamicObject->fShade*Global::fLuminance<=0.25))
@@ -1075,7 +1075,7 @@ bool __fastcall TWorld::Update()
       glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
       glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
     }
-    glPopMatrix ( );
+  glPopMatrix ( );
 //**********************************************************************************************************
  } //koniec if (Train)
 /*

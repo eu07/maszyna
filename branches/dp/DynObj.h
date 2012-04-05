@@ -76,7 +76,6 @@ private:
  TSubModel **pAnimated; //lista animowanych submodeli (mo¿e byæ ich wiêcej ni¿ obiektów animuj¹cych)
  double dWheelAngle[3]; //k¹ty obrotu kó³: 0=przednie toczne, 1=napêdzaj¹ce i wi¹zary, 2=tylne toczne
  vector3 vCoulpler[2]; //wspó³rzêdne sprzêgów do liczenia zderzeñ
-public:
  // !!!! kabina to modyfikuje !!!!
  vector3 vUp,vFront,vLeft; //wektory jednostkowe ustawienia pojazdu
 private:
@@ -213,6 +212,7 @@ public:
  float fShade; //0:normalnie, -1:w ciemnoœci, +1:dodatkowe œwiat³o (brak koloru?)
  int iLights[2]; //bity zapalonych œwiate³
  double fTrackBlock; //odleg³oœæ do przeszkody do dalszego ruchu
+ TDynamicObject* __fastcall PrevAny();
  TDynamicObject* __fastcall Prev();
  TDynamicObject* __fastcall Next();
     void __fastcall SetdMoveLen(double dMoveLen) {MoverParameters->dMoveLen=dMoveLen;}
@@ -224,7 +224,7 @@ public:
 		AnsiString asName;
     AnsiString __fastcall GetName()
        {
-          return asName;
+          return this?asName:AnsiString("");
        };
 
 //youBy
@@ -310,9 +310,11 @@ public:
     bool __fastcall Render();
     bool __fastcall RenderAlpha();
     vector3 inline __fastcall GetPosition();
-    inline vector3 __fastcall AxlePositionGet() { return iAxleFirst?Axle1.pPosition:Axle0.pPosition; };
+    inline vector3 __fastcall AxlePositionGet() {return iAxleFirst?Axle1.pPosition:Axle0.pPosition;};
     inline vector3 __fastcall VectorFront() {return vFront;};
     inline vector3 __fastcall VectorUp() {return vUp;};
+    inline vector3 __fastcall VectorLeft() {return vLeft;};
+    inline double* __fastcall Matrix() {return mMatrix.getArray();};
     inline double __fastcall GetVelocity() { return MoverParameters->Vel; };
     inline double __fastcall GetLength() { return MoverParameters->Dim.L; };
     inline double __fastcall GetWidth() { return MoverParameters->Dim.W; };

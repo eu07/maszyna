@@ -1882,7 +1882,10 @@ void __fastcall TController::OrdersInit(double fVel)
 
 AnsiString __fastcall TController::StopReasonText()
 {//informacja tekstowa o przyczynie zatrzymania
- return StopReasonTable[eStopReason];
+ if (eStopReason!=7)
+  return StopReasonTable[eStopReason];
+ else
+  return "Blocked by "+(pVehicles[0]->PrevAny()->GetName());
 };
 
 //----------------McZapkie: skanowanie semaforow:

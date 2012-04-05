@@ -35,7 +35,7 @@ double __fastcall TMoverParameters::CouplerDist(Byte Coupler)
  return Couplers[Coupler].CoupleDist=Distance(Loc,Couplers[Coupler].Connected->Loc,Dim,Couplers[Coupler].Connected->Dim); //odleg³oœæ pomiêdzy sprzêgami (kula!)
 };
 
-bool __fastcall TMoverParameters::Attach(Byte ConnectNo,Byte ConnectToNr,TMoverParameters *ConnectTo,Byte CouplingType)
+bool __fastcall TMoverParameters::Attach(Byte ConnectNo,Byte ConnectToNr,TMoverParameters *ConnectTo,Byte CouplingType,bool Forced)
 {//³¹czenie do swojego sprzêgu (ConnectNo) pojazdu (ConnectTo) stron¹ (ConnectToNr)
  //Ra: zwykle wykonywane dwukrotnie, dla ka¿dego pojazdu oddzielnie
  //Ra: trzeba by odró¿niæ wymóg dociœniêcia od uszkodzenia sprzêgu przy podczepianiu AI do sk³adu
@@ -45,7 +45,7 @@ bool __fastcall TMoverParameters::Attach(Byte ConnectNo,Byte ConnectToNr,TMoverP
   TCouplerType ct=ConnectTo->Couplers[Couplers[ConnectNo].ConnectedNr].CouplerType; //typ sprzêgu pod³¹czanego pojazdu
   Couplers[ConnectNo].Connected=ConnectTo; //tak podpi¹æ zawsze mo¿na, najwy¿ej bêdzie wirtualny
   CouplerDist(ConnectNo); //Couplers[ConnectNo].CoupleDist=Distance(Loc,ConnectTo->Loc,Dim,ConnectTo->Dim); //odleg³oœæ pomiêdzy sprzêgami
-  if ((CouplingType&ctrain_coupler)? //czy miewiertualny?
+  if (!Forced&&(CouplingType&ctrain_coupler)? //czy miewiertualny?
    ((Couplers[ConnectNo].CoupleDist<=dEpsilon)&&(Couplers[ConnectNo].CouplerType!=NoCoupler)&&(Couplers[ConnectNo].CouplerType==ct)):true)
   {//stykaja sie zderzaki i kompatybilne typy sprzegow, chyba ¿e wirtualny
    if (Couplers[ConnectNo].CouplingFlag==ctrain_virtual) //jeœli wczeœniej nie by³o po³¹czone
@@ -68,9 +68,9 @@ bool __fastcall TMoverParameters::Attach(Byte ConnectNo,Byte ConnectToNr,TMoverP
  return false; //brak pod³¹czanego pojazdu, zbyt du¿a odleg³oœæ, niezgodny typ sprzêgu, brak sprzêgu, brak haka
 };
 
-bool __fastcall TMoverParameters::Attach(Byte ConnectNo,Byte ConnectToNr,T_MoverParameters *ConnectTo,Byte CouplingType)
+bool __fastcall TMoverParameters::Attach(Byte ConnectNo,Byte ConnectToNr,T_MoverParameters *ConnectTo,Byte CouplingType,bool Forced)
 {//³¹czenie do (ConnectNo) pojazdu (ConnectTo) stron¹ (ConnectToNr)
- return Attach(ConnectNo,ConnectToNr,(TMoverParameters*)ConnectTo,CouplingType);
+ return Attach(ConnectNo,ConnectToNr,(TMoverParameters*)ConnectTo,CouplingType,Forced);
 };
 
 bool __fastcall TMoverParameters::DettachDistance(Byte ConnectNo)

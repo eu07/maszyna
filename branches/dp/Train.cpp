@@ -1902,7 +1902,8 @@ void __fastcall TTrain::OnKeyPress(int cKey)
 
 
 void __fastcall TTrain::UpdateMechPosition(double dt)
-{
+{//Ra: mechanik powinien byæ telepany niezale¿nie od pozycji pojazdu
+ //Ra: trzeba zrobiæ model bujania g³ow¹ i wczepiæ go do pojazdu 
 
  //DynamicObject->vFront=DynamicObject->GetDirection(); //to jest ju¿ policzone
 
@@ -1910,27 +1911,27 @@ void __fastcall TTrain::UpdateMechPosition(double dt)
  //DynamicObject->vFront.Normalize();
  //DynamicObject->vLeft=CrossProduct(DynamicObject->vUp,DynamicObject->vFront);
  //DynamicObject->vUp=CrossProduct(DynamicObject->vFront,DynamicObject->vLeft);
- matrix4x4 mat;
-
- double a1,a2,atmp;
- a1=(DynamicObject->Axle1.GetRoll()); //pobranie przechy³ki wózka
- a2=(DynamicObject->Axle0.GetRoll()); //uwzglêdnia ju¿ kierunek ruchu
- atmp=(a1+a2); //k¹t przechy³u pud³a
+ //matrix4x4 mat;
+ //double a1,a2,atmp;
+ //a1=(DynamicObject->Axle1.GetRoll()); //pobranie przechy³ki wózka
+ //a2=(DynamicObject->Axle0.GetRoll()); //uwzglêdnia ju¿ kierunek ruchu
+ //atmp=(a1+a2); //k¹t przechy³u pud³a
  //mat.Rotation(((Axle1.GetRoll()+Axle0.GetRoll()))*0.5f,vFront); //przedtem by³o bez zmiennych
- mat.Rotation(atmp*0.5f,DynamicObject->VectorFront()); //obrót matrycy o k¹t pud³a
+ //mat.Rotation(atmp*0.5f,DynamicObject->VectorFront()); //obrót matrycy o k¹t pud³a
  //Ra: tu by siê przyda³o uwzglêdniæ rozk³ad si³:
  // - na postoju horyzont prosto, kabina skosem
  // - przy szybkiej jeŸdzie kabina prosto, horyzont pochylony
 
- DynamicObject->vUp=mat*DynamicObject->VectorUp();
- DynamicObject->vLeft=mat*DynamicObject->vLeft;
+ //Ra: nie wolno tu modyfikowaæ wektorów pojazdu!
+ //DynamicObject->vUp=mat*DynamicObject->VectorUp();
+ //DynamicObject->vLeft=mat*DynamicObject->vLeft;
 
 
  //matrix4x4 mat;
- mat.Identity();
+ //mat.Identity();
 
- mat.BasisChange(DynamicObject->vLeft,DynamicObject->vUp,DynamicObject->vFront);
- DynamicObject->mMatrix=Inverse(mat);
+ //mat.BasisChange(DynamicObject->vLeft,DynamicObject->vUp,DynamicObject->vFront);
+ //DynamicObject->mMatrix=Inverse(mat);
 
  vector3 pNewMechPosition;
  //McZapkie: najpierw policzê pozycjê w/m kabiny
@@ -1976,7 +1977,7 @@ void __fastcall TTrain::UpdateMechPosition(double dt)
  //numer kabiny (-1: kabina B)
  iCabn=(DynamicObject->MoverParameters->ActiveCab==-1 ? 2 : DynamicObject->MoverParameters->ActiveCab);
  if (!DebugModeFlag)
- {//sprawdzaj wiezy
+ {//sprawdzaj wiêzy //Ra: nie tu!
   if (pNewMechPosition.x<Cabine[iCabn].CabPos1.x) pNewMechPosition.x=Cabine[iCabn].CabPos1.x;
   if (pNewMechPosition.x>Cabine[iCabn].CabPos2.x) pNewMechPosition.x=Cabine[iCabn].CabPos2.x;
   if (pNewMechPosition.z<Cabine[iCabn].CabPos1.z) pNewMechPosition.z=Cabine[iCabn].CabPos1.z;
