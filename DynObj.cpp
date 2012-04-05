@@ -530,7 +530,8 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
     smMechanik->Visible=false;
   }
   //ABu: Przechyly na zakretach
-  if (ObjSqrDist<80000) ABuModelRoll(); //przechy³ki od 400m
+  //Ra: przechy³kê za³atwiamy na etapie przesuwania modelu
+  //if (ObjSqrDist<80000) ABuModelRoll(); //przechy³ki od 400m
  }
  //sygnaly czola pociagu //Ra: wyœwietlamy bez ograniczeñ odleg³oœci, by by³y widoczne z daleka
  if (TestFlag(iLights[0],1))
@@ -693,6 +694,7 @@ TDynamicObject* __fastcall TDynamicObject::ABuScanNearestObject(TTrack *Track,do
 //ABu 01.11.04 poczatek wyliczania przechylow pudla **********************
 void __fastcall TDynamicObject::ABuModelRoll()
 {//ustawienie przechy³ki pojazdu i jego zawartoœci
+/* Ra: przechy³kê za³atwiamy na etapie przesuwania modelu
  double modelRoll=RadToDeg(0.5*(Axle0.GetRoll()+Axle1.GetRoll())); //Ra: tu nie by³o DegToRad
  //if (ABuGetDirection()<0) modelRoll=-modelRoll;
  if (modelRoll!=0.0)
@@ -711,6 +713,7 @@ void __fastcall TDynamicObject::ABuModelRoll()
   if (mdPrzedsionek)
    mdPrzedsionek->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
  }
+*/
 }
 
 //ABu 06.05.04 poczatek wyliczania obrotow wozkow **********************
@@ -1440,7 +1443,7 @@ double __fastcall TDynamicObject::Init(
   if (MoverParameters->CabNo!=0) //i ma kogoœ w kabinie
    if (Track->Event0) //a jest w tym torze event od stania
     RaAxleEvent(Track->Event0); //dodanie eventu stania do kolejki
- return MoverParameters->Dim.L-0.002; //d³ugoœæ wiêksza od zera oznacza OK; 2mm docisku
+ return MoverParameters->Dim.L; //d³ugoœæ wiêksza od zera oznacza OK; 2mm docisku?
 }
 /*
 bool __fastcall TDynamicObject::Move(double fDistance)
@@ -1482,11 +1485,24 @@ void __fastcall TDynamicObject::Move(double fDistance)
  //liczenie pozycji pojazdu tutaj, bo jest u¿ywane w wielu miejscach
  vPosition=0.5*(Axle1.pPosition+Axle0.pPosition); //œrodek miêdzy skrajnymi osiami
  vFront=Normalize(Axle0.pPosition-Axle1.pPosition); //kierunek ustawienia pojazdu (wektor jednostkowy)
- vLeft=Normalize(CrossProduct(vWorldUp,vFront)); //wektor w lewo
- vUp=CrossProduct(vFront,vLeft); //wektor w górê
- //mMatrix.Identity();
- //mMatrix.BasisChange(vLeft,vUp,vFront);
- //mMatrix=Inverse(mat); //wyliczenie macierzy dla pojazdu (potrzebna tylko do wyœwietlania?)
+ vLeft=Normalize(CrossProduct(vWorldUp,vFront)); //wektor poziomy w lewo, normalizacja potrzebna z powodu pochylenia (vFront)
+ vUp=CrossProduct(vFront,vLeft); //wektor w górê, bêdzie jednostkowy
+ double a=((Axle1.GetRoll()+Axle0.GetRoll())); //suma przechy³ek
+ if (a!=0.0)
+ {//wyznaczanie przechylenia tylko jeœli jest przechy³ka
+  //mo¿na by pobraæ wektory normalne z toru...
+  mMatrix.Identity(); //ta macierz jest potrzebna g³ównie do wyœwietlania
+  mMatrix.Rotation(a*0.5,vFront); //obrót wzd³u¿ osi o przechy³kê
+  vUp=mMatrix*vUp; //wektor w górê pojazdu (przekrêcenie na przechy³ce)
+  //vLeft=mMatrix*DynamicObject->vLeft;
+  //vUp=CrossProduct(vFront,vLeft); //wektor w górê
+  //vLeft=Normalize(CrossProduct(vWorldUp,vFront)); //wektor w lewo
+  vLeft=Normalize(CrossProduct(vUp,vFront)); //wektor w lewo
+  //vUp=CrossProduct(vFront,vLeft); //wektor w górê
+ }
+ mMatrix.Identity(); //to te¿ mo¿na by od razu policzyæ, ale potrzebne jest do wyœwietlania
+ mMatrix.BasisChange(vLeft,vUp,vFront); //przesuwnanie jest jednak rzadziej ni¿ renderowanie
+ mMatrix=Inverse(mMatrix); //wyliczenie macierzy dla pojazdu (potrzebna tylko do wyœwietlania?)
  //if (MoverParameters->CategoryFlag&2)
  {//przesuniêcia s¹ u¿ywane po wyrzuceniu poci¹gu z toru
   vPosition.x+=MoverParameters->OffsetTrackH*vLeft.x; //dodanie przesuniêcia w bok
@@ -1555,9 +1571,9 @@ void __fastcall TDynamicObject::AttachPrev(TDynamicObject *Object, int iType)
  loc.Z=Object->vPosition.y;
  Object->MoverParameters->Loc=loc; //ustawienie dodawanego pojazdu
  */
- MoverParameters->Attach(iDirection,Object->iDirection^1,Object->MoverParameters,iType);
+ MoverParameters->Attach(iDirection,Object->iDirection^1,Object->MoverParameters,iType,true);
  MoverParameters->Couplers[iDirection].Render=false;
- Object->MoverParameters->Attach(Object->iDirection^1,iDirection,MoverParameters,iType);
+ Object->MoverParameters->Attach(Object->iDirection^1,iDirection,MoverParameters,iType,true);
  Object->MoverParameters->Couplers[Object->iDirection^1].Render=true; //rysowanie sprzêgu w do³¹czanym
  if (!iDirection)
  {//³¹czenie odwrotne
@@ -1865,7 +1881,7 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
     dDOMoveLen=GetdMoveLen()+MoverParameters->ComputeMovement(dt,dt1,ts,tp,tmpTraction,l,r);
 //yB: zeby zawsze wrzucalo w jedna strone zakretu
     MoverParameters->AccN*=-ABuGetDirection();
-    Move(dDOMoveLen);
+    if (dDOMoveLen!=0.0) Move(dDOMoveLen);
     if (!bEnabled) //usuwane pojazdy nie maj¹ toru
     {//pojazd do usuniêcia
      Global::pGround->bDynamicRemove=true; //sprawdziæ
@@ -2434,14 +2450,13 @@ bool __fastcall TDynamicObject::Render()
  // zmienne
  renderme=false;
  //przeklejka
- vector3 pos=vPosition;
- double ObjSqrDist=SquareMagnitude(Global::pCameraPosition-pos);
+ double ObjSqrDist=SquareMagnitude(Global::pCameraPosition-vPosition);
  //koniec przeklejki
  if (ObjSqrDist<500) //jak jest blisko - do 70m
   modelrotate=0.01f; //ma³y k¹t, ¿eby nie znika³o
  else
  {//Global::pCameraRotation to k¹t bewzglêdny w œwiecie (zero - na po³udnie)
-  tempangle=(pos-Global::pCameraPosition); //wektor od kamery
+  tempangle=(vPosition-Global::pCameraPosition); //wektor od kamery
   modelrotate=ABuAcos(tempangle); //okreœlenie k¹ta
   if (modelrotate>M_PI) modelrotate-=(2*M_PI);
   modelrotate+=Global::pCameraRotation;
@@ -2456,7 +2471,7 @@ bool __fastcall TDynamicObject::Render()
  if (renderme)
  {
   TSubModel::iInstance=(int)this; //¿eby nie robiæ cudzych animacji
-  AnsiString asLoadName="";
+  //AnsiString asLoadName="";
   //przejœcie na uk³ad wspó³rzêdnych modelu - tu siê zniekszta³ca?
   //vFront=GetDirection();
   //if ((MoverParameters->CategoryFlag&2) && (MoverParameters->CabNo<0)) //TODO: zrobic to eleganciej z plynnym zawracaniem
@@ -2465,10 +2480,10 @@ bool __fastcall TDynamicObject::Render()
   //vFront.Normalize(); //a to leci w dó³ lub w górê, to mamy problem z ortogonalnoœci¹ i skalowaniem
   //vLeft=Normalize(CrossProduct(vWorldUp,vFront));
   //vUp=CrossProduct(vFront,vLeft);
-  matrix4x4 mat;
-  mat.Identity();
-  mat.BasisChange(vLeft,vUp,vFront);
-  mMatrix=Inverse(mat);
+  //matrix4x4 mat;
+  //mat.Identity();
+  //mat.BasisChange(vLeft,vUp,vFront);
+  //mMatrix=Inverse(mat);
 
   //vector3 pos=vPosition;
   double ObjSqrDist=SquareMagnitude(Global::pCameraPosition-vPosition);
@@ -2488,10 +2503,10 @@ bool __fastcall TDynamicObject::Render()
   }
 #endif
 
-  glPushMatrix ( );
+  glPushMatrix();
   //vector3 pos= vPosition;
   //double ObjDist= SquareMagnitude(Global::pCameraPosition-pos);
-  glTranslated(pos.x,pos.y,pos.z);
+  glTranslated(vPosition.x,vPosition.y,vPosition.z);
   glMultMatrixd(mMatrix.getArray());
   if (fShade>0.0)
   {//Ra: zmiana oswietlenia w tunelu, wykopie
@@ -3525,6 +3540,10 @@ int __fastcall TDynamicObject::DirectionSet(int d)
  return 1-(iDirection?NextConnectedNo:PrevConnectedNo); //informacja o po³o¿eniu nastêpnego
 };
 
+TDynamicObject* __fastcall TDynamicObject::PrevAny()
+{//wskaŸnik na poprzedni, nawet wirtualny
+ return iDirection?PrevConnected:NextConnected;
+};
 TDynamicObject* __fastcall TDynamicObject::Prev()
 {
  if (MoverParameters->Couplers[iDirection^1].CouplingFlag)

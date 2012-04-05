@@ -3259,9 +3259,9 @@ bool __fastcall TGround::GetTraction(vector3 pPosition, TDynamicObject *model)
     p2z= model->pant2x;
 //    model->mdModel->GetFromName
     wspwp= model->panth;
-    dirz= model->vFront;
-    diry= model->vUp;
-    dirx= model->vLeft;
+    dirz= model->VectorFront();
+    diry= model->VectorUp();
+    dirx= model->VectorLeft();
     dwys= model->GetPosition();
     dynwys= dwys.y;
     np1wy=1000;
@@ -3487,8 +3487,7 @@ bool __fastcall TGround::RenderDL(vector3 pPosition)
  //iRange=(Global::iSlowMotion&6)?((Global::iSlowMotion&4)?AreaMini:AreaSlow):AreaFast;
  //n=(iRange[0]*n)/10; //przeliczenie (n) do aktualnego promienia rednerowania
  //n=(Global::iSlowMotion&6)?((Global::iSlowMotion&4)?25:52):90; //iloœæ sektorów w æwiartce (max 400)
- n=Global::iSegmentsRendered;
- for (k=0;k<n;++k) //sektory w kolejnoœci odleg³oœci
+ for (k=0;k<Global::iSegmentsRendered;++k) //sektory w kolejnoœci odleg³oœci
  {//przerobione na u¿ycie SectorOrder
   i=SectorOrder[k].x; //na starcie oba >=0
   j=SectorOrder[k].y;
@@ -3572,8 +3571,7 @@ bool __fastcall TGround::RenderVBO(vector3 pPosition)
  //iRange=(Global::iSlowMotion&6)?((Global::iSlowMotion&4)?AreaMini:AreaSlow):AreaFast;
  //n=(iRange[0]*n)/10; //przeliczenie (n) do aktualnego promienia rednerowania
  //n=(Global::iSlowMotion&6)?((Global::iSlowMotion&4)?25:52):90; //iloœæ sektorów w æwiartce
- n=Global::iSegmentsRendered;
- for (k=0;k<n;++k) //sektory w kolejnoœci odleg³oœci
+ for (k=0;k<Global::iSegmentsRendered;++k) //sektory w kolejnoœci odleg³oœci
  {//przerobione na u¿ycie SectorOrder
   i=SectorOrder[k].x; //na starcie oba >=0
   j=SectorOrder[k].y;
