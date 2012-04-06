@@ -246,6 +246,9 @@ public:
  static Queryparsercomp::TQueryParserComp *qParser;
  static cParser *pParser;
  static int iSegmentsRendered; //iloœæ segmentów do regulacji wydajnoœci
+ static double fRadiusLoFPS; //dolna granica FPS, przy której promieñ scenerii bêdzie zmniejszany
+ static double fRadiusHiFPS; //górna granica FPS, przy której promieñ scenerii bêdzie zwiêkszany
+ static double fRadiusFactor; //wspó³czynnik zmiany promienia
  //metody
  static void __fastcall TrainDelete(TDynamicObject *d);
  static void __fastcall ConfigParse(Queryparsercomp::TQueryParserComp *qp,cParser *cp=NULL);

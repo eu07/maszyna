@@ -61,8 +61,8 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=1
 MinorVer=7
-Release=540
-Build=334
+Release=541
+Build=335
 Debug=1
 PreRelease=0
 Special=0
@@ -74,7 +74,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.7.540.334
+FileVersion=1.7.541.335
 InternalName=7th by Ra
 LegalCopyright=
 LegalTrademarks=
@@ -122,7 +122,7 @@ Item4=M:\aEU07\EU07\
 DebugSourceDirs=C:\Ra\dp\McZapkie\
 
 [Parameters]
-RunParams=
+RunParams=-s calkowo2_test.scn -v drezynka
 HostApplication=
 RemoteHost=
 RemotePath=

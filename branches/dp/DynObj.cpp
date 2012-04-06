@@ -1414,7 +1414,7 @@ double __fastcall TDynamicObject::Init(
    //Axle3.Move((iDirection?fDist:-fDist)+(HalfMaxAxleDist-MoverParameters->ADist*0.5),false);
   break;
  }
- Move(0.0); //potrzebne do wyliczenia aktualnej pozycji
+ Move(0.0001); //potrzebne do wyliczenia aktualnej pozycji; nie mo¿e byæ zero, bo nie przeliczy pozycji
  //teraz jeszcze trzeba przypisaæ pojazdy do nowego toru, bo przesuwanie pocz¹tkowe osi nie zrobi³o tego
  ABuCheckMyTrack(); //zmiana toru na ten, co oœ Axle0 (oœ z przodu)
  TLocation loc; //Ra: ustawienie pozycji do obliczania sprzêgów
@@ -1482,74 +1482,76 @@ void __fastcall TDynamicObject::Move(double fDistance)
  bEnabled&=Axle1.Move(fDistance,iAxleFirst); //oœ z ty³u pojazdu
  //Axle2.Move(fDistance,false); //te nigdy pierwsze nie s¹
  //Axle3.Move(fDistance,false);
- //liczenie pozycji pojazdu tutaj, bo jest u¿ywane w wielu miejscach
- vPosition=0.5*(Axle1.pPosition+Axle0.pPosition); //œrodek miêdzy skrajnymi osiami
- vFront=Normalize(Axle0.pPosition-Axle1.pPosition); //kierunek ustawienia pojazdu (wektor jednostkowy)
- vLeft=Normalize(CrossProduct(vWorldUp,vFront)); //wektor poziomy w lewo, normalizacja potrzebna z powodu pochylenia (vFront)
- vUp=CrossProduct(vFront,vLeft); //wektor w górê, bêdzie jednostkowy
- double a=((Axle1.GetRoll()+Axle0.GetRoll())); //suma przechy³ek
- if (a!=0.0)
- {//wyznaczanie przechylenia tylko jeœli jest przechy³ka
-  //mo¿na by pobraæ wektory normalne z toru...
-  mMatrix.Identity(); //ta macierz jest potrzebna g³ównie do wyœwietlania
-  mMatrix.Rotation(a*0.5,vFront); //obrót wzd³u¿ osi o przechy³kê
-  vUp=mMatrix*vUp; //wektor w górê pojazdu (przekrêcenie na przechy³ce)
-  //vLeft=mMatrix*DynamicObject->vLeft;
-  //vUp=CrossProduct(vFront,vLeft); //wektor w górê
-  //vLeft=Normalize(CrossProduct(vWorldUp,vFront)); //wektor w lewo
-  vLeft=Normalize(CrossProduct(vUp,vFront)); //wektor w lewo
-  //vUp=CrossProduct(vFront,vLeft); //wektor w górê
- }
- mMatrix.Identity(); //to te¿ mo¿na by od razu policzyæ, ale potrzebne jest do wyœwietlania
- mMatrix.BasisChange(vLeft,vUp,vFront); //przesuwnanie jest jednak rzadziej ni¿ renderowanie
- mMatrix=Inverse(mMatrix); //wyliczenie macierzy dla pojazdu (potrzebna tylko do wyœwietlania?)
- //if (MoverParameters->CategoryFlag&2)
- {//przesuniêcia s¹ u¿ywane po wyrzuceniu poci¹gu z toru
-  vPosition.x+=MoverParameters->OffsetTrackH*vLeft.x; //dodanie przesuniêcia w bok
-  vPosition.z+=MoverParameters->OffsetTrackH*vLeft.z; //vLeft jest wektorem poprzecznym
-  //if () na przechy³ce bêdzie dodatkowo zmiana wysokoœci samochodu
-  vPosition.y+=MoverParameters->OffsetTrackV;   //te offsety s¹ liczone przez moverparam
- }
- //Ra: skopiowanie pozycji do fizyki, tam potrzebna do zrywania sprzêgów
- //MoverParameters->Loc.X=-vPosition.x; //robi to {Fast}ComputeMovement()
- //MoverParameters->Loc.Y= vPosition.z;
- //MoverParameters->Loc.Z= vPosition.y;
- //obliczanie pozycji sprzêgów do liczenia zderzeñ
- vector3 dir=(0.5*MoverParameters->Dim.L)*vFront; //wektor sprzêgu
- vCoulpler[0]=vPosition+dir; //wspó³rzêdne sprzêgu na pocz¹tku
- vCoulpler[1]=vPosition-dir; //wspó³rzêdne sprzêgu na koñcu
- MoverParameters->vCoulpler[0]=vCoulpler[0]; //tymczasowo kopiowane na inny poziom
- MoverParameters->vCoulpler[1]=vCoulpler[1];
- //if (bTakeCare) //jeœli istotne s¹ szczegó³y (blisko kamery)
- {//przeliczenie cienia
-  TTrack *t0=Axle0.GetTrack(); //ju¿ po przesuniêciu
-  TTrack *t1=Axle1.GetTrack();
-  if ((t0->eEnvironment==e_flat)&&(t1->eEnvironment==e_flat)) //mo¿e byæ e_bridge...
-   fShade=0.0; //standardowe oœwietlenie
-  else
-  {//je¿eli te tory maj¹ niestandardowy stopieñ zacienienia (e_canyon, e_tunnel)
-   if (t0->eEnvironment==t1->eEnvironment)
-   {switch (t0->eEnvironment)
-    {//typ zmiany oœwietlenia
-     case e_canyon: fShade=0.65; break; //zacienienie w kanionie
-     case e_tunnel: fShade=0.20; break; //zacienienie w tunelu
+ if (fDistance!=0.0) //nie liczyæ ponownie, jeœli stoi
+ {//liczenie pozycji pojazdu tutaj, bo jest u¿ywane w wielu miejscach
+  vPosition=0.5*(Axle1.pPosition+Axle0.pPosition); //œrodek miêdzy skrajnymi osiami
+  vFront=Normalize(Axle0.pPosition-Axle1.pPosition); //kierunek ustawienia pojazdu (wektor jednostkowy)
+  vLeft=Normalize(CrossProduct(vWorldUp,vFront)); //wektor poziomy w lewo, normalizacja potrzebna z powodu pochylenia (vFront)
+  vUp=CrossProduct(vFront,vLeft); //wektor w górê, bêdzie jednostkowy
+  double a=((Axle1.GetRoll()+Axle0.GetRoll())); //suma przechy³ek
+  if (a!=0.0)
+  {//wyznaczanie przechylenia tylko jeœli jest przechy³ka
+   //mo¿na by pobraæ wektory normalne z toru...
+   mMatrix.Identity(); //ta macierz jest potrzebna g³ównie do wyœwietlania
+   mMatrix.Rotation(a*0.5,vFront); //obrót wzd³u¿ osi o przechy³kê
+   vUp=mMatrix*vUp; //wektor w górê pojazdu (przekrêcenie na przechy³ce)
+   //vLeft=mMatrix*DynamicObject->vLeft;
+   //vUp=CrossProduct(vFront,vLeft); //wektor w górê
+   //vLeft=Normalize(CrossProduct(vWorldUp,vFront)); //wektor w lewo
+   vLeft=Normalize(CrossProduct(vUp,vFront)); //wektor w lewo
+   //vUp=CrossProduct(vFront,vLeft); //wektor w górê
+  }
+  mMatrix.Identity(); //to te¿ mo¿na by od razu policzyæ, ale potrzebne jest do wyœwietlania
+  mMatrix.BasisChange(vLeft,vUp,vFront); //przesuwnanie jest jednak rzadziej ni¿ renderowanie
+  mMatrix=Inverse(mMatrix); //wyliczenie macierzy dla pojazdu (potrzebna tylko do wyœwietlania?)
+  //if (MoverParameters->CategoryFlag&2)
+  {//przesuniêcia s¹ u¿ywane po wyrzuceniu poci¹gu z toru
+   vPosition.x+=MoverParameters->OffsetTrackH*vLeft.x; //dodanie przesuniêcia w bok
+   vPosition.z+=MoverParameters->OffsetTrackH*vLeft.z; //vLeft jest wektorem poprzecznym
+   //if () na przechy³ce bêdzie dodatkowo zmiana wysokoœci samochodu
+   vPosition.y+=MoverParameters->OffsetTrackV;   //te offsety s¹ liczone przez moverparam
+  }
+  //Ra: skopiowanie pozycji do fizyki, tam potrzebna do zrywania sprzêgów
+  //MoverParameters->Loc.X=-vPosition.x; //robi to {Fast}ComputeMovement()
+  //MoverParameters->Loc.Y= vPosition.z;
+  //MoverParameters->Loc.Z= vPosition.y;
+  //obliczanie pozycji sprzêgów do liczenia zderzeñ
+  vector3 dir=(0.5*MoverParameters->Dim.L)*vFront; //wektor sprzêgu
+  vCoulpler[0]=vPosition+dir; //wspó³rzêdne sprzêgu na pocz¹tku
+  vCoulpler[1]=vPosition-dir; //wspó³rzêdne sprzêgu na koñcu
+  MoverParameters->vCoulpler[0]=vCoulpler[0]; //tymczasowo kopiowane na inny poziom
+  MoverParameters->vCoulpler[1]=vCoulpler[1];
+  //if (bTakeCare) //jeœli istotne s¹ szczegó³y (blisko kamery)
+  {//przeliczenie cienia
+   TTrack *t0=Axle0.GetTrack(); //ju¿ po przesuniêciu
+   TTrack *t1=Axle1.GetTrack();
+   if ((t0->eEnvironment==e_flat)&&(t1->eEnvironment==e_flat)) //mo¿e byæ e_bridge...
+    fShade=0.0; //standardowe oœwietlenie
+   else
+   {//je¿eli te tory maj¹ niestandardowy stopieñ zacienienia (e_canyon, e_tunnel)
+    if (t0->eEnvironment==t1->eEnvironment)
+    {switch (t0->eEnvironment)
+     {//typ zmiany oœwietlenia
+      case e_canyon: fShade=0.65; break; //zacienienie w kanionie
+      case e_tunnel: fShade=0.20; break; //zacienienie w tunelu
+     }
     }
-   }
-   else //dwa ró¿ne
-   {//liczymy proporcjê
-    double d=Axle0.GetTranslation(); //aktualne po³o¿enie na torze
-    if (Axle0.GetDirection()<0)
-     d=t0->fTrackLength-d; //od drugiej strony liczona d³ugoœæ
-    d/=2.0*fHalfMaxAxleDist; //rozsataw osi procentowe znajdowanie siê na torze
-    switch (t0->eEnvironment)
-    {//typ zmiany oœwietlenia - zak³adam, ¿e drugi tor ma e_flat
-     case e_canyon: fShade=(d*0.65)+(1.0-d); break; //zacienienie w kanionie
-     case e_tunnel: fShade=(d*0.20)+(1.0-d); break; //zacienienie w tunelu
-    }
-    switch (t1->eEnvironment)
-    {//typ zmiany oœwietlenia - zak³adam, ¿e pierwszy tor ma e_flat
-     case e_canyon: fShade=d+(1.0-d)*0.65; break; //zacienienie w kanionie
-     case e_tunnel: fShade=d+(1.0-d)*0.20; break; //zacienienie w tunelu
+    else //dwa ró¿ne
+    {//liczymy proporcjê
+     double d=Axle0.GetTranslation(); //aktualne po³o¿enie na torze
+     if (Axle0.GetDirection()<0)
+      d=t0->fTrackLength-d; //od drugiej strony liczona d³ugoœæ
+     d/=2.0*fHalfMaxAxleDist; //rozsataw osi procentowe znajdowanie siê na torze
+     switch (t0->eEnvironment)
+     {//typ zmiany oœwietlenia - zak³adam, ¿e drugi tor ma e_flat
+      case e_canyon: fShade=(d*0.65)+(1.0-d); break; //zacienienie w kanionie
+      case e_tunnel: fShade=(d*0.20)+(1.0-d); break; //zacienienie w tunelu
+     }
+     switch (t1->eEnvironment)
+     {//typ zmiany oœwietlenia - zak³adam, ¿e pierwszy tor ma e_flat
+      case e_canyon: fShade=d+(1.0-d)*0.65; break; //zacienienie w kanionie
+      case e_tunnel: fShade=d+(1.0-d)*0.20; break; //zacienienie w tunelu
+     }
     }
    }
   }
@@ -1881,7 +1883,8 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
     dDOMoveLen=GetdMoveLen()+MoverParameters->ComputeMovement(dt,dt1,ts,tp,tmpTraction,l,r);
 //yB: zeby zawsze wrzucalo w jedna strone zakretu
     MoverParameters->AccN*=-ABuGetDirection();
-    if (dDOMoveLen!=0.0) Move(dDOMoveLen);
+    //if (dDOMoveLen!=0.0) //Ra: nie mo¿e byæ, bo blokuje Event0
+     Move(dDOMoveLen);
     if (!bEnabled) //usuwane pojazdy nie maj¹ toru
     {//pojazd do usuniêcia
      Global::pGround->bDynamicRemove=true; //sprawdziæ
