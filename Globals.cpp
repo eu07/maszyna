@@ -57,8 +57,8 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asRelease="1.7.540.334";
-AnsiString Global::asVersion="Compilation 2012-04-05, release "+Global::asRelease+"."; //tutaj, bo wysy³any
+AnsiString Global::asRelease="1.7.541.335";
+AnsiString Global::asVersion="Compilation 2012-04-07, release "+Global::asRelease+"."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 double Global::fSunDeclination=0.0; //deklinacja S³oñca
@@ -114,6 +114,10 @@ AnsiString Global::asHumanCtrlVehicle="EU07-424";
 int Global::iMultiplayer=0; //blokada dzia³ania niektórych funkcji na rzecz kominikacji
 double Global::fMoveLight=-1; //ruchome œwiat³o
 double Global::fLatitudeDeg=52.0; //szerokoœæ geograficzna
+double Global::fRadiusLoFPS=16.0; //dolna granica FPS, przy której promieñ scenerii bêdzie zmniejszany
+double Global::fRadiusHiFPS=25.0; //górna granica FPS, przy której promieñ scenerii bêdzie zwiêkszany
+double Global::fRadiusFactor=1.1; //wspó³czynnik jednorazowej zmiany promienia scenerii
+
 
 //parametry wydajnoœciowe (np. regulacja FPS, szybkoœæ wczytywania)
 bool Global::bAdjustScreenFreq=true;

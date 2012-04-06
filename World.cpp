@@ -724,14 +724,14 @@ bool __fastcall TWorld::Update()
   --iCheckFPS;
  else
  {//jak dosz³o do zera, to sprawdzamy wydajnoœæ
-  if (GetFPS()<16)
-  {Global::iSegmentsRendered=Global::iSegmentsRendered*GetFPS()/20.0;
+  if (GetFPS()<Global::fRadiusLoFPS)
+  {Global::iSegmentsRendered=floor(0.5+Global::iSegmentsRendered/Global::fRadiusFactor);
    if (Global::iSegmentsRendered<28) //jeœli jest co zmniejszaæ
     Global::iSegmentsRendered=28; //minimalny promieñ to 600m (3*3*M_PI)
   }
-  else if (GetFPS()>25) //jeœli jest du¿o FPS
+  else if (GetFPS()>Global::fRadiusHiFPS) //jeœli jest du¿o FPS
    if (Global::iSegmentsRendered<400) //jeœli jest co zmniejszaæ
-   {Global::iSegmentsRendered=Global::iSegmentsRendered*GetFPS()/20.0;
+   {Global::iSegmentsRendered=floor(0.5+Global::iSegmentsRendered*Global::fRadiusFactor);
     if (Global::iSegmentsRendered>400) //4.4km (22*22*M_PI)
      Global::iSegmentsRendered=400;
    }
@@ -748,7 +748,7 @@ bool __fastcall TWorld::Update()
     if (Global::iMultisampling) //a multisampling jest w³¹czony
      glEnable(GL_MULTISAMPLE);
   }
-  iCheckFPS=0.5*GetFPS(); //tak za 0.5 sekundy sprawdziæ ponownie - zacina
+  iCheckFPS=0.25*GetFPS(); //tak za 0.25 sekundy sprawdziæ ponownie (jeszcze przycina?)
  }
  UpdateTimers(Global::bPause);
  if (!Global::bPause)

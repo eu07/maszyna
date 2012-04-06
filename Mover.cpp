@@ -9,7 +9,7 @@
 // Jeœli jakieœ zmienne nie s¹ u¿ywane w mover.pas, te¿ mo¿na je przenosiæ.
 // Przeniesienie wszystkiego na raz zrobi³o by zbyt wielki chaos do ogarniêcia.
 
-const dEpsilon=0.001;
+const dEpsilon=0.01; //1cm (zale¿y od typu sprzêgu...)
 
 __fastcall TMoverParameters::TMoverParameters(double VelInitial,AnsiString TypeNameInit,AnsiString NameInit,
  int LoadInitial,AnsiString LoadTypeInitial,int Cab)
@@ -44,25 +44,24 @@ bool __fastcall TMoverParameters::Attach(Byte ConnectNo,Byte ConnectToNr,TMoverP
   if (ConnectToNr!=2) Couplers[ConnectNo].ConnectedNr=ConnectToNr; //2=nic nie pod³¹czone
   TCouplerType ct=ConnectTo->Couplers[Couplers[ConnectNo].ConnectedNr].CouplerType; //typ sprzêgu pod³¹czanego pojazdu
   Couplers[ConnectNo].Connected=ConnectTo; //tak podpi¹æ zawsze mo¿na, najwy¿ej bêdzie wirtualny
-  CouplerDist(ConnectNo); //Couplers[ConnectNo].CoupleDist=Distance(Loc,ConnectTo->Loc,Dim,ConnectTo->Dim); //odleg³oœæ pomiêdzy sprzêgami
-  if (!Forced&&(CouplingType&ctrain_coupler)? //czy miewiertualny?
-   ((Couplers[ConnectNo].CoupleDist<=dEpsilon)&&(Couplers[ConnectNo].CouplerType!=NoCoupler)&&(Couplers[ConnectNo].CouplerType==ct)):true)
-  {//stykaja sie zderzaki i kompatybilne typy sprzegow, chyba ¿e wirtualny
+  CouplerDist(ConnectNo); //przeliczenie odleg³oœci pomiêdzy sprzêgami
+  if (!CouplingType) return false; //wirtualny wiêcej nic nie robi
+  if (Forced?true:(Couplers[ConnectNo].CoupleDist<=dEpsilon)&&(Couplers[ConnectNo].CouplerType!=NoCoupler)&&(Couplers[ConnectNo].CouplerType==ct))
+  {//stykaja sie zderzaki i kompatybilne typy sprzegow, chyba ¿e ³¹czenie na starcie
    if (Couplers[ConnectNo].CouplingFlag==ctrain_virtual) //jeœli wczeœniej nie by³o po³¹czone
    {//ustalenie z której strony rysowaæ sprzêg
     Couplers[ConnectNo].Render=true; //tego rysowaæ
     Couplers[ConnectNo].Connected->Couplers[Couplers[ConnectNo].ConnectedNr].Render=false; //a tego nie
    };
-   Couplers[ConnectNo].CouplingFlag=CouplingType;
-   if (CouplingType!=ctrain_virtual) //Ra: wirtualnego nie ³¹czymy zwrotnie!
-   {//jeœli ³¹czenie sprzêgiem niewirtualnym, ustawiamy po³¹czenie zwrotne
-    Couplers[ConnectNo].Connected->Couplers[Couplers[ConnectNo].ConnectedNr].CouplingFlag=CouplingType;
-    Couplers[ConnectNo].Connected->Couplers[Couplers[ConnectNo].ConnectedNr].Connected=this;
-    Couplers[ConnectNo].Connected->Couplers[Couplers[ConnectNo].ConnectedNr].CoupleDist=Couplers[ConnectNo].CoupleDist;
-    return true;
-   }
-   else
-    return false; //pod³¹czenie nie uda³o siê - jest wirtualne
+   Couplers[ConnectNo].CouplingFlag=CouplingType; //ustawienie typu sprzêgu
+   //if (CouplingType!=ctrain_virtual) //Ra: wirtualnego nie ³¹czymy zwrotnie!
+   //{//jeœli ³¹czenie sprzêgiem niewirtualnym, ustawiamy po³¹czenie zwrotne
+   Couplers[ConnectNo].Connected->Couplers[Couplers[ConnectNo].ConnectedNr].CouplingFlag=CouplingType;
+   Couplers[ConnectNo].Connected->Couplers[Couplers[ConnectNo].ConnectedNr].Connected=this;
+   Couplers[ConnectNo].Connected->Couplers[Couplers[ConnectNo].ConnectedNr].CoupleDist=Couplers[ConnectNo].CoupleDist;
+   return true;
+   //}
+   //pod³¹czenie nie uda³o siê - jest wirtualne
   }
  }
  return false; //brak pod³¹czanego pojazdu, zbyt du¿a odleg³oœæ, niezgodny typ sprzêgu, brak sprzêgu, brak haka
