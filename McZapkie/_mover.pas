@@ -480,6 +480,7 @@ TYPE
                 ShuntModeAllow: boolean;
                 ShuntMode: boolean;
 
+                DE_Ulim, DE_Ilim, DE_P0, DE_nnom: real;
                 Flat: boolean;
                 Vhyp: real;
                 DElist: TDESchemeTable;
@@ -3485,33 +3486,69 @@ end;
 function T_MoverParameters.TractionForce(dt:real):real;
 var PosRatio,dmoment,dtrans,tmp,tmpV: real;
     i: byte;
-{oblicza sile trakcyjna lokomotywy (dla elektrowozu tez calkowity prad)}
+const
+    opsiln= 0.1;
+    P2n= 1.83;    
+ {oblicza sile trakcyjna lokomotywy (dla elektrowozu tez calkowity prad)}
+function CurrentDE(n,U:real): real;
+{wazna funkcja - liczy prad plynacy przez silniki polaczone szeregowo lub rownolegle}
+{w zaleznosci od polozenia nastawnikow MainCtrl i ScndCtrl oraz predkosci obrotowej n}
+{a takze wywala bezpiecznik nadmiarowy gdy za duzy prad lub za male napiecie}
+{jest takze mozliwosc uszkodzenia silnika wskutek nietypowych parametrow}
+var //Rw,
+    MotorCurrent:real;
+    Rz,Delta,Isf:real;
+    Mn: integer;
+begin
+  MotorCurrent:=0;
+//  Mn:=NPoweredAxles;
+  Mn:=1;
+  if (DEList[MainCtrlPos].GenPower<1) then
+    MotorCurrent:=0                    {wylaczone}
+  else                                 {wlaczone}
+      with MotorParam[ScndCtrlPos] do
+       begin
+        Rz:=Mn*WindingRes;
+        Isf:=Sign(U)*Isat;
+        Delta:=SQR(Isf*Rz+Mn*fi*n-U)+4*U*Isf*Rz;
+        if Mains then
+         begin
+          if U>0 then
+           MotorCurrent:=(U-Isf*Rz-Mn*fi*n+SQRT(Delta))/(2.0*Rz)
+          else
+           MotorCurrent:=(U-Isf*Rz-Mn*fi*n-SQRT(Delta))/(2.0*Rz)
+         end
+        else
+         MotorCurrent:=0;
+       end;{with}
+  Im:=MotorCurrent;
+  CurrentDE:=Im; {prad brany do liczenia sily trakcyjnej}
+  EnginePower:=Abs(Itot)*(Mn)*Abs(U);
+end;
+
+function MomentumDE(I:real): real;
+{liczy moment sily wytwarzany przez silnik elektryczny}
+begin
+    with MotorParam[ScndCtrlPos] do
+     MomentumDE:=mfi*I*(1-1.0/(Abs(I)/mIsat+1));
+end;
+
 begin
   Ft:=0;
   dtrans:=0;
   dmoment:=0;
 //  tmpV:=Abs(nrot*WheelDiameter/2);
 //youBy
-  if (EngineType=DieselElectric) then
-    begin
-     tmp:=DEList[MainCtrlPos].rpm/60.0;
-     if (Heating) and (MainCtrlPosNo>MainCtrlPos) then
+  if EngineType=DieselElectric then //silnik diesla
+   begin
+    if (MainS) then
+      RventRot:=RventRot+Min0R(Max0R(-100,DElist[MainCtrlPos].RPM-RventRot),50)*dt
+    else
      begin
-       i:=MainCtrlPosNo;
-       while (DEList[i-2].rpm/60.0>tmp) do
-         i:=i-1;
-       tmp:=DEList[i].rpm/60.0
+      RventRot:=RventRot*(1-RVentSpeed*dt);
+      if RventRot<0.1 then RventRot:=0;
      end;
-     if enrot<>tmp*Byte(ConverterFlag) then
-       if ABS(tmp*Byte(ConverterFlag) - enrot) < 0.001 then
-         enrot:=tmp*Byte(ConverterFlag)
-       else
-         if (enrot<DEList[0].rpm*0.01) and (ConverterFlag) then
-           enrot:=enrot + (tmp*Byte(ConverterFlag) - enrot)*dt/5.0
-         else
-           enrot:=enrot + (tmp*Byte(ConverterFlag) - enrot)*1.5*dt;
-    end
-  else
+   end;
   if EngineType<>DieselEngine then
    enrot:=Transmision.Ratio*nrot
   else
@@ -3609,133 +3646,59 @@ begin
                  end;
    DieselElectric:    //youBy
      begin
-//       tmpV:=V*CabNo*ActiveDir;
-         tmpV:=nrot*Pirazy2*0.5*WheelDiameter*DirAbsolute; //*CabNo*ActiveDir;
-       //jazda manewrowa
-       if (ShuntMode) then
-        begin
-         Voltage:=(SST[MainCtrlPos].Umax * AnPos) + (SST[MainCtrlPos].Umin * (1 - AnPos));
-         tmp:=(SST[MainCtrlPos].Pmax * AnPos) + (SST[MainCtrlPos].Pmin * (1 - AnPos));
-         Ft:=tmp * 1000.0 / (abs(tmpV)+1.6);
-         PosRatio:=1;
-        end
-       else  //jazda ciapongowa
-      begin
+        PosRatio:=RventRot/DE_nnom;
+        PowerCorRatio:={PowerCorRatio*(1-dt)+dt*}DElist[MainCtrlPos].Umax;
+        Voltage:={(1-dt)*Voltage+dt*}
+        (DE_Ulim*PosRatio*0.5*(Vhyp*DElist[MainCtrlPos].Imax+PowerCorRatio)          //graniczne napiecie
+        +(DE_Ulim*DE_Ilim/10)/(Itot/(PosRatio*Vhyp*DElist[MainCtrlPos].Imax+0.0001)-DE_Ilim+1)   //spadek z chk zewnetrznej, +1 na zapas
+        -CircuitRes*Itot
+        );                                                  //opor uzwojen
 
-       tmp:=Min0R(DEList[MainCtrlPos].genpower,Power-HeatingPower*byte(Heating));
+        if (DElist[MainCtrlPos].GenPower>0) then
+          Vadd:=EnginePower/1000/DElist[MainCtrlPos].GenPower
+        else
+          Vadd:=0;
+        if (EnginePower/1000>DElist[MainCtrlPos].GenPower*1.005) then
+        Vhyp:=Vhyp-dt/7;
 
-        PosRatio:=DEList[MainCtrlPos].genpower / DEList[MainCtrlPosNo].genpower;  {stosunek mocy teraz do mocy max}
-        if (MainCtrlPos>0) and (ConverterFlag) then
-          if tmpV < (Vhyp*(Power-HeatingPower*byte(Heating))/DEList[MainCtrlPosNo].genpower) then //czy na czesci prostej, czy na hiperboli
-            Ft:=(Ftmax - ((Ftmax - 1000.0 * DEList[MainCtrlPosNo].genpower / (Vhyp+Vadd)) * (tmpV/Vhyp) / PowerCorRatio)) * PosRatio //posratio - bo sila jakos tam sie rozklada
-          else //na hiperboli                             //1.107 - wspolczynnik sredniej nadwyzki Ft w symku nad charakterystyka
-            Ft:=1000.0 * tmp / (tmpV+Vadd) / PowerCorRatio //tu jest zawarty stosunek mocy
-        else Ft:=0; //jak nastawnik na zero, to sila tez zero
+        if (EnginePower/1000<DElist[MainCtrlPos].GenPower*0.995) then
+        Vhyp:=Vhyp+dt/12;
 
-      PosRatio:=tmp/DEList[MainCtrlPosNo].genpower;
+        Vhyp:=Min0R(Max0R(Vhyp,0),1);
 
-      end;
-        Ft:=Ft*DirAbsolute; //ActiveDir * CabNo; //zwrot sily i jej wartosc
-        Fw:=Ft/NPoweredAxles; //sila na obwodzie kola
-        Mw:=Fw*WheelDiameter / 2.0; // moment na osi kola
-        Mm:=Mw/Transmision.Ratio; // moment silnika trakcyjnego
+        if Voltage>DE_Ulim*PosRatio then begin Voltage:=0; Itot:=0; end;
+        if Itot>DE_Ilim*PosRatio then begin Voltage:=0; Itot:=0; end;
 
-
-       with MotorParam[ScndCtrlPos] do
-         if ABS(Mm) > fi then
-           Im:=NPoweredAxles * ABS(ABS(Mm) / mfi + mIsat)
-         else
-           Im:=NPoweredAxles * sqrt(ABS(Mm * Isat));
-
-       if (ShuntMode) then
-       begin
-         EnginePower:=Voltage * Im/1000.0;
-         if (EnginePower > tmp) then
+//        if EnginePower/1000>DElist[MainCtrlPos].GenPower then
+//          Voltage:=1000*DElist[MainCtrlPos].GenPower/Itot;
+        Voltage:=Max0R(Voltage,0);
+        if MainCtrlPos<=1 then
          begin
-           EnginePower:=tmp*1000.0;
-           Voltage:=EnginePower/Im;
+          Voltage:=0;
+          Vhyp:=1;
          end;
-         if (EnginePower < tmp) then
-         Ft:=Ft * EnginePower / tmp;
-       end
-       else
-       begin
-        if (ABS(Im) > DEList[MainCtrlPos].Imax) then
-        begin //nie ma nadmiarowego, tylko Imax i zwarcie na pradnicy
-          Ft:=Ft/Im*DEList[MainCtrlPos].Imax;Im:=DEList[MainCtrlPos].Imax;
-        end;
-
-        if (Im > 0) then //jak pod obciazeniem
-          if (Flat) then //ograniczenie napiecia w pradnicy - plaszczak u gory
-            Voltage:=1000.0 * tmp / ABS(Im)
-          else  //charakterystyka pradnicy obcowzbudnej (elipsa) - twierdzenie Pitagorasa
-          begin
-            Voltage:=sqrt(ABS(sqr(DEList[MainCtrlPos].Umax)-sqr(DEList[MainCtrlPos].Umax*Im/DEList[MainCtrlPos].Imax)))*(MainCtrlPos-1)+
-                     (1-Im/DEList[MainCtrlPos].Imax)*DEList[MainCtrlPos].Umax*(MainCtrlPosNo-MainCtrlPos);
-            Voltage:=Voltage/(MainCtrlPosNo-1);
-            Voltage:=Min0R(Voltage,(1000.0 * tmp / ABS(Im)));
-            if Voltage<(Im*0.05) then Voltage:=Im*0.05;
-          end;
-        if (Voltage > DEList[MainCtrlPos].Umax) or (Im = 0) then //gdy wychodzi za duze napiecie
-          Voltage:=DEList[MainCtrlPos].Umax * byte(ConverterFlag);     //albo przy biegu jalowym (jest cos takiego?)
-
-        EnginePower:=Voltage * Im / 1000.0;
-
-        if (tmpV>2) and (EnginePower<tmp) then
-          Ft:=Ft*EnginePower/tmp;
-
-       end;
+        Itot:=(1-5.5*dt)*Itot+5.5*dt*NPoweredAxles*Max0R(CurrentDE(DirAbsolute*enrot,Voltage),0);
+        Mm:=MomentumDE(Itot/NPoweredAxles); {oblicza tez prad p/slinik}
+        Im:=Itot/NPoweredAxles;   {prad silnika * ilosc galezi}
+//boczniki SU46stajl
+        if (Im<280) and (Vhyp>0.9999) and (MainCtrlPos>10) and (ScndCtrlPos<ScndCtrlPosNo) and (LastRelayTime>CtrlDelay) then
+         begin
+          inc(ScndCtrlPos);
+          LastRelayTime:=0;
+         end;
+        if ((Im>365) or (MainCtrlPos<8)) and (ScndCtrlPos>0) and (LastRelayTime>CtrlDelay) then
+         begin
+          dec(ScndCtrlPos);
+          if (MainCtrlPos>=8) then
+          LastRelayTime:=0;
+         end;
+        LastRelayTime:=LastRelayTime+dt;
 
 
-     //przekazniki bocznikowania, kazdy inny dla kazdej pozycji
-         if (MainCtrlPos = 0) or (ShuntMode) then
-           ScndCtrlPos:=0
-         else if AutoRelayFlag then
-          case RelayType of
-          0: begin
-              if (Im <= (MPTRelay[ScndCtrlPos].Iup*PosRatio)) and (ScndCtrlPos<ScndCtrlPosNo) then
-                inc(ScndCtrlPos);
-              if (Im >= (MPTRelay[ScndCtrlPos].Idown*PosRatio)) and (ScndCtrlPos>0) then
-                dec(ScndCtrlPos);
-             end;
-          1: begin
-              if (MPTRelay[ScndCtrlPos].Iup<Vel) and (ScndCtrlPos<ScndCtrlPosNo) then
-                inc(ScndCtrlPos);
-              if (MPTRelay[ScndCtrlPos].Idown>Vel) and (ScndCtrlPos>0) then
-                dec(ScndCtrlPos);
-             end;
-          2: begin
-              if (MPTRelay[ScndCtrlPos].Iup<Vel) and (ScndCtrlPos<ScndCtrlPosNo) and (EnginePower<(tmp*0.99)) then
-                inc(ScndCtrlPos);
-              if (MPTRelay[ScndCtrlPos].Idown<Im) and (ScndCtrlPos>0) then
-                dec(ScndCtrlPos);
-             end;
-          46:
-             begin
-              //wzrastanie
-              if (MainCtrlPos>9) and (ScndCtrlPos<ScndCtrlPosNo) then
-               if (ScndCtrlPos) mod 2 = 0 then
-                if (MPTRelay[ScndCtrlPos].Iup>Im) then
-                 inc(ScndCtrlPos)
-                else
-               else
-                if (MPTRelay[ScndCtrlPos-1].Iup>Im) and (MPTRelay[ScndCtrlPos].Iup<Vel) then
-                 inc(ScndCtrlPos);
-
-              //malenie
-              if (MainCtrlPos<10) and (ScndCtrlPos>0)then
-               if (ScndCtrlPos) mod 2 = 0 then
-                if (MPTRelay[ScndCtrlPos].Idown<Im)then
-                 dec(ScndCtrlPos)
-                else
-               else
-                if (MPTRelay[ScndCtrlPos+1].Idown<Im) and (MPTRelay[ScndCtrlPos].Idown>Vel)then
-                 dec(ScndCtrlPos);
-              if (MainCtrlPos<9)and(ScndCtrlPos>2) then ScndCtrlPos:=2;
-              if (MainCtrlPos<6)and(ScndCtrlPos>0) then ScndCtrlPos:=0;              
-             end
-          else end;
-     end;
+        Mw:=Mm*Transmision.Ratio*DirAbsolute;
+        Fw:=Mw*2.0/WheelDiameter;
+        Ft:=Fw*NPoweredAxles;                {sila trakcyjna}
+     end; { DE}
    None: begin end;
    {EZT: begin end;}
    end; {case EngineType}
@@ -4111,6 +4074,9 @@ begin
              Voltage:=RunningTraction.TractionVoltage*DirAbsolute; //ActiveDir*CabNo;
           end {bo nie dzialalo}
        else
+       if ConverterFlag and (Abs(DirAbsolute)<2) and (EngineType=DieselElectric) then                              {potem ulepszyc! pantogtrafy!}
+//         Voltage:=Voltage;
+       else       
           Voltage:=0;
     //end;
 
@@ -6125,16 +6091,11 @@ begin
                      if NToothM>0 then
                       Ratio:=NToothW/NToothM
                      else Ratio:=1;
-                 s:=ExtractKeyWord(lines,'Ftmax=');
-                 Ftmax:=s2rE(DUE(s));
-                 s:=ExtractKeyWord(lines,'Flat=');
-                 Flat:=Boolean(s2b(DUE(s)));
-                 s:=ExtractKeyWord(lines,'Vhyp=');
-                 Vhyp:=s2rE(DUE(s))/3.6;
-                 s:=ExtractKeyWord(lines,'Vadd=');
-                 Vadd:=s2rE(DUE(s))/3.6;
-                 s:=ExtractKeyWord(lines,'Cr=');
-                 PowerCorRatio:=s2rE(DUE(s));
+                 s:=ExtractKeyWord(lines,'WindingRes=');
+                 WindingRes:=s2r(DUE(s));
+                 if WindingRes=0 then WindingRes:=0.01;
+                 s:=ExtractKeyWord(lines,'nmax=');
+                 nmax:=s2rE(DUE(s))/60.0;
                  s:=ExtractKeyWord(lines,'RelayType=');
                  RelayType:=s2b(DUE(s));
                  s:=ExtractKeyWord(lines,'ShuntMode=');
@@ -6147,7 +6108,7 @@ begin
                    ImaxHi:=2;
                    ImaxLo:=1;
                  end;
-               end;               
+               end;
              { EZT:  {NBMX ¿eby kibel dzialal}
               { begin
                end;}
@@ -6197,7 +6158,7 @@ begin
                for k:=0 to ScndCtrlPosNo do
                 begin
                   with MotorParam[k] do
-                  readln(fin, bl, mfi, mIsat, fi, Isat, MPTRelay[k].Iup, MPTRelay[k].Idown);
+                  read(fin, bl, mfi,mIsat, fi,Isat);
                   if bl<>k then
                    ConversionError:=-2
                 end;
@@ -6307,6 +6268,10 @@ begin
           else if (Pos('WWList:',lines)>0) then  {dla spal-ele}
           begin
             RlistSize:=s2b(DUE(ExtractKeyWord(lines,'Size=')));
+            DE_Ulim:=s2rE(DUE(ExtractKeyWord(lines,'Ulim=')));
+            DE_Ilim:=s2rE(DUE(ExtractKeyWord(lines,'Ilim=')));
+            DE_P0:=s2rE(DUE(ExtractKeyWord(lines,'P0=')));
+            DE_nnom:=s2rE(DUE(ExtractKeyWord(lines,'nnom=')));
             for k:=0 to RlistSize do
             begin
               if not (ShuntModeAllow) then

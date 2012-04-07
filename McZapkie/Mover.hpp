@@ -3,7 +3,6 @@
 // All rights reserved
 
 // (DO NOT EDIT: machine generated header) '_mover.pas' rev: 5.00
-//Ra: eee... tam, sam siê generuje b³êdnie i trzeba rêcznie poprawiaæ!
 
 #ifndef _moverHPP
 #define _moverHPP
@@ -143,6 +142,9 @@ struct TCurrentCollector
 enum TPowerSource { NotDefined, InternalSource, Transducer, Generator, Accumulator, CurrentCollector, 
 	PowerCable, Heater };
 #pragma option pop
+#pragma option push -b-
+enum TCouplerType { NoCoupler, Articulated, Bare, Chain, Screw, Automatic };
+#pragma option pop
 
 struct TPowerParameters
 {
@@ -170,7 +172,7 @@ struct TPowerParameters
 			TCurrentCollector CollectorParameters;
 			
 		};
-		struct 
+		struct
 		{
 			double MaxCapacity;
 			TPowerSource RechargeSource;
@@ -266,13 +268,10 @@ struct TTransmision
 	double Ratio;
 } ;
 
-#pragma option push -b-
-enum TCouplerType { NoCoupler, Articulated, Bare, Chain, Screw, Automatic };
-#pragma option pop
 class DELPHICLASS T_MoverParameters;
 struct TCoupling
 {
-	double SpringKB;            
+	double SpringKB;
 	double SpringKC;
 	double beta;
 	double DmaxB;
@@ -290,8 +289,7 @@ struct TCoupling
 	double Dist;
 	bool CheckCollision;
 } ;
-
-class PASCALIMPLEMENTATION T_MoverParameters : public System::TObject
+class PASCALIMPLEMENTATION T_MoverParameters : public System::TObject 
 {
 	typedef System::TObject inherited;
 	
@@ -405,6 +403,10 @@ public:
 	bool AnMainCtrl;
 	bool ShuntModeAllow;
 	bool ShuntMode;
+	double DE_Ulim;
+	double DE_Ilim;
+	double DE_P0;
+	double DE_nnom;
 	bool Flat;
 	double Vhyp;
 	TDEScheme DElist[33];

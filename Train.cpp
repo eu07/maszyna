@@ -2504,7 +2504,7 @@ else
     if (ClockMInd.SubModel)
      {
       ClockSInd.UpdateValue(int(GlobalTime->mr));
-      ClockSInd.Update();     
+      ClockSInd.Update();
       ClockMInd.UpdateValue(GlobalTime->mm);
       ClockMInd.Update();
       ClockHInd.UpdateValue(GlobalTime->hh+GlobalTime->mm/60.0);
@@ -2580,13 +2580,19 @@ else
      {
       if (enrot1mGauge.SubModel)
        {
-        enrot1mGauge.UpdateValue(DynamicObject->MoverParameters->ShowEngineRotation(1));
+//        enrot1mGauge.UpdateValue(DynamicObject->MoverParameters->ShowEngineRotation(1));
+        enrot1mGauge.UpdateValue(DynamicObject->MoverParameters->RventRot/60);
         enrot1mGauge.Update();
        }
       if (enrot2mGauge.SubModel)
        {
         enrot2mGauge.UpdateValue(DynamicObject->MoverParameters->ShowEngineRotation(2));
         enrot2mGauge.Update();
+       }
+      if (ItotalGauge.SubModel)
+       {
+        ItotalGauge.UpdateValue(abs(DynamicObject->MoverParameters->Itot));
+        ItotalGauge.Update();
        }
       if (I1Gauge.SubModel)
        {
@@ -2721,13 +2727,38 @@ else
         else
          { btLampkaSprezarka.TurnOff(); }
         //boczniki
-        char scp;
-        scp=DynamicObject->MoverParameters->RList[DynamicObject->MoverParameters->MainCtrlActualPos].ScndAct;
-        scp=(scp==255?0:scp);
-        if ((DynamicObject->MoverParameters->ScndCtrlActualPos>0)||(DynamicObject->MoverParameters->ScndInMain)&&(scp>0))
-         { btLampkaBocznikI.TurnOn(); }
+        if (DynamicObject->MoverParameters->EngineType==DieselElectric)
+         {
+           if(DynamicObject->MoverParameters->ScndCtrlPos>0)
+            { btLampkaBocznikI.TurnOn(); }
+           else
+            { btLampkaBocznikI.TurnOff(); }
+
+           if(DynamicObject->MoverParameters->ScndCtrlPos>1)
+            { btLampkaBocznikII.TurnOn(); }
+           else
+            { btLampkaBocznikII.TurnOff(); }
+
+           if(DynamicObject->MoverParameters->ScndCtrlPos>2)
+            { btLampkaBocznikIII.TurnOn(); }
+           else
+            { btLampkaBocznikIII.TurnOff(); }
+
+           if(DynamicObject->MoverParameters->ScndCtrlPos>3)
+            { btLampkaBocznikIV.TurnOn(); }
+           else
+            { btLampkaBocznikIV.TurnOff(); }
+         }
         else
-         { btLampkaBocznikI.TurnOff(); }
+         {
+          char scp;
+          scp=DynamicObject->MoverParameters->RList[DynamicObject->MoverParameters->MainCtrlActualPos].ScndAct;
+          scp=(scp==255?0:scp);
+          if ((DynamicObject->MoverParameters->ScndCtrlActualPos>0)||(DynamicObject->MoverParameters->ScndInMain)&&(scp>0))
+           { btLampkaBocznikI.TurnOn(); }
+          else
+           { btLampkaBocznikI.TurnOff(); }
+         }
 /*
         { //sprezarka w drugim wozie
         bool comptemp=false;
@@ -4176,6 +4207,8 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     btLampkaRezerwa.Clear();
     btLampkaBocznikI.Clear();
     btLampkaBocznikII.Clear();
+    btLampkaBocznikIII.Clear();
+    btLampkaBocznikIV.Clear();
     btLampkaRadiotelefon.Clear();
     btLampkaHamienie.Clear();
     btLampkaSprezarka.Clear();
@@ -4439,6 +4472,10 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     btLampkaBocznikI.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("i-scnd2:"))
     btLampkaBocznikII.Load(Parser,DynamicObject->mdKabina);
+   else if (str==AnsiString("i-scnd3:"))
+    btLampkaBocznikIII.Load(Parser,DynamicObject->mdKabina);
+   else if (str==AnsiString("i-scnd4:"))
+    btLampkaBocznikIV.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("i-braking:"))
     btLampkaHamienie.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("i-compressor:"))
