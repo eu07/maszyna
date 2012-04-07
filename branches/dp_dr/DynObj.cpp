@@ -2613,8 +2613,8 @@ bool __fastcall TDynamicObject::Render()
                else
                 vol=0;
              }
-            else if (MoverParameters->EngineType==DieselElectric)
-             vol=rsSilnik.AM*(MoverParameters->EnginePower/1000/MoverParameters->Power)+0.2*(MoverParameters->enrot*60)/(MoverParameters->DElist[MoverParameters->MainCtrlPosNo].RPM)+rsSilnik.AA;
+//            else if (MoverParameters->EngineType==DieselElectric)
+//             vol=rsSilnik.AM*(MoverParameters->EnginePower/1000/MoverParameters->Power)+0.2*(MoverParameters->enrot*60)/(MoverParameters->DElist[MoverParameters->MainCtrlPosNo].RPM)+rsSilnik.AA;
             else
              vol=rsSilnik.AM*(MoverParameters->EnginePower/1000+fabs(MoverParameters->enrot)*60.0)+rsSilnik.AA;
 //            McZapkie-250302 - natezenie zalezne od obrotow i mocy
@@ -2640,12 +2640,11 @@ bool __fastcall TDynamicObject::Render()
             if ((MoverParameters->DynamicBrakeFlag) && (MoverParameters->EnginePower>0.1)) //Szociu - 29012012 - je¿eli uruchomiony jest  hamulec elektrodynamiczny, odtwarzany jest dŸwiêk silnika
              vol +=0.8;
 
-            if (enginevolume>0.0001)
-              if (MoverParameters->EngineType!=DieselElectric)
+//              if (MoverParameters->EngineType!=DieselElectric)
                { rsSilnik.Play(enginevolume,DSBPLAY_LOOPING,MechInside,GetPosition()); }
-              else
-               {
-                sConverter.UpdateAF(vol,freq,MechInside,GetPosition());
+//              else
+/*               {
+//                sConverter.UpdateAF(vol,freq,MechInside,GetPosition());
 
                 float fincvol;
                 fincvol=0;
@@ -2658,7 +2657,7 @@ bool __fastcall TDynamicObject::Render()
                   rsDiesielInc.Play(fincvol,DSBPLAY_LOOPING,MechInside,GetPosition());
                 else
                   rsDiesielInc.Stop();
-               }
+               }    */
           }
           else
            rsSilnik.Stop();
@@ -2677,6 +2676,36 @@ bool __fastcall TDynamicObject::Render()
            }
           else
            rsWentylator.Stop();
+        }
+       if (MoverParameters->EngineType==DieselElectric)
+        {
+         if(MoverParameters->Mains)
+           {
+               sConverter.TurnOn(MechInside,GetPosition());
+           }
+         else
+          {
+             sConverter.TurnOff(MechInside,GetPosition());
+          }
+
+         vol= (0.8+0.0002f*MoverParameters->EnginePower/MoverParameters->Power);
+         freq= MoverParameters->RventRot/(MoverParameters->DElist[0].RPM);
+         sConverter.UpdateAF(vol,freq,MechInside,GetPosition());
+
+         if (rsWentylator.AM!=0)
+          {
+           freq=MoverParameters->RVentnmax;
+           freq=freq*(1-2*dt)+2*dt*((MoverParameters->ConverterFlag)?1:0);
+           if(freq>0.1)
+            {
+             rsWentylator.AdjFreq(rsWentylator.FM*freq+rsWentylator.FA,dt);
+             vol=rsWentylator.AM*freq+rsWentylator.AA;
+             rsWentylator.Play(vol,DSBPLAY_LOOPING,MechInside,GetPosition());
+            }
+           else
+             rsWentylator.Stop();
+           MoverParameters->RVentnmax=freq;
+          }
         }
      }
 
@@ -2729,24 +2758,26 @@ if ((MoverParameters->ConverterFlag==false)&&(MoverParameters->CompressorPower!=
      sSmallCompressor.Update(MechInside,GetPosition());
 
 //youBy - przenioslem, bo diesel tez moze miec turbo
-if ((MoverParameters->MainCtrlPos)>=(MoverParameters->TurboTest))  //hunter-250312: dlaczego zakomentowane? Ra: bo nie dzia³a³o dobrze
+//if ((MoverParameters->MainCtrlPos)>=(MoverParameters->TurboTest))  //hunter-250312: dlaczego zakomentowane? Ra: bo nie dzia³a³o dobrze
 {
           //udawanie turbo:  (6.66*(eng_vol-0.85))
-    if (eng_turbo>6.66*(enginevolume-0.8)+0.2*dt)
+/*    if (eng_turbo>6.66*(enginevolume-0.8)+0.2*dt)
          eng_turbo=eng_turbo-0.2*dt; //0.125
     else
     if (eng_turbo<6.66*(enginevolume-0.8)-0.4*dt)
          eng_turbo=eng_turbo+0.4*dt;  //0.333
     else
          eng_turbo=6.66*(enginevolume-0.8);
-
-    sTurbo.TurnOn(MechInside,GetPosition());
+  */
+    eng_turbo=eng_turbo*(1-0.15*dt)+(0.0013*MoverParameters->EnginePower/MoverParameters->Power)*0.15*dt;
+    if (eng_turbo>0.24f)
+    {    sTurbo.TurnOn(MechInside,GetPosition());
     //sTurbo.UpdateAF(eng_turbo,0.7+(eng_turbo*0.6),MechInside,GetPosition());
-    sTurbo.UpdateAF(3*eng_turbo-1,0.4+eng_turbo*0.4,MechInside,GetPosition());
+    sTurbo.UpdateAF(sqrt(4.0f*eng_turbo-1.0f),3.0f*eng_turbo,MechInside,GetPosition()); }
+    else sTurbo.TurnOff(MechInside,GetPosition());
 //    eng_vol_act=enginevolume;
     //eng_frq_act=eng_frq;
 }
-else sTurbo.TurnOff(MechInside,GetPosition());
 
 
 
@@ -2824,7 +2855,7 @@ else sTurbo.TurnOff(MechInside,GetPosition());
        eng_vol_act=eng_vol;
        //eng_frq_act=eng_frq;
  }
- else
+ else if (MoverParameters->EngineType!=DieselElectric)
  {
   if (MoverParameters->ConverterFlag)                 //NBMX dzwiek przetwornicy
    sConverter.TurnOn(MechInside,GetPosition());
@@ -3329,22 +3360,19 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
          rsSilnik.Init(str.c_str(),Parser->GetNextSymbol().ToDouble(),GetPosition().x,GetPosition().y,GetPosition().z,true);
          if (MoverParameters->EngineType==DieselEngine)
           rsSilnik.AM=Parser->GetNextSymbol().ToDouble()/(MoverParameters->Power+MoverParameters->nmax*60);
-         else if (MoverParameters->EngineType==DieselElectric)
-          rsSilnik.AM=Parser->GetNextSymbol().ToDouble()/(MoverParameters->Power*3);
-         else
           rsSilnik.AM=Parser->GetNextSymbol().ToDouble()/(MoverParameters->Power+MoverParameters->nmax*60+MoverParameters->Power+MoverParameters->Power);
          rsSilnik.AA=Parser->GetNextSymbol().ToDouble();
          rsSilnik.FM=Parser->GetNextSymbol().ToDouble();//MoverParameters->nmax;
          rsSilnik.FA=Parser->GetNextSymbol().ToDouble();
         }
        else
-       if ((str==AnsiString("ventilator:")) && (MoverParameters->EngineType==ElectricSeriesMotor))    //plik z dzwiekiem wentylatora, mnozniki i ofsety amp. i czest.
+       if ((str==AnsiString("ventilator:")) && ((MoverParameters->EngineType==ElectricSeriesMotor)||(MoverParameters->EngineType==DieselElectric)))    //plik z dzwiekiem wentylatora, mnozniki i ofsety amp. i czest.
         {
          str= Parser->GetNextSymbol();
          rsWentylator.Init(str.c_str(),Parser->GetNextSymbol().ToDouble(),GetPosition().x,GetPosition().y,GetPosition().z,true);
-         rsWentylator.AM=Parser->GetNextSymbol().ToDouble()/MoverParameters->RVentnmax;
+         rsWentylator.AM=Parser->GetNextSymbol().ToDouble()/(MoverParameters->EngineType==ElectricSeriesMotor?MoverParameters->RVentnmax:1);
          rsWentylator.AA=Parser->GetNextSymbol().ToDouble();
-         rsWentylator.FM=Parser->GetNextSymbol().ToDouble()/MoverParameters->RVentnmax;
+         rsWentylator.FM=Parser->GetNextSymbol().ToDouble()/(MoverParameters->EngineType==ElectricSeriesMotor?MoverParameters->RVentnmax:1);
          rsWentylator.FA=Parser->GetNextSymbol().ToDouble();
         }
        else

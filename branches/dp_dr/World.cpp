@@ -1424,21 +1424,23 @@ bool __fastcall TWorld::Update()
 
       //double a= acos( DotProduct(Normalize(Controlled->GetDirection()),vWorldFront));
 //      OutText+= AnsiString(";   angle ")+FloatToStrF(a/M_PI*180,ffFixed,6,2);
-      OutText1+=AnsiString("; d_omega ")+FloatToStrF(Controlled->MoverParameters->dizel_engagedeltaomega,ffFixed,6,3);
+//      OutText1+=AnsiString("; d_omega ")+FloatToStrF(Controlled->MoverParameters->dizel_engagedeltaomega,ffFixed,6,3);
       OutText2 =AnsiString("ham zesp ")+FloatToStrF(Controlled->MoverParameters->BrakeCtrlPos,ffFixed,6,0);
       OutText2+=AnsiString("; ham pom ")+FloatToStrF(Controlled->MoverParameters->LocalBrakePos,ffFixed,6,0);
       //Controlled->MoverParameters->MainCtrlPos;
       //if (Controlled->MoverParameters->MainCtrlPos<0)
       //    OutText2+= AnsiString("; nastawnik 0");
 //      if (Controlled->MoverParameters->MainCtrlPos>iPozSzereg)
-          OutText2+= AnsiString("; nastawnik ") + (Controlled->MoverParameters->MainCtrlPos);
+          OutText2+= AnsiString("; NG: ") + (Controlled->MoverParameters->MainCtrlPos);
+          OutText2+= AnsiString("@") + FloatToStrF(Controlled->MoverParameters->Vhyp,ffFixed,6,3);
+          OutText2+= AnsiString("/") + FloatToStrF(Controlled->MoverParameters->Vadd,ffFixed,6,3);          
 //      else
 //          OutText2+= AnsiString("; nastawnik S") + Controlled->MoverParameters->MainCtrlPos;
 
-      OutText2+=AnsiString("; bocznik:")+Controlled->MoverParameters->ScndCtrlPos;
-      OutText2+=AnsiString("; I=")+FloatToStrF(Controlled->MoverParameters->Im,ffFixed,6,2);
+      OutText2+=AnsiString("; B: ")+Controlled->MoverParameters->ScndCtrlPos;
+      OutText2+=AnsiString("; I=")+FloatToStrF(Controlled->MoverParameters->Itot,ffFixed,6,2);
       //OutText2+=AnsiString("; I2=")+FloatToStrF(Controlled->NextConnected->MoverParameters->Im,ffFixed,6,2);
-      OutText2+=AnsiString("; V=")+FloatToStrF(Controlled->MoverParameters->RunningTraction.TractionVoltage,ffFixed,5,1);
+      OutText2+=AnsiString("; V=")+FloatToStrF(Controlled->MoverParameters->Voltage,ffFixed,5,1);
       //OutText2+=AnsiString("; rvent=")+FloatToStrF(Controlled->MoverParameters->RventRot,ffFixed,6,2);
       OutText2+=AnsiString("; R=")+FloatToStrF(Controlled->MoverParameters->RunningShape.R,ffFixed,4,1);
       OutText2+=AnsiString(" An=")+FloatToStrF(Controlled->MoverParameters->AccN,ffFixed,4,2);

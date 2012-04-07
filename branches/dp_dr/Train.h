@@ -212,6 +212,8 @@ public:
     TButton btLampkaSprezarkaB;    
     TButton btLampkaBocznikI;
     TButton btLampkaBocznikII;
+    TButton btLampkaBocznikIII;
+    TButton btLampkaBocznikIV;
     TButton btLampkaRadiotelefon;
     TButton btLampkaHamienie;
     TButton btLampkaJazda;                   

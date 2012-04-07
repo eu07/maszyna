@@ -385,6 +385,10 @@ public:
 	bool AnMainCtrl;
 	bool ShuntModeAllow;
 	bool ShuntMode;
+	double DE_Ulim;
+	double DE_Ilim;
+	double DE_P0;
+	double DE_nnom;
 	bool Flat;
 	double Vhyp;
 	TDEScheme DElist[33];
