@@ -575,22 +575,25 @@ void __fastcall TController::SetDriverPsyche()
     {//wyliczanie optymalnego przyspieszenia do jazdy na widocznoœæ (Ra: na pewno tutaj?)
      double k=pVehicles[0]->MoverParameters->Couplers[pVehicles[0]->MoverParameters->DirAbsolute>0?0:1].Connected->Vel; //prêdkoœæ pojazdu z przodu
      if (k<Controlling->Vel) //porównanie modu³ów prêdkoœci [km/h]
-     {//jeœli tamten jedzie szybciej, to nie potrzeba modyfikowaæ przyspieszenia
-      k/=3.6; //[m/s]
-      double d=25.92*pVehicles[0]->fTrackBlock-maxdist*fabs(Controlling->V); //Ra: co to jest za odleg³oœæ?
-      //a=(v2*v2-v1*v1)/(25.92*(d-0.5*v1))
-      //(v2*v2-v1*v1)/2 to ró¿nica energii kinetycznych na jednostkê masy
-      //jeœli v2=50km/h,v1=60km/h,d=200m => k=(192.9-277.8)/(25.92*(200-0.5*16.7)=-0.0171 [m/s^2]
-      //jeœli v2=50km/h,v1=60km/h,d=100m => k=(192.9-277.8)/(25.92*(100-0.5*16.7)=-0.0357 [m/s^2]
-      //jeœli v2=50km/h,v1=60km/h,d=50m  => k=(192.9-277.8)/(25.92*( 50-0.5*16.7)=-0.0786 [m/s^2]
-      //jeœli v2=50km/h,v1=60km/h,d=25m  => k=(192.9-277.8)/(25.92*( 25-0.5*16.7)=-0.1967 [m/s^2]
-      if (d>0) //bo jak ujemne, to zacznie przyspieszaæ, aby siê zderzyæ
-       k=(k*k-Controlling->V*Controlling->V)/d;
+      if (pVehicles[0]->fTrackBlock<fDriverDist)
+       k=-AccPreferred; //hamowanie
       else
-       k=-0.9; //hamowanie
-      //WriteLog(pVehicle->asName+" "+AnsiString(k));
-      AccPreferred=Min0R(k,AccPreferred);
-     }
+      {//jeœli tamten jedzie szybciej, to nie potrzeba modyfikowaæ przyspieszenia
+       k/=3.6; //[m/s]
+       double d=25.92*(pVehicles[0]->fTrackBlock-maxdist*fabs(Controlling->V)-fDriverDist); //Ra: co to jest za odleg³oœæ?
+       //a=(v2*v2-v1*v1)/(25.92*(d-0.5*v1))
+       //(v2*v2-v1*v1)/2 to ró¿nica energii kinetycznych na jednostkê masy
+       //jeœli v2=50km/h,v1=60km/h,d=200m => k=(192.9-277.8)/(25.92*(200-0.5*16.7)=-0.0171 [m/s^2]
+       //jeœli v2=50km/h,v1=60km/h,d=100m => k=(192.9-277.8)/(25.92*(100-0.5*16.7)=-0.0357 [m/s^2]
+       //jeœli v2=50km/h,v1=60km/h,d=50m  => k=(192.9-277.8)/(25.92*( 50-0.5*16.7)=-0.0786 [m/s^2]
+       //jeœli v2=50km/h,v1=60km/h,d=25m  => k=(192.9-277.8)/(25.92*( 25-0.5*16.7)=-0.1967 [m/s^2]
+       if (d>0) //bo jak ujemne, to zacznie przyspieszaæ, aby siê zderzyæ
+        k=(k*k-Controlling->V*Controlling->V)/d;
+       else
+        k=-AccPreferred; //hamowanie
+       //WriteLog(pVehicle->asName+" "+AnsiString(k));
+       AccPreferred=Min0R(k,AccPreferred);
+      }
     }
  }
 };
@@ -1564,7 +1567,7 @@ bool __fastcall TController::UpdateSituation(double dt)
           else  //w przeciwnym wypadku
            if ((VelNext==0.0)&&(Controlling->Vel*Controlling->Vel<0.4*ActualProximityDist)) //jeœli stójka i niewielka prêdkoœæ
            {if (Controlling->Vel<30.0)  //trzymaj 30 km/h
-             AccDesired=0.5; //*AccPreferred; //jak jest tu 0.5, to samochody siê dobijaj¹ do siebie
+             AccDesired=0.5*AccPreferred; //jak jest tu 0.5, to samochody siê dobijaj¹ do siebie
             else
              AccDesired=0.0;
            }
