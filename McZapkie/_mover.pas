@@ -725,9 +725,6 @@ TYPE
 
                {! funkcje laczace/rozlaczajace sprzegi}
                //Ra: przeniesione do C++
-               //function Attach(ConnectNo: byte; ConnectToNr: byte; ConnectTo:P_MoverParameters; CouplingType: byte):boolean; {laczenie}
-               //function DettachDistance(ConnectNo: byte):boolean; //odleg³oœæ roz³¹czania
-               //function Dettach(ConnectNo: byte):boolean;                    {rozlaczanie}
 
                {funkcje obliczajace sily}
                 procedure ComputeConstans; //ABu: wczesniejsze wyznaczenie stalych dla liczenia sil

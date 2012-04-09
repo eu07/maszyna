@@ -773,8 +773,8 @@ TDynamicObject* __fastcall TDynamicObject::ABuFindObject(TTrack *Track,int ScanD
   double MinDist=Track->Length(); //najmniejsza znaleziona odlegloœæ (zaczynamy od d³ugoœci toru)
   double TestDist; //robocza odleg³oœæ od kolejnych pojazdów na danym odcinku
   int iMinDist=-1;  //indeks wykrytego obiektu
-  if (Track->iNumDynamics>1)
-   iMinDist+=0;
+  //if (Track->iNumDynamics>1)
+  // iMinDist+=0; //tymczasowo pu³apka
   if (MyTrack==Track) //gdy szukanie na tym samym torze
    MyTranslation=RaTranslationGet(); //po³o¿enie wózka wzglêdem Point1 toru
   else //gdy szukanie na innym torze
@@ -811,7 +811,7 @@ TDynamicObject* __fastcall TDynamicObject::ABuFindObject(TTrack *Track,int ScanD
        //jeœli zahaczenie jest niewielkie, a jest miejsce na poboczu, to zjechaæ na pobocze
       }
       iMinDist=i; //potencjalna kolizja
-      MinDist=TestDist;
+      MinDist=TestDist; //odlegloœæ pomiêdzy aktywnymi osiami pojazdów
      }
     }
    }
@@ -844,7 +844,7 @@ TDynamicObject* __fastcall TDynamicObject::ABuFindObject(TTrack *Track,int ScanD
         continue; //odleg³oœæ wiêksza od po³owy sumy szerokoœci - kolizji nie bêdzie
       }
       iMinDist=i; //potencjalna kolizja
-      MinDist=TestDist;
+      MinDist=TestDist; //odlegloœæ pomiêdzy aktywnymi osiami pojazdów
      }
     }
    }
@@ -856,20 +856,20 @@ TDynamicObject* __fastcall TDynamicObject::ABuFindObject(TTrack *Track,int ScanD
  return NULL; //nie ma pojazdów na torze, to jest NULL
 }
 
-bool TDynamicObject::DettachDistance(int dir)
+int TDynamicObject::DettachStatus(int dir)
 {//sprawdzenie odleg³oœci sprzêgów rzeczywistych od strony (dir): 0=przód,1=ty³
  //Ra: dziwne, ¿e ta funkcja nie jest u¿ywana
  if (!MoverParameters->Couplers[dir].CouplingFlag)
-  return true; //jeœli nic nie pod³¹czone, to jest OK
- return (MoverParameters->DettachDistance(dir)); //czy jest w odpowiedniej odleg³oœci?
+  return 0; //jeœli nic nie pod³¹czone, to jest OK
+ return (MoverParameters->DettachStatus(dir)); //czy jest w odpowiedniej odleg³oœci?
 }
 
 int TDynamicObject::Dettach(int dir,int cnt)
 {//roz³¹czenie sprzêgów rzeczywistych od strony (dir): 0=przód,1=ty³
  //zwraca maskê bitow¹ aktualnych sprzegów (0 jeœli roz³¹czony)
- if (MoverParameters->Couplers[dir].CouplingFlag) //zapamiêtanie co by³o pod³¹czone
+ if (MoverParameters->Couplers[dir].CouplingFlag) //odczepianie, o ile coœ pod³¹czone
   MoverParameters->Dettach(dir);
- return MoverParameters->Couplers[dir].CouplingFlag; //sprzêg po roz³¹czaniu
+ return MoverParameters->Couplers[dir].CouplingFlag; //sprzêg po roz³¹czaniu (czego siê nie da odpi¹æ
 }
 
 void TDynamicObject::CouplersDettach(double MinDist,int MyScanDir)
@@ -1018,7 +1018,7 @@ void TDynamicObject::ABuScanObjects(int ScanDir,double ScanDist)
  //teraz odczepianie i jeœli coœ siê znalaz³o, doczepianie.
  if (MyScanDir>0?PrevConnected:NextConnected)
   if ((MyScanDir>0?PrevConnected:NextConnected)!=FoundedObj)
-   CouplersDettach(1,MyScanDir);
+   CouplersDettach(1.0,MyScanDir); //od³¹czamy, jeœli dalej ni¿ metr
  // i ³¹czenie sprzêgiem wirtualnym
  if (FoundedObj)
  {//siebie mo¿na bezpiecznie pod³¹czyæ jednostronnie do znalezionego
@@ -1037,8 +1037,7 @@ void TDynamicObject::ABuScanObjects(int ScanDir,double ScanDist)
   if (FoundedObj->MoverParameters->Couplers[CouplFound].CouplingFlag==ctrain_virtual)
   {//Ra: wpinamy siê wirtualnym tylko jeœli znaleziony ma wirtualny sprzêg
    FoundedObj->MoverParameters->Attach(CouplFound,MyCouplFound,this->MoverParameters,ctrain_virtual);
-   //FoundedObj->MoverParameters->Couplers[CouplFound].Render=false; //tamtemu nie ma co zmieniaæ stanu sprzêgów
-   if (CouplFound==0)
+   if (CouplFound==0) //jeœli widoczny sprzêg 0 znalezionego
    {
     if (FoundedObj->PrevConnected)
      if (FoundedObj->PrevConnected!=this)
@@ -1046,7 +1045,7 @@ void TDynamicObject::ABuScanObjects(int ScanDir,double ScanDist)
     FoundedObj->PrevConnected=this;
     FoundedObj->PrevConnectedNo=MyCouplFound;
    }
-   else
+   else //jeœli widoczny sprzêg 1 znalezionego
    {
     if (FoundedObj->NextConnected)
      if (FoundedObj->NextConnected!=this)
@@ -1056,13 +1055,16 @@ void TDynamicObject::ABuScanObjects(int ScanDir,double ScanDist)
    }
   }
   //Ra: jeœli dwa samochody siê mijaj¹ na odcinku przed zawrotk¹, to odleg³oœæ miêdzy nimi nie mo¿e byæ liczona w linii prostej!
-  if (Track->iCategoryFlag&1)
-   fTrackBlock=MoverParameters->Couplers[MyCouplFound].CoupleDist; //odleg³oœæ do najbli¿szego pojazdu
-  else if (ActDist<ScanDist) //dla samochodów musi byæ uwzglêdniona droga do zawrócenia
-   fTrackBlock=ActDist;
+  fTrackBlock=MoverParameters->Couplers[MyCouplFound].CoupleDist; //odleg³oœæ do najbli¿szego pojazdu w linii prostej
+  if (Track->iCategoryFlag>1) //jeœli samochód
+   if (ActDist>MoverParameters->Dim.L+FoundedObj->MoverParameters->Dim.L) //przeskanowana odleg³oœæ wiêksza od d³ugoœci pojazdów
+  //else if (ActDist<ScanDist) //dla samochodów musi byæ uwzglêdniona droga do zawrócenia
+    fTrackBlock=ActDist; //ta odleg³oœæ jest wiecej warta
   //if (fTrackBlock<500.0)
   // WriteLog("Collision of "+AnsiString(fTrackBlock)+"m detected by "+asName+":"+AnsiString(MyCouplFound)+" with "+FoundedObj->asName);
  }
+ else //nic nie znalezione, to nie ma przeszkód
+  fTrackBlock=10000.0;
 }
 //----------ABu: koniec skanowania pojazdow
 
@@ -2280,35 +2282,40 @@ if (tmpTraction.TractionVoltage==0)
  //Ra: mo¿na by przenieœæ na poziom obiektu reprezentuj¹cego sk³ad, aby nie sprawdzaæ œrodkowych
  if (CouplCounter>25) //licznik, aby nie robiæ za ka¿dym razem
  {//poszukiwanie czegoœ do zderzenia siê
-  fTrackBlock=10000.0; //na razie nie ma przeszkód
+  fTrackBlock=10000.0; //na razie nie ma przeszkód (na wypadek nie uruchomienia skanowania)
   //jeœli nie ma zwrotnicy po drodze, to tylko przeliczyæ odleg³oœæ?
-  if (MoverParameters->V>0.1) //jeœli jedzie do przodu (w kierunku Coupler 0)
+  if (MoverParameters->V>0.03) //[m/s] jeœli jedzie do przodu (w kierunku Coupler 0)
   {if (MoverParameters->Couplers[0].CouplingFlag==ctrain_virtual) //brak pojazdu podpiêtego?
    {ABuScanObjects(1,300); //szukanie czegoœ do pod³¹czenia
     //WriteLog(asName+" - block 0: "+AnsiString(fTrackBlock));
    }
   }
-  else if (MoverParameters->V<-0.1) //jeœli jedzie do ty³u (w kierunku Coupler 1)
+  else if (MoverParameters->V<-0.03) //[m/s] jeœli jedzie do ty³u (w kierunku Coupler 1)
    if (MoverParameters->Couplers[1].CouplingFlag==ctrain_virtual) //brak pojazdu podpiêtego?
    {ABuScanObjects(-1,300);
     //WriteLog(asName+" - block 1: "+AnsiString(fTrackBlock));
    }
   CouplCounter=random(20); //ponowne sprawdzenie po losowym czasie
  }
- if (fabs(MoverParameters->V)>0.1)
+ if (MoverParameters->Vel>0.1) //[km/h]
   ++CouplCounter; //jazda sprzyja poszukiwaniu po³¹czenia
  else
- {CouplCounter=25; //a bezruch nie, ale mo¿na zaktualizowaæ odleg³oœæ
-  if (MoverParameters->Couplers[1-iDirection].CouplingFlag==ctrain_virtual)
-  {if ((MoverParameters->CategoryFlag&1)?MoverParameters->Couplers[1-iDirection].Connected!=NULL:false)
-   {//jeœli jest pojazd kolejowy na sprzêgu wirtualnym - CoupleDist nieadekwatne dla samochodów!
-    fTrackBlock=MoverParameters->Couplers[1-iDirection].CoupleDist; //aktualizacja odleg³oœci od niego
+ {CouplCounter=25; //a bezruch nie, ale trzeba zaktualizowaæ odleg³oœæ, bo zawalidroga mo¿e sobie pojechaæ
+/*
+  //if (Mechanik) //mo¿e byæ z drugiej strony sk³adu
+  {//to poni¿ej jest istotne tylko dla AI, czekaj¹cego na zwolninie drogi
+   if (MoverParameters->Couplers[1-iDirection].CouplingFlag==ctrain_virtual)
+   {if ((MoverParameters->CategoryFlag&1)?MoverParameters->Couplers[1-iDirection].Connected!=NULL:false)
+    {//jeœli jest pojazd kolejowy na sprzêgu wirtualnym - CoupleDist nieadekwatne dla samochodów!
+     fTrackBlock=MoverParameters->Couplers[1-iDirection].CoupleDist; //aktualizacja odleg³oœci od niego
+    }
+    else //dla samochodów pozostaje jedynie skanowanie uruchomiæ
+     if (fTrackBlock<1000.0) //je¿eli pojazdu nie ma, a odleg³o¿æ jakoœ ma³a
+      ABuScanObjects(iDirection?1:-1,300); //skanowanie sprawdzaj¹ce
+    //WriteLog(asName+" - block x: "+AnsiString(fTrackBlock));
    }
-   else //dla samochodów pozostaje jedynie skanowanie uruchomiæ
-    if (fTrackBlock<1000.0) //je¿eli pojazdu nie ma, a odleg³o¿æ jakoœ ma³a
-     ABuScanObjects(iDirection?1:-1,300); //skanowanie sprawdzaj¹ce
-   //WriteLog(asName+" - block x: "+AnsiString(fTrackBlock));
   }
+*/
  }
  if (MoverParameters->DerailReason>0)
  {switch (MoverParameters->DerailReason)

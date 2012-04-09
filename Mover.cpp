@@ -45,20 +45,20 @@ bool __fastcall TMoverParameters::Attach(Byte ConnectNo,Byte ConnectToNr,TMoverP
   TCouplerType ct=ConnectTo->Couplers[Couplers[ConnectNo].ConnectedNr].CouplerType; //typ sprzêgu pod³¹czanego pojazdu
   Couplers[ConnectNo].Connected=ConnectTo; //tak podpi¹æ zawsze mo¿na, najwy¿ej bêdzie wirtualny
   CouplerDist(ConnectNo); //przeliczenie odleg³oœci pomiêdzy sprzêgami
-  if (!CouplingType) return false; //wirtualny wiêcej nic nie robi
-  if (Forced?true:(Couplers[ConnectNo].CoupleDist<=dEpsilon)&&(Couplers[ConnectNo].CouplerType!=NoCoupler)&&(Couplers[ConnectNo].CouplerType==ct))
+  if (CouplingType==ctrain_virtual) return false; //wirtualny wiêcej nic nie robi
+  if (Forced?true:((Couplers[ConnectNo].CoupleDist<=dEpsilon)&&(Couplers[ConnectNo].CouplerType!=NoCoupler)&&(Couplers[ConnectNo].CouplerType==ct)))
   {//stykaja sie zderzaki i kompatybilne typy sprzegow, chyba ¿e ³¹czenie na starcie
    if (Couplers[ConnectNo].CouplingFlag==ctrain_virtual) //jeœli wczeœniej nie by³o po³¹czone
    {//ustalenie z której strony rysowaæ sprzêg
     Couplers[ConnectNo].Render=true; //tego rysowaæ
-    Couplers[ConnectNo].Connected->Couplers[Couplers[ConnectNo].ConnectedNr].Render=false; //a tego nie
+    ConnectTo->Couplers[Couplers[ConnectNo].ConnectedNr].Render=false; //a tego nie
    };
    Couplers[ConnectNo].CouplingFlag=CouplingType; //ustawienie typu sprzêgu
    //if (CouplingType!=ctrain_virtual) //Ra: wirtualnego nie ³¹czymy zwrotnie!
    //{//jeœli ³¹czenie sprzêgiem niewirtualnym, ustawiamy po³¹czenie zwrotne
-   Couplers[ConnectNo].Connected->Couplers[Couplers[ConnectNo].ConnectedNr].CouplingFlag=CouplingType;
-   Couplers[ConnectNo].Connected->Couplers[Couplers[ConnectNo].ConnectedNr].Connected=this;
-   Couplers[ConnectNo].Connected->Couplers[Couplers[ConnectNo].ConnectedNr].CoupleDist=Couplers[ConnectNo].CoupleDist;
+   ConnectTo->Couplers[Couplers[ConnectNo].ConnectedNr].CouplingFlag=CouplingType;
+   ConnectTo->Couplers[Couplers[ConnectNo].ConnectedNr].Connected=this;
+   ConnectTo->Couplers[Couplers[ConnectNo].ConnectedNr].CoupleDist=Couplers[ConnectNo].CoupleDist;
    return true;
    //}
    //pod³¹czenie nie uda³o siê - jest wirtualne
@@ -72,32 +72,41 @@ bool __fastcall TMoverParameters::Attach(Byte ConnectNo,Byte ConnectToNr,T_Mover
  return Attach(ConnectNo,ConnectToNr,(TMoverParameters*)ConnectTo,CouplingType,Forced);
 };
 
-bool __fastcall TMoverParameters::DettachDistance(Byte ConnectNo)
+int __fastcall TMoverParameters::DettachStatus(Byte ConnectNo)
 {//Ra: sprawdzenie, czy odleg³oœæ jest dobra do roz³¹czania
- if (!Couplers[ConnectNo].Connected) return true; //nie ma nic, to roz³¹czanie jest OK
- if ((Couplers[ConnectNo].CouplingFlag&ctrain_coupler)==0) return true; //hak nie po³¹czony - roz³¹czanie jest OK
- if (TestFlag(DamageFlag,dtrain_coupling)) return true; //hak urwany - roz³¹czanie jest OK
+ //powinny byæ 3 informacje: =0 sprzêg ju¿ roz³¹czony, <0 da siê roz³¹czyæ. >0 nie da siê roz³¹czyæ
+ if (!Couplers[ConnectNo].Connected)
+  return 0; //nie ma nic, to roz³¹czanie jest OK
+ if ((Couplers[ConnectNo].CouplingFlag&ctrain_coupler)==0)
+  return -Couplers[ConnectNo].CouplingFlag; //hak nie po³¹czony - roz³¹czanie jest OK
+ if (TestFlag(DamageFlag,dtrain_coupling))
+  return -Couplers[ConnectNo].CouplingFlag; //hak urwany - roz³¹czanie jest OK
  //ABu021104: zakomentowane 'and (CouplerType<>Articulated)' w warunku, nie wiem co to bylo, ale za to teraz dziala odczepianie... :) }
  //if (CouplerType==Articulated) return false; //sprzêg nie do rozpiêcia - mo¿e byæ tylko urwany
  //Couplers[ConnectNo].CoupleDist=Distance(Loc,Couplers[ConnectNo].Connected->Loc,Dim,Couplers[ConnectNo].Connected->Dim);
  CouplerDist(ConnectNo);
- return (Couplers[ConnectNo].CoupleDist<0.0)||(Couplers[ConnectNo].CoupleDist>0.2); //mo¿na roz³¹czaæ, jeœli dociœniêty
+ if (Couplers[ConnectNo].CoupleDist<0.0)
+  return -Couplers[ConnectNo].CouplingFlag; //mo¿na roz³¹czaæ, jeœli dociœniêty
+ return (Couplers[ConnectNo].CoupleDist>0.2)?-Couplers[ConnectNo].CouplingFlag:Couplers[ConnectNo].CouplingFlag;
 };
 
 bool __fastcall TMoverParameters::Dettach(Byte ConnectNo)
 {//rozlaczanie
  if (!Couplers[ConnectNo].Connected) return true; //nie ma nic, to odczepiono
  //with Couplers[ConnectNo] do
- if (DettachDistance(ConnectNo))
- {//gdy scisniete zderzaki, chyba ze zerwany sprzeg albo tylko wirtualny
-  //Connected:=NULL; //lepiej zostawic bo przeciez trzeba kontrolowac zderzenia odczepionych
-  Couplers[ConnectNo].CouplingFlag=0; //pozostaje sprzêg wirtualny
+ int i=DettachStatus(ConnectNo); //stan sprzêgu
+ if (i<0)
+ {//gdy scisniete zderzaki, chyba ze zerwany sprzeg (wirtualnego nie odpinamy z drugiej strony)
+  //Couplers[ConnectNo].Connected=NULL; //lepiej zostawic bo przeciez trzeba kontrolowac zderzenia odczepionych
   Couplers[ConnectNo].Connected->Couplers[Couplers[ConnectNo].ConnectedNr].CouplingFlag=0; //pozostaje sprzêg wirtualny
+  Couplers[ConnectNo].CouplingFlag=0; //pozostaje sprzêg wirtualny
   return true;
  }
- //od³¹czamy wê¿e i resztê, pozostaje sprzêg fizyczny, który wymaga dociœniêcia
- Couplers[ConnectNo].CouplingFlag&=ctrain_coupler;
- Couplers[ConnectNo].Connected->Couplers[Couplers[ConnectNo].ConnectedNr].CouplingFlag=Couplers[ConnectNo].CouplingFlag;
+ else if (i>0)
+ {//od³¹czamy wê¿e i resztê, pozostaje sprzêg fizyczny, który wymaga dociœniêcia (z wirtualnym nic)
+  Couplers[ConnectNo].CouplingFlag&=ctrain_coupler;
+  Couplers[ConnectNo].Connected->Couplers[Couplers[ConnectNo].ConnectedNr].CouplingFlag=Couplers[ConnectNo].CouplingFlag;
+ }
  return false; //jeszcze nie roz³¹czony
 };
 
