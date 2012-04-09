@@ -1435,29 +1435,29 @@ void __fastcall TTrain::OnKeyPress(int cKey)
         {
           if (!FreeFlyModeFlag) //tryb 'kabinowy'
           {
-           if (!DynamicObject->Dettach(iCabn-1,0))
-           {
-            dsbCouplerDetach->SetVolume(DSBVOLUME_MAX);
-            dsbCouplerDetach->Play(0,0,0);
-//          DynamicObject->MoverParameters->Couplers[iCabn-1].Connected*->Dettach(iCabn==1 ? 2 : 1);
-           }
+           if (DynamicObject->DettachStatus(iCabn-1)<0) //jeœli jest co odczepiæ
+            if (DynamicObject->Dettach(iCabn-1,0)) //iCab==1:przód,iCab==2:ty³
+            {
+             dsbCouplerDetach->SetVolume(DSBVOLUME_MAX); //w kabinie ten dŸwiêk?
+             dsbCouplerDetach->Play(0,0,0);
+            }
           }
           else
-          { //tryb freefly
-            int CouplNr=-1;
-            TDynamicObject *tmp;
-            tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), 1, 1500, CouplNr);
-            if (tmp==NULL)
-             tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 1500, CouplNr);
-            if (tmp&&(CouplNr!=-1))
-            {
+          {//tryb freefly
+           int CouplNr=-1;
+           TDynamicObject *tmp;
+           tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1,1500,CouplNr);
+           if (tmp==NULL)
+            tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1,1500,CouplNr);
+           if (tmp&&(CouplNr!=-1))
+           {
+            if (tmp->DettachStatus(CouplNr)<0) //jeœli jest co odczepiæ i siê da
              if (!tmp->Dettach(CouplNr,0))
-             {
+             {//dŸwiêk odczepiania
               dsbCouplerDetach->SetVolume(DSBVOLUME_MAX);
               dsbCouplerDetach->Play(0,0,0);
-//            DynamicObject->MoverParameters->Couplers[iCabn-1].Connected*->Dettach(iCabn==1 ? 2 : 1);
              }
-            }
+           }
           }
           if (DynamicObject->Mechanik) //na wszelki wypadek
            DynamicObject->Mechanik->CheckVehicles(); //aktualizacja skrajnych pojazdów w sk³adzie
@@ -4077,9 +4077,13 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     if (str!=AnsiString("none"))
     {
      str=DynamicObject->asBaseDir+str;
-     Global::asCurrentTexturePath=DynamicObject->asBaseDir;         //biezaca sciezka do tekstur to dynamic/...
-     DynamicObject->mdKabina=TModelsManager::GetModel(str.c_str(),true); //szukaj kabinê jako oddzielny model
+     Global::asCurrentTexturePath=DynamicObject->asBaseDir; //bie¿¹ca sciezka do tekstur to dynamic/...
+     TModel3d *k=TModelsManager::GetModel(str.c_str(),true); //szukaj kabinê jako oddzielny model
      Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath); //z powrotem defaultowa sciezka do tekstur
+     if (DynamicObject->mdKabina!=k)
+      DynamicObject->mdKabina=k; //nowa kabina
+     else
+      break; //wyjœcie z pêtli, bo model zostaje bez zmian
     }
     else
      DynamicObject->mdKabina=DynamicObject->mdModel;   //McZapkie-170103: szukaj elementy kabiny w glownym modelu

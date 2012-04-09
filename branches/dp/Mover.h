@@ -28,7 +28,7 @@ public:
  double __fastcall Distance(const vector3 &Loc1,const vector3 &Loc2,const vector3 &Dim1,const vector3 &Dim2);
  bool __fastcall Attach(Byte ConnectNo,Byte ConnectToNr,TMoverParameters *ConnectTo,Byte CouplingType,bool Forced=false);
  bool __fastcall Attach(Byte ConnectNo,Byte ConnectToNr,T_MoverParameters *ConnectTo,Byte CouplingType,bool Forced=false);
- bool __fastcall DettachDistance(Byte ConnectNo);
+ int __fastcall DettachStatus(Byte ConnectNo);
  bool __fastcall Dettach(Byte ConnectNo);
  void __fastcall SetCoupleDist();
 };

@@ -203,7 +203,9 @@ protected:
     int CouplCounter;
     AnsiString asModel;
     int iDirection; //kierunek wzglêdem czo³a sk³adu (1=zgodny,0=przeciwny)
+public:
     void ABuScanObjects(int ScanDir,double ScanDist);
+protected:
     TDynamicObject* __fastcall ABuFindObject(TTrack *Track,int ScanDir,Byte &CouplFound,double &dist);
     void __fastcall ABuCheckMyTrack();
 
@@ -355,8 +357,8 @@ public:
  void __fastcall RaAxleEvent(TEvent *e);
  TDynamicObject* __fastcall FirstFind(int &coupler_nr);
  int __fastcall DirectionSet(int d); //ustawienie kierunku w sk³adzie
- int __fastcall DirectionGet() {return iDirection?1:-1;}; //ustawienie kierunku w sk³adzie
- bool DettachDistance(int dir);
+ int __fastcall DirectionGet() {return iDirection?1:-1;}; //odczyt kierunku w sk³adzie
+ int DettachStatus(int dir);
  int Dettach(int dir,int cnt);
  TDynamicObject* __fastcall Neightbour(int &dir);
  void __fastcall CoupleDist();
