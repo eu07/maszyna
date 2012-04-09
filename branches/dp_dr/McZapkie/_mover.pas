@@ -3486,9 +3486,6 @@ end;
 function T_MoverParameters.TractionForce(dt:real):real;
 var PosRatio,dmoment,dtrans,tmp,tmpV: real;
     i: byte;
-const
-    opsiln= 0.1;
-    P2n= 1.83;    
  {oblicza sile trakcyjna lokomotywy (dla elektrowozu tez calkowity prad)}
 function CurrentDE(n,U:real): real;
 {wazna funkcja - liczy prad plynacy przez silniki polaczone szeregowo lub rownolegle}
@@ -3511,7 +3508,7 @@ begin
         Rz:=Mn*WindingRes;
         Isf:=Sign(U)*Isat;
         Delta:=SQR(Isf*Rz+Mn*fi*n-U)+4*U*Isf*Rz;
-        if Mains then
+        if (Mains) and (DElist[MainCtrlPos].GenPower>0.1) then
          begin
           if U>0 then
            MotorCurrent:=(U-Isf*Rz-Mn*fi*n+SQRT(Delta))/(2.0*Rz)
@@ -3523,7 +3520,7 @@ begin
        end;{with}
   Im:=MotorCurrent;
   CurrentDE:=Im; {prad brany do liczenia sily trakcyjnej}
-  EnginePower:=Abs(Itot)*(Mn)*Abs(U);
+  EnginePower:=Abs(Itot)*Abs(U);
 end;
 
 function MomentumDE(I:real): real;
@@ -3541,19 +3538,51 @@ begin
 //youBy
   if EngineType=DieselElectric then //silnik diesla
    begin
-    if (MainS) then
-      RventRot:=RventRot+Min0R(Max0R(-100,DElist[MainCtrlPos].RPM-RventRot),50)*dt
-    else
+    if (MainS) then //jesli rozruch
      begin
-      RventRot:=RventRot*(1-RVentSpeed*dt);
-      if RventRot<0.1 then RventRot:=0;
+      RventRot:=Max0R(0.1,RventRot); //obroty minimalne, zeby nie dzielic przez 0
+      if RventRot>0.9*dizel_nmin then //jesli powyzej zaplonu
+       begin
+        if not Flat then //jesli nie bocznikujesz
+          if (Heating) and (MainCtrlPos<9) then  //przy wlaczonym grzaniu i na niskich pozycjach
+            RventCutoff:=RventCutOff+Min0R(Max0R(-100,DElist[9].RPM-RventCutOff),50)*dt  //wez obroty i tak z 7 pozycji
+          else           //ustaw od razu minimalne        i przechodz plynnie
+            RventCutoff:=Max0R(RventCutOff,DElist[0].RPM)+Min0R(Max0R(-100,DElist[MainCtrlPos].RPM-RventCutOff),50)*dt  //regulator
+       end
+      else
+        RventCutoff:=0; //regulator na zero
+
+      dizel_fill:=dizel_fill*(1-dt)+dt*Min0R(1.2,Max0R(0,(RventCutOff+5-RventRot)/10)); //dawka paliwa z najwyzej 20% naddatkiem na rozkrecanie sie
+//        if (RventRot>1.15*RventCutOff) then
+//          dizel_fill:=dizel_fill/2
+//        else
+//          dizel_fill:=dizel_fill+dt/2;
+
+      //moc na danej pozycji:
+      i:=0;
+      while (RventRot>SST[i+1].Umax) do inc(i); //szukaj pozycji w tabelce mocy
+//      ScndCtrlPos:=i;
+      dmoment:=SST[i].Pmax+(SST[i+1].Pmax-SST[i].Pmax)/(SST[i+1].Umax-SST[i].Umax)*(RventRot-SST[i].Umax); //interpolacja liniowa z tabelki mocy max na pozycji
+      if (Heating) and (RventRot>DElist[8].RPM) then //jesli grzanie i dobre obroty
+        dmoment:=dmoment-HeatingPower; //odejmij moc pradnicy
+      dtrans:=(dmoment-dizel_Mstand*RVentRot); //odejmij opory zatrzymania
+      dmoment:=dmoment*dizel_fill/RventRot-dizel_Mstand-EnginePower/1000/RventRot; //przelicz rzeczywiste na moment
+      RventRot:=RventRot+(dmoment/dizel_AIM*dt); //przelicz obroty
+      if (RventRot<1.1*dizel_nmin) then RventRot:=RventRot+10*Min0R(0.1,1.1-RventRot/dizel_nmin)*(1.5*dizel_Mstand)/dizel_AIM*dt; //rozrusznik (slabnacy)
+      if RventRot<0 then RventRot:=0; //zabezpiecznie
+     end
+    else //bez zaplonu
+     begin
+//      RventRot:=RventRot*(1-RVentSpeed*dt);
+      RventRot:=RventRot-(dizel_Mstand/dizel_AIM*dt); //lec z wybiegu
+      if RventRot<0.1 then RventRot:=0;               //zatrzymuj sie
      end;
    end;
-  if EngineType<>DieselEngine then
-   enrot:=Transmision.Ratio*nrot
+  if EngineType<>DieselEngine then //dla silnika niespalinowego
+   enrot:=Transmision.Ratio*nrot //obroty silnika sa brane z kol
   else
-   begin
-     dtrans:=Transmision.Ratio*MotorParam[ScndCtrlActualPos].mIsat;
+   begin                          //a dla dizla
+     dtrans:=Transmision.Ratio*MotorParam[ScndCtrlActualPos].mIsat; //przelozenie przekladni
      dmoment:=dizel_Momentum(dizel_fill,ActiveDir*1*dtrans*nrot,dt); {oblicza tez enrot}
    end;
   eAngle:=eAngle+enrot*dt;
@@ -3561,15 +3590,15 @@ begin
    //eAngle:=Pirazy2-eAngle; <- ABu: a nie czasem tak, jak nizej?
    eAngle:=eAngle-Pirazy2;
 
-  if ActiveDir<>0 then
+  if ActiveDir<>0 then //jesli nawrotnik nie na 0
    case EngineType of
     Dumb:
      begin
-       PosRatio:=(MainCtrlPos+ScndCtrlPos)/(MainCtrlPosNo+ScndCtrlPosNo+0.01);
+       PosRatio:=(MainCtrlPos+ScndCtrlPos)/(MainCtrlPosNo+ScndCtrlPosNo+0.01); //wykorzystanie mocy
        if Mains and (ActiveDir<>0) and (CabNo<>0) then
         begin
           if Vel>0.1 then
-           begin
+           begin     //hiperbola           stala  wsp. wyk. mocy
              Ft:=Min0R(1000.0*Power/Abs(V),Ftmax)*PosRatio;
            end
           else Ft:=Ftmax*PosRatio;
@@ -3578,7 +3607,7 @@ begin
        else Ft:=0;
        EnginePower:=1000*Power*PosRatio;
      end;
-    WheelsDriven:
+    WheelsDriven: //machajka
       begin
         if EnginePowerSource.SourceType=InternalSource then
          if EnginePowerSource.PowerType=BioPower then
@@ -3592,21 +3621,21 @@ begin
          end;
         EnginePower:=Ft*(1+Vel);
       end;
-    ElectricSeriesMotor:
+    ElectricSeriesMotor: //elektrycznie silniki szeregowe
       begin
 {        enrot:=Transmision.Ratio*nrot; }
         //yB: szereg dwoch sekcji w ET42
         if(TrainType=dt_ET42)and(Imax=ImaxHi)then
-          Voltage:=Voltage/2.0;
+          Voltage:=Voltage/2.0; //trzeba obnizyc na chwile
         Mm:=Momentum(Current(enrot,Voltage)); {oblicza tez prad p/slinik}
         if(TrainType=dt_ET42)then
          begin
            if(Imax=ImaxHi)then
-             Voltage:=Voltage*2;
-           if(DynamicBrakeFlag)and(Abs(Im)>300)then
+             Voltage:=Voltage*2; //i przywrocic, bo sie sypie...
+           if(DynamicBrakeFlag)and(Abs(Im)>300)then  //nadmiarowy
              FuseOff;
          end;
-        if (Abs(Im)>Imax) then
+        if (Abs(Im)>Imax) then   //nadmiarowy
          FuseOff;                     {wywalanie bezpiecznika z powodu przetezenia silnikow}
         if (Abs(Voltage)<EnginePowerSource.MaxVoltage/2.0) or (Abs(Voltage)>EnginePowerSource.MaxVoltage*2) then
          if MainSwitch(False) then
@@ -3646,52 +3675,77 @@ begin
                  end;
    DieselElectric:    //youBy
      begin
-        PosRatio:=RventRot/DE_nnom;
-        PowerCorRatio:={PowerCorRatio*(1-dt)+dt*}DElist[MainCtrlPos].Umax;
+        PosRatio:=RventRot/DE_nnom; //stosunek obrotow do nominalnych
+        if (Heating) and (MainCtrlPos=2) then //jesli grzanie i druga pozycja (S)
+        Vhyp:=Vhyp/2;                         //to dolacz opor R4 - proteza!
+        PowerCorRatio:={PowerCorRatio*(1-dt)+dt*}DElist[MainCtrlPos].Umax; //sterowanie napieciem (druga kolumna regulacji)
         Voltage:={(1-dt)*Voltage+dt*}
         (DE_Ulim*PosRatio*0.5*(Vhyp*DElist[MainCtrlPos].Imax+PowerCorRatio)          //graniczne napiecie
         +(DE_Ulim*DE_Ilim/10)/(Itot/(PosRatio*Vhyp*DElist[MainCtrlPos].Imax+0.0001)-DE_Ilim+1)   //spadek z chk zewnetrznej, +1 na zapas
-        -CircuitRes*Itot
-        );                                                  //opor uzwojen
+        -CircuitRes*Itot                                    //opor uzwojen
+        );
+        if (Heating) and (MainCtrlPos=2) then //jesli grzanie i druga pozycja (S)
+        Vhyp:=Vhyp*2;                         //to przywroc regulatorowi wzbudzenie - antyproteza
 
-        if (DElist[MainCtrlPos].GenPower>0) then
-          Vadd:=EnginePower/1000/DElist[MainCtrlPos].GenPower
+        if (DElist[MainCtrlPos].GenPower>0) then //jesli zamkniete liniowe
+          Vadd:=EnginePower/1000/dtrans          //wspolczynnik mocy
         else
           Vadd:=0;
-        if (EnginePower/1000>DElist[MainCtrlPos].GenPower*1.005) then
+//        if (EnginePower/1000>DElist[MainCtrlPos].GenPower*1.005) then
+        if (EnginePower/1000>dtrans*1.005) then //malenie wzbudzenia przy przeciazeniu
         Vhyp:=Vhyp-dt/7;
 
-        if (EnginePower/1000<DElist[MainCtrlPos].GenPower*0.995) then
+        if (EnginePower/1000<dtrans*0.995) then //wzrost wzbudzenia przy niedociazeniu
         Vhyp:=Vhyp+dt/12;
 
-        Vhyp:=Min0R(Max0R(Vhyp,0),1);
+        Vhyp:=Min0R(Max0R(Vhyp,0.6),1);  //ogranicz wzbudzenie w granicach
 
-        if Voltage>DE_Ulim*PosRatio then begin Voltage:=0; Itot:=0; end;
-        if Itot>DE_Ilim*PosRatio then begin Voltage:=0; Itot:=0; end;
+        if Voltage>DE_Ulim*PosRatio then begin Voltage:=0; Itot:=0; end;  //zabezpieczenie
+        if Itot>DE_Ilim*PosRatio then begin Voltage:=0; Itot:=0; end;     //dla pradnicy
 
 //        if EnginePower/1000>DElist[MainCtrlPos].GenPower then
 //          Voltage:=1000*DElist[MainCtrlPos].GenPower/Itot;
-        Voltage:=Max0R(Voltage,0);
-        if MainCtrlPos<=1 then
+        Voltage:=Max0R(Voltage,0); //napiecie zawsze dodatnie
+        if MainCtrlPos<=1 then //to bylo do czegos, ale chyba nie potrzeba juz
          begin
-          Voltage:=0;
-          Vhyp:=1;
+//          Vhyp:=0.7;
          end;
-        Itot:=(1-5.5*dt)*Itot+5.5*dt*NPoweredAxles*Max0R(CurrentDE(DirAbsolute*enrot,Voltage),0);
-        Mm:=MomentumDE(Itot/NPoweredAxles); {oblicza tez prad p/slinik}
-        Im:=Itot/NPoweredAxles;   {prad silnika * ilosc galezi}
+        dtrans:=CurrentDE(DirAbsolute*enrot,Voltage); //tymczasowa zmienna do pradu
+        Itot:=(1-5.5*dt)*Itot+5.5*dt*NPoweredAxles*Max0R(dtrans,0); //plyna zmiana pradu, ale tylko jesli dodatni
+        Im:=Itot/NPoweredAxles;   {calkowity silnika * ilosc galezi}
+        Mm:=MomentumDE(Im);       //moment silnika
 //boczniki SU46stajl
-        if (Im<280) and (Vhyp>0.9999) and (MainCtrlPos>10) and (ScndCtrlPos<ScndCtrlPosNo) and (LastRelayTime>CtrlDelay) then
+        if (Flat) then //jesli bocznikujesz
          begin
-          inc(ScndCtrlPos);
-          LastRelayTime:=0;
+          if (LastRelayTime>0) then //ustaw czas
+            LastRelayTime:=-6; //operacja zajmie 6 sekund
+          if LastRelayTime<-1 then //przez 5 zmniejszaj wzbudzenie
+            Vhyp:=Vhyp-dt/4
+          else                //potem
+           begin
+            inc(ScndCtrlPos); //dorzuc bok
+            LastRelayTime:=LastRelayTime+1;
+            Flat:=false;      //i uznaj, ze wrzucon
+           end;
          end;
-        if ((Im>365) or (MainCtrlPos<8)) and (ScndCtrlPos>0) and (LastRelayTime>CtrlDelay) then
+
+        if (Im<280) and (Vhyp>0.9999) and (MainCtrlPos>11) and (ScndCtrlPos<ScndCtrlPosNo) and (LastRelayTime>CtrlDelay) then
          begin
+          Flat:=true;                   //zacznij procedure boka
+          RventCutOff:=RventCutOff+150; //szalejacy regulator
+//          inc(ScndCtrlPos);
+          LastRelayTime:=0;             //zeruj czas
+         end;
+        if (Im>365) and (ScndCtrlPos>0) and (LastRelayTime>CtrlDelay) then
+         begin
+          dec(ScndCtrlPos);             //wrzuc bok
+          LastRelayTime:=0;             //zeruj czas
+         end;
+        if (MainCtrlPos<8) and (ScndCtrlPos>0) then //ponizej 6 wywal wszystkie
           dec(ScndCtrlPos);
-          if (MainCtrlPos>=8) then
-          LastRelayTime:=0;
-         end;
+        if (MainCtrlPos<11) and (ScndCtrlPos>2) then //ponizej 9 wywal III i IV
+          dec(ScndCtrlPos);
+
         LastRelayTime:=LastRelayTime+dt;
 
 
@@ -6262,6 +6316,37 @@ begin
               for k:=0 to RlistSize do
                begin
                  readln(fin, Rlist[k].Relay, Rlist[k].R, Rlist[k].Mn);
+               end;
+           end
+          else if Pos('CList:',lines)>0 then  {dla spalinowego silnika w Spal-ele}
+           begin
+//             s:=ExtractKeyWord(lines,'Mmax=');
+//             dizel_Mmax:=s2rE(DUE(s));
+//             s:=ExtractKeyWord(lines,'nMmax=');
+//             dizel_nMmax:=s2rE(DUE(s));
+//             s:=ExtractKeyWord(lines,'Mnmax=');
+//             dizel_Mnmax:=s2rE(DUE(s));
+             s:=ExtractKeyWord(lines,'nmin=');
+             dizel_nmin:=s2r(DUE(s));
+             s:=ExtractKeyWord(lines,'nmax=');
+             dizel_nmax:=s2rE(DUE(s));
+//             s:=ExtractKeyWord(lines,'nominalfill=');
+//             dizel_nominalfill:=s2rE(DUE(s));
+             s:=ExtractKeyWord(lines,'nmax_cutoff=');
+             dizel_nmax_cutoff:=s2r(DUE(s));
+             s:=ExtractKeyWord(lines,'AIM=');
+             dizel_AIM:=s2r(DUE(s));
+             s:=ExtractKeyWord(lines,'Mstand=');
+             dizel_Mstand:=s2rE(DUE(s));
+             RlistSize:=s2b(DUE(ExtractKeyWord(lines,'Size=')));
+             if RlistSize>32 then
+              ConversionError:=-4
+             else
+              for k:=0 to RlistSize do
+               begin
+//                 readln(fin, Rlist[k].Relay, Rlist[k].R, Rlist[k].Mn);
+//                 readln(fin, Rlist[k].Mn, Rlist[k].R);
+                readln(fin, SST[k].Umax, SST[k].Pmax); //obroty, moc
                end;
            end
 //youBy
