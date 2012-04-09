@@ -2058,19 +2058,19 @@ with BrakePressureTable[BrakeCtrlPos] do
 begin
           dpLocalValve:=LocHandle.GetPF(LocalBrakePos/LocalBrakePosNo, 0, ScndPipePress, dt, 0);
           if(BrakeHandle=FV4a)and((PipePress>2.75)or((Hamulec.GetStatus and b_rls)=b_rls)) then
-            temp:=1
+            temp:=ScndPipePress
           else
-            temp:=0;
+            temp:=PipePress+0.00001;
           Handle.SetReductor(BrakeCtrlPos2);
 
-          dpMainValve:=Handle.GetPF(BrakeCtrlPosR, PipePress, temp*ScndPipePress, dt, EqvtPipePress);
+          dpMainValve:=Handle.GetPF(BrakeCtrlPosR, PipePress, temp, dt, EqvtPipePress);
           if (dpMainValve<0)and(PipePressureVal>0.01) then             {50}
             Pipe2.Flow(dpMainValve);
 end;
 
 //      if(EmergencyBrakeFlag)and(BrakeCtrlPosNo=0)then         {ulepszony hamulec bezp.}
       if(EmergencyBrakeFlag)then         {ulepszony hamulec bezp.}
-        dpMainValve:=PF(0,PipePress,0.2*Spg)*dt;
+        dpMainValve:=dpMainValve/2+PF(0,PipePress,0.2*Spg)*dt;
 
       Pipe.Flow(-dpMainValve);
       Pipe.Flow(-(Pipe.P)*0.01*dt);
@@ -3395,7 +3395,7 @@ begin
      K:=K+u;                     {w kN}
      K:=K*BrakeCylNo/(NBrakeAxles*NBpA);            {w kN na os}
    end;
-  if BrakeSystem=Pneumatic then
+  if (BrakeSystem=Pneumatic)or(BrakeSystem=ElectroPneumatic) then
    begin
     u:=Hamulec.GetFC(Vel, K);
     UnitBrakeForce:=u*K*1000;                     {sila na jeden klocek w N}
@@ -4875,12 +4875,12 @@ end;
    end
   else
    begin                {zahamowany}
-     Volume:=BrakeVVolume*(MaxBrakePress[3]+CntrlPipePress)*5/10;
+     Volume:=BrakeVVolume*MaxBrakePress[3];
      CompressedVolume:=VeselVolume*MinCompressor*0.55;
      ScndPipePress:=5.1;
      PipePress:=LowPipePress;
-     PipeBrakePress:=MaxBrakePress[3]*0.5;
-     BrakePress:=MaxBrakePress[3]*0.5;
+     PipeBrakePress:=MaxBrakePress[3];
+     BrakePress:=MaxBrakePress[3];
      LocalBrakePos:=0;
      if (BrakeSystem=Pneumatic) and (BrakeCtrlPosNo>0) then
       BrakeCtrlPos:=-2;

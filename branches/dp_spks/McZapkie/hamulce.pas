@@ -1138,7 +1138,7 @@ begin
 
 //luzowanie KI
   if(BrakeStatus and b_hld)=b_off then
-   dV:=PF(0,BCP,0.00037*1.14)*dt
+   dV:=PF(0,BCP,0.00037*1.14*15/19)*dt
   else dV:=0;
   ImplsRes.Flow(-dV);
 //przeplyw ZP <-> KI
@@ -2010,7 +2010,7 @@ const
 var
   LimPP, dpPipe, dpMainValve, ActFlowSpeed: real;
 begin
-          ep:=pp; //SPKS!!
+          ep:=pp/2+ep/2; //SPKS!!
 
           i_bcp:=Max0R(Min0R(i_bcp,5.999),-1.999); //na wszelki wypadek, zeby nie wyszlo poza zakres
 
