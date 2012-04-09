@@ -1433,7 +1433,9 @@ bool __fastcall TWorld::Update()
 //      if (Controlled->MoverParameters->MainCtrlPos>iPozSzereg)
           OutText2+= AnsiString("; NG: ") + (Controlled->MoverParameters->MainCtrlPos);
           OutText2+= AnsiString("@") + FloatToStrF(Controlled->MoverParameters->Vhyp,ffFixed,6,3);
-          OutText2+= AnsiString("/") + FloatToStrF(Controlled->MoverParameters->Vadd,ffFixed,6,3);          
+          OutText2+= AnsiString("/") + FloatToStrF(Controlled->MoverParameters->Vadd,ffFixed,6,3);
+          OutText2+= AnsiString("/") + FloatToStrF(Controlled->MoverParameters->dizel_fill,ffFixed,6,3);
+          OutText2+= AnsiString("/") + FloatToStrF(Controlled->MoverParameters->RventRot,ffFixed,6,3);
 //      else
 //          OutText2+= AnsiString("; nastawnik S") + Controlled->MoverParameters->MainCtrlPos;
 
