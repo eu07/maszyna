@@ -68,8 +68,8 @@ void __fastcall TCamera::Update()
       Type=tp_Follow;
     if (Type==tp_Free)
     {
-        if (Console::Pressed(Global::Keys[k_MechUp]))   Velocity.y+= a;
-        if (Console::Pressed(Global::Keys[k_MechDown])) Velocity.y-= a;
+        if (Console::Pressed(Global::Keys[k_MechUp]))   Velocity.y+=a;
+        if (Console::Pressed(Global::Keys[k_MechDown])) Velocity.y-=a;
 //McZapkie-170402: zeby nie bylo konfliktow
 /*
         if (Console::Pressed(VkKeyScan('d')))
@@ -107,8 +107,8 @@ void __fastcall TCamera::Update()
         if (Console::Pressed(Global::Keys[k_MechForward]))  Velocity.z-=a;
         if (Console::Pressed(Global::Keys[k_MechBackward])) Velocity.z+=a;
 //gora-dol
-        if (Console::Pressed(VK_NUMPAD9)) Pos.y+=0.1;
-        if (Console::Pressed(VK_NUMPAD3)) Pos.y-=0.1;
+        //if (Console::Pressed(VK_NUMPAD9)) Pos.y+=0.1;
+        //if (Console::Pressed(VK_NUMPAD3)) Pos.y-=0.1;
 
 //McZapkie: zeby nie hustalo przy malym FPS:
 //        Velocity= (Velocity+OldVelocity)/2;

@@ -2000,15 +2000,15 @@ int __fastcall TTrack::TestPoint(vector3 *Point)
 {//sprawdzanie, czy tory mo¿na po³¹czyæ
  switch (eType)
  {
-  case tt_Normal :
+  case tt_Normal: //zwyk³y odcinek
    if (pPrev==NULL)
     if (Equal(Segment->FastGetPoint_0(),Point))
      return 0;
    if (pNext==NULL)
     if (Equal(Segment->FastGetPoint_1(),Point))
      return 1;
-   break;
-  case tt_Switch :
+  break;
+  case tt_Switch: //zwrotnica
   {int state=GetSwitchState(); //po co?
    //Ra: TODO: jak siê zmieni na bezpoœrednie odwo³ania do segmentow zwrotnicy,
    //to siê wykoleja, poniewa¿ pNext zale¿y od prze³o¿enia
@@ -2044,6 +2044,20 @@ int __fastcall TTrack::TestPoint(vector3 *Point)
     }
    Switch(state);
   }
+  break;
+  case tt_Cross: //skrzy¿owanie dróg
+   //if (pPrev==NULL)
+    if (Equal(SwitchExtension->Segments[0]->FastGetPoint_0(),Point))
+     return 0;
+   //if (pNext==NULL)
+    if (Equal(SwitchExtension->Segments[0]->FastGetPoint_1(),Point))
+     return 1;
+   //if (pPrev==NULL)
+    if (Equal(SwitchExtension->Segments[1]->FastGetPoint_0(),Point))
+     return 2;
+   //if (pNext==NULL)
+    if (Equal(SwitchExtension->Segments[1]->FastGetPoint_1(),Point))
+     return 3;
   break;
  }
  return -1;
