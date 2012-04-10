@@ -76,7 +76,6 @@ private:
  TSubModel **pAnimated; //lista animowanych submodeli (mo¿e byæ ich wiêcej ni¿ obiektów animuj¹cych)
  double dWheelAngle[3]; //k¹ty obrotu kó³: 0=przednie toczne, 1=napêdzaj¹ce i wi¹zary, 2=tylne toczne
  vector3 vCoulpler[2]; //wspó³rzêdne sprzêgów do liczenia zderzeñ
-public:
  // !!!! kabina to modyfikuje !!!!
  vector3 vUp,vFront,vLeft; //wektory jednostkowe ustawienia pojazdu
 private:
@@ -204,7 +203,9 @@ protected:
     int CouplCounter;
     AnsiString asModel;
     int iDirection; //kierunek wzglêdem czo³a sk³adu (1=zgodny,0=przeciwny)
+public:
     void ABuScanObjects(int ScanDir,double ScanDist);
+protected:
     TDynamicObject* __fastcall ABuFindObject(TTrack *Track,int ScanDir,Byte &CouplFound,double &dist);
     void __fastcall ABuCheckMyTrack();
 
@@ -213,6 +214,7 @@ public:
  float fShade; //0:normalnie, -1:w ciemnoœci, +1:dodatkowe œwiat³o (brak koloru?)
  int iLights[2]; //bity zapalonych œwiate³
  double fTrackBlock; //odleg³oœæ do przeszkody do dalszego ruchu
+ TDynamicObject* __fastcall PrevAny();
  TDynamicObject* __fastcall Prev();
  TDynamicObject* __fastcall Next();
     void __fastcall SetdMoveLen(double dMoveLen) {MoverParameters->dMoveLen=dMoveLen;}
@@ -224,7 +226,7 @@ public:
 		AnsiString asName;
     AnsiString __fastcall GetName()
        {
-          return asName;
+          return this?asName:AnsiString("");
        };
 
 //youBy
@@ -310,9 +312,11 @@ public:
     bool __fastcall Render();
     bool __fastcall RenderAlpha();
     vector3 inline __fastcall GetPosition();
-    inline vector3 __fastcall AxlePositionGet() { return iAxleFirst?Axle1.pPosition:Axle0.pPosition; };
+    inline vector3 __fastcall AxlePositionGet() {return iAxleFirst?Axle1.pPosition:Axle0.pPosition;};
     inline vector3 __fastcall VectorFront() {return vFront;};
     inline vector3 __fastcall VectorUp() {return vUp;};
+    inline vector3 __fastcall VectorLeft() {return vLeft;};
+    inline double* __fastcall Matrix() {return mMatrix.getArray();};
     inline double __fastcall GetVelocity() { return MoverParameters->Vel; };
     inline double __fastcall GetLength() { return MoverParameters->Dim.L; };
     inline double __fastcall GetWidth() { return MoverParameters->Dim.W; };
@@ -353,8 +357,8 @@ public:
  void __fastcall RaAxleEvent(TEvent *e);
  TDynamicObject* __fastcall FirstFind(int &coupler_nr);
  int __fastcall DirectionSet(int d); //ustawienie kierunku w sk³adzie
- int __fastcall DirectionGet() {return iDirection?1:-1;}; //ustawienie kierunku w sk³adzie
- bool DettachDistance(int dir);
+ int __fastcall DirectionGet() {return iDirection?1:-1;}; //odczyt kierunku w sk³adzie
+ int DettachStatus(int dir);
  int Dettach(int dir,int cnt);
  TDynamicObject* __fastcall Neightbour(int &dir);
  void __fastcall CoupleDist();
