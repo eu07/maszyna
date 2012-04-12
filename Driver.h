@@ -52,10 +52,13 @@ enum TStopReason
 
 class TSpeedPos
 {//pozycja tabeli prêdkoœci dla AI
+public:
  double fDist; //aktualna odleg³oœæ (ujemna gdy miniête)
- double fVel; //prêdkoœæ obowi¹zuj¹ca od tego miejsca
+ double fVelNext; //prêdkoœæ obowi¹zuj¹ca od tego miejsca
  //double fAcc;
- int iFlag; //1=istotny,2=tor,4=event,
+ int iFlags;
+ //1=istotny,2=tor,4=odwrotnie,8-zwrotnica (mo¿e siê zmieniæ),16-stan zwrotnicy,32-miniêty,64=koniec
+ //0x100=event,0x200=manewrowa,0x400=przystanek,0x800=SBL
  vector3 vPos; //wspó³rzêdne XYZ do liczenia odleg³oœci
  struct
  {
@@ -64,7 +67,9 @@ class TSpeedPos
  };
 public:
  void __fastcall Clear();
- void __fastcall Calulate(vector3 *p,vector3 *dir);
+ void __fastcall Update(vector3 *p,vector3 *dir,double len);
+ void __fastcall Set(TEvent *e,double d);
+ void __fastcall Set(TTrack *t,double d,int f);
 };
 
 class TSpeedTable
@@ -73,15 +78,27 @@ class TSpeedTable
  //double ReducedTable[256];
  int iFirst; //aktualna pozycja w tabeli
  int iLast; //ostatnia wype³niona pozycja w tabeli
+ int iDirection; //kierunek zape³nienia tabelki wzglêdem pojazdu z AI
+ double fLastVel; //prêdkoœæ na poprzednio sprawdzonym torze
  //Byte LPTA;
  //Byte LPTI;
  TTrack *tLast; //ostatni analizowany tor
- bool bDir; //kierunek na ostatnim torze
+ float fLastDir; //kierunek na ostatnim torze
+ TEvent *eSignSkip; //sygna³ do pominiêcia (przejechany)
+ TOrders oMode; //aktualny tryb pracy
+ AnsiString asNextStop; //nazwa najbli¿szego przystanku
+ //TTrack tSignLast; //tor z ostatnio znalezionym eventem
+private:
+ bool __fastcall CheckEvent(TEvent *e,bool prox);
+ bool __fastcall AddNew();
+public:
+ double fLength; //d³ugoœæ sk³adu (dla ograniczeñ i stawania przed semaforami)
 public:
  __fastcall TSpeedTable();
  __fastcall ~TSpeedTable();
  TEvent* __fastcall CheckTrackEvent(double fDirection,TTrack *Track);
- void __fastcall TraceRoute(double &fDistance,double &fDirection,TTrack *Track);
+ void __fastcall TraceRoute(double fDistance,int iDir,TDynamicObject *pVehicle=NULL);
+ void __fastcall Check(double fDistance,int iDir,TDynamicObject *pVehicle);
 };
 
 //----------------------------------------------------------------------------
@@ -126,19 +143,19 @@ private:
  //int TrainNumber; //numer rozkladowy tego pociagu
  //AnsiString OrderCommand; //komenda pobierana z pojazdu
  //double OrderValue; //argument komendy
- double AccPreferred; //preferowane przyspieszenie
 public:
- double AccDesired; //chwilowe przyspieszenie
- double VelDesired; //predkosc
+ double AccPreferred; //preferowane przyspieszenie (wg psychiki kieruj¹cego, albo kolizji z innym pojazdem???)
+ double AccDesired; //przyspieszenie, jakie ma utrzymywaæ (<0:hamuj)
+ double VelDesired; //predkoœæ, jak¹ ma utrzymywaæ (zawsze nieujemna)
 private:
  double VelforDriver; //predkosc dla manewrow
- double VelActual; //predkosc ustawiana przez SetVelocity (zadawana semaforami)
+ double VelActual; //predkosc dozwolona na d³ugoœci ProximityDist; ustawiana przez SetVelocity (zadawana semaforami)
 public:
- double VelNext; //predkosc przy nastepnym obiekcie
+ double VelNext; //predkosc przy nastepnym obiekcie (za ProximityDist)
 private:
- double fProximityDist; //odleglosc podawana w SetProximityVelocity()
+ double fProximityDist; //odleglosc podawana w SetProximityVelocity(); >0:przeliczaæ do punktu, <0:podana wartoœæ
 public:
- double ActualProximityDist; //ustawia nowa predkosc do ktorej ma dazyc oraz predkosc przy nastepnym obiekcie
+ double ActualProximityDist; //odleg³oœæ brana pod uwagê przy wyliczaniu prêdkoœci i przyspieszenia
 private:
  TSpeedTable sSpeedTable;
  vector3 vCommandLocation; //polozenie wskaznika, sygnalizatora lub innego obiektu do ktorego odnosi sie komenda

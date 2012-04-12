@@ -35,10 +35,11 @@
 
 //---------------------------------------------------------------------------
 
-__fastcall TMemCell::TMemCell()
+__fastcall TMemCell::TMemCell(vector3 *p)
 {
-    fValue1=fValue2= 0;
-    szText= NULL;
+ fValue1=fValue2=0;
+ szText=NULL;
+ vPosition=*p; //ustawienie wspó³rzêdnych, bo do TGroundNode nie ma dostêpu
 }
 
 __fastcall TMemCell::~TMemCell()

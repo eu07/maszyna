@@ -6,7 +6,16 @@
 #include "Classes.h"
 #include "dumb3d.h"
 using namespace Math3D;
-using namespace _mover;
+
+typedef enum
+{//binarne odpowiedniki komend w komórce pamiêci
+ cm_Unknown, //ci¹g nierozpoznany (nie jest komend¹)
+ cm_SetVelocity,
+ cm_ShuntVelocity,
+ cm_ChangeDirection,
+ cm_PassengerStopPoint,
+ cm_OutsideStation
+} TCommandType;
 
 class TMemCell
 {
@@ -15,12 +24,13 @@ private:
 protected:
 
 public:
-    double fValue1;
-    double fValue2;
-    char *szText;
+ vector3 vPosition;
+ char *szText;
+ double fValue1;
+ double fValue2;
 //McZapkie-100302 - zeby nazwe toru na ktory jest Putcommand wysylane pamietac:
     AnsiString asTrackName;
-    __fastcall TMemCell();
+    __fastcall TMemCell(vector3 *p);
     __fastcall ~TMemCell();
     void __fastcall Init();
     void __fastcall UpdateValues(char *szNewText, double fNewValue1, double fNewValue2, int CheckMask);

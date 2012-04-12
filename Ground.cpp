@@ -1198,10 +1198,10 @@ __fastcall TGround::~TGround()
 void __fastcall TGround::Free()
 {
  TEvent *tmp;
- for (TEvent *Current=RootEvent; Current!=NULL; )
+ for (TEvent *Current=RootEvent;Current;)
  {
-  tmp= Current;
-  Current= Current->Next2;
+  tmp=Current;
+  Current=Current->Next2;
   delete tmp;
  }
  TGroundNode *tmpn;
@@ -1490,7 +1490,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    parser->getTokens(3);
    *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
    tmp->pCenter+=pOrigin;
-   tmp->MemCell=new TMemCell();
+   tmp->MemCell=new TMemCell(&tmp->pCenter);
    tmp->MemCell->Load(parser);
    break;
   case TP_EVLAUNCH :
@@ -1505,7 +1505,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    if (DebugModeFlag)
     if (!tmp->asName.IsEmpty())
      WriteLog(tmp->asName.c_str());
-   if (!tmp->asName.IsEmpty())
+   if (!tmp->asName.IsEmpty()) //jest pusta gdy "none"
     sTracks->Add(TP_TRACK,tmp->asName.c_str(),tmp); //dodanie do wyszukiwarki
    tmp->pTrack->Load(parser,pOrigin,tmp->asName); //w nazwie mo¿e byæ nazwa odcinka izolowanego
    //str=Parser->GetNextSymbol().LowerCase();
@@ -2469,7 +2469,7 @@ bool __fastcall TGround::InitEvents()
             case tp_GetValues:
             case tp_WhoIs:
             case tp_LogValues: //skojarzenie z memcell
-             tmp= FindGroundNode(Current->asNodeName,TP_MEMCELL);
+             tmp=FindGroundNode(Current->asNodeName,TP_MEMCELL);
              if (tmp)
              {
               Current->Params[8].asGroundNode=tmp;
@@ -2493,7 +2493,7 @@ bool __fastcall TGround::InitEvents()
              if (tmp)
              {
               strcpy(buff,Current->Params[9].asText); //skopiowanie nazwy submodelu do bufora roboczego
-              delete Current->Params[9].asText; //usuniêcie nazwy submodelu
+              SafeDeleteArray(Current->Params[9].asText); //usuniêcie nazwy submodelu
               Current->Params[9].asAnimContainer=tmp->Model->GetContainer(buff); //submodel
               if (Current->Params[9].asAnimContainer)
                Current->Params[9].asAnimContainer->WillBeAnimated(); //oflagowanie animacji
@@ -2566,46 +2566,45 @@ bool __fastcall TGround::InitEvents()
                 }
                 Current->asNodeName= "";
             break;
-            case tp_Multiple :
-                if (Current->Params[9].asText!=NULL)
+            case tp_Multiple:
+             if (Current->Params[9].asText!=NULL)
+             {
+              strcpy(buff,Current->Params[9].asText);
+              SafeDeleteArray(Current->Params[9].asText);
+              if (Current->Params[8].asInt<0) //ujemne znaczy sie chodzi o zajetosc toru
+               {
+                tmp=FindGroundNode(buff,TP_TRACK);
+                if (!tmp)
+                 Error(AnsiString("Track \"")+AnsiString(buff)+"\" does not exist in \""+Current->asName+"\"");
+                else
+                 Current->Params[9].asTrack=tmp->pTrack;
+               }
+              if (Current->Params[8].asInt>0) //dodatnie znaczy sie chodzi o komorke pamieciowa
+              {
+               tmp=FindGroundNode(buff,TP_MEMCELL);
+               if (tmp==NULL)
                 {
-                    strcpy(buff,Current->Params[9].asText);
-                    delete Current->Params[9].asText;
-                    if (Current->Params[8].asInt<0) //ujemne znaczy sie chodzi o zajetosc toru
-                     {
-                      tmp=FindGroundNode(buff,TP_TRACK);
-                      if (!tmp)
-                        Error(AnsiString("Track \"")+AnsiString(buff)+"\" does not exist in \""+Current->asName+"\"");
-                      else
-                       Current->Params[9].asTrack= tmp->pTrack;
-                     }
-                    if (Current->Params[8].asInt>0) //dodatnie znaczy sie chodzi o komorke pamieciowa
-                     {
-                      tmp= FindGroundNode(buff,TP_MEMCELL);
-                      if (tmp==NULL)
-                       {
-                        Error(AnsiString("MemCell \"")+AnsiString(buff)+AnsiString("\" does not exist"));
-                       }
-                      else
-                       {
-                        Current->Params[9].asMemCell= tmp->MemCell;
-                        if (!Current->Params[9].asMemCell)
-                          Error(AnsiString("MemCell \"")+AnsiString(buff)+AnsiString("\" does not exist"));
-                       }
-                     }
-                 }
-                for (i=0; i<8; i++)
-                {
-                     if (Current->Params[i].asText!=NULL)
-                     {
-                        strcpy(buff,Current->Params[i].asText);
-                        delete Current->Params[i].asText;
-                        Current->Params[i].asEvent= FindEvent(buff);
-                        if (!Current->Params[i].asEvent) //Ra: tylko w logu informacja o braku
-                         WriteLog(AnsiString("Event \"")+AnsiString(buff)+AnsiString("\" does not exist"));
-                     }
+                 Error(AnsiString("MemCell \"")+AnsiString(buff)+AnsiString("\" does not exist"));
                 }
-
+               else
+                {
+                 Current->Params[9].asMemCell= tmp->MemCell;
+                 if (!Current->Params[9].asMemCell)
+                  Error(AnsiString("MemCell \"")+AnsiString(buff)+AnsiString("\" does not exist"));
+                }
+              }
+             }
+             for (i=0;i<8;i++)
+             {
+              if (Current->Params[i].asText!=NULL)
+              {
+               strcpy(buff,Current->Params[i].asText);
+               SafeDeleteArray(Current->Params[i].asText);
+               Current->Params[i].asEvent=FindEvent(buff);
+               if (!Current->Params[i].asEvent) //Ra: tylko w logu informacja o braku
+                WriteLog(AnsiString("Event \"")+AnsiString(buff)+AnsiString("\" does not exist"));
+              }
+             }
             break;
         }
         if (Current->fDelay<0)
@@ -3053,15 +3052,14 @@ if (QueryRootEvent)
                   else
                   if (QueryRootEvent->Params[8].asInt==conditional_trackfree)
                    bCondition=(QueryRootEvent->Params[9].asTrack->IsEmpty());
-                  else
-                  if (QueryRootEvent->Params[8].asInt==conditional_propability)
-                   {
+                  else if (QueryRootEvent->Params[8].asInt==conditional_propability)
+                  {
                    rprobability=1.0*rand()/RAND_MAX;
                    bCondition=(QueryRootEvent->Params[10].asdouble>rprobability);
                    WriteLog("Random integer: "+CurrToStr(rprobability)+"/"+CurrToStr(QueryRootEvent->Params[10].asdouble));
-                   }
+                  }
                   else
-                   {
+                  {
                    bCondition=
                    QueryRootEvent->Params[9].asMemCell->Compare(QueryRootEvent->Params[10].asText,
                                                                 QueryRootEvent->Params[11].asdouble,

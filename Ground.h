@@ -300,8 +300,8 @@ public:
    return false;
  };
 //    bool __fastcall Include(TQueryParserComp *Parser);
- TGroundNode* __fastcall GetVisible( AnsiString asName );
- TGroundNode* __fastcall GetNode( AnsiString asName );
+ TGroundNode* __fastcall GetVisible(AnsiString asName);
+ TGroundNode* __fastcall GetNode(AnsiString asName);
  bool __fastcall AddDynamic(TGroundNode *Node);
  void __fastcall MoveGroundNode(vector3 pPosition);
  bool __fastcall Update(double dt, int iter);
