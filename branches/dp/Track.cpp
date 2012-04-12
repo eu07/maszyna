@@ -2067,3 +2067,11 @@ void __fastcall TTrack::MovedUp1(double dh)
 {//poprawienie przechy³ki wymaga wyd³u¿enia podsypki
  fTexHeight1+=dh;
 };
+
+AnsiString __fastcall TTrack::NameGet()
+{//ustalenie nazwy toru
+ if (this)
+  if (pMyNode)
+   return pMyNode->asName;
+ return "none";
+};

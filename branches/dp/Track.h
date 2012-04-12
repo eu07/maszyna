@@ -181,6 +181,7 @@ public:
  bool __fastcall IsGroupable();
  int __fastcall TestPoint(vector3 *Point);
  void __fastcall MovedUp1(double dh);
+ AnsiString __fastcall NameGet();
 private:
  void __fastcall EnvironmentSet();
  void __fastcall EnvironmentReset();

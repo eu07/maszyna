@@ -430,12 +430,12 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
       if (((Vertices[i  ].Point-Vertices[i-1].Point).Length()>2000.0) ||
           ((Vertices[i-1].Point-Vertices[i-2].Point).Length()>2000.0) ||
           ((Vertices[i-2].Point-Vertices[i  ].Point).Length()>2000.0))
-     {//je¿eli s¹ dalej ni¿ 2km od siebie
-      --iNumFaces; //o jeden trójk¹t mniej
-      iNumVerts-=3; //czyli o 3 wierzcho³ki
-      i-=3; //wczytanie kolejnego w to miejsce
-      WriteLog(AnsiString("Too large triangle ignored in: \"")+AnsiString(pName)+"\"");
-     }
+      {//je¿eli s¹ dalej ni¿ 2km od siebie
+       --iNumFaces; //o jeden trójk¹t mniej
+       iNumVerts-=3; //czyli o 3 wierzcho³ki
+       i-=3; //wczytanie kolejnego w to miejsce
+       WriteLog(AnsiString("Too large triangle ignored in: \"")+AnsiString(pName)+"\"");
+      }
     }
    }
    int i; //indeks dla trójk¹tów
@@ -471,7 +471,9 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
    delete[] sg;
   }
   else //gdy brak wierzcho³ków
-   eType=TP_ROTATOR; //submodel pomocniczy, ma tylko macierz przekszta³cenia
+  {eType=TP_ROTATOR; //submodel pomocniczy, ma tylko macierz przekszta³cenia
+   iVboPtr=iNumVerts=0; //dla formalnoœci
+  }
  }
  else if (eType==TP_STARS)
  {//punkty œwiec¹ce dookólnie - sk³adnia jak dla smt_Mesh
