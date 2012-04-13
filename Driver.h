@@ -68,7 +68,7 @@ public:
 public:
  void __fastcall Clear();
  void __fastcall Update(vector3 *p,vector3 *dir,double len);
- void __fastcall Set(TEvent *e,double d);
+ bool __fastcall Set(TEvent *e,double d);
  void __fastcall Set(TTrack *t,double d,int f);
 };
 
@@ -99,6 +99,7 @@ public:
  TEvent* __fastcall CheckTrackEvent(double fDirection,TTrack *Track);
  void __fastcall TraceRoute(double fDistance,int iDir,TDynamicObject *pVehicle=NULL);
  void __fastcall Check(double fDistance,int iDir,TDynamicObject *pVehicle);
+ void __fastcall Update(double fVel,double &fDist,double &fNext,double &fAcc);
 };
 
 //----------------------------------------------------------------------------
@@ -117,7 +118,7 @@ class TController
  double fLength; //d³ugoœæ sk³adu (dla ograniczeñ i stawania przed semaforami)
  int iVehicles; //iloœæ pojazdów w sk³adzie
  bool EngineActive; //ABu: Czy silnik byl juz zalaczony
- vector3 vMechLoc; //pozycja pojazdu do liczenia odleg³oœci od semafora (?)
+ //vector3 vMechLoc; //pozycja pojazdu do liczenia odleg³oœci od semafora (?)
  bool Psyche;
  int iDrivigFlags; //flagi bitowe ruchu
  double fDriverMass; //"masa hamuj¹ca", po pomno¿eniu przez v^2 [km/h] daje ~drogê hamowania
@@ -146,12 +147,12 @@ private:
 public:
  double AccPreferred; //preferowane przyspieszenie (wg psychiki kieruj¹cego, albo kolizji z innym pojazdem???)
  double AccDesired; //przyspieszenie, jakie ma utrzymywaæ (<0:hamuj)
- double VelDesired; //predkoœæ, jak¹ ma utrzymywaæ (zawsze nieujemna)
+ double VelDesired; //predkoœæ, z jak¹ ma jechaæ, <=VelActual
 private:
- double VelforDriver; //predkosc dla manewrow
- double VelActual; //predkosc dozwolona na d³ugoœci ProximityDist; ustawiana przez SetVelocity (zadawana semaforami)
+ double VelforDriver; //prêdkoœæ, u¿ywana przy zmianie kierunku (ograniczenie przy nieznajmoœci szlaku?)
+ double VelActual; //predkoœæ zadawana przez SetVelocity (semafory albo przy manewrach)
 public:
- double VelNext; //predkosc przy nastepnym obiekcie (za ProximityDist)
+ double VelNext; //prêdkoœæ, jaka ma byæ po przejechaniu d³ugoœci ProximityDist
 private:
  double fProximityDist; //odleglosc podawana w SetProximityVelocity(); >0:przeliczaæ do punktu, <0:podana wartoœæ
 public:
