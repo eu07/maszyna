@@ -312,6 +312,7 @@ public:
     bool __fastcall Render();
     bool __fastcall RenderAlpha();
     vector3 inline __fastcall GetPosition();
+    inline vector3 __fastcall HeadPosition() {return vCoulpler[iDirection^1];}; //pobranie wspó³rzêdnych czo³a
     inline vector3 __fastcall AxlePositionGet() {return iAxleFirst?Axle1.pPosition:Axle0.pPosition;};
     inline vector3 __fastcall VectorFront() {return vFront;};
     inline vector3 __fastcall VectorUp() {return vUp;};
@@ -362,6 +363,7 @@ public:
  int Dettach(int dir,int cnt);
  TDynamicObject* __fastcall Neightbour(int &dir);
  void __fastcall CoupleDist();
+
 };
 
 
