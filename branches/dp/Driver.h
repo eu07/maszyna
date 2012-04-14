@@ -99,7 +99,7 @@ public:
  TEvent* __fastcall CheckTrackEvent(double fDirection,TTrack *Track);
  void __fastcall TraceRoute(double fDistance,int iDir,TDynamicObject *pVehicle=NULL);
  void __fastcall Check(double fDistance,int iDir,TDynamicObject *pVehicle);
- void __fastcall Update(double fVel,double &fDist,double &fNext,double &fAcc);
+ void __fastcall Update(double fVel,double &fVelDes,double &fDist,double &fNext,double &fAcc);
 };
 
 //----------------------------------------------------------------------------

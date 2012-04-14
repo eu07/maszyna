@@ -391,7 +391,7 @@ void __fastcall TSpeedTable::Check(double fDistance,int iDir,TDynamicObject *pVe
  }
 };
 
-void __fastcall TSpeedTable::Update(double fVel,double &fDist,double &fNext,double &fAcc)
+void __fastcall TSpeedTable::Update(double fVel,double &fVelDes,double &fDist,double &fNext,double &fAcc)
 {//ustalenie parametrów
  //fVel - chwilowa prêdkoœæ pojazdu jako wartoœæ odniesienia
  //fDist - dystans w jakim nale¿y rozwa¿yæ ruch
@@ -417,7 +417,9 @@ void __fastcall TSpeedTable::Update(double fVel,double &fDist,double &fNext,doub
      {//tor ogranicza prêdkoœæ, dopóki ca³y sk³ad nie przejedzie,
       d=fLength+d; //zamiana na d³ugoœæ liczon¹ do przodu
       if (d<0.0) continue; //zapêtlenie, jeœli ju¿ wyjecha³ za ten odcinek
-      a=(v==0.0?-1.0:(v<=fNext?0.0:fAcc)); //hamowanie jeœli stop, nie przyspieszaæ jeœli ograniczenie
+      if (v<fVelDes) fVelDes=v; //ograniczenie aktualnej prêdkoœci a¿ do wyjechania za ograniczenie
+      //if (v==0.0) fAcc=-0.9; //hamowanie jeœli stop
+      continue; //i tyle wystarczy
      }
      else //event trzyma tylko jeœli VelNext=0, nawet po przejechaniu (nie powinno dotyczyæ samochodów?)
       a=(v==0.0?-1.0:fAcc); //ruszanie albo hamowanie
@@ -1786,7 +1788,7 @@ bool __fastcall TController::UpdateSituation(double dt)
       SetDriverPsyche(); //ustawia AccPreferred
       VelNext=VelDesired; //maksymalna prêdkoœæ wynikaj¹ca z innych czynników ni¿ trajektoria ruchu
       ActualProximityDist=scanmax; //funkcja Update() mo¿e pozostawiæ wartoœci bez zmian
-      sSpeedTable.Update(Controlling->Vel,ActualProximityDist,VelNext,AccPreferred); //szukanie optymalnych wartoœci
+      sSpeedTable.Update(Controlling->Vel,VelDesired,ActualProximityDist,VelNext,AccPreferred); //szukanie optymalnych wartoœci
 #endif
 
       AbsAccS=Controlling->AccS; //czy sie rozpedza czy hamuje
