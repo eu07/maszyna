@@ -92,7 +92,7 @@ private:
  bool __fastcall CheckEvent(TEvent *e,bool prox);
  bool __fastcall AddNew();
 public:
- double fLength; //d³ugoœæ sk³adu (dla ograniczeñ i stawania przed semaforami)
+ double fLength; //d³ugoœæ sk³adu (dla ograniczeñ)
 public:
  __fastcall TSpeedTable();
  __fastcall ~TSpeedTable();

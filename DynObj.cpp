@@ -2394,10 +2394,15 @@ SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);
 }
 
 //McZapkie-040402: liczenie pozycji uwzgledniajac wysokosc szyn itp.
-vector3 inline __fastcall TDynamicObject::GetPosition()
+vector3 __fastcall TDynamicObject::GetPosition()
 {//Ra: pozycja pojazdu jest liczona zaraz po przesuniêciu
  return vPosition;
-}
+};
+
+//vector3 __fastcall TDynamicObject::HeadPosition()
+//{//pobranie wspó³rzêdnych czo³a sk³adu
+// return vCoulpler[iDirection^1]; //iDirection=1 gdy sprzêg 0 jest z przodu w kierunku jazdy
+//};
 
 void __fastcall TDynamicObject::TurnOff()
 {//wy³¹czenie rysowania submodeli zmiennych dla egemplarza pojazdu

@@ -388,17 +388,17 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
     glDisable(GL_DEPTH_TEST);			// Disables depth testing
     glColor3f(3.0f,3.0f,3.0f);
 
-        GLuint logo;
-        logo=TTexturesManager::GetTextureID("logo",6);
-        glBindTexture(GL_TEXTURE_2D,logo);       // Select our texture
+     GLuint logo;
+     logo=TTexturesManager::GetTextureID("logo",6);
+     glBindTexture(GL_TEXTURE_2D,logo);       // Select our texture
 
-	glBegin(GL_QUADS);		        // Drawing using triangles
-		glTexCoord2f(0.0f, 0.0f); glVertex3f(-0.28f, -0.22f,  0.0f);	// Bottom left of the texture and quad
-		glTexCoord2f(1.0f, 0.0f); glVertex3f( 0.28f, -0.22f,  0.0f);	// Bottom right of the texture and quad
-		glTexCoord2f(1.0f, 1.0f); glVertex3f( 0.28f,  0.22f,  0.0f);	// Top right of the texture and quad
-		glTexCoord2f(0.0f, 1.0f); glVertex3f(-0.28f,  0.22f,  0.0f);	// Top left of the texture and quad
-	glEnd();
-        //~logo; Ra: to jest bez sensu zapis
+     glBegin(GL_QUADS);		        // Drawing using triangles
+      glTexCoord2f(0.0f, 0.0f); glVertex3f(-0.28f, -0.22f,  0.0f); //bottom left of the texture and quad
+      glTexCoord2f(1.0f, 0.0f); glVertex3f( 0.28f, -0.22f,  0.0f); //bottom right of the texture and quad
+      glTexCoord2f(1.0f, 1.0f); glVertex3f( 0.28f,  0.22f,  0.0f); //top right of the texture and quad
+      glTexCoord2f(0.0f, 1.0f); glVertex3f(-0.28f,  0.22f,  0.0f); //top left of the texture and quad
+     glEnd();
+     //~logo; Ra: to jest bez sensu zapis
     glColor3f(0.0f,0.0f,100.0f);
     if(Global::detonatoryOK)
     {
@@ -491,8 +491,8 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
     char buff[255]="Player train init: ";
     if (Global::detonatoryOK)
     {
-    glRasterPos2f(-0.25f, -0.18f);
-    glPrint("Inicjalizacja wybranego pojazdu do sterowania...");
+     glRasterPos2f(-0.25f, -0.18f);
+     glPrint("Przygotowanie kabiny do sterowania...");
     }
     SwapBuffers(hDC); // Swap Buffers (Double Buffering)
 
@@ -501,12 +501,6 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
     TGroundNode *PlayerTrain=Ground.FindDynamic(Global::asHumanCtrlVehicle);
     if (PlayerTrain)
     {
-//   if (PlayerTrain->DynamicObject->MoverParameters->TypeName==AnsiString("machajka"))
-//     Train= new TMachajka();
-//   else
-//   if (PlayerTrain->DynamicObject->MoverParameters->TypeName==AnsiString("303e"))
-//     Train= new TEu07();
-//   else
      Train=new TTrain();
      if (Train->Init(PlayerTrain->DynamicObject))
      {
