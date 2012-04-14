@@ -3729,22 +3729,32 @@ begin
            end;
          end;
 
-        if (Im<280) and (Vhyp>0.9999) and (MainCtrlPos>11) and (ScndCtrlPos<ScndCtrlPosNo) and (LastRelayTime>CtrlDelay) then
+        if (Im<280) then ShuntMode:= true;
+        if (Im>365) then ShuntMode:=false;        
+
+        if (ShuntMode) and (Vhyp>0.9999) and (MainCtrlPos>11) and (ScndCtrlPos<ScndCtrlPosNo) and (LastRelayTime>CtrlDelay) then
+        if ((ScndCtrlPos<1)or(Vel>40))and((ScndCtrlPos<3)or(Vel>50))then
          begin
           Flat:=true;                   //zacznij procedure boka
           RventCutOff:=RventCutOff+150; //szalejacy regulator
 //          inc(ScndCtrlPos);
           LastRelayTime:=0;             //zeruj czas
          end;
-        if (Im>365) and (ScndCtrlPos>0) and (LastRelayTime>CtrlDelay) then
+        if (not ShuntMode) and (ScndCtrlPos>0) and (LastRelayTime>CtrlDelay) then
          begin
-          dec(ScndCtrlPos);             //wrzuc bok
-          LastRelayTime:=0;             //zeruj czas
+          if ((ScndCtrlPos>3)or(Vel<50))and((ScndCtrlPos>1)or(Vel<40)) then
+           begin
+            dec(ScndCtrlPos);             //wrzuc bok
+            if ScndCtrlPos=2 then
+              ShuntMode:=true;
+            LastRelayTime:=0;             //zeruj czas
+           end; 
          end;
-        if (MainCtrlPos<8) and (ScndCtrlPos>0) then //ponizej 6 wywal wszystkie
-          dec(ScndCtrlPos);
         if (MainCtrlPos<11) and (ScndCtrlPos>2) then //ponizej 9 wywal III i IV
           dec(ScndCtrlPos);
+        if (MainCtrlPos<8) and (ScndCtrlPos>0) then //ponizej 6 wywal wszystkie
+          dec(ScndCtrlPos);
+
 
         LastRelayTime:=LastRelayTime+dt;
 
