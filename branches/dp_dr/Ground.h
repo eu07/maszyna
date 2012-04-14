@@ -269,7 +269,6 @@ class TGround
  TSubRect srGlobal; //zawiera obiekty globalne (na razie wyzwalacze czasowe)
  int hh,mm,srh,srm,ssh,ssm; //ustawienia czasu
  //int tracks,tracksfar; //liczniki torów
- TNames *sTracks; //posortowane nazwy torów 
 public:
  bool bDynamicRemove; //czy uruchomiæ procedurê usuwania pojazdów
  TDynamicObject *LastDyn; //ABu: paskudnie, ale na bardzo szybko moze jakos przejdzie...
@@ -336,7 +335,14 @@ public:
   return NULL;
  }
 
- TGroundNode* __fastcall FindGroundNode(AnsiString asNameToFind,TGroundNodeType iNodeType);
+ inline TGroundNode* __fastcall FindGroundNode( AnsiString asNameToFind, TGroundNodeType iNodeType )
+ {//wyszukiwanie obiektu o podanej nazwie i konkretnym typie
+  TGroundNode *Current;
+  for (Current=nRootOfType[iNodeType];Current;Current=Current->Next)
+   if (Current->asName==asNameToFind)
+    return Current;
+  return NULL;
+ }
 
 //Winger - to smierdzi
 /*    inline TGroundNode* __fastcall FindTraction( TGroundNodeType iNodeType )

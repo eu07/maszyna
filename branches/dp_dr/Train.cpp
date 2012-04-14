@@ -130,7 +130,7 @@ __fastcall TTrain::~TTrain()
 {
  if (DynamicObject)
   if (DynamicObject->Mechanik)
-   DynamicObject->Mechanik->TakeControl(true); //likwidacja kabiny wymaga przejêcia przez AI
+   DynamicObject->Mechanik->TakeControl(true);
 }
 
 bool __fastcall TTrain::Init(TDynamicObject *NewDynamicObject)
@@ -374,8 +374,10 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                dsbSwitch->Play(0,0,0);
 //           }
       }
-      else if (cKey==VkKeyScan('q')) //ze Shiftem - w³¹czenie AI
-      {//McZapkie-240302 - wlaczanie automatycznego pilota (zadziala tylko w trybie debugmode)
+      else
+  //McZapkie-240302 - wlaczanie automatycznego pilota (zadziala tylko w trybie debugmode)
+      if (cKey==VkKeyScan('q')) //ze Shiftem - w³¹czenie AI
+      {
        if (DynamicObject->Mechanik)
         DynamicObject->Mechanik->TakeControl(true);
       }
@@ -1435,29 +1437,29 @@ void __fastcall TTrain::OnKeyPress(int cKey)
         {
           if (!FreeFlyModeFlag) //tryb 'kabinowy'
           {
-           if (DynamicObject->DettachStatus(iCabn-1)<0) //jeœli jest co odczepiæ
-            if (DynamicObject->Dettach(iCabn-1,0)) //iCab==1:przód,iCab==2:ty³
-            {
-             dsbCouplerDetach->SetVolume(DSBVOLUME_MAX); //w kabinie ten dŸwiêk?
-             dsbCouplerDetach->Play(0,0,0);
-            }
+           if (!DynamicObject->Dettach(iCabn-1,0))
+           {
+            dsbCouplerDetach->SetVolume(DSBVOLUME_MAX);
+            dsbCouplerDetach->Play(0,0,0);
+//          DynamicObject->MoverParameters->Couplers[iCabn-1].Connected*->Dettach(iCabn==1 ? 2 : 1);
+           }
           }
           else
-          {//tryb freefly
-           int CouplNr=-1;
-           TDynamicObject *tmp;
-           tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1,1500,CouplNr);
-           if (tmp==NULL)
-            tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1,1500,CouplNr);
-           if (tmp&&(CouplNr!=-1))
-           {
-            if (tmp->DettachStatus(CouplNr)<0) //jeœli jest co odczepiæ i siê da
+          { //tryb freefly
+            int CouplNr=-1;
+            TDynamicObject *tmp;
+            tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), 1, 1500, CouplNr);
+            if (tmp==NULL)
+             tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 1500, CouplNr);
+            if (tmp&&(CouplNr!=-1))
+            {
              if (!tmp->Dettach(CouplNr,0))
-             {//dŸwiêk odczepiania
+             {
               dsbCouplerDetach->SetVolume(DSBVOLUME_MAX);
               dsbCouplerDetach->Play(0,0,0);
+//            DynamicObject->MoverParameters->Couplers[iCabn-1].Connected*->Dettach(iCabn==1 ? 2 : 1);
              }
-           }
+            }
           }
           if (DynamicObject->Mechanik) //na wszelki wypadek
            DynamicObject->Mechanik->CheckVehicles(); //aktualizacja skrajnych pojazdów w sk³adzie
@@ -1902,8 +1904,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
 
 
 void __fastcall TTrain::UpdateMechPosition(double dt)
-{//Ra: mechanik powinien byæ telepany niezale¿nie od pozycji pojazdu
- //Ra: trzeba zrobiæ model bujania g³ow¹ i wczepiæ go do pojazdu 
+{
 
  //DynamicObject->vFront=DynamicObject->GetDirection(); //to jest ju¿ policzone
 
@@ -1911,27 +1912,27 @@ void __fastcall TTrain::UpdateMechPosition(double dt)
  //DynamicObject->vFront.Normalize();
  //DynamicObject->vLeft=CrossProduct(DynamicObject->vUp,DynamicObject->vFront);
  //DynamicObject->vUp=CrossProduct(DynamicObject->vFront,DynamicObject->vLeft);
- //matrix4x4 mat;
- //double a1,a2,atmp;
- //a1=(DynamicObject->Axle1.GetRoll()); //pobranie przechy³ki wózka
- //a2=(DynamicObject->Axle0.GetRoll()); //uwzglêdnia ju¿ kierunek ruchu
- //atmp=(a1+a2); //k¹t przechy³u pud³a
+ matrix4x4 mat;
+
+ double a1,a2,atmp;
+ a1=(DynamicObject->Axle1.GetRoll()); //pobranie przechy³ki wózka
+ a2=(DynamicObject->Axle0.GetRoll()); //uwzglêdnia ju¿ kierunek ruchu
+ atmp=(a1+a2); //k¹t przechy³u pud³a
  //mat.Rotation(((Axle1.GetRoll()+Axle0.GetRoll()))*0.5f,vFront); //przedtem by³o bez zmiennych
- //mat.Rotation(atmp*0.5f,DynamicObject->VectorFront()); //obrót matrycy o k¹t pud³a
+ mat.Rotation(atmp*0.5f,DynamicObject->VectorFront()); //obrót matrycy o k¹t pud³a
  //Ra: tu by siê przyda³o uwzglêdniæ rozk³ad si³:
  // - na postoju horyzont prosto, kabina skosem
  // - przy szybkiej jeŸdzie kabina prosto, horyzont pochylony
 
- //Ra: nie wolno tu modyfikowaæ wektorów pojazdu!
- //DynamicObject->vUp=mat*DynamicObject->VectorUp();
- //DynamicObject->vLeft=mat*DynamicObject->vLeft;
+ DynamicObject->vUp=mat*DynamicObject->VectorUp();
+ DynamicObject->vLeft=mat*DynamicObject->vLeft;
 
 
  //matrix4x4 mat;
- //mat.Identity();
+ mat.Identity();
 
- //mat.BasisChange(DynamicObject->vLeft,DynamicObject->vUp,DynamicObject->vFront);
- //DynamicObject->mMatrix=Inverse(mat);
+ mat.BasisChange(DynamicObject->vLeft,DynamicObject->vUp,DynamicObject->vFront);
+ DynamicObject->mMatrix=Inverse(mat);
 
  vector3 pNewMechPosition;
  //McZapkie: najpierw policzê pozycjê w/m kabiny
@@ -1977,7 +1978,7 @@ void __fastcall TTrain::UpdateMechPosition(double dt)
  //numer kabiny (-1: kabina B)
  iCabn=(DynamicObject->MoverParameters->ActiveCab==-1 ? 2 : DynamicObject->MoverParameters->ActiveCab);
  if (!DebugModeFlag)
- {//sprawdzaj wiêzy //Ra: nie tu!
+ {//sprawdzaj wiezy
   if (pNewMechPosition.x<Cabine[iCabn].CabPos1.x) pNewMechPosition.x=Cabine[iCabn].CabPos1.x;
   if (pNewMechPosition.x>Cabine[iCabn].CabPos2.x) pNewMechPosition.x=Cabine[iCabn].CabPos2.x;
   if (pNewMechPosition.z<Cabine[iCabn].CabPos1.z) pNewMechPosition.z=Cabine[iCabn].CabPos1.z;
@@ -4108,13 +4109,9 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     if (str!=AnsiString("none"))
     {
      str=DynamicObject->asBaseDir+str;
-     Global::asCurrentTexturePath=DynamicObject->asBaseDir; //bie¿¹ca sciezka do tekstur to dynamic/...
-     TModel3d *k=TModelsManager::GetModel(str.c_str(),true); //szukaj kabinê jako oddzielny model
+     Global::asCurrentTexturePath=DynamicObject->asBaseDir;         //biezaca sciezka do tekstur to dynamic/...
+     DynamicObject->mdKabina=TModelsManager::GetModel(str.c_str(),true); //szukaj kabinê jako oddzielny model
      Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath); //z powrotem defaultowa sciezka do tekstur
-     if (DynamicObject->mdKabina!=k)
-      DynamicObject->mdKabina=k; //nowa kabina
-     else
-      break; //wyjœcie z pêtli, bo model zostaje bez zmian
     }
     else
      DynamicObject->mdKabina=DynamicObject->mdModel;   //McZapkie-170103: szukaj elementy kabiny w glownym modelu

@@ -569,32 +569,13 @@ void __fastcall TController::SetDriverPsyche()
    ReactionTime=Controlling->InitialCtrlDelay+ReactionTime;
   if (Controlling->BrakeCtrlPos>1)
    ReactionTime=0.5*ReactionTime;
-  if (Controlling->Vel>0.1) //o ile jedziemy
-   if (pVehicles[0]->MoverParameters->Couplers[pVehicles[0]->MoverParameters->DirAbsolute>0?0:1].Connected) //a mamy coœ z przodu
-    if (Controlling->Couplers[0].CouplingFlag==0) //jeœli to coœ jest pod³¹czone sprzêgiem wirtualnym
-    {//wyliczanie optymalnego przyspieszenia do jazdy na widocznoœæ (Ra: na pewno tutaj?)
-     double k=pVehicles[0]->MoverParameters->Couplers[pVehicles[0]->MoverParameters->DirAbsolute>0?0:1].Connected->Vel; //prêdkoœæ pojazdu z przodu
-     if (k<Controlling->Vel) //porównanie modu³ów prêdkoœci [km/h]
-      if (pVehicles[0]->fTrackBlock<fDriverDist)
-       k=-AccPreferred; //hamowanie
-      else
-      {//jeœli tamten jedzie szybciej, to nie potrzeba modyfikowaæ przyspieszenia
-       k/=3.6; //[m/s]
-       double d=25.92*(pVehicles[0]->fTrackBlock-maxdist*fabs(Controlling->V)-fDriverDist); //Ra: co to jest za odleg³oœæ?
-       //a=(v2*v2-v1*v1)/(25.92*(d-0.5*v1))
-       //(v2*v2-v1*v1)/2 to ró¿nica energii kinetycznych na jednostkê masy
-       //jeœli v2=50km/h,v1=60km/h,d=200m => k=(192.9-277.8)/(25.92*(200-0.5*16.7)=-0.0171 [m/s^2]
-       //jeœli v2=50km/h,v1=60km/h,d=100m => k=(192.9-277.8)/(25.92*(100-0.5*16.7)=-0.0357 [m/s^2]
-       //jeœli v2=50km/h,v1=60km/h,d=50m  => k=(192.9-277.8)/(25.92*( 50-0.5*16.7)=-0.0786 [m/s^2]
-       //jeœli v2=50km/h,v1=60km/h,d=25m  => k=(192.9-277.8)/(25.92*( 25-0.5*16.7)=-0.1967 [m/s^2]
-       if (d>0) //bo jak ujemne, to zacznie przyspieszaæ, aby siê zderzyæ
-        k=(k*k-Controlling->V*Controlling->V)/d;
-       else
-        k=-AccPreferred; //hamowanie
-       //WriteLog(pVehicle->asName+" "+AnsiString(k));
-       AccPreferred=Min0R(k,AccPreferred);
-      }
-    }
+  if ((Controlling->V>0.1)&&(Controlling->Couplers[0].Connected)) //dopisac to samo dla V<-0.1 i zaleznie od Psyche
+   if (Controlling->Couplers[0].CouplingFlag==0) //jeœli nie ma nic z przodu
+   {//Ra: funkcje s¹ odpowiednie?
+    AccPreferred=Controlling->Couplers[0].Connected->V; //tymczasowa wartoœæ
+    AccPreferred=(AccPreferred*AccPreferred-Controlling->V*Controlling->V)/(25.92*(Controlling->Couplers[0].Dist-maxdist*fabs(Controlling->V)));
+    AccPreferred=Min0R(AccPreferred,EasyAcceleration);
+   }
  }
 };
 
@@ -1471,13 +1452,12 @@ bool __fastcall TController::UpdateSituation(double dt)
         Controlling->WarningSignal=1;
        }
        else
-       {//samochód ma staæ, a¿ dostanie odjazd, chyba ¿e stoi przez kolizjê
+       {//samochód ma staæ, a¿ dostanie odjazd, chyba ¿e kolizja
         if (eStopReason==stopBlock)
-         if (pVehicles[0]->fTrackBlock>fDriverDist)
-         {PrepareEngine(); //zmieni ustawiony kierunek
-          SetVelocity(-1,-1); //jak siê nasta³, to niech jedzie
-          WaitingTime=0.0;
-         }
+        {PrepareEngine(); //zmieni ustawiony kierunek
+         SetVelocity(-1,-1); //jak siê nasta³, to niech jedzie
+         WaitingTime=0.0;
+        }
        }
       }
       else if ((VelActual==0.0)&&(VelNext>0.0)&&(Controlling->Vel<1.0))
@@ -1532,16 +1512,15 @@ bool __fastcall TController::UpdateSituation(double dt)
       else if (VelActual<0)
        VelDesired=fVelMax; //ile fabryka dala (Ra: uwzglêdione wagony)
       else
-       VelDesired=Min0R(fVelMax,VelActual); //VelActual>0 jest ograniczeniem prêdkoœci (z ró¿nyc Ÿróde³)
-      if (Controlling->RunningTrack.Velmax>=0) //ograniczenie prêdkoœci z trajektorii ruchu
+       VelDesired=Min0R(fVelMax,VelActual);
+      if (Controlling->RunningTrack.Velmax>=0)
        VelDesired=Min0R(VelDesired,Controlling->RunningTrack.Velmax); //uwaga na ograniczenia szlakowej!
-      if (VelforDriver>=0) //tu jest zero przy zmianie kierunku jazdy
+      if (VelforDriver>=0)
        VelDesired=Min0R(VelDesired,VelforDriver);
       if (TrainParams)
        if (TrainParams->CheckTrainLatency()<10.0)
         if (TrainParams->TTVmax>0.0)
-         VelDesired=Min0R(VelDesired,TrainParams->TTVmax); //jesli nie spozniony to nie przekraczaæ rozkladowej
-
+         VelDesired=Min0R(VelDesired,TrainParams->TTVmax); //jesli nie spozniony to nie szybciej niz rozkladowa
 #if LOGVELOCITY
       //WriteLog("VelDesired="+AnsiString(VelDesired)+", VelActual="+AnsiString(VelActual));
 #endif
@@ -1567,7 +1546,7 @@ bool __fastcall TController::UpdateSituation(double dt)
           else  //w przeciwnym wypadku
            if ((VelNext==0.0)&&(Controlling->Vel*Controlling->Vel<0.4*ActualProximityDist)) //jeœli stójka i niewielka prêdkoœæ
            {if (Controlling->Vel<30.0)  //trzymaj 30 km/h
-             AccDesired=0.5*AccPreferred; //jak jest tu 0.5, to samochody siê dobijaj¹ do siebie
+             AccDesired=0.5;
             else
              AccDesired=0.0;
            }
@@ -1903,10 +1882,7 @@ void __fastcall TController::OrdersInit(double fVel)
 
 AnsiString __fastcall TController::StopReasonText()
 {//informacja tekstowa o przyczynie zatrzymania
- if (eStopReason!=7)
-  return StopReasonTable[eStopReason];
- else
-  return "Blocked by "+(pVehicles[0]->PrevAny()->GetName());
+ return StopReasonTable[eStopReason];
 };
 
 //----------------McZapkie: skanowanie semaforow:
@@ -2101,14 +2077,9 @@ void __fastcall TController::ScanEventTrack()
  //Ra: AI mo¿e siê stoczyæ w przeciwnym kierunku, ni¿ oczekiwana jazda !!!!
  vector3 sl;
  //jeœli z przodu od kierunku ruchu jest jakiœ pojazd ze sprzêgiem wirtualnym
- if (pVehicles[0]->fTrackBlock<=fDriverDist) //jak odleg³oœæ kolizyjna, to sprawdziæ
- {
-  pVehicles[0]->ABuScanObjects(pVehicles[0]->DirectionGet(),300); //skanowanie sprawdzaj¹ce
-  if (pVehicles[0]->fTrackBlock<=fDriverDist) //jak potwierdzona odleg³oœæ kolizyjna, to stop
-  {
-   SetVelocity(0,0,stopBlock); //zatrzymaæ
-   return; //i dalej nie ma co analizowaæ innych przypadków (!!!! do przemyœlenia)
-  }
+ if (pVehicles[0]->fTrackBlock<=fDriverDist) //jak odleg³oœæ kolizyjna, to stop
+ {SetVelocity(0,0,stopBlock); //zatrzymaæ
+  return; //i dalej nie ma co analizowaæ innych przypadków (!!!! do przemyœlenia)
  }
  else
   if (fDriverMass*VelDesired*VelDesired>pVehicles[0]->fTrackBlock) //droga hamowania wiêksza ni¿ odleg³oœæ kolizyjna
@@ -2183,16 +2154,15 @@ void __fastcall TController::ScanEventTrack()
 #endif
      //sem=*e->PositionGet()-pos; //wektor do komórki pamiêci
      sem=e->Params[8].asGroundNode->pCenter-pos; //wektor do komórki pamiêci
-     if (dir.x*sem.x+dir.z*sem.z<0) //jeœli zosta³ miniêty
-      if ((Controlling->CategoryFlag&1)?(VelNext!=0.0):true) //dla poci¹gu wymagany sygna³ zezwalaj¹cy
-      {//iloczyn skalarny jest ujemny, gdy sygna³ stoi z ty³u
-       eSignSkip=e; //wtedy uznajemy go za ignorowany przy poszukiwaniu nowego
-       eSignLast=NULL; //¿eby jakiœ nowy by³ poszukiwany
+     if ((dir.x*sem.x+dir.z*sem.z<0)&&(VelNext!=0.0)) //wymagany sygna³ zezwalaj¹cy
+     {//iloczyn skalarny jest ujemny, gdy sygna³ stoi z ty³u
+      eSignSkip=e; //wtedy uznajemy go za ignorowany przy poszukiwaniu nowego
+      eSignLast=NULL; //¿eby jakiœ nowy by³ poszukiwany
 #if LOGVELOCITY
-       WriteLog(edir+"- will be ignored as passed by");
+      WriteLog(edir+"- will be ignored as passed by");
 #endif
-       return;
-      }
+      return;
+     }
      sl=e->Params[8].asGroundNode->pCenter;
      vmechmax=e->Params[9].asMemCell->fValue1; //prêdkoœæ przy tym semaforze
      //przeliczamy odleg³oœæ od semafora - potrzebne by by³y wspó³rzêdne pocz¹tku sk³adu
@@ -2506,8 +2476,7 @@ AnsiString __fastcall TController::NextStop()
 
 void __fastcall TController::TakeControl(bool yes)
 {//przejêcie kontroli przez AI albo oddanie
- if (AIControllFlag==yes) return; //ju¿ jest jak ma byæ
- if (yes) //¿eby nie wykonywaæ dwa razy
+ if (yes&&(AIControllFlag!=AIdriver))
  {//teraz AI prowadzi
   AIControllFlag=AIdriver;
   pVehicle->Controller=AIdriver;
@@ -2527,7 +2496,7 @@ void __fastcall TController::TakeControl(bool yes)
   //SetVelocity(-1,-1); //AI ustali sobie odpowiedni¹ prêdkoœæ
   CheckVehicles(); //ustawienie œwiate³
  }
- else
+ else if (AIControllFlag==AIdriver)
  {//a teraz u¿ytkownik
   AIControllFlag=Humandriver;
   pVehicle->Controller=Humandriver;

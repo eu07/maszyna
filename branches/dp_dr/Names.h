@@ -5,27 +5,19 @@
 //---------------------------------------------------------------------------
 class ItemRecord
 {//rekord opisujπcy obiekt; raz utworzony nie przemieszcza siÍ
- //rozmiar rekordu moøna zmieniÊ w razie potrzeby
 public:
- char *cName; //wskaünik do nazwy umieszczonej w buforze
+ char* cName; //wskaünik do nazwy umieszczonej w buforze
  int iFlags; //flagi bitowe
- ItemRecord *rPrev,*rNext; //posortowane drzewo (przebudowywane w razie potrzeby)
+ ItemRecord *rPrev,*rNext; //posortowane drzewo (przebudowywane)
  union
  {void *pData; //wskaünik do obiektu
   int iData; //albo numer obiektu (tekstury)
-  unsigned int uData;
  };
  //typedef
- void __fastcall ListGet(ItemRecord *r,int*&n);
- void __fastcall TreeAdd(ItemRecord *r,int c);
- template <typename TOut> inline TOut* DataGet() {return (TOut*)pData;};
- template <typename TOut> inline void DataSet(TOut *x) {pData=(void*)x;};
- void* __fastcall TreeFind(const char *n);
 };
 
-class TNames
+class Names
 {
-public:
  int iSize; //rozmiar bufora
  char *cBuffer; //bufor dla rekordÛw (na poczπtku) i nazw (na koÒcu)
  ItemRecord *rRecords; //rekordy na poczπtku bufora
@@ -33,18 +25,12 @@ public:
  ItemRecord *rTypes[20]; //roøne typy obiektÛw (poczπtek drzewa)
  int iLast; //ostatnio uøyty rekord
 public:
- __fastcall TNames();
+ __fastcall Names();
  int __fastcall Add(int t,const char *n); //dodanie obiektu typu (t)
  int __fastcall Add(int t,const char *n,void *d); //dodanie obiektu z wskaünikiem
  int __fastcall Add(int t,const char *n,int d); //dodanie obiektu z numerem
- void __fastcall TreeSet();
- ItemRecord* __fastcall TreeSet(int *n,int d,int u);
- void __fastcall Sort(int t); //przebudowa drzewa typu (t)
+ ItemRecord* __fastcall Sort(int t); //przebudowa drzewa typu (t)
  ItemRecord* __fastcall Item(int n); //rekord o numerze (n)
- inline void* Find(const int t,const char *n)
- {return rTypes[t]->TreeFind(n);};
- //template <typename TOut> inline TOut* Find(const int t,const char *n)
- //{return (TOut*)(rTypes[t]->TreeFind(n));};
 };
 #endif
 

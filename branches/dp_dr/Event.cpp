@@ -383,10 +383,6 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
          WriteLog("Event \""+asName+(Type==tp_Unknown?"\" has unknown type.":"\" is ignored."));
          break;
     }
- if (Type!=tp_Unknown)
-  if (Type!=tp_Ignored)
-   if (asName.Pos("onstart")) //event uruchamiany automatycznie po starcie
-    AddToQuery(this); //dodanie do kolejki
 }
 
 void __fastcall TEvent::AddToQuery(TEvent *Event)
