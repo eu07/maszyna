@@ -61,7 +61,7 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=1
 MinorVer=7
-Release=548
+Release=554
 Build=337
 Debug=1
 PreRelease=0
@@ -74,7 +74,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.7.548.337
+FileVersion=1.7.554.337
 InternalName=7th by Ra
 LegalCopyright=
 LegalTrademarks=
@@ -122,7 +122,7 @@ Item4=M:\aEU07\EU07\
 DebugSourceDirs=C:\Ra\dp\McZapkie\
 
 [Parameters]
-RunParams=-s test_tm.SCN -v ghostview
+RunParams=-s baltyk.scn -v ghostview
 HostApplication=
 RemoteHost=
 RemotePath=

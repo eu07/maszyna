@@ -3537,8 +3537,8 @@ void __fastcall TDynamicObject::RaAxleEvent(TEvent *e)
    Global::pGround->AddToQuery(e,this); //dodanie do kolejki
   else
  //if (Mechanik) //tylko jeœli ma obsadê
-  {if (Controller!=Humandriver) //i nie u¿ytkownik (na razie)
-    Mechanik->ScanEventTrack(); //dla pewnoœci robimy skanowanie
+  {//if (Controller!=Humandriver) //i nie u¿ytkownik (na razie)
+   // Mechanik->ScanEventTrack(); //dla pewnoœci robimy skanowanie
    if (Global::iMultiplayer) //potwierdzenie wykonania dla serwera - najczêœciej odczyt semafora
     Global::pGround->WyslijEvent(e->asName,GetName());
   }

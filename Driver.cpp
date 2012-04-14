@@ -426,6 +426,7 @@ void __fastcall TSpeedTable::Update(double fVel,double &fVelDes,double &fDist,do
     if (a<fAcc)
     {//mniejsze przyspieszenie to mniejsza mo¿liwoœæ rozpêdzenia siê albo koniecznoœæ hamowania
      //jeœli droga wolna, to mo¿e byæ a>1.0 i siê tu nie za³apuje
+     //if (fVel>10.0)
      fAcc=a; //zalecane przyspieszenie (nie musi byæ uwzglêdniane przez AI)
      fNext=v; //istotna jest prêdkoœæ na koñcu tego odcinka
      fDist=d; //dlugoœæ odcinka
@@ -530,7 +531,6 @@ __fastcall TController::TController
  fStopTime=0.0; //czas postoju przed dalsz¹ jazd¹ (np. na przystanku)
  iDrivigFlags=moveStopPoint; //flagi bitowe ruchu
  Ready=false;
- SetDriverPsyche(); //na koñcu, bo wymaga ustawienia zmiennych
  if (Controlling->CategoryFlag&2)
  {//samochody
   fDriverMass=0.02; //mno¿one przez v^2 [km/h] daje drogê skanowania [m]
@@ -541,6 +541,7 @@ __fastcall TController::TController
   fDriverMass=0.1; //mno¿one przez v^2 [km/h] daje drogê skanowania [m]
   fDriverDist=50.0; //50m - zachowywany odstêp przed kolizj¹
  }
+ SetDriverPsyche(); //na koñcu, bo wymaga ustawienia zmiennych
  fVelMax=-1; //ustalenie prêdkoœci dla sk³adu
 };
 
@@ -801,17 +802,20 @@ void __fastcall TController::SetDriverPsyche()
    ReactionTime=Controlling->InitialCtrlDelay+ReactionTime;
   if (Controlling->BrakeCtrlPos>1)
    ReactionTime=0.5*ReactionTime;
+#if !TESTTABLE
   if (Controlling->Vel>0.1) //o ile jedziemy
-   if (pVehicles[0]->MoverParameters->Couplers[pVehicles[0]->MoverParameters->DirAbsolute>0?0:1].Connected) //a mamy coœ z przodu
-    if (Controlling->Couplers[0].CouplingFlag==0) //jeœli to coœ jest pod³¹czone sprzêgiem wirtualnym
+  {//sprawdzenie jazdy na widocznoœæ
+   TCoupling *c=pVehicles[0]->MoverParameters->Couplers+(pVehicles[0]->DirectionGet()>0?0:1); //sprzêg z przodu sk³adu
+   if (c->Connected) //a mamy coœ z przodu
+    if (c->CouplingFlag==0) //jeœli to coœ jest pod³¹czone sprzêgiem wirtualnym
     {//wyliczanie optymalnego przyspieszenia do jazdy na widocznoœæ (Ra: na pewno tutaj?)
-     double k=pVehicles[0]->MoverParameters->Couplers[pVehicles[0]->MoverParameters->DirAbsolute>0?0:1].Connected->Vel; //prêdkoœæ pojazdu z przodu
-     if (k<Controlling->Vel) //porównanie modu³ów prêdkoœci [km/h]
-     {if (pVehicles[0]->fTrackBlock<fDriverDist)
-       k=-AccPreferred; //hamowanie
+     double k=c->Connected->Vel; //prêdkoœæ pojazdu z przodu (zak³adaj¹c, ¿e jedzie w tê sam¹ stronê!!!)
+     if (k<=Controlling->Vel) //porównanie modu³ów prêdkoœci [km/h]
+     {if (pVehicles[0]->fTrackBlock<fDriverDist) //porównianie z minimaln¹ odleg³oœci¹ kolizyjn¹
+       k=-AccPreferred; //hamowanie maksymalne, bo jest za blisko
       else
       {//jeœli tamten jedzie szybciej, to nie potrzeba modyfikowaæ przyspieszenia
-       double d=25.92*(pVehicles[0]->fTrackBlock-maxdist*fabs(Controlling->Vel)-fDriverDist); //bezpieczna odleg³oœæ za poprzednim
+       double d=25.92*(pVehicles[0]->fTrackBlock-maxdist*fabs(Controlling->V)-fDriverDist); //bezpieczna odleg³oœæ za poprzednim
        //a=(v2*v2-v1*v1)/(25.92*(d-0.5*v1))
        //(v2*v2-v1*v1)/2 to ró¿nica energii kinetycznych na jednostkê masy
        //jeœli v2=50km/h,v1=60km/h,d=200m => k=(192.9-277.8)/(25.92*(200-0.5*16.7)=-0.0171 [m/s^2]
@@ -821,12 +825,14 @@ void __fastcall TController::SetDriverPsyche()
        if (d>0) //bo jak ujemne, to zacznie przyspieszaæ, aby siê zderzyæ
         k=(k*k-Controlling->Vel*Controlling->Vel)/d; //energia kinetyczna dzielona przez masê i drogê daje przyspieszenie
        else
-        k=-AccPreferred; //hamowanie
-       //WriteLog(pVehicle->asName+" "+AnsiString(k));
+        k=0.0; //mo¿e lepiej nie przyspieszaæ -AccPreferred; //hamowanie
+       WriteLog(pVehicle->asName+" "+AnsiString(k));
       }
       AccPreferred=Min0R(k,AccPreferred);
      }
     }
+  }
+#endif
  }
 };
 
@@ -1461,35 +1467,36 @@ bool __fastcall TController::UpdateSituation(double dt)
   else
    LastUpdatedTime=LastUpdatedTime+dt;
  }
- if (AIControllFlag)
+ //Ra: skanowanie równie¿ dla prowadzonego rêcznie, aby podpowiedzieæ prêdkoœæ
+ if ((LastReactionTime>Min0R(ReactionTime,2.0)))
  {
-  //tu bedzie logika sterowania
   //Ra: nie wiem czemu ReactionTime potrafi dostaæ 12 sekund, to jest przegiêcie, bo prze¿yna STÓJ
   //yB: otó¿ jest to jedna trzecia czasu nape³niania na towarowym; mo¿e siê przydaæ przy wdra¿aniu hamowania, ¿eby nie rusza³o kranem jak g³upie
   //Ra: ale nie mo¿e siê budziæ co pó³ minuty, bo prze¿yna semafory
-  if ((LastReactionTime>Min0R(ReactionTime,2.0)))
-  {//Ra: trzeba by tak:
 #if TESTTABLE
-   // 1. Ustaliæ istotn¹ odleg³oœæ zainteresowania (np. 3×droga hamowania z V.max).
-   double scanmax=(Controlling->Vel>0.0)?3*fDriverDist+fDriverMass*Controlling->Vel*Controlling->Vel:500; //fabs(Mechanik->ProximityDist);
-   // 2. Sprawdziæ, czy tabelka pokrywa za³o¿ony odcinek (nie musi, jeœli jest STOP).
-   // 3. Sprawdziæ, czy trajektoria ruchu przechodzi przez zwrotnice - jeœli tak, to sprawdziæ, czy stan siê nie zmieni³.
-   // 4. Ewentualnie uzupe³niæ tabelkê informacjami o sygna³ach i ograniczeniach, jeœli siê "zu¿y³a".
-   WriteLog("");
-   WriteLog("Scan table:");
-   sSpeedTable.Check(scanmax,iDirection,pVehicles[0]); //wype³nianie tabelki i aktualizacja odleg³oœci
-   // 5. Sprawdziæ stany sygnalizacji zapisanej w tabelce, wyznaczyæ prêdkoœci.
-   // 6. Z tabelki wyznaczyæ krytyczn¹ odleg³oœæ i prêdkoœæ (najmniejsze przyspieszenie).
-   // 7. Jeœli jest inny pojazd z przodu, ewentualnie skorygowaæ odleg³oœæ i prêdkoœæ.
-   // 8. Ustaliæ czêstotliwoœæ œwiadomoœci AI (zatrzymanie precyzyjne - czêœciej, brak atrakcji - rzadziej).
+  //Ra: trzeba by tak:
+  // 1. Ustaliæ istotn¹ odleg³oœæ zainteresowania (np. 3×droga hamowania z V.max).
+  double scanmax=(Controlling->Vel>0.0)?3*fDriverDist+fDriverMass*Controlling->Vel*Controlling->Vel:10.0*fDriverDist; //fabs(Mechanik->ProximityDist);
+  // 2. Sprawdziæ, czy tabelka pokrywa za³o¿ony odcinek (nie musi, jeœli jest STOP).
+  // 3. Sprawdziæ, czy trajektoria ruchu przechodzi przez zwrotnice - jeœli tak, to sprawdziæ, czy stan siê nie zmieni³.
+  // 4. Ewentualnie uzupe³niæ tabelkê informacjami o sygna³ach i ograniczeniach, jeœli siê "zu¿y³a".
+  WriteLog("");
+  WriteLog("Scan table for "+pVehicle->asName+":");
+  sSpeedTable.Check(scanmax,iDirection,pVehicles[0]); //wype³nianie tabelki i aktualizacja odleg³oœci
+  // 5. Sprawdziæ stany sygnalizacji zapisanej w tabelce, wyznaczyæ prêdkoœci.
+  // 6. Z tabelki wyznaczyæ krytyczn¹ odleg³oœæ i prêdkoœæ (najmniejsze przyspieszenie).
+  // 7. Jeœli jest inny pojazd z przodu, ewentualnie skorygowaæ odleg³oœæ i prêdkoœæ.
+  // 8. Ustaliæ czêstotliwoœæ œwiadomoœci AI (zatrzymanie precyzyjne - czêœciej, brak atrakcji - rzadziej).
 #else
-   vector3 vMechLoc=pVehicles[0]->HeadPosition(); //uwzglednic potem polozenie kabiny
-   if (fProximityDist>=0) //przeliczyæ od zapamiêtanego punktu
-    ActualProximityDist=Min0R(fProximityDist,hypot(vMechLoc.x-vCommandLocation.x,vMechLoc.z-vCommandLocation.z)-0.5*(Controlling->Dim.L+SignalDim.L));
-   else
-    if (fProximityDist<0)
-     ActualProximityDist=fProximityDist; //odleg³oœæ ujemna podana bezpoœrednio (powinno byæ ...=-...)
+  vector3 vMechLoc=pVehicles[0]->HeadPosition(); //uwzglednic potem polozenie kabiny
+  if (fProximityDist>=0) //przeliczyæ od zapamiêtanego punktu
+   ActualProximityDist=Min0R(fProximityDist,hypot(vMechLoc.x-vCommandLocation.x,vMechLoc.z-vCommandLocation.z)-0.5*(SignalDim.L));
+  else
+   if (fProximityDist<0)
+    ActualProximityDist=fProximityDist; //odleg³oœæ ujemna podana bezpoœrednio (powinno byæ ...=-...)
 #endif
+  if (AIControllFlag)
+  {//tu bedzie logika sterowania
    if (Controlling->CommandIn.Command!="")
     if (!Controlling->RunInternalCommand()) //rozpoznaj komende bo lokomotywa jej nie rozpoznaje
      RecognizeCommand(); //samo czyta komendê wstawion¹ do pojazdu?
@@ -1784,13 +1791,54 @@ bool __fastcall TController::UpdateSituation(double dt)
       //Ra: tu by jeszcze trzeba by³o wstawiæ uzale¿nienie (VelDesired) od odleg³oœci od przeszkody
       // no chyba ¿eby to uwzgldniæ ju¿ w (ActualProximityDist)
 #if TESTTABLE
+      SetDriverPsyche(); //ustawia AccPreferred (potrzebne tu?)
       //Ra: odczyt (ActualProximityDist), (VelNext) i (AccPreferred) z tabelki prêdkosci
-      SetDriverPsyche(); //ustawia AccPreferred
       VelNext=VelDesired; //maksymalna prêdkoœæ wynikaj¹ca z innych czynników ni¿ trajektoria ruchu
       ActualProximityDist=scanmax; //funkcja Update() mo¿e pozostawiæ wartoœci bez zmian
       sSpeedTable.Update(Controlling->Vel,VelDesired,ActualProximityDist,VelNext,AccPreferred); //szukanie optymalnych wartoœci
+      //Ra: jazda na widocznoœæ
+      if (pVehicles[0]->fTrackBlock<300.0)
+       pVehicles[0]->ABuScanObjects(pVehicles[0]->DirectionGet(),300.0); //skanowanie sprawdzaj¹ce
+      //if (Controlling->Vel>=0.1) //o ile jedziemy; jak stoimy to te¿ trzeba jakoœ zatrzymywaæ
+      {//sprawdzenie jazdy na widocznoœæ
+       TCoupling *c=pVehicles[0]->MoverParameters->Couplers+(pVehicles[0]->DirectionGet()>0?0:1); //sprzêg z przodu sk³adu
+       if (c->Connected) //a mamy coœ z przodu
+        if (c->CouplingFlag==0) //jeœli to coœ jest pod³¹czone sprzêgiem wirtualnym
+        {//wyliczanie optymalnego przyspieszenia do jazdy na widocznoœæ
+         double k=c->Connected->Vel; //prêdkoœæ pojazdu z przodu (zak³adaj¹c, ¿e jedzie w tê sam¹ stronê!!!)
+         if (k<Controlling->Vel+10) //porównanie modu³ów prêdkoœci [km/h]
+         {//zatroszczyæ siê trzeba, jeœli tamten nie jedzie znacz¹co szybciej
+          double d=pVehicles[0]->fTrackBlock-0.5*Controlling->Vel-fDriverDist; //odleg³oœæ bezpieczna zale¿y od prêdkoœci
+          if (d<0) //jeœli odleg³oœæ jest zbyt ma³a
+          {//AccPreferred=-0.9; //hamowanie maksymalne, bo jest za blisko
+           if (k<10.0) //jeœli (prawie) stoi
+           {AccPreferred=-0.9; //to hamuj
+            VelNext=VelDesired=0.0; //i nie pakuj siê na tamtego
+           }
+           else //jeœli oba jad¹, to przyhamuj lekko i ogranicz prêdkoœæ
+           {if (k<Controlling->Vel) //a jak jedzie wolniej
+             if (AccPreferred>-0.35) AccPreferred=-0.35; //to przyhamuj troszkê
+            VelNext=VelDesired=c->Connected->Vel; //to chyba ju¿ sobie dohamuje wed³ug uznania
+           }
+           ReactionTime=0.1; //orientuj siê, bo jest goraco
+          }
+          else
+          {//jeœli odleg³oœæ jest wiêksza, ustaliæ maksymalne mo¿liwe przyspieszenie (hamowanie)
+           k=2*(k*k-Controlling->Vel*Controlling->Vel)/(25.92*d); //energia kinetyczna dzielona przez masê i drogê daje przyspieszenie
+           //double ak=(c->Connected->V>0?1.0:-1.0)*c->Connected->AccS; //przyspieszenie tamtego
+           if (k<AccPreferred)
+           {//jeœli nie ma innych powodów do wolniejszej jazdy
+            AccPreferred=k;
+            VelNext=c->Connected->Vel; //ograniczenie do prêdkoœci tamtego
+            ActualProximityDist=d; //i odleg³oœæ od tamtego jest istotniejsza
+            ReactionTime=0.2; //zwiêksz czujnoœæ
+           }
+           WriteLog("Collision: AccPreffered="+AnsiString(k));
+          }
+         }
+        }
+      }
 #endif
-
       AbsAccS=Controlling->AccS; //czy sie rozpedza czy hamuje
       if (Controlling->V<0.0) AbsAccS=-AbsAccS;
       else if (Controlling->V==0.0) AbsAccS=0.0;
@@ -1834,7 +1882,9 @@ bool __fastcall TController::UpdateSituation(double dt)
          ReactionTime=0.5*Controlling->BrakeDelay[2+2*Controlling->BrakeDelayFlag]; //aby szybkosc hamowania zalezala od przyspieszenia i opoznienia hamulcow
         }
         else
-         VelDesired=Min0R(VelDesired,VelNext); //utrzymuj predkosc bo juz blisko
+        {VelDesired=Min0R(VelDesired,VelNext); //utrzymuj predkosc bo juz blisko
+         ReactionTime=0.1; //i orientuj siê szybciej
+        }
        }
        else  //zatrzymany
         if ((VelNext>0.0)||(ActualProximityDist>fMaxProximityDist*1.2))
@@ -1930,7 +1980,7 @@ bool __fastcall TController::UpdateSituation(double dt)
 
       //yB: usuniête ró¿ne dziwne warunki, oddzielamy czêœæ zadaj¹c¹ od wykonawczej
       //zmniejszanie predkosci
-      if ((AccDesired<-0.35)&&(AbsAccS>AccDesired+0.05))
+      if ((AccDesired<-0.30)&&(AbsAccS>AccDesired+0.05))
       //if not MinVelFlag)
        if (!IncBrake())
         MinVelFlag=true;
@@ -1993,9 +2043,12 @@ bool __fastcall TController::UpdateSituation(double dt)
    if (!ScanMe)
     ScanMe=true;
    UpdateOK=true;
-  }
-  else
-   LastReactionTime+=dt;
+  } //if (AIControllFlag)
+ } //if ((LastReactionTime>Min0R(ReactionTime,2.0)))
+ else
+  LastReactionTime+=dt;
+ if (AIControllFlag)
+ {
   if (fWarningDuration>0.0) //jeœli pozosta³o coœ do wytr¹bienia
   {//tr¹bienie trwa nadal
    fWarningDuration=fWarningDuration-dt;
