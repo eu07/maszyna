@@ -2571,27 +2571,19 @@ bool __fastcall TGround::InitEvents()
              {
               strcpy(buff,Current->Params[9].asText);
               SafeDeleteArray(Current->Params[9].asText);
-              if (Current->Params[8].asInt<0) //ujemne znaczy sie chodzi o zajetosc toru
-               {
-                tmp=FindGroundNode(buff,TP_TRACK);
-                if (!tmp)
-                 Error(AnsiString("Track \"")+AnsiString(buff)+"\" does not exist in \""+Current->asName+"\"");
-                else
-                 Current->Params[9].asTrack=tmp->pTrack;
-               }
-              if (Current->Params[8].asInt>0) //dodatnie znaczy sie chodzi o komorke pamieciowa
-              {
+              if (Current->Params[8].asInt&(conditional_trackoccupied|conditional_trackfree))
+              {//jeœli chodzi o zajetosc toru
+               tmp=FindGroundNode(buff,TP_TRACK);
+               if (tmp) Current->Params[9].asTrack=tmp->pTrack;
+               if (!Current->Params[9].asTrack)
+                Error(AnsiString("Track \"")+AnsiString(buff)+"\" does not exist in \""+Current->asName+"\"");
+              }
+              else if (Current->Params[8].asInt&(conditional_memstring|conditional_memval1|conditional_memval2))
+              {//jeœli chodzi o komorke pamieciow¹
                tmp=FindGroundNode(buff,TP_MEMCELL);
-               if (tmp==NULL)
-                {
-                 Error(AnsiString("MemCell \"")+AnsiString(buff)+AnsiString("\" does not exist"));
-                }
-               else
-                {
-                 Current->Params[9].asMemCell= tmp->MemCell;
-                 if (!Current->Params[9].asMemCell)
-                  Error(AnsiString("MemCell \"")+AnsiString(buff)+AnsiString("\" does not exist"));
-                }
+               if (tmp) Current->Params[9].asMemCell=tmp->MemCell;
+               if (!Current->Params[9].asMemCell)
+                Error(AnsiString("MemCell \"")+AnsiString(buff)+AnsiString("\" does not exist"));
               }
              }
              for (i=0;i<8;i++)
