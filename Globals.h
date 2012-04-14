@@ -212,8 +212,7 @@ public:
  static int iMultiplayer; //blokada dzia³ania niektórych eventów na rzecz kominikacji
  static HWND hWnd; //uchwyt okna
  static int iCameraLast;
- static AnsiString asRelease; //numer
- static AnsiString asVersion; //z opisem
+ static AnsiString asVersion;
  static int iViewMode; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty, 4-obwody
  static GLint iMaxTextureSize; //maksymalny rozmiar tekstury
  static int iTextMode; //tryb pracy wyœwietlacza tekstowego
@@ -246,9 +245,6 @@ public:
  static Queryparsercomp::TQueryParserComp *qParser;
  static cParser *pParser;
  static int iSegmentsRendered; //iloœæ segmentów do regulacji wydajnoœci
- static double fRadiusLoFPS; //dolna granica FPS, przy której promieñ scenerii bêdzie zmniejszany
- static double fRadiusHiFPS; //górna granica FPS, przy której promieñ scenerii bêdzie zwiêkszany
- static double fRadiusFactor; //wspó³czynnik zmiany promienia
  //metody
  static void __fastcall TrainDelete(TDynamicObject *d);
  static void __fastcall ConfigParse(Queryparsercomp::TQueryParserComp *qp,cParser *cp=NULL);

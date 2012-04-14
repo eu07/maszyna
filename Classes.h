@@ -34,6 +34,5 @@ class TTrainParameters; //rozk³ad jazdy
 };
 
 class TController; //obiekt steruj¹cy poci¹giem (AI)
-class TNames; //obiekt sortuj¹cy nazwy
 
 #endif

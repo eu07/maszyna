@@ -45,7 +45,6 @@
 #include "parser.h" //Tolaris-010603
 #include "Driver.h"
 #include "Console.h"
-#include "Names.h"
 
 
 #define _PROBLEND 1
@@ -1187,12 +1186,11 @@ __fastcall TGround::TGround()
  for (int i=0;i<TP_LAST;i++)
   nRootOfType[i]=NULL; //zerowanie tablic wyszukiwania
  bDynamicRemove=false; //na razie nic do usuniêcia
- sTracks=new TNames(); //nazwy torów - na razie tak
 }
 
 __fastcall TGround::~TGround()
 {
- Free();
+    Free();
 }
 
 void __fastcall TGround::Free()
@@ -1223,21 +1221,6 @@ void __fastcall TGround::Free()
  iNumNodes=0;
  //RootNode=NULL;
  nRootDynamic=NULL;
- delete sTracks;
-}
-
-TGroundNode* __fastcall TGround::FindGroundNode(AnsiString asNameToFind,TGroundNodeType iNodeType)
-{//wyszukiwanie obiektu o podanej nazwie i konkretnym typie
- if (iNodeType==TP_TRACK)
- {//wyszukiwanie w drzewie binarnym
-  return (TGroundNode*)sTracks->Find(TP_TRACK,asNameToFind.c_str());
- }
- //standardowe wyszukiwanie liniowe
- TGroundNode *Current;
- for (Current=nRootOfType[iNodeType];Current;Current=Current->Next)
-  if (Current->asName==asNameToFind)
-   return Current;
- return NULL;
 }
 
 
@@ -1502,11 +1485,8 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    break;
   case TP_TRACK :
    tmp->pTrack=new TTrack(tmp);
-   if (DebugModeFlag)
-    if (!tmp->asName.IsEmpty())
-     WriteLog(tmp->asName.c_str());
-   if (!tmp->asName.IsEmpty())
-    sTracks->Add(TP_TRACK,tmp->asName.c_str(),tmp); //dodanie do wyszukiwarki
+   if ((DebugModeFlag) && (tmp->asName!=AnsiString("")))
+    WriteLog(tmp->asName.c_str());
    tmp->pTrack->Load(parser,pOrigin,tmp->asName); //w nazwie mo¿e byæ nazwa odcinka izolowanego
    //str=Parser->GetNextSymbol().LowerCase();
    //str=Parser->GetNextSymbol().LowerCase();
@@ -2413,18 +2393,6 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
     }
 
  delete parser;
-/* //Ra: testy sortownika nazw
- //TFileStream *fs=new TFileStream("names.txt",fmCreate);
- //fs->Write(sTracks->cBuffer,4*65536);
- //delete fs;
- int *r=new int[5000]; //robocza tablica indeksów - numery posortowanych rekordów
- int *q=r; //wskaŸnik roboczy, przekazywany przez referencjê
- sTracks->rTypes[TP_TRACK]->ListGet(sTracks->rRecords,q); //drzewo jest ju¿ posortowane - zamieniæ je na listê
- for (;r<q;++r) //wyœwietlenie listy nazw
-  WriteLog(sTracks->rRecords[*r].cName);
- delete[] r;
-*/
- sTracks->Sort(TP_TRACK); //finalne sortowanie drzewa
  if (!bInitDone) FirstInit(); //jeœli nie by³o w scenerii
  if (Global::pTerrainCompact)
   TerrainWrite(); //Ra: teraz mo¿na zapisaæ teren w jednym pliku
@@ -2451,7 +2419,7 @@ bool __fastcall TGround::InitEvents()
                     Current->Params[9].asMemCell= tmp->MemCell;
                     if (tmp->MemCell->asTrackName!=AnsiString("none"))
                      {
-                      tmp=FindGroundNode(tmp->MemCell->asTrackName,TP_TRACK);
+                      tmp= FindGroundNode(tmp->MemCell->asTrackName,TP_TRACK);
                       if (tmp!=NULL)
                        {
                         Current->Params[10].asTrack= tmp->pTrack;
@@ -2525,7 +2493,7 @@ bool __fastcall TGround::InitEvents()
             case tp_Switch:
                 tmp= FindGroundNode(Current->asNodeName,TP_TRACK);
                 if (tmp)
-                    Current->Params[9].asTrack=tmp->pTrack;
+                    Current->Params[9].asTrack= tmp->pTrack;
                 else
                     Error("Event \""+Current->asName+"\" cannot find track \""+
                                      Current->asNodeName+"\"");
@@ -2573,7 +2541,7 @@ bool __fastcall TGround::InitEvents()
                     delete Current->Params[9].asText;
                     if (Current->Params[8].asInt<0) //ujemne znaczy sie chodzi o zajetosc toru
                      {
-                      tmp=FindGroundNode(buff,TP_TRACK);
+                      tmp= FindGroundNode(buff,TP_TRACK);
                       if (!tmp)
                         Error(AnsiString("Track \"")+AnsiString(buff)+"\" does not exist in \""+Current->asName+"\"");
                       else
@@ -3259,9 +3227,9 @@ bool __fastcall TGround::GetTraction(vector3 pPosition, TDynamicObject *model)
     p2z= model->pant2x;
 //    model->mdModel->GetFromName
     wspwp= model->panth;
-    dirz= model->VectorFront();
-    diry= model->VectorUp();
-    dirx= model->VectorLeft();
+    dirz= model->vFront;
+    diry= model->vUp;
+    dirx= model->vLeft;
     dwys= model->GetPosition();
     dynwys= dwys.y;
     np1wy=1000;
@@ -3486,8 +3454,8 @@ bool __fastcall TGround::RenderDL(vector3 pPosition)
  vector3 direction;
  //iRange=(Global::iSlowMotion&6)?((Global::iSlowMotion&4)?AreaMini:AreaSlow):AreaFast;
  //n=(iRange[0]*n)/10; //przeliczenie (n) do aktualnego promienia rednerowania
- //n=(Global::iSlowMotion&6)?((Global::iSlowMotion&4)?25:52):90; //iloœæ sektorów w æwiartce (max 400)
- for (k=0;k<Global::iSegmentsRendered;++k) //sektory w kolejnoœci odleg³oœci
+ n=(Global::iSlowMotion&6)?((Global::iSlowMotion&4)?25:52):90; //iloœæ sektorów w æwiartce (max 400)
+ for (k=0;k<n;++k) //sektory w kolejnoœci odleg³oœci
  {//przerobione na u¿ycie SectorOrder
   i=SectorOrder[k].x; //na starcie oba >=0
   j=SectorOrder[k].y;
@@ -3570,8 +3538,8 @@ bool __fastcall TGround::RenderVBO(vector3 pPosition)
  vector3 direction;
  //iRange=(Global::iSlowMotion&6)?((Global::iSlowMotion&4)?AreaMini:AreaSlow):AreaFast;
  //n=(iRange[0]*n)/10; //przeliczenie (n) do aktualnego promienia rednerowania
- //n=(Global::iSlowMotion&6)?((Global::iSlowMotion&4)?25:52):90; //iloœæ sektorów w æwiartce
- for (k=0;k<Global::iSegmentsRendered;++k) //sektory w kolejnoœci odleg³oœci
+ n=(Global::iSlowMotion&6)?((Global::iSlowMotion&4)?25:52):90; //iloœæ sektorów w æwiartce
+ for (k=0;k<n;++k) //sektory w kolejnoœci odleg³oœci
  {//przerobione na u¿ycie SectorOrder
   i=SectorOrder[k].x; //na starcie oba >=0
   j=SectorOrder[k].y;

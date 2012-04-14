@@ -479,7 +479,7 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
     }
     SwapBuffers(hDC); // Swap Buffers (Double Buffering)
 
-//    TTrack *Track=Ground.FindGroundNode("train_start",TP_TRACK)->pTrack;
+//    TTrack *Track= Ground.FindGroundNode("train_start",TP_TRACK)->pTrack;
 
 //    Camera.Init(vector3(2700,10,6500),0,M_PI,0);
 //    Camera.Init(vector3(00,40,000),0,M_PI,0);
@@ -618,12 +618,12 @@ void __fastcall TWorld::OnKeyPress(int cKey)
      Global::pFreeCameraInitAngle[i].z=Camera.Roll;
      //logowanie, ¿eby mo¿na by³o do scenerii przepisaæ
      WriteLog("camera "
-      +FloatToStrF(Global::pFreeCameraInit[i].x,ffFixed,7,3)+" "
-      +FloatToStrF(Global::pFreeCameraInit[i].y,ffFixed,7,3)+" "
-      +FloatToStrF(Global::pFreeCameraInit[i].z,ffFixed,7,3)+" "
-      +FloatToStrF(RadToDeg(Global::pFreeCameraInitAngle[i].x),ffFixed,7,3)+" "
-      +FloatToStrF(RadToDeg(Global::pFreeCameraInitAngle[i].y),ffFixed,7,3)+" "
-      +FloatToStrF(RadToDeg(Global::pFreeCameraInitAngle[i].z),ffFixed,7,3)+" "
+      +AnsiString(0.001*floor(1000.0*Global::pFreeCameraInit[i].x+0.5))+" "
+      +AnsiString(0.001*floor(1000.0*Global::pFreeCameraInit[i].y+0.5))+" "
+      +AnsiString(0.001*floor(1000.0*Global::pFreeCameraInit[i].z+0.5))+" "
+      +AnsiString(0.001*floor(1000.0*RadToDeg(Global::pFreeCameraInitAngle[i].x)+0.5))+" "
+      +AnsiString(0.001*floor(1000.0*RadToDeg(Global::pFreeCameraInitAngle[i].y)+0.5))+" "
+      +AnsiString(0.001*floor(1000.0*RadToDeg(Global::pFreeCameraInitAngle[i].z)+0.5))+" "
       +AnsiString(i)+" endcamera");
     }
     else //równie¿ przeskakiwanie
@@ -724,17 +724,6 @@ bool __fastcall TWorld::Update()
   --iCheckFPS;
  else
  {//jak dosz³o do zera, to sprawdzamy wydajnoœæ
-  if (GetFPS()<Global::fRadiusLoFPS)
-  {Global::iSegmentsRendered=floor(0.5+Global::iSegmentsRendered/Global::fRadiusFactor);
-   if (Global::iSegmentsRendered<28) //jeœli jest co zmniejszaæ
-    Global::iSegmentsRendered=28; //minimalny promieñ to 600m (3*3*M_PI)
-  }
-  else if (GetFPS()>Global::fRadiusHiFPS) //jeœli jest du¿o FPS
-   if (Global::iSegmentsRendered<400) //jeœli jest co zmniejszaæ
-   {Global::iSegmentsRendered=floor(0.5+Global::iSegmentsRendered*Global::fRadiusFactor);
-    if (Global::iSegmentsRendered>400) //4.4km (22*22*M_PI)
-     Global::iSegmentsRendered=400;
-   }
   if ((GetFPS()<16)&&(Global::iSlowMotion<7))
   {Global::iSlowMotion=(Global::iSlowMotion<<1)+1; //zapalenie kolejnego bitu
    if (Global::iSlowMotionMask&1)
@@ -748,7 +737,7 @@ bool __fastcall TWorld::Update()
     if (Global::iMultisampling) //a multisampling jest w³¹czony
      glEnable(GL_MULTISAMPLE);
   }
-  iCheckFPS=0.25*GetFPS(); //tak za 0.25 sekundy sprawdziæ ponownie (jeszcze przycina?)
+  iCheckFPS=0.5*GetFPS(); //tak ze 2 sekundy poczekaæ - zacina
  }
  UpdateTimers(Global::bPause);
  if (!Global::bPause)
@@ -971,24 +960,24 @@ bool __fastcall TWorld::Update()
 
  if (Train)
  {//rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
-  //vector3 vFront=Train->DynamicObject->VectorFront();
-  //if ((Train->DynamicObject->MoverParameters->CategoryFlag&2) && (Train->DynamicObject->MoverParameters->ActiveCab<0)) //TODO: zrobic to eleganciej z plynnym zawracaniem
-  //   vFront=-vFront;
-  //vector3 vUp=vWorldUp; //sta³a
+  vector3 vFront=Train->DynamicObject->VectorFront();
+  if ((Train->DynamicObject->MoverParameters->CategoryFlag&2) && (Train->DynamicObject->MoverParameters->ActiveCab<0)) //TODO: zrobic to eleganciej z plynnym zawracaniem
+     vFront=-vFront;
+  vector3 vUp=vWorldUp; //sta³a
   //vFront.Normalize();
-  //vector3 vLeft=CrossProduct(vUp,vFront);
-  //vUp=CrossProduct(vFront,vLeft);
-  //matrix4x4 mat;
-  //mat.Identity();
-  //mat.BasisChange(vLeft,vUp,vFront);
-  //Train->DynamicObject->mMatrix=Inverse(mat);
+  vector3 vLeft=CrossProduct(vUp,vFront);
+  vUp=CrossProduct(vFront,vLeft);
+  matrix4x4 mat;
+  mat.Identity();
+  mat.BasisChange(vLeft,vUp,vFront);
+  Train->DynamicObject->mMatrix=Inverse(mat);
   glPushMatrix();
   //ABu: Rendering kabiny jako ostatniej, zeby bylo widac przez szyby, tylko w widoku ze srodka
   if ((Train->DynamicObject->mdKabina!=Train->DynamicObject->mdModel) && Train->DynamicObject->bDisplayCab && !FreeFlyModeFlag)
   {
-   vector3 pos=Train->DynamicObject->GetPosition();
-   glTranslatef(pos.x,pos.y,pos.z);
-   glMultMatrixd(Train->DynamicObject->mMatrix.getArray());
+    vector3 pos=Train->DynamicObject->GetPosition();
+    glTranslatef(pos.x,pos.y,pos.z);
+    glMultMatrixd(Train->DynamicObject->mMatrix.getArray());
 
 //*yB: moje smuuugi 1
   if ((Train->DynamicObject->fShade<=0.0)?(Global::fLuminance<=0.25):(Train->DynamicObject->fShade*Global::fLuminance<=0.25))
@@ -1075,7 +1064,7 @@ bool __fastcall TWorld::Update()
       glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
       glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
     }
-  glPopMatrix ( );
+    glPopMatrix ( );
 //**********************************************************************************************************
  } //koniec if (Train)
 /*
