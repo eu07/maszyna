@@ -67,7 +67,7 @@ public:
  };
 public:
  void __fastcall Clear();
- void __fastcall Update(vector3 *p,vector3 *dir,double len);
+ bool __fastcall Update(vector3 *p,vector3 *dir,double len);
  bool __fastcall Set(TEvent *e,double d);
  void __fastcall Set(TTrack *t,double d,int f);
 };
@@ -99,7 +99,7 @@ public:
  TEvent* __fastcall CheckTrackEvent(double fDirection,TTrack *Track);
  void __fastcall TraceRoute(double fDistance,int iDir,TDynamicObject *pVehicle=NULL);
  void __fastcall Check(double fDistance,int iDir,TDynamicObject *pVehicle);
- void __fastcall Update(double fVel,double &fVelDes,double &fDist,double &fNext,double &fAcc);
+ TCommandType __fastcall Update(double fVel,double &fVelDes,double &fDist,double &fNext,double &fAcc);
 };
 
 //----------------------------------------------------------------------------
@@ -150,7 +150,7 @@ public:
  double VelDesired; //predkoœæ, z jak¹ ma jechaæ, <=VelActual
 private:
  double VelforDriver; //prêdkoœæ, u¿ywana przy zmianie kierunku (ograniczenie przy nieznajmoœci szlaku?)
- double VelActual; //predkoœæ zadawana przez SetVelocity (semafory albo przy manewrach)
+ double VelActual; //predkoœæ zadawana przez komendê SetVelocity (w tym semaforem albo z eventu przy manewrach)
 public:
  double VelNext; //prêdkoœæ, jaka ma byæ po przejechaniu d³ugoœci ProximityDist
 private:

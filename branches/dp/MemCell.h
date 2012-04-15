@@ -7,16 +7,6 @@
 #include "dumb3d.h"
 using namespace Math3D;
 
-typedef enum
-{//binarne odpowiedniki komend w komórce pamiêci
- cm_Unknown, //ci¹g nierozpoznany (nie jest komend¹)
- cm_SetVelocity,
- cm_ShuntVelocity,
- cm_ChangeDirection,
- cm_PassengerStopPoint,
- cm_OutsideStation
-} TCommandType;
-
 class TMemCell
 {
 private:

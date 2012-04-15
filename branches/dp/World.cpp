@@ -464,7 +464,7 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
     if (Global::detonatoryOK)
     {
     glRasterPos2f(-0.25f, -0.16f);
-    glPrint("Sceneria / Scenery (can take a while)...");
+    glPrint("Sceneria / Scenery (please wait)...");
     }
     SwapBuffers(hDC);					// Swap Buffers (Double Buffering)
 
@@ -1340,17 +1340,24 @@ bool __fastcall TWorld::Update()
       }
 */
        OutText4="";
-       //OutText4+="Coupler 0: "+(tmp->PrevConnected?tmp->PrevConnected->GetName():AnsiString("NULL"))+" ("+AnsiString(tmp->MoverParameters->Couplers[0].CouplingFlag)+"), ";
-       //OutText4+="Coupler 1: "+(tmp->NextConnected?tmp->NextConnected->GetName():AnsiString("NULL"))+" ("+AnsiString(tmp->MoverParameters->Couplers[1].CouplingFlag)+")";
        if (tmp->Mechanik)
        {//o ile jest ktoœ w œrodku
         OutText4=tmp->Mechanik->StopReasonText();
+        if (!OutText4.IsEmpty()) OutText4+="; "; //aby ³adniejszy odstêp by³
+        //if (Controlled->Mechanik && (Controlled->Mechanik->AIControllFlag==AIdriver))
+        OutText4+=AnsiString("Driver: Vd=")+FloatToStrF(tmp->Mechanik->VelDesired,ffFixed,4,0)
+        +AnsiString(" ad=")+FloatToStrF(tmp->Mechanik->AccDesired,ffFixed,5,2)
+        +AnsiString(" Pd=")+FloatToStrF(tmp->Mechanik->ActualProximityDist,ffFixed,4,0)
+        +AnsiString(" Vn=")+FloatToStrF(tmp->Mechanik->VelNext,ffFixed,4,0);
+/*
         if (tmp->Mechanik->eSignLast)
         {//jeœli ma zapamiêtany event semafora
          if (!OutText4.IsEmpty()) OutText4+=", "; //aby ³adniejszy odstêp by³
          OutText4+="Control event: "+Bezogonkow(tmp->Mechanik->eSignLast->asName); //nazwa eventu semafora
         }
-         //OutText4+="  LPTI@A: "+IntToStr(tmp->Mechanik->LPTI)+"@"+IntToStr(tmp->Mechanik->LPTA);
+*/
+       OutText4+="; C0="+(tmp->PrevConnected?tmp->PrevConnected->GetName()+":"+AnsiString(tmp->MoverParameters->Couplers[0].CouplingFlag):AnsiString("NULL"));
+       OutText4+=" C1="+(tmp->NextConnected?tmp->NextConnected->GetName()+":"+AnsiString(tmp->MoverParameters->Couplers[1].CouplingFlag):AnsiString("NULL"));
        }
        if (Console::Pressed(VK_F2))
        {WriteLog(OutText1);

@@ -2068,7 +2068,7 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
 
     while (token!="") //(!Parser->EndOfFile)
     {
-     if (refresh==100)
+     if (refresh==50)
      {SwapBuffers(hDC); //Ra: bez ogranicznika za bardzo spowalnia :(
       refresh=0;
      }
