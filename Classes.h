@@ -36,4 +36,14 @@ class TTrainParameters; //rozk³ad jazdy
 class TController; //obiekt steruj¹cy poci¹giem (AI)
 class TNames; //obiekt sortuj¹cy nazwy
 
+typedef enum
+{//binarne odpowiedniki komend w komórce pamiêci
+ cm_Unknown, //ci¹g nierozpoznany (nie jest komend¹)
+ cm_SetVelocity,
+ cm_ShuntVelocity,
+ cm_ChangeDirection,
+ cm_PassengerStopPoint,
+ cm_OutsideStation
+} TCommandType;
+
 #endif
