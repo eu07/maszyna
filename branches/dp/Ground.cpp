@@ -2059,7 +2059,7 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
     srm=0;  //minuty wschodu slonca
     ssh=20; //godzina zachodu slonca
     ssm=0;  //minuty zachodu slonca
-    TGroundNode *LastNode=NULL; //do trainset
+    TGroundNode *LastNode=NULL; //do u¿ycia w trainset
     iNumNodes=0;
     token="";
     parser.getTokens();
@@ -2098,6 +2098,10 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
           TrainSetDriver=LastNode; //pojazd, któremu zostanie wys³any rozk³ad
          LastNode->Next=nRootDynamic;
          nRootDynamic=LastNode; //dopisanie z przodu do listy
+         //if (bTrainSet && (LastNode?(LastNode->iType==TP_DYNAMIC):false))
+         if (TrainSetNode) //je¿eli istnieje wczeœniejszy TP_DYNAMIC
+          TrainSetNode->DynamicObject->AttachPrev(LastNode->DynamicObject,TempConnectionType[iTrainSetWehicleNumber-2]);
+         TrainSetNode=LastNode; //ostatnio wczytany
         }
       }
       else
@@ -2140,14 +2144,17 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
 */
        }
       }
+      if (LastNode) //ostatni wczytany obiekt
+       if (LastNode->iType==TP_DYNAMIC) //o ile jest pojazdem (na ogó³ jest, ale kto wie...)
+        if (!TempConnectionType[iTrainSetWehicleNumber-1]) //jeœli ostatni pojazd ma sprzêg 0
+         LastNode->DynamicObject->RaLightsSet(-1,2+32+64); //to za³o¿ymy mu koñcówki blaszane (jak AI siê odpali, to sobie poprawi)
       bTrainSet=false;
       fTrainSetVel=0;
       //iTrainSetConnection=0;
       TrainSetNode=NULL;
       iTrainSetWehicleNumber=0;
      }
-     else
-     if (str==AnsiString("event"))
+     else if (str==AnsiString("event"))
      {
          TEvent *tmp;
          tmp=RootEvent;
@@ -2165,8 +2172,7 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
 //     {
 //         Include(Parser);
 //     }
-     else
-     if (str==AnsiString("rotate"))
+     else if (str==AnsiString("rotate"))
      {
       //parser.getTokens(3);
       //parser >> aRotate.x >> aRotate.y >> aRotate.z; //Ra: to potrafi dawaæ b³êdne rezultaty
@@ -2175,8 +2181,7 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
       parser.getTokens(); parser >> aRotate.z;
       //WriteLog("*** rotate "+AnsiString(aRotate.x)+" "+AnsiString(aRotate.y)+" "+AnsiString(aRotate.z));
      }
-     else
-     if (str==AnsiString("origin"))
+     else if (str==AnsiString("origin"))
      {
 //      str=Parser->GetNextSymbol().LowerCase();
 //      if (str=="begin")
@@ -2192,8 +2197,7 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
        OriginStackTop++; //zwiêkszenie wskaŸnika stosu
       }
      }
-     else
-     if (str==AnsiString("endorigin"))
+     else if (str==AnsiString("endorigin"))
      {
 //      else
   //    if (str=="end")
@@ -2206,11 +2210,6 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
 
        OriginStackTop--; //zmniejszenie wskaŸnika stosu
        pOrigin-=OriginStack[OriginStackTop];
-      }
-//      else
-      {
-  //        MessageBox(0,AnsiString("Scene parse error near "+str).c_str(),"Error",MB_OK);
-    //     break;
       }
      }
      else if (str==AnsiString("atmo"))   //TODO: uporzadkowac gdzie maja byc parametry mgly!
@@ -2278,8 +2277,7 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
        parser >> token;
       }
      }
-     else
-     if (str==AnsiString("light"))
+     else if (str==AnsiString("light"))
      {//Ra: ustawianie œwiat³a przeniesione do FirstInit
       WriteLog("Scenery light definition");
       vector3 lp;
@@ -2307,8 +2305,7 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
        } while (token.compare("endlight")!=0);
 
      }
-     else
-     if (str==AnsiString("camera"))
+     else if (str==AnsiString("camera"))
      {
       vector3 xyz,abc;
       xyz=abc=vector3(0,0,0); //wartoœci domyœlne, bo nie wszystie musz¹ byæ
@@ -2398,14 +2395,7 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
      if (str==AnsiString(""))
          break;
 
-     if (bTrainSet && (LastNode?(LastNode->iType==TP_DYNAMIC):false))
-     {
-      if (TrainSetNode) //je¿eli jest przedostatni dynamic
-       TrainSetNode->DynamicObject->AttachPrev(LastNode->DynamicObject,TempConnectionType[iTrainSetWehicleNumber-2]);
-      TrainSetNode=LastNode; //ostatnio wczytany
-//      fTrainSetVel=0; a po co to???
-     }
-     LastNode=NULL;
+     //LastNode=NULL;
 
      token="";
      parser.getTokens();

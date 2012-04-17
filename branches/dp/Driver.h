@@ -65,6 +65,7 @@ public:
   TTrack *tTrack; //wskaŸnik na tor o zmiennej prêdkoœci (zwrotnica, obrotnica)
   TEvent *eEvent; //po³¹czenie z eventem albo komórk¹ pamiêci
  };
+ void __fastcall CommandCheck();
 public:
  void __fastcall Clear();
  bool __fastcall Update(vector3 *p,vector3 *dir,double len);
@@ -74,32 +75,6 @@ public:
 
 class TSpeedTable
 {//tabela prêdkoœci dla AI wraz z obs³ug¹
- TSpeedPos sSpeedTable[16]; //najbli¿sze zmiany prêdkoœci
- //double ReducedTable[256];
- int iFirst; //aktualna pozycja w tabeli
- int iLast; //ostatnia wype³niona pozycja w tabeli
- int iDirection; //kierunek zape³nienia tabelki wzglêdem pojazdu z AI
- double fLastVel; //prêdkoœæ na poprzednio sprawdzonym torze
- //Byte LPTA;
- //Byte LPTI;
- TTrack *tLast; //ostatni analizowany tor
- float fLastDir; //kierunek na ostatnim torze
- TEvent *eSignSkip; //sygna³ do pominiêcia (przejechany)
- TOrders oMode; //aktualny tryb pracy
- AnsiString asNextStop; //nazwa najbli¿szego przystanku
- //TTrack tSignLast; //tor z ostatnio znalezionym eventem
-private:
- bool __fastcall CheckEvent(TEvent *e,bool prox);
- bool __fastcall AddNew();
-public:
- double fLength; //d³ugoœæ sk³adu (dla ograniczeñ)
-public:
- __fastcall TSpeedTable();
- __fastcall ~TSpeedTable();
- TEvent* __fastcall CheckTrackEvent(double fDirection,TTrack *Track);
- void __fastcall TraceRoute(double fDistance,int iDir,TDynamicObject *pVehicle=NULL);
- void __fastcall Check(double fDistance,int iDir,TDynamicObject *pVehicle);
- TCommandType __fastcall Update(double fVel,double &fVelDes,double &fDist,double &fNext,double &fAcc);
 };
 
 //----------------------------------------------------------------------------
@@ -114,18 +89,48 @@ extern bool WriteLogFlag; //logowanie parametrów fizycznych
 
 class TController
 {
+private: //obs³uga tabelki prêdkoœci (musi mieæ mo¿liwoœæ odhaczania stacji w rozk³adzie)
+ //TSpeedTable sSpeedTable;
+ TSpeedPos sSpeedTable[16]; //najbli¿sze zmiany prêdkoœci
+ //double ReducedTable[256];
+ int iFirst; //aktualna pozycja w tabeli
+ int iLast; //ostatnia wype³niona pozycja w tabeli
+ int iTableDirection; //kierunek zape³nienia tabelki wzglêdem pojazdu z AI
+ double fLastVel; //prêdkoœæ na poprzednio sprawdzonym torze
+ //Byte LPTA;
+ //Byte LPTI;
+ TTrack *tLast; //ostatni analizowany tor
+ float fLastDir; //kierunek na ostatnim torze
+ TEvent *eSignSkip; //sygna³ do pominiêcia (przejechany)
+ TOrders oMode; //aktualny tryb pracy
+public:
+ AnsiString asNextStop; //nazwa najbli¿szego przystanku
+ //TTrack tSignLast; //tor z ostatnio znalezionym eventem
+private:
+ bool __fastcall TableCheckEvent(TEvent *e,bool prox);
+ bool __fastcall TableAddNew();
+//public:
+ double fLength; //d³ugoœæ sk³adu (dla ograniczeñ)
+ void __fastcall TableClear();
+ TEvent* __fastcall TableCheckTrackEvent(double fDirection,TTrack *Track);
+ void __fastcall TableTraceRoute(double fDistance,int iDir,TDynamicObject *pVehicle=NULL);
+ void __fastcall TableCheck(double fDistance,int iDir);
+ TCommandType __fastcall TableUpdate(double fVel,double &fVelDes,double &fDist,double &fNext,double &fAcc);
+private: //
  double fShuntVelocity; //maksymalna prêdkoœæ manewrowania, zale¿y m.in. od sk³adu
- double fLength; //d³ugoœæ sk³adu (dla ograniczeñ i stawania przed semaforami)
+ //double fLength; //d³ugoœæ sk³adu (dla ograniczeñ i stawania przed semaforami)
  int iVehicles; //iloœæ pojazdów w sk³adzie
  bool EngineActive; //ABu: Czy silnik byl juz zalaczony
  //vector3 vMechLoc; //pozycja pojazdu do liczenia odleg³oœci od semafora (?)
  bool Psyche;
  int iDrivigFlags; //flagi bitowe ruchu
- double fDriverMass; //"masa hamuj¹ca", po pomno¿eniu przez v^2 [km/h] daje ~drogê hamowania
+ double fDriverBraking; //po pomno¿eniu przez v^2 [km/h] daje ~drogê hamowania [m]
  double fDriverDist; //dopuszczalna odleg³oœæ podjechania do przeszkody
- double fVelMax; //maksymalna prêdkoœæ sk³adu (sprawdzany ka¿dy pojazd) 
+ double fVelMax; //maksymalna prêdkoœæ sk³adu (sprawdzany ka¿dy pojazd)
+ double fBrakeDist; //przybli¿ona droga hamowania
 public:
- double ReactionTime; //czas reakcji Ra: czego?
+ double ReactionTime; //czas reakcji Ra: czego? œwiadomoœci AI
+ double fBrakeTime; //czas ruszania hamulcem
 private:
  bool Ready; //ABu: stan gotowosci do odjazdu - sprawdzenie odhamowania wagonow jest ustawiane w dynobj->cpp
  double LastUpdatedTime; //czas od ostatniego logu
@@ -158,7 +163,6 @@ private:
 public:
  double ActualProximityDist; //odleg³oœæ brana pod uwagê przy wyliczaniu prêdkoœci i przyspieszenia
 private:
- TSpeedTable sSpeedTable;
  vector3 vCommandLocation; //polozenie wskaznika, sygnalizatora lub innego obiektu do ktorego odnosi sie komenda
  TOrders OrderList[maxorders]; //lista rozkazów
  int OrderPos,OrderTop; //rozkaz aktualny oraz wolne miejsce do wstawiania nowych
@@ -233,8 +237,8 @@ private:
  void __fastcall Lights(int head,int rear);
  double __fastcall Distance(vector3 &p1,vector3 &n,vector3 &p2);
  //Ra: poni¿sze przenieœæ do modu³u AI:
- TEvent* eSignSkip; //miniêty sygna³ zezwalaj¹cy na jazdê, pomijany przy szukaniu
- AnsiString asNextStop; //nazwa nastêpnego punktu zatrzymania wg rozk³adu
+ //TEvent* eSignSkip; //miniêty sygna³ zezwalaj¹cy na jazdê, pomijany przy szukaniu
+ //AnsiString asNextStop; //nazwa nastêpnego punktu zatrzymania wg rozk³adu
 public:
  TEvent* eSignLast; //ostatnio znaleziony sygna³, o ile nie miniêty
 private:
