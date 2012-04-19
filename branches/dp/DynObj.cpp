@@ -3305,37 +3305,37 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
         }
         else if (str==AnsiString("animpendulumprefix:"))
         {//prefiks wahaczy
-          str= Parser->GetNextSymbol();
-          asAnimName="";
-          for (int i=1; i<=4; i++)
-           {
- //McZapkie-050402: wyszukiwanie max 4 wahaczy o nazwie str*
-            asAnimName=str+i;
-            smWahacze[i-1]=mdModel->GetFromName(asAnimName.c_str());
-            smWahacze[i-1]->WillBeAnimated();
-           }
-          str= Parser->GetNextSymbol().LowerCase();
-          if (str==AnsiString("pendulumamplitude:"))
-           fWahaczeAmp= Parser->GetNextSymbol().ToDouble();
+         str=Parser->GetNextSymbol();
+         asAnimName="";
+         for (int i=1; i<=4; i++)
+         {//McZapkie-050402: wyszukiwanie max 4 wahaczy o nazwie str*
+          asAnimName=str+AnsiString(i);
+          smWahacze[i-1]=mdModel->GetFromName(asAnimName.c_str());
+          smWahacze[i-1]->WillBeAnimated();
          }
+         str=Parser->GetNextSymbol().LowerCase();
+         if (str==AnsiString("pendulumamplitude:"))
+          fWahaczeAmp=Parser->GetNextSymbol().ToDouble();
+        }
         else
-        if (str==AnsiString("engineer:"))              //nazwa submodelu maszynisty
-         {
-          str=Parser->GetNextSymbol();
-          smMechanik=mdModel->GetFromName(str.c_str());
-         }
+        if (str==AnsiString("engineer:"))
+        {//nazwa submodelu maszynisty
+         str=Parser->GetNextSymbol();
+         smMechanik=mdModel->GetFromName(str.c_str());
+        }
         else
         if (str==AnsiString("animdoorprefix:"))           //nazwa animowanych dzwi
         {
-         str= Parser->GetNextSymbol();
+         str=Parser->GetNextSymbol();
          asAnimName="";
          for (int i=1; i<=MaxAnimatedDoors; i++)
          {//NBMX wrzesien 2003: wyszukiwanie drzwi o nazwie str*
-          asAnimName=str+i;
-          smAnimatedDoor[i-1]=mdModel->GetFromName(asAnimName.c_str());
+          asAnimName=str+AnsiString(i);
+          smAnimatedDoor[i-1]=mdModel->GetFromName(asAnimName.c_str()); //szukanie submodelu
           if (smAnimatedDoor[i-1])
-          {++iAnimatedDoors+=1;
+          {//kolejne drzwi znalezione
            smAnimatedDoor[i-1]->WillBeAnimated();
+           ++iAnimatedDoors;
           }
           else
            i=MaxAnimatedDoors+1;

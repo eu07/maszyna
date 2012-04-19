@@ -68,7 +68,7 @@ public:
  void __fastcall CommandCheck();
 public:
  void __fastcall Clear();
- bool __fastcall Update(vector3 *p,vector3 *dir,double len);
+ bool __fastcall Update(vector3 *p,vector3 *dir,double &len);
  bool __fastcall Set(TEvent *e,double d);
  void __fastcall Set(TTrack *t,double d,int f);
 };
@@ -130,7 +130,7 @@ private: //
  double fBrakeDist; //przybli¿ona droga hamowania
 public:
  double ReactionTime; //czas reakcji Ra: czego? œwiadomoœci AI
- double fBrakeTime; //czas ruszania hamulcem
+ double fBrakeTime;  //wpisana wartoœæ jest zmniejszana do 0, gdy ujemna nale¿y zmieniæ nastawê hamulca
 private:
  bool Ready; //ABu: stan gotowosci do odjazdu - sprawdzenie odhamowania wagonow jest ustawiane w dynobj->cpp
  double LastUpdatedTime; //czas od ostatniego logu
@@ -239,9 +239,7 @@ private:
  //Ra: poni¿sze przenieœæ do modu³u AI:
  //TEvent* eSignSkip; //miniêty sygna³ zezwalaj¹cy na jazdê, pomijany przy szukaniu
  //AnsiString asNextStop; //nazwa nastêpnego punktu zatrzymania wg rozk³adu
-public:
  TEvent* eSignLast; //ostatnio znaleziony sygna³, o ile nie miniêty
-private:
  TEvent* __fastcall CheckTrackEvent(double fDirection,TTrack *Track);
  TTrack* __fastcall TraceRoute(double &fDistance,double &fDirection,TTrack *Track,TEvent*&Event);
  void __fastcall SetProximityVelocity(double dist,double vel,const vector3 *pos);
