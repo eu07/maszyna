@@ -21,10 +21,10 @@
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 //McZapkie-250202
- const MaxAxles=16; //ABu 280105: zmienione z 8 na 16
- const MaxAnimatedAxles=16; //i to tez.
- const MaxAnimatedDoors=8;  //NBMX  wrzesien 2003
- const ANIM_TYPES=7; //Ra: iloœæ typów animacji
+const MaxAxles=16; //ABu 280105: zmienione z 8 na 16
+const MaxAnimatedAxles=16; //i to tez.
+const MaxAnimatedDoors=16;  //NBMX  wrzesien 2003
+const ANIM_TYPES=7; //Ra: iloœæ typów animacji
 /*
 Ra: Utworzyæ klasê wyposa¿enia opcjonalnego, z której bêd¹ dziedziczyæ klasy drzwi,
 pantografów, napêdu parowozu i innych ruchomych czêœci pojazdów. Klasy powinny byæ
@@ -38,6 +38,25 @@ modeli na stacjach na ogó³ przewaga jest tych nieruchomych).
 */
 class TAnimValveGear
 {//wspó³czynniki do animacji parowozu
+ int iValues; //iloœæ liczb (wersja):
+ float fKorbowodR; //d³ugoœæ korby (pó³ skoku t³oka) [m]: 0.35
+ float fKorbowodL; //d³ugoœæ korbowodu [m]: 3.8
+ float fDrazekR;   //promieñ mimoœrodu (dr¹¿ka) [m]: 0.18
+ float fDrazekL;   //d³. dr¹¿ka mimoœrodowego [m]: 2.55889
+ float fJarzmoV;   //wysokoœæ w pionie osi jarzma od osi ko³a [m]: 0.751
+ float fJarzmoH;   //odleg³oœæ w poziomie osi jarzma od osi ko³a [m]: 2.550
+ float fJarzmoR;   //promieñ jarzma do styku z dr¹¿kiem [m]: 0.450
+ float fJarzmoA;   //k¹t mimoœrodu wzglêdem k¹ta ko³a [m]: -96.77416667
+ float fWdzidloL;  //d³ugoœæ wodzid³a [m]: 2.0
+ float fWahaczH;   //d³ugoœæ wahacza (góra) [m]: 0.14
+ float fSuwakH;    //wysokoœæ osi suwaka ponad osi¹ ko³a [m]: 0.62
+ float fWahaczL;   //d³ugoœæ wahacza (dó³) [m]: 0.84
+ float fLacznikL;  //d³ugoœæ ³¹cznika wahacza [m]: 0.75072
+ float fRamieL;    //odleg³oœæ ramienia krzy¿ulca od osi ko³a [m]: 0.192
+ float fSuwakL;    //odleg³oœæ œrodka t³oka/suwaka od osi ko³a [m]: 5.650
+//do³o¿yæ parametry dr¹¿ka nastawnicy
+//albo nawet zrobiæ dynamiczn¹ tablicê float[] i w ni¹ pakowaæ wszelkie wspó³czynniki, potem u¿ywaæ indeksów
+//wspó³czynniki mog¹ byæ wspólne dla 2-4 t³oków, albo ka¿dy t³ok mo¿e mieæ odrêbne
 };
 
 class TAnim

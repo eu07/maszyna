@@ -380,6 +380,7 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
     SetForegroundWindow(hWnd);
     WriteLog("Sound Init");
 
+
     glLoadIdentity();
 //    glColor4f(0.3f,0.0f,0.0f,0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -719,13 +720,13 @@ bool __fastcall TWorld::Update()
  else
  {//jak dosz³o do zera, to sprawdzamy wydajnoœæ
   if (GetFPS()<Global::fRadiusLoFPS)
-  {Global::iSegmentsRendered=floor(0.5+Global::iSegmentsRendered/Global::fRadiusFactor);
+  {Global::iSegmentsRendered-=random(20); //floor(0.5+Global::iSegmentsRendered/Global::fRadiusFactor);
    if (Global::iSegmentsRendered<28) //jeœli jest co zmniejszaæ
     Global::iSegmentsRendered=28; //minimalny promieñ to 600m (3*3*M_PI)
   }
   else if (GetFPS()>Global::fRadiusHiFPS) //jeœli jest du¿o FPS
    if (Global::iSegmentsRendered<400) //jeœli jest co zmniejszaæ
-   {Global::iSegmentsRendered=floor(0.5+Global::iSegmentsRendered*Global::fRadiusFactor);
+   {Global::iSegmentsRendered+=random(20); //floor(0.5+Global::iSegmentsRendered*Global::fRadiusFactor);
     if (Global::iSegmentsRendered>400) //4.4km (22*22*M_PI)
      Global::iSegmentsRendered=400;
    }
