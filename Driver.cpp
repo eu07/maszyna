@@ -221,7 +221,6 @@ void __fastcall TSpeedPos::Set(TTrack *t,double d,int f)
   if (tTrack->iDamageFlag&128) fVelNext=0.0; //jeœli uszkodzony, to te¿ stój
   if (iFlags&64)
    fVelNext=(tTrack->iCategoryFlag&1)?0.0:20.0; //jeœli koniec, to poci¹g stój, a samochód zwolnij
-  //if (tTrack->iCategoryFlag&0x80) iFlags|=0x80; //odcinek dodatkowy do zawracania samochodów
   vPos=(bool(iFlags&4)!=bool(iFlags&64))?tTrack->CurrentSegment()->FastGetPoint_1():tTrack->CurrentSegment()->FastGetPoint_0();
  }
 };
@@ -321,13 +320,13 @@ void __fastcall TController::TableTraceRoute(double fDistance,int iDir,TDynamicO
  }
  else
  {//kontynuacja skanowania od ostatnio sprawdzonego toru (w ostatniej pozycji zawsze jest tor)
-  if (sSpeedTable[iLast].iFlags&0x80)
+  if (sSpeedTable[iLast].iFlags&0x10000) //zatkanie
   {//jeœli zape³ni³a siê tabelka
    if ((iLast+1)%16==iFirst) //jeœli nadal jest zape³niona
     return; //nic siê nie da zrobiæ
    if ((iLast+2)%16==iFirst) //musi byæ jeszcze miejsce wolne na ewentualny event, bo tor jeszcze nie sprawdzony
     return; //ju¿ lepiej, ale jeszcze nie tym razem
-   sSpeedTable[iLast].iFlags&=0x3E; //kontynuowaæ próby doskanowania
+   sSpeedTable[iLast].iFlags&=0xBE; //kontynuowaæ próby doskanowania
   }
   else
    if (VelNext==0) return; //znaleziono semafor lub tor z prêdkoœci¹ zero i nie ma co dalej sprawdzaæ
@@ -348,12 +347,16 @@ void __fastcall TController::TableTraceRoute(double fDistance,int iDir,TDynamicO
      if ((pTrack->fVelocity==0.0) //zatrzymanie
       || (pTrack->iDamageFlag&128) //pojazd siê uszkodzi
       || (pTrack->eType!=tt_Normal) //jakiœ ruchomy
-      || (pTrack->fVelocity!=fLastVel) //nastêpuje zmiana prêdkoœci
-      || (pTrack->fRadius!=0.0) //odleg³oœæ na ³uku lepiej aproksymowaæ ciêciwami
-      || (tLast?tLast->fRadius!=0.0:false)) //koniec ³uku te¿ jest istotny
+      || (pTrack->fVelocity!=fLastVel)) //nastêpuje zmiana prêdkoœci
      {//odcinek dodajemy do tabelki, gdy jest istotny dla ruchu
       if (TableAddNew())
        sSpeedTable[iLast].Set(pTrack,fCurrentDistance,fLastDir<0?5:1); //dodanie odcinka do tabelki
+     }
+     else if ((pTrack->fRadius!=0.0) //odleg³oœæ na ³uku lepiej aproksymowaæ ciêciwami
+      || (tLast?tLast->fRadius!=0.0:false)) //koniec ³uku te¿ jest istotny
+     {//albo dla liczenia odleg³oœci przy pomocy ciêciw - te usuwaæ po przejechaniu
+      if (TableAddNew())
+       sSpeedTable[iLast].Set(pTrack,fCurrentDistance,fLastDir<0?0x85:0x81); //dodanie odcinka do tabelki
      }
     if ((pEvent=CheckTrackEvent(fLastDir,pTrack))!=NULL) //jeœli jest semafor na tym torze
      if (TableAddNew())
@@ -384,7 +387,7 @@ void __fastcall TController::TableTraceRoute(double fDistance,int iDir,TDynamicO
     if ((iLast+2)%16==iFirst) //czy tabelka siê nie zatka?
     {//jest ryzyko nieznalezienia ograniczenia - ograniczyæ prêdkoœæ do pozwalaj¹cej na zatrzymanie na koñcu przeskanowanej drogi
      if (TableAddNew())
-      sSpeedTable[iLast].Set(pTrack,fCurrentDistance,fLastDir<0?0xC5:0xC1); //zapisanie toru jako koñcowego (ogranicza prêdkosæ)
+      sSpeedTable[iLast].Set(pTrack,fCurrentDistance,fLastDir<0?0x10045:0x10041); //zapisanie toru jako koñcowego (ogranicza prêdkosæ)
      //zapisaæ w logu, ¿e nale¿y poprawiæ sceneriê?
      return; //nie skanujemy dalej, bo nie ma miejsca
     }
@@ -410,6 +413,7 @@ void __fastcall TController::TableCheck(double fDistance,int iDir)
  {//trzeba sprawdziæ, czy coœ siê zmieni³o
   vector3 dir=pVehicle->VectorFront()*pVehicle->DirectionGet(); //wektor kierunku jazdy
   vector3 pos=pVehicle->HeadPosition(); //zaczynamy od pozycji pojazdu
+  double lastspeed=-1; //prêdkoœæ na torze do usuniêcia
   double len=0.0; //odleg³oœæ bêdziemy zliczaæ narastaj¹co
   for (int i=iFirst;i!=iLast;i=(i+1)%16)
   {//aktualizacja rekordów z wyj¹tkiem ostatniego
@@ -423,7 +427,6 @@ void __fastcall TController::TableCheck(double fDistance,int iDir)
      {//degradacja pozycji
       sSpeedTable[i].iFlags&=~1; //nie liczy siê
      }
-     //else //mo¿na by jeszcze usun¹æ odcinki zwyk³e bez ograniczenia
     }
     else if (sSpeedTable[i].iFlags&0x100) //jeœli event
     {if (sSpeedTable[i].fDist<0) //jeœli jest z ty³u
@@ -434,9 +437,12 @@ void __fastcall TController::TableCheck(double fDistance,int iDir)
     }
    }
    if (i==iFirst) //jeœli jest pierwsz¹ pozycj¹ tabeli
+   {if ((sSpeedTable[i].iFlags&0xAB)==0xA3) //jeœli odcinek dodany dla liczenia d³ugoœci po ciêciwach
+     sSpeedTable[i].iFlags=0; //wystarczy na niego wjechaæ i nie ma go po co trzymaæ
     if ((sSpeedTable[i].iFlags&1)==0) //jeœli pozycja istotna (po Update() mo¿e siê zmieniæ)
      //if (iFirst!=iLast) //ostatnia musi zostaæ - to za³atwia for()
      iFirst=(iFirst+1)%16; //kolejne sprawdzanie bêdzie ju¿ od nastêpnej pozycji
+   }
   }
   sSpeedTable[iLast].Update(&pos,&dir,len); //aktualizacja ostatniego
   if (sSpeedTable[iLast].fDist<fDistance)
@@ -1774,8 +1780,8 @@ bool __fastcall TController::UpdateSituation(double dt)
       {//2. faza odczepiania: zmieñ kierunek na przeciwny i dociœnij
        //za rad¹ yB ustawiamy pozycjê 3 kranu (na razie 4, bo gdzieœ siê DecBrake() wykonuje)
        //WriteLog("Zahamowanie sk³adu");
-       while ((Controlling->BrakeCtrlPos>4)&&Controlling->DecBrakeLevel());
-       while ((Controlling->BrakeCtrlPos<4)&&Controlling->IncBrakeLevel());
+       while ((Controlling->BrakeCtrlPos>3)&&Controlling->DecBrakeLevel());
+       while ((Controlling->BrakeCtrlPos<3)&&Controlling->IncBrakeLevel());
        if (Controlling->PipePress-Controlling->BrakePressureTable[Controlling->BrakeCtrlPos-1+2].PipePressureVal<0.01)
        {//jeœli w miarê zosta³ zahamowany
         //WriteLog("Luzowanie lokomotywy i zmiana kierunku");
@@ -1965,6 +1971,7 @@ bool __fastcall TController::UpdateSituation(double dt)
       if (pVehicles[0]->fTrackBlock<300.0)
        pVehicles[0]->ABuScanObjects(pVehicles[0]->DirectionGet(),300.0); //skanowanie sprawdzaj¹ce
       //if (Controlling->Vel>=0.1) //o ile jedziemy; jak stoimy to te¿ trzeba jakoœ zatrzymywaæ
+      if (OrderList[OrderPos]!=Connect) //przy pod³¹czaniu nie hamowaæ
       {//sprawdzenie jazdy na widocznoœæ
        TCoupling *c=pVehicles[0]->MoverParameters->Couplers+(pVehicles[0]->DirectionGet()>0?0:1); //sprzêg z przodu sk³adu
        if (c->Connected) //a mamy coœ z przodu
@@ -2166,7 +2173,8 @@ bool __fastcall TController::UpdateSituation(double dt)
        if (Prepare2press)
         Controlling->BrakeReleaser(); //wyluzuj lokomotywê
        else
-        while (DecBrake());  //jeœli przyspieszamy, to nie hamujemy
+        if (OrderList[OrderPos]!=Disconnect) //przy od³¹czaniu nie zwalniamy tu hamulca
+         while (DecBrake());  //jeœli przyspieszamy, to nie hamujemy
       //Ra: zmieni³em 0.95 na 1.0 - trzeba ustaliæ, sk¹d sie takie wartoœci bior¹
       //margines dla prêdkoœci jest doliczany tylko jeœli oczekiwana prêdkoœæ jest wiêksza od 5km/h
       if ((AccDesired<=0.0)||(Controlling->Vel+(VelDesired>5.0?VelMargin:0.0)>VelDesired*1.0))
@@ -2200,8 +2208,8 @@ bool __fastcall TController::UpdateSituation(double dt)
       //if ((AccDesired<0.0)&&(AbsAccS<AccDesired-0.1)) //ST44 nie hamuje na czas, 2-4km/h po miniêciu tarczy
       {//jak hamuje, to nie tykaj kranu za czêsto
        //yB: luzuje hamulec dopiero przy ró¿nicy opóŸnieñ rzêdu 0.2
-       DecBrake();
-       //ReactionTime=(Controlling->BrakeDelay[1+2*Controlling->BrakeDelayFlag])/3.0;
+       if (OrderList[OrderPos]!=Disconnect) //przy od³¹czaniu nie zwalniamy tu hamulca
+        DecBrake(); //tutaj zmniejsza o 1 przy odczepianiu
        fBrakeTime=(Controlling->BrakeDelay[1+2*Controlling->BrakeDelayFlag])/3.0;
       }
       //Mietek-end1
