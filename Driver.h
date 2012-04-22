@@ -29,8 +29,9 @@ enum TMovementStatus
  moveAvaken=4, //po w³¹czeniu silnika pojazd nie przemieœci³ siê
  movePress=8, //dociskanie przy od³¹czeniu (zamiast zmiennej Prepare2press)
  moveBackwardLook=16, //skanowanie torów w przeciwn¹ stronê w celu zmiany kierunku
- moveConnect=32, //jest blisko innego pojazdu i mo¿na próbowaæ pod³¹czyæ
- movePrimary=0x40 //ma priorytet w sk³adzie
+ moveConnect=0x20, //jest blisko innego pojazdu i mo¿na próbowaæ pod³¹czyæ
+ movePrimary=0x40, //ma priorytet w sk³adzie
+ moveStopHere=0x80 //nie podje¿d¿aæ do semafora, jeœli droga nie jest wolna
 };
 
 enum TStopReason

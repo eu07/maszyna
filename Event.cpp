@@ -420,7 +420,7 @@ AnsiString __fastcall TEvent::CommandGet()
  switch (Type)
  {//to siê wykonuje równie¿ sk³adu jad¹cego bez obs³ugi
   case tp_GetValues:
-   return String(Params[9].asMemCell->szText);
+   return String(Params[9].asMemCell->Text());
   case tp_PutValues:
    return String(Params[0].asText);
  }
@@ -433,7 +433,7 @@ double __fastcall TEvent::ValueGet(int n)
  switch (Type)
  {//to siê wykonuje równie¿ sk³adu jad¹cego bez obs³ugi
   case tp_GetValues:
-   return n?Params[9].asMemCell->fValue1:Params[9].asMemCell->fValue2;
+   return n?Params[9].asMemCell->Value1():Params[9].asMemCell->Value2();
   case tp_PutValues:
    return Params[2-n].asdouble;
  }
@@ -445,7 +445,7 @@ vector3 __fastcall TEvent::PositionGet()
  switch (Type)
  {//
   case tp_GetValues:
-   return Params[9].asMemCell->vPosition; //wspó³rzêdne pod³¹czonej komórki pamiêci
+   return Params[9].asMemCell->Position(); //wspó³rzêdne pod³¹czonej komórki pamiêci
   case tp_PutValues:
    return vector3(Params[3].asdouble,Params[4].asdouble,Params[5].asdouble);
  }

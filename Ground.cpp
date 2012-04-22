@@ -3051,11 +3051,11 @@ if (QueryRootEvent)
                      {
                        LogComment="";
                        if (TestFlag(QueryRootEvent->Params[8].asInt,conditional_memstring))
-                        LogComment=AnsiString(QueryRootEvent->Params[10].asText)+"="+QueryRootEvent->Params[9].asMemCell->szText;
+                        LogComment=AnsiString(QueryRootEvent->Params[10].asText)+"="+QueryRootEvent->Params[9].asMemCell->Text();
                        if (TestFlag(QueryRootEvent->Params[8].asInt,conditional_memval1))
-                        LogComment+=" v1:"+FloatToStrF(QueryRootEvent->Params[11].asdouble,ffFixed,8,2)+"="+FloatToStrF(QueryRootEvent->Params[9].asMemCell->fValue1,ffFixed,8,2);
+                        LogComment+=" v1:"+FloatToStrF(QueryRootEvent->Params[11].asdouble,ffFixed,8,2)+"="+FloatToStrF(QueryRootEvent->Params[9].asMemCell->Value1(),ffFixed,8,2);
                        if (TestFlag(QueryRootEvent->Params[8].asInt,conditional_memval2))
-                        LogComment+=" v2:"+FloatToStrF(QueryRootEvent->Params[12].asdouble,ffFixed,8,2)+"="+FloatToStrF(QueryRootEvent->Params[9].asMemCell->fValue2,ffFixed,8,2);
+                        LogComment+=" v2:"+FloatToStrF(QueryRootEvent->Params[12].asdouble,ffFixed,8,2)+"="+FloatToStrF(QueryRootEvent->Params[9].asMemCell->Value2(),ffFixed,8,2);
                        WriteLog(LogComment.c_str());
                      }
                    }
@@ -3091,9 +3091,9 @@ if (QueryRootEvent)
             break;
             case tp_LogValues: //zapisanie zawartoœci komórki pamiêci do logu
              WriteLog("Memcell \""+QueryRootEvent->asNodeName+"\": "+
-              QueryRootEvent->Params[9].asMemCell->szText+", "+
-              QueryRootEvent->Params[9].asMemCell->fValue1+", "+
-              QueryRootEvent->Params[9].asMemCell->fValue2);
+              QueryRootEvent->Params[9].asMemCell->Text()+", "+
+              QueryRootEvent->Params[9].asMemCell->Value1()+", "+
+              QueryRootEvent->Params[9].asMemCell->Value2());
             break;
         }
         };

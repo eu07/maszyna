@@ -41,6 +41,7 @@ typedef enum
  cm_Unknown, //ci¹g nierozpoznany (nie jest komend¹)
  cm_SetVelocity,
  cm_ShuntVelocity,
+ cm_SetProximityVelocity,
  cm_ChangeDirection,
  cm_PassengerStopPoint,
  cm_OutsideStation
