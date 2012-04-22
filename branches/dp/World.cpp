@@ -1357,9 +1357,11 @@ bool __fastcall TWorld::Update()
          OutText4+="Control event: "+Bezogonkow(tmp->Mechanik->eSignLast->asName); //nazwa eventu semafora
         }
 */
-       OutText4+="; C0="+(tmp->PrevConnected?tmp->PrevConnected->GetName()+":"+AnsiString(tmp->MoverParameters->Couplers[0].CouplingFlag):AnsiString("NULL"));
-       OutText4+=" C1="+(tmp->NextConnected?tmp->NextConnected->GetName()+":"+AnsiString(tmp->MoverParameters->Couplers[1].CouplingFlag):AnsiString("NULL"));
        }
+       if (!OutText4.IsEmpty()) OutText4+="; "; //aby ³adniejszy odstêp by³
+       //informacja o sprzêgach nawet bez mechanika
+       OutText4+="C0="+(tmp->PrevConnected?tmp->PrevConnected->GetName()+":"+AnsiString(tmp->MoverParameters->Couplers[0].CouplingFlag):AnsiString("NULL"));
+       OutText4+=" C1="+(tmp->NextConnected?tmp->NextConnected->GetName()+":"+AnsiString(tmp->MoverParameters->Couplers[1].CouplingFlag):AnsiString("NULL"));
        if (Console::Pressed(VK_F2))
        {WriteLog(OutText1);
         WriteLog(OutText2);
