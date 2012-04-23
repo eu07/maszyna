@@ -36,7 +36,7 @@
 #include "Ground.h" //bo AddToQuery jest
 #include "Event.h"
 #include "Driver.h"
-
+#include "Camera.h" //bo likwidujemy trzêsienie
 #pragma package(smart_init)
 
 const float maxrot=(M_PI/3.0); //60°
@@ -2521,7 +2521,13 @@ bool __fastcall TDynamicObject::Render()
   glPushMatrix();
   //vector3 pos= vPosition;
   //double ObjDist= SquareMagnitude(Global::pCameraPosition-pos);
-  glTranslated(vPosition.x,vPosition.y,vPosition.z);
+  if (this==Global::pUserDynamic)
+  {//specjalne ustawienie, aby nie trzês³o
+   glLoadIdentity(); //zacz¹æ od macierzy jedynkowej
+   Global::pCamera->SetCabMatrix(vPosition); //specjalne ustawienie kamery
+  }
+  else
+   glTranslated(vPosition.x,vPosition.y,vPosition.z); //standardowe przesuniêcie wzglêdem pocz¹tku scenerii
   glMultMatrixd(mMatrix.getArray());
   if (fShade>0.0)
   {//Ra: zmiana oswietlenia w tunelu, wykopie
@@ -2934,11 +2940,17 @@ bool __fastcall TDynamicObject::RenderAlpha()
   //mat.Identity();
   //mat.BasisChange(vLeft,vUp,vFront);
   //mMatrix=Inverse(mat);
-  vector3 pos=GetPosition();
-  double ObjSqrDist=SquareMagnitude(Global::pCameraPosition-pos);
+  //vector3 pos=GetPosition();
+  double ObjSqrDist=SquareMagnitude(Global::pCameraPosition-vPosition);
   ABuLittleUpdate(ObjSqrDist); //ustawianie zmiennych submodeli dla wspólnego modelu
-  glPushMatrix ( );
-  glTranslated(pos.x,pos.y,pos.z);
+  glPushMatrix();
+  if (this==Global::pUserDynamic)
+  {//specjalne ustawienie, aby nie trzês³o
+   glLoadIdentity(); //zacz¹æ od macierzy jedynkowej
+   Global::pCamera->SetCabMatrix(vPosition); //specjalne ustawienie kamery
+  }
+  else
+   glTranslated(vPosition.x,vPosition.y,vPosition.z); //standardowe przesuniêcie wzglêdem pocz¹tku scenerii
   glMultMatrixd(mMatrix.getArray());
   if (fShade>0.0)
   {//Ra: zmiana oswietlenia w tunelu, wykopie

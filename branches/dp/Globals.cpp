@@ -57,7 +57,7 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asRelease="1.7.560.342";
+AnsiString Global::asRelease="1.7.561.343";
 AnsiString Global::asVersion="Compilation 2012-04-22, release "+Global::asRelease+"."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
@@ -75,6 +75,8 @@ TWorld* Global::pWorld=NULL;
 Queryparsercomp::TQueryParserComp *Global::qParser=NULL;
 cParser *Global::pParser=NULL;
 int Global::iSegmentsRendered=90; //iloœæ segmentów do regulacji wydajnoœci
+TCamera* Global::pCamera=NULL; //parametry kamery
+TDynamicObject *Global::pUserDynamic=NULL; //pojazd u¿ytkownika, renderowany bez trzêsienia
 
 //parametry scenerii
 vector3 Global::pCameraPosition;

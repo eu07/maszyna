@@ -67,7 +67,7 @@ public:
   TTrack *tTrack; //wskaŸnik na tor o zmiennej prêdkoœci (zwrotnica, obrotnica)
   TEvent *eEvent; //po³¹czenie z eventem albo komórk¹ pamiêci
  };
- void __fastcall CommandCheck();
+ void __fastcall CommandCheck(const AnsiString &stop);
 public:
  void __fastcall Clear();
  bool __fastcall Update(vector3 *p,vector3 *dir,double &len);
@@ -93,7 +93,8 @@ class TController
 {
 private: //obs³uga tabelki prêdkoœci (musi mieæ mo¿liwoœæ odhaczania stacji w rozk³adzie)
  //TSpeedTable sSpeedTable;
- TSpeedPos sSpeedTable[16]; //najbli¿sze zmiany prêdkoœci
+ TSpeedPos *sSpeedTable; //najbli¿sze zmiany prêdkoœci
+ int iSpeedTableSize; //wielkoœæ tabelki
  //double ReducedTable[256];
  int iFirst; //aktualna pozycja w tabeli
  int iLast; //ostatnia wype³niona pozycja w tabeli
@@ -117,7 +118,8 @@ private:
  TEvent* __fastcall TableCheckTrackEvent(double fDirection,TTrack *Track);
  void __fastcall TableTraceRoute(double fDistance,int iDir,TDynamicObject *pVehicle=NULL);
  void __fastcall TableCheck(double fDistance,int iDir);
- TCommandType __fastcall TableUpdate(double fVel,double &fVelDes,double &fDist,double &fNext,double &fAcc);
+ TCommandType __fastcall TableUpdate(double &fVelDes,double &fDist,double &fNext,double &fAcc);
+ void __fastcall TablePurger();
 private: //
  double fShuntVelocity; //maksymalna prêdkoœæ manewrowania, zale¿y m.in. od sk³adu
  //double fLength; //d³ugoœæ sk³adu (dla ograniczeñ i stawania przed semaforami)
@@ -152,12 +154,12 @@ private:
  //AnsiString OrderCommand; //komenda pobierana z pojazdu
  //double OrderValue; //argument komendy
 public:
- double AccPreferred; //preferowane przyspieszenie (wg psychiki kieruj¹cego, albo kolizji z innym pojazdem???)
- double AccDesired; //przyspieszenie, jakie ma utrzymywaæ (<0:hamuj)
+ double AccPreferred; //preferowane przyspieszenie (wg psychiki kieruj¹cego, zmniejszana przy wykryciu kolizji)
+ double AccDesired; //przyspieszenie, jakie ma utrzymywaæ (<0:nie przyspieszaj,<-0.1:hamuj)
  double VelDesired; //predkoœæ, z jak¹ ma jechaæ, <=VelActual
 private:
  double VelforDriver; //prêdkoœæ, u¿ywana przy zmianie kierunku (ograniczenie przy nieznajmoœci szlaku?)
- double VelActual; //predkoœæ zadawana przez komendê SetVelocity (w tym semaforem albo z eventu przy manewrach)
+ double VelActual; //predkoœæ zadawana przez funkcjê SetVelocity() (semaforem, ograniczeniem albo komend¹)
 public:
  double VelNext; //prêdkoœæ, jaka ma byæ po przejechaniu d³ugoœci ProximityDist
 private:

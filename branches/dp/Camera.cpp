@@ -171,6 +171,15 @@ bool __fastcall TCamera::SetMatrix()
     return true;
 }
 
+void __fastcall TCamera::SetCabMatrix(vector3 &p)
+{//ustawienie widoku z kamery bez przesuniêcia robionego przez OpenGL - nie powinno tak trz¹œæ
+ glRotated(-Roll*180.0f/M_PI,0,0,1);
+ glRotated(-Pitch*180.0f/M_PI,1,0,0);
+ glRotated(-Yaw*180.0f/M_PI,0,1,0); //w zewnêtrznym widoku: kierunek patrzenia
+ if (Type==tp_Follow)
+  gluLookAt(Pos.x-p.x,Pos.y-p.y,Pos.z-p.z,LookAt.x-p.x,LookAt.y-p.y,LookAt.z-p.z,vUp.x,vUp.y,vUp.z); //Ra: pOffset is zero
+}
+
 void __fastcall TCamera::RaLook()
 {//zmiana kierunku patrzenia - przelicza Yaw
  vector3 where=LookAt-Pos+vector3(0,3,0); //trochê w górê od szyn

@@ -24,7 +24,7 @@ public:
  inline void Switch() { bOn= !bOn; Update(); };
  inline bool Active() { return (pModelOn)||(pModelOff);};
  void __fastcall Init(AnsiString asName, TModel3d *pModel, bool bNewOn=false);
- void __fastcall Load(TQueryParserComp *Parser, TModel3d *pModel);
+ void __fastcall Load(TQueryParserComp *Parser,TModel3d *pModel1,TModel3d *pModel2=NULL);
 };
 
 //---------------------------------------------------------------------------

@@ -37,11 +37,16 @@ void __fastcall TButton::Init(AnsiString asName, TModel3d *pModel, bool bNewOn)
  Update();
 };
 
-void __fastcall TButton::Load(TQueryParserComp *Parser, TModel3d *pModel)
+void __fastcall TButton::Load(TQueryParserComp *Parser,TModel3d *pModel1,TModel3d *pModel2)
 {
  AnsiString str=Parser->GetNextSymbol().LowerCase();
- if (pModel)
-  Init(str,pModel,false);
+ if (pModel1)
+ {//poszukiwanie submodeli w modelu
+  Init(str,pModel1,false);
+  if (pModel2)
+   if (!pModelOn&&!pModelOff)
+    Init(str,pModel2,false); //mo¿e w drugim bêdzie (jak nie w kabinie, to w zewnêtrznym)
+ }
  else
  {
   pModelOn=NULL;
