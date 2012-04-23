@@ -135,6 +135,7 @@ __fastcall TTrain::~TTrain()
 
 bool __fastcall TTrain::Init(TDynamicObject *NewDynamicObject)
 {//powi¹zanie rêcznego sterowania kabin¹ z pojazdem
+ //Global::pUserDynamic=NewDynamicObject; //pojazd renderowany bez trzêsienia
  DynamicObject=NewDynamicObject;
  if (DynamicObject->Mechanik==NULL)
   return false;
@@ -4278,7 +4279,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     RearLeftEndLightButtonGauge.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("rearrightend_sw:"))                       //swiatlo
     RearRightEndLightButtonGauge.Load(Parser,DynamicObject->mdKabina);
-   //------------------    
+   //------------------
    else if (str==AnsiString("compressor_sw:"))                       //sprezarka
     CompressorButtonGauge.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("converter_sw:"))                       //przetwornica
@@ -4303,13 +4304,13 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     NextCurrentButtonGauge.Load(Parser,DynamicObject->mdKabina);
     //ABu 090305: uniwersalne przyciski lub inne rzeczy
    else if (str==AnsiString("universal1:"))
-    Universal1ButtonGauge.Load(Parser,DynamicObject->mdKabina);
+    Universal1ButtonGauge.Load(Parser,DynamicObject->mdKabina,DynamicObject->mdModel);
    else if (str==AnsiString("universal2:"))
-    Universal2ButtonGauge.Load(Parser,DynamicObject->mdKabina);
+    Universal2ButtonGauge.Load(Parser,DynamicObject->mdKabina,DynamicObject->mdModel);
    else if (str==AnsiString("universal3:"))
-    Universal3ButtonGauge.Load(Parser,DynamicObject->mdKabina);
+    Universal3ButtonGauge.Load(Parser,DynamicObject->mdKabina,DynamicObject->mdModel);
    else if (str==AnsiString("universal4:"))
-    Universal4ButtonGauge.Load(Parser,DynamicObject->mdKabina);
+    Universal4ButtonGauge.Load(Parser,DynamicObject->mdKabina,DynamicObject->mdModel);
    //SEKCJA WSKAZNIKOW
    else if (str==AnsiString("tachometer:"))                    //predkosciomierz
     VelocityGauge.Load(Parser,DynamicObject->mdKabina);
@@ -4409,17 +4410,17 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     btLampkaWysRozr.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("i-universal3:"))
    {
-    btLampkaUniversal3.Load(Parser,DynamicObject->mdKabina);
+    btLampkaUniversal3.Load(Parser,DynamicObject->mdKabina,DynamicObject->mdModel);
     LampkaUniversal3_typ=0;
    }
    else if (str==AnsiString("i-universal3_M:"))
    {
-    btLampkaUniversal3.Load(Parser,DynamicObject->mdKabina);
+    btLampkaUniversal3.Load(Parser,DynamicObject->mdKabina,DynamicObject->mdModel);
     LampkaUniversal3_typ=1;
    }
    else if (str==AnsiString("i-universal3_C:"))
    {
-    btLampkaUniversal3.Load(Parser,DynamicObject->mdKabina);
+    btLampkaUniversal3.Load(Parser,DynamicObject->mdKabina,DynamicObject->mdModel);
     LampkaUniversal3_typ=2;
    }
    else if (str==AnsiString("i-vent_trim:"))

@@ -93,6 +93,7 @@ void __fastcall TWorld::TrainDelete(TDynamicObject *d)
  delete Train; //i nie ma czym sterowaæ
  Train=NULL;
  Controlled=NULL; //tego te¿ ju¿ nie ma
+ Global::pUserDynamic=NULL; //tego te¿ nie ma
 };
 
 GLvoid __fastcall TWorld::glPrint(const char *txt) //custom GL "Print" routine
@@ -117,6 +118,7 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
 {
  double time=(double)Now();
  Global::hWnd=NhWnd; //do WM_COPYDATA
+ Global::pCamera=&Camera; //Ra: wskaŸnik potrzebny do likwidacji drgañ
  Global::detonatoryOK=true;
  //WriteLog("--- MaSzyna ---"); //pierwsza linia jest gubiona - ju¿ nie
  WriteLog("Starting MaSzyna rail vehicle simulator.");
@@ -506,6 +508,7 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
      if (Train->Init(PlayerTrain->DynamicObject))
      {
       Controlled=Train->DynamicObject;
+      Global::pUserDynamic=Controlled; //renerowanie pojazdu wzglêdem kabiny
       WriteLog("Player train init OK");
       if (Global::detonatoryOK)
       {
@@ -867,6 +870,7 @@ bool __fastcall TWorld::Update()
    {
     if (FreeFlyModeFlag)
     {//je¿eli poza kabin¹, przestawiamy w jej okolicê - OK
+     Global::pUserDynamic=NULL; //bez renderowania wzglêdem kamery
      //Camera.Pos=Train->pMechPosition+Normalize(Train->GetDirection())*20;
      Camera.Pos=Controlled->GetPosition()+(Controlled->MoverParameters->ActiveCab>=0?30:-30)*Controlled->VectorFront()+vector3(0,5,0);
      Camera.LookAt=Controlled->GetPosition();
@@ -879,6 +883,7 @@ bool __fastcall TWorld::Update()
     }
     else if (Train)
     {//korekcja ustawienia w kabinie - OK
+     Global::pUserDynamic=Controlled; //renerowanie wzglêdem kamery
      //Ra: czy to tu jest potrzebne, bo przelicza siê kawa³ek dalej?
      Camera.Pos=Train->pMechPosition;//Train.GetPosition1();
      Camera.Roll=atan(Train->pMechShake.x*Train->fMechRoll);       //hustanie kamery na boki
@@ -935,7 +940,7 @@ bool __fastcall TWorld::Update()
  //Ground.Update(0.01,Camera.Type==tp_Follow);
  dt=GetDeltaTime();
  if (Train?Camera.Type==tp_Follow:false)
- {
+ {//jeœli jazda w kabinie, przeliczyæ trzeba parametry kamery
   Train->UpdateMechPosition(dt);
   Camera.Pos=Train->pMechPosition;//Train.GetPosition1();
   Camera.Roll=atan(Train->pMechShake.x*Train->fMechRoll);       //hustanie kamery na boki
@@ -953,8 +958,8 @@ bool __fastcall TWorld::Update()
   //ABu: koniec rzucania
 
   if (Train->DynamicObject->MoverParameters->ActiveCab==0)
-   Camera.LookAt=Train->pMechPosition+Train->GetDirection();
-  else  //patrz w strone wlasciwej kabiny
+   Camera.LookAt=Train->pMechPosition+Train->GetDirection(); //gdy w korytarzu
+  else  //patrzenie w kierunku osi pojazdu, z uwzglêdnieniem kabiny
    Camera.LookAt=Train->pMechPosition+Train->GetDirection()*Train->DynamicObject->MoverParameters->ActiveCab; //-1 albo 1
   Camera.vUp=Train->GetUp();
  }
@@ -981,9 +986,15 @@ bool __fastcall TWorld::Update()
   //ABu: Rendering kabiny jako ostatniej, zeby bylo widac przez szyby, tylko w widoku ze srodka
   if ((Train->DynamicObject->mdKabina!=Train->DynamicObject->mdModel) && Train->DynamicObject->bDisplayCab && !FreeFlyModeFlag)
   {
-   vector3 pos=Train->DynamicObject->GetPosition();
-   glTranslatef(pos.x,pos.y,pos.z);
-   glMultMatrixd(Train->DynamicObject->mMatrix.getArray());
+   vector3 pos=Train->DynamicObject->GetPosition(); //wszpó³rzêdne pojazdu z kabin¹
+#if 0
+   glTranslatef(pos.x,pos.y,pos.z); //przesuniêcie o wektor (tak by³o i trzês³o)
+#else
+   //aby pozbyæ siê choæ trochê trzêsienia, trzeba by nie przeliczaæ kabiny do punktu zerowego scenerii
+   glLoadIdentity(); //zacz¹æ od macierzy jedynkowej
+   Camera.SetCabMatrix(pos); //widok z kamery po przesuniêciu
+#endif
+   glMultMatrixd(Train->DynamicObject->mMatrix.getArray()); //ta macierz nie ma przesuniêcia
 
 //*yB: moje smuuugi 1
   if ((Train->DynamicObject->fShade<=0.0)?(Global::fLuminance<=0.25):(Train->DynamicObject->fShade*Global::fLuminance<=0.25))
@@ -1057,13 +1068,13 @@ bool __fastcall TWorld::Update()
       glLightfv(GL_LIGHT0,GL_SPECULAR,specularCabLight);
       if (Global::bUseVBO)
       {//renderowanie z u¿yciem VBO
-       Train->DynamicObject->mdKabina->RaRender(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->iAlpha);
-       Train->DynamicObject->mdKabina->RaRenderAlpha(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->iAlpha);
+       Train->DynamicObject->mdKabina->RaRender(0.0,Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->iAlpha);
+       Train->DynamicObject->mdKabina->RaRenderAlpha(0.0,Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->iAlpha);
       }
       else
       {//renderowanie z Display List
-       Train->DynamicObject->mdKabina->Render(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->iAlpha);
-       Train->DynamicObject->mdKabina->RenderAlpha(SquareMagnitude(Global::pCameraPosition-pos),Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->iAlpha);
+       Train->DynamicObject->mdKabina->Render(0.0,Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->iAlpha);
+       Train->DynamicObject->mdKabina->RenderAlpha(0.0,Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->iAlpha);
       }
       //przywrócenie standardowych, bo zawsze s¹ zmieniane
       glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
@@ -1394,6 +1405,8 @@ bool __fastcall TWorld::Update()
           Controlled->Mechanik->TakeControl(false); //przejmujemy sterowanie
          else
           SafeDelete(Train); //i nie ma czym sterowaæ
+         //Global::pUserDynamic=Controlled; //renerowanie pojazdu wzglêdem kabiny
+         //Global::iTextMode=VK_F4;
         }
        }
       Global::iTextMode=0; //tryb neutralny
@@ -1614,7 +1627,7 @@ bool __fastcall TWorld::Render()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   	glMatrixMode(GL_MODELVIEW);							// Select The Modelview Matrix
     glLoadIdentity();
-    Camera.SetMatrix();
+    Camera.SetMatrix(); //ustawienie macierzy kamery wzglêdem pocz¹tku scenerii
     glLightfv(GL_LIGHT0,GL_POSITION,Global::lightPos);
 
     glDisable(GL_FOG);
@@ -1631,7 +1644,7 @@ bool __fastcall TWorld::Render()
      tempangle=Controlled->VectorFront()*(Controlled->MoverParameters->ActiveCab==-1 ? -1 : 1);
      modelrotate=ABuAcos(tempangle);
      Global::SetCameraRotation(Camera.Yaw-modelrotate);
-     }
+    }
     if (Global::bUseVBO)
     {//renderowanie przez VBO
      if (!Ground.RenderVBO(Camera.Pos)) return false;

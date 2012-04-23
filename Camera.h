@@ -7,7 +7,12 @@
 using namespace Math3D;
 
 //---------------------------------------------------------------------------
-enum TCameraType { tp_Follow, tp_Free, tp_Satelite };
+enum TCameraType
+{//tryby pracy kamery
+ tp_Follow,  //jazda z pojazdem
+ tp_Free,    //stoi na scenerii
+ tp_Satelite //widok z góry (nie u¿ywany)
+};
 
 class TCamera
 {
@@ -17,7 +22,7 @@ public:
     double Pitch,Yaw,Roll;  //McZapkie: potrzebuje do kiwania na boki
     TCameraType Type;
     vector3 Pos; //wspó³rzêdne obserwatora
-    vector3 LookAt; //kierunek patrzenia
+    vector3 LookAt; //wspó³rzêdne punktu, na który ma patrzeæ
     vector3 vUp;
     vector3 Velocity;
     vector3 OldVelocity; //lepiej usredniac zeby nie bylo rozbiezne przy malym FPS
@@ -31,10 +36,10 @@ public:
     vector3 __fastcall GetDirection();
     vector3 inline __fastcall GetCrossPos() { return Pos+GetDirection()*CrossDist+CrossPos; };
 
-    bool __fastcall SetMatrix();
-    void __fastcall RaLook();
-//    bool __fastcall GetMatrix(matrix4x4 &Matrix);
-
-    vector3 PtNext, PtPrev;
+ bool __fastcall SetMatrix();
+ void __fastcall SetCabMatrix(vector3 &p);
+ void __fastcall RaLook();
+ //bool __fastcall GetMatrix(matrix4x4 &Matrix);
+ vector3 PtNext, PtPrev;
 };
 #endif

@@ -117,6 +117,7 @@ const int MaxKeys= 73;
 //klasy dla wskaŸników globalnych
 class TGround;
 class TWorld;
+class TCamera;
 class TDynamicObject;
 class TAnimModel; //obiekt terenu
 namespace Queryparsercomp
@@ -249,6 +250,8 @@ public:
  static double fRadiusLoFPS; //dolna granica FPS, przy której promieñ scenerii bêdzie zmniejszany
  static double fRadiusHiFPS; //górna granica FPS, przy której promieñ scenerii bêdzie zwiêkszany
  static double fRadiusFactor; //wspó³czynnik zmiany promienia
+ static TCamera *pCamera; //parametry kamery
+ static TDynamicObject *pUserDynamic; //pojazd u¿ytkownika, renderowany bez trzêsienia
  //metody
  static void __fastcall TrainDelete(TDynamicObject *d);
  static void __fastcall ConfigParse(Queryparsercomp::TQueryParserComp *qp,cParser *cp=NULL);
