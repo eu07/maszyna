@@ -643,8 +643,12 @@ void __fastcall TWorld::OnKeyPress(int cKey)
     case VK_F10:
     case VK_F12: //coœ tam jeszcze
      Global::iTextMode=cKey;
+    break;
+    case VK_F4:
+     InOutKey();
    }
-  if (cKey!=VK_F4) return; //nie s¹ przekazywane do pojazdu
+  //if (cKey!=VK_F4)
+  return; //nie s¹ przekazywane do pojazdu wcale
  }
  if (Global::iTextMode==VK_F10) //wyœwietlone napisy klawiszem F10
  {//i potwierdzenie
@@ -655,10 +659,10 @@ void __fastcall TWorld::OnKeyPress(int cKey)
  {//hamowanie wszystkich pojazdów w okolicy
   Ground.RadioStop(Camera.Pos);
  }
- else if (!Global::bPause||(cKey==VK_F4)) //podczas pauzy sterownaie nie dzia³a, F4 tak
+ else if (!Global::bPause) //||(cKey==VK_F4)) //podczas pauzy sterownaie nie dzia³a, F4 tak
   if (Train)
    if (Controlled)
-    if ((Controlled->Controller==Humandriver)?true:DebugModeFlag||(cKey=='Q')||(cKey==VK_F4))
+    if ((Controlled->Controller==Humandriver)?true:DebugModeFlag||(cKey=='Q')) //||(cKey==VK_F4))
      Train->OnKeyPress(cKey); //przekazanie klawisza do kabiny
  //switch (cKey)
  //{case 'a': //ignorowanie repetycji
@@ -702,6 +706,76 @@ AnsiString __fastcall Bezogonkow(AnsiString str)
   }
  return str;
 }
+
+void __fastcall TWorld::InOutKey()
+{//prze³¹czenie widoku z kabiny na zewnêtrzny i odwrotnie
+ FreeFlyModeFlag=!FreeFlyModeFlag; //zmiana widoku
+ if (FreeFlyModeFlag)
+ {//je¿eli poza kabin¹, przestawiamy w jej okolicê - OK
+  Global::pUserDynamic=NULL; //bez renderowania wzglêdem kamery
+  if (Train)
+  {//Train->DynamicObject->ABuSetModelShake(vector3(0,0,0));
+   Train->DynamicObject->bDisplayCab=false;
+   DistantView();
+  }
+ }
+ else
+ {//jazda w kabinie
+  Global::pUserDynamic=Controlled; //renerowanie wzglêdem kamery
+  Train->DynamicObject->bDisplayCab=true;
+  Train->DynamicObject->ABuSetModelShake(vector3(0,0,0)); //zerowanie przesuniêcia przed powrotem?
+ }
+};
+
+void __fastcall TWorld::DistantView()
+{//ustawienie widoku pojazdu z zewn¹trz
+ if (Controlled) //jest pojazd do prowadzenia?
+ {//na prowadzony
+  Camera.Pos=Controlled->GetPosition()+(Controlled->MoverParameters->ActiveCab>=0?30:-30)*Controlled->VectorFront()+vector3(0,5,0);
+  Camera.LookAt=Controlled->GetPosition();
+  Camera.RaLook(); //jednorazowe przestawienie kamery
+ }
+ else if (pDynamicNearest) //jeœli jest pojazd wykryty blisko
+ {//patrzenie na najbli¿szy pojazd
+  Camera.Pos=pDynamicNearest->GetPosition()+(pDynamicNearest->MoverParameters->ActiveCab>=0?30:-30)*pDynamicNearest->VectorFront()+vector3(0,5,0);
+  Camera.LookAt=pDynamicNearest->GetPosition();
+  Camera.RaLook(); //jednorazowe przestawienie kamery
+ }
+};
+
+void __fastcall TWorld::FollowView()
+{//ustawienie œledzenia pojazdu
+ //ABu 180404 powrot mechanika na siedzenie albo w okolicê pojazdu
+ //if (Console::Pressed(VK_F4)) Global::iViewMode=VK_F4;
+ //Ra: na zewn¹trz wychodzimy w Train.cpp
+ Camera.Reset(); //likwidacja obrotów - patrzy horyzontalnie na po³udnie
+ if (Controlled) //jest pojazd do prowadzenia?
+ {
+  //Controlled->ABuSetModelShake(vector3(0,0,0));
+  if (FreeFlyModeFlag)
+  {//je¿eli poza kabin¹, przestawiamy w jej okolicê - OK
+   Train->DynamicObject->ABuSetModelShake(vector3(0,0,0)); //wy³¹czenie trzêsienia na si³ê?
+   //Camera.Pos=Train->pMechPosition+Normalize(Train->GetDirection())*20;
+   DistantView();
+   //¿eby nie bylo numerów z 'fruwajacym' lokiem - konsekwencja bujania pud³a
+  }
+  else if (Train)
+  {//korekcja ustawienia w kabinie - OK
+   //Ra: czy to tu jest potrzebne, bo przelicza siê kawa³ek dalej?
+   Camera.Pos=Train->pMechPosition;//Train.GetPosition1();
+   Camera.Roll=atan(Train->pMechShake.x*Train->fMechRoll);       //hustanie kamery na boki
+   Camera.Pitch-=atan(Train->vMechVelocity.z*Train->fMechPitch);  //hustanie kamery przod tyl
+   if (Train->DynamicObject->MoverParameters->ActiveCab==0)
+    Camera.LookAt=Train->pMechPosition+Train->GetDirection();
+   else //patrz w strone wlasciwej kabiny
+    Camera.LookAt=Train->pMechPosition+Train->GetDirection()*Train->DynamicObject->MoverParameters->ActiveCab;
+   Train->pMechOffset.x=Train->pMechSittingPosition.x;
+   Train->pMechOffset.y=Train->pMechSittingPosition.y;
+   Train->pMechOffset.z=Train->pMechSittingPosition.z;
+  }
+ }
+ else DistantView();
+};
 
 bool __fastcall TWorld::Update()
 {
@@ -861,50 +935,8 @@ bool __fastcall TWorld::Update()
    if (FreeFlyModeFlag)
     Camera.RaLook(); //jednorazowe przestawienie kamery
   }
-  else if (Console::Pressed(VK_RBUTTON)||Console::Pressed(VK_F4))
-  {//ABu 180404 powrot mechanika na siedzenie albo w okolicê pojazdu
-   //if (Console::Pressed(VK_F4)) Global::iViewMode=VK_F4;
-   //Ra: na zewn¹trz wychodzimy w Train.cpp
-   Camera.Reset(); //likwidacja obrotów - patrzy horyzontalnie na po³udnie
-   if (Controlled) //jest pojazd do prowadzenia?
-   {
-    if (FreeFlyModeFlag)
-    {//je¿eli poza kabin¹, przestawiamy w jej okolicê - OK
-     Global::pUserDynamic=NULL; //bez renderowania wzglêdem kamery
-     //Camera.Pos=Train->pMechPosition+Normalize(Train->GetDirection())*20;
-     Camera.Pos=Controlled->GetPosition()+(Controlled->MoverParameters->ActiveCab>=0?30:-30)*Controlled->VectorFront()+vector3(0,5,0);
-     Camera.LookAt=Controlled->GetPosition();
-     Camera.RaLook(); //jednorazowe przestawienie kamery
-     //¿eby nie bylo numerów z 'fruwajacym' lokiem - konsekwencja bujania pud³a
-     if (Train)
-     {Train->DynamicObject->ABuSetModelShake(vector3(0,0,0));
-      Train->DynamicObject->bDisplayCab=false;
-     }
-    }
-    else if (Train)
-    {//korekcja ustawienia w kabinie - OK
-     Global::pUserDynamic=Controlled; //renerowanie wzglêdem kamery
-     //Ra: czy to tu jest potrzebne, bo przelicza siê kawa³ek dalej?
-     Camera.Pos=Train->pMechPosition;//Train.GetPosition1();
-     Camera.Roll=atan(Train->pMechShake.x*Train->fMechRoll);       //hustanie kamery na boki
-     Camera.Pitch-=atan(Train->vMechVelocity.z*Train->fMechPitch);  //hustanie kamery przod tyl
-     if (Train->DynamicObject->MoverParameters->ActiveCab==0)
-      Camera.LookAt=Train->pMechPosition+Train->GetDirection();
-     else //patrz w strone wlasciwej kabiny
-      Camera.LookAt=Train->pMechPosition+Train->GetDirection()*Train->DynamicObject->MoverParameters->ActiveCab;
-     Train->pMechOffset.x=Train->pMechSittingPosition.x;
-     Train->pMechOffset.y=Train->pMechSittingPosition.y;
-     Train->pMechOffset.z=Train->pMechSittingPosition.z;
-     Train->DynamicObject->bDisplayCab=true;
-    }
-   }
-   else if (pDynamicNearest) //jeœli jest pojazd wykryty blisko
-   {//patrzenie na najbli¿szy pojazd
-    Camera.Pos=pDynamicNearest->GetPosition()+(pDynamicNearest->MoverParameters->ActiveCab>=0?30:-30)*pDynamicNearest->VectorFront()+vector3(0,5,0);
-    Camera.LookAt=pDynamicNearest->GetPosition();
-    Camera.RaLook(); //jednorazowe przestawienie kamery
-   }
-  }
+  else if (Console::Pressed(VK_RBUTTON))//||Console::Pressed(VK_F4))
+   FollowView();
   else if (Global::iTextMode==-1)
   {//tu mozna dodac dopisywanie do logu przebiegu lokomotywy
    WriteLog("Number of textures used: "+AnsiString(Global::iTextures));

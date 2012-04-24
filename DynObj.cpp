@@ -1814,7 +1814,7 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
 
 //McZapkie: predkosc w torze przekazac do TrackParam
 //McZapkie: Vel ma wymiar km/h (absolutny), V ma wymiar m/s , taka przyjalem notacje
-    tp.Velmax=MyTrack->fVelocity;
+    tp.Velmax=MyTrack->VelocityGet();
 
     if (Mechanik)
     {

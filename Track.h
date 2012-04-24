@@ -48,6 +48,7 @@ public:
  TSubRect *pOwner; //sektor, któremu trzeba zg³osiæ animacjê
  TTrack *pNextAnim; //nastêpny tor do animowania
  TEvent *EventPlus,*EventMinus; //zdarzenia sygnalizacji rozprucia
+ float fVelocity; //maksymalne ograniczenie prêdkoœci (ustawianej eventem)
 private:
 };
 
@@ -120,7 +121,9 @@ public:
  int iDamageFlag;
  TEnvironmentType eEnvironment; //dŸwiêk i oœwietlenie
  bool bVisible; //czy rysowany
+private:
  double fVelocity; //prêdkoœæ dla AI (powy¿ej roœnie prawdopowobieñstwo wykolejenia)
+public:
  //McZapkie-100502:
  double fTrackLength; //d³ugoœæ z wpisu, nigdzie nie u¿ywana
  double fRadius; //promieñ, dla zwrotnicy kopiowany z tabeli
@@ -182,6 +185,8 @@ public:
  int __fastcall TestPoint(vector3 *Point);
  void __fastcall MovedUp1(double dh);
  AnsiString __fastcall NameGet();
+ void __fastcall VelocitySet(float v);
+ inline float __fastcall VelocityGet() {return fVelocity;};
 private:
  void __fastcall EnvironmentSet();
  void __fastcall EnvironmentReset();

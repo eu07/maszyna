@@ -817,14 +817,14 @@ void __fastcall TTrain::OnKeyPress(int cKey)
           }
          else;
       }
-      else
-      if (cKey==Global::Keys[k_FreeFlyMode])
-      {
+/*
+      else if (cKey==Global::Keys[k_FreeFlyMode])
+      {//Ra: to tutaj trochê bruŸdzi
        FreeFlyModeFlag=!FreeFlyModeFlag;
        DynamicObject->ABuSetModelShake(vector3(0,0,0));
       }
-      else
-      if (cKey==Global::Keys[k_DecMainCtrl])
+*/
+      else if (cKey==Global::Keys[k_DecMainCtrl])
           if (DynamicObject->MoverParameters->DecMainCtrl(1))
           {
               dsbNastawnikJazdy->SetCurrentPosition(0);

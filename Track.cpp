@@ -58,6 +58,7 @@ __fastcall TSwitchExtension::TSwitchExtension(TTrack *owner)
  Segments[3]=NULL;
  Segments[4]=NULL;
  EventPlus=EventMinus=NULL;
+ fVelocity=-1.0; //maksymalne ograniczenie prêdkoœci (ustawianej eventem)
 }
 __fastcall TSwitchExtension::~TSwitchExtension()
 {//nie ma nic do usuwania
@@ -637,6 +638,8 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
   {
    parser->getTokens();
    *parser >> fVelocity; //*0.28; McZapkie-010602
+   if (SwitchExtension) //jeœli tor ruchomy
+    SwitchExtension->fVelocity=fVelocity; //zapamiêtanie g³ównego ograniczenia
   }
   else if (str=="isolated")
   {//obwód izolowany, do którego tor nale¿y
@@ -2074,4 +2077,14 @@ AnsiString __fastcall TTrack::NameGet()
   if (pMyNode)
    return pMyNode->asName;
  return "none";
+};
+
+void __fastcall TTrack::VelocitySet(float v)
+{//ustawienie prêdkoœci z ograniczeniem do pierwotnej wartoœci (zapisanej w scenerii)
+ if (SwitchExtension?SwitchExtension->fVelocity>=0.0:false)
+ {//zwrotnica mo¿e mieæ odgórne ograniczenie, nieprzeskakiwalne eventem
+  if (v>SwitchExtension->fVelocity?true:v<0.0)
+   return void(fVelocity=SwitchExtension->fVelocity); //maksymalnie tyle, ile by³o we wpisie
+ }
+ fVelocity=v; //nie ma ograniczenia
 };
