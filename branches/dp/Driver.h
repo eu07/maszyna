@@ -67,7 +67,7 @@ public:
   TTrack *tTrack; //wskaŸnik na tor o zmiennej prêdkoœci (zwrotnica, obrotnica)
   TEvent *eEvent; //po³¹czenie z eventem albo komórk¹ pamiêci
  };
- void __fastcall CommandCheck(const AnsiString &stop);
+ void __fastcall CommandCheck();
 public:
  void __fastcall Clear();
  bool __fastcall Update(vector3 *p,vector3 *dir,double &len);

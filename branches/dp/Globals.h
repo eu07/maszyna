@@ -75,7 +75,7 @@ const int k_Couple= 44;
 const int k_DeCouple= 45;
 
 const int k_ProgramQuit= 46;
-const int k_ProgramPause= 47;
+//const int k_ProgramPause= 47;
 const int k_ProgramHelp= 48;
                         //NBMX
 const int k_OpenLeft= 49;
@@ -91,7 +91,7 @@ const int k_PantRearDown= 57;
 
 const int k_Heating= 58;
 
-const int k_FreeFlyMode= 59;
+//const int k_FreeFlyMode= 59;
 
 const int k_LeftSign = 60;
 const int k_UpperSign= 61;

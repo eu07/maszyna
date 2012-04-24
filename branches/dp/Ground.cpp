@@ -3016,9 +3016,9 @@ if (QueryRootEvent)
              {
               WriteLog("type: TrackVel");
 //            WriteLog("Vel: ",QueryRootEvent->Params[0].asdouble);
-              QueryRootEvent->Params[9].asTrack->fVelocity= QueryRootEvent->Params[0].asdouble;
+              QueryRootEvent->Params[9].asTrack->VelocitySet(QueryRootEvent->Params[0].asdouble);
               if (DebugModeFlag)
-               WriteLog("vel: ",QueryRootEvent->Params[9].asTrack->fVelocity);
+               WriteLog("vel: ",QueryRootEvent->Params[9].asTrack->VelocityGet());
              }
             break;
             case tp_DynVel :

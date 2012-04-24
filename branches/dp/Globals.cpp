@@ -57,8 +57,8 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asRelease="1.7.561.343";
-AnsiString Global::asVersion="Compilation 2012-04-22, release "+Global::asRelease+"."; //tutaj, bo wysy³any
+AnsiString Global::asRelease="1.7.562.344";
+AnsiString Global::asVersion="Compilation 2012-04-24, release "+Global::asRelease+"."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 double Global::fSunDeclination=0.0; //deklinacja S³oñca
@@ -476,9 +476,9 @@ void __fastcall Global::InitKeys(AnsiString asFileName)
         Keys[k_DeCouple]=VK_DELETE;
 
         Keys[k_ProgramQuit]=VK_F10;
-        Keys[k_ProgramPause]=VK_F3;
+        //Keys[k_ProgramPause]=VK_F3;
         Keys[k_ProgramHelp]=VK_F1;
-        Keys[k_FreeFlyMode]=VK_F4;
+        //Keys[k_FreeFlyMode]=VK_F4;
         Keys[k_WalkMode]=VK_F5;
 
         Keys[k_OpenLeft]=VkKeyScan(',');
