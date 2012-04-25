@@ -237,12 +237,14 @@ TTrack* __fastcall TTrack::NullCreate(int dir)
  else
  {//tworznie pêtelki dla samochodów
   trk->fVelocity=20.0; //zawracanie powoli
+  trk->fRadius=20.0; //promieñ, aby siê dodawa³o do tabelki prêdkoœci i liczy³o narastaj¹co
   trk->Init(); //utworzenie segmentu
   tmp2=new TGroundNode(TP_TRACK); //drugi odcinek do zapêtlenia
   TTrack* trk2=tmp2->pTrack;
   trk2->iCategoryFlag=(iCategoryFlag&15)|0x80; //taki sam typ plus informacja, ¿e dodatkowy
-  trk2->bVisible=false; 
+  trk2->bVisible=false;
   trk2->fVelocity=20.0; //zawracanie powoli
+  trk2->fRadius=20.0; //promieñ, aby siê dodawa³o do tabelki prêdkoœci i liczy³o narastaj¹co
   trk2->Init(); //utworzenie segmentu
   switch (dir)
   {//³¹czenie z nowym torem
