@@ -432,6 +432,9 @@ void __fastcall TController::TableCheck(double fDistance,int iDir)
      {//degradacja pozycji
       sSpeedTable[i].iFlags&=~1; //nie liczy siê
      }
+     else if ((sSpeedTable[i].iFlags&0x28)==0x20) //jest z ty³u (najechany) i nie jest zwrotnic¹
+      if (sSpeedTable[i].fVelNext<0) //a nie ma ograniczenia prêdkoœci
+       sSpeedTable[i].iFlags=0; //to nie ma go po co trzymaæ (odtykacz usunie ze œrodka)
     }
     else if (sSpeedTable[i].iFlags&0x100) //jeœli event
     {if (sSpeedTable[i].fDist<0) //jeœli jest z ty³u
@@ -443,9 +446,7 @@ void __fastcall TController::TableCheck(double fDistance,int iDir)
    }
    else WriteLog("-> Empty");
    if (i==iFirst) //jeœli jest pierwsz¹ pozycj¹ tabeli
-   {//if ((sSpeedTable[i].iFlags&0xAB)==0xA3) //jeœli odcinek dodany dla liczenia d³ugoœci po ciêciwach
-    if (sSpeedTable[i].fVelNext<0) //je¿eli nie ma ograniczenia prêdkoœci
-     sSpeedTable[i].iFlags=0; //wystarczy na niego wjechaæ i nie ma go po co trzymaæ
+   {//pozbycie siê pocz¹tkowej pozycji
     if ((sSpeedTable[i].iFlags&1)==0) //jeœli pozycja istotna (po Update() mo¿e siê zmieniæ)
      //if (iFirst!=iLast) //ostatnia musi zostaæ - to za³atwia for()
      iFirst=(iFirst+1)%iSpeedTableSize; //kolejne sprawdzanie bêdzie ju¿ od nastêpnej pozycji
