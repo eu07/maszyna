@@ -13,6 +13,8 @@
 #include "Timer.h"
 #include "mover.h"
 #include "Console.h"
+//---------------------------------------------------------------------------
+#pragma package(smart_init)
 
 //TViewPyramid TCamera::OrgViewPyramid;
 //={vector3(-1,1,1),vector3(1,1,1),vector3(-1,-1,1),vector3(1,-1,1),vector3(0,0,0)};
@@ -27,7 +29,7 @@ void __fastcall TCamera::Init(vector3 NPos, vector3 NAngle)
 //    pOffset= vector3(-0.8,0,0);
     CrossPos= OrgCrossPos;
     CrossDist= 10;
-    Velocity= vector3(0,0,0);
+    Velocity=vector3(0,0,0);
     OldVelocity= vector3(0,0,0);
     Pitch= NAngle.x;
     Yaw= NAngle.y;
@@ -189,9 +191,12 @@ void __fastcall TCamera::RaLook()
  if (l>0.0)
   Pitch=asin(where.y/l); //k¹t w pionie
 };
-//---------------------------------------------------------------------------
-#pragma package(smart_init)
 
+void __fastcall TCamera::Stop()
+{//wy³¹cznie bezw³adnego ruchu po powrocie do kabiny
+ Type=tp_Follow;
+ Velocity=vector3(0,0,0);
+};
 
 
 

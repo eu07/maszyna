@@ -92,37 +92,30 @@ extern bool WriteLogFlag; //logowanie parametrów fizycznych
 class TController
 {
 private: //obs³uga tabelki prêdkoœci (musi mieæ mo¿liwoœæ odhaczania stacji w rozk³adzie)
- //TSpeedTable sSpeedTable;
  TSpeedPos *sSpeedTable; //najbli¿sze zmiany prêdkoœci
  int iSpeedTableSize; //wielkoœæ tabelki
- //double ReducedTable[256];
- int iFirst; //aktualna pozycja w tabeli
- int iLast; //ostatnia wype³niona pozycja w tabeli
+ int iFirst; //aktualna pozycja w tabeli (modulo iSpeedTableSize)
+ int iLast; //ostatnia wype³niona pozycja w tabeli <iFirst (modulo iSpeedTableSize)
  int iTableDirection; //kierunek zape³nienia tabelki wzglêdem pojazdu z AI
  double fLastVel; //prêdkoœæ na poprzednio sprawdzonym torze
- //Byte LPTA;
- //Byte LPTI;
  TTrack *tLast; //ostatni analizowany tor
- float fLastDir; //kierunek na ostatnim torze
+ //float fLastDir; //kierunek na ostatnim torze
  TEvent *eSignSkip; //sygna³ do pominiêcia (przejechany)
- TOrders oMode; //aktualny tryb pracy
-public:
- AnsiString asNextStop; //nazwa najbli¿szego przystanku
  //TTrack tSignLast; //tor z ostatnio znalezionym eventem
-private:
+ //TOrders oMode; //aktualny tryb pracy
+ double fLength; //d³ugoœæ sk³adu (dla ograniczeñ)
  bool __fastcall TableCheckEvent(TEvent *e,bool prox);
  bool __fastcall TableAddNew();
-//public:
- double fLength; //d³ugoœæ sk³adu (dla ograniczeñ)
  void __fastcall TableClear();
  TEvent* __fastcall TableCheckTrackEvent(double fDirection,TTrack *Track);
  void __fastcall TableTraceRoute(double fDistance,int iDir,TDynamicObject *pVehicle=NULL);
  void __fastcall TableCheck(double fDistance,int iDir);
  TCommandType __fastcall TableUpdate(double &fVelDes,double &fDist,double &fNext,double &fAcc);
  void __fastcall TablePurger();
-private: //
+public:
+ AnsiString asNextStop; //nazwa najbli¿szego przystanku
+private: //parametry sterowania pojazdem (stan, hamowanie)
  double fShuntVelocity; //maksymalna prêdkoœæ manewrowania, zale¿y m.in. od sk³adu
- //double fLength; //d³ugoœæ sk³adu (dla ograniczeñ i stawania przed semaforami)
  int iVehicles; //iloœæ pojazdów w sk³adzie
  bool EngineActive; //ABu: Czy silnik byl juz zalaczony
  //vector3 vMechLoc; //pozycja pojazdu do liczenia odleg³oœci od semafora (?)

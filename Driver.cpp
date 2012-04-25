@@ -32,7 +32,7 @@
 #include "Ground.h"
 #include "MemCell.h"
 
-#define LOGVELOCITY 1
+#define LOGVELOCITY 0
 #define LOGSTOPS 1
 #define TESTTABLE 1
 /*
@@ -190,12 +190,16 @@ bool __fastcall TSpeedPos::Update(vector3 *p,vector3 *dir,double &len)
      return true; //jeszcze trzeba skanowanie wykonaæ od tego toru
     }
   }
+#if LOGVELOCITY
   WriteLog("-> Dist="+FloatToStrF(fDist,ffFixed,7,1)+", Track="+tTrack->NameGet()+", Vel="+AnsiString(fVelNext)+", Flags="+AnsiString(iFlags));
+#endif
  }
  else if (iFlags&0x100) //jeœli event
  {//odczyt komórki pamiêci najlepiej by by³o zrobiæ jako notyfikacjê, czyli zmiana komórki wywo³a jak¹œ podan¹ funkcjê
   CommandCheck(); //sprawdzenie typu komendy w evencie i okreœlenie prêdkoœci
+#if LOGVELOCITY
   WriteLog("-> Dist="+FloatToStrF(fDist,ffFixed,7,1)+", Event="+eEvent->asName+", Vel="+AnsiString(fVelNext)+", Flags="+AnsiString(iFlags));
+#endif
  }
  return false;
 };
@@ -236,6 +240,7 @@ void __fastcall TController::TableClear()
  for (int i=0;i<iSpeedTableSize;++i) //czyszczenie tabeli prêdkoœci
   sSpeedTable[i].Clear();
  tLast=NULL;
+ fLastVel=-1; 
 };
 
 bool __fastcall TController::TableCheckEvent(TEvent *e,bool prox)
@@ -251,7 +256,7 @@ bool __fastcall TController::TableCheckEvent(TEvent *e,bool prox)
   {//to siê wykonuje równie¿ sk³adu jad¹cego bez obs³ugi
    case tp_GetValues:
     command=e->CommandGet();
-    if (prox?true:oMode!=Obey_train) //tylko w trybie manewrowym albo sprawdzanie ignorowania
+    if (prox?true:OrderList[OrderPos]!=Obey_train) //tylko w trybie manewrowym albo sprawdzanie ignorowania
      if (command=="ShuntVelocity")
       return true;
     break;
@@ -305,6 +310,7 @@ void __fastcall TController::TableTraceRoute(double fDistance,int iDir,TDynamicO
  double fTrackLength; //d³ugoœæ aktualnego toru (krótsza dla pierwszego)
  double fCurrentDistance; //aktualna przeskanowana d³ugoœæ
  TEvent *pEvent;
+ float fLastDir; //kierunek na ostatnim torze
  if (iTableDirection!=iDir)
  {//jeœli zmiana kierunku, zaczynamy od toru z pierwszym pojazdem
   pTrack=pVehicle->RaTrackGet();
@@ -444,7 +450,9 @@ void __fastcall TController::TableCheck(double fDistance,int iDir)
       }
     }
    }
+#if LOGVELOCITY
    else WriteLog("-> Empty");
+#endif
    if (i==iFirst) //jeœli jest pierwsz¹ pozycj¹ tabeli
    {//pozbycie siê pocz¹tkowej pozycji
     if ((sSpeedTable[i].iFlags&1)==0) //jeœli pozycja istotna (po Update() mo¿e siê zmieniæ)
@@ -636,7 +644,9 @@ void __fastcall TController::TablePurger()
    {//jeœli jest to miniêty (0x20) tor (0x03) do liczenia ciêciw (0x80), a nie zwrotnica (0x08)
     for (;k>0;--k,i=(i+1)%iSpeedTableSize)
      sSpeedTable[i]=sSpeedTable[(i+1)%iSpeedTableSize]; //skopiowanie
+#if LOGVELOCITY
     WriteLog("Odtykacz usuwa pozycjê");
+#endif
     iLast=(iLast-1+iSpeedTableSize)%iSpeedTableSize; //cofniêcie z zawiniêciem
     return;
    }
@@ -655,7 +665,9 @@ void __fastcall TController::TablePurger()
  delete[] sSpeedTable; //to ju¿ nie potrzebne
  sSpeedTable=t; //bo jest nowe
  iSpeedTableSize+=16;
+#if LOGVELOCITY
  WriteLog("Tabelka powiêkszona do "+AnsiString(iSpeedTableSize)+" pozycji");
+#endif
 };
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
@@ -742,8 +754,8 @@ __fastcall TController::TController
  eSignSkip=eSignLast=NULL; //miniêty semafor
  fShuntVelocity=40; //domyœlna prêdkoœæ manewrowa
  fStopTime=0.0; //czas postoju przed dalsz¹ jazd¹ (np. na przystanku)
- iDrivigFlags=moveStopPoint; //flagi bitowe ruchu
- iDrivigFlags|=moveStopHere; //nie podje¿d¿aæ do semafora, jeœli droga nie jest wolna
+ iDrivigFlags=moveStopPoint; //podjedŸ do W4 mo¿liwie blisko
+ iDrivigFlags|=moveStopHere; //nie podje¿d¿aj do semafora, jeœli droga nie jest wolna
  Ready=false;
  if (Controlling->CategoryFlag&2)
  {//samochody: na podst. http://www.prawko-kwartnik.info/hamowanie.html
@@ -760,8 +772,10 @@ __fastcall TController::TController
  AccDesired=AccPreferred;
  fVelMax=-1; //ustalenie prêdkoœci dla sk³adu
  fBrakeTime=0.0; //po jakim czasie przekrêciæ hamulec
+ iVehicles=0; //na wszelki wypadek
  iSpeedTableSize=16;
  sSpeedTable=new TSpeedPos[iSpeedTableSize];
+ TableClear();
 };
 
 void __fastcall TController::CloseLog()
@@ -1734,8 +1748,10 @@ bool __fastcall TController::UpdateSituation(double dt)
   // 2. Sprawdziæ, czy tabelka pokrywa za³o¿ony odcinek (nie musi, jeœli jest STOP).
   // 3. Sprawdziæ, czy trajektoria ruchu przechodzi przez zwrotnice - jeœli tak, to sprawdziæ, czy stan siê nie zmieni³.
   // 4. Ewentualnie uzupe³niæ tabelkê informacjami o sygna³ach i ograniczeniach, jeœli siê "zu¿y³a".
+#if LOGVELOCITY
   WriteLog("");
   WriteLog("Scan table for "+pVehicle->asName+":");
+#endif
   TableCheck(scanmax,iDirection); //wype³nianie tabelki i aktualizacja odleg³oœci
   // 5. Sprawdziæ stany sygnalizacji zapisanej w tabelce, wyznaczyæ prêdkoœci.
   // 6. Z tabelki wyznaczyæ krytyczn¹ odleg³oœæ i prêdkoœæ (najmniejsze przyspieszenie).
@@ -2157,7 +2173,9 @@ bool __fastcall TController::UpdateSituation(double dt)
             }
             ReactionTime=0.2; //zwiêksz czujnoœæ
            }
+#if LOGVELOCITY
            WriteLog("Collision: AccPreffered="+AnsiString(k));
+#endif
           }
          }
         }

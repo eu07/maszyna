@@ -28,6 +28,9 @@
 #include "Timer.h"
 #include "Driver.h"
 #include "Console.h"
+//---------------------------------------------------------------------------
+
+#pragma package(smart_init)
 
 using namespace Timer;
 
@@ -4480,8 +4483,12 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
  return AnsiCompareStr(str,AnsiString("none"));
 }
 
+void __fastcall TTrain::MechStop()
+{//likwidacja ruchu kamery w kabinie (po powrocie przez [F4])
+ pMechPosition=vector3(0,0,0);
+ pMechShake=vector3(0,0,0);
+ vMechMovement=vector3(0,0,0);
+ //pMechShake=vMechVelocity=vector3(0,0,0);
+};
 
 
-//---------------------------------------------------------------------------
-
-#pragma package(smart_init)
