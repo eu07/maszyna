@@ -41,8 +41,8 @@
     <WARNINGS value="-w-par"/>
   </MACROS>
   <OPTIONS>
-    <IDLCFLAGS value="-src_suffix cpp -DGLEW_STATIC -D_DEBUG -Iopengl -IMcZapkie 
-      -I$(BCB)\include -I$(BCB)\include\vcl -boa"/>
+    <IDLCFLAGS value="-Iopengl -IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl -src_suffix cpp 
+      -DGLEW_STATIC -D_DEBUG -boa"/>
     <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a4 -6 -b- -k -y -v -vi- 
       -c -tW -tWM"/>
     <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
@@ -61,8 +61,8 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=1
 MinorVer=7
-Release=563
-Build=345
+Release=564
+Build=346
 Debug=1
 PreRelease=0
 Special=0
@@ -74,7 +74,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.7.563.345
+FileVersion=1.7.564.346
 InternalName=7th by Ra
 LegalCopyright=
 LegalTrademarks=
@@ -115,7 +115,7 @@ Item0=D:\EU07\
 DebugSourceDirs=C:\Ra\dp\McZapkie\
 
 [Parameters]
-RunParams=-s AIdrogtest.scn -v drezynka
+RunParams=
 HostApplication=
 RemoteHost=
 RemotePath=

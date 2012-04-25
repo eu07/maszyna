@@ -136,7 +136,7 @@ TDynamicObject* __fastcall TDynamicObject::GetFirstCabDynamic(int cpl_type)
 
 void TDynamicObject::ABuSetModelShake(vector3 mShake)
 {
-   modelShake=mShake;
+ modelShake=mShake;
 }
 
 

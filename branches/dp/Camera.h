@@ -39,6 +39,7 @@ public:
  bool __fastcall SetMatrix();
  void __fastcall SetCabMatrix(vector3 &p);
  void __fastcall RaLook();
+ void __fastcall Stop();
  //bool __fastcall GetMatrix(matrix4x4 &Matrix);
  vector3 PtNext, PtPrev;
 };

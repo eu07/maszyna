@@ -724,6 +724,9 @@ void __fastcall TWorld::InOutKey()
   Global::pUserDynamic=Controlled; //renerowanie wzglêdem kamery
   Train->DynamicObject->bDisplayCab=true;
   Train->DynamicObject->ABuSetModelShake(vector3(0,0,0)); //zerowanie przesuniêcia przed powrotem?
+  //Camera.Stop(); //zatrzymanie ruchu
+  Train->MechStop();
+  FollowView(); //na pozycjê mecha
  }
 };
 
