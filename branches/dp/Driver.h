@@ -106,6 +106,7 @@ private: //obs³uga tabelki prêdkoœci (musi mieæ mo¿liwoœæ odhaczania stacji w ro
  double fLength; //d³ugoœæ sk³adu (dla ograniczeñ)
  bool __fastcall TableCheckEvent(TEvent *e,bool prox);
  bool __fastcall TableAddNew();
+ bool __fastcall TableNotFound(TEvent *e);
  void __fastcall TableClear();
  TEvent* __fastcall TableCheckTrackEvent(double fDirection,TTrack *Track);
  void __fastcall TableTraceRoute(double fDistance,int iDir,TDynamicObject *pVehicle=NULL);
