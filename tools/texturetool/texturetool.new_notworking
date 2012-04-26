@@ -6,6 +6,7 @@ import os.path
 import subprocess
 import time
 import optparse
+import re
 
 import struct
 
@@ -25,23 +26,18 @@ class ImageParseErrorException(Exception):
 
 class ImageTraits(object):
     def __init__(self, filename):
-
         methodName = 'parse' + filename[filename.rfind('.')+1:].upper()
 
         if not hasattr(self, methodName):
             raise ImageUnsupportedException(filename)
-
-        self.__parseImpl = getattr(self, methodName)
-        self.__input = file(filename)
-        self.parse()
+            
+        with file(filename) as input:
+            parser = getattr(self, methodName)
+            parser(self, input)
 
     def hasAlpha(self): return self.__hasAlpha
     def getWidth(self): return self.__width
     def getHeight(self): return self.__height 
-
-    def parse(self):
-        self.__parseImpl(self.__input)
-        self.__input.close()
 
     def parseTGA(self, input):
         compressed = input.read(12)
@@ -69,7 +65,6 @@ class ImageTraits(object):
         (self.__width, self.__height) = struct.unpack("ii", header)
 
 def locate_files(path, extensions):
-
     result = []
     
     def ext_matches(filename):
@@ -84,9 +79,11 @@ def locate_files(path, extensions):
 
     return result
     
-def compress_textures(path, remove_original):
-    
+def compress_textures(path, remove_original, excludes = None):
     files = locate_files(path, ['tga', 'bmp'])
+    
+    if excludes:
+        files = set(files).difference(excludes)
     
     size = float(len(files))
     index = 1
@@ -101,8 +98,8 @@ def compress_textures(path, remove_original):
 
         output = path[:pos] + '.dds'
 
-	if os.path.exists(output):
-	    continue
+        if os.path.exists(output):
+            continue
 
         cmd = "nconvert -xflip -o %s %s" % (temp, path)
         
@@ -129,24 +126,35 @@ def compress_textures(path, remove_original):
             
         index += 1
         
-def replace_entries(path):
+def replace_entries(path, excludes = None):
+    expr = re.compile(r'([^\n\t\r,; ]+)\.(tga|bmp)', re.IGNORECASE)
     
     for path in locate_files(path, ['scn', 'scm', 'inc', 't3d', 'txt']):  # File format edded: txt - Quark-t
-        
         print path
-        f = file(path, 'r+')
-        content = f.read()
         
-        content = content.replace('.tga', '.dds')
-	content = content.replace('.TGA', '.dds')	#Capital letters extension - Quark-t
-        content = content.replace('.bmp', '.dds')
-        content = content.replace('.BMP', '.dds')	#Capital letters extension - Quark-t
-    
-        f.close()
-
-	f = file(path, 'w+')
-        f.write(content)
-        f.close()
+        with file(path, 'r+') as input:
+            source = input.read()
+            content = None
+            
+            if excludes:
+                content = bytearray()
+                offset = 0
+                
+                for match in expr.finditer(source):
+                    if match.group().lower() not in excludes:
+                        content.extend(source[offset:match.start()])
+                        content.extend(match.expand(r'\1.dds'))
+                        offset = match.end()
+                    else:
+                        content.extend(source[offset:match.end()])
+                        offset = match.end()
+                        
+                content.extend(source[offset:])
+            else:
+                content = re.sub(r'\1.dds', source)
+            
+        with file(path, 'w+') as output:
+            output.write(content)
 
 if __name__ == "__main__":
     parser = optparse.OptionParser("Usage: %prog [options] path")
@@ -154,14 +162,29 @@ if __name__ == "__main__":
     parser.add_option('--update', help = 'Update SCN, SCN, INC and T3D files', action="store_true", dest="update", default = False)
     parser.add_option('--remove-temporary', help = 'Remove temporary files', action="store_true",  dest="remove_temporary", default = False)
     parser.add_option('--remove-originals', help = 'Remove original files', action="store_true", dest="remove_original", default = False)
+    parser.add_option('--excludes', action = 'store', dest = 'excludes', help = 'Comma-separated list of excluded files')
+    parser.add_option('--excludes-file', action = 'store', dest = 'excludesFile', help = 'Name of file containing list of excluded files')
     
     (options, path) = parser.parse_args()
     
     if len(path):
         path = path[0]
     else:
-	print parser.get_usage()
-	exit()
+        print parser.print_help()
+        exit()
+        
+    excludes = None if not options.excludes else set(options.excludes.split(','))
+        
+    if options.excludesFile:
+        if not os.path.exists(options.excludesFile):
+            print "Exclude list file not found!"
+            exit()
+            
+        with file(options.excludesFile) as input: 
+            if excludes:
+                excludes.update(line for line in input)
+            else:
+                excludes = set(line for line in input)
     
     start = time.clock()
     log = file('tt-log.txt', 'w+');
@@ -174,11 +197,11 @@ if __name__ == "__main__":
     
     if options.convert:
         print "*** Compressing textures:"
-        compress_textures(path, options.remove_original); 
+        compress_textures(path, options.remove_original, excludes); 
         
     if options.update:
         print "*** Replacing entries:"
-        replace_entries(path);
+        replace_entries(path, excludes);
     
     print "*** Total time: %1.2f s" % (time.clock() - start)
     
