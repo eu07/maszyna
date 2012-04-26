@@ -641,8 +641,13 @@ void __fastcall TWorld::OnKeyPress(int cKey)
     case VK_F8: //FPS
     case VK_F9: //wersja, typ wyœwietlania, b³êdy OpenGL
     case VK_F10:
-    case VK_F12: //coœ tam jeszcze
      Global::iTextMode=cKey;
+    break;
+    case VK_F12: //coœ tam jeszcze
+     if (Console::Pressed(VK_CONTROL)&&Console::Pressed(VK_SHIFT))
+      DebugModeFlag=!DebugModeFlag; //taka opcjonalna funkcja, mo¿e siê czasem przydaæ
+     else
+      Global::iTextMode=cKey;
     break;
     case VK_F4:
      InOutKey();
