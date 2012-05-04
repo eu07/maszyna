@@ -7,7 +7,7 @@
 #include "TrkFoll.h"
 //#include "Track.h"
 #include "QueryParserComp.hpp"
-#include "AnimModel.h"
+//#include "AnimModel.h"
 //#include "Mover.hpp"
 #include "Mover.h"
 #include "TractionPower.h"

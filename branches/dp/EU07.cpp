@@ -645,7 +645,8 @@ int WINAPI WinMain( HINSTANCE hInstance,     //instance
  }
  else if (Global::iConvertModels<0)
  {Global::iConvertModels=-Global::iConvertModels;
-  World.CreateE3D(); //rekurencyjne przegl¹danie katalogów
+  World.CreateE3D("models\\"); //rekurencyjne przegl¹danie katalogów
+  World.CreateE3D("dynamic\\",true);
  }
  else
  {//g³ówna pêtla programu

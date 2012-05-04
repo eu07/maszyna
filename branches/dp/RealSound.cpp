@@ -202,6 +202,7 @@ DWORD stat;
 
 void __fastcall TRealSound::ResetPosition()
 {
+ if (pSound) //Ra: znowu jakiœ badziew!
   pSound->SetCurrentPosition(0);
 }
 

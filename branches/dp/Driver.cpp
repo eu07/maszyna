@@ -593,8 +593,8 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
    {//je¿eli event, mo¿e byæ potrzeba wys³ania komendy, aby ruszy³
     if (v!=0.0) //jeœli ma jechaæ (stop za³atwia tabelka); 0.1 nie wysy³a siê
      if (go==cm_Unknown)
-     {//jeœli nie by³o takiego wczeœniej - pierwszy siê liczy - ustawianie VelActual
-      if ((OrderCurrentGet()&Obey_train)?false:sSpeedTable[i].iFlags&0x200)
+     {//jeœli nie by³o ¿adnego wczeœniej - pierwszy siê liczy - ustawianie VelActual
+      if ((OrderCurrentGet()&Obey_train)?false:(sSpeedTable[i].iFlags&0x200))
       {//jeœli podana prêdkoœæ manewrowa
        go=cm_ShuntVelocity;
        VelActual=v; //nie do koñca tak, to jest druga prêdkoœæ
@@ -867,6 +867,7 @@ void __fastcall TController::Activation()
    d=iDirectionOrder<0?d->Next():d->Prev(); //przechodzimy do nastêpnego cz³onu
    if (d?!d->Mechanik:false)
    {d->Mechanik=this; //na razie bilokacja
+    d->MoverParameters->SetInternalCommand("",0,0); //usuniêcie ewentualnie zalegaj¹cej komendy (Change_direction?)
     if (d->DirectionGet()!=pVehicle->DirectionGet()) //jeœli s¹ przeciwne do siebie
      iDirection=-iDirection; //to bêdziemy jechaæ w drug¹ stronê wzglêdem zasiedzianego pojazdu
     pVehicle->Mechanik=NULL; //tam ju¿ nikogo nie ma
@@ -989,8 +990,6 @@ void __fastcall TController::SetVelocity(double NewVel,double NewVelNext,TStopRe
  WaitingTime=-WaitingExpireTime; //no albo przypisujemy -WaitingExpireTime, albo porównujemy z WaitingExpireTime
  MaxVelFlag=False; //Ra: to nie jest u¿ywane
  MinVelFlag=False; //Ra: to nie jest u¿ywane
- VelActual=NewVel;   //prêdkoœæ zezwolona na aktualnym odcinku
- VelNext=NewVelNext; //prêdkoœæ przy nastêpnym obiekcie
  if ((NewVel>NewVelNext) //jeœli oczekiwana wiêksza ni¿ nastêpna
   || (NewVel<Controlling->Vel)) //albo aktualna jest mniejsza ni¿ aktualna
   fProximityDist=-800.0; //droga hamowania do zmiany prêdkoœci
@@ -1005,7 +1004,15 @@ void __fastcall TController::SetVelocity(double NewVel,double NewVelNext,TStopRe
   //if (OrderList[OrderPos]&(Obey_train|Shunt)) //jeœli jedzie w dowolnym trybie (nie dotyczy np. ³¹czenia)
   // iDrivigFlags&=~moveStopHere; //to podje¿anie do semaforów zezwolone
   eStopReason=stopNone; //podana prêdkoœæ, to nie ma powodów do stania
+  if (VelNext==0) //jeœli by³o wczeœniej podane zatrzymanie
+   //if (Controlling->Vel==0.0) //jesli stoi (na razie, bo powinien te¿, gdy hamuje przed semaforem)
+    if ((iDrivigFlags&moveStopHere)==0) //o ile nie mia³ staæ w miejscu
+    {fWarningDuration=0.5; //czas tr¹bienia
+     Controlling->WarningSignal=1; //wysokoœæ tonu
+    }
  }
+ VelActual=NewVel;   //prêdkoœæ zezwolona na aktualnym odcinku
+ VelNext=NewVelNext; //prêdkoœæ przy nastêpnym obiekcie
 }
 
 bool __fastcall TController::SetProximityVelocity(double NewDist,double NewVelNext)
@@ -1526,8 +1533,8 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
    OrderNext(Obey_train); //to uruchomiæ jazdê poci¹gow¹ (od razu albo po odpaleniu silnika
    OrderCheck(); //jeœli jazda poci¹gowa teraz, to wykonaæ niezbêdne operacje
   }
-  iDrivigFlags&=~moveStopHere; //podje¿anie do semaforów zezwolone
   SetVelocity(NewValue1,NewValue2,reason); //bylo: nic nie rob bo SetVelocity zewnetrznie jest wywolywane przez dynobj.cpp
+  iDrivigFlags&=~moveStopHere; //podje¿anie do semaforów zezwolone
  }
  else if (NewCommand=="SetProximityVelocity")
  {
@@ -1554,8 +1561,8 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
   //dla prêdkoœci ujemnej przestawiæ nawrotnik do ty³u? ale -1=brak ograniczenia !!!!
   //if (Prepare2press) WriteLog("Skasowano docisk w ShuntVelocity!");
   Prepare2press=false; //bez dociskania
-  iDrivigFlags&=~moveStopHere; //podje¿anie do semaforów zezwolone
   SetVelocity(NewValue1,NewValue2,reason);
+  iDrivigFlags&=~moveStopHere; //podje¿anie do semaforów zezwolone
   if (fabs(NewValue1)>2.0) //o ile wartoœæ jest sensowna (-1 nie jest konkretn¹ wartoœci¹)
    fShuntVelocity=fabs(NewValue1); //zapamiêtanie obowi¹zuj¹cej prêdkoœci dla manewrów
  }
@@ -1979,7 +1986,7 @@ bool __fastcall TController::UpdateSituation(double dt)
       ++OrderPos;
     }
    break;
-   case Wait_for_orders: //jeœli czeka
+   case Wait_for_orders: //jeœli czeka, te¿ ma skanowaæ, ¿eby odpaliæ siê od semafora
 /*
      if ((Controlling->ActiveDir!=0))
      {//jeœli jest wybrany kierunek jazdy, mo¿na ustaliæ prêdkoœæ jazdy
@@ -1993,7 +2000,7 @@ bool __fastcall TController::UpdateSituation(double dt)
       TCommandType comm=TableUpdate(Controlling->Vel,VelDesired,ActualProximityDist,VelNext,AccDesired); //szukanie optymalnych wartoœci
      }
 */
-   break;
+   //break;
    case Shunt:
    case Obey_train:
    case Connect:
@@ -2224,6 +2231,10 @@ bool __fastcall TController::UpdateSituation(double dt)
      }
 #endif
      //sprawdzamy mo¿liwe ograniczenia prêdkoœci
+     if (iDrivigFlags&moveStopHere) //jeœli ma czekaæ na woln¹ drogê
+      if (Controlling->Vel==0.0) //a stoi
+       if (VelNext==0.0) //a wyjazdu nie ma
+        VelDesired=0.0; //to ma staæ
      if (fStopTime<=0) //czas postoju przed dalsz¹ jazd¹ (np. na przystanku)
       VelDesired=0.0; //jak ma czekaæ, to nie ma jazdy
      //else if (VelActual<0)
@@ -2562,8 +2573,12 @@ void __fastcall TController::OrderPush(TOrders NewOrder)
 
 void __fastcall TController::OrdersDump()
 {//wypisanie kolejnych rozkazów do logu
- for (int b=0;b<maxorders;b++)
-  WriteLog(AnsiString(b)+": "+Order2Str(OrderList[b])+(OrderPos==b?" <-":""));
+ for (int b=0;b<maxorders;++b)
+ {WriteLog(AnsiString(b)+": "+Order2Str(OrderList[b])+(OrderPos==b?" <-":""));
+  if (b) //z wyj¹tkiem pierwszej pozycji
+   if (OrderList[b]==Wait_for_orders) //jeœli koñcowa komenda
+    break; //dalej nie trzeba
+ }
 };
 
 TOrders __fastcall TController::OrderCurrentGet()

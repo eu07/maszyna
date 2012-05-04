@@ -2584,7 +2584,10 @@ bool __fastcall TGround::InitEvents()
                SafeDeleteArray(Current->Params[i].asText);
                Current->Params[i].asEvent=FindEvent(buff);
                if (!Current->Params[i].asEvent) //Ra: tylko w logu informacja o braku
-                WriteLog(AnsiString("Event \"")+AnsiString(buff)+AnsiString("\" does not exist"));
+                if (AnsiString(Current->Params[i].asText).SubString(1,5)!="none_")
+                {WriteLog(AnsiString("Event \"")+AnsiString(buff)+AnsiString("\" does not exist"));
+                 ErrorLog("Missed event: "+AnsiString(buff)+" in multiple "+Current->asName);
+                }
               }
              }
             break;
