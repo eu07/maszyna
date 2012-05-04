@@ -114,6 +114,7 @@ private: //obs³uga tabelki prêdkoœci (musi mieæ mo¿liwoœæ odhaczania stacji w ro
  TCommandType __fastcall TableUpdate(double &fVelDes,double &fDist,double &fNext,double &fAcc);
  void __fastcall TablePurger();
 public:
+ TEvent *eLastCommand; //ostatnio wys³ana komenda
  AnsiString asNextStop; //nazwa najbli¿szego przystanku
 private: //parametry sterowania pojazdem (stan, hamowanie)
  double fShuntVelocity; //maksymalna prêdkoœæ manewrowania, zale¿y m.in. od sk³adu

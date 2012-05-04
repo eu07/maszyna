@@ -1227,6 +1227,7 @@ bool __fastcall TWorld::Update()
 
     if (Global::changeDynObj==true)
     {//ABu zmiana pojazdu - przejœcie do innego
+     //Ra: to nie mo¿e byæ tak robione, to zbytnia proteza jest
      Train->dsbHasler->Stop(); //wy³¹czenie dŸwiêków opuszczanej kabiny
      Train->dsbBuzzer->Stop();
      if (Train->dsbSlipAlarm) Train->dsbSlipAlarm->Stop(); //dŸwiêk alarmu przy poœlizgu
@@ -1262,23 +1263,28 @@ bool __fastcall TWorld::Update()
 ///     SafeDelete(Train->DynamicObject->Mechanik);
 
      //Train->DynamicObject->mdKabina=NULL;
-     temp->Mechanik=Train->DynamicObject->Mechanik; //przejêcie obiektu zarz¹dzaj¹cego
-     Train->DynamicObject=NULL;
+     if (Train->DynamicObject->Mechanik) //AI mo¿e sobie samo pójœæ
+      if (!Train->DynamicObject->Mechanik->AIControllFlag) //tylko jeœli rêcznie prowadzony
+       temp->Mechanik=Train->DynamicObject->Mechanik; //przejêcie obiektu zarz¹dzaj¹cego
+     //Train->DynamicObject=NULL;
      Train->DynamicObject=temp;
      Controlled=Train->DynamicObject;
      Global::asHumanCtrlVehicle=Train->DynamicObject->GetName();
 //     Train->DynamicObject->MoverParameters->BrakeCtrlPos=-2;
-     Train->DynamicObject->MoverParameters->LimPipePress=Controlled->MoverParameters->PipePress;
+     if (Train->DynamicObject->Mechanik) //AI mo¿e sobie samo pójœæ
+      if (!Train->DynamicObject->Mechanik->AIControllFlag) //tylko jeœli rêcznie prowadzony
+      {Train->DynamicObject->MoverParameters->LimPipePress=Controlled->MoverParameters->PipePress;
 //     Train->DynamicObject->MoverParameters->ActFlowSpeed=0;
-     Train->DynamicObject->MoverParameters->SecuritySystem.Status=1;
-     Train->DynamicObject->MoverParameters->ActiveCab=CabNr;
-     Train->DynamicObject->MoverParameters->CabDeactivisation();
-     Train->DynamicObject->Controller=Humandriver;
-     Train->DynamicObject->MechInside=true;
+       Train->DynamicObject->MoverParameters->SecuritySystem.Status=1;
+       Train->DynamicObject->MoverParameters->ActiveCab=CabNr;
+       Train->DynamicObject->MoverParameters->CabDeactivisation();
+       Train->DynamicObject->Controller=Humandriver;
+       Train->DynamicObject->MechInside=true;
 ///     Train->DynamicObject->Mechanik=new TController(l,r,Controlled->Controller,&Controlled->MoverParameters,&Controlled->TrainParams,Aggressive);
      //Train->InitializeCab(Train->DynamicObject->MoverParameters->CabNo,Train->DynamicObject->asBaseDir+Train->DynamicObject->MoverParameters->TypeName+".mmd");
-     Train->InitializeCab(CabNr,Train->DynamicObject->asBaseDir+Train->DynamicObject->MoverParameters->TypeName+".mmd");
-     if (!FreeFlyModeFlag) Train->DynamicObject->bDisplayCab=true;
+       Train->InitializeCab(CabNr,Train->DynamicObject->asBaseDir+Train->DynamicObject->MoverParameters->TypeName+".mmd");
+       if (!FreeFlyModeFlag) Train->DynamicObject->bDisplayCab=true;
+      }
      Global::changeDynObj=false;
     }
 
@@ -1436,7 +1442,8 @@ bool __fastcall TWorld::Update()
       if (tmp)
        if (tmp!=Controlled)
        {if (Controlled) //jeœli mielismy pojazd
-         Controlled->Mechanik->TakeControl(true); //oddajemy dotychczasowy AI
+         if (Controlled->Mechanik) //na skutek jakiegoœ b³êdu mo¿e czasem znikn¹æ
+          Controlled->Mechanik->TakeControl(true); //oddajemy dotychczasowy AI
         if (DebugModeFlag?true:tmp->MoverParameters->Vel<=5.0)
         {Controlled=tmp; //przejmujemy nowy
          if (!Train) //jeœli niczym jeszcze nie jeŸdzilismy
@@ -1932,7 +1939,7 @@ void __fastcall TWorld::ModifyTGA(const AnsiString &dir)
  }
 };
 //---------------------------------------------------------------------------
-void __fastcall TWorld::CreateE3D(const AnsiString &dir)
+void __fastcall TWorld::CreateE3D(const AnsiString &dir,bool dyn)
 {//rekurencyjna generowanie plików E3D
  TSearchRec sr;
  if (FindFirst(dir+"*.*",faDirectory|faArchive,sr)==0)
@@ -1940,10 +1947,15 @@ void __fastcall TWorld::CreateE3D(const AnsiString &dir)
   {
    if (sr.Name[1]!='.')
     if ((sr.Attr&faDirectory)) //jeœli katalog, to rekurencja
-     CreateE3D(dir+sr.Name+"/");
+     CreateE3D(dir+sr.Name+"\\");
     else
      if (sr.Name.LowerCase().SubString(sr.Name.Length()-3,4)==".t3d")
-      TModelsManager::GetModel(AnsiString(dir+sr.Name).c_str());
+     {
+      if (dyn) //pojazdy maj¹ tekstury we w³asnych katalogach
+       Global::asCurrentTexturePath=dir;
+      //konwersja pojazdów bêdzie u³omna, bo nie poustawiaj¹ siê animacje na submodelach okreœlonych w MMD
+      TModelsManager::GetModel(AnsiString(dir+sr.Name).c_str(),dyn);
+     }
   } while (FindNext(sr)==0);
   FindClose(sr);
  }

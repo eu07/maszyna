@@ -52,7 +52,7 @@ __fastcall TEventLauncher::TEventLauncher()
 
 __fastcall TEventLauncher::~TEventLauncher()
 {
-    SafeDeleteArray(szText);
+ SafeDeleteArray(szText);
 }
 
 void __fastcall TEventLauncher::Init()

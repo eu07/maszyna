@@ -30,7 +30,7 @@
 #include "parser.h"
 #include "Mover.h"
 #include "DynObj.h"
-
+#include "AnimModel.h"
 
 #pragma package(smart_init)
 

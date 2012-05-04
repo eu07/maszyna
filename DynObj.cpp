@@ -133,12 +133,10 @@ TDynamicObject* __fastcall TDynamicObject::GetFirstCabDynamic(int cpl_type)
  return NULL; //to tylko po wyczerpaniu pêtli
 };
 
-
 void TDynamicObject::ABuSetModelShake(vector3 mShake)
 {
  modelShake=mShake;
-}
-
+};
 
 int __fastcall TDynamicObject::GetPneumatic(bool front, bool red)
 {
