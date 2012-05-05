@@ -17,6 +17,7 @@
 #include "AdvSound.h"
 #include "Button.h"
 #include "AirCoupler.h"
+#include "ParticlesSmokev2.h" //dym
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
@@ -229,13 +230,13 @@ public:
 
 //youBy
     TRealSound rsDiesielInc;
+    float fincvol;
 //youBy
     TRealSound rscurve;
 
 //youBy - dym
-    //TSmoke Smog;
-    //float EmR;
-    //vector3 smokeoffset;
+    TSmoke Smog;
+    vector3 smokeoffset;
 
     TDynamicObject *NextConnected; //pojazd pod³¹czony od strony sprzêgu 1 (kabina -1)
     TDynamicObject *PrevConnected; //pojazd pod³¹czony od strony sprzêgu 0 (kabina 1)

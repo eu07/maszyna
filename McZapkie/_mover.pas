@@ -3544,8 +3544,8 @@ begin
       if RventRot>0.9*dizel_nmin then //jesli powyzej zaplonu
        begin
         if not Flat then //jesli nie bocznikujesz
-          if (Heating) and (MainCtrlPos<9) then  //przy wlaczonym grzaniu i na niskich pozycjach
-            RventCutoff:=RventCutOff+Min0R(Max0R(-100,DElist[9].RPM-RventCutOff),50)*dt  //wez obroty i tak z 7 pozycji
+          if (Heating) and (MainCtrlPos<7+2) then  //przy wlaczonym grzaniu i na niskich pozycjach
+            RventCutoff:=RventCutOff+Min0R(Max0R(-100,DElist[7+2].RPM-RventCutOff),50)*dt  //wez obroty i tak z 7 pozycji
           else           //ustaw od razu minimalne        i przechodz plynnie
             RventCutoff:=Max0R(RventCutOff,DElist[0].RPM)+Min0R(Max0R(-100,DElist[MainCtrlPos].RPM-RventCutOff),50)*dt  //regulator
        end
@@ -3563,8 +3563,9 @@ begin
       while (RventRot>SST[i+1].Umax) do inc(i); //szukaj pozycji w tabelce mocy
 //      ScndCtrlPos:=i;
       dmoment:=SST[i].Pmax+(SST[i+1].Pmax-SST[i].Pmax)/(SST[i+1].Umax-SST[i].Umax)*(RventRot-SST[i].Umax); //interpolacja liniowa z tabelki mocy max na pozycji
-      if (Heating) and (RventRot>DElist[8].RPM) then //jesli grzanie i dobre obroty
+      if (Heating) and (RventRot>DElist[7+2-1].RPM) then //jesli grzanie i dobre obroty
         dmoment:=dmoment-HeatingPower; //odejmij moc pradnicy
+      dmoment:=dmoment-Itot*Itot*CircuitRes/1000;  
       dtrans:=(dmoment-dizel_Mstand*RVentRot); //odejmij opory zatrzymania
       dmoment:=dmoment*dizel_fill/RventRot-dizel_Mstand-EnginePower/1000/RventRot; //przelicz rzeczywiste na moment
       RventRot:=RventRot+(dmoment/dizel_AIM*dt); //przelicz obroty
@@ -3676,16 +3677,12 @@ begin
    DieselElectric:    //youBy
      begin
         PosRatio:=RventRot/DE_nnom; //stosunek obrotow do nominalnych
-        if (Heating) and (MainCtrlPos=2) then //jesli grzanie i druga pozycja (S)
-        Vhyp:=Vhyp/2;                         //to dolacz opor R4 - proteza!
         PowerCorRatio:={PowerCorRatio*(1-dt)+dt*}DElist[MainCtrlPos].Umax; //sterowanie napieciem (druga kolumna regulacji)
-        Voltage:={(1-dt)*Voltage+dt*}
+        Voltage:={(1-20*dt)*Voltage+20*dt*}
         (DE_Ulim*PosRatio*0.5*(Vhyp*DElist[MainCtrlPos].Imax+PowerCorRatio)          //graniczne napiecie
-        +(DE_Ulim*DE_Ilim/10)/(Itot/(PosRatio*Vhyp*DElist[MainCtrlPos].Imax+0.0001)-DE_Ilim+1)   //spadek z chk zewnetrznej, +1 na zapas
-        -CircuitRes*Itot                                    //opor uzwojen
+        +(DE_Ulim*DE_Ilim/10)/(Itot/(PosRatio*Vhyp*DElist[MainCtrlPos].Imax+0.000)-DE_Ilim+0)   //spadek z chk zewnetrznej, +1 na zapas
+        -DE_P0*Itot                                    //opor uzwojen
         );
-        if (Heating) and (MainCtrlPos=2) then //jesli grzanie i druga pozycja (S)
-        Vhyp:=Vhyp*2;                         //to przywroc regulatorowi wzbudzenie - antyproteza
 
         if (DElist[MainCtrlPos].GenPower>0) then //jesli zamkniete liniowe
           Vadd:=EnginePower/1000/dtrans          //wspolczynnik mocy
@@ -3693,68 +3690,176 @@ begin
           Vadd:=0;
 //        if (EnginePower/1000>DElist[MainCtrlPos].GenPower*1.005) then
         if (EnginePower/1000>dtrans*1.005) then //malenie wzbudzenia przy przeciazeniu
-        Vhyp:=Vhyp-dt/7;
+        Vhyp:=Vhyp-dt/7*0.8;
 
         if (EnginePower/1000<dtrans*0.995) then //wzrost wzbudzenia przy niedociazeniu
-        Vhyp:=Vhyp+dt/12;
+        Vhyp:=Vhyp+dt/13*0.8;
 
-        Vhyp:=Min0R(Max0R(Vhyp,0.6),1);  //ogranicz wzbudzenie w granicach
+        Vhyp:=Min0R(Max0R(Vhyp,0.2),1);  //ogranicz wzbudzenie w granicach
 
-        if Voltage>DE_Ulim*PosRatio then begin Voltage:=0; Itot:=0; end;  //zabezpieczenie
-        if Itot>DE_Ilim*PosRatio then begin Voltage:=0; Itot:=0; end;     //dla pradnicy
+        if Voltage>(DE_Ulim*PosRatio*0.5*(Vhyp*DElist[MainCtrlPos].Imax+PowerCorRatio)) then begin Voltage:=0; {Itot:=0;} end;  //zabezpieczenie
+//        if Itot>DE_Ilim*PosRatio then begin Voltage:=0; Itot:=0; end;     //dla pradnicy
 
 //        if EnginePower/1000>DElist[MainCtrlPos].GenPower then
 //          Voltage:=1000*DElist[MainCtrlPos].GenPower/Itot;
         Voltage:=Max0R(Voltage,0); //napiecie zawsze dodatnie
-        if MainCtrlPos<=1 then //to bylo do czegos, ale chyba nie potrzeba juz
+        if DElist[MainCtrlPos].GenPower<=1 then //to bylo do czegos, ale chyba nie potrzeba juz
          begin
 //          Vhyp:=0.7;
+           Voltage:=0;
          end;
         dtrans:=CurrentDE(DirAbsolute*enrot,Voltage); //tymczasowa zmienna do pradu
-        Itot:=(1-5.5*dt)*Itot+5.5*dt*NPoweredAxles*Max0R(dtrans,0); //plyna zmiana pradu, ale tylko jesli dodatni
+//        if dtrans>PosRatio*Vhyp*DElist[MainCtrlPos].Imax*DE_Ilim*0.9999
+        dtrans:=Min0R(dtrans,PosRatio*Vhyp*DElist[MainCtrlPos].Imax*DE_Ilim*0.9999);
+        Itot:=(1-2.5*dt)*Itot+2.5*dt*NPoweredAxles*Max0R(dtrans,0); //plynna zmiana pradu, ale tylko jesli dodatni
         Im:=Itot/NPoweredAxles;   {calkowity silnika * ilosc galezi}
         Mm:=MomentumDE(Im);       //moment silnika
 //boczniki SU46stajl
-        if (Flat) then //jesli bocznikujesz
+        case (RelayType) of
+        46:
          begin
-          if (LastRelayTime>0) then //ustaw czas
-            LastRelayTime:=-6; //operacja zajmie 6 sekund
-          if LastRelayTime<-1 then //przez 5 zmniejszaj wzbudzenie
-            Vhyp:=Vhyp-dt/4
-          else                //potem
+          if (Flat) then //jesli bocznikujesz
            begin
-            inc(ScndCtrlPos); //dorzuc bok
-            LastRelayTime:=LastRelayTime+1;
-            Flat:=false;      //i uznaj, ze wrzucon
+//            if (LastRelayTime>0) then //ustaw czas
+//              LastRelayTime:=-4; //operacja zajmie 4 sekundy
+//            if LastRelayTime<-1 then //przez 5 zmniejszaj wzbudzenie
+              Vhyp:=Vhyp-dt/4;
+//            else                //potem
+            if Vhyp<0.501 then
+             begin
+//              inc(ScndCtrlPos); //dorzuc bok
+              Flat:=false;      //i uznaj, ze wrzucon
+              LastRelayTime:=0;
+              if ScndCtrlPos<ScndCtrlActualPos then
+              inc(ScndCtrlPos); //dorzuc bok
+             end;
            end;
-         end;
 
-        if (Im<280) then ShuntMode:= true;
-        if (Im>365) then ShuntMode:=false;        
+          if (Im<280) then ShuntMode:= true; //PB wylaczony - bocznikowac
+          if (Im>365) then ShuntMode:=false; //PB wlaczony  - nie bocznikowac
 
-        if (ShuntMode) and (Vhyp>0.9999) and (MainCtrlPos>11) and (ScndCtrlPos<ScndCtrlPosNo) and (LastRelayTime>CtrlDelay) then
-        if ((ScndCtrlPos<1)or(Vel>40))and((ScndCtrlPos<3)or(Vel>50))then
-         begin
-          Flat:=true;                   //zacznij procedure boka
-          RventCutOff:=RventCutOff+150; //szalejacy regulator
-//          inc(ScndCtrlPos);
-          LastRelayTime:=0;             //zeruj czas
-         end;
-        if (not ShuntMode) and (ScndCtrlPos>0) and (LastRelayTime>CtrlDelay) then
-         begin
-          if ((ScndCtrlPos>3)or(Vel<50))and((ScndCtrlPos>1)or(Vel<40)) then
+          if (Vhyp>0.9999) then
+            if (ScndCtrlActualPos>ScndCtrlPos) then
+             begin
+              Flat:=true;
+              RventCutOff:=RventCutOff+150; //szalejacy regulator
+             end;
+          if (ShuntMode) {and (Vhyp>0.9999)} and (MainCtrlPos>11) and (ScndCtrlActualPos<ScndCtrlPosNo) {and (((ScndCtrlPos<>2)and(ScndCtrlActualPos<>2))or(LastRelayTime>5))} then
+          if ((ScndCtrlActualPos<1)or(Vel>40))and((ScndCtrlActualPos<3)or(Vel>50))then
            begin
-            dec(ScndCtrlPos);             //wrzuc bok
-            if ScndCtrlPos=2 then
-              ShuntMode:=true;
+//            Flat:=true;                   //zacznij procedure boka
+            inc(ScndCtrlActualPos);
+//            RventCutOff:=RventCutOff+150; //szalejacy regulator
+//            inc(ScndCtrlPos);
             LastRelayTime:=0;             //zeruj czas
-           end; 
-         end;
-        if (MainCtrlPos<11) and (ScndCtrlPos>2) then //ponizej 9 wywal III i IV
-          dec(ScndCtrlPos);
-        if (MainCtrlPos<8) and (ScndCtrlPos>0) then //ponizej 6 wywal wszystkie
-          dec(ScndCtrlPos);
+           end;
+          if (not ShuntMode) and (ScndCtrlPos>0) and (LastRelayTime>CtrlDelay) then
+           begin
+            if ((ScndCtrlPos>3)or(Vel<50))and((ScndCtrlPos>1)or(Vel<40)) then
+             begin
+              dec(ScndCtrlActualPos);
+              dec(ScndCtrlPos);             //wrzuc bok
+              if ScndCtrlPos=2 then
+                ShuntMode:=true;
+              LastRelayTime:=0;             //zeruj czas
+             end;
+           end;
+          if (MainCtrlPos<11) and (ScndCtrlPos>2) then //ponizej 9 wywal III i IV
+           begin
+            dec(ScndCtrlActualPos);
+            dec(ScndCtrlPos);
+           end;
+          if (MainCtrlPos<8) and (ScndCtrlPos>0) then //ponizej 6 wywal wszystkie
+           begin
+            dec(ScndCtrlActualPos);
+            dec(ScndCtrlPos);
+           end;
+         end; {end46}
+        146:
+         begin
+          if (Flat) then //jesli bocznikujesz
+           begin
+              if ScndCtrlPos<ScndCtrlActualPos then
+              inc(ScndCtrlPos); //dorzuc bok
+              RventCutOff:=RventCutOff+75*dt;
+              Vhyp:=Vhyp-dt/4;  //odwzbudzaj
+            if Vhyp<0.501 then
+             begin
+              Flat:=false;      //i uznaj, ze wrzucon
+             end;
+           end;
 
+          if (Im<280) then ShuntMode:= true; //PB wylaczony - bocznikowac
+          if (Im>365)or(MainCtrlPos<6+2) then ShuntMode:=false; //PB wlaczony  - nie bocznikowac
+
+//          if (Vhyp>0.9999) then
+            if (ScndCtrlActualPos>ScndCtrlPos) then
+             begin
+              Flat:=true;
+//              RventCutOff:=RventCutOff+150; //szalejacy regulator
+             end;
+          if (MainCtrlPos>11) and (ScndCtrlActualPos<ScndCtrlPosNo) and (LastRelayTime>CtrlDelay) then
+          if ((ScndCtrlActualPos<1)and(ShuntMode)) or
+             ((ScndCtrlActualPos<2)and(Vel>40+1))  or
+             (Vel>50+1) then
+           begin
+//            Flat:=true;                   //zacznij procedure boka
+            inc(ScndCtrlActualPos);
+//            RventCutOff:=RventCutOff+150; //szalejacy regulator
+//            inc(ScndCtrlPos);
+            LastRelayTime:=0;             //zeruj czas
+           end;
+          if (ScndCtrlPos>0) and (LastRelayTime>CtrlDelay) then
+           begin
+            if ((ScndCtrlPos>3)and(Vel<50-1))or((ScndCtrlPos>1)and(Vel<40-1))or((ScndCtrlPos=1) and (not ShuntMode)) then
+             begin
+              dec(ScndCtrlActualPos);       //wrzuc bok
+              dec(ScndCtrlPos);             //wrzuc bok
+              if ScndCtrlPos=2 then
+                ShuntMode:=true;
+              LastRelayTime:=0;             //zeruj czas
+             end;
+           end;
+          if (MainCtrlPos<11) and (ScndCtrlPos>2) then //ponizej 9 wywal III i IV
+           begin
+            dec(ScndCtrlActualPos);
+            dec(ScndCtrlPos);
+           end;
+          if (MainCtrlPos<8) and (ScndCtrlPos>0) then //ponizej 6 wywal wszystkie
+           begin
+            dec(ScndCtrlActualPos);
+            dec(ScndCtrlPos);
+           end;
+         end; {end146}
+        246:
+         begin
+          if (MainCtrlPos>5+2) and (ScndCtrlActualPos<ScndCtrlPosNo) then
+            if (ScndCtrlActualPos=0) or
+               ((ScndCtrlActualPos=1)and(Vel>40+1))or
+               (ScndCtrlActualPos=2)and(Vel>40+1)and(MainCtrlPos>8+2)or
+               ((Vel>50+1)and(MainCtrlPos>8+2)) then
+              inc(ScndCtrlActualPos);
+          if (ScndCtrlActualPos>0) and (LastRelayTime>CtrlDelay) then
+            if ((ScndCtrlActualPos>3)and(Vel<50-1))or((ScndCtrlActualPos>1)and(Vel<40-1))then
+              dec(ScndCtrlActualPos);
+
+          if (MainCtrlPos<9+2) and (ScndCtrlActualPos>2) then //ponizej 9 wywal III i IV
+            dec(ScndCtrlActualPos);
+          if (MainCtrlPos<6+2) and (ScndCtrlActualPos>0) then //ponizej 6 wywal wszystkie
+            dec(ScndCtrlActualPos);
+
+          if (ScndCtrlPos<ScndCtrlActualPos) and (LastRelayTime>CtrlDelay) then
+           begin
+            inc(ScndCtrlPos);
+            LastRelayTime:=0;             //zeruj czas
+           end;
+          if (ScndCtrlPos>ScndCtrlActualPos) and (LastRelayTime>CtrlDelay) then
+           begin
+            dec(ScndCtrlPos);
+            LastRelayTime:=0;             //zeruj czas
+           end;
+         end; {end246}
+        end; {case}
 
         LastRelayTime:=LastRelayTime+dt;
 
@@ -3762,6 +3867,7 @@ begin
         Mw:=Mm*Transmision.Ratio*DirAbsolute;
         Fw:=Mw*2.0/WheelDiameter;
         Ft:=Fw*NPoweredAxles;                {sila trakcyjna}
+//        EnginePower:=EnginePower*sign(Voltage);
      end; { DE}
    None: begin end;
    {EZT: begin end;}
@@ -6365,7 +6471,7 @@ begin
             RlistSize:=s2b(DUE(ExtractKeyWord(lines,'Size=')));
             DE_Ulim:=s2rE(DUE(ExtractKeyWord(lines,'Ulim=')));
             DE_Ilim:=s2rE(DUE(ExtractKeyWord(lines,'Ilim=')));
-            DE_P0:=s2rE(DUE(ExtractKeyWord(lines,'P0=')));
+            DE_P0:=s2rE(DUE(ExtractKeyWord(lines,'R=')));
             DE_nnom:=s2rE(DUE(ExtractKeyWord(lines,'nnom=')));
             for k:=0 to RlistSize do
             begin

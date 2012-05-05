@@ -1435,11 +1435,11 @@ bool __fastcall TWorld::Update()
           OutText2+= AnsiString("@") + FloatToStrF(Controlled->MoverParameters->Vhyp,ffFixed,6,3);
           OutText2+= AnsiString("/") + FloatToStrF(Controlled->MoverParameters->Vadd,ffFixed,6,3);
           OutText2+= AnsiString("/") + FloatToStrF(Controlled->MoverParameters->dizel_fill,ffFixed,6,3);
-          OutText2+= AnsiString("/") + FloatToStrF(Controlled->MoverParameters->RventRot,ffFixed,6,3);
+          OutText2+= AnsiString("/") + FloatToStrF(Controlled->MoverParameters->RventRot,ffFixed,4,0);
 //      else
 //          OutText2+= AnsiString("; nastawnik S") + Controlled->MoverParameters->MainCtrlPos;
 
-      OutText2+=AnsiString("; B: ")+Controlled->MoverParameters->ScndCtrlPos;
+      OutText2+=AnsiString("; B")+AnsiString(Controlled->MoverParameters->ShuntMode?"+: ":"-: ")+Controlled->MoverParameters->ScndCtrlPos;
       OutText2+=AnsiString("; I=")+FloatToStrF(Controlled->MoverParameters->Itot,ffFixed,6,2);
       //OutText2+=AnsiString("; I2=")+FloatToStrF(Controlled->NextConnected->MoverParameters->Im,ffFixed,6,2);
       OutText2+=AnsiString("; V=")+FloatToStrF(Controlled->MoverParameters->Voltage,ffFixed,5,1);
