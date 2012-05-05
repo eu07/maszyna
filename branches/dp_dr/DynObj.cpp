@@ -1365,6 +1365,13 @@ double __fastcall TDynamicObject::Init(
   if (smBuforPrawy[i])
    smBuforPrawy[i]->WillBeAnimated();
  }
+//youBy - proba dymku
+ if ((MoverParameters->EngineType==DieselElectric)&&(smokeoffset.Length()!=0))
+ {
+  Smog.Init(0.1f);
+ }
+ else
+  Smog.~TSmoke();
  for (int i=0;i<iAxles;i++) //wyszukiwanie osi (0 jest na koñcu, dlatego dodajemy d³ugoœæ?)
   dRailPosition[i]=(Reversed?-dWheelsPosition[i]:(dWheelsPosition[i]+MoverParameters->Dim.L))+fDist;
  //McZapkie-250202 end.
@@ -2243,6 +2250,29 @@ if (tmpTraction.TractionVoltage==0)
      dDoorMoveR=0;
    }
 
+//youBy - proba dymu
+   if (smokeoffset.y>0)
+    {
+     float p2m=0;
+     float sVel=0;
+     float nPartAge=0;
+     if (MoverParameters->Mains)
+      {
+          p2m=Integer(0.49+300.0f*(MoverParameters->dizel_fill<0.5f?0:2*MoverParameters->dizel_fill)*dt1);
+          sVel=5*MoverParameters->dizel_fill*(MoverParameters->RventRot/MoverParameters->DE_nnom);
+//          nPartAge=MoverParameters->EnginePower/2000;
+          nPartAge=MoverParameters->dizel_fill*MoverParameters->dizel_fill*4;
+      }
+     vector3 temporarpos;
+//     temporarpos=smokeoffset;
+     temporarpos.z+=(random(100)>50?0:+1.8);
+     temporarpos.RotateY(-modelRot.z);
+     temporarpos+=vector3(-l.X,l.Z,l.Y);
+     Smog.Update(dt1, temporarpos, sVel, nPartAge, p2m);
+// TSmoke::Update(float dt, vector3 nPos, float nV, float newAge, int Part2Make)
+    }
+
+
 
 //ABu-160303 sledzenie toru przed obiektem: *******************************
  //Z obserwacji: v>0 -> Coupler 0; v<0 ->coupler1 (Ra: prêdkoœæ jest zwi¹zana z pojazdem)
@@ -2580,6 +2610,10 @@ bool __fastcall TDynamicObject::Render()
   }
   glPopMatrix();
   if (btnOn) TurnOff(); //przywrócenie domyœlnych pozycji submodeli
+  if ((smokeoffset.y>0))
+   {
+//    Smog.Render();
+   }
  } //yB - koniec mieszania z grafika
 
 
@@ -2691,6 +2725,15 @@ bool __fastcall TDynamicObject::Render()
          vol= (0.8+0.0002f*MoverParameters->EnginePower/MoverParameters->Power);
          freq= MoverParameters->RventRot/(MoverParameters->DElist[0].RPM);
          sConverter.UpdateAF(vol,freq,MechInside,GetPosition());
+
+         vol= MoverParameters->dizel_fill;
+         fincvol=fincvol*(1-dt/4)+vol*dt/4;
+         rsDiesielInc.AdjFreq(2*freq, dt);
+//         if (fincvol>0.05)
+//           rsDiesielInc.Play(fincvol-0.05,DSBPLAY_LOOPING,MechInside,GetPosition());
+//         else
+           rsDiesielInc.Stop();
+
 
          if (rsWentylator.AM!=0)
           {
@@ -3314,6 +3357,13 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
          {
           str=Parser->GetNextSymbol();
           smMechanik=mdModel->GetFromName(str.c_str());
+         }
+        else
+        if (str==AnsiString("smoke:"))              //wspolrzedne komina
+         {
+          smokeoffset.x= Parser->GetNextSymbol().ToDouble();
+          smokeoffset.y= Parser->GetNextSymbol().ToDouble();
+          smokeoffset.z= Parser->GetNextSymbol().ToDouble();
          }
         else
         if (str==AnsiString("animdoorprefix:"))           //nazwa animowanych dzwi
