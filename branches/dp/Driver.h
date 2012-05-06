@@ -31,7 +31,9 @@ enum TMovementStatus
  moveBackwardLook=16, //skanowanie torów w przeciwn¹ stronê w celu zmiany kierunku
  moveConnect=0x20, //jest blisko innego pojazdu i mo¿na próbowaæ pod³¹czyæ
  movePrimary=0x40, //ma priorytet w sk³adzie
- moveStopHere=0x80 //nie podje¿d¿aæ do semafora, jeœli droga nie jest wolna
+ moveStopHere=0x80, //nie podje¿d¿aæ do semafora, jeœli droga nie jest wolna
+ moveStartHorn=0x100, //podaj sygna³ po podaniu wolnej drogi
+ moveStartHornDone=0x200 //podano sygna³ po podaniu wolnej drogi
 };
 
 enum TStopReason
@@ -59,7 +61,7 @@ public:
  //double fAcc;
  int iFlags;
  //1=istotny,2=tor,4=odwrotnie,8-zwrotnica (mo¿e siê zmieniæ),16-stan zwrotnicy,32-miniêty,64=koniec,128=³uk
- //0x100=event,0x200=manewrowa,0x400=przystanek,0x800=SBL
+ //0x100=event,0x200=manewrowa,0x400=przystanek,0x800=SBL,0x1000=wys³ana komenda
  //0x10000=zatkanie
  vector3 vPos; //wspó³rzêdne XYZ do liczenia odleg³oœci
  struct

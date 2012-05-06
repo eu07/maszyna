@@ -39,6 +39,16 @@
 #include "Camera.h" //bo likwidujemy trzêsienie
 #pragma package(smart_init)
 
+//Ra: taki zapis funkcjonuje lepiej, ale mo¿e nie jest optymalny
+#define vWorldFront vector3(0,0,1)
+#define vWorldUp vector3(0,1,0)
+#define vWorldLeft CrossProduct(vWorldUp,vWorldFront)
+
+//Ra: bo te poni¿ej to siê powiela³y w ka¿dym module odobno
+//vector3 vWorldFront=vector3(0,0,1);
+//vector3 vWorldUp=vector3(0,1,0);
+//vector3 vWorldLeft=CrossProduct(vWorldUp,vWorldFront);
+
 const float maxrot=(M_PI/3.0); //60°
 
 //---------------------------------------------------------------------------
@@ -1181,6 +1191,7 @@ __fastcall TDynamicObject::TDynamicObject()
  pAnimations=NULL;
  pAnimated=NULL;
  fShade=0.0; //standardowe oœwietlenie na starcie
+ iHornWarning=1; //numer syreny do u¿ycia po otrzymaniu sygna³u do jazdy
 }
 
 __fastcall TDynamicObject::~TDynamicObject()
@@ -1281,6 +1292,7 @@ double __fastcall TDynamicObject::Init(
    MoverParameters->OffsetTrackH=Track->fTrackWidth<6.0?-Track->fTrackWidth*0.25:-1.5;
   else //jak stoi, to ko³em na poboczu i pobieramy szerokoœæ razem z poboczem, ale nie z chodnikiem
    MoverParameters->OffsetTrackH=-0.5*(Track->WidthTotal()-MoverParameters->Dim.W)+0.05;
+  iHornWarning=0; //nie bêdzie tr¹bienia po podaniu zezwolenia na jazdê
  }
  //w wagonie tez niech jedzie
  //if (MoverParameters->MainCtrlPosNo>0 &&
@@ -3455,6 +3467,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
        if (str==AnsiString("horn2:"))                      //pliki z trabieniem wysokoton.
         {
          sHorn2.Load(Parser,GetPosition());
+         if (iHornWarning) iHornWarning=2; //numer syreny do u¿ycia po otrzymaniu sygna³u do jazdy
         }
        if (str==AnsiString("departuresignal:"))            //pliki z sygnalem odjazdu
         {
@@ -3505,6 +3518,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
  if (mdLoad) mdLoad->Init();
  if (mdPrzedsionek) mdPrzedsionek->Init();
  if (mdLowPolyInt) mdLowPolyInt->Init();
+ //sHorn2.CopyIfEmpty(sHorn1); //¿eby jednak tr¹bi³ te¿ drugim
 }
 
 //---------------------------------------------------------------------------

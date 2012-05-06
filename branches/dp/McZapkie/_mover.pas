@@ -583,7 +583,7 @@ TYPE
                 ActiveCab: integer; //numer kabiny, w ktorej jest obsada (zwykle jedna na sk³ad)
                 LastCab: integer;       { numer kabiny przed zmiana }
                 LastSwitchingTime: real; {czas ostatniego przelaczania czegos}
-                WarningSignal: byte;     {0: nie trabi, 1,2: trabi}
+                //WarningSignal: byte;     {0: nie trabi, 1,2: trabi}
                 DepartureSignal: boolean; {sygnal odjazdu}
                 InsideConsist: boolean;
                 {-zmienne dla lokomotywy elektrycznej}

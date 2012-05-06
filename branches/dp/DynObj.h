@@ -211,6 +211,7 @@ private:
  TDynamicObject* __fastcall ABuFindNearestObject(TTrack *Track,TDynamicObject *MyPointer,int &CouplNr);
  void __fastcall TurnOff();
 public:
+ int iHornWarning; //numer syreny do u¿ycia po otrzymaniu sygna³u do jazdy 
  bool bEnabled; //Ra: wyjecha³ na portal i ma byæ usuniêty
 protected:
 

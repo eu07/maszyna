@@ -82,6 +82,7 @@ USEUNIT("Names.cpp");
 USEUNIT("Console.cpp");
 USEUNIT("Mover.cpp");
 USEUNIT("McZapkie\_mover.pas");
+USEUNIT("Console\PoKeysLib.cpp");
 //---------------------------------------------------------------------------
 #include "World.h"
 
