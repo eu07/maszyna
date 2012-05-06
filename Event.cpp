@@ -28,7 +28,8 @@
 #include "Timer.h"
 #include "Usefull.h"
 #include "MemCell.h"
-//#include "Ground.h"
+#include "Globals.h"
+#include "Ground.h"
 #pragma package(smart_init)
 
 __fastcall TEvent::TEvent()
@@ -205,21 +206,27 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
          parser->getTokens();
          *parser >> token;
          str=AnsiString(token.c_str());
-         try
-         {Params[1].asdouble=str.ToDouble();}
-         catch (...)
-         {Params[1].asdouble=0.0;
-          WriteLog("Error: number expected in PutValues event, found: "+str);
-         }
+         if (str=="none")
+          Params[1].asdouble=0.0;
+         else
+          try
+          {Params[1].asdouble=str.ToDouble();}
+          catch (...)
+          {Params[1].asdouble=0.0;
+           WriteLog("Error: number expected in PutValues event, found: "+str);
+          }
          parser->getTokens();
          *parser >> token;
          str=AnsiString(token.c_str());
-         try
-         {Params[2].asdouble=str.ToDouble();}
-         catch (...)
-         {Params[2].asdouble=0.0;
-          WriteLog("Error: number expected in PutValues event, found: "+str);
-         }
+         if (str=="none")
+          Params[2].asdouble=0.0;
+         else
+          try
+          {Params[2].asdouble=str.ToDouble();}
+          catch (...)
+          {Params[2].asdouble=0.0;
+           WriteLog("Error: number expected in PutValues event, found: "+str);
+          }
          parser->getTokens();
          *parser >> token;
         break;
@@ -396,10 +403,12 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
          WriteLog("Event \""+asName+(Type==tp_Unknown?"\" has unknown type.":"\" is ignored."));
          break;
     }
- if (Type!=tp_Unknown)
-  if (Type!=tp_Ignored)
-   if (asName.Pos("onstart")) //event uruchamiany automatycznie po starcie
-    AddToQuery(this); //dodanie do kolejki
+ //if (Type!=tp_Unknown)
+  //if (Type!=tp_Ignored)
+   //if (asName.Pos("onstart")) //event uruchamiany automatycznie po starcie
+    //Global::pGround->AddToQuery(this,NULL); //dodanie do kolejki
+    //return true; //dodaæ do kolejki
+ //return false;
 }
 
 void __fastcall TEvent::AddToQuery(TEvent *Event)

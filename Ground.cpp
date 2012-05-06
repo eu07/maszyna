@@ -2156,16 +2156,20 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
      }
      else if (str==AnsiString("event"))
      {
-         TEvent *tmp;
-         tmp=RootEvent;
-         RootEvent=new TEvent();
-         RootEvent->Load(&parser,&pOrigin);
-         if (RootEvent->Type==tp_Unknown)
-         {delete RootEvent;
-          RootEvent=tmp; //przywrócenie z pominiêciem
-         }
-         else
-          RootEvent->Next2=tmp;
+      TEvent *tmp;
+      tmp=RootEvent;
+      RootEvent=new TEvent();
+      RootEvent->Load(&parser,&pOrigin);
+      if (RootEvent->Type==tp_Unknown)
+      {delete RootEvent;
+       RootEvent=tmp; //przywrócenie z pominiêciem
+      }
+      else
+      {RootEvent->Next2=tmp;
+       if (RootEvent->Type!=tp_Ignored)
+        if (RootEvent->asName.Pos("onstart")) //event uruchamiany automatycznie po starcie
+         AddToQuery(RootEvent,NULL); //dodanie do kolejki
+      }
      }
 //     else
 //     if (str==AnsiString("include"))  //Tolaris to zrobil wewnatrz parsera

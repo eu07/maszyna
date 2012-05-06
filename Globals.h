@@ -4,20 +4,11 @@
 #define GlobalsH
 
 #include <string>
+#include "system.hpp"
 #include "opengl/glew.h"
 #include "dumb3d.h"
 
 using namespace Math3D;
-
-//Ra: taki zapis funkcjonuje lepiej, ale mo¿e nie jest optymalny
-#define vWorldFront vector3(0,0,1)
-#define vWorldUp vector3(0,1,0)
-#define vWorldLeft CrossProduct(vWorldUp,vWorldFront)
-
-//Ra: bo te poni¿ej to siê powiela³y w ka¿dym module odobno
-//vector3 vWorldFront=vector3(0,0,1);
-//vector3 vWorldUp=vector3(0,1,0);
-//vector3 vWorldLeft=CrossProduct(vWorldUp,vWorldFront);
 
 //definicje klawiszy
 const int k_IncMainCtrl= 0; //[Num+]
@@ -147,7 +138,7 @@ public:
  static bool bWireFrame;
  static bool bSoundEnabled;
  //McZapkie-131202
- static bool bRenderAlpha;
+ //static bool bRenderAlpha;
  static bool bAdjustScreenFreq;
  static bool bEnableTraction;
  static bool bLoadTraction;
@@ -182,7 +173,7 @@ public:
  //McZapkie-221002: definicja swiatla dziennego
  static GLfloat AtmoColor[];
  static GLfloat FogColor[];
- static bool bTimeChange;
+ //static bool bTimeChange;
  static GLfloat ambientDayLight[];
  static GLfloat diffuseDayLight[];
  static GLfloat specularDayLight[];

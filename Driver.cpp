@@ -568,6 +568,7 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
 #endif
          iDrivigFlags|=moveStopHere; //nie podje¿d¿aæ do semafora, jeœli droga nie jest wolna
          iDrivigFlags|=moveStopCloser; //do nastêpnego W4 podjechaæ blisko (z doci¹ganiem)
+         iDrivigFlags&=~moveStartHorn; //bez tr¹bienia przed odjazdem
          sSpeedTable[i].iFlags=0; //nie liczy siê ju¿ zupe³nie (nie wyœle SetVelocity)
          sSpeedTable[i].fVelNext=-1; //jechaæ
          //PutCommand("SetVelocity",vmechmax,vmechmax,&sl);
@@ -591,6 +592,8 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
    v=sSpeedTable[i].fVelNext;
    if (sSpeedTable[i].iFlags&0x100)
    {//je¿eli event, mo¿e byæ potrzeba wys³ania komendy, aby ruszy³
+    if (sSpeedTable[i].fDist>pVehicles[0]->fTrackBlock-20.0) //jak sygna³ jest dalej ni¿ zawalidroga
+     v=0.0; //to mo¿e byæ podany dla tamtego: jechaæ tak, jakby stop by³
     if (v!=0.0) //jeœli ma jechaæ (stop za³atwia tabelka); 0.1 nie wysy³a siê
      if (go==cm_Unknown)
      {//jeœli nie by³o ¿adnego wczeœniej - pierwszy siê liczy - ustawianie VelActual
@@ -767,6 +770,7 @@ __fastcall TController::TController
  fStopTime=0.0; //czas postoju przed dalsz¹ jazd¹ (np. na przystanku)
  iDrivigFlags=moveStopPoint; //podjedŸ do W4 mo¿liwie blisko
  iDrivigFlags|=moveStopHere; //nie podje¿d¿aj do semafora, jeœli droga nie jest wolna
+ iDrivigFlags|=moveStartHorn; //podaj sygna³ po podaniu wolnej drogi
  Ready=false;
  if (Controlling->CategoryFlag&2)
  {//samochody: na podst. http://www.prawko-kwartnik.info/hamowanie.html
@@ -1001,15 +1005,18 @@ void __fastcall TController::SetVelocity(double NewVel,double NewVelNext,TStopRe
  }
  else
  {
-  //if (OrderList[OrderPos]&(Obey_train|Shunt)) //jeœli jedzie w dowolnym trybie (nie dotyczy np. ³¹czenia)
   // iDrivigFlags&=~moveStopHere; //to podje¿anie do semaforów zezwolone
   eStopReason=stopNone; //podana prêdkoœæ, to nie ma powodów do stania
-  if (VelNext==0) //jeœli by³o wczeœniej podane zatrzymanie
-   //if (Controlling->Vel==0.0) //jesli stoi (na razie, bo powinien te¿, gdy hamuje przed semaforem)
-    if ((iDrivigFlags&moveStopHere)==0) //o ile nie mia³ staæ w miejscu
-    {fWarningDuration=0.5; //czas tr¹bienia
-     Controlling->WarningSignal=1; //wysokoœæ tonu
-    }
+  //if (VelNext==0.0) //jeœli by³o wczeœniej podane zatrzymanie
+  if (OrderList[OrderPos]?OrderList[OrderPos]&(Obey_train|Shunt):true) //jeœli jedzie w dowolnym trybie (nie dotyczy np. ³¹czenia)
+   if (Controlling->Vel==0.0) //jesli stoi (na razie, bo chyba powinien te¿, gdy hamuje przed semaforem)
+    if (iDrivigFlags&moveStartHorn) //jezeli tr¹bienie w³¹czone
+     if (!(iDrivigFlags&moveStartHornDone)) //jeœli nie zatr¹bione
+      if (Controlling->CategoryFlag&1) //tylko poci¹gi tr¹bi¹ (unimogi tylko na torach, wiêc trzeba raczej sprawdzaæ tor)
+      {fWarningDuration=0.3; //czas tr¹bienia
+       Controlling->WarningSignal=pVehicle->iHornWarning; //wysokoœæ tonu (2=wysoki)
+       iDrivigFlags|=moveStartHornDone; //nie tr¹biæ a¿ do ruszenia
+      }
  }
  VelActual=NewVel;   //prêdkoœæ zezwolona na aktualnym odcinku
  VelNext=NewVelNext; //prêdkoœæ przy nastêpnym obiekcie
@@ -1594,6 +1601,7 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
    OrderNext(o); //to samo robiæ po zmianie
   else if (!o) //jeœli wczeœniej by³o czekanie
    OrderNext(Shunt); //to dalej jazda manewrowa
+  iDrivigFlags&=~moveStartHorn; //bez tr¹bienia po zatrzymaniu
   //Change_direction wykona siê samo i nastêpnie przejdzie do kolejnej komendy
  }
  else if (NewCommand=="Obey_train")
@@ -1666,6 +1674,7 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
    iDirectionOrder=-iDirection; //zmiana na przeciwny ni¿ obecny
    OrderNext(Change_direction); //zmiana kierunku
    OrderNext(Shunt); //a dalej manewry
+   iDrivigFlags&=~moveStartHorn; //bez tr¹bienia po zatrzymaniu
   }
  }
  //return false; //na razie reakcja na komendy nie jest odpowiednia dla pojazdu prowadzonego rêcznie
@@ -1931,6 +1940,7 @@ bool __fastcall TController::UpdateSituation(double dt)
         Prepare2press=false; //koniec dociskania
         CheckVehicles(); //od razu zmieniæ œwiat³a
         JumpToNextOrder();
+        iDrivigFlags&=~moveStartHorn; //bez tr¹bienia przed ruszeniem
         SetVelocity(fShuntVelocity,fShuntVelocity); //ustawienie prêdkoœci jazdy
        }
       }
@@ -2090,9 +2100,13 @@ bool __fastcall TController::UpdateSituation(double dt)
        JumpToNextOrder(); //nastêpnie robimy, co jest do zrobienia (Shunt albo Obey_train)
        if (OrderList[OrderPos]==Shunt) //jeœli dalej mamy manewry
         if ((iDrivigFlags&moveStopHere)==0) //o ile nie staæ w miejscu
+        {//jechaæ od razu w przeciwn¹ stronê i nie tr¹biæ z tego tytu³u
+         iDrivigFlags&=~moveStartHorn; //bez tr¹bienia przed ruszeniem
          SetVelocity(fShuntVelocity,fShuntVelocity); //to od razu jedziemy
+        }
        eSignSkip=NULL; //nie ignorujemy przy poszukiwaniu nowego sygnalizatora
        eSignLast=NULL; //¿eby jakiœ nowy by³ poszukiwany
+       //iDrivigFlags|=moveStartHorn; //a póŸniej ju¿ mo¿na tr¹biæ
 /*
        if (WriteLogFlag)
        {
@@ -2485,7 +2499,6 @@ bool __fastcall TController::UpdateSituation(double dt)
   if (!ScanMe)
    ScanMe=true;
   UpdateOK=true;
-  //} //if (AIControllFlag)
  } //if ((LastReactionTime>Min0R(ReactionTime,2.0)))
  else
   LastReactionTime+=dt;
@@ -2494,8 +2507,12 @@ bool __fastcall TController::UpdateSituation(double dt)
   if (fWarningDuration>0.0) //jeœli pozosta³o coœ do wytr¹bienia
   {//tr¹bienie trwa nadal
    fWarningDuration=fWarningDuration-dt;
-   if (fWarningDuration<0.1)
+   if (fWarningDuration<0.05)
     Controlling->WarningSignal=0.0; //a tu siê koñczy
+  }
+  if (Controlling->Vel>=5.0) //jesli jedzie, mo¿na odblokowaæ tr¹bienie, bo siê wtedy nie w³¹czy
+  {iDrivigFlags&=~moveStartHornDone; //zatr¹bi dopiero jak nastêpnym razem stanie
+   iDrivigFlags|=moveStartHorn; //i tr¹biæ przed nastêpnym ruszeniem
   }
 #if !TESTTABLE
   if (UpdateOK) //stary system skanowania z wysy³aniem komend

@@ -18,6 +18,7 @@ class TMoverParameters : public T_MoverParameters
 public:
  vector3 vCoulpler[2]; //powtórzenie wspó³rzêdnych sprzêgów z DynObj :/
  vector3 DimHalf; //po³owy rozmiarów do obliczeñ geometrycznych
+ int WarningSignal; //0: nie trabi, 1,2: trabi syren¹ o podanym numerze
 private:
  double __fastcall CouplerDist(Byte Coupler);
 public:

@@ -19,7 +19,6 @@
 */
 
 #include "system.hpp"
-#include "classes.hpp"
 #pragma hdrstop
 
 
@@ -57,8 +56,8 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asRelease="1.7.566.348";
-AnsiString Global::asVersion="Compilation 2012-05-04, release "+Global::asRelease+"."; //tutaj, bo wysy³any
+AnsiString Global::asRelease="1.7.568.348";
+AnsiString Global::asVersion="Compilation 2012-05-05, release "+Global::asRelease+"."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 double Global::fSunDeclination=0.0; //deklinacja S³oñca
@@ -151,8 +150,8 @@ bool Global::bManageNodes=true;
 bool Global::bDecompressDDS=false;
 
 //parametry przejœciowe (do usuniêcia)
-bool Global::bTimeChange=false; //Ra: ZiomalCl wy³¹czy³ star¹ wersjê nocy
-bool Global::bRenderAlpha=true; //Ra: wywali³am tê flagê
+//bool Global::bTimeChange=false; //Ra: ZiomalCl wy³¹czy³ star¹ wersjê nocy
+//bool Global::bRenderAlpha=true; //Ra: wywali³am tê flagê
 bool Global::bnewAirCouplers=true;
 bool Global::bDoubleAmbient=false; //podwójna jasnoœæ ambient
 double Global::fSunSpeed=1.0; //prêdkoœæ ruchu S³oñca, zmienna do testów
