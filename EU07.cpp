@@ -82,7 +82,6 @@ USEUNIT("Names.cpp");
 USEUNIT("Console.cpp");
 USEUNIT("Mover.cpp");
 USEUNIT("McZapkie\_mover.pas");
-USEUNIT("Console\PoKeysLib.cpp");
 //---------------------------------------------------------------------------
 #include "World.h"
 
@@ -632,6 +631,7 @@ int WINAPI WinMain( HINSTANCE hInstance,     //instance
   return 0; //quit if window was not created
  SetForegroundWindow(hWnd);
  //McZapkie: proba przeplukania klawiatury
+ Console *pConsole=new Console(); //Ra: nie wiem, czy ma to sens, ale jakoœ zainicjowac trzeba
  while (Console::Pressed(VK_F10))
   Error("Keyboard buffer problem - press F10");
  int iOldSpeed, iOldDelay;
@@ -682,6 +682,7 @@ int WINAPI WinMain( HINSTANCE hInstance,     //instance
  }
  SystemParametersInfo(SPI_SETKEYBOARDSPEED,iOldSpeed,NULL,0);
  SystemParametersInfo(SPI_SETKEYBOARDDELAY,iOldDelay,NULL,0);
+ delete pConsole; //deaktywania sterownika
  //shutdown
  KillGLWindow(); //kill the window
  return (msg.wParam); //exit the program

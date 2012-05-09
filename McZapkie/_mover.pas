@@ -3044,6 +3044,7 @@ begin
        DelayCtrlFlag:=False;
        SetFlag(SoundFlag,sound_relay); SetFlag(SoundFlag,sound_loud);
      end;
+    //if (TrainType<>dt_EZT) then //Ra: w EZT mo¿na daæ od razu na S albo R, wa³ ku³akowy sobie dokrêci
     if (LastRelayTime>CtrlDelay) and not DelayCtrlFlag then
      begin
        if MainCtrlPos=0 then
@@ -3141,8 +3142,9 @@ begin
     else  {DelayCtrlFlag}
      if ((MainCtrlPos>1) and (MainCtrlActualPos>0) and DelayCtrlFlag) then
       begin
-        MainCtrlActualPos:=0;
-        OK:=True;
+       //if (TrainType<>dt_EZT) then //Ra: w EZT mo¿na daæ od razu na S albo R, wa³ ku³akowy sobie dokrêci
+       MainCtrlActualPos:=0; //Ra: tu jest chyba wy³¹czanie przy zbyt szybkim wejœciu na drug¹ pozycjê
+       OK:=True;
       end
      else
       if (MainCtrlPos=1) and (MainCtrlActualPos=0) then

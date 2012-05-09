@@ -765,6 +765,7 @@ __fastcall TController::TController
  Prepare2press=false; //bez dociskania
  eStopReason=stopSleep; //na pocz¹tku œpi
  fLength=0.0;
+ fMass=0.0;
  eSignSkip=eSignLast=NULL; //miniêty semafor
  fShuntVelocity=40; //domyœlna prêdkoœæ manewrowa
  fStopTime=0.0; //czas postoju przed dalsz¹ jazd¹ (np. na przystanku)
@@ -905,6 +906,7 @@ bool __fastcall TController::CheckVehicles()
  //liczenie pojazdów w sk³adzie i ustawianie kierunku
  d=1-d; //a dalej bêdziemy zliczaæ od czo³a do ty³u
  fLength=0.0; //d³ugoœæ sk³adu do badania wyjechania za ograniczenie
+ fMass=0.0; //ca³kowita masa do liczenia stycznej sk³adowej grawitacji
  fVelMax=-1; //ustalenie prêdkoœci dla sk³adu
 /*
  bool main=true; //czy jest g³ównym steruj¹cym
@@ -930,6 +932,7 @@ bool __fastcall TController::CheckVehicles()
   ++iVehicles; //jest jeden pojazd wiêcej
   pVehicles[1]=p; //zapamiêtanie ostatniego
   fLength+=p->MoverParameters->Dim.L; //dodanie d³ugoœci pojazdu
+  fMass+=p->MoverParameters->Mass; //dodanie masy
   d=p->DirectionSet(d?1:-1); //zwraca po³o¿enie nastêpnego (1=zgodny,0=odwrócony)
   //1=zgodny: sprzêg 0 od czo³a; 0=odwrócony: sprzêg 1 od czo³a
   if (fVelMax<0?true:p->MoverParameters->Vmax<fVelMax)
