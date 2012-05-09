@@ -19,7 +19,7 @@ public:
  static void __fastcall ModeSet(int m,int h=0);
  static void __fastcall BitsSet(int mask,int entry=0);
  static void __fastcall BitsClear(int mask,int entry=0);
- static void __fastcall On();
+ static int __fastcall On();
  static void __fastcall Off();
  static bool __fastcall Pressed(int x);
 };

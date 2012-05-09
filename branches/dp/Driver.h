@@ -106,6 +106,7 @@ private: //obs³uga tabelki prêdkoœci (musi mieæ mo¿liwoœæ odhaczania stacji w ro
  //TTrack tSignLast; //tor z ostatnio znalezionym eventem
  //TOrders oMode; //aktualny tryb pracy
  double fLength; //d³ugoœæ sk³adu (dla ograniczeñ)
+ double fMass; //ca³kowita masa do liczenia stycznej sk³adowej grawitacji
  bool __fastcall TableCheckEvent(TEvent *e,bool prox);
  bool __fastcall TableAddNew();
  bool __fastcall TableNotFound(TEvent *e);

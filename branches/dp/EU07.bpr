@@ -12,7 +12,7 @@
       RealSound.obj EvLaunch.obj FadeSound.obj Traction.obj TractionPower.obj 
       parser.obj sky.obj AirCoupler.obj glew.obj ResourceManager.obj VBO.obj 
       TextureDDS.obj opengl\ARB_Multisample.obj Float3d.obj Classes.obj 
-      Driver.obj Names.obj Console.obj Mover.obj Console\PoKeysLib.obj"/>
+      Driver.obj Names.obj Console.obj Mover.obj"/>
     <RESFILES value="EU07.res"/>
     <IDLFILES value=""/>
     <IDLGENFILES value=""/>
@@ -61,8 +61,8 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=1
 MinorVer=7
-Release=569
-Build=349
+Release=570
+Build=350
 Debug=1
 PreRelease=0
 Special=0
@@ -74,7 +74,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.7.569.349
+FileVersion=1.7.570.350
 InternalName=7th by Ra
 LegalCopyright=
 LegalTrademarks=
@@ -84,14 +84,12 @@ ProductVersion=1.7
 Comments=
 
 [HistoryLists\hlIncludePath]
-Count=2
+Count=1
 Item0=Console;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item1=opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
 
 [HistoryLists\hlLibraryPath]
-Count=2
+Count=1
 Item0=Console;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item1=opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
 
 [HistoryLists\hlDebugSourcePath]
 Count=2
