@@ -739,13 +739,14 @@ __fastcall TController::TController
  Need_TryAgain=false;
  Need_BrakeRelease=true;
  deltalog=1.0;
-/*
+
  if (WriteLogFlag)
  {
-  assignfile(LogFile,VehicleName+".dat");
-  rewrite(LogFile);
-   writeln(LogFile,' Time [s]   Velocity [m/s]  Acceleration [m/ss]   Coupler.Dist[m]  Coupler.Force[N]  TractionForce [kN]  FrictionForce [kN]   BrakeForce [kN]    BrakePress [MPa]   PipePress [MPa]   MotorCurrent [A]    MCP SCP BCP LBP DmgFlag Command CVal1 CVal2');
+  LogFile.open(AnsiString(VehicleName+".dat").c_str(),std::ios::in | std::ios::out | std::ios::trunc);
+  LogFile << AnsiString(" Time [s]   Velocity [m/s]  Acceleration [m/ss]   Coupler.Dist[m]  Coupler.Force[N]  TractionForce [kN]  FrictionForce [kN]   BrakeForce [kN]    BrakePress [MPa]   PipePress [MPa]   MotorCurrent [A]    MCP SCP BCP LBP DmgFlag Command CVal1 CVal2").c_str() << "\n";
+  LogFile.flush();
  }
+/*
   if (WriteLogFlag)
   {
    assignfile(AILogFile,VehicleName+".txt");
@@ -754,6 +755,7 @@ __fastcall TController::TController
    close(AILogFile);
   }
 */
+
  ScanMe=False;
  VelMargin=Controlling->Vmax*0.005;
  fWarningDuration=0.0; //nic do wytr¹bienia
@@ -796,17 +798,16 @@ __fastcall TController::TController
 
 void __fastcall TController::CloseLog()
 {
-/*
+
  if (WriteLogFlag)
  {
-  CloseFile(LogFile);
+  LogFile.close();
   //if WriteLogFlag)
   // CloseFile(AILogFile);
-  append(AIlogFile);
+/*  append(AIlogFile);
   writeln(AILogFile,ElapsedTime5:2,": QUIT");
-  close(AILogFile);
+  close(AILogFile); */
  }
-*/
 };
 
 __fastcall TController::~TController()
@@ -1768,9 +1769,18 @@ bool __fastcall TController::UpdateSituation(double dt)
  {
   if (LastUpdatedTime>deltalog)
   {//zapis do pliku DAT
-/*
-     writeln(LogFile,ElapsedTime," ",abs(11.31*WheelDiameter*nrot)," ",AccS," ",Couplers[1].Dist," ",Couplers[1].CForce," ",Ft," ",Ff," ",Fb," ",BrakePress," ",PipePress," ",Im," ",MainCtrlPos,"   ",ScndCtrlPos,"   ",BrakeCtrlPos,"   ",LocalBrakePos,"   ",ActiveDir,"   ",CommandIn.Command," ",CommandIn.Value1," ",CommandIn.Value2," ",SecuritySystem.status);
-*/
+   if(LogFile.is_open())
+    {
+     LogFile << ElapsedTime<<" "<<abs(11.31*Controlling->WheelDiameter*Controlling->nrot)<<" ";
+     LogFile << Controlling->AccS<<" "<<Controlling->Couplers[1].Dist<<" "<<Controlling->Couplers[1].CForce<<" ";
+     LogFile << Controlling->Ft<<" "<<Controlling->Ff<<" "<<Controlling->Fb<<" "<<Controlling->BrakePress<<" ";
+     LogFile << Controlling->PipePress<<" "<<Controlling->Im<<" "<<(int)Controlling->MainCtrlPos<<"   ";
+     LogFile << (int)Controlling->ScndCtrlPos<<"   "<<(int)Controlling->BrakeCtrlPos<<"   "<<(int)Controlling->LocalBrakePos<<"   ";
+     LogFile << (int)Controlling->ActiveDir<<"   "<<Controlling->CommandIn.Command.c_str()<<" "<<Controlling->CommandIn.Value1<<" ";
+     LogFile << Controlling->CommandIn.Value2<<" "<<Controlling->SecuritySystem.Status<<"\n";
+     LogFile.flush();
+    }
+
    if (fabs(Controlling->V)>0.1)
     deltalog=0.2;
    else deltalog=1.0;
