@@ -60,15 +60,18 @@ void __fastcall TGauge::Init(TSubModel *NewSubModel,TGaugeType eNewType,double f
  }
 }
 
-void __fastcall TGauge::Load(TQueryParserComp *Parser, TModel3d *mdParent)
+void __fastcall TGauge::Load(TQueryParserComp *Parser,TModel3d *md1,TModel3d *md2)
 {
-    AnsiString str1=Parser->GetNextSymbol();
-    AnsiString str2=Parser->GetNextSymbol();
-    AnsiString str3=Parser->GetNextSymbol();
-    AnsiString str4=Parser->GetNextSymbol();
-    AnsiString str5=Parser->GetNextSymbol();
-    Init(mdParent->GetFromName(str1.c_str()),(str2.LowerCase()=="mov")?gt_Move:gt_Rotate,
-                               str3.ToDouble(),str4.ToDouble(),str5.ToDouble());
+ AnsiString str1=Parser->GetNextSymbol();
+ AnsiString str2=Parser->GetNextSymbol();
+ AnsiString str3=Parser->GetNextSymbol();
+ AnsiString str4=Parser->GetNextSymbol();
+ AnsiString str5=Parser->GetNextSymbol();
+ TSubModel *sm=md1->GetFromName(str1.c_str());
+ if (!sm) //jeœli nie znaleziony
+  if (md2) //a jest podany drugi model (np. zewnêtrzny)
+   md2->GetFromName(str1.c_str()); //to mo¿e tam bêdzie, co za ró¿nica gdzie
+ Init(sm,(str2.LowerCase()=="mov")?gt_Move:gt_Rotate,str3.ToDouble(),str4.ToDouble(),str5.ToDouble());
 }
 
 

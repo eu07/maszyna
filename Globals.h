@@ -4,20 +4,11 @@
 #define GlobalsH
 
 #include <string>
+#include "system.hpp"
 #include "opengl/glew.h"
 #include "dumb3d.h"
 
 using namespace Math3D;
-
-//Ra: taki zapis funkcjonuje lepiej, ale mo¿e nie jest optymalny
-#define vWorldFront vector3(0,0,1)
-#define vWorldUp vector3(0,1,0)
-#define vWorldLeft CrossProduct(vWorldUp,vWorldFront)
-
-//Ra: bo te poni¿ej to siê powiela³y w ka¿dym module odobno
-//vector3 vWorldFront=vector3(0,0,1);
-//vector3 vWorldUp=vector3(0,1,0);
-//vector3 vWorldLeft=CrossProduct(vWorldUp,vWorldFront);
 
 //definicje klawiszy
 const int k_IncMainCtrl= 0; //[Num+]
@@ -75,7 +66,7 @@ const int k_Couple= 44;
 const int k_DeCouple= 45;
 
 const int k_ProgramQuit= 46;
-const int k_ProgramPause= 47;
+//const int k_ProgramPause= 47;
 const int k_ProgramHelp= 48;
                         //NBMX
 const int k_OpenLeft= 49;
@@ -91,7 +82,7 @@ const int k_PantRearDown= 57;
 
 const int k_Heating= 58;
 
-const int k_FreeFlyMode= 59;
+//const int k_FreeFlyMode= 59;
 
 const int k_LeftSign = 60;
 const int k_UpperSign= 61;
@@ -117,6 +108,7 @@ const int MaxKeys= 73;
 //klasy dla wskaŸników globalnych
 class TGround;
 class TWorld;
+class TCamera;
 class TDynamicObject;
 class TAnimModel; //obiekt terenu
 namespace Queryparsercomp
@@ -146,7 +138,7 @@ public:
  static bool bWireFrame;
  static bool bSoundEnabled;
  //McZapkie-131202
- static bool bRenderAlpha;
+ //static bool bRenderAlpha;
  static bool bAdjustScreenFreq;
  static bool bEnableTraction;
  static bool bLoadTraction;
@@ -181,7 +173,7 @@ public:
  //McZapkie-221002: definicja swiatla dziennego
  static GLfloat AtmoColor[];
  static GLfloat FogColor[];
- static bool bTimeChange;
+ //static bool bTimeChange;
  static GLfloat ambientDayLight[];
  static GLfloat diffuseDayLight[];
  static GLfloat specularDayLight[];
@@ -212,7 +204,8 @@ public:
  static int iMultiplayer; //blokada dzia³ania niektórych eventów na rzecz kominikacji
  static HWND hWnd; //uchwyt okna
  static int iCameraLast;
- static AnsiString asVersion;
+ static AnsiString asRelease; //numer
+ static AnsiString asVersion; //z opisem
  static int iViewMode; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty, 4-obwody
  static GLint iMaxTextureSize; //maksymalny rozmiar tekstury
  static int iTextMode; //tryb pracy wyœwietlacza tekstowego
@@ -245,6 +238,11 @@ public:
  static Queryparsercomp::TQueryParserComp *qParser;
  static cParser *pParser;
  static int iSegmentsRendered; //iloœæ segmentów do regulacji wydajnoœci
+ static double fRadiusLoFPS; //dolna granica FPS, przy której promieñ scenerii bêdzie zmniejszany
+ static double fRadiusHiFPS; //górna granica FPS, przy której promieñ scenerii bêdzie zwiêkszany
+ static double fRadiusFactor; //wspó³czynnik zmiany promienia
+ static TCamera *pCamera; //parametry kamery
+ static TDynamicObject *pUserDynamic; //pojazd u¿ytkownika, renderowany bez trzêsienia
  //metody
  static void __fastcall TrainDelete(TDynamicObject *d);
  static void __fastcall ConfigParse(Queryparsercomp::TQueryParserComp *qp,cParser *cp=NULL);

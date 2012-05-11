@@ -13,6 +13,8 @@
 #include "Timer.h"
 #include "mover.h"
 #include "Console.h"
+//---------------------------------------------------------------------------
+#pragma package(smart_init)
 
 //TViewPyramid TCamera::OrgViewPyramid;
 //={vector3(-1,1,1),vector3(1,1,1),vector3(-1,-1,1),vector3(1,-1,1),vector3(0,0,0)};
@@ -27,7 +29,7 @@ void __fastcall TCamera::Init(vector3 NPos, vector3 NAngle)
 //    pOffset= vector3(-0.8,0,0);
     CrossPos= OrgCrossPos;
     CrossDist= 10;
-    Velocity= vector3(0,0,0);
+    Velocity=vector3(0,0,0);
     OldVelocity= vector3(0,0,0);
     Pitch= NAngle.x;
     Yaw= NAngle.y;
@@ -68,8 +70,8 @@ void __fastcall TCamera::Update()
       Type=tp_Follow;
     if (Type==tp_Free)
     {
-        if (Console::Pressed(Global::Keys[k_MechUp]))   Velocity.y+= a;
-        if (Console::Pressed(Global::Keys[k_MechDown])) Velocity.y-= a;
+        if (Console::Pressed(Global::Keys[k_MechUp]))   Velocity.y+=a;
+        if (Console::Pressed(Global::Keys[k_MechDown])) Velocity.y-=a;
 //McZapkie-170402: zeby nie bylo konfliktow
 /*
         if (Console::Pressed(VkKeyScan('d')))
@@ -107,8 +109,8 @@ void __fastcall TCamera::Update()
         if (Console::Pressed(Global::Keys[k_MechForward]))  Velocity.z-=a;
         if (Console::Pressed(Global::Keys[k_MechBackward])) Velocity.z+=a;
 //gora-dol
-        if (Console::Pressed(VK_NUMPAD9)) Pos.y+=0.1;
-        if (Console::Pressed(VK_NUMPAD3)) Pos.y-=0.1;
+        //if (Console::Pressed(VK_NUMPAD9)) Pos.y+=0.1;
+        //if (Console::Pressed(VK_NUMPAD3)) Pos.y-=0.1;
 
 //McZapkie: zeby nie hustalo przy malym FPS:
 //        Velocity= (Velocity+OldVelocity)/2;
@@ -171,6 +173,15 @@ bool __fastcall TCamera::SetMatrix()
     return true;
 }
 
+void __fastcall TCamera::SetCabMatrix(vector3 &p)
+{//ustawienie widoku z kamery bez przesuniêcia robionego przez OpenGL - nie powinno tak trz¹œæ
+ glRotated(-Roll*180.0f/M_PI,0,0,1);
+ glRotated(-Pitch*180.0f/M_PI,1,0,0);
+ glRotated(-Yaw*180.0f/M_PI,0,1,0); //w zewnêtrznym widoku: kierunek patrzenia
+ if (Type==tp_Follow)
+  gluLookAt(Pos.x-p.x,Pos.y-p.y,Pos.z-p.z,LookAt.x-p.x,LookAt.y-p.y,LookAt.z-p.z,vUp.x,vUp.y,vUp.z); //Ra: pOffset is zero
+}
+
 void __fastcall TCamera::RaLook()
 {//zmiana kierunku patrzenia - przelicza Yaw
  vector3 where=LookAt-Pos+vector3(0,3,0); //trochê w górê od szyn
@@ -180,9 +191,12 @@ void __fastcall TCamera::RaLook()
  if (l>0.0)
   Pitch=asin(where.y/l); //k¹t w pionie
 };
-//---------------------------------------------------------------------------
-#pragma package(smart_init)
 
+void __fastcall TCamera::Stop()
+{//wy³¹cznie bezw³adnego ruchu po powrocie do kabiny
+ Type=tp_Follow;
+ Velocity=vector3(0,0,0);
+};
 
 
 

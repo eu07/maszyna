@@ -127,16 +127,18 @@ void __fastcall TRealSound::Play(double Volume, int Looping, bool ListenerInside
   }
   else //wylacz dzwiek bo daleko
   {
-/*
+/* Ra: stara wersja, ale podobno lepsza */
    pSound->GetStatus(&stat);
-    if (stat&DSBSTATUS_PLAYING)
-     pSound->Stop();
-*/
+   if (stat&DSBSTATUS_PLAYING)
+    pSound->Stop();
+//*/
+/* Ra: wy³¹czy³em, bo podobno jest gorzej ni¿ wczeœniej
    //ZiomalCl: dŸwiêk po wy³¹czeniu sam siê nie w³¹czy, gdy wrócimy w rejon odtwarzania
    pSound->SetVolume(DSBVOLUME_MIN); //dlatego lepiej go wyciszyæ na czas oddalenia siê
    pSound->GetStatus(&stat);
    if (!(stat&DSBSTATUS_PLAYING))
     pSound->Play(0,0,Looping); //ZiomalCl: w³¹czenie odtwarzania rownie¿ i tu, gdy¿ jesli uruchamiamy dŸwiêk poza promieniem, nie uruchomi siê on w ogóle
+*/
   }
  }
 };
@@ -200,6 +202,7 @@ DWORD stat;
 
 void __fastcall TRealSound::ResetPosition()
 {
+ if (pSound) //Ra: znowu jakiœ badziew!
   pSound->SetCurrentPosition(0);
 }
 

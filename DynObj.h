@@ -7,7 +7,7 @@
 #include "TrkFoll.h"
 //#include "Track.h"
 #include "QueryParserComp.hpp"
-#include "AnimModel.h"
+//#include "AnimModel.h"
 //#include "Mover.hpp"
 #include "Mover.h"
 #include "TractionPower.h"
@@ -22,10 +22,10 @@
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 //McZapkie-250202
- const MaxAxles=16; //ABu 280105: zmienione z 8 na 16
- const MaxAnimatedAxles=16; //i to tez.
- const MaxAnimatedDoors=8;  //NBMX  wrzesien 2003
- const ANIM_TYPES=7; //Ra: iloœæ typów animacji
+const MaxAxles=16; //ABu 280105: zmienione z 8 na 16
+const MaxAnimatedAxles=16; //i to tez.
+const MaxAnimatedDoors=16;  //NBMX  wrzesien 2003
+const ANIM_TYPES=7; //Ra: iloœæ typów animacji
 /*
 Ra: Utworzyæ klasê wyposa¿enia opcjonalnego, z której bêd¹ dziedziczyæ klasy drzwi,
 pantografów, napêdu parowozu i innych ruchomych czêœci pojazdów. Klasy powinny byæ
@@ -39,6 +39,25 @@ modeli na stacjach na ogó³ przewaga jest tych nieruchomych).
 */
 class TAnimValveGear
 {//wspó³czynniki do animacji parowozu
+ int iValues; //iloœæ liczb (wersja):
+ float fKorbowodR; //d³ugoœæ korby (pó³ skoku t³oka) [m]: 0.35
+ float fKorbowodL; //d³ugoœæ korbowodu [m]: 3.8
+ float fDrazekR;   //promieñ mimoœrodu (dr¹¿ka) [m]: 0.18
+ float fDrazekL;   //d³. dr¹¿ka mimoœrodowego [m]: 2.55889
+ float fJarzmoV;   //wysokoœæ w pionie osi jarzma od osi ko³a [m]: 0.751
+ float fJarzmoH;   //odleg³oœæ w poziomie osi jarzma od osi ko³a [m]: 2.550
+ float fJarzmoR;   //promieñ jarzma do styku z dr¹¿kiem [m]: 0.450
+ float fJarzmoA;   //k¹t mimoœrodu wzglêdem k¹ta ko³a [m]: -96.77416667
+ float fWdzidloL;  //d³ugoœæ wodzid³a [m]: 2.0
+ float fWahaczH;   //d³ugoœæ wahacza (góra) [m]: 0.14
+ float fSuwakH;    //wysokoœæ osi suwaka ponad osi¹ ko³a [m]: 0.62
+ float fWahaczL;   //d³ugoœæ wahacza (dó³) [m]: 0.84
+ float fLacznikL;  //d³ugoœæ ³¹cznika wahacza [m]: 0.75072
+ float fRamieL;    //odleg³oœæ ramienia krzy¿ulca od osi ko³a [m]: 0.192
+ float fSuwakL;    //odleg³oœæ œrodka t³oka/suwaka od osi ko³a [m]: 5.650
+//do³o¿yæ parametry dr¹¿ka nastawnicy
+//albo nawet zrobiæ dynamiczn¹ tablicê float[] i w ni¹ pakowaæ wszelkie wspó³czynniki, potem u¿ywaæ indeksów
+//wspó³czynniki mog¹ byæ wspólne dla 2-4 t³oków, albo ka¿dy t³ok mo¿e mieæ odrêbne
 };
 
 class TAnim
@@ -77,7 +96,6 @@ private:
  TSubModel **pAnimated; //lista animowanych submodeli (mo¿e byæ ich wiêcej ni¿ obiektów animuj¹cych)
  double dWheelAngle[3]; //k¹ty obrotu kó³: 0=przednie toczne, 1=napêdzaj¹ce i wi¹zary, 2=tylne toczne
  vector3 vCoulpler[2]; //wspó³rzêdne sprzêgów do liczenia zderzeñ
-public:
  // !!!! kabina to modyfikuje !!!!
  vector3 vUp,vFront,vLeft; //wektory jednostkowe ustawienia pojazdu
 private:
@@ -194,6 +212,7 @@ private:
  TDynamicObject* __fastcall ABuFindNearestObject(TTrack *Track,TDynamicObject *MyPointer,int &CouplNr);
  void __fastcall TurnOff();
 public:
+ int iHornWarning; //numer syreny do u¿ycia po otrzymaniu sygna³u do jazdy 
  bool bEnabled; //Ra: wyjecha³ na portal i ma byæ usuniêty
 protected:
 
@@ -205,7 +224,9 @@ protected:
     int CouplCounter;
     AnsiString asModel;
     int iDirection; //kierunek wzglêdem czo³a sk³adu (1=zgodny,0=przeciwny)
+public:
     void ABuScanObjects(int ScanDir,double ScanDist);
+protected:
     TDynamicObject* __fastcall ABuFindObject(TTrack *Track,int ScanDir,Byte &CouplFound,double &dist);
     void __fastcall ABuCheckMyTrack();
 
@@ -214,6 +235,7 @@ public:
  float fShade; //0:normalnie, -1:w ciemnoœci, +1:dodatkowe œwiat³o (brak koloru?)
  int iLights[2]; //bity zapalonych œwiate³
  double fTrackBlock; //odleg³oœæ do przeszkody do dalszego ruchu
+ TDynamicObject* __fastcall PrevAny();
  TDynamicObject* __fastcall Prev();
  TDynamicObject* __fastcall Next();
     void __fastcall SetdMoveLen(double dMoveLen) {MoverParameters->dMoveLen=dMoveLen;}
@@ -225,7 +247,7 @@ public:
 		AnsiString asName;
     AnsiString __fastcall GetName()
        {
-          return asName;
+          return this?asName:AnsiString("");
        };
 
 //youBy
@@ -311,9 +333,12 @@ public:
     bool __fastcall Render();
     bool __fastcall RenderAlpha();
     vector3 inline __fastcall GetPosition();
-    inline vector3 __fastcall AxlePositionGet() { return iAxleFirst?Axle1.pPosition:Axle0.pPosition; };
+    inline vector3 __fastcall HeadPosition() {return vCoulpler[iDirection^1];}; //pobranie wspó³rzêdnych czo³a
+    inline vector3 __fastcall AxlePositionGet() {return iAxleFirst?Axle1.pPosition:Axle0.pPosition;};
     inline vector3 __fastcall VectorFront() {return vFront;};
     inline vector3 __fastcall VectorUp() {return vUp;};
+    inline vector3 __fastcall VectorLeft() {return vLeft;};
+    inline double* __fastcall Matrix() {return mMatrix.getArray();};
     inline double __fastcall GetVelocity() { return MoverParameters->Vel; };
     inline double __fastcall GetLength() { return MoverParameters->Dim.L; };
     inline double __fastcall GetWidth() { return MoverParameters->Dim.W; };
@@ -354,11 +379,12 @@ public:
  void __fastcall RaAxleEvent(TEvent *e);
  TDynamicObject* __fastcall FirstFind(int &coupler_nr);
  int __fastcall DirectionSet(int d); //ustawienie kierunku w sk³adzie
- int __fastcall DirectionGet() {return iDirection?1:-1;}; //ustawienie kierunku w sk³adzie
- bool DettachDistance(int dir);
+ int __fastcall DirectionGet() {return iDirection?1:-1;}; //odczyt kierunku w sk³adzie
+ int DettachStatus(int dir);
  int Dettach(int dir,int cnt);
  TDynamicObject* __fastcall Neightbour(int &dir);
  void __fastcall CoupleDist();
+
 };
 
 

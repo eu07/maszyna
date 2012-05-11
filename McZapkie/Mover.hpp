@@ -504,7 +504,6 @@ public:
 	int ActiveCab;
 	int LastCab;
 	double LastSwitchingTime;
-	Byte WarningSignal;
 	bool DepartureSignal;
 	bool InsideConsist;
 	TTractionParam RunningTraction;

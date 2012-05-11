@@ -584,7 +584,7 @@ TYPE
                 ActiveCab: integer; //numer kabiny, w ktorej jest obsada (zwykle jedna na sk³ad)
                 LastCab: integer;       { numer kabiny przed zmiana }
                 LastSwitchingTime: real; {czas ostatniego przelaczania czegos}
-                WarningSignal: byte;     {0: nie trabi, 1,2: trabi}
+                //WarningSignal: byte;     {0: nie trabi, 1,2: trabi}
                 DepartureSignal: boolean; {sygnal odjazdu}
                 InsideConsist: boolean;
                 {-zmienne dla lokomotywy elektrycznej}
@@ -726,9 +726,6 @@ TYPE
 
                {! funkcje laczace/rozlaczajace sprzegi}
                //Ra: przeniesione do C++
-               //function Attach(ConnectNo: byte; ConnectToNr: byte; ConnectTo:P_MoverParameters; CouplingType: byte):boolean; {laczenie}
-               //function DettachDistance(ConnectNo: byte):boolean; //odleg³oœæ roz³¹czania
-               //function Dettach(ConnectNo: byte):boolean;                    {rozlaczanie}
 
                {funkcje obliczajace sily}
                 procedure ComputeConstans; //ABu: wczesniejsze wyznaczenie stalych dla liczenia sil
@@ -2639,84 +2636,7 @@ begin
 end;
 
 
-{sprzegi}
-{ Ra: przeniesione do C++
-function T_MoverParameters.Attach(ConnectNo:byte;ConnectToNr:byte;ConnectTo:P_MoverParameters;CouplingType:byte):boolean;
-//³¹czenie do (ConnectNo) pojazdu (ConnectTo) stron¹ (ConnectToNr)
-//Ra: zwykle wykonywane dwukrotnie, dla ka¿dego pojazdu oddzielnie
-const dEpsilon=0.001;
-var ct:TCouplerType;
-begin
- with Couplers[ConnectNo] do
-  begin
-   if (ConnectTo<>nil) then
-    begin
-     if (ConnectToNr<>2) then ConnectedNr:=ConnectToNr; //2=nic nie pod³¹czone
-     ct:=ConnectTo^.Couplers[ConnectedNr].CouplerType; //typ sprzêgu pod³¹czanego pojazdu
-     CoupleDist:=Distance(Loc,ConnectTo^.Loc,Dim,ConnectTo^.Dim); //odleg³oœæ pomiêdzy sprzêgami
-     if (((CoupleDist<=dEpsilon) and (CouplerType<>NoCoupler) and (CouplerType=ct))
-        or (CouplingType and ctrain_coupler=0))
-     then
-      begin //stykaja sie zderzaki i kompatybilne typy sprzegow chyba ze wirtualnie
-        Connected:=ConnectTo;
-        if CouplingFlag=ctrain_virtual then //jeœli wczeœniej nie by³o po³¹czone
-         begin //ustalenie z której strony rysowaæ sprzêg
-          Render:=True; //tego rysowaæ
-          Connected.Couplers[ConnectedNr].Render:=false; //a tego nie
-         end;
-        CouplingFlag:=CouplingType;
-        if (CouplingType<>ctrain_virtual) //Ra: wirtualnego nie ³¹czymy zwrotnie!
-        then //jeœli ³¹czenie sprzêgiem niewirtualnym, ustawiamy po³¹czenie zwrotne
-         Connected.Couplers[ConnectedNr].CouplingFlag:=CouplingType;
-        Attach:=True;
-      end
-     else
-      Attach:=False;
-    end
-   else
-    Attach:=False;
-  end;
-end;
-
-
-function T_MoverParameters.DettachDistance(ConnectNo: byte): boolean;
-//Ra: sprawdzenie, czy odleg³oœæ jest dobra do roz³¹czania
-begin
- with Couplers[ConnectNo] do
-  if (Connected<>nil) and
-  //ABu021104: zakomentowane 'and (CouplerType<>Articulated)' w warunku, nie wiem co to bylo, ale za to teraz dziala odczepianie... :)
-  (((Distance(Loc,Connected.Loc,Dim,Connected.Dim)>0) //and (CouplerType<>Articulated)
-   ) or (TestFlag(DamageFlag,dtrain_coupling) or (CouplingFlag and ctrain_coupler=0)))
-   then
-    DettachDistance:=FALSE
-   else
-    DettachDistance:=TRUE;
-end;
-
-function T_MoverParameters.Dettach(ConnectNo: byte): boolean; //rozlaczanie
-begin
- with Couplers[ConnectNo] do
-  begin
-   if (Connected<>nil) and
-   {ABu021104: zakomentowane 'and (CouplerType<>Articulated)' w warunku, nie wiem co to bylo, ale za to teraz dziala odczepianie... :)
-   (((Distance(Loc,Connected.Loc,Dim,Connected.Dim)<=0) //and (CouplerType<>Articulated)
-    ) or (TestFlag(DamageFlag,dtrain_coupling) or (CouplingFlag and ctrain_coupler=0)))
-    then
-     begin  //gdy podlaczony oraz scisniete zderzaki chyba ze zerwany sprzeg albo tylko wirtualnie
-       //Connected:=nil;  //lepiej zostawic bo przeciez trzeba kontrolowac zderzenia odczepionych
-       CouplingFlag:=0; //pozostaje sprzêg wirtualny
-       Connected.Couplers[ConnectedNr].CouplingFlag:=0; //pozostaje sprzêg wirtualny
-       Dettach:=True;
-     end
-   else
-     begin //od³¹czamy wê¿e i resztê, pozostaje sprzêg fizyczny
-       CouplingFlag:=CouplingFlag and ctrain_coupler;
-       Connected.Couplers[ConnectedNr].CouplingFlag:=CouplingFlag;
-       Dettach:=False; //jeszcze nie roz³¹czony
-     end
-  end;
-end;
-}
+{sprzegi}{ Ra: przeniesione do C++}
 
 {lokomotywy}
 
@@ -3125,6 +3045,7 @@ begin
        DelayCtrlFlag:=False;
        SetFlag(SoundFlag,sound_relay); SetFlag(SoundFlag,sound_loud);
      end;
+    //if (TrainType<>dt_EZT) then //Ra: w EZT mo¿na daæ od razu na S albo R, wa³ ku³akowy sobie dokrêci
     if (LastRelayTime>CtrlDelay) and not DelayCtrlFlag then
      begin
        if MainCtrlPos=0 then
@@ -3222,8 +3143,9 @@ begin
     else  {DelayCtrlFlag}
      if ((MainCtrlPos>1) and (MainCtrlActualPos>0) and DelayCtrlFlag) then
       begin
-        MainCtrlActualPos:=0;
-        OK:=True;
+       //if (TrainType<>dt_EZT) then //Ra: w EZT mo¿na daæ od razu na S albo R, wa³ ku³akowy sobie dokrêci
+       MainCtrlActualPos:=0; //Ra: tu jest chyba wy³¹czanie przy zbyt szybkim wejœciu na drug¹ pozycjê
+       OK:=True;
       end
      else
       if (MainCtrlPos=1) and (MainCtrlActualPos=0) then
@@ -3939,29 +3861,6 @@ begin
  {  end; }
   BrakeForce:=Fb;
 end;
-
-{
-procedure T_MoverParameters.SetCoupleDist;
-//przeliczenie odleg³oœci sprzêgów
-begin
- with Couplers[0] do
-  if (Connected<>nil) then
-   begin
-    CoupleDist:=Distance(Loc,Connected.Loc,Dim,Connected.Dim);
-    if CategoryFlag=4 then
-     begin //Ra: dla samochodów zderzanie kul to za ma³o
-     end
-   end;
- with Couplers[1] do
-  if (Connected<>nil) then
-   begin
-    CoupleDist:=Distance(Loc,Connected.Loc,Dim,Connected.Dim);
-    if CategoryFlag=4 then
-     begin //Ra: dla samochodów zderzanie kul to za ma³o
-     end
-   end;
-end;
-}
 
 function T_MoverParameters.CouplerForce(CouplerN:byte;dt:real):real;
 //wyliczenie si³y na sprzêgu
