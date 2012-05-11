@@ -49,7 +49,7 @@ Type
                         function UpdateMTable(hh,mm:real; NewName: string): boolean;
                         constructor Init(NewTrainName:string);
                         procedure NewName(NewTrainName:string);
-                        function LoadTTfile(scnpath:string;vMax:real):boolean;
+                        function LoadTTfile(scnpath:string;iPlus:Integer;vMax:real):boolean;
                         function DirectionChange():boolean;
                         procedure StationIndexInc();
                       end;
@@ -213,13 +213,14 @@ begin
   TTVmax:=100; {wykasowac}
 end;
 
-function TTrainParameters.LoadTTfile(scnpath:string;vMax:real):boolean;
-{wczytanie pliku-tabeli z rozk³adem}
+function TTrainParameters.LoadTTfile(scnpath:string;iPlus:Integer;vMax:real):boolean;
+//wczytanie pliku-tabeli z rozk³adem przesuniêtym o (fPlus); (vMax) nie ma znaczenia
 var
  lines,s:string;
  fin:text;
  EndTable:boolean;
  vActual:real;
+ i,time:Integer; //do zwiêkszania czasu
 
 procedure UpdateVelocity(StationCount:integer;vActual:real);
 //zapisywanie prêdkoœci maksymalnej do wczeœniejszych odcinków
@@ -444,6 +445,22 @@ begin
    //NextStationName:=TimeTable[1].StationName;
 {  TTVmax:=TimeTable[1].vmax;  }
   end;
+ if (iPlus<>0) then //je¿eli jest przesuniêcie rozk³adu
+  for i:=1 to StationCount do //bez with, bo ciê¿ko siê przenosi na C++
+   begin
+    if (TimeTable[i].Ah>=0) then
+     begin
+      time:=iPlus+TimeTable[i].Ah*60+TimeTable[i].Am; //nowe minuty
+      TimeTable[i].Am:=time mod 60;
+      TimeTable[i].Ah:=(time div 60) mod 60;
+     end;
+    if (TimeTable[i].Dh>=0) then
+     begin
+      time:=iPlus+TimeTable[i].Dh*60+TimeTable[i].Dm; //nowe minuty
+      TimeTable[i].Dm:=time mod 60;
+      TimeTable[i].Dh:=(time div 60) mod 60;
+     end;
+   end;
  LoadTTfile:=(ConversionError=0);
 end;
 

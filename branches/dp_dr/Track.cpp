@@ -30,7 +30,7 @@
 #include "parser.h"
 #include "Mover.h"
 #include "DynObj.h"
-
+#include "AnimModel.h"
 
 #pragma package(smart_init)
 
@@ -58,6 +58,7 @@ __fastcall TSwitchExtension::TSwitchExtension(TTrack *owner)
  Segments[3]=NULL;
  Segments[4]=NULL;
  EventPlus=EventMinus=NULL;
+ fVelocity=-1.0; //maksymalne ograniczenie prêdkoœci (ustawianej eventem)
 }
 __fastcall TSwitchExtension::~TSwitchExtension()
 {//nie ma nic do usuwania
@@ -236,12 +237,14 @@ TTrack* __fastcall TTrack::NullCreate(int dir)
  else
  {//tworznie pêtelki dla samochodów
   trk->fVelocity=20.0; //zawracanie powoli
+  trk->fRadius=20.0; //promieñ, aby siê dodawa³o do tabelki prêdkoœci i liczy³o narastaj¹co
   trk->Init(); //utworzenie segmentu
   tmp2=new TGroundNode(TP_TRACK); //drugi odcinek do zapêtlenia
   TTrack* trk2=tmp2->pTrack;
   trk2->iCategoryFlag=(iCategoryFlag&15)|0x80; //taki sam typ plus informacja, ¿e dodatkowy
-  trk2->bVisible=false; 
+  trk2->bVisible=false;
   trk2->fVelocity=20.0; //zawracanie powoli
+  trk2->fRadius=20.0; //promieñ, aby siê dodawa³o do tabelki prêdkoœci i liczy³o narastaj¹co
   trk2->Init(); //utworzenie segmentu
   switch (dir)
   {//³¹czenie z nowym torem
@@ -637,6 +640,8 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
   {
    parser->getTokens();
    *parser >> fVelocity; //*0.28; McZapkie-010602
+   if (SwitchExtension) //jeœli tor ruchomy
+    SwitchExtension->fVelocity=fVelocity; //zapamiêtanie g³ównego ograniczenia
   }
   else if (str=="isolated")
   {//obwód izolowany, do którego tor nale¿y
@@ -2000,15 +2005,15 @@ int __fastcall TTrack::TestPoint(vector3 *Point)
 {//sprawdzanie, czy tory mo¿na po³¹czyæ
  switch (eType)
  {
-  case tt_Normal :
+  case tt_Normal: //zwyk³y odcinek
    if (pPrev==NULL)
     if (Equal(Segment->FastGetPoint_0(),Point))
      return 0;
    if (pNext==NULL)
     if (Equal(Segment->FastGetPoint_1(),Point))
      return 1;
-   break;
-  case tt_Switch :
+  break;
+  case tt_Switch: //zwrotnica
   {int state=GetSwitchState(); //po co?
    //Ra: TODO: jak siê zmieni na bezpoœrednie odwo³ania do segmentow zwrotnicy,
    //to siê wykoleja, poniewa¿ pNext zale¿y od prze³o¿enia
@@ -2045,6 +2050,20 @@ int __fastcall TTrack::TestPoint(vector3 *Point)
    Switch(state);
   }
   break;
+  case tt_Cross: //skrzy¿owanie dróg
+   //if (pPrev==NULL)
+    if (Equal(SwitchExtension->Segments[0]->FastGetPoint_0(),Point))
+     return 0;
+   //if (pNext==NULL)
+    if (Equal(SwitchExtension->Segments[0]->FastGetPoint_1(),Point))
+     return 1;
+   //if (pPrev==NULL)
+    if (Equal(SwitchExtension->Segments[1]->FastGetPoint_0(),Point))
+     return 2;
+   //if (pNext==NULL)
+    if (Equal(SwitchExtension->Segments[1]->FastGetPoint_1(),Point))
+     return 3;
+  break;
  }
  return -1;
 };
@@ -2052,4 +2071,22 @@ int __fastcall TTrack::TestPoint(vector3 *Point)
 void __fastcall TTrack::MovedUp1(double dh)
 {//poprawienie przechy³ki wymaga wyd³u¿enia podsypki
  fTexHeight1+=dh;
+};
+
+AnsiString __fastcall TTrack::NameGet()
+{//ustalenie nazwy toru
+ if (this)
+  if (pMyNode)
+   return pMyNode->asName;
+ return "none";
+};
+
+void __fastcall TTrack::VelocitySet(float v)
+{//ustawienie prêdkoœci z ograniczeniem do pierwotnej wartoœci (zapisanej w scenerii)
+ if (SwitchExtension?SwitchExtension->fVelocity>=0.0:false)
+ {//zwrotnica mo¿e mieæ odgórne ograniczenie, nieprzeskakiwalne eventem
+  if (v>SwitchExtension->fVelocity?true:v<0.0)
+   return void(fVelocity=SwitchExtension->fVelocity); //maksymalnie tyle, ile by³o we wpisie
+ }
+ fVelocity=v; //nie ma ograniczenia
 };

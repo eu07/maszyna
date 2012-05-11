@@ -36,13 +36,13 @@
     <USERDEFINES value="GLEW_STATIC;_DEBUG"/>
     <SYSDEFINES value="_RTLDLL;NO_STRICT"/>
     <MAINSOURCE value="EU07.cpp"/>
-    <INCLUDEPATH value="C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
-    <LIBPATH value="C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
+    <INCLUDEPATH value="Console;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
+    <LIBPATH value="Console;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
     <WARNINGS value="-w-par"/>
   </MACROS>
   <OPTIONS>
-    <IDLCFLAGS value="-src_suffix cpp -DGLEW_STATIC -D_DEBUG -IC:\ProgsWin\CBuilder5\Projects\. 
-      -Iopengl -IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl -boa"/>
+    <IDLCFLAGS value="-src_suffix cpp -DGLEW_STATIC -D_DEBUG -IConsole -Iopengl -IMcZapkie 
+      -I$(BCB)\include -I$(BCB)\include\vcl -boa"/>
     <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a4 -6 -b- -k -y -v -vi- 
       -c -tW -tWM"/>
     <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
@@ -61,8 +61,8 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=1
 MinorVer=7
-Release=537
-Build=332
+Release=570
+Build=350
 Debug=1
 PreRelease=0
 Special=1
@@ -74,7 +74,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.7.537.332
+FileVersion=1.7.570.350
 InternalName=7th by Ra / Dizel2
 LegalCopyright=
 LegalTrademarks=
@@ -85,20 +85,17 @@ Comments=
 SpecialBuild=
 
 [HistoryLists\hlIncludePath]
-Count=2
-Item0=C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item1=opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Count=1
+Item0=Console;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
 
 [HistoryLists\hlLibraryPath]
-Count=2
-Item0=C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item1=opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Count=1
+Item0=Console;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
 
 [HistoryLists\hlDebugSourcePath]
-Count=3
+Count=2
 Item0=C:\Ra\dp\McZapkie\
-Item1=c:\lang\borland\cbuilder5\source\vcl;D:\USER\MCZAPKIE\PROGRAMY\rail\symul\source\zmiany\McZapkie\;D:\USER\MCZAPKIE\PROGRAMY\rail\symul\source\zmiany\
-Item2=$(BCB)\source\vcl
+Item1=$(BCB)\source\vcl
 
 [HistoryLists\hlConditionals]
 Count=8
@@ -124,7 +121,7 @@ Item5=M:\aEU07\EU07\
 DebugSourceDirs=
 
 [Parameters]
-RunParams=
+RunParams=-s test_tm.SCN -v ghostview
 HostApplication=
 RemoteHost=
 RemotePath=

@@ -19,7 +19,6 @@
 */
 
 #include "system.hpp"
-#include "classes.hpp"
 #pragma hdrstop
 
 
@@ -57,7 +56,8 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asVersion="Compilation 2012-03-28, release 1.7.537.332."; //tutaj, bo wysy³any
+AnsiString Global::asRelease="1.7.570.350";
+AnsiString Global::asVersion="Compilation 2012-05-09, release "+Global::asRelease+"."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 double Global::fSunDeclination=0.0; //deklinacja S³oñca
@@ -74,6 +74,8 @@ TWorld* Global::pWorld=NULL;
 Queryparsercomp::TQueryParserComp *Global::qParser=NULL;
 cParser *Global::pParser=NULL;
 int Global::iSegmentsRendered=90; //iloœæ segmentów do regulacji wydajnoœci
+TCamera* Global::pCamera=NULL; //parametry kamery
+TDynamicObject *Global::pUserDynamic=NULL; //pojazd u¿ytkownika, renderowany bez trzêsienia
 
 //parametry scenerii
 vector3 Global::pCameraPosition;
@@ -113,6 +115,10 @@ AnsiString Global::asHumanCtrlVehicle="EU07-424";
 int Global::iMultiplayer=0; //blokada dzia³ania niektórych funkcji na rzecz kominikacji
 double Global::fMoveLight=-1; //ruchome œwiat³o
 double Global::fLatitudeDeg=52.0; //szerokoœæ geograficzna
+double Global::fRadiusLoFPS=16.0; //dolna granica FPS, przy której promieñ scenerii bêdzie zmniejszany
+double Global::fRadiusHiFPS=25.0; //górna granica FPS, przy której promieñ scenerii bêdzie zwiêkszany
+double Global::fRadiusFactor=1.1; //wspó³czynnik jednorazowej zmiany promienia scenerii
+
 
 //parametry wydajnoœciowe (np. regulacja FPS, szybkoœæ wczytywania)
 bool Global::bAdjustScreenFreq=true;
@@ -144,8 +150,8 @@ bool Global::bManageNodes=true;
 bool Global::bDecompressDDS=false;
 
 //parametry przejœciowe (do usuniêcia)
-bool Global::bTimeChange=false; //Ra: ZiomalCl wy³¹czy³ star¹ wersjê nocy
-bool Global::bRenderAlpha=true; //Ra: wywali³am tê flagê
+//bool Global::bTimeChange=false; //Ra: ZiomalCl wy³¹czy³ star¹ wersjê nocy
+//bool Global::bRenderAlpha=true; //Ra: wywali³am tê flagê
 bool Global::bnewAirCouplers=true;
 bool Global::bDoubleAmbient=false; //podwójna jasnoœæ ambient
 double Global::fSunSpeed=1.0; //prêdkoœæ ruchu S³oñca, zmienna do testów
@@ -469,9 +475,9 @@ void __fastcall Global::InitKeys(AnsiString asFileName)
         Keys[k_DeCouple]=VK_DELETE;
 
         Keys[k_ProgramQuit]=VK_F10;
-        Keys[k_ProgramPause]=VK_F3;
+        //Keys[k_ProgramPause]=VK_F3;
         Keys[k_ProgramHelp]=VK_F1;
-        Keys[k_FreeFlyMode]=VK_F4;
+        //Keys[k_FreeFlyMode]=VK_F4;
         Keys[k_WalkMode]=VK_F5;
 
         Keys[k_OpenLeft]=VkKeyScan(',');

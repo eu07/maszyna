@@ -16,6 +16,9 @@
 
 class TWorld
 {
+ void __fastcall InOutKey();
+ void __fastcall FollowView();
+ void __fastcall DistantView();
 public:
     bool __fastcall Init(HWND NhWnd, HDC hDC);
     HWND hWnd;
@@ -53,7 +56,7 @@ private:
     int iCheckFPS; //kiedy znów sprawdziæ FPS, ¿eby wy³¹czaæ optymalizacji od razu do zera
 public:
  void __fastcall ModifyTGA(const AnsiString &dir="");
- void __fastcall CreateE3D(const AnsiString &dir="");
+ void __fastcall CreateE3D(const AnsiString &dir="",bool dyn=false);
 };
 //---------------------------------------------------------------------------
 #endif

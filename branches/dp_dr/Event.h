@@ -15,13 +15,13 @@ typedef enum { tp_Unknown, tp_Sound, tp_SoundPos, tp_Exit,
                tp_LogValues, tp_Visible
              }  TEventType;
 
-const int conditional_trackoccupied=-1;
-const int conditional_trackfree=-2;
-const int conditional_propability=-4;
 const int conditional_memstring=1;
 const int conditional_memval1=2;
 const int conditional_memval2=4;
 const int conditional_memadd=8; //dodanie do poprzedniej zawartoœci
+const int conditional_trackoccupied=0x100; //do u¿ywania z & nie moze byæ ujemne
+const int conditional_trackfree=0x200;
+const int conditional_propability=0x400;
 
 union TParam
 {
@@ -58,7 +58,7 @@ public:
     double fDelay;
     TDynamicObject *Activator;
 
-    TParam Params[13]; //McZapkie-070502
+    TParam Params[13]; //McZapkie-070502 //Ra: zamieniæ to na union/struct
 
     AnsiString asNodeName;
 //McZapkie-100302 - dodalem zeby zapamietac nazwe toru
@@ -70,7 +70,8 @@ public:
     void __fastcall Load(cParser* parser,vector3 *org);
     void __fastcall AddToQuery(TEvent *Event);
  AnsiString __fastcall CommandGet();
- //vector3* __fastcall PositionGet();
+ double __fastcall ValueGet(int n);
+ vector3 __fastcall PositionGet();
 };
 
 //---------------------------------------------------------------------------

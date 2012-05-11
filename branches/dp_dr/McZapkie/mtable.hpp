@@ -67,7 +67,7 @@ public:
 	bool __fastcall UpdateMTable(double hh, double mm, AnsiString NewName);
 	__fastcall TTrainParameters(AnsiString NewTrainName);
 	void __fastcall NewName(AnsiString NewTrainName);
-	bool __fastcall LoadTTfile(AnsiString scnpath, double vMax);
+	bool __fastcall LoadTTfile(AnsiString scnpath, int iPlus, double vMax);
 	bool __fastcall DirectionChange(void);
 	void __fastcall StationIndexInc(void);
 public:

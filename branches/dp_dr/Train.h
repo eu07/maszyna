@@ -71,6 +71,7 @@ public:
     inline vector3 __fastcall GetUp() { return DynamicObject->VectorUp(); };
     void __fastcall UpdateMechPosition(double dt);
     bool __fastcall Update();
+    void __fastcall MechStop();
 //    virtual bool __fastcall RenderAlpha();
 //McZapkie-310302: ladowanie parametrow z pliku
     bool __fastcall LoadMMediaFile(AnsiString asFileName);
@@ -227,7 +228,7 @@ public:
     TButton btLampkaBackward;
 
     vector3 pPosition;
-    vector3 pMechOffset;
+    vector3 pMechOffset; //driverNpos
     vector3 vMechMovement;
     vector3 pMechPosition;
     vector3 pMechShake;

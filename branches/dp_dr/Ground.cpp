@@ -45,6 +45,7 @@
 #include "parser.h" //Tolaris-010603
 #include "Driver.h"
 #include "Console.h"
+#include "Names.h"
 
 
 #define _PROBLEND 1
@@ -1186,20 +1187,21 @@ __fastcall TGround::TGround()
  for (int i=0;i<TP_LAST;i++)
   nRootOfType[i]=NULL; //zerowanie tablic wyszukiwania
  bDynamicRemove=false; //na razie nic do usuniêcia
+ sTracks=new TNames(); //nazwy torów - na razie tak
 }
 
 __fastcall TGround::~TGround()
 {
-    Free();
+ Free();
 }
 
 void __fastcall TGround::Free()
 {
  TEvent *tmp;
- for (TEvent *Current=RootEvent; Current!=NULL; )
+ for (TEvent *Current=RootEvent;Current;)
  {
-  tmp= Current;
-  Current= Current->Next2;
+  tmp=Current;
+  Current=Current->Next2;
   delete tmp;
  }
  TGroundNode *tmpn;
@@ -1221,6 +1223,21 @@ void __fastcall TGround::Free()
  iNumNodes=0;
  //RootNode=NULL;
  nRootDynamic=NULL;
+ delete sTracks;
+}
+
+TGroundNode* __fastcall TGround::FindGroundNode(AnsiString asNameToFind,TGroundNodeType iNodeType)
+{//wyszukiwanie obiektu o podanej nazwie i konkretnym typie
+ if (iNodeType==TP_TRACK)
+ {//wyszukiwanie w drzewie binarnym
+  return (TGroundNode*)sTracks->Find(TP_TRACK,asNameToFind.c_str());
+ }
+ //standardowe wyszukiwanie liniowe
+ TGroundNode *Current;
+ for (Current=nRootOfType[iNodeType];Current;Current=Current->Next)
+  if (Current->asName==asNameToFind)
+   return Current;
+ return NULL;
 }
 
 
@@ -1473,7 +1490,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    parser->getTokens(3);
    *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
    tmp->pCenter+=pOrigin;
-   tmp->MemCell=new TMemCell();
+   tmp->MemCell=new TMemCell(&tmp->pCenter);
    tmp->MemCell->Load(parser);
    break;
   case TP_EVLAUNCH :
@@ -1485,8 +1502,11 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    break;
   case TP_TRACK :
    tmp->pTrack=new TTrack(tmp);
-   if ((DebugModeFlag) && (tmp->asName!=AnsiString("")))
-    WriteLog(tmp->asName.c_str());
+   if (DebugModeFlag)
+    if (!tmp->asName.IsEmpty())
+     WriteLog(tmp->asName.c_str());
+   if (!tmp->asName.IsEmpty()) //jest pusta gdy "none"
+    sTracks->Add(TP_TRACK,tmp->asName.c_str(),tmp); //dodanie do wyszukiwarki
    tmp->pTrack->Load(parser,pOrigin,tmp->asName); //w nazwie mo¿e byæ nazwa odcinka izolowanego
    //str=Parser->GetNextSymbol().LowerCase();
    //str=Parser->GetNextSymbol().LowerCase();
@@ -2039,7 +2059,7 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
     srm=0;  //minuty wschodu slonca
     ssh=20; //godzina zachodu slonca
     ssm=0;  //minuty zachodu slonca
-    TGroundNode *LastNode=NULL; //do trainset
+    TGroundNode *LastNode=NULL; //do u¿ycia w trainset
     iNumNodes=0;
     token="";
     parser.getTokens();
@@ -2048,8 +2068,8 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
 
     while (token!="") //(!Parser->EndOfFile)
     {
-     if (refresh==100)
-     {SwapBuffers(hDC); //Ra: bez ogranicznika za bardzo spowalnia :(
+     if (refresh==50)
+     {//SwapBuffers(hDC); //Ra: bez ogranicznika za bardzo spowalnia :( a u niektórych miga
       refresh=0;
      }
      else ++refresh;
@@ -2078,6 +2098,10 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
           TrainSetDriver=LastNode; //pojazd, któremu zostanie wys³any rozk³ad
          LastNode->Next=nRootDynamic;
          nRootDynamic=LastNode; //dopisanie z przodu do listy
+         //if (bTrainSet && (LastNode?(LastNode->iType==TP_DYNAMIC):false))
+         if (TrainSetNode) //je¿eli istnieje wczeœniejszy TP_DYNAMIC
+          TrainSetNode->DynamicObject->AttachPrev(LastNode->DynamicObject,TempConnectionType[iTrainSetWehicleNumber-2]);
+         TrainSetNode=LastNode; //ostatnio wczytany
         }
       }
       else
@@ -2120,33 +2144,39 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
 */
        }
       }
+      if (LastNode) //ostatni wczytany obiekt
+       if (LastNode->iType==TP_DYNAMIC) //o ile jest pojazdem (na ogó³ jest, ale kto wie...)
+        if (!TempConnectionType[iTrainSetWehicleNumber-1]) //jeœli ostatni pojazd ma sprzêg 0
+         LastNode->DynamicObject->RaLightsSet(-1,2+32+64); //to za³o¿ymy mu koñcówki blaszane (jak AI siê odpali, to sobie poprawi)
       bTrainSet=false;
       fTrainSetVel=0;
       //iTrainSetConnection=0;
       TrainSetNode=NULL;
       iTrainSetWehicleNumber=0;
      }
-     else
-     if (str==AnsiString("event"))
+     else if (str==AnsiString("event"))
      {
-         TEvent *tmp;
-         tmp=RootEvent;
-         RootEvent=new TEvent();
-         RootEvent->Load(&parser,&pOrigin);
-         if (RootEvent->Type==tp_Unknown)
-         {delete RootEvent;
-          RootEvent=tmp; //przywrócenie z pominiêciem
-         }
-         else
-          RootEvent->Next2=tmp;
+      TEvent *tmp;
+      tmp=RootEvent;
+      RootEvent=new TEvent();
+      RootEvent->Load(&parser,&pOrigin);
+      if (RootEvent->Type==tp_Unknown)
+      {delete RootEvent;
+       RootEvent=tmp; //przywrócenie z pominiêciem
+      }
+      else
+      {RootEvent->Next2=tmp;
+       if (RootEvent->Type!=tp_Ignored)
+        if (RootEvent->asName.Pos("onstart")) //event uruchamiany automatycznie po starcie
+         AddToQuery(RootEvent,NULL); //dodanie do kolejki
+      }
      }
 //     else
 //     if (str==AnsiString("include"))  //Tolaris to zrobil wewnatrz parsera
 //     {
 //         Include(Parser);
 //     }
-     else
-     if (str==AnsiString("rotate"))
+     else if (str==AnsiString("rotate"))
      {
       //parser.getTokens(3);
       //parser >> aRotate.x >> aRotate.y >> aRotate.z; //Ra: to potrafi dawaæ b³êdne rezultaty
@@ -2155,8 +2185,7 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
       parser.getTokens(); parser >> aRotate.z;
       //WriteLog("*** rotate "+AnsiString(aRotate.x)+" "+AnsiString(aRotate.y)+" "+AnsiString(aRotate.z));
      }
-     else
-     if (str==AnsiString("origin"))
+     else if (str==AnsiString("origin"))
      {
 //      str=Parser->GetNextSymbol().LowerCase();
 //      if (str=="begin")
@@ -2172,8 +2201,7 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
        OriginStackTop++; //zwiêkszenie wskaŸnika stosu
       }
      }
-     else
-     if (str==AnsiString("endorigin"))
+     else if (str==AnsiString("endorigin"))
      {
 //      else
   //    if (str=="end")
@@ -2186,11 +2214,6 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
 
        OriginStackTop--; //zmniejszenie wskaŸnika stosu
        pOrigin-=OriginStack[OriginStackTop];
-      }
-//      else
-      {
-  //        MessageBox(0,AnsiString("Scene parse error near "+str).c_str(),"Error",MB_OK);
-    //     break;
       }
      }
      else if (str==AnsiString("atmo"))   //TODO: uporzadkowac gdzie maja byc parametry mgly!
@@ -2258,8 +2281,7 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
        parser >> token;
       }
      }
-     else
-     if (str==AnsiString("light"))
+     else if (str==AnsiString("light"))
      {//Ra: ustawianie œwiat³a przeniesione do FirstInit
       WriteLog("Scenery light definition");
       vector3 lp;
@@ -2287,8 +2309,7 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
        } while (token.compare("endlight")!=0);
 
      }
-     else
-     if (str==AnsiString("camera"))
+     else if (str==AnsiString("camera"))
      {
       vector3 xyz,abc;
       xyz=abc=vector3(0,0,0); //wartoœci domyœlne, bo nie wszystie musz¹ byæ
@@ -2378,14 +2399,7 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
      if (str==AnsiString(""))
          break;
 
-     if (bTrainSet && (LastNode?(LastNode->iType==TP_DYNAMIC):false))
-     {
-      if (TrainSetNode) //je¿eli jest przedostatni dynamic
-       TrainSetNode->DynamicObject->AttachPrev(LastNode->DynamicObject,TempConnectionType[iTrainSetWehicleNumber-2]);
-      TrainSetNode=LastNode; //ostatnio wczytany
-//      fTrainSetVel=0; a po co to???
-     }
-     LastNode=NULL;
+     //LastNode=NULL;
 
      token="";
      parser.getTokens();
@@ -2393,6 +2407,18 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
     }
 
  delete parser;
+/* //Ra: testy sortownika nazw
+ //TFileStream *fs=new TFileStream("names.txt",fmCreate);
+ //fs->Write(sTracks->cBuffer,4*65536);
+ //delete fs;
+ int *r=new int[5000]; //robocza tablica indeksów - numery posortowanych rekordów
+ int *q=r; //wskaŸnik roboczy, przekazywany przez referencjê
+ sTracks->rTypes[TP_TRACK]->ListGet(sTracks->rRecords,q); //drzewo jest ju¿ posortowane - zamieniæ je na listê
+ for (;r<q;++r) //wyœwietlenie listy nazw
+  WriteLog(sTracks->rRecords[*r].cName);
+ delete[] r;
+*/
+ sTracks->Sort(TP_TRACK); //finalne sortowanie drzewa
  if (!bInitDone) FirstInit(); //jeœli nie by³o w scenerii
  if (Global::pTerrainCompact)
   TerrainWrite(); //Ra: teraz mo¿na zapisaæ teren w jednym pliku
@@ -2419,7 +2445,7 @@ bool __fastcall TGround::InitEvents()
                     Current->Params[9].asMemCell= tmp->MemCell;
                     if (tmp->MemCell->asTrackName!=AnsiString("none"))
                      {
-                      tmp= FindGroundNode(tmp->MemCell->asTrackName,TP_TRACK);
+                      tmp=FindGroundNode(tmp->MemCell->asTrackName,TP_TRACK);
                       if (tmp!=NULL)
                        {
                         Current->Params[10].asTrack= tmp->pTrack;
@@ -2437,7 +2463,7 @@ bool __fastcall TGround::InitEvents()
             case tp_GetValues:
             case tp_WhoIs:
             case tp_LogValues: //skojarzenie z memcell
-             tmp= FindGroundNode(Current->asNodeName,TP_MEMCELL);
+             tmp=FindGroundNode(Current->asNodeName,TP_MEMCELL);
              if (tmp)
              {
               Current->Params[8].asGroundNode=tmp;
@@ -2461,7 +2487,7 @@ bool __fastcall TGround::InitEvents()
              if (tmp)
              {
               strcpy(buff,Current->Params[9].asText); //skopiowanie nazwy submodelu do bufora roboczego
-              delete Current->Params[9].asText; //usuniêcie nazwy submodelu
+              SafeDeleteArray(Current->Params[9].asText); //usuniêcie nazwy submodelu
               Current->Params[9].asAnimContainer=tmp->Model->GetContainer(buff); //submodel
               if (Current->Params[9].asAnimContainer)
                Current->Params[9].asAnimContainer->WillBeAnimated(); //oflagowanie animacji
@@ -2493,7 +2519,7 @@ bool __fastcall TGround::InitEvents()
             case tp_Switch:
                 tmp= FindGroundNode(Current->asNodeName,TP_TRACK);
                 if (tmp)
-                    Current->Params[9].asTrack= tmp->pTrack;
+                    Current->Params[9].asTrack=tmp->pTrack;
                 else
                     Error("Event \""+Current->asName+"\" cannot find track \""+
                                      Current->asNodeName+"\"");
@@ -2534,46 +2560,40 @@ bool __fastcall TGround::InitEvents()
                 }
                 Current->asNodeName= "";
             break;
-            case tp_Multiple :
-                if (Current->Params[9].asText!=NULL)
-                {
-                    strcpy(buff,Current->Params[9].asText);
-                    delete Current->Params[9].asText;
-                    if (Current->Params[8].asInt<0) //ujemne znaczy sie chodzi o zajetosc toru
-                     {
-                      tmp= FindGroundNode(buff,TP_TRACK);
-                      if (!tmp)
-                        Error(AnsiString("Track \"")+AnsiString(buff)+"\" does not exist in \""+Current->asName+"\"");
-                      else
-                       Current->Params[9].asTrack= tmp->pTrack;
-                     }
-                    if (Current->Params[8].asInt>0) //dodatnie znaczy sie chodzi o komorke pamieciowa
-                     {
-                      tmp= FindGroundNode(buff,TP_MEMCELL);
-                      if (tmp==NULL)
-                       {
-                        Error(AnsiString("MemCell \"")+AnsiString(buff)+AnsiString("\" does not exist"));
-                       }
-                      else
-                       {
-                        Current->Params[9].asMemCell= tmp->MemCell;
-                        if (!Current->Params[9].asMemCell)
-                          Error(AnsiString("MemCell \"")+AnsiString(buff)+AnsiString("\" does not exist"));
-                       }
-                     }
-                 }
-                for (i=0; i<8; i++)
-                {
-                     if (Current->Params[i].asText!=NULL)
-                     {
-                        strcpy(buff,Current->Params[i].asText);
-                        delete Current->Params[i].asText;
-                        Current->Params[i].asEvent= FindEvent(buff);
-                        if (!Current->Params[i].asEvent) //Ra: tylko w logu informacja o braku
-                         WriteLog(AnsiString("Event \"")+AnsiString(buff)+AnsiString("\" does not exist"));
-                     }
+            case tp_Multiple:
+             if (Current->Params[9].asText!=NULL)
+             {
+              strcpy(buff,Current->Params[9].asText);
+              SafeDeleteArray(Current->Params[9].asText);
+              if (Current->Params[8].asInt&(conditional_trackoccupied|conditional_trackfree))
+              {//jeœli chodzi o zajetosc toru
+               tmp=FindGroundNode(buff,TP_TRACK);
+               if (tmp) Current->Params[9].asTrack=tmp->pTrack;
+               if (!Current->Params[9].asTrack)
+                Error(AnsiString("Track \"")+AnsiString(buff)+"\" does not exist in \""+Current->asName+"\"");
+              }
+              else if (Current->Params[8].asInt&(conditional_memstring|conditional_memval1|conditional_memval2))
+              {//jeœli chodzi o komorke pamieciow¹
+               tmp=FindGroundNode(buff,TP_MEMCELL);
+               if (tmp) Current->Params[9].asMemCell=tmp->MemCell;
+               if (!Current->Params[9].asMemCell)
+                Error(AnsiString("MemCell \"")+AnsiString(buff)+AnsiString("\" does not exist"));
+              }
+             }
+             for (i=0;i<8;i++)
+             {
+              if (Current->Params[i].asText!=NULL)
+              {
+               strcpy(buff,Current->Params[i].asText);
+               SafeDeleteArray(Current->Params[i].asText);
+               Current->Params[i].asEvent=FindEvent(buff);
+               if (!Current->Params[i].asEvent) //Ra: tylko w logu informacja o braku
+                if (AnsiString(Current->Params[i].asText).SubString(1,5)!="none_")
+                {WriteLog(AnsiString("Event \"")+AnsiString(buff)+AnsiString("\" does not exist"));
+                 ErrorLog("Missed event: "+AnsiString(buff)+" in multiple "+Current->asName);
                 }
-
+              }
+             }
             break;
         }
         if (Current->fDelay<0)
@@ -3003,9 +3023,9 @@ if (QueryRootEvent)
              {
               WriteLog("type: TrackVel");
 //            WriteLog("Vel: ",QueryRootEvent->Params[0].asdouble);
-              QueryRootEvent->Params[9].asTrack->fVelocity= QueryRootEvent->Params[0].asdouble;
+              QueryRootEvent->Params[9].asTrack->VelocitySet(QueryRootEvent->Params[0].asdouble);
               if (DebugModeFlag)
-               WriteLog("vel: ",QueryRootEvent->Params[9].asTrack->fVelocity);
+               WriteLog("vel: ",QueryRootEvent->Params[9].asTrack->VelocityGet());
              }
             break;
             case tp_DynVel :
@@ -3021,15 +3041,14 @@ if (QueryRootEvent)
                   else
                   if (QueryRootEvent->Params[8].asInt==conditional_trackfree)
                    bCondition=(QueryRootEvent->Params[9].asTrack->IsEmpty());
-                  else
-                  if (QueryRootEvent->Params[8].asInt==conditional_propability)
-                   {
+                  else if (QueryRootEvent->Params[8].asInt==conditional_propability)
+                  {
                    rprobability=1.0*rand()/RAND_MAX;
                    bCondition=(QueryRootEvent->Params[10].asdouble>rprobability);
                    WriteLog("Random integer: "+CurrToStr(rprobability)+"/"+CurrToStr(QueryRootEvent->Params[10].asdouble));
-                   }
+                  }
                   else
-                   {
+                  {
                    bCondition=
                    QueryRootEvent->Params[9].asMemCell->Compare(QueryRootEvent->Params[10].asText,
                                                                 QueryRootEvent->Params[11].asdouble,
@@ -3039,11 +3058,11 @@ if (QueryRootEvent)
                      {
                        LogComment="";
                        if (TestFlag(QueryRootEvent->Params[8].asInt,conditional_memstring))
-                        LogComment=AnsiString(QueryRootEvent->Params[10].asText)+"="+QueryRootEvent->Params[9].asMemCell->szText;
+                        LogComment=AnsiString(QueryRootEvent->Params[10].asText)+"="+QueryRootEvent->Params[9].asMemCell->Text();
                        if (TestFlag(QueryRootEvent->Params[8].asInt,conditional_memval1))
-                        LogComment+=" v1:"+FloatToStrF(QueryRootEvent->Params[11].asdouble,ffFixed,8,2)+"="+FloatToStrF(QueryRootEvent->Params[9].asMemCell->fValue1,ffFixed,8,2);
+                        LogComment+=" v1:"+FloatToStrF(QueryRootEvent->Params[11].asdouble,ffFixed,8,2)+"="+FloatToStrF(QueryRootEvent->Params[9].asMemCell->Value1(),ffFixed,8,2);
                        if (TestFlag(QueryRootEvent->Params[8].asInt,conditional_memval2))
-                        LogComment+=" v2:"+FloatToStrF(QueryRootEvent->Params[12].asdouble,ffFixed,8,2)+"="+FloatToStrF(QueryRootEvent->Params[9].asMemCell->fValue2,ffFixed,8,2);
+                        LogComment+=" v2:"+FloatToStrF(QueryRootEvent->Params[12].asdouble,ffFixed,8,2)+"="+FloatToStrF(QueryRootEvent->Params[9].asMemCell->Value2(),ffFixed,8,2);
                        WriteLog(LogComment.c_str());
                      }
                    }
@@ -3079,9 +3098,9 @@ if (QueryRootEvent)
             break;
             case tp_LogValues: //zapisanie zawartoœci komórki pamiêci do logu
              WriteLog("Memcell \""+QueryRootEvent->asNodeName+"\": "+
-              QueryRootEvent->Params[9].asMemCell->szText+", "+
-              QueryRootEvent->Params[9].asMemCell->fValue1+", "+
-              QueryRootEvent->Params[9].asMemCell->fValue2);
+              QueryRootEvent->Params[9].asMemCell->Text()+", "+
+              QueryRootEvent->Params[9].asMemCell->Value1()+", "+
+              QueryRootEvent->Params[9].asMemCell->Value2());
             break;
         }
         };
@@ -3227,9 +3246,9 @@ bool __fastcall TGround::GetTraction(vector3 pPosition, TDynamicObject *model)
     p2z= model->pant2x;
 //    model->mdModel->GetFromName
     wspwp= model->panth;
-    dirz= model->vFront;
-    diry= model->vUp;
-    dirx= model->vLeft;
+    dirz= model->VectorFront();
+    diry= model->VectorUp();
+    dirx= model->VectorLeft();
     dwys= model->GetPosition();
     dynwys= dwys.y;
     np1wy=1000;
@@ -3454,8 +3473,8 @@ bool __fastcall TGround::RenderDL(vector3 pPosition)
  vector3 direction;
  //iRange=(Global::iSlowMotion&6)?((Global::iSlowMotion&4)?AreaMini:AreaSlow):AreaFast;
  //n=(iRange[0]*n)/10; //przeliczenie (n) do aktualnego promienia rednerowania
- n=(Global::iSlowMotion&6)?((Global::iSlowMotion&4)?25:52):90; //iloœæ sektorów w æwiartce (max 400)
- for (k=0;k<n;++k) //sektory w kolejnoœci odleg³oœci
+ //n=(Global::iSlowMotion&6)?((Global::iSlowMotion&4)?25:52):90; //iloœæ sektorów w æwiartce (max 400)
+ for (k=0;k<Global::iSegmentsRendered;++k) //sektory w kolejnoœci odleg³oœci
  {//przerobione na u¿ycie SectorOrder
   i=SectorOrder[k].x; //na starcie oba >=0
   j=SectorOrder[k].y;
@@ -3538,8 +3557,8 @@ bool __fastcall TGround::RenderVBO(vector3 pPosition)
  vector3 direction;
  //iRange=(Global::iSlowMotion&6)?((Global::iSlowMotion&4)?AreaMini:AreaSlow):AreaFast;
  //n=(iRange[0]*n)/10; //przeliczenie (n) do aktualnego promienia rednerowania
- n=(Global::iSlowMotion&6)?((Global::iSlowMotion&4)?25:52):90; //iloœæ sektorów w æwiartce
- for (k=0;k<n;++k) //sektory w kolejnoœci odleg³oœci
+ //n=(Global::iSlowMotion&6)?((Global::iSlowMotion&4)?25:52):90; //iloœæ sektorów w æwiartce
+ for (k=0;k<Global::iSegmentsRendered;++k) //sektory w kolejnoœci odleg³oœci
  {//przerobione na u¿ycie SectorOrder
   i=SectorOrder[k].x; //na starcie oba >=0
   j=SectorOrder[k].y;

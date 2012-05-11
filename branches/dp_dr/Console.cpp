@@ -5,6 +5,8 @@
 
 #include "Console.h"
 #include "Globals.h"
+#include "Logs.h"
+//#include "RaPoKeys.h"
 
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
@@ -44,6 +46,8 @@ Dzia³anie jest nastêpuj¹ce:
 - ewentualnie do wyzwalacza czasowego dodana jest maska i numer wejœcia
 
 /*******************************/
+
+//int pomain();
 
 //Ra: do poprawienia
 typedef enum {ktCapsLock,ktNumLock,ktScrollLock} TKeyType;
@@ -93,8 +97,10 @@ void __fastcall Console::ModeSet(int m,int h)
  iConfig=h;
 };
 
-void __fastcall Console::On()
+int __fastcall Console::On()
 {//za³¹czenie konsoli (np. nawi¹zanie komunikacji)
+ //WriteLog(TPoKeys::Count());
+ //pomain();
 };
 
 void __fastcall Console::Off()
