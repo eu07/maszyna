@@ -1514,7 +1514,7 @@ void __fastcall TDynamicObject::Move(double fDistance)
    //vUp=CrossProduct(vFront,vLeft); //wektor w górê
   }
   mMatrix.Identity(); //to te¿ mo¿na by od razu policzyæ, ale potrzebne jest do wyœwietlania
-  mMatrix.BasisChange(vLeft,vUp,vFront); //przesuwnanie jest jednak rzadziej ni¿ renderowanie
+  mMatrix.BasisChange(vLeft,vUp,vFront); //przesuwanie jest jednak rzadziej ni¿ renderowanie
   mMatrix=Inverse(mMatrix); //wyliczenie macierzy dla pojazdu (potrzebna tylko do wyœwietlania?)
   //if (MoverParameters->CategoryFlag&2)
   {//przesuniêcia s¹ u¿ywane po wyrzuceniu poci¹gu z toru

@@ -56,8 +56,8 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asRelease="1.7.570.350";
-AnsiString Global::asVersion="Compilation 2012-05-09, release "+Global::asRelease+"."; //tutaj, bo wysy³any
+AnsiString Global::asRelease="1.7.571.350";
+AnsiString Global::asVersion="Compilation 2012-05-10, release "+Global::asRelease+"."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 double Global::fSunDeclination=0.0; //deklinacja S³oñca
@@ -115,9 +115,6 @@ AnsiString Global::asHumanCtrlVehicle="EU07-424";
 int Global::iMultiplayer=0; //blokada dzia³ania niektórych funkcji na rzecz kominikacji
 double Global::fMoveLight=-1; //ruchome œwiat³o
 double Global::fLatitudeDeg=52.0; //szerokoœæ geograficzna
-double Global::fRadiusLoFPS=16.0; //dolna granica FPS, przy której promieñ scenerii bêdzie zmniejszany
-double Global::fRadiusHiFPS=25.0; //górna granica FPS, przy której promieñ scenerii bêdzie zwiêkszany
-double Global::fRadiusFactor=1.1; //wspó³czynnik jednorazowej zmiany promienia scenerii
 
 
 //parametry wydajnoœciowe (np. regulacja FPS, szybkoœæ wczytywania)
@@ -141,11 +138,18 @@ int Global::iModifyTGA=7; //czy korygowaæ pliki TGA dla szybszego wczytywania
 //bool Global::bTerrainCompact=true; //czy zapisaæ teren w pliku
 TAnimModel *Global::pTerrainCompact=NULL; //do zapisania terenu w pliku
 AnsiString Global::asTerrainModel=""; //nazwa obiektu terenu do zapisania w pliku
+double Global::fFpsAverage=20.0; //oczekiwana wartosæ FPS
+double Global::fFpsDeviation=5.0; //odchylenie standardowe FPS
+double Global::fFpsMin=0.0; //dolna granica FPS, przy której promieñ scenerii bêdzie zmniejszany
+double Global::fFpsMax=0.0; //górna granica FPS, przy której promieñ scenerii bêdzie zwiêkszany
+double Global::fFpsRadiusMax=3000.0; //maksymalny promieñ renderowania
+int Global::iFpsRadiusMax=225; //maksymalny promieñ renderowania
+double Global::fRadiusFactor=1.1; //wspó³czynnik jednorazowej zmiany promienia scenerii
 
 //parametry testowe (do testowania scenerii i obiektów)
 bool Global::bWireFrame=false;
 bool Global::bSoundEnabled=true;
-bool Global::bWriteLogEnabled=true;
+int Global::iWriteLogEnabled=3; //maska bitowa: 1-zapis do pliku, 2-okienko
 bool Global::bManageNodes=true;
 bool Global::bDecompressDDS=false;
 
@@ -248,8 +252,10 @@ void __fastcall Global::ConfigParse(TQueryParserComp *qp,cParser *cp)
    PhysicActivationFlag=(GetNextSymbol().LowerCase()==AnsiString("yes"));
   else if (str==AnsiString("debuglog"))
   {//McZapkie-300402 - wylaczanie log.txt
-   str=GetNextSymbol();
-   bWriteLogEnabled=(str.LowerCase()==AnsiString("yes"));
+   str=GetNextSymbol().LowerCase();
+   if (str=="yes") iWriteLogEnabled=3;
+   else if (str=="no") iWriteLogEnabled=0;
+   else iWriteLogEnabled=str.ToIntDef(3);
   }
   else if (str==AnsiString("adjustscreenfreq"))
   {//McZapkie-240403 - czestotliwosc odswiezania ekranu
@@ -365,6 +371,12 @@ void __fastcall Global::ConfigParse(TQueryParserComp *qp,cParser *cp)
    bHideConsole=(GetNextSymbol().LowerCase()==AnsiString("yes"));
   else if (str==AnsiString("rollfix")) //Ra: poprawianie przechy³ki, aby wewnêtrzna szyna by³a "pozioma"
    bRollFix=(GetNextSymbol().LowerCase()==AnsiString("yes"));
+  else if (str==AnsiString("fpsaverage")) //oczekiwana wartosæ FPS
+   fFpsAverage=GetNextSymbol().ToDouble();
+  else if (str==AnsiString("fpsdeviation")) //odchylenie standardowe FPS
+   fFpsDeviation=GetNextSymbol().ToDouble();
+  else if (str==AnsiString("fpsradiusmax")) //maksymalny promieñ renderowania
+   fFpsRadiusMax=GetNextSymbol().ToDouble();
  }
  while (str!="endconfig"); //(!Parser->EndOfFile)
  //na koniec trochê zale¿noœci
@@ -382,6 +394,10 @@ void __fastcall Global::ConfigParse(TQueryParserComp *qp,cParser *cp)
  if (iMultiplayer>0)
   bInactivePause=false; //pauza nieaktywna, jeœli w³¹czona komunikacja
  Console::ModeSet(iFeedbackMode); //tryb pracy konsoli sterowniczej
+ fFpsMin=fFpsAverage-fFpsDeviation; //dolna granica FPS, przy której promieñ scenerii bêdzie zmniejszany
+ fFpsMax=fFpsAverage+fFpsDeviation; //górna granica FPS, przy której promieñ scenerii bêdzie zwiêkszany
+ iFpsRadiusMax=0.000025*fFpsRadiusMax*fFpsRadiusMax; //maksymalny promieñ renderowania 3000.0 -> 225
+ if (iFpsRadiusMax>400) iFpsRadiusMax=400;
 }
 
 void __fastcall Global::InitKeys(AnsiString asFileName)
