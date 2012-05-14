@@ -191,6 +191,22 @@ void __fastcall TTrack::Init()
  }
 }
 
+TTrack* __fastcall TTrack::Create400m(int what,double dx)
+{//tworzenie toru do wstawiania taboru podczas konwersji na E3D
+ TGroundNode *tmp=new TGroundNode(TP_TRACK); //node
+ TTrack* trk=tmp->pTrack;
+ trk->bVisible=false; //nie potrzeba pokazywaæ, zreszt¹ i tak nie ma tekstur
+ trk->iCategoryFlag=what; //taki sam typ plus informacja, ¿e dodatkowy
+ trk->Init(); //utworzenie segmentu
+ trk->Segment->Init(vector3(-dx,0,0),vector3(-dx,0,400),0,0,0); //prosty
+ tmp->pCenter=vector3(-dx,0,200); //œrodek, aby siê mog³o wyœwietliæ
+ TSubRect *r=Global::pGround->GetSubRect(tmp->pCenter.x,tmp->pCenter.z);
+ r->NodeAdd(tmp); //dodanie toru do segmentu
+ r->Sort(); //¿eby wyœwietla³ tabor z dodanego toru
+ r->Release(); //usuniêcie skompilowanych zasobów
+ return trk;
+};
+
 TTrack* __fastcall TTrack::NullCreate(int dir)
 {//tworzenie toru wykolejaj¹cego od strony (dir), albo pêtli dla samochodów
  TGroundNode *tmp=new TGroundNode(TP_TRACK),*tmp2=NULL; //node

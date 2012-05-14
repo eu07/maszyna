@@ -26,7 +26,7 @@
       Dss50.bpi TeeQR50.bpi VCLIB50.bpi Vclmid50.bpi vclie50.bpi Inetdb50.bpi 
       Inet50.bpi NMFast50.bpi webmid50.bpi bcbie50.bpi dclocx50.bpi 
       bcb2kaxserver50.bpi"/>
-    <PATHCPP value=".;opengl;Console"/>
+    <PATHCPP value=".;opengl"/>
     <PATHPAS value=".;McZapkie"/>
     <PATHRC value=".;"/>
     <PATHASM value=".;"/>
@@ -61,7 +61,7 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=1
 MinorVer=7
-Release=570
+Release=571
 Build=350
 Debug=1
 PreRelease=0
@@ -74,7 +74,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.7.570.350
+FileVersion=1.7.571.350
 InternalName=7th by Ra
 LegalCopyright=
 LegalTrademarks=
@@ -115,7 +115,7 @@ Item0=D:\EU07\
 DebugSourceDirs=C:\Ra\dp\McZapkie\
 
 [Parameters]
-RunParams=-s test_tm.SCN -v ghostview
+RunParams=
 HostApplication=
 RemoteHost=
 RemotePath=

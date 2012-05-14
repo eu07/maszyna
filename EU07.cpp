@@ -574,7 +574,7 @@ int WINAPI WinMain( HINSTANCE hInstance,     //instance
  Global::InitKeys("keys.ini"); //wczytanie mapowania klawiszy - jest na sta³e
 
  //hunter-271211: ukrywanie konsoli
- if (Global::bHideConsole==false)
+ if (Global::iWriteLogEnabled&2)
  {
   AllocConsole();
   SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),FOREGROUND_GREEN);
@@ -611,7 +611,7 @@ int WINAPI WinMain( HINSTANCE hInstance,     //instance
      Global::iConvertModels=-2; //z optymalizacj¹
    }
    else
-    Error("Program usage: EU07 [-s sceneryfilepath] [-v vehiclename]",!Global::bWriteLogEnabled);
+    Error("Program usage: EU07 [-s sceneryfilepath] [-v vehiclename] [-modifytga] [-e3d]",!Global::iWriteLogEnabled);
   }
   delete Parser; //ABu 050205: tego wczesniej nie bylo
  }
@@ -644,13 +644,14 @@ int WINAPI WinMain( HINSTANCE hInstance,     //instance
   Global::iMaxTextureSize=64; //¿eby nie zamulaæ pamiêci
   World.ModifyTGA(); //rekurencyjne przegl¹danie katalogów
  }
- else if (Global::iConvertModels<0)
- {Global::iConvertModels=-Global::iConvertModels;
-  World.CreateE3D("models\\"); //rekurencyjne przegl¹danie katalogów
-  World.CreateE3D("dynamic\\",true);
- }
  else
- {//g³ówna pêtla programu
+ {if (Global::iConvertModels<0)
+  {Global::iConvertModels=-Global::iConvertModels;
+   //World.CreateE3D("models\\"); //rekurencyjne przegl¹danie katalogów
+   World.CreateE3D("dynamic\\",true);
+  } //po zrobieniu E3D odpalamy normalnie sceneriê, by j¹ zobaczyæ
+ //else
+ //{//g³ówna pêtla programu
   Console::On(); //w³¹czenie konsoli
   while (!done) //loop that runs while done=FALSE
   {

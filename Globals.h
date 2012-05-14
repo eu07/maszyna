@@ -169,7 +169,7 @@ public:
  {return pCameraPosition;};
  static void __fastcall SetCameraPosition(vector3 pNewCameraPosition);
  static void __fastcall SetCameraRotation(double Yaw);
- static bool bWriteLogEnabled;
+ static int iWriteLogEnabled; //maska bitowa: 1-zapis do pliku, 2-okienko
  //McZapkie-221002: definicja swiatla dziennego
  static GLfloat AtmoColor[];
  static GLfloat FogColor[];
@@ -238,8 +238,12 @@ public:
  static Queryparsercomp::TQueryParserComp *qParser;
  static cParser *pParser;
  static int iSegmentsRendered; //iloœæ segmentów do regulacji wydajnoœci
- static double fRadiusLoFPS; //dolna granica FPS, przy której promieñ scenerii bêdzie zmniejszany
- static double fRadiusHiFPS; //górna granica FPS, przy której promieñ scenerii bêdzie zwiêkszany
+ static double fFpsAverage; //oczekiwana wartosæ FPS
+ static double fFpsDeviation; //odchylenie standardowe FPS
+ static double fFpsMin; //dolna granica FPS, przy której promieñ scenerii bêdzie zmniejszany
+ static double fFpsMax; //górna granica FPS, przy której promieñ scenerii bêdzie zwiêkszany
+ static double fFpsRadiusMax; //maksymalny promieñ renderowania
+ static int iFpsRadiusMax; //maksymalny promieñ renderowania w rozmiarze tabeli sektorów
  static double fRadiusFactor; //wspó³czynnik zmiany promienia
  static TCamera *pCamera; //parametry kamery
  static TDynamicObject *pUserDynamic; //pojazd u¿ytkownika, renderowany bez trzêsienia

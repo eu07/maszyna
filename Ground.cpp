@@ -1508,12 +1508,9 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    if (!tmp->asName.IsEmpty()) //jest pusta gdy "none"
     sTracks->Add(TP_TRACK,tmp->asName.c_str(),tmp); //dodanie do wyszukiwarki
    tmp->pTrack->Load(parser,pOrigin,tmp->asName); //w nazwie mo¿e byæ nazwa odcinka izolowanego
-   //str=Parser->GetNextSymbol().LowerCase();
-   //str=Parser->GetNextSymbol().LowerCase();
-   //str=Parser->GetNextSymbol().LowerCase();
    tmp->pCenter=(tmp->pTrack->CurrentSegment()->FastGetPoint_0()+
                  tmp->pTrack->CurrentSegment()->FastGetPoint(0.5)+
-                 tmp->pTrack->CurrentSegment()->FastGetPoint_1() ) * 0.33333f;
+                 tmp->pTrack->CurrentSegment()->FastGetPoint_1() )/3.0;
    break;
   case TP_SOUND :
    tmp->pStaticSound=new TRealSound;
@@ -1534,14 +1531,14 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    //tmp->DynamicObject->Load(Parser);
    parser->getTokens();
    *parser >> token;
-   str1=AnsiString(token.c_str()); //McZapkie-131102: model w .mmd
+   str1=AnsiString(token.c_str()); //katalog
    //McZapkie: doszedl parametr ze zmienialna skora
    parser->getTokens();
    *parser >> token;
    Skin=AnsiString(token.c_str()); //tekstura wymienna
    parser->getTokens();
    *parser >> token;
-   str3=AnsiString(token.c_str());
+   str3=AnsiString(token.c_str()); //McZapkie-131102: model w MMD
    if (bTrainSet)
    {//jeœli pojazd jest umieszczony w sk³adzie
     str=asTrainSetTrack;
@@ -1550,7 +1547,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
     parser->getTokens();
     *parser >> token;
     DriverType=AnsiString(token.c_str()); //McZapkie:010303 - w przyszlosci rozne konfiguracje mechanik/pomocnik itp
-    tf3=fTrainSetVel;
+    tf3=fTrainSetVel; //prêdkoœæ
     parser->getTokens();
     *parser >> int1;
     TempConnectionType[iTrainSetWehicleNumber]=int1;
@@ -3054,7 +3051,7 @@ if (QueryRootEvent)
                                                                 QueryRootEvent->Params[11].asdouble,
                                                                 QueryRootEvent->Params[12].asdouble,
                                                                 QueryRootEvent->Params[8].asInt);
-                   if (!bCondition && Global::bWriteLogEnabled && DebugModeFlag) //nie zgadza sie wiec sprawdzmy co
+                   if (!bCondition && Global::iWriteLogEnabled && DebugModeFlag) //nie zgadza sie wiec sprawdzmy co
                      {
                        LogComment="";
                        if (TestFlag(QueryRootEvent->Params[8].asInt,conditional_memstring))
