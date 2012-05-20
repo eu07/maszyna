@@ -4134,6 +4134,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
 
     VelocityGaugeB.Clear();
     I1GaugeB.Clear();
+    I1Gauge.Output(5); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
     I2GaugeB.Clear();
     I3GaugeB.Clear();
     ItotalGaugeB.Clear();
@@ -4158,25 +4159,22 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     engageratioGauge.Clear();
     maingearstatusGauge.Clear();
     IgnitionKeyGauge.Clear();
-    btLampkaPoslizg.Clear();
-    btLampkaStyczn.Clear();
-    btLampkaNadmPrzetw.Clear();
+    btLampkaPoslizg.Clear(6);
+    btLampkaStyczn.Clear(5);
+    btLampkaNadmPrzetw.Clear(7);
     btLampkaPrzekRozn.Clear();
     btLampkaPrzekRoznPom.Clear();
-    btLampkaNadmSil.Clear();
-    btLampkaWylSzybki.Clear();
-    btLampkaNadmWent.Clear();
-    btLampkaNadmSpr.Clear();
-    btLampkaOpory.Clear();
-    btLampkaOpory.FeedbackBitSet(8);
-    btLampkaWysRozr.Clear();
+    btLampkaNadmSil.Clear(4);
+    btLampkaWylSzybki.Clear(3);
+    btLampkaNadmWent.Clear(9);
+    btLampkaNadmSpr.Clear(8);
+    btLampkaOpory.Clear(2);
+    btLampkaWysRozr.Clear(10);
     btLampkaUniversal3.Clear();
     btLampkaWentZaluzje.Clear();
     btLampkaOgrzewanieSkladu.Clear();
-    btLampkaSHP.Clear();
-    btLampkaSHP.FeedbackBitSet(0);
-    btLampkaCzuwaka.Clear();
-    btLampkaCzuwaka.FeedbackBitSet(1);
+    btLampkaSHP.Clear(0);
+    btLampkaCzuwaka.Clear(1);
     btLampkaDoorLeft.Clear();
     btLampkaDoorRight.Clear();
     btLampkaDepartureSignal.Clear();

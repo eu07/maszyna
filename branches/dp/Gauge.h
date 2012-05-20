@@ -3,23 +3,25 @@
 #ifndef GaugeH
 #define GaugeH
 
-#include "Model3d.h"
+//#include "Classes.h"
 #include "QueryParserComp.hpp"
-
+//class Queryparsercomp::TQueryParserComp;
+class TSubModel;
+class TModel3d;
+      
 typedef enum { gt_Unknown, gt_Rotate, gt_Move } TGaugeType;
 
 class TGauge
 {
 private:
-
-    TGaugeType eType;
-    double fFriction;
-    double fDesiredValue;
-    double fValue;
-    double fOffset;
-    double fScale;
-    double fStepSize;
-
+ TGaugeType eType;
+ double fFriction;
+ double fDesiredValue;
+ double fValue;
+ double fOffset;
+ double fScale;
+ double fStepSize;
+ int iChannel; //kana³ analogowej komunikacji zwrotnej
 public:
   __fastcall TGauge();
   __fastcall ~TGauge();
@@ -34,8 +36,10 @@ public:
   float GetValue(){return fValue;};
   void __fastcall Update();
   void __fastcall Render();
-  TSubModel *SubModel; //McZapkie-310302: zeby mozna bylo sprawdzac czy zainicjowany poprawnie  
+  void __fastcall Output(int i=-1) {iChannel=i;}; //ustawienie kana³u analogowego komunikacji zwrotnej
+  TSubModel *SubModel; //McZapkie-310302: zeby mozna bylo sprawdzac czy zainicjowany poprawnie
 };
 
 //---------------------------------------------------------------------------
 #endif
+
