@@ -42,7 +42,7 @@ public:
  void __fastcall Sort(int t); //przebudowa drzewa typu (t)
  ItemRecord* __fastcall Item(int n); //rekord o numerze (n)
  inline void* Find(const int t,const char *n)
- {return rTypes[t]->TreeFind(n);};
+ {return rTypes[t]?rTypes[t]->TreeFind(n):NULL;};
  //template <typename TOut> inline TOut* Find(const int t,const char *n)
  //{return (TOut*)(rTypes[t]->TreeFind(n));};
 };

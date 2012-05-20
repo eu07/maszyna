@@ -21,11 +21,12 @@ __fastcall TButton::~TButton()
 {
 };
 
-void __fastcall TButton::Clear()
+void __fastcall TButton::Clear(int i)
 {
  pModelOn=NULL;
  pModelOff=NULL;
  bOn=false;
+ if (i>=0) FeedbackBitSet(i);
  Update(); //kasowanie bitu Feedback, o ile jakiœ ustawiony
 };
 

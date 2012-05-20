@@ -318,9 +318,9 @@ void __fastcall TGroundNode::RenderVBO()
     g=floor(Diffuse[1]*Global::ambientDayLight[1]);
     b=floor(Diffuse[2]*Global::ambientDayLight[2]);
     glColor4ub(r,g,b,linealpha); //przezroczystosc dalekiej linii
-    glDisable(GL_LIGHTING); //nie powinny œwieciæ
+    //glDisable(GL_LIGHTING); //nie powinny œwieciæ
     glDrawArrays(iType,iVboPtr,iNumPts); //rysowanie linii
-    glEnable(GL_LIGHTING);
+    //glEnable(GL_LIGHTING);
    }
    return;
   default:
@@ -375,9 +375,9 @@ void __fastcall TGroundNode::RenderAlphaVBO()
     g=Diffuse[1]*Global::ambientDayLight[1];
     b=Diffuse[2]*Global::ambientDayLight[2];
     glColor4ub(r,g,b,linealpha); //przezroczystosc dalekiej linii
-    glDisable(GL_LIGHTING); //nie powinny œwieciæ
+    //glDisable(GL_LIGHTING); //nie powinny œwieciæ
     glDrawArrays(iType,iVboPtr,iNumPts); //rysowanie linii
-    glEnable(GL_LIGHTING);
+    //glEnable(GL_LIGHTING);
 #ifdef _PROBLEND
     glEnable(GL_BLEND);
     glAlphaFunc(GL_GREATER,0.04);
@@ -3450,6 +3450,7 @@ bool __fastcall TGround::RenderDL(vector3 pPosition)
  int tr,tc;
  TGroundNode *node;
  glColor3f(1.0f,1.0f,1.0f);
+ glEnable(GL_LIGHTING);
  int n=2*iNumSubRects; //(2*==2km) promieñ wyœwietlanej mapy w sektorach
  int c=GetColFromX(pPosition.x);
  int r=GetRowFromZ(pPosition.z);
@@ -3480,7 +3481,7 @@ bool __fastcall TGround::RenderDL(vector3 pPosition)
  //{k=iRange[j<0?-j:j]; //zasiêg na danym poziomie
  // for (i=-k;i<=k;i++)
   {
-   if (j<=0) i=-i; //pierwszy przebieg: j<=0, i>=0; drugi: j>=0, i<=0; trzeci: j<=0, i<=0 czwarty: j>=0, i>=0; 
+   if (j<=0) i=-i; //pierwszy przebieg: j<=0, i>=0; drugi: j>=0, i<=0; trzeci: j<=0, i<=0 czwarty: j>=0, i>=0;
    j=-j; //i oraz j musi byæ zmienione wczeœniej, ¿eby continue dzia³a³o
    direction=vector3(i,0,j); //wektor od kamery do danego sektora
    if (LengthSquared3(direction)>5) //te blisko s¹ zawsze wyœwietlane
@@ -3517,6 +3518,7 @@ bool __fastcall TGround::RenderAlphaDL(vector3 pPosition)
  {//renderowanie przezroczystych modeli oraz pojazdów
   pRendered[i]->RenderAlphaDL();
  }
+ glDisable(GL_LIGHTING); //linie nie powinny œwieciæ
  for (i=0;i<iRendered;i++)
  {//druty na koñcu, ¿eby siê nie robi³y bia³e plamy na tle lasu
   tmp=pRendered[i];
@@ -3534,6 +3536,7 @@ bool __fastcall TGround::RenderVBO(vector3 pPosition)
  int tr,tc;
  TGroundNode *node;
  glColor3f(1.0f,1.0f,1.0f);
+ glEnable(GL_LIGHTING);
  int n=2*iNumSubRects; //(2*==2km) promieñ wyœwietlanej mapy w sektorach
  int c=GetColFromX(pPosition.x);
  int r=GetRowFromZ(pPosition.z);
@@ -3564,7 +3567,7 @@ bool __fastcall TGround::RenderVBO(vector3 pPosition)
  //{k=iRange[j<0?-j:j]; //zasiêg na danym poziomie
  // for (i=-k;i<=k;i++)
   {
-   if (j<=0) i=-i; //pierwszy przebieg: j<=0, i>=0; drugi: j>=0, i<=0; trzeci: j<=0, i<=0 czwarty: j>=0, i>=0; 
+   if (j<=0) i=-i; //pierwszy przebieg: j<=0, i>=0; drugi: j>=0, i<=0; trzeci: j<=0, i<=0 czwarty: j>=0, i>=0;
    j=-j; //i oraz j musi byæ zmienione wczeœniej, ¿eby continue dzia³a³o
    direction=vector3(i,0,j); //wektor od kamery do danego sektora
    if (LengthSquared3(direction)>5) //te blisko s¹ zawsze wyœwietlane
@@ -3579,6 +3582,7 @@ bool __fastcall TGround::RenderVBO(vector3 pPosition)
   }
   while ((i<0)||(j<0)); //s¹ 4 przypadki, oprócz i=j=0
  }
+ //dodaæ rednerowanie terenu z E3D - jedno VBO jest u¿ywane dla ca³ego modelu, chyba ¿e jest ich wiêcej
  for (i=0;i<iRendered;i++)
  {//renderowanie nieprzezroczystych
   pRendered[i]->RenderVBO();
@@ -3605,6 +3609,7 @@ bool __fastcall TGround::RenderAlphaVBO(vector3 pPosition)
  }
  for (i=0;i<iRendered;i++)
   pRendered[i]->RenderAlphaVBO(); //przezroczyste modeli oraz pojazdy
+ glDisable(GL_LIGHTING); //linie nie powinny œwieciæ
  for (i=0;i<iRendered;i++)
  {//druty na koñcu, ¿eby siê nie robi³y bia³e plamy na tle lasu
   tmp=pRendered[i];

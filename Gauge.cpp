@@ -22,15 +22,19 @@
 #include    "classes.hpp"
 #pragma hdrstop
 
-#include "Gauge.h"
 #include "Timer.h"
+#include "QueryParserComp.hpp"
+#include "Model3d.h"
+#include "Gauge.h"
+#include "Console.h"
 
 __fastcall TGauge::TGauge()
 {
-    fFriction= 0;
-    SubModel= NULL;
-    eType= gt_Unknown;
-    fStepSize= 5;
+ fFriction=0;
+ SubModel=NULL;
+ eType=gt_Unknown;
+ fStepSize=5;
+ iChannel=-1; //kana³ analogowej komunikacji zwrotnej
 }
 
 __fastcall TGauge::~TGauge()
@@ -108,7 +112,9 @@ void __fastcall TGauge::UpdateValue(double fNewDesired)
 {
 //    double p;
 //    p= fNewDesired;
-    fDesiredValue= fNewDesired*fScale+fOffset;
+ fDesiredValue=fNewDesired*fScale+fOffset;
+ if (iChannel>=0)
+  Console::ValueSet(iChannel,fNewDesired);
 }
 
 void __fastcall TGauge::PutValue(double fNewDesired) //McZapkie-281102: natychmiastowe wpisanie wartosci
