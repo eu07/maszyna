@@ -142,6 +142,14 @@ public:
     TGauge RightLightButtonGauge;
     TGauge LeftEndLightButtonGauge;
     TGauge RightEndLightButtonGauge;
+
+    //hunter-230112: przelacznik swiatel tylnich
+    TGauge RearUpperLightButtonGauge;
+    TGauge RearLeftLightButtonGauge;
+    TGauge RearRightLightButtonGauge;
+    TGauge RearLeftEndLightButtonGauge;
+    TGauge RearRightEndLightButtonGauge;
+
     TGauge IgnitionKeyGauge;
 
     TGauge CompressorButtonGauge;

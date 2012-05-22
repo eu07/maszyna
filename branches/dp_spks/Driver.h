@@ -4,7 +4,6 @@
 #define DriverH
 
 #include "Classes.h"
-#include <mover.hpp>	// Pascal unit
 #include "dumb3d.h"
 using namespace Math3D;
 
@@ -24,13 +23,14 @@ enum TOrders
 };
 
 enum TMovementStatus
-{//flagi bitowe ruchu
+{//flagi bitowe ruchu (iDrivigFlags)
  moveStopCloser=1, //podjechaæ blisko W4 (nie podje¿d¿aæ na pocz¹tku ani po zmianie czo³a)
  moveStopPoint=2, //stawaæ na W4 (wy³¹czone podczas zmiany czo³a)
  moveAvaken=4, //po w³¹czeniu silnika pojazd nie przemieœci³ siê
  movePress=8, //dociskanie przy od³¹czeniu (zamiast zmiennej Prepare2press)
  moveBackwardLook=16, //skanowanie torów w przeciwn¹ stronê w celu zmiany kierunku
- moveConnect=32 //jest blisko innego pojazdu i mo¿na próbowaæ pod³¹czyæ 
+ moveConnect=32, //jest blisko innego pojazdu i mo¿na próbowaæ pod³¹czyæ
+ movePrimary=0x40 //ma priorytet w sk³adzie
 };
 
 enum TStopReason
@@ -103,6 +103,9 @@ class TController
  vector3 vMechLoc; //pozycja pojazdu do liczenia odleg³oœci od semafora (?)
  bool Psyche;
  int iDrivigFlags; //flagi bitowe ruchu
+ double fDriverMass; //"masa hamuj¹ca", po pomno¿eniu przez v^2 [km/h] daje ~drogê hamowania
+ double fDriverDist; //dopuszczalna odleg³oœæ podjechania do przeszkody
+ double fVelMax; //maksymalna prêdkoœæ sk³adu (sprawdzany ka¿dy pojazd) 
 public:
  double ReactionTime; //czas reakcji Ra: czego?
 private:
@@ -119,8 +122,8 @@ private:
  TDynamicObject *pVehicle; //pojazd w którym siedzi steruj¹cy
  TDynamicObject *pVehicles[2]; //skrajne pojazdy w sk³adzie (niekoniecznie bezpoœrednio sterowane)
  Mover::TMoverParameters *Controlling; //jakim pojazdem steruje
- Mtable::TTrainParameters *TrainParams; //do jakiego pociagu nalezy
- int TrainNumber; //numer rozkladowy tego pociagu
+ Mtable::TTrainParameters *TrainParams; //rozk³ad jazdy; do jakiego pociagu nalezy
+ //int TrainNumber; //numer rozkladowy tego pociagu
  //AnsiString OrderCommand; //komenda pobierana z pojazdu
  //double OrderValue; //argument komendy
  double AccPreferred; //preferowane przyspieszenie
@@ -129,7 +132,7 @@ public:
  double VelDesired; //predkosc
 private:
  double VelforDriver; //predkosc dla manewrow
- double VelActual; //predkosc ustawiana przez SetVelocity (zadawana semaforami) 
+ double VelActual; //predkosc ustawiana przez SetVelocity (zadawana semaforami)
 public:
  double VelNext; //predkosc przy nastepnym obiekcie
 private:
@@ -167,6 +170,7 @@ private:
  bool __fastcall IncSpeed();
  bool __fastcall DecSpeed();
  void __fastcall RecognizeCommand(); //odczytuje komende przekazana lokomotywie
+ void __fastcall Activation(); //umieszczenie obsady w odpowiednim cz³onie
 public:
  void __fastcall PutCommand(AnsiString NewCommand,double NewValue1,double NewValue2,const Mover::TLocation &NewLocation,TStopReason reason=stopComm);
  bool __fastcall PutCommand(AnsiString NewCommand,double NewValue1,double NewValue2,const vector3 *NewLocation,TStopReason reason=stopComm);
@@ -183,8 +187,8 @@ public:
  void __fastcall OrderNext(TOrders NewOrder);
  TOrders __fastcall OrderCurrentGet();
  TOrders __fastcall OrderNextGet();
-private:
  bool __fastcall CheckVehicles();
+private:
  void __fastcall CloseLog();
  void __fastcall OrderCheck();
 public:
@@ -228,6 +232,10 @@ public:
  bool __fastcall CheckEvent(TEvent *e,bool prox);
  AnsiString __fastcall NextStop();
  void __fastcall TakeControl(bool yes);
+ AnsiString __fastcall Relation();
+ AnsiString __fastcall TrainName();
+ double __fastcall StationCount();
+ double __fastcall StationIndex();
 };
 
 #endif

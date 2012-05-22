@@ -40,14 +40,12 @@ void __fastcall TSky::Render()
   //glDisable(GL_DEPTH_TEST);
   glTranslatef(Global::pCameraPosition.x, Global::pCameraPosition.y, Global::pCameraPosition.z);
   glLightfv(GL_LIGHT0,GL_POSITION,lightPos);
-#ifdef USE_VBO
   if (Global::bUseVBO)
   {//renderowanie z VBO
    mdCloud->RaRender(100,0);
    mdCloud->RaRenderAlpha(100,0);
   }
   else
-#endif
   {//renderowanie z Display List
    mdCloud->Render(100,0);
    mdCloud->RenderAlpha(100,0);

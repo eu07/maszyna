@@ -32,7 +32,8 @@ public:
  __fastcall TAnimContainer();
  __fastcall ~TAnimContainer();
  bool __fastcall Init(TSubModel *pNewSubModel);
- std::string inline __fastcall GetName() { return std::string(pSubModel?pSubModel->asName.c_str():""); };
+ //std::string inline __fastcall GetName() { return std::string(pSubModel?pSubModel->asName.c_str():""); };
+ std::string inline __fastcall GetName() { return std::string(pSubModel?pSubModel->pName:""); };
  //void __fastcall SetRotateAnim(vector3 vNewRotateAxis, double fNewDesiredAngle, double fNewRotateSpeed, bool bResetAngle=false);
  void __fastcall SetRotateAnim(vector3 vNewRotateAngles, double fNewRotateSpeed);
  void __fastcall SetTranslateAnim(vector3 vNewTranslate, double fNewSpeed);
@@ -45,13 +46,14 @@ public:
 class TAnimModel
 {//opakowanie modelu, okreœlaj¹ce stan egzemplarza
 private:
- TAnimContainer *pRoot;
+ TAnimContainer *pRoot; //pojemniki steruj¹ce, tylko dla aniomowanych submodeli
  TModel3d *pModel;
  double fBlinkTimer;
  int iNumLights;
  TSubModel *LightsOn[iMaxNumLights]; //Ra: te wskaŸniki powinny byæ w ramach TModel3d
  TSubModel *LightsOff[iMaxNumLights];
  vector3 vAngle; //bazowe obroty egzemplarza wzglêdem osi
+ int iTexAlpha; //¿eby nie sprawdzaæ za ka¿dym razem, dla 4 wymiennych tekstur
 public:
  TLightState lsLights[iMaxNumLights];
  GLuint ReplacableSkinId[5]; //McZapkie-020802: zmienialne skory
@@ -59,7 +61,7 @@ public:
  __fastcall ~TAnimModel();
  bool __fastcall Init(TModel3d *pNewModel);
  bool __fastcall Init(AnsiString asName,AnsiString asReplacableTexture);
- bool __fastcall Load(cParser *parser);
+ bool __fastcall Load(cParser *parser, bool ter=false);
  TAnimContainer* __fastcall AddContainer(char *pName);
  TAnimContainer* __fastcall GetContainer(char *pName);
  void __fastcall Render(vector3 pPosition=vector3(0,0,0),double fAngle=0);
@@ -70,13 +72,13 @@ public:
  void __fastcall RenderAlpha(vector3* vPosition);
  void __fastcall RaRender(vector3* vPosition);
  void __fastcall RaRenderAlpha(vector3* vPosition);
- //void __fastcall Render(double fSquareDistance);
- //void __fastcall RenderAlpha(double fSquareDistance);
  void __fastcall RaPrepare();
- int iTexAlpha; //¿eby nie sprawdzaæ za ka¿dym razem, dla 4 wymiennych tekstur
  int __fastcall Flags();
  void __fastcall RaAnglesSet(double a,double b,double c)
  {vAngle.x=a; vAngle.y=b; vAngle.z=c;};
+ bool __fastcall TerrainLoaded();
+ int __fastcall TerrainCount();
+ TSubModel* __fastcall TerrainSquare(int n);
 };
 
 //---------------------------------------------------------------------------

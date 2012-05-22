@@ -14,14 +14,13 @@ class TEvent;
 
 typedef enum { tt_Unknown, tt_Normal, tt_Switch, tt_Turn, tt_Cross, tt_Tributary } TTrackType;
 //McZapkie-100502
-typedef enum { e_unknown, e_flat, e_mountains, e_canyon, e_tunnel, e_bridge, e_bank } TEnvironmentType;
+typedef enum {e_unknown=-1, e_flat=0, e_mountains, e_canyon, e_tunnel, e_bridge, e_bank} TEnvironmentType;
+//Ra: opracowaæ alternatywny system cieni/œwiate³ z definiowaniem koloru oœwietlenia w halach
 
 class TTrack;
 class TGroundNode;
 class TSubRect;
 class TTraction;
-
-static const double fMaxOffset=0.1f;
 
 class TSwitchExtension
 {//dodatkowe dane do toru, który jest zwrotnic¹
@@ -53,8 +52,6 @@ private:
 };
 
 const int iMaxNumDynamics=40; //McZapkie-100303
-const int NextMask[4]={0,1,0,1}; //tor nastêpny dla stanów 0, 1, 2, 3
-const int PrevMask[4]={0,0,1,1}; //tor poprzedni dla stanów 0, 1, 2, 3
 
 class TIsolated
 {//obiekt zbieraj¹cy zajêtoœci z kilku odcinków
@@ -85,7 +82,7 @@ private:
  float fTexLength; //d³ugoœæ powtarzania tekstury w metrach
  float fTexRatio1; //proporcja rozmiarów tekstury dla nawierzchni drogi
  float fTexRatio2; //proporcja rozmiarów tekstury dla chodnika
- float fTexHeight; //wysokoœ brzegu wzglêdem trajektorii
+ float fTexHeight1; //wysokoœæ brzegu wzglêdem trajektorii
  float fTexWidth; //szerokoœæ boku
  float fTexSlope;
  double fRadiusTable[2]; //dwa promienie, drugi dla zwrotnicy
@@ -183,6 +180,7 @@ public:
  GLuint TextureGet(int i) {return i?TextureID1:TextureID2;};
  bool __fastcall IsGroupable();
  int __fastcall TestPoint(vector3 *Point);
+ void __fastcall MovedUp1(double dh);
 private:
  void __fastcall EnvironmentSet();
  void __fastcall EnvironmentReset();

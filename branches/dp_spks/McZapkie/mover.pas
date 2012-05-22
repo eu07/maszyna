@@ -493,7 +493,7 @@ TYPE
 
                         {--sekcja zmiennych}
                         {--opis konkretnego egzemplarza taboru}
-                Loc: TLocation;
+                Loc: TLocation; //pozycja pojazdów do wyznaczenia odleg³oœci pomiêdzy sprzêgami
                 Rot: TRotation;
                 Name: string;                       {nazwa wlasna}
                 Couplers: TCouplers;                {urzadzenia zderzno-sprzegowe, polaczenia miedzy wagonami}
@@ -559,7 +559,7 @@ TYPE
 
                 RunningShape:TTrackShape;{geometria toru po ktorym jedzie pojazd}
                 RunningTrack:TTrackParam;{parametry toru po ktorym jedzie pojazd}
-                OffsetTrackH, OffsetTrackV: real;  {przesuniecie poz. i pion. w/m toru}
+                OffsetTrackH, OffsetTrackV: real;  {przesuniecie poz. i pion. w/m osi toru}
 
                 {-zmienne dla lokomotyw}
                 Mains: boolean;    {polozenie glownego wylacznika}
@@ -569,7 +569,7 @@ TYPE
                 //wzglêdem wybranej kabiny: -1 - do tylu, +1 - do przodu, 0 - wylaczona
                 CabNo: integer;    {! numer kabiny: 1 lub -1. W przeciwnym razie brak sterowania - rozrzad}
                 DirAbsolute: integer; //zadany kierunek jazdy wzglêdem sprzêgów (1=w strone 0,-1=w stronê 1) 
-                ActiveCab: integer; {! numer kabiny, w ktorej sie jest}
+                ActiveCab: integer; //numer kabiny, w ktorej jest obsada (zwykle jedna na sk³ad)
                 LastCab: integer;       { numer kabiny przed zmiana }
                 LastSwitchingTime: real; {czas ostatniego przelaczania czegos}
                 WarningSignal: byte;     {0: nie trabi, 1,2: trabi}
@@ -814,7 +814,7 @@ TYPE
                 function ChangeOffsetH(DeltaOffset:real): boolean;
 
                 {! procedury I/O}
-                constructor Init(LocInitial:TLocation; RotInitial:TRotation;
+                constructor Init(//LocInitial:TLocation; RotInitial:TRotation;
                                  VelInitial:real; TypeNameInit, NameInit: string; LoadInitial:longint; LoadTypeInitial: string; Cab:integer);
                                                               {wywolac najpierw to}
                 function LoadChkFile(chkpath:string):Boolean;   {potem zaladowac z pliku}
@@ -1138,7 +1138,7 @@ function TMoverParameters.CabActivisation:boolean;
 var OK:boolean;
 begin
   OK:=(CabNo=0);
-  if(OK)then
+  if (OK) then
    begin
      CabNo:=ActiveCab;
      DirAbsolute:=ActiveDir*CabNo;
@@ -1153,7 +1153,7 @@ function TMoverParameters.CabDeactivisation:boolean;
 var OK:boolean;
 begin
  OK:=(CabNo=ActiveCab);
- if(OK)then
+ if (OK) then
   begin
    LastCab:=CabNo;
    CabNo:=0;
@@ -1240,8 +1240,8 @@ begin
       else
        if (CtrlSpeed>1) and (ActiveDir<>0) then
         begin
-          while (RList[MainCtrlPos].R>0) and IncMainCtrl(1) do
-           OK:=True ; {takie chamskie, potem poprawie}
+          while (RList[MainCtrlPos].R>0) and IncMainCtrl(1) do ;
+           //OK:=True ; {takie chamskie, potem poprawie} <-Ra: kto mia³ to poprawiæ i po co?
          if(DynamicBrakeFlag)then
            if(TrainType=dt_ET42)then
              while(MainCtrlPos>20)do
@@ -2643,16 +2643,15 @@ end;
 
 function TMoverParameters.CutOffEngine: boolean; {wylacza uszkodzony silnik}
 begin
-  if (NPoweredAxles>0) and (CabNo=0) and (EngineType=ElectricSeriesMotor) then
-   begin
-     if SetFlag(DamageFlag,-dtrain_engine) then
-      begin
-        NPoweredAxles:=NPoweredAxles div 2;
-        CutOffEngine:=True;
-      end;
-   end
-  else
-   CutOffEngine:=False;
+ CutOffEngine:=False; //Ra: wartoœæ domyœlna, sprawdziæ to trzeba 
+ if (NPoweredAxles>0) and (CabNo=0) and (EngineType=ElectricSeriesMotor) then
+  begin
+   if SetFlag(DamageFlag,-dtrain_engine) then
+    begin
+     NPoweredAxles:=NPoweredAxles div 2;
+     CutOffEngine:=True;
+    end;
+  end
 end;
 
 {przelacznik pradu wysokiego rozruchu}
@@ -3453,14 +3452,14 @@ begin
             //ABu: bylo newdist+10*((...
             tempdist:=((Connected^.dMoveLen*DirPatch(0,ConnectedNr))-dMoveLen);
             newdist:=newdist+10.0*tempdist;
-            tempdist:=tempdist+CoupleDist; //ABu: proby szybkiego naprawienia bledu
+            //tempdist:=tempdist+CoupleDist; //ABu: proby szybkiego naprawienia bledu
          end
       else
          begin
             //ABu: bylo newdist+10*((...
             tempdist:=((dMoveLen-(Connected^.dMoveLen*DirPatch(1,ConnectedNr))));
             newdist:=newdist+10.0*tempdist;
-            tempdist:=tempdist+CoupleDist; //ABu: proby szybkiego naprawienia bledu
+            //tempdist:=tempdist+CoupleDist; //ABu: proby szybkiego naprawienia bledu
          end;
 
       //blablabla
@@ -3639,7 +3638,7 @@ function TMoverParameters.LoadingDone(LSpeed:real; LoadInit:string): boolean;
 var LoadChange:longint;
 begin
  ClearPendingExceptions; //zabezpieczenie dla Trunc()
- LoadingDone:=False; //nie zakoñczone
+ //LoadingDone:=False; //nie zakoñczone
  if (LoadInit<>'') then //nazwa ³adunku niepusta
   begin
    if Load>MaxLoad then
@@ -3680,7 +3679,7 @@ begin
 end;
 
 {-------------------------------------------------------------------}
-{WAZNA FUNKCJA - oblicza sile wypadkowa}
+{WAZNA FUNKCJA - oblicza si³ê wypadkow¹}
 procedure TMoverParameters.ComputeTotalForce(dt: real; dt1: real; FullVer: boolean);
 var b: byte;
 begin
@@ -4244,19 +4243,19 @@ Begin
      OK:=SendCtrlToNext(command,CValue1,CValue2);
    end
   else if command='DoorLeft' then         {NBMX}
-   begin
+   begin //Ra: uwzglêdniæ trzeba jeszcze zgodnoœæ sprzêgów
      if (CValue1=1) then DoorLeftOpened:=true
      else if (CValue1=0) then DoorLeftOpened:=false;
      OK:=SendCtrlToNext(command,CValue1,CValue2);
    end
   else if command='DoorRight' then         {NBMX}
-   begin
+   begin //Ra: uwzglêdniæ trzeba jeszcze zgodnoœæ sprzêgów
      if (CValue1=1) then DoorRightOpened:=true
      else if (CValue1=0) then DoorRightOpened:=false;
      OK:=SendCtrlToNext(command,CValue1,CValue2);
    end
 else if command='PantFront' then         {Winger 160204}
-   begin
+   begin //Ra: uwzglêdniæ trzeba jeszcze zgodnoœæ sprzêgów
      if (TrainType=dt_EZT) then
      begin {'ezt'}
        if (CValue1=1) then
@@ -4302,7 +4301,7 @@ else if command='PantFront' then         {Winger 160204}
      OK:=SendCtrlToNext(command,CValue1,CValue2);
    end
   else if command='PantRear' then         {Winger 160204, ABu 310105 i 030305}
-   begin
+   begin //Ra: uwzglêdniæ trzeba jeszcze zgodnoœæ sprzêgów
      if (TrainType=dt_EZT) then
      begin {'ezt'}
       if (CValue1=1) then
@@ -4380,15 +4379,15 @@ else if command='PantFront' then         {Winger 160204}
      else OK:=False;
    end
   else if command='CabSignal' then {SHP,Indusi}
-   begin
-     if SecuritySystem.SystemType>1 then
+   begin //Ra: to powinno dzia³aæ tylko w cz³onie obsadzonym
+     if (ActiveCab<>0) and (SecuritySystem.SystemType>1) then //jeœli kabina jest obsadzona
       with SecuritySystem do
        begin
-         VelocityAllowed:=Trunc(CValue1);
-         NextVelocityAllowed:=Trunc(CValue2);
-         SystemSoundTimer:=0;
-         SetFlag(Status,s_active);
-         OK:=True;
+        VelocityAllowed:=Trunc(CValue1);
+        NextVelocityAllowed:=Trunc(CValue2);
+        SystemSoundTimer:=0;
+        SetFlag(Status,s_active);
+        OK:=True;
        end
       else OK:=False;
    end
@@ -4455,13 +4454,14 @@ begin
    end;                         {czy uruchomic tu RunInternalCommand? nie wiem}
 end;
 
-{dla samochodow}
+{dla samochodow - kolej nie wê¿ykuje}
 function TMoverParameters.ChangeOffsetH(DeltaOffset:real):boolean;
 begin
   if TestFlag(CategoryFlag,2) and TestFlag(RunningTrack.CategoryFlag,2) then
    begin
      OffsetTrackH:=OffsetTrackH+DeltaOffset;
-     if abs(OffsetTrackH)>(RunningTrack.Width/1.95-TrackW/2.0) then
+//     if abs(OffsetTrackH)>(RunningTrack.Width/1.95-TrackW/2.0) then
+     if abs(OffsetTrackH)>(0.5*(RunningTrack.Width-Dim.W)-0.05) then //Ra: mo¿e pó³ pojazdu od brzegu?
       ChangeOffsetH:=False  {kola na granicy drogi}
      else
       ChangeOffsetH:=True;
@@ -4471,7 +4471,7 @@ end;
 
 {inicjalizacja}
 
-constructor TMoverParameters.Init(LocInitial:TLocation; RotInitial:TRotation;
+constructor TMoverParameters.Init(//LocInitial:TLocation; RotInitial:TRotation;
                                   VelInitial:real; TypeNameInit, NameInit: string; LoadInitial:longint; LoadTypeInitial: string; Cab:integer);
                                  {predkosc pocz. w km/h, ilosc ladunku, typ ladunku, numer kabiny}
 var b,k:integer;
@@ -4577,8 +4577,8 @@ begin
   PowerCorRatio:=1;
 
   {inicjalizacja zmiennych}
-  Loc:=LocInitial;
-  Rot:=RotInitial;
+  //Loc:=LocInitial; //Ra: to i tak trzeba potem przesun¹æ, po ustaleniu pozycji na torze (potrzebna d³ugoœæ)
+  //Rot:=RotInitial;
   for b:=0 to 1 do
    with Couplers[b] do
     begin
@@ -5002,12 +5002,14 @@ begin
       PantFront:=false;
       PantFrontStart:=1;
       SendCtrlToNext('PantFront',0,CabNo);
+{Ra: nie ma potrzeby opuszczaæ obydwu na raz, jak mozemy ka¿dy osobno
       if (TrainType=dt_EZT) then
        begin
         PantRearUp:=false;
         PantRearStart:=1;
         SendCtrlToNext('PantRear',0,CabNo);
        end;
+}
    end;
  end
  else

@@ -14,6 +14,7 @@ using namespace Math3D;
 const int TP_MODEL=10;
 const int TP_MESH=11; //Ra: specjalny obiekt grupoj¹cy siatki dla tekstury
 const int TP_DUMMYTRACK=12; //Ra: zdublowanie obiektu toru dla rozdzielenia tekstur
+const int TP_TERRAIN=13; //Ra: specjalny model dla terenu
 const int TP_DYNAMIC=14;
 const int TP_SOUND=15;
 const int TP_TRACK=16;
@@ -22,7 +23,8 @@ const int TP_MEMCELL=18;
 const int TP_EVLAUNCH=19; //MC
 const int TP_TRACTION=20;
 const int TP_TRACTIONPOWERSOURCE= 21; //MC
-const int TP_ISOLATED=22; //Ra
+//const int TP_ISOLATED=22; //Ra
+const int TP_SUBMODEL=22; //Ra: submodele terenu
 const int TP_LAST=25; //rozmiar tablicy
 
 struct DaneRozkaz
@@ -82,7 +84,8 @@ public:
  union
  {//Ra: wska¿niki zale¿ne od typu - zrobiæ klasy dziedziczone zamiast
   void *Pointer; //do przypisywania NULL
-  TAnimModel *Model; //model scenerii z animacjami
+  TSubModel *smTerrain; //modele terenu (kwadratow kilometrowych)
+  TAnimModel *Model; //model z animacjami
   TDynamicObject *DynamicObject; //pojazd
   vector3 *Points; //punkty dla linii
   TTrack *pTrack; //trajektoria ruchu
@@ -99,6 +102,7 @@ public:
  {
   int iNumVerts; //dla trójk¹tów
   int iNumPts; //dla linii
+  int iCount; //dla terenu
   //int iState; //Ra: nie u¿ywane - dŸwiêki zapêtlone
  };
  vector3 pCenter; //wspó³rzêdne œrodka do przydzielenia sektora
@@ -115,13 +119,12 @@ public:
  int iVersion; //wersja siatki (do wykonania rekompilacji)
  //union ?
  GLuint DisplayListID; //numer siatki DisplayLists
+ bool PROBLEND;
  int iVboPtr; //indeks w buforze VBO
  GLuint TextureID; //g³ówna (jedna) tekstura obiektu
  int iFlags; //tryb przezroczystoœci: 0x10-nieprz.,0x20-przezroczysty,0x30-mieszany
  int Ambient[4],Diffuse[4],Specular[4]; //oœwietlenie
  bool bVisible;
- //bool bStatic; //czy nie jest pojazdem - do zredukowania
- //bool bAllocated; //Ra: zawsze true
  TGroundNode *Next; //lista wszystkich w scenerii, ostatni na pocz¹tku
  TGroundNode *nNext2; //lista obiektów w sektorze
  TGroundNode *nNext3; //lista obiektów renderowanych we wspólnym cyklu
@@ -147,12 +150,12 @@ public:
  void Release();
  bool __fastcall GetTraction();
 
- void __fastcall RenderHidden();  //obs³uga dŸwiêków i wyzwalaczy zdarzeñ
- void __fastcall Render();        //renderowanie nieprzezroczystych w Display Lists
- void __fastcall RenderAlpha();   //renderowanie przezroczystych w Display Lists (McZapkie-131202)
- void __fastcall RaRenderVBO();   //renderowanie (nieprzezroczystych) ze wspólnego VBO
- void __fastcall RaRender();      //renderowanie nieprzezroczystych z w³asnego VBO
- void __fastcall RaRenderAlpha(); //renderowanie przezroczystych z (w³asnego) VBO
+ void __fastcall RenderHidden();   //obs³uga dŸwiêków i wyzwalaczy zdarzeñ
+ void __fastcall RenderDL();       //renderowanie nieprzezroczystych w Display Lists
+ void __fastcall RenderAlphaDL();  //renderowanie przezroczystych w Display Lists (McZapkie-131202)
+ void __fastcall RaRenderVBO();    //renderowanie (nieprzezroczystych) ze wspólnego VBO
+ void __fastcall RenderVBO();      //renderowanie nieprzezroczystych z w³asnego VBO
+ void __fastcall RenderAlphaVBO(); //renderowanie przezroczystych z (w³asnego) VBO
 };
 
 class TSubRect : public Resource, public CMesh
@@ -160,7 +163,7 @@ class TSubRect : public Resource, public CMesh
 public:
  int iTracks; //iloœæ torów w (tTracks)
  TTrack **tTracks; //tory do renderowania pojazdów
-private:
+protected:
  TTrack *tTrackAnim; //obiekty do przeliczenia animacji
  TGroundNode *nRootMesh; //obiekty renderuj¹ce wg tekstury (wtórne, lista po nNext2)
  TGroundNode *nMeshed;   //lista obiektów dla których istniej¹ obiekty renderuj¹ce grupowo
@@ -187,16 +190,16 @@ public:
  bool __fastcall StartVBO(); //ustwienie VBO sektora dla (nRenderRect), (nRenderRectAlpha) i (nRenderWires)
  bool __fastcall RaTrackAnimAdd(TTrack *t); //zg³oszenie toru do animacji
  void __fastcall RaAnimate(); //przeliczenie animacji torów
- void __fastcall Render();        //renderowanie nieprzezroczystych w Display Lists
- void __fastcall RenderAlpha();   //renderowanie przezroczystych w Display Lists (McZapkie-131202)
- void __fastcall RaRender();      //renderowanie nieprzezroczystych z w³asnego VBO
- void __fastcall RaRenderAlpha(); //renderowanie przezroczystych z (w³asnego) VBO
+ void __fastcall RenderDL();       //renderowanie nieprzezroczystych w Display Lists
+ void __fastcall RenderAlphaDL();  //renderowanie przezroczystych w Display Lists (McZapkie-131202)
+ void __fastcall RenderVBO();      //renderowanie nieprzezroczystych z w³asnego VBO
+ void __fastcall RenderAlphaVBO(); //renderowanie przezroczystych z (w³asnego) VBO
 };
 
 //Ra: trzeba sprawdziæ wydajnoœæ siatki
 const int iNumSubRects=5; //na ile dzielimy kilometr
 const int iNumRects=500;
-const double fHalfNumRects=iNumRects/2.0; //po³owa do wyznaczenia œrodka
+//const double fHalfNumRects=iNumRects/2.0; //po³owa do wyznaczenia œrodka
 const int iTotalNumSubRects=iNumRects*iNumSubRects;
 const double fHalfTotalNumSubRects=iTotalNumSubRects/2.0;
 const double fSubRectSize=1000.0/iNumSubRects;
@@ -205,6 +208,7 @@ const double fRectSize=fSubRectSize*iNumSubRects;
 class TGroundRect : public TSubRect
 {//kwadrat kilometrowy
  //obiekty o niewielkiej iloœci wierzcho³ków bêd¹ renderowane st¹d
+ //Ra: 2012-02 dosz³y submodele terenu
 private:
  int iLastDisplay; //numer klatki w której by³ ostatnio wyœwietlany
  TSubRect *pSubRects;
@@ -229,8 +233,8 @@ public:
    for (int i=iNumSubRects*iNumSubRects-1;i>=0;--i)
     pSubRects[i].Sort(); //optymalizacja obiektów w sektorach
  };
- void __fastcall Render();
- void __fastcall RaRender()
+ void __fastcall RenderDL();
+ void __fastcall RenderVBO()
  {//renderowanie kwadratu kilometrowego (VBO), jeœli jeszcze nie zrobione
   if (iLastDisplay!=iFrameNumber)
   {LoadNodes(); //ewentualne tworzenie siatek
@@ -243,7 +247,6 @@ public:
   }
  };
 };
-
 
 
 class TGround
@@ -272,41 +275,41 @@ public:
  //double fVDozwolona;
  //bool bTrabil;
 
-    __fastcall TGround();
-    __fastcall ~TGround();
-    void __fastcall Free();
-    bool __fastcall Init(AnsiString asFile);
-    void __fastcall FirstInit();
-    bool __fastcall InitEvents();
-    bool __fastcall InitTracks();
-    bool __fastcall InitLaunchers();
-    TTrack* __fastcall FindTrack(vector3 Point,int &iConnection,TGroundNode *Exclude);
-    TGroundNode* __fastcall CreateGroundNode();
-    TGroundNode* __fastcall AddGroundNode(cParser* parser);
-    bool __fastcall AddGroundNode(double x,double z,TGroundNode *Node)
-    {
-     TSubRect *tmp=GetSubRect(x,z);
-     if (tmp)
-     {
-      tmp->NodeAdd(Node);
-      return true;
-     }
-     else
-      return false;
-    };
+ __fastcall TGround();
+ __fastcall ~TGround();
+ void __fastcall Free();
+ bool __fastcall Init(AnsiString asFile,HDC hDC);
+ void __fastcall FirstInit();
+ bool __fastcall InitEvents();
+ bool __fastcall InitTracks();
+ bool __fastcall InitLaunchers();
+ TTrack* __fastcall FindTrack(vector3 Point,int &iConnection,TGroundNode *Exclude);
+ TGroundNode* __fastcall CreateGroundNode();
+ TGroundNode* __fastcall AddGroundNode(cParser* parser);
+ bool __fastcall AddGroundNode(double x,double z,TGroundNode *Node)
+ {
+  TSubRect *tmp=GetSubRect(x,z);
+  if (tmp)
+  {
+   tmp->NodeAdd(Node);
+   return true;
+  }
+  else
+   return false;
+ };
 //    bool __fastcall Include(TQueryParserComp *Parser);
-    TGroundNode* __fastcall GetVisible( AnsiString asName );
-    TGroundNode* __fastcall GetNode( AnsiString asName );
-    bool __fastcall AddDynamic(TGroundNode *Node);
-    void __fastcall MoveGroundNode(vector3 pPosition);
-    bool __fastcall Update(double dt, int iter);
-    bool __fastcall AddToQuery(TEvent *Event, TDynamicObject *Node);
-    bool __fastcall GetTraction(vector3 pPosition, TDynamicObject *model);
-    bool __fastcall Render(vector3 pPosition);
-    bool __fastcall RenderAlpha(vector3 pPosition);
-    bool __fastcall RaRender(vector3 pPosition);
-    bool __fastcall RaRenderAlpha(vector3 pPosition);
-    bool __fastcall CheckQuery();
+ TGroundNode* __fastcall GetVisible( AnsiString asName );
+ TGroundNode* __fastcall GetNode( AnsiString asName );
+ bool __fastcall AddDynamic(TGroundNode *Node);
+ void __fastcall MoveGroundNode(vector3 pPosition);
+ bool __fastcall Update(double dt, int iter);
+ bool __fastcall AddToQuery(TEvent *Event, TDynamicObject *Node);
+ bool __fastcall GetTraction(vector3 pPosition, TDynamicObject *model);
+ bool __fastcall RenderDL(vector3 pPosition);
+ bool __fastcall RenderAlphaDL(vector3 pPosition);
+ bool __fastcall RenderVBO(vector3 pPosition);
+ bool __fastcall RenderAlphaVBO(vector3 pPosition);
+ bool __fastcall CheckQuery();
 //    __fastcall GetRect(double x, double z) { return &(Rects[int(x/fSubRectSize+fHalfNumRects)][int(z/fSubRectSize+fHalfNumRects)]); };
 /*
     int __fastcall GetRowFromZ(double z) { return (z/fRectSize+fHalfNumRects); };
@@ -315,30 +318,30 @@ public:
    int __fastcall GetSubColFromX(double x) { return (x/fSubRectSize+fHalfNumSubRects); };
    */
 /*
-    inline TGroundNode* __fastcall FindGroundNode(const AnsiString &asNameToFind )
-    {
-        if (RootNode)
-            return (RootNode->Find( asNameToFind ));
-        else
-            return NULL;
-    }
+ inline TGroundNode* __fastcall FindGroundNode(const AnsiString &asNameToFind )
+ {
+     if (RootNode)
+         return (RootNode->Find( asNameToFind ));
+     else
+         return NULL;
+ }
 */
-    inline TGroundNode* __fastcall FindDynamic(AnsiString asNameToFind)
-    {
-     for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
-      if ((Current->asName==asNameToFind))
-       return Current;
-     return NULL;
-    }
+ inline TGroundNode* __fastcall FindDynamic(AnsiString asNameToFind)
+ {
+  for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
+   if ((Current->asName==asNameToFind))
+    return Current;
+  return NULL;
+ }
 
-    inline TGroundNode* __fastcall FindGroundNode( AnsiString asNameToFind, TGroundNodeType iNodeType )
-    {//wyszukiwanie obiektu o podanej nazwie i konkretnym typie
-     TGroundNode *Current;
-     for (Current=nRootOfType[iNodeType];Current;Current=Current->Next)
-      if (Current->asName==asNameToFind)
-       return Current;
-     return NULL;
-    }
+ inline TGroundNode* __fastcall FindGroundNode( AnsiString asNameToFind, TGroundNodeType iNodeType )
+ {//wyszukiwanie obiektu o podanej nazwie i konkretnym typie
+  TGroundNode *Current;
+  for (Current=nRootOfType[iNodeType];Current;Current=Current->Next)
+   if (Current->asName==asNameToFind)
+    return Current;
+  return NULL;
+ }
 
 //Winger - to smierdzi
 /*    inline TGroundNode* __fastcall FindTraction( TGroundNodeType iNodeType )
@@ -362,19 +365,20 @@ public:
         return NULL;
     }
 */
-    TGroundRect* __fastcall GetRect(double x, double z) { return &Rects[GetColFromX(x)/iNumSubRects][GetRowFromZ(z)/iNumSubRects]; };
-    TSubRect* __fastcall GetSubRect(double x, double z) { return GetSubRect(GetColFromX(x),GetRowFromZ(z)); };
-    TSubRect* __fastcall FastGetSubRect(double x, double z) { return FastGetSubRect(GetColFromX(x),GetRowFromZ(z)); };
-    TSubRect* __fastcall GetSubRect(int iCol, int iRow);
-    TSubRect* __fastcall FastGetSubRect(int iCol, int iRow);
-    int __fastcall GetRowFromZ(double z) { return (z/fSubRectSize+fHalfTotalNumSubRects); };
-    int __fastcall GetColFromX(double x) { return (x/fSubRectSize+fHalfTotalNumSubRects); };
-    TEvent* __fastcall FindEvent(const AnsiString &asEventName);
-    void __fastcall TrackJoin(TGroundNode *Current);
+ TGroundRect* __fastcall GetRect(double x, double z) { return &Rects[GetColFromX(x)/iNumSubRects][GetRowFromZ(z)/iNumSubRects]; };
+ TSubRect* __fastcall GetSubRect(double x, double z) { return GetSubRect(GetColFromX(x),GetRowFromZ(z)); };
+ TSubRect* __fastcall FastGetSubRect(double x, double z) { return FastGetSubRect(GetColFromX(x),GetRowFromZ(z)); };
+ TSubRect* __fastcall GetSubRect(int iCol, int iRow);
+ TSubRect* __fastcall FastGetSubRect(int iCol, int iRow);
+ int __fastcall GetRowFromZ(double z) { return (z/fSubRectSize+fHalfTotalNumSubRects); };
+ int __fastcall GetColFromX(double x) { return (x/fSubRectSize+fHalfTotalNumSubRects); };
+ TEvent* __fastcall FindEvent(const AnsiString &asEventName);
+ void __fastcall TrackJoin(TGroundNode *Current);
 private:
  void __fastcall OpenGLUpdate(HDC hDC);
  void __fastcall RaTriangleDivider(TGroundNode* node);
  void __fastcall Navigate(String ClassName,UINT Msg,WPARAM wParam,LPARAM lParam);
+ bool PROBLEND;
 public:
  void __fastcall WyslijEvent(const AnsiString &e,const AnsiString &d);
  int iRendered; //iloœæ renderowanych sektorów, pobierana przy pokazywniu FPS
@@ -384,6 +388,8 @@ public:
  void __fastcall RadioStop(vector3 pPosition);
  TDynamicObject* __fastcall DynamicNearest(vector3 pPosition,double distance=20.0,bool mech=false);
  void __fastcall DynamicRemove(TDynamicObject* dyn);
+ void __fastcall TerrainRead(const AnsiString &f); 
+ void __fastcall TerrainWrite();
 };
 //---------------------------------------------------------------------------
 #endif
