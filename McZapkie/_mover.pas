@@ -3774,6 +3774,7 @@ begin
            begin
             inc(ScndCtrlPos);
             LastRelayTime:=0;             //zeruj czas
+            SetFlag(SoundFlag,sound_relay);
            end;
           if (ScndCtrlPos>ScndCtrlActualPos) and (LastRelayTime>CtrlDelay) then
            begin

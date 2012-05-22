@@ -2778,7 +2778,8 @@ bool __fastcall TDynamicObject::Render()
              sConverter.TurnOff(MechInside,GetPosition());
           }
 
-         vol= (0.8+0.0002f*MoverParameters->EnginePower/MoverParameters->Power);
+         vol=0.75+MoverParameters->dizel_fill*0.1+0.2*MoverParameters->RventRot/MoverParameters->DE_nnom;
+//         vol= (0.8+0.0002f*MoverParameters->EnginePower/MoverParameters->Power);
          freq= MoverParameters->RventRot/(MoverParameters->DElist[0].RPM);
          sConverter.UpdateAF(vol,freq,MechInside,GetPosition());
 
@@ -2895,7 +2896,8 @@ if ((MoverParameters->ConverterFlag==false)&&(MoverParameters->CompressorPower!=
        double eng_vol;
        if (MoverParameters->Power>1)
           //0.85+0.000015*(...)
-          eng_vol=0.8+0.00002*(MoverParameters->EnginePower/MoverParameters->Power);
+          eng_vol=0.9+MoverParameters->dizel_fill*0.05+0.1*MoverParameters->RventRot/MoverParameters->DE_nnom+0.1*(MoverParameters->EnginePower/MoverParameters->Power);
+//          eng_vol=0.8+0.00002*(MoverParameters->EnginePower/MoverParameters->Power);
        else
           eng_vol=1;
 
