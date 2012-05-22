@@ -85,18 +85,16 @@ ProductVersion=1.6
 Comments=
 
 [HistoryLists\hlIncludePath]
-Count=4
-Item0=C:\Users\Xoov\;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item1=C:\Users\Xoov;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item2=opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item3=C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Count=3
+Item0=C:\Users\Xoov;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item1=opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item2=C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
 
 [HistoryLists\hlLibraryPath]
-Count=4
-Item0=C:\Users\Xoov\;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item1=C:\Users\Xoov;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item2=opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item3=C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Count=3
+Item0=C:\Users\Xoov;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item1=opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item2=C:\ProgsWin\CBuilder5\Projects\;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
 
 [HistoryLists\hlDebugSourcePath]
 Count=4
