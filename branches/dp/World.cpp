@@ -807,10 +807,10 @@ bool __fastcall TWorld::Update()
   if (GetFPS()<Global::fFpsMin)
   {Global::iSegmentsRendered-=random(20); //floor(0.5+Global::iSegmentsRendered/Global::fRadiusFactor);
    if (Global::iSegmentsRendered<10) //jeœli jest co zmniejszaæ
-    Global::iSegmentsRendered=10; //20=minimalny promieñ to 600m
+    Global::iSegmentsRendered=10; //10=minimalny promieñ to 600m
   }
   else if (GetFPS()>Global::fFpsMax) //jeœli jest du¿o FPS
-   if (Global::iSegmentsRendered<Global::iFpsRadiusMax) //jeœli jest co zmniejszaæ
+   if (Global::iSegmentsRendered<Global::iFpsRadiusMax) //jeœli jest co zwiêkszaæ
    {Global::iSegmentsRendered+=random(20); //floor(0.5+Global::iSegmentsRendered*Global::fRadiusFactor);
     if (Global::iSegmentsRendered>Global::iFpsRadiusMax) //5.6km (22*22*M_PI)
      Global::iSegmentsRendered=Global::iFpsRadiusMax;

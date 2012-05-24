@@ -4537,7 +4537,7 @@ Begin
 //  if OK then
     if (CabNo<>0) then
      LastCab:=CabNo;
-    case Trunc(CValue1) of
+    case Trunc(CValue1*CValue2) of
       1 : CabNo:= 1;
      -1 : CabNo:=-1;
     else CabNo:=0;
@@ -4573,31 +4573,41 @@ Begin
      else if (CValue1=0) then CompressorAllow:=false;
      OK:=SendCtrlToNext(command,CValue1,CValue2);
    end
-  else if command='DoorLeft' then         {NBMX}
+  else if command='DoorOpen' then         {NBMX}
    begin //Ra: uwzglêdniæ trzeba jeszcze zgodnoœæ sprzêgów
     if (CValue2>0) then
-     begin
-      DoorLeftOpened:=(CValue1<>0);
-      OK:=SendCtrlToNext(command,CValue1,CValue2);
+     begin //normalne ustawienie pojazdu
+      if (CValue1=1) then
+       DoorLeftOpened:=true;
+      if (CValue1=2) then
+       DoorRightOpened:=true;
      end
     else
-     begin //Ra: nie jestem pewien, trzeba zrobiæ tablicê z drzwi
-      DoorRightOpened:=(CValue1<>0);
-      OK:=SendCtrlToNext('DoorRight',CValue1,CValue2);
-     end
+     begin //odwrotne ustawienie pojazdu
+      if (CValue1=2) then
+       DoorLeftOpened:=true;
+      if (CValue1=1) then
+       DoorRightOpened:=true;
+     end;
+    OK:=SendCtrlToNext(command,CValue1,CValue2);
    end
-  else if command='DoorRight' then         {NBMX}
+  else if command='DoorClose' then         {NBMX}
    begin //Ra: uwzglêdniæ trzeba jeszcze zgodnoœæ sprzêgów
     if (CValue2>0) then
-     begin
-      DoorRightOpened:=(CValue1<>0);
-      OK:=SendCtrlToNext(command,CValue1,CValue2);
+     begin //normalne ustawienie pojazdu
+      if (CValue1=1) then
+       DoorLeftOpened:=false;
+      if (CValue1=2) then
+       DoorRightOpened:=false;
      end
     else
-     begin //Ra: nie jestem pewien, trzeba zrobiæ tablicê z drzwi
-      DoorLeftOpened:=(CValue1<>0);
-      OK:=SendCtrlToNext('DoorLeft',CValue1,CValue2);
-     end
+     begin //odwrotne ustawienie pojazdu
+      if (CValue1=2) then
+       DoorLeftOpened:=false;
+      if (CValue1=1) then
+       DoorRightOpened:=false;
+     end;
+    OK:=SendCtrlToNext(command,CValue1,CValue2);
    end
 else if command='PantFront' then         {Winger 160204}
    begin //Ra: uwzglêdniæ trzeba jeszcze zgodnoœæ sprzêgów
@@ -5219,11 +5229,11 @@ begin
   DoorLeftOpened:=State;
   if (State=true) then
    begin
-     SendCtrlToNext('DoorLeft',1,CabNo);
+     SendCtrlToNext('DoorOpen',1,CabNo); //1=lewe, 2=prawe
    end
   else
    begin
-    SendCtrlToNext('DoorLeft',0,CabNo);
+    SendCtrlToNext('DoorClose',1,CabNo);
    end;
   end
   else
@@ -5238,11 +5248,11 @@ begin
   DoorRightOpened:=State;
   if (State=true) then
    begin
-     SendCtrlToNext('DoorRight',1,CabNo);
+     SendCtrlToNext('DoorOpen',2,CabNo); //1=lewe, 2=prawe
    end
   else
    begin
-    SendCtrlToNext('DoorRight',0,CabNo);
+    SendCtrlToNext('DoorClose',2,CabNo);
    end;
  end
  else
