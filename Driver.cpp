@@ -1930,8 +1930,8 @@ bool __fastcall TController::UpdateSituation(double dt)
        //WriteLog("Zahamowanie sk³adu");
        while ((Controlling->BrakeCtrlPos>3)&&Controlling->DecBrakeLevel());
        while ((Controlling->BrakeCtrlPos<3)&&Controlling->IncBrakeLevel());
-       if (Controlling->PipePress-Controlling->BrakePressureTable[Controlling->BrakeCtrlPos-1+2].PipePressureVal<0.01)
-       {//jeœli w miarê zosta³ zahamowany
+       if (Controlling->PipePress-Controlling->BrakePressureTable[Controlling->BrakeCtrlPos+2].PipePressureVal<0.01)
+       {//jeœli w miarê zosta³ zahamowany (ciœnienie mniejsze ni¿ podane na pozycji 3, zwyle 0.37)
         //WriteLog("Luzowanie lokomotywy i zmiana kierunku");
         Controlling->BrakeReleaser(); //wyluzuj lokomotywê; a ST45?
         Controlling->DecLocalBrakeLevel(10); //zwolnienie hamulca
