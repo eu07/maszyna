@@ -2,6 +2,7 @@ import unittest
 from decimal import Decimal
 
 import event
+import node 
 
 class TestEventGrammar(unittest.TestCase):
 
