@@ -3,9 +3,10 @@ from decimal import Decimal
 
 from common import DecimalNum, Identifier
 
-# events
+# common 
 EventTag = CaselessKeyword('event');
 EndEventTag = CaselessKeyword('endevent');
+CommandValue = DecimalNum | Keyword('*');
 
 # lights event
 LightState = oneOf('0 1 2');
@@ -46,8 +47,6 @@ TrackVel = \
     EndEventTag;
 
 # update values event
-CommandValue = DecimalNum | Keyword('*');
-
 UpdateValues = \
     EventTag + \
     Identifier('name') + \
@@ -69,5 +68,21 @@ GetValues = \
     EndEventTag;
 
 # put values
-# putValuesEvent = \
+#putValuesEvent = \
 
+# multiple event
+ConditionTag = CaselessKeyword('condition')
+
+MemcompareCondition = CaselessKeyword('memcompare')('condition') + Identifier('command') + CommandValue('first') + CommandValue('second')
+ProbabilityCondition = CaselessKeyword('probability')('condition') + DecimalNum('probability')
+Condition = CaselessKeyword('trackoccupied')('condition') | CaselessKeyword('trackfree')('condition') | ProbabilityCondition | MemcompareCondition 
+
+Multiple = \
+    EventTag + \
+    Identifier('name') + \
+    CaselessKeyword('multiple') + \
+    DecimalNum('delay') + \
+    Identifier('target') + \
+    Group(OneOrMore(~EndEventTag + ~ConditionTag + Identifier))('events') + \
+    Optional(ConditionTag + Condition) + \
+    EndEventTag;

@@ -1,7 +1,7 @@
-import unittest;
-from decimal import Decimal;
+import unittest
+from decimal import Decimal
 
-import event;
+import event
 
 class TestEventGrammar(unittest.TestCase):
 
@@ -50,7 +50,7 @@ class TestEventGrammar(unittest.TestCase):
         })    
 
     def testUpdateValues(self):    
-        result = event.UpdateValues.parseString('event start3b updatevalues 30.0 memcell_train3 SetVelocity 50 * endevent').asDict();
+        result = event.UpdateValues.parseString('event start3b updatevalues 30.0 memcell_train3 SetVelocity 50 * endevent').asDict()
 
         self.assertDictEqual(result, {
             # common
@@ -62,3 +62,46 @@ class TestEventGrammar(unittest.TestCase):
             'first': Decimal('50.0'),
             'second': '*'
         })
+
+    def testMultiple(self):
+        result = event.Multiple.parseString('event semA_S13 multiple 0 none semA_light13 semA_S13set endevent').asDict()
+        result['events'] = list(result['events'])
+
+        self.assertDictEqual(result, {
+            # common
+            'name': 'semA_S13',
+            'delay': Decimal('0.0'),
+            'target': 'none',
+            # multiple
+            'events': ['semA_light13', 'semA_S13set']
+        })
+
+        result = event.Multiple.parseString('event przejazd_otwieraj multiple 2.0 tornaprzejezdzie przejazd_1_sygn1 przejazd_1_sygn2 condition trackfree endevent').asDict();
+        result['events'] = list(result['events'])
+
+        self.assertDictEqual(result, {
+            # common
+            'name': 'przejazd_otwieraj',
+            'delay': Decimal('2.0'),
+            'target': 'tornaprzejezdzie',
+            # multiple
+            'events': ['przejazd_1_sygn1', 'przejazd_1_sygn2'],
+            'condition': 'trackfree'
+        })  
+       
+        result = event.Multiple.parseString('event Zaczynek-Testowo1 multiple 3.0 Testowo-status Testowo-Zatwierdz Testowo-zwr1+ Testowo_ToA_os2 Testowo_A_S5 Testowo_D_S1 condition memcompare Rozwiazany * * endevent').asDict();
+        result['events'] = list(result['events'])
+
+        self.assertDictEqual(result, {
+            # common
+            'name': 'Zaczynek-Testowo1',
+            'delay': Decimal('3.0'),
+            'target': 'Testowo-status',
+            # multiple
+            'events': ['Testowo-Zatwierdz', 'Testowo-zwr1+', 'Testowo_ToA_os2', 'Testowo_A_S5', 'Testowo_D_S1'],
+            'condition': 'memcompare',
+            'command': 'Rozwiazany',
+            'first': '*',
+            'second': '*'
+        })    
+              

@@ -5,4 +5,4 @@ from decimal import Decimal
 DecimalNum = Optional('-') + Word(nums) + Optional('.' + Word(nums));
 DecimalNum.setParseAction(lambda tokens: Decimal(''.join(tokens)));
 
-Identifier = Word(alphanums + '_').setParseAction(lambda tokens: str(tokens[0]));
+Identifier = Word(alphanums + '_+-').setParseAction(lambda tokens: str(tokens[0]));
