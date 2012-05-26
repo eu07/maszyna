@@ -533,9 +533,9 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
   if (smMechanik)
   {
    if (Mechanik&&(Controller!=Humandriver))  //rysowanie figurki mechanika
-    smMechanik->Visible=true;
+    smMechanik->iVisible=true;
    else
-    smMechanik->Visible=false;
+    smMechanik->iVisible=false;
   }
   //ABu: Przechyly na zakretach
   //Ra: przechy³kê za³atwiamy na etapie przesuwania modelu
@@ -2202,6 +2202,7 @@ if (tmpTraction.TractionVoltage==0)
 }
  else if (MoverParameters->EnginePowerSource.SourceType==InternalSource)
   if (MoverParameters->EnginePowerSource.PowerType==SteamPower)
+   if (smPatykird1[0])
   {//Ra: animacja rozrz¹du parowozu, na razie nieoptymalizowane
    double fi,dx,c2,ka,kc;
    double sin_fi,cos_fi;

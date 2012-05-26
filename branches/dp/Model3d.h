@@ -199,7 +199,7 @@ private:
  TAnimType b_aAnim; //kody animacji oddzielnie, bo zerowane
  char space[20]; //wolne miejsce na przysz³e zmienne (zmniejszyæ w miarê potrzeby)
 public:
- bool Visible; //roboczy stan widocznoœci
+ int iVisible; //roboczy stan widocznoœci
  //AnsiString asTexture; //robocza nazwa tekstury do zapisania w pliku binarnym
  //AnsiString asName; //robocza nazwa
  char *pTexture; //robocza nazwa tekstury do zapisania w pliku binarnym
@@ -237,7 +237,7 @@ public:
  //inline matrix4x4* __fastcall GetMatrix() {return dMatrix;};
  inline float4x4* __fastcall GetMatrix() {return fMatrix;};
  //matrix4x4* __fastcall GetTransform() {return Matrix;};
- inline void __fastcall Hide() {Visible=false;};
+ inline void __fastcall Hide() {iVisible=0;};
  void __fastcall RaArrayFill(CVertNormTex *Vert);
  //void __fastcall Render();
  int __fastcall FlagsCheck();
@@ -336,6 +336,7 @@ public:
  char* __fastcall NameGet() {return Root?Root->pName:NULL;};
  int __fastcall TerrainCount();
  TSubModel* __fastcall TerrainSquare(int n);
+ void __fastcall TerrainRenderVBO(int n);
 };
 
 //---------------------------------------------------------------------------
