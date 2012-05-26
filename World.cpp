@@ -726,12 +726,16 @@ void __fastcall TWorld::InOutKey()
  }
  else
  {//jazda w kabinie
-  Global::pUserDynamic=Controlled; //renerowanie wzglêdem kamery
-  Train->DynamicObject->bDisplayCab=true;
-  Train->DynamicObject->ABuSetModelShake(vector3(0,0,0)); //zerowanie przesuniêcia przed powrotem?
-  //Camera.Stop(); //zatrzymanie ruchu
-  Train->MechStop();
-  FollowView(); //na pozycjê mecha
+  if (Train)
+  {Global::pUserDynamic=Controlled; //renerowanie wzglêdem kamery
+   Train->DynamicObject->bDisplayCab=true;
+   Train->DynamicObject->ABuSetModelShake(vector3(0,0,0)); //zerowanie przesuniêcia przed powrotem?
+   //Camera.Stop(); //zatrzymanie ruchu
+   Train->MechStop();
+   FollowView(); //na pozycjê mecha
+  }
+  else
+   FreeFlyModeFlag=true; //nadal poza kabin¹
  }
 };
 

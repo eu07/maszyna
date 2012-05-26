@@ -88,7 +88,7 @@ void __fastcall TSubModel::FirstInit()
  b_Anim=at_None;
  b_aAnim=at_None;
  fVisible=0.0; //zawsze widoczne
- Visible=true;
+ iVisible=1;
  fMatrix=NULL; //to samo co iMatrix=0;
  Next=NULL;
  Child=NULL;
@@ -877,7 +877,7 @@ void __fastcall TSubModel::RaAnimation(TAnimType a)
 
 void __fastcall TSubModel::Render()
 {//g³ówna procedura renderowania przez DL
- if (Visible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
+ if (iVisible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
  {
   if (iFlags&0xC000)
   {glPushMatrix();
@@ -962,7 +962,7 @@ void __fastcall TSubModel::Render()
 
 void __fastcall TSubModel::RenderAlpha()
 {//renderowanie przezroczystych przez DL
- if (Visible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
+ if (iVisible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
  {
   if (iFlags&0xC000)
   {glPushMatrix();
@@ -1008,7 +1008,7 @@ void __fastcall TSubModel::RenderAlpha()
 
 void __fastcall TSubModel::RaRender()
 {//g³ówna procedura renderowania przez VBO
- if (Visible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
+ if (iVisible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
  {
   if (iFlags&0xC000)
   {glPushMatrix();
@@ -1140,7 +1140,7 @@ void __fastcall TSubModel::RaRender()
 
 void __fastcall TSubModel::RaRenderAlpha()
 {//renderowanie przezroczystych przez VBO
- if (Visible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
+ if (iVisible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
  {
   if (iFlags&0xC000)
   {glPushMatrix(); //zapamiêtanie matrycy
@@ -1291,7 +1291,7 @@ void __fastcall TSubModel::BinInit(TSubModel *s,float4x4 *m,float8 *v,TStringPac
  b_aAnim=b_Anim; //skopiowanie animacji do drugiego cyklu
  iFlags&=~0x0200; //wczytano z pliku binarnego (nie jest w³aœcicielem tablic)
  Vertices=v+iVboPtr;
- Visible=true; //tymczasowo u¿ywane
+ iVisible=1; //tymczasowo u¿ywane
  //if (!iNumVerts) eType=-1; //tymczasowo zmiana typu, ¿eby siê nie renderowa³o na si³ê
 };
 
@@ -1846,15 +1846,36 @@ int __fastcall TModel3d::TerrainCount()
  return i;
 };
 TSubModel* __fastcall TModel3d::TerrainSquare(int n)
-{//pobieranie wskaŸnika do pierwszego submodelu
+{//pobieranie wskaŸnika do submodelu (n)
  int i=0;
  TSubModel *r=Root;
  while (i<n)
  {r=r->NextGet();
   ++i;
  }
- r->UnFlagNext();
+ r->UnFlagNext(); //blokowanie wyœwietlania po Next g³ównej listy
  return r;
 };
-
+void __fastcall TModel3d::TerrainRenderVBO(int n)
+{//renderowanie terenu z VBO
+ glPushMatrix();
+ //glTranslated(vPosition->x,vPosition->y,vPosition->z);
+ //if (vAngle->y!=0.0) glRotated(vAngle->y,0.0,1.0,0.0);
+ //if (vAngle->x!=0.0) glRotated(vAngle->x,1.0,0.0,0.0);
+ //if (vAngle->z!=0.0) glRotated(vAngle->z,0.0,0.0,1.0);
+ //TSubModel::fSquareDist=SquareMagnitude(*vPosition-Global::GetCameraPosition()); //zmienna globalna!
+ if (StartVBO())
+ {//odwrócenie flag, aby wy³apaæ nieprzezroczyste
+  //Root->ReplacableSet(ReplacableSkinId,iAlpha^0x0F0F000F);
+  TSubModel *r=Root;
+  while (r)
+  {
+   if (r->iVisible==n) //tylko jeœli ma byæ widoczny w danej ramce (problem dla 0==false)
+    r->RaRender(); //sub kolejne (Next) siê nie wyrenderuj¹
+   r=r->NextGet();
+  }
+  EndVBO();
+ }
+ glPopMatrix();
+};
 

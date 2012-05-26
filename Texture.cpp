@@ -52,8 +52,8 @@ TTexturesManager::Names::iterator TTexturesManager::LoadFromFile(std::string fil
 
     std::string realFileName(fileName);
     std::ifstream file(fileName.c_str());
-    if(!file.is_open())
-        realFileName.insert(0, szDefaultTexturePath);
+    if (!file.is_open())
+        realFileName.insert(0,szDefaultTexturePath);
     else
         file.close();
 
@@ -78,10 +78,11 @@ TTexturesManager::Names::iterator TTexturesManager::LoadFromFile(std::string fil
     _alphas.insert(texinfo); //zapamiêtanie stanu przezroczystoœci tekstury - mo¿na by tylko przezroczyste
     std::pair<Names::iterator, bool> ret = _names.insert(std::make_pair(fileName, texinfo.first));
 
-    if(!texinfo.first)
+    if (!texinfo.first)
     {
-        WriteLog("Failed");
-        return _names.end();
+     WriteLog("Failed");
+     ErrorLog("Missed texture: "+AnsiString(realFileName.c_str()));
+     return _names.end();
     };
 
     _alphas.insert(texinfo);

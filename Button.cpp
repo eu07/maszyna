@@ -57,8 +57,8 @@ void __fastcall TButton::Load(TQueryParserComp *Parser,TModel3d *pModel1,TModel3
 
 void __fastcall TButton::Update()
 {
- if (pModelOn) pModelOn->Visible=bOn;
- if (pModelOff) pModelOff->Visible=!bOn;
+ if (pModelOn) pModelOn->iVisible=bOn;
+ if (pModelOff) pModelOff->iVisible=!bOn;
  if (iFeedbackBit) //je¿eli generuje informacjê zwrotn¹
  {if (bOn) //zapalenie
    Console::BitsSet(iFeedbackBit);

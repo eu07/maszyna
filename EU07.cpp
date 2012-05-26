@@ -132,7 +132,7 @@ GLvoid ReSizeGLScene(GLsizei width,GLsizei height) // resize and initialize the 
  glMatrixMode(GL_PROJECTION);			   // select the Projection Matrix
  glLoadIdentity();				   // reset the Projection Matrix
  //calculate the aspect ratio of the window
- gluPerspective(45.0f,(GLdouble)width/(GLdouble)height,0.2f,2000.0f);
+ gluPerspective(45.0f,(GLdouble)width/(GLdouble)height,0.2f,2500.0f);
  glMatrixMode(GL_MODELVIEW);			   // select the Modelview Matrix
  glLoadIdentity();				   // reset the Modelview Matrix
 }
