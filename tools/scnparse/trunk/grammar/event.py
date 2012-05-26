@@ -1,16 +1,16 @@
 from pyparsing import *
 from decimal import Decimal
 
-from common import DecimalNum, Identifier
+from common import DecimalNum, Identifier, Position
 
 # common 
-EventTag = CaselessKeyword('event');
-EndEventTag = CaselessKeyword('endevent');
-CommandValue = DecimalNum | Keyword('*');
+EventTag = CaselessKeyword('event')
+EndEventTag = CaselessKeyword('endevent')
+CommandValue = DecimalNum | Keyword('*')
 
 # lights event
-LightState = oneOf('0 1 2');
-LightState.setParseAction(lambda tokens: int(tokens[0]));
+LightState = oneOf('0 1 2')
+LightState.setParseAction(lambda tokens: int(tokens[0]))
 
 Lights = \
     EventTag + \
@@ -19,7 +19,7 @@ Lights = \
     DecimalNum('delay') + \
     Identifier('target') + \
     OneOrMore(LightState)('state') + \
-    EndEventTag;
+    EndEventTag
 
 # animation event
 Animation = \
@@ -30,11 +30,9 @@ Animation = \
     Identifier('target') + \
     oneOf('rotate translate', caseless=True)('kind') + \
     Identifier('submodel') + \
-    DecimalNum('x') + \
-    DecimalNum('y') + \
-    DecimalNum('z') + \
+    Position('position') + \
     DecimalNum('speed') + \
-    EndEventTag;
+    EndEventTag
 
 # track velocity event
 TrackVel = \
@@ -44,7 +42,7 @@ TrackVel = \
     DecimalNum('delay') + \
     Identifier('target') + \
     DecimalNum('velocity') + \
-    EndEventTag;
+    EndEventTag
 
 # update values event
 UpdateValues = \
@@ -56,7 +54,7 @@ UpdateValues = \
     Identifier('command') + \
     CommandValue('first') + \
     CommandValue('second') + \
-    EndEventTag;
+    EndEventTag
 
 # get values event
 GetValues = \
@@ -65,7 +63,7 @@ GetValues = \
     CaselessKeyword('getvalues') + \
     DecimalNum('delay') + \
     Identifier('target') + \
-    EndEventTag;
+    EndEventTag
 
 # put values
 #putValuesEvent = \
@@ -85,4 +83,28 @@ Multiple = \
     Identifier('target') + \
     Group(OneOrMore(~EndEventTag + ~ConditionTag + Identifier))('events') + \
     Optional(ConditionTag + Condition) + \
-    EndEventTag;
+    EndEventTag
+
+# switch event
+SwitchState = oneOf('0 1').setParseAction(lambda t: int(t[0]))
+
+Switch = \
+    EventTag + \
+    Identifier('name') + \
+    CaselessKeyword('switch') + \
+    DecimalNum('delay') + \
+    Identifier('target') + \
+    SwitchState('state') + \
+    EndEventTag
+
+# sound event
+PlayStatus = oneOf('-1 0 1').setParseAction(lambda t: int(t[0]))
+
+Sound = \
+    EventTag + \
+    Identifier('name') + \
+    CaselessKeyword('sound') + \
+    DecimalNum('delay') + \
+    Identifier('target') + \
+    PlayStatus('state') + \
+    EndEventTag

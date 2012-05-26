@@ -22,6 +22,7 @@ class TestEventGrammar(unittest.TestCase):
 
     def testAnimation(self):
         result = event.Animation.parseString('event Testowo_A_sem_anim21 animation 0 Testowo_A rotate Ramie01 0 -45 0 40 endevent').asDict()
+        result['position'] = dict(result['position'])
 
         self.assertDictEqual(result, {
             # common 
@@ -31,9 +32,11 @@ class TestEventGrammar(unittest.TestCase):
             # animation 
             'kind': 'rotate',
             'submodel': 'Ramie01',
-            'x': Decimal('0.0'),
-            'y': Decimal('-45.0'),
-            'z': Decimal('0.0'),
+            'position': {
+                'x': Decimal('0.0'),
+                'y': Decimal('-45.0'),
+                'z': Decimal('0.0'),
+            },    
             'speed': Decimal('40.0')
         })    
 
@@ -104,4 +107,27 @@ class TestEventGrammar(unittest.TestCase):
             'first': '*',
             'second': '*'
         })    
-              
+ 
+    def testSwitch(self):
+        result = event.Switch.parseString('event Testowo_zwr1+ switch 0.0 Testowo_zwr1 1 endevent').asDict()
+
+        self.assertDictEqual(result, {
+            # common
+            'name': 'Testowo_zwr1+',
+            'delay': Decimal('0.0'),
+            'target': 'Testowo_zwr1',
+            # switch
+            'state': 1
+        })  
+        
+    def testSound(self):
+        result = event.Sound.parseString('event wroclaw_wjezdza_zapowiedz sound 4.0 wroclaw_wjezdza_zapowiedz 1 endevent').asDict()
+        
+        self.assertDictEqual(result, {
+            # common
+            'name': 'wroclaw_wjezdza_zapowiedz',
+            'delay': Decimal('4.0'),
+            'target': 'wroclaw_wjezdza_zapowiedz',
+            # switch
+            'state': 1
+        })        
