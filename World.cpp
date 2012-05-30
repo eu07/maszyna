@@ -766,7 +766,8 @@ void __fastcall TWorld::FollowView()
   //Controlled->ABuSetModelShake(vector3(0,0,0));
   if (FreeFlyModeFlag)
   {//je¿eli poza kabin¹, przestawiamy w jej okolicê - OK
-   Train->DynamicObject->ABuSetModelShake(vector3(0,0,0)); //wy³¹czenie trzêsienia na si³ê?
+   if (Train)
+    Train->DynamicObject->ABuSetModelShake(vector3(0,0,0)); //wy³¹czenie trzêsienia na si³ê?
    //Camera.Pos=Train->pMechPosition+Normalize(Train->GetDirection())*20;
    DistantView();
    //¿eby nie bylo numerów z 'fruwajacym' lokiem - konsekwencja bujania pud³a

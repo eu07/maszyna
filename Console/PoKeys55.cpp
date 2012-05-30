@@ -10,7 +10,7 @@
 //TPoKeys55 *PoKeys55;
 //http://forum.simflight.com/topic/68257-latest-lua-package-for-fsuipc-and-wideclient/
 //#define MY_DEVICE_ID  "Vid_04d8&Pid_003F"
-#define MY_DEVICE_ID  "Vid_1dc3&Pid_1001&Rev_1000&MI_01"
+//#define MY_DEVICE_ID  "Vid_1dc3&Pid_1001&Rev_1000&MI_01"
 //HID\Vid_1dc3&Pid_1001&Rev_1000&MI_01 - MI_01 to jest interfejs komunikacyjny (00-joystick, 02-klawiatura)
 
 HANDLE WriteHandle=INVALID_HANDLE_VALUE;
@@ -26,12 +26,13 @@ __fastcall TPoKeys55::TPoKeys55()
 //---------------------------------------------------------------------------
 __fastcall TPoKeys55::~TPoKeys55()
 {
- if (WriteHandle) CloseHandle(WriteHandle);
- if (ReadHandle) CloseHandle(ReadHandle);
+ if (WriteHandle!=INVALID_HANDLE_VALUE) CloseHandle(WriteHandle);
+ if (ReadHandle!=INVALID_HANDLE_VALUE) CloseHandle(ReadHandle);
 };
 //---------------------------------------------------------------------------
 bool __fastcall TPoKeys55::Connect()
 {//Ra: to jest do wyczyszcznia z niepotrzebnych zmiennych i komunikatów
+
  GUID InterfaceClassGuid={0x4d1e55b2,0xf16f,0x11cf,0x88,0xcb,0x00,0x11,0x11,0x00,0x00,0x30}; //wszystkie HID tak maj¹
  HDEVINFO DeviceInfoTable;
  PSP_DEVICE_INTERFACE_DATA InterfaceDataStructure=new SP_DEVICE_INTERFACE_DATA;
@@ -47,7 +48,7 @@ bool __fastcall TPoKeys55::Connect()
  DWORD ErrorStatus;
  HDEVINFO hDevInfo;
  String DeviceIDFromRegistry;
- String DeviceIDToFind=MY_DEVICE_ID;
+ String DeviceIDToFind="Vid_1dc3&Pid_1001&Rev_1000&MI_01";
  //First populate a list of plugged in devices (by specifying "DIGCF_PRESENT"), which are of the specified class GUID.
  DeviceInfoTable=SetupDiGetClassDevs(&InterfaceClassGuid,NULL,NULL,DIGCF_PRESENT|DIGCF_DEVICEINTERFACE);
  //Now look through the list we just populated.  We are trying to see if any of them match our device.
@@ -79,10 +80,11 @@ bool __fastcall TPoKeys55::Connect()
   //First query for the size of the hardware ID, so we can know how big a buffer to allocate for the data.
   SetupDiGetDeviceRegistryProperty(DeviceInfoTable,&DevInfoData,SPDRP_HARDWAREID,&dwRegType,NULL,0,&dwRegSize);
   //Allocate a buffer for the hardware ID.
-  PropertyValueBuffer=(BYTE*)malloc(dwRegSize);
+  //PropertyValueBuffer=(BYTE*)malloc(dwRegSize);
+  PropertyValueBuffer=new char[dwRegSize];
   if (PropertyValueBuffer==NULL) //if null,error,couldn't allocate enough memory
   {//Can't really recover from this situation,just exit instead.
-   ShowMessage("Allocation PropertyValueBuffer impossible");
+   //ShowMessage("Allocation PropertyValueBuffer impossible");
    SetupDiDestroyDeviceInfoList(DeviceInfoTable); //Clean up the old structure we no longer need.
    return false;
   }
@@ -94,7 +96,8 @@ bool __fastcall TPoKeys55::Connect()
   //Now check if the first string in the hardware ID matches the device ID of my USB device.
   //ListBox1->Items->Add((char*)PropertyValueBuffer);
   DeviceIDFromRegistry=StrPas((char*)PropertyValueBuffer);
-  free(PropertyValueBuffer); //No longer need the PropertyValueBuffer,free the memory to prevent potential memory leaks
+  //free(PropertyValueBuffer); //No longer need the PropertyValueBuffer,free the memory to prevent potential memory leaks
+  delete PropertyValueBuffer; //No longer need the PropertyValueBuffer,free the memory to prevent potential memory leaks
   //Convert both strings to lower case.  This makes the code more robust/portable accross OS Versions
   DeviceIDFromRegistry=DeviceIDFromRegistry.LowerCase();
   DeviceIDToFind=DeviceIDToFind.LowerCase();
@@ -137,7 +140,7 @@ bool __fastcall TPoKeys55::Connect()
   InterfaceIndex++;
   //Keep looping until we either find a device with matching VID and PID,or until we run out of items.
  }//end of while(true)
- ShowMessage("Sortie");
+ //ShowMessage("Sortie");
  return false;
 }
 //---------------------------------------------------------------------------
@@ -245,5 +248,5 @@ bool __fastcall TPoKeys55::PWM(int x,int y)
  *((int*)(OutputBuffer+34))=iPWM[6]; //PWM period
  Write(0xCB,1); //wys³anie ustawieñ (1-ustaw, 0-odczyt)
  //if (ReadLoop(5))
- // return true;
+ return true;
 }

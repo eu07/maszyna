@@ -1618,6 +1618,7 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
  }
  else if (NewCommand=="Shunt")
  {//NewValue1 - iloœæ wagonów (-1=wszystkie); NewValue2: 0=odczep, 1..63=do³¹cz, -1=bez zmian
+  //-3,-y - pod³¹czyæ do ca³ego stoj¹cego sk³adu (sprzêgiem y>=1), zmieniæ kierunek i czekaæ w trybie poci¹gowym
   //-2,-y - pod³¹czyæ do ca³ego stoj¹cego sk³adu (sprzêgiem y>=1), zmieniæ kierunek i czekaæ
   //-2, y - pod³¹czyæ do ca³ego stoj¹cego sk³adu (sprzêgiem y>=1) i czekaæ
   //-1,-y - pod³¹czyæ do ca³ego stoj¹cego sk³adu (sprzêgiem y>=1) i jechaæ w powrotn¹ stronê
@@ -1641,9 +1642,12 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
   else if (NewValue2==0.0)
    if (NewValue1>=0.0) //jeœli iloœæ wagonów inna ni¿ wszystkie
     OrderNext(Disconnect); //odczep (NewValue1) wagonów
-  if (NewValue1<-1.0) //jeœli -2, czyli czekanie z ruszeniem na sygna³
+  if (NewValue1<-1.5) //jeœli -2/-3, czyli czekanie z ruszeniem na sygna³
    iDrivigFlags|=moveStopHere; //nie podje¿d¿aæ do semafora, jeœli droga nie jest wolna
-  OrderNext(Shunt); //to potem manewruj dalej
+  if (NewValue1<-2.5) //jeœli
+   OrderNext(Obey_train); //to potem jazda poci¹gowa
+  else
+   OrderNext(Shunt); //to potem manewruj dalej
   CheckVehicles(); //sprawdziæ œwiat³a
   //if ((iVehicleCount>=0)&&(NewValue1<0)) WriteLog("Skasowano ilosæ wagonów w Shunt!");
   if (NewValue1!=iVehicleCount)
@@ -1930,7 +1934,9 @@ bool __fastcall TController::UpdateSituation(double dt)
        //WriteLog("Zahamowanie sk³adu");
        while ((Controlling->BrakeCtrlPos>3)&&Controlling->DecBrakeLevel());
        while ((Controlling->BrakeCtrlPos<3)&&Controlling->IncBrakeLevel());
-       if (Controlling->PipePress-Controlling->BrakePressureTable[Controlling->BrakeCtrlPos+2].PipePressureVal<0.01)
+       double p=Controlling->BrakePressureTable[Controlling->BrakeCtrlPos+2].PipePressureVal; //tu mo¿e byæ 0 albo -1 nawet
+       if (p<0.37) p=0.37; //TODO: zabezpieczenie przed dziwnymi CHK do czasu wyjaœnienia sensu 0 oraz -1 w tym miejscu
+       if (Controlling->PipePress-p<0.01)
        {//jeœli w miarê zosta³ zahamowany (ciœnienie mniejsze ni¿ podane na pozycji 3, zwyle 0.37)
         //WriteLog("Luzowanie lokomotywy i zmiana kierunku");
         Controlling->BrakeReleaser(); //wyluzuj lokomotywê; a ST45?

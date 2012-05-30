@@ -101,7 +101,7 @@ void __fastcall Console::ModeSet(int m,int h)
 int __fastcall Console::On()
 {//za³¹czenie konsoli (np. nawi¹zanie komunikacji)
  PoKeys55=new TPoKeys55();
- if (PoKeys55->Connect())
+ if (PoKeys55?PoKeys55->Connect():false)
  {WriteLog("Found "+PoKeys55->Version());
   BitsUpdate(-1); //aktualizacjia stanów, bo przy wczytywaniu mog³o byæ nieaktywne
  }

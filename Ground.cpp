@@ -3603,7 +3603,8 @@ bool __fastcall TGround::RenderVBO(vector3 pPosition)
   while ((i<0)||(j<0)); //s¹ 4 przypadki, oprócz i=j=0
  }
  //dodaæ rednerowanie terenu z E3D - jedno VBO jest u¿ywane dla ca³ego modelu, chyba ¿e jest ich wiêcej
- Global::pTerrainCompact->TerrainRenderVBO(TGroundRect::iFrameNumber);
+ if (Global::pTerrainCompact)
+  Global::pTerrainCompact->TerrainRenderVBO(TGroundRect::iFrameNumber);
  for (i=0;i<iRendered;i++)
  {//renderowanie nieprzezroczystych
   pRendered[i]->RenderVBO();

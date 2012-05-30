@@ -2724,7 +2724,7 @@ else
         else
          { btLampkaSprezarka.TurnOff(); }
         //boczniki
-        char scp;
+        unsigned char scp; //Ra: dopisa³em "unsigned" 
         scp=DynamicObject->MoverParameters->RList[DynamicObject->MoverParameters->MainCtrlActualPos].ScndAct;
         scp=(scp==255?0:scp);
         if ((DynamicObject->MoverParameters->ScndCtrlActualPos>0)||(DynamicObject->MoverParameters->ScndInMain)&&(scp>0))
