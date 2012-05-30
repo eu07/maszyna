@@ -1506,6 +1506,8 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName,bool dynamic)
   //iSubModelsCount++;
   parser.getToken(token);
  }
+/* Ra: od wersji 334 przechylany jest ca³y model, a nie tylko pierwszy submodel
+ //automatyczne banany czasem psu³y przechylanie kabin...
  if (dynamic&&Root)
  {if (Root->NextGet()) //jeœli ma jakiekolwiek kolejne
   {//dynamic musi mieæ "banana", bo tylko pierwszy obiekt jest animowany, a nastêpne nie
@@ -1516,6 +1518,7 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName,bool dynamic)
   }
   Root->WillBeAnimated(); //bo z tym jest du¿o problemów
  }
+*/
 }
 
 void __fastcall TModel3d::Init()

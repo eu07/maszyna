@@ -126,3 +126,16 @@ void __fastcall TMoverParameters::SetCoupleDist()
  }
 };
 
+bool __fastcall TMoverParameters::DirectionForward()
+{
+ if ((MainCtrlPosNo>0)&&(ActiveDir<1)&&(MainCtrlPos==0))
+ {
+  ++ActiveDir;
+  DirAbsolute=ActiveDir*CabNo;
+  SendCtrlToNext("Direction",ActiveDir,CabNo);
+  return true;
+ }
+ else if ((ActiveDir==1)&&(MainCtrlPos==0)&&(TrainType==dt_EZT))
+  return MinCurrentSwitch(true);
+ return false;
+};

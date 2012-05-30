@@ -5,10 +5,7 @@
 
 #include "Classes.h"
 #include "TrkFoll.h"
-//#include "Track.h"
 #include "QueryParserComp.hpp"
-//#include "AnimModel.h"
-//#include "Mover.hpp"
 #include "Mover.h"
 #include "TractionPower.h"
 //McZapkie:
@@ -37,7 +34,7 @@ szczególnie dla pojazdów w danej chwili nieruchomych (przy du¿ym zagêszczeniu
 modeli na stacjach na ogó³ przewaga jest tych nieruchomych).
 */
 class TAnimValveGear
-{//wspó³czynniki do animacji parowozu
+{//wspó³czynniki do animacji parowozu (wartoœci przyk³adowe dla Pt47)
  int iValues; //iloœæ liczb (wersja):
  float fKorbowodR; //d³ugoœæ korby (pó³ skoku t³oka) [m]: 0.35
  float fKorbowodL; //d³ugoœæ korbowodu [m]: 3.8
@@ -95,7 +92,6 @@ private:
  TSubModel **pAnimated; //lista animowanych submodeli (mo¿e byæ ich wiêcej ni¿ obiektów animuj¹cych)
  double dWheelAngle[3]; //k¹ty obrotu kó³: 0=przednie toczne, 1=napêdzaj¹ce i wi¹zary, 2=tylne toczne
  vector3 vCoulpler[2]; //wspó³rzêdne sprzêgów do liczenia zderzeñ
- // !!!! kabina to modyfikuje !!!!
  vector3 vUp,vFront,vLeft; //wektory jednostkowe ustawienia pojazdu
 private:
 //Ra: pocz¹tek animacji do ogarniêcia

@@ -750,7 +750,7 @@ TYPE
 
                 {--funkcje dla lokomotyw}
                {! kierunek ruchu}
-                function DirectionForward: boolean;
+                //function DirectionForward: boolean;
                 function DirectionBackward: boolean;
                {! wylacznik glowny}
                 function MainSwitch(State:boolean): boolean;
@@ -1451,6 +1451,7 @@ begin
  DecScndCtrl:=OK;
 end;
 
+(*
 function T_MoverParameters.DirectionForward: boolean;
 begin
   if (MainCtrlPosNo>0) and (ActiveDir<1) and (MainCtrlPos=0) then
@@ -1464,7 +1465,7 @@ begin
     DirectionForward:=MinCurrentSwitch(true)
   else
     DirectionForward:=False;
-end;
+end;*)
 
 function T_MoverParameters.DirectionBackward: boolean;
 begin
