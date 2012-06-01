@@ -36,6 +36,7 @@ double TSubModel::fSquareDist=0;
 int TSubModel::iInstance; //numer renderowanego egzemplarza obiektu
 GLuint *TSubModel::ReplacableSkinId=NULL;
 int TSubModel::iAlpha=0x30300030; //maska do testowania flag tekstur wymiennych
+TModel3d* TSubModel::pRoot; //Ra: tymczasowo wskaŸnik na model widoczny z submodelu
 //przyk³ady dla TSubModel::iAlpha:
 // 0x30300030 - wszystkie bez kana³u alfa
 // 0x31310031 - tekstura -1 u¿ywana w danym cyklu, pozosta³e nie
@@ -875,7 +876,7 @@ void __fastcall TSubModel::RaAnimation(TAnimType a)
  }
 };
 
-void __fastcall TSubModel::Render()
+void __fastcall TSubModel::RenderDL()
 {//g³ówna procedura renderowania przez DL
  if (iVisible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
  {
@@ -949,7 +950,7 @@ void __fastcall TSubModel::Render()
   }
   if (Child!=NULL)
    if (iAlpha&iFlags&0x001F0000)
-    Child->Render();
+    Child->RenderDL();
   if (iFlags&0xC000)
    glPopMatrix();
  }
@@ -957,10 +958,10 @@ void __fastcall TSubModel::Render()
   b_Anim=at_None; //wy³¹czenie animacji dla kolejnego u¿ycia subm
  if (Next)
   if (iAlpha&iFlags&0x1F000000)
-   Next->Render(); //dalsze rekurencyjnie
+   Next->RenderDL(); //dalsze rekurencyjnie
 }; //Render
 
-void __fastcall TSubModel::RenderAlpha()
+void __fastcall TSubModel::RenderAlphaDL()
 {//renderowanie przezroczystych przez DL
  if (iVisible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
  {
@@ -995,7 +996,7 @@ void __fastcall TSubModel::RenderAlpha()
   }
   if (Child!=NULL)
    if (iAlpha&iFlags&0x002F0000)
-    Child->RenderAlpha();
+    Child->RenderAlphaDL();
   if (iFlags&0xC000)
    glPopMatrix();
  }
@@ -1003,10 +1004,10 @@ void __fastcall TSubModel::RenderAlpha()
   b_aAnim=at_None; //wy³¹czenie animacji dla kolejnego u¿ycia submodelu
  if (Next!=NULL)
   if (iAlpha&iFlags&0x2F000000)
-   Next->RenderAlpha();
+   Next->RenderAlphaDL();
 }; //RenderAlpha
 
-void __fastcall TSubModel::RaRender()
+void __fastcall TSubModel::RenderVBO()
 {//g³ówna procedura renderowania przez VBO
  if (iVisible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
  {
@@ -1096,9 +1097,21 @@ void __fastcall TSubModel::RaRender()
   {
    //glDisable(GL_LIGHTING);  //Tolaris-030603: bo mu punkty swiecace sie blendowaly
    if (Global::fLuminance<fLight)
-   {glMaterialfv(GL_FRONT,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
-    glDrawArrays(eType,iVboPtr,iNumVerts);  //narysuj naraz wszystkie punkty z VBO
-    glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
+   {//Ra: pewnie mo¿na by to zrobiæ lepiej, bez powtarzania StartVBO()
+    pRoot->EndVBO(); //Ra: to te¿ nie jest zbyt ³adne
+    if (pRoot->StartColorVBO())
+    {//wyœwietlanie kolorowych punktów zamiast trójk¹tów
+     glBindTexture(GL_TEXTURE_2D,0); //tekstury nie ma
+     glColorMaterial(GL_FRONT,GL_EMISSION);
+     glDisable(GL_LIGHTING);  //Tolaris-030603: bo mu punkty swiecace sie blendowaly
+     //glMaterialfv(GL_FRONT,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
+     glDrawArrays(GL_POINTS,iVboPtr,iNumVerts);  //narysuj naraz wszystkie punkty z VBO
+     glEnable(GL_LIGHTING);
+     glColorMaterial(GL_FRONT,GL_AMBIENT_AND_DIFFUSE);
+     //glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
+     pRoot->EndVBO();
+     pRoot->StartVBO();
+    }
    }
   }
 /*Ra: tu coœ jest bez sensu...
@@ -1127,7 +1140,7 @@ void __fastcall TSubModel::RaRender()
 */
   if (Child!=NULL)
    if (iAlpha&iFlags&0x001F0000)
-    Child->RaRender();
+    Child->RenderVBO();
   if (iFlags&0xC000)
    glPopMatrix();
  }
@@ -1135,10 +1148,10 @@ void __fastcall TSubModel::RaRender()
   b_Anim=at_None; //wy³¹czenie animacji dla kolejnego u¿ycia submodelu
  if (Next)
   if (iAlpha&iFlags&0x1F000000)
-   Next->RaRender(); //dalsze rekurencyjnie
+   Next->RenderVBO(); //dalsze rekurencyjnie
 }; //RaRender
 
-void __fastcall TSubModel::RaRenderAlpha()
+void __fastcall TSubModel::RenderAlphaVBO()
 {//renderowanie przezroczystych przez VBO
  if (iVisible && (fSquareDist>=fSquareMinDist) && (fSquareDist<fSquareMaxDist))
  {
@@ -1175,7 +1188,7 @@ void __fastcall TSubModel::RaRenderAlpha()
   }
   if (Child)
    if (iAlpha&iFlags&0x002F0000)
-    Child->RaRenderAlpha();
+    Child->RenderAlphaVBO();
   if (iFlags&0xC000)
    glPopMatrix();
  }
@@ -1183,7 +1196,7 @@ void __fastcall TSubModel::RaRenderAlpha()
   b_aAnim=at_None; //wy³¹czenie animacji dla kolejnego u¿ycia submodelu
  if (Next)
   if (iAlpha&iFlags&0x2F000000)
-   Next->RaRenderAlpha();
+   Next->RenderAlphaVBO();
 }; //RaRenderAlpha
 
 //---------------------------------------------------------------------------
@@ -1191,7 +1204,7 @@ void __fastcall TSubModel::RaRenderAlpha()
 void  __fastcall TSubModel::RaArrayFill(CVertNormTex *Vert)
 {//wype³nianie tablic VBO
  if (Child) Child->RaArrayFill(Vert);
- if (eType<TP_ROTATOR)
+ if ((eType<TP_ROTATOR)||(eType==TP_STARS))
   for (int i=0;i<iNumVerts;++i)
   {Vert[iVboPtr+i].x =Vertices[i].Point.x;
    Vert[iVboPtr+i].y =Vertices[i].Point.y;
@@ -1685,7 +1698,7 @@ void __fastcall TModel3d::Render(double fSquareDistance,GLuint *ReplacableSkinId
  if (iAlpha&iFlags&0x1F1F001F) //czy w ogóle jest co robiæ w tym cyklu?
  {TSubModel::fSquareDist=fSquareDistance; //zmienna globalna!
   Root->ReplacableSet(ReplacableSkinId,iAlpha);
-  Root->Render();
+  Root->RenderDL();
  }
 };
 
@@ -1695,7 +1708,7 @@ void __fastcall TModel3d::RenderAlpha(double fSquareDistance,GLuint *ReplacableS
  {
   TSubModel::fSquareDist=fSquareDistance; //zmienna globalna!
   Root->ReplacableSet(ReplacableSkinId,iAlpha);
-  Root->RenderAlpha();
+  Root->RenderAlphaDL();
  }
 };
 
@@ -1738,7 +1751,8 @@ void __fastcall TModel3d::RaRender(double fSquareDistance,GLuint *ReplacableSkin
   if (StartVBO())
   {//odwrócenie flag, aby wy³apaæ nieprzezroczyste
    Root->ReplacableSet(ReplacableSkinId,iAlpha);
-   Root->RaRender();
+   Root->pRoot=this;
+   Root->RenderVBO();
    EndVBO();
   }
  }
@@ -1750,7 +1764,7 @@ void __fastcall TModel3d::RaRenderAlpha(double fSquareDistance,GLuint *Replacabl
  {TSubModel::fSquareDist=fSquareDistance; //zmienna globalna!
   if (StartVBO())
   {Root->ReplacableSet(ReplacableSkinId,iAlpha);
-   Root->RaRenderAlpha();
+   Root->RenderAlphaVBO();
    EndVBO();
   }
  }
@@ -1787,7 +1801,7 @@ void __fastcall TModel3d::Render(vector3 *vPosition,vector3 *vAngle,GLuint *Repl
  TSubModel::fSquareDist=SquareMagnitude(*vPosition-Global::GetCameraPosition()); //zmienna globalna!
  //odwrócenie flag, aby wy³apaæ nieprzezroczyste
  Root->ReplacableSet(ReplacableSkinId,iAlpha^0x0F0F000F);
- Root->Render();
+ Root->RenderDL();
  glPopMatrix();
 };
 void __fastcall TModel3d::RenderAlpha(vector3* vPosition,vector3* vAngle,GLuint *ReplacableSkinId,int iAlpha)
@@ -1799,7 +1813,7 @@ void __fastcall TModel3d::RenderAlpha(vector3* vPosition,vector3* vAngle,GLuint 
  if (vAngle->z!=0.0) glRotated(vAngle->z,0.0,0.0,1.0);
  TSubModel::fSquareDist=SquareMagnitude(*vPosition-Global::GetCameraPosition()); //zmienna globalna!
  Root->ReplacableSet(ReplacableSkinId,iAlpha);
- Root->RenderAlpha();
+ Root->RenderAlphaDL();
  glPopMatrix();
 };
 void __fastcall TModel3d::RaRender(vector3* vPosition,vector3* vAngle,GLuint *ReplacableSkinId,int iAlpha)
@@ -1813,7 +1827,7 @@ void __fastcall TModel3d::RaRender(vector3* vPosition,vector3* vAngle,GLuint *Re
  if (StartVBO())
  {//odwrócenie flag, aby wy³apaæ nieprzezroczyste
   Root->ReplacableSet(ReplacableSkinId,iAlpha^0x0F0F000F);
-  Root->RaRender();
+  Root->RenderVBO();
   EndVBO();
  }
  glPopMatrix();
@@ -1828,7 +1842,7 @@ void __fastcall TModel3d::RaRenderAlpha(vector3* vPosition,vector3* vAngle,GLuin
  TSubModel::fSquareDist=SquareMagnitude(*vPosition-Global::GetCameraPosition()); //zmienna globalna!
  if (StartVBO())
  {Root->ReplacableSet(ReplacableSkinId,iAlpha);
-  Root->RaRenderAlpha();
+  Root->RenderAlphaVBO();
   EndVBO();
  }
  glPopMatrix();
@@ -1874,7 +1888,7 @@ void __fastcall TModel3d::TerrainRenderVBO(int n)
   while (r)
   {
    if (r->iVisible==n) //tylko jeœli ma byæ widoczny w danej ramce (problem dla 0==false)
-    r->RaRender(); //sub kolejne (Next) siê nie wyrenderuj¹
+    r->RenderVBO(); //sub kolejne (Next) siê nie wyrenderuj¹
    r=r->NextGet();
   }
   EndVBO();

@@ -3177,7 +3177,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
         {
          int i,j,k,m;
          str=Parser->GetNextSymbol();
-         for (i=1; i<=MaxAnimatedAxles; i++)
+         for (i=1;i<=MaxAnimatedAxles;++i)
          {//McZapkie-050402: wyszukiwanie kol o nazwie str*
           asAnimName=str+i;
           smAnimatedWheel[i-1]=mdModel->GetFromName(asAnimName.c_str());

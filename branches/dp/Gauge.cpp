@@ -67,15 +67,20 @@ void __fastcall TGauge::Init(TSubModel *NewSubModel,TGaugeType eNewType,double f
 void __fastcall TGauge::Load(TQueryParserComp *Parser,TModel3d *md1,TModel3d *md2)
 {
  AnsiString str1=Parser->GetNextSymbol();
- AnsiString str2=Parser->GetNextSymbol();
- AnsiString str3=Parser->GetNextSymbol();
- AnsiString str4=Parser->GetNextSymbol();
- AnsiString str5=Parser->GetNextSymbol();
+ AnsiString str2=Parser->GetNextSymbol().LowerCase();
+ double val3=Parser->GetNextSymbol().ToDouble();
+ double val4=Parser->GetNextSymbol().ToDouble();
+ double val5=Parser->GetNextSymbol().ToDouble();
  TSubModel *sm=md1->GetFromName(str1.c_str());
  if (!sm) //jeœli nie znaleziony
   if (md2) //a jest podany drugi model (np. zewnêtrzny)
    md2->GetFromName(str1.c_str()); //to mo¿e tam bêdzie, co za ró¿nica gdzie
- Init(sm,(str2.LowerCase()=="mov")?gt_Move:gt_Rotate,str3.ToDouble(),str4.ToDouble(),str5.ToDouble());
+ if (str2=="mov")
+  Init(sm,gt_Move,val3,val4,val5);
+ else if (str2=="wip")
+  Init(sm,gt_Wiper,val3,val4,val5);
+ else
+  Init(sm,gt_Rotate,val3,val4,val5);
 }
 
 
@@ -133,16 +138,25 @@ void __fastcall TGauge::Update()
         fValue= fDesiredValue;
     if (SubModel)
     {
-        switch (eType)
-        {
-            case gt_Rotate:
-                SubModel->SetRotate(float3(0,1,0),fValue*360.0);
-            break;
-
-            case gt_Move:
-                SubModel->SetTranslate(float3(0,0,fValue));
-            break;
-        }
+     switch (eType)
+     {
+      case gt_Rotate:
+       SubModel->SetRotate(float3(0,1,0),fValue*360.0);
+      break;
+      case gt_Move:
+       SubModel->SetTranslate(float3(0,0,fValue));
+      break;
+      case gt_Wiper:
+       SubModel->SetTranslate(float3(0,0,fValue));
+       SubModel=SubModel->ChildGet();
+       if (SubModel)
+       {SubModel->SetTranslate(float3(0,0,fValue));
+        SubModel=SubModel->ChildGet();
+        if (SubModel)
+         SubModel->SetTranslate(float3(0,0,fValue));
+       }
+      break;
+     }
     }
 
 }
