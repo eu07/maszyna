@@ -532,7 +532,7 @@ void __fastcall TGroundNode::RenderDL()
  {//obiekty renderowane niezale¿nie od odleg³oœci
   case TP_SUBMODEL:
    TSubModel::fSquareDist=0;
-   return smTerrain->Render();
+   return smTerrain->RenderDL();
  }
  //if (pTriGroup) if (pTriGroup!=this) return; //wyœwietla go inny obiekt
  double mgn=SquareMagnitude(pCenter-Global::pCameraPosition);

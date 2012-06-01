@@ -9,7 +9,7 @@
 class TSubModel;
 class TModel3d;
       
-typedef enum { gt_Unknown, gt_Rotate, gt_Move } TGaugeType;
+typedef enum { gt_Unknown, gt_Rotate, gt_Move, gt_Wiper } TGaugeType;
 
 class TGauge
 {
