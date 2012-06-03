@@ -12,7 +12,8 @@
       RealSound.obj EvLaunch.obj FadeSound.obj Traction.obj TractionPower.obj 
       parser.obj sky.obj AirCoupler.obj glew.obj ResourceManager.obj VBO.obj 
       TextureDDS.obj opengl\ARB_Multisample.obj Float3d.obj Classes.obj 
-      Driver.obj Names.obj Console.obj Mover.obj ParticlesSmokev2.obj"/>
+      Driver.obj Names.obj Console.obj Mover.obj ParticlesSmokev2.obj 
+      PoliSound.obj"/>
     <RESFILES value="EU07.res"/>
     <IDLFILES value=""/>
     <IDLGENFILES value=""/>
@@ -36,13 +37,13 @@
     <USERDEFINES value="GLEW_STATIC;_DEBUG"/>
     <SYSDEFINES value="_RTLDLL;NO_STRICT"/>
     <MAINSOURCE value="EU07.cpp"/>
-    <INCLUDEPATH value="Console;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
-    <LIBPATH value="Console;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
+    <INCLUDEPATH value="C:\Users\Xoov;Console;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
+    <LIBPATH value="C:\Users\Xoov;Console;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
     <WARNINGS value="-w-par"/>
   </MACROS>
   <OPTIONS>
-    <IDLCFLAGS value="-src_suffix cpp -DGLEW_STATIC -D_DEBUG -IConsole -Iopengl -IMcZapkie 
-      -I$(BCB)\include -I$(BCB)\include\vcl -boa"/>
+    <IDLCFLAGS value="-src_suffix cpp -DGLEW_STATIC -D_DEBUG -IC:\Users\Xoov -IConsole -Iopengl 
+      -IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl -boa"/>
     <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a4 -6 -b- -k -y -v -vi- 
       -c -tW -tWM"/>
     <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
@@ -65,7 +66,7 @@ Release=570
 Build=350
 Debug=1
 PreRelease=0
-Special=1
+Special=0
 Private=0
 DLL=0
 Locale=1045
@@ -75,14 +76,13 @@ CodePage=1250
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
 FileVersion=1.7.570.350
-InternalName=7th by Ra / Dizel2
+InternalName=7th by Ra
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=eu07.exe
 ProductName=MaSzyna EU07-424
 ProductVersion=1.7
 Comments=
-SpecialBuild=
 
 [HistoryLists\hlIncludePath]
 Count=1
@@ -121,7 +121,7 @@ Item5=M:\aEU07\EU07\
 DebugSourceDirs=
 
 [Parameters]
-RunParams=-s test_tm.SCN -v ghostview
+RunParams=
 HostApplication=
 RemoteHost=
 RemotePath=
