@@ -15,6 +15,7 @@
 #include "MdlMngr.h"
 #include "RealSound.h"
 #include "AdvSound.h"
+#include "PoliSound.h"
 #include "Button.h"
 #include "AirCoupler.h"
 #include "ParticlesSmokev2.h" //dym
@@ -188,6 +189,7 @@ private:
 //NBMX wrzesien 2003
     TAdvancedSound sCompressor;
     TAdvancedSound sConverter;
+    TPoliSound sDieselEngine;
     TAdvancedSound sSmallCompressor;
     TAdvancedSound sDepartureSignal;
     TAdvancedSound sTurbo;

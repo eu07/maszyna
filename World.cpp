@@ -1511,6 +1511,7 @@ bool __fastcall TWorld::Update()
           OutText2+= AnsiString("/") + FloatToStrF(Controlled->MoverParameters->Vadd,ffFixed,6,3);
           OutText2+= AnsiString("/") + FloatToStrF(Controlled->MoverParameters->dizel_fill,ffFixed,6,3);
           OutText2+= AnsiString("/") + FloatToStrF(Controlled->MoverParameters->RventRot,ffFixed,4,0);
+//          OutText2+= AnsiString("/") + FloatToStrF(Controlled->sDieselEngine.max_i,ffFixed,2,0);          
 //      else
 //          OutText2+= AnsiString("; nastawnik S") + Controlled->MoverParameters->MainCtrlPos;
 

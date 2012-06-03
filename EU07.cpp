@@ -83,6 +83,7 @@ USEUNIT("Console.cpp");
 USEUNIT("Mover.cpp");
 USEUNIT("McZapkie\_mover.pas");
 USEUNIT("ParticlesSmokev2.cpp");
+USEUNIT("PoliSound.cpp");
 //---------------------------------------------------------------------------
 #include "World.h"
 

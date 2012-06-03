@@ -2771,17 +2771,21 @@ bool __fastcall TDynamicObject::Render()
         {
          if(MoverParameters->Mains)
            {
-               sConverter.TurnOn(MechInside,GetPosition());
+//               sConverter.TurnOn(MechInside,GetPosition());
+               sDieselEngine.TurnOn(MechInside,GetPosition());
            }
          else
           {
-             sConverter.TurnOff(MechInside,GetPosition());
+//             sConverter.TurnOff(MechInside,GetPosition());
+               sDieselEngine.TurnOff(MechInside,GetPosition());
           }
 
          vol=0.75+MoverParameters->dizel_fill*0.1+0.2*MoverParameters->RventRot/MoverParameters->DE_nnom;
 //         vol= (0.8+0.0002f*MoverParameters->EnginePower/MoverParameters->Power);
-         freq= MoverParameters->RventRot/(MoverParameters->DElist[0].RPM);
-         sConverter.UpdateAF(vol,freq,MechInside,GetPosition());
+//         freq= MoverParameters->RventRot/(MoverParameters->DElist[0].RPM);
+         freq= MoverParameters->RventRot;
+//         sConverter.UpdateAF(vol,freq,MechInside,GetPosition());
+         sDieselEngine.UpdateAF(vol,freq,MechInside,GetPosition());
 
          vol= MoverParameters->dizel_fill;
          fincvol=fincvol*(1-dt/4)+vol*dt/4;
@@ -3579,6 +3583,11 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
         {
          sConverter.Load(Parser,GetPosition());
         }
+       if (str==AnsiString("dieselengine:"))                      //pliki z silnikiem spalinowym
+        {
+         sDieselEngine.Load(Parser,GetPosition());
+        }
+
        if (str==AnsiString("turbo:"))                      //pliki z turbogeneratorem
         {
          sTurbo.Load(Parser,GetPosition());
