@@ -30,7 +30,12 @@ __fastcall TPoliSound::TPoliSound()
 }
 
 __fastcall TPoliSound::~TPoliSound()
-{//Ra: stopowanie siê sypie
+{
+ delete [] SoundCommencing;
+ delete [] freqmod;
+ SoundCommencing=0;
+ freqmod=0;
+ //Ra: stopowanie siê sypie
  //SoundStart.Stop();
  //SoundCommencing.Stop();
  //SoundShut.Stop();
@@ -52,7 +57,10 @@ void __fastcall TPoliSound::Load(TQueryParserComp *Parser, vector3 pPosition)
  SoundStart.FM=1.0;
  SoundStart.FA=0.0;
 //ladowanie
+ soft= Parser->GetNextSymbol().ToDouble();
  max_i= Parser->GetNextSymbol().ToInt();
+ SoundCommencing= new TRealSound[max_i];
+ freqmod= new float[max_i];
  for(int i=0;i<max_i;i++)
  {
   AnsiString Name= Parser->GetNextSymbol().LowerCase();
@@ -60,18 +68,20 @@ void __fastcall TPoliSound::Load(TQueryParserComp *Parser, vector3 pPosition)
   freqmod[i]= Parser->GetNextSymbol().ToDouble();
  }
  //dla pierwszego inaczej poczatek
- SoundCommencing[0].AA= -freqmod[0]; //pelne wylaczenie w 1/3
- SoundCommencing[0].AM= 1; //pelne wlaczenie w 2/3
+ SoundCommencing[0].AA= -freqmod[0]-1; 
+ SoundCommencing[0].AM= -1;
  for(int i=1;i<max_i;i++)
- {
-  SoundCommencing[i].AA= 0.1f*(9*freqmod[i-1]+freqmod[i]); //pelne wylaczenie w 1/10 (dalej)
-  SoundCommencing[i].AM= 0.1f*(9*freqmod[i]+freqmod[i-1]); //pelne wlaczenie w 9/10 (blizej)
+ {                  // 0->   0.5  1   1
+                    // 1->   1    1   0
+                    // x->1/(2-x) 1   x
+  SoundCommencing[i].AA= (1/(2-soft))*(freqmod[i-1]+(1-soft)*freqmod[i]); //pelne wylaczenie w ... (dalej)
+  SoundCommencing[i].AM= (1/(2-soft))*(freqmod[i]+(1-soft)*freqmod[i-1]); //pelne wlaczenie w ... (blizej)
   SoundCommencing[i-1].FA= SoundCommencing[i].AM;              //wlaczenie przy wylaczeniu
   SoundCommencing[i-1].FM= SoundCommencing[i].AA;              //wylaczenie przy wlaczeniu
  }
  //dla ostatniego inaczej koniec
- SoundCommencing[max_i-1].FM= 2*freqmod[max_i-1]; //pelne wylaczenie w 1/3
- SoundCommencing[max_i-1].FA= 3*freqmod[max_i-1]; //pelne wlaczenie w 2/3
+ SoundCommencing[max_i-1].FM= 2*freqmod[max_i-1]; //pelne wlaczenie w...
+ SoundCommencing[max_i-1].FA= 3*freqmod[max_i-1]; //pelne wylaczenie w...
 
  AnsiString NameOff= Parser->GetNextSymbol().LowerCase();
  SoundShut.Init(NameOff.c_str(),DistanceAttenuation,pPosition.x,pPosition.y,pPosition.z,true);
@@ -167,13 +177,128 @@ void __fastcall TPoliSound::CopyIfEmpty(TPoliSound &s)
 {//skopiowanie, gdyby by³ potrzebny, a nie zosta³ wczytany
  if ((fStartLength>0.0)||(fShutLength>0.0)) return; //coœ jest
  SoundStart=s.SoundStart;
+ soft= s.soft;
+ max_i= s.max_i;
+ SoundCommencing= new TRealSound[max_i];
+ freqmod= new float[max_i];
  for (int i=0; i<max_i; i++)
    SoundCommencing[i]=s.SoundCommencing[i];
+ for (int i=0; i<max_i; i++)
+   freqmod[i]=s.freqmod[i];   
  SoundShut=s.SoundShut;
  State=s.State;
  fStartLength=s.fStartLength;
  fShutLength=s.fShutLength;
- defAM=s.defAM;
- defFM=s.defFM;
 };
+
+
+
+//// WERSJA SKROCONA //// WERSJA SKROCONA //// WERSJA SKROCONA //// WERSJA SKROCONA //// WERSJA SKROCONA 
+
+
+__fastcall TPoliSoundShort::TPoliSoundShort()
+{
+//    SoundStart=SoundCommencing=SoundShut= NULL;
+}
+
+__fastcall TPoliSoundShort::~TPoliSoundShort()
+{
+ delete [] SoundCommencing;
+ delete [] freqmod;
+ SoundCommencing=0;
+ freqmod=0;
+ //Ra: stopowanie siê sypie
+ //SoundStart.Stop();
+ //SoundCommencing.Stop();
+ //SoundShut.Stop();
+}
+
+void __fastcall TPoliSoundShort::Free()
+{
+}
+
+void __fastcall TPoliSoundShort::Load(TQueryParserComp *Parser, vector3 pPosition)
+{
+//ladowanie dzwieku startu
+ double DistanceAttenuation= Parser->GetNextSymbol().ToDouble();
+//ladowanie
+ soft= Parser->GetNextSymbol().ToDouble();
+ max_i= Parser->GetNextSymbol().ToInt();
+ SoundCommencing= new TRealSound[max_i];
+ freqmod= new float[max_i];
+ for(int i=0;i<max_i;i++)
+ {
+  AnsiString Name= Parser->GetNextSymbol().LowerCase();
+  SoundCommencing[i].Init(Name.c_str(),DistanceAttenuation,pPosition.x,pPosition.y,pPosition.z,true);
+  freqmod[i]= Parser->GetNextSymbol().ToDouble();
+ }
+ //dla pierwszego inaczej poczatek
+ SoundCommencing[0].AA= -freqmod[0]-1;
+ SoundCommencing[0].AM= -1;
+ for(int i=1;i<max_i;i++)
+ {                  // 0->   0.5  1   1
+                    // 1->   1    1   0
+                    // x->1/(2-x) 1   x
+  SoundCommencing[i].AA= (1/(2-soft))*(freqmod[i-1]+(1-soft)*freqmod[i]); //pelne wylaczenie w ... (dalej)
+  SoundCommencing[i].AM= (1/(2-soft))*(freqmod[i]+(1-soft)*freqmod[i-1]); //pelne wlaczenie w ... (blizej)
+  SoundCommencing[i-1].FA= SoundCommencing[i].AM;              //wlaczenie przy wylaczeniu
+  SoundCommencing[i-1].FM= SoundCommencing[i].AA;              //wylaczenie przy wlaczeniu
+ }
+ //dla ostatniego inaczej koniec
+ SoundCommencing[max_i-1].FM= 2*freqmod[max_i-1]; //pelne wlaczenie w...
+ SoundCommencing[max_i-1].FA= 3*freqmod[max_i-1]; //pelne wylaczenie w...
+
+}
+
+void __fastcall TPoliSoundShort::Stop()
+{
+        for (int i=0; i<max_i; i++) SoundCommencing[i].Stop();
+        State=ss_Off;
+}
+
+void __fastcall TPoliSoundShort::Play(double A, double F, bool ListenerInside, vector3 NewPosition)
+{   //update, ale z amplituda i czestotliwoscia
+    if (State==ss_Off)
+    {
+            State= ss_Commencing;
+            for (int i=0; i<max_i; i++) SoundCommencing[i].ResetPosition();
+    }
+
+//    if ((State==ss_Commencing))
+    {
+        for (int i=0; i<max_i; i++)
+         {
+          float vol;
+          if(F<SoundCommencing[i].AM)
+            vol=(F-SoundCommencing[i].AA)/(SoundCommencing[i].AM-SoundCommencing[i].AA);
+          else if (F>SoundCommencing[i].FM)
+            vol=(F-SoundCommencing[i].FA)/(SoundCommencing[i].FM-SoundCommencing[i].FA);
+          else
+            vol=1;
+          if(vol>0)
+           {
+            vol= 1+0.2*log10(vol);
+            SoundCommencing[i].AdjFreq(F/freqmod[i],Timer::GetDeltaTime());
+            SoundCommencing[i].Play(A*vol,DSBPLAY_LOOPING,ListenerInside,NewPosition);
+           }
+          else
+            SoundCommencing[i].Stop();
+         }
+    }
+}
+
+void __fastcall TPoliSoundShort::CopyIfEmpty(TPoliSoundShort &s)
+{//skopiowanie, gdyby by³ potrzebny, a nie zosta³ wczytany
+ if (max_i>0) return; //coœ jest
+ soft= s.soft;
+ max_i= s.max_i;
+ SoundCommencing= new TRealSound[max_i];
+ freqmod= new float[max_i];
+ for (int i=0; i<max_i; i++)
+   SoundCommencing[i]=s.SoundCommencing[i];
+ for (int i=0; i<max_i; i++)
+   freqmod[i]=s.freqmod[i];
+ State=s.State;
+};
+
 

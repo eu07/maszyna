@@ -7,21 +7,20 @@
 #include "AdvSound.h"
 #include "QueryParserComp.hpp"
 
-//typedef enum {ss_Off, ss_Starting, ss_Commencing, ss_ShuttingDown} TSoundState;
+//typedef enum {ss_Off, ss_Starting, ss_Commencing, ss_ShuttingDown} TSoundState; - zdefiniowane w realsound
 
 class TPoliSound
 {
-    TRealSound SoundStart;
-    TRealSound SoundCommencing[6];
-    TRealSound SoundShut;
-    TSoundState State;
-    double fTime;
-    double fStartLength;
-    double fShutLength;
-    double defAM;
-    double defFM;
-    float freqmod[6];
-    int max_i;
+    TRealSound SoundStart;       //poczatkowy
+    TRealSound *SoundCommencing; //rozne srodki
+    TRealSound SoundShut;        //koncowy
+    TSoundState State;           //stan
+    double fTime;                //czas
+    double fStartLength;         //czas poczatku
+    double fShutLength;          //czas konca
+    float soft;                  //wygladzanie przejscia
+    float *freqmod;              //szybkosci
+    int max_i;                   //ilosc
 
 public:
     __fastcall TPoliSound();
@@ -32,6 +31,24 @@ public:
     void __fastcall Free();
     void __fastcall UpdateAF(double A, double F, bool ListenerInside, vector3 NewPosition);
     void __fastcall CopyIfEmpty(TPoliSound &s);
+};
+
+class TPoliSoundShort //to samo, tylko bez poczatku i konca
+{
+    TRealSound *SoundCommencing; //rozne srodki
+    TSoundState State;           //stan
+    float soft;                  //wygladzanie przejscia
+    float *freqmod;              //szybkosci
+    int max_i;                   //ilosc
+
+public:
+    __fastcall TPoliSoundShort();
+    __fastcall ~TPoliSoundShort();
+    void __fastcall Load(TQueryParserComp *Parser, vector3 pPosition);
+    void __fastcall Stop();
+    void __fastcall Free();
+    void __fastcall Play(double A, double F, bool ListenerInside, vector3 NewPosition);
+    void __fastcall CopyIfEmpty(TPoliSoundShort &s);
 };
 
 //---------------------------------------------------------------------------
