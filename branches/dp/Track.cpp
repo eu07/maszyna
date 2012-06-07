@@ -911,7 +911,7 @@ void __fastcall TTrack::MoveMe(vector3 pPosition)
 
 const int numPts=4;
 const int nnumPts=12;
-const vector6 szyna[nnumPts]= //szyna - vextor3(x,y,mapowanie tekstury)
+const vector6 szyna[nnumPts]= //szyna - vextor6(x,y,mapowanie tekstury,xn,yn,zn)
 {vector6( 0.111,-0.180,0.00, 1.000, 0.000,0.000),
  vector6( 0.045,-0.155,0.15, 0.707, 0.707,0.000),
  vector6( 0.045,-0.070,0.25, 0.707,-0.707,0.000),

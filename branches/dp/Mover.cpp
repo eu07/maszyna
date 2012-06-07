@@ -41,7 +41,7 @@ bool __fastcall TMoverParameters::Attach(Byte ConnectNo,Byte ConnectToNr,TMoverP
  {
   if (ConnectToNr!=2) Couplers[ConnectNo].ConnectedNr=ConnectToNr; //2=nic nie pod³¹czone
   TCouplerType ct=ConnectTo->Couplers[Couplers[ConnectNo].ConnectedNr].CouplerType; //typ sprzêgu pod³¹czanego pojazdu
-  Couplers[ConnectNo].Connected=ConnectTo; //tak podpi¹æ zawsze mo¿na, najwy¿ej bêdzie wirtualny
+  Couplers[ConnectNo].Connected=ConnectTo; //tak podpi¹æ (do siebie) zawsze mo¿na, najwy¿ej bêdzie wirtualny
   CouplerDist(ConnectNo); //przeliczenie odleg³oœci pomiêdzy sprzêgami
   if (CouplingType==ctrain_virtual) return false; //wirtualny wiêcej nic nie robi
   if (Forced?true:((Couplers[ConnectNo].CoupleDist<=dEpsilon)&&(Couplers[ConnectNo].CouplerType!=NoCoupler)&&(Couplers[ConnectNo].CouplerType==ct)))

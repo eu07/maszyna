@@ -3771,7 +3771,7 @@ begin
          if (newdist>MaxDist) or ((ScanCounter>MaxCount)and(newdist>MinDist)) then
          //***if (tempdist>MaxDist) or ((ScanCounter>MaxCount)and(tempdist>MinDist)) then
           begin {zerwij kontrolnie wirtualny sprzeg}
-            Connected.Couplers[CNext].Connected:=nil;
+            //Connected.Couplers[CNext].Connected:=nil; //Ra: ten pod³¹czony niekoniecznie jest wirtualny
             Connected:=nil;
             ScanCounter:=Random(500);
           end;

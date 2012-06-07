@@ -881,7 +881,7 @@ int TDynamicObject::Dettach(int dir,int cnt)
 }
 
 void TDynamicObject::CouplersDettach(double MinDist,int MyScanDir)
-{//funkcja roz³¹czajaca pod³¹czone sprzêgi
+{//funkcja roz³¹czajaca pod³¹czone sprzêgi, jeœli odleg³oœæ przekracza (MinDist)
  //MinDist - dystans minimalny, dla ktorego mozna roz³¹czaæ
  if (MyScanDir>0)
  {
@@ -1006,12 +1006,6 @@ void TDynamicObject::ABuScanObjects(int ScanDir,double ScanDist)
     FoundedObj=ABuFindObject(Track,ScanDir,CouplFound,ActDist); //przejrzenie pojazdów tego toru
     if (FoundedObj)
     {
-     //if((Mechanik)&&(!fTrackBlock))
-     //{
-     //   fTrackBlock=true;
-     //   //Mechanik->SetProximityVelocity(0,20);
-     //   Mechanik->SetVelocity(0,0,stopBlock);
-     //}
      //ActDist=ScanDist; //wyjœcie z pêtli poszukiwania
      break;
     }
