@@ -1018,7 +1018,8 @@ void __fastcall TController::SetVelocity(double NewVel,double NewVelNext,TStopRe
      if (!(iDrivigFlags&moveStartHornDone)) //jeœli nie zatr¹bione
       if (Controlling->CategoryFlag&1) //tylko poci¹gi tr¹bi¹ (unimogi tylko na torach, wiêc trzeba raczej sprawdzaæ tor)
       {fWarningDuration=0.3; //czas tr¹bienia
-       Controlling->WarningSignal=pVehicle->iHornWarning; //wysokoœæ tonu (2=wysoki)
+       if (AIControllFlag) //jak siedzi krasnoludek, to w³¹czy tr¹bienie
+        Controlling->WarningSignal=pVehicle->iHornWarning; //wysokoœæ tonu (2=wysoki)
        iDrivigFlags|=moveStartHornDone; //nie tr¹biæ a¿ do ruszenia
       }
  }
@@ -2527,7 +2528,7 @@ bool __fastcall TController::UpdateSituation(double dt)
   {//tr¹bienie trwa nadal
    fWarningDuration=fWarningDuration-dt;
    if (fWarningDuration<0.05)
-    Controlling->WarningSignal=0.0; //a tu siê koñczy
+    Controlling->WarningSignal=0; //a tu siê koñczy
   }
   if (Controlling->Vel>=5.0) //jesli jedzie, mo¿na odblokowaæ tr¹bienie, bo siê wtedy nie w³¹czy
   {iDrivigFlags&=~moveStartHornDone; //zatr¹bi dopiero jak nastêpnym razem stanie
