@@ -59,11 +59,11 @@ void __fastcall TAirCoupler::Update()
 //  if ((pModelOn!=NULL) && (pModelOn!=NULL))
    {
     if (pModelOn)
-        pModelOn->Visible= bOn;
+        pModelOn->iVisible=bOn;
     if (pModelOff)
-        pModelOff->Visible= !(bOn||bxOn);
+        pModelOff->iVisible=!(bOn||bxOn);
     if (pModelxOn)
-        pModelxOn->Visible= bxOn;
+        pModelxOn->iVisible=bxOn;
    }
 }
 

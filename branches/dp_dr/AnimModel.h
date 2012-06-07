@@ -64,14 +64,14 @@ public:
  bool __fastcall Load(cParser *parser, bool ter=false);
  TAnimContainer* __fastcall AddContainer(char *pName);
  TAnimContainer* __fastcall GetContainer(char *pName);
- void __fastcall Render(vector3 pPosition=vector3(0,0,0),double fAngle=0);
- void __fastcall RenderAlpha(vector3 pPosition=vector3(0,0,0),double fAngle=0);
- void __fastcall RaRender(vector3 pPosition=vector3(0,0,0),double fAngle=0);
- void __fastcall RaRenderAlpha(vector3 pPosition=vector3(0,0,0),double fAngle=0);
- void __fastcall Render(vector3* vPosition);
- void __fastcall RenderAlpha(vector3* vPosition);
- void __fastcall RaRender(vector3* vPosition);
- void __fastcall RaRenderAlpha(vector3* vPosition);
+ void __fastcall RenderDL(vector3 pPosition=vector3(0,0,0),double fAngle=0);
+ void __fastcall RenderAlphaDL(vector3 pPosition=vector3(0,0,0),double fAngle=0);
+ void __fastcall RenderVBO(vector3 pPosition=vector3(0,0,0),double fAngle=0);
+ void __fastcall RenderAlphaVBO(vector3 pPosition=vector3(0,0,0),double fAngle=0);
+ void __fastcall RenderDL(vector3* vPosition);
+ void __fastcall RenderAlphaDL(vector3* vPosition);
+ void __fastcall RenderVBO(vector3* vPosition);
+ void __fastcall RenderAlphaVBO(vector3* vPosition);
  void __fastcall RaPrepare();
  int __fastcall Flags();
  void __fastcall RaAnglesSet(double a,double b,double c)
@@ -79,6 +79,7 @@ public:
  bool __fastcall TerrainLoaded();
  int __fastcall TerrainCount();
  TSubModel* __fastcall TerrainSquare(int n);
+ void __fastcall TerrainRenderVBO(int n);
 };
 
 //---------------------------------------------------------------------------

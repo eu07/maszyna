@@ -533,9 +533,9 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
   if (smMechanik)
   {
    if (Mechanik&&(Controller!=Humandriver))  //rysowanie figurki mechanika
-    smMechanik->Visible=true;
+    smMechanik->iVisible=true;
    else
-    smMechanik->Visible=false;
+    smMechanik->iVisible=false;
   }
   //ABu: Przechyly na zakretach
   //Ra: przechy³kê za³atwiamy na etapie przesuwania modelu
@@ -881,7 +881,7 @@ int TDynamicObject::Dettach(int dir,int cnt)
 }
 
 void TDynamicObject::CouplersDettach(double MinDist,int MyScanDir)
-{//funkcja roz³¹czajaca pod³¹czone sprzêgi
+{//funkcja roz³¹czajaca pod³¹czone sprzêgi, jeœli odleg³oœæ przekracza (MinDist)
  //MinDist - dystans minimalny, dla ktorego mozna roz³¹czaæ
  if (MyScanDir>0)
  {
@@ -1006,12 +1006,6 @@ void TDynamicObject::ABuScanObjects(int ScanDir,double ScanDist)
     FoundedObj=ABuFindObject(Track,ScanDir,CouplFound,ActDist); //przejrzenie pojazdów tego toru
     if (FoundedObj)
     {
-     //if((Mechanik)&&(!fTrackBlock))
-     //{
-     //   fTrackBlock=true;
-     //   //Mechanik->SetProximityVelocity(0,20);
-     //   Mechanik->SetVelocity(0,0,stopBlock);
-     //}
      //ActDist=ScanDist; //wyjœcie z pêtli poszukiwania
      break;
     }
@@ -1521,7 +1515,7 @@ void __fastcall TDynamicObject::Move(double fDistance)
    //vUp=CrossProduct(vFront,vLeft); //wektor w górê
   }
   mMatrix.Identity(); //to te¿ mo¿na by od razu policzyæ, ale potrzebne jest do wyœwietlania
-  mMatrix.BasisChange(vLeft,vUp,vFront); //przesuwnanie jest jednak rzadziej ni¿ renderowanie
+  mMatrix.BasisChange(vLeft,vUp,vFront); //przesuwanie jest jednak rzadziej ni¿ renderowanie
   mMatrix=Inverse(mMatrix); //wyliczenie macierzy dla pojazdu (potrzebna tylko do wyœwietlania?)
   //if (MoverParameters->CategoryFlag&2)
   {//przesuniêcia s¹ u¿ywane po wyrzuceniu poci¹gu z toru
@@ -2209,6 +2203,7 @@ if (tmpTraction.TractionVoltage==0)
 }
  else if (MoverParameters->EnginePowerSource.SourceType==InternalSource)
   if (MoverParameters->EnginePowerSource.PowerType==SteamPower)
+   if (smPatykird1[0])
   {//Ra: animacja rozrz¹du parowozu, na razie nieoptymalizowane
    double fi,dx,c2,ka,kc;
    double sin_fi,cos_fi;
@@ -3256,7 +3251,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
         {
          int i,j,k,m;
          str=Parser->GetNextSymbol();
-         for (i=1; i<=MaxAnimatedAxles; i++)
+         for (i=1;i<=MaxAnimatedAxles;++i)
          {//McZapkie-050402: wyszukiwanie kol o nazwie str*
           asAnimName=str+i;
           smAnimatedWheel[i-1]=mdModel->GetFromName(asAnimName.c_str());

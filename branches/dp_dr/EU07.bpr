@@ -12,22 +12,18 @@
       RealSound.obj EvLaunch.obj FadeSound.obj Traction.obj TractionPower.obj 
       parser.obj sky.obj AirCoupler.obj glew.obj ResourceManager.obj VBO.obj 
       TextureDDS.obj opengl\ARB_Multisample.obj Float3d.obj Classes.obj 
-      Driver.obj Names.obj Console.obj Mover.obj ParticlesSmokev2.obj 
-      PoliSound.obj"/>
+      Driver.obj Names.obj Console.obj Mover.obj Console\PoKeys55.obj 
+      ParticlesSmokev2.obj PoliSound.obj"/>
     <RESFILES value="EU07.res"/>
     <IDLFILES value=""/>
     <IDLGENFILES value=""/>
     <DEFFILE value=""/>
     <RESDEPEN value="$(RESFILES)"/>
     <LIBFILES value="opengl\glut32.lib DirectX\Dsound.lib"/>
-    <LIBRARIES value="VCLX50.lib bcbsmp50.lib Vcl50.lib"/>
-    <SPARELIBS value="Vcl50.lib bcbsmp50.lib VCLX50.lib"/>
-    <PACKAGES value="Vcl50.bpi Vclx50.bpi bcbsmp50.bpi Vcldb50.bpi vclado50.bpi ibsmp50.bpi 
-      VCLBDE50.bpi vcldbx50.bpi Qrpt50.bpi TeeUI50.bpi TeeDB50.bpi Tee50.bpi 
-      Dss50.bpi TeeQR50.bpi VCLIB50.bpi Vclmid50.bpi vclie50.bpi Inetdb50.bpi 
-      Inet50.bpi NMFast50.bpi webmid50.bpi bcbie50.bpi dclocx50.bpi 
-      bcb2kaxserver50.bpi"/>
-    <PATHCPP value=".;opengl"/>
+    <LIBRARIES value="dclocx50.bpi bcbsmp50.bpi VCLX50.lib bcbsmp50.lib Vcl50.lib"/>
+    <SPARELIBS value="Vcl50.lib bcbsmp50.lib VCLX50.lib bcbsmp50.bpi dclocx50.bpi"/>
+    <PACKAGES value="Vcl50.bpi Vclx50.bpi"/>
+    <PATHCPP value=".;opengl;Console"/>
     <PATHPAS value=".;McZapkie"/>
     <PATHRC value=".;"/>
     <PATHASM value=".;"/>
@@ -35,21 +31,21 @@
     <RELEASELIBPATH value="$(BCB)\lib\release"/>
     <LINKER value="tlink32"/>
     <USERDEFINES value="GLEW_STATIC;_DEBUG"/>
-    <SYSDEFINES value="_RTLDLL;NO_STRICT"/>
+    <SYSDEFINES value="NO_STRICT;_RTLDLL"/>
     <MAINSOURCE value="EU07.cpp"/>
     <INCLUDEPATH value="C:\Users\Xoov;Console;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
     <LIBPATH value="C:\Users\Xoov;Console;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
     <WARNINGS value="-w-par"/>
   </MACROS>
   <OPTIONS>
-    <IDLCFLAGS value="-src_suffix cpp -DGLEW_STATIC -D_DEBUG -IC:\Users\Xoov -IConsole -Iopengl 
-      -IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl -boa"/>
+    <IDLCFLAGS value="-IConsole -Iopengl -IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl 
+      -src_suffix cpp -DGLEW_STATIC -D_DEBUG -boa"/>
     <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a4 -6 -b- -k -y -v -vi- 
       -c -tW -tWM"/>
     <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
     <RFLAGS value=""/>
     <AFLAGS value="/mx /w2 /zi"/>
-    <LFLAGS value="-D&quot;&quot; -aa -Tpe -x -v"/>
+    <LFLAGS value="-D&quot;&quot; -aa -Tpe -x -Gn -v"/>
   </OPTIONS>
   <LINKER>
     <ALLOBJ value="c0w32.obj Memmgr.Lib sysinit.obj $(OBJFILES)"/>
@@ -61,9 +57,9 @@
 IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=1
-MinorVer=7
-Release=570
-Build=350
+MinorVer=8
+Release=591
+Build=354
 Debug=1
 PreRelease=0
 Special=0
@@ -75,13 +71,13 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.7.570.350
-InternalName=7th by Ra
+FileVersion=1.8.591.354
+InternalName=8th by Ra/DP2
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=eu07.exe
 ProductName=MaSzyna EU07-424
-ProductVersion=1.7
+ProductVersion=1.8
 Comments=
 
 [HistoryLists\hlIncludePath]

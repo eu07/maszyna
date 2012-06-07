@@ -133,6 +133,7 @@ public:
  __fastcall TTrack(TGroundNode *g);
  __fastcall ~TTrack();
  void __fastcall Init();
+ static TTrack* __fastcall Create400m(int what,double dx);
  TTrack* __fastcall NullCreate(int dir);
  inline bool __fastcall IsEmpty() { return (iNumDynamics<=0); };
  void __fastcall ConnectPrevPrev(TTrack *pNewPrev,int typ);

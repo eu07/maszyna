@@ -199,7 +199,7 @@ private:
  TAnimType b_aAnim; //kody animacji oddzielnie, bo zerowane
  char space[20]; //wolne miejsce na przysz³e zmienne (zmniejszyæ w miarê potrzeby)
 public:
- bool Visible; //roboczy stan widocznoœci
+ int iVisible; //roboczy stan widocznoœci
  //AnsiString asTexture; //robocza nazwa tekstury do zapisania w pliku binarnym
  //AnsiString asName; //robocza nazwa
  char *pTexture; //robocza nazwa tekstury do zapisania w pliku binarnym
@@ -213,6 +213,7 @@ public:
  static GLuint *ReplacableSkinId;
  static int iAlpha; //maska bitowa dla danego przebiegu
  static double fSquareDist;
+ static TModel3d* pRoot;
  __fastcall TSubModel();
  __fastcall ~TSubModel();
  void __fastcall FirstInit();
@@ -220,6 +221,7 @@ public:
  void __fastcall ChildAdd(TSubModel *SubModel);
  void __fastcall NextAdd(TSubModel *SubModel);
  TSubModel* __fastcall NextGet() {return Next;};
+ TSubModel* __fastcall ChildGet() {return Child;};
  int __fastcall TriangleAdd(TModel3d *m,int tex,int tri);
  float8* __fastcall TrianglePtr(int tex,int pos,int *la,int *ld,int*ls);
  //float8* __fastcall TrianglePtr(const char *tex,int tri);
@@ -230,14 +232,14 @@ public:
  void __fastcall SetTranslate(vector3 vNewTransVector);
  void __fastcall SetTranslate(float3 vNewTransVector);
  TSubModel* __fastcall GetFromName(AnsiString search);
- void __fastcall Render();
- void __fastcall RenderAlpha();
- void __fastcall RaRender();
- void __fastcall RaRenderAlpha();
+ void __fastcall RenderDL();
+ void __fastcall RenderAlphaDL();
+ void __fastcall RenderVBO();
+ void __fastcall RenderAlphaVBO();
  //inline matrix4x4* __fastcall GetMatrix() {return dMatrix;};
  inline float4x4* __fastcall GetMatrix() {return fMatrix;};
  //matrix4x4* __fastcall GetTransform() {return Matrix;};
- inline void __fastcall Hide() {Visible=false;};
+ inline void __fastcall Hide() {iVisible=0;};
  void __fastcall RaArrayFill(CVertNormTex *Vert);
  //void __fastcall Render();
  int __fastcall FlagsCheck();
@@ -336,6 +338,7 @@ public:
  char* __fastcall NameGet() {return Root?Root->pName:NULL;};
  int __fastcall TerrainCount();
  TSubModel* __fastcall TerrainSquare(int n);
+ void __fastcall TerrainRenderVBO(int n);
 };
 
 //---------------------------------------------------------------------------

@@ -12,7 +12,7 @@
 #include "MdlMngr.h"
 #include "Globals.h"
 #include "sky.h"
-#include <winuser.h>
+//#include <winuser.h>
 
 class TWorld
 {

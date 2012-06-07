@@ -287,7 +287,7 @@ void __fastcall TGroundNode::RenderVBO()
  {
   case TP_TRACTION: return;
   case TP_TRACK: if (iNumVerts) pTrack->RaRenderVBO(iVboPtr); return;
-  case TP_MODEL: Model->RaRender(&pCenter); return;
+  case TP_MODEL: Model->RenderVBO(&pCenter); return;
   case TP_SOUND: //McZapkie - dzwiek zapetlony w zaleznosci od odleglosci
    if ((pStaticSound->GetStatus()&DSBSTATUS_PLAYING)==DSBPLAY_LOOPING)
    {
@@ -318,9 +318,9 @@ void __fastcall TGroundNode::RenderVBO()
     g=floor(Diffuse[1]*Global::ambientDayLight[1]);
     b=floor(Diffuse[2]*Global::ambientDayLight[2]);
     glColor4ub(r,g,b,linealpha); //przezroczystosc dalekiej linii
-    glDisable(GL_LIGHTING); //nie powinny œwieciæ
+    //glDisable(GL_LIGHTING); //nie powinny œwieciæ
     glDrawArrays(iType,iVboPtr,iNumPts); //rysowanie linii
-    glEnable(GL_LIGHTING);
+    //glEnable(GL_LIGHTING);
    }
    return;
   default:
@@ -363,7 +363,7 @@ void __fastcall TGroundNode::RenderAlphaVBO()
     glAlphaFunc(GL_GREATER,0.04);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 #endif
-   Model->RaRenderAlpha(&pCenter);
+   Model->RenderAlphaVBO(&pCenter);
    return;
   case GL_LINES:
   case GL_LINE_STRIP:
@@ -375,9 +375,9 @@ void __fastcall TGroundNode::RenderAlphaVBO()
     g=Diffuse[1]*Global::ambientDayLight[1];
     b=Diffuse[2]*Global::ambientDayLight[2];
     glColor4ub(r,g,b,linealpha); //przezroczystosc dalekiej linii
-    glDisable(GL_LIGHTING); //nie powinny œwieciæ
+    //glDisable(GL_LIGHTING); //nie powinny œwieciæ
     glDrawArrays(iType,iVboPtr,iNumPts); //rysowanie linii
-    glEnable(GL_LIGHTING);
+    //glEnable(GL_LIGHTING);
 #ifdef _PROBLEND
     glEnable(GL_BLEND);
     glAlphaFunc(GL_GREATER,0.04);
@@ -409,6 +409,256 @@ void __fastcall TGroundNode::RenderAlphaVBO()
  return;
 }
 
+void __fastcall TGroundNode::Compile(bool many)
+{//tworzenie skompilowanej listy w wyœwietlaniu DL
+ if (!many)
+ {//obs³uga pojedynczej listy
+  if (DisplayListID) Release();
+  if (Global::bManageNodes)
+  {
+   DisplayListID=glGenLists(1);
+   glNewList(DisplayListID,GL_COMPILE);
+   iVersion=Global::iReCompile; //aktualna wersja siatek (do WireFrame)
+  }
+ }
+ if ((iType==GL_LINES)||(iType==GL_LINE_STRIP)||(iType==GL_LINE_LOOP))
+ {
+#ifdef USE_VERTEX_ARRAYS
+  glVertexPointer(3,GL_DOUBLE,sizeof(vector3),&Points[0].x);
+#endif
+  glBindTexture(GL_TEXTURE_2D,0);
+#ifdef USE_VERTEX_ARRAYS
+  glDrawArrays(iType,0,iNumPts);
+#else
+  glBegin(iType);
+  for (int i=0;i<iNumPts;i++)
+   glVertex3dv(&Points[i].x);
+  glEnd();
+#endif
+ }
+ else if (iType==GL_TRIANGLE_STRIP || iType==GL_TRIANGLE_FAN || iType==GL_TRIANGLES )
+ {//jak nie linie, to trójk¹ty
+  TGroundNode *tri=this;
+  do
+  {//pêtla po obiektach w grupie w celu po³¹czenia siatek
+#ifdef USE_VERTEX_ARRAYS
+   glVertexPointer(3, GL_DOUBLE, sizeof(TGroundVertex), &tri->Vertices[0].Point.x);
+   glNormalPointer(GL_DOUBLE, sizeof(TGroundVertex), &tri->Vertices[0].Normal.x);
+   glTexCoordPointer(2, GL_FLOAT, sizeof(TGroundVertex), &tri->Vertices[0].tu);
+#endif
+   glColor3ub(tri->Diffuse[0],tri->Diffuse[1],tri->Diffuse[2]);
+   glBindTexture(GL_TEXTURE_2D,Global::bWireFrame?0:tri->TextureID);
+#ifdef USE_VERTEX_ARRAYS
+   glDrawArrays(Global::bWireFrame?GL_LINE_LOOP:tri->iType,0,tri->iNumVerts);
+#else
+   glBegin(Global::bWireFrame?GL_LINE_LOOP:tri->iType);
+   for (int i=0;i<tri->iNumVerts;i++)
+   {
+    glNormal3d(tri->Vertices[i].Normal.x,tri->Vertices[i].Normal.y,tri->Vertices[i].Normal.z);
+    glTexCoord2f(tri->Vertices[i].tu,tri->Vertices[i].tv);
+    glVertex3dv(&tri->Vertices[i].Point.x);
+   };
+   glEnd();
+#endif
+/*
+   if (tri->pTriGroup) //jeœli z grupy
+   {tri=tri->pNext2; //nastêpny w sektorze
+    while (tri?!tri->pTriGroup:false) tri=tri->pNext2; //szukamy kolejnego nale¿¹cego do grupy
+   }
+   else
+*/
+    tri=NULL; //a jak nie, to koniec
+  } while (tri);
+ }
+ else if (iType==TP_MESH)
+ {//grupa ze wspóln¹ tekstur¹ - wrzucanie do wspólnego Display List
+  if (TextureID)
+   glBindTexture(GL_TEXTURE_2D,TextureID); // Ustaw aktywn¹ teksturê
+  TGroundNode *n=nNode;
+  while (n?n->TextureID==TextureID:false)
+  {//wszystkie obiekty o tej samej testurze
+   switch (n->iType)
+   {//poszczególne typy ró¿nie siê tworzy
+    case TP_TRACK:
+    case TP_DUMMYTRACK:
+     n->pTrack->Compile(TextureID); //dodanie trójk¹tów dla podanej tekstury
+     break;
+   }
+   n=n->nNext3; //nastêpny z listy
+  }
+ }
+ if (!many)
+  if (Global::bManageNodes)
+   glEndList();
+};
+
+void TGroundNode::Release()
+{
+ if (DisplayListID)
+  glDeleteLists(DisplayListID,1);
+ DisplayListID=0;
+};
+
+void __fastcall TGroundNode::RenderHidden()
+{//renderowanie obiektów niewidocznych
+ double mgn=SquareMagnitude(pCenter-Global::pCameraPosition);
+ switch (iType)
+ {
+  case TP_SOUND: //McZapkie - dzwiek zapetlony w zaleznosci od odleglosci
+   if ((pStaticSound->GetStatus()&DSBSTATUS_PLAYING)==DSBPLAY_LOOPING)
+   {
+    pStaticSound->Play(1,DSBPLAY_LOOPING,true,pStaticSound->vSoundPosition);
+    pStaticSound->AdjFreq(1.0,Timer::GetDeltaTime());
+   }
+   return;
+  case TP_EVLAUNCH:
+   if (EvLaunch->Render())
+    if ((EvLaunch->dRadius<0)||(mgn<EvLaunch->dRadius))
+    {
+     WriteLog("Eventlauncher "+asName);
+     if (Console::Pressed(VK_SHIFT)&&(EvLaunch->Event2))
+      Global::pGround->AddToQuery(EvLaunch->Event2,NULL);
+     else
+      if (EvLaunch->Event1)
+       Global::pGround->AddToQuery(EvLaunch->Event1,NULL);
+    }
+   return;
+ }
+};
+
+void __fastcall TGroundNode::RenderDL()
+{//wyœwietlanie obiektu przez Display List
+ switch (iType)
+ {//obiekty renderowane niezale¿nie od odleg³oœci
+  case TP_SUBMODEL:
+   TSubModel::fSquareDist=0;
+   return smTerrain->RenderDL();
+ }
+ //if (pTriGroup) if (pTriGroup!=this) return; //wyœwietla go inny obiekt
+ double mgn=SquareMagnitude(pCenter-Global::pCameraPosition);
+ if ((mgn>fSquareRadius)||(mgn<fSquareMinRadius)) //McZapkie-070602: nie rysuj odleglych obiektow ale sprawdzaj wyzwalacz zdarzen
+  return;
+ int i,a;
+ switch (iType)
+ {
+  case TP_TRACK:
+   return pTrack->Render();
+  case TP_MODEL:
+   return Model->RenderDL(&pCenter);
+ }
+  // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
+  //if ((iNumVerts&&(iFlags&0x10))||(iNumPts&&(fLineThickness<0)))
+  if ((iFlags&0x10)||(fLineThickness<0))
+  {
+   if (!DisplayListID||(iVersion!=Global::iReCompile)) //Ra: wymuszenie rekompilacji
+   {
+    Compile();
+    if (Global::bManageNodes)
+     ResourceManager::Register(this);
+   };
+
+   if ((iType==GL_LINES)||(iType==GL_LINE_STRIP)||(iType==GL_LINE_LOOP))
+   //if (iNumPts)
+   {//wszelkie linie s¹ rysowane na samym koñcu
+    float r,g,b;
+    r=Diffuse[0]*Global::ambientDayLight[0];  //w zaleznosci od koloru swiatla
+    g=Diffuse[1]*Global::ambientDayLight[1];
+    b=Diffuse[2]*Global::ambientDayLight[2];
+    glColor4ub(r,g,b,1.0);
+    glCallList(DisplayListID);
+    //glColor4fv(Diffuse); //przywrócenie koloru
+    //glColor3ub(Diffuse[0],Diffuse[1],Diffuse[2]);
+   }
+   // GL_TRIANGLE etc
+   else
+    glCallList(DisplayListID);
+   SetLastUsage(Timer::GetSimulationTime());
+  };
+};
+
+void __fastcall TGroundNode::RenderAlphaDL()
+{
+// SPOSOB NA POZBYCIE SIE RAMKI DOOKOLA TEXTURY ALPHA DLA OBIEKTOW ZAGNIEZDZONYCH W SCN JAKO NODE
+
+//W GROUND.H dajemy do klasy TGroundNode zmienna bool PROBLEND to samo robimy w klasie TGround
+//nastepnie podczas wczytywania textury dla TRIANGLES w TGround::AddGroundNode
+//sprawdzamy czy w nazwie jest @ i wg tego
+//ustawiamy PROBLEND na true dla wlasnie wczytywanego trojkata (kazdy trojkat jest osobnym nodem)
+//nastepnie podczas renderowania w bool __fastcall TGroundNode::RenderAlpha()
+//na poczatku ustawiamy standardowe GL_GREATER = 0.04
+//pozniej sprawdzamy czy jest wlaczony PROBLEND dla aktualnie renderowanego noda TRIANGLE, wlasciwie dla kazdego node'a
+//i jezeli tak to odpowiedni GL_GREATER w przeciwnym wypadku standardowy 0.04
+
+
+ //if (pTriGroup) if (pTriGroup!=this) return; //wyœwietla go inny obiekt
+ double mgn=SquareMagnitude(pCenter-Global::pCameraPosition);
+ float r,g,b;
+ if (mgn<fSquareMinRadius)
+     return;
+ if (mgn>fSquareRadius)
+     return;
+ int i,a;
+ switch (iType)
+ {
+  case TP_TRACTION:
+   if (bVisible)
+    Traction->Render(mgn);
+   return;
+  case TP_MODEL:
+   Model->RenderAlphaDL(&pCenter);
+   return;
+  case TP_TRACK:
+   //pTrack->RenderAlpha();
+   return;
+ };
+
+ // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
+ if (
+     (iNumVerts && (iFlags&0x20)) ||
+     (iNumPts && (fLineThickness > 0)))
+ {
+#ifdef _PROBLEND
+     if ((PROBLEND) ) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
+          {
+               glDisable(GL_BLEND);
+               glAlphaFunc(GL_GREATER,0.45);     // im mniejsza wartoœæ, tym wiêksza ramka, domyœlnie 0.1f
+          };
+#endif
+     if (!DisplayListID) //||Global::bReCompile) //Ra: wymuszenie rekompilacji
+     {
+         Compile();
+         if (Global::bManageNodes)
+             ResourceManager::Register(this);
+     };
+
+     // GL_LINE, GL_LINE_STRIP, GL_LINE_LOOP
+     if (iNumPts)
+     {
+         float linealpha=255000*fLineThickness/(mgn+1.0);
+         if (linealpha>255)
+           linealpha= 255;
+         r=Diffuse[0]*Global::ambientDayLight[0];  //w zaleznosci od koloru swiatla
+         g=Diffuse[1]*Global::ambientDayLight[1];
+         b=Diffuse[2]*Global::ambientDayLight[2];
+         glColor4ub(r,g,b,linealpha); //przezroczystosc dalekiej linii
+         glCallList(DisplayListID);
+     }
+     // GL_TRIANGLE etc
+     else
+      glCallList(DisplayListID);
+     SetLastUsage(Timer::GetSimulationTime());
+ };
+#ifdef _PROBLEND
+ if ((PROBLEND)) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
+ {glEnable(GL_BLEND);
+  glAlphaFunc(GL_GREATER,0.04);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+ };
+#endif
+}
+
+//------------------------------------------------------------------------------
+//------------------ Podstawowy pojemnik terenu - sektor -----------------------
 //------------------------------------------------------------------------------
 __fastcall TSubRect::TSubRect()
 {
@@ -840,265 +1090,16 @@ void __fastcall TSubRect::RenderAlphaVBO()
   tTracks[j]->RenderDynAlpha(); //przezroczyste fragmenty pojazdów na torach
 };
 
-
-
-void __fastcall TGroundNode::Compile(bool many)
-{//tworzenie skompilowanej listy w wyœwietlaniu DL
- if (!many)
- {//obs³uga pojedynczej listy
-  if (DisplayListID) Release();
-  if (Global::bManageNodes)
-  {
-   DisplayListID=glGenLists(1);
-   glNewList(DisplayListID,GL_COMPILE);
-   iVersion=Global::iReCompile; //aktualna wersja siatek (do WireFrame)
-  }
- }
- if ((iType==GL_LINES)||(iType==GL_LINE_STRIP)||(iType==GL_LINE_LOOP))
- {
-#ifdef USE_VERTEX_ARRAYS
-  glVertexPointer(3,GL_DOUBLE,sizeof(vector3),&Points[0].x);
-#endif
-  glBindTexture(GL_TEXTURE_2D,0);
-#ifdef USE_VERTEX_ARRAYS
-  glDrawArrays(iType,0,iNumPts);
-#else
-  glBegin(iType);
-  for (int i=0;i<iNumPts;i++)
-   glVertex3dv(&Points[i].x);
-  glEnd();
-#endif
- }
- else if (iType==GL_TRIANGLE_STRIP || iType==GL_TRIANGLE_FAN || iType==GL_TRIANGLES )
- {//jak nie linie, to trójk¹ty
-  TGroundNode *tri=this;
-  do
-  {//pêtla po obiektach w grupie w celu po³¹czenia siatek
-#ifdef USE_VERTEX_ARRAYS
-   glVertexPointer(3, GL_DOUBLE, sizeof(TGroundVertex), &tri->Vertices[0].Point.x);
-   glNormalPointer(GL_DOUBLE, sizeof(TGroundVertex), &tri->Vertices[0].Normal.x);
-   glTexCoordPointer(2, GL_FLOAT, sizeof(TGroundVertex), &tri->Vertices[0].tu);
-#endif
-   glColor3ub(tri->Diffuse[0],tri->Diffuse[1],tri->Diffuse[2]);
-   glBindTexture(GL_TEXTURE_2D,Global::bWireFrame?0:tri->TextureID);
-#ifdef USE_VERTEX_ARRAYS
-   glDrawArrays(Global::bWireFrame?GL_LINE_LOOP:tri->iType,0,tri->iNumVerts);
-#else
-   glBegin(Global::bWireFrame?GL_LINE_LOOP:tri->iType);
-   for (int i=0;i<tri->iNumVerts;i++)
-   {
-    glNormal3d(tri->Vertices[i].Normal.x,tri->Vertices[i].Normal.y,tri->Vertices[i].Normal.z);
-    glTexCoord2f(tri->Vertices[i].tu,tri->Vertices[i].tv);
-    glVertex3dv(&tri->Vertices[i].Point.x);
-   };
-   glEnd();
-#endif
-/*
-   if (tri->pTriGroup) //jeœli z grupy
-   {tri=tri->pNext2; //nastêpny w sektorze
-    while (tri?!tri->pTriGroup:false) tri=tri->pNext2; //szukamy kolejnego nale¿¹cego do grupy
-   }
-   else
-*/
-    tri=NULL; //a jak nie, to koniec
-  } while (tri);
- }
- else if (iType==TP_MESH)
- {//grupa ze wspóln¹ tekstur¹ - wrzucanie do wspólnego Display List
-  if (TextureID)
-   glBindTexture(GL_TEXTURE_2D,TextureID); // Ustaw aktywn¹ teksturê
-  TGroundNode *n=nNode;
-  while (n?n->TextureID==TextureID:false)
-  {//wszystkie obiekty o tej samej testurze
-   switch (n->iType)
-   {//poszczególne typy ró¿nie siê tworzy
-    case TP_TRACK:
-    case TP_DUMMYTRACK:
-     n->pTrack->Compile(TextureID); //dodanie trójk¹tów dla podanej tekstury
-     break;
-   }
-   n=n->nNext3; //nastêpny z listy
-  }
- }
- if (!many)
-  if (Global::bManageNodes)
-   glEndList();
-};
-
-void TGroundNode::Release()
-{
- if (DisplayListID)
-  glDeleteLists(DisplayListID,1);
- DisplayListID=0;
-};
-
-void __fastcall TGroundNode::RenderHidden()
-{//renderowanie obiektów niewidocznych
- double mgn=SquareMagnitude(pCenter-Global::pCameraPosition);
- switch (iType)
- {
-  case TP_SOUND: //McZapkie - dzwiek zapetlony w zaleznosci od odleglosci
-   if ((pStaticSound->GetStatus()&DSBSTATUS_PLAYING)==DSBPLAY_LOOPING)
-   {
-    pStaticSound->Play(1,DSBPLAY_LOOPING,true,pStaticSound->vSoundPosition);
-    pStaticSound->AdjFreq(1.0,Timer::GetDeltaTime());
-   }
-   return;
-  case TP_EVLAUNCH:
-   if (EvLaunch->Render())
-    if ((EvLaunch->dRadius<0)||(mgn<EvLaunch->dRadius))
-    {
-     WriteLog("Eventlauncher "+asName);
-     if (Console::Pressed(VK_SHIFT)&&(EvLaunch->Event2))
-      Global::pGround->AddToQuery(EvLaunch->Event2,NULL);
-     else
-      if (EvLaunch->Event1)
-       Global::pGround->AddToQuery(EvLaunch->Event1,NULL);
-    }
-   return;
- }
-};
-
-void __fastcall TGroundNode::RenderDL()
-{//wyœwietlanie obiektu przez Display List
- switch (iType)
- {//obiekty renderowane niezale¿nie od odleg³oœci
-  case TP_SUBMODEL:
-   TSubModel::fSquareDist=0;
-   return smTerrain->Render();
- }
- //if (pTriGroup) if (pTriGroup!=this) return; //wyœwietla go inny obiekt
- double mgn=SquareMagnitude(pCenter-Global::pCameraPosition);
- if ((mgn>fSquareRadius)||(mgn<fSquareMinRadius)) //McZapkie-070602: nie rysuj odleglych obiektow ale sprawdzaj wyzwalacz zdarzen
-  return;
- int i,a;
- switch (iType)
- {
-  case TP_TRACK:
-   return pTrack->Render();
-  case TP_MODEL:
-   return Model->Render(&pCenter);
- }
-  // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
-  //if ((iNumVerts&&(iFlags&0x10))||(iNumPts&&(fLineThickness<0)))
-  if ((iFlags&0x10)||(fLineThickness<0))
-  {
-   if (!DisplayListID||(iVersion!=Global::iReCompile)) //Ra: wymuszenie rekompilacji
-   {
-    Compile();
-    if (Global::bManageNodes)
-     ResourceManager::Register(this);
-   };
-
-   if ((iType==GL_LINES)||(iType==GL_LINE_STRIP)||(iType==GL_LINE_LOOP))
-   //if (iNumPts)
-   {//wszelkie linie s¹ rysowane na samym koñcu
-    float r,g,b;
-    r=Diffuse[0]*Global::ambientDayLight[0];  //w zaleznosci od koloru swiatla
-    g=Diffuse[1]*Global::ambientDayLight[1];
-    b=Diffuse[2]*Global::ambientDayLight[2];
-    glColor4ub(r,g,b,1.0);
-    glCallList(DisplayListID);
-    //glColor4fv(Diffuse); //przywrócenie koloru
-    //glColor3ub(Diffuse[0],Diffuse[1],Diffuse[2]);
-   }
-   // GL_TRIANGLE etc
-   else
-    glCallList(DisplayListID);
-   SetLastUsage(Timer::GetSimulationTime());
-  };
-};
-
-void __fastcall TGroundNode::RenderAlphaDL()
-{
-// SPOSOB NA POZBYCIE SIE RAMKI DOOKOLA TEXTURY ALPHA DLA OBIEKTOW ZAGNIEZDZONYCH W SCN JAKO NODE
-
-//W GROUND.H dajemy do klasy TGroundNode zmienna bool PROBLEND to samo robimy w klasie TGround
-//nastepnie podczas wczytywania textury dla TRIANGLES w TGround::AddGroundNode
-//sprawdzamy czy w nazwie jest @ i wg tego
-//ustawiamy PROBLEND na true dla wlasnie wczytywanego trojkata (kazdy trojkat jest osobnym nodem)
-//nastepnie podczas renderowania w bool __fastcall TGroundNode::RenderAlpha()
-//na poczatku ustawiamy standardowe GL_GREATER = 0.04
-//pozniej sprawdzamy czy jest wlaczony PROBLEND dla aktualnie renderowanego noda TRIANGLE, wlasciwie dla kazdego node'a
-//i jezeli tak to odpowiedni GL_GREATER w przeciwnym wypadku standardowy 0.04
-
-
- //if (pTriGroup) if (pTriGroup!=this) return; //wyœwietla go inny obiekt
- double mgn=SquareMagnitude(pCenter-Global::pCameraPosition);
- float r,g,b;
- if (mgn<fSquareMinRadius)
-     return;
- if (mgn>fSquareRadius)
-     return;
- int i,a;
- switch (iType)
- {
-  case TP_TRACTION:
-   if (bVisible)
-    Traction->Render(mgn);
-   return;
-  case TP_MODEL:
-   Model->RenderAlpha(&pCenter);
-   return;
-  case TP_TRACK:
-   //pTrack->RenderAlpha();
-   return;
- };
-
- // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
- if (
-     (iNumVerts && (iFlags&0x20)) ||
-     (iNumPts && (fLineThickness > 0)))
- {
-#ifdef _PROBLEND
-     if ((PROBLEND) ) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
-          {
-               glDisable(GL_BLEND);
-               glAlphaFunc(GL_GREATER,0.45);     // im mniejsza wartoœæ, tym wiêksza ramka, domyœlnie 0.1f
-          };
-#endif
-     if (!DisplayListID) //||Global::bReCompile) //Ra: wymuszenie rekompilacji
-     {
-         Compile();
-         if (Global::bManageNodes)
-             ResourceManager::Register(this);
-     };
-
-     // GL_LINE, GL_LINE_STRIP, GL_LINE_LOOP
-     if (iNumPts)
-     {
-         float linealpha=255000*fLineThickness/(mgn+1.0);
-         if (linealpha>255)
-           linealpha= 255;
-         r=Diffuse[0]*Global::ambientDayLight[0];  //w zaleznosci od koloru swiatla
-         g=Diffuse[1]*Global::ambientDayLight[1];
-         b=Diffuse[2]*Global::ambientDayLight[2];
-         glColor4ub(r,g,b,linealpha); //przezroczystosc dalekiej linii
-         glCallList(DisplayListID);
-     }
-     // GL_TRIANGLE etc
-     else
-      glCallList(DisplayListID);
-     SetLastUsage(Timer::GetSimulationTime());
- };
-#ifdef _PROBLEND
- if ((PROBLEND)) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
- {glEnable(GL_BLEND);
-  glAlphaFunc(GL_GREATER,0.04);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
- };
-#endif
-}
-
 //---------------------------------------------------------------------------
-//---------------------------------------------------------------------------
-//---------------------------------------------------------------------------
-
-
-//---------------------------------------------------------------------------
-//---------------------------------------------------------------------------
+//------------------ Kwadrat kilometrowy ------------------------------------
 //---------------------------------------------------------------------------
 int TGroundRect::iFrameNumber=0; //licznik wyœwietlanych klatek
+
+__fastcall TGroundRect::TGroundRect()
+{
+ pSubRects=NULL;
+ nTerrain=NULL;
+};
 
 __fastcall TGroundRect::~TGroundRect()
 {
@@ -1128,6 +1129,22 @@ void __fastcall TGroundRect::RenderDL()
   if (nRootMesh)
    nRootMesh->RenderDL();
   iLastDisplay=iFrameNumber; //drugi raz nie potrzeba
+ }
+};
+
+void __fastcall TGroundRect::RenderVBO()
+{//renderowanie kwadratu kilometrowego (VBO), jeœli jeszcze nie zrobione
+ if (iLastDisplay!=iFrameNumber)
+ {//tylko jezeli dany kwadrat nie by³ jeszcze renderowany
+  LoadNodes(); //ewentualne tworzenie siatek
+  if (StartVBO())
+  {for (TGroundNode* node=nRenderRect;node;node=node->nNext3) //nastêpny tej grupy
+    node->RaRenderVBO(); //nieprzezroczyste trójk¹ty kwadratu kilometrowego
+   EndVBO();
+   iLastDisplay=iFrameNumber;
+  }                          
+  if (nTerrain)
+   nTerrain->smTerrain->iVisible=iFrameNumber; //ma siê wyœwietliæ w tej ramce
  }
 };
 
@@ -1508,12 +1525,9 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    if (!tmp->asName.IsEmpty()) //jest pusta gdy "none"
     sTracks->Add(TP_TRACK,tmp->asName.c_str(),tmp); //dodanie do wyszukiwarki
    tmp->pTrack->Load(parser,pOrigin,tmp->asName); //w nazwie mo¿e byæ nazwa odcinka izolowanego
-   //str=Parser->GetNextSymbol().LowerCase();
-   //str=Parser->GetNextSymbol().LowerCase();
-   //str=Parser->GetNextSymbol().LowerCase();
    tmp->pCenter=(tmp->pTrack->CurrentSegment()->FastGetPoint_0()+
                  tmp->pTrack->CurrentSegment()->FastGetPoint(0.5)+
-                 tmp->pTrack->CurrentSegment()->FastGetPoint_1() ) * 0.33333f;
+                 tmp->pTrack->CurrentSegment()->FastGetPoint_1() )/3.0;
    break;
   case TP_SOUND :
    tmp->pStaticSound=new TRealSound;
@@ -1534,14 +1548,14 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    //tmp->DynamicObject->Load(Parser);
    parser->getTokens();
    *parser >> token;
-   str1=AnsiString(token.c_str()); //McZapkie-131102: model w .mmd
+   str1=AnsiString(token.c_str()); //katalog
    //McZapkie: doszedl parametr ze zmienialna skora
    parser->getTokens();
    *parser >> token;
    Skin=AnsiString(token.c_str()); //tekstura wymienna
    parser->getTokens();
    *parser >> token;
-   str3=AnsiString(token.c_str());
+   str3=AnsiString(token.c_str()); //McZapkie-131102: model w MMD
    if (bTrainSet)
    {//jeœli pojazd jest umieszczony w sk³adzie
     str=asTrainSetTrack;
@@ -1550,7 +1564,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
     parser->getTokens();
     *parser >> token;
     DriverType=AnsiString(token.c_str()); //McZapkie:010303 - w przyszlosci rozne konfiguracje mechanik/pomocnik itp
-    tf3=fTrainSetVel;
+    tf3=fTrainSetVel; //prêdkoœæ
     parser->getTokens();
     *parser >> int1;
     TempConnectionType[iTrainSetWehicleNumber]=int1;
@@ -1661,7 +1675,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    parser->getTokens();
    *parser >> tf1;
    //OlO_EU&KAKISH-030103: obracanie punktow zaczepien w modelu
-   tmp->pCenter.RotateY(aRotate.y/180*M_PI);
+   tmp->pCenter.RotateY(aRotate.y/180.0*M_PI);
    //McZapkie-260402: model tez ma wspolrzedne wzgledne
    tmp->pCenter+=pOrigin;
    //tmp->fAngle+=aRotate.y; // /180*M_PI
@@ -1957,7 +1971,10 @@ void __fastcall TGround::FirstInit()
      {//od 1 do koñca s¹ zestawy trójk¹tów
       xxxzzz=AnsiString(Current->nNode[j].smTerrain->pName); //pobranie nazwy
       gr=GetRect(1000*(xxxzzz.SubString(1,3).ToIntDef(0)-500),1000*(xxxzzz.SubString(4,3).ToIntDef(0)-500));
-      gr->RaNodeAdd(&Current->nNode[j]);
+      if (Global::bUseVBO)
+       gr->nTerrain=Current->nNode+j; //zapamiêtanie
+      else
+       gr->RaNodeAdd(&Current->nNode[j]);
      }
     }
 //    else if ((Current->iType!=GL_TRIANGLES)&&(Current->iType!=GL_TRIANGLE_STRIP)?true //~czy trójk¹t?
@@ -3054,7 +3071,7 @@ if (QueryRootEvent)
                                                                 QueryRootEvent->Params[11].asdouble,
                                                                 QueryRootEvent->Params[12].asdouble,
                                                                 QueryRootEvent->Params[8].asInt);
-                   if (!bCondition && Global::bWriteLogEnabled && DebugModeFlag) //nie zgadza sie wiec sprawdzmy co
+                   if (!bCondition && Global::iWriteLogEnabled && DebugModeFlag) //nie zgadza sie wiec sprawdzmy co
                      {
                        LogComment="";
                        if (TestFlag(QueryRootEvent->Params[8].asInt,conditional_memstring))
@@ -3453,6 +3470,7 @@ bool __fastcall TGround::RenderDL(vector3 pPosition)
  int tr,tc;
  TGroundNode *node;
  glColor3f(1.0f,1.0f,1.0f);
+ glEnable(GL_LIGHTING);
  int n=2*iNumSubRects; //(2*==2km) promieñ wyœwietlanej mapy w sektorach
  int c=GetColFromX(pPosition.x);
  int r=GetRowFromZ(pPosition.z);
@@ -3483,7 +3501,7 @@ bool __fastcall TGround::RenderDL(vector3 pPosition)
  //{k=iRange[j<0?-j:j]; //zasiêg na danym poziomie
  // for (i=-k;i<=k;i++)
   {
-   if (j<=0) i=-i; //pierwszy przebieg: j<=0, i>=0; drugi: j>=0, i<=0; trzeci: j<=0, i<=0 czwarty: j>=0, i>=0; 
+   if (j<=0) i=-i; //pierwszy przebieg: j<=0, i>=0; drugi: j>=0, i<=0; trzeci: j<=0, i<=0 czwarty: j>=0, i>=0;
    j=-j; //i oraz j musi byæ zmienione wczeœniej, ¿eby continue dzia³a³o
    direction=vector3(i,0,j); //wektor od kamery do danego sektora
    if (LengthSquared3(direction)>5) //te blisko s¹ zawsze wyœwietlane
@@ -3520,6 +3538,7 @@ bool __fastcall TGround::RenderAlphaDL(vector3 pPosition)
  {//renderowanie przezroczystych modeli oraz pojazdów
   pRendered[i]->RenderAlphaDL();
  }
+ glDisable(GL_LIGHTING); //linie nie powinny œwieciæ
  for (i=0;i<iRendered;i++)
  {//druty na koñcu, ¿eby siê nie robi³y bia³e plamy na tle lasu
   tmp=pRendered[i];
@@ -3537,6 +3556,7 @@ bool __fastcall TGround::RenderVBO(vector3 pPosition)
  int tr,tc;
  TGroundNode *node;
  glColor3f(1.0f,1.0f,1.0f);
+ glEnable(GL_LIGHTING);
  int n=2*iNumSubRects; //(2*==2km) promieñ wyœwietlanej mapy w sektorach
  int c=GetColFromX(pPosition.x);
  int r=GetRowFromZ(pPosition.z);
@@ -3567,7 +3587,7 @@ bool __fastcall TGround::RenderVBO(vector3 pPosition)
  //{k=iRange[j<0?-j:j]; //zasiêg na danym poziomie
  // for (i=-k;i<=k;i++)
   {
-   if (j<=0) i=-i; //pierwszy przebieg: j<=0, i>=0; drugi: j>=0, i<=0; trzeci: j<=0, i<=0 czwarty: j>=0, i>=0; 
+   if (j<=0) i=-i; //pierwszy przebieg: j<=0, i>=0; drugi: j>=0, i<=0; trzeci: j<=0, i<=0 czwarty: j>=0, i>=0;
    j=-j; //i oraz j musi byæ zmienione wczeœniej, ¿eby continue dzia³a³o
    direction=vector3(i,0,j); //wektor od kamery do danego sektora
    if (LengthSquared3(direction)>5) //te blisko s¹ zawsze wyœwietlane
@@ -3582,6 +3602,9 @@ bool __fastcall TGround::RenderVBO(vector3 pPosition)
   }
   while ((i<0)||(j<0)); //s¹ 4 przypadki, oprócz i=j=0
  }
+ //dodaæ rednerowanie terenu z E3D - jedno VBO jest u¿ywane dla ca³ego modelu, chyba ¿e jest ich wiêcej
+ if (Global::pTerrainCompact)
+  Global::pTerrainCompact->TerrainRenderVBO(TGroundRect::iFrameNumber);
  for (i=0;i<iRendered;i++)
  {//renderowanie nieprzezroczystych
   pRendered[i]->RenderVBO();
@@ -3608,6 +3631,7 @@ bool __fastcall TGround::RenderAlphaVBO(vector3 pPosition)
  }
  for (i=0;i<iRendered;i++)
   pRendered[i]->RenderAlphaVBO(); //przezroczyste modeli oraz pojazdy
+ glDisable(GL_LIGHTING); //linie nie powinny œwieciæ
  for (i=0;i<iRendered;i++)
  {//druty na koñcu, ¿eby siê nie robi³y bia³e plamy na tle lasu
   tmp=pRendered[i];
