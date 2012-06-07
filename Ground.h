@@ -216,7 +216,8 @@ private:
  void __fastcall Init() { pSubRects=new TSubRect[iNumSubRects*iNumSubRects]; };
 public:
  static int iFrameNumber; //numer kolejny wyœwietlanej klatki
- __fastcall TGroundRect() { pSubRects=NULL; };
+ TGroundNode *nTerrain; //model terenu z E3D - u¿yæ nRootMesh?
+ __fastcall TGroundRect();
  virtual __fastcall ~TGroundRect();
 
  TSubRect* __fastcall SafeGetRect(int iCol,int iRow)
@@ -235,18 +236,7 @@ public:
     pSubRects[i].Sort(); //optymalizacja obiektów w sektorach
  };
  void __fastcall RenderDL();
- void __fastcall RenderVBO()
- {//renderowanie kwadratu kilometrowego (VBO), jeœli jeszcze nie zrobione
-  if (iLastDisplay!=iFrameNumber)
-  {LoadNodes(); //ewentualne tworzenie siatek
-   if (StartVBO())
-   {for (TGroundNode* node=nRenderRect;node;node=node->nNext3) //nastêpny tej grupy
-     node->RaRenderVBO(); //nieprzezroczyste trójk¹ty kwadratu kilometrowego
-    EndVBO();
-    iLastDisplay=iFrameNumber;
-   }
-  }
- };
+ void __fastcall RenderVBO();
 };
 
 

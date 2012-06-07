@@ -751,7 +751,7 @@ TYPE
 
                 {--funkcje dla lokomotyw}
                {! kierunek ruchu}
-                function DirectionForward: boolean;
+                //function DirectionForward: boolean;
                 function DirectionBackward: boolean;
                {! wylacznik glowny}
                 function MainSwitch(State:boolean): boolean;
@@ -1123,11 +1123,11 @@ begin
     if ConnectedNr<>d then //jeœli ten nastpêny jest zgodny z aktualnym
      begin
       if Connected.SetInternalCommand(CtrlCommand,ctrlvalue,dir) then
-       OK:=Connected.RunInternalCommand and OK;
+       OK:=Connected.RunInternalCommand and OK; //tu jest rekurencja
      end
      else //jeœli nastêpny jest ustawiony przeciwnie, zmieniamy kierunek
       if Connected.SetInternalCommand(CtrlCommand,ctrlvalue,-dir) then
-       OK:=Connected.RunInternalCommand and OK;
+       OK:=Connected.RunInternalCommand and OK; //tu jest rekurencja
  SendCtrlToNext:=OK;
 end;
 
@@ -1452,6 +1452,7 @@ begin
  DecScndCtrl:=OK;
 end;
 
+(*
 function T_MoverParameters.DirectionForward: boolean;
 begin
   if (MainCtrlPosNo>0) and (ActiveDir<1) and (MainCtrlPos=0) then
@@ -1465,7 +1466,7 @@ begin
     DirectionForward:=MinCurrentSwitch(true)
   else
     DirectionForward:=False;
-end;
+end;*)
 
 function T_MoverParameters.DirectionBackward: boolean;
 begin
@@ -3904,7 +3905,7 @@ begin
          if (newdist>MaxDist) or ((ScanCounter>MaxCount)and(newdist>MinDist)) then
          //***if (tempdist>MaxDist) or ((ScanCounter>MaxCount)and(tempdist>MinDist)) then
           begin {zerwij kontrolnie wirtualny sprzeg}
-            Connected.Couplers[CNext].Connected:=nil;
+            //Connected.Couplers[CNext].Connected:=nil; //Ra: ten pod³¹czony niekoniecznie jest wirtualny
             Connected:=nil;
             ScanCounter:=Random(500);
           end;
@@ -4581,6 +4582,14 @@ begin
 end;
 
 function T_MoverParameters.RunCommand(command:string; CValue1,CValue2:real):boolean;
+//wys³anie komendy otrzymanej z kierunku CValue2 (wzglêdem sprzêgów: 1=przod,-1=ty³)
+// Ra: Jest tu problem z rekurencj¹. Trzeba by oddzieliæ wykonywanie komend od mechanizmu
+// ich propagacji w sk³adzie. Osobnym problemem mo¿e byæ propagacja tylko w jedn¹ stronê.
+// Jeœli jakiœ cz³on jest wstawiony odwrotnie, to równie¿ odwrotnie musi wykonywaæ
+// komendy zwi¹zane z kierunkami (PantFront, PantRear, DoorLeft, DoorRight).
+// Komenda musi byæ zdefiniowana tutaj, a jeœli siê wywo³uje funkcjê, to ona nie mo¿e
+// sama przesy³aæ do kolejnych pojazdów. Nale¿y te¿ siê zastanowiæ, czy dla uzyskania
+// jakiejœ zmiany (np. IncMainCtrl) lepiej wywo³aæ funkcjê, czy od razu wys³aæ komendê.
 var OK:boolean; testload:string;
 Begin
 {$B+} {cholernie mi sie nie podoba ta dyrektywa!!!}
@@ -4666,7 +4675,7 @@ Begin
 //  if OK then
     if (CabNo<>0) then
      LastCab:=CabNo;
-    case Trunc(CValue1) of
+    case Trunc(CValue1*CValue2) of
       1 : CabNo:= 1;
      -1 : CabNo:=-1;
     else CabNo:=0;
@@ -4702,22 +4711,47 @@ Begin
      else if (CValue1=0) then CompressorAllow:=false;
      OK:=SendCtrlToNext(command,CValue1,CValue2);
    end
-  else if command='DoorLeft' then         {NBMX}
+  else if command='DoorOpen' then         {NBMX}
    begin //Ra: uwzglêdniæ trzeba jeszcze zgodnoœæ sprzêgów
-     if (CValue1=1) then DoorLeftOpened:=true
-     else if (CValue1=0) then DoorLeftOpened:=false;
-     OK:=SendCtrlToNext(command,CValue1,CValue2);
+    if (CValue2>0) then
+     begin //normalne ustawienie pojazdu
+      if (CValue1=1) then
+       DoorLeftOpened:=true;
+      if (CValue1=2) then
+       DoorRightOpened:=true;
+     end
+    else
+     begin //odwrotne ustawienie pojazdu
+      if (CValue1=2) then
+       DoorLeftOpened:=true;
+      if (CValue1=1) then
+       DoorRightOpened:=true;
+     end;
+    OK:=SendCtrlToNext(command,CValue1,CValue2);
    end
-  else if command='DoorRight' then         {NBMX}
+  else if command='DoorClose' then         {NBMX}
    begin //Ra: uwzglêdniæ trzeba jeszcze zgodnoœæ sprzêgów
-     if (CValue1=1) then DoorRightOpened:=true
-     else if (CValue1=0) then DoorRightOpened:=false;
-     OK:=SendCtrlToNext(command,CValue1,CValue2);
+    if (CValue2>0) then
+     begin //normalne ustawienie pojazdu
+      if (CValue1=1) then
+       DoorLeftOpened:=false;
+      if (CValue1=2) then
+       DoorRightOpened:=false;
+     end
+    else
+     begin //odwrotne ustawienie pojazdu
+      if (CValue1=2) then
+       DoorLeftOpened:=false;
+      if (CValue1=1) then
+       DoorRightOpened:=false;
+     end;
+    OK:=SendCtrlToNext(command,CValue1,CValue2);
    end
 else if command='PantFront' then         {Winger 160204}
    begin //Ra: uwzglêdniæ trzeba jeszcze zgodnoœæ sprzêgów
+   //Czemu EZT ma byæ traktowane inaczej? Ukrotnienie ma, a cz³on mo¿e byæ odwrócony
      if (TrainType=dt_EZT) then
-     begin {'ezt'}
+     begin //'ezt'
        if (CValue1=1) then
         begin
         PantFrontUp:=true;
@@ -4730,7 +4764,7 @@ else if command='PantFront' then         {Winger 160204}
         end;
      end
      else
-     begin {nie 'ezt'}
+     begin //nie 'ezt' - odwrotne ustawienie pantografów: ^-.-^ zamiast ^-.^- 
        if (CValue1=1) then
         if (TestFlag(Couplers[1].CouplingFlag,ctrain_controll)and(CValue2= 1))
          or(TestFlag(Couplers[0].CouplingFlag,ctrain_controll)and(CValue2=-1))
@@ -5333,11 +5367,11 @@ begin
   DoorLeftOpened:=State;
   if (State=true) then
    begin
-     SendCtrlToNext('DoorLeft',1,CabNo);
+     SendCtrlToNext('DoorOpen',1,CabNo); //1=lewe, 2=prawe
    end
   else
    begin
-    SendCtrlToNext('DoorLeft',0,CabNo);
+    SendCtrlToNext('DoorClose',1,CabNo);
    end;
   end
   else
@@ -5352,11 +5386,11 @@ begin
   DoorRightOpened:=State;
   if (State=true) then
    begin
-     SendCtrlToNext('DoorRight',1,CabNo);
+     SendCtrlToNext('DoorOpen',2,CabNo); //1=lewe, 2=prawe
    end
   else
    begin
-    SendCtrlToNext('DoorRight',0,CabNo);
+    SendCtrlToNext('DoorClose',2,CabNo);
    end;
  end
  else

@@ -739,13 +739,14 @@ __fastcall TController::TController
  Need_TryAgain=false;
  Need_BrakeRelease=true;
  deltalog=1.0;
-/*
+
  if (WriteLogFlag)
  {
-  assignfile(LogFile,VehicleName+".dat");
-  rewrite(LogFile);
-   writeln(LogFile,' Time [s]   Velocity [m/s]  Acceleration [m/ss]   Coupler.Dist[m]  Coupler.Force[N]  TractionForce [kN]  FrictionForce [kN]   BrakeForce [kN]    BrakePress [MPa]   PipePress [MPa]   MotorCurrent [A]    MCP SCP BCP LBP DmgFlag Command CVal1 CVal2');
+  LogFile.open(AnsiString(VehicleName+".dat").c_str(),std::ios::in | std::ios::out | std::ios::trunc);
+  LogFile << AnsiString(" Time [s]   Velocity [m/s]  Acceleration [m/ss]   Coupler.Dist[m]  Coupler.Force[N]  TractionForce [kN]  FrictionForce [kN]   BrakeForce [kN]    BrakePress [MPa]   PipePress [MPa]   MotorCurrent [A]    MCP SCP BCP LBP DmgFlag Command CVal1 CVal2").c_str() << "\n";
+  LogFile.flush();
  }
+/*
   if (WriteLogFlag)
   {
    assignfile(AILogFile,VehicleName+".txt");
@@ -754,6 +755,7 @@ __fastcall TController::TController
    close(AILogFile);
   }
 */
+
  ScanMe=False;
  VelMargin=Controlling->Vmax*0.005;
  fWarningDuration=0.0; //nic do wytr¹bienia
@@ -796,17 +798,16 @@ __fastcall TController::TController
 
 void __fastcall TController::CloseLog()
 {
-/*
+
  if (WriteLogFlag)
  {
-  CloseFile(LogFile);
+  LogFile.close();
   //if WriteLogFlag)
   // CloseFile(AILogFile);
-  append(AIlogFile);
+/*  append(AIlogFile);
   writeln(AILogFile,ElapsedTime5:2,": QUIT");
-  close(AILogFile);
+  close(AILogFile); */
  }
-*/
 };
 
 __fastcall TController::~TController()
@@ -1017,7 +1018,8 @@ void __fastcall TController::SetVelocity(double NewVel,double NewVelNext,TStopRe
      if (!(iDrivigFlags&moveStartHornDone)) //jeœli nie zatr¹bione
       if (Controlling->CategoryFlag&1) //tylko poci¹gi tr¹bi¹ (unimogi tylko na torach, wiêc trzeba raczej sprawdzaæ tor)
       {fWarningDuration=0.3; //czas tr¹bienia
-       Controlling->WarningSignal=pVehicle->iHornWarning; //wysokoœæ tonu (2=wysoki)
+       if (AIControllFlag) //jak siedzi krasnoludek, to w³¹czy tr¹bienie
+        Controlling->WarningSignal=pVehicle->iHornWarning; //wysokoœæ tonu (2=wysoki)
        iDrivigFlags|=moveStartHornDone; //nie tr¹biæ a¿ do ruszenia
       }
  }
@@ -1617,6 +1619,7 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
  }
  else if (NewCommand=="Shunt")
  {//NewValue1 - iloœæ wagonów (-1=wszystkie); NewValue2: 0=odczep, 1..63=do³¹cz, -1=bez zmian
+  //-3,-y - pod³¹czyæ do ca³ego stoj¹cego sk³adu (sprzêgiem y>=1), zmieniæ kierunek i czekaæ w trybie poci¹gowym
   //-2,-y - pod³¹czyæ do ca³ego stoj¹cego sk³adu (sprzêgiem y>=1), zmieniæ kierunek i czekaæ
   //-2, y - pod³¹czyæ do ca³ego stoj¹cego sk³adu (sprzêgiem y>=1) i czekaæ
   //-1,-y - pod³¹czyæ do ca³ego stoj¹cego sk³adu (sprzêgiem y>=1) i jechaæ w powrotn¹ stronê
@@ -1640,9 +1643,12 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
   else if (NewValue2==0.0)
    if (NewValue1>=0.0) //jeœli iloœæ wagonów inna ni¿ wszystkie
     OrderNext(Disconnect); //odczep (NewValue1) wagonów
-  if (NewValue1<-1.0) //jeœli -2, czyli czekanie z ruszeniem na sygna³
+  if (NewValue1<-1.5) //jeœli -2/-3, czyli czekanie z ruszeniem na sygna³
    iDrivigFlags|=moveStopHere; //nie podje¿d¿aæ do semafora, jeœli droga nie jest wolna
-  OrderNext(Shunt); //to potem manewruj dalej
+  if (NewValue1<-2.5) //jeœli
+   OrderNext(Obey_train); //to potem jazda poci¹gowa
+  else
+   OrderNext(Shunt); //to potem manewruj dalej
   CheckVehicles(); //sprawdziæ œwiat³a
   //if ((iVehicleCount>=0)&&(NewValue1<0)) WriteLog("Skasowano ilosæ wagonów w Shunt!");
   if (NewValue1!=iVehicleCount)
@@ -1768,9 +1774,18 @@ bool __fastcall TController::UpdateSituation(double dt)
  {
   if (LastUpdatedTime>deltalog)
   {//zapis do pliku DAT
-/*
-     writeln(LogFile,ElapsedTime," ",abs(11.31*WheelDiameter*nrot)," ",AccS," ",Couplers[1].Dist," ",Couplers[1].CForce," ",Ft," ",Ff," ",Fb," ",BrakePress," ",PipePress," ",Im," ",MainCtrlPos,"   ",ScndCtrlPos,"   ",BrakeCtrlPos,"   ",LocalBrakePos,"   ",ActiveDir,"   ",CommandIn.Command," ",CommandIn.Value1," ",CommandIn.Value2," ",SecuritySystem.status);
-*/
+   if(LogFile.is_open())
+    {
+     LogFile << ElapsedTime<<" "<<abs(11.31*Controlling->WheelDiameter*Controlling->nrot)<<" ";
+     LogFile << Controlling->AccS<<" "<<Controlling->Couplers[1].Dist<<" "<<Controlling->Couplers[1].CForce<<" ";
+     LogFile << Controlling->Ft<<" "<<Controlling->Ff<<" "<<Controlling->Fb<<" "<<Controlling->BrakePress<<" ";
+     LogFile << Controlling->PipePress<<" "<<Controlling->Im<<" "<<(int)Controlling->MainCtrlPos<<"   ";
+     LogFile << (int)Controlling->ScndCtrlPos<<"   "<<(int)Controlling->BrakeCtrlPos<<"   "<<(int)Controlling->LocalBrakePos<<"   ";
+     LogFile << (int)Controlling->ActiveDir<<"   "<<Controlling->CommandIn.Command.c_str()<<" "<<Controlling->CommandIn.Value1<<" ";
+     LogFile << Controlling->CommandIn.Value2<<" "<<Controlling->SecuritySystem.Status<<"\n";
+     LogFile.flush();
+    }
+
    if (fabs(Controlling->V)>0.1)
     deltalog=0.2;
    else deltalog=1.0;
@@ -1920,8 +1935,10 @@ bool __fastcall TController::UpdateSituation(double dt)
        //WriteLog("Zahamowanie sk³adu");
        while ((Controlling->BrakeCtrlPos>3)&&Controlling->DecBrakeLevel());
        while ((Controlling->BrakeCtrlPos<3)&&Controlling->IncBrakeLevel());
-       if (Controlling->PipePress-Controlling->BrakePressureTable[Controlling->BrakeCtrlPos-1+2].PipePressureVal<0.01)
-       {//jeœli w miarê zosta³ zahamowany
+       double p=Controlling->BrakePressureTable[Controlling->BrakeCtrlPos+2].PipePressureVal; //tu mo¿e byæ 0 albo -1 nawet
+       if (p<0.37) p=0.37; //TODO: zabezpieczenie przed dziwnymi CHK do czasu wyjaœnienia sensu 0 oraz -1 w tym miejscu
+       if (Controlling->PipePress-p<0.01)
+       {//jeœli w miarê zosta³ zahamowany (ciœnienie mniejsze ni¿ podane na pozycji 3, zwyle 0.37)
         //WriteLog("Luzowanie lokomotywy i zmiana kierunku");
         Controlling->BrakeReleaser(); //wyluzuj lokomotywê; a ST45?
         Controlling->DecLocalBrakeLevel(10); //zwolnienie hamulca
@@ -2511,7 +2528,7 @@ bool __fastcall TController::UpdateSituation(double dt)
   {//tr¹bienie trwa nadal
    fWarningDuration=fWarningDuration-dt;
    if (fWarningDuration<0.05)
-    Controlling->WarningSignal=0.0; //a tu siê koñczy
+    Controlling->WarningSignal=0; //a tu siê koñczy
   }
   if (Controlling->Vel>=5.0) //jesli jedzie, mo¿na odblokowaæ tr¹bienie, bo siê wtedy nie w³¹czy
   {iDrivigFlags&=~moveStartHornDone; //zatr¹bi dopiero jak nastêpnym razem stanie

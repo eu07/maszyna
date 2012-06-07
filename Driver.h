@@ -5,6 +5,7 @@
 
 #include "Classes.h"
 #include "dumb3d.h"
+#include <fstream>
 using namespace Math3D;
 
 enum TOrders
@@ -168,8 +169,8 @@ private:
  vector3 vCommandLocation; //polozenie wskaznika, sygnalizatora lub innego obiektu do ktorego odnosi sie komenda
  TOrders OrderList[maxorders]; //lista rozkazów
  int OrderPos,OrderTop; //rozkaz aktualny oraz wolne miejsce do wstawiania nowych
- TextFile LogFile; //zapis parametrow fizycznych
- TextFile AILogFile; //log AI
+ std::ofstream LogFile; //zapis parametrow fizycznych
+ std::ofstream AILogFile; //log AI
  bool ScanMe; //flaga potrzeby skanowania toru dla DynObj.cpp
  bool MaxVelFlag;
  bool MinVelFlag;

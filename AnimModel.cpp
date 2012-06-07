@@ -308,8 +308,8 @@ void __fastcall TAnimModel::RaPrepare()
    default: //zapalony albo zgaszony
     state=(lsLights[i]==ls_On);
   }
-  if (LightsOn[i])  LightsOn[i]->Visible=state;
-  if (LightsOff[i]) LightsOff[i]->Visible=!state;
+  if (LightsOn[i])  LightsOn[i]->iVisible=state;
+  if (LightsOff[i]) LightsOff[i]->iVisible=!state;
  }
  TSubModel::iInstance=(int)this; //¿eby nie robiæ cudzych animacji
  TAnimContainer *pCurrent;
@@ -317,28 +317,28 @@ void __fastcall TAnimModel::RaPrepare()
   pCurrent->UpdateModel(); //przeliczenie animacji ka¿dego submodelu
 }
 
-void __fastcall TAnimModel::RaRender(vector3 pPosition,double fAngle)
+void __fastcall TAnimModel::RenderVBO(vector3 pPosition,double fAngle)
 {//sprawdza œwiat³a i rekurencyjnie renderuje TModel3d
  RaPrepare();
  if (pModel) //renderowanie rekurencyjne submodeli
   pModel->RaRender(pPosition,fAngle,ReplacableSkinId,iTexAlpha);
 }
 
-void __fastcall TAnimModel::RaRenderAlpha(vector3 pPosition,double fAngle)
+void __fastcall TAnimModel::RenderAlphaVBO(vector3 pPosition,double fAngle)
 {
  RaPrepare();
  if (pModel) //renderowanie rekurencyjne submodeli
   pModel->RaRenderAlpha(pPosition,fAngle,ReplacableSkinId,iTexAlpha);
 };
 
-void __fastcall TAnimModel::Render(vector3 pPosition,double fAngle)
+void __fastcall TAnimModel::RenderDL(vector3 pPosition,double fAngle)
 {
  RaPrepare();
  if (pModel) //renderowanie rekurencyjne submodeli
   pModel->Render(pPosition,fAngle,ReplacableSkinId,iTexAlpha);
 }
 
-void __fastcall TAnimModel::RenderAlpha(vector3 pPosition,double fAngle)
+void __fastcall TAnimModel::RenderAlphaDL(vector3 pPosition,double fAngle)
 {
  RaPrepare();
  if (pModel)
@@ -363,25 +363,25 @@ int __fastcall TAnimModel::Flags()
 //2011-03-16 cztery nowe funkcje renderowania z mo¿liwoœci¹ pochylania obiektów
 //-----------------------------------------------------------------------------
 
-void __fastcall TAnimModel::Render(vector3* vPosition)
+void __fastcall TAnimModel::RenderDL(vector3* vPosition)
 {
  RaPrepare();
  if (pModel) //renderowanie rekurencyjne submodeli
   pModel->Render(vPosition,&vAngle,ReplacableSkinId,iTexAlpha);
 };
-void __fastcall TAnimModel::RenderAlpha(vector3* vPosition)
+void __fastcall TAnimModel::RenderAlphaDL(vector3* vPosition)
 {
  RaPrepare();
  if (pModel) //renderowanie rekurencyjne submodeli
   pModel->RenderAlpha(vPosition,&vAngle,ReplacableSkinId,iTexAlpha);
 };
-void __fastcall TAnimModel::RaRender(vector3* vPosition)
+void __fastcall TAnimModel::RenderVBO(vector3* vPosition)
 {
  RaPrepare();
  if (pModel) //renderowanie rekurencyjne submodeli
   pModel->RaRender(vPosition,&vAngle,ReplacableSkinId,iTexAlpha);
 };
-void __fastcall TAnimModel::RaRenderAlpha(vector3* vPosition)
+void __fastcall TAnimModel::RenderAlphaVBO(vector3* vPosition)
 {
  RaPrepare();
  if (pModel) //renderowanie rekurencyjne submodeli
@@ -400,6 +400,10 @@ int __fastcall TAnimModel::TerrainCount()
 TSubModel* __fastcall TAnimModel::TerrainSquare(int n)
 {//pobieranie wskaŸników do pierwszego submodelu
  return pModel?pModel->TerrainSquare(n):0;
+};
+void __fastcall TAnimModel::TerrainRenderVBO(int n)
+{//renderowanie terenu z VBO
+ if (pModel) pModel->TerrainRenderVBO(n);
 };
 //---------------------------------------------------------------------------
 #pragma package(smart_init)

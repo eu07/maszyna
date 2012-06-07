@@ -3,6 +3,7 @@
 #ifndef ConsoleH
 #define ConsoleH
 //---------------------------------------------------------------------------
+class TPoKeys55;
 
 class Console
 {//Ra: klasa statyczna gromadz¹ca sygna³y steruj¹ce oraz informacje zwrotne
@@ -12,6 +13,7 @@ private:
  static int iMode; //tryb pracy
  static int iConfig; //dodatkowa informacja o sprzêcie (np. numer LPT)
  static int iBits; //podstawowy zestaw lampek
+ static TPoKeys55 *PoKeys55;
  static void __fastcall BitsUpdate(int mask);
 public:
  __fastcall Console();
@@ -22,6 +24,7 @@ public:
  static int __fastcall On();
  static void __fastcall Off();
  static bool __fastcall Pressed(int x);
+ static void __fastcall ValueSet(int x,double y);
 };
 
 #endif

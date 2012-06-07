@@ -33,6 +33,7 @@ public:
  int __fastcall DettachStatus(Byte ConnectNo);
  bool __fastcall Dettach(Byte ConnectNo);
  void __fastcall SetCoupleDist();
+ bool __fastcall DirectionForward();
 };
 
 #endif

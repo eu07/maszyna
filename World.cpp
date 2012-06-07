@@ -29,7 +29,7 @@
 #include "mtable.hpp"
 #include "Sound.h"
 #include "World.h"
-#include "logs.h"
+#include "Logs.h"
 #include "Globals.h"
 #include "Camera.h"
 #include "ResourceManager.h"
@@ -726,12 +726,16 @@ void __fastcall TWorld::InOutKey()
  }
  else
  {//jazda w kabinie
-  Global::pUserDynamic=Controlled; //renerowanie wzglêdem kamery
-  Train->DynamicObject->bDisplayCab=true;
-  Train->DynamicObject->ABuSetModelShake(vector3(0,0,0)); //zerowanie przesuniêcia przed powrotem?
-  //Camera.Stop(); //zatrzymanie ruchu
-  Train->MechStop();
-  FollowView(); //na pozycjê mecha
+  if (Train)
+  {Global::pUserDynamic=Controlled; //renerowanie wzglêdem kamery
+   Train->DynamicObject->bDisplayCab=true;
+   Train->DynamicObject->ABuSetModelShake(vector3(0,0,0)); //zerowanie przesuniêcia przed powrotem?
+   //Camera.Stop(); //zatrzymanie ruchu
+   Train->MechStop();
+   FollowView(); //na pozycjê mecha
+  }
+  else
+   FreeFlyModeFlag=true; //nadal poza kabin¹
  }
 };
 
@@ -762,7 +766,8 @@ void __fastcall TWorld::FollowView()
   //Controlled->ABuSetModelShake(vector3(0,0,0));
   if (FreeFlyModeFlag)
   {//je¿eli poza kabin¹, przestawiamy w jej okolicê - OK
-   Train->DynamicObject->ABuSetModelShake(vector3(0,0,0)); //wy³¹czenie trzêsienia na si³ê?
+   if (Train)
+    Train->DynamicObject->ABuSetModelShake(vector3(0,0,0)); //wy³¹czenie trzêsienia na si³ê?
    //Camera.Pos=Train->pMechPosition+Normalize(Train->GetDirection())*20;
    DistantView();
    //¿eby nie bylo numerów z 'fruwajacym' lokiem - konsekwencja bujania pud³a
@@ -804,16 +809,16 @@ bool __fastcall TWorld::Update()
   --iCheckFPS;
  else
  {//jak dosz³o do zera, to sprawdzamy wydajnoœæ
-  if (GetFPS()<Global::fRadiusLoFPS)
+  if (GetFPS()<Global::fFpsMin)
   {Global::iSegmentsRendered-=random(20); //floor(0.5+Global::iSegmentsRendered/Global::fRadiusFactor);
-   if (Global::iSegmentsRendered<28) //jeœli jest co zmniejszaæ
-    Global::iSegmentsRendered=28; //minimalny promieñ to 600m (3*3*M_PI)
+   if (Global::iSegmentsRendered<10) //jeœli jest co zmniejszaæ
+    Global::iSegmentsRendered=10; //10=minimalny promieñ to 600m
   }
-  else if (GetFPS()>Global::fRadiusHiFPS) //jeœli jest du¿o FPS
-   if (Global::iSegmentsRendered<400) //jeœli jest co zmniejszaæ
+  else if (GetFPS()>Global::fFpsMax) //jeœli jest du¿o FPS
+   if (Global::iSegmentsRendered<Global::iFpsRadiusMax) //jeœli jest co zwiêkszaæ
    {Global::iSegmentsRendered+=random(20); //floor(0.5+Global::iSegmentsRendered*Global::fRadiusFactor);
-    if (Global::iSegmentsRendered>400) //4.4km (22*22*M_PI)
-     Global::iSegmentsRendered=400;
+    if (Global::iSegmentsRendered>Global::iFpsRadiusMax) //5.6km (22*22*M_PI)
+     Global::iSegmentsRendered=Global::iFpsRadiusMax;
    }
   if ((GetFPS()<16)&&(Global::iSlowMotion<7))
   {Global::iSlowMotion=(Global::iSlowMotion<<1)+1; //zapalenie kolejnego bitu
@@ -1944,22 +1949,60 @@ void __fastcall TWorld::ModifyTGA(const AnsiString &dir)
  }
 };
 //---------------------------------------------------------------------------
+AnsiString last; //zmienne u¿ywane w rekurencji
+double shift=0;
 void __fastcall TWorld::CreateE3D(const AnsiString &dir,bool dyn)
 {//rekurencyjna generowanie plików E3D
+ TTrack *trk;
+ double at;
  TSearchRec sr;
  if (FindFirst(dir+"*.*",faDirectory|faArchive,sr)==0)
  {do
   {
    if (sr.Name[1]!='.')
     if ((sr.Attr&faDirectory)) //jeœli katalog, to rekurencja
-     CreateE3D(dir+sr.Name+"\\");
+     CreateE3D(dir+sr.Name+"\\",dyn);
     else
-     if (sr.Name.LowerCase().SubString(sr.Name.Length()-3,4)==".t3d")
+     if (dyn)
      {
-      if (dyn) //pojazdy maj¹ tekstury we w³asnych katalogach
-       Global::asCurrentTexturePath=dir;
-      //konwersja pojazdów bêdzie u³omna, bo nie poustawiaj¹ siê animacje na submodelach okreœlonych w MMD
-      TModelsManager::GetModel(AnsiString(dir+sr.Name).c_str(),dyn);
+      if (sr.Name.LowerCase().SubString(sr.Name.Length()-3,4)==".mmd")
+      {
+       //konwersja pojazdów bêdzie u³omna, bo nie poustawiaj¹ siê animacje na submodelach okreœlonych w MMD
+       //TModelsManager::GetModel(AnsiString(dir+sr.Name).c_str(),true);
+       if (last!=dir)
+       {//utworzenie toru dla danego pojazdu
+        last=dir;
+        trk=TTrack::Create400m(1,shift);
+        shift+=10.0; //nastêpny tor bêdzie deczko dalej, aby nie zabiæ FPS
+        at=400.0;
+        //if (shift>1000) break; //bezpiecznik
+       }
+       TGroundNode *tmp=new TGroundNode();
+       tmp->DynamicObject=new TDynamicObject();
+       //Global::asCurrentTexturePath=dir; //pojazdy maj¹ tekstury we w³asnych katalogach
+       at-=tmp->DynamicObject->Init("",dir.SubString(9,dir.Length()-9),"none",sr.Name.SubString(1,sr.Name.Length()-4),trk,at,"nobody",0.0,"none",0.0,"",false);
+       //po wczytaniu CHK zrobiæ pêtlê po ³adunkach, aby ka¿dy z nich skonwertowaæ
+       AnsiString loads,load;
+       loads=tmp->DynamicObject->MoverParameters->LoadAccepted; //typy ³adunków
+       if (!loads.IsEmpty())
+       {loads+=","; //przecinek na koñcu
+        int i=loads.Pos(",");
+        while (i>1)
+        {//wypada³o by sprawdziæ, czy T3D ³adunku jest
+         load=loads.SubString(1,i-1);
+         if (FileExists(dir+load+".t3d")) //o ile jest plik ³adunku, bo inaczej nie ma to sensu
+          if (!FileExists(dir+load+".e3d")) //a nie ma jeszcze odpowiednika binarnego
+           at-=tmp->DynamicObject->Init("",dir.SubString(9,dir.Length()-9),"none",sr.Name.SubString(1,sr.Name.Length()-4),trk,at,"nobody",0.0,"none",1.0,load,false);
+         loads.Delete(1,i); //usuniêcie z nastêpuj¹cym przecinkiem
+         i=loads.Pos(",");
+        }
+       }
+       Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath); //z powrotem defaultowa sciezka do tekstur
+      }
+     }
+     else if (sr.Name.LowerCase().SubString(sr.Name.Length()-3,4)==".t3d")
+     {//z modelami jest proœciej
+      TModelsManager::GetModel(AnsiString(dir+sr.Name).c_str(),false);
      }
   } while (FindNext(sr)==0);
   FindClose(sr);

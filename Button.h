@@ -12,12 +12,12 @@ private:
  //TButtonType eType;
  TSubModel *pModelOn,*pModelOff;
  bool bOn;
- int iFeedbackBit; //Ra: informacja zwrotna: 0=SHP, 1=CA, 256-na oporach
+ int iFeedbackBit; //Ra: informacja zwrotna: 0=SHP, 1=CA, 2-na oporach
  void __fastcall Update();
 public:
  __fastcall TButton();
  __fastcall ~TButton();
- void __fastcall Clear();
+ void __fastcall Clear(int i=-1);
  inline void FeedbackBitSet(int i) {iFeedbackBit=1<<i;};
  inline void TurnOn() { bOn= true; Update(); };
  inline void TurnOff() { bOn= false; Update(); };
