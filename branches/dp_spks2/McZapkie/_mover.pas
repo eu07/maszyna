@@ -74,7 +74,7 @@ zwiekszenie nacisku przy duzych predkosciach w hamulcach Oerlikona
 *)
 
 
-interface uses mctools,sysutils;
+interface uses mctools,sysutils,hamulce;
 
 CONST
    Go=True;
@@ -122,8 +122,8 @@ CONST
    ctrain_controll=4;       //przewody steruj¹ce (ukrotnienie)
    ctrain_power=8;          //przewody zasilaj¹ce (WN, ogrzewanie)
    ctrain_passenger=16;     //mostek przejœciowy
-   ctrain_scndpneumatic=32; //przewody 8 atm (¿ó³te; zasilanie powietrzem)
-   ctrain_heating=64;       //nie u¿yawne
+   ctrain_scndpneumatic=32; //przewody 8 atm
+   ctrain_localbrake=64;   {przewód hamulca niesamoczynnego}
 
    {typ hamulca elektrodynamicznego}
    dbrake_none=0;
@@ -131,26 +131,6 @@ CONST
    dbrake_switch=2;
    dbrake_reversal=4;
    dbrake_automatic=8;
-
-   bdelay_P=0;
-   bdelay_G=1;
-   bdelay_R=2;
-   bdelay_E=4;
-
-   {status hamulca}
-   b_off=0;
-   b_on=1;
-   b_dmg=2;
-   b_release=4;
-   b_antislip=8;
-   b_epused=16;
-   b_Rused=32;
-   b_Ractive=64;
-
-   {typ hamulca kolejowego}
-   bp_classic=0;
-   bp_diameter=1;
-   bp_magnetic=2;
 
    {status czuwaka/SHP}
    s_waiting=1; //dzia³a
@@ -223,7 +203,9 @@ TYPE
     {typy hamulcow zespolonych}
     TBrakeSystem = (Individual, Pneumatic, ElectroPneumatic);
     {podtypy hamulcow zespolonych}
-    TBrakeSubsystem = (Standard, WeLu, Knorr, KE, Hik, Kk, Oerlikon);
+    TBrakeSubSystem = (ss_None, ss_W, ss_K, ss_KK, ss_Hik, ss_ESt, ss_KE, ss_LSt, ss_MT, ss_Dako);
+    TBrakeValve = (NoValve, W, W_Lu_VI, W_Lu_L, W_Lu_XR, K, Kg, Kp, Kss, Kkg, Kkp, Kks, Hikg1, Hikss, Hikp1, KE, SW, ESt3, LSt, ESt4, ESt3AL2, EP1, EP2, M483, CV1_L_TR, CV1, CV1_R, Other);
+    TBrakeHandle = (NoHandle, West, FV4a, M394, M254, FVel1, FVel6, D2, Knorr, FD1, BS2, testH);
     {typy hamulcow indywidualnych}
     TLocalBrake = (NoBrake, ManualBrake, PneumaticBrake, HydraulicBrake);
 
@@ -399,15 +381,23 @@ TYPE
                SandCapacity: integer;    {zasobnik piasku [kg]}
                BrakeSystem: TBrakeSystem;{rodzaj hamulca zespolonego}
                BrakeSubsystem: TBrakeSubsystem;
+               BrakeValve: TBrakeValve;
+               BrakeHandle: TBrakeHandle;
+               BrakeLocHandle: TBrakeHandle;
                MBPM: real; {masa najwiekszego cisnienia}
-//               BrakeVariety: byte;
+
+               Hamulec: TBrake;
+               Handle: THandle;
+               LocHandle: THandle; 
+               Pipe, Pipe2: TReservoir;
 
                LocalBrake: TLocalBrake;  {rodzaj hamulca indywidualnego}
                BrakePressureTable: TBrakePressureTable; {wyszczegolnienie cisnien w rurze}
                ASBType: byte;            {0: brak hamulca przeciwposlizgowego, 1: reczny, 2: automat}
                TurboTest: byte;
                MaxBrakeForce: real;      {maksymalna sila nacisku hamulca}
-               MaxBrakePress,P2FTrans: real;
+               MaxBrakePress: array[0..3] of real;
+               P2FTrans: real;
                TrackBrakeForce: real;    {sila nacisku hamulca szynowego}
                BrakeMethod: byte;        {flaga rodzaju hamulca}
                {max. cisnienie w cyl. ham., stala proporcjonalnosci p-K}
@@ -419,9 +409,13 @@ TYPE
                {pojemnosc powietrza w ukladzie hamulcowym, w ukladzie glownej sprezarki [m^3] }
                BrakeCylNo: integer; {ilosc cylindrow ham.}
                BrakeCylRadius, BrakeCylDist: real;
-               BrakeCylMult: array[0..3] of real;
-               BCMFlag: byte;
+               BrakeCylMult: array[0..2] of real;
+               LoadFlag: byte;
                {promien cylindra, skok cylindra, przekladnia hamulcowa}
+               BrakeCylSpring: real; {suma nacisku sprezyn powrotnych, kN}
+               BrakeSlckAdj: real; {opor nastawiacza skoku tloka, kN}
+               RapidMult: real; {przelozenie rapida}
+
                MinCompressor,MaxCompressor,CompressorSpeed:real;
                {cisnienie wlaczania, zalaczania sprezarki, wydajnosc sprezarki}
                BrakeDelay: TBrakeDelayTable; {opoznienie hamowania/odhamowania t/o}
@@ -445,6 +439,7 @@ TYPE
                 // end;
                NominalVoltage: real;   {nominalne napiecie silnika}
                WindingRes : real;
+               u: real; //wspolczynnik tarcia yB wywalic!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                CircuitRes : real;      {rezystancje silnika i obwodu}
                IminLo,IminHi: integer; {prady przelacznika automatycznego rozruchu, uzywane tez przez ai_driver}
                ImaxLo,ImaxHi: integer; {maksymalny prad niskiego i wysokiego rozruchu}
@@ -534,7 +529,7 @@ TYPE
                 LocBrakePress:real;                 {!o cisnienie w cylindrach hamulcowych z pomocniczego}
                 PipeBrakePress:real;                {!o cisnienie w cylindrach hamulcowych z przewodu}
                 PipePress: real;                    {!o cisnienie w przewodzie glownym}
-                PPP: real;                          {!o poprzednie cisnienie w przewodzie glownym}
+                EqvtPipePress: real;                {!o cisnienie w przewodzie glownym skladu}
                 Volume: real;                       {objetosc spr. powietrza w zbiorniku hamulca}
                 CompressedVolume:real;              {objetosc spr. powietrza w ukl. zasilania}
                 PantVolume:real;                    {objetosc spr. powietrza w ukl. pantografu}
@@ -545,7 +540,10 @@ TYPE
                 ConverterFlag: boolean;              {!  czy wlaczona przetwornica NBMX}
                 ConverterAllow: boolean;             {zezwolenie na prace przetwornicy NBMX}
                 BrakeCtrlPos:integer;               {nastawa hamulca zespolonego}
+                BrakeCtrlPosR:real;                 {nastawa hamulca zespolonego - plynna dla FV4a}
+                BrakeCtrlPos2:real;                 {nastawa hamulca zespolonego - kapturek dla FV4a}
                 LocalBrakePos:byte;                 {nastawa hamulca indywidualnego}
+                LocalBrakePosA: real;
                 BrakeStatus: byte; {0 - odham, 1 - ham., 2 - uszk., 4 - odluzniacz, 8 - antyposlizg, 16 - uzyte EP, 32 - pozycja R, 64 - powrot z R}
                 EmergencyBrakeFlag: boolean;        {hamowanie nagle}
                 BrakeDelayFlag: byte;               {nastawa opoznienia ham. osob/towar/posp/exp 0/1/2/4}
@@ -722,6 +720,7 @@ TYPE
                 procedure CompressorCheck(dt:real); {wlacza, wylacza kompresor, laduje zbiornik}
                 procedure UpdatePantVolume(dt:real); {jw ale uklad zasilania pantografow}
                 procedure UpdateScndPipePressure(dt:real);
+                function GetDVc(dt:real):real;
 
                {! funkcje laczace/rozlaczajace sprzegi}
                //Ra: przeniesione do C++
@@ -1032,8 +1031,8 @@ begin
    LBR:=LocalBrakePos/LocalBrakePosNo
   else
    LBR:=0;
- if TestFlag(BrakeStatus,b_antislip) then
-   LBR:=Max0R(LBR,PipeRatio)+0.4;
+// if TestFlag(BrakeStatus,b_antislip) then
+//   LBR:=Max0R(LBR,PipeRatio)+0.4;
  LocalBrakeRatio:=LBR;
 end;
 
@@ -1041,14 +1040,14 @@ function T_MoverParameters.PipeRatio: real;
 var pr:real;
 begin
   if DeltaPipePress>0 then
-   if (BrakeSubsystem=Oerlikon) then
+   if (false) then //SPKS!!
     begin
      if (3*PipePress)>(HighPipePress+LowPipePress+LowPipePress) then
       pr:=(HighPipePress-Min0R(HighPipePress,PipePress))/(DeltaPipePress*4.0/3.0)
      else
       pr:=(HighPipePress-1.0/3.0*DeltaPipePress-Max0R(LowPipePress,PipePress))/(DeltaPipePress*2.0/3.0);
-     if (not TestFlag(BrakeStatus,b_Ractive)) and (BrakeMethod and 1 = 0) and TestFlag(BrakeDelays,bdelay_R) and (Power<1) and (BrakeCtrlPos<1) then
-      pr:=Min0R(0.5,pr);
+//     if (not TestFlag(BrakeStatus,b_Ractive)) and (BrakeMethod and 1 = 0) and TestFlag(BrakeDelays,bdelay_R) and (Power<1) and (BrakeCtrlPos<1) then
+//      pr:=Min0R(0.5,pr);
     end
    else
      pr:=(HighPipePress-Max0R(LowPipePress,Min0R(HighPipePress,PipePress)))/DeltaPipePress
@@ -1531,11 +1530,13 @@ begin
    if (BrakeSystem=Pneumatic) and (BrakeCtrlPosNo>0) then
     begin
      BrakeCtrlPos:=-2;
+     BrakeCtrlPosR:=-2;
      LimPipePress:=PipePress;
      ActFlowSpeed:= 0;
     end
    else
     BrakeCtrlPos:=0;
+    BrakeCtrlPosR:=0;
 //   if not TestFlag(BrakeStatus,b_dmg) then
 //    BrakeStatus:=b_off;
    MainCtrlPos:=0;
@@ -1691,6 +1692,7 @@ begin
      if BrakeCtrlPos<BrakeCtrlPosNo then
       begin
         inc(BrakeCtrlPos);
+        BrakeCtrlPosR:=BrakeCtrlPos;
 
 //youBy: wywalilem to, jak jest EP, to sa przenoszone sygnaly nt. co ma robic, a nie poszczegolne pozycje;
 //       wystarczy spojrzec na Knorra i Oerlikona EP w EN57; mogly ze soba wspolapracowac
@@ -1713,27 +1715,18 @@ begin
           LimPipePress:=PipePress;
 
         if (BrakeSystem=ElectroPneumatic) then
-          if (BrakeSubSystem<>Knorr) then
+          if (BrakeSubSystem<>ss_K) then
            begin
              if (BrakeCtrlPos*BrakeCtrlPos)=1 then
               begin
-                SendCtrlToNext('Brake',BrakeCtrlPos,CabNo);
-                SetFlag(BrakeStatus,b_epused);
+//                SendCtrlToNext('Brake',BrakeCtrlPos,CabNo);
+//                SetFlag(BrakeStatus,b_epused);
               end
              else
               begin
-                SendCtrlToNext('Brake',0,CabNo);
-                SetFlag(BrakeStatus,-b_epused);
+//                SendCtrlToNext('Brake',0,CabNo);
+//                SetFlag(BrakeStatus,-b_epused);
            end;
-           end;
-
-        //yB: dla Oerlikona jest zdeka ulanskie napelnianie
-        if(BrakeSubsystem=Oerlikon)and(BrakeSystem=Pneumatic)then
-         if(BrakeCtrlPos=-1)then
-          with(BrakePressureTable[BrakeCtrlPos])do
-           begin
-            LimPipePress:=0.85;
-            ActFlowSpeed:=FlowSpeedVal;
            end;
 
       end
@@ -1753,9 +1746,10 @@ function T_MoverParameters.DecBrakeLevel:boolean;
 begin
   if (BrakeCtrlPosNo>0) {and (LocalBrakePos=0)} then
    begin
-     if (BrakeCtrlPos>-1) or ((BrakeSubsystem=Oerlikon) and (BrakeCtrlPos>(-2+Byte(BrakeSystem=ElectroPneumatic)))) then
+     if (BrakeCtrlPos>-1-Byte(BrakeHandle=FV4a)) then
       begin
         dec(BrakeCtrlPos);
+        BrakeCtrlPosR:=BrakeCtrlPos;
         if EmergencyBrakeFlag then
           begin
              EmergencyBrakeFlag:=false; {!!!}
@@ -1778,31 +1772,22 @@ begin
 
 //youBy: EP po nowemu
         DecBrakeLevel:=True;
-        if (BrakePressureTable[BrakeCtrlPos].PipePressureVal<0.0)and(BrakePressureTable[BrakeCtrlPos+1].PipePressureVal>0) then
-          LimPipePress:=PipePress;
+//        if (BrakePressureTable[BrakeCtrlPos].PipePressureVal<0.0)and(BrakePressureTable[BrakeCtrlPos+1].PipePressureVal>0) then
+//          LimPipePress:=PipePress;
 
         if (BrakeSystem=ElectroPneumatic) then
-          if (BrakeSubSystem<>Knorr) then
+          if (BrakeSubSystem<>ss_K) then
            begin
              if (BrakeCtrlPos*BrakeCtrlPos)=1 then
               begin
-                SendCtrlToNext('Brake',BrakeCtrlPos,CabNo);
-                SetFlag(BrakeStatus,b_epused);
+//                SendCtrlToNext('Brake',BrakeCtrlPos,CabNo);
+//                SetFlag(BrakeStatus,b_epused);
               end
              else
               begin
-                SendCtrlToNext('Brake',0,CabNo);
-                SetFlag(BrakeStatus,-b_epused);
+//                SendCtrlToNext('Brake',0,CabNo);
+//                SetFlag(BrakeStatus,-b_epused);
               end;
-              end;
-
-        //yB: dla Oerlikona jest zdeka ulanskie napelnianie
-        if(BrakeSubsystem=Oerlikon)and(BrakeSystem=Pneumatic)then
-         if(BrakeCtrlPos=-1)then
-          with(BrakePressureTable[BrakeCtrlPos])do
-           begin
-            LimPipePress:=0.85;
-            ActFlowSpeed:=FlowSpeedVal;
            end;
 (*    for b:=0 to 1 do  {poprawic to!}
      with Couplers[b] do
@@ -1902,8 +1887,8 @@ begin
  AntiSlippingBrake:=False; //Ra: przeniesione z koñca
   if ASBType=1 then
    begin
-     if SetFlag(BrakeStatus,b_antislip) then
-       AntiSlippingBrake:=True;
+     AntiSlippingBrake:=True;  //SPKS!!
+     Hamulec.ASB(1);
      BrakeSlippingTimer:=0;
    end
 end;
@@ -1918,7 +1903,7 @@ end;
 function T_MoverParameters.BrakeDelaySwitch(BDS:byte): boolean;
 begin
 //  if BrakeCtrlPosNo>0 then
-   if (BrakeDelayFlag<>BDS)and(TestFlag(BrakeDelays,BDS)) then
+   if Hamulec.SetBDF(BDS) then
     begin
       BrakeDelayFlag:=BDS;
       BrakeDelaySwitch:=True;
@@ -1932,42 +1917,40 @@ end;
 
 function T_MoverParameters.IncBrakeMult(): boolean;
 begin
-  if (BCMFlag<3) and (BrakeCylMult[BCMFlag+1]>0) then
+  if (LoadFlag>0) and (MBPM<2) and (LoadFlag<3) then
    begin
-    BCMFlag:=BCMFlag+1;
-    P2FTrans:=1000*Pi*SQR(BrakeCylRadius)*BrakeCylMult[BCMFlag]; {w kN/MPa}
+    if (MaxBrakePress[2]>0) and (LoadFlag=1) then
+      LoadFlag:=2
+    else
+      LoadFlag:=3;
     IncBrakeMult:=true;
-   end else
+    if BrakeCylMult[2]>0 then BrakeCylMult[0]:=BrakeCylMult[2];
+   end
+  else
  IncBrakeMult:=false;
 end;
 
 function T_MoverParameters.DecBrakeMult(): boolean;
 begin
-  if (BCMFlag>0) and (BrakeCylMult[BCMFlag-1]>0) then
+  if (LoadFlag>1) and (MBPM<2) then
    begin
-    BCMFlag:=BCMFlag-1;
-    P2FTrans:=1000*Pi*SQR(BrakeCylRadius)*BrakeCylMult[BCMFlag]; {w kN/MPa}
+    if (MaxBrakePress[2]>0) and (LoadFlag=3) then
+      LoadFlag:=2
+    else
+      LoadFlag:=1;
     DecBrakeMult:=true;
-   end else
+    if BrakeCylMult[1]>0 then BrakeCylMult[0]:=BrakeCylMult[1];
+   end
+  else
  DecBrakeMult:=false;
 end;
 
 function T_MoverParameters.BrakeReleaser: boolean;
 var OK:boolean;
 begin
-  //Ra: BrakeCtrlPosNo jest typu Byte, wiêc nie mo¿e byæ mniejsze od 0!
-  if {(BrakeCtrlPosNo>-1) and} (PipePress<CntrlPipePress) and {(BrakeStatus=b_on)}(not TestFlag(BrakeStatus,b_dmg)) then
-   begin
-     OK:=SetFlag(BrakeStatus,b_release);
-     CntrlPipePress:=PipePress+0.015-0.0075*ord((BrakeSubsystem=Oerlikon)or(BrakeSubsystem=KE));
-     if (BrakeCtrlPosNo=0) and (Power<1) and (BrakeSystem<>ElectroPneumatic) then
-      Volume:=BrakeVVolume*CntrlPipePress*10;
-     SetFlag(BrakeStatus,-b_on);
-   end
-  else
-   OK:=False;
+  Hamulec.Releaser(1);
   if CabNo<>0 then //rekurencyjne wys³anie do nastêpnego
-   OK:=OK and SendCtrlToNext('BrakeReleaser',0,CabNo);
+   OK:=SendCtrlToNext('BrakeReleaser',0,CabNo);
   BrakeReleaser:=OK;
 end;
 
@@ -1975,9 +1958,9 @@ function T_MoverParameters.SwitchEPBrake(state: byte):boolean;
 var
   OK:boolean;
 begin
-  //OK:=false;
-  OK:=SetFlag(BrakeStatus,((2*State-1)*b_epused));
-  SendCtrlToNext('Brake',(state*(2*BrakeCtrlPos-1)),CabNo);
+  OK:=false;
+//  OK:=SetFlag(BrakeStatus,((2*State-1)*b_epused));
+//  SendCtrlToNext('Brake',(state*(2*BrakeCtrlPos-1)),CabNo);
   SwitchEPBrake:=OK;
 end;
 
@@ -2028,494 +2011,137 @@ var Rate,Speed,dp,sm:real;
 begin
   dpLocalValve:=0;
   dpBrake:=0;
-  sm:=1.0; //Ra: a ile powinno byæ i co to w³aœciwie jest?
-  if (MaxBrakePress>0) and (not TestFlag(BrakeStatus,b_dmg)) then
-   begin
-       {hydrauliczny hamulec pomocniczy}
-       if (LocalBrake=HydraulicBrake) and (BrakeStatus=b_off) then
-        begin
-          LocBrakePress:=MaxBrakePress*LocalBrakeRatio;
-        end;
 
-       {elektropneumatyczny hamulec zasadniczy}
-       if (BrakePressureTable[BrakeCtrlPos].BrakeType=ElectroPneumatic) and Mains and (ActiveDir<>0)then
-         with BrakePressureTable[BrakeCtrlPos] do
-          if BrakePressureVal<>-1 then
-           begin
-             if TestFlag(BrakeStatus,b_epused) then
-              begin
-                if (MBPM>TotalMass) then
-                  sm:=sm*TotalMass/MBPM //sk¹d pierwsza wartoœæ?
-                else
-                  sm:=1;
-                dp:=Min0R(BrakeVP,sm*BrakePressureVal);
-//              case BrakeSubSystem of
-//               Oerlikon,WeLu:
-//                 dpLocalValve:=1.3*sign(dp-LocBrakePress)*PR(dp,LocBrakePress)*dt/(BrakeDelay[1+ord(dp>LocBrakePress)+2*BrakeDelayFlag]);
-//               Knorr:
-//                 dpBrake:=FlowSpeedVal*(dp-LocBrakePress)*dt/(1+BrakeDelay[1+ord(BrakePressureVal>LocBrakePress)+2*BrakeDelayFlag]);
-//              end;
-//                dpBrake:=FlowSpeedVal*(dp-LocBrakePress)*dt/BrakeDelay[1+ord(dp>LocBrakePress)+2*BrakeDelayFlag];
-                  dpBrake:=MaxBrakePress*FlowSpeedVal/5.0*sign(dp-LocBrakePress)*PR(dp,LocBrakePress)*dt/(1.0+BrakeDelay[1+ord(dp>LocBrakePress)+2*BrakeDelayFlag]);
-                //             dpLocalValve:=FlowSpeedVal/6*sign(dp-LocBrakePress)*PR(dp,LocBrakePress)*dt/(1+BrakeDelay[1+ord(BrakeStatus and b_on)+2*BrakeDelayFlag]);
-//             if (dpBrake>0) then
-//              Volume:=Volume-10*dpBrake*BrakeVolume;
-                LocBrakePress:=LocBrakePress+dpBrake;
-              end;
-           end; {sterowanie cisnieniem}
+  BrakePress:=Hamulec.GetBCP;
+//  BrakePress:=(Hamulec as TEst4).ImplsRes.pa;
+  Volume:=Hamulec.GetBRP;
 
-       {pneumatyczny hamulec zasadniczy}
-       if ((BrakeCtrlPosNo>0) and (BrakePressureTable[BrakeCtrlPos].BrakeType=Pneumatic)) or
-          (BrakeSystem=Pneumatic) or (BrakeSystem=ElectroPneumatic)then
-        begin
-          if TestFlag(BrakeStatus,b_release)or((TrainType=dt_ET42)and(ScndCtrlActualPos<255)and(DynamicBrakeFlag))then  //odluzniacz
-           begin
-//               dpBrake:=(PipeBrakePress+sd)*dt/2.5;
-             dpBrake:=MaxBrakePress*(PipeBrakePress)/(1.13*PipeBrakePress+0.013)*dt/2.5;
-             DecBrakePress(PipeBrakePress,0,dpBrake);
-             if (PipeBrakePress<0.01) then begin {SetFlag(BrakeStatus,-101);} BrakeStatus:=(BrakeStatus and 154); PipeBrakePress:=0; end;
-           end
-          else  //normalna praca
-           begin
-            sm:=1.0;
-            //test pozycji pospiesznej
-            if TestFlag(BrakeDelays,bdelay_R)then
-              if(not TestFlag(BrakeDelayFlag,bdelay_R)and(BrakeCtrlPosNo=0)and((BrakeMethod and 1)=1))then
-                sm:=0.72  {1/1.4}
-              else if(TestFlag(BrakeStatus,b_Ractive)and(BrakeCtrlPosNo>0))then
-                sm:=1.5;
-
-            if (MBPM>TotalMass) then
-              sm:=sm*TotalMass/MBPM;
-
-            Rate:=PipeRatio*sm;
-            if TestFlag(BrakeDelays,bdelay_R)then
-              if(not TestFlag(BrakeStatus,b_Ractive)and(BrakeCtrlPosNo=0)and((BrakeMethod and 1)=0))then
-                sm:=sm*0.5;
-
-            Speed:=RealPipeRatio*sm;
-
-                                                        {(Volume/(10*BrakeVVol ume+0.1)>MaxBrakePress/2))}
-            if ((Rate*MaxBrakePress>PipeBrakePress) and (BrakeVP>PipeBrakePress) and TestFlag(BrakeStatus,b_on)) then
-              begin
-                if(PipeBrakePress>MaxBrakePress*0.15)and(BrakeDelayFlag=bdelay_G)then
-                 dpBrake:=(0.2+Speed)/1.2*sm*MaxBrakePress*PR(MaxBrakePress*sm,PipeBrakePress)*dt/(BrakeDelay[4])
-                else
-                 dpBrake:=(0.2+Speed)/1.2*sm*MaxBrakePress*PR(MaxBrakePress*sm,PipeBrakePress)*dt/(BrakeDelay[2]);
-                IncBrakePress(PipeBrakePress,Rate*MaxBrakePress,dpBrake)
-              end;
-            if (PipeBrakePress>Rate*MaxBrakePress){and(BrakeStatus=b_off)}then
-              begin
-                if(TestFlag(BrakeStatus,b_Rused))and not(TestFlag(BrakeStatus,b_Ractive))then
-                 begin
-                  SetFlag(BrakeStatus,-b_Rused);
-                  sm:=1.0+0.5*byte(TestFlag(BrakeStatus,b_Rused)and(BrakeCtrlPosNo>0));
-                  PipeBrakePress:=PipeBrakePress*(1.5-sm)+(sm-1.0)/sm*PipeBrakePress*2.0
-//                  dpBrake:=(PipeBrakePress-MaxBrakePress*(1.5*sm);
-                 end
-                else if(BrakeDelayFlag=bdelay_G)then
-                 dpBrake:=(1.2-Speed)/1.2*sm*MaxBrakePress*PR(PipeBrakePress,0)*dt/(BrakeDelay[3])
-                else
-                 dpBrake:=(1.2-Speed)/1.2*sm*MaxBrakePress*PR(PipeBrakePress,0)*dt/(BrakeDelay[1]);
-
-                 if(dpBrake<0)then dpBrake:=0;
-
-                DecBrakePress(PipeBrakePress,Rate*MaxBrakePress,dpBrake);
-              end;
-           end;
-
-           if (BrakeSystem<>ElectroPneumatic) then
-           begin
-            Rate:=LocalBrakeRatio;
-            if ((Rate*MaxBrakePress>LocBrakePress) and (Compressor>LocBrakePress)) then
-              begin
-                dpLocalValve:=(0.01+Rate)*MaxBrakePress*PR(MaxBrakePress,LocBrakePress)*dt/4.0;//5*2
-                IncBrakePress(LocBrakePress,Rate*MaxBrakePress,dpLocalValve);
-              end;
-            if LocBrakePress>Rate*MaxBrakePress then
-              begin
-                dpLocalValve:=(1.01-Rate)*MaxBrakePress*PR(LocBrakePress,0)*dt/7.0;//8*2
-                DecBrakePress(LocBrakePress,Rate*MaxBrakePress,dpLocalValve);
-              end;
-           end;
-        end;{Pneumatic}
-   if (BrakeSystem=Pneumatic) or (BrakeSystem=ElectroPneumatic) then
-    begin
-     Speed:=BrakePress;  //yB: uzycie jednej zmiennej - optymalka pamieci
-     dp:=Max0R(PipeBrakePress,LocBrakePress);
-     dpBrake:=sign(dp-BrakePress)*MaxBrakePress*dt/3.0;
-     if(dpBrake>0)then
-       begin
-         IncBrakePress(BrakePress,dp,dpBrake);
-         dpBrake:=BrakePress-Speed;
-         if (PipeBrakePress<LocBrakePress)and((BrakeSystem=Pneumatic)or((BrakeSystem=ElectroPneumatic)and(BrakeSubsystem<>Oerlikon))) then
-           CompressedVolume:=CompressedVolume-10*dpBrake*BrakeVolume
-         else
-           Volume:=Volume-10*dpBrake*BrakeVolume;
-       end
-     else
-       begin
-        DecBrakePress(BrakePress,dp,-dpBrake);
-        dpBrake:=BrakePress-Speed;
-       end;
-    end;
-   end; {cylindry hamulcowe}
 end;  {updatebrakepressure}
 
 
-procedure T_MoverParameters.UpdatePipePressure(dt:real);
-const LBDelay=15.0;kL=0.5;
-var {b: byte;} dV{,PWSpeed}:real; c: T_MoverParameters;
+function T_MoverParameters.GetDVc(dt:real):real;
+var c:T_MoverParameters;dv1,dv2,dv:real;
 begin
-  //ABu: zmieniam na zlecenie Olo_EU
-  //PWSpeed:=800/sqr(Dim.L); a
-//  PWSpeed:=1600/sqr(Dim.L); b
-//yB: zmieniam po konsulatacjach z Olo
-//  PWSpeed:=180/sqrt(Dim.L); c
-//yB: to wynika z ksiazek, ze conajmniej 250 m/s ma fala hamowania
-//  PWSpeed:=280/Dim.L; // d 280
-
-  dpMainValve:=0;
-
-  if (HighPipePress>0) or (LowPipePress<0) then
-   begin
-     if (BrakeCtrlPosNo>0)and(ActiveCab<>0)then
-      begin
-       case (BrakeSubSystem) of
-        Oerlikon:
-          with BrakePressureTable[BrakeCtrlPos] do
-           begin
-            if(BrakeSystem=ElectroPneumatic)then
-             begin
-              ActFlowSpeed:=FlowSpeedVal*Byte(BrakeType<>ElectroPneumatic)+4*Byte(BrakeType=ElectroPneumatic);
-              if(PipePressureVal>0)then
-               LimPipePress:=PipePressureVal;
-             end
-            else
-             begin
-              if(BrakeCtrlPos>0)or(BrakeCtrlPos=-2)then
-               begin
-                if PipePressureVal>=0 then
-                    LimPipePress:=PipePressureVal;
-                ActFlowSpeed:=FlowSpeedVal;
-               end
-              else
-              if(BrakeCtrlPos=0)then
-                begin
-                  LimPipePress:=PipePressureVal;
-                    if (PipePress>PipePressureVal) then
-//                      if (LimPipePress>0.55) then
-//                        ActFlowSpeed:=FlowSpeedVal*1.5
-//                      else
-                        ActFlowSpeed:=Min0R(FlowSpeedVal,(0.05*LBDelay/PR(PipePress,PipePressureVal)))
-                    else
-                      ActFlowSpeed:=FlowSpeedVal;
-                end
-              else
-              if(BrakeCtrlPos=-1)then
-               if(PipePress>0.699)then
-                begin
-                  LimPipePress:=0.54;
-                  ActFlowSpeed:=5;
-                end;
-             end;
-           end;
-        Knorr:
-          with BrakePressureTable[BrakeCtrlPos] do
-            begin
-             if not(PipePressureVal=-1)then
-               LimPipePress:=PipePressureVal;
-             if(BrakeCtrlPos=0)and(PipePress>LimPipePress)then
-               ActFlowSpeed:=2
-             else
-               ActFlowSpeed:=FlowSpeedVal;
-             end;
-       else; {case}
-       end;
-
-//       if (BrakeCtrlPos>-2) then
-//        begin
-          dpPipe:=Min0R(Compressor,LimPipePress);
-//!yb          deltap:=sign(dp-PipePress)*sqrt(abs((dp+0.2)*dp-(PipePress+0.2)*PipePress));
-          dpMainValve:=ActFlowSpeed*sign(dpPipe-PipePress)*PR(dpPipe,PipePress)*dt/(LBDelay)*(1-ord(EmergencyBrakeFlag));
-//          dpMainValve:=ActFlowSpeed*(dp-PipePress)*dt/(LBDelay);
-          if (dpMainValve>0) then             {50}
-            CompressedVolume:=CompressedVolume-dpMainValve*Dim.L*Spg/100.0*(1+kL*byte((BrakeCtrlPosNo>0)and(Power>1)and(BrakeSystem=Pneumatic)));
-//!yb            CompressedVolume:=CompressedVolume-20*dpMainValve*BrakeVolume{*(compressor-0.3)};//{/2{3}{*6}
-
-//!yb          PipePress:=PipePress+dpMainValve;
-//        end;
-      end; {sterowanie cisnieniem}
-
-     if EmergencyBrakeFlag then         {ulepszony hamulec bezp.}
-        dpMainValve:=-PipePress*2*dt;
-
-//!yb     dpPipe:=0; {fala hamowania}
-//!yb     dp:=0; {napelnianie zbiornikow pomocniczych hamulca}
-(*!yb
-     for b:=0 to 1 do
-      begin
-        if Couplers[b].Connected<>nil then
-         if TestFlag(Couplers[b].CouplingFlag,ctrain_pneumatic) then
-          //ABu: ponizej zakomentowalem, bo nagly nie dzialal
-          //if (Couplers[b].Connected^.PipePress>=LowPipePress) or (BrakeCtrlPosNo=0) then
-           begin
-             dpPipe:=dpPipe+(Couplers[b].Connected^.PipePress-PipePress)*dt*PWSpeed;
-             if not Couplers[b].Connected^.PhysicActivation then
-              if Abs(dpPipe)>0.000000001 then
-               Couplers[b].Connected^.Physic_ReActivation;  {aktywacja fizyki podlaczonego skladu}
-            end;
-      end; !yb*)
-
-
-(*     if (BrakeVP<PipePress)and(BrakeVP<0.5) then
-      begin
-        dpPipe:=(BrakeVP-PipePress)*dt*2;{10}
-        if dpPipe>0 then Volume:=Volume-dpPipe*BrakeVolume
-        else dpPipe:=0; //yB: chwilowo, poki napelniacz pomocniczego nie bedzie lepszy
-      end;   {0.0189458}  {0.035} *)
-     dpPipe:=0;
-//yB: napelnianie zbiornika pomocniczego pojazdu
-     case BrakeSubSystem of
-     Oerlikon:
-        if (BrakeSystem=Pneumatic) and (Power<1) then
-        begin
-          if BrakeVP>PipePress then
-           begin         //SPR(BrakeVP,PipePress);(-PipePress+BrakeVP)
-             dpPipe:=(1-(BrakeStatus and b_on))*SPR(BrakeVP,PipePress)*(Dim.L*Spg/(Dim.L*Spg+100.0*BrakeVVolume))*dt/120.0;
-           end
-          else if BrakeVP<PipePress then
-           if(BrakeVP<CntrlPipePress)then
-            begin
-//             dpPipe:=-PR(PipePress,BrakeVP)*dt/100
-//                       SPR(PipePress,BrakeVP)
-             dpPipe:=-SPR(PipePress,BrakeVP)*(Dim.L*Spg/(Dim.L*Spg+100.0*BrakeVVolume))*dt/BrakeDelay[1+2*byte(BrakeDelayFlag=1)];
-            end      {PR(PipePress,BrakeVP)}
-           else
-            dpPipe:=-SPR(PipePress,BrakeVP)*(Dim.L*Spg/(Dim.L*Spg+100.0*BrakeVVolume))*dt/100.0/(1.0+3.5*ord(PipePress-0.04>BrakeVP));
-        end;
-     KE:
-        if(BrakeVP<CntrlPipePress-0.03)and(BrakeVP<PipePress)then
-         dpPipe:=-(1-(BrakeStatus and b_on))*SPR(PipePress,BrakeVP)*(Dim.L*Spg/(Dim.L*Spg+100.0*BrakeVVolume))*dt/BrakeDelay[1+2*byte(BrakeDelayFlag=1)]
-        else                                 //PR(PipePress,BrakeVP)
-         dpPipe:=(1-(BrakeStatus and b_on))*sign(BrakeVP-PipePress)*PR(PipePress,BrakeVP)*(Dim.L*Spg/(Dim.L*Spg+100.0*BrakeVVolume))*dt/75.0;
-     else if not TestFlag(BrakeStatus,b_on) then
-         dpPipe:=sign(BrakeVP-PipePress)*PR(PipePress,BrakeVP)*(Dim.L*Spg/(Dim.L*Spg+100*BrakeVVolume))*dt/50.0;
-     end;        {PR*sign}
-      dpPipe:=dpPipe*5;
-      dpPipe:=(dpPipe)*(10.0*BrakeVVolume)/(Spg*Dim.L);
-      if (dpPipe<>0) and ((BrakeVP-PipePress)/(dpPipe)<2.0) then
-        dpPipe:=(BrakeVP-PipePress)/5.0;
-      Volume:=Volume-dpPipe*Spg*Dim.L/10.0;
-
-
-//yB: liczenie roznicy w sprzegach (przeplywy objetosci) (usunalem Spg dla optymalizacji)
+  dv1:=0;
+  dv2:=0;
+//sprzeg 1
       if Couplers[0].Connected<>nil then
        if TestFlag(Couplers[0].CouplingFlag,ctrain_pneumatic) then
          begin
            c:=Couplers[0].Connected; //skrot
-           dV:=PR(PipePress,c.PipePress)*240.0*dt*sign(PipePress-c.PipePress);
-           c.PipePress:=c.PipePress+dV/(10.0*c.Dim.L);
-           if c.PipePress<0 then begin dV:=dV+PipePress*10*c.Dim.L*Spg; c.PipePress:=0;end;
-           dpPipe:=dpPipe-dV/(10.0*Dim.L);
-           if not c.PhysicActivation then
-            if Abs(dV)>0.000000001 then
-             c.Physic_ReActivation;  {aktywacja fizyki podlaczonego skladu}
+       dv1:=0.5*dt*PF(PipePress,c.PipePress,Spg*0.85);
+       if (dv1*dv1>0.00000000000001) then c.Physic_Reactivation;
+       c.Pipe.Flow(-dv1);
           end;
+//sprzeg 2
       if Couplers[1].Connected<>nil then
        if TestFlag(Couplers[1].CouplingFlag,ctrain_pneumatic) then
          begin
            c:=Couplers[1].Connected; //skrot
-           dV:=PR(PipePress,c.PipePress)*240.0*dt*sign(PipePress-c.PipePress);
-           c.PipePress:=c.PipePress+dV/(10.0*c.Dim.L);
-           if c.PipePress<0 then begin dV:=dV+PipePress*10*c.Dim.L*Spg; c.PipePress:=0;end;
-           dpPipe:=dpPipe-dV/(10.0*Dim.L);
-           if not c.PhysicActivation then
-            if Abs(dV)>0.000000001 then
-             c.Physic_ReActivation;  {aktywacja fizyki podlaczonego skladu}
+       dv2:=0.5*dt*PF(PipePress,c.PipePress,Spg*0.85);
+       if (dv2*dv2>0.00000000000001) then c.Physic_Reactivation;
+       c.Pipe.Flow(-dv2);
      end;
-                    //0.02+Random/140
-      dpPipe:=(dpPipe-0.028*dt/(Dim.L*Spg*10.0))/(1+kL*byte((BrakeCtrlPosNo>0)and(Power>1)and(BrakeSystem=Pneumatic)));  //nieszczelnosci
+  if(Couplers[1].Connected<>nil)and(Couplers[0].Connected<>nil)then
+    if (TestFlag(Couplers[0].CouplingFlag,ctrain_pneumatic))and(TestFlag(Couplers[1].CouplingFlag,ctrain_pneumatic))then
+     begin
+      dv:=0.25*dt*PF(Couplers[0].Connected.PipePress,Couplers[1].Connected.PipePress,Spg*0.7);
+      Couplers[0].Connected.Pipe.Flow(+dv);
+      Couplers[1].Connected.Pipe.Flow(-dv);
+     end;
+//suma
+  GetDVc:=dv2+dv1;
+end;
 
-//yB: jednokrokowe liczenie tego wszystkiego
-     PipePress:=PipePress+dpPipe+dpMainValve;
+procedure T_MoverParameters.UpdatePipePressure(dt:real);
+const LBDelay=100;kL=0.5;
+var {b: byte;} dV{,PWSpeed}:real; c: T_MoverParameters;
+     temp: real;
+begin
+  PipePress:=Pipe.P;
 
+  dpMainValve:=0;
 
-//     if 0.5<PipePress then
-//        PipePress:=PipePress-(PipePress-0.5)*dt*10;
-     if PipePress<0 then PipePress:=0;
-{        if PipePress>NominalPipePress then PipePress:=NominalPipePress; } {pomyslec nad tym}
-   end; {PipePress}
-
-(************* yB: ROZDZIELACZ POWIETRZA *******************************)
-  if(BrakeDelayFlag=bdelay_R)then
-   if(BrakeCtrlPosNo>0)then
-     if(Vel>55)then
-       SetFlag(BrakeStatus,+b_Rused+b_Ractive)
-     else
-       SetFlag(BrakeStatus,-b_Ractive)
-   else
-     if(Vel>70)then
-       SetFlag(BrakeStatus,+b_Rused+b_Ractive)
-     else if(Vel<50)then
-       SetFlag(BrakeStatus,-b_Ractive);
-
-{ //przyspieszacz wlaczany inaczej :)
-  if ((PPP-PipePress)/dt>0.002) then
-//   if not(TestFlag(BrakeStatus,b_on)) then
-     if(ABS(HighPipePress-PPP)<0.000001)then
-      if(BrakeCtrlPosNo=0)then
-       begin
-         SetFlag(SoundFlag,+sound_brakeacc);
-//         PipePress:=PipePress*(Dim.L*Spg/(Dim.L*Spg+0.5));
-         PipeBrakePress:=0.0045;
-         HighPipePress:=HighPipePress+0.0007;
-       end;    }
-
-
-//  if((PPP-PipePress)/dt<0.001)then
-//    SetFlag(BrakeStatus,-b_on);     //nie napelniaj
-(*  if((PPP-PipePress)/dt>0.0029)then  //przyspieszacz
-    if not(TestFlag(BrakeStatus,b_on))then
-     if(BrakeCtrlPosNo=0)then
-      begin
-        SetFlag(SoundFlag,sound_brakeacc);
-        PipePress:=PipePress*(Dim.L*Spg/(Dim.L*Spg+1));
-      end;*)
-//  if((PPP-PipePress)/dt>0.003)then
-//    SetFlag(BrakeStatus,+b_on);     //napelniaj
-
-
-    //  else //if (BrakeStatus=b_off) or (BrakeStatus=b_release) then
-  if(TestFlag(BrakeStatus,b_on))then
-    case BrakeSubsystem of
-     Oerlikon, Hik, KE:
-      if ((PipePress>HighPipePress) and (PPP>HighPipePress))or(PipePress>CntrlPipePress) then
-       begin
-        SetFlag(BrakeStatus,-b_on);
-        HighPipePress:=0.00002;
-        LowPipePress:= 0.00001;
-       end
-      else
-     else
-      if(BrakeVP<PipePress-0.01)then
-       begin
-        BrakeStatus:=(BrakeStatus and 254);
-        HighPipePress:=0.00002;
-        LowPipePress:= 0.00001;
-       end
-      else
-       if(dpBrake<0)then
-        BrakePress:=BrakePress-dpBrake;
-    end
-
-(*    if(ABS(HighPipePress-PPP)<0.000001)then
-     if(BrakeCtrlPosNo=0)then
-      begin
-        SetFlag(SoundFlag,sound_brakeacc);
-        PipePress:=PipePress*(Dim.L*Spg/(Dim.L*Spg+0.5));
-      end; *)
-  else
-   begin
-    if PipeBrakePress<0.0002 then
-      case BrakeSubsystem of
-        Hik, KE:
-         begin
-          if CntrlPipePress>PipePress then
-           CntrlPipePress:=CntrlPipePress-PR(PipePress,CntrlPipePress)*dt/50.0;
-           CntrlPipePress:=Max0R(CntrlPipePress,BrakeVP);
-         end;
-        Oerlikon:
-         begin
-          if CntrlPipePress>PipePress then
-           CntrlPipePress:=CntrlPipePress-PR(PipePress,CntrlPipePress)*dt/50.0
+if (BrakeCtrlPosNo>1) and (ActiveCab*ActiveCab>0)then
+with BrakePressureTable[BrakeCtrlPos] do
+begin
+          dpLocalValve:=LocHandle.GetPF(LocalBrakePos/LocalBrakePosNo, 0, ScndPipePress, dt, 0);
+          if(BrakeHandle=FV4a)and((PipePress>2.75)or((Hamulec.GetStatus and b_rls)=b_rls)) then
+            temp:=ScndPipePress
           else
-           if (Power<1)and(BrakeSystem=Pneumatic) then
-             CntrlPipePress:=Max0R(CntrlPipePress,BrakeVP)
-           else
+            temp:=PipePress+0.00001;
+          Handle.SetReductor(BrakeCtrlPos2);
+
+          dpMainValve:=Handle.GetPF(BrakeCtrlPosR, PipePress, temp, dt, EqvtPipePress);
+          if (dpMainValve<0)and(PipePressureVal>0.01) then             {50}
+            Pipe2.Flow(dpMainValve);
+end;
+
+//      if(EmergencyBrakeFlag)and(BrakeCtrlPosNo=0)then         {ulepszony hamulec bezp.}
+      if(EmergencyBrakeFlag)then         {ulepszony hamulec bezp.}
+        dpMainValve:=dpMainValve/2+PF(0,PipePress,0.2*Spg)*dt;
+
+      Pipe.Flow(-dpMainValve);
+      Pipe.Flow(-(Pipe.P)*0.01*dt);
+//      dpMainValve:=dpMainValve/(Dim.L*Spg*20);
+
+      CntrlPipePress:=Hamulec.GetVRP;
+
+
+      case BrakeValve of
+      LSt:
          begin
-             if (CabNo<>0) and (BrakeSystem=Pneumatic) then
+        LocBrakePress:=LocHandle.GetCP;
+        (Hamulec as TLSt).SetLBP(LocBrakePress);
+         end;
+      CV1_L_TR:
               begin
-               CntrlPipePress:=PipePress;
-               if (CntrlPipePress>BrakePressureTable[0].PipePressureVal) then
-                 CntrlPipePress:=BrakePressureTable[0].PipePressureVal
-              end
-             else
-               CntrlPipePress:=CntrlPipePress+SPR(PipePress,CntrlPipePress)*dt/50.0;
+        LocBrakePress:=LocHandle.GetCP;
+        (Hamulec as TCV1L_TR).SetLBP(LocBrakePress);
             end;
-         end
+       EP2:      (Hamulec as TEStEP2).PLC(TotalMass);
+       ESt3AL2:
+         if MBPM<2 then
+          (Hamulec as TESt3AL2).PLC(MaxBrakePress[LoadFlag])
         else
-         CntrlPipePress:=BrakeVP;
-      end;
-
-//        HighPipePress:=0;
-//        LowPipePress:=0;
-
-    if (CntrlPipePress-0.03+0.015*ord((BrakeSubsystem=Oerlikon)or(BrakeSubsystem=KE))>PipePress)and(CntrlPipePress-0.03+0.015*ord((BrakeSubsystem=Oerlikon)or(BrakeSubsystem=KE))>PPP) then
+          (Hamulec as TESt3AL2).PLC(TotalMass);
+       KE:
       begin
-        SetFlag(BrakeStatus,b_on);
-        case BrakeSubsystem of
-        Oerlikon, Hik, KE:
-         begin
-          HighPipePress:=PipePress;
-          LowPipePress:=PipePress-deltaPipePress;
-         end
+         LocBrakePress:=LocHandle.GetCP;
+        (Hamulec as TKE).SetLBP(LocBrakePress);
+         if MBPM<2 then
+          (Hamulec as TKE).PLC(MaxBrakePress[LoadFlag])
         else
-      begin
-          HighPipePress:=BrakeVP;
-          LowPipePress:=Volume/(10.0*(BrakeVVolume+BrakeVolume));
-          deltaPipePRess:=HighPipePress-LowPipePress;
+          (Hamulec as TKE).PLC(TotalMass);
          end;
         end;
-//        HighPipePress:=PipePress;
-//        LowPipePress:=PipePress-deltaPipePress;
-        if(BrakeCtrlPosNo=0)and(PipeBrakePress<0.002)and(BrakeVP>(CntrlPipePress-0.005))then
+
+      if (BrakeHandle = FVel6) and (ActiveCab*ActiveCab>0) then
          begin
-          SetFlag(SoundFlag,+sound_brakeacc);
-          PipePress:=PipePress*(Dim.L*Spg/(Dim.L*Spg+0.5));
-         end;
+        temp:=(Handle as TFVel6).GetCP;
+        (Hamulec as TEStEP2).SetEPS(temp);
+        SendCtrlToNext('Brake',temp,CabNo);
       end;
 
 
-(*    PipeBrakePress:=0;
-       if(BrakeSubSystem=Oerlikon)and(HighPipePress>0.48)then
-         HighPipePress:=Min0R(PipePress,HighPipePress+dt/500)
-       else
-         HighPipePress:=Min0R(PipePress,HighPipePress+dt/250);
-       LowPipePress:=HighPipePress-deltaPipePress;
-//     if BrakeStatus<>b_release then
-//       BrakeStatus:=b_off;
-     end
-    else if (PipePress-PPP)<0 then
-     begin
-       HighPipePress:=HighPipePress-PPP+PipePress;
-       LowPipePress:=HighPipePress-deltaPipePress;
-     end;
-//    if (BrakeStatus<>b_release) and ((PipePress-PPP)/dt>0.003) then
-//      BrakeStatus:=b_off;
+      Pipe.Act;
+      PipePress:=Pipe.P;
+      if (BrakeStatus and 128)=128 then //jesli hamulec wy³¹czony
+        temp:=0  //odetnij
+      else
+        temp:=1; //po³¹cz
+      Pipe.Flow(temp*Hamulec.GetPF(temp*PipePress,dt,Vel)+GetDVc(dt));
 
-//    else *)
-   end;
-//  else
-{   if(ABS(HighPipePress-PPP)<0.000001)then
-    if(BrakeCtrlPosNo=0)then
-     begin
-       SetFlag(SoundFlag,sound_brakeacc);
-       PipePress:=PipePress*(Dim.L*Spg/(Dim.L*Spg+0.5));
-     end;
-}
-//  if (PPP-PipePress)<0 then
-//    Brakestatus:=b_off;
-(************* yB: ROZDZIELACZ POWIETRZA - KONIEC **********************)
-//yB: na chwile zakomentuje, zobaczymy, czy sie na tym sypalo
-//  if(TrainType=dt_ET42)and(DynamicBrakeFlag)then
-//    if(PipePress<0.3)then ScndCtrlActualPos:=255
-//    else if(PipePress>0.45)and(ScndCtrlActualPos=255)then ScndCtrlActualPos:=0;
+      dpPipe:=0;
+
+//yB: jednokrokowe liczenie tego wszystkiego
+      Pipe.Act;
+      PipePress:=Pipe.P;
+
+  if PipePress<-1 then PipePress:=-1;
 
   if CompressedVolume<0 then
    CompressedVolume:=0;
-
-  PPP:=PipePress;
 end;  {updatepipepressure}
 
 
@@ -2581,57 +2207,49 @@ end;
 //youBy - przewod zasilajacy
 procedure T_MoverParameters.UpdateScndPipePressure(dt: real);
 const Spz=0.5067;
-var USPP, dpSPipe,dpSpipeBV: real;
-    c: T_MoverParameters;
+var c:T_MoverParameters;dv1,dv2,dv:real;
 begin
+  dv1:=0;
+  dv2:=0;
 
-  if (VeselVolume>0) then
-    USPP:=-sign(ScndPipePress-Compressor)*10*PR(Compressor,ScndPipePress)*dt
-  else
-    USPP:=0;
-
-  ScndPipePress:=ScndPipePress+USPP;
-  CompressedVolume:=CompressedVolume-USPP*Dim.L*Spz/100.0;
-
-  dpSpipe:=0;
-
+//sprzeg 1
   if Couplers[0].Connected<>nil then
    if TestFlag(Couplers[0].CouplingFlag,ctrain_scndpneumatic) then
     begin
       c:=Couplers[0].Connected; //skrot
-      USPP:=PR(ScndPipePress,c.ScndPipePress)*240.0*dt*sign(ScndPipePress-c.ScndPipePress);
-      c.ScndPipePress:=c.ScndPipePress+USPP/(10.0*c.Dim.L);
-      if c.ScndPipePress<0 then begin USPP:=ScndPipePress*10*c.Dim.L*Spz; c.ScndPipePress:=0;end;
-      dpSpipe:=dpSpipe-USPP/(10.0*Dim.L);
-      if not c.PhysicActivation then
-       if Abs(USPP)>0.000000001 then
-        c.Physic_ReActivation;  {aktywacja fizyki podlaczonego skladu}
+       dv1:=0.5*dt*PF(ScndPipePress,c.ScndPipePress,Spg*0.75);
+       if (dv1*dv1>0.00000000000001) then c.Physic_Reactivation;
+       c.Pipe2.Flow(-dv1);
     end;
+//sprzeg 2
   if Couplers[1].Connected<>nil then
    if TestFlag(Couplers[1].CouplingFlag,ctrain_scndpneumatic) then
      begin
        c:=Couplers[1].Connected; //skrot
-       USPP:=PR(ScndPipePress,c.ScndPipePress)*240.0*dt*sign(ScndPipePress-c.ScndPipePress);
-       c.ScndPipePress:=c.ScndPipePress+USPP/(10.0*c.Dim.L);
-       if c.ScndPipePress<0 then begin USPP:=ScndPipePress*10*c.Dim.L*Spz; c.ScndPipePress:=0;end;
-       dpSpipe:=dpSpipe-USPP/(10.0*Dim.L);
-       if not c.PhysicActivation then
-        if Abs(USPP)>0.000000001 then
-         c.Physic_ReActivation;  {aktywacja fizyki podlaczonego skladu}
+       dv2:=0.5*dt*PF(ScndPipePress,c.ScndPipePress,Spg*0.75);
+       if (dv2*dv2>0.00000000000001) then c.Physic_Reactivation;
+       c.Pipe2.Flow(-dv2);
+      end;
+  if(Couplers[1].Connected<>nil)and(Couplers[0].Connected<>nil)then
+    if (TestFlag(Couplers[0].CouplingFlag,ctrain_scndpneumatic))and(TestFlag(Couplers[1].CouplingFlag,ctrain_scndpneumatic))then
+     begin
+      dv:=0.25*dt*PF(Couplers[0].Connected.ScndPipePress,Couplers[1].Connected.ScndPipePress,Spg*0.7);
+      Couplers[0].Connected.Pipe2.Flow(+dv);
+      Couplers[1].Connected.Pipe2.Flow(-dv);
       end;
 
-  dpSpipeBV:=0;
+  Pipe2.Flow(Hamulec.GetHPFlow(ScndPipePress, dt));
 
-  if (((Power>1)or(BrakeSystem=Electropneumatic))and(BrakeSubsystem=Oerlikon)) then
-    if(BrakeVP<ScndPipePress)then
+  if ((Compressor>ScndPipePress) and (CompressorSpeed>0.0001)) or (TrainType=dt_EZT) then
      begin
-      dpSpipeBV:=sign(BrakeVP-ScndPipePress)*PR(ScndPipePress,BrakeVP)*(Dim.L*Spz)/(Dim.L*Spz+BrakeVVolume)*dt/50.0;
-      Volume:=Volume-dpSpipeBV*BrakeVVolume*10.0;
-      dpSpipeBV:=(dpSpipeBV*1000.0*BrakeVVolume)/(Spz*Dim.L);
+    dV:=PF(Compressor,ScndPipePress,Spz)*dt;
+    CompressedVolume:=CompressedVolume+dV/1000;
+    Pipe2.Flow(-dV);
      end;
 
-  ScndPipePress:=ScndPipePress+dpSpipe+dpSpipeBV;
-  if ScndPipePress<0 then ScndPipePress:=0
+  Pipe2.Flow(dv1+dv2);
+  Pipe2.Act;
+  ScndPipePress:=Pipe2.P;
 
 end;
 
@@ -2787,6 +2405,24 @@ var //Rw,
     SP: byte;
 begin
   MotorCurrent:=0;
+//i dzialanie hamulca ED w EP09
+  if (DynamicBrakeType=dbrake_automatic) then
+   begin
+    if (BrakePress>0.2) and ((Hamulec as TLSt).GetEDBCP>0.2) then
+      DynamicBrakeFlag:=True
+    else if ((Hamulec as TLSt).GetEDBCP<0.2) then
+      DynamicBrakeFlag:=False;
+   end;
+//wylacznik cisnieniowy
+  if BrakePress>2 then
+   begin
+//    StLinFlag:=true;
+    DelayCtrlFlag:=true;
+    DynamicBrakeFlag:=false;
+   end;
+  if BrakeSubSystem=ss_LSt then
+   (Hamulec as TLSt).SetED((DynamicBrakeFlag)and(Vel>30));
+
   ResistorsFlag:=(RList[MainCtrlActualPos].R>0.01) and (not DelayCtrlFlag);
   ResistorsFlag:=ResistorsFlag or ((DynamicBrakeFlag=true) and (DynamicBrakeType=dbrake_automatic));
   R:=RList[MainCtrlActualPos].R+CircuitRes;
@@ -3666,7 +3302,7 @@ begin
 end;
 
 function T_MoverParameters.BrakeForce(Track:TTrackParam):real;
-var u,K,Fb,NBrakeAxles,sm:real;
+var K,Fb,NBrakeAxles,sm:real;
 //const OerlikonForceFactor=1.5;
 begin
   K:=0;
@@ -3678,40 +3314,27 @@ begin
    NoBrake :      K:=0;
    ManualBrake :  K:=MaxBrakeForce*LocalBrakeRatio;
    HydraulicBrake : K:=MaxBrakeForce*LocalBrakeRatio;
-   PneumaticBrake:if Compressor<MaxBrakePress then
+   PneumaticBrake:if Compressor<MaxBrakePress[3] then
                    K:=MaxBrakeForce*LocalBrakeRatio/2.0
                   else
                    K:=0;
   end;
 
-  if (BrakeSystem=Pneumatic)or(BrakeSystem=ElectroPneumatic) then
-  begin
-   sm:=1;
-   //test pozycji pospiesznej
-   if TestFlag(BrakeDelays,bdelay_R)then
-    if(not TestFlag(BrakeStatus,b_Ractive)and(BrakeCtrlPosNo=0))then
-      sm:=0.5
-    else if(TestFlag(BrakeStatus,b_Ractive)and(BrakeCtrlPosNo>0))then
-      sm:=1.5;
                  //0.03
-   if (BrakePress)>(0.05*MaxBrakePress*sm) then         {nie luz}
+
+  u:=((BrakePress*P2FTrans)-BrakeCylSpring)*BrakeCylMult[0]-BrakeSlckAdj;
+  if u>0 then         {nie luz}
     begin
- //     if (BrakeSubsystem=Oerlikon) and (Vel>50) then //yB: to na razie komentuje, potem sie zrobi lepiej
- //      K:=K+BrakePress*P2FTrans*OerlikonForceFactor  {w kN}
- //     else
-       K:=K+BrakePress*P2FTrans;                     {w kN}
+     K:=K+u;                     {w kN}
       K:=K*BrakeCylNo/(NBrakeAxles*NBpA);            {w kN na os}
     end;
-   if (BrakeMethod and 1 = 0) then
-     u:=60*(0.16*K+100.0)/((0.8*K+100.0)*(3.0*Vel+100.0)) {wsp. tarcia}
-   else
-     u:=0.4*(0.4*K+100.0)*(Vel+80.0)/((0.8*K+100.0)*(2.0*Vel+80.0)); {wsp. tarcia}
-  end //BrakeSystem=Pneumatic
-  else
+  if (BrakeSystem=Pneumatic)or(BrakeSystem=ElectroPneumatic) then
   begin
-   u:=1;
-  end; //else BrakeSystem=Pneumatic
+    u:=Hamulec.GetFC(Vel, K);
   UnitBrakeForce:=u*K*1000;                     {sila na jeden klocek w N}
+   end
+  else
+    UnitBrakeForce:=K*1000;
   if (NBpA*UnitBrakeForce>TotalMassxg*Adhesive(RunningTrack.friction)/NAxles) and (Abs(V)>0.001) then
    {poslizg}
    begin
@@ -3721,11 +3344,12 @@ begin
 {  else
    begin
 {     SlippingWheels:=False;}
-     if (LocalBrake=ManualBrake) and (BrakePress<0.05*MaxBrakePress) then
+     if (LocalBrake=ManualBrake) and (BrakePress<0.3) then
       Fb:=UnitBrakeForce*NBpA {ham. reczny dziala na jedna os}
      else
       Fb:=UnitBrakeForce*NBrakeAxles*NBpA;
 
+//  u:=((BrakePress*P2FTrans)-BrakeCylSpring*BrakeCylMult[BCMFlag]/BrakeCylNo-0.83*BrakeSlckAdj/(BrakeCylNo))*BrakeCylNo;
  {  end; }
   BrakeForce:=Fb;
 end;
@@ -3994,8 +3618,8 @@ begin
     Vel:=Abs(V)*3.6;
     nrot:=V2n(); //przeliczenie prêdkoœci liniowej na obrotow¹
 
-    if TestFlag(BrakeMethod,2) and (PipePress<CntrlPipePress/3.0)then
-      FStand:=Fstand+(RunningTrack.friction)*TrackBrakeForce;
+    if TestFlag(BrakeMethod,bp_MHS) and (PipePress<3.0) and (Vel>45) then //ustawione na sztywno na 3 bar
+      FStand:=Fstand+TrackBrakeForce;
 
 //    if(FullVer=True) then
 //    begin //ABu: to dla optymalizacji, bo chyba te rzeczy wystarczy sprawdzac 1 raz na klatke?
@@ -4230,7 +3854,7 @@ begin
 
 {uklady hamulcowe:}
   if VeselVolume>0 then
-   Compressor:=CompressedVolume/(10.0*VeselVolume)
+   Compressor:=CompressedVolume/(VeselVolume)
   else
    begin
      Compressor:=0;
@@ -4246,7 +3870,8 @@ begin
 
 {hamulec antyposlizgowy - wylaczanie}
  if BrakeSlippingTimer>ASBSpeed then
-  SetFlag(BrakeStatus,-b_antislip);
+   Hamulec.ASB(0);
+//  SetFlag(BrakeStatus,-b_antislip);
  BrakeSlippingTimer:=BrakeSlippingTimer+dt;
 {sypanie piasku - wylaczone i piasek sie nie konczy - bledy AI}
 //if AIControllFlag then
@@ -4369,7 +3994,7 @@ begin
 
 {uklady hamulcowe:}
   if VeselVolume>0 then
-   Compressor:=CompressedVolume/(10.0*VeselVolume)
+   Compressor:=CompressedVolume/(VeselVolume)
   else
    begin
      Compressor:=0;
@@ -4384,7 +4009,7 @@ begin
 
 {hamulec antyposlizgowy - wylaczanie}
  if BrakeSlippingTimer>ASBSpeed then
-  SetFlag(BrakeStatus,-b_antislip);
+   Hamulec.ASB(0);
  BrakeSlippingTimer:=BrakeSlippingTimer+dt;
 end; {FastComputeMovement}
 
@@ -4482,32 +4107,7 @@ Begin
    end *)
   else if command='Brake' then //youBy - jak sie EP hamuje, to trza sygnal wyslac...
    begin
-     case BrakeSubsystem of
-      Oerlikon,WeLu:
-       begin
-         BrakeCtrlPos:=Trunc(Cvalue1);
-         if Trunc(CValue1)=0 then
-           SetFlag(BrakeStatus,-b_epused)
-         else
-           SetFlag(BrakeStatus,b_epused);
-       end;
-      Knorr:
-       begin
-         case Trunc(CValue1) of
-         -1:
-           begin
-             BrakeCtrlPos:=0;
-             SetFlag(BrakeStatus,b_epused);
-           end;
-          0: SetFlag(BrakeStatus,-b_epused);
-          1:
-           begin
-             BrakeCtrlPos:=1;
-             SetFlag(BrakeStatus,b_epused);
-           end;
-          end;
-       end;
-     end;
+     if (Hamulec is TEStEP2) then (Hamulec as TEStEP2).SetEPS(CValue1);
      OK:=SendCtrlToNext(command,CValue1,CValue2);
    end //youby - odluzniacz hamulcow, przyda sie
   else if command='BrakeReleaser' then
@@ -4908,6 +4508,7 @@ begin
     BrakeCylMult[b]:=0;
   VeselVolume:=0;
   BrakeVolume:=0;
+  RapidMult:=1;
   dizel_Mmax:=1; dizel_nMmax:=1; dizel_Mnmax:=2; dizel_nmax:=2; dizel_nominalfill:=0;
   dizel_Mstand:=0;
   dizel_nmax_cutoff:=0;
@@ -4993,7 +4594,7 @@ begin
   MBPM:=1;
   DynamicBrakeFlag:=False;
   BrakeSystem:=Individual;
-  BrakeSubsystem:=Standard;
+  BrakeSubsystem:=ss_None;
   Ft:=0; Ff:=0; Fb:=0;
   Ftotal:=0; FStand:=0; FTrain:=0;
   AccS:=0; AccN:=0; AccV:=0;
@@ -5139,23 +4740,85 @@ begin
      OK:=False;
    end;
   if BrakeSystem=Individual then
-   if BrakeSubSystem<>Standard then
+   if BrakeSubSystem<>ss_None then
     OK:=False; {!}
 
- if(BrakeVVolume=0)and(MaxBrakePress>0)and(BrakeSystem<>Individual)then
-   BrakeVVolume:=MaxBrakePress/(CntrlPipePress-MaxBrakePress)*BrakeVolume;
+ if(BrakeVVolume=0)and(MaxBrakePress[3]>0)and(BrakeSystem<>Individual)then
+   BrakeVVolume:=MaxBrakePress[3]/(5-MaxBrakePress[3])*(BrakeCylRadius*BrakeCylRadius*BrakeCylDist*BrakeCylNo*pi)*1000;
  if BrakeVVolume=0 then BrakeVVolume:=0.01;
+
+//  Hamulec.Free;
+//(i_mbp, i_bcr, i_bcd, i_brc: real; i_bcn, i_BD, i_mat, i_ba, i_nbpa: byte)
+
+case BrakeValve of
+  W, K : Hamulec := TWest.Create(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
+  KE :   begin
+          Hamulec := TKE.Create(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
+         (Hamulec as TKE).SetRM(RapidMult);
+          if(MBPM<2)then //jesli przystawka wazaca
+           (Hamulec as TKE).SetLP(0,MaxBrakePress[3],0)
+         else
+           (Hamulec as TKE).SetLP(Mass, MBPM, MaxBrakePress[1])
+         end;
+  ESt3, ESt3AL2: if (MaxBrakePress[1])>0 then
+         begin
+          Hamulec := TESt3AL2.Create(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
+          if(MBPM<2)then
+         (Hamulec as TESt3AL2).SetLP(0,MaxBrakePress[3],0)
+         else
+         (Hamulec as TESt3AL2).SetLP(Mass, MBPM, MaxBrakePress[1])
+         end
+        else
+          Hamulec := TESt3.Create(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
+  LSt   :begin
+          Hamulec :=  TLSt.Create(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
+          (Hamulec as TLSt).SetRM(RapidMult);
+         end;
+  EP2:begin
+         Hamulec :=TEStEP2.Create(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
+         (Hamulec as TEStEP2).SetLP(Mass, MBPM, MaxBrakePress[1]);
+        end;
+  ESt4  :if (BrakeDelays and bdelay_R)=bdelay_R then
+           Hamulec:=TESt4R.Create(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA)
+         else
+           Hamulec:= TESt.Create(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
+  CV1  :  Hamulec:= TCV1.Create(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
+  CV1_L_TR:Hamulec:= TCV1L_TR.Create(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA)
+else
+  Hamulec :=  TBrake.Create(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
+end;
+
+case BrakeHandle of
+  FV4a: Handle := TFV4aM.Create;
+  FVel6: Handle := TFVel6.Create;
+  testH: Handle := Ttest.Create;
+else
+  Handle := THandle.Create;
+end;
+
+case BrakeLocHandle of
+  FD1:
+   begin
+    LocHandle := TFD1.Create;
+    LocHandle.Init(MaxBrakePress[0]);
+   end;
+else
+  LocHandle := THandle.Create;
+end;
+
+  Pipe:= TReservoir.Create;
+  Pipe2:= TReservoir.Create;
+  Pipe.CreateCap((Dim.L+0.5)*Spg*1.1); //dlugosc x przekroj x odejscia i takie tam
+  Pipe2.CreateCap((Dim.L+0.5)*Spg*1.1);
 
  {to dac potem do init}
   if ReadyFlag then     {gotowy do drogi}
    begin
-     Volume:=BrakeVVolume*CntrlPipePress*10;
-     if (BrakeSubsystem=Oerlikon) and (((BrakeSystem=Pneumatic)and(Power>1))or(BrakeSystem=ElectroPneumatic)) then
-       Volume:=BrakeVVolume*MinCompressor*10;
-     CompressedVolume:=VeselVolume*MinCompressor*(9.8+Random);
-     ScndPipePress:=MinCompressor*(9.8+Random)/10.0;
+     CompressedVolume:=VeselVolume*MinCompressor*(9.8+Random)/10;
+     ScndPipePress:=CompressedVolume/VeselVolume;
      PipePress:=CntrlPipePress;
-     LocalBrakePos:=0; //wyluzowany hamulec pomocniczy
+     BrakePress:=0;
+     LocalBrakePos:=0;
      if (BrakeSystem=Pneumatic) and (BrakeCtrlPosNo>0) then
       if CabNo=0 then
        BrakeCtrlPos:=-2; //odciêcie na zespolonym
@@ -5169,40 +4832,51 @@ begin
    end
   else
    begin                {zahamowany}
-     Volume:=BrakeVVolume*(MaxBrakePress+CntrlPipePress)*5;
-     CompressedVolume:=VeselVolume*MinCompressor*5.5;
-     ScndPipePress:=0.5;
+     Volume:=BrakeVVolume*MaxBrakePress[3];
+     CompressedVolume:=VeselVolume*MinCompressor*0.55;
+     ScndPipePress:=5.1;
      PipePress:=LowPipePress;
-     PipeBrakePress:=MaxBrakePress*0.5;
-     BrakePress:=MaxBrakePress*0.5;
+     PipeBrakePress:=MaxBrakePress[3];
+     BrakePress:=MaxBrakePress[3];
      LocalBrakePos:=0;
      if (BrakeSystem=Pneumatic) and (BrakeCtrlPosNo>0) then
       BrakeCtrlPos:=-2;
      LimPipePress:=LowPipePress;
-     BrakeStatus:=b_on;
    end;
   ActFlowSpeed:=0;
 
-  bcmsno:=0;
-  bcmss:=0;
+  Pipe.CreatePress(PipePress);
+  Pipe2.CreatePress(ScndPipePress);
+  Pipe.Act;Pipe2.Act;
+
+  EqvtPipePress:=PipePress;
+
+////  fv4ac:=Pipe.P;
+////  fv4ar:=Pipe.P;
+
+  Handle.Init(PipePress);
 
   ComputeConstans();
 
-  for b:=3 downto 0 do
-    if BrakeCylMult[b]>0 then
+
+  if(LoadFlag>0)then
      begin
-      bcmsno:=bcmsno+1;
-      bcmss:=b;
+    if(Load<MaxLoad*0.45)then
+     begin
+      IncBrakeMult();IncBrakeMult();DecBrakeMult();
+      if(Load<MaxLoad*0.35)then
+        DecBrakeMult();
      end;
-  case bcmsno of
-   1: BCMFlag:=bcmss;
-   2: if (Load>MaxLoad*0.55) then BCMFlag:=bcmss+1 else BCMFlag:=bcmss;
-   3: if (Load>MaxLoad*0.70) then BCMFlag:=bcmss+2 else if (Load>MaxLoad*0.35) then BCMFlag:=bcmss+1 else BCMFlag:=bcmss;
-   4: if (Load>MaxLoad*0.80) then BCMFlag:=bcmss+3 else if (Load>MaxLoad*0.55) then BCMFlag:=bcmss+2 else if (Load>MaxLoad*0.3) then BCMFlag:=bcmss+1 else BCMFlag:=bcmss;
+    if(Load>=MaxLoad*0.45)then
+     begin
+      IncBrakeMult();
+      if(Load>=MaxLoad*0.55)then
+        IncBrakeMult();
+     end;
   end;
-   P2FTrans:=1000*Pi*SQR(BrakeCylRadius)*BrakeCylMult[BCMFlag]; {w kN/MPa}
 
 //taki mini automat - powinno byc ladnie dobrze :)
+    BrakeDelayFlag:=bdelay_P;
   if(TestFlag(BrakeDelays,bdelay_G))and not(TestFlag(BrakeDelays,bdelay_R))then
     BrakeDelayFlag:=bdelay_G;
   if(TestFlag(BrakeDelays,bdelay_R))and not(TestFlag(BrakeDelays,bdelay_G))then
@@ -5219,6 +4893,11 @@ begin
   if(TypeName='et22')then
     CompressorPower:=0;
 
+//  Hamulec.Init(10*PipePress, 10*HighPipePress-0.15, 10*LowPipePress-0.15, 10*BrakePress, BrakeDelayFlag);
+  Hamulec.Init(PipePress, HighPipePress, LowPipePress, BrakePress, BrakeDelayFlag);
+//  Hamulec.Init(0, 0, -1.5, 0, BrakeDelayFlag);
+  PipePress:=PipePress;
+  ScndPipePress:=Compressor;
   CheckLocomotiveParameters:=OK;
 end;
 
@@ -5347,6 +5026,63 @@ var
   b,OKflag:byte;
   fin: text;
   OK: boolean;
+procedure BrakeValveDecode(s:string);
+begin
+   if s='W' then
+     BrakeValve:=W
+   else if s='W_Lu_L' then
+     BrakeValve:=W_Lu_L
+   else if s='W_Lu_XR' then
+     BrakeValve:=W_Lu_XR
+   else if s='W_Lu_VI' then
+     BrakeValve:=W_Lu_VI
+   else if s='K' then
+     BrakeValve:=W
+   else if s='Kkg' then
+     BrakeValve:=Kkg
+   else if s='Kkp' then
+     BrakeValve:=Kkp
+   else if s='Kks' then
+     BrakeValve:=Kks
+   else if s='Hikp1' then
+     BrakeValve:=Hikp1
+   else if s='Hikss' then
+     BrakeValve:=Hikss
+   else if s='Hikg1' then
+     BrakeValve:=Hikg1
+   else if s='KE' then
+     BrakeValve:=KE
+   else if s='ESt3' then
+     BrakeValve:=ESt3
+   else if s='ESt3AL2' then
+     BrakeValve:=ESt3AL2
+   else if s='LSt' then
+     BrakeValve:=LSt
+   else if s='ESt4' then
+     BrakeValve:=ESt4
+   else if s='EP2' then
+     BrakeValve:=EP2
+   else if s='EP1' then
+     BrakeValve:=EP1
+   else if s='CV1' then
+     BrakeValve:=CV1
+   else if s='CV1_L_TR' then
+     BrakeValve:=CV1_L_TR
+   else
+     BrakeValve:=Other;
+end;
+procedure BrakeSubsystemDecode;
+begin
+  case BrakeValve of
+    W,W_Lu_L,W_Lu_VI,W_Lu_XR: BrakeSubsystem:=ss_W;
+    ESt3,ESt3AL2,ESt4,EP2,EP1: BrakeSubsystem:=ss_ESt;
+    KE: BrakeSubsystem:=ss_KE;
+    CV1, CV1_L_TR: BrakeSubsystem:=ss_Dako;
+    LSt: BrakeSubsystem:=ss_LSt;
+  else
+    BrakeSubsystem:=ss_None;
+  end;
+end;
 function EngineDecode(s:string):TEngineTypes;
  begin
    if s='ElectricSeriesMotor' then
@@ -5566,19 +5302,8 @@ begin
             end
           else if Pos('Brake:',lines)>0 then      {hamulce}
             begin
-              s:=DUE(ExtractKeyWord(lines,'BrakeType='));
-              if s='Oerlikon' then BrakeSubSystem:=Oerlikon
-              else
-               if s='Knorr' then BrakeSubSystem:=Knorr
-               else
-                if s='WeLu' then BrakeSubSystem:=WeLu
-                else
-                 if s='KE' then BrakeSubSystem:=KE
-                 else
-                 if s='Hik' then BrakeSubSystem:=Hik
-                  else
-                  if s='Kunze-Knorr' then BrakeSubSystem:=Kk
-                   else BrakeSubSystem:=Standard;
+              BrakeValveDecode(DUE(ExtractKeyWord(lines,'BrakeValve=')));
+              BrakeSubSystemDecode;
               s:=ExtractKeyWord(lines,'NBpA=');
               NBpA:=s2b(DUE(s));
               s:=ExtractKeyWord(lines,'MBF=');
@@ -5586,28 +5311,55 @@ begin
               s:=ExtractKeyWord(lines,'TBF=');
               TrackBrakeForce:=s2r(DUE(s))*1000;
               s:=ExtractKeyWord(lines,'MaxBP=');
-              MaxBrakePress:=s2r(DUE(s));
-              if MaxBrakePress>0 then
+              MaxBrakePress[3]:=s2r(DUE(s));
+              if MaxBrakePress[3]>0 then
                begin
                  s:=ExtractKeyWord(lines,'BCN=');
                  BrakeCylNo:=s2iE(DUE(s));
                  if BrakeCylNo>0 then
                   begin
+                   s:=ExtractKeyWord(lines,'MaxLBP=');
+                   MaxBrakePress[0]:=s2r(DUE(s));
+                   if MaxBrakePress[0]<0.01 then
+                   MaxBrakePress[0]:=MaxBrakePress[3];
+                   s:=DUE(ExtractKeyWord(lines,'TareMaxBP='));
+                   MaxBrakePress[1]:=s2r(s);
+                   s:=DUE(ExtractKeyWord(lines,'MedMaxBP='));
+                   MaxBrakePress[2]:=s2r(s);
                    s:=ExtractKeyWord(lines,'BCR=');
                    BrakeCylRadius:=s2rE(DUE(s));
                    s:=ExtractKeyWord(lines,'BCD=');
                    BrakeCylDist:=s2r(DUE(s));
-                   s:=ExtractKeyWord(lines,'BCM0=');
+                   s:=ExtractKeyWord(lines,'BCS=');
+                   BrakeCylSpring:=s2r(DUE(s));
+                   s:=ExtractKeyWord(lines,'BSA=');
+                   BrakeSlckAdj:=s2r(DUE(s));
+                   s:=ExtractKeyWord(lines,'BCM=');
                    BrakeCylMult[0]:=s2r(DUE(s));
                    s:=ExtractKeyWord(lines,'BCMlo=');
                    BrakeCylMult[1]:=s2r(DUE(s));
-                   s:=ExtractKeyWord(lines,'BCM=');
+                   s:=ExtractKeyWord(lines,'BCMHi=');
                    BrakeCylMult[2]:=s2r(DUE(s));
-                   s:=ExtractKeyWord(lines,'BCMmax=');
-                   BrakeCylMult[3]:=s2r(DUE(s));
-                   P2FTrans:=1000*Pi*SQR(BrakeCylRadius)*BrakeCylMult[2]; {w kN/MPa}
-                   BCMFlag:=2;
+                   P2FTrans:=100*Pi*SQR(BrakeCylRadius); {w kN/bar}
+                   if (BrakeCylMult[1]>0) or (MaxBrakePress[1]>0) then LoadFlag:=1 else LoadFlag:=0;
                    BrakeVolume:=Pi*SQR(BrakeCylRadius)*BrakeCylDist*BrakeCylNo;
+                   s:=ExtractKeyWord(lines,'BVV=');
+                   BrakeVVolume:=s2R(DUE(s));
+
+                   s:=DUE(ExtractKeyWord(lines,'BM='));
+                   if s='P10-Bg'    then BrakeMethod:=bp_P10Bg else
+                   if s='P10-Bgu'   then BrakeMethod:=bp_P10Bgu else
+                   if s='FR513'     then BrakeMethod:=bp_FR513 else
+                   if s='Cosid'     then BrakeMethod:=bp_Cosid else
+                   if s='P10yBg'    then BrakeMethod:=bp_P10yBg else
+                   if s='P10yBgu'   then BrakeMethod:=bp_P10yBgu else
+                   if s='Disk1'     then BrakeMethod:=bp_D1 else
+                   if s='Disk1+Mg'  then BrakeMethod:=bp_D1+bp_MHS else                                      
+                                         BrakeMethod:=0;
+
+                   s:=ExtractKeyWord(lines,'RM=');
+                   RapidMult:=s2r(DUE(s));                                         
+
                   end
                  else ConversionError:=-5;
                end
@@ -5615,11 +5367,11 @@ begin
                P2FTrans:=0;
               s:=ExtractKeyWord(lines,'HiPP=');
               if s<>'' then CntrlPipePress:=s2r(DUE(s))
-               else CntrlPipePress:=0.5;
-              HighPipePress:=CntrlPipePress-0.03+0.015*ord((BrakeSubsystem=Oerlikon)or(BrakeSubsystem=KE));
+               else CntrlPipePress:=5;
+              HighPipePress:=CntrlPipePress;
               s:=ExtractKeyWord(lines,'LoPP=');
               if s<>'' then LowPipePress:=s2r(DUE(s))
-               else LowPipePress:=Min0R(HighPipePress,0.35);
+               else LowPipePress:=Min0R(HighPipePress,3.5);
               DeltaPipePress:=HighPipePress-LowPipePress;
               s:=ExtractKeyWord(lines,'Vv=');
               VeselVolume:=s2r(DUE(s));
@@ -5834,14 +5586,35 @@ begin
                   end;
 
                  s:=DUE(ExtractKeyWord(lines,'BrakeDelays='));
-                 if s='GPR' then Brakedelays:=bdelay_G+bdelay_R
-                 else if s='PR' then Brakedelays:=bdelay_R
-                 else if s='GP' then Brakedelays:=bdelay_G
-                 else if s='DPR+Mg' then begin Brakedelays:=bdelay_R; BrakeMethod:=3; end
+                 if s='GPR' then BrakeDelays:=bdelay_G+bdelay_P+bdelay_R
+                 else if s='PR' then BrakeDelays:=bdelay_P+bdelay_R
+                 else if s='GP' then BrakeDelays:=bdelay_G+bdelay_P
+                 else if s='R' then begin BrakeDelays:=bdelay_R; BrakeDelayFlag:=bdelay_R; end
+                 else if s='P' then begin BrakeDelays:=bdelay_P; BrakeDelayFlag:=bdelay_P; end
+                 else if s='G' then begin BrakeDelays:=bdelay_G; BrakeDelayFlag:=bdelay_G; end
+                 else if s='GPR+Mg' then BrakeDelays:=bdelay_G+bdelay_P+bdelay_R+bdelay_M
+                 else if s='PR+Mg' then BrakeDelays:=bdelay_P+bdelay_R+bdelay_M;
+
+{                 else if s='DPR+Mg' then begin Brakedelays:=bdelay_R; BrakeMethod:=3; end
                  else if s='DGPR+Mg' then begin Brakedelays:=bdelay_G+bdelay_R; BrakeMethod:=3; end
                  else if s='DGPR' then begin Brakedelays:=bdelay_G+bdelay_R; BrakeMethod:=1; end
-                 else if s='DPR' then begin Brakedelays:=bdelay_R; BrakeMethod:=1; end;
+                 else if s='DPR' then begin Brakedelays:=bdelay_R; BrakeMethod:=1; end
+                 else if s='DGP' then begin Brakedelays:=bdelay_G; BrakeMethod:=1; end;}
 //                  else if s='GPR' then Brakedelays=bdelay_G+bdelay_R
+
+                 s:=DUE(ExtractKeyWord(lines,'BrakeHandle='));
+                      if s='FV4a' then BrakeHandle:=FV4a
+                 else if s='test' then BrakeHandle:=testH
+                 else if s='D2' then BrakeHandle:=D2
+                 else if s='M394' then BrakeHandle:=M394
+                 else if s='Knorr' then BrakeHandle:=Knorr
+                 else if s='Westinghouse' then BrakeHandle:=West
+                 else if s='FVel6' then BrakeHandle:=FVel6;
+
+                 s:=DUE(ExtractKeyWord(lines,'LocBrakeHandle='));
+                      if s='FD1' then BrakeLocHandle:=FD1
+                 else if s='Knorr' then BrakeLocHandle:=Knorr
+                 else if s='Westinghouse' then BrakeLocHandle:=West;
 
                  s:=DUE(ExtractKeyWord(lines,'MaxBPMass='));
                  if s<>'' then
