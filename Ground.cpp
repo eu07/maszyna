@@ -1381,7 +1381,7 @@ void __fastcall TGround::RaTriangleDivider(TGroundNode* node)
 TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
 {//wczytanie wpisu typu "node"
  //parser->LoadTraction=Global::bLoadTraction; //Ra: tu nie potrzeba powtarzaæ
- AnsiString str,str1,str2,str3,Skin,DriverType,asNodeName;
+ AnsiString str,str1,str2,str3,str4,Skin,DriverType,asNodeName;
  int nv,ti,i,n;
  double tf,r,rmin,tf1,tf2,tf3,tf4,l,dist,mgn;
  int int1,int2;
@@ -1566,7 +1566,21 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
     DriverType=AnsiString(token.c_str()); //McZapkie:010303 - w przyszlosci rozne konfiguracje mechanik/pomocnik itp
     tf3=fTrainSetVel; //prêdkoœæ
     parser->getTokens();
-    *parser >> int1;
+    *parser >> token;
+    str4=AnsiString(token.c_str());
+    int2=str4.Pos("."); //yB: wykorzystuje tutaj zmienna, ktora potem bedzie ladunkiem
+    if (int2>0) //yB: jesli znalazl kropke, to ja przetwarza jako parametry
+    {
+      int1=str4.SubString(1, int2-1).ToInt(); //niech sprzegiem bedzie do kropki cos
+      str4=str4.SubString(int2, str4.Length()+5);
+    }
+    else
+    {
+     int1=str4.ToInt();
+     str4="";
+    }
+    int2=0; //zeruje po wykorzystaniu
+//    *parser >> int1; //yB: nastawy i takie tam TUTAJ!!!!!
     TempConnectionType[iTrainSetWehicleNumber]=int1;
     iTrainSetWehicleNumber++;
    }
@@ -1605,7 +1619,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    {//jeœli tor znaleziony
     Track=tmp1->pTrack;
     //WriteLog("Dynamic shift: "+AnsiString(fTrainSetDist));
-    tf1=tmp->DynamicObject->Init(asNodeName,str1,Skin,str3,Track,(tf1==-1.0?fTrainSetDist:tf1+fTrainSetDist),DriverType,tf3,asTrainName,int2,str2,(tf1==-1.0));
+    tf1=tmp->DynamicObject->Init(asNodeName,str1,Skin,str3,Track,(tf1==-1.0?fTrainSetDist:tf1+fTrainSetDist),DriverType,tf3,asTrainName,int2,str2,(tf1==-1.0),str4);
     if (tf1>0.0) //zero oznacza b³¹d
     {fTrainSetDist-=tf1; //przesuniêcie dla kolejnego, minus bo idziemy w stronê punktu 1
      tmp->pCenter=tmp->DynamicObject->GetPosition();
