@@ -89,6 +89,7 @@ public:
     TGauge CylHamGauge;
     TGauge PrzGlGauge;
     TGauge ZbGlGauge;
+    TGauge ZbSGauge;    
     //ABu: zdublowane dla dwukierunkowych kabin
        TGauge VelocityGaugeB;
        TGauge I1GaugeB;

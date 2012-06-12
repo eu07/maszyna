@@ -1941,6 +1941,8 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
 
     if (Mechanik)
     {
+     MoverParameters->EqvtPipePress= GetEPP(); //srednie cisnienie w PG
+
 /*
      //ABu: proba szybkiego naprawienia bledu z zatrzymujacymi sie bez powodu skladami
      if ((MoverParameters->CabNo!=0)&&(Controller!=Humandriver)&&(!MoverParameters->Mains)&&(Mechanik->EngineActive))

@@ -2106,17 +2106,17 @@ bool __fastcall TTrain::Update()
 //McZapkie-280302 - syczenie
       if (rsHiss.AM!=0)
        {
-          fPPress=(fPPress+Max0R(DynamicObject->MoverParameters->dpLocalValve,DynamicObject->MoverParameters->dpMainValve))/2;
+          fPPress=(4*fPPress+Max0R(DynamicObject->MoverParameters->dpLocalValve,DynamicObject->MoverParameters->dpMainValve))/(4+1);
           if (fPPress>0)
            {
-            vol=2*rsHiss.AM*fPPress;
+            vol=2*rsHiss.AM*fPPress*0.003;
            }
-          fNPress=(fNPress+Min0R(DynamicObject->MoverParameters->dpLocalValve,DynamicObject->MoverParameters->dpMainValve))/2;
+          fNPress=(4*fNPress+Min0R(DynamicObject->MoverParameters->dpLocalValve,DynamicObject->MoverParameters->dpMainValve))/(4+1);
           if (fNPress<0 && -fNPress>fPPress)
            {
-            vol=-2*rsHiss.AM*fNPress;
+            vol=-2*rsHiss.AM*fNPress*0.04;
            }
-          if (vol>0.1)
+          if (vol>0.02)
            {
             rsHiss.Play(vol,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
            }
@@ -2567,6 +2567,11 @@ else
      {
       PrzGlGaugeB.UpdateValue(DynamicObject->MoverParameters->PipePress*0.1f);
       PrzGlGaugeB.Update();
+     }
+    if (ZbSGauge.SubModel)
+     {
+      ZbSGauge.UpdateValue(DynamicObject->MoverParameters->Handle->GetCP()*0.1f);
+      ZbSGauge.Update();
      }
 // McZapkie! - zamiast pojemnosci cisnienie
     if (ZbGlGauge.SubModel)
@@ -3578,7 +3583,7 @@ else
      }
 
      // Odskakiwanie hamulce EP
-     if ((!Console::Pressed(Global::Keys[k_DecBrakeLevel]))&&(!Console::Pressed(Global::Keys[k_WaveBrake]) )&&(DynamicObject->MoverParameters->BrakeCtrlPos==-1)&&(DynamicObject->MoverParameters->BrakeSubsystem==Oerlikon)&&(DynamicObject->MoverParameters->BrakeSystem==ElectroPneumatic)&&(DynamicObject->Controller!=AIdriver))
+     if ((!Console::Pressed(Global::Keys[k_DecBrakeLevel]))&&(!Console::Pressed(Global::Keys[k_WaveBrake]) )&&(DynamicObject->MoverParameters->BrakeCtrlPos==-1)&&(DynamicObject->MoverParameters->BrakeHandle==FVel6)&&(DynamicObject->Controller!=AIdriver))
      {
      //DynamicObject->MoverParameters->BrakeCtrlPos=(DynamicObject->MoverParameters->BrakeCtrlPos)+1;
      DynamicObject->MoverParameters->IncBrakeLevel();
@@ -3600,7 +3605,7 @@ else
        }
       else
        {
-        DynamicObject->MoverParameters->BrakeCtrlPosR+=(DynamicObject->MoverParameters->BrakeCtrlPosR>DynamicObject->MoverParameters->BrakeCtrlPosNo?0:dt);
+        DynamicObject->MoverParameters->BrakeCtrlPosR+=(DynamicObject->MoverParameters->BrakeCtrlPosR>DynamicObject->MoverParameters->BrakeCtrlPosNo?0:dt*2);
         DynamicObject->MoverParameters->BrakeCtrlPos= floor(DynamicObject->MoverParameters->BrakeCtrlPosR+0.499);
        }
      }
@@ -3614,8 +3619,8 @@ else
        }
       else
        {
-        DynamicObject->MoverParameters->BrakeCtrlPosR-=(DynamicObject->MoverParameters->BrakeCtrlPosR<-1?0:dt);
-        DynamicObject->MoverParameters->BrakeCtrlPos= floor(DynamicObject->MoverParameters->BrakeCtrlPosR+0.49);
+        DynamicObject->MoverParameters->BrakeCtrlPosR-=(DynamicObject->MoverParameters->BrakeCtrlPosR<-1?0:dt*2);
+        DynamicObject->MoverParameters->BrakeCtrlPos= floor(DynamicObject->MoverParameters->BrakeCtrlPosR+0.499);
        }
      }
 
@@ -4211,6 +4216,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     CylHamGauge.Clear();
     PrzGlGauge.Clear();
     ZbGlGauge.Clear();
+    ZbSGauge.Clear();
 
     VelocityGaugeB.Clear();
     I1GaugeB.Clear();
@@ -4407,6 +4413,8 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     CylHamGauge.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("pipepress:"))                    //manometr przewodu hamulcowego
     PrzGlGauge.Load(Parser,DynamicObject->mdKabina);
+   else if (str==AnsiString("limpipepress:"))                  //manometr zbiornika sterujacego zaworu maszynisty
+    ZbSGauge.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("compressor:"))                    //manometr sprezarki/zbiornika glownego
     ZbGlGauge.Load(Parser,DynamicObject->mdKabina);
    //*************************************************************
