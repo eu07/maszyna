@@ -1737,7 +1737,7 @@ bool __fastcall TController::UpdateSituation(double dt)
  }
  //ABu-160305 Testowanie gotowoœci do jazdy
  //Ra: przeniesione z DynObj, sk³ad u¿ytkownika te¿ jest testowany, ¿eby mu przekazaæ, ¿e ma odhamowaæ
- TDynamicObject* p=pVehicles[0]; //pojazd na czole sk³adu
+ TDynamicObject *p=pVehicles[0]; //pojazd na czole sk³adu
  Ready=true; //wstêpnie gotowy
  while (p)
  {//sprawdzenie odhamowania wszystkich po³¹czonych pojazdów
