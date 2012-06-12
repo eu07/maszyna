@@ -522,6 +522,31 @@ public:
 };
 
 
+class DELPHICLASS TM394;
+class PASCALIMPLEMENTATION TM394 : public THandle 
+{
+	typedef THandle inherited;
+	
+private:
+	double CP;
+	double RedAdj;
+	
+public:
+	virtual double __fastcall GetPF(double i_bcp, double pp, double hp, double dt, double ep);
+	virtual void __fastcall Init(double press);
+	virtual void __fastcall SetReductor(double nAdj);
+	virtual double __fastcall GetCP(void);
+public:
+	#pragma option push -w-inl
+	/* TObject.Create */ inline __fastcall TM394(void) : THandle() { }
+	#pragma option pop
+	#pragma option push -w-inl
+	/* TObject.Destroy */ inline __fastcall virtual ~TM394(void) { }
+	#pragma option pop
+	
+};
+
+
 class DELPHICLASS Ttest;
 class PASCALIMPLEMENTATION Ttest : public THandle 
 {
@@ -635,6 +660,7 @@ static const Shortint bp_P10yBgu = 0x10;
 #define Spg  (7.917000E-01)
 #define SpO  (5.067000E-01)
 extern PACKAGE double BPT[9][2];
+extern PACKAGE double BPT_394[7][2];
 static const Shortint i_bcpno = 0x6;
 extern PACKAGE double __fastcall PF(double P1, double P2, double S);
 

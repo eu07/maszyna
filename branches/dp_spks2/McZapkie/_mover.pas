@@ -2025,22 +2025,22 @@ begin
   dv1:=0;
   dv2:=0;
 //sprzeg 1
-      if Couplers[0].Connected<>nil then
-       if TestFlag(Couplers[0].CouplingFlag,ctrain_pneumatic) then
-         begin
-           c:=Couplers[0].Connected; //skrot
-       dv1:=0.5*dt*PF(PipePress,c.PipePress,Spg*0.85);
-       if (dv1*dv1>0.00000000000001) then c.Physic_Reactivation;
-       c.Pipe.Flow(-dv1);
-          end;
+  if Couplers[0].Connected<>nil then
+    if TestFlag(Couplers[0].CouplingFlag,ctrain_pneumatic) then
+     begin
+      c:=Couplers[0].Connected; //skrot
+      dv1:=0.5*dt*PF(PipePress,c.PipePress,Spg*0.85);
+      if (dv1*dv1>0.00000000000001) then c.Physic_Reactivation;
+      c.Pipe.Flow(-dv1);
+     end;
 //sprzeg 2
-      if Couplers[1].Connected<>nil then
-       if TestFlag(Couplers[1].CouplingFlag,ctrain_pneumatic) then
-         begin
-           c:=Couplers[1].Connected; //skrot
-       dv2:=0.5*dt*PF(PipePress,c.PipePress,Spg*0.85);
-       if (dv2*dv2>0.00000000000001) then c.Physic_Reactivation;
-       c.Pipe.Flow(-dv2);
+  if Couplers[1].Connected<>nil then
+    if TestFlag(Couplers[1].CouplingFlag,ctrain_pneumatic) then
+     begin
+      c:=Couplers[1].Connected; //skrot
+      dv2:=0.5*dt*PF(PipePress,c.PipePress,Spg*0.85);
+      if (dv2*dv2>0.00000000000001) then c.Physic_Reactivation;
+      c.Pipe.Flow(-dv2);
      end;
   if(Couplers[1].Connected<>nil)and(Couplers[0].Connected<>nil)then
     if (TestFlag(Couplers[0].CouplingFlag,ctrain_pneumatic))and(TestFlag(Couplers[1].CouplingFlag,ctrain_pneumatic))then
@@ -2055,10 +2055,11 @@ end;
 
 procedure T_MoverParameters.UpdatePipePressure(dt:real);
 const LBDelay=100;kL=0.5;
-var {b: byte;} dV{,PWSpeed}:real; c: T_MoverParameters;
+var {b: byte;} dV{,PWSpeed}{,PPP}:real; c: T_MoverParameters;
      temp: real;
 begin
   PipePress:=Pipe.P;
+//  PPP:=PipePress;
 
   dpMainValve:=0;
 
@@ -2066,10 +2067,10 @@ if (BrakeCtrlPosNo>1) and (ActiveCab*ActiveCab>0)then
 with BrakePressureTable[BrakeCtrlPos] do
 begin
           dpLocalValve:=LocHandle.GetPF(LocalBrakePos/LocalBrakePosNo, 0, ScndPipePress, dt, 0);
-          if(BrakeHandle=FV4a)and((PipePress>2.75)or((Hamulec.GetStatus and b_rls)=b_rls)) then
-            temp:=ScndPipePress
+          if(BrakeHandle=FV4a)and((PipePress<2.75)and((Hamulec.GetStatus and b_rls)=0)) then
+            temp:=PipePress+0.00001
           else
-            temp:=PipePress+0.00001;
+            temp:=ScndPipePress;
           Handle.SetReductor(BrakeCtrlPos2);
 
           dpMainValve:=Handle.GetPF(BrakeCtrlPosR, PipePress, temp, dt, EqvtPipePress);
@@ -2138,7 +2139,15 @@ end;
       Pipe.Act;
       PipePress:=Pipe.P;
 
-  if PipePress<-1 then PipePress:=-1;
+      dpMainValve:=dpMainValve/(100*dt); //normalizacja po czasie do syczenia;
+
+
+  if PipePress<-1 then
+   begin
+    PipePress:=-1;
+    Pipe.CreatePress(-1);
+    Pipe.Act;
+   end;
 
   if CompressedVolume<0 then
    CompressedVolume:=0;
@@ -2241,15 +2250,23 @@ begin
   Pipe2.Flow(Hamulec.GetHPFlow(ScndPipePress, dt));
 
   if ((Compressor>ScndPipePress) and (CompressorSpeed>0.0001)) or (TrainType=dt_EZT) then
-     begin
+   begin
     dV:=PF(Compressor,ScndPipePress,Spz)*dt;
     CompressedVolume:=CompressedVolume+dV/1000;
     Pipe2.Flow(-dV);
-     end;
+   end;
 
   Pipe2.Flow(dv1+dv2);
   Pipe2.Act;
   ScndPipePress:=Pipe2.P;
+
+  if ScndPipePress<-1 then
+   begin
+    ScndPipePress:=-1;
+    Pipe2.CreatePress(-1);
+    Pipe2.Act;
+   end;
+
 
 end;
 
@@ -2408,7 +2425,7 @@ begin
 //i dzialanie hamulca ED w EP09
   if (DynamicBrakeType=dbrake_automatic) then
    begin
-    if (BrakePress>0.2) and ((Hamulec as TLSt).GetEDBCP>0.2) then
+    if (ConverterFlag) and (BrakePress>0.2) and ((Hamulec as TLSt).GetEDBCP>0.2) then
       DynamicBrakeFlag:=True
     else if ((Hamulec as TLSt).GetEDBCP<0.2) then
       DynamicBrakeFlag:=False;
@@ -2421,7 +2438,7 @@ begin
     DynamicBrakeFlag:=false;
    end;
   if BrakeSubSystem=ss_LSt then
-   (Hamulec as TLSt).SetED((DynamicBrakeFlag)and(Vel>30));
+   (Hamulec as TLSt).SetED((DynamicBrakeFlag)and(Vel>20));
 
   ResistorsFlag:=(RList[MainCtrlActualPos].R>0.01) and (not DelayCtrlFlag);
   ResistorsFlag:=ResistorsFlag or ((DynamicBrakeFlag=true) and (DynamicBrakeType=dbrake_automatic));
@@ -4792,6 +4809,7 @@ case BrakeHandle of
   FV4a: Handle := TFV4aM.Create;
   FVel6: Handle := TFVel6.Create;
   testH: Handle := Ttest.Create;
+  M394: Handle := TM394.Create;
 else
   Handle := THandle.Create;
 end;
@@ -4844,6 +4862,7 @@ end;
      LimPipePress:=LowPipePress;
    end;
   ActFlowSpeed:=0;
+  BrakeCtrlPosR:=BrakeCtrlPos;
 
   Pipe.CreatePress(PipePress);
   Pipe2.CreatePress(ScndPipePress);
@@ -4896,7 +4915,7 @@ end;
 //  Hamulec.Init(10*PipePress, 10*HighPipePress-0.15, 10*LowPipePress-0.15, 10*BrakePress, BrakeDelayFlag);
   Hamulec.Init(PipePress, HighPipePress, LowPipePress, BrakePress, BrakeDelayFlag);
 //  Hamulec.Init(0, 0, -1.5, 0, BrakeDelayFlag);
-  PipePress:=PipePress;
+//  PipePress:=PipePress;
   ScndPipePress:=Compressor;
   CheckLocomotiveParameters:=OK;
 end;

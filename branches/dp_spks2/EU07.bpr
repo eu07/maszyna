@@ -4,15 +4,16 @@
   <MACROS>
     <VERSION value="BCB.05.03"/>
     <PROJECT value="D:\!PC2010_DDS_SPKS\EU07.exe"/>
-    <OBJFILES value="QueryParserComp.obj McZapkie\mtable.obj McZapkie\_mover.obj EU07.obj 
-      dumb3d.obj Camera.obj Texture.obj World.obj Model3d.obj geometry.obj 
-      MdlMngr.obj Train.obj wavread.obj Timer.obj Event.obj MemCell.obj Logs.obj 
-      Spring.obj Button.obj Globals.obj Gauge.obj AnimModel.obj Ground.obj 
-      TrkFoll.obj Segment.obj Sound.obj AdvSound.obj Track.obj DynObj.obj 
-      RealSound.obj EvLaunch.obj FadeSound.obj Traction.obj TractionPower.obj 
-      parser.obj sky.obj AirCoupler.obj glew.obj ResourceManager.obj VBO.obj 
-      TextureDDS.obj opengl\ARB_Multisample.obj Float3d.obj Classes.obj 
-      Driver.obj Names.obj Console.obj Mover.obj Console\PoKeys55.obj"/>
+    <OBJFILES value="QueryParserComp.obj McZapkie\mtable.obj McZapkie\_mover.obj 
+      McZapkie\hamulce.obj EU07.obj dumb3d.obj Camera.obj Texture.obj World.obj 
+      Model3d.obj geometry.obj MdlMngr.obj Train.obj wavread.obj Timer.obj 
+      Event.obj MemCell.obj Logs.obj Spring.obj Button.obj Globals.obj Gauge.obj 
+      AnimModel.obj Ground.obj TrkFoll.obj Segment.obj Sound.obj AdvSound.obj 
+      Track.obj DynObj.obj RealSound.obj EvLaunch.obj FadeSound.obj Traction.obj 
+      TractionPower.obj parser.obj sky.obj AirCoupler.obj glew.obj 
+      ResourceManager.obj VBO.obj TextureDDS.obj opengl\ARB_Multisample.obj 
+      Float3d.obj Classes.obj Driver.obj Names.obj Console.obj Mover.obj 
+      Console\PoKeys55.obj"/>
     <RESFILES value="EU07.res"/>
     <IDLFILES value=""/>
     <IDLGENFILES value=""/>
@@ -37,8 +38,8 @@
     <WARNINGS value="-w-par"/>
   </MACROS>
   <OPTIONS>
-    <IDLCFLAGS value="-IConsole -Iopengl -IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl 
-      -src_suffix cpp -DGLEW_STATIC -D_DEBUG -boa"/>
+    <IDLCFLAGS value="-src_suffix cpp -DGLEW_STATIC -D_DEBUG -IConsole -Iopengl -IMcZapkie 
+      -I$(BCB)\include -I$(BCB)\include\vcl -boa"/>
     <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a4 -6 -b- -k -y -v -vi- 
       -c -tW -tWM"/>
     <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
@@ -71,7 +72,7 @@ CodePage=1250
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
 FileVersion=1.8.591.354
-InternalName=8th by Ra
+InternalName=8th by Ra / SPKS
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=eu07.exe
@@ -104,16 +105,17 @@ Item6=GLEW_STATIC;_DEBUG;USE_VERTEX_ARRAYS
 Item7=_DEBUG
 
 [HistoryLists\hlFinalOutputDir]
-Count=3
-Item0=D:\!PC2010_DDS_SPKS
-Item1=D:\EU07\
-Item2=D:\EU07DDS\
+Count=4
+Item0=D:\!PC2010_DDS_SPKS\
+Item1=D:\!PC2010_DDS_SPKS
+Item2=D:\EU07\
+Item3=D:\EU07DDS\
 
 [Debugging]
 DebugSourceDirs=C:\Ra\dp\McZapkie\
 
 [Parameters]
-RunParams=-s calkowo2_test_sprzegi.scn -v SM42-320
+RunParams=
 HostApplication=
 RemoteHost=
 RemotePath=

@@ -106,6 +106,7 @@ CONST
 
 //   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (14, 5.4), (9, 5.0), (6, 4.6), (9, 4.5), (9, 4.0), (9, 3.5), (9, 2.8), (34, 2.8));
    BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (10, 5.0), (5, 5.0), (5, 4.6), (5, 4.2), (5, 3.8), (5, 3.4), (5, 2.8), (13, 2.8));
+   BPT_394: array[-1..5] of array [0..1] of real= ((13, 10.0), (5, 5.0), (0, -1), (5, -1), (5, 0.0), (5, 0.0), (18, 0.0));   
 //   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (12, 5.4), (9, 5.0), (9, 4.6), (9, 4.2), (9, 3.8), (9, 3.4), (9, 2.8), (34, 2.8));
 //      BPT: array[-2..6] of array [0..1] of real= ((0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0));
    i_bcpno= 6;
@@ -347,6 +348,17 @@ TYPE
         function GetPF(i_bcp:real; pp, hp, dt, ep: real): real; override;
         procedure Init(press: real); override;
         procedure SetReductor(nAdj: real); override;
+      end;
+
+    TM394= class(THandle)
+      private
+        CP: real;      //zbiornik steruj¹cy, czasowy, redukcyjny
+        RedAdj: real;          //dostosowanie reduktora cisnienia (krecenie kapturkiem)
+      public
+        function GetPF(i_bcp:real; pp, hp, dt, ep: real): real; override;
+        procedure Init(press: real); override;
+        procedure SetReductor(nAdj: real); override;
+        function GetCP: real; override;
       end;
 
     Ttest= class(THandle)
@@ -2105,6 +2117,67 @@ begin
   RedAdj:= nAdj;
 end;
 
+
+//---M394--- Matrosow
+
+function TM394.GetPF(i_bcp:real; pp, hp, dt, ep: real): real;
+const
+  LBDelay = 65;
+var
+  LimPP, dpPipe, dpMainValve, ActFlowSpeed: real;
+  bcp: integer;
+begin
+  bcp:=Round(i_bcp);
+  if bcp<-1 then bcp:=1;
+
+  Limpp:=Min0R(BPT_394[bcp][1],HP);
+  ActFlowSpeed:=BPT_394[bcp][0];
+  if (bcp=1) then
+    Limpp:=pp;
+  if (bcp=0) then
+    Limpp:=Limpp+RedAdj;
+  if (bcp<>2) then
+    if cp<Limpp then
+      cp:=cp+6*(2+Byte(bcp<0))*Min0R(abs(Limpp-cp),0.05)*PR(cp,Limpp)*dt //zbiornik sterujacy
+    else
+      cp:=cp+4*(1+Byte(bcp<>3)+Byte(bcp>4))*Min0R(abs(Limpp-cp),0.05)*PR(cp,Limpp)*dt; //zbiornik sterujacy
+
+  Limpp:=cp;
+  dpPipe:=Min0R(HP,Limpp);
+
+//  if(dpPipe>pp)then //napelnianie
+//    dpMainValve:=PF(dpPipe,pp,ActFlowSpeed/(LBDelay))*dt
+//  else //spuszczanie
+    dpMainValve:=PF(dpPipe,pp,ActFlowSpeed/(LBDelay))*dt;
+
+          if bcp=-1 then
+//           begin
+              dpMainValve:=PF(HP,pp,(ActFlowSpeed)/(LBDelay))*dt;
+//           end;
+
+          if bcp=i_bcpNo then
+//           begin
+            dpMainValve:=PF(0,pp,(ActFlowSpeed)/(LBDelay))*dt;
+//           end;
+
+  GetPF:=dpMainValve;
+end;
+
+procedure TM394.Init(press: real);
+begin
+  CP:= press;
+  RedAdj:= 0;
+end;
+
+procedure TM394.SetReductor(nAdj: real);
+begin
+  RedAdj:= nAdj;
+end;
+
+function TM394.GetCP: real;
+begin
+  GetCP:= CP;
+end;
 
 //--- test ---
 
