@@ -1107,15 +1107,15 @@ end;
 
 
 function T_MoverParameters.SendCtrlToNext(CtrlCommand:string;ctrlvalue,dir:real):boolean;
-//wys³anie komendy w kierunku dir (1=przod,-1=ty³)
+//wys³anie komendy w kierunku dir (1=przod,-1=ty³) do kolejnego pojazdu (jednego)
 var
  OK:Boolean;
- d:Integer;
+ d:Integer; //numer sprzêgu w kierunku którego wysy³amy
 begin
 //Ra: by³ problem z propagacj¹, jeœli w sk³adzie jest pojazd wstawiony odwrotnie
 //Ra: problem jest równie¿, jeœli AI bêdzie na koñcu sk³adu
  OK:=(dir<>0); // and Mains;
- d:=(1+Sign(dir)) div 2; //-1=>0, 1=>1 - wysy³anie tylko w ty³
+ d:=(1+Sign(dir)) div 2; //dir=-1=>d=0, dir=1=>d=1 - wysy³anie tylko w ty³
  if OK then
   with Couplers[d] do //w³asny sprzêg od strony (d)
    if TestFlag(CouplingFlag,ctrain_controll) then
@@ -1150,7 +1150,7 @@ begin
    begin
      CabNo:=ActiveCab;
      DirAbsolute:=ActiveDir*CabNo;
-     SendCtrlToNext('CabActivisation',CabNo,ActiveCab);
+     SendCtrlToNext('CabActivisation',CabNo*ActiveCab,ActiveCab);
      PantCheck;
    end;
   CabActivisation:=OK;
@@ -4610,7 +4610,7 @@ Begin
      end;
     OK:=SendCtrlToNext(command,CValue1,CValue2);
    end
-else if command='PantFront' then         {Winger 160204}
+  else if command='PantFront' then         {Winger 160204}
    begin //Ra: uwzglêdniæ trzeba jeszcze zgodnoœæ sprzêgów
    //Czemu EZT ma byæ traktowane inaczej? Ukrotnienie ma, a cz³on mo¿e byæ odwrócony
      if (TrainType=dt_EZT) then
@@ -5230,11 +5230,17 @@ begin
   DoorLeftOpened:=State;
   if (State=true) then
    begin
-     SendCtrlToNext('DoorOpen',1,CabNo); //1=lewe, 2=prawe
+    if (CabNo>0) then
+     SendCtrlToNext('DoorOpen',1,CabNo) //1=lewe, 2=prawe
+    else
+     SendCtrlToNext('DoorOpen',2,CabNo) //zamiana
    end
   else
    begin
-    SendCtrlToNext('DoorClose',1,CabNo);
+    if (CabNo>0) then
+     SendCtrlToNext('DoorClose',1,CabNo)
+    else
+     SendCtrlToNext('DoorClose',2,CabNo);
    end;
   end
   else
@@ -5249,11 +5255,17 @@ begin
   DoorRightOpened:=State;
   if (State=true) then
    begin
-     SendCtrlToNext('DoorOpen',2,CabNo); //1=lewe, 2=prawe
+    if (CabNo>0) then
+     SendCtrlToNext('DoorOpen',2,CabNo) //1=lewe, 2=prawe
+    else
+     SendCtrlToNext('DoorOpen',1,CabNo); //zamiana
    end
   else
    begin
-    SendCtrlToNext('DoorClose',2,CabNo);
+    if (CabNo>0) then
+     SendCtrlToNext('DoorClose',2,CabNo)
+    else
+     SendCtrlToNext('DoorClose',1,CabNo);
    end;
  end
  else
