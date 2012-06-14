@@ -88,6 +88,7 @@ private:
 	Byte NBpA;
 	double SizeBR;
 	double SizeBC;
+	bool DCV;
 	Byte BrakeStatus;
 	
 public:
@@ -119,9 +120,15 @@ class PASCALIMPLEMENTATION TWest : public TBrake
 {
 	typedef TBrake inherited;
 	
+private:
+	double LBP;
+	double dVP;
+	
 public:
+	void __fastcall SetLBP(double P);
 	virtual double __fastcall GetPF(double PP, double dt, double Vel);
 	virtual void __fastcall Init(double PP, double HPP, double LPP, double BP, Byte BDF);
+	virtual double __fastcall GetHPFlow(double HP, double dt);
 public:
 	#pragma option push -w-inl
 	/* TBrake.Create */ inline __fastcall TWest(double i_mbp, double i_bcr, double i_bcd, double i_brc, 
@@ -547,6 +554,31 @@ public:
 };
 
 
+class DELPHICLASS TH14K1;
+class PASCALIMPLEMENTATION TH14K1 : public THandle 
+{
+	typedef THandle inherited;
+	
+private:
+	double CP;
+	double RedAdj;
+	
+public:
+	virtual double __fastcall GetPF(double i_bcp, double pp, double hp, double dt, double ep);
+	virtual void __fastcall Init(double press);
+	virtual void __fastcall SetReductor(double nAdj);
+	virtual double __fastcall GetCP(void);
+public:
+	#pragma option push -w-inl
+	/* TObject.Create */ inline __fastcall TH14K1(void) : THandle() { }
+	#pragma option pop
+	#pragma option push -w-inl
+	/* TObject.Destroy */ inline __fastcall virtual ~TH14K1(void) { }
+	#pragma option pop
+	
+};
+
+
 class DELPHICLASS Ttest;
 class PASCALIMPLEMENTATION Ttest : public THandle 
 {
@@ -588,6 +620,30 @@ public:
 	#pragma option pop
 	#pragma option push -w-inl
 	/* TObject.Destroy */ inline __fastcall virtual ~TFD1(void) { }
+	#pragma option pop
+	
+};
+
+
+class DELPHICLASS TH1405;
+class PASCALIMPLEMENTATION TH1405 : public THandle 
+{
+	typedef THandle inherited;
+	
+private:
+	double MaxBP;
+	double BP;
+	
+public:
+	virtual double __fastcall GetPF(double i_bcp, double pp, double hp, double dt, double ep);
+	virtual void __fastcall Init(double press);
+	virtual double __fastcall GetCP(void);
+public:
+	#pragma option push -w-inl
+	/* TObject.Create */ inline __fastcall TH1405(void) : THandle() { }
+	#pragma option pop
+	#pragma option push -w-inl
+	/* TObject.Destroy */ inline __fastcall virtual ~TH1405(void) { }
 	#pragma option pop
 	
 };

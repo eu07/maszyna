@@ -2066,7 +2066,7 @@ begin
 if (BrakeCtrlPosNo>1) and (ActiveCab*ActiveCab>0)then
 with BrakePressureTable[BrakeCtrlPos] do
 begin
-          dpLocalValve:=LocHandle.GetPF(LocalBrakePos/LocalBrakePosNo, 0, ScndPipePress, dt, 0);
+          dpLocalValve:=LocHandle.GetPF(LocalBrakePos/LocalBrakePosNo, Hamulec.GetBCP, ScndPipePress, dt, 0);
           if(BrakeHandle=FV4a)and((PipePress<2.75)and((Hamulec.GetStatus and b_rls)=0)) then
             temp:=PipePress+0.00001
           else
@@ -2090,6 +2090,12 @@ end;
 
 
       case BrakeValve of
+      W:
+         begin
+        LocBrakePress:=LocHandle.GetCP;
+//        (Hamules as TWest).LocBrakeFlow(LocBrakePress, dpLocalValve);
+        (Hamulec as TWest).SetLBP(LocBrakePress);
+         end;
       LSt:
          begin
         LocBrakePress:=LocHandle.GetCP;
@@ -4810,6 +4816,7 @@ case BrakeHandle of
   FVel6: Handle := TFVel6.Create;
   testH: Handle := Ttest.Create;
   M394: Handle := TM394.Create;
+  Knorr: Handle := TH14K1.Create;  
 else
   Handle := THandle.Create;
 end;
@@ -4818,6 +4825,11 @@ case BrakeLocHandle of
   FD1:
    begin
     LocHandle := TFD1.Create;
+    LocHandle.Init(MaxBrakePress[0]);
+   end;
+  Knorr:
+   begin
+    LocHandle := TH1405.Create;
     LocHandle.Init(MaxBrakePress[0]);
    end;
 else
@@ -4863,6 +4875,9 @@ end;
    end;
   ActFlowSpeed:=0;
   BrakeCtrlPosR:=BrakeCtrlPos;
+
+  if(BrakeLocHandle=Knorr)then
+    LocalBrakePos:=5;
 
   Pipe.CreatePress(PipePress);
   Pipe2.CreatePress(ScndPipePress);
