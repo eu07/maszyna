@@ -106,7 +106,7 @@ CONST
 
 //   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (14, 5.4), (9, 5.0), (6, 4.6), (9, 4.5), (9, 4.0), (9, 3.5), (9, 2.8), (34, 2.8));
    BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (10, 5.0), (5, 5.0), (5, 4.6), (5, 4.2), (5, 3.8), (5, 3.4), (5, 2.8), (13, 2.8));
-   BPT_394: array[-1..5] of array [0..1] of real= ((13, 10.0), (5, 5.0), (0, -1), (5, -1), (5, 0.0), (5, 0.0), (18, 0.0));   
+   BPT_394: array[-1..5] of array [0..1] of real= ((13, 10.0), (5, 5.0), (0, -1), (5, -1), (5, 0.0), (5, 0.0), (18, 0.0));
 //   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (12, 5.4), (9, 5.0), (9, 4.6), (9, 4.2), (9, 3.8), (9, 3.4), (9, 2.8), (34, 2.8));
 //      BPT: array[-2..6] of array [0..1] of real= ((0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0));
    i_bcpno= 6;
@@ -151,7 +151,7 @@ TYPE
         NBpA: byte;                //klocki na os
         SizeBR: real;              //rozmiar^2 ZP (w stosunku do 14")
         SizeBC: real;              //rozmiar^2 CH (w stosunku do 14")
-
+        DCV: boolean;              //podwojny zawor zwrotny
 
         BrakeStatus: byte; //flaga stamnu
       public
@@ -177,9 +177,15 @@ TYPE
     end;
 
     TWest= class(TBrake)
+      private
+        LBP: real;       //cisnienie hamulca pomocniczego
+        dVP: real;
       public
+        procedure SetLBP(P: real);   //cisnienie z hamulca pomocniczego
         function GetPF(PP, dt, Vel: real): real; override;     //przeplyw miedzy komora wstepna i PG
         procedure Init(PP, HPP, LPP, BP: real; BDF: byte); override;
+        function GetHPFlow(HP, dt: real): real; override;        
+//        function LocBrakeFlow(LBP, dvLV: real): boolean;
       end;
 
     TESt= class(TBrake)
@@ -361,6 +367,17 @@ TYPE
         function GetCP: real; override;
       end;
 
+    TH14K1= class(THandle)
+      private
+        CP: real;      //zbiornik steruj¹cy, czasowy, redukcyjny
+        RedAdj: real;          //dostosowanie reduktora cisnienia (krecenie kapturkiem)
+      public
+        function GetPF(i_bcp:real; pp, hp, dt, ep: real): real; override;
+        procedure Init(press: real); override;
+        procedure SetReductor(nAdj: real); override;
+        function GetCP: real; override;
+      end;
+
     Ttest= class(THandle)
       private
         CP: real;
@@ -379,6 +396,18 @@ TYPE
         function GetCP(): real; override;
 //        procedure Init(press: real; MaxBP: real); overload;
       end;
+
+    TH1405= class(THandle)
+      private
+        MaxBP: real;  //najwyzsze cisnienie
+        BP: real;     //aktualne cisnienie
+      public
+        function GetPF(i_bcp:real; pp, hp, dt, ep: real): real; override;
+        procedure Init(press: real); override;
+        function GetCP(): real; override;
+//        procedure Init(press: real; MaxBP: real); overload;
+      end;
+
 
     TFVel6= class(THandle)
       private
@@ -714,12 +743,13 @@ end;
 
 function TWest.GetPF(PP, dt, Vel: real): real;
 var dv, dv1:real;
-    VVP, BVP, CVP: real;
+    VVP, BVP, CVP, BCP: real;
 begin
 
  BVP:=BrakeRes.P;
  VVP:=ValveRes.P;
  CVP:=BrakeCyl.P;
+ BCP:=BrakeCyl.P;
 
  if (BrakeStatus and 1)=1 then
    if(VVP+0.03<BVP)then
@@ -733,20 +763,32 @@ begin
    if(VVP+0.25<BVP) then
      BrakeStatus:=(BrakeStatus or 3);
 
-
-
-  if(BrakeStatus and b_hld)=b_off then
+  if((BrakeStatus and b_hld)=b_off) and (not DCV) then
    dV:=PF(0,CVP,0.0068*sizeBC)*dt
   else dV:=0;
   BrakeCyl.Flow(-dV);
+
+  if(BCP>LBP+0.01) and (DCV) then
+   dV:=PF(0,CVP,0.01*sizeBC)*dt
+  else dV:=0;
+  BrakeCyl.Flow(-dV);
+
 //przeplyw ZP <-> silowniki
-  if(BrakeStatus and b_on)=b_on then
-   dV:=PF(BVP,CVP,0.017*sizeBC)*dt
+  if((BrakeStatus and b_on)=b_on)then
+    if(BVP>LBP)then
+     begin
+      DCV:=false;
+      dV:=PF(BVP,CVP,0.017*sizeBC)*dt;
+     end
   else dV:=0;
   BrakeRes.Flow(dV);
   BrakeCyl.Flow(-dV);
+  if(DCV)then
+   dVP:=PF(LBP,BCP,0.1)*dt
+  else dVP:=0;
+  BrakeCyl.Flow(-dVP);
 //przeplyw ZP <-> rozdzielacz
-  if(BrakeStatus and b_hld)=b_off then
+  if((BrakeStatus and b_hld)=b_off)then
    dV:=PF(BVP,VVP,0.0011*sizeBR)*dt
   else dV:=0;
   BrakeRes.Flow(dV);
@@ -756,11 +798,26 @@ begin
   dV:=PF(PP,VVP,0.01*sizeBR)*dt;
   ValveRes.Flow(-dV);
 
-
   ValveRes.Act;
   BrakeCyl.Act;
   BrakeRes.Act;
   GetPF:=dV-dV1;
+end;
+
+function TWest.GetHPFlow(HP, dt: real): real;
+begin
+  GetHPFlow:=dVP;
+end;
+
+procedure TWest.SetLBP(P: real);
+begin
+  LBP:=P;
+  if P>BrakeCyl.P then
+//   begin
+    DCV:=true;
+//   end
+//  else
+//    LBP:=P;  
 end;
 
 
@@ -1026,7 +1083,7 @@ begin
 
   GetPF:=dV-dV1;
 
-  temp:=Max0R(BCP,LBP)*LoadC;
+  temp:=Max0R(BCP,LBP);
 
 //luzowanie CH
   if(BrakeCyl.P>temp+0.005)or(Max0R(ImplsRes.P,8*LBP)<0.25) then
@@ -1034,7 +1091,7 @@ begin
   else dV:=0;
   BrakeCyl.Flow(-dV);
 //przeplyw ZP <-> CH
-  if(BrakeCyl.P<temp-0.005)and(Max0R(ImplsRes.P,8*LBP)>0.3)and(Max0R(BCP,LBP)<MaxBP)then
+  if(BrakeCyl.P<temp-0.005)and(Max0R(ImplsRes.P,8*LBP)>0.3)and(Max0R(BCP,LBP)<MaxBP*LoadC)then
    dV:=PF(BVP,BrakeCyl.P,0.035*sizeBC)*dt
   else dV:=0;
   BrakeRes.Flow(dV);
@@ -2179,6 +2236,76 @@ begin
   GetCP:= CP;
 end;
 
+//---H14K1-- Knorr
+
+function TH14K1.GetPF(i_bcp:real; pp, hp, dt, ep: real): real;
+const
+  LBDelay = 100;                                    //szybkosc + zasilanie sterujacego
+  BPT_K: array[-1..4] of array [0..1] of real= ((10, 0), (4, 1), (0, 1), (4, 0), (4, -1), (15, -1));
+  NomPress = 5.0;
+var
+  LimPP, dpPipe, dpMainValve, ActFlowSpeed: real;
+  bcp: integer;
+begin
+  bcp:=Round(i_bcp);
+  if bcp<-1 then bcp:=1;
+  Limpp:=BPT_K[bcp][1];
+  if Limpp<0 then
+    Limpp:=0.5*pp
+  else if Limpp>0 then
+    Limpp:=pp
+  else
+    Limpp:=cp;
+  ActFlowSpeed:=BPT_K[bcp][0];
+
+//  if cp<Limpp then
+//    cp:=cp+6*Min0R(abs(Limpp-cp),0.05)*PR(cp,Limpp)*dt //zbiornik sterujacy
+//  else
+    cp:=cp+6*Min0R(abs(Limpp-cp),0.05)*PR(cp,Limpp)*dt; //zbiornik sterujacy
+
+//  Limpp:=cp;
+//  dpPipe:=Min0R(HP,Limpp);
+
+
+//  if(dpPipe>pp)then //napelnianie
+//    if(bcp<=0)then
+//      dpMainValve:=PF(dpPipe,pp,ActFlowSpeed/(LBDelay))*dt
+//    else
+//      dpMainVale:=0;
+//  else //spuszczanie
+//    if(bcp>1)then
+//    dpMainValve:=PF(dpPipe,pp,ActFlowSpeed/(LBDelay))*dt;
+
+  dpMainValve:=0;
+
+  if bcp=-1 then
+    dpMainValve:=PF(HP,pp,(ActFlowSpeed)/(LBDelay))*dt;
+  if(bcp=0)then
+    dpMainValve:=-PFVa(HP,pp,(ActFlowSpeed)/(LBDelay),NomPress+RedAdj)*dt;
+  if (bcp>1)and(pp>cp) then
+    dpMainValve:=PFVd(pp,0,(ActFlowSpeed)/(LBDelay),cp)*dt;
+  if bcp=i_bcpNo then
+    dpMainValve:=PF(0,pp,(ActFlowSpeed)/(LBDelay))*dt;
+
+  GetPF:=dpMainValve;
+end;
+
+procedure TH14K1.Init(press: real);
+begin
+  CP:= press;
+  RedAdj:= 0;
+end;
+
+procedure TH14K1.SetReductor(nAdj: real);
+begin
+  RedAdj:= nAdj;
+end;
+
+function TH14K1.GetCP: real;
+begin
+  GetCP:= CP;
+end;
+
 //--- test ---
 
 function Ttest.GetPF(i_bcp:real; pp, hp, dt, ep: real): real;
@@ -2231,11 +2358,46 @@ end;
 
 procedure TFD1.Init(press: real);
 begin
-//  BP:=press;
+  BP:=0;
   MaxBP:=press;
 end;
 
 function TFD1.GetCP: real;
+begin
+  GetCP:=BP;
+end;
+
+
+//---KNORR---
+
+function TH1405.GetPF(i_bcp:real; pp, hp, dt, ep: real): real;
+var dp, temp, A: real;
+begin
+  pp:=Min0R(pp,MaxBP);
+  if i_bcp>0.5 then
+   begin
+    temp:=Min0R(MaxBP,HP);
+    A:=2*(i_bcp-0.5)*0.0011;
+    BP:=Max0R(BP,pp);
+   end
+  else
+   begin
+    temp:=0;
+    A:=0.2*(0.5-i_bcp)*0.0018;
+    BP:=Min0R(BP,pp);
+   end;
+  dp:=PF(temp,BP,A)*dt;
+  BP:=BP-dp;
+  GetPF:=-dp;
+end;
+
+procedure TH1405.Init(press: real);
+begin
+  BP:=0;
+  MaxBP:=press;
+end;
+
+function TH1405.GetCP: real;
 begin
   GetCP:=BP;
 end;
