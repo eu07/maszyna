@@ -3,7 +3,7 @@
 <PROJECT>
   <MACROS>
     <VERSION value="BCB.05.03"/>
-    <PROJECT value="D:\PC2010_DDS\EU07.exe"/>
+    <PROJECT value="E:\PC2011DP2\EU07.exe"/>
     <OBJFILES value="QueryParserComp.obj McZapkie\mtable.obj McZapkie\_mover.obj EU07.obj 
       dumb3d.obj Camera.obj Texture.obj World.obj Model3d.obj geometry.obj 
       MdlMngr.obj Train.obj wavread.obj Timer.obj Event.obj MemCell.obj Logs.obj 
@@ -33,13 +33,13 @@
     <USERDEFINES value="GLEW_STATIC;_DEBUG"/>
     <SYSDEFINES value="NO_STRICT;_RTLDLL"/>
     <MAINSOURCE value="EU07.cpp"/>
-    <INCLUDEPATH value="C:\Users\Xoov;Console;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
-    <LIBPATH value="C:\Users\Xoov;Console;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
+    <INCLUDEPATH value="C:\Users\Xoov\;Console;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
+    <LIBPATH value="C:\Users\Xoov\;Console;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
     <WARNINGS value="-w-par"/>
   </MACROS>
   <OPTIONS>
-    <IDLCFLAGS value="-IConsole -Iopengl -IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl 
-      -src_suffix cpp -DGLEW_STATIC -D_DEBUG -boa"/>
+    <IDLCFLAGS value="-IC:\Users\Xoov\. -IConsole -Iopengl -IMcZapkie -I$(BCB)\include 
+      -I$(BCB)\include\vcl -src_suffix cpp -DGLEW_STATIC -D_DEBUG -boa"/>
     <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a4 -6 -b- -k -y -v -vi- 
       -c -tW -tWM"/>
     <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
@@ -72,7 +72,7 @@ CodePage=1250
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
 FileVersion=1.8.591.354
-InternalName=8th by Ra/DP2
+InternalName=8th by Ra
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=eu07.exe
@@ -81,12 +81,14 @@ ProductVersion=1.8
 Comments=
 
 [HistoryLists\hlIncludePath]
-Count=1
-Item0=Console;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Count=2
+Item0=C:\Users\Xoov;Console;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item1=Console;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
 
 [HistoryLists\hlLibraryPath]
-Count=1
-Item0=Console;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Count=2
+Item0=C:\Users\Xoov;Console;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item1=Console;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
 
 [HistoryLists\hlDebugSourcePath]
 Count=2
@@ -105,13 +107,15 @@ Item6=GLEW_STATIC;_DEBUG;USE_VERTEX_ARRAYS
 Item7=_DEBUG
 
 [HistoryLists\hlFinalOutputDir]
-Count=6
-Item0=D:\PC2010_DDS
-Item1=D:\EU07\
-Item2=D:\Rainsted\
-Item3=D:\EU07DDS\
-Item4=D:\eu07-120303light\
-Item5=M:\aEU07\EU07\
+Count=8
+Item0=E:\PC2011DP2
+Item1=D:\PC2010_DDS\
+Item2=D:\PC2010_DDS
+Item3=D:\EU07\
+Item4=D:\Rainsted\
+Item5=D:\EU07DDS\
+Item6=D:\eu07-120303light\
+Item7=M:\aEU07\EU07\
 
 [Debugging]
 DebugSourceDirs=
