@@ -2548,7 +2548,7 @@ else
      
     if (HVoltageGauge.SubModel)
      {
-      if (DynamicObject->MoverParameters->EngineType!=DieselElectric)
+      if((DynamicObject->MoverParameters->EngineType!=DieselElectric)&&(DynamicObject->MoverParameters->EngineType!=DumbDE))
         HVoltageGauge.UpdateValue(DynamicObject->MoverParameters->RunningTraction.TractionVoltage); //Winger czy to nie jest zle? *DynamicObject->MoverParameters->Mains);
       else
         HVoltageGauge.UpdateValue(DynamicObject->MoverParameters->Voltage);
@@ -2579,12 +2579,12 @@ else
       LVoltageGauge.Update();
      }
 
-    if (DynamicObject->MoverParameters->EngineType==DieselElectric)
+    if((DynamicObject->MoverParameters->EngineType==DieselElectric)||(DynamicObject->MoverParameters->EngineType==DumbDE))
      {
       if (enrot1mGauge.SubModel)
        {
-//        enrot1mGauge.UpdateValue(DynamicObject->MoverParameters->ShowEngineRotation(1));
-        enrot1mGauge.UpdateValue(DynamicObject->MoverParameters->RventRot/60);
+        enrot1mGauge.UpdateValue(DynamicObject->MoverParameters->ShowEngineRotation(1));
+//        enrot1mGauge.UpdateValue(DynamicObject->MoverParameters->RventRot/60);
         enrot1mGauge.Update();
        }
       if (enrot2mGauge.SubModel)
