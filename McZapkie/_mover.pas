@@ -4039,7 +4039,7 @@ begin
      else Couplers[b].CForce:=0;
     //FStand:=Fb+FrictionForce(RunningShape.R,RunningTrack.DamageFlag);
     FStand:=Fb+Fstand;
-    FTrain:=FTrain+TotalMassxg*RunningShape.dHtrack/RunningShape.Len;
+    FTrain:=FTrain+TotalMassxg*RunningShape.dHtrack; // /RunningShape.Len;
     {!niejawne przypisanie zmiennej!}
     FTotal:=FTrain-Sign(V)*FStand;
    end;
@@ -4578,16 +4578,16 @@ Begin
    begin //Ra: uwzglêdniæ trzeba jeszcze zgodnoœæ sprzêgów
     if (CValue2>0) then
      begin //normalne ustawienie pojazdu
-      if (CValue1=1) then
+      if (CValue1=1) OR (CValue1=3) then
        DoorLeftOpened:=true;
-      if (CValue1=2) then
+      if (CValue1=2) OR (CValue1=3) then
        DoorRightOpened:=true;
      end
     else
      begin //odwrotne ustawienie pojazdu
-      if (CValue1=2) then
+      if (CValue1=2) OR (CValue1=3) then
        DoorLeftOpened:=true;
-      if (CValue1=1) then
+      if (CValue1=1) OR (CValue1=3) then
        DoorRightOpened:=true;
      end;
     OK:=SendCtrlToNext(command,CValue1,CValue2);
@@ -4596,16 +4596,16 @@ Begin
    begin //Ra: uwzglêdniæ trzeba jeszcze zgodnoœæ sprzêgów
     if (CValue2>0) then
      begin //normalne ustawienie pojazdu
-      if (CValue1=1) then
+      if (CValue1=1) OR (CValue1=3) then
        DoorLeftOpened:=false;
-      if (CValue1=2) then
+      if (CValue1=2) OR (CValue1=3) then
        DoorRightOpened:=false;
      end
     else
      begin //odwrotne ustawienie pojazdu
-      if (CValue1=2) then
+      if (CValue1=2) OR (CValue1=3) then
        DoorLeftOpened:=false;
-      if (CValue1=1) then
+      if (CValue1=1) OR (CValue1=3) then
        DoorRightOpened:=false;
      end;
     OK:=SendCtrlToNext(command,CValue1,CValue2);
@@ -4627,7 +4627,7 @@ Begin
         end;
      end
      else
-     begin //nie 'ezt' - odwrotne ustawienie pantografów: ^-.-^ zamiast ^-.^- 
+     begin //nie 'ezt' - odwrotne ustawienie pantografów: ^-.-^ zamiast ^-.^-
        if (CValue1=1) then
         if (TestFlag(Couplers[1].CouplingFlag,ctrain_controll)and(CValue2= 1))
          or(TestFlag(Couplers[0].CouplingFlag,ctrain_controll)and(CValue2=-1))
@@ -5018,7 +5018,7 @@ begin
 
   with RunningShape do
    begin
-     R:=0; Len:=100; dHtrack:=0; dHrail:=0;
+     R:=0; Len:=1; dHtrack:=0; dHrail:=0;
    end;
  RunningTrack.CategoryFlag:=CategoryFlag;
   with RunningTrack do
