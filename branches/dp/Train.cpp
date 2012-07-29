@@ -4044,6 +4044,14 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
  AnsiString cabstr=AnsiString("cab")+cabindex+AnsiString("definition:");
  while ((!Parser->EndOfFile) && (AnsiCompareStr(str,cabstr)!=0))
   str=Parser->GetNextSymbol().LowerCase(); //szukanie kabiny
+ if (cabindex==2)
+  if (AnsiCompareStr(str,cabstr)!=0) //jeœli nie znaleziony wpis kabiny
+  {//próba szukania kabiny 1
+   cabstr=AnsiString("cab1definition:");
+   Parser->First();
+   while ((!Parser->EndOfFile) && (AnsiCompareStr(str,cabstr)!=0))
+    str=Parser->GetNextSymbol().LowerCase(); //szukanie kabiny
+  }
  if (AnsiCompareStr(str,cabstr)==0) //jeœli znaleziony wpis kabiny
  {
   Cabine[cabindex].Load(Parser);

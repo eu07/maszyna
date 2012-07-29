@@ -911,8 +911,10 @@ void __fastcall TTrack::MoveMe(vector3 pPosition)
 
 const int numPts=4;
 const int nnumPts=12;
+/*
 const vector6 szyna[nnumPts]= //szyna - vextor6(x,y,mapowanie tekstury,xn,yn,zn)
-{vector6( 0.111,-0.180,0.00, 1.000, 0.000,0.000),
+{pierwotna szyna, opracowa³ youBy, zmiany w celu uzyskania symetrii
+ vector6( 0.111,-0.180,0.00, 1.000, 0.000,0.000),
  vector6( 0.045,-0.155,0.15, 0.707, 0.707,0.000),
  vector6( 0.045,-0.070,0.25, 0.707,-0.707,0.000),
  vector6( 0.071,-0.040,0.35, 0.707,-0.707,0.000), //albo tu 0.073
@@ -925,6 +927,24 @@ const vector6 szyna[nnumPts]= //szyna - vextor6(x,y,mapowanie tekstury,xn,yn,zn)
  vector6( 0.027,-0.155,0.85,-0.707, 0.707,0.000),
  vector6(-0.039,-0.180,1.00,-1.000, 0.000,0.000)
 };
+*/
+const vector6 szyna[nnumPts]= //szyna - vextor6(x,y,mapowanie tekstury,xn,yn,zn)
+{//tê wersjê opracowa³ Tolein (bez pochylenia)
+ vector6( 0.111,-0.180,0.00, 1.000, 0.000,0.000),
+ vector6( 0.046,-0.150,0.15, 0.707, 0.707,0.000),
+ vector6( 0.044,-0.050,0.25, 0.707,-0.707,0.000),
+ vector6( 0.073,-0.038,0.35, 0.707,-0.707,0.000),
+ vector6( 0.072,-0.010,0.40, 0.707, 0.707,0.000),
+ vector6( 0.052,-0.000,0.45, 0.000, 1.000,0.000),
+ vector6( 0.020,-0.000,0.55, 0.000, 1.000,0.000),
+ vector6( 0.000,-0.010,0.60,-0.707, 0.707,0.000),
+ vector6( -0.001,-0.038,0.65,-0.707,-0.707,0.000),
+ vector6( 0.028,-0.050,0.75,-0.707,-0.707,0.000),
+ vector6( 0.026,-0.150,0.85,-0.707, 0.707,0.000),
+ vector6(-0.039,-0.180,1.00,-1.000, 0.000,0.000)
+};
+
+
 const vector6 iglica[nnumPts]= //iglica - vextor3(x,y,mapowanie tekstury)
 {vector6( 0.010,-0.180,0.00, 1.000, 0.000,0.000),
  vector6( 0.010,-0.155,0.15, 1.000, 0.000,0.000),
