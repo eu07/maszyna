@@ -889,7 +889,7 @@ int TDynamicObject::DettachStatus(int dir)
  return (MoverParameters->DettachStatus(dir)); //czy jest w odpowiedniej odleg³oœci?
 }
 
-int TDynamicObject::Dettach(int dir,int cnt)
+int TDynamicObject::Dettach(int dir)
 {//roz³¹czenie sprzêgów rzeczywistych od strony (dir): 0=przód,1=ty³
  //zwraca maskê bitow¹ aktualnych sprzegów (0 jeœli roz³¹czony)
  if (MoverParameters->Couplers[dir].CouplingFlag) //odczepianie, o ile coœ pod³¹czone
@@ -984,13 +984,13 @@ void TDynamicObject::ABuScanObjects(int ScanDir,double ScanDist)
   {
    if (FoundedObj->PrevConnected)
     if (FoundedObj->PrevConnected!=this) //odœwie¿enie tego samego siê nie liczy
-     WriteLog("0! Coupler error on "+asName+":"+AnsiString(MyCouplFound)+" - "+FoundedObj->asName+":0 connected to "+FoundedObj->PrevConnected->asName+":"+AnsiString(FoundedObj->PrevConnectedNo));
+     WriteLog("0! Coupler warning on "+asName+":"+AnsiString(MyCouplFound)+" - "+FoundedObj->asName+":0 connected to "+FoundedObj->PrevConnected->asName+":"+AnsiString(FoundedObj->PrevConnectedNo));
   }
   else
   {
    if (FoundedObj->NextConnected)
     if (FoundedObj->NextConnected!=this) //odœwie¿enie tego samego siê nie liczy
-     WriteLog("0! Coupler error on "+asName+":"+AnsiString(MyCouplFound)+" - "+FoundedObj->asName+":1 connected to "+FoundedObj->NextConnected->asName+":"+AnsiString(FoundedObj->NextConnectedNo));
+     WriteLog("0! Coupler warning on "+asName+":"+AnsiString(MyCouplFound)+" - "+FoundedObj->asName+":1 connected to "+FoundedObj->NextConnected->asName+":"+AnsiString(FoundedObj->NextConnectedNo));
   }
 
 
@@ -1060,7 +1060,7 @@ void TDynamicObject::ABuScanObjects(int ScanDir,double ScanDist)
    {
     if (FoundedObj->PrevConnected)
      if (FoundedObj->PrevConnected!=this)
-      WriteLog("1! Coupler error on "+asName+":"+AnsiString(MyCouplFound)+" - "+FoundedObj->asName+":0 connected to "+FoundedObj->PrevConnected->asName+":"+AnsiString(FoundedObj->PrevConnectedNo));
+      WriteLog("1! Coupler warning on "+asName+":"+AnsiString(MyCouplFound)+" - "+FoundedObj->asName+":0 connected to "+FoundedObj->PrevConnected->asName+":"+AnsiString(FoundedObj->PrevConnectedNo));
     FoundedObj->PrevConnected=this;
     FoundedObj->PrevConnectedNo=MyCouplFound;
    }
@@ -1068,7 +1068,7 @@ void TDynamicObject::ABuScanObjects(int ScanDir,double ScanDist)
    {
     if (FoundedObj->NextConnected)
      if (FoundedObj->NextConnected!=this)
-      WriteLog("1! Coupler error on "+asName+":"+AnsiString(MyCouplFound)+" - "+FoundedObj->asName+":1 connected to "+FoundedObj->NextConnected->asName+":"+AnsiString(FoundedObj->NextConnectedNo));
+      WriteLog("1! Coupler warning on "+asName+":"+AnsiString(MyCouplFound)+" - "+FoundedObj->asName+":1 connected to "+FoundedObj->NextConnected->asName+":"+AnsiString(FoundedObj->NextConnectedNo));
     FoundedObj->NextConnected=this;
     FoundedObj->NextConnectedNo=MyCouplFound;
    }
@@ -1262,11 +1262,11 @@ double __fastcall TDynamicObject::Init(
  else DriverType=""; //nikt nie siedzi
  int Cab; //numer kabiny z obsad¹ (nie mo¿na zaj¹æ obu)
  if (DriverType.Pos("h")) //od przodu sk³adu
-  Cab=iDirection?1:-1; //iDirection=1 gdy normalnie, =0 odwrotnie
+  Cab=1;//iDirection?1:-1; //iDirection=1 gdy normalnie, =0 odwrotnie
  else if (DriverType.Pos("r")) //od ty³u sk³adu
-  Cab=iDirection?-1:1;
+  Cab=-1;//iDirection?-1:1;
  else if (DriverType=="c") //uaktywnianie wirtualnej kabiny
-  Cab=iDirection?1:-1;
+  Cab=iDirection?1:-1; //to przestawi steruj¹cy
  else if (DriverType=="p")
  {
   if (random(6)<3) Cab=1; else Cab=-1; //losowy przydzia³ kabiny
@@ -1324,7 +1324,7 @@ double __fastcall TDynamicObject::Init(
    MoverParameters->ActiveCab=MoverParameters->CabNo; //ustalenie aktywnej kabiny (rozrz¹d)
    Mechanik=new TController(Controller,this,NULL,Aggressive);
    if (TrainName.IsEmpty()) //jeœli nie w sk³adzie
-    Mechanik->PutCommand("Timetable:",fVel,0,NULL); //tryb poci¹gowy z ustalon¹ prêdkoœci¹
+    Mechanik->PutCommand("Timetable:",iDirection?-fVel:fVel,0,NULL); //tryb poci¹gowy z ustalon¹ prêdkoœci¹ (wzglêdem sprzêgów)
    //if (TrainName!="none")
    // Mechanik->PutCommand("Timetable:"+TrainName,fVel,0,NULL);
   }

@@ -124,6 +124,7 @@ CONST
    ctrain_passenger=16;     //mostek przejœciowy
    ctrain_scndpneumatic=32; //przewody 8 atm (¿ó³te; zasilanie powietrzem)
    ctrain_heating=64;       //nie u¿yawne
+   ctrain_depot=128;        //nie roz³¹czalny podczas zwyk³ych manewrów (miêdzycz³onowy), we wpisie wartoœæ ujemna
 
    {typ hamulca elektrodynamicznego}
    dbrake_none=0;
@@ -345,7 +346,7 @@ TYPE
                CouplerType: TCouplerType;     {typ sprzegu}
                {zmienne}
                CouplingFlag : byte; {0 - wirtualnie, 1 - sprzegi, 2 - pneumatycznie, 4 - sterowanie, 8 - kabel mocy}
-               AllowedFlag : byte;          //Ra: znaczenie jak wy¿ej, maska dostêpnych
+               AllowedFlag : Integer;       //Ra: znaczenie jak wy¿ej, maska dostêpnych
                Render: boolean;             {ABu: czy rysowac jak zaczepiony sprzeg}
                CoupleDist: real;            {ABu: optymalizacja - liczenie odleglosci raz na klatkê, bez iteracji}
                Connected: T_MoverParameters; {co jest podlaczone}
@@ -4938,7 +4939,7 @@ begin
   for b:=0 to 1 do
    with Couplers[b] do
     begin
-      AllowedFlag:=255; //domyœlnie wszystkie
+      AllowedFlag:=127; //domyœlnie wszystkie
       CouplingFlag:=0;
       Connected:=nil;
       ConnectedNr:=0; //Ra: to nie ma znaczenia jak nie pod³¹czony
@@ -5706,7 +5707,8 @@ begin
                 else
                  CouplerType:=NoCoupler;
                 s:=ExtractKeyWord(lines,'AllowedFlag=');
-                if s<>'' then AllowedFlag:=s2NNW(DUE(s));
+                if s<>'' then AllowedFlag:=s2i(DUE(s));
+                if (AllowedFlag<0) then AllowedFlag:=(-AllowedFlag) OR ctrain_depot;
                 if (CouplerType<>NoCoupler) and (CouplerType<>Bare) and (CouplerType<>Articulated) then
                  begin
                    s:=ExtractKeyWord(lines,'kC=');
@@ -5781,7 +5783,8 @@ begin
                 else
                  CouplerType:=NoCoupler;
                 s:=ExtractKeyWord(lines,'AllowedFlag=');
-                if s<>'' then AllowedFlag:=s2NNW(DUE(s));
+                if s<>'' then AllowedFlag:=s2i(DUE(s));
+                if (AllowedFlag<0) then AllowedFlag:=(-AllowedFlag) OR ctrain_depot;
                 if (CouplerType<>NoCoupler) and (CouplerType<>Bare) and (CouplerType<>Articulated) then
                  begin
                    s:=ExtractKeyWord(lines,'kC=');

@@ -380,7 +380,7 @@ public:
  int __fastcall DirectionSet(int d); //ustawienie kierunku w sk³adzie
  int __fastcall DirectionGet() {return iDirection?1:-1;}; //odczyt kierunku w sk³adzie
  int DettachStatus(int dir);
- int Dettach(int dir,int cnt);
+ int Dettach(int dir);
  TDynamicObject* __fastcall Neightbour(int &dir);
  void __fastcall CoupleDist();
 

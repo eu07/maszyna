@@ -56,8 +56,8 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asRelease="1.8.600.356";
-AnsiString Global::asVersion="Compilation 2012-07-29, release "+Global::asRelease+"."; //tutaj, bo wysy³any
+AnsiString Global::asRelease="1.8.601.357";
+AnsiString Global::asVersion="Compilation 2012-08-02, release "+Global::asRelease+"."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 double Global::fSunDeclination=0.0; //deklinacja S³oñca
@@ -152,6 +152,9 @@ bool Global::bSoundEnabled=true;
 int Global::iWriteLogEnabled=3; //maska bitowa: 1-zapis do pliku, 2-okienko
 bool Global::bManageNodes=true;
 bool Global::bDecompressDDS=false;
+
+//parametry do kalibracji
+double Global::fCalibration[30]; //parametry kalibracyjne dla pulpitów
 
 //parametry przejœciowe (do usuniêcia)
 //bool Global::bTimeChange=false; //Ra: ZiomalCl wy³¹czy³ star¹ wersjê nocy
@@ -554,6 +557,10 @@ void __fastcall Global::TrainDelete(TDynamicObject *d)
  if (pWorld) pWorld->TrainDelete(d);
 };
 
+TDynamicObject* __fastcall Global::DynamicNearest()
+{//ustalenie pojazdu najbli¿szego kamerze
+ return pGround->DynamicNearest(pCamera->Pos);
+};
 
 //---------------------------------------------------------------------------
 
