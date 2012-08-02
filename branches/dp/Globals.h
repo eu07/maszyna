@@ -247,10 +247,12 @@ public:
  static double fRadiusFactor; //wspó³czynnik zmiany promienia
  static TCamera *pCamera; //parametry kamery
  static TDynamicObject *pUserDynamic; //pojazd u¿ytkownika, renderowany bez trzêsienia
+ static double fCalibration[30]; //parametry kalibracyjne dla pulpitów
  //metody
  static void __fastcall TrainDelete(TDynamicObject *d);
  static void __fastcall ConfigParse(Queryparsercomp::TQueryParserComp *qp,cParser *cp=NULL);
  static AnsiString __fastcall GetNextSymbol();
+ static TDynamicObject* __fastcall DynamicNearest();
 };
 
 //---------------------------------------------------------------------------

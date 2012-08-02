@@ -1242,38 +1242,41 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       if (cKey==Global::Keys[k_Releaser])   //odluzniacz
       {
        if (!FreeFlyModeFlag)
-        {
-         if ((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)||(DynamicObject->MoverParameters->EngineType==DieselElectric))
-          if (DynamicObject->MoverParameters->TrainType!=dt_EZT)
-           if (DynamicObject->MoverParameters->BrakeCtrlPosNo>0)
-            {
-             ReleaserButtonGauge.PutValue(1);
-             if (DynamicObject->MoverParameters->BrakeReleaser())
-              {
-                 dsbPneumaticRelay->SetVolume(-80);
-                 dsbPneumaticRelay->Play(0,0,0);
-             }
-           }
-        }
-       else
        {
-         int CouplNr=-2;
-         TDynamicObject *temp;
-         temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 1500, CouplNr));
-         if (temp==NULL)
-          {
-            CouplNr=-2;
-            temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1, 1500, CouplNr));
-          }
-         if (temp)
-          {
-           if (temp->MoverParameters->BrakeReleaser())
-            {
-             dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
-             dsbPneumaticRelay->Play(0,0,0);
+        if ((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)||(DynamicObject->MoverParameters->EngineType==DieselElectric))
+         if (DynamicObject->MoverParameters->TrainType!=dt_EZT)
+          if (DynamicObject->MoverParameters->BrakeCtrlPosNo>0)
+           {
+            ReleaserButtonGauge.PutValue(1);
+            if (DynamicObject->MoverParameters->BrakeReleaser())
+             {
+                dsbPneumaticRelay->SetVolume(-80);
+                dsbPneumaticRelay->Play(0,0,0);
             }
           }
        }
+/* //OdluŸniacz przeniesiony do WOrld.cpp
+       else
+       {//Ra: odluŸnianie dowolnego pojazdu przy kamerze, by³o tylko we w³asnym sk³adzie
+        TDynamicObject *temp=Global::DynamicNearest();
+        int CouplNr=-2;
+        TDynamicObject *temp;
+        temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 1500, CouplNr));
+        if (temp==NULL)
+        {
+          CouplNr=-2;
+          temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1, 1500, CouplNr));
+        }
+        if (temp)
+        {
+         if (temp->MoverParameters->BrakeReleaser())
+         {
+          dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
+          dsbPneumaticRelay->Play(0,0,0);
+         }
+        }
+       }
+*/
       }
   //McZapkie-240302 - wylaczanie automatycznego pilota (w trybie ~debugmode mozna tylko raz)
       else if (cKey==VkKeyScan('q')) //bez Shift
@@ -1437,10 +1440,10 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       { //ABu051104: male zmiany, zeby mozna bylo rozlaczac odlegle wagony
         if (iCabn>0)
         {
-          if (!FreeFlyModeFlag) //tryb 'kabinowy'
+          if (!FreeFlyModeFlag) //tryb 'kabinowy' (pozwala równie¿ roz³¹czyæ sprzêgi zablokowane)
           {
            if (DynamicObject->DettachStatus(iCabn-1)<0) //jeœli jest co odczepiæ
-            if (DynamicObject->Dettach(iCabn-1,0)) //iCab==1:przód,iCab==2:ty³
+            if (DynamicObject->Dettach(iCabn-1)) //iCab==1:przód,iCab==2:ty³
             {
              dsbCouplerDetach->SetVolume(DSBVOLUME_MAX); //w kabinie ten dŸwiêk?
              dsbCouplerDetach->Play(0,0,0);
@@ -1455,12 +1458,13 @@ void __fastcall TTrain::OnKeyPress(int cKey)
             tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1,1500,CouplNr);
            if (tmp&&(CouplNr!=-1))
            {
-            if (tmp->DettachStatus(CouplNr)<0) //jeœli jest co odczepiæ i siê da
-             if (!tmp->Dettach(CouplNr,0))
-             {//dŸwiêk odczepiania
-              dsbCouplerDetach->SetVolume(DSBVOLUME_MAX);
-              dsbCouplerDetach->Play(0,0,0);
-             }
+            if ((tmp->MoverParameters->Couplers[CouplNr].CouplingFlag&ctrain_depot)==0) //je¿eli sprzêg niezablokowany
+             if (tmp->DettachStatus(CouplNr)<0) //jeœli jest co odczepiæ i siê da
+              if (!tmp->Dettach(CouplNr))
+              {//dŸwiêk odczepiania
+               dsbCouplerDetach->SetVolume(DSBVOLUME_MAX);
+               dsbCouplerDetach->Play(0,0,0);
+              }
            }
           }
           if (DynamicObject->Mechanik) //na wszelki wypadek
