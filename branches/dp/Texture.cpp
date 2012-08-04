@@ -48,7 +48,6 @@ TTexturesManager::Names::iterator TTexturesManager::LoadFromFile(std::string fil
 {
 
     std::string message("Loading - texture: ");
-    message += fileName;
 
     std::string realFileName(fileName);
     std::ifstream file(fileName.c_str());
@@ -59,7 +58,8 @@ TTexturesManager::Names::iterator TTexturesManager::LoadFromFile(std::string fil
 
     char* cFileName = const_cast<char*>(fileName.c_str());
 
-    WriteLog(cFileName);
+    message += realFileName;
+    WriteLog(message.c_str()); //Ra: chybaa mia³o byæ z komunikatem z przodu, a nie tylko nazwa
 
     size_t pos = fileName.rfind('.');
     std::string ext(fileName, pos + 1, std::string::npos);
@@ -88,7 +88,7 @@ TTexturesManager::Names::iterator TTexturesManager::LoadFromFile(std::string fil
     _alphas.insert(texinfo);
     ret=_names.insert(std::make_pair(fileName,texinfo.first)); //dodanie tekstury do magazynu (spisu nazw)
 
-    WriteLog("OK");
+    //WriteLog("OK"); //Ra: "OK" nie potrzeba, samo "Failed" wystarczy
     return ret.first;
 
 };
@@ -337,7 +337,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName,int 
     if (copyto>copyfrom)
     {//jeœli piksele maj¹ byæ kopiowane, to mo¿liwe jest przesuniêcie ich o 1 bajt, na miejsce licznika
      filesize=(imageData+imageSize-copyto)/bytesPerPixel; //ile pikseli pozosta³o do koñca
-     WriteLog("Decompression buffer overflow at pixel "+AnsiString((copyto-imageData)/bytesPerPixel)+"+"+AnsiString(filesize));
+     //WriteLog("Decompression buffer overflow at pixel "+AnsiString((copyto-imageData)/bytesPerPixel)+"+"+AnsiString(filesize));
      //pozycjê w pliku trzeba by zapamietaæ i po wczytaniu reszty pikseli star¹ metod¹
      //zapisaæ od niej dane od (copyto), poprzedzone bajtem o wartoœci (filesize-1)
      writeback=imageData+imageSize+extraend-copyfrom; //ile bajtów skompresowanych zosta³o do koñca
@@ -384,7 +384,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName,int 
    if (Global::iModifyTGA&1)
     writeback=0; //no zapisaæ ten krótszy zaczynajac od pocz¹tku...
   }
-  if (copyto<copyend) WriteLog("Slow loader...");
+  //if (copyto<copyend) WriteLog("Slow loader...");
   while (copyto<copyend)
   {//Ra: stare wczytywanie skompresowanych, z nadu¿ywaniem file.read()
    //równie¿ wykonywane, jeœli dekompresja w buforze przekroczy jego rozmiar

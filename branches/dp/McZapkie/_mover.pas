@@ -1452,21 +1452,6 @@ begin
  DecScndCtrl:=OK;
 end;
 
-(*
-function T_MoverParameters.DirectionForward: boolean;
-begin
-  if (MainCtrlPosNo>0) and (ActiveDir<1) and (MainCtrlPos=0) then
-   begin
-     inc(ActiveDir);
-     DirAbsolute:=ActiveDir*CabNo;
-     DirectionForward:=True;
-     SendCtrlToNext('Direction',ActiveDir,CabNo);
-   end
-  else if (ActiveDir=1) and (MainCtrlPos=0) and (TrainType=dt_EZT) then
-    DirectionForward:=MinCurrentSwitch(true)
-  else
-    DirectionForward:=False;
-end;*)
 
 function T_MoverParameters.DirectionBackward: boolean;
 begin
@@ -5165,7 +5150,7 @@ begin
      PantRear(true);
      MainSwitch(true);
      ActiveDir:=Dir;
-     DirAbsolute:=ActiveDir*CabNo;
+     DirAbsolute:=ActiveDir*CabNo; //kierunek jazdy wzglêdem sprzêgów
      LimPipePress:=CntrlPipePress;
    end
   else
