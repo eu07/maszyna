@@ -13,9 +13,9 @@ __fastcall TMoverParameters::TMoverParameters(double VelInitial,AnsiString TypeN
  int LoadInitial,AnsiString LoadTypeInitial,int Cab)
  : T_MoverParameters(VelInitial,TypeNameInit,NameInit,LoadInitial,LoadTypeInitial,Cab)
 {//g³ówny konstruktor
- DimHalf.x=0.5*Dim.W; //po³owa szerokoœci
- DimHalf.y=0.5*Dim.L; //po³owa d³ugoœci
- DimHalf.z=0.5*Dim.H; //po³owa wysokoœci
+ DimHalf.x=0.5*Dim.W; //po³owa szerokoœci, OX jest w bok?
+ DimHalf.y=0.5*Dim.L; //po³owa d³ugoœci, OY jest do przodu?
+ DimHalf.z=0.5*Dim.H; //po³owa wysokoœci, OZ jest w górê?
 };
 
 

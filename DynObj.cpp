@@ -112,7 +112,7 @@ TDynamicObject* __fastcall TDynamicObject::GetFirstDynamic(int cpl_type)
 {//Szukanie skrajnego po³¹czonego pojazdu w pociagu
  //od strony sprzegu (cpl_type) obiektu szukajacego
  //Ra: wystarczy jedna funkcja do szukania w obu kierunkach
- return FirstFind(cpl_type);
+ return FirstFind(cpl_type); //u¿ywa referencji
 };
 
 TDynamicObject* __fastcall TDynamicObject::GetFirstCabDynamic(int cpl_type)
@@ -1292,7 +1292,7 @@ double __fastcall TDynamicObject::Init(
   return 0.0; //zerowa d³ugoœæ to brak pojazdu
  }
  bool driveractive=(fVel!=0.0); //jeœli prêdkoœæ niezerowa, to aktywujemy ruch
- if (!MoverParameters->CheckLocomotiveParameters(driveractive,iDirection?1:-1)) //jak jedzie lub obsadzony to gotowy do drogi
+ if (!MoverParameters->CheckLocomotiveParameters(driveractive,(fVel>0?1:-1)*Cab*(iDirection?1:-1))) //jak jedzie lub obsadzony to gotowy do drogi
  {
   Error("Parameters mismatch: dynamic object "+asName+" from\n"+BaseDir+"\\"+Type_Name);
   return 0.0; //zerowa d³ugoœæ to brak pojazdu
