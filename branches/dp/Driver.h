@@ -106,8 +106,10 @@ private: //obs³uga tabelki prêdkoœci (musi mieæ mo¿liwoœæ odhaczania stacji w ro
  TEvent *eSignSkip; //sygna³ do pominiêcia (przejechany)
  //TTrack tSignLast; //tor z ostatnio znalezionym eventem
  //TOrders oMode; //aktualny tryb pracy
- double fLength; //d³ugoœæ sk³adu (dla ograniczeñ)
+ //parametry aktualnego sk³adu
+ double fLength; //d³ugoœæ sk³adu (do wyci¹gania z ograniczeñ)
  double fMass; //ca³kowita masa do liczenia stycznej sk³adowej grawitacji
+ double fAccGravity; //przyspieszenie sk³adowej stycznej grawitacji
  bool __fastcall TableCheckEvent(TEvent *e,bool prox);
  bool __fastcall TableAddNew();
  bool __fastcall TableNotFound(TEvent *e);
@@ -247,11 +249,11 @@ private:
  TTrack* __fastcall TraceRoute(double &fDistance,double &fDirection,TTrack *Track,TEvent*&Event);
  void __fastcall SetProximityVelocity(double dist,double vel,const vector3 *pos);
  void __fastcall DirectionForward(bool forward);
+ void __fastcall ScanEventTrack();
 public:
  //inline __fastcall TController() { };
  AnsiString __fastcall StopReasonText();
  __fastcall ~TController();
- void __fastcall ScanEventTrack();
  bool __fastcall CheckEvent(TEvent *e,bool prox);
  AnsiString __fastcall NextStop();
  void __fastcall TakeControl(bool yes);
