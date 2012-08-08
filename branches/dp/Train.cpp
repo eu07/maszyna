@@ -3265,7 +3265,8 @@ else
      {
           fMainRelayTimer+=dt;
           MainOnButtonGauge.PutValue(1);
-          DynamicObject->MoverParameters->ConverterSwitch(false);
+          if (DynamicObject->MoverParameters->Mains!=true) //hunter-080812: poprawka
+           DynamicObject->MoverParameters->ConverterSwitch(false);
           if (fMainRelayTimer>DynamicObject->MoverParameters->InitialCtrlDelay) //wlaczanie WSa z opoznieniem
             if (DynamicObject->MoverParameters->MainSwitch(true))
             {
