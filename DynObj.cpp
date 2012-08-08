@@ -1845,8 +1845,6 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
       if (Mechanik->UpdateSituation(dt1))  //czuwanie AI
 //    if (Mechanik->ScanMe)
       {
-       //if (Mechanik) //bo teraz mo¿e siê przesiaœæ
-       // Mechanik->ScanEventTrack(); //tor pocz¹tkowy zale¿y od po³o¿enia wózków
 //       if(MoverParameters->BrakeCtrlPos>0)
 //         MoverParameters->BrakeCtrlPos=MoverParameters->BrakeCtrlPosNo;
 //       Mechanik->ScanMe= false;
@@ -2364,17 +2362,6 @@ bool __fastcall TDynamicObject::FastUpdate(double dt)
     //tp.CategoryFlag= MyTrack->iCategoryFlag&15;
     //tp.DamageFlag=MyTrack->iDamageFlag;
     //tp.QualityFlag=MyTrack->iQualityFlag;
-    //if (Mechanik)
-    //{
-    //
-    //    if (Mechanik->UpdateSituation(dt))  //czuwanie AI
-//  //       if (Mechanik->ScanMe)
-    //      {
-    //        ScanEventTrack();
-//  //          Mechanik->ScanMe= false;
-    //      }
-    //
-    //}
     dDOMoveLen=MoverParameters->FastComputeMovement(dt,ts,tp,l,r); // ,ts,tp,tmpTraction);
     //Move(dDOMoveLen);
     //ResetdMoveLen();
@@ -3591,12 +3578,8 @@ void __fastcall TDynamicObject::RaAxleEvent(TEvent *e)
  {if (!Mechanik->CheckEvent(e,true)) //jeœli nie jest ustawiaj¹cym prêdkoœæ
    Global::pGround->AddToQuery(e,this); //dodanie do kolejki
   else
- //if (Mechanik) //tylko jeœli ma obsadê
-  {//if (Controller!=Humandriver) //i nie u¿ytkownik (na razie)
-   // Mechanik->ScanEventTrack(); //dla pewnoœci robimy skanowanie
    if (Global::iMultiplayer) //potwierdzenie wykonania dla serwera - najczêœciej odczyt semafora
     Global::pGround->WyslijEvent(e->asName,GetName());
-  }
  }
  else
   if (!Mechanik->CheckEvent(e,true)) //czy dodawany do kolejki, funkcja prawie statyczna
