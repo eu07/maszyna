@@ -2515,6 +2515,7 @@ bool __fastcall TDynamicObject::Render()
   //double ObjDist= SquareMagnitude(Global::pCameraPosition-pos);
   if (this==Global::pUserDynamic)
   {//specjalne ustawienie, aby nie trzês³o
+   //if (Global::pWorld->) //tu trzeba by ustawiæ animacje na modelu zewnêtrznym
    glLoadIdentity(); //zacz¹æ od macierzy jedynkowej
    Global::pCamera->SetCabMatrix(vPosition); //specjalne ustawienie kamery
   }

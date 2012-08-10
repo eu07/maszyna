@@ -37,11 +37,11 @@
 //parametry do u¿ytku wewnêtrznego
 //double Global::tSinceStart=0;
 TGround *Global::pGround=NULL;
-//char Global::CreatorName1[30]="Maciej Czapkiewicz";
-//char Global::CreatorName2[30]="Marcin Wozniak <Marcin_EU>";
-//char Global::CreatorName3[20]="Adam Bugiel <ABu>";
-//char Global::CreatorName4[30]="Arkadiusz Slusarczyk <Winger>";
-//char Global::CreatorName5[30]="Lukasz Kirchner <Nbmx>";
+//char Global::CreatorName1[30]="2001-2004 Maciej Czapkiewicz";
+//char Global::CreatorName2[30]="2001-2003 Marcin WoŸniak <Marcin_EU>";
+//char Global::CreatorName3[20]="2004-2005 Adam Bugiel <ABu>";
+//char Global::CreatorName4[30]="2004 Arkadiusz Œlusarczyk <Winger>";
+//char Global::CreatorName5[30]="£ukasz Kirchner <Nbmx>";
 AnsiString Global::asCurrentSceneryPath="scenery/";
 AnsiString Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath);
 AnsiString Global::asCurrentDynamicPath="";
@@ -56,8 +56,8 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asRelease="1.8.603.359";
-AnsiString Global::asVersion="Compilation 2012-08-07, release "+Global::asRelease+"."; //tutaj, bo wysy³any
+AnsiString Global::asRelease="1.8.605.360";
+AnsiString Global::asVersion="Compilation 2012-08-10, release "+Global::asRelease+"."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 double Global::fSunDeclination=0.0; //deklinacja S³oñca

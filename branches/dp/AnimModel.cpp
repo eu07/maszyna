@@ -190,8 +190,9 @@ bool __fastcall TAnimModel::Init(TModel3d *pNewModel)
 
 bool __fastcall TAnimModel::Init(AnsiString asName, AnsiString asReplacableTexture)
 {
- //asName="models//"+asName;
- if (asReplacableTexture!=AnsiString("none"))
+ if (asReplacableTexture.SubString(1,1)=="*") //od gwiazdki zaczynaj¹ siê teksty na wyœwietlaczach
+  asText=asReplacableTexture.SubString(2,asReplacableTexture.Length()-1); //zapamiêtanie tekstu
+ else if (asReplacableTexture!="none")
   ReplacableSkinId[1]=TTexturesManager::GetTextureID(asReplacableTexture.c_str());
  if (TTexturesManager::GetAlpha(ReplacableSkinId[1]))
   iTexAlpha=0x31310031; //tekstura z kana³em alfa - nie renderowaæ w cyklu nieprzezroczystych
@@ -207,7 +208,7 @@ bool __fastcall TAnimModel::Load(cParser *parser, bool ter)
  parser->getTokens(); //nazwa modelu
  *parser >> token;
  str=AnsiString(token.c_str());
- parser->getTokens(); //tekstura
+ parser->getTokens(1,false); //tekstura (zmienia na ma³e)
  *parser >> token;
  if (!Init(str,AnsiString(token.c_str())))
  {if (str!="notload")
@@ -312,6 +313,7 @@ void __fastcall TAnimModel::RaPrepare()
   if (LightsOff[i]) LightsOff[i]->iVisible=!state;
  }
  TSubModel::iInstance=(int)this; //¿eby nie robiæ cudzych animacji
+ TSubModel::pasText=&asText; //przekazanie tekstu do wyœwietlacza (!!!! do przemyœlenia)
  TAnimContainer *pCurrent;
  for (pCurrent=pRoot;pCurrent!=NULL;pCurrent=pCurrent->pNext)
   pCurrent->UpdateModel(); //przeliczenie animacji ka¿dego submodelu
