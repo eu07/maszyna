@@ -182,7 +182,7 @@ private:
  int iCoupler; //sprzêg, który nale¿y u¿yæ przy ³¹czeniu
  bool Prepare2press; //dociskanie w celu od³¹czenia
  int iDriverFailCount; //licznik b³êdów AI
- bool Need_TryAgain;
+ bool Need_TryAgain; //true, jeœli druga pozycja w elektryku nie za³apa³a
  bool Need_BrakeRelease;
 public:
  double fMinProximityDist; //minimalna oleg³oœæ do przeszkody, jak¹ nale¿y zachowaæ

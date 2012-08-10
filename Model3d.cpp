@@ -37,6 +37,7 @@ int TSubModel::iInstance; //numer renderowanego egzemplarza obiektu
 GLuint *TSubModel::ReplacableSkinId=NULL;
 int TSubModel::iAlpha=0x30300030; //maska do testowania flag tekstur wymiennych
 TModel3d* TSubModel::pRoot; //Ra: tymczasowo wskaŸnik na model widoczny z submodelu
+AnsiString* TSubModel::pasText;
 //przyk³ady dla TSubModel::iAlpha:
 // 0x30300030 - wszystkie bez kana³u alfa
 // 0x31310031 - tekstura -1 u¿ywana w danym cyklu, pozosta³e nie
@@ -260,8 +261,9 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
  };
  parser.ignoreToken();
  std::string token;
- parser.getToken(token); //ze zmian¹ na ma³e!
- //asName=AnsiString(token.c_str());
+ //parser.getToken(token1); //ze zmian¹ na ma³e!
+ parser.getTokens(1,false); //nazwa submodelu bez zmieny na ma³e
+ parser >> token;
  NameSet(token.c_str());
 
  if (parser.expectToken("anim:")) //Ra: ta informacja by siê przyda³a!
@@ -723,9 +725,17 @@ int __fastcall TSubModel::FlagsCheck()
     Child->iFlags|=0x80; //to trzeba sprawdzaæ, jak z teksturami jest
   i=Child->FlagsCheck();
   iFlags|=0x00FF0000&((i<<16)|(i)|(i>>8)); //potomny, rodzeñstwo i dzieci
+  if (eType==TP_TEXT)
+  {//wy³¹czenie renderowania Next dla znaków wyœwietlacza tekstowego
+   TSubModel *p=Child;
+   while (p)
+   {p->iFlags&=0xC0FFFFFF;
+    p=p->Next;
+   }
+  }
  }
  if (Next)
- {//Next jest renderowany przed danym submodelem
+ {//Next jest renderowany po danym submodelu (kolejnoœæ odwrócona po wczytaniu T3D)
   if (TextureID) //o ile dany ma teksturê
    if ((TextureID!=Next->TextureID)||(i&0x00800000)) //a ma inn¹ albo dzieci zmieniaj¹
     iFlags|=0x80; //to dany submodel musi sobie j¹ ustawiaæ
@@ -949,8 +959,8 @@ void __fastcall TSubModel::RenderDL()
    }
   }
   if (Child!=NULL)
-   if (iAlpha&iFlags&0x001F0000)
-    Child->RenderDL();
+    if (iAlpha&iFlags&0x001F0000)
+     Child->RenderDL();
   if (iFlags&0xC000)
    glPopMatrix();
  }
@@ -995,8 +1005,26 @@ void __fastcall TSubModel::RenderAlphaDL()
    // dorobiæ aureolê!
   }
   if (Child!=NULL)
-   if (iAlpha&iFlags&0x002F0000)
-    Child->RenderAlphaDL();
+   if (eType==TP_TEXT)
+   {//tekst renderujemy w specjalny sposób, zamiast submodeli z ³añcucha Child
+    int i,j=pasText->Length();
+    TSubModel *p;
+    char c;
+    for (i=1;i<=j;++i) //Ra: szukanie submodeli jest bez sensu, trzeba zrobiæ tabelkê wskaŸników
+    {
+     c=(*pasText)[i]; //znak do wyœwietlenia
+     p=Child;
+     while (p?c!=(*p->pName):false) p=p->Next; //szukanie znaku
+     if (p)
+     {
+      p->RenderAlphaDL();
+      if (p->fMatrix) glMultMatrixf(p->fMatrix->readArray()); //przesuwanie widoku
+     }
+    }
+   }
+   else
+    if (iAlpha&iFlags&0x002F0000)
+     Child->RenderAlphaDL();
   if (iFlags&0xC000)
    glPopMatrix();
  }

@@ -742,7 +742,7 @@ __fastcall TController::TController
  OrdersClear();
  MaxVelFlag=false; MinVelFlag=false; //Ra: to nie jest u¿ywane
  iDriverFailCount=0;
- Need_TryAgain=false;
+ Need_TryAgain=false; //true, jeœli druga pozycja w elektryku nie za³apa³a
  Need_BrakeRelease=true;
  deltalog=1.0;
 
@@ -1383,7 +1383,7 @@ bool __fastcall TController::IncSpeed()
   Controlling->DoorLeft(false); //zamykanie drzwi
   Controlling->DoorRight(false);
   //Ra: trzeba by ustawiæ jakiœ czas oczekiwania na zamkniêcie siê drzwi
-  WaitingSet(1); //czekanie sekundê, mo¿e trochê d³u¿ej
+  WaitingSet(2); //czekanie sekundê, mo¿e trochê d³u¿ej
  }
  else
  {
@@ -1407,7 +1407,7 @@ bool __fastcall TController::IncSpeed()
      {
       OK=Controlling->IncMainCtrl(1);
       if ((Controlling->MainCtrlPos>2)&&(Controlling->Im==0))
-        Need_TryAgain=true;
+        Need_TryAgain=true; //true, jeœli druga pozycja w elektryku nie za³apa³a
        else
         if (!OK)
          OK=Controlling->IncScndCtrl(1); //TODO: dorobic boczniki na szeregowej przy ciezkich bruttach
@@ -1725,7 +1725,7 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
   else
    if ((NewValue1>=0)&&(NewValue1<maxorders))
    {OrderPos=floor(NewValue1);
-    if (!OrderPos) OrderPos=1; //dopiero pierwsza uruchamia
+    //if (!OrderPos) OrderPos=1; //dopiero pierwsza uruchamia
    }
 /*
   if (WriteLogFlag)
@@ -2286,7 +2286,7 @@ bool __fastcall TController::UpdateSituation(double dt)
      if (iDirection*Controlling->V<0) vel=-vel; //ujemna, gdy jedzie w przeciwn¹ stronê, ni¿ powinien
      if (VelDesired<0.0) VelDesired=fVelMax; //bo <0 w VelDesired nie mo¿e byæ
      //Ra: jazda na widocznoœæ
-     if (pVehicles[0]->fTrackBlock<300.0)
+     if (pVehicles[0]->fTrackBlock<1000.0) //przy 300m sta³ z zapamiêtan¹ kolizj¹
       pVehicles[0]->ABuScanObjects(pVehicles[0]->DirectionGet(),300.0); //skanowanie sprawdzaj¹ce
      //if (Controlling->Vel>=0.1) //o ile jedziemy; jak stoimy to te¿ trzeba jakoœ zatrzymywaæ
      if ((iDrivigFlags&moveConnect)==0) //przy koñcówce pod³¹czania nie hamowaæ
@@ -2471,8 +2471,9 @@ bool __fastcall TController::UpdateSituation(double dt)
       //w³¹czanie bezpiecznika
       if (Controlling->EngineType==ElectricSeriesMotor)
        if (Controlling->FuseFlag||Need_TryAgain)
+       {Need_TryAgain=false; //true, jeœli druga pozycja w elektryku nie za³apa³a
         if (!Controlling->DecScndCtrl(1))
-         if (!Controlling->DecMainCtrl(2))
+         if (!Controlling->DecMainCtrl(2)) //to powinno przestawiæ na 0
           if (!Controlling->DecMainCtrl(1))
            if (!Controlling->FuseOn())
             HelpMeFlag=true;
@@ -2484,6 +2485,7 @@ bool __fastcall TController::UpdateSituation(double dt)
             if (iDriverFailCount>maxdriverfails*2)
              SetDriverPsyche();
            }
+       }
       if (Controlling->BrakeSystem==Pneumatic) //nape³nianie uderzeniowe
        if (Controlling->BrakeSubsystem==Oerlikon)
        {
