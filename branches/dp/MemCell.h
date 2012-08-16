@@ -30,6 +30,8 @@ public:
  inline double __fastcall Value2() {return fValue2;};
  inline vector3 __fastcall Position() {return vPosition;};
  inline TCommandType __fastcall Command() {return eCommand;};
+ TCommandType __fastcall CommandCheck();
+ bool __fastcall IsVelocity();
 };
 
 //---------------------------------------------------------------------------

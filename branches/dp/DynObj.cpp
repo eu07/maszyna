@@ -3572,24 +3572,29 @@ void __fastcall TDynamicObject::RaLightsSet(int head,int rear)
  }
 };
 
+/*
 void __fastcall TDynamicObject::RaAxleEvent(TEvent *e)
 {//obs³uga eventu wykrytego przez wózek - jeœli steruj¹cy prêdkoœci¹, to ignorujemy
  //bo mamy w³asny mechanizm obs³ugi tych eventów i nie musz¹ iœæ do kolejki
+ //Ra: funkcja CheckEvent() nie mo¿e byæ tu u¿ywana, bo jest ze starego skanowania !!!!
  if (Mechanik) //tylko jeœli ma obsadê
- {if (!Mechanik->CheckEvent(e,true)) //jeœli nie jest ustawiaj¹cym prêdkoœæ
+ {//if (!Mechanik->CheckEvent(e,true)) //jeœli nie jest ustawiaj¹cym prêdkoœæ
+  if (e->bEnabled) //czy nale¿y dodaæ do kolejki
    Global::pGround->AddToQuery(e,this); //dodanie do kolejki
-  else
+  else //nie ma potrzeby wysy³ania tego do serwera, skoro mo¿na wys³aæ zajêtoœæ toru
    if (Global::iMultiplayer) //potwierdzenie wykonania dla serwera - najczêœciej odczyt semafora
     Global::pGround->WyslijEvent(e->asName,GetName());
  }
  else
-  if (!Mechanik->CheckEvent(e,true)) //czy dodawany do kolejki, funkcja prawie statyczna
-   Global::pGround->AddToQuery(e,this); //dodanie do kolejki
+  //if (!Mechanik->CheckEvent(e,true)) //czy dodawany do kolejki, funkcja prawie statyczna
+ if (e->bEnabled) //czy nale¿y dodaæ do kolejki
+  Global::pGround->AddToQuery(e,this); //dodanie do kolejki
 };
+*/
 
 int __fastcall TDynamicObject::DirectionSet(int d)
 {//ustawienie kierunku w sk³adzie (wykonuje AI)
- iDirection=d>0?1:0; //d:1=zgodny,-1=przeciwny; iDirection:1=zgodny,0=przeciwny; 
+ iDirection=d>0?1:0; //d:1=zgodny,-1=przeciwny; iDirection:1=zgodny,0=przeciwny;
  CouplCounter=26; //do przeskanowania s¹ kolizje
  return 1-(iDirection?NextConnectedNo:PrevConnectedNo); //informacja o po³o¿eniu nastêpnego
 };

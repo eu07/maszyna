@@ -29,7 +29,6 @@ union TParam
     TMemCell *asMemCell;
     TGroundNode *asGroundNode;
     TTrack *asTrack;
-//    TSemaphore *asSemaphore;
     TAnimModel *asModel;
     TAnimContainer *asAnimContainer;
     TTrain *asTrain;
@@ -48,7 +47,7 @@ private:
 
 public:
     AnsiString asName;
-    bool bEnabled;
+    bool bEnabled; //false gdy ma nie byæ dodawany do kolejki (skanowanie sygna³ów)
     bool bLaunched;
     bool bIsHistory;
     TEvent *Next;
