@@ -375,7 +375,7 @@ public:
  void CouplersDettach(double MinDist,int MyScanDir);
  void __fastcall RadioStop();
  void __fastcall RaLightsSet(int head,int rear);
- void __fastcall RaAxleEvent(TEvent *e);
+ //void __fastcall RaAxleEvent(TEvent *e);
  TDynamicObject* __fastcall FirstFind(int &coupler_nr);
  int __fastcall DirectionSet(int d); //ustawienie kierunku w sk³adzie
  int __fastcall DirectionGet() {return iDirection?1:-1;}; //odczyt kierunku w sk³adzie

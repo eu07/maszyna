@@ -2489,6 +2489,9 @@ bool __fastcall TGround::InitEvents()
              {
               Current->Params[8].asGroundNode=tmp;
               Current->Params[9].asMemCell=tmp->MemCell;
+              if (Current->Type==tp_GetValues) //jeœli odczyt komórki
+               if (tmp->MemCell->IsVelocity()) //a komórka zawiera komendê SetVelocity albo ShuntVelocity
+                Current->bEnabled=false; //to event nie bêdzie dodawany do kolejki
              }
              else
               Error("Event \""+Current->asName+"\" cannot find memcell \""+Current->asNodeName+"\"");
@@ -2865,20 +2868,21 @@ TGroundNode* __fastcall TGround::GetNode( AnsiString asName )
 */
 bool __fastcall TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
 {
- if (!Event->bLaunched)
- {
-  WriteLog("EVENT ADDED TO QUEUE: "+Event->asName);
-  Event->Activator=Node;
-  Event->fStartTime=fabs(Event->fDelay)+Timer::GetTime();
-  Event->bLaunched=true;
-  if (QueryRootEvent)
-   QueryRootEvent->AddToQuery(Event);
-  else
+ if (Event->bEnabled) //jeœli mo¿e byæ dodany do kolejki (nie u¿ywany w skanowaniu)
+  if (!Event->bLaunched)
   {
-   Event->Next=QueryRootEvent;
-   QueryRootEvent=Event;
+   WriteLog("EVENT ADDED TO QUEUE: "+Event->asName);
+   Event->Activator=Node;
+   Event->fStartTime=fabs(Event->fDelay)+Timer::GetTime();
+   Event->bLaunched=true;
+   if (QueryRootEvent)
+    QueryRootEvent->AddToQuery(Event);
+   else
+   {
+    Event->Next=QueryRootEvent;
+    QueryRootEvent=Event;
+   }
   }
- }
  return true;
 }
 

@@ -15,7 +15,7 @@ enum TOrders
  Prepare_engine=1,        //w³¹czenie silnika
  Release_engine=2,        //wy³¹czenie silnika
  Change_direction=4,      //zmiana kierunku (bez skanowania sygnalizacji)
- Connect=8,               //pod³¹czanie wagonów (bez skanowania sygnalizacji)
+ Connect=8,               //pod³¹czanie wagonów (z czêœciowym skanowaniem sygnalizacji)
  Disconnect=0x10,         //od³¹czanie wagonów (bez skanowania sygnalizacji)
  //jazda
  Shunt=0x20,              //tryb manewrowy
@@ -29,7 +29,7 @@ enum TMovementStatus
  moveStopPoint=2, //stawaæ na W4 (wy³¹czone podczas zmiany czo³a)
  moveAvaken=4, //po w³¹czeniu silnika pojazd nie przemieœci³ siê
  movePress=8, //dociskanie przy od³¹czeniu (zamiast zmiennej Prepare2press)
- moveBackwardLook=16, //skanowanie torów w przeciwn¹ stronê w celu zmiany kierunku
+ //moveBackwardLook=16, //skanowanie torów w przeciwn¹ stronê w celu zmiany kierunku
  moveConnect=0x20, //jest blisko innego pojazdu i mo¿na próbowaæ pod³¹czyæ
  movePrimary=0x40, //ma priorytet w sk³adzie
  moveStopHere=0x80, //nie podje¿d¿aæ do semafora, jeœli droga nie jest wolna
@@ -110,7 +110,7 @@ private: //obs³uga tabelki prêdkoœci (musi mieæ mo¿liwoœæ odhaczania stacji w ro
  double fLength; //d³ugoœæ sk³adu (do wyci¹gania z ograniczeñ)
  double fMass; //ca³kowita masa do liczenia stycznej sk³adowej grawitacji
  double fAccGravity; //przyspieszenie sk³adowej stycznej grawitacji
- bool __fastcall TableCheckEvent(TEvent *e,bool prox);
+ bool __fastcall TableCheckEvent(TEvent *e);
  bool __fastcall TableAddNew();
  bool __fastcall TableNotFound(TEvent *e);
  void __fastcall TableClear();
@@ -238,23 +238,24 @@ private:
  double WaitingTime; //zliczany czas oczekiwania do samoistnego ruszenia
  double WaitingExpireTime; //maksymlany czas oczekiwania do samoistnego ruszenia
  AnsiString __fastcall Order2Str(TOrders Order);
+ void __fastcall DirectionForward(bool forward);
  int __fastcall OrderDirectionChange(int newdir,TMoverParameters *Vehicle);
  void __fastcall Lights(int head,int rear);
  double __fastcall Distance(vector3 &p1,vector3 &n,vector3 &p2);
  //Ra: poni¿sze przenieœæ do modu³u AI:
  //TEvent* eSignSkip; //miniêty sygna³ zezwalaj¹cy na jazdê, pomijany przy szukaniu
  //AnsiString asNextStop; //nazwa nastêpnego punktu zatrzymania wg rozk³adu
+private: //Ra: stare funkcje skanuj¹ce, u¿ywane do szukania sygnalizatora z ty³u
  TEvent* eSignLast; //ostatnio znaleziony sygna³, o ile nie miniêty
+ bool __fastcall CheckEvent(TEvent *e);
  TEvent* __fastcall CheckTrackEvent(double fDirection,TTrack *Track);
- TTrack* __fastcall TraceRoute(double &fDistance,double &fDirection,TTrack *Track,TEvent*&Event);
+ TTrack* __fastcall BackwardTraceRoute(double &fDistance,double &fDirection,TTrack *Track,TEvent*&Event);
  void __fastcall SetProximityVelocity(double dist,double vel,const vector3 *pos);
- void __fastcall DirectionForward(bool forward);
- void __fastcall ScanEventTrack();
+ bool __fastcall BackwardScan();
 public:
  //inline __fastcall TController() { };
  AnsiString __fastcall StopReasonText();
  __fastcall ~TController();
- bool __fastcall CheckEvent(TEvent *e,bool prox);
  AnsiString __fastcall NextStop();
  void __fastcall TakeControl(bool yes);
  AnsiString __fastcall Relation();

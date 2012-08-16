@@ -1057,7 +1057,7 @@ bool __fastcall TWorld::Update()
 
 //*yB: moje smuuugi 1
   if ((Train->DynamicObject->fShade<=0.0)?(Global::fLuminance<=0.25):(Train->DynamicObject->fShade*Global::fLuminance<=0.25))
-  {//Ra: uwzglêdni³em zacienienie pojazdu (Train->DynamicObject->fShade)
+  {//Ra: uwzglêdni³em zacienienie pojazdu przy zapalaniu smug
    glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_ONE);
 //    glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_DST_COLOR);
 //    glBlendFunc(GL_SRC_ALPHA_SATURATE,GL_ONE);
@@ -1143,25 +1143,6 @@ bool __fastcall TWorld::Update()
   glPopMatrix ( );
 //**********************************************************************************************************
  } //koniec if (Train)
-/*
- if (Global::fMoveLight>=0)
- {//Ra: tymczasowy "zegar s³oneczny"
-  float x=0.0f,y=10.0f,z=0.0f; //œrodek tarczy
-  glColor3f(1.0f,1.0f,1.0f);
-  glDisable(GL_LIGHTING);
-  glBegin(GL_LINES); //linia
-   x+=1.0*Global::lightPos[0];
-   y+=1.0*Global::lightPos[1];
-   z+=1.0*Global::lightPos[2];
-   glVertex3f(x,y,z); //pocz¹tek wskazówki
-   x+=10.0*Global::lightPos[0];
-   y+=10.0*Global::lightPos[1];
-   z+=10.0*Global::lightPos[2];
-   glVertex3f(x,y,z); //koniec wskazuje kierunek S³oñca
-  glEnd();
-  glEnable(GL_LIGHTING);
- }
-*/
     if (DebugModeFlag&&!Global::iTextMode)
      {
        OutText1="  FPS: ";
