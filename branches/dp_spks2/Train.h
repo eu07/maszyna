@@ -126,7 +126,10 @@ public:
     TGauge BrakeCtrlGauge;
     TGauge LocalBrakeGauge;
 
-    TGauge BrakeProfileCtrlGauge;
+    TGauge BrakeProfileCtrlGauge; //nastawiacz GPR - przelacznik obrotowy
+    TGauge BrakeProfileG;         //nastawiacz GP - hebelek towarowy
+    TGauge BrakeProfileR;         //nastawiacz PR - hamowanie dwustopniowe
+
     TGauge MaxCurrentCtrlGauge;
 
     TGauge MainOffButtonGauge;
@@ -275,7 +278,8 @@ public:
 //McZapkie-280302
     TRealSound rsBrake;
     TRealSound rsSlippery;
-    TRealSound rsHiss;
+    TRealSound rsHiss;  //upuszczanie
+    TRealSound rsHiss2; //napelnianie
     TRealSound rsSBHiss;
     TRealSound rsRunningNoise;
     TRealSound rsEngageSlippery;

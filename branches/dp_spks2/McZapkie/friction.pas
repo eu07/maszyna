@@ -29,7 +29,6 @@ unit friction;          {fizyka ruchu dla symulatora lokomotywy}
 (*
 (C) youBy
 Co brakuje:
-- rozne typy wstawek zeliwnych
 - hamulce tarczowe
 - kompozyty
 *)
@@ -97,12 +96,17 @@ TYPE
     function GetFC(N, Vel: real): real; override;
   end;
 
+  TDisk2 = class(TFricMat)
+    public
+    function GetFC(N, Vel: real): real; override;
+  end;
+
 
 implementation
 
 function TFricMat.GetFC(N, Vel: real): real;
 begin
-  GetFC:=0;
+  GetFC:=1;
 end;
 
 function TP10Bg.GetFC(N, Vel: real): real;
@@ -173,6 +177,11 @@ end;
 function TDisk1.GetFC(N, Vel: real): real;
 begin
   GetFC:=0.2375+0.000885*N-0.000345*N*N;
+end;
+
+function TDisk2.GetFC(N, Vel: real): real;
+begin
+  GetFC:=0.27;
 end;
 
 function TFR510.GetFC(N, Vel: real): real;

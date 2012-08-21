@@ -89,6 +89,7 @@ private:
 	double SizeBR;
 	double SizeBC;
 	bool DCV;
+	double ASBP;
 	Byte BrakeStatus;
 	
 public:
@@ -105,8 +106,10 @@ public:
 	virtual void __fastcall Init(double PP, double HPP, double LPP, double BP, Byte BDF);
 	bool __fastcall SetBDF(Byte nBDF);
 	void __fastcall Releaser(Byte state);
+	virtual void __fastcall SetEPS(double nEPS);
 	void __fastcall ASB(Byte state);
 	Byte __fastcall GetStatus(void);
+	void __fastcall SetASBP(double press);
 public:
 	#pragma option push -w-inl
 	/* TObject.Destroy */ inline __fastcall virtual ~TBrake(void) { }
@@ -123,12 +126,20 @@ class PASCALIMPLEMENTATION TWest : public TBrake
 private:
 	double LBP;
 	double dVP;
+	double EPS;
+	double TareM;
+	double LoadM;
+	double TareBP;
+	double LoadC;
 	
 public:
 	void __fastcall SetLBP(double P);
 	virtual double __fastcall GetPF(double PP, double dt, double Vel);
 	virtual void __fastcall Init(double PP, double HPP, double LPP, double BP, Byte BDF);
 	virtual double __fastcall GetHPFlow(double HP, double dt);
+	void __fastcall PLC(double mass);
+	virtual void __fastcall SetEPS(double nEPS);
+	void __fastcall SetLP(double TM, double LM, double TBP);
 public:
 	#pragma option push -w-inl
 	/* TBrake.Create */ inline __fastcall TWest(double i_mbp, double i_bcr, double i_bcd, double i_brc, 
@@ -311,7 +322,7 @@ public:
 	virtual double __fastcall GetPF(double PP, double dt, double Vel);
 	virtual void __fastcall Init(double PP, double HPP, double LPP, double BP, Byte BDF);
 	void __fastcall PLC(double mass);
-	void __fastcall SetEPS(double nEPS);
+	virtual void __fastcall SetEPS(double nEPS);
 	void __fastcall SetLP(double TM, double LM, double TBP);
 public:
 	#pragma option push -w-inl
@@ -574,6 +585,28 @@ public:
 	#pragma option pop
 	#pragma option push -w-inl
 	/* TObject.Destroy */ inline __fastcall virtual ~TH14K1(void) { }
+	#pragma option pop
+	
+};
+
+
+class DELPHICLASS TSt113;
+class PASCALIMPLEMENTATION TSt113 : public TH14K1 
+{
+	typedef TH14K1 inherited;
+	
+private:
+	double EPS;
+	
+public:
+	virtual double __fastcall GetPF(double i_bcp, double pp, double hp, double dt, double ep);
+	virtual double __fastcall GetCP(void);
+public:
+	#pragma option push -w-inl
+	/* TObject.Create */ inline __fastcall TSt113(void) : TH14K1() { }
+	#pragma option pop
+	#pragma option push -w-inl
+	/* TObject.Destroy */ inline __fastcall virtual ~TSt113(void) { }
 	#pragma option pop
 	
 };

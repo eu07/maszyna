@@ -3,7 +3,7 @@
 <PROJECT>
   <MACROS>
     <VERSION value="BCB.05.03"/>
-    <PROJECT value="D:\!PC2010_DDS_SPKS\EU07.exe"/>
+    <PROJECT value="E:\PC2011SPKS\EU07.exe"/>
     <OBJFILES value="QueryParserComp.obj McZapkie\mtable.obj McZapkie\_mover.obj 
       McZapkie\hamulce.obj EU07.obj dumb3d.obj Camera.obj Texture.obj World.obj 
       Model3d.obj geometry.obj MdlMngr.obj Train.obj wavread.obj Timer.obj 
@@ -105,17 +105,18 @@ Item6=GLEW_STATIC;_DEBUG;USE_VERTEX_ARRAYS
 Item7=_DEBUG
 
 [HistoryLists\hlFinalOutputDir]
-Count=4
-Item0=D:\!PC2010_DDS_SPKS\
-Item1=D:\!PC2010_DDS_SPKS
-Item2=D:\EU07\
-Item3=D:\EU07DDS\
+Count=5
+Item0=E:\PC2011SPKS\
+Item1=D:\!PC2010_DDS_SPKS\
+Item2=D:\!PC2010_DDS_SPKS
+Item3=D:\EU07\
+Item4=D:\EU07DDS\
 
 [Debugging]
 DebugSourceDirs=C:\Ra\dp\McZapkie\
 
 [Parameters]
-RunParams=
+RunParams=-s linia61_tlk-1.scn -v EU07-310
 HostApplication=
 RemoteHost=
 RemotePath=

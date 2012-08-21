@@ -29,7 +29,7 @@ unit hamulce;          {fizyka hamulcow dla symulatora}
 (*
 (C) youBy
 Co brakuje:
-Knorr, knorr, knorr i moze jeszcze jakis knorr albo SW
+Knorr EP i moze jeszcze jakis SW
 *)
 (*
 Zrobione:
@@ -38,6 +38,8 @@ duzo wersji ¿eliwa
 KE
 Tarcze od 152A
 Magnetyki (implementacja w mover.pas)
+Matrosow 394
+H14K1 (zasadniczy), H1405 (pomocniczy), St113 (ep)
 *)
 
 interface
@@ -152,6 +154,7 @@ TYPE
         SizeBR: real;              //rozmiar^2 ZP (w stosunku do 14")
         SizeBC: real;              //rozmiar^2 CH (w stosunku do 14")
         DCV: boolean;              //podwojny zawor zwrotny
+        ASBP: real;                //cisnienie hamulca pp
 
         BrakeStatus: byte; //flaga stamnu
       public
@@ -171,21 +174,29 @@ TYPE
         procedure Init(PP, HPP, LPP, BP: real; BDF: byte); virtual; //inicjalizacja hamulca
         function SetBDF(nBDF: byte): boolean; //nastawiacz GPRM
         procedure Releaser(state: byte); //odluzniacz
+        procedure SetEPS(nEPS:real); virtual;//hamulec EP
         procedure ASB(state: byte); //hamulec przeciwposlizgowy
         function GetStatus(): byte; //flaga statusu, moze sie przydac do odglosow
+        procedure SetASBP(press: real); //ustalenie cisnienia pp
 //        procedure
     end;
 
     TWest= class(TBrake)
       private
-        LBP: real;       //cisnienie hamulca pomocniczego
-        dVP: real;
+        LBP: real;           //cisnienie hamulca pomocniczego
+        dVP: real;           //pobor powietrza wysokiego cisnienia
+        EPS: real;           //stan elektropneumatyka
+        TareM, LoadM: real;  //masa proznego i pelnego
+        TareBP: real;        //cisnienie dla proznego
+        LoadC: real;         //wspolczynnik przystawki wazacej
       public
         procedure SetLBP(P: real);   //cisnienie z hamulca pomocniczego
         function GetPF(PP, dt, Vel: real): real; override;     //przeplyw miedzy komora wstepna i PG
         procedure Init(PP, HPP, LPP, BP: real; BDF: byte); override;
-        function GetHPFlow(HP, dt: real): real; override;        
-//        function LocBrakeFlow(LBP, dvLV: real): boolean;
+        function GetHPFlow(HP, dt: real): real; override;
+        procedure PLC(mass: real);  //wspolczynnik cisnienia przystawki wazacej
+        procedure SetEPS(nEPS: real); override; //stan hamulca EP
+        procedure SetLP(TM, LM, TBP: real);  //parametry przystawki wazacej        
       end;
 
     TESt= class(TBrake)
@@ -258,7 +269,7 @@ TYPE
         function GetPF(PP, dt, Vel: real): real; override;     //przeplyw miedzy komora wstepna i PG
         procedure Init(PP, HPP, LPP, BP: real; BDF: byte); override;  //inicjalizacja
         procedure PLC(mass: real);  //wspolczynnik cisnienia przystawki wazacej
-        procedure SetEPS(nEPS: real);  //stan hamulca EP
+        procedure SetEPS(nEPS: real); override; //stan hamulca EP
         procedure SetLP(TM, LM, TBP: real);  //parametry przystawki wazacej
       end;
 
@@ -375,6 +386,14 @@ TYPE
         function GetPF(i_bcp:real; pp, hp, dt, ep: real): real; override;
         procedure Init(press: real); override;
         procedure SetReductor(nAdj: real); override;
+        function GetCP: real; override;
+      end;
+
+    TSt113= class(TH14K1)
+      private
+        EPS: real;
+      public
+        function GetPF(i_bcp:real; pp, hp, dt, ep: real): real; override;
         function GetCP: real; override;
       end;
 
@@ -571,12 +590,18 @@ end; *)
 //(* STARA WERSJA
 function TBrakeCyl.P:real;
 var VtoC: real; //stosunek cisnienia do objetosci
+const
+  VS = 0.005;
+  pS = 0.05;
+  VD = 1.40;
+  cD = 1;
+  pD = VD-cD;
 begin
   VtoC:=Vol/Cap;
 //  P:=VtoC;
-  if VtoC<0.15 then P:=VtoC//objetosc szkodliwa
-  else if VtoC>1.3 then P:=VtoC-1 //caly silownik
-  else P:=0.15*(1+(VtoC-0.15)/1.15); //wysuwanie tloka
+  if VtoC<VS then P:=VtoC*pS/VS           //objetosc szkodliwa
+  else if VtoC>VD then P:=VtoC-cD        //caly silownik
+  else P:=pS+(VtoC-VS)/(VD-VS)*(pD-pS); //wysuwanie tloka
 end;  //*)
 
 
@@ -644,6 +669,7 @@ begin
   bp_P10yBg:  FM:=TP10yBg.Create;
   bp_P10yBgu: FM:=TP10yBgu.Create;
   bp_D1:      FM:=TDisk1.Create;
+  bp_D2:      FM:=TDisk2.Create;  
   else //domyslnie
   FM:=TP10.Create;
   end;
@@ -721,6 +747,11 @@ begin
   BrakeStatus:=(BrakeStatus and 247) or state*b_rls;
 end;
 
+procedure TBrake.SetEPS(nEPS: real);
+begin
+
+end;
+
 procedure TBrake.ASB(state: byte);
 begin                           //255-b_asb(32)
   BrakeStatus:=(BrakeStatus and 223) or state*b_asb;
@@ -729,6 +760,11 @@ end;
 function TBrake.GetStatus(): byte;
 begin
   GetStatus:=BrakeStatus;
+end;
+
+procedure TBrake.SetASBP(press: real);
+begin
+   ASBP:=press;
 end;
 
 //---WESTINGHOUSE---
@@ -744,6 +780,7 @@ end;
 function TWest.GetPF(PP, dt, Vel: real): real;
 var dv, dv1:real;
     VVP, BVP, CVP, BCP: real;
+    temp: real;
 begin
 
  BVP:=BrakeRes.P;
@@ -769,24 +806,32 @@ begin
   BrakeCyl.Flow(-dV);
 
   if(BCP>LBP+0.01) and (DCV) then
-   dV:=PF(0,CVP,0.01*sizeBC)*dt
+   dV:=PF(0,CVP,0.1*sizeBC)*dt
   else dV:=0;
   BrakeCyl.Flow(-dV);
 
+//hamulec EP
+  temp:=BVP*Byte(EPS>0);
+  dV:=PF(temp,LBP,0.0015)*dt*EPS*EPS*Byte(LBP*EPS<MaxBP*LoadC);
+  LBP:=LBP-dV;
+  dV:=0;
+
 //przeplyw ZP <-> silowniki
-  if((BrakeStatus and b_on)=b_on)then
+  if((BrakeStatus and b_on)=b_on)and((TareBP<0.1)or(BCP<MaxBP*LoadC))then
     if(BVP>LBP)then
      begin
       DCV:=false;
       dV:=PF(BVP,CVP,0.017*sizeBC)*dt;
      end
+    else dV:=0 
   else dV:=0;
   BrakeRes.Flow(dV);
   BrakeCyl.Flow(-dV);
   if(DCV)then
-   dVP:=PF(LBP,BCP,0.1)*dt
+   dVP:=PF(LBP,BCP,0.01*sizeBC)*dt
   else dVP:=0;
   BrakeCyl.Flow(-dVP);
+  if(dVP>0)then dVP:=0;
 //przeplyw ZP <-> rozdzielacz
   if((BrakeStatus and b_hld)=b_off)then
    dV:=PF(BVP,VVP,0.0011*sizeBR)*dt
@@ -818,6 +863,38 @@ begin
 //   end
 //  else
 //    LBP:=P;  
+end;
+
+procedure TWest.SetEPS(nEPS: real);
+var
+  BCP: real;
+begin
+  BCP:=BrakeCyl.P;
+  if nEPS>0 then
+    DCV:=true
+  else if nEPS=0 then
+   begin
+    if(EPS<>0)then
+     begin
+      if(LBP>0.4)then
+       LBP:=BrakeCyl.P;
+      if(LBP<0.15)then
+       LBP:=0;
+     end;
+   end;
+  EPS:=nEPS;
+end;
+
+procedure TWest.PLC(mass: real);
+begin
+  LoadC:=1+Byte(Mass<LoadM)*((TareBP+(MaxBP-TareBP)*(mass-TareM)/(LoadM-TareM))/MaxBP-1);
+end;
+
+procedure TWest.SetLP(TM, LM, TBP: real);
+begin
+  TareM:=TM;
+  LoadM:=LM;
+  TareBP:=TBP;
 end;
 
 
@@ -1063,7 +1140,7 @@ begin
 
 //hamulec EP
   temp:=BVP*Byte(EPS>0);
-  dV:=PF(temp,LBP,0.0015)*dt*EPS*EPS*Byte(LBP*EPS<MaxBP);
+  dV:=PF(temp,LBP,0.0015)*dt*EPS*EPS*Byte(LBP*EPS<MaxBP*LoadC);
   LBP:=LBP-dV;
 
 //luzowanie KI
@@ -1084,6 +1161,9 @@ begin
   GetPF:=dV-dV1;
 
   temp:=Max0R(BCP,LBP);
+
+  if(ImplsRes.P>LBP+0.01)then
+    LBP:=0;
 
 //luzowanie CH
   if(BrakeCyl.P>temp+0.005)or(Max0R(ImplsRes.P,8*LBP)<0.25) then
@@ -1112,6 +1192,8 @@ end;
 procedure TEStEP2.SetEPS(nEPS: real);
 begin
   EPS:=nEPS;
+  if (EPS>0) and (LBP<BrakeCyl.P) then
+    LBP:=BrakeCyl.P
 end;
 
 procedure TEStEP2.SetLP(TM, LM, TBP: real);
@@ -1429,7 +1511,7 @@ begin
   if EDFlag then temp:=10000;
 
 //powtarzacz — podwojny zawor zwrotny
-  temp:=Max0R(((CVP-BCP)*BVM+1.6*Byte((BrakeStatus and b_asb)=b_asb))/temp,LBP);
+  temp:=Max0R(((CVP-BCP)*BVM+ASBP*Byte((BrakeStatus and b_asb)=b_asb))/temp,LBP);
 //luzowanie CH
   if(BrakeCyl.P>temp+0.005)or(temp<0.28) then
 //   dV:=PF(0,BrakeCyl.P,0.0015*3*sizeBC)*dt
@@ -1855,7 +1937,7 @@ begin
 
 
 //rapid
-  if not (FM is TDisk1) then   //jesli zeliwo to schodz
+  if not ((FM is TDisk1) or (FM is TDisk2)) then   //jesli zeliwo to schodz
     RapidStatus:=((BrakeDelayFlag and bdelay_R)=bdelay_R)and(((Vel>50)and(RapidStatus))or(Vel>70))
   else                         //jesli tarczowki, to zostan
     RapidStatus:=((BrakeDelayFlag and bdelay_R)=bdelay_R);
@@ -1872,7 +1954,7 @@ begin
   temp:=temp/LoadC;
 //luzowanie CH
 //  temp:=Max0R(BCP,LBP);
-  IMP:=Max0R(IMP/temp,LBP);
+  IMP:=Max0R(IMP/temp,Max0R(LBP,ASBP*Byte((BrakeStatus and b_asb)=b_asb)));
 
 //luzowanie CH
   if(BCP>IMP+0.005)or(Max0R(ImplsRes.P,8*LBP)<0.25) then
@@ -2258,23 +2340,7 @@ begin
     Limpp:=cp;
   ActFlowSpeed:=BPT_K[bcp][0];
 
-//  if cp<Limpp then
-//    cp:=cp+6*Min0R(abs(Limpp-cp),0.05)*PR(cp,Limpp)*dt //zbiornik sterujacy
-//  else
-    cp:=cp+6*Min0R(abs(Limpp-cp),0.05)*PR(cp,Limpp)*dt; //zbiornik sterujacy
-
-//  Limpp:=cp;
-//  dpPipe:=Min0R(HP,Limpp);
-
-
-//  if(dpPipe>pp)then //napelnianie
-//    if(bcp<=0)then
-//      dpMainValve:=PF(dpPipe,pp,ActFlowSpeed/(LBDelay))*dt
-//    else
-//      dpMainVale:=0;
-//  else //spuszczanie
-//    if(bcp>1)then
-//    dpMainValve:=PF(dpPipe,pp,ActFlowSpeed/(LBDelay))*dt;
+  cp:=cp+6*Min0R(abs(Limpp-cp),0.05)*PR(cp,Limpp)*dt; //zbiornik sterujacy
 
   dpMainValve:=0;
 
@@ -2304,6 +2370,55 @@ end;
 function TH14K1.GetCP: real;
 begin
   GetCP:= CP;
+end;
+
+//---St113-- Knorr EP
+
+function TSt113.GetPF(i_bcp:real; pp, hp, dt, ep: real): real;
+const
+  LBDelay = 100;                                    //szybkosc + zasilanie sterujacego
+  BPT_K: array[-1..4] of array [0..1] of real= ((10, 0), (4, 1), (0, 1), (4, 0), (4, -1), (15, -1));
+  BEP_K: array[-1..5] of real= (0, -1, 1, 0, 0, 0, 0);
+  NomPress = 5.0;
+var
+  LimPP, dpPipe, dpMainValve, ActFlowSpeed: real;
+  bcp: integer;
+begin
+  bcp:=Round(i_bcp);
+
+  EPS:=BEP_K[bcp];
+
+  if bcp>0 then bcp:=bcp-1;
+
+  if bcp<-1 then bcp:=1;
+  Limpp:=BPT_K[bcp][1];
+  if Limpp<0 then
+    Limpp:=0.5*pp
+  else if Limpp>0 then
+    Limpp:=pp
+  else
+    Limpp:=cp;
+  ActFlowSpeed:=BPT_K[bcp][0];
+
+  cp:=cp+6*Min0R(abs(Limpp-cp),0.05)*PR(cp,Limpp)*dt; //zbiornik sterujacy
+
+  dpMainValve:=0;
+
+  if bcp=-1 then
+    dpMainValve:=PF(HP,pp,(ActFlowSpeed)/(LBDelay))*dt;
+  if(bcp=0)then
+    dpMainValve:=-PFVa(HP,pp,(ActFlowSpeed)/(LBDelay),NomPress+RedAdj)*dt;
+  if (bcp>1)and(pp>cp) then
+    dpMainValve:=PFVd(pp,0,(ActFlowSpeed)/(LBDelay),cp)*dt;
+  if bcp=i_bcpNo then
+    dpMainValve:=PF(0,pp,(ActFlowSpeed)/(LBDelay))*dt;
+
+  GetPF:=dpMainValve;
+end;
+
+function TSt113.GetCP: real;
+begin
+  GetCP:=EPS;
 end;
 
 //--- test ---
@@ -2383,7 +2498,7 @@ begin
   else
    begin
     temp:=0;
-    A:=0.2*(0.5-i_bcp)*0.0018;
+    A:=0.2*(0.5-i_bcp)*0.0033;
     BP:=Min0R(BP,pp);
    end;
   dp:=PF(temp,BP,A)*dt;

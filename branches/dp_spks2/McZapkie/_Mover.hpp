@@ -90,7 +90,8 @@ enum TBrakeValve { NoValve, W, W_Lu_VI, W_Lu_L, W_Lu_XR, K, Kg, Kp, Kss, Kkg, Kk
 #pragma option pop
 
 #pragma option push -b-
-enum TBrakeHandle { NoHandle, West, FV4a, M394, M254, FVel1, FVel6, D2, Knorr, FD1, BS2, testH };
+enum TBrakeHandle { NoHandle, West, FV4a, M394, M254, FVel1, FVel6, D2, Knorr, FD1, BS2, testH, St113 
+	};
 #pragma option pop
 
 #pragma option push -b-
@@ -337,7 +338,7 @@ public:
 	Byte ASBType;
 	Byte TurboTest;
 	double MaxBrakeForce;
-	double MaxBrakePress[4];
+	double MaxBrakePress[5];
 	double P2FTrans;
 	double TrackBrakeForce;
 	Byte BrakeMethod;
@@ -355,6 +356,7 @@ public:
 	Byte LoadFlag;
 	double BrakeCylSpring;
 	double BrakeSlckAdj;
+	double BrakeRigEff;
 	double RapidMult;
 	double MinCompressor;
 	double MaxCompressor;

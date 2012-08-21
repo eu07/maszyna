@@ -1382,6 +1382,33 @@ double __fastcall TDynamicObject::Init(
     MoverParameters->BrakeStatus|=128; //wylacz
     MoverParameters->BrakeReleaser();  //odluznij automatycznie
    }
+  } 
+  if (ActPar.Pos("A")>0) //agonalny wylaczanie 20%, usrednienie przekladni
+  {
+   if (random(10)<2) //losowanie 2/10
+   {
+    MoverParameters->BrakeStatus|=128; //wylacz
+    MoverParameters->BrakeReleaser();  //odluznij automatycznie
+   }
+   if(MoverParameters->BrakeCylMult[2]*MoverParameters->BrakeCylMult[1]>0.01) //jesli jest nastawiacz mechaniczny PL
+   {
+    float rnd=random(10);
+    if (rnd<2) //losowanie 2/10         usrednienie
+    {
+      MoverParameters->BrakeCylMult[2]=MoverParameters->BrakeCylMult[1]=(MoverParameters->BrakeCylMult[2]+MoverParameters->BrakeCylMult[1])/2;
+    }
+    else
+    if (rnd<7) //losowanie 7/10-2/10    oslabienie
+    {
+      MoverParameters->BrakeCylMult[1]=MoverParameters->BrakeCylMult[1]*0.50;
+      MoverParameters->BrakeCylMult[2]=MoverParameters->BrakeCylMult[2]*0.75;
+    }
+    else
+    if (rnd<8) //losowanie 8/10-7/10    tylko prozny
+    {
+      MoverParameters->BrakeCylMult[2]=MoverParameters->BrakeCylMult[1];
+    }
+   }
   }
   //nastawianie ladunku
   if (ActPar.Pos("T")>0) //prozny

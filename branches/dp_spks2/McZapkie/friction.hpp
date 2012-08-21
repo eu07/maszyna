@@ -200,6 +200,24 @@ public:
 };
 
 
+class DELPHICLASS TDisk2;
+class PASCALIMPLEMENTATION TDisk2 : public TFricMat 
+{
+	typedef TFricMat inherited;
+	
+public:
+	virtual double __fastcall GetFC(double N, double Vel);
+public:
+	#pragma option push -w-inl
+	/* TObject.Create */ inline __fastcall TDisk2(void) : TFricMat() { }
+	#pragma option pop
+	#pragma option push -w-inl
+	/* TObject.Destroy */ inline __fastcall virtual ~TDisk2(void) { }
+	#pragma option pop
+	
+};
+
+
 //-- var, const, procedure ---------------------------------------------------
 
 }	/* namespace Friction */
