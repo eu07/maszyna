@@ -3232,10 +3232,10 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
           if (co<ANIM_TYPES)
            if (ile>=0)
            {iAnimType[co]=ile; //zapamiêtanie
-            ++iAnimations; //ogólna iloœæ animacji
+            iAnimations+=ile; //ogólna iloœæ animacji
            }
           ++co;
-         } while (ile>=0);
+         } while (ile>=0); //-1 to znacznik koñca
          while (co<ANIM_TYPES) iAnimType[co++]=0; //zerowanie pozosta³ych
          str=Parser->GetNextSymbol().LowerCase();
         }
