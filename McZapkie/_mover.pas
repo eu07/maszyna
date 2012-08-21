@@ -205,7 +205,7 @@ TYPE
     {podtypy hamulcow zespolonych}
     TBrakeSubSystem = (ss_None, ss_W, ss_K, ss_KK, ss_Hik, ss_ESt, ss_KE, ss_LSt, ss_MT, ss_Dako);
     TBrakeValve = (NoValve, W, W_Lu_VI, W_Lu_L, W_Lu_XR, K, Kg, Kp, Kss, Kkg, Kkp, Kks, Hikg1, Hikss, Hikp1, KE, SW, ESt3, LSt, ESt4, ESt3AL2, EP1, EP2, M483, CV1_L_TR, CV1, CV1_R, Other);
-    TBrakeHandle = (NoHandle, West, FV4a, M394, M254, FVel1, FVel6, D2, Knorr, FD1, BS2, testH);
+    TBrakeHandle = (NoHandle, West, FV4a, M394, M254, FVel1, FVel6, D2, Knorr, FD1, BS2, testH, St113);
     {typy hamulcow indywidualnych}
     TLocalBrake = (NoBrake, ManualBrake, PneumaticBrake, HydraulicBrake);
 
@@ -396,7 +396,7 @@ TYPE
                ASBType: byte;            {0: brak hamulca przeciwposlizgowego, 1: reczny, 2: automat}
                TurboTest: byte;
                MaxBrakeForce: real;      {maksymalna sila nacisku hamulca}
-               MaxBrakePress: array[0..3] of real;
+               MaxBrakePress: array[0..4] of real; //pomocniczy, proz, sred, lad, pp
                P2FTrans: real;
                TrackBrakeForce: real;    {sila nacisku hamulca szynowego}
                BrakeMethod: byte;        {flaga rodzaju hamulca}
@@ -414,6 +414,7 @@ TYPE
                {promien cylindra, skok cylindra, przekladnia hamulcowa}
                BrakeCylSpring: real; {suma nacisku sprezyn powrotnych, kN}
                BrakeSlckAdj: real; {opor nastawiacza skoku tloka, kN}
+               BrakeRigEff: real; {sprawnosc przekladni dzwigniowej}               
                RapidMult: real; {przelozenie rapida}
 
                MinCompressor,MaxCompressor,CompressorSpeed:real;
@@ -1957,8 +1958,18 @@ end;
 function T_MoverParameters.SwitchEPBrake(state: byte):boolean;
 var
   OK:boolean;
+  temp: real;
 begin
   OK:=false;
+  if (BrakeHandle = St113) and (ActiveCab*ActiveCab>0) then
+   begin
+    if(state>0)then
+      temp:=(Handle as TSt113).GetCP
+    else
+      temp:=0;  
+    Hamulec.SetEPS(temp);
+    SendCtrlToNext('Brake',temp,CabNo);
+   end;
 //  OK:=SetFlag(BrakeStatus,((2*State-1)*b_epused));
 //  SendCtrlToNext('Brake',(state*(2*BrakeCtrlPos-1)),CabNo);
   SwitchEPBrake:=OK;
@@ -2058,6 +2069,7 @@ const LBDelay=100;kL=0.5;
 var {b: byte;} dV{,PWSpeed}{,PPP}:real; c: T_MoverParameters;
      temp: real;
 begin
+
   PipePress:=Pipe.P;
 //  PPP:=PipePress;
 
@@ -2088,13 +2100,18 @@ end;
 
       CntrlPipePress:=Hamulec.GetVRP;
 
-
       case BrakeValve of
       W:
          begin
-        LocBrakePress:=LocHandle.GetCP;
-//        (Hamules as TWest).LocBrakeFlow(LocBrakePress, dpLocalValve);
-        (Hamulec as TWest).SetLBP(LocBrakePress);
+          if(BrakeLocHandle<>NoHandle)then
+           begin
+            LocBrakePress:=LocHandle.GetCP;
+           (Hamulec as TWest).SetLBP(LocBrakePress);
+           end;
+          if MBPM<2 then
+           (Hamulec as TWest).PLC(MaxBrakePress[LoadFlag])
+          else
+           (Hamulec as TWest).PLC(TotalMass);
          end;
       LSt:
          begin
@@ -2126,10 +2143,9 @@ end;
       if (BrakeHandle = FVel6) and (ActiveCab*ActiveCab>0) then
          begin
         temp:=(Handle as TFVel6).GetCP;
-        (Hamulec as TEStEP2).SetEPS(temp);
+        Hamulec.SetEPS(temp);
         SendCtrlToNext('Brake',temp,CabNo);
       end;
-
 
       Pipe.Act;
       PipePress:=Pipe.P;
@@ -3345,7 +3361,7 @@ begin
 
                  //0.03
 
-  u:=((BrakePress*P2FTrans)-BrakeCylSpring)*BrakeCylMult[0]-BrakeSlckAdj;
+  u:=(((BrakePress*P2FTrans)-BrakeCylSpring)*BrakeCylMult[0]-BrakeSlckAdj)*BrakeRigEff;
   if u>0 then         {nie luz}
     begin
      K:=K+u;                     {w kN}
@@ -4130,7 +4146,7 @@ Begin
    end *)
   else if command='Brake' then //youBy - jak sie EP hamuje, to trza sygnal wyslac...
    begin
-     if (Hamulec is TEStEP2) then (Hamulec as TEStEP2).SetEPS(CValue1);
+     Hamulec.SetEPS(CValue1);
      OK:=SendCtrlToNext(command,CValue1,CValue2);
    end //youby - odluzniacz hamulcow, przyda sie
   else if command='BrakeReleaser' then
@@ -4774,7 +4790,13 @@ begin
 //(i_mbp, i_bcr, i_bcd, i_brc: real; i_bcn, i_BD, i_mat, i_ba, i_nbpa: byte)
 
 case BrakeValve of
-  W, K : Hamulec := TWest.Create(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
+  W, K : begin
+          Hamulec := TWest.Create(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
+          if(MBPM<2)then //jesli przystawka wazaca
+           (Hamulec as TWest).SetLP(0,MaxBrakePress[3],0)
+          else
+           (Hamulec as TWest).SetLP(Mass, MBPM, MaxBrakePress[1]);
+         end;
   KE :   begin
           Hamulec := TKE.Create(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
          (Hamulec as TKE).SetRM(RapidMult);
@@ -4810,13 +4832,15 @@ case BrakeValve of
 else
   Hamulec :=  TBrake.Create(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
 end;
+Hamulec.SetASBP(MaxBrakePress[4]);
 
 case BrakeHandle of
   FV4a: Handle := TFV4aM.Create;
   FVel6: Handle := TFVel6.Create;
   testH: Handle := Ttest.Create;
   M394: Handle := TM394.Create;
-  Knorr: Handle := TH14K1.Create;  
+  Knorr: Handle := TH14K1.Create;
+  St113: Handle := TSt113.Create;
 else
   Handle := THandle.Create;
 end;
@@ -5131,6 +5155,8 @@ function EngineDecode(s:string):TEngineTypes;
     EngineDecode:=Dumb
    else if s='DieselElectric' then
     EngineDecode:=DieselElectric    //youBy: spal-ele
+   else if s='DumbDE' then
+    EngineDecode:=DieselElectric    //youBy: spal-ele
 {   else if s='EZT' then {dla kibla}
  {   EngineDecode:=EZT      }
    else EngineDecode:=None;
@@ -5360,6 +5386,10 @@ begin
                    MaxBrakePress[1]:=s2r(s);
                    s:=DUE(ExtractKeyWord(lines,'MedMaxBP='));
                    MaxBrakePress[2]:=s2r(s);
+                   s:=ExtractKeyWord(lines,'MaxASBP=');
+                   MaxBrakePress[4]:=s2r(DUE(s));
+                   if MaxBrakePress[4]<0.01 then
+                   MaxBrakePress[4]:=0;
                    s:=ExtractKeyWord(lines,'BCR=');
                    BrakeCylRadius:=s2rE(DUE(s));
                    s:=ExtractKeyWord(lines,'BCD=');
@@ -5368,6 +5398,11 @@ begin
                    BrakeCylSpring:=s2r(DUE(s));
                    s:=ExtractKeyWord(lines,'BSA=');
                    BrakeSlckAdj:=s2r(DUE(s));
+                   s:=ExtractKeyWord(lines,'BRE=');
+                   if s<>'' then
+                     BrakeRigEff:=s2r(DUE(s))
+                   else
+                     BrakeRigEff:=1;
                    s:=ExtractKeyWord(lines,'BCM=');
                    BrakeCylMult[0]:=s2r(DUE(s));
                    s:=ExtractKeyWord(lines,'BCMlo=');
@@ -5388,11 +5423,16 @@ begin
                    if s='P10yBg'    then BrakeMethod:=bp_P10yBg else
                    if s='P10yBgu'   then BrakeMethod:=bp_P10yBgu else
                    if s='Disk1'     then BrakeMethod:=bp_D1 else
-                   if s='Disk1+Mg'  then BrakeMethod:=bp_D1+bp_MHS else                                      
+                   if s='Disk1+Mg'  then BrakeMethod:=bp_D1+bp_MHS else
+                   if s='Disk2'     then BrakeMethod:=bp_D2 else                                                         
                                          BrakeMethod:=0;
 
                    s:=ExtractKeyWord(lines,'RM=');
-                   RapidMult:=s2r(DUE(s));                                         
+                   if s<>'' then
+                     RapidMult:=s2r(DUE(s))
+                   else
+                     RapidMult:=1;
+
 
                   end
                  else ConversionError:=-5;
@@ -5643,7 +5683,8 @@ begin
                  else if s='M394' then BrakeHandle:=M394
                  else if s='Knorr' then BrakeHandle:=Knorr
                  else if s='Westinghouse' then BrakeHandle:=West
-                 else if s='FVel6' then BrakeHandle:=FVel6;
+                 else if s='FVel6' then BrakeHandle:=FVel6
+                 else if s='St113' then BrakeHandle:=St113;
 
                  s:=DUE(ExtractKeyWord(lines,'LocBrakeHandle='));
                       if s='FD1' then BrakeLocHandle:=FD1

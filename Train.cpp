@@ -1271,7 +1271,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
         {
          if ((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)||(DynamicObject->MoverParameters->EngineType==DieselElectric))
           if (DynamicObject->MoverParameters->TrainType!=dt_EZT)
-           if (DynamicObject->MoverParameters->BrakeCtrlPosNo>0)
+           if ((DynamicObject->MoverParameters->BrakeCtrlPosNo>0)&&(DynamicObject->MoverParameters->ActiveDir!=0))
             {
              ReleaserButtonGauge.PutValue(1);
              if (DynamicObject->MoverParameters->BrakeReleaser())
@@ -2104,19 +2104,14 @@ bool __fastcall TTrain::Update()
    double dfreq;
 
 //McZapkie-280302 - syczenie
-      if (rsHiss.AM!=0)
+      if (rsHiss.AM!=0)            //upuszczanie z PG
        {
           fPPress=(4*fPPress+Max0R(DynamicObject->MoverParameters->dpLocalValve,DynamicObject->MoverParameters->dpMainValve))/(4+1);
           if (fPPress>0)
            {
-            vol=2*rsHiss.AM*fPPress*0.003;
+            vol=2*rsHiss.AM*fPPress*0.01;
            }
-          fNPress=(4*fNPress+Min0R(DynamicObject->MoverParameters->dpLocalValve,DynamicObject->MoverParameters->dpMainValve))/(4+1);
-          if (fNPress<0 && -fNPress>fPPress)
-           {
-            vol=-2*rsHiss.AM*fNPress*0.04;
-           }
-          if (vol>0.02)
+          if (vol>0.01)
            {
             rsHiss.Play(vol,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
            }
@@ -2125,6 +2120,24 @@ bool __fastcall TTrain::Update()
             rsHiss.Stop();
            }
        }
+
+      if (rsHiss2.AM!=0)           //napelnianie PG
+       {
+          fNPress=(4*fNPress+Min0R(DynamicObject->MoverParameters->dpLocalValve,DynamicObject->MoverParameters->dpMainValve))/(4+1);
+          if (fNPress<0)
+           {
+            vol=-2*rsHiss.AM*fNPress*0.004;
+           }
+           if (vol>0.01)
+           {
+            rsHiss2.Play(vol,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
+           }
+          else
+           {
+            rsHiss2.Stop();
+           }
+       }
+
 
 //Winger-160404 - syczenie pomocniczego (luzowanie)
 /*      if (rsSBHiss.AM!=0)
@@ -2937,6 +2950,16 @@ else
       BrakeProfileCtrlGauge.UpdateValue(double(DynamicObject->MoverParameters->BrakeDelayFlag==4?2:DynamicObject->MoverParameters->BrakeDelayFlag-1));
       BrakeProfileCtrlGauge.Update();
      }
+    if (BrakeProfileG.SubModel)
+     {
+      BrakeProfileG.UpdateValue(double(DynamicObject->MoverParameters->BrakeDelayFlag==bdelay_G?1:0));
+      BrakeProfileG.Update();
+     }
+    if (BrakeProfileR.SubModel)
+     {
+      BrakeProfileR.UpdateValue(double(DynamicObject->MoverParameters->BrakeDelayFlag==bdelay_R?1:0));
+      BrakeProfileR.Update();
+     }
 
     if (MaxCurrentCtrlGauge.SubModel)
      {
@@ -3491,7 +3514,7 @@ else
          {
          if ((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)||(DynamicObject->MoverParameters->EngineType==DieselElectric))
           if (DynamicObject->MoverParameters->TrainType!=dt_EZT)
-           if (DynamicObject->MoverParameters->BrakeCtrlPosNo>0)
+           if ((DynamicObject->MoverParameters->BrakeCtrlPosNo>0)&&(DynamicObject->MoverParameters->ActiveDir!=0))
             {
              ReleaserButtonGauge.PutValue(1);
              DynamicObject->MoverParameters->BrakeReleaser();
@@ -3628,7 +3651,7 @@ else
 
 //    bool kEP;
 //    kEP=(DynamicObject->MoverParameters->BrakeSubsystem==Knorr)||(DynamicObject->MoverParameters->BrakeSubsystem==Hik)||(DynamicObject->MoverParameters->BrakeSubsystem==Kk);
-    if ((DynamicObject->MoverParameters->BrakeSystem==ElectroPneumatic)&&((DynamicObject->MoverParameters->BrakeSubsystem==ss_K)))
+    if ((DynamicObject->MoverParameters->BrakeSystem==ElectroPneumatic)&&((DynamicObject->MoverParameters->BrakeHandle==St113)))
      if (Console::Pressed(Global::Keys[k_AntiSlipping]))                             //kEP
 //     if (GetAsyncKeyState(VK_RETURN)<0)
       {
@@ -4010,6 +4033,16 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
           rsHiss.FA=1.0;
          }
         else
+        if (str==AnsiString("airsound2:"))                    //syk:
+         {
+          str=Parser->GetNextSymbol();
+          rsHiss2.Init(str.c_str(),-1,0,0,0,true);
+          rsHiss2.AM=Parser->GetNextSymbol().ToDouble();
+          rsHiss2.AA=Parser->GetNextSymbol().ToDouble();
+          rsHiss2.FM=0.0;
+          rsHiss2.FA=1.0;
+         }
+        else
         if (str==AnsiString("fadesound:"))                    //syk:
          {
           str=Parser->GetNextSymbol();
@@ -4184,6 +4217,8 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     BrakeCtrlGauge.Clear();
     LocalBrakeGauge.Clear();
     BrakeProfileCtrlGauge.Clear();
+    BrakeProfileG.Clear();
+    BrakeProfileR.Clear();
     MaxCurrentCtrlGauge.Clear();
     MainOffButtonGauge.Clear();
     MainOnButtonGauge.Clear();
@@ -4313,7 +4348,11 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
    else if (str==AnsiString("localbrake:"))                    //hamulec pomocniczy
     LocalBrakeGauge.Load(Parser,DynamicObject->mdKabina);
    //sekcja przelacznikow obrotowych
-   else if (str==AnsiString("brakeprofile_sw:"))                    //przelacznik tow/osob
+   else if (str==AnsiString("brakeprofile_sw:"))                    //przelacznik tow/osob/posp
+    BrakeProfileCtrlGauge.Load(Parser,DynamicObject->mdKabina);
+   else if (str==AnsiString("brakeprofileG_sw:"))                   //przelacznik tow/osob
+    BrakeProfileCtrlGauge.Load(Parser,DynamicObject->mdKabina);
+   else if (str==AnsiString("brakeprofileR_sw:"))                   //przelacznik osob/posp
     BrakeProfileCtrlGauge.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("maxcurrent_sw:"))                    //przelacznik rozruchu
     MaxCurrentCtrlGauge.Load(Parser,DynamicObject->mdKabina);

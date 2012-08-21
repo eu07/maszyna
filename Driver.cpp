@@ -2404,8 +2404,7 @@ bool __fastcall TController::UpdateSituation(double dt)
       if (Controlling->BrakeSystem==Pneumatic) //nape³nianie uderzeniowe
        if (Controlling->BrakeHandle==FV4a)
        {
-        if (Controlling->BrakeCtrlPos==-2)
-         Controlling->BrakeCtrlPos=0;
+        Controlling->BrakeCtrlPosR=Controlling->BrakeCtrlPos;
         if ((Controlling->BrakeCtrlPos==0)&&(AbsAccS<0.0)&&(AccDesired>0.0))
         //if FuzzyLogicAI(CntrlPipePress-PipePress,0.01,1))
          if (Controlling->BrakePress>0.4)//{((Volume/BrakeVVolume/10)<0.485)})
@@ -2414,6 +2413,7 @@ bool __fastcall TController::UpdateSituation(double dt)
           if (Need_BrakeRelease)
           {
            Need_BrakeRelease=false;
+           Controlling->BrakeReleaser();
            //DecBrakeLevel(); //z tym by jeszcze mia³o jakiœ sens
           }
         if ((Controlling->BrakeCtrlPos<0)&&(Controlling->BrakePress<0.3))//{(CntrlPipePress-(Volume/BrakeVVolume/10)<0.01)})
