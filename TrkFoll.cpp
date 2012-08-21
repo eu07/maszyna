@@ -219,7 +219,7 @@ bool __fastcall TTrackFollower::Move(double fDistance,bool bPrimary)
   {//gdy zostaje na tym samym torze (przesuwanie ju¿ nie zmienia toru)
    if (bPrimary)
    {//tylko gdy pocz¹tkowe ustawienie, dodajemy eventy stania do kolejki
-    if (Owner->MoverParameters->CabNo!=0)
+    if (Owner->MoverParameters->ActiveCab!=0)
     {
      if (pCurrentTrack->Event1 && pCurrentTrack->Event1->fDelay<=-1.0f)
       Global::pGround->AddToQuery(pCurrentTrack->Event1,Owner);

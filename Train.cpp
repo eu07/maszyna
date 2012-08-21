@@ -2732,22 +2732,22 @@ else
         //boczniki
         if (DynamicObject->MoverParameters->EngineType==DieselElectric)
          {
-           if(DynamicObject->MoverParameters->ScndCtrlPos>0)
+           if(DynamicObject->MoverParameters->ScndCtrlActualPos>0)
             { btLampkaBocznikI.TurnOn(); }
            else
             { btLampkaBocznikI.TurnOff(); }
 
-           if(DynamicObject->MoverParameters->ScndCtrlPos>1)
+           if(DynamicObject->MoverParameters->ScndCtrlActualPos>1)
             { btLampkaBocznikII.TurnOn(); }
            else
             { btLampkaBocznikII.TurnOff(); }
 
-           if(DynamicObject->MoverParameters->ScndCtrlPos>2)
+           if(DynamicObject->MoverParameters->ScndCtrlActualPos>2)
             { btLampkaBocznikIII.TurnOn(); }
            else
             { btLampkaBocznikIII.TurnOff(); }
 
-           if(DynamicObject->MoverParameters->ScndCtrlPos>3)
+           if(DynamicObject->MoverParameters->ScndCtrlActualPos>3)
             { btLampkaBocznikIV.TurnOn(); }
            else
             { btLampkaBocznikIV.TurnOff(); }

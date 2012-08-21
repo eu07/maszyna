@@ -1194,7 +1194,18 @@ bool __fastcall TController::PrepareEngine()
     //      OK:=(OrderDirectionChange(ChangeDir,Controlling)=-1);
     //      OK:=IncMainCtrl(1);
     //   end;
-    OK=Controlling->MainSwitch(true);
+    if(Controlling->EngineType==DieselElectric)
+    {
+     Controlling->ScndCtrlPos=1;
+     OK=Controlling->MainSwitch(true);
+     Controlling->ScndCtrlPos=2;
+     Controlling->MainSwitch(true);
+    }
+    else
+    {
+     OK=Controlling->MainSwitch(true);
+    }
+
    }
    else
    {
@@ -1403,6 +1414,7 @@ bool __fastcall TController::IncSpeed()
     break;
    case Dumb:
    case DieselElectric:
+   case DumbDE:   
     if (Ready||Prepare2press) //{(BrakePress<=0.01*MaxBrakePress)}
     {
      OK=Controlling->IncMainCtrl(1);
@@ -1451,6 +1463,7 @@ bool __fastcall TController::DecSpeed()
    break;
   case Dumb:
   case DieselElectric:
+  case DumbDE:
    OK=Controlling->DecScndCtrl(2);
    if (!OK)
     OK=Controlling->DecMainCtrl(2+(Controlling->MainCtrlPos/2));
@@ -1737,7 +1750,7 @@ bool __fastcall TController::UpdateSituation(double dt)
  }
  //ABu-160305 Testowanie gotowoœci do jazdy
  //Ra: przeniesione z DynObj, sk³ad u¿ytkownika te¿ jest testowany, ¿eby mu przekazaæ, ¿e ma odhamowaæ
- TDynamicObject* p=pVehicles[0]; //pojazd na czole sk³adu
+ TDynamicObject *p=pVehicles[0]; //pojazd na czole sk³adu
  Ready=true; //wstêpnie gotowy
  while (p)
  {//sprawdzenie odhamowania wszystkich po³¹czonych pojazdów

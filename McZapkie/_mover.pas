@@ -70,6 +70,7 @@ zwiekszenie nacisku przy duzych predkosciach w hamulcach Oerlikona
 32. wylaczanie obliczen dla nieruchomych wagonow
 33. Zbudowany model rozdzielacza powietrza roznych systemow
 34. Poprawiona pozycja napelniania uderzeniowego i hamulec EP
+35. Silnik spalinowy z przekladnia elektryczna
 ...
 *)
 
@@ -1108,15 +1109,15 @@ end;
 
 
 function T_MoverParameters.SendCtrlToNext(CtrlCommand:string;ctrlvalue,dir:real):boolean;
-//wys³anie komendy w kierunku dir (1=przod,-1=ty³)
+//wys³anie komendy w kierunku dir (1=przod,-1=ty³) do kolejnego pojazdu (jednego)
 var
  OK:Boolean;
- d:Integer;
+ d:Integer; //numer sprzêgu w kierunku którego wysy³amy
 begin
 //Ra: by³ problem z propagacj¹, jeœli w sk³adzie jest pojazd wstawiony odwrotnie
 //Ra: problem jest równie¿, jeœli AI bêdzie na koñcu sk³adu
  OK:=(dir<>0); // and Mains;
- d:=(1+Sign(dir)) div 2; //-1=>0, 1=>1 - wysy³anie tylko w ty³
+ d:=(1+Sign(dir)) div 2; //dir=-1=>d=0, dir=1=>d=1 - wysy³anie tylko w ty³
  if OK then
   with Couplers[d] do //w³asny sprzêg od strony (d)
    if TestFlag(CouplingFlag,ctrain_controll) then
@@ -1151,7 +1152,7 @@ begin
    begin
      CabNo:=ActiveCab;
      DirAbsolute:=ActiveDir*CabNo;
-     SendCtrlToNext('CabActivisation',CabNo,ActiveCab);
+     SendCtrlToNext('CabActivisation',CabNo*ActiveCab,ActiveCab);
      PantCheck;
    end;
   CabActivisation:=OK;
@@ -1495,28 +1496,51 @@ begin
  MainSwitch:=False; //Ra: przeniesione z koñca
   if ((Mains<>State) and (MainCtrlPosNo>0)) then
    begin
-    if (State=False) or ({(MainCtrlPos=0) and} (ScndCtrlPos=0) and (ConvOvldFlag=false) and (LastSwitchingTime>CtrlDelay) and not TestFlag(DamageFlag,dtrain_out)) then
+    if(EngineType<>DieselElectric)then
      begin
-       if Mains then //jeœli by³ za³¹czony
-        SendCtrlToNext('MainSwitch',ord(State),CabNo); //wys³anie wy³¹czenia do pozosta³ych?
-       Mains:=State;
-       if Mains then //jeœli zosta³ za³¹czony
-        SendCtrlToNext('MainSwitch',ord(State),CabNo); //wyslanie po wlaczeniu albo przed wylaczeniem
-       MainSwitch:=True; //wartoœæ zwrotna
-       LastSwitchingTime:=0;
-       if (EngineType=DieselEngine) and Mains then
-        begin
-          dizel_enginestart:=State;
-        end;
-       if (State=False) then //jeœli wy³¹czony
-        begin
-         SetFlag(SoundFlag,sound_relay);
-         SecuritySystem.Status:=0; //deaktywacja czuwaka
-        end
-       else
-        SecuritySystem.Status:=s_waiting; //aktywacja czuwaka
+      if (State=False) or ({(MainCtrlPos=0) and} (ScndCtrlPos=0) and (ConvOvldFlag=false) and (LastSwitchingTime>CtrlDelay) and not TestFlag(DamageFlag,dtrain_out)) then
+       begin
+         if Mains then //jeœli by³ za³¹czony
+          SendCtrlToNext('MainSwitch',ord(State),CabNo); //wys³anie wy³¹czenia do pozosta³ych?
+         Mains:=State;
+         if Mains then //jeœli zosta³ za³¹czony
+          SendCtrlToNext('MainSwitch',ord(State),CabNo); //wyslanie po wlaczeniu albo przed wylaczeniem
+         MainSwitch:=True; //wartoœæ zwrotna
+         LastSwitchingTime:=0;
+         if (EngineType=DieselEngine) and Mains then
+          begin
+            dizel_enginestart:=State;
+          end;
+         if (State=False) then //jeœli wy³¹czony
+          begin
+           SetFlag(SoundFlag,sound_relay);
+           SecuritySystem.Status:=0; //deaktywacja czuwaka
+          end
+         else
+          SecuritySystem.Status:=s_waiting; //aktywacja czuwaka
+       end
      end
-   end
+    else //DieselElectric
+     begin
+      State:=State and not TestFlag(DamageFlag,dtrain_out);
+      if(State)then //wlaczamy
+       begin
+        if(ScndCtrlPos=1)then //R1 - tutaj
+         begin
+          Mains:=State;
+          SecuritySystem.Status:=s_waiting; //aktywacja czuwaka
+         end;
+        if(ScndCtrlPos=2)then //R2 - tam
+          SendCtrlToNext('MainSwitch',ord(State),CabNo);
+       end
+      else
+       begin
+        SendCtrlToNext('MainSwitch',ord(State),CabNo);
+        Mains:=State;
+        SecuritySystem.Status:=0; //deaktywacja czuwaka
+       end
+     end
+   end  
   //else MainSwitch:=False;
 end;
 
@@ -3418,10 +3442,12 @@ end;
 
 function T_MoverParameters.TractionForce(dt:real):real;
 var PosRatio,dmoment,dtrans,tmp,tmpV: real;
-    i: byte;
+    i, SCAP: byte;
     a, b, c, delta, U1, U2, U0: real;
     RcO, RcB, Uw, Isat, IO: real;
 const
+//   GPB 846 B1
+//(*
    kB = 1.35;
    kS = 0.0069;
    fimax = 0.8; //0.8/79
@@ -3431,7 +3457,20 @@ const
    RuB = 46.56;
    Uwn = 190;
    RWB = 110; //110/580
-   RO = 3.76;
+   RO = 3.76; {//*)
+
+//(*  SP47
+   kB = +0.01;
+   kS = 0.0025;
+   fimax = 0.59;
+   Isatn = 5.0;
+   Rt = 0.009297;
+   RuO = 3.46;
+   RuB = 46.56;
+   Uwn = 190;
+   RWB = 450;
+   RO = 3.76; //*)}
+
  {oblicza sile trakcyjna lokomotywy (dla elektrowozu tez calkowity prad)}
 function CurrentDE(n,U:real): real;
 {wazna funkcja - liczy prad plynacy przez silniki polaczone szeregowo lub rownolegle}
@@ -3449,7 +3488,7 @@ begin
   if (DEList[MainCtrlPos].GenPower<1) then
     MotorCurrent:=0                    {wylaczone}
   else                                 {wlaczone}
-      with MotorParam[ScndCtrlPos] do
+      with MotorParam[ScndCtrlActualPos] do
        begin
         Rz:=Mn*WindingRes;
         Isf:=Sign(U)*Isat;
@@ -3472,7 +3511,7 @@ end;
 function MomentumDE(I:real): real;
 {liczy moment sily wytwarzany przez silnik elektryczny}
 begin
-    with MotorParam[ScndCtrlPos] do
+    with MotorParam[ScndCtrlActualPos] do
      MomentumDE:=mfi*I*(1-1.0/(Abs(I)/mIsat+1));
 end;
 
@@ -3509,20 +3548,23 @@ begin
       while (RventRot>SST[i+1].Umax) do inc(i); //szukaj pozycji w tabelce mocy
 //      ScndCtrlPos:=i;
       dmoment:=SST[i].Pmax+(SST[i+1].Pmax-SST[i].Pmax)/(SST[i+1].Umax-SST[i].Umax)*(RventRot-SST[i].Umax); //interpolacja liniowa z tabelki mocy max na pozycji
+
       if (Heating) and (RventRot>DElist[7+2-1].RPM) then //jesli grzanie i dobre obroty
         dmoment:=dmoment-HeatingPower; //odejmij moc pradnicy
-      dmoment:=dmoment-Itot*Itot*CircuitRes/1000;  
+      dmoment:=dmoment-Itot*Itot*CircuitRes/1000;
       dtrans:=(dmoment-dizel_Mstand*RVentRot); //odejmij opory zatrzymania
       dmoment:=dmoment*dizel_fill/RventRot-dizel_Mstand-EnginePower/1000/RventRot; //przelicz rzeczywiste na moment
       RventRot:=RventRot+(dmoment/dizel_AIM*dt); //przelicz obroty
       if (RventRot<1.1*dizel_nmin) then RventRot:=RventRot+10*Min0R(0.1,1.1-RventRot/dizel_nmin)*(1.5*dizel_Mstand)/dizel_AIM*dt; //rozrusznik (slabnacy)
       if RventRot<0 then RventRot:=0; //zabezpiecznie
+//      RventRot:=RventCutoff;
      end
     else //bez zaplonu
      begin
 //      RventRot:=RventRot*(1-RVentSpeed*dt);
       RventRot:=RventRot-(dizel_Mstand/dizel_AIM*dt); //lec z wybiegu
       if RventRot<0.1 then RventRot:=0;               //zatrzymuj sie
+      RventCutOff:=0;
      end;
    end;
   if (EngineType=DumbDE) then
@@ -3642,138 +3684,162 @@ begin
                  end;
    DieselElectric:    //youBy
      begin
-        PosRatio:=RventRot/DE_nnom; //stosunek obrotow do nominalnych
-        PowerCorRatio:={PowerCorRatio*(1-dt)+dt*}DElist[MainCtrlPos].Umax; //sterowanie napieciem (druga kolumna regulacji)
-//        Voltage:={(1-20*dt)*Voltage+20*dt*}
-//        (DE_Ulim*PosRatio*0.5*(Vhyp*DElist[MainCtrlPos].Imax+PowerCorRatio)          //graniczne napiecie
-//        +(DE_Ulim*DE_Ilim/10)/(Itot/(PosRatio*Vhyp*DElist[MainCtrlPos].Imax+0.000)-DE_Ilim+0)   //spadek z chk zewnetrznej, +1 na zapas
-//        -DE_P0*Itot                                    //opor uzwojen
-//        );
-
-        RcB:=RuB+RWB;
-//        RcO:=RuO+RO+round(80*(1-Vhyp))/80*20;
-        RcO:=RuO+RO+(1-Vhyp)*20;
-
-        Uw:=Uwn*PosRatio*PowerCorRatio;
-        Isat:=Isatn/(PosRatio+0.0001);
-        IO:=Uw/RcO-1.5;
-        a:=(kB)/RcB;
-        b:=(IO-kS*Itot+Isat)-kB/RcB*(RventRot*fimax-Itot*Rt);
-        c:=-(RventRot*fimax*(IO-kS*Itot))+Itot*Rt*(IO-kS*Itot+Isat);
-        delta:=b*b-4*a*c;
-        if delta<0 then
+        if(DElist[MainCtrlPos].GenPower>2)and(ConverterFlag)then //jesli wlaczone wzbudzenie
          begin
-          Voltage:=Voltage*(1-20*dt);
-          delta:=0;
+          SCAP:=ScndCtrlActualPos;         
+          PosRatio:=RventRot/DE_nnom; //stosunek obrotow do nominalnych
+          PowerCorRatio:=DElist[MainCtrlPos].Umax; //sterowanie napieciem (druga kolumna regulacji)
+
+          RcB:=RuB+RWB;
+          RcO:=RuO+RO+(1-Vhyp)*20; //45/46-20
+                                    //47 - 7.5
+          Uw:=Uwn*PosRatio*PowerCorRatio;
+          Isat:=Isatn/(PosRatio+0.0001);
+          IO:=Uw/RcO-1.5;
+          a:=(kB)/RcB;
+          b:=(IO-kS*Itot+Isat)-kB/RcB*(RventRot*fimax-Itot*Rt);
+          c:=-(RventRot*fimax*(IO-kS*Itot))+Itot*Rt*(IO-kS*Itot+Isat);
+          delta:=b*b-4*a*c;
+          if delta<0 then
+           begin
+            Voltage:=Voltage*(1-10*dt);
+            delta:=0;
+           end
+          else
+           begin
+            U1:=-(b+sqrt(delta))/(2*a);
+            U2:=-(b-sqrt(delta))/(2*a);
+            U0:=DirAbsolute*enrot*MotorParam[SCAP].fi*Im/(Im+MotorParam[ScndCtrlActualPos].Isat)+Im*WindingRes;
+            if(U2-U0)<(U0-U1)then
+              Voltage:=(Voltage*(1-10*dt)+10*dt*U2)
+            else
+              Voltage:=(Voltage*(1-10*dt)+10*dt*U1)
+           end;
+          Vadd:=EnginePower/1000/dtrans          //wspolczynnik mocy
          end
         else
-        begin
-          U1:=-(b+sqrt(delta))/(2*a);
-          U2:=-(b-sqrt(delta))/(2*a);
-          U0:=DirAbsolute*enrot*MotorParam[ScndCtrlPos].fi*Im/(Im+MotorParam[ScndCtrlPos].Isat)+Im*WindingRes;
-          if(U2-U0)<(U0-U1)then
-            Voltage:=(Voltage*(1-10*dt)+10*dt*U2)
-          else
-            Voltage:=(Voltage*(1-10*dt)+10*dt*U1)
-
-        end;
-        if (DElist[MainCtrlPos].GenPower>0) then //jesli zamkniete liniowe
-          Vadd:=EnginePower/1000/dtrans          //wspolczynnik mocy
-        else
+         begin
+          SCAP:=ScndCtrlActualPos;
+          Voltage:=0;
           Vadd:=0;
-//        if (EnginePower/1000>DElist[MainCtrlPos].GenPower*1.005) then
+         end;
+
+        //regulator wzbudzenia
         if (EnginePower/1000>dtrans*1.005) then //malenie wzbudzenia przy przeciazeniu
         Vhyp:=Vhyp-dt/7;
-
         if (EnginePower/1000<dtrans*0.99) then //wzrost wzbudzenia przy niedociazeniu
         Vhyp:=Vhyp+dt/13;
-
         Vhyp:=Min0R(Max0R(Vhyp,0.0),1);  //ogranicz wzbudzenie w granicach
 
-////        if Voltage>(DE_Ulim*PosRatio*0.5*(Vhyp*DElist[MainCtrlPos].Imax+PowerCorRatio)) then begin Voltage:=0; {Itot:=0;} end;  //zabezpieczenie
-//        if Itot>DE_Ilim*PosRatio then begin Voltage:=0; Itot:=0; end;     //dla pradnicy
-
-////        if EnginePower/1000>DElist[MainCtrlPos].GenPower then
-////          Voltage:=1000*DElist[MainCtrlPos].GenPower/Itot;
         Voltage:=Max0R(Voltage,0); //napiecie zawsze dodatnie
-        if DElist[MainCtrlPos].GenPower<=1 then //to bylo do czegos, ale chyba nie potrzeba juz
-         begin
-//          Vhyp:=0.7;
-           Voltage:=0;
-         end;
+
+//        if DElist[MainCtrlPos].GenPower<=1 then //to bylo do czegos, ale chyba nie potrzeba juz
+//         begin
+//           Voltage:=0;
+//         end;
+
         dtrans:=CurrentDE(DirAbsolute*enrot,Voltage); //tymczasowa zmienna do pradu
-//        if dtrans>PosRatio*Vhyp*DElist[MainCtrlPos].Imax*DE_Ilim*0.9999
-//        dtrans:=Min0R(dtrans,PosRatio*Vhyp*DElist[MainCtrlPos].Imax*DE_Ilim*0.9999);
+
         Itot:=(1-2.5*dt)*Itot+2.5*dt*NPoweredAxles*Max0R(dtrans,0); //plynna zmiana pradu, ale tylko jesli dodatni
         Im:=Itot/NPoweredAxles;   {calkowity silnika * ilosc galezi}
         Mm:=MomentumDE(Im);       //moment silnika
+
 //boczniki SU46stajl
         case (RelayType) of
         46:
+        if(LastRelayTime>CtrlDelay)then //opoznienie dzialania stycznikow, nie ma sensu sprawdzac, jesli nawet nie zareaguja
          begin
-          if (Flat) then //jesli bocznikujesz
+          //sprawdzenie stanu przekaznika bocznikowania
+          if (Im<280) then ShuntMode:= true; //PB wylaczony - bocznikowac
+          if (Im>365)or(MainCtrlPos<6+2) then ShuntMode:=false; //PB wlaczony  - nie bocznikowac
+
+          if (Flat) then //jesli bocznikujesz -> szalejace serwo
            begin
-//            if (LastRelayTime>0) then //ustaw czas
-//              LastRelayTime:=-4; //operacja zajmie 4 sekundy
-//            if LastRelayTime<-1 then //przez 5 zmniejszaj wzbudzenie
-              Vhyp:=Vhyp-dt/2;
-//            else                //potem
-            if Vhyp<0.0501 then
+              RventCutOff:=RventCutOff+20*dt;
+              Vhyp:=Vhyp-dt/4;  //odwzbudzaj
+            if Vhyp<0.501 then
              begin
-//              inc(ScndCtrlPos); //dorzuc bok
+              inc(ScndCtrlActualPos); //dorzuc bok
               Flat:=false;      //i uznaj, ze wrzucon
               LastRelayTime:=0;
-              if ScndCtrlPos<ScndCtrlActualPos then
-              inc(ScndCtrlPos); //dorzuc bok
              end;
            end;
-
-          if (Im<280) then ShuntMode:= true; //PB wylaczony - bocznikowac
-          if (Im>365) then ShuntMode:=false; //PB wlaczony  - nie bocznikowac
-
-          if (Vhyp>0.9999) then
-            if (ScndCtrlActualPos>ScndCtrlPos) then
-             begin
-              Flat:=true;
-              RventCutOff:=RventCutOff+150; //szalejacy regulator
-             end;
-          if (ShuntMode) {and (Vhyp>0.9999)} and (MainCtrlPos>11) and (ScndCtrlActualPos<ScndCtrlPosNo) {and (((ScndCtrlPos<>2)and(ScndCtrlActualPos<>2))or(LastRelayTime>5))} then
-          if ((ScndCtrlActualPos<1)or(Vel>40))and((ScndCtrlActualPos<3)or(Vel>50))then
+          //wrzucanie
+          if(MainCtrlPos>11)and(ScndCtrlActualPos<ScndCtrlPosNo)and(ShuntMode)and(Vhyp>0.98)then
            begin
-//            Flat:=true;                   //zacznij procedure boka
-            inc(ScndCtrlActualPos);
-//            RventCutOff:=RventCutOff+150; //szalejacy regulator
-//            inc(ScndCtrlPos);
-            LastRelayTime:=0;             //zeruj czas
+            case(ScndCtrlActualPos)of
+            0: begin Flat:=true; end;
+            1: if(abs(nrot)>3.22+0.05)then begin Flat:=true; end; //3.22 - 40
+            else
+               if(abs(nrot)>4.02+0.05)then begin Flat:=true; end; //4.02 - 50
+            end;
            end;
-          if (not ShuntMode) and (ScndCtrlPos>0) and (LastRelayTime>CtrlDelay) then
+          //wyrzucanie
+          if (ScndCtrlActualPos>0) then
            begin
-            if ((ScndCtrlPos>3)or(Vel<50))and((ScndCtrlPos>1)or(Vel<40)) then
+            if ((ScndCtrlActualPos>3)and(abs(nrot)<4.02-0.05))or((ScndCtrlActualPos>1)and(abs(nrot)<3.22-0.05))or((ScndCtrlActualPos=1) and (not ShuntMode)) then
              begin
-              dec(ScndCtrlActualPos);
-              dec(ScndCtrlPos);             //wrzuc bok
-              if ScndCtrlPos=2 then
+              dec(ScndCtrlActualPos);       //wrzuc bok
+              if ScndCtrlActualPos=2 then
                 ShuntMode:=true;
               LastRelayTime:=0;             //zeruj czas
              end;
            end;
-          if (MainCtrlPos<11) and (ScndCtrlPos>2) then //ponizej 9 wywal III i IV
+          if (MainCtrlPos<11) and (ScndCtrlActualPos>2) then //ponizej 9 wywal III i IV
            begin
             dec(ScndCtrlActualPos);
-            dec(ScndCtrlPos);
            end;
-          if (MainCtrlPos<8) and (ScndCtrlPos>0) then //ponizej 6 wywal wszystkie
+          if (MainCtrlPos<8) and (ScndCtrlActualPos>0) then //ponizej 6 wywal wszystkie
            begin
             dec(ScndCtrlActualPos);
-            dec(ScndCtrlPos);
            end;
          end; {end46}
-        146:
+        47:
+        if(LastRelayTime>CtrlDelay)then //opoznienie dzialania stycznikow, nie ma sensu sprawdzac, jesli nawet nie zareaguja
          begin
-          if (Flat) then //jesli bocznikujesz
+          //sprawdzenie stanu przekaznika bocznikowania
+          if (Im<550) then ShuntMode:= true; //PB wylaczony - bocznikowac
+          if (Im>800)or(MainCtrlPos<6+2) then ShuntMode:=false; //PB wlaczony  - nie bocznikowac
+
+          if (Flat) then //jesli bocznikujesz -> szalejace serwo
            begin
-              if ScndCtrlPos<ScndCtrlActualPos then
-              inc(ScndCtrlPos); //dorzuc bok
+              RventCutOff:=RventCutOff+30*dt;
+              Vhyp:=Vhyp-dt/4;  //odwzbudzaj
+            if Vhyp<0.501 then
+             begin
+              inc(ScndCtrlActualPos); //dorzuc bok
+              Flat:=false;      //i uznaj, ze wrzucon
+              LastRelayTime:=0;
+             end;
+           end;
+          //wrzucanie
+          if(MainCtrlPos>11)and(ScndCtrlActualPos=0)and(ShuntMode)and(Vhyp>0.98)then
+           begin
+             if(abs(nrot)>4.42+0.05)then begin Flat:=true; end; //4.02 - 50, tu 55
+            end;
+          //wyrzucanie
+          if (ScndCtrlActualPos>0) then
+           begin
+            if ((abs(nrot)<4.42-0.05)and(not ShuntMode)) then
+             begin
+              dec(ScndCtrlActualPos);       //wrzuc bok
+              LastRelayTime:=0;             //zeruj czas
+             end;
+           end;
+          if (MainCtrlPos<6+2) and (ScndCtrlActualPos=1) then //ponizej 6 wywal wszystkie
+           begin
+            dec(ScndCtrlActualPos);
+           end;
+         end; {end47}
+        146:
+        if(LastRelayTime>CtrlDelay)then //opoznienie dzialania stycznikow, nie ma sensu sprawdzac, jesli nawet nie zareaguja
+         begin
+          //sprawdzenie stanu przekaznika bocznikowania
+          if (Im<280) then ShuntMode:= true; //PB wylaczony - bocznikowac
+          if (Im>365)or(MainCtrlPos<6+2) then ShuntMode:=false; //PB wlaczony  - nie bocznikowac
+
+          if (Flat) then //jesli bocznikujesz -> szalejace serwo
+           begin
               RventCutOff:=RventCutOff+67*dt;
               Vhyp:=Vhyp-dt/4;  //odwzbudzaj
             if Vhyp<0.501 then
@@ -3781,75 +3847,67 @@ begin
               Flat:=false;      //i uznaj, ze wrzucon
              end;
            end;
-
-          if (Im<280) then ShuntMode:= true; //PB wylaczony - bocznikowac
-          if (Im>365)or(MainCtrlPos<6+2) then ShuntMode:=false; //PB wlaczony  - nie bocznikowac
-
-//          if (Vhyp>0.9999) then
-            if (ScndCtrlActualPos>ScndCtrlPos) then
-             begin
-              Flat:=true;
-//              RventCutOff:=RventCutOff+150; //szalejacy regulator
-             end;
-          if (MainCtrlPos>11) and (ScndCtrlActualPos<ScndCtrlPosNo) and (LastRelayTime>CtrlDelay) then
-          if ((ScndCtrlActualPos<1)and(ShuntMode)) or
-             ((ScndCtrlActualPos<2)and(Vel>40+1))  or
-             (Vel>50+1) then
+          //wrzucanie
+          if(MainCtrlPos>11)and(ScndCtrlActualPos<ScndCtrlPosNo)and(ShuntMode)then
            begin
-//            Flat:=true;                   //zacznij procedure boka
-            inc(ScndCtrlActualPos);
-//            RventCutOff:=RventCutOff+150; //szalejacy regulator
-//            inc(ScndCtrlPos);
-            LastRelayTime:=0;             //zeruj czas
+            case(ScndCtrlActualPos)of
+            0: if(Vhyp>0.99)then begin inc(ScndCtrlActualPos);LastRelayTime:=0;Flat:=true; end;
+            1: if(abs(nrot)>3.22+0.05)then begin inc(ScndCtrlActualPos);LastRelayTime:=0;Flat:=true; end;
+            else
+               if(abs(nrot)>4.02+0.05)then begin inc(ScndCtrlActualPos);LastRelayTime:=0;Flat:=true; end;
+            end;
            end;
-          if (ScndCtrlPos>0) and (LastRelayTime>CtrlDelay) then
+          //wyrzucanie
+          if (MainCtrlPos<6+2) and (ScndCtrlActualPos>0) then //ponizej 6 wywal wszystkie
            begin
-            if ((ScndCtrlPos>3)and(Vel<50-1))or((ScndCtrlPos>1)and(Vel<40-1))or((ScndCtrlPos=1) and (not ShuntMode)) then
+            dec(ScndCtrlActualPos);
+            LastRelayTime:=0;             //zeruj czas
+           end
+          else
+          if (MainCtrlPos<9+2) and (ScndCtrlActualPos>2) then //ponizej 9 wywal III i IV
+           begin
+            dec(ScndCtrlActualPos);
+            LastRelayTime:=0;             //zeruj czas
+           end
+          else
+          if (ScndCtrlActualPos>0) then
+           begin
+            if ((ScndCtrlActualPos>3)and(nrot<4.02-0.05))or((ScndCtrlActualPos>1)and(nrot<3.22-0.05))or((ScndCtrlActualPos=1) and (not ShuntMode)) then
              begin
-              dec(ScndCtrlActualPos);       //wrzuc bok
-              dec(ScndCtrlPos);             //wrzuc bok
+              dec(ScndCtrlActualPos);       //wyrzuc bok
               if ScndCtrlPos=2 then
                 ShuntMode:=true;
               LastRelayTime:=0;             //zeruj czas
              end;
-           end;
-          if (MainCtrlPos<11) and (ScndCtrlPos>2) then //ponizej 9 wywal III i IV
-           begin
-            dec(ScndCtrlActualPos);
-            dec(ScndCtrlPos);
-           end;
-          if (MainCtrlPos<8) and (ScndCtrlPos>0) then //ponizej 6 wywal wszystkie
-           begin
-            dec(ScndCtrlActualPos);
-            dec(ScndCtrlPos);
            end;
          end; {end146}
         246:
          begin
           if (MainCtrlPos>5+2) and (ScndCtrlActualPos<ScndCtrlPosNo) then
             if (ScndCtrlActualPos=0) or
-               ((ScndCtrlActualPos=1)and(Vel>40+1))or
-               (ScndCtrlActualPos=2)and(Vel>40+1)and(MainCtrlPos>8+2)or
-               ((Vel>50+1)and(MainCtrlPos>8+2)) then
-              inc(ScndCtrlActualPos);
+               ((ScndCtrlActualPos=1)and(nrot>3.22+0.05))or
+               (ScndCtrlActualPos=2)and(nrot>3.22+0.05)and(MainCtrlPos>8+2)or
+               ((nrot>4.02+0.05)and(MainCtrlPos>8+2)) then
+              inc(SCAP);
           if (ScndCtrlActualPos>0) and (LastRelayTime>CtrlDelay) then
-            if ((ScndCtrlActualPos>3)and(Vel<50-1))or((ScndCtrlActualPos>1)and(Vel<40-1))then
-              dec(ScndCtrlActualPos);
-
-          if (MainCtrlPos<9+2) and (ScndCtrlActualPos>2) then //ponizej 9 wywal III i IV
-            dec(ScndCtrlActualPos);
-          if (MainCtrlPos<6+2) and (ScndCtrlActualPos>0) then //ponizej 6 wywal wszystkie
-            dec(ScndCtrlActualPos);
-
-          if (ScndCtrlPos<ScndCtrlActualPos) and (LastRelayTime>CtrlDelay) then
            begin
-            inc(ScndCtrlPos);
+            if ((ScndCtrlActualPos>3)and(nrot<4.02-0.05))or((ScndCtrlActualPos>1)and(nrot<3.22-0.05))then
+              dec(SCAP);
+            if (MainCtrlPos<9+2) and (ScndCtrlActualPos>2) then //ponizej 9 wywal III i IV
+              dec(SCAP);
+            if (MainCtrlPos<6+2) and (ScndCtrlActualPos>0) then //ponizej 6 wywal wszystkie
+              dec(SCAP)
+           end;
+
+          if (SCAP>ScndCtrlActualPos) and (LastRelayTime>CtrlDelay) then
+           begin
+            inc(ScndCtrlActualPos);
             LastRelayTime:=0;             //zeruj czas
             SetFlag(SoundFlag,sound_relay);
            end;
-          if (ScndCtrlPos>ScndCtrlActualPos) and (LastRelayTime>CtrlDelay) then
+          if (SCAP<ScndCtrlActualPos) and (LastRelayTime>CtrlDelay) then
            begin
-            dec(ScndCtrlPos);
+            dec(ScndCtrlActualPos);
             LastRelayTime:=0;             //zeruj czas
            end;
          end; {end246}
@@ -4946,7 +5004,7 @@ Begin
      end;
     OK:=SendCtrlToNext(command,CValue1,CValue2);
    end
-else if command='PantFront' then         {Winger 160204}
+  else if command='PantFront' then         {Winger 160204}
    begin //Ra: uwzglêdniæ trzeba jeszcze zgodnoœæ sprzêgów
    //Czemu EZT ma byæ traktowane inaczej? Ukrotnienie ma, a cz³on mo¿e byæ odwrócony
      if (TrainType=dt_EZT) then
@@ -5566,11 +5624,17 @@ begin
   DoorLeftOpened:=State;
   if (State=true) then
    begin
-     SendCtrlToNext('DoorOpen',1,CabNo); //1=lewe, 2=prawe
+    if (CabNo>0) then
+     SendCtrlToNext('DoorOpen',1,CabNo) //1=lewe, 2=prawe
+    else
+     SendCtrlToNext('DoorOpen',2,CabNo) //zamiana
    end
   else
    begin
-    SendCtrlToNext('DoorClose',1,CabNo);
+    if (CabNo>0) then
+     SendCtrlToNext('DoorClose',1,CabNo)
+    else
+     SendCtrlToNext('DoorClose',2,CabNo);
    end;
   end
   else
@@ -5585,11 +5649,17 @@ begin
   DoorRightOpened:=State;
   if (State=true) then
    begin
-     SendCtrlToNext('DoorOpen',2,CabNo); //1=lewe, 2=prawe
+    if (CabNo>0) then
+     SendCtrlToNext('DoorOpen',2,CabNo) //1=lewe, 2=prawe
+    else
+     SendCtrlToNext('DoorOpen',1,CabNo); //zamiana
    end
   else
    begin
-    SendCtrlToNext('DoorClose',2,CabNo);
+    if (CabNo>0) then
+     SendCtrlToNext('DoorClose',2,CabNo)
+    else
+     SendCtrlToNext('DoorClose',1,CabNo);
    end;
  end
  else

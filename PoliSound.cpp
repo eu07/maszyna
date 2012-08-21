@@ -31,10 +31,10 @@ __fastcall TPoliSound::TPoliSound()
 
 __fastcall TPoliSound::~TPoliSound()
 {
- delete [] SoundCommencing;
- delete [] freqmod;
  SoundCommencing=0;
  freqmod=0;
+ delete [] SoundCommencing;
+ delete [] freqmod;
  //Ra: stopowanie siê sypie
  //SoundStart.Stop();
  //SoundCommencing.Stop();

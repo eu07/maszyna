@@ -62,17 +62,16 @@ class TAnim
 {//klasa animowanej czêœci pojazdu (ko³a, drzwi, pantografy, burty, napêd parowozu, si³owniki itd.)
  union
  {
-  TSubModel *smAnimated; //animowany submodel
+  TSubModel *smAnimated; //animowany submodel (jeœli tylko jeden)
   TSubModel **smElement; //jeœli animowanych elementów jest wiêcej (pantograf, napêd parowozu)
  };
  union
- {//kolejno: t³oczysko, korbowód, dr¹¿ek, jarzmo, trzon suwaka, wahacz, dr. wahacza, dr. wahacza
+ {//parametry animacji
   TAnimValveGear *pValveGear; //wspó³czynniki do animacji parowozu
   double *pWheelAngle; //wskaŸnik na k¹t obrotu osi
-  struct
-  {//dla
-  };
+  float *fParam; //ró¿ne parametry dla animacji
  };
+ //void _fastcall Update(); //wskaŸnik do funkcji aktualizacji animacji
  int iFlags; //flagi animacji
 public:
  int __fastcall TypeSet(int i); //ustawienie typu
@@ -221,7 +220,7 @@ protected:
     //Byte PrevConnectedNo;
     int CouplCounter;
     AnsiString asModel;
-    int iDirection; //kierunek wzglêdem czo³a sk³adu (1=zgodny,0=przeciwny)
+ int iDirection; //kierunek wzglêdem czo³a sk³adu (1=zgodny,0=przeciwny)
 public:
     void ABuScanObjects(int ScanDir,double ScanDist);
 protected:
