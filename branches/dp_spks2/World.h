@@ -23,7 +23,8 @@ public:
     bool __fastcall Init(HWND NhWnd, HDC hDC);
     HWND hWnd;
     GLvoid __fastcall glPrint(const char *fmt);
-    void __fastcall OnKeyPress(int cKey);
+    void __fastcall OnKeyDown(int cKey);
+    void __fastcall OnKeyUp(int cKey);
 //    void __fastcall UpdateWindow();
     void __fastcall OnMouseMove(double x, double y);
     void __fastcall OnCommandGet(DaneRozkaz *pRozkaz);

@@ -34,6 +34,8 @@
 #include "Usefull.h"
 
 //---------------------------------------------------------------------------
+#pragma package(smart_init)
+//---------------------------------------------------------------------------
 
 __fastcall TMemCell::TMemCell(vector3 *p)
 {
@@ -72,22 +74,26 @@ void __fastcall TMemCell::UpdateValues(char *szNewText, double fNewValue1, doubl
    fValue2=fNewValue2;
  }
  if (TestFlag(CheckMask,conditional_memstring))
- {//jeœli zmieniony tekst, próbujemy rozpoznaæ komendê
-  if (strcmp(szText,"SetVelocity")==0) //najpopularniejsze
-   eCommand=cm_SetVelocity;
-  else if (strcmp(szText,"ShuntVelocity")==0) //mniej popularne
-   eCommand=cm_ShuntVelocity;
-  else if (strcmp(szText,"Change_direction")==0) //zdarza siê
-   eCommand=cm_ChangeDirection;
-  else if (strcmp(szText,"OutsideStation")==0) //zdarza siê
-   eCommand=cm_OutsideStation;
-  else if (strcmp(szText,"PassengerStopPoint:")==0) //TODO: porównaæ pocz¹tki !!!
-   eCommand=cm_PassengerStopPoint;
-  else if (strcmp(szText,"SetProximityVelocity")==0) //nie powinno tego byæ
-   eCommand=cm_SetProximityVelocity;
-  else
-   eCommand=cm_Unknown; //ci¹g nierozpoznany (nie jest komend¹)
- }
+  CommandCheck();//jeœli zmieniony tekst, próbujemy rozpoznaæ komendê
+}
+
+TCommandType __fastcall TMemCell::CommandCheck()
+{//rozpoznanie komendy
+ if (strcmp(szText,"SetVelocity")==0) //najpopularniejsze
+  eCommand=cm_SetVelocity;
+ else if (strcmp(szText,"ShuntVelocity")==0) //w tarczach manewrowych
+  eCommand=cm_ShuntVelocity;
+ else if (strcmp(szText,"Change_direction")==0) //zdarza siê
+  eCommand=cm_ChangeDirection;
+ else if (strcmp(szText,"OutsideStation")==0) //zdarza siê
+  eCommand=cm_OutsideStation;
+ else if (strcmp(szText,"PassengerStopPoint:")==0) //TODO: porównaæ pocz¹tki !!!
+  eCommand=cm_PassengerStopPoint;
+ else if (strcmp(szText,"SetProximityVelocity")==0) //nie powinno tego byæ
+  eCommand=cm_SetProximityVelocity;
+ else
+  eCommand=cm_Unknown; //ci¹g nierozpoznany (nie jest komend¹)
+ return eCommand;
 }
 
 bool __fastcall TMemCell::Load(cParser *parser)
@@ -107,6 +113,7 @@ bool __fastcall TMemCell::Load(cParser *parser)
  *parser >> token;
  if (token.compare("endmemcell")!=0)
   Error("endmemcell statement missing");
+ CommandCheck();
  return true;
 }
 
@@ -142,6 +149,10 @@ bool __fastcall TMemCell::Render()
     return true;
 }
 
-//---------------------------------------------------------------------------
+bool __fastcall TMemCell::IsVelocity()
+{//sprawdzenie, czy event odczytu tej komórki ma byæ do skanowania, czy do kolejkowania
+ if (eCommand==cm_SetVelocity) return true;
+ if (eCommand==cm_ShuntVelocity) return true;
+ return (eCommand==cm_SetProximityVelocity);
+};
 
-#pragma package(smart_init)

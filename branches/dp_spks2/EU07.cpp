@@ -459,7 +459,7 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
    switch (wParam) //check system calls
    {
     case 61696: //F10
-     World.OnKeyPress(VK_F10);
+     World.OnKeyDown(VK_F10);
      return 0;
     case SC_SCREENSAVE:	//screensaver trying to start?
     case SC_MONITORPOWER: //monitor trying to enter powersave?
@@ -489,13 +489,14 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
   }
   case WM_KEYUP :
   {
+   World.OnKeyUp(wParam);
    return 0;
   }
   case WM_KEYDOWN :
    if (Global::bActive)
    {
     if (wParam!=17) //bo naciœniêcia [Ctrl] nie ma po co przekazywaæ
-     World.OnKeyPress(wParam);
+     World.OnKeyDown(wParam);
     switch (wParam)
     {
      case 19: //[Pause]
@@ -664,7 +665,7 @@ int WINAPI WinMain( HINSTANCE hInstance,     //instance
     else //if not, deal with window messages
     {
      //if (msg.message==WM_CHAR)
-     //World.OnKeyPress(msg.wParam);
+     //World.OnKeyDown(msg.wParam);
      TranslateMessage(&msg); //translate the message
      DispatchMessage(&msg); //dispatch the message
     }

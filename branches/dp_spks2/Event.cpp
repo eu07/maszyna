@@ -35,7 +35,7 @@
 __fastcall TEvent::TEvent()
 {
  Next=Next2=NULL;
- bEnabled=false;
+ bEnabled=false; //false dla eventów u¿ywanych do skanowania sygna³ów (nie dodawane do kolejki)
  asNodeName="";
  bLaunched=false;
  bIsHistory=false;
@@ -80,7 +80,7 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
     AnsiString str;
     char *ptr;
 
-    bEnabled=true;
+    bEnabled=true; //zmieniane na false dla eventów u¿ywanych do skanowania sygna³ów
 
     parser->getTokens();
     *parser >> token;
@@ -198,7 +198,11 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
          *parser >> token;
          str=AnsiString(token.c_str());
          if (str.SubString(1,19)=="PassengerStopPoint:")
-          if (str.Pos("#")) str=str.SubString(1,str.Pos("#")-1); //obciêcie unikatowoœci
+         {if (str.Pos("#")) str=str.SubString(1,str.Pos("#")-1); //obciêcie unikatowoœci
+          bEnabled=false; //nie do kolejki (dla SetVelocity te¿, ale jak jest do toru dowi¹zany) 
+         }
+         if (str=="SetVelocity") bEnabled=false;
+         if (str=="ShuntVelocity") bEnabled=false;
          Params[0].asText=new char[str.Length()+1];
          strcpy(Params[0].asText,str.c_str());
 //         if (str!=AnsiString("*"))       //*=nie brac tego pod uwage
