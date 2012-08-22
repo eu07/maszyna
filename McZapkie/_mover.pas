@@ -124,6 +124,7 @@ CONST
    ctrain_passenger=16;     //mostek przejœciowy
    ctrain_scndpneumatic=32; //przewody 8 atm
    ctrain_localbrake=64;   {przewód hamulca niesamoczynnego}
+   ctrain_depot=128;        //nie roz³¹czalny podczas zwyk³ych manewrów (miêdzycz³onowy), we wpisie wartoœæ ujemna
 
    {typ hamulca elektrodynamicznego}
    dbrake_none=0;
@@ -327,7 +328,7 @@ TYPE
                CouplerType: TCouplerType;     {typ sprzegu}
                {zmienne}
                CouplingFlag : byte; {0 - wirtualnie, 1 - sprzegi, 2 - pneumatycznie, 4 - sterowanie, 8 - kabel mocy}
-               AllowedFlag : byte;          //Ra: znaczenie jak wy¿ej, maska dostêpnych
+               AllowedFlag : Integer;       //Ra: znaczenie jak wy¿ej, maska dostêpnych
                Render: boolean;             {ABu: czy rysowac jak zaczepiony sprzeg}
                CoupleDist: real;            {ABu: optymalizacja - liczenie odleglosci raz na klatkê, bez iteracji}
                Connected: T_MoverParameters; {co jest podlaczone}
@@ -1107,15 +1108,15 @@ end;
 
 
 function T_MoverParameters.SendCtrlToNext(CtrlCommand:string;ctrlvalue,dir:real):boolean;
-//wys³anie komendy w kierunku dir (1=przod,-1=ty³)
+//wys³anie komendy w kierunku dir (1=przod,-1=ty³) do kolejnego pojazdu (jednego)
 var
  OK:Boolean;
- d:Integer;
+ d:Integer; //numer sprzêgu w kierunku którego wysy³amy
 begin
 //Ra: by³ problem z propagacj¹, jeœli w sk³adzie jest pojazd wstawiony odwrotnie
 //Ra: problem jest równie¿, jeœli AI bêdzie na koñcu sk³adu
  OK:=(dir<>0); // and Mains;
- d:=(1+Sign(dir)) div 2; //-1=>0, 1=>1 - wysy³anie tylko w ty³
+ d:=(1+Sign(dir)) div 2; //dir=-1=>d=0, dir=1=>d=1 - wysy³anie tylko w ty³
  if OK then
   with Couplers[d] do //w³asny sprzêg od strony (d)
    if TestFlag(CouplingFlag,ctrain_controll) then
@@ -1150,7 +1151,7 @@ begin
    begin
      CabNo:=ActiveCab;
      DirAbsolute:=ActiveDir*CabNo;
-     SendCtrlToNext('CabActivisation',CabNo,ActiveCab);
+     SendCtrlToNext('CabActivisation',CabNo*ActiveCab,ActiveCab);
      PantCheck;
    end;
   CabActivisation:=OK;
@@ -1451,21 +1452,6 @@ begin
  DecScndCtrl:=OK;
 end;
 
-(*
-function T_MoverParameters.DirectionForward: boolean;
-begin
-  if (MainCtrlPosNo>0) and (ActiveDir<1) and (MainCtrlPos=0) then
-   begin
-     inc(ActiveDir);
-     DirAbsolute:=ActiveDir*CabNo;
-     DirectionForward:=True;
-     SendCtrlToNext('Direction',ActiveDir,CabNo);
-   end
-  else if (ActiveDir=1) and (MainCtrlPos=0) and (TrainType=dt_EZT) then
-    DirectionForward:=MinCurrentSwitch(true)
-  else
-    DirectionForward:=False;
-end;*)
 
 function T_MoverParameters.DirectionBackward: boolean;
 begin
@@ -3702,7 +3688,7 @@ begin
      else Couplers[b].CForce:=0;
     //FStand:=Fb+FrictionForce(RunningShape.R,RunningTrack.DamageFlag);
     FStand:=Fb+Fstand;
-    FTrain:=FTrain+TotalMassxg*RunningShape.dHtrack/RunningShape.Len;
+    FTrain:=FTrain+TotalMassxg*RunningShape.dHtrack; // /RunningShape.Len;
     {!niejawne przypisanie zmiennej!}
     FTotal:=FTrain-Sign(V)*FStand;
    end;
@@ -4217,16 +4203,16 @@ Begin
    begin //Ra: uwzglêdniæ trzeba jeszcze zgodnoœæ sprzêgów
     if (CValue2>0) then
      begin //normalne ustawienie pojazdu
-      if (CValue1=1) then
+      if (CValue1=1) OR (CValue1=3) then
        DoorLeftOpened:=true;
-      if (CValue1=2) then
+      if (CValue1=2) OR (CValue1=3) then
        DoorRightOpened:=true;
      end
     else
      begin //odwrotne ustawienie pojazdu
-      if (CValue1=2) then
+      if (CValue1=2) OR (CValue1=3) then
        DoorLeftOpened:=true;
-      if (CValue1=1) then
+      if (CValue1=1) OR (CValue1=3) then
        DoorRightOpened:=true;
      end;
     OK:=SendCtrlToNext(command,CValue1,CValue2);
@@ -4235,21 +4221,21 @@ Begin
    begin //Ra: uwzglêdniæ trzeba jeszcze zgodnoœæ sprzêgów
     if (CValue2>0) then
      begin //normalne ustawienie pojazdu
-      if (CValue1=1) then
+      if (CValue1=1) OR (CValue1=3) then
        DoorLeftOpened:=false;
-      if (CValue1=2) then
+      if (CValue1=2) OR (CValue1=3) then
        DoorRightOpened:=false;
      end
     else
      begin //odwrotne ustawienie pojazdu
-      if (CValue1=2) then
+      if (CValue1=2) OR (CValue1=3) then
        DoorLeftOpened:=false;
-      if (CValue1=1) then
+      if (CValue1=1) OR (CValue1=3) then
        DoorRightOpened:=false;
      end;
     OK:=SendCtrlToNext(command,CValue1,CValue2);
    end
-else if command='PantFront' then         {Winger 160204}
+  else if command='PantFront' then         {Winger 160204}
    begin //Ra: uwzglêdniæ trzeba jeszcze zgodnoœæ sprzêgów
    //Czemu EZT ma byæ traktowane inaczej? Ukrotnienie ma, a cz³on mo¿e byæ odwrócony
      if (TrainType=dt_EZT) then
@@ -4266,7 +4252,7 @@ else if command='PantFront' then         {Winger 160204}
         end;
      end
      else
-     begin //nie 'ezt' - odwrotne ustawienie pantografów: ^-.-^ zamiast ^-.^- 
+     begin //nie 'ezt' - odwrotne ustawienie pantografów: ^-.-^ zamiast ^-.^-
        if (CValue1=1) then
         if (TestFlag(Couplers[1].CouplingFlag,ctrain_controll)and(CValue2= 1))
          or(TestFlag(Couplers[0].CouplingFlag,ctrain_controll)and(CValue2=-1))
@@ -4578,7 +4564,7 @@ begin
   for b:=0 to 1 do
    with Couplers[b] do
     begin
-      AllowedFlag:=255; //domyœlnie wszystkie
+      AllowedFlag:=127; //domyœlnie wszystkie
       CouplingFlag:=0;
       Connected:=nil;
       ConnectedNr:=0; //Ra: to nie ma znaczenia jak nie pod³¹czony
@@ -4658,7 +4644,7 @@ begin
 
   with RunningShape do
    begin
-     R:=0; Len:=100; dHtrack:=0; dHrail:=0;
+     R:=0; Len:=1; dHtrack:=0; dHrail:=0;
    end;
  RunningTrack.CategoryFlag:=CategoryFlag;
   with RunningTrack do
@@ -4881,7 +4867,7 @@ end;
      PantRear(true);
      MainSwitch(true);
      ActiveDir:=Dir;
-     DirAbsolute:=ActiveDir*CabNo;
+     DirAbsolute:=ActiveDir*CabNo; //kierunek jazdy wzglêdem sprzêgów
      LimPipePress:=CntrlPipePress;
    end
   else
@@ -4967,11 +4953,17 @@ begin
   DoorLeftOpened:=State;
   if (State=true) then
    begin
-     SendCtrlToNext('DoorOpen',1,CabNo); //1=lewe, 2=prawe
+    if (CabNo>0) then
+     SendCtrlToNext('DoorOpen',1,CabNo) //1=lewe, 2=prawe
+    else
+     SendCtrlToNext('DoorOpen',2,CabNo) //zamiana
    end
   else
    begin
-    SendCtrlToNext('DoorClose',1,CabNo);
+    if (CabNo>0) then
+     SendCtrlToNext('DoorClose',1,CabNo)
+    else
+     SendCtrlToNext('DoorClose',2,CabNo);
    end;
   end
   else
@@ -4986,11 +4978,17 @@ begin
   DoorRightOpened:=State;
   if (State=true) then
    begin
-     SendCtrlToNext('DoorOpen',2,CabNo); //1=lewe, 2=prawe
+    if (CabNo>0) then
+     SendCtrlToNext('DoorOpen',2,CabNo) //1=lewe, 2=prawe
+    else
+     SendCtrlToNext('DoorOpen',1,CabNo); //zamiana
    end
   else
    begin
-    SendCtrlToNext('DoorClose',2,CabNo);
+    if (CabNo>0) then
+     SendCtrlToNext('DoorClose',2,CabNo)
+    else
+     SendCtrlToNext('DoorClose',1,CabNo);
    end;
  end
  else
@@ -5520,7 +5518,8 @@ begin
                 else
                  CouplerType:=NoCoupler;
                 s:=ExtractKeyWord(lines,'AllowedFlag=');
-                if s<>'' then AllowedFlag:=s2NNW(DUE(s));
+                if s<>'' then AllowedFlag:=s2i(DUE(s));
+                if (AllowedFlag<0) then AllowedFlag:=(-AllowedFlag) OR ctrain_depot;
                 if (CouplerType<>NoCoupler) and (CouplerType<>Bare) and (CouplerType<>Articulated) then
                  begin
                    s:=ExtractKeyWord(lines,'kC=');
@@ -5595,7 +5594,8 @@ begin
                 else
                  CouplerType:=NoCoupler;
                 s:=ExtractKeyWord(lines,'AllowedFlag=');
-                if s<>'' then AllowedFlag:=s2NNW(DUE(s));
+                if s<>'' then AllowedFlag:=s2i(DUE(s));
+                if (AllowedFlag<0) then AllowedFlag:=(-AllowedFlag) OR ctrain_depot;
                 if (CouplerType<>NoCoupler) and (CouplerType<>Bare) and (CouplerType<>Articulated) then
                  begin
                    s:=ExtractKeyWord(lines,'kC=');

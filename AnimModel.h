@@ -54,6 +54,7 @@ private:
  TSubModel *LightsOff[iMaxNumLights];
  vector3 vAngle; //bazowe obroty egzemplarza wzglêdem osi
  int iTexAlpha; //¿eby nie sprawdzaæ za ka¿dym razem, dla 4 wymiennych tekstur
+ AnsiString asText; //tekst dla wyœwietlacza znakowego
 public:
  TLightState lsLights[iMaxNumLights];
  GLuint ReplacableSkinId[5]; //McZapkie-020802: zmienialne skory

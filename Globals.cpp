@@ -37,11 +37,11 @@
 //parametry do u¿ytku wewnêtrznego
 //double Global::tSinceStart=0;
 TGround *Global::pGround=NULL;
-//char Global::CreatorName1[30]="Maciej Czapkiewicz";
-//char Global::CreatorName2[30]="Marcin Wozniak <Marcin_EU>";
-//char Global::CreatorName3[20]="Adam Bugiel <ABu>";
-//char Global::CreatorName4[30]="Arkadiusz Slusarczyk <Winger>";
-//char Global::CreatorName5[30]="Lukasz Kirchner <Nbmx>";
+//char Global::CreatorName1[30]="2001-2004 Maciej Czapkiewicz";
+//char Global::CreatorName2[30]="2001-2003 Marcin WoŸniak <Marcin_EU>";
+//char Global::CreatorName3[20]="2004-2005 Adam Bugiel <ABu>";
+//char Global::CreatorName4[30]="2004 Arkadiusz Œlusarczyk <Winger>";
+//char Global::CreatorName5[30]="£ukasz Kirchner <Nbmx>";
 AnsiString Global::asCurrentSceneryPath="scenery/";
 AnsiString Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath);
 AnsiString Global::asCurrentDynamicPath="";
@@ -56,8 +56,8 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asRelease="1.8.591.354";
-AnsiString Global::asVersion="Compilation 2012-06-07, release "+Global::asRelease+"."; //tutaj, bo wysy³any
+AnsiString Global::asRelease="1.8.609.362";
+AnsiString Global::asVersion="Compilation 2012-08-22, release "+Global::asRelease+"."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 double Global::fSunDeclination=0.0; //deklinacja S³oñca
@@ -103,7 +103,6 @@ bool Global::bRollFix=true; //czy wykonaæ przeliczanie przechy³ki
 int Global::Keys[MaxKeys];
 int Global::iWindowWidth=800;
 int Global::iWindowHeight=600;
-int Global::iBpp=32;
 int Global::iFeedbackMode=1; //tryb pracy informacji zwrotnej
 bool Global::bFreeFly=false;
 bool Global::bFullScreen=false;
@@ -153,6 +152,9 @@ int Global::iWriteLogEnabled=3; //maska bitowa: 1-zapis do pliku, 2-okienko
 bool Global::bManageNodes=true;
 bool Global::bDecompressDDS=false;
 
+//parametry do kalibracji
+double Global::fCalibration[30]; //parametry kalibracyjne dla pulpitów
+
 //parametry przejœciowe (do usuniêcia)
 //bool Global::bTimeChange=false; //Ra: ZiomalCl wy³¹czy³ star¹ wersjê nocy
 //bool Global::bRenderAlpha=true; //Ra: wywali³am tê flagê
@@ -160,6 +162,7 @@ bool Global::bnewAirCouplers=true;
 bool Global::bDoubleAmbient=false; //podwójna jasnoœæ ambient
 double Global::fSunSpeed=1.0; //prêdkoœæ ruchu S³oñca, zmienna do testów
 bool Global::bHideConsole=false; //hunter-271211: ukrywanie konsoli
+int Global::iBpp=32; //chyba ju¿ nie u¿ywa siê kart, na których 16bpp coœ poprawi
 
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
@@ -554,6 +557,10 @@ void __fastcall Global::TrainDelete(TDynamicObject *d)
  if (pWorld) pWorld->TrainDelete(d);
 };
 
+TDynamicObject* __fastcall Global::DynamicNearest()
+{//ustalenie pojazdu najbli¿szego kamerze
+ return pGround->DynamicNearest(pCamera->Pos);
+};
 
 //---------------------------------------------------------------------------
 

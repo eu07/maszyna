@@ -571,8 +571,7 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
  return true;
 };
 
-
-void __fastcall TWorld::OnKeyPress(int cKey)
+void __fastcall TWorld::OnKeyDown(int cKey)
 {//(cKey) to kod klawisza, cyfrowe i literowe siê zgadzaj¹
  if (!Global::bPause)
  {//podczas pauzy klawisze nie dzia³aj¹
@@ -669,6 +668,25 @@ void __fastcall TWorld::OnKeyPress(int cKey)
    if (Controlled)
     if ((Controlled->Controller==Humandriver)?true:DebugModeFlag||(cKey=='Q')) //||(cKey==VK_F4))
      Train->OnKeyPress(cKey); //przekazanie klawisza do kabiny
+ if (cKey==Global::Keys[k_Releaser]) //odluŸniacz
+ {//dzia³a globalnie, sprawdziæ zasiêg
+  TDynamicObject *temp=Global::DynamicNearest();
+  if (temp)
+  {
+   if (GetAsyncKeyState(VK_CONTROL)<0) //z ctrl odcinanie
+   {
+    temp->MoverParameters->BrakeStatus^=128;
+   }
+   else
+   if (temp->MoverParameters->BrakeReleaser())
+   {
+    //temp->sBrakeAcc->
+    //dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
+    //dsbPneumaticRelay->Play(0,0,0); //temp->Position()-Camera.Pos //???
+   }
+  }
+ }
+
  //switch (cKey)
  //{case 'a': //ignorowanie repetycji
  // case 'A': Global::iKeyLast=cKey; break;
@@ -676,6 +694,9 @@ void __fastcall TWorld::OnKeyPress(int cKey)
  //}
 }
 
+void __fastcall TWorld::OnKeyUp(int cKey)
+{//zwolnienie klawisza; (cKey) to kod klawisza, cyfrowe i literowe siê zgadzaj¹
+};
 
 void __fastcall TWorld::OnMouseMove(double x, double y)
 {//McZapkie:060503-definicja obracania myszy
@@ -1043,7 +1064,7 @@ bool __fastcall TWorld::Update()
 
 //*yB: moje smuuugi 1
   if ((Train->DynamicObject->fShade<=0.0)?(Global::fLuminance<=0.25):(Train->DynamicObject->fShade*Global::fLuminance<=0.25))
-  {//Ra: uwzglêdni³em zacienienie pojazdu (Train->DynamicObject->fShade)
+  {//Ra: uwzglêdni³em zacienienie pojazdu przy zapalaniu smug
    glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_ONE);
 //    glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_DST_COLOR);
 //    glBlendFunc(GL_SRC_ALPHA_SATURATE,GL_ONE);
@@ -1071,83 +1092,65 @@ bool __fastcall TWorld::Update()
 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_LIGHTING);
+    //glEnable(GL_LIGHTING); //i tak siê w³¹czy potem
     glEnable(GL_FOG);
    }
 //yB: moje smuuugi 1 - koniec*/
 
     //oswietlenie kabiny
-      GLfloat ambientCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
-      GLfloat diffuseCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
-      GLfloat specularCabLight[4]={ 0.5f,  0.5f, 0.5f, 1.0f };
-      for (int li=0; li<3; li++)
-      {//przyciemnienie standardowe
-       ambientCabLight[li]= Global::ambientDayLight[li]*0.9;
-       diffuseCabLight[li]= Global::diffuseDayLight[li]*0.5;
-       specularCabLight[li]=Global::specularDayLight[li]*0.5;
-      }
-      switch (Train->DynamicObject->MyTrack->eEnvironment)
-      {
-       case e_canyon:
-       {
-        for (int li=0; li<3; li++)
-        {
-         diffuseCabLight[li] *=0.6;
-         specularCabLight[li]*=0.7;
-        }
-       }
-       break;
-       case e_tunnel:
-       {
-        for (int li=0; li<3; li++)
-        {
-         ambientCabLight[li] *=0.3;
-         diffuseCabLight[li] *=0.1;
-         specularCabLight[li]*=0.2;
-        }
-       }
-       break;
-      }
-      glLightfv(GL_LIGHT0,GL_AMBIENT,ambientCabLight);
-      glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseCabLight);
-      glLightfv(GL_LIGHT0,GL_SPECULAR,specularCabLight);
-      if (Global::bUseVBO)
-      {//renderowanie z u¿yciem VBO
-       Train->DynamicObject->mdKabina->RaRender(0.0,Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->iAlpha);
-       Train->DynamicObject->mdKabina->RaRenderAlpha(0.0,Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->iAlpha);
-      }
-      else
-      {//renderowanie z Display List
-       Train->DynamicObject->mdKabina->Render(0.0,Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->iAlpha);
-       Train->DynamicObject->mdKabina->RenderAlpha(0.0,Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->iAlpha);
-      }
-      //przywrócenie standardowych, bo zawsze s¹ zmieniane
-      glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
-      glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
-      glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
+   glEnable(GL_LIGHTING); //po renderowaniu drutów mo¿e byæ wy³¹czone
+   GLfloat ambientCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
+   GLfloat diffuseCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
+   GLfloat specularCabLight[4]={ 0.5f,  0.5f, 0.5f, 1.0f };
+   for (int li=0; li<3; li++)
+   {//przyciemnienie standardowe
+    ambientCabLight[li]= Global::ambientDayLight[li]*0.9;
+    diffuseCabLight[li]= Global::diffuseDayLight[li]*0.5;
+    specularCabLight[li]=Global::specularDayLight[li]*0.5;
+   }
+   switch (Train->DynamicObject->MyTrack->eEnvironment)
+   {
+    case e_canyon:
+    {
+     for (int li=0; li<3; li++)
+     {
+      diffuseCabLight[li] *=0.6;
+      specularCabLight[li]*=0.7;
+     }
     }
-  glPopMatrix ( );
+    break;
+    case e_tunnel:
+    {
+     for (int li=0; li<3; li++)
+     {
+      ambientCabLight[li] *=0.3;
+      diffuseCabLight[li] *=0.1;
+      specularCabLight[li]*=0.2;
+     }
+    }
+    break;
+   }
+   glLightfv(GL_LIGHT0,GL_AMBIENT,ambientCabLight);
+   glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseCabLight);
+   glLightfv(GL_LIGHT0,GL_SPECULAR,specularCabLight);
+   if (Global::bUseVBO)
+   {//renderowanie z u¿yciem VBO
+    Train->DynamicObject->mdKabina->RaRender(0.0,Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->iAlpha);
+    Train->DynamicObject->mdKabina->RaRenderAlpha(0.0,Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->iAlpha);
+   }
+   else
+   {//renderowanie z Display List
+    Train->DynamicObject->mdKabina->Render(0.0,Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->iAlpha);
+    Train->DynamicObject->mdKabina->RenderAlpha(0.0,Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->iAlpha);
+   }
+   //przywrócenie standardowych, bo zawsze s¹ zmieniane
+   glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
+   glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
+   glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
+  }
+  glPopMatrix();
 //**********************************************************************************************************
  } //koniec if (Train)
-/*
- if (Global::fMoveLight>=0)
- {//Ra: tymczasowy "zegar s³oneczny"
-  float x=0.0f,y=10.0f,z=0.0f; //œrodek tarczy
-  glColor3f(1.0f,1.0f,1.0f);
-  glDisable(GL_LIGHTING);
-  glBegin(GL_LINES); //linia
-   x+=1.0*Global::lightPos[0];
-   y+=1.0*Global::lightPos[1];
-   z+=1.0*Global::lightPos[2];
-   glVertex3f(x,y,z); //pocz¹tek wskazówki
-   x+=10.0*Global::lightPos[0];
-   y+=10.0*Global::lightPos[1];
-   z+=10.0*Global::lightPos[2];
-   glVertex3f(x,y,z); //koniec wskazuje kierunek S³oñca
-  glEnd();
-  glEnable(GL_LIGHTING);
- }
-*/
     if (DebugModeFlag&&!Global::iTextMode)
      {
        OutText1="  FPS: ";
