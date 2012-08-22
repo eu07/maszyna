@@ -1568,11 +1568,14 @@ void __fastcall TModel3d::Init()
  if (Root)
  {if (iFlags&0x0200) //jeœli wczytano z pliku tekstowego
   {//jest jakiœ dziwny b³¹d, ¿e obkrêcany ma byæ tylko ostatni submodel g³ównego ³añcucha
-   TSubModel *p=Root;
-   while (p->NextGet())
-    p=p->NextGet();
-   p->InitialRotate(true); //ostatniemu nale¿y siê konwersja uk³adu wspó³rzêdnych
-   Root->InitialRotate(false); //a poprzednim tylko optymalizacja
+   //TSubModel *p=Root;
+   //do
+   //{p->InitialRotate(true); //ostatniemu nale¿y siê konwersja uk³adu wspó³rzêdnych
+   // p=p->NextGet();
+   //}
+   //while (p->NextGet())
+   //Root->InitialRotate(false); //a poprzednim tylko optymalizacja
+   Root->InitialRotate(true); //argumet okreœla, czy wykonaæ pierwotny obrót
   }
   iFlags|=Root->FlagsCheck()|0x8000; //flagi ca³ego modelu
   if (!asBinary.IsEmpty()) //jeœli jest podana nazwa
