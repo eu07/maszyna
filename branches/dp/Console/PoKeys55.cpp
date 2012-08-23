@@ -39,7 +39,7 @@ bool __fastcall TPoKeys55::Connect()
  PSP_DEVICE_INTERFACE_DETAIL_DATA DetailedInterfaceDataStructure=new SP_DEVICE_INTERFACE_DETAIL_DATA;
  SP_DEVINFO_DATA DevInfoData;
  DWORD InterfaceIndex=0;
- DWORD StatusLastError=0;
+ //DWORD StatusLastError=0;
  DWORD dwRegType;
  DWORD dwRegSize;
  DWORD StructureSize=0;

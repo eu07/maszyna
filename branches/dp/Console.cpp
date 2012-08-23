@@ -110,6 +110,7 @@ int __fastcall Console::On()
   delete PoKeys55;
   PoKeys55=NULL;
  }
+ return 0;
 };
 
 void __fastcall Console::Off()

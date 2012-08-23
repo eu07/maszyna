@@ -59,7 +59,7 @@ __fastcall TWorld::TWorld()
  //Randomize();
  Train=NULL;
  Aspect=1;
- for (int i=0; i<10; i++)
+ for (int i=0;i<10;++i)
   KeyEvents[i]=NULL; //eventy wyzwalane klawiszami cyfrowymi
  Global::iSlowMotion=0;
  Global::changeDynObj=false;
@@ -166,6 +166,12 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
  else
  {WriteLog("Ra: No VBO found - Display Lists used. Upgrade drivers or buy a newer graphics card!");
   Global::bUseVBO=false; //mo¿e byæ w³¹czone parametrem w INI
+ }
+ if (glewGetExtension("GL_EXT_texture_compression_s3tc")) //czy jest obs³uga DDS w karcie graficznej
+  WriteLog("DDS texture format is supported.");
+ else
+ {//brak obs³ugi DDS - czy da siê w³¹czyæ programow¹ ich dekompresjê?
+  WriteLog("DDS format is not supported: you need TGA textures.");
  }
  if (Global::iMultisampling)
   WriteLog("Used multisampling of "+AnsiString(Global::iMultisampling)+" samples.");

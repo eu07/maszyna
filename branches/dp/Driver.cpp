@@ -1712,8 +1712,7 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
      OrderNext(Disconnect); //jak ci¹gnie, to tylko odczep (NewValue1) wagonów
     WaitingTime=0.0; //nie ma co dalej czekaæ, mo¿na zatr¹biæ i jechaæ, chyba ¿e ju¿ jedzie
    }
-   else
-    iDrivigFlags|=moveStopHere; //dla -1 0 ma nie podje¿d¿aæ do niczego
+   //else iDrivigFlags|=moveStopHere; //dla -1 0 ma nie podje¿d¿aæ do niczego
   if (NewValue1<-1.5) //jeœli -2/-3, czyli czekanie z ruszeniem na sygna³
    iDrivigFlags|=moveStopHere; //nie podje¿d¿aæ do semafora, jeœli droga nie jest wolna
   if (NewValue1<-2.5) //jeœli
@@ -1917,7 +1916,7 @@ bool __fastcall TController::UpdateSituation(double dt)
      if (AIControllFlag)
      {//to robi tylko AI, wersjê dla cz³owieka trzeba dopiero zrobiæ
       //sprzêgi sprawdzamy w pierwszej kolejnoœci, bo jak po³¹czony, to koniec
-      bool ok=false; //true gdy siê pod³¹czy (uzyskany spr¿êg bêdzie zgodny z ¿¹danym)
+      bool ok; //true gdy siê pod³¹czy (uzyskany sprzêg bêdzie zgodny z ¿¹danym)
       if (pVehicles[0]->DirectionGet()>0) //jeœli sprzêg 0
       {//sprzêg 0 - próba podczepienia
        if (pVehicles[0]->MoverParameters->Couplers[0].Connected) //jeœli jest coœ wykryte (a chyba jest, nie?)
@@ -3042,7 +3041,7 @@ bool __fastcall TController::BackwardScan()
   else
   {//jeœli s¹ dalej tory
    //double vtrackmax=scantrack->VelocityGet();  //ograniczenie szlakowe
-   double vmechmax=-1; //prêdkoœæ ustawiona semaforem
+   double vmechmax; //prêdkoœæ ustawiona semaforem
    TEvent *e=eSignLast; //poprzedni sygna³ nadal siê liczy
    if (!e) //jeœli nie by³o ¿adnego sygna³u
     e=ev; //ten ewentualnie znaleziony (scandir>0)?scantrack->Event2:scantrack->Event1; //pobranie nowego
