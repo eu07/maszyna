@@ -81,6 +81,7 @@ int Console::iBits=0; //zmienna statyczna - obiekt Console jest jednen wspólny
 int Console::iMode=0;
 int Console::iConfig=0;
 TPoKeys55 *Console::PoKeys55=NULL;
+float Console::FV4aPos=-1;
 
 __fastcall Console::Console()
 {
@@ -160,7 +161,7 @@ void __fastcall Console::BitsUpdate(int mask)
   case 3: //LPT Marcela z modyfikacj¹ (jazda na oporach zamiast brzêczyka)
    // (do zrobienia)
    break;
-  case 4: //PoKeys55 wg Marcela
+  case 6: //PoKeys55 wg Marcela
    if (PoKeys55)
    {//pewnie trzeba bêdzie to dodatkowo buforowaæ i oczekiwaæ na potwierdzenie
     if (mask&0x001) //gdy SHP
@@ -212,5 +213,6 @@ void __fastcall Console::Update()
    {//wykrycie przestawionych prze³¹czników
 
    }
+
 };
 
