@@ -25,6 +25,7 @@ public:
  static void __fastcall Off();
  static bool __fastcall Pressed(int x);
  static void __fastcall ValueSet(int x,double y);
+ static void __fastcall Update();
 };
 
 #endif
