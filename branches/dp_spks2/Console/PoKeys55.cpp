@@ -4,6 +4,7 @@
 
 #include <setupapi.h>
 #include "PoKeys55.h"
+#include "Console.h"
 //#include <alloc.h>
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
@@ -259,13 +260,18 @@ bool __fastcall TPoKeys55::Update()
    Write(0xCB,1); //wys³anie ustawieñ (1-ustaw, 0-odczyt)
   break;
   case 2: //odczyt wejœæ analogowych - komenda
-   Write(0x35,46); //0x35 - odczyt jednego wejœcia
+   Write(0x35,46);
   break;
   case 3: //odczyt wejœæ analogowych - przetwarzanie
-   if (iLastCommand==0x35)
-    if (Read())
+//   if (iLastCommand==0x35)
+    Write(0x35,46);
+    if (ReadLoop(50))
     {//asynchroniczne ustawienie kontrolki mo¿e namieszaæ
+     Console::FV4aPos=(float)InputBuffer[4];
+//     Console::FV4aPos=5.0f; //wesz³o
     }
+//    else
+//     Console::FV4aPos=-1;   //nie wesz³o
   break;
   case 4: //odczyt wejœæ cyfrowych - komenda
    Write(0x31,0); //0x31: blokowy odczyt wejœæ

@@ -26,6 +26,7 @@ public:
  static bool __fastcall Pressed(int x);
  static void __fastcall ValueSet(int x,double y);
  static void __fastcall Update();
+ static float FV4aPos; 
 };
 
 #endif
