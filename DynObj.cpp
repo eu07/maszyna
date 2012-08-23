@@ -1902,7 +1902,7 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
 //taka prowizorka zeby sciszyc stukot dalekiej lokomotywy
    double ObjectDist;
    double vol=0;
-   double freq;
+   //double freq; //Ra: nie u¿ywane
    ObjectDist=SquareMagnitude(Global::pCameraPosition-vPosition);
 //McZapkie-270202
    if (MyTrack->fSoundDistance!=-1)
@@ -1913,13 +1913,13 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
         if (MyTrack->eEnvironment==e_tunnel)
          {
           vol*=1.1;
-          freq=1.02;
+          //freq=1.02;
          }
         else
         if (MyTrack->eEnvironment==e_bridge)
          {
           vol*=1.2;
-          freq=0.99;                             //MC: stukot w zaleznosci od tego gdzie jest tor
+          //freq=0.99;                             //MC: stukot w zaleznosci od tego gdzie jest tor
          }
         if (MyTrack->fSoundDistance!=dRailLength)
          {
@@ -3641,7 +3641,7 @@ void __fastcall TDynamicObject::CoupleDist()
  else
  {//na drodze trzeba uwzglêdniæ wektory ruchu
   double d0=MoverParameters->Couplers[0].CoupleDist;
-  double d1=MoverParameters->Couplers[1].CoupleDist;
+  //double d1=MoverParameters->Couplers[1].CoupleDist; //sprzêg z ty³u samochodu mo¿na olaæ, dopóki nie jeŸdzi na wstecznym
   vector3 p1,p2;
   double d,w; //dopuszczalny dystans w poprzek
   MoverParameters->SetCoupleDist(); //liczenie standardowe

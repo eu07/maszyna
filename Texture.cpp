@@ -56,7 +56,7 @@ TTexturesManager::Names::iterator TTexturesManager::LoadFromFile(std::string fil
     else
         file.close();
 
-    char* cFileName = const_cast<char*>(fileName.c_str());
+    //char* cFileName = const_cast<char*>(fileName.c_str());
 
     message += realFileName;
     WriteLog(message.c_str()); //Ra: chybaa mia³o byæ z komunikatem z przodu, a nie tylko nazwa

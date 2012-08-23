@@ -26,6 +26,7 @@ double __fastcall TMoverParameters::Distance(const TLocation &Loc1,const TLocati
 
 double __fastcall TMoverParameters::Distance(const vector3 &s1, const vector3 &s2, const vector3 &d1, const vector3 &d2)
 {//obliczenie odleg³oœci prostopad³oœcianów o œrodkach (s1) i (s2) i wymiarach (d1) i (d2)
+ //return 0.0; //bêdzie zg³aszaæ warning - funkcja do usuniêcia, chyba ¿e siê przyda...
 };
 
 double __fastcall TMoverParameters::CouplerDist(Byte Coupler)
