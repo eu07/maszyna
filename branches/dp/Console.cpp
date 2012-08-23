@@ -203,3 +203,14 @@ void __fastcall Console::ValueSet(int x,double y)
    PoKeys55->PWM(x,int(y)&0x0FFF); //zakres 0..1023 na razie
   }
 };
+
+void __fastcall Console::Update()
+{//funkcja powinna byæ wywo³ywana regularnie, np. raz w ka¿dej ramce ekranowej
+ if (iMode==4)
+  if (PoKeys55)
+   if (PoKeys55->Update())
+   {//wykrycie przestawionych prze³¹czników
+
+   }
+};
+

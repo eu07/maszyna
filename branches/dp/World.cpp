@@ -948,6 +948,7 @@ bool __fastcall TWorld::Update()
    glClearColor(sky.x,sky.y,sky.z,0.0); //kolor nieba
   }
  } //koniec dzia³añ niewykonywanych podczas pauzy
+ Console::Update();
  if (Global::bActive)
  {//obs³uga ruchu kamery tylko gdy okno jest aktywne
   if (Console::Pressed(VK_LBUTTON))
