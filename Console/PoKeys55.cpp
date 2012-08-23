@@ -22,6 +22,8 @@ __fastcall TPoKeys55::TPoKeys55()
 {
  cRequest=0;
  iPWMbits=1;
+ iFaza=0;
+ iLastCommand=0;
 };
 //---------------------------------------------------------------------------
 __fastcall TPoKeys55::~TPoKeys55()
@@ -149,7 +151,7 @@ bool __fastcall TPoKeys55::Write(unsigned char c,unsigned char b3,unsigned char 
  DWORD BytesWritten=0;
  OutputBuffer[0]=0;    //The first byte is the "Report ID" and does not get transmitted over the USB bus. Always set=0.
  OutputBuffer[1]=0xBB; //0xBB - bajt rozpoznawczy dla PoKeys55
- OutputBuffer[2]=c;    //operacja: 0x31: blokowy odczyt wejœæ
+ OutputBuffer[2]=iLastCommand=c;    //operacja: 0x31: blokowy odczyt wejœæ
  OutputBuffer[3]=b3;   //np. numer pinu (o 1 mniej ni¿ numer na p³ytce)
  OutputBuffer[4]=b4;
  OutputBuffer[5]=0;
@@ -238,15 +240,44 @@ bool __fastcall TPoKeys55::PWM(int x,int y)
 {//ustawienie podawnego PWM (@12Mhz: 12000=1ms=1000Hz)
  iPWM[6]=1024; //1024==85333.3333333333ns=11718.75Hz
  iPWM[x]=y;
- OutputBuffer[9]=32; //maska u¿ytych PWM
- *((int*)(OutputBuffer+10))=iPWM[0]; //PWM1 (pin 22)
- *((int*)(OutputBuffer+14))=iPWM[1]; //PWM2 (pin 21)
- *((int*)(OutputBuffer+18))=iPWM[2]; //PWM3 (pin 20)
- *((int*)(OutputBuffer+22))=iPWM[3]; //PWM4 (pin 19)
- *((int*)(OutputBuffer+26))=iPWM[4]; //PWM5 (pin 18)
- *((int*)(OutputBuffer+30))=iPWM[5]; //PWM6 (pin 17)
- *((int*)(OutputBuffer+34))=iPWM[6]; //PWM period
- Write(0xCB,1); //wys³anie ustawieñ (1-ustaw, 0-odczyt)
  //if (ReadLoop(5))
  return true;
 }
+
+bool __fastcall TPoKeys55::Update()
+{//funkcja powinna byæ wywo³ywana regularnie, np. raz w ka¿dej ramce ekranowej
+ switch (++iFaza)
+ {case 1: //uaktualnienie PWM raz na jakiœ czas
+   OutputBuffer[9]=32; //maska u¿ytych PWM
+   *((int*)(OutputBuffer+10))=iPWM[0]; //PWM1 (pin 22)
+   *((int*)(OutputBuffer+14))=iPWM[1]; //PWM2 (pin 21)
+   *((int*)(OutputBuffer+18))=iPWM[2]; //PWM3 (pin 20)
+   *((int*)(OutputBuffer+22))=iPWM[3]; //PWM4 (pin 19)
+   *((int*)(OutputBuffer+26))=iPWM[4]; //PWM5 (pin 18)
+   *((int*)(OutputBuffer+30))=iPWM[5]; //PWM6 (pin 17)
+   *((int*)(OutputBuffer+34))=iPWM[6]; //PWM period
+   Write(0xCB,1); //wys³anie ustawieñ (1-ustaw, 0-odczyt)
+  break;
+  case 2: //odczyt wejœæ analogowych - komenda
+   Write(0x35,46); //0x35 - odczyt jednego wejœcia
+  break;
+  case 3: //odczyt wejœæ analogowych - przetwarzanie
+   if (iLastCommand==0x35)
+    if (Read())
+    {//asynchroniczne ustawienie kontrolki mo¿e namieszaæ
+    }
+  break;
+  case 4: //odczyt wejœæ cyfrowych - komenda
+   Write(0x31,0); //0x31: blokowy odczyt wejœæ
+  break;
+  case 5: //odczyt wejœæ cyfrowych - przetwarzanie
+   if (iLastCommand!=0x31)
+    if (Read())
+    {//asynchroniczne ustawienie kontrolki mo¿e namieszaæ
+    }
+   iFaza=0; //cykl od pocz¹tku
+  break;
+ }
+ return (!iFaza); //dalsze operacje tylko po ca³ym cyklu
+};
+
