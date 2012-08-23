@@ -993,12 +993,12 @@ void __fastcall TTrack::Compile(GLuint tex)
   slop2=fabs(pNext->fTexSlope);
   rozp2=fHTW2+side2+slop2; //szerokoœæ podstawy
   fTexHeight2=pNext->fTexHeight1;
-  hypot2=hypot(slop2,pNext->fTexHeight1);
+  hypot2=hypot(slop2,fTexHeight2);
   if (hypot2==0.0) hypot2=1.0;
   normal2=vector3(pNext->fTexSlope/hypot2,fTexHeight2/hypot2,0.0);
  }
  else //gdy nie ma nastêpnego albo jest nieodpowiednim koñcem podpiêty
- {fHTW2=fHTW; side2=side; slop2=slop; rozp2=rozp; fTexHeight2=fTexHeight1; normal2=normal1;}
+ {fHTW2=fHTW; side2=side; slop2=slop; rozp2=rozp; fTexHeight2=fTexHeight1; hypot2=hypot1; normal2=normal1;}
  double roll1,roll2;
  switch (iCategoryFlag&15)
  {
@@ -1471,7 +1471,11 @@ void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Star
  double side=fabs(fTexWidth); //szerokœæ podsypki na zewn¹trz szyny albo pobocza
  double slop=fabs(fTexSlope); //brzeg zewnêtrzny
  double rozp=fHTW+side+slop; //brzeg zewnêtrzny
- double fHTW2,side2,slop2,rozp2,fTexHeight2;
+ double hypot1=hypot(slop,fTexHeight1); //rozmiar pochylenia do liczenia normalnych
+ if (hypot1==0.0) hypot1=1.0;
+ vector3 normal1=vector3(fTexSlope/hypot1,fTexHeight1/hypot1,0.0); //wektor normalny
+ double fHTW2,side2,slop2,rozp2,fTexHeight2,hypot2;
+ vector3 normal2;
  if (iTrapezoid&2) //ten bit oznacza, ¿e istnieje odpowiednie pNext
  {//Ra: jest OK
   fHTW2=0.5*fabs(pNext->fTrackWidth); //po³owa rozstawu/nawierzchni
@@ -1479,9 +1483,12 @@ void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Star
   slop2=fabs(pNext->fTexSlope); //nie jest u¿ywane póŸniej
   rozp2=fHTW2+side2+slop2;
   fTexHeight2=pNext->fTexHeight1;
+  hypot2=hypot(slop2,fTexHeight2);
+  if (hypot2==0.0) hypot2=1.0;
+  normal2=vector3(pNext->fTexSlope/hypot2,fTexHeight2/hypot2,0.0);
  }
  else //gdy nie ma nastêpnego albo jest nieodpowiednim koñcem podpiêty
- {fHTW2=fHTW; side2=side; /*slop2=slop;*/ rozp2=rozp; fTexHeight2=fTexHeight1;}
+ {fHTW2=fHTW; side2=side; slop2=slop; rozp2=rozp; fTexHeight2=fTexHeight1; hypot2=hypot1; normal2=normal1;}
  double roll1,roll2;
  switch (iCategoryFlag&15)
  {
@@ -1512,25 +1519,56 @@ void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Star
      if (TextureID2)
      {//podsypka z podk³adami jest tylko dla zwyk³ego toru
       vector6 bpts1[8]; //punkty g³ównej p³aszczyzny nie przydaj¹ siê do robienia boków
-      if (iTrapezoid) //trapez albo przechy³ki
-      {//podsypka z podkladami trapezowata
-       //ewentualnie poprawiæ mapowanie, ¿eby œrodek mapowa³ siê na 1.435/4.671 ((0.3464,0.6536)
-       //bo siê tekstury podsypki rozje¿d¿aj¹ po zmianie proporcji profilu
-       bpts1[0]=vector6(rozp,              -fTexHeight1-0.18,        0.00,-0.707,0.707,0.0); //lewy brzeg
-       bpts1[1]=vector6((fHTW+side)*cos1,  -(fHTW+side)*sin1-0.18,  0.33,-0.707,0.707,0.0); //krawêdŸ za³amania
-       bpts1[2]=vector6(-bpts1[1].x,       +(fHTW+side)*sin1-0.18,  0.67,0.707,0.707,0.0); //prawy brzeg pocz¹tku symetrycznie
-       bpts1[3]=vector6(-rozp,             -fTexHeight1-0.18,        1.00,0.707,0.707,0.0); //prawy skos
-       //koñcowy przekrój
-       bpts1[4]=vector6(rozp2,             -fTexHeight2-0.18,       0.00,-0.707,0.707,0.0); //lewy brzeg
-       bpts1[5]=vector6((fHTW2+side2)*cos2,-(fHTW2+side2)*sin2-0.18,0.33,-0.707,0.707,0.0); //krawêdŸ za³amania
-       bpts1[6]=vector6(-bpts1[5].x,       +(fHTW2+side2)*sin2-0.18,0.67,0.707,0.707,0.0); //prawy brzeg pocz¹tku symetrycznie
-       bpts1[7]=vector6(-rozp2,            -fTexHeight2-0.18,       1.00,0.707,0.707,0.0); //prawy skos
+      if (fTexLength==4.0) //jeœli stare mapowanie
+      {//stare mapowanie z ró¿n¹ gêstoœci¹ pikseli i oddzielnymi teksturami na ka¿dy profil
+       if (iTrapezoid) //trapez albo przechy³ki
+       {//podsypka z podkladami trapezowata
+        //ewentualnie poprawiæ mapowanie, ¿eby œrodek mapowa³ siê na 1.435/4.671 ((0.3464,0.6536)
+        //bo siê tekstury podsypki rozje¿d¿aj¹ po zmianie proporcji profilu
+        bpts1[0]=vector6(rozp,              -fTexHeight1-0.18,        0.00,-0.707,0.707,0.0); //lewy brzeg
+        bpts1[1]=vector6((fHTW+side)*cos1,  -(fHTW+side)*sin1-0.18,  0.33,-0.707,0.707,0.0); //krawêdŸ za³amania
+        bpts1[2]=vector6(-bpts1[1].x,       +(fHTW+side)*sin1-0.18,  0.67,0.707,0.707,0.0); //prawy brzeg pocz¹tku symetrycznie
+        bpts1[3]=vector6(-rozp,             -fTexHeight1-0.18,        1.00,0.707,0.707,0.0); //prawy skos
+        //koñcowy przekrój
+        bpts1[4]=vector6(rozp2,             -fTexHeight2-0.18,       0.00,-0.707,0.707,0.0); //lewy brzeg
+        bpts1[5]=vector6((fHTW2+side2)*cos2,-(fHTW2+side2)*sin2-0.18,0.33,-0.707,0.707,0.0); //krawêdŸ za³amania
+        bpts1[6]=vector6(-bpts1[5].x,       +(fHTW2+side2)*sin2-0.18,0.67,0.707,0.707,0.0); //prawy brzeg pocz¹tku symetrycznie
+        bpts1[7]=vector6(-rozp2,            -fTexHeight2-0.18,       1.00,0.707,0.707,0.0); //prawy skos
+       }
+       else
+       {bpts1[0]=vector6(rozp,      -fTexHeight1-0.18,0.0,-0.707,0.707,0.0); //lewy brzeg
+        bpts1[1]=vector6(fHTW+side, -0.18,0.33,-0.707,0.707,0.0); //krawêdŸ za³amania
+        bpts1[2]=vector6(-fHTW-side,-0.18,0.67,0.707,0.707,0.0); //druga
+        bpts1[3]=vector6(-rozp,     -fTexHeight1-0.18,1.0,0.707,0.707,0.0); //prawy skos
+       }
       }
       else
-      {bpts1[0]=vector6(rozp,      -fTexHeight1-0.18,0.0,-0.707,0.707,0.0); //lewy brzeg
-       bpts1[1]=vector6(fHTW+side, -0.18,0.33,-0.707,0.707,0.0); //krawêdŸ za³amania
-       bpts1[2]=vector6(-fHTW-side,-0.18,0.67,0.707,0.707,0.0); //druga
-       bpts1[3]=vector6(-rozp,     -fTexHeight1-0.18,1.0,0.707,0.707,0.0); //prawy skos
+      {//mapowanie proporcjonalne do powierzchni, rozmiar w poprzek okreœla fTexLength
+       double max=fTexRatio2*fTexLength; //szerokoœæ proporcjonalna do d³ugoœci
+       double map11=max>0.0?(fHTW+side)/max:0.25; //za³amanie od strony 1
+       double map12=max>0.0?(fHTW+side+hypot1)/max:0.5; //brzeg od strony 1
+       if (iTrapezoid) //trapez albo przechy³ki
+       {//podsypka z podkladami trapezowata
+        double map21=max>0.0?(fHTW2+side2)/max:0.25; //za³amanie od strony 2
+        double map22=max>0.0?(fHTW2+side2+hypot2)/max:0.5; //brzeg od strony 2
+        //ewentualnie poprawiæ mapowanie, ¿eby œrodek mapowa³ siê na 1.435/4.671 ((0.3464,0.6536)
+        //bo siê tekstury podsypki rozje¿d¿aj¹ po zmianie proporcji profilu
+        bpts1[0]=vector6(rozp,              -fTexHeight1-0.18       ,0.5-map12,normal1.x,-normal1.y,0.0); //lewy brzeg
+        bpts1[1]=vector6((fHTW+side)*cos1,  -(fHTW+side)*sin1-0.18  ,0.5-map11,0.0,1.0,0.0); //krawêdŸ za³amania
+        bpts1[2]=vector6(-bpts1[1].x,       +(fHTW+side)*sin1-0.18  ,0.5+map11,0.0,1.0,0.0); //prawy brzeg pocz¹tku symetrycznie
+        bpts1[3]=vector6(-rozp,             -fTexHeight1-0.18       ,0.5+map12,-normal1.x,-normal1.y,0.0); //prawy skos
+        //przekrój koñcowy
+        bpts1[4]=vector6(rozp2,             -fTexHeight2-0.18       ,0.5-map22,normal2.x,-normal2.y,0.0); //lewy brzeg
+        bpts1[5]=vector6((fHTW2+side2)*cos2,-(fHTW2+side2)*sin2-0.18,0.5-map21,0.0,1.0,0.0); //krawêdŸ za³amania
+        bpts1[6]=vector6(-bpts1[5].x,       +(fHTW2+side2)*sin2-0.18,0.5+map21,0.0,1.0,0.0); //prawy brzeg pocz¹tku symetrycznie
+        bpts1[7]=vector6(-rozp2,            -fTexHeight2-0.18       ,0.5+map22,-normal2.x,-normal2.y,0.0); //prawy skos
+       }
+       else
+       {bpts1[0]=vector6(rozp,      -fTexHeight1-0.18,0.5-map12,+normal1.x,-normal1.y,0.0); //lewy brzeg
+        bpts1[1]=vector6(fHTW+side, -0.18            ,0.5-map11,+normal1.x,-normal1.y,0.0); //krawêdŸ za³amania
+        bpts1[2]=vector6(-fHTW-side,-0.18            ,0.5+map11,-normal1.x,-normal1.y,0.0); //druga
+        bpts1[3]=vector6(-rozp,     -fTexHeight1-0.18,0.5+map12,-normal1.x,-normal1.y,0.0); //prawy skos
+       }
       }
       Segment->RaRenderLoft(Vert,bpts1,iTrapezoid?-4:4,fTexLength);
      }

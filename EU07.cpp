@@ -636,7 +636,7 @@ int WINAPI WinMain( HINSTANCE hInstance,     //instance
  //McZapkie: proba przeplukania klawiatury
  Console *pConsole=new Console(); //Ra: nie wiem, czy ma to sens, ale jakoœ zainicjowac trzeba
  while (Console::Pressed(VK_F10))
-  Error("Keyboard buffer problem - press F10");
+  Error("Keyboard buffer problem - press F10"); //na Windows 98 lubi siê to pojawiaæ
  int iOldSpeed, iOldDelay;
  SystemParametersInfo(SPI_GETKEYBOARDSPEED,0,&iOldSpeed,0);
  SystemParametersInfo(SPI_GETKEYBOARDDELAY,0,&iOldDelay,0);
