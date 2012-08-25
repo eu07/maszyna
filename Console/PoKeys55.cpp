@@ -261,17 +261,19 @@ bool __fastcall TPoKeys55::Update()
   break;
   case 2: //odczyt wejœæ analogowych - komenda
    Write(0x35,46);
-  break;
-  case 3: //odczyt wejœæ analogowych - przetwarzanie
-//   if (iLastCommand==0x35)
-    Write(0x35,46);
-    if (ReadLoop(50))
+    if (Read())
     {//asynchroniczne ustawienie kontrolki mo¿e namieszaæ
      Console::FV4aPos=(float)InputBuffer[4];
-//     Console::FV4aPos=5.0f; //wesz³o
+     iFaza++;
     }
-//    else
-//     Console::FV4aPos=-1;   //nie wesz³o
+  break;
+  case 3: //odczyt wejœæ analogowych - przetwarzanie
+    if (Read())
+    {//asynchroniczne ustawienie kontrolki mo¿e namieszaæ
+     Console::FV4aPos=(float)InputBuffer[4];
+    }
+    else
+     iFaza--;
   break;
   case 4: //odczyt wejœæ cyfrowych - komenda
    Write(0x31,0); //0x31: blokowy odczyt wejœæ
