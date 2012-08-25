@@ -102,14 +102,8 @@ private: //obs³uga tabelki prêdkoœci (musi mieæ mo¿liwoœæ odhaczania stacji w ro
  int iTableDirection; //kierunek zape³nienia tabelki wzglêdem pojazdu z AI
  double fLastVel; //prêdkoœæ na poprzednio sprawdzonym torze
  TTrack *tLast; //ostatni analizowany tor
- //float fLastDir; //kierunek na ostatnim torze
- TEvent *eSignSkip; //sygna³ do pominiêcia (przejechany)
+ //TEvent *eSignSkip; //sygna³ do pominiêcia (przejechany)
  //TTrack tSignLast; //tor z ostatnio znalezionym eventem
- //TOrders oMode; //aktualny tryb pracy
- //parametry aktualnego sk³adu
- double fLength; //d³ugoœæ sk³adu (do wyci¹gania z ograniczeñ)
- double fMass; //ca³kowita masa do liczenia stycznej sk³adowej grawitacji
- double fAccGravity; //przyspieszenie sk³adowej stycznej grawitacji
  bool __fastcall TableCheckEvent(TEvent *e);
  bool __fastcall TableAddNew();
  bool __fastcall TableNotFound(TEvent *e);
@@ -119,9 +113,13 @@ private: //obs³uga tabelki prêdkoœci (musi mieæ mo¿liwoœæ odhaczania stacji w ro
  void __fastcall TableCheck(double fDistance,int iDir);
  TCommandType __fastcall TableUpdate(double &fVelDes,double &fDist,double &fNext,double &fAcc);
  void __fastcall TablePurger();
+private: //parametry aktualnego sk³adu
+ double fLength; //d³ugoœæ sk³adu (do wyci¹gania z ograniczeñ)
+ double fMass; //ca³kowita masa do liczenia stycznej sk³adowej grawitacji
+ double fAccGravity; //przyspieszenie sk³adowej stycznej grawitacji
 public:
  TEvent *eLastCommand; //ostatnio wys³ana komenda
- AnsiString asNextStop; //nazwa najbli¿szego przystanku
+ AnsiString asNextStop; //nazwa nastêpnego punktu zatrzymania wg rozk³adu
 private: //parametry sterowania pojazdem (stan, hamowanie)
  double fShuntVelocity; //maksymalna prêdkoœæ manewrowania, zale¿y m.in. od sk³adu
  int iVehicles; //iloœæ pojazdów w sk³adzie
@@ -145,7 +143,7 @@ private:
  bool HelpMeFlag; //wystawiane True jesli cos niedobrego sie dzieje
 public:
  bool AIControllFlag; //rzeczywisty/wirtualny maszynista
- bool OnStationFlag; //Czy jest na peronie
+ //bool OnStationFlag; //Czy jest na peronie
 private:
  TDynamicObject *pVehicle; //pojazd w którym siedzi steruj¹cy
  TDynamicObject *pVehicles[2]; //skrajne pojazdy w sk³adzie (niekoniecznie bezpoœrednio sterowane)
@@ -173,7 +171,7 @@ private:
  int OrderPos,OrderTop; //rozkaz aktualny oraz wolne miejsce do wstawiania nowych
  std::ofstream LogFile; //zapis parametrow fizycznych
  std::ofstream AILogFile; //log AI
- bool ScanMe; //flaga potrzeby skanowania toru dla DynObj.cpp
+ //bool ScanMe; //flaga potrzeby skanowania toru dla DynObj.cpp
  bool MaxVelFlag;
  bool MinVelFlag;
  int iDirection; //kierunek jazdy wzglêdem pojazdu, w którym siedzi AI (1=przód,-1=ty³)
@@ -207,6 +205,7 @@ public:
  bool __fastcall SetProximityVelocity(double NewDist,double NewVelNext); //uaktualnia informacje o predkosci przy nastepnym semaforze
 private:
  bool __fastcall AddReducedVelocity(double Distance, double Velocity, Byte Flag);
+ void __fastcall AutoRewident();
 public:
  void __fastcall JumpToNextOrder();
  void __fastcall JumpToFirstOrder();
@@ -242,9 +241,6 @@ private:
  int __fastcall OrderDirectionChange(int newdir,TMoverParameters *Vehicle);
  void __fastcall Lights(int head,int rear);
  double __fastcall Distance(vector3 &p1,vector3 &n,vector3 &p2);
- //Ra: poni¿sze przenieœæ do modu³u AI:
- //TEvent* eSignSkip; //miniêty sygna³ zezwalaj¹cy na jazdê, pomijany przy szukaniu
- //AnsiString asNextStop; //nazwa nastêpnego punktu zatrzymania wg rozk³adu
 private: //Ra: stare funkcje skanuj¹ce, u¿ywane do szukania sygnalizatora z ty³u
  TEvent* eSignLast; //ostatnio znaleziony sygna³, o ile nie miniêty
  bool __fastcall CheckEvent(TEvent *e);
@@ -253,7 +249,6 @@ private: //Ra: stare funkcje skanuj¹ce, u¿ywane do szukania sygnalizatora z ty³u
  void __fastcall SetProximityVelocity(double dist,double vel,const vector3 *pos);
  bool __fastcall BackwardScan();
 public:
- //inline __fastcall TController() { };
  AnsiString __fastcall StopReasonText();
  __fastcall ~TController();
  AnsiString __fastcall NextStop();
