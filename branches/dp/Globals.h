@@ -247,7 +247,8 @@ public:
  static double fRadiusFactor; //wspó³czynnik zmiany promienia
  static TCamera *pCamera; //parametry kamery
  static TDynamicObject *pUserDynamic; //pojazd u¿ytkownika, renderowany bez trzêsienia
- static double fCalibration[30]; //parametry kalibracyjne dla pulpitów
+ static double fCalibrateIn[6][4]; //parametry kalibracyjne wejœæ z pulpitu
+ static double fCalibrateOut[6][4]; //parametry kalibracyjne wyjœæ dla pulpitu
  //metody
  static void __fastcall TrainDelete(TDynamicObject *d);
  static void __fastcall ConfigParse(Queryparsercomp::TQueryParserComp *qp,cParser *cp=NULL);
