@@ -147,13 +147,13 @@ void __fastcall TGauge::Update()
        SubModel->SetTranslate(float3(0,0,fValue));
       break;
       case gt_Wiper:
-       SubModel->SetTranslate(float3(0,0,fValue));
-       SubModel=SubModel->ChildGet();
-       if (SubModel)
-       {SubModel->SetTranslate(float3(0,0,fValue));
-        SubModel=SubModel->ChildGet();
-        if (SubModel)
-         SubModel->SetTranslate(float3(0,0,fValue));
+       SubModel->SetRotate(float3(0,1,0),fValue*360.0);
+       TSubModel *sm=SubModel->ChildGet();
+       if (sm)
+       {sm->SetRotate(float3(0,1,0),fValue*360.0);
+        sm=sm->ChildGet();
+        if (sm)
+         sm->SetRotate(float3(0,1,0),fValue*360.0);
        }
       break;
      }

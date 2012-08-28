@@ -92,7 +92,7 @@ private: //po³o¿enie pojazdu w œwiecie oraz parametry ruchu
  vector3 vPosition; //Ra: pozycja pojazdu liczona zaraz po przesuniêciu
  vector3 vCoulpler[2]; //wspó³rzêdne sprzêgów do liczenia zderzeñ
  vector3 vUp,vFront,vLeft; //wektory jednostkowe ustawienia pojazdu
- int iDirection; //kierunek wzglêdem czo³a sk³adu (1=zgodny,0=przeciwny)
+ int iDirection; //kierunek pojazdu wzglêdem czo³a sk³adu (1=zgodny,0=przeciwny)
  TTrackShape ts; //parametry toru przekazywane do fizyki
  TTrackParam tp; //parametry toru przekazywane do fizyki
  TTrackFollower Axle0; //oœ z przodu (od sprzêgu 0)

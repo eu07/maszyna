@@ -29,9 +29,9 @@ enum TMovementStatus
  moveStopPoint=2, //stawaæ na W4 (wy³¹czone podczas zmiany czo³a)
  moveAvaken=4, //po w³¹czeniu silnika pojazd nie przemieœci³ siê
  movePress=8, //dociskanie przy od³¹czeniu (zamiast zmiennej Prepare2press)
- //moveBackwardLook=16, //skanowanie torów w przeciwn¹ stronê w celu zmiany kierunku
- moveConnect=0x20, //jest blisko innego pojazdu i mo¿na próbowaæ pod³¹czyæ
- movePrimary=0x40, //ma priorytet w sk³adzie
+ moveConnect=0x10, //jest blisko innego pojazdu i mo¿na próbowaæ pod³¹czyæ
+ movePrimary=0x20, //ma priorytet w sk³adzie
+ //moveStopThen=0x40, //nie podje¿d¿aæ do semafora, jeœli droga nie jest wolna
  moveStopHere=0x80, //nie podje¿d¿aæ do semafora, jeœli droga nie jest wolna
  moveStartHorn=0x100, //podaj sygna³ po podaniu wolnej drogi
  moveStartHornDone=0x200 //podano sygna³ po podaniu wolnej drogi
@@ -76,10 +76,6 @@ public:
  bool __fastcall Update(vector3 *p,vector3 *dir,double &len);
  bool __fastcall Set(TEvent *e,double d);
  void __fastcall Set(TTrack *t,double d,int f);
-};
-
-class TSpeedTable
-{//tabela prêdkoœci dla AI wraz z obs³ug¹
 };
 
 //----------------------------------------------------------------------------
@@ -162,7 +158,7 @@ private:
 public:
  double VelNext; //prêdkoœæ, jaka ma byæ po przejechaniu d³ugoœci ProximityDist
 private:
- double fProximityDist; //odleglosc podawana w SetProximityVelocity(); >0:przeliczaæ do punktu, <0:podana wartoœæ
+ //double fProximityDist; //odleglosc podawana w SetProximityVelocity(); >0:przeliczaæ do punktu, <0:podana wartoœæ
 public:
  double ActualProximityDist; //odleg³oœæ brana pod uwagê przy wyliczaniu prêdkoœci i przyspieszenia
 private:
@@ -174,7 +170,7 @@ private:
  //bool ScanMe; //flaga potrzeby skanowania toru dla DynObj.cpp
  bool MaxVelFlag;
  bool MinVelFlag;
- int iDirection; //kierunek jazdy wzglêdem pojazdu, w którym siedzi AI (1=przód,-1=ty³)
+ int iDirection; //kierunek jazdy wzglêdem sprzêgów pojazdu, w którym siedzi AI (1=przód,-1=ty³)
  int iDirectionOrder; //¿adany kierunek jazdy (s³u¿y do zmiany kierunku)
  int iVehicleCount; //iloœæ pojazdów do od³¹czenia albo zabrania ze sk³adu (-1=wszystkie)
  int iCoupler; //sprzêg, który nale¿y u¿yæ przy ³¹czeniu

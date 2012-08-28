@@ -1911,35 +1911,13 @@ void __fastcall TTrain::OnKeyPress(int cKey)
 
 void __fastcall TTrain::UpdateMechPosition(double dt)
 {//Ra: mechanik powinien byæ telepany niezale¿nie od pozycji pojazdu
- //Ra: trzeba zrobiæ model bujania g³ow¹ i wczepiæ go do pojazdu 
+ //Ra: trzeba zrobiæ model bujania g³ow¹ i wczepiæ go do pojazdu
 
  //DynamicObject->vFront=DynamicObject->GetDirection(); //to jest ju¿ policzone
 
- //DynamicObject->vUp=vWorldUp;
- //DynamicObject->vFront.Normalize();
- //DynamicObject->vLeft=CrossProduct(DynamicObject->vUp,DynamicObject->vFront);
- //DynamicObject->vUp=CrossProduct(DynamicObject->vFront,DynamicObject->vLeft);
- //matrix4x4 mat;
- //double a1,a2,atmp;
- //a1=(DynamicObject->Axle1.GetRoll()); //pobranie przechy³ki wózka
- //a2=(DynamicObject->Axle0.GetRoll()); //uwzglêdnia ju¿ kierunek ruchu
- //atmp=(a1+a2); //k¹t przechy³u pud³a
- //mat.Rotation(((Axle1.GetRoll()+Axle0.GetRoll()))*0.5f,vFront); //przedtem by³o bez zmiennych
- //mat.Rotation(atmp*0.5f,DynamicObject->VectorFront()); //obrót matrycy o k¹t pud³a
  //Ra: tu by siê przyda³o uwzglêdniæ rozk³ad si³:
  // - na postoju horyzont prosto, kabina skosem
  // - przy szybkiej jeŸdzie kabina prosto, horyzont pochylony
-
- //Ra: nie wolno tu modyfikowaæ wektorów pojazdu!
- //DynamicObject->vUp=mat*DynamicObject->VectorUp();
- //DynamicObject->vLeft=mat*DynamicObject->vLeft;
-
-
- //matrix4x4 mat;
- //mat.Identity();
-
- //mat.BasisChange(DynamicObject->vLeft,DynamicObject->vUp,DynamicObject->vFront);
- //DynamicObject->mMatrix=Inverse(mat);
 
  vector3 pNewMechPosition;
  //McZapkie: najpierw policzê pozycjê w/m kabiny
@@ -2011,7 +1989,7 @@ bool __fastcall TTrain::Update()
  DWORD stat;
  double dt=Timer::GetDeltaTime();
  if (DynamicObject->mdKabina)
- {
+ {//Ra: TODO: odczyty klawiatury/pulpitu nie powinny byæ uzale¿nione od istnienia modelu kabiny 
   tor=DynamicObject->GetTrack(); //McZapkie-180203
   //McZapkie: predkosc wyswietlana na tachometrze brana jest z obrotow kol
   float maxtacho=3;
@@ -2887,10 +2865,22 @@ else
       DirKeyGauge.Update();
      }
     if (BrakeCtrlGauge.SubModel)
-     {
-      BrakeCtrlGauge.UpdateValue(double(DynamicObject->MoverParameters->BrakeCtrlPos));
-      BrakeCtrlGauge.Update();
+    {if (DynamicObject->Mechanik->AIControllFlag?false:Global::iFeedbackMode==4) //nie blokujemy AI
+     {//Ra: nie najlepsze miejsce, ale na pocz¹tek gdzieœ to daæ trzeba
+      double b=Console::AnalogGet(0); //odczyt z pulpitu i modyfikacja pozycji kranu
+      if ((b>=0.0))//&&(DynamicObject->MoverParameters->BrakeHandle==FV4a))
+      {b=(((Global::fCalibrateIn[0][3]*b)+Global::fCalibrateIn[0][2])*b+Global::fCalibrateIn[0][1]*b)+Global::fCalibrateIn[0][0];
+       if (b<-2.0) b=-2.0; else if (b>DynamicObject->MoverParameters->BrakeCtrlPosNo) b=DynamicObject->MoverParameters->BrakeCtrlPosNo;
+       BrakeCtrlGauge.UpdateValue(b);
+       DynamicObject->MoverParameters->BrakeCtrlPos=int(b); //sposób zaokr¹glania jest do ustalenia
+      }
+      else //standardowa prodedura z kranem powi¹zanym z klawiatur¹
+       BrakeCtrlGauge.UpdateValue(double(DynamicObject->MoverParameters->BrakeCtrlPos));
      }
+     else //standardowa prodedura z kranem powi¹zanym z klawiatur¹
+      BrakeCtrlGauge.UpdateValue(double(DynamicObject->MoverParameters->BrakeCtrlPos));
+     BrakeCtrlGauge.Update();
+    }
     if (LocalBrakeGauge.SubModel)
      {
       LocalBrakeGauge.UpdateValue(double(DynamicObject->MoverParameters->LocalBrakePos));
