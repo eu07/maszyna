@@ -2999,6 +2999,7 @@ if (QueryRootEvent)
          break;
          case tp_Exit :
              MessageBox(0,QueryRootEvent->asNodeName.c_str()," THE END ",MB_OK);
+             Global::iTextMode=-1; //wy³¹czenie takie samo jak sekwencja F10 -> Y
              return false;
          case tp_Sound :
           if (QueryRootEvent->Params[0].asInt==0)
