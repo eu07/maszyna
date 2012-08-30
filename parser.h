@@ -30,6 +30,7 @@ public:
  inline void ignoreTokens(int count) {for (int i=0;i<count;i++) readToken();};
  inline bool expectToken(std::string value) {return readToken()==value;};
  bool eof() {return mStream->eof();};
+ bool ok() {return !mStream->fail();};
  bool getTokens(int Count=1,bool ToLower=true,const char* Break="\n\t ;");
  int getProgress() const;	// percentage of file processed.
  //load traction?

@@ -165,6 +165,8 @@ std::string cParser::readToken(bool ToLower,const char* Break)
    }
    //if (trtest2.find("tr/")!=0)
    mIncludeParser=new cParser(includefile,buffer_FILE,mPath,LoadTraction);
+   if (mIncludeParser->mSize<=0)
+    ErrorLog("Missed include: "+AnsiString(includefile.c_str()));
   }
   else
    while (token.compare("end")!=0)

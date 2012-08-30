@@ -1990,13 +1990,7 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
 //      Mechanik->LastReactionTime=0;
 //     }
 
-      if (Mechanik->UpdateSituation(dt1))  //czuwanie AI
-//    if (Mechanik->ScanMe)
-      {
-//       if(MoverParameters->BrakeCtrlPos>0)
-//         MoverParameters->BrakeCtrlPos=MoverParameters->BrakeCtrlPosNo;
-//       Mechanik->ScanMe= false;
-      }
+      Mechanik->UpdateSituation(dt1); //przeb³yski œwiadomoœci AI
     }
 //    else
 //    { MoverParameters->SecuritySystemReset(); }

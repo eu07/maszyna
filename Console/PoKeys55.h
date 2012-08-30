@@ -12,6 +12,7 @@ class TPoKeys55
  int iLastCommand;
  int iFaza;
 public:
+ float fAnalog[7]; //wejœcia analogowe, stan <0.0,1.0>
  __fastcall TPoKeys55();
  __fastcall ~TPoKeys55();
  bool __fastcall Connect();
@@ -19,7 +20,7 @@ public:
  bool __fastcall Read();
  bool __fastcall ReadLoop(int i);
  AnsiString __fastcall Version();
- bool __fastcall PWM(int x,int y);
+ bool __fastcall PWM(int x,float y);
  bool __fastcall Update();
 };
 //---------------------------------------------------------------------------
