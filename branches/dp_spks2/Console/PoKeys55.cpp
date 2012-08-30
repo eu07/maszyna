@@ -4,11 +4,9 @@
 
 #include <setupapi.h>
 #include "PoKeys55.h"
-//#include <alloc.h>
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
-//TPoKeys55 *PoKeys55;
-//http://forum.simflight.com/topic/68257-latest-lua-package-for-fsuipc-and-wideclient/
+//HIDscaner: http://forum.simflight.com/topic/68257-latest-lua-package-for-fsuipc-and-wideclient/
 //#define MY_DEVICE_ID  "Vid_04d8&Pid_003F"
 //#define MY_DEVICE_ID  "Vid_1dc3&Pid_1001&Rev_1000&MI_01"
 //HID\Vid_1dc3&Pid_1001&Rev_1000&MI_01 - MI_01 to jest interfejs komunikacyjny (00-joystick, 02-klawiatura)
@@ -24,6 +22,7 @@ __fastcall TPoKeys55::TPoKeys55()
  iPWMbits=1;
  iFaza=0;
  iLastCommand=0;
+ fAnalog[0]=fAnalog[1]=fAnalog[2]=fAnalog[3]=fAnalog[4]=fAnalog[5]=fAnalog[6]=-1.0;
 };
 //---------------------------------------------------------------------------
 __fastcall TPoKeys55::~TPoKeys55()
@@ -162,8 +161,6 @@ bool __fastcall TPoKeys55::Write(unsigned char c,unsigned char b3,unsigned char 
   OutputBuffer[8]+=OutputBuffer[i]; //czy sumowaæ te¿ od 9 do 64?
  //The basic Windows I/O functions WriteFile() and ReadFile() can be used to read and write to HID class USB devices
  //(once we have the read and write handles to the device, which are obtained with CreateFile()).
-
- //To get the pushbutton state, first we send a packet with our "Get Pushbutton State" command in it.
  //The following call to WriteFile() sends 64 bytes of data to the USB device.
  WriteFile(WriteHandle,&OutputBuffer,65,&BytesWritten,0); //Blocking function, unless an "overlapped" structure is used
  return (BytesWritten==65);
@@ -181,20 +178,6 @@ bool __fastcall TPoKeys55::Read()
  //InputPacketBuffer[0] is the report ID, which we don't care about.
  //InputPacketBuffer[1] is an echo back of the command.
  //InputPacketBuffer[2] contains the I/O port pin value for the pushbutton.
-/*
- if (InputPacketBuffer[2]==0x01)
- {
-  StateLabel->Caption="State: Not Pressed"; //Update the pushbutton state text label on the form,so the user can see the result
- }
- else //InputPacketBuffer[2] must have been==0x00 instead
- {
-  StateLabel->Caption="State: Pressed"; //Update the pushbutton state text label on the form, so the user can see the result
- }
- AnsiString s="";
- for (int i=0;i<10;++i)
-  s+=AnsiString(int(InputPacketBuffer[i]))+" ";
-*/
- //=AnsiString(BytesRead);
  return (BytesRead==65)?InputBuffer[7]==cRequest:false;
 }
 //---------------------------------------------------------------------------
@@ -236,11 +219,10 @@ AnsiString __fastcall TPoKeys55::Version()
  return "";
 };
 
-bool __fastcall TPoKeys55::PWM(int x,int y)
-{//ustawienie podawnego PWM (@12Mhz: 12000=1ms=1000Hz)
+bool __fastcall TPoKeys55::PWM(int x,float y)
+{//ustawienie wskazanego PWM (@12Mhz: 12000=1ms=1000Hz)
  iPWM[6]=1024; //1024==85333.3333333333ns=11718.75Hz
- iPWM[x]=y;
- //if (ReadLoop(5))
+ iPWM[x]=int(0.5f+0x0FFF*y)&0x0FFF;
  return true;
 }
 
@@ -260,20 +242,32 @@ bool __fastcall TPoKeys55::Update()
   break;
   case 2: //odczyt wejœæ analogowych - komenda
    Write(0x35,46); //0x35 - odczyt jednego wejœcia
+   if (Read())
+   {//jest odebrana ramka i zgodnoœæ numeru ¿¹dania
+    fAnalog[0]=InputBuffer[4]/255.0f; //przeskalowanie na bezpieczny zakres
+    iFaza++; //odczyt w nastêpnej kolejnoœci mo¿na ju¿ pomin¹æ
+   }
   break;
   case 3: //odczyt wejœæ analogowych - przetwarzanie
-   if (iLastCommand==0x35)
+   if (iLastCommand==0x35) //asynchroniczne ustawienie kontrolki mo¿e namieszaæ
     if (Read())
-    {//asynchroniczne ustawienie kontrolki mo¿e namieszaæ
+    {//jest odebrana ramka i zgodnoœæ numeru ¿¹dania
+     fAnalog[0]=InputBuffer[4]/255.0f; //przeskalowanie na bezpieczny zakres
     }
+    else
+     iFaza--; //powtarzanie odczytu do skutku (mo¿e zawiesiæ?)
   break;
   case 4: //odczyt wejœæ cyfrowych - komenda
    Write(0x31,0); //0x31: blokowy odczyt wejœæ
+   if (Read())
+   {//jest odebrana ramka i zgodnoœæ numeru ¿¹dania
+    iFaza++; //odczyt w nastêpnej kolejnoœci mo¿na ju¿ pomin¹æ
+   }
   break;
   case 5: //odczyt wejœæ cyfrowych - przetwarzanie
-   if (iLastCommand!=0x31)
+   if (iLastCommand==0x31) //asynchroniczne ustawienie kontrolki mo¿e namieszaæ
     if (Read())
-    {//asynchroniczne ustawienie kontrolki mo¿e namieszaæ
+    {//jest odebrana ramka i zgodnoœæ numeru ¿¹dania
     }
    iFaza=0; //cykl od pocz¹tku
   break;
