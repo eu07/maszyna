@@ -2519,7 +2519,7 @@ bool __fastcall TController::UpdateSituation(double dt)
         Controlling->BrakeCtrlPosR=Controlling->BrakeCtrlPos;
         if ((Controlling->BrakeCtrlPos==0)&&(AbsAccS<0.0)&&(AccDesired>0.0))
         //if FuzzyLogicAI(CntrlPipePress-PipePress,0.01,1))
-         if (Controlling->BrakePress>0.4)//{((Volume/BrakeVVolume/10)<0.485)})
+         if ((Controlling->BrakePress>0.5)&&(Controlling->LocalBrakePos<0.5))//{((Volume/BrakeVVolume/10)<0.485)})
           Controlling->DecBrakeLevel();
          else
           if (Need_BrakeRelease)
