@@ -2869,7 +2869,7 @@ else
      {//Ra: nie najlepsze miejsce, ale na pocz¹tek gdzieœ to daæ trzeba
       double b=Console::AnalogGet(0); //odczyt z pulpitu i modyfikacja pozycji kranu
       if ((b>=0.0))//&&(DynamicObject->MoverParameters->BrakeHandle==FV4a))
-      {b=(((Global::fCalibrateIn[0][3]*b)+Global::fCalibrateIn[0][2])*b+Global::fCalibrateIn[0][1]*b)+Global::fCalibrateIn[0][0];
+      {b=(((Global::fCalibrateIn[0][3]*b)+Global::fCalibrateIn[0][2])*b+Global::fCalibrateIn[0][1])*b+Global::fCalibrateIn[0][0];
        if (b<-2.0) b=-2.0; else if (b>DynamicObject->MoverParameters->BrakeCtrlPosNo) b=DynamicObject->MoverParameters->BrakeCtrlPosNo;
        BrakeCtrlGauge.UpdateValue(b);
        DynamicObject->MoverParameters->BrakeCtrlPos=int(b); //sposób zaokr¹glania jest do ustalenia
