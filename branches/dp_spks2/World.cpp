@@ -954,11 +954,6 @@ bool __fastcall TWorld::Update()
   }
  } //koniec dzia³añ niewykonywanych podczas pauzy
  Console::Update();
- if((Console::FV4aPos>-1)&&(Train->DynamicObject->MoverParameters->BrakeHandle==FV4a))
- {
-  float B1=Console::FV4aPos;
-  Train->DynamicObject->MoverParameters->BrakeCtrlPosR=-0.00000886*B1*B1*B1+0.00253*B1*B1-0.241*B1+6.39;
- }
  if (Global::bActive)
  {//obs³uga ruchu kamery tylko gdy okno jest aktywne
   if (Console::Pressed(VK_LBUTTON))
@@ -1414,8 +1409,6 @@ bool __fastcall TWorld::Update()
 //      OutText3+= FloatToStrF(tmp->MoverParameters->CntrlPipePress,ffFixed,5,2)+AnsiString(", ");
 //      OutText3+= FloatToStrF(tmp->MoverParameters->HighPipePress,ffFixed,5,2)+AnsiString(", ");
 //      OutText3+= FloatToStrF(tmp->MoverParameters->LowPipePress,ffFixed,5,2)+AnsiString(", ");
-
-       OutText3+= AnsiString("AP: ")+FloatToStrF(Console::FV4aPos,ffFixed,5,2)+AnsiString(", ");
 
       if ((tmp->MoverParameters->LocalBrakePos)>0)
        OutText3+= AnsiString("local brake active. ");
