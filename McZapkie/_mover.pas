@@ -120,10 +120,10 @@ CONST
    ctrain_coupler=1;        //sprzeg fizyczny
    ctrain_pneumatic=2;      //przewody hamulcowe
    ctrain_controll=4;       //przewody steruj¹ce (ukrotnienie)
-   ctrain_power=8;          //przewody zasilaj¹ce (WN, ogrzewanie)
+   ctrain_power=8;          //przewody zasilaj¹ce (WN)
    ctrain_passenger=16;     //mostek przejœciowy
    ctrain_scndpneumatic=32; //przewody 8 atm (¿ó³te; zasilanie powietrzem)
-   ctrain_heating=64;       //nie u¿yawne
+   ctrain_heating=64;       //przewody ogrzewania WN
    ctrain_depot=128;        //nie roz³¹czalny podczas zwyk³ych manewrów (miêdzycz³onowy), we wpisie wartoœæ ujemna
 
    {typ hamulca elektrodynamicznego}
@@ -512,6 +512,7 @@ TYPE
                 Rot: TRotation;
                 Name: string;                       {nazwa wlasna}
                 Couplers: array[0..1] of TCoupling;  //urzadzenia zderzno-sprzegowe, polaczenia miedzy wagonami
+                HVCouplers: array[0..1] of array[0..1] of real; //przewod WN
                 ScanCounter: integer;   {pomocnicze do skanowania sprzegow}
                 EventFlag: boolean;                 {!o True jesli cos nietypowego sie wydarzy}
                 SoundFlag: byte;                    {!o patrz stale sound_ }
@@ -4061,8 +4062,36 @@ end;
 function T_MoverParameters.ComputeMovement(dt:real; dt1:real; Shape:TTrackShape; var Track:TTrackParam; var ElectricTraction:TTractionParam; NewLoc:TLocation; var NewRot:TRotation):real;
 var b:byte;
     Vprev,AccSprev:real;
+//    Iheat:real; prad ogrzewania
 const Vepsilon=1e-5; Aepsilon=1e-3; ASBSpeed=0.8;
 begin
+{
+    for b:=0 to 1 do //przekazywanie napiec
+     if ((Couplers[b].CouplingFlag and ctrain_power) = ctrain_power)or(((Couplers[b].CouplingFlag and ctrain_heating) = ctrain_heating)and(Heating)) then
+      begin
+        HVCouplers[1-b][1]:=Max0R(Abs(Voltage),Couplers[b].Connected.HVCouplers[Couplers[b].ConnectedNr][1]);
+      end
+     else
+        HVCouplers[1-b][1]:=Max0R(Abs(Voltage),0);
+      end;
+
+    for b:=0 to 1 do //przekazywanie pradow
+     if ((Couplers[b].CouplingFlag and ctrain_power) = ctrain_power)or(((Couplers[b].CouplingFlag and ctrain_heating) = ctrain_heating)and(Heating)) then //jesli spiety
+      begin
+        if (HVCouplers[b][1]) > 1 then //przewod pod napiecie
+          HVCouplers[b][0]:=Couplers[b].Connected.HVCouplers[1-Couplers[b].ConnectedNr][0]+Iheat//obci¹¿enie
+        else
+          HVCouplers[b][0]:=0;
+      end
+     else //pierwszy pojazd
+      begin
+        if (HVCouplers[b][1]) > 1 then //pod napieciem
+          HVCouplers[b][0]:=0+Iheat//obci¹¿enie
+        else
+          HVCouplers[b][0]:=0; 
+      end;
+}
+
   ClearPendingExceptions;
   if not TestFlag(DamageFlag,dtrain_out) then
    begin
@@ -4071,7 +4100,7 @@ begin
      RunningTraction:=ElectricTraction;
      with ElectricTraction do
       if not DynamicBrakeFlag then
-       RunningTraction.TractionVoltage:=TractionVoltage-Abs(TractionResistivity*Itot)
+       RunningTraction.TractionVoltage:=TractionVoltage-Abs(TractionResistivity*(Itot+HVCouplers[0][0]+HVCouplers[1][0]))
       else
        RunningTraction.TractionVoltage:=TractionVoltage-Abs(TractionResistivity*Itot);
    end;
@@ -5358,6 +5387,8 @@ function EngineDecode(s:string):TEngineTypes;
    else if s='Dumb' then
     EngineDecode:=Dumb
    else if s='DieselElectric' then
+    EngineDecode:=DieselElectric    //youBy: spal-ele
+   else if s='DumbDE' then
     EngineDecode:=DieselElectric    //youBy: spal-ele
 {   else if s='EZT' then {dla kibla}
  {   EngineDecode:=EZT      }
