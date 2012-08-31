@@ -178,6 +178,7 @@ TYPE
         procedure ASB(state: byte); //hamulec przeciwposlizgowy
         function GetStatus(): byte; //flaga statusu, moze sie przydac do odglosow
         procedure SetASBP(press: real); //ustalenie cisnienia pp
+        procedure ForceEmptiness();
 //        procedure
     end;
 
@@ -764,8 +765,15 @@ end;
 
 procedure TBrake.SetASBP(press: real);
 begin
-   ASBP:=press;
+  ASBP:=press;
 end;
+
+procedure TBrake.ForceEmptiness();
+begin
+  ValveRes.CreatePress(0);
+  BrakeRes.CreatePress(0);
+end;
+
 
 //---WESTINGHOUSE---
 

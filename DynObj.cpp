@@ -1377,71 +1377,87 @@ double __fastcall TDynamicObject::Init(
  }
 
 //dodatkowe parametry yB
- int ParPos;
- ParPos=MoreParams.LastDelimiter(".B"); //hamulec zaczyna siê od B
- if(ParPos>0) //jesli sa parametry hamulca
+ MoreParams+="."; //wykonuje o jedn¹ iteracjê za ma³o, wiêc trzeba mu dodaæ kropkê na koniec
+ int kropka=MoreParams.Pos("."); //znajdŸ kropke
+ AnsiString ActPar; //na parametry
+ while(kropka>0) //jesli sa kropki jeszcze
  {
-  AnsiString ActPar;
-  ActPar=MoreParams.SubString(ParPos+1, 4); //wytnij parametry (3 znaki)
-  ActPar=ActPar.UpperCase();
-  //sprawdzanie kolejno nastaw
-  if (ActPar.Pos("G")>0) {MoverParameters->BrakeDelaySwitch(bdelay_G);}
-  if (ActPar.Pos("P")>0) {MoverParameters->BrakeDelaySwitch(bdelay_P);}
-  if (ActPar.Pos("R")>0) {MoverParameters->BrakeDelaySwitch(bdelay_R);}
-  if (ActPar.Pos("M")>0) {MoverParameters->BrakeDelaySwitch(bdelay_R);MoverParameters->BrakeDelaySwitch(bdelay_R+bdelay_M);}
-  //wylaczanie hamulca
-  if (ActPar.Pos("0")>0) //wylaczanie na sztywno
-  {
-   MoverParameters->BrakeStatus|=128; //wylacz
-   MoverParameters->BrakeReleaser();  //odluznij automatycznie
-  }
-  if (ActPar.Pos("1")>0) //wylaczanie 10%
-  {
-   if (random(10)<1) //losowanie 1/10
+  int dlugosc=MoreParams.Length();
+  ActPar=MoreParams.SubString(1,kropka-1).UpperCase();     //pierwszy parametr;
+  MoreParams=MoreParams.SubString(kropka+1,dlugosc-kropka);  //reszta do dalszej obrobki
+  kropka=MoreParams.Pos(".");
+
+  if(ActPar.SubString(1,1)=="B") //jesli hamulce
+  {  //sprawdzanie kolejno nastaw
+   WriteLog("Wpis hamulca: " + ActPar);
+   if (ActPar.Pos("G")>0) {MoverParameters->BrakeDelaySwitch(bdelay_G);}
+   if (ActPar.Pos("P")>0) {MoverParameters->BrakeDelaySwitch(bdelay_P);}
+   if (ActPar.Pos("R")>0) {MoverParameters->BrakeDelaySwitch(bdelay_R);}
+   if (ActPar.Pos("M")>0) {MoverParameters->BrakeDelaySwitch(bdelay_R);MoverParameters->BrakeDelaySwitch(bdelay_R+bdelay_M);}
+   //wylaczanie hamulca
+   if (ActPar.Pos("<>")>0) //wylaczanie na probe hamowania naglego
    {
     MoverParameters->BrakeStatus|=128; //wylacz
-    MoverParameters->BrakeReleaser();  //odluznij automatycznie
    }
-  } 
-  if (ActPar.Pos("A")>0) //agonalny wylaczanie 20%, usrednienie przekladni
-  {
-   if (random(10)<2) //losowanie 2/10
+   if (ActPar.Pos("0")>0) //wylaczanie na sztywno
    {
     MoverParameters->BrakeStatus|=128; //wylacz
+    MoverParameters->Hamulec->ForceEmptiness();
     MoverParameters->BrakeReleaser();  //odluznij automatycznie
    }
-   if(MoverParameters->BrakeCylMult[2]*MoverParameters->BrakeCylMult[1]>0.01) //jesli jest nastawiacz mechaniczny PL
+   if (ActPar.Pos("1")>0) //wylaczanie 10%
    {
-    float rnd=random(10);
-    if (rnd<2) //losowanie 2/10         usrednienie
+    if (random(10)<1) //losowanie 1/10
     {
-      MoverParameters->BrakeCylMult[2]=MoverParameters->BrakeCylMult[1]=(MoverParameters->BrakeCylMult[2]+MoverParameters->BrakeCylMult[1])/2;
-    }
-    else
-    if (rnd<7) //losowanie 7/10-2/10    oslabienie
-    {
-      MoverParameters->BrakeCylMult[1]=MoverParameters->BrakeCylMult[1]*0.50;
-      MoverParameters->BrakeCylMult[2]=MoverParameters->BrakeCylMult[2]*0.75;
-    }
-    else
-    if (rnd<8) //losowanie 8/10-7/10    tylko prozny
-    {
-      MoverParameters->BrakeCylMult[2]=MoverParameters->BrakeCylMult[1];
+     MoverParameters->BrakeStatus|=128; //wylacz
+     MoverParameters->Hamulec->ForceEmptiness();
+     MoverParameters->BrakeReleaser();  //odluznij automatycznie
     }
    }
+   if (ActPar.Pos("X")>0) //agonalny wylaczanie 20%, usrednienie przekladni
+   {
+    if (random(10)<2) //losowanie 2/10
+    {
+     MoverParameters->BrakeStatus|=128; //wylacz
+     MoverParameters->Hamulec->ForceEmptiness();
+     MoverParameters->BrakeReleaser();  //odluznij automatycznie
+    }
+    if(MoverParameters->BrakeCylMult[2]*MoverParameters->BrakeCylMult[1]>0.01) //jesli jest nastawiacz mechaniczny PL
+    {
+     float rnd=random(10);
+     if (rnd<2) //losowanie 2/10         usrednienie
+     {
+       MoverParameters->BrakeCylMult[2]=MoverParameters->BrakeCylMult[1]=(MoverParameters->BrakeCylMult[2]+MoverParameters->BrakeCylMult[1])/2;
+     }
+     else
+     if (rnd<7) //losowanie 7/10-2/10    oslabienie
+     {
+       MoverParameters->BrakeCylMult[1]=MoverParameters->BrakeCylMult[1]*0.50;
+       MoverParameters->BrakeCylMult[2]=MoverParameters->BrakeCylMult[2]*0.75;
+     }
+     else
+     if (rnd<8) //losowanie 8/10-7/10    tylko prozny
+     {
+       MoverParameters->BrakeCylMult[2]=MoverParameters->BrakeCylMult[1];
+     }
+    }
+   }
+   //nastawianie ladunku
+   if (ActPar.Pos("T")>0) //prozny
+   { MoverParameters->DecBrakeMult(); MoverParameters->DecBrakeMult(); } //dwa razy w dol
+   if (ActPar.Pos("H")>0) //ladowny I (dla P-£ dalej prozny)
+   { MoverParameters->IncBrakeMult(); MoverParameters->IncBrakeMult(); MoverParameters->DecBrakeMult(); } //dwa razy w gore i obniz
+   if (ActPar.Pos("F")>0) //ladowny II
+   { MoverParameters->IncBrakeMult(); MoverParameters->IncBrakeMult(); } //dwa razy w gore
+   if (ActPar.Pos("N")>0) //parametr neutralny
+   { }
+  } //koniec hamulce
+  else if(ActPar.SubString(1,1)=="") //tu mozna wpisac inny prefiks i inne rzeczy
+  {
+    //jakies inne prefiksy
   }
-  //nastawianie ladunku
-  if (ActPar.Pos("T")>0) //prozny
-  { MoverParameters->DecBrakeMult(); MoverParameters->DecBrakeMult(); } //dwa razy w dol
-  if (ActPar.Pos("H")>0) //ladowny I (dla P-£ dalej prozny)
-  { MoverParameters->IncBrakeMult(); MoverParameters->IncBrakeMult(); MoverParameters->DecBrakeMult(); } //dwa razy w gore i obniz
-  if (ActPar.Pos("F")>0) //ladowny II
-  { MoverParameters->IncBrakeMult(); MoverParameters->IncBrakeMult(); } //dwa razy w gore
-  if (ActPar.Pos("N")>0) //parametr neutralny
-  { }
 
-
- }
+ } //koniec while kropka
 
  if (MoverParameters->CategoryFlag&2) //jeœli samochód
  {//ustawianie samochodow na poboczu albo na œrodku drogi

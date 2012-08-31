@@ -1571,8 +1571,9 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
     int2=str4.Pos("."); //yB: wykorzystuje tutaj zmienna, ktora potem bedzie ladunkiem
     if (int2>0) //yB: jesli znalazl kropke, to ja przetwarza jako parametry
     {
+      int dlugosc= str4.Length();
       int1=str4.SubString(1, int2-1).ToInt(); //niech sprzegiem bedzie do kropki cos
-      str4=str4.SubString(int2, str4.Length()+5);
+      str4=str4.SubString(int2+1, dlugosc-int2);
     }
     else
     {
