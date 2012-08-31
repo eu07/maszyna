@@ -433,6 +433,7 @@ public:
 	TRotation Rot;
 	AnsiString Name;
 	TCoupling Couplers[2];
+	double HVCouplers[2][2];
 	int ScanCounter;
 	bool EventFlag;
 	Byte SoundFlag;
