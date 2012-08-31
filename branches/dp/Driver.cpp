@@ -2587,7 +2587,8 @@ bool __fastcall TController::UpdateSituation(double dt)
         Controlling->BrakeReleaser(); //wyluzuj lokomotywê
        else
         if (OrderList[OrderPos]!=Disconnect) //przy od³¹czaniu nie zwalniamy tu hamulca
-         while (DecBrake());  //jeœli przyspieszamy, to nie hamujemy
+         if ((AccDesired>0.0)||(fAccGravity*fAccGravity<0.001)) //luzuj tylko na plaskim lub przy ruszaniu
+          while (DecBrake());  //jeœli przyspieszamy, to nie hamujemy
       //Ra: zmieni³em 0.95 na 1.0 - trzeba ustaliæ, sk¹d sie takie wartoœci bior¹
       //margines dla prêdkoœci jest doliczany tylko jeœli oczekiwana prêdkoœæ jest wiêksza od 5km/h
       if ((AccDesired<=fAccGravity)||(vel+(VelDesired>5.0?VelMargin:0.0)>VelDesired*1.0))
