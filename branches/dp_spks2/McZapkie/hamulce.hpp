@@ -110,6 +110,7 @@ public:
 	void __fastcall ASB(Byte state);
 	Byte __fastcall GetStatus(void);
 	void __fastcall SetASBP(double press);
+	void __fastcall ForceEmptiness(void);
 public:
 	#pragma option push -w-inl
 	/* TObject.Destroy */ inline __fastcall virtual ~TBrake(void) { }

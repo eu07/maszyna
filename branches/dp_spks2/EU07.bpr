@@ -72,7 +72,7 @@ CodePage=1250
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
 FileVersion=1.8.617.364
-InternalName=8th by Ra / SPKS
+InternalName=8th by Ra
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=eu07.exe
@@ -116,7 +116,7 @@ Item4=D:\EU07DDS\
 DebugSourceDirs=C:\Ra\dp\McZapkie\
 
 [Parameters]
-RunParams=-s linia61_tlk-1.scn -v EU07-310
+RunParams=
 HostApplication=
 RemoteHost=
 RemotePath=
