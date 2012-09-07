@@ -517,8 +517,11 @@ TYPE
                 EventFlag: boolean;                 {!o True jesli cos nietypowego sie wydarzy}
                 SoundFlag: byte;                    {!o patrz stale sound_ }
                 DistCounter: real;                  {! licznik kilometrow }
-                V, Vel, AccS, AccN, AccV: real;
-                {! predkosc w m/s i jej modul w km/h, przyspieszenie styczne i normalne w m/s^2}
+                V: real;    //predkosc w [m/s] wzglêdem sprzêgów (dodania gdy jedzie w stronê 0)
+                Vel: real;  //modu³ prêdkoœci w [km/h], u¿ywany przez AI
+                AccS: real; //efektywne przyspieszenie styczne w [m/s^2] (wszystkie si³y)
+                AccN: real; //przyspieszenie normalne w [m/s^2]
+                AccV: real;
                 nrot: real;
                 {! rotacja kol [obr/s]}
                 EnginePower: real;                  {! chwilowa moc silnikow}

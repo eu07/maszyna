@@ -2871,7 +2871,7 @@ else
       if ((b>=0.0))//&&(DynamicObject->MoverParameters->BrakeHandle==FV4a))
       {b=(((Global::fCalibrateIn[0][3]*b)+Global::fCalibrateIn[0][2])*b+Global::fCalibrateIn[0][1])*b+Global::fCalibrateIn[0][0];
        if (b<-2.0) b=-2.0; else if (b>DynamicObject->MoverParameters->BrakeCtrlPosNo) b=DynamicObject->MoverParameters->BrakeCtrlPosNo;
-       BrakeCtrlGauge.UpdateValue(b);
+       BrakeCtrlGauge.UpdateValue(b); //przesów bez zaokr¹glenia
        DynamicObject->MoverParameters->BrakeCtrlPos=int(b); //sposób zaokr¹glania jest do ustalenia
       }
       else //standardowa prodedura z kranem powi¹zanym z klawiatur¹
@@ -2882,16 +2882,28 @@ else
      BrakeCtrlGauge.Update();
     }
     if (LocalBrakeGauge.SubModel)
-     {
-      LocalBrakeGauge.UpdateValue(double(DynamicObject->MoverParameters->LocalBrakePos));
-      LocalBrakeGauge.Update();
+    {if (DynamicObject->Mechanik->AIControllFlag?false:Global::iFeedbackMode==4) //nie blokujemy AI
+     {//Ra: nie najlepsze miejsce, ale na pocz¹tek gdzieœ to daæ trzeba
+      double b=Console::AnalogGet(1); //odczyt z pulpitu i modyfikacja pozycji kranu
+      if ((b>=0.0))//&&(DynamicObject->MoverParameters->BrakeHandle==FV4a))
+      {b=(((Global::fCalibrateIn[1][3]*b)+Global::fCalibrateIn[1][2])*b+Global::fCalibrateIn[1][1])*b+Global::fCalibrateIn[1][0];
+       if (b<0.0) b=0.0; else if (b>LocalBrakePosNo) b=LocalBrakePosNo;
+       LocalBrakeGauge.UpdateValue(b); //przesów bez zaokr¹glenia
+       DynamicObject->MoverParameters->LocalBrakePos=int(b); //sposób zaokr¹glania jest do ustalenia
+      }
+      else //standardowa prodedura z kranem powi¹zanym z klawiatur¹
+       LocalBrakeGauge.UpdateValue(double(DynamicObject->MoverParameters->LocalBrakePos));
      }
+     else //standardowa prodedura z kranem powi¹zanym z klawiatur¹
+      LocalBrakeGauge.UpdateValue(double(DynamicObject->MoverParameters->LocalBrakePos));
+     LocalBrakeGauge.Update();
+    }
 
     if (BrakeProfileCtrlGauge.SubModel)
-     {
-      BrakeProfileCtrlGauge.UpdateValue(double(DynamicObject->MoverParameters->BrakeDelayFlag==2?0.5:DynamicObject->MoverParameters->BrakeDelayFlag));
-      BrakeProfileCtrlGauge.Update();
-     }
+    {
+     BrakeProfileCtrlGauge.UpdateValue(double(DynamicObject->MoverParameters->BrakeDelayFlag==2?0.5:DynamicObject->MoverParameters->BrakeDelayFlag));
+     BrakeProfileCtrlGauge.Update();
+    }
 
     if (MaxCurrentCtrlGauge.SubModel)
      {

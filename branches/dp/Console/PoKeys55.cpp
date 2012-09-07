@@ -222,7 +222,7 @@ AnsiString __fastcall TPoKeys55::Version()
 bool __fastcall TPoKeys55::PWM(int x,float y)
 {//ustawienie wskazanego PWM (@12Mhz: 12000=1ms=1000Hz)
  iPWM[6]=1024; //1024==85333.3333333333ns=11718.75Hz
- iPWM[x]=int(0.5f+0x0FFF*y)&0x0FFF;
+ iPWM[x]=int(0.5f+0x0FFF*y)&0x0FFF; //0x0FFF=4095
  return true;
 }
 
@@ -241,18 +241,30 @@ bool __fastcall TPoKeys55::Update()
    Write(0xCB,1); //wys³anie ustawieñ (1-ustaw, 0-odczyt)
   break;
   case 2: //odczyt wejœæ analogowych - komenda
-   Write(0x35,46); //0x35 - odczyt jednego wejœcia
+   Write(0x3A,0); //0x3A - Analog inputs reading – all analog inputs in one command
    if (Read())
-   {//jest odebrana ramka i zgodnoœæ numeru ¿¹dania
-    fAnalog[0]=InputBuffer[4]/255.0f; //przeskalowanie na bezpieczny zakres
+   {//jest odebrana ramka i zgodnoœæ numeru ¿¹dania - wchodzi tu w ogóle?
+    fAnalog[0]=((InputBuffer[21]<<8)+InputBuffer[22])/4095.0f; //pin 47
+    fAnalog[1]=((InputBuffer[19]<<8)+InputBuffer[20])/4095.0f; //pin 46
+    fAnalog[2]=((InputBuffer[17]<<8)+InputBuffer[18])/4095.0f; //pin 45
+    fAnalog[3]=((InputBuffer[15]<<8)+InputBuffer[16])/4095.0f; //pin 44
+    fAnalog[4]=((InputBuffer[13]<<8)+InputBuffer[14])/4095.0f; //pin 43
+    fAnalog[5]=((InputBuffer[11]<<8)+InputBuffer[12])/4095.0f; //pin 42
+    fAnalog[6]=((InputBuffer[ 9]<<8)+InputBuffer[10])/4095.0f; //pin 41
     iFaza++; //odczyt w nastêpnej kolejnoœci mo¿na ju¿ pomin¹æ
    }
   break;
   case 3: //odczyt wejœæ analogowych - przetwarzanie
-   if (iLastCommand==0x35) //asynchroniczne ustawienie kontrolki mo¿e namieszaæ
+   if (iLastCommand==0x3A) //asynchroniczne ustawienie kontrolki mo¿e namieszaæ
     if (Read())
     {//jest odebrana ramka i zgodnoœæ numeru ¿¹dania
-     fAnalog[0]=InputBuffer[4]/255.0f; //przeskalowanie na bezpieczny zakres
+     fAnalog[0]=((InputBuffer[21]<<8)+InputBuffer[22])/4095.0f; //pin 47
+     fAnalog[1]=((InputBuffer[19]<<8)+InputBuffer[20])/4095.0f; //pin 46
+     fAnalog[2]=((InputBuffer[17]<<8)+InputBuffer[18])/4095.0f; //pin 45
+     fAnalog[3]=((InputBuffer[15]<<8)+InputBuffer[16])/4095.0f; //pin 44
+     fAnalog[4]=((InputBuffer[13]<<8)+InputBuffer[14])/4095.0f; //pin 43
+     fAnalog[5]=((InputBuffer[11]<<8)+InputBuffer[12])/4095.0f; //pin 42
+     fAnalog[6]=((InputBuffer[ 9]<<8)+InputBuffer[10])/4095.0f; //pin 41
     }
     else
      iFaza--; //powtarzanie odczytu do skutku (mo¿e zawiesiæ?)
