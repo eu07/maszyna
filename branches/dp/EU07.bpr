@@ -57,7 +57,7 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=1
 MinorVer=8
-Release=626
+Release=627
 Build=366
 Debug=1
 PreRelease=0
@@ -70,7 +70,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.8.626.366
+FileVersion=1.8.627.366
 InternalName=8th by Ra
 LegalCopyright=
 LegalTrademarks=

@@ -143,13 +143,11 @@ void __fastcall TSpeedPos::CommandCheck()
    fVelNext=0.0; //TrainParams->IsStop()?0.0:-1.0; //na razie tak
   iFlags|=0x400; //niestety nie da siê w tym miejscu wspó³pracowaæ z rozk³adem
  }
-/*
  else
- {//opcja 1: inna komenda w evencie skanowanym powoduje zatrzymanie i wys³anie tej komendy
+ {//inna komenda w evencie skanowanym powoduje zatrzymanie i wys³anie tej komendy
   fVelNext=0;
   iFlags|=0x200; //np. komenda Shunt mog³a by byæ ignorowana w trybie poci¹gowym
  }
-*/
 };
 
 bool __fastcall TSpeedPos::Update(vector3 *p,vector3 *dir,double &len)
@@ -253,6 +251,7 @@ void __fastcall TController::TableClear()
  fLastVel=-1;
 };
 
+/* //nie potrzebna?
 bool __fastcall TController::TableCheckEvent(TEvent *e)
 {//sprawdzanie eventu, czy jest obs³ugiwany poza kolejk¹
  //prox=true, gdy sprawdzanie, czy dodaæ event do kolejki
@@ -260,7 +259,7 @@ bool __fastcall TController::TableCheckEvent(TEvent *e)
  //prox=false, gdy wyszukiwanie semafora przez AI
  //-> zwraca false, gdy event ma byæ dodany do kolejki
  if (e)
- {//if (!prox) /*if (e==eSignSkip) */ return false; //semafor przejechany jest ignorowany
+ {//
   AnsiString command;
   switch (e->Type)
   {//to siê wykonuje równie¿ dla sk³adu jad¹cego bez obs³ugi
@@ -279,7 +278,7 @@ bool __fastcall TController::TableCheckEvent(TEvent *e)
   if (prox)
    if (command=="SetProximityVelocity")
     return true; //ten event z toru ma byæ ignorowany; w zasadzie, jeœli poci¹g stoi, to powinien za³¹czyæ jazdê
-*/
+//* /
   if (command=="SetVelocity")
    return true; //jak podamy wyjazd, to prze³¹czy siê w jazdê poci¹gow¹
 /*
@@ -288,14 +287,16 @@ bool __fastcall TController::TableCheckEvent(TEvent *e)
     return true; //event skanowany przez AI
   }
   else //nazwa stacji pobrana z rozk³adu - nie ma co sprawdzaæ raz po raz
-*/
+//* /
    if (!asNextStop.IsEmpty())
     if (command.SubString(1,asNextStop.Length())==asNextStop)
      return true; //event skanowany przez AI
  }
  return false;
 };
+*/
 
+/* //nie potrzebna?
 TEvent* __fastcall TController::TableCheckTrackEvent(double fDirection,TTrack *Track)
 {//sprawdzanie eventów na podanym torze
  //ZiomalCl: teraz zwracany jest pierwszy event podajacy predkosc dla AI
@@ -304,6 +305,7 @@ TEvent* __fastcall TController::TableCheckTrackEvent(double fDirection,TTrack *T
  TEvent* e=(fDirection>0)?Track->Event2:Track->Event1;
  return TableCheckEvent(e)?e:NULL; //sprawdzenie z pominiêciem niepotrzebnych
 };
+*/
 
 bool __fastcall TController::TableAddNew()
 {//zwiêkszenie u¿ytej tabelki o jeden rekord
@@ -939,40 +941,48 @@ void __fastcall TController::Activation()
 };
 
 void __fastcall TController::AutoRewident()
-{//nastawianie hamulców w sk³adzie
-/*
-AUTOREWIDENT
-
-1. Zebranie informacji o sk³adzie poci¹gu — przejœcie wzd³u¿ sk³adu i odczyt parametrów:
- · iloœæ wagonów -> (iVehicles)
- · d³ugoœæ (jako suma) -> (fLength)
- · masa (jako suma) -> (fMass)
- · klasyfikacja pojazdów wg BrakeDelays i mocy (licznik)
-  - lokomotywa		Power>1
-  - wagon pospieszny	jest R
-  - wagon towarowy	jest G (nie ma R)
-  - wagon osobowy	reszta (bez G i bez R)
-
-2. Okreœlenie typu poci¹gu i nastawy:
-jeœli towarowe < Min(4, pospieszne+osobowe), to sk³ad pasa¿erski,
-inaczej sk³ad towarowy
- a) Nastawianie pasa¿erskiego
-  - je¿eli towarowe>0 oraz pospiesze<=towarowe+osobowe to P
-  - inaczej R
- b) Nastawianie towarowego
-  - je¿eli d³ugoœæ<300 oraz masa<600 to P
-  - je¿eli d³ugoœæ<500 oraz masa<1300 to GP
-  - inaczej G
-//zasadniczo na sieci PKP kilka lat temu na P/GP jeŸdzi³y tylko kontenerowce o
-//rozk³adowej 90 km/h. Pozosta³e jeŸdzi³y 70 km/h i by³y nastawione na G.
-
-3. Nastawianie
- · pasa¿erski R - na R, jeœli nie ma to P
- · pasa¿erski P - wszystko na P
- · towarowy G - wszystko na G, jeœli nie ma to P (powinno siê wy³¹czyæ hamulec)
- · towarowy GP - lokomotywa oraz 5 pierwszych pojazdów przy niej na G, reszta na P
- · towarowy P - lokomotywa na G, reszta na P.
-*/
+{//autorewident: nastawianie hamulców w sk³adzie
+ int r=0,g=0,p=0; //iloœci wagonów poszczególnych typów
+ TDynamicObject* d=pVehicles[0]; //pojazd na czele sk³adu
+ //1. Zebranie informacji o sk³adzie poci¹gu — przejœcie wzd³u¿ sk³adu i odczyt parametrów:
+ //   · iloœæ wagonów -> jest w (iVehicles)
+ //   · d³ugoœæ (jako suma) -> jest w (fLength)
+ //   · masa (jako suma) -> jest w (fMass)
+ while (d)
+ {//klasyfikacja pojazdów wg BrakeDelays i mocy (licznik)
+  // - lokomotywa - Power>1
+  if (TestFlag(d->MoverParameters->BrakeDelays,bdelay_R))
+   ++r; // - wagon pospieszny - jest R
+  else if (TestFlag(d->MoverParameters->BrakeDelays,bdelay_G))
+   ++g; // - wagon towarowy - jest G (nie ma R)
+  else
+   ++p; // - wagon osobowy - reszta (bez G i bez R)
+  d=d->Next(); //kolejny pojazd, pod³¹czony od ty³u (licz¹c od czo³a)
+ }
+ //2. Okreœlenie typu poci¹gu i nastawy:
+ if (g<min(4,r+p)) //jeœli towarowe < Min(4, pospieszne+osobowe)
+ {//to sk³ad pasa¿erski - nastawianie pasa¿erskiego
+  //- je¿eli towarowe>0 oraz pospiesze<=towarowe+osobowe to P
+  //- inaczej R
+ }
+ else
+ {//inaczej towarowy - nastawianie towarowego
+  //- je¿eli d³ugoœæ<300 oraz masa<600 to P
+  //- je¿eli d³ugoœæ<500 oraz masa<1300 to GP
+  //- inaczej G
+ }
+ //zasadniczo na sieci PKP kilka lat temu na P/GP jeŸdzi³y tylko kontenerowce o
+ //rozk³adowej 90 km/h. Pozosta³e jeŸdzi³y 70 km/h i by³y nastawione na G.
+ d=pVehicles[0]; //pojazd na czele sk³adu
+ while (d)
+ {//3. Nastawianie
+  //   · pasa¿erski R - na R, jeœli nie ma to P
+  //   · pasa¿erski P - wszystko na P
+  //   · towarowy G - wszystko na G, jeœli nie ma to P (powinno siê wy³¹czyæ hamulec)
+  //   · towarowy GP - lokomotywa oraz 5 pierwszych pojazdów przy niej na G, reszta na P
+  //   · towarowy P - lokomotywa na G, reszta na P.
+  d=d->Next(); //kolejny pojazd, pod³¹czony od ty³u (licz¹c od czo³a)
+ }
 };
 
 bool __fastcall TController::CheckVehicles()
@@ -1879,13 +1889,17 @@ bool __fastcall TController::UpdateSituation(double dt)
  while (p)
  {//sprawdzenie odhamowania wszystkich po³¹czonych pojazdów
   if (Ready) //bo jak coœ nie odhamowane, to dalej nie ma co sprawdzaæ
-   if (p->MoverParameters->BrakePress>=0.03*p->MoverParameters->MaxBrakePress)
+   //if (p->MoverParameters->BrakePress>=0.03*p->MoverParameters->MaxBrakePress)
+   if (p->MoverParameters->BrakePress>=0.04) //wg UIC okreœlone sztywno na 0.04
     Ready=false; //nie gotowy
   if ((dy=p->VectorFront().y)!=0.0) //istotne tylko dla pojazdów na pochyleniu
    fAccGravity-=p->DirectionGet()*p->MoverParameters->TotalMassxg*dy; //ciê¿ar razy sk³adowa styczna grawitacji
   p=p->Next(); //pojazd pod³¹czony z ty³u (patrz¹c od czo³a)
  }
  fAccGravity/=iDirection*fMass; //si³ê generuj¹ pojazdy na pochyleniu ale dzia³a ona ca³oœæ sk³adu, wiêc a=F/m
+ //if (fAccGravity<-0.05) //jeœli stoi pod górê
+ // if () //to wystarczy, ¿e zadzia³aj¹ liniowe
+ //  Ready=true; //¿eby uznaæ za odhamowany
  HelpMeFlag=false;
  //Winger 020304
  if (AIControllFlag)
@@ -2898,10 +2912,8 @@ double __fastcall TController::Distance(vector3 &p1,vector3 &n,vector3 &p2)
 
 //pomocnicza funkcja sprawdzania czy do toru jest podpiety semafor
 bool __fastcall TController::CheckEvent(TEvent *e)
-{//sprawdzanie eventu, czy jest obs³ugiwany poza kolejk¹
- //prox=true, gdy sprawdzanie, czy dodaæ event do kolejki
+{//sprawdzanie eventu w torze, czy jest sygna³owym
  //-> zwraca true, jeœli event istotny dla AI
- //prox=false, gdy wyszukiwanie semafora przez AI
  //-> zwraca false, gdy event ma byæ dodany do kolejki
  if (e)
  {//if (!prox) if (e==eSignSkip) return false; //semafor przejechany jest ignorowany
@@ -2934,8 +2946,8 @@ bool __fastcall TController::CheckEvent(TEvent *e)
   }
   else //nazwa stacji pobrana z rozk³adu - nie ma co sprawdzaæ raz po raz
 */
-   if (!asNextStop.IsEmpty())
-    if (command.SubString(1,asNextStop.Length())==asNextStop)
+   if (!asNextStop.IsEmpty()) //poci¹g ma okreœlone miejsce zatrzymania
+    if (command.SubString(1,asNextStop.Length())==asNextStop) //nazwa zatrzymania siê zgadza
      return true;
  }
  return false;
