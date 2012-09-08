@@ -311,6 +311,8 @@ bool __fastcall TController::TableAddNew()
 {//zwiêkszenie u¿ytej tabelki o jeden rekord
  iLast=(iLast+1)%iSpeedTableSize;
  //TODO: jeszcze sprawdziæ, czy siê na iFirst nie na³o¿y
+ //TODO: wstawiæ tu wywo³anie odtykacza - teraz jest to w TableTraceRoute()
+ //TODO: jeœli ostatnia pozycja zajêta, ustawiaæ dodatkowe flagi - teraz jest to w TableTraceRoute()
  return true; //false gdy siê na³o¿y
 };
 
@@ -363,19 +365,27 @@ void __fastcall TController::TableTraceRoute(double fDistance,int iDir,TDynamicO
    if (VelNext==0) return; //znaleziono semafor lub tor z prêdkoœci¹ zero i nie ma co dalej sprawdzaæ
   pTrack=sSpeedTable[iLast].tTrack; //ostatnio sprawdzony tor
   if (!pTrack) return; //koniec toru, to nie ma co sprawdzaæ (nie ma prawa tak byæ)
-  if ((sSpeedTable[iLast].iFlags&1)==0)
-   tLast=NULL; //jest tylko zapamiêtany, ale sprawdzony nie by³
+  //if ((sSpeedTable[iLast].iFlags&1)==0)
+  // tLast=NULL; //jest tylko zapamiêtany, ale sprawdzony nie by³
   fLastDir=sSpeedTable[iLast].iFlags&4?-1.0:1.0; //flaga ustawiona, gdy Point2 toru jest bli¿ej
   fCurrentDistance=sSpeedTable[iLast].fDist; //aktualna odleg³oœæ do jego Point1
   fTrackLength=sSpeedTable[iLast].iFlags&0x60?0.0:pTrack->Length(); //nie doliczaæ d³ugoœci gdy: 32-miniêty pocz¹tek, 64-jazda do koñca toru
  }
  if (fCurrentDistance<fDistance)
  {//jeœli w ogóle jest po co analizowaæ
-  --iLast; //jak coœ siê znajdzie, zostanie wpisane w tê pozycjê, któr¹ odczytano
+  --iLast; //jak coœ siê znajdzie, zostanie wpisane w tê pozycjê, któr¹ w³aœnie odczytano
   while (fCurrentDistance<fDistance)
   {
    if (pTrack!=tLast) //ostatni zapisany w tabelce nie by³ jeszcze sprawdzony
    {//jeœli tor nie by³ jeszcze sprawdzany
+    if ((pEvent=CheckTrackEvent(fLastDir,pTrack))!=NULL) //jeœli jest semafor na tym torze
+    {//trzeba sprawdziæ tabelkê, bo dodawanie drugi raz tego samego przystanku nie jest korzystne
+     if (TableNotFound(pEvent)) //jeœli nie ma
+      if (TableAddNew())
+      {if (sSpeedTable[iLast].Set(pEvent,fCurrentDistance)) //dodanie odczytu sygna³u
+        fDistance=fCurrentDistance; //jeœli sygna³ stop, to nie ma potrzeby dalej skanowaæ
+      }
+    } //event dodajemy najpierw, ¿eby móc sprawdziæ, czy tor zosta³ dodany po odczytaniu prêdkoœci nastêpnego
     if ((pTrack->VelocityGet()==0.0) //zatrzymanie
      || (pTrack->iDamageFlag&128) //pojazd siê uszkodzi
      || (pTrack->eType!=tt_Normal) //jakiœ ruchomy
@@ -389,14 +399,6 @@ void __fastcall TController::TableTraceRoute(double fDistance,int iDir,TDynamicO
     {//albo dla liczenia odleg³oœci przy pomocy ciêciw - te usuwaæ po przejechaniu
      if (TableAddNew())
       sSpeedTable[iLast].Set(pTrack,fCurrentDistance,fLastDir<0?0x85:0x81); //dodanie odcinka do tabelki
-    }
-    if ((pEvent=CheckTrackEvent(fLastDir,pTrack))!=NULL) //jeœli jest semafor na tym torze
-    {//trzeba sprawdziæ tabelkê, bo dodawanie drugi raz tego samego przystanku nie jest korzystne
-     if (TableNotFound(pEvent)) //jeœli nie ma
-      if (TableAddNew())
-      {if (sSpeedTable[iLast].Set(pEvent,fCurrentDistance)) //dodanie odczytu sygna³u
-        fDistance=fCurrentDistance; //jeœli sygna³ stop, to nie ma potrzeby dalej skanowaæ
-      }
     }
    }
    fCurrentDistance+=fTrackLength; //doliczenie kolejnego odcinka do przeskanowanej d³ugoœci
@@ -420,10 +422,11 @@ void __fastcall TController::TableTraceRoute(double fDistance,int iDir,TDynamicO
    if (pTrack)
    {//jeœli kolejny istnieje
     if (tLast)
-     if (pTrack->VelocityGet()>tLast->VelocityGet())
-     {//jeœli nowy ma wiêksz¹ prêdkoœæ ni¿ poprzedni, to zapamiêtaæ poprzedni (do czasu wyjechania)?
-      //if (TableAddNew())
-      // sSpeedTable[iLast].Set(tLast,fCurrentDistance,1); //zapisanie toru z ograniczeniem prêdkoœci
+     if (pTrack->VelocityGet()<0?tLast->VelocityGet()>0:pTrack->VelocityGet()>tLast->VelocityGet())
+     {//jeœli kolejny ma wiêksz¹ prêdkoœæ ni¿ poprzedni, to zapamiêtaæ poprzedni (do czasu wyjechania)
+      if ((sSpeedTable[iLast].iFlags&3)==3?(sSpeedTable[iLast].tTrack!=tLast):true) //jeœli nie by³ dodany do tabelki
+       if (TableAddNew())
+        sSpeedTable[iLast].Set(tLast,fCurrentDistance,(fLastDir>0?pTrack->iPrevDirection:pTrack->iNextDirection)?1:5); //zapisanie toru z ograniczeniem prêdkoœci
      }
     if (((iLast+3)%iSpeedTableSize==iFirst)?true:((iLast+2)%iSpeedTableSize==iFirst)) //czy tabelka siê nie zatka?
     {//jest ryzyko nieznalezienia ograniczenia - ograniczyæ prêdkoœæ do pozwalaj¹cej na zatrzymanie na koñcu przeskanowanej drogi
@@ -945,42 +948,72 @@ void __fastcall TController::AutoRewident()
  int r=0,g=0,p=0; //iloœci wagonów poszczególnych typów
  TDynamicObject* d=pVehicles[0]; //pojazd na czele sk³adu
  //1. Zebranie informacji o sk³adzie poci¹gu — przejœcie wzd³u¿ sk³adu i odczyt parametrów:
- //   · iloœæ wagonów -> jest w (iVehicles)
+ //   · iloœæ wagonów -> s¹ zliczane, wszystkich pojazdów jest (iVehicles)
  //   · d³ugoœæ (jako suma) -> jest w (fLength)
  //   · masa (jako suma) -> jest w (fMass)
  while (d)
  {//klasyfikacja pojazdów wg BrakeDelays i mocy (licznik)
-  // - lokomotywa - Power>1
-  if (TestFlag(d->MoverParameters->BrakeDelays,bdelay_R))
-   ++r; // - wagon pospieszny - jest R
-  else if (TestFlag(d->MoverParameters->BrakeDelays,bdelay_G))
-   ++g; // - wagon towarowy - jest G (nie ma R)
-  else
-   ++p; // - wagon osobowy - reszta (bez G i bez R)
+  if (d->MoverParameters->Power<1) // - lokomotywa - Power>1 - ale mo¿e byæ nieczynna na koñcu...
+   if (TestFlag(d->MoverParameters->BrakeDelays,bdelay_R))
+    ++r; // - wagon pospieszny - jest R
+   else if (TestFlag(d->MoverParameters->BrakeDelays,bdelay_G))
+    ++g; // - wagon towarowy - jest G (nie ma R)
+   else
+    ++p; // - wagon osobowy - reszta (bez G i bez R)
   d=d->Next(); //kolejny pojazd, pod³¹czony od ty³u (licz¹c od czo³a)
  }
  //2. Okreœlenie typu poci¹gu i nastawy:
- if (g<min(4,r+p)) //jeœli towarowe < Min(4, pospieszne+osobowe)
- {//to sk³ad pasa¿erski - nastawianie pasa¿erskiego
-  //- je¿eli towarowe>0 oraz pospiesze<=towarowe+osobowe to P
-  //- inaczej R
- }
+ int ustaw; //+16 dla pasa¿erskiego
+ if (r+g+p==0)
+  ustaw=16+bdelay_R; //lokomotywa luzem (mo¿e byæ wielocz³onowa)
  else
- {//inaczej towarowy - nastawianie towarowego
-  //- je¿eli d³ugoœæ<300 oraz masa<600 to P
-  //- je¿eli d³ugoœæ<500 oraz masa<1300 to GP
-  //- inaczej G
+ {//jeœli s¹ wagony
+  ustaw=(g<min(4,r+p)?16:0)
+  if (ustaw) //jeœli towarowe < Min(4, pospieszne+osobowe)
+  {//to sk³ad pasa¿erski - nastawianie pasa¿erskiego
+   ustaw+=(g&&(r<g+p))?bdelay_P:bdelay_R;
+   //je¿eli towarowe>0 oraz pospiesze<=towarowe+osobowe to P (0)
+   //inaczej R (2)
+  }
+  else
+  {//inaczej towarowy - nastawianie towarowego
+   if ((fLength<300.0)&&(fMass<600.0))
+    ustaw|=bdelay_P; //je¿eli d³ugoœæ<300 oraz masa<600 to P (0)
+   else if ((fLength<500.0)&&(fMass<1300.0))
+    ustaw|=bdelay_R; //je¿eli d³ugoœæ<500 oraz masa<1300 to GP (2)
+   else
+    ustaw|=bdelay_G; //inaczej G (1)
+  }
+  //zasadniczo na sieci PKP kilka lat temu na P/GP jeŸdzi³y tylko kontenerowce o
+  //rozk³adowej 90 km/h. Pozosta³e jeŸdzi³y 70 km/h i by³y nastawione na G.
  }
- //zasadniczo na sieci PKP kilka lat temu na P/GP jeŸdzi³y tylko kontenerowce o
- //rozk³adowej 90 km/h. Pozosta³e jeŸdzi³y 70 km/h i by³y nastawione na G.
  d=pVehicles[0]; //pojazd na czele sk³adu
+ p=0; //bêdziemy tu liczyæ wagony od lokomotywy dla nastawy GP
  while (d)
  {//3. Nastawianie
-  //   · pasa¿erski R - na R, jeœli nie ma to P
-  //   · pasa¿erski P - wszystko na P
-  //   · towarowy G - wszystko na G, jeœli nie ma to P (powinno siê wy³¹czyæ hamulec)
-  //   · towarowy GP - lokomotywa oraz 5 pierwszych pojazdów przy niej na G, reszta na P
-  //   · towarowy P - lokomotywa na G, reszta na P.
+  switch (ustaw)
+  {
+   case bdelay_P: //towarowy P - lokomotywa na G, reszta na P.
+    d->MoverParameters->BrakeDelaySwitch(d->MoverParameters->Power>1?bdelay_G:bdelay_P);
+   break;
+   case bdelay_G: //towarowy G - wszystko na G, jeœli nie ma to P (powinno siê wy³¹czyæ hamulec)
+    d->MoverParameters->BrakeDelaySwitch(TestFlag(d->MoverParameters->BrakeDelays,bdelay_G)?bdelay_G:bdelay_P);
+   break;
+   case bdelay_R: //towarowy GP - lokomotywa oraz 5 pierwszych pojazdów przy niej na G, reszta na P
+    if (d->MoverParameters->Power>1)
+    {d->MoverParameters->BrakeDelaySwitch(bdelay_G);
+     p=0; //a jak bêdzie druga w œrodku?
+    }
+    else
+     d->MoverParameters->BrakeDelaySwitch(++p<=5?bdelay_G:bdelay_P);
+   break;
+   case 16+bdelay_R: //pasa¿erski R - na R, jeœli nie ma to P
+    d->MoverParameters->BrakeDelaySwitch(TestFlag(d->MoverParameters->BrakeDelays,bdelay_R)?bdelay_R:bdelay_P);
+   break;
+   case 16+bdelay_P: //pasa¿erski P - wszystko na P
+    d->MoverParameters->BrakeDelaySwitch(bdelay_P);
+   break;
+  }
   d=d->Next(); //kolejny pojazd, pod³¹czony od ty³u (licz¹c od czo³a)
  }
 };
@@ -1897,9 +1930,10 @@ bool __fastcall TController::UpdateSituation(double dt)
   p=p->Next(); //pojazd pod³¹czony z ty³u (patrz¹c od czo³a)
  }
  fAccGravity/=iDirection*fMass; //si³ê generuj¹ pojazdy na pochyleniu ale dzia³a ona ca³oœæ sk³adu, wiêc a=F/m
- //if (fAccGravity<-0.05) //jeœli stoi pod górê
- // if () //to wystarczy, ¿e zadzia³aj¹ liniowe
- //  Ready=true; //¿eby uznaæ za odhamowany
+ //if (!Ready) //jeœli wg powy¿szych warunków nie jest odhamowany
+ // if (fAccGravity<-0.05) //jeœli stoi pod górê
+ //  if () //to wystarczy, ¿e zadzia³aj¹ liniowe
+ //   Ready=true; //¿eby uznaæ za odhamowany
  HelpMeFlag=false;
  //Winger 020304
  if (AIControllFlag)
@@ -2642,12 +2676,11 @@ bool __fastcall TController::UpdateSituation(double dt)
       //zmniejszanie predkosci
       if ((AccDesired<fAccGravity-0.1)&&(AccDesired<AbsAccS-0.05)) //u góry ustawia siê hamowanie na -0.2
       //if not MinVelFlag)
-       if (fBrakeTime<0) //jeœli up³yn¹³ czas reakcji hamulca
+       if (fBrakeTime<0?true:AccDesired<0.6) //jeœli up³yn¹³ czas reakcji hamulca, chyba ¿e nag³e
        if (!IncBrake())
          MinVelFlag=true;
         else
        {MinVelFlag=false;
-         //ReactionTime=3+0.5*(Controlling->BrakeDelay[2+2*Controlling->BrakeDelayFlag]-3);
         fBrakeTime=3+0.5*(Controlling->BrakeDelay[2+2*Controlling->BrakeDelayFlag]-3);
         //Ra: ten czas nale¿y zmniejszyæ, jeœli czas dojazdu do zatrzymania jest mniejszy
        }
