@@ -968,7 +968,7 @@ void __fastcall TController::AutoRewident()
   ustaw=16+bdelay_R; //lokomotywa luzem (mo¿e byæ wielocz³onowa)
  else
  {//jeœli s¹ wagony
-  ustaw=(g<min(4,r+p)?16:0)
+  ustaw=(g<min(4,r+p)?16:0);
   if (ustaw) //jeœli towarowe < Min(4, pospieszne+osobowe)
   {//to sk³ad pasa¿erski - nastawianie pasa¿erskiego
    ustaw+=(g&&(r<g+p))?bdelay_P:bdelay_R;
@@ -1522,15 +1522,17 @@ bool __fastcall TController::IncSpeed()
     break;
    case ElectricSeriesMotor :
     if (!Controlling->FuseFlag)
-     if ((Controlling->Im<=Controlling->Imin)&&(Ready||Prepare2press))
-     {
-      OK=Controlling->IncMainCtrl(1);
-      if ((Controlling->MainCtrlPos>2)&&(Controlling->Im==0))
-        Need_TryAgain=true; //true, jeœli druga pozycja w elektryku nie za³apa³a
-       else
-        if (!OK)
-         OK=Controlling->IncScndCtrl(1); //TODO: dorobic boczniki na szeregowej przy ciezkich bruttach
-     }
+     if ((Controlling->MainCtrlPos==0)||(!Controlling->DelayCtrlFlag)) //youBy poleci³ dodaæ 2012-09-08 v367
+      //na pozycji 0 przejdzie, a na pierwszej bêdzie czekaæ, a¿ siê za³¹cz¹ liniowe (zgaœnie DelayCtrlFlag)
+      if ((Controlling->Im<=Controlling->Imin)&&(Ready||Prepare2press))
+      {
+       OK=Controlling->IncMainCtrl(1);
+       if ((Controlling->MainCtrlPos>2)&&(Controlling->Im==0))
+         Need_TryAgain=true; //true, jeœli druga pozycja w elektryku nie za³apa³a
+        else
+         if (!OK)
+          OK=Controlling->IncScndCtrl(1); //TODO: dorobic boczniki na szeregowej przy ciezkich bruttach
+      }
     break;
    case Dumb:
    case DieselElectric:
@@ -1930,10 +1932,10 @@ bool __fastcall TController::UpdateSituation(double dt)
   p=p->Next(); //pojazd pod³¹czony z ty³u (patrz¹c od czo³a)
  }
  fAccGravity/=iDirection*fMass; //si³ê generuj¹ pojazdy na pochyleniu ale dzia³a ona ca³oœæ sk³adu, wiêc a=F/m
- //if (!Ready) //jeœli wg powy¿szych warunków nie jest odhamowany
- // if (fAccGravity<-0.05) //jeœli stoi pod górê
- //  if () //to wystarczy, ¿e zadzia³aj¹ liniowe
- //   Ready=true; //¿eby uznaæ za odhamowany
+ if (!Ready) //v367: jeœli wg powy¿szych warunków sk³ad nie jest odhamowany
+  if (fAccGravity<-0.05) //jeœli ma pod górê
+   if (Controlling->BrakePress<0.08) //to wystarczy, ¿e zadzia³aj¹ liniowe (nie ma ich jeszcze!!!)
+    Ready=true; //¿eby uznaæ za odhamowany
  HelpMeFlag=false;
  //Winger 020304
  if (AIControllFlag)
@@ -2674,22 +2676,22 @@ bool __fastcall TController::UpdateSituation(double dt)
 
       //yB: usuniête ró¿ne dziwne warunki, oddzielamy czêœæ zadaj¹c¹ od wykonawczej
       //zmniejszanie predkosci
-      if ((AccDesired<fAccGravity-0.1)&&(AccDesired<AbsAccS-0.05)) //u góry ustawia siê hamowanie na -0.2
+      if ((AccDesired<fAccGravity-0.1)&&(AccDesired<AbsAccS+fAccGravity-0.05)) //u góry ustawia siê hamowanie na -0.2
       //if not MinVelFlag)
-       if (fBrakeTime<0?true:AccDesired<0.6) //jeœli up³yn¹³ czas reakcji hamulca, chyba ¿e nag³e
-       if (!IncBrake())
+       if (fBrakeTime<0?true:AccDesired<-0.6) //jeœli up³yn¹³ czas reakcji hamulca, chyba ¿e nag³e
+        if (!IncBrake())
          MinVelFlag=true;
         else
-       {MinVelFlag=false;
-        fBrakeTime=3+0.5*(Controlling->BrakeDelay[2+2*Controlling->BrakeDelayFlag]-3);
-        //Ra: ten czas nale¿y zmniejszyæ, jeœli czas dojazdu do zatrzymania jest mniejszy
-       }
-      if ((AccDesired<fAccGravity-0.05)&&(AbsAccS<AccDesired-0.2))
+        {MinVelFlag=false;
+         fBrakeTime=3+0.5*(Controlling->BrakeDelay[2+2*Controlling->BrakeDelayFlag]-3);
+         //Ra: ten czas nale¿y zmniejszyæ, jeœli czas dojazdu do zatrzymania jest mniejszy
+        }
+      if ((AccDesired<fAccGravity-0.05)&&(AbsAccS+fAccGravity<AccDesired-0.2))
       //if ((AccDesired<0.0)&&(AbsAccS<AccDesired-0.1)) //ST44 nie hamuje na czas, 2-4km/h po miniêciu tarczy
       {//jak hamuje, to nie tykaj kranu za czêsto
        //yB: luzuje hamulec dopiero przy ró¿nicy opóŸnieñ rzêdu 0.2
        if (OrderList[OrderPos]!=Disconnect) //przy od³¹czaniu nie zwalniamy tu hamulca
-        DecBrake(); //tutaj zmniejsza o 1 przy odczepianiu
+        DecBrake(); //tutaj zmniejsza³o o 1 przy odczepianiu
        fBrakeTime=(Controlling->BrakeDelay[1+2*Controlling->BrakeDelayFlag])/3.0;
       }
       //Mietek-end1
