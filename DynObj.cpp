@@ -3040,17 +3040,20 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
  AnsiString asFileName=BaseDir+TypeName+".mmd";
  AnsiString asLoadName=BaseDir+MoverParameters->LoadType+".t3d";
  fs=new TFileStream(asFileName,fmOpenRead|fmShareCompat);
- AnsiString str="";
+ if (!fs) return;
  int size=fs->Size;
+ if (!size) {return delete fs;};
  AnsiString asAnimName="";
  bool Stop_InternalData=false;
- str.SetLength(size);
- fs->Read(str.c_str(),size);
- str+="";
+ char* buf=new char[size+1]; //ci¹g bajtów o d³ugoœci równej rozmiwarowi pliku
+ buf[size]='\0'; //zakoñczony zerem na wszelki wypadek
+ fs->Read(buf,size);
  delete fs;
  TQueryParserComp *Parser;
  Parser=new TQueryParserComp(NULL);
- Parser->TextToParse=str;
+ Parser->TextToParse=AnsiString(buf);
+ delete[] buf;
+ AnsiString str;
  //Parser->LoadStringToParse(asFile);
  Parser->First();
  //DecimalSeparator= '.';

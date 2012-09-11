@@ -2491,7 +2491,7 @@ bool __fastcall TGround::InitEvents()
               Current->Params[9].asMemCell=tmp->MemCell;
               if (Current->Type==tp_GetValues) //jeœli odczyt komórki
                if (tmp->MemCell->IsVelocity()) //a komórka zawiera komendê SetVelocity albo ShuntVelocity
-                Current->bEnabled=false; //to event nie bêdzie dodawany do kolejki
+                Current->iFlags=ev_signal; //to event nie bêdzie dodawany do kolejki
              }
              else
               Error("Event \""+Current->asName+"\" cannot find memcell \""+Current->asNodeName+"\"");
@@ -2868,7 +2868,7 @@ TGroundNode* __fastcall TGround::GetNode( AnsiString asName )
 */
 bool __fastcall TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
 {
- if (Event->bEnabled) //jeœli mo¿e byæ dodany do kolejki (nie u¿ywany w skanowaniu)
+ if (Event->iFlags&ev_queue) //jeœli mo¿e byæ dodany do kolejki (nie u¿ywany w skanowaniu)
   if (!Event->bLaunched)
   {
    WriteLog("EVENT ADDED TO QUEUE: "+Event->asName);
@@ -2923,7 +2923,7 @@ if (QueryRootEvent)
     while (QueryRootEvent && QueryRootEvent->fStartTime<Timer::GetTime())
     {
 
-        if (QueryRootEvent->bEnabled)
+        if (QueryRootEvent->iFlags&ev_queue)
         {
         WriteLog("EVENT LAUNCHED: "+QueryRootEvent->asName);
         switch (QueryRootEvent->Type)

@@ -98,7 +98,6 @@ private: //obs³uga tabelki prêdkoœci (musi mieæ mo¿liwoœæ odhaczania stacji w ro
  int iTableDirection; //kierunek zape³nienia tabelki wzglêdem pojazdu z AI
  double fLastVel; //prêdkoœæ na poprzednio sprawdzonym torze
  TTrack *tLast; //ostatni analizowany tor
- //TEvent *eSignSkip; //sygna³ do pominiêcia (przejechany)
  //TTrack tSignLast; //tor z ostatnio znalezionym eventem
  bool __fastcall TableCheckEvent(TEvent *e);
  bool __fastcall TableAddNew();
@@ -114,6 +113,7 @@ private: //parametry aktualnego sk³adu
  double fMass; //ca³kowita masa do liczenia stycznej sk³adowej grawitacji
  double fAccGravity; //przyspieszenie sk³adowej stycznej grawitacji
 public:
+ TEvent *eSignNext; //sygna³ zmieniaj¹cy prêdkoœæ, do pokazania na [F2]
  TEvent *eLastCommand; //ostatnio wys³ana komenda
  AnsiString asNextStop; //nazwa nastêpnego punktu zatrzymania wg rozk³adu
 private: //parametry sterowania pojazdem (stan, hamowanie)
