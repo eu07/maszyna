@@ -1417,13 +1417,12 @@ bool __fastcall TWorld::Update()
         +AnsiString(" ad=")+FloatToStrF(tmp->Mechanik->AccDesired,ffFixed,5,2)
         +AnsiString(" Pd=")+FloatToStrF(tmp->Mechanik->ActualProximityDist,ffFixed,4,0)
         +AnsiString(" Vn=")+FloatToStrF(tmp->Mechanik->VelNext,ffFixed,4,0);
-/*
-        if (tmp->Mechanik->eSignLast)
-        {//jeœli ma zapamiêtany event semafora
-         if (!OutText4.IsEmpty()) OutText4+=", "; //aby ³adniejszy odstêp by³
-         OutText4+="Control event: "+Bezogonkow(tmp->Mechanik->eSignLast->asName); //nazwa eventu semafora
-        }
-*/
+        if (tmp->Mechanik->VelNext==0.0)
+         if (tmp->Mechanik->eSignNext)
+         {//jeœli ma zapamiêtany event semafora
+          //if (!OutText4.IsEmpty()) OutText4+=", "; //aby ³adniejszy odstêp by³
+          OutText4+=" ("+Bezogonkow(tmp->Mechanik->eSignNext->asName)+")"; //nazwa eventu semafora
+         }
        }
        if (!OutText4.IsEmpty()) OutText4+="; "; //aby ³adniejszy odstêp by³
        //informacja o sprzêgach nawet bez mechanika

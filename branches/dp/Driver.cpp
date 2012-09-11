@@ -143,16 +143,22 @@ void __fastcall TSpeedPos::CommandCheck()
    fVelNext=0.0; //TrainParams->IsStop()?0.0:-1.0; //na razie tak
   iFlags|=0x400; //niestety nie da siê w tym miejscu wspó³pracowaæ z rozk³adem
  }
+ else if (command.SubString(1,19)=="SetProximityVelocity")
+ {//ignorowaæ
+  fVelNext=-1;
+ }
  else
  {//inna komenda w evencie skanowanym powoduje zatrzymanie i wys³anie tej komendy
-  fVelNext=0;
-  iFlags|=0x200; //np. komenda Shunt mog³a by byæ ignorowana w trybie poci¹gowym
+  if ((eEvent->iFlags&ev_sent)==0) //jeœli komenda nie wys³ana jeszcze
+   eEvent->iFlags|=ev_command; //na pewno tu?
+  iFlags&=~0xE00; //nie manewrowa, nie przystanek, nie zatrzymaæ na SBL
+  fVelNext=0; //jak nieznana komenda w komórce sygna³owej, to ma staæ
  }
 };
 
 bool __fastcall TSpeedPos::Update(vector3 *p,vector3 *dir,double &len)
-{//przeliczenie odleg³oœci od pojazdu w punkcie (*p), jad¹cego w kierunku (*d)
- //dla kolejnych pozycji podawane s¹ wspó³rzêdne poprzedniego obiektu w (*p), a d=NULL
+{//przeliczenie odleg³oœci od punktu (*p), w kierunku (*dir), zaczynaj¹c od pojazdu
+ //dla kolejnych pozycji podawane s¹ wspó³rzêdne poprzedniego obiektu w (*p)
  vector3 v=vPos-*p; //wektor od poprzedniego obiektu (albo pojazdu) do punktu zmiany
  fDist=v.Length(); //d³ugoœæ wektora to odleg³oœæ pomiêdzy czo³em a sygna³em albo pocz¹tkiem toru
  //v.SafeNormalize(); //normalizacja w celu okreœlenia znaku (nie potrzebna?)
@@ -486,6 +492,14 @@ void __fastcall TController::TableCheck(double fDistance,int iDir)
        sSpeedTable[i].iFlags&=~1; //degradacja pozycji
       }
     }
+    //if (sSpeedTable[i].fDist<-20.0*fLength) //jeœli to coœ jest 20 razy dalej ni¿ d³ugoœæ sk³adu
+    //{sSpeedTable[i].iFlags&=~1; //to jest to jakby b³¹d w scenerii
+    // //WriteLog("Error: too distant object in scan table");
+    //}
+    //if (sSpeedTable[i].fDist>20.0*fLength) //jeœli to coœ jest 20 razy dalej ni¿ d³ugoœæ sk³adu
+    //{sSpeedTable[i].iFlags&=~1; //to jest to jakby b³¹d w scenerii
+    // //WriteLog("Error: too distant object in scan table");
+    //}
    }
 #if LOGVELOCITY
    else WriteLog("-> Empty");
@@ -513,6 +527,7 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
  double v; //prêdkoœæ
  double d; //droga
  TCommandType go=cm_Unknown;
+ eSignNext=NULL;
  int i,k=iLast-iFirst+1;
  if (k<0) k+=iSpeedTableSize; //iloœæ pozycji do przeanalizowania
  for (i=iFirst;k>0;--k,i=(i+1)%iSpeedTableSize)
@@ -545,6 +560,7 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
          PutCommand("SetVelocity",scandist>100.0?40:0.4*scandist,0,&sl); //doci¹ganie do przystanku
         } //koniec obs³ugi odleg³ego zatrzymania
  */
+      if (!eSignNext) eSignNext=sSpeedTable[i].eEvent;
       if (Controlling->Vel>0.0) //jeœli jedzie
        sSpeedTable[i].fVelNext=0; //to bêdzie zatrzymanie
       else //if (Controlling->Vel==0.0)
@@ -633,7 +649,7 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
      {//jeœli podana prêdkoœæ manewrowa
       if ((OrderCurrentGet()&Obey_train)?v==0.0:false)
       {//jeœli tryb poci¹gowy a tarcze ma ShuntVelocity 0 0
-       v=-1; //ignorowaæ, chyba ¿e prêdkoœæ stanie siê niezerowa 
+       v=-1; //ignorowaæ, chyba ¿e prêdkoœæ stanie siê niezerowa
        if (sSpeedTable[i].iFlags&0x20) //a jak przejechana
         sSpeedTable[i].iFlags=0; //to mo¿na usun¹æ, bo podstawowy automat usuwa tylko niezwrowe
       }
@@ -650,6 +666,11 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
        if (v<0.0?true:v>=1.0) //bo wartoœæ 0.1 s³u¿y do hamowania tylko
        {go=cm_SetVelocity; //mo¿e odjechaæ
         VelActual=v; //nie do koñca tak, to jest druga prêdkoœæ; -1 nie wpisywaæ...
+       }
+       else if ((sSpeedTable[i].eEvent->iFlags&(ev_sent|ev_command))==ev_command)
+       {//jeœli prêdkoœæ jest zerowa, a komórka zawiera komendê
+        eSignNext=sSpeedTable[i].eEvent; //dla informacji
+        go=cm_Command; //komenda z komórki, do wykonania po zatrzymaniu
        }
     } //jeœli nie ma zawalidrogi
    } //jeœli event
@@ -683,6 +704,11 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
      fDist=d; //dlugoœæ odcinka (kolejne pozycje mog¹ wyd³u¿aæ drogê, jeœli prêdkoœæ jest sta³a)
     }
    } //if (v>=0.0)
+   if (fNext==0)
+   {//jeœli zatrzymanie
+    if (!eSignNext) eSignNext=sSpeedTable[i].eEvent; //dla informacji
+    break; //nie ma sensu analizowaæ tabelki dalej
+   }
   } //if (sSpeedTable[i].iFlags&1)
  } //for
  //if (fAcc>-0.2)
@@ -812,7 +838,7 @@ __fastcall TController::TController
  eStopReason=stopSleep; //na pocz¹tku œpi
  fLength=0.0;
  fMass=0.0;
- //eSignSkip=
+ eSignNext=NULL; //sygna³ zmieniaj¹cy prêdkoœæ, do pokazania na [F2]
  eSignLast=NULL; //miniêty semafor
  fShuntVelocity=40; //domyœlna prêdkoœæ manewrowa
  fStopTime=0.0; //czas postoju przed dalsz¹ jazd¹ (np. na przystanku)
@@ -2360,7 +2386,7 @@ bool __fastcall TController::UpdateSituation(double dt)
      {//ustawienie VelActual - trochê proteza = do przemyœlenia
       case cm_SetVelocity: //od wersji 357 semafor nie budzi wy³¹czonej lokomotywy
        if (!(OrderList[OrderPos]&~(Obey_train|Shunt))) //jedzie w dowolnym trybie albo Wait_for_orders
-        //if (fabs(VelActual)>=1.0) //0.1 nie wysy³a siê do samochodow, bo potem nie rusz¹
+        if (fabs(VelActual)>=1.0) //0.1 nie wysy³a siê do samochodow, bo potem nie rusz¹
          PutCommand("SetVelocity",VelActual,VelNext,NULL); //komenda robi dodatkowe operacje
       break;
       case cm_ShuntVelocity: //od wersji 357 Tm nie budzi wy³¹czonej lokomotywy
@@ -2368,6 +2394,12 @@ bool __fastcall TController::UpdateSituation(double dt)
         PutCommand("ShuntVelocity",VelActual,VelNext,NULL);
        else if (OrderList[OrderPos]&Connect) //jeœli jest w trakcie ³¹czenia
         SetVelocity(VelActual,VelNext);
+      break;
+      case cm_Command: //komenda z komórki
+       if (Controlling->Vel<0.1) //dopiero jak stanie
+       {PutCommand(eSignNext->CommandGet(),eSignNext->ValueGet(1),eSignNext->ValueGet(2),NULL);
+        eSignNext->iFlags|=ev_sent; //siê wyknoa³o ju¿
+       }
       break;
      }
      if (VelNext==0.0)
@@ -2950,7 +2982,9 @@ bool __fastcall TController::CheckEvent(TEvent *e)
 {//sprawdzanie eventu w torze, czy jest sygna³owym
  //-> zwraca true, jeœli event istotny dla AI
  //-> zwraca false, gdy event ma byæ dodany do kolejki
- if (e)
+ if (!e) return false;
+ if (e->iFlags&ev_signal) return true;
+/*
  {//if (!prox) if (e==eSignSkip) return false; //semafor przejechany jest ignorowany
   AnsiString command;
   switch (e->Type)
@@ -2967,13 +3001,16 @@ bool __fastcall TController::CheckEvent(TEvent *e)
    default:
     return false; //inne eventy siê nie licz¹
   }
+*/
 /*
   if (prox)
    if (command=="SetProximityVelocity")
     return true; //ten event z toru ma byæ ignorowany
 */
+/*
   if (command=="SetVelocity")
    return true; //jak podamy wyjazd, to prze³¹czy siê w jazdê poci¹gow¹
+*/
 /*
   if (prox) //pomijanie punktów zatrzymania
   {if (command.SubString(1,19)=="PassengerStopPoint:")
@@ -2981,10 +3018,12 @@ bool __fastcall TController::CheckEvent(TEvent *e)
   }
   else //nazwa stacji pobrana z rozk³adu - nie ma co sprawdzaæ raz po raz
 */
+/*
    if (!asNextStop.IsEmpty()) //poci¹g ma okreœlone miejsce zatrzymania
     if (command.SubString(1,asNextStop.Length())==asNextStop) //nazwa zatrzymania siê zgadza
      return true;
  }
+*/
  return false;
 }
 
