@@ -301,10 +301,10 @@ void __fastcall TGroundNode::RenderVBO()
     if ((EvLaunch->dRadius<0)||(mgn<EvLaunch->dRadius))
     {
      if (Console::Pressed(VK_SHIFT) && EvLaunch->Event2!=NULL)
-      Global::pGround->AddToQuery(EvLaunch->Event2,NULL);
+      Global::AddToQuery(EvLaunch->Event2,NULL);
      else
       if (EvLaunch->Event1!=NULL)
-       Global::pGround->AddToQuery(EvLaunch->Event1,NULL);
+       Global::AddToQuery(EvLaunch->Event1,NULL);
     }
    return;
   case GL_LINES:
@@ -517,10 +517,10 @@ void __fastcall TGroundNode::RenderHidden()
     {
      WriteLog("Eventlauncher "+asName);
      if (Console::Pressed(VK_SHIFT)&&(EvLaunch->Event2))
-      Global::pGround->AddToQuery(EvLaunch->Event2,NULL);
+      Global::AddToQuery(EvLaunch->Event2,NULL);
      else
       if (EvLaunch->Event1)
-       Global::pGround->AddToQuery(EvLaunch->Event1,NULL);
+       Global::AddToQuery(EvLaunch->Event1,NULL);
     }
    return;
  }
@@ -2491,7 +2491,7 @@ bool __fastcall TGround::InitEvents()
               Current->Params[9].asMemCell=tmp->MemCell;
               if (Current->Type==tp_GetValues) //jeœli odczyt komórki
                if (tmp->MemCell->IsVelocity()) //a komórka zawiera komendê SetVelocity albo ShuntVelocity
-                Current->iFlags=ev_signal; //to event nie bêdzie dodawany do kolejki
+                Current->bEnabled=false; //to event nie bêdzie dodawany do kolejki
              }
              else
               Error("Event \""+Current->asName+"\" cannot find memcell \""+Current->asNodeName+"\"");
@@ -2623,6 +2623,10 @@ bool __fastcall TGround::InitEvents()
         if (Current->fDelay<0)
             AddToQuery(Current,NULL);
     }
+ for (TGroundNode *Current=nRootOfType[TP_MEMCELL];Current;Current=Current->Next)
+ {//Ra: eventy komórek pamiêci, wykonywane po wys³aniu komendy do zatrzymanego pojazdu
+  Current->MemCell->AssignEvents(FindEvent(Current->asName+":sent"));
+ }
  return true;
 }
 
@@ -2868,7 +2872,7 @@ TGroundNode* __fastcall TGround::GetNode( AnsiString asName )
 */
 bool __fastcall TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
 {
- if (Event->iFlags&ev_queue) //jeœli mo¿e byæ dodany do kolejki (nie u¿ywany w skanowaniu)
+ if (Event->bEnabled) //jeœli mo¿e byæ dodany do kolejki (nie u¿ywany w skanowaniu)
   if (!Event->bLaunched)
   {
    WriteLog("EVENT ADDED TO QUEUE: "+Event->asName);
@@ -2923,7 +2927,7 @@ if (QueryRootEvent)
     while (QueryRootEvent && QueryRootEvent->fStartTime<Timer::GetTime())
     {
 
-        if (QueryRootEvent->iFlags&ev_queue)
+        if (QueryRootEvent->bEnabled)
         {
         WriteLog("EVENT LAUNCHED: "+QueryRootEvent->asName);
         switch (QueryRootEvent->Type)

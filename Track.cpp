@@ -108,14 +108,14 @@ void __fastcall TIsolated::Modify(int i,TDynamicObject *o)
   iAxles+=i;
   if (!iAxles)
    if (eFree)
-    Global::pGround->AddToQuery(eFree,o); //dodanie zwolnienia do kolejki
+    Global::AddToQuery(eFree,o); //dodanie zwolnienia do kolejki
  }
  else
  {//grupa by³a wolna
   iAxles+=i;
   if (iAxles)
    if (eBusy)
-    Global::pGround->AddToQuery(eBusy,o); //dodanie zajêtoœci do kolejki
+    Global::AddToQuery(eBusy,o); //dodanie zajêtoœci do kolejki
  }
 };
 
@@ -657,7 +657,8 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
    parser->getTokens();
    *parser >> fVelocity; //*0.28; McZapkie-010602
    if (SwitchExtension) //jeœli tor ruchomy
-    SwitchExtension->fVelocity=fVelocity; //zapamiêtanie g³ównego ograniczenia
+    if (fVelocity>=1.0) //¿eby zero nie ogranicza³o do¿ywotnio
+     SwitchExtension->fVelocity=fVelocity; //zapamiêtanie g³ównego ograniczenia
   }
   else if (str=="isolated")
   {//obwód izolowany, do którego tor nale¿y
@@ -2033,11 +2034,11 @@ bool __fastcall TTrack::SwitchForced(int i,TDynamicObject *o)
   {switch (i)
    {case 0:
      if (SwitchExtension->EventPlus)
-      Global::pGround->AddToQuery(SwitchExtension->EventPlus,o); //dodanie do kolejki
+      Global::AddToQuery(SwitchExtension->EventPlus,o); //dodanie do kolejki
      break;
     case 1:
      if (SwitchExtension->EventMinus)
-      Global::pGround->AddToQuery(SwitchExtension->EventMinus,o); //dodanie do kolejki
+      Global::AddToQuery(SwitchExtension->EventMinus,o); //dodanie do kolejki
      break;
    }
    Switch(i); //jeœli siê tu nie prze³¹czy, to ka¿dy pojazd powtórzy event rozrprucia

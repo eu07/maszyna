@@ -23,12 +23,6 @@ const int conditional_trackoccupied=0x100; //do u¿ywania z & nie moze byæ ujemne
 const int conditional_trackfree=0x200;
 const int conditional_propability=0x400;
 
-//flagi eventu (iFlags)
-const int ev_queue=1; //czy dodawany do kolejki
-const int ev_signal=2; //czy podlegaj¹cy skanowaniu
-const int ev_command=4; //w sygnale umieszczona jest komenda 
-const int ev_sent=8; //komenda umieszczona w sygnale zosta³a wys³ana
-
 union TParam
 {
     void *asPointer;
@@ -53,8 +47,7 @@ private:
 
 public:
     AnsiString asName;
-    int iFlags; //flagi eventu
-    //bool bEnabled; //false gdy ma nie byæ dodawany do kolejki (skanowanie sygna³ów)
+    bool bEnabled; //false gdy ma nie byæ dodawany do kolejki (skanowanie sygna³ów)
     bool bLaunched;
     //bool bIsHistory;
     TEvent *Next;
@@ -78,6 +71,8 @@ public:
  AnsiString __fastcall CommandGet();
  double __fastcall ValueGet(int n);
  vector3 __fastcall PositionGet();
+ bool StopCommand();
+ void StopCommandSent();
 };
 
 //---------------------------------------------------------------------------

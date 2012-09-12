@@ -495,7 +495,8 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
    if (Global::bActive)
    {
     if (wParam!=17) //bo naciœniêcia [Ctrl] nie ma po co przekazywaæ
-     World.OnKeyDown(wParam);
+     if (wParam!=145) //[Scroll Lock] te¿ nie
+      World.OnKeyDown(wParam);
     switch (wParam)
     {
      case 19: //[Pause]
