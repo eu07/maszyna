@@ -3577,7 +3577,7 @@ void __fastcall TDynamicObject::RaAxleEvent(TEvent *e)
  if (Mechanik) //tylko jeœli ma obsadê
  {//if (!Mechanik->CheckEvent(e,true)) //jeœli nie jest ustawiaj¹cym prêdkoœæ
   if (e->bEnabled) //czy nale¿y dodaæ do kolejki
-   Global::pGround->AddToQuery(e,this); //dodanie do kolejki
+   Global::AddToQuery(e,this); //dodanie do kolejki
   else //nie ma potrzeby wysy³ania tego do serwera, skoro mo¿na wys³aæ zajêtoœæ toru
    if (Global::iMultiplayer) //potwierdzenie wykonania dla serwera - najczêœciej odczyt semafora
     Global::pGround->WyslijEvent(e->asName,GetName());
@@ -3585,7 +3585,7 @@ void __fastcall TDynamicObject::RaAxleEvent(TEvent *e)
  else
   //if (!Mechanik->CheckEvent(e,true)) //czy dodawany do kolejki, funkcja prawie statyczna
  if (e->bEnabled) //czy nale¿y dodaæ do kolejki
-  Global::pGround->AddToQuery(e,this); //dodanie do kolejki
+  Global::AddToQuery(e,this); //dodanie do kolejki
 };
 */
 

@@ -339,6 +339,10 @@ void __fastcall TSegment::RenderLoft(const vector6 *ShapePoints, int iNumShapePo
   step=fStep*iQualityFactor;
   s=fStep*iSkip; //iSkip - ile odcinków z pocz¹tku pomin¹æ
   i=iSkip; //domyœlnie 0
+  if (!fTsBuffer)
+   return; //prowizoryczne zabezpieczenie przed wysypem - ustaliæ faktyczn¹ przyczynê
+  if (i>iSegCount)
+   return; //prowizoryczne zabezpieczenie przed wysypem - ustaliæ faktyczn¹ przyczynê
   t=fTsBuffer[i]; //tabela watoœci t dla segmentów
   fOffset=0.1/fLength; //pierwsze 10cm
   pos1=FastGetPoint(t); //wektor pocz¹tku segmentu

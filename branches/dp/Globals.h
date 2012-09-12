@@ -7,6 +7,7 @@
 #include "system.hpp"
 #include "opengl/glew.h"
 #include "dumb3d.h"
+//#include "Classes.h"
 
 using namespace Math3D;
 
@@ -116,6 +117,7 @@ namespace Queryparsercomp
 class TQueryParserComp; //stary(?) parser
 }
 class cParser; //nowy (powolny!) parser
+class TEvent;
 
 class Global
 {
@@ -254,6 +256,7 @@ public:
  static void __fastcall ConfigParse(Queryparsercomp::TQueryParserComp *qp,cParser *cp=NULL);
  static AnsiString __fastcall GetNextSymbol();
  static TDynamicObject* __fastcall DynamicNearest();
+ static bool __fastcall AddToQuery(TEvent *event,TDynamicObject *who);
 };
 
 //---------------------------------------------------------------------------

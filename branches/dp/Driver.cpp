@@ -143,14 +143,12 @@ void __fastcall TSpeedPos::CommandCheck()
    fVelNext=0.0; //TrainParams->IsStop()?0.0:-1.0; //na razie tak
   iFlags|=0x400; //niestety nie da siê w tym miejscu wspó³pracowaæ z rozk³adem
  }
- else if (command.SubString(1,19)=="SetProximityVelocity")
+ else if (command=="SetProximityVelocity")
  {//ignorowaæ
   fVelNext=-1;
  }
  else
  {//inna komenda w evencie skanowanym powoduje zatrzymanie i wys³anie tej komendy
-  if ((eEvent->iFlags&ev_sent)==0) //jeœli komenda nie wys³ana jeszcze
-   eEvent->iFlags|=ev_command; //na pewno tu?
   iFlags&=~0xE00; //nie manewrowa, nie przystanek, nie zatrzymaæ na SBL
   fVelNext=0; //jak nieznana komenda w komórce sygna³owej, to ma staæ
  }
@@ -565,22 +563,23 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
        sSpeedTable[i].fVelNext=0; //to bêdzie zatrzymanie
       else //if (Controlling->Vel==0.0)
       {//jeœli siê zatrzyma³ przy W4, albo sta³ w momencie zobaczenia W4
-       if (Controlling->TrainType==dt_EZT) //otwieranie drzwi w EN57
-        if (!Controlling->DoorLeftOpened&&!Controlling->DoorRightOpened)
-        {//otwieranie drzwi
-         int p2=floor(sSpeedTable[i].eEvent->ValueGet(2)); //p7=platform side (1:left, 2:right, 3:both)
-         if (iDirection>=0)
-         {if (p2&1) Controlling->DoorLeft(true);
-          if (p2&2) Controlling->DoorRight(true);
+       if (AIControllFlag) //AI tylko sobie otwiera drzwi
+        if (Controlling->TrainType==dt_EZT) //otwieranie drzwi w EN57
+         if (!Controlling->DoorLeftOpened&&!Controlling->DoorRightOpened)
+         {//otwieranie drzwi
+          int p2=floor(sSpeedTable[i].eEvent->ValueGet(2)); //p7=platform side (1:left, 2:right, 3:both)
+          if (iDirection>=0)
+          {if (p2&1) Controlling->DoorLeft(true);
+           if (p2&2) Controlling->DoorRight(true);
+          }
+          else
+          {//jeœli jedzie do ty³u, to drzwi otwiera odwrotnie
+           if (p2&1) Controlling->DoorRight(true);
+           if (p2&2) Controlling->DoorLeft(true);
+          }
+          if (p2&3) //¿eby jeszcze poczeka³ chwilê, zanim zamknie
+           WaitingSet(10); //10 sekund (wzi¹æ z rozk³adu????)
          }
-         else
-         {//jeœli jedzie do ty³u, to drzwi otwiera odwrotnie
-          if (p2&1) Controlling->DoorRight(true);
-          if (p2&2) Controlling->DoorLeft(true);
-         }
-         if (p2&3) //¿eby jeszcze poczeka³ chwilê, zanim zamknie
-          WaitingSet(10); //10 sekund (wzi¹æ z rozk³adu????)
-        }
        if (TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,asNextStop.SubString(20,asNextStop.Length())))
        {//to siê wykona tylko raz po zatrzymaniu na W4
         if (TrainParams->DirectionChange()) //jeœli "@" w rozk³adzie, to wykonanie dalszych komend
@@ -667,7 +666,7 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
        {go=cm_SetVelocity; //mo¿e odjechaæ
         VelActual=v; //nie do koñca tak, to jest druga prêdkoœæ; -1 nie wpisywaæ...
        }
-       else if ((sSpeedTable[i].eEvent->iFlags&(ev_sent|ev_command))==ev_command)
+       else if (sSpeedTable[i].eEvent->StopCommand())
        {//jeœli prêdkoœæ jest zerowa, a komórka zawiera komendê
         eSignNext=sSpeedTable[i].eEvent; //dla informacji
         go=cm_Command; //komenda z komórki, do wykonania po zatrzymaniu
@@ -1840,7 +1839,8 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
      OrderPush(Disconnect); //a odczep ju¿ po zmianie kierunku
     }
     else
-     OrderNext(Disconnect); //jak ci¹gnie, to tylko odczep (NewValue1) wagonów
+     if (Controlling->Couplers[Controlling->DirAbsolute>0?1:0].CouplingFlag>0) //z ty³u coœ
+      OrderNext(Disconnect); //jak ci¹gnie, to tylko odczep (NewValue1) wagonów
     WaitingTime=0.0; //nie ma co dalej czekaæ, mo¿na zatr¹biæ i jechaæ, chyba ¿e ju¿ jedzie
    }
   if (NewValue1<-1.5) //jeœli -2/-3, czyli czekanie z ruszeniem na sygna³
@@ -1907,24 +1907,6 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
 };
 
 //const TDimension SignalDim={1,1,1};
-
-TCommandType xkomenda[12]=
-{//tabela reakcji na sygna³y podawane semaforem albo tarcz¹ manewrow¹
- //0: nic, 1: SetProximityVelocity, 2: SetVelocity, 3: ShuntVelocity
- //                               ma:    teraz: jest:  tryb:
- cm_ShuntVelocity,        //[ 1]= jechaæ stoi   blisko manewr. ShuntV.
- cm_ShuntVelocity,        //[ 3]= jechaæ jedzie blisko manewr. ShuntV.
- cm_ShuntVelocity,        //[ 5]= jechaæ stoi   deleko manewr. ShuntV.
- cm_Unknown,              //[ 7]= jechaæ jedzie deleko manewr. ShuntV.
- cm_SetVelocity,          //[ 9]= jechaæ stoi   blisko poci¹g. SetV.
- cm_SetVelocity,          //[11]= jechaæ jedzie blisko poci¹g. SetV.
- cm_SetVelocity,          //[13]= jechaæ stoi   deleko poci¹g. SetV.
- cm_Unknown,              //[15]= jechaæ jedzie deleko poci¹g. SetV.
- cm_SetVelocity,          //[17]= jechaæ stoi   blisko manewr. SetV. - zmiana na jazdê poci¹gow¹
- cm_SetVelocity,          //[19]= jechaæ jedzie blisko manewr. SetV.
- cm_SetVelocity,          //[21]= jechaæ stoi   deleko manewr. SetV.
- cm_SetVelocity           //[23]= jechaæ jedzie deleko manewr. SetV.
-};
 
 bool __fastcall TController::UpdateSituation(double dt)
 {//uruchamiaæ przynajmniej raz na sekundê
@@ -2396,10 +2378,11 @@ bool __fastcall TController::UpdateSituation(double dt)
         SetVelocity(VelActual,VelNext);
       break;
       case cm_Command: //komenda z komórki
-       if (Controlling->Vel<0.1) //dopiero jak stanie
-       {PutCommand(eSignNext->CommandGet(),eSignNext->ValueGet(1),eSignNext->ValueGet(2),NULL);
-        eSignNext->iFlags|=ev_sent; //siê wyknoa³o ju¿
-       }
+       if ((OrderList[OrderPos]&(Obey_train|Shunt))) //jedzie w dowolnym trybie albo Wait_for_orders
+        if (Controlling->Vel<0.1) //dopiero jak stanie
+        {PutCommand(eSignNext->CommandGet(),eSignNext->ValueGet(1),eSignNext->ValueGet(2),NULL);
+         eSignNext->StopCommandSent(); //siê wyknoa³o ju¿
+        }
       break;
      }
      if (VelNext==0.0)
@@ -2983,7 +2966,7 @@ bool __fastcall TController::CheckEvent(TEvent *e)
  //-> zwraca true, jeœli event istotny dla AI
  //-> zwraca false, gdy event ma byæ dodany do kolejki
  if (!e) return false;
- if (e->iFlags&ev_signal) return true;
+ if (!e->bEnabled) return true;
 /*
  {//if (!prox) if (e==eSignSkip) return false; //semafor przejechany jest ignorowany
   AnsiString command;
@@ -3421,6 +3404,7 @@ void __fastcall TController::TakeControl(bool yes)
 
 void __fastcall TController::DirectionForward(bool forward)
 {//ustawienie jazdy do przodu dla true i do ty³u dla false (zale¿y od kabiny)
+ while (DecSpeed()); //wy³¹czenie jazdy, inaczej siê mo¿e zawiesiæ
  if (forward)
   while (Controlling->ActiveDir<=0)
    Controlling->DirectionForward(); //do przodu w obecnej kabinie
