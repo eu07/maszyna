@@ -1829,7 +1829,7 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
    }
    WaitingTime=0.0; //nie ma co dalej czekaæ, mo¿na zatr¹biæ i jechaæ, chyba ¿e ju¿ jedzie
   }
-  else //if (NewValue2==0.0)
+  else //if (NewValue2==0.0) //zerowy sprzêg
    if (NewValue1>=0.0) //jeœli iloœæ wagonów inna ni¿ wszystkie
    {//bêdzie odczepianie, ale jeœli wagony s¹ z przodu, to trzeba najpierw zmieniæ kierunek
     if ((Controlling->Couplers[Controlling->DirAbsolute>0?1:0].CouplingFlag==0)? //z ty³u nic
@@ -2378,7 +2378,7 @@ bool __fastcall TController::UpdateSituation(double dt)
         SetVelocity(VelActual,VelNext);
       break;
       case cm_Command: //komenda z komórki
-       if ((OrderList[OrderPos]&(Obey_train|Shunt))) //jedzie w dowolnym trybie albo Wait_for_orders
+       if (!(OrderList[OrderPos]&~(Obey_train|Shunt))) //jedzie w dowolnym trybie albo Wait_for_orders
         if (Controlling->Vel<0.1) //dopiero jak stanie
         {PutCommand(eSignNext->CommandGet(),eSignNext->ValueGet(1),eSignNext->ValueGet(2),NULL);
          eSignNext->StopCommandSent(); //siê wyknoa³o ju¿
@@ -2773,6 +2773,8 @@ bool __fastcall TController::UpdateSituation(double dt)
    fWarningDuration=fWarningDuration-dt;
    if (fWarningDuration<0.05)
     Controlling->WarningSignal=0; //a tu siê koñczy
+   if (ReactionTime>fWarningDuration)
+    ReactionTime=fWarningDuration; //wczeœniejszy przeb³ysk œwiadomoœci, by zakoñczyæ tr¹bienie
   }
   if (Controlling->Vel>=5.0) //jesli jedzie, mo¿na odblokowaæ tr¹bienie, bo siê wtedy nie w³¹czy
   {iDrivigFlags&=~moveStartHornDone; //zatr¹bi dopiero jak nastêpnym razem stanie
@@ -3315,6 +3317,9 @@ bool __fastcall TController::BackwardScan()
        }
       } //if (move?...
      } //if (OrderCurrentGet()==Shunt)
+     if (!e->bEnabled) //jeœli skanowany
+      if (e->StopCommand()) //a pod³¹czona komórka ma komendê
+       return true; //to te¿ siê obróciæ
     } //if (e->Type==tp_GetValues)
    } //if (e)
    //else //jeœli nic nie znaleziono

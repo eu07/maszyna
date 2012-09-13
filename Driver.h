@@ -114,7 +114,6 @@ private: //parametry aktualnego sk³adu
  double fAccGravity; //przyspieszenie sk³adowej stycznej grawitacji
 public:
  TEvent *eSignNext; //sygna³ zmieniaj¹cy prêdkoœæ, do pokazania na [F2]
- TEvent *eLastCommand; //ostatnio wys³ana komenda
  AnsiString asNextStop; //nazwa nastêpnego punktu zatrzymania wg rozk³adu
 private: //parametry sterowania pojazdem (stan, hamowanie)
  double fShuntVelocity; //maksymalna prêdkoœæ manewrowania, zale¿y m.in. od sk³adu
