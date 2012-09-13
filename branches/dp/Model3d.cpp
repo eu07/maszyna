@@ -342,27 +342,27 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
   else if (texture.find("replacableskin")!=texture.npos)
   {// McZapkie-060702: zmienialne skory modelu
    TextureID=-1;
-   iFlags|=1; //zmienna tekstura 1
+   iFlags|=(Transparency==0.0)?0x10:1; //zmienna tekstura 1
   }
   else if (texture=="-1")
   {
    TextureID=-1;
-   iFlags|=1; //zmienna tekstura 1
+   iFlags|=(Transparency==0.0)?0x10:1; //zmienna tekstura 1
   }
   else if (texture=="-2")
   {
    TextureID=-2;
-   iFlags|=2; //zmienna tekstura 2
+   iFlags|=(Transparency==0.0)?0x10:2; //zmienna tekstura 2
   }
   else if (texture=="-3")
   {
    TextureID=-3;
-   iFlags|=4; //zmienna tekstura 3
+   iFlags|=(Transparency==0.0)?0x10:4; //zmienna tekstura 3
   }
   else if (texture=="-4")
   {
    TextureID=-4;
-   iFlags|=8; //zmienna tekstura 4
+   iFlags|=(Transparency==0.0)?0x10:8; //zmienna tekstura 4
   }
   else
   {//jesli tylko nazwa pliku to dawac biezaca sciezke do tekstur

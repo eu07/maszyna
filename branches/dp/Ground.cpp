@@ -294,7 +294,7 @@ void __fastcall TGroundNode::RenderVBO()
     pStaticSound->Play(1,DSBPLAY_LOOPING,true,pStaticSound->vSoundPosition);
     pStaticSound->AdjFreq(1.0,Timer::GetDeltaTime());
    }
-   return;
+   return; //Ra: TODO sprawdziæ, czy dŸwiêki nie s¹ tylko w RenderHidden
   case TP_MEMCELL: return;
   case TP_EVLAUNCH:
    if (EvLaunch->Render())
@@ -2177,16 +2177,20 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
      }
      else if (str==AnsiString("event"))
      {
-      TEvent *tmp;
-      tmp=RootEvent;
-      RootEvent=new TEvent();
-      RootEvent->Load(&parser,&pOrigin);
-      if (RootEvent->Type==tp_Unknown)
-      {delete RootEvent;
-       RootEvent=tmp; //przywrócenie z pominiêciem
-      }
+      TEvent *tmp=new TEvent();
+      tmp->Load(&parser,&pOrigin);
+      if (tmp->Type==tp_Unknown)
+       delete tmp;
       else
-      {RootEvent->Next2=tmp;
+      {//najpierw sprawdzamy, czy nie ma, a potem dopisujemy
+       int i=tmp->asName.Length();
+       if (tmp->asName[1]!="#") //zawsze jeden znak co najmniej jest
+        if (i>8?tmp->asName.SubString(i-7,8)!="_warning":true) //tymczasowo wyj¹tki
+         if (i>4?tmp->asName.SubString(i-3,4)!="_shp":true)
+          if (FindEvent(tmp->asName))
+           ErrorLog("Duplicated event: "+tmp->asName);
+       tmp->Next2=RootEvent;
+       RootEvent=tmp;
        if (RootEvent->Type!=tp_Ignored)
         if (RootEvent->asName.Pos("onstart")) //event uruchamiany automatycznie po starcie
          AddToQuery(RootEvent,NULL); //dodanie do kolejki
