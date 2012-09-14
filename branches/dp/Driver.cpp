@@ -561,7 +561,9 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
       if (!eSignNext) eSignNext=sSpeedTable[i].eEvent;
       if (Controlling->Vel>0.0) //jeœli jedzie
        sSpeedTable[i].fVelNext=0; //to bêdzie zatrzymanie
-      else //if (Controlling->Vel==0.0)
+      else if ((iDrivigFlags&moveStopCloser)?sSpeedTable[i].fDist<=fMaxProximityDist:true)
+      // sSpeedTable[i].fVelNext=0; //to bêdzie zatrzymanie
+      //else //if (Controlling->Vel==0.0)
       {//jeœli siê zatrzyma³ przy W4, albo sta³ w momencie zobaczenia W4
        if (AIControllFlag) //AI tylko sobie otwiera drzwi
         if (Controlling->TrainType==dt_EZT) //otwieranie drzwi w EN57
@@ -2184,7 +2186,7 @@ bool __fastcall TController::UpdateSituation(double dt)
     //na jaka odleglosc i z jaka predkoscia ma podjechac do przeszkody
     if (Controlling->CategoryFlag&1) //jeœli poci¹g
     {
-     fMinProximityDist=10.0; fMaxProximityDist=20.0; //[m]
+     fMinProximityDist=10.0; fMaxProximityDist=30.0; //[m]
     }
     else //samochod
     {
@@ -2386,7 +2388,7 @@ bool __fastcall TController::UpdateSituation(double dt)
       break;
      }
      if (VelNext==0.0)
-      if (!(OrderList[OrderPos]&~(Shunt|Connect))) //jedzie w dowolnym trybie albo Wait_for_orders
+      if (!(OrderList[OrderPos]&~(Shunt|Connect))) //jedzie w Shunt albo Connect, albo Wait_for_orders
       {//je¿eli wolnej drogi nie ma, a jest w trybie manewrowym albo oczekiwania
        if (BackwardScan()) //jeœli w drug¹ mo¿na jechaæ
        {//nale¿y sprawdzaæ odleg³oœæ od znalezionego sygnalizatora,
@@ -2498,7 +2500,7 @@ bool __fastcall TController::UpdateSituation(double dt)
        }
      }
      //sprawdzamy mo¿liwe ograniczenia prêdkoœci
-     if (OrderCurrentGet()&(Shunt|Obey_train))
+     if (OrderCurrentGet()&(Shunt|Obey_train)) //w Connect nie, bo moveStopHere odnosi siê do stanu po po³¹czeniu
       if (iDrivigFlags&moveStopHere) //jeœli ma czekaæ na woln¹ drogê
        if (vel==0.0) //a stoi
         if (VelNext==0.0) //a wyjazdu nie ma
@@ -2929,7 +2931,7 @@ void __fastcall TController::OrdersInit(double fVel)
  else
  {//jeœli podana niezerowa prêdkoœæ
   if (fVel>=1.0) //jeœli ma jechaæ
-   iDrivigFlags|=moveStopCloser; //to do nastêpnego W4 ma podjechaæ blisko
+   iDrivigFlags=(iDrivigFlags&~moveStopHere)|moveStopCloser; //to do nastêpnego W4 ma podjechaæ blisko
   JumpToFirstOrder();
   SetVelocity(fVel,-1); //ma ustawiæ ¿¹dan¹ prêdkoœæ
  }
@@ -2968,7 +2970,17 @@ bool __fastcall TController::CheckEvent(TEvent *e)
  //-> zwraca true, jeœli event istotny dla AI
  //-> zwraca false, gdy event ma byæ dodany do kolejki
  if (!e) return false;
- if (!e->bEnabled) return true;
+ if (e->bEnabled) return false;
+ if (e->Type==tp_PutValues)
+ {//do tabelki idzie tylko rozpoznany W4
+  AnsiString command=e->CommandGet();
+  if (command.SubString(1,19)=="PassengerStopPoint:")
+   if (asNextStop.IsEmpty()) //poci¹g ma okreœlone miejsce zatrzymania
+    return false; //ignorowaæ, jeœli nie ma zatrzymania
+   else
+    return (command.SubString(1,asNextStop.Length())==asNextStop); //nazwa zatrzymania siê zgadza
+ }
+ return true;
 /*
  {//if (!prox) if (e==eSignSkip) return false; //semafor przejechany jest ignorowany
   AnsiString command;
@@ -3009,7 +3021,6 @@ bool __fastcall TController::CheckEvent(TEvent *e)
      return true;
  }
 */
- return false;
 }
 
 TEvent* __fastcall TController::CheckTrackEvent(double fDirection,TTrack *Track)
