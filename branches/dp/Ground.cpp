@@ -1945,12 +1945,15 @@ TSubRect* __fastcall TGround::GetSubRect(int iCol,int iRow)
 
 TEvent* __fastcall TGround::FindEvent(const AnsiString &asEventName)
 {
+ return (TEvent*)sTracks->Find(0,asEventName.c_str()); //wyszukiwanie w drzewie
+/* //powolna wyszukiwarka
  for (TEvent *Current=RootEvent;Current;Current=Current->Next2)
  {
   if (Current->asName==asEventName)
    return Current;
  }
  return NULL;
+*/
 }
 
 void __fastcall TGround::FirstInit()
@@ -2194,6 +2197,7 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
        if (RootEvent->Type!=tp_Ignored)
         if (RootEvent->asName.Pos("onstart")) //event uruchamiany automatycznie po starcie
          AddToQuery(RootEvent,NULL); //dodanie do kolejki
+       sTracks->Add(0,tmp->asName.c_str(),tmp); //dodanie do wyszukiwarki
       }
      }
 //     else
@@ -2443,7 +2447,8 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
   WriteLog(sTracks->rRecords[*r].cName);
  delete[] r;
 */
- sTracks->Sort(TP_TRACK); //finalne sortowanie drzewa
+ sTracks->Sort(TP_TRACK); //finalne sortowanie drzewa torów
+ sTracks->Sort(0); //finalne sortowanie drzewa eventów
  if (!bInitDone) FirstInit(); //jeœli nie by³o w scenerii
  if (Global::pTerrainCompact)
   TerrainWrite(); //Ra: teraz mo¿na zapisaæ teren w jednym pliku
