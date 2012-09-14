@@ -2186,7 +2186,7 @@ bool __fastcall TController::UpdateSituation(double dt)
     //na jaka odleglosc i z jaka predkoscia ma podjechac do przeszkody
     if (Controlling->CategoryFlag&1) //jeœli poci¹g
     {
-     fMinProximityDist=10.0; fMaxProximityDist=30.0; //[m]
+     fMinProximityDist=10.0; fMaxProximityDist=20.0; //[m]
     }
     else //samochod
     {

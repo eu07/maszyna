@@ -107,7 +107,7 @@ bool __fastcall TSegment::Init(
  fStep=fNewStep;
  if (fLength<=0)
  {
-  WriteLog("Length <= 0 in TSegment::Init at "+AnsiString(Point1.x)+" "+AnsiString(Point1.y)+" "+AnsiString(Point1.z));
+  ErrorLog("Bad geometry: Length <= 0 in TSegment::Init at "+AnsiString(Point1.x)+" "+AnsiString(Point1.y)+" "+AnsiString(Point1.z));
   //MessageBox(0,"Length<=0","TSegment::Init",MB_OK);
   return false; //zerowe nie mog¹ byæ
  }
