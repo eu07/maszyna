@@ -706,16 +706,14 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
     }
    } //if (v>=0.0)
    if (fNext==0)
-    if (sSpeedTable[i].iFlags&0x100) //tylko sygna³ przypisujemy
-    {//jeœli zatrzymanie
-     if (!eSignNext) eSignNext=sSpeedTable[i].eEvent; //dla informacji
-     break; //nie ma sensu analizowaæ tabelki dalej
-    }
+   {//jeœli zatrzymanie
+    if ((sSpeedTable[i].iFlags&0x101)==0x101) //tylko sygna³ przypisujemy
+     if (!eSignNext) //jeœli jeszcze nic nie zapisane tam
+      eSignNext=sSpeedTable[i].eEvent; //dla informacji
+    break; //nie ma sensu analizowaæ tabelki dalej
+   }
   } //if (sSpeedTable[i].iFlags&1)
  } //for
- //if (fAcc>-0.2)
- // if (fAcc<0.2)
- //  fAcc=0.0; //nie bawimy siê w jakieœ delikatne hamowania czy rozpêdzania
  return go;
 };
 
