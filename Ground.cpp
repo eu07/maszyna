@@ -2191,13 +2191,19 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
         if (i>8?tmp->asName.SubString(i-7,8)!="_warning":true) //tymczasowo wyj¹tki
          if (i>4?tmp->asName.SubString(i-3,4)!="_shp":true)
           if (FindEvent(tmp->asName))
-           ErrorLog("Duplicated event: "+tmp->asName);
-       tmp->Next2=RootEvent;
-       RootEvent=tmp;
-       if (RootEvent->Type!=tp_Ignored)
-        if (RootEvent->asName.Pos("onstart")) //event uruchamiany automatycznie po starcie
-         AddToQuery(RootEvent,NULL); //dodanie do kolejki
-       sTracks->Add(0,tmp->asName.c_str(),tmp); //dodanie do wyszukiwarki
+          {ErrorLog("Duplicated event: "+tmp->asName);
+           delete tmp; //bezlitoœnie usuwamy duplikat
+           tmp=NULL; //i nie pozwalamy zaœmiecaæ drzewka (nie wiadomo, który by siê wykona³)
+          }
+       if (tmp)
+       {//jeœli nie duplikat
+        tmp->Next2=RootEvent;
+        RootEvent=tmp;
+        if (RootEvent->Type!=tp_Ignored)
+         if (RootEvent->asName.Pos("onstart")) //event uruchamiany automatycznie po starcie
+          AddToQuery(RootEvent,NULL); //dodanie do kolejki
+        sTracks->Add(0,tmp->asName.c_str(),tmp); //dodanie do wyszukiwarki
+       }
       }
      }
 //     else
