@@ -203,6 +203,7 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
          }
          if (str=="SetVelocity") bEnabled=false;
          else if (str=="ShuntVelocity") bEnabled=false;
+         else if (str=="SetProximityVelocity") bEnabled=false;
          Params[0].asText=new char[str.Length()+1];
          strcpy(Params[0].asText,str.c_str());
 //         if (str!=AnsiString("*"))       //*=nie brac tego pod uwage
