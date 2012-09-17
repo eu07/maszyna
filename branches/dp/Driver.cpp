@@ -34,6 +34,7 @@
 
 #define LOGVELOCITY 0
 #define LOGSTOPS 1
+#define LOGBACKSCAN 0
 /*
 
 Modu³ obs³uguj¹cy sterowanie pojazdami (sk³adami poci¹gów, samochodami).
@@ -330,9 +331,9 @@ bool __fastcall TController::TableNotFound(TEvent *e)
  return true; //nie ma, czyli mo¿na dodaæ
 };
 
-void __fastcall TController::TableTraceRoute(double fDistance,int iDir,TDynamicObject *pVehicle)
-{//skanowanie trajektorii na odleg³oœæ (fDistance) w kierunku (iDir) i uzupe³nianie tabelki
- if (!iDir)
+void __fastcall TController::TableTraceRoute(double fDistance,TDynamicObject *pVehicle)
+{//skanowanie trajektorii na odleg³oœæ (fDistance) od (pVehicle) w kierunku przodu sk³adu i uzupe³nianie tabelki
+ if (!iDirection) //kierunek pojazdu z napêdem
  {//jeœli kierunek jazdy nie jest okreslony
   iTableDirection=0; //czekamy na ustawienie kierunku
  }
@@ -342,16 +343,16 @@ void __fastcall TController::TableTraceRoute(double fDistance,int iDir,TDynamicO
  double fCurrentDistance; //aktualna przeskanowana d³ugoœæ
  TEvent *pEvent;
  float fLastDir; //kierunek na ostatnim torze
- if (iTableDirection!=iDir)
+ if (iTableDirection!=iDirection)
  {//jeœli zmiana kierunku, zaczynamy od toru ze wskazanym pojazdem
   pTrack=pVehicle->RaTrackGet(); //odcinek, na którym stoi
-  fLastDir=iDir*pVehicle->RaDirectionGet(); //ustalenie kierunku skanowania na torze
+  fLastDir=pVehicle->DirectionGet()*pVehicle->RaDirectionGet(); //ustalenie kierunku skanowania na torze
   fCurrentDistance=0; //na razie nic nie przeskanowano
   fTrackLength=pVehicle->RaTranslationGet(); //pozycja na tym torze (odleg³oœæ od Point1)
   if (fLastDir>0) //jeœli w kierunku Point2 toru
    fTrackLength=pTrack->Length()-fTrackLength; //przeskanowana zostanie odleg³oœæ do Point2
   fLastVel=pTrack->VelocityGet(); //aktualna prêdkoœæ
-  iTableDirection=iDir; //ustalenie w jakim kierunku jest wype³niana tabelka wzglêdem pojazdu
+  iTableDirection=iDirection; //ustalenie w jakim kierunku jest wype³niana tabelka wzglêdem pojazdu
   iFirst=iLast=0;
   tLast=NULL; //¿aden nie sprawdzony
  }
@@ -455,10 +456,10 @@ void __fastcall TController::TableTraceRoute(double fDistance,int iDir,TDynamicO
  }
 };
 
-void __fastcall TController::TableCheck(double fDistance,int iDir)
+void __fastcall TController::TableCheck(double fDistance)
 {//przeliczenie odleg³oœci w tabelce, ewentualnie doskanowanie (bez analizy prêdkoœci itp.)
- if (iTableDirection!=iDir)
-  TableTraceRoute(fDistance,iDir,pVehicles[1]); //jak zmiana kierunku, to skanujemy od koñca sk³adu
+ if (iTableDirection!=iDirection)
+  TableTraceRoute(fDistance,pVehicles[1]); //jak zmiana kierunku, to skanujemy od koñca sk³adu
  else
  {//trzeba sprawdziæ, czy coœ siê zmieni³o
   vector3 dir=pVehicles[0]->VectorFront()*pVehicles[0]->DirectionGet(); //wektor kierunku jazdy
@@ -509,7 +510,7 @@ void __fastcall TController::TableCheck(double fDistance,int iDir)
   }
   sSpeedTable[iLast].Update(&pos,&dir,len); //aktualizacja ostatniego
   if (sSpeedTable[iLast].fDist<fDistance)
-   TableTraceRoute(fDistance,iDir,pVehicles[1]); //doskanowanie dalszego odcinka
+   TableTraceRoute(fDistance,pVehicles[1]); //doskanowanie dalszego odcinka
  }
 };
 
@@ -966,6 +967,7 @@ void __fastcall TController::Activation()
    if (brake) //hamowanie tylko jeœli by³ wczeœniej zahamowany (bo mo¿liwe, ¿e jedzie!)
     Controlling->IncLocalBrakeLevel(brake); //zahamuj jak wczeœniej
   CheckVehicles(); //sprawdzenie sk³adu, AI zapali œwiat³a
+  TableClear(); //resetowanie tabelki skanowania torów
  }
 };
 
@@ -2009,7 +2011,7 @@ bool __fastcall TController::UpdateSituation(double dt)
   WriteLog("");
   WriteLog("Scan table for "+pVehicle->asName+":");
 #endif
-  TableCheck(scanmax,iDirection); //wype³nianie tabelki i aktualizacja odleg³oœci
+  TableCheck(scanmax); //wype³nianie tabelki i aktualizacja odleg³oœci
   // 5. Sprawdziæ stany sygnalizacji zapisanej w tabelce, wyznaczyæ prêdkoœci.
   // 6. Z tabelki wyznaczyæ krytyczn¹ odleg³oœæ i prêdkoœæ (najmniejsze przyspieszenie).
   // 7. Jeœli jest inny pojazd z przodu, ewentualnie skorygowaæ odleg³oœæ i prêdkoœæ.
@@ -3198,7 +3200,7 @@ bool __fastcall TController::BackwardScan()
     e=ev; //ten ewentualnie znaleziony (scandir>0)?scantrack->Event2:scantrack->Event1; //pobranie nowego
    if (e)
    {//jeœli jest jakiœ sygna³ na widoku
-#if LOGVELOCITY + LOGSTOPS
+#if LOGBACKSCAN
     AnsiString edir=pVehicle->asName+" - "+AnsiString((scandir>0)?"Event2 ":"Event1 ");
 #endif
     //najpierw sprawdzamy, czy semafor czy inny znak zosta³ przejechany
@@ -3208,7 +3210,7 @@ bool __fastcall TController::BackwardScan()
     vector3 sem; //wektor do sygna³u
     if (e->Type==tp_GetValues)
     {//przes³aæ info o zbli¿aj¹cym siê semaforze
-#if LOGVELOCITY
+#if LOGBACKSCAN
      edir+="("+(e->Params[8].asGroundNode->asName)+"): ";
 #endif
      //sem=*e->PositionGet()-pos; //wektor do komórki pamiêci
@@ -3218,7 +3220,7 @@ bool __fastcall TController::BackwardScan()
       {//iloczyn skalarny jest ujemny, gdy sygna³ stoi z ty³u
        //eSignSkip=e; //wtedy uznajemy go za ignorowany przy poszukiwaniu nowego
        eSignLast=NULL; //¿eby jakiœ nowy by³ poszukiwany
-#if LOGVELOCITY
+#if LOGBACKSCAN
        WriteLog(edir+"- will be ignored as passed by");
 #endif
        return false;
@@ -3272,7 +3274,7 @@ bool __fastcall TController::BackwardScan()
        {//jeœli semafor jest daleko, a pojazd jedzie, to informujemy o zmianie prêdkoœci
         //jeœli jedzie manewrowo, musi dostaæ SetVelocity, ¿eby sie na poci¹gowy prze³¹czy³
         //Mechanik->PutCommand("SetProximityVelocity",scandist,vmechmax,sl);
-#if LOGVELOCITY
+#if LOGBACKSCAN
         //WriteLog(edir+"SetProximityVelocity "+AnsiString(scandist)+" "+AnsiString(vmechmax));
         WriteLog(edir);
 #endif
@@ -3284,7 +3286,7 @@ bool __fastcall TController::BackwardScan()
         {//semafor na tym torze albo lokomtywa stoi, a ma ruszyæ, albo ma stan¹æ, albo nie ruszaæ
          //stop trzeba powtarzaæ, bo inaczej zatr¹bi i pojedzie sam
          //PutCommand("SetVelocity",vmechmax,e->Params[9].asMemCell->Value2(),&sl,stopSem);
-#if LOGVELOCITY
+#if LOGBACKSCAN
          WriteLog(edir+"SetVelocity "+AnsiString(vmechmax)+" "+AnsiString(e->Params[9].asMemCell->Value2()));
 #endif
          return (vmechmax>0);
@@ -3301,7 +3303,7 @@ bool __fastcall TController::BackwardScan()
         //- jeœli stoi, to z w³asnej inicjatywy mo¿e podjechaæ pod zamkniêt¹ tarczê
         if (Controlling->Vel>0.0) //tylko jeœli jedzie
         {//Mechanik->PutCommand("SetProximityVelocity",scandist,vmechmax,sl);
-#if LOGVELOCITY
+#if LOGBACKSCAN
          //WriteLog(edir+"SetProximityVelocity "+AnsiString(scandist)+" "+AnsiString(vmechmax));
          WriteLog(edir);
 #endif
@@ -3314,7 +3316,7 @@ bool __fastcall TController::BackwardScan()
         //if ((MoverParameters->Vel==0.0)||(vmechmax==0.0)) //jeœli jedzie lub ma stan¹æ/staæ
         {//nie dostanie komendy jeœli jedzie i ma jechaæ
          //PutCommand("ShuntVelocity",vmechmax,e->Params[9].asMemCell->Value2(),&sl,stopSem);
-#if LOGVELOCITY
+#if LOGBACKSCAN
          WriteLog(edir+"ShuntVelocity "+AnsiString(vmechmax)+" "+AnsiString(e->ValueGet(2)));
 #endif
          return (vmechmax>0);
@@ -3324,7 +3326,7 @@ bool __fastcall TController::BackwardScan()
        {//jeœli Tm w odleg³oœci do 100m podaje zezwolenie na jazdê, to od razu j¹ ignorujemy, aby móc szukaæ kolejnej
         //eSignSkip=e; //wtedy uznajemy ignorowan¹ przy poszukiwaniu nowej
         eSignLast=NULL; //¿eby jakaœ nowa by³a poszukiwana
-#if LOGVELOCITY
+#if LOGBACKSCAN
         WriteLog(edir+"- will be ignored due to Ms2");
 #endif
         return (vmechmax>0);
@@ -3413,6 +3415,7 @@ void __fastcall TController::TakeControl(bool yes)
    SetVelocity(-1,-1); //AI ustali sobie odpowiedni¹ prêdkoœæ
 */
   CheckVehicles(); //ustawienie œwiate³
+  TableClear(); //ponowne utworzenie tabelki, bo cz³owiek móg³ pojechaæ niezgodnie z sygna³ami
  }
  else
  {//a teraz u¿ytkownik

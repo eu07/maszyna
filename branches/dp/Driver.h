@@ -104,8 +104,8 @@ private: //obs³uga tabelki prêdkoœci (musi mieæ mo¿liwoœæ odhaczania stacji w ro
  bool __fastcall TableNotFound(TEvent *e);
  void __fastcall TableClear();
  TEvent* __fastcall TableCheckTrackEvent(double fDirection,TTrack *Track);
- void __fastcall TableTraceRoute(double fDistance,int iDir,TDynamicObject *pVehicle=NULL);
- void __fastcall TableCheck(double fDistance,int iDir);
+ void __fastcall TableTraceRoute(double fDistance,TDynamicObject *pVehicle=NULL);
+ void __fastcall TableCheck(double fDistance);
  TCommandType __fastcall TableUpdate(double &fVelDes,double &fDist,double &fNext,double &fAcc);
  void __fastcall TablePurger();
 private: //parametry aktualnego sk³adu
