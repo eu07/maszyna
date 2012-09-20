@@ -151,7 +151,7 @@ bool Global::bWireFrame=false;
 bool Global::bSoundEnabled=true;
 int Global::iWriteLogEnabled=3; //maska bitowa: 1-zapis do pliku, 2-okienko
 bool Global::bManageNodes=true;
-bool Global::bDecompressDDS=false;
+bool Global::bDecompressDDS=false; //czy programowa dekompresja DDS
 
 //parametry do kalibracji
 //kolejno wspó³czynniki dla potêg 0, 1, 2, 3 wartoœci odczytanej z urz¹dzenia
