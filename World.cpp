@@ -167,11 +167,14 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
  {WriteLog("Ra: No VBO found - Display Lists used. Upgrade drivers or buy a newer graphics card!");
   Global::bUseVBO=false; //mo¿e byæ w³¹czone parametrem w INI
  }
- if (glewGetExtension("GL_EXT_texture_compression_s3tc")) //czy jest obs³uga DDS w karcie graficznej
-  WriteLog("DDS texture format is supported.");
+ if (Global::bDecompressDDS) //jeœli sprzêtowa (domyœlnie jest false)
+  WriteLog("DDS support at OpenGL level is disabled in INI file.");
  else
- {//brak obs³ugi DDS - czy da siê w³¹czyæ programow¹ ich dekompresjê?
-  WriteLog("DDS format is not supported: you need TGA textures.");
+ {Global::bDecompressDDS=!glewGetExtension("GL_EXT_texture_compression_s3tc"); //czy obs³ugiwane?
+  if (Global::bDecompressDDS) //czy jest obs³uga DDS w karcie graficznej
+   WriteLog("DDS format is not supported.");
+  else //brak obs³ugi DDS - trzeba w³¹czyæ programow¹ dekompresjê
+   WriteLog("DDS texture format is supported.");
  }
  if (Global::iMultisampling)
   WriteLog("Used multisampling of "+AnsiString(Global::iMultisampling)+" samples.");
