@@ -646,7 +646,7 @@ void __fastcall TSubModel::DisplayLists()
 
 void __fastcall TSubModel::InitialRotate(bool doit)
 {//konwersja uk³adu wspó³rzêdnych na zgodny ze sceneri¹
- if (iFlags&0xC000) //jeœli jest animacja albo niejednostkowy
+ if (iFlags&0xC000) //jeœli jest animacja albo niejednostkowy transform
  {//niejednostkowy transform jest mno¿ony i wystarczy zabawy
   if (doit)
   {//obrót lewostronny
@@ -659,7 +659,7 @@ void __fastcall TSubModel::InitialRotate(bool doit)
    if (fMatrix->IdentityIs()) iFlags&=~0x8000; //jednak jednostkowa po obróceniu
   }
   if (Child)
-   Child->InitialRotate(false); //potomnych nie obracamy ju¿, tylko przegl¹damy
+   Child->InitialRotate(false); //potomnych nie obracamy ju¿, tylko ewentualnie optymalizujemy
   else
    if (Global::iConvertModels&2) //optymalizacja jest opcjonalna
     if ((iFlags&0xC000)==0x8000) //o ile nie ma animacji
@@ -802,7 +802,7 @@ TSubModel* __fastcall TSubModel::GetFromName(AnsiString search)
 {
  TSubModel* result;
  //std::transform(search.begin(),search.end(),search.begin(),ToLower());
- search=search.LowerCase();
+ //search=search.LowerCase();
  AnsiString name=AnsiString(pName);
  if (name==search)
   return this;
@@ -1539,7 +1539,9 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName,bool dynamic)
  while (token!="" || parser.eof())
  {
   std::string parent;
-  parser.getToken(parent);
+  //parser.getToken(parent);
+  parser.getTokens(1,false); //nazwa submodelu nadrzêdnego bez zmieny na ma³e
+  parser >> parent;
   if (parent=="") break;
   SubModel=new TSubModel();
   iNumVerts+=SubModel->Load(parser,this,iNumVerts);
