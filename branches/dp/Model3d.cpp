@@ -798,13 +798,18 @@ struct ToLower
  char operator()(char input) { return tolower(input); }
 };
 
-TSubModel* __fastcall TSubModel::GetFromName(AnsiString search)
+TSubModel* __fastcall TSubModel::GetFromName(AnsiString search,bool i)
+{
+ return GetFromName(search.c_str(),i);
+};
+
+TSubModel* __fastcall TSubModel::GetFromName(char *search,bool i)
 {
  TSubModel* result;
  //std::transform(search.begin(),search.end(),search.begin(),ToLower());
  //search=search.LowerCase();
- AnsiString name=AnsiString(pName);
- if (name==search)
+ //AnsiString name=AnsiString();
+ if ((i?stricmp(pName,search):strcmp(pName,search))==0)
   return this;
  if (Next)
  {
@@ -1407,11 +1412,11 @@ TSubModel* __fastcall TModel3d::GetFromName(const char *sName)
 {//wyszukanie submodelu po nazwie
  if (!sName) return Root; //potrzebne do terenu z E3D
  if (iFlags&0x0200) //wczytany z pliku tekstowego, wyszukiwanie rekurencyjne
-  return Root?Root->GetFromName(AnsiString(sName)):NULL;
+  return Root?Root->GetFromName(sName):NULL;
  else //wczytano z pliku binarnego, mo¿na wyszukaæ iteracyjnie
  {
   //for (int i=0;i<iSubModelsCount;++i)
-  return Root?Root->GetFromName(AnsiString(sName)):NULL;
+  return Root?Root->GetFromName(sName):NULL;
  }
 };
 
