@@ -233,7 +233,8 @@ public:
  void __fastcall SetRotateXYZ(float3 vNewAngles);
  void __fastcall SetTranslate(vector3 vNewTransVector);
  void __fastcall SetTranslate(float3 vNewTransVector);
- TSubModel* __fastcall GetFromName(AnsiString search);
+ TSubModel* __fastcall GetFromName(AnsiString search,bool i=true);
+ TSubModel* __fastcall GetFromName(char *search,bool i=true);
  void __fastcall RenderDL();
  void __fastcall RenderAlphaDL();
  void __fastcall RenderVBO();
