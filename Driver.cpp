@@ -3,19 +3,6 @@
     MaSzyna EU07 locomotive simulator
     Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 
@@ -124,11 +111,15 @@ void __fastcall TSpeedPos::CommandCheck()
  double value2=eEvent->ValueGet(2);
  if (command=="ShuntVelocity")
  {//prêdkoœæ manewrow¹ zapisaæ, najwy¿ej AI zignoruje przy analizie tabelki
-  fVelNext=value1;
+  fVelNext=value1; //powinno byæ value2, bo druga okreœla "za"?
   iFlags|=0x200;
  }
  else if (command=="SetVelocity")
- {//w semaforze typu "m" jest ShuntVelocity dla jazdy manewrowej i SetVelocity dla S1
+ {//w semaforze typu "m" jest ShuntVelocity dla Ms2 i SetVelocity dla S1
+  //SetVelocity * 0    -> mo¿na jechaæ, ale stan¹æ przed
+  //SetVelocity 0 20   -> stan¹æ przed, potem mo¿na jechaæ 20 (SBL)
+  //SetVelocity -1 100 -> mo¿na jechaæ, przy nastêpnym ograniczenie (SBL)
+  //SetVelocity 40 -1  -> PutValues: jechaæ 40 a¿ do miniêcia (koniec ograniczenia(
   fVelNext=value1;
   iFlags&=~0xE00; //nie manewrowa, nie przystanek, nie zatrzymaæ na SBL
   if (value1==0.0)
@@ -483,7 +474,7 @@ void __fastcall TController::TableCheck(double fDistance)
        sSpeedTable[i].iFlags=0; //to nie ma go po co trzymaæ (odtykacz usunie ze œrodka)
     }
     else if (sSpeedTable[i].iFlags&0x100) //jeœli event
-    {if (sSpeedTable[i].fDist<0) //jeœli jest z ty³u
+    {if (sSpeedTable[i].fDist<(sSpeedTable[i].eEvent->Type==tp_PutValues?-fLength:0)) //jeœli jest z ty³u
       if ((Controlling->CategoryFlag&1)?sSpeedTable[i].fVelNext!=0.0:sSpeedTable[i].fDist<-fLength)
       {//poci¹g staje zawsze, a samochód tylko jeœli nie przejedzie ca³¹ d³ugoœci¹ (mo¿e byæ zaskoczony zmian¹)
        sSpeedTable[i].iFlags&=~1; //degradacja pozycji
@@ -647,7 +638,7 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
      v=0.0; //to mo¿e byæ podany dla tamtego: jechaæ tak, jakby tam stop by³
     else
     {//zawalidrogi nie ma, sprawdziæ sygna³
-     if (sSpeedTable[i].iFlags&0x200) //jeœli tarcza - w zasadzie to sprawdziæ komendê!
+     if (sSpeedTable[i].iFlags&0x200) //jeœli Tm - w zasadzie to sprawdziæ komendê!
      {//jeœli podana prêdkoœæ manewrowa
       if ((OrderCurrentGet()&Obey_train)?v==0.0:false)
       {//jeœli tryb poci¹gowy a tarcze ma ShuntVelocity 0 0
