@@ -3,19 +3,6 @@
     MaSzyna EU07 locomotive simulator
     Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 
-    This program is free software; you can redistribute it and/or modify           
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include    "system.hpp"
@@ -1869,6 +1856,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
        else
         fMechCroach=0.5;
 //        if (!GetAsyncKeyState(VK_SHIFT)<0)         // bez shifta
+         if (!Console::Pressed(VK_CONTROL)) //gdy [Ctrl] zwolniony (dodatkowe widoki)
          {
           if (cKey==Global::Keys[k_MechLeft])
               vMechMovement.x+=fMechCroach;
@@ -4505,4 +4493,13 @@ void __fastcall TTrain::MechStop()
  //pMechShake=vMechVelocity=vector3(0,0,0);
 };
 
-
+vector3 __fastcall TTrain::MirrorPosition(bool lewe)
+{//zwraca wspó³rzêdne widoku kamery z lusterka
+ switch (iCabn)
+ {
+  case 1: //przednia (1)
+   return DynamicObject->mMatrix*vector3(lewe?Cabine[iCabn].CabPos2.x:Cabine[iCabn].CabPos1.x,1.5+Cabine[iCabn].CabPos1.y,Cabine[iCabn].CabPos2.z);
+  case 2: //tylna (-1)
+   return DynamicObject->mMatrix*vector3(lewe?Cabine[iCabn].CabPos1.x:Cabine[iCabn].CabPos2.x,1.5+Cabine[iCabn].CabPos1.y,Cabine[iCabn].CabPos1.z);
+ }
+};
