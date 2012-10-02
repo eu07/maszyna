@@ -272,8 +272,9 @@ public:
  void __fastcall Free();
  bool __fastcall Init(AnsiString asFile,HDC hDC);
  void __fastcall FirstInit();
+ void __fastcall InitTracks();
+ void __fastcall InitTraction();
  bool __fastcall InitEvents();
- bool __fastcall InitTracks();
  bool __fastcall InitLaunchers();
  TTrack* __fastcall FindTrack(vector3 Point,int &iConnection,TGroundNode *Exclude);
  TGroundNode* __fastcall CreateGroundNode();

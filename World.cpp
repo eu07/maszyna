@@ -1010,7 +1010,7 @@ bool __fastcall TWorld::Update()
     //Camera.LookAt=Train->pMechPosition+Train->GetDirection()*Train->DynamicObject->MoverParameters->ActiveCab;
     Camera.Pos+=Controlled->GetPosition();
     //Camera.RaLook(); //jednorazowe przestawienie kamery
-    Camera.Yaw=-Camera.Yaw; //odbicie
+    Camera.Yaw=0; //odchylenie na bok od Camera.LookAt
     Camera.Roll=atan(Train->pMechShake.x*Train->fMechRoll); //hustanie kamery na boki
     Camera.Pitch=atan(Train->vMechVelocity.z*Train->fMechPitch); //hustanie kamery przod tyl
     Camera.vUp=Controlled->VectorUp();
