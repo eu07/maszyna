@@ -997,13 +997,19 @@ bool __fastcall TWorld::Update()
   }
  //Ground.Update(0.01,Camera.Type==tp_Follow);
  dt=GetDeltaTime();
- if (Train)
-  if (Camera.Type==tp_Follow)
+ if (Camera.Type==tp_Follow)
+ {if (Train)
   {//jeœli jazda w kabinie, przeliczyæ trzeba parametry kamery
    Train->UpdateMechPosition(dt);
+   vector3 tempangle;
+   double modelrotate;
+   tempangle=Controlled->VectorFront()*(Controlled->MoverParameters->ActiveCab==-1 ? -1 : 1);
+   //modelrotate=ABuAcos(tempangle);
+   modelrotate=atan2(tempangle.z,tempangle.x);
    if (Console::Pressed(VK_CONTROL)?(Console::Pressed(Global::Keys[k_MechLeft])||Console::Pressed(Global::Keys[k_MechRight])):false)
    {//jeœli lusterko lewe albo prawe (bez rzucania na razie)
     bool lr=Console::Pressed(Global::Keys[k_MechLeft]);
+#if 0
     Camera.Pos=Train->MirrorPosition(lr); //robocza wartoœæ
     if (Controlled->MoverParameters->ActiveCab<0) lr=!lr; //w drugiej kabinie odwrotnie jest œrodek
     Camera.LookAt=Controlled->GetPosition()+vector3(lr?2.0:-2.0,Camera.Pos.y,0); //trochê na zewn¹trz, u¿yæ szerokoœci pojazdu
@@ -1011,6 +1017,16 @@ bool __fastcall TWorld::Update()
     Camera.Pos+=Controlled->GetPosition();
     //Camera.RaLook(); //jednorazowe przestawienie kamery
     Camera.Yaw=0; //odchylenie na bok od Camera.LookAt
+#else
+    //Camera.Yaw powinno byæ wyzerowane, aby po powrocie patrzeæ do przodu
+    Camera.Pos=Controlled->GetPosition()+Train->MirrorPosition(lr);
+    Camera.Yaw=0; //odchylenie na bok od Camera.LookAt
+    if (Train->DynamicObject->MoverParameters->ActiveCab==0)
+     Camera.LookAt=Camera.Pos-Train->GetDirection(); //gdy w korytarzu
+    else  //patrzenie w kierunku osi pojazdu, z uwzglêdnieniem kabiny
+     Camera.LookAt=Camera.Pos-Train->GetDirection()*Train->DynamicObject->MoverParameters->ActiveCab; //-1 albo 1
+    Global::SetCameraRotation(M_PI-modelrotate); //tu ju¿ trzeba uwzglêdniæ lusterka
+#endif
     Camera.Roll=atan(Train->pMechShake.x*Train->fMechRoll); //hustanie kamery na boki
     Camera.Pitch=atan(Train->vMechVelocity.z*Train->fMechPitch); //hustanie kamery przod tyl
     Camera.vUp=Controlled->VectorUp();
@@ -1037,8 +1053,28 @@ bool __fastcall TWorld::Update()
     else  //patrzenie w kierunku osi pojazdu, z uwzglêdnieniem kabiny
      Camera.LookAt=Train->pMechPosition+Train->GetDirection()*Train->DynamicObject->MoverParameters->ActiveCab; //-1 albo 1
     Camera.vUp=Train->GetUp();
+    Global::SetCameraRotation(Camera.Yaw-modelrotate); //tu ju¿ trzeba uwzglêdniæ lusterka
    }
   }
+ }
+ else
+ {//kamera nieruchoma
+  Global::SetCameraRotation(Camera.Yaw-M_PI);
+ }
+/*
+ //wyliczenie bezwzglêdnego kierunku kamery (do znikania niepotrzebnych pojazdów)
+ if (FreeFlyModeFlag||!Controlled)
+  Global::SetCameraRotation(Camera.Yaw-M_PI);
+ else
+ {//kierunek pojazdu oraz kierunek wzglêdny
+  vector3 tempangle;
+  double modelrotate;
+  tempangle=Controlled->VectorFront()*(Controlled->MoverParameters->ActiveCab==-1 ? -1 : 1);
+  //modelrotate=ABuAcos(tempangle);
+  modelrotate=atan2(tempangle.z,tempangle.x);
+  Global::SetCameraRotation(Camera.Yaw-modelrotate); //tu ju¿ trzeba uwzglêdniæ lusterka
+ }
+*/
  Ground.CheckQuery();
 
  if (!Render()) return false;
@@ -1332,29 +1368,12 @@ bool __fastcall TWorld::Update()
     else if (Global::iTextMode==VK_F12)
     {
      //Global::iViewMode=VK_F12;
-
-       //Takie male info :)
-       OutText1= AnsiString("Online documentation (PL): http://eu07.pl");
+     //Takie male info :)
+     OutText1= AnsiString("Online documentation (PL): http://eu07.pl");
     }
-
     else if (Global::iTextMode==VK_F2)
     {//ABu: info dla najblizszego pojazdu!
-     TDynamicObject *tmp;
-     if (FreeFlyModeFlag)
-     {//w trybie latania lokalizujemy wg mapy
-/*
-      int CouplNr=-2;
-      tmp=Controlled->ABuScanNearestObject(Controlled->GetTrack(), 1, 500, CouplNr);
-      if (tmp==NULL)
-      {
-       tmp=Controlled->ABuScanNearestObject(Controlled->GetTrack(), -1, 500, CouplNr);
-       //if(tmp==NULL) tmp=Controlled;
-      }
-*/
-      tmp=Ground.DynamicNearest(Camera.Pos);
-     }
-     else
-      tmp=Controlled;
+     TDynamicObject *tmp=FreeFlyModeFlag?Ground.DynamicNearest(Camera.Pos):Controlled; //w trybie latania lokalizujemy wg mapy
      if (tmp)
      {
       OutText3="";
@@ -1471,6 +1490,7 @@ bool __fastcall TWorld::Update()
           SafeDelete(Train); //i nie ma czym sterowaæ
          //Global::pUserDynamic=Controlled; //renerowanie pojazdu wzglêdem kabiny
          //Global::iTextMode=VK_F4;
+         if (Train) InOutKey(); //do kabiny
         }
        }
       Global::iTextMode=0; //tryb neutralny
@@ -1685,19 +1705,18 @@ double __fastcall ABuAcos(vector3 calc_temp)
 
 bool __fastcall TWorld::Render()
 {
+ glColor3b(255, 255, 255);
+ //glColor3b(255, 0, 255);
+ glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+ 	glMatrixMode(GL_MODELVIEW);							// Select The Modelview Matrix
+ glLoadIdentity();
+ Camera.SetMatrix(); //ustawienie macierzy kamery wzglêdem pocz¹tku scenerii
+ glLightfv(GL_LIGHT0,GL_POSITION,Global::lightPos);
 
-    glColor3b(255, 255, 255);
-//    glColor3b(255, 0, 255);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  	glMatrixMode(GL_MODELVIEW);							// Select The Modelview Matrix
-    glLoadIdentity();
-    Camera.SetMatrix(); //ustawienie macierzy kamery wzglêdem pocz¹tku scenerii
-    glLightfv(GL_LIGHT0,GL_POSITION,Global::lightPos);
-
-    glDisable(GL_FOG);
-      Clouds.Render();
-    glEnable(GL_FOG);
-
+ glDisable(GL_FOG);
+   Clouds.Render();
+ glEnable(GL_FOG);
+/* //przeniesione do kodu wczeœniejszego ni¿ wywo³anie tej funkcji
     //wyliczenie bezwzglêdnego kierunku kamery (do znikania niepotrzebnych pojazdów)
     if (FreeFlyModeFlag|!Controlled)
      Global::SetCameraRotation(Camera.Yaw-M_PI);
@@ -1707,35 +1726,33 @@ bool __fastcall TWorld::Render()
      double modelrotate;
      tempangle=Controlled->VectorFront()*(Controlled->MoverParameters->ActiveCab==-1 ? -1 : 1);
      modelrotate=ABuAcos(tempangle);
-     Global::SetCameraRotation(Camera.Yaw-modelrotate);
+     Global::SetCameraRotation(Camera.Yaw-modelrotate); //tu ju¿ trzeba uwzglêdniæ lusterka
     }
-    if (Global::bUseVBO)
-    {//renderowanie przez VBO
-     if (!Ground.RenderVBO(Camera.Pos)) return false;
-     //if (Global::bRenderAlpha) //Ra: wywalam tê flagê
-      if (!Ground.RenderAlphaVBO(Camera.Pos))
-       return false;
-    }
-    else
-    {//renderowanie przez Display List
-     if (!Ground.RenderDL(Camera.Pos)) return false;
-     //if (Global::bRenderAlpha) //Ra: wywalam tê flagê
-      if (!Ground.RenderAlphaDL(Camera.Pos))
-       return false;
-    }
-    TSubModel::iInstance=(int)(Train?Train->DynamicObject:0); //¿eby nie robiæ cudzych animacji
-//    if (Camera.Type==tp_Follow)
-    if (Train)
-        Train->Update();
-//    if (Global::bRenderAlpha)
-//     if (Controlled)
-//        Train->RenderAlpha();
-    glFlush();
-    //Global::bReCompile=false; //Ra: ju¿ zrobiona rekompilacja
-
-    ResourceManager::Sweep(Timer::GetSimulationTime());
-
-    return true;
+*/
+ if (Global::bUseVBO)
+ {//renderowanie przez VBO
+  if (!Ground.RenderVBO(Camera.Pos)) return false;
+  //if (Global::bRenderAlpha) //Ra: wywalam tê flagê
+   if (!Ground.RenderAlphaVBO(Camera.Pos))
+    return false;
+ }
+ else
+ {//renderowanie przez Display List
+  if (!Ground.RenderDL(Camera.Pos)) return false;
+  //if (Global::bRenderAlpha) //Ra: wywalam tê flagê
+   if (!Ground.RenderAlphaDL(Camera.Pos))
+    return false;
+ }
+ TSubModel::iInstance=(int)(Train?Train->DynamicObject:0); //¿eby nie robiæ cudzych animacji
+ //if (Camera.Type==tp_Follow)
+ if (Train) Train->Update();
+ //if (Global::bRenderAlpha)
+ // if (Controlled)
+ //  Train->RenderAlpha();
+ glFlush();
+ //Global::bReCompile=false; //Ra: ju¿ zrobiona rekompilacja
+ ResourceManager::Sweep(Timer::GetSimulationTime());
+ return true;
 };
 
 void TWorld::ShowHints(void)
