@@ -4,19 +4,6 @@
     MaSzyna EU07 locomotive simulator
     Copyright (C) 2001-2004  Marcin Wozniak and others
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "system.hpp"
@@ -56,10 +43,6 @@
 bool bCondition; //McZapkie: do testowania warunku na event multiple
 AnsiString LogComment;
 
-// tablica pozycji sektorów do renderowania progresywnego (zale¿nie od FPS)
-//const int AreaFast[]={10,10,10,10,10,10,9,8,7,6,5}; //pe³ny zakres widocznoœci 2km
-//const int AreaSlow[]={ 7, 7, 7, 7, 7, 6,5,4,0,0,0}; //ograniczenie widocznoœci 1.5km
-//const int AreaMini[]={ 5, 5, 5, 5, 5, 4,0,0,0,0,0}; //ograniczenie widocznoœci 1km
 //---------------------------------------------------------------------------
 // Obiekt renderuj¹cy siatkê jest sztucznie tworzonym obiektem pomocniczym,
 // grupuj¹cym siatki obiektów dla danej tekstury. Obiektami sk³adowymi mog¹
@@ -1413,7 +1396,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
  else if (str=="line_strip")          tmp->iType=GL_LINE_STRIP;
  else if (str=="line_loop")           tmp->iType=GL_LINE_LOOP;
  else if (str=="model")               tmp->iType=TP_MODEL;
- else if (str=="terrain")             tmp->iType=TP_TERRAIN;
+ else if (str=="terrain")             tmp->iType=TP_TERRAIN; //TODO: zrobiæ jak zwyk³y model
  else if (str=="dynamic")             tmp->iType=TP_DYNAMIC;
  else if (str=="sound")               tmp->iType=TP_SOUND;
  else if (str=="track")               tmp->iType=TP_TRACK;
@@ -1672,7 +1655,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    if (token.compare("enddynamic")!=0)
     Error("enddynamic statement missing");
    break;
-  case TP_TERRAIN:
+  case TP_TERRAIN: //TODO: zrobiæ jak zwyk³y, rozró¿nienie po nazwie albo czymœ innym
   case TP_MODEL:
    parser->getTokens(3);
    *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
@@ -1907,15 +1890,6 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    for (int i=0;i<nv;i++)
     tmp->Points[i]=TempVerts[i].Point;
    break;
-/*
-  case TP_ISOLATED: //lista torów w obwodzie izolowanym - na razie ignorowana
-   do
-   {//po¿arcie dodatkowych parametrów
-    parser->getTokens();
-    *parser >> token;
-   } while (token.compare("endisolated")!=0);
-   break;
-*/
  }
  return tmp;
 }
@@ -2004,6 +1978,9 @@ void __fastcall TGround::FirstInit()
  WriteLog("InitTracks");
  InitTracks(); //³¹czenie odcinków ze sob¹ i przyklejanie eventów
  WriteLog("InitTracks OK");
+ WriteLog("InitTraction");
+ InitTraction(); //³¹czenie drutów ze sob¹
+ WriteLog("InitTraction OK");
  WriteLog("InitEvents");
  InitEvents();
  WriteLog("InitEvents OK");
@@ -2118,6 +2095,7 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
         }
         else
         {//jeœli jest pojazdem
+         //if (!bInitDone) FirstInit(); //jeœli nie by³o w scenerii
          if (LastNode->DynamicObject->Mechanik)
           TrainSetDriver=LastNode; //pojazd, któremu zostanie wys³any rozk³ad
          LastNode->Next=nRootDynamic;
@@ -2443,17 +2421,6 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
     }
 
  delete parser;
-/* //Ra: testy sortownika nazw
- //TFileStream *fs=new TFileStream("names.txt",fmCreate);
- //fs->Write(sTracks->cBuffer,4*65536);
- //delete fs;
- int *r=new int[5000]; //robocza tablica indeksów - numery posortowanych rekordów
- int *q=r; //wskaŸnik roboczy, przekazywany przez referencjê
- sTracks->rTypes[TP_TRACK]->ListGet(sTracks->rRecords,q); //drzewo jest ju¿ posortowane - zamieniæ je na listê
- for (;r<q;++r) //wyœwietlenie listy nazw
-  WriteLog(sTracks->rRecords[*r].cName);
- delete[] r;
-*/
  sTracks->Sort(TP_TRACK); //finalne sortowanie drzewa torów
  sTracks->Sort(0); //finalne sortowanie drzewa eventów
  if (!bInitDone) FirstInit(); //jeœli nie by³o w scenerii
@@ -2646,7 +2613,7 @@ bool __fastcall TGround::InitEvents()
  return true;
 }
 
-bool __fastcall TGround::InitTracks()
+void __fastcall TGround::InitTracks()
 {//³¹czenie torów ze sob¹ i z eventami
  TGroundNode *Current,*Model;
  TTrack *tmp; //znaleziony tor
@@ -2765,7 +2732,10 @@ bool __fastcall TGround::InitTracks()
     Track->iCategoryFlag|=0x100; //ustawienie flagi portalu
  }
  //WriteLog("Total "+AnsiString(tracks)+", far "+AnsiString(tracksfar));
- return true;
+}
+
+void __fastcall TGround::InitTraction()
+{//³¹czenie drutów ze sob¹ oraz z torami i eventami
 }
 
 void __fastcall TGround::TrackJoin(TGroundNode *Current)
@@ -3503,21 +3473,16 @@ bool __fastcall TGround::RenderDL(vector3 pPosition)
    {tmp->LoadNodes(); //oznaczanie aktywnych sektorów
     for (node=tmp->nRenderHidden;node;node=node->nNext3)
      node->RenderHidden();
+    //TODO: jeszcze dŸwiêki pojazdów by siê przyda³y
    }
  //renderowanie progresywne - zale¿ne od FPS oraz kierunku patrzenia
  iRendered=0; //iloœæ renderowanych sektorów
  vector3 direction;
- //iRange=(Global::iSlowMotion&6)?((Global::iSlowMotion&4)?AreaMini:AreaSlow):AreaFast;
- //n=(iRange[0]*n)/10; //przeliczenie (n) do aktualnego promienia rednerowania
- //n=(Global::iSlowMotion&6)?((Global::iSlowMotion&4)?25:52):90; //iloœæ sektorów w æwiartce (max 400)
  for (k=0;k<Global::iSegmentsRendered;++k) //sektory w kolejnoœci odleg³oœci
  {//przerobione na u¿ycie SectorOrder
   i=SectorOrder[k].x; //na starcie oba >=0
   j=SectorOrder[k].y;
   do
- //for (j=-n;j<=n;j++)
- //{k=iRange[j<0?-j:j]; //zasiêg na danym poziomie
- // for (i=-k;i<=k;i++)
   {
    if (j<=0) i=-i; //pierwszy przebieg: j<=0, i>=0; drugi: j>=0, i<=0; trzeci: j<=0, i<=0 czwarty: j>=0, i>=0;
    j=-j; //i oraz j musi byæ zmienione wczeœniej, ¿eby continue dzia³a³o
@@ -3589,21 +3554,16 @@ bool __fastcall TGround::RenderVBO(vector3 pPosition)
    if ((tmp=FastGetSubRect(i,j))!=NULL)
     for (node=tmp->nRenderHidden;node;node=node->nNext3)
      node->RenderHidden();
+    //TODO: jeszcze dŸwiêki pojazdów by siê przyda³y
   }
  //renderowanie progresywne - zale¿ne od FPS oraz kierunku patrzenia
  iRendered=0; //iloœæ renderowanych sektorów
  vector3 direction;
- //iRange=(Global::iSlowMotion&6)?((Global::iSlowMotion&4)?AreaMini:AreaSlow):AreaFast;
- //n=(iRange[0]*n)/10; //przeliczenie (n) do aktualnego promienia rednerowania
- //n=(Global::iSlowMotion&6)?((Global::iSlowMotion&4)?25:52):90; //iloœæ sektorów w æwiartce
  for (k=0;k<Global::iSegmentsRendered;++k) //sektory w kolejnoœci odleg³oœci
  {//przerobione na u¿ycie SectorOrder
   i=SectorOrder[k].x; //na starcie oba >=0
   j=SectorOrder[k].y;
   do
- //for (j=-n;j<=n;j++)
- //{k=iRange[j<0?-j:j]; //zasiêg na danym poziomie
- // for (i=-k;i<=k;i++)
   {
    if (j<=0) i=-i; //pierwszy przebieg: j<=0, i>=0; drugi: j>=0, i<=0; trzeci: j<=0, i<=0 czwarty: j>=0, i>=0;
    j=-j; //i oraz j musi byæ zmienione wczeœniej, ¿eby continue dzia³a³o
