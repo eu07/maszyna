@@ -1883,16 +1883,28 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       {//przesuwanie sk³adu o 100m
        TDynamicObject *d=DynamicObject;
        if (cKey==VkKeyScan('['))
-        while (d)
+       {while (d)
         {d->Move(100.0);
          d=d->Next(); //pozosta³e te¿
         }
+        d=DynamicObject->Prev();
+        while (d)
+        {d->Move(100.0);
+         d=d->Prev(); //w drug¹ stronê te¿
+        }
+       }
        else
        if (cKey==VkKeyScan(']'))
-        while (d)
+       {while (d)
         {d->Move(-100.0);
          d=d->Next(); //pozosta³e te¿
         }
+        d=DynamicObject->Prev();
+        while (d)
+        {d->Move(-100.0);
+         d=d->Prev(); //w drug¹ stronê te¿
+        }
+       }
       }
    }
 }
