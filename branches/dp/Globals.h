@@ -127,7 +127,7 @@ public:
  //double Global::tSinceStart;
  static int Keys[MaxKeys];
  static vector3 pCameraPosition; //pozycja kamery w œwiecie
- static double pCameraRotation;  //kierunek bezwzglêdny kamery w œwiecie
+ static double pCameraRotation;  //kierunek bezwzglêdny kamery w œwiecie: 0=pó³noc, 90°=zachód (-azymut)
  static double pCameraRotationDeg;  //w stopniach, dla animacji billboard
  static vector3 pFreeCameraInit[10]; //pozycje kamery
  static vector3 pFreeCameraInitAngle[10];
@@ -251,6 +251,7 @@ public:
  static TDynamicObject *pUserDynamic; //pojazd u¿ytkownika, renderowany bez trzêsienia
  static double fCalibrateIn[6][4]; //parametry kalibracyjne wejœæ z pulpitu
  static double fCalibrateOut[6][4]; //parametry kalibracyjne wyjœæ dla pulpitu
+ static double fBrakeStep; //krok zmiany hamulca dla klawiszy [Num3] i [Num9]
  //metody
  static void __fastcall TrainDelete(TDynamicObject *d);
  static void __fastcall ConfigParse(Queryparsercomp::TQueryParserComp *qp,cParser *cp=NULL);

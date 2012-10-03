@@ -684,6 +684,8 @@ TYPE
                {! stopnie hamowania - hamulec zasadniczy}
                 function IncBrakeLevel:boolean;
                 function DecBrakeLevel:boolean;
+                function IncBrakeLevelF(CtrlSpeed:real):boolean;
+                function DecBrakeLevelF(CtrlSpeed:real):boolean;
                {! stopnie hamowania - hamulec pomocniczy}
                 function IncLocalBrakeLevel(CtrlSpeed:byte):boolean;
                 function DecLocalBrakeLevel(CtrlSpeed:byte):boolean;
@@ -1660,6 +1662,11 @@ end;
 
 {nastawy hamulca}
 
+function T_MoverParameters.IncBrakeLevelF(CtrlSpeed:real):boolean;
+begin
+ IncBrakeLevelF:=IncBrakeLevel();
+end;
+
 function T_MoverParameters.IncBrakeLevel:boolean;
 //var b:byte;
 begin
@@ -1723,6 +1730,11 @@ begin
    end
   else
    IncBrakeLevel:=False;
+end;
+
+function T_MoverParameters.DecBrakeLevelF(CtrlSpeed:Real):boolean;
+begin
+ DecBrakeLevelF:=DecBrakeLevel();
 end;
 
 function T_MoverParameters.DecBrakeLevel:boolean;

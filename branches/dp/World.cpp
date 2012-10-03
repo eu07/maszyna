@@ -858,7 +858,7 @@ bool __fastcall TWorld::Update()
    //double a=Global::fTimeAngleDeg/180.0*M_PI-M_PI; //k¹t godzinny w radianach
    double a=fmod(Global::fSunSpeed*Global::fTimeAngleDeg,360.0)/180.0*M_PI-M_PI; //k¹t godzinny w radianach
    double L=Global::fLatitudeDeg/180.0*M_PI; //szerokoœæ geograficzna
-   double H=asin(cos(L)*cos(Global::fSunDeclination)*cos(a)+sin(L)*sin(Global::fSunDeclination));
+   double H=asin(cos(L)*cos(Global::fSunDeclination)*cos(a)+sin(L)*sin(Global::fSunDeclination)); //k¹t ponad horyzontem
    //double A=asin(cos(d)*sin(M_PI-a)/cos(H));
    //Declination=((0.322003-22.971*cos(t)-0.357898*cos(2*t)-0.14398*cos(3*t)+3.94638*sin(t)+0.019334*sin(2*t)+0.05928*sin(3*t)))*Pi/180
    //Altitude=asin(sin(Declination)*sin(latitude)+cos(Declination)*cos(latitude)*cos((15*(time-12))*(Pi/180)));
@@ -877,7 +877,7 @@ bool __fastcall TWorld::Update()
     Global::ambientDayLight[0]=Global::ambientLight[0];
     Global::ambientDayLight[1]=Global::ambientLight[1];
     Global::ambientDayLight[2]=Global::ambientLight[2];
-    if (H>0.02)
+    if (H>0.02) //ponad 1.146° zaczynaj¹ siê cienie
     {Global::diffuseDayLight[0]=Global::diffuseLight[0]; //od wschodu do zachodu maksimum ???
      Global::diffuseDayLight[1]=Global::diffuseLight[1];
      Global::diffuseDayLight[2]=Global::diffuseLight[2];
@@ -896,10 +896,10 @@ bool __fastcall TWorld::Update()
    }
    else
    {//s³oñce pod horyzontem
-    GLfloat lum=2.0*(H>-0.314159?0.314159+H:0.0); //po zachodzie ambient siê œciemnia
-    Global::ambientDayLight[0]=lum;
-    Global::ambientDayLight[1]=lum;
-    Global::ambientDayLight[2]=lum;
+    GLfloat lum=3.1831*(H>-0.314159?0.314159+H:0.0); //po zachodzie ambient siê œciemnia
+    Global::ambientDayLight[0]=lum*Global::ambientLight[0];
+    Global::ambientDayLight[1]=lum*Global::ambientLight[1];
+    Global::ambientDayLight[2]=lum*Global::ambientLight[2];
     Global::diffuseDayLight[0]=Global::noLight[0]; //od zachodu do wschodu nie ma diffuse
     Global::diffuseDayLight[1]=Global::noLight[1];
     Global::diffuseDayLight[2]=Global::noLight[2];
@@ -1005,7 +1005,7 @@ bool __fastcall TWorld::Update()
    double modelrotate;
    tempangle=Controlled->VectorFront()*(Controlled->MoverParameters->ActiveCab==-1 ? -1 : 1);
    //modelrotate=ABuAcos(tempangle);
-   modelrotate=atan2(tempangle.z,tempangle.x);
+   modelrotate=atan2(-tempangle.x,tempangle.z);
    if (Console::Pressed(VK_CONTROL)?(Console::Pressed(Global::Keys[k_MechLeft])||Console::Pressed(Global::Keys[k_MechRight])):false)
    {//jeœli lusterko lewe albo prawe (bez rzucania na razie)
     bool lr=Console::Pressed(Global::Keys[k_MechLeft]);
@@ -1155,7 +1155,7 @@ bool __fastcall TWorld::Update()
     specularCabLight[li]=Global::specularDayLight[li]*0.5;
    }
    switch (Train->DynamicObject->MyTrack->eEnvironment)
-   {
+   {//wp³yw œwiet³a zewnêtrznego
     case e_canyon:
     {
      for (int li=0; li<3; li++)
@@ -1174,6 +1174,21 @@ bool __fastcall TWorld::Update()
       specularCabLight[li]*=0.2;
      }
     }
+    break;
+   }
+   switch (Train->iCabLightFlag)
+   {
+    case 0: //œwiat³o wewnêtrzne zgaszone
+    break;
+    case 1: //œwiat³o wewnêtrzne przygaszone (255 216 176)
+     ambientCabLight[0]=Max0R(0.700,ambientCabLight[0]); //R
+     ambientCabLight[1]=Max0R(0.593,ambientCabLight[1]); //G
+     ambientCabLight[2]=Max0R(0.483,ambientCabLight[2]); //B
+    break;
+    case 2: //œwiat³o wewnêtrzne zapalone (255 216 176)
+     ambientCabLight[0]=Max0R(1.000,ambientCabLight[0]); //R
+     ambientCabLight[1]=Max0R(0.847,ambientCabLight[1]); //G
+     ambientCabLight[2]=Max0R(0.690,ambientCabLight[2]); //B
     break;
    }
    glLightfv(GL_LIGHT0,GL_AMBIENT,ambientCabLight);
@@ -1364,6 +1379,7 @@ bool __fastcall TWorld::Update()
      //double CtrlPosNo=Controlled->MoverParameters->MainCtrlPosNo;
      //OutText2="defrot="+FloatToStrF(1+0.4*(CtrlPos/CtrlPosNo),ffFixed,2,5);
      OutText3=""; //Pomoc w sterowaniu - [F9]";
+     //OutText3=AnsiString(Global::pCameraRotationDeg); //k¹t kamery wzglêdem pó³nocy
     }
     else if (Global::iTextMode==VK_F12)
     {
@@ -1651,6 +1667,8 @@ bool __fastcall TWorld::Update()
      OutText1=Train->DynamicObject->Mechanik->Relation();
      Bezogonkow(OutText1);
      glPrint(OutText1.c_str());
+     glRasterPos2f(-0.25f,0.19f);
+     glPrint("|----------------------------|-------|-------|");
      TMTableLine *t;
      for (int i=tt->StationIndex;i<=tt->StationCount;++i)
      {//wyœwietlenie pozycji z rozk³adu
@@ -1659,10 +1677,12 @@ bool __fastcall TWorld::Update()
       OutText2=(t->Ah>=0)?AnsiString(int(100+t->Ah)).SubString(2,2)+":"+AnsiString(int(100+t->Am)).SubString(2,2):AnsiString("     ");
       OutText3=(t->Dh>=0)?AnsiString(int(100+t->Dh)).SubString(2,2)+":"+AnsiString(int(100+t->Dm)).SubString(2,2):AnsiString("     ");
       //if (AnsiString(t->StationWare).Pos("@"))
-      OutText1+=OutText2+" "+OutText3+"  "+AnsiString(t->StationWare);
+      OutText1="| "+OutText1+" | "+OutText2+" | "+OutText3+" | "+AnsiString(t->StationWare);
       Bezogonkow(OutText1);
-      glRasterPos2f(-0.25f,0.18f-0.01f*(i-tt->StationIndex));
+      glRasterPos2f(-0.25f,0.18f-0.02f*(i-tt->StationIndex));
       glPrint(OutText1.c_str());
+      glRasterPos2f(-0.25f,0.17f-0.02f*(i-tt->StationIndex));
+      glPrint("|----------------------------|-------|-------|");
      }
     }
    OutText1=OutText2=OutText3=OutText4="";
