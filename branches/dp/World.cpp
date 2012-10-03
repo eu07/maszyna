@@ -1470,7 +1470,7 @@ bool __fastcall TWorld::Update()
       //OutText3= AnsiString("  Online documentation (PL, ENG, DE, soon CZ): http://www.eu07.pl");
       //OutText3="enrot="+FloatToStrF(Controlled->MoverParameters->enrot,ffFixed,6,2);
       //OutText3="; n="+FloatToStrF(Controlled->MoverParameters->n,ffFixed,6,2);
-     }
+    }
     else if (Global::iTextMode==VK_F5)
     {//przesiadka do innego pojazdu
      if (FreeFlyModeFlag) //jeœli tryb latania
@@ -1641,7 +1641,33 @@ bool __fastcall TWorld::Update()
     OutText3="OpenGL error "+AnsiString(err)+": "+Bezogonkow(AnsiString((char *)gluErrorString(err)));
    }
   }
-  if (OutText1!="")
+  if (Global::iTextMode==VK_F3)
+  {//wyœwietlenie rozk³adu jazdy, na razie jakkolwiek
+   if (Train) //pojazd prowadzony, ewentualnie wyœwietlaæ te¿ dla AI
+    if (Train->DynamicObject->Mechanik) //musi byæ rozk³ad
+    {glTranslatef(0.0f,0.0f,-0.50f);
+     Mtable::TTrainParameters *tt=Train->DynamicObject->Mechanik->Timetable();
+     glRasterPos2f(-0.25f,0.20f);
+     OutText1=Train->DynamicObject->Mechanik->Relation();
+     Bezogonkow(OutText1);
+     glPrint(OutText1.c_str());
+     TMTableLine *t;
+     for (int i=tt->StationIndex;i<=tt->StationCount;++i)
+     {//wyœwietlenie pozycji z rozk³adu
+      t=tt->TimeTable+i; //linijka rozk³adu
+      OutText1=AnsiString(AnsiString(t->StationName)+"                        ").SubString(1,26);
+      OutText2=(t->Ah>=0)?AnsiString(int(100+t->Ah)).SubString(2,2)+":"+AnsiString(int(100+t->Am)).SubString(2,2):AnsiString("     ");
+      OutText3=(t->Dh>=0)?AnsiString(int(100+t->Dh)).SubString(2,2)+":"+AnsiString(int(100+t->Dm)).SubString(2,2):AnsiString("     ");
+      //if (AnsiString(t->StationWare).Pos("@"))
+      OutText1+=OutText2+" "+OutText3+"  "+AnsiString(t->StationWare);
+      Bezogonkow(OutText1);
+      glRasterPos2f(-0.25f,0.18f-0.01f*(i-tt->StationIndex));
+      glPrint(OutText1.c_str());
+     }
+    }
+   OutText1=OutText2=OutText3=OutText4="";
+  }
+  else if (OutText1!="")
   {//ABu: i od razu czyszczenie tego, co bylo napisane
    glTranslatef(0.0f,0.0f,-0.50f);
    glRasterPos2f(-0.25f,0.20f);
