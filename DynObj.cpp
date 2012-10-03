@@ -569,6 +569,8 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
 
 double __fastcall ABuAcos(vector3 calc_temp)
 {  //Odpowiednik funkcji Arccos, bo cos mi tam nie dzialalo.
+ return atan2(-calc_temp.x,calc_temp.z); //Ra: tak proœciej
+/*
    //Dziala w zakresie calych 360 stopni.
    //Wejscie: wektor, dla ktorego liczymy obrot wzgl. osi y
    //Wyjscie: obrot
@@ -594,6 +596,7 @@ double __fastcall ABuAcos(vector3 calc_temp)
         return calc_angle;
     }
     return 0;
+*/
 }
 
 TDynamicObject* __fastcall TDynamicObject::ABuFindNearestObject(TTrack *Track,TDynamicObject *MyPointer,int &CouplNr)
@@ -2443,10 +2446,10 @@ bool __fastcall TDynamicObject::Render()
  if (ObjSqrDist<500) //jak jest blisko - do 70m
   modelrotate=0.01f; //ma³y k¹t, ¿eby nie znika³o
  else
- {//Global::pCameraRotation to k¹t bewzglêdny w œwiecie (zero - na po³udnie)
+ {//Global::pCameraRotation to k¹t bewzglêdny w œwiecie (zero - na pó³noc)
   tempangle=(vPosition-Global::pCameraPosition); //wektor od kamery
   modelrotate=ABuAcos(tempangle); //okreœlenie k¹ta
-  if (modelrotate>M_PI) modelrotate-=(2*M_PI);
+  //if (modelrotate>M_PI) modelrotate-=(2*M_PI);
   modelrotate+=Global::pCameraRotation;
  }
  if (modelrotate>M_PI) modelrotate-=(2*M_PI);

@@ -81,7 +81,7 @@ __fastcall TTrain::TTrain()
     fTachoCount=0;
     fPPress=fNPress=0;
 
-    asMessage="";
+    //asMessage="";
     fMechCroach=0.25;
     pMechShake=vector3(0,0,0);
     vMechMovement=vector3(0,0,0);
@@ -442,6 +442,10 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
                dsbSwitch->Play(0,0,0);
            }
+       if (Console::Pressed(VK_CONTROL))
+       {//z [Ctrl] zapalamy albo gasimy œwiate³ko w kabinie
+        if (iCabLightFlag<2) ++iCabLightFlag; //zapalenie
+       }
       }
       else
       //-----------
@@ -934,7 +938,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
           }
       else
       if (cKey==Global::Keys[k_IncBrakeLevel])
-          if (DynamicObject->MoverParameters->IncBrakeLevel())
+          if (DynamicObject->MoverParameters->IncBrakeLevelF(Global::fBrakeStep))
           {
            keybrakecount=0;
            if ((isEztOer) && (DynamicObject->MoverParameters->BrakeCtrlPos<3))
@@ -955,8 +959,8 @@ void __fastcall TTrain::OnKeyPress(int cKey)
              dsbPneumaticSwitch->SetVolume(-10);
              dsbPneumaticSwitch->Play(0,0,0);
             }
-            DynamicObject->MoverParameters->DecBrakeLevel();
-			
+            DynamicObject->MoverParameters->DecBrakeLevelF(Global::fBrakeStep);
+
              /*
 			 if ((isEztOer) && (DynamicObject->MoverParameters->BrakeCtrlPos<2))
               {
@@ -1243,7 +1247,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
            }
           }
        }
-/* //OdluŸniacz przeniesiony do WOrld.cpp
+/* //OdluŸniacz przeniesiony do World.cpp
        else
        {//Ra: odluŸnianie dowolnego pojazdu przy kamerze, by³o tylko we w³asnym sk³adzie
         TDynamicObject *temp=Global::DynamicNearest();
@@ -1492,6 +1496,10 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
                dsbSwitch->Play(0,0,0);
            }
+       if (Console::Pressed(VK_CONTROL))
+       {//z [Ctrl] zapalamy albo gasimy œwiate³ko w kabinie
+        if (iCabLightFlag) --iCabLightFlag; //gaszenie
+       }
       }
       else
       //-----------
@@ -3486,18 +3494,34 @@ else
      }
      if ( Console::Pressed(Global::Keys[k_Univ3]) )
      {
-        if (Universal3ButtonGauge.SubModel)
-        if (Console::Pressed(VK_SHIFT))
-        {
-           Universal3ButtonGauge.PutValue(1);  //hunter-131211: z UpdateValue na PutValue - by zachowywal sie jak pozostale przelaczniki
-           if (btLampkaUniversal3.Active())
-              LampkaUniversal3_st=true;
+       if (Universal3ButtonGauge.SubModel)
+        if (Console::Pressed(VK_CONTROL))
+        {//z [Ctrl] zapalamy albo gasimy œwiate³ko w kabinie
+/* //tutaj jest bez sensu, trzeba reagowaæ na wciskanie klawisza!
+         if (Console::Pressed(VK_SHIFT))
+         {//zapalenie
+          if (iCabLightFlag<2) ++iCabLightFlag;
+         }
+         else
+         {//gaszenie
+          if (iCabLightFlag) --iCabLightFlag;
+         }
+*/
         }
         else
-        {
-           Universal3ButtonGauge.PutValue(0);  //hunter-131211: z UpdateValue na PutValue - by zachowywal sie jak pozostale przelaczniki
-           if (btLampkaUniversal3.Active())
-              LampkaUniversal3_st=false;
+        {//bez [Ctrl] prze³¹czamy coœtem
+         if (Console::Pressed(VK_SHIFT))
+         {
+          Universal3ButtonGauge.PutValue(1);  //hunter-131211: z UpdateValue na PutValue - by zachowywal sie jak pozostale przelaczniki
+          if (btLampkaUniversal3.Active())
+           LampkaUniversal3_st=true;
+         }
+         else
+         {
+          Universal3ButtonGauge.PutValue(0);  //hunter-131211: z UpdateValue na PutValue - by zachowywal sie jak pozostale przelaczniki
+          if (btLampkaUniversal3.Active())
+           LampkaUniversal3_st=false;
+         }
         }
      }
      //ABu030405 obsluga lampki uniwersalnej:
@@ -3548,6 +3572,35 @@ else
        }
      }
 
+    //Ra: przeklejka z SPKS - p³ynne poruszanie hamulcem
+    //if ((DynamicObject->MoverParameters->BrakeHandle==FV4a)&&(Console::Pressed(Global::Keys[k_IncBrakeLevel])))
+    if ((Console::Pressed(Global::Keys[k_IncBrakeLevel])))
+     {
+      if (Console::Pressed(VK_CONTROL))
+       {
+        //DynamicObject->MoverParameters->BrakeCtrlPos2-=dt/20.0;
+        //if (DynamicObject->MoverParameters->BrakeCtrlPos2<-1.5) DynamicObject->MoverParameters->BrakeCtrlPos2=-1.5;
+       }
+      else
+       {
+        //DynamicObject->MoverParameters->BrakeCtrlPosR+=(DynamicObject->MoverParameters->BrakeCtrlPosR>DynamicObject->MoverParameters->BrakeCtrlPosNo?0:dt*2);
+        //DynamicObject->MoverParameters->BrakeCtrlPos= floor(DynamicObject->MoverParameters->BrakeCtrlPosR+0.499);
+       }
+     }
+    //if ((DynamicObject->MoverParameters->BrakeHandle==FV4a)&&(Console::Pressed(Global::Keys[k_DecBrakeLevel])))
+    if ((Console::Pressed(Global::Keys[k_DecBrakeLevel])))
+     {
+      if (Console::Pressed(VK_CONTROL))
+       {
+        //DynamicObject->MoverParameters->BrakeCtrlPos2+=(DynamicObject->MoverParameters->BrakeCtrlPos2>2?0:dt/20.0);
+        //if (DynamicObject->MoverParameters->BrakeCtrlPos2<-3) DynamicObject->MoverParameters->BrakeCtrlPos2=-3;
+       }
+      else
+       {
+        //DynamicObject->MoverParameters->BrakeCtrlPosR-=(DynamicObject->MoverParameters->BrakeCtrlPosR<-1?0:dt*2);
+        //DynamicObject->MoverParameters->BrakeCtrlPos= floor(DynamicObject->MoverParameters->BrakeCtrlPosR+0.499);
+       }
+     }
 
 //    bool kEP;
 //    kEP=(DynamicObject->MoverParameters->BrakeSubsystem==Knorr)||(DynamicObject->MoverParameters->BrakeSubsystem==Hik)||(DynamicObject->MoverParameters->BrakeSubsystem==Kk);
