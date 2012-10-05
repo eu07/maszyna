@@ -492,7 +492,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                    }
               }
               else
-              {
+              {//Ra: zabraæ to z kabiny do... Ground?
                  int CouplNr=-2;
                  TDynamicObject *temp;
                  temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 1500, CouplNr));
@@ -938,7 +938,8 @@ void __fastcall TTrain::OnKeyPress(int cKey)
           }
       else
       if (cKey==Global::Keys[k_IncBrakeLevel])
-          if (DynamicObject->MoverParameters->IncBrakeLevelF(Global::fBrakeStep))
+       //if (DynamicObject->MoverParameters->IncBrakeLevel())
+       if (DynamicObject->MoverParameters->BrakeLevelAdd(Global::fBrakeStep))
           {
            keybrakecount=0;
            if ((isEztOer) && (DynamicObject->MoverParameters->BrakeCtrlPos<3))
@@ -959,7 +960,8 @@ void __fastcall TTrain::OnKeyPress(int cKey)
              dsbPneumaticSwitch->SetVolume(-10);
              dsbPneumaticSwitch->Play(0,0,0);
             }
-            DynamicObject->MoverParameters->DecBrakeLevelF(Global::fBrakeStep);
+            //DynamicObject->MoverParameters->DecBrakeLevel();
+            DynamicObject->MoverParameters->BrakeLevelAdd(-Global::fBrakeStep);
 
              /*
 			 if ((isEztOer) && (DynamicObject->MoverParameters->BrakeCtrlPos<2))
@@ -974,8 +976,9 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else
       if (cKey==Global::Keys[k_EmergencyBrake])
       {
-          while (DynamicObject->MoverParameters->IncBrakeLevel());
-          DynamicObject->MoverParameters->EmergencyBrakeFlag=true;
+       //while (DynamicObject->MoverParameters->IncBrakeLevel());
+       DynamicObject->MoverParameters->BrakeLevelSet(DynamicObject->MoverParameters->BrakeCtrlPosNo);
+       DynamicObject->MoverParameters->EmergencyBrakeFlag=true;
       }
       else
       if (cKey==Global::Keys[k_Brake3])
@@ -985,23 +988,25 @@ void __fastcall TTrain::OnKeyPress(int cKey)
              dsbPneumaticSwitch->SetVolume(-10);
              dsbPneumaticSwitch->Play(0,0,0);
             }
-          while (DynamicObject->MoverParameters->BrakeCtrlPos>DynamicObject->MoverParameters->BrakeCtrlPosNo-1 && DynamicObject->MoverParameters->DecBrakeLevel());
-          while (DynamicObject->MoverParameters->BrakeCtrlPos<DynamicObject->MoverParameters->BrakeCtrlPosNo-1 && DynamicObject->MoverParameters->IncBrakeLevel());
+       //while (DynamicObject->MoverParameters->BrakeCtrlPos>DynamicObject->MoverParameters->BrakeCtrlPosNo-1 && DynamicObject->MoverParameters->DecBrakeLevel());
+       //while (DynamicObject->MoverParameters->BrakeCtrlPos<DynamicObject->MoverParameters->BrakeCtrlPosNo-1 && DynamicObject->MoverParameters->IncBrakeLevel());
+       DynamicObject->MoverParameters->BrakeLevelSet(DynamicObject->MoverParameters->BrakeCtrlPosNo-1);
       }
       else
       if (cKey==Global::Keys[k_Brake2])
       {
-          if ((isEztOer) && ((DynamicObject->MoverParameters->BrakeCtrlPos==1)||(DynamicObject->MoverParameters->BrakeCtrlPos==-1)))
-            {
-             dsbPneumaticSwitch->SetVolume(-10);
-             dsbPneumaticSwitch->Play(0,0,0);
-            }
-          while (DynamicObject->MoverParameters->BrakeCtrlPos>DynamicObject->MoverParameters->BrakeCtrlPosNo/2 && DynamicObject->MoverParameters->DecBrakeLevel());
-          while (DynamicObject->MoverParameters->BrakeCtrlPos<DynamicObject->MoverParameters->BrakeCtrlPosNo/2 && DynamicObject->MoverParameters->IncBrakeLevel());
-
-          if (GetAsyncKeyState(VK_CONTROL)<0)
-            if ((DynamicObject->MoverParameters->BrakeSubsystem==Oerlikon)&&(DynamicObject->MoverParameters->BrakeSystem==Pneumatic))
-              DynamicObject->MoverParameters->BrakeCtrlPos=-2;
+       if ((isEztOer) && ((DynamicObject->MoverParameters->BrakeCtrlPos==1)||(DynamicObject->MoverParameters->BrakeCtrlPos==-1)))
+       {
+        dsbPneumaticSwitch->SetVolume(-10);
+        dsbPneumaticSwitch->Play(0,0,0);
+       }
+       //while (DynamicObject->MoverParameters->BrakeCtrlPos>DynamicObject->MoverParameters->BrakeCtrlPosNo/2 && DynamicObject->MoverParameters->DecBrakeLevel());
+       //while (DynamicObject->MoverParameters->BrakeCtrlPos<DynamicObject->MoverParameters->BrakeCtrlPosNo/2 && DynamicObject->MoverParameters->IncBrakeLevel());
+       DynamicObject->MoverParameters->BrakeLevelSet(DynamicObject->MoverParameters->BrakeCtrlPosNo/2);
+       if (GetAsyncKeyState(VK_CONTROL)<0)
+        if ((DynamicObject->MoverParameters->BrakeSubsystem==Oerlikon)&&(DynamicObject->MoverParameters->BrakeSystem==Pneumatic))
+         //DynamicObject->MoverParameters->BrakeCtrlPos=-2;
+         DynamicObject->MoverParameters->BrakeLevelSet(-2);
       }
       else
       if (cKey==Global::Keys[k_Brake1])
@@ -1011,8 +1016,9 @@ void __fastcall TTrain::OnKeyPress(int cKey)
              dsbPneumaticSwitch->SetVolume(-10);
              dsbPneumaticSwitch->Play(0,0,0);
             }
-          while (DynamicObject->MoverParameters->BrakeCtrlPos>1 && DynamicObject->MoverParameters->DecBrakeLevel());
-          while (DynamicObject->MoverParameters->BrakeCtrlPos<1 && DynamicObject->MoverParameters->IncBrakeLevel());
+       //while (DynamicObject->MoverParameters->BrakeCtrlPos>1 && DynamicObject->MoverParameters->DecBrakeLevel());
+       //while (DynamicObject->MoverParameters->BrakeCtrlPos<1 && DynamicObject->MoverParameters->IncBrakeLevel());
+       DynamicObject->MoverParameters->BrakeLevelSet(1);
       }
       else
       if (cKey==Global::Keys[k_Brake0])
@@ -1022,8 +1028,9 @@ void __fastcall TTrain::OnKeyPress(int cKey)
              dsbPneumaticSwitch->SetVolume(-10);
              dsbPneumaticSwitch->Play(0,0,0);
             }
-          while (DynamicObject->MoverParameters->BrakeCtrlPos>0 && DynamicObject->MoverParameters->DecBrakeLevel());
-          while (DynamicObject->MoverParameters->BrakeCtrlPos<0 && DynamicObject->MoverParameters->IncBrakeLevel());
+       //while (DynamicObject->MoverParameters->BrakeCtrlPos>0 && DynamicObject->MoverParameters->DecBrakeLevel());
+       //while (DynamicObject->MoverParameters->BrakeCtrlPos<0 && DynamicObject->MoverParameters->IncBrakeLevel());
+       DynamicObject->MoverParameters->BrakeLevelSet(0);
       }
       else
       if (cKey==Global::Keys[k_WaveBrake])
@@ -1033,8 +1040,9 @@ void __fastcall TTrain::OnKeyPress(int cKey)
              dsbPneumaticSwitch->SetVolume(-10);
              dsbPneumaticSwitch->Play(0,0,0);
             }
-          while (DynamicObject->MoverParameters->BrakeCtrlPos>-1 && DynamicObject->MoverParameters->DecBrakeLevel());
-          while (DynamicObject->MoverParameters->BrakeCtrlPos<-1 && DynamicObject->MoverParameters->IncBrakeLevel());
+       //while (DynamicObject->MoverParameters->BrakeCtrlPos>-1 && DynamicObject->MoverParameters->DecBrakeLevel());
+       //while (DynamicObject->MoverParameters->BrakeCtrlPos<-1 && DynamicObject->MoverParameters->IncBrakeLevel());
+       DynamicObject->MoverParameters->BrakeLevelSet(-1);
       }
       else
       //---------------
@@ -2881,13 +2889,14 @@ else
       {b=(((Global::fCalibrateIn[0][3]*b)+Global::fCalibrateIn[0][2])*b+Global::fCalibrateIn[0][1])*b+Global::fCalibrateIn[0][0];
        if (b<-2.0) b=-2.0; else if (b>DynamicObject->MoverParameters->BrakeCtrlPosNo) b=DynamicObject->MoverParameters->BrakeCtrlPosNo;
        BrakeCtrlGauge.UpdateValue(b); //przesów bez zaokr¹glenia
-       DynamicObject->MoverParameters->BrakeCtrlPos=int(b); //sposób zaokr¹glania jest do ustalenia
+       DynamicObject->MoverParameters->BrakeLevelSet(b);
       }
-      else //standardowa prodedura z kranem powi¹zanym z klawiatur¹
-       BrakeCtrlGauge.UpdateValue(double(DynamicObject->MoverParameters->BrakeCtrlPos));
+      //else //standardowa prodedura z kranem powi¹zanym z klawiatur¹
+      // BrakeCtrlGauge.UpdateValue(double(DynamicObject->MoverParameters->BrakeCtrlPos));
      }
-     else //standardowa prodedura z kranem powi¹zanym z klawiatur¹
-      BrakeCtrlGauge.UpdateValue(double(DynamicObject->MoverParameters->BrakeCtrlPos));
+     //else //standardowa prodedura z kranem powi¹zanym z klawiatur¹
+     // BrakeCtrlGauge.UpdateValue(double(DynamicObject->MoverParameters->BrakeCtrlPos));
+     BrakeCtrlGauge.UpdateValue(DynamicObject->MoverParameters->fBrakeCtrlPos);
      BrakeCtrlGauge.Update();
     }
     if (LocalBrakeGauge.SubModel)
@@ -3563,7 +3572,8 @@ else
      if ((!Console::Pressed(Global::Keys[k_DecBrakeLevel]))&&(!Console::Pressed(Global::Keys[k_WaveBrake]) )&&(DynamicObject->MoverParameters->BrakeCtrlPos==-1)&&(DynamicObject->MoverParameters->BrakeSubsystem==Oerlikon)&&(DynamicObject->MoverParameters->BrakeSystem==ElectroPneumatic)&&(DynamicObject->Controller!=AIdriver))
      {
      //DynamicObject->MoverParameters->BrakeCtrlPos=(DynamicObject->MoverParameters->BrakeCtrlPos)+1;
-     DynamicObject->MoverParameters->IncBrakeLevel();
+     //DynamicObject->MoverParameters->IncBrakeLevel();
+     DynamicObject->MoverParameters->BrakeLevelSet(DynamicObject->MoverParameters->BrakeCtrlPos+1);
      keybrakecount=0;
        if ((DynamicObject->MoverParameters->TrainType==dt_EZT)&&(DynamicObject->MoverParameters->Mains)&&(DynamicObject->MoverParameters->ActiveDir!=0))
        {
@@ -3594,11 +3604,13 @@ else
        {
         //DynamicObject->MoverParameters->BrakeCtrlPos2+=(DynamicObject->MoverParameters->BrakeCtrlPos2>2?0:dt/20.0);
         //if (DynamicObject->MoverParameters->BrakeCtrlPos2<-3) DynamicObject->MoverParameters->BrakeCtrlPos2=-3;
+        //DynamicObject->MoverParameters->BrakeLevelAdd(DynamicObject->MoverParameters->fBrakeCtrlPos<-1?0:dt*2);
        }
       else
        {
         //DynamicObject->MoverParameters->BrakeCtrlPosR-=(DynamicObject->MoverParameters->BrakeCtrlPosR<-1?0:dt*2);
         //DynamicObject->MoverParameters->BrakeCtrlPos= floor(DynamicObject->MoverParameters->BrakeCtrlPosR+0.499);
+        //DynamicObject->MoverParameters->BrakeLevelAdd(DynamicObject->MoverParameters->fBrakeCtrlPos<-1?0:-dt*2);
        }
      }
 
@@ -4567,4 +4579,5 @@ vector3 __fastcall TTrain::MirrorPosition(bool lewe)
   case 2: //tylna (-1)
    return DynamicObject->mMatrix*vector3(lewe?Cabine[iCabn].CabPos1.x:Cabine[iCabn].CabPos2.x,1.5+Cabine[iCabn].CabPos1.y,Cabine[iCabn].CabPos1.z);
  }
+ return DynamicObject->GetPosition(); //wspó³rzêdne œrodka pojazdu
 };

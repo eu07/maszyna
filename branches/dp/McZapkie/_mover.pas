@@ -682,10 +682,8 @@ TYPE
                 procedure SecuritySystemCheck(dt:real);
 
                {! stopnie hamowania - hamulec zasadniczy}
-                function IncBrakeLevel:boolean;
-                function DecBrakeLevel:boolean;
-                function IncBrakeLevelF(CtrlSpeed:real):boolean;
-                function DecBrakeLevelF(CtrlSpeed:real):boolean;
+                function IncBrakeLevelOld:boolean;
+                function DecBrakeLevelOld:boolean;
                {! stopnie hamowania - hamulec pomocniczy}
                 function IncLocalBrakeLevel(CtrlSpeed:byte):boolean;
                 function DecLocalBrakeLevel(CtrlSpeed:byte):boolean;
@@ -1662,12 +1660,7 @@ end;
 
 {nastawy hamulca}
 
-function T_MoverParameters.IncBrakeLevelF(CtrlSpeed:real):boolean;
-begin
- IncBrakeLevelF:=IncBrakeLevel();
-end;
-
-function T_MoverParameters.IncBrakeLevel:boolean;
+function T_MoverParameters.IncBrakeLevelOld:boolean;
 //var b:byte;
 begin
   if (BrakeCtrlPosNo>0) {and (LocalBrakePos=0)} then
@@ -1692,7 +1685,7 @@ begin
 
 //youBy: EP po nowemu
 
-        IncBrakeLevel:=True;
+        IncBrakeLevelOld:=True;
         if (BrakePressureTable[BrakeCtrlPos].PipePressureVal<0)and(BrakePressureTable[BrakeCtrlPos-1].PipePressureVal>0) then
           LimPipePress:=PipePress;
 
@@ -1723,21 +1716,16 @@ begin
       end
      else
       begin
-        IncBrakeLevel:=False;
+        IncBrakeLevelOld:=False;
 {        if BrakeSystem=Pneumatic then
          EmergencyBrakeSwitch(True); }
       end;
    end
   else
-   IncBrakeLevel:=False;
+   IncBrakeLevelOld:=False;
 end;
 
-function T_MoverParameters.DecBrakeLevelF(CtrlSpeed:Real):boolean;
-begin
- DecBrakeLevelF:=DecBrakeLevel();
-end;
-
-function T_MoverParameters.DecBrakeLevel:boolean;
+function T_MoverParameters.DecBrakeLevelOld:boolean;
 //var b:byte;
 begin
   if (BrakeCtrlPosNo>0) {and (LocalBrakePos=0)} then
@@ -1766,7 +1754,7 @@ begin
 //          BrakeStatus:=b_off;   {luzowanie jesli dziala oraz nie byl wlaczony odluzniacz}
 
 //youBy: EP po nowemu
-        DecBrakeLevel:=True;
+        DecBrakeLevelOld:=True;
         if (BrakePressureTable[BrakeCtrlPos].PipePressureVal<0.0)and(BrakePressureTable[BrakeCtrlPos+1].PipePressureVal>0) then
           LimPipePress:=PipePress;
 
@@ -1800,10 +1788,10 @@ begin
 *)
       end
      else
-      DecBrakeLevel:=False;
+      DecBrakeLevelOld:=False;
    end
      else
-      DecBrakeLevel:=False;
+      DecBrakeLevelOld:=False;
 end;
 
 function T_MoverParameters.IncLocalBrakeLevelFAST:boolean;
