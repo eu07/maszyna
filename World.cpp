@@ -1325,7 +1325,8 @@ bool __fastcall TWorld::Update()
      Train->DynamicObject->MoverParameters->SecuritySystem.Status=0;
      Train->DynamicObject->ABuSetModelShake(vector3(0,0,0));
      Train->DynamicObject->MoverParameters->ActiveCab=0;
-     Train->DynamicObject->MoverParameters->BrakeCtrlPos=-2;
+     //Train->DynamicObject->MoverParameters->BrakeCtrlPos=-2;
+     Train->DynamicObject->MoverParameters->BrakeLevelSet(-2);
 ///     Train->DynamicObject->MoverParameters->LimPipePress=-1;
 ///     Train->DynamicObject->MoverParameters->ActFlowSpeed=0;
 ///     Train->DynamicObject->Mechanik->CloseLog();

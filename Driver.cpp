@@ -2643,7 +2643,8 @@ bool __fastcall TController::UpdateSituation(double dt)
        if (Controlling->BrakeSubsystem==Oerlikon)
        {
         if (Controlling->BrakeCtrlPos==-2)
-         Controlling->BrakeCtrlPos=0;
+         //Controlling->BrakeCtrlPos=0;
+         Controlling->BrakeLevelSet(0);
         if ((Controlling->BrakeCtrlPos<0)&&(Controlling->PipeBrakePress<0.01))//{(CntrlPipePress-(Volume/BrakeVVolume/10)<0.01)})
          Controlling->IncBrakeLevel();
         if ((Controlling->BrakeCtrlPos==0)&&(AbsAccS<0.0)&&(AccDesired>0.0))
