@@ -2161,7 +2161,8 @@ begin
       begin
        case (BrakeSubSystem) of
         Oerlikon:
-          with BrakePressureTable[BrakeCtrlPos] do
+//          with BrakePressureTable[BrakeCtrlPos] do
+          with BrakePressureActual do
            begin
             if(BrakeSystem=ElectroPneumatic)then
              begin

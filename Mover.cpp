@@ -154,20 +154,20 @@ void __fastcall TMoverParameters::BrakeLevelSet(double b)
  else
   if (fBrakeCtrlPos>double(BrakeCtrlPosNo))
    fBrakeCtrlPos=BrakeCtrlPosNo;
- int x=floor(fBrakeCtrlPos+0.5); //zaokr¹glona wartoœæ
+ int x=floor(fBrakeCtrlPos); //zaokr¹glona wartoœæ - jeœli odwo³ujemy siê do BrakeCtrlPos w poœrednich, to musi byæ obciête
  while ((x>BrakeCtrlPos)&&(BrakeCtrlPos<BrakeCtrlPosNo)) //jeœli zwiêkszy³o siê o 1
   T_MoverParameters::IncBrakeLevelOld();
  while ((x<BrakeCtrlPos)&&(BrakeCtrlPos>=-1)) //jeœli zmniejszy³o siê o 1
   T_MoverParameters::DecBrakeLevelOld();
- BrakePressureActual=BrakePressureTable[BrakeCtrlPos]; //skopiowanie pozycji
+ BrakePressureActual=BrakePressureTable[BrakeCtrlPos+2]; //skopiowanie pozycji
  if (fBrakeCtrlPos>0.0)
  {//wartoœci poœrednie wyliczamy tylko dla hamowania
   double u=fBrakeCtrlPos-floor(fBrakeCtrlPos); //u³amek ponad wartoœæ ca³kowit¹
   if (u>0.0)
   {//wyliczamy wartoœci wa¿one - ale nie wiem, czy to ma sens
-   BrakePressureActual.PipePressureVal+=-u*BrakePressureActual.PipePressureVal+u*BrakePressureTable[BrakeCtrlPos+1].PipePressureVal;
-   BrakePressureActual.BrakePressureVal+=-u*BrakePressureActual.BrakePressureVal+u*BrakePressureTable[BrakeCtrlPos+1].BrakePressureVal;
-   BrakePressureActual.FlowSpeedVal+=-u*BrakePressureActual.FlowSpeedVal+u*BrakePressureTable[BrakeCtrlPos+1].FlowSpeedVal;
+   BrakePressureActual.PipePressureVal+=-u*BrakePressureTable[BrakeCtrlPos+2].PipePressureVal+u*BrakePressureTable[BrakeCtrlPos+1+2].PipePressureVal;
+//   BrakePressureActual.BrakePressureVal+=-u*BrakePressureActual.BrakePressureVal+u*BrakePressureTable[BrakeCtrlPos+1].BrakePressureVal;  //to chyba nie bêdzie tak dzia³aæ, zw³aszcza w EN57
+   BrakePressureActual.FlowSpeedVal+=-u*BrakePressureTable[BrakeCtrlPos+2].FlowSpeedVal+u*BrakePressureTable[BrakeCtrlPos+1+2].FlowSpeedVal;
   }
  }
 };
