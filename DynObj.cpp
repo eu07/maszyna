@@ -1089,7 +1089,6 @@ __fastcall TDynamicObject::TDynamicObject()
  MoverParameters=NULL;
  Mechanik=NULL;
  MechInside=false;
- //TrainParams=NULL; //Ra: wywaliæ to st¹d!
  //McZapkie-270202
  Controller=AIdriver;
  bDisplayCab=false; //030303
@@ -1202,7 +1201,6 @@ __fastcall TDynamicObject::~TDynamicObject()
 {//McZapkie-250302 - zamykanie logowania parametrow fizycznych
  SafeDelete(Mechanik);
  SafeDelete(MoverParameters);
- //SafeDelete(TrainParams); //Ra: wywaliæ to st¹d!
  //Ra: wy³¹czanie dŸwiêków powinno byæ dodane w ich destruktorach, ale siê sypie
 /* to te¿ siê sypie
  for (int i=0;i<MaxAxles;++i)
@@ -1312,7 +1310,7 @@ double __fastcall TDynamicObject::Init(
   if (DriverType.Pos("h")||DriverType.Pos("r"))
   {//McZapkie-110303: mechanik i rozklad tylko gdy jest obsada
    MoverParameters->ActiveCab=MoverParameters->CabNo; //ustalenie aktywnej kabiny (rozrz¹d)
-   Mechanik=new TController(Controller,this,NULL,Aggressive);
+   Mechanik=new TController(Controller,this,Aggressive);
    if (TrainName.IsEmpty()) //jeœli nie w sk³adzie
     Mechanik->PutCommand("Timetable:",iDirection?-fVel:fVel,0,NULL); //tryb poci¹gowy z ustalon¹ prêdkoœci¹ (wzglêdem sprzêgów)
    //if (TrainName!="none")
