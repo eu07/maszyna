@@ -2584,7 +2584,7 @@ bool __fastcall TGround::InitEvents()
                tmp=FindGroundNode(buff,TP_MEMCELL);
                if (tmp) Current->Params[9].asMemCell=tmp->MemCell;
                if (!Current->Params[9].asMemCell)
-                Error(AnsiString("MemCell \"")+AnsiString(buff)+AnsiString("\" does not exist"));
+                Error(AnsiString("MemCell \"")+AnsiString(buff)+AnsiString("\" does not exist in \""+Current->asName+"\""));
               }
              }
              for (i=0;i<8;i++)

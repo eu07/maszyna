@@ -316,6 +316,7 @@ public:
 	double MBPM;
 	TLocalBrake LocalBrake;
 	TBrakePressure BrakePressureTable[13];
+	TBrakePressure BrakePressureActual;
 	Byte ASBType;
 	Byte TurboTest;
 	double MaxBrakeForce;
