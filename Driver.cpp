@@ -857,6 +857,7 @@ __fastcall TController::TController
  iSpeedTableSize=16;
  sSpeedTable=new TSpeedPos[iSpeedTableSize];
  TableClear();
+ iRadioChannel=1; //numer aktualnego kana³u radiowego
 };
 
 void __fastcall TController::CloseLog()
@@ -1348,7 +1349,7 @@ bool __fastcall TController::PrepareEngine()
     OK=Controlling->MainSwitch(true);
    }
    else
-   {//Ra: iDirection okreœla, w któr¹ stronê jedzie sk³ad wzglêdem sprzêgów pojazdu z AI  
+   {//Ra: iDirection okreœla, w któr¹ stronê jedzie sk³ad wzglêdem sprzêgów pojazdu z AI
     OK=(OrderDirectionChange(iDirection,Controlling)==-1);
     Controlling->CompressorSwitch(true);
     Controlling->ConverterSwitch(true);
@@ -1897,6 +1898,12 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
     Controlling->WarningSignal=(NewValue2>1)?2:1; //wysokoœæ tonu
    }
  }
+ else if (NewCommand=="Radio_channel")
+ {//wybór kana³u radiowego (którego powinien u¿ywaæ AI, rêczny maszynista musi go ustawiæ sam)
+  if (NewValue1>=0) //wartoœci ujemne s¹ zarezerwowane, -1 = nie zmieniaæ kana³u
+   iRadioChannel=NewValue1;
+  //NewValue2 mo¿e zawieraæ dodatkowo oczekiwany kod odpowiedzi, np. dla W29 "nawi¹zaæ ³¹cznoœæ radiow¹ z dy¿urnym ruchu odcinkowym"
+ }
  else return false; //nierozpoznana - wys³aæ bezpoœrednio do pojazdu
  return true; //komenda zosta³a przetworzona
 };
@@ -2137,9 +2144,10 @@ bool __fastcall TController::UpdateSituation(double dt)
       {//2. faza odczepiania: zmieñ kierunek na przeciwny i dociœnij
        //za rad¹ yB ustawiamy pozycjê 3 kranu (ruszanie kranem w innych miejscach powino zostaæ wy³¹czone)
        //WriteLog("Zahamowanie sk³adu");
-       while ((Controlling->BrakeCtrlPos>3)&&Controlling->DecBrakeLevel());
-       while ((Controlling->BrakeCtrlPos<3)&&Controlling->IncBrakeLevel());
-       double p=Controlling->BrakePressureTable[Controlling->BrakeCtrlPos+2].PipePressureVal; //tu mo¿e byæ 0 albo -1 nawet
+       //while ((Controlling->BrakeCtrlPos>3)&&Controlling->DecBrakeLevel());
+       //while ((Controlling->BrakeCtrlPos<3)&&Controlling->IncBrakeLevel());
+       Controlling->BrakeLevelSet(3);
+       double p=Controlling->BrakePressureActual.PipePressureVal; //tu mo¿e byæ 0 albo -1 nawet
        if (p<0.37) p=0.37; //TODO: zabezpieczenie przed dziwnymi CHK do czasu wyjaœnienia sensu 0 oraz -1 w tym miejscu
        if (Controlling->PipePress<p+0.01)
        {//jeœli w miarê zosta³ zahamowany (ciœnienie mniejsze ni¿ podane na pozycji 3, zwyle 0.37)
@@ -2622,6 +2630,12 @@ bool __fastcall TController::UpdateSituation(double dt)
      //koniec wybiegu i hamowania
      if (AIControllFlag)
      {//czêœæ wykonawcza tylko dla AI, dla cz³owieka jedynie napisy
+      if (Controlling->ConvOvldFlag)
+      {//wywali³ bezpiecznik nadmiarowy przetwornicy
+       while (DecSpeed()); //zerowanie napêdu
+       Controlling->ConvOvldFlag=false; //reset nadmiarowego
+       PrepareEngine(); //próba ponownego za³¹czenia
+      }
       //w³¹czanie bezpiecznika
       if (Controlling->EngineType==ElectricSeriesMotor)
        if (Controlling->FuseFlag||Need_TryAgain)

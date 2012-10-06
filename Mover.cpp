@@ -16,7 +16,7 @@ __fastcall TMoverParameters::TMoverParameters(double VelInitial,AnsiString TypeN
  DimHalf.x=0.5*Dim.W; //po³owa szerokoœci, OX jest w bok?
  DimHalf.y=0.5*Dim.L; //po³owa d³ugoœci, OY jest do przodu?
  DimHalf.z=0.5*Dim.H; //po³owa wysokoœci, OZ jest w górê?
- fBrakeCtrlPos=BrakeCtrlPos; //odciêcie na start
+ BrakeLevelSet(-2); //Pascal ustawia na 0, przestawimy na odciêcie (CHK jest jeszcze nie wczytane!)
 };
 
 
@@ -156,9 +156,9 @@ void __fastcall TMoverParameters::BrakeLevelSet(double b)
    fBrakeCtrlPos=BrakeCtrlPosNo;
  int x=floor(fBrakeCtrlPos); //jeœli odwo³ujemy siê do BrakeCtrlPos w poœrednich, to musi byæ obciête a nie zaokr¹gone
  while ((x>BrakeCtrlPos)&&(BrakeCtrlPos<BrakeCtrlPosNo)) //jeœli zwiêkszy³o siê o 1
-  T_MoverParameters::IncBrakeLevelOld();
+  if (!T_MoverParameters::IncBrakeLevelOld()) break; //wyjœcie awaryjne
  while ((x<BrakeCtrlPos)&&(BrakeCtrlPos>=-1)) //jeœli zmniejszy³o siê o 1
-  T_MoverParameters::DecBrakeLevelOld();
+  if (!T_MoverParameters::DecBrakeLevelOld()) break;
  BrakePressureActual=BrakePressureTable[BrakeCtrlPos+2]; //skopiowanie pozycji
  if (fBrakeCtrlPos>0.0)
  {//wartoœci poœrednie wyliczamy tylko dla hamowania
@@ -176,18 +176,57 @@ bool __fastcall TMoverParameters::BrakeLevelAdd(double b)
 {//dodanie wartoœci (b) do pozycji hamulca (w tym ujemnej)
  //zwraca false, gdy po dodaniu by³o by poza zakresem
  BrakeLevelSet(fBrakeCtrlPos+b);
- return b>0.0?(fBrakeCtrlPos<BrakeCtrlPosNo):(BrakeCtrlPos>=-1.0); //true, jeœli mo¿na kontynuowaæ
+ return b>0.0?(fBrakeCtrlPos<BrakeCtrlPosNo):(BrakeCtrlPos>-1.0); //true, jeœli mo¿na kontynuowaæ
 };
 
 bool __fastcall TMoverParameters::IncBrakeLevel()
-{//nowa wersja na u¿ytek AI
+{//nowa wersja na u¿ytek AI, false gdy osi¹gniêto pozycjê BrakeCtrlPosNo
  return BrakeLevelAdd(1.0);
 };
 
 bool __fastcall TMoverParameters::DecBrakeLevel()
-{//nowa wersja na u¿ytek AI
+{//nowa wersja na u¿ytek AI, false gdy osi¹gniêto pozycjê -1
  return BrakeLevelAdd(-1.0);
 };
 
+bool __fastcall TMoverParameters::ChangeCab(int direction)
+{//zmiana kabiny i resetowanie ustawien
+//var //b:byte;
+//    c:boolean;
+ if (abs(ActiveCab+direction)<2)
+ {
+//  if (ActiveCab+direction=0) then LastCab:=ActiveCab;
+   ActiveCab=ActiveCab+direction;
+   //ChangeCab=true;
+   if ((BrakeSystem==Pneumatic)&&(BrakeCtrlPosNo>0))
+   {
+    BrakeLevelSet(-2); //BrakeCtrlPos=-2;
+    LimPipePress=PipePress;
+    ActFlowSpeed=0;
+   }
+   else
+    BrakeLevelSet(0); //BrakeCtrlPos=0;
+//   if not TestFlag(BrakeStatus,b_dmg) then
+//    BrakeStatus:=b_off;
+   MainCtrlPos=0;
+   ScndCtrlPos=0;
+   if ((EngineType!=DieselEngine)&&(EngineType!=DieselElectric))
+   {
+    Mains=false;
+    CompressorAllow=false;
+    ConverterAllow=false;
+   }
+//   if (ActiveCab<>LastCab) and (ActiveCab<>0) then
+//    begin
+//     c:=PantFrontUp;
+//     PantFrontUp:=PantRearUp;
+//     PantRearUp:=c;
+//    end; //yB: poszlo do wylacznika rozrzadu
+  ActiveDir=0;
+  DirAbsolute=0;
+  return true;
+ }
+ return false;
+};
 
 

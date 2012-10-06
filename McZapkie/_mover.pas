@@ -749,7 +749,7 @@ TYPE
                 function MainSwitch(State:boolean): boolean;
 //                procedure SwitchMainKey;
                {! zmiana kabiny i resetowanie ustawien}
-                function ChangeCab(direction:integer): boolean;
+                //function ChangeCab(direction:integer): boolean;
 
                {! wl/wyl przetwornicy}
                 function ConverterSwitch(State:boolean):boolean;
@@ -1497,6 +1497,7 @@ begin
   //else MainSwitch:=False;
 end;
 
+{//przeniesione do C++
 function T_MoverParameters.ChangeCab(direction:integer): boolean;
 //var //b:byte;
 //    c:boolean;
@@ -1536,6 +1537,7 @@ begin
  else
   ChangeCab:=False;
 end;
+}
 
 {wl/wyl przetwornicy}
 function T_MoverParameters.ConverterSwitch(State:boolean):boolean;
@@ -1674,7 +1676,7 @@ begin
 //       wystarczy spojrzec na Knorra i Oerlikona EP w EN57; mogly ze soba wspolapracowac
 {
         if (BrakeSystem=ElectroPneumatic) then
-          if (BrakePressureTable[BrakeCtrlPos].BrakeType=ElectroPneumatic) then
+          if (BrakePressureActual.BrakeType=ElectroPneumatic) then
            begin
 //             BrakeStatus:=ord(BrakeCtrlPos>0);
              SendCtrlToNext('BrakeCtrl',BrakeCtrlPos,CabNo);
@@ -1687,7 +1689,7 @@ begin
 //youBy: EP po nowemu
 
         IncBrakeLevelOld:=True;
-        if (BrakePressureTable[BrakeCtrlPos].PipePressureVal<0)and(BrakePressureTable[BrakeCtrlPos-1].PipePressureVal>0) then
+        if (BrakePressureActual.PipePressureVal<0)and(BrakePressureTable[BrakeCtrlPos-1].PipePressureVal>0) then
           LimPipePress:=PipePress;
 
         if (BrakeSystem=ElectroPneumatic) then
@@ -1706,9 +1708,9 @@ begin
            end;
 
         //yB: dla Oerlikona jest zdeka ulanskie napelnianie
-        if(BrakeSubsystem=Oerlikon)and(BrakeSystem=Pneumatic)then
-         if(BrakeCtrlPos=-1)then
-          with(BrakePressureTable[BrakeCtrlPos])do
+        if (BrakeSubsystem=Oerlikon)and(BrakeSystem=Pneumatic) then
+         if (BrakeCtrlPos=-1) then
+          with (BrakePressureActual) do
            begin
             LimPipePress:=0.85;
             ActFlowSpeed:=FlowSpeedVal;
@@ -1744,7 +1746,7 @@ begin
 //       wystarczy spojrzec na Knorra i Oerlikona EP w EN57; mogly ze soba wspolapracowac
 {
         if (BrakeSystem=ElectroPneumatic) then
-          if BrakePressureTable[BrakeCtrlPos].BrakeType=ElectroPneumatic then
+          if BrakePressureActual.BrakeType=ElectroPneumatic then
            begin
 //             BrakeStatus:=ord(BrakeCtrlPos>0);
              SendCtrlToNext('BrakeCtrl',BrakeCtrlPos,CabNo);
@@ -1756,7 +1758,7 @@ begin
 
 //youBy: EP po nowemu
         DecBrakeLevelOld:=True;
-        if (BrakePressureTable[BrakeCtrlPos].PipePressureVal<0.0)and(BrakePressureTable[BrakeCtrlPos+1].PipePressureVal>0) then
+        if (BrakePressureActual.PipePressureVal<0.0)and(BrakePressureTable[BrakeCtrlPos+1].PipePressureVal>0) then
           LimPipePress:=PipePress;
 
         if (BrakeSystem=ElectroPneumatic) then
@@ -1777,7 +1779,7 @@ begin
         //yB: dla Oerlikona jest zdeka ulanskie napelnianie
         if(BrakeSubsystem=Oerlikon)and(BrakeSystem=Pneumatic)then
          if(BrakeCtrlPos=-1)then
-          with(BrakePressureTable[BrakeCtrlPos])do
+          with(BrakePressureActual)do
            begin
             LimPipePress:=0.85;
             ActFlowSpeed:=FlowSpeedVal;
@@ -2016,8 +2018,8 @@ begin
         end;
 
        {elektropneumatyczny hamulec zasadniczy}
-       if (BrakePressureTable[BrakeCtrlPos].BrakeType=ElectroPneumatic) and Mains and (ActiveDir<>0)then
-         with BrakePressureTable[BrakeCtrlPos] do
+       if (BrakePressureActual.BrakeType=ElectroPneumatic) and Mains and (ActiveDir<>0)then
+         with BrakePressureActual do
           if BrakePressureVal<>-1 then
            begin
              if TestFlag(BrakeStatus,b_epused) then
@@ -2043,7 +2045,7 @@ begin
            end; {sterowanie cisnieniem}
 
        {pneumatyczny hamulec zasadniczy}
-       if ((BrakeCtrlPosNo>0) and (BrakePressureTable[BrakeCtrlPos].BrakeType=Pneumatic)) or
+       if ((BrakeCtrlPosNo>0) and (BrakePressureActual.BrakeType=Pneumatic)) or
           (BrakeSystem=Pneumatic) or (BrakeSystem=ElectroPneumatic)then
         begin
           if TestFlag(BrakeStatus,b_release)or((TrainType=dt_ET42)and(ScndCtrlActualPos<255)and(DynamicBrakeFlag))then  //odluzniacz
@@ -2200,7 +2202,7 @@ begin
              end;
            end;
         Knorr:
-          with BrakePressureTable[BrakeCtrlPos] do
+          with BrakePressureActual do
             begin
              if not(PipePressureVal=-1)then
                LimPipePress:=PipePressureVal;
@@ -4554,6 +4556,8 @@ Begin
           end;
        end;
      end;
+     //fBrakeCtrlPos:=BrakeCtrlPos; //to powinnno byæ w jednym miejscu, aktualnie w C++!!!
+     BrakePressureActual:=BrakePressureTable[BrakeCtrlPos];
      OK:=SendCtrlToNext(command,CValue1,CValue2);
    end //youby - odluzniacz hamulcow, przyda sie
   else if command='BrakeReleaser' then
@@ -4994,7 +4998,7 @@ begin
       CheckCollision:=False;
     end;
   ScanCounter:=0;
-  BrakeCtrlPos:=0;
+  BrakeCtrlPos:=0; //to nie ma znaczenia, konstruktor w Mover.cpp zmienia na -2
   BrakeDelayFlag:=0;
   BrakeStatus:=b_off;
   EmergencyBrakeFlag:=False;
@@ -5204,7 +5208,7 @@ begin
      LocalBrakePos:=0; //wyluzowany hamulec pomocniczy
      if (BrakeSystem=Pneumatic) and (BrakeCtrlPosNo>0) then
       if CabNo=0 then
-       BrakeCtrlPos:=-2; //odciêcie na zespolonym
+       BrakeCtrlPos:=-2; //odciêcie na zespolonym; Ra: hamulec jest poprawiany w DynObj.cpp
      MainSwitch(false);
      PantFront(true);
      PantRear(true);
@@ -5223,7 +5227,7 @@ begin
      BrakePress:=MaxBrakePress*0.5;
      LocalBrakePos:=0;
      if (BrakeSystem=Pneumatic) and (BrakeCtrlPosNo>0) then
-      BrakeCtrlPos:=-2;
+      BrakeCtrlPos:=-2; //Ra: hamulec jest poprawiany w DynObj.cpp
      LimPipePress:=LowPipePress;
      BrakeStatus:=b_on;
    end;

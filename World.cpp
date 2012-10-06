@@ -574,14 +574,18 @@ void __fastcall TWorld::OnKeyDown(int cKey)
   AnsiString info="Key pressed: [";
   if (Console::Pressed(VK_SHIFT)) info+="Shift]+[";
   if (Console::Pressed(VK_CONTROL)) info+="Ctrl]+[";
-  if (cKey>123) //coœ tam jeszcze ciekawego jest?
-   WriteLog(info+AnsiString((char)(cKey-128))+"]");
+  if (cKey>192) //coœ tam jeszcze ciekawego jest?
+   WriteLog(info+AnsiString(char(cKey-128))+"]");
+  else if (cKey>=186)
+   WriteLog(info+AnsiString(";=,-./~").SubString(cKey-185,1)+"]");
+  else if (cKey>123) //coœ tam jeszcze ciekawego jest?
+   WriteLog(info+AnsiString(cKey)+"]"); //numer klawisza
   else if (cKey>=112) //funkcyjne
    WriteLog(info+"F"+AnsiString(cKey-111)+"]");
   else if (cKey>=96)
    WriteLog(info+"Num"+AnsiString("0123456789*+?-./").SubString(cKey-95,1)+"]");
   else if (((cKey>='0')&&(cKey<='9'))||((cKey>='A')&&(cKey<='Z'))||(cKey==' '))
-   WriteLog(info+AnsiString((char)(cKey))+"]");
+   WriteLog(info+AnsiString(char(cKey))+"]");
   else if (cKey=='-')
    WriteLog(info+"Insert]");
   else if (cKey=='.')
@@ -731,6 +735,7 @@ AnsiString __fastcall Bezogonkow(AnsiString str)
    case 'Œ': str[i]='S'; break;
    case '¯': str[i]='Z'; break;
    case '': str[i]='Z'; break;
+   case '_': str[i]=' '; break; //a to ju¿ na plus - w nazwach stacji nie mog¹ byæ u¿ywane spacje 
    default:
     if (str[i]&128) str[i]='?';
     else if (str[i]<' ') str[i]=' ';
@@ -1337,7 +1342,7 @@ bool __fastcall TWorld::Update()
      Train->DynamicObject=temp;
      Controlled=Train->DynamicObject;
      Global::asHumanCtrlVehicle=Train->DynamicObject->GetName();
-//     Train->DynamicObject->MoverParameters->BrakeCtrlPos=-2;
+     //Train->DynamicObject->MoverParameters->BrakeCtrlPos=-2; //ustawione ju¿ wczeœniej
      if (Train->DynamicObject->Mechanik) //AI mo¿e sobie samo pójœæ
       if (!Train->DynamicObject->Mechanik->AIControllFlag) //tylko jeœli rêcznie prowadzony
       {Train->DynamicObject->MoverParameters->LimPipePress=Controlled->MoverParameters->PipePress;
@@ -1418,6 +1423,8 @@ bool __fastcall TWorld::Update()
 //yB      if(tmp->MoverParameters->BrakeSubsystem==WeLu) OutText2+=" £estingha³s";
       //OutText2= " GetFirst: "+AnsiString(tmp->GetFirstDynamic(1)->MoverParameters->Name)+" Damage status="+tmp->MoverParameters->EngineDescription(0)+" Engine status: ";
       //OutText2+= " GetLast: "+AnsiString(tmp->GetLastDynamic(1)->MoverParameters->Name)+" Damage status="+tmp->MoverParameters->EngineDescription(0)+" Engine status: ";
+      if (Train) //jeœli jest kabina
+       OutText2+=AnsiString(", RT:")+AnsiString(Train->RadioChannel());
       OutText3= AnsiString("Brake press: ")+FloatToStrF(tmp->MoverParameters->BrakePress,ffFixed,5,2)+AnsiString(", ");
       OutText3+= AnsiString("Pipe press: ")+FloatToStrF(tmp->MoverParameters->PipePress,ffFixed,5,2)+AnsiString(", ");
       OutText3+= AnsiString("BVP: ")+FloatToStrF(tmp->MoverParameters->BrakeVP(),ffFixed,5,2)+AnsiString(", ");
@@ -1659,12 +1666,13 @@ bool __fastcall TWorld::Update()
   {//wyœwietlenie rozk³adu jazdy, na razie jakkolwiek
    if (Train) //pojazd prowadzony, ewentualnie wyœwietlaæ te¿ dla AI
     if (Train->DynamicObject->Mechanik) //musi byæ rozk³ad
-    {glTranslatef(0.0f,0.0f,-0.50f);
+    {//wyœwietlanie rozk³adu
+     glColor3f(1.0f,1.0f,1.0f); //a, damy bia³ym
+     glTranslatef(0.0f,0.0f,-0.50f);
      Mtable::TTrainParameters *tt=Train->DynamicObject->Mechanik->Timetable();
      glRasterPos2f(-0.25f,0.20f);
      OutText1=Train->DynamicObject->Mechanik->Relation();
-     Bezogonkow(OutText1);
-     glPrint(OutText1.c_str());
+     glPrint(Bezogonkow(OutText1).c_str());
      glRasterPos2f(-0.25f,0.19f);
      glPrint("|----------------------------|-------|-------|");
      TMTableLine *t;
@@ -1676,9 +1684,8 @@ bool __fastcall TWorld::Update()
       OutText3=(t->Dh>=0)?AnsiString(int(100+t->Dh)).SubString(2,2)+":"+AnsiString(int(100+t->Dm)).SubString(2,2):AnsiString("     ");
       //if (AnsiString(t->StationWare).Pos("@"))
       OutText1="| "+OutText1+" | "+OutText2+" | "+OutText3+" | "+AnsiString(t->StationWare);
-      Bezogonkow(OutText1);
       glRasterPos2f(-0.25f,0.18f-0.02f*(i-tt->StationIndex));
-      glPrint(OutText1.c_str());
+      glPrint(Bezogonkow(OutText1).c_str());
       glRasterPos2f(-0.25f,0.17f-0.02f*(i-tt->StationIndex));
       glPrint("|----------------------------|-------|-------|");
      }
