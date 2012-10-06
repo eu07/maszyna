@@ -678,6 +678,19 @@ void __fastcall TWorld::OnKeyDown(int cKey)
     }
    }
   }
+  else if (cKey==Global::Keys[k_Heating]) //Ra: klawisz nie jest najszczêœliwszy
+  {//Ra: zabrane z kabiny
+   TDynamicObject *temp=Global::DynamicNearest();
+   if (temp)
+   {
+    if (Console::Pressed(VK_SHIFT)?temp->MoverParameters->IncBrakeMult():temp->MoverParameters->DecBrakeMult())
+     if (Train)
+     {//dŸwiêk oczywiœcie jest w kabinie
+      Train->dsbSwitch->SetVolume(DSBVOLUME_MAX);
+      Train->dsbSwitch->Play(0,0,0);
+     }
+   }
+  }
 
  //switch (cKey)
  //{case 'a': //ignorowanie repetycji
@@ -1062,20 +1075,6 @@ bool __fastcall TWorld::Update()
  {//kamera nieruchoma
   Global::SetCameraRotation(Camera.Yaw-M_PI);
  }
-/*
- //wyliczenie bezwzglêdnego kierunku kamery (do znikania niepotrzebnych pojazdów)
- if (FreeFlyModeFlag||!Controlled)
-  Global::SetCameraRotation(Camera.Yaw-M_PI);
- else
- {//kierunek pojazdu oraz kierunek wzglêdny
-  vector3 tempangle;
-  double modelrotate;
-  tempangle=Controlled->VectorFront()*(Controlled->MoverParameters->ActiveCab==-1 ? -1 : 1);
-  //modelrotate=ABuAcos(tempangle);
-  modelrotate=atan2(tempangle.z,tempangle.x);
-  Global::SetCameraRotation(Camera.Yaw-modelrotate); //tu ju¿ trzeba uwzglêdniæ lusterka
- }
-*/
  Ground.CheckQuery();
 
  if (!Render()) return false;
@@ -1100,13 +1099,10 @@ bool __fastcall TWorld::Update()
   if ((Train->DynamicObject->mdKabina!=Train->DynamicObject->mdModel) && Train->DynamicObject->bDisplayCab && !FreeFlyModeFlag)
   {
    vector3 pos=Train->DynamicObject->GetPosition(); //wszpó³rzêdne pojazdu z kabin¹
-#if 0
-   glTranslatef(pos.x,pos.y,pos.z); //przesuniêcie o wektor (tak by³o i trzês³o)
-#else
+   //glTranslatef(pos.x,pos.y,pos.z); //przesuniêcie o wektor (tak by³o i trzês³o)
    //aby pozbyæ siê choæ trochê trzêsienia, trzeba by nie przeliczaæ kabiny do punktu zerowego scenerii
    glLoadIdentity(); //zacz¹æ od macierzy jedynkowej
    Camera.SetCabMatrix(pos); //widok z kamery po przesuniêciu
-#endif
    glMultMatrixd(Train->DynamicObject->mMatrix.getArray()); //ta macierz nie ma przesuniêcia
 
 //*yB: moje smuuugi 1
@@ -1555,7 +1551,7 @@ bool __fastcall TWorld::Update()
       //double a= acos( DotProduct(Normalize(Controlled->GetDirection()),vWorldFront));
 //      OutText+= AnsiString(";   angle ")+FloatToStrF(a/M_PI*180,ffFixed,6,2);
       OutText1+=AnsiString("; d_omega ")+FloatToStrF(Controlled->MoverParameters->dizel_engagedeltaomega,ffFixed,6,3);
-      OutText2 =AnsiString("ham zesp ")+FloatToStrF(Controlled->MoverParameters->BrakeCtrlPos,ffFixed,6,0);
+      OutText2 =AnsiString("ham zesp ")+FloatToStrF(Controlled->MoverParameters->fBrakeCtrlPos,ffFixed,6,1);
       OutText2+=AnsiString("; ham pom ")+FloatToStrF(Controlled->MoverParameters->LocalBrakePos,ffFixed,6,0);
       //Controlled->MoverParameters->MainCtrlPos;
       //if (Controlled->MoverParameters->MainCtrlPos<0)
