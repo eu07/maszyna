@@ -941,7 +941,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else
       if (cKey==Global::Keys[k_IncBrakeLevel])
        //if (DynamicObject->MoverParameters->IncBrakeLevel())
-       if (DynamicObject->MoverParameters->BrakeLevelAdd(Global::fBrakeStep))
+       if (DynamicObject->MoverParameters->BrakeLevelAdd(Global::fBrakeStep)) //nieodpowiedni warunek; true, jeœli mo¿na dalej krêciæ
           {
            keybrakecount=0;
            if ((isEztOer) && (DynamicObject->MoverParameters->BrakeCtrlPos<3))
@@ -1926,6 +1926,14 @@ void __fastcall TTrain::OnKeyPress(int cKey)
         }
        }
       }
+    if (cKey==VkKeyScan('-'))
+    {//zmniejszenie numeru kana³u radiowego
+     if (iRadioChannel>0) --iRadioChannel; //0=wy³¹czony
+    }
+    else if (cKey==VkKeyScan('='))
+    {//zmniejszenie numeru kana³u radiowego
+     if (iRadioChannel<8) ++iRadioChannel; //0=wy³¹czony
+    }
    }
 }
 

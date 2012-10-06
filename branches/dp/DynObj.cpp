@@ -1285,6 +1285,7 @@ double __fastcall TDynamicObject::Init(
   Error("Parameters mismatch: dynamic object "+asName+" from\n"+BaseDir+"\\"+Type_Name);
   return 0.0; //zerowa d³ugoœæ to brak pojazdu
  }
+ MoverParameters->BrakeLevelSet(MoverParameters->BrakeCtrlPos); //poprawienie hamulca po ewentualnym przestawieniu przez Pascal
  if (MoverParameters->CategoryFlag&2) //jeœli samochód
  {//ustawianie samochodow na poboczu albo na œrodku drogi
   if (Track->fTrackWidth<3.5) //jeœli droga w¹ska

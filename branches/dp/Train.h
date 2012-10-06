@@ -318,6 +318,9 @@ private:
     float fPPress,fNPress;
     float fSPPress,fSNPress;
  int iSekunda; //Ra: sekunda aktualizacji prêdkoœci
+ int iRadioChannel; //numer aktualnego kana³u radiowego
+public:
+ int __fastcall RadioChannel() {return iRadioChannel;};
 };
 //---------------------------------------------------------------------------
 #endif

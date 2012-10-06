@@ -57,8 +57,8 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=1
 MinorVer=8
-Release=652
-Build=376
+Release=653
+Build=377
 Debug=1
 PreRelease=0
 Special=0
@@ -70,7 +70,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.8.652.376
+FileVersion=1.8.653.377
 InternalName=8th by Ra
 LegalCopyright=
 LegalTrademarks=
@@ -112,7 +112,7 @@ Item1=D:\EU07DDS\
 DebugSourceDirs=C:\Ra\dp\McZapkie\
 
 [Parameters]
-RunParams=
+RunParams=-s AI_start3.scn -v ghostview
 HostApplication=
 RemoteHost=
 RemotePath=

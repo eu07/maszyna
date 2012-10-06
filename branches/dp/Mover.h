@@ -39,6 +39,7 @@ public:
  bool __fastcall BrakeLevelAdd(double b);
  bool __fastcall IncBrakeLevel(); //wersja na u¿ytek AI
  bool __fastcall DecBrakeLevel();
+ bool __fastcall ChangeCab(int direction);
 };
 
 #endif
