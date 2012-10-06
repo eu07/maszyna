@@ -2883,7 +2883,10 @@ void __fastcall TController::OrdersInit(double fVel)
  OrdersClear(); //usuniêcie poprzedniej tabeli
  OrderPush(Prepare_engine); //najpierw odpalenie silnika
  if (TrainParams->TrainName==AnsiString("none"))
-  OrderPush(Shunt); //jeœli nie ma rozk³adu, to manewruje
+ {//brak rozk³adu to jazda manewrowa
+  if (fVel>0.05) //typowo 0.1 oznacza gotowoœæ do jazdy, 0.01 tylko za³¹czenie silnika
+   OrderPush(Shunt); //jeœli nie ma rozk³adu, to manewruje
+ }
  else
  {//jeœli z rozk³adem, to jedzie na szlak
   if (TrainParams?
@@ -2932,7 +2935,10 @@ void __fastcall TController::OrdersInit(double fVel)
   if (fVel>=1.0) //jeœli ma jechaæ
    iDrivigFlags=(iDrivigFlags&~moveStopHere)|moveStopCloser; //to do nastêpnego W4 ma podjechaæ blisko
   JumpToFirstOrder();
-  SetVelocity(fVel,-1); //ma ustawiæ ¿¹dan¹ prêdkoœæ
+  if (fVel>=1.0) //jeœli ma jechaæ
+   SetVelocity(fVel,-1); //ma ustawiæ ¿¹dan¹ prêdkoœæ
+  else
+   SetVelocity(0,0,stopSleep); //prêdkoœæ w przedziale (0;1) oznacza, ¿e ma staæ
  }
  if (DebugModeFlag) //normalnie nie ma po co tego wypisywaæ
   OrdersDump(); //wypisanie kontrolne tabelki rozkazów
