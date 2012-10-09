@@ -345,7 +345,8 @@ void __fastcall TTrain::OnKeyPress(int cKey)
          }
        }
       else
-      if ((cKey==Global::Keys[k_Compressor])&&((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)||(DynamicObject->MoverParameters->TrainType==dt_EZT))) //hunter-110212: poprawka dla EZT
+      //if ((cKey==Global::Keys[k_Compressor])&&((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)||(DynamicObject->MoverParameters->TrainType==dt_EZT))) //hunter-110212: poprawka dla EZT
+      if ((cKey==Global::Keys[k_Compressor])&&(DynamicObject->MoverParameters->CompressorPower<2)) //hunter-091012: tak jest poprawnie
        {
         if (CompressorButtonGauge.GetValue()==0)
          {
@@ -484,7 +485,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       {
               if (!FreeFlyModeFlag)
               {
-                   if ((DynamicObject->MoverParameters->Heating==false)&&((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)||(DynamicObject->MoverParameters->ConverterFlag)))
+                   if ((DynamicObject->MoverParameters->Heating==false)&&((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)&&(DynamicObject->MoverParameters->Mains==true)||(DynamicObject->MoverParameters->ConverterFlag)))
                    {
                    DynamicObject->MoverParameters->Heating=true;
                    dsbSwitch->SetVolume(DSBVOLUME_MAX);
@@ -1231,7 +1232,8 @@ void __fastcall TTrain::OnKeyPress(int cKey)
          }
        }
       else
-      if ((cKey==Global::Keys[k_Compressor])&&((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)||(DynamicObject->MoverParameters->TrainType==dt_EZT))) //hunter-110212: poprawka dla EZT
+      //if ((cKey==Global::Keys[k_Compressor])&&((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)||(DynamicObject->MoverParameters->TrainType==dt_EZT))) //hunter-110212: poprawka dla EZT
+      if ((cKey==Global::Keys[k_Compressor])&&(DynamicObject->MoverParameters->CompressorPower<2)) //hunter-091012: tak jest poprawnie      
        {
         if (CompressorButtonGauge.GetValue()!=0)
          {
@@ -2055,13 +2057,18 @@ bool __fastcall TTrain::Update()
   }
 */
 
+  //hunter-080812: wyrzucanie szybkiego na elektrykach gdy nie ma napiecia przy dowolnym ustawieniu kierunkowego
+  if (DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)
+   if (!DynamicObject->MoverParameters->RunningTraction.TractionVoltage>0)
+    DynamicObject->MoverParameters->MainSwitch(False);
+
   //------------------
   //hunter-261211: nadmiarowy przetwornicy i ogrzewania
   if (DynamicObject->MoverParameters->ConverterFlag==true)
    {
     fConverterTimer+=dt;
-     if ((DynamicObject->MoverParameters->CompressorFlag==true)&&(DynamicObject->MoverParameters->CompressorPower!=0)&&((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)||(DynamicObject->MoverParameters->TrainType==dt_EZT))&&(DynamicObject->Controller==Humandriver)) //hunter-110212: poprawka dla EZT
-      {
+     if ((DynamicObject->MoverParameters->CompressorFlag==true)&&(DynamicObject->MoverParameters->CompressorPower==1)&&((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)||(DynamicObject->MoverParameters->TrainType==dt_EZT))&&(DynamicObject->Controller==Humandriver)) //hunter-110212: poprawka dla EZT
+      { //hunter-091012: poprawka (zmiana warunku z CompressorPower /rozne od 0/ na /rowne 1/)
        if (fConverterTimer<fConverterPrzekaznik)
         {
          DynamicObject->MoverParameters->ConvOvldFlag=true;
@@ -3183,21 +3190,28 @@ else
      PantFrontButtonOffGauge.Update();
     }
 //Winger 020304 - ogrzewanie
+    //----------
+    //hunter-080812: poprawka na ogrzewanie w elektrykach - usuniete uzaleznienie od przetwornicy 
     if (TrainHeatingButtonGauge.SubModel)
     {
       if (DynamicObject->MoverParameters->Heating)
           {
           TrainHeatingButtonGauge.PutValue(1);
-          if (DynamicObject->MoverParameters->ConverterFlag==true)
-           btLampkaOgrzewanieSkladu.TurnOn();
+          //if (DynamicObject->MoverParameters->ConverterFlag==true)
+          // btLampkaOgrzewanieSkladu.TurnOn();
           }
       else
           {
           TrainHeatingButtonGauge.PutValue(0);
-          btLampkaOgrzewanieSkladu.TurnOff();
+          //btLampkaOgrzewanieSkladu.TurnOff();
           }
     TrainHeatingButtonGauge.Update();
     }
+
+    if ((((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)&&(DynamicObject->MoverParameters->Mains==true)&&(DynamicObject->MoverParameters->ConvOvldFlag==false))||(DynamicObject->MoverParameters->ConverterFlag))&&(DynamicObject->MoverParameters->Heating==true))
+     btLampkaOgrzewanieSkladu.TurnOn();
+    else
+     btLampkaOgrzewanieSkladu.TurnOff();
 
     //----------
     //hunter-261211: jakis stary kod (i niezgodny z prawda),
@@ -3314,7 +3328,13 @@ else
           if (ConverterButtonGauge.GetValue()!=0)    //po puszczeniu przycisku od WSa odpalanie potwora
            DynamicObject->MoverParameters->ConverterSwitch(true);
 
-          fMainRelayTimer=0;
+          //hunter-091012: przeniesione z mover.pas, zeby dzwiek sie nie zapetlal, drugi warunek zeby nie odtwarzalo w nieskonczonosc i przeniesienie zerowania timera
+          if ((DynamicObject->MoverParameters->Mains!=true)&&(fMainRelayTimer>0))
+           {
+            dsbRelay->Play(0,0,0);
+            fMainRelayTimer=0;
+           }
+
           MainOnButtonGauge.UpdateValue(0);
      }
 
@@ -3425,11 +3445,12 @@ else
      //-----------------
      //hunter-261211: przetwornica i sprezarka
      if ( Console::Pressed(VK_SHIFT)&&Console::Pressed(Global::Keys[k_Converter]) )   //NBMX 14-09-2003: przetwornica wl
-      {
+      {                           //(DynamicObject->MoverParameters->CompressorPower<2)
         ConverterButtonGauge.PutValue(1);
         if ((DynamicObject->MoverParameters->PantFrontVolt) || (DynamicObject->MoverParameters->PantRearVolt) || (DynamicObject->MoverParameters->EnginePowerSource.SourceType!=CurrentCollector) || (!Global::bLiveTraction))
          DynamicObject->MoverParameters->ConverterSwitch(true);
-        if ((DynamicObject->MoverParameters->EngineType!=ElectricSeriesMotor)&&(DynamicObject->MoverParameters->TrainType!=dt_EZT)) //hunter-110212: poprawka dla EZT
+        //if ((DynamicObject->MoverParameters->EngineType!=ElectricSeriesMotor)&&(DynamicObject->MoverParameters->TrainType!=dt_EZT)) //hunter-110212: poprawka dla EZT
+        if (DynamicObject->MoverParameters->CompressorPower==2) //hunter-091012: tak jest poprawnie
          DynamicObject->MoverParameters->CompressorSwitch(true);
       }
      else
@@ -3441,7 +3462,8 @@ else
         }
       }
 
-     if ( Console::Pressed(VK_SHIFT)&&Console::Pressed(Global::Keys[k_Compressor])&&((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)||(DynamicObject->MoverParameters->TrainType==dt_EZT)) )   //NBMX 14-09-2003: sprezarka wl
+//     if ( Console::Pressed(VK_SHIFT)&&Console::Pressed(Global::Keys[k_Compressor])&&((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)||(DynamicObject->MoverParameters->TrainType==dt_EZT)) )   //NBMX 14-09-2003: sprezarka wl
+     if ( Console::Pressed(VK_SHIFT)&&Console::Pressed(Global::Keys[k_Compressor])&&(DynamicObject->MoverParameters->CompressorPower<2))   //hunter-091012: tak jest poprawnie
       { //hunter-110212: poprawka dla EZT
         CompressorButtonGauge.PutValue(1);
         DynamicObject->MoverParameters->CompressorSwitch(true);
@@ -3454,7 +3476,8 @@ else
         DynamicObject->MoverParameters->ConverterSwitch(false);
       }
 
-     if ( !Console::Pressed(VK_SHIFT)&&Console::Pressed(Global::Keys[k_Compressor])&&((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)||(DynamicObject->MoverParameters->TrainType==dt_EZT)) )   //NBMX 14-09-2003: sprezarka wl
+//     if ( !Console::Pressed(VK_SHIFT)&&Console::Pressed(Global::Keys[k_Compressor])&&((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)||(DynamicObject->MoverParameters->TrainType==dt_EZT)) )   //NBMX 14-09-2003: sprezarka wl
+     if ( !Console::Pressed(VK_SHIFT)&&Console::Pressed(Global::Keys[k_Compressor])&&(DynamicObject->MoverParameters->CompressorPower<2))   //hunter-091012: tak jest poprawnie
       { //hunter-110212: poprawka dla EZT
         CompressorButtonGauge.PutValue(0);
         DynamicObject->MoverParameters->CompressorSwitch(false);
