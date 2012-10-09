@@ -91,6 +91,10 @@ __fastcall TTrain::TTrain()
     keybrakecount=0;
     DynamicObject=NULL;
     iCabLightFlag=0;
+    //hunter-091012
+     bCabLight=false;
+     bCabLightDim=false;
+    //-----
     pMechSittingPosition=vector3(0,0,0); //ABu: 180404
     LampkaUniversal3_st=false; //ABu: 030405
  dsbNastawnikJazdy=NULL;
@@ -436,17 +440,45 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else
       //-----------
       //hunter-131211: dzwiek dla przelacznika universala podniesionego
+      //hunter-091012: ubajerowanie swiatla w kabinie (wyrzucenie przyciemnienia pod Univ4)
       if (cKey==Global::Keys[k_Univ3])
       {
+        if (Console::Pressed(VK_CONTROL))
+         {
+           if (bCabLight==false)//(CabLightButtonGauge.GetValue()==0)
+           {
+               dsbSwitch->SetVolume(DSBVOLUME_MAX);
+               dsbSwitch->Play(0,0,0);
+           }
+         }
+        else
+         {
            if (Universal3ButtonGauge.GetValue()==0)
            {
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
                dsbSwitch->Play(0,0,0);
            }
-       if (Console::Pressed(VK_CONTROL))
-       {//z [Ctrl] zapalamy albo gasimy œwiate³ko w kabinie
-        if (iCabLightFlag<2) ++iCabLightFlag; //zapalenie
-       }
+           /*
+            if (Console::Pressed(VK_CONTROL))
+             {//z [Ctrl] zapalamy albo gasimy œwiate³ko w kabinie
+              if (iCabLightFlag<2) ++iCabLightFlag; //zapalenie
+             }
+           */
+         }
+      }
+      else
+      //-----------
+      //hunter-091012: dzwiek dla przyciemnienia swiatelka w kabinie
+      if (cKey==Global::Keys[k_Univ4])
+      {
+        if (Console::Pressed(VK_CONTROL))
+         {
+           if (bCabLightDim==false) //(CabLightDimButtonGauge.GetValue()==0)
+           {
+               dsbSwitch->SetVolume(DSBVOLUME_MAX);
+               dsbSwitch->Play(0,0,0);
+           }
+         }
       }
       else
       //-----------
@@ -1501,20 +1533,47 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else
       //-----------
       //hunter-131211: dzwiek dla przelacznika universala
+      //hunter-091012: ubajerowanie swiatla w kabinie (wyrzucenie przyciemnienia pod Univ4)
       if (cKey==Global::Keys[k_Univ3])
       {
+        if (Console::Pressed(VK_CONTROL))  
+         {
+           if (bCabLight==true)//(CabLightButtonGauge.GetValue()!=0)
+           {
+               dsbSwitch->SetVolume(DSBVOLUME_MAX);
+               dsbSwitch->Play(0,0,0);
+           }
+         }
+        else
+         {
            if (Universal3ButtonGauge.GetValue()!=0)
            {
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
                dsbSwitch->Play(0,0,0);
            }
-       if (Console::Pressed(VK_CONTROL))
-       {//z [Ctrl] zapalamy albo gasimy œwiate³ko w kabinie
-        if (iCabLightFlag) --iCabLightFlag; //gaszenie
-       }
+           /*
+            if (Console::Pressed(VK_CONTROL))
+             {//z [Ctrl] zapalamy albo gasimy œwiate³ko w kabinie
+              if (iCabLightFlag) --iCabLightFlag; //gaszenie
+             } */
+         }
       }
       else
       //-----------
+      //hunter-091012: dzwiek dla przyciemnienia swiatelka w kabinie
+      if (cKey==Global::Keys[k_Univ4])
+      {
+        if (Console::Pressed(VK_CONTROL))
+         {
+           if (bCabLightDim==true) //(CabLightDimButtonGauge.GetValue()!=0)
+           {
+               dsbSwitch->SetVolume(DSBVOLUME_MAX);
+               dsbSwitch->Play(0,0,0);
+           }
+         }
+      }
+      //-----------
+      else
       if (cKey==Global::Keys[k_PantFrontDown])   //Winger 160204: opuszczanie prz. patyka
       {
            if (DynamicObject->MoverParameters->PantFront(false))
@@ -2061,6 +2120,16 @@ bool __fastcall TTrain::Update()
   if (DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)
    if (!DynamicObject->MoverParameters->RunningTraction.TractionVoltage>0)
     DynamicObject->MoverParameters->MainSwitch(False);
+
+  //hunter-091012: swiatlo
+   if (bCabLight==true)
+    {
+     if (bCabLightDim==true)
+      iCabLightFlag=1;
+     else
+      iCabLightFlag=2;
+    }
+   else iCabLightFlag=0;
 
   //------------------
   //hunter-261211: nadmiarowy przetwornicy i ogrzewania
@@ -3536,12 +3605,63 @@ else
            }
         }
      }
+
+     //hunter-091012: zrobione z uwzglednieniem przelacznika swiatla
+     if ( Console::Pressed(Global::Keys[k_Univ3]) )
+     {
+          if (Console::Pressed(VK_SHIFT))
+           {
+            if (Console::Pressed(VK_CONTROL))
+             {
+              bCabLight=true;
+              if (CabLightButtonGauge.SubModel)
+               {
+                CabLightButtonGauge.PutValue(1);
+               }
+             }
+            else
+             {
+              if (Universal3ButtonGauge.SubModel)
+               {
+                Universal3ButtonGauge.PutValue(1);  //hunter-131211: z UpdateValue na PutValue - by zachowywal sie jak pozostale przelaczniki
+                if (btLampkaUniversal3.Active())
+                  LampkaUniversal3_st=true;
+               }
+             }
+           }
+          else
+           {
+            if (Console::Pressed(VK_CONTROL))
+             {
+              bCabLight=false;
+              if (CabLightButtonGauge.SubModel)
+               {
+                CabLightButtonGauge.PutValue(0);
+               }
+             }
+            else
+             {
+              if (Universal3ButtonGauge.SubModel)
+               {
+                Universal3ButtonGauge.PutValue(0);  //hunter-131211: z UpdateValue na PutValue - by zachowywal sie jak pozostale przelaczniki
+                if (btLampkaUniversal3.Active())
+                 LampkaUniversal3_st=false;
+               }
+             }
+           }
+     }
+
+
+     //hunter-091012: to w ogole jest bez sensu i tak namodzone ze nie wiadomo o co chodzi - zakomentowalem i zrobilem po swojemu
+     /*
      if ( Console::Pressed(Global::Keys[k_Univ3]) )
      {
        if (Universal3ButtonGauge.SubModel)
+
+
         if (Console::Pressed(VK_CONTROL))
         {//z [Ctrl] zapalamy albo gasimy œwiate³ko w kabinie
-/* //tutaj jest bez sensu, trzeba reagowaæ na wciskanie klawisza!
+  //tutaj jest bez sensu, trzeba reagowaæ na wciskanie klawisza!
          if (Console::Pressed(VK_SHIFT))
          {//zapalenie
           if (iCabLightFlag<2) ++iCabLightFlag;
@@ -3550,7 +3670,7 @@ else
          {//gaszenie
           if (iCabLightFlag) --iCabLightFlag;
          }
-*/
+
         }
         else
         {//bez [Ctrl] prze³¹czamy coœtem
@@ -3567,7 +3687,8 @@ else
            LampkaUniversal3_st=false;
          }
         }
-     }
+     } */
+
      //ABu030405 obsluga lampki uniwersalnej:
      if ((LampkaUniversal3_st)&&(btLampkaUniversal3.Active()))
      {
@@ -3588,6 +3709,7 @@ else
            btLampkaUniversal3.TurnOff();
      }
 
+     /*
      if (Console::Pressed(Global::Keys[k_Univ4]))
      {
         if (Universal4ButtonGauge.SubModel)
@@ -3602,7 +3724,44 @@ else
            //Universal4ButtonGauge.UpdateValue(0);
         }
      }
+     */
 
+     //hunter-091012: przepisanie univ4 i zrobione z uwzglednieniem przelacznika swiatla
+     if ( Console::Pressed(Global::Keys[k_Univ4]) )
+     {
+          if (Console::Pressed(VK_SHIFT))
+           {
+            if (Console::Pressed(VK_CONTROL))
+             {
+              bCabLightDim=true;
+              if (CabLightDimButtonGauge.SubModel)
+               {
+                CabLightDimButtonGauge.PutValue(1);
+               }
+             }
+            else
+             {
+               ActiveUniversal4=true;
+               //Universal4ButtonGauge.UpdateValue(1);
+             }
+           }
+          else
+           {
+            if (Console::Pressed(VK_CONTROL))
+             {
+              bCabLightDim=false;
+              if (CabLightDimButtonGauge.SubModel)
+               {
+                CabLightDimButtonGauge.PutValue(0);  //hunter-131211: z UpdateValue na PutValue - by zachowywal sie jak pozostale przelaczniki
+               }
+             }
+            else
+             {
+              ActiveUniversal4=false;
+              //Universal4ButtonGauge.UpdateValue(0);
+             }
+           }
+     }
      // Odskakiwanie hamulce EP
      if ((!Console::Pressed(Global::Keys[k_DecBrakeLevel]))&&(!Console::Pressed(Global::Keys[k_WaveBrake]) )&&(DynamicObject->MoverParameters->BrakeCtrlPos==-1)&&(DynamicObject->MoverParameters->BrakeSubsystem==Oerlikon)&&(DynamicObject->MoverParameters->BrakeSystem==ElectroPneumatic)&&(DynamicObject->Controller!=AIdriver))
      {
@@ -3838,8 +3997,13 @@ else
     Universal1ButtonGauge.Update();
     Universal2ButtonGauge.Update();
     Universal3ButtonGauge.Update();
+    //hunter-091012
+     CabLightButtonGauge.Update();
+     CabLightDimButtonGauge.Update();
+    //------ 
     if (ActiveUniversal4)
        Universal4ButtonGauge.PermIncValue(dt);
+
     Universal4ButtonGauge.Update();
     MainOffButtonGauge.UpdateValue(0);
     MainOnButtonGauge.UpdateValue(0);
@@ -4226,6 +4390,10 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     Universal1ButtonGauge.Clear();
     Universal2ButtonGauge.Clear();
     Universal3ButtonGauge.Clear();
+    //hunter-091012
+     CabLightButtonGauge.Clear();
+     CabLightDimButtonGauge.Clear();
+    //-------
     Universal4ButtonGauge.Clear();
     FuseButtonGauge.Clear();
     ConverterFuseButtonGauge.Clear();    
@@ -4419,6 +4587,10 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     TrainHeatingButtonGauge.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("nextcurrent_sw:"))                       //grzanie skladu
     NextCurrentButtonGauge.Load(Parser,DynamicObject->mdKabina);
+   else if (str==AnsiString("cablight_sw:"))                       //hunter-091012: swiatlo w kabinie
+    CabLightButtonGauge.Load(Parser,DynamicObject->mdKabina);
+   else if (str==AnsiString("cablightdim_sw:"))
+    CabLightDimButtonGauge.Load(Parser,DynamicObject->mdKabina);   //hunter-091012: przyciemnienie swiatla w kabinie
     //ABu 090305: uniwersalne przyciski lub inne rzeczy
    else if (str==AnsiString("universal1:"))
     Universal1ButtonGauge.Load(Parser,DynamicObject->mdKabina,DynamicObject->mdModel);

@@ -1179,19 +1179,53 @@ bool __fastcall TWorld::Update()
     break;
    }
    switch (Train->iCabLightFlag)
-   {
+   { //hunter-091012: uzaleznienie jasnosci od przetwornicy
     case 0: //œwiat³o wewnêtrzne zgaszone
-    break;
+     break;
     case 1: //œwiat³o wewnêtrzne przygaszone (255 216 176)
-     ambientCabLight[0]=Max0R(0.700,ambientCabLight[0]); //R
-     ambientCabLight[1]=Max0R(0.593,ambientCabLight[1]); //G
-     ambientCabLight[2]=Max0R(0.483,ambientCabLight[2]); //B
-    break;
+     if (Train->DynamicObject->MoverParameters->ConverterFlag==true) //jasnosc dla zalaczonej przetwornicy
+      {
+       ambientCabLight[0]=Max0R(0.700,ambientCabLight[0])*0.75; //R
+       ambientCabLight[1]=Max0R(0.593,ambientCabLight[1])*0.75; //G
+       ambientCabLight[2]=Max0R(0.483,ambientCabLight[2])*0.75; //B
+
+       for (int i=0;i<3;i++)
+        if (ambientCabLight[i]<=(Global::ambientDayLight[i]*0.9))
+         ambientCabLight[i]=Global::ambientDayLight[i]*0.9;
+      }
+     else
+      {
+       ambientCabLight[0]=Max0R(0.700,ambientCabLight[0])*0.375; //R
+       ambientCabLight[1]=Max0R(0.593,ambientCabLight[1])*0.375; //G
+       ambientCabLight[2]=Max0R(0.483,ambientCabLight[2])*0.375; //B
+
+       for (int i=0;i<3;i++)
+        if (ambientCabLight[i]<=(Global::ambientDayLight[i]*0.9))
+         ambientCabLight[i]=Global::ambientDayLight[i]*0.9;
+      }
+     break;
     case 2: //œwiat³o wewnêtrzne zapalone (255 216 176)
-     ambientCabLight[0]=Max0R(1.000,ambientCabLight[0]); //R
-     ambientCabLight[1]=Max0R(0.847,ambientCabLight[1]); //G
-     ambientCabLight[2]=Max0R(0.690,ambientCabLight[2]); //B
-    break;
+     if (Train->DynamicObject->MoverParameters->ConverterFlag==true) //jasnosc dla zalaczonej przetwornicy
+      {
+       ambientCabLight[0]=Max0R(1.000,ambientCabLight[0]); //R
+       ambientCabLight[1]=Max0R(0.847,ambientCabLight[1]); //G
+       ambientCabLight[2]=Max0R(0.690,ambientCabLight[2]); //B
+
+       for (int i=0;i<3;i++)
+        if (ambientCabLight[i]<=(Global::ambientDayLight[i]*0.9))
+         ambientCabLight[i]=Global::ambientDayLight[i]*0.9;
+      }
+     else
+      {
+       ambientCabLight[0]=Max0R(1.000,ambientCabLight[0])*0.5; //R
+       ambientCabLight[1]=Max0R(0.847,ambientCabLight[1])*0.5; //G
+       ambientCabLight[2]=Max0R(0.690,ambientCabLight[2])*0.5; //B
+
+       for (int i=0;i<3;i++)
+        if (ambientCabLight[i]<=(Global::ambientDayLight[i]*0.9))
+         ambientCabLight[i]=Global::ambientDayLight[i]*0.9;
+      }
+     break;
    }
    glLightfv(GL_LIGHT0,GL_AMBIENT,ambientCabLight);
    glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseCabLight);
