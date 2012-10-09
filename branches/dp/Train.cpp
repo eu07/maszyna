@@ -3303,7 +3303,9 @@ else
            fBlinkTimer=-fCzuwakBlink;
        else
            fBlinkTimer+=dt;
-       if (TestFlag(DynamicObject->MoverParameters->SecuritySystem.Status,s_aware))
+           
+       //hunter-091012: dodanie testu czuwaka
+       if ((TestFlag(DynamicObject->MoverParameters->SecuritySystem.Status,s_aware))||(TestFlag(DynamicObject->MoverParameters->SecuritySystem.Status,s_CAtest)))
         {
          if (fBlinkTimer>0)
           btLampkaCzuwaka.TurnOn();
@@ -3319,7 +3321,10 @@ else
 //          btLampkaSHP.TurnOff();
         }
         else btLampkaSHP.TurnOff();
-       if (TestFlag(DynamicObject->MoverParameters->SecuritySystem.Status,s_alarm))
+
+       //hunter-091012: rozdzielenie alarmow
+       //if (TestFlag(DynamicObject->MoverParameters->SecuritySystem.Status,s_alarm))
+       if (TestFlag(DynamicObject->MoverParameters->SecuritySystem.Status,s_CAalarm)||TestFlag(DynamicObject->MoverParameters->SecuritySystem.Status,s_SHPalarm))
         {
           dsbBuzzer->GetStatus(&stat);
           if (!(stat&DSBSTATUS_PLAYING))
@@ -3448,6 +3453,37 @@ else
 
      //----------------
      //hunter-131211: czuwak przeniesiony z OnKeyPress
+     //hunter-091012: zrobiony test czuwaka
+     if ( Console::Pressed(Global::Keys[k_Czuwak]) )
+     {
+      fCzuwakTestTimer+=dt;
+      SecurityResetButtonGauge.PutValue(1);
+        if (CAflag==false)
+         {
+          CAflag=true;
+          DynamicObject->MoverParameters->SecuritySystemReset();
+         }
+        else if (fCzuwakTestTimer>1.0)
+         {
+          SetFlag(DynamicObject->MoverParameters->SecuritySystem.Status,s_CAtest);
+         }
+     }
+     else
+     {
+      fCzuwakTestTimer=0;
+      SecurityResetButtonGauge.UpdateValue(0);
+      if (TestFlag(DynamicObject->MoverParameters->SecuritySystem.Status,s_CAtest))//&&(!TestFlag(DynamicObject->MoverParameters->SecuritySystem.Status,s_CAebrake)))
+       {
+        SetFlag(DynamicObject->MoverParameters->SecuritySystem.Status,-s_CAtest);
+        DynamicObject->MoverParameters->s_CAtestebrake=false;
+        DynamicObject->MoverParameters->SecuritySystem.SystemBrakeCATestTimer=0;
+        if ((!TestFlag(DynamicObject->MoverParameters->SecuritySystem.Status,s_SHPebrake))
+         ||(!TestFlag(DynamicObject->MoverParameters->SecuritySystem.Status,s_CAebrake)))
+        DynamicObject->MoverParameters->EmergencyBrakeFlag=false;
+       }
+      CAflag=false;
+     }
+     /*
      if ( Console::Pressed(Global::Keys[k_Czuwak]) )
      {
       SecurityResetButtonGauge.PutValue(1);
@@ -3467,6 +3503,8 @@ else
       SecurityResetButtonGauge.UpdateValue(0);
       CAflag=0;
      }
+     */
+
      //-----------------
      //hunter-201211: piasecznica przeniesiona z OnKeyPress, wlacza sie tylko,
      //gdy trzymamy przycisk, a nie tak jak wczesniej (raz nacisnelo sie 's'
