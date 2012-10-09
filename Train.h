@@ -165,6 +165,10 @@ public:
     TGauge Universal2ButtonGauge;
     TGauge Universal3ButtonGauge;
     TGauge Universal4ButtonGauge;
+
+    TGauge CabLightButtonGauge; //hunter-091012: przelacznik oswietlania kabiny
+    TGauge CabLightDimButtonGauge; //hunter-091012: przelacznik przyciemnienia oswietlenia kabiny
+
 //NBMX wrzesien 2003 - obsluga drzwi
     TGauge DoorLeftButtonGauge;
     TGauge DoorRightButtonGauge;
@@ -287,6 +291,9 @@ public:
     TFadeSound sSmallCompressor;  //przetwornica
 
     int iCabLightFlag; //McZapkie:120503: oswietlenie kabiny (0: wyl, 1: przyciemnione, 2: pelne)
+    bool bCabLight; //hunter-091012: czy swiatlo jest zapalone?
+    bool bCabLightDim; //hunter-091012: czy przyciemnienie kabiny jest zapalone?
+
     vector3 pMechSittingPosition; //ABu 180404
  vector3 __fastcall MirrorPosition(bool lewe);
 private:
