@@ -3543,6 +3543,24 @@ begin
    //eAngle:=Pirazy2-eAngle; <- ABu: a nie czasem tak, jak nizej?
    eAngle:=eAngle-Pirazy2;
 
+  //hunter-091012: przeniesione z if ActiveDir<>0 (zeby po zejsciu z kierunku dalej spadala predkosc wentylatorow)
+  if (EngineType=ElectricSeriesMotor) then
+   begin
+        case RVentType of {wentylatory rozruchowe}
+        1: if ActiveDir<>0 then
+            RventRot:=RventRot+(RVentnmax-RventRot)*RVentSpeed*dt
+           else
+            RventRot:=RventRot*(1-RVentSpeed*dt);
+        2: if (Abs(Itot)>RVentMinI) and (RList[MainCtrlActualPos].R>RVentCutOff) then
+            RventRot:=RventRot+(RVentnmax*Abs(Itot)/(ImaxLo*RList[MainCtrlActualPos].Bn)-RventRot)*RVentSpeed*dt
+           else
+            begin
+              RventRot:=RventRot*(1-RVentSpeed*dt);
+              if RventRot<0.1 then RventRot:=0;
+            end;
+        end; {case}
+   end; {if}
+
   if ActiveDir<>0 then
    case EngineType of
     Dumb:
@@ -3601,19 +3619,6 @@ begin
         Mw:=Mm*Transmision.Ratio;
         Fw:=Mw*2.0/WheelDiameter;
         Ft:=Fw*NPoweredAxles;                {sila trakcyjna}
-        case RVentType of {wentylatory rozruchowe}
-        1: if ActiveDir<>0 then
-            RventRot:=RventRot+(RVentnmax-RventRot)*RVentSpeed*dt
-           else
-            RventRot:=RventRot*(1-RVentSpeed*dt);
-        2: if (Abs(Itot)>RVentMinI) and (RList[MainCtrlActualPos].R>RVentCutOff) then
-            RventRot:=RventRot+(RVentnmax*Abs(Itot)/(ImaxLo*RList[MainCtrlActualPos].Bn)-RventRot)*RVentSpeed*dt
-           else
-            begin
-              RventRot:=RventRot*(1-RVentSpeed*dt);
-              if RventRot<0.1 then RventRot:=0;
-            end;
-        end; {case}
       end;
    DieselEngine: begin
                    EnginePower:=dmoment*enrot;
