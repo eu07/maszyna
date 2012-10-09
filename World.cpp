@@ -1849,7 +1849,10 @@ void TWorld::ShowHints(void)
    //glRasterPos2f(-0.25f, 0.20f);
    //OutText1="Uruchamianie lokomotywy - pomoc dla niezaawansowanych";
    //glPrint(OutText1.c_str());
-   if(TestFlag(Controlled->MoverParameters->SecuritySystem.Status,s_ebrake))
+
+   //if(TestFlag(Controlled->MoverParameters->SecuritySystem.Status,s_ebrake))
+   //hunter-091012
+   if(TestFlag(Controlled->MoverParameters->SecuritySystem.Status,s_SHPebrake)||TestFlag(Controlled->MoverParameters->SecuritySystem.Status,s_CAebrake))
       {
         OutText1="Gosciu, ale refleks to ty masz szachisty. Teraz zaczekaj.";
         OutText2="W tej sytuacji czuwak mozesz zbic dopiero po zatrzymaniu pociagu. ";
@@ -1857,7 +1860,8 @@ void TWorld::ShowHints(void)
         OutText3="   (mozesz juz nacisnac spacje)";
       }
    else
-   if(TestFlag(Controlled->MoverParameters->SecuritySystem.Status,s_alarm))
+   //if(TestFlag(Controlled->MoverParameters->SecuritySystem.Status,s_alarm))
+   if(TestFlag(Controlled->MoverParameters->SecuritySystem.Status,s_CAalarm)||TestFlag(Controlled->MoverParameters->SecuritySystem.Status,s_SHPalarm))
       {
         OutText1="Natychmiast zbij czuwak, bo pociag sie zatrzyma!";
         OutText2="   (szybko nacisnij spacje!)";
@@ -1888,7 +1892,7 @@ void TWorld::ShowHints(void)
       else
       if (!Controlled->MoverParameters->Mains)
          {
-         OutText1="Dobra, mozemy uruchomic glowny obwod lokomotywy.";
+         OutText1="Dobra, mozemy zalaczyc wylacznik szybki lokomotywy.";
          OutText2="   (wcisnij 'shift+M')";
          }
       else
@@ -1906,7 +1910,7 @@ void TWorld::ShowHints(void)
       else
       if (Controlled->MoverParameters->ActiveDir==0)
          {
-         OutText1="Ustaw nawrotnik na kierunek, w ktorym chcesz jechac.";
+         OutText1="Ustaw nastawnik kierunkowy na kierunek, w ktorym chcesz jechac.";
          OutText2="   ('d' - do przodu, 'r' - do tylu)";
          }
       else
@@ -1924,7 +1928,7 @@ void TWorld::ShowHints(void)
       else
       if (Controlled->MoverParameters->MainCtrlPos==0)
          {
-         OutText1="Teraz juz mozesz ruszyc ustawiajac pierwsza pozycje na nastawniku.";
+         OutText1="Teraz juz mozesz ruszyc ustawiajac pierwsza pozycje na nastawniku jazdy.";
          OutText2="   (jeden raz '+' na klawiaturze numerycznej)";
          }
       else
