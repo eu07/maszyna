@@ -1487,7 +1487,7 @@ begin
         end;
        if (State=False) then //jeœli wy³¹czony
         begin
-         SetFlag(SoundFlag,sound_relay);
+         //SetFlag(SoundFlag,sound_relay); //hunter-091012: przeniesione do Train.cpp, zeby sie nie zapetlal
          SecuritySystem.Status:=0; //deaktywacja czuwaka
         end
        else
