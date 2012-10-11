@@ -1996,7 +1996,8 @@ bool __fastcall TController::UpdateSituation(double dt)
      RecognizeCommand(); //samo czyta komendê wstawion¹ do pojazdu?
    if (Controlling->SecuritySystem.Status>1)
     if (!Controlling->SecuritySystemReset())
-     if (TestFlag(Controlling->SecuritySystem.Status,s_ebrake)&&(Controlling->BrakeCtrlPos==0)&&(AccDesired>0.0))
+     //if ((TestFlag(Controlling->SecuritySystem.Status,s_ebrake))&&(Controlling->BrakeCtrlPos==0)&&(AccDesired>0.0))
+     if ((TestFlag(Controlling->SecuritySystem.Status,s_SHPebrake)||TestFlag(Controlling->SecuritySystem.Status,s_CAebrake))&&(Controlling->BrakeCtrlPos==0)&&(AccDesired>0.0))
       Controlling->DecBrakeLevel();
   }
   switch (OrderList[OrderPos])
