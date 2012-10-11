@@ -1190,19 +1190,53 @@ bool __fastcall TWorld::Update()
     break;
    }
    switch (Train->iCabLightFlag)
-   {
+   { //hunter-091012: uzaleznienie jasnosci od przetwornicy
     case 0: //œwiat³o wewnêtrzne zgaszone
-    break;
+     break;
     case 1: //œwiat³o wewnêtrzne przygaszone (255 216 176)
-     ambientCabLight[0]=Max0R(0.700,ambientCabLight[0]); //R
-     ambientCabLight[1]=Max0R(0.593,ambientCabLight[1]); //G
-     ambientCabLight[2]=Max0R(0.483,ambientCabLight[2]); //B
-    break;
+     if (Train->DynamicObject->MoverParameters->ConverterFlag==true) //jasnosc dla zalaczonej przetwornicy
+      {
+       ambientCabLight[0]=Max0R(0.700,ambientCabLight[0])*0.75; //R
+       ambientCabLight[1]=Max0R(0.593,ambientCabLight[1])*0.75; //G
+       ambientCabLight[2]=Max0R(0.483,ambientCabLight[2])*0.75; //B
+
+       for (int i=0;i<3;i++)
+        if (ambientCabLight[i]<=(Global::ambientDayLight[i]*0.9))
+         ambientCabLight[i]=Global::ambientDayLight[i]*0.9;
+      }
+     else
+      {
+       ambientCabLight[0]=Max0R(0.700,ambientCabLight[0])*0.375; //R
+       ambientCabLight[1]=Max0R(0.593,ambientCabLight[1])*0.375; //G
+       ambientCabLight[2]=Max0R(0.483,ambientCabLight[2])*0.375; //B
+
+       for (int i=0;i<3;i++)
+        if (ambientCabLight[i]<=(Global::ambientDayLight[i]*0.9))
+         ambientCabLight[i]=Global::ambientDayLight[i]*0.9;
+      }
+     break;
     case 2: //œwiat³o wewnêtrzne zapalone (255 216 176)
-     ambientCabLight[0]=Max0R(1.000,ambientCabLight[0]); //R
-     ambientCabLight[1]=Max0R(0.847,ambientCabLight[1]); //G
-     ambientCabLight[2]=Max0R(0.690,ambientCabLight[2]); //B
-    break;
+     if (Train->DynamicObject->MoverParameters->ConverterFlag==true) //jasnosc dla zalaczonej przetwornicy
+      {
+       ambientCabLight[0]=Max0R(1.000,ambientCabLight[0]); //R
+       ambientCabLight[1]=Max0R(0.847,ambientCabLight[1]); //G
+       ambientCabLight[2]=Max0R(0.690,ambientCabLight[2]); //B
+
+       for (int i=0;i<3;i++)
+        if (ambientCabLight[i]<=(Global::ambientDayLight[i]*0.9))
+         ambientCabLight[i]=Global::ambientDayLight[i]*0.9;
+      }
+     else
+      {
+       ambientCabLight[0]=Max0R(1.000,ambientCabLight[0])*0.5; //R
+       ambientCabLight[1]=Max0R(0.847,ambientCabLight[1])*0.5; //G
+       ambientCabLight[2]=Max0R(0.690,ambientCabLight[2])*0.5; //B
+
+       for (int i=0;i<3;i++)
+        if (ambientCabLight[i]<=(Global::ambientDayLight[i]*0.9))
+         ambientCabLight[i]=Global::ambientDayLight[i]*0.9;
+      }
+     break;
    }
    glLightfv(GL_LIGHT0,GL_AMBIENT,ambientCabLight);
    glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseCabLight);
@@ -1821,7 +1855,10 @@ void TWorld::ShowHints(void)
    //glRasterPos2f(-0.25f, 0.20f);
    //OutText1="Uruchamianie lokomotywy - pomoc dla niezaawansowanych";
    //glPrint(OutText1.c_str());
-   if(TestFlag(Controlled->MoverParameters->SecuritySystem.Status,s_ebrake))
+
+   //if(TestFlag(Controlled->MoverParameters->SecuritySystem.Status,s_ebrake))
+   //hunter-091012
+   if(TestFlag(Controlled->MoverParameters->SecuritySystem.Status,s_SHPebrake)||TestFlag(Controlled->MoverParameters->SecuritySystem.Status,s_CAebrake))
       {
         OutText1="Gosciu, ale refleks to ty masz szachisty. Teraz zaczekaj.";
         OutText2="W tej sytuacji czuwak mozesz zbic dopiero po zatrzymaniu pociagu. ";
@@ -1829,7 +1866,8 @@ void TWorld::ShowHints(void)
         OutText3="   (mozesz juz nacisnac spacje)";
       }
    else
-   if(TestFlag(Controlled->MoverParameters->SecuritySystem.Status,s_alarm))
+   //if(TestFlag(Controlled->MoverParameters->SecuritySystem.Status,s_alarm))
+   if(TestFlag(Controlled->MoverParameters->SecuritySystem.Status,s_CAalarm)||TestFlag(Controlled->MoverParameters->SecuritySystem.Status,s_SHPalarm))
       {
         OutText1="Natychmiast zbij czuwak, bo pociag sie zatrzyma!";
         OutText2="   (szybko nacisnij spacje!)";
@@ -1860,7 +1898,7 @@ void TWorld::ShowHints(void)
       else
       if (!Controlled->MoverParameters->Mains)
          {
-         OutText1="Dobra, mozemy uruchomic glowny obwod lokomotywy.";
+         OutText1="Dobra, mozemy zalaczyc wylacznik szybki lokomotywy.";
          OutText2="   (wcisnij 'shift+M')";
          }
       else
@@ -1878,7 +1916,7 @@ void TWorld::ShowHints(void)
       else
       if (Controlled->MoverParameters->ActiveDir==0)
          {
-         OutText1="Ustaw nawrotnik na kierunek, w ktorym chcesz jechac.";
+         OutText1="Ustaw nastawnik kierunkowy na kierunek, w ktorym chcesz jechac.";
          OutText2="   ('d' - do przodu, 'r' - do tylu)";
          }
       else
@@ -1896,7 +1934,7 @@ void TWorld::ShowHints(void)
       else
       if (Controlled->MoverParameters->MainCtrlPos==0)
          {
-         OutText1="Teraz juz mozesz ruszyc ustawiajac pierwsza pozycje na nastawniku.";
+         OutText1="Teraz juz mozesz ruszyc ustawiajac pierwsza pozycje na nastawniku jazdy.";
          OutText2="   (jeden raz '+' na klawiaturze numerycznej)";
          }
       else
