@@ -141,23 +141,12 @@ CONST
    bp_magnetic=2;
 
    {status czuwaka/SHP}
-   {
    s_waiting=1; //dzia³a
    s_aware=2;   //czuwak miga
    s_active=4;  //SHP œwieci
    s_alarm=8;   //buczy
    s_ebrake=16; //hamuje
-   }
-   //hunter-091012: rozdzielenie alarmow, dodanie testu czuwaka
-   s_waiting=1; //dzia³a
-   s_aware=2;   //czuwak miga
-   s_active=4;  //SHP œwieci
-   s_CAalarm=8;   //buczy
-   s_SHPalarm=16;   //buczy
-   s_CAebrake=32; //hamuje
-   s_SHPebrake=64; //hamuje
-   s_CAtest=128;
-   
+
    {dzwieki}
    sound_none=0;
    sound_loud=1;
@@ -320,8 +309,7 @@ TYPE
                        SystemType: byte; {0: brak, 1: czuwak aktywny, 2: SHP/sygnalizacja kabinowa}
                        AwareDelay,SoundSignalDelay,EmergencyBrakeDelay:real;
                        Status: byte;     {0: wylaczony, 1: wlaczony, 2: czuwak, 4: shp, 8: alarm, 16: hamowanie awaryjne}
-                       //SystemTimer, SystemSoundTimer, SystemBrakeTimer: real;
-                       SystemTimer, SystemSoundCATimer, SystemSoundSHPTimer, SystemBrakeCATimer, SystemBrakeSHPTimer, SystemBrakeCATestTimer: real; //hunter-091012
+                       SystemTimer, SystemSoundTimer, SystemBrakeTimer: real;
                        VelocityAllowed, NextVelocityAllowed: integer; {predkosc pokazywana przez sygnalizacje kabinowa}
                        RadioStop:boolean; //czy jest RadioStop
                      end;
@@ -599,7 +587,7 @@ TYPE
                 Voltage: real;           {aktualne napiecie sieci zasilajacej}
                 MainCtrlActualPos: byte; {wskaznik Rlist}
                 ScndCtrlActualPos: byte; {wskaznik MotorParam}
-                DelayCtrlFlag: boolean;  {opoznienie w zalaczaniu}
+                DelayCtrlFlag: boolean;  {opoznienie w zalaczaniu na 1. pozycji}
                 LastRelayTime: real;     {czas ostatniego przelaczania stycznikow}
                 AutoRelayFlag: boolean;  {mozna zmieniac jesli AutoRelayType=2}
                 FuseFlag: boolean;       {!o bezpiecznik nadmiarowy}
@@ -608,8 +596,6 @@ TYPE
                 ResistorsFlag: boolean;  {!o jazda rezystorowa}
                 RventRot: real;          {!s obroty wentylatorow rozruchowych}
                 UnBrake: boolean;       {w EZT - nacisniete odhamowywanie}
-                s_CAtestebrake: boolean; //hunter-091012: zmienna dla testu ca
-
 
                 {-zmienne dla lokomotywy spalinowej z przekladnia mechaniczna}
                 dizel_fill: real; {napelnienie}
@@ -1501,7 +1487,7 @@ begin
         end;
        if (State=False) then //jeœli wy³¹czony
         begin
-         //SetFlag(SoundFlag,sound_relay); //hunter-091012: przeniesione do Train.cpp, zeby sie nie zapetlal
+         SetFlag(SoundFlag,sound_relay);
          SecuritySystem.Status:=0; //deaktywacja czuwaka
         end
        else
@@ -1614,7 +1600,6 @@ begin
    SandDoseOn:=False;
 end;
 
-(*
 function T_MoverParameters.SecuritySystemReset : boolean;
 //zbijanie czuwaka/SHP
  procedure Reset;
@@ -1642,7 +1627,6 @@ begin
 end;
 
 {testowanie czuwaka/SHP}
-
 procedure T_MoverParameters.SecuritySystemCheck(dt:real);
 begin
   with SecuritySystem do
@@ -1675,106 +1659,7 @@ begin
       end;
    end;
 end;
-*)
 
-//hunter-091012: rozbicie alarmow, dodanie testu czuwaka
-function T_MoverParameters.SecuritySystemReset : boolean;
-//zbijanie czuwaka/SHP
- procedure Reset;
-  begin
-   SecuritySystem.SystemTimer:=0;
-
-   if TestFlag(SecuritySystem.Status,s_aware) then
-    begin
-     SecuritySystem.SystemBrakeCATimer:=0;
-     SecuritySystem.SystemSoundCATimer:=0;
-     SetFlag(SecuritySystem.Status,-s_aware);
-     SetFlag(SecuritySystem.Status,-s_CAalarm);
-     SetFlag(SecuritySystem.Status,-s_CAebrake);
-     EmergencyBrakeFlag:=false;
-     SecuritySystem.VelocityAllowed:=-1;
-    end
-   else if TestFlag(SecuritySystem.Status,s_active) then
-    begin
-     SecuritySystem.SystemBrakeSHPTimer:=0;
-     SecuritySystem.SystemSoundSHPTimer:=0;
-     SetFlag(SecuritySystem.Status,-s_active);
-     SetFlag(SecuritySystem.Status,-s_SHPalarm);
-     SetFlag(SecuritySystem.Status,-s_SHPebrake);
-     EmergencyBrakeFlag:=false;
-     SecuritySystem.VelocityAllowed:=-1;
-    end;
-  end;
-begin
-  with SecuritySystem do
-    if (SystemType>0) and (Status>0) then
-      begin
-        SecuritySystemReset:=True;
-        if not (ActiveDir=0) then
-         if not TestFlag(Status,s_CAebrake) or not TestFlag(Status,s_SHPebrake) then
-          Reset;
-        //else
-        //  if EmergencyBrakeSwitch(False) then
-        //   Reset;
-      end
-    else
-     SecuritySystemReset:=False;
-//  SendCtrlToNext('SecurityReset',0,CabNo);
-end;
-
-procedure T_MoverParameters.SecuritySystemCheck(dt:real);
-begin
-  with SecuritySystem do
-   begin
-     if (SystemType>0) and (Status>0) then
-      begin
-       //CA
-       if (Vel>(0.1*Vmax)) then  //predkosc wieksza od 10% Vmax
-       begin
-        SystemTimer:=SystemTimer+dt;
-        if TestFlag(SystemType,1) and TestFlag(Status,s_aware) then //jeœli œwieci albo miga
-         SystemSoundCATimer:=SystemSoundCATimer+dt;
-        if TestFlag(SystemType,1) and TestFlag(Status,s_CAalarm) then //jeœli buczy
-         SystemBrakeCATimer:=SystemBrakeCATimer+dt;
-        if TestFlag(SystemType,1) then
-         if (SystemTimer>AwareDelay) and (AwareDelay>=0) then  {-1 blokuje}
-           if not SetFlag(Status,s_aware) then {juz wlaczony sygnal swietlny}
-             if (SystemSoundCATimer>SoundSignalDelay) and (SoundSignalDelay>=0) then
-               if not SetFlag(Status,s_CAalarm) then {juz wlaczony sygnal dzwiekowy}
-                 if (SystemBrakeCATimer>EmergencyBrakeDelay) and (EmergencyBrakeDelay>=0) then
-                   SetFlag(Status,s_CAebrake);
-
-
-       //SHP
-        if TestFlag(SystemType,2) and TestFlag(Status,s_active) then //jeœli œwieci albo miga
-         SystemSoundSHPTimer:=SystemSoundSHPTimer+dt;
-        if TestFlag(SystemType,2) and TestFlag(Status,s_SHPalarm) then //jeœli buczy
-         SystemBrakeSHPTimer:=SystemBrakeSHPTimer+dt;
-        if TestFlag(SystemType,2) and TestFlag(Status,s_active) then
-         if (Vel>VelocityAllowed) and (VelocityAllowed>=0) then
-          SetFlag(Status,s_SHPebrake)
-         else
-          if ((SystemSoundSHPTimer>SoundSignalDelay) and (SoundSignalDelay>=0)) or ((Vel>NextVelocityAllowed) and (NextVelocityAllowed>=0)) then
-            if not SetFlag(Status,s_SHPalarm) then {juz wlaczony sygnal dzwiekowy}
-              if (SystemBrakeSHPTimer>EmergencyBrakeDelay) and (EmergencyBrakeDelay>=0) then
-               SetFlag(Status,s_SHPebrake);
-
-       end; //else SystemTimer:=0;
-
-       //TEST CA
-        if TestFlag(Status,s_CAtest) then //jeœli œwieci albo miga
-         SystemBrakeCATestTimer:=SystemBrakeCATestTimer+dt;
-        if TestFlag(SystemType,1) then
-           if TestFlag(Status,s_CAtest) then {juz wlaczony sygnal swietlny}
-               if (SystemBrakeCATestTimer>EmergencyBrakeDelay) and (EmergencyBrakeDelay>=0) then
-                   s_CAtestebrake:=true;
-
-       //wdrazanie hamowania naglego
-        if TestFlag(Status,s_SHPebrake) or TestFlag(Status,s_CAebrake) or (s_CAtestebrake=true) then
-         EmergencyBrakeFlag:=True;
-      end;
-   end;
-end;
 
 {nastawy hamulca}
 
@@ -3145,7 +3030,7 @@ begin
     if (LastRelayTime>CtrlDelay) and not DelayCtrlFlag then
      begin
        if MainCtrlPos=0 then
-        DelayCtrlFlag:=True;
+        DelayCtrlFlag:=(TrainType<>dt_EZT); //Ra: w EZT mo¿na daæ od razu na S albo R, wa³ ku³akowy sobie dokrêci
        if (((RList[MainCtrlActualPos].R=0) and ((not CoupledCtrl) or (Imin=IminLo))) or (MainCtrlActualPos=RListSize))
           and ((ScndCtrlActualPos>0) or (ScndCtrlPos>0)) then
         begin   {zmieniaj scndctrlactualpos}
@@ -3543,24 +3428,6 @@ begin
    //eAngle:=Pirazy2-eAngle; <- ABu: a nie czasem tak, jak nizej?
    eAngle:=eAngle-Pirazy2;
 
-  //hunter-091012: przeniesione z if ActiveDir<>0 (zeby po zejsciu z kierunku dalej spadala predkosc wentylatorow)
-  if (EngineType=ElectricSeriesMotor) then
-   begin
-        case RVentType of {wentylatory rozruchowe}
-        1: if ActiveDir<>0 then
-            RventRot:=RventRot+(RVentnmax-RventRot)*RVentSpeed*dt
-           else
-            RventRot:=RventRot*(1-RVentSpeed*dt);
-        2: if (Abs(Itot)>RVentMinI) and (RList[MainCtrlActualPos].R>RVentCutOff) then
-            RventRot:=RventRot+(RVentnmax*Abs(Itot)/(ImaxLo*RList[MainCtrlActualPos].Bn)-RventRot)*RVentSpeed*dt
-           else
-            begin
-              RventRot:=RventRot*(1-RVentSpeed*dt);
-              if RventRot<0.1 then RventRot:=0;
-            end;
-        end; {case}
-   end; {if}
-
   if ActiveDir<>0 then
    case EngineType of
     Dumb:
@@ -3619,6 +3486,19 @@ begin
         Mw:=Mm*Transmision.Ratio;
         Fw:=Mw*2.0/WheelDiameter;
         Ft:=Fw*NPoweredAxles;                {sila trakcyjna}
+        case RVentType of {wentylatory rozruchowe}
+        1: if ActiveDir<>0 then
+            RventRot:=RventRot+(RVentnmax-RventRot)*RVentSpeed*dt
+           else
+            RventRot:=RventRot*(1-RVentSpeed*dt);
+        2: if (Abs(Itot)>RVentMinI) and (RList[MainCtrlActualPos].R>RVentCutOff) then
+            RventRot:=RventRot+(RVentnmax*Abs(Itot)/(ImaxLo*RList[MainCtrlActualPos].Bn)-RventRot)*RVentSpeed*dt
+           else
+            begin
+              RventRot:=RventRot*(1-RVentSpeed*dt);
+              if RventRot<0.1 then RventRot:=0;
+            end;
+        end; {case}
       end;
    DieselEngine: begin
                    EnginePower:=dmoment*enrot;
@@ -4912,7 +4792,7 @@ Begin
        begin
         VelocityAllowed:=Trunc(CValue1);
         NextVelocityAllowed:=Trunc(CValue2);
-        SystemSoundSHPTimer:=0; //hunter-091012
+        SystemSoundTimer:=0;
         SetFlag(Status,s_active);
         OK:=True;
        end
@@ -5219,7 +5099,7 @@ begin
       SystemType:=0;
       AwareDelay:=-1; SoundSignalDelay:=-1; EmergencyBrakeDelay:=-1;
       Status:=0;
-      SystemTimer:=0; SystemBrakeCATimer:=0; SystemBrakeSHPTimer:=0; //hunter-091012
+      SystemTimer:=0; SystemBrakeTimer:=0;
       VelocityAllowed:=-1; NextVelocityAllowed:=-1;
       RadioStop:=false; //domyœlnie nie ma
     end;
@@ -5333,7 +5213,7 @@ begin
      PantFront(true);
      PantRear(true);
      MainSwitch(true);
-     ActiveDir:=Dir;
+     ActiveDir:=Dir; //nastawnik kierunkowy
      DirAbsolute:=ActiveDir*CabNo; //kierunek jazdy wzglêdem sprzêgów
      LimPipePress:=CntrlPipePress;
    end

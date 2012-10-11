@@ -244,7 +244,6 @@ struct TMotorParameters
 	bool AutoSwitch;
 } ;
 
-
 struct TSecuritySystem
 {
 	Byte SystemType;
@@ -253,11 +252,8 @@ struct TSecuritySystem
 	double EmergencyBrakeDelay;
 	Byte Status;
 	double SystemTimer;
-	double SystemSoundCATimer;
-	double SystemSoundSHPTimer;
-	double SystemBrakeCATimer;
-	double SystemBrakeSHPTimer;
-	double SystemBrakeCATestTimer;
+	double SystemSoundTimer;
+	double SystemBrakeTimer;
 	int VelocityAllowed;
 	int NextVelocityAllowed;
 	bool RadioStop;
@@ -532,7 +528,6 @@ public:
 	bool ResistorsFlag;
 	double RventRot;
 	bool UnBrake;
-	bool s_CAtestebrake;
 	double dizel_fill;
 	double dizel_engagestate;
 	double dizel_engage;
@@ -739,11 +734,8 @@ static const Shortint bp_magnetic = 0x2;
 static const Shortint s_waiting = 0x1;
 static const Shortint s_aware = 0x2;
 static const Shortint s_active = 0x4;
-static const Shortint s_CAalarm = 0x8;
-static const Shortint s_SHPalarm = 0x10;
-static const Shortint s_CAebrake = 0x20;
-static const Shortint s_SHPebrake = 0x40;
-static const Byte s_CAtest = 0x80;
+static const Shortint s_alarm = 0x8;
+static const Shortint s_ebrake = 0x10;
 static const Shortint sound_none = 0x0;
 static const Shortint sound_loud = 0x1;
 static const Shortint sound_couplerstretch = 0x2;
