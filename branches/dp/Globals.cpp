@@ -44,8 +44,8 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asRelease="1.8.653.377";
-AnsiString Global::asVersion="Compilation 2012-10-06, release "+Global::asRelease+"."; //tutaj, bo wysy³any
+AnsiString Global::asRelease="1.8.658.378";
+AnsiString Global::asVersion="Compilation 2012-10-11, release "+Global::asRelease+"."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 double Global::fSunDeclination=0.0; //deklinacja S³oñca
@@ -86,6 +86,7 @@ GLfloat Global::noLight[]         ={0.00f,0.00f,0.00f,1.0f};
 GLfloat Global::darkLight[]       ={0.03f,0.03f,0.03f,1.0f}; //œladowe
 GLfloat Global::lightPos[4];
 bool Global::bRollFix=true; //czy wykonaæ przeliczanie przechy³ki
+bool Global::bJoinEvents=false; //czy grupowaæ eventy o tych samych nazwach
 
 //parametry u¿ytkowe (jak komu pasuje)
 int Global::Keys[MaxKeys];
@@ -391,6 +392,8 @@ void __fastcall Global::ConfigParse(TQueryParserComp *qp,cParser *cp)
   }
   else if (str==AnsiString("brakestep")) //krok zmiany hamulca dla klawiszy [Num3] i [Num9]
    fBrakeStep=GetNextSymbol().ToDouble();
+  else if (str==AnsiString("joinduplicatedevents")) //czy grupowaæ eventy o tych samych nazwach
+   bJoinEvents=(GetNextSymbol().LowerCase()==AnsiString("yes"));
  }
  while (str!="endconfig"); //(!Parser->EndOfFile)
  //na koniec trochê zale¿noœci

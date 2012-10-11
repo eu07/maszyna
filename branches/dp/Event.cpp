@@ -31,6 +31,7 @@ __fastcall TEvent::TEvent()
  Type=tp_Unknown;
  for (int i=0;i<13;i++)
   Params[i].asPointer=NULL;
+ eJoined=NULL; //nie ma kolejnego z t¹ sam¹ nazw¹
 }
 
 __fastcall TEvent::~TEvent()
@@ -51,6 +52,7 @@ __fastcall TEvent::~TEvent()
   case tp_GetValues: //nic
   break;
  }
+ delete eJoined; //kolejne z t¹ sam¹ nazw¹ nie skasuj¹ siê inaczej
 }
 
 void __fastcall TEvent::Init()
@@ -453,16 +455,25 @@ vector3 __fastcall TEvent::PositionGet()
  return vector3(0,0,0); //inne eventy siê nie licz¹
 };
 
-bool TEvent::StopCommand()
+bool __fastcall TEvent::StopCommand()
 {//
  if (Type==tp_GetValues)
   return Params[9].asMemCell->StopCommand(); //info o komendzie z komórki
  return false;
 };
 
-void TEvent::StopCommandSent()
+void __fastcall TEvent::StopCommandSent()
 {
  if (Type==tp_GetValues)
   Params[9].asMemCell->StopCommandSent(); //komenda z komórki zosta³a wys³ana
 };
 
+void __fastcall TEvent::Append(TEvent *e)
+{//doczepienie kolejnych z t¹ sam¹ nazw¹
+ if (eJoined)
+  eJoined->Append(e); //rekurencja! - góra kilkanaœcie eventów bêdzie potrzebne
+ else
+ {eJoined=e;
+  e->bEnabled=true; //ten doczepiony mo¿e byæ tylko kolejkowany
+ }
+};

@@ -242,6 +242,7 @@ private: //Ra: stare funkcje skanuj¹ce, u¿ywane do szukania sygnalizatora z ty³u
  TEvent* eSignLast; //ostatnio znaleziony sygna³, o ile nie miniêty
  bool __fastcall CheckEvent(TEvent *e);
  TEvent* __fastcall CheckTrackEvent(double fDirection,TTrack *Track);
+ TEvent* __fastcall CheckTrackEventBackward(double fDirection,TTrack *Track);
  TTrack* __fastcall BackwardTraceRoute(double &fDistance,double &fDirection,TTrack *Track,TEvent*&Event);
  void __fastcall SetProximityVelocity(double dist,double vel,const vector3 *pos);
  bool __fastcall BackwardScan();
