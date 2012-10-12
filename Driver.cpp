@@ -1514,18 +1514,33 @@ bool __fastcall TController::IncSpeed()
      }
     }
     break;
-   case ElectricSeriesMotor :
+   case ElectricSeriesMotor:
     if (!Controlling->FuseFlag)
      if ((Controlling->MainCtrlPos==0)||(!Controlling->DelayCtrlFlag)) //youBy poleci³ dodaæ 2012-09-08 v367
-      //na pozycji 0 przejdzie, a na pierwszej bêdzie czekaæ, a¿ siê za³¹cz¹ liniowe (zgaœnie DelayCtrlFlag)
-      if ((Controlling->Im<=Controlling->Imin)&&(Ready||Prepare2press))
-      {
-       OK=Controlling->IncMainCtrl(1);
-       if ((Controlling->MainCtrlPos>2)&&(Controlling->Im==0))
-         Need_TryAgain=true; //true, jeœli druga pozycja w elektryku nie za³apa³a
-        else
-         if (!OK)
-          OK=Controlling->IncScndCtrl(1); //TODO: dorobic boczniki na szeregowej przy ciezkich bruttach
+      //na pozycji 0 przejdzie, a na pozosta³ych bêdzie czekaæ, a¿ siê za³¹cz¹ liniowe (zgaœnie DelayCtrlFlag)
+      if ((fabs(Controlling->Im)<Controlling->Imin)&&(Ready||Prepare2press))
+      {//Ra: wywala³ nadmiarowy, bo Im mo¿e byæ ujemne
+       if (Controlling->Vel<=30)
+       {//bocznik na szeregowej przy ciezkich bruttach
+        if (Controlling->MainCtrlPos?Controlling->RList[Controlling->MainCtrlPos].R>0.0:true) //oporowa
+         OK=Controlling->IncMainCtrl(1); //krêcimy nastawnik jazdy
+        else //jeœli bezoporowa (z wyj¹tekiem 0)
+         OK=false; //to daæ bocznik
+        if (fMass>800.0) //Ra: taki sobie warunek na wysoki rozruch
+         if (fAccGravity<-0.1) //jak pochylenie wiêksze ni¿ 10‰
+          Controlling->CurrentSwitch(true); //rozruch wysoki
+       }
+       else
+       {//przekroczone 30km/h, mo¿na wejœæ na jazdê równoleg³¹
+        if (Controlling->ScndCtrlPos) //jeœli ustawiony bocznik
+         if (Controlling->MainCtrlPos<Controlling->MainCtrlPosNo-1) //a nie jest ostatnia pozycja
+          Controlling->DecScndCtrl(2); //to bocznik na zero po chamsku (ktoœ mia³ to poprawiæ...)
+        OK=Controlling->IncMainCtrl(1);
+       }
+       if ((Controlling->MainCtrlPos>2)&&(Controlling->Im==0)) //brak pr¹du na dalszych pozycjach
+        Need_TryAgain=true; //nie za³¹czona lokomotywa albo wywali³ nadmiarowy
+       else if (!OK) //nie da siê wrzuciæ kolejnej pozycji
+        OK=Controlling->IncScndCtrl(1); //to daæ bocznik
       }
     break;
    case Dumb:
@@ -1840,7 +1855,7 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
   else
    if ((NewValue1>=0)&&(NewValue1<maxorders))
    {OrderPos=floor(NewValue1);
-    //if (!OrderPos) OrderPos=1; //dopiero pierwsza uruchamia
+    if (!OrderPos) OrderPos=1; //zgodnoœæ wstecz: dopiero pierwsza uruchamia
    }
 /*
   if (WriteLogFlag)
@@ -2670,7 +2685,7 @@ bool __fastcall TController::UpdateSituation(double dt)
        if (vel<(VelDesired>5.0?VelDesired-5:VelDesired)) //jeœli prêdkoœæ w kierunku czo³a jest mniejsza ni¿ dozwolona
       //if ((AbsAccS<AccDesired)&&(vel<VelDesired))
        //if (!MaxVelFlag) //Ra: to nie jest u¿ywane
-       if (!IncSpeed())
+       if (!IncSpeed()) //Ra: to tutaj jest bez sensu, bo nie doci¹gnie do bezoporowej
         MaxVelFlag=true; //Ra: to nie jest u¿ywane
        else
         MaxVelFlag=false; //Ra: to nie jest u¿ywane

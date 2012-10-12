@@ -1526,7 +1526,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
 //            tmp->iState=(Parser->GetNextSymbol().LowerCase()=="loop"?DSBPLAY_LOOPING:0);
    parser->getTokens(); *parser >> token;
    break;
-  case TP_DYNAMIC :
+  case TP_DYNAMIC:
    tmp->DynamicObject=new TDynamicObject();
    //tmp->DynamicObject->Load(Parser);
    parser->getTokens();
@@ -2172,7 +2172,7 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
         {delete tmp; tmp=NULL;} //utylizacja duplikatu z krzy¿ykiem
         else if (i>8?tmp->asName.SubString(i-7,8)=="_warning":false) //tymczasowo wyj¹tki
         {delete tmp; tmp=NULL;} //tymczasowa utylizacja duplikatu z tr¹bieniem
-        else if (i>4?tmp->asName.SubString(i-3,4)!="_shp":false) //nie podlegaj¹ logowaniu
+        else if (i>4?tmp->asName.SubString(i-3,4)=="_shp":false) //nie podlegaj¹ logowaniu
         {delete tmp; tmp=NULL;} //tymczasowa utylizacja duplikatu SHP
         if (tmp) //jeœli nie zosta³ zutylizowany
          if (Global::bJoinEvents)

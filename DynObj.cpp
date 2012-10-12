@@ -1396,10 +1396,13 @@ double __fastcall TDynamicObject::Init(
   fAxleDist=MoverParameters->Dim.L-0.2; //bo bêdzie "walenie w mur"
  float fAxleDistHalf=fAxleDist*0.5;
  //WriteLog("Dynamic "+Type_Name+" of length "+MoverParameters->Dim.L+" at "+AnsiString(fDist));
- //if (Track->Event0?(fDist<0.0)||(fDist>0.5*MoverParameters->Dim.L):true)
+ if (Cab) //jeœli ma obsadê - zgodnoœæ wstecz, jeœli tor startowy ma Event0
+  if (Track->Event0) //jeœli tor ma Event0
+   if (fDist>=0.0) //jeœli jeœli w starych sceneriach pocz¹tek sk³adu by³by wysuniêty na ten tor
+    if (fDist<=0.5*MoverParameters->Dim.L+0.2) //ale nie jest wysuniêty
+     fDist+=0.5*MoverParameters->Dim.L+0.2; //wysun¹æ go na ten tor
  //przesuwanie pojazdu tak, aby jego pocz¹tek by³ we wskazanym miejcu
-  //bez przesuwania: zgodnoœæ wstecz, jeœli tor ma Event0, a pocz¹tek sk³adu by³by wysuniêty za ten tor
- fDist-=0.5*MoverParameters->Dim.L; //dodajemy pó³ d³ugoœci pojazdu (zliczanie na minus)
+ fDist-=0.5*MoverParameters->Dim.L; //dodajemy pó³ d³ugoœci pojazdu, bo ustawiamy jego œrodek (zliczanie na minus)
  switch (iNumAxles)
  {//Ra: pojazdy wstawiane s¹ na tor pocz¹tkowy, a potem przesuwane
   case 2: //ustawianie osi na torze
