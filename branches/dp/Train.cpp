@@ -377,32 +377,31 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       }
       else if (cKey==Global::Keys[k_MaxCurrent])   //McZapkie-160502: F - wysoki rozruch
       {
-           if ((DynamicObject->MoverParameters->EngineType==DieselElectric) && (DynamicObject->MoverParameters->ShuntModeAllow) && (DynamicObject->MoverParameters->MainCtrlPos==0))
-           {
-               DynamicObject->MoverParameters->ShuntMode=True;
-           }
-
-           if (DynamicObject->MoverParameters->MaxCurrentSwitch(true))
-           {
-               dsbSwitch->SetVolume(DSBVOLUME_MAX);
-               dsbSwitch->Play(0,0,0);
-           }
-
-           if (DynamicObject->MoverParameters->TrainType!=dt_EZT)
-             if (DynamicObject->MoverParameters->MinCurrentSwitch(true))
-             {
-                 dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                 dsbSwitch->Play(0,0,0);
-             }
+       if ((DynamicObject->MoverParameters->EngineType==DieselElectric)&&(DynamicObject->MoverParameters->ShuntModeAllow) && (DynamicObject->MoverParameters->MainCtrlPos==0))
+       {
+        DynamicObject->MoverParameters->ShuntMode=true;
+       }
+       if (DynamicObject->MoverParameters->CurrentSwitch(true))
+       {
+        dsbSwitch->SetVolume(DSBVOLUME_MAX);
+        dsbSwitch->Play(0,0,0);
+       }
+/* Ra: przeniesione do Mover.cpp
+       if (DynamicObject->MoverParameters->TrainType!=dt_EZT) //to powinno byæ w fizyce, a nie w kabinie!
+        if (DynamicObject->MoverParameters->MinCurrentSwitch(true))
+        {
+         dsbSwitch->SetVolume(DSBVOLUME_MAX);
+         dsbSwitch->Play(0,0,0);
+        }
+*/
       }
-      else
-      if (cKey==Global::Keys[k_CurrentAutoRelay])  //McZapkie-241002: G - wlaczanie PSR
+      else if (cKey==Global::Keys[k_CurrentAutoRelay])  //McZapkie-241002: G - wlaczanie PSR
       {
-           if (DynamicObject->MoverParameters->AutoRelaySwitch(true))
-           {
-               dsbSwitch->SetVolume(DSBVOLUME_MAX);
-               dsbSwitch->Play(0,0,0);
-           }
+       if (DynamicObject->MoverParameters->AutoRelaySwitch(true))
+       {
+        dsbSwitch->SetVolume(DSBVOLUME_MAX);
+        dsbSwitch->Play(0,0,0);
+       }
       }
       else
       if (cKey==Global::Keys[k_FailedEngineCutOff])  //McZapkie-060103: E - wylaczanie sekcji silnikow
@@ -845,7 +844,6 @@ void __fastcall TTrain::OnKeyPress(int cKey)
               dsbNastawnikJazdy->SetCurrentPosition(0);
               dsbNastawnikJazdy->Play(0,0,0);
           }
-         else;
       }
 /*
       else if (cKey==Global::Keys[k_FreeFlyMode])
@@ -1323,23 +1321,23 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else
       if (cKey==Global::Keys[k_MaxCurrent])   //McZapkie-160502: f - niski rozruch
       {
-           if ((DynamicObject->MoverParameters->EngineType==DieselElectric) && (DynamicObject->MoverParameters->ShuntModeAllow) && (DynamicObject->MoverParameters->MainCtrlPos==0))
-           {
-               DynamicObject->MoverParameters->ShuntMode=False;
-           }
-
-           if (DynamicObject->MoverParameters->MaxCurrentSwitch(false))
-           {
-               dsbSwitch->SetVolume(DSBVOLUME_MAX);
-               dsbSwitch->Play(0,0,0);
-
-           }
-           if (DynamicObject->MoverParameters->TrainType!=dt_EZT)
-             if (DynamicObject->MoverParameters->MinCurrentSwitch(false))
-             {
-                 dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                 dsbSwitch->Play(0,0,0);
-             }
+       if ((DynamicObject->MoverParameters->EngineType==DieselElectric) && (DynamicObject->MoverParameters->ShuntModeAllow) && (DynamicObject->MoverParameters->MainCtrlPos==0))
+       {
+        DynamicObject->MoverParameters->ShuntMode=false;
+       }
+       if (DynamicObject->MoverParameters->CurrentSwitch(false))
+       {
+        dsbSwitch->SetVolume(DSBVOLUME_MAX);
+        dsbSwitch->Play(0,0,0);
+       }
+/* Ra: przeniesione do Mover.cpp
+       if (DynamicObject->MoverParameters->TrainType!=dt_EZT)
+        if (DynamicObject->MoverParameters->MinCurrentSwitch(false))
+        {
+         dsbSwitch->SetVolume(DSBVOLUME_MAX);
+         dsbSwitch->Play(0,0,0);
+        }
+*/
       }
       else
       if (cKey==Global::Keys[k_CurrentAutoRelay])  //McZapkie-241002: g - wylaczanie PSR

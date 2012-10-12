@@ -229,4 +229,12 @@ bool __fastcall TMoverParameters::ChangeCab(int direction)
  return false;
 };
 
-
+bool __fastcall TMoverParameters::CurrentSwitch(int direction)
+{//rozruch wysoki (true) albo niski (false)
+ //Ra: przenios³em z Train.cpp, nie wiem czy ma to sens
+ if (MaxCurrentSwitch(direction))
+ {if (TrainType!=dt_EZT)
+   return (MinCurrentSwitch(direction));
+ }
+ return false;
+};

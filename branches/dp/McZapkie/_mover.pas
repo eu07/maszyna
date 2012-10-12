@@ -597,6 +597,9 @@ TYPE
                 RunningTraction:TTractionParam;{parametry sieci trakcyjnej najblizej lokomotywy}
                 enrot, Im, Itot, Mm, Mw, Fw, Ft: real;
                 {ilosc obrotow, prad silnika i calkowity, momenty, sily napedne}
+                //Ra: Im jest ujemny, jeœli lok jedzie w stronê sprzêgu 1
+                //a ujemne powinien byæ przy odwróconej polaryzacji sieci...
+                //w wielu miejscach jest u¿ywane abs(Im)
                 Imin,Imax: integer;      {prad przelaczania automatycznego rozruchu, prad bezpiecznika}
                 Voltage: real;           {aktualne napiecie sieci zasilajacej}
                 MainCtrlActualPos: byte; {wskaznik Rlist}
