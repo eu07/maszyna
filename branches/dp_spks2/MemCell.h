@@ -15,6 +15,8 @@ private:
  double fValue1;
  double fValue2;
  TCommandType eCommand;
+ bool bCommand; //czy zawiera komendê dla zatrzymanego AI
+ TEvent *OnSent; //event dodawany do kolejki po wys³aniu komendy zatrzymuj¹cej sk³ad
 public:
  AnsiString asTrackName; //McZapkie-100302 - zeby nazwe toru na ktory jest Putcommand wysylane pamietac
  __fastcall TMemCell(vector3 *p);
@@ -30,8 +32,11 @@ public:
  inline double __fastcall Value2() {return fValue2;};
  inline vector3 __fastcall Position() {return vPosition;};
  inline TCommandType __fastcall Command() {return eCommand;};
+ inline bool __fastcall StopCommand() {return bCommand;};
+ void __fastcall StopCommandSent();
  TCommandType __fastcall CommandCheck();
  bool __fastcall IsVelocity();
+ void __fastcall AssignEvents(TEvent *e);
 };
 
 //---------------------------------------------------------------------------

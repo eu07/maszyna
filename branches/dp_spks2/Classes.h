@@ -44,7 +44,8 @@ typedef enum
  cm_SetProximityVelocity,
  cm_ChangeDirection,
  cm_PassengerStopPoint,
- cm_OutsideStation
+ cm_OutsideStation,
+ cm_Command //komenda pobierana z komórki
 } TCommandType;
 
 #endif

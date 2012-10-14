@@ -98,15 +98,14 @@ private: //obs³uga tabelki prêdkoœci (musi mieæ mo¿liwoœæ odhaczania stacji w ro
  int iTableDirection; //kierunek zape³nienia tabelki wzglêdem pojazdu z AI
  double fLastVel; //prêdkoœæ na poprzednio sprawdzonym torze
  TTrack *tLast; //ostatni analizowany tor
- //TEvent *eSignSkip; //sygna³ do pominiêcia (przejechany)
  //TTrack tSignLast; //tor z ostatnio znalezionym eventem
  bool __fastcall TableCheckEvent(TEvent *e);
  bool __fastcall TableAddNew();
  bool __fastcall TableNotFound(TEvent *e);
  void __fastcall TableClear();
  TEvent* __fastcall TableCheckTrackEvent(double fDirection,TTrack *Track);
- void __fastcall TableTraceRoute(double fDistance,int iDir,TDynamicObject *pVehicle=NULL);
- void __fastcall TableCheck(double fDistance,int iDir);
+ void __fastcall TableTraceRoute(double fDistance,TDynamicObject *pVehicle=NULL);
+ void __fastcall TableCheck(double fDistance);
  TCommandType __fastcall TableUpdate(double &fVelDes,double &fDist,double &fNext,double &fAcc);
  void __fastcall TablePurger();
 private: //parametry aktualnego sk³adu
@@ -114,7 +113,7 @@ private: //parametry aktualnego sk³adu
  double fMass; //ca³kowita masa do liczenia stycznej sk³adowej grawitacji
  double fAccGravity; //przyspieszenie sk³adowej stycznej grawitacji
 public:
- TEvent *eLastCommand; //ostatnio wys³ana komenda
+ TEvent *eSignNext; //sygna³ zmieniaj¹cy prêdkoœæ, do pokazania na [F2]
  AnsiString asNextStop; //nazwa nastêpnego punktu zatrzymania wg rozk³adu
 private: //parametry sterowania pojazdem (stan, hamowanie)
  double fShuntVelocity; //maksymalna prêdkoœæ manewrowania, zale¿y m.in. od sk³adu

@@ -18,6 +18,11 @@
 //101206 Ra: trapezoidalne drogi
 //110806 Ra: odwrócone mapowanie wzd³u¿ - Point1 == 1.0
 
+AnsiString __fastcall Where(vector3 p)
+{//zamiana wspó³rzêdnych na tekst, u¿ywana w b³êdach
+ return AnsiString(p.x)+" "+AnsiString(p.y)+" "+AnsiString(p.z);
+};
+
 __fastcall TSegment::TSegment(TTrack *owner)
 {
  Point1=CPointOut=CPointIn=Point2=vector3(0.0f,0.0f,0.0f);
@@ -107,7 +112,7 @@ bool __fastcall TSegment::Init(
  fStep=fNewStep;
  if (fLength<=0)
  {
-  WriteLog("Length <= 0 in TSegment::Init");
+  ErrorLog("Bad geometry: Length <= 0 in TSegment::Init at "+Where(Point1));
   //MessageBox(0,"Length<=0","TSegment::Init",MB_OK);
   return false; //zerowe nie mog¹ byæ
  }
@@ -131,7 +136,8 @@ bool __fastcall TSegment::Init(
  }
  if (fLength>500)
  {//tor ma pojemnoœæ 40 pojazdów, wiêc nie mo¿e byæ za d³ugi
-  MessageBox(0,"Length>500","TSegment::Init",MB_OK);
+  ErrorLog("Bad geometry: Length > 500m at "+Where(Point1));
+  //MessageBox(0,"Length>500","TSegment::Init",MB_OK);
   return false;
  }
  return true;
@@ -204,8 +210,9 @@ double __fastcall TSegment::GetTFromS(double s)
         it++;
         if (it>10)
         {
-            MessageBox(0,"Too many iterations","GetTFromS",MB_OK);
-            return fTime;
+         ErrorLog("Bad geometry: Too many iterations at "+Where(Point1));
+         //MessageBox(0,"Too many iterations","GetTFromS",MB_OK);
+         return fTime;
         }
 
         double fDifference = RombergIntegral(0,fTime) - s;
@@ -339,6 +346,10 @@ void __fastcall TSegment::RenderLoft(const vector6 *ShapePoints, int iNumShapePo
   step=fStep*iQualityFactor;
   s=fStep*iSkip; //iSkip - ile odcinków z pocz¹tku pomin¹æ
   i=iSkip; //domyœlnie 0
+  if (!fTsBuffer)
+   return; //prowizoryczne zabezpieczenie przed wysypem - ustaliæ faktyczn¹ przyczynê
+  if (i>iSegCount)
+   return; //prowizoryczne zabezpieczenie przed wysypem - ustaliæ faktyczn¹ przyczynê
   t=fTsBuffer[i]; //tabela watoœci t dla segmentów
   fOffset=0.1/fLength; //pierwsze 10cm
   pos1=FastGetPoint(t); //wektor pocz¹tku segmentu

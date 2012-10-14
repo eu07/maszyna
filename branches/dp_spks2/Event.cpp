@@ -38,7 +38,7 @@ __fastcall TEvent::TEvent()
  bEnabled=false; //false dla eventów u¿ywanych do skanowania sygna³ów (nie dodawane do kolejki)
  asNodeName="";
  bLaunched=false;
- bIsHistory=false;
+ //bIsHistory=false;
  fDelay=0;
  fStartTime=0;
  Type=tp_Unknown;
@@ -202,7 +202,8 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
           bEnabled=false; //nie do kolejki (dla SetVelocity te¿, ale jak jest do toru dowi¹zany) 
          }
          if (str=="SetVelocity") bEnabled=false;
-         if (str=="ShuntVelocity") bEnabled=false;
+         else if (str=="ShuntVelocity") bEnabled=false;
+         else if (str=="SetProximityVelocity") bEnabled=false;
          Params[0].asText=new char[str.Length()+1];
          strcpy(Params[0].asText,str.c_str());
 //         if (str!=AnsiString("*"))       //*=nie brac tego pod uwage
@@ -410,7 +411,7 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
  //if (Type!=tp_Unknown)
   //if (Type!=tp_Ignored)
    //if (asName.Pos("onstart")) //event uruchamiany automatycznie po starcie
-    //Global::pGround->AddToQuery(this,NULL); //dodanie do kolejki
+    //Global::AddToQuery(this,NULL); //dodanie do kolejki
     //return true; //dodaæ do kolejki
  //return false;
 }
@@ -463,5 +464,18 @@ vector3 __fastcall TEvent::PositionGet()
    return vector3(Params[3].asdouble,Params[4].asdouble,Params[5].asdouble);
  }
  return vector3(0,0,0); //inne eventy siê nie licz¹
+};
+
+bool TEvent::StopCommand()
+{//
+ if (Type==tp_GetValues)
+  return Params[9].asMemCell->StopCommand(); //info o komendzie z komórki
+ return false;
+};
+
+void TEvent::StopCommandSent()
+{
+ if (Type==tp_GetValues)
+  Params[9].asMemCell->StopCommandSent(); //komenda z komórki zosta³a wys³ana
 };
 

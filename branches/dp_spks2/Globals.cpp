@@ -32,6 +32,7 @@
 #include "World.h"
 
 
+
 //namespace Global {
 
 //parametry do u¿ytku wewnêtrznego
@@ -56,8 +57,8 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asRelease="1.8.628.367";
-AnsiString Global::asVersion="Compilation 2012-09-08, release "+Global::asRelease+"."; //tutaj, bo wysy³any
+AnsiString Global::asRelease="1.8.642.373";
+AnsiString Global::asVersion="Compilation 2012-09-25, release "+Global::asRelease+"."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 double Global::fSunDeclination=0.0; //deklinacja S³oñca
@@ -150,7 +151,7 @@ bool Global::bWireFrame=false;
 bool Global::bSoundEnabled=true;
 int Global::iWriteLogEnabled=3; //maska bitowa: 1-zapis do pliku, 2-okienko
 bool Global::bManageNodes=true;
-bool Global::bDecompressDDS=false;
+bool Global::bDecompressDDS=false; //czy programowa dekompresja DDS
 
 //parametry do kalibracji
 //kolejno wspó³czynniki dla potêg 0, 1, 2, 3 wartoœci odczytanej z urz¹dzenia
@@ -582,6 +583,10 @@ TDynamicObject* __fastcall Global::DynamicNearest()
  return pGround->DynamicNearest(pCamera->Pos);
 };
 
+bool __fastcall Global::AddToQuery(TEvent *event,TDynamicObject *who)
+{
+ return pGround->AddToQuery(event,who);
+};
 //---------------------------------------------------------------------------
 
 #pragma package(smart_init)
