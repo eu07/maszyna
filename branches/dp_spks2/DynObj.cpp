@@ -2006,7 +2006,9 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
      if ((Controller!=Humandriver)&&(MoverParameters->BrakeCtrlPos<0)&&(!TestFlag(MoverParameters->BrakeStatus,1))&&((MoverParameters->CntrlPipePress)>0.51))
 //       {
 ////        MoverParameters->PipePress=0.50;
-        MoverParameters->BrakeCtrlPos=0;
+        //MoverParameters->BrakeCtrlPos=0;
+        MoverParameters->BrakeLevelSet(0);
+
 //       }
 
 

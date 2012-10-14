@@ -587,10 +587,8 @@ public:
 	bool __fastcall SandDoseOn(void);
 	bool __fastcall SecuritySystemReset(void);
 	void __fastcall SecuritySystemCheck(double dt);
-	bool __fastcall IncBrakeLevel(void);
-	bool __fastcall DecBrakeLevel(void);
-	bool __fastcall IncBrakeLevelF(double CtrlSpeed);
-	bool __fastcall DecBrakeLevelF(double CtrlSpeed);
+	bool __fastcall IncBrakeLevelOld(void);
+	bool __fastcall DecBrakeLevelOld(void);
 	bool __fastcall IncLocalBrakeLevel(Byte CtrlSpeed);
 	bool __fastcall DecLocalBrakeLevel(Byte CtrlSpeed);
 	bool __fastcall IncLocalBrakeLevelFAST(void);
