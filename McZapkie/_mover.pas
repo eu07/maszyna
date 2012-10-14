@@ -4,19 +4,6 @@ unit _mover;          {fizyka ruchu dla symulatora lokomotywy}
     MaSzyna EU07 locomotive simulator
     Copyright (C) 2001-2004  Maciej Czapkiewicz and others
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
 
@@ -696,6 +683,8 @@ TYPE
                {! stopnie hamowania - hamulec zasadniczy}
                 function IncBrakeLevel:boolean;
                 function DecBrakeLevel:boolean;
+                function IncBrakeLevelF(CtrlSpeed:real):boolean;
+                function DecBrakeLevelF(CtrlSpeed:real):boolean;
                {! stopnie hamowania - hamulec pomocniczy}
                 function IncLocalBrakeLevel(CtrlSpeed:byte):boolean;
                 function DecLocalBrakeLevel(CtrlSpeed:byte):boolean;
@@ -1675,6 +1664,11 @@ end;
 
 {nastawy hamulca}
 
+function T_MoverParameters.IncBrakeLevelF(CtrlSpeed:real):boolean;
+begin
+ IncBrakeLevelF:=IncBrakeLevel();
+end;
+
 function T_MoverParameters.IncBrakeLevel:boolean;
 //var b:byte;
 begin
@@ -1730,6 +1724,11 @@ begin
    end
   else
    IncBrakeLevel:=False;
+end;
+
+function T_MoverParameters.DecBrakeLevelF(CtrlSpeed:Real):boolean;
+begin
+ DecBrakeLevelF:=DecBrakeLevel();
 end;
 
 function T_MoverParameters.DecBrakeLevel:boolean;
@@ -3557,6 +3556,38 @@ begin
    end;
 end;
 
+(* poprawione opory ruchu czekajace na lepsze cx w chk
+procedure T_MoverParameters.ComputeConstans2(R:real);
+var BearingF,RollF,HideModifier: real;
+begin
+  TotalMass:=ComputeMass;
+  TotalMassxg:=TotalMass*g; {TotalMass*g}
+  BearingF:=2*(DamageFlag and dtrain_bearing);
+
+  HideModifier:=Byte(Couplers[0].CouplingFlag>0)+Byte(Couplers[1].CouplingFlag>0);
+  with Dim do
+   begin
+    if BearingType=0 then
+     RollF:=10          {slizgowe}
+    else
+     RollF:=8;        {toczne}
+    if NPoweredAxles>0 then
+     RollF:=RollF+2;    {dodatkowe lozyska silnikow}
+
+    RollF:=RollF+BearingF/100.0; //stala do ustalenia
+
+    {dorobic liczenie temperatury lozyska!}
+    //stale do wzoru CNTK
+    FrictConst1:=(Cx*W*H)*(6.0-2.5*HideModifier)/100; //dwa czola, kazde ma +2.5 (lokomotywa i wagon)  //V2
+    FrictConst2s:=Totalmass*0.001*0.15;                                                                //V1
+    if(R<TrackW)then //jakakolwiek wartosc dodatnia, np. szerokosc albo rozstaw
+      FrictConst2d:=RollF*TotalMassxg*0.001+NAxles*150;                                                //V0 na prostej
+    else
+      FrictConst2d:=(RollF+500*TrackW/R)*TotalMassxg*0.001+NAxles*150;                                 //V0 na luku
+   end;
+end; *)
+
+
 function T_MoverParameters.FrictionForce(R:real;TDamage:byte):real;
 begin
 //ABu 240205: chyba juz ekstremalnie zoptymalizowana funkcja liczaca sily tarcia
@@ -3565,6 +3596,13 @@ begin
    else
       FrictionForce:=(FrictConst1*V*V)+FrictConst2s;
 end;
+
+(* poprawione opory ruchu czekajace na lepsze cx w chk
+function T_MoverParameters.FrictionForce2(R:real;TDamage:byte):real;
+begin
+//ABu 240205: chyba juz ekstremalnie zoptymalizowana funkcja liczaca sily tarcia
+    FrictionForce2:=(FrictConst1*Vel*Vel)+(FrictConst2s*Vel)+FrictConst2d;
+end; *)
 
 function T_MoverParameters.AddPulseForce(Multipler:integer): boolean; {dla drezyny}
 begin

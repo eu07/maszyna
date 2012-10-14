@@ -589,6 +589,8 @@ public:
 	void __fastcall SecuritySystemCheck(double dt);
 	bool __fastcall IncBrakeLevel(void);
 	bool __fastcall DecBrakeLevel(void);
+	bool __fastcall IncBrakeLevelF(double CtrlSpeed);
+	bool __fastcall DecBrakeLevelF(double CtrlSpeed);
 	bool __fastcall IncLocalBrakeLevel(Byte CtrlSpeed);
 	bool __fastcall DecLocalBrakeLevel(Byte CtrlSpeed);
 	bool __fastcall IncLocalBrakeLevelFAST(void);

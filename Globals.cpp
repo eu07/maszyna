@@ -3,19 +3,6 @@
     MaSzyna EU07 locomotive simulator
     Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "system.hpp"
@@ -42,7 +29,7 @@ TGround *Global::pGround=NULL;
 //char Global::CreatorName2[30]="2001-2003 Marcin WoŸniak <Marcin_EU>";
 //char Global::CreatorName3[20]="2004-2005 Adam Bugiel <ABu>";
 //char Global::CreatorName4[30]="2004 Arkadiusz Œlusarczyk <Winger>";
-//char Global::CreatorName5[30]="£ukasz Kirchner <Nbmx>";
+//char Global::CreatorName5[30]="2003-2009 £ukasz Kirchner <Nbmx>";
 AnsiString Global::asCurrentSceneryPath="scenery/";
 AnsiString Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath);
 AnsiString Global::asCurrentDynamicPath="";
@@ -57,8 +44,8 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asRelease="1.8.642.373";
-AnsiString Global::asVersion="Compilation 2012-09-25, release "+Global::asRelease+"."; //tutaj, bo wysy³any
+AnsiString Global::asRelease="1.8.648.375";
+AnsiString Global::asVersion="Compilation 2012-10-04, release "+Global::asRelease+"."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 double Global::fSunDeclination=0.0; //deklinacja S³oñca
@@ -115,6 +102,7 @@ AnsiString Global::asHumanCtrlVehicle="EU07-424";
 int Global::iMultiplayer=0; //blokada dzia³ania niektórych funkcji na rzecz kominikacji
 double Global::fMoveLight=-1; //ruchome œwiat³o
 double Global::fLatitudeDeg=52.0; //szerokoœæ geograficzna
+double Global::fBrakeStep=1.0; //krok zmiany hamulca dla klawiszy [Num3] i [Num9]
 
 
 //parametry wydajnoœciowe (np. regulacja FPS, szybkoœæ wczytywania)
@@ -401,6 +389,8 @@ void __fastcall Global::ConfigParse(TQueryParserComp *qp,cParser *cp)
    fCalibrateOut[i][2]=GetNextSymbol().ToDouble(); //mno¿nik dla kwadratu
    fCalibrateOut[i][3]=GetNextSymbol().ToDouble(); //mno¿nik dla szeœcianu
   }
+  else if (str==AnsiString("brakestep")) //krok zmiany hamulca dla klawiszy [Num3] i [Num9]
+   fBrakeStep=GetNextSymbol().ToDouble();
  }
  while (str!="endconfig"); //(!Parser->EndOfFile)
  //na koniec trochê zale¿noœci
