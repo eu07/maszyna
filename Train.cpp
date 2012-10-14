@@ -2916,22 +2916,34 @@ else
       if ((b>=0.0)&&(DynamicObject->MoverParameters->BrakeHandle==FV4a))
       {b=(((Global::fCalibrateIn[0][3]*b)+Global::fCalibrateIn[0][2])*b+Global::fCalibrateIn[0][1])*b+Global::fCalibrateIn[0][0];
        if (b<-2.0) b=-2.0; else if (b>DynamicObject->MoverParameters->BrakeCtrlPosNo) b=DynamicObject->MoverParameters->BrakeCtrlPosNo;
-       BrakeCtrlGauge.UpdateValue(b);
+       BrakeCtrlGauge.UpdateValue(b); //przesów bez zaokr¹glenia
        DynamicObject->MoverParameters->BrakeCtrlPos=floor(b+0.4999); //sposób zaokr¹glania jest do ustalenia
        DynamicObject->MoverParameters->BrakeCtrlPosR=b; //sposób zaokr¹glania jest do ustalenia
       }
       else //standardowa prodedura z kranem powi¹zanym z klawiatur¹
-       BrakeCtrlGauge.UpdateValue(double(DynamicObject->MoverParameters->BrakeCtrlPos));
+       BrakeCtrlGauge.UpdateValue(double(DynamicObject->MoverParameters->BrakeCtrlPosR));
      }
      else //standardowa prodedura z kranem powi¹zanym z klawiatur¹
       BrakeCtrlGauge.UpdateValue(double(DynamicObject->MoverParameters->BrakeCtrlPosR));
      BrakeCtrlGauge.Update();
     }
     if (LocalBrakeGauge.SubModel)
-     {
-      LocalBrakeGauge.UpdateValue(double(DynamicObject->MoverParameters->LocalBrakePos));
-      LocalBrakeGauge.Update();
+    {if (DynamicObject->Mechanik->AIControllFlag?false:Global::iFeedbackMode==4) //nie blokujemy AI
+     {//Ra: nie najlepsze miejsce, ale na pocz¹tek gdzieœ to daæ trzeba
+      double b=Console::AnalogGet(1); //odczyt z pulpitu i modyfikacja pozycji kranu
+      if ((b>=0.0)&&(DynamicObject->MoverParameters->BrakeLocHandle==FD1))
+      {b=(((Global::fCalibrateIn[1][3]*b)+Global::fCalibrateIn[1][2])*b+Global::fCalibrateIn[1][1])*b+Global::fCalibrateIn[1][0];
+       if (b<0.0) b=0.0; else if (b>Hamulce::LocalBrakePosNo) b=Hamulce::LocalBrakePosNo;
+       LocalBrakeGauge.UpdateValue(b); //przesów bez zaokr¹glenia
+       DynamicObject->MoverParameters->LocalBrakePos=int(1.09*b); //sposób zaokr¹glania jest do ustalenia
+      }
+      else //standardowa prodedura z kranem powi¹zanym z klawiatur¹
+       LocalBrakeGauge.UpdateValue(double(DynamicObject->MoverParameters->LocalBrakePos));
      }
+     else //standardowa prodedura z kranem powi¹zanym z klawiatur¹
+      LocalBrakeGauge.UpdateValue(double(DynamicObject->MoverParameters->LocalBrakePos));
+     LocalBrakeGauge.Update();
+    }
 
     if (BrakeProfileCtrlGauge.SubModel)
      {
@@ -4348,9 +4360,9 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
    else if (str==AnsiString("brakeprofile_sw:"))                    //przelacznik tow/osob/posp
     BrakeProfileCtrlGauge.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("brakeprofileG_sw:"))                   //przelacznik tow/osob
-    BrakeProfileCtrlGauge.Load(Parser,DynamicObject->mdKabina);
+    BrakeProfileG.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("brakeprofileR_sw:"))                   //przelacznik osob/posp
-    BrakeProfileCtrlGauge.Load(Parser,DynamicObject->mdKabina);
+    BrakeProfileR.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("maxcurrent_sw:"))                    //przelacznik rozruchu
     MaxCurrentCtrlGauge.Load(Parser,DynamicObject->mdKabina);
    //SEKCJA przyciskow sprezynujacych

@@ -143,7 +143,11 @@ void __fastcall TSpeedPos::CommandCheck()
    fVelNext=0.0; //TrainParams->IsStop()?0.0:-1.0; //na razie tak
   iFlags|=0x400; //niestety nie da siê w tym miejscu wspó³pracowaæ z rozk³adem
  }
- //fVelNext=tTrack->fVelocity; //nowa prêdkoœæ
+ else
+ {//inna komenda w evencie skanowanym powoduje zatrzymanie i wys³anie tej komendy
+  fVelNext=0;
+  iFlags|=0x200; //np. komenda Shunt mog³a by byæ ignorowana w trybie poci¹gowym
+ }
 };
 
 bool __fastcall TSpeedPos::Update(vector3 *p,vector3 *dir,double &len)
@@ -247,6 +251,7 @@ void __fastcall TController::TableClear()
  fLastVel=-1;
 };
 
+/* //nie potrzebna?
 bool __fastcall TController::TableCheckEvent(TEvent *e)
 {//sprawdzanie eventu, czy jest obs³ugiwany poza kolejk¹
  //prox=true, gdy sprawdzanie, czy dodaæ event do kolejki
@@ -254,7 +259,7 @@ bool __fastcall TController::TableCheckEvent(TEvent *e)
  //prox=false, gdy wyszukiwanie semafora przez AI
  //-> zwraca false, gdy event ma byæ dodany do kolejki
  if (e)
- {//if (!prox) /*if (e==eSignSkip) */ return false; //semafor przejechany jest ignorowany
+ {//
   AnsiString command;
   switch (e->Type)
   {//to siê wykonuje równie¿ dla sk³adu jad¹cego bez obs³ugi
@@ -273,7 +278,7 @@ bool __fastcall TController::TableCheckEvent(TEvent *e)
   if (prox)
    if (command=="SetProximityVelocity")
     return true; //ten event z toru ma byæ ignorowany; w zasadzie, jeœli poci¹g stoi, to powinien za³¹czyæ jazdê
-*/
+//* /
   if (command=="SetVelocity")
    return true; //jak podamy wyjazd, to prze³¹czy siê w jazdê poci¹gow¹
 /*
@@ -282,14 +287,16 @@ bool __fastcall TController::TableCheckEvent(TEvent *e)
     return true; //event skanowany przez AI
   }
   else //nazwa stacji pobrana z rozk³adu - nie ma co sprawdzaæ raz po raz
-*/
+//* /
    if (!asNextStop.IsEmpty())
     if (command.SubString(1,asNextStop.Length())==asNextStop)
      return true; //event skanowany przez AI
  }
  return false;
 };
+*/
 
+/* //nie potrzebna?
 TEvent* __fastcall TController::TableCheckTrackEvent(double fDirection,TTrack *Track)
 {//sprawdzanie eventów na podanym torze
  //ZiomalCl: teraz zwracany jest pierwszy event podajacy predkosc dla AI
@@ -298,11 +305,14 @@ TEvent* __fastcall TController::TableCheckTrackEvent(double fDirection,TTrack *T
  TEvent* e=(fDirection>0)?Track->Event2:Track->Event1;
  return TableCheckEvent(e)?e:NULL; //sprawdzenie z pominiêciem niepotrzebnych
 };
+*/
 
 bool __fastcall TController::TableAddNew()
 {//zwiêkszenie u¿ytej tabelki o jeden rekord
  iLast=(iLast+1)%iSpeedTableSize;
  //TODO: jeszcze sprawdziæ, czy siê na iFirst nie na³o¿y
+ //TODO: wstawiæ tu wywo³anie odtykacza - teraz jest to w TableTraceRoute()
+ //TODO: jeœli ostatnia pozycja zajêta, ustawiaæ dodatkowe flagi - teraz jest to w TableTraceRoute()
  return true; //false gdy siê na³o¿y
 };
 
@@ -329,8 +339,8 @@ void __fastcall TController::TableTraceRoute(double fDistance,int iDir,TDynamicO
  TEvent *pEvent;
  float fLastDir; //kierunek na ostatnim torze
  if (iTableDirection!=iDir)
- {//jeœli zmiana kierunku, zaczynamy od toru z pierwszym pojazdem
-  pTrack=pVehicle->RaTrackGet();
+ {//jeœli zmiana kierunku, zaczynamy od toru ze wskazanym pojazdem
+  pTrack=pVehicle->RaTrackGet(); //odcinek, na którym stoi
   fLastDir=iDir*pVehicle->RaDirectionGet(); //ustalenie kierunku skanowania na torze
   fCurrentDistance=0; //na razie nic nie przeskanowano
   fTrackLength=pVehicle->RaTranslationGet(); //pozycja na tym torze (odleg³oœæ od Point1)
@@ -355,17 +365,27 @@ void __fastcall TController::TableTraceRoute(double fDistance,int iDir,TDynamicO
    if (VelNext==0) return; //znaleziono semafor lub tor z prêdkoœci¹ zero i nie ma co dalej sprawdzaæ
   pTrack=sSpeedTable[iLast].tTrack; //ostatnio sprawdzony tor
   if (!pTrack) return; //koniec toru, to nie ma co sprawdzaæ (nie ma prawa tak byæ)
+  //if ((sSpeedTable[iLast].iFlags&1)==0)
+  // tLast=NULL; //jest tylko zapamiêtany, ale sprawdzony nie by³
   fLastDir=sSpeedTable[iLast].iFlags&4?-1.0:1.0; //flaga ustawiona, gdy Point2 toru jest bli¿ej
   fCurrentDistance=sSpeedTable[iLast].fDist; //aktualna odleg³oœæ do jego Point1
   fTrackLength=sSpeedTable[iLast].iFlags&0x60?0.0:pTrack->Length(); //nie doliczaæ d³ugoœci gdy: 32-miniêty pocz¹tek, 64-jazda do koñca toru
  }
  if (fCurrentDistance<fDistance)
  {//jeœli w ogóle jest po co analizowaæ
-  --iLast; //jak coœ siê znajdzie, zostanie wpisane w tê pozycjê, któr¹ odczytano
+  --iLast; //jak coœ siê znajdzie, zostanie wpisane w tê pozycjê, któr¹ w³aœnie odczytano
   while (fCurrentDistance<fDistance)
   {
-   if (pTrack!=tLast)
+   if (pTrack!=tLast) //ostatni zapisany w tabelce nie by³ jeszcze sprawdzony
    {//jeœli tor nie by³ jeszcze sprawdzany
+    if ((pEvent=CheckTrackEvent(fLastDir,pTrack))!=NULL) //jeœli jest semafor na tym torze
+    {//trzeba sprawdziæ tabelkê, bo dodawanie drugi raz tego samego przystanku nie jest korzystne
+     if (TableNotFound(pEvent)) //jeœli nie ma
+      if (TableAddNew())
+      {if (sSpeedTable[iLast].Set(pEvent,fCurrentDistance)) //dodanie odczytu sygna³u
+        fDistance=fCurrentDistance; //jeœli sygna³ stop, to nie ma potrzeby dalej skanowaæ
+      }
+    } //event dodajemy najpierw, ¿eby móc sprawdziæ, czy tor zosta³ dodany po odczytaniu prêdkoœci nastêpnego
     if ((pTrack->VelocityGet()==0.0) //zatrzymanie
      || (pTrack->iDamageFlag&128) //pojazd siê uszkodzi
      || (pTrack->eType!=tt_Normal) //jakiœ ruchomy
@@ -379,14 +399,6 @@ void __fastcall TController::TableTraceRoute(double fDistance,int iDir,TDynamicO
     {//albo dla liczenia odleg³oœci przy pomocy ciêciw - te usuwaæ po przejechaniu
      if (TableAddNew())
       sSpeedTable[iLast].Set(pTrack,fCurrentDistance,fLastDir<0?0x85:0x81); //dodanie odcinka do tabelki
-    }
-    if ((pEvent=CheckTrackEvent(fLastDir,pTrack))!=NULL) //jeœli jest semafor na tym torze
-    {//trzeba sprawdziæ tabelkê, bo dodawanie drugi raz tego samego przystanku nie jest korzystne
-     if (TableNotFound(pEvent)) //jeœli nie ma
-      if (TableAddNew())
-      {if (sSpeedTable[iLast].Set(pEvent,fCurrentDistance)) //dodanie odczytu sygna³u
-        fDistance=fCurrentDistance; //jeœli sygna³ stop, to nie ma potrzeby dalej skanowaæ
-      }
     }
    }
    fCurrentDistance+=fTrackLength; //doliczenie kolejnego odcinka do przeskanowanej d³ugoœci
@@ -409,6 +421,13 @@ void __fastcall TController::TableTraceRoute(double fDistance,int iDir,TDynamicO
    }
    if (pTrack)
    {//jeœli kolejny istnieje
+    if (tLast)
+     if (pTrack->VelocityGet()<0?tLast->VelocityGet()>0:pTrack->VelocityGet()>tLast->VelocityGet())
+     {//jeœli kolejny ma wiêksz¹ prêdkoœæ ni¿ poprzedni, to zapamiêtaæ poprzedni (do czasu wyjechania)
+      if ((sSpeedTable[iLast].iFlags&3)==3?(sSpeedTable[iLast].tTrack!=tLast):true) //jeœli nie by³ dodany do tabelki
+       if (TableAddNew())
+        sSpeedTable[iLast].Set(tLast,fCurrentDistance,(fLastDir>0?pTrack->iPrevDirection:pTrack->iNextDirection)?1:5); //zapisanie toru z ograniczeniem prêdkoœci
+     }
     if (((iLast+3)%iSpeedTableSize==iFirst)?true:((iLast+2)%iSpeedTableSize==iFirst)) //czy tabelka siê nie zatka?
     {//jest ryzyko nieznalezienia ograniczenia - ograniczyæ prêdkoœæ do pozwalaj¹cej na zatrzymanie na koñcu przeskanowanej drogi
      TablePurger(); //usun¹æ pilnie zbêdne pozycje
@@ -782,7 +801,7 @@ __fastcall TController::TController
 */
 
  //ScanMe=False;
- VelMargin=Controlling->Vmax*0.005;
+ VelMargin=2; //Controlling->Vmax*0.015;
  fWarningDuration=0.0; //nic do wytr¹bienia
  WaitingExpireTime=31.0; //tyle ma czekaæ, zanim siê ruszy
  WaitingTime=0.0;
@@ -925,40 +944,78 @@ void __fastcall TController::Activation()
 };
 
 void __fastcall TController::AutoRewident()
-{//nastawianie hamulców w sk³adzie
-/*
-AUTOREWIDENT
-
-1. Zebranie informacji o sk³adzie poci¹gu — przejœcie wzd³u¿ sk³adu i odczyt parametrów:
- · iloœæ wagonów -> (iVehicles)
- · d³ugoœæ (jako suma) -> (fLength)
- · masa (jako suma) -> (fMass)
- · klasyfikacja pojazdów wg BrakeDelays i mocy (licznik)
-  - lokomotywa		Power>1
-  - wagon pospieszny	jest R
-  - wagon towarowy	jest G (nie ma R)
-  - wagon osobowy	reszta (bez G i bez R)
-
-2. Okreœlenie typu poci¹gu i nastawy:
-jeœli towarowe < Min(4, pospieszne+osobowe), to sk³ad pasa¿erski,
-inaczej sk³ad towarowy
- a) Nastawianie pasa¿erskiego
-  - je¿eli towarowe>0 oraz pospiesze<=towarowe+osobowe to P
-  - inaczej R
- b) Nastawianie towarowego
-  - je¿eli d³ugoœæ<300 oraz masa<600 to P
-  - je¿eli d³ugoœæ<500 oraz masa<1300 to GP
-  - inaczej G
-//zasadniczo na sieci PKP kilka lat temu na P/GP jeŸdzi³y tylko kontenerowce o
-//rozk³adowej 90 km/h. Pozosta³e jeŸdzi³y 70 km/h i by³y nastawione na G.
-
-3. Nastawianie
- · pasa¿erski R - na R, jeœli nie ma to P
- · pasa¿erski P - wszystko na P
- · towarowy G - wszystko na G, jeœli nie ma to P (powinno siê wy³¹czyæ hamulec)
- · towarowy GP - lokomotywa oraz 5 pierwszych pojazdów przy niej na G, reszta na P
- · towarowy P - lokomotywa na G, reszta na P.
-*/
+{//autorewident: nastawianie hamulców w sk³adzie
+ int r=0,g=0,p=0; //iloœci wagonów poszczególnych typów
+ TDynamicObject* d=pVehicles[0]; //pojazd na czele sk³adu
+ //1. Zebranie informacji o sk³adzie poci¹gu — przejœcie wzd³u¿ sk³adu i odczyt parametrów:
+ //   · iloœæ wagonów -> s¹ zliczane, wszystkich pojazdów jest (iVehicles)
+ //   · d³ugoœæ (jako suma) -> jest w (fLength)
+ //   · masa (jako suma) -> jest w (fMass)
+ while (d)
+ {//klasyfikacja pojazdów wg BrakeDelays i mocy (licznik)
+  if (d->MoverParameters->Power<1) // - lokomotywa - Power>1 - ale mo¿e byæ nieczynna na koñcu...
+   if (TestFlag(d->MoverParameters->BrakeDelays,bdelay_R))
+    ++r; // - wagon pospieszny - jest R
+   else if (TestFlag(d->MoverParameters->BrakeDelays,bdelay_G))
+    ++g; // - wagon towarowy - jest G (nie ma R)
+   else
+    ++p; // - wagon osobowy - reszta (bez G i bez R)
+  d=d->Next(); //kolejny pojazd, pod³¹czony od ty³u (licz¹c od czo³a)
+ }
+ //2. Okreœlenie typu poci¹gu i nastawy:
+ int ustaw; //+16 dla pasa¿erskiego
+ if (r+g+p==0)
+  ustaw=16+bdelay_R; //lokomotywa luzem (mo¿e byæ wielocz³onowa)
+ else
+ {//jeœli s¹ wagony
+  ustaw=(g<min(4,r+p)?16:0);
+  if (ustaw) //jeœli towarowe < Min(4, pospieszne+osobowe)
+  {//to sk³ad pasa¿erski - nastawianie pasa¿erskiego
+   ustaw+=(g&&(r<g+p))?bdelay_P:bdelay_R;
+   //je¿eli towarowe>0 oraz pospiesze<=towarowe+osobowe to P (0)
+   //inaczej R (2)
+  }
+  else
+  {//inaczej towarowy - nastawianie towarowego
+   if ((fLength<300.0)&&(fMass<600.0))
+    ustaw|=bdelay_P; //je¿eli d³ugoœæ<300 oraz masa<600 to P (0)
+   else if ((fLength<500.0)&&(fMass<1300.0))
+    ustaw|=bdelay_R; //je¿eli d³ugoœæ<500 oraz masa<1300 to GP (2)
+   else
+    ustaw|=bdelay_G; //inaczej G (1)
+  }
+  //zasadniczo na sieci PKP kilka lat temu na P/GP jeŸdzi³y tylko kontenerowce o
+  //rozk³adowej 90 km/h. Pozosta³e jeŸdzi³y 70 km/h i by³y nastawione na G.
+ }
+ d=pVehicles[0]; //pojazd na czele sk³adu
+ p=0; //bêdziemy tu liczyæ wagony od lokomotywy dla nastawy GP
+ while (d)
+ {//3. Nastawianie
+  switch (ustaw)
+  {
+   case bdelay_P: //towarowy P - lokomotywa na G, reszta na P.
+    d->MoverParameters->BrakeDelaySwitch(d->MoverParameters->Power>1?bdelay_G:bdelay_P);
+   break;
+   case bdelay_G: //towarowy G - wszystko na G, jeœli nie ma to P (powinno siê wy³¹czyæ hamulec)
+    d->MoverParameters->BrakeDelaySwitch(TestFlag(d->MoverParameters->BrakeDelays,bdelay_G)?bdelay_G:bdelay_P);
+   break;
+   case bdelay_R: //towarowy GP - lokomotywa oraz 5 pierwszych pojazdów przy niej na G, reszta na P
+    if (d->MoverParameters->Power>1)
+    {d->MoverParameters->BrakeDelaySwitch(bdelay_G);
+     p=0; //a jak bêdzie druga w œrodku?
+    }
+    else
+     d->MoverParameters->BrakeDelaySwitch(++p<=5?bdelay_G:bdelay_P);
+   break;
+   case 16+bdelay_R: //pasa¿erski R - na R, jeœli nie ma to P
+    d->MoverParameters->BrakeDelaySwitch(TestFlag(d->MoverParameters->BrakeDelays,bdelay_R)?bdelay_R:bdelay_P);
+   break;
+   case 16+bdelay_P: //pasa¿erski P - wszystko na P
+    d->MoverParameters->BrakeDelaySwitch(bdelay_P);
+   break;
+  }
+  d=d->Next(); //kolejny pojazd, pod³¹czony od ty³u (licz¹c od czo³a)
+ }
 };
 
 bool __fastcall TController::CheckVehicles()
@@ -1465,15 +1522,17 @@ bool __fastcall TController::IncSpeed()
     break;
    case ElectricSeriesMotor :
     if (!Controlling->FuseFlag)
-     if ((Controlling->Im<=Controlling->Imin)&&(Ready||Prepare2press))
-     {
-      OK=Controlling->IncMainCtrl(1);
-      if ((Controlling->MainCtrlPos>2)&&(Controlling->Im==0))
-        Need_TryAgain=true; //true, jeœli druga pozycja w elektryku nie za³apa³a
-       else
-        if (!OK)
-         OK=Controlling->IncScndCtrl(1); //TODO: dorobic boczniki na szeregowej przy ciezkich bruttach
-     }
+     if ((Controlling->MainCtrlPos==0)||(!Controlling->DelayCtrlFlag)) //youBy poleci³ dodaæ 2012-09-08 v367
+      //na pozycji 0 przejdzie, a na pierwszej bêdzie czekaæ, a¿ siê za³¹cz¹ liniowe (zgaœnie DelayCtrlFlag)
+      if ((Controlling->Im<=Controlling->Imin)&&(Ready||Prepare2press))
+      {
+       OK=Controlling->IncMainCtrl(1);
+       if ((Controlling->MainCtrlPos>2)&&(Controlling->Im==0))
+         Need_TryAgain=true; //true, jeœli druga pozycja w elektryku nie za³apa³a
+        else
+         if (!OK)
+          OK=Controlling->IncScndCtrl(1); //TODO: dorobic boczniki na szeregowej przy ciezkich bruttach
+      }
     break;
    case Dumb:
    case DieselElectric:
@@ -1865,13 +1924,18 @@ bool __fastcall TController::UpdateSituation(double dt)
  while (p)
  {//sprawdzenie odhamowania wszystkich po³¹czonych pojazdów
   if (Ready) //bo jak coœ nie odhamowane, to dalej nie ma co sprawdzaæ
-   if (p->MoverParameters->BrakePress>=0.3)
+   //if (p->MoverParameters->BrakePress>=0.03*p->MoverParameters->MaxBrakePress)
+   if (p->MoverParameters->BrakePress>=0.4) //wg UIC okreœlone sztywno na 0.04
     Ready=false; //nie gotowy
   if ((dy=p->VectorFront().y)!=0.0) //istotne tylko dla pojazdów na pochyleniu
    fAccGravity-=p->DirectionGet()*p->MoverParameters->TotalMassxg*dy; //ciê¿ar razy sk³adowa styczna grawitacji
   p=p->Next(); //pojazd pod³¹czony z ty³u (patrz¹c od czo³a)
  }
  fAccGravity/=iDirection*fMass; //si³ê generuj¹ pojazdy na pochyleniu ale dzia³a ona ca³oœæ sk³adu, wiêc a=F/m
+ if (!Ready) //v367: jeœli wg powy¿szych warunków sk³ad nie jest odhamowany
+  if (fAccGravity<-0.05) //jeœli ma pod górê
+   if (Controlling->BrakePress<0.08) //to wystarczy, ¿e zadzia³aj¹ liniowe (nie ma ich jeszcze!!!)
+    Ready=true; //¿eby uznaæ za odhamowany
  HelpMeFlag=false;
  //Winger 020304
  if (AIControllFlag)
@@ -2440,14 +2504,15 @@ bool __fastcall TController::UpdateSituation(double dt)
       if (TrainParams->CheckTrainLatency()<10.0)
        if (TrainParams->TTVmax>0.0)
         VelDesired=Min0R(VelDesired,TrainParams->TTVmax); //jesli nie spozniony to nie przekraczaæ rozkladowej
-     AbsAccS=Controlling->AccS; //chwilowa pochodna prêdkoœci, nie uwzglêdnia wp³ywu grawitacji
+     AbsAccS=Controlling->AccS; //wypadkowa si³ stycznych do toru
      if (Controlling->V<0.0) AbsAccS=-AbsAccS;
-     else if (Controlling->V==0.0)
-      AbsAccS=0; //fabs(fAccGravity); //Ra: jesli sk³ad stoi, to dzia³a na niego sk³adowa styczna grawitacji
-     AbsAccS+=fAccGravity; //wypadkowe przyspieszenie (czy to ma sens?)
+     //else if (Controlling->V==0.0) AbsAccS=0; //fabs(fAccGravity); //Ra: jesli sk³ad stoi, to dzia³a na niego sk³adowa styczna grawitacji
+     if (vel<0) //je¿eli siê stacza w ty³
+      AbsAccS=-AbsAccS; //to przyspieszenie te¿ dzia³a wtedy w nieodpowiedni¹ stronê
+     //AbsAccS+=fAccGravity; //wypadkowe przyspieszenie (czy to ma sens?)
 #if LOGVELOCITY
      //WriteLog("VelDesired="+AnsiString(VelDesired)+", VelActual="+AnsiString(VelActual));
-     WriteLog("Vel="+AnsiString(vel)+", AbsAccS="+AnsiString(AbsAccS));
+     WriteLog("Vel="+AnsiString(vel)+", AbsAccS="+AnsiString(AbsAccS)+", AccGrav="+AnsiString(fAccGravity));
 #endif
      //ustalanie zadanego przyspieszenia
      //AccPreferred wynika z psychyki oraz uwzglênia mo¿liwe zderzenie z pojazdem z przodu
@@ -2497,7 +2562,7 @@ bool __fastcall TController::UpdateSituation(double dt)
         if (AccPreferred<AccDesired)
          AccDesired=AccPreferred; //(1+abs(AccDesired))
         //ReactionTime=0.5*Controlling->BrakeDelay[2+2*Controlling->BrakeDelayFlag]; //aby szybkosc hamowania zalezala od przyspieszenia i opoznienia hamulcow
-        fBrakeTime=0.5*Controlling->BrakeDelay[2+2*Controlling->BrakeDelayFlag]; //aby szybkosc hamowania zalezala od przyspieszenia i opoznienia hamulcow
+        //fBrakeTime=0.5*Controlling->BrakeDelay[2+2*Controlling->BrakeDelayFlag]; //aby szybkosc hamowania zalezala od przyspieszenia i opoznienia hamulcow
        }
        else
        {//jest bli¿ej ni¿ fMinProximityDist
@@ -2587,17 +2652,19 @@ bool __fastcall TController::UpdateSituation(double dt)
         Controlling->BrakeReleaser(); //wyluzuj lokomotywê
        else
         if (OrderList[OrderPos]!=Disconnect) //przy od³¹czaniu nie zwalniamy tu hamulca
-         while (DecBrake());  //jeœli przyspieszamy, to nie hamujemy
+         if ((AccDesired>0.0)||(fAccGravity*fAccGravity<0.001)) //luzuj tylko na plaskim lub przy ruszaniu
+          while (DecBrake());  //jeœli przyspieszamy, to nie hamujemy
       //Ra: zmieni³em 0.95 na 1.0 - trzeba ustaliæ, sk¹d sie takie wartoœci bior¹
       //margines dla prêdkoœci jest doliczany tylko jeœli oczekiwana prêdkoœæ jest wiêksza od 5km/h
-      if ((AccDesired<=fAccGravity)||(vel+(VelDesired>5.0?VelMargin:0.0)>VelDesired*1.0))
+      if ((fAccGravity<0?AccDesired<-0.1:AbsAccS+fAccGravity>AccDesired)||(vel+(VelDesired>5.0?VelMargin:0.0)>VelDesired))
        if (!Prepare2press)
         while (DecSpeed()); //jeœli hamujemy, to nie przyspieszamy
       //yB: usuniête ró¿ne dziwne warunki, oddzielamy czêœæ zadaj¹c¹ od wykonawczej
       //zwiekszanie predkosci
-      if ((AbsAccS<AccDesired)&&(vel<VelDesired*0.95-VelMargin)&&(AccDesired>=fAccGravity))
-      //Ra: zmieni³em 0.85 na 0.95 - trzeba ustaliæ, sk¹d sie takie wartoœci bior¹
-      //if (!MaxVelFlag) //Ra: to nie jest u¿ywane
+      if (AbsAccS+fAccGravity<AccDesired) //jeœli przyspieszenie pojazdu jest mniejsze ni¿ ¿¹dane oraz
+       if (vel<(VelDesired>5.0?VelDesired-5:VelDesired)) //jeœli prêdkoœæ w kierunku czo³a jest mniejsza ni¿ dozwolona
+      //if ((AbsAccS<AccDesired)&&(vel<VelDesired))
+       //if (!MaxVelFlag) //Ra: to nie jest u¿ywane
        if (!IncSpeed())
         MaxVelFlag=true; //Ra: to nie jest u¿ywane
        else
@@ -2609,24 +2676,29 @@ bool __fastcall TController::UpdateSituation(double dt)
 
       //yB: usuniête ró¿ne dziwne warunki, oddzielamy czêœæ zadaj¹c¹ od wykonawczej
       //zmniejszanie predkosci
-      if ((AccDesired<fAccGravity-0.1)&&(AccDesired<AbsAccS-0.05)) //u góry ustawia siê hamowanie na -0.2
+      if ((AccDesired<fAccGravity-0.1)&&(AccDesired<AbsAccS+fAccGravity-0.05)) //u góry ustawia siê hamowanie na -0.2
       //if not MinVelFlag)
-       if (!IncBrake())
-        MinVelFlag=true;
-       else
-       {MinVelFlag=false;
-        //ReactionTime=3+0.5*(Controlling->BrakeDelay[2+2*Controlling->BrakeDelayFlag]-3);
-        fBrakeTime=3+0.5*(Controlling->BrakeDelay[2+2*Controlling->BrakeDelayFlag]-3);
-       }
-      if ((AccDesired<fAccGravity-0.05)&&(AbsAccS<AccDesired-0.2))
+       if (fBrakeTime<0?true:AccDesired<-0.6) //jeœli up³yn¹³ czas reakcji hamulca, chyba ¿e nag³e
+        if (!IncBrake())
+         MinVelFlag=true;
+        else
+        {MinVelFlag=false;
+         fBrakeTime=3+0.5*(Controlling->BrakeDelay[2+2*Controlling->BrakeDelayFlag]-3);
+         //Ra: ten czas nale¿y zmniejszyæ, jeœli czas dojazdu do zatrzymania jest mniejszy
+        }
+      if ((AccDesired<fAccGravity-0.05)&&(AbsAccS+fAccGravity<AccDesired-0.2))
       //if ((AccDesired<0.0)&&(AbsAccS<AccDesired-0.1)) //ST44 nie hamuje na czas, 2-4km/h po miniêciu tarczy
       {//jak hamuje, to nie tykaj kranu za czêsto
        //yB: luzuje hamulec dopiero przy ró¿nicy opóŸnieñ rzêdu 0.2
        if (OrderList[OrderPos]!=Disconnect) //przy od³¹czaniu nie zwalniamy tu hamulca
-        DecBrake(); //tutaj zmniejsza o 1 przy odczepianiu
+        DecBrake(); //tutaj zmniejsza³o o 1 przy odczepianiu
        fBrakeTime=(Controlling->BrakeDelay[1+2*Controlling->BrakeDelayFlag])/3.0;
       }
       //Mietek-end1
+
+#if LOGVELOCITY
+      WriteLog("BrakePos="+AnsiString(Controlling->BrakeCtrlPos)+", MainCtrl="+AnsiString(Controlling->MainCtrlPos));
+#endif
 
       //zapobieganie poslizgowi w czlonie silnikowym
       if (Controlling->Couplers[0].Connected!=NULL)
@@ -2668,10 +2740,6 @@ bool __fastcall TController::UpdateSituation(double dt)
        if ((Controlling->BrakeCtrlPos<1)||!Controlling->DecBrakeLevel())
         Controlling->IncLocalBrakeLevel(1); //dodatkowy na pozycjê 1
     }
-    //??? sprawdzanie przelaczania kierunku
-    //if (ChangeDir!=0)
-    // if (OrderDirectionChange(ChangeDir)==-1)
-    //  VelActual=VelProximity;
     break; //rzeczy robione przy jezdzie
   } //switch (OrderList[OrderPos])
   //kasowanie licznika czasu
@@ -2879,10 +2947,8 @@ double __fastcall TController::Distance(vector3 &p1,vector3 &n,vector3 &p2)
 
 //pomocnicza funkcja sprawdzania czy do toru jest podpiety semafor
 bool __fastcall TController::CheckEvent(TEvent *e)
-{//sprawdzanie eventu, czy jest obs³ugiwany poza kolejk¹
- //prox=true, gdy sprawdzanie, czy dodaæ event do kolejki
+{//sprawdzanie eventu w torze, czy jest sygna³owym
  //-> zwraca true, jeœli event istotny dla AI
- //prox=false, gdy wyszukiwanie semafora przez AI
  //-> zwraca false, gdy event ma byæ dodany do kolejki
  if (e)
  {//if (!prox) if (e==eSignSkip) return false; //semafor przejechany jest ignorowany
@@ -2915,8 +2981,8 @@ bool __fastcall TController::CheckEvent(TEvent *e)
   }
   else //nazwa stacji pobrana z rozk³adu - nie ma co sprawdzaæ raz po raz
 */
-   if (!asNextStop.IsEmpty())
-    if (command.SubString(1,asNextStop.Length())==asNextStop)
+   if (!asNextStop.IsEmpty()) //poci¹g ma okreœlone miejsce zatrzymania
+    if (command.SubString(1,asNextStop.Length())==asNextStop) //nazwa zatrzymania siê zgadza
      return true;
  }
  return false;
