@@ -3364,10 +3364,14 @@ bool __fastcall TController::BackwardScan()
 };
 
 AnsiString __fastcall TController::NextStop()
-{//informacja o nastêpnym zatrzymaniu
- if (asNextStop.IsEmpty()) return "";
+{//informacja o nastêpnym zatrzymaniu, wyœwietlane pod [F1]
+ if (asNextStop.Length()<20) return ""; //nie zawiera nazwy stacji, gdy dojecha³ do koñca
  //dodaæ godzinê odjazdu
- return asNextStop.SubString(20,30);//+" "+AnsiString(
+ TMTableLine *t=TrainParams->TimeTable+TrainParams->StationIndex;
+ return
+  asNextStop.SubString(20,30)
+  +((t->Dh>=0)?" "+AnsiString(int(t->Dh))+":"+AnsiString(int(100+t->Dm)).SubString(2,2) //odjazd
+    :(t->Ah>=0)?" ("+AnsiString(int(t->Ah))+":"+AnsiString(int(100+t->Am)).SubString(2,2)+")":AnsiString("")); //przyjazd
 };
 
 //-----------koniec skanowania semaforow

@@ -78,7 +78,7 @@ public:
 
     TDynamicObject *DynamicObject;
 
-    AnsiString asMessage;
+    //AnsiString asMessage;
 
 //McZapkie: definicje wskaznikow
     TGauge VelocityGauge;
