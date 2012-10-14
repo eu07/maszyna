@@ -309,7 +309,6 @@ public:
 
 //McZapkie-010302
     TController *Mechanik;
-    //TTrainParameters *TrainParams; //Ra: rozk³ad jest na poziomie Driver, a nie pojazdu
     bool MechInside;
 //McZapkie-270202
     bool Controller;

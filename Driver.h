@@ -143,7 +143,7 @@ private:
  TDynamicObject *pVehicle; //pojazd w którym siedzi steruj¹cy
  TDynamicObject *pVehicles[2]; //skrajne pojazdy w sk³adzie (niekoniecznie bezpoœrednio sterowane)
  TMoverParameters *Controlling; //jakim pojazdem steruje
- Mtable::TTrainParameters *TrainParams; //rozk³ad jazdy; do jakiego pociagu nalezy
+ Mtable::TTrainParameters *TrainParams; //rozk³ad jazdy zawsze jest, nawet jeœli pusty
  //int TrainNumber; //numer rozkladowy tego pociagu
  //AnsiString OrderCommand; //komenda pobierana z pojazdu
  //double OrderValue; //argument komendy
@@ -220,7 +220,7 @@ public:
  __fastcall TController
  (bool AI,
   TDynamicObject *NewControll,
-  Mtable::TTrainParameters *NewTrainParams,
+  //Mtable::TTrainParameters *NewTrainParams,
   bool InitPsyche
  );
  AnsiString __fastcall OrderCurrent();

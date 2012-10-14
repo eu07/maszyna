@@ -354,6 +354,7 @@ public:
 	Hamulce::TReservoir* Pipe2;
 	TLocalBrake LocalBrake;
 	TBrakePressure BrakePressureTable[13];
+        TBrakePressure BrakePressureActual;
 	Byte ASBType;
 	Byte TurboTest;
 	double MaxBrakeForce;
@@ -644,7 +645,6 @@ public:
 	bool __fastcall RunInternalCommand(void);
 	void __fastcall PutCommand(AnsiString NewCommand, double NewValue1, double NewValue2, const TLocation 
 		&NewLocation);
-	//bool __fastcall DirectionForward(void);
 	bool __fastcall DirectionBackward(void);
 	bool __fastcall MainSwitch(bool State);
 	bool __fastcall ChangeCab(int direction);
