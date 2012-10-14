@@ -437,6 +437,7 @@ public:
 	TRotation Rot;
 	AnsiString Name;
 	TCoupling Couplers[2];
+	double HVCouplers[2][2];
 	int ScanCounter;
 	bool EventFlag;
 	Byte SoundFlag;
@@ -736,7 +737,7 @@ static const Shortint ctrain_controll = 0x4;
 static const Shortint ctrain_power = 0x8;
 static const Shortint ctrain_passenger = 0x10;
 static const Shortint ctrain_scndpneumatic = 0x20;
-static const Shortint ctrain_localbrake = 0x40;
+static const Shortint ctrain_heating = 0x40;
 static const Byte ctrain_depot = 0x80;
 static const Shortint dbrake_none = 0x0;
 static const Shortint dbrake_passive = 0x1;
