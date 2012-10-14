@@ -494,7 +494,7 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
 
 int __fastcall TSubModel::TriangleAdd(TModel3d *m,int tex,int tri)
 {//dodanie trójk¹tów do submodelu, u¿ywane przy tworzeniu E3D terenu
- TSubModel *s=this,**p;
+ TSubModel *s=this;
  while (s?(s->TextureID!=tex):false)
  {//szukanie submodelu o danej teksturze
   if (s==this)

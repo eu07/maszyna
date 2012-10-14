@@ -16,6 +16,7 @@ __fastcall TMoverParameters::TMoverParameters(double VelInitial,AnsiString TypeN
  DimHalf.x=0.5*Dim.W; //po³owa szerokoœci, OX jest w bok?
  DimHalf.y=0.5*Dim.L; //po³owa d³ugoœci, OY jest do przodu?
  DimHalf.z=0.5*Dim.H; //po³owa wysokoœci, OZ jest w górê?
+ fBrakeCtrlPos=BrakeCtrlPos; //odciêcie na start
 };
 
 
@@ -140,3 +141,42 @@ bool __fastcall TMoverParameters::DirectionForward()
   return MinCurrentSwitch(true);
  return false;
 };
+
+// Nastawianie hamulców
+
+void __fastcall TMoverParameters::BrakeLevelSet(double b)
+{//ustawienie pozycji hamulca na wartoœæ (b) w zakresie od -2 do BrakeCtrlPosNo
+ //jedyny dopuszczalny sposób przestawienia hamulca zasadniczego
+ fBrakeCtrlPos=b;
+ if (fBrakeCtrlPos<-2.0)
+  fBrakeCtrlPos=-2.0; //odciêcie
+ else
+  if (fBrakeCtrlPos>double(BrakeCtrlPosNo))
+   fBrakeCtrlPos=BrakeCtrlPosNo;
+ int x=floor(fBrakeCtrlPos+0.5); //zaokr¹glona wartoœæ
+ while ((x>BrakeCtrlPos)&&(BrakeCtrlPos<BrakeCtrlPosNo)) //jeœli zwiêkszy³o siê o 1
+  T_MoverParameters::IncBrakeLevelOld();
+ while ((x<BrakeCtrlPos)&&(BrakeCtrlPos>=-1)) //jeœli zmniejszy³o siê o 1
+  T_MoverParameters::DecBrakeLevelOld();
+ //tu powinno byæ wyliczenie wa¿onego ciœnienia do dalszych obliczeñ
+};
+
+bool __fastcall TMoverParameters::BrakeLevelAdd(double b)
+{//dodanie wartoœci (b) do pozycji hamulca (w tym ujemnej)
+ //zwraca false, gdy po dodaniu by³o by poza zakresem
+ BrakeLevelSet(fBrakeCtrlPos+b);
+ return b>0.0?(fBrakeCtrlPos<BrakeCtrlPosNo):(BrakeCtrlPos>=-1.0); //true, jeœli mo¿na kontynuowaæ
+};
+
+bool __fastcall TMoverParameters::IncBrakeLevel()
+{//nowa wersja na u¿ytek AI
+ return BrakeLevelAdd(1.0);
+};
+
+bool __fastcall TMoverParameters::DecBrakeLevel()
+{//nowa wersja na u¿ytek AI
+ return BrakeLevelAdd(-1.0);
+};
+
+
+
