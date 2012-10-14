@@ -664,24 +664,25 @@ void __fastcall TWorld::OnKeyDown(int cKey)
    if (Controlled)
     if ((Controlled->Controller==Humandriver)?true:DebugModeFlag||(cKey=='Q')) //||(cKey==VK_F4))
      Train->OnKeyPress(cKey); //przekazanie klawisza do kabiny
- if (cKey==Global::Keys[k_Releaser]) //odluŸniacz
- {//dzia³a globalnie, sprawdziæ zasiêg
-  TDynamicObject *temp=Global::DynamicNearest();
-  if (temp)
-  {
-   if (GetAsyncKeyState(VK_CONTROL)<0) //z ctrl odcinanie
+ if (FreeFlyModeFlag) //aby nie odluŸnia³o wagonu za lokomotyw¹
+  if (cKey==Global::Keys[k_Releaser]) //odluŸniacz
+  {//dzia³a globalnie, sprawdziæ zasiêg
+   TDynamicObject *temp=Global::DynamicNearest();
+   if (temp)
    {
-    temp->MoverParameters->BrakeStatus^=128;
-   }
-   else
-   if (temp->MoverParameters->BrakeReleaser())
-   {
-    //temp->sBrakeAcc->
-    //dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
-    //dsbPneumaticRelay->Play(0,0,0); //temp->Position()-Camera.Pos //???
+    if (GetAsyncKeyState(VK_CONTROL)<0) //z ctrl odcinanie
+    {
+     temp->MoverParameters->BrakeStatus^=128;
+    }
+    else
+    if (temp->MoverParameters->BrakeReleaser())
+    {
+     //temp->sBrakeAcc->
+     //dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
+     //dsbPneumaticRelay->Play(0,0,0); //temp->Position()-Camera.Pos //???
+    }
    }
   }
- }
 
  //switch (cKey)
  //{case 'a': //ignorowanie repetycji

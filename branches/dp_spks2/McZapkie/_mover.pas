@@ -381,6 +381,7 @@ TYPE
 
                LocalBrake: TLocalBrake;  {rodzaj hamulca indywidualnego}
                BrakePressureTable: TBrakePressureTable; {wyszczegolnienie cisnien w rurze}
+               BrakePressureActual: TBrakePressure; //wartoœci wa¿one dla aktualnej pozycji kranu
                ASBType: byte;            {0: brak hamulca przeciwposlizgowego, 1: reczny, 2: automat}
                TurboTest: byte;
                MaxBrakeForce: real;      {maksymalna sila nacisku hamulca}

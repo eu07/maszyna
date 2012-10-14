@@ -752,7 +752,7 @@ void __fastcall TController::TablePurger()
 __fastcall TController::TController
 (bool AI,
  TDynamicObject *NewControll,
- Mtable::TTrainParameters *NewTrainParams,
+ //Mtable::TTrainParameters *NewTrainParams,
  bool InitPsyche
 )
 {
@@ -788,11 +788,11 @@ __fastcall TController::TController
  iDirection=0;
  iDirectionOrder=Controlling->CabNo; //1=do przodu (w kierunku sprzêgu 0)
  VehicleName=Controlling->Name;
- TrainParams=NewTrainParams;
- if (TrainParams)
-  asNextStop=TrainParams->NextStop();
- else
-  TrainParams=new TTrainParameters("none"); //rozk³ad jazdy
+ //TrainParams=NewTrainParams;
+ //if (TrainParams)
+ // asNextStop=TrainParams->NextStop();
+ //else
+ TrainParams=new TTrainParameters("none"); //rozk³ad jazdy
  //OrderCommand="";
  //OrderValue=0;
  OrdersClear();
@@ -875,6 +875,7 @@ void __fastcall TController::CloseLog()
 
 __fastcall TController::~TController()
 {//wykopanie mechanika z roboty
+ delete TrainParams;
  delete[] sSpeedTable;
  CloseLog();
 };
@@ -3371,11 +3372,25 @@ AnsiString __fastcall TController::NextStop()
 {//informacja o nastêpnym zatrzymaniu, wyœwietlane pod [F1]
  if (asNextStop.Length()<20) return ""; //nie zawiera nazwy stacji, gdy dojecha³ do koñca
  //dodaæ godzinê odjazdu
+ if (!TrainParams)
+  return ""; //tu nie powinno nigdy wejœæ
  TMTableLine *t=TrainParams->TimeTable+TrainParams->StationIndex;
- return
-  asNextStop.SubString(20,30)
-  +((t->Dh>=0)?" "+AnsiString(int(t->Dh))+":"+AnsiString(int(100+t->Dm)).SubString(2,2) //odjazd
-    :(t->Ah>=0)?" ("+AnsiString(int(t->Ah))+":"+AnsiString(int(100+t->Am)).SubString(2,2)+")":AnsiString("")); //przyjazd
+ if (t->Dh>=0) //jeœli jest godzina odjazdu
+  return
+   asNextStop.SubString(20,30)
+    +AnsiString(" ")
+    +AnsiString(int(t->Dh))
+    +AnsiString(":")
+    +AnsiString(int(100+t->Dm)).SubString(2,2); //odjazd
+ else if (t->Ah>=0) //przyjazd
+  return
+   asNextStop.SubString(20,30)
+    +AnsiString(" (")
+    +AnsiString(int(t->Ah))
+    +AnsiString(":")
+    +AnsiString(int(100+t->Am)).SubString(2,2)
+    +AnsiString(")"); //przyjazd
+ return "";
 };
 
 //-----------koniec skanowania semaforow

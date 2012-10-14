@@ -147,6 +147,7 @@ bool __fastcall TMoverParameters::DirectionForward()
 void __fastcall TMoverParameters::BrakeLevelSet(double b)
 {//ustawienie pozycji hamulca na wartoœæ (b) w zakresie od -2 do BrakeCtrlPosNo
  //jedyny dopuszczalny sposób przestawienia hamulca zasadniczego
+ if (fBrakeCtrlPos==b) return; //nie przeliczaæ, jak nie ma zmiany
  fBrakeCtrlPos=b;
  if (fBrakeCtrlPos<-2.0)
   fBrakeCtrlPos=-2.0; //odciêcie
@@ -158,7 +159,17 @@ void __fastcall TMoverParameters::BrakeLevelSet(double b)
   T_MoverParameters::IncBrakeLevelOld();
  while ((x<BrakeCtrlPos)&&(BrakeCtrlPos>=-1)) //jeœli zmniejszy³o siê o 1
   T_MoverParameters::DecBrakeLevelOld();
- //tu powinno byæ wyliczenie wa¿onego ciœnienia do dalszych obliczeñ
+ BrakePressureActual=BrakePressureTable[BrakeCtrlPos]; //skopiowanie pozycji
+ if (fBrakeCtrlPos>0.0)
+ {//wartoœci poœrednie wyliczamy tylko dla hamowania
+  double u=fBrakeCtrlPos-floor(fBrakeCtrlPos); //u³amek ponad wartoœæ ca³kowit¹
+  if (u>0.0)
+  {//wyliczamy wartoœci wa¿one - ale nie wiem, czy to ma sens
+   BrakePressureActual.PipePressureVal+=-u*BrakePressureActual.PipePressureVal+u*BrakePressureTable[BrakeCtrlPos+1].PipePressureVal;
+   BrakePressureActual.BrakePressureVal+=-u*BrakePressureActual.BrakePressureVal+u*BrakePressureTable[BrakeCtrlPos+1].BrakePressureVal;
+   BrakePressureActual.FlowSpeedVal+=-u*BrakePressureActual.FlowSpeedVal+u*BrakePressureTable[BrakeCtrlPos+1].FlowSpeedVal;
+  }
+ }
 };
 
 bool __fastcall TMoverParameters::BrakeLevelAdd(double b)

@@ -335,6 +335,7 @@ public:
 	Hamulce::TReservoir* Pipe2;
 	TLocalBrake LocalBrake;
 	TBrakePressure BrakePressureTable[13];
+	TBrakePressure BrakePressureActual;
 	Byte ASBType;
 	Byte TurboTest;
 	double MaxBrakeForce;
