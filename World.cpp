@@ -3,19 +3,6 @@
     MaSzyna EU07 locomotive simulator
     Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "system.hpp"
@@ -167,11 +154,14 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
  {WriteLog("Ra: No VBO found - Display Lists used. Upgrade drivers or buy a newer graphics card!");
   Global::bUseVBO=false; //mo¿e byæ w³¹czone parametrem w INI
  }
- if (glewGetExtension("GL_EXT_texture_compression_s3tc")) //czy jest obs³uga DDS w karcie graficznej
-  WriteLog("DDS texture format is supported.");
+ if (Global::bDecompressDDS) //jeœli sprzêtowa (domyœlnie jest false)
+  WriteLog("DDS support at OpenGL level is disabled in INI file.");
  else
- {//brak obs³ugi DDS - czy da siê w³¹czyæ programow¹ ich dekompresjê?
-  WriteLog("DDS format is not supported: you need TGA textures.");
+ {Global::bDecompressDDS=!glewGetExtension("GL_EXT_texture_compression_s3tc"); //czy obs³ugiwane?
+  if (Global::bDecompressDDS) //czy jest obs³uga DDS w karcie graficznej
+   WriteLog("DDS format is not supported.");
+  else //brak obs³ugi DDS - trzeba w³¹czyæ programow¹ dekompresjê
+   WriteLog("DDS texture format is supported.");
  }
  if (Global::iMultisampling)
   WriteLog("Used multisampling of "+AnsiString(Global::iMultisampling)+" samples.");
@@ -1012,30 +1002,48 @@ bool __fastcall TWorld::Update()
   }
  //Ground.Update(0.01,Camera.Type==tp_Follow);
  dt=GetDeltaTime();
- if (Train?Camera.Type==tp_Follow:false)
- {//jeœli jazda w kabinie, przeliczyæ trzeba parametry kamery
-  Train->UpdateMechPosition(dt);
-  Camera.Pos=Train->pMechPosition;//Train.GetPosition1();
-  Camera.Roll=atan(Train->pMechShake.x*Train->fMechRoll);       //hustanie kamery na boki
-  Camera.Pitch-=atan(Train->vMechVelocity.z*Train->fMechPitch);  //hustanie kamery przod tyl
-  //ABu011104: rzucanie pudlem
-  vector3 temp;
-  if (abs(Train->pMechShake.y)<0.25)
-   temp=vector3(0,0,6*Train->pMechShake.y);
-  else
-   if ((Train->pMechShake.y)>0)
-    temp=vector3(0,0,6*0.25);
+ if (Train)
+  if (Camera.Type==tp_Follow)
+  {//jeœli jazda w kabinie, przeliczyæ trzeba parametry kamery
+   Train->UpdateMechPosition(dt);
+   if (Console::Pressed(VK_CONTROL)?(Console::Pressed(Global::Keys[k_MechLeft])||Console::Pressed(Global::Keys[k_MechRight])):false)
+   {//jeœli lusterko lewe albo prawe (bez rzucania na razie)
+    bool lr=Console::Pressed(Global::Keys[k_MechLeft]);
+    Camera.Pos=Train->MirrorPosition(lr); //robocza wartoœæ
+    if (Controlled->MoverParameters->ActiveCab<0) lr=!lr; //w drugiej kabinie odwrotnie jest œrodek
+    Camera.LookAt=Controlled->GetPosition()+vector3(lr?2.0:-2.0,Camera.Pos.y,0); //trochê na zewn¹trz, u¿yæ szerokoœci pojazdu
+    //Camera.LookAt=Train->pMechPosition+Train->GetDirection()*Train->DynamicObject->MoverParameters->ActiveCab;
+    Camera.Pos+=Controlled->GetPosition();
+    //Camera.RaLook(); //jednorazowe przestawienie kamery
+    Camera.Yaw=-Camera.Yaw; //odbicie
+    Camera.Roll=atan(Train->pMechShake.x*Train->fMechRoll); //hustanie kamery na boki
+    Camera.Pitch=atan(Train->vMechVelocity.z*Train->fMechPitch); //hustanie kamery przod tyl
+    Camera.vUp=Controlled->VectorUp();
+   }
    else
-    temp=vector3(0,0,-6*0.25);
-  if (Controlled) Controlled->ABuSetModelShake(temp);
-  //ABu: koniec rzucania
+   {//patrzenie standardowe
+    Camera.Pos=Train->pMechPosition;//Train.GetPosition1();
+    Camera.Roll=atan(Train->pMechShake.x*Train->fMechRoll); //hustanie kamery na boki
+    Camera.Pitch-=atan(Train->vMechVelocity.z*Train->fMechPitch); //hustanie kamery przod tyl
+    //ABu011104: rzucanie pudlem
+    vector3 temp;
+    if (abs(Train->pMechShake.y)<0.25)
+     temp=vector3(0,0,6*Train->pMechShake.y);
+    else
+     if ((Train->pMechShake.y)>0)
+      temp=vector3(0,0,6*0.25);
+     else
+      temp=vector3(0,0,-6*0.25);
+    if (Controlled) Controlled->ABuSetModelShake(temp);
+    //ABu: koniec rzucania
 
-  if (Train->DynamicObject->MoverParameters->ActiveCab==0)
-   Camera.LookAt=Train->pMechPosition+Train->GetDirection(); //gdy w korytarzu
-  else  //patrzenie w kierunku osi pojazdu, z uwzglêdnieniem kabiny
-   Camera.LookAt=Train->pMechPosition+Train->GetDirection()*Train->DynamicObject->MoverParameters->ActiveCab; //-1 albo 1
-  Camera.vUp=Train->GetUp();
- }
+    if (Train->DynamicObject->MoverParameters->ActiveCab==0)
+     Camera.LookAt=Train->pMechPosition+Train->GetDirection(); //gdy w korytarzu
+    else  //patrzenie w kierunku osi pojazdu, z uwzglêdnieniem kabiny
+     Camera.LookAt=Train->pMechPosition+Train->GetDirection()*Train->DynamicObject->MoverParameters->ActiveCab; //-1 albo 1
+    Camera.vUp=Train->GetUp();
+   }
+  }
  Ground.CheckQuery();
 
  if (!Render()) return false;
@@ -1441,13 +1449,12 @@ bool __fastcall TWorld::Update()
         +AnsiString(" ad=")+FloatToStrF(tmp->Mechanik->AccDesired,ffFixed,5,2)
         +AnsiString(" Pd=")+FloatToStrF(tmp->Mechanik->ActualProximityDist,ffFixed,4,0)
         +AnsiString(" Vn=")+FloatToStrF(tmp->Mechanik->VelNext,ffFixed,4,0);
-/*
-        if (tmp->Mechanik->eSignLast)
-        {//jeœli ma zapamiêtany event semafora
-         if (!OutText4.IsEmpty()) OutText4+=", "; //aby ³adniejszy odstêp by³
-         OutText4+="Control event: "+Bezogonkow(tmp->Mechanik->eSignLast->asName); //nazwa eventu semafora
-        }
-*/
+        if (tmp->Mechanik->VelNext==0.0)
+         if (tmp->Mechanik->eSignNext)
+         {//jeœli ma zapamiêtany event semafora
+          //if (!OutText4.IsEmpty()) OutText4+=", "; //aby ³adniejszy odstêp by³
+          OutText4+=" ("+Bezogonkow(tmp->Mechanik->eSignNext->asName)+")"; //nazwa eventu semafora
+         }
        }
        if (!OutText4.IsEmpty()) OutText4+="; "; //aby ³adniejszy odstêp by³
        //informacja o sprzêgach nawet bez mechanika

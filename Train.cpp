@@ -3,19 +3,6 @@
     MaSzyna EU07 locomotive simulator
     Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 
-    This program is free software; you can redistribute it and/or modify           
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include    "system.hpp"
@@ -796,33 +783,34 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       }
       }
       if (cKey==Global::Keys[k_EndSign])
-      {
-         int CouplNr=-1;
-         TDynamicObject *tmp;
-         tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), 1, 1500, CouplNr);
-         if (tmp==NULL)
-            tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 1500, CouplNr);
-         if (tmp&&(CouplNr!=-1))
+      {//Ra: umieszczenie tego w obs³udze kabiny jest nieco bez sensu
+       int CouplNr=-1;
+       TDynamicObject *tmp;
+       tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), 1, 1500, CouplNr);
+       if (tmp==NULL)
+        tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 1500, CouplNr);
+       if (tmp&&(CouplNr!=-1))
+       {
+        int mask=(GetAsyncKeyState(VK_CONTROL)<0)?2+32:64;
+        if (CouplNr==0)
+        {
+         if (((tmp->iLights[0])&mask)!=mask)
          {
-            if (CouplNr==0)
-            {
-               if (((tmp->iLights[0])&64)==0)
-               {
-                  tmp->iLights[0]|=64;
-                  dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                  dsbSwitch->Play(0,0,0);
-               }
-            }
-            else
-            {
-               if (((tmp->iLights[1])&64)==0)
-               {
-                  tmp->iLights[1]|=64;
-                  dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                  dsbSwitch->Play(0,0,0);
-               }
-            }
+          tmp->iLights[0]|=mask;
+          dsbSwitch->SetVolume(DSBVOLUME_MAX); //Ra: ten dŸwiêk tu to przegiêcie
+          dsbSwitch->Play(0,0,0);
          }
+        }
+        else
+        {
+         if (((tmp->iLights[1])&mask)!=mask)
+         {
+          tmp->iLights[1]|=mask;
+          dsbSwitch->SetVolume(DSBVOLUME_MAX); //Ra: ten dŸwiêk tu to przegiêcie
+          dsbSwitch->Play(0,0,0);
+         }
+        }
+       }
       }
    }
   else //McZapkie-240302 - klawisze bez shifta
@@ -1272,13 +1260,13 @@ void __fastcall TTrain::OnKeyPress(int cKey)
         if ((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)||(DynamicObject->MoverParameters->EngineType==DieselElectric))
          if (DynamicObject->MoverParameters->TrainType!=dt_EZT)
           if (DynamicObject->MoverParameters->BrakeCtrlPosNo>0)
+          {
+           ReleaserButtonGauge.PutValue(1);
+           if (DynamicObject->MoverParameters->BrakeReleaser())
            {
-            ReleaserButtonGauge.PutValue(1);
-            if (DynamicObject->MoverParameters->BrakeReleaser())
-             {
-                dsbPneumaticRelay->SetVolume(-80);
-                dsbPneumaticRelay->Play(0,0,0);
-            }
+            dsbPneumaticRelay->SetVolume(-80);
+            dsbPneumaticRelay->Play(0,0,0);
+           }
           }
        }
 /* //OdluŸniacz przeniesiony do WOrld.cpp
@@ -1748,18 +1736,18 @@ void __fastcall TTrain::OnKeyPress(int cKey)
        {
         if (CouplNr==0)
         {
-         if (((tmp->iLights[0])&64)==64)
+         if ((tmp->iLights[0])&(2+32+64))
          {
-          tmp->iLights[0]&=(255-64);
-          dsbSwitch->SetVolume(DSBVOLUME_MAX);
+          tmp->iLights[0]&=~(2+32+64);
+          dsbSwitch->SetVolume(DSBVOLUME_MAX); //Ra: ten dŸwiêk tu to przegiêcie
           dsbSwitch->Play(0,0,0);
          }
         }
         else
         {
-         if (((tmp->iLights[1])&64)==64)
+         if ((tmp->iLights[1])&(2+32+64))
          {
-          tmp->iLights[1]&=(255-64);
+          tmp->iLights[1]&=~(2+32+64);
           dsbSwitch->SetVolume(DSBVOLUME_MAX);
           dsbSwitch->Play(0,0,0);
          }
@@ -1894,6 +1882,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
        else
         fMechCroach=0.5;
 //        if (!GetAsyncKeyState(VK_SHIFT)<0)         // bez shifta
+         if (!Console::Pressed(VK_CONTROL)) //gdy [Ctrl] zwolniony (dodatkowe widoki)
          {
           if (cKey==Global::Keys[k_MechLeft])
               vMechMovement.x+=fMechCroach;
@@ -2910,7 +2899,7 @@ else
       DirKeyGauge.Update();
      }
     if (BrakeCtrlGauge.SubModel)
-    {if (DynamicObject->Mechanik->AIControllFlag?false:Global::iFeedbackMode==4) //nie blokujemy AI
+    {if (DynamicObject->Mechanik?(DynamicObject->Mechanik->AIControllFlag?false:Global::iFeedbackMode==4):false) //nie blokujemy AI
      {//Ra: nie najlepsze miejsce, ale na pocz¹tek gdzieœ to daæ trzeba
       double b=Console::AnalogGet(0); //odczyt z pulpitu i modyfikacja pozycji kranu
       if ((b>=0.0)&&(DynamicObject->MoverParameters->BrakeHandle==FV4a))
@@ -2928,7 +2917,7 @@ else
      BrakeCtrlGauge.Update();
     }
     if (LocalBrakeGauge.SubModel)
-    {if (DynamicObject->Mechanik->AIControllFlag?false:Global::iFeedbackMode==4) //nie blokujemy AI
+    {if (DynamicObject->Mechanik?(DynamicObject->Mechanik->AIControllFlag?false:Global::iFeedbackMode==4):false) //nie blokujemy AI
      {//Ra: nie najlepsze miejsce, ale na pocz¹tek gdzieœ to daæ trzeba
       double b=Console::AnalogGet(1); //odczyt z pulpitu i modyfikacja pozycji kranu
       if ((b>=0.0)&&(DynamicObject->MoverParameters->BrakeLocHandle==FD1))
@@ -4625,4 +4614,13 @@ void __fastcall TTrain::MechStop()
  //pMechShake=vMechVelocity=vector3(0,0,0);
 };
 
-
+vector3 __fastcall TTrain::MirrorPosition(bool lewe)
+{//zwraca wspó³rzêdne widoku kamery z lusterka
+ switch (iCabn)
+ {
+  case 1: //przednia (1)
+   return DynamicObject->mMatrix*vector3(lewe?Cabine[iCabn].CabPos2.x:Cabine[iCabn].CabPos1.x,1.5+Cabine[iCabn].CabPos1.y,Cabine[iCabn].CabPos2.z);
+  case 2: //tylna (-1)
+   return DynamicObject->mMatrix*vector3(lewe?Cabine[iCabn].CabPos1.x:Cabine[iCabn].CabPos2.x,1.5+Cabine[iCabn].CabPos1.y,Cabine[iCabn].CabPos1.z);
+ }
+};

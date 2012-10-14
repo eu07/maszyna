@@ -294,17 +294,17 @@ void __fastcall TGroundNode::RenderVBO()
     pStaticSound->Play(1,DSBPLAY_LOOPING,true,pStaticSound->vSoundPosition);
     pStaticSound->AdjFreq(1.0,Timer::GetDeltaTime());
    }
-   return;
+   return; //Ra: TODO sprawdziæ, czy dŸwiêki nie s¹ tylko w RenderHidden
   case TP_MEMCELL: return;
   case TP_EVLAUNCH:
    if (EvLaunch->Render())
     if ((EvLaunch->dRadius<0)||(mgn<EvLaunch->dRadius))
     {
      if (Console::Pressed(VK_SHIFT) && EvLaunch->Event2!=NULL)
-      Global::pGround->AddToQuery(EvLaunch->Event2,NULL);
+      Global::AddToQuery(EvLaunch->Event2,NULL);
      else
       if (EvLaunch->Event1!=NULL)
-       Global::pGround->AddToQuery(EvLaunch->Event1,NULL);
+       Global::AddToQuery(EvLaunch->Event1,NULL);
     }
    return;
   case GL_LINES:
@@ -517,10 +517,10 @@ void __fastcall TGroundNode::RenderHidden()
     {
      WriteLog("Eventlauncher "+asName);
      if (Console::Pressed(VK_SHIFT)&&(EvLaunch->Event2))
-      Global::pGround->AddToQuery(EvLaunch->Event2,NULL);
+      Global::AddToQuery(EvLaunch->Event2,NULL);
      else
       if (EvLaunch->Event1)
-       Global::pGround->AddToQuery(EvLaunch->Event1,NULL);
+       Global::AddToQuery(EvLaunch->Event1,NULL);
     }
    return;
  }
@@ -1960,12 +1960,15 @@ TSubRect* __fastcall TGround::GetSubRect(int iCol,int iRow)
 
 TEvent* __fastcall TGround::FindEvent(const AnsiString &asEventName)
 {
+ return (TEvent*)sTracks->Find(0,asEventName.c_str()); //wyszukiwanie w drzewie
+/* //powolna wyszukiwarka
  for (TEvent *Current=RootEvent;Current;Current=Current->Next2)
  {
   if (Current->asName==asEventName)
    return Current;
  }
  return NULL;
+*/
 }
 
 void __fastcall TGround::FirstInit()
@@ -2192,19 +2195,31 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
      }
      else if (str==AnsiString("event"))
      {
-      TEvent *tmp;
-      tmp=RootEvent;
-      RootEvent=new TEvent();
-      RootEvent->Load(&parser,&pOrigin);
-      if (RootEvent->Type==tp_Unknown)
-      {delete RootEvent;
-       RootEvent=tmp; //przywrócenie z pominiêciem
-      }
+      TEvent *tmp=new TEvent();
+      tmp->Load(&parser,&pOrigin);
+      if (tmp->Type==tp_Unknown)
+       delete tmp;
       else
-      {RootEvent->Next2=tmp;
-       if (RootEvent->Type!=tp_Ignored)
-        if (RootEvent->asName.Pos("onstart")) //event uruchamiany automatycznie po starcie
-         AddToQuery(RootEvent,NULL); //dodanie do kolejki
+      {//najpierw sprawdzamy, czy nie ma, a potem dopisujemy
+       if (FindEvent(tmp->asName))
+       {//jeœli znaleziony duplikat
+        int i=tmp->asName.Length();
+        if (tmp->asName[1]!='#') //zawsze jeden znak co najmniej jest
+         if (i>8?tmp->asName.SubString(i-7,8)!="_warning":true) //tymczasowo wyj¹tki
+          if (i>4?tmp->asName.SubString(i-3,4)!="_shp":true) //nie podlegaj¹ logowaniu
+           ErrorLog("Duplicated event: "+tmp->asName);
+        delete tmp; //bezlitoœnie usuwamy wszelkie duplikaty
+        tmp=NULL; //i nie pozwalamy zaœmiecaæ drzewka (nie wiadomo, który by siê wykona³)
+       }
+       if (tmp)
+       {//jeœli nie duplikat
+        tmp->Next2=RootEvent;
+        RootEvent=tmp;
+        if (RootEvent->Type!=tp_Ignored)
+         if (RootEvent->asName.Pos("onstart")) //event uruchamiany automatycznie po starcie
+          AddToQuery(RootEvent,NULL); //dodanie do kolejki
+        sTracks->Add(0,tmp->asName.c_str(),tmp); //dodanie do wyszukiwarki
+       }
       }
      }
 //     else
@@ -2454,7 +2469,8 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
   WriteLog(sTracks->rRecords[*r].cName);
  delete[] r;
 */
- sTracks->Sort(TP_TRACK); //finalne sortowanie drzewa
+ sTracks->Sort(TP_TRACK); //finalne sortowanie drzewa torów
+ sTracks->Sort(0); //finalne sortowanie drzewa eventów
  if (!bInitDone) FirstInit(); //jeœli nie by³o w scenerii
  if (Global::pTerrainCompact)
   TerrainWrite(); //Ra: teraz mo¿na zapisaæ teren w jednym pliku
@@ -2638,6 +2654,10 @@ bool __fastcall TGround::InitEvents()
         if (Current->fDelay<0)
             AddToQuery(Current,NULL);
     }
+ for (TGroundNode *Current=nRootOfType[TP_MEMCELL];Current;Current=Current->Next)
+ {//Ra: eventy komórek pamiêci, wykonywane po wys³aniu komendy do zatrzymanego pojazdu
+  Current->MemCell->AssignEvents(FindEvent(Current->asName+":sent"));
+ }
  return true;
 }
 

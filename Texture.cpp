@@ -608,57 +608,38 @@ TTexturesManager::AlphaValue TTexturesManager::LoadDDS(std::string fileName,int 
     GLuint offset = 0;
     int firstMipMap = 0;
     
-    while(data.width > Global::iMaxTextureSize || data.height > Global::iMaxTextureSize)
-    {
-        offset += ((data.width + 3) / 4) * ((data.height+3)/4) * data.blockSize;
-        data.width /= 2;
-        data.height /= 2;
-        firstMipMap++;
-    };
+ while ((data.width>Global::iMaxTextureSize)||(data.height>Global::iMaxTextureSize))
+ {//pomijanie zbyt du¿ych mipmap, jeœli wymagane jest ograniczenie rozmiaru
+  offset+=((data.width+3)/4)*((data.height+3)/4)*data.blockSize;
+  data.width/=2;
+  data.height/=2;
+  firstMipMap++;
+ };
 
-    // Load the mip-map levels
-    for (int i=0; i < data.numMipMaps - firstMipMap; i++)
-    {
-        if (!data.width) data.width = 1;
-        if (!data.height) data.height = 1;
-
-        GLuint size = ((data.width + 3) / 4) * ((data.height+3)/4) * data.blockSize;
-
-        if ((Global::bDecompressDDS)&&(i==1))  //should be i==0 but then problem with "glBindTexture()"
-        {
-            GLuint decomp_size = data.width * data.height * 4;
-            GLubyte* output = new GLubyte[decomp_size];
-            DecompressDXT(data, data.pixels + offset, output);
-
-            glTexImage2D(GL_TEXTURE_2D, i, GL_RGBA, data.width, data.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, output);
-
-            delete[] output;
-        }
-        else
-        {
-            glCompressedTexImage2D(
-                GL_TEXTURE_2D,
-                i,
-                data.format,
-                data.width,
-                data.height,
-                0,
-                size,
-                data.pixels + offset
-            );
-
-        }
-
-        offset += size;
-
-        // Half the image size for the next mip-map level...
-        data.width /= 2;
-        data.height /= 2;
-    };
-
-    delete[] data.pixels;
-    return std::make_pair(id, data.components == 4);
-
+ for (int i=0;i<data.numMipMaps-firstMipMap;i++)
+ {//wczytanie kolejnych poziomów mipmap
+  if (!data.width) data.width=1;
+  if (!data.height) data.height=1;
+  GLuint size=((data.width+3)/4)*((data.height+3)/4)*data.blockSize;
+  if (Global::bDecompressDDS)
+  {//programowa dekompresja DDS
+   //if (i==1) //should be i==0 but then problem with "glBindTexture()"
+   {GLuint decomp_size=data.width*data.height*4;
+    GLubyte* output=new GLubyte[decomp_size];
+    DecompressDXT(data,data.pixels+offset,output);
+    glTexImage2D(GL_TEXTURE_2D,i,GL_RGBA,data.width,data.height,0,GL_RGBA,GL_UNSIGNED_BYTE,output);
+    delete[] output;
+   }
+  }
+  else //przetwarzanie DDS przez OpenGL (istnieje odpowiednie rozszerzenie)
+   glCompressedTexImage2D(GL_TEXTURE_2D,i,data.format,data.width,data.height,0,size,data.pixels+offset);
+  offset+=size;
+  // Half the image size for the next mip-map level...
+  data.width/=2;
+  data.height/=2;
+ };
+ delete[] data.pixels;
+ return std::make_pair(id, data.components == 4);
 };
 
 void TTexturesManager::SetFiltering(int filter)

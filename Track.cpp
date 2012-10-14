@@ -108,14 +108,14 @@ void __fastcall TIsolated::Modify(int i,TDynamicObject *o)
   iAxles+=i;
   if (!iAxles)
    if (eFree)
-    Global::pGround->AddToQuery(eFree,o); //dodanie zwolnienia do kolejki
+    Global::AddToQuery(eFree,o); //dodanie zwolnienia do kolejki
  }
  else
  {//grupa by³a wolna
   iAxles+=i;
   if (iAxles)
    if (eBusy)
-    Global::pGround->AddToQuery(eBusy,o); //dodanie zajêtoœci do kolejki
+    Global::AddToQuery(eBusy,o); //dodanie zajêtoœci do kolejki
  }
 };
 
@@ -657,7 +657,8 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
    parser->getTokens();
    *parser >> fVelocity; //*0.28; McZapkie-010602
    if (SwitchExtension) //jeœli tor ruchomy
-    SwitchExtension->fVelocity=fVelocity; //zapamiêtanie g³ównego ograniczenia
+    if (fVelocity>=1.0) //¿eby zero nie ogranicza³o do¿ywotnio
+     SwitchExtension->fVelocity=fVelocity; //zapamiêtanie g³ównego ograniczenia
   }
   else if (str=="isolated")
   {//obwód izolowany, do którego tor nale¿y
@@ -1102,6 +1103,7 @@ void __fastcall TTrack::Compile(GLuint tex)
     case tt_Switch: //dla zwrotnicy dwa razy szyny
      if (TextureID1) //zwrotnice nie s¹ grupowane, aby proœciej by³o je animowaæ
      {//iglice liczone tylko dla zwrotnic
+      //Ra: TODO: oddzielna animacja ka¿dej iglicy, opór na docisku
       vector6 rpts3[24],rpts4[24];
       for (i=0;i<12;++i)
       {rpts3[i]   =vector6(( fHTW+iglica[i].x)*cos1+iglica[i].y*sin1,-( fHTW+iglica[i].x)*sin1+iglica[i].y*cos1,iglica[i].z,+iglica[i].n.x*cos1+iglica[i].n.y*sin1,-iglica[i].n.x*sin1+iglica[i].n.y*cos1,0.0);
@@ -1138,7 +1140,6 @@ void __fastcall TTrack::Compile(GLuint tex)
        SwitchExtension->Segments[1]->RenderLoft(rpts1,nnumPts,fTexLength);
        SwitchExtension->Segments[1]->RenderLoft(rpts2,nnumPts,fTexLength,2);
        SwitchExtension->Segments[1]->RenderSwitchRail(rpts2,rpts4,nnumPts,fTexLength,2,-fMaxOffset+SwitchExtension->fOffset1);
-       //WriteLog("Kompilacja prawej"); WriteLog(AnsiString(SwitchExtension->fOffset1).c_str());
       }
       else
       {//lewa dzia³a lepiej ni¿ prawa
@@ -1151,7 +1152,6 @@ void __fastcall TTrack::Compile(GLuint tex)
        SwitchExtension->Segments[1]->RenderLoft(rpts1,nnumPts,fTexLength,2); //lewa szyna za iglic¹
        SwitchExtension->Segments[1]->RenderSwitchRail(rpts1,rpts3,nnumPts,fTexLength,2,fMaxOffset-SwitchExtension->fOffset1); //lewa iglica
        SwitchExtension->Segments[1]->RenderLoft(rpts2,nnumPts,fTexLength); //prawa szyna normalnie ca³a
-       //WriteLog("Kompilacja lewej"); WriteLog(AnsiString(SwitchExtension->fOffset1).c_str());
       }
      }
      break;
@@ -2033,11 +2033,11 @@ bool __fastcall TTrack::SwitchForced(int i,TDynamicObject *o)
   {switch (i)
    {case 0:
      if (SwitchExtension->EventPlus)
-      Global::pGround->AddToQuery(SwitchExtension->EventPlus,o); //dodanie do kolejki
+      Global::AddToQuery(SwitchExtension->EventPlus,o); //dodanie do kolejki
      break;
     case 1:
      if (SwitchExtension->EventMinus)
-      Global::pGround->AddToQuery(SwitchExtension->EventMinus,o); //dodanie do kolejki
+      Global::AddToQuery(SwitchExtension->EventMinus,o); //dodanie do kolejki
      break;
    }
    Switch(i); //jeœli siê tu nie prze³¹czy, to ka¿dy pojazd powtórzy event rozrprucia

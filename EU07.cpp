@@ -496,9 +496,12 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
    if (Global::bActive)
    {
     if (wParam!=17) //bo naciœniêcia [Ctrl] nie ma po co przekazywaæ
-     World.OnKeyDown(wParam);
+     if (wParam!=145) //[Scroll Lock] te¿ nie
+      World.OnKeyDown(wParam);
     switch (wParam)
     {
+     case VK_ESCAPE: //[Esc] pauzuje tylko bez Debugmode
+      if (DebugModeFlag) break;
      case 19: //[Pause]
       if (!Global::iMultiplayer) //w multiplayerze pauza nie ma sensu
        if (!Console::Pressed(VK_CONTROL))

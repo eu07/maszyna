@@ -10,7 +10,7 @@
 #pragma package(smart_init)
 /*
 Modu³ zarz¹dzaj¹cy plikami oraz wyszukiwaniem obiektów wg nazw.
-1. Ma przydzielony z góry (EU07.INI) obszar pamiêci (rzêdu 64kB).
+1. Ma przydzielony z góry (EU07.INI) obszar pamiêci (rzêdu 16MB).
 2. W przypadku przepe³nienia dostêpnej pamiêci wyst¹pi b³¹d wczytywania.
 3. Obszar ten bêdzie zu¿ywany na rekordy obiektów oraz ci¹gi tekstowe z nazwami.
 4. Rekordy bêd¹ sortowane w ramach typu (tekstury, dŸwiêki, modele, node, eventy).
@@ -82,7 +82,7 @@ void* __fastcall ItemRecord::TreeFind(const char *n)
 
 __fastcall TNames::TNames()
 {//tworzenie bufora
- iSize=32*65536; //rozmiar bufora w bajtach
+ iSize=16*1024*1024; //rozmiar bufora w bajtach
  cBuffer=new char[iSize];
  ZeroMemory(cBuffer,iSize); //nie trzymaæ jakiœ starych œmieci
  rRecords=(ItemRecord*)cBuffer;
@@ -103,7 +103,7 @@ int __fastcall TNames::Add(int t,const char *n)
  else
   rTypes[t]->TreeAdd(rRecords+iLast,0); //doczepienie jako ga³¹Ÿ
  //rTypes[t]=Sort(t); //sortowanie uruchamiaæ rêcznie
- if ((iLast&0x0F)==0)
+ if ((iLast&0x3F)==0) //nie za czêsto, bo sortowania zajm¹ wiêcej czasu ni¿ wyszukiwania
   Sort(t); //optymalizacja drzewa co jakiœ czas
  return iLast;
 }

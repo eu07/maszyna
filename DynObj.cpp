@@ -3204,17 +3204,20 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
  AnsiString asFileName=BaseDir+TypeName+".mmd";
  AnsiString asLoadName=BaseDir+MoverParameters->LoadType+".t3d";
  fs=new TFileStream(asFileName,fmOpenRead|fmShareCompat);
- AnsiString str="";
+ if (!fs) return;
  int size=fs->Size;
+ if (!size) {return delete fs;};
  AnsiString asAnimName="";
  bool Stop_InternalData=false;
- str.SetLength(size);
- fs->Read(str.c_str(),size);
- str+="";
+ char* buf=new char[size+1]; //ci¹g bajtów o d³ugoœci równej rozmiwarowi pliku
+ buf[size]='\0'; //zakoñczony zerem na wszelki wypadek
+ fs->Read(buf,size);
  delete fs;
  TQueryParserComp *Parser;
  Parser=new TQueryParserComp(NULL);
- Parser->TextToParse=str;
+ Parser->TextToParse=AnsiString(buf);
+ delete[] buf;
+ AnsiString str;
  //Parser->LoadStringToParse(asFile);
  Parser->First();
  //DecimalSeparator= '.';
@@ -3738,7 +3741,7 @@ void __fastcall TDynamicObject::RaAxleEvent(TEvent *e)
  if (Mechanik) //tylko jeœli ma obsadê
  {//if (!Mechanik->CheckEvent(e,true)) //jeœli nie jest ustawiaj¹cym prêdkoœæ
   if (e->bEnabled) //czy nale¿y dodaæ do kolejki
-   Global::pGround->AddToQuery(e,this); //dodanie do kolejki
+   Global::AddToQuery(e,this); //dodanie do kolejki
   else //nie ma potrzeby wysy³ania tego do serwera, skoro mo¿na wys³aæ zajêtoœæ toru
    if (Global::iMultiplayer) //potwierdzenie wykonania dla serwera - najczêœciej odczyt semafora
     Global::pGround->WyslijEvent(e->asName,GetName());
@@ -3746,7 +3749,7 @@ void __fastcall TDynamicObject::RaAxleEvent(TEvent *e)
  else
   //if (!Mechanik->CheckEvent(e,true)) //czy dodawany do kolejki, funkcja prawie statyczna
  if (e->bEnabled) //czy nale¿y dodaæ do kolejki
-  Global::pGround->AddToQuery(e,this); //dodanie do kolejki
+  Global::AddToQuery(e,this); //dodanie do kolejki
 };
 */
 
