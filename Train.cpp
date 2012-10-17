@@ -3653,6 +3653,7 @@ else
               if (CabLightButtonGauge.SubModel)
                {
                 CabLightButtonGauge.PutValue(1);
+                btCabLight.TurnOn();
                }
              }
             else
@@ -3673,6 +3674,7 @@ else
               if (CabLightButtonGauge.SubModel)
                {
                 CabLightButtonGauge.PutValue(0);
+                btCabLight.TurnOff();
                }
              }
             else
@@ -4512,6 +4514,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     btLampkaWylSzybkiB.Clear();
     btLampkaForward.Clear();
     btLampkaBackward.Clear();
+    btCabLight.Clear(); //hunter-171012
     LeftLightButtonGauge.Clear();
     RightLightButtonGauge.Clear();
     UpperLightButtonGauge.Clear();
@@ -4788,6 +4791,8 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     btLampkaForward.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("i-backward:"))
     btLampkaBackward.Load(Parser,DynamicObject->mdKabina);
+   else if (str==AnsiString("i-cablight:")) //hunter-171012
+    btCabLight.Load(Parser,DynamicObject->mdKabina);
    //btLampkaUnknown.Init("unknown",mdKabina,false);
   }
  }
