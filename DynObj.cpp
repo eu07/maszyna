@@ -1321,8 +1321,7 @@ double __fastcall TDynamicObject::Init(
    if (DriverType=="p")
    {//obserwator w charakterze pasa¿era
     //Ra: to jest niebezpieczne, bo w razie co bêdzie pomaga³ hamulcem bezpieczeñstwa
-    //TrainParams=new TTrainParameters(TrainName); //Ra: wywaliæ to st¹d!
-    //Mechanik=new TController(Controller,this,NULL,Easyman);
+    Mechanik=new TController(Controller,this,Easyman,false);
    }
  }
  // McZapkie-250202
@@ -3608,18 +3607,10 @@ TDynamicObject* __fastcall TDynamicObject::Next()
 };
 
 TDynamicObject* __fastcall TDynamicObject::Neightbour(int &dir)
-{//ustalenie nastêpnego w sk³adzie bez wzglêdu na prawid³owoœæ iDirection
- int d=1-(iDirection?NextConnectedNo:PrevConnectedNo);
- switch (d)
- {case  0:
-   dir=(iDirection?NextConnectedNo:PrevConnectedNo)?1:-1;
-   return (iDirection>0)?NextConnected:PrevConnected;
-  case  1: d=iDirection?1:-1;
-   return d>0?NextConnected:PrevConnected;
-  case -1: d=iDirection?1:-1;
-   return d>0?NextConnected:PrevConnected;
- }
- return NULL;
+{//ustalenie nastêpnego (1) albo poprzedniego (0) w sk³adzie bez wzglêdu na prawid³owoœæ iDirection
+ int d=dir; //zapamiêtanie kierunku
+ dir=1-(dir?NextConnectedNo:PrevConnectedNo); //nowa wartoœæ
+ return (d?(MoverParameters->Couplers[1].CouplingFlag?NextConnected:NULL):(MoverParameters->Couplers[0].CouplingFlag?PrevConnected:NULL));
 };
 
 

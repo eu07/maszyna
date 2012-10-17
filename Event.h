@@ -48,7 +48,7 @@ private:
 public:
     AnsiString asName;
     bool bEnabled; //false gdy ma nie byæ dodawany do kolejki (skanowanie sygna³ów)
-    bool bLaunched;
+    int iQueued; //ile razy dodany do kolejki
     //bool bIsHistory;
     TEvent *Next; //nastêpny w kolejce
     TEvent *Next2;

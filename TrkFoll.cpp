@@ -84,12 +84,12 @@ bool __fastcall TTrackFollower::Move(double fDistance,bool bPrimary)
     if (iSetFlag(iEventFlag,-1)) //zawsze zeruje flagê sprawdzenia, jak mechanik dosi¹dzie, to siê nie wykona
      if (Owner->Mechanik) //tylko dla jednego cz³onu
       //if (TestFlag(iEventFlag,1)) //McZapkie-280503: wyzwalanie event tylko dla pojazdow z obsada
-      if (bPrimary && pCurrentTrack->Event1 && (pCurrentTrack->Event1->fStartTime<=0))
+      if (bPrimary && pCurrentTrack->Event1 && (!pCurrentTrack->Event1->iQueued))
        Global::AddToQuery(pCurrentTrack->Event1,Owner); //dodanie do kolejki
        //Owner->RaAxleEvent(pCurrentTrack->Event1); //Ra: dynamic zdecyduje, czy dodaæ do kolejki
     //if (TestFlag(iEventallFlag,1))
     if (iSetFlag(iEventallFlag,-1)) //McZapkie-280503: wyzwalanie eventall dla wszystkich pojazdow
-     if (bPrimary && pCurrentTrack->Eventall1 && (pCurrentTrack->Eventall1->fStartTime<=0))
+     if (bPrimary && pCurrentTrack->Eventall1 && (!pCurrentTrack->Eventall1->iQueued))
       Global::AddToQuery(pCurrentTrack->Eventall1,Owner); //dodanie do kolejki
       //Owner->RaAxleEvent(pCurrentTrack->Eventall1); //Ra: dynamic zdecyduje, czy dodaæ do kolejki
    }
@@ -98,12 +98,12 @@ bool __fastcall TTrackFollower::Move(double fDistance,bool bPrimary)
     if (iSetFlag(iEventFlag,-2)) //zawsze ustawia flagê sprawdzenia, jak mechanik dosi¹dzie, to siê nie wykona
      if (Owner->Mechanik) //tylko dla jednego cz³onu
       //if (TestFlag(iEventFlag,2)) //sprawdzanie jest od razu w pierwszym warunku
-      if (bPrimary && pCurrentTrack->Event2 && (pCurrentTrack->Event2->fStartTime<=0))
+      if (bPrimary && pCurrentTrack->Event2 && (!pCurrentTrack->Event2->iQueued))
        Global::AddToQuery(pCurrentTrack->Event2,Owner);
        //Owner->RaAxleEvent(pCurrentTrack->Event2); //Ra: dynamic zdecyduje, czy dodaæ do kolejki
     //if (TestFlag(iEventallFlag,2))
     if (iSetFlag(iEventallFlag,-2)) //sprawdza i zeruje na przysz³oœæ, true jeœli zmieni z 2 na 0
-     if (bPrimary && pCurrentTrack->Eventall2 && (pCurrentTrack->Eventall2->fStartTime<=0))
+     if (bPrimary && pCurrentTrack->Eventall2 && (!pCurrentTrack->Eventall2->iQueued))
       Global::AddToQuery(pCurrentTrack->Eventall2,Owner);
       //Owner->RaAxleEvent(pCurrentTrack->Eventall2); //Ra: dynamic zdecyduje, czy dodaæ do kolejki
    }
@@ -111,11 +111,11 @@ bool __fastcall TTrackFollower::Move(double fDistance,bool bPrimary)
    {
     if (Owner->Mechanik) //tylko dla jednego cz³onu
      if (pCurrentTrack->Event0)
-      if ((pCurrentTrack->Event0->fStartTime<=0)&&(pCurrentTrack->Event0->fDelay!=0))
+      if (!pCurrentTrack->Event0->iQueued)
        Global::AddToQuery(pCurrentTrack->Event0,Owner);
        //Owner->RaAxleEvent(pCurrentTrack->Event0); //Ra: dynamic zdecyduje, czy dodaæ do kolejki
     if (pCurrentTrack->Eventall0)
-     if ((pCurrentTrack->Eventall0->fStartTime<=0)&&(pCurrentTrack->Eventall0->fDelay!=0))
+     if (!pCurrentTrack->Eventall0->iQueued)
       Global::AddToQuery(pCurrentTrack->Eventall0,Owner);
       //Owner->RaAxleEvent(pCurrentTrack->Eventall0); //Ra: dynamic zdecyduje, czy dodaæ do kolejki
    }
