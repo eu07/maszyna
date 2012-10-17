@@ -30,7 +30,7 @@ enum TMovementStatus
  moveAvaken=4, //po w³¹czeniu silnika pojazd nie przemieœci³ siê
  movePress=8, //dociskanie przy od³¹czeniu (zamiast zmiennej Prepare2press)
  moveConnect=0x10, //jest blisko innego pojazdu i mo¿na próbowaæ pod³¹czyæ
- movePrimary=0x20, //ma priorytet w sk³adzie
+ movePrimary=0x20, //ma priorytet w sk³adzie (master)
  //moveStopThen=0x40, //nie podje¿d¿aæ do semafora, jeœli droga nie jest wolna
  moveStopHere=0x80, //nie podje¿d¿aæ do semafora, jeœli droga nie jest wolna
  moveStartHorn=0x100, //podaj sygna³ po podaniu wolnej drogi
@@ -221,8 +221,8 @@ public:
  __fastcall TController
  (bool AI,
   TDynamicObject *NewControll,
-  //Mtable::TTrainParameters *NewTrainParams,
-  bool InitPsyche
+  bool InitPsyche,
+  bool primary=true //czy ma aktywnie prowadziæ?
  );
  AnsiString __fastcall OrderCurrent();
  void __fastcall WaitingSet(double Seconds);
