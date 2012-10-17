@@ -229,6 +229,8 @@ public:
     TButton btLampkaForward; //Ra: lampki w przód i w ty³ dla komputerowych kabin
     TButton btLampkaBackward;
 
+    TButton btCabLight; //hunter-171012: lampa oswietlajaca kabine
+
     vector3 pPosition;
     vector3 pMechOffset; //driverNpos
     vector3 vMechMovement;
