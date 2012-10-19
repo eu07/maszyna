@@ -1268,13 +1268,13 @@ bool __fastcall TWorld::Update()
      {
        OutText1="  FPS: ";
        OutText1+=FloatToStrF(GetFPS(),ffFixed,6,2);
-       OutText1+=Global::iSlowMotion?"S":"N";
+       OutText1+=Global::iSlowMotion?"s":"n";
 
-
-       if (GetDeltaTime()>=0.2)
-        {
-            OutText1+= " Slowing Down !!! ";
-        }
+       OutText1+=(GetDeltaTime()>=0.2)?"!":" ";
+       //if (GetDeltaTime()>=0.2) //Ra: to za bardzo miota tekstem!
+       // {
+       //     OutText1+= " Slowing Down !!! ";
+       // }
      }
     /*if (Console::Pressed(VK_F5))
        {Global::slowmotion=true;};

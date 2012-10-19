@@ -24,10 +24,10 @@ __fastcall TEvent::TEvent()
  Next=Next2=NULL;
  bEnabled=false; //false dla eventów u¿ywanych do skanowania sygna³ów (nie dodawane do kolejki)
  asNodeName="";
- bLaunched=false;
+ iQueued=0; //nie zosta³ dodany do kolejki
  //bIsHistory=false;
  fDelay=0;
- fStartTime=0;
+ fStartTime=0; //0 nie ma sensu
  Type=tp_Unknown;
  for (int i=0;i<13;i++)
   Params[i].asPointer=NULL;
@@ -397,17 +397,12 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
          WriteLog("Event \""+asName+(Type==tp_Unknown?"\" has unknown type.":"\" is ignored."));
          break;
     }
- //if (Type!=tp_Unknown)
-  //if (Type!=tp_Ignored)
-   //if (asName.Pos("onstart")) //event uruchamiany automatycznie po starcie
-    //Global::AddToQuery(this,NULL); //dodanie do kolejki
-    //return true; //dodaæ do kolejki
  //return false;
 }
 
 void __fastcall TEvent::AddToQuery(TEvent *Event)
 {//dodanie eventu do kolejki
- if (Next&&(Next->fStartTime<Event->fStartTime))
+ if (Next?(Event->fStartTime>=Next->fStartTime):false)
   Next->AddToQuery(Event); //sortowanie wg czasu
  else
  {//dodanie z przodu
