@@ -2179,24 +2179,35 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
        delete tmp;
       else
       {//najpierw sprawdzamy, czy nie ma, a potem dopisujemy
-       if (FindEvent(tmp->asName))
+       TEvent *found=FindEvent(tmp->asName);
+       if (found)
        {//jeœli znaleziony duplikat
         int i=tmp->asName.Length();
-        if (tmp->asName[1]!='#') //zawsze jeden znak co najmniej jest
-         if (i>8?tmp->asName.SubString(i-7,8)!="_warning":true) //tymczasowo wyj¹tki
-          if (i>4?tmp->asName.SubString(i-3,4)!="_shp":true) //nie podlegaj¹ logowaniu
-           ErrorLog("Duplicated event: "+tmp->asName);
-        delete tmp; //bezlitoœnie usuwamy wszelkie duplikaty
-        tmp=NULL; //i nie pozwalamy zaœmiecaæ drzewka (nie wiadomo, który by siê wykona³)
+        if (tmp->asName[1]=='#') //zawsze jeden znak co najmniej jest
+        {delete tmp; tmp=NULL;} //utylizacja duplikatu z krzy¿ykiem
+        else if (i>8?tmp->asName.SubString(i-7,8)=="_warning":false) //tymczasowo wyj¹tki
+        {delete tmp; tmp=NULL;} //tymczasowa utylizacja duplikatu z tr¹bieniem
+        else if (i>4?tmp->asName.SubString(i-3,4)!="_shp":false) //nie podlegaj¹ logowaniu
+        {delete tmp; tmp=NULL;} //tymczasowa utylizacja duplikatu SHP
+        if (tmp) //jeœli nie zosta³ zutylizowany
+         if (Global::bJoinEvents)
+          found->Append(tmp); //doczepka (taki wirtualny multiple bez warunków)
+         else
+         {ErrorLog("Duplicated event: "+tmp->asName);
+          SafeDelete(tmp); //bezlitoœnie usuwamy wszelkie duplikaty, ¿eby nie zaœmiecaæ drzewka
+         }
        }
        if (tmp)
        {//jeœli nie duplikat
-        tmp->Next2=RootEvent;
+        tmp->Next2=RootEvent; //lista wszystkich eventów
         RootEvent=tmp;
-        if (RootEvent->Type!=tp_Ignored)
-         if (RootEvent->asName.Pos("onstart")) //event uruchamiany automatycznie po starcie
-          AddToQuery(RootEvent,NULL); //dodanie do kolejki
-        sTracks->Add(0,tmp->asName.c_str(),tmp); //dodanie do wyszukiwarki
+        if (!found)
+        {//jeœli nazwa wyst¹pi³a, to do kolejki i wyszukiwarki dodawany jest tylko pierwszy
+         if (RootEvent->Type!=tp_Ignored)
+          if (RootEvent->asName.Pos("onstart")) //event uruchamiany automatycznie po starcie
+           AddToQuery(RootEvent,NULL); //dodanie do kolejki
+         sTracks->Add(0,tmp->asName.c_str(),tmp); //dodanie do wyszukiwarki
+        }
        }
       }
      }
@@ -2879,7 +2890,7 @@ bool __fastcall TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
    WriteLog("EVENT ADDED TO QUEUE: "+Event->asName);
    Event->Activator=Node;
    Event->fStartTime=fabs(Event->fDelay)+Timer::GetTime();
-   Event->bLaunched=true;
+   Event->bLaunched=true; //zabezpieczenie przed podwójnym dodaniem do kolejki
    if (QueryRootEvent)
     QueryRootEvent->AddToQuery(Event);
    else
@@ -2893,243 +2904,250 @@ bool __fastcall TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
 
 bool __fastcall TGround::CheckQuery()
 {
-    TLocation loc;
-    int i;
-	double rprobability;
-    Double evtime, evlowesttime;
-    evlowesttime= 1000000;
-if (QueryRootEvent)
-   {
-   OldQRE= QueryRootEvent;
-   tmpEvent= QueryRootEvent;
-   }
-if (QueryRootEvent)
-{
- for (i=0; i<90; i++)
+ TLocation loc;
+ int i;
+ double rprobability;
+ Double evtime,evlowesttime; //Ra: co to za typ?
+ evlowesttime=1000000;
+ if (QueryRootEvent)
  {
-  evtime = ((tmpEvent->fStartTime)-(Timer::GetTime()));
-  if (evtime<evlowesttime)
-   {
-   evlowesttime= evtime;
-   tmp2Event= tmpEvent;
-   }
-  if (tmpEvent->Next)
-   tmpEvent = tmpEvent->Next;
-  else
-   i=100;
+  OldQRE=QueryRootEvent;
+  tmpEvent=QueryRootEvent;
  }
-
- if (OldQRE!=tmp2Event)
+ if (QueryRootEvent)
  {
- QueryRootEvent->AddToQuery(QueryRootEvent);
- QueryRootEvent= tmp2Event;
+  for (i=0;i<90;++i)
+  {
+   evtime=((tmpEvent->fStartTime)-(Timer::GetTime()));
+   if (evtime<evlowesttime)
+   {
+    evlowesttime=evtime;
+    tmp2Event=tmpEvent;
+   }
+   if (tmpEvent->Next)
+    tmpEvent=tmpEvent->Next;
+   else
+    i=100;
+  }
+  if (OldQRE!=tmp2Event)
+  {
+   QueryRootEvent->AddToQuery(QueryRootEvent);
+   QueryRootEvent=tmp2Event;
+  }
  }
-}
-    while (QueryRootEvent && QueryRootEvent->fStartTime<Timer::GetTime())
-    {
-
-        if (QueryRootEvent->bEnabled)
-        {
-        WriteLog("EVENT LAUNCHED: "+QueryRootEvent->asName);
-        switch (QueryRootEvent->Type)
-        {
-         case tp_CopyValues: //pobranie wartoœci z innej komórki
+ while (QueryRootEvent&&(QueryRootEvent->fStartTime<Timer::GetTime()))
+ {
+  if (QueryRootEvent->bEnabled)
+  {
+   WriteLog("EVENT LAUNCHED: "+QueryRootEvent->asName);
+   switch (QueryRootEvent->Type)
+   {
+    case tp_CopyValues: //pobranie wartoœci z innej komórki
 /*
-          QueryRootEvent->Params[0].asText=QueryRootEvent->Params[9].asMemCell->U
-          QueryRootEvent->Params[1].asdouble=
-          QueryRootEvent->Params[2].asdouble=
-          QueryRootEvent->Params[12].asInt=conditional_memstring|conditional_memval1|conditional_memval2; //wszystko
+     QueryRootEvent->Params[0].asText=QueryRootEvent->Params[9].asMemCell->U
+     QueryRootEvent->Params[1].asdouble=
+     QueryRootEvent->Params[2].asdouble=
+     QueryRootEvent->Params[12].asInt=conditional_memstring|conditional_memval1|conditional_memval2; //wszystko
 */
-         case tp_AddValues: //ró¿ni siê jedn¹ flag¹ od UpdateValues
-         case tp_UpdateValues:
-          QueryRootEvent->Params[9].asMemCell->UpdateValues(QueryRootEvent->Params[0].asText,QueryRootEvent->Params[1].asdouble,QueryRootEvent->Params[2].asdouble,QueryRootEvent->Params[12].asInt);
+    case tp_AddValues: //ró¿ni siê jedn¹ flag¹ od UpdateValues
+    case tp_UpdateValues:
+     QueryRootEvent->Params[9].asMemCell->UpdateValues(QueryRootEvent->Params[0].asText,QueryRootEvent->Params[1].asdouble,QueryRootEvent->Params[2].asdouble,QueryRootEvent->Params[12].asInt);
 //McZapkie-100302 - updatevalues oprocz zmiany wartosci robi putcommand dla wszystkich 'dynamic' na danym torze
-          if (QueryRootEvent->Params[10].asTrack)
-          {
-           //loc.X= -QueryRootEvent->Params[8].asGroundNode->pCenter.x;
-           //loc.Y=  QueryRootEvent->Params[8].asGroundNode->pCenter.z;
-           //loc.Z=  QueryRootEvent->Params[8].asGroundNode->pCenter.y;
-           for (int i=0;i<QueryRootEvent->Params[10].asTrack->iNumDynamics;++i)
-           {
-            //QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Params[10].asTrack->Dynamics[i]->Mechanik,loc);
-            QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Params[10].asTrack->Dynamics[i]->Mechanik,&QueryRootEvent->Params[8].asGroundNode->pCenter);
-           }
-           if (DebugModeFlag)
-            WriteLog("Type: UpdateValues & Track command - "+AnsiString(QueryRootEvent->Params[0].asText)+" "+AnsiString(QueryRootEvent->Params[1].asdouble)+" "+AnsiString(QueryRootEvent->Params[2].asdouble));
-          }
-          else
-           if (DebugModeFlag)
-            WriteLog("Type: UpdateValues - "+AnsiString(QueryRootEvent->Params[0].asText)+" "+AnsiString(QueryRootEvent->Params[1].asdouble)+" "+AnsiString(QueryRootEvent->Params[2].asdouble));
-         break;
-         case tp_GetValues:
-          if (QueryRootEvent->Activator)
-          {
-           //loc.X= -QueryRootEvent->Params[8].asGroundNode->pCenter.x;
-           //loc.Y=  QueryRootEvent->Params[8].asGroundNode->pCenter.z;
-           //loc.Z=  QueryRootEvent->Params[8].asGroundNode->pCenter.y;
-           if (Global::iMultiplayer) //potwierdzenie wykonania dla serwera - najczêœciej odczyt semafora
-            WyslijEvent(QueryRootEvent->asName,QueryRootEvent->Activator->GetName());
-            //QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Activator->Mechanik,loc);
-           QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Activator->Mechanik,&QueryRootEvent->Params[8].asGroundNode->pCenter);
-          }
-          WriteLog("Type: GetValues");
-         break;
-         case tp_PutValues:
-          if (QueryRootEvent->Activator)
-          {
-           loc.X=-QueryRootEvent->Params[3].asdouble; //zamiana, bo fizyka ma inaczej ni¿ sceneria
-           loc.Y= QueryRootEvent->Params[5].asdouble;
-           loc.Z= QueryRootEvent->Params[4].asdouble;
-           if (QueryRootEvent->Activator->Mechanik) //przekazanie rozkazu do AI
-            QueryRootEvent->Activator->Mechanik->PutCommand(QueryRootEvent->Params[0].asText,QueryRootEvent->Params[1].asdouble,QueryRootEvent->Params[2].asdouble,loc);
-           else
-           {//przekazanie do pojazdu
-            QueryRootEvent->Activator->MoverParameters->PutCommand(QueryRootEvent->Params[0].asText,QueryRootEvent->Params[1].asdouble,QueryRootEvent->Params[2].asdouble,loc);
-           }
-          }
-          WriteLog("Type: PutValues");
-         break;
-         case tp_Lights:
-          if (QueryRootEvent->Params[9].asModel)
-           for (i=0; i<iMaxNumLights; i++)
-            if (QueryRootEvent->Params[i].asInt>=0) //-1 zostawia bez zmiany
-             QueryRootEvent->Params[9].asModel->lsLights[i]=(TLightState)QueryRootEvent->Params[i].asInt;
-         break;
-         case tp_Visible:
-          if (QueryRootEvent->Params[9].asGroundNode)
-           QueryRootEvent->Params[9].asGroundNode->bVisible=(QueryRootEvent->Params[i].asInt>0);
-         break;
-         case tp_Velocity :
-             Error("Not implemented yet :(");
-         break;
-         case tp_Exit :
-             MessageBox(0,QueryRootEvent->asNodeName.c_str()," THE END ",MB_OK);
-             Global::iTextMode=-1; //wy³¹czenie takie samo jak sekwencja F10 -> Y
-             return false;
-         case tp_Sound :
-          if (QueryRootEvent->Params[0].asInt==0)
-            QueryRootEvent->Params[9].asRealSound->Stop();
-          if (QueryRootEvent->Params[0].asInt==1)
-            QueryRootEvent->Params[9].asRealSound->Play(1,0,true,QueryRootEvent->Params[9].asRealSound->vSoundPosition);
-          if (QueryRootEvent->Params[0].asInt==-1)
-            QueryRootEvent->Params[9].asRealSound->Play(1,DSBPLAY_LOOPING,true,QueryRootEvent->Params[9].asRealSound->vSoundPosition);
-         break;
-         case tp_Disable :
-             Error("Not implemented yet :(");
-         break;
-         case tp_Animation : //Marcin: dorobic translacje - Ra: dorobi³em ;-)
-          if (QueryRootEvent->Params[0].asInt==1)
-            QueryRootEvent->Params[9].asAnimContainer->SetRotateAnim(
-                 vector3(QueryRootEvent->Params[1].asdouble,
-                         QueryRootEvent->Params[2].asdouble,
-                         QueryRootEvent->Params[3].asdouble),
-                         QueryRootEvent->Params[4].asdouble);
-          else if (QueryRootEvent->Params[0].asInt==2)
-            QueryRootEvent->Params[9].asAnimContainer->SetTranslateAnim(
-                 vector3(QueryRootEvent->Params[1].asdouble,
-                         QueryRootEvent->Params[2].asdouble,
-                         QueryRootEvent->Params[3].asdouble),
-                         QueryRootEvent->Params[4].asdouble);
-         break;
-         case tp_Switch :
-          if (QueryRootEvent->Params[9].asTrack)
-           QueryRootEvent->Params[9].asTrack->Switch(QueryRootEvent->Params[0].asInt);
-          if (Global::iMultiplayer) //dajemy znaæ do serwera o prze³o¿eniu
-           WyslijEvent(QueryRootEvent->asName,""); //wys³anie nazwy eventu prze³¹czajacego
-          //Ra: bardziej by siê przyda³a nazwa toru, ale nie ma do niej st¹d dostêpu
-         break;
-         case tp_TrackVel :
-          if (QueryRootEvent->Params[9].asTrack)
-          {
-           WriteLog("type: TrackVel");
-//         WriteLog("Vel: ",QueryRootEvent->Params[0].asdouble);
-           QueryRootEvent->Params[9].asTrack->VelocitySet(QueryRootEvent->Params[0].asdouble);
-           if (DebugModeFlag)
-            WriteLog("vel: ",QueryRootEvent->Params[9].asTrack->VelocityGet());
-          }
-         break;
-         case tp_DynVel :
-          Error("Event \"DynVel\" is obsolete");
-         break;
-         case tp_Multiple :
-            {
-             bCondition=(QueryRootEvent->Params[8].asInt==0);  //bezwarunkowo
-             if (!bCondition)                                  //warunkowo
-              {
-               if (QueryRootEvent->Params[8].asInt==conditional_trackoccupied)
-                bCondition=(!QueryRootEvent->Params[9].asTrack->IsEmpty());
-               else
-               if (QueryRootEvent->Params[8].asInt==conditional_trackfree)
-                bCondition=(QueryRootEvent->Params[9].asTrack->IsEmpty());
-               else if (QueryRootEvent->Params[8].asInt==conditional_propability)
-               {
-                rprobability=1.0*rand()/RAND_MAX;
-                bCondition=(QueryRootEvent->Params[10].asdouble>rprobability);
-                WriteLog("Random integer: "+CurrToStr(rprobability)+"/"+CurrToStr(QueryRootEvent->Params[10].asdouble));
-               }
-               else
-               {
-                bCondition=
-                QueryRootEvent->Params[9].asMemCell->Compare(QueryRootEvent->Params[10].asText,
-                                                             QueryRootEvent->Params[11].asdouble,
-                                                             QueryRootEvent->Params[12].asdouble,
-                                                             QueryRootEvent->Params[8].asInt);
-                if (!bCondition && Global::iWriteLogEnabled && DebugModeFlag) //nie zgadza sie wiec sprawdzmy co
-                  {
-                    LogComment="";
-                    if (TestFlag(QueryRootEvent->Params[8].asInt,conditional_memstring))
-                     LogComment=AnsiString(QueryRootEvent->Params[10].asText)+"="+QueryRootEvent->Params[9].asMemCell->Text();
-                    if (TestFlag(QueryRootEvent->Params[8].asInt,conditional_memval1))
-                     LogComment+=" v1:"+FloatToStrF(QueryRootEvent->Params[11].asdouble,ffFixed,8,2)+"="+FloatToStrF(QueryRootEvent->Params[9].asMemCell->Value1(),ffFixed,8,2);
-                    if (TestFlag(QueryRootEvent->Params[8].asInt,conditional_memval2))
-                     LogComment+=" v2:"+FloatToStrF(QueryRootEvent->Params[12].asdouble,ffFixed,8,2)+"="+FloatToStrF(QueryRootEvent->Params[9].asMemCell->Value2(),ffFixed,8,2);
-                    WriteLog(LogComment.c_str());
-                  }
-                }
-              }
-             if (bCondition)                                  //warunek spelniony
-             {
-              WriteLog("Multiple passed");
-              for (i=0; i<8; i++)
-              {
-               if (QueryRootEvent->Params[i].asEvent)
-                AddToQuery(QueryRootEvent->Params[i].asEvent,QueryRootEvent->Activator);
-              }
-              if (Global::iMultiplayer) //dajemy znaæ do serwera o wykonaniu
-              {
-               if (QueryRootEvent->Activator)
-                WyslijEvent(QueryRootEvent->asName,QueryRootEvent->Activator->GetName());
-               else
-                WyslijEvent(QueryRootEvent->asName,"");
-              }
-             }
-            }
-         break;
-         case tp_WhoIs: //pobranie nazwy poci¹gu do komórki pamiêci
-          if (QueryRootEvent->Activator->Mechanik)
-          {//tylko jeœli ktoœ tam siedzi - nie powinno dotyczyæ pasa¿era!
-           QueryRootEvent->Params[9].asMemCell->UpdateValues(
-            QueryRootEvent->Activator->Mechanik->TrainName().c_str(),
-            QueryRootEvent->Activator->Mechanik->StationCount(),
-            QueryRootEvent->Activator->Mechanik->StationIndex(),
-            conditional_memstring|conditional_memval1|conditional_memval2);
-           WriteLog("Train detected: "+QueryRootEvent->Activator->Mechanik->TrainName());
-          }
-         break;
-         case tp_LogValues: //zapisanie zawartoœci komórki pamiêci do logu
-          WriteLog("Memcell \""+QueryRootEvent->asNodeName+"\": "+
-           QueryRootEvent->Params[9].asMemCell->Text()+", "+
-           QueryRootEvent->Params[9].asMemCell->Value1()+", "+
-           QueryRootEvent->Params[9].asMemCell->Value2());
-         break;
+     if (QueryRootEvent->Params[10].asTrack)
+     {
+      //loc.X= -QueryRootEvent->Params[8].asGroundNode->pCenter.x;
+      //loc.Y=  QueryRootEvent->Params[8].asGroundNode->pCenter.z;
+      //loc.Z=  QueryRootEvent->Params[8].asGroundNode->pCenter.y;
+      for (int i=0;i<QueryRootEvent->Params[10].asTrack->iNumDynamics;++i)
+      {
+       //QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Params[10].asTrack->Dynamics[i]->Mechanik,loc);
+       QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Params[10].asTrack->Dynamics[i]->Mechanik,&QueryRootEvent->Params[8].asGroundNode->pCenter);
+      }
+      if (DebugModeFlag)
+       WriteLog("Type: UpdateValues & Track command - "+AnsiString(QueryRootEvent->Params[0].asText)+" "+AnsiString(QueryRootEvent->Params[1].asdouble)+" "+AnsiString(QueryRootEvent->Params[2].asdouble));
+     }
+     else
+      if (DebugModeFlag)
+       WriteLog("Type: UpdateValues - "+AnsiString(QueryRootEvent->Params[0].asText)+" "+AnsiString(QueryRootEvent->Params[1].asdouble)+" "+AnsiString(QueryRootEvent->Params[2].asdouble));
+    break;
+    case tp_GetValues:
+     if (QueryRootEvent->Activator)
+     {
+      //loc.X= -QueryRootEvent->Params[8].asGroundNode->pCenter.x;
+      //loc.Y=  QueryRootEvent->Params[8].asGroundNode->pCenter.z;
+      //loc.Z=  QueryRootEvent->Params[8].asGroundNode->pCenter.y;
+      if (Global::iMultiplayer) //potwierdzenie wykonania dla serwera - najczêœciej odczyt semafora
+       WyslijEvent(QueryRootEvent->asName,QueryRootEvent->Activator->GetName());
+      //QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Activator->Mechanik,loc);
+      QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Activator->Mechanik,&QueryRootEvent->Params[8].asGroundNode->pCenter);
+     }
+     WriteLog("Type: GetValues");
+    break;
+    case tp_PutValues:
+     if (QueryRootEvent->Activator)
+     {
+      loc.X=-QueryRootEvent->Params[3].asdouble; //zamiana, bo fizyka ma inaczej ni¿ sceneria
+      loc.Y= QueryRootEvent->Params[5].asdouble;
+      loc.Z= QueryRootEvent->Params[4].asdouble;
+      if (QueryRootEvent->Activator->Mechanik) //przekazanie rozkazu do AI
+       QueryRootEvent->Activator->Mechanik->PutCommand(QueryRootEvent->Params[0].asText,QueryRootEvent->Params[1].asdouble,QueryRootEvent->Params[2].asdouble,loc);
+      else
+      {//przekazanie do pojazdu
+       QueryRootEvent->Activator->MoverParameters->PutCommand(QueryRootEvent->Params[0].asText,QueryRootEvent->Params[1].asdouble,QueryRootEvent->Params[2].asdouble,loc);
+      }
+     }
+     WriteLog("Type: PutValues");
+    break;
+    case tp_Lights:
+     if (QueryRootEvent->Params[9].asModel)
+      for (i=0; i<iMaxNumLights; i++)
+       if (QueryRootEvent->Params[i].asInt>=0) //-1 zostawia bez zmiany
+        QueryRootEvent->Params[9].asModel->lsLights[i]=(TLightState)QueryRootEvent->Params[i].asInt;
+    break;
+    case tp_Visible:
+     if (QueryRootEvent->Params[9].asGroundNode)
+      QueryRootEvent->Params[9].asGroundNode->bVisible=(QueryRootEvent->Params[i].asInt>0);
+    break;
+    case tp_Velocity :
+     Error("Not implemented yet :(");
+    break;
+    case tp_Exit :
+     MessageBox(0,QueryRootEvent->asNodeName.c_str()," THE END ",MB_OK);
+     Global::iTextMode=-1; //wy³¹czenie takie samo jak sekwencja F10 -> Y
+     return false;
+    case tp_Sound :
+     if (QueryRootEvent->Params[0].asInt==0)
+      QueryRootEvent->Params[9].asRealSound->Stop();
+     if (QueryRootEvent->Params[0].asInt==1)
+      QueryRootEvent->Params[9].asRealSound->Play(1,0,true,QueryRootEvent->Params[9].asRealSound->vSoundPosition);
+     if (QueryRootEvent->Params[0].asInt==-1)
+      QueryRootEvent->Params[9].asRealSound->Play(1,DSBPLAY_LOOPING,true,QueryRootEvent->Params[9].asRealSound->vSoundPosition);
+    break;
+    case tp_Disable :
+     Error("Not implemented yet :(");
+    break;
+    case tp_Animation : //Marcin: dorobic translacje - Ra: dorobi³em ;-)
+     if (QueryRootEvent->Params[0].asInt==1)
+      QueryRootEvent->Params[9].asAnimContainer->SetRotateAnim(
+       vector3(QueryRootEvent->Params[1].asdouble,
+               QueryRootEvent->Params[2].asdouble,
+               QueryRootEvent->Params[3].asdouble),
+               QueryRootEvent->Params[4].asdouble);
+     else if (QueryRootEvent->Params[0].asInt==2)
+      QueryRootEvent->Params[9].asAnimContainer->SetTranslateAnim(
+       vector3(QueryRootEvent->Params[1].asdouble,
+               QueryRootEvent->Params[2].asdouble,
+               QueryRootEvent->Params[3].asdouble),
+               QueryRootEvent->Params[4].asdouble);
+    break;
+    case tp_Switch :
+     if (QueryRootEvent->Params[9].asTrack)
+      QueryRootEvent->Params[9].asTrack->Switch(QueryRootEvent->Params[0].asInt);
+     if (Global::iMultiplayer) //dajemy znaæ do serwera o prze³o¿eniu
+      WyslijEvent(QueryRootEvent->asName,""); //wys³anie nazwy eventu prze³¹czajacego
+     //Ra: bardziej by siê przyda³a nazwa toru, ale nie ma do niej st¹d dostêpu
+    break;
+    case tp_TrackVel:
+     if (QueryRootEvent->Params[9].asTrack)
+     {
+      WriteLog("type: TrackVel");
+      //WriteLog("Vel: ",QueryRootEvent->Params[0].asdouble);
+      QueryRootEvent->Params[9].asTrack->VelocitySet(QueryRootEvent->Params[0].asdouble);
+      if (DebugModeFlag)
+       WriteLog("vel: ",QueryRootEvent->Params[9].asTrack->VelocityGet());
+     }
+    break;
+    case tp_DynVel:
+     Error("Event \"DynVel\" is obsolete");
+    break;
+    case tp_Multiple:
+    {
+      bCondition=(QueryRootEvent->Params[8].asInt==0);  //bezwarunkowo
+      if (!bCondition)                                  //warunkowo
+       {
+        if (QueryRootEvent->Params[8].asInt==conditional_trackoccupied)
+         bCondition=(!QueryRootEvent->Params[9].asTrack->IsEmpty());
+        else
+        if (QueryRootEvent->Params[8].asInt==conditional_trackfree)
+        bCondition=(QueryRootEvent->Params[9].asTrack->IsEmpty());
+        else if (QueryRootEvent->Params[8].asInt==conditional_propability)
+        {
+         rprobability=1.0*rand()/RAND_MAX;
+         bCondition=(QueryRootEvent->Params[10].asdouble>rprobability);
+         WriteLog("Random integer: "+CurrToStr(rprobability)+"/"+CurrToStr(QueryRootEvent->Params[10].asdouble));
         }
-        };
-        QueryRootEvent->bLaunched= false;
-        QueryRootEvent->fStartTime= 0;
-        QueryRootEvent= QueryRootEvent->Next;
+        else
+       {
+         bCondition=
+         QueryRootEvent->Params[9].asMemCell->Compare(QueryRootEvent->Params[10].asText,
+                                                      QueryRootEvent->Params[11].asdouble,
+                                                      QueryRootEvent->Params[12].asdouble,
+                                                      QueryRootEvent->Params[8].asInt);
+         if (!bCondition && Global::iWriteLogEnabled && DebugModeFlag) //nie zgadza sie wiec sprawdzmy co
+           {
+            LogComment="";
+             if (TestFlag(QueryRootEvent->Params[8].asInt,conditional_memstring))
+              LogComment=AnsiString(QueryRootEvent->Params[10].asText)+"="+QueryRootEvent->Params[9].asMemCell->Text();
+             if (TestFlag(QueryRootEvent->Params[8].asInt,conditional_memval1))
+              LogComment+=" v1:"+FloatToStrF(QueryRootEvent->Params[11].asdouble,ffFixed,8,2)+"="+FloatToStrF(QueryRootEvent->Params[9].asMemCell->Value1(),ffFixed,8,2);
+             if (TestFlag(QueryRootEvent->Params[8].asInt,conditional_memval2))
+              LogComment+=" v2:"+FloatToStrF(QueryRootEvent->Params[12].asdouble,ffFixed,8,2)+"="+FloatToStrF(QueryRootEvent->Params[9].asMemCell->Value2(),ffFixed,8,2);
+             WriteLog(LogComment.c_str());
+          }
+         }
+       }
+      if (bCondition)                                  //warunek spelniony
+      {
+       WriteLog("Multiple passed");
+       for (i=0; i<8; i++)
+       {
+        if (QueryRootEvent->Params[i].asEvent)
+         AddToQuery(QueryRootEvent->Params[i].asEvent,QueryRootEvent->Activator);
+       }
+       if (Global::iMultiplayer) //dajemy znaæ do serwera o wykonaniu
+       {
+        if (QueryRootEvent->Activator)
+         WyslijEvent(QueryRootEvent->asName,QueryRootEvent->Activator->GetName());
+        else
+         WyslijEvent(QueryRootEvent->asName,"");
+       }
+      }
     }
-    return true;
-
+    break;
+    case tp_WhoIs: //pobranie nazwy poci¹gu do komórki pamiêci
+     if (QueryRootEvent->Activator->Mechanik)
+     {//tylko jeœli ktoœ tam siedzi - nie powinno dotyczyæ pasa¿era!
+      QueryRootEvent->Params[9].asMemCell->UpdateValues(
+       QueryRootEvent->Activator->Mechanik->TrainName().c_str(),
+       QueryRootEvent->Activator->Mechanik->StationCount(),
+       QueryRootEvent->Activator->Mechanik->StationIndex(),
+       conditional_memstring|conditional_memval1|conditional_memval2);
+      WriteLog("Train detected: "+QueryRootEvent->Activator->Mechanik->TrainName());
+     }
+    break;
+    case tp_LogValues: //zapisanie zawartoœci komórki pamiêci do logu
+     WriteLog("Memcell \""+QueryRootEvent->asNodeName+"\": "+
+      QueryRootEvent->Params[9].asMemCell->Text()+", "+
+      QueryRootEvent->Params[9].asMemCell->Value1()+", "+
+      QueryRootEvent->Params[9].asMemCell->Value2());
+    break;
+   } //switch (QueryRootEvent->Type)
+  } //if (QueryRootEvent->bEnabled)
+  QueryRootEvent->bLaunched=false; //moze byæ ponownie dodany do kolejki
+  if (QueryRootEvent->eJoined) //jeœli jest kolejny o takiej samej nazwie
+  {//to teraz jego dajemy do wykonania
+   QueryRootEvent->eJoined->Next=QueryRootEvent->Next; //pamiêtaj¹c o nastêpnym z kolejki
+   QueryRootEvent->eJoined->fStartTime=QueryRootEvent->fStartTime; //czas musi byæ ten sam, bo nie jest aktualizowany
+   QueryRootEvent->fStartTime=0;
+   QueryRootEvent=QueryRootEvent->eJoined; //a wykonaæ ten doczepiony
+  }
+  else
+  {//a jak nazwa jest unikalna, to kolejka idzie dalej
+   QueryRootEvent->fStartTime=0;
+   QueryRootEvent=QueryRootEvent->Next;
+  }
+ }  //while
+ return true;
 }
 
 void __fastcall TGround::OpenGLUpdate(HDC hDC)
