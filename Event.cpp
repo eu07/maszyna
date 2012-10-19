@@ -31,7 +31,7 @@ __fastcall TEvent::TEvent()
  Type=tp_Unknown;
  for (int i=0;i<13;i++)
   Params[i].asPointer=NULL;
- eJoined=NULL; //nie ma kolejnego z t¹ sam¹ nazw¹
+ eJoined=NULL; //nie ma kolejnego z t¹ sam¹ nazw¹, usuwane s¹ wg listy Nex2
 }
 
 __fastcall TEvent::~TEvent()
@@ -52,7 +52,7 @@ __fastcall TEvent::~TEvent()
   case tp_GetValues: //nic
   break;
  }
- delete eJoined; //kolejne z t¹ sam¹ nazw¹ nie skasuj¹ siê inaczej
+ eJoined=NULL; //nie usuwaæ podczepionych tutaj
 }
 
 void __fastcall TEvent::Init()

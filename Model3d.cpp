@@ -387,7 +387,7 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
   if (iNumVerts%3)
   {
    iNumVerts=0;
-   Error("Mesh error, iNumVertices%3!=0");
+   Error("Mesh error, (iNumVertices="+AnsiString(iNumVerts)+")%3!=0");
    return 0;
   }
   //Vertices=new GLVERTEX[iNumVerts];

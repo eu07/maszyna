@@ -2184,7 +2184,7 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
        }
        if (tmp)
        {//jeœli nie duplikat
-        tmp->Next2=RootEvent; //lista wszystkich eventów
+        tmp->Next2=RootEvent; //lista wszystkich eventów (m.in. do InitEvents)
         RootEvent=tmp;
         if (!found)
         {//jeœli nazwa wyst¹pi³a, to do kolejki i wyszukiwarki dodawany jest tylko pierwszy

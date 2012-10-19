@@ -1519,28 +1519,29 @@ bool __fastcall TController::IncSpeed()
     if (!Controlling->FuseFlag)
      if ((Controlling->MainCtrlPos==0)||(!Controlling->DelayCtrlFlag)) //youBy poleci³ dodaæ 2012-09-08 v367
       //na pozycji 0 przejdzie, a na pozosta³ych bêdzie czekaæ, a¿ siê za³¹cz¹ liniowe (zgaœnie DelayCtrlFlag)
-      if ((fabs(Controlling->Im)<Controlling->Imin)&&(Ready||Prepare2press))
-      {//Ra: wywala³ nadmiarowy, bo Im mo¿e byæ ujemne
-       if (Controlling->Vel<=30)
-       {//bocznik na szeregowej przy ciezkich bruttach
-        if (Controlling->MainCtrlPos?Controlling->RList[Controlling->MainCtrlPos].R>0.0:true) //oporowa
-         OK=Controlling->IncMainCtrl(1); //krêcimy nastawnik jazdy
-        else //jeœli bezoporowa (z wyj¹tekiem 0)
-         OK=false; //to daæ bocznik
+      if (Ready||Prepare2press)
+       if (fabs(Controlling->Im)<(fReady<0.04?Controlling->Imin:Controlling->IminLo))
+       {//Ra: wywala³ nadmiarowy, bo Im mo¿e byæ ujemne; jak nie odhamowany, to nie przesadzaæ z pr¹dem
+        if (Controlling->Vel<=30)
+        {//bocznik na szeregowej przy ciezkich bruttach
+         if (Controlling->MainCtrlPos?Controlling->RList[Controlling->MainCtrlPos].R>0.0:true) //oporowa
+          OK=Controlling->IncMainCtrl(1); //krêcimy nastawnik jazdy
+         else //jeœli bezoporowa (z wyj¹tekiem 0)
+          OK=false; //to daæ bocznik
+        }
+        else
+        {//przekroczone 30km/h, mo¿na wejœæ na jazdê równoleg³¹
+         if (Controlling->ScndCtrlPos) //jeœli ustawiony bocznik
+          if (Controlling->MainCtrlPos<Controlling->MainCtrlPosNo-1) //a nie jest ostatnia pozycja
+           Controlling->DecScndCtrl(2); //to bocznik na zero po chamsku (ktoœ mia³ to poprawiæ...)
+         OK=Controlling->IncMainCtrl(1);
+        }
+        if ((Controlling->MainCtrlPos>2)&&(Controlling->Im==0)) //brak pr¹du na dalszych pozycjach
+         Need_TryAgain=true; //nie za³¹czona lokomotywa albo wywali³ nadmiarowy
+        else if (!OK) //nie da siê wrzuciæ kolejnej pozycji
+         OK=Controlling->IncScndCtrl(1); //to daæ bocznik
        }
-       else
-       {//przekroczone 30km/h, mo¿na wejœæ na jazdê równoleg³¹
-        if (Controlling->ScndCtrlPos) //jeœli ustawiony bocznik
-         if (Controlling->MainCtrlPos<Controlling->MainCtrlPosNo-1) //a nie jest ostatnia pozycja
-          Controlling->DecScndCtrl(2); //to bocznik na zero po chamsku (ktoœ mia³ to poprawiæ...)
-        OK=Controlling->IncMainCtrl(1);
-       }
-       if ((Controlling->MainCtrlPos>2)&&(Controlling->Im==0)) //brak pr¹du na dalszych pozycjach
-        Need_TryAgain=true; //nie za³¹czona lokomotywa albo wywali³ nadmiarowy
-       else if (!OK) //nie da siê wrzuciæ kolejnej pozycji
-        OK=Controlling->IncScndCtrl(1); //to daæ bocznik
-      }
-    break;
+   break;
    case Dumb:
    case DieselElectric:
     if (Ready||Prepare2press) //{(BrakePress<=0.01*MaxBrakePress)}
@@ -1583,18 +1584,18 @@ bool __fastcall TController::DecSpeed()
   case None:
    if (Controlling->MainCtrlPosNo>0) //McZapkie-041003: wagon sterowniczy, np. EZT
     OK=Controlling->DecMainCtrl(1+(Controlling->MainCtrlPos>2?1:0));
-   break;
+  break;
   case ElectricSeriesMotor:
-   OK=Controlling->DecScndCtrl(2);
+   OK=Controlling->DecScndCtrl(2); //najpierw bocznik na zero
    if (!OK)
     OK=Controlling->DecMainCtrl(1+(Controlling->MainCtrlPos>2?1:0));
-   break;
+  break;
   case Dumb:
   case DieselElectric:
    OK=Controlling->DecScndCtrl(2);
    if (!OK)
     OK=Controlling->DecMainCtrl(2+(Controlling->MainCtrlPos/2));
-   break;
+  break;
   //WheelsDriven :
    // begin
    //  OK:=False;
@@ -1608,10 +1609,49 @@ bool __fastcall TController::DecSpeed()
    else
     while ((Controlling->RList[Controlling->MainCtrlPos].Mn>0)&&(Controlling->MainCtrlPos>1))
      OK=Controlling->DecMainCtrl(1);
-   break;
+  break;
  }
  return OK;
-}
+};
+
+void __fastcall TController::SpeedSet()
+{//Ra: regulacja prêdkoœci, wykonywana w ka¿dym przeb³ysku œwiadomoœci AI
+ //ma dokrêcaæ do bezoporowych i zdejmowaæ pozycje w przypadku przekroczenia pr¹du
+ switch (Controlling->EngineType)
+ {
+  case None:
+  break;
+  case ElectricSeriesMotor:
+   if (Ready||Prepare2press) //o ile mo¿e jechaæ
+    if (fAccGravity<-0.03) //i jedzie pod górê wiêksz¹ ni¿ 3 promile
+     if (fabs(Controlling->Im)>Controlling->Imin) //a pr¹d jest znaczny
+     {if (Controlling->RList[Controlling->MainCtrlPos].Bn>1)
+      {do //jeœli jedzie na równoleg³ym, to zbijamy do szeregowego, aby w³¹czyæ wysoki rozruch
+        Controlling->DecMainCtrl(1); //krêcimy nastawnik jazdy o 1 wstecz
+       while (Controlling->MainCtrlPos?Controlling->RList[Controlling->MainCtrlPos].Bn>1:false); //oporowa zapêtla
+      }
+      if (Controlling->Imax<Controlling->ImaxHi) //jeœli da siê na wysokim
+       Controlling->CurrentSwitch(true); //rozruch wysoki (za to mo¿e siê œlizgaæ)
+      if (fabs(Controlling->Im)>0.96*Controlling->Imax) //jeœli pr¹d jest du¿y (mo¿na 690 na 750)
+       if (Controlling->ScndCtrlPos>0) //je¿eli jest bocznik
+        Controlling->DecScndCtrl(1); //zmniejszyæ bocznik
+       else
+        Controlling->DecMainCtrl(1); //krêcimy nastawnik jazdy o 1 wstecz
+      if (ReactionTime>0.1)
+       ReactionTime=0.1; //orientuj siê szybciej, by nie wywali³ nadmiarowy
+     }
+  break;
+  case Dumb:
+  case DieselElectric:
+  break;
+  //WheelsDriven :
+   // begin
+   //  OK:=False;
+   // end;
+  case DieselEngine:
+  break;
+ }
+};
 
 void __fastcall TController::RecognizeCommand()
 {//odczytuje i wykonuje komendê przekazan¹ lokomotywie
@@ -1920,6 +1960,7 @@ bool __fastcall TController::UpdateSituation(double dt)
  //Ra: przeniesione z DynObj, sk³ad u¿ytkownika te¿ jest testowany, ¿eby mu przekazaæ, ¿e ma odhamowaæ
  TDynamicObject *p=pVehicles[0]; //pojazd na czole sk³adu
  Ready=true; //wstêpnie gotowy
+ fReady=0.0; //za³o¿enie, ¿e odhamowany
  fAccGravity=0.0; //przyspieszenie wynikaj¹ce z pochylenia
  double dy; //sk³adowa styczna grawitacji, w przedziale <0,1>
  while (p)
@@ -1928,14 +1969,17 @@ bool __fastcall TController::UpdateSituation(double dt)
    //if (p->MoverParameters->BrakePress>=0.03*p->MoverParameters->MaxBrakePress)
    if (p->MoverParameters->BrakePress>=0.04) //wg UIC okreœlone sztywno na 0.04
     Ready=false; //nie gotowy
+  if (fReady<p->MoverParameters->BrakePress)
+   fReady=p->MoverParameters->BrakePress; //szukanie najbardziej zahamowanego
   if ((dy=p->VectorFront().y)!=0.0) //istotne tylko dla pojazdów na pochyleniu
    fAccGravity-=p->DirectionGet()*p->MoverParameters->TotalMassxg*dy; //ciê¿ar razy sk³adowa styczna grawitacji
   p=p->Next(); //pojazd pod³¹czony z ty³u (patrz¹c od czo³a)
  }
  fAccGravity/=iDirection*fMass; //si³ê generuj¹ pojazdy na pochyleniu ale dzia³a ona ca³oœæ sk³adu, wiêc a=F/m
  if (!Ready) //v367: jeœli wg powy¿szych warunków sk³ad nie jest odhamowany
-  if (fAccGravity<-0.05) //jeœli ma pod górê
-   if (Controlling->BrakePress<0.08) //to wystarczy, ¿e zadzia³aj¹ liniowe (nie ma ich jeszcze!!!)
+  if (fAccGravity<-0.05) //jeœli ma pod górê na tyle, by siê stoczyæ
+   //if (Controlling->BrakePress<0.08) //to wystarczy, ¿e zadzia³aj¹ liniowe (nie ma ich jeszcze!!!)
+   if (fReady<0.08) //delikatniejszy warunek, obejmuje wszystkie wagony
     Ready=true; //¿eby uznaæ za odhamowany
  HelpMeFlag=false;
  //Winger 020304
@@ -1952,11 +1996,12 @@ bool __fastcall TController::UpdateSituation(double dt)
     if (Controlling->Vel>30) //opuszczenie przedniego po rozpêdzeniu siê
      Controlling->PantFront(false);
     else //ewentualnie jak siê rozpêdza, to ustaw rozruch
-     if (fMass>800.0) //Ra: taki sobie warunek na wysoki rozruch
-      if (fAccGravity<-0.1) //jak pochylenie wiêksze ni¿ 10‰
-       Controlling->CurrentSwitch(true); //rozruch wysoki (za to mo¿e siê œlizgaæ)
-      else if (fAccGravity>-0.02) //jak pochylenie mnijsze ni¿ 2‰
-       Controlling->CurrentSwitch(false); //rozruch wysoki wy³¹cz
+     //if (fMass>800.0) //Ra: taki sobie warunek na wysoki rozruch
+     // if (fAccGravity<-0.1) //jak pochylenie wiêksze ni¿ 10‰
+     //  Controlling->CurrentSwitch(true); //rozruch wysoki (za to mo¿e siê œlizgaæ)
+     // else
+       if (fAccGravity>-0.02) //jak pochylenie mnijsze ni¿ 2‰
+        Controlling->CurrentSwitch(false); //rozruch wysoki wy³¹cz
    }
   }
  }
@@ -2636,19 +2681,20 @@ bool __fastcall TController::UpdateSituation(double dt)
       if (Controlling->EngineType==ElectricSeriesMotor)
        if (Controlling->FuseFlag||Need_TryAgain)
        {Need_TryAgain=false; //true, jeœli druga pozycja w elektryku nie za³apa³a
-        if (!Controlling->DecScndCtrl(1))
-         if (!Controlling->DecMainCtrl(2)) //to powinno przestawiæ na 0
-          if (!Controlling->DecMainCtrl(1))
-           if (!Controlling->FuseOn())
-            HelpMeFlag=true;
-           else
-           {
-            ++iDriverFailCount;
-            if (iDriverFailCount>maxdriverfails)
-             Psyche=Easyman;
-            if (iDriverFailCount>maxdriverfails*2)
-             SetDriverPsyche();
-           }
+        //if (!Controlling->DecScndCtrl(1)) //krêcenie po ma³u
+        // if (!Controlling->DecMainCtrl(1)) //nastawnik jazdy na 0
+        Controlling->DecScndCtrl(2); //nastawnik bocznikowania na 0
+        Controlling->DecMainCtrl(2); //nastawnik jazdy na 0
+        if (!Controlling->FuseOn())
+         HelpMeFlag=true;
+        else
+        {
+         ++iDriverFailCount;
+         if (iDriverFailCount>maxdriverfails)
+          Psyche=Easyman;
+         if (iDriverFailCount>maxdriverfails*2)
+          SetDriverPsyche();
+        }
        }
       if (Controlling->BrakeSystem==Pneumatic) //nape³nianie uderzeniowe
        if (Controlling->BrakeSubsystem==Oerlikon)
@@ -2682,7 +2728,7 @@ bool __fastcall TController::UpdateSituation(double dt)
           while (DecBrake());  //jeœli przyspieszamy, to nie hamujemy
       //Ra: zmieni³em 0.95 na 1.0 - trzeba ustaliæ, sk¹d sie takie wartoœci bior¹
       //margines dla prêdkoœci jest doliczany tylko jeœli oczekiwana prêdkoœæ jest wiêksza od 5km/h
-      if ((fAccGravity<0?AccDesired<-0.1:AbsAccS+fAccGravity>AccDesired)||(vel+(VelDesired>5.0?VelMargin:0.0)>VelDesired))
+      if ((fAccGravity<-0.01?AccDesired<-0.1:AbsAccS+fAccGravity>AccDesired)||(vel+(VelDesired>5.0?VelMargin:0.0)>VelDesired))
        if (!Prepare2press)
         while (DecSpeed()); //jeœli hamujemy, to nie przyspieszamy
       //yB: usuniête ró¿ne dziwne warunki, oddzielamy czêœæ zadaj¹c¹ od wykonawczej
@@ -2721,12 +2767,12 @@ bool __fastcall TController::UpdateSituation(double dt)
        fBrakeTime=(Controlling->BrakeDelay[1+2*Controlling->BrakeDelayFlag])/3.0;
       }
       //Mietek-end1
-
+      SpeedSet(); //ci¹gla regulacja prêdkoœci
 #if LOGVELOCITY
       WriteLog("BrakePos="+AnsiString(Controlling->BrakeCtrlPos)+", MainCtrl="+AnsiString(Controlling->MainCtrlPos));
 #endif
 
-      //zapobieganie poslizgowi w czlonie silnikowym
+      //zapobieganie poslizgowi w czlonie silnikowym; Ra: Couplers[1] powinno byæ
       if (Controlling->Couplers[0].Connected!=NULL)
        if (TestFlag(Controlling->Couplers[0].CouplingFlag,ctrain_controll))
         if (Controlling->Couplers[0].Connected->SlippingWheels)
@@ -2740,13 +2786,13 @@ bool __fastcall TController::UpdateSituation(double dt)
       //zapobieganie poslizgowi u nas
       if (Controlling->SlippingWheels)
       {
-       if (!Controlling->DecScndCtrl(1))
-        if (!Controlling->DecMainCtrl(1))
-         if (Controlling->BrakeCtrlPos==Controlling->BrakeCtrlPosNo)
-          Controlling->DecBrakeLevel();
-         else
-          Controlling->AntiSlippingButton();
-       ++iDriverFailCount;
+        if (!Controlling->DecScndCtrl(1))
+         if (!Controlling->DecMainCtrl(1))
+          if (Controlling->BrakeCtrlPos==Controlling->BrakeCtrlPosNo)
+           Controlling->DecBrakeLevel();
+          else
+           Controlling->AntiSlippingButton();
+        ++iDriverFailCount;
       }
       if (iDriverFailCount>maxdriverfails)
       {

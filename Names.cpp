@@ -131,10 +131,12 @@ ItemRecord* __fastcall TNames::TreeSet(int *n,int d,int u)
 void __fastcall TNames::Sort(int t)
 {//przebudowa drzewa typu (t), zwraca wierzcho³ek drzewa
  if (iLast<3) return; //jak jest ma³o, to nie ma sensu sortowaæ
- int *r=new int[iLast+1]; //robocza tablica indeksów - numery posortowanych rekordów
- int *q=r; //wskaŸnik roboczy, przekazywany przez referencjê
- rTypes[t]->ListGet(rRecords,q); //drzewo jest ju¿ posortowane - zamieniæ je na listê
- rTypes[t]=TreeSet(r,0,(q-r)-1);
- delete[] r;
+ if (rTypes[t]) //jeœli jest jakiœ rekord danego typu
+ {int *r=new int[iLast+1]; //robocza tablica indeksów - numery posortowanych rekordów
+  int *q=r; //wskaŸnik roboczy, przekazywany przez referencjê
+  rTypes[t]->ListGet(rRecords,q); //drzewo jest ju¿ posortowane - zamieniæ je na listê
+  rTypes[t]=TreeSet(r,0,(q-r)-1);
+  delete[] r;
+ }
  return;
 };
