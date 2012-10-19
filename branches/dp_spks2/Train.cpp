@@ -3923,8 +3923,9 @@ else
        }
       else
        {
-        DynamicObject->MoverParameters->BrakeCtrlPosR+=(DynamicObject->MoverParameters->BrakeCtrlPosR>DynamicObject->MoverParameters->BrakeCtrlPosNo?0:dt*2);
-        DynamicObject->MoverParameters->BrakeCtrlPos= floor(DynamicObject->MoverParameters->BrakeCtrlPosR+0.499);
+//        DynamicObject->MoverParameters->BrakeCtrlPosR+=(DynamicObject->MoverParameters->BrakeCtrlPosR>DynamicObject->MoverParameters->BrakeCtrlPosNo?0:dt*2);
+        DynamicObject->MoverParameters->BrakeLevelAdd(dt*2);
+//        DynamicObject->MoverParameters->BrakeCtrlPos= floor(DynamicObject->MoverParameters->BrakeCtrlPosR+0.499);
        }
      }
 
@@ -3937,8 +3938,9 @@ else
        }
       else
        {
-        DynamicObject->MoverParameters->BrakeCtrlPosR-=(DynamicObject->MoverParameters->BrakeCtrlPosR<-1?0:dt*2);
-        DynamicObject->MoverParameters->BrakeCtrlPos= floor(DynamicObject->MoverParameters->BrakeCtrlPosR+0.499);
+//        DynamicObject->MoverParameters->BrakeCtrlPosR-=(DynamicObject->MoverParameters->BrakeCtrlPosR<-1?0:dt*2);
+//        DynamicObject->MoverParameters->BrakeCtrlPos= floor(DynamicObject->MoverParameters->BrakeCtrlPosR+0.499);
+        DynamicObject->MoverParameters->BrakeLevelAdd(-dt*2);
        }
      }
 
