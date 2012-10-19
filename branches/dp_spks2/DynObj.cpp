@@ -1363,6 +1363,7 @@ double __fastcall TDynamicObject::Init(
   Error("Parameters mismatch: dynamic object "+asName+" from\n"+BaseDir+"\\"+Type_Name);
   return 0.0; //zerowa d³ugoœæ to brak pojazdu
  }
+ MoverParameters->BrakeLevelSet(MoverParameters->BrakeCtrlPos); //poprawienie hamulca po ewentualnym przestawieniu przez Pascal
 
 //dodatkowe parametry yB
  MoreParams+="."; //wykonuje o jedn¹ iteracjê za ma³o, wiêc trzeba mu dodaæ kropkê na koniec

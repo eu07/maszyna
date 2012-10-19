@@ -647,7 +647,7 @@ public:
 		&NewLocation);
 	bool __fastcall DirectionBackward(void);
 	bool __fastcall MainSwitch(bool State);
-	bool __fastcall ChangeCab(int direction);
+	//bool __fastcall ChangeCab(int direction);
 	bool __fastcall ConverterSwitch(bool State);
 	bool __fastcall CompressorSwitch(bool State);
 	void __fastcall ConverterCheck(void);

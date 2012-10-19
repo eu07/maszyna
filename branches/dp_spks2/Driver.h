@@ -147,6 +147,7 @@ private:
  //int TrainNumber; //numer rozkladowy tego pociagu
  //AnsiString OrderCommand; //komenda pobierana z pojazdu
  //double OrderValue; //argument komendy
+ int iRadioChannel; //numer aktualnego kana³u radiowego
 public:
  Mtable::TTrainParameters* __fastcall Timetable() {return TrainParams;};
  double AccPreferred; //preferowane przyspieszenie (wg psychiki kieruj¹cego, zmniejszana przy wykryciu kolizji)

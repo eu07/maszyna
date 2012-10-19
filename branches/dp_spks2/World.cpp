@@ -574,14 +574,18 @@ void __fastcall TWorld::OnKeyDown(int cKey)
   AnsiString info="Key pressed: [";
   if (Console::Pressed(VK_SHIFT)) info+="Shift]+[";
   if (Console::Pressed(VK_CONTROL)) info+="Ctrl]+[";
-  if (cKey>123) //coú tam jeszcze ciekawego jest?
-   WriteLog(info+AnsiString((char)(cKey-128))+"]");
+  if (cKey>192) //coú tam jeszcze ciekawego jest?
+   WriteLog(info+AnsiString(char(cKey-128))+"]");
+  else if (cKey>=186)
+   WriteLog(info+AnsiString(";=,-./~").SubString(cKey-185,1)+"]");
+  else if (cKey>123) //coú tam jeszcze ciekawego jest?
+   WriteLog(info+AnsiString(cKey)+"]"); //numer klawisza
   else if (cKey>=112) //funkcyjne
    WriteLog(info+"F"+AnsiString(cKey-111)+"]");
   else if (cKey>=96)
    WriteLog(info+"Num"+AnsiString("0123456789*+?-./").SubString(cKey-95,1)+"]");
   else if (((cKey>='0')&&(cKey<='9'))||((cKey>='A')&&(cKey<='Z'))||(cKey==' '))
-   WriteLog(info+AnsiString((char)(cKey))+"]");
+   WriteLog(info+AnsiString(char(cKey))+"]");
   else if (cKey=='-')
    WriteLog(info+"Insert]");
   else if (cKey=='.')
@@ -683,6 +687,19 @@ void __fastcall TWorld::OnKeyDown(int cKey)
     }
    }
   }
+  else if (cKey==Global::Keys[k_Heating]) //Ra: klawisz nie jest najszczÍúliwszy
+  {//Ra: zabrane z kabiny
+   TDynamicObject *temp=Global::DynamicNearest();
+   if (temp)
+   {
+    if (Console::Pressed(VK_SHIFT)?temp->MoverParameters->IncBrakeMult():temp->MoverParameters->DecBrakeMult())
+     if (Train)
+     {//düwiÍk oczywiúcie jest w kabinie
+      Train->dsbSwitch->SetVolume(DSBVOLUME_MAX);
+      Train->dsbSwitch->Play(0,0,0);
+     }
+   }
+  }
 
  //switch (cKey)
  //{case 'a': //ignorowanie repetycji
@@ -723,6 +740,7 @@ AnsiString __fastcall Bezogonkow(AnsiString str)
    case 'å': str[i]='S'; break;
    case 'Ø': str[i]='Z'; break;
    case 'è': str[i]='Z'; break;
+   case '_': str[i]=' '; break; //a to juø na plus - w nazwach stacji nie mogπ byÊ uøywane spacje 
    default:
     if (str[i]&128) str[i]='?';
     else if (str[i]<' ') str[i]=' ';
@@ -1067,20 +1085,6 @@ bool __fastcall TWorld::Update()
  {//kamera nieruchoma
   Global::SetCameraRotation(Camera.Yaw-M_PI);
  }
-/*
- //wyliczenie bezwzglÍdnego kierunku kamery (do znikania niepotrzebnych pojazdÛw)
- if (FreeFlyModeFlag||!Controlled)
-  Global::SetCameraRotation(Camera.Yaw-M_PI);
- else
- {//kierunek pojazdu oraz kierunek wzglÍdny
-  vector3 tempangle;
-  double modelrotate;
-  tempangle=Controlled->VectorFront()*(Controlled->MoverParameters->ActiveCab==-1 ? -1 : 1);
-  //modelrotate=ABuAcos(tempangle);
-  modelrotate=atan2(tempangle.z,tempangle.x);
-  Global::SetCameraRotation(Camera.Yaw-modelrotate); //tu juø trzeba uwzglÍdniÊ lusterka
- }
-*/
  Ground.CheckQuery();
 
  if (!Render()) return false;
@@ -1105,13 +1109,10 @@ bool __fastcall TWorld::Update()
   if ((Train->DynamicObject->mdKabina!=Train->DynamicObject->mdModel) && Train->DynamicObject->bDisplayCab && !FreeFlyModeFlag)
   {
    vector3 pos=Train->DynamicObject->GetPosition(); //wszpÛ≥rzÍdne pojazdu z kabinπ
-#if 0
-   glTranslatef(pos.x,pos.y,pos.z); //przesuniÍcie o wektor (tak by≥o i trzÍs≥o)
-#else
+   //glTranslatef(pos.x,pos.y,pos.z); //przesuniÍcie o wektor (tak by≥o i trzÍs≥o)
    //aby pozbyÊ siÍ choÊ trochÍ trzÍsienia, trzeba by nie przeliczaÊ kabiny do punktu zerowego scenerii
    glLoadIdentity(); //zaczπÊ od macierzy jedynkowej
    Camera.SetCabMatrix(pos); //widok z kamery po przesuniÍciu
-#endif
    glMultMatrixd(Train->DynamicObject->mMatrix.getArray()); //ta macierz nie ma przesuniÍcia
 
 //*yB: moje smuuugi 1
@@ -1346,7 +1347,7 @@ bool __fastcall TWorld::Update()
      Train->DynamicObject=temp;
      Controlled=Train->DynamicObject;
      Global::asHumanCtrlVehicle=Train->DynamicObject->GetName();
-//     Train->DynamicObject->MoverParameters->BrakeCtrlPos=-2;
+     //Train->DynamicObject->MoverParameters->BrakeCtrlPos=-2; //ustawione juø wczeúniej
      if (Train->DynamicObject->Mechanik) //AI moøe sobie samo pÛjúÊ
       if (!Train->DynamicObject->Mechanik->AIControllFlag) //tylko jeúli rÍcznie prowadzony
       {Train->DynamicObject->MoverParameters->LimPipePress=Controlled->MoverParameters->PipePress;
@@ -1579,7 +1580,7 @@ bool __fastcall TWorld::Update()
       //double a= acos( DotProduct(Normalize(Controlled->GetDirection()),vWorldFront));
 //      OutText+= AnsiString(";   angle ")+FloatToStrF(a/M_PI*180,ffFixed,6,2);
       OutText1+=AnsiString("; d_omega ")+FloatToStrF(Controlled->MoverParameters->dizel_engagedeltaomega,ffFixed,6,3);
-      OutText2 =AnsiString("ham zesp ")+FloatToStrF(Controlled->MoverParameters->BrakeCtrlPos,ffFixed,6,0);
+      OutText2 =AnsiString("ham zesp ")+FloatToStrF(Controlled->MoverParameters->fBrakeCtrlPos,ffFixed,6,1);
       OutText2+=AnsiString("; ham pom ")+FloatToStrF(Controlled->MoverParameters->LocalBrakePos,ffFixed,6,0);
       //Controlled->MoverParameters->MainCtrlPos;
       //if (Controlled->MoverParameters->MainCtrlPos<0)
@@ -1687,12 +1688,13 @@ bool __fastcall TWorld::Update()
   {//wyúwietlenie rozk≥adu jazdy, na razie jakkolwiek
    if (Train) //pojazd prowadzony, ewentualnie wyúwietlaÊ teø dla AI
     if (Train->DynamicObject->Mechanik) //musi byÊ rozk≥ad
-    {glTranslatef(0.0f,0.0f,-0.50f);
+    {//wyúwietlanie rozk≥adu
+     glColor3f(1.0f,1.0f,1.0f); //a, damy bia≥ym
+     glTranslatef(0.0f,0.0f,-0.50f);
      Mtable::TTrainParameters *tt=Train->DynamicObject->Mechanik->Timetable();
      glRasterPos2f(-0.25f,0.20f);
      OutText1=Train->DynamicObject->Mechanik->Relation();
-     Bezogonkow(OutText1);
-     glPrint(OutText1.c_str());
+     glPrint(Bezogonkow(OutText1).c_str());
      glRasterPos2f(-0.25f,0.19f);
      glPrint("|----------------------------|-------|-------|");
      TMTableLine *t;
@@ -1704,9 +1706,8 @@ bool __fastcall TWorld::Update()
       OutText3=(t->Dh>=0)?AnsiString(int(100+t->Dh)).SubString(2,2)+":"+AnsiString(int(100+t->Dm)).SubString(2,2):AnsiString("     ");
       //if (AnsiString(t->StationWare).Pos("@"))
       OutText1="| "+OutText1+" | "+OutText2+" | "+OutText3+" | "+AnsiString(t->StationWare);
-      Bezogonkow(OutText1);
       glRasterPos2f(-0.25f,0.18f-0.02f*(i-tt->StationIndex));
-      glPrint(OutText1.c_str());
+      glPrint(Bezogonkow(OutText1).c_str());
       glRasterPos2f(-0.25f,0.17f-0.02f*(i-tt->StationIndex));
       glPrint("|----------------------------|-------|-------|");
      }
