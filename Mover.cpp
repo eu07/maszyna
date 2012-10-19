@@ -149,6 +149,7 @@ void __fastcall TMoverParameters::BrakeLevelSet(double b)
  //jedyny dopuszczalny sposób przestawienia hamulca zasadniczego
  if (fBrakeCtrlPos==b) return; //nie przeliczaæ, jak nie ma zmiany
  fBrakeCtrlPos=b;
+ BrakeCtrlPosR=b;
  if (fBrakeCtrlPos<-2.0)
   fBrakeCtrlPos=-2.0; //odciêcie
  else
