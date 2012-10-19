@@ -50,7 +50,7 @@ public:
     bool bEnabled; //false gdy ma nie byæ dodawany do kolejki (skanowanie sygna³ów)
     bool bLaunched;
     //bool bIsHistory;
-    TEvent *Next;
+    TEvent *Next; //nastêpny w kolejce
     TEvent *Next2;
     TEventType Type;
     double fStartTime;
@@ -63,16 +63,19 @@ public:
 //McZapkie-100302 - dodalem zeby zapamietac nazwe toru
 //    AnsiString asNodeName2;
 
-    __fastcall TEvent();
-    __fastcall ~TEvent();
-    void __fastcall Init();
-    void __fastcall Load(cParser* parser,vector3 *org);
-    void __fastcall AddToQuery(TEvent *Event);
+ TEvent *eJoined; //kolejny event z t¹ sam¹ nazw¹ - od wersji 378
+ //metody
+ __fastcall TEvent();
+ __fastcall ~TEvent();
+ void __fastcall Init();
+ void __fastcall Load(cParser* parser,vector3 *org);
+ void __fastcall AddToQuery(TEvent *Event);
  AnsiString __fastcall CommandGet();
  double __fastcall ValueGet(int n);
  vector3 __fastcall PositionGet();
- bool StopCommand();
- void StopCommandSent();
+ bool __fastcall StopCommand();
+ void __fastcall StopCommandSent();
+ void __fastcall Append(TEvent *e);
 };
 
 //---------------------------------------------------------------------------
