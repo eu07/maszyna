@@ -130,7 +130,8 @@ public:
  double ReactionTime; //czas reakcji Ra: czego? œwiadomoœci AI
  double fBrakeTime;  //wpisana wartoœæ jest zmniejszana do 0, gdy ujemna nale¿y zmieniæ nastawê hamulca
 private:
- bool Ready; //ABu: stan gotowosci do odjazdu - sprawdzenie odhamowania wagonow jest ustawiane w dynobj->cpp
+ double fReady; //poziom odhamowania wagonów
+ bool Ready; //ABu: stan gotowosci do odjazdu - sprawdzenie odhamowania wagonow
  double LastUpdatedTime; //czas od ostatniego logu
  double ElapsedTime; //czas od poczatku logu
  double deltalog; //przyrost czasu
@@ -191,6 +192,7 @@ private:
  bool __fastcall DecBrake();
  bool __fastcall IncSpeed();
  bool __fastcall DecSpeed();
+ void __fastcall SpeedSet();
  void __fastcall RecognizeCommand(); //odczytuje komende przekazana lokomotywie
  void __fastcall Activation(); //umieszczenie obsady w odpowiednim cz³onie
 public:
