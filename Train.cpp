@@ -507,8 +507,9 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                    dsbSwitch->Play(0,0,0);
                    }
               }
+/*
               else
-              {//Ra: zabraæ to z kabiny do... Ground?
+              {Ra: przeniesione do World.cpp
                  int CouplNr=-2;
                  TDynamicObject *temp;
                  temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 1500, CouplNr));
@@ -526,6 +527,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                      }
                  }
               }
+*/
       }
       else
       //ABu 060205: dzielo Wingera po malutkim liftingu:
@@ -955,7 +957,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else
       if ((cKey==Global::Keys[k_IncBrakeLevel])&&(DynamicObject->MoverParameters->BrakeHandle!=FV4a))
        //if (DynamicObject->MoverParameters->IncBrakeLevel())
-       if (DynamicObject->MoverParameters->BrakeLevelAdd(Global::fBrakeStep))
+       if (DynamicObject->MoverParameters->BrakeLevelAdd(Global::fBrakeStep)) //nieodpowiedni warunek; true, jeœli mo¿na dalej krêciæ
           {
            keybrakecount=0;
            if ((isEztOer) && (DynamicObject->MoverParameters->BrakeCtrlPos<3))
@@ -1563,8 +1565,9 @@ void __fastcall TTrain::OnKeyPress(int cKey)
          DynamicObject->MoverParameters->Heating=false;
         }
        }
+/*
        else
-       {
+       {//Ra: przeniesione do World.cpp
         int CouplNr=-2;
         TDynamicObject *temp;
         temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 1500, CouplNr));
@@ -1582,6 +1585,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
          }
         }
        }
+*/
       }
       else
       if (cKey==Global::Keys[k_LeftSign])   //ABu 060205: lewe swiatlo - wylaczenie
@@ -1945,6 +1949,14 @@ void __fastcall TTrain::OnKeyPress(int cKey)
         }
        }
       }
+    if (cKey==VkKeyScan('-'))
+    {//zmniejszenie numeru kana³u radiowego
+     if (iRadioChannel>0) --iRadioChannel; //0=wy³¹czony
+    }
+    else if (cKey==VkKeyScan('='))
+    {//zmniejszenie numeru kana³u radiowego
+     if (iRadioChannel<8) ++iRadioChannel; //0=wy³¹czony
+    }
    }
 }
 
