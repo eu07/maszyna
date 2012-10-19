@@ -40,6 +40,7 @@ public:
  bool __fastcall IncBrakeLevel(); //wersja na u¿ytek AI
  bool __fastcall DecBrakeLevel();
  bool __fastcall ChangeCab(int direction);
+ bool __fastcall CurrentSwitch(int direction);
 };
 
 #endif

@@ -448,6 +448,8 @@ TYPE
                nmax: real;             {maksymalna dop. ilosc obrotow /s}
                InitialCtrlDelay,       {ile sek. opoznienia po wl. silnika}
                CtrlDelay: real;        { -//-  -//- miedzy kolejnymi poz.}
+               CtrlDownDelay: real;    { -//-  -//- przy schodzeniu z poz.} {hunter-101012}
+               FastSerialCircuit: byte;{0 - po kolei zamyka styczniki az do osiagniecia szeregowej, 1 - natychmiastowe wejscie na szeregowa} {hunter-111012}
                AutoRelayType: byte;    {0 -brak, 1 - jest, 2 - opcja}
                CoupledCtrl: boolean;   {czy mainctrl i scndctrl sa sprzezone}
                //CouplerNr: TCouplerNr;  {ABu: nr sprzegu podlaczonego w drugim obiekcie}
@@ -594,6 +596,9 @@ TYPE
                 RunningTraction:TTractionParam;{parametry sieci trakcyjnej najblizej lokomotywy}
                 enrot, Im, Itot, Mm, Mw, Fw, Ft: real;
                 {ilosc obrotow, prad silnika i calkowity, momenty, sily napedne}
+                //Ra: Im jest ujemny, jeœli lok jedzie w stronê sprzêgu 1
+                //a ujemne powinien byæ przy odwróconej polaryzacji sieci...
+                //w wielu miejscach jest u¿ywane abs(Im)
                 Imin,Imax: integer;      {prad przelaczania automatycznego rozruchu, prad bezpiecznika}
                 Voltage: real;           {aktualne napiecie sieci zasilajacej}
                 MainCtrlActualPos: byte; {wskaznik Rlist}
@@ -1301,7 +1306,23 @@ begin
   end
  else {nie ma sterowania}
   OK:=False;
- if OK then LastRelayTime:=0;
+ //if OK then LastRelayTime:=0;
+
+ //hunter-101012: poprawka
+ //poprzedni warunek byl niezbyt dobry, bo przez to przy trzymaniu +
+ //styczniki tkwily na tej samej pozycji (LastRelayTime byl caly czas 0 i rosl
+ //po puszczeniu plusa)
+
+ if OK then
+  begin
+   if DelayCtrlFlag then
+    begin
+     if (LastRelayTime>InitialCtrlDelay) then
+      LastRelayTime:=0;
+    end
+   else if (LastRelayTime>CtrlDelay) then
+    LastRelayTime:=0;
+  end;
  IncMainCtrl:=OK;
 end;
 
@@ -1377,7 +1398,18 @@ begin
    end
   else
    OK:=False;
-  if OK then LastRelayTime:=0;
+ //if OK then LastRelayTime:=0;
+ //hunter-101012: poprawka
+ if OK then
+  begin
+   if DelayCtrlFlag then
+    begin
+     if (LastRelayTime>InitialCtrlDelay) then
+      LastRelayTime:=0;
+    end
+   else if (LastRelayTime>CtrlDownDelay) then
+    LastRelayTime:=0;
+  end;
   DecMainCtrl:=OK;
 end;
 
@@ -1416,7 +1448,12 @@ begin
   end
  else {nie ma sterowania}
   OK:=False;
- if OK then LastRelayTime:=0;
+ //if OK then LastRelayTime:=0;
+ //hunter-101012: poprawka
+ if OK then
+  if (LastRelayTime>CtrlDelay) then
+   LastRelayTime:=0;
+
  IncScndCtrl:=OK;
 end;
 
@@ -1454,7 +1491,11 @@ begin
    end
   else
    OK:=False;
- if OK then LastRelayTime:=0;
+ //if OK then LastRelayTime:=0;
+ //hunter-101012: poprawka
+ if OK then
+  if (LastRelayTime>CtrlDownDelay) then
+   LastRelayTime:=0;
  DecScndCtrl:=OK;
 end;
 
@@ -2815,8 +2856,12 @@ begin
        DelayCtrlFlag:=False;
        SetFlag(SoundFlag,sound_relay); SetFlag(SoundFlag,sound_loud);
      end;
+
+
     //if (TrainType<>dt_EZT) then //Ra: w EZT mo¿na daæ od razu na S albo R, wa³ ku³akowy sobie dokrêci
-    if (LastRelayTime>CtrlDelay) and not DelayCtrlFlag then
+    //hunter-101012: rozbicie CtrlDelay na CtrlDelay i CtrlDownDelay
+    //if (LastRelayTime>CtrlDelay) or (LastRelayTime>CtrlDownDelay) and not DelayCtrlFlag then //po co, skoro sa powtorzone warunki na to
+    if (not DelayCtrlFlag) then
      begin
        if MainCtrlPos=0 then
         DelayCtrlFlag:=(TrainType<>dt_EZT); //Ra: w EZT mo¿na daæ od razu na S albo R, wa³ ku³akowy sobie dokrêci
@@ -2825,28 +2870,45 @@ begin
         begin   {zmieniaj scndctrlactualpos}
           if (not AutoRelayFlag) or (not MotorParam[ScndCtrlActualPos].AutoSwitch) then
            begin                                                {scnd bez samoczynnego rozruchu}
-             OK:=True;
              if (ScndCtrlActualPos<ScndCtrlPos) then
-              inc(ScndCtrlActualPos)
+              begin
+               if (LastRelayTime>CtrlDelay) then
+                begin
+                 inc(ScndCtrlActualPos);
+                 OK:=True;
+                end
+              end
              else
               if ScndCtrlActualPos>ScndCtrlPos then
-               dec(ScndCtrlActualPos)
+               begin
+                if (LastRelayTime>CtrlDownDelay) then
+                 begin
+                  dec(ScndCtrlActualPos);
+                  OK:=True;
+                 end
+               end
              else OK:=False;
            end
           else
            begin                                                {scnd z samoczynnym rozruchem}
              if ScndCtrlPos<ScndCtrlActualPos then
               begin
-                dec(ScndCtrlActualPos);
-                OK:=True;
+                if (LastRelayTime>CtrlDownDelay) then
+                 begin
+                  dec(ScndCtrlActualPos);
+                  OK:=True;
+                 end
               end
              else
               if (ScndCtrlPos>ScndCtrlActualPos) then
                if Abs(Im)<Imin then
                 if MotorParam[ScndCtrlActualPos].AutoSwitch then
                  begin
-                   inc(ScndCtrlActualPos);
-                   OK:=True
+                  if (LastRelayTime>CtrlDelay) then
+                   begin
+                    inc(ScndCtrlActualPos);
+                    OK:=True
+                   end
                  end;
            end;
         end
@@ -2860,34 +2922,59 @@ begin
            end;
           if (not AutoRelayFlag) or (not RList[MainCtrlActualPos].AutoSwitch) then
            begin                                                {main bez samoczynnego rozruchu}
-             OK:=True;
              if Rlist[MainCtrlActualPos].Relay<MainCtrlPos then
               begin
-                inc(MainCtrlActualPos);
-                //---------
-                //hunter-111211: poprawki
-                if MainCtrlActualPos>0 then
-                 if (Rlist[MainCtrlActualPos].R=0) and (not (MainCtrlActualPos=MainCtrlPosNo)) then  //wejscie na bezoporowa
-                  begin
-                   SetFlag(SoundFlag,sound_manyrelay); SetFlag(SoundFlag,sound_loud);
-                  end
-                 else if (Rlist[MainCtrlActualPos].R>0) and (Rlist[MainCtrlActualPos-1].R=0) then //wejscie na drugi uklad
-                  begin
-                   SetFlag(SoundFlag,sound_manyrelay);
-                  end;
+               if (Rlist[MainCtrlPos].R=0) and (MainCtrlPos>0) and (not (MainCtrlPos=MainCtrlPosNo)) and (FastSerialCircuit=1) then
+                begin
+                 MainCtrlActualPos:=MainCtrlPos; //hunter-111012: szybkie wchodzenie na bezoporowa (303E)
+                 OK:=true;
+                 SetFlag(SoundFlag,sound_manyrelay); SetFlag(SoundFlag,sound_loud);
+                end
+               else if (LastRelayTime>CtrlDelay) then
+                begin
+                 inc(MainCtrlActualPos);
+                 OK:=True;
+                 //---------
+                 //hunter-111211: poprawki
+                 if MainCtrlActualPos>0 then
+                  if (Rlist[MainCtrlActualPos].R=0) and (not (MainCtrlActualPos=MainCtrlPosNo)) then  //wejscie na bezoporowa
+                   begin
+                    SetFlag(SoundFlag,sound_manyrelay); SetFlag(SoundFlag,sound_loud);
+                   end
+                  else if (Rlist[MainCtrlActualPos].R>0) and (Rlist[MainCtrlActualPos-1].R=0) then //wejscie na drugi uklad
+                   begin
+                    SetFlag(SoundFlag,sound_manyrelay);
+                   end;
+                end
               end
              else if Rlist[MainCtrlActualPos].Relay>MainCtrlPos then
               begin
-                dec(MainCtrlActualPos);
-                if MainCtrlActualPos>0 then  //hunter-111211: poprawki
-                 if Rlist[MainCtrlActualPos].R=0 then  {dzwieki schodzenia z bezoporowej}
-                  begin
-                   SetFlag(SoundFlag,sound_manyrelay);
-                  end;
+               if (Rlist[MainCtrlPos].R=0) and (MainCtrlPos>0) and (not (MainCtrlPos=MainCtrlPosNo)) and (FastSerialCircuit=1) then
+                begin
+                 MainCtrlActualPos:=MainCtrlPos; //hunter-111012: szybkie wchodzenie na bezoporowa (303E)
+                 OK:=true;
+                 SetFlag(SoundFlag,sound_manyrelay);
+                end
+               else if (LastRelayTime>CtrlDownDelay) then
+                begin
+                 dec(MainCtrlActualPos);
+                 OK:=True;
+                 if MainCtrlActualPos>0 then  //hunter-111211: poprawki
+                  if Rlist[MainCtrlActualPos].R=0 then  {dzwieki schodzenia z bezoporowej}
+                   begin
+                    SetFlag(SoundFlag,sound_manyrelay);
+                   end;
+                end
               end
              else
               if (Rlist[MainCtrlActualPos].R>0) and (ScndCtrlActualPos>0) then
-               Dec(ScndCtrlActualPos) {boczniki nie dzialaja na poz. oporowych}
+               begin
+                if (LastRelayTime>CtrlDownDelay) then
+                 begin
+                  Dec(ScndCtrlActualPos); {boczniki nie dzialaja na poz. oporowych}
+                  OK:=true;
+                 end
+               end
               else
                OK:=False;
            end
@@ -2896,16 +2983,22 @@ begin
              OK:=False;
              if MainCtrlPos<Rlist[MainCtrlActualPos].Relay then
               begin
-                dec(MainCtrlActualPos);
-                OK:=True;
+               if (LastRelayTime>CtrlDownDelay) then
+                begin
+                 dec(MainCtrlActualPos);
+                 OK:=True;
+                end
               end
              else
               if (MainCtrlPos>Rlist[MainCtrlActualPos].Relay)
                   or ((MainCtrlActualPos<RListSize) and (MainCtrlPos=Rlist[MainCtrlActualPos+1].Relay)) then
                if Abs(Im)<Imin then
                  begin
-                   inc(MainCtrlActualPos);
-                   OK:=True
+                  if (LastRelayTime>CtrlDelay) then
+                   begin
+                    inc(MainCtrlActualPos);
+                    OK:=True
+                   end
                  end;
            end;
         end;
@@ -4093,7 +4186,8 @@ begin
 //     Sand:=0;
 //   end;
 {czuwak/SHP}
- if (Vel>10) and (not DebugmodeFlag) then
+ //if (Vel>10) and (not DebugmodeFlag) then
+ if not (DebugmodeFlag) then
   SecuritySystemCheck(dt1);
 end; {ComputeMovement}
 
@@ -5924,6 +6018,14 @@ begin
               InitialCtrlDelay:=s2r(DUE(s));
               s:=ExtractKeyWord(lines,'SCDelay=');
               CtrlDelay:=s2r(DUE(s));
+              s:=ExtractKeyWord(lines,'SCDDelay=');
+              if s<>'' then CtrlDownDelay:=s2r(DUE(s)) else CtrlDownDelay:=CtrlDelay; //hunter-101012: jesli nie ma SCDDelay;
+              s:=DUE(ExtractKeyWord(lines,'FSCircuit=')); //hunter-111012: dla siodemek 303E
+              if s='Yes' then
+               FastSerialCircuit:=1
+              else
+               FastSerialCircuit:=0;
+
               if BrakeCtrlPosNo>0 then
                for i:=0 to BrakeCtrlPosNo+1 do
                 begin
