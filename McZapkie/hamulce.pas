@@ -1,25 +1,6 @@
 unit hamulce;          {fizyka hamulcow dla symulatora}
 
 (*
-    MaSzyna EU07 locomotive simulator
-    Copyright (C) 2001-2010  Maciej Czapkiewicz and others
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-*)
-
-(*
     MaSzyna EU07 - SPKS
     Brakes.
     Copyright (C) 2007-2012 Maciej Cierniak
@@ -40,6 +21,7 @@ Tarcze od 152A
 Magnetyki (implementacja w mover.pas)
 Matrosow 394
 H14K1 (zasadniczy), H1405 (pomocniczy), St113 (ep)
+Knorr/West EP - ¿eby by³
 *)
 
 interface
@@ -1485,7 +1467,8 @@ begin
         temp:=0.5
     else
         temp:=0.5;
-  dV:=PF(CVP,VVP,0.0015*temp/1.8)*dt;
+
+  dV:=PF(CVP,VVP,0.0015*temp/1.8/2)*dt;
   CntrlRes.Flow(+dV);
   ValveRes.Flow(-0.04*dV);
   dV1:=dV1-0.96*dV;
@@ -2154,7 +2137,7 @@ begin
 end;
 
 
-//---FV4a/M--- nowonapisany kran + poprawki IC
+//---FV4a/M--- nowonapisany kran bez poprawki IC
 
 function TFV4aM.GetPF(i_bcp:real; pp, hp, dt, ep: real): real;
 function LPP_RP(pos: real): real; //cisnienie z zaokraglonej pozycji;
@@ -2165,7 +2148,7 @@ begin
 end;
 const
   LBDelay = 100;
-  xpM = 0.3; //mnoznik membrany komory pod
+  xpM = 0.4; //mnoznik membrany komory pod
 var
   LimPP, dpPipe, dpMainValve, ActFlowSpeed: real;
 begin
@@ -2174,13 +2157,13 @@ begin
           i_bcp:=Max0R(Min0R(i_bcp,5.999),-1.999); //na wszelki wypadek, zeby nie wyszlo poza zakres
 
           if(tp>0)then  //jesli czasowy jest niepusty
-            tp:=tp-dt*0.08 //od cisnienia 5 do 0 w 60 sekund ((5-0)*dt/60)
-          else
+            tp:=tp-dt*0.07 //od cisnienia 5 do 0 w 60 sekund ((5-0)*dt/75)
+          else       //.08
             tp:=0;         //jak pusty, to pusty
 
           if(xp>0)then  //jesli komora pod niepusta jest niepusty
-            xp:=xp-dt*0.75 //od cisnienia 5 do 0 w 10 sekund ((5-0)*dt/10)
-          else
+            xp:=xp-dt*1 //od cisnienia 5 do 0 w 10 sekund ((5-0)*dt/10)
+          else       //.75
             xp:=0;         //jak pusty, to pusty
 
           if(cp>rp+0.05)then
@@ -2202,7 +2185,10 @@ begin
           if(rp>ep)then //zaworek zwrotny do opozniajacego
             rp:=rp+PF(rp,ep,0.01)*dt //szybki upust
           else
-            rp:=rp+PF(rp,ep,0.0003)*dt; //powolne wzrastanie
+            if(i_bcp=0)then
+              rp:=rp+PF(rp,ep,0.0003)*dt //powolne wzrastanie, ale szybsze na jezdzie
+            else
+              rp:=rp+PF(rp,ep,0.0003/6)*dt; //powolne wzrastanie i to bardzo
           if (rp<ep) and (rp<BPT[Round(i_bcpNo)][1])then //jesli jestesmy ponizej cisnienia w sterujacym (2.9 bar)
             rp:=rp+PF(rp,cp,0.001)*dt; //przypisz cisnienie w PG - wydluzanie napelniania o czas potrzebny do napelnienia PG
 
