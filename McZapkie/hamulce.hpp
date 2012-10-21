@@ -253,6 +253,7 @@ class PASCALIMPLEMENTATION TESt4R : public TESt
 	
 private:
 	bool RapidStatus;
+	double RapidTemp;
 	
 public:
 	TReservoir* ImplsRes;

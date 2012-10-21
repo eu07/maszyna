@@ -220,6 +220,7 @@ TYPE
     TESt4R= class(TESt)
       private
         RapidStatus: boolean;
+        RapidTemp: real;           //akrualne, zmienne przelozenie
       public
         ImplsRes: TReservoir;      //komora impulsowa
         function GetPF(PP, dt, Vel: real): real; override;     //przeplyw miedzy komora wstepna i PG
@@ -328,7 +329,7 @@ TYPE
         function GetPF(i_bcp:real; pp, hp, dt, ep: real): real; virtual;
         procedure Init(press: real); virtual;
         function GetCP(): real; virtual;
-        procedure SetReductor(nAdj: real); virtual;        
+        procedure SetReductor(nAdj: real); virtual;
       end;
 
     TFV4a= class(THandle)
@@ -1306,17 +1307,24 @@ begin
 
   RapidStatus:=(BrakeDelayFlag=bdelay_R)and(((Vel>55)and(RapidStatus))or(Vel>70));
 
-  temp:=1.9-0.9*Byte(RapidStatus);
-
+  RapidTemp:=RapidTemp+(0.9*Byte(RapidStatus)-RapidTemp)*dt/2;
+  temp:=1.9-RapidTemp;
+  if((BrakeStatus and b_asb)=b_asb)then
+    temp:=1000;
 //luzowanie CH
   if(BrakeCyl.P*temp>ImplsRes.P+0.005)or(ImplsRes.P<0.25) then
+   if((BrakeStatus and b_asb)=b_asb)then
+     dV:=PFVd(BrakeCyl.P,0,0.115*sizeBC*4,ImplsRes.P/temp)*dt
+   else
+     dV:=PFVd(BrakeCyl.P,0,0.115*sizeBC,ImplsRes.P/temp)*dt
 //   dV:=PF(0,BrakeCyl.P,0.115*sizeBC/2)*dt
-   dV:=PFVd(BrakeCyl.P,0,0.015*sizeBC/2,ImplsRes.P/temp)*dt
+//   dV:=PFVd(BrakeCyl.P,0,0.015*sizeBC/2,ImplsRes.P/temp)*dt
   else dV:=0;
   BrakeCyl.Flow(-dV);
 //przeplyw ZP <-> CH
   if(BrakeCyl.P*temp<ImplsRes.P-0.005)and(ImplsRes.P>0.3) then
-   dV:=PFVa(BVP,BrakeCyl.P,0.020*sizeBC,ImplsRes.P/temp)*dt
+//   dV:=PFVa(BVP,BrakeCyl.P,0.020*sizeBC,ImplsRes.P/temp)*dt
+   dV:=PFVa(BVP,BrakeCyl.P,0.60*sizeBC,ImplsRes.P/temp)*dt
   else dV:=0;
   BrakeRes.Flow(-dV);
   BrakeCyl.Flow(+dV);
@@ -1498,7 +1506,8 @@ begin
 //  if Vel>55 then temp:=0.72 else
 //    temp:=1;{R}
 //cisnienie PP
-  temp:=1-RM*Byte((Vel>55)and(BrakeDelayFlag=bdelay_R));
+  RapidTemp:=RapidTemp+(RM*Byte((Vel>55)and(BrakeDelayFlag=bdelay_R))-RapidTemp)*dt/2;
+  temp:=1-RapidTemp;
   if EDFlag then temp:=10000;
 
 //powtarzacz — podwojny zawor zwrotny
@@ -1506,12 +1515,14 @@ begin
 //luzowanie CH
   if(BrakeCyl.P>temp+0.005)or(temp<0.28) then
 //   dV:=PF(0,BrakeCyl.P,0.0015*3*sizeBC)*dt
-   dV:=PF(0,BrakeCyl.P,0.005*3*sizeBC)*dt
+//   dV:=PF(0,BrakeCyl.P,0.005*3*sizeBC)*dt
+   dV:=PFVd(BrakeCyl.P,0,0.005*7*sizeBC,temp)*dt
   else dV:=0;
   BrakeCyl.Flow(-dV);
 //przeplyw ZP <-> CH
   if(BrakeCyl.P<temp-0.005)and(temp>0.29) then
-   dV:=PF(BVP,BrakeCyl.P,0.002*3*sizeBC*2)*dt
+//   dV:=PF(BVP,BrakeCyl.P,0.002*3*sizeBC*2)*dt
+   dV:=-PFVa(BVP,BrakeCyl.P,0.002*7*sizeBC*2,temp)*dt
   else dV:=0;
   BrakeRes.Flow(dV);
   BrakeCyl.Flow(-dV);
@@ -1519,7 +1530,7 @@ begin
   ImplsRes.Act;
   ValveRes.Act;
   BrakeCyl.Act;
-  BrakeRes.Act;                                      
+  BrakeRes.Act;
   CntrlRes.Act;
 //  LBP:=ValveRes.P;
 //  ValveRes.CreatePress(ImplsRes.P);

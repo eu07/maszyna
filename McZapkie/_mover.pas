@@ -2291,6 +2291,9 @@ end;
         temp:=1; //po³¹cz
       Pipe.Flow(temp*Hamulec.GetPF(temp*PipePress,dt,Vel)+GetDVc(dt));
 
+      if ASBType=128 then
+          Hamulec.ASB(Byte(SlippingWheels));
+
       dpPipe:=0;
 
 //yB: jednokrokowe liczenie tego wszystkiego
@@ -3919,7 +3922,7 @@ begin
     if SlippingWheels then
      begin
   {     TrainForce:=TrainForce-Fb; }
-       nrot:=ComputeRotatingWheel((FTrain-Fb*Sign(V)-Fstand)/NAxles-Sign(nrot*Pi*WheelDiameter-V)*Adhesive(RunningTrack.friction)*TotalMass,dt,nrot);
+       nrot:=ComputeRotatingWheel((FTrain-Fb*Sign(V)-Fstand)/NAxles-Sign(nrot*Pi*WheelDiameter-V)*Adhesive(RunningTrack.friction)*TotalMassxg,dt,nrot);
        FTrain:=sign(FTrain)*TotalMassxg*Adhesive(RunningTrack.friction);
        Fb:=Min0R(Fb,TotalMassxg*Adhesive(RunningTrack.friction));
      end;
@@ -4168,7 +4171,7 @@ begin
  UpdateScndPipePressure(dt); // druga rurka, youBy
 
 {hamulec antyposlizgowy - wylaczanie}
- if BrakeSlippingTimer>ASBSpeed then
+ if (BrakeSlippingTimer>ASBSpeed) and (ASBType<>128) then
    Hamulec.ASB(0);
 //  SetFlag(BrakeStatus,-b_antislip);
  BrakeSlippingTimer:=BrakeSlippingTimer+dt;
@@ -4308,7 +4311,7 @@ begin
  UpdateScndPipePressure(dt); // druga rurka, youBy
 
 {hamulec antyposlizgowy - wylaczanie}
- if BrakeSlippingTimer>ASBSpeed then
+ if(BrakeSlippingTimer>ASBSpeed)and(ASBType<>128)then
    Hamulec.ASB(0);
  BrakeSlippingTimer:=BrakeSlippingTimer+dt;
 end; {FastComputeMovement}
@@ -5978,6 +5981,11 @@ begin
                     s:=DUE(ExtractKeyWord(lines,'ASB='));
                     if s='Manual' then ASBType:=1 else
                      if s='Automatic' then ASBType:=2;
+                  end
+                 else
+                  begin
+                    s:=DUE(ExtractKeyWord(lines,'ASB='));
+                    if s='Yes' then ASBType:=128;
                   end;
                end;
               s:=DUE(ExtractKeyWord(lines,'LocalBrake='));
