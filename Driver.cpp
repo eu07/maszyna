@@ -122,9 +122,9 @@ void __fastcall TSpeedPos::CommandCheck()
   //SetVelocity 40 -1  -> PutValues: jechaæ 40 a¿ do miniêcia (koniec ograniczenia(
   fVelNext=value1;
   iFlags&=~0xE00; //nie manewrowa, nie przystanek, nie zatrzymaæ na SBL
-  if (value1==0.0)
-   if (value2!=0.0)
-   {//S1 na SBL mo¿na przejechaæ po zatrzymaniu
+  if (value1==0.0) //jeœli pierwsza zerowa
+   if (value2!=0.0) //a druga nie
+   {//S1 na SBL, mo¿na przejechaæ po zatrzymaniu
     fVelNext=value2;
     iFlags|=0x800; //na pewno nie zezwoli na manewry
    }
@@ -247,6 +247,7 @@ void __fastcall TController::TableClear()
  fLastVel=-1;
 };
 
+/*
 bool __fastcall TController::CheckEvent(TEvent *e)
 {//sprawdzanie eventu w torze, czy jest sygna³owym - przy skanowaniu do przodu
  //-> zwraca true, jeœli event istotny dla AI
@@ -264,6 +265,7 @@ bool __fastcall TController::CheckEvent(TEvent *e)
  }
  return true;
 }
+*/
 
 TEvent* __fastcall TController::CheckTrackEvent(double fDirection,TTrack *Track)
 {//sprawdzanie eventów na podanym torze
@@ -271,7 +273,19 @@ TEvent* __fastcall TController::CheckTrackEvent(double fDirection,TTrack *Track)
  //a nie kazdy najblizszy event [AI sie gubilo gdy przed getval z SetVelocity
  //mialo np. PutValues z eventem od SHP]
  TEvent* e=(fDirection>0)?Track->Event2:Track->Event1;
- return CheckEvent(e)?e:NULL; //sprawdzenie z pominiêciem niepotrzebnych
+ //return CheckEvent(e)?e:NULL; //sprawdzenie z pominiêciem niepotrzebnych
+ if (!e) return e;
+ if (e->bEnabled) return NULL;
+ if (e->Type==tp_PutValues)
+ {//do tabelki idzie tylko rozpoznany W4
+  AnsiString command=e->CommandGet();
+  if (command.SubString(1,19)=="PassengerStopPoint:")
+   if (asNextStop.IsEmpty()) //poci¹g ma okreœlone miejsce zatrzymania
+    return NULL; //ignorowaæ, jeœli nie ma zatrzymania
+   else
+    return (command==asNextStop)?e:NULL; //nazwa zatrzymania siê zgadza
+ }
+ return e;
 }
 
 bool __fastcall TController::TableAddNew()
@@ -502,7 +516,7 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
       if (sSpeedTable[i].fDist<200.0) //przy 160km/h jedzie 44m/s, to da dok³adnoœæ rzêdu 5 sekund
       {//zaliczamy posterunek w pewnej odleg³oœci przed (choæ W4 nie zas³ania ju¿ semafora)
 #if LOGSTOPS
-       WriteLog("At "+AnsiString(GlobalTime->hh)+":"+AnsiString(GlobalTime->mm)+" skipped "+asNextStop); //informacja
+       WriteLog(TrainParams->TrainName+": at "+AnsiString(GlobalTime->hh)+":"+AnsiString(GlobalTime->mm)+" skipped "+asNextStop); //informacja
 #endif
        TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,asNextStop.SubString(20,asNextStop.Length()));
        TrainParams->StationIndexInc(); //przejœcie do nastêpnej
@@ -570,7 +584,7 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
          asNextStop=TrainParams->NextStop(); //pobranie kolejnego miejsca zatrzymania
          TableClear(); //aby od nowa sprawdzi³o W4 z inn¹ nazw¹ ju¿
 #if LOGSTOPS
-         WriteLog("At "+AnsiString(GlobalTime->hh)+":"+AnsiString(GlobalTime->mm)+" next "+asNextStop); //informacja
+         WriteLog(TrainParams->TrainName+": at "+AnsiString(GlobalTime->hh)+":"+AnsiString(GlobalTime->mm)+" next "+asNextStop); //informacja
 #endif
          iDrivigFlags|=moveStopHere; //nie podje¿d¿aæ do semafora, jeœli droga nie jest wolna
          iDrivigFlags|=moveStopCloser; //do nastêpnego W4 podjechaæ blisko (z doci¹ganiem)
@@ -584,14 +598,14 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
         asNextStop=TrainParams->NextStop(); //informacja o koñcu trasy
         TrainParams->NewName("none"); //czyszczenie nieaktualnego rozk³adu
         TableClear(); //aby od nowa sprawdzi³o W4 z inn¹ nazw¹ ju¿
-        iDrivigFlags|=moveStopHere; //ma siê nie ruszaæ a¿ do momentu podania sygna³u
-        iDrivigFlags&=~(moveStopCloser|moveStopPoint|moveStartHorn); //ma nie podje¿d¿aæ pod W4 i ma je pomijaæ
+        iDrivigFlags|=moveStopHere|moveStartHorn; //ma siê nie ruszaæ a¿ do momentu podania sygna³u
+        iDrivigFlags&=~(moveStopCloser|moveStopPoint); //ma nie podje¿d¿aæ pod W4 i ma je pomijaæ
         sSpeedTable[i].iFlags=0; //W4 nie liczy siê ju¿ (nie wyœle SetVelocity)
         sSpeedTable[i].fVelNext=-1; //mo¿na jechaæ za W4
         WaitingSet(60); //tak ze 2 minuty, a¿ wszyscy wysi¹d¹
         JumpToNextOrder(); //wykonanie kolejnego rozkazu (Change_direction albo Shunt)
 #if LOGSTOPS
-        WriteLog("At "+AnsiString(GlobalTime->hh)+":"+AnsiString(GlobalTime->mm)+" end of route."); //informacja
+        WriteLog(TrainParams->TrainName+": at "+AnsiString(GlobalTime->hh)+":"+AnsiString(GlobalTime->mm)+" end of route."); //informacja
 #endif
        } //koniec obs³ugi ostatniej stacji
       } //if (MoverParameters->Vel==0.0)
@@ -1633,7 +1647,7 @@ void __fastcall TController::SpeedSet()
        if (Controlling->Imax<Controlling->ImaxHi) //jeœli da siê na wysokim
         Controlling->CurrentSwitch(true); //rozruch wysoki (za to mo¿e siê œlizgaæ)
        if (ReactionTime>0.1)
-        ReactionTime=0.1; //orientuj siê szybciej, by nie wywali³ nadmiarowy
+        ReactionTime=0.1; //orientuj siê szybciej
       } //if (Im>Imin)
      if (fabs(Controlling->Im)>0.75*Controlling->ImaxHi) //jeœli pr¹d jest du¿y
       Controlling->SandDoseOn(); //piaskujemy tory, coby siê nie œlizgaæ
@@ -2263,17 +2277,14 @@ bool __fastcall TController::UpdateSituation(double dt)
     }
    break;
    case Release_engine:
-    //if (AIControllFlag)
     if (ReleaseEngine()) //zdana maszyna?
      JumpToNextOrder();
    break;
    case Jump_to_first_order:
-    //if (AIControllFlag)
-    {if (OrderPos>1)
-      OrderPos=1; //w zerowym zawsze jest czekanie
-     else
-      ++OrderPos;
-    }
+    if (OrderPos>1)
+     OrderPos=1; //w zerowym zawsze jest czekanie
+    else
+     ++OrderPos;
    break;
    case Wait_for_orders: //jeœli czeka, te¿ ma skanowaæ, ¿eby odpaliæ siê od semafora
 /*
@@ -2865,6 +2876,9 @@ void __fastcall TController::JumpToNextOrder()
    OrderPos=0;
  }
  OrderCheck();
+#if LOGVELOCITY
+ OrdersDump();
+#endif
 };
 
 void __fastcall TController::JumpToFirstOrder()
@@ -2921,6 +2935,7 @@ void __fastcall TController::OrderPush(TOrders NewOrder)
 
 void __fastcall TController::OrdersDump()
 {//wypisanie kolejnych rozkazów do logu
+ WriteLog("Orders for "+pVehicle->asName+":");
  for (int b=0;b<maxorders;++b)
  {WriteLog(AnsiString(b)+": "+Order2Str(OrderList[b])+(OrderPos==b?" <-":""));
   if (b) //z wyj¹tkiem pierwszej pozycji

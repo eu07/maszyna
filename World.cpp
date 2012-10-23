@@ -92,7 +92,7 @@ GLvoid __fastcall TWorld::glPrint(const char *txt) //custom GL "Print" routine
  {//tekst generowany przez GLUT
   int i,len=strlen(txt);
   for (i=0;i<len;i++)
-   (glutBitmapCharacterDLL)(GLUT_BITMAP_8_BY_13,txt[i]); //funkcja linkowana dynamicznie
+   glutBitmapCharacterDLL(GLUT_BITMAP_8_BY_13,txt[i]); //funkcja linkowana dynamicznie
  }
  else
  {//generowanie przez Display Lists
@@ -109,7 +109,6 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
  Global::hWnd=NhWnd; //do WM_COPYDATA
  Global::pCamera=&Camera; //Ra: wskaŸnik potrzebny do likwidacji drgañ
  Global::detonatoryOK=true;
- //WriteLog("--- MaSzyna ---"); //pierwsza linia jest gubiona - ju¿ nie
  WriteLog("Starting MaSzyna rail vehicle simulator.");
  WriteLog(Global::asVersion);
 #if sizeof(TSubModel)!=256
@@ -1002,6 +1001,8 @@ bool __fastcall TWorld::Update()
   }
   Camera.Update(); //uwzglêdnienie ruchu wywo³anego klawiszami
  } //koniec bloku pomijanego przy nieaktywnym oknie
+#if 0
+ //Ra: na razie po staremu
  double dt=fTimeBuffer+GetDeltaTime(); //[s] czas od poprzedniego sprawdzania
  if (dt>fMaxDt) //jest co najmniej jeden krok; normalnie 0.01s
  {//Ra: czas dla fizyki jest skwantowany
@@ -1027,6 +1028,34 @@ bool __fastcall TWorld::Update()
     //Ground.Update(dt,n); //10 razy
    }
  }
+#else
+ //poprzednie jakoœ tam dzia³a³o
+ double dt=GetDeltaTime();
+ double iter;
+ int n=1;
+ if (dt>fMaxDt) //normalnie 0.01s
+ {
+  iter=ceil(dt/fMaxDt);
+  n=iter;
+  dt=dt/iter; //Ra: fizykê lepiej by by³o przeliczaæ ze sta³ym krokiem
+ }
+ if (n>20) n=20; //McZapkie-081103: przesuniecie granicy FPS z 10 na 5
+ //blablabla
+ Ground.Update(dt,n); //ABu: zamiast 'n' bylo: 'Camera.Type==tp_Follow'
+ if (DebugModeFlag)
+  if (GetAsyncKeyState(VK_ESCAPE)<0)
+  {//yB doda³ przyspieszacz fizyki
+   Ground.Update(dt,n);
+   Ground.Update(dt,n);
+   Ground.Update(dt,n);
+   Ground.Update(dt,n); //5 razy
+   //Ground.Update(dt,n); //jak jest za du¿o, to gubi eventy
+   //Ground.Update(dt,n);
+   //Ground.Update(dt,n);
+   //Ground.Update(dt,n);
+   //Ground.Update(dt,n); //10 razy
+  }
+#endif
  dt=GetDeltaTime(); //czas niekwantowany
  if (Camera.Type==tp_Follow)
  {if (Train)
@@ -1543,7 +1572,10 @@ bool __fastcall TWorld::Update()
          if (!Train) //jeœli niczym jeszcze nie jeŸdzilismy
           Train=new TTrain();
          if (Train->Init(Controlled))
-          Controlled->Mechanik->TakeControl(false); //przejmujemy sterowanie
+         {//przejmujemy sterowanie
+          if (!DebugModeFlag) //w DebugMode nadal prowadzi AI
+           Controlled->Mechanik->TakeControl(false);
+         }
          else
           SafeDelete(Train); //i nie ma czym sterowaæ
          //Global::pUserDynamic=Controlled; //renerowanie pojazdu wzglêdem kabiny
