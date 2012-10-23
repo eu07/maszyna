@@ -27,7 +27,7 @@ enum TMovementStatus
 {//flagi bitowe ruchu (iDrivigFlags)
  moveStopCloser=1, //podjechaæ blisko W4 (nie podje¿d¿aæ na pocz¹tku ani po zmianie czo³a)
  moveStopPoint=2, //stawaæ na W4 (wy³¹czone podczas zmiany czo³a)
- moveAvaken=4, //po w³¹czeniu silnika pojazd nie przemieœci³ siê
+ //moveAvaken=4, //po w³¹czeniu silnika pojazd nie przemieœci³ siê
  movePress=8, //dociskanie przy od³¹czeniu (zamiast zmiennej Prepare2press)
  moveConnect=0x10, //jest blisko innego pojazdu i mo¿na próbowaæ pod³¹czyæ
  movePrimary=0x20, //ma priorytet w sk³adzie (master)
@@ -249,6 +249,7 @@ private: //Ra: stare funkcje skanuj¹ce, u¿ywane do szukania sygnalizatora z ty³u
  void __fastcall SetProximityVelocity(double dist,double vel,const vector3 *pos);
  bool __fastcall BackwardScan();
 public:
+ void __fastcall PhysicsLog();
  AnsiString __fastcall StopReasonText();
  __fastcall ~TController();
  AnsiString __fastcall NextStop();

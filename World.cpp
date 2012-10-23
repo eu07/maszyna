@@ -38,24 +38,26 @@ TDynamicObject *Controlled=NULL; //pojazd, który prowadzimy
 
 using namespace Timer;
 
-const double fMaxDt= 0.01;
+const double fMaxDt=0.01; //[s] sta³y krok czasowy fizyki
+const double fTimeMax=1.00; //[s] maksymalny czas aktualizacji w jednek klatce 
 
 __fastcall TWorld::TWorld()
 {
  //randomize();
  //Randomize();
  Train=NULL;
- Aspect=1;
+ //Aspect=1;
  for (int i=0;i<10;++i)
   KeyEvents[i]=NULL; //eventy wyzwalane klawiszami cyfrowymi
  Global::iSlowMotion=0;
  Global::changeDynObj=false;
- lastmm=61; //ABu: =61, zeby zawsze inicjowac kolor czarnej mgly przy warunku (GlobalTime->mm!=lastmm) :)
+ //lastmm=61; //ABu: =61, zeby zawsze inicjowac kolor czarnej mgly przy warunku (GlobalTime->mm!=lastmm) :)
  OutText1=""; //teksty wyœwietlane na ekranie
  OutText2="";
  OutText3="";
  iCheckFPS=0; //kiedy znów sprawdziæ FPS, ¿eby wy³¹czaæ optymalizacji od razu do zera
  pDynamicNearest=NULL;
+ fTimeBuffer=0.0; //bufor czasu aktualizacji dla sta³ego kroku fizyki 
 }
 
 __fastcall TWorld::~TWorld()
@@ -1000,33 +1002,32 @@ bool __fastcall TWorld::Update()
   }
   Camera.Update(); //uwzglêdnienie ruchu wywo³anego klawiszami
  } //koniec bloku pomijanego przy nieaktywnym oknie
- double dt=GetDeltaTime();
- double iter;
- int n=1;
- if (dt>fMaxDt) //normalnie 0.01s
- {
-  iter=ceil(dt/fMaxDt);
-  n=iter;
-  dt=dt/iter; //Ra: fizykê lepiej by by³o przeliczaæ ze sta³ym krokiem
+ double dt=fTimeBuffer+GetDeltaTime(); //[s] czas od poprzedniego sprawdzania
+ if (dt>fMaxDt) //jest co najmniej jeden krok; normalnie 0.01s
+ {//Ra: czas dla fizyki jest skwantowany
+  double iter=ceil(dt/fMaxDt); //ile kroków siê zmieœci³o od ostatniego sprawdzania?
+  int n=int(iter); //ile kroków jako int
+  //dt=dt/iter; //Ra: fizykê lepiej by by³o przeliczaæ ze sta³ym krokiem
+  fTimeBuffer=dt-iter*fMaxDt; //reszta czasu na potem (do bufora)
+  dt=fMaxDt; //Ra: teraz czas kroku jest sta³y
+  if (n>20) n=20; //McZapkie-081103: przesuniecie granicy FPS z 10 na 5
+  //blablabla - Ra: co za inteligencja...
+  Ground.Update(dt,n); //ABu: zamiast 'n' bylo: 'Camera.Type==tp_Follow'
+  if (DebugModeFlag)
+   if (GetAsyncKeyState(VK_ESCAPE)<0)
+   {//yB doda³ przyspieszacz fizyki
+    Ground.Update(dt,n);
+    Ground.Update(dt,n);
+    Ground.Update(dt,n);
+    Ground.Update(dt,n); //5 razy
+    //Ground.Update(dt,n); //jak jest za du¿o, to gubi eventy
+    //Ground.Update(dt,n);
+    //Ground.Update(dt,n);
+    //Ground.Update(dt,n);
+    //Ground.Update(dt,n); //10 razy
+   }
  }
- if (n>20) n=20; //McZapkie-081103: przesuniecie granicy FPS z 10 na 5
- //blablabla
- Ground.Update(dt,n); //ABu: zamiast 'n' bylo: 'Camera.Type==tp_Follow'
- if (DebugModeFlag)
-  if (GetAsyncKeyState(VK_ESCAPE)<0)
-  {//yB doda³ przyspieszacz fizyki
-   Ground.Update(dt,n);
-   Ground.Update(dt,n);
-   Ground.Update(dt,n);
-   Ground.Update(dt,n); //5 razy
-   //Ground.Update(dt,n); //jak jest za du¿o, to gubi eventy
-   //Ground.Update(dt,n);
-   //Ground.Update(dt,n);
-   //Ground.Update(dt,n);
-   //Ground.Update(dt,n); //10 razy
-  }
- //Ground.Update(0.01,Camera.Type==tp_Follow);
- dt=GetDeltaTime();
+ dt=GetDeltaTime(); //czas niekwantowany
  if (Camera.Type==tp_Follow)
  {if (Train)
   {//jeœli jazda w kabinie, przeliczyæ trzeba parametry kamery
@@ -1131,7 +1132,7 @@ bool __fastcall TWorld::Update()
     glDisable(GL_LIGHTING);
     glDisable(GL_FOG);
     glColor4f(1.0f,1.0f,1.0f,1.0f);
-    glBindTexture(GL_TEXTURE_2D, light);       // Select our texture
+    glBindTexture(GL_TEXTURE_2D,light);       // Select our texture
     glBegin(GL_QUADS);
      if (Train->DynamicObject->iLights[0]&21)
      {//wystarczy jeden zapalony z przodu

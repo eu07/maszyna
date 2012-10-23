@@ -1339,8 +1339,6 @@ bool __fastcall TController::PrepareEngine()
  {
   if (eStopReason==stopSleep) //jeœli dotychczas spa³
    eStopReason==stopNone; //teraz nie ma powodu do stania
-  if (Controlling->Vel>=1.0) //jeœli jedzie
-   iDrivigFlags&=~moveAvaken; //pojazd przemieœci³ siê od w³¹czenia
   EngineActive=true;
   return true;
  }
@@ -1398,7 +1396,6 @@ bool __fastcall TController::ReleaseEngine()
  if (OK)
  {//jeœli siê zatrzyma³
   EngineActive=false;
-  iDrivigFlags|=moveAvaken; //po w³¹czeniu silnika pojazd nie przemieœci³ siê
   eStopReason=stopSleep; //stoimy z powodu wy³¹czenia
   //eSignSkip=NULL; //zapominamy sygna³ do pominiêcia
   eSignLast=NULL; //zapominamy ostatni sygna³
@@ -1502,6 +1499,8 @@ bool __fastcall TController::IncSpeed()
  else
  {
   Controlling->DepartureSignal=false;
+  if (Controlling->SlippingWheels)
+   return true; //jak poœlizg, to nie przyspieszamy
   switch (Controlling->EngineType)
   {
    case None:
@@ -1522,8 +1521,8 @@ bool __fastcall TController::IncSpeed()
       if (Ready||Prepare2press)
        if (fabs(Controlling->Im)<(fReady<0.04?Controlling->Imin:Controlling->IminLo))
        {//Ra: wywala³ nadmiarowy, bo Im mo¿e byæ ujemne; jak nie odhamowany, to nie przesadzaæ z pr¹dem
-        if (Controlling->Vel<=30)
-        {//bocznik na szeregowej przy ciezkich bruttach
+        if ((Controlling->Vel<=30)||(Controlling->Imax>Controlling->ImaxLo))
+        {//bocznik na szeregowej przy ciezkich bruttach albo przy wysokim rozruchu pod górê
          if (Controlling->MainCtrlPos?Controlling->RList[Controlling->MainCtrlPos].R>0.0:true) //oporowa
           OK=Controlling->IncMainCtrl(1); //krêcimy nastawnik jazdy
          else //jeœli bezoporowa (z wyj¹tekiem 0)
@@ -1571,8 +1570,6 @@ bool __fastcall TController::IncSpeed()
     break;
   }
  }
- if (Controlling->Vel>=1.0)
-  iDrivigFlags&=~moveAvaken; //pojazd przemieœci³ siê od w³¹czenia
  return OK;
 }
 
@@ -1623,23 +1620,29 @@ void __fastcall TController::SpeedSet()
   break;
   case ElectricSeriesMotor:
    if (Ready||Prepare2press) //o ile mo¿e jechaæ
-    if (fAccGravity<-0.03) //i jedzie pod górê wiêksz¹ ni¿ 3 promile
+    if (fAccGravity<-0.10) //i jedzie pod górê wiêksz¹ ni¿ 10 promil
+    {//procedura wje¿d¿ania na ekstremalne wzniesienia
      if (fabs(Controlling->Im)>Controlling->Imin) //a pr¹d jest znaczny
-     {if (Controlling->RList[Controlling->MainCtrlPos].Bn>1)
-      {do //jeœli jedzie na równoleg³ym, to zbijamy do szeregowego, aby w³¹czyæ wysoki rozruch
-        Controlling->DecMainCtrl(1); //krêcimy nastawnik jazdy o 1 wstecz
-       while (Controlling->MainCtrlPos?Controlling->RList[Controlling->MainCtrlPos].Bn>1:false); //oporowa zapêtla
-      }
-      if (Controlling->Imax<Controlling->ImaxHi) //jeœli da siê na wysokim
-       Controlling->CurrentSwitch(true); //rozruch wysoki (za to mo¿e siê œlizgaæ)
-      if (fabs(Controlling->Im)>0.96*Controlling->Imax) //jeœli pr¹d jest du¿y (mo¿na 690 na 750)
-       if (Controlling->ScndCtrlPos>0) //je¿eli jest bocznik
-        Controlling->DecScndCtrl(1); //zmniejszyæ bocznik
-       else
-        Controlling->DecMainCtrl(1); //krêcimy nastawnik jazdy o 1 wstecz
-      if (ReactionTime>0.1)
-       ReactionTime=0.1; //orientuj siê szybciej, by nie wywali³ nadmiarowy
-     }
+      if (Controlling->Imin*Controlling->Voltage/(fMass*fAccGravity)<-2.8) //a na niskim siê za szybko nie pojedzie
+      {//w³¹czenie wysokiego rozruchu
+       if (Controlling->RList[Controlling->MainCtrlPos].Bn>1)
+       {do //jeœli jedzie na równoleg³ym, to zbijamy do szeregowego, aby w³¹czyæ wysoki rozruch
+         Controlling->DecMainCtrl(1); //krêcimy nastawnik jazdy o 1 wstecz
+        while (Controlling->MainCtrlPos?Controlling->RList[Controlling->MainCtrlPos].Bn>1:false); //oporowa zapêtla
+       }
+       if (Controlling->Imax<Controlling->ImaxHi) //jeœli da siê na wysokim
+        Controlling->CurrentSwitch(true); //rozruch wysoki (za to mo¿e siê œlizgaæ)
+       if (ReactionTime>0.1)
+        ReactionTime=0.1; //orientuj siê szybciej, by nie wywali³ nadmiarowy
+      } //if (Im>Imin)
+     if (fabs(Controlling->Im)>0.75*Controlling->ImaxHi) //jeœli pr¹d jest du¿y
+      Controlling->SandDoseOn(); //piaskujemy tory, coby siê nie œlizgaæ
+     if ((fabs(Controlling->Im)>0.96*Controlling->Imax)||Controlling->SlippingWheels) //jeœli pr¹d jest du¿y (mo¿na 690 na 750)
+      if (Controlling->ScndCtrlPos>0) //je¿eli jest bocznik
+       Controlling->DecScndCtrl(2); //zmniejszyæ bocznik
+      else
+       Controlling->DecMainCtrl(1); //krêcimy nastawnik jazdy o 1 wstecz
+    }
   break;
   case Dumb:
   case DieselElectric:
@@ -1939,7 +1942,20 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
  return true; //komenda zosta³a przetworzona
 };
 
-//const TDimension SignalDim={1,1,1};
+void __fastcall TController::PhysicsLog()
+{//zapis logu - na razie tylko wypisanie parametrów
+   if (LogFile.is_open())
+   {
+    LogFile << ElapsedTime<<" "<<fabs(11.31*Controlling->WheelDiameter*Controlling->nrot)<<" ";
+    LogFile << Controlling->AccS<<" "<<Controlling->Couplers[1].Dist<<" "<<Controlling->Couplers[1].CForce<<" ";
+    LogFile << Controlling->Ft<<" "<<Controlling->Ff<<" "<<Controlling->Fb<<" "<<Controlling->BrakePress<<" ";
+    LogFile << Controlling->PipePress<<" "<<Controlling->Im<<" "<<int(Controlling->MainCtrlPos)<<"   ";
+    LogFile << int(Controlling->ScndCtrlPos)<<"   "<<int(Controlling->BrakeCtrlPos)<<"   "<<int(Controlling->LocalBrakePos)<<"   ";
+    LogFile << int(Controlling->ActiveDir)<<"   "<<Controlling->CommandIn.Command.c_str()<<" "<<Controlling->CommandIn.Value1<<" ";
+    LogFile << Controlling->CommandIn.Value2<<" "<<int(Controlling->SecuritySystem.Status)<<" "<<int(Controlling->SlippingWheels)<<"\r\n";
+    LogFile.flush();
+   }
+};
 
 bool __fastcall TController::UpdateSituation(double dt)
 {//uruchamiaæ przynajmniej raz na sekundê
@@ -1952,8 +1968,8 @@ bool __fastcall TController::UpdateSituation(double dt)
    Controlling->PipePress=0.5;
   if (Controlling->SlippingWheels)
   {
-   Controlling->SandDoseOn();
-   Controlling->SlippingWheels=false;
+   Controlling->SandDoseOn(); //piasku!
+   //Controlling->SlippingWheels=false; //a to tu nie ma sensu, flaga u¿ywana w dalszej czêœci
   }
  }
  //ABu-160305 testowanie gotowoœci do jazdy
@@ -2007,23 +2023,13 @@ bool __fastcall TController::UpdateSituation(double dt)
  }
  ElapsedTime+=dt;
  WaitingTime+=dt;
- fBrakeTime-=dt; //wpisana wartoœæ jest zmniejszana do 0, gdy ujemna nale¿y zmieniæ nastawê hamulca 
+ fBrakeTime-=dt; //wpisana wartoœæ jest zmniejszana do 0, gdy ujemna nale¿y zmieniæ nastawê hamulca
  fStopTime+=dt; //zliczanie czasu postoju, nie ruszy dopóki ujemne
  if (WriteLogFlag)
  {
   if (LastUpdatedTime>deltalog)
   {//zapis do pliku DAT
-   if (LogFile.is_open())
-   {
-    LogFile << ElapsedTime<<" "<<abs(11.31*Controlling->WheelDiameter*Controlling->nrot)<<" ";
-    LogFile << Controlling->AccS<<" "<<Controlling->Couplers[1].Dist<<" "<<Controlling->Couplers[1].CForce<<" ";
-    LogFile << Controlling->Ft<<" "<<Controlling->Ff<<" "<<Controlling->Fb<<" "<<Controlling->BrakePress<<" ";
-    LogFile << Controlling->PipePress<<" "<<Controlling->Im<<" "<<int(Controlling->MainCtrlPos)<<"   ";
-    LogFile << int(Controlling->ScndCtrlPos)<<"   "<<int(Controlling->BrakeCtrlPos)<<"   "<<int(Controlling->LocalBrakePos)<<"   ";
-    LogFile << int(Controlling->ActiveDir)<<"   "<<Controlling->CommandIn.Command.c_str()<<" "<<Controlling->CommandIn.Value1<<" ";
-    LogFile << Controlling->CommandIn.Value2<<" "<<int(Controlling->SecuritySystem.Status)<<"\r\n";
-    LogFile.flush();
-   }
+   PhysicsLog();
    if (fabs(Controlling->V)>0.1) //Ra: [m/s]
     deltalog=0.2;
    else deltalog=1.0;
@@ -2735,12 +2741,13 @@ bool __fastcall TController::UpdateSituation(double dt)
       //zwiekszanie predkosci
       if (AbsAccS+fAccGravity<AccDesired) //jeœli przyspieszenie pojazdu jest mniejsze ni¿ ¿¹dane oraz
        if (vel<(VelDesired>5.0?VelDesired-5:VelDesired)) //jeœli prêdkoœæ w kierunku czo³a jest mniejsza ni¿ dozwolona
+        IncSpeed();
       //if ((AbsAccS<AccDesired)&&(vel<VelDesired))
        //if (!MaxVelFlag) //Ra: to nie jest u¿ywane
-       if (!IncSpeed()) //Ra: to tutaj jest bez sensu, bo nie doci¹gnie do bezoporowej
-        MaxVelFlag=true; //Ra: to nie jest u¿ywane
-       else
-        MaxVelFlag=false; //Ra: to nie jest u¿ywane
+       //if (!IncSpeed()) //Ra: to tutaj jest bez sensu, bo nie doci¹gnie do bezoporowej
+       // MaxVelFlag=true; //Ra: to nie jest u¿ywane
+       //else
+       // MaxVelFlag=false; //Ra: to nie jest u¿ywane
       //if (Vel<VelDesired*0.85) and (AccDesired>0) and (EngineType=ElectricSeriesMotor)
       // and (RList[MainCtrlPos].R>0.0) and (not DelayCtrlFlag))
       // if (Im<Imin) and Ready=True {(BrakePress<0.01*MaxBrakePress)})
@@ -2786,13 +2793,14 @@ bool __fastcall TController::UpdateSituation(double dt)
       //zapobieganie poslizgowi u nas
       if (Controlling->SlippingWheels)
       {
-        if (!Controlling->DecScndCtrl(1))
-         if (!Controlling->DecMainCtrl(1))
-          if (Controlling->BrakeCtrlPos==Controlling->BrakeCtrlPosNo)
-           Controlling->DecBrakeLevel();
-          else
-           Controlling->AntiSlippingButton();
-        ++iDriverFailCount;
+       if (!Controlling->DecScndCtrl(2)) //bocznik na zero
+        Controlling->DecMainCtrl(1);
+       if (Controlling->BrakeCtrlPos==Controlling->BrakeCtrlPosNo)
+        Controlling->DecBrakeLevel();
+       else
+        Controlling->AntiSlippingButton();
+       ++iDriverFailCount;
+       Controlling->SlippingWheels=false; //flaga ju¿ wykorzystana
       }
       if (iDriverFailCount>maxdriverfails)
       {
