@@ -1244,11 +1244,11 @@ TGroundNode* __fastcall TGround::FindGroundNode(AnsiString asNameToFind,TGroundN
 double fTrainSetVel=0;
 double fTrainSetDir=0;
 double fTrainSetDist=0; //odleg³oœæ sk³adu od punktu 1 w stronê punktu 2
-AnsiString asTrainSetTrack= "";
-int iTrainSetConnection= 0;
-bool bTrainSet= false;
-AnsiString asTrainName= "";
-int iTrainSetWehicleNumber= 0;
+AnsiString asTrainSetTrack="";
+int iTrainSetConnection=0;
+bool bTrainSet=false;
+AnsiString asTrainName="";
+int iTrainSetWehicleNumber=0;
 TGroundNode *TrainSetNode=NULL; //poprzedni pojazd do ³¹czenia
 TGroundNode *TrainSetDriver=NULL; //pojazd, któremu zostanie wys³any rozk³ad
 
@@ -1552,7 +1552,6 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
     *parser >> int1;
     if (int1<0) int1=(-int1)|ctrain_depot; //sprzêg zablokowany (pojazdy nieroz³¹czalne przy manewrach)
     TempConnectionType[iTrainSetWehicleNumber]=int1; //wartoœæ dodatnia
-    iTrainSetWehicleNumber++;
    }
    else
    {//pojazd wstawiony luzem
@@ -1568,6 +1567,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
     DriverType=AnsiString(token.c_str()); //McZapkie:010303: obsada
     parser->getTokens();
     *parser >> tf3; //prêdkoœæ
+    iTrainSetWehicleNumber=0;
    }
    parser->getTokens();
    *parser >> int2; //iloœæ ³adunku
@@ -1588,47 +1588,21 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    if (tmp1 && tmp1->pTrack)
    {//jeœli tor znaleziony
     Track=tmp1->pTrack;
+    if (!iTrainSetWehicleNumber) //jeœli pierwszy pojazd
+     if (Track->Event0) //jeœli tor ma Event0
+      if (fabs(fTrainSetVel)<=1.0) //a sk³ad stoi
+       if (fTrainSetDist>=0.0) //ale mo¿e nie siêgaæ na owy tor
+        if (fTrainSetDist<8.0) //i raczej nie siêga
+         fTrainSetDist=8.0; //przesuwamy oko³o pó³ EU07 dla wstecznej zgodnoœci
     //WriteLog("Dynamic shift: "+AnsiString(fTrainSetDist));
     tf3=tmp->DynamicObject->Init(asNodeName,str1,Skin,str3,Track,(tf1==-1.0?fTrainSetDist:tf1+fTrainSetDist),DriverType,tf3,asTrainName,int2,str2,(tf1==-1.0));
     if (tf3!=0.0) //zero oznacza b³¹d
     {fTrainSetDist-=tf3; //przesuniêcie dla kolejnego, minus bo idziemy w stronê punktu 1
      tmp->pCenter=tmp->DynamicObject->GetPosition();
-     if (TempConnectionType[iTrainSetWehicleNumber-1]) //jeœli jest sprzêg
+     if (TempConnectionType[iTrainSetWehicleNumber]) //jeœli jest sprzêg
       if (tmp->DynamicObject->MoverParameters->Couplers[tf1==-1.0?0:1].AllowedFlag&ctrain_depot) //jesli zablokowany
-       TempConnectionType[iTrainSetWehicleNumber-1]|=ctrain_depot; //bêdzie blokada
-/*
-     //McZapkie-030203: sygnaly czola pociagu, ale tylko dla pociagow jadacych
-     if (tf3>0.0) //predkosc poczatkowa, jak ja lubie takie nazwy zmiennych
-     {//œwiat³a w sk³adzie ruchomym - AI i tak zapali je sobie po swojemu
-      if (bTrainSet)
-      {//czo³o jest zawsze od pierwszego pojazdu w trainset
-       if (asTrainName!="none")
-       {//jadacy sk³ad z rozk³adem jest oœwietlony odpowiednio
-        if (iTrainSetWehicleNumber==1) //jeœli ma numer 0 (czyli aktualny jest 1)
-        {
-         tmp->DynamicObject->RaLightsSet(1+4+16,-1); //trojk¹t dla rozk³adowych
-         if ((tmp->DynamicObject->EndSignalsLight1Active())
-            ||(tmp->DynamicObject->EndSignalsLight1oldActive()))
-          tmp->DynamicObject->RaLightsSet(-1,2+32); //z ty³u
-         else
-          tmp->DynamicObject->RaLightsSet(-1,64);
-        }
-        if (iTrainSetWehicleNumber==2) //jeœli jest drugi pojazd, to gasi w pierwszym
-         LastDyn->RaLightsSet(-1,0); //zgaszone swiatla od strony wagonow
-       }
-       else
-       {//jak nie ma rozk³adu, to manewruje
-        if (iTrainSetWehicleNumber==1) //jeœli pierwszy w sk³adzie
-         tmp->DynamicObject->RaLightsSet(16,1); //manewry
-        if (iTrainSetWehicleNumber==2)
-         LastDyn->RaLightsSet(-1,0); //zgaszone swiatla od strony wagonow
-       }
-      }
-      else
-       tmp->DynamicObject->RaLightsSet(16,1); //manewry pojedynczego pojazdu
-      LastDyn=tmp->DynamicObject;
-     }
-*/
+       TempConnectionType[iTrainSetWehicleNumber]|=ctrain_depot; //bêdzie blokada
+     iTrainSetWehicleNumber++;
     }
     else
     {//LastNode=NULL;
@@ -2170,6 +2144,8 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
         int i=tmp->asName.Length();
         if (tmp->asName[1]=='#') //zawsze jeden znak co najmniej jest
         {delete tmp; tmp=NULL;} //utylizacja duplikatu z krzy¿ykiem
+        else if (i>8?tmp->asName.SubString(1,9)=="lineinfo:":false) //tymczasowo wyj¹tki
+        {delete tmp; tmp=NULL;} //tymczasowa utylizacja duplikatów W5
         else if (i>8?tmp->asName.SubString(i-7,8)=="_warning":false) //tymczasowo wyj¹tki
         {delete tmp; tmp=NULL;} //tymczasowa utylizacja duplikatu z tr¹bieniem
         else if (i>4?tmp->asName.SubString(i-3,4)=="_shp":false) //nie podlegaj¹ logowaniu
@@ -2872,7 +2848,7 @@ bool __fastcall TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
  if (Event->bEnabled) //jeœli mo¿e byæ dodany do kolejki (nie u¿ywany w skanowaniu)
   if (!Event->iQueued) //jeœli nie dodany jeszcze do kolejki
   {//kolejka eventów jest posortowane wzglêdem (fStartTime)
-   WriteLog("EVENT ADDED TO QUEUE: "+Event->asName);
+   WriteLog("EVENT ADDED TO QUEUE: "+Event->asName+(Node?AnsiString(" by "+Node->asName):AnsiString("")));
    Event->Activator=Node;
    Event->fStartTime=fabs(Event->fDelay)+Timer::GetTime(); //czas od uruchomienia scenerii
    ++Event->iQueued; //zabezpieczenie przed podwójnym dodaniem do kolejki
@@ -2942,6 +2918,7 @@ bool __fastcall TGround::CheckQuery()
    QueryRootEvent=QueryRootEvent->eJoined; //nastêpny bêdzie ten doczepiony
    QueryRootEvent->Next=tmpEvent->Next; //pamiêtaj¹c o nastêpnym z kolejki
    QueryRootEvent->fStartTime=tmpEvent->fStartTime; //czas musi byæ ten sam, bo nie jest aktualizowany
+   QueryRootEvent->Activator=tmpEvent->Activator; //pojazd aktywuj¹cy
   }
   else //a jak nazwa jest unikalna, to kolejka idzie dalej
    QueryRootEvent=QueryRootEvent->Next; //NULL w skrajnym przypadku

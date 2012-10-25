@@ -1225,7 +1225,7 @@ double __fastcall TDynamicObject::Init(
  AnsiString asReplacableSkin, //nazwa wymiennej tekstury
  AnsiString Type_Name, //nazwa CHK/MMD, np. "303E"
  TTrack *Track, //tor pocz¹tkowy wstwawienia (pocz¹tek sk³adu)
- double fDist, //dystans wzglêdem punktu 2
+ double fDist, //dystans wzglêdem punktu 1
  AnsiString DriverType, //typ obsady
  double fVel, //prêdkoœæ pocz¹tkowa
  AnsiString TrainName, //nazwa sk³adu, np. "PE2307"
@@ -1238,10 +1238,6 @@ double __fastcall TDynamicObject::Init(
  asBaseDir="dynamic\\"+BaseDir+"\\"; //McZapkie-310302
  asName=Name;
  AnsiString asAnimName=""; //zmienna robocza do wyszukiwania osi i wózków
- //TLocation l; //wspó³rzêdne w scenerii
- //l.X=l.Y=l.Z=0; //Ra: ustawianie tego teraz nie ma sensu, najpierw trzeba ustawiæ na torze
- //TRotation r;
- //r.Rx=r.Ry=r.Rz=0;
  //Ra: zmieniamy znaczenie obsady na jednoliterowe, ¿eby dosadziæ kierownika
  if (DriverType=="headdriver") DriverType="h"; //steruj¹cy kabin¹ +1
  else if (DriverType=="reardriver") DriverType="r"; //steruj¹cy kabin¹ -1
@@ -1395,11 +1391,11 @@ double __fastcall TDynamicObject::Init(
   fAxleDist=MoverParameters->Dim.L-0.2; //bo bêdzie "walenie w mur"
  float fAxleDistHalf=fAxleDist*0.5;
  //WriteLog("Dynamic "+Type_Name+" of length "+MoverParameters->Dim.L+" at "+AnsiString(fDist));
- if (Cab) //jeœli ma obsadê - zgodnoœæ wstecz, jeœli tor startowy ma Event0
-  if (Track->Event0) //jeœli tor ma Event0
-   if (fDist>=0.0) //jeœli jeœli w starych sceneriach pocz¹tek sk³adu by³by wysuniêty na ten tor
-    if (fDist<=0.5*MoverParameters->Dim.L+0.2) //ale nie jest wysuniêty
-     fDist+=0.5*MoverParameters->Dim.L+0.2; //wysun¹æ go na ten tor
+ //if (Cab) //jeœli ma obsadê - zgodnoœæ wstecz, jeœli tor startowy ma Event0
+ // if (Track->Event0) //jeœli tor ma Event0
+ //  if (fDist>=0.0) //jeœli jeœli w starych sceneriach pocz¹tek sk³adu by³by wysuniêty na ten tor
+ //   if (fDist<=0.5*MoverParameters->Dim.L+0.2) //ale nie jest wysuniêty
+ //    fDist+=0.5*MoverParameters->Dim.L+0.2; //wysun¹æ go na ten tor
  //przesuwanie pojazdu tak, aby jego pocz¹tek by³ we wskazanym miejcu
  fDist-=0.5*MoverParameters->Dim.L; //dodajemy pó³ d³ugoœci pojazdu, bo ustawiamy jego œrodek (zliczanie na minus)
  switch (iNumAxles)
@@ -1857,7 +1853,6 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
      if ((Controller!=Humandriver)&&(MoverParameters->BrakeCtrlPos<0)&&(!TestFlag(MoverParameters->BrakeStatus,1))&&((MoverParameters->CntrlPipePress)>0.51))
 //       {
 ////        MoverParameters->PipePress=0.50;
-        //MoverParameters->BrakeCtrlPos=0;
         MoverParameters->BrakeLevelSet(0);
 
 //       }

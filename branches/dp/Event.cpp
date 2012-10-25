@@ -32,6 +32,7 @@ __fastcall TEvent::TEvent()
  for (int i=0;i<13;i++)
   Params[i].asPointer=NULL;
  eJoined=NULL; //nie ma kolejnego z t¹ sam¹ nazw¹, usuwane s¹ wg listy Nex2
+ Activator=NULL;
 }
 
 __fastcall TEvent::~TEvent()

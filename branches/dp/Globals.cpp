@@ -44,8 +44,8 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asRelease="1.8.669.381";
-AnsiString Global::asVersion="Compilation 2012-10-23, release "+Global::asRelease+"."; //tutaj, bo wysy³any
+AnsiString Global::asRelease="1.8.680.382";
+AnsiString Global::asVersion="Compilation 2012-10-25, release "+Global::asRelease+"."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 double Global::fSunDeclination=0.0; //deklinacja S³oñca
@@ -394,6 +394,8 @@ void __fastcall Global::ConfigParse(TQueryParserComp *qp,cParser *cp)
    fBrakeStep=GetNextSymbol().ToDouble();
   else if (str==AnsiString("joinduplicatedevents")) //czy grupowaæ eventy o tych samych nazwach
    bJoinEvents=(GetNextSymbol().LowerCase()==AnsiString("yes"));
+  else if (str==AnsiString("pause")) //czy po wczytaniu ma byæ pauza?
+   bPause=(GetNextSymbol().LowerCase()==AnsiString("yes"));
  }
  while (str!="endconfig"); //(!Parser->EndOfFile)
  //na koniec trochê zale¿noœci
@@ -415,6 +417,7 @@ void __fastcall Global::ConfigParse(TQueryParserComp *qp,cParser *cp)
  fFpsMax=fFpsAverage+fFpsDeviation; //górna granica FPS, przy której promieñ scenerii bêdzie zwiêkszany
  iFpsRadiusMax=0.000025*fFpsRadiusMax*fFpsRadiusMax; //maksymalny promieñ renderowania 3000.0 -> 225
  if (iFpsRadiusMax>400) iFpsRadiusMax=400;
+ if (bPause) iTextMode=VK_F1; //jak pauza, to pokazaæ zegar
 }
 
 void __fastcall Global::InitKeys(AnsiString asFileName)
