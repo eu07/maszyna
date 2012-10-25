@@ -98,7 +98,8 @@ private: //obs³uga tabelki prêdkoœci (musi mieæ mo¿liwoœæ odhaczania stacji w ro
  int iTableDirection; //kierunek zape³nienia tabelki wzglêdem pojazdu z AI
  double fLastVel; //prêdkoœæ na poprzednio sprawdzonym torze
  TTrack *tLast; //ostatni analizowany tor
- //TTrack tSignLast; //tor z ostatnio znalezionym eventem
+ TEvent *eSignSkip; //mo¿na pomin¹æ ten SBL po zatrzymaniu
+ TEvent* __fastcall CheckTrackEvent(double fDirection,TTrack *Track);
  bool __fastcall TableCheckEvent(TEvent *e);
  bool __fastcall TableAddNew();
  bool __fastcall TableNotFound(TEvent *e);
@@ -241,8 +242,7 @@ private:
  void __fastcall Lights(int head,int rear);
  double __fastcall Distance(vector3 &p1,vector3 &n,vector3 &p2);
 private: //Ra: stare funkcje skanuj¹ce, u¿ywane do szukania sygnalizatora z ty³u
- TEvent* eSignLast; //ostatnio znaleziony sygna³, o ile nie miniêty
- TEvent* __fastcall CheckTrackEvent(double fDirection,TTrack *Track);
+ //TEvent* eSignLast; //ostatnio znaleziony sygna³, o ile nie miniêty
  TEvent* __fastcall CheckTrackEventBackward(double fDirection,TTrack *Track);
  TTrack* __fastcall BackwardTraceRoute(double &fDistance,double &fDirection,TTrack *Track,TEvent*&Event);
  void __fastcall SetProximityVelocity(double dist,double vel,const vector3 *pos);

@@ -1393,7 +1393,6 @@ bool __fastcall TWorld::Update()
      Train->DynamicObject->MoverParameters->SecuritySystem.Status=0;
      Train->DynamicObject->ABuSetModelShake(vector3(0,0,0));
      Train->DynamicObject->MoverParameters->ActiveCab=0;
-     //Train->DynamicObject->MoverParameters->BrakeCtrlPos=-2;
      Train->DynamicObject->MoverParameters->BrakeLevelSet(-2);
 ///     Train->DynamicObject->MoverParameters->LimPipePress=-1;
 ///     Train->DynamicObject->MoverParameters->ActFlowSpeed=0;
@@ -1408,7 +1407,6 @@ bool __fastcall TWorld::Update()
      Train->DynamicObject=temp;
      Controlled=Train->DynamicObject;
      Global::asHumanCtrlVehicle=Train->DynamicObject->GetName();
-     //Train->DynamicObject->MoverParameters->BrakeCtrlPos=-2; //ustawione ju¿ wczeœniej
      if (Train->DynamicObject->Mechanik) //AI mo¿e sobie samo pójœæ
       if (!Train->DynamicObject->Mechanik->AIControllFlag) //tylko jeœli rêcznie prowadzony
       {Train->DynamicObject->MoverParameters->LimPipePress=Controlled->MoverParameters->PipePress;

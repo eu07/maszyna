@@ -1038,7 +1038,6 @@ void __fastcall TTrain::OnKeyPress(int cKey)
        DynamicObject->MoverParameters->BrakeLevelSet(DynamicObject->MoverParameters->BrakeCtrlPosNo/2);
        if (GetAsyncKeyState(VK_CONTROL)<0)
         if ((DynamicObject->MoverParameters->BrakeSubsystem==Oerlikon)&&(DynamicObject->MoverParameters->BrakeSystem==Pneumatic))
-         //DynamicObject->MoverParameters->BrakeCtrlPos=-2;
          DynamicObject->MoverParameters->BrakeLevelSet(-2);
       }
       else
