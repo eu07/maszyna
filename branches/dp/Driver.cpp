@@ -2010,11 +2010,10 @@ bool __fastcall TController::UpdateSituation(double dt)
    {Ready=false; //nie gotowy
     //Ra: odluŸnianie prze³adowanych lokomotyw, ci¹gniêtych na zimno - prowizorka...
     if (AIControllFlag) //sk³ad jak dot¹d by³ wyluzowany
-     if (p->MoverParameters->Power>1.0) //ma silnik (wagony te¿ by mo¿na by³o luzowaæ)
-      if (p->MoverParameters->ActiveDir==0) //nie ma aktywnej kabiny
-       if (fabs(p->MoverParameters->PipePress-0.5)<0.01) //jeœli ciœnienie jak dla jazdy
-        if (p->MoverParameters->CntrlPipePress>p->MoverParameters->PipePress) //za du¿o w zbiorniku
-         p->MoverParameters->BrakeReleaser(); //indywidualne luziwanko
+     if (Controlling->BrakeCtrlPos==0) //jest pozycja jazdy
+      if (fabs(p->MoverParameters->PipePress-0.5)<0.005) //jeœli ciœnienie jak dla jazdy
+       if (p->MoverParameters->CntrlPipePress>p->MoverParameters->PipePress+0.01) //za du¿o w zbiorniku
+        p->MoverParameters->BrakeReleaser(); //indywidualne luziwanko
   }
   if (fReady<p->MoverParameters->BrakePress)
    fReady=p->MoverParameters->BrakePress; //szukanie najbardziej zahamowanego
