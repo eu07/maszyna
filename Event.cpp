@@ -33,6 +33,7 @@ __fastcall TEvent::TEvent()
   Params[i].asPointer=NULL;
  eJoined=NULL; //nie ma kolejnego z t¹ sam¹ nazw¹, usuwane s¹ wg listy Nex2
  Activator=NULL;
+ iFlags=0;
 }
 
 __fastcall TEvent::~TEvent()
@@ -41,12 +42,14 @@ __fastcall TEvent::~TEvent()
  {//sprz¹tanie
   case tp_Multiple:
    //SafeDeleteArray(Params[9].asText); //nie usuwaæ - nazwa obiektu powi¹zanego zamieniana na wskaŸnik
-   if (Params[8].asInt&conditional_memstring) //o ile jest ³añcuch do porównania w memcompare
+   if (iFlags&conditional_memstring) //o ile jest ³añcuch do porównania w memcompare
     SafeDeleteArray(Params[10].asText);
    break;
   case tp_UpdateValues:
   case tp_AddValues:
    SafeDeleteArray(Params[0].asText);
+   if (iFlags&conditional_memstring) //o ile jest ³añcuch do porównania w memcompare
+    SafeDeleteArray(Params[10].asText);
   break;
   case tp_Animation: //nic
    //SafeDeleteArray(Params[9].asText); //nie usuwaæ - nazwa jest zamieniana na wskaŸnik do submodelu
@@ -59,6 +62,63 @@ __fastcall TEvent::~TEvent()
 void __fastcall TEvent::Init()
 {
 
+}
+
+void __fastcall TEvent::Conditions(cParser* parser,AnsiString s)
+{//przetwarzanie warunków, wspólne dla Multiple i UpdateValues
+ if (s=="condition")
+ {//jesli nie "endevent"
+  std::string token;
+  AnsiString str;
+  if (!asNodeName.IsEmpty())
+  {//podczepienie ³añcucha, jeœli nie jest pusty
+   Params[9].asText=new char[asNodeName.Length()+1]; //usuwane i zamieniane na wskaŸnik
+   strcpy(Params[9].asText,asNodeName.c_str());
+  }
+  parser->getTokens();
+  *parser >> token;
+  str=AnsiString(token.c_str());
+  if (str==AnsiString("trackoccupied"))
+   iFlags|=conditional_trackoccupied;
+  else if (str==AnsiString("trackfree"))
+   iFlags|=conditional_trackfree;
+  else if (str==AnsiString("propability"))
+  {
+   iFlags|=conditional_propability;
+   parser->getTokens();
+   *parser >> Params[10].asdouble;
+  }
+  else if (str==AnsiString("memcompare"))
+  {
+   iFlags|=conditional_memcompare;
+   parser->getTokens(1,false);  //case sensitive
+   *parser >> token;
+   str=AnsiString(token.c_str());
+   if (str!="*") //"*" - nie brac command pod uwage
+   {//zapamiêtanie ³añcucha do porównania
+    Params[10].asText=new char[255];
+    strcpy(Params[10].asText,str.c_str());
+    iFlags|=conditional_memstring;
+   }
+   parser->getTokens();
+   *parser >> token;
+   str=AnsiString(token.c_str());
+   if (str!="*") //"*" - nie brac val1 pod uwage
+   {
+    Params[11].asdouble=str.ToDouble();
+    iFlags|=conditional_memval1;
+   }
+   parser->getTokens();
+   *parser >> token;
+   str=AnsiString(token.c_str());
+   if (str!=AnsiString("*")) //"*" - nie brac val2 pod uwage
+   {
+    Params[12].asdouble=str.ToDouble();
+    iFlags|=conditional_memval2;
+   }
+  }
+  parser->getTokens(); *parser >> token;
+ }
 }
 
 void __fastcall TEvent::Load(cParser* parser,vector3 *org)
@@ -134,38 +194,39 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
     switch (Type)
     {
         case tp_AddValues:
-            Params[12].asInt=conditional_memadd; //dodawanko
+         iFlags=update_memadd; //dodawanko
         case tp_UpdateValues:
-            if (Type==tp_UpdateValues) Params[12].asInt=0;
-            parser->getTokens(1,false);  //case sensitive
-            *parser >> token;
-            str=AnsiString(token.c_str());
-            Params[0].asText=new char[str.Length()+1];
-            strcpy(Params[0].asText,str.c_str());
-            if (str!=AnsiString("*"))       //*=nie brac tego pod uwage
-              Params[12].asInt|=conditional_memstring;
-            parser->getTokens();
-            *parser >> token;
-            str=AnsiString(token.c_str());
-            if (str!=AnsiString("*"))       //*=nie brac tego pod uwage)
-             {
-              Params[12].asInt|=conditional_memval1;
-              Params[1].asdouble=str.ToDouble();
-             }
-            else
-             Params[1].asdouble=0;
-            parser->getTokens();
-            *parser >> token;
-            str=AnsiString(token.c_str());
-            if (str!=AnsiString("*"))       //*=nie brac tego pod uwage
-             {
-              Params[12].asInt|=conditional_memval2;
-              Params[2].asdouble=str.ToDouble();
-             }
-            else
-             Params[2].asdouble=0;
-            parser->getTokens();
-            *parser >> token;
+         //if (Type==tp_UpdateValues) iFlags=0; //co modyfikowaæ
+         parser->getTokens(1,false);  //case sensitive
+         *parser >> token;
+         str=AnsiString(token.c_str());
+         Params[0].asText=new char[str.Length()+1];
+         strcpy(Params[0].asText,str.c_str());
+         if (str!="*") //czy ma zostaæ bez zmian?
+          iFlags|=update_memstring;
+         parser->getTokens();
+         *parser >> token;
+         str=AnsiString(token.c_str());
+         if (str!="*") //czy ma zostaæ bez zmian?
+         {
+          Params[1].asdouble=str.ToDouble();
+          iFlags|=update_memval1;
+         }
+         else
+          Params[1].asdouble=0;
+         parser->getTokens();
+         *parser >> token;
+         str=AnsiString(token.c_str());
+         if (str!="*") //czy ma zostaæ bez zmian?
+         {
+          Params[2].asdouble=str.ToDouble();
+          iFlags|=update_memval2;
+         }
+         else
+          Params[2].asdouble=0;
+         parser->getTokens();
+         *parser >> token;
+         Conditions(parser,token.c_str()); //sprawdzanie warunków
         break;
         case tp_WhoIs:
         case tp_CopyValues:
@@ -183,21 +244,19 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
           Params[4].asdouble+=org->y;
           Params[5].asdouble+=org->z;
          }
-         Params[12].asInt=0;
+         //Params[12].asInt=0;
          parser->getTokens(1,false);  //komendy 'case sensitive'
          *parser >> token;
          str=AnsiString(token.c_str());
          if (str.SubString(1,19)=="PassengerStopPoint:")
          {if (str.Pos("#")) str=str.SubString(1,str.Pos("#")-1); //obciêcie unikatowoœci
-          bEnabled=false; //nie do kolejki (dla SetVelocity te¿, ale jak jest do toru dowi¹zany) 
+          bEnabled=false; //nie do kolejki (dla SetVelocity te¿, ale jak jest do toru dowi¹zany)
          }
          if (str=="SetVelocity") bEnabled=false;
          else if (str=="ShuntVelocity") bEnabled=false;
          else if (str=="SetProximityVelocity") bEnabled=false;
          Params[0].asText=new char[str.Length()+1];
          strcpy(Params[0].asText,str.c_str());
-//         if (str!=AnsiString("*"))       //*=nie brac tego pod uwage
-//           Params[12].asInt+=conditional_memstring;
          parser->getTokens();
          *parser >> token;
          str=AnsiString(token.c_str());
@@ -261,74 +320,77 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
 //            Params[1].asdouble=Parser->GetNextSymbol().ToDouble();
 //            Params[2].asdouble=Parser->GetNextSymbol().ToDouble();
 //            Params[3].asdouble=Parser->GetNextSymbol().ToDouble(); //polozenie X,Y,Z - do poprawy!
-            parser->getTokens();
-            *parser >> Params[0].asInt; //0: wylaczyc, 1: wlaczyc; -1: wlaczyc zapetlone
-            parser->getTokens(); *parser >> token;
+         parser->getTokens();
+         *parser >> Params[0].asInt; //0: wylaczyc, 1: wlaczyc; -1: wlaczyc zapetlone
+         parser->getTokens(); *parser >> token;
         break;
         case tp_Exit:
-            while ((ptr=strchr(asNodeName.c_str(),'_'))!=NULL)
-                *ptr=' ';
-            parser->getTokens(); *parser >> token;
+         while ((ptr=strchr(asNodeName.c_str(),'_'))!=NULL)
+          *ptr=' ';
+         parser->getTokens(); *parser >> token;
         break;
         case tp_Disable:
-            parser->getTokens(); *parser >> token;
+         parser->getTokens(); *parser >> token;
         break;
         case tp_Animation:
-            parser->getTokens();
-            *parser >> token;
-            Params[0].asInt=0; //nieznany typ
-            if ( token.compare( "rotate" ) ==0 )
-            {
-                parser->getTokens();
-                *parser >> token;
-                Params[9].asText=new char[255]; //nazwa submodelu
-                strcpy(Params[9].asText,token.c_str());
-                Params[0].asInt=1;
-                parser->getTokens(4);
-                *parser >> Params[1].asdouble >> Params[2].asdouble >> Params[3].asdouble >> Params[4].asdouble;
-            }
-            else
-            if ( token.compare( "translate" ) ==0 )
-            {
-                parser->getTokens();
-                *parser >> token;
-                Params[9].asText=new char[255]; //nazwa submodelu
-                strcpy(Params[9].asText,token.c_str());
-                Params[0].asInt=2;
-                parser->getTokens(4);
-                *parser >> Params[1].asdouble >> Params[2].asdouble >> Params[3].asdouble >> Params[4].asdouble;
-            }
-            parser->getTokens(); *parser >> token;
+         parser->getTokens();
+         *parser >> token;
+         Params[0].asInt=0; //nieznany typ
+         if (token.compare("rotate")==0)
+         {
+          parser->getTokens();
+          *parser >> token;
+          Params[9].asText=new char[255]; //nazwa submodelu
+          strcpy(Params[9].asText,token.c_str());
+          Params[0].asInt=1;
+          parser->getTokens(4);
+          *parser >> Params[1].asdouble >> Params[2].asdouble >> Params[3].asdouble >> Params[4].asdouble;
+         }
+         else
+         if (token.compare("translate")==0)
+         {
+          parser->getTokens();
+          *parser >> token;
+          Params[9].asText=new char[255]; //nazwa submodelu
+          strcpy(Params[9].asText,token.c_str());
+          Params[0].asInt=2;
+          parser->getTokens(4);
+          *parser >> Params[1].asdouble >> Params[2].asdouble >> Params[3].asdouble >> Params[4].asdouble;
+         }
+         parser->getTokens(); *parser >> token;
         break;
         case tp_Switch:
-            parser->getTokens(); *parser >> Params[0].asInt;
-            parser->getTokens(); *parser >> token;
+         parser->getTokens(); *parser >> Params[0].asInt;
+         parser->getTokens(); *parser >> token;
         break;
         case tp_DynVel:
-            parser->getTokens();
-            *parser >> Params[0].asdouble; //McZapkie-090302 *0.28;
-            parser->getTokens(); *parser >> token;
+         parser->getTokens();
+         *parser >> Params[0].asdouble; //McZapkie-090302 *0.28;
+         parser->getTokens(); *parser >> token;
         break;
         case tp_TrackVel:
-            parser->getTokens();
-            *parser >> Params[0].asdouble; //McZapkie-090302 *0.28;
-            parser->getTokens(); *parser >> token;
+         parser->getTokens();
+         *parser >> Params[0].asdouble; //McZapkie-090302 *0.28;
+         parser->getTokens(); *parser >> token;
         break;
         case tp_Multiple:
          i=0;
-         Params[8].asInt=0;
-
+         ti=0; //flaga dla else
          parser->getTokens();
          *parser >> token;
          str=AnsiString(token.c_str());
-
          while (str!=AnsiString("endevent") && str!=AnsiString("condition"))
          {
           if ((str.SubString(1,5)!="none_")?(i<8):false)
           {//eventy rozpoczynaj¹ce siê od "none_" s¹ ignorowane
-           Params[i].asText=new char[255];
-           strcpy(Params[i].asText,str.c_str());
-           i++;
+           if (str!="else")
+           {Params[i].asText=new char[255];
+            strcpy(Params[i].asText,str.c_str());
+            if (ti) iFlags|=conditional_else<<i; //oflagowanie dla eventów "else"
+            i++;
+           }
+           else
+            ti=!ti; //zmiana flagi dla s³owa "else"
           }
           else
            WriteLog("Event \""+str+"\" ignored in multiple \""+asName+"\"!");
@@ -336,57 +398,7 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
           *parser >> token;
           str=AnsiString(token.c_str());
          }
-         if (str==AnsiString("condition"))
-         {
-          if (!asNodeName.IsEmpty())
-          {//podczepienie ³añcucha, jeœli nie jest pusty
-           Params[9].asText=new char[asNodeName.Length()+1]; //usuwane i zamieniane na wskaŸnik
-           strcpy(Params[9].asText,asNodeName.c_str());
-          }
-          parser->getTokens();
-          *parser >> token;
-          str=AnsiString(token.c_str());
-          if (str==AnsiString("trackoccupied"))
-           Params[8].asInt=conditional_trackoccupied;
-          else if (str==AnsiString("trackfree"))
-           Params[8].asInt=conditional_trackfree;
-          else if (str==AnsiString("propability"))
-          {
-           Params[8].asInt=conditional_propability;
-           parser->getTokens();
-           *parser >> Params[10].asdouble;
-          }
-          else if (str==AnsiString("memcompare"))
-          {
-           Params[8].asInt=0;
-           parser->getTokens(1,false);  //case sensitive
-           *parser >> token;
-           str=AnsiString(token.c_str());
-           if (str!=AnsiString("*")) //"*" - nie brac command pod uwage
-           {//zapamiêtanie ³añcucha do porównania
-            Params[10].asText=new char[255];
-            strcpy(Params[10].asText,str.c_str());
-            Params[8].asInt|=conditional_memstring;
-           }
-           parser->getTokens();
-           *parser >> token;
-           str=AnsiString(token.c_str());
-           if (str!=AnsiString("*")) //"*" - nie brac val1 pod uwage
-           {
-            Params[11].asdouble=str.ToDouble();
-            Params[8].asInt|=conditional_memval1;
-           }
-           parser->getTokens();
-           *parser >> token;
-           str=AnsiString(token.c_str());
-           if (str!=AnsiString("*")) //"*" - nie brac val2 pod uwage
-           {
-            Params[12].asdouble=str.ToDouble();
-            Params[8].asInt|=conditional_memval2;
-           }
-          }
-          parser->getTokens(); *parser >> token;
-         }
+         Conditions(parser,str); //sprawdzanie warunków
         break;
         case tp_Ignored: //ignorowany
         case tp_Unknown: //nieznany

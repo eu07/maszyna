@@ -257,6 +257,7 @@ public:
  AnsiString __fastcall TrainName();
  double __fastcall StationCount();
  double __fastcall StationIndex();
+ bool __fastcall Primary() {return this?bool(iDrivigFlags&movePrimary):false;};
 };
 
 #endif
