@@ -2013,7 +2013,7 @@ bool __fastcall TController::UpdateSituation(double dt)
      if (Controlling->BrakeCtrlPos==0) //jest pozycja jazdy
       if (fabs(p->MoverParameters->PipePress-0.5)<0.005) //jeœli ciœnienie jak dla jazdy
        if (p->MoverParameters->CntrlPipePress>p->MoverParameters->PipePress+0.01) //za du¿o w zbiorniku
-        p->MoverParameters->BrakeReleaser(); //indywidualne luziwanko
+        p->MoverParameters->BrakeReleaser(); //indywidualne luzowanko
   }
   if (fReady<p->MoverParameters->BrakePress)
    fReady=p->MoverParameters->BrakePress; //szukanie najbardziej zahamowanego
