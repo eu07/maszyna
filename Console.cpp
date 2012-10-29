@@ -7,6 +7,7 @@
 #include "Globals.h"
 #include "Logs.h"
 #include "PoKeys55.h"
+#include "LPT.h"
 
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
@@ -47,6 +48,31 @@ Dzia³anie jest nastêpuj¹ce:
 
 /*******************************/
 
+/* //kod do przetrawienia:
+//aby siê nie w³¹czacz wygaszacz ekranu, co jakiœ czas naciska siê wirtualnie ScrollLock
+
+[DllImport("user32.dll")]
+static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+
+private static void PressScrollLock()
+{//przyciska i zwalnia ScrollLock
+ const byte vkScroll = 0x91;
+ const byte keyeventfKeyup = 0x2;
+ keybd_event(vkScroll, 0x45, 0, (UIntPtr)0);
+ keybd_event(vkScroll, 0x45, keyeventfKeyup, (UIntPtr)0);
+};
+
+[DllImport("user32.dll")]
+private static extern bool SystemParametersInfo(int uAction,int uParam,int &lpvParam,int flags);
+
+public static Int32 GetScreenSaverTimeout()
+{
+ Int32 value=0;
+ SystemParametersInfo(14,0,&value,0);
+ return value;
+};
+*/
+
 //Ra: do poprawienia
 typedef enum {ktCapsLock,ktNumLock,ktScrollLock} TKeyType;
 
@@ -81,6 +107,7 @@ int Console::iBits=0; //zmienna statyczna - obiekt Console jest jednen wspólny
 int Console::iMode=0;
 int Console::iConfig=0;
 TPoKeys55 *Console::PoKeys55=NULL;
+TLPT *Console::LPT=NULL;
 
 __fastcall Console::Console()
 {
@@ -100,15 +127,32 @@ void __fastcall Console::ModeSet(int m,int h)
 
 int __fastcall Console::On()
 {//za³¹czenie konsoli (np. nawi¹zanie komunikacji)
- PoKeys55=new TPoKeys55();
- if (PoKeys55?PoKeys55->Connect():false)
- {WriteLog("Found "+PoKeys55->Version());
-  BitsUpdate(-1); //aktualizacjia stanów, bo przy wczytywaniu mog³o byæ nieaktywne
- }
- else
- {//po³¹czenie nie wysz³o, ma byæ NULL
-  delete PoKeys55;
-  PoKeys55=NULL;
+ switch (iMode)
+ {case 3: //LPT
+   LPT=new TLPT(); //otwarcie inpout32.dll
+   if (LPT?LPT->Connect(iConfig):false)
+   {//wys³aæ 0?
+    BitsUpdate(-1); //aktualizacjia stanów, bo przy wczytywaniu mog³o byæ nieaktywne
+    WriteLog("InpOut32.dll OK");
+   }
+   else
+   {//po³¹czenie nie wysz³o, ma byæ NULL
+    delete LPT;
+    LPT=NULL;
+   }
+  break;
+  case 4: //PoKeys
+   PoKeys55=new TPoKeys55();
+   if (PoKeys55?PoKeys55->Connect():false)
+   {WriteLog("Found "+PoKeys55->Version());
+    BitsUpdate(-1); //aktualizacjia stanów, bo przy wczytywaniu mog³o byæ nieaktywne
+   }
+   else
+   {//po³¹czenie nie wysz³o, ma byæ NULL
+    delete PoKeys55;
+    PoKeys55=NULL;
+   }
+  break;
  }
  return 0;
 };
@@ -116,8 +160,8 @@ int __fastcall Console::On()
 void __fastcall Console::Off()
 {//wy³¹czenie informacji zwrotnych (reset pulpitu)
  BitsClear(-1);
- delete PoKeys55;
- PoKeys55=NULL;
+ delete PoKeys55; PoKeys55=NULL;
+ delete LPT; LPT=NULL;
 };
 
 void __fastcall Console::BitsSet(int mask,int entry)
@@ -158,9 +202,10 @@ void __fastcall Console::BitsUpdate(int mask)
    }
    break;
   case 3: //LPT Marcela z modyfikacj¹ (jazda na oporach zamiast brzêczyka)
-   // (do zrobienia)
+   if (LPT)
+    LPT->Out(iBits);
    break;
-  case 4: //PoKeys55 wg Marcela
+  case 4: //PoKeys55 wg Marcela - wersja pierwotna z pocz¹tku 2012
    if (PoKeys55)
    {//pewnie trzeba bêdzie to dodatkowo buforowaæ i oczekiwaæ na potwierdzenie
     if (mask&0x001) //gdy SHP

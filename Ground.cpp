@@ -1396,7 +1396,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
  else if (str=="line_strip")          tmp->iType=GL_LINE_STRIP;
  else if (str=="line_loop")           tmp->iType=GL_LINE_LOOP;
  else if (str=="model")               tmp->iType=TP_MODEL;
- else if (str=="terrain")             tmp->iType=TP_TERRAIN; //TODO: zrobiæ jak zwyk³y model
+ else if (str=="terrain")             tmp->iType=TP_TERRAIN; //tymczasowo do odwo³ania
  else if (str=="dynamic")             tmp->iType=TP_DYNAMIC;
  else if (str=="sound")               tmp->iType=TP_SOUND;
  else if (str=="track")               tmp->iType=TP_TRACK;
@@ -1631,6 +1631,10 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    break;
   case TP_TERRAIN: //TODO: zrobiæ jak zwyk³y, rozró¿nienie po nazwie albo czymœ innym
   case TP_MODEL:
+   if (rmin<0)
+   {tmp->iType=TP_TERRAIN;
+    tmp->fSquareMinRadius=0; //to w ogóle potrzebne?
+   }
    parser->getTokens(3);
    *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
    parser->getTokens();
@@ -2417,7 +2421,7 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
 }
 
 bool __fastcall TGround::InitEvents()
-{
+{//³¹czenie eventów z pozosta³ymi obiektami
  TGroundNode* tmp;
  char buff[255];
  int i;
@@ -2425,15 +2429,24 @@ bool __fastcall TGround::InitEvents()
  {
   switch (Current->Type)
   {
-   case tp_AddValues:
-   case tp_UpdateValues:
+   case tp_AddValues: //sumowanie wartoœci
+   case tp_UpdateValues: //zmiana wartoœci
     tmp=FindGroundNode(Current->asNodeName,TP_MEMCELL);
     if (tmp)
     {//McZapkie-100302
+     if (Current->iFlags&(conditional_trackoccupied|conditional_trackfree))
+     {//jeœli chodzi o zajetosc toru (tor mo¿e byæ inny, ni¿ wpisany w komórce)
+      tmp=FindGroundNode(Current->asNodeName,TP_TRACK); //nazwa ta sama, co nazwa komórki
+      if (tmp) Current->Params[9].asTrack=tmp->pTrack;
+      if (!Current->Params[9].asTrack)
+       Error(AnsiString("Track \"")+AnsiString(buff)+"\" does not exist in \""+Current->asName+"\"");
+     }
      Current->Params[4].asGroundNode=tmp;
-     Current->Params[5].asMemCell=tmp->MemCell;
-     if (tmp->MemCell->asTrackName!=AnsiString("none"))
-     {
+     Current->Params[5].asMemCell=tmp->MemCell; //komórka do aktualizacji
+     if (Current->iFlags&(conditional_memcompare))
+      Current->Params[9].asMemCell=tmp->MemCell; //komórka do badania warunku
+     if (tmp->MemCell->asTrackName!="none")
+     {//tu potrzebujemy wskaŸnik do komórki w (tmp)
       tmp=FindGroundNode(tmp->MemCell->asTrackName,TP_TRACK);
       if (tmp)
        Current->Params[6].asTrack=tmp->pTrack;
@@ -2446,9 +2459,14 @@ bool __fastcall TGround::InitEvents()
     else
      Error("Event \""+Current->asName+"\" cannot find memcell \""+Current->asNodeName+"\"");
    break;
+   case tp_LogValues: //skojarzenie z memcell
+    if (Current->asNodeName.IsEmpty())
+    {//brak skojarzenia daje logowanie wszystkich 
+     Current->Params[9].asMemCell=NULL;
+     break;
+    }
    case tp_GetValues:
    case tp_WhoIs:
-   case tp_LogValues: //skojarzenie z memcell
     tmp=FindGroundNode(Current->asNodeName,TP_MEMCELL);
     if (tmp)
     {
@@ -2461,17 +2479,27 @@ bool __fastcall TGround::InitEvents()
     else
      Error("Event \""+Current->asName+"\" cannot find memcell \""+Current->asNodeName+"\"");
    break;
-   case tp_CopyValues :
+   case tp_CopyValues: //skopiowanie komórki do innej
     tmp=FindGroundNode(Current->asNodeName,TP_MEMCELL); //komórka docelowa
     if (tmp)
     {
-     Current->Params[8].asGroundNode=tmp;
-     Current->Params[9].asMemCell=tmp->MemCell;
+     Current->Params[4].asGroundNode=tmp;
+     Current->Params[5].asMemCell=tmp->MemCell; //komórka docelowa
     }
     else
      Error("Event \""+Current->asName+"\" cannot find memcell \""+Current->asNodeName+"\"");
+    strcpy(buff,Current->Params[9].asText); //skopiowanie nazwy drugiej komórki do bufora roboczego
+    SafeDeleteArray(Current->Params[9].asText); //usuniêcie nazwy komórki 
+    tmp=FindGroundNode(buff,TP_MEMCELL); //komórka Ÿód³owa
+    if (tmp)
+    {
+     Current->Params[8].asGroundNode=tmp;
+     Current->Params[9].asMemCell=tmp->MemCell; //komórka Ÿród³owa
+    }
+    else
+     Error("Event \""+Current->asName+"\" cannot find memcell \""+AnsiString(buff)+"\"");
    break;
-   case tp_Animation:
+   case tp_Animation: //animacja modelu
     tmp=FindGroundNode(Current->asNodeName,TP_MODEL); //egzemplarza modelu do animowania
     if (tmp)
     {
@@ -2485,73 +2513,67 @@ bool __fastcall TGround::InitEvents()
      Error("Event \""+Current->asName+"\" cannot find model \""+Current->asNodeName+"\"");
     Current->asNodeName="";
    break;
-   case tp_Lights:
+   case tp_Lights: //zmiana œwiete³ modelu
     tmp=FindGroundNode(Current->asNodeName,TP_MODEL);
     if (tmp)
      Current->Params[9].asModel=tmp->Model;
     else
-     Error("Event \""+Current->asName+"\" cannot find model \""+
-                      Current->asNodeName+"\"");
+     Error("Event \""+Current->asName+"\" cannot find model \""+Current->asNodeName+"\"");
     Current->asNodeName="";
    break;
-   case tp_Visible:
+   case tp_Visible: //ukrycie albo przywrócenie obiektu
     tmp=FindGroundNode(Current->asNodeName,TP_MODEL); //najpierw model
     if (!tmp) tmp=FindGroundNode(Current->asNodeName,TP_TRACTION); //mo¿e druty?
     if (!tmp) tmp=FindGroundNode(Current->asNodeName,TP_TRACK); //albo tory?
     if (tmp)
      Current->Params[9].asGroundNode=tmp;
     else
-     Error("Event \""+Current->asName+"\" cannot find model \""+
-                      Current->asNodeName+"\"");
+     Error("Event \""+Current->asName+"\" cannot find model \""+Current->asNodeName+"\"");
     Current->asNodeName="";
    break;
-   case tp_Switch:
-       tmp= FindGroundNode(Current->asNodeName,TP_TRACK);
-       if (tmp)
-           Current->Params[9].asTrack=tmp->pTrack;
-       else
-           Error("Event \""+Current->asName+"\" cannot find track \""+
-                            Current->asNodeName+"\"");
-       Current->asNodeName="";
+   case tp_Switch: //peze³o¿enie zwrotnicy albo zmiana stanu obrotnicy
+    tmp=FindGroundNode(Current->asNodeName,TP_TRACK);
+    if (tmp)
+     Current->Params[9].asTrack=tmp->pTrack;
+    else
+     Error("Event \""+Current->asName+"\" cannot find track \""+Current->asNodeName+"\"");
+    Current->asNodeName="";
    break;
-   case tp_Sound :
-       tmp= FindGroundNode(Current->asNodeName,TP_SOUND);
-       if (tmp)
-           Current->Params[9].asRealSound= tmp->pStaticSound;
-       else
-           Error("Event \""+Current->asName+"\" cannot find static sound \""+
-                            Current->asNodeName+"\"");
-       Current->asNodeName="";
+   case tp_Sound: //odtworzenie dŸwiêku
+    tmp= FindGroundNode(Current->asNodeName,TP_SOUND);
+    if (tmp)
+     Current->Params[9].asRealSound=tmp->pStaticSound;
+    else
+     Error("Event \""+Current->asName+"\" cannot find static sound \""+Current->asNodeName+"\"");
+    Current->asNodeName="";
    break;
-   case tp_TrackVel :
-       if (Current->asNodeName!=AnsiString(""))
-       {
-           tmp= FindGroundNode(Current->asNodeName,TP_TRACK);
-           if (tmp)
-               Current->Params[9].asTrack= tmp->pTrack;
-           else
-               Error("Event \""+Current->asName+"\" cannot find track \""+
-                                Current->asNodeName+"\"");
-       }
-       Current->asNodeName= "";
+   case tp_TrackVel: //ustawienie prêdkoœci na torze
+    if (!Current->asNodeName.IsEmpty())
+    {
+     tmp=FindGroundNode(Current->asNodeName,TP_TRACK);
+     if (tmp)
+      Current->Params[9].asTrack=tmp->pTrack;
+     else
+      Error("Event \""+Current->asName+"\" cannot find track \""+Current->asNodeName+"\"");
+    }
+    Current->asNodeName= "";
    break;
-   case tp_DynVel :
-       if (Current->asNodeName==AnsiString("activator"))
-           Current->Params[9].asDynamic= NULL;
-       else
-       {
-           tmp= FindGroundNode(Current->asNodeName,TP_DYNAMIC);
-           if (tmp)
-               Current->Params[9].asDynamic= tmp->DynamicObject;
-           else
-               Error("Event \""+Current->asName+"\" cannot find dynamic \""+
-                                Current->asNodeName+"\"");
-       }
-       Current->asNodeName= "";
+   case tp_DynVel: //komunikacja z pojazdem o konkretnej nazwie
+    if (Current->asNodeName=="activator")
+     Current->Params[9].asDynamic=NULL;
+    else
+    {
+     tmp=FindGroundNode(Current->asNodeName,TP_DYNAMIC);
+     if (tmp)
+      Current->Params[9].asDynamic= tmp->DynamicObject;
+     else
+      Error("Event \""+Current->asName+"\" cannot find dynamic \""+Current->asNodeName+"\"");
+    }
+    Current->asNodeName= "";
    break;
    case tp_Multiple:
     if (Current->Params[9].asText!=NULL)
-    {
+    {//powi¹zanie z komórk¹ pamiêci
      strcpy(buff,Current->Params[9].asText);
      SafeDeleteArray(Current->Params[9].asText);
      if (Current->iFlags&(conditional_trackoccupied|conditional_trackfree))
@@ -2860,7 +2882,7 @@ bool __fastcall TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
 
 bool __fastcall TGround::EventConditon(TEvent *e)
 {//sprawdzenie spelnienia warunków dla eventu
- if (e->iFlags==0) return true; //bezwarunkowo
+ if (e->iFlags<=update_only) return true; //bezwarunkowo
  if (e->iFlags&conditional_trackoccupied)
   return (!e->Params[9].asTrack->IsEmpty());
  else if (e->iFlags&conditional_trackfree)
@@ -2871,13 +2893,13 @@ bool __fastcall TGround::EventConditon(TEvent *e)
   WriteLog("Random integer: "+CurrToStr(rprobability)+"/"+CurrToStr(e->Params[10].asdouble));
   return (e->Params[10].asdouble>rprobability);
  }
- else
+ else if (e->iFlags&conditional_memcompare)
  {//porównanie wartoœci
   if (tmpEvent->Params[9].asMemCell->Compare(e->Params[10].asText,e->Params[11].asdouble,e->Params[12].asdouble,e->iFlags))
    return true;
   else if (Global::iWriteLogEnabled && DebugModeFlag)
   {//nie zgadza siê wiêc sprawdzmy, co
-   LogComment=e->Params[9].asMemCell->Text()+AnsiString(" ")+FloatToStrF(e->Params[9].asMemCell->Value1(),ffFixed,8,2)+" "+FloatToStrF(tmpEvent->Params[9].asMemCell->Value2(),ffFixed,8,2)+" ?= ";
+   LogComment=e->Params[9].asMemCell->Text()+AnsiString(" ")+FloatToStrF(e->Params[9].asMemCell->Value1(),ffFixed,8,2)+" "+FloatToStrF(tmpEvent->Params[9].asMemCell->Value2(),ffFixed,8,2)+" != ";
    if (TestFlag(e->iFlags,conditional_memstring))
     LogComment+=AnsiString(tmpEvent->Params[10].asText);
    else
@@ -2959,13 +2981,14 @@ bool __fastcall TGround::CheckQuery()
    WriteLog("EVENT LAUNCHED: "+tmpEvent->asName);
    switch (tmpEvent->Type)
    {
-    case tp_CopyValues: //pobranie wartoœci z innej komórki
-/*
-     tmpEvent->Params[0].asText=tmpEvent->Params[9].asMemCell->U
-     tmpEvent->Params[1].asdouble=
-     tmpEvent->Params[2].asdouble=
-     tmpEvent->Params[12].asInt=conditional_memstring|conditional_memval1|conditional_memval2; //wszystko
-*/
+    case tp_CopyValues: //skopiowanie wartoœci z innej komórki
+     tmpEvent->Params[5].asMemCell->UpdateValues
+     (tmpEvent->Params[9].asMemCell->Text(),
+      tmpEvent->Params[9].asMemCell->Value1(),
+      tmpEvent->Params[9].asMemCell->Value2(),
+      tmpEvent->iFlags
+     );
+    break;
     case tp_AddValues: //ró¿ni siê jedn¹ flag¹ od UpdateValues
     case tp_UpdateValues:
      if (EventConditon(tmpEvent))
@@ -3123,15 +3146,22 @@ bool __fastcall TGround::CheckQuery()
         tmpEvent->Activator->Mechanik->TrainName().c_str(),
         tmpEvent->Activator->Mechanik->StationCount(),
         tmpEvent->Activator->Mechanik->StationIndex(),
-        update_memstring|update_memval1|update_memval2);
+        tmpEvent->iFlags);
        WriteLog("Train detected: "+tmpEvent->Activator->Mechanik->TrainName());
       }
     break;
     case tp_LogValues: //zapisanie zawartoœci komórki pamiêci do logu
-     WriteLog("Memcell \""+tmpEvent->asNodeName+"\": "+
-      tmpEvent->Params[9].asMemCell->Text()+", "+
-      tmpEvent->Params[9].asMemCell->Value1()+", "+
-      tmpEvent->Params[9].asMemCell->Value2());
+     if (tmpEvent->Params[9].asMemCell) //jeœli by³a podana nazwa komórki
+      WriteLog("Memcell \""+tmpEvent->asNodeName+"\": "+
+       tmpEvent->Params[9].asMemCell->Text()+" "+
+       tmpEvent->Params[9].asMemCell->Value1()+" "+
+       tmpEvent->Params[9].asMemCell->Value2());
+     else //lista wszystkich
+      for (TGroundNode *Current=nRootOfType[TP_MEMCELL];Current;Current=Current->Next)
+       WriteLog("Memcell \""+Current->asName+"\": "+
+        Current->MemCell->Text()+" "+
+        Current->MemCell->Value1()+" "+
+        Current->MemCell->Value2());
     break;
    } //switch (tmpEvent->Type)
   } //if (tmpEvent->bEnabled)

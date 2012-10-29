@@ -252,7 +252,7 @@ bool __fastcall TAnimModel::Load(cParser *parser, bool ter)
    parser->getTokens();
    *parser >> token;
    str=AnsiString(token.c_str());
-  } while ((str!="endmodel")&&(str!="endterrain"));
+  } while ((str!="endmodel")&&(str!="endterrain")); //tymczasowo oba do odwo³ania
  }
  return true;
 }

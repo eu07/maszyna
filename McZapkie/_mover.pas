@@ -2330,7 +2330,7 @@ begin
              end
             else
              begin
-              if(BrakeCtrlPos>0)or(BrakeCtrlPos=-2)then
+              if (BrakeCtrlPos>0)or(BrakeCtrlPos=-2) then
                begin
                 if PipePressureVal>=0 then
                     LimPipePress:=PipePressureVal;
@@ -2349,8 +2349,8 @@ begin
                       ActFlowSpeed:=FlowSpeedVal;
                 end
               else
-              if(BrakeCtrlPos=-1)then
-               if(PipePress>0.699)then
+              if (BrakeCtrlPos=-1) then
+               if (PipePress>0.699) then
                 begin
                   LimPipePress:=0.54;
                   ActFlowSpeed:=5;
@@ -2362,7 +2362,7 @@ begin
             begin
              if not(PipePressureVal=-1)then
                LimPipePress:=PipePressureVal;
-             if(BrakeCtrlPos=0)and(PipePress>LimPipePress)then
+             if ((BrakeCtrlPos=0)and(PipePress>LimPipePress)) then
                ActFlowSpeed:=2
              else
                ActFlowSpeed:=FlowSpeedVal;
@@ -5212,7 +5212,7 @@ begin
       CheckCollision:=False;
     end;
   ScanCounter:=0;
-  BrakeCtrlPos:=0; //to nie ma znaczenia, konstruktor w Mover.cpp zmienia na -2
+  BrakeCtrlPos:=-2; //to nie ma znaczenia, konstruktor w Mover.cpp zmienia na -2
   BrakeDelayFlag:=0;
   BrakeStatus:=b_off;
   EmergencyBrakeFlag:=False;
