@@ -72,6 +72,7 @@ USEUNIT("Mover.cpp");
 USEUNIT("McZapkie\_mover.pas");
 USEUNIT("Console\PoKeys55.cpp");
 USEUNIT("Forth.cpp");
+USEUNIT("Console\LPT.cpp");
 //---------------------------------------------------------------------------
 #include "World.h"
 
@@ -670,7 +671,7 @@ int WINAPI WinMain( HINSTANCE hInstance,     //instance
     if (World.Update()) // Was There A Quit Received?
      SwapBuffers(hDC);	// Swap Buffers (Double Buffering)
     else
-     done=TRUE; //[F10] or DrawGLScene signalled a quit
+     done=true; //[F10] or DrawGLScene signalled a quit
    }
   }
   Console::Off(); //wy³¹czenie konsoli (komunikacji zwrotnej)

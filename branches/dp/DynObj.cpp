@@ -1301,7 +1301,8 @@ double __fastcall TDynamicObject::Init(
   if (Name==AnsiString(Global::asHumanCtrlVehicle)) //jeœli pojazd wybrany do prowadzenia
   {
    if (MoverParameters->EngineType!=Dumb) //i nie jest dumbem
-    Controller=Humandriver; //wsadzamy tam steruj¹cego
+    //if (!DebugModeFlag) //w Debugmode prowadzi teraz AI - bierki, kabina znika... :/
+     Controller=Humandriver; //wsadzamy tam steruj¹cego
   }
   //McZapkie-151102: rozk³ad jazdy czytany z pliku *.txt z katalogu w którym jest sceneria
   if (DriverType.Pos("h")||DriverType.Pos("r"))

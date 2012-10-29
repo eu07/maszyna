@@ -12,7 +12,8 @@
       RealSound.obj EvLaunch.obj FadeSound.obj Traction.obj TractionPower.obj 
       parser.obj sky.obj AirCoupler.obj glew.obj ResourceManager.obj VBO.obj 
       TextureDDS.obj opengl\ARB_Multisample.obj Float3d.obj Classes.obj 
-      Driver.obj Names.obj Console.obj Mover.obj Console\PoKeys55.obj Forth.obj"/>
+      Driver.obj Names.obj Console.obj Mover.obj Console\PoKeys55.obj Forth.obj 
+      Console\LPT.obj"/>
     <RESFILES value="EU07.res"/>
     <IDLFILES value=""/>
     <IDLGENFILES value=""/>
@@ -57,8 +58,8 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=1
 MinorVer=8
-Release=680
-Build=382
+Release=683
+Build=383
 Debug=1
 PreRelease=0
 Special=0
@@ -70,7 +71,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.8.680.382
+FileVersion=1.8.683.383
 InternalName=8th by Ra
 LegalCopyright=
 LegalTrademarks=
@@ -116,7 +117,7 @@ Item1=D:\EU07DDS\
 DebugSourceDirs=C:\Ra\dp\McZapkie\
 
 [Parameters]
-RunParams=
+RunParams=-s quarkmce2007.scn -v EP07-1038
 HostApplication=
 RemoteHost=
 RemotePath=

@@ -33,8 +33,9 @@ enum TMovementStatus
  movePrimary=0x20, //ma priorytet w sk³adzie (master)
  //moveStopThen=0x40, //nie podje¿d¿aæ do semafora, jeœli droga nie jest wolna
  moveStopHere=0x80, //nie podje¿d¿aæ do semafora, jeœli droga nie jest wolna
- moveStartHorn=0x100, //podaj sygna³ po podaniu wolnej drogi
- moveStartHornDone=0x200 //podano sygna³ po podaniu wolnej drogi
+ moveStartHorn=0x100, //podawaj sygna³ po podaniu wolnej drogi
+ moveStartHornNow=0x200, //podaj sygna³ po odhamowaniu
+ moveStartHornDone=0x400 //podano sygna³ po podaniu wolnej drogi
 };
 
 enum TStopReason

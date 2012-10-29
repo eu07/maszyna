@@ -15,19 +15,20 @@ typedef enum { tp_Unknown, tp_Sound, tp_SoundPos, tp_Exit,
                tp_LogValues, tp_Visible
              }  TEventType;
 
-const int conditional_memstring     =        1; //porównanie tekstu
-const int conditional_memval1       =        2; //porównanie pierwszej wartoœci liczbowej
-const int conditional_memval2       =        4; //porównanie drugiej wartoœci
-const int conditional_trackoccupied =    0x100; //jeœli tor zajêty
-const int conditional_trackfree     =    0x200; //jeœli tor wolny
-const int conditional_propability   =    0x400; //zale¿nie od generatora lizcb losowych
-const int conditional_memcompare    =    0x800; //porównanie zawartoœci
-const int conditional_else          =  0x10000; //flaga odwrócenia warunku (przesuwana bitowo)
-const int conditional_anyelse       = 0xFF0000; //do sprawdzania, czy s¹ odwrócone warunki
-const int update_memstring          =0x1000000; //zmodyfikowaæ tekst (UpdateValues)
-const int update_memval1            =0x2000000; //zmodyfikowaæ pierwsz¹ wartosæ
-const int update_memval2            =0x4000000; //zmodyfikowaæ drug¹ wartosæ
-const int update_memadd             =0x8000000; //dodaæ do poprzedniej zawartoœci
+const int update_memstring          =0x0000001; //zmodyfikowaæ tekst (UpdateValues)
+const int update_memval1            =0x0000002; //zmodyfikowaæ pierwsz¹ wartosæ
+const int update_memval2            =0x0000004; //zmodyfikowaæ drug¹ wartosæ
+const int update_memadd             =0x0000008; //dodaæ do poprzedniej zawartoœci
+const int update_only               =0x00000FF; //wartoœæ graniczna 
+const int conditional_memstring     =0x0000100; //porównanie tekstu
+const int conditional_memval1       =0x0000200; //porównanie pierwszej wartoœci liczbowej
+const int conditional_memval2       =0x0000400; //porównanie drugiej wartoœci
+const int conditional_else          =0x0010000; //flaga odwrócenia warunku (przesuwana bitowo)
+const int conditional_anyelse       =0x0FF0000; //do sprawdzania, czy s¹ odwrócone warunki
+const int conditional_trackoccupied =0x1000000; //jeœli tor zajêty
+const int conditional_trackfree     =0x2000000; //jeœli tor wolny
+const int conditional_propability   =0x4000000; //zale¿nie od generatora lizcb losowych
+const int conditional_memcompare    =0x8000000; //porównanie zawartoœci
 
 union TParam
 {
@@ -63,7 +64,7 @@ public:
  double fDelay;
  TDynamicObject *Activator;
  TParam Params[13]; //McZapkie-070502 //Ra: zamieniæ to na union/struct
- int iFlags; //zamiast Params[8] z flagami warunku
+ unsigned int iFlags; //zamiast Params[8] z flagami warunku
  AnsiString asNodeName; //McZapkie-100302 - dodalem zeby zapamietac nazwe toru
  TEvent *eJoined; //kolejny event z t¹ sam¹ nazw¹ - od wersji 378
 public: //metody
