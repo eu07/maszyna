@@ -2051,8 +2051,8 @@ void __fastcall TTrain::UpdateMechPosition(double dt)
  if (DynamicObject->Mechanik) //mo¿e nie byæ?
   if (DynamicObject->Mechanik->AIControllFlag) //jeœli prowadzi AI
   {//Ra: przesiadka, jeœli AI zmieni³o kabinê (a cz³on?)...
-   if (iCabn!=(DynamicObject->MoverParameters->CabNo==-1?2:DynamicObject->MoverParameters->ActiveCab))
-    InitializeCab(DynamicObject->MoverParameters->CabNo,DynamicObject->asBaseDir+DynamicObject->MoverParameters->TypeName+".mmd");
+   if (iCabn!=(DynamicObject->MoverParameters->ActiveCab==-1?2:DynamicObject->MoverParameters->ActiveCab))
+    InitializeCab(DynamicObject->MoverParameters->ActiveCab,DynamicObject->asBaseDir+DynamicObject->MoverParameters->TypeName+".mmd");
   }
  iCabn=(DynamicObject->MoverParameters->ActiveCab==-1?2:DynamicObject->MoverParameters->ActiveCab);
  if (!DebugModeFlag)
