@@ -2074,8 +2074,9 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
         else
         {//jeœli jest pojazdem
          //if (!bInitDone) FirstInit(); //jeœli nie by³o w scenerii
-         if (LastNode->DynamicObject->Mechanik)
-          TrainSetDriver=LastNode; //pojazd, któremu zostanie wys³any rozk³ad
+         if (LastNode->DynamicObject->Mechanik) //ale mo¿e byæ pasa¿er
+          if (LastNode->DynamicObject->MoverParameters->ActiveCab) //aktywna kabina
+           TrainSetDriver=LastNode; //pojazd, któremu zostanie wys³any rozk³ad
          LastNode->Next=nRootDynamic;
          nRootDynamic=LastNode; //dopisanie z przodu do listy
          //if (bTrainSet && (LastNode?(LastNode->iType==TP_DYNAMIC):false))
@@ -2978,7 +2979,7 @@ bool __fastcall TGround::CheckQuery()
    QueryRootEvent=QueryRootEvent->Next; //NULL w skrajnym przypadku
   if (tmpEvent->bEnabled)
   {
-   WriteLog("EVENT LAUNCHED: "+tmpEvent->asName);
+   WriteLog("EVENT LAUNCHED: "+tmpEvent->asName+(tmpEvent->Activator?AnsiString(" by "+tmpEvent->Activator->asName):AnsiString("")));
    switch (tmpEvent->Type)
    {
     case tp_CopyValues: //skopiowanie wartoœci z innej komórki

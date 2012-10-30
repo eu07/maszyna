@@ -58,8 +58,8 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=1
 MinorVer=8
-Release=683
-Build=383
+Release=684
+Build=384
 Debug=1
 PreRelease=0
 Special=0
@@ -71,7 +71,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.8.683.383
+FileVersion=1.8.684.384
 InternalName=8th by Ra
 LegalCopyright=
 LegalTrademarks=
@@ -117,7 +117,7 @@ Item1=D:\EU07DDS\
 DebugSourceDirs=C:\Ra\dp\McZapkie\
 
 [Parameters]
-RunParams=-s quarkmce2007.scn -v EP07-1038
+RunParams=
 HostApplication=
 RemoteHost=
 RemotePath=
