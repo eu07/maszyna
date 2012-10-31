@@ -3140,13 +3140,36 @@ bool __fastcall TGround::CheckQuery()
     }
     break;
     case tp_WhoIs: //pobranie nazwy poci¹gu do komórki pamiêci
-     if (tmpEvent->Activator->Mechanik)
+     if (tmpEvent->iFlags&update_load)
+     {//jeœli pytanie o ³adunek
+      if (tmpEvent->iFlags&update_memadd) //jeœli typ pojazdu
+       tmpEvent->Params[9].asMemCell->UpdateValues(
+        tmpEvent->Activator->MoverParameters->TypeName.c_str(), //typ pojazdu
+        0, //na razie nic
+        0, //na razie nic
+        tmpEvent->iFlags&(update_memstring|update_memval1|update_memval2));
+      else //jeœli parametry ³adunku
+       tmpEvent->Params[9].asMemCell->UpdateValues(
+        tmpEvent->Activator->MoverParameters->LoadType!=""?tmpEvent->Activator->MoverParameters->LoadType.c_str():"none", //nazwa ³adunku
+        tmpEvent->Activator->MoverParameters->Load, //aktualna iloœæ
+        tmpEvent->Activator->MoverParameters->MaxLoad, //maksymalna iloœæ
+        tmpEvent->iFlags&(update_memstring|update_memval1|update_memval2));
+     }
+     else if (tmpEvent->iFlags&update_memadd)
+     {//jeœli miejsce docelowe pojazdu
+      tmpEvent->Params[9].asMemCell->UpdateValues(
+       tmpEvent->Activator->asDestination.c_str(), //adres docelowy
+       tmpEvent->Activator->DirectionGet(), //kierunek pojazdu wzglêdem czo³a sk³adu (1=zgodny,-1=przeciwny)
+       tmpEvent->Activator->MoverParameters->Power, //moc pojazdu silnikowego: 0 dla wagonu
+       tmpEvent->iFlags&(update_memstring|update_memval1|update_memval2));
+     }
+     else if (tmpEvent->Activator->Mechanik)
       if (tmpEvent->Activator->Mechanik->Primary())
       {//tylko jeœli ktoœ tam siedzi - nie powinno dotyczyæ pasa¿era!
        tmpEvent->Params[9].asMemCell->UpdateValues(
         tmpEvent->Activator->Mechanik->TrainName().c_str(),
-        tmpEvent->Activator->Mechanik->StationCount(),
-        tmpEvent->Activator->Mechanik->StationIndex(),
+        tmpEvent->Activator->Mechanik->StationCount()-tmpEvent->Activator->Mechanik->StationIndex(), //ile przystanków do koñca
+        tmpEvent->Activator->Mechanik->IsStop()?1:0, //1, gdy ma tu zatrzymanie
         tmpEvent->iFlags);
        WriteLog("Train detected: "+tmpEvent->Activator->Mechanik->TrainName());
       }
