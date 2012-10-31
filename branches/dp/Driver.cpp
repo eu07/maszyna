@@ -609,10 +609,10 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
      if (eSignSkip!=sSpeedTable[i].eEvent) //jeœli ten SBL nie jest do pominiêcia
       v=sSpeedTable[i].eEvent->ValueGet(1); //to ma 0 odczytywaæ
     }
-    if (sSpeedTable[i].fDist>pVehicles[0]->fTrackBlock-20.0) //jak sygna³ jest dalej ni¿ zawalidroga
+    if ((Controlling->CategoryFlag&1)?sSpeedTable[i].fDist>pVehicles[0]->fTrackBlock-20.0:false) //jak sygna³ jest dalej ni¿ zawalidroga
      v=0.0; //to mo¿e byæ podany dla tamtego: jechaæ tak, jakby tam stop by³
     else
-    {//zawalidrogi nie ma, sprawdziæ sygna³
+    {//zawalidrogi nie ma (albo jest samochodem), sprawdziæ sygna³
      if (sSpeedTable[i].iFlags&0x200) //jeœli Tm - w zasadzie to sprawdziæ komendê!
      {//jeœli podana prêdkoœæ manewrowa
       if ((OrderCurrentGet()&Obey_train)?v==0.0:false)
@@ -1063,7 +1063,7 @@ bool __fastcall TController::CheckVehicles()
   while (p)
   {
    if (TrainParams)
-    if (p->asDestination.IsEmpty())
+    if (p->asDestination=="none")
      p->asDestination=TrainParams->Relation2; //relacja docelowa, jeœli nie by³o
    if (AIControllFlag) //jeœli prowadzi komputer
     p->RaLightsSet(0,0); //gasimy œwiat³a
@@ -1650,6 +1650,14 @@ void __fastcall TController::SpeedSet()
         Controlling->DecScndCtrl(2); //zmniejszyæ bocznik
        else
         Controlling->DecMainCtrl(1); //krêcimy nastawnik jazdy o 1 wstecz
+     }
+     else
+     {//dokrêcanie do bezoporowej, bo IncSpeed() mo¿e nie byæ wywo³ywane
+      //if (Controlling->Vel<VelDesired)
+      // if (AccDesired>0)
+      //  if (Controlling->RList[MainCtrlPos].R>0.0)
+      //   if (Im<1.3*Imin) //lekkie przekroczenie miimalnego pr¹du jest dopuszczalne
+      //    IncMainCtrl(1); //zwieksz nastawnik skoro mo¿esz - tak aby siê ustawic na bezoporowej
      }
   break;
   case Dumb:
@@ -2268,7 +2276,7 @@ bool __fastcall TController::UpdateSituation(double dt)
     {
      fMinProximityDist=10.0; fMaxProximityDist=20.0; //[m]
     }
-    else //samochod
+    else //samochod (sokista te¿)
     {
      fMinProximityDist=7.0; fMaxProximityDist=10.0; //[m]
     }
@@ -2584,24 +2592,24 @@ bool __fastcall TController::UpdateSituation(double dt)
        }
        else if (ActualProximityDist>fMinProximityDist)
        {//jedzie szybciej, ni¿ trzeba na koñcu ActualProximityDist
-        if ((VelNext>vel-40.0)) //dwustopniowe hamowanie - niski przy ma³ej ró¿nicy
+        if (vel<VelNext+40.0) //dwustopniowe hamowanie - niski przy ma³ej ró¿nicy
         {//jeœli jedzie wolniej ni¿ VelNext+35km/h //Ra: 40, ¿eby nie kombinowa³
          if (VelNext==0.0)
          {//jeœli ma siê zatrzymaæ, musi byæ to robione precyzyjnie i skutecznie
-          if (ActualProximityDist>fBrakeDist)
+          if (ActualProximityDist<fMaxProximityDist) //jak min¹³ ju¿ maksymalny dystans
+          {//po prostu hamuj (niski stopieñ) //ma stan¹æ, a jest w drodze hamowania albo ma jechaæ
+           AccDesired=-0.2; //mo¿na by precyzyjniej zatrzymywaæ
+           VelDesired=0.0; //Min0R(VelDesired,VelNext);
+          }
+          else if (ActualProximityDist>fBrakeDist)
           {//jeœli ma stan¹æ, a mieœci siê w drodze hamowania
            if (vel<30.0)  //trzymaj 30 km/h
             AccDesired=Min0R(0.5*AccDesired,AccPreferred); //jak jest tu 0.5, to samochody siê dobijaj¹ do siebie
            else
             AccDesired=0.0;
           }
-          else // prostu hamuj (niski stopieñ) //ma stan¹æ, a jest w drodze hamowania albo ma jechaæ
-           if (ActualProximityDist<fMaxProximityDist) //jak min¹³ ju¿ maksymalny dystans
-           {AccDesired=-1.0; //mo¿na by precyzyjniej zatrzymywaæ
-            VelDesired=Min0R(VelDesired,VelNext);
-           }
-           else //25.92 (=3.6*3.6*2) - przelicznik z km/h na m/s
-            AccDesired=(VelNext*VelNext-vel*vel)/(25.92*(ActualProximityDist-fMinProximityDist))-0.1; //mniejsze opóŸnienie przy ma³ej ró¿nicy
+          else //25.92 (=3.6*3.6*2) - przelicznik z km/h na m/s
+           AccDesired=-(vel*vel)/(25.92*(ActualProximityDist+0.1));//-fMinProximityDist));//-0.1; //mniejsze opóŸnienie przy ma³ej ró¿nicy
           ReactionTime=0.1; //i orientuj siê szybciej, jak masz stan¹æ
          }
          else if (vel<VelNext+VelReduced) //jeœli niewielkie przekroczenie
@@ -2613,7 +2621,7 @@ bool __fastcall TController::UpdateSituation(double dt)
            ReactionTime=0.1; //i orientuj siê szybciej, jeœli w krytycznym przedziale
          }
         }
-        else  //przy du¿ej ró¿nicy wysoki stopieñ (1,25 potrzebnego opoznienia)
+        else //przy du¿ej ró¿nicy wysoki stopieñ (1,25 potrzebnego opoznienia)
          AccDesired=(VelNext*VelNext-vel*vel)/(20.73*ActualProximityDist+0.1); //najpierw hamuje mocniej, potem zluzuje
         if (AccPreferred<AccDesired)
          AccDesired=AccPreferred; //(1+abs(AccDesired))
@@ -2652,7 +2660,6 @@ bool __fastcall TController::UpdateSituation(double dt)
        if ((vel<VelDesired+5)) //o 5 km/h to olej
        {if ((AccDesired>0.0))
          AccDesired=0.0;
-        //else
        }
        else
         AccDesired=-0.2; //hamuj tak œrednio - to siê nie za³apywa³o na warunek <-0.2
@@ -2745,7 +2752,7 @@ bool __fastcall TController::UpdateSituation(double dt)
       //zmniejszanie predkosci
       if (((fAccGravity<-0.05)&&(vel<0))||((AccDesired<fAccGravity-0.1)&&(AccDesired<AbsAccS+fAccGravity-0.05))) //u góry ustawia siê hamowanie na -0.2
       //if not MinVelFlag)
-       if (fBrakeTime<0?true:(AccDesired<-0.6)||(Controlling->BrakeCtrlPos<=0))
+       if (fBrakeTime<0?true:(AccDesired<-0.3)||(Controlling->BrakeCtrlPos<=0))
         if (!IncBrake()) //jeœli up³yn¹³ czas reakcji hamulca, chyba ¿e nag³e albo luzowa³
          MinVelFlag=true;
         else
@@ -2851,8 +2858,9 @@ void __fastcall TController::JumpToNextOrder()
    OrderPos=0;
  }
  OrderCheck();
- if (DebugModeFlag) //normalnie nie ma po co tego wypisywaæ
-  OrdersDump();
+#if LOGVELOCITY
+ OrdersDump(); //normalnie nie ma po co tego wypisywaæ
+#endif
 };
 
 void __fastcall TController::JumpToFirstOrder()
@@ -3353,14 +3361,17 @@ AnsiString __fastcall TController::TrainName()
  return TrainParams->TrainName;
 };
 
-double __fastcall TController::StationCount()
+int __fastcall TController::StationCount()
 {//zwraca iloœæ stacji (miejsc zatrzymania)
  return TrainParams->StationCount;
 };
 
-double __fastcall TController::StationIndex()
+int __fastcall TController::StationIndex()
 {//zwraca indeks aktualnej stacji (miejsca zatrzymania)
  return TrainParams->StationIndex;
 };
 
-
+bool __fastcall TController::IsStop()
+{//informuje, czy jest zatrzymanie na najbli¿szej stacji
+ return TrainParams->IsStop();
+};

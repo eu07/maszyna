@@ -699,7 +699,7 @@ bool __fastcall TTrack::AssignEvents(TEvent *NewEvent0,TEvent *NewEvent1,TEvent 
  }
  else
  {
-  Error(AnsiString("Event 0 cannot be assigned to track, track already has one"));
+  Error(AnsiString("Event0 cannot be assigned to track, track already has one"));
   bError=true;
  }
  if (!Event1)
@@ -721,7 +721,7 @@ bool __fastcall TTrack::AssignEvents(TEvent *NewEvent0,TEvent *NewEvent1,TEvent 
  }
  else
  {
-  Error(AnsiString("Event 1 cannot be assigned to track, track already has one"));
+  Error(AnsiString("Event1 cannot be assigned to track, track already has one"));
   bError=true;
  }
  if (!Event2)
@@ -743,7 +743,7 @@ bool __fastcall TTrack::AssignEvents(TEvent *NewEvent0,TEvent *NewEvent1,TEvent 
  }
  else
  {
-  Error(AnsiString("Event 2 cannot be assigned to track, track already has one"));
+  Error(AnsiString("Event2 cannot be assigned to track, track already has one"));
   bError=true;
  }
  return !bError;
@@ -764,14 +764,14 @@ bool __fastcall TTrack::AssignallEvents(TEvent *NewEvent0,TEvent *NewEvent1,TEve
   {
    if (!asEvent0Name.IsEmpty())
    {
-    Error(AnsiString("Eventall 0 \"")+asEventall0Name+AnsiString("\" does not exist"));
+    Error(AnsiString("Eventall0 \"")+asEventall0Name+AnsiString("\" does not exist"));
     bError=true;
    }
   }
  }
  else
  {
-  Error(AnsiString("Eventall 0 cannot be assigned to track, track already has one"));
+  Error(AnsiString("Eventall0 cannot be assigned to track, track already has one"));
   bError=true;
  }
  if (!Eventall1)
@@ -786,14 +786,14 @@ bool __fastcall TTrack::AssignallEvents(TEvent *NewEvent0,TEvent *NewEvent1,TEve
   {
    if (!asEvent0Name.IsEmpty())
    {//Ra: tylko w logu informacja
-    WriteLog(AnsiString("Eventall 1 \"")+asEventall1Name+AnsiString("\" does not exist"));
+    WriteLog(AnsiString("Eventall1 \"")+asEventall1Name+AnsiString("\" does not exist"));
     bError=true;
    }
   }
  }
  else
  {
-  Error(AnsiString("Eventall 1 cannot be assigned to track, track already has one"));
+  Error(AnsiString("Eventall1 cannot be assigned to track, track already has one"));
   bError=true;
  }
  if (!Eventall2)
@@ -808,14 +808,14 @@ bool __fastcall TTrack::AssignallEvents(TEvent *NewEvent0,TEvent *NewEvent1,TEve
   {
    if (!asEvent0Name.IsEmpty())
    {//Ra: tylko w logu informacja
-    WriteLog(AnsiString("Eventall 2 \"")+asEventall2Name+AnsiString("\" does not exist"));
+    WriteLog(AnsiString("Eventall2 \"")+asEventall2Name+AnsiString("\" does not exist"));
     bError=true;
    }
   }
  }
  else
  {
-  Error(AnsiString("Eventall 2 cannot be assigned to track, track already has one"));
+  Error(AnsiString("Eventall2 cannot be assigned to track, track already has one"));
   bError=true;
  }
  return !bError;

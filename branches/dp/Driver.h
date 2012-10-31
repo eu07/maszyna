@@ -256,8 +256,9 @@ public:
  void __fastcall TakeControl(bool yes);
  AnsiString __fastcall Relation();
  AnsiString __fastcall TrainName();
- double __fastcall StationCount();
- double __fastcall StationIndex();
+ int __fastcall StationCount();
+ int __fastcall StationIndex();
+ bool __fastcall IsStop();
  bool __fastcall Primary() {return this?bool(iDrivigFlags&movePrimary):false;};
 };
 

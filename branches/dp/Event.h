@@ -19,6 +19,7 @@ const int update_memstring          =0x0000001; //zmodyfikowaæ tekst (UpdateValu
 const int update_memval1            =0x0000002; //zmodyfikowaæ pierwsz¹ wartosæ
 const int update_memval2            =0x0000004; //zmodyfikowaæ drug¹ wartosæ
 const int update_memadd             =0x0000008; //dodaæ do poprzedniej zawartoœci
+const int update_load               =0x0000010; //odczytaæ ³adunek
 const int update_only               =0x00000FF; //wartoœæ graniczna 
 const int conditional_memstring     =0x0000100; //porównanie tekstu
 const int conditional_memval1       =0x0000200; //porównanie pierwszej wartoœci liczbowej
