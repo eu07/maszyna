@@ -38,8 +38,9 @@
     <WARNINGS value="-w-par"/>
   </MACROS>
   <OPTIONS>
-    <IDLCFLAGS value="-src_suffix cpp -DGLEW_STATIC -D_DEBUG -IC:\ProgsWin\CBuilder5\Projects\. 
-      -IConsole -Iopengl -IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl -boa"/>
+    <IDLCFLAGS value="-IC:\ProgsWin\CBuilder5\Projects\. -IConsole -Iopengl -IMcZapkie 
+      -I$(BCB)\include -I$(BCB)\include\vcl -src_suffix cpp -DGLEW_STATIC 
+      -D_DEBUG -boa"/>
     <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a4 -6 -b- -k -y -v -vi- 
       -c -tW -tWM"/>
     <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
@@ -58,8 +59,8 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=1
 MinorVer=8
-Release=685
-Build=385
+Release=686
+Build=386
 Debug=1
 PreRelease=0
 Special=0
@@ -71,7 +72,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.8.685.385
+FileVersion=1.8.686.386
 InternalName=8th by Ra
 LegalCopyright=
 LegalTrademarks=
@@ -117,7 +118,7 @@ Item1=D:\EU07DDS\
 DebugSourceDirs=C:\Ra\dp\McZapkie\
 
 [Parameters]
-RunParams=-s tm_test.scn -v ghostview
+RunParams=-s quarkmce2007.scn -v ghostview
 HostApplication=
 RemoteHost=
 RemotePath=

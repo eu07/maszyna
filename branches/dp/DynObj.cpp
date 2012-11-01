@@ -3571,13 +3571,17 @@ int __fastcall TDynamicObject::DirectionSet(int d)
 {//ustawienie kierunku w sk³adzie (wykonuje AI)
  iDirection=d>0?1:0; //d:1=zgodny,-1=przeciwny; iDirection:1=zgodny,0=przeciwny;
  CouplCounter=20; //¿eby normalnie skanowaæ kolizje, to musi ruszyæ z miejsca
- if (iDirection) //jeœli w kierunku Coupler 0
- {if (MoverParameters->Couplers[0].CouplingFlag==ctrain_virtual) //brak pojazdu podpiêtego?
-   ABuScanObjects(1,300); //szukanie czegoœ do pod³¹czenia
+ if (MyTrack)
+ {//podczas wczytywania wstawiane jest AI, ale mo¿e jeszcze nie byæ toru
+  //AI ustawi kierunek ponownie po uruchomieniu silnika
+  if (iDirection) //jeœli w kierunku Coupler 0
+  {if (MoverParameters->Couplers[0].CouplingFlag==ctrain_virtual) //brak pojazdu podpiêtego?
+    ABuScanObjects(1,300); //szukanie czegoœ do pod³¹czenia
+  }
+  else
+   if (MoverParameters->Couplers[1].CouplingFlag==ctrain_virtual) //brak pojazdu podpiêtego?
+    ABuScanObjects(-1,300);
  }
- else
-  if (MoverParameters->Couplers[1].CouplingFlag==ctrain_virtual) //brak pojazdu podpiêtego?
-   ABuScanObjects(-1,300);
  return 1-(iDirection?NextConnectedNo:PrevConnectedNo); //informacja o po³o¿eniu nastêpnego
 };
 
