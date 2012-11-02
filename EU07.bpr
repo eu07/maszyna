@@ -13,7 +13,7 @@
       TractionPower.obj parser.obj sky.obj AirCoupler.obj glew.obj 
       ResourceManager.obj VBO.obj TextureDDS.obj opengl\ARB_Multisample.obj 
       Float3d.obj Classes.obj Driver.obj Names.obj Console.obj Mover.obj 
-      Console\PoKeys55.obj Forth.obj"/>
+      Console\PoKeys55.obj Forth.obj Console\LPT.obj"/>
     <RESFILES value="EU07.res"/>
     <IDLFILES value=""/>
     <IDLGENFILES value=""/>

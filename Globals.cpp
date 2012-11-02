@@ -44,8 +44,8 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asRelease="1.8.669.381";
-AnsiString Global::asVersion="Compilation 2012-10-23, release "+Global::asRelease+"."; //tutaj, bo wysy³any
+AnsiString Global::asRelease="1.8.683.383";
+AnsiString Global::asVersion="Compilation 2012-10-29, release "+Global::asRelease+"."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 double Global::fSunDeclination=0.0; //deklinacja S³oñca
@@ -93,6 +93,7 @@ int Global::Keys[MaxKeys];
 int Global::iWindowWidth=800;
 int Global::iWindowHeight=600;
 int Global::iFeedbackMode=1; //tryb pracy informacji zwrotnej
+int Global::iFeedbackPort=0; //dodatkowy adres dla informacji zwrotnych
 bool Global::bFreeFly=false;
 bool Global::bFullScreen=false;
 bool Global::bInactivePause=true; //automatyczna pauza, gdy okno nieaktywne
@@ -310,6 +311,8 @@ void __fastcall Global::ConfigParse(TQueryParserComp *qp,cParser *cp)
    bUseVBO=(GetNextSymbol().LowerCase()==AnsiString("yes"));
   else if (str==AnsiString("feedbackmode"))
    iFeedbackMode=GetNextSymbol().ToIntDef(1); //domyœlnie 1
+  else if (str==AnsiString("feedbackport"))
+   iFeedbackPort=GetNextSymbol().ToIntDef(0); //domyœlnie 0
   else if (str==AnsiString("multiplayer"))
    iMultiplayer=GetNextSymbol().ToIntDef(0); //domyœlnie 0
   else if (str==AnsiString("maxtexturesize"))
@@ -394,6 +397,8 @@ void __fastcall Global::ConfigParse(TQueryParserComp *qp,cParser *cp)
    fBrakeStep=GetNextSymbol().ToDouble();
   else if (str==AnsiString("joinduplicatedevents")) //czy grupowaæ eventy o tych samych nazwach
    bJoinEvents=(GetNextSymbol().LowerCase()==AnsiString("yes"));
+  else if (str==AnsiString("pause")) //czy po wczytaniu ma byæ pauza?
+   bPause=(GetNextSymbol().LowerCase()==AnsiString("yes"));
  }
  while (str!="endconfig"); //(!Parser->EndOfFile)
  //na koniec trochê zale¿noœci
@@ -410,11 +415,12 @@ void __fastcall Global::ConfigParse(TQueryParserComp *qp,cParser *cp)
  }
  if (iMultiplayer>0)
   bInactivePause=false; //pauza nieaktywna, jeœli w³¹czona komunikacja
- Console::ModeSet(iFeedbackMode); //tryb pracy konsoli sterowniczej
+ Console::ModeSet(iFeedbackMode,iFeedbackPort); //tryb pracy konsoli sterowniczej
  fFpsMin=fFpsAverage-fFpsDeviation; //dolna granica FPS, przy której promieñ scenerii bêdzie zmniejszany
  fFpsMax=fFpsAverage+fFpsDeviation; //górna granica FPS, przy której promieñ scenerii bêdzie zwiêkszany
  iFpsRadiusMax=0.000025*fFpsRadiusMax*fFpsRadiusMax; //maksymalny promieñ renderowania 3000.0 -> 225
  if (iFpsRadiusMax>400) iFpsRadiusMax=400;
+ if (bPause) iTextMode=VK_F1; //jak pauza, to pokazaæ zegar
 }
 
 void __fastcall Global::InitKeys(AnsiString asFileName)

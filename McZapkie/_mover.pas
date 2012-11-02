@@ -4854,7 +4854,7 @@ begin
       CheckCollision:=False;
     end;
   ScanCounter:=0;
-  BrakeCtrlPos:=0; //to nie ma znaczenia, konstruktor w Mover.cpp zmienia na -2
+  BrakeCtrlPos:=-2; //to nie ma znaczenia, konstruktor w Mover.cpp zmienia na -2
   BrakeDelayFlag:=0;
   BrakeStatus:=b_off;
   EmergencyBrakeFlag:=False;

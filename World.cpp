@@ -491,14 +491,16 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
     char buff[255]="Player train init: ";
     if (Global::detonatoryOK)
     {
-     glRasterPos2f(-0.25f, -0.18f);
+     glRasterPos2f(-0.25f,-0.18f);
      glPrint("Przygotowanie kabiny do sterowania...");
     }
     SwapBuffers(hDC); // Swap Buffers (Double Buffering)
 
     strcat(buff,Global::asHumanCtrlVehicle.c_str());
     WriteLog(buff);
-    TGroundNode *PlayerTrain=Ground.FindDynamic(Global::asHumanCtrlVehicle);
+    TGroundNode *PlayerTrain=NULL;
+    if (Global::asHumanCtrlVehicle!="ghostview")
+     PlayerTrain=Ground.FindDynamic(Global::asHumanCtrlVehicle);
     if (PlayerTrain)
     {
      Train=new TTrain();
@@ -530,15 +532,16 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
     }
     else
     {
-     if (Global::asHumanCtrlVehicle!=AnsiString("ghostview"))
-      Error("Player train not exist!");
-     FreeFlyModeFlag=true; //Ra: automatycznie w³¹czone latanie
-     if (Global::detonatoryOK)
-     {
-      glRasterPos2f(-0.25f, -0.20f);
-      glPrint("Wybrany pojazd nie istnieje w scenerii!");
+     if (Global::asHumanCtrlVehicle!="ghostview")
+     {Error("Player train not exist!");
+      if (Global::detonatoryOK)
+      {
+       glRasterPos2f(-0.25f, -0.20f);
+       glPrint("Wybrany pojazd nie istnieje w scenerii!");
+      }
      }
-     SwapBuffers(hDC);					// Swap Buffers (Double Buffering)
+     FreeFlyModeFlag=true; //Ra: automatycznie w³¹czone latanie
+     SwapBuffers(hDC); //swap buffers (double buffering)
      Controlled=NULL;
      Camera.Type=tp_Free;
     }
@@ -557,12 +560,9 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
      KeyEvents[8]=Ground.FindEvent("keyctrl08");
      KeyEvents[9]=Ground.FindEvent("keyctrl09");
     }
-    //matrix4x4 ident2;
-    //ident2.Identity();
-
-// glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);  //{Texture blends with object background}
+ //glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);  //{Texture blends with object background}
  light=TTexturesManager::GetTextureID("smuga.tga");
-// Camera.Reset();
+ //Camera.Reset();
  ResetTimers();
  WriteLog("Load time: "+FloatToStrF((86400.0*((double)Now()-time)),ffFixed,7,1)+" seconds");
  return true;
@@ -1134,17 +1134,6 @@ bool __fastcall TWorld::Update()
 
  if (Train)
  {//rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
-  //vector3 vFront=Train->DynamicObject->VectorFront();
-  //if ((Train->DynamicObject->MoverParameters->CategoryFlag&2) && (Train->DynamicObject->MoverParameters->ActiveCab<0)) //TODO: zrobic to eleganciej z plynnym zawracaniem
-  //   vFront=-vFront;
-  //vector3 vUp=vWorldUp; //sta³a
-  //vFront.Normalize();
-  //vector3 vLeft=CrossProduct(vUp,vFront);
-  //vUp=CrossProduct(vFront,vLeft);
-  //matrix4x4 mat;
-  //mat.Identity();
-  //mat.BasisChange(vLeft,vUp,vFront);
-  //Train->DynamicObject->mMatrix=Inverse(mat);
   glPushMatrix();
   //ABu: Rendering kabiny jako ostatniej, zeby bylo widac przez szyby, tylko w widoku ze srodka
   if ((Train->DynamicObject->mdKabina!=Train->DynamicObject->mdModel) && Train->DynamicObject->bDisplayCab && !FreeFlyModeFlag)
@@ -1398,7 +1387,6 @@ bool __fastcall TWorld::Update()
      Train->DynamicObject->MoverParameters->SecuritySystem.Status=0;
      Train->DynamicObject->ABuSetModelShake(vector3(0,0,0));
      Train->DynamicObject->MoverParameters->ActiveCab=0;
-     //Train->DynamicObject->MoverParameters->BrakeCtrlPos=-2;
      Train->DynamicObject->MoverParameters->BrakeLevelSet(-2);
 ///     Train->DynamicObject->MoverParameters->LimPipePress=-1;
 ///     Train->DynamicObject->MoverParameters->ActFlowSpeed=0;
@@ -1413,7 +1401,6 @@ bool __fastcall TWorld::Update()
      Train->DynamicObject=temp;
      Controlled=Train->DynamicObject;
      Global::asHumanCtrlVehicle=Train->DynamicObject->GetName();
-     //Train->DynamicObject->MoverParameters->BrakeCtrlPos=-2; //ustawione ju¿ wczeœniej
      if (Train->DynamicObject->Mechanik) //AI mo¿e sobie samo pójœæ
       if (!Train->DynamicObject->Mechanik->AIControllFlag) //tylko jeœli rêcznie prowadzony
       {Train->DynamicObject->MoverParameters->LimPipePress=Controlled->MoverParameters->PipePress;
@@ -2059,7 +2046,7 @@ void __fastcall TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
     {//WriteLog("Komunikat: "+AnsiString(pRozkaz->Name1));
      TEvent *e=Ground.FindEvent(AnsiString(pRozkaz->cString+1,(unsigned)(pRozkaz->cString[0])));
      if (e)
-      if (e->Type==tp_Multiple) //szybciej by by³o szukaæ tylko po tp_Multiple
+      if ((e->Type==tp_Multiple)||bool(e->eJoined)) //tylko jawne albo niejawne Multiple
        Ground.AddToQuery(e,NULL); //drugi parametr to dynamic wywo³uj¹cy - tu brak
     }
     break;
