@@ -27,7 +27,7 @@ enum TMovementStatus
 {//flagi bitowe ruchu (iDrivigFlags)
  moveStopCloser=1, //podjechaæ blisko W4 (nie podje¿d¿aæ na pocz¹tku ani po zmianie czo³a)
  moveStopPoint=2, //stawaæ na W4 (wy³¹czone podczas zmiany czo³a)
- moveAvaken=4, //po w³¹czeniu silnika pojazd nie przemieœci³ siê
+ //moveAvaken=4, //po w³¹czeniu silnika pojazd nie przemieœci³ siê
  movePress=8, //dociskanie przy od³¹czeniu (zamiast zmiennej Prepare2press)
  moveConnect=0x10, //jest blisko innego pojazdu i mo¿na próbowaæ pod³¹czyæ
  movePrimary=0x20, //ma priorytet w sk³adzie (master)
@@ -130,7 +130,8 @@ public:
  double ReactionTime; //czas reakcji Ra: czego? œwiadomoœci AI
  double fBrakeTime;  //wpisana wartoœæ jest zmniejszana do 0, gdy ujemna nale¿y zmieniæ nastawê hamulca
 private:
- bool Ready; //ABu: stan gotowosci do odjazdu - sprawdzenie odhamowania wagonow jest ustawiane w dynobj->cpp
+ double fReady; //poziom odhamowania wagonów
+ bool Ready; //ABu: stan gotowosci do odjazdu - sprawdzenie odhamowania wagonow
  double LastUpdatedTime; //czas od ostatniego logu
  double ElapsedTime; //czas od poczatku logu
  double deltalog; //przyrost czasu
@@ -191,6 +192,7 @@ private:
  bool __fastcall DecBrake();
  bool __fastcall IncSpeed();
  bool __fastcall DecSpeed();
+ void __fastcall SpeedSet();
  void __fastcall RecognizeCommand(); //odczytuje komende przekazana lokomotywie
  void __fastcall Activation(); //umieszczenie obsady w odpowiednim cz³onie
 public:
@@ -240,13 +242,13 @@ private:
  double __fastcall Distance(vector3 &p1,vector3 &n,vector3 &p2);
 private: //Ra: stare funkcje skanuj¹ce, u¿ywane do szukania sygnalizatora z ty³u
  TEvent* eSignLast; //ostatnio znaleziony sygna³, o ile nie miniêty
- bool __fastcall CheckEvent(TEvent *e);
  TEvent* __fastcall CheckTrackEvent(double fDirection,TTrack *Track);
  TEvent* __fastcall CheckTrackEventBackward(double fDirection,TTrack *Track);
  TTrack* __fastcall BackwardTraceRoute(double &fDistance,double &fDirection,TTrack *Track,TEvent*&Event);
  void __fastcall SetProximityVelocity(double dist,double vel,const vector3 *pos);
  bool __fastcall BackwardScan();
 public:
+ void __fastcall PhysicsLog();
  AnsiString __fastcall StopReasonText();
  __fastcall ~TController();
  AnsiString __fastcall NextStop();
