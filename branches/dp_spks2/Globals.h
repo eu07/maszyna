@@ -200,6 +200,7 @@ public:
  static int iReCompile; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
  static bool bUseVBO; //czy jest VBO w karcie graficznej
  static int iFeedbackMode; //tryb pracy informacji zwrotnej
+ static int iFeedbackPort; //dodatkowy adres dla informacji zwrotnych
  static double fOpenGL; //wersja OpenGL - przyda siê
  static bool bOpenGL_1_5; //czy s¹ dostêpne funkcje OpenGL 1.5
  static double fLuminance; //jasnoœæ œwiat³a do automatycznego zapalania

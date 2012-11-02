@@ -3,7 +3,9 @@
 #ifndef ConsoleH
 #define ConsoleH
 //---------------------------------------------------------------------------
+class TConsoleDevice; //urz¹dzenie pod³¹czalne za pomoc¹ DLL
 class TPoKeys55;
+class TLPT;
 
 class Console
 {//Ra: klasa statyczna gromadz¹ca sygna³y steruj¹ce oraz informacje zwrotne
@@ -14,6 +16,7 @@ private:
  static int iConfig; //dodatkowa informacja o sprzêcie (np. numer LPT)
  static int iBits; //podstawowy zestaw lampek
  static TPoKeys55 *PoKeys55;
+ static TLPT *LPT;
  static void __fastcall BitsUpdate(int mask);
 public:
  __fastcall Console();

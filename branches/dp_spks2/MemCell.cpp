@@ -44,25 +44,25 @@ void __fastcall TMemCell::Init()
 
 void __fastcall TMemCell::UpdateValues(char *szNewText, double fNewValue1, double fNewValue2, int CheckMask)
 {
- if (CheckMask&conditional_memadd)
+ if (CheckMask&update_memadd)
  {//dodawanie wartoœci
-  if (TestFlag(CheckMask,conditional_memstring))
+  if (TestFlag(CheckMask,update_memstring))
    strcat(szText,szNewText);
-  if (TestFlag(CheckMask,conditional_memval1))
+  if (TestFlag(CheckMask,update_memval1))
    fValue1+=fNewValue1;
-  if (TestFlag(CheckMask,conditional_memval2))
+  if (TestFlag(CheckMask,update_memval2))
    fValue2+=fNewValue2;
  }
  else
  {
-  if (TestFlag(CheckMask,conditional_memstring))
+  if (TestFlag(CheckMask,update_memstring))
    strcpy(szText,szNewText);
-  if (TestFlag(CheckMask,conditional_memval1))
+  if (TestFlag(CheckMask,update_memval1))
    fValue1=fNewValue1;
-  if (TestFlag(CheckMask,conditional_memval2))
+  if (TestFlag(CheckMask,update_memval2))
    fValue2=fNewValue2;
  }
- if (TestFlag(CheckMask,conditional_memstring))
+ if (TestFlag(CheckMask,update_memstring))
   CommandCheck();//jeœli zmieniony tekst, próbujemy rozpoznaæ komendê
 }
 

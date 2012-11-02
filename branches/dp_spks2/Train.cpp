@@ -1054,7 +1054,6 @@ void __fastcall TTrain::OnKeyPress(int cKey)
        DynamicObject->MoverParameters->BrakeLevelSet(DynamicObject->MoverParameters->BrakeCtrlPosNo/2);
        if (GetAsyncKeyState(VK_CONTROL)<0)
         if (DynamicObject->MoverParameters->BrakeHandle==FV4a)
-         //DynamicObject->MoverParameters->BrakeCtrlPos=-2;
          DynamicObject->MoverParameters->BrakeLevelSet(-2);
       }
       else
@@ -2072,7 +2071,13 @@ void __fastcall TTrain::UpdateMechPosition(double dt)
  pNewMechPosition=pMechOffset+vector3(pMechShake.x,5*pMechShake.y,pMechShake.z);
  vMechMovement=vMechMovement/2;
  //numer kabiny (-1: kabina B)
- iCabn=(DynamicObject->MoverParameters->ActiveCab==-1 ? 2 : DynamicObject->MoverParameters->ActiveCab);
+ if (DynamicObject->Mechanik) //mo¿e nie byæ?
+  if (DynamicObject->Mechanik->AIControllFlag) //jeœli prowadzi AI
+  {//Ra: przesiadka, jeœli AI zmieni³o kabinê (a cz³on?)...
+   if (iCabn!=(DynamicObject->MoverParameters->CabNo==-1?2:DynamicObject->MoverParameters->ActiveCab))
+    InitializeCab(DynamicObject->MoverParameters->CabNo,DynamicObject->asBaseDir+DynamicObject->MoverParameters->TypeName+".mmd");
+  }
+ iCabn=(DynamicObject->MoverParameters->ActiveCab==-1?2:DynamicObject->MoverParameters->ActiveCab);
  if (!DebugModeFlag)
  {//sprawdzaj wiêzy //Ra: nie tu!
   if (pNewMechPosition.x<Cabine[iCabn].CabPos1.x) pNewMechPosition.x=Cabine[iCabn].CabPos1.x;
