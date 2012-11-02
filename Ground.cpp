@@ -2199,7 +2199,7 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
        }
        if (tmp)
        {//jeœli nie duplikat
-        tmp->Next2=RootEvent; //lista wszystkich eventów
+        tmp->Next2=RootEvent; //lista wszystkich eventów (m.in. do InitEvents)
         RootEvent=tmp;
         if (!found)
         {//jeœli nazwa wyst¹pi³a, to do kolejki i wyszukiwarki dodawany jest tylko pierwszy
@@ -3199,97 +3199,78 @@ void __fastcall TGround::OpenGLUpdate(HDC hDC)
 }
 
 bool __fastcall TGround::Update(double dt, int iter)
-//blablabla
-{
-   if(iter>1) //ABu: ponizsze wykonujemy tylko jesli wiecej niz jedna iteracja
+{//dt=krok czasu [s], dt*iter=czas od ostatnich przeliczeñ
+ if (iter>1) //ABu: ponizsze wykonujemy tylko jesli wiecej niz jedna iteracja
+ {//pierwsza iteracja i wyznaczenie stalych:
+  for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
+  {//
+   Current->DynamicObject->MoverParameters->ComputeConstans();
+   Current->DynamicObject->CoupleDist();
+   Current->DynamicObject->UpdateForce(dt,dt,false);
+  }
+  for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
+   Current->DynamicObject->FastUpdate(dt);
+  //pozostale iteracje
+  for (int i=1;i<(iter-1);++i) //jeœli iter==5, to wykona siê 3 razy
+  {
+   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
+    Current->DynamicObject->UpdateForce(dt,dt,false);
+   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
+    Current->DynamicObject->FastUpdate(dt);
+  }
+  //ABu 200205: a to robimy tylko raz, bo nie potrzeba wiêcej
+  //Winger 180204 - pantografy
+  double dt1=dt*iter; //ca³kowity czas
+  if (Global::bEnableTraction)
+  {
+   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
    {
-      //Pierwsza iteracja i wyznaczenie stalych:
-      for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
-      {
-         Current->DynamicObject->MoverParameters->ComputeConstans();
-         Current->DynamicObject->CoupleDist();
-         Current->DynamicObject->UpdateForce(dt,dt,false);
-      }
-      for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
-      {
-         Current->DynamicObject->FastUpdate(dt);
-      }
-      //pozostale iteracje
-      for(int i=1 ; i<(iter-1); i++)
-      {
-         for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
-         {
-            Current->DynamicObject->UpdateForce(dt,dt,false);
-         }
-         for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
-         {
-            Current->DynamicObject->FastUpdate(dt);
-         }
-      }
-      //ABu 200205: a to robimy tylko raz, bo nie potrzeba wiecej
-      //Winger 180204 - pantografy
-      double dt1=dt*iter;
-      if (Global::bEnableTraction)
-      {
-         for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
-         {
-            if ((Current->DynamicObject->MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
-            //ABu: usunalem, bo sie krzaczylo: && (Current->DynamicObject->MoverParameters->PantFrontUp || Current->DynamicObject->MoverParameters->PantRearUp))
-            //     a za to dodalem to:
-               &&(Current->DynamicObject->MoverParameters->CabNo!=0))
-               GetTraction(Current->DynamicObject->GetPosition(), Current->DynamicObject);
-            Current->DynamicObject->UpdateForce(dt, dt1, true);//,true);
-         }
-         for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
-         {
-            Current->DynamicObject->Update(dt,dt1);
-         }
-      }
-      else
-      {
-         for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
-         {
-            Current->DynamicObject->UpdateForce(dt, dt1, true);//,true);
-         }
-         for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
-         {
-            Current->DynamicObject->Update(dt,dt1);
-         }
-      }
+    if ((Current->DynamicObject->MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
+    //ABu: usunalem, bo sie krzaczylo: && (Current->DynamicObject->MoverParameters->PantFrontUp || Current->DynamicObject->MoverParameters->PantRearUp))
+    //     a za to dodalem to:
+       &&(Current->DynamicObject->MoverParameters->CabNo!=0))
+       GetTraction(Current->DynamicObject->GetPosition(),Current->DynamicObject);
+    Current->DynamicObject->UpdateForce(dt,dt1,true);//,true);
    }
-   else
-   //jezeli jest tylko jedna iteracja
+   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
+    Current->DynamicObject->Update(dt,dt1);
+  }
+  else
+  {
+   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
+    Current->DynamicObject->UpdateForce(dt,dt1,true);//,true);
+   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
+    Current->DynamicObject->Update(dt,dt1);
+  }
+ }
+ else
+ {//jezeli jest tylko jedna iteracja
+  if (Global::bEnableTraction)
+  {
+   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
    {
-      if (Global::bEnableTraction)
-      {
-         for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
-         {
-            if ((Current->DynamicObject->MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
-               &&(Current->DynamicObject->MoverParameters->CabNo!=0))
-               GetTraction(Current->DynamicObject->GetPosition(), Current->DynamicObject);
-            Current->DynamicObject->MoverParameters->ComputeConstans();
-            Current->DynamicObject->CoupleDist();
-            Current->DynamicObject->UpdateForce(dt,dt,true);//,true);
-         }
-         for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
-         {
-            Current->DynamicObject->Update(dt,dt);
-         }
-      }
-      else
-      {
-         for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
-         {
-            Current->DynamicObject->MoverParameters->ComputeConstans();
-            Current->DynamicObject->CoupleDist();
-            Current->DynamicObject->UpdateForce(dt,dt,true);//,true);
-         }
-         for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
-         {
-            Current->DynamicObject->Update(dt,dt);
-         }
-      }
+    if ((Current->DynamicObject->MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
+       &&(Current->DynamicObject->MoverParameters->CabNo!=0))
+       GetTraction(Current->DynamicObject->GetPosition(), Current->DynamicObject);
+    Current->DynamicObject->MoverParameters->ComputeConstans();
+    Current->DynamicObject->CoupleDist();
+    Current->DynamicObject->UpdateForce(dt,dt,true);//,true);
    }
+   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
+    Current->DynamicObject->Update(dt,dt);
+  }
+  else
+  {
+   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
+   {
+    Current->DynamicObject->MoverParameters->ComputeConstans();
+    Current->DynamicObject->CoupleDist();
+    Current->DynamicObject->UpdateForce(dt,dt,true);//,true);
+   }
+   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
+    Current->DynamicObject->Update(dt,dt);
+  }
+ }
  if (bDynamicRemove)
  {//jeœli jest coœ do usuniêcia z listy, to trzeba na koñcu
   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)

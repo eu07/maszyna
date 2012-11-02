@@ -1764,10 +1764,10 @@ void __fastcall TDynamicObject::AttachPrev(TDynamicObject *Object, int iType)
 
 bool __fastcall TDynamicObject::UpdateForce(double dt, double dt1, bool FullVer)
 {
-    if (!bEnabled)
-        return false;
-    if (dt>0)
-     MoverParameters->ComputeTotalForce(dt, dt1, FullVer);
+ if (!bEnabled)
+  return false;
+ if (dt>0)
+  MoverParameters->ComputeTotalForce(dt,dt1,FullVer);
  return true;
 }
 
@@ -1872,6 +1872,18 @@ void __fastcall TDynamicObject::UpdatePos()
   MoverParameters->Loc.Z=  vPosition.y;
 }
 */
+
+/*
+Ra:
+  Powinny byæ dwie funkcje wykonuj¹ce aktualizacjê fizyki. Jedna wykonuj¹ca
+krok obliczeñ, powtarzana odpowiedni¹ liczbê razy, a druga wykonuj¹ca zbiorcz¹
+aktualzacjê mniej istotnych elementów.
+  Ponadto nale¿a³o by ustaliæ odleg³oœæ sk³adów od kamery i jeœli przekracza
+ona np. 10km, to traktowaæ sk³ady jako uproszczone, np. bez wnikania w si³y
+na sprzêgach, opóŸnienie dzia³ania hamulca itp. Oczywiœcie musi mieæ to pewn¹
+histerezê czasow¹, aby te tryby pracy nie prze³¹cza³y siê zbyt szybko.
+*/
+
 
 bool __fastcall TDynamicObject::Update(double dt, double dt1)
 {
@@ -1997,7 +2009,9 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
 //      Mechanik->LastReactionTime=0;
 //     }
 
+      //Mechanik->PhysicsLog(); //tymczasowo logowanie
       Mechanik->UpdateSituation(dt1); //przeb³yski œwiadomoœci AI
+      //Mechanik->PhysicsLog(); //tymczasowo logowanie
     }
 //    else
 //    { MoverParameters->SecuritySystemReset(); }
@@ -2542,11 +2556,6 @@ vector3 __fastcall TDynamicObject::GetPosition()
  return vPosition;
 };
 
-//vector3 __fastcall TDynamicObject::HeadPosition()
-//{//pobranie wspó³rzêdnych czo³a sk³adu
-// return vCoulpler[iDirection^1]; //iDirection=1 gdy sprzêg 0 jest z przodu w kierunku jazdy
-//};
-
 void __fastcall TDynamicObject::TurnOff()
 {//wy³¹czenie rysowania submodeli zmiennych dla egemplarza pojazdu
  btnOn=false;
@@ -2689,31 +2698,32 @@ bool __fastcall TDynamicObject::Render()
    glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
    glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
   }
-  if (mdLowPolyInt)
-   if (FreeFlyModeFlag?true:!mdKabina)
-    if (Global::bUseVBO)
-     mdLowPolyInt->RaRender(ObjSqrDist,ReplacableSkinID,iAlpha);
-    else
-     mdLowPolyInt->Render(ObjSqrDist,ReplacableSkinID,iAlpha);
-
   if (Global::bUseVBO)
+  {//wersja VBO
+   if (mdLowPolyInt)
+    if (FreeFlyModeFlag?true:!mdKabina)
+     mdLowPolyInt->RaRender(ObjSqrDist,ReplacableSkinID,iAlpha);
    mdModel->RaRender(ObjSqrDist,ReplacableSkinID,iAlpha);
-  else
-   mdModel->Render(ObjSqrDist,ReplacableSkinID,iAlpha);
-  if (mdLoad) //renderowanie nieprzezroczystego ³adunku
-   if (Global::bUseVBO)
+   if (mdLoad) //renderowanie nieprzezroczystego ³adunku
     mdLoad->RaRender(ObjSqrDist,ReplacableSkinID,iAlpha);
-   else
-    mdLoad->Render(ObjSqrDist,ReplacableSkinID,iAlpha);
-
-//rendering przedsionkow o ile istnieja
-  if (mdPrzedsionek)
-   //if (MoverParameters->filename==asBaseDir+"6ba.chk") //Ra: to tu bez sensu by³o
-   if (Global::bUseVBO)
+   if (mdPrzedsionek)
     mdPrzedsionek->RaRender(ObjSqrDist,ReplacableSkinID,iAlpha);
-   else
+  }
+  else
+  {//wersja Display Lists
+   if (mdLowPolyInt)
+    if (FreeFlyModeFlag?true:!mdKabina)
+     mdLowPolyInt->Render(ObjSqrDist,ReplacableSkinID,iAlpha);
+   mdModel->Render(ObjSqrDist,ReplacableSkinID,iAlpha);
+   if (mdLoad) //renderowanie nieprzezroczystego ³adunku
+    mdLoad->Render(ObjSqrDist,ReplacableSkinID,iAlpha);
+   if (mdPrzedsionek)
     mdPrzedsionek->Render(ObjSqrDist,ReplacableSkinID,iAlpha);
+  }
 
+  //Ra: czy ta kabina tu ma sens?
+  //Ra: czy nie renderuje siê dwukrotnie?
+  //Ra: dlaczego jest zablokowana w przezroczystych?
   if (mdKabina) //jeœli ma model kabiny
   if ((mdKabina!=mdModel) && bDisplayCab && FreeFlyModeFlag)
   {//rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
@@ -3073,18 +3083,6 @@ bool __fastcall TDynamicObject::RenderAlpha()
  if (renderme)
  {
   TSubModel::iInstance=(int)this; //¿eby nie robiæ cudzych animacji
-  //vFront=GetDirection(); //wektory ju¿ by³y liczone
-  //if ((MoverParameters->CategoryFlag&2) && (MoverParameters->CabNo<0)) //TODO: zrobic to eleganciej z plynnym zawracaniem
-  // vFront=-vFront;
-  //vUp=vWorldUp;
-  //vFront.Normalize(); //Ra: Po cholerê to jest drugi raz liczone? By³o w Render() i powinno zostaæ bez zmian.
-  //vLeft=CrossProduct(vUp,vFront);
-  //vUp=CrossProduct(vFront,vLeft);
-  //matrix4x4 mat;
-  //mat.Identity();
-  //mat.BasisChange(vLeft,vUp,vFront);
-  //mMatrix=Inverse(mat);
-  //vector3 pos=GetPosition();
   double ObjSqrDist=SquareMagnitude(Global::pCameraPosition-vPosition);
   ABuLittleUpdate(ObjSqrDist); //ustawianie zmiennych submodeli dla wspólnego modelu
   glPushMatrix();
@@ -3112,17 +3110,27 @@ bool __fastcall TDynamicObject::RenderAlpha()
    glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
    glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
   }
-    if (Global::bUseVBO)
-    mdModel->RaRenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
-    else
-     mdModel->RenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
-
-    if (mdLoad) //Ra: dodane renderowanie przezroczystego ³adunku
-     if (Global::bUseVBO)
-      mdLoad->RaRenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
-     else
-      mdLoad->RenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
-
+  if (Global::bUseVBO)
+  {//wersja VBO
+   if (mdLowPolyInt)
+    if (FreeFlyModeFlag?true:!mdKabina)
+     mdLowPolyInt->RaRenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
+   mdModel->RaRenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
+   if (mdLoad)
+    mdLoad->RaRenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
+   //if (mdPrzedsionek) //Ra: przedsionków tu wczeœniej nie by³o - w³¹czyæ?
+   // mdPrzedsionek->RaRenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
+  }
+  else
+  {//wersja Display Lists
+   if (mdLowPolyInt)
+    mdLowPolyInt->RenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
+   mdModel->RenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
+   if (mdLoad)
+    mdLoad->RenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
+   //if (mdPrzedsionek) //Ra: przedsionków tu wczeœniej nie by³o - w³¹czyæ?
+   // mdPrzedsionek->RenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
+  }
 /* skoro false to mo¿na wyci¹c
     //ABu: Tylko w trybie freefly
     if (false)//((mdKabina!=mdModel) && bDisplayCab && FreeFlyModeFlag)
