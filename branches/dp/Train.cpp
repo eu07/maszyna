@@ -2435,7 +2435,7 @@ if (!ShowNextCurrent)
 else
 {
    //ABu 100205: prad w nastepnej lokomotywie, przycisk w ET41
-   TDynamicObject *tmp;
+   TDynamicObject *tmp; //Ra: bez sensu to ustalaæ w ka¿dej klatce...
    tmp=NULL;
    if (DynamicObject->NextConnected) //pojazd od strony sprzêgu 1
       if ((DynamicObject->NextConnected->MoverParameters->TrainType==dt_ET41)
