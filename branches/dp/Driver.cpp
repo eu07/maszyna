@@ -1040,7 +1040,7 @@ bool __fastcall TController::CheckVehicles()
   if (p->Mechanik) //jeœli ma obsadê
    if (p->Mechanik!=this) //ale chodzi o inny pojazd, ni¿ aktualnie sprawdzaj¹cy
     if (p->Mechanik->iDrivigFlags&movePrimary) //a tamten ma priorytet
-     if (iDrivigFlags&movePrimary) //jeœli rz¹dzi
+     if ((iDrivigFlags&movePrimary)&&(Controlling->DirAbsolute)&&(Controlling->BrakeCtrlPos>=-1)) //jeœli rz¹dzi i ma kierunek
       p->Mechanik->iDrivigFlags&=~movePrimary; //dezaktywuje tamtego
      else
       main=false; //nici z rz¹dzenia
@@ -2053,13 +2053,14 @@ bool __fastcall TController::UpdateSituation(double dt)
   if (iDrivigFlags&moveStartHornNow) //czy ma zatr¹biæ przed ruszeniem?
    if (Ready) //gotów do jazdy
     if (EngineActive) //jeszcze siê odpaliæ musi
-    {//uruchomienie tr¹bienia
-     fWarningDuration=0.3; //czas tr¹bienia
-     //if (AIControllFlag) //jak siedzi krasnoludek, to w³¹czy tr¹bienie
-     Controlling->WarningSignal=pVehicle->iHornWarning; //wysokoœæ tonu (2=wysoki)
-     iDrivigFlags|=moveStartHornDone; //nie tr¹biæ a¿ do ruszenia
-     iDrivigFlags&=~moveStartHornNow; //tr¹bienie zosta³o zorganizowane
-    }
+     if (fStopTime>=0) //i nie musi czekaæ
+     {//uruchomienie tr¹bienia
+      fWarningDuration=0.3; //czas tr¹bienia
+      //if (AIControllFlag) //jak siedzi krasnoludek, to w³¹czy tr¹bienie
+      Controlling->WarningSignal=pVehicle->iHornWarning; //wysokoœæ tonu (2=wysoki)
+      iDrivigFlags|=moveStartHornDone; //nie tr¹biæ a¿ do ruszenia
+      iDrivigFlags&=~moveStartHornNow; //tr¹bienie zosta³o zorganizowane
+     }
  }
  ElapsedTime+=dt;
  WaitingTime+=dt;
@@ -2550,7 +2551,7 @@ bool __fastcall TController::UpdateSituation(double dt)
        if (vel==0.0) //a stoi
         if (VelNext==0.0) //a wyjazdu nie ma
          VelDesired=0.0; //to ma staæ
-     if (fStopTime<=0) //czas postoju przed dalsz¹ jazd¹ (np. na przystanku)
+     if (fStopTime<0) //czas postoju przed dalsz¹ jazd¹ (np. na przystanku)
       VelDesired=0.0; //jak ma czekaæ, to nie ma jazdy
      //else if (VelActual<0)
       //VelDesired=fVelMax; //ile fabryka dala (Ra: uwzglêdione wagony)
