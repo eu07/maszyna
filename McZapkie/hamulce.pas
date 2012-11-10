@@ -814,7 +814,7 @@ begin
       DCV:=false;
       dV:=PF(BVP,CVP,0.017*sizeBC)*dt;
      end
-    else dV:=0 
+    else dV:=0
   else dV:=0;
   BrakeRes.Flow(dV);
   BrakeCyl.Flow(-dV);
@@ -910,7 +910,7 @@ procedure TESt.CheckState(BCP: real; var dV1: real);
 var VVP, BVP, CVP: real;
 begin
   BVP:=BrakeRes.P;
-  VVP:=Min0R(ValveRes.P,BVP+0.05);
+  VVP:=ValveRes.P;
   CVP:=CntrlRes.P-0.0;
 
 //sprawdzanie stanu
@@ -971,10 +971,7 @@ begin
       if(VVP>CVP+0.4)then
         BVs:=0.1
       else
-//        if(BVP>CVP+0.1)then
-//          temp:=0.3
-//        else
-          BVs:=0.2*(1.5-Byte(BVP>VVP))
+        BVs:=0.3
     else
       BVs:=0;
 end;
@@ -988,7 +985,7 @@ var dv, dv1, temp:real;
     VVP, BVP, BCP, CVP: real;
 begin
  BVP:=BrakeRes.P;
- VVP:=Min0R(ValveRes.P,BVP+0.05);
+ VVP:=ValveRes.P;
  BCP:=BrakeCyl.P;
  CVP:=CntrlRes.P-0.0;
 
@@ -1024,7 +1021,7 @@ begin
 //przeplyw ZP <-> rozdzielacz
   temp:=BVs(BCP);
 //  if(BrakeStatus and b_hld)=b_off then
-  if(BCP<0.25)or(VVP+0.05>BVP)then
+  if(VVP-0.05>BVP)then
    dV:=PF(BVP,VVP,0.02*sizeBR*temp/1.87)*dt
   else dV:=0;
   BrakeRes.Flow(dV);
@@ -1201,7 +1198,7 @@ var dv, dv1, temp:real;
     VVP, BVP, BCP, CVP: real;
 begin
  BVP:=BrakeRes.P;
- VVP:=Min0R(ValveRes.P,BVP+0.05);
+ VVP:=ValveRes.P;
  BCP:=BrakeCyl.P;
  CVP:=CntrlRes.P-0.0;
 
@@ -1234,7 +1231,7 @@ begin
   BrakeCyl.Flow(-dV);
 //przeplyw ZP <-> rozdzielacz
   temp:=BVs(BCP);
-  if(BCP<0.25)or(VVP+0.05>BVP)then
+  if(VVP-0.05>BVP)then
    dV:=PF(BVP,VVP,0.02*sizeBR*temp/1.87)*dt
   else dV:=0;
   BrakeRes.Flow(dV);
@@ -1258,7 +1255,7 @@ var dv, dv1, temp:real;
     VVP, BVP, BCP, CVP: real;
 begin
  BVP:=BrakeRes.P;
- VVP:=Min0R(ValveRes.P,BVP+0.05);
+ VVP:=ValveRes.P;
  BCP:=ImplsRes.P;
  CVP:=CntrlRes.P-0.0;
 
@@ -1291,7 +1288,7 @@ begin
   ImplsRes.Flow(-dV);
 //przeplyw ZP <-> rozdzielacz
   temp:=BVs(BCP);
-  if(BVP<PP+0.01)or(BCP<0.25)then  //or((PP<CVP)and(CVP<PP-0.1)
+  if(BVP<VVP-0.05)then  //or((PP<CVP)and(CVP<PP-0.1)
    dV:=PF(BVP,VVP,0.02*sizeBR*temp/1.87)*dt
   else dV:=0;
   BrakeRes.Flow(dV);
@@ -1354,7 +1351,7 @@ var dv, dv1, temp:real;
     VVP, BVP, BCP, CVP: real;
 begin
  BVP:=BrakeRes.P;
- VVP:=Min0R(ValveRes.P,BVP+0.05);
+ VVP:=ValveRes.P;
  BCP:=ImplsRes.P;
  CVP:=CntrlRes.P-0.0;
 
@@ -1385,7 +1382,7 @@ begin
   ImplsRes.Flow(-dV);
 //przeplyw ZP <-> rozdzielacz
   temp:=BVs(BCP);
-  if(BCP<0.25)or(VVP+0.05>BVP)then
+  if(BCP<0.25)or(VVP-0.05>BVP)then
    dV:=PF(BVP,VVP,0.02*sizeBR*temp/1.87)*dt
   else dV:=0;
   BrakeRes.Flow(dV);
@@ -2544,4 +2541,5 @@ begin
 end;
 
 end.
+
 
