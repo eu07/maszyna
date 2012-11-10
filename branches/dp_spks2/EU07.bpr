@@ -33,14 +33,13 @@
     <USERDEFINES value="GLEW_STATIC;_DEBUG"/>
     <SYSDEFINES value="NO_STRICT;_RTLDLL"/>
     <MAINSOURCE value="EU07.cpp"/>
-    <INCLUDEPATH value="C:\ProgsWin\CBuilder5\Projects\;Console;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
-    <LIBPATH value="C:\ProgsWin\CBuilder5\Projects\;Console;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
+    <INCLUDEPATH value="Console;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
+    <LIBPATH value="Console;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
     <WARNINGS value="-w-par"/>
   </MACROS>
   <OPTIONS>
-    <IDLCFLAGS value="-IC:\ProgsWin\CBuilder5\Projects\. -IConsole -Iopengl -IMcZapkie 
-      -I$(BCB)\include -I$(BCB)\include\vcl -src_suffix cpp -DGLEW_STATIC 
-      -D_DEBUG -boa"/>
+    <IDLCFLAGS value="-IConsole -Iopengl -IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl 
+      -src_suffix cpp -DGLEW_STATIC -D_DEBUG -boa"/>
     <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a4 -6 -b- -k -y -v -vi- 
       -c -tW -tWM"/>
     <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
@@ -59,8 +58,8 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=1
 MinorVer=8
-Release=686
-Build=386
+Release=648
+Build=375
 Debug=1
 PreRelease=0
 Special=0
@@ -72,8 +71,8 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.8.686.386
-InternalName=8th by Ra + SPKS
+FileVersion=1.8.648.375
+InternalName=8th by Ra
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=eu07.exe
@@ -82,14 +81,12 @@ ProductVersion=1.8
 Comments=
 
 [HistoryLists\hlIncludePath]
-Count=2
-Item0=C:\ProgsWin\CBuilder5\Projects;Console;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item1=Console;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Count=1
+Item0=Console;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
 
 [HistoryLists\hlLibraryPath]
-Count=2
-Item0=C:\ProgsWin\CBuilder5\Projects;Console;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item1=Console;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Count=1
+Item0=Console;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
 
 [HistoryLists\hlDebugSourcePath]
 Count=2
@@ -119,7 +116,7 @@ Item4=D:\EU07DDS\
 DebugSourceDirs=C:\Ra\dp\McZapkie\
 
 [Parameters]
-RunParams=-s quarkmce2007.scn -v ghostview
+RunParams=-s AI_start3.scn -v ghostview
 HostApplication=
 RemoteHost=
 RemotePath=
