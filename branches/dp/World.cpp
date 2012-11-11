@@ -565,6 +565,10 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
  //Camera.Reset();
  ResetTimers();
  WriteLog("Load time: "+FloatToStrF((86400.0*((double)Now()-time)),ffFixed,7,1)+" seconds");
+ if (DebugModeFlag) //w Debugmode automatyczne w³¹czenie AI
+  if (Train)
+   if (Train->DynamicObject->Mechanik)
+    Train->DynamicObject->Mechanik->TakeControl(true);
  return true;
 };
 
@@ -654,12 +658,12 @@ void __fastcall TWorld::OnKeyDown(int cKey)
     break;
     case VK_F6:
      if (DebugModeFlag)
-     {//przyspieszenie czasu, rzadko potrzebne, poza tym nie wspó³pracuje z kolejk¹ eventów i eventlauncherami
+     {//przyspieszenie symulacji do testowania scenerii... uwaga na FPS!
       //Global::iViewMode=VK_F6;
       if (Console::Pressed(VK_CONTROL))
-       GlobalTime->UpdateMTableTime(Console::Pressed(VK_SHIFT)?3600:600); //10 min albo godzina
+       Global::fSunSpeed=(Console::Pressed(VK_SHIFT)?10.0:5.0);
       else
-       GlobalTime->UpdateMTableTime(Console::Pressed(VK_SHIFT)?60:10); //10s albo minuta
+       Global::fSunSpeed=(Console::Pressed(VK_SHIFT)?2.0:1.0);
      }
     break;
    }
@@ -887,7 +891,7 @@ bool __fastcall TWorld::Update()
   if (Global::fMoveLight>=0.0)
   {//testowo ruch œwiat³a
    //double a=Global::fTimeAngleDeg/180.0*M_PI-M_PI; //k¹t godzinny w radianach
-   double a=fmod(Global::fSunSpeed*Global::fTimeAngleDeg,360.0)/180.0*M_PI-M_PI; //k¹t godzinny w radianach
+   double a=fmod(Global::fTimeAngleDeg,360.0)/180.0*M_PI-M_PI; //k¹t godzinny w radianach
    double L=Global::fLatitudeDeg/180.0*M_PI; //szerokoœæ geograficzna
    double H=asin(cos(L)*cos(Global::fSunDeclination)*cos(a)+sin(L)*sin(Global::fSunDeclination)); //k¹t ponad horyzontem
    //double A=asin(cos(d)*sin(M_PI-a)/cos(H));
@@ -1004,7 +1008,7 @@ bool __fastcall TWorld::Update()
 #if 0
  //Ra: na razie po staremu
  double dt=fTimeBuffer+GetDeltaTime(); //[s] czas od poprzedniego sprawdzania
- if (dt>fMaxDt) //jest co najmniej jeden krok; normalnie 0.01s
+ if (dt>=fMaxDt) //jest co najmniej jeden krok; normalnie 0.01s
  {//Ra: czas dla fizyki jest skwantowany
   double iter=ceil(dt/fMaxDt); //ile kroków siê zmieœci³o od ostatniego sprawdzania?
   int n=int(iter); //ile kroków jako int
@@ -1021,11 +1025,6 @@ bool __fastcall TWorld::Update()
     Ground.Update(dt,n);
     Ground.Update(dt,n);
     Ground.Update(dt,n); //5 razy
-    //Ground.Update(dt,n); //jak jest za du¿o, to gubi eventy
-    //Ground.Update(dt,n);
-    //Ground.Update(dt,n);
-    //Ground.Update(dt,n);
-    //Ground.Update(dt,n); //10 razy
    }
  }
 #else
@@ -1049,18 +1048,13 @@ bool __fastcall TWorld::Update()
    Ground.Update(dt,n);
    Ground.Update(dt,n);
    Ground.Update(dt,n); //5 razy
-   //Ground.Update(dt,n); //jak jest za du¿o, to gubi eventy
-   //Ground.Update(dt,n);
-   //Ground.Update(dt,n);
-   //Ground.Update(dt,n);
-   //Ground.Update(dt,n); //10 razy
   }
 #endif
  dt=GetDeltaTime(); //czas niekwantowany
  if (Camera.Type==tp_Follow)
  {if (Train)
   {//jeœli jazda w kabinie, przeliczyæ trzeba parametry kamery
-   Train->UpdateMechPosition(dt);
+   Train->UpdateMechPosition(dt/Global::fSunSpeed); //ograniczyæ telepanie po przyspieszeniu
    vector3 tempangle;
    double modelrotate;
    tempangle=Controlled->VectorFront()*(Controlled->MoverParameters->ActiveCab==-1 ? -1 : 1);
