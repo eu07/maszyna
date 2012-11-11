@@ -3881,8 +3881,10 @@ else
      }
      else
      {
-       btLampkaDepartureSignal.TurnOff();
-       DynamicObject->MoverParameters->DepartureSignal=false;
+      btLampkaDepartureSignal.TurnOff();
+      if (DynamicObject->Mechanik) //mo¿e nie byæ?
+       if (!DynamicObject->Mechanik->AIControllFlag) //tylko jeœli nie prowadzi AI
+        DynamicObject->MoverParameters->DepartureSignal=false;
      }
 
 if ( Console::Pressed(Global::Keys[k_Main]) )                //[]
@@ -4452,8 +4454,11 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     PantAllDownButtonGauge.Clear();
     VelocityGauge.Clear();
     I1Gauge.Clear();
+    I1Gauge.Output(5); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
     I2Gauge.Clear();
+    I2Gauge.Output(4); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
     I3Gauge.Clear();
+    I3Gauge.Output(3); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
     ItotalGauge.Clear();
     CylHamGauge.Clear();
     PrzGlGauge.Clear();
@@ -4461,7 +4466,6 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
 
     VelocityGaugeB.Clear();
     I1GaugeB.Clear();
-    I1Gauge.Output(5); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
     I2GaugeB.Clear();
     I3GaugeB.Clear();
     ItotalGaugeB.Clear();
@@ -4479,6 +4483,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     ClockHInd.Clear();
     EngineVoltage.Clear();
     HVoltageGauge.Clear();
+    HVoltageGauge.Output(2); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
     LVoltageGauge.Clear();
     enrot1mGauge.Clear();
     enrot2mGauge.Clear();

@@ -1178,6 +1178,7 @@ begin
    LastCab:=CabNo;
    CabNo:=0;
    DirAbsolute:=ActiveDir*CabNo;
+   DepartureSignal:=false; //nie buczeæ z nieaktywnej kabiny
    SendCtrlToNext('CabActivisation',0,ActiveCab);
   end;
  CabDeactivisation:=OK;
