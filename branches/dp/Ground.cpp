@@ -2160,7 +2160,9 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
           found->Append(tmp); //doczepka (taki wirtualny multiple bez warunków)
          else
          {ErrorLog("Duplicated event: "+tmp->asName);
-          SafeDelete(tmp); //bezlitoœnie usuwamy wszelkie duplikaty, ¿eby nie zaœmiecaæ drzewka
+          found->Append(tmp); //doczepka (taki wirtualny multiple bez warunków)
+          found->Type=tp_Ignored; //dezaktywacja pierwotnego - taka proteza na wsteczn¹ zgodnoœæ
+          //SafeDelete(tmp); //bezlitoœnie usuwamy wszelkie duplikaty, ¿eby nie zaœmiecaæ drzewka
          }
        }
        if (tmp)

@@ -34,7 +34,7 @@ AnsiString Global::asCurrentSceneryPath="scenery/";
 AnsiString Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath);
 AnsiString Global::asCurrentDynamicPath="";
 int Global::iSlowMotion=0; //info o malym FPS: 0-OK, 1-wy³¹czyæ multisampling, 3-promieñ 1.5km, 7-1km
-bool Global::changeDynObj; //info o zmianie pojazdu
+TDynamicObject *Global::changeDynObj=NULL; //info o zmianie pojazdu
 bool Global::detonatoryOK; //info o nowych detonatorach
 double Global::ABuDebug=0;
 AnsiString Global::asSky="1";
@@ -44,8 +44,8 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asRelease="1.8.694.389";
-AnsiString Global::asVersion="Compilation 2012-11-11, release "+Global::asRelease+"."; //tutaj, bo wysy³any
+AnsiString Global::asRelease="1.8.695.390";
+AnsiString Global::asVersion="Compilation 2012-11-13, release "+Global::asRelease+"."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 double Global::fSunDeclination=0.0; //deklinacja S³oñca
@@ -153,7 +153,7 @@ double Global::fCalibrateOut[6][4]={{0,1,0,0},{0,1,0,0},{0,1,0,0},{0,1,0,0},{0,1
 //bool Global::bRenderAlpha=true; //Ra: wywali³am tê flagê
 bool Global::bnewAirCouplers=true;
 bool Global::bDoubleAmbient=false; //podwójna jasnoœæ ambient
-double Global::fSunSpeed=1.0; //prêdkoœæ ruchu S³oñca, zmienna do testów
+double Global::fTimeSpeed=1.0; //przyspieszenie czasu, zmienna do testów
 bool Global::bHideConsole=false; //hunter-271211: ukrywanie konsoli
 int Global::iBpp=32; //chyba ju¿ nie u¿ywa siê kart, na których 16bpp coœ poprawi
 
@@ -349,8 +349,8 @@ void __fastcall Global::ConfigParse(TQueryParserComp *qp,cParser *cp)
   }
   else if (str==AnsiString("smoothtraction")) //podwójna jasnoœæ ambient
    bSmoothTraction=(GetNextSymbol().LowerCase()==AnsiString("yes"));
-  else if (str==AnsiString("sunspeed")) //prêdkoœæ ruchu S³oñca, zmienna do testów
-   fSunSpeed=GetNextSymbol().ToIntDef(1);
+  else if (str==AnsiString("timespeed")) //przyspieszenie czasu, zmienna do testów
+   fTimeSpeed=GetNextSymbol().ToIntDef(1);
   else if (str==AnsiString("multisampling")) //tryb antyaliasingu: 0=brak,1=2px,2=4px
    iMultisampling=GetNextSymbol().ToIntDef(2); //domyœlnie 2
   else if (str==AnsiString("glutfont")) //tekst generowany przez GLUT

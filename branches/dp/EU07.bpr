@@ -117,7 +117,7 @@ Item1=D:\EU07DDS\
 DebugSourceDirs=C:\Ra\dp\McZapkie\
 
 [Parameters]
-RunParams=
+RunParams=-s EDU.scn -v ghostview
 HostApplication=
 RemoteHost=
 RemotePath=

@@ -138,7 +138,7 @@ bool __fastcall TMoverParameters::DirectionForward()
   return true;
  }
  else if ((ActiveDir==1)&&(MainCtrlPos==0)&&(TrainType==dt_EZT))
-  return MinCurrentSwitch(true);
+  return MinCurrentSwitch(true); //"wysoki rozruch" EN57
  return false;
 };
 
