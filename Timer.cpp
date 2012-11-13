@@ -82,7 +82,7 @@ void __fastcall UpdateTimers(bool pause)
  QueryPerformanceCounter((LARGE_INTEGER*)&count);
  DeltaRenderTime=double(count-oldCount)/double(fr);
  if (!pause)
- {DeltaTime=Global::fSunSpeed*DeltaRenderTime;
+ {DeltaTime=Global::fTimeSpeed*DeltaRenderTime;
   fSoundTimer+=DeltaTime;
   if (fSoundTimer>0.1) fSoundTimer=0;
 /*

@@ -50,7 +50,7 @@ __fastcall TWorld::TWorld()
  for (int i=0;i<10;++i)
   KeyEvents[i]=NULL; //eventy wyzwalane klawiszami cyfrowymi
  Global::iSlowMotion=0;
- Global::changeDynObj=false;
+ //Global::changeDynObj=NULL;
  //lastmm=61; //ABu: =61, zeby zawsze inicjowac kolor czarnej mgly przy warunku (GlobalTime->mm!=lastmm) :)
  OutText1=""; //teksty wyœwietlane na ekranie
  OutText2="";
@@ -661,9 +661,9 @@ void __fastcall TWorld::OnKeyDown(int cKey)
      {//przyspieszenie symulacji do testowania scenerii... uwaga na FPS!
       //Global::iViewMode=VK_F6;
       if (Console::Pressed(VK_CONTROL))
-       Global::fSunSpeed=(Console::Pressed(VK_SHIFT)?10.0:5.0);
+       Global::fTimeSpeed=(Console::Pressed(VK_SHIFT)?10.0:5.0);
       else
-       Global::fSunSpeed=(Console::Pressed(VK_SHIFT)?2.0:1.0);
+       Global::fTimeSpeed=(Console::Pressed(VK_SHIFT)?2.0:1.0);
      }
     break;
    }
@@ -1054,7 +1054,7 @@ bool __fastcall TWorld::Update()
  if (Camera.Type==tp_Follow)
  {if (Train)
   {//jeœli jazda w kabinie, przeliczyæ trzeba parametry kamery
-   Train->UpdateMechPosition(dt/Global::fSunSpeed); //ograniczyæ telepanie po przyspieszeniu
+   Train->UpdateMechPosition(dt/Global::fTimeSpeed); //ograniczyæ telepanie po przyspieszeniu
    vector3 tempangle;
    double modelrotate;
    tempangle=Controlled->VectorFront()*(Controlled->MoverParameters->ActiveCab==-1 ? -1 : 1);
@@ -1345,7 +1345,7 @@ bool __fastcall TWorld::Update()
        OutText1+= FloatToStrF(Global::ABuDebug,ffFixed,6,15);
     };
     */
-    if (Global::changeDynObj==true)
+    if (Global::changeDynObj)
     {//ABu zmiana pojazdu - przejœcie do innego
      //Ra: to nie mo¿e byæ tak robione, to zbytnia proteza jest
      Train->dsbHasler->Stop(); //wy³¹czenie dŸwiêków opuszczanej kabiny
@@ -1357,9 +1357,20 @@ bool __fastcall TWorld::Update()
      Train->rsBrake.Stop();
      Train->rsEngageSlippery.Stop();
      Train->rsSlippery.Stop();
-     Train->DynamicObject->MoverParameters->CabDeactivisation();
-     int CabNr;
-     TDynamicObject *temp;
+     if (Train->DynamicObject->Mechanik) //AI mo¿e sobie samo pójœæ
+      if (!Train->DynamicObject->Mechanik->AIControllFlag) //tylko jeœli rêcznie prowadzony
+      {//jeœli prowadzi AI, to mu nie robimy dywersji!
+       Train->DynamicObject->MoverParameters->CabDeactivisation();
+       Train->DynamicObject->Controller=AIdriver;
+       Train->DynamicObject->MoverParameters->SecuritySystem.Status=0;
+       Train->DynamicObject->MoverParameters->ActiveCab=0;
+       Train->DynamicObject->MoverParameters->BrakeLevelSet(-2);
+       Train->DynamicObject->MechInside=false;
+      }
+     //int CabNr;
+     TDynamicObject *temp=Global::changeDynObj;
+     //CabNr=temp->MoverParameters->ActiveCab;
+/*
      if (Train->DynamicObject->MoverParameters->ActiveCab==-1)
      {
       temp=Train->DynamicObject->NextConnected; //pojazd od strony sprzêgu 1
@@ -1370,41 +1381,43 @@ bool __fastcall TWorld::Update()
       temp=Train->DynamicObject->PrevConnected; //pojazd od strony sprzêgu 0
       CabNr=(Train->DynamicObject->PrevConnectedNo==0)?1:-1;
      }
-     Train->DynamicObject->Controller=AIdriver;
+*/
      Train->DynamicObject->bDisplayCab=false;
-     Train->DynamicObject->MechInside=false;
-     Train->DynamicObject->MoverParameters->SecuritySystem.Status=0;
      Train->DynamicObject->ABuSetModelShake(vector3(0,0,0));
-     Train->DynamicObject->MoverParameters->ActiveCab=0;
-     Train->DynamicObject->MoverParameters->BrakeLevelSet(-2);
-///     Train->DynamicObject->MoverParameters->LimPipePress=-1;
-///     Train->DynamicObject->MoverParameters->ActFlowSpeed=0;
-///     Train->DynamicObject->Mechanik->CloseLog();
-///     SafeDelete(Train->DynamicObject->Mechanik);
+     ///Train->DynamicObject->MoverParameters->LimPipePress=-1;
+     ///Train->DynamicObject->MoverParameters->ActFlowSpeed=0;
+     ///Train->DynamicObject->Mechanik->CloseLog();
+     ///SafeDelete(Train->DynamicObject->Mechanik);
 
      //Train->DynamicObject->mdKabina=NULL;
      if (Train->DynamicObject->Mechanik) //AI mo¿e sobie samo pójœæ
       if (!Train->DynamicObject->Mechanik->AIControllFlag) //tylko jeœli rêcznie prowadzony
-       temp->Mechanik=Train->DynamicObject->Mechanik; //przejêcie obiektu zarz¹dzaj¹cego
+       Train->DynamicObject->Mechanik->MoveTo(temp); //przsuniêcie obiektu zarz¹dzaj¹cego
      //Train->DynamicObject=NULL;
      Train->DynamicObject=temp;
-     Controlled=Train->DynamicObject;
+     Controlled=temp;
      Global::asHumanCtrlVehicle=Train->DynamicObject->GetName();
      if (Train->DynamicObject->Mechanik) //AI mo¿e sobie samo pójœæ
       if (!Train->DynamicObject->Mechanik->AIControllFlag) //tylko jeœli rêcznie prowadzony
       {Train->DynamicObject->MoverParameters->LimPipePress=Controlled->MoverParameters->PipePress;
-//     Train->DynamicObject->MoverParameters->ActFlowSpeed=0;
+       //Train->DynamicObject->MoverParameters->ActFlowSpeed=0;
        Train->DynamicObject->MoverParameters->SecuritySystem.Status=1;
-       Train->DynamicObject->MoverParameters->ActiveCab=CabNr;
-       Train->DynamicObject->MoverParameters->CabDeactivisation();
+       //Train->DynamicObject->MoverParameters->ActiveCab=CabNr;
+       Train->DynamicObject->MoverParameters->CabActivisation();
        Train->DynamicObject->Controller=Humandriver;
        Train->DynamicObject->MechInside=true;
-///     Train->DynamicObject->Mechanik=new TController(l,r,Controlled->Controller,&Controlled->MoverParameters,&Controlled->TrainParams,Aggressive);
-     //Train->InitializeCab(Train->DynamicObject->MoverParameters->CabNo,Train->DynamicObject->asBaseDir+Train->DynamicObject->MoverParameters->TypeName+".mmd");
-       Train->InitializeCab(CabNr,Train->DynamicObject->asBaseDir+Train->DynamicObject->MoverParameters->TypeName+".mmd");
-       if (!FreeFlyModeFlag) Train->DynamicObject->bDisplayCab=true;
+       //Train->DynamicObject->Mechanik=new TController(l,r,Controlled->Controller,&Controlled->MoverParameters,&Controlled->TrainParams,Aggressive);
+       //Train->InitializeCab(CabNr,Train->DynamicObject->asBaseDir+Train->DynamicObject->MoverParameters->TypeName+".mmd");
       }
-     Global::changeDynObj=false;
+     Train->InitializeCab(Train->DynamicObject->MoverParameters->CabNo,Train->DynamicObject->asBaseDir+Train->DynamicObject->MoverParameters->TypeName+".mmd");
+     if (!FreeFlyModeFlag)
+     {Global::pUserDynamic=Controlled; //renerowanie wzglêdem kamery
+      Train->DynamicObject->bDisplayCab=true;
+      Train->DynamicObject->ABuSetModelShake(vector3(0,0,0)); //zerowanie przesuniêcia przed powrotem?
+      Train->MechStop();
+      FollowView(); //na pozycjê mecha
+     }
+     Global::changeDynObj=NULL;
     }
 
     if (Global::iTextMode==VK_F1)
@@ -1652,17 +1665,21 @@ bool __fastcall TWorld::Update()
       //Controlled->mdModel->GetSMRoot()->SetTranslate(vector3(0,1,0));
 
       //McZapkie: warto wiedziec w jakim stanie sa przelaczniki
-      if (!Controlled->MoverParameters->Mains)
-       OutText3+="  ";
+      if (Controlled->MoverParameters->ConvOvldFlag)
+       OutText3+=" C! ";
+      else if (!Controlled->MoverParameters->Mains)
+       OutText3+=" () ";
+      else if (Controlled->MoverParameters->FuseFlag)
+       OutText3+=" F! ";
       else
-      {
-       switch (Controlled->MoverParameters->ActiveDir)
+       switch (Controlled->MoverParameters->ActiveDir*(Controlled->MoverParameters->Imin==Controlled->MoverParameters->IminLo?1:2))
        {
+        case  2: {OutText3+=" >> "; break;}
         case  1: {OutText3+=" -> "; break;}
         case  0: {OutText3+=" -- "; break;}
         case -1: {OutText3+=" <- "; break;}
+        case -2: {OutText3+=" << "; break;}
        }
-      }
       //OutText3+=AnsiString("; dpLocal ")+FloatToStrF(Controlled->MoverParameters->dpLocalValve,ffFixed,10,8);
       //OutText3+=AnsiString("; dpMain ")+FloatToStrF(Controlled->MoverParameters->dpMainValve,ffFixed,10,8);
       //McZapkie: predkosc szlakowa
@@ -2140,6 +2157,13 @@ void __fastcall TWorld::CreateE3D(const AnsiString &dir,bool dyn)
   } while (FindNext(sr)==0);
   FindClose(sr);
  }
+};
+//---------------------------------------------------------------------------
+void __fastcall TWorld::CabChange(TDynamicObject *old,TDynamicObject *now)
+{//ewentualna zmiana kabiny u¿ytkownikowi
+ if (Train)
+  if (Train->DynamicObject==old)
+   Global::changeDynObj=now; //uruchomienie protezy
 };
 //---------------------------------------------------------------------------
 

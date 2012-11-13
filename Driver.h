@@ -262,6 +262,7 @@ public:
  int __fastcall StationIndex();
  bool __fastcall IsStop();
  bool __fastcall Primary() {return this?bool(iDrivigFlags&movePrimary):false;};
+ void __fastcall MoveTo(TDynamicObject *to);
 };
 
 #endif

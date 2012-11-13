@@ -585,8 +585,8 @@ TYPE
                 ScndCtrlPos: byte; {polozenie dodatkowego nastawnika}
                 ActiveDir: integer; //czy lok. jest wlaczona i w ktorym kierunku:
                 //wzglêdem wybranej kabiny: -1 - do tylu, +1 - do przodu, 0 - wylaczona
-                CabNo: integer;    {! numer kabiny: 1 lub -1. W przeciwnym razie brak sterowania - rozrzad}
-                DirAbsolute: integer; //zadany kierunek jazdy wzglêdem sprzêgów (1=w strone 0,-1=w stronê 1) 
+                CabNo: integer; //numer kabiny, z której jest sterowanie: 1 lub -1; w przeciwnym razie brak sterowania - rozrzad
+                DirAbsolute: integer; //zadany kierunek jazdy wzglêdem sprzêgów (1=w strone 0,-1=w stronê 1)
                 ActiveCab: integer; //numer kabiny, w ktorej jest obsada (zwykle jedna na sk³ad)
                 LastCab: integer;       { numer kabiny przed zmiana }
                 LastSwitchingTime: real; {czas ostatniego przelaczania czegos}

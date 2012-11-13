@@ -187,7 +187,7 @@ public:
  static GLfloat darkLight[];
  static GLfloat lightPos[4];
  static int iSlowMotion;
- static bool changeDynObj;
+ static TDynamicObject *changeDynObj;
  static double ABuDebug;
  static bool detonatoryOK;
  static AnsiString asSky;
@@ -216,7 +216,7 @@ public:
  static double fMoveLight; //numer dnia w roku albo -1
  static bool bSmoothTraction; //wyg³adzanie drutów
  static double fSunDeclination; //deklinacja S³oñca
- static double fSunSpeed; //prêdkoœæ ruchu S³oñca, zmienna do testów
+ static double fTimeSpeed; //przyspieszenie czasu, zmienna do testów
  static double fTimeAngleDeg; //godzina w postaci k¹ta
  static double fLatitudeDeg; //szerokoœæ geograficzna
  static char* szTexturesTGA[4]; //lista tekstur od TGA

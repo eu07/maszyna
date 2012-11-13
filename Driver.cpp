@@ -18,6 +18,7 @@
 #include "Event.h"
 #include "Ground.h"
 #include "MemCell.h"
+#include "World.h"
 
 #define LOGVELOCITY 0
 #define LOGSTOPS 1
@@ -905,18 +906,17 @@ void __fastcall TController::Activation()
  iDirection=iDirectionOrder; //kierunek (wzglêdem sprzêgów pojazdu z AI) w³aœnie zosta³ ustalony (zmieniony)
  if (iDirection)
  {//jeœli jest ustalony kierunek
-  TDynamicObject *d=pVehicle; //w tym siedzi AI
+  TDynamicObject *old=pVehicle,*d=pVehicle; //w tym siedzi AI
   int brake=Controlling->LocalBrakePos;
   if (TestFlag(d->MoverParameters->Couplers[iDirectionOrder<0?1:0].CouplingFlag,ctrain_controll))
   {Controlling->MainSwitch(false); //dezaktywacja czuwaka, jeœli przejœcie do innego cz³onu
    Controlling->DecLocalBrakeLevel(10); //zwolnienie hamulca w opuszczanym pojeŸdzie
   }
+  Controlling->ActiveCab=Controlling->CabNo; //u¿ytkownik moze zmieniæ ActiveCab wychodz¹c
   Controlling->CabDeactivisation(); //tak jest w Train.cpp
   //przejœcie AI na drug¹ stronê EN57, ET41 itp.
   while (TestFlag(d->MoverParameters->Couplers[iDirection<0?1:0].CouplingFlag,ctrain_controll))
   {//jeœli pojazd z przodu jest ukrotniony, to przechodzimy do niego
-   //if (Global::pUserDynamic)
-   // ... //uaktywniæ zmianê pojazdu, jeœli to pojazd z u¿ytkownikiem
    d=iDirection*d->DirectionGet()<0?d->Next():d->Prev(); //przechodzimy do nastêpnego cz³onu
    if (d?!d->Mechanik:false)
    {d->Mechanik=this; //na razie bilokacja
@@ -930,14 +930,18 @@ void __fastcall TController::Activation()
    }
    else break; //jak zajête, albo koniec sk³adu, to mechanik dalej nie idzie (wywaliæ drugiego?)
   }
-  Controlling=pVehicle->MoverParameters; //skrót do obiektu parametrów, mo¿e byæ nowy
+  if (pVehicle!=old)
+  {//jeœli zmieniony zosta³ pojazd prowadzony
+   Global::pWorld->CabChange(old,pVehicle); //ewentualna zmiana kabiny u¿ytkownikowi
+   Controlling=pVehicle->MoverParameters; //skrót do obiektu parametrów, mo¿e byæ nowy
+  }
   //Ra: to prze³¹czanie poni¿ej jest tu bez sensu
   Controlling->ActiveCab=iDirection; //aktywacja kabiny w prowadzonym poje¿dzie
   //Controlling->CabNo=iDirection;
   //Controlling->ActiveDir=0; //¿eby sam ustawi³ kierunek
   Controlling->CabActivisation(); //uruchomienie kabin w cz³onach
-  DirectionForward(true); //nawrotnik do przodu, aby dobrze dociskaæ odczepiany sk³ad
-  if (AIControllFlag) //jeœli prowadzi komputer
+  DirectionForward(true); //nawrotnik do przodu
+  //if (AIControllFlag) //jeœli prowadzi komputer - tutaj zawsze
    if (brake) //hamowanie tylko jeœli by³ wczeœniej zahamowany (bo mo¿liwe, ¿e jedzie!)
     Controlling->IncLocalBrakeLevel(brake); //zahamuj jak wczeœniej
   CheckVehicles(); //sprawdzenie sk³adu, AI zapali œwiat³a
@@ -1320,7 +1324,12 @@ bool __fastcall TController::PrepareEngine()
       iDirection=1; //jazda w kierunku sprzêgu 0
   if (AIControllFlag) //jeœli prowadzi komputer
   {//czêœæ wykonawcza dla sterowania przez komputer
-   if (!Controlling->Mains)
+   if (Controlling->ConvOvldFlag)
+   {//wywali³ bezpiecznik nadmiarowy przetwornicy
+    while (DecSpeed()); //zerowanie napêdu
+    Controlling->ConvOvldFlag=false; //reset nadmiarowego
+   }
+   else if (!Controlling->Mains)
    {
     //if TrainType=dt_SN61)
     //   begin
@@ -1771,7 +1780,8 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
      iDirectionOrder=-iDirectionOrder; //ma jechaæ w drug¹ stronê
 */
   }
-  Activation(); //umieszczenie obs³ugi we w³aœciwym cz³onie, ustawienie nawrotnika w przód
+  if (AIControllFlag) //jeœli prowadzi komputer
+   Activation(); //umieszczenie obs³ugi we w³aœciwym cz³onie, ustawienie nawrotnika w przód
   //jeœli wysy³ane z Trainset, to wszystko jest ju¿ odpowiednio ustawione
   //if (!NewLocation) //jeœli wysy³ane z Trainset
   // if (Controlling->CabNo*Controlling->V*NewValue1<0) //jeœli zadana prêdkoœæ niezgodna z aktualnym kierunkiem jazdy
@@ -2127,6 +2137,7 @@ bool __fastcall TController::UpdateSituation(double dt)
   //Ra: trzeba by tak:
   // 1. Ustaliæ istotn¹ odleg³oœæ zainteresowania (np. 3×droga hamowania z V.max).
   fBrakeDist=fDriverBraking*Controlling->Vel*(40.0+Controlling->Vel); //przybli¿ona droga hamowania
+  if (fMass>1000.0) fBrakeDist*=1.5; //korekta dla ciê¿kich, bo prze¿ynaj¹ - da to coœ?
   //double scanmax=(Controlling->Vel>0.0)?3*fDriverDist+fBrakeDist:10.0*fDriverDist;
   double scanmax=(Controlling->Vel>0.0)?150+fBrakeDist:20.0*fDriverDist; //1000m dla stoj¹cych poci¹gów
   // 2. Sprawdziæ, czy tabelka pokrywa za³o¿ony odcinek (nie musi, jeœli jest STOP).
@@ -2715,8 +2726,8 @@ bool __fastcall TController::UpdateSituation(double dt)
      {//czêœæ wykonawcza tylko dla AI, dla cz³owieka jedynie napisy
       if (Controlling->ConvOvldFlag)
       {//wywali³ bezpiecznik nadmiarowy przetwornicy
-       while (DecSpeed()); //zerowanie napêdu
-       Controlling->ConvOvldFlag=false; //reset nadmiarowego
+       //while (DecSpeed()); //zerowanie napêdu
+       //Controlling->ConvOvldFlag=false; //reset nadmiarowego
        PrepareEngine(); //próba ponownego za³¹czenia
       }
       //w³¹czanie bezpiecznika
@@ -2850,6 +2861,10 @@ bool __fastcall TController::UpdateSituation(double dt)
      {//tu mozna daæ komunikaty tekstowe albo s³owne: przyspiesz, hamuj (lekko, œrednio, mocno)
      }
     } //kierunek ró¿ny od zera
+    else
+     if (AIControllFlag) //jeœli prowadzi AI
+      if (OrderList[OrderPos]&(Change_direction|Connect|Disconnect|Shunt|Obey_train)) //jeœli coœ ma robiæ
+       PrepareEngine(); //to niech odpala do skutku
     if (AIControllFlag)
     {//odhamowywanie sk³adu po zatrzymaniu i zabezpieczanie lokomotywy
      if ((OrderList[OrderPos]&(Disconnect|Connect))==0) //przy (p)od³¹czaniu nie zwalniamy tu hamulca
@@ -3341,8 +3356,11 @@ void __fastcall TController::TakeControl(bool yes)
  {//teraz AI prowadzi
   AIControllFlag=AIdriver;
   pVehicle->Controller=AIdriver;
+  iDirection=0; //kierunek jazdy trzeba dopiero zgadn¹æ
   //gdy zgaszone œwiat³a, flaga podje¿d¿ania pod semafory pozostaje bez zmiany
-  if (!OrderCurrentGet()) //jeœli nic nie robi
+  if (OrderCurrentGet()) //jeœli coœ robi
+   PrepareEngine(); //niech sprawdzi stan silnika
+  else //jeœli nic nie robi
    if (pVehicle->iLights[Controlling->CabNo<0?1:0]&21) //któreœ ze œwiate³ zapalone?
    {//od wersji 357 oczekujemy podania komend dla AI przez sceneriê
     OrderNext(Prepare_engine);
@@ -3372,6 +3390,7 @@ void __fastcall TController::TakeControl(bool yes)
   if (pVehicle->GetVelocity()>0.0)
    SetVelocity(-1,-1); //AI ustali sobie odpowiedni¹ prêdkoœæ
 */
+  //Activation(); //przeniesie u¿ytkownika w ostatnio wybranym kierunku
   CheckVehicles(); //ustawienie œwiate³
   TableClear(); //ponowne utworzenie tabelki, bo cz³owiek móg³ pojechaæ niezgodnie z sygna³ami
  }
@@ -3417,3 +3436,16 @@ bool __fastcall TController::IsStop()
 {//informuje, czy jest zatrzymanie na najbli¿szej stacji
  return TrainParams->IsStop();
 };
+
+void __fastcall TController::MoveTo(TDynamicObject *to)
+{//przesuniêcie AI do innego pojazdu (przy zmianie kabiny)
+ //Controlling->CabDeactivisation(); //wy³¹czenie kabiny w opuszczanym
+ pVehicle->Mechanik=NULL; //tam ju¿ nie ma
+ pVehicle=to;
+ Controlling=pVehicle->MoverParameters; //skrót do obiektu parametrów
+ pVehicle->Mechanik=this;
+ //iDirection=0; //kierunek jazdy trzeba dopiero zgadn¹æ
+};
+
+
+
