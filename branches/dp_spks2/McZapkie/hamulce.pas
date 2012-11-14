@@ -179,7 +179,7 @@ TYPE
         function GetHPFlow(HP, dt: real): real; override;
         procedure PLC(mass: real);  //wspolczynnik cisnienia przystawki wazacej
         procedure SetEPS(nEPS: real); override; //stan hamulca EP
-        procedure SetLP(TM, LM, TBP: real);  //parametry przystawki wazacej        
+        procedure SetLP(TM, LM, TBP: real);  //parametry przystawki wazacej
       end;
 
     TESt= class(TBrake)
