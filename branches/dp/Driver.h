@@ -36,6 +36,7 @@ enum TMovementStatus
  moveStartHorn=0x100, //podawaj sygna³ po podaniu wolnej drogi
  moveStartHornNow=0x200, //podaj sygna³ po odhamowaniu
  moveStartHornDone=0x400, //podano sygna³ po podaniu wolnej drogi
+ moveOerlikons=0x800, //sk³ad wy³¹cznie z zaworami? Oerlikona
  moveIncSpeed=0x1000 //za³¹czenie jazdy (np. dla EZT)
 };
 
