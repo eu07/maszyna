@@ -1040,6 +1040,7 @@ bool __fastcall TController::CheckVehicles()
  fMass=0.0; //ca³kowita masa do liczenia stycznej sk³adowej grawitacji
  fVelMax=-1; //ustalenie prêdkoœci dla sk³adu
  bool main=true; //czy jest g³ównym steruj¹cym
+ iDrivigFlags|=moveOerlikons; //zak³adamy, ¿e s¹ same Oerlikony
  while (p)
  {//sprawdzanie, czy jest g³ównym steruj¹cym, ¿eby nie by³o konfliktu
   if (p->Mechanik) //jeœli ma obsadê
@@ -1055,6 +1056,11 @@ bool __fastcall TController::CheckVehicles()
   fMass+=p->MoverParameters->TotalMass; //dodanie masy ³¹cznie z ³adunkiem
   if (fVelMax<0?true:p->MoverParameters->Vmax<fVelMax)
    fVelMax=p->MoverParameters->Vmax; //ustalenie maksymalnej prêdkoœci dla sk³adu
+  //uwzglêdniæ jeszcze wy³¹czenie hamulca
+  if ((p->MoverParameters->BrakeSystem!=Pneumatic)&&(p->MoverParameters->BrakeSystem!=ElectroPneumatic))
+   iDrivigFlags&=~moveOerlikons; //no jednak nie
+  else if (p->MoverParameters->BrakeSubsystem!=Oerlikon)
+   iDrivigFlags&=~moveOerlikons; //wtedy te¿ nie
   p=p->Neightbour(dir); //pojazd pod³¹czony od wskazanej strony
  }
  if (main) iDrivigFlags|=movePrimary; //nie znaleziono innego, mo¿na siê porz¹dziæ
@@ -1396,17 +1402,14 @@ bool __fastcall TController::ReleaseEngine()
   if (Controlling->ActiveDir==0)
    OK=Controlling->Mains; //tylko to testujemy dla pojazdu cz³owieka
  if (AIControllFlag)
-  if (!Controlling->DecBrakeLevel())
+  if (!Controlling->DecBrakeLevel()) //tu moze zmieniaæ na -2, ale to bez znaczenia
    if (!Controlling->IncLocalBrakeLevel(1))
    {
+    while (DecSpeed()); //zerowanie nastawników
     if (Controlling->ActiveDir==1)
-     if (!Controlling->DecScndCtrl(2))
-      if (!Controlling->DecMainCtrl(2))
-       Controlling->DirectionBackward();
+     Controlling->DirectionBackward();
     if (Controlling->ActiveDir==-1)
-     if (!Controlling->DecScndCtrl(2))
-      if (!Controlling->DecMainCtrl(2))
-       Controlling->DirectionForward();
+     Controlling->DirectionForward();
    }
  OK=OK&&(Controlling->Vel<0.01);
  if (OK)
@@ -1482,7 +1485,8 @@ bool __fastcall TController::DecBrake()
    Need_BrakeRelease=true;
    break;
   case ElectroPneumatic:
-   if (Controlling->BrakeCtrlPos>-1)
+   //if (Controlling->BrakeCtrlPos>(Controlling->BrakeSubsystem==Oerlikon?-1:0))
+   if (Controlling->BrakeCtrlPos>((iDrivigFlags&moveOerlikons)?-1:0))
     if (Controlling->BrakePressureTable[Controlling->BrakeCtrlPos-1+2].BrakeType==ElectroPneumatic) //+2 to indeks Pascala
      OK=Controlling->DecBrakeLevel();
     else
@@ -2157,11 +2161,11 @@ bool __fastcall TController::UpdateSituation(double dt)
    if (Controlling->CommandIn.Command!="")
     if (!Controlling->RunInternalCommand()) //rozpoznaj komende bo lokomotywa jej nie rozpoznaje
      RecognizeCommand(); //samo czyta komendê wstawion¹ do pojazdu?
-   if (Controlling->SecuritySystem.Status>1)
-    if (!Controlling->SecuritySystemReset())
+   if (Controlling->SecuritySystem.Status>1) //jak zadzia³a³o CA/SHP
+    if (!Controlling->SecuritySystemReset()) //to skasuj
      //if ((TestFlag(Controlling->SecuritySystem.Status,s_ebrake))&&(Controlling->BrakeCtrlPos==0)&&(AccDesired>0.0))
      if ((TestFlag(Controlling->SecuritySystem.Status,s_SHPebrake)||TestFlag(Controlling->SecuritySystem.Status,s_CAebrake))&&(Controlling->BrakeCtrlPos==0)&&(AccDesired>0.0))
-      Controlling->DecBrakeLevel();
+      Controlling->BrakeLevelSet(0); //!!! hm, mo¿e po prostu normalnie sterowaæ hamulcem?
   }
   switch (OrderList[OrderPos])
   {//ustalenie prêdkoœci przy doczepianiu i odczepianiu, dystansów w pozosta³ych przypadkach
@@ -2254,7 +2258,7 @@ bool __fastcall TController::UpdateSituation(double dt)
           //if (p->GetTrack()->) //a nie stoi na torze warsztatowym (ustaliæ po czym poznaæ taki tor)
            ++n; //to  liczymy cz³ony jako jeden
          p->MoverParameters->BrakeReleaser(); //wyluzuj pojazd, aby da³o siê dopychaæ
-         p->MoverParameters->DecBrakeLevel(); //nieczynne lokomotywy hamuj¹
+         p->MoverParameters->BrakeLevelSet(0); //hamulec na zero, aby nie hamowa³
          if (n)
          {//jeœli jeszcze nie koniec
           p=p->Prev(); //kolejny w stronê czo³a sk³adu (licz¹c od ty³u), bo dociskamy
@@ -2756,10 +2760,12 @@ bool __fastcall TController::UpdateSituation(double dt)
          Controlling->BrakeLevelSet(0);
         if ((Controlling->BrakeCtrlPos<0)&&(Controlling->PipeBrakePress<0.01))//{(CntrlPipePress-(Volume/BrakeVVolume/10)<0.01)})
          Controlling->IncBrakeLevel();
-        if ((Controlling->BrakeCtrlPos==0)&&(AbsAccS<0.0)&&(AccDesired>0.0))
+        if ((Controlling->BrakeCtrlPos==0)&&(AbsAccS<0.0)&&(AccDesired>-0.03))
         //if FuzzyLogicAI(CntrlPipePress-PipePress,0.01,1))
          if (Controlling->PipeBrakePress>0.01)//{((Volume/BrakeVVolume/10)<0.485)})
-          Controlling->DecBrakeLevel();
+         {if (iDrivigFlags&moveOerlikons) //a reszta sk³adu jest na to gotowa
+           Controlling->BrakeLevelSet(-1); //nape³nianie w Oerlikonie
+         }
          else
           if (Need_BrakeRelease)
           {
@@ -2843,8 +2849,8 @@ bool __fastcall TController::UpdateSituation(double dt)
       {
        if (!Controlling->DecScndCtrl(2)) //bocznik na zero
         Controlling->DecMainCtrl(1);
-       if (Controlling->BrakeCtrlPos==Controlling->BrakeCtrlPosNo)
-        Controlling->DecBrakeLevel();
+       if (Controlling->BrakeCtrlPos==Controlling->BrakeCtrlPosNo) //jeœli ostatnia pozycja hamowania
+        Controlling->DecBrakeLevel(); //to cofnij hamulec
        else
         Controlling->AntiSlippingButton();
        ++iDriverFailCount;

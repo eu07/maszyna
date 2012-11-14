@@ -604,7 +604,7 @@ TYPE
                 Voltage: real;           {aktualne napiecie sieci zasilajacej}
                 MainCtrlActualPos: byte; {wskaznik Rlist}
                 ScndCtrlActualPos: byte; {wskaznik MotorParam}
-                DelayCtrlFlag: boolean;  {opoznienie w zalaczaniu na 1. pozycji}
+                DelayCtrlFlag: boolean;  //czy czekanie na 1. pozycji na za³¹czenie?
                 LastRelayTime: real;     {czas ostatniego przelaczania stycznikow}
                 AutoRelayFlag: boolean;  {mozna zmieniac jesli AutoRelayType=2}
                 FuseFlag: boolean;       {!o bezpiecznik nadmiarowy}

@@ -4060,7 +4060,7 @@ else
 
 bool TTrain::CabChange(int iDirection)
 {//McZapkie-090902: zmiana kabiny 1->0->2 i z powrotem
- if (DynamicObject->Mechanik?DynamicObject->Mechanik->AIControllFlag:false) //jeœli prowadzi AI
+ if (DynamicObject->Mechanik?DynamicObject->Mechanik->AIControllFlag:true) //jeœli prowadzi AI albo jest w innym cz³onie
  {//jak AI prowadzi, to nie mo¿na mu mieszaæ
   if (abs(DynamicObject->MoverParameters->ActiveCab+iDirection)>1)
    return false; //ewentualna zmiana pojazdu
