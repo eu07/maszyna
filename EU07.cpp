@@ -492,7 +492,7 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
      case VK_ESCAPE: //[Esc] pauzuje tylko bez Debugmode
       if (DebugModeFlag) break;
      case 19: //[Pause]
-      if (!Global::iMultiplayer) //w multiplayerze pauza nie ma sensu
+      if (!Global::iMultiplayer||Global::bPause) //w multiplayerze pauza nie ma sensu
        if (!Console::Pressed(VK_CONTROL))
         Global::bPause=!Global::bPause; //zmiana stanu zapauzowania
       break;
