@@ -3059,7 +3059,7 @@ void __fastcall TController::OrdersInit(double fVel)
   SetVelocity(0,0,stopSleep); //jeœli nie ma prêdkoœci pocz¹tkowej, to œpi
  else
  {//jeœli podana niezerowa prêdkoœæ
-  if ((fVel>=1.0)||(fVel<0)) //jeœli ma jechaæ
+  if ((fVel>=1.0)||(fVel<0.02)) //jeœli ma jechaæ - dla 0.01 ma podjechaæ manewrowo po podaniu sygna³u
    iDrivigFlags=(iDrivigFlags&~moveStopHere)|moveStopCloser; //to do nastêpnego W4 ma podjechaæ blisko
   else
    iDrivigFlags|=moveStopHere; //czekaæ na sygna³
