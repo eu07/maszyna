@@ -73,7 +73,7 @@ class PASCALIMPLEMENTATION TBrake : public System::TObject
 {
 	typedef System::TObject inherited;
 	
-private:
+protected:
 	TReservoir* BrakeCyl;
 	TReservoir* BrakeRes;
 	TReservoir* ValveRes;
