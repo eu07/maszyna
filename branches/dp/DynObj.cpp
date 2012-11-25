@@ -1348,17 +1348,18 @@ double __fastcall TDynamicObject::Init(
  btHeadSignals23.Init("headlamp22",mdModel,false);
  TurnOff(); //resetowanie zmiennych submodeli
  //wyszukiwanie zderzakow
- for (int i=0;i<2;i++)
- {
-  asAnimName=AnsiString("buffer_left0")+(i+1);
-  smBuforLewy[i]=mdModel->GetFromName(asAnimName.c_str());
-  if (smBuforLewy[i])
-   smBuforLewy[i]->WillBeAnimated(); //ustawienie flagi animacji
-  asAnimName=AnsiString("buffer_right0")+(i+1);
-  smBuforPrawy[i]=mdModel->GetFromName(asAnimName.c_str());
-  if (smBuforPrawy[i])
-   smBuforPrawy[i]->WillBeAnimated();
- }
+ if (mdModel) //jeœli ma w czym szukaæ
+  for (int i=0;i<2;i++)
+  {
+   asAnimName=AnsiString("buffer_left0")+(i+1);
+   smBuforLewy[i]=mdModel->GetFromName(asAnimName.c_str());
+   if (smBuforLewy[i])
+    smBuforLewy[i]->WillBeAnimated(); //ustawienie flagi animacji
+   asAnimName=AnsiString("buffer_right0")+(i+1);
+   smBuforPrawy[i]=mdModel->GetFromName(asAnimName.c_str());
+   if (smBuforPrawy[i])
+    smBuforPrawy[i]->WillBeAnimated();
+  }
  for (int i=0;i<iAxles;i++) //wyszukiwanie osi (0 jest na koñcu, dlatego dodajemy d³ugoœæ?)
   dRailPosition[i]=(Reversed?-dWheelsPosition[i]:(dWheelsPosition[i]+MoverParameters->Dim.L))+fDist;
  //McZapkie-250202 end.
@@ -1414,16 +1415,19 @@ double __fastcall TDynamicObject::Init(
  //pOldPos1=Axle0.pPosition;
  //ActualTrack= GetTrack(); //McZapkie-030303
  //ABuWozki 060504
- smBogie[0]=mdModel->GetFromName("bogie1"); //Ra: bo nazwy s¹ ma³ymi
- smBogie[1]=mdModel->GetFromName("bogie2");
- if (!smBogie[0])
-  smBogie[0]=mdModel->GetFromName("boogie01"); //Ra: alternatywna nazwa
- if (!smBogie[1])
-  smBogie[1]=mdModel->GetFromName("boogie02"); //Ra: alternatywna nazwa
- if (smBogie[0])
-  smBogie[0]->WillBeAnimated();
- if (smBogie[1])
-  smBogie[1]->WillBeAnimated();
+ if (mdModel) //jeœli ma w czym szukaæ
+ {
+  smBogie[0]=mdModel->GetFromName("bogie1"); //Ra: bo nazwy s¹ ma³ymi
+  smBogie[1]=mdModel->GetFromName("bogie2");
+  if (!smBogie[0])
+   smBogie[0]=mdModel->GetFromName("boogie01"); //Ra: alternatywna nazwa
+  if (!smBogie[1])
+   smBogie[1]=mdModel->GetFromName("boogie02"); //Ra: alternatywna nazwa
+  if (smBogie[0])
+   smBogie[0]->WillBeAnimated();
+  if (smBogie[1])
+   smBogie[1]->WillBeAnimated();
+ }
  //ABu: zainicjowanie zmiennej, zeby nic sie nie ruszylo
  //w pierwszej klatce, potem juz liczona prawidlowa wartosc masy
  MoverParameters->ComputeConstans();
@@ -3000,6 +3004,11 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
  Global::asCurrentDynamicPath=BaseDir;
  AnsiString asFileName=BaseDir+TypeName+".mmd";
  AnsiString asLoadName=BaseDir+MoverParameters->LoadType+".t3d";
+ if (!FileExists(asFileName))
+ {
+  ErrorLog("Missed file: "+asFileName); //brak MMD
+  return;
+ }
  fs=new TFileStream(asFileName,fmOpenRead|fmShareCompat);
  if (!fs) return;
  int size=fs->Size;

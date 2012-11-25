@@ -1551,6 +1551,9 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
     parser->getTokens();
     *parser >> int1;
     if (int1<0) int1=(-int1)|ctrain_depot; //sprzêg zablokowany (pojazdy nieroz³¹czalne przy manewrach)
+    if (tf1!=-1.0)
+     if (fabs(tf1)>0.5) //maksymalna odleg³oœæ miêdzy sprzêgami - do przemyœlenia
+      int1=0; //likwidacja sprzêgu, jeœli odleg³oœæ zbyt du¿a
     TempConnectionType[iTrainSetWehicleNumber]=int1; //wartoœæ dodatnia
    }
    else
@@ -1595,7 +1598,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
         if (fTrainSetDist<8.0) //i raczej nie siêga
          fTrainSetDist=8.0; //przesuwamy oko³o pó³ EU07 dla wstecznej zgodnoœci
     //WriteLog("Dynamic shift: "+AnsiString(fTrainSetDist));
-    tf3=tmp->DynamicObject->Init(asNodeName,str1,Skin,str3,Track,(tf1==-1.0?fTrainSetDist:tf1+fTrainSetDist),DriverType,tf3,asTrainName,int2,str2,(tf1==-1.0));
+    tf3=tmp->DynamicObject->Init(asNodeName,str1,Skin,str3,Track,(tf1==-1.0?fTrainSetDist:fTrainSetDist-tf1),DriverType,tf3,asTrainName,int2,str2,(tf1==-1.0));
     if (tf3!=0.0) //zero oznacza b³¹d
     {fTrainSetDist-=tf3; //przesuniêcie dla kolejnego, minus bo idziemy w stronê punktu 1
      tmp->pCenter=tmp->DynamicObject->GetPosition();
