@@ -120,7 +120,7 @@ TYPE
 
   //klasa obejmujaca uklad hamulca zespolonego pojazdu
     TBrake= class
-      private
+      protected
         BrakeCyl: TReservoir;      //silownik
         BrakeRes: TReservoir;      //ZP
         ValveRes: TReservoir;      //komora wstepna
@@ -1382,7 +1382,7 @@ begin
   ImplsRes.Flow(-dV);
 //przeplyw ZP <-> rozdzielacz
   temp:=BVs(BCP);
-  if(BCP<0.25)or(VVP-0.05>BVP)then
+  if(VVP-0.05>BVP)then
    dV:=PF(BVP,VVP,0.02*sizeBR*temp/1.87)*dt
   else dV:=0;
   BrakeRes.Flow(dV);

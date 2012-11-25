@@ -27,9 +27,10 @@ class PASCALIMPLEMENTATION TNESt3 : public Hamulce::TBrake
 	typedef Hamulce::TBrake inherited;
 	
 private:
-	double Nozzles[2][2];
+	double Nozzles[6];
 	Hamulce::TReservoir* CntrlRes;
 	double BVM;
+	Byte ValveFlag;
 	
 public:
 	virtual double __fastcall GetPF(double PP, double dt, double Vel);
@@ -57,6 +58,13 @@ public:
 
 
 //-- var, const, procedure ---------------------------------------------------
+static const Shortint dMAX = 0x5;
+static const Shortint dON = 0x0;
+static const Shortint dOO = 0x1;
+static const Shortint dTN = 0x2;
+static const Shortint dTO = 0x3;
+static const Shortint dP = 0x4;
+static const Shortint dS = 0x5;
 
 }	/* namespace Oerlikon_est */
 #if !defined(NO_IMPLICIT_NAMESPACE_USE)
