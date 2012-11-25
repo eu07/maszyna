@@ -1524,7 +1524,7 @@ bool __fastcall TController::IncSpeed()
      if ((Controlling->MainCtrlPos==0)||(!Controlling->DelayCtrlFlag)) //youBy poleci³ dodaæ 2012-09-08 v367
       //na pozycji 0 przejdzie, a na pozosta³ych bêdzie czekaæ, a¿ siê za³¹cz¹ liniowe (zgaœnie DelayCtrlFlag)
       if (Ready||Prepare2press)
-       if (fabs(Controlling->Im)<(fReady<0.04?Controlling->Imin:Controlling->IminLo))
+       if (fabs(Controlling->Im)<(fReady<0.4?Controlling->Imin:Controlling->IminLo))
        {//Ra: wywala³ nadmiarowy, bo Im mo¿e byæ ujemne; jak nie odhamowany, to nie przesadzaæ z pr¹dem
         if ((Controlling->Vel<=30)||(Controlling->Imax>Controlling->ImaxLo))
         {//bocznik na szeregowej przy ciezkich bruttach albo przy wysokim rozruchu pod górê
@@ -2011,8 +2011,8 @@ bool __fastcall TController::UpdateSituation(double dt)
     //Ra: odluŸnianie prze³adowanych lokomotyw, ci¹gniêtych na zimno - prowizorka...
     if (AIControllFlag) //sk³ad jak dot¹d by³ wyluzowany
      if (Controlling->BrakeCtrlPos==0) //jest pozycja jazdy
-      if (fabs(p->MoverParameters->PipePress-0.5)<0.005) //jeœli ciœnienie jak dla jazdy
-       if (p->MoverParameters->CntrlPipePress>p->MoverParameters->PipePress+0.01) //za du¿o w zbiorniku
+      if (fabs(p->MoverParameters->PipePress-5.0)<0.005) //jeœli ciœnienie jak dla jazdy
+       if (p->MoverParameters->CntrlPipePress>p->MoverParameters->PipePress+0.1) //za du¿o w zbiorniku
         p->MoverParameters->BrakeReleaser(); //indywidualne luzowanko
   }
   if (fReady<p->MoverParameters->BrakePress)
@@ -2025,7 +2025,7 @@ bool __fastcall TController::UpdateSituation(double dt)
  if (!Ready) //v367: jeœli wg powy¿szych warunków sk³ad nie jest odhamowany
   if (fAccGravity<-0.05) //jeœli ma pod górê na tyle, by siê stoczyæ
    //if (Controlling->BrakePress<0.08) //to wystarczy, ¿e zadzia³aj¹ liniowe (nie ma ich jeszcze!!!)
-   if (fReady<0.08) //delikatniejszy warunek, obejmuje wszystkie wagony
+   if (fReady<0.8) //delikatniejszy warunek, obejmuje wszystkie wagony
     Ready=true; //¿eby uznaæ za odhamowany
  HelpMeFlag=false;
  //Winger 020304
@@ -2703,11 +2703,12 @@ bool __fastcall TController::UpdateSituation(double dt)
        {
         if (Controlling->BrakeCtrlPos==-2)
          Controlling->BrakeLevelSet(0);
-        if ((Controlling->BrakeCtrlPos<0)&&(Controlling->PipeBrakePress<0.01))//{(CntrlPipePress-(Volume/BrakeVVolume/10)<0.01)})
-         Controlling->IncBrakeLevel();
+//        if ((Controlling->BrakeCtrlPos<0)&&(Controlling->PipeBrakePress<0.01))//{(CntrlPipePress-(Volume/BrakeVVolume/10)<0.01)})
+//         Controlling->IncBrakeLevel();
         if ((Controlling->BrakeCtrlPos==0)&&(AbsAccS<0.0)&&(AccDesired>0.0))
         //if FuzzyLogicAI(CntrlPipePress-PipePress,0.01,1))
-         if ((Controlling->BrakePress>0.5)&&(Controlling->LocalBrakePos<0.5))//{((Volume/BrakeVVolume/10)<0.485)})
+//         if ((Controlling->BrakePress>0.5)&&(Controlling->LocalBrakePos<0.5))//{((Volume/BrakeVVolume/10)<0.485)})
+         if ((Controlling->EqvtPipePress<4.95)&&(fReady>0.4))//{((Volume/BrakeVVolume/10)<0.485)})
           Controlling->DecBrakeLevel();
          else
           if (Need_BrakeRelease)
@@ -2716,7 +2717,8 @@ bool __fastcall TController::UpdateSituation(double dt)
            Controlling->BrakeReleaser();
            //DecBrakeLevel(); //z tym by jeszcze mia³o jakiœ sens
           }
-        if ((Controlling->BrakeCtrlPos<0)&&(Controlling->BrakePress<0.3))//{(CntrlPipePress-(Volume/BrakeVVolume/10)<0.01)})
+//        if ((Controlling->BrakeCtrlPos<0)&&(Controlling->BrakePress<0.3))//{(CntrlPipePress-(Volume/BrakeVVolume/10)<0.01)})
+        if ((Controlling->BrakeCtrlPos<0)&&((Controlling->EqvtPipePress>5.1)||(fReady<0.25)))//{(CntrlPipePress-(Volume/BrakeVVolume/10)<0.01)})
          Controlling->IncBrakeLevel();          
        }
 #if LOGVELOCITY
