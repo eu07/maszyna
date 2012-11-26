@@ -23,6 +23,8 @@ __fastcall TPoKeys55::TPoKeys55()
  iFaza=0;
  iLastCommand=0;
  fAnalog[0]=fAnalog[1]=fAnalog[2]=fAnalog[3]=fAnalog[4]=fAnalog[5]=fAnalog[6]=-1.0;
+ iPWM[0]=iPWM[1]=iPWM[2]=iPWM[3]=iPWM[4]=iPWM[5]=0;
+ iPWM[6]=1024;
 };
 //---------------------------------------------------------------------------
 __fastcall TPoKeys55::~TPoKeys55()
@@ -221,7 +223,7 @@ AnsiString __fastcall TPoKeys55::Version()
 
 bool __fastcall TPoKeys55::PWM(int x,float y)
 {//ustawienie wskazanego PWM (@12Mhz: 12000=1ms=1000Hz)
- iPWM[6]=1024; //1024==85333.3333333333ns=11718.75Hz
+ //iPWM[6]=1024; //1024==85333.3333333333ns=11718.75Hz
  iPWM[x]=int(0.5f+0x0FFF*y)&0x0FFF; //0x0FFF=4095
  return true;
 }
@@ -230,7 +232,7 @@ bool __fastcall TPoKeys55::Update()
 {//funkcja powinna byæ wywo³ywana regularnie, np. raz w ka¿dej ramce ekranowej
  switch (++iFaza)
  {case 1: //uaktualnienie PWM raz na jakiœ czas
-   OutputBuffer[9]=32; //maska u¿ytych PWM
+   OutputBuffer[9]=0x3F; //maska u¿ytych PWM
    *((int*)(OutputBuffer+10))=iPWM[0]; //PWM1 (pin 22)
    *((int*)(OutputBuffer+14))=iPWM[1]; //PWM2 (pin 21)
    *((int*)(OutputBuffer+18))=iPWM[2]; //PWM3 (pin 20)

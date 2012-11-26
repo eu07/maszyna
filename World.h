@@ -55,6 +55,7 @@ private:
 public:
  void __fastcall ModifyTGA(const AnsiString &dir="");
  void __fastcall CreateE3D(const AnsiString &dir="",bool dyn=false);
+ void __fastcall CabChange(TDynamicObject *old,TDynamicObject *now);
 };
 //---------------------------------------------------------------------------
 #endif

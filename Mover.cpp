@@ -138,7 +138,7 @@ bool __fastcall TMoverParameters::DirectionForward()
   return true;
  }
  else if ((ActiveDir==1)&&(MainCtrlPos==0)&&(TrainType==dt_EZT))
-  return MinCurrentSwitch(true);
+  return MinCurrentSwitch(true); //"wysoki rozruch" EN57
  return false;
 };
 
@@ -161,16 +161,18 @@ void __fastcall TMoverParameters::BrakeLevelSet(double b)
  while ((x<BrakeCtrlPos)&&(BrakeCtrlPos>=-1)) //jeœli zmniejszy³o siê o 1
   if (!T_MoverParameters::DecBrakeLevelOld()) break;
  BrakePressureActual=BrakePressureTable[BrakeCtrlPos+2]; //skopiowanie pozycji
- if (fBrakeCtrlPos>0.0)
- {//wartoœci poœrednie wyliczamy tylko dla hamowania
-  double u=fBrakeCtrlPos-double(x); //u³amek ponad wartoœæ ca³kowit¹
-  if (u>0.0)
-  {//wyliczamy wartoœci wa¿one
-   BrakePressureActual.PipePressureVal+=-u*BrakePressureActual.PipePressureVal+u*BrakePressureTable[BrakeCtrlPos+1+2].PipePressureVal;
-//   BrakePressureActual.BrakePressureVal+=-u*BrakePressureActual.BrakePressureVal+u*BrakePressureTable[BrakeCtrlPos+1].BrakePressureVal;  //to chyba nie bêdzie tak dzia³aæ, zw³aszcza w EN57
-   BrakePressureActual.FlowSpeedVal+=-u*BrakePressureActual.FlowSpeedVal+u*BrakePressureTable[BrakeCtrlPos+1+2].FlowSpeedVal;
+// if (BrakeSystem==Pneumatic?BrakeSubsystem==Oerlikon:false) //tylko Oerlikon akceptuje u³amki     //youBy: obawiam sie, ze tutaj to nie dziala :P
+ if(false)
+  if (fBrakeCtrlPos>0.0)
+  {//wartoœci poœrednie wyliczamy tylko dla hamowania
+   double u=fBrakeCtrlPos-double(x); //u³amek ponad wartoœæ ca³kowit¹
+   if (u>0.0)
+   {//wyliczamy wartoœci wa¿one
+    BrakePressureActual.PipePressureVal+=-u*BrakePressureActual.PipePressureVal+u*BrakePressureTable[BrakeCtrlPos+1+2].PipePressureVal;
+    //BrakePressureActual.BrakePressureVal+=-u*BrakePressureActual.BrakePressureVal+u*BrakePressureTable[BrakeCtrlPos+1].BrakePressureVal;  //to chyba nie bêdzie tak dzia³aæ, zw³aszcza w EN57
+    BrakePressureActual.FlowSpeedVal+=-u*BrakePressureActual.FlowSpeedVal+u*BrakePressureTable[BrakeCtrlPos+1+2].FlowSpeedVal;
+   }
   }
- }
 };
 
 bool __fastcall TMoverParameters::BrakeLevelAdd(double b)
