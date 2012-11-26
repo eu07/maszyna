@@ -17,14 +17,22 @@
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
-const ANIM_TYPES=8; //Ra: iloœæ typów animacji
+const ANIM_TYPES=7; //Ra: iloœæ typów animacji
+const ANIM_WHEELS =0; //ko³a
+const ANIM_DOORS  =1; //drzwi
+const ANIM_LEVERS =2; //elementy obracane (wycieraczki, ko³a skrêtne, przestawiacze, klocki ham.)
+const ANIM_BUFFERS=3; //elementy przesuwane (zderzaki)
+const ANIM_BOOGIES=4; //wózki (s¹ skrêcane w dwóch osiach)
+const ANIM_PANTS  =5; //pantografy
+const ANIM_STEAMS =6; //napêd parowozu
+
 class TAnim;
 typedef void (__closure *TUpdate)(TAnim *pAnim); //typ funkcji aktualizuj¹cej animacje
 
 //McZapkie-250202
 const MaxAxles=16; //ABu 280105: zmienione z 8 na 16
-const MaxAnimatedAxles=16; //i to tez.
-const MaxAnimatedDoors=16;  //NBMX  wrzesien 2003
+//const MaxAnimatedAxles=16; //i to tez.
+//const MaxAnimatedDoors=16;  //NBMX  wrzesien 2003
 /*
 Ra: Utworzyæ klasê wyposa¿enia opcjonalnego, z której bêd¹ dziedziczyæ klasy drzwi,
 pantografów, napêdu parowozu i innych ruchomych czêœci pojazdów. Klasy powinny byæ
@@ -66,6 +74,7 @@ public:
  {
   TSubModel *smAnimated; //animowany submodel (jeœli tylko jeden, np. oœ)
   TSubModel **smElement; //jeœli animowanych elementów jest wiêcej (pantograf, napêd parowozu)
+  int iShift; //przesuniêcie przed przydzieleniem wskaŸnika
  };
  union
  {//parametry animacji
@@ -76,8 +85,12 @@ public:
  //void _fastcall Update(); //wskaŸnik do funkcji aktualizacji animacji
  int iFlags; //flagi animacji
  float fMaxDist; //do jakiej odleg³oœci wykonywana jest animacja
+ float fSpeed; //parametr szybkoœci animacji
+ int iNumber; //numer kolejny obiektu
 public:
- TUpdate yUpdate; //funkcja aktualizuj¹ca animacjê
+ __fastcall TAnim();
+ __fastcall ~TAnim();
+ TUpdate yUpdate; //metoda TDynamicObject aktualizuj¹ca animacjê
  int __fastcall TypeSet(int i); //ustawienie typu
  void __fastcall Parovoz(); //wykonanie obliczeñ animacji
 };
@@ -121,7 +134,7 @@ public: //modele sk³adowe pojazdu
  float fShade; //zacienienie: 0:normalnie, -1:w ciemnoœci, +1:dodatkowe œwiat³o (brak koloru?)
 
 private: //zmienne i metody do animacji submodeli; Ra: sprzatam animacje w pojeŸdzie
- int iAnimType[ANIM_TYPES]; //0-osie,1-wi¹zary,2-wózki,3-wahacze,4-pantografy,5-drzwi,6-t³oki
+ int iAnimType[ANIM_TYPES]; //0-osie,1-drzwi,2-obracane,3-zderzaki,4-wózki,5-pantografy,6-t³oki
  int iAnimations; //iloœæ obiektów animuj¹cych
  TAnim *pAnimations; //obiekty animuj¹ce (zawieraj¹ wskaŸnik do funkcji wykonuj¹cej animacjê)
  TSubModel **pAnimated; //lista animowanych submodeli (mo¿e byæ ich wiêcej ni¿ obiektów animuj¹cych)
@@ -129,23 +142,25 @@ private: //zmienne i metody do animacji submodeli; Ra: sprzatam animacje w pojeŸ
  void UpdateNone(TAnim *pAnim) {}; //animacja pusta
  void UpdateAxle(TAnim *pAnim); //animacja osi
  void UpdateBoogie(TAnim *pAnim); //animacja wózka
+ void UpdateDoorTranslate(TAnim *pAnim); //animacja drzwi - przesuw
+ void UpdateDoorRotate(TAnim *pAnim); //animacja drzwi - obrót
+ void UpdatePant(TAnim *pAnim); //animacja pantografu
 private: //Ra: ci¹g dalszy animacji, dopiero do ogarniêcia
  //McZapkie-050402 - do krecenia kolami
  //int iAnimatedAxles; //iloœæ u¿ywanych (krêconych) osi
  //TSubModel *smAnimatedWheel[MaxAnimatedAxles]; //submodele poszczególnych osi
  //double *pWheelAngle[MaxAnimatedAxles]; //wska¿niki do odczytu k¹ta obrotu danej osi
  //wi¹zary
- TSubModel *smWiazary[2]; //mo¿na zast¹piæ je osiami
+ //TSubModel *smWiazary[2]; //pozostaje zast¹piæ je osiami
  //ABuWozki 060504
  vector3 bogieRot[2];   //Obroty wozkow w/m korpusu
  TSubModel *smBogie[2]; //Wyszukiwanie max 2 wozkow
- //wahacze (np. nogi, dŸwignia w drezynie)
- TSubModel *smWahacze[4];
+ TSubModel *smWahacze[4]; //wahacze (np. nogi, dŸwignia w drezynie)
  double fWahaczeAmp;
  //drzwi
- int iAnimatedDoors;
- TSubModel *smAnimatedDoor[MaxAnimatedDoors];
- double DoorSpeedFactor[MaxAnimatedDoors];
+ //int iAnimatedDoors;
+ //TSubModel *smAnimatedDoor[MaxAnimatedDoors];
+ //double DoorSpeedFactor[MaxAnimatedDoors];
  //double tempdoorfactor;
  //double tempdoorfactor2;
  //Winger 160204 - pantografy
@@ -157,6 +172,7 @@ private: //Ra: ci¹g dalszy animacji, dopiero do ogarniêcia
  TSubModel *smPatykisl[2];
  TSubModel *smBuforLewy[2];
  TSubModel *smBuforPrawy[2];
+ TAnimValveGear *pValveGear;
 public:
  bool pcabc1;        //Winger 040304 - zaleznosc pantografu od kabiny
  bool pcabc2;
@@ -223,7 +239,7 @@ private:
     TButton btHeadSignals21;  //oswietlenie czolowe - tyl
     TButton btHeadSignals22;
     TButton btHeadSignals23;
-    TSubModel *smMechanik;
+    TSubModel *smMechanik; //Ra: mechanik wbudowany w model jako submodel?
     double enginevolume; //MC: pomocnicze zeby gladziej silnik buczal
 
     int iAxles; //McZapkie: to potem mozna skasowac i zastapic iNumAxles

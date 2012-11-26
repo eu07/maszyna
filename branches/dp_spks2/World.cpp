@@ -50,7 +50,7 @@ __fastcall TWorld::TWorld()
  for (int i=0;i<10;++i)
   KeyEvents[i]=NULL; //eventy wyzwalane klawiszami cyfrowymi
  Global::iSlowMotion=0;
- Global::changeDynObj=false;
+ //Global::changeDynObj=NULL;
  //lastmm=61; //ABu: =61, zeby zawsze inicjowac kolor czarnej mgly przy warunku (GlobalTime->mm!=lastmm) :)
  OutText1=""; //teksty wyœwietlane na ekranie
  OutText2="";
@@ -565,6 +565,10 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
  //Camera.Reset();
  ResetTimers();
  WriteLog("Load time: "+FloatToStrF((86400.0*((double)Now()-time)),ffFixed,7,1)+" seconds");
+ if (DebugModeFlag) //w Debugmode automatyczne w³¹czenie AI
+  if (Train)
+   if (Train->DynamicObject->Mechanik)
+    Train->DynamicObject->Mechanik->TakeControl(true);
  return true;
 };
 
@@ -654,12 +658,12 @@ void __fastcall TWorld::OnKeyDown(int cKey)
     break;
     case VK_F6:
      if (DebugModeFlag)
-     {//przyspieszenie czasu, rzadko potrzebne, poza tym nie wspó³pracuje z kolejk¹ eventów i eventlauncherami
+     {//przyspieszenie symulacji do testowania scenerii... uwaga na FPS!
       //Global::iViewMode=VK_F6;
       if (Console::Pressed(VK_CONTROL))
-       GlobalTime->UpdateMTableTime(Console::Pressed(VK_SHIFT)?3600:600); //10 min albo godzina
+       Global::fTimeSpeed=(Console::Pressed(VK_SHIFT)?10.0:5.0);
       else
-       GlobalTime->UpdateMTableTime(Console::Pressed(VK_SHIFT)?60:10); //10s albo minuta
+       Global::fTimeSpeed=(Console::Pressed(VK_SHIFT)?2.0:1.0);
      }
     break;
    }
@@ -892,7 +896,7 @@ bool __fastcall TWorld::Update()
   if (Global::fMoveLight>=0.0)
   {//testowo ruch œwiat³a
    //double a=Global::fTimeAngleDeg/180.0*M_PI-M_PI; //k¹t godzinny w radianach
-   double a=fmod(Global::fSunSpeed*Global::fTimeAngleDeg,360.0)/180.0*M_PI-M_PI; //k¹t godzinny w radianach
+   double a=fmod(Global::fTimeAngleDeg,360.0)/180.0*M_PI-M_PI; //k¹t godzinny w radianach
    double L=Global::fLatitudeDeg/180.0*M_PI; //szerokoœæ geograficzna
    double H=asin(cos(L)*cos(Global::fSunDeclination)*cos(a)+sin(L)*sin(Global::fSunDeclination)); //k¹t ponad horyzontem
    //double A=asin(cos(d)*sin(M_PI-a)/cos(H));
@@ -1009,7 +1013,7 @@ bool __fastcall TWorld::Update()
 #if 0
  //Ra: na razie po staremu
  double dt=fTimeBuffer+GetDeltaTime(); //[s] czas od poprzedniego sprawdzania
- if (dt>fMaxDt) //jest co najmniej jeden krok; normalnie 0.01s
+ if (dt>=fMaxDt) //jest co najmniej jeden krok; normalnie 0.01s
  {//Ra: czas dla fizyki jest skwantowany
   double iter=ceil(dt/fMaxDt); //ile kroków siê zmieœci³o od ostatniego sprawdzania?
   int n=int(iter); //ile kroków jako int
@@ -1026,11 +1030,6 @@ bool __fastcall TWorld::Update()
     Ground.Update(dt,n);
     Ground.Update(dt,n);
     Ground.Update(dt,n); //5 razy
-    //Ground.Update(dt,n); //jak jest za du¿o, to gubi eventy
-    //Ground.Update(dt,n);
-    //Ground.Update(dt,n);
-    //Ground.Update(dt,n);
-    //Ground.Update(dt,n); //10 razy
    }
  }
 #else
@@ -1054,18 +1053,13 @@ bool __fastcall TWorld::Update()
    Ground.Update(dt,n);
    Ground.Update(dt,n);
    Ground.Update(dt,n); //5 razy
-   //Ground.Update(dt,n); //jak jest za du¿o, to gubi eventy
-   //Ground.Update(dt,n);
-   //Ground.Update(dt,n);
-   //Ground.Update(dt,n);
-   //Ground.Update(dt,n); //10 razy
   }
 #endif
  dt=GetDeltaTime(); //czas niekwantowany
  if (Camera.Type==tp_Follow)
  {if (Train)
   {//jeœli jazda w kabinie, przeliczyæ trzeba parametry kamery
-   Train->UpdateMechPosition(dt);
+   Train->UpdateMechPosition(dt/Global::fTimeSpeed); //ograniczyæ telepanie po przyspieszeniu
    vector3 tempangle;
    double modelrotate;
    tempangle=Controlled->VectorFront()*(Controlled->MoverParameters->ActiveCab==-1 ? -1 : 1);
@@ -1356,7 +1350,7 @@ bool __fastcall TWorld::Update()
        OutText1+= FloatToStrF(Global::ABuDebug,ffFixed,6,15);
     };
     */
-    if (Global::changeDynObj==true)
+    if (Global::changeDynObj)
     {//ABu zmiana pojazdu - przejœcie do innego
      //Ra: to nie mo¿e byæ tak robione, to zbytnia proteza jest
      Train->dsbHasler->Stop(); //wy³¹czenie dŸwiêków opuszczanej kabiny
@@ -1368,9 +1362,20 @@ bool __fastcall TWorld::Update()
      Train->rsBrake.Stop();
      Train->rsEngageSlippery.Stop();
      Train->rsSlippery.Stop();
-     Train->DynamicObject->MoverParameters->CabDeactivisation();
-     int CabNr;
-     TDynamicObject *temp;
+     if (Train->DynamicObject->Mechanik) //AI mo¿e sobie samo pójœæ
+      if (!Train->DynamicObject->Mechanik->AIControllFlag) //tylko jeœli rêcznie prowadzony
+      {//jeœli prowadzi AI, to mu nie robimy dywersji!
+       Train->DynamicObject->MoverParameters->CabDeactivisation();
+       Train->DynamicObject->Controller=AIdriver;
+       Train->DynamicObject->MoverParameters->SecuritySystem.Status=0;
+       Train->DynamicObject->MoverParameters->ActiveCab=0;
+       Train->DynamicObject->MoverParameters->BrakeLevelSet(-2);
+       Train->DynamicObject->MechInside=false;
+      }
+     //int CabNr;
+     TDynamicObject *temp=Global::changeDynObj;
+     //CabNr=temp->MoverParameters->ActiveCab;
+/*
      if (Train->DynamicObject->MoverParameters->ActiveCab==-1)
      {
       temp=Train->DynamicObject->NextConnected; //pojazd od strony sprzêgu 1
@@ -1381,41 +1386,43 @@ bool __fastcall TWorld::Update()
       temp=Train->DynamicObject->PrevConnected; //pojazd od strony sprzêgu 0
       CabNr=(Train->DynamicObject->PrevConnectedNo==0)?1:-1;
      }
-     Train->DynamicObject->Controller=AIdriver;
+*/
      Train->DynamicObject->bDisplayCab=false;
-     Train->DynamicObject->MechInside=false;
-     Train->DynamicObject->MoverParameters->SecuritySystem.Status=0;
      Train->DynamicObject->ABuSetModelShake(vector3(0,0,0));
-     Train->DynamicObject->MoverParameters->ActiveCab=0;
-     Train->DynamicObject->MoverParameters->BrakeLevelSet(-2);
-///     Train->DynamicObject->MoverParameters->LimPipePress=-1;
-///     Train->DynamicObject->MoverParameters->ActFlowSpeed=0;
-///     Train->DynamicObject->Mechanik->CloseLog();
-///     SafeDelete(Train->DynamicObject->Mechanik);
+     ///Train->DynamicObject->MoverParameters->LimPipePress=-1;
+     ///Train->DynamicObject->MoverParameters->ActFlowSpeed=0;
+     ///Train->DynamicObject->Mechanik->CloseLog();
+     ///SafeDelete(Train->DynamicObject->Mechanik);
 
      //Train->DynamicObject->mdKabina=NULL;
      if (Train->DynamicObject->Mechanik) //AI mo¿e sobie samo pójœæ
       if (!Train->DynamicObject->Mechanik->AIControllFlag) //tylko jeœli rêcznie prowadzony
-       temp->Mechanik=Train->DynamicObject->Mechanik; //przejêcie obiektu zarz¹dzaj¹cego
+       Train->DynamicObject->Mechanik->MoveTo(temp); //przsuniêcie obiektu zarz¹dzaj¹cego
      //Train->DynamicObject=NULL;
      Train->DynamicObject=temp;
-     Controlled=Train->DynamicObject;
+     Controlled=temp;
      Global::asHumanCtrlVehicle=Train->DynamicObject->GetName();
      if (Train->DynamicObject->Mechanik) //AI mo¿e sobie samo pójœæ
       if (!Train->DynamicObject->Mechanik->AIControllFlag) //tylko jeœli rêcznie prowadzony
       {Train->DynamicObject->MoverParameters->LimPipePress=Controlled->MoverParameters->PipePress;
-//     Train->DynamicObject->MoverParameters->ActFlowSpeed=0;
+       //Train->DynamicObject->MoverParameters->ActFlowSpeed=0;
        Train->DynamicObject->MoverParameters->SecuritySystem.Status=1;
-       Train->DynamicObject->MoverParameters->ActiveCab=CabNr;
-       Train->DynamicObject->MoverParameters->CabDeactivisation();
+       //Train->DynamicObject->MoverParameters->ActiveCab=CabNr;
+       Train->DynamicObject->MoverParameters->CabActivisation();
        Train->DynamicObject->Controller=Humandriver;
        Train->DynamicObject->MechInside=true;
-///     Train->DynamicObject->Mechanik=new TController(l,r,Controlled->Controller,&Controlled->MoverParameters,&Controlled->TrainParams,Aggressive);
-     //Train->InitializeCab(Train->DynamicObject->MoverParameters->CabNo,Train->DynamicObject->asBaseDir+Train->DynamicObject->MoverParameters->TypeName+".mmd");
-       Train->InitializeCab(CabNr,Train->DynamicObject->asBaseDir+Train->DynamicObject->MoverParameters->TypeName+".mmd");
-       if (!FreeFlyModeFlag) Train->DynamicObject->bDisplayCab=true;
+       //Train->DynamicObject->Mechanik=new TController(l,r,Controlled->Controller,&Controlled->MoverParameters,&Controlled->TrainParams,Aggressive);
+       //Train->InitializeCab(CabNr,Train->DynamicObject->asBaseDir+Train->DynamicObject->MoverParameters->TypeName+".mmd");
       }
-     Global::changeDynObj=false;
+     Train->InitializeCab(Train->DynamicObject->MoverParameters->CabNo,Train->DynamicObject->asBaseDir+Train->DynamicObject->MoverParameters->TypeName+".mmd");
+     if (!FreeFlyModeFlag)
+     {Global::pUserDynamic=Controlled; //renerowanie wzglêdem kamery
+      Train->DynamicObject->bDisplayCab=true;
+      Train->DynamicObject->ABuSetModelShake(vector3(0,0,0)); //zerowanie przesuniêcia przed powrotem?
+      Train->MechStop();
+      FollowView(); //na pozycjê mecha
+     }
+     Global::changeDynObj=NULL;
     }
 
     if (Global::iTextMode==VK_F1)
@@ -1680,17 +1687,21 @@ bool __fastcall TWorld::Update()
       //Controlled->mdModel->GetSMRoot()->SetTranslate(vector3(0,1,0));
 
       //McZapkie: warto wiedziec w jakim stanie sa przelaczniki
-      if (!Controlled->MoverParameters->Mains)
-       OutText3+="  ";
+      if (Controlled->MoverParameters->ConvOvldFlag)
+       OutText3+=" C! ";
+      else if (!Controlled->MoverParameters->Mains)
+       OutText3+=" () ";
+      else if (Controlled->MoverParameters->FuseFlag)
+       OutText3+=" F! ";
       else
-      {
-       switch (Controlled->MoverParameters->ActiveDir)
+       switch (Controlled->MoverParameters->ActiveDir*(Controlled->MoverParameters->Imin==Controlled->MoverParameters->IminLo?1:2))
        {
+        case  2: {OutText3+=" >> "; break;}
         case  1: {OutText3+=" -> "; break;}
         case  0: {OutText3+=" -- "; break;}
         case -1: {OutText3+=" <- "; break;}
+        case -2: {OutText3+=" << "; break;}
        }
-      }
       //OutText3+=AnsiString("; dpLocal ")+FloatToStrF(Controlled->MoverParameters->dpLocalValve,ffFixed,10,8);
       //OutText3+=AnsiString("; dpMain ")+FloatToStrF(Controlled->MoverParameters->dpMainValve,ffFixed,10,8);
       //McZapkie: predkosc szlakowa
@@ -2168,6 +2179,13 @@ void __fastcall TWorld::CreateE3D(const AnsiString &dir,bool dyn)
   } while (FindNext(sr)==0);
   FindClose(sr);
  }
+};
+//---------------------------------------------------------------------------
+void __fastcall TWorld::CabChange(TDynamicObject *old,TDynamicObject *now)
+{//ewentualna zmiana kabiny u¿ytkownikowi
+ if (Train)
+  if (Train->DynamicObject==old)
+   Global::changeDynObj=now; //uruchomienie protezy
 };
 //---------------------------------------------------------------------------
 

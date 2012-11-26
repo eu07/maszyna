@@ -35,7 +35,9 @@ enum TMovementStatus
  moveStopHere=0x80, //nie podje¿d¿aæ do semafora, jeœli droga nie jest wolna
  moveStartHorn=0x100, //podawaj sygna³ po podaniu wolnej drogi
  moveStartHornNow=0x200, //podaj sygna³ po odhamowaniu
- moveStartHornDone=0x400 //podano sygna³ po podaniu wolnej drogi
+ moveStartHornDone=0x400, //podano sygna³ po podaniu wolnej drogi
+ moveOerlikons=0x800, //sk³ad wy³¹cznie z zaworami? Oerlikona
+ moveIncSpeed=0x1000 //za³¹czenie jazdy (np. dla EZT)
 };
 
 enum TStopReason
@@ -138,6 +140,7 @@ private:
  double ElapsedTime; //czas od poczatku logu
  double deltalog; //przyrost czasu
  double LastReactionTime;
+ double fActionTime; //czas u¿ywany przy regulacji prêdkoœci i zamykaniu drzwi
  bool HelpMeFlag; //wystawiane True jesli cos niedobrego sie dzieje
 public:
  bool AIControllFlag; //rzeczywisty/wirtualny maszynista
@@ -260,6 +263,7 @@ public:
  int __fastcall StationIndex();
  bool __fastcall IsStop();
  bool __fastcall Primary() {return this?bool(iDrivigFlags&movePrimary):false;};
+ void __fastcall MoveTo(TDynamicObject *to);
 };
 
 #endif

@@ -41,19 +41,31 @@ const float maxrot=(M_PI/3.0); //60°
 //---------------------------------------------------------------------------
 int __fastcall TAnim::TypeSet(int i)
 {//ustawienie typu animacji i zale¿nej od niego iloœci animowanych submodeli
- switch (i)
- {case 0: iFlags=0x01; break; //0-oœ
-  case 1: iFlags=0x11; break; //1-zderzak
-  case 2: iFlags=0x21; break; //2-wózek
-  case 3: iFlags=0x31; break; //3-wi¹zar
-  case 4: iFlags=0x41; break; //4-wahacz
-  case 5: iFlags=0x55; break; //5-pantograf
-  case 6: iFlags=0x61; break; //6-drzwi
-  case 7: iFlags=0x78; break; //7-t³ok i rozrz¹d
+ fMaxDist=-1.0; //normalnie nie pokazywaæ
+ switch (i) //0-osie,1-drzwi,2-obracane,3-zderzaki,4-wózki,5-pantografy,6-t³oki
+ {case 0: iFlags=0x00; break; //0-oœ
+  case 1: iFlags=0x10; break; //1-drzwi
+  case 2: iFlags=0x20; break; //2-wahacz, dŸwignia itp.
+  case 3: iFlags=0x30; break; //3-zderzak
+  case 4: iFlags=0x40; break; //4-wózek
+  case 5: iFlags=0x55; break; //5-pantograf - 5 submodeli
+  case 6: iFlags=0x68; break; //6-t³ok i rozrz¹d - 8 submodeli
   default: iFlags=0;
  }
  yUpdate=NULL;
- return iFlags&15; //ile jest animowanych elementów dla danego typu
+ return iFlags&15; //ile wskaŸników rezerwowaæ dla danego typu animacji
+};
+__fastcall TAnim::TAnim()
+{//potrzebne to w ogóle?
+};
+__fastcall TAnim::~TAnim()
+{//usuwanie animacji
+/*
+ switch (iFlags&0xF0)
+ {//usuwanie struktur, zale¿nie ile zosta³o stworzonych
+  case 0x78: break;
+ }
+*/
 };
 void __fastcall TAnim::Parovoz()
 {//animowanie t³oka i rozrz¹du parowozu
@@ -290,45 +302,61 @@ void TDynamicObject::UpdateBoogie(TAnim *pAnim)
  pAnim->smAnimated->SetRotate(float3(1,0,0),*pAnim->dWheelAngle);
 };
 
+void TDynamicObject::UpdateDoorTranslate(TAnim *pAnim)
+{//animacja drzwi - przesuw
+ //WriteLog("Dla drzwi nr:", i);
+ //WriteLog("Wspolczynnik", DoorSpeedFactor[i]);
+ //Ra: te wspó³czynniki s¹ bez sensu, bo modyfikuj¹ wektor przesuniêcia
+ //w efekcie drzwi otwierane na zewn¹trz bêd¹ odlatywac dowolnie daleko :)
+ //ograniczy³em zakres ruchu funkcj¹ max
+ if (pAnim->smAnimated)
+ {
+  if (pAnim->iNumber&1)
+   pAnim->smAnimated->SetTranslate(vector3(0,0,Max0R(dDoorMoveR*pAnim->fSpeed,dDoorMoveR)));
+  else
+   pAnim->smAnimated->SetTranslate(vector3(0,0,Max0R(dDoorMoveL*pAnim->fSpeed,dDoorMoveL)));
+ }
+};
+
+void TDynamicObject::UpdateDoorRotate(TAnim *pAnim)
+{//animacja drzwi - obrót
+ if (pAnim->smAnimated)
+ {//if (MoverParameters->DoorOpenMethod==2) //obrotowe albo dwojlomne (trzeba kombinowac submodelami i ShiftL=90,R=180)
+  if (pAnim->iNumber&1)
+   pAnim->smAnimated->SetRotate(float3(1,0,0),dDoorMoveR);
+  else
+   pAnim->smAnimated->SetRotate(float3(1,0,0),dDoorMoveL);
+ }
+};
+
+void TDynamicObject::UpdatePant(TAnim *pAnim)
+{//animacja pantografu - 4 elementy obracane, jeden przesuwany w pionie
+ double k=0;
+ switch (pAnim->iNumber&1) //na razie dostêpne s¹ tylko 2 wspó³czynniki
+ {case 0: k=dPantAngleF; break; //przedni
+  case 1: k=dPantAngleR; break; //tylny
+ }
+ if (pAnim->smElement[0]) pAnim->smElement[0]->SetRotate(float3(1,0,0),k);
+ if (pAnim->smElement[1]) pAnim->smElement[1]->SetRotate(float3(-1,0,0),k);
+ if (pAnim->smElement[2]) pAnim->smElement[2]->SetRotate(float3(-1,0,0),k*1.81);
+ if (pAnim->smElement[3]) pAnim->smElement[3]->SetRotate(float3(1,0,0),k*1.81);
+ if (pAnim->smElement[4]) pAnim->smElement[4]->SetRotate(float3(1,0,0),k*0.81);
+};
+
 //ABu 29.01.05 przeklejone z render i renderalpha: *********************
 void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
 {//ABu290105: pozbierane i uporzadkowane powtarzajace sie rzeczy z Render i RenderAlpha
  //dodatkowy warunek, if (ObjSqrDist<...) zeby niepotrzebnie nie zmianiec w obiektach,
  //ktorych i tak nie widac
  //NBMX wrzesien, MC listopad: zuniwersalnione
- for (int i=0;i<iAnimatedDoors;i++)
- {
-  //WriteLog("Dla drzwi nr:", i);
-  //WriteLog("Wspolczynnik", DoorSpeedFactor[i]);
-  if (smAnimatedDoor[i]!=NULL)
-  {
-   if (MoverParameters->DoorOpenMethod==1) //przesuwne
-   {
-    if (i&1)
-    {
-     smAnimatedDoor[i]->SetTranslate(vector3(0,0,dDoorMoveR*DoorSpeedFactor[i]));
-    //dDoorMoveL=dDoorMoveL*DoorSpeedFactor[i];
-    }
-    else
-    {
-     smAnimatedDoor[i]->SetTranslate(vector3(0,0,dDoorMoveL*DoorSpeedFactor[i]));
-    //dDoorMoveR=dDoorMoveR*DoorSpeedFactor[i];
-    }
-   }
-   else
-   if (MoverParameters->DoorOpenMethod==2) //obrotowe albo dwojlomne (trzeba kombinowac submodelami i ShiftL=90,R=180)
-   {
-    if (i&1)
-     smAnimatedDoor[i]->SetRotate(float3(1,0,0),dDoorMoveR);
-    else
-     smAnimatedDoor[i]->SetRotate(float3(1,0,0),dDoorMoveL);
-   }
-  }
- } //for (int i=0;i<iAnimatedDoors;i++)
  btnOn=false; //czy przywróciæ stan domyœlny po renderowaniu
 
  if (ObjSqrDist<160000) //gdy bli¿ej ni¿ 400m
  {
+  for (int i=0;i<iAnimations;++i) //wykonanie kolejnych animacji
+   if (ObjSqrDist<pAnimations[i].fMaxDist)
+    if (pAnimations[i].yUpdate) //jeœli zdefiniowana funkcja
+     pAnimations[i].yUpdate(pAnimations+i); //aktualizacja animacji (po³o¿enia submodeli
   if (ObjSqrDist<2500) //gdy bli¿ej ni¿ 50m
   {
    //ABu290105: rzucanie pudlem
@@ -351,9 +379,6 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
      smAnimatedWheel[i]->SetRotate(float3(1,0,0),*pWheelAngle[i]);
      //smAnimatedWheel[i]->SetRotate(float3(1,0,0),dWheelAngle[1]);
 */
-   for (int i=0;i<iAnimations;++i) //wykonanie kolejnych animacji
-    if (pAnimations[i].yUpdate) //jeœli zdefiniowana funkcja
-     pAnimations[i].yUpdate(pAnimations+i); //aktualizacja animacji (po³o¿enia submodeli
    //Mczapkie-100402: rysowanie lub nie - sprzegow
    //ABu-240105: Dodatkowy warunek: if (...).Render, zeby rysowal tylko jeden
    //z polaczonych sprzegow
@@ -524,6 +549,7 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
 //    if (dPantAngleF>0)
 //     dPantAngleF=0;
 
+/*
   if (Global::bLoadTraction)
   {
    if (smPatykird1[0])
@@ -548,10 +574,11 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
    if (smPatykisl[1])
       smPatykisl[1]->SetRotate(float3(1,0,0),dPantAngleR*0.81);
   }
-  if (smWiazary[0])
-     smWiazary[0]->SetRotate(float3(1,0,0),-dWheelAngle[1]);
-  if (smWiazary[1])
-     smWiazary[1]->SetRotate(float3(1,0,0),-dWheelAngle[1]);
+*/
+  //if (smWiazary[0])
+  //   smWiazary[0]->SetRotate(float3(1,0,0),-dWheelAngle[1]);
+  //if (smWiazary[1])
+  //   smWiazary[1]->SetRotate(float3(1,0,0),-dWheelAngle[1]);
   //przewody sterowania ukrotnionego
   if (TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_controll))
    {btCCtrl1.TurnOn(); btnOn=true;}
@@ -644,36 +671,9 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
 }
 //ABu 29.01.05 koniec przeklejenia *************************************
 
-double __fastcall ABuAcos(vector3 calc_temp)
+double __fastcall ABuAcos(const vector3 &calc_temp)
 {  //Odpowiednik funkcji Arccos, bo cos mi tam nie dzialalo.
  return atan2(-calc_temp.x,calc_temp.z); //Ra: tak proœciej
-/*
-   //Dziala w zakresie calych 360 stopni.
-   //Wejscie: wektor, dla ktorego liczymy obrot wzgl. osi y
-   //Wyjscie: obrot
-   bool calc_sin;
-   double calc_angle;
-   if(fabs(calc_temp.x)>fabs(calc_temp.z)) {calc_sin=false; }
-                                      else {calc_sin=true;  };
-   double calc_dist=sqrt((calc_temp.x*calc_temp.x)+(calc_temp.z*calc_temp.z));
-   if (calc_dist!=0)
-   {
-        if(calc_sin)
-        {
-            calc_angle=asin(calc_temp.x/calc_dist);
-            if(calc_temp.z>0) {calc_angle=-calc_angle;    } //ok (1)
-                         else {calc_angle=M_PI+calc_angle;} // (2)
-        }
-        else
-        {
-            calc_angle=acos(calc_temp.z/calc_dist);
-            if(calc_temp.x>0) {calc_angle=M_PI+M_PI-calc_angle;} // (3)
-                         else {calc_angle=calc_angle;          } // (4)
-        }
-        return calc_angle;
-    }
-    return 0;
-*/
 }
 
 TDynamicObject* __fastcall TDynamicObject::ABuFindNearestObject(TTrack *Track,TDynamicObject *MyPointer,int &CouplNr)
@@ -786,26 +786,7 @@ TDynamicObject* __fastcall TDynamicObject::ABuScanNearestObject(TTrack *Track,do
 //ABu 01.11.04 poczatek wyliczania przechylow pudla **********************
 void __fastcall TDynamicObject::ABuModelRoll()
 {//ustawienie przechy³ki pojazdu i jego zawartoœci
-/* Ra: przechy³kê za³atwiamy na etapie przesuwania modelu
- double modelRoll=RadToDeg(0.5*(Axle0.GetRoll()+Axle1.GetRoll())); //Ra: tu nie by³o DegToRad
- //if (ABuGetDirection()<0) modelRoll=-modelRoll;
- if (modelRoll!=0.0)
- {//jak nie ma przechy³ki, to nie ma po co przechylaæ modeli
-  if (mdModel)
-   mdModel->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
-  if (mdKabina)
-   if (MoverParameters->ActiveCab==-1)
-    mdKabina->GetSMRoot()->SetRotateXYZ(vector3(0,-modelRoll,0));
-   else
-    mdKabina->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
-  if (mdLoad)
-   mdLoad->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
-  if (mdLowPolyInt)
-   mdLowPolyInt->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
-  if (mdPrzedsionek)
-   mdPrzedsionek->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
- }
-*/
+// Ra: przechy³kê za³atwiamy na etapie przesuwania modelu
 }
 
 //ABu 06.05.04 poczatek wyliczania obrotow wozkow **********************
@@ -1213,19 +1194,19 @@ __fastcall TDynamicObject::TDynamicObject()
  panth=0;
  dDoorMoveL=0.0;
  dDoorMoveR=0.0;
- for (int i=0;i<8;i++)
- {
-  DoorSpeedFactor[i]=random(150);
-  DoorSpeedFactor[i]=(DoorSpeedFactor[i]+100)/100;
- }
+ //for (int i=0;i<8;i++)
+ //{
+ // DoorSpeedFactor[i]=random(150);
+ // DoorSpeedFactor[i]=(DoorSpeedFactor[i]+100)/100;
+ //}
  //iAnimatedAxles=0; //iloœæ obracanych osi
- iAnimatedDoors=0;
+ //iAnimatedDoors=0;
 /* stare
  for (int i=0;i<MaxAnimatedAxles;i++)
   smAnimatedWheel[i]=NULL;
 */
- for (int i=0;i<MaxAnimatedDoors;i++)
-  smAnimatedDoor[i]=NULL;
+ //for (int i=0;i<MaxAnimatedDoors;i++)
+ // smAnimatedDoor[i]=NULL;
  mdModel=NULL;
  mdKabina=NULL;
  ReplacableSkinID[0]=0;
@@ -1234,7 +1215,7 @@ __fastcall TDynamicObject::TDynamicObject()
  ReplacableSkinID[3]=0;
  ReplacableSkinID[4]=0;
  iAlpha=0x30300030; //tak gdy tekstury wymienne nie maj¹ przezroczystoœci
- smWiazary[0]=smWiazary[1]=NULL;
+ //smWiazary[0]=smWiazary[1]=NULL;
  smWahacze[0]=smWahacze[1]=smWahacze[2]=smWahacze[3]=NULL;
  fWahaczeAmp=0;
  mdLoad=NULL;
@@ -1257,22 +1238,20 @@ __fastcall TDynamicObject::TDynamicObject()
  iInventory=0; //flagi bitowe posiadanych submodeli (zaktualizuje siê po wczytaniu MMD)
  RaLightsSet(0,0); //pocz¹tkowe zerowanie stanu œwiate³
  //Ra: domyœlne iloœci animacji dla zgodnoœci wstecz (gdy brak iloœci podanych w MMD)
- iAnimType[0]=8; //0-osie (8)
- iAnimType[1]=4; //1-zderzaki (4)
- iAnimType[2]=2; //3-wózki (2)
- iAnimType[3]=2; //2-wi¹zary (2) - mo¿na zast¹piæ osiami...
- iAnimType[4]=4; //4-wahacze (4) - np. nogi konia
- iAnimType[5]=2; //5-pantografy (2)
- iAnimType[6]=8; //6-drzwi (8)
- iAnimType[7]=0; //7-t³oki (napêd parowozu)
- //iAnimType[8]=8; //8-przestawiacze?
- //iAnimType[9]=8; //9-cylindry hamulcowe?
- iAnimations=30; //tyle by³o kiedyœ w ka¿dym pojeŸdzie
+ iAnimType[ANIM_WHEELS ]=8; //0-osie (8)
+ iAnimType[ANIM_DOORS  ]=8; //1-drzwi (8)
+ iAnimType[ANIM_LEVERS ]=4; //2-wahacze (4) - np. nogi konia
+ iAnimType[ANIM_BUFFERS]=4; //3-zderzaki (4)
+ iAnimType[ANIM_BOOGIES]=2; //4-wózki (2)
+ iAnimType[ANIM_PANTS  ]=2; //5-pantografy (2)
+ iAnimType[ANIM_STEAMS ]=0; //6-t³oki (napêd parowozu)
+ iAnimations=28; //tyle by³o kiedyœ w ka¿dym pojeŸdzie (2 wi¹zary wypad³y)
  pAnimations=NULL;
  pAnimated=NULL;
  fShade=0.0; //standardowe oœwietlenie na starcie
  iHornWarning=1; //numer syreny do u¿ycia po otrzymaniu sygna³u do jazdy
  asDestination="none"; //stoj¹cy nigdzie nie jedzie
+ pValveGear=NULL; //Ra: tymczasowo
 }
 
 __fastcall TDynamicObject::~TDynamicObject()
@@ -1293,8 +1272,8 @@ __fastcall TDynamicObject::~TDynamicObject()
  rsDiesielInc.Stop();
  rscurve.Stop();
 */
- delete pAnimations; //obiekty obs³uguj¹ce animacjê
- delete pAnimated; //lista animowanych submodeli
+ delete[] pAnimations; //obiekty obs³uguj¹ce animacjê
+ delete[] pAnimated; //lista animowanych submodeli
 }
 
 double __fastcall TDynamicObject::Init(
@@ -2420,8 +2399,6 @@ if (tmpTraction.TractionVoltage==0)
   }
 
 //NBMX Obsluga drzwi, MC: zuniwersalnione
-//   if (tempdoorfactor2!=120)
-//    tempdoorfactor=random(100);
    if ((dDoorMoveL<MoverParameters->DoorMaxShiftL) && (MoverParameters->DoorLeftOpened))
     dDoorMoveL+=dt1*0.5*MoverParameters->DoorOpenSpeed;
    if ((dDoorMoveL>0) && (!MoverParameters->DoorLeftOpened))
@@ -2636,20 +2613,6 @@ bool __fastcall TDynamicObject::Render()
  {
   TSubModel::iInstance=(int)this; //¿eby nie robiæ cudzych animacji
   //AnsiString asLoadName="";
-  //przejœcie na uk³ad wspó³rzêdnych modelu - tu siê zniekszta³ca?
-  //vFront=GetDirection();
-  //if ((MoverParameters->CategoryFlag&2) && (MoverParameters->CabNo<0)) //TODO: zrobic to eleganciej z plynnym zawracaniem
-  // vFront=-vFront;
-  //vUp=vWorldUp; //Ra: jeœli to wskazuje pionowo w górê
-  //vFront.Normalize(); //a to leci w dó³ lub w górê, to mamy problem z ortogonalnoœci¹ i skalowaniem
-  //vLeft=Normalize(CrossProduct(vWorldUp,vFront));
-  //vUp=CrossProduct(vFront,vLeft);
-  //matrix4x4 mat;
-  //mat.Identity();
-  //mat.BasisChange(vLeft,vUp,vFront);
-  //mMatrix=Inverse(mat);
-
-  //vector3 pos=vPosition;
   double ObjSqrDist=SquareMagnitude(Global::pCameraPosition-vPosition);
   ABuLittleUpdate(ObjSqrDist); //ustawianie zmiennych submodeli dla wspólnego modelu
 
@@ -3219,6 +3182,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
  //Parser->LoadStringToParse(asFile);
  Parser->First();
  //DecimalSeparator= '.';
+ TAnim *pants=NULL; //indeks obiektu animuj¹cego dla pantografu 0
  while (!Parser->EndOfFile && !Stop_InternalData)
  {
      str=Parser->GetNextSymbol().LowerCase();
@@ -3291,6 +3255,9 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
           do
           {//kolejne liczby to iloœæ animacj, -1 to znacznik koñca
            ile=Parser->GetNextSymbol().ToIntDef(-1); //iloœæ danego typu animacji
+           if (co==ANIM_PANTS)
+            if (!Global::bLoadTraction)
+             ile=0; //wy³¹czenie animacji pantografów
            if (co<ANIM_TYPES)
             if (ile>=0)
             {iAnimType[co]=ile; //zapamiêtanie
@@ -3301,6 +3268,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
           while (co<ANIM_TYPES) iAnimType[co++]=0; //zerowanie pozosta³ych
           str=Parser->GetNextSymbol().LowerCase();
          }
+         WriteLog("Total animations: "+AnsiString(iAnimations));
         }
         if (!pAnimations)
         {//Ra: tworzenie tabeli animacji, jeœli jeszcze nie by³o
@@ -3308,8 +3276,19 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
          int i,j,k=0,sm=0;
          for (j=0;j<ANIM_TYPES;++j)
           for (i=0;i<iAnimType[j];++i)
+          {
+           if (j==ANIM_PANTS) //zliczamy poprzednie animacje
+            if (!pants)
+             if (iAnimType[ANIM_PANTS]) //o ile jakieœ pantografy s¹ (a domyœlnie s¹)
+              pants=pAnimations+k; //zapamiêtanie na potrzeby wyszukania submodeli
+           pAnimations[k].iShift=sm; //przesuniêcie do przydzielenia wskaŸnika
            sm+=pAnimations[k++].TypeSet(j); //ustawienie typu animacji i zliczanie submodeli
-         pAnimated=new TSubModel*[sm]; //tabela na animowane submodele
+          }
+         if (sm) //o ile s¹ bardziej z³o¿one animacje
+         {pAnimated=new TSubModel*[sm]; //tabela na animowane submodele
+          for (k=0;k<iAnimations;++k)
+           pAnimations[k].smElement=pAnimated+pAnimations[k].iShift; //przydzielenie wskaŸnika do tabelki
+         }
         }
         if (str==AnsiString("lowpolyinterior:")) //ABu: wnetrze lowpoly
         {
@@ -3318,42 +3297,11 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
          Global::asCurrentTexturePath=BaseDir; //biezaca sciezka do tekstur to dynamic/...
          mdLowPolyInt=TModelsManager::GetModel(asModel.c_str(),true);
         }
-        else if (str==AnsiString("animwheelprefix:")) //prefiks krecacych sie kol
-        {
+        else if (str==AnsiString("animwheelprefix:"))
+        {//prefiks krêc¹cych siê kó³
          int i,j,k,m;
          str=Parser->GetNextSymbol();
-/* stare animacje
-         for (i=1;i<=MaxAnimatedAxles;++i)
-         {//McZapkie-050402: wyszukiwanie kol o nazwie str*
-          asAnimName=str+i;
-          smAnimatedWheel[i-1]=mdModel->GetFromName(asAnimName.c_str());
-          if (smAnimatedWheel[i-1])
-          {++iAnimatedAxles;
-           smAnimatedWheel[i-1]->WillBeAnimated(); //wy³¹czenie optymalizacji transformu
-          }
-          else break; //wyjœcie z pêtli
-         }
-         //Ra: ustawianie indeksów osi
-         for (i=0;i<MaxAnimatedAxles;++i) //zabezpieczenie przed b³êdami w CHK
-          pWheelAngle[i]=dWheelAngle+1; //domyœlnie wskaŸnik na napêdzaj¹ce
-         i=0; j=1; k=0; m=0; //numer osi; kolejny znak; ile osi danego typu; która œrednica
-         if ((MoverParameters->WheelDiameterL!=MoverParameters->WheelDiameter)||(MoverParameters->WheelDiameterT!=MoverParameters->WheelDiameter))
-          while ((i<iAnimatedAxles)&&(j<=MoverParameters->AxleArangement.Length()))
-          {//wersja ze wskaŸnikami jest bardziej elastyczna na nietypowe uk³ady
-           if ((k>='A')&&(k<='J')) //10 chyba maksimum?
-           {pWheelAngle[i++]=dWheelAngle+1; //obrót osi napêdzaj¹cych
-            --k; //nastêpna bêdzie albo taka sama, albo bierzemy kolejny znak
-            m=2; //nastêpuj¹ce toczne bêd¹ mia³y inn¹ œrednicê
-           }
-           else if ((k>='1')&&(k<='9'))
-           {pWheelAngle[i++]=dWheelAngle+m; //obrót osi tocznych
-            --k; //nastêpna bêdzie albo taka sama, albo bierzemy kolejny znak
-           }
-           else
-            k=MoverParameters->AxleArangement[j++]; //pobranie kolejnego znaku
-          } //Ra: pêtla uruchamiana tylko jeœli s¹ ró¿ne œrednice
-*/
-         for (i=0;i<iAnimType[0];++i) //iloœæ osi
+         for (i=0;i<iAnimType[ANIM_WHEELS];++i) //liczba osi
          {//McZapkie-050402: wyszukiwanie kol o nazwie str*
           asAnimName=str+AnsiString(i+1);
           pAnimations[i].smAnimated=mdModel->GetFromName(asAnimName.c_str()); //ustalenie submodelu
@@ -3361,15 +3309,16 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
           {//++iAnimatedAxles;
            pAnimations[i].smAnimated->WillBeAnimated(); //wy³¹czenie optymalizacji transformu
            pAnimations[i].yUpdate=UpdateAxle; //animacja osi
+           pAnimations[i].fMaxDist=50*50; //nie krêciæ w wiêkszej odleg³oœci
           }
          }
          //Ra: ustawianie indeksów osi
-         for (i=0;i<iAnimType[0];++i) //iloœæ osi (zabezpieczenie przed b³êdami w CHK)
+         for (i=0;i<iAnimType[ANIM_WHEELS];++i) //iloœæ osi (zabezpieczenie przed b³êdami w CHK)
           pAnimations[i].dWheelAngle=dWheelAngle+1; //domyœlnie wskaŸnik na napêdzaj¹ce
          i=0; j=1; k=0; m=0; //numer osi; kolejny znak; ile osi danego typu; która œrednica
          if ((MoverParameters->WheelDiameterL!=MoverParameters->WheelDiameter)||(MoverParameters->WheelDiameterT!=MoverParameters->WheelDiameter))
          {//obs³uga ró¿nych œrednic, o ile wystêpuj¹
-          while ((i<iAnimType[0])&&(j<=MoverParameters->AxleArangement.Length()))
+          while ((i<iAnimType[ANIM_WHEELS])&&(j<=MoverParameters->AxleArangement.Length()))
           {//wersja ze wskaŸnikami jest bardziej elastyczna na nietypowe uk³ady
            if ((k>='A')&&(k<='J')) //10 chyba maksimum?
            {pAnimations[i++].dWheelAngle=dWheelAngle+1; //obrót osi napêdzaj¹cych
@@ -3385,68 +3334,78 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
           }
          }
         }
-        else if (str==AnsiString("animrodprefix:")) //prefiks wiazarow dwoch
-         {
-          str= Parser->GetNextSymbol();
-          for (int i=1; i<=2; i++)
-          {//McZapkie-050402: wyszukiwanie max 2 wiazarow o nazwie str*
-           asAnimName=str+i;
-           smWiazary[i-1]=mdModel->GetFromName(asAnimName.c_str());
-           smWiazary[i-1]->WillBeAnimated();
-          }
-         }
-        else
+        //else if (str==AnsiString("animrodprefix:")) //prefiks wiazarow dwoch
+        // {
+        //  str= Parser->GetNextSymbol();
+        //  for (int i=1; i<=2; i++)
+        //  {//McZapkie-050402: wyszukiwanie max 2 wiazarow o nazwie str*
+        //   asAnimName=str+i;
+        //   smWiazary[i-1]=mdModel->GetFromName(asAnimName.c_str());
+        //   smWiazary[i-1]->WillBeAnimated();
+        //  }
+        // }
+        else if (str==AnsiString("animpantprefix:"))
+        {//Ra: pantografy po nowemu maj¹ literki i numerki
+        }
 //Pantografy - Winger 160204
-        if (str==AnsiString("animpantrd1prefix:"))              //prefiks ramion dolnych 1
-        {
+        if (str==AnsiString("animpantrd1prefix:"))
+        {//prefiks ramion dolnych 1
          str=Parser->GetNextSymbol();
-         for (int i=1;i<=2;i++)
-         {//Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
-          asAnimName=str+i;
-          smPatykird1[i-1]=mdModel->GetFromName(asAnimName.c_str());
-          smPatykird1[i-1]->WillBeAnimated();
-         }
+         if (pants)
+          for (int i=0;i<iAnimType[ANIM_PANTS];i++)
+          {//Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
+           asAnimName=str+AnsiString(i+1);
+           pants[i].smElement[0]=mdModel->GetFromName(asAnimName.c_str());
+           pants[i].smElement[0]->WillBeAnimated();
+          }
         }
-        else if (str==AnsiString("animpantrd2prefix:"))              //prefiks ramion dolnych 2
-        {
+        else if (str==AnsiString("animpantrd2prefix:"))
+        {//prefiks ramion dolnych 2
          str=Parser->GetNextSymbol();
-         for (int i=1;i<=2;i++)
-         {//Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
-          asAnimName=str+i;
-          smPatykird2[i-1]=mdModel->GetFromName(asAnimName.c_str());
-          smPatykird2[i-1]->WillBeAnimated();
-         }
+         if (pants)
+          for (int i=0;i<iAnimType[ANIM_PANTS];i++)
+          {//Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
+           asAnimName=str+AnsiString(i+1);
+           pants[i].smElement[1]=mdModel->GetFromName(asAnimName.c_str());
+           pants[i].smElement[1]->WillBeAnimated();
+          }
         }
-        else if (str==AnsiString("animpantrg1prefix:")) //prefiks ramion gornych 1
-        {
+        else if (str==AnsiString("animpantrg1prefix:"))
+        {//prefiks ramion górnych 1
          str=Parser->GetNextSymbol();
-         for (int i=1;i<=2;i++)
-         {//Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
-          asAnimName=str+i;
-          smPatykirg1[i-1]=mdModel->GetFromName(asAnimName.c_str());
-          smPatykirg1[i-1]->WillBeAnimated();
-         }
+         if (pants)
+          for (int i=0;i<iAnimType[ANIM_PANTS];i++)
+          {//Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
+           asAnimName=str+AnsiString(i+1);
+           pants[i].smElement[2]=mdModel->GetFromName(asAnimName.c_str());
+           pants[i].smElement[2]->WillBeAnimated();
+          }
         }
         else
-        if (str==AnsiString("animpantrg2prefix:")) //prefiks ramion gornych 2
-        {
+        if (str==AnsiString("animpantrg2prefix:"))
+        {//prefiks ramion górnych 2
          str=Parser->GetNextSymbol();
-         for (int i=1;i<=2;i++)
-         {//Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
-          asAnimName=str+i;
-          smPatykirg2[i-1]=mdModel->GetFromName(asAnimName.c_str());
-          smPatykirg2[i-1]->WillBeAnimated();
-         }
+         if (pants)
+          for (int i=0;i<iAnimType[ANIM_PANTS];i++)
+          {//Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
+           asAnimName=str+AnsiString(i+1);
+           pants[i].smElement[3]=mdModel->GetFromName(asAnimName.c_str());
+           pants[i].smElement[3]->WillBeAnimated();
+          }
         }
-        else if (str==AnsiString("animpantslprefix:")) //prefiks slizgaczy
-        {
+        else if (str==AnsiString("animpantslprefix:"))
+        {//prefiks œlizgaczy
          str=Parser->GetNextSymbol();
-         for (int i=1;i<=2;i++)
-         {//Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
-          asAnimName=str+i;
-          smPatykisl[i-1]=mdModel->GetFromName(asAnimName.c_str());
-          smPatykisl[i-1]->WillBeAnimated();
-         }
+         if (pants)
+          for (int i=0;i<iAnimType[ANIM_PANTS];i++)
+          {//Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
+           asAnimName=str+AnsiString(i+1);
+           pants[i].smElement[4]=mdModel->GetFromName(asAnimName.c_str());
+           pants[i].smElement[4]->WillBeAnimated();
+           pants[i].yUpdate=UpdatePant;
+           pants[i].fMaxDist=300*300; //nie podnosiæ w wiêkszej odleg³oœci
+           pants[i].iNumber=i;
+          }
         }
         else if (str==AnsiString("pantfactors:"))
         {//Winger 010304: parametry pantografow
@@ -3523,32 +3482,40 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
          str=Parser->GetNextSymbol();
          smMechanik=mdModel->GetFromName(str.c_str());
         }
-        else
-        if (str==AnsiString("animdoorprefix:"))           //nazwa animowanych dzwi
-        {
+        else if (str==AnsiString("animdoorprefix:"))
+        {//nazwa animowanych drzwi
+         int i,j,k,m;
          str=Parser->GetNextSymbol();
-         asAnimName="";
-         for (int i=1; i<=MaxAnimatedDoors; i++)
+         for (i=0,j=0;i<ANIM_DOORS;++i)
+          j+=iAnimType[i]; //zliczanie wczeœniejszych animacji
+         for (i=0;i<iAnimType[ANIM_DOORS];++i) //liczba drzwi
          {//NBMX wrzesien 2003: wyszukiwanie drzwi o nazwie str*
-          asAnimName=str+AnsiString(i);
-          smAnimatedDoor[i-1]=mdModel->GetFromName(asAnimName.c_str()); //szukanie submodelu
-          if (smAnimatedDoor[i-1])
-          {//kolejne drzwi znalezione
-           smAnimatedDoor[i-1]->WillBeAnimated();
-           ++iAnimatedDoors;
+          asAnimName=str+AnsiString(i+1);
+          pAnimations[i+j].smAnimated=mdModel->GetFromName(asAnimName.c_str()); //ustalenie submodelu
+          if (pAnimations[i+j].smAnimated)
+          {//++iAnimatedDoors;
+           pAnimations[i+j].smAnimated->WillBeAnimated(); //wy³¹czenie optymalizacji transformu
+           switch (MoverParameters->DoorOpenMethod)
+           {//od razu zapinamy potrzebny typ animacji
+            case 1: pAnimations[i+j].yUpdate=UpdateDoorTranslate; break;
+            case 2: pAnimations[i+j].yUpdate=UpdateDoorRotate; break;
+           }
+           pAnimations[i+j].iNumber=i; //parzyste dzia³aj¹ inaczej ni¿ nieparzyste
+           pAnimations[i+j].fMaxDist=300*300; //drzwi to z daleka widaæ
+           pAnimations[i+j].fSpeed=random(150); //oryginalny koncept z DoorSpeedFactor
+           pAnimations[i+j].fSpeed=(pAnimations[i+j].fSpeed+100)/100;
+           //Ra: te wspó³czynniki s¹ bez sensu, bo modyfikuj¹ wektor przesuniêcia
           }
-          else
-           i=MaxAnimatedDoors+1;
          }
         }
        }
      }
      else
-     if (str==AnsiString("sounds:"))                            //dzwieki
+     if (str==AnsiString("sounds:")) //dzwieki
       while (!Parser->EndOfFile && str!=AnsiString("endsounds"))
       {
        str= Parser->GetNextSymbol().LowerCase();
-       if (str==AnsiString("wheel_clatter:"))                    //polozenia osi w/m srodka pojazdu
+       if (str==AnsiString("wheel_clatter:")) //polozenia osi w/m srodka pojazdu
         {
          dSDist=Parser->GetNextSymbol().ToDouble();
          for (int i=0; i<iAxles; i++)

@@ -584,8 +584,8 @@ TYPE
                 ScndCtrlPos: byte; {polozenie dodatkowego nastawnika}
                 ActiveDir: integer; //czy lok. jest wlaczona i w ktorym kierunku:
                 //wzglêdem wybranej kabiny: -1 - do tylu, +1 - do przodu, 0 - wylaczona
-                CabNo: integer;    {! numer kabiny: 1 lub -1. W przeciwnym razie brak sterowania - rozrzad}
-                DirAbsolute: integer; //zadany kierunek jazdy wzglêdem sprzêgów (1=w strone 0,-1=w stronê 1) 
+                CabNo: integer; //numer kabiny, z której jest sterowanie: 1 lub -1; w przeciwnym razie brak sterowania - rozrzad
+                DirAbsolute: integer; //zadany kierunek jazdy wzglêdem sprzêgów (1=w strone 0,-1=w stronê 1)
                 ActiveCab: integer; //numer kabiny, w ktorej jest obsada (zwykle jedna na sk³ad)
                 LastCab: integer;       { numer kabiny przed zmiana }
                 LastSwitchingTime: real; {czas ostatniego przelaczania czegos}
@@ -603,7 +603,7 @@ TYPE
                 Voltage: real;           {aktualne napiecie sieci zasilajacej}
                 MainCtrlActualPos: byte; {wskaznik Rlist}
                 ScndCtrlActualPos: byte; {wskaznik MotorParam}
-                DelayCtrlFlag: boolean;  {opoznienie w zalaczaniu na 1. pozycji}
+                DelayCtrlFlag: boolean;  //czy czekanie na 1. pozycji na za³¹czenie?
                 LastRelayTime: real;     {czas ostatniego przelaczania stycznikow}
                 AutoRelayFlag: boolean;  {mozna zmieniac jesli AutoRelayType=2}
                 FuseFlag: boolean;       {!o bezpiecznik nadmiarowy}
@@ -1178,6 +1178,7 @@ begin
    LastCab:=CabNo;
    CabNo:=0;
    DirAbsolute:=ActiveDir*CabNo;
+   DepartureSignal:=false; //nie buczeæ z nieaktywnej kabiny
    SendCtrlToNext('CabActivisation',0,ActiveCab);
   end;
  CabDeactivisation:=OK;

@@ -157,6 +157,7 @@ bool __fastcall TTrain::Init(TDynamicObject *NewDynamicObject)
  fMechMaxSpring=0.15;
  fMechRoll=0.05;
  fMechPitch=0.1;
+ fMainRelayTimer=0; //Hunter, do k...y nêdzy, ustawiaj wartoœci pocz¹tkowe zmiennych!
 
  if (!LoadMMediaFile(DynamicObject->asBaseDir+DynamicObject->MoverParameters->TypeName+".mmd"))
   return false;
@@ -1386,25 +1387,23 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       */
       if (cKey==Global::Keys[k_CabForward])
       {
-       DynamicObject->MoverParameters->CabDeactivisation();
        if (!CabChange(1))
         if (TestFlag(DynamicObject->MoverParameters->Couplers[0].CouplingFlag,ctrain_passenger))
         {
 //TODO: przejscie do nastepnego pojazdu, wskaznik do niego: DynamicObject->MoverParameters->Couplers[0].Connected
-         Global::changeDynObj=true;
+         Global::changeDynObj=DynamicObject->PrevConnected;
+         Global::changeDynObj->MoverParameters->ActiveCab=DynamicObject->PrevConnectedNo?-1:1;
         }
-       DynamicObject->MoverParameters->CabActivisation();
       }
       else if (cKey==Global::Keys[k_CabBackward])
       {
-       DynamicObject->MoverParameters->CabDeactivisation();
        if (!CabChange(-1))
         if (TestFlag(DynamicObject->MoverParameters->Couplers[1].CouplingFlag,ctrain_passenger))
         {
 //TODO: przejscie do poprzedniego, wskaznik do niego: DynamicObject->MoverParameters->Couplers[1].Connected
-         Global::changeDynObj=true;
+         Global::changeDynObj=DynamicObject->NextConnected;
+         Global::changeDynObj->MoverParameters->ActiveCab=DynamicObject->NextConnectedNo?-1:1;
         }
-       DynamicObject->MoverParameters->CabActivisation();
       }
       else
       if (cKey==Global::Keys[k_Couple])
@@ -2472,7 +2471,7 @@ if (!ShowNextCurrent)
 else
 {
    //ABu 100205: prad w nastepnej lokomotywie, przycisk w ET41
-   TDynamicObject *tmp;
+   TDynamicObject *tmp; //Ra: bez sensu to ustalaæ w ka¿dej klatce...
    tmp=NULL;
    if (DynamicObject->NextConnected) //pojazd od strony sprzêgu 1
       if ((DynamicObject->NextConnected->MoverParameters->TrainType==dt_ET41)
@@ -3438,35 +3437,31 @@ else
      //hunter-141211: wyl. szybki zalaczony i wylaczony przeniesiony z OnKeyPress()
      if ( Console::Pressed(VK_SHIFT)&&Console::Pressed(Global::Keys[k_Main]) )
      {
-          fMainRelayTimer+=dt;
-          MainOnButtonGauge.PutValue(1);
-          if (DynamicObject->MoverParameters->Mains!=true) //hunter-080812: poprawka
-           DynamicObject->MoverParameters->ConverterSwitch(false);
-          if (fMainRelayTimer>DynamicObject->MoverParameters->InitialCtrlDelay) //wlaczanie WSa z opoznieniem
-            if (DynamicObject->MoverParameters->MainSwitch(true))
-            {
-              if (DynamicObject->MoverParameters->MainCtrlPos!=0) //zabezpieczenie, by po wrzuceniu pozycji przed wlaczonym
-               DynamicObject->MoverParameters->StLinFlag=true; //WSem nie wrzucilo na ta pozycje po jego zalaczeniu
-
-              if (DynamicObject->MoverParameters->EngineType==DieselEngine)
-               dsbDieselIgnition->Play(0,0,0);
-           }
+      fMainRelayTimer+=dt;
+      MainOnButtonGauge.PutValue(1);
+      if (DynamicObject->MoverParameters->Mains!=true) //hunter-080812: poprawka
+       DynamicObject->MoverParameters->ConverterSwitch(false);
+      if (fMainRelayTimer>DynamicObject->MoverParameters->InitialCtrlDelay) //wlaczanie WSa z opoznieniem
+       if (DynamicObject->MoverParameters->MainSwitch(true))
+       {
+        if (DynamicObject->MoverParameters->MainCtrlPos!=0) //zabezpieczenie, by po wrzuceniu pozycji przed wlaczonym
+         DynamicObject->MoverParameters->StLinFlag=true; //WSem nie wrzucilo na ta pozycje po jego zalaczeniu
+        if (DynamicObject->MoverParameters->EngineType==DieselEngine)
+         dsbDieselIgnition->Play(0,0,0);
+       }
      }
      else
      {
-          if (ConverterButtonGauge.GetValue()!=0)    //po puszczeniu przycisku od WSa odpalanie potwora
-           DynamicObject->MoverParameters->ConverterSwitch(true);
-
-          //hunter-091012: przeniesione z mover.pas, zeby dzwiek sie nie zapetlal, drugi warunek zeby nie odtwarzalo w nieskonczonosc i przeniesienie zerowania timera
-          if ((DynamicObject->MoverParameters->Mains!=true)&&(fMainRelayTimer>0))
-           {
-            dsbRelay->Play(0,0,0);
-            fMainRelayTimer=0;
-           }
-
-          MainOnButtonGauge.UpdateValue(0);
+      if (ConverterButtonGauge.GetValue()!=0) //po puszczeniu przycisku od WSa odpalanie potwora
+       DynamicObject->MoverParameters->ConverterSwitch(true);
+      //hunter-091012: przeniesione z mover.pas, zeby dzwiek sie nie zapetlal, drugi warunek zeby nie odtwarzalo w nieskonczonosc i przeniesienie zerowania timera
+      if ((DynamicObject->MoverParameters->Mains!=true)&&(fMainRelayTimer>0))
+       {
+        dsbRelay->Play(0,0,0);
+        fMainRelayTimer=0;
+       }
+      MainOnButtonGauge.UpdateValue(0);
      }
-
      //---
 
      if ( !Console::Pressed(VK_SHIFT)&&Console::Pressed(Global::Keys[k_Main]) )
@@ -3981,8 +3976,10 @@ else
      }
      else
      {
-       btLampkaDepartureSignal.TurnOff();
-       DynamicObject->MoverParameters->DepartureSignal=false;
+      btLampkaDepartureSignal.TurnOff();
+      if (DynamicObject->Mechanik) //mo¿e nie byæ?
+       if (!DynamicObject->Mechanik->AIControllFlag) //tylko jeœli nie prowadzi AI
+        DynamicObject->MoverParameters->DepartureSignal=false;
      }
 
 if ( Console::Pressed(Global::Keys[k_Main]) )                //[]
@@ -4163,16 +4160,24 @@ else
 
 bool TTrain::CabChange(int iDirection)
 {//McZapkie-090902: zmiana kabiny 1->0->2 i z powrotem
- if (DynamicObject->MoverParameters->ChangeCab(iDirection))
- {
-  if (InitializeCab(DynamicObject->MoverParameters->ActiveCab,DynamicObject->asBaseDir+DynamicObject->MoverParameters->TypeName+".mmd"))
-  {
-   return true;
-  }
-  else return false;
+ if (DynamicObject->Mechanik?DynamicObject->Mechanik->AIControllFlag:true) //jeœli prowadzi AI albo jest w innym cz³onie
+ {//jak AI prowadzi, to nie mo¿na mu mieszaæ
+  if (abs(DynamicObject->MoverParameters->ActiveCab+iDirection)>1)
+   return false; //ewentualna zmiana pojazdu
+  DynamicObject->MoverParameters->ActiveCab=DynamicObject->MoverParameters->ActiveCab+iDirection;
  }
- // else return false;
- return false;
+ else
+ {//jeœli pojazd prowadzony rêcznie albo wcale (wagon)
+  DynamicObject->MoverParameters->CabDeactivisation();
+  if (DynamicObject->MoverParameters->ChangeCab(iDirection))
+   if (InitializeCab(DynamicObject->MoverParameters->ActiveCab,DynamicObject->asBaseDir+DynamicObject->MoverParameters->TypeName+".mmd"))
+   {//zmiana kabiny w ramach tego samego pojazdu
+    DynamicObject->MoverParameters->CabActivisation();
+    return true; //uda³o siê zmieniæ kabinê
+   }
+  DynamicObject->MoverParameters->CabActivisation(); //aktywizacja poprzedniej, bo jeszcze nie wiadomo, czy jakiœ pojazd jest
+ }
+ return false; //ewentualna zmiana pojazdu
 }
 
 //McZapkie-310302
@@ -4469,7 +4474,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
  AnsiString cabstr=AnsiString("cab")+cabindex+AnsiString("definition:");
  while ((!Parser->EndOfFile) && (AnsiCompareStr(str,cabstr)!=0))
   str=Parser->GetNextSymbol().LowerCase(); //szukanie kabiny
- if (cabindex==2)
+ if (cabindex!=1)
   if (AnsiCompareStr(str,cabstr)!=0) //jeœli nie znaleziony wpis kabiny
   {//próba szukania kabiny 1
    cabstr=AnsiString("cab1definition:");
@@ -4522,7 +4527,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
      else
       break; //wyjœcie z pêtli, bo model zostaje bez zmian
     }
-    else
+    else if (cabindex==1) //model tylko, gdy nie ma kabiny 1
      DynamicObject->mdKabina=DynamicObject->mdModel;   //McZapkie-170103: szukaj elementy kabiny w glownym modelu
     ActiveUniversal4=false;
     MainCtrlGauge.Clear();
@@ -4551,7 +4556,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     //-------
     Universal4ButtonGauge.Clear();
     FuseButtonGauge.Clear();
-    ConverterFuseButtonGauge.Clear();    
+    ConverterFuseButtonGauge.Clear();
     StLinOffButtonGauge.Clear();
     DoorLeftButtonGauge.Clear();
     DoorRightButtonGauge.Clear();
@@ -4564,8 +4569,11 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     PantAllDownButtonGauge.Clear();
     VelocityGauge.Clear();
     I1Gauge.Clear();
+    I1Gauge.Output(5); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
     I2Gauge.Clear();
+    I2Gauge.Output(4); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
     I3Gauge.Clear();
+    //I3Gauge.Output(3); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
     ItotalGauge.Clear();
     CylHamGauge.Clear();
     PrzGlGauge.Clear();
@@ -4574,7 +4582,6 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
 
     VelocityGaugeB.Clear();
     I1GaugeB.Clear();
-    I1Gauge.Output(5); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
     I2GaugeB.Clear();
     I3GaugeB.Clear();
     ItotalGaugeB.Clear();
@@ -4592,6 +4599,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     ClockHInd.Clear();
     EngineVoltage.Clear();
     HVoltageGauge.Clear();
+    HVoltageGauge.Output(3); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
     LVoltageGauge.Clear();
     enrot1mGauge.Clear();
     enrot2mGauge.Clear();
