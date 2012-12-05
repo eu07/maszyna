@@ -2924,7 +2924,8 @@ bool __fastcall TDynamicObject::RenderAlpha()
   else
   {//wersja Display Lists
    if (mdLowPolyInt)
-    mdLowPolyInt->RenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
+    if (FreeFlyModeFlag?true:!mdKabina)
+     mdLowPolyInt->RenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
    mdModel->RenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
    if (mdLoad)
     mdLoad->RenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
