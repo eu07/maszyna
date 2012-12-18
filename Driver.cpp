@@ -1089,7 +1089,10 @@ bool __fastcall TController::CheckVehicles()
    else if (OrderCurrentGet()&(Shunt|Connect))
     Lights(16,(pVehicles[1]->MoverParameters->ActiveCab)?1:0); //œwiat³a manewrowe (Tb1) na pojeŸdzie z napêdem
    else if (OrderCurrentGet()==Disconnect)
-    Lights(16,0); //œwiat³a manewrowe (Tb1) tylko z przodu, aby nie pozostawiæ sk³adu ze œwiat³em
+    if (Controlling->ActiveDir>0) //jak ma kierunek do przodu
+     Lights(16,0); //œwiat³a manewrowe (Tb1) tylko z przodu, aby nie pozostawiæ odczepionego ze œwiat³em
+    else //jak dociska
+     Lights(0,16); //œwiat³a manewrowe (Tb1) tylko z przodu, aby nie pozostawiæ odczepionego ze œwiat³em
  } //blok wykonywany, gdy aktywnie prowadzi
  return true;
 }
@@ -2036,7 +2039,10 @@ bool __fastcall TController::UpdateSituation(double dt)
  if (AIControllFlag)
  {//yb: zeby EP nie musial sie bawic z ciesnieniem w PG
   if (Controlling->BrakeSystem==ElectroPneumatic)
+  {//if (Controlling->BrakePressureActual.BrakeType==ElectroPneumatic) //tylko dla pozycji EP
    Controlling->PipePress=0.5;
+   //Controlling->BrakeLevelSet(0); //resetowanie EP do stanu neutralnego - nie mo¿e tak byæ, bo pulsuje
+  }
   if (Controlling->SlippingWheels)
   {
    Controlling->SandDoseOn(); //piasku!
@@ -2244,14 +2250,14 @@ bool __fastcall TController::UpdateSituation(double dt)
       if (Prepare2press) //jeœli dociskanie w celu odczepienia
       {//3. faza odczepiania.
        SetVelocity(2,0); //jazda w ustawionym kierunku z prêdkoœci¹ 2
-       if (Controlling->MainCtrlPos>0) //jeœli jazda
+       if ((Controlling->MainCtrlPos>0)||(Controlling->BrakeSystem==ElectroPneumatic)) //jeœli jazda
        {
         //WriteLog("Odczepianie w kierunku "+AnsiString(Controlling->DirAbsolute));
         TDynamicObject *p=pVehicle; //pojazd do odczepienia, w (pVehicle) siedzi AI
         int d; //numer sprzêgu, który sprawdzamy albo odczepiamy
         int n=iVehicleCount; //ile wagonów ma zostaæ
         do
-        {//przejœcie do nastêpnego pojazdu
+        {//szukanie pojazdu do odczepienia
          d=p->DirectionGet()>0?0:1; //numer sprzêgu od strony czo³a sk³adu
          //if (p->MoverParameters->Couplers[d].CouplerType==Articulated) //jeœli sprzêg typu wózek (za ma³o)
          if (p->MoverParameters->Couplers[d].CouplingFlag&ctrain_depot) //je¿eli sprzêg zablokowany
@@ -2265,13 +2271,14 @@ bool __fastcall TController::UpdateSituation(double dt)
           if (!p) iVehicleCount=-2,n=0; //nie ma co dalej sprawdzaæ, doczepianie zakoñczone
          }
         } while (n--);
-        if (p)
-         if (p->MoverParameters->Couplers[d].CouplingFlag>0)
-          if (!p->Dettach(d)) //zwraca maskê bitow¹ po³¹czenia
-          {//tylko jeœli odepnie
-           //WriteLog("Odczepiony od strony 0");
-           iVehicleCount=-2;
-          } //a jak nie, to dociskaæ dalej
+        if (p?p->MoverParameters->Couplers[d].CouplingFlag==0:true)
+         iVehicleCount=-2; //odczepiono, co by³o do odczepienia
+        else
+         if (!p->Dettach(d)) //zwraca maskê bitow¹ po³¹czenia
+         {//tylko jeœli odepnie
+          //WriteLog("Odczepiony od strony 0");
+          iVehicleCount=-2;
+         } //a jak nie, to dociskaæ dalej
        }
        if (iVehicleCount>=0) //zmieni siê po odczepieniu
         if (!Controlling->DecLocalBrakeLevel(1))
@@ -2288,17 +2295,19 @@ bool __fastcall TController::UpdateSituation(double dt)
        //WriteLog("Zahamowanie sk³adu");
        //while ((Controlling->BrakeCtrlPos>3)&&Controlling->DecBrakeLevel());
        //while ((Controlling->BrakeCtrlPos<3)&&Controlling->IncBrakeLevel());
-       Controlling->BrakeLevelSet(3);
+       Controlling->BrakeLevelSet(Controlling->BrakeSystem==ElectroPneumatic?1:3);
        double p=Controlling->BrakePressureActual.PipePressureVal; //tu mo¿e byæ 0 albo -1 nawet
        if (p<0.37) p=0.37; //TODO: zabezpieczenie przed dziwnymi CHK do czasu wyjaœnienia sensu 0 oraz -1 w tym miejscu
-       if (Controlling->PipePress<p+0.01)
+       if (Controlling->BrakeSystem==ElectroPneumatic?Controlling->BrakePress>0.2:Controlling->PipePress<p+0.01)
        {//jeœli w miarê zosta³ zahamowany (ciœnienie mniejsze ni¿ podane na pozycji 3, zwyle 0.37)
+        if (Controlling->BrakeSystem==ElectroPneumatic)
+         Controlling->BrakeLevelSet(0); //wy³¹czenie EP, gdy wystarczy (mo¿e nie byæ potrzebne, bo na pocz¹tku jest)
         //WriteLog("Luzowanie lokomotywy i zmiana kierunku");
         Controlling->BrakeReleaser(); //wyluzuj lokomotywê; a ST45?
         Controlling->DecLocalBrakeLevel(10); //zwolnienie hamulca
         Prepare2press=true; //nastêpnie bêdzie dociskanie
         DirectionForward(Controlling->ActiveDir<0); //zmiana kierunku jazdy na przeciwny (dociskanie)
-        CheckVehicles(); //od razu zmieniæ œwiat³a (zgasiæ)
+        CheckVehicles(); //od razu zmieniæ œwiat³a (zgasiæ) - bez tego siê nie odczepi
         fStopTime=0.0; //nie ma na co czekaæ z odczepianiem
        }
       }
@@ -2312,8 +2321,8 @@ bool __fastcall TController::UpdateSituation(double dt)
         //WriteLog("Ponowna zmiana kierunku");
         DirectionForward(Controlling->ActiveDir<0); //zmiana kierunku jazdy na w³aœciwy
         Prepare2press=false; //koniec dociskania
-        CheckVehicles(); //od razu zmieniæ œwiat³a
-        JumpToNextOrder();
+        JumpToNextOrder(); //zmieni œwiat³a
+        TableClear(); //skanowanie od nowa
         iDrivigFlags&=~moveStartHorn; //bez tr¹bienia przed ruszeniem
         SetVelocity(fShuntVelocity,fShuntVelocity); //ustawienie prêdkoœci jazdy
        }
@@ -2837,7 +2846,7 @@ bool __fastcall TController::UpdateSituation(double dt)
       if (Controlling->Couplers[0].Connected!=NULL)
        if (TestFlag(Controlling->Couplers[0].CouplingFlag,ctrain_controll))
         if (Controlling->Couplers[0].Connected->SlippingWheels)
-         if (!Controlling->DecScndCtrl(1))
+         if (Controlling->ScndCtrlPos>0?!Controlling->DecScndCtrl(1):true)
          {
           if (!Controlling->DecMainCtrl(1))
            if (Controlling->BrakeCtrlPos==Controlling->BrakeCtrlPosNo)

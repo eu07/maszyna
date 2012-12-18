@@ -3525,8 +3525,13 @@ void __fastcall TDynamicObject::RaLightsSet(int head,int rear)
  if (rear==2+32+64)
  {//jeœli koniec poci¹gu, to trzeba ustaliæ, czy jest tam czynna lokomotywa
   //EN57 mo¿e nie mieæ koñcówek od œrodka cz³onu
-  //jeœli ma zarówno œwiat³a jak i koñcówki, ustaliæ, czy jest w stanie aktywnym
-  //np. lokomotywa na zimno bêdzie mieæ koñcówki a nie œwiat³a
+  if (MoverParameters->Power>1.0) //jeœli ma moc napêdow¹
+   if (!MoverParameters->ActiveDir) //jeœli nie ma ustawionego kierunku
+   {//jeœli ma zarówno œwiat³a jak i koñcówki, ustaliæ, czy jest w stanie aktywnym
+    //np. lokomotywa na zimno bêdzie mieæ koñcówki a nie œwiat³a
+    rear=64; //tablice blaszane
+    //trzeba to uzale¿niæ od "za³¹czenia baterii" w pojeŸdzie
+   }
   if (iInventory&(iDirection?0x2A:0x15)) //czy ma jakieœ œwiat³a czerowone od danej strony
    rear=2+32; //dwa œwiat³a czerwone
   else

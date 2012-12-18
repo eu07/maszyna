@@ -1462,8 +1462,9 @@ function T_MoverParameters.DecScndCtrl(CtrlSpeed:integer): boolean;
 var //b:byte;
     OK:boolean;
 begin
-  if (MainCtrlPos=0)and(CabNo<>0)and(TrainType=dt_ET42)and(ScndCtrlPos=0)and not(DynamicBrakeFlag)then
+  if (MainCtrlPos=0)and(CabNo<>0)and(TrainType=dt_ET42)and(ScndCtrlPos=0)and not(DynamicBrakeFlag)and(CtrlSpeed=1)then
    begin
+    //Ra: AI wywo³uje z CtrlSpeed=2 albo gdy ScndCtrlPos>0
     OK:=DynamicBrakeSwitch(true);
    end
   else
@@ -5913,6 +5914,8 @@ begin
               s:=DUE(ExtractKeyWord(lines,'CompressorPower='));
               if s='Converter' then
                CompressorPower:=2
+              else if s='Engine' then
+               CompressorPower:=3
               else if s='Main' then
                CompressorPower:=0;
             end
@@ -6025,6 +6028,7 @@ begin
                    Couplers[1].FmaxB:=Couplers[0].FmaxB;
                    Couplers[1].beta:=Couplers[0].beta;
                    Couplers[1].CouplerType:=Couplers[0].CouplerType;
+                   Couplers[1].AllowedFlag:=Couplers[0].AllowedFlag;
                  end;
 {                CouplerTune:=(1+Mass)/100000; }
               end
