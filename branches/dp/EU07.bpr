@@ -33,13 +33,13 @@
     <USERDEFINES value="GLEW_STATIC;_DEBUG"/>
     <SYSDEFINES value="NO_STRICT;_RTLDLL"/>
     <MAINSOURCE value="EU07.cpp"/>
-    <INCLUDEPATH value="C:\ProgsWin\CBuilder5\Projects\;Console;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
-    <LIBPATH value="C:\ProgsWin\CBuilder5\Projects\;Console;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
+    <INCLUDEPATH value="Console;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
+    <LIBPATH value="Console;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
     <WARNINGS value="-w-par"/>
   </MACROS>
   <OPTIONS>
-    <IDLCFLAGS value="-src_suffix cpp -DGLEW_STATIC -D_DEBUG -IC:\ProgsWin\CBuilder5\Projects\. 
-      -IConsole -Iopengl -IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl -boa"/>
+    <IDLCFLAGS value="-src_suffix cpp -DGLEW_STATIC -D_DEBUG -IConsole -Iopengl -IMcZapkie 
+      -I$(BCB)\include -I$(BCB)\include\vcl -boa"/>
     <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a4 -6 -b- -k -y -v -vi- 
       -c -tW -tWM"/>
     <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
@@ -58,8 +58,8 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=1
 MinorVer=8
-Release=704
-Build=390
+Release=706
+Build=391
 Debug=1
 PreRelease=0
 Special=0
@@ -71,7 +71,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.8.704.390
+FileVersion=1.8.706.391
 InternalName=8th by Ra
 LegalCopyright=
 LegalTrademarks=
@@ -81,21 +81,16 @@ ProductVersion=1.8
 Comments=
 
 [HistoryLists\hlIncludePath]
-Count=3
-Item0=C:\ProgsWin\CBuilder5\Projects\;Console;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item1=C:\ProgsWin\CBuilder5\Projects;Console;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item2=Console;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Count=1
+Item0=Console;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
 
 [HistoryLists\hlLibraryPath]
-Count=3
-Item0=C:\ProgsWin\CBuilder5\Projects\;Console;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item1=C:\ProgsWin\CBuilder5\Projects;Console;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item2=Console;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Count=1
+Item0=Console;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
 
 [HistoryLists\hlDebugSourcePath]
-Count=2
-Item0=C:\Ra\dp\McZapkie\
-Item1=$(BCB)\source\vcl
+Count=1
+Item0=$(BCB)\source\vcl
 
 [HistoryLists\hlConditionals]
 Count=8
@@ -114,7 +109,7 @@ Item0=D:\EU07\
 Item1=D:\EU07DDS\
 
 [Debugging]
-DebugSourceDirs=C:\Ra\dp\McZapkie\
+DebugSourceDirs=
 
 [Parameters]
 RunParams=
