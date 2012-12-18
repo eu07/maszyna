@@ -283,6 +283,7 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
   if (ObjSqrDist<2500) //gdy bli¿ej ni¿ 50m
   {
    //ABu290105: rzucanie pudlem
+   //te animacje wymagaj¹ bananów w modelach!
    mdModel->GetSMRoot()->SetTranslate(modelShake);
    if (mdKabina)
     mdKabina->GetSMRoot()->SetTranslate(modelShake);
@@ -3532,10 +3533,11 @@ void __fastcall TDynamicObject::RaLightsSet(int head,int rear)
     rear=64; //tablice blaszane
     //trzeba to uzale¿niæ od "za³¹czenia baterii" w pojeŸdzie
    }
-  if (iInventory&(iDirection?0x2A:0x15)) //czy ma jakieœ œwiat³a czerowone od danej strony
-   rear=2+32; //dwa œwiat³a czerwone
-  else
-   rear=64; //tablice blaszane
+  if (rear==2+32+64) //jeœli nadal obydwie mo¿liwoœci
+   if (iInventory&(iDirection?0x2A:0x15)) //czy ma jakieœ œwiat³a czerowone od danej strony
+    rear=2+32; //dwa œwiat³a czerwone
+   else
+    rear=64; //tablice blaszane
  }
  if (iDirection) //w zale¿noœci od kierunku pojazdu w sk³adzie
  {//jesli pojazd stoi sprzêgiem 0 w stronê czo³a
