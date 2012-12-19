@@ -1506,7 +1506,15 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
     if (!tmp->asName.IsEmpty())
      WriteLog(tmp->asName.c_str());
    if (!tmp->asName.IsEmpty()) //jest pusta gdy "none"
-    sTracks->Add(TP_TRACK,tmp->asName.c_str(),tmp); //dodanie do wyszukiwarki
+   {//dodanie do wyszukiwarki
+    if (sTracks->Update(TP_TRACK,tmp->asName.c_str(),tmp)) //najpierw sprawdziæ, czy ju¿ jest
+    {//przy zdublowaniu wskaŸnik zostanie podmieniony w drzewku na póŸniejszy (zgodnoœæ wsteczna)
+     if (tmp->pTrack->iCategoryFlag&1) //jeœli jest zdublowany tor kolejowy
+      ErrorLog("Duplicated track: "+tmp->asName); //to zg³aszaæ duplikat
+    }
+    else
+     sTracks->Add(TP_TRACK,tmp->asName.c_str(),tmp); //nazwa jest unikalna
+   }
    tmp->pTrack->Load(parser,pOrigin,tmp->asName); //w nazwie mo¿e byæ nazwa odcinka izolowanego
    tmp->pCenter=(tmp->pTrack->CurrentSegment()->FastGetPoint_0()+
                  tmp->pTrack->CurrentSegment()->FastGetPoint(0.5)+
