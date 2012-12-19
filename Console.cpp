@@ -121,7 +121,11 @@ void __fastcall Console::ModeSet(int m,int h)
 int __fastcall Console::On()
 {//za³¹czenie konsoli (np. nawi¹zanie komunikacji)
  switch (iMode)
- {case 3: //LPT
+ {case 1: //kontrolki klawiatury
+  case 2: //kontrolki klawiatury
+   iConfig=0; //licznik u¿ycia Scroll Lock
+  break;
+  case 3: //LPT
    LPT=new TLPT(); //otwarcie inpout32.dll
    if (LPT?LPT->Connect(iConfig):false)
    {//wys³aæ 0?
@@ -153,6 +157,12 @@ int __fastcall Console::On()
 void __fastcall Console::Off()
 {//wy³¹czenie informacji zwrotnych (reset pulpitu)
  BitsClear(-1);
+ if ((iMode==1)||(iMode==2))
+  if (iConfig&1) //licznik u¿ycia Scroll Lock
+  {//bez sensu to jest, ale mi siê samo w³¹cza
+   SetLedState(VK_SCROLL,true); //przyciœniêty
+   SetLedState(VK_SCROLL,false); //zwolniony
+  }
  delete PoKeys55; PoKeys55=NULL;
  delete LPT; LPT=NULL;
 };
@@ -183,6 +193,7 @@ void __fastcall Console::BitsUpdate(int mask)
    {//Scroll Lock ma jakoœ dziwnie... zmiana stanu na przeciwny
     SetLedState(VK_SCROLL,true); //przyciœniêty
     SetLedState(VK_SCROLL,false); //zwolniony
+    ++iConfig; //licznik u¿ycia Scroll Lock
    }
    break;
   case 2: //sterowanie œwiate³kami klawiatury: CA+SHP
@@ -192,6 +203,7 @@ void __fastcall Console::BitsUpdate(int mask)
    {//Scroll Lock ma jakoœ dziwnie... zmiana stanu na przeciwny
     SetLedState(VK_SCROLL,true); //przyciœniêty
     SetLedState(VK_SCROLL,false); //zwolniony
+    ++iConfig; //licznik u¿ycia Scroll Lock
    }
    break;
   case 3: //LPT Marcela z modyfikacj¹ (jazda na oporach zamiast brzêczyka)

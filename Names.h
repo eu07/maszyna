@@ -21,6 +21,7 @@ public:
  template <typename TOut> inline TOut* DataGet() {return (TOut*)pData;};
  template <typename TOut> inline void DataSet(TOut *x) {pData=(void*)x;};
  void* __fastcall TreeFind(const char *n);
+ ItemRecord* __fastcall TreeFindRecord(const char *n);
 };
 
 class TNames
@@ -37,12 +38,14 @@ public:
  int __fastcall Add(int t,const char *n); //dodanie obiektu typu (t)
  int __fastcall Add(int t,const char *n,void *d); //dodanie obiektu z wskaŸnikiem
  int __fastcall Add(int t,const char *n,int d); //dodanie obiektu z numerem
+ bool __fastcall Update(int t,const char *n,void *d); //dodanie jeœli nie ma, wymiana (d), gdy jest
  void __fastcall TreeSet();
  ItemRecord* __fastcall TreeSet(int *n,int d,int u);
  void __fastcall Sort(int t); //przebudowa drzewa typu (t)
  ItemRecord* __fastcall Item(int n); //rekord o numerze (n)
  inline void* Find(const int t,const char *n)
  {return rTypes[t]?rTypes[t]->TreeFind(n):NULL;};
+ ItemRecord* __fastcall FindRecord(const int t,const char *n);
  //template <typename TOut> inline TOut* Find(const int t,const char *n)
  //{return (TOut*)(rTypes[t]->TreeFind(n));};
 };
