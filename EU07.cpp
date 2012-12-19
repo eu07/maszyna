@@ -495,6 +495,8 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
       if (!Global::iMultiplayer||Global::bPause) //w multiplayerze pauza nie ma sensu
        if (!Console::Pressed(VK_CONTROL))
         Global::bPause=!Global::bPause; //zmiana stanu zapauzowania
+      if (Global::bPause) //jak pauza
+       Global::iTextMode=VK_F1; //to wyœwietliæ zegar i informacjê
       break;
      case VK_F7:
       if (DebugModeFlag)
@@ -603,7 +605,7 @@ int WINAPI WinMain( HINSTANCE hInstance,     //instance
     if (Global::iConvertModels>0)
      Global::iConvertModels=-Global::iConvertModels; //specjalny tryb
     else
-     Global::iConvertModels=-2; //z optymalizacj¹
+     Global::iConvertModels=-6; //z optymalizacj¹
    }
    else
     Error("Program usage: EU07 [-s sceneryfilepath] [-v vehiclename] [-modifytga] [-e3d]",!Global::iWriteLogEnabled);
