@@ -1505,6 +1505,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    if (DebugModeFlag)
     if (!tmp->asName.IsEmpty())
      WriteLog(tmp->asName.c_str());
+   tmp->pTrack->Load(parser,pOrigin,tmp->asName); //w nazwie mo¿e byæ nazwa odcinka izolowanego
    if (!tmp->asName.IsEmpty()) //jest pusta gdy "none"
    {//dodanie do wyszukiwarki
     if (sTracks->Update(TP_TRACK,tmp->asName.c_str(),tmp)) //najpierw sprawdziæ, czy ju¿ jest
@@ -1515,7 +1516,6 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
     else
      sTracks->Add(TP_TRACK,tmp->asName.c_str(),tmp); //nazwa jest unikalna
    }
-   tmp->pTrack->Load(parser,pOrigin,tmp->asName); //w nazwie mo¿e byæ nazwa odcinka izolowanego
    tmp->pCenter=(tmp->pTrack->CurrentSegment()->FastGetPoint_0()+
                  tmp->pTrack->CurrentSegment()->FastGetPoint(0.5)+
                  tmp->pTrack->CurrentSegment()->FastGetPoint_1() )/3.0;

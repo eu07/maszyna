@@ -3249,7 +3249,7 @@ begin
               Exit;
            end;
           if (not AutoRelayFlag) or (not RList[MainCtrlActualPos].AutoSwitch) then
-           begin                                                {main bez samoczynnego rozruchu}
+           begin //main bez samoczynnego rozruchu
              if Rlist[MainCtrlActualPos].Relay<MainCtrlPos then
               begin
                if (Rlist[MainCtrlPos].R=0) and (MainCtrlPos>0) and (not (MainCtrlPos=MainCtrlPosNo)) and (FastSerialCircuit=1) then
@@ -3285,9 +3285,18 @@ begin
                 end
                else if (LastRelayTime>CtrlDownDelay) then
                 begin
-                 dec(MainCtrlActualPos);
-                 OK:=True;
-                 if MainCtrlActualPos>0 then  //hunter-111211: poprawki
+                 if (TrainType<>dt_EZT) then //tutaj powinien byæ tryb sterowania wa³em
+                  begin
+                   dec(MainCtrlActualPos);
+                   OK:=True;
+                  end
+                 else
+                  if (MainCtrlPos=0) then
+                   begin
+                    MainCtrlActualPos:=0; //tylko cofniêcie na 0 ustawia wa³ na 0
+                    OK:=True;
+                   end;
+                  if MainCtrlActualPos>0 then  //hunter-111211: poprawki
                   if Rlist[MainCtrlActualPos].R=0 then  {dzwieki schodzenia z bezoporowej}
                    begin
                     SetFlag(SoundFlag,sound_manyrelay);
@@ -3306,14 +3315,18 @@ begin
               else
                OK:=False;
            end
-          else                                                  {main z samoczynnym rozruchem}
+          else  //main z samoczynnym rozruchem - np. EN57
            begin
              OK:=False;
              if MainCtrlPos<Rlist[MainCtrlActualPos].Relay then
-              begin
+              begin //pozycja zadana mniejsza ni¿ ustawiona na wale
                if (LastRelayTime>CtrlDownDelay) then
                 begin
-                 dec(MainCtrlActualPos);
+                 if (TrainType<>dt_EZT) then //tutaj powinien byæ tryb sterowania wa³em
+                  dec(MainCtrlActualPos) //tu jest wa³ dwukierunkowy
+                 else
+                  if (MainCtrlPos=0) then
+                   MainCtrlActualPos:=0; //tylko cofniêcie na 0 ustawia wa³ na 0
                  OK:=True;
                 end
               end
@@ -3324,7 +3337,7 @@ begin
                  begin
                   if (LastRelayTime>CtrlDelay) then
                    begin
-                    inc(MainCtrlActualPos);
+                    inc(MainCtrlActualPos); //posuwanie wa³u ku³akowego do przodu
                     OK:=True
                    end
                  end;

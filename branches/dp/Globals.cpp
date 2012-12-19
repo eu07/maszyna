@@ -44,7 +44,7 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asRelease="1.8.708.392";
+AnsiString Global::asRelease="1.8.709.393";
 AnsiString Global::asVersion="Compilation 2012-12-19, release "+Global::asRelease+"."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
@@ -122,7 +122,7 @@ bool Global::bSmoothTraction=false; //wyg³adzanie drutów starym sposobem
 char** Global::szDefaultExt=Global::szTexturesDDS; //domyœlnie od DDS
 int Global::iMultisampling=2; //tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
 bool Global::bGlutFont=false; //czy tekst generowany przez GLUT32.DLL
-int Global::iConvertModels=2; //tworzenie plików binarnych, 2-optymalizacja transformów
+int Global::iConvertModels=6; //tworzenie plików binarnych, 2-optymalizacja transformów
 int Global::iSlowMotionMask=-1; //maska wy³¹czanych w³aœciwoœci dla zwiêkszenia FPS
 int Global::iModifyTGA=7; //czy korygowaæ pliki TGA dla szybszego wczytywania
 //bool Global::bTerrainCompact=true; //czy zapisaæ teren w pliku
@@ -358,7 +358,7 @@ void __fastcall Global::ConfigParse(TQueryParserComp *qp,cParser *cp)
   else if (str==AnsiString("latitude")) //szerokoœæ geograficzna
    fLatitudeDeg=GetNextSymbol().ToDouble();
   else if (str==AnsiString("convertmodels")) //tworzenie plików binarnych
-   iConvertModels=GetNextSymbol().ToIntDef(2); //domyœlnie 2
+   iConvertModels=GetNextSymbol().ToIntDef(6); //domyœlnie 6
   else if (str==AnsiString("inactivepause")) //automatyczna pauza, gdy okno nieaktywne
    bInactivePause=(GetNextSymbol().LowerCase()==AnsiString("yes"));
   else if (str==AnsiString("slowmotion")) //tworzenie plików binarnych
