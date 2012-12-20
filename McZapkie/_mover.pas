@@ -1352,7 +1352,7 @@ begin
               end
              else
               if CtrlSpeed>1 then
-               OK:=DecMainCtrl(1) and DecMainCtrl(CtrlSpeed-1);
+               OK:=DecMainCtrl(1) and DecMainCtrl(2); //CtrlSpeed-1);
             ElectricSeriesMotor:
              if CtrlSpeed=1 then
               begin
@@ -3246,7 +3246,7 @@ begin
            if Rlist[MainCtrlActualPos+1].Bn>1 then
             begin
               AutoRelayCheck:=False;
-              Exit;
+              Exit; //Ra: to powoduje, ¿e EN57 nie wy³¹cza siê przy IminLo
            end;
           if (not AutoRelayFlag) or (not RList[MainCtrlActualPos].AutoSwitch) then
            begin //main bez samoczynnego rozruchu

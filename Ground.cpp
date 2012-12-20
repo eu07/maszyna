@@ -3931,3 +3931,15 @@ void __fastcall TGround::TerrainWrite()
 };
 //---------------------------------------------------------------------------
 
+void __fastcall TGround::TrackBusyList()
+{//wys³anie informacji o wszystkich zajêtych odcinkach
+ TGroundNode *Current;
+ TTrack *Track;
+ AnsiString name;
+ for (Current=nRootOfType[TP_TRACK];Current;Current=Current->Next)
+  if (Current->asName.IsEmpty()) //musi byæ nazwa
+   if (Current->pTrack->iNumDynamics) //osi to chyba nie ma jak policzyæ
+    WyslijString(Current->asName,8); //zajêty
+};
+//---------------------------------------------------------------------------
+

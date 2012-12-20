@@ -1632,7 +1632,10 @@ bool __fastcall TWorld::Update()
 //          OutText2+= AnsiString("; nastawnik S") + Controlled->MoverParameters->MainCtrlPos;
 
       OutText2+=AnsiString("; bocznik:")+Controlled->MoverParameters->ScndCtrlPos;
-      OutText2+=AnsiString("; I=")+FloatToStrF(Controlled->MoverParameters->Im,ffFixed,6,2);
+      if (Controlled->MoverParameters->TrainType==dt_EZT)
+       OutText2+=AnsiString("; I=")+FloatToStrF(Controlled->MoverParameters->ShowCurrent(1),ffFixed,6,2);
+      else
+       OutText2+=AnsiString("; I=")+FloatToStrF(Controlled->MoverParameters->Im,ffFixed,6,2);
       //OutText2+=AnsiString("; I2=")+FloatToStrF(Controlled->NextConnected->MoverParameters->Im,ffFixed,6,2);
       OutText2+=AnsiString("; V=")+FloatToStrF(Controlled->MoverParameters->RunningTraction.TractionVoltage,ffFixed,5,1);
       //OutText2+=AnsiString("; rvent=")+FloatToStrF(Controlled->MoverParameters->RventRot,ffFixed,6,2);
@@ -2078,6 +2081,8 @@ void __fastcall TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
       Ground.WyslijNamiary(t); //wys³anie informacji o pojeŸdzie
     }
     break;
+   case 8: //ponowne wys³anie informacji o zajêtych odcinkach toru
+    Ground.TrackBusyList();
   }
 };
 
