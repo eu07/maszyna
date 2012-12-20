@@ -3170,7 +3170,7 @@ begin
     MainCtrlActualPos:=0;
    end
   else
-  if (not Mains) or (FuseFlag) or (StLinFlag) then   //hunter-111211: wylacznik cisnieniowy
+  if (not Mains) or (FuseFlag) or (StLinFlag) or (MainCtrlPos=0) then   //hunter-111211: wylacznik cisnieniowy
    begin
      AutoRelayCheck:=False;
      MainCtrlActualPos:=0;
@@ -3185,6 +3185,49 @@ begin
        SetFlag(SoundFlag,sound_relay); SetFlag(SoundFlag,sound_loud);
      end;
 
+(*
+=========== Opis przesla³ youBy =========== 
+
+1) Styczniki liniowe
+
+Zamykaj¹ siê na pierwszej pozycji po czasie InicDelay.
+Roz³¹czaj¹ siê, gdy trac¹ zasilanie.
+
+Lampka zasilana przez zestyk pomocniczy bierny styczników liniowych i wy³¹cznika ciœnieniowego
+
+
+2) Wy³¹cznik ciœnieniowy CH i PG (jeden albo dwa).
+
+CH (1 flaga):
+Umo¿liwia zasilanie styczników liniowych od zejœcia poni¿ej BPOn.
+Uniemo¿liwia zasilanie styczników liniowych od wejœcia ponad BPOff.1
+
+PG (2 flaga):
+Umo¿liwia zasilanie styczników liniowych od zejœcia poni¿ej PPOn.
+Uniemo¿liwia zasilanie styczników liniowych od wejœcia ponad PPOff.
+
+
+3) Rozrz¹d indywidualny (siódemeczka i te sprawy):
+
+Klep sobie stycznikami w obie strony z odpowiednim opóŸnieniem przejœcia. Przy 0NG roz³¹cz liniowe i ustaw uk³ad styczników na 0, przy szeregowej wejdŸ na szereg (jeœli FSCircuit).
+
+4) Wa³ ku³akowy dwukierunkowy (czechy i inne takie):
+
+Klep sobie wa³em w obie strony z odpowiednim opóŸnieniem przejœcia. Przy 0NG roz³¹cz liniowe. (Mog¹ byæ konstrukcje z przejœciem na skróty do ni¿szych pozycji - g³ównie 0).
+
+5) Wa³ ku³akowy jednokierunkowy (EZT pokroju EN57):
+Klep sobie wa³em w górê z odpowiednim opóŸnieniem przejœcia. Przy przestawieniu na ni¿sz¹, stój. Przy 0NG roz³¹cz liniowe, dojdŸ do koñca i siê przewróæ na 0.
+
+Dodatek
+6) Boczniki na szeregu
+Blokujemy 4 styczniki w odpowiedniej pozycji i zawsze mamy 1 ga³¹Ÿ, w której jest Bn*Mn silników.
+
+7) Wa³ grupowy w byku
+Przy zmianie iloœci ga³êzi musisz:
+- roz³¹czyæ liniowe
+- wejœæ wy¿ej
+- za³¹czyæ liniowe
+*)
 
     //if (TrainType<>dt_EZT) then //Ra: w EZT mo¿na daæ od razu na S albo R, wa³ ku³akowy sobie dokrêci
     //hunter-101012: rozbicie CtrlDelay na CtrlDelay i CtrlDownDelay
@@ -3242,15 +3285,12 @@ begin
         end
        else
         begin //zmieniaj mainctrlactualpos
-(*
-          if {((TrainType=dt_EZT}{) or (TrainType=dt_ET22)}{) and (Imin=IminLo)) or} ((ActiveDir<0) and (TrainType<>dt_PseudoDiesel)) then
+          if ((TrainType=dt_EZT) and (Imin=IminLo)) or ((ActiveDir<0) and (TrainType<>dt_PseudoDiesel)) then
            if Rlist[MainCtrlActualPos+1].Bn>1 then
-            begin
+            begin //to jest za³¹czanie boczników na po³¹czeniu szeregowym dla N1
               AutoRelayCheck:=False;
               Exit; //Ra: to powoduje, ¿e EN57 nie wy³¹cza siê przy IminLo
-              //jeœli dla EZT nie jest potrzebne, to po co w ogóle jest? do ET22?
            end;
-*)
           if (not AutoRelayFlag) or (not RList[MainCtrlActualPos].AutoSwitch) then
            begin //main bez samoczynnego rozruchu
              if Rlist[MainCtrlActualPos].Relay<MainCtrlPos then
