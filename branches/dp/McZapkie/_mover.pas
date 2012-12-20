@@ -1318,7 +1318,7 @@ begin
   begin
    if DelayCtrlFlag then
     begin
-     if (LastRelayTime>InitialCtrlDelay) then
+     if (LastRelayTime>=InitialCtrlDelay) then
       LastRelayTime:=0;
     end
    else if (LastRelayTime>CtrlDelay) then
@@ -1405,7 +1405,7 @@ begin
   begin
    if DelayCtrlFlag then
     begin
-     if (LastRelayTime>InitialCtrlDelay) then
+     if (LastRelayTime>=InitialCtrlDelay) then
       LastRelayTime:=0;
     end
    else if (LastRelayTime>CtrlDownDelay) then
@@ -3179,7 +3179,7 @@ begin
   else
    begin
     OK:=False;
-    if DelayCtrlFlag and (MainCtrlPos=1) and (MainCtrlActualPos=1) and (LastRelayTime>InitialCtrlDelay) then
+    if DelayCtrlFlag and (MainCtrlPos=1) and (MainCtrlActualPos=1) and (LastRelayTime>=InitialCtrlDelay) then
      begin
        DelayCtrlFlag:=False;
        SetFlag(SoundFlag,sound_relay); SetFlag(SoundFlag,sound_loud);
@@ -3191,11 +3191,11 @@ begin
     //if (LastRelayTime>CtrlDelay) or (LastRelayTime>CtrlDownDelay) and not DelayCtrlFlag then //po co, skoro sa powtorzone warunki na to
     if (not DelayCtrlFlag) then
      begin
-       if MainCtrlPos=0 then
+       if (MainCtrlPos=0) then
         DelayCtrlFlag:=(TrainType<>dt_EZT); //Ra: w EZT mo¿na daæ od razu na S albo R, wa³ ku³akowy sobie dokrêci
        if (((RList[MainCtrlActualPos].R=0) and ((not CoupledCtrl) or (Imin=IminLo))) or (MainCtrlActualPos=RListSize))
           and ((ScndCtrlActualPos>0) or (ScndCtrlPos>0)) then
-        begin   {zmieniaj scndctrlactualpos}
+        begin //zmieniaj scndctrlactualpos
           if (not AutoRelayFlag) or (not MotorParam[ScndCtrlActualPos].AutoSwitch) then
            begin                                                {scnd bez samoczynnego rozruchu}
              if (ScndCtrlActualPos<ScndCtrlPos) then
@@ -3218,7 +3218,7 @@ begin
              else OK:=False;
            end
           else
-           begin                                                {scnd z samoczynnym rozruchem}
+           begin //scnd z samoczynnym rozruchem
              if ScndCtrlPos<ScndCtrlActualPos then
               begin
                 if (LastRelayTime>CtrlDownDelay) then
@@ -3241,13 +3241,16 @@ begin
            end;
         end
        else
-        begin          {zmieniaj mainctrlactualpos}
-          if ((TrainType=dt_EZT{) or (TrainType=dt_ET22)}) and (Imin=IminLo)) or ((ActiveDir<0) and (TrainType<>dt_PseudoDiesel)) then
+        begin //zmieniaj mainctrlactualpos
+(*
+          if {((TrainType=dt_EZT}{) or (TrainType=dt_ET22)}{) and (Imin=IminLo)) or} ((ActiveDir<0) and (TrainType<>dt_PseudoDiesel)) then
            if Rlist[MainCtrlActualPos+1].Bn>1 then
             begin
               AutoRelayCheck:=False;
               Exit; //Ra: to powoduje, ¿e EN57 nie wy³¹cza siê przy IminLo
+              //jeœli dla EZT nie jest potrzebne, to po co w ogóle jest? do ET22?
            end;
+*)
           if (not AutoRelayFlag) or (not RList[MainCtrlActualPos].AutoSwitch) then
            begin //main bez samoczynnego rozruchu
              if Rlist[MainCtrlActualPos].Relay<MainCtrlPos then
@@ -3352,7 +3355,7 @@ begin
        OK:=True;
       end
      else
-      if (MainCtrlPos=1) and (MainCtrlActualPos=0) then
+      if ((MainCtrlPos=1)or(TrainType=dt_EZT)) and (MainCtrlActualPos=0) then
        MainCtrlActualPos:=1
       else
        if (MainCtrlPos=0) and (MainCtrlActualPos>0) then
@@ -3463,7 +3466,7 @@ begin
   nreg:=0;
   if Mains and (MainCtrlPosNo>0) then
    begin
-     if dizel_enginestart and (LastSwitchingTime>0.9*InitialCtrlDelay) then {wzbogacenie przy rozruchu}
+     if dizel_enginestart and (LastSwitchingTime>=0.9*InitialCtrlDelay) then {wzbogacenie przy rozruchu}
       realfill:=1
      else
       realfill:=RList[mcp].R;                                               {napelnienie zalezne od MainCtrlPos}
@@ -3553,7 +3556,7 @@ function T_MoverParameters.dizel_Update(dt:real): boolean;
 const fillspeed=2;
 begin
   //dizel_Update:=false;
-  if dizel_enginestart and (LastSwitchingTime>InitialCtrlDelay) then
+  if dizel_enginestart and (LastSwitchingTime>=InitialCtrlDelay) then
     begin
       dizel_enginestart:=false;
       LastSwitchingTime:=0;
