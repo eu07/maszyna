@@ -320,6 +320,12 @@ public:
 	double HeatingPower;
 	double LightPower;
 	int BatteryVoltage;
+	bool Battery;
+	bool EpFuse;
+	bool Signalling;
+	bool DoorSignalling;
+	bool Radio;
+	double NominalBatteryVoltage;
 	TDimension Dim;
 	double Cx;
 	double WheelDiameter;
@@ -340,7 +346,7 @@ public:
 	double MBPM;
 	TLocalBrake LocalBrake;
 	TBrakePressure BrakePressureTable[13];
-        TBrakePressure BrakePressureActual;
+	TBrakePressure BrakePressureActual;
 	Byte ASBType;
 	Byte TurboTest;
 	double MaxBrakeForce;
@@ -368,6 +374,7 @@ public:
 	Byte MainCtrlPosNo;
 	Byte ScndCtrlPosNo;
 	bool ScndInMain;
+	bool MBrake;
 	TSecuritySystem SecuritySystem;
 	TScheme RList[65];
 	int RlistSize;
@@ -436,6 +443,7 @@ public:
 	double DoorMaxShiftL;
 	double DoorMaxShiftR;
 	Byte DoorOpenMethod;
+	bool ScndS;
 	TLocation Loc;
 	TRotation Rot;
 	AnsiString Name;
@@ -484,6 +492,7 @@ public:
 	bool ConverterAllow;
 	int BrakeCtrlPos;
 	Byte LocalBrakePos;
+	Byte ManualBrakePos;
 	Byte BrakeStatus;
 	bool EmergencyBrakeFlag;
 	Byte BrakeDelayFlag;
@@ -516,6 +525,9 @@ public:
 	double enrot;
 	double Im;
 	double Itot;
+	double IHeating;
+	double ITraction;
+	double TotalCurrent;
 	double Mm;
 	double Mw;
 	double Fw;
@@ -534,6 +546,7 @@ public:
 	bool ResistorsFlag;
 	double RventRot;
 	bool UnBrake;
+	double PantPress;
 	bool s_CAtestebrake;
 	double dizel_fill;
 	double dizel_engagestate;
@@ -549,6 +562,7 @@ public:
 	AnsiString LoadType;
 	Byte LoadStatus;
 	double LastLoadChangeTime;
+	bool DoorBlocked;
 	bool DoorLeftOpened;
 	bool DoorRightOpened;
 	bool PantFrontUp;
@@ -572,6 +586,7 @@ public:
 	bool __fastcall Physic_ReActivation(void);
 	void __fastcall PantCheck(void);
 	double __fastcall LocalBrakeRatio(void);
+	double __fastcall ManualBrakeRatio(void);
 	double __fastcall PipeRatio(void);
 	double __fastcall RealPipeRatio(void);
 	double __fastcall BrakeVP(void);
@@ -626,7 +641,6 @@ public:
 		&NewLocation);
 	bool __fastcall DirectionBackward(void);
 	bool __fastcall MainSwitch(bool State);
-	//bool __fastcall ChangeCab(int direction);
 	bool __fastcall ConverterSwitch(bool State);
 	bool __fastcall CompressorSwitch(bool State);
 	void __fastcall ConverterCheck(void);
@@ -685,6 +699,7 @@ static const Shortint MotorParametersArraySize = 0x8;
 static const Shortint maxcc = 0x4;
 static const Shortint LocalBrakePosNo = 0xa;
 static const Shortint MainBrakeMaxPos = 0xa;
+static const Shortint ManualBrakePosNo = 0x14;
 static const Shortint dtrack_railwear = 0x2;
 static const Shortint dtrack_freerail = 0x4;
 static const Shortint dtrack_thinrail = 0x8;
