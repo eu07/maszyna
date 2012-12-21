@@ -57,6 +57,11 @@ zwiekszenie nacisku przy duzych predkosciach w hamulcach Oerlikona
 32. wylaczanie obliczen dla nieruchomych wagonow
 33. Zbudowany model rozdzielacza powietrza roznych systemow
 34. Poprawiona pozycja napelniania uderzeniowego i hamulec EP
+-35. Dodane baterie akumulatorow (KURS90)
+-36. Hamowanie elektrodynamiczne w ET42 i poprawione w EP09
+-37. jednokierunkowosc walu kulakowego w EZT (nie do konca)
+-38. wal kulakowy w ET40
+-39. poprawiona blokada nastawnika w ET40
 ...
 *)
 
@@ -69,8 +74,9 @@ CONST
    ResArraySize=64;            {dla silnikow elektrycznych}
    MotorParametersArraySize=8;
    maxcc=4;                    {max. ilosc odbierakow pradu}
-   LocalBrakePosNo=10;         {ilosc nastaw hamulca recznego lub pomocniczego}
+   LocalBrakePosNo=10;         {ilosc nastaw hamulca pomocniczego}
    MainBrakeMaxPos=10;          {max. ilosc nastaw hamulca zasadniczego}
+   ManualBrakePosNo=20;        {ilosc nastaw hamulca recznego}
 
    {uszkodzenia toru}
    dtrack_railwear=2;
@@ -120,6 +126,7 @@ CONST
    dbrake_reversal=4;
    dbrake_automatic=8;
 
+   {nastawy hamulca}
    bdelay_P=0;
    bdelay_G=1;
    bdelay_R=2;
@@ -382,6 +389,12 @@ TYPE
                TotalMass:real; {wyliczane przez ComputeMass}
                HeatingPower, LightPower: real; {moc pobierana na ogrzewanie/oswietlenie}
                BatteryVoltage: integer;        {Winger - baterie w elektrykach}
+               Battery: boolean; {Czy sa zalavzone baterie}
+               EpFuse: boolean; {Czy sa zalavzone baterie}
+               Signalling: boolean;         {Czy jest zalaczona sygnalizacja hamowania ostatniego wagonu}
+               DoorSignalling: boolean;         {Czy jest zalaczona sygnalizacja blokady drzwi}
+               Radio: boolean;         {Czy jest zalaczony radiotelefon}
+               NominalBatteryVoltage: real;        {Winger - baterie w elektrykach}
                Dim: TDimension;          {wymiary}
                Cx: real;                 {wsp. op. aerodyn.}
                WheelDiameter : real;     {srednica kol napednych}
@@ -431,6 +444,7 @@ TYPE
                MainCtrlPosNo: byte;     {ilosc pozycji nastawnika}
                ScndCtrlPosNo: byte;
                ScndInMain: boolean;     {zaleznosc bocznika od nastawnika}
+               MBrake: boolean;     {Czy jest hamulec reczny}
                SecuritySystem: TSecuritySystem;
 
                        {-sekcja parametrow dla lokomotywy elektrycznej}
@@ -507,6 +521,7 @@ TYPE
                 DoorOpenSpeed, DoorCloseSpeed: real;      {predkosc otwierania i zamykania w j.u. }
                 DoorMaxShiftL,DoorMaxShiftR: real;{szerokosc otwarcia lub kat}
                 DoorOpenMethod: byte;             {sposob otwarcia - 1: przesuwne, 2: obrotowe}
+                ScndS: boolean; {Czy jest bocznikowanie na szeregowej}
 
                         {--sekcja zmiennych}
                         {--opis konkretnego egzemplarza taboru}
@@ -553,6 +568,7 @@ TYPE
                 ConverterAllow: boolean;             {zezwolenie na prace przetwornicy NBMX}
                 BrakeCtrlPos:integer;               {nastawa hamulca zespolonego}
                 LocalBrakePos:byte;                 {nastawa hamulca indywidualnego}
+                ManualBrakePos:byte;                 {nastawa hamulca recznego}
                 BrakeStatus: byte; {0 - odham, 1 - ham., 2 - uszk., 4 - odluzniacz, 8 - antyposlizg, 16 - uzyte EP, 32 - pozycja R, 64 - powrot z R}
                 EmergencyBrakeFlag: boolean;        {hamowanie nagle}
                 BrakeDelayFlag: byte;               {nastawa opoznienia ham. osob/towar/posp/exp 0/1/2/4}
@@ -595,7 +611,7 @@ TYPE
                 InsideConsist: boolean;
                 {-zmienne dla lokomotywy elektrycznej}
                 RunningTraction:TTractionParam;{parametry sieci trakcyjnej najblizej lokomotywy}
-                enrot, Im, Itot, Mm, Mw, Fw, Ft: real;
+                enrot, Im, Itot,IHeating,ITraction, TotalCurrent, Mm, Mw, Fw, Ft: real;
                 {ilosc obrotow, prad silnika i calkowity, momenty, sily napedne}
                 //Ra: Im jest ujemny, jeœli lok jedzie w stronê sprzêgu 1
                 //a ujemne powinien byæ przy odwróconej polaryzacji sieci...
@@ -613,6 +629,7 @@ TYPE
                 ResistorsFlag: boolean;  {!o jazda rezystorowa}
                 RventRot: real;          {!s obroty wentylatorow rozruchowych}
                 UnBrake: boolean;       {w EZT - nacisniete odhamowywanie}
+                PantPress: real; {Cisnienie w zbiornikach pantografow}
                 s_CAtestebrake: boolean; //hunter-091012: zmienna dla testu ca
 
 
@@ -638,6 +655,7 @@ TYPE
                 LoadStatus: byte; //+1=trwa rozladunek,+2=trwa zaladunek,+4=zakoñczono,0=zaktualizowany model
                 LastLoadChangeTime: real; //raz (roz)³adowania
 
+                DoorBlocked: boolean;    //Czy jest blokada drzwi
                 DoorLeftOpened: boolean;  //stan drzwi
                 DoorRightOpened: boolean;
                 PantFrontUp: boolean;  //stan patykow 'Winger 160204
@@ -672,6 +690,7 @@ TYPE
 
 {                function BrakeRatio: real;  }
                 function LocalBrakeRatio: real;
+                function ManualBrakeRatio: real;
                 function PipeRatio: real; {ile napelniac}
                 function RealPipeRatio: real; {jak szybko}
                 function BrakeVP: real;                
@@ -700,6 +719,8 @@ TYPE
                 function SecuritySystemReset:boolean;
                 {test czuwaka/SHP}
                 procedure SecuritySystemCheck(dt:real);
+                //function BatterySwitch(State:boolean):boolean;
+                //function EpFuseSwitch(State:boolean):boolean;
 
                {! stopnie hamowania - hamulec zasadniczy}
                 function IncBrakeLevelOld:boolean;
@@ -710,6 +731,10 @@ TYPE
                {! ABu 010205: - skrajne polozenia ham. pomocniczego}
                 function IncLocalBrakeLevelFAST:boolean;
                 function DecLocalBrakeLevelFAST:boolean;
+
+                {! stopnie hamowania - hamulec reczny}
+                //function IncManualBrakeLevel(CtrlSpeed:byte):boolean;
+                //function DecManualBrakeLevel(CtrlSpeed:byte):boolean;
 
                {! hamulec bezpieczenstwa}
                 function EmergencyBrakeSwitch(Switch:boolean): boolean;
@@ -734,6 +759,7 @@ TYPE
                 procedure CompressorCheck(dt:real); {wlacza, wylacza kompresor, laduje zbiornik}
                 procedure UpdatePantVolume(dt:real); {jw ale uklad zasilania pantografow}
                 procedure UpdateScndPipePressure(dt:real);
+                //procedure UpdateBatteryVoltage(dt:real);
 
                {! funkcje laczace/rozlaczajace sprzegi}
                //Ra: przeniesione do C++
@@ -844,6 +870,8 @@ TYPE
    {obsluga drzwi}
                 function DoorLeft(State: Boolean): Boolean;    {obsluga dzwi lewych}
                 function DoorRight(State: Boolean): Boolean;
+                //function DoorBlockedFlag: Boolean; //czy blokada drzwi jest aktualnie za³¹czona
+
    {obsluga pantografow - Winger 160204}
                 function PantFront(State: Boolean): Boolean;
                 function PantRear(State: Boolean): Boolean;
@@ -1048,6 +1076,17 @@ begin
    LBR:=Max0R(LBR,PipeRatio)+0.4;
  LocalBrakeRatio:=LBR;
 end;
+
+function T_MoverParameters.ManualBrakeRatio: real;
+var MBR:real;
+begin
+  if ManualBrakePosNo>0 then
+   MBR:=ManualBrakePos/ManualBrakePosNo
+  else
+   MBR:=0;
+ ManualBrakeRatio:=MBR;
+end;
+
 
 function T_MoverParameters.PipeRatio: real;
 var pr:real;
