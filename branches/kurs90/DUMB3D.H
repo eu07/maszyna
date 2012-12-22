@@ -45,13 +45,14 @@ public:
 //	explicit vector3(scalar_t* initArray, int arraySize = 3)
 //	{ for (int i = 0;i<arraySize;++i) e[i] = initArray[i]; }
 
-    void __fastcall RotateX(double angle);                              
+    void __fastcall RotateX(double angle);
     void __fastcall RotateY(double angle);
     void __fastcall RotateZ(double angle);
 
     void inline __fastcall Normalize();
     void inline __fastcall SafeNormalize();
     double inline __fastcall Length();
+    void inline __fastcall Zero() {x=y=z=0.0;};
 
 	// [] is to read, () is to write (const correctness)
 //	const scalar_t& operator[] (int i) const { return e[i]; }

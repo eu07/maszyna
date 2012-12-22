@@ -40,7 +40,7 @@ void __fastcall SetDeltaTime(double t)
 
 double __fastcall GetSimulationTime()
 {
-    return fSimulationTime;
+ return fSimulationTime;
 }
 
 void __fastcall SetSimulationTime(double t)
@@ -61,7 +61,8 @@ double __fastcall GetFPS()
 
 void __fastcall ResetTimers()
 {
-     double CurrentTime= GetTickCount();
+     //double CurrentTime=
+     GetTickCount();
      DeltaTime= 0.1;
      RenderTime= 0;
      fSoundTimer= 0;

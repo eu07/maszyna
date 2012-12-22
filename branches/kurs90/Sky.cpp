@@ -19,7 +19,7 @@ __fastcall TSky::TSky()
 };
 
 
-__fastcall TSky::Init()
+void __fastcall TSky::Init()
 {
   WriteLog(Global::asSky.c_str());
   WriteLog("init");
@@ -32,7 +32,7 @@ __fastcall TSky::Init()
 };
 
 
-__fastcall TSky::Render()
+void __fastcall TSky::Render()
 {
  if (mdCloud!=NULL)
   {
@@ -42,8 +42,13 @@ __fastcall TSky::Render()
      glTranslatef(Global::pCameraPosition.x, Global::pCameraPosition.y, Global::pCameraPosition.z);
      glLightfv(GL_LIGHT0,GL_POSITION,lightPos);
 
-     mdCloud->RenderAlpha(100, 0);
-     mdCloud->Render(100, 0);
+#ifdef USE_VBO
+     mdCloud->RaRenderAlpha(100,0);
+     mdCloud->RaRender(100,0);
+#else
+     mdCloud->RenderAlpha(100,0);
+     mdCloud->Render(100,0);
+#endif
 
 //     glEnable(GL_DEPTH_TEST);
      glClear(GL_DEPTH_BUFFER_BIT);

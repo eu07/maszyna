@@ -5,6 +5,7 @@
 
 #include "usefull.h"
 #include "Geometry.h"
+#include "VBO.h"
 
 class TSegment
 {
@@ -14,6 +15,7 @@ private:
     double fLength;
     double *fTsBuffer;
     double fStep;
+    int iSegCount;
     vector3 __fastcall GetFirstDerivative(double fTime);
     double __fastcall RombergIntegral(double fA, double fB);
     double __fastcall GetTFromS(double s);
@@ -52,6 +54,11 @@ public:
     void __fastcall Render();
     inline double __fastcall GetLength() { return fLength; };
     void __fastcall MoveMe(vector3 pPosition) { Point1+=pPosition; Point2+=pPosition; if(bCurve) {CPointIn+=pPosition; CPointOut+=pPosition;}}
+    int __fastcall RaSegCount() {return fTsBuffer?iSegCount:1;};
+    void __fastcall RaRenderLoft(CVertNormTex* &Vert,const vector3 *ShapePoints,int iNumShapePoints,
+        double fTextureLength, int iSkip=0,int iEnd=0,double fOffsetX=0.0);
+    void __fastcall RaAnimate(CVertNormTex* &Vert,const vector3 *ShapePoints,int iNumShapePoints,
+        double fTextureLength, int iSkip=0,int iEnd=0,double fOffsetX=0.0);
 };
 
 //---------------------------------------------------------------------------

@@ -10,10 +10,10 @@ class TSky
 private:
   TModel3d *mdCloud;
 public:
-  __fastcall Render();
   __fastcall TSky();
-  __fastcall Init();
   __fastcall ~TSky();
+  void __fastcall Init();
+  void __fastcall Render();
 };
 
 //---------------------------------------------------------------------------

@@ -4,14 +4,14 @@
   <MACROS>
     <VERSION value="BCB.05.03"/>
     <PROJECT value="D:\EU07-2\EU07.exe"/>
-    <OBJFILES value="McZapkie\mover.obj McZapkie\ai_driver.obj QueryParserComp.obj EU07.obj 
-      dumb3d.obj Camera.obj Texture.obj World.obj Model3d.obj geometry.obj 
-      MdlMngr.obj Train.obj wavread.obj Timer.obj Event.obj MemCell.obj Logs.obj 
-      Spring.obj Button.obj Globals.obj Gauge.obj AnimModel.obj Ground.obj 
-      TrkFoll.obj Segment.obj Sound.obj AdvSound.obj Track.obj DynObj.obj 
-      RealSound.obj EvLaunch.obj Scenery.obj FadeSound.obj Traction.obj 
+    <OBJFILES value="McZapkie\mover.obj McZapkie\ai_driver.obj QueryParserComp.obj 
+      McZapkie\mtable.obj EU07.obj dumb3d.obj Camera.obj Texture.obj World.obj 
+      Model3d.obj geometry.obj MdlMngr.obj Train.obj wavread.obj Timer.obj 
+      Event.obj MemCell.obj Logs.obj Spring.obj Button.obj Globals.obj Gauge.obj 
+      AnimModel.obj Ground.obj TrkFoll.obj Segment.obj Sound.obj AdvSound.obj 
+      Track.obj DynObj.obj RealSound.obj EvLaunch.obj FadeSound.obj Traction.obj 
       TractionPower.obj parser.obj sky.obj AirCoupler.obj glew.obj 
-      ResourceManager.obj TextureDDS.obj"/>
+      ResourceManager.obj VBO.obj Feedback.obj TextureDDS.obj"/>
     <RESFILES value="EU07.res"/>
     <IDLFILES value=""/>
     <IDLGENFILES value=""/>
@@ -32,7 +32,7 @@
     <DEBUGLIBPATH value="$(BCB)\lib\debug"/>
     <RELEASELIBPATH value="$(BCB)\lib\release"/>
     <LINKER value="tlink32"/>
-    <USERDEFINES value="GLEW_STATIC"/>
+    <USERDEFINES value="GLEW_STATIC;_DEBUG"/>
     <SYSDEFINES value="_RTLDLL;NO_STRICT"/>
     <MAINSOURCE value="EU07.cpp"/>
     <INCLUDEPATH value="McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
@@ -40,13 +40,14 @@
     <WARNINGS value="-w-par"/>
   </MACROS>
   <OPTIONS>
-    <IDLCFLAGS value="-IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl -src_suffix cpp 
-      -DGLEW_STATIC -boa"/>
-    <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -a4 -6 -b- -k- -vi -c -tW -tWM"/>
-    <PFLAGS value="-$Y- -$L- -$D- -v -JPHNE -M"/>
+    <IDLCFLAGS value="-IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl 
+      -src_suffix cpp -DGLEW_STATIC -D_DEBUG -boa"/>
+    <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a4 -6 -b- -k -y -v -vi- 
+      -c -tW -tWM"/>
+    <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
     <RFLAGS value=""/>
-    <AFLAGS value="/mx /w2 /zn"/>
-    <LFLAGS value="-D&quot;&quot; -aa -Tpe -x -Gn"/>
+    <AFLAGS value="/mx /w2 /zi"/>
+    <LFLAGS value="-D&quot;&quot; -aa -Tpe -x -v"/>
   </OPTIONS>
   <LINKER>
     <ALLOBJ value="c0w32.obj Memmgr.Lib sysinit.obj $(OBJFILES)"/>
@@ -58,10 +59,10 @@
 IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=1
-MinorVer=2
-Release=44
-Build=71
-Debug=0
+MinorVer=3
+Release=81
+Build=120
+Debug=1
 PreRelease=0
 Special=0
 Private=0
@@ -71,14 +72,14 @@ CodePage=1250
 
 [Version Info Keys]
 CompanyName=EU07 Team
-FileDescription=PC2009 SP1
-FileVersion=1.2.44.71
-InternalName=hammer
+FileDescription=MaSzyna EU07-424, Kurs 2013 edition
+FileVersion=1.3.81.120
+InternalName=Kurs 2013
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=eu07.exe
 ProductName=MaSzyna EU07-424
-ProductVersion=1.2
+ProductVersion=1.3
 Comments=
 
 [HistoryLists\hlIncludePath]
@@ -94,10 +95,14 @@ Count=1
 Item0=
 
 [HistoryLists\hlConditionals]
-Count=3
-Item0=GLEW_STATIC
-Item1=GLEW_STATIC;_DEBUG
-Item2=_DEBUG
+Count=7
+Item0=GLEW_STATIC;_DEBUG
+Item1=GLEW_STATIC;_DEBUG;_USE_OLD_RW_STL
+Item2=GLEW_STATIC
+Item3=GLEW_STATIC;USE_VERTEX_ARRAYS;_DEBUG
+Item4=GLEW_STATIC;USE_VERTEX_ARRAYS
+Item5=GLEW_STATIC;_DEBUG;USE_VERTEX_ARRAYS
+Item6=_DEBUG
 
 [HistoryLists\hlFinalOutputDir]
 Count=1

@@ -59,7 +59,7 @@ __fastcall TTractionPowerSource::~TTractionPowerSource()
 {
 }
 
-bool __fastcall TTractionPowerSource::Init()
+void __fastcall TTractionPowerSource::Init()
 {
 }
 

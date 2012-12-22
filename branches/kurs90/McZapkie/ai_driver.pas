@@ -176,7 +176,7 @@ begin
     Jump_to_first_order: Order2Str:='Jump_to_first_order';
    else
     Order2Str:='Undefined!';
-  end;   
+  end;
 end;
 
 function TController.OrderDirectionChange(newdir:integer; Vehicle:PMoverParameters):integer;

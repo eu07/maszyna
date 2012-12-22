@@ -3,8 +3,9 @@
 #ifndef GlobalsH
 #define GlobalsH
 
+#include <string>
+#include "opengl/glew.h"
 #include "dumb3d.h"
-#include "ground.h"
 #include "Logs.h"
 
 using namespace Math3D;
@@ -103,15 +104,18 @@ const int k_Active=71;
 const int k_Battery=72;                        //Winger 020304
 const int MaxKeys= 73;
 
+//klasy dla wskaŸników globalnych
+class TGround;
+
 class Global
 {
 public:
 //    double Global::tSinceStart;
     static int Keys[MaxKeys];
-    static vector3 pCameraPosition;
-    static double pCameraRotation;
-    static vector3 pFreeCameraInit;
-    static vector3 pFreeCameraInitAngle;
+    static vector3 pCameraPosition; //pozycja kamery w œwiecie
+    static double pCameraRotation;  //kierunek bezwzglêdny kamery w œwiecie
+    static vector3 pFreeCameraInit[10]; //pozycje kamery
+    static vector3 pFreeCameraInitAngle[10];
     static int iWindowWidth;
     static int iWindowHeight;
     static int iBpp;
@@ -147,8 +151,8 @@ public:
     static AnsiString asCurrentTexturePath;
 //McZapkie-170602: zewnetrzna definicja pojazdu uzytkownika
     static AnsiString asHumanCtrlVehicle;
-    static bool __fastcall LoadIniFile(AnsiString asFileName="eu07.ini");
-    static bool __fastcall InitKeys(AnsiString asFileName="keys.ini");
+    static void __fastcall LoadIniFile(AnsiString asFileName="eu07.ini");
+    static void __fastcall InitKeys(AnsiString asFileName="keys.ini");
     static vector3 __fastcall GetCameraPosition();
     static void __fastcall SetCameraPosition(vector3 pNewCameraPosition);
     static void __fastcall SetCameraRotation(double Yaw);
@@ -172,6 +176,15 @@ public:
     static int iDefaultFiltering; //domyœlne rozmywanie tekstur TGA
     static int iBallastFiltering; //domyœlne rozmywanie tekstury podsypki
     static int iRailProFiltering; //domyœlne rozmywanie tekstury szyn
+    static int iDynamicFiltering; //domyœlne rozmywanie tekstur pojazdów
+    static bool bReCompile; //czy odœwie¿yæ siatki
+    static bool bUseVBO; //czy jest VBO w karcie graficznej
+    static int iFeedbackMode; //tryb pracy informacji zwrotnej
+    static double fOpenGL; //wersja OpenGL - przyda siê
+    static bool bOpenGL_1_5; //czy s¹ dostêpne funkcje OpenGL 1.5
+    static double fLuminance; //jasnoœæ œwiat³a do automatycznego zapalania
+    static bool bMultiplayer; //blokada dzia³ania niektórych eventów na rzecz kominikacji
+    static HWND	hWnd; //uchwyt okna
 };
 
 //---------------------------------------------------------------------------
