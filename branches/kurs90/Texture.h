@@ -3,44 +3,40 @@
 #ifndef TextureH
 #define TextureH
 
-#include <gl/glu.h>
-#include "usefull.h"
+#include <map>
+#include <string>
 
-class TTexture
-{
-public:
-    __fastcall TTexture() { ID=0; Name= NULL; };
-//    __fastcall TTexture(TCHAR* szFileName, TTexture *NNext ) {  ID=0; LoadBMP(szFileName); Next= NNext; };
-    __fastcall TTexture(char* szFileName, TTexture *NNext );
-    __fastcall ~TTexture() { glDeleteTextures(1,&ID); SafeDeleteArray(Name); };
-    bool inline __fastcall Allocated() { return(ID>0); };
-    bool __fastcall LoadTargaFile( char* strPathname );
-    bool __fastcall LoadBMP(char* szFileName);
-    bool __fastcall LoadTEX(char* szFileName);
-    GLuint ID;
-    char *Name;
-    TTexture *Next;
-    bool HasAlpha;
-    bool HasHash;
-private:
-//    int Width,Height,BPP;
-};
+#include "opengl/glew.h"
+#include "usefull.h"
 
 class TTexturesManager
 {
 public:
-    __fastcall TTexturesManager() { Init(); };
-    __fastcall ~TTexturesManager();
-    static __fastcall Free();
-//    __fastcall Init( AnsiString NTexDir ) { TexDir= NTexDir; };
+    static void Init();
+    static void Free();
 
-    static void __fastcall Init() { First= NULL; };
-    static GLuint __fastcall GetTextureID( char* Name );
-    static bool __fastcall GetAlpha( GLuint ID ); //McZapkie-141203: czy tekstura ma polprzeroczystosc 
-//    static bool __fastcall GetHash( GLuint ID );
+    static GLuint GetTextureID(std::string name);
+    static bool GetAlpha( GLuint ID ); //McZapkie-141203: czy tekstura ma polprzeroczystosc 
+
 private:
-    static GLuint __fastcall LoadFromFile( char* FileName );
-    static TTexture *First;
+    typedef std::pair<GLuint, bool> AlphaValue;
+
+    typedef std::map<std::string, GLuint> Names;
+    typedef std::map<GLuint, bool> Alphas;
+
+    static Names::iterator LoadFromFile(std::string name);
+
+    static AlphaValue LoadBMP(std::string fileName);
+    static AlphaValue LoadTEX(std::string fileName);
+    static AlphaValue LoadTGA(std::string fileName);
+    static AlphaValue LoadDDS(std::string fileName);
+
+    static void SetFiltering(bool alpha, bool hash);
+    static GLuint CreateTexture(char *buff, int bpp, int width, int Height, bool bHasAlpha, bool bHash) ;
+
+    static Names _names;
+    static Alphas _alphas;
+
 //    std::list<TTexture> Textures;
 
 };

@@ -115,7 +115,30 @@ int __fastcall TSubModel::SeekFaceNormal(DWORD *Masks, int f, DWORD dwMask, vect
 float emm1[]= { 1,1,1,0 };
 float emm2[]= { 0,0,0,0 };
 
-void __fastcall TSubModel::Load(TQueryParserComp *Parser, int NIndex, TModel3d *Model)
+inline double readIntAsDouble(cParser& parser, int base = 255)
+{
+    int value;
+    parser.getToken(value);
+    return double(value) / base;
+};
+
+template <typename ColorT>
+inline void readColor(cParser& parser, ColorT& color)
+{
+    color[0] = readIntAsDouble(parser);
+    color[1] = readIntAsDouble(parser);
+    color[2] = readIntAsDouble(parser);
+    parser.ignoreToken();
+};
+
+inline void readMatrix(cParser& parser, matrix4x4& matrix)
+{
+    for(int x = 0; x <= 3; x++)
+        for(int y = 0; y <= 3; y++)
+            parser.getToken(matrix(x)[y]);
+};
+
+void __fastcall TSubModel::Load(cParser& parser, int NIndex, TModel3d *Model)
 {
     GLVERTEX *Vertices= NULL;
     int iNumVerts= -1;
@@ -126,272 +149,227 @@ void __fastcall TSubModel::Load(TQueryParserComp *Parser, int NIndex, TModel3d *
     float Specular[] = { 0,0,0,1 };
 //    GLuint TextureID;
 //    char *extName;
-    AnsiString str;
 
-    str= Parser->GetNextSymbol().LowerCase();
-    if (str!=AnsiString("type:"))
-     Error("Model type parse failure!");
+    if(!parser.expectToken("type:"))
+        Error("Model type parse failure!");
 
-    str= Parser->GetNextSymbol().LowerCase();
-
-    if (str=="mesh")
-        eType= smt_Mesh;
-    else
-    if (str=="point")
-        eType= smt_Point;
-    else
-    if (str=="freespotlight")
-        eType= smt_FreeSpotLight;  //McZapkie-050702: kierunkowy punkt samoswiecacy
-
-    str= Parser->GetNextSymbol().LowerCase();
-    str= Parser->GetNextSymbol().LowerCase();
-
-    Name= str;
-
-    str= Parser->GetNextSymbol().LowerCase();
-
-    if (str=="anim:")
     {
-        str= Parser->GetNextSymbol().LowerCase();
-//        bAnim= (str=="true");
-        str= Parser->GetNextSymbol().LowerCase();
-    }
-    double test;
-    if (eType==smt_Mesh)
+        std::string type;
+        parser.getToken(type);
+        
+        if(type == "mesh")
+            eType = smt_Mesh;
+        else if(type == "point")
+            eType = smt_Point;
+        else if(type == "freespotlight")
+            eType = smt_FreeSpotLight;
+    };
+
+    parser.ignoreToken(); 
+    parser.getToken(Name);
+
+    if(parser.expectToken("anim:"))
+        parser.ignoreTokens(2);
+
+    if(eType == smt_Mesh) readColor(parser, Ambient);
+    readColor(parser, Diffuse);
+    if(eType == smt_Mesh) readColor(parser, Specular);
+
+    bLight = parser.expectToken("true");
+
+    if(eType == smt_FreeSpotLight)
     {
-        Ambient[0]= Parser->GetNextSymbol().ToDouble()/255;
-        Ambient[1]= Parser->GetNextSymbol().ToDouble()/255;
-        Ambient[2]= Parser->GetNextSymbol().ToDouble()/255;
-        str= Parser->GetNextSymbol().LowerCase();
-    }
-    Diffuse[0]= Parser->GetNextSymbol().ToDouble()/255;  //McZapkie-240702: kolor w zakresie 0...1
-    Diffuse[1]= Parser->GetNextSymbol().ToDouble()/255;
-    Diffuse[2]= Parser->GetNextSymbol().ToDouble()/255;
-    str= Parser->GetNextSymbol().LowerCase();
-    if (eType==smt_Mesh)
+
+        if(!parser.expectToken("nearattenstart:"))
+            Error("Model light parse failure!");
+
+        parser.getToken(fNearAttenStart);
+
+        parser.ignoreToken();
+        parser.getToken(fNearAttenEnd);
+
+        parser.ignoreToken();
+        bUseNearAtten = parser.expectToken("true");
+
+        parser.ignoreToken();
+        parser.getToken(iFarAttenDecay);
+
+        parser.ignoreToken();
+        parser.getToken(fFarDecayRadius);
+
+        parser.ignoreToken();
+        parser.getToken(fcosFalloffAngle);
+        fcosFalloffAngle = cos(fcosFalloffAngle * M_PI / 90);
+
+        parser.ignoreToken();
+        parser.getToken(fcosHotspotAngle); 
+        fcosHotspotAngle = cos(fcosHotspotAngle * M_PI / 90);
+
+    };
+
+    if (eType == smt_Mesh)
     {
-        Specular[0]= Parser->GetNextSymbol().ToDouble()/255;
-        Specular[1]= Parser->GetNextSymbol().ToDouble()/255;
-        Specular[2]= Parser->GetNextSymbol().ToDouble()/255;
-        str= Parser->GetNextSymbol().LowerCase();
-    }
-    str= Parser->GetNextSymbol().LowerCase();
-    bLight= (str==AnsiString("true"));
 
-    if (eType==smt_FreeSpotLight)
-    {
-        str= Parser->GetNextSymbol().LowerCase();
-        if (str!=AnsiString("nearattenstart:"))
-          Error("Model light parse failure!");
-        fNearAttenStart= Parser->GetNextSymbol().ToDouble();
-        str= Parser->GetNextSymbol().LowerCase();
-        fNearAttenEnd= Parser->GetNextSymbol().ToDouble();
-        str= Parser->GetNextSymbol().LowerCase();
-        str= Parser->GetNextSymbol().LowerCase();
-        bUseNearAtten= (str==AnsiString("true"));
-        str= Parser->GetNextSymbol().LowerCase();
-        iFarAttenDecay= Parser->GetNextSymbol().ToInt();
-        str= Parser->GetNextSymbol().LowerCase();
-        fFarDecayRadius= Parser->GetNextSymbol().ToDouble();
-        str= Parser->GetNextSymbol().LowerCase();
-        fcosFalloffAngle= cos(Parser->GetNextSymbol().ToDouble()*M_PI/90);
-        str= Parser->GetNextSymbol().LowerCase();
-        fcosHotspotAngle= cos(Parser->GetNextSymbol().ToDouble()*M_PI/90);
-    }
+        parser.ignoreToken();
+        bWire = parser.expectToken("true");
 
-    if (eType==smt_Mesh)
-    {
-        str= Parser->GetNextSymbol().LowerCase();
-        str= Parser->GetNextSymbol().LowerCase();
-        bWire= (str=="true");
+        parser.ignoreToken();
+        parser.getToken(fWireSize);
 
-        str= Parser->GetNextSymbol().LowerCase();
-        fWireSize= Parser->GetNextSymbol().ToDouble();
+        parser.ignoreToken();
+        Transparency = readIntAsDouble(parser, 100.0f);
 
-        str= Parser->GetNextSymbol().LowerCase();
-        Transparency= Parser->GetNextSymbol().ToDouble()/100.0f;
+        if(!parser.expectToken("map:"))
+            Error("Model map parse failure!");
 
-        str= Parser->GetNextSymbol().LowerCase();
-        if (str!=AnsiString("map:"))
-         Error("Model map parse failure!");
-        str= Parser->GetNextSymbol().LowerCase();
-        if (str==AnsiString("none"))
+        std::string texture;
+        parser.getToken(texture);
+
+        if(texture == "none")
         {
             TextureID= 0;
         }
         else
         {
 // McZapkie-060702: zmienialne skory modelu
-          if (StrPos(str.c_str(),AnsiString("replacableskin").c_str()))
-           {
-//            extName= strchr(str.c_str(),'.');
-            TextureID= -1;
-           }
-          else
-           {
-            char buf[255]= "";
-//            str= ExtractFileName(str);
-            if (strchr(str.c_str(),'/')==NULL)                 //jesli tylko nazwa pliku to dawac biezaca sciezke do tekstur
-                 {
-                    strcat(buf,Global::asCurrentTexturePath.c_str());
-                 }
-            strcat(buf,str.c_str());
-            TextureID= TTexturesManager::GetTextureID(buf);
-            TexAlpha= TTexturesManager::GetAlpha(TextureID);
-//            TexHash= TTexturesManager::GetHash(TextureID);
-           }
-        }
-    }
+            if (texture.find("replacableskin") != texture.npos)
+            {
+                TextureID= -1;
+            }
+            else
+            {
+                //jesli tylko nazwa pliku to dawac biezaca sciezke do tekstur
+                if(texture.find_first_of("/\\") == texture.npos)
+                    texture.insert(0, Global::asCurrentTexturePath.c_str());
 
-    str= Parser->GetNextSymbol().LowerCase();
-    fSquareMaxDist= Parser->GetNextSymbol().ToDouble();
-    fSquareMaxDist*= fSquareMaxDist;
+                TextureID= TTexturesManager::GetTextureID(texture);
+                TexAlpha= TTexturesManager::GetAlpha(TextureID);
+            };
+        };
+    };
 
-    str= Parser->GetNextSymbol().LowerCase();
-    fSquareMinDist= Parser->GetNextSymbol().ToDouble();
+    parser.ignoreToken();
+    parser.getToken(fSquareMaxDist);
+    fSquareMaxDist *= fSquareMaxDist;
+
+    parser.ignoreToken();
+    parser.getToken(fSquareMinDist);
     fSquareMinDist*= fSquareMinDist;
 
-    str= Parser->GetNextSymbol().LowerCase();
+    parser.ignoreToken();
+    readMatrix(parser, Matrix);
 
-    Matrix(0)[0]=Parser->GetNextSymbol().ToDouble();
-    Matrix(0)[1]=Parser->GetNextSymbol().ToDouble();
-    Matrix(0)[2]=Parser->GetNextSymbol().ToDouble();
-    Matrix(0)[3]=Parser->GetNextSymbol().ToDouble();
-    Matrix(1)[0]=Parser->GetNextSymbol().ToDouble();
-    Matrix(1)[1]=Parser->GetNextSymbol().ToDouble();
-    Matrix(1)[2]=Parser->GetNextSymbol().ToDouble();
-    Matrix(1)[3]=Parser->GetNextSymbol().ToDouble();
-    Matrix(2)[0]=Parser->GetNextSymbol().ToDouble();
-    Matrix(2)[1]=Parser->GetNextSymbol().ToDouble();
-    Matrix(2)[2]=Parser->GetNextSymbol().ToDouble();
-    Matrix(2)[3]=Parser->GetNextSymbol().ToDouble();
-    Matrix(3)[0]=Parser->GetNextSymbol().ToDouble();
-    Matrix(3)[1]=Parser->GetNextSymbol().ToDouble();
-    Matrix(3)[2]=Parser->GetNextSymbol().ToDouble();
-    Matrix(3)[3]=Parser->GetNextSymbol().ToDouble();
+    int iNumFaces;
+    DWORD *sg;
 
-    if (eType==smt_Mesh)
+    if(eType == smt_Mesh)
     {
+        parser.ignoreToken();
+        parser.getToken(iNumVerts);
 
-    str= Parser->GetNextSymbol().LowerCase();
-    iNumVerts= Parser->GetNextSymbol().ToDouble();
-    if (iNumVerts%3==0)
+        if(iNumVerts % 3)
+        {
+            iNumVerts= 0;
+            Error("Mesh error, iNumVertices%3!=0");
+            return;
+        }
+
         Vertices= new GLVERTEX[iNumVerts];
-    else
-    {
-        iNumVerts= 0;
-        Error("Mesh error, iNumVertices%3!=0");
-        return;
-    }
+        iNumFaces= iNumVerts/3;
+        sg = new DWORD[iNumFaces];
 
-    int iNumFaces= iNumVerts/3;
-
-    DWORD *sg= NULL;
-    sg= new DWORD[iNumFaces];
-
-    for (int i=0; i<iNumVerts; i++)
-    {
-        if (i%3==0)
+        for(int i=0; i<iNumVerts; i++)
         {
-            sg[i/3]= Parser->GetNextSymbol().ToDouble();
-        }
-        Vertices[i].Point.x= Parser->GetNextSymbol().ToDouble();
-        Vertices[i].Point.y= Parser->GetNextSymbol().ToDouble();
-        Vertices[i].Point.z= Parser->GetNextSymbol().ToDouble();
 
-    //    Vertices[i].Normal.x= Parser->GetNextSymbol().ToDouble();
-  //      Vertices[i].Normal.y= Parser->GetNextSymbol().ToDouble();
-//        Vertices[i].Normal.z= Parser->GetNextSymbol().ToDouble();
+            if(i % 3 == 0)
+                parser.getToken(sg[i/3]);
 
-        Vertices[i].Normal= vector3(0,0,0);
+            parser.getToken(Vertices[i].Point.x);
+            parser.getToken(Vertices[i].Point.y);
+            parser.getToken(Vertices[i].Point.z);
 
-        Vertices[i].tu= Parser->GetNextSymbol().ToDouble();
-        Vertices[i].tv= 1.0f-Parser->GetNextSymbol().ToDouble();
-        if (i%3==2)
-        {
-            if ( (Vertices[i].Point==Vertices[i-1].Point) ||
-                 (Vertices[i-1].Point==Vertices[i-2].Point) ||
-                 (Vertices[i-2].Point==Vertices[i].Point) )
-            {
+            Vertices[i].Normal= vector3(0,0,0);
+
+            parser.getToken(Vertices[i].tu);
+            parser.getToken(Vertices[i].tv);
+
+            if(i%3 == 2 && (Vertices[i].Point == Vertices[i-1].Point ||
+                            Vertices[i-1].Point == Vertices[i-2].Point ||
+                            Vertices[i-2].Point == Vertices[i].Point))
                 WriteLog("Degenerated triangle found");
-//                i-= 3;
-  //              iNumVerts-= 3;
-
-            }
         }
-    }
 
-    int v=0;
-    int f=0;
-    int j;
-    vector3 norm;
-    for (int i=0; i<iNumFaces; i++)
-    {
-        for (j=0; j<3; j++)
+        int v=0;
+        int f=0;
+        int j;
+
+        vector3 norm;
+
+        for (int i=0; i<iNumFaces; i++)
         {
-            norm= vector3(0,0,0);
-//*
-            f= SeekFaceNormal(sg,0,sg[i],Vertices[v].Point,Vertices,iNumVerts);
-            norm= vector3(0,0,0);
-            while (f>=0)
+            for (j=0; j<3; j++)
             {
-                norm+= SafeNormalize(CrossProduct( Vertices[f*3].Point-Vertices[f*3+1].Point,
+                norm= vector3(0,0,0);
+
+                f= SeekFaceNormal(sg,0,sg[i],Vertices[v].Point,Vertices,iNumVerts);
+                norm= vector3(0,0,0);
+                while (f>=0)
+                {
+                    norm += SafeNormalize(CrossProduct( Vertices[f*3].Point-Vertices[f*3+1].Point,
                                                Vertices[f*3].Point-Vertices[f*3+2].Point ));
-                f= SeekFaceNormal(sg,f+1,sg[i],Vertices[v].Point,Vertices,iNumVerts);
-            }
-//  */
-//            if (sg[i]==0)
-            if (norm.Length()==0)
-                norm+= SafeNormalize(CrossProduct( Vertices[i*3].Point-Vertices[i*3+1].Point,
+                    f= SeekFaceNormal(sg,f+1,sg[i],Vertices[v].Point,Vertices,iNumVerts);
+                }
+
+                if (norm.Length()==0)
+                    norm += SafeNormalize(CrossProduct( Vertices[i*3].Point-Vertices[i*3+1].Point,
                                                Vertices[i*3].Point-Vertices[i*3+2].Point ));
 
-            if (norm.Length()>0)
-                Vertices[v].Normal= Normalize(norm);
-            else
-                f=0;
-            v++;
+                if (norm.Length()>0)
+                    Vertices[v].Normal= Normalize(norm);
+                else
+                    f=0;
+                v++;
+            }
         }
-    }
-    delete[] sg;
-    }
 
-    int d;
+        delete[] sg;
+    };
 
-    if (eType==smt_Mesh)
+    if(eType==smt_Mesh)
     {
+
+#ifdef USE_VERTEX_ARRAYS
+        // ShaXbee-121209: przekazywanie wierzcholkow hurtem
+        glVertexPointer(3, GL_DOUBLE, sizeof(GLVERTEX), &Vertices[0].Point.x);
+        glNormalPointer(GL_DOUBLE, sizeof(GLVERTEX), &Vertices[0].Normal.x);
+        glTexCoordPointer(2, GL_FLOAT, sizeof(GLVERTEX), &Vertices[0].tu);
+#endif
 
         uiDisplayList= glGenLists(1);
         glNewList(uiDisplayList,GL_COMPILE);
 
-//McZapkie-221002: zwykla tekstura tu, zmienialna w render:
-//        if ((TextureID!=-1))
-//         glBindTexture(GL_TEXTURE_2D, TextureID);
-//        glColorMaterial(GL_FRONT, GL_DIFFUSE);
-//        glEnable(GL_COLOR_MATERIAL);
         glColor3f(Diffuse[0],Diffuse[1],Diffuse[2]);   //McZapkie-240702: zamiast ub
-//        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT,Ambient);
-//        glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE,Diffuse);
-//        glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR,Specular);   //McZapkie-240702: definicje wlasnosci materialu
         glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE,Diffuse);
-//        glMaterialfv(GL_FRONT, GL_SHININESS, low_shininess);
 
         if (bLight)
             glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,Diffuse);  //zeny swiecilo na kolorowo
-//            glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm1);
 
+#ifdef USE_VERTEX_ARRAYS
+        glDrawArrays(GL_TRIANGLES, 0, iNumVerts);
+#else
         glBegin(GL_TRIANGLES);
-            for (int i=0; i<iNumVerts; i++)
-            {
-                glNormal3f(Vertices[i].Normal.x,Vertices[i].Normal.y,Vertices[i].Normal.z);
-//            glTexCoord2f(1-Vertices[i].tu,Vertices[i].tv);
-                glTexCoord2f(Vertices[i].tu,1-Vertices[i].tv);
-                glVertex3f(Vertices[i].Point.x,Vertices[i].Point.y,Vertices[i].Point.z);
-            }
+        for(int i=0; i<iNumVerts; i++)
+        {
+               glNormal3d(Vertices[i].Normal.x,Vertices[i].Normal.y,Vertices[i].Normal.z);
+               glTexCoord2f(Vertices[i].tu,Vertices[i].tv);
+               glVertex3dv(&Vertices[i].Point.x);
+        };
         glEnd();
+#endif
 
         if (bLight)
             glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emm2);
-//        glDisable(GL_COLOR_MATERIAL); //MC
+
         glEndList();
     }
     else
@@ -420,7 +398,6 @@ void __fastcall TSubModel::Load(TQueryParserComp *Parser, int NIndex, TModel3d *
         glEndList();
 
     }
-
 
     SafeDeleteArray(Vertices);
     Visible= true;
@@ -487,26 +464,37 @@ void __fastcall TSubModel::SetRotateAnim(vector3 vNewRotateAxis, double fNewDesi
 
   */
 
-TSubModel* __fastcall TSubModel::GetFromName(char *sName)
+struct ToLower
 {
-/*    for (int i=0; i<SubModelsCount; i++)
-        if (strcmp(SubModels[i].GetName(),Name)==0)
-            return(SubModels+i);*/
-    TSubModel *ret;
-    strlwr(sName);
-    if (strcmp(Name.c_str(),sName)==0)
-        return this;
-    if (Next!=NULL)
-    {
-        ret= Next->GetFromName(sName);
-        if (ret)
-            return (ret);
-    }
-    if (Child!=NULL)
-        return(Child->GetFromName(sName));
-    return(NULL);
-//    return(SubModels[0]);
+    char operator()(char input) { return tolower(input); }
+};
 
+TSubModel* __fastcall TSubModel::GetFromName(std::string search)
+{
+
+    TSubModel* result = NULL;
+
+    std::transform(search.begin(), search.end(), search.begin(), ToLower());
+
+    if(search == Name)
+        return this;
+
+    if(Next)
+    {
+        result = Next->GetFromName(search);
+        if(result)
+            return result;
+    };
+
+    if(Child)
+    {
+        result = Child->GetFromName(search);
+        if(result)
+            return result;
+    };
+
+    return NULL;
+    
 };
 
 WORD hbIndices[18]= {3,0,1,5,4,2,1,0,4,1,5,3,2,3,5,2,4,0};
@@ -684,7 +672,7 @@ __fastcall TModel3d::~TModel3d()
 
 };
 
-bool __fastcall TModel3d::AddTo(char *Name, TSubModel *SubModel)
+bool __fastcall TModel3d::AddTo(const char *Name, TSubModel *SubModel)
 {
     TSubModel *tmp= GetFromName(Name);
     if (tmp!=NULL)
@@ -703,12 +691,9 @@ bool __fastcall TModel3d::AddTo(char *Name, TSubModel *SubModel)
     }
 };
 
-TSubModel* __fastcall TModel3d::GetFromName(char *sName)
+TSubModel* __fastcall TModel3d::GetFromName(const char *sName)
 {
-    if (Root!=NULL)
-        return(Root->GetFromName(sName));
-    return(NULL);
-
+    return Root ? Root->GetFromName(sName) : NULL;
 };
 
 /*
@@ -725,52 +710,31 @@ TMaterial* __fastcall TModel3d::GetMaterialFromName(char *sName)
 
 bool __fastcall TModel3d::LoadFromTextFile(char *FileName)
 {
-//    std::string trtest = FileName;
-//     if (trtest.find("tr/")==7)
-//      return false;
 
     WriteLog(AnsiString("Loading - text model: "+AnsiString(FileName)).c_str());
-    WIN32_FIND_DATA FindFileData;
-    HANDLE handle= FindFirstFile(AnsiString(AnsiString(FileName)).c_str(), &FindFileData);
-    if (handle==INVALID_HANDLE_VALUE)
-    {
-        Error("Cannot load model");
-        FindClose(handle);
-        return false;
-    }
-    FindClose(handle);
 
-
-    TFileStream *fs;
-    fs= new TFileStream(FileName , fmOpenRead	| fmShareCompat	);
-    AnsiString str= "";
-    int size= fs->Size;
-    str.SetLength(size);
-    fs->Read(str.c_str(),size);
-    str+= "";
-    delete fs;
-    TQueryParserComp *Parser;
-    Parser= new TQueryParserComp(NULL);
-    Parser->TextToParse= str;
-//    Parser->LoadStringToParse(asFile);
-    Parser->First();
-    AnsiString Token,asFileName;
-
-//    MaterialsCount= 0;
+    cParser parser(FileName, cParser::buffer_FILE);
 
     TSubModel *SubModel= NULL;
 
-    str= Parser->GetNextSymbol().LowerCase();
-    while (!Parser->EndOfFile)
+    std::string token;
+    parser.getToken(token);
+
+    while (token != "" || parser.eof())
     {
-        str= Parser->GetNextSymbol().LowerCase();
+        std::string parent;
+        parser.getToken(parent);
+
+        if(parent == "")
+            break;
+
         SubModel= new TSubModel();
-        SubModel->Load(Parser,SubModelsCount,this);
-        if (!AddTo(str.c_str(),SubModel))
+        SubModel->Load(parser,SubModelsCount,this);
+        if (!AddTo(parent.c_str(),SubModel))
             SafeDelete(SubModel);
         SubModelsCount++;
-
-        str= Parser->GetNextSymbol().LowerCase();
+        
+        parser.getToken(token);
     }
 //    DecimalSeparator= ',';
 

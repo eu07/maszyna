@@ -1757,6 +1757,13 @@ double __fastcall TDynamicObject::ComputeRadius()
 }
 */
 
+void __fastcall TDynamicObject::UpdatePos()
+{
+  MoverParameters->Loc.X= -GetPosition().x;
+  MoverParameters->Loc.Y=  GetPosition().z;
+  MoverParameters->Loc.Z=  GetPosition().y;
+}
+
 bool __fastcall TDynamicObject::Update(double dt, double dt1)
 {
 #ifdef _DEBUG
@@ -1774,7 +1781,6 @@ if (!MoverParameters->PhysicActivation)
 
 //McZapkie-260202
    //
-
 if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
     if ((MechInside) || (MoverParameters->TrainType=="ezt"))
 {
@@ -1810,6 +1816,7 @@ if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
 
     //TTrackShape ts;
     ts.R=MyTrack->fRadius;
+
 //    ts.R=ComputeRadius(Axle1.pPosition,Axle2.pPosition,Axle3.pPosition,Axle4.pPosition);
     ts.Len= Max0R(MoverParameters->BDist,MoverParameters->ADist);
     ts.dHtrack= Axle1.pPosition.y-Axle4.pPosition.y;
@@ -2119,7 +2126,7 @@ pcp2p=MoverParameters->PantFrontVolt;
 
    ObjectDist2=SquareMagnitude(Global::pCameraPosition-GetPosition())/100;
    vol2=255-ObjectDist2;
-   if ((MoverParameters->CompressedVolume<3.3))// && (MoverParameters->PantVolume<5.2))
+   if ((MoverParameters->CompressedVolume<3.3)) //&& (MoverParameters->PantVolume<5.2))
 //   if (MoverParameters->PantVolume<5.2) &&
     TempPantVol= MoverParameters->PantVolume;
    else
@@ -2138,7 +2145,6 @@ pcp2p=MoverParameters->PantFrontVolt;
     //pantspeedfactor = ((TempPantVol-2.5)/2)*40*dt1;
   pantspeedfactor = (MoverParameters->PantPress)*20*dt1;
     pantspeedfactor*=abs(MoverParameters->CabNo);
-
    //if ((PantTraction1==5.8171) && (PantTraction2==5.8171))
    // pantspeedfactor=10;
    if (pantspeedfactor<0)
@@ -2562,7 +2568,9 @@ if (renderme)
                else
                 vol=0;
              }
-            else
+            else if (MoverParameters->EngineType==DieselElectric)
+             vol=rsSilnik.AM*(MoverParameters->EnginePower/1000/MoverParameters->Power)+0.2*(MoverParameters->enrot*60)/(MoverParameters->DElist[MoverParameters->MainCtrlPosNo].RPM)+rsSilnik.AA;
+            else 
              vol=rsSilnik.AM*(MoverParameters->EnginePower/1000+fabs(MoverParameters->enrot)*60.0)+rsSilnik.AA;
 //            McZapkie-250302 - natezenie zalezne od obrotow i mocy
             if ((vol<1) && (MoverParameters->EngineType==ElectricSeriesMotor) && (MoverParameters->EnginePower<100))
@@ -2575,16 +2583,16 @@ if (renderme)
             {
                 case e_tunnel:
                  {
-                  vol*=2;
+                  vol+=0.1;
                  }
                 break;
                 case e_canyon:
                  {
-                  vol*=1.1;
+                  vol+=0.05;
                  }
                 break;
             }
-            if (enginevolume>0.05)
+            if (enginevolume>0.0001)
               if (MoverParameters->EngineType!=DieselElectric)
                { rsSilnik.Play(enginevolume,DSBPLAY_LOOPING,MechInside,GetPosition()); }
               else

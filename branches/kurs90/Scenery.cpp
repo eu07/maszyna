@@ -2,9 +2,9 @@
 
 #include    "system.hpp"
 #include    "classes.hpp"
-#include <gl/gl.h>
-#include <gl/glu.h>
-#include "opengl/glut.h"
+
+#include "opengl/glew.h"
+
 #pragma hdrstop
 
 #include "Timer.h"
