@@ -9,6 +9,7 @@
 #include "parser.h"
 #include "Event.h"
 #include "Flags.h"
+#include "ResourceManager.h"
 
 class TEvent;
 
@@ -40,7 +41,8 @@ const int iMaxNumDynamics= 40; //McZapkie-100303
 
 const int NextMask[4]= {0,1,0,1};
 const int PrevMask[4]= {0,0,1,1};
-class TTrack
+
+class TTrack: public Resource
 {
 private:
     TSwitchExtension *SwitchExtension;
@@ -171,8 +173,18 @@ public:
         Error("Cannot remove dynamic from track");
         return false;
     }
+
+    void MoveMe(vector3 pPosition);
+
+    void Release();
+    void Compile();
+    
     bool __fastcall Render();
     bool __fastcall RenderAlpha();
+
+private:
+    GLuint DisplayListID;
+
 };
 
 //---------------------------------------------------------------------------

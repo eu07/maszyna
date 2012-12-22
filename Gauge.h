@@ -4,6 +4,7 @@
 #define GaugeH
 
 #include "Model3d.h"
+#include "QueryParserComp.hpp"
 
 typedef enum { gt_Unknown, gt_Rotate, gt_Move } TGaugeType;
 

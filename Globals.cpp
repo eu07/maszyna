@@ -48,7 +48,9 @@ bool Global::bAdjustScreenFreq= true;
 bool Global::bEnableTraction= true;
 bool Global::bLoadTraction= true;
 bool Global::bLiveTraction= true;
+bool Global::bManageNodes = true;
 bool Global::bnewAirCouplers= false;
+bool Global::bDecompressDDS = true;
 //bool Global::WFreeFly= false;
 float Global::fMouseXScale=3.2;
 float Global::fMouseYScale=0.5;
@@ -70,6 +72,7 @@ TGround *Global::pGround= NULL;
 //char Global::CreatorName4[30]= "Arkadiusz Slusarczyk <Winger>";
 //char Global::CreatorName5[30]= "Lukasz Kirchner <Nbmx>";
 char Global::szSceneryFile[256]= "scene.scn";
+std::string Global::szDefaultExt("dds");
 AnsiString Global::asCurrentSceneryPath= "scenery/";
 AnsiString Global::asHumanCtrlVehicle= "EU07-424";
 AnsiString Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath);
@@ -211,9 +214,23 @@ bool __fastcall Global::LoadIniFile(AnsiString asFileName)
           { asSky="1"; } else { asSky="0"; }
          }
 
+        if(str==AnsiString("managenodes"))
+        {
+            bManageNodes = (Parser->GetNextSymbol().LowerCase() == AnsiString("yes"));
+        }
+
+        if(str==AnsiString("decompressdds"))
+        {
+            bDecompressDDS = (Parser->GetNextSymbol().LowerCase() == AnsiString("yes"));
+        }
+
+// ShaXbee - domyslne rozszerzenie tekstur
+        if (str==AnsiString("defaultext"))
+            szDefaultExt = std::string(Parser->GetNextSymbol().LowerCase().c_str());
+
         if (str==AnsiString("newaircouplers"))
          bnewAirCouplers=true;
-                  
+
     }
 
 }

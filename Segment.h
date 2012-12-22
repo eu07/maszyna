@@ -45,6 +45,7 @@ public:
                             int iNumShapePoints,double fTextureLength, int iSkip=0, double fOffsetX=0.0f);
     bool __fastcall Render();
     inline double __fastcall GetLength() { return fLength; };
+    void __fastcall MoveMe(vector3 pPosition) { Point1+=pPosition; Point2+=pPosition; if(bCurve) {CPointIn+=pPosition; CPointOut+=pPosition;}}    
 };
 
 //---------------------------------------------------------------------------

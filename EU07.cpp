@@ -19,12 +19,11 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#include "opengl/glew.h"
+#include "opengl/glut.h"
 
 #include "system.hpp"
 #include "classes.hpp"
-#include <gl/gl.h>
-#include <gl/glu.h>
-#include "opengl/glut.h"
 #include "Globals.h"
 #pragma hdrstop
 
@@ -68,7 +67,9 @@ USEUNIT("TractionPower.cpp");
 USEUNIT("parser.cpp");
 USEUNIT("sky.cpp");
 USEUNIT("AirCoupler.cpp");
-//---------------------------------------------------------------------------
+USEUNIT("glew.c");
+USEUNIT("ResourceManager.cpp");
+USEUNIT("TextureDDS.cpp");
 #include "World.h"
 
 HDC		hDC=NULL;			// Private GDI Device Context
@@ -91,61 +92,21 @@ LRESULT	CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);	// Declaration For WndProc
 
 int InitGL(GLvoid)										// All Setup For OpenGL Goes Here
 {
+
+    _clear87();
+    _control87(MCW_EM, MCW_EM);
+
+    glewInit();
+
     AllocConsole();
     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),FOREGROUND_GREEN);
+
+    // ShaXbee-121209: Wlaczenie obslugi tablic wierzcholkow
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_NORMAL_ARRAY);
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+
     World.Init(hWnd,hDC);
-//	if (!LoadGLTextures())								// Jump To Texture Loading Routine
-	{
-//  		return FALSE;									// If Texture Didn't Load Return FALSE
-	}
-
-//    TimerInit(); //initialize timer
-
-//	glClearColor(0.9019f, 0.8588f, 0.7882f, 1);				// Black Background
-//	glClearDepth(1.0f);		   							// Depth Buffer Setup
-
-/*	glEnable(GL_TEXTURE_2D);							// Enable Texture Mapping
-    glShadeModel(GL_SMOOTH);							// Enable Smooth Shading
-	glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LEQUAL);								// The Type Of Depth Testing To Do
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-
-	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);	// Really Nice Perspective Calculations
-//  */
-/*
-	glEnable(GL_COLOR_MATERIAL);
-    glColorMaterial(GL_FRONT_AND_BACK,GL_SPECULAR);
-
-    double m_ambient[4] =  {1,1,1,1};
-    double m_diffuse[4] =  {1,1,1,1};
-    double m_specular[4] = {1,1,1,1};
-    double m_shininess = 10.f;
-	glMaterialfv( GL_FRONT_AND_BACK, GL_AMBIENT, m_ambient );
-	glMaterialfv( GL_FRONT_AND_BACK, GL_DIFFUSE, m_diffuse );
-	glMaterialfv( GL_FRONT_AND_BACK, GL_SPECULAR, m_specular );
-	glMaterialf ( GL_FRONT_AND_BACK, GL_SHININESS, m_shininess );
-    glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_FALSE);
-    glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
-    glLightfv(GL_LIGHT1, GL_AMBIENT, LightAmbient);		// Setup The Ambient Light
-	glLightfv(GL_LIGHT1, GL_DIFFUSE, LightDiffuse);		// Setup The Diffuse Light
-	glLightfv(GL_LIGHT1, GL_SPECULAR,LightSpecular);	// Setup The Diffuse Light
-	glLightfv(GL_LIGHT1, GL_POSITION,LightPosition);	// Position The Light
-    //glLightf (GL_LIGHT1, GL_SPOT_CUTOFF, 15.f);       // SPOTLIGHT
-    //glLightf (GL_LIGHT1, GL_SPOT_EXPONENT, 128.f);       // SPOTLIGHT
-
-	glEnable(GL_LIGHT1);								// Enable Light One
-	glEnable(GL_LIGHTING);
-*/
-/*
-	glFogi(GL_FOG_MODE, fogMode[2]);			        // Fog Mode
-	glFogfv(GL_FOG_COLOR, fogColor);					// Set Fog Color
-	glFogf(GL_FOG_DENSITY, 0.594f);						// How Dense Will The Fog Be
-	glHint(GL_FOG_HINT, GL_NICEST);					    // Fog Hint Value
-	glFogf(GL_FOG_START, 10.0f);						// Fog Start Depth
-	glFogf(GL_FOG_END, 60.0f);							// Fog End Depth
-	glEnable(GL_FOG);									// Enables GL_FOG
-  */
     return true;
 }
 //---------------------------------------------------------------------------

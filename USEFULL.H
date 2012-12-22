@@ -34,7 +34,7 @@ const Math3D::vector3 vGravity= Math3D::vector3(0,-9.81,0);
 //#define asTexturePatch AnsiString("textures\\")
 //#define asTextureExt AnsiString(".bmp")
 #define szDefaultTexturePath "textures\\"
-#define szDefaultTextureExt ".bmp"
+#define szDefaultTextureExt ".dds"
 
 void __fastcall Error(AnsiString asMessage)
 {

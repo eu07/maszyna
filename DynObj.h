@@ -245,6 +245,7 @@ public:
     inline double __fastcall GetLength() { return MoverParameters->Dim.L; };
     inline double __fastcall GetWidth() { return MoverParameters->Dim.W; };
     inline TTrack* __fastcall GetTrack() { return (MoverParameters->ActiveDir<0?Axle1.GetTrack():Axle4.GetTrack()); };
+    void __fastcall UpdatePos();    
 
     TMoverParameters *MoverParameters;
 

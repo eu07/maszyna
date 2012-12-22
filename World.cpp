@@ -20,8 +20,8 @@
 
 #include    "system.hpp"
 #include    "classes.hpp"
-#include <gl/gl.h>
-#include <gl/glu.h>
+
+#include "opengl/glew.h"
 #include "opengl/glut.h"
 #pragma hdrstop
 
@@ -32,6 +32,8 @@
 #include "logs.h"
 #include "Globals.h"
 #include "Camera.h"
+#include "ResourceManager.h"
+
 #define TEXTURE_FILTER_CONTROL_EXT      0x8500
 #define TEXTURE_LOD_BIAS_EXT            0x8501
 
@@ -90,9 +92,10 @@ TDynamicObject *Controlled= NULL;
 
 __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 {
+
     Global::detonatoryOK=true;
     WriteLog("Starting MaSzyna rail vehicle simulator.");
-    WriteLog("Compilation 210408 - UNOFFICIAL <wersja niepubliczna>");
+    WriteLog("Compilation 26-12-2009");
     WriteLog("Online documentation and additional files on http://www.eu07.pl");
     WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx_EU, OLO_EU, Bart, Quark-t, ShaXbee, Oli_EU, youBy, KURS90 and others");
     WriteLog("Renderer:");
@@ -526,6 +529,23 @@ void __fastcall TWorld::OnMouseMove(double x, double y)
 
 bool __fastcall TWorld::Update()
 {
+
+    vector3 tmpvector = Global::GetCameraPosition();
+
+    tmpvector = vector3(
+        - int(tmpvector.x) + int(tmpvector.x) % 10000,
+        - int(tmpvector.y) + int(tmpvector.y) % 10000,
+        - int(tmpvector.z) + int(tmpvector.z) % 10000);
+
+#ifdef USE_SCENERY_MOVING
+    if(tmpvector.x || tmpvector.y || tmpvector.z)
+    {
+        WriteLog("Moving scenery");
+        Ground.MoveGroundNode(tmpvector);
+        WriteLog("Scenery moved");
+    };
+#endif
+
     if (GetFPS()<12)
           {  Global::slowmotion=true;  }
        else
@@ -1213,6 +1233,7 @@ double __fastcall ABuAcos(vector3 calc_temp)
 
 bool __fastcall TWorld::Render()
 {
+
     glColor3b(255, 255, 255);
 //    glColor3b(255, 0, 255);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -1260,6 +1281,9 @@ bool __fastcall TWorld::Render()
 //     if (Controlled)
 //        Train->RenderAlpha();
     glFlush();
+
+    ResourceManager::Sweep(Timer::GetSimulationTime());
+
     return true;
 };
 

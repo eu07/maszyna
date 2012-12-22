@@ -24,6 +24,7 @@
 //#include "Geom.h"
 
 #include "parser.h" //Tolaris-010603
+#include "ResourceManager.h"
 
 const int TP_MODEL= 1000;
 const int TP_SEMAPHORE= 1002;
@@ -42,10 +43,10 @@ struct TGroundVertex
 {
     vector3 Point;
     vector3 Normal;
-    double tu,tv;
+    float tu,tv;
 };
 
-class TGroundNode
+class TGroundNode: public Resource
 {
 private:
 public:
@@ -81,6 +82,7 @@ public:
     double fSquareRadius;
     double fSquareMinRadius;
     GLuint TextureID;
+    GLuint DisplayListID;
     bool TexAlpha;
     float fLineThickness; //McZapkie-120702: grubosc linii
 //    int Status;  //McZapkie-170303: status dzwieku
@@ -95,6 +97,9 @@ public:
     bool __fastcall Init(int n);
     __fastcall InitCenter();
     __fastcall InitNormals();
+
+    void __fastcall MoveMe(vector3 pPosition);
+
     bool __fastcall Disable();
     inline TGroundNode* __fastcall Find( AnsiString asNameToFind)
     {
@@ -109,6 +114,9 @@ public:
             if (Next) return Next->Find(asNameToFind,iNodeType);
         return NULL;
     };
+
+    void Compile();
+    void Release();
 
     bool __fastcall GetTraction();
     bool __fastcall Render();
@@ -131,10 +139,11 @@ const int iNumSubRects= 10;
 
 class TGroundRect
 {
-public:
+private:
     TSubRect *pSubRects;
     __fastcall Init() { pSubRects= new TSubRect[iNumSubRects*iNumSubRects]; };
-    __fastcall Clear() { for(int i=0;i<iNumSubRects*iNumSubRects;i++) pSubRects[i].~TSubRect(); };
+
+public:
     __fastcall TGroundRect() { pSubRects=NULL; };
     __fastcall ~TGroundRect() { SafeDeleteArray(pSubRects); };
 
@@ -166,7 +175,7 @@ public:
     bool __fastcall Init(AnsiString asFile);
     bool __fastcall InitEvents();
     bool __fastcall InitTracks();
-    bool __fastcall InitLaunchers();
+    bool __fastcall InitLaunchers();    
     TGroundNode* __fastcall FindTrack(vector3 Point, int &iConnection, TGroundNode *Exclude);
     TGroundNode* __fastcall CreateGroundNode();
     TGroundNode* __fastcall AddGroundNode(cParser* parser);
@@ -185,10 +194,10 @@ public:
     TGroundNode* __fastcall GetVisible( AnsiString asName );
     TGroundNode* __fastcall GetNode( AnsiString asName );
     bool __fastcall AddDynamic(TGroundNode *Node);
+    void __fastcall MoveGroundNode(vector3 pPosition);
     bool __fastcall Update(double dt, int iter);
     bool __fastcall AddToQuery(TEvent *Event, TDynamicObject *Node);
     bool __fastcall GetTraction(vector3 pPosition, TDynamicObject *model);
-
     bool __fastcall Render(vector3 pPosition);
     bool __fastcall RenderAlpha(vector3 pPosition);
     bool __fastcall CheckQuery();
