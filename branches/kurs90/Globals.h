@@ -101,8 +101,10 @@ const int k_Univ4=69;
 const int k_EndSign=70;
 
 const int k_Active=71;
-const int k_Battery=72;                        //Winger 020304
-const int MaxKeys= 73;
+                        //Winger 020304
+const int k_Battery=72;
+const int k_WalkMode=73;
+const int MaxKeys= 74;
 
 //klasy dla wskaŸników globalnych
 class TGround;
@@ -110,81 +112,96 @@ class TGround;
 class Global
 {
 public:
-//    double Global::tSinceStart;
-    static int Keys[MaxKeys];
-    static vector3 pCameraPosition; //pozycja kamery w œwiecie
-    static double pCameraRotation;  //kierunek bezwzglêdny kamery w œwiecie
-    static vector3 pFreeCameraInit[10]; //pozycje kamery
-    static vector3 pFreeCameraInitAngle[10];
-    static int iWindowWidth;
-    static int iWindowHeight;
-    static int iBpp;
-    static bool bFullScreen;
-//    static bool bFreeFly;
-    static bool bFreeFly;
-//    float RunningTime;
-    static bool bWireFrame;
-    static bool bSoundEnabled;
-//McZapkie-131202
-    static bool bRenderAlpha;
-    static bool bAdjustScreenFreq;
-    static bool bEnableTraction;
-    static bool bLoadTraction;
-    static float iFriction;
-    static bool bLiveTraction;
-    static bool bManageNodes;
-    static bool bDecompressDDS;
-//    bool WFreeFly;
-    static float Global::fMouseXScale;
-    static float Global::fMouseYScale;
-    static double fFogStart;
-    static double fFogEnd;
-    static TGround *pGround;
-    static std::string szDefaultExt;
-    static char szSceneryFile[256];
-    static char CreatorName1[20];
-    static char CreatorName2[20];
-    static char CreatorName3[20];
-    static char CreatorName4[30];
-    static char CreatorName5[30];
-    static AnsiString  asCurrentSceneryPath;
-    static AnsiString asCurrentTexturePath;
-//McZapkie-170602: zewnetrzna definicja pojazdu uzytkownika
-    static AnsiString asHumanCtrlVehicle;
-    static void __fastcall LoadIniFile(AnsiString asFileName="eu07.ini");
-    static void __fastcall InitKeys(AnsiString asFileName="keys.ini");
-    static vector3 __fastcall GetCameraPosition();
-    static void __fastcall SetCameraPosition(vector3 pNewCameraPosition);
-    static void __fastcall SetCameraRotation(double Yaw);
-    static bool bWriteLogEnabled;
-//McZapkie-221002: definicja swiatla dziennego
-    static GLfloat  AtmoColor[];
-    static GLfloat  FogColor[];
-    static bool bTimeChange;
-    static GLfloat  ambientDayLight[];
-    static GLfloat  diffuseDayLight[];
-    static GLfloat  specularDayLight[];
-    static GLfloat  whiteLight[];
-    static GLfloat  noLight[];
-    static GLfloat  lightPos[4];
-    static bool slowmotion;
-    static bool changeDynObj;
-    static double ABuDebug;
-    static bool detonatoryOK;
-    static AnsiString asSky;
-    static bool bnewAirCouplers;
-    static int iDefaultFiltering; //domyœlne rozmywanie tekstur TGA
-    static int iBallastFiltering; //domyœlne rozmywanie tekstury podsypki
-    static int iRailProFiltering; //domyœlne rozmywanie tekstury szyn
-    static int iDynamicFiltering; //domyœlne rozmywanie tekstur pojazdów
-    static bool bReCompile; //czy odœwie¿yæ siatki
-    static bool bUseVBO; //czy jest VBO w karcie graficznej
-    static int iFeedbackMode; //tryb pracy informacji zwrotnej
-    static double fOpenGL; //wersja OpenGL - przyda siê
-    static bool bOpenGL_1_5; //czy s¹ dostêpne funkcje OpenGL 1.5
-    static double fLuminance; //jasnoœæ œwiat³a do automatycznego zapalania
-    static bool bMultiplayer; //blokada dzia³ania niektórych eventów na rzecz kominikacji
-    static HWND	hWnd; //uchwyt okna
+ //double Global::tSinceStart;
+ static int Keys[MaxKeys];
+ static vector3 pCameraPosition; //pozycja kamery w œwiecie
+ static double pCameraRotation;  //kierunek bezwzglêdny kamery w œwiecie
+ static double pCameraRotationDeg;  //w stopniach, dla animacji billboard
+ static vector3 pFreeCameraInit[10]; //pozycje kamery
+ static vector3 pFreeCameraInitAngle[10];
+ static int iWindowWidth;
+ static int iWindowHeight;
+ static int iBpp;
+ static bool bFullScreen;
+ static bool bFreeFly;
+ //float RunningTime;
+ static bool bWireFrame;
+ static bool bSoundEnabled;
+ //McZapkie-131202
+ static bool bRenderAlpha;
+ static bool bAdjustScreenFreq;
+ static bool bEnableTraction;
+ static bool bLoadTraction;
+ static float iFriction;
+ static bool bLiveTraction;
+ static bool bManageNodes;
+ static bool bDecompressDDS;
+ //    bool WFreeFly;
+ static float Global::fMouseXScale;
+ static float Global::fMouseYScale;
+ static double fFogStart;
+ static double fFogEnd;
+ static TGround *pGround;
+ static std::string szDefaultExt;
+ static char szSceneryFile[256];
+ static char CreatorName1[20];
+ static char CreatorName2[20];
+ static char CreatorName3[20];
+ static char CreatorName4[30];
+ static char CreatorName5[30];
+ static AnsiString asCurrentSceneryPath;
+ static AnsiString asCurrentTexturePath;
+ //McZapkie-170602: zewnetrzna definicja pojazdu uzytkownika
+ static AnsiString asHumanCtrlVehicle;
+ static void __fastcall LoadIniFile(AnsiString asFileName="eu07.ini");
+ static void __fastcall InitKeys(AnsiString asFileName="keys.ini");
+ inline static vector3 __fastcall GetCameraPosition()
+ {return pCameraPosition;};
+ static void __fastcall SetCameraPosition(vector3 pNewCameraPosition);
+ static void __fastcall SetCameraRotation(double Yaw);
+ static bool bWriteLogEnabled;
+ //McZapkie-221002: definicja swiatla dziennego
+ static GLfloat AtmoColor[];
+ static GLfloat FogColor[];
+ static bool bTimeChange;
+ static GLfloat ambientDayLight[];
+ static GLfloat diffuseDayLight[];
+ static GLfloat specularDayLight[];
+ static GLfloat ambientLight[];
+ static GLfloat diffuseLight[];
+ static GLfloat specularLight[];
+ static GLfloat whiteLight[];
+ static GLfloat noLight[];
+ static GLfloat darkLight[];
+ static GLfloat lightPos[4];
+ static bool slowmotion;
+ static bool changeDynObj;
+ static double ABuDebug;
+ static bool detonatoryOK;
+ static AnsiString asSky;
+ static bool bnewAirCouplers;
+ //Ra: nowe zmienne globalne
+ static int iDefaultFiltering; //domyœlne rozmywanie tekstur TGA
+ static int iBallastFiltering; //domyœlne rozmywanie tekstury podsypki
+ static int iRailProFiltering; //domyœlne rozmywanie tekstury szyn
+ static int iDynamicFiltering; //domyœlne rozmywanie tekstur pojazdów
+ static bool bReCompile; //czy odœwie¿yæ siatki
+ static bool bUseVBO; //czy jest VBO w karcie graficznej
+ static int iFeedbackMode; //tryb pracy informacji zwrotnej
+ static double fOpenGL; //wersja OpenGL - przyda siê
+ static bool bOpenGL_1_5; //czy s¹ dostêpne funkcje OpenGL 1.5
+ static double fLuminance; //jasnoœæ œwiat³a do automatycznego zapalania
+ static bool bMultiplayer; //blokada dzia³ania niektórych eventów na rzecz kominikacji
+ static HWND hWnd; //uchwyt okna
+ static int iCameraLast;
+ static AnsiString asVersion;
+ static int iViewMode; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty, 4-obwody
+ static GLint iMaxTextureSize; //maksymalny rozmiar tekstury
+ static int iTextMode; //tryb pracy wyœwietlacza tekstowego
+ static bool bDoubleAmbient; //podwójna jasnoœæ ambient
+ static double fMoveLight; //numer dnia w roku albo -1
+ static bool bSmoothTraction; //wyg³adzanie drutów
+ static double fSunDeclination; //deklinacja S³oñca
 };
 
 //---------------------------------------------------------------------------

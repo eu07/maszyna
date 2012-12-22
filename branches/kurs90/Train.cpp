@@ -850,6 +850,21 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else
       if (cKey==Global::Keys[k_DecBrakeLevel])
        {
+//now¹ wersjê dostarczy³ ZiomalCl ("fixed looped sound in ezt when using NUM_9 key")
+         if ((DynamicObject->MoverParameters->BrakeCtrlPos>-1) || (keybrakecount>1))
+          {
+
+            if ((isEztOer) && (DynamicObject->MoverParameters->Mains) && (DynamicObject->MoverParameters->BrakeCtrlPos!=-1))
+            {
+             dsbPneumaticSwitch->SetVolume(-10);
+             dsbPneumaticSwitch->Play( 0, 0, 0 );
+            }
+            DynamicObject->MoverParameters->DecBrakeLevel();
+			
+          }
+           else keybrakecount+=1;
+//koniec wersji dostarczonej przez ZiomalCl
+/* wersja poprzednia - ten pierwszy if ze œrednikiem nie dzia³a³ jak warunek
          if ((DynamicObject->MoverParameters->BrakeCtrlPos>-1)|| (keybrakecount>1))
           {
             if (DynamicObject->MoverParameters->DecBrakeLevel());
@@ -862,6 +877,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
              }
           }
            else keybrakecount+=1;
+*/
        }
       else
       if (cKey==Global::Keys[k_EmergencyBrake])
@@ -3635,136 +3651,136 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
 
     //inicjacja kabiny
         if (AnsiCompareStr(AnsiString("cab")+cabindex+AnsiString("model:"),str)==0)     //model kabiny
+        {
+         str= Parser->GetNextSymbol().LowerCase();
+         if (str!=AnsiString("none"))
          {
-           str= Parser->GetNextSymbol().LowerCase();
-           if (str!=AnsiString("none"))
-            {
-              str= DynamicObject->asBaseDir+str;
-              Global::asCurrentTexturePath= DynamicObject->asBaseDir;         //biezaca sciezka do tekstur to dynamic/...
-              DynamicObject->mdKabina= TModelsManager::GetModel(str.c_str());                //szukaj kabine jako oddzielny model
-              Global::asCurrentTexturePath= AnsiString(szDefaultTexturePath); //z powrotem defaultowa sciezka do tekstur
-             }
-           else
-            DynamicObject->mdKabina= DynamicObject->mdModel;   //McZapkie-170103: szukaj elementy kabiny w glownym modelu
-           ActiveUniversal4=false;
-           MainCtrlGauge.Clear();
-           MainCtrlActGauge.Clear();           
-           ScndCtrlGauge.Clear();
-           DirKeyGauge.Clear();
-           BrakeCtrlGauge.Clear();
-           LocalBrakeGauge.Clear();
-           ManualBrakeGauge.Clear();
-           BrakeProfileCtrlGauge.Clear();
-           MaxCurrentCtrlGauge.Clear();
-           MainOffButtonGauge.Clear();
-           MainOnButtonGauge.Clear();
-           SecurityResetButtonGauge.Clear();
-           ReleaserButtonGauge.Clear();
-           AntiSlipButtonGauge.Clear();
-           HornButtonGauge.Clear();
-           NextCurrentButtonGauge.Clear();
-           Universal1ButtonGauge.Clear();
-           Universal2ButtonGauge.Clear();
-           Universal3ButtonGauge.Clear();
-           Universal4ButtonGauge.Clear();
-           FuseButtonGauge.Clear();
-           StLinOffButtonGauge.Clear();
-           DoorLeftButtonGauge.Clear();
-           DoorRightButtonGauge.Clear();
-           DepartureSignalButtonGauge.Clear();
-           CompressorButtonGauge.Clear();
-           ConverterButtonGauge.Clear();
-           PantFrontButtonGauge.Clear();
-           PantRearButtonGauge.Clear();
-           PantFrontButtonOffGauge.Clear();
-           PantAllDownButtonGauge.Clear();
-           VelocityGauge.Clear();
-           I1Gauge.Clear();
-           I2Gauge.Clear();
-           I3Gauge.Clear();
-           ItotalGauge.Clear();
-           CylHamGauge.Clear();
-           PrzGlGauge.Clear();
-           ZbGlGauge.Clear();
-
-           VelocityGaugeB.Clear();
-           I1GaugeB.Clear();
-           I2GaugeB.Clear();
-           I3GaugeB.Clear();
-           ItotalGaugeB.Clear();
-           CylHamGaugeB.Clear();
-           PrzGlGaugeB.Clear();
-           ZbGlGaugeB.Clear();
-
-           I1BGauge.Clear();
-           I2BGauge.Clear();
-           I3BGauge.Clear();
-           ItotalBGauge.Clear();
-
-           ClockSInd.Clear();
-           ClockMInd.Clear();
-           ClockHInd.Clear();
-           EngineVoltage.Clear();
-           HVoltageGauge.Clear();
-           LVoltageGauge.Clear();
-           enrot1mGauge.Clear();
-           enrot2mGauge.Clear();
-           enrot3mGauge.Clear();
-           engageratioGauge.Clear();
-           maingearstatusGauge.Clear();
-           IgnitionKeyGauge.Clear();
-           btLampkaPoslizg.Clear();
-           btLampkaStyczn.Clear();
-           btLampkaNadmPrzetw.Clear();
-           btLampkaPrzekRozn.Clear();
-           btLampkaPrzekRoznPom.Clear();
-           btLampkaNadmSil.Clear();
-           btLampkaUkrotnienie.Clear();
-           btLampkaHamPosp.Clear();
-           btLampkaWylSzybki.Clear();
-           btLampkaNadmWent.Clear();
-           btLampkaNadmSpr.Clear();
-           btLampkaOpory.Clear();
-           btLampkaOpory.FeedbackBitSet(8);
-           btLampkaBezoporowa.Clear();
-           btLampkaBezoporowaB.Clear();
-           btLampkaMaxSila.Clear();
-           btLampkaPrzekrMaxSila.Clear();
-           btLampkaRadio.Clear();
-           btLampkaHamulecReczny.Clear();
-           btLampkaWysRozr.Clear();
-           btLampkaBlokadaDrzwi.Clear();
-           btLampkaUniversal3.Clear();
-           btLampkaWentZaluzje.Clear();
-           btLampkaOgrzewanieSkladu.Clear();
-           btLampkaSHP.Clear();
-           btLampkaSHP.FeedbackBitSet(0);
-           btLampkaCzuwaka.Clear();
-           btLampkaCzuwaka.FeedbackBitSet(1);
-           btLampkaDoorLeft.Clear();
-           btLampkaDoorRight.Clear();
-           btLampkaDepartureSignal.Clear();
-           btLampkaRezerwa.Clear();
-           btLampkaBoczniki.Clear();
-           btLampkaBocznikI.Clear();
-           btLampkaBocznikII.Clear();
-           btLampkaRadiotelefon.Clear();
-           btLampkaHamienie.Clear();
-           btLampkaSprezarka.Clear();
-           btLampkaSprezarkaB.Clear();
-           btLampkaNapNastHam.Clear();
-           btLampkaJazda.Clear();
-           btLampkaStycznB.Clear();
-           btLampkaHamowanie1zes.Clear();
-           btLampkaHamowanie2zes.Clear();
-           btLampkaNadmPrzetwB.Clear();
-           btLampkaWylSzybkiB.Clear();
-           LeftLightButtonGauge.Clear();
-           RightLightButtonGauge.Clear();
-           UpperLightButtonGauge.Clear();
-           LeftEndLightButtonGauge.Clear();
-           RightEndLightButtonGauge.Clear();
+          str= DynamicObject->asBaseDir+str;
+          Global::asCurrentTexturePath=DynamicObject->asBaseDir;         //biezaca sciezka do tekstur to dynamic/...
+          DynamicObject->mdKabina=TModelsManager::GetModel(str.c_str()); //szukaj kabinê jako oddzielny model
+          Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath); //z powrotem defaultowa sciezka do tekstur
          }
+         else
+          DynamicObject->mdKabina= DynamicObject->mdModel;   //McZapkie-170103: szukaj elementy kabiny w glownym modelu
+         ActiveUniversal4=false;
+         MainCtrlGauge.Clear();
+         MainCtrlActGauge.Clear();           
+         ScndCtrlGauge.Clear();
+         DirKeyGauge.Clear();
+         BrakeCtrlGauge.Clear();
+         LocalBrakeGauge.Clear();
+         ManualBrakeGauge.Clear();
+         BrakeProfileCtrlGauge.Clear();
+         MaxCurrentCtrlGauge.Clear();
+         MainOffButtonGauge.Clear();
+         MainOnButtonGauge.Clear();
+         SecurityResetButtonGauge.Clear();
+         ReleaserButtonGauge.Clear();
+         AntiSlipButtonGauge.Clear();
+         HornButtonGauge.Clear();
+         NextCurrentButtonGauge.Clear();
+         Universal1ButtonGauge.Clear();
+         Universal2ButtonGauge.Clear();
+         Universal3ButtonGauge.Clear();
+         Universal4ButtonGauge.Clear();
+         FuseButtonGauge.Clear();
+         StLinOffButtonGauge.Clear();
+         DoorLeftButtonGauge.Clear();
+         DoorRightButtonGauge.Clear();
+         DepartureSignalButtonGauge.Clear();
+         CompressorButtonGauge.Clear();
+         ConverterButtonGauge.Clear();
+         PantFrontButtonGauge.Clear();
+         PantRearButtonGauge.Clear();
+         PantFrontButtonOffGauge.Clear();
+         PantAllDownButtonGauge.Clear();
+         VelocityGauge.Clear();
+         I1Gauge.Clear();
+         I2Gauge.Clear();
+         I3Gauge.Clear();
+         ItotalGauge.Clear();
+         CylHamGauge.Clear();
+         PrzGlGauge.Clear();
+         ZbGlGauge.Clear();
+
+         VelocityGaugeB.Clear();
+         I1GaugeB.Clear();
+         I2GaugeB.Clear();
+         I3GaugeB.Clear();
+         ItotalGaugeB.Clear();
+         CylHamGaugeB.Clear();
+         PrzGlGaugeB.Clear();
+         ZbGlGaugeB.Clear();
+
+         I1BGauge.Clear();
+         I2BGauge.Clear();
+         I3BGauge.Clear();
+         ItotalBGauge.Clear();
+
+         ClockSInd.Clear();
+         ClockMInd.Clear();
+         ClockHInd.Clear();
+         EngineVoltage.Clear();
+         HVoltageGauge.Clear();
+         LVoltageGauge.Clear();
+         enrot1mGauge.Clear();
+         enrot2mGauge.Clear();
+         enrot3mGauge.Clear();
+         engageratioGauge.Clear();
+         maingearstatusGauge.Clear();
+         IgnitionKeyGauge.Clear();
+         btLampkaPoslizg.Clear();
+         btLampkaStyczn.Clear();
+         btLampkaNadmPrzetw.Clear();
+         btLampkaPrzekRozn.Clear();
+         btLampkaPrzekRoznPom.Clear();
+         btLampkaNadmSil.Clear();
+         btLampkaUkrotnienie.Clear();
+         btLampkaHamPosp.Clear();
+         btLampkaWylSzybki.Clear();
+         btLampkaNadmWent.Clear();
+         btLampkaNadmSpr.Clear();
+         btLampkaOpory.Clear();
+         btLampkaOpory.FeedbackBitSet(8);
+         btLampkaBezoporowa.Clear();
+         btLampkaBezoporowaB.Clear();
+         btLampkaMaxSila.Clear();
+         btLampkaPrzekrMaxSila.Clear();
+         btLampkaRadio.Clear();
+         btLampkaHamulecReczny.Clear();
+         btLampkaWysRozr.Clear();
+         btLampkaBlokadaDrzwi.Clear();
+         btLampkaUniversal3.Clear();
+         btLampkaWentZaluzje.Clear();
+         btLampkaOgrzewanieSkladu.Clear();
+         btLampkaSHP.Clear();
+         btLampkaSHP.FeedbackBitSet(0);
+         btLampkaCzuwaka.Clear();
+         btLampkaCzuwaka.FeedbackBitSet(1);
+         btLampkaDoorLeft.Clear();
+         btLampkaDoorRight.Clear();
+         btLampkaDepartureSignal.Clear();
+         btLampkaRezerwa.Clear();
+         btLampkaBoczniki.Clear();
+         btLampkaBocznikI.Clear();
+         btLampkaBocznikII.Clear();
+         btLampkaRadiotelefon.Clear();
+         btLampkaHamienie.Clear();
+         btLampkaSprezarka.Clear();
+         btLampkaSprezarkaB.Clear();
+         btLampkaNapNastHam.Clear();
+         btLampkaJazda.Clear();
+         btLampkaStycznB.Clear();
+         btLampkaHamowanie1zes.Clear();
+         btLampkaHamowanie2zes.Clear();
+         btLampkaNadmPrzetwB.Clear();
+         btLampkaWylSzybkiB.Clear();
+         LeftLightButtonGauge.Clear();
+         RightLightButtonGauge.Clear();
+         UpperLightButtonGauge.Clear();
+         LeftEndLightButtonGauge.Clear();
+         RightEndLightButtonGauge.Clear();
+        }
         else
     //SEKCJA REGULATOROW
         if (str==AnsiString("mainctrl:"))                    //nastawnik

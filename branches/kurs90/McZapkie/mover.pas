@@ -5168,9 +5168,9 @@ else if command='PantFront' then         {Winger 160204}
     if (V=0) and (MaxLoad>0) and (Load<MaxLoad*(1+OverLoadFactor)) then {czy mozna ladowac?}
      if Distance(Loc,CommandIn.Location,Dim,Dim)<3 then {ten peron/rampa}
       begin
-        testload:=LowerCase(DUE(command));
-        if Pos(testload,LoadAccepted)>0 then {mozna to zaladowac}
-         OK:=LoadingDone(Min0R(CValue2,LoadSpeed),testload);
+       testload:=LowerCase(DUE(command));
+       if Pos(testload,LoadAccepted)>0 then {mozna to zaladowac}
+        OK:=LoadingDone(Min0R(CValue2,LoadSpeed),testload);
       end;
     if OK then LoadStatus:=0; {nie udalo sie w ogole albo juz skonczone}
    end

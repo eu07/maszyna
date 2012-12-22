@@ -61,6 +61,7 @@ bool __fastcall TAnimContainer::Init(TSubModel *pNewSubModel)
 
 void __fastcall TAnimContainer::SetRotateAnim(vector3 vNewRotateAngles, double fNewRotateSpeed)
 {
+ if (!this) return; //wywo³ywane z eventu, gdy brak modelu
  vDesiredAngles=vNewRotateAngles;
  fRotateSpeed=fNewRotateSpeed;
  iAnim|=1;
@@ -68,6 +69,7 @@ void __fastcall TAnimContainer::SetRotateAnim(vector3 vNewRotateAngles, double f
 
 void __fastcall TAnimContainer::SetTranslateAnim(vector3 vNewTranslate, double fNewSpeed)
 {
+ if (!this) return; //wywo³ywane z eventu, gdy brak modelu
  vTranslateTo=vNewTranslate;
  fTranslateSpeed=fNewSpeed;
  iAnim|=2;
@@ -167,6 +169,7 @@ __fastcall TAnimModel::TAnimModel()
   LightsOn[i]=LightsOff[i]=NULL; //normalnie nie ma
   lsLights[i]=ls_Off; //a jeœli s¹, to wy³¹czone
  }
+ vAngle.x=vAngle.y=vAngle.z=0.0; //zerowanie obrotów egzemplarza
 }
 
 __fastcall TAnimModel::~TAnimModel()
@@ -176,9 +179,9 @@ __fastcall TAnimModel::~TAnimModel()
 
 bool __fastcall TAnimModel::Init(TModel3d *pNewModel)
 {
-    fBlinkTimer= double(random(1000*fOffTime))/(1000*fOffTime);;
-    pModel= pNewModel;
-    return (pModel!=NULL);
+ fBlinkTimer=double(random(1000*fOffTime))/(1000*fOffTime);;
+ pModel=pNewModel;
+ return (pModel!=NULL);
 }
 
 bool __fastcall TAnimModel::Init(AnsiString asName, AnsiString asReplacableTexture)
@@ -191,83 +194,81 @@ bool __fastcall TAnimModel::Init(AnsiString asName, AnsiString asReplacableTextu
 }
 
 bool __fastcall TAnimModel::Load(cParser *parser)
-{
-    AnsiString str;
-    std::string token;
-    parser->getTokens();
-    *parser >> token;
-    str= AnsiString(token.c_str());
+{//rozpoznanie wpisu modelu i ustawienie œwiate³
+ AnsiString str;
+ std::string token;
+ parser->getTokens();
+ *parser >> token;
+ str=AnsiString(token.c_str());
+ parser->getTokens();
+ *parser >> token;
+ if (!Init(str,AnsiString(token.c_str())))
+ {if (str!="notload")
+  {//gdy brak modelu
+   Error(AnsiString("Model: "+str+" does not exist"));
+  }
+ }
+ else
+ {//wi¹zanie œwiate³, o ile model wczytany
+  LightsOn[0]=pModel->GetFromName("Light_On00");
+  LightsOn[1]=pModel->GetFromName("Light_On01");
+  LightsOn[2]=pModel->GetFromName("Light_On02");
+  LightsOn[3]=pModel->GetFromName("Light_On03");
+  LightsOn[4]=pModel->GetFromName("Light_On04");
+  LightsOn[5]=pModel->GetFromName("Light_On05");
+  LightsOn[6]=pModel->GetFromName("Light_On06");
+  LightsOn[7]=pModel->GetFromName("Light_On07");
+  LightsOff[0]=pModel->GetFromName("Light_Off00");
+  LightsOff[1]=pModel->GetFromName("Light_Off01");
+  LightsOff[2]=pModel->GetFromName("Light_Off02");
+  LightsOff[3]=pModel->GetFromName("Light_Off03");
+  LightsOff[4]=pModel->GetFromName("Light_Off04");
+  LightsOff[5]=pModel->GetFromName("Light_Off05");
+  LightsOff[6]=pModel->GetFromName("Light_Off06");
+  LightsOff[7]=pModel->GetFromName("Light_Off07");
+ }
+ for (int i=0; i<iMaxNumLights;++i)
+  if (LightsOn[i]||LightsOff[i]) //Ra: zlikwidowa³em wymóg istnienia obu
+   iNumLights=i+1;
 
-    parser->getTokens();
-    *parser >> token;
-    if (!Init(str,AnsiString(token.c_str())))
-    if (str!="notload")
-    {
-        Error(AnsiString("Model: "+str+" does not exist"));
-        return false;
-    }
+ int i=0;
+ int ti;
 
-    LightsOn[0]= pModel->GetFromName("Light_On00");
-    LightsOn[1]= pModel->GetFromName("Light_On01");
-    LightsOn[2]= pModel->GetFromName("Light_On02");
-    LightsOn[3]= pModel->GetFromName("Light_On03");
-    LightsOn[4]= pModel->GetFromName("Light_On04");
-    LightsOn[5]= pModel->GetFromName("Light_On05");
-    LightsOn[6]= pModel->GetFromName("Light_On06");
-    LightsOn[7]= pModel->GetFromName("Light_On07");
+ parser->getTokens();
+ *parser >> token;
 
-    LightsOff[0]= pModel->GetFromName("Light_Off00");
-    LightsOff[1]= pModel->GetFromName("Light_Off01");
-    LightsOff[2]= pModel->GetFromName("Light_Off02");
-    LightsOff[3]= pModel->GetFromName("Light_Off03");
-    LightsOff[4]= pModel->GetFromName("Light_Off04");
-    LightsOff[5]= pModel->GetFromName("Light_Off05");
-    LightsOff[6]= pModel->GetFromName("Light_Off06");
-    LightsOff[7]= pModel->GetFromName("Light_Off07");
-
-    for (int i=0; i<iMaxNumLights;++i)
-     if (LightsOn[i]||LightsOff[i]) //Ra: zlikwidowa³em wymóg istnienia obu
-      iNumLights=i+1;
-
-    int i=0;
-    int ti;
-
-    parser->getTokens();
-    *parser >> token;
-
-    if (token.compare( "lights" ) == 0)
-     {
-      parser->getTokens();
-      *parser >> token;
-      str= AnsiString(token.c_str());
-      do
-      {
-        ti= str.ToInt();
-        if (i<iMaxNumLights)
-            lsLights[i]= (TLightState)ti;
-        i++;
- //        if (Parser->EndOfFile)
- //            break;
-        parser->getTokens();
-        *parser >> token;
-        str= AnsiString(token.c_str());
-      } while (str!="endmodel");
-     }
+ if (token.compare( "lights" ) == 0)
+ {
+  parser->getTokens();
+  *parser >> token;
+  str=AnsiString(token.c_str());
+  do
+  {
+   ti=str.ToInt(); //stan œwiat³a jest liczb¹
+   if (i<iMaxNumLights)
+    lsLights[i]=(TLightState)ti;
+   i++;
+   parser->getTokens();
+   *parser >> token;
+   str=AnsiString(token.c_str());
+  } while (str!="endmodel");
+ }
  return true;
 }
 
 TAnimContainer* __fastcall TAnimModel::AddContainer(char *pName)
-{
-    TSubModel *tsb= pModel->GetFromName(pName);
-    if (tsb)
-    {
-        TAnimContainer *tmp= new TAnimContainer();
-        tmp->Init(tsb);
-        tmp->pNext= pRoot;
-        pRoot= tmp;
-        return tmp;
-    }
-    return NULL;
+{//dodanie submodelu do egzemplarza
+ if (!pModel) return NULL;
+ TSubModel *tsb=pModel->GetFromName(pName);
+ if (tsb)
+ {
+  TAnimContainer *tmp=new TAnimContainer();
+  tmp->Init(tsb);
+  tmp->pNext=pRoot;
+  pRoot=tmp;
+  return tmp;
+ }
+ return NULL;
 }
 
 TAnimContainer* __fastcall TAnimModel::GetContainer(char *pName)
@@ -333,9 +334,39 @@ void __fastcall TAnimModel::RenderAlpha(vector3 pPosition, double fAngle)
 
 int __fastcall TAnimModel::Flags()
 {//informacja dla TGround, czy ma byæ Render() czy RenderAlpha()
- int i=pModel->Flags();
+ int i=pModel?pModel->Flags():0;
  return i|(ReplacableSkinId>0?(i&0x01010001)*(bTexAlpha?4:2):0);
 };
+
+//-----------------------------------------------------------------------------
+//2011-03-16 cztery nowe funkcje renderowania z mo¿liwoœci¹ pochylania obiektów
+//-----------------------------------------------------------------------------
+
+void __fastcall TAnimModel::Render(vector3* vPosition)
+{
+ RaPrepare();
+ if (pModel) //renderowanie rekurencyjne submodeli
+  pModel->Render(vPosition,&vAngle,ReplacableSkinId,bTexAlpha);
+};
+void __fastcall TAnimModel::RenderAlpha(vector3* vPosition)
+{
+ RaPrepare();
+ if (pModel) //renderowanie rekurencyjne submodeli
+  pModel->RenderAlpha(vPosition,&vAngle,ReplacableSkinId,bTexAlpha);
+};
+void __fastcall TAnimModel::RaRender(vector3* vPosition)
+{
+ RaPrepare();
+ if (pModel) //renderowanie rekurencyjne submodeli
+  pModel->RaRender(vPosition,&vAngle,ReplacableSkinId,bTexAlpha);
+};
+void __fastcall TAnimModel::RaRenderAlpha(vector3* vPosition)
+{
+ RaPrepare();
+ if (pModel) //renderowanie rekurencyjne submodeli
+  pModel->RaRenderAlpha(vPosition,&vAngle,ReplacableSkinId,bTexAlpha);
+};
+
 //---------------------------------------------------------------------------
 
 #pragma package(smart_init)
