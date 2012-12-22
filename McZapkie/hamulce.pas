@@ -2118,7 +2118,7 @@ begin
             if(tp>0.1)then
             begin
               cp:=5+(tp-0.1)*0.08;
-              tp:=tp-dt/12;
+              tp:=tp-dt/12/2;
             end;
             if(cp>rp+0.1)and(cp<=5)then
               dpMainValve:=PF(Min0R(cp+0.25,HP),pp,2*(ActFlowSpeed)/(LBDelay))*dt
