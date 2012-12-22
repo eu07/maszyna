@@ -65,8 +65,8 @@ public:
         TMemCell *MemCell;
         TEventLauncher *EvLaunch;
         TTraction *Traction;
-        TTractionPowerSource *TractionPowerSource;        
-        TRealSound *pStaticSound;        
+        TTractionPowerSource *TractionPowerSource;
+        TRealSound *pStaticSound;
 //        TGeometry *pGeometry;
     };
     AnsiString asName;
@@ -76,7 +76,7 @@ public:
         int iNumPts;
         int iState;
     };
-    vector3 pCenter;
+    vector3 pCenter; //œrodek do przydzielenia sektora
 
     double fAngle;
     double fSquareRadius;
@@ -90,23 +90,23 @@ public:
     bool bVisible;
     bool bStatic;
     bool bAllocated;
-    TGroundNode *Next;//,*Prev;
-    TGroundNode *Next2;
+    TGroundNode *Next; //lista wszystkich, ostatni na koñcu
+    TGroundNode *Next2; //lista w sektorze
     __fastcall TGroundNode();
     __fastcall ~TGroundNode();
     bool __fastcall Init(int n);
-    __fastcall InitCenter();
-    __fastcall InitNormals();
+    void __fastcall InitCenter();
+    void __fastcall InitNormals();
 
     void __fastcall MoveMe(vector3 pPosition);
 
-    bool __fastcall Disable();
-    inline TGroundNode* __fastcall Find( AnsiString asNameToFind)
+    //bool __fastcall Disable();
+    inline TGroundNode* __fastcall Find(const AnsiString &asNameToFind)
     {
         if (asNameToFind==asName) return this; else if (Next) return Next->Find(asNameToFind);
         return NULL;
     };
-    inline TGroundNode* __fastcall Find( AnsiString asNameToFind, TGroundNodeType iNodeType )
+    inline TGroundNode* __fastcall Find(const AnsiString &asNameToFind, TGroundNodeType iNodeType )
     {
         if ((iNodeType==iType) && (asNameToFind==asName))
             return this;
@@ -131,7 +131,7 @@ public:
     __fastcall TSubRect() { pRootNode=NULL; };
     __fastcall ~TSubRect() {  };
 //    __fastcall ~TSubRect() { SafeDelete(pRootNode); };   /* TODO -cBUG : Attention, remember to delete those nodes */
-    __fastcall AddNode(TGroundNode *Node) { Node->Next2= pRootNode; pRootNode= Node; };
+    void __fastcall AddNode(TGroundNode *Node) { Node->Next2= pRootNode; pRootNode= Node; };
 //    __fastcall Render() { if (pRootNode) pRootNode->Render(); };
 };
 
@@ -141,7 +141,7 @@ class TGroundRect
 {
 private:
     TSubRect *pSubRects;
-    __fastcall Init() { pSubRects= new TSubRect[iNumSubRects*iNumSubRects]; };
+    void __fastcall Init() { pSubRects= new TSubRect[iNumSubRects*iNumSubRects]; };
 
 public:
     __fastcall TGroundRect() { pSubRects=NULL; };
@@ -171,7 +171,7 @@ public:
 
     __fastcall TGround();
     __fastcall ~TGround();
-    bool __fastcall Free();
+    void __fastcall Free();
     bool __fastcall Init(AnsiString asFile);
     bool __fastcall InitEvents();
     bool __fastcall InitTracks();
@@ -208,7 +208,7 @@ public:
     int __fastcall GetSubRowFromZ(double z) { return (z/fSubRectSize+fHalfNumSubRects); };
    int __fastcall GetSubColFromX(double x) { return (x/fSubRectSize+fHalfNumSubRects); };
    */
-    inline TGroundNode* __fastcall FindGroundNode( AnsiString asNameToFind )
+    inline TGroundNode* __fastcall FindGroundNode(const AnsiString &asNameToFind )
     {
         if (RootNode)
             return (RootNode->Find( asNameToFind ));
@@ -262,14 +262,16 @@ public:
     int __fastcall GetRowFromZ(double z) { return (z/fSubRectSize+fHalfTotalNumSubRects); };
     int __fastcall GetColFromX(double x) { return (x/fSubRectSize+fHalfTotalNumSubRects); };
     TEvent* __fastcall FindEvent(AnsiString asEventName);
+    void __fastcall TrackJoin(TGroundNode *Current);
 private:
-    TGroundNode *RootNode;
+    TGroundNode *RootNode; //lista wêz³ów
 //    TGroundNode *FirstVisible,*LastVisible;
-    TGroundNode *RootDynamic;
+    TGroundNode *RootDynamic; //lista pojazdów
 
-    TGroundRect Rects[iNumRects][iNumRects];
+    TGroundRect Rects[iNumRects][iNumRects]; //mapa kwadratów kilometrowych
 
-    TEvent *RootEvent,*QueryRootEvent,*tmpEvent,*tmp2Event,*OldQRE;
+    TEvent *RootEvent; //lista zdarzeñ
+    TEvent *QueryRootEvent,*tmpEvent,*tmp2Event,*OldQRE;
 
     void __fastcall OpenGLUpdate(HDC hDC);
 //    TWorld World;
@@ -277,7 +279,7 @@ private:
     int iNumNodes;
     vector3 pOrigin;
     vector3 aRotate;
-
+    bool bInitDone;
 };
 //---------------------------------------------------------------------------
 #endif

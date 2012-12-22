@@ -17,7 +17,7 @@ private:
     bool bOn;
     bool bxOn;    
 
-  bool __fastcall Update();
+  void __fastcall Update();
 public:
   __fastcall TAirCoupler();
   __fastcall ~TAirCoupler();

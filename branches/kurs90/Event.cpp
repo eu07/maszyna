@@ -48,12 +48,12 @@ __fastcall TEvent::~TEvent()
         SafeDeleteArray(Params[0].asText);
 }
 
-bool __fastcall TEvent::Init()
+void __fastcall TEvent::Init()
 {
 
 }
 
-bool __fastcall TEvent::Load(cParser* parser)
+void __fastcall TEvent::Load(cParser* parser)
 {
     int i;
     int ti;
@@ -121,7 +121,10 @@ bool __fastcall TEvent::Load(cParser* parser)
     str= AnsiString(token.c_str());
 
     if (str!=AnsiString("none"))
-        asNodeName= str;
+        asNodeName=str;
+
+    if (asName.SubString(1,5)=="none_")
+     Type= tp_Unknown; //Ra: takie s¹ ignorowane
 
     switch (Type)
     {
@@ -283,18 +286,17 @@ bool __fastcall TEvent::Load(cParser* parser)
 
             while (str!=AnsiString("endevent") && str!=AnsiString("condition"))
             {
-                if (str!=AnsiString("none"))
-                {
-                    if (i<8)
-                    {
-                        Params[i].asText= new char[255];
-                        strcpy(Params[i].asText,str.c_str());
-                    }
-                    i++;
-                };
-               parser->getTokens();
-               *parser >> token;
-               str= AnsiString(token.c_str());
+             if ((str.SubString(1,5)!="none_")?(i<8):false)
+             {//eventy rozpoczynaj¹ce siê od "none_" s¹ ignorowane
+              Params[i].asText=new char[255];
+              strcpy(Params[i].asText,str.c_str());
+              i++;
+             }
+             else
+              WriteLog("Event \""+str+"\" ignored in multiple \""+asName+"\"!");
+             parser->getTokens();
+             *parser >> token;
+             str=AnsiString(token.c_str());
             }
             if (str==AnsiString("condition"))
             {
@@ -344,9 +346,14 @@ bool __fastcall TEvent::Load(cParser* parser)
 
             }
         break;
-        case tp_Unknown:
-                    parser->getTokens(); *parser >> token;
-             break;
+        case tp_Unknown: //ignorowanie reszty
+         do
+         {parser->getTokens();
+          *parser >> token;
+          str= AnsiString(token.c_str());
+         } while (str!="endevent");
+         WriteLog("Event \""+asName+"\" is ignored.");
+         break;
     }
 }
 

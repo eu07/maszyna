@@ -95,7 +95,7 @@ __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 
     Global::detonatoryOK=true;
     WriteLog("Starting MaSzyna rail vehicle simulator.");
-    WriteLog("Compilation 26-12-2009");
+    WriteLog("Compilation 2010-12-15");
     WriteLog("Online documentation and additional files on http://www.eu07.pl");
     WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx_EU, OLO_EU, Bart, Quark-t, ShaXbee, Oli_EU, youBy, KURS90 and others");
     WriteLog("Renderer:");
@@ -974,7 +974,7 @@ bool __fastcall TWorld::Update()
     if (Pressed(VK_F12))
     {
        //Takie male info :)
-       OutText1= AnsiString("Online documentation (PL, ENG, DE, soon CZ): http://www.eu07.pl");
+       OutText1= AnsiString("Online documentation (PL, ENG, DE, soon CZ): http://eu07.pl");
     }
 
     if (Pressed(VK_F2))
@@ -1142,7 +1142,7 @@ bool __fastcall TWorld::Update()
       else
        {OutText3+= AnsiString(" Vtrack ")+FloatToStrF(Controlled->MoverParameters->RunningTrack.Velmax,ffFixed,8,2);}
 //      WriteLog(Controlled->MoverParameters->TrainType.c_str());
-      if ((Controlled->MoverParameters->EnginePowerSource.SourceType==CurrentCollector) || (Controlled->MoverParameters->TrainType=="ezt"))
+      if ((Controlled->MoverParameters->EnginePowerSource.SourceType==CurrentCollector) || (Controlled->MoverParameters->TrainType==dt_EZT))
        {OutText3+= AnsiString(" zb.pant. ")+FloatToStrF(Controlled->MoverParameters->PantVolume,ffFixed,8,2);}
   //McZapkie: komenda i jej parametry
        if (Controlled->MoverParameters->CommandIn.Command!=AnsiString(""))

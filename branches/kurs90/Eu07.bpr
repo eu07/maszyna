@@ -32,7 +32,7 @@
     <DEBUGLIBPATH value="$(BCB)\lib\debug"/>
     <RELEASELIBPATH value="$(BCB)\lib\release"/>
     <LINKER value="tlink32"/>
-    <USERDEFINES value="GLEW_STATIC;_DEBUG"/>
+    <USERDEFINES value="GLEW_STATIC"/>
     <SYSDEFINES value="_RTLDLL;NO_STRICT"/>
     <MAINSOURCE value="EU07.cpp"/>
     <INCLUDEPATH value="McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
@@ -41,13 +41,12 @@
   </MACROS>
   <OPTIONS>
     <IDLCFLAGS value="-IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl -src_suffix cpp 
-      -DGLEW_STATIC -D_DEBUG -boa"/>
-    <CFLAG1 value="-Od -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a4 -6 -b- -k -y -v -vi- 
-      -c -tW -tWM"/>
-    <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
+      -DGLEW_STATIC -boa"/>
+    <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -a4 -6 -b- -k- -vi -c -tW -tWM"/>
+    <PFLAGS value="-$Y- -$L- -$D- -v -JPHNE -M"/>
     <RFLAGS value=""/>
-    <AFLAGS value="/mx /w2 /zi"/>
-    <LFLAGS value="-D&quot;&quot; -aa -Tpe -x -Gn -v"/>
+    <AFLAGS value="/mx /w2 /zn"/>
+    <LFLAGS value="-D&quot;&quot; -aa -Tpe -x -Gn"/>
   </OPTIONS>
   <LINKER>
     <ALLOBJ value="c0w32.obj Memmgr.Lib sysinit.obj $(OBJFILES)"/>
@@ -60,10 +59,10 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=1
 MinorVer=2
-Release=1
-Build=12
+Release=44
+Build=71
 Debug=0
-PreRelease=1
+PreRelease=0
 Special=0
 Private=0
 DLL=0
@@ -73,24 +72,22 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=PC2009 SP1
-FileVersion=1.2.1.12
+FileVersion=1.2.44.71
 InternalName=hammer
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=eu07.exe
 ProductName=MaSzyna EU07-424
-ProductVersion=1.1.1.0
+ProductVersion=1.2
 Comments=
 
 [HistoryLists\hlIncludePath]
-Count=2
+Count=1
 Item0=McZapkie;$(BCB)\include;$(BCB)\include\vcl
-Item1=C:\Program Files\Borland\CBuilder5\Projects;d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\include;$(BCB)\include\vcl
 
 [HistoryLists\hlLibraryPath]
-Count=2
+Count=1
 Item0=McZapkie;$(BCB)\lib\obj;$(BCB)\lib
-Item1=C:\Program Files\Borland\CBuilder5\Projects;d:\program files\CBuilder5\Projects\;NewScenery;g:\Borland\CBuilder5\Projects\;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
 
 [HistoryLists\hlDebugSourcePath]
 Count=1
@@ -98,8 +95,8 @@ Item0=
 
 [HistoryLists\hlConditionals]
 Count=3
-Item0=GLEW_STATIC;_DEBUG
-Item1=GLEW_STATIC
+Item0=GLEW_STATIC
+Item1=GLEW_STATIC;_DEBUG
 Item2=_DEBUG
 
 [HistoryLists\hlFinalOutputDir]

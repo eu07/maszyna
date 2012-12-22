@@ -41,7 +41,7 @@ void TTexturesManager::Init()
 {
 };
 
-TTexturesManager::Names::iterator TTexturesManager::LoadFromFile(std::string fileName)
+TTexturesManager::Names::iterator TTexturesManager::LoadFromFile(std::string fileName,int filter)
 {
 
     std::string message("Loading - texture: ");
@@ -63,13 +63,13 @@ TTexturesManager::Names::iterator TTexturesManager::LoadFromFile(std::string fil
 
     AlphaValue texinfo;
 
-    if(ext == "tga")
-        texinfo = LoadTGA(realFileName);
-    else if(ext == "tex")
+    if (ext == "tga")
+        texinfo = LoadTGA(realFileName,filter);
+    else if (ext == "tex")
         texinfo = LoadTEX(realFileName);
-    else if(ext == "bmp")
+    else if (ext == "bmp")
         texinfo = LoadBMP(realFileName);
-    else if(ext == "dds")
+    else if (ext == "dds")
         texinfo = LoadDDS(realFileName);
 
     _alphas.insert(texinfo);
@@ -97,16 +97,16 @@ struct ReplaceSlash
     }
 };
 
-GLuint TTexturesManager::GetTextureID(std::string fileName)
+GLuint TTexturesManager::GetTextureID(std::string fileName,int filter)
 {
 
     std::transform(fileName.begin(), fileName.end(), fileName.begin(), ReplaceSlash());
 
     // jesli biezaca sciezka do tekstur nie zostala dodana to dodajemy defaultowa
-    if(fileName.find('\\') == std::string::npos)
+    if (fileName.find('\\') == std::string::npos)
         fileName.insert(0, szDefaultTexturePath);
 
-    if(fileName.find('.') == std::string::npos)
+    if (fileName.find('.') == std::string::npos)
     {
         fileName.append(".");
         fileName.append(Global::szDefaultExt);
@@ -114,8 +114,8 @@ GLuint TTexturesManager::GetTextureID(std::string fileName)
 
     Names::iterator iter = _names.find(fileName);
 
-    if(iter == _names.end())
-        iter = LoadFromFile(fileName);
+    if (iter == _names.end())
+        iter = LoadFromFile(fileName,filter);
 
     return (iter != _names.end() ? iter->second : 0);
 
@@ -204,7 +204,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadBMP(std::string fileName)
     
 };
 
-TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName)
+TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName,int filter)
 {
 
     AlphaValue fail(0, false);
@@ -298,7 +298,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName)
                 file.read(colorbuffer, bytesPerPixel);
 
                 // Flip R and B vcolor values around in the process
-		        imageData[currentbyte] = colorbuffer[2];
+                imageData[currentbyte] = colorbuffer[2];
                 imageData[currentbyte + 1] = colorbuffer[1];
                 imageData[currentbyte + 2] = colorbuffer[0];
 
@@ -339,9 +339,17 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName)
     file.close();
 
     bool alpha = (bpp == 32);
-    bool hash = (fileName.find('#') != std::string::npos);
-
-    GLuint id = CreateTexture(imageData, bytesPerPixel, width, height, alpha, hash);
+    bool hash = (fileName.find('#') != std::string::npos); //true gdy w nazwie jest "#"
+    bool dollar = (fileName.find('$') == std::string::npos); //true gdy w nazwie nie ma "$"
+    size_t pos=fileName.rfind('%'); //ostatni % w nazwie
+    if (pos!=std::string::npos)
+     if (pos<fileName.size())
+     {filter=(int)fileName[pos+1]-'0'; //zamiana cyfry za % na liczbê
+      if ((filter<0)||(filter>10)) filter=-1; //jeœli nie jest cyfr¹
+     }
+    if (!alpha&&!hash&&dollar&&(filter<0))
+     filter=Global::iDefaultFiltering; //dotyczy tekstur TGA bez kana³u alfa
+    GLuint id=CreateTexture(imageData,bytesPerPixel,width,height,alpha,hash,dollar,filter);
     delete[] imageData;
 
 	return std::make_pair(id, alpha);
@@ -523,6 +531,31 @@ TTexturesManager::AlphaValue TTexturesManager::LoadDDS(std::string fileName)
 
 };
 
+void TTexturesManager::SetFiltering(int filter)
+{
+ if (filter<5) //rozmycie przy powiêkszeniu
+ {//brak rozmycia z bliska - tych jest 4: 0..3, aby nie by³o przeskoku
+  glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+  filter+=4;
+ }
+ else
+  glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+ switch (filter) //rozmycie przy oddaleniu
+ {case 4: //najbli¿szy z tekstury
+   glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST); break;
+  case 5: //œrednia z tekstury
+   glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR); break;
+  case 6: //najbli¿szy z mipmapy
+   glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST_MIPMAP_NEAREST); break;
+  case 7: //œrednia z mipmapy
+   glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_NEAREST); break;
+  case 8: //najbli¿szy z dwóch mipmap
+   glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST_MIPMAP_LINEAR); break;
+  case 9: //œrednia z dwóch mipmap
+   glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_LINEAR); break;
+ }
+};
+
 void TTexturesManager::SetFiltering(bool alpha, bool hash)
 {
 
@@ -530,7 +563,7 @@ void TTexturesManager::SetFiltering(bool alpha, bool hash)
     {
       if (alpha) // przezroczystosc: nie wlaczac mipmapingu
        {
-         if (hash) // #: calkowity brak filtracji
+         if (hash) // #: calkowity brak filtracji - pikseloza
           {
            glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_NEAREST);
            glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -541,13 +574,13 @@ void TTexturesManager::SetFiltering(bool alpha, bool hash)
            glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_LINEAR);
           }
        }
-      else  // #: filtruj ale bez dalekich mipmap
+      else  // filtruj ale bez dalekich mipmap - robi artefakty
        {
          glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_LINEAR);
          glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_LINEAR);
        }
      }
-    else // filtruj wszystko
+    else // $: filtruj wszystko - brzydko siê zlewa
      {
        glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_LINEAR);
        glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -556,7 +589,7 @@ void TTexturesManager::SetFiltering(bool alpha, bool hash)
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-GLuint TTexturesManager::CreateTexture(char *buff, int bpp, int width, int Height, bool bHasAlpha, bool bHash)
+GLuint TTexturesManager::CreateTexture(char *buff,int bpp,int width,int Height,bool bHasAlpha,bool bHash,bool bDollar,int filter)
 {
 
     GLuint ID;
@@ -565,7 +598,10 @@ GLuint TTexturesManager::CreateTexture(char *buff, int bpp, int width, int Heigh
     glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-    SetFiltering(bHasAlpha, bHash);
+    if (filter>=0)
+     SetFiltering(filter); //cyfra po % w nazwie
+    else
+     SetFiltering(bHasAlpha&&bDollar,bHash); //znaki #, $ i kana³ alfa w nazwie
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);

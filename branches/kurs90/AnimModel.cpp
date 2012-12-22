@@ -39,9 +39,8 @@ __fastcall TAnimContainer::TAnimContainer()
     pNext= NULL;
 //    fAngle= 0.0f;
 //    vRotateAxis= vector3(0.0f,0.0f,0.0f);
-    vRotateAngles= vector3(0.0f,0.0f,0.0f);
-//    fDesiredAngle= 0.0f;
-    vDesiredAngles= vector3(0.0f,0.0f,0.0f);
+    vRotateAngles= vector3(0.0f,0.0f,0.0f); //aktualne k¹ty obrotu
+    vDesiredAngles= vector3(0.0f,0.0f,0.0f); //docelowe k¹ty obrotu
     fRotateSpeed= 0.0f;
 }
 
@@ -74,7 +73,7 @@ void __fastcall TAnimContainer::SetRotateAnim(vector3 vNewRotateAngles, double f
 }
 
 
-bool __fastcall TAnimContainer::UpdateModel()
+void __fastcall TAnimContainer::UpdateModel()
 {
     if (pSubModel)
     {
@@ -92,25 +91,26 @@ bool __fastcall TAnimContainer::UpdateModel()
             while (fAngle<-360) fAngle+= 360;
             pSubModel->SetRotate(vRotateAxis,fAngle);*/
 
+            bool anim=false;
             vector3 dif= vDesiredAngles-vRotateAngles;
             double s;
             s= fRotateSpeed*sign(dif.x)*Timer::GetDeltaTime();
             if ((abs(s)-abs(dif.x))>-0.1)
                 vRotateAngles.x= vDesiredAngles.x;
             else
-                vRotateAngles.x+= s;
+            {   vRotateAngles.x+= s; anim=true;}
 
             s= fRotateSpeed*sign(dif.y)*Timer::GetDeltaTime();
             if ((abs(s)-abs(dif.y))>-0.1)
                 vRotateAngles.y= vDesiredAngles.y;
             else
-                vRotateAngles.y+= s;
+            {   vRotateAngles.y+= s; anim=true;}
 
             s= fRotateSpeed*sign(dif.z)*Timer::GetDeltaTime();
             if ((abs(s)-abs(dif.z))>-0.1)
                 vRotateAngles.z= vDesiredAngles.z;
             else
-                vRotateAngles.z+= s;
+            {   vRotateAngles.z+= s; anim=true;}
 
             while (vRotateAngles.x>360) vRotateAngles.x-= 360;
             while (vRotateAngles.x<-360) vRotateAngles.x+= 360;
@@ -120,11 +120,17 @@ bool __fastcall TAnimContainer::UpdateModel()
             while (vRotateAngles.z<-360) vRotateAngles.z+= 360;
 
             pSubModel->SetRotateXYZ(vRotateAngles);
+            //if (!anim) fRotateSpeed=0.0; //nie potrzeba przeliczaæ ju¿
         }
 
     }
 //    if (pNext)
   //      pNext->UpdateModel();
+}
+
+bool __fastcall TAnimContainer::InMovement()
+{//czy trwa animacja - informacja dla obrotnicy
+ return fRotateSpeed!=0.0;
 }
 
 //---------------------------------------------------------------------------
@@ -138,8 +144,8 @@ __fastcall TAnimModel::TAnimModel()
     ReplacableSkinId= 0;
     for (int i=0; i<iMaxNumLights; i++)
     {
-        LightsOn[i]=LightsOff[i]= NULL;
-        lsLights[i]= ls_Off;
+        LightsOn[i]=LightsOff[i]=NULL; //normalnie nie ma
+        lsLights[i]=ls_Off; //a jeœli s¹, to wy³¹czone
     }
 }
 
@@ -176,7 +182,7 @@ bool __fastcall TAnimModel::Load(cParser *parser)
     if (!Init(str,AnsiString(token.c_str())))
     if (str!="notload")
     {
-        Error(AnsiString("Model: "+str+" Does not exist"));
+        Error(AnsiString("Model: "+str+" does not exist"));
         return false;
     }
 
@@ -198,16 +204,9 @@ bool __fastcall TAnimModel::Load(cParser *parser)
     LightsOff[6]= pModel->GetFromName("Light_Off06");
     LightsOff[7]= pModel->GetFromName("Light_Off07");
 
-    for (int i=0; i<iMaxNumLights; i++)
-    {
-        if (LightsOn[i] && LightsOff[i]);
-//            lsSwiatla[i]= ls_Off;
-        else
-        {
-            iNumLights= i;
-            break;
-        }
-    }
+    for (int i=0; i<iMaxNumLights;++i)
+     if (LightsOn[i]||LightsOff[i]) //Ra: zlikwidowa³em wymóg istnienia obu
+      iNumLights=i+1;
 
     int i=0;
     int ti;
@@ -224,7 +223,7 @@ bool __fastcall TAnimModel::Load(cParser *parser)
       {
         ti= str.ToInt();
         if (i<iMaxNumLights)
-            lsLights[i]= ti;
+            lsLights[i]= (TLightState)ti;
         i++;
  //        if (Parser->EndOfFile)
  //            break;
@@ -233,6 +232,7 @@ bool __fastcall TAnimModel::Load(cParser *parser)
         str= AnsiString(token.c_str());
       } while (str!="endmodel");
      }
+ return true;
 }
 
 TAnimContainer* __fastcall TAnimModel::AddContainer(char *pName)
@@ -251,6 +251,7 @@ TAnimContainer* __fastcall TAnimModel::AddContainer(char *pName)
 
 TAnimContainer* __fastcall TAnimModel::GetContainer(char *pName)
 {
+    if (!pName) return pRoot; //pobranie pierwszego (dla obrotnicy)
     TAnimContainer *pCurrent;
     for (pCurrent= pRoot; pCurrent!=NULL; pCurrent=pCurrent->pNext)
         if (pCurrent->GetName()==pName)
@@ -268,13 +269,17 @@ bool __fastcall TAnimModel::Render(vector3 pPosition, double fAngle)
 //        if (LightsOn[i])
             if (lsLights[i]==ls_Blink)
             {
-                LightsOn[i]->Visible= (fBlinkTimer<fOnTime);
-                LightsOff[i]->Visible= !(fBlinkTimer<fOnTime);
+                if (LightsOn[i])
+                 LightsOn[i]->Visible=(fBlinkTimer<fOnTime);
+                if (LightsOff[i])
+                 LightsOff[i]->Visible=!(fBlinkTimer<fOnTime);
             }
             else
             {
-                LightsOn[i]->Visible= (lsLights[i]==ls_On);
-                LightsOff[i]->Visible= (lsLights[i]==ls_Off);
+                if (LightsOn[i])
+                 LightsOn[i]->Visible= (lsLights[i]==ls_On);
+                if (LightsOff[i])
+                 LightsOff[i]->Visible= (lsLights[i]==ls_Off);
             }
 
     TAnimContainer *pCurrent;
@@ -294,13 +299,17 @@ bool __fastcall TAnimModel::Render(double fSquareDistance)
 //        if (LightsOn[i])
             if (lsLights[i]==ls_Blink)
             {
-                LightsOn[i]->Visible= (fBlinkTimer<fOnTime);
-                LightsOff[i]->Visible= !(fBlinkTimer<fOnTime);
+                if (LightsOn[i])
+                 LightsOn[i]->Visible=(fBlinkTimer<fOnTime);
+                if (LightsOff[i])
+                 LightsOff[i]->Visible=!(fBlinkTimer<fOnTime);
             }
             else
             {
-                LightsOn[i]->Visible= (lsLights[i]==ls_On);
-                LightsOff[i]->Visible= (lsLights[i]==ls_Off);
+                if (LightsOn[i])
+                 LightsOn[i]->Visible= (lsLights[i]==ls_On);
+                if (LightsOff[i])
+                 LightsOff[i]->Visible= (lsLights[i]==ls_Off);
             }
 
     TAnimContainer *pCurrent;
@@ -320,13 +329,17 @@ bool __fastcall TAnimModel::RenderAlpha(double fSquareDistance)
 //        if (LightsOn[i])
             if (lsLights[i]==ls_Blink)
             {
-                LightsOn[i]->Visible= (fBlinkTimer<fOnTime);
-                LightsOff[i]->Visible= !(fBlinkTimer<fOnTime);
+                if (LightsOn[i])
+                 LightsOn[i]->Visible=(fBlinkTimer<fOnTime);
+                if (LightsOff[i])
+                 LightsOff[i]->Visible= !(fBlinkTimer<fOnTime);
             }
             else
             {
-                LightsOn[i]->Visible= (lsLights[i]==ls_On);
-                LightsOff[i]->Visible= (lsLights[i]==ls_Off);
+                if (LightsOn[i])
+                 LightsOn[i]->Visible= (lsLights[i]==ls_On);
+                if (LightsOff[i])
+                 LightsOff[i]->Visible= (lsLights[i]==ls_Off);
             }
 
     TAnimContainer *pCurrent;
@@ -346,13 +359,17 @@ bool __fastcall TAnimModel::RenderAlpha(vector3 pPosition, double fAngle)
 //        if (LightsOn[i])
             if (lsLights[i]==ls_Blink)
             {
-                LightsOn[i]->Visible= (fBlinkTimer<fOnTime);
-                LightsOff[i]->Visible= !(fBlinkTimer<fOnTime);
+                if (LightsOn[i])
+                 LightsOn[i]->Visible= (fBlinkTimer<fOnTime);
+                if (LightsOff[i])
+                 LightsOff[i]->Visible= !(fBlinkTimer<fOnTime);
             }
             else
             {
-                LightsOn[i]->Visible= (lsLights[i]==ls_On);
-                LightsOff[i]->Visible= (lsLights[i]==ls_Off);
+                if (LightsOn[i])
+                 LightsOn[i]->Visible= (lsLights[i]==ls_On);
+                if (LightsOff[i])
+                 LightsOff[i]->Visible= (lsLights[i]==ls_Off);
             }
 
     TAnimContainer *pCurrent;
@@ -360,8 +377,7 @@ bool __fastcall TAnimModel::RenderAlpha(vector3 pPosition, double fAngle)
         pCurrent->UpdateModel();
     if (pModel)
         pModel->RenderAlpha(pPosition, fAngle, ReplacableSkinId);
-}
-
+};
 
 //---------------------------------------------------------------------------
 

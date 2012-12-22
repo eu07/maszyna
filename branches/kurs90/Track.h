@@ -3,9 +3,7 @@
 #ifndef TrackH
 #define TrackH
 
-//#include "DynObj.h"
 #include "Segment.h"
-//#include "QueryParserComp.hpp"
 #include "parser.h"
 #include "Event.h"
 #include "Flags.h"
@@ -13,57 +11,64 @@
 
 class TEvent;
 
-typedef enum { tt_Unknown, tt_Normal, tt_Switch } TTrackType;
+typedef enum { tt_Unknown, tt_Normal, tt_Switch, tt_Turn, tt_Cross } TTrackType;
 //McZapkie-100502
 typedef enum { e_unknown, e_flat, e_mountains, e_canyon, e_tunnel, e_bridge, e_bank } TEnvironmentType;
 
 class TTrack;
+class TGroundNode;
 
-const double fMaxOffset= 0.1f;
+static const double fMaxOffset=0.1f;
 
 class TSwitchExtension
-{
+{//dodatkowe dane do toru, który jest zwrotnic¹
 public:
     __fastcall TSwitchExtension();
     __fastcall ~TSwitchExtension();
-//    vector3 p00,p01,p02,p03,p04,p05,p06,p07,p08,p09,p10,p11;
-    TSegment Segments[4];
+    TSegment Segments[4]; //dwa tory od punktu 1, pozosta³e dwa od 2?
     TTrack *pNexts[2];
     TTrack *pPrevs[2];
     bool bNextSwitchDirection[2];
     bool bPrevSwitchDirection[2];
-    int CurrentIndex;
-    double fOffset1, fOffset2, fDesiredOffset1, fDesiredOffset2;
+    int CurrentIndex; //dla zwrotnicy
+    double fOffset1, fDesiredOffset1; //ruch od strony punktu 1
+    union
+    {double fOffset2, fDesiredOffset2; //ruch od strony punktu 2 nie obs³ugiwany
+     TGroundNode *pMyNode; //dla obrotnicy do wtórnego pod³¹czania torów
+    };
+    union
+    {bool RightSwitch; //czy zwrotnica w prawo
+     //TAnimContainer *pAnim; //animator modelu dla obrotnicy
+     TAnimModel *pModel; //na razie model
+    };
+    bool bMovement; //czy w trakcie animacji
 private:
 };
 
 const int iMaxNumDynamics= 40; //McZapkie-100303
 
-const int NextMask[4]= {0,1,0,1};
-const int PrevMask[4]= {0,0,1,1};
+const int NextMask[4]= {0,1,0,1}; //tor nastêpny dla stanów 0, 1, 2, 3
+const int PrevMask[4]= {0,0,1,1}; //tor poprzedni dla stanów 0, 1, 2, 3
 
 class TTrack: public Resource
 {
 private:
-    TSwitchExtension *SwitchExtension;
-
-//    TFlags32 Flags;
-
-//    TSegment Segments[2];
+    TSwitchExtension *SwitchExtension; //dodatkowe dane do toru, który jest zwrotnic¹
     TSegment *Segment;
-    TTrack *pNext;
-//    TTrack *pNext1;
-    TTrack *pPrev;
-//    TTrack *pNext2;
+    TTrack *pNext; //odcinek od strony punktu 2
+    TTrack *pPrev; //odcinek od strony punktu 1
 //McZapkie-070402: dodalem zmienne opisujace rozmiary tekstur
-    GLuint TextureID1;
+    GLuint TextureID1; //tekstura szyn
     float fTexLength;
-    GLuint TextureID2;
-    float fTexHeight;
+    GLuint TextureID2; //tekstura automatycznej podsypki
+    float fTexHeight; //wysokoœ brzegu wzglêdem trajektorii
     float fTexWidth;
     float fTexSlope;
-    vector3 *HelperPts;
-    double fRadiusTable[2];
+    //vector3 *HelperPts; //Ra: nie u¿ywane, na razie niech zostanie
+    double fRadiusTable[2]; //dwa promienie, drugi dla zwrotnicy
+    int iTrapezoid; //0-standard, 1-przechy³ka, 2-trapez, 3-oba
+private:
+    GLuint DisplayListID;
 public:
     int iNumDynamics;
     TDynamicObject *Dynamics[iMaxNumDynamics];
@@ -73,7 +78,9 @@ public:
     TEvent *Event0;  //McZapkie-280503: wyzwalany tylko gdy headdriver
     TEvent *Event1;
     TEvent *Event2;
-    AnsiString asEventall0Name;
+    TEvent *EventBusy; //Ra: wyzwalane, gdy zajmowany; nazwa automatyczna
+    TEvent *EventFree; //Ra: wyzwalane, gdy zwalniany; nazwa automatyczna
+    AnsiString asEventall0Name; //nazwy eventów
     AnsiString asEventall1Name;
     AnsiString asEventall2Name;
     AnsiString asEvent0Name;
@@ -83,26 +90,27 @@ public:
     bool bPrevSwitchDirection;
     TTrackType eType;
     int iCategoryFlag;
-    float fTrackWidth;
-    float fFriction;
+    float fTrackWidth; //szerokoœæ w punkcie 1
+    float fTrackWidth2; //szerokoœæ w punkcie 2 (g³ównie drogi i rzeki)
+    float fFriction; //wspó³czynnik tarcia
     float fSoundDistance;
     int iQualityFlag;
     int iDamageFlag;
-    TEnvironmentType eEnvironment;
-    bool bVisible;
-    double fVelocity;
+    TEnvironmentType eEnvironment; //dŸwiêk i oœwietlenie
+    bool bVisible; //czy rysowany
+    double fVelocity; //prêdkoœæ dla AI (powy¿ej roœnie prawdopowobieñstwo wykolejenia)
 //McZapkie-100502:
-    double fTrackLength;
-    double fRadius; //dla AI
-    bool ScannedFlag; //McZapkie: to dla testu    
+    double fTrackLength; //d³ugoœæ z wpisu, nigdzie nie u¿ywana
+    double fRadius; //promieñ, dla zwrotnicy kopiowany z tabeli
+    bool ScannedFlag; //McZapkie: to dla testu
     __fastcall TTrack();
     __fastcall ~TTrack();
-    bool __fastcall Init();
+    void __fastcall Init();
     inline bool __fastcall IsEmpty() { return (iNumDynamics<=0); };
-    bool __fastcall ConnectPrevPrev(TTrack *pNewPrev);
-    bool __fastcall ConnectPrevNext(TTrack *pNewPrev);
-    bool __fastcall ConnectNextPrev(TTrack *pNewNext);
-    bool __fastcall ConnectNextNext(TTrack *pNewNext);
+    void __fastcall ConnectPrevPrev(TTrack *pNewPrev);
+    void __fastcall ConnectPrevNext(TTrack *pNewPrev);
+    void __fastcall ConnectNextPrev(TTrack *pNewNext);
+    void __fastcall ConnectNextNext(TTrack *pNewNext);
     inline double __fastcall Length() { return Segment->GetLength(); };
     inline TSegment* __fastcall CurrentSegment() { return Segment; };
     inline TTrack* __fastcall CurrentNext() { return (pNext); };
@@ -126,65 +134,25 @@ public:
         Error("Cannot set connections");
         return false;
     }
-    inline bool __fastcall Switch(int i)
-    {
-        if (SwitchExtension)
-        {
-            SwitchExtension->fDesiredOffset1= fMaxOffset*double(NextMask[i]);
-            SwitchExtension->fDesiredOffset2= fMaxOffset*double(PrevMask[i]);
-            SwitchExtension->CurrentIndex= i;
-            Segment= SwitchExtension->Segments+i;
-            pNext= SwitchExtension->pNexts[NextMask[i]];
-            pPrev= SwitchExtension->pPrevs[PrevMask[i]];
-            bNextSwitchDirection= SwitchExtension->bNextSwitchDirection[NextMask[i]];
-            bPrevSwitchDirection= SwitchExtension->bPrevSwitchDirection[PrevMask[i]];
-            //McZapkie: wybor promienia toru:
-            fRadius= fRadiusTable[i];
-            return true;
-        }
-        Error("Cannot switch track");
-        return false;
-    };
+    bool __fastcall Switch(int i);
     inline int __fastcall GetSwitchState() { return (SwitchExtension?SwitchExtension->CurrentIndex:-1); };
-    bool __fastcall Load(cParser *parser, vector3 pOrigin);
+    void __fastcall Load(cParser *parser, vector3 pOrigin);
     bool __fastcall AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2);
     bool __fastcall AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2);
-    bool __fastcall CheckDynamicObject(TDynamicObject *Dynamic)
-    {
-        for (int i=0; i<iNumDynamics; i++)
-            if (Dynamic==Dynamics[i])
-                return true;
-        return false;
-    };
+    bool __fastcall CheckDynamicObject(TDynamicObject *Dynamic);
     bool __fastcall AddDynamicObject(TDynamicObject *Dynamic);
-    bool __fastcall RemoveDynamicObject(TDynamicObject *Dynamic)
-    {
-        for (int i=0; i<iNumDynamics; i++)
-        {
-            if (Dynamic==Dynamics[i])
-            {
-                iNumDynamics--;
-                for (i; i<iNumDynamics; i++)
-                    Dynamics[i]= Dynamics[i+1];
-                return true;
-
-            }
-        }
-        Error("Cannot remove dynamic from track");
-        return false;
-    }
-
-    void MoveMe(vector3 pPosition);
+    bool __fastcall RemoveDynamicObject(TDynamicObject *Dynamic);
+    void __fastcall MoveMe(vector3 pPosition);
 
     void Release();
     void Compile();
-    
+
     bool __fastcall Render();
     bool __fastcall RenderAlpha();
+    bool __fastcall InMovement(); //czy w trakcie animacji?
 
-private:
-    GLuint DisplayListID;
-
+    void __fastcall Assign(TGroundNode *gn,TAnimContainer *ac);
+    void __fastcall Assign(TGroundNode *gn,TAnimModel *am);
 };
 
 //---------------------------------------------------------------------------

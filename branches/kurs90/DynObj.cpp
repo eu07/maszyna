@@ -59,6 +59,7 @@ TDynamicObject* TDynamicObject::GetFirstDynamic(int cpl_type)
             temp=temp->NextConnected;
          }
    }
+  return NULL; //Ra: chyba tak?
 }
 
 TDynamicObject* TDynamicObject::GetLastDynamic(int cpl_type)
@@ -84,6 +85,7 @@ TDynamicObject* TDynamicObject::GetLastDynamic(int cpl_type)
             temp=temp->NextConnected;
          }
    }
+ return NULL; //Ra: chyba tak?
 }
 
 void TDynamicObject::ABuSetModelShake(vector3 mShake)
@@ -653,7 +655,7 @@ TDynamicObject* __fastcall ABuFindNearestObject(TTrack *Track, TDynamicObject *M
 TDynamicObject* TDynamicObject::ABuScanNearestObject(TTrack *Track, double ScanDir, double ScanDist, int &CouplNr)
 {
    //skanowanie toru w poszukiwaniu obiektu najblizszego kamerze
-   double MyScanDir=ScanDir;  //Moja orientacja na torze.
+   //double MyScanDir=ScanDir;  //Moja orientacja na torze.  //Ra: nie u¿ywane
    if(ABuGetDirection()<0) ScanDir=-ScanDir;
    TDynamicObject* FoundedObj;
 
@@ -715,7 +717,7 @@ TDynamicObject* TDynamicObject::ABuScanNearestObject(TTrack *Track, double ScanD
 //ABu 01.11.04 poczatek wyliczania przechylow pudla **********************
 void __fastcall TDynamicObject::ABuModelRoll()
 {
-   double modelRoll=(Axle1.GetRoll()+Axle4.GetRoll())/2;
+   double modelRoll=RadToDeg((Axle1.GetRoll()+Axle4.GetRoll())/2); //Ra: tu nie by³o DegToRad
 //   if (ABuGetDirection()<0) modelRoll=-modelRoll;
    mdModel->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
    if (mdKabina)
@@ -963,9 +965,8 @@ void TDynamicObject::ABuScanObjects(TTrack *Track, double ScanDir, double ScanDi
 {
    //skanowanie toru w poszukiwaniu obiektow
    double MyScanDir=ScanDir;  //Moja orientacja na torze.
-   Byte MyCouplFound=0; //Numer sprzegu do podlaczenia w obiekcie szukajacym.
-   if (MyScanDir<0) MyCouplFound=1;
-               else MyCouplFound=0;
+   Byte MyCouplFound; //Numer sprzegu do podlaczenia w obiekcie szukajacym.
+   MyCouplFound=(MyScanDir<0)?1:0;
    Byte CouplFound=0; //Numer sprzegu do podlaczenia w znalezionym obiekcie.
 
    if(ABuGetDirection()<0) ScanDir=-ScanDir;
@@ -1617,12 +1618,12 @@ bool __fastcall TDynamicObject::Move(double fDistance)
 }
 */
 
-bool __fastcall TDynamicObject::FastMove(double fDistance)
+void __fastcall TDynamicObject::FastMove(double fDistance)
 {
    MoverParameters->dMoveLen=MoverParameters->dMoveLen+fDistance;
 }
 
-bool __fastcall TDynamicObject::Move(double fDistance)
+void __fastcall TDynamicObject::Move(double fDistance)
 {
    bEnabled&= Axle1.Move(fDistance,MoverParameters->V>=0);
    bEnabled&= Axle4.Move(fDistance,MoverParameters->V<0);
@@ -1630,7 +1631,7 @@ bool __fastcall TDynamicObject::Move(double fDistance)
    Axle2.Move(fDistance,false);
 }
 
-bool __fastcall TDynamicObject::AttachPrev(TDynamicObject *Object, int iType)
+void __fastcall TDynamicObject::AttachPrev(TDynamicObject *Object, int iType)
 {
     //ABu: ponizej chyba najprostszy i najszybszy sposob pozbycia sie bledu :)
     //(iType czasami powinno byc rowne 0, a wynosi 48. Cholera wie, dlaczego...)
@@ -1644,7 +1645,7 @@ bool __fastcall TDynamicObject::AttachPrev(TDynamicObject *Object, int iType)
             l+= Current->GetLength()*0.5; //MC: skasowalem -0.1 bo juz niepotrzebne
             break;
         }
-    double r= Object->Move(-l-(Object->GetLength())*0.5f);;
+    /*double r=*/ Object->Move(-l-(Object->GetLength())*0.5f); //Ra: bool do double zwracane jako bool?
 
                 TLocation loc;
 
@@ -1669,12 +1670,12 @@ bool __fastcall TDynamicObject::AttachPrev(TDynamicObject *Object, int iType)
     //ABu: To mala poprawka - sprawdzenie tablic Dynamics dla obiektow,
     //bo wagony sa blednie rozmieszczane przy starcie symulatora.
     Object->ABuCheckMyTrack();
-    return r;
+    return;// r;
 
-    SetPneumatic(1,1);
-    SetPneumatic(1,0);
-    SetPneumatic(0,1);
-    SetPneumatic(0,0);
+    //SetPneumatic(1,1); //Ra: to i tak siê nie wykonywa³o po return
+    //SetPneumatic(1,0);
+    //SetPneumatic(0,1);
+    //SetPneumatic(0,0);
 }
 
 bool __fastcall TDynamicObject::UpdateForce(double dt, double dt1, bool FullVer)
@@ -1683,6 +1684,7 @@ bool __fastcall TDynamicObject::UpdateForce(double dt, double dt1, bool FullVer)
         return false;
     if (dt>0)
      MoverParameters->ComputeTotalForce(dt, dt1, FullVer);
+ return true;    
 }
 
 
@@ -1782,7 +1784,7 @@ if (!MoverParameters->PhysicActivation)
 //McZapkie-260202
    //
 if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
-    if ((MechInside) || (MoverParameters->TrainType=="ezt"))
+    if ((MechInside) || (MoverParameters->TrainType==dt_EZT))
 {
     //if ((!MoverParameters->PantCompFlag) && (MoverParameters->CompressedVolume>=2.8))
     //  MoverParameters->PantVolume= MoverParameters->CompressedVolume;
@@ -1799,7 +1801,7 @@ if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
 }
 
 //Winger - odhamowywanie w EZT
-//    if ((MoverParameters->TrainType=="ezt") && (MoverParameters->BrakeCtrlPos==-1) && (!MoverParameters->UnBrake))
+//    if ((MoverParameters->TrainType==dt_EZT) && (MoverParameters->BrakeCtrlPos==-1) && (!MoverParameters->UnBrake))
 //     {
 //     MoverParameters->IncBrakeLevel(); // >BrakeCtrlPosNo=0;
 //     }
@@ -1820,7 +1822,7 @@ if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
 //    ts.R=ComputeRadius(Axle1.pPosition,Axle2.pPosition,Axle3.pPosition,Axle4.pPosition);
     ts.Len= Max0R(MoverParameters->BDist,MoverParameters->ADist);
     ts.dHtrack= Axle1.pPosition.y-Axle4.pPosition.y;
-    ts.dHrail= (DegToRad(Axle1.GetRoll())+DegToRad(Axle4.GetRoll()))*0.5f;
+    ts.dHrail= ((Axle1.GetRoll())+(Axle4.GetRoll()))*0.5f;
     //TTrackParam tp;
     tp.Width= MyTrack->fTrackWidth;
 //McZapkie-250202
@@ -1840,13 +1842,13 @@ if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
 //napiecie sieci trakcyjnej
 
     TTractionParam tmpTraction;
-if ((MoverParameters->EnginePowerSource.SourceType==CurrentCollector)||(MoverParameters->TrainType=="ezt"))
+if ((MoverParameters->EnginePowerSource.SourceType==CurrentCollector)||(MoverParameters->TrainType==dt_EZT))
 {
     if (Global::bLiveTraction)
      {
      if ((MoverParameters->PantFrontVolt) || (MoverParameters->PantRearVolt) ||
         //ABu: no i sprawdzenie dla EZT:
-        ((MoverParameters->TrainType=="ezt")&&(MoverParameters->GetTrainsetVoltage())))
+        ((MoverParameters->TrainType==dt_EZT)&&(MoverParameters->GetTrainsetVoltage())))
       NoVoltTime=0;
      else
       NoVoltTime=NoVoltTime+dt;
@@ -1932,8 +1934,8 @@ TGround::GetTraction;
      if (MoverParameters->MainSwitch(False))
       MoverParameters->EventFlag=True;
       }
-    if (MoverParameters->TrainType=="et42"){
-     if (((TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab>0)&&(NextConnected-> MoverParameters->TrainType!="et42"))||((TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab<0)&&(PrevConnected-> MoverParameters->TrainType!="et42")))
+    if (MoverParameters->TrainType==dt_ET42){
+     if (((TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab>0)&&(NextConnected-> MoverParameters->TrainType!=dt_ET42))||((TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab<0)&&(PrevConnected-> MoverParameters->TrainType!=dt_ET42)))
      {
      if (MoverParameters->MainSwitch(False))
       MoverParameters->EventFlag=True;
@@ -2041,7 +2043,7 @@ SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);*/
 
                         }
            }   */
-        if ((MoverParameters->TrainType=="et40") || (MoverParameters->TrainType=="ep05"))
+        if ((MoverParameters->TrainType==dt_ET40) || (MoverParameters->TrainType==dt_EP05))
         {
        /* if ((MoverParameters->MainCtrlPos>MoverParameters->MainCtrlActualPos)&&(abs(MoverParameters->Im)>MoverParameters->IminHi))
           {
@@ -2069,7 +2071,7 @@ if (MoverParameters->Vel!=0)
 if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
 {
 lastcabf=(MoverParameters->CabNo*MoverParameters->DoubleTr);
-if (MoverParameters->TrainType=="ezt")
+if (MoverParameters->TrainType==dt_EZT)
   lastcabf=1;
 if (lastcabf==0)
  lastcabf=MoverParameters->LastCab;
@@ -2133,10 +2135,9 @@ pcp2p=MoverParameters->PantFrontVolt;
     TempPantVol= MoverParameters->CompressedVolume;
    if (TempPantVol>6)
     TempPantVol=6;
-   if (MoverParameters->TrainType=="ezt")
+   if (MoverParameters->TrainType==dt_EZT)
     TempPantVol+= 2;
- if (vol2<0)
-        vol2=0;
+    if (vol2<0) vol2=0; //Ra: vol2 nie u¿ywane dalej
    if (StartTime<2)
     pantspeedfactor=10;
    else
@@ -2186,28 +2187,24 @@ pcp2p=MoverParameters->PantFrontVolt;
 //    dPantAngleR=dPantAngleRT;
 
    if ((dPantAngleR>dPantAngleRT) && (pcabc2))
-    {
+   {
     dPantAngleR-=5*0.05*pantspeedfactor*(pcabd2*5*(dPantAngleR-dPantAngleRT)+1);
     if (dPantAngleR<dPantAngleRT)
     {
-       dPantAngleR=dPantAngleRT;
-       pcabd2=1;
+     dPantAngleR=dPantAngleRT;
+     pcabd2=1;
     }
-    }
+   }
    if (dPantAngleR<-70)
      pcabc2=false;
    if ((dPantAngleR<dPantAngleRT) && (pcabc2) && ((dPantAngleR-dPantAngleRT>0.2) || (dPantAngleRT-dPantAngleR>0.2)))
     {
-    dPantAngleR+=5*0.05*(5*(dPantAngleRT-dPantAngleR)+1)*40*dt1;
-    if (dPantAngleR>dPantAngleRT)
-       {
-          dPantAngleR=dPantAngleRT;
-       }
-
+     dPantAngleR+=5*0.05*(5*(dPantAngleRT-dPantAngleR)+1)*40*dt1;
+     if (dPantAngleR>dPantAngleRT)
+      dPantAngleR=dPantAngleRT;
     }
    if ((dPantAngleR<0) && (!pcabc2))
     dPantAngleR+=5*0.05*40*dt1;
-    
 
 if (lastcabf==1)
 {
@@ -2308,6 +2305,7 @@ if (tmpTraction.TractionVoltage==0)
        CouplCounter++;
     else
        CouplCounter=25;
+ return true; //Ra: chyba tak?      
 }
 
 bool __fastcall TDynamicObject::FastUpdate(double dt)
@@ -2337,7 +2335,7 @@ bool __fastcall TDynamicObject::FastUpdate(double dt)
     //ts.R=MyTrack->fRadius;
     //ts.Len= Max0R(MoverParameters->BDist,MoverParameters->ADist);
     //ts.dHtrack= Axle1.pPosition.y-Axle4.pPosition.y;
-    //ts.dHrail= (DegToRad(Axle1.GetRoll())+DegToRad(Axle4.GetRoll()))*0.5f;
+    //ts.dHrail= ((Axle1.GetRoll())+(Axle4.GetRoll()))*0.5f;
     //tp.Width= MyTrack->fTrackWidth;
     //McZapkie-250202
     //tp.friction= MyTrack->fFriction;
@@ -2373,6 +2371,7 @@ else
   sBrakeAcc.Stop();
 
 SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);   */
+ return true; //Ra: chyba tak?
 }
 
 //McZapkie-040402: liczenie pozycji uwzgledniajac wysokosc szyn itp
@@ -2538,13 +2537,12 @@ if (renderme)
 
 
 //McZapkie-010302: ulepszony dzwiek silnika
-    double freq=1;
+    double freq;
     double vol=0;
     double dt=Timer::GetDeltaTime();
 
 //    double sounddist;
 //    sounddist=SquareMagnitude(Global::pCameraPosition-GetPosition());
-    vol= 0;
 
     if (MoverParameters->Power>0)
      {
@@ -2630,7 +2628,7 @@ if (renderme)
           else
            rsWentylator.Stop();
         }
-        if (MoverParameters->TrainType=="et40")
+        if (MoverParameters->TrainType==dt_ET40)
         {
           if (MoverParameters->Vel>0.1)
            {
@@ -2671,7 +2669,7 @@ if (renderme)
        rsPisk.Stop();
      }
 
-//if ((MoverParameters->ConverterFlag==false) && (MoverParameters->TrainType!="et22"))
+//if ((MoverParameters->ConverterFlag==false) && (MoverParameters->TrainType!=dt_ET22))
 if ((MoverParameters->ConverterFlag==false)&&(MoverParameters->CompressorPower>0))
  MoverParameters->CompressorFlag=false;
 if (MoverParameters->CompressorPower==2)
@@ -2713,7 +2711,7 @@ if (MoverParameters->CompressorPower==2)
 
 
 
-    if(MoverParameters->TrainType=="pseudodiesel")
+    if(MoverParameters->TrainType==dt_PseudoDiesel)
     {
        //ABu: udawanie woodwarda dla lok. spalinowych
        //jesli silnik jest podpiety pod dzwiek przetwornicy
@@ -2939,6 +2937,7 @@ if (renderme)
 
     mdModel->RenderAlpha(ObjSqrDist,ReplacableSkinID);
 
+/* skoro false to mo¿na wyci¹c
     //ABu: Tylko w trybie freefly
     if (false)//((mdKabina!=mdModel) && bDisplayCab && FreeFlyModeFlag)
     {
@@ -2988,6 +2987,7 @@ if (renderme)
       glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
       glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
     }
+*/
     glPopMatrix ( );
     if (btnOn==true)
     {
@@ -3025,7 +3025,7 @@ if (renderme)
 
 //McZapkie-250202
 //wczytywanie pliku z danymi multimedialnymi (dzwieki)
-bool __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName, AnsiString ReplacableSkin)
+void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName, AnsiString ReplacableSkin)
 {
     double dSDist;
     TFileStream *fs;
@@ -3061,7 +3061,7 @@ bool __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString Ty
              ReplacableSkinID= TTexturesManager::GetTextureID(ReplacableSkin.c_str());
            }
 //Winger 040304 - ladowanie przedsionkow dla EZT
-          if (MoverParameters->TrainType==AnsiString("ezt"))
+          if (MoverParameters->TrainType==dt_EZT)
           {
            asModel="przedsionki.t3d";
            asModel= BaseDir+asModel;
