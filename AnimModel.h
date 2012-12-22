@@ -4,15 +4,19 @@
 #define AnimModelH
 
 #include "Model3d.h"
-//#include "QueryParserComp.hpp"
 #include "parser.h"
 
 const int iMaxNumLights= 8;
 
-typedef enum { ls_Off=0, ls_On=1, ls_Blink=2 } TLightState;
+typedef enum { ls_Off=0, ls_On=1, ls_Blink=2, ls_Dark=3} TLightState;
 
 class TAnimContainer
 {
+private:
+    vector3 vRotateAngles;
+    vector3 vDesiredAngles;
+    double fRotateSpeed;
+    TSubModel *pSubModel;
 public:
     __fastcall TAnimContainer();
     __fastcall ~TAnimContainer();
@@ -20,14 +24,10 @@ public:
     std::string inline __fastcall GetName() { return (pSubModel?pSubModel->Name : std::string("")); };
 //    void __fastcall SetRotateAnim(vector3 vNewRotateAxis, double fNewDesiredAngle, double fNewRotateSpeed, bool bResetAngle=false);
     void __fastcall SetRotateAnim(vector3 vNewRotateAngles, double fNewRotateSpeed, bool bResetAngle=false);
-    bool __fastcall UpdateModel();
+    void __fastcall UpdateModel();
     TAnimContainer *pNext;
-private:
-    vector3 vRotateAngles;
-    vector3 vDesiredAngles;
-    double fRotateSpeed;
-
-    TSubModel *pSubModel;
+    bool __fastcall InMovement(); //czy w trakcie animacji?
+    double _fastcall AngleGet() {return vRotateAngles.z;}; //jednak ostatnia, T3D ma inny uk³ad
 };
 
 class TAnimModel

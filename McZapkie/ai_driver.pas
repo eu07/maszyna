@@ -202,7 +202,7 @@ begin
      IncBrake;
     if ActiveDir=testd then
      VelforDriver:=-1;
-     if (ActiveDir<>0) and (TrainType='ezt') then Imin:=IminHi;
+     if (ActiveDir<>0) and (TrainType=dt_EZT) then Imin:=IminHi;
    end;
   OrderDirectionChange:=Round(VelforDriver);
 end;
@@ -279,7 +279,7 @@ begin
   ReactionTime:=PrepareTime;
   with Controlling^ do
    begin
-   if ((EnginePowerSource.SourceType=CurrentCollector) or (TrainType='ezt')) then
+   if ((EnginePowerSource.SourceType=CurrentCollector) or (TrainType=dt_EZT)) then
      begin
        if(GetTrainsetVoltage) then
           begin
@@ -309,7 +309,7 @@ begin
 //   end
    else
       //if EnginePowerSource.SourceType<>CurrentCollector then
-      if TrainType<>'ezt' then
+      if TrainType<>dt_EZT then
        voltfront:=true;
      if EnginePowerSource.SourceType=CurrentCollector then
       begin
@@ -317,7 +317,7 @@ begin
        PantFront(true);
        PantRear(true);
       end;
-     if TrainType='ezt' then
+     if TrainType=dt_EZT then
       begin
        BatterySwitch(true);
        PantFront(true);
@@ -335,7 +335,7 @@ if (PantFrontVolt or PantRearVolt or voltfront or voltrear) then
   begin
      if not Mains then
        begin
-       //if TrainType='SN61' then
+       //if TrainType=dt_SN61 then
        //   begin
        //      OK:=(OrderDirectionChange(ChangeDir,Controlling)=-1);
        //      OK:=IncMainCtrl(1);
@@ -548,7 +548,7 @@ begin
         ElectricSeriesMotor :
                begin
                 if not FuseFlag then
-                 if ((Im<=Imin) and (Ready=True) and (TrainType<>'et42')) or ((Im<=Imin) and (Ready=True) and (TrainType='et42')and (not DynamicBrakeFlag)) then
+                 if ((Im<=Imin) and (Ready=True) and (TrainType<>dt_ET42)) or ((Im<=Imin) and (Ready=True) and (TrainType=dt_ET42)and (not DynamicBrakeFlag)) then
                   begin
                     OK:=IncMainCtrl(1);
                     if (MainCtrlPos>2)and ((Im=0) and (LastRelayTime>InitialCtrlDelay))
@@ -557,7 +557,7 @@ begin
                       if not OK then
                       OK:=IncScndCtrl(1);  {TODO: dorobic boczniki na szeregowej przy ciezkich bruttach}
                   end;
-                  if  (TrainType='et42')and ( DynamicBrakeFlag) then
+                  if  (TrainType=dt_ET42)and ( DynamicBrakeFlag) then
                   begin
                     OK:=IncScndCtrl(1);
                   end;

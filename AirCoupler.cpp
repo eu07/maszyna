@@ -60,7 +60,7 @@ bool __fastcall TAirCoupler::Load(TQueryParserComp *Parser, TModel3d *pModel)
      }
 }
 
-bool __fastcall TAirCoupler::Update()
+void __fastcall TAirCoupler::Update()
 {
 //  if ((pModelOn!=NULL) && (pModelOn!=NULL))
    {

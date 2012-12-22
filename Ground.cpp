@@ -69,9 +69,9 @@ __fastcall TSubRect::AddNode(TGroundNode *Node)
    Node->Next2= pRootNode; pRootNode= Node;
 };*/
 
+/*
 bool __fastcall Include(TQueryParserComp *Parser)
 {
-/*
     TFileStream *fs;
     AnsiString str,asFileName,Token;
     int size,ParamPos;
@@ -116,8 +116,8 @@ bool __fastcall Include(TQueryParserComp *Parser)
 //            Parser->First();
 
             delete fs;
-*/
 }
+*/
 
 //TGround *pGround= NULL;
 
@@ -182,16 +182,17 @@ bool __fastcall TGroundNode::Init(int n)
     bVisible= false;
     iNumVerts= n;
     Vertices= new TGroundVertex[iNumVerts];
+    return true;
 }
 
-__fastcall TGroundNode::InitCenter()
+void __fastcall TGroundNode::InitCenter()
 {
     for (int i=0; i<iNumVerts; i++)
         pCenter+= Vertices[i].Point;
     pCenter/= iNumVerts;
 }
 
-__fastcall TGroundNode::InitNormals()
+void __fastcall TGroundNode::InitNormals()
 {
     vector3 v1,v2,v3,v4,v5,n1,n2,n3,n4;
     int i;
@@ -287,7 +288,6 @@ void __fastcall TGroundNode::MoveMe(vector3 pPosition)
 //McZapkie - dzwiek zapetlony w zaleznosci od odleglosci
              pStaticSound->vSoundPosition+=pPosition;
         break;
-        break;
         case GL_LINES:
         case GL_LINE_STRIP:
         case GL_LINE_LOOP:
@@ -309,14 +309,10 @@ void __fastcall TGround::MoveGroundNode(vector3 pPosition)
     for (Current= RootNode; Current!=NULL; Current= Current->Next)
         Current->MoveMe(pPosition);
 
-
-    TGroundRect *Rectx = new TGroundRect;
-
+    TGroundRect *Rectx = new TGroundRect; //zawiera wskaŸnik do tablicy hektometrów
     for(int i=0;i<iNumRects;i++)
-    for(int j=0;j<iNumRects;j++)
-    {
-      Rects[i][j]= *Rectx;
-    }
+     for(int j=0;j<iNumRects;j++)
+      Rects[i][j]= *Rectx; //kopiowanie do ka¿dego kwadratu
     delete Rectx;
     for (Current= RootNode; Current!=NULL; Current= Current->Next)
         {
@@ -334,13 +330,13 @@ void __fastcall TGround::MoveGroundNode(vector3 pPosition)
         }
 }
 
-bool __fastcall TGroundNode::Disable()
+/*bool __fastcall TGroundNode::Disable()
 {
 //    bRenderable= false;
 //    if ((iType==TP_EVENT) && Event)
 //        Event->bEnabled= false;
 
-}
+}*/
 
 bool __fastcall TGroundNode::Render()
 {
@@ -433,7 +429,7 @@ bool __fastcall TGroundNode::Render()
         SetLastUsage(Timer::GetSimulationTime());
 
     };
-
+ return true;
 };
 
 void TGroundNode::Compile()
@@ -566,7 +562,7 @@ bool __fastcall TGroundNode::RenderAlpha()
         SetLastUsage(Timer::GetSimulationTime());
 
     };
-
+ return true;
 }
 
 
@@ -586,7 +582,7 @@ __fastcall TGround::TGround()
     iNumNodes= 0;
     pTrain= NULL;
     Global::pGround= this;
-
+    bInitDone=false; //Ra: ¿eby nie robi³o dwa razy
 }
 
 __fastcall TGround::~TGround()
@@ -594,7 +590,7 @@ __fastcall TGround::~TGround()
     Free();
 }
 
-bool __fastcall TGround::Free()
+void __fastcall TGround::Free()
 {
     TEvent *tmp;
     for (TEvent *Current=RootEvent; Current!=NULL; )
@@ -859,9 +855,9 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
 //            str= Parser->GetNextSymbol().LowerCase();
   //          str= Parser->GetNextSymbol().LowerCase();
     //        str= Parser->GetNextSymbol().LowerCase();
-            tmp->pCenter= ( tmp->pTrack->CurrentSegment()->FastGetPoint(0)+
+            tmp->pCenter= ( tmp->pTrack->CurrentSegment()->FastGetPoint_0()+
                             tmp->pTrack->CurrentSegment()->FastGetPoint(0.5)+
-                            tmp->pTrack->CurrentSegment()->FastGetPoint(1) ) * 0.33333f;
+                            tmp->pTrack->CurrentSegment()->FastGetPoint_1() ) * 0.33333f;
 
 
         break;
@@ -1206,12 +1202,12 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
     if (tmp->bStatic)
     {
         tmp->Next= RootNode;
-        RootNode= tmp;
+        RootNode= tmp; //dopisanie z przodu do listy
     }
     else
     {
         tmp->Next= RootDynamic;
-        RootDynamic= tmp;
+        RootDynamic= tmp; //dopisanie z przodu do listy
     }
 
     return tmp;
@@ -1262,7 +1258,7 @@ bool __fastcall TGround::Init(AnsiString asFile)
     Global::pGround= this;
     pTrain= NULL;
 
-    pOrigin=aRotate= vector3(0,0,0);
+    pOrigin=aRotate= vector3(0,0,0); //zerowanie przesuniêcia i obrotu
 
     AnsiString str= "";
   //  TFileStream *fs;
@@ -1289,9 +1285,9 @@ bool __fastcall TGround::Init(AnsiString asFile)
     Parser->First();
     AnsiString Token,asFileName;
 */
-    const int OriginStackMaxDepth= 1000;
+    const int OriginStackMaxDepth= 1000; //rozmiar stosu dla zagnie¿d¿enia origin
     int OriginStackTop= 0;
-    vector3 OriginStack[OriginStackMaxDepth];
+    vector3 OriginStack[OriginStackMaxDepth]; //stos zagnie¿d¿enia origin
 
     double tf;
     int ParamCount,ParamPos;
@@ -1316,7 +1312,7 @@ bool __fastcall TGround::Init(AnsiString asFile)
         str=AnsiString(token.c_str());
         if (str==AnsiString("node"))
         {
-            LastNode= AddGroundNode(&parser);
+            LastNode= AddGroundNode(&parser); //rozpoznanie wêz³a
             if (LastNode)
                 iNumNodes++;
             else
@@ -1336,16 +1332,16 @@ bool __fastcall TGround::Init(AnsiString asFile)
             asTrainName= AnsiString(token.c_str());  //McZapkie: rodzaj+nazwa pociagu w SRJP
             parser.getTokens();
             parser >> token;
-            asTrainSetTrack= AnsiString(token.c_str());
+            asTrainSetTrack= AnsiString(token.c_str()); //œcie¿ka startowa
             parser.getTokens(2);
-            parser >> fTrainSetDist >> fTrainSetVel;
+            parser >> fTrainSetDist >> fTrainSetVel; //przesuniêcie i prêdkoœæ
         }
         else
         if (str==AnsiString("endtrainset"))
         {
 //McZapkie-110103: sygnaly konca pociagu ale tylko dla pociagow rozkladowych
             if (asTrainName!=AnsiString("none"))
-            {
+            {//gdy podana nazwa, w³¹czenie jazdy poci¹gowej
               if((TrainSetNode->DynamicObject->EndSignalsLight1Active())
                ||(TrainSetNode->DynamicObject->EndSignalsLight1oldActive()))
                 TrainSetNode->DynamicObject->MoverParameters->HeadSignalsFlag=2+32;
@@ -1365,7 +1361,12 @@ bool __fastcall TGround::Init(AnsiString asFile)
             tmp= RootEvent;
             RootEvent= new TEvent();
             RootEvent->Load(&parser);
-            RootEvent->Next2= tmp;
+            if (RootEvent->Type==tp_Unknown)
+            {delete RootEvent;
+             RootEvent=tmp; //przywrócenie z pominiêciem
+            }
+            else
+             RootEvent->Next2= tmp;
         }
 //        else
 //        if (str==AnsiString("include"))  //Tolaris to zrobil wewnatrz parsera
@@ -1391,8 +1392,8 @@ bool __fastcall TGround::Init(AnsiString asFile)
                 }
                 parser.getTokens(3);
                 parser >> OriginStack[OriginStackTop].x >> OriginStack[OriginStackTop].y >> OriginStack[OriginStackTop].z;
-                pOrigin+= OriginStack[OriginStackTop];
-                OriginStackTop++;
+                pOrigin+= OriginStack[OriginStackTop]; //sumowanie ca³kowitego przesuniêcia
+                OriginStackTop++; //zwiêkszenie wskaŸnika stosu
             }
         }
         else
@@ -1407,9 +1408,8 @@ bool __fastcall TGround::Init(AnsiString asFile)
                     break;
                 }
 
-                OriginStackTop--;
+                OriginStackTop--; //zmniejszenie wskaŸnika stosu
                 pOrigin-= OriginStack[OriginStackTop];
-//                pOrigin= vector3(0,0,0);
             }
 //            else
             {
@@ -1557,14 +1557,16 @@ bool __fastcall TGround::Init(AnsiString asFile)
             if (Global::asSky=="1")
               Global::asSky=SkyTemp;
             do
-             {
+             {//po¿arcie dodatkowych parametrów
                parser.getTokens(); parser >> token;
              } while (token.compare("endsky") != 0);
              WriteLog(Global::asSky.c_str());
-        }        
+        }
         else
         if (str==AnsiString("firstinit"))
         {
+          if (!bInitDone) //Ra: ¿eby nie robi³o dwa razy
+          { bInitDone=true;
             WriteLog("InitNormals");
             for (TGroundNode* Current= RootNode; Current!=NULL; Current= Current->Next)
             {
@@ -1574,7 +1576,7 @@ bool __fastcall TGround::Init(AnsiString asFile)
             }
             WriteLog("InitNormals OK");
             WriteLog("InitTracks");
-            InitTracks();
+            InitTracks(); //³¹czenie odcinków ze sob¹ i przyklejanie eventów
             WriteLog("InitTracks OK");
             WriteLog("InitEvents");
             InitEvents();
@@ -1586,6 +1588,7 @@ bool __fastcall TGround::Init(AnsiString asFile)
             //ABu 160205: juz nie TODO :)
             GlobalTime= new TMTableTime(hh,mm,srh,srm,ssh,ssm); //McZapkie-300302: inicjacja czasu rozkladowego - TODO: czytac z trasy!
             WriteLog("InitGlobalTime OK");
+          }
         }
         else
         if (str==AnsiString("description"))
@@ -1813,8 +1816,8 @@ bool __fastcall TGround::InitEvents()
                         strcpy(buff,Current->Params[i].asText);
                         delete Current->Params[i].asText;
                         Current->Params[i].asEvent= FindEvent(buff);
-                        if (!Current->Params[i].asEvent)
-                            Error(AnsiString("Event \"")+AnsiString(buff)+AnsiString("\" does not exist"));
+                        if (!Current->Params[i].asEvent) //Ra: tylko w logu informacja o braku
+                         WriteLog(AnsiString("Event \"")+AnsiString(buff)+AnsiString("\" does not exist"));
                      }
                 }
 
@@ -1823,6 +1826,7 @@ bool __fastcall TGround::InitEvents()
         if (Current->fDelay<0)
             AddToQuery(Current,NULL);
     }
+ return true;
 }
 
 bool __fastcall TGround::InitTracks()
@@ -1836,7 +1840,7 @@ bool __fastcall TGround::InitTracks()
         {
             Track= Current->pTrack;
             Track->AssignEvents(
-                ( (Track->asEvent0Name!=AnsiString("")) ? FindEvent(Track->asEvent0Name) : NULL ),            
+                ( (Track->asEvent0Name!=AnsiString("")) ? FindEvent(Track->asEvent0Name) : NULL ),
                 ( (Track->asEvent1Name!=AnsiString("")) ? FindEvent(Track->asEvent1Name) : NULL ),
                 ( (Track->asEvent2Name!=AnsiString("")) ? FindEvent(Track->asEvent2Name) : NULL ) );
             Track->AssignallEvents(
@@ -1845,10 +1849,18 @@ bool __fastcall TGround::InitTracks()
                 ( (Track->asEventall2Name!=AnsiString("")) ? FindEvent(Track->asEventall2Name) : NULL ) ); //MC-280503
             switch (Track->eType)
             {
+                case tt_Turn: //obrotnicy nie ³¹czymy na starcie z innymi torami
+                 tmp=FindGroundNode(Current->asName,TP_MODEL); //szukamy modelu o tej samej nazwie
+                 if (tmp) //mamy model, trzeba zapamiêtaæ wskaŸnik do jego animacji
+                 {//jak coœ pójdzie Ÿle, to robimy z tego normalny tor
+                  //Track->ModelAssign(tmp->Model->GetContainer(NULL)); //wi¹zanie toru z modelem obrotnicy
+                  Track->Assign(Current,tmp->Model); //wi¹zanie toru z modelem obrotnicy
+                  //break; //jednak po³¹czê z s¹siednim, jak ma siê wysypywaæ null track
+                 }
                 case tt_Normal :
                     if (Track->CurrentPrev()==NULL)
                     {
-                        tmp= FindTrack(Track->CurrentSegment()->FastGetPoint(0),iConnection,Current);
+                        tmp= FindTrack(Track->CurrentSegment()->FastGetPoint_0(),iConnection,Current);
                         switch (iConnection)
                         {
                             case -1: break;
@@ -1858,39 +1870,41 @@ bool __fastcall TGround::InitTracks()
                             case 1:
                                 Track->ConnectPrevNext(tmp->pTrack);
                             break;
-                            case 2:
-                                state= tmp->pTrack->GetSwitchState();
-                                tmp->pTrack->Switch(0);
+                            case 2: //Ra:zwrotnice nie maj¹ stanu pocz¹tkowego we wpisie
+                                //state= tmp->pTrack->GetSwitchState();
+                                //tmp->pTrack->Switch(0);
                                 Track->ConnectPrevPrev(tmp->pTrack);
                                 tmp->pTrack->SetConnections(0);
-                                tmp->pTrack->Switch(state);
+                                //tmp->pTrack->Switch(state);
                             break;
                             case 3:
-                                state= tmp->pTrack->GetSwitchState();
-                                tmp->pTrack->Switch(0);
+                                //state= tmp->pTrack->GetSwitchState();
+                                //tmp->pTrack->Switch(0);
                                 Track->ConnectPrevNext(tmp->pTrack);
                                 tmp->pTrack->SetConnections(0);
-                                tmp->pTrack->Switch(state);
+                                //tmp->pTrack->Switch(state);
                             break;
                             case 4:
-                                state= tmp->pTrack->GetSwitchState();
+                                //state= tmp->pTrack->GetSwitchState();
                                 tmp->pTrack->Switch(1);
                                 Track->ConnectPrevPrev(tmp->pTrack);
                                 tmp->pTrack->SetConnections(1);
-                                tmp->pTrack->Switch(state);
+                                //tmp->pTrack->Switch(state);
+                                tmp->pTrack->Switch(0);
                             break;
                             case 5:
-                                state= tmp->pTrack->GetSwitchState();
+                                //state= tmp->pTrack->GetSwitchState();
                                 tmp->pTrack->Switch(1);
                                 Track->ConnectPrevNext(tmp->pTrack);
                                 tmp->pTrack->SetConnections(1);
-                                tmp->pTrack->Switch(state);
+                                //tmp->pTrack->Switch(state);
+                                tmp->pTrack->Switch(0);
                             break;
                         }
                     }
                     if (Track->CurrentNext()==NULL)
                     {
-                        tmp= FindTrack(Track->CurrentSegment()->FastGetPoint(1),iConnection,Current);
+                        tmp= FindTrack(Track->CurrentSegment()->FastGetPoint_1(),iConnection,Current);
                         switch (iConnection)
                         {
                             case -1: break;
@@ -1901,32 +1915,34 @@ bool __fastcall TGround::InitTracks()
                                 Track->ConnectNextNext(tmp->pTrack);
                             break;
                             case 2:
-                                state= tmp->pTrack->GetSwitchState();
-                                tmp->pTrack->Switch(0);
+                                //state= tmp->pTrack->GetSwitchState();
+                                //tmp->pTrack->Switch(0);
                                 Track->ConnectNextPrev(tmp->pTrack);
                                 tmp->pTrack->SetConnections(0);
-                                tmp->pTrack->Switch(state);
+                                //tmp->pTrack->Switch(state);
                             break;
                             case 3:
-                                state= tmp->pTrack->GetSwitchState();
-                                tmp->pTrack->Switch(0);
+                                //state= tmp->pTrack->GetSwitchState();
+                                //tmp->pTrack->Switch(0);
                                 Track->ConnectNextNext(tmp->pTrack);
                                 tmp->pTrack->SetConnections(0);
-                                tmp->pTrack->Switch(state);
+                                //tmp->pTrack->Switch(state);
                             break;
                             case 4:
-                                state= tmp->pTrack->GetSwitchState();
+                                //state= tmp->pTrack->GetSwitchState();
                                 tmp->pTrack->Switch(1);
                                 Track->ConnectNextPrev(tmp->pTrack);
                                 tmp->pTrack->SetConnections(1);
-                                tmp->pTrack->Switch(state);
+                                //tmp->pTrack->Switch(state);
+                                tmp->pTrack->Switch(0);
                             break;
                             case 5:
-                                state= tmp->pTrack->GetSwitchState();
+                                //state= tmp->pTrack->GetSwitchState();
                                 tmp->pTrack->Switch(1);
                                 Track->ConnectNextNext(tmp->pTrack);
                                 tmp->pTrack->SetConnections(1);
-                                tmp->pTrack->Switch(state);
+                                //tmp->pTrack->Switch(state);
+                                tmp->pTrack->Switch(0);
                             break;
                         }
                     }
@@ -1935,6 +1951,30 @@ bool __fastcall TGround::InitTracks()
         }
     }
     return true;
+}
+
+void __fastcall TGround::TrackJoin(TGroundNode *Current)
+{//wyszukiwanie s¹siednich torów do pod³¹czenia (wydzielone dla obrotnicy)
+ TTrack *Track=Current->pTrack;
+ TGroundNode *tmp;
+ int iConnection;
+ if (!Track->CurrentPrev())
+ {tmp=FindTrack(Track->CurrentSegment()->FastGetPoint_0(),iConnection,Current); //Current do pominiêcia
+  switch (iConnection)
+  {
+   case 0: Track->ConnectPrevPrev(tmp->pTrack); break;
+   case 1: Track->ConnectPrevNext(tmp->pTrack); break;
+  }
+ }
+ if (!Track->CurrentNext())
+ {
+  tmp= FindTrack(Track->CurrentSegment()->FastGetPoint_1(),iConnection,Current);
+  switch (iConnection)
+  {
+   case 0: Track->ConnectNextPrev(tmp->pTrack); break;
+   case 1: Track->ConnectNextNext(tmp->pTrack); break;
+  }
+ }
 }
 
 //McZapkie-070602: wyzwalacze zdarzen
@@ -1965,6 +2005,7 @@ bool __fastcall TGround::InitLaunchers()
            EventLauncher->Event2= (EventLauncher->asEvent2Name!=AnsiString("none")) ? FindEvent(EventLauncher->asEvent2Name) : NULL;
          }
     }
+ return true;
 }
 
 TGroundNode* __fastcall TGround::FindTrack(vector3 Point, int &iConnection, TGroundNode *Exclude= NULL)
@@ -1982,14 +2023,14 @@ TGroundNode* __fastcall TGround::FindTrack(vector3 Point, int &iConnection, TGro
             {
                 case tt_Normal :
                     if (Track->CurrentPrev()==NULL)
-                        if (Equal(Track->CurrentSegment()->FastGetPoint(0),Point))
+                        if (Equal(Track->CurrentSegment()->FastGetPoint_0(),Point))
                         {
 
                             iConnection= 0;
                             return Current;
                         }
                     if (Track->CurrentNext()==NULL)
-                        if (Equal(Track->CurrentSegment()->FastGetPoint(1),Point))
+                        if (Equal(Track->CurrentSegment()->FastGetPoint_1(),Point))
                         {
                             iConnection= 1;
                             return Current;
@@ -2001,14 +2042,14 @@ TGroundNode* __fastcall TGround::FindTrack(vector3 Point, int &iConnection, TGro
                     Track->Switch(0);
 
                     if (Track->CurrentPrev()==NULL)
-                        if (Equal(Track->CurrentSegment()->FastGetPoint(0),Point))
+                        if (Equal(Track->CurrentSegment()->FastGetPoint_0(),Point))
                         {
                             iConnection= 2;
                             Track->Switch(state);
                             return Current;
                         }
                     if (Track->CurrentNext()==NULL)
-                        if (Equal(Track->CurrentSegment()->FastGetPoint(1),Point))
+                        if (Equal(Track->CurrentSegment()->FastGetPoint_1(),Point))
                         {
                             iConnection= 3;
                             Track->Switch(state);
@@ -2016,14 +2057,14 @@ TGroundNode* __fastcall TGround::FindTrack(vector3 Point, int &iConnection, TGro
                         }
                     Track->Switch(1);
                     if (Track->CurrentPrev()==NULL)
-                        if (Equal(Track->CurrentSegment()->FastGetPoint(0),Point))
+                        if (Equal(Track->CurrentSegment()->FastGetPoint_0(),Point))
                         {
                             iConnection= 4;
                             Track->Switch(state);
                             return Current;
                         }
                     if (Track->CurrentNext()==NULL)
-                        if (Equal(Track->CurrentSegment()->FastGetPoint(1),Point))
+                        if (Equal(Track->CurrentSegment()->FastGetPoint_1(),Point))
                         {
                             iConnection= 5;
                             Track->Switch(state);
@@ -2076,6 +2117,7 @@ bool __fastcall TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
             QueryRootEvent= Event;
         }
     }
+ return true;
 }
 
 bool __fastcall TGround::CheckQuery()
@@ -2174,7 +2216,7 @@ if (QueryRootEvent)
                 if (QueryRootEvent->Params[9].asModel)
                     for (i=0; i<iMaxNumLights; i++)
                         if (QueryRootEvent->Params[i].asInt>=0)
-                            QueryRootEvent->Params[9].asModel->lsLights[i]= QueryRootEvent->Params[i].asInt;
+                            QueryRootEvent->Params[9].asModel->lsLights[i]=(TLightState)QueryRootEvent->Params[i].asInt;
             break;
             case tp_Velocity :
                 Error("Not implemented yet :(");
@@ -2182,7 +2224,6 @@ if (QueryRootEvent)
             case tp_Exit :
                 MessageBox(0,QueryRootEvent->asNodeName.c_str()," THE END ",MB_OK);
                 return false;
-            break;
             case tp_Sound :
               { if (QueryRootEvent->Params[0].asInt==0)
                   QueryRootEvent->Params[9].asRealSound->Stop();
@@ -2371,11 +2412,12 @@ bool __fastcall TGround::Update(double dt, int iter)
          }
       }
    }
+ return true;
 }
 
 //Winger 170204 - szukanie trakcji nad pantografami
 bool __fastcall TGround::GetTraction(vector3 pPosition, TDynamicObject *model)
-{
+{//Ra: to siê powinno daæ uproœciæ
     double t1x,t1y,t1z,t2x,t2y,t2z,dx,dy,dz,p1rx,p1rz,p2rx,p2rz,odl1,odl2,ntx1,ntx2,nty1,nty2,ntz1,ntz2;
     double p1x,p1z,p2x,p2z,py;
     double bp1xl,bp1y,bp1zl,bp2xl,bp2y,bp2zl,bp1xp,bp1zp,bp2xp,bp2zp;
@@ -2406,7 +2448,7 @@ bool __fastcall TGround::GetTraction(vector3 pPosition, TDynamicObject *model)
     np2wy=1000;
     p1wy=0;
     p2wy=0;
-    int n= 2;
+    int n= 2; //iloœæ kwadratów hektometrowych mapy do przeszukania
     int c= GetColFromX(pPosition.x);
     int r= GetRowFromZ(pPosition.z);
     TSubRect *tmp,*tmp2;
@@ -2458,11 +2500,11 @@ bool __fastcall TGround::GetTraction(vector3 pPosition, TDynamicObject *model)
                            if (liczwsp2!=0)
                             p1wz=(bp1zp-bp1zl)*(p1wx-bp1xl)/liczwsp2+bp1zl;
                            }
-                          p1a1=sqrt((p1wx-t1x)*(p1wx-t1x)+(p1wz-t1z)*(p1wz-t1z));
-                          p1a2=sqrt((p1wx-t2x)*(p1wx-t2x)+(p1wz-t2z)*(p1wz-t2z));
-                          p1b1=sqrt((p1wx-bp1xl)*(p1wx-bp1xl)+(p1wz-bp1zl)*(p1wz-bp1zl));
-                          p1b2=sqrt((p1wx-bp1xp)*(p1wx-bp1xp)+(p1wz-bp1zp)*(p1wz-bp1zp));
-                          if ((p1a1+p1a2-0.1>sqrt((t2x-t1x)*(t2x-t1x)+(t2z-t1z)*(t2z-t1z))) || (p1b1+p1b2-1>sqrt((bp1xp-bp1xl)*(bp1xp-bp1xl)+(bp1zp-bp1zl)*(bp1zp-bp1zl))))
+                          p1a1=hypot(p1wx-t1x,p1wz-t1z);
+                          p1a2=hypot(p1wx-t2x,p1wz-t2z);
+                          p1b1=hypot(p1wx-bp1xl,p1wz-bp1zl);
+                          p1b2=hypot(p1wx-bp1xp,p1wz-bp1zp);
+                          if ((p1a1+p1a2-0.1>hypot(t2x-t1x,t2z-t1z)) || (p1b1+p1b2-1>hypot(bp1xp-bp1xl,bp1zp-bp1zl)))
                            {
                            p1wx=277;
                            p1wz=277;
@@ -2511,11 +2553,11 @@ bool __fastcall TGround::GetTraction(vector3 pPosition, TDynamicObject *model)
                            if (liczwsp2!=0)
                             p2wz=(bp2zp-bp2zl)*(p2wx-bp2xl)/liczwsp2+bp2zl;
                            }
-                          p2a1=sqrt((p2wx-t1x)*(p2wx-t1x)+(p2wz-t1z)*(p2wz-t1z));
-                          p2a2=sqrt((p2wx-t2x)*(p2wx-t2x)+(p2wz-t2z)*(p2wz-t2z));
-                          p2b1=sqrt((p2wx-bp2xl)*(p2wx-bp2xl)+(p2wz-bp2zl)*(p2wz-bp2zl));
-                          p2b2=sqrt((p2wx-bp2xp)*(p2wx-bp2xp)+(p2wz-bp2zp)*(p2wz-bp2zp));
-                          if ((p2a1+p2a2-0.1>sqrt((t2x-t1x)*(t2x-t1x)+(t2z-t1z)*(t2z-t1z))) || (p2b1+p2b2-1>sqrt((bp2xp-bp2xl)*(bp2xp-bp2xl)+(bp2zp-bp2zl)*(bp2zp-bp2zl))))
+                          p2a1=hypot(p2wx-t1x,p2wz-t1z);
+                          p2a2=hypot(p2wx-t2x,p2wz-t2z);
+                          p2b1=hypot(p2wx-bp2xl,p2wz-bp2zl);
+                          p2b2=hypot(p2wx-bp2xp,p2wz-bp2zp);
+                          if ((p2a1+p2a2-0.1>hypot(t2x-t1x,t2z-t1z)) || (p2b1+p2b2-1>hypot(bp2xp-bp2xl,bp2zp-bp2zl)))
                            {
                            p2wx=277;
                            p2wz=277;
@@ -2603,7 +2645,7 @@ bool __fastcall TGround::Render(vector3 pPosition)
     TGroundNode *node,*oldnode;
 
     glColor3f(1.0f,1.0f,1.0f);
-    int n= 20;
+    int n= 20; //iloœæ kwadratów hektometrowych mapy do wyœwietlenia
     int c= GetColFromX(pPosition.x);
     int r= GetRowFromZ(pPosition.z);
     TSubRect *tmp,*tmp2;
@@ -2653,7 +2695,7 @@ bool __fastcall TGround::RenderAlpha(vector3 pPosition)
     int tr,tc;
     TGroundNode *node,*oldnode;
     glColor4f(1.0f,1.0f,1.0f,1.0f);
-    int n= 20;
+    int n= 20; //iloœæ kwadratów hektometrowych mapy do wyœwietlenia
     int c= GetColFromX(pPosition.x);
     int r= GetRowFromZ(pPosition.z);
     TSubRect *tmp,*tmp2;

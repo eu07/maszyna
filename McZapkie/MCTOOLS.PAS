@@ -6,23 +6,24 @@ interface
 
 
 const
+{Ra: te sta³e nie s¹ u¿ywane...
         _FileName = ['a'..'z','A'..'Z',':','\','.','*','?','0'..'9','_','-'];
         _RealNum  = ['0'..'9','-','+','.','E','e'];
-        _Integer  = ['0'..'9','-'];
+        _Integer  = ['0'..'9','-']; //Ra: to siê gryzie z STLport w Builder 6
         _Plus_Int = ['0'..'9'];
         _All      = [' '..'þ'];
-        _EOL      = [#13,#10];
-        _SPACE    = ' ';
         _Delimiter= [',',';']+_EOL;
         _Delimiter_Space=_Delimiter+[' '];
+}
+        _EOL      = [#13,#10];
+        _SPACE    = ' ';
         _Spacesigns=[' ']+[#9]+_EOL;
         CutLeft=-1; CutRight=1; CutBoth=0;  {Cut_Space}
 
+var
         ConversionError: integer=0;
         LineCount: integer=0;
         DebugModeFlag: boolean=False;
-//        DebugModeFlag: boolean=False;
-var
         FreeFlyModeFlag: boolean=False;
 
 type
