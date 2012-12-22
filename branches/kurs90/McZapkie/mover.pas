@@ -518,9 +518,9 @@ TYPE
                 BrakePress:real;                    {!o cisnienie w cylindrach hamulcowych}
                 LocBrakePress:real;                 {!o cisnienie w cylindrach hamulcowych z pomocniczego}
                 PipeBrakePress:real;                {!o cisnienie w cylindrach hamulcowych z przewodu}
+                PipePress: real;                    {!o cisnienie w przewodzie glownym}
                 PPP: real;                          {!o poprzednie cisnienie w przewodzie glownym}
                 AIControllFlag: boolean;
-                PipePress: real;                    {!o cisnienie w przewodzie glownym}
                 Volume: real;                       {objetosc spr. powietrza w zbiorniku hamulca}
                 CompressedVolume:real;              {objetosc spr. powietrza w ukl. zasilania}
                 PantVolume:real;                    {objetosc spr. powietrza w ukl. pantografu}
@@ -1044,15 +1044,15 @@ begin
   if DeltaPipePress>0 then
    if (BrakeSubsystem=Oerlikon) then
     begin
-       if (3*PipePress)>(HighPipePress+LowPipePress+LowPipePress) then
-       pr:=(HighPipePress-Min0R(HighPipePress,PipePress))/(DeltaPipePress*4/3)
-       else
-       pr:=(HighPipePress-1/3*DeltaPipePress-Max0R(LowPipePress,PipePress))/(DeltaPipePress*2/3);
-       if (not TestFlag(BrakeStatus,b_Ractive)) and (BrakeMethod and 1 = 0) and TestFlag(BrakeDelays,bdelay_R) and (Power<1) and (BrakeCtrlPos<1) then
-       pr:=Min0R(0.5,pr);
+     if (3*PipePress)>(HighPipePress+LowPipePress+LowPipePress) then
+      pr:=(HighPipePress-Min0R(HighPipePress,PipePress))/(DeltaPipePress*4/3)
+     else
+      pr:=(HighPipePress-1/3*DeltaPipePress-Max0R(LowPipePress,PipePress))/(DeltaPipePress*2/3);
+     if (not TestFlag(BrakeStatus,b_Ractive)) and (BrakeMethod and 1 = 0) and TestFlag(BrakeDelays,bdelay_R) and (Power<1) and (BrakeCtrlPos<1) then
+      pr:=Min0R(0.5,pr);
        if (Compressor>0.5) then
        pr:=pr*1.333;
-   end
+    end
    else
      pr:=(HighPipePress-Max0R(LowPipePress,Min0R(HighPipePress,PipePress)))/DeltaPipePress
   else
@@ -1098,7 +1098,6 @@ begin
   else
    DynamicBrakeSwitch:=False;
 end;
-
 
 
 function TMoverParameters.SendCtrlBroadcast(CtrlCommand:string;ctrlvalue:real):boolean;
@@ -1194,7 +1193,7 @@ end;
 
 {funkcje zwiekszajace/zmniejszajace nastawniki}
 
- function TMoverParameters.IncMainCtrl(CtrlSpeed:integer): boolean;
+function TMoverParameters.IncMainCtrl(CtrlSpeed:integer): boolean;
 var //b:byte;
     OK:boolean;
 begin
@@ -1205,7 +1204,7 @@ begin
       begin
       if (TrainType<>'et22') or ((TrainType='et22') and (ScndCtrlPos=0)) then
        case EngineType of
-        None, Dumb,DieselElectric:      { EZT:}
+        None, Dumb, DieselElectric:      { EZT:}
          if ((CtrlSpeed=1) and (TrainType<>'ezt')) or ((CtrlSpeed=1) and (TrainType='ezt')and (activedir<>0)) then
           begin
             inc(MainCtrlPos);
@@ -1214,7 +1213,6 @@ begin
          else
           if ((CtrlSpeed>1) and (TrainType<>'ezt')) or ((CtrlSpeed>1) and (TrainType='ezt')and (activedir<>0)) then
             OK:=IncMainCtrl(1) and IncMainCtrl(CtrlSpeed-1);
-
         ElectricSeriesMotor:
          if (CtrlSpeed=1) and (ActiveDir<>0) then
           begin
@@ -1227,9 +1225,7 @@ begin
                  begin
                   dec(MainCtrlPos);
                   OK:=false;
-
-                end;
-
+                 end;
                 if MaxCurrentSwitch(false) then
                   SetFlag(SoundFlag,sound_relay); {wylaczanie wysokiego rozruchu}
  {            if (EngineType=ElectricSeriesMotor) and (MainCtrlPos=1) then
@@ -1277,7 +1273,6 @@ begin
                   dec(MainCtrlPos);
                 OK:=false;
            end;
-
         DieselEngine:
          if CtrlSpeed=1 then
           begin
@@ -1329,19 +1324,18 @@ begin
   OK:=false;
   if (MainCtrlPosNo>0) and (CabNo<>0) then
    begin
-      if (MainCtrlPos>0) then
+      if MainCtrlPos>0 then
        begin
          if (TrainType<>'et22') or ((TrainType='et22') and (ScndCtrlPos=0)) then
          begin
          if CoupledCtrl and (ScndCtrlPos>0) then
           begin
-            dec(ScndCtrlPos);  {wspolny wal}
+            dec(ScndCtrlPos); {wspolny wal}
             OK:=True;
           end
-
          else
           case EngineType of
-            None, Dumb,DieselElectric:   { EZT:}
+            None, Dumb, DieselElectric:   { EZT:}
              if ((CtrlSpeed=1) and {(ScndCtrlPos=0) and} (EngineType<>DieselElectric)) or ((CtrlSpeed=1)and(EngineType=DieselElectric))then
               begin
                 dec(MainCtrlPos);
@@ -1350,23 +1344,21 @@ begin
              else
               if CtrlSpeed>1 then
                OK:=DecMainCtrl(1) and DecMainCtrl(CtrlSpeed-1);
-
-              ElectricSeriesMotor:
+            ElectricSeriesMotor:
              if (CtrlSpeed=1) {and (ScndCtrlPos=0)} then
               begin
                 dec(MainCtrlPos);
-
                 if (MainCtrlPos=0) and (ScndCtrlPos=0) and (TrainType<>'et40')and(TrainType<>'ep05') then
                  StLinFlag:=false;
                 if (MainCtrlPos=0) and (TrainType<>'et40') and (TrainType<>'ep05') then
                  MainCtrlActualPos:=0;
-                 OK:=True;
+                OK:=True;
               end
              else
               if (CtrlSpeed>1) {and (ScndCtrlPos=0)} then
                begin
                  OK:=True;
-                 if (RList[MainCtrlPos].R=0)
+                  if (RList[MainCtrlPos].R=0)
                    then DecMainCtrl(1);
                   while (RList[MainCtrlPos].R>0) and DecMainCtrl(1) do ; {takie chamskie, potem poprawie}
                end;
@@ -1442,7 +1434,6 @@ begin
  IncScndCtrl:=OK;
 end;
 
-
 function TMoverParameters.DecScndCtrl(CtrlSpeed:integer): boolean;
 var //b:byte;
     OK:boolean;
@@ -1480,7 +1471,6 @@ begin
  if OK then LastRelayTime:=0;
  DecScndCtrl:=OK;
 end;
-
 
 function TMoverParameters.DirectionForward: boolean;
 begin
@@ -1567,8 +1557,8 @@ begin
         BrakeCtrlPos:=-2;
         LimPipePress:=PipePress;
         ActFlowSpeed:= 0;
-      end
-      else
+      end  
+     else
      if (TrainType='ezt') and (BrakeCtrlPosNo>0) then
         begin
         BrakeCtrlPos:=5;
@@ -1582,11 +1572,11 @@ begin
      MainCtrlPos:=0;
      ScndCtrlPos:=0;
      if (EngineType<>DieselEngine) and (EngineType<>DieselElectric) then
-    begin
-     Mains:=False;
+     begin
+       Mains:=False;
      //DynamicBrakeSwitch(false);
-     CompressorAllow:=false;
-     ConverterAllow:=false;
+       CompressorAllow:=false;
+       ConverterAllow:=false;
      end;
      if (ActiveCab<>LastCab) and (ActiveCab<>0) then
       begin
@@ -1651,7 +1641,6 @@ begin
  if (CompressorAllow=true) then SendCtrlToNext('CompressorSwitch',1,CabNo)
  else SendCtrlToNext('CompressorSwitch',0,CabNo)
 end;
-
 
 {wl/wyl malej sprezarki}
 {function TMoverParameters.SmallCompressorSwitch(State:boolean):boolean;
@@ -1765,7 +1754,6 @@ begin
      SecuritySystemReset:=False;
 //  SendCtrlToNext('SecurityReset',0,CabNo);
 end;
-
 
 {testowanie czuwaka/SHP}
 procedure TMoverParameters.SecuritySystemCheck(dt:real);
@@ -1951,7 +1939,6 @@ begin
 UnBrake:=True;
 end;
 
-
 function TMoverParameters.IncLocalBrakeLevel(CtrlSpeed:byte):boolean;
 begin
   if (LocalBrakePos<LocalBrakePosNo) {and (BrakeCtrlPos<1)} then
@@ -1994,7 +1981,6 @@ begin
      DecLocalBrakeLevelFAST:=False;
 UnBrake:=True;
 end;
-
 
 function TMoverParameters.DecLocalBrakeLevel(CtrlSpeed:byte):boolean;
 begin
@@ -2224,7 +2210,6 @@ begin
              DecBrakePress(PipeBrakePress,0,dpBrake);
              if (PipeBrakePress<0.01) then begin {SetFlag(BrakeStatus,-101);} BrakeStatus:=(BrakeStatus and 154); PipeBrakePress:=0; end;
            end
-
           else  //normalna praca
            begin
             sm:=1.0;
@@ -2234,6 +2219,7 @@ begin
                 sm:=0.72  {1/1.4}
               else if(TestFlag(BrakeStatus,b_Ractive)and(BrakeCtrlPosNo>0))then
                 sm:=1.5;
+
             if (MBPM>TotalMass) then
               sm:=sm*TotalMass/MBPM;
 
@@ -2255,7 +2241,7 @@ begin
               end;
             if (PipeBrakePress>Rate*MaxBrakePress){and(BrakeStatus=b_off)}then
               begin
-               if(TestFlag(BrakeStatus,b_Rused))and not(TestFlag(BrakeStatus,b_Ractive))then
+                if(TestFlag(BrakeStatus,b_Rused))and not(TestFlag(BrakeStatus,b_Ractive))then
                  begin
                   SetFlag(BrakeStatus,-b_Rused);
                   sm:=1+0.5*byte(BrakeCtrlPosNo>0);
@@ -2272,8 +2258,8 @@ begin
                    else
                      dpBrake:=(1.2-Speed)/1.2*sm*MaxBrakePress*PR(PipeBrakePress,0)*dt/(BrakeDelay[1])
                  else
-                   dpBrake:=(1.2-Speed)/1.2*sm*MaxBrakePress*PR(PipeBrakePress,0)*dt/(BrakeDelay[1]);
-                   
+                 dpBrake:=(1.2-Speed)/1.2*sm*MaxBrakePress*PR(PipeBrakePress,0)*dt/(BrakeDelay[1]);
+
                  if(dpBrake<0)then dpBrake:=0;
 
                 DecBrakePress(PipeBrakePress,Rate*MaxBrakePress,dpBrake);
@@ -2289,7 +2275,7 @@ begin
                 IncBrakePress(LocBrakePress,Rate*MaxBrakePress,dpLocalValve);
                 {odluznianie hamulca pomocniczego przy uzyciu hamulca ED w ET42 (KURS90)}
               end;
-            if (LocBrakePress>Rate*MaxBrakePress)  then
+            if LocBrakePress>Rate*MaxBrakePress then
               begin
                 dpLocalValve:=(1.01-Rate)*MaxBrakePress*PR(LocBrakePress,0)*dt/7;//8*2
                 DecBrakePress(LocBrakePress,Rate*MaxBrakePress,dpLocalValve);
@@ -2650,7 +2636,6 @@ begin
           SetFlag(SoundFlag,+sound_brakeacc);
           //SetFlag(SoundFlag,sound_brakeacc); SetFlag(SoundFlag,sound_loud);
           PipePress:=PipePress*(Dim.L*Spg/(Dim.L*Spg+0.5));
-
          end;
       end;
 
@@ -2744,7 +2729,6 @@ var b:byte;
            CompressedVolume:=CompressedVolume+dt*CompressorSpeed*(2*MaxCompressor-Compressor)/MaxCompressor;
       end;
     end;
-
  end;
 
 procedure TMoverParameters.UpdatePantVolume(dt:real);
@@ -2821,7 +2805,7 @@ begin
      else sn5:=0;
      end;
      if (battery=false) then
-       begin
+    begin
        if ((NominalBatteryVoltage)/(BatteryVoltage)<1.22) then
          sn1:=dt*50
        else
@@ -2830,7 +2814,7 @@ begin
         sn3:=dt*0.000001;
         sn4:=dt*0.000001;
         sn5:=dt*0.000001;   {bardzo powolny spadek przy wylaczonych bateriach}
-     end;
+    end;
      BatteryVoltage:=BatteryVoltage-(sn1+sn2+sn3+sn4+sn5);
      if ((NominalBatteryVoltage/BatteryVoltage)>1.57)  then
        if MainSwitch(False) and  (EngineType<>DieselEngine) and (EngineType<>WheelsDriven) then
@@ -2847,6 +2831,7 @@ begin
   else
 BatteryVoltage:=90;
 end;
+
 
 procedure TMoverParameters.ConverterCheck;       {sprawdzanie przetwornicy}
 begin
@@ -2912,7 +2897,6 @@ begin
   if ScndPipePress<0 then ScndPipePress:=0
 
 end;
-
 
 
 {sprzegi}
@@ -3026,6 +3010,7 @@ end;
 function TMoverParameters.ShowCurrent(AmpN:byte): integer;
 var b,Bn:byte;
 begin
+  ClearPendingExceptions;
   ShowCurrent:=0;
   Bn:=RList[MainCtrlActualPos].Bn;
   if (DynamicBrakeType=dbrake_automatic) and (DynamicBrakeFlag) then
@@ -3051,6 +3036,7 @@ end;
 function TMoverParameters.ShowEngineRotation(VehN:byte): integer;
 var b:Byte; //,Bn:byte;
 begin
+  ClearPendingExceptions;
   ShowEngineRotation:=0;
   case VehN of
    1: ShowEngineRotation:=Trunc(Abs(enrot));
@@ -3137,45 +3123,45 @@ begin
      end
   else
   if (RList[MainCtrlActualPos].Bn=0) or FuseFlag or StLinFlag or DelayCtrlFlag or ((TrainType='et42')and(not(ConverterFlag)and not(DynamicBrakeFlag)))  then
-    MotorCurrent:=0                 {wylaczone}
+    MotorCurrent:=0                    {wylaczone}
   else                                 {wlaczone}
    begin
    SP:=ScndCtrlActualPos;
-   if(ScndInMain)then
-    if not (Rlist[MainCtrlActualPos].ScndAct=255) then
-     SP:=Rlist[MainCtrlActualPos].ScndAct;
-    with MotorParam[SP] do
-     begin
-      Rz:=Mn*WindingRes+R;
-      if DynamicBrakeFlag then     {hamowanie}
+     if(ScndInMain)then
+      if not (Rlist[MainCtrlActualPos].ScndAct=255) then
+       SP:=Rlist[MainCtrlActualPos].ScndAct;
+      with MotorParam[SP] do
        begin
-         if DynamicBrakeType>1 then
-          begin
+        Rz:=Mn*WindingRes+R;
+        if DynamicBrakeFlag then     {hamowanie}
+         begin
+           if DynamicBrakeType>1 then
+            begin
             if (DynamicBrakeType=dbrake_switch) and (TrainType<>'et42') then
              begin
              Rz:=WindingRes+R;
              MotorCurrent:=-fi*n/Rz;  //{hamowanie silnikiem na oporach rozruchowych}
-             end;
-          end
-         else
-           MotorCurrent:=0;        {odciecie pradu od silnika}
-       end
-      else
-       begin
-        Isf:=Sign(U)*Isat;
-        Delta:=SQR(Isf*Rz+Mn*fi*n-U)+4*U*Isf*Rz;
-        if Mains then
-       begin
-          if U>0 then
-           MotorCurrent:=(U-Isf*Rz-Mn*fi*n+SQRT(Delta))/(2*Rz)
-          else
-           MotorCurrent:=(U-Isf*Rz-Mn*fi*n-SQRT(Delta))/(2*Rz)
+               end;
+            end
+           else
+             MotorCurrent:=0;        {odciecie pradu od silnika}
          end
         else
-         MotorCurrent:=0;
-       end;
-     end;
-   end;
+         begin
+          Isf:=Sign(U)*Isat;
+          Delta:=SQR(Isf*Rz+Mn*fi*n-U)+4*U*Isf*Rz;
+          if Mains then
+           begin
+            if U>0 then
+             MotorCurrent:=(U-Isf*Rz-Mn*fi*n+SQRT(Delta))/(2*Rz)
+            else
+             MotorCurrent:=(U-Isf*Rz-Mn*fi*n-SQRT(Delta))/(2*Rz)
+           end
+          else
+           MotorCurrent:=0;
+         end;{else DBF}
+       end;{with}
+    end;{255}
 {  if Abs(CabNo)<2 then Im:=MotorCurrent*ActiveDir*CabNo
    else Im:=0;
 }
@@ -3310,7 +3296,6 @@ begin
 end;
 
 
-
 {przelacznik pradu automatycznego rozruchu}
 function TMoverParameters.MinCurrentSwitch(State:boolean):boolean;
 begin
@@ -3347,6 +3332,7 @@ function TMoverParameters.AutoRelaySwitch(State:boolean):boolean;
    else
     AutoRelaySwitch:=False;
  end;
+
 function TMoverParameters.AutoRelayCheck: boolean;
 var OK:boolean; b:byte;
 begin
@@ -3359,32 +3345,32 @@ begin
 //      end;
 if ((not Mains) or (FuseFlag)) and not((DynamicBrakeFlag) and (TrainType='et42')) then
    begin
-   AutoRelayCheck:=False;
-   MainCtrlActualPos:=0;
-   ScndCtrlActualPos:=0;
+     AutoRelayCheck:=False;
+     MainCtrlActualPos:=0;
+     ScndCtrlActualPos:=0;
    end
-   else
+  else
    begin
-   OK:=False;
-   if DelayCtrlFlag and (MainCtrlPos=1) and (MainCtrlActualPos=1) and (LastRelayTime>InitialCtrlDelay) then
-      begin
-      DelayCtrlFlag:=False;
-      SetFlag(SoundFlag,sound_relay); SetFlag(SoundFlag,sound_loud);
-      end;
-   if (LastRelayTime>CtrlDelay) and not DelayCtrlFlag then
-      begin
+    OK:=False;
+    if DelayCtrlFlag and (MainCtrlPos=1) and (MainCtrlActualPos=1) and (LastRelayTime>InitialCtrlDelay) then
+     begin
+       DelayCtrlFlag:=False;
+       SetFlag(SoundFlag,sound_relay); SetFlag(SoundFlag,sound_loud);
+     end;
+    if (LastRelayTime>CtrlDelay) and not DelayCtrlFlag then
+     begin
       if (MainCtrlPos=0) and (TrainType<>'et40') and (TrainType<>'ep05') then
-      DelayCtrlFlag:=True;
+        DelayCtrlFlag:=True;
       if (MainCtrlPos=0) and ((TrainType='et40')or(TrainType='ep05')) and (MainCtrlActualPos=0) then
       DelayCtrlFlag:=True;
 
       if (((RList[MainCtrlActualPos].R=0) and ((not CoupledCtrl) or ((Imin=IminLo) and (ScndS=True)))) or (MainCtrlActualPos=RListSize))
           and ((ScndCtrlActualPos>0) or (ScndCtrlPos>0)) then
-         begin   {zmieniaj scndctrlactualpos}
-         if (not AutoRelayFlag) or (not MotorParam[ScndCtrlActualPos].AutoSwitch) then
-            begin                                                {scnd bez samoczynnego rozruchu}
-            OK:=True;
-            if (ScndCtrlActualPos<ScndCtrlPos)  then
+        begin   {zmieniaj scndctrlactualpos}
+          if (not AutoRelayFlag) or (not MotorParam[ScndCtrlActualPos].AutoSwitch) then
+           begin                                                {scnd bez samoczynnego rozruchu}
+             OK:=True;
+             if (ScndCtrlActualPos<ScndCtrlPos) then
               inc(ScndCtrlActualPos)
              else
               if (ScndCtrlActualPos>ScndCtrlPos) and (TrainType<>'ezt') then
@@ -3426,7 +3412,6 @@ if ((not Mains) or (FuseFlag)) and not((DynamicBrakeFlag) and (TrainType='et42')
               AutoRelayCheck:=False;
               Exit;
            end;
-
           if (not AutoRelayFlag) or (not RList[MainCtrlActualPos].AutoSwitch) then
            begin                                                {main bez samoczynnego rozruchu}
              OK:=True;
@@ -3440,27 +3425,27 @@ if ((not Mains) or (FuseFlag)) and not((DynamicBrakeFlag) and (TrainType='et42')
                  else
                  //if (Rlist[MainCtrlActualPos].R=0) and (Rlist[MainCtrlPos].R>0) and (TrainType='et22') and (LastRelayTime<InitialCtrlDelay) then
 
-                 begin
+              begin
                 inc(MainCtrlActualPos);
-                  if MainCtrlActualPos>0 then
-                    if (Rlist[MainCtrlActualPos].R=0) and ((Rlist[MainCtrlActualPos].ScndAct=0) or (Rlist[MainCtrlActualPos].ScndAct=255)) then  {dzwieki przechodzenia na bezoporowa}
-                     begin
-                      SetFlag(SoundFlag,sound_manyrelay); SetFlag(SoundFlag,sound_loud);
-                     end;
+                if MainCtrlActualPos>0 then
+                 if (Rlist[MainCtrlActualPos].R=0) and ((Rlist[MainCtrlActualPos].ScndAct=0) or (Rlist[MainCtrlActualPos].ScndAct=255)) then  {dzwieki przechodzenia na bezoporowa}
+                  begin
+                   SetFlag(SoundFlag,sound_manyrelay); SetFlag(SoundFlag,sound_loud);
+                  end;
 
               end
              else if (Rlist[MainCtrlActualPos].Relay>MainCtrlPos) and (TrainType<>'ezt') then
               begin
               if not ((Rlist[MainCtrlActualPos].Mn<Rlist[MainCtrlPos].Mn) and (Rlist[MainCtrlActualPos-1].Mn>Rlist[MainCtrlActualPos].Mn)and (TrainType='et22') and (LastRelayTime<InitialCtrlDelay))then
-                begin
-                  dec(MainCtrlActualPos);
-                  if MainCtrlActualPos>0 then
-                   if (Rlist[MainCtrlActualPos+1].R=0) and ((Rlist[MainCtrlActualPos+1].ScndAct=0) or (Rlist[MainCtrlActualPos+1].ScndAct=255)) then  {dzwieki schodzenia z bezoporowej}
-                    begin
-                    SetFlag(SoundFlag,sound_manyrelay);
-                    end;
-                 end
-               else
+              begin
+                dec(MainCtrlActualPos);
+                if MainCtrlActualPos>0 then
+                 if (Rlist[MainCtrlActualPos+1].R=0) and ((Rlist[MainCtrlActualPos+1].ScndAct=0) or (Rlist[MainCtrlActualPos+1].ScndAct=255)) then  {dzwieki schodzenia z bezoporowej}
+                  begin
+                   SetFlag(SoundFlag,sound_manyrelay);
+                  end;
+              end
+             else
                begin
                  Itot:=0;
                  Im:=0;
@@ -3529,8 +3514,8 @@ if ((not Mains) or (FuseFlag)) and not((DynamicBrakeFlag) and (TrainType='et42')
                Itot:=0;
                Im:=0;
                OK:=False; {odciecie pradu, przy przelaczaniu silnikow w ET22}
-               end
-               else
+              end
+             else
                if Abs(Im)<Imin then
                  begin
                    inc(MainCtrlActualPos);
@@ -3577,7 +3562,6 @@ if ((not Mains) or (FuseFlag)) and not((DynamicBrakeFlag) and (TrainType='et42')
     AutoRelayCheck:=OK;
   end;
 end;
-
 
 function TMoverParameters.ResistorsFlagCheck:boolean;  {sprawdzanie wskaznika oporow}
 var b:byte;
@@ -4087,7 +4071,6 @@ begin
             end; 
         end;
         end;
-
    None: begin end;
    {EZT: begin end;}
    end; {case EngineType}
@@ -4369,6 +4352,7 @@ end;
 function TMoverParameters.LoadingDone(LSpeed:real; LoadInit:string): boolean;
 var LoadChange:longint;
 begin
+  ClearPendingExceptions;
   LoadingDone:=False;
   if (LoadInit<>'') then
    begin
@@ -4503,16 +4487,16 @@ var b:byte;
     Vprev,AccSprev:real;
 const Vepsilon=1e-5; Aepsilon=1e-3; ASBSpeed=0.8;
 begin
+  ClearPendingExceptions;
   if not TestFlag(DamageFlag,dtrain_out) then
    begin
      RunningShape:=Shape;
      RunningTrack:=Track;
      RunningTraction:=ElectricTraction;
-   with ElectricTraction do
-      if (not DynamicBrakeFlag) then
-   
-       RunningTraction.TractionVoltage:=TractionVoltage-abs(TractionResistivity*Itot)
-     else
+     with ElectricTraction do
+      if not DynamicBrakeFlag then
+       RunningTraction.TractionVoltage:=TractionVoltage-Abs(TractionResistivity*Itot)
+      else
        RunningTraction.TractionVoltage:=TractionVoltage;
    end;
   if CategoryFlag=4 then
@@ -4691,6 +4675,7 @@ var b:byte;
     Vprev,AccSprev:real;
 const Vepsilon=1e-5; Aepsilon=1e-3; ASBSpeed=0.8;
 begin
+  ClearPendingExceptions;
   Loc:=NewLoc;
   Rot:=NewRot;
   with NewRot do begin Rx:=0; Ry:=0; Rz:=0; end;
@@ -4811,32 +4796,21 @@ begin
   if Load>0 then
    begin
     if LoadQuantity='tonns' then
-
      M:=Load*1000
-
     else
      if (LoadType='passengers') then
-
       M:=Load*80
-
      else
       if LoadType='luggage' then
-
        M:=Load*100
-
      else
       if LoadType='cars' then
-
        M:=Load*800
-
       else
        if LoadType='containers' then
-
         M:=Load*8000
-
        else
         if LoadType='transformers' then
-
          M:=Load*50000
         else
          M:=Load*1000; {Brzydko, ale z elsem pasazer wazyl tone (chlip) KURS90}
@@ -4885,12 +4859,12 @@ begin
 
 end;
 
-
 function TMoverParameters.RunCommand(command:string; CValue1,CValue2:real):boolean;
 var OK:boolean; testload:string;
 Begin
 {$B+} {cholernie mi sie nie podoba ta dyrektywa!!!}
   OK:=False;
+  ClearPendingExceptions;
 
   {test komend sterowania ukrotnionego}
   if command='MainCtrl' then
@@ -4968,8 +4942,8 @@ Begin
    end
   else if command='CabActivisation' then
    begin
-    // OK:=Power>0.01;
-    // if OK then
+//     OK:=Power>0.01;
+//     if OK then
       if (CabNo<>0) then
         LastCab:=CabNo;
       case Trunc(CValue1) of
@@ -5015,8 +4989,6 @@ Begin
      else if (CValue1=0) then EpFuse:=false;
      OK:=SendCtrlToNext(command,CValue1,CValue2);
    end
-
-
   else if command='CompressorSwitch' then         {NBMX}
    begin
      if (CValue1=1) then CompressorAllow:=true
@@ -5601,7 +5573,7 @@ begin
      if (BrakeSystem=Pneumatic) and (BrakeCtrlPosNo>0) then
       BrakeCtrlPos:=-2;
      LimPipePress:=LowPipePress;
-         BrakeStatus:=b_on;
+     BrakeStatus:=b_on;
      if (TrainType='ezt') and (BrakeCtrlPosNo>0) then
         BrakeCtrlPos:=5;
 
@@ -5640,7 +5612,7 @@ begin
      BrakeDelay[b]:=BrakeDelay[b]*(2.5+Random)/3;
    end;
 
-  if(TrainType='et22')then
+  if(TypeName='et22')then
     CompressorPower:=0;
 
   CheckLocomotiveParameters:=OK;
@@ -5650,10 +5622,9 @@ function TMoverParameters.DoorLeft(State: Boolean):Boolean;
 begin
  if (DoorLeftOpened<>State) and (DoorBlockedFlag=false) and (Battery=true) then
  begin
-
   DoorLeft:=true;
   DoorLeftOpened:=State;
-  if (State=true)  then
+  if (State=true) then
    begin
      SendCtrlToNext('DoorLeft',1,CabNo);
      CompressedVolume:=CompressedVolume-0.003;
@@ -5693,9 +5664,9 @@ var pf1: Real;
 begin
 if (battery=true){ and ((TrainType<>'et40')or ((TrainType='et40') and (EnginePowerSource.CollectorsNo>1)))}then
 begin
- if (State=true)  then pf1:=1
+ if (State=true) then pf1:=1
   else pf1:=0;
- if (PantFrontUp<>State)  then
+ if (PantFrontUp<>State) then
   begin
   PantFrontUp:=State;
   if (State=true) then
@@ -6058,7 +6029,7 @@ begin
                CompressorPower:=0;
             end;
 
-          if Pos('Doors:',lines)>0 then      {hamulce}
+          if Pos('Doors:',lines)>0 then      {drzwi}
             begin
               s:=DUE(ExtractKeyWord(lines,'OpenCtrl='));
               if s='DriverCtrl' then DoorOpenCtrl:=1
@@ -6070,7 +6041,6 @@ begin
                if s='AutomaticCtrl' then DoorCloseCtrl:=2
                 else
                  DoorCloseCtrl:=0;
-
               if DoorCloseCtrl=2 then
                begin
                  s:=ExtractKeyWord(lines,'DoorStayOpen=');

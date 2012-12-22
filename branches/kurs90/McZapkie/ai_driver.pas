@@ -204,7 +204,7 @@ begin
      VelforDriver:=-1;
      if (ActiveDir<>0) and (TrainType='ezt') then Imin:=IminHi;
    end;
-  OrderDirectionChange:=Trunc(VelforDriver);
+  OrderDirectionChange:=Round(VelforDriver);
 end;
 
 procedure TController.SetVelocity(NewVel,NewVelNext: real);
@@ -433,6 +433,7 @@ end;
 function TController.IncBrake: boolean;
 var OK:boolean;
 begin
+  ClearPendingExceptions;
   OK:=False;
   with Controlling^ do
    begin
@@ -471,7 +472,7 @@ begin
       ElectroPneumatic:
        begin
          if BrakeCtrlPos<BrakeCtrlPosNo then
-          if (BrakePressureTable[BrakeCtrlPos+2].BrakeType=ElectroPneumatic) then
+          if BrakePressureTable[BrakeCtrlPos+1].BrakeType=ElectroPneumatic then
            OK:=IncBrakeLevel
           else
             OK:=false;
@@ -484,6 +485,7 @@ end;
 function TController.DecBrake: boolean;
 var OK:boolean;
 begin
+  ClearPendingExceptions;
   OK:=False;
  with Controlling^ do
    begin
@@ -497,21 +499,18 @@ begin
          if BrakeCtrlPos>0 then
            OK:=DecBrakeLevel;
          if not OK then
-        // begin
           OK:=DecLocalBrakeLevel(2);
          Need_BrakeRelease:=true;
-        // end;
        end;
       ElectroPneumatic:
        begin
-
          if BrakeCtrlPos>-1 then
           if BrakePressureTable[BrakeCtrlPos-1].BrakeType=ElectroPneumatic then
            OK:=DecBrakeLevel;
-       
+
           if BrakeCtrlPos=5 then
             if BrakeCtrlPos<-1 then
-            OK:=DecBrakeLevel
+           OK:=DecBrakeLevel
           else
            OK:=false;
           if not OK then
@@ -525,6 +524,7 @@ end;
 function TController.IncSpeed: boolean;
 var OK:boolean;
 begin
+  ClearPendingExceptions;
   OK:=True;
    with Controlling^ do
    begin
@@ -550,7 +550,6 @@ begin
                 if not FuseFlag then
                  if ((Im<=Imin) and (Ready=True) and (TrainType<>'et42')) or ((Im<=Imin) and (Ready=True) and (TrainType='et42')and (not DynamicBrakeFlag)) then
                   begin
-
                     OK:=IncMainCtrl(1);
                     if (MainCtrlPos>2)and ((Im=0) and (LastRelayTime>InitialCtrlDelay))
                      then Need_TryAgain:=true
@@ -574,7 +573,7 @@ begin
                 DieselElectric : begin
                  if Ready=True{(BrakePress<=0.01*MaxBrakePress)} then
                   if(Im<Imin)or(Imin<10)then
-                   begin
+                  begin
                     OK:=IncMainCtrl(1);
                     if not OK then
                       OK:=IncScndCtrl(1);
@@ -622,8 +621,6 @@ begin
                    OK:=DecScndCtrl(1);
                  if {not OK} ScndCtrlPos=0 then
                   OK:=DecMainCtrl(1+ord(MainCtrlPos>2));
-
-           
                end;
         Dumb, DieselElectric : begin
                  OK:=DecScndCtrl(2);
@@ -655,6 +652,7 @@ end;
 procedure TController.RecognizeCommand;
 var OK:boolean; Order:TOrders;
 begin
+  ClearPendingExceptions;
   OK:=True;
   Order:=OrderList[OrderPos];
   with Controlling^.CommandIn do
@@ -794,7 +792,7 @@ begin
      // begin
      //   SandDoseOn;
      //   SlippingWheels:=false;
-      end;
+    end;
    // end;
     
   HelpMeFlag:=False;
@@ -1098,13 +1096,10 @@ begin
                 {wlaczanie bezpiecznika}
                 if EngineType=ElectricSeriesMotor then
                  if (FuseFlag or Need_TryAgain) then
-              
                   if not DecScndCtrl(1) then
                    if not DecMainCtrl(2) then
                     if not DecMainCtrl(1) then
-                     if not FuseOn then
-                       HelpMeFlag:=True
-                
+                     if not FuseOn then HelpMeFlag:=True
                       else
                        begin
                          inc(DriverFailCount);
