@@ -10,7 +10,6 @@
 #include "Event.h"
 #include "Flags.h"
 
-
 class TEvent;
 
 typedef enum { tt_Unknown, tt_Normal, tt_Switch } TTrackType;
@@ -33,7 +32,6 @@ public:
     bool bNextSwitchDirection[2];
     bool bPrevSwitchDirection[2];
     int CurrentIndex;
-    bool RightSwitch;
     double fOffset1, fOffset2, fDesiredOffset1, fDesiredOffset2;
 private:
 };

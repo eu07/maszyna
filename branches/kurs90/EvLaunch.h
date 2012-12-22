@@ -27,8 +27,8 @@ public:
     TEvent *Event1;
     TEvent *Event2;
     TMemCell *MemCell;
+    char hh, mm;
     int iCheckMask;
-      char hh, mm;
     __fastcall TEventLauncher();
     __fastcall ~TEventLauncher();
     bool __fastcall Init();

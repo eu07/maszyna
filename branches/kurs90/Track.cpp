@@ -75,7 +75,7 @@ __fastcall TTrack::TTrack()
     Eventall0= NULL;
     Eventall1= NULL;
     Eventall2= NULL;
-    fVelocity=-1;   //-1;
+    fVelocity= -1;
     fTrackLength= 100.0;
     fRadius= 0;
     fRadiusTable[0]= 0;
@@ -449,17 +449,6 @@ bool __fastcall TTrack::Load(cParser *parser, vector3 pOrigin)
 
             Switch(state);
 
-                    vector3 v1,v2;
-                    double a1,a2;
-                    v1=SwitchExtension->Segments[0].FastGetPoint(1)-SwitchExtension->Segments[0].FastGetPoint(0);
-                    v2=SwitchExtension->Segments[1].FastGetPoint(1)-SwitchExtension->Segments[1].FastGetPoint(0);
-                    a1=atan2(v1.x,v1.z);
-                    a2=atan2(v2.x,v2.z);
-                    a2=a2-a1;
-                    while (a2>M_PI) a2=a2-2*M_PI;
-                    while (a2<-M_PI) a2=a2+2*M_PI;
-                    SwitchExtension->RightSwitch =a2>0;
-
         break;
     }
     parser->getTokens();
@@ -684,6 +673,7 @@ bool __fastcall TTrack::AddDynamicObject(TDynamicObject *Dynamic)
 
 
 const int numPts= 4;
+const int nnumPts= 12;
 
 bool __fastcall TTrack::Render()
 {
@@ -731,6 +721,7 @@ bool __fastcall TTrack::Render()
     {
      case 1:   //tor
       {
+/* staraszyna
 // zwykla szyna:
         vector3 rpts1[numPts]= { vector3(fHTW+0.07,0.0,0.0),vector3(fHTW+0.07,0.18,0.33),
                                  vector3(fHTW,0.18,0.67),vector3(fHTW,0.0,1.0) };
@@ -741,8 +732,37 @@ bool __fastcall TTrack::Render()
                                  vector3(fHTW+0.05,0.0,0.67),vector3(fHTW-0.05,0.0,1.0) };
         vector3 rpts4[numPts]= { vector3(-fHTW+0.05,0.0,1.0),vector3(-fHTW-0.05,0.0,0.67),
                                  vector3(-fHTW-0.05,0.18,0.33),vector3(-fHTW-0.05,0.0,0.0) };
-// podsypka z podkladami:
+//*/
+// zwykla szyna:
+        vector3 rpts1[nnumPts]= { vector3(fHTW+0.111,0.0,0.0),vector3(fHTW+0.045,0.025,0.15),
+                                 vector3(fHTW+0.045,0.11,0.25),vector3(fHTW+0.073,0.14,0.35),
+                                 vector3(fHTW+0.072,0.17,0.4),vector3(fHTW+0.052,0.18,0.45),
+                                 vector3(fHTW+0.02,0.18,0.55),vector3(fHTW,0.17,0.6),
+                                 vector3(fHTW+0.001,0.14,0.65),vector3(fHTW+0.027,0.11,0.75),
+                                 vector3(fHTW+0.027,0.025,0.85),vector3(fHTW-0.039,0.0,1.0) };
 
+        vector3 rpts2[nnumPts]= { vector3(-fHTW+0.039,0.0,1.0),vector3(-fHTW-0.027,0.025,0.85),
+                                  vector3(-fHTW-0.027,0.11,0.75),vector3(-fHTW-0.001,0.14,0.65),
+                                  vector3(-fHTW,0.17,0.6),vector3(-fHTW-0.02,0.18,0.55),
+                                  vector3(-fHTW-0.052,0.18,0.45),vector3(-fHTW-0.072,0.17,0.4),
+                                  vector3(-fHTW-0.073,0.14,0.35),vector3(-fHTW-0.045,0.11,0.25),
+                                  vector3(-fHTW-0.045,0.025,0.15),vector3(-fHTW-0.111,0.0,0.0) };
+
+        vector3 rpts3[nnumPts]= { vector3(fHTW+0.01,0.0,0.0),vector3(fHTW+0.01,0.025,0.15),
+                                 vector3(fHTW+0.01,0.11,0.25),vector3(fHTW+0.01,0.14,0.35),
+                                 vector3(fHTW+0.01,0.17,0.4),vector3(fHTW+0.01,0.18,0.45),
+                                 vector3(fHTW,0.18,0.55),vector3(fHTW,0.17,0.6),
+                                 vector3(fHTW,0.14,0.65),vector3(fHTW,0.11,0.75),
+                                 vector3(fHTW,0.025,0.85),vector3(fHTW-0.04,0.0,1.0) };
+
+        vector3 rpts4[nnumPts]= { vector3(-fHTW+0.04,0.0,1.0),vector3(-fHTW,0.025,0.85),
+                                  vector3(-fHTW,0.11,0.75),vector3(-fHTW,0.14,0.65),
+                                  vector3(-fHTW,0.17,0.6),vector3(-fHTW,0.18,0.55),
+                                  vector3(-fHTW-0.01,0.18,0.45),vector3(-fHTW-0.01,0.17,0.4),
+                                  vector3(-fHTW-0.01,0.14,0.35),vector3(-fHTW-0.01,0.11,0.25),
+                                  vector3(-fHTW-0.01,0.025,0.15),vector3(-fHTW-0.01,0.0,0.0) };
+
+// podsypka z podkladami:
           vector3 bpts1[numPts]= { vector3(fHTW+rozp,-fTexHeight,0.0),
                                    vector3(fHTW+fTexWidth,0.0,0.33),
                                    vector3(-fHTW-fTexWidth,0.0,0.67),
@@ -766,8 +786,8 @@ bool __fastcall TTrack::Render()
                   if ((dist<90000) && TextureID1!=0)
                    {
                     glBindTexture(GL_TEXTURE_2D, TextureID1);
-                    Segment->RenderLoft(rpts1,numPts,fTexLength);
-                    Segment->RenderLoft(rpts2,numPts,fTexLength);
+                    Segment->RenderLoft(rpts1,nnumPts,fTexLength);
+                    Segment->RenderLoft(rpts2,nnumPts,fTexLength);
                    }
                 }
             break;
@@ -782,31 +802,15 @@ bool __fastcall TTrack::Render()
                         SwitchExtension->fOffset1= 0.01;
                     if (SwitchExtension->fOffset1>=fMaxOffset-0.01)
                         SwitchExtension->fOffset1= fMaxOffset-0.01;
-
 //McZapkie-130302 - poprawione rysowanie szyn
-
-                    if(SwitchExtension->RightSwitch)
-                    {
                     glBindTexture(GL_TEXTURE_2D, TextureID1);
-                    SwitchExtension->Segments[0].RenderLoft(rpts1,numPts,fTexLength);
-                    SwitchExtension->Segments[0].RenderLoft(rpts2,numPts,fTexLength,2);
-                    SwitchExtension->Segments[0].RenderSwitchRail(rpts2,rpts4,numPts,fTexLength,2,-SwitchExtension->fOffset1);
+                    SwitchExtension->Segments[0].RenderLoft(rpts1,nnumPts,fTexLength);
+                    SwitchExtension->Segments[0].RenderLoft(rpts2,nnumPts,fTexLength,2);
+                    SwitchExtension->Segments[0].RenderSwitchRail(rpts2,rpts4,nnumPts,fTexLength,2,-SwitchExtension->fOffset1);
                     glBindTexture(GL_TEXTURE_2D, TextureID2);
-                    SwitchExtension->Segments[1].RenderLoft(rpts1,numPts,fTexLength,2);
-                    SwitchExtension->Segments[1].RenderSwitchRail(rpts1,rpts3,numPts,fTexLength,2,fMaxOffset-SwitchExtension->fOffset1);
-                    SwitchExtension->Segments[1].RenderLoft(rpts2,numPts,fTexLength);
-                    }
-                    else
-                    {
-                    glBindTexture(GL_TEXTURE_2D, TextureID2);
-                    SwitchExtension->Segments[1].RenderLoft(rpts1,numPts,fTexLength);
-                    SwitchExtension->Segments[1].RenderLoft(rpts2,numPts,fTexLength,2);
-                    SwitchExtension->Segments[1].RenderSwitchRail(rpts2,rpts4,numPts,fTexLength,2,-fMaxOffset+SwitchExtension->fOffset1);
-                    glBindTexture(GL_TEXTURE_2D, TextureID1);
-                    SwitchExtension->Segments[0].RenderLoft(rpts1,numPts,fTexLength,2);
-                    SwitchExtension->Segments[0].RenderSwitchRail(rpts1,rpts3,numPts,fTexLength,2,SwitchExtension->fOffset1);
-                    SwitchExtension->Segments[0].RenderLoft(rpts2,numPts,fTexLength);
-                    }
+                    SwitchExtension->Segments[1].RenderLoft(rpts1,nnumPts,fTexLength,2);
+                    SwitchExtension->Segments[1].RenderSwitchRail(rpts1,rpts3,nnumPts,fTexLength,2,fMaxOffset-SwitchExtension->fOffset1);
+                    SwitchExtension->Segments[1].RenderLoft(rpts2,nnumPts,fTexLength);
                 }
             break;
         }

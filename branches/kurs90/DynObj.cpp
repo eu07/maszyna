@@ -716,10 +716,10 @@ TDynamicObject* TDynamicObject::ABuScanNearestObject(TTrack *Track, double ScanD
 void __fastcall TDynamicObject::ABuModelRoll()
 {
    double modelRoll=(Axle1.GetRoll()+Axle4.GetRoll())/2;
-   if (ABuGetDirection()<0) modelRoll=-modelRoll;
+//   if (ABuGetDirection()<0) modelRoll=-modelRoll;
    mdModel->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
    if (mdKabina)
-      if(MoverParameters->CabNo==-1)
+      if(MoverParameters->ActiveCab==-1)
          mdKabina->GetSMRoot()->SetRotateXYZ(vector3(0,-modelRoll,0));
       else
          mdKabina->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
@@ -1025,8 +1025,8 @@ void TDynamicObject::ABuScanObjects(TTrack *Track, double ScanDir, double ScanDi
             if((Mechanik)&&(!EndTrack))
             {
                EndTrack=true;
-               Mechanik->SetProximityVelocity(ActDist-10,0);
-               Mechanik->SetVelocity(0,0); //K90
+               Mechanik->SetProximityVelocity(ActDist-50,0);
+               //Mechanik->SetVelocity(0,0);
             }
             ActDist=ScanDist;
          }
@@ -1159,7 +1159,7 @@ void TDynamicObject::ScanEventTrack(TTrack *Track)
       scandir= scandir*MoverParameters->ActiveDir;
      if (scandir!=0)                 //skanowanie toru w poszukiwaniu GetValues
       {
-        double scandist=300+random(MoverParameters->Vmax*5); //fabs(Mechanik->ProximityDist);
+        double scandist= 120+random(MoverParameters->Vmax*5); //fabs(Mechanik->ProximityDist);
         TTrack *scantrack= TraceRoute(scandist, scandir, Track);
         if (scantrack==NULL)               //koniec toru!
          {
@@ -1793,12 +1793,13 @@ if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
 }
 
 //Winger - odhamowywanie w EZT
- //  if ((MoverParameters->TrainType=="ezt") && (MoverParameters->BrakeCtrlPos==-1) && (!MoverParameters->UnBrake))
-//    {
- //    MoverParameters->IncBrakeLevel(); // >BrakeCtrlPosNo=0;
- //    }
+//    if ((MoverParameters->TrainType=="ezt") && (MoverParameters->BrakeCtrlPos==-1) && (!MoverParameters->UnBrake))
+//     {
+//     MoverParameters->IncBrakeLevel(); // >BrakeCtrlPosNo=0;
+//     }
 
     double dDOMoveLen;
+
     TLocation l;
     l.X=-GetPosition().x;
     l.Y=GetPosition().z;
@@ -1817,7 +1818,6 @@ if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
     tp.Width= MyTrack->fTrackWidth;
 //McZapkie-250202
    tp.friction= MyTrack->fFriction/Global::iFriction;
-
     tp.CategoryFlag= MyTrack->iCategoryFlag;
     tp.DamageFlag=MyTrack->iDamageFlag;
     tp.QualityFlag=MyTrack->iQualityFlag;
@@ -1831,8 +1831,8 @@ if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
      MoverParameters->InsideConsist=false;
     }
 //napiecie sieci trakcyjnej
-    TTractionParam tmpTraction;
 
+    TTractionParam tmpTraction;
 if ((MoverParameters->EnginePowerSource.SourceType==CurrentCollector)||(MoverParameters->TrainType=="ezt"))
 {
     if (Global::bLiveTraction)
@@ -1843,36 +1843,30 @@ if ((MoverParameters->EnginePowerSource.SourceType==CurrentCollector)||(MoverPar
       NoVoltTime=0;
      else
       NoVoltTime=NoVoltTime+dt;
-      if (NoVoltTime>1)
+     if (NoVoltTime>1)
       tmpTraction.TractionVoltage=0;
      else
-
-      tmpTraction.TractionVoltage=3550;
+       tmpTraction.TractionVoltage=3400; //3550
      }
-
     else
-
-    tmpTraction.TractionVoltage=3550;
-
-
+    tmpTraction.TractionVoltage=3400;
     /* KURS90 przywrocenie braku mozliwosci jazdy, gdy nie ma trakcji*/
    /* {
     if  ((PantTraction1==601) && (PantTraction2==601)&& (NoVoltTime>1))
     tmpTraction.TractionVoltage=0;
-
     }*/
-
 }
 else
-tmpTraction.TractionVoltage=3550;
+tmpTraction.TractionVoltage=3400;
      tmpTraction.TractionFreq=0;
      tmpTraction.TractionMaxCurrent=7500;
-     tmpTraction.TractionResistivity=0.3;   //0.01
+     tmpTraction.TractionResistivity=0.3;
+
+     
 
 
      /*if  ((Global::bLiveTraction) && ((MoverParameters->PantFront(true)) || (MoverParameters->PantRear(true))))
 {
-
 TGround::GetTraction;
 }   */
 //McZapkie: predkosc w torze przekazac do TrackParam
@@ -1884,7 +1878,6 @@ TGround::GetTraction;
         //ABu: proba szybkiego naprawienia bledu z zatrzymujacymi sie bez powodu skladami
         if ((MoverParameters->CabNo!=0)&&(Controller!=Humandriver)&&(!MoverParameters->Mains)&&(Mechanik->EngineActive))
                        {
-                      
                           MoverParameters->PantRear(false);
                           MoverParameters->PantFront(false);
                           MoverParameters->PantRear(true);
@@ -1896,7 +1889,7 @@ TGround::GetTraction;
          /*if ((MoverParameters->CabNo!=0)&&(Controller!=Humandriver))
          MoverParameters->Battery=true;   */
         
-                              //yB: cos(AI) tu jest nie kompatybilne z czyms (hamulce)
+//yB: cos (AI) tu jest nie kompatybilne z czyms (hamulce)
 //        if (Controller!=Humandriver)
 //         if (Mechanik->LastReactionTime>0.5)
 //          {
@@ -1917,7 +1910,7 @@ TGround::GetTraction;
 //    { MoverParameters->SecuritySystemReset(); }
     if (MoverParameters->ActiveCab==0)
         MoverParameters->SecuritySystemReset();
-    else
+    else 
       if ((Controller!=Humandriver)&&(MoverParameters->PipePress>0.50))
        {
         MoverParameters->PipePress=0.50;
@@ -1925,6 +1918,7 @@ TGround::GetTraction;
         MoverParameters->LowPipePress=0.35;
         MoverParameters->BrakeCtrlPos=0;
        }
+
 
     if ((MoverParameters->Battery==false)&&(Controller==Humandriver)&& (MoverParameters->EngineType!=DieselEngine) && (MoverParameters->EngineType!=WheelsDriven))
      {
@@ -2132,16 +2126,16 @@ pcp2p=MoverParameters->PantFrontVolt;
     TempPantVol= MoverParameters->CompressedVolume;
    if (TempPantVol>6)
     TempPantVol=6;
-  if (MoverParameters->TrainType=="ezt")
+   if (MoverParameters->TrainType=="ezt")
     TempPantVol+= 2;
  if (vol2<0)
         vol2=0;
    if (StartTime<2)
-    pantspeedfactor =10;
+    pantspeedfactor=10;
    else
     //ABu: uniezaleznienie od TempPantVol, bo sie krzaczylo...
     //pantspeedfactor = 100*dt1;
-   // pantspeedfactor = ((TempPantVol-2.5)/2)*40*dt1;
+    //pantspeedfactor = ((TempPantVol-2.5)/2)*40*dt1;
   pantspeedfactor = (MoverParameters->PantPress)*20*dt1;
     pantspeedfactor*=abs(MoverParameters->CabNo);
 
@@ -2149,6 +2143,7 @@ pcp2p=MoverParameters->PantFrontVolt;
    // pantspeedfactor=10;
    if (pantspeedfactor<0)
     pantspeedfactor=0;
+
 //Przedni
    if (PantTraction1>600)
    pcabd1=0;
@@ -2383,7 +2378,7 @@ vector3 inline __fastcall TDynamicObject::GetPosition()
             pos.x+=MoverParameters->OffsetTrackH*vLeft.x;
             pos.z+=MoverParameters->OffsetTrackH*vLeft.z;
             pos.y+=MoverParameters->OffsetTrackV+0.2; //wypadaloby tu prawdziwa wysokosc szyny dorobic
-         }
+         }                                       //0.2
         else
          {
             pos.x+=MoverParameters->OffsetTrackH*vLeft.x;
@@ -2672,7 +2667,7 @@ if (renderme)
 if ((MoverParameters->ConverterFlag==false)&&(MoverParameters->CompressorPower>0))
  MoverParameters->CompressorFlag=false;
 if (MoverParameters->CompressorPower==2)
- MoverParameters->CompressorAllow=MoverParameters->ConverterFlag;
+ MoverParameters->CompressorAllow=MoverParameters->ConverterFlag; 
 
 // McZapkie! - dzwiek compressor.wav tylko gdy dziala sprezarka
     if (MoverParameters->VeselVolume!=0)

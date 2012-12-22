@@ -263,7 +263,6 @@ bool __fastcall TGroundNode::Disable()
 
 }
 
-
 bool __fastcall TGroundNode::Render()
 {
 
@@ -1220,15 +1219,11 @@ bool __fastcall TGround::Init(AnsiString asFile)
 //McZapkie-110103: sygnaly konca pociagu ale tylko dla pociagow rozkladowych
             if (asTrainName!=AnsiString("none"))
             {
-              if (TrainSetNode->DynamicObject->EndSignalsLight2oldActive())
-                TrainSetNode->DynamicObject->MoverParameters->EndSignalsFlag=64;
+              if((TrainSetNode->DynamicObject->EndSignalsLight1Active())
+               ||(TrainSetNode->DynamicObject->EndSignalsLight1oldActive()))
                 TrainSetNode->DynamicObject->MoverParameters->HeadSignalsFlag=2+32;
-              if (TrainSetNode->DynamicObject->EndSignalsLight1Active())
-                TrainSetNode->DynamicObject->MoverParameters->HeadSignalsFlag=2+32;
-                TrainSetNode->DynamicObject->MoverParameters->EndSignalsFlag=64;
-
-
-
+              else
+                TrainSetNode->DynamicObject->MoverParameters->HeadSignalsFlag=64;
             }
             bTrainSet= false;
             fTrainSetVel= 0;
@@ -2399,7 +2394,7 @@ bool __fastcall TGround::GetTraction(vector3 pPosition, TDynamicObject *model)
                            p2wz=277;
                            }
                           }
-                          if ((p2wx!=277) && (p2wz!=277)) //277
+                          if ((p2wx!=277) && (p2wz!=277))
                            {
                                 zt1=t1x-t2x;
                                 if (zt1<0)
@@ -2449,55 +2444,28 @@ bool __fastcall TGround::GetTraction(vector3 pPosition, TDynamicObject *model)
     nty1=-nty1;
 if ((nty1<10)&&(nty1>0))
     model->PantTraction1= nty1;
-    wsp2wb=nty2-6.039;
-    if (wsp2wb<0)
-    wsp2wb=-wsp2wb;
-    wsp2= 1-wsp2wb;
-    nty2= nty2-(wsp2*0.17);
+    wsp1wb=nty2-6.039;
+    if (wsp1wb<0)
+    wsp1wb=-wsp1wb;
+    wsp1= 1-wsp1wb;
+    nty2= nty2-(wsp1*0.17);
     if (nty2pk>6.039)
     {
-        wsp2wb=nty2pk-6.544;
-        if (wsp2wb<0)
-        wsp2wb=-wsp2wb;
-        wsp2= 0.5-wsp2wb;
-        nty2= nty2-(wsp2*0.19);
+        wsp1wb=nty2pk-6.544;
+        if (wsp1wb<0)
+        wsp1wb=-wsp1wb;
+        wsp1= 0.5-wsp1wb;
+        nty2= nty2-(wsp1*0.19);
     }
     if (nty2<0)
     nty2=-nty2;
 if ((nty2<10)&&(nty2>0))
     model->PantTraction2= nty2;
-      if ((np1wy==1000) && (np2wy==1000))
+    if ((np1wy==1000) && (np2wy==1000))
      {
      model->PantTraction1= 5.8171;
      model->PantTraction2= 5.8171;
      }
-
-  /* if ((np1wy==1000) && (np2wy==1000))
-     {
-     if (!Global::bLiveTraction)
-     {
-     model->PantTraction1= 5.8171;
-     model->PantTraction2= 5.8171;
-     }
-     else
-     {
-     model->PantTraction1=7.2;
-      model->PantTraction2=7.2;
-     }   */
-    /*KURS90 okreslenie takiej dziwnej wysokosci aby exe jak nie znajdzie
-    trakcji samoczynnie opuszczalo patyki (Reszta w DynObj.cpp)*/
-
-  //  }
-/*if (Global::bLiveTraction)
-     {
-     if ((np1wy>1000) && (np2wy>1000))
-     model->PantTraction1=601;
-      model->PantTraction2=601;
-     } */
-
-
-
-
     return true;
 }
 

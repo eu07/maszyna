@@ -44,7 +44,7 @@ private:
     bool Paused;
 
     GLuint	base;
-//    GLuint      light; //swiatlo obadamy ;]
+    GLuint      light; //swiatlo obadamy ;]
 
     TSky Clouds;
     TEvent *KeyEvents[10];

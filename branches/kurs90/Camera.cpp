@@ -170,12 +170,15 @@ bool __fastcall TCamera::SetMatrix()
         Yaw= -M_PI*0.33;
 
   */
-    glRotatef(-Roll*180.0f/M_PI,0,0,1);
-    glRotatef(-Pitch*180.0f/M_PI,1,0,0);
-    glRotatef(-Yaw*180.0f/M_PI,0,1,0);
+
+    glRotated(-Roll*180.0f/M_PI,0,0,1);
+    glRotated(-Pitch*180.0f/M_PI,1,0,0);
+    glRotated(-Yaw*180.0f/M_PI,0,1,0);
 
     if (Type==tp_Follow)
     {
+//        gluLookAt(Pos.x+pOffset.x,Pos.y+pOffset.y,Pos.z+pOffset.z,
+//                LookAt.x+pOffset.x,LookAt.y+pOffset.y,LookAt.z+pOffset.z,vUp.x,vUp.y,vUp.z);
         gluLookAt(Pos.x+pOffset.x,Pos.y+pOffset.y,Pos.z+pOffset.z,
                 LookAt.x+pOffset.x,LookAt.y+pOffset.y,LookAt.z+pOffset.z,vUp.x,vUp.y,vUp.z);
 //        gluLookAt(Pos.x,Pos.y,Pos.z,Pos.x+Velocity.x,Pos.y+Velocity.y,Pos.z+Velocity.z,0,1,0);
@@ -187,11 +190,11 @@ bool __fastcall TCamera::SetMatrix()
 
     if (Type!=tp_Follow)
     {
-        glTranslatef(-Pos.x,-Pos.y,-Pos.z);
+        glTranslated(-Pos.x,-Pos.y,-Pos.z);
     }
 
     Global::SetCameraPosition(Pos+pOffset);
-    Global::SetCameraRotation(Yaw);    
+    Global::SetCameraRotation(Yaw);
     return true;
 }
 //---------------------------------------------------------------------------

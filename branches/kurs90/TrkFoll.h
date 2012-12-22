@@ -30,7 +30,7 @@ public:
     };
     bool __fastcall Move(double fDistance, bool bPrimary= false);
     inline TTrack* __fastcall GetTrack() { return pCurrentTrack; };
-    inline double __fastcall GetRoll() { return pCurrentSegment->GetRoll(fCurrentDistance); };
+    inline double __fastcall GetRoll() { return pCurrentSegment->GetRoll(fCurrentDistance)*fDirection; };
     inline double __fastcall GetDirection() { return fDirection; };
     inline double __fastcall GetTranslation() { return fCurrentDistance; };  //ABu-030403
 //    inline double __fastcall GetLength(vector3 p1, vector3 cp1, vector3 cp2, vector3 p2)

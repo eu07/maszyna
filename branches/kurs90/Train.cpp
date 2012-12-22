@@ -234,7 +234,6 @@ void __fastcall TTrain::OnKeyPress(int cKey)
               if (DynamicObject->MoverParameters->EngineType==DieselEngine)
                dsbDieselIgnition->Play( 0, 0, 0 );
               else
-
                dsbNastawnik->Play( 0, 0, 0 );
                
 
@@ -402,12 +401,12 @@ void __fastcall TTrain::OnKeyPress(int cKey)
         {
          if (DynamicObject->MoverParameters->DoorCloseCtrl==1)
            if(DynamicObject->MoverParameters->DoorRight(true))
-           {
-               dsbSwitch->SetVolume(DSBVOLUME_MAX);
-               dsbSwitch->Play( 0, 0, 0 );
-               dsbDoorOpen->SetCurrentPosition(0);
-               dsbDoorOpen->Play( 0, 0, 0 );
-           }
+             {
+                 dsbSwitch->SetVolume(DSBVOLUME_MAX);
+                 dsbSwitch->Play( 0, 0, 0 );
+                 dsbDoorOpen->SetCurrentPosition(0);
+                 dsbDoorOpen->Play( 0, 0, 0 );
+             }
       }
       }
       else
@@ -428,11 +427,11 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       {
          if (DynamicObject->MoverParameters->DoorOpenCtrl==1)
            if(DynamicObject->MoverParameters->DoorLeft(true))
-             {
-                 dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                 dsbSwitch->Play( 0, 0, 0 );
-                 dsbDoorOpen->SetCurrentPosition(0);
-                 dsbDoorOpen->Play( 0, 0, 0 );
+           {
+               dsbSwitch->SetVolume(DSBVOLUME_MAX);
+               dsbSwitch->Play( 0, 0, 0 );
+               dsbDoorOpen->SetCurrentPosition(0);
+               dsbDoorOpen->Play( 0, 0, 0 );
              }
         }
       }
@@ -486,6 +485,15 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       }
 
       else
+//      if (cKey==Global::Keys[k_Active])   //yB 300407: przelacznik rozrzadu
+//      {
+//        if(DynamicObject->MoverParameters->CabActivisation())
+//           {
+//            dsbSwitch->SetVolume(DSBVOLUME_MAX);
+//            dsbSwitch->Play( 0, 0, 0 );
+//           }
+//      }
+//      else
       if (cKey==Global::Keys[k_Heating])   //Winger 020304: ogrzewanie skladu - wlaczenie
       {
               if (!FreeFlyModeFlag)
@@ -780,9 +788,9 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                        dsbPneumaticRelay->Play( 0, 0, 0 );
                     }
                    }
-                   }
-                   }
-                   }
+                 }
+              }
+          }
       else
       if (cKey==Global::Keys[k_DecLocalBrakeLevel])
           {//ABu: male poprawki, zeby bylo mozna odhamowac dowolny wagon
@@ -949,6 +957,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
             }
           AntiSlipButtonGauge.PutValue(1);
          }
+//        else DynamicObject->MoverParameters->SwitchEPBrake(1);
       }
       else
       if (cKey==Global::Keys[k_Fuse])
@@ -983,8 +992,6 @@ void __fastcall TTrain::OnKeyPress(int cKey)
             dsbSwitch->SetVolume(DSBVOLUME_MAX);
             dsbSwitch->Play( 0, 0, 0 );
           }
-
-
       }
       else
   // McZapkie-240302 - wylaczanie glownego obwodu
@@ -1983,26 +1990,22 @@ bool __fastcall TTrain::Update()
   }
   // potem dorobic bufory, sprzegi jako RealSound.
   if (TestFlag(DynamicObject->MoverParameters->SoundFlag,sound_bufferclamp)) // zderzaki uderzaja o siebie
-
    {
     if (TestFlag(DynamicObject->MoverParameters->SoundFlag,sound_loud))
      dsbBufferClamp->SetVolume(DSBVOLUME_MAX);
     else
      dsbBufferClamp->SetVolume(-20);
     dsbBufferClamp->Play( 0, 0, 0 );
+  }
 
-
- }
   if (TestFlag(DynamicObject->MoverParameters->SoundFlag,sound_couplerstretch)) // sprzegi sie rozciagaja
-      {
-      if (TestFlag(DynamicObject->MoverParameters->SoundFlag,sound_loud))
-       {
-       dsbCouplerStretch->SetVolume(DSBVOLUME_MAX);
-       }
-     else
+   {
+    if (TestFlag(DynamicObject->MoverParameters->SoundFlag,sound_loud))
+     dsbCouplerStretch->SetVolume(DSBVOLUME_MAX);
+    else
      dsbCouplerStretch->SetVolume(-20);
-     dsbCouplerStretch->Play( 0, 0, 0 );
-     }
+    dsbCouplerStretch->Play( 0, 0, 0 );
+  }
 
   if (DynamicObject->MoverParameters->SoundFlag==0)
    if (DynamicObject->MoverParameters->EventFlag)
@@ -2077,10 +2080,10 @@ if (!ShowNextCurrent)
     {
       if (DynamicObject->MoverParameters->TrainType!="ezt")
 
-       {
-        ItotalGaugeB.UpdateValue(DynamicObject->MoverParameters->ShowCurrent(0));
-        ItotalGaugeB.Update();
-        }
+     {
+      ItotalGaugeB.UpdateValue(DynamicObject->MoverParameters->ShowCurrent(0));
+      ItotalGaugeB.Update();
+     }
       else
         {
           if(((TestFlag(DynamicObject->MoverParameters->Couplers[1].CouplingFlag,ctrain_controll))
@@ -2193,13 +2196,10 @@ else
          I3GaugeB.Update();
       }
       if (ItotalGaugeB.SubModel!=NULL)
-        {
-           ItotalGaugeB.UpdateValue(0);
-           ItotalGaugeB.Update();
-        }
-
-
-
+      {
+         ItotalGaugeB.UpdateValue(0);
+         ItotalGaugeB.Update();
+      }
    }
 }
 
@@ -2237,7 +2237,6 @@ else
          ItotalBGauge.UpdateValue(tmp->MoverParameters->ShowCurrent(0));
          ItotalBGauge.Update();
       }
-
      }
 }
 //McZapkie-240302    VelocityGauge.UpdateValue(DynamicObject->GetVelocity());
@@ -2585,8 +2584,7 @@ if ( DynamicObject->MoverParameters->DoorSignalling==true)
     else
         btLampkaNadmPrzetwB.TurnOn();
       }
-
-    else
+    else  //wylaczone
       {
         btLampkaWylSzybkiB.TurnOff();
         btLampkaOporyB.TurnOff();
@@ -2685,8 +2683,6 @@ btLampkaDoorRight.TurnOff();
         DirKeyGauge.UpdateValue(double(DynamicObject->MoverParameters->ActiveDir)+
                                 double(DynamicObject->MoverParameters->Imin==
                                        DynamicObject->MoverParameters->IminHi));
-
-
       DirKeyGauge.Update();
      }
     if (BrakeCtrlGauge.SubModel!=NULL)
@@ -2756,7 +2752,8 @@ btLampkaDoorRight.TurnOff();
      {
       MainButtonGauge.Update();
      }
- if (RadioButtonGauge.SubModel!=NULL)
+
+    if (RadioButtonGauge.SubModel!=NULL)
     {
       if (DynamicObject->MoverParameters->Radio)
           {
@@ -3077,7 +3074,8 @@ btLampkaDoorRight.TurnOff();
      }
 
 
-
+//    bool kEP;
+//    kEP=(DynamicObject->MoverParameters->BrakeSubsystem==Knorr)||(DynamicObject->MoverParameters->BrakeSubsystem==Hik)||(DynamicObject->MoverParameters->BrakeSubsystem==Kk);
     if ((DynamicObject->MoverParameters->BrakeSystem==ElectroPneumatic)&&(DynamicObject->MoverParameters->BrakeSubsystem==Knorr)&&(DynamicObject->MoverParameters->EpFuse==true))
      if ( Pressed(Global::Keys[k_AntiSlipping] ) )
       {
@@ -3222,7 +3220,7 @@ else
       PantFrontButtonOffGauge.PutValue(0);
       }
 
- /*if ((DynamicObject->MoverParameters->Mains) && (DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor))
+/*  if ((DynamicObject->MoverParameters->Mains) && (DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor))
     {
 //tu dac w przyszlosci zaleznosc od wlaczenia przetwornicy
     if (DynamicObject->MoverParameters->ConverterFlag)          //NBMX -obsluga przetwornicy
@@ -3254,8 +3252,8 @@ else
        sConverter.TurnOff();
    }
    sConverter.Update();
+*/
 
-   */
 //  if (fabs(DynamicObject->GetVelocity())>0.5)
     if (fTachoCount>maxtacho)
     {
@@ -3732,9 +3730,10 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
            btLampkaDoorRight.Clear();
            btLampkaDepartureSignal.Clear();
            btLampkaRezerwa.Clear();
+           btLampkaBoczniki.Clear();
            btLampkaBocznikI.Clear();
-                      btLampkaBoczniki.Clear();
-           btLampkaBocznikII.Clear();           
+           btLampkaBocznikII.Clear();
+           btLampkaRadiotelefon.Clear();
            btLampkaHamienie.Clear();
            btLampkaSprezarka.Clear();
            btLampkaSprezarkaB.Clear();
