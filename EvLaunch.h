@@ -31,7 +31,7 @@ public:
     int iCheckMask;
     __fastcall TEventLauncher();
     __fastcall ~TEventLauncher();
-    bool __fastcall Init();
+    void __fastcall Init();
     bool __fastcall Load(cParser *parser);
     bool __fastcall Render();
 };

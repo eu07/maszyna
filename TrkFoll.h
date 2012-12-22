@@ -37,7 +37,7 @@ public:
 //    { return pCurrentSegment->ComputeLength(p1,cp1,cp2,p2); };
 //    inline double __fastcall GetRadius(double L, double d);  //McZapkie-150503
     bool __fastcall Init(TTrack *pTrack, TDynamicObject *NewOwner=NULL, double fDir=1.0f);
-    bool __fastcall Render();
+    void __fastcall Render();
 };
 //---------------------------------------------------------------------------
 #endif

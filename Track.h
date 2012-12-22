@@ -17,31 +17,36 @@ typedef enum { e_unknown, e_flat, e_mountains, e_canyon, e_tunnel, e_bridge, e_b
 
 class TTrack;
 class TGroundNode;
+class TSubRect;
+class TTraction;
 
 static const double fMaxOffset=0.1f;
 
 class TSwitchExtension
 {//dodatkowe dane do toru, który jest zwrotnic¹
 public:
-    __fastcall TSwitchExtension();
-    __fastcall ~TSwitchExtension();
-    TSegment Segments[4]; //dwa tory od punktu 1, pozosta³e dwa od 2?
-    TTrack *pNexts[2];
-    TTrack *pPrevs[2];
-    bool bNextSwitchDirection[2];
-    bool bPrevSwitchDirection[2];
-    int CurrentIndex; //dla zwrotnicy
-    double fOffset1, fDesiredOffset1; //ruch od strony punktu 1
-    union
-    {double fOffset2, fDesiredOffset2; //ruch od strony punktu 2 nie obs³ugiwany
-     TGroundNode *pMyNode; //dla obrotnicy do wtórnego pod³¹czania torów
-    };
-    union
-    {bool RightSwitch; //czy zwrotnica w prawo
-     //TAnimContainer *pAnim; //animator modelu dla obrotnicy
-     TAnimModel *pModel; //na razie model
-    };
-    bool bMovement; //czy w trakcie animacji
+ __fastcall TSwitchExtension();
+ __fastcall ~TSwitchExtension();
+ TSegment Segments[4]; //dwa tory od punktu 1, pozosta³e dwa od 2?
+ TTrack *pNexts[2];
+ TTrack *pPrevs[2];
+ bool bNextSwitchDirection[2];
+ bool bPrevSwitchDirection[2];
+ int CurrentIndex; //dla zwrotnicy
+ double fOffset1, fDesiredOffset1; //ruch od strony punktu 1
+ union
+ {double fOffset2, fDesiredOffset2; //ruch od strony punktu 2 nie obs³ugiwany
+  TGroundNode *pMyNode; //dla obrotnicy do wtórnego pod³¹czania torów
+ };
+ union
+ {bool RightSwitch; //czy zwrotnica w prawo
+  //TAnimContainer *pAnim; //animator modelu dla obrotnicy
+  TAnimModel *pModel; //na razie model
+ };
+ bool bMovement; //czy w trakcie animacji
+ int iLeftVBO,iRightVBO; //indeksy iglic w VBO
+ TSubRect *pOwner; //sektor, któremu trzeba zg³osiæ animacjê
+ TTrack *pNextAnim; //nastêpny tor do animowania
 private:
 };
 
@@ -58,11 +63,12 @@ private:
     TTrack *pNext; //odcinek od strony punktu 2
     TTrack *pPrev; //odcinek od strony punktu 1
 //McZapkie-070402: dodalem zmienne opisujace rozmiary tekstur
-    GLuint TextureID1; //tekstura szyn
+    GLuint TextureID1; //tekstura szyn albo nawierzchni
     float fTexLength;
-    GLuint TextureID2; //tekstura automatycznej podsypki
+    float fTexRatio; //proporcja rozmiarów nawierzchni drogi
+    GLuint TextureID2; //tekstura automatycznej podsypki albo pobocza
     float fTexHeight; //wysokoœ brzegu wzglêdem trajektorii
-    float fTexWidth;
+    float fTexWidth; //szerokoœæ boku
     float fTexSlope;
     //vector3 *HelperPts; //Ra: nie u¿ywane, na razie niech zostanie
     double fRadiusTable[2]; //dwa promienie, drugi dla zwrotnicy
@@ -103,6 +109,7 @@ public:
     double fTrackLength; //d³ugoœæ z wpisu, nigdzie nie u¿ywana
     double fRadius; //promieñ, dla zwrotnicy kopiowany z tabeli
     bool ScannedFlag; //McZapkie: to dla testu
+    TTraction *pTraction; //drut zasilaj¹cy
     __fastcall TTrack();
     __fastcall ~TTrack();
     void __fastcall Init();
@@ -145,14 +152,22 @@ public:
     void __fastcall MoveMe(vector3 pPosition);
 
     void Release();
-    void Compile();
+    void __fastcall Compile();
 
-    bool __fastcall Render();
-    bool __fastcall RenderAlpha();
+    void __fastcall Render();
+    void __fastcall RenderAlpha();
     bool __fastcall InMovement(); //czy w trakcie animacji?
 
-    void __fastcall Assign(TGroundNode *gn,TAnimContainer *ac);
-    void __fastcall Assign(TGroundNode *gn,TAnimModel *am);
+    void __fastcall RaAssign(TGroundNode *gn,TAnimContainer *ac);
+    void __fastcall RaAssign(TGroundNode *gn,TAnimModel *am);
+    int __fastcall RaArrayPrepare();
+    void  __fastcall RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Start);
+    void  __fastcall RaRenderVBO(int iPtr);
+    void  __fastcall RaRenderDynamic(); //pojazdy
+    void __fastcall RaOwnerSet(TSubRect *o)
+    {if (SwitchExtension) SwitchExtension->pOwner=o;};
+    void __fastcall RaAnimListAdd(TTrack *t);
+    TTrack* __fastcall RaAnimate();
 };
 
 //---------------------------------------------------------------------------

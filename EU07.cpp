@@ -24,6 +24,7 @@
 #include "system.hpp"
 #include "classes.hpp"
 #include "Globals.h"
+#include "Feedback.h"
 #pragma hdrstop
 
 USERES("EU07.res");
@@ -59,7 +60,6 @@ USEUNIT("DynObj.cpp");
 USEUNIT("RealSound.cpp");
 USEUNIT("EvLaunch.cpp");
 USEUNIT("QueryParserComp.pas");
-USEUNIT("Scenery.cpp");
 USEUNIT("FadeSound.cpp");
 USEUNIT("Traction.cpp");
 USEUNIT("TractionPower.cpp");
@@ -68,7 +68,11 @@ USEUNIT("sky.cpp");
 USEUNIT("AirCoupler.cpp");
 USEUNIT("glew.c");
 USEUNIT("ResourceManager.cpp");
+USEUNIT("VBO.cpp");
+USEUNIT("Feedback.cpp");
+USEUNIT("McZapkie\mtable.pas");
 USEUNIT("TextureDDS.cpp");
+//---------------------------------------------------------------------------
 #include "World.h"
 
 HDC		hDC=NULL;			// Private GDI Device Context
@@ -201,7 +205,7 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
 	wc.hCursor			= LoadCursor(NULL, IDC_ARROW);			// Load The Arrow Pointer
 	wc.hbrBackground	= NULL;									// No Background Required For GL
 	wc.lpszMenuName		= NULL;									// We Don't Want A Menu
-	wc.lpszClassName	= "OpenGL";								// Set The Class Name
+	wc.lpszClassName	= "EU07";								// Set The Class Name
 
 	if (!RegisterClass(&wc))									// Attempt To Register The Window Class
 	{
@@ -239,7 +243,7 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
 			// fill refresh rate info for screen mode change
 			dmScreenSettings.dmDisplayFrequency = refreshrate;
 			dmScreenSettings.dmFields = DM_DISPLAYFREQUENCY;
-		}                
+		}
 		dmScreenSettings.dmPelsWidth	= width;				// Selected Screen Width
 		dmScreenSettings.dmPelsHeight	= height;				// Selected Screen Height
 		dmScreenSettings.dmBitsPerPel	= bits;					// Selected Bits Per Pixel
@@ -249,14 +253,14 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
 		if (ChangeDisplaySettings(&dmScreenSettings,CDS_FULLSCREEN)!=DISP_CHANGE_SUCCESSFUL)
 		{
 			// If The Mode Fails, Offer Two Options.  Quit Or Use Windowed Mode.
-			if (MessageBox(NULL,"The Requested Fullscreen Mode Is Not Supported By\nYour Video Card. Use Windowed Mode Instead?","EU07",MB_YESNO|MB_ICONEXCLAMATION)==IDYES)
+			if (MessageBox(NULL,"The requested fullscreen mode is not supported by\nyour video card. Use windowed mode instead?","EU07",MB_YESNO|MB_ICONEXCLAMATION)==IDYES)
 			{
 				fullscreen=FALSE;		// Windowed Mode Selected.  Fullscreen = FALSE
 			}
 			else
 			{
 				// Pop Up A Message Box Letting User Know The Program Is Closing.
-				Error("Program Will Now Close.");
+				Error("Program will now close.");
 				return FALSE;									// Return FALSE
 			}
 		}
@@ -277,8 +281,8 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
 	AdjustWindowRectEx(&WindowRect, dwStyle, FALSE, dwExStyle);		// Adjust Window To True Requested Size
 
 	// Create The Window
-	if (!(hWnd=CreateWindowEx(	dwExStyle,							// Extended Style For The Window
-								"OpenGL",							// Class Name
+	if (NULL==(hWnd=CreateWindowEx(	dwExStyle,							// Extended Style For The Window
+								"EU07",							// Class Name
 								title,								// Window Title
 								dwStyle |							// Defined Window Style
 								WS_CLIPSIBLINGS |					// Required Window Style
@@ -318,14 +322,14 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
 		0, 0, 0										// Layer Masks Ignored
 	};
 
-	if (!(hDC=GetDC(hWnd)))							// Did We Get A Device Context?
+	if (NULL==(hDC=GetDC(hWnd)))							// Did We Get A Device Context?
 	{
 		KillGLWindow();								// Reset The Display
 		MessageBox(NULL,"Can't Create A GL Device Context.","ERROR",MB_OK|MB_ICONEXCLAMATION);
 		return FALSE;								// Return FALSE
 	}
 
-	if (!(PixelFormat=ChoosePixelFormat(hDC,&pfd)))	// Did Windows Find A Matching Pixel Format?
+	if (NULL==(PixelFormat=ChoosePixelFormat(hDC,&pfd)))	// Did Windows Find A Matching Pixel Format?
 	{
 		KillGLWindow();								// Reset The Display
 		MessageBox(NULL,"Can't Find A Suitable PixelFormat.","ERROR",MB_OK|MB_ICONEXCLAMATION);
@@ -339,7 +343,7 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
 		return FALSE;								// Return FALSE
 	}
 
-	if (!(hRC=wglCreateContext(hDC)))				// Are We Able To Get A Rendering Context?
+	if (NULL==(hRC=wglCreateContext(hDC)))				// Are We Able To Get A Rendering Context?
 	{
 		KillGLWindow();								// Reset The Display
 		MessageBox(NULL,"Can't Create A GL Rendering Context.","ERROR",MB_OK|MB_ICONEXCLAMATION);
@@ -374,19 +378,31 @@ static int mx=0, my=0;
 static POINT mouse;
 
 static int test= 0;
+/**/
+// ************ Globals ************
+//
+#define MYDISPLAY 1
+
+
+PCOPYDATASTRUCT pDane;
 
 LRESULT CALLBACK WndProc(	HWND	hWnd,			// Handle For This Window
 							UINT	uMsg,			// Message For This Window
 							WPARAM	wParam,			// Additional Message Information
 							LPARAM	lParam)			// Additional Message Information
 {
-    TRect rect;
-	switch (uMsg)									// Check For Windows Messages
+ TRect rect;
+ switch (uMsg)									// Check For Windows Messages
+ {
+  case WM_COPYDATA: //obs³uga danych przes³anych przez program steruj¹cy
+   pDane=(PCOPYDATASTRUCT)lParam;
+   if (pDane->dwData=='EU07') //sygnatura danych
+    World.OnCommandGet((DaneRozkaz*)(pDane->lpData));
+   break;
+	case WM_ACTIVATE:							// Watch For Window Activate Message
 	{
-		case WM_ACTIVATE:							// Watch For Window Activate Message
-		{
-            active= (LOWORD(wParam)!=WA_INACTIVE);
-            if (active)
+           active= (LOWORD(wParam)!=WA_INACTIVE);
+           if (active)
                 SetCursorPos(mx,my);
             ShowCursor(!active);
 /*
@@ -450,7 +466,12 @@ LRESULT CALLBACK WndProc(	HWND	hWnd,			// Handle For This Window
             switch (wParam)
             {
                 case VK_F7:
-                    Global::bWireFrame= !Global::bWireFrame;
+                 if (DebugModeFlag)
+                 {//siatki tyko w trybie tekstowym
+                  Global::bWireFrame=!Global::bWireFrame;
+                  Global::bReCompile=true; //czy odœwie¿yæ siatki
+                  //Ra: jeszcze usun¹æ siatki ze skompilowanych obiektów!
+                 }
                 break;
             }
 			return 0;								// Jump Back
@@ -546,7 +567,7 @@ int WINAPI WinMain(	HINSTANCE	hInstance,			// Instance
                  Global::asHumanCtrlVehicle= str;
                }
               else
-               Error("Program usage: EU07 [-s sceneryfilepath] [-v vehiclename]");
+               Error("Program usage: EU07 [-s sceneryfilepath] [-v vehiclename]",!Global::bWriteLogEnabled);
           }
           //ABu 050205: tego wczesniej nie bylo:
           delete Parser;
@@ -612,7 +633,7 @@ int WINAPI WinMain(	HINSTANCE	hInstance,			// Instance
 		    		done=TRUE;							// ESC or DrawGLScene Signalled A Quit
 		}
 	}
-
+  Feedback::BitsClear(-1);
     SystemParametersInfo(SPI_SETKEYBOARDSPEED,iOldSpeed,NULL,0);
     SystemParametersInfo(SPI_SETKEYBOARDDELAY,iOldDelay,NULL,0);
 

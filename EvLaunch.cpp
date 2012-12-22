@@ -25,12 +25,16 @@
 
 #include "Mover.hpp"
 #include "mctools.hpp"
+#include "mtable.hpp"
 #include "Timer.h"
 #include "Globals.h"
 #include "EvLaunch.h"
 #include "Event.h"
 
 #include "Usefull.h"
+#include "MemCell.h"
+
+
 
 //---------------------------------------------------------------------------
 
@@ -49,7 +53,7 @@ __fastcall TEventLauncher::~TEventLauncher()
     SafeDeleteArray(szText);
 }
 
-bool __fastcall TEventLauncher::Init()
+void __fastcall TEventLauncher::Init()
 {
 }
 
@@ -111,12 +115,12 @@ bool __fastcall TEventLauncher::Load(cParser *parser)
       szText= new char[256];
       strcpy(szText,token.c_str());
       if (token.compare( "*" ) != 0)       //*=nie brac command pod uwage
-        iCheckMask+=conditional_memstring;
+        iCheckMask|=conditional_memstring;
       parser->getTokens();
       *parser >> token;
       if (token.compare( "*" ) != 0)       //*=nie brac command pod uwage
        {
-         iCheckMask+=conditional_memval1;
+         iCheckMask|=conditional_memval1;
          str= AnsiString(token.c_str());
          fVal1= str.ToDouble();
        }
@@ -125,7 +129,7 @@ bool __fastcall TEventLauncher::Load(cParser *parser)
       *parser >> token;
       if (token.compare( "*" ) != 0)       //*=nie brac command pod uwage
        {
-         iCheckMask+=conditional_memval2;
+         iCheckMask|=conditional_memval2;
          str= AnsiString(token.c_str());
          fVal2= str.ToDouble();
        }

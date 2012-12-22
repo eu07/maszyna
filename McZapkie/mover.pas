@@ -189,6 +189,7 @@ CONST
    dt_SN61=6; //nie u¿ywane
    dt_EP05=7;
    dt_ET40=8;
+   dt_181=9; 
 
 TYPE
     PMoverParameters=^TMoverParameters;
@@ -403,6 +404,7 @@ TYPE
                LocalBrake: TLocalBrake;  {rodzaj hamulca indywidualnego}
                BrakePressureTable: TBrakePressureTable; {wyszczegolnienie cisnien w rurze}
                ASBType: byte;            {0: brak hamulca przeciwposlizgowego, 1: reczny, 2: automat}
+               TurboTest: byte;
                MaxBrakeForce: real;      {maksymalna sila nacisku hamulca}
                MaxBrakePress,P2FTrans: real;
                TrackBrakeForce: real;    {sila nacisku hamulca szynowego}
@@ -2922,7 +2924,7 @@ begin
   begin
    if (ConnectTo<>nil) then
     begin
-      if (ConnectToNr<>2) then CouplerNr[ConnectNo]:=ConnectToNr;
+      if (ConnectToNr<>2) then CouplerNr[ConnectNo]:=ConnectToNr; {2=nic nie pod³¹czone}
       ct:=ConnectTo^.Couplers[CouplerNr[ConnectNo]].CouplerType;
       if (((Distance(Loc,ConnectTo^.Loc,Dim,ConnectTo^.Dim)<=dEpsilon) and (CouplerType<>NoCoupler) and (CouplerType=ct))
          or (CouplingType and ctrain_coupler=0))
@@ -4171,7 +4173,7 @@ const MaxDist=405.0; {ustawione + 5 m, bo skanujemy do 400 m }
       MaxCount=1500;
 begin
   CF:=0;
-  distDelta:=0;
+  //distDelta:=0; //Ra: value never used
   CNext:=CouplerNr[CouplerN];
 {  if Couplers[CouplerN].CForce=0 then  {nie bylo uzgadniane wiec policz}
    with Couplers[CouplerN] do
@@ -4879,7 +4881,7 @@ var OK:boolean; testload:string;
 Begin
 {$B+} {cholernie mi sie nie podoba ta dyrektywa!!!}
   OK:=False;
-  ClearPendingExceptions;
+  ClearPendingExceptions();
 
   {test komend sterowania ukrotnionego}
   if command='MainCtrl' then
@@ -5923,8 +5925,10 @@ begin
               else if s='ET22' then TrainType:=dt_ET22
               else if s='ET40' then TrainType:=dt_ET40
               else if s='EP05' then TrainType:=dt_EP05
-              //else if s='SN61' then TrainType:=dt_SN61
-              else if s='PSEUDODIESEL' then TrainType:=dt_PseudoDiesel;
+              else if s='SN61' then TrainType:=dt_SN61
+              else if s='PSEUDODIESEL' then TrainType:=dt_PseudoDiesel
+              else if s='181' then TrainType:=dt_181
+              else if s='182' then TrainType:=dt_181; {na razie tak}
             end;
           if Pos('Load:',lines)>0 then      {stale parametry}
             begin
@@ -6226,6 +6230,11 @@ begin
                   end;
 {                CouplerTune:=(1+Mass)/100000; }
               end;
+          if Pos('TurboPos:',lines)>0 then      {turbo zalezne od pozycji nastawnika}
+           begin
+            s:=ExtractKeyWord(lines,'TurboPos=');
+            TurboTest:=s2b(DUE(s));
+           end;
           if Pos('Cntrl.',lines)>0 then      {nastawniki}
             begin
               s:=DUE(ExtractKeyWord(lines,'BrakeSystem='));

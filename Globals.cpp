@@ -22,17 +22,21 @@
 #include    "classes.hpp"
 #pragma hdrstop
 
+
 #include "Globals.h"
 #include "QueryParserComp.hpp"
 #include "usefull.h"
+#include "mover.hpp"
+#include "ai_driver.hpp"
+#include "Feedback.h"
 
 
 //namespace Global {
 int Global::Keys[MaxKeys];
 vector3 Global::pCameraPosition;
 double Global::pCameraRotation;
-vector3 Global::pFreeCameraInit;
-vector3 Global::pFreeCameraInitAngle= vector3(0, 0, 0);
+vector3 Global::pFreeCameraInit[10];
+vector3 Global::pFreeCameraInitAngle[10];
 int Global::iWindowWidth= 800;
 int Global::iWindowHeight= 600;
 int Global::iBpp= 16;
@@ -82,14 +86,26 @@ bool Global::changeDynObj; //info o zmianie pojazdu
 bool Global::detonatoryOK; //info o nowych detonatorach
 double Global::ABuDebug=0;
 AnsiString Global::asSky= "1";
-int Global::iDefaultFiltering=5; //domyœlne rozmywanie tekstur TGA
-int Global::iBallastFiltering=5; //domyœlne rozmywanie tekstury podsypki
-int Global::iRailProFiltering=5; //domyœlne rozmywanie tekstury szyn
+int Global::iDefaultFiltering=9; //domyœlne rozmywanie tekstur TGA bez alfa
+int Global::iBallastFiltering=9; //domyœlne rozmywanie tekstur podsypki
+int Global::iRailProFiltering=5; //domyœlne rozmywanie tekstur szyn
+int Global::iDynamicFiltering=5; //domyœlne rozmywanie tekstur pojazdów
+bool Global::bReCompile=false; //czy odœwie¿yæ siatki
+bool Global::bUseVBO=false; //czy jest VBO w karcie graficznej
+int Global::iFeedbackMode=1; //tryb pracy informacji zwrotnej
+double Global::fOpenGL=0.0; //wersja OpenGL - przyda siê
+bool Global::bOpenGL_1_5=false; //czy s¹ dostêpne funkcje OpenGL 1.5
+double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
+bool Global::bMultiplayer=false; //blokada dzia³ania niektórych eventów na rzecz kominikacji
+HWND Global::hWnd=NULL; //uchwyt okna
 
-
-
-bool __fastcall Global::LoadIniFile(AnsiString asFileName)
+void __fastcall Global::LoadIniFile(AnsiString asFileName)
 {
+ for (int i=0;i<10;++i)
+ {//zerowanie pozycji kamer
+  pFreeCameraInit[i]=vector3(0,0,0); //wspó³rzêdne w scenerii
+  pFreeCameraInitAngle[i]=vector3(0,0,0); //k¹ty obrotu w radianach
+ }
     TFileStream *fs;
     fs= new TFileStream(asFileName , fmOpenRead	| fmShareCompat	);
     AnsiString str= "";
@@ -134,9 +150,9 @@ bool __fastcall Global::LoadIniFile(AnsiString asFileName)
         if (str==AnsiString("freefly")) //Mczapkie-130302
          {
            bFreeFly= (Parser->GetNextSymbol().LowerCase()==AnsiString("yes"));
-           pFreeCameraInit.x= Parser->GetNextSymbol().ToDouble();
-           pFreeCameraInit.y= Parser->GetNextSymbol().ToDouble();
-           pFreeCameraInit.z= Parser->GetNextSymbol().ToDouble();
+           pFreeCameraInit[0].x= Parser->GetNextSymbol().ToDouble();
+           pFreeCameraInit[0].y= Parser->GetNextSymbol().ToDouble();
+           pFreeCameraInit[0].z= Parser->GetNextSymbol().ToDouble();
          }
         else
         if (str==AnsiString("wireframe"))
@@ -240,11 +256,18 @@ bool __fastcall Global::LoadIniFile(AnsiString asFileName)
          iBallastFiltering=Parser->GetNextSymbol().ToIntDef(-1);
         else if (str==AnsiString("railprofiltering"))
          iRailProFiltering=Parser->GetNextSymbol().ToIntDef(-1);
+        else if (str==AnsiString("dynamicfiltering"))
+         iDynamicFiltering=Parser->GetNextSymbol().ToIntDef(-1);
+        else if (str==AnsiString("feedbackmode"))
+         iFeedbackMode=Parser->GetNextSymbol().ToIntDef(1); //domyœlnie 1
+        else if (str==AnsiString("multiplayer"))
+         bMultiplayer=Parser->GetNextSymbol().ToIntDef(0); //domyœlnie 1
     }
 
+ Feedback::ModeSet(iFeedbackMode); //tryb pracy interfejsu zwrotnego
 }
 
-bool __fastcall Global::InitKeys(AnsiString asFileName)
+void __fastcall Global::InitKeys(AnsiString asFileName)
 {
 //    if (FileExists(asFileName))
 //    {
@@ -379,8 +402,10 @@ void __fastcall Global::SetCameraPosition(vector3 pNewCameraPosition)
 }
 
 void __fastcall Global::SetCameraRotation(double Yaw)
-{
-    pCameraRotation= Yaw;
+{//ustawienie bezwzglêdnego kierunku kamery z korekcj¹ do przedzia³u <-M_PI,M_PI>
+ pCameraRotation=Yaw;
+ while (pCameraRotation<-M_PI) pCameraRotation+=2*M_PI;
+ while (pCameraRotation> M_PI) pCameraRotation-=2*M_PI;
 }
 
 //}

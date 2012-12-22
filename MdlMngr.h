@@ -26,8 +26,8 @@ private:
 public:
 //    __fastcall TModelsManager();
 //    __fastcall ~TModelsManager();
-    static __fastcall Init();
-    static __fastcall Free();
+    static void __fastcall Init();
+    static void __fastcall Free();
 //McZapkie: dodalem sciezke, notabene Path!=Patch :)
     static int __fastcall LoadModels(char *asModelsPath);
     static TModel3d* __fastcall GetModel(char *Name); 

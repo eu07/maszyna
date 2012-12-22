@@ -38,7 +38,7 @@ TModel3d* __fastcall TMdlContainer::LoadModel(char *newName)
     Name= new char[strlen(newName)+1];
     strcpy(Name,newName);
     Model= new TModel3d();
-    Model->LoadFromTextFile(Name);
+    Model->LoadFromTextFile(Name); //np. "models\\pkp/head1-y.t3d"
     return Model;
 };
 
@@ -46,7 +46,7 @@ TMdlContainer *TModelsManager::Models;
 int TModelsManager::Count;
 const MAX_MODELS= 600;
 
-__fastcall TModelsManager::Init()
+void __fastcall TModelsManager::Init()
 {
     Models= new TMdlContainer[MAX_MODELS];
     Count= 0;
@@ -64,7 +64,7 @@ __fastcall TModelsManager::~TModelsManager()
     Free();
 };
   */
-__fastcall TModelsManager::Free()
+void __fastcall TModelsManager::Free()
 {
     SafeDeleteArray(Models);
 }

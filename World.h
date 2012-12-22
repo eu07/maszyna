@@ -13,17 +13,18 @@
 #include "Train.h"
 #include "Globals.h"
 #include "sky.h"
-
+#include <winuser.h>
 
 class TWorld
 {
 public:
-    __fastcall Init(HWND NhWnd, HDC hDC);
+    void __fastcall Init(HWND NhWnd, HDC hDC);
     HWND hWnd;
     GLvoid __fastcall glPrint(const char *fmt);
     void __fastcall OnKeyPress(int cKey);
 //    void __fastcall UpdateWindow();
     void __fastcall OnMouseMove(double x, double y);
+    void __fastcall OnCommandGet(DaneRozkaz *pRozkaz);
     bool __fastcall Update();
     __fastcall TWorld();
     __fastcall ~TWorld();
@@ -47,7 +48,6 @@ private:
 
     TSky Clouds;
     TEvent *KeyEvents[10];
-
 };
 //---------------------------------------------------------------------------
 #endif

@@ -6,6 +6,7 @@
 #include "geometry.h"
 #include "Parser.h"
 #include "dumb3d.h"
+#include "VBO.h"
 using namespace Math3D;
 
 struct GLVERTEX
@@ -49,7 +50,7 @@ struct TMaterial
     GLuint TextureID;
 };
 */
-
+/*
 struct THitBoxContainer
 {
     TPlane Planes[6];
@@ -73,19 +74,26 @@ struct THitBoxContainer
         return(Hit);
     };
 };
+*/
 
 typedef enum { smt_Unknown, smt_Mesh, smt_Point, smt_FreeSpotLight, smt_Text} TSubModelType;
 
-typedef enum { at_None, at_Rotate, at_RotateXYZ } TAnimType;
+typedef enum { at_None, at_Rotate, at_RotateXYZ, at_Translate } TAnimType;
 
 class TModel3d;
 
 class TSubModel
 {
-  private:
+private:
       TSubModelType eType;
       GLuint TextureID;
+      int iFlags; //flagi informacyjne
       bool TexAlpha;        //McZapkie-141202: zeby bylo wiadomo czy sortowac ze wzgledu na przezroczystosc
+      float fLight; //próg jasnoœci œwiat³a do zadzia³ania selfillum
+      float f4Ambient[4];
+      float f4Diffuse[4];
+      float f4Specular[4];
+
 //      bool TexHash;
       GLuint uiDisplayList;
       double Transparency;
@@ -112,56 +120,60 @@ class TSubModel
       double f_Angle, f_aAngle;
       vector3 v_RotateAxis, v_aRotateAxis;
       vector3 v_Angles, v_aAngles;
-      double f_DesiredAngle, f_aDesiredAngle;
-      double f_RotateSpeed, f_aRotateSpeed;
+      //double f_DesiredAngle, f_aDesiredAngle;
+      //double f_RotateSpeed, f_aRotateSpeed; //na tym poziomie nie ma animacji
       vector3 v_TransVector, v_aTransVector;
-      vector3 v_DesiredTransVector, v_aDesiredTransVector;
-      double f_TranslateSpeed, f_aTranslateSpeed;
+      //vector3 v_DesiredTransVector, v_aDesiredTransVector;
+      //double f_TranslateSpeed, f_aTranslateSpeed; //na tym poziomie nie ma animacji
 
 
       TSubModel *Next;
       TSubModel *Child;
   //    vector3 HitBoxPts[6];
-      int __fastcall SeekFaceNormal(DWORD *Masks, int f, DWORD dwMask, vector3 pt, GLVERTEX *Vertices, int iNumVerts);
-  public:
+      int __fastcall SeekFaceNormal(DWORD *Masks, int f, DWORD dwMask, vector3 pt, GLVERTEX *Vertices);
+
+      int iNumVerts; //potrzebne do VBO
+      int iVboPtr;
+      GLVERTEX *Vertices; //do VBO
+      int iAnimOwner;
+public:
 
       TAnimType b_Anim, b_aAnim;
 
       bool Visible;
       std::string Name;
+      static int iInstance;
 
       __fastcall TSubModel();
-      __fastcall FirstInit();
       __fastcall ~TSubModel();
-      void __fastcall Load(cParser& Parser, int NIndex, TModel3d *Model);
+      void __fastcall FirstInit();
+      int __fastcall Load(cParser& Parser, int NIndex, TModel3d *Model,int Pos);
       void __fastcall AddChild(TSubModel *SubModel);
       void __fastcall AddNext(TSubModel *SubModel);
       void __fastcall SetRotate(vector3 vNewRotateAxis, double fNewAngle);
       void __fastcall SetRotateXYZ(vector3 vNewAngles);
       void __fastcall SetTranslate(vector3 vNewTransVector);
       TSubModel* __fastcall GetFromName(std::string search);
-      void __fastcall Render(GLuint ReplacableSkinId);
-      void __fastcall RenderAlpha(GLuint ReplacableSkinId);      
+      void __fastcall Render(GLuint ReplacableSkinId,bool bAlpha);
+      void __fastcall RenderAlpha(GLuint ReplacableSkinId,bool bAlpha);
+      void __fastcall RaRender(GLuint ReplacableSkinId,bool bAlpha);
+      void __fastcall RaRenderAlpha(GLuint ReplacableSkinId,bool bAlpha);
       inline matrix4x4* __fastcall GetMatrix() { return &Matrix; };
       matrix4x4* __fastcall GetTransform();
       inline void __fastcall Hide() { Visible= false; };
-  } ;
-  /*
-  class TSolid
-  {
-  public:
-      virtual void __fastcall Render();
+      void __fastcall RaArrayFill(CVertNormTex *Vert);
+      void __fastcall Render();
+      int __fastcall Flags(); 
+} ;
 
-  } */
-
-
-class TModel3d
+class TModel3d : public CMesh
 {
 private:
 //    TMaterial *Materials;
     int MaterialsCount;
     bool TractionPart;
     TSubModel *Root;
+    int iFlags;     //Ra: czy submodele maj¹ przezroczyste tekstury
 public:
     inline TSubModel* __fastcall GetSMRoot() {return(Root);};
     int SubModelsCount;
@@ -172,15 +184,20 @@ public:
     TSubModel* __fastcall GetFromName(const char *sName);
 //    TMaterial* __fastcall GetMaterialFromName(char *sName);
     bool __fastcall AddTo(const char *Name, TSubModel *SubModel);
-    bool __fastcall LoadFromTextFile(char *FileName);
+    void __fastcall LoadFromTextFile(char *FileName);
     bool __fastcall LoadFromFile(char *FileName);
     void __fastcall SaveToFile(char *FileName);
     void __fastcall BreakHierarhy();
-    void __fastcall Render( vector3 pPosition, double fAngle= 0, GLuint ReplacableSkinId= 0);
-    void __fastcall Render( double fSquareDistance, GLuint ReplacableSkinId= 0);
-    void __fastcall RenderAlpha( vector3 pPosition, double fAngle= 0, GLuint ReplacableSkinId= 0);
-    void __fastcall RenderAlpha( double fSquareDistance, GLuint ReplacableSkinId= 0);
+    void __fastcall Render(vector3 pPosition,double fAngle=0,GLuint ReplacableSkinId=0,bool bAlpha=false);
+    void __fastcall Render(double fSquareDistance,GLuint ReplacableSkinId=0,bool bAlpha=false);
+    void __fastcall RenderAlpha(vector3 pPosition,double fAngle=0,GLuint ReplacableSkinId=0,bool bAlpha=false);
+    void __fastcall RenderAlpha(double fSquareDistance,GLuint ReplacableSkinId=0,bool bAlpha=false);
+    void __fastcall RaRender(vector3 pPosition,double fAngle=0,GLuint ReplacableSkinId=0,bool bAlpha=false);
+    void __fastcall RaRender(double fSquareDistance,GLuint ReplacableSkinId=0,bool bAlpha=false);
+    void __fastcall RaRenderAlpha(vector3 pPosition,double fAngle=0,GLuint ReplacableSkinId=0,bool bAlpha=false);
+    void __fastcall RaRenderAlpha(double fSquareDistance,GLuint ReplacableSkinId=0,bool bAlpha=false);
     inline int __fastcall GetSubModelsCount() { return (SubModelsCount); };
+    int __fastcall Flags() {return iFlags;};
 };
 
 typedef TModel3d *PModel3d;

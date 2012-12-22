@@ -28,7 +28,7 @@ if(pModelxOn) x=2;
 return x;
 }
 
-__fastcall TAirCoupler::Clear()
+void __fastcall TAirCoupler::Clear()
 {
     pModelOn= NULL;
     pModelOff= NULL;
@@ -38,14 +38,14 @@ __fastcall TAirCoupler::Clear()
 }
 
 
-bool __fastcall TAirCoupler::Init(AnsiString asName, TModel3d *pModel)
+void __fastcall TAirCoupler::Init(AnsiString asName, TModel3d *pModel)
 {
     pModelOn= pModel->GetFromName(AnsiString(asName+"_on").c_str());
     pModelOff= pModel->GetFromName(AnsiString(asName+"_off").c_str());
     pModelxOn= pModel->GetFromName(AnsiString(asName+"_xon").c_str());
 }
 
-bool __fastcall TAirCoupler::Load(TQueryParserComp *Parser, TModel3d *pModel)
+void __fastcall TAirCoupler::Load(TQueryParserComp *Parser, TModel3d *pModel)
 {
     AnsiString str=Parser->GetNextSymbol().LowerCase();
     if (pModel)

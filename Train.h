@@ -35,8 +35,8 @@ class TCab
  public:
   __fastcall TCab();
   __fastcall ~TCab();
-  __fastcall Init(double Initx1,double Inity1,double Initz1,double Initx2,double Inity2,double Initz2,bool InitEnabled,bool InitOccupied);
-  __fastcall Load(TQueryParserComp *Parser);
+  void __fastcall Init(double Initx1,double Inity1,double Initz1,double Initx2,double Inity2,double Initz2,bool InitEnabled,bool InitOccupied);
+  void __fastcall Load(TQueryParserComp *Parser);
   vector3 CabPos1;
   vector3 CabPos2;
   bool bEnabled;
@@ -57,18 +57,18 @@ public:
     bool ShowNextCurrent; //pokaz przd w podlaczonej lokomotywie (ET41)
     bool InitializeCab(int NewCabNo, AnsiString asFileName);
     __fastcall TTrain();
-    virtual __fastcall ~TTrain();
+    __fastcall ~TTrain();
 //    bool __fastcall Init(TTrack *Track);
 //McZapkie-010302
-    virtual bool __fastcall Init(TDynamicObject *NewDynamicObject);
-    virtual void __fastcall OnKeyPress(int cKey);
+    bool __fastcall Init(TDynamicObject *NewDynamicObject);
+    void __fastcall OnKeyPress(int cKey);
 
 //    bool __fastcall SHP() { fShpTimer= 0; };
 
     inline vector3 __fastcall GetDirection() { return DynamicObject->GetDirection(); };
     inline vector3 __fastcall GetUp() { return DynamicObject->vUp; };
-    virtual bool __fastcall UpdateMechPosition(double dt);
-    virtual bool __fastcall Update();
+    void __fastcall UpdateMechPosition(double dt);
+    bool __fastcall Update();
 //    virtual bool __fastcall RenderAlpha();
 //McZapkie-310302: ladowanie parametrow z pliku
     bool __fastcall LoadMMediaFile(AnsiString asFileName);
@@ -96,6 +96,7 @@ public:
        TGauge PrzGlGaugeB;
        TGauge ZbGlGaugeB;
     //******************************************
+    TGauge ClockSInd;
     TGauge ClockMInd;
     TGauge ClockHInd;
     TGauge HVoltageGauge;
@@ -277,6 +278,7 @@ public:
 
     PSound dsbHasler;
     PSound dsbBuzzer;
+    PSound dsbSlipAlarm; //Bombardier 011010: alarm przy poslizgu dla 181/182
     TFadeSound sConverter;  //przetwornica
     TFadeSound sSmallCompressor;  //przetwornica
 

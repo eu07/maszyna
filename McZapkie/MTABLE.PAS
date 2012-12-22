@@ -34,7 +34,7 @@ Type
                         StationIndex: integer;
                         NextStationName: string;
                         LastStationLatency: real;
-                        Direction: integer;        {kierunek jazdy w/g kilometrazu}                        
+                        Direction: integer;        {kierunek jazdy w/g kilometrazu}
                         function CheckTrainLatency: real;
                         {todo: str hh:mm to int i z powrotem}
                         function ShowRelation: string;
@@ -48,11 +48,10 @@ Type
                    GameTime: real;
                    dd,hh,mm: integer;
                    srh,srm : integer; {wschod slonca}
-	           ssh,ssm : integer; {zachod slonca}
+                   ssh,ssm : integer; {zachod slonca}
+                   mr:real;
                    procedure UpdateMTableTime(deltaT:real);
                    constructor Init(InitH,InitM,InitSRH,InitSRM,InitSSH,InitSSM:integer);
-                   private
-                   mr:real;
                  end;
 
 var GlobalTime: TMTableTime;

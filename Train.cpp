@@ -40,7 +40,7 @@ __fastcall TCab::TCab()
   intlitlow_r=intlitlow_g=intlitlow_b= 0;
 }
 
-__fastcall TCab::Init(double Initx1,double Inity1,double Initz1,double Initx2,double Inity2,double Initz2,bool InitEnabled,bool InitOccupied)
+void __fastcall TCab::Init(double Initx1,double Inity1,double Initz1,double Initx2,double Inity2,double Initz2,bool InitEnabled,bool InitOccupied)
 {
   CabPos1.x=Initx1; CabPos1.y=Inity1; CabPos1.z=Initz1;
   CabPos2.x=Initx2; CabPos2.y=Inity2; CabPos2.z=Initz2;
@@ -48,7 +48,7 @@ __fastcall TCab::Init(double Initx1,double Inity1,double Initz1,double Initx2,do
   bOccupied=InitOccupied;
 }
 
-__fastcall TCab::Load(TQueryParserComp *Parser)
+void __fastcall TCab::Load(TQueryParserComp *Parser)
 {
   AnsiString str=Parser->GetNextSymbol().LowerCase();
   if (str==AnsiString("cablight"))
@@ -100,6 +100,7 @@ __fastcall TTrain::TTrain()
     iCabLightFlag= 0;
     pMechSittingPosition=vector3(0,0,0); //ABu: 180404
     LampkaUniversal3_st=false; //ABu: 030405
+ dsbSlipAlarm=NULL;
 }
 
 __fastcall TTrain::~TTrain()
@@ -358,7 +359,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                dsbSwitch->Play( 0, 0, 0 );
            }
 
-           if (DynamicObject->MoverParameters->TypeName!="ezt")
+           if (DynamicObject->MoverParameters->TrainType!=dt_EZT)
              if (DynamicObject->MoverParameters->MinCurrentSwitch(true))
              {
                  dsbSwitch->SetVolume(DSBVOLUME_MAX);
@@ -653,7 +654,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       if (cKey==Global::Keys[k_EndSign])
       {
          int CouplNr=-1;
-         TDynamicObject *tmp=NULL;
+         TDynamicObject *tmp;
          tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), 1, 500, CouplNr);
          if (tmp==NULL)
             tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 500, CouplNr);
@@ -694,11 +695,8 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else
       if (cKey==Global::Keys[k_FreeFlyMode])
       {
-         if (FreeFlyModeFlag==false)
-          FreeFlyModeFlag=true;
-         else
-          FreeFlyModeFlag=false;
-         DynamicObject->ABuSetModelShake(vector3(0,0,0));
+       FreeFlyModeFlag=!FreeFlyModeFlag;
+       DynamicObject->ABuSetModelShake(vector3(0,0,0));
       }
       else
       if (cKey==Global::Keys[k_DecMainCtrl])
@@ -1243,7 +1241,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
           else
           { //tryb freefly
             int CouplNr=-1;
-            TDynamicObject *tmp=NULL;
+            TDynamicObject *tmp;
             tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), 1, 500, CouplNr);
             if (tmp==NULL)
             tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 500, CouplNr);
@@ -1325,7 +1323,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
           else
           { //tryb freefly
             int CouplNr=-1;
-            TDynamicObject *tmp=NULL;
+            TDynamicObject *tmp;
             tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), 1, 500, CouplNr);
             if (tmp==NULL)
             tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 500, CouplNr);
@@ -1546,7 +1544,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       if (cKey==Global::Keys[k_EndSign])   //ABu 060205: koncowki - sciagniecie
       {
          int CouplNr=-1;
-         TDynamicObject *tmp=NULL;
+         TDynamicObject *tmp;
          tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), 1, 500, CouplNr);
          if (tmp==NULL)
             tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 500, CouplNr);
@@ -1626,7 +1624,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       {
          if((DynamicObject->MoverParameters->TrainType!=dt_EZT)&&(DynamicObject->MoverParameters->TrainType!=dt_EP05)&& (DynamicObject->MoverParameters->TrainType!=dt_ET40))
           {
-                   FuseButtonGauge.PutValue(1);
+                   StLinOffButtonGauge.PutValue(1); //Ra: by³o Fuse...
                    dsbSwitch->SetVolume(DSBVOLUME_MAX);
                    dsbSwitch->Play( 0, 0, 0 );
                 if (DynamicObject->MoverParameters->MainCtrlPosNo>0)
@@ -1649,7 +1647,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       {
   //McZapkie: poruszanie sie po kabinie, w updatemechpos zawarte sa wiezy
 
-       double dt=Timer::GetDeltaTime();
+       //double dt=Timer::GetDeltaTime();
        if (DynamicObject->MoverParameters->ActiveCab<0)
         fMechCroach=-0.5;
        else
@@ -1689,7 +1687,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
 }
 
 
-bool __fastcall TTrain::UpdateMechPosition(double dt)
+void __fastcall TTrain::UpdateMechPosition(double dt)
 {
 
     DynamicObject->vFront= DynamicObject->GetDirection();
@@ -1762,32 +1760,23 @@ bool __fastcall TTrain::UpdateMechPosition(double dt)
 //numer kabiny (-1: kabina B)
     iCabn= (DynamicObject->MoverParameters->ActiveCab==-1 ? 2 : DynamicObject->MoverParameters->ActiveCab);
     if (!DebugModeFlag)
-//sprawdzaj wiezy
-     {
-//McZapkie: TODO: zmieniac tu 1 na nr kabiny
+    {//sprawdzaj wiezy
+     if (pNewMechPosition.x<Cabine[iCabn].CabPos1.x) pNewMechPosition.x=Cabine[iCabn].CabPos1.x;
+     if (pNewMechPosition.x>Cabine[iCabn].CabPos2.x) pNewMechPosition.x=Cabine[iCabn].CabPos2.x;
+     if (pNewMechPosition.z<Cabine[iCabn].CabPos1.z) pNewMechPosition.z=Cabine[iCabn].CabPos1.z;
+     if (pNewMechPosition.z>Cabine[iCabn].CabPos2.z) pNewMechPosition.z=Cabine[iCabn].CabPos2.z;
+     if (pNewMechPosition.y>Cabine[iCabn].CabPos1.y+1.8) pNewMechPosition.y=Cabine[iCabn].CabPos1.y+1.8;
+     if (pNewMechPosition.y<Cabine[iCabn].CabPos1.y+0.5) pNewMechPosition.y=Cabine[iCabn].CabPos2.y+0.5;
 
-      if (pNewMechPosition.x<Cabine[iCabn].CabPos1.x) pNewMechPosition.x=Cabine[iCabn].CabPos1.x;
-      if (pNewMechPosition.x>Cabine[iCabn].CabPos2.x) pNewMechPosition.x=Cabine[iCabn].CabPos2.x;
-      if (pNewMechPosition.z<Cabine[iCabn].CabPos1.z) pNewMechPosition.z=Cabine[iCabn].CabPos1.z;
-      if (pNewMechPosition.z>Cabine[iCabn].CabPos2.z) pNewMechPosition.z=Cabine[iCabn].CabPos2.z;
-      if (pNewMechPosition.y>Cabine[iCabn].CabPos1.y+1.8) pNewMechPosition.y=Cabine[iCabn].CabPos1.y+1.8;
-      if (pNewMechPosition.y<Cabine[iCabn].CabPos1.y+0.5) pNewMechPosition.y=Cabine[iCabn].CabPos2.y+0.5;
-
-      if (pMechOffset.x<Cabine[iCabn].CabPos1.x) pMechOffset.x=Cabine[iCabn].CabPos1.x;
-      if (pMechOffset.x>Cabine[iCabn].CabPos2.x) pMechOffset.x=Cabine[iCabn].CabPos2.x;
-      if (pMechOffset.z<Cabine[iCabn].CabPos1.z) pMechOffset.z=Cabine[iCabn].CabPos1.z;
-      if (pMechOffset.z>Cabine[iCabn].CabPos2.z) pMechOffset.z=Cabine[iCabn].CabPos2.z;
-      if (pMechOffset.y>Cabine[iCabn].CabPos1.y+1.8) pMechOffset.y=Cabine[iCabn].CabPos1.y+1.8;
-      if (pMechOffset.y<Cabine[iCabn].CabPos1.y+0.5) pMechOffset.y=Cabine[iCabn].CabPos2.y+0.5;
-      }
+     if (pMechOffset.x<Cabine[iCabn].CabPos1.x) pMechOffset.x=Cabine[iCabn].CabPos1.x;
+     if (pMechOffset.x>Cabine[iCabn].CabPos2.x) pMechOffset.x=Cabine[iCabn].CabPos2.x;
+     if (pMechOffset.z<Cabine[iCabn].CabPos1.z) pMechOffset.z=Cabine[iCabn].CabPos1.z;
+     if (pMechOffset.z>Cabine[iCabn].CabPos2.z) pMechOffset.z=Cabine[iCabn].CabPos2.z;
+     if (pMechOffset.y>Cabine[iCabn].CabPos1.y+1.8) pMechOffset.y=Cabine[iCabn].CabPos1.y+1.8;
+     if (pMechOffset.y<Cabine[iCabn].CabPos1.y+0.5) pMechOffset.y=Cabine[iCabn].CabPos2.y+0.5;
+    }
     pMechPosition= DynamicObject->mMatrix*pNewMechPosition;
     pMechPosition+= DynamicObject->GetPosition();
-
-
-
-
-
-
 }
 
 //#include "dbgForm.h"
@@ -1801,6 +1790,7 @@ bool __fastcall TTrain::Update()
 
  if (DynamicObject->mdKabina)
   {
+    
     tor= DynamicObject->GetTrack(); //McZapkie-180203
 
 //McZapkie: predkosc wyswietlana na tachometrze brana jest z obrotow kol
@@ -1817,7 +1807,7 @@ bool __fastcall TTrain::Update()
 
     double vol=0;
 //    int freq=1;
-    double dfreq=1.0;
+    double dfreq;
 
 //McZapkie-280302 - syczenie
       if (rsHiss.AM!=0)
@@ -2023,7 +2013,7 @@ bool __fastcall TTrain::Update()
       if (rsRunningNoise.AM!=0)
        {
         rsRunningNoise.Stop();
-        float aa=rsRunningNoise.AA;
+        //float aa=rsRunningNoise.AA;
         float am=rsRunningNoise.AM;
         float fa=rsRunningNoise.FA;
         float fm=rsRunningNoise.FM;
@@ -2047,10 +2037,11 @@ bool __fastcall TTrain::Update()
 
     // McZapkie! - koniec obslugi dzwiekow z mover.pas
 
+//if (!DebugModeFlag) try{//podobno to tutaj sypie DDS //trykacz i tak nie dzia³a
+
 //McZapkie-030402: poprawione i uzupelnione amperomierze
 if (!ShowNextCurrent)
-{
-    if (I1Gauge.SubModel)
+{   if (I1Gauge.SubModel)
      {
       I1Gauge.UpdateValue(DynamicObject->MoverParameters->ShowCurrent(1));
       I1Gauge.Update();
@@ -2115,15 +2106,14 @@ else
    //ABu 100205: prad w nastepnej lokomotywie, przycisk w ET41
    TDynamicObject *tmp;
    tmp=NULL;
-   if (DynamicObject->NextConnected)
+   if (DynamicObject->NextConnected) //pojazd od strony sprzêgu 1
       if ((DynamicObject->NextConnected->MoverParameters->TrainType==dt_ET41)
          && TestFlag(DynamicObject->MoverParameters->Couplers[1].CouplingFlag,ctrain_controll))
          tmp=DynamicObject->NextConnected;
-   if (DynamicObject->PrevConnected)
+   if (DynamicObject->PrevConnected) //pojazd od strony sprzêgu 0
       if ((DynamicObject->PrevConnected->MoverParameters->TrainType==dt_ET41)
          && TestFlag(DynamicObject->MoverParameters->Couplers[0].CouplingFlag,ctrain_controll))
          tmp=DynamicObject->PrevConnected;
-   //tmp=DynamicObject->NextConnected;
    if (tmp)
    {
       if (I1Gauge.SubModel)
@@ -2222,7 +2212,6 @@ else
    if (DynamicObject->PrevConnected)
       if ((TestFlag(DynamicObject->MoverParameters->Couplers[0].CouplingFlag,ctrain_controll)) && (DynamicObject->MoverParameters->ActiveCab==-1))
          tmp=DynamicObject->PrevConnected;
-   //tmp=DynamicObject->NextConnected;
    if (tmp)
     if (tmp->MoverParameters->Power>0)
      {
@@ -2248,6 +2237,9 @@ else
       }
      }
 }
+
+//}catch(...){WriteLog("!!!! Problem z amperomierzami");}; //trykacz i tak nie dzia³a
+
 //McZapkie-240302    VelocityGauge.UpdateValue(DynamicObject->GetVelocity());
     if (VelocityGauge.SubModel)
      {
@@ -2262,6 +2254,8 @@ else
 //McZapkie-300302: zegarek
     if (ClockMInd.SubModel)
      {
+      ClockSInd.UpdateValue(int(GlobalTime->mr));
+      ClockSInd.Update();     
       ClockMInd.UpdateValue(GlobalTime->mm);
       ClockMInd.Update();
       ClockHInd.UpdateValue(GlobalTime->hh+GlobalTime->mm/60.0);
@@ -2424,28 +2418,34 @@ else
        }
      }
 
-    if ( DynamicObject->MoverParameters->SlippingWheels )
+    if  (DynamicObject->MoverParameters->SlippingWheels)
+    {
+     double veldiff=(DynamicObject->GetVelocity()-fTachoVelocity)/DynamicObject->MoverParameters->Vmax;
+     if (veldiff<0)
      {
-       double veldiff=(DynamicObject->GetVelocity()-fTachoVelocity)/DynamicObject->MoverParameters->Vmax;
-       if (veldiff<0)
-        {
-          if (abs(DynamicObject->MoverParameters->Im)>10.0)
-            btLampkaPoslizg.TurnOn();
-          rsSlippery.Play(-rsSlippery.AM*veldiff+rsSlippery.AA,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
-        }
-       else
-        {
-         if ((DynamicObject->MoverParameters->UnitBrakeForce>100.0) && (DynamicObject->GetVelocity()>1.0))
-           {
-             rsSlippery.Play(rsSlippery.AM*veldiff+rsSlippery.AA,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
-           }
-        }
+      if (fabs(DynamicObject->MoverParameters->Im)>10.0)
+       btLampkaPoslizg.TurnOn();
+      rsSlippery.Play(-rsSlippery.AM*veldiff+rsSlippery.AA,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
+      if (DynamicObject->MoverParameters->TrainType==dt_181) //alarm przy poslizgu dla 181/182 - BOMBARDIER
+       if (dsbSlipAlarm) dsbSlipAlarm->Play(0,0,DSBPLAY_LOOPING);
      }
+     else
+     {
+      if ((DynamicObject->MoverParameters->UnitBrakeForce>100.0) && (DynamicObject->GetVelocity()>1.0))
+      {
+       rsSlippery.Play(rsSlippery.AM*veldiff+rsSlippery.AA,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
+       if (DynamicObject->MoverParameters->TrainType==dt_181)
+        if (dsbSlipAlarm) dsbSlipAlarm->Stop();
+      }
+     }
+    }
     else
-     {
-        btLampkaPoslizg.TurnOff();
-        rsSlippery.Stop();
-     }
+    {
+     btLampkaPoslizg.TurnOff();
+     rsSlippery.Stop();
+     if (DynamicObject->MoverParameters->TrainType==dt_181)
+      if (dsbSlipAlarm) dsbSlipAlarm->Stop();
+    }
 
     if ( DynamicObject->MoverParameters->Mains )
      {
@@ -2889,9 +2889,9 @@ btLampkaDoorRight.TurnOff();
     if (DynamicObject->MoverParameters->SecuritySystem.Status>0)
      {
        if (fBlinkTimer>fCzuwakBlink)
-           fBlinkTimer= -fCzuwakBlink;
+           fBlinkTimer=-fCzuwakBlink;
        else
-           fBlinkTimer+= dt;
+           fBlinkTimer+=dt;
        if (TestFlag(DynamicObject->MoverParameters->SecuritySystem.Status,s_aware))
         {
          if (fBlinkTimer>0)
@@ -3341,7 +3341,7 @@ bool TTrain::CabChange(int iDirection)
        }
       else return false;
     }
-   else return false;
+  // else return false;
   return false;
 }
 
@@ -3387,6 +3387,12 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
           str= Parser->GetNextSymbol().LowerCase();
           dsbBuzzer= TSoundsManager::GetFromName(str.c_str());
          }
+        else
+        if (str==AnsiString("slipalarm:")) //Bombardier 011010: alarm przy poslizgu:
+        {
+         str=Parser->GetNextSymbol().LowerCase();
+         dsbSlipAlarm=TSoundsManager::GetFromName(str.c_str());
+        }
         else
         if (str==AnsiString("tachoclock:"))                 //cykanie rejestratora:
          {
@@ -3617,22 +3623,15 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
         pMechSittingPosition.z=Parser->GetNextSymbol().ToDouble();
         parse=true;
       }
-      else
-      {
-        parse=false;
-      }
+      //else parse=false;
      while (!Parser->EndOfFile)
       {
         //ABu: wstawione warunki, wczesniej tylko to:
         //   str= Parser->GetNextSymbol().LowerCase();
         if (parse)
-        {
            str= Parser->GetNextSymbol().LowerCase();
-        }
         else
-        {
            parse=true;
-        }
 
     //inicjacja kabiny
         if (AnsiCompareStr(AnsiString("cab")+cabindex+AnsiString("model:"),str)==0)     //model kabiny
@@ -3702,6 +3701,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
            I3BGauge.Clear();
            ItotalBGauge.Clear();
 
+           ClockSInd.Clear();
            ClockMInd.Clear();
            ClockHInd.Clear();
            EngineVoltage.Clear();
@@ -3725,6 +3725,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
            btLampkaNadmWent.Clear();
            btLampkaNadmSpr.Clear();
            btLampkaOpory.Clear();
+           btLampkaOpory.FeedbackBitSet(8);
            btLampkaBezoporowa.Clear();
            btLampkaBezoporowaB.Clear();
            btLampkaMaxSila.Clear();
@@ -3737,7 +3738,9 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
            btLampkaWentZaluzje.Clear();
            btLampkaOgrzewanieSkladu.Clear();
            btLampkaSHP.Clear();
+           btLampkaSHP.FeedbackBitSet(0);
            btLampkaCzuwaka.Clear();
+           btLampkaCzuwaka.FeedbackBitSet(1);
            btLampkaDoorLeft.Clear();
            btLampkaDoorRight.Clear();
            btLampkaDepartureSignal.Clear();
@@ -4100,8 +4103,9 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
           if (Parser->GetNextSymbol()==AnsiString("analog"))
            {
             //McZapkie-300302: zegarek
-            ClockMInd.Init(DynamicObject->mdKabina->GetFromName("ClockMhand"),gt_Rotate,0.01667,0,0);
-            ClockHInd.Init(DynamicObject->mdKabina->GetFromName("ClockHhand"),gt_Rotate,0.08333,0,0);
+            ClockSInd.Init(DynamicObject->mdKabina->GetFromName("ClockShand"),gt_Rotate,0.016666667,0,0);
+            ClockMInd.Init(DynamicObject->mdKabina->GetFromName("ClockMhand"),gt_Rotate,0.016666667,0,0);
+            ClockHInd.Init(DynamicObject->mdKabina->GetFromName("ClockHhand"),gt_Rotate,0.083333333,0,0);
            }
          }
         else
