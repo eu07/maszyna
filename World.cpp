@@ -95,44 +95,56 @@ TDynamicObject *Controlled=NULL; //pojazd, który prowadzimy
 void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 {
  Global::hWnd=NhWnd; //do WM_COPYDATA
-    Global::detonatoryOK=true;
-    WriteLog("Starting MaSzyna rail vehicle simulator.");
-    WriteLog("Compilation 2011-02-20, release 1.3.81.120.");
-    WriteLog("Online documentation and additional files on http://eu07.pl");
-    WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx_EU, OLO_EU, Bart, Quark-t, ShaXbee, Oli_EU, youBy, KURS90 and others");
-    WriteLog("Renderer:");
-    WriteLog( (char*) glGetString(GL_RENDERER));
-    WriteLog("Vendor:");
+ Global::detonatoryOK=true;
+ WriteLog("Starting MaSzyna rail vehicle simulator, Kurs 2013 edition.");
+ WriteLog(Global::asVersion);
+ WriteLog("Online documentation and additional files on http://eu07.pl");
+ WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx_EU, OLO_EU, Bart, Quark-t, ShaXbee, Oli_EU, youBy, KURS90 and others");
+ WriteLog("Renderer:");
+ WriteLog( (char*) glGetString(GL_RENDERER));
+ WriteLog("Vendor:");
 //Winger030405: sprawdzanie sterownikow
-    WriteLog( (char*) glGetString(GL_VENDOR));
-    AnsiString glver=((char*)glGetString(GL_VERSION));
-    WriteLog("OpenGL Version:");
-    WriteLog(glver);
-    if ((glver=="1.5.1") || (glver=="1.5.2"))
-    {
-       Error("Niekompatybilna wersja openGL - dwuwymiarowy tekst nie bedzie wyswietlany!");
-       WriteLog("WARNING! This OpenGL version is not fully compatible with simulator!");
-       WriteLog("UWAGA! Ta wersja OpenGL nie jest w pelni kompatybilna z symulatorem!");
-       Global::detonatoryOK=false;
-    }
-    else
-       Global::detonatoryOK=true;
-    while (glver.LastDelimiter(".")>glver.Pos("."))
-     glver=glver.SubString(1,glver.LastDelimiter(".")-1); //obciêcie od drugiej kropki
-    try {Global::fOpenGL=glver.ToDouble();} catch (...) {Global::fOpenGL=0.0;}
-    Global::bOpenGL_1_5=(Global::fOpenGL>=1.5);
-    
-    WriteLog("Supported Extensions:");
-    WriteLog( (char*) glGetString(GL_EXTENSIONS));
-    if (glewGetExtension("GL_ARB_vertex_buffer_object")) //czy jest VBO w karcie graficznej
-    {WriteLog("Ra: mo¿na u¿yæ VBO.");
-#ifdef USE_VBO
-     Global::bUseVBO=true; //VBO w³¹czane tylko, jeœli jest obs³uga
-#endif
-    }
-    else
-     WriteLog("Ra: VBO nie znalezione.");
+ WriteLog( (char*) glGetString(GL_VENDOR));
+ AnsiString glver=((char*)glGetString(GL_VERSION));
+ WriteLog("OpenGL Version:");
+ WriteLog(glver);
+ if ((glver=="1.5.1") || (glver=="1.5.2"))
+ {
+  Error("Niekompatybilna wersja openGL - dwuwymiarowy tekst nie bedzie wyswietlany!");
+  WriteLog("WARNING! This OpenGL version is not fully compatible with simulator!");
+  WriteLog("UWAGA! Ta wersja OpenGL nie jest w pelni kompatybilna z symulatorem!");
+  Global::detonatoryOK=false;
+ }
+ else
+  Global::detonatoryOK=true;
+ while (glver.LastDelimiter(".")>glver.Pos("."))
+  glver=glver.SubString(1,glver.LastDelimiter(".")-1); //obciêcie od drugiej kropki
+ try {Global::fOpenGL=glver.ToDouble();} catch (...) {Global::fOpenGL=0.0;}
+ Global::bOpenGL_1_5=(Global::fOpenGL>=1.5);
 
+ WriteLog("Supported extensions:");
+ WriteLog((char*)glGetString(GL_EXTENSIONS));
+ if (glewGetExtension("GL_ARB_vertex_buffer_object")) //czy jest VBO w karcie graficznej
+ {
+#ifdef USE_VBO
+  if (AnsiString((char*)glGetString(GL_VENDOR)).Pos("Intel")) //wymuszenie tylko dla kart Intel
+   Global::bUseVBO=true; //VBO w³¹czane tylko, jeœli jest obs³uga
+  if (Global::bUseVBO)
+   WriteLog("Ra: The VBO is found and will be used.");
+  else
+   WriteLog("Ra: The VBO is found, but Display Lists are selected.");
+#endif
+ }
+ else
+ {WriteLog("Ra: No VBO found - Display Lists used. Upgrade drivers or buy a newer graphics card!");
+  Global::bUseVBO=false; //mo¿e byæ w³¹czone parametrem w INI
+ }
+ {//ograniczenie maksymalnego rozmiaru tekstur - parametr dla skalowania tekstur
+  GLint i;
+  glGetIntegerv(GL_MAX_TEXTURE_SIZE,&i);
+  if (i<Global::iMaxTextureSize) Global::iMaxTextureSize=i;
+  WriteLog("Max texture size: "+AnsiString(Global::iMaxTextureSize));
+ }
 /*-----------------------Render Initialization----------------------*/
         glTexEnvf(TEXTURE_FILTER_CONTROL_EXT,TEXTURE_LOD_BIAS_EXT,-1);
         GLfloat  FogColor[]    = { 1.0f,  1.0f, 1.0f, 1.0f };
@@ -222,35 +234,36 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 
     vector3 lp= Normalize(vector3(-500,500,200));
 
-    Global::lightPos[0]= lp.x;
-    Global::lightPos[1]= lp.y;
-    Global::lightPos[2]= lp.z;
-    Global::lightPos[3]= 0.0f;
+    Global::lightPos[0]=lp.x;
+    Global::lightPos[1]=lp.y;
+    Global::lightPos[2]=lp.z;
+    Global::lightPos[3]=0.0f;
 
-	// Setup and enable light 0
-    WriteLog("glLightModelfv(GL_LIGHT_MODEL_AMBIENT,ambientLight);");
-	glLightModelfv(GL_LIGHT_MODEL_AMBIENT,Global::ambientDayLight);
-//	glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
+    //Ra: œwiat³a by sensowniej by³o ustawiaæ po wczytaniu scenerii
+
+    //Ra: szcz¹tkowe œwiat³o rozproszone - ¿eby by³o cokolwiek widaæ w ciemnoœci
+    WriteLog("glLightModelfv(GL_LIGHT_MODEL_AMBIENT,darkLight);");
+    glLightModelfv(GL_LIGHT_MODEL_AMBIENT,Global::darkLight);
+
+    //Ra: œwiat³o 0 - g³ówne œwiat³o zewnêtrzne (S³oñce, Ksiê¿yc)
+    WriteLog("glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);");
+    glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
     WriteLog("glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);");
-	glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
+    glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
     WriteLog("glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);");
-	glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
+    glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
     WriteLog("glLightfv(GL_LIGHT0,GL_POSITION,lightPos);");
-   	glLightfv(GL_LIGHT0,GL_POSITION,Global::lightPos);
+    glLightfv(GL_LIGHT0,GL_POSITION,Global::lightPos);
     WriteLog("glEnable(GL_LIGHT0);");
-	glEnable(GL_LIGHT0);
+    glEnable(GL_LIGHT0);
 
 
-	// Enable color tracking
+    //glColor() ma zmieniaæ kolor wybrany w glColorMaterial()
     WriteLog("glEnable(GL_COLOR_MATERIAL);");
-	glEnable(GL_COLOR_MATERIAL);
-
-	// Set Material properties to follow glColor values
-//    WriteLog("glColorMaterial(GL_FRONT, GL_DIFFUSE);");
-//	glColorMaterial(GL_FRONT, GL_DIFFUSE);
+    glEnable(GL_COLOR_MATERIAL);
 
     WriteLog("glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);");
-	glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
 
 //    WriteLog("glMaterialfv( GL_FRONT, GL_AMBIENT, whiteLight );");
 //	glMaterialfv( GL_FRONT, GL_AMBIENT, Global::whiteLight );
@@ -259,9 +272,6 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 	glMaterialfv( GL_FRONT, GL_AMBIENT_AND_DIFFUSE, Global::whiteLight );
 
 /*
-    WriteLog("glMaterialfv( GL_FRONT, GL_DIFFUSE, whiteLight );");
-	glMaterialfv( GL_FRONT, GL_DIFFUSE, Global::whiteLight );
-
     WriteLog("glMaterialfv( GL_FRONT, GL_SPECULAR, noLight );");
 	glMaterialfv( GL_FRONT, GL_SPECULAR, Global::noLight );
 */
@@ -284,8 +294,8 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 	glEnable(GL_FOG);									// Enables GL_FOG
 
     //Ra: ustawienia testowe
-    //glHint(GL_LINE_SMOOTH_HINT,GL_NICEST);
-    //glHint(GL_POLYGON_SMOOTH_HINT,GL_NICEST);
+    glHint(GL_LINE_SMOOTH_HINT,GL_NICEST);
+    glHint(GL_POLYGON_SMOOTH_HINT,GL_NICEST);
 
 /*--------------------Render Initialization End---------------------*/
 
@@ -496,7 +506,7 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
     }
     glEnable(GL_DEPTH_TEST);
     Ground.pTrain=Train;
-    if (!Global::bMultiplayer)
+    //if (!Global::bMultiplayer) //na razie w³¹czone
     {//eventy aktywowane z klawiatury tylko dla jednego u¿ytkownika
      KeyEvents[0]=Ground.FindEvent("keyctrl00");
      KeyEvents[1]=Ground.FindEvent("keyctrl01");
@@ -544,12 +554,9 @@ void __fastcall TWorld::OnMouseMove(double x, double y)
     Camera.OnCursorMove(x*Global::fMouseXScale,-y*Global::fMouseYScale);
 }
 
-//#include <dstring.h>
-
 bool __fastcall TWorld::Update()
 {
-
-    vector3 tmpvector = Global::GetCameraPosition();
+ vector3 tmpvector = Global::GetCameraPosition();
 
     tmpvector = vector3(
         - int(tmpvector.x) + int(tmpvector.x) % 10000,
@@ -575,6 +582,64 @@ bool __fastcall TWorld::Update()
 
     UpdateTimers();
     GlobalTime->UpdateMTableTime(GetDeltaTime()); //McZapkie-300302: czas rozkladowy
+
+ if (Global::fMoveLight>0)
+ {//testowo ruch œwiat³a
+  double a=GlobalTime->mr/30.0*M_PI-M_PI; //k¹t godzinny (na razie kó³ko w minutê)
+  double L=52.0/180.0*M_PI; //szerokoœæ geograficzna
+  double H=asin(cos(L)*cos(Global::fSunDeclination)*cos(a)+sin(L)*sin(Global::fSunDeclination));
+  //double A=asin(cos(d)*sin(M_PI-a)/cos(H));
+//Declination=((0.322003-22.971*cos(t)-0.357898*cos(2*t)-0.14398*cos(3*t)+3.94638*sin(t)+0.019334*sin(2*t)+0.05928*sin(3*t)))*Pi/180
+//Altitude=asin(sin(Declination)*sin(latitude)+cos(Declination)*cos(latitude)*cos((15*(time-12))*(Pi/180)));
+//Azimuth=(acos((cos(latitude)*sin(Declination)-cos(Declination)*sin(latitude)*cos((15*(time-12))*(Pi/180)))/cos(Altitude)));
+  //double A=acos(cos(L)*sin(d)-cos(d)*sin(L)*cos(M_PI-a)/cos(H));
+//dAzimuth = atan2(-sin( dHourAngle ),tan( dDeclination )*dCos_Latitude - dSin_Latitude*dCos_HourAngle );
+  double A=atan2(sin(a),tan(Global::fSunDeclination)*cos(L)-sin(L)*cos(a));
+  vector3 lp=vector3(sin(A),tan(H),cos(A));
+  lp=Normalize(lp);
+  Global::lightPos[0]=(float)lp.x;
+  Global::lightPos[1]=(float)lp.y;
+  Global::lightPos[2]=(float)lp.z;
+  glLightfv(GL_LIGHT0,GL_POSITION,Global::lightPos);        //daylight position
+  if (H>0)
+  {//s³oñce ponad horyzontem
+   Global::ambientDayLight[0]=Global::ambientLight[0];
+   Global::ambientDayLight[1]=Global::ambientLight[1];
+   Global::ambientDayLight[2]=Global::ambientLight[2];
+   Global::diffuseDayLight[0]=Global::diffuseLight[0]; //od wschodu do zachodu maksimum ???
+   Global::diffuseDayLight[1]=Global::diffuseLight[1]; //od wschodu do zachodu maksimum ???
+   Global::diffuseDayLight[2]=Global::diffuseLight[2]; //od wschodu do zachodu maksimum ???
+   Global::specularDayLight[0]=Global::specularLight[0]; //podobnie specular
+   Global::specularDayLight[1]=Global::specularLight[1]; //podobnie specular
+   Global::specularDayLight[2]=Global::specularLight[2]; //podobnie specular
+  }
+  else
+  {//s³oñce pod horyzontem
+   GLfloat lum=2.5*(H>-0.314159?0.314159+H:0.0);
+   Global::ambientDayLight[0]=lum;
+   Global::ambientDayLight[1]=lum;
+   Global::ambientDayLight[2]=lum;
+   Global::diffuseDayLight[0]=Global::noLight[0]; //od zachodu do wschodu nie ma diffuse
+   Global::diffuseDayLight[1]=Global::noLight[1]; //od zachodu do wschodu nie ma diffuse
+   Global::diffuseDayLight[2]=Global::noLight[2]; //od zachodu do wschodu nie ma diffuse
+   Global::specularDayLight[0]=Global::noLight[0]; //ani specular
+   Global::specularDayLight[1]=Global::noLight[1]; //ani specular
+   Global::specularDayLight[2]=Global::noLight[2]; //ani specular
+  }
+  // Calculate sky colour according to time of day.
+  //GLfloat sin_t = sin(PI * time_of_day / 12.0);
+  //back_red = 0.3 * (1.0 - sin_t);
+  //back_green = 0.9 * sin_t;
+  //back_blue = sin_t + 0.4, 1.0;
+  //aktualizacja œwiate³
+  glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
+  glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
+  glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
+ }
+
+ /*
+//ZiomalCl: uzaleznienie pory dnia od godziny w takiej formie wylaczone
+//bo nie wyglada to ladnie wraz z tex nieba lub w nocy
 
     //Winger - zmiana pory dnia
     //ABu - maly lifting tego, co bylo:
@@ -626,6 +691,7 @@ bool __fastcall TWorld::Update()
        }
        lastmm=GlobalTime->mm;
     }
+	   */
 
     if (Pressed(VK_LBUTTON)&&Controlled)
     {
@@ -845,6 +911,25 @@ bool __fastcall TWorld::Update()
     glPopMatrix ( );
 //**********************************************************************************************************
    } //koniec if (Train)
+
+ if (Global::fMoveLight>0)
+ {//tymczasowy "zegar s³oneczny"
+  float x=0.0f,y=10.0f,z=0.0f;
+  glColor3f(1.0f,1.0f,1.0f);
+  glDisable(GL_LIGHTING);
+  glBegin(GL_LINES);		        // Drawing using triangles
+   x+=2.0*Global::lightPos[0];
+   y+=2.0*Global::lightPos[1];
+   z+=2.0*Global::lightPos[2];
+   glVertex3f(x,y,z);
+   x+=8.0*Global::lightPos[0];
+   y+=8.0*Global::lightPos[1];
+   z+=8.0*Global::lightPos[2];
+   glVertex3f(x,y,z); //wskazuje kierunek S³oñca
+  glEnd();
+  glEnable(GL_LIGHTING);
+ }
+
     if (DebugModeFlag)
      {
        OutText1= "  FPS: ";
@@ -866,10 +951,14 @@ bool __fastcall TWorld::Update()
        {Global::slowmotion=false;};*/
 
     if (Pressed(VK_F8))
-       {
-          OutText1= "  FPS: ";
-          OutText1+= FloatToStrF(GetFPS(),ffFixed,6,2);
-       }
+    {
+     OutText1="  FPS: ";
+     OutText1+=FloatToStrF(GetFPS(),ffFixed,6,2);
+     if (Global::slowmotion)
+      OutText1+=" (slowmotion)";
+     OutText1+=", sectors: ";
+     OutText1+=AnsiString(Ground.iRendered);
+    }
 
     //if (Pressed(VK_F7))
     //{
@@ -1197,47 +1286,65 @@ bool __fastcall TWorld::Update()
         }
      }
 
-  	glDisable(GL_LIGHTING);
-    if (Controlled)
-     {
-      SetWindowText(hWnd,AnsiString(Controlled->MoverParameters->Name).c_str());
-     }
-    else
-     {
-      SetWindowText(hWnd,Global::szSceneryFile);
-     }
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glColor4f(1.0f,0.0f,0.0f,1.0f);
-    glLoadIdentity();
+ glDisable(GL_LIGHTING);
+ if (Controlled)
+  SetWindowText(hWnd,AnsiString(Controlled->MoverParameters->Name).c_str());
+ else
+  SetWindowText(hWnd,Global::szSceneryFile); //nazwa scenerii
+ glBindTexture(GL_TEXTURE_2D, 0);
+ glColor4f(1.0f,0.0f,0.0f,1.0f);
+ glLoadIdentity();
 
 //ABu 150205: prosty help, zeby sie na forum nikt nie pytal, jak ma ruszyc :)
 
-if (Global::detonatoryOK)
-{
-   //if (Pressed(VK_F9)) ShowHints(); //to nie dzia³a prawid³owo - prosili wy³¹czyæ
-
-    glTranslatef(0.0f,0.0f,-0.50f);
-    glRasterPos2f(-0.25f, 0.20f);
-//    glRasterPos2f(-0.25f, 0.20f);
-    if(OutText1!="")
-    {
-      glPrint(OutText1.c_str());
-      glRasterPos2f(-0.25f, 0.19f);
-      glPrint(OutText2.c_str());
-      glRasterPos2f(-0.25f, 0.18f);
-      glPrint(OutText3.c_str());
-      //ABu: i od razu czyszczenie tego, co bylo napisane
-      OutText3 = "";
-      OutText2 = "";
-      OutText1 = "";
-    }
-}
-
-//    glRasterPos2f(-0.25f, 0.17f);
-//    glPrint(OutText4.c_str());
-  	glEnable(GL_LIGHTING);
-
-    return (true);
+ if (Global::detonatoryOK)
+ {
+  //if (Pressed(VK_F9)) ShowHints(); //to nie dzia³a prawid³owo - prosili wy³¹czyæ
+  if (Pressed(VK_F9))
+  {//informacja o wersji, sposobie wyœwietlania i b³êdach OpenGL
+   OutText1=Global::asVersion; //informacja o wersji
+   OutText2=AnsiString("Rendering mode: ")+(Global::bUseVBO?"VBO":"Display Lists");
+   GLenum err=glGetError();
+   if (err!=GL_NO_ERROR)
+   {OutText3="OpenGL error "+AnsiString(err)+": "+AnsiString((char *)gluErrorString(err));
+    for (int i=1;i<=OutText3.Length();++i)
+     switch (OutText3[i])
+     {//bo komunikaty po polsku s¹...
+      case '¹': OutText3[i]='a'; break;
+      case 'æ': OutText3[i]='c'; break;
+      case 'ê': OutText3[i]='e'; break;
+      case '³': OutText3[i]='l'; break;
+      case 'ñ': OutText3[i]='n'; break;
+      case 'ó': OutText3[i]='o'; break;
+      case 'œ': OutText3[i]='s'; break;
+      case '¿': OutText3[i]='z'; break;
+      case 'Ÿ': OutText3[i]='z'; break;
+      default: if (OutText3[i]&128) OutText3[i]='?';
+     }
+   }
+  }
+  if (OutText1!="")
+  {//ABu: i od razu czyszczenie tego, co bylo napisane
+   glTranslatef(0.0f,0.0f,-0.50f);
+   glRasterPos2f(-0.25f,0.20f);
+   glPrint(OutText1.c_str());
+   OutText1="";
+   if (OutText2!="")
+   {glRasterPos2f(-0.25f,0.19f);
+    glPrint(OutText2.c_str());
+    OutText2="";
+   }
+   if (OutText3!="")
+   {glRasterPos2f(-0.25f,0.18f);
+    glPrint(OutText3.c_str());
+    OutText3="";
+   }
+  }
+ }
+ //glRasterPos2f(-0.25f, 0.17f);
+ //glPrint(OutText4.c_str());
+ glEnable(GL_LIGHTING);
+ return (true);
 };
 
 
@@ -1470,12 +1577,16 @@ void __fastcall TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
  if (pRozkaz->iSygn=='EU07')
   switch (pRozkaz->iComm)
   {
+   case 0: //odes³anie identyfikatora wersji
+    Ground.WyslijString(Global::asVersion,0); //tor wolny
+    break;
    case 2: //event
     if (Global::bMultiplayer)
     {//WriteLog("Komunikat: "+AnsiString(pRozkaz->Name1));
      TEvent *e=Ground.FindEvent(AnsiString(pRozkaz->cString+1,int(pRozkaz->cString[0])));
-     if (e->Type==tp_Multiple) //szybciej by by³o szukaæ tylko po tp_Multiple
-      Ground.AddToQuery(e,NULL); //drugi parametr to dynamic wywo³uj¹cy - tu brak
+     if (e)
+      if (e->Type==tp_Multiple) //szybciej by by³o szukaæ tylko po tp_Multiple
+       Ground.AddToQuery(e,NULL); //drugi parametr to dynamic wywo³uj¹cy - tu brak
     }
     break;
    case 3: //rozkaz dla AI
@@ -1492,8 +1603,9 @@ void __fastcall TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
    case 4: //badanie zajêtoœci toru
     {
      TGroundNode* t=Ground.FindGroundNode(AnsiString(pRozkaz->cString+1,int(pRozkaz->cString[0])),TP_TRACK);
-     if (t?t->pTrack->IsEmpty():false)
-      Ground.WyslijWolny(t->asName);
+     if (t)
+      if (t->pTrack->IsEmpty())
+       Ground.WyslijWolny(t->asName);
     }
     break;
    case 5: //ustawienie parametrów

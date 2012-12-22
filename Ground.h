@@ -34,6 +34,7 @@ const int TP_MEMCELL= 1008;
 const int TP_EVLAUNCH= 1009; //MC
 const int TP_TRACTION= 1010;
 const int TP_TRACTIONPOWERSOURCE= 1011; //MC
+const int TP_ISOLATED=1012; //Ra
 
 struct DaneRozkaz
 {//struktura komunikacji z EU07.EXE
@@ -100,7 +101,7 @@ public:
 
     union
     {
-     double fAngle; //k¹t obrotu dla modelu
+     //double fAngle; //k¹t obrotu dla modelu
      double fLineThickness; //McZapkie-120702: grubosc linii
      //int Status;  //McZapkie-170303: status dzwieku
     };
@@ -141,7 +142,7 @@ public:
         return NULL;
     };
 
-    void __fastcall Compile();
+    void __fastcall Compile(bool many=false);
     void Release();
 
     bool __fastcall GetTraction();
@@ -155,18 +156,20 @@ public:
 //TSubRect *TGroundNode::pOwner=NULL; //tymczasowo w³aœciciel
 
 class TSubRect : public Resource, public CMesh
-{
+{//sektor sk³adowy kwadratu kilometrowego
 private:
  TGroundNode *pTriGroup; //Ra: obiekt grupuj¹cy trójk¹ty (ogranicza iloœæ DisplayList)
  TTrack *pTrackAnim; //obiekty do przeliczenia animacji
 public:
  TGroundNode *pRootNode; //lista wszystkich obiektów w sektorze
  TGroundNode *pRenderHidden; //lista obiektów niewidocznych, "renderowanych" równie¿ z ty³u
- TGroundNode *pRenderVBO;      //lista grup renderowanych ze wspólnego VBO
- TGroundNode *pRenderAlphaVBO; //lista grup renderowanych ze wspólnego VBO
+ TGroundNode *pRenderRect;      //lista grup renderowanych z poziomu sektora
+ TGroundNode *pRenderRectAlpha; //lista grup renderowanych z poziomu sektora
+ TGroundNode *pRenderWires; //z poziomu sektora - druty
  TGroundNode *pRender;      //z w³asnych VBO - nieprzezroczyste
  TGroundNode *pRenderMixed; //z w³asnych VBO - nieprzezroczyste i przezroczyste
  TGroundNode *pRenderAlpha; //z w³asnych VBO - przezroczyste
+ int iNodeCount; //licznik obiektów
  void __fastcall LoadNodes();
 public:
  __fastcall TSubRect();
@@ -191,7 +194,8 @@ const double fSubRectSize=1000.0/iNumSubRects;
 const double fRectSize=fSubRectSize*iNumSubRects;
 
 class TGroundRect : public TSubRect
-{//obiekty o niewielkiej iloœci wierzcho³ków bêd¹ renderowane st¹d
+{//kwadrat kilometrowy
+ //obiekty o niewielkiej iloœci wierzcho³ków bêd¹ renderowane st¹d
 private:
  int iLastDisplay; //numer klatki w której by³ ostatnio wyœwietlany
  TSubRect *pSubRects;
@@ -206,16 +210,21 @@ public:
   if (!pSubRects) Init(); //utworzenie ma³ych kwadratów
   return pSubRects+iRow*iNumSubRects+iCol; //zwrócenie w³aœciwego
  };
- TSubRect* __fastcall FastGetRect( int iCol, int iRow)
+ TSubRect* __fastcall FastGetRect(int iCol,int iRow)
  {//pobranie wskaŸnika do ma³ego kwadratu, bez tworzenia jeœli nie ma
   return (pSubRects?pSubRects+iRow*iNumSubRects+iCol:NULL);
  };
- void __fastcall Render()
- {//renderowanie kwadratu kilometrowego, jeœli jeszcze nie zrobione
+ void __fastcall Render();
+ void __fastcall RaRender()
+ {//renderowanie kwadratu kilometrowego (VBO), jeœli jeszcze nie zrobione
   if (iLastDisplay!=iFrameNumber)
-  {for (TGroundNode* node=pRender;node!=NULL;node=node->pNext3)
-    node->Render(); //nieprzezroczyste obiekty (pojazdy z automatu)
-   iLastDisplay=iFrameNumber;
+  {LoadNodes(); //ewentualne tworzenie siatek
+   if (StartVBO())
+   {for (TGroundNode* node=pRenderRect;node!=NULL;node=node->pNext3)
+     node->RaRenderVBO(); //nieprzezroczyste trójk¹ty kwadratu kilometrowego
+    EndVBO();
+    iLastDisplay=iFrameNumber;
+   }
   }
  };
 };
@@ -338,6 +347,7 @@ private:
 
     TEvent *RootEvent; //lista zdarzeñ
     TEvent *QueryRootEvent,*tmpEvent,*tmp2Event,*OldQRE;
+ TSubRect *pRendered[16*iNumSubRects*iNumSubRects+8*iNumSubRects+1]; //lista renderowanych sektorów
 
     void __fastcall OpenGLUpdate(HDC hDC);
 //    TWorld World;
@@ -345,11 +355,13 @@ private:
     int iNumNodes;
     vector3 pOrigin;
     vector3 aRotate;
-    bool bInitDone;
-    void __fastcall RaTriangleDivider(TGroundNode* node);
+ bool bInitDone;
+ void __fastcall RaTriangleDivider(TGroundNode* node);
  void __fastcall Navigate(String ClassName,UINT Msg,WPARAM wParam,LPARAM lParam);
  void __fastcall WyslijEvent(const AnsiString &e,const AnsiString &d);
 public:
+ int iRendered; //iloœæ renderowanych sektorów
+ void __fastcall WyslijString(const AnsiString &t,int n);
  void __fastcall WyslijWolny(const AnsiString &t);
 };
 //---------------------------------------------------------------------------

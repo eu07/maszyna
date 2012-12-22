@@ -5,16 +5,19 @@
 
 #include "opengl/glew.h"
 #include "opengl/glut.h"
+#include "dumb3d.h"
+#include "VBO.h"
+//#include "Geometry.h"
+//#include "AnimModel.h"
 
-#include "Geometry.h"
-#include "AnimModel.h"
-
+using namespace Math3D;
 
 class TTraction 
 {
 private:
-    vector3 vUp,vFront,vLeft;
-    matrix4x4 mMatrix;
+ vector3 vUp,vFront,vLeft;
+ //matrix4x4 mMatrix;
+ TTraction *pPrev,*pNext; //³¹czenie drutów w sieæ
 public:
     GLuint uiDisplayList;
     vector3 pPoint1,pPoint2,pPoint3,pPoint4;

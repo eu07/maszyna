@@ -75,16 +75,25 @@ void __fastcall Feedback::BitsClear(int mask)
 void __fastcall Feedback::BitsUpdate(int mask)
 {//aktualizacja stanu interfejsu informacji zwrotnej
  switch (iMode)
- {case 1: //sterowanie œwiate³kami klawiatury
+ {case 1: //sterowanie œwiate³kami klawiatury: CA/SHP+opory
    if (mask&3) //gdy SHP albo CA
     SetLedState(ktCapsLock,iBits&3);
-   else if (mask==256) //gdy jazda na oporach
+   if (mask==256) //gdy jazda na oporach
    {//Scroll Lock ma jakoœ dziwnie... zmiana stanu na przeciwny
     SetLedState(ktScrollLock,true); //przyciœniêty
     SetLedState(ktScrollLock,false); //zwolniony
    }
    break;
-  case 2: //LPT Marcela
+  case 2: //sterowanie œwiate³kami klawiatury: CA+SHP
+   if (mask&2) //gdy CA
+    SetLedState(ktCapsLock,iBits&2);
+   if (mask&1) //gdy SHP
+   {//Scroll Lock ma jakoœ dziwnie... zmiana stanu na przeciwny
+    SetLedState(ktScrollLock,true); //przyciœniêty
+    SetLedState(ktScrollLock,false); //zwolniony
+   }
+   break;
+  case 3: //LPT Marcela
    // (do zrobienia)
    break;
  }

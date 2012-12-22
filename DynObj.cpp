@@ -187,64 +187,63 @@ void __fastcall TDynamicObject::SetPneumatic(bool front, bool red)
 
 //ABu 29.01.05 przeklejone z render i renderalpha: *********************
 void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
-{  //ABu290105: pozbierane i uporzadkowane powtarzajace sie rzeczy z Render i RenderAlpha
-   //dodatkowy warunek, if(ObjSqrDist<...) zeby niepotrzebnie nie zmianiec w obiektach,
-   //ktorych i tak nie widac
-
-   //NBMX wrzesien, MC listopad: zuniwersalnione
-   for (int i=0; i<iAnimatedDoors ; i++)
-    {
-     //    WriteLog("Dla drzwi nr:", i);
-     //    WriteLog("Wspolczynnik", DoorSpeedFactor[i]);
-     if (smAnimatedDoor[i]!=NULL)
-     {
-      if (MoverParameters->DoorOpenMethod==1) //przesuwne
-       {
-        if ((i % 2)==0)
-         {
-         (smAnimatedDoor[i]->SetTranslate(vector3(0,0,1)*dDoorMoveL*DoorSpeedFactor[i]));
-         //dDoorMoveL=dDoorMoveL*DoorSpeedFactor[i];
-         }
-        else
-         {
-         (smAnimatedDoor[i]->SetTranslate(vector3(0,0,1)*dDoorMoveR*DoorSpeedFactor[i]));
-         //dDoorMoveR=dDoorMoveR*DoorSpeedFactor[i];
-         }
-       }
-      else
-      if (MoverParameters->DoorOpenMethod==2) //obrotowe albo dwojlomne (trzeba kombinowac submodelami i ShiftL=90,R=180)
-       {
-        if ((i % 2)==0)
-         smAnimatedDoor[i]->SetRotate(vector3(1,0,0),dDoorMoveL);
-        else
-         smAnimatedDoor[i]->SetRotate(vector3(1,0,0),dDoorMoveR);
-       }
-     }
-    }
-btnOn=false;
-
-  if(ObjSqrDist<160000)
+{//ABu290105: pozbierane i uporzadkowane powtarzajace sie rzeczy z Render i RenderAlpha
+ //dodatkowy warunek, if (ObjSqrDist<...) zeby niepotrzebnie nie zmianiec w obiektach,
+ //ktorych i tak nie widac
+ //NBMX wrzesien, MC listopad: zuniwersalnione
+ for (int i=0;i<iAnimatedDoors;i++)
+ {
+  //WriteLog("Dla drzwi nr:", i);
+  //WriteLog("Wspolczynnik", DoorSpeedFactor[i]);
+  if (smAnimatedDoor[i]!=NULL)
   {
-   if(ObjSqrDist<2500)
+   if (MoverParameters->DoorOpenMethod==1) //przesuwne
    {
-     //ABu290105: rzucanie pudlem
-      mdModel->GetSMRoot()->SetTranslate(modelShake);
-      if (mdKabina)
-         mdKabina->GetSMRoot()->SetTranslate(modelShake);
-      if (mdLoad)
-         mdLoad->GetSMRoot()->SetTranslate(modelShake);
-      if (mdLowPolyInt)
-         mdLowPolyInt->GetSMRoot()->SetTranslate(modelShake);
-      if (mdPrzedsionek)
-         mdPrzedsionek->GetSMRoot()->SetTranslate(modelShake);
-      //ABu: koniec rzucania
-     //ABu011104: liczenie obrotow wozkow
-     if(Global::bEnableTraction) ABuBogies();
-     //McZapkie-050402: obracanie kolami
-     for (int i=0; i<iAnimatedAxles; i++)
-      if (smAnimatedWheel[i])
-       smAnimatedWheel[i]->SetRotate(vector3(1,0,0),dWheelAngle);
-         //Mczapkie-100402: rysowanie lub nie - sprzegow
+    if ((i%2)==0)
+    {
+    (smAnimatedDoor[i]->SetTranslate(vector3(0,0,1)*dDoorMoveL*DoorSpeedFactor[i]));
+    //dDoorMoveL=dDoorMoveL*DoorSpeedFactor[i];
+    }
+    else
+    {
+    (smAnimatedDoor[i]->SetTranslate(vector3(0,0,1)*dDoorMoveR*DoorSpeedFactor[i]));
+    //dDoorMoveR=dDoorMoveR*DoorSpeedFactor[i];
+    }
+   }
+   else
+   if (MoverParameters->DoorOpenMethod==2) //obrotowe albo dwojlomne (trzeba kombinowac submodelami i ShiftL=90,R=180)
+   {
+    if ((i%2)==0)
+     smAnimatedDoor[i]->SetRotate(vector3(1,0,0),dDoorMoveL);
+    else
+     smAnimatedDoor[i]->SetRotate(vector3(1,0,0),dDoorMoveR);
+   }
+  }
+ }
+ btnOn=false;
+
+  if (ObjSqrDist<160000)
+  {
+   if (ObjSqrDist<2500)
+   {
+    //ABu290105: rzucanie pudlem
+    mdModel->GetSMRoot()->SetTranslate(modelShake);
+    if (mdKabina)
+     mdKabina->GetSMRoot()->SetTranslate(modelShake);
+    if (mdLoad)
+     mdLoad->GetSMRoot()->SetTranslate(modelShake);
+    if (mdLowPolyInt)
+     mdLowPolyInt->GetSMRoot()->SetTranslate(modelShake);
+    if (mdPrzedsionek)
+     mdPrzedsionek->GetSMRoot()->SetTranslate(modelShake);
+    //ABu: koniec rzucania
+    //ABu011104: liczenie obrotow wozkow
+    if(Global::bEnableTraction) ABuBogies();
+    //McZapkie-050402: obracanie kolami
+    for (int i=0; i<iAnimatedAxles; i++)
+     if (smAnimatedWheel[i])
+      smAnimatedWheel[i]->SetRotate(vector3(1,0,0),dWheelAngle);
+    //Mczapkie-100402: rysowanie lub nie - sprzegow
     //ABu-240105: Dodatkowy warunek: if (...).Render, zeby rysowal tylko jeden
     //z polaczonych sprzegow
     if ((TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_coupler))
@@ -257,9 +256,9 @@ btnOn=false;
      {btCoupler2.TurnOn(); btnOn=true;}
     else
      btCoupler2.TurnOff();
-//********************************************************************************
-    //przewody powietrzne j.w., ABu: decyzja czy rysowac tylko na podstawie 'render' - juz nie
-    //przewody powietrzne, yB: decyzja na podstawie polaczen w t3d
+  //********************************************************************************
+  //przewody powietrzne j.w., ABu: decyzja czy rysowac tylko na podstawie 'render' - juz nie
+  //przewody powietrzne, yB: decyzja na podstawie polaczen w t3d
   if (Global::bnewAirCouplers)
    {
     SetPneumatic(false,false); //wczytywanie z t3d ulozenia wezykow
@@ -721,20 +720,20 @@ TDynamicObject* TDynamicObject::ABuScanNearestObject(TTrack *Track, double ScanD
 //ABu 01.11.04 poczatek wyliczania przechylow pudla **********************
 void __fastcall TDynamicObject::ABuModelRoll()
 {
-   double modelRoll=RadToDeg((Axle1.GetRoll()+Axle4.GetRoll())/2); //Ra: tu nie by³o DegToRad
-//   if (ABuGetDirection()<0) modelRoll=-modelRoll;
-   mdModel->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
-   if (mdKabina)
-      if(MoverParameters->ActiveCab==-1)
-         mdKabina->GetSMRoot()->SetRotateXYZ(vector3(0,-modelRoll,0));
-      else
-         mdKabina->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
-   if (mdLoad)
-      mdLoad->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
-   if (mdLowPolyInt)
-       mdLowPolyInt->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
-   if (mdPrzedsionek)
-      mdPrzedsionek->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
+ double modelRoll=RadToDeg((Axle1.GetRoll()+Axle4.GetRoll())/2); //Ra: tu nie by³o DegToRad
+ //if (ABuGetDirection()<0) modelRoll=-modelRoll;
+ mdModel->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
+ if (mdKabina)
+  if(MoverParameters->ActiveCab==-1)
+   mdKabina->GetSMRoot()->SetRotateXYZ(vector3(0,-modelRoll,0));
+  else
+   mdKabina->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
+ if (mdLoad)
+  mdLoad->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
+ if (mdLowPolyInt)
+  mdLowPolyInt->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
+ if (mdPrzedsionek)
+  mdPrzedsionek->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
 }
 
 //ABu 06.05.04 poczatek wyliczania obrotow wozkow **********************
@@ -1108,7 +1107,7 @@ TTrack* __fastcall TraceRoute(double &fDistance, double &fDirection, TTrack *Tra
      }
     while (s<fDistance)
      {
-        Track->ScannedFlag= true;
+        Track->ScannedFlag= false;
         s+= fCurrentDistance;
         if (fDirection>0)
          {
@@ -1145,8 +1144,49 @@ TTrack* __fastcall TraceRoute(double &fDistance, double &fDirection, TTrack *Tra
         fCurrentDistance= Track->Length();
         if (CheckTrackEvent(fDirection,Track))
          {
-           fDistance= s;
-           return Track;
+         //ZiomalCl: teraz zwracany jest pierwszy event podajacy predkosc dla AI
+         //a nie kazdy najblizszy event [AI sie gubilo gdy przed getval z SetVelocity
+         //mialo np. PutValues z eventem od SHP]
+           if(Track->Event1!=NULL)
+            if(Track->Event1->Type==tp_GetValues)
+              {
+              AnsiString st1 = String(Track->Event1->Params[9].asMemCell->szText);
+              if(st1=="SetVelocity"||st1=="ShuntVelocity")
+                {
+                fDistance= s;
+                return Track;
+                }
+              }
+            else if(Track->Event1->Type==tp_PutValues)
+              {
+              AnsiString st1 = String(Track->Event1->Params[0].asText);
+              if (st1=="SetVelocity"||st1=="ShuntVelocity")
+                {
+                fDistance= s;
+                return Track;
+                }
+              }
+           if(Track->Event2!=NULL)
+            if(Track->Event2->Type==tp_GetValues)
+              {
+              AnsiString st1 = String(Track->Event2->Params[9].asMemCell->szText);
+              if(st1=="SetVelocity"||st1=="ShuntVelocity")
+                {
+                fDistance= s;
+                return Track;
+                }
+              }
+            else if(Track->Event2->Type==tp_PutValues)
+              {
+              AnsiString st1 = String(Track->Event2->Params[0].asText);
+              if (st1=="SetVelocity"||st1=="ShuntVelocity")
+                {
+                fDistance= s;
+                return Track;
+                }
+              }
+
+
          }
      }
     fDistance= s;
@@ -2482,34 +2522,36 @@ if (renderme)
     if (mdLowPolyInt!=NULL)
      if ((FreeFlyModeFlag)||((!FreeFlyModeFlag)&&(!mdKabina)))
 #ifdef USE_VBO
-      if (Globals::bUseVBO)
-       mdLowPolyInt->RaRender(ObjSqrDist,ReplacableSkinID);
+      if (Global::bUseVBO)
+       mdLowPolyInt->RaRender(ObjSqrDist,ReplacableSkinID,bAlpha);
       else
-#endif       
-       mdLowPolyInt->Render(ObjSqrDist,ReplacableSkinID);
+#endif
+       mdLowPolyInt->Render(ObjSqrDist,ReplacableSkinID,bAlpha);
 
 #ifdef USE_VBO
-    if (Globals::bUseVBO)
+    if (Global::bUseVBO)
      mdModel->RaRender(ObjSqrDist,ReplacableSkinID,bAlpha);
     else
 #endif
-			  mdModel->Render(ObjSqrDist,ReplacableSkinID,bAlpha);
+     mdModel->Render(ObjSqrDist,ReplacableSkinID,bAlpha);
+/* Ra: nie próbujemy wczytywaæ modeli miliony razy podczas renderowania!!!
     if ((mdLoad==NULL) && (MoverParameters->Load>0))
-     {
-      asLoadName= asBaseDir+MoverParameters->LoadType+".t3d";
-//      asLoadName=MoverParameters->LoadType;
-//      if (MoverParameters->LoadType!=AnsiString("passengers"))
-       Global::asCurrentTexturePath= asBaseDir;                    //biezaca sciezka do tekstur to dynamic/...
-       mdLoad= TModelsManager::GetModel(asLoadName.c_str());  //nowy ladunek
-       Global::asCurrentTexturePath= AnsiString(szDefaultTexturePath); //z powrotem defaultowa sciezka do tekstur
-     }
+    {
+     asLoadName=asBaseDir+MoverParameters->LoadType+".t3d";
+     //asLoadName=MoverParameters->LoadType;
+     //if (MoverParameters->LoadType!=AnsiString("passengers"))
+     Global::asCurrentTexturePath=asBaseDir; //biezaca sciezka do tekstur to dynamic/...
+     mdLoad=TModelsManager::GetModel(asLoadName.c_str()); //nowy ladunek
+     Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath); //z powrotem defaultowa sciezka do tekstur
+    }
     if ((mdLoad==NULL) && (MoverParameters->Load>0))
      {
       mdLoad=NULL; //Ra: to jest tu bez sensu - co autor mia³ na myœli?
      }
-    if (mdLoad!=NULL)
+*/
+    if (mdLoad) //renderowanie nieprzezroczystego ³adunku
 #ifdef USE_VBO
-     if (Globals::bUseVBO)
+     if (Global::bUseVBO)
       mdLoad->RaRender(ObjSqrDist,ReplacableSkinID,bAlpha);
      else
 #endif
@@ -2519,16 +2561,16 @@ if (renderme)
     if (mdPrzedsionek!=NULL)
      if (MoverParameters->filename==asBaseDir+"6ba.chk")
 #ifdef USE_VBO
-      if (Globals::bUseVBO)
-       mdPrzedsionek->RaRender(ObjSqrDist,ReplacableSkinID);
+      if (Global::bUseVBO)
+       mdPrzedsionek->RaRender(ObjSqrDist,ReplacableSkinID,bAlpha);
       else
 #endif
-       mdPrzedsionek->Render(ObjSqrDist,ReplacableSkinID);
+       mdPrzedsionek->Render(ObjSqrDist,ReplacableSkinID,bAlpha);
 //rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
 //ABu: tylko w trybie FreeFly, zwykly tryb w world.cpp
 
     if ((mdKabina!=mdModel) && bDisplayCab && FreeFlyModeFlag)
-    {
+    {//Ra: a œwiet³a nie zosta³y ju¿ ustawione dla toru?
 //oswietlenie kabiny
       GLfloat  ambientCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
       GLfloat  diffuseCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
@@ -2566,7 +2608,7 @@ if (renderme)
       glLightfv(GL_LIGHT0,GL_SPECULAR,specularCabLight);
 
 #ifdef USE_VBO
-     if (Globals::bUseVBO)
+     if (Global::bUseVBO)
       mdKabina->RaRender(ObjSqrDist,0);
      else
 #endif
@@ -2614,7 +2656,7 @@ if (renderme)
              }
             else if (MoverParameters->EngineType==DieselElectric)
              vol=rsSilnik.AM*(MoverParameters->EnginePower/1000/MoverParameters->Power)+0.2*(MoverParameters->enrot*60)/(MoverParameters->DElist[MoverParameters->MainCtrlPosNo].RPM)+rsSilnik.AA;
-            else 
+            else
              vol=rsSilnik.AM*(MoverParameters->EnginePower/1000+fabs(MoverParameters->enrot)*60.0)+rsSilnik.AA;
 //            McZapkie-250302 - natezenie zalezne od obrotow i mocy
             if ((vol<1) && (MoverParameters->EngineType==ElectricSeriesMotor) && (MoverParameters->EnginePower<100))
@@ -2719,7 +2761,7 @@ if (renderme)
 if ((MoverParameters->ConverterFlag==false)&&(MoverParameters->CompressorPower>0))
  MoverParameters->CompressorFlag=false;
 if (MoverParameters->CompressorPower==2)
- MoverParameters->CompressorAllow=MoverParameters->ConverterFlag; 
+ MoverParameters->CompressorAllow=MoverParameters->ConverterFlag;
 
 // McZapkie! - dzwiek compressor.wav tylko gdy dziala sprezarka
     if (MoverParameters->VeselVolume!=0)
@@ -2984,7 +3026,7 @@ if (renderme)
     glMultMatrixd(mMatrix.getArray());
 
 #ifdef USE_VBO
-    if (Globals::bUseVBO)
+    if (Global::bUseVBO)
      mdModel->RaRenderAlpha(ObjSqrDist,ReplacableSkinID,bAlpha);
     else
 #endif
@@ -2992,7 +3034,7 @@ if (renderme)
 
     if (mdLoad) //Ra: dodane renderowanie przezroczystego ³adunku
 #ifdef USE_VBO
-     if (Globals::bUseVBO)
+     if (Global::bUseVBO)
       mdLoad->RaRenderAlpha(ObjSqrDist,ReplacableSkinID,bAlpha);
      else
 #endif
@@ -3086,232 +3128,230 @@ if (renderme)
 
 //McZapkie-250202
 //wczytywanie pliku z danymi multimedialnymi (dzwieki)
-void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName, AnsiString ReplacableSkin)
+void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString TypeName,AnsiString ReplacableSkin)
 {
     double dSDist;
     TFileStream *fs;
-    AnsiString asFileName= BaseDir+TypeName+".mmd";
-    AnsiString asLoadName= BaseDir+MoverParameters->LoadType+".t3d";
-    fs= new TFileStream(asFileName , fmOpenRead	| fmShareCompat	);
-    AnsiString str= "";
-    int size= fs->Size;
+    AnsiString asFileName=BaseDir+TypeName+".mmd";
+    AnsiString asLoadName=BaseDir+MoverParameters->LoadType+".t3d";
+    fs= new TFileStream(asFileName,fmOpenRead|fmShareCompat);
+    AnsiString str="";
+    int size=fs->Size;
     AnsiString asAnimName="";
-    bool Stop_InternalData= false;
+    bool Stop_InternalData=false;
     str.SetLength(size);
     fs->Read(str.c_str(),size);
-    str+= "";
+    str+="";
     delete fs;
     TQueryParserComp *Parser;
-    Parser= new TQueryParserComp(NULL);
-    Parser->TextToParse= str;
+    Parser=new TQueryParserComp(NULL);
+    Parser->TextToParse=str;
 //    Parser->LoadStringToParse(asFile);
     Parser->First();
 //    DecimalSeparator= '.';
     while (!Parser->EndOfFile && !Stop_InternalData)
     {
-        str= Parser->GetNextSymbol().LowerCase();
+        str=Parser->GetNextSymbol().LowerCase();
         if (str==AnsiString("models:"))                            //modele i podmodele
         {
           asModel=Parser->GetNextSymbol().LowerCase();
           asModel= BaseDir+asModel; //McZapkie-200702 - dynamics maja swoje modele w dynamics/basedir
-          Global::asCurrentTexturePath= BaseDir;                    //biezaca sciezka do tekstur to dynamic/...
-          mdModel= TModelsManager::GetModel(asModel.c_str());
+          Global::asCurrentTexturePath=BaseDir;                    //biezaca sciezka do tekstur to dynamic/...
+          mdModel=TModelsManager::GetModel(asModel.c_str());
           if (ReplacableSkin!=AnsiString("none"))
-           {
-             ReplacableSkin=Global::asCurrentTexturePath+ReplacableSkin;      //skory tez z dynamic/...
-             ReplacableSkinID= TTexturesManager::GetTextureID(ReplacableSkin.c_str(),Global::iDynamicFiltering);
-             bAlpha=TTexturesManager::GetAlpha(ReplacableSkinID);
-           }
+          {
+           ReplacableSkin=Global::asCurrentTexturePath+ReplacableSkin;      //skory tez z dynamic/...
+           ReplacableSkinID=TTexturesManager::GetTextureID(ReplacableSkin.c_str(),Global::iDynamicFiltering);
+           bAlpha=TTexturesManager::GetAlpha(ReplacableSkinID);
+          }
 //Winger 040304 - ladowanie przedsionkow dla EZT
           if (MoverParameters->TrainType==dt_EZT)
           {
            asModel="przedsionki.t3d";
-           asModel= BaseDir+asModel;
-           mdPrzedsionek= TModelsManager::GetModel(asModel.c_str());
+           asModel=BaseDir+asModel;
+           mdPrzedsionek=TModelsManager::GetModel(asModel.c_str());
           }
           if (MoverParameters->LoadAccepted!=AnsiString(""))
           //           if (MoverParameters->LoadAccepted!=AnsiString("")); // && MoverParameters->LoadType!=AnsiString("passengers"))
-            if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
-             {
-             if (MoverParameters->Load==1)
-              MoverParameters->PantFront(true);
-             else if (MoverParameters->Load==2)
-              MoverParameters->PantRear(true);
-             else if (MoverParameters->Load==3)
-              {
-              MoverParameters->PantFront(true);
-              MoverParameters->PantRear(true);
-              }
-             else if (MoverParameters->Load==4)
-              MoverParameters->DoubleTr=-1;
-             else if (MoverParameters->Load==5)
-              {
-              MoverParameters->DoubleTr=-1;
-              MoverParameters->PantRear(true);
-              }
-             else if (MoverParameters->Load==6)
-              {
-              MoverParameters->DoubleTr=-1;
-              MoverParameters->PantFront(true);
-              }
-             else if (MoverParameters->Load==7)
-              {
-              MoverParameters->DoubleTr=-1;
-              MoverParameters->PantFront(true);
-              MoverParameters->PantRear(true);
-              }
-             }
-            else
+           if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
            {
-             mdLoad= TModelsManager::GetModel(asLoadName.c_str());  //ladunek
+            if (MoverParameters->Load==1)
+             MoverParameters->PantFront(true);
+            else if (MoverParameters->Load==2)
+             MoverParameters->PantRear(true);
+            else if (MoverParameters->Load==3)
+            {
+             MoverParameters->PantFront(true);
+             MoverParameters->PantRear(true);
+            }
+            else if (MoverParameters->Load==4)
+             MoverParameters->DoubleTr=-1;
+            else if (MoverParameters->Load==5)
+            {
+             MoverParameters->DoubleTr=-1;
+             MoverParameters->PantRear(true);
+            }
+            else if (MoverParameters->Load==6)
+            {
+             MoverParameters->DoubleTr=-1;
+             MoverParameters->PantFront(true);
+            }
+            else if (MoverParameters->Load==7)
+            {
+             MoverParameters->DoubleTr=-1;
+             MoverParameters->PantFront(true);
+             MoverParameters->PantRear(true);
+            }
            }
-          Global::asCurrentTexturePath= AnsiString(szDefaultTexturePath); //z powrotem defaultowa sciezka do tekstur
+           else //Ra: tu wczytywanie modelu ³adunku jest w porz¹dku
+            mdLoad=TModelsManager::GetModel(asLoadName.c_str());  //ladunek
+          Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath); //z powrotem defaultowa sciezka do tekstur
           while (!Parser->EndOfFile && str!=AnsiString("endmodels"))
           {
-            str= Parser->GetNextSymbol().LowerCase();
-            if (str==AnsiString("lowpolyinterior:")) //ABu: wnetrze lowpoly
+           str= Parser->GetNextSymbol().LowerCase();
+           if (str==AnsiString("lowpolyinterior:")) //ABu: wnetrze lowpoly
+           {
+              asModel=Parser->GetNextSymbol().LowerCase();
+              asModel= BaseDir+asModel; //McZapkie-200702 - dynamics maja swoje modele w dynamics/basedir
+              Global::asCurrentTexturePath= BaseDir;                    //biezaca sciezka do tekstur to dynamic/...
+              mdLowPolyInt=TModelsManager::GetModel(asModel.c_str());
+           }
+           else
+           if (str==AnsiString("animwheelprefix:"))              //prefiks krecacych sie kol
             {
-               asModel=Parser->GetNextSymbol().LowerCase();
-               asModel= BaseDir+asModel; //McZapkie-200702 - dynamics maja swoje modele w dynamics/basedir
-               Global::asCurrentTexturePath= BaseDir;                    //biezaca sciezka do tekstur to dynamic/...
-               mdLowPolyInt=TModelsManager::GetModel(asModel.c_str());
-            }
-            else
-            if (str==AnsiString("animwheelprefix:"))              //prefiks krecacych sie kol
-             {
-              str= Parser->GetNextSymbol();
-              asAnimName="";
-              for (int i=1; i<=MaxAnimatedAxles; i++)
-               {
+             str= Parser->GetNextSymbol();
+             asAnimName="";
+             for (int i=1; i<=MaxAnimatedAxles; i++)
+              {
     //McZapkie-050402: wyszukiwanie kol o nazwie str*
-                asAnimName=str+i;
-                smAnimatedWheel[i-1]= mdModel->GetFromName(asAnimName.c_str());
-                if (smAnimatedWheel[i-1]!=NULL)
-                 iAnimatedAxles+=1;
-                else
-                 i=MaxAnimatedAxles+1;
-               }
-             }
-            else
-            if (str==AnsiString("animrodprefix:"))              //prefiks wiazarow dwoch
-             {
-              str= Parser->GetNextSymbol();
-              asAnimName="";
-              for (int i=1; i<=2; i++)
-               {
-    //McZapkie-050402: wyszukiwanie max 2 wiazarow o nazwie str*
-                asAnimName=str+i;
-                smWiazary[i-1]= mdModel->GetFromName(asAnimName.c_str());
-               }
-             }
-            else
-//Pantografy - Winger 160204
-            if (str==AnsiString("animpantrd1prefix:"))              //prefiks ramion dolnych 1
-             {
-              str= Parser->GetNextSymbol();
-              asAnimName="";
-              for (int i=1; i<=2; i++)
-               {
-    //Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
-                asAnimName=str+i;
-                smPatykird1[i-1]= mdModel->GetFromName(asAnimName.c_str());
-               }
-             }
-            else
-            if (str==AnsiString("animpantrd2prefix:"))              //prefiks ramion dolnych 2
-             {
-              str= Parser->GetNextSymbol();
-              asAnimName="";
-              for (int i=1; i<=2; i++)
-               {
-    //Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
-                asAnimName=str+i;
-                smPatykird2[i-1]= mdModel->GetFromName(asAnimName.c_str());
-               }
-             }
-            else
-            if (str==AnsiString("animpantrg1prefix:"))              //prefiks ramion gornych 1
-             {
-              str= Parser->GetNextSymbol();
-              asAnimName="";
-              for (int i=1; i<=2; i++)
-               {
-    //Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
-                asAnimName=str+i;
-                smPatykirg1[i-1]= mdModel->GetFromName(asAnimName.c_str());
-               }
-             }
-            else
-            if (str==AnsiString("animpantrg2prefix:"))              //prefiks ramion gornych 2
-             {
-              str= Parser->GetNextSymbol();
-              asAnimName="";
-              for (int i=1; i<=2; i++)
-               {
-    //Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
-                asAnimName=str+i;
-                smPatykirg2[i-1]= mdModel->GetFromName(asAnimName.c_str());
-               }
-             }
-            else
-            if (str==AnsiString("animpantslprefix:"))              //prefiks slizgaczy
-             {
-              str= Parser->GetNextSymbol();
-              asAnimName="";
-              for (int i=1; i<=2; i++)
-               {
-    //Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
-                asAnimName=str+i;
-                smPatykisl[i-1]= mdModel->GetFromName(asAnimName.c_str());
-               }
-             }
-            else
-    //Winger 010304: parametry pantografow
-            if (str==AnsiString("pantfactors:"))              //prefiks slizgaczy
-             {
-              pant1x= Parser->GetNextSymbol().ToDouble();
-              pant2x= Parser->GetNextSymbol().ToDouble();
-              panty= Parser->GetNextSymbol().ToDouble();
-              panth= Parser->GetNextSymbol().ToDouble();
-              //              asAnimName="";
-             }
-            else
-            if (str==AnsiString("animpendulumprefix:"))              //prefiks wahaczy
-             {
-              str= Parser->GetNextSymbol();
-              asAnimName="";
-              for (int i=1; i<=4; i++)
-               {
-    //McZapkie-050402: wyszukiwanie max 4 wahaczy o nazwie str*
-                asAnimName=str+i;
-                smWahacze[i-1]= mdModel->GetFromName(asAnimName.c_str());
-               }
-              str= Parser->GetNextSymbol().LowerCase();
-              if (str==AnsiString("pendulumamplitude:"))
-               fWahaczeAmp= Parser->GetNextSymbol().ToDouble();
-             }
-            else
-            if (str==AnsiString("engineer:"))              //nazwa submodelu maszynisty
-             {
-              str= Parser->GetNextSymbol();
-              smMechanik= mdModel->GetFromName(str.c_str());
-             }
-            else
-            if (str==AnsiString("animdoorprefix:"))           //nazwa animowanych dzwi
-            {
-              str= Parser->GetNextSymbol();
-              asAnimName="";
-              for (int i=1; i<=MaxAnimatedDoors; i++)
-               {
-    //NBMX wrzesien 2003: wyszukiwanie drzwi o nazwie str*
-                asAnimName=str+i;
-                smAnimatedDoor[i-1]= mdModel->GetFromName(asAnimName.c_str());
-                if (smAnimatedDoor[i-1]!=NULL)
-                 iAnimatedDoors+=1;
-                else
-                 i=MaxAnimatedDoors+1;
-               }
+               asAnimName=str+i;
+               smAnimatedWheel[i-1]= mdModel->GetFromName(asAnimName.c_str());
+               if (smAnimatedWheel[i-1]!=NULL)
+                iAnimatedAxles+=1;
+               else
+                i=MaxAnimatedAxles+1;
+              }
             }
+           else
+           if (str==AnsiString("animrodprefix:"))              //prefiks wiazarow dwoch
+            {
+             str= Parser->GetNextSymbol();
+             asAnimName="";
+             for (int i=1; i<=2; i++)
+              {
+    //McZapkie-050402: wyszukiwanie max 2 wiazarow o nazwie str*
+               asAnimName=str+i;
+               smWiazary[i-1]= mdModel->GetFromName(asAnimName.c_str());
+              }
+            }
+           else
+//Pantografy - Winger 160204
+           if (str==AnsiString("animpantrd1prefix:"))              //prefiks ramion dolnych 1
+            {
+             str= Parser->GetNextSymbol();
+             asAnimName="";
+             for (int i=1; i<=2; i++)
+              {
+    //Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
+               asAnimName=str+i;
+               smPatykird1[i-1]= mdModel->GetFromName(asAnimName.c_str());
+              }
+            }
+           else
+           if (str==AnsiString("animpantrd2prefix:"))              //prefiks ramion dolnych 2
+            {
+             str= Parser->GetNextSymbol();
+             asAnimName="";
+             for (int i=1; i<=2; i++)
+              {
+    //Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
+               asAnimName=str+i;
+               smPatykird2[i-1]= mdModel->GetFromName(asAnimName.c_str());
+              }
+            }
+           else
+           if (str==AnsiString("animpantrg1prefix:"))              //prefiks ramion gornych 1
+            {
+             str= Parser->GetNextSymbol();
+             asAnimName="";
+             for (int i=1; i<=2; i++)
+              {
+    //Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
+               asAnimName=str+i;
+               smPatykirg1[i-1]= mdModel->GetFromName(asAnimName.c_str());
+              }
+            }
+           else
+           if (str==AnsiString("animpantrg2prefix:"))              //prefiks ramion gornych 2
+            {
+             str= Parser->GetNextSymbol();
+             asAnimName="";
+             for (int i=1; i<=2; i++)
+              {
+    //Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
+               asAnimName=str+i;
+               smPatykirg2[i-1]= mdModel->GetFromName(asAnimName.c_str());
+              }
+            }
+           else
+           if (str==AnsiString("animpantslprefix:"))              //prefiks slizgaczy
+            {
+             str= Parser->GetNextSymbol();
+             asAnimName="";
+             for (int i=1; i<=2; i++)
+              {
+    //Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
+               asAnimName=str+i;
+               smPatykisl[i-1]= mdModel->GetFromName(asAnimName.c_str());
+              }
+            }
+           else
+    //Winger 010304: parametry pantografow
+           if (str==AnsiString("pantfactors:"))              //prefiks slizgaczy
+            {
+             pant1x= Parser->GetNextSymbol().ToDouble();
+             pant2x= Parser->GetNextSymbol().ToDouble();
+             panty= Parser->GetNextSymbol().ToDouble();
+             panth= Parser->GetNextSymbol().ToDouble();
+             //              asAnimName="";
+            }
+           else
+           if (str==AnsiString("animpendulumprefix:"))              //prefiks wahaczy
+            {
+             str= Parser->GetNextSymbol();
+             asAnimName="";
+             for (int i=1; i<=4; i++)
+              {
+    //McZapkie-050402: wyszukiwanie max 4 wahaczy o nazwie str*
+               asAnimName=str+i;
+               smWahacze[i-1]= mdModel->GetFromName(asAnimName.c_str());
+              }
+             str= Parser->GetNextSymbol().LowerCase();
+             if (str==AnsiString("pendulumamplitude:"))
+              fWahaczeAmp= Parser->GetNextSymbol().ToDouble();
+            }
+           else
+           if (str==AnsiString("engineer:"))              //nazwa submodelu maszynisty
+            {
+             str=Parser->GetNextSymbol();
+             smMechanik=mdModel->GetFromName(str.c_str());
+            }
+           else
+           if (str==AnsiString("animdoorprefix:"))           //nazwa animowanych dzwi
+           {
+             str= Parser->GetNextSymbol();
+             asAnimName="";
+             for (int i=1; i<=MaxAnimatedDoors; i++)
+              {
+    //NBMX wrzesien 2003: wyszukiwanie drzwi o nazwie str*
+               asAnimName=str+i;
+               smAnimatedDoor[i-1]= mdModel->GetFromName(asAnimName.c_str());
+               if (smAnimatedDoor[i-1]!=NULL)
+                iAnimatedDoors+=1;
+               else
+                i=MaxAnimatedDoors+1;
+              }
+           }
           }
         }
         else

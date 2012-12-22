@@ -43,8 +43,7 @@ TTraction::TTraction()
 //    dwFlags= 0;
     Wires=2;
 //    fU=fR= 0;
-    uiDisplayList= glGenLists(1);
-    glNewList(uiDisplayList,GL_COMPILE);
+    uiDisplayList=0;
     asPowerSupplyName="";
 //    mdPole= NULL;
 //    ReplacableSkinID= 0;
@@ -59,6 +58,7 @@ TTraction::~TTraction()
 void __fastcall TTraction::Optimize()
 {
  if (Global::bUseVBO) return;
+ uiDisplayList=glGenLists(1);
  glNewList(uiDisplayList,GL_COMPILE);
 
  glBindTexture(GL_TEXTURE_2D, 0);
@@ -183,56 +183,48 @@ void __fastcall TTraction::Render(float mgn)   //McZapkie: mgn to odleglosc od o
   //McZapkie: ustalanie przezroczystosci i koloru linii:
  if (Wires!=0 && !TestFlag(DamageFlag,128))  //rysuj jesli sa druty i nie zerwana
  {
+  //glDisable(GL_LIGHTING); //aby nie u¿ywa³o wektorów normalnych do kolorowania
   glColor4f(0,0,0,1);  //jak nieznany kolor to czarne nieprzezroczyste
-  glDisable(GL_LINE_SMOOTH); //na liniach kiepsko wygl¹da - robi gradient
+  if (!Global::bSmoothTraction)
+   glDisable(GL_LINE_SMOOTH); //na liniach kiepsko wygl¹da - robi gradient
   float linealpha=5000*WireThickness/(mgn+1.0); //*WireThickness
   if (linealpha>1.2) linealpha=1.2; //zbyt grube nie s¹ dobre
   glLineWidth(linealpha);
-
-      if (linealpha > 1.0)
-          linealpha = 1.0;
-
-      //McZapkie-261102: kolor zalezy od materialu i zasniedzenia
-      float r,g,b;
-      switch (Material)
-      {
-          case 1:
-              if (TestFlag(DamageFlag,1))
-               {
-                 r=0.2;
-                 g=0.6;
-                 b=0.3;  //zielona miedz
-               }
-              else
-               {
-                 r=0.6;
-                 g=0.2;
-                 b=0.1;  //czerwona miedz
-               }
-          break;
-          case 2:
-              if (TestFlag(DamageFlag,1))
-               {
-                 r=0.2;
-                 g=0.2;
-                 b=0.2;  //czarne Al
-               }
-              else
-               {
-                 r=0.5;
-                 g=0.5;
-                 b=0.5;  //srebrne Al
-               }
-          break;
-      }
-      r=r*Global::ambientDayLight[0];  //w zaleznosci od koloru swiatla
-      g=g*Global::ambientDayLight[1];
-      b=b*Global::ambientDayLight[2];
+  if (linealpha>1.0) linealpha = 1.0;
+  //McZapkie-261102: kolor zalezy od materialu i zasniedzenia
+  float r,g,b;
+  switch (Material)
+  {//Ra: kolory podzieli³em przez 2, bo po zmianie ambient za jasne by³y
+   case 1:
+    if (TestFlag(DamageFlag,1))
+    {
+     r=0.00000; g=0.32549; b=0.2882353;  //zielona miedz
+    }
+    else
+    {
+     r=0.35098; g=0.22549; b=0.1;  //czerwona miedz
+    }
+   break;
+   case 2:
+    if (TestFlag(DamageFlag,1))
+    {
+     r=0.10; g=0.10; b=0.10;  //czarne Al
+    }
+    else
+    {
+     r=0.25; g=0.25; b=0.25;  //srebrne Al
+    }
+   break;
+  }
+  r=r*Global::ambientDayLight[0];  //w zaleznosci od koloru swiatla
+  g=g*Global::ambientDayLight[1];
+  b=b*Global::ambientDayLight[2];
   if (linealpha>1.0) linealpha=1.0; //trzeba ograniczyæ do <=1
   glColor4f(r,g,b,linealpha);
   glCallList(uiDisplayList);
   glLineWidth(1.0);
-  glEnable(GL_LINE_SMOOTH); //bez tego siê modele nie oœwietlaj¹
+  glEnable(GL_LINE_SMOOTH);
+  //glEnable(GL_LIGHTING); //bez tego siê modele nie oœwietlaj¹
  }
 }
 
@@ -353,32 +345,33 @@ void  __fastcall TTraction::RaRenderVBO(float mgn,int iPtr)
   glBindTexture(GL_TEXTURE_2D,0);
   glDisable(GL_LIGHTING); //aby nie u¿ywa³o wektorów normalnych do kolorowania
   glColor4f(0,0,0,1);  //jak nieznany kolor to czarne nieprzezroczyste
-  //Ra: glEnable(GL_LINE_SMOOTH) kiepsko wygl¹da - robi gradient
+  if (!Global::bSmoothTraction)
+   glDisable(GL_LINE_SMOOTH); //na liniach kiepsko wygl¹da - robi gradient
   float linealpha=5000*WireThickness/(mgn+1.0); //*WireThickness
   if (linealpha>1.2) linealpha=1.2; //zbyt grube nie s¹ dobre
   glLineWidth(linealpha);
   //McZapkie-261102: kolor zalezy od materialu i zasniedzenia
   float r,g,b;
   switch (Material)
-  {
+  {//Ra: kolory podzieli³em przez 2, bo po zmianie ambient za jasne by³y
    case 1:
     if (TestFlag(DamageFlag,1))
     {
-     r=0.2; g=0.6; b=0.3;  //zielona miedz
+     r=0.00000; g=0.32549; b=0.2882353;  //zielona miedz
     }
     else
     {
-     r=0.6; g=0.2; b=0.1;  //czerwona miedz
+     r=0.35098; g=0.22549; b=0.1;  //czerwona miedz
     }
    break;
    case 2:
     if (TestFlag(DamageFlag,1))
     {
-     r=0.2; g=0.2; b=0.2;  //czarne Al
+     r=0.10; g=0.10; b=0.10;  //czarne Al
     }
     else
     {
-     r=0.5; g=0.5; b=0.5;  //srebrne Al
+     r=0.25; g=0.25; b=0.25;  //srebrne Al
     }
    break;
   }
@@ -389,7 +382,8 @@ void  __fastcall TTraction::RaRenderVBO(float mgn,int iPtr)
   glColor4f(r,g,b,linealpha);
   glDrawArrays(GL_LINES,iPtr,iLines);
   glLineWidth(1.0);
-  glEnable(GL_LIGHTING);
+  glEnable(GL_LINE_SMOOTH);
+  glEnable(GL_LIGHTING); //bez tego siê modele nie oœwietlaj¹
  }
 };
 

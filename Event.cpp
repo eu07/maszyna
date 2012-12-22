@@ -123,6 +123,9 @@ void __fastcall TEvent::Load(cParser* parser)
     if (str==AnsiString("whois"))
         Type= tp_WhoIs;
     else
+    if (str==AnsiString("logvalues"))
+        Type= tp_LogValues;
+    else
         Type= tp_Unknown;
 
     parser->getTokens();
@@ -177,6 +180,7 @@ void __fastcall TEvent::Load(cParser* parser)
         case tp_WhoIs:
         case tp_CopyValues:
         case tp_GetValues:
+        case tp_LogValues:
             parser->getTokens();
             *parser >> token;
         break;

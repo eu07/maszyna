@@ -185,49 +185,40 @@ void __fastcall TGroundNode::InitNormals()
 }
 
 void __fastcall TGroundNode::MoveMe(vector3 pPosition)
-{
-    pCenter+=pPosition;
-    switch (iType)
-    {
-
-        case TP_TRACTION:
-//            if (!Global::bRenderAlpha && bVisible && Global::bLoadTraction)
-//              Traction->Render(mgn);
-           {
-            Traction->pPoint1+=pPosition;
-            Traction->pPoint2+=pPosition;
-            Traction->pPoint3+=pPosition;
-            Traction->pPoint4+=pPosition;
-            Traction->Optimize();
-           }
-        break;
-        case TP_MODEL:
-        case TP_DYNAMIC:
-        case TP_MEMCELL:
-        case TP_EVLAUNCH:
-        break;
-        case TP_TRACK:
-           {
-            pTrack->MoveMe(pPosition);
-           }
-        break;
-        case TP_SOUND:
-//McZapkie - dzwiek zapetlony w zaleznosci od odleglosci
-             pStaticSound->vSoundPosition+=pPosition;
-        break;
-        case GL_LINES:
-        case GL_LINE_STRIP:
-        case GL_LINE_LOOP:
-            for (int i=0; i<iNumPts; i++)
-               Points[i]+=pPosition;
-            ResourceManager::Unregister(this);
-        break;
-        default:
-            for (int i=0; i<iNumVerts; i++)
-               Vertices[i].Point+=pPosition;
-            ResourceManager::Unregister(this);
-     }
-
+{//przesuwanie obiektów scenerii o wektor w celu redukcji trzêsienia
+ pCenter+=pPosition;
+ switch (iType)
+ {
+  case TP_TRACTION:
+   Traction->pPoint1+=pPosition;
+   Traction->pPoint2+=pPosition;
+   Traction->pPoint3+=pPosition;
+   Traction->pPoint4+=pPosition;
+   Traction->Optimize();
+   break;
+  case TP_MODEL:
+  case TP_DYNAMIC:
+  case TP_MEMCELL:
+  case TP_EVLAUNCH:
+   break;
+  case TP_TRACK:
+   pTrack->MoveMe(pPosition);
+   break;
+  case TP_SOUND: //McZapkie - dzwiek zapetlony w zaleznosci od odleglosci
+   pStaticSound->vSoundPosition+=pPosition;
+   break;
+  case GL_LINES:
+  case GL_LINE_STRIP:
+  case GL_LINE_LOOP:
+   for (int i=0; i<iNumPts; i++)
+    Points[i]+=pPosition;
+   ResourceManager::Unregister(this);
+   break;
+  default:
+   for (int i=0; i<iNumVerts; i++)
+    Vertices[i].Point+=pPosition;
+   ResourceManager::Unregister(this);
+ }
 }
 
 //---------------------------------------------------------------------------
@@ -235,6 +226,28 @@ void __fastcall TGroundNode::MoveMe(vector3 pPosition)
 //---------------------------------------------------------------------------
 int TGroundRect::iFrameNumber=0; //licznik wyœwietlanych klatek
 
+void __fastcall TGroundRect::Render()
+{//renderowanie kwadratu kilometrowego (DL), jeœli jeszcze nie zrobione
+ if (iLastDisplay!=iFrameNumber)
+ {
+  //for (TGroundNode* node=pRender;node;node=node->pNext3)
+  // node->Render(); //nieprzezroczyste trójk¹ty kwadratu kilometrowego
+  if (pRender)
+  {//³¹czenie trójk¹tów w jedn¹ listê - trochê wioska
+   if (!pRender->DisplayListID)
+   {//je¿eli nie skompilowany, kompilujemy wszystkie trójk¹ty w jeden
+    pRender->fSquareRadius=5000.0*5000.0; //aby agregat nigdy nie znika³
+    pRender->DisplayListID=glGenLists(1);
+    glNewList(pRender->DisplayListID,GL_COMPILE);
+    for (TGroundNode* node=pRender;node;node=node->pNext3)
+     node->Compile(true);
+    glEndList();
+   }
+   pRender->Render(); //nieprzezroczyste trójk¹ty kwadratu kilometrowego
+  } 
+  iLastDisplay=iFrameNumber;
+ }
+};
 
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
@@ -255,11 +268,11 @@ void __fastcall TGround::MoveGroundNode(vector3 pPosition)
  {//roz³o¿enie obiektów na mapie
   if (Current->iType!=TP_DYNAMIC)
   {//pojazdów to w ogóle nie dotyczy
-   if ((Current->iType!=GL_TRIANGLES)?true //~czy trójk¹t?
+   if ((Current->iType!=GL_TRIANGLES)&&(Current->iType!=GL_TRIANGLE_STRIP)?true //~czy trójk¹t?
     :(Current->iFlags&4)?true //~czy teksturê ma nieprzezroczyst¹?
-     :(Current->iNumVerts!=3)?true //~czy tylko jeden trójk¹t?
-      :(Current->fSquareMinRadius!=0.0)?true //~czy widoczny z bliska?
-       :(Current->fSquareRadius<=90000.0)) //~czy widoczny z daleka?
+     //:(Current->iNumVerts!=3)?true //~czy tylko jeden trójk¹t?
+     :(Current->fSquareMinRadius!=0.0)?true //~czy widoczny z bliska?
+      :(Current->fSquareRadius<=90000.0)) //~czy widoczny z daleka?
     GetSubRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
    else //dodajemy do kwadratu kilometrowego
     GetRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
@@ -276,7 +289,6 @@ void __fastcall TGround::MoveGroundNode(vector3 pPosition)
 
 void __fastcall TGroundNode::RaRenderVBO()
 {//renderowanie z bufora VBO (Vertex Array gdy brak VBO)
- glEnable(GL_LIGHTING); //!!!! bo coœ oœwietlenie nie dzia³a
  glColor3ub(Diffuse[0],Diffuse[1],Diffuse[2]);
  if (TextureID)
   glBindTexture(GL_TEXTURE_2D,TextureID); // Ustaw aktywn¹ teksturê
@@ -288,13 +300,12 @@ void __fastcall TGroundNode::RaRender()
  double mgn=SquareMagnitude(pCenter-Global::pCameraPosition);
  if ((mgn>fSquareRadius || (mgn<fSquareMinRadius)) && (iType!=TP_EVLAUNCH)) //McZapkie-070602: nie rysuj odleglych obiektow ale sprawdzaj wyzwalacz zdarzen
      return;
-//    glMaterialfv( GL_FRONT, GL_DIFFUSE, Global::whiteLight );
  int i,a;
  switch (iType)
  {
   case TP_TRACTION: return;
   case TP_TRACK: if (iNumVerts) pTrack->RaRenderVBO(iVboPtr); return;
-  case TP_MODEL: Model->RaRender(pCenter,fAngle); return;
+  case TP_MODEL: Model->RaRender(&pCenter); return;
   case TP_SOUND: //McZapkie - dzwiek zapetlony w zaleznosci od odleglosci
    if ((pStaticSound->GetStatus()&DSBSTATUS_PLAYING)==DSBPLAY_LOOPING)
    {
@@ -376,16 +387,16 @@ void __fastcall TGroundNode::RaRenderAlpha()
  float r,g,b;
  if (mgn<fSquareMinRadius) return;
  if (mgn>fSquareRadius) return;
-//    glMaterialfv( GL_FRONT, GL_DIFFUSE, Global::whiteLight );
  int i,a;
  switch (iType)
  {
   case TP_TRACTION:
-   if (Global::bRenderAlpha && bVisible)
+   if (bVisible)
     Traction->RaRenderVBO(mgn,iVboPtr);
    return;
   case TP_MODEL:
-   Model->RaRenderAlpha(pCenter,fAngle); return;
+   //Model->RaRenderAlpha(pCenter,fAngle); return;
+   Model->RaRenderAlpha(&pCenter); return;
   case GL_LINES:
   case GL_LINE_STRIP:
   case GL_LINE_LOOP:
@@ -414,9 +425,10 @@ void __fastcall TGroundNode::RaRenderAlpha()
 __fastcall TSubRect::TSubRect()
 {
  pRootNode=NULL; //lista wszystkich obiektów jest pusta
- pRenderHidden=pRenderVBO=pRenderAlphaVBO=pRender=pRenderMixed=pRenderAlpha=NULL;
+ pRenderHidden=pRenderRect=pRenderRectAlpha=pRender=pRenderMixed=pRenderAlpha=pRenderWires=NULL;
  pTrackAnim=NULL; //nic nie animujemy
  pTriGroup=NULL;
+ iNodeCount=0; //licznik obiektów
 }
 __fastcall TSubRect::~TSubRect()
 {
@@ -426,11 +438,12 @@ __fastcall TSubRect::~TSubRect()
 void __fastcall TSubRect::AddNode(TGroundNode *Node)
 {//przyczepienie obiektu do sektora, kwalifikacja trójk¹tów do ³¹czenia
  //Ra: trzeba zrobiæ sortowanie obiektów na grupy:
- //pRenderHidden   - lista obiektów niewidocznych, "renderowanych" równie¿ z ty³u
- //pRenderVBO      - lista grup renderowanych ze wsp³nego VBO
- //pRenderAlphaVBO - lista grup renderowanych ze wsp³nego VBO z przezroczystoœci¹
- //pRender         - lista grup renderowanych z w³asnych VBO albo DL
- //pRenderAlpha    - lista grup renderowanych z w³asnych VBO z przezroczystoœci¹ albo DL
+ //pRenderHidden    - lista obiektów niewidocznych, "renderowanych" równie¿ z ty³u
+ //pRenderRect      - lista grup renderowanych z sektora
+ //pRenderRectAlpha - lista grup renderowanych z sektora z przezroczystoœci¹
+ //pRender          - lista grup renderowanych z w³asnych VBO albo DL
+ //pRenderAlpha     - lista grup renderowanych z w³asnych VBO z przezroczystoœci¹ albo DL
+ //pRenderWires     - lista grup renderowanych z w³asnych VBO - druty
  switch (Node->iType)
  {case TP_SOUND: //te obiekty s¹ sprawdzanie niezale¿nie od kierunku patrzenia
   case TP_EVLAUNCH:
@@ -439,50 +452,42 @@ void __fastcall TSubRect::AddNode(TGroundNode *Node)
   case TP_TRACK:
    Node->pTrack->RaOwnerSet(this); //gdzie ma zg³aszaæ animacjê
    if (Global::bUseVBO)
-   {Node->pNext3=pRenderVBO; pRenderVBO=Node;} //VBO: do listy nieprzezroczystych
+   {Node->pNext3=pRenderRect; pRenderRect=Node;} //VBO: do nieprzezroczystych z sektora
    else
    {Node->pNext3=pRender; pRender=Node;} //DL: do nieprzezroczystych
    break;
   case GL_TRIANGLE_STRIP:
   case GL_TRIANGLE_FAN:
   case GL_TRIANGLES:
-   if (Global::bUseVBO)
-   {if (Node->iFlags&4) //czy jest przezroczyste?
-    {Node->pNext3=pRenderAlphaVBO; pRenderAlphaVBO=Node;} //VBO: do przezroczystych
-    else
-    {Node->pNext3=pRenderVBO; pRenderVBO=Node;} //VBO: do nieprzezroczystych
-   }
+   if (Node->iFlags&4) //czy jest przezroczyste?
+   {Node->pNext3=pRenderRectAlpha; pRenderRectAlpha=Node;} //DL: do przezroczystych z sektora
    else
-   {if (Node->iFlags&4) //czy jest przezroczyste?
-    {Node->pNext3=pRenderAlpha; pRenderAlpha=Node;} //DL: do przezroczystych
+    if (Global::bUseVBO)
+    {Node->pNext3=pRenderRect; pRenderRect=Node;} //VBO: do nieprzezroczystych z sektora
     else
-    {Node->pNext3=pRender; pRender=Node; //DL: do nieprzezroczystych
+    {Node->pNext3=pRender; pRender=Node;} //DL: do nieprzezroczystych wszelakich
 /*
-    //Ra: na razie wy³¹czone do testów VBO
-    //if ((Node->iType==GL_TRIANGLE_STRIP)||(Node->iType==GL_TRIANGLE_FAN)||(Node->iType==GL_TRIANGLES))
-     if (Node->fSquareMinRadius==0.0) //znikaj¹ce z bliska nie mog¹ byæ optymalizowane
-      if (Node->fSquareRadius>=160000.0) //tak od 400m to ju¿ normalne trójk¹ty musz¹ byæ
-      //if (Node->iFlags&2) //i nieprzezroczysty
-      {if (pTriGroup) //je¿eli by³ ju¿ jakiœ grupuj¹cy
-       {if (pTriGroup->fSquareRadius>Node->fSquareRadius) //i mia³ wiêkszy zasiêg
-         Node->fSquareRadius=pTriGroup->fSquareRadius; //zwiêkszenie zakresu widocznoœci grupuj¹cego
-        pTriGroup->pTriGroup=Node; //poprzedniemu doczepiamy nowy
-       }
-       Node->pTriGroup=Node; //nowy lider ma siê sam wyœwietlaæ - wskaŸnik na siebie
-       pTriGroup=Node; //zapamiêtanie lidera
+   //Ra: na razie wy³¹czone do testów VBO
+   //if ((Node->iType==GL_TRIANGLE_STRIP)||(Node->iType==GL_TRIANGLE_FAN)||(Node->iType==GL_TRIANGLES))
+    if (Node->fSquareMinRadius==0.0) //znikaj¹ce z bliska nie mog¹ byæ optymalizowane
+     if (Node->fSquareRadius>=160000.0) //tak od 400m to ju¿ normalne trójk¹ty musz¹ byæ
+     //if (Node->iFlags&2) //i nieprzezroczysty
+     {if (pTriGroup) //je¿eli by³ ju¿ jakiœ grupuj¹cy
+      {if (pTriGroup->fSquareRadius>Node->fSquareRadius) //i mia³ wiêkszy zasiêg
+        Node->fSquareRadius=pTriGroup->fSquareRadius; //zwiêkszenie zakresu widocznoœci grupuj¹cego
+       pTriGroup->pTriGroup=Node; //poprzedniemu doczepiamy nowy
       }
+      Node->pTriGroup=Node; //nowy lider ma siê sam wyœwietlaæ - wskaŸnik na siebie
+      pTriGroup=Node; //zapamiêtanie lidera
+     }
 */
-    }
-   }
    break;
   case TP_TRACTION:
   case GL_LINES:
   case GL_LINE_STRIP:
   case GL_LINE_LOOP: //te na koñcu, ¿eby nie ³apa³y koloru nieba
-   if (Global::bUseVBO)
-   {Node->pNext3=pRenderAlphaVBO; pRenderAlphaVBO=Node;}
-   else
-   {Node->pNext3=pRenderAlpha; pRenderAlpha=Node;} //DL: do przezroczystych
+   //if (Global::bUseVBO)
+   Node->pNext3=pRenderWires; pRenderWires=Node; //lista drutów
    break;
   case TP_MODEL: //modle zawsze wyœwietlane z w³asnego VBO
    if ((Node->iFlags&0x04040004)==0) //czy brak przezroczystoœci?
@@ -494,11 +499,14 @@ void __fastcall TSubRect::AddNode(TGroundNode *Node)
    break;
   case TP_MEMCELL:
   case TP_TRACTIONPOWERSOURCE: //a te w ogóle pomijamy
-  case TP_DYNAMIC:
+  case TP_ISOLATED: //lista torów w obwodzie izolowanym - na razie ignorowana
    break;
+  case TP_DYNAMIC:
+   return;
  }
  Node->pNext2=pRootNode; //dopisanie do ogólnej listy
  pRootNode=Node;
+ ++iNodeCount; //licznik obiektów
 };
 
 bool __fastcall TSubRect::RaTrackAnimAdd(TTrack *t)
@@ -621,14 +629,16 @@ void TSubRect::Release()
   CMesh::Clear(); //usuwanie buforów
 };
 
-void __fastcall TGroundNode::Compile()
-{
- if (DisplayListID) Release();
- if (Global::bManageNodes)
- {
-  DisplayListID=glGenLists(1);
-  glNewList(DisplayListID,GL_COMPILE);
- };
+void __fastcall TGroundNode::Compile(bool many)
+{//tworzenie skompilowanej listy w wyœwietlaniu DL
+ if (!many)
+ {if (DisplayListID) Release();
+  if (Global::bManageNodes)
+  {
+   DisplayListID=glGenLists(1);
+   glNewList(DisplayListID,GL_COMPILE);
+  }
+ }
  if (iType == GL_LINES || iType == GL_LINE_STRIP || iType == GL_LINE_LOOP)
  {
 #ifdef USE_VERTEX_ARRAYS
@@ -670,16 +680,17 @@ void __fastcall TGroundNode::Compile()
 #endif
 /*
    if (tri->pTriGroup) //jeœli z grupy
-   {tri=tri->pNext3; //nastêpny w sektorze
-    while (tri?!tri->pTriGroup:false) tri=tri->pNext3; //szukamy kolejnego nale¿¹cego do grupy
+   {tri=tri->pNext2; //nastêpny w sektorze
+    while (tri?!tri->pTriGroup:false) tri=tri->pNext2; //szukamy kolejnego nale¿¹cego do grupy
    }
    else
 */
     tri=NULL; //a jak nie, to koniec
   } while (tri);
  };
- if (Global::bManageNodes)
-  glEndList();
+ if (!many)
+  if (Global::bManageNodes)
+   glEndList();
 };
 
 void TGroundNode::Release()
@@ -727,7 +738,8 @@ void __fastcall TGroundNode::Render()
   case TP_TRACK:
    return pTrack->Render();
   case TP_MODEL:
-   return Model->Render(pCenter,fAngle);
+   //return Model->Render(pCenter,fAngle);
+   return Model->Render(&pCenter);
  }
     // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
   if(
@@ -767,7 +779,6 @@ void __fastcall TGroundNode::RenderAlpha()
      return;
  if (mgn>fSquareRadius)
      return;
-//    glMaterialfv( GL_FRONT, GL_DIFFUSE, Global::whiteLight );
  int i,a;
  switch (iType)
  {
@@ -776,7 +787,8 @@ void __fastcall TGroundNode::RenderAlpha()
     Traction->Render(mgn);
    return;
   case TP_MODEL:
-   Model->RenderAlpha(pCenter,fAngle);
+   //Model->RenderAlpha(pCenter,fAngle);
+   Model->RenderAlpha(&pCenter);
    return;
   case TP_TRACK:
    pTrack->RenderAlpha();
@@ -784,8 +796,8 @@ void __fastcall TGroundNode::RenderAlpha()
  };
 
  // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
- if(
-     (iNumVerts && Global::bRenderAlpha && (iFlags&4)) ||
+ if (
+     (iNumVerts && (iFlags&4)) ||
      (iNumPts && (Global::bRenderAlpha || fLineThickness > 0)))
  {
 
@@ -821,16 +833,16 @@ void __fastcall TGroundNode::RenderAlpha()
 
 __fastcall TGround::TGround()
 {
-    RootNode= NULL;
-    RootDynamic= NULL;
-    QueryRootEvent= NULL;
-    tmpEvent= NULL;
-    tmp2Event= NULL;
-    OldQRE= NULL;
-    RootEvent= NULL;
-    iNumNodes= 0;
-    pTrain= NULL;
-    Global::pGround= this;
+    RootNode=NULL;
+    RootDynamic=NULL;
+    QueryRootEvent=NULL;
+    tmpEvent=NULL;
+    tmp2Event=NULL;
+    OldQRE=NULL;
+    RootEvent=NULL;
+    iNumNodes=0;
+    pTrain=NULL;
+    Global::pGround=this;
     bInitDone=false; //Ra: ¿eby nie robi³o dwa razy
 }
 
@@ -861,9 +873,9 @@ void __fastcall TGround::Free()
         Current= Current->Next;
         delete tmpn;
     }
-    iNumNodes= 0;
-    RootNode= NULL;
-    RootDynamic= NULL;
+    iNumNodes=0;
+    RootNode=NULL;
+    RootDynamic=NULL;
 }
 
 
@@ -894,6 +906,7 @@ void __fastcall TGround::RaTriangleDivider(TGroundNode* node)
   (node->Vertices[2].Point.x>=x0) && (node->Vertices[2].Point.x<=x1) &&
   (node->Vertices[2].Point.z>=z0) && (node->Vertices[2].Point.z<=z1))
   return; //trójk¹t wystaj¹cy mniej ni¿ 200m z kw. kilometrowego jest do przyjêcia
+ //Ra: przerobiæ na dzielenie na 2 trójk¹ty, podzia³ w przeciêciu z siatk¹ kilometrow¹
  //no to tworzymy trzy dodatkowe trójk¹ty
  TGroundNode* tri[4]; //zmiena robocza - trzy wskaŸniki
  tri[3]=node; //do kompletu
@@ -936,606 +949,611 @@ void __fastcall TGround::RaTriangleDivider(TGroundNode* node)
   tri[i]->pCenter=(tri[i]->Vertices[0].Point+tri[i]->Vertices[1].Point+tri[i]->Vertices[2].Point)/3;
  }
  for (i=0;i<3;++i)
-  RaTriangleDivider(tri[i]); //rekurencja, bo nawet na TD raz nie wystarczy 
+  RaTriangleDivider(tri[i]); //rekurencja, bo nawet na TD raz nie wystarczy
 }
 
 TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
-{
-//    if (!Global::bLoadTraction)
-//        parser->LoadTraction=false;
-//    else
-//        parser->LoadTraction=true;
-//    HDC hDC;
-//    OpenGLUpdate(hDC);
+{//wczytanie wpisu typu "node"
+ //parser->LoadTraction=Global::bLoadTraction; //Ra: tu nie potrzeba powtarzaæ
+ AnsiString str,str1,str2,str3,Skin,DriverType,asNodeName;
+ int nv,ti,i,n;
+ double tf,r,rmin,tf1,tf2,tf3,tf4,l,dist,mgn;
+ int int1,int2;
+ bool bError=false,curve;
+ vector3 pt,front,up,left,pos,tv;
+ matrix4x4 mat2,mat1,mat;
+ GLuint TexID;
+ TGroundNode *tmp1;
+ TTrack *Track;
+ TRealSound *tmpsound;
+ std::string token;
+ parser->getTokens(2);
+ *parser >> r >> rmin;
+ parser->getTokens();
+ *parser >> token;
+ asNodeName=AnsiString(token.c_str());
+ parser->getTokens();
+ *parser >> token;
+ str=AnsiString(token.c_str());
+ TGroundNode *tmp,*tmp2;
+ tmp=new TGroundNode();
+ tmp->asName=(asNodeName==AnsiString("none")?AnsiString(""):asNodeName);
+ if (r>=0) tmp->fSquareRadius=r*r;
+ tmp->fSquareMinRadius=rmin*rmin;
+ if      (str=="triangles")           tmp->iType=GL_TRIANGLES;
+ else if (str=="triangle_strip")      tmp->iType=GL_TRIANGLE_STRIP;
+ else if (str=="triangle_fan")        tmp->iType=GL_TRIANGLE_FAN;
+ else if (str=="lines")               tmp->iType=GL_LINES;
+ else if (str=="line_strip")          tmp->iType=GL_LINE_STRIP;
+ else if (str=="line_loop")           tmp->iType=GL_LINE_LOOP;
+ else if (str=="model")               tmp->iType=TP_MODEL;
+ else if (str=="semaphore")           tmp->iType=TP_SEMAPHORE;
+ else if (str=="dynamic")             tmp->iType=TP_DYNAMIC;
+ else if (str=="sound")               tmp->iType=TP_SOUND;
+ else if (str=="track")               tmp->iType=TP_TRACK;
+ else if (str=="memcell")             tmp->iType=TP_MEMCELL;
+ else if (str=="eventlauncher")       tmp->iType=TP_EVLAUNCH;
+ else if (str=="traction")            tmp->iType=TP_TRACTION;
+ else if (str=="tractionpowersource") tmp->iType=TP_TRACTIONPOWERSOURCE;
+ else if (str=="isolated")            tmp->iType=TP_ISOLATED;
+ else bError=true;
+ //WriteLog("-> node "+str+" "+tmp->asName);
+ if (bError)
+ {
+  MessageBox(0,AnsiString("Scene parse error near "+str).c_str(),"Error",MB_OK);
+  //if (tmp==RootNode) RootNode=NULL;
+  delete tmp;
+  return NULL;
+ }
+ switch (tmp->iType)
+ {
+  case TP_TRACTION :
+   tmp->Traction=new TTraction();
+   parser->getTokens();
+   *parser >> token;
+   tmp->Traction->asPowerSupplyName=AnsiString(token.c_str());
+   parser->getTokens(3);
+   *parser >> tmp->Traction->NominalVoltage >> tmp->Traction->MaxCurrent >> tmp->Traction->Resistivity;
+   parser->getTokens();
+   *parser >> token;
+   if (token.compare("cu")==0)
+    tmp->Traction->Material=1;
+   else if (token.compare("al")==0)
+    tmp->Traction->Material=2;
+   else
+    tmp->Traction->Material=0;
+   parser->getTokens();
+   *parser >> tmp->Traction->WireThickness;
+   parser->getTokens();
+   *parser >> tmp->Traction->DamageFlag;
+   parser->getTokens(3);
+   *parser >> tmp->Traction->pPoint1.x >> tmp->Traction->pPoint1.y >> tmp->Traction->pPoint1.z;
+   tmp->Traction->pPoint1+=pOrigin;
+   parser->getTokens(3);
+   *parser >> tmp->Traction->pPoint2.x >> tmp->Traction->pPoint2.y >> tmp->Traction->pPoint2.z;
+   tmp->Traction->pPoint2+=pOrigin;
+   parser->getTokens(3);
+   *parser >> tmp->Traction->pPoint3.x >> tmp->Traction->pPoint3.y >> tmp->Traction->pPoint3.z;
+   tmp->Traction->pPoint3+=pOrigin;
+   parser->getTokens(3);
+   *parser >> tmp->Traction->pPoint4.x >> tmp->Traction->pPoint4.y >> tmp->Traction->pPoint4.z;
+   tmp->Traction->pPoint4+=pOrigin;
+   parser->getTokens();
+   *parser >> tf1;
+   tmp->Traction->fHeightDifference=
+    (tmp->Traction->pPoint3.y-tmp->Traction->pPoint1.y+
+     tmp->Traction->pPoint4.y-tmp->Traction->pPoint2.y)*0.5f-tf1;
+   parser->getTokens();
+   *parser >> tf1;
+   if (tf1>0)
+    tmp->Traction->iNumSections=(tmp->Traction->pPoint1-tmp->Traction->pPoint2).Length()/tf1;
+   else tmp->Traction->iNumSections=0;
+   parser->getTokens();
+   *parser >> tmp->Traction->Wires;
+   parser->getTokens();
+   *parser >> tmp->Traction->WireOffset;
+   parser->getTokens();
+   *parser >> token;
+   tmp->bVisible=(token.compare("vis")==0);
+   parser->getTokens();
+   *parser >> token;
+   if ( token.compare( "endtraction" )!=0)
+     Error("ENDTRACTION delimiter missing! "+str2+" found instead.");
+   if (Global::bLoadTraction)
+    tmp->Traction->Optimize();
+   tmp->pCenter=(tmp->Traction->pPoint2+tmp->Traction->pPoint1)*0.5f;
+   //if (!Global::bLoadTraction) SafeDelete(tmp); //Ra: tak byæ nie mo¿e, bo NULL to b³¹d
+   break;
+  case TP_TRACTIONPOWERSOURCE :
+   parser->getTokens(3);
+   *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
+   tmp->pCenter+=pOrigin;
+   tmp->TractionPowerSource=new TTractionPowerSource();
+   tmp->TractionPowerSource->Load(parser);
+   break;
+  case TP_MEMCELL :
+   parser->getTokens(3);
+   *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
+   tmp->pCenter+=pOrigin;
+   tmp->MemCell=new TMemCell();
+   tmp->MemCell->Load(parser);
+   break;
+  case TP_EVLAUNCH :
+   parser->getTokens(3);
+   *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
+   tmp->pCenter+=pOrigin;
+   tmp->EvLaunch=new TEventLauncher();
+   tmp->EvLaunch->Load(parser);
+   break;
+  case TP_TRACK :
+   tmp->pTrack=new TTrack();
+   if ((DebugModeFlag) && (tmp->asName!=AnsiString("")))
+     WriteLog(tmp->asName.c_str());
+   tmp->pTrack->Load(parser,pOrigin);
 
-    parser->LoadTraction= Global::bLoadTraction;
-    AnsiString str,str1,str2,str3,Skin,DriverType,asNodeName;
-    int nv,ti,i,n;
-    double tf,r,rmin,tf1,tf2,tf3,tf4,l,dist,mgn;
-    int int1,int2;
-    bool bError= false,curve;
-    vector3 pt,front,up,left,pos,tv;
-    matrix4x4 mat2,mat1,mat;
-    GLuint TexID;
-    TGroundNode *tmp1;
-    TTrack *Track;
-    TRealSound *tmpsound;
-    std::string token;
+//            str=Parser->GetNextSymbol().LowerCase();
+  //          str=Parser->GetNextSymbol().LowerCase();
+    //        str=Parser->GetNextSymbol().LowerCase();
+   tmp->pCenter=(tmp->pTrack->CurrentSegment()->FastGetPoint_0()+
+                   tmp->pTrack->CurrentSegment()->FastGetPoint(0.5)+
+                   tmp->pTrack->CurrentSegment()->FastGetPoint_1() ) * 0.33333f;
+   break;
+  case TP_SOUND :
+   tmp->pStaticSound=new TRealSound;
+   parser->getTokens(3);
+   *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
+   tmp->pCenter+=pOrigin;
+   parser->getTokens();
+   *parser >> token;
+   str=AnsiString(token.c_str());
+   tmp->pStaticSound->Init(str.c_str(),sqrt(tmp->fSquareRadius),tmp->pCenter.x,tmp->pCenter.y,tmp->pCenter.z);
 
-//    TMaterialColor Color,Ambient,Diffuse,Specular;  //TODO: zrobic z tym porzadek
-
-    parser->getTokens(2);
-    *parser >> r >> rmin;
-
-//    rmin= Parser->GetNextSymbol().ToDouble();
-    parser->getTokens();
-    *parser >>	token;
-    asNodeName= AnsiString(token.c_str());
-
-    parser->getTokens();
-    *parser >>	token;
-    str= AnsiString(token.c_str());
-
-    TGroundNode *tmp,*tmp2;
-    tmp= new TGroundNode();
-    tmp->asName= (asNodeName==AnsiString("none") ? AnsiString("") : asNodeName);
-    if (r>=0)
-        tmp->fSquareRadius= r*r;
-    tmp->fSquareMinRadius= rmin*rmin;
-
-        /*
-    if (RootNode==NULL)
-    {
-        RootNode= tmp;
-        LastNode= RootNode;
-    }
-    else
-    {
-        LastNode->Next= tmp;
-//        tmp->Prev= LastNode;
-        LastNode= tmp;
-    }
-          */
-	if (str==AnsiString("triangles"))
-	{
-		tmp->iType= GL_TRIANGLES;
-	}
-	else
-	if (str==AnsiString("triangle_strip"))
-	{
-		tmp->iType= GL_TRIANGLE_STRIP;
-	}
-	else
-	if (str==AnsiString("triangle_fan"))
-	{
-		tmp->iType= GL_TRIANGLE_FAN;
-	}
-	else
-	if (str==AnsiString("lines"))
-	{
-		tmp->iType= GL_LINES;
-	}
-	else
-	if (str==AnsiString("line_strip"))
-	{
-		tmp->iType= GL_LINE_STRIP;
-	}
-	else
-	if (str==AnsiString("line_loop"))
-	{
-		tmp->iType= GL_LINE_LOOP;
-	}
-	else
-	if (str==AnsiString("model"))
-		tmp->iType= TP_MODEL;
-	else
-	if (str=="semaphore")
-		tmp->iType= TP_SEMAPHORE;
-	else
-	if (str==AnsiString("dynamic"))
-		tmp->iType= TP_DYNAMIC;
-	else
-	if (str==AnsiString("sound"))
-		tmp->iType= TP_SOUND;
-	else
-	if (str==AnsiString("track"))
-		tmp->iType= TP_TRACK;
-	else
-	if (str==AnsiString("memcell"))
-		tmp->iType= TP_MEMCELL;
-	else
-	if (str==AnsiString("eventlauncher"))
-		tmp->iType= TP_EVLAUNCH;
-	else
-	if (str==AnsiString("traction"))
-		tmp->iType= TP_TRACTION;
-	else
-	if (str==AnsiString("tractionpowersource"))
-		tmp->iType= TP_TRACTIONPOWERSOURCE;
-	else
-	{
-        bError= true;
-	}
-    if (bError)
-    {
-        MessageBox(0,AnsiString("Scene parse error near "+str).c_str(),"Error",MB_OK);
-        if (tmp==RootNode)
-            RootNode= NULL;
-		delete tmp;
-		return NULL;
-    }
-
-    switch (tmp->iType)
-    {
-
-        case TP_TRACTION :
-            tmp->Traction= new TTraction();
-            parser->getTokens();
-            *parser >> token;
-            tmp->Traction->asPowerSupplyName= AnsiString(token.c_str());
-            parser->getTokens(3);
-            *parser >> tmp->Traction->NominalVoltage >> tmp->Traction->MaxCurrent >> tmp->Traction->Resistivity;
-            parser->getTokens();
-            *parser >> token;
-            if ( token.compare( "cu" ) == 0 )
-             tmp->Traction->Material= 1;
-            else
-            if ( token.compare( "al" ) == 0 )
-            tmp->Traction->Material= 2;
-            else
-            tmp->Traction->Material= 0;
-            parser->getTokens();
-            *parser >> tmp->Traction->WireThickness;
-            parser->getTokens();
-            *parser >> tmp->Traction->DamageFlag;
-            parser->getTokens(3);
-            *parser >> tmp->Traction->pPoint1.x >> tmp->Traction->pPoint1.y >> tmp->Traction->pPoint1.z;
-            tmp->Traction->pPoint1+=pOrigin;
-            parser->getTokens(3);
-            *parser >> tmp->Traction->pPoint2.x >> tmp->Traction->pPoint2.y >> tmp->Traction->pPoint2.z;
-            tmp->Traction->pPoint2+=pOrigin;
-            parser->getTokens(3);
-            *parser >> tmp->Traction->pPoint3.x >> tmp->Traction->pPoint3.y >> tmp->Traction->pPoint3.z;
-            tmp->Traction->pPoint3+=pOrigin;
-            parser->getTokens(3);
-            *parser >> tmp->Traction->pPoint4.x >> tmp->Traction->pPoint4.y >> tmp->Traction->pPoint4.z;
-            tmp->Traction->pPoint4+=pOrigin;
-            parser->getTokens();
-            *parser >> tf1;
-            tmp->Traction->fHeightDifference=
-                (tmp->Traction->pPoint3.y-tmp->Traction->pPoint1.y+
-                 tmp->Traction->pPoint4.y-tmp->Traction->pPoint2.y)*0.5f-tf1;
-            parser->getTokens();
-            *parser >> tf1;
-            if (tf1>0)
-             tmp->Traction->iNumSections= (tmp->Traction->pPoint1-tmp->Traction->pPoint2).Length()/tf1;
-            else tmp->Traction->iNumSections=0;
-            parser->getTokens();
-            *parser >> tmp->Traction->Wires;
-            parser->getTokens();
-            *parser >> tmp->Traction->WireOffset;
-            parser->getTokens();
-            *parser >> token;
-            if ( token.compare( "vis" ) == 0 )
-             tmp->bVisible= true;
-            else
-             tmp->bVisible= false;
-            parser->getTokens();
-            *parser >> token;
-            if ( token.compare( "endtraction" ) != 0 )
-              Error("ENDTRACTION delimiter missing! "+str2+" found instead.");
-             tmp->Traction->Optimize();
-            tmp->pCenter= (tmp->Traction->pPoint2+tmp->Traction->pPoint1)*0.5f;
-        if (!Global::bLoadTraction)
-            {
-            SafeDelete(tmp);
-            }
-        break;
-        case TP_TRACTIONPOWERSOURCE :
-            parser->getTokens(3);
-            *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
-            tmp->pCenter+=pOrigin;
-            tmp->TractionPowerSource= new TTractionPowerSource();
-            tmp->TractionPowerSource->Load(parser);
-        break;
-        case TP_MEMCELL :
-            parser->getTokens(3);
-            *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
-            tmp->pCenter+=pOrigin;
-            tmp->MemCell= new TMemCell();
-            tmp->MemCell->Load(parser);
-        break;
-        case TP_EVLAUNCH :
-            parser->getTokens(3);
-            *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
-            tmp->pCenter+=pOrigin;
-            tmp->EvLaunch= new TEventLauncher();
-            tmp->EvLaunch->Load(parser);
-        break;
-        case TP_TRACK :
-            tmp->pTrack= new TTrack();
-            if ((DebugModeFlag) && (tmp->asName!=AnsiString("")))
-              WriteLog(tmp->asName.c_str());
-            tmp->pTrack->Load(parser, pOrigin);
-
-//            str= Parser->GetNextSymbol().LowerCase();
-  //          str= Parser->GetNextSymbol().LowerCase();
-    //        str= Parser->GetNextSymbol().LowerCase();
-            tmp->pCenter= ( tmp->pTrack->CurrentSegment()->FastGetPoint_0()+
-                            tmp->pTrack->CurrentSegment()->FastGetPoint(0.5)+
-                            tmp->pTrack->CurrentSegment()->FastGetPoint_1() ) * 0.33333f;
-
-
-        break;
-        case TP_SOUND :
-
-            tmp->pStaticSound= new TRealSound;
-            parser->getTokens(3);
-            *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
-            tmp->pCenter+=pOrigin;
-
-            parser->getTokens();
-            *parser >> token;
-            str= AnsiString(token.c_str());
-            tmp->pStaticSound->Init(str.c_str(), sqrt(tmp->fSquareRadius), tmp->pCenter.x, tmp->pCenter.y, tmp->pCenter.z);
-
-//            tmp->pDirectSoundBuffer= TSoundsManager::GetFromName(str.c_str());
-//            tmp->iState= (Parser->GetNextSymbol().LowerCase()=="loop"?DSBPLAY_LOOPING:0);
-            parser->getTokens(); *parser >> token;
-        break;
-        case TP_DYNAMIC :
-                tmp->DynamicObject= new TDynamicObject();
-//                tmp->DynamicObject->Load(Parser);
-                parser->getTokens();
-                *parser >> token;
-                str1= AnsiString(token.c_str());
-
-//                str2= Parser->GetNextSymbol().LowerCase(); McZapkie-131102: model w .mmd
+//            tmp->pDirectSoundBuffer=TSoundsManager::GetFromName(str.c_str());
+//            tmp->iState=(Parser->GetNextSymbol().LowerCase()=="loop"?DSBPLAY_LOOPING:0);
+   parser->getTokens(); *parser >> token;
+   break;
+  case TP_DYNAMIC :
+   tmp->DynamicObject=new TDynamicObject();
+//   tmp->DynamicObject->Load(Parser);
+   parser->getTokens();
+   *parser >> token;
+   str1=AnsiString(token.c_str());
+// str2=Parser->GetNextSymbol().LowerCase(); McZapkie-131102: model w .mmd
 //McZapkie: doszedl parametr ze zmienialna skora
-                parser->getTokens();
-                *parser >> token;
-                Skin= AnsiString(token.c_str());
-                parser->getTokens();
-                *parser >> token;
-                str3= AnsiString(token.c_str());
-                if (bTrainSet)
-                {
-                    str= asTrainSetTrack;
-                    parser->getTokens();
-                    *parser >> tf1;
-                    //if (tf1==-1.0)  //Ra: wstawianie modelu odwrotnie
-                    // tf1=-fTrainSetDist; //ujemne, gdy odwrotnie
-                    //else
-                    // tf1+=fTrainSetDist; //Dist
-//                    int1= Parser->GetNextSymbol().ToInt();                 //Cab
-                    parser->getTokens();
-                    *parser >> token;
-                    DriverType= AnsiString(token.c_str());            //McZapkie:010303 - w przyszlosci rozne konfiguracje mechanik/pomocnik itp
-                    tf3=fTrainSetVel;
-                    parser->getTokens();
-                    *parser >> int1;
-                    //TempConnectionType[iTrainSetWehicleNumber]=toupper(TempConnectionType[iTrainSetWehicleNumber]);
-                    TempConnectionType[iTrainSetWehicleNumber]=int1;
-                    iTrainSetWehicleNumber++;
-//                    Parser->GetNextSymbol().ToDouble();
-                }
-                else
-                {
-                 fTrainSetDist=0; //zerowanie dodatkowego przesuniêcia
-                 asTrainName= "none";
-                 parser->getTokens();
-                 *parser >> token;
-                 str= AnsiString(token.c_str());           //track
-                 parser->getTokens();
-                 *parser >> tf1;                           //Dist
-//                 tf2= Parser->GetNextSymbol().ToDouble();
-//                 int1= Parser->GetNextSymbol().ToInt();    //Cab
-                 parser->getTokens();
-                 *parser >> token;
-                 DriverType= AnsiString(token.c_str());  //McZapkie:010303
-                 parser->getTokens();
-                 *parser >> tf3;                           //Vel
-                }
-                parser->getTokens();
-                *parser >> int2;                               //Load
-                if (int2>0)
-                 {
-                   parser->getTokens();
-                   *parser >> token;
-                   str2= AnsiString(token.c_str());  //LoadType
-                   if (str2==AnsiString("enddynamic"))           //idiotoodpornosc - ladunek bez podanego typu
-                   {
-                    str2=""; int2=0;
-                   }
-                 }
-                else
-                 str2="";  //brak ladunku
+   parser->getTokens();
+   *parser >> token;
+   Skin=AnsiString(token.c_str());
+   parser->getTokens();
+   *parser >> token;
+   str3=AnsiString(token.c_str());
+   if (bTrainSet)
+   {
+    str=asTrainSetTrack;
+    parser->getTokens();
+    *parser >> tf1;
+//    int1=Parser->GetNextSymbol().ToInt();                 //Cab
+    parser->getTokens();
+    *parser >> token;
+    DriverType=AnsiString(token.c_str());            //McZapkie:010303 - w przyszlosci rozne konfiguracje mechanik/pomocnik itp
+    tf3=fTrainSetVel;
+    parser->getTokens();
+    *parser >> int1;
+    //TempConnectionType[iTrainSetWehicleNumber]=toupper(TempConnectionType[iTrainSetWehicleNumber]);
+    TempConnectionType[iTrainSetWehicleNumber]=int1;
+    iTrainSetWehicleNumber++;
+   }
+   else
+   {
+    fTrainSetDist=0; //zerowanie dodatkowego przesuniêcia
+    asTrainName="none";
+    parser->getTokens();
+    *parser >> token;
+    str=AnsiString(token.c_str());           //track
+    parser->getTokens();
+    *parser >> tf1;                           //Dist
+//  tf2=Parser->GetNextSymbol().ToDouble();
+//  int1=Parser->GetNextSymbol().ToInt();    //Cab
+    parser->getTokens();
+    *parser >> token;
+    DriverType=AnsiString(token.c_str());  //McZapkie:010303
+    parser->getTokens();
+    *parser >> tf3;                           //Vel
+   }
+   parser->getTokens();
+   *parser >> int2;                               //Load
+   if (int2>0)
+   {
+    parser->getTokens();
+    *parser >> token;
+    str2=AnsiString(token.c_str());  //LoadType
+    if (str2==AnsiString("enddynamic"))           //idiotoodpornosc - ³adunek bez podanego typu
+    {
+     str2=""; int2=0;
+    }
+   }
+   else
+    str2="";  //brak ladunku
 
-                tmp1= FindGroundNode(str,TP_TRACK);
-                if (tmp1 && tmp1->pTrack)
-                {
-                    Track= tmp1->pTrack;
-//                    if (bTrainSet)
+   tmp1=FindGroundNode(str,TP_TRACK);
+   if (tmp1 && tmp1->pTrack)
+   {
+    Track=tmp1->pTrack;
+//       if (bTrainSet)
   //                      tmp->DynamicObject->Init(Track,2,"",fTrainSetVel);
     //                else
-                    tmp->DynamicObject->Init(asNodeName,str1,Skin,str3,Track,(tf1==-1.0?fTrainSetDist:tf1+fTrainSetDist),DriverType,tf3,asTrainName,int2,str2,(tf1==-1.0));
-                    tmp->pCenter= tmp->DynamicObject->GetPosition();
-//McZapkie-030203: sygnaly czola pociagu, ale tylko dla pociagow jadacych
-                    if (tf3>0) //predkosc poczatkowa, jak ja lubie takie nazwy zmiennych
+					
+					//ZiomalCl: poprawka na zmiane polozenia pociagu wzgledem toru podanego we wpisie 
+					//- szukamy nazwy toru polozonego n metrow (n - odleglosc we wpisie trainset) od naszego toru
+					//gdy znajdziemy, to do tego wlasnie skladu przypisujemy pociag
+					if(Track->Length()<tf1)
                     {
-                      if (bTrainSet)
+                      double l1=tf1;
+                      int fDirection1=1;
+                      for(int i=0; i<20;i++)
                       {
-                        if (asTrainName!=AnsiString("none"))
+                      if(Track->Length()<l1)
                         {
-                          if (iTrainSetWehicleNumber==1)
+                        l1=l1-Track->Length();
+                        if (fDirection1>0)
+                        {
+                          if (Track->bNextSwitchDirection)
                           {
-                            tmp->DynamicObject->MoverParameters->EndSignalsFlag= 1+4+16; //trojkat dla rozkladowych
-                            if ((tmp->DynamicObject->EndSignalsLight1Active())
-                               ||(tmp->DynamicObject->EndSignalsLight1oldActive()))
-                              tmp->DynamicObject->MoverParameters->HeadSignalsFlag=2+32;
-                            else
-                              tmp->DynamicObject->MoverParameters->HeadSignalsFlag=64;
+                          Track= Track->CurrentNext();
+                          fDirection1= -fDirection1;
                           }
-                          if (iTrainSetWehicleNumber==2)
-                            LastDyn->MoverParameters->HeadSignalsFlag=0; //zgaszone swiatla od strony wagonow
+                         else
+                          {
+                          Track= Track->CurrentNext();
+                          }
                         }
                         else
+                        if (fDirection1<0)
                         {
-                          if (iTrainSetWehicleNumber==1)
+                          if (Track->bPrevSwitchDirection)
                           {
-                            tmp->DynamicObject->MoverParameters->EndSignalsFlag=16;    //manewry
-                            tmp->DynamicObject->MoverParameters->HeadSignalsFlag=1;
+                          Track= Track->CurrentPrev();
+                          fDirection1= -fDirection1;
                           }
-                          if (iTrainSetWehicleNumber==2)
-                            LastDyn->MoverParameters->HeadSignalsFlag=0; //zgaszone swiatla od strony wagonow
+                          else
+                          {
+                          Track= Track->CurrentPrev();
+                          }
+                        }
+
+                        }
+
+                      }
+                      tf1=l1;
+                    }
+                    else if(tf1<0)
+                    {
+                      double l1=tf1;
+                      int fDirection1=-1;
+
+                      if (fDirection1>0)
+                        {
+                          if (Track->bNextSwitchDirection)
+                          {
+                          Track= Track->CurrentNext();
+                          fDirection1= -fDirection1;
+                          }
+                         else
+                          {
+                          Track= Track->CurrentNext();
+                          }
+                        }
+                        else
+                        if (fDirection1<0)
+                        {
+                          if (Track->bPrevSwitchDirection)
+                          {
+                          Track= Track->CurrentPrev();
+                          fDirection1= -fDirection1;
+                          }
+                          else
+                          {
+                          Track= Track->CurrentPrev();
+                          }
+                        }
+
+                      for(int i=0; i<20;i++)
+                      {
+
+                        if(-Track->Length()>l1)
+                        {
+                        l1=Track->Length()+l1;
+                        if (fDirection1>0)
+                        {
+                          if (Track->bNextSwitchDirection)
+                          {
+                          Track= Track->CurrentNext();
+                          fDirection1= -fDirection1;
+                          }
+                         else
+                          {
+                          Track= Track->CurrentNext();
+                          }
+                        }
+                        else
+                        if (fDirection1<0)
+                        {
+                          if (Track->bPrevSwitchDirection)
+                          {
+                          Track= Track->CurrentPrev();
+                          fDirection1= -fDirection1;
+                          }
+                          else
+                          {
+                          Track= Track->CurrentPrev();
+                          }
+                        }
+
+
                         }
                       }
-                      else
-                      {
-                        tmp->DynamicObject->MoverParameters->EndSignalsFlag=16;         //manewry pojed. pojazdu
-                        tmp->DynamicObject->MoverParameters->HeadSignalsFlag=1;
-                      }
-                    //Track->AddDynamicObject(Current->DynamicObject);
-                    LastDyn=tmp->DynamicObject;
-                  }
-                }
-                else
-                {
-                    Error("Track does not exist \""+tmp->DynamicObject->asTrack+"\"");
-                    delete tmp;
-                    return NULL;
-                }
+                      tf1=Track->Length()+l1;
 
-           parser->getTokens();
-           *parser >> token;
-           if (token.compare( "enddynamic" ) != 0)
-            Error("enddynamic statement missing");
-           tmp->bStatic= false;
-        break;
-        case TP_MODEL :
-            parser->getTokens(3);
-            *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
-
-            parser->getTokens();
-            *parser >> tmp->fAngle;
- //OlO_EU&KAKISH-030103: obracanie punktow zaczepien w modelu
-            tmp->pCenter.RotateY(aRotate.y/180*M_PI);
-//McZapkie-260402: model tez ma wspolrzedne wzgledne
-            tmp->pCenter+= pOrigin;
-            tmp->fAngle+= aRotate.y; // /180*M_PI
-            tmp->Model= new TAnimModel();
-//            str= Parser->GetNextSymbol().LowerCase();
-            if (!tmp->Model->Load(parser))
-             return NULL;
-            tmp->iFlags=tmp->Model->Flags(); //ustalenie, czy przezroczysty
-        break;
-    //    case TP_ :
-
-        case TP_GEOMETRY :
-
-        case GL_TRIANGLES :
-        case GL_TRIANGLE_STRIP :
-        case GL_TRIANGLE_FAN :
-
-            parser->getTokens();
-            *parser >> token;
-//McZapkie-050702: opcjonalne wczytywanie parametrow materialu (ambient,diffuse,specular)
-            if (token.compare( "material" ) == 0)
-            {
-              parser->getTokens();
-              *parser >> token;
-              while (token.compare( "endmaterial" ) != 0)
-              {
-               if (token.compare( "ambient:" ) == 0)
-                {
-                  parser->getTokens(3);
-                  *parser >> tmp->Ambient[0];
-                  *parser >> tmp->Ambient[1];
-                  *parser >> tmp->Ambient[2];
-//                  tmp->Ambient[0]= Parser->GetNextSymbol().ToDouble()/255;
-//                  tmp->Ambient[1]= Parser->GetNextSymbol().ToDouble()/255;
-//                  tmp->Ambient[2]= Parser->GetNextSymbol().ToDouble()/255;
-                }
-                else
-               if (token.compare( "diffuse:" ) == 0)
-                {
-                  parser->getTokens();
-                  *parser >> tmp->Diffuse[0];
-                  parser->getTokens();
-                  *parser >> tmp->Diffuse[1];
-                  parser->getTokens();
-                  *parser >> tmp->Diffuse[2];
-                }
-                else
-               if (token.compare( "specular:" ) == 0)
-                {
-                  parser->getTokens(3);
-                  *parser >> tmp->Specular[0] >> tmp->Specular[1] >> tmp->Specular[2];
-                }
-                else Error("Scene material failure!");
-              parser->getTokens();
-              *parser >> token;
-              }
-            }
-            if (token.compare( "endmaterial" ) == 0)
-             {
-              parser->getTokens();
-              *parser >> token;
-             }
-            str= AnsiString(token.c_str());
-            tmp->TextureID=TTexturesManager::GetTextureID(str.c_str());
-            tmp->iFlags=TTexturesManager::GetAlpha(tmp->TextureID)?4:2;
-        i=0;
-        do
-        {
-            parser->getTokens(3);
-            *parser >> TempVerts[i].Point.x >> TempVerts[i].Point.y >> TempVerts[i].Point.z;
-            parser->getTokens(3);
-            *parser >> TempVerts[i].Normal.x >> TempVerts[i].Normal.y >> TempVerts[i].Normal.z;
+                    }             
+					
+    tmp->DynamicObject->Init(asNodeName,str1,Skin,str3,Track,(tf1==-1.0?fTrainSetDist:tf1+fTrainSetDist),DriverType,tf3,asTrainName,int2,str2,(tf1==-1.0));
+    tmp->pCenter=tmp->DynamicObject->GetPosition();
+//McZapkie-030203: sygnaly czola pociagu, ale tylko dla pociagow jadacych
+    if (tf3>0) //predkosc poczatkowa, jak ja lubie takie nazwy zmiennych
+    {
+     if (bTrainSet)
+     {
+      if (asTrainName!=AnsiString("none"))
+      {
+       if (iTrainSetWehicleNumber==1)
+       {
+        tmp->DynamicObject->MoverParameters->EndSignalsFlag=1+4+16; //trojkat dla rozkladowych
+        if ((tmp->DynamicObject->EndSignalsLight1Active())
+           ||(tmp->DynamicObject->EndSignalsLight1oldActive()))
+         tmp->DynamicObject->MoverParameters->HeadSignalsFlag=2+32;
+        else
+         tmp->DynamicObject->MoverParameters->HeadSignalsFlag=64;
+       }
+       if (iTrainSetWehicleNumber==2)
+        LastDyn->MoverParameters->HeadSignalsFlag=0; //zgaszone swiatla od strony wagonow
+      }
+      else
+      {
+       if (iTrainSetWehicleNumber==1)
+       {
+        tmp->DynamicObject->MoverParameters->EndSignalsFlag=16;    //manewry
+        tmp->DynamicObject->MoverParameters->HeadSignalsFlag=1;
+       }
+       if (iTrainSetWehicleNumber==2)
+         LastDyn->MoverParameters->HeadSignalsFlag=0; //zgaszone swiatla od strony wagonow
+      }
+     }
+     else
+     {
+      tmp->DynamicObject->MoverParameters->EndSignalsFlag=16;         //manewry pojed. pojazdu
+      tmp->DynamicObject->MoverParameters->HeadSignalsFlag=1;
+     }
+     //Track->AddDynamicObject(Current->DynamicObject);
+     LastDyn=tmp->DynamicObject;
+    }
+   }
+   else
+   {
+    Error("Track does not exist \""+tmp->DynamicObject->asTrack+"\"");
+    delete tmp;
+    return NULL;
+   }
+   parser->getTokens();
+   *parser >> token;
+   if (token.compare("enddynamic")!=0)
+    Error("enddynamic statement missing");
+   tmp->bStatic=false;
+   break;
+  case TP_MODEL :
+   parser->getTokens(3);
+   *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
+   parser->getTokens();
+   *parser >> tf1;
+   //OlO_EU&KAKISH-030103: obracanie punktow zaczepien w modelu
+   tmp->pCenter.RotateY(aRotate.y/180*M_PI);
+   //McZapkie-260402: model tez ma wspolrzedne wzgledne
+   tmp->pCenter+=pOrigin;
+   //tmp->fAngle+=aRotate.y; // /180*M_PI
+   tmp->Model=new TAnimModel();
+   tmp->Model->RaAnglesSet(aRotate.x,tf1+aRotate.y,aRotate.z); //dostosowanie do pochylania linii
+   //tmp->Model->RaAnglesSet(0,tf1+aRotate.y,0);
+//   str=Parser->GetNextSymbol().LowerCase();
+   if (!tmp->Model->Load(parser))
+    return NULL;
+   tmp->iFlags=tmp->Model->Flags(); //ustalenie, czy przezroczysty
+   break;
+  case TP_GEOMETRY :
+  case GL_TRIANGLES :
+  case GL_TRIANGLE_STRIP :
+  case GL_TRIANGLE_FAN :
+   parser->getTokens();
+   *parser >> token;
+   //McZapkie-050702: opcjonalne wczytywanie parametrow materialu (ambient,diffuse,specular)
+   if (token.compare("material")==0)
+   {
+    parser->getTokens();
+    *parser >> token;
+    while (token.compare("endmaterial")!=0)
+    {
+     if (token.compare("ambient:")==0)
+     {
+      parser->getTokens(); *parser >> tmp->Ambient[0];
+      parser->getTokens(); *parser >> tmp->Ambient[1];
+      parser->getTokens(); *parser >> tmp->Ambient[2];
+     }
+     else if (token.compare("diffuse:")==0)
+     {//Ra: coœ jest nie tak, bo w jednej linijce nie dzia³a
+      parser->getTokens(); *parser >> tmp->Diffuse[0];
+      parser->getTokens(); *parser >> tmp->Diffuse[1];
+      parser->getTokens(); *parser >> tmp->Diffuse[2];
+     }
+     else if (token.compare("specular:")==0)
+     {
+      parser->getTokens(); *parser >> tmp->Specular[0];
+      parser->getTokens(); *parser >> tmp->Specular[1];
+      parser->getTokens(); *parser >> tmp->Specular[2];
+     }
+     else Error("Scene material failure!");
+     parser->getTokens();
+     *parser >> token;
+    }
+   }
+   if (token.compare("endmaterial")==0)
+   {
+    parser->getTokens();
+    *parser >> token;
+   }
+   str=AnsiString(token.c_str());
+   tmp->TextureID=TTexturesManager::GetTextureID(str.c_str());
+   tmp->iFlags=TTexturesManager::GetAlpha(tmp->TextureID)?4:2;
+   i=0;
+   do
+   {
+    parser->getTokens(3);
+    *parser >> TempVerts[i].Point.x >> TempVerts[i].Point.y >> TempVerts[i].Point.z;
+    parser->getTokens(3);
+    *parser >> TempVerts[i].Normal.x >> TempVerts[i].Normal.y >> TempVerts[i].Normal.z;
 /*
-            str= Parser->GetNextSymbol().LowerCase();
-            if (str==AnsiString("x"))
-                TempVerts[i].tu= (TempVerts[i].Point.x+Parser->GetNextSymbol().ToDouble())/Parser->GetNextSymbol().ToDouble();
-            else
-            if (str==AnsiString("y"))
-                TempVerts[i].tu= (TempVerts[i].Point.y+Parser->GetNextSymbol().ToDouble())/Parser->GetNextSymbol().ToDouble();
-            else
-            if (str==AnsiString("z"))
-                TempVerts[i].tu= (TempVerts[i].Point.z+Parser->GetNextSymbol().ToDouble())/Parser->GetNextSymbol().ToDouble();
-            else
-                TempVerts[i].tu= str.ToDouble();;
-
-            str= Parser->GetNextSymbol().LowerCase();
-            if (str==AnsiString("x"))
-                TempVerts[i].tv= (TempVerts[i].Point.x+Parser->GetNextSymbol().ToDouble())/Parser->GetNextSymbol().ToDouble();
-            else
-            if (str==AnsiString("y"))
-                TempVerts[i].tv= (TempVerts[i].Point.y+Parser->GetNextSymbol().ToDouble())/Parser->GetNextSymbol().ToDouble();
-            else
-            if (str==AnsiString("z"))
-                TempVerts[i].tv= (TempVerts[i].Point.z+Parser->GetNextSymbol().ToDouble())/Parser->GetNextSymbol().ToDouble();
-            else
-                TempVerts[i].tv= str.ToDouble();;
-*/
-            parser->getTokens(2);
-            *parser >> TempVerts[i].tu >> TempVerts[i].tv;
-
-//            tf= Parser->GetNextSymbol().ToDouble();
-  //          TempVerts[i].tu= tf;
-    //        tf= Parser->GetNextSymbol().ToDouble();
-      //      TempVerts[i].tv= tf;
-
-            TempVerts[i].Point.RotateZ(aRotate.z/180*M_PI);
-            TempVerts[i].Point.RotateX(aRotate.x/180*M_PI);
-            TempVerts[i].Point.RotateY(aRotate.y/180*M_PI);
-            TempVerts[i].Normal.RotateZ(aRotate.z/180*M_PI);
-            TempVerts[i].Normal.RotateX(aRotate.x/180*M_PI);
-            TempVerts[i].Normal.RotateY(aRotate.y/180*M_PI);
-
-            TempVerts[i].Point+= pOrigin;
-            tmp->pCenter+= TempVerts[i].Point;
-
-            i++;
-            parser->getTokens();
-            *parser >> token;
-
-//        }
-
-        } while (token.compare( "endtri" ) != 0);
-
-        nv= i;
-        tmp->Init(nv); //utworzenie tablicy wierzcho³ków
-        tmp->pCenter/= (nv>0?nv:1);
-
-//        memcpy(tmp->Vertices,TempVerts,nv*sizeof(TGroundVertex));
-
-        r= 0;
-        for (int i=0; i<nv; i++)
-        {
-            tmp->Vertices[i]= TempVerts[i];
-            tf= SquareMagnitude(tmp->Vertices[i].Point-tmp->pCenter);
-            if (tf>r)
-                r= tf;
-        }
-
-//        tmp->fSquareRadius= 2000*2000+r;
-        tmp->fSquareRadius+= r;
-        //Ra: dzielenie trójk¹tów siê nie sprawdza - spadek FPS i znacznie d³u¿sze wczytywanie
-        RaTriangleDivider(tmp); //no ale trzeba... teraz inaczej, mo¿e nie bêdzie tak Ÿle
-        break;
-
-        case GL_LINES :
-        case GL_LINE_STRIP :
-        case GL_LINE_LOOP :
-
-        parser->getTokens(3);
-        *parser >> tmp->Diffuse[0] >> tmp->Diffuse[1] >> tmp->Diffuse[2];
-//        tmp->Diffuse[0]= Parser->GetNextSymbol().ToDouble()/255;
-//        tmp->Diffuse[1]= Parser->GetNextSymbol().ToDouble()/255;
-//        tmp->Diffuse[2]= Parser->GetNextSymbol().ToDouble()/255;
-        parser->getTokens();
-        *parser >> tmp->fLineThickness;
-
-        i=0;
-        parser->getTokens();
-        *parser >> token;
-        do
-        {
-            str= AnsiString(token.c_str());
-            TempVerts[i].Point.x= str.ToDouble();
-            parser->getTokens(2);
-            *parser >> TempVerts[i].Point.y >> TempVerts[i].Point.z;
-
-            TempVerts[i].Point.RotateZ(aRotate.z/180*M_PI);
-            TempVerts[i].Point.RotateX(aRotate.x/180*M_PI);
-            TempVerts[i].Point.RotateY(aRotate.y/180*M_PI);
-            TempVerts[i].Point+= pOrigin;
-            tmp->pCenter+= TempVerts[i].Point;
-            i++;
-            parser->getTokens();
-            *parser >> token;
-        } while (token.compare( "endline" ) != 0);
-
-        nv= i;
-//        tmp->Init(nv);
-        tmp->Points= new vector3[nv];
-        tmp->iNumPts= nv;
-
-        tmp->pCenter/= (nv>0?nv:1);
-        for (int i=0; i<nv; i++)
-            tmp->Points[i]= TempVerts[i].Point;
-
-
-        break;
-    }
-
-    if (tmp->bStatic)
-    {
-        tmp->Next=RootNode;
-        RootNode=tmp; //dopisanie z przodu do listy
-    }
+    str=Parser->GetNextSymbol().LowerCase();
+    if (str==AnsiString("x"))
+        TempVerts[i].tu=(TempVerts[i].Point.x+Parser->GetNextSymbol().ToDouble())/Parser->GetNextSymbol().ToDouble();
     else
-    {
-        tmp->Next=RootDynamic;
-        RootDynamic=tmp; //dopisanie z przodu do listy
-    }
+    if (str==AnsiString("y"))
+        TempVerts[i].tu=(TempVerts[i].Point.y+Parser->GetNextSymbol().ToDouble())/Parser->GetNextSymbol().ToDouble();
+    else
+    if (str==AnsiString("z"))
+        TempVerts[i].tu=(TempVerts[i].Point.z+Parser->GetNextSymbol().ToDouble())/Parser->GetNextSymbol().ToDouble();
+    else
+        TempVerts[i].tu=str.ToDouble();;
 
-    return tmp;
+    str=Parser->GetNextSymbol().LowerCase();
+    if (str==AnsiString("x"))
+        TempVerts[i].tv=(TempVerts[i].Point.x+Parser->GetNextSymbol().ToDouble())/Parser->GetNextSymbol().ToDouble();
+    else
+    if (str==AnsiString("y"))
+        TempVerts[i].tv=(TempVerts[i].Point.y+Parser->GetNextSymbol().ToDouble())/Parser->GetNextSymbol().ToDouble();
+    else
+    if (str==AnsiString("z"))
+        TempVerts[i].tv=(TempVerts[i].Point.z+Parser->GetNextSymbol().ToDouble())/Parser->GetNextSymbol().ToDouble();
+    else
+        TempVerts[i].tv=str.ToDouble();;
+*/
+    parser->getTokens(2);
+    *parser >> TempVerts[i].tu >> TempVerts[i].tv;
 
+//    tf=Parser->GetNextSymbol().ToDouble();
+  //          TempVerts[i].tu=tf;
+    //        tf=Parser->GetNextSymbol().ToDouble();
+      //      TempVerts[i].tv=tf;
+
+    TempVerts[i].Point.RotateZ(aRotate.z/180*M_PI);
+    TempVerts[i].Point.RotateX(aRotate.x/180*M_PI);
+    TempVerts[i].Point.RotateY(aRotate.y/180*M_PI);
+    TempVerts[i].Normal.RotateZ(aRotate.z/180*M_PI);
+    TempVerts[i].Normal.RotateX(aRotate.x/180*M_PI);
+    TempVerts[i].Normal.RotateY(aRotate.y/180*M_PI);
+    TempVerts[i].Point+=pOrigin;
+    tmp->pCenter+=TempVerts[i].Point;
+    i++;
+    parser->getTokens();
+    *parser >> token;
+
+//   }
+
+   } while (token.compare("endtri")!=0);
+   nv=i;
+   tmp->Init(nv); //utworzenie tablicy wierzcho³ków
+   tmp->pCenter/=(nv>0?nv:1);
+
+//   memcpy(tmp->Vertices,TempVerts,nv*sizeof(TGroundVertex));
+
+   r=0;
+   for (int i=0;i<nv;i++)
+   {
+    tmp->Vertices[i]=TempVerts[i];
+    tf=SquareMagnitude(tmp->Vertices[i].Point-tmp->pCenter);
+    if (tf>r) r=tf;
+   }
+
+//   tmp->fSquareRadius=2000*2000+r;
+   tmp->fSquareRadius+=r;
+   //Ra: dzielenie trójk¹tów siê nie sprawdza - spadek FPS i znacznie d³u¿sze wczytywanie
+   RaTriangleDivider(tmp); //no ale trzeba... teraz inaczej, mo¿e nie bêdzie tak Ÿle
+   break;
+  case GL_LINES :
+  case GL_LINE_STRIP :
+  case GL_LINE_LOOP :
+   parser->getTokens(3);
+   *parser >> tmp->Diffuse[0] >> tmp->Diffuse[1] >> tmp->Diffuse[2];
+//   tmp->Diffuse[0]=Parser->GetNextSymbol().ToDouble()/255;
+//   tmp->Diffuse[1]=Parser->GetNextSymbol().ToDouble()/255;
+//   tmp->Diffuse[2]=Parser->GetNextSymbol().ToDouble()/255;
+   parser->getTokens();
+   *parser >> tmp->fLineThickness;
+   i=0;
+   parser->getTokens();
+   *parser >> token;
+   do
+   {
+    str=AnsiString(token.c_str());
+    TempVerts[i].Point.x=str.ToDouble();
+    parser->getTokens(2);
+    *parser >> TempVerts[i].Point.y >> TempVerts[i].Point.z;
+    TempVerts[i].Point.RotateZ(aRotate.z/180*M_PI);
+    TempVerts[i].Point.RotateX(aRotate.x/180*M_PI);
+    TempVerts[i].Point.RotateY(aRotate.y/180*M_PI);
+    TempVerts[i].Point+=pOrigin;
+    tmp->pCenter+=TempVerts[i].Point;
+    i++;
+    parser->getTokens();
+    *parser >> token;
+   } while (token.compare("endline")!=0);
+   nv=i;
+//   tmp->Init(nv);
+   tmp->Points=new vector3[nv];
+   tmp->iNumPts=nv;
+   tmp->pCenter/=(nv>0?nv:1);
+   for (int i=0;i<nv;i++)
+    tmp->Points[i]=TempVerts[i].Point;
+   break;
+  case TP_ISOLATED: //lista torów w obwodzie izolowanym - na razie ignorowana
+   do
+   {//po¿arcie dodatkowych parametrów
+    parser->getTokens();
+    *parser >> token;
+   } while (token.compare("endisolated")!=0);
+   break;
+ }
+ if (tmp->bStatic)
+ {//jeœli nie jest pojazdem
+  if (Global::bLoadTraction?true:(tmp->iType!=TP_TRACTION))
+  {
+   tmp->Next=RootNode;
+   RootNode=tmp; //dopisanie z przodu do listy
+   iNumNodes++;
+  }
+ }
+ else
+ {//jeœli jest pojazdem
+  tmp->Next=RootDynamic;
+  RootDynamic=tmp; //dopisanie z przodu do listy
+ }
+ return tmp;
 }
 
 TSubRect* __fastcall TGround::FastGetSubRect(int iCol, int iRow)
 {
-    int br,bc,sr,sc;
-    br= iRow/iNumSubRects;
-    bc= iCol/iNumSubRects;
-    sr= iRow-br*iNumSubRects;
-    sc= iCol-bc*iNumSubRects;
-
-    if ( (br<0) || (bc<0) || (br>=iNumRects) || (bc>=iNumRects) )
-        return NULL;
-
-    return (Rects[br][bc].FastGetRect(sc,sr));
+ int br,bc,sr,sc;
+ br=iRow/iNumSubRects;
+ bc=iCol/iNumSubRects;
+ sr=iRow-br*iNumSubRects;
+ sc=iCol-bc*iNumSubRects;
+ if ( (br<0) || (bc<0) || (br>=iNumRects) || (bc>=iNumRects) ) return NULL;
+ return (Rects[br][bc].FastGetRect(sc,sr));
 }
 
 TSubRect* __fastcall TGround::GetSubRect(int iCol,int iRow)
@@ -1552,7 +1570,7 @@ TSubRect* __fastcall TGround::GetSubRect(int iCol,int iRow)
 
 TEvent* __fastcall TGround::FindEvent(const AnsiString &asEventName)
 {
- for (TEvent *Current=RootEvent; Current!=NULL; Current= Current->Next2)
+ for (TEvent *Current=RootEvent;Current;Current=Current->Next2)
  {
   if (Current->asName==asEventName)
    return Current;
@@ -1562,38 +1580,38 @@ TEvent* __fastcall TGround::FindEvent(const AnsiString &asEventName)
 
 bool __fastcall TGround::Init(AnsiString asFile)
 {
-    Global::pGround= this;
-    pTrain= NULL;
+    Global::pGround=this;
+    pTrain=NULL;
 
     pOrigin=aRotate=vector3(0,0,0); //zerowanie przesuniêcia i obrotu
 
-    AnsiString str= "";
+    AnsiString str="";
   //  TFileStream *fs;
 //    int size;
 
 
-      std::string subpath = Global::asCurrentSceneryPath.c_str(); //   "scenery/";
-      cParser parser( asFile.c_str(), cParser::buffer_FILE, subpath );
-      std::string token;
+ std::string subpath=Global::asCurrentSceneryPath.c_str(); //   "scenery/";
+ cParser parser(asFile.c_str(),cParser::buffer_FILE,subpath,Global::bLoadTraction);
+ std::string token;
 
 /*
     TFileStream *fs;
-    fs= new TFileStream(asFile , fmOpenRead	| fmShareCompat	);
-    AnsiString str= "";
-    int size= fs->Size;
+    fs=new TFileStream(asFile , fmOpenRead	| fmShareCompat	);
+    AnsiString str="";
+    int size=fs->Size;
     str.SetLength(size);
     fs->Read(str.c_str(),size);
-    str+= "";
+    str+="";
     delete fs;
     TQueryParserComp *Parser;
-    Parser= new TQueryParserComp(NULL);
-    Parser->TextToParse= str;
+    Parser=new TQueryParserComp(NULL);
+    Parser->TextToParse=str;
 //    Parser->LoadStringToParse(asFile);
     Parser->First();
     AnsiString Token,asFileName;
 */
     const int OriginStackMaxDepth=1000; //rozmiar stosu dla zagnie¿d¿enia origin
-    int OriginStackTop= 0;
+    int OriginStackTop=0;
     vector3 OriginStack[OriginStackMaxDepth]; //stos zagnie¿d¿enia origin
 
     double tf;
@@ -1607,73 +1625,75 @@ bool __fastcall TGround::Init(AnsiString asFile)
     srm=0;  //minuty wschodu slonca
     ssh=20; //godzina zachodu slonca
     ssm=0;  //minuty zachodu slonca
-    TGroundNode *LastNode= NULL;
-    iNumNodes= 0;
-//    DecimalSeparator= '.';
-    token = "";
+    TGroundNode *LastNode=NULL; //do trainset
+    iNumNodes=0;
+    token="";
     parser.getTokens();
     parser >> token;
 
-    while ( token != "" ) //(!Parser->EndOfFile)
+    while (token!="") //(!Parser->EndOfFile)
     {
         str=AnsiString(token.c_str());
         if (str==AnsiString("node"))
         {
-            LastNode= AddGroundNode(&parser); //rozpoznanie wêz³a
-            if (LastNode)
-                iNumNodes++;
-            else
-            {
-                Error("Scene parse error near "+AnsiString(token.c_str()));
-                break;
-            }
+         LastNode=AddGroundNode(&parser); //rozpoznanie wêz³a
+         if (LastNode)
+         {
+          if (Global::bLoadTraction?false:LastNode->iType==TP_TRACTION)
+           SafeDelete(LastNode); //usuwamy druty, jeœli wy³¹czone
+         }
+         else
+         {
+          Error("Scene parse error near "+AnsiString(token.c_str()));
+          break;
+         }
         }
         else
         if (str==AnsiString("trainset"))
         {
-            iTrainSetWehicleNumber= 0;
-            TrainSetNode= NULL;
-            bTrainSet= true;
-            parser.getTokens();
-            parser >> token;
-            asTrainName= AnsiString(token.c_str());  //McZapkie: rodzaj+nazwa pociagu w SRJP
-            parser.getTokens();
-            parser >> token;
-            asTrainSetTrack= AnsiString(token.c_str()); //œcie¿ka startowa
-            parser.getTokens(2);
-            parser >> fTrainSetDist >> fTrainSetVel; //przesuniêcie i prêdkoœæ
+         iTrainSetWehicleNumber=0;
+         TrainSetNode=NULL;
+         bTrainSet=true;
+         parser.getTokens();
+         parser >> token;
+         asTrainName=AnsiString(token.c_str());  //McZapkie: rodzaj+nazwa pociagu w SRJP
+         parser.getTokens();
+         parser >> token;
+         asTrainSetTrack=AnsiString(token.c_str()); //œcie¿ka startowa
+         parser.getTokens(2);
+         parser >> fTrainSetDist >> fTrainSetVel; //przesuniêcie i prêdkoœæ
         }
         else
         if (str==AnsiString("endtrainset"))
-        {
-//McZapkie-110103: sygnaly konca pociagu ale tylko dla pociagow rozkladowych
-            if (asTrainName!=AnsiString("none"))
-            {//gdy podana nazwa, w³¹czenie jazdy poci¹gowej
-              if((TrainSetNode->DynamicObject->EndSignalsLight1Active())
-               ||(TrainSetNode->DynamicObject->EndSignalsLight1oldActive()))
-                TrainSetNode->DynamicObject->MoverParameters->HeadSignalsFlag=2+32;
-              else
-                TrainSetNode->DynamicObject->MoverParameters->EndSignalsFlag=64;
-            }
-            bTrainSet= false;
-            fTrainSetVel= 0;
-//            iTrainSetConnection= 0;
-            TrainSetNode= NULL;
-            iTrainSetWehicleNumber= 0;
+        {//McZapkie-110103: sygnaly konca pociagu ale tylko dla pociagow rozkladowych
+         if (asTrainName!=AnsiString("none"))
+          if (TrainSetNode) //trainset bez dynamic siê sypa³
+          {//gdy podana nazwa, w³¹czenie jazdy poci¹gowej
+           if((TrainSetNode->DynamicObject->EndSignalsLight1Active())
+            ||(TrainSetNode->DynamicObject->EndSignalsLight1oldActive()))
+            TrainSetNode->DynamicObject->MoverParameters->HeadSignalsFlag=2+32;
+           else
+            TrainSetNode->DynamicObject->MoverParameters->EndSignalsFlag=64;
+          }
+         bTrainSet=false;
+         fTrainSetVel=0;
+         //iTrainSetConnection=0;
+         TrainSetNode=NULL;
+         iTrainSetWehicleNumber=0;
         }
         else
         if (str==AnsiString("event"))
         {
             TEvent *tmp;
-            tmp= RootEvent;
-            RootEvent= new TEvent();
+            tmp=RootEvent;
+            RootEvent=new TEvent();
             RootEvent->Load(&parser);
             if (RootEvent->Type==tp_Unknown)
             {delete RootEvent;
              RootEvent=tmp; //przywrócenie z pominiêciem
             }
             else
-             RootEvent->Next2= tmp;
+             RootEvent->Next2=tmp;
         }
 //        else
 //        if (str==AnsiString("include"))  //Tolaris to zrobil wewnatrz parsera
@@ -1683,13 +1703,17 @@ bool __fastcall TGround::Init(AnsiString asFile)
         else
         if (str==AnsiString("rotate"))
         {
-            parser.getTokens(3);
-            parser >> aRotate.x >> aRotate.y >> aRotate.z;
+         //parser.getTokens(3);
+         //parser >> aRotate.x >> aRotate.y >> aRotate.z; //Ra: to potrafi dawaæ b³êdne rezultaty
+         parser.getTokens(); parser >> aRotate.x;
+         parser.getTokens(); parser >> aRotate.y;
+         parser.getTokens(); parser >> aRotate.z;
+         //WriteLog("*** rotate "+AnsiString(aRotate.x)+" "+AnsiString(aRotate.y)+" "+AnsiString(aRotate.z));
         }
         else
         if (str==AnsiString("origin"))
         {
-//            str= Parser->GetNextSymbol().LowerCase();
+//            str=Parser->GetNextSymbol().LowerCase();
 //            if (str=="begin")
             {
                 if (OriginStackTop>=OriginStackMaxDepth-1)
@@ -1699,7 +1723,7 @@ bool __fastcall TGround::Init(AnsiString asFile)
                 }
                 parser.getTokens(3);
                 parser >> OriginStack[OriginStackTop].x >> OriginStack[OriginStackTop].y >> OriginStack[OriginStackTop].z;
-                pOrigin+= OriginStack[OriginStackTop]; //sumowanie ca³kowitego przesuniêcia
+                pOrigin+=OriginStack[OriginStackTop]; //sumowanie ca³kowitego przesuniêcia
                 OriginStackTop++; //zwiêkszenie wskaŸnika stosu
             }
         }
@@ -1716,7 +1740,7 @@ bool __fastcall TGround::Init(AnsiString asFile)
                 }
 
                 OriginStackTop--; //zmniejszenie wskaŸnika stosu
-                pOrigin-= OriginStack[OriginStackTop];
+                pOrigin-=OriginStack[OriginStackTop];
             }
 //            else
             {
@@ -1736,7 +1760,7 @@ bool __fastcall TGround::Init(AnsiString asFile)
             parser >> Global::fFogStart >> Global::fFogEnd;
 
             if (Global::fFogStart==36)
-            Global::bTimeChange= true;
+            Global::bTimeChange=true;
 
             if (Global::fFogEnd>0)
             {
@@ -1752,7 +1776,7 @@ bool __fastcall TGround::Init(AnsiString asFile)
                 glDisable(GL_FOG);
             parser.getTokens();
             parser >> token;
-            while (token.compare( "endatmo" ) != 0)
+            while (token.compare("endatmo")!=0)
              {
               parser.getTokens();
               parser >> token;
@@ -1798,7 +1822,7 @@ bool __fastcall TGround::Init(AnsiString asFile)
            for (j=i+1; j<=8; j++)
               temp_out[j-(i+1)]=temp_in[j];
            ssm=atoi(temp_out);
-           while (token.compare( "endtime" ) != 0)
+           while (token.compare("endtime")!=0)
              {
               parser.getTokens();
               parser >> token;
@@ -1807,34 +1831,40 @@ bool __fastcall TGround::Init(AnsiString asFile)
         else
         if (str==AnsiString("light"))
         {
-            WriteLog("Scenery light definition");
-            glDisable(GL_LIGHTING);
-            vector3 lp;
-            parser.getTokens(3);
-            parser >> lp.x >> lp.y >> lp.z;
-            lp= Normalize(lp);
-            Global::lightPos[0]= lp.x;
-            Global::lightPos[1]= lp.y;
-            Global::lightPos[2]= lp.z;
-            Global::lightPos[3]= 0.0f;
-            //Global::lightPos[3]= 0.0f;
-            glLightfv(GL_LIGHT0,GL_POSITION,Global::lightPos);                  //daylight position
-            parser.getTokens(3);
-            parser >> Global::ambientDayLight[0] >> Global::ambientDayLight[1] >> Global::ambientDayLight[2];
-            glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);            //ambient daylight color
+         WriteLog("Scenery light definition");
+         glDisable(GL_LIGHTING);
+         vector3 lp;
+         parser.getTokens(); parser >> lp.x;
+         parser.getTokens(); parser >> lp.y;
+         parser.getTokens(); parser >> lp.z;
+         lp=Normalize(lp);
+         Global::lightPos[0]=lp.x;
+         Global::lightPos[1]=lp.y;
+         Global::lightPos[2]=lp.z;
+         glLightfv(GL_LIGHT0,GL_POSITION,Global::lightPos);        //daylight position
+         parser.getTokens(); parser >> Global::ambientDayLight[0];
+         parser.getTokens(); parser >> Global::ambientDayLight[1];
+         parser.getTokens(); parser >> Global::ambientDayLight[2];
+         glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);  //kolor wszechobceny
 
-            parser.getTokens(3);
-            parser >> Global::diffuseDayLight[0] >> Global::diffuseDayLight[1] >> Global::diffuseDayLight[2];
-	    glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);            //diffuse daylight color
+         parser.getTokens(); parser >> Global::diffuseDayLight[0];
+         parser.getTokens(); parser >> Global::diffuseDayLight[1];
+         parser.getTokens(); parser >> Global::diffuseDayLight[2];
+	 glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);  //kolor padaj¹cy
 
-            parser.getTokens(3);
-            parser >> Global::specularDayLight[0] >> Global::specularDayLight[1] >> Global::specularDayLight[2];
-  	    glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);          //specular daylight color
+         parser.getTokens(); parser >> Global::specularDayLight[0];
+         parser.getTokens(); parser >> Global::specularDayLight[1];
+         parser.getTokens(); parser >> Global::specularDayLight[2];
+  	 glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight); //kolor odbity
 
-            glEnable(GL_LIGHTING);
-            do
-             {  parser.getTokens(); parser >> token;
-             } while (token.compare( "endlight" ) != 0);
+         //musi byæ tutaj, bo wczeœniej nie mieliœmy wartoœci œwiat³a
+         if (Global::bDoubleAmbient) //Ra: wczeœniej by³o ambient dawane na obydwa œwiat³a
+          glLightModelfv(GL_LIGHT_MODEL_AMBIENT,Global::ambientDayLight);
+
+         glEnable(GL_LIGHTING);
+         do
+          {  parser.getTokens(); parser >> token;
+          } while (token.compare("endlight")!=0);
 
         }
         else
@@ -1852,46 +1882,41 @@ bool __fastcall TGround::Init(AnsiString asFile)
           parser.getTokens(); parser >> token;
           if (into<0) into=atoi(token.c_str()); //takie sobie, bo mo¿na wpisaæ -1
          } while (token.compare("endcamera")!=0);
-         if (into<0) into=0;
+         if (into<0) into=++Global::iCameraLast;
          if ((into>=0)&&(into<10))
          {//przepisanie do odpowiedniego miejsca w tabelce
           Global::pFreeCameraInit[into]=xyz;
           Global::pFreeCameraInitAngle[into]=abc;
+          Global::iCameraLast=into; //numer ostatniej
          }
         }
-//youBy - niebo z pliku
-        else
-        if (str==AnsiString("sky"))
-        {
-
-            WriteLog("Scenery sky definition");
-            parser.getTokens();
-            parser >> token;
-            AnsiString SkyTemp;
-//            parser >> SkyTemp;
-            SkyTemp = AnsiString(token.c_str());
-            if (Global::asSky=="1")
-              Global::asSky=SkyTemp;
-            do
-             {//po¿arcie dodatkowych parametrów
-               parser.getTokens(); parser >> token;
-             } while (token.compare("endsky") != 0);
-             WriteLog(Global::asSky.c_str());
+        else if (str==AnsiString("sky"))
+        {//youBy - niebo z pliku
+         WriteLog("Scenery sky definition");
+         parser.getTokens();
+         parser >> token;
+         AnsiString SkyTemp;
+         SkyTemp=AnsiString(token.c_str());
+         if (Global::asSky=="1") Global::asSky=SkyTemp;
+         do
+         {//po¿arcie dodatkowych parametrów
+          parser.getTokens(); parser >> token;
+         } while (token.compare("endsky")!=0);
+         WriteLog(Global::asSky.c_str());
         }
-        else
-        if (str==AnsiString("firstinit"))
+        else if (str==AnsiString("firstinit"))
         {
          if (!bInitDone) //Ra: ¿eby nie robi³o dwa razy
          {bInitDone=true;
           WriteLog("InitNormals");
-          for (TGroundNode* Current= RootNode; Current!=NULL; Current= Current->Next)
+          for (TGroundNode* Current=RootNode;Current;Current=Current->Next)
           {
            Current->InitNormals();
            if (Current->iType!=TP_DYNAMIC)
            {//pojazdów to w ogóle nie dotyczy
-            if ((Current->iType!=GL_TRIANGLES)?true //~czy trójk¹t?
+            if ((Current->iType!=GL_TRIANGLES)&&(Current->iType!=GL_TRIANGLE_STRIP)?true //~czy trójk¹t?
              :(Current->iFlags&4)?true //~czy teksturê ma nieprzezroczyst¹?
-              :(Current->iNumVerts!=3)?true //~czy tylko jeden trójk¹t?
+              //:(Current->iNumVerts!=3)?true //~czy tylko jeden trójk¹t?
                :(Current->fSquareMinRadius!=0.0)?true //~czy widoczny z bliska?
                 :(Current->fSquareRadius<=90000.0)) //~czy widoczny z daleka?
              GetSubRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
@@ -1913,21 +1938,30 @@ bool __fastcall TGround::Init(AnsiString asFile)
           WriteLog("InitLaunchers OK");
           WriteLog("InitGlobalTime");
           //ABu 160205: juz nie TODO :)
-          GlobalTime= new TMTableTime(hh,mm,srh,srm,ssh,ssm); //McZapkie-300302: inicjacja czasu rozkladowego - TODO: czytac z trasy!
+          GlobalTime=new TMTableTime(hh,mm,srh,srm,ssh,ssm); //McZapkie-300302: inicjacja czasu rozkladowego - TODO: czytac z trasy!
           WriteLog("InitGlobalTime OK");
          }
         }
-        else
-        if (str==AnsiString("description"))
+        else if (str==AnsiString("description"))
         {
          do
-          {
-            parser.getTokens();
-            parser >> token;
-          } while (token.compare( "enddescription" ) != 0);
+         {
+          parser.getTokens();
+          parser >> token;
+         } while (token.compare("enddescription")!=0);
         }
-        else
-        if (str!=AnsiString(""))
+        else if (str==AnsiString("test"))
+        {//wypisywanie treœci po przetworzeniu
+         WriteLog("---> Parser test:");
+         do
+         {
+          parser.getTokens();
+          parser >> token;
+          WriteLog(token.c_str());
+         } while (token.compare("endtest")!=0);
+         WriteLog("---> End of parser test.");
+        }
+        else if (str!=AnsiString(""))
         {
             Error(AnsiString("Unrecognized command: "+str));
 //            WriteLog(token.c_str());
@@ -1942,25 +1976,25 @@ bool __fastcall TGround::Init(AnsiString asFile)
          if (TrainSetNode) //je¿eli jest przedostatni dynamic
           TrainSetNode->DynamicObject->AttachPrev(LastNode->DynamicObject,TempConnectionType[iTrainSetWehicleNumber-2]);
          TrainSetNode=LastNode; //ostatnio wczytany
-//         fTrainSetVel= 0; a po co to???
+//         fTrainSetVel=0; a po co to???
         }
 
-        LastNode= NULL;
+        LastNode=NULL;
 
-        token = "";
+        token="";
         parser.getTokens();
 	parser >> token;
 
     }
-//    while( token != "" );
-//    DecimalSeparator= ',';
+//    while(token!="");
+//    DecimalSeparator=',';
 
     delete parser;
 
 
 //------------------------------------Init dynamic---------------------------------
   /*
-    for (Current= RootDynamic; Current!=NULL; Current= Current->Next)
+    for (Current=RootDynamic; Current!=NULL; Current=Current->Next)
     {
         if (Current->iType==TP_DYNAMIC)
         {
@@ -2030,16 +2064,17 @@ bool __fastcall TGround::InitEvents()
                     Error("Event \""+Current->asName+"\" cannot find node \""+
                                      Current->asNodeName+"\"");
             break;
-            case tp_GetValues :
-                tmp= FindGroundNode(Current->asNodeName,TP_MEMCELL);
-                if (tmp)
-                {
-                    Current->Params[8].asGroundNode= tmp;
-                    Current->Params[9].asMemCell= tmp->MemCell;
-                }
-                else
-                    Error("Event \""+Current->asName+"\" cannot find memcell \""+
-                                     Current->asNodeName+"\"");
+            case tp_GetValues:
+            case tp_WhoIs:
+            case tp_LogValues: //skojarzenie z memcell
+             tmp= FindGroundNode(Current->asNodeName,TP_MEMCELL);
+             if (tmp)
+             {
+              Current->Params[8].asGroundNode=tmp;
+              Current->Params[9].asMemCell=tmp->MemCell;
+             }
+             else
+              Error("Event \""+Current->asName+"\" cannot find memcell \""+Current->asNodeName+"\"");
             break;
             case tp_Animation :
              tmp=FindGroundNode(Current->asNodeName,TP_MODEL); //egzemplarza modelu do animowania
@@ -2051,7 +2086,7 @@ bool __fastcall TGround::InitEvents()
              }
              else
               Error("Event \""+Current->asName+"\" cannot find model \""+Current->asNodeName+"\"");
-             Current->asNodeName= "";
+             Current->asNodeName="";
             break;
             case tp_Lights :
                 tmp= FindGroundNode(Current->asNodeName,TP_MODEL);
@@ -2060,7 +2095,7 @@ bool __fastcall TGround::InitEvents()
                 else
                     Error("Event \""+Current->asName+"\" cannot find model \""+
                                      Current->asNodeName+"\"");
-                Current->asNodeName= "";
+                Current->asNodeName="";
             break;
             case tp_Switch :
                 tmp= FindGroundNode(Current->asNodeName,TP_TRACK);
@@ -2069,7 +2104,7 @@ bool __fastcall TGround::InitEvents()
                 else
                     Error("Event \""+Current->asName+"\" cannot find track \""+
                                      Current->asNodeName+"\"");
-                Current->asNodeName= "";
+                Current->asNodeName="";
             break;
             case tp_Sound :
                 tmp= FindGroundNode(Current->asNodeName,TP_SOUND);
@@ -2078,7 +2113,7 @@ bool __fastcall TGround::InitEvents()
                 else
                     Error("Event \""+Current->asName+"\" cannot find static sound \""+
                                      Current->asNodeName+"\"");
-                Current->asNodeName= "";
+                Current->asNodeName="";
             break;
             case tp_TrackVel :
                 if (Current->asNodeName!=AnsiString(""))
@@ -2394,6 +2429,7 @@ TGroundNode* __fastcall TGround::FindTrack(vector3 Point, int &iConnection, TGro
 
 }
 
+/*
 TGroundNode* __fastcall TGround::CreateGroundNode()
 {
     TGroundNode *tmp= new TGroundNode();
@@ -2414,24 +2450,24 @@ TGroundNode* __fastcall TGround::GetNode( AnsiString asName )
 {
     return RootNode->Find(asName);
 }
-
+*/
 bool __fastcall TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
 {
-    if (!Event->bLaunched)
-    {
-        WriteLog("EVENT ADDED TO QUEUE:");
-        WriteLog(Event->asName.c_str());
-        Event->Activator= Node;
-        Event->fStartTime= abs(Event->fDelay)+Timer::GetTime();
-        Event->bLaunched= true;
-        if (QueryRootEvent)
-            QueryRootEvent->AddToQuery(Event);
-        else
-        {
-            Event->Next= QueryRootEvent;
-            QueryRootEvent= Event;
-        }
-    }
+ if (!Event->bLaunched)
+ {
+  WriteLog("EVENT ADDED TO QUEUE:");
+  WriteLog(Event->asName.c_str());
+  Event->Activator=Node;
+  Event->fStartTime=fabs(Event->fDelay)+Timer::GetTime();
+  Event->bLaunched=true;
+  if (QueryRootEvent)
+   QueryRootEvent->AddToQuery(Event);
+  else
+  {
+   Event->Next=QueryRootEvent;
+   QueryRootEvent=Event;
+  }
+ }
  return true;
 }
 
@@ -2506,15 +2542,16 @@ if (QueryRootEvent)
                  WriteLog(LogComment.c_str());
             break;
             case tp_GetValues :
-                if (QueryRootEvent->Activator)
-                {
-                    loc.X= -QueryRootEvent->Params[8].asGroundNode->pCenter.x;
-                    loc.Y=  QueryRootEvent->Params[8].asGroundNode->pCenter.z;
-                    loc.Z=  QueryRootEvent->Params[8].asGroundNode->pCenter.y;
-                    QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Activator->MoverParameters,
-                                                                    loc);
-                }
-                WriteLog("Type: GetValues");
+             if (QueryRootEvent->Activator)
+             {
+              loc.X= -QueryRootEvent->Params[8].asGroundNode->pCenter.x;
+              loc.Y=  QueryRootEvent->Params[8].asGroundNode->pCenter.z;
+              loc.Z=  QueryRootEvent->Params[8].asGroundNode->pCenter.y;
+              QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Activator->MoverParameters,loc);
+              if (Global::bMultiplayer) //potwierdzenie wykonania dla serwera - najczêœciej odczyt semafora
+               WyslijEvent(QueryRootEvent->asName,QueryRootEvent->Activator->GetasName());
+             }
+             WriteLog("Type: GetValues");
             break;
             case tp_PutValues :
                 if (QueryRootEvent->Activator)
@@ -2552,8 +2589,7 @@ if (QueryRootEvent)
             case tp_Disable :
                 Error("Not implemented yet :(");
             break;
-            case tp_Animation :
-//Marcin: dorobic translacje
+            case tp_Animation : //Marcin: dorobic translacje - Ra: dorobi³em ;-)
              if (QueryRootEvent->Params[0].asInt==1)
                QueryRootEvent->Params[9].asAnimContainer->SetRotateAnim(
                     vector3(QueryRootEvent->Params[1].asdouble,
@@ -2639,12 +2675,19 @@ if (QueryRootEvent)
                 }
                }
             break;
-            case tp_WhoIs : //pobranie nazwy poci¹gu do komórki pamiêci
+            case tp_WhoIs: //pobranie nazwy poci¹gu do komórki pamiêci
              QueryRootEvent->Params[9].asMemCell->UpdateValues(
               QueryRootEvent->Activator->TrainParams->TrainName.c_str(),
               QueryRootEvent->Activator->TrainParams->StationCount,
               QueryRootEvent->Activator->TrainParams->StationIndex,
               conditional_memstring|conditional_memval1|conditional_memval2);
+             WriteLog("Train detected: "+QueryRootEvent->Activator->TrainParams->TrainName);
+            break;
+            case tp_LogValues: //zapisanie zawartoœci komórki pamiêci do logu
+             WriteLog("Memcell \""+QueryRootEvent->asNodeName+"\": "+
+              QueryRootEvent->Params[9].asMemCell->szText+", "+
+              QueryRootEvent->Params[9].asMemCell->fValue1+", "+
+              QueryRootEvent->Params[9].asMemCell->fValue2);
             break;
         }
         };
@@ -2982,6 +3025,7 @@ bool __fastcall TGround::GetTraction(vector3 pPosition, TDynamicObject *model)
 
 bool __fastcall TGround::RaRender(vector3 pPosition)
 {
+ ++TGroundRect::iFrameNumber; //zwiêszenie licznika ramek
  CameraDirection.x=sin(Global::pCameraRotation); //wektor kierunkowy
  CameraDirection.z=cos(Global::pCameraRotation);
  int tr,tc;
@@ -2991,8 +3035,7 @@ bool __fastcall TGround::RaRender(vector3 pPosition)
  int c=GetColFromX(pPosition.x);
  int r=GetRowFromZ(pPosition.z);
  TSubRect *tmp;
- int i,j;
- vector3 direction;
+ int i,j,k;
  //renderowanie czo³gowe dla obiektów aktywnych a niewidocznych
  for (j=r-n;j<r+n;j++)
   for (i=c-n;i<c+n;i++)
@@ -3002,31 +3045,42 @@ bool __fastcall TGround::RaRender(vector3 pPosition)
      node->RenderHidden();
   }
  //renderowanie progresywne - zale¿ne od FPS oraz kierunku patrzenia
- for (j=r-n;j<r+n;j++)
-  for (i=c-n;i<c+n;i++)
+ iRendered=0; //iloœæ renderowanych sektorów
+ vector3 direction;
+ iRange=Global::slowmotion?AreaSlow:AreaFast;
+ n=(iRange[0]*n)/10; //tak dla zasady - 10 albo 7
+ for (j=-n;j<=n;j++)
+ {k=iRange[j<0?-j:j]; //zasiêg na danym poziomie
+  for (i=-k;i<=k;i++)
   {
-   direction=vector3(i-c,0,j-r);
-   if (LengthSquared3(direction)>4)
+   direction=vector3(i,0,j);
+   if (LengthSquared3(direction)>5)
    {direction=SafeNormalize(direction);
     if (CameraDirection.x*direction.x+CameraDirection.z*direction.z<0.55)
      continue; //pomijanie zbêdnych sektorów
    }
-   if ((tmp=FastGetSubRect(i,j))!=NULL)
-   {
-    tmp->RaAnimate(); //przeliczenia animacji w sektorze przed zapiêciem VBO
-    tmp->LoadNodes(); //ewentualne tworzenie siatek
-    if (tmp->StartVBO())
-    {for (node=tmp->pRenderVBO;node!=NULL;node=node->pNext3)
-      if (node->iVboPtr>=0)
-       node->RaRender(); //nieprzezroczyste obiekty terenu
-     tmp->EndVBO();
-    }
-    for (node=tmp->pRender;node!=NULL;node=node->pNext3)
-     node->RaRender(); //nieprzezroczyste modele
-    for (node=tmp->pRenderMixed;node!=NULL;node=node->pNext3)
-     node->RaRender(); //nieprzezroczyste z mieszanych modeli
-   }
+   Rects[(i+c)/iNumSubRects][(j+r)/iNumSubRects].RaRender(); //kwadrat kilometrowy nie zawsze, bo szkoda FPS
+   if ((tmp=FastGetSubRect(i+c,j+r))!=NULL)
+    if (tmp->iNodeCount) //je¿eli s¹ jakieœ obiekty, bo po co puste sektory przelatywaæ
+     pRendered[iRendered++]=tmp; //tworzenie listy sektorów do renderowania
   }
+ }
+ for (i=0;i<iRendered;i++)
+ {//renderowanie nieprzezroczystych
+  tmp=pRendered[i];
+  tmp->RaAnimate(); //przeliczenia animacji w sektorze przed zapiêciem VBO
+   tmp->LoadNodes(); //ewentualne tworzenie siatek
+   if (tmp->StartVBO())
+   {for (node=tmp->pRenderRect;node!=NULL;node=node->pNext3)
+     if (node->iVboPtr>=0)
+      node->RaRender(); //nieprzezroczyste obiekty terenu
+    tmp->EndVBO();
+   }
+   for (node=tmp->pRender;node;node=node->pNext3)
+    node->RaRender(); //nieprzezroczyste modele
+   for (node=tmp->pRenderMixed;node;node=node->pNext3)
+    node->RaRender(); //nieprzezroczyste z mieszanych modeli
+ }
  return true;
 }
 
@@ -3034,42 +3088,42 @@ bool __fastcall TGround::RaRenderAlpha(vector3 pPosition)
 {
  TGroundNode *node;
  glColor4f(1.0f,1.0f,1.0f,1.0f);
- int n=2*iNumSubRects; //iloœæ sektorów mapy do wyœwietlenia
- int c=GetColFromX(pPosition.x);
- int r=GetRowFromZ(pPosition.z);
  TSubRect *tmp;
- vector3 direction;
- //Ra: 3/4 terenu jest niepotrzebnie renderowane
- //renderowanie progresywne - zale¿ne od FPS oraz kierunku patrzenia
- for (int j=r-n;j<r+n;j++)
-  for (int i=c-n;i<c+n;i++)
-  {
-   direction=vector3(i-c,0,j-r);
-   if (LengthSquared3(direction)>4)
-   {direction=SafeNormalize(direction);
-    if (CameraDirection.x*direction.x+CameraDirection.z*direction.z<0.55)
-     continue; //pomijanie zbêdnych sektorów
+ int i;
+ for (i=0;i<iRendered;i++)
+ {//renderowanie przezroczystych trójk¹tów sektora
+  tmp=pRendered[i];
+  tmp->RaAnimate(); //przeliczenia animacji w sektorze przed zapiêciem VBO
+   tmp->LoadNodes(); //ewentualne tworzenie siatek
+   if (tmp->StartVBO())
+   {for (node=tmp->pRenderRectAlpha;node!=NULL;node=node->pNext3)
+     if (node->iVboPtr>=0)
+      node->RaRenderAlpha(); //nieprzezroczyste obiekty terenu
+    tmp->EndVBO();
    }
-   if ((tmp=FastGetSubRect(i,j))!=NULL)
-   {
-    tmp->LoadNodes(); //ewentualne tworzenie siatek
-    for (node=tmp->pRenderMixed;node!=NULL;node=node->pNext3)
-     node->RaRenderAlpha(); //przezroczyste z mieszanych modeli
-    for (node=tmp->pRenderAlpha;node!=NULL;node=node->pNext3)
-     node->RaRenderAlpha(); //przezroczyste modele
-    for (node=tmp->pRenderVBO;node!=NULL;node=node->pNext3)
-     if (node->iType==TP_TRACK)
-      node->pTrack->RaRenderDynamic(); //pojazdy na torach
-    if (tmp->StartVBO())
-    {for (node=tmp->pRenderAlphaVBO;node!=NULL;node=node->pNext3)
-      if (node->iVboPtr>=0)
-       node->RaRenderAlpha(); //przezroczyste elementy terenu (w tym druty i linie)
-     tmp->EndVBO();
-    }
-   }
+ }  
+ for (i=0;i<iRendered;i++)
+ {//renderowanie przezroczystych modeli oraz pojazdów
+  tmp=pRendered[i];
+  for (node=tmp->pRenderMixed;node;node=node->pNext3)
+   node->RaRenderAlpha(); //przezroczyste z mieszanych modeli
+  for (node=tmp->pRenderAlpha;node;node=node->pNext3)
+   node->RaRenderAlpha(); //przezroczyste modele
+  for (node=tmp->pRenderRect;node;node=node->pNext3)
+   if (node->iType==TP_TRACK)
+    node->pTrack->RaRenderDynamic(); //przezroczyste fragmenty pojazdów na torach
+ }
+ for (i=0;i<iRendered;i++)
+ {//druty na koñcu, ¿eby siê nie robi³y bia³e plamy na tle lasu
+  tmp=pRendered[i];
+  if (tmp->StartVBO())
+  {for (node=tmp->pRenderWires;node;node=node->pNext3)
+    node->RaRenderAlpha(); //przezroczyste modele
+   tmp->EndVBO();
   }
+ }
  return true;
-}
+};
 
 bool __fastcall TGround::Render(vector3 pPosition)
 {//renderowanie scenerii z Display List - faza nieprzezroczystych
@@ -3093,6 +3147,7 @@ bool __fastcall TGround::Render(vector3 pPosition)
      node->RenderHidden();
    }
  //renderowanie progresywne - zale¿ne od FPS oraz kierunku patrzenia
+ iRendered=0; //iloœæ renderowanych sektorów
  vector3 direction;
  iRange=Global::slowmotion?AreaSlow:AreaFast;
  n=(iRange[0]*n)/10; //tak dla zasady - 10 albo 7
@@ -3101,21 +3156,25 @@ bool __fastcall TGround::Render(vector3 pPosition)
   for (i=-k;i<=k;i++)
   {
    direction=vector3(i,0,j);
-   if (LengthSquared3(direction)>4)
+   if (LengthSquared3(direction)>5)
    {direction=SafeNormalize(direction);
     if (CameraDirection.x*direction.x+CameraDirection.z*direction.z<0.55)
      continue; //pomijanie zbêdnych sektorów
    }
-   Rects[(i+c)/iNumSubRects][(j+r)/iNumSubRects].Render();
+   Rects[(i+c)/iNumSubRects][(j+r)/iNumSubRects].Render(); //kwadrat kilometrowy nie zawsze, bo szkoda FPS
    if ((tmp=FastGetSubRect(i+c,j+r))!=NULL)
-   {
-    tmp->RaAnimate(); //przeliczenia animacji torów w sektorze
-    for (node=tmp->pRender;node!=NULL;node=node->pNext3)
-     node->Render(); //nieprzezroczyste obiekty (pojazdy z automatu)
-    for (node=tmp->pRenderMixed;node!=NULL;node=node->pNext3)
-     node->Render(); //nieprzezroczyste z mieszanych modeli
-   }
+    if (tmp->iNodeCount) //je¿eli s¹ jakieœ obiekty, bo po co puste sektory przelatywaæ
+     pRendered[iRendered++]=tmp; //tworzenie listy sektorów do renderowania
   }
+ }
+ for (i=0;i<iRendered;i++)
+ {//renderowanie nieprzezroczystych
+  tmp=pRendered[i];
+  tmp->RaAnimate(); //przeliczenia animacji torów w sektorze
+  for (node=tmp->pRender;node;node=node->pNext3)
+   node->Render(); //nieprzezroczyste obiekty (pojazdy z torów)
+  for (node=tmp->pRenderMixed;node;node=node->pNext3)
+   node->Render(); //nieprzezroczyste z mieszanych modeli
  }
  return true;
 }
@@ -3124,35 +3183,31 @@ bool __fastcall TGround::RenderAlpha(vector3 pPosition)
 {//renderowanie scenerii z Display List - faza przezroczystych
  TGroundNode *node;
  glColor4f(1.0f,1.0f,1.0f,1.0f);
- int n=2*iNumSubRects; //iloœæ sektorów mapy do wyœwietlenia
- int c=GetColFromX(pPosition.x);
- int r=GetRowFromZ(pPosition.z);
  TSubRect *tmp;
- vector3 direction;
  //Ra: renderowanie progresywne - zale¿ne od FPS oraz kierunku patrzenia
- int i,j,k;
- n=(iRange[0]*n)/10; //tak dla zasady - 10 albo 7
- for (j=-n;j<=n;j++)
- {k=iRange[j<0?-j:j]; //zasiêg na danym poziomie
-  for (i=-k;i<=k;i++)
-  {
-   direction=vector3(i,0,j);
-   if (LengthSquared3(direction)>4)
-   {direction=SafeNormalize(direction);
-    if (CameraDirection.x*direction.x+CameraDirection.z*direction.z<0.55)
-     continue; //pomijanie zbêdnych sektorów
-   }
-   if ((tmp=FastGetSubRect(i+c,j+r))!=NULL)
-   {
-    for (node=tmp->pRenderMixed;node!=NULL;node=node->pNext3)
-     node->RenderAlpha(); //przezroczyste z mieszanych modeli
-    for (node=tmp->pRenderAlpha;node!=NULL;node=node->pNext3)
-     node->RenderAlpha(); //przezroczyste modele
-    for (node=tmp->pRender;node!=NULL;node=node->pNext3)
-     if (node->iType==TP_TRACK)
-      node->pTrack->RenderAlpha(); //pojazdy na torach
-   }
-  }
+ int i;
+ for (i=0;i<iRendered;i++)
+ {//przezroczyste trójk¹ty w oddzielnym cyklu przed modelami
+  tmp=pRendered[i];
+  for (node=tmp->pRenderRectAlpha;node;node=node->pNext3)
+   node->RenderAlpha(); //przezroczyste modele
+ }
+ for (i=0;i<iRendered;i++)
+ {//renderowanie przezroczystych modeli oraz pojazdów
+  tmp=pRendered[i];
+  for (node=tmp->pRenderMixed;node;node=node->pNext3)
+   node->RenderAlpha(); //przezroczyste z mieszanych modeli
+  for (node=tmp->pRenderAlpha;node;node=node->pNext3)
+   node->RenderAlpha(); //przezroczyste modele
+  for (node=tmp->pRender;node;node=node->pNext3)
+   if (node->iType==TP_TRACK)
+    node->pTrack->RenderAlpha(); //przezroczyste fragmenty pojazdów na torach
+ }
+ for (i=0;i<iRendered;i++)
+ {//druty na koñcu, ¿eby siê nie robi³y bia³e plamy na tle lasu
+  tmp=pRendered[i];
+  for (node=tmp->pRenderWires;node;node=node->pNext3)
+   node->RenderAlpha(); //przezroczyste modele
  }
  return true;
 }
@@ -3181,11 +3236,11 @@ void __fastcall TGround::WyslijEvent(const AnsiString &e,const AnsiString &d)
  Navigate("TEU07SRK",WM_COPYDATA,(WPARAM)Global::hWnd,(LPARAM)&cData);
 };
 //---------------------------------------------------------------------------
-void __fastcall TGround::WyslijWolny(const AnsiString &t)
+void __fastcall TGround::WyslijString(const AnsiString &t,int n)
 {//Ra: jeszcze do wyczyszczenia
  DaneRozkaz r;
  r.iSygn='EU07';
- r.iComm=4; //tor wolny
+ r.iComm=n; //numer komunikatu
  int i=t.Length();
  r.cString[0]=char(i);
  strcpy(r.cString+1,t.c_str()); //z zerem koñcz¹cym
@@ -3196,6 +3251,10 @@ void __fastcall TGround::WyslijWolny(const AnsiString &t)
  Navigate("TEU07SRK",WM_COPYDATA,(WPARAM)Global::hWnd,(LPARAM)&cData);
 };
 //---------------------------------------------------------------------------
-
+void __fastcall TGround::WyslijWolny(const AnsiString &t)
+{//Ra: jeszcze do wyczyszczenia
+ WyslijString(t,4); //tor wolny
+};
+//---------------------------------------------------------------------------
 
 
