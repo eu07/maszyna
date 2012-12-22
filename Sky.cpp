@@ -37,14 +37,16 @@ __fastcall TSky::Render()
  if (mdCloud!=NULL)
   {
   glPushMatrix();
-//     glDisable(GL_LIGHTING);
-   //  glDisable(GL_DEPTH_TEST);
+//     glDisable(GL_DEPTH_TEST);
+
      glTranslatef(Global::pCameraPosition.x, Global::pCameraPosition.y, Global::pCameraPosition.z);
      glLightfv(GL_LIGHT0,GL_POSITION,lightPos);
 
      mdCloud->RenderAlpha(100, 0);
      mdCloud->Render(100, 0);
-     glEnable(GL_DEPTH_TEST);
+
+//     glEnable(GL_DEPTH_TEST);
+     glClear(GL_DEPTH_BUFFER_BIT);
 //     glEnable(GL_LIGHTING);
   glPopMatrix();
   glLightfv(GL_LIGHT0,GL_POSITION,Global::lightPos);

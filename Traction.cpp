@@ -63,7 +63,6 @@ TTraction::~TTraction()
     glDeleteLists(uiDisplayList,1);
 }
 
-
 void __fastcall TTraction::Optimize() 
 { 
     glNewList(uiDisplayList,GL_COMPILE); 
@@ -181,7 +180,6 @@ void __fastcall TTraction::Optimize()
       glEndList(); 
   } 
 }
-
 /*
 void __fastcall TTraction::InitCenter(vector3 Angles, vector3 pOrigin)
 {

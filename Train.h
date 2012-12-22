@@ -23,7 +23,8 @@
 const int maxcab=2;
 
 // const double fCzuwakTime= 90.0f;
-const double fCzuwakBlink= 0.20f;
+const double fCzuwakBlink= 0.15f;
+                         //0.33f
 // const double fBuzzerTime= 5.0f;
 
 // const double fStycznTime= 0.5f;
@@ -105,7 +106,6 @@ public:
     TGauge engageratioGauge;
     TGauge maingearstatusGauge;
 
-
     TGauge EngineVoltage;
     TGauge I1BGauge;
     TGauge I2BGauge;
@@ -116,6 +116,7 @@ public:
     TGauge MainCtrlGauge;
     TGauge MainCtrlActGauge;    
     TGauge ScndCtrlGauge;
+    TGauge ScndCtrlButtonGauge;
     TGauge DirKeyGauge;
     TGauge BrakeCtrlGauge;
     TGauge LocalBrakeGauge;
@@ -209,7 +210,7 @@ public:
     TButton btLampkaBocznikII;
     TButton btLampkaRadiotelefon;
     TButton btLampkaHamienie;
-    TButton btLampkaJazda;   
+    TButton btLampkaJazda;                   
 //KURS90
       TButton btLampkaBoczniki;                
       TButton btLampkaMaxSila;              
@@ -273,6 +274,7 @@ public:
     TRealSound rsRunningNoise;
     TRealSound rsEngageSlippery;
     TRealSound rsFadeSound;
+
     PSound dsbHasler;
     PSound dsbBuzzer;
     TFadeSound sConverter;  //przetwornica

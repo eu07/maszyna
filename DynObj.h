@@ -10,6 +10,7 @@
 #include "Mover.hpp"
 #include "ai_driver.hpp"
 #include "mtable.hpp"
+#include "TractionPower.h"
 //McZapkie:
 #include "MdlMngr.h"
 #include "RealSound.h"
@@ -160,10 +161,17 @@ public:
        {
           return asName;
        };
-     //youBy
+
+//youBy
     TRealSound rsDiesielInc;
 //youBy
-    TRealSound rscurve;   
+    TRealSound rscurve;    
+    
+//youBy - dym
+    //TSmoke Smog;
+    //float EmR;
+    //vector3 smokeoffset;
+
     TDynamicObject *NextConnected;
     TDynamicObject *PrevConnected;
     Byte NextConnectedNo;
