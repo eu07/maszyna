@@ -6,7 +6,7 @@
 #include <string>
 #include "opengl/glew.h"
 #include "dumb3d.h"
-#include "Logs.h"
+//#include "Logs.h"
 
 using namespace Math3D;
 
@@ -142,7 +142,7 @@ public:
  static double fFogStart;
  static double fFogEnd;
  static TGround *pGround;
- static std::string szDefaultExt;
+ static char** szDefaultExt;
  static char szSceneryFile[256];
  static char CreatorName1[20];
  static char CreatorName2[20];
@@ -202,6 +202,14 @@ public:
  static double fMoveLight; //numer dnia w roku albo -1
  static bool bSmoothTraction; //wyg³adzanie drutów
  static double fSunDeclination; //deklinacja S³oñca
+ static double fSunSpeed; //prêdkoœæ ruchu S³oñca, zmienna do testów
+ static double fTimeAngleDeg; //godzina w postaci k¹ta
+ static double fLatitudeDeg; //szerokoœæ geograficzna
+ static char* szTexturesTGA[4]; //lista tekstur od TGA
+ static char* szTexturesDDS[4]; //lista tekstur od DDS
+ static int iMultisampling; //tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
+ static bool bGlutFont; //tekst generowany przez GLUT
+ static int iKeyLast; //ostatnio naciœniêty klawisz w celu logowania
 };
 
 //---------------------------------------------------------------------------

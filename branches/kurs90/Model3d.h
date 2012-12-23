@@ -98,7 +98,8 @@ typedef enum //rodzaj animacji
  at_Hours, //godziny p³ynnie 12h/360°
  at_Hours24, //godziny p³ynnie 24h/360°
  at_Billboard, //obrót w pionie do kamery
- at_LightPos //w kierunku œwiat³a
+ at_Wind, //ruch pod wp³ywem wiatru
+ at_Sky //animacja nieba
 } TAnimType;
 
 class TModel3d;
@@ -142,7 +143,7 @@ private:
  TSubModel *Next;
  TSubModel *Child;
  //vector3 HitBoxPts[6];
- int __fastcall SeekFaceNormal(DWORD *Masks, int f, DWORD dwMask, vector3 pt, GLVERTEX *Vertices);
+ int __fastcall SeekFaceNormal(DWORD *Masks, int f, DWORD dwMask, vector3 *pt, GLVERTEX *Vertices);
  int iNumVerts; //potrzebne do VBO
  int iVboPtr;
  GLVERTEX *Vertices; //do VBO

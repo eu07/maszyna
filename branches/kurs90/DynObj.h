@@ -143,7 +143,7 @@ protected:
     AnsiString asModel;
     int iDirection;
     void ScanEventTrack(TTrack *Track);
-    void ABuScanObjects(TTrack *Track, double ScanDir, double ScanDist);
+    void ABuScanObjects(TTrack *Track,int ScanDir,double ScanDist);
     void __fastcall ABuCheckMyTrack();
 
 public:
@@ -267,7 +267,7 @@ public:
            {
               return (Axle1.GetTrack()==MyTrack?Axle1.GetTranslation():Axle4.GetTranslation());
            };
-    void CouplersDettach(int MinDist, double MyScanDir);
+    void CouplersDettach(double MinDist,int MyScanDir);
 
 };
 

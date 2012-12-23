@@ -18,8 +18,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#include    "system.hpp"
-#include    "classes.hpp"
+#include "system.hpp"
+#include "classes.hpp"
 
 #include "opengl/glew.h"
 #include "opengl/glut.h"
@@ -38,6 +38,12 @@
 #define TEXTURE_LOD_BIAS_EXT            0x8501
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
+
+typedef void (APIENTRY *FglutBitmapCharacter)(void *font,int character); //typ funkcji
+FglutBitmapCharacter glutBitmapCharacterDLL=NULL; //deklaracja zmiennej
+HINSTANCE hinstGLUT32=NULL; //wskaŸnik do GLUT32.DLL
+//GLUTAPI void APIENTRY glutBitmapCharacterDLL(void *font, int character);
+
 
 using namespace Timer;
 
@@ -68,27 +74,27 @@ __fastcall TWorld::~TWorld()
  TModelsManager::Free();
  TTexturesManager::Free();
  glDeleteLists(base,96);
+ if (hinstGLUT32)
+  FreeLibrary(hinstGLUT32);
 }
 
-GLvoid __fastcall TWorld::glPrint(const char *fmt)					// Custom GL "Print" Routine
-{
-//	char		text[256];								// Holds Our String
-//	va_list		ap;										// Pointer To List Of Arguments
-
-	if (fmt == NULL)									// If There's No Text
-		return;											// Do Nothing
-
-//	va_start(ap, fmt);									// Parses The String For Variables
-//	    vsprintf(text, fmt, ap);						// And Converts Symbols To Actual Numbers
-//	va_end(ap);											// Results Are Stored In Text
-
-	glPushAttrib(GL_LIST_BIT);							// Pushes The Display List Bits
-	glListBase(base - 32);								// Sets The Base Character to 32
-	glCallLists(strlen(fmt), GL_UNSIGNED_BYTE, fmt);	// Draws The Display List Text
-//	glCallLists(strlen(text), GL_UNSIGNED_BYTE, text);	// Draws The Display List Text
-	glPopAttrib();										// Pops The Display List Bits
+GLvoid __fastcall TWorld::glPrint(const char *txt) //custom GL "Print" routine
+{//wypisywanie tekstu 2D na ekranie
+ if (!txt) return;
+ if (Global::bGlutFont)
+ {//tekst generowany przez GLUT
+  int i,len=strlen(txt);
+  for (i=0;i<len;i++)
+   (glutBitmapCharacterDLL)(GLUT_BITMAP_8_BY_13,txt[i]); //funkcja linkowana dynamicznie
+ }
+ else
+ {//generowanie przez Display Lists
+  glPushAttrib(GL_LIST_BIT); //pushes the display list bits
+  glListBase(base-32); //sets the base character to 32
+  glCallLists(strlen(txt),GL_UNSIGNED_BYTE,txt); //draws the display list text
+  glPopAttrib(); //pops the display list bits
+ }
 }
-
 
 TDynamicObject *Controlled=NULL; //pojazd, który prowadzimy
 
@@ -96,6 +102,7 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 {
  Global::hWnd=NhWnd; //do WM_COPYDATA
  Global::detonatoryOK=true;
+ WriteLog("--- MaSzyna ---"); //pierwsza linia jest gubiona
  WriteLog("Starting MaSzyna rail vehicle simulator, Kurs 2013 edition.");
  WriteLog(Global::asVersion);
  WriteLog("Online documentation and additional files on http://eu07.pl");
@@ -117,6 +124,7 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
  }
  else
   Global::detonatoryOK=true;
+ //Ra: umieszczone w EU07.cpp jakoœ nie chce dzia³aæ
  while (glver.LastDelimiter(".")>glver.Pos("."))
   glver=glver.SubString(1,glver.LastDelimiter(".")-1); //obciêcie od drugiej kropki
  try {Global::fOpenGL=glver.ToDouble();} catch (...) {Global::fOpenGL=0.0;}
@@ -129,16 +137,18 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 #ifdef USE_VBO
   if (AnsiString((char*)glGetString(GL_VENDOR)).Pos("Intel")) //wymuszenie tylko dla kart Intel
    Global::bUseVBO=true; //VBO w³¹czane tylko, jeœli jest obs³uga
+#endif
   if (Global::bUseVBO)
    WriteLog("Ra: The VBO is found and will be used.");
   else
    WriteLog("Ra: The VBO is found, but Display Lists are selected.");
-#endif
  }
  else
  {WriteLog("Ra: No VBO found - Display Lists used. Upgrade drivers or buy a newer graphics card!");
   Global::bUseVBO=false; //mo¿e byæ w³¹czone parametrem w INI
  }
+ if (Global::iMultisampling)
+  WriteLog("Used multisampling of "+AnsiString(Global::iMultisampling)+" samples.");
  {//ograniczenie maksymalnego rozmiaru tekstur - parametr dla skalowania tekstur
   GLint i;
   glGetIntegerv(GL_MAX_TEXTURE_SIZE,&i);
@@ -299,34 +309,45 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 
 /*--------------------Render Initialization End---------------------*/
 
-    WriteLog("Font init");
-	HFONT	font;										// Windows Font ID
+ WriteLog("Font init"); //pocz¹tek inicjacji fontów 2D
+ if (Global::bGlutFont) //jeœli wybrano GLUT font, próbujemy zlinkowaæ GLUT32.DLL
+ {
+  hinstGLUT32=LoadLibrary(TEXT("GLUT32.DLL")); //get a handle to the DLL module
+  // If the handle is valid, try to get the function address.
+  if (hinstGLUT32)
+   glutBitmapCharacterDLL=(FglutBitmapCharacter)GetProcAddress(hinstGLUT32,"glutBitmapCharacter");
+  else
+   WriteLog("Missed GLUT32.DLL.");
+  if (glutBitmapCharacterDLL)
+   WriteLog("Used font from GLUT32.DLL.");
+  else
+   Global::bGlutFont=false; //nie uda³o siê, trzeba spróbowaæ na Display List
+ }
+ if (!Global::bGlutFont)
+ {//jeœli bezGLUTowy font
+  HFONT font;										// Windows Font ID
+  base=glGenLists(96); //storage for 96 characters
+  font=CreateFont(       -15, //height of font
+                           0, //width of font
+    		           0, //angle of escapement
+		           0, //orientation angle
+	             FW_BOLD, //font weight
+	               FALSE, //italic
+	               FALSE, //underline
+     	               FALSE, //strikeout
+                ANSI_CHARSET, //character set identifier
+               OUT_TT_PRECIS, //output precision
+         CLIP_DEFAULT_PRECIS, //clipping precision
+         ANTIALIASED_QUALITY, //output quality
+   FF_DONTCARE|DEFAULT_PITCH, //family and pitch
+              "Courier New"); //font name
+  SelectObject(hDC,font); //selects the font we want
+  wglUseFontBitmapsA(hDC,32,96,base); //builds 96 characters starting at character 32
+  WriteLog("Display Lists font used."); //+AnsiString(glGetError())
+ }
+ WriteLog("Font init OK"); //+AnsiString(glGetError())
 
-	base = glGenLists(96);								// Storage For 96 Characters
-
-	font = CreateFont(	-15,							// Height Of Font
-						0,								// Width Of Font
-						0,								// Angle Of Escapement
-						0,								// Orientation Angle
-						FW_BOLD,						// Font Weight
-						FALSE,							// Italic
-						FALSE,							// Underline
-						FALSE,							// Strikeout
-						ANSI_CHARSET,					// Character Set Identifier
-						OUT_TT_PRECIS,					// Output Precision
-						CLIP_DEFAULT_PRECIS,			// Clipping Precision
-						ANTIALIASED_QUALITY,			// Output Quality
-						FF_DONTCARE|DEFAULT_PITCH,		// Family And Pitch
-						"Courier New");					// Font Name
-
-	SelectObject(hDC, font);							// Selects The Font We Want
-
-	wglUseFontBitmaps(hDC, 32, 96, base);				// Builds 96 Characters Starting At Character 32
-
-
-    WriteLog("Font init OK");
-
-    Timer::ResetTimers();
+ Timer::ResetTimers();
 
     hWnd= NhWnd;
     glColor4f(1.0f,3.0f,3.0f,0.0f);
@@ -355,7 +376,7 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 		glTexCoord2f(1.0f, 1.0f); glVertex3f( 0.28f,  0.22f,  0.0f);	// Top right of the texture and quad
 		glTexCoord2f(0.0f, 1.0f); glVertex3f(-0.28f,  0.22f,  0.0f);	// Top left of the texture and quad
 	glEnd();
-        ~logo;
+        //~logo; Ra: to jest bez sensu zapis
     glColor3f(0.0f,0.0f,100.0f);
     if(Global::detonatoryOK)
     {
@@ -531,72 +552,126 @@ void __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 
 
 void __fastcall TWorld::OnKeyPress(int cKey)
-{
- if ((cKey>='0')&&(cKey<='9')) //klawisze cyfrowe
- {if (Pressed(VK_SHIFT))
-  {if (KeyEvents[cKey-'0'])
-    Ground.AddToQuery(KeyEvents[cKey-'0'],NULL);
+{//(cKey) to kod klawisza, cyfrowe i literowe siê zgadzaj¹
+ if (cKey>123) //coœ tam jeszcze jest?
+  WriteLog("Key pressed: ["+AnsiString((char)(cKey-128))+(Pressed(VK_SHIFT)?"]+[Shift]":"]"));
+ else if (cKey>=112) //funkcyjne
+  WriteLog("Key pressed: [F"+AnsiString(cKey-111)+(Pressed(VK_SHIFT)?"]+[Shift]":"]"));
+ else if (cKey>=96)
+  WriteLog("Key pressed: [Num"+AnsiString("0123456789*+?-./").SubString(cKey-95,1)+(Pressed(VK_SHIFT)?"]+[Shift]":"]"));
+ else if (((cKey>='0')&&(cKey<='9'))||((cKey>='A')&&(cKey<='Z'))||(cKey==' '))
+  WriteLog("Key pressed: ["+AnsiString((char)(cKey))+(Pressed(VK_SHIFT)?"]+[Shift]":"]"));
+ else if (cKey=='-')
+  WriteLog("Key pressed: [Insert]");
+ else if (cKey=='.')
+  WriteLog("Key pressed: [Delete]");
+ else if (cKey=='$')
+  WriteLog("Key pressed: [Home]");
+ else if (cKey=='#')
+  WriteLog("Key pressed: [End]");
+ else if (cKey>'Z') //¿eby nie logowaæ kursorów
+  WriteLog("Key pressed: ["+AnsiString(cKey)+(Pressed(VK_SHIFT)?"]+[Shift]":"]")); //numer klawisza
+ if ((cKey<='9')?(cKey>='0'):false) //klawisze cyfrowe
+ {int i=cKey-'0'; //numer klawisza
+  if (Pressed(VK_SHIFT))
+  {//z [Shift] uruchomienie eventu
+   if (KeyEvents[i])
+    Ground.AddToQuery(KeyEvents[i],NULL);
   }
   else
    if (FreeFlyModeFlag) //w trybie latania mo¿na przeskakiwaæ do ustawionych kamer
-    Camera.Init(Global::pFreeCameraInit[cKey-'0'],Global::pFreeCameraInitAngle[cKey-'0']);
+   {if ((!Global::pFreeCameraInit[i].x&&!Global::pFreeCameraInit[i].y&&!Global::pFreeCameraInit[i].z))
+    {//jeœli kamera jest w punkcie zerowym, zapamiêtanie wspó³rzêdnych i k¹tów
+     Global::pFreeCameraInit[i]=Camera.Pos;
+     Global::pFreeCameraInitAngle[i].x=Camera.Pitch;
+     Global::pFreeCameraInitAngle[i].y=Camera.Yaw;
+     Global::pFreeCameraInitAngle[i].z=Camera.Roll;
+     //logowanie, ¿eby mo¿na by³o do scenerii przepisaæ
+     WriteLog("camera "
+      +AnsiString(Global::pFreeCameraInit[i].x)+" "
+      +AnsiString(Global::pFreeCameraInit[i].y)+" "
+      +AnsiString(Global::pFreeCameraInit[i].z)+" "
+      +AnsiString(Global::pFreeCameraInitAngle[i].x)+" "
+      +AnsiString(Global::pFreeCameraInitAngle[i].y)+" "
+      +AnsiString(Global::pFreeCameraInitAngle[i].z)+" "
+      +AnsiString(i)+" endcamera");
+    }
+    else
+     Camera.Init(Global::pFreeCameraInit[i],Global::pFreeCameraInitAngle[i]);
+   }
   //bêdzie jeszcze za³¹czanie sprzêgów z [Ctrl]
+ }
+ else if ((cKey>=VK_F1)?(cKey<=VK_F12):false)
+ {if (Global::iTextMode==cKey)
+   Global::iTextMode=0; //wy³¹czenie napisów
+  else
+   switch (cKey)
+   {case VK_F1: //czas i relacja
+    case VK_F2: //parametry pojazdu
+    case VK_F3:
+    case VK_F8: //FPS
+    case VK_F9: //wersja, typ wyœwietlania, b³êdy OpenGL
+    case VK_F12: //coœ tam jeszcze
+     Global::iTextMode=cKey;
+   }
+  if (cKey!=VK_F4) return; //nie s¹ przekazywane do pojazdu
  }
  if (Controlled)
   if ((Controlled->Controller==Humandriver) || DebugModeFlag)
    Train->OnKeyPress(cKey); //przekazanie klawisza do pojazdu
+ //switch (cKey)
+ //{case 'a': //ignorowanie repetycji
+ // case 'A': Global::iKeyLast=cKey; break;
+ // default: Global::iKeyLast=0;
+ //}
 }
 
 
 void __fastcall TWorld::OnMouseMove(double x, double y)
-{
-//McZapkie:060503-definicja obracania myszy
-    Camera.OnCursorMove(x*Global::fMouseXScale,-y*Global::fMouseYScale);
+{//McZapkie:060503-definicja obracania myszy
+ Camera.OnCursorMove(x*Global::fMouseXScale,-y*Global::fMouseYScale);
 }
 
 bool __fastcall TWorld::Update()
 {
- vector3 tmpvector = Global::GetCameraPosition();
-
-    tmpvector = vector3(
-        - int(tmpvector.x) + int(tmpvector.x) % 10000,
-        - int(tmpvector.y) + int(tmpvector.y) % 10000,
-        - int(tmpvector.z) + int(tmpvector.z) % 10000);
-
 #ifdef USE_SCENERY_MOVING
-    if(tmpvector.x || tmpvector.y || tmpvector.z)
-    {
-        WriteLog("Moving scenery");
-        Ground.MoveGroundNode(tmpvector);
-        WriteLog("Scenery moved");
-    };
+ vector3 tmpvector = Global::GetCameraPosition();
+ tmpvector = vector3(
+  -int(tmpvector.x)+int(tmpvector.x)%10000,
+  -int(tmpvector.y)+int(tmpvector.y)%10000,
+  -int(tmpvector.z)+int(tmpvector.z)%10000);
+ if(tmpvector.x || tmpvector.y || tmpvector.z)
+ {
+  WriteLog("Moving scenery");
+  Ground.MoveGroundNode(tmpvector);
+  WriteLog("Scenery moved");
+ };
 #endif
+ if (GetFPS()<12)
+  Global::slowmotion=true;
+ else
+  if (GetFPS()>15)
+   Global::slowmotion=false;
+ UpdateTimers();
+ GlobalTime->UpdateMTableTime(GetDeltaTime()); //McZapkie-300302: czas rozkladowy
 
-    if (GetFPS()<12)
-          {  Global::slowmotion=true;  }
-       else
-          {
-             if (GetFPS()>15)
-                Global::slowmotion=false;
-          };
-
-    UpdateTimers();
-    GlobalTime->UpdateMTableTime(GetDeltaTime()); //McZapkie-300302: czas rozkladowy
-
- if (Global::fMoveLight>0)
+ //Ra: przeliczenie k¹ta czasu (do animacji zale¿nych od czasu)
+ Global::fTimeAngleDeg=GlobalTime->hh*15.0+GlobalTime->mm*0.25+GlobalTime->mr/240.0;
+ if (Global::fMoveLight>=0.0)
  {//testowo ruch œwiat³a
-  double a=GlobalTime->mr/30.0*M_PI-M_PI; //k¹t godzinny (na razie kó³ko w minutê)
-  double L=52.0/180.0*M_PI; //szerokoœæ geograficzna
+  //double a=Global::fTimeAngleDeg/180.0*M_PI-M_PI; //k¹t godzinny w radianach
+  double a=fmod(Global::fSunSpeed*Global::fTimeAngleDeg,360.0)/180.0*M_PI-M_PI; //k¹t godzinny w radianach
+  double L=Global::fLatitudeDeg/180.0*M_PI; //szerokoœæ geograficzna
   double H=asin(cos(L)*cos(Global::fSunDeclination)*cos(a)+sin(L)*sin(Global::fSunDeclination));
   //double A=asin(cos(d)*sin(M_PI-a)/cos(H));
-//Declination=((0.322003-22.971*cos(t)-0.357898*cos(2*t)-0.14398*cos(3*t)+3.94638*sin(t)+0.019334*sin(2*t)+0.05928*sin(3*t)))*Pi/180
-//Altitude=asin(sin(Declination)*sin(latitude)+cos(Declination)*cos(latitude)*cos((15*(time-12))*(Pi/180)));
-//Azimuth=(acos((cos(latitude)*sin(Declination)-cos(Declination)*sin(latitude)*cos((15*(time-12))*(Pi/180)))/cos(Altitude)));
+  //Declination=((0.322003-22.971*cos(t)-0.357898*cos(2*t)-0.14398*cos(3*t)+3.94638*sin(t)+0.019334*sin(2*t)+0.05928*sin(3*t)))*Pi/180
+  //Altitude=asin(sin(Declination)*sin(latitude)+cos(Declination)*cos(latitude)*cos((15*(time-12))*(Pi/180)));
+  //Azimuth=(acos((cos(latitude)*sin(Declination)-cos(Declination)*sin(latitude)*cos((15*(time-12))*(Pi/180)))/cos(Altitude)));
   //double A=acos(cos(L)*sin(d)-cos(d)*sin(L)*cos(M_PI-a)/cos(H));
-//dAzimuth = atan2(-sin( dHourAngle ),tan( dDeclination )*dCos_Latitude - dSin_Latitude*dCos_HourAngle );
+  //dAzimuth = atan2(-sin( dHourAngle ),tan( dDeclination )*dCos_Latitude - dSin_Latitude*dCos_HourAngle );
   double A=atan2(sin(a),tan(Global::fSunDeclination)*cos(L)-sin(L)*cos(a));
   vector3 lp=vector3(sin(A),tan(H),cos(A));
-  lp=Normalize(lp);
+  lp=Normalize(lp); //przeliczenie na wektor d³ugoœci 1.0
   Global::lightPos[0]=(float)lp.x;
   Global::lightPos[1]=(float)lp.y;
   Global::lightPos[2]=(float)lp.z;
@@ -607,24 +682,24 @@ bool __fastcall TWorld::Update()
    Global::ambientDayLight[1]=Global::ambientLight[1];
    Global::ambientDayLight[2]=Global::ambientLight[2];
    Global::diffuseDayLight[0]=Global::diffuseLight[0]; //od wschodu do zachodu maksimum ???
-   Global::diffuseDayLight[1]=Global::diffuseLight[1]; //od wschodu do zachodu maksimum ???
-   Global::diffuseDayLight[2]=Global::diffuseLight[2]; //od wschodu do zachodu maksimum ???
+   Global::diffuseDayLight[1]=Global::diffuseLight[1];
+   Global::diffuseDayLight[2]=Global::diffuseLight[2];
    Global::specularDayLight[0]=Global::specularLight[0]; //podobnie specular
-   Global::specularDayLight[1]=Global::specularLight[1]; //podobnie specular
-   Global::specularDayLight[2]=Global::specularLight[2]; //podobnie specular
+   Global::specularDayLight[1]=Global::specularLight[1];
+   Global::specularDayLight[2]=Global::specularLight[2];
   }
   else
   {//s³oñce pod horyzontem
-   GLfloat lum=2.5*(H>-0.314159?0.314159+H:0.0);
+   GLfloat lum=2.0*(H>-0.314159?0.314159+H:0.0); //po zachodzie ambient siê œciemnia
    Global::ambientDayLight[0]=lum;
    Global::ambientDayLight[1]=lum;
    Global::ambientDayLight[2]=lum;
    Global::diffuseDayLight[0]=Global::noLight[0]; //od zachodu do wschodu nie ma diffuse
-   Global::diffuseDayLight[1]=Global::noLight[1]; //od zachodu do wschodu nie ma diffuse
-   Global::diffuseDayLight[2]=Global::noLight[2]; //od zachodu do wschodu nie ma diffuse
+   Global::diffuseDayLight[1]=Global::noLight[1];
+   Global::diffuseDayLight[2]=Global::noLight[2];
    Global::specularDayLight[0]=Global::noLight[0]; //ani specular
-   Global::specularDayLight[1]=Global::noLight[1]; //ani specular
-   Global::specularDayLight[2]=Global::noLight[2]; //ani specular
+   Global::specularDayLight[1]=Global::noLight[1];
+   Global::specularDayLight[2]=Global::noLight[2];
   }
   // Calculate sky colour according to time of day.
   //GLfloat sin_t = sin(PI * time_of_day / 12.0);
@@ -635,6 +710,26 @@ bool __fastcall TWorld::Update()
   glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
   glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
   glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
+ }
+ Global::fLuminance= //to pos³u¿y równie¿ do zapalania latarñ
+  +0.150*(Global::diffuseDayLight[0]+Global::ambientDayLight[0])  //R
+  +0.295*(Global::diffuseDayLight[1]+Global::ambientDayLight[1])  //G
+  +0.055*(Global::diffuseDayLight[2]+Global::ambientDayLight[2]); //B
+ if (Global::fMoveLight>=0.0)
+ {//przeliczenie koloru nieba
+  vector3 sky=vector3(Global::AtmoColor[0],Global::AtmoColor[1],Global::AtmoColor[2]);
+  if (Global::fLuminance<0.25)
+  {//przyspieszenie zachodu/wschodu
+   sky*=4.0*Global::fLuminance; //nocny kolor nieba
+   GLfloat fog[3];
+   fog[0]=Global::FogColor[0]*4.0*Global::fLuminance;
+   fog[1]=Global::FogColor[1]*4.0*Global::fLuminance;
+   fog[2]=Global::FogColor[2]*4.0*Global::fLuminance;
+   glFogfv(GL_FOG_COLOR,fog); //nocny kolor mg³y
+  }
+  else
+   glFogfv(GL_FOG_COLOR,Global::FogColor); //kolor mg³y
+  glClearColor(sky.x,sky.y,sky.z,0.0); //kolor nieba
  }
 
  /*
@@ -691,7 +786,7 @@ bool __fastcall TWorld::Update()
        }
        lastmm=GlobalTime->mm;
     }
-	   */
+    */
 
     if (Pressed(VK_LBUTTON)&&Controlled)
     {
@@ -704,6 +799,7 @@ bool __fastcall TWorld::Update()
     }
     else if (Pressed(VK_RBUTTON)||Pressed(VK_F4))
     {//ABu 180404 powrot mechanika na siedzenie albo w okolicê pojazdu
+     //if (Pressed(VK_F4)) Global::iViewMode=VK_F4;
      //Ra: na zewn¹trz wychodzimy w Train.cpp
      Camera.Reset(); //likwidacja obrotów - patrzy horyzontalnie na po³udnie
      if (Controlled) //jest pojazd do prowadzenia?
@@ -726,7 +822,7 @@ bool __fastcall TWorld::Update()
        Camera.Pitch-=atan(Train->vMechVelocity.z*Train->fMechPitch);  //hustanie kamery przod tyl
        if (Train->DynamicObject->MoverParameters->ActiveCab==0)
         Camera.LookAt=Train->pMechPosition+Train->GetDirection();
-       else  //patrz w strone wlasciwej kabiny
+       else //patrz w strone wlasciwej kabiny
         Camera.LookAt=Train->pMechPosition+Train->GetDirection()*Train->DynamicObject->MoverParameters->ActiveCab;
        Train->pMechOffset.x=Train->pMechSittingPosition.x;
        Train->pMechOffset.y=Train->pMechSittingPosition.y;
@@ -737,49 +833,49 @@ bool __fastcall TWorld::Update()
     }
     else if (Pressed(VK_F10))
     {//tu mozna dodac dopisywanie do logu przebiegu lokomotywy
+     //Global::iViewMode=VK_F10;
      return false;
     }
     Camera.Update(); //uwzglêdnienie ruchu wywo³anego klawiszami
 
-    double dt= GetDeltaTime();
+    double dt=GetDeltaTime();
     double iter;
-    int n= 1;
+    int n=1;
     if (dt>fMaxDt)
     {
-        iter= ceil(dt/fMaxDt);
-        n= iter;
-        dt= dt/iter;
+     iter=ceil(dt/fMaxDt);
+     n=iter;
+     dt=dt/iter;
     }
-    if (n>20)
-        n= 20; //McZapkie-081103: przesuniecie granicy FPS z 10 na 5
+    if (n>20) n=20; //McZapkie-081103: przesuniecie granicy FPS z 10 na 5
     //blablabla
     //Sleep(50);
     Ground.Update(dt,n); //ABu: zamiast 'n' bylo: 'Camera.Type==tp_Follow'
-//        Ground.Update(0.01,Camera.Type==tp_Follow);
-    dt= GetDeltaTime();
+    //Ground.Update(0.01,Camera.Type==tp_Follow);
+    dt=GetDeltaTime();
     if (Camera.Type==tp_Follow)
     {
-        Train->UpdateMechPosition(dt);
-        Camera.Pos= Train->pMechPosition;//Train.GetPosition1();
-        Camera.Roll= atan(Train->pMechShake.x*Train->fMechRoll);       //hustanie kamery na boki
-        Camera.Pitch-= atan(Train->vMechVelocity.z*Train->fMechPitch);  //hustanie kamery przod tyl
-        //ABu011104: rzucanie pudlem
-            vector3 temp;
-            if (abs(Train->pMechShake.y)<0.25)
-               temp=vector3(0,0,6*Train->pMechShake.y);
-            else
-               if ((Train->pMechShake.y)>0)
-                  temp=vector3(0,0,6*0.25);
-               else
-                  temp=vector3(0,0,-6*0.25);
-            if (Controlled) Controlled->ABuSetModelShake(temp);
-        //ABu: koniec rzucania
+     Train->UpdateMechPosition(dt);
+     Camera.Pos=Train->pMechPosition;//Train.GetPosition1();
+     Camera.Roll=atan(Train->pMechShake.x*Train->fMechRoll);       //hustanie kamery na boki
+     Camera.Pitch-=atan(Train->vMechVelocity.z*Train->fMechPitch);  //hustanie kamery przod tyl
+     //ABu011104: rzucanie pudlem
+     vector3 temp;
+     if (abs(Train->pMechShake.y)<0.25)
+      temp=vector3(0,0,6*Train->pMechShake.y);
+     else
+      if ((Train->pMechShake.y)>0)
+       temp=vector3(0,0,6*0.25);
+      else
+       temp=vector3(0,0,-6*0.25);
+     if (Controlled) Controlled->ABuSetModelShake(temp);
+     //ABu: koniec rzucania
 
-        if (Train->DynamicObject->MoverParameters->ActiveCab==0)
-          Camera.LookAt= Train->pMechPosition+Train->GetDirection();
-        else  //patrz w strone wlasciwej kabiny
-         Camera.LookAt= Train->pMechPosition+Train->GetDirection()*Train->DynamicObject->MoverParameters->ActiveCab; //-1 albo 1
-        Camera.vUp= Train->GetUp();
+     if (Train->DynamicObject->MoverParameters->ActiveCab==0)
+      Camera.LookAt=Train->pMechPosition+Train->GetDirection();
+     else  //patrz w strone wlasciwej kabiny
+      Camera.LookAt=Train->pMechPosition+Train->GetDirection()*Train->DynamicObject->MoverParameters->ActiveCab; //-1 albo 1
+     Camera.vUp= Train->GetUp();
     }
 
     Ground.CheckQuery();
@@ -818,10 +914,6 @@ bool __fastcall TWorld::Update()
   //  lightsum+=Global::diffuseDayLight[i];
   //  lightsum+=Global::ambientDayLight[i];
   // }
-  Global::fLuminance= //to pos³u¿y równie¿ do zapalania latarñ
-   +0.150*(Global::diffuseDayLight[0]+Global::ambientDayLight[0])  //R
-   +0.295*(Global::diffuseDayLight[1]+Global::ambientDayLight[1])  //G
-   +0.055*(Global::diffuseDayLight[0]+Global::ambientDayLight[0]); //B
   if (Global::fLuminance<=0.25)
    {
     glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_ONE);
@@ -911,25 +1003,25 @@ bool __fastcall TWorld::Update()
     glPopMatrix ( );
 //**********************************************************************************************************
    } //koniec if (Train)
-
- if (Global::fMoveLight>0)
- {//tymczasowy "zegar s³oneczny"
-  float x=0.0f,y=10.0f,z=0.0f;
+/*
+ if (Global::fMoveLight>=0)
+ {//Ra: tymczasowy "zegar s³oneczny"
+  float x=0.0f,y=10.0f,z=0.0f; //œrodek tarczy
   glColor3f(1.0f,1.0f,1.0f);
   glDisable(GL_LIGHTING);
-  glBegin(GL_LINES);		        // Drawing using triangles
-   x+=2.0*Global::lightPos[0];
-   y+=2.0*Global::lightPos[1];
-   z+=2.0*Global::lightPos[2];
-   glVertex3f(x,y,z);
-   x+=8.0*Global::lightPos[0];
-   y+=8.0*Global::lightPos[1];
-   z+=8.0*Global::lightPos[2];
-   glVertex3f(x,y,z); //wskazuje kierunek S³oñca
+  glBegin(GL_LINES); //linia
+   x+=1.0*Global::lightPos[0];
+   y+=1.0*Global::lightPos[1];
+   z+=1.0*Global::lightPos[2];
+   glVertex3f(x,y,z); //pocz¹tek wskazówki
+   x+=10.0*Global::lightPos[0];
+   y+=10.0*Global::lightPos[1];
+   z+=10.0*Global::lightPos[2];
+   glVertex3f(x,y,z); //koniec wskazuje kierunek S³oñca
   glEnd();
   glEnable(GL_LIGHTING);
  }
-
+*/
     if (DebugModeFlag)
      {
        OutText1= "  FPS: ";
@@ -950,8 +1042,9 @@ bool __fastcall TWorld::Update()
     if (Pressed(VK_F6))
        {Global::slowmotion=false;};*/
 
-    if (Pressed(VK_F8))
+    if (Global::iTextMode==VK_F8)
     {
+     Global::iViewMode=VK_F8;
      OutText1="  FPS: ";
      OutText1+=FloatToStrF(GetFPS(),ffFixed,6,2);
      if (Global::slowmotion)
@@ -1007,6 +1100,7 @@ bool __fastcall TWorld::Update()
     */
     if (Pressed(VK_F6)&&(DebugModeFlag))
     {
+     Global::iViewMode=VK_F6;
        //OutText1=FloatToStrF(arg,ffFixed,2,4)+", ";
        //OutText1+=FloatToStrF(p2,ffFixed,7,4)+", ";
        GlobalTime->UpdateMTableTime(100);
@@ -1075,8 +1169,9 @@ bool __fastcall TWorld::Update()
        Global::changeDynObj=false;
     }
 
-    if (Pressed(VK_F1))
+    if (Global::iTextMode==VK_F1)
     {//tekst pokazywany po wciœniêciu [F1]
+     //Global::iViewMode=VK_F1;
      OutText1="Time: "+AnsiString((int)GlobalTime->hh)+":";
      int i=GlobalTime->mm; //bo inaczej potrafi zrobiæ "hh:010"
      if (i<10) OutText1+="0";
@@ -1085,20 +1180,24 @@ bool __fastcall TWorld::Update()
      i=floor(GlobalTime->mr); //bo inaczej potrafi zrobiæ "hh:mm:010"
      if (i<10) OutText1+="0";
      OutText1+=AnsiString(i);
-     OutText2="";
+     if (Controlled)
+      OutText2=Controlled->TrainParams->ShowRelation();
      //double CtrlPos=Controlled->MoverParameters->MainCtrlPos;
      //double CtrlPosNo=Controlled->MoverParameters->MainCtrlPosNo;
      //OutText2="defrot="+FloatToStrF(1+0.4*(CtrlPos/CtrlPosNo),ffFixed,2,5);
      OutText3=""; //Pomoc w sterowaniu - [F9]";
     }
-    if (Pressed(VK_F12))
+    if (Global::iTextMode==VK_F12)
     {
+     //Global::iViewMode=VK_F12;
+
        //Takie male info :)
        OutText1= AnsiString("Online documentation (PL): http://eu07.pl");
     }
 
-    if (Pressed(VK_F2))
-     {
+    if (Global::iTextMode==VK_F2)
+    {
+     //Global::iViewMode=VK_F2;
        //ABu: info dla najblizszego pojazdu!
        TDynamicObject *tmp;
        if (FreeFlyModeFlag)
@@ -1300,8 +1399,9 @@ bool __fastcall TWorld::Update()
  if (Global::detonatoryOK)
  {
   //if (Pressed(VK_F9)) ShowHints(); //to nie dzia³a prawid³owo - prosili wy³¹czyæ
-  if (Pressed(VK_F9))
+  if (Global::iTextMode==VK_F9)
   {//informacja o wersji, sposobie wyœwietlania i b³êdach OpenGL
+   //Global::iViewMode=VK_F9;
    OutText1=Global::asVersion; //informacja o wersji
    OutText2=AnsiString("Rendering mode: ")+(Global::bUseVBO?"VBO":"Display Lists");
    GLenum err=glGetError();
@@ -1339,10 +1439,18 @@ bool __fastcall TWorld::Update()
     glPrint(OutText3.c_str());
     OutText3="";
    }
+   //if (OutText4!="")
+   //{glRasterPos2f(-0.25f, 0.17f);
+   // glPrint(OutText4.c_str());
+   // OutText4="";
+   //}
   }
  }
- //glRasterPos2f(-0.25f, 0.17f);
- //glPrint(OutText4.c_str());
+ //if (Global::iViewMode!=Global::iTextMode)
+ //{//Ra: taka maksymalna prowizorka na razie
+ // WriteLog("Pressed function key F"+AnsiString(Global::iViewMode-111));
+ // Global::iTextMode=Global::iViewMode;
+ //}
  glEnable(GL_LIGHTING);
  return (true);
 };
@@ -1356,7 +1464,7 @@ double __fastcall ABuAcos(vector3 calc_temp)
    double calc_angle;
    if(fabs(calc_temp.x)>fabs(calc_temp.z)) {calc_sin=false; }
                                       else {calc_sin=true;  };
-   double calc_dist=sqrt((calc_temp.x*calc_temp.x)+(calc_temp.z*calc_temp.z));
+   double calc_dist=hypot(calc_temp.x,calc_temp.z);
    if (calc_dist!=0)
    {
         if(calc_sin)
@@ -1408,16 +1516,16 @@ bool __fastcall TWorld::Render()
     {//renderowanie przez VBO
      if (!Ground.RaRender(Camera.Pos)) return false;
      if (Global::bRenderAlpha)
-       if (!Ground.RaRenderAlpha(Camera.Pos))
-          return false;
+      if (!Ground.RaRenderAlpha(Camera.Pos))
+       return false;
     }
     else
 #endif
     {//renderowanie przez Display List
      if (!Ground.Render(Camera.Pos)) return false;
      if (Global::bRenderAlpha)
-       if (!Ground.RenderAlpha(Camera.Pos))
-          return false;
+      if (!Ground.RenderAlpha(Camera.Pos))
+       return false;
     }
     TSubModel::iInstance=(int)(Train?Train->DynamicObject:0); //¿eby nie robiæ cudzych animacji
 //    if (Camera.Type==tp_Follow)
@@ -1435,7 +1543,7 @@ bool __fastcall TWorld::Render()
 };
 
 void TWorld::ShowHints(void)
-{
+{//Ra: nie u¿ywaæ tego, bo Ÿle dzia³a
    glBindTexture(GL_TEXTURE_2D, 0);
    glColor4f(0.3f,1.0f,0.3f,1.0f);
    glLoadIdentity();
@@ -1578,12 +1686,12 @@ void __fastcall TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
   switch (pRozkaz->iComm)
   {
    case 0: //odes³anie identyfikatora wersji
-    Ground.WyslijString(Global::asVersion,0); //tor wolny
+    Ground.WyslijString(Global::asVersion,0); //przedsatwienie siê
     break;
    case 2: //event
     if (Global::bMultiplayer)
     {//WriteLog("Komunikat: "+AnsiString(pRozkaz->Name1));
-     TEvent *e=Ground.FindEvent(AnsiString(pRozkaz->cString+1,int(pRozkaz->cString[0])));
+     TEvent *e=Ground.FindEvent(AnsiString(pRozkaz->cString+1,(unsigned)(pRozkaz->cString[0])));
      if (e)
       if (e->Type==tp_Multiple) //szybciej by by³o szukaæ tylko po tp_Multiple
        Ground.AddToQuery(e,NULL); //drugi parametr to dynamic wywo³uj¹cy - tu brak
@@ -1592,7 +1700,7 @@ void __fastcall TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
    case 3: //rozkaz dla AI
     if (Global::bMultiplayer)
     {int i=int(pRozkaz->cString[8]); //d³ugoœæ pierwszego ³añcucha (z przodu dwa floaty)
-     TGroundNode* t=Ground.FindDynamic(AnsiString(pRozkaz->cString+11+i,(int)pRozkaz->cString[10+i])); //nazwa pojazdu jest druga
+     TGroundNode* t=Ground.FindDynamic(AnsiString(pRozkaz->cString+11+i,(unsigned)pRozkaz->cString[10+i])); //nazwa pojazdu jest druga
      if (t)
      {WriteLog("AI command: "+AnsiString(pRozkaz->cString+9,i));
       t->DynamicObject->MoverParameters->SetInternalCommand(
@@ -1602,7 +1710,7 @@ void __fastcall TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
     break;
    case 4: //badanie zajêtoœci toru
     {
-     TGroundNode* t=Ground.FindGroundNode(AnsiString(pRozkaz->cString+1,int(pRozkaz->cString[0])),TP_TRACK);
+     TGroundNode* t=Ground.FindGroundNode(AnsiString(pRozkaz->cString+1,(unsigned)(pRozkaz->cString[0])),TP_TRACK);
      if (t)
       if (t->pTrack->IsEmpty())
        Ground.WyslijWolny(t->asName);
@@ -1612,11 +1720,20 @@ void __fastcall TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
     {
      if (*pRozkaz->iPar&0) //ustawienie czasu
      {double t=pRozkaz->fPar[1];
-      GlobalTime->dd=floor(t); //niby nie powinno byæ, ale...
+      GlobalTime->dd=floor(t); //niby nie powinno byæ dnia, ale...
+      if (Global::fMoveLight>=0)
+       Global::fMoveLight=t; //trzeba by deklinacjê S³oñca przeliczyæ
       GlobalTime->hh=floor(24*t)-24.0*GlobalTime->dd;
       GlobalTime->mm=floor(60*24*t)-60.0*(24.0*GlobalTime->dd+GlobalTime->hh);
       GlobalTime->mr=floor(60*60*24*t)-60.0*(60.0*(24.0*GlobalTime->dd+GlobalTime->hh)+GlobalTime->mm);
      }
+    }
+    break;
+   case 6: //pobranie parametrów ruchu pojazdu
+    if (Global::bMultiplayer)
+    {TGroundNode* t=Ground.FindDynamic(AnsiString(pRozkaz->cString+1,(unsigned)pRozkaz->cString[0])); //nazwa pojazdu
+     if (t)
+      Ground.WyslijNamiary(t); //wys³anie informacji o pojeŸdzie
     }
     break;
   }

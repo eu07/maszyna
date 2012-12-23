@@ -363,6 +363,7 @@ public:
  int iRendered; //iloœæ renderowanych sektorów
  void __fastcall WyslijString(const AnsiString &t,int n);
  void __fastcall WyslijWolny(const AnsiString &t);
+ void __fastcall WyslijNamiary(TGroundNode* t);
 };
 //---------------------------------------------------------------------------
 #endif

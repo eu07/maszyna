@@ -29,6 +29,7 @@
 #include "mover.hpp"
 #include "ai_driver.hpp"
 #include "Feedback.h"
+#include <Controls.hpp>
 
 
 //namespace Global {
@@ -73,7 +74,7 @@ GLfloat Global::diffuseLight[]    ={0.85f,0.85f,0.80f,1.0f};
 GLfloat Global::specularLight[]   ={0.95f,0.94f,0.90f,1.0f};
 GLfloat Global::whiteLight[]      ={1.00f,1.00f,1.00f,1.0f};
 GLfloat Global::noLight[]         ={0.00f,0.00f,0.00f,1.0f};
-GLfloat Global::darkLight[]       ={0.01f,0.01f,0.01f,1.0f}; //œladowe
+GLfloat Global::darkLight[]       ={0.03f,0.03f,0.03f,1.0f}; //œladowe
 GLfloat Global::lightPos[4];
 TGround *Global::pGround=NULL;
 //char Global::CreatorName1[30]="Maciej Czapkiewicz";
@@ -82,7 +83,6 @@ TGround *Global::pGround=NULL;
 //char Global::CreatorName4[30]="Arkadiusz Slusarczyk <Winger>";
 //char Global::CreatorName5[30]="Lukasz Kirchner <Nbmx>";
 char Global::szSceneryFile[256]="TD.scn";
-std::string Global::szDefaultExt("dds");
 AnsiString Global::asCurrentSceneryPath="scenery/";
 AnsiString Global::asHumanCtrlVehicle="EU07-424";
 AnsiString Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath);
@@ -104,7 +104,7 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 bool Global::bMultiplayer=false; //blokada dzia³ania niektórych eventów na rzecz kominikacji
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asVersion="Compilation 2011-04-14, release 1.3.110.148."; //tutaj, bo wysy³any
+AnsiString Global::asVersion="Compilation 2011-05-09, release 1.3.130.162."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 GLint Global::iMaxTextureSize=16384;//maksymalny rozmiar tekstury
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
@@ -112,6 +112,15 @@ bool Global::bDoubleAmbient=true; //podwójna jasnoœæ ambient
 double Global::fMoveLight=-1; //ruchome œwiat³o
 bool Global::bSmoothTraction=false; //wyg³adzanie drutów
 double Global::fSunDeclination=0.0; //deklinacja S³oñca
+double Global::fSunSpeed=1.0; //prêdkoœæ ruchu S³oñca, zmienna do testów
+double Global::fTimeAngleDeg=0.0; //godzina w postaci k¹ta
+double Global::fLatitudeDeg=52.0; //szerokoœæ geograficzna
+char* Global::szTexturesTGA[4]={"tga","dds","tex","bmp"}; //lista tekstur od TGA
+char* Global::szTexturesDDS[4]={"dds","tga","tex","bmp"}; //lista tekstur od DDS
+char** Global::szDefaultExt=Global::szTexturesDDS; //domyœlnie od DDS
+int Global::iMultisampling=2; //tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
+bool Global::bGlutFont=false; //tekst generowany przez GLUT
+int Global::iKeyLast=0; //ostatnio naciœniêty klawisz w celu logowania
 
 void __fastcall Global::LoadIniFile(AnsiString asFileName)
 {
@@ -210,7 +219,7 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
         else if (str==AnsiString("skyenabled"))
         {//youBy - niebo
          if (Parser->GetNextSymbol().LowerCase()==AnsiString("yes"))
-          asSky="1"; else asSky="0"; 
+          asSky="1"; else asSky="0";
         }
         else if (str==AnsiString("managenodes"))
         {
@@ -222,7 +231,11 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
         }
 // ShaXbee - domyslne rozszerzenie tekstur
         else if (str==AnsiString("defaultext"))
-         szDefaultExt=std::string(Parser->GetNextSymbol().LowerCase().c_str());
+        {str=Parser->GetNextSymbol().LowerCase(); //rozszerzenie
+         if (str=="tga")
+          szDefaultExt=szTexturesTGA; //domyœlnie od TGA
+         //szDefaultExt=std::string(Parser->GetNextSymbol().LowerCase().c_str());
+        }
         else if (str==AnsiString("newaircouplers"))
          bnewAirCouplers=(Parser->GetNextSymbol().LowerCase()==AnsiString("yes"));
         else if (str==AnsiString("defaultfiltering"))
@@ -256,7 +269,14 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
          bDoubleAmbient=(Parser->GetNextSymbol().LowerCase()==AnsiString("yes"));
         else if (str==AnsiString("movelight")) //numer dnia w roku albo -1
         {fMoveLight=Parser->GetNextSymbol().ToIntDef(-1); //numer dnia 1..365
-         if (fMoveLight>0)
+         if (fMoveLight==0.0)
+         {//pobranie daty z systemu
+          unsigned short y,m,d;
+          TDate date=Now();
+          date.DecodeDate(&y,&m,&d);
+          fMoveLight=(double)date-(double)TDate(y,1,1)+1; //numer bie¿¹cego dnia w roku
+         }
+         if (fMoveLight>0.0) //tu jest nadal zwiêkszone o 1
          {//obliczenie deklinacji wg http://en.wikipedia.org/wiki/Declination (XX wiek)
           fMoveLight=M_PI/182.5*(Global::fMoveLight-1.0); //numer dnia w postaci k¹ta
           fSunDeclination=0.006918-0.3999120*cos(  fMoveLight)+0.0702570*sin(  fMoveLight)
@@ -270,11 +290,26 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
         }
         else if (str==AnsiString("smoothtraction")) //podwójna jasnoœæ ambient
          bSmoothTraction=(Parser->GetNextSymbol().LowerCase()==AnsiString("yes"));
+        else if (str==AnsiString("sunspeed")) //prêdkoœæ ruchu S³oñca, zmienna do testów
+         fSunSpeed=Parser->GetNextSymbol().ToIntDef(1);
+        else if (str==AnsiString("multisampling")) //tryb antyaliasingu: 0=brak,1=2px,2=4px
+         iMultisampling=Parser->GetNextSymbol().ToIntDef(2); //domyœlnie 2
+        else if (str==AnsiString("glutfont")) //tekst generowany przez GLUT
+         bGlutFont=(Parser->GetNextSymbol().LowerCase()==AnsiString("yes"));
+        else if (str==AnsiString("latitude")) //szerokoœæ geograficzna
+         fLatitudeDeg=Parser->GetNextSymbol().ToDouble();
     }
+ //na koniec trochê zale¿noœci
  if (!bLoadTraction)
  {//tutaj wy³¹czenie, bo mog¹ nie byæ zdefiniowane w INI
   bEnableTraction=false;
   bLiveTraction=false;
+ }
+ //if (fMoveLight>0) bDoubleAmbient=false; //wtedy tylko jedno œwiat³o ruchome
+ //if (fOpenGL<1.3) iMultisampling=0; //mo¿na by z góry wy³¹czyæ, ale nie mamy jeszcze fOpenGL
+ if (iMultisampling)
+ {//antyaliasing ca³oekranowy wy³¹cza rozmywanie drutów
+  bSmoothTraction=false;
  }
  Feedback::ModeSet(iFeedbackMode); //tryb pracy interfejsu zwrotnego
 }

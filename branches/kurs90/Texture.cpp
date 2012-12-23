@@ -65,16 +65,16 @@ TTexturesManager::Names::iterator TTexturesManager::LoadFromFile(std::string fil
 
     AlphaValue texinfo;
 
-    if (ext == "tga")
-        texinfo = LoadTGA(realFileName,filter);
-    else if (ext == "tex")
-        texinfo = LoadTEX(realFileName);
-    else if (ext == "bmp")
-        texinfo = LoadBMP(realFileName);
-    else if (ext == "dds")
-        texinfo = LoadDDS(realFileName);
+    if (ext=="tga")
+     texinfo=LoadTGA(realFileName,filter);
+    else if (ext=="tex")
+     texinfo=LoadTEX(realFileName);
+    else if (ext=="bmp")
+     texinfo=LoadBMP(realFileName);
+    else if (ext=="dds")
+     texinfo=LoadDDS(realFileName,filter);
 
-    _alphas.insert(texinfo);
+    _alphas.insert(texinfo); //zapamiêtanie stanu przezroczystoœci tekstury - mo¿na by tylko przezroczyste
     std::pair<Names::iterator, bool> ret = _names.insert(std::make_pair(fileName, texinfo.first));
 
     if(!texinfo.first)
@@ -84,7 +84,7 @@ TTexturesManager::Names::iterator TTexturesManager::LoadFromFile(std::string fil
     };
 
     _alphas.insert(texinfo);
-    ret = _names.insert(std::make_pair(fileName, texinfo.first));
+    ret=_names.insert(std::make_pair(fileName,texinfo.first)); //dodanie tekstury do magazynu (spisu nazw)
 
     WriteLog("OK");
     return ret.first;
@@ -100,35 +100,58 @@ struct ReplaceSlash
 };
 
 GLuint TTexturesManager::GetTextureID(std::string fileName,int filter)
-{
-
-    std::transform(fileName.begin(), fileName.end(), fileName.begin(), ReplaceSlash());
-
-    // jesli biezaca sciezka do tekstur nie zostala dodana to dodajemy defaultowa
-    if (fileName.find('\\') == std::string::npos)
-        fileName.insert(0, szDefaultTexturePath);
-
-    if (fileName.find('.') == std::string::npos)
-    {
-        fileName.append(".");
-        fileName.append(Global::szDefaultExt);
-    };
-
-    Names::iterator iter = _names.find(fileName);
-
-    if (iter == _names.end())
-        iter = LoadFromFile(fileName,filter);
-
-    return (iter != _names.end() ? iter->second : 0);
-
+{//ustalenie numeru tekstury, wczytanie jeœli nie jeszcze takiej nie by³o
+ size_t pos=fileName.find(':'); //szukamy dwukropka
+ if (pos!=std::string::npos) //po dwukropku mog¹ byæ podane dodatkowe informacje
+  fileName=fileName.substr(0,pos); //niebêd¹ce nazw¹ tekstury
+ std::transform(fileName.begin(),fileName.end(),fileName.begin(),ReplaceSlash());
+ //jeœli bie¿aca œcie¿ka do tekstur nie zosta³a dodana to dodajemy domyœln¹
+ if (fileName.find('\\')==std::string::npos)
+  fileName.insert(0,szDefaultTexturePath);
+ Names::iterator iter;
+ if (fileName.find('.')==std::string::npos)
+ {//Ra: wypróbowanie rozszerzeñ po kolei, zaczynaj¹c od domyœlnego
+  fileName.append("."); //kropka bêdze na pewno, resztê trzeba próbowaæ
+  std::string test; //zmienna robocza
+  for (int i=0;i<4;++i)
+  {//najpierw szukamy w magazynie
+   test=fileName;
+   test.append(Global::szDefaultExt[i]);
+   iter=_names.find(fileName); //czy mamy ju¿ w magazynie?
+   if (iter!=_names.end())
+    return iter->second; //znalezione!
+   test.insert(0,szDefaultTexturePath); //jeszcze próba z dodatkow¹ œcie¿k¹
+   iter=_names.find(fileName); //czy mamy ju¿ w magazynie?
+   if (iter!=_names.end())
+    return iter->second; //znalezione!
+  }
+  for (int i=0;i<4;++i)
+  {//w magazynie nie ma, to sprawdzamy na dysku
+   test=fileName;
+   test.append(Global::szDefaultExt[i]);
+   std::ifstream file(test.c_str());
+   if (!file.is_open())
+   {test.insert(0,szDefaultTexturePath);
+    file.open(test.c_str());
+   }
+   if (file.is_open())
+   {
+    fileName.append(Global::szDefaultExt[i]); //dopisanie znalezionego
+    file.close();
+    break; //wyjœcie z pêtli na etapie danego rozszerzenia
+   }
+  }
+ }
+ iter=_names.find(fileName); //czy mamy ju¿ w magazynie
+ if (iter==_names.end())
+  iter=LoadFromFile(fileName,filter);
+ return (iter!=_names.end()?iter->second:0);
 }
 
 bool TTexturesManager::GetAlpha(GLuint id)
-{
-
-    Alphas::iterator iter = _alphas.find(id);
-    return (iter != _alphas.end() ? iter->second : false);
-
+{//atrybut przezroczystoœci dla tekstury o podanym numerze (id)
+ Alphas::iterator iter=_alphas.find(id);
+ return (iter!=_alphas.end()?iter->second:false);
 }
 
 TTexturesManager::AlphaValue TTexturesManager::LoadBMP(std::string fileName)
@@ -137,9 +160,9 @@ TTexturesManager::AlphaValue TTexturesManager::LoadBMP(std::string fileName)
     AlphaValue fail(0, false);
     std::ifstream file(fileName.c_str(), std::ios::binary);
 
-    if(file.eof())
+    if (!file.is_open())
     {
-        file.close();
+        //file.close();
         return fail;
     };
 
@@ -399,7 +422,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTEX(std::string fileName)
 
 };
 
-TTexturesManager::AlphaValue TTexturesManager::LoadDDS(std::string fileName)
+TTexturesManager::AlphaValue TTexturesManager::LoadDDS(std::string fileName,int filter)
 {
 
     AlphaValue fail(0, false);
@@ -474,13 +497,25 @@ TTexturesManager::AlphaValue TTexturesManager::LoadDDS(std::string fileName)
     GLuint id;
     glGenTextures(1, &id);
     glBindTexture(GL_TEXTURE_2D, id);
-
-    SetFiltering(true, fileName.find('#') != std::string::npos);
+    if (filter>=0)
+     SetFiltering(filter); //cyfra po % w nazwie
+    else
+     //SetFiltering(bHasAlpha&&bDollar,bHash); //znaki #, $ i kana³ alfa w nazwie
+     SetFiltering(data.components==4,fileName.find('#')!=std::string::npos);
 
     GLuint offset = 0;
+    int firstMipMap = 0;
+    
+    while(data.width > Global::iMaxTextureSize || data.height > Global::iMaxTextureSize)
+    {
+        offset += ((data.width + 3) / 4) * ((data.height+3)/4) * data.blockSize;
+        data.width /= 2;
+        data.height /= 2;
+        firstMipMap++;
+    };
 
     // Load the mip-map levels
-    for (int i = 0; i < data.numMipMaps; i++)
+    for (int i=0; i < data.numMipMaps - firstMipMap; i++)
     {
         if (!data.width) data.width = 1;
         if (!data.height) data.height = 1;
@@ -584,7 +619,7 @@ void TTexturesManager::SetFiltering(bool alpha, bool hash)
 ///////////////////////////////////////////////////////////////////////////////
 GLuint TTexturesManager::CreateTexture(char* buff,GLint bpp,int width,int height,bool bHasAlpha,bool bHash,bool bDollar,int filter)
 {//Ra: u¿ywane tylko dla TGA i TEX
- //Ra: dodaæ obs³ugê GL_BGR oraz GL_BGRA dla TGA - bêdzie siê szybciej wczytywaæ
+ //Ra: dodana obs³uga GL_BGR oraz GL_BGRA dla TGA - szybciej siê wczytuje
  GLuint ID;
  glGenTextures(1,&ID);
  glBindTexture(GL_TEXTURE_2D,ID);

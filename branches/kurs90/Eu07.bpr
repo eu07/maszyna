@@ -11,7 +11,8 @@
       AnimModel.obj Ground.obj TrkFoll.obj Segment.obj Sound.obj AdvSound.obj 
       Track.obj DynObj.obj RealSound.obj EvLaunch.obj FadeSound.obj Traction.obj 
       TractionPower.obj parser.obj sky.obj AirCoupler.obj glew.obj 
-      ResourceManager.obj VBO.obj Feedback.obj TextureDDS.obj"/>
+      ResourceManager.obj VBO.obj Feedback.obj TextureDDS.obj 
+      opengl\ARB_Multisample.obj"/>
     <RESFILES value="EU07.res"/>
     <IDLFILES value=""/>
     <IDLGENFILES value=""/>
@@ -25,7 +26,7 @@
       Dss50.bpi TeeQR50.bpi VCLIB50.bpi Vclmid50.bpi vclie50.bpi Inetdb50.bpi 
       Inet50.bpi NMFast50.bpi webmid50.bpi bcbie50.bpi dclocx50.bpi 
       bcb2kaxserver50.bpi"/>
-    <PATHCPP value=".;"/>
+    <PATHCPP value=".;opengl"/>
     <PATHPAS value=".;McZapkie"/>
     <PATHRC value=".;"/>
     <PATHASM value=".;"/>
@@ -35,12 +36,12 @@
     <USERDEFINES value="GLEW_STATIC;_DEBUG;USE_VBO"/>
     <SYSDEFINES value="_RTLDLL;NO_STRICT"/>
     <MAINSOURCE value="EU07.cpp"/>
-    <INCLUDEPATH value="McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
-    <LIBPATH value="McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
+    <INCLUDEPATH value="opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
+    <LIBPATH value="opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
     <WARNINGS value="-w-par"/>
   </MACROS>
   <OPTIONS>
-    <IDLCFLAGS value="-IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl -src_suffix cpp 
+    <IDLCFLAGS value="-Iopengl -IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl -src_suffix cpp 
       -DGLEW_STATIC -D_DEBUG -DUSE_VBO -boa"/>
     <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a4 -6 -b- -k -y -v -vi- 
       -c -tW -tWM"/>
@@ -60,8 +61,8 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=1
 MinorVer=3
-Release=110
-Build=148
+Release=130
+Build=162
 Debug=1
 PreRelease=0
 Special=0
@@ -73,7 +74,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424, Kurs 2013 edition
-FileVersion=1.3.110.148
+FileVersion=1.3.130.162
 InternalName=Kurs 2013
 LegalCopyright=
 LegalTrademarks=
@@ -84,11 +85,11 @@ Comments=
 
 [HistoryLists\hlIncludePath]
 Count=1
-Item0=McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Item0=opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
 
 [HistoryLists\hlLibraryPath]
 Count=1
-Item0=McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Item0=opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
 
 [HistoryLists\hlDebugSourcePath]
 Count=1
