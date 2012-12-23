@@ -20,7 +20,7 @@ __fastcall TAdvancedSound::~TAdvancedSound()
 {
 }
 
-__fastcall TAdvancedSound::Free()
+void __fastcall TAdvancedSound::Free()
 {
 }
 

@@ -18,26 +18,28 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#include    "system.hpp"
-#include    "classes.hpp"
-
-#include "opengl/glew.h"
-#include "opengl/glut.h"
-
+//nag³ówki identyczne w ka¿dym pliku...
 #pragma hdrstop
 
+#include "Track.h"
+#include "Usefull.h"
 #include "Texture.h"
 #include "Timer.h"
-#include "usefull.h"
 #include "Globals.h"
-#include "Track.h"
 #include "Ground.h"
+#include "parser.h"
+#include "Mover.hpp"
+#include "DynObj.h"
+
 
 #pragma package(smart_init)
 
 //101206 Ra: trapezoidalne drogi i tory
+//110720 Ra: rozprucie zwrotnicy i odcinki izolowane
 
-__fastcall TSwitchExtension::TSwitchExtension()
+TIsolated *TIsolated::pRoot=NULL;
+
+__fastcall TSwitchExtension::TSwitchExtension(TTrack *owner)
 {//na pocz¹tku wszystko puste
  CurrentIndex=0;
  pNexts[0]=NULL; //wskaŸniki do kolejnych odcinków ruchu
@@ -48,10 +50,71 @@ __fastcall TSwitchExtension::TSwitchExtension()
  pOwner=NULL;
  pNextAnim=NULL;
  bMovement=false; //nie potrzeba przeliczaæ fOffset1
+ Segments[0]=new TSegment(owner);
+ Segments[1]=new TSegment(owner);
+ Segments[3]=NULL;
+ Segments[4]=NULL;
+ EventPlus=EventMinus=NULL;
 }
 __fastcall TSwitchExtension::~TSwitchExtension()
 {//nie ma nic do usuwania
 }
+
+__fastcall TIsolated::TIsolated()
+{//utworznie pustego
+ TIsolated("none",NULL);
+};
+__fastcall TIsolated::TIsolated(const AnsiString &n,TIsolated *i)
+{//utworznie obwodu izolowanego
+ asName=n;
+ pNext=i;
+ iAxles=0;
+ eBusy=eFree=NULL;
+};
+
+__fastcall TIsolated::~TIsolated()
+{//usuwanie
+/*
+ TIsolated *p=pRoot;
+ while (pRoot)
+ {
+  p=pRoot;
+  p->pNext=NULL;
+  delete p;
+ }
+*/
+};
+
+TIsolated* __fastcall TIsolated::Find(const AnsiString &n)
+{//znalezienie obiektu albo utworzenie nowego
+ TIsolated *p=pRoot;
+ while (p)
+ {//jeœli siê znajdzie, to podaæ wskaŸnik
+  if (p->asName==n) return p;
+  p=p->pNext;
+ }
+ pRoot=new TIsolated(n,pRoot);
+ return pRoot;
+};
+
+void __fastcall TIsolated::Modify(int i,TDynamicObject *o)
+{//dodanie lub odjêcie osi
+ if (iAxles)
+ {//grupa zajêta
+  iAxles+=i;
+  if (!iAxles)
+   if (eFree)
+    Global::pGround->AddToQuery(eFree,o); //dodanie zwolnienia do kolejki
+ }
+ else
+ {//grupa by³a wolna
+  iAxles+=i;
+  if (iAxles)
+   if (eBusy)
+    Global::pGround->AddToQuery(eBusy,o); //dodanie zajêtoœci do kolejki
+ }
+};
+
 
 __fastcall TTrack::TTrack()
 {//tworzenie nowego odcinka ruchu
@@ -64,6 +127,7 @@ __fastcall TTrack::TTrack()
  fTexHeight=0.6; //nowy profil podsypki ;)
  fTexWidth=0.9;
  fTexSlope=0.9;
+ eType=tt_Normal; //domyœlnie zwyk³y
  iCategoryFlag=1; //1-tor, 2-droga, 4-rzeka, 8-samolot?
  fTrackWidth=1.435; //rozstaw toru, szerokoœæ nawierzchni
  fFriction=0.15; //wspó³czynnik tarcia
@@ -72,6 +136,7 @@ __fastcall TTrack::TTrack()
  iDamageFlag=0;
  eEnvironment=e_flat;
  bVisible=true;
+ iEvents=0; //Ra: flaga informuj¹ca o obecnoœci eventów
  Event0=NULL;
  Event1=NULL;
  Event2=NULL;
@@ -87,8 +152,12 @@ __fastcall TTrack::TTrack()
  ScannedFlag=false;
  DisplayListID=0;
  iTrapezoid=0; //parametry kszta³tu: 0-standard, 1-przechy³ka, 2-trapez, 3-oba
- pTraction=NULL; //drut zasilaj¹cy najbli¿szy punktu 1 toru
- fTexRatio=1.0; //proporcja boków nawierzchni (¿eby zaoszczêdziæ na rozmiarach tekstur...)
+ pTraction=NULL; //drut zasilaj¹cy najbli¿szy Point1 toru
+ fTexRatio1=1.0; //proporcja boków tekstury nawierzchni (¿eby zaoszczêdziæ na rozmiarach tekstur...)
+ fTexRatio2=1.0; //proporcja boków tekstury chodnika (¿eby zaoszczêdziæ na rozmiarach tekstur...)
+ iPrevDirection=0; //domyœlnie wirtualne odcinki do³¹czamy stron¹ od Point1
+ iNextDirection=0;
+ pIsolated=NULL;
 }
 
 __fastcall TTrack::~TTrack()
@@ -104,36 +173,78 @@ void __fastcall TTrack::Init()
  switch (eType)
  {
   case tt_Switch:
-   SwitchExtension=new TSwitchExtension();
+  case tt_Cross:
+   SwitchExtension=new TSwitchExtension(this);
   break;
   case tt_Normal:
-   Segment=new TSegment();
+   Segment=new TSegment(this);
   break;
   case tt_Turn: //oba potrzebne
-   SwitchExtension=new TSwitchExtension();
-   Segment=new TSegment();
+   SwitchExtension=new TSwitchExtension(this);
+   Segment=new TSegment(this);
   break;
  }
 }
 
-void __fastcall TTrack::ConnectPrevPrev(TTrack *pTrack)
-{//³aczenie torów
+TTrack* __fastcall TTrack::NullCreate(int dir)
+{//tworzenie toru wykolejaj¹cego od strony (dir)
+ TGroundNode *tmp=new TGroundNode(); //node
+ tmp->iType=TP_TRACK;
+ TTrack* trk=new TTrack(); //tor; UWAGA! obrotnica mo¿e generowaæ du¿e iloœci tego
+ tmp->pTrack=trk;
+ trk->bVisible=false; //nie potrzeba pokazywaæ, zreszt¹ i tak nie ma tekstur
+ //trk->iTrapezoid=1; //s¹ przechy³ki do uwzglêdniania w rysowaniu
+ trk->iCategoryFlag=iCategoryFlag; //taki sam typ
+ trk->iDamageFlag=128; //wykolejenie
+ trk->fVelocity=0.0; //koniec jazdy
+ trk->Init(); //utworzenie segmentu
+ double r1,r2;
+ Segment->GetRolls(r1,r2); //pobranie przechy³ek na pocz¹tku toru
+ vector3 p1,cv1,cv2,p2; //bêdziem tworzyæ trajektoriê lotu
+ switch (dir)
+ {//³¹czenie z nowym torem
+  case 0:
+   p1=Segment->FastGetPoint_0();
+   p2=p1-450.0*Normalize(Segment->GetDirection1());
+   trk->Segment->Init(p1,p2,5,-RadToDeg(r1),70.0); //bo prosty, kontrolne wyliczane przy zmiennej przechy³ce
+   ConnectPrevPrev(trk,0);
+   break;
+  case 1:
+   p1=Segment->FastGetPoint_1();
+   p2=p1-450.0*Normalize(Segment->GetDirection2());
+   trk->Segment->Init(p1,p2,5,RadToDeg(r2),70.0); //bo prosty, kontrolne wyliczane przy zmiennej przechy³ce
+   ConnectNextPrev(trk,0);
+   break;
+  case 3: //na razie nie mo¿liwe
+   trk->ConnectPrevNext(trk,dir);
+   break; //do drugiego zwrotnicy... nie zadzia³a?
+ }
+ //trzeba jeszcze dodaæ do odpowiedniego segmentu, aby siê renderowa³y z niego pojazdy
+ tmp->pCenter=(0.5*(p1+p2)); //œrodek, aby siê mog³o wyœwietliæ
+ //Ra: to poni¿ej to pora¿ka, ale na razie siê nie da inaczej
+ Global::pGround->GetSubRect(tmp->pCenter.x,tmp->pCenter.z)->AddNode(tmp);
+ Global::pGround->GetSubRect(tmp->pCenter.x,tmp->pCenter.z)->Release(); //usuniêcie skompilowanych zasobów
+ return trk;
+};
+
+void __fastcall TTrack::ConnectPrevPrev(TTrack *pTrack,int typ)
+{//³aczenie torów - Point1 w³asny do Point1 cudzego
  if (pTrack)
  {
   pPrev=pTrack;
-  bPrevSwitchDirection=true;
+  iPrevDirection=0;
   pTrack->pPrev=this;
-  pTrack->bPrevSwitchDirection=true;
+  pTrack->iPrevDirection=0;
  }
 }
-void __fastcall TTrack::ConnectPrevNext(TTrack *pTrack)
-{
+void __fastcall TTrack::ConnectPrevNext(TTrack *pTrack,int typ)
+{//³aczenie torów - Point1 w³asny do Point2 cudzego
  if (pTrack)
  {
   pPrev=pTrack;
-  bPrevSwitchDirection=false;
+  iPrevDirection=typ|1; //1:zwyk³y lub pierwszy zwrotnicy, 3:drugi zwrotnicy
   pTrack->pNext=this;
-  pTrack->bNextSwitchDirection=false;
+  pTrack->iNextDirection=0;
   if (bVisible)
    if (pTrack->bVisible)
     if (eType==tt_Normal) //jeœli ³¹czone s¹ dwa normalne
@@ -145,14 +256,14 @@ void __fastcall TTrack::ConnectPrevNext(TTrack *pTrack)
        pTrack->iTrapezoid|=2; //to rysujemy potworka
  }
 }
-void __fastcall TTrack::ConnectNextPrev(TTrack *pTrack)
-{
+void __fastcall TTrack::ConnectNextPrev(TTrack *pTrack,int typ)
+{//³aczenie torów - Point2 w³asny do Point1 cudzego
  if (pTrack)
  {
   pNext=pTrack;
-  bNextSwitchDirection=false;
+  iNextDirection=0;
   pTrack->pPrev=this;
-  pTrack->bPrevSwitchDirection=false;
+  pTrack->iPrevDirection=1;
   if (bVisible)
    if (pTrack->bVisible)
     if (eType==tt_Normal) //jeœli ³¹czone s¹ dwa normalne
@@ -164,14 +275,14 @@ void __fastcall TTrack::ConnectNextPrev(TTrack *pTrack)
        iTrapezoid|=2; //to rysujemy potworka
  }
 }
-void __fastcall TTrack::ConnectNextNext(TTrack *pTrack)
-{
+void __fastcall TTrack::ConnectNextNext(TTrack *pTrack,int typ)
+{//³aczenie torów - Point2 w³asny do Point2 cudzego
  if (pTrack)
  {
   pNext=pTrack;
-  bNextSwitchDirection=true;
+  iNextDirection=typ|1; //1:zwyk³y lub pierwszy zwrotnicy, 3:drugi zwrotnicy
   pTrack->pNext=this;
-  pTrack->bNextSwitchDirection=true;
+  pTrack->iNextDirection=1;
  }
 }
 
@@ -193,7 +304,7 @@ vector3 __fastcall LoadPoint(cParser *parser)
  return p;
 }
 
-void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin)
+void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
 {//pobranie obiektu trajektorii ruchu
  vector3 pt,vec,p1,p2,cp1,cp2;
  double a1,a2,r1,r2,d1,d2,a;
@@ -204,7 +315,7 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin)
 
  parser->getTokens();
  *parser >> token;
- str=AnsiString(token.c_str());
+ str=AnsiString(token.c_str()); //typ toru
 
  if (str=="normal")
  {
@@ -233,6 +344,10 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin)
  }
  else if (str=="river")
  {eType=tt_Normal;
+  iCategoryFlag=4;
+ }
+ else if (str=="tributary")
+ {eType=tt_Tributary;
   iCategoryFlag=4;
  }
  else
@@ -321,8 +436,8 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin)
     Segment->Init(p1,cp1+p1,cp2+p2,p2,segsize,r1,r2); //gdy ³uk (ustawia bCurve=true)
    if ((r1!=0)||(r2!=0)) iTrapezoid=1; //s¹ przechy³ki do uwzglêdniania w rysowaniu
    if (eType==tt_Turn) //obrotnica ma doklejkê
-   {SwitchExtension=new TSwitchExtension(); //zwrotnica ma doklejkê
-    SwitchExtension->Segments->Init(p1,p2,segsize); //kopia oryginalnego toru
+   {SwitchExtension=new TSwitchExtension(this); //zwrotnica ma doklejkê
+    SwitchExtension->Segments[0]->Init(p1,p2,segsize); //kopia oryginalnego toru
    }
    else if (iCategoryFlag==2)
     if (TextureID1&&fTexLength)
@@ -331,17 +446,22 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin)
      glBindTexture(GL_TEXTURE_2D,TextureID1);
      glGetTexLevelParameterfv(GL_TEXTURE_2D,0,GL_TEXTURE_WIDTH,&w);
      glGetTexLevelParameterfv(GL_TEXTURE_2D,0,GL_TEXTURE_HEIGHT,&h);
-     if (h!=0.0) fTexRatio=w/h; //proporcja boków
+     if (h!=0.0) fTexRatio1=w/h; //proporcja boków
+     glBindTexture(GL_TEXTURE_2D,TextureID2);
+     glGetTexLevelParameterfv(GL_TEXTURE_2D,0,GL_TEXTURE_WIDTH,&w);
+     glGetTexLevelParameterfv(GL_TEXTURE_2D,0,GL_TEXTURE_HEIGHT,&h);
+     if (h!=0.0) fTexRatio2=w/h; //proporcja boków
     }
   break;
 
   case tt_Cross: //skrzy¿owanie dróg - 4 punkty z wektorami kontrolnymi
   case tt_Switch: //zwrotnica
+  case tt_Tributary: //dop³yw
    //problemy z animacj¹ iglic powstaje, gdzy odcinek prosty ma zmienn¹ przechy³kê
    //wtedy dzieli siê na dodatkowe odcinki (po 0.2m, bo R=0) i animacjê diabli bior¹
    //Ra: na razie nie podejmujê siê przerabiania iglic
 
-   SwitchExtension=new TSwitchExtension(); //zwrotnica ma doklejkê
+   SwitchExtension=new TSwitchExtension(this); //zwrotnica ma doklejkê
 
    p1=LoadPoint(parser)+pOrigin; //pobranie wspó³rzêdnych P1
    parser->getTokens();
@@ -355,12 +475,17 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin)
    if (fRadiusTable[0]>0)
       segsize=Min0R(5.0,0.2+fRadiusTable[0]*0.02);
    else
-   {cp1=(p1+p1+p2)/3.0-p1; cp2=(p1+p2+p2)/3.0-p2; segsize=5.0;} //u³omny prosty
+    if (eType!=tt_Cross)
+    {//jak promieñ zerowy, to przeliczamy punkty kontrolne
+     cp1=(p1+p1+p2)/3.0-p1; //jak jest prosty, to siê zoptymalizuje
+     cp2=(p1+p2+p2)/3.0-p2;
+     segsize=5.0;
+    } //u³omny prosty
 
    if (!(cp1==vector3(0,0,0)) && !(cp2==vector3(0,0,0)))
-       SwitchExtension->Segments[0].Init(p1,cp1+p1,cp2+p2,p2,segsize,r1,r2);
+    SwitchExtension->Segments[0]->Init(p1,cp1+p1,cp2+p2,p2,segsize,r1,r2);
    else
-       SwitchExtension->Segments[0].Init(p1,p2,segsize,r1,r2);
+    SwitchExtension->Segments[0]->Init(p1,p2,segsize,r1,r2);
 
    p1=LoadPoint(parser)+pOrigin; //pobranie wspó³rzêdnych P3
    parser->getTokens();
@@ -377,17 +502,17 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin)
       segsize=5.0;
 
    if (!(cp1==vector3(0,0,0)) && !(cp2==vector3(0,0,0)))
-       SwitchExtension->Segments[1].Init(p1,cp1+p1,cp2+p2,p2,segsize,r1,r2);
+       SwitchExtension->Segments[1]->Init(p1,cp1+p1,cp2+p2,p2,segsize,r1,r2);
    else
-       SwitchExtension->Segments[1].Init(p1,p2,segsize,r1,r2);
+       SwitchExtension->Segments[1]->Init(p1,p2,segsize,r1,r2);
 
    Switch(0); //na sta³e w po³o¿eniu 0 - nie ma pocz¹tkowego stanu zwrotnicy we wpisie
 
    //Ra: zamieniæ póŸniej na iloczyn wektorowy
    {vector3 v1,v2;
     double a1,a2;
-    v1=SwitchExtension->Segments[0].FastGetPoint_1()-SwitchExtension->Segments[0].FastGetPoint_0();
-    v2=SwitchExtension->Segments[1].FastGetPoint_1()-SwitchExtension->Segments[1].FastGetPoint_0();
+    v1=SwitchExtension->Segments[0]->FastGetPoint_1()-SwitchExtension->Segments[0]->FastGetPoint_0();
+    v2=SwitchExtension->Segments[1]->FastGetPoint_1()-SwitchExtension->Segments[1]->FastGetPoint_0();
     a1=atan2(v1.x,v1.z);
     a2=atan2(v2.x,v2.z);
     a2=a2-a1;
@@ -403,228 +528,277 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin)
  while (str!="endtrack")
  {
   if (str=="event0")
-   {
-      parser->getTokens();
-      *parser >> token;
-      asEvent0Name=AnsiString(token.c_str());
-   }
-  else
-  if (str=="event1")
-   {
-      parser->getTokens();
-      *parser >> token;
-      asEvent1Name=AnsiString(token.c_str());
-   }
-  else
-  if (str=="event2")
-   {
-      parser->getTokens();
-      *parser >> token;
-      asEvent2Name=AnsiString(token.c_str());
-   }
-  else
-  if (str=="eventall0")
-   {
-      parser->getTokens();
-      *parser >> token;
-      asEventall0Name=AnsiString(token.c_str());
-   }
-  else
-  if (str=="eventall1")
-   {
-      parser->getTokens();
-      *parser >> token;
-      asEventall1Name=AnsiString(token.c_str());
-   }
-  else
-  if (str=="eventall2")
-   {
-      parser->getTokens();
-      *parser >> token;
-      asEventall2Name=AnsiString(token.c_str());
-   }
-  else
-  if (str=="velocity")
-   {
-     parser->getTokens();
-     *parser >> fVelocity;
-//         fVelocity=Parser->GetNextSymbol().ToDouble(); //*0.28; McZapkie-010602
-   }
+  {
+   parser->getTokens();
+   *parser >> token;
+   asEvent0Name=AnsiString(token.c_str());
+  }
+  else if (str=="event1")
+  {
+   parser->getTokens();
+   *parser >> token;
+   asEvent1Name=AnsiString(token.c_str());
+  }
+  else if (str=="event2")
+  {
+   parser->getTokens();
+   *parser >> token;
+   asEvent2Name=AnsiString(token.c_str());
+  }
+  else if (str=="eventall0")
+  {
+   parser->getTokens();
+   *parser >> token;
+   asEventall0Name=AnsiString(token.c_str());
+  }
+  else if (str=="eventall1")
+  {
+   parser->getTokens();
+   *parser >> token;
+   asEventall1Name=AnsiString(token.c_str());
+  }
+  else if (str=="eventall2")
+  {
+   parser->getTokens();
+   *parser >> token;
+   asEventall2Name=AnsiString(token.c_str());
+  }
+  else if (str=="velocity")
+  {
+   parser->getTokens();
+   *parser >> fVelocity; //*0.28; McZapkie-010602
+  }
+  else if (str=="isolated")
+  {//obwód izolowany, do którego tor nale¿y
+   parser->getTokens();
+   *parser >> token;
+   pIsolated=TIsolated::Find(AnsiString(token.c_str()));
+  }
+  else if (str=="angle1")
+  {//k¹t œciêcia od strony 1
+   parser->getTokens();
+   *parser >> a1;
+   Segment->AngleSet(0,a1);
+  }
+  else if (str=="angle2")
+  {//k¹t œciêcia od strony 2
+   parser->getTokens();
+   *parser >> a2;
+   Segment->AngleSet(1,a2);
+  }
   else
    Error("Unknown track property: \""+str+"\"");
   parser->getTokens(); *parser >> token;
   str=AnsiString(token.c_str());
  }
+ //alternatywny zapis nazwy odcinka izolowanego - po znaku "@" w nazwie toru
+ if (!pIsolated)
+  if ((i=name.Pos("@"))>0)
+   if (i<name.Length()) //nie mo¿e byæ puste
+    pIsolated=TIsolated::Find(name.SubString(i+1,name.Length()));
 }
 
 bool __fastcall TTrack::AssignEvents(TEvent *NewEvent0,TEvent *NewEvent1,TEvent *NewEvent2)
 {
-    bool bError=false;
-    if (!Event0)
-    {
-        if (NewEvent0)
-        {
-            Event0=NewEvent0;
-            asEvent0Name="";
-        }
-        else
-        {
-            if (!asEvent0Name.IsEmpty())
-            {
-                Error(AnsiString("Event0 \"")+asEvent0Name+AnsiString("\" does not exist"));
-                bError=true;
-            }
-        }
-    }
-    else
-    {
-        Error(AnsiString("Event 0 cannot be assigned to track, track already has one"));
-        bError=true;
-    }
-
-    if (!Event1)
-    {
-        if (NewEvent1)
-        {
-            Event1=NewEvent1;
-            asEvent1Name="";
-        }
-        else
-        {
-            if (!asEvent0Name.IsEmpty())
-            {//Ra: tylko w logu informacja
-                WriteLog(AnsiString("Event1 \"")+asEvent1Name+AnsiString("\" does not exist").c_str());
-                bError=true;
-            }
-        }
-    }
-    else
-    {
-        Error(AnsiString("Event 1 cannot be assigned to track, track already has one"));
-        bError=true;
-    }
-
-    if (!Event2)
-    {
-        if (NewEvent2)
-        {
-            Event2=NewEvent2;
-            asEvent2Name="";
-        }
-        else
-        {
-            if (!asEvent0Name.IsEmpty())
-            {//Ra: tylko w logu informacja
-                WriteLog(AnsiString("Event2 \"")+asEvent2Name+AnsiString("\" does not exist"));
-                bError=true;
-            }
-        }
-    }
-    else
-    {
-        Error(AnsiString("Event 2 cannot be assigned to track, track already has one"));
-        bError=true;
-    }
-    return !bError;
+ bool bError=false;
+ if (!Event0)
+ {
+  if (NewEvent0)
+  {
+   Event0=NewEvent0;
+   asEvent0Name="";
+   iEvents|=1; //sumaryczna informacja o eventach
+  }
+  else
+  {
+   if (!asEvent0Name.IsEmpty())
+   {
+    Error(AnsiString("Event0 \"")+asEvent0Name+AnsiString("\" does not exist"));
+    bError=true;
+   }
+  }
+ }
+ else
+ {
+  Error(AnsiString("Event 0 cannot be assigned to track, track already has one"));
+  bError=true;
+ }
+ if (!Event1)
+ {
+  if (NewEvent1)
+  {
+   Event1=NewEvent1;
+   asEvent1Name="";
+   iEvents|=2; //sumaryczna informacja o eventach
+  }
+  else
+  {
+   if (!asEvent0Name.IsEmpty())
+   {//Ra: tylko w logu informacja
+    WriteLog(AnsiString("Event1 \"")+asEvent1Name+AnsiString("\" does not exist").c_str());
+    bError=true;
+   }
+  }
+ }
+ else
+ {
+  Error(AnsiString("Event 1 cannot be assigned to track, track already has one"));
+  bError=true;
+ }
+ if (!Event2)
+ {
+  if (NewEvent2)
+  {
+   Event2=NewEvent2;
+   asEvent2Name="";
+   iEvents|=4; //sumaryczna informacja o eventach
+  }
+  else
+  {
+   if (!asEvent0Name.IsEmpty())
+   {//Ra: tylko w logu informacja
+    WriteLog(AnsiString("Event2 \"")+asEvent2Name+AnsiString("\" does not exist"));
+    bError=true;
+   }
+  }
+ }
+ else
+ {
+  Error(AnsiString("Event 2 cannot be assigned to track, track already has one"));
+  bError=true;
+ }
+ return !bError;
 }
 
 bool __fastcall TTrack::AssignallEvents(TEvent *NewEvent0,TEvent *NewEvent1,TEvent *NewEvent2)
 {
-    bool bError=false;
-    if (!Eventall0)
-    {
-        if (NewEvent0)
-        {
-            Eventall0=NewEvent0;
-            asEventall0Name="";
-        }
-        else
-        {
-            if (!asEvent0Name.IsEmpty())
-            {
-                Error(AnsiString("Eventall 0 \"")+asEventall0Name+AnsiString("\" does not exist"));
-                bError=true;
-            }
-        }
-    }
-    else
-    {
-        Error(AnsiString("Eventall 0 cannot be assigned to track, track already has one"));
-        bError=true;
-    }
-
-    if (!Eventall1)
-    {
-        if (NewEvent1)
-        {
-            Eventall1=NewEvent1;
-            asEventall1Name="";
-        }
-        else
-        {
-            if (!asEvent0Name.IsEmpty())
-            {//Ra: tylko w logu informacja
-                WriteLog(AnsiString("Eventall 1 \"")+asEventall1Name+AnsiString("\" does not exist"));
-                bError=true;
-            }
-        }
-    }
-    else
-    {
-        Error(AnsiString("Eventall 1 cannot be assigned to track, track already has one"));
-        bError=true;
-    }
-
-    if (!Eventall2)
-    {
-        if (NewEvent2)
-        {
-            Eventall2=NewEvent2;
-            asEventall2Name="";
-        }
-        else
-        {
-            if (!asEvent0Name.IsEmpty())
-            {//Ra: tylko w logu informacja
-                WriteLog(AnsiString("Eventall 2 \"")+asEventall2Name+AnsiString("\" does not exist"));
-                bError=true;
-            }
-        }
-    }
-    else
-    {
-        Error(AnsiString("Eventall 2 cannot be assigned to track, track already has one"));
-        bError=true;
-    }
-    return !bError;
+ bool bError=false;
+ if (!Eventall0)
+ {
+  if (NewEvent0)
+  {
+   Eventall0=NewEvent0;
+   asEventall0Name="";
+   iEvents|=8; //sumaryczna informacja o eventach
+  }
+  else
+  {
+   if (!asEvent0Name.IsEmpty())
+   {
+    Error(AnsiString("Eventall 0 \"")+asEventall0Name+AnsiString("\" does not exist"));
+    bError=true;
+   }
+  }
+ }
+ else
+ {
+  Error(AnsiString("Eventall 0 cannot be assigned to track, track already has one"));
+  bError=true;
+ }
+ if (!Eventall1)
+ {
+  if (NewEvent1)
+  {
+   Eventall1=NewEvent1;
+   asEventall1Name="";
+   iEvents|=16; //sumaryczna informacja o eventach
+  }
+  else
+  {
+   if (!asEvent0Name.IsEmpty())
+   {//Ra: tylko w logu informacja
+    WriteLog(AnsiString("Eventall 1 \"")+asEventall1Name+AnsiString("\" does not exist"));
+    bError=true;
+   }
+  }
+ }
+ else
+ {
+  Error(AnsiString("Eventall 1 cannot be assigned to track, track already has one"));
+  bError=true;
+ }
+ if (!Eventall2)
+ {
+  if (NewEvent2)
+  {
+   Eventall2=NewEvent2;
+   asEventall2Name="";
+   iEvents|=32; //sumaryczna informacja o eventach
+  }
+  else
+  {
+   if (!asEvent0Name.IsEmpty())
+   {//Ra: tylko w logu informacja
+    WriteLog(AnsiString("Eventall 2 \"")+asEventall2Name+AnsiString("\" does not exist"));
+    bError=true;
+   }
+  }
+ }
+ else
+ {
+  Error(AnsiString("Eventall 2 cannot be assigned to track, track already has one"));
+  bError=true;
+ }
+ return !bError;
 }
+
+bool __fastcall TTrack::AssignForcedEvents(TEvent *NewEventPlus, TEvent *NewEventMinus)
+{//ustawienie eventów sygnalizacji rozprucia
+ if (SwitchExtension)
+ {if (NewEventPlus)
+   SwitchExtension->EventPlus=NewEventPlus;
+  if (NewEventMinus)
+   SwitchExtension->EventMinus=NewEventMinus;
+  return true;
+ }
+ return false;
+};
+
+AnsiString __fastcall TTrack::IsolatedName()
+{//podaje nazwê odcinka izolowanego, jesli nie ma on jeszcze przypisanych zdarzeñ
+ if (pIsolated)
+  if (!pIsolated->eBusy&&!pIsolated->eFree)
+   return pIsolated->asName;
+ return "";
+};
+
+bool __fastcall TTrack::IsolatedEventsAssign(TEvent *busy, TEvent *free)
+{//ustawia zdarzenia dla odcinka izolowanego
+ if (pIsolated)
+ {if (busy)
+   pIsolated->eBusy=busy;
+  if (free)
+   pIsolated->eFree=free;
+  return true;
+ }
+ return false;
+};
 
 
 //ABu: przeniesione z Track.h i poprawione!!!
 bool __fastcall TTrack::AddDynamicObject(TDynamicObject *Dynamic)
-{
-    if (iNumDynamics<iMaxNumDynamics)
-    {
-        Dynamics[iNumDynamics]=Dynamic;
-        iNumDynamics++;
-        Dynamic->MyTrack=this; //ABu: Na ktorym torze jestesmy.
-        return true;
-    }
-    else
-    {
-        Error("Cannot add dynamic to track");
-        return false;
-    }
+{//dodanie pojazdu do trajektorii
+ if (iNumDynamics<iMaxNumDynamics)
+ {//jeœli jest miejsce, dajemy na koniec
+  Dynamics[iNumDynamics++]=Dynamic;
+  Dynamic->MyTrack=this; //ABu: na ktorym torze jesteœmy
+  return true;
+ }
+ else
+ {
+  Error("Too many dynamics on track.");
+  return false;
+ }
 };
 
 void __fastcall TTrack::MoveMe(vector3 pPosition)
 {
     if(SwitchExtension)
     {
-        SwitchExtension->Segments[0].MoveMe(1*pPosition);
-        SwitchExtension->Segments[1].MoveMe(1*pPosition);
-        SwitchExtension->Segments[2].MoveMe(3*pPosition); //Ra: 3 razy?
-        SwitchExtension->Segments[3].MoveMe(4*pPosition);
+        SwitchExtension->Segments[0]->MoveMe(1*pPosition);
+        SwitchExtension->Segments[1]->MoveMe(1*pPosition);
+        SwitchExtension->Segments[2]->MoveMe(3*pPosition); //Ra: 3 razy?
+        SwitchExtension->Segments[3]->MoveMe(4*pPosition);
     }
     else
     {
@@ -670,72 +844,42 @@ const vector6 iglica[nnumPts]= //iglica - vextor3(x,y,mapowanie tekstury)
 void __fastcall TTrack::Compile()
 {//przygotowanie trójk¹tów do wyœwielenia - model proceduralny
  if (DisplayListID)
-     Release(); //zwolnienie zasobów
+  Release(); //zwolnienie zasobów w celu ponownego utworzenia
 
  if (Global::bManageNodes)
  {
-     DisplayListID=glGenLists(1); //otwarcie nowej listy
-     glNewList(DisplayListID,GL_COMPILE);
+  DisplayListID=glGenLists(1); //otwarcie nowej listy
+  glNewList(DisplayListID,GL_COMPILE);
  };
-
- glColor3f(1.0f,1.0f,1.0f);
-
- //McZapkie-310702: zmiana oswietlenia w tunelu, wykopie
- GLfloat  ambientLight[4] ={0.5f,0.5f,0.5f,1.0f};
- GLfloat  diffuseLight[4] ={0.5f,0.5f,0.5f,1.0f};
- GLfloat  specularLight[4]={0.5f,0.5f,0.5f,1.0f};
-
- switch (eEnvironment)
- {//modyfikacje oœwietlenia zale¿nie od œrodowiska
-  case e_canyon: //wykop
-   for(int li=0; li<3; li++)
-   {
-    //ambientLight[li]=Global::ambientDayLight[li]*0.7;
-    diffuseLight[li]=Global::diffuseDayLight[li]*0.3;
-    specularLight[li]=Global::specularDayLight[li]*0.4;
-   }
-   //glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
-   glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
-   glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
-  break;
-  case e_tunnel: //tunel
-   for(int li=0; li<3; li++)
-   {
-    ambientLight[li]=Global::ambientDayLight[li]*0.2;
-    diffuseLight[li]=Global::diffuseDayLight[li]*0.1;
-    specularLight[li]=Global::specularDayLight[li]*0.2;
-   }
-   glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
-   glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
-   glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
-  break;
- }
-
+ glColor3f(1.0f,1.0f,1.0f); //to tutaj potrzebne?
+ //Ra: nie zmieniamy oœwietlenia przy kompilowaniu, poniewa¿ ono siê zmienia w czasie!
+ //trochê podliczonych zmiennych, co siê potem przydadz¹
  double fHTW=0.5*fabs(fTrackWidth); //po³owa szerokoœci
  double side=fabs(fTexWidth); //szerokœæ podsypki na zewn¹trz szyny albo pobocza
- double rozp=fHTW+side+fabs(fTexSlope); //brzeg zewnêtrzny
- double hypot1=hypot(fTexSlope,fTexHeight); //rozmiar pochylenia do liczenia normalnych
+ double slop=fabs(fTexSlope); //szerokoœæ pochylenia
+ double rozp=fHTW+side+slop; //brzeg zewnêtrzny
+ double hypot1=hypot(slop,fTexHeight); //rozmiar pochylenia do liczenia normalnych
  if (hypot1==0.0) hypot1=1.0;
  vector3 normal1=vector3(fTexSlope/hypot1,fTexHeight/hypot1,0.0); //wektor normalny
- double fHTW2,side2,rozp2,fTexHeight2,hypot2;
+ double fHTW2,side2,slop2,rozp2,fTexHeight2,hypot2;
  vector3 normal2;
  if (iTrapezoid&2) //ten bit oznacza, ¿e istnieje odpowiednie pNext
  {//Ra: na tym siê lubi wieszaæ, ciekawe co za œmieci siê pod³¹czaj¹...
   fHTW2=0.5*fabs(pNext->fTrackWidth); //po³owa rozstawu/nawierzchni
   side2=fabs(pNext->fTexWidth);
-  rozp2=fHTW2+side2+fabs(pNext->fTexSlope);
+  slop2=fabs(pNext->fTexSlope);
+  rozp2=fHTW2+side2+slop2;
   fTexHeight2=pNext->fTexHeight;
-  hypot2=hypot(pNext->fTexSlope,pNext->fTexHeight);
+  hypot2=hypot(slop2,pNext->fTexHeight);
   if (hypot2==0.0) hypot2=1.0;
   normal2=vector3(pNext->fTexSlope/hypot2,fTexHeight2/hypot2,0.0);
   //zabezpieczenia przed zawieszeniem - logowaæ to?
   if (fHTW2>5.0*fHTW) {fHTW2=fHTW; WriteLog("niedopasowanie 1");};
   if (side2>5.0*side) {side2=side; WriteLog("niedopasowanie 2");};
   if (rozp2>5.0*rozp) {rozp2=rozp; WriteLog("niedopasowanie 3");};
-  //if (fabs(fTexHeight2)>5.0*fabs(fTexHeight)) {fTexHeight2=fTexHeight; WriteLog("niedopasowanie 4");};
  }
  else //gdy nie ma nastêpnego albo jest nieodpowiednim koñcem podpiêty
- {fHTW2=fHTW; side2=side; rozp2=rozp; fTexHeight2=fTexHeight; normal2=normal1;}
+ {fHTW2=fHTW; side2=side; slop2=slop; rozp2=rozp; fTexHeight2=fTexHeight; normal2=normal1;}
  double roll1,roll2;
  switch (iCategoryFlag)
  {
@@ -760,13 +904,13 @@ void __fastcall TTrack::Compile()
     case tt_Turn: //obrotnica jak zwyk³y tor, tylko animacja dochodzi
      if (InMovement()) //jeœli siê krêci
      {//wyznaczamy wspó³rzêdne koñców, przy za³o¿eniu sta³ego œródka i d³ugoœci
-      double hlen=0.5*SwitchExtension->Segments->GetLength(); //po³owa d³ugoœci
+      double hlen=0.5*SwitchExtension->Segments[0]->GetLength(); //po³owa d³ugoœci
       //SwitchExtension->fOffset1=SwitchExtension->pAnim?SwitchExtension->pAnim->AngleGet():0.0; //pobranie k¹ta z modelu
       TAnimContainer *ac=SwitchExtension->pModel?SwitchExtension->pModel->GetContainer(NULL):NULL;
       if (ac)
        SwitchExtension->fOffset1=ac?180+ac->AngleGet():0.0; //pobranie k¹ta z modelu
       double sina=hlen*sin(DegToRad(SwitchExtension->fOffset1)),cosa=hlen*cos(DegToRad(SwitchExtension->fOffset1));
-      vector3 middle=SwitchExtension->Segments->FastGetPoint(0.5);
+      vector3 middle=SwitchExtension->Segments[0]->FastGetPoint(0.5);
       Segment->Init(middle+vector3(sina,0.0,cosa),middle-vector3(sina,0.0,cosa),5.0);
      }
     case tt_Normal:
@@ -833,25 +977,25 @@ void __fastcall TTrack::Compile()
       if (SwitchExtension->RightSwitch)
       {//nowa wersja z SPKS, ale odwrotnie lewa/prawa
        glBindTexture(GL_TEXTURE_2D,TextureID1);
-       SwitchExtension->Segments[0].RenderLoft(rpts1,nnumPts,fTexLength,2);
-       SwitchExtension->Segments[0].RenderSwitchRail(rpts1,rpts3,nnumPts,fTexLength,2,SwitchExtension->fOffset1);
-       SwitchExtension->Segments[0].RenderLoft(rpts2,nnumPts,fTexLength);
+       SwitchExtension->Segments[0]->RenderLoft(rpts1,nnumPts,fTexLength,2);
+       SwitchExtension->Segments[0]->RenderSwitchRail(rpts1,rpts3,nnumPts,fTexLength,2,SwitchExtension->fOffset1);
+       SwitchExtension->Segments[0]->RenderLoft(rpts2,nnumPts,fTexLength);
        glBindTexture(GL_TEXTURE_2D,TextureID2);
-       SwitchExtension->Segments[1].RenderLoft(rpts1,nnumPts,fTexLength);
-       SwitchExtension->Segments[1].RenderLoft(rpts2,nnumPts,fTexLength,2);
-       SwitchExtension->Segments[1].RenderSwitchRail(rpts2,rpts4,nnumPts,fTexLength,2,-fMaxOffset+SwitchExtension->fOffset1);
+       SwitchExtension->Segments[1]->RenderLoft(rpts1,nnumPts,fTexLength);
+       SwitchExtension->Segments[1]->RenderLoft(rpts2,nnumPts,fTexLength,2);
+       SwitchExtension->Segments[1]->RenderSwitchRail(rpts2,rpts4,nnumPts,fTexLength,2,-fMaxOffset+SwitchExtension->fOffset1);
        //WriteLog("Kompilacja prawej"); WriteLog(AnsiString(SwitchExtension->fOffset1).c_str());
       }
       else
       {//lewa dzia³a lepiej ni¿ prawa
        glBindTexture(GL_TEXTURE_2D,TextureID1);
-       SwitchExtension->Segments[0].RenderLoft(rpts1,nnumPts,fTexLength); //lewa szyna normalna ca³a
-       SwitchExtension->Segments[0].RenderLoft(rpts2,nnumPts,fTexLength,2); //prawa szyna za iglic¹
-       SwitchExtension->Segments[0].RenderSwitchRail(rpts2,rpts4,nnumPts,fTexLength,2,-SwitchExtension->fOffset1); //prawa iglica
+       SwitchExtension->Segments[0]->RenderLoft(rpts1,nnumPts,fTexLength); //lewa szyna normalna ca³a
+       SwitchExtension->Segments[0]->RenderLoft(rpts2,nnumPts,fTexLength,2); //prawa szyna za iglic¹
+       SwitchExtension->Segments[0]->RenderSwitchRail(rpts2,rpts4,nnumPts,fTexLength,2,-SwitchExtension->fOffset1); //prawa iglica
        glBindTexture(GL_TEXTURE_2D,TextureID2);
-       SwitchExtension->Segments[1].RenderLoft(rpts1,nnumPts,fTexLength,2); //lewa szyna za iglic¹
-       SwitchExtension->Segments[1].RenderSwitchRail(rpts1,rpts3,nnumPts,fTexLength,2,fMaxOffset-SwitchExtension->fOffset1); //lewa iglica
-       SwitchExtension->Segments[1].RenderLoft(rpts2,nnumPts,fTexLength); //prawa szyna normalnie ca³a
+       SwitchExtension->Segments[1]->RenderLoft(rpts1,nnumPts,fTexLength,2); //lewa szyna za iglic¹
+       SwitchExtension->Segments[1]->RenderSwitchRail(rpts1,rpts3,nnumPts,fTexLength,2,fMaxOffset-SwitchExtension->fOffset1); //lewa iglica
+       SwitchExtension->Segments[1]->RenderLoft(rpts2,nnumPts,fTexLength); //prawa szyna normalnie ca³a
        //WriteLog("Kompilacja lewej"); WriteLog(AnsiString(SwitchExtension->fOffset1).c_str());
       }
      }
@@ -861,65 +1005,156 @@ void __fastcall TTrack::Compile()
   break;
   case 2:   //McZapkie-260302 - droga - rendering
   //McZapkie:240702-zmieniony zakres widzialnosci
-  {vector6 bpts1[4]; //punkty g³ównej p³aszczyzny przydaj¹ siê do robienia boków
-   if (TextureID1||TextureID2) //punkty siê przydadz¹, nawet jeœli nawierzchni nie ma
-   {//double max=2.0*(fHTW>fHTW2?fHTW:fHTW2); //z szerszej strony jest 100%
-    double max=fTexRatio*fTexLength; //test: szerokoœæ proporcjonalna do d³ugoœci
-    double map1=max>0.0?fHTW/max:0.5; //obciêcie tekstury od strony 1
-    double map2=max>0.0?fHTW2/max:0.5; //obciêcie tekstury od strony 2
-    if (iTrapezoid) //trapez albo przechy³ki
-    {//nawierzchnia trapezowata
-     Segment->GetRolls(roll1,roll2);
-     bpts1[0]=vector6(fHTW*cos(roll1),-fHTW*sin(roll1),0.5-map1,sin(roll1),cos(roll1),0.0); //lewy brzeg pocz¹tku
-     bpts1[1]=vector6(-bpts1[0].x,-bpts1[0].y,0.5+map1,-sin(roll1),cos(roll1),0.0); //prawy brzeg pocz¹tku symetrycznie
-     bpts1[2]=vector6(fHTW2*cos(roll2),-fHTW2*sin(roll2),0.5-map2,sin(roll2),cos(roll2),0.0); //lewy brzeg koñca
-     bpts1[3]=vector6(-bpts1[2].x,-bpts1[2].y,0.5+map2,-sin(roll2),cos(roll2),0.0); //prawy brzeg pocz¹tku symetrycznie
+   switch (eType) //dalej zale¿nie od typu
+   {
+    case tt_Normal:  //drogi proste, bo skrzy¿owania osobno
+    {vector6 bpts1[4]; //punkty g³ównej p³aszczyzny przydaj¹ siê do robienia boków
+     if (TextureID1||TextureID2) //punkty siê przydadz¹, nawet jeœli nawierzchni nie ma
+     {//double max=2.0*(fHTW>fHTW2?fHTW:fHTW2); //z szerszej strony jest 100%
+      double max=fTexRatio1*fTexLength; //test: szerokoœæ proporcjonalna do d³ugoœci
+      double map1=max>0.0?fHTW/max:0.5; //obciêcie tekstury od strony 1
+      double map2=max>0.0?fHTW2/max:0.5; //obciêcie tekstury od strony 2
+      if (iTrapezoid) //trapez albo przechy³ki
+      {//nawierzchnia trapezowata
+       Segment->GetRolls(roll1,roll2);
+       bpts1[0]=vector6(fHTW*cos(roll1),-fHTW*sin(roll1),0.5-map1,sin(roll1),cos(roll1),0.0); //lewy brzeg pocz¹tku
+       bpts1[1]=vector6(-bpts1[0].x,-bpts1[0].y,0.5+map1,-sin(roll1),cos(roll1),0.0); //prawy brzeg pocz¹tku symetrycznie
+       bpts1[2]=vector6(fHTW2*cos(roll2),-fHTW2*sin(roll2),0.5-map2,sin(roll2),cos(roll2),0.0); //lewy brzeg koñca
+       bpts1[3]=vector6(-bpts1[2].x,-bpts1[2].y,0.5+map2,-sin(roll2),cos(roll2),0.0); //prawy brzeg pocz¹tku symetrycznie
+      }
+      else
+      {bpts1[0]=vector6( fHTW,0.0,0.5-map1,0.0,1.0,0.0);
+       bpts1[1]=vector6(-fHTW,0.0,0.5+map1,0.0,1.0,0.0);
+      }
+     }
+     if (TextureID1) //jeœli podana by³a tekstura, generujemy trójk¹ty
+     {//tworzenie trójk¹tów nawierzchni szosy
+      glBindTexture(GL_TEXTURE_2D,TextureID1);
+      Segment->RenderLoft(bpts1,iTrapezoid?-2:2,fTexLength);
+     }
+     if (TextureID2)
+     {//pobocze drogi - poziome przy przechy³ce (a mo¿e krawê¿nik i chodnik zrobiæ jak w Midtown Madness 2?)
+      glBindTexture(GL_TEXTURE_2D,TextureID2);
+      vector6 rpts1[6],rpts2[6]; //wspó³rzêdne przekroju i mapowania dla prawej i lewej strony
+      if (fTexHeight>=0.0)
+      {//standardowo od zewn¹trz pochylenie, a od wewn¹trz poziomo
+       rpts1[0]=vector6(rozp,-fTexHeight,0.0); //lewy brzeg podstawy
+       rpts1[1]=vector6(bpts1[0].x+side,bpts1[0].y,0.5); //lewa krawêdŸ za³amania
+       rpts1[2]=vector6(bpts1[0].x,bpts1[0].y,1.0); //lewy brzeg pobocza (mapowanie mo¿e byæ inne
+       rpts2[0]=vector6(bpts1[1].x,bpts1[1].y,1.0); //prawy brzeg pobocza
+       rpts2[1]=vector6(bpts1[1].x-side,bpts1[1].y,0.5); //prawa krawêdŸ za³amania
+       rpts2[2]=vector6(-rozp,-fTexHeight,0.0); //prawy brzeg podstawy
+       if (iTrapezoid) //trapez albo przechy³ki
+       {//pobocza do trapezowatej nawierzchni - dodatkowe punkty z drugiej strony odcinka
+        rpts1[3]=vector6(rozp2,-fTexHeight2,0.0); //lewy brzeg lewego pobocza
+        rpts1[4]=vector6(bpts1[2].x+side2,bpts1[2].y,0.5); //krawêdŸ za³amania
+        rpts1[5]=vector6(bpts1[2].x,bpts1[2].y,1.0); //brzeg pobocza
+        rpts2[3]=vector6(bpts1[3].x,bpts1[3].y,1.0);
+        rpts2[4]=vector6(bpts1[3].x-side2,bpts1[3].y,0.5);
+        rpts2[5]=vector6(-rozp2,-fTexHeight2,0.0); //prawy brzeg prawego pobocza
+       }
+      }
+      else
+      {//wersja dla chodnika: skos 1:3.75, ka¿dy chodnik innej szerokoœci
+       //mapowanie propocjonalne do szerokoœci chodnika
+       //krawê¿nik jest mapowany od 31/64 do 32/64 lewy i od 32/64 do 33/64 prawy
+       double d=-fTexHeight/3.75; //krawê¿nik o wysokoœci 150mm jest pochylony 40mm
+       double max=fTexRatio2*fTexLength; //test: szerokoœæ proporcjonalna do d³ugoœci
+       double map1l=max>0.0?side/max:0.484375; //obciêcie tekstury od lewej strony punktu 1
+       double map1r=max>0.0?slop/max:0.484375; //obciêcie tekstury od prawej strony punktu 1
+       rpts1[0]=vector6(bpts1[0].x+slop,bpts1[0].y-fTexHeight,0.515625+map1r ); //prawy brzeg prawego chodnika
+       rpts1[1]=vector6(bpts1[0].x+d,   bpts1[0].y-fTexHeight,0.515625       ); //prawy krawê¿nik u góry
+       rpts1[2]=vector6(bpts1[0].x,     bpts1[0].y,           0.515625-d/2.56); //prawy krawê¿nik u do³u
+       rpts2[0]=vector6(bpts1[1].x,     bpts1[1].y,           0.484375+d/2.56); //lewy krawê¿nik u do³u
+       rpts2[1]=vector6(bpts1[1].x-d,   bpts1[1].y-fTexHeight,0.484375       ); //lewy krawê¿nik u góry
+       rpts2[2]=vector6(bpts1[1].x-side,bpts1[1].y-fTexHeight,0.484375-map1l ); //lewy brzeg lewego chodnika
+       if (iTrapezoid) //trapez albo przechy³ki
+       {//pobocza do trapezowatej nawierzchni - dodatkowe punkty z drugiej strony odcinka
+        slop2=fabs((iTrapezoid&2)?slop2:slop); //szerokoœæ chodnika po prawej
+        double map2l=max>0.0?slop2/max:0.484375; //obciêcie tekstury od lewej strony punktu 2
+        double map2r=max>0.0?side2/max:0.484375; //obciêcie tekstury od prawej strony punktu 2
+        rpts1[3]=vector6(bpts1[2].x+slop2,bpts1[2].y-fTexHeight2,0.515625+map2r ); //prawy brzeg prawego chodnika
+        rpts1[4]=vector6(bpts1[2].x+d,    bpts1[2].y-fTexHeight2,0.515625       ); //prawy krawê¿nik u góry
+        rpts1[5]=vector6(bpts1[2].x,      bpts1[2].y,            0.515625-d/2.56); //prawy krawê¿nik u do³u
+        rpts2[3]=vector6(bpts1[3].x,      bpts1[3].y,            0.484375+d/2.56); //lewy krawê¿nik u do³u
+        rpts2[4]=vector6(bpts1[3].x-d,    bpts1[3].y-fTexHeight2,0.484375       ); //lewy krawê¿nik u góry
+        rpts2[5]=vector6(bpts1[3].x-side2,bpts1[3].y-fTexHeight2,0.484375-map2l ); //lewy brzeg lewego chodnika
+       }
+      }
+      if (iTrapezoid) //trapez albo przechy³ki
+      {//pobocza do trapezowatej nawierzchni - dodatkowe punkty z drugiej strony odcinka
+       if ((fTexHeight>=0.0)?true:(slop!=0.0))
+        Segment->RenderLoft(rpts1,-3,fTexLength);
+       if ((fTexHeight>=0.0)?true:(side!=0.0))
+        Segment->RenderLoft(rpts2,-3,fTexLength);
+      }
+      else
+      {//pobocza zwyk³e, brak przechy³ki
+       if ((fTexHeight>=0.0)?true:(slop!=0.0))
+        Segment->RenderLoft(rpts1,3,fTexLength);
+       if ((fTexHeight>=0.0)?true:(side!=0.0))
+        Segment->RenderLoft(rpts2,3,fTexLength);
+      }
+     }
+     break;
     }
-    else
-    {bpts1[0]=vector6( fHTW,0.0,0.5-map1,0.0,1.0,0.0);
-     bpts1[1]=vector6(-fHTW,0.0,0.5+map1,0.0,1.0,0.0);
+    case tt_Cross: //skrzy¿owanie dróg rysujemy inaczej
+    {//ustalenie wspó³rzêdnych œrodka - przeciêcie Point1-Point2 z CV4-Point4
+     //na razie po³owa odleg³oœci pomiêdzy Point1 i Point2, potem siê dopracuje
+     vector3 p[4]; //punkty siê przydadz¹ do obliczeñ
+     double a[4]; //k¹ty osi ulic wchodz¹cych
+     p[0]=SwitchExtension->Segments[0]->GetDirection1(); //Point1 - pobranie wektorów kontrolnych
+     p[1]=SwitchExtension->Segments[1]->GetDirection2(); //Point4
+     p[2]=SwitchExtension->Segments[0]->GetDirection2(); //Point2
+     p[3]=SwitchExtension->Segments[1]->GetDirection1(); //Point3
+     a[0]=atan2(-p[0].x,p[0].z); // k¹ty dróg
+     a[1]=atan2(-p[1].x,p[1].z);
+     a[2]=atan2(-p[2].x,p[2].z);
+     a[3]=atan2(-p[3].x,p[3].z);
+     p[0]=SwitchExtension->Segments[0]->FastGetPoint_0(); //Point1 - pobranie wspó³rzêdnych koñców
+     p[1]=SwitchExtension->Segments[1]->FastGetPoint_1(); //Point4
+     p[2]=SwitchExtension->Segments[0]->FastGetPoint_1(); //Point2
+     p[3]=SwitchExtension->Segments[1]->FastGetPoint_0(); //Point3 - przy trzech drogach pokrywa siê z Point1
+     int drogi=(p[2]==p[0])?3:4; //jeœli punkty siê nak³adaj¹, to mamy trzy drogi
+     int points=2+3*drogi,i=0,j; //ile punktów (mo¿e byc ró¿na iloœæ punktów miêdzy drogami)
+     vector3 *q=new vector3[points];
+     double sina0=sin(a[0]),cosa0=cos(a[0]);
+     q[0]=0.5*(p[0]+p[2]); //œrodek skrzy¿owania
+     for (j=0;j<drogi;++j)
+     {q[++i]=p[j]+vector3(+fHTW*cos(a[j]),0,+fHTW*sin(a[j])); //Point1
+      q[++i]=p[j]+vector3(-fHTW*cos(a[j]),0,-fHTW*sin(a[j]));
+      ++i; //punkt w œrodku obliczymy potem
+     }
+     q[++i]=q[1]; //domkniêcie obszaru
+     i=0; //zaczynamy od zera, aby wype³niæ œrodki, mo¿e byc ró¿na iloœæ punktów
+     for (j=0;j<drogi;++j)
+     {i+=3;
+      q[i]=0.5*(0.5*(q[i-1]+q[i+1])+q[0]); //tak na pocz¹tek
+     }
+     double u,v;
+     if (TextureID1) //jeœli podana tekstura nawierzchni
+     {glBindTexture(GL_TEXTURE_2D,TextureID1);
+      glBegin(GL_TRIANGLE_FAN); //takie kó³eczko bêdzie
+       for (i=0;i<points;++i)
+       {glNormal3f(0,1,0);
+        u=(q[i].x-q[0].x)/fTexLength; //mapowanie we wspó³rzêdnych scenerii
+        v=(q[i].z-q[0].z)/(fTexRatio1*fTexLength);
+        glTexCoord2f(cosa0*u+sina0*v+0.5,sina0*u+cosa0*v+0.5);
+        glVertex3f(q[i].x,q[i].y,q[i].z);
+       }
+      glEnd();
+      delete[] q;
+     }
+     break;
     }
    }
-   if (TextureID1) //jeœli podana by³a tekstura, generujemy trójk¹ty
-   {//tworzenie trójk¹tów nawierzchni szosy
-    glBindTexture(GL_TEXTURE_2D,TextureID1);
-    Segment->RenderLoft(bpts1,iTrapezoid?-2:2,fTexLength);
-   }
-   if (TextureID2)
-   {//pobocze drogi - poziome przy przechy³ce (a mo¿e krawê¿nik i chodnik zrobiæ jak w Midtown Madness 2?)
-    glBindTexture(GL_TEXTURE_2D,TextureID2);
-    vector6 rpts1[6],rpts2[6]; //wspó³rzêdne przekroju i mapowania dla prawej i lewej strony
-    rpts1[0]=vector6(rozp,-fTexHeight,0.0); //lewy brzeg podstawy
-    rpts1[1]=vector6(bpts1[0].x+side,bpts1[0].y,0.5), //lewa krawêdŸ za³amania
-    rpts1[2]=vector6(bpts1[0].x,bpts1[0].y,1.0); //lewy brzeg pobocza (mapowanie mo¿e byæ inne
-    rpts2[0]=vector6(bpts1[1].x,bpts1[1].y,1.0); //prawy brzeg pobocza
-    rpts2[1]=vector6(bpts1[1].x-side,bpts1[1].y,0.5); //prawa krawêdŸ za³amania
-    rpts2[2]=vector6(-rozp,-fTexHeight,0.0); //prawy brzeg podstawy
-    if (iTrapezoid) //trapez albo przechy³ki
-    {//pobocza do trapezowatej nawierzchni - dodatkowe punkty z drugiej strony odcinka
-     rpts1[3]=vector6(rozp2,-fTexHeight2,0.0); //lewy brzeg lewego pobocza
-     rpts1[4]=vector6(bpts1[2].x+side2,bpts1[2].y,0.5); //krawêdŸ za³amania
-     rpts1[5]=vector6(bpts1[2].x,bpts1[2].y,1.0); //brzeg pobocza
-     rpts2[3]=vector6(bpts1[3].x,bpts1[3].y,1.0);
-     rpts2[4]=vector6(bpts1[3].x-side2,bpts1[3].y,0.5);
-     rpts2[5]=vector6(-rozp2,-fTexHeight2,0.0); //prawy brzeg prawego pobocza
-     Segment->RenderLoft(rpts1,-3,fTexLength);
-     Segment->RenderLoft(rpts2,-3,fTexLength);
-    }
-    else
-    {//pobocza zwyk³e, brak przechy³ki
-     Segment->RenderLoft(rpts1,3,fTexLength);
-     Segment->RenderLoft(rpts2,3,fTexLength);
-    }
-   }
-  }
-  break;
+   break;
   case 4:   //McZapkie-260302 - rzeka- rendering
    //Ra: rzeki na razie bez zmian, przechy³ki na pewno nie maj¹
    vector6 bpts1[numPts]={vector6( fHTW,0.0,0.0), vector6( fHTW,0.2,0.33),
                           vector6(-fHTW,0.0,0.67),vector6(-fHTW,0.0,1.0 ) };
    //Ra: dziwnie ten kszta³t wygl¹da
-   if(TextureID1)
+   if (TextureID1)
    {
     glBindTexture(GL_TEXTURE_2D,TextureID1);
     Segment->RenderLoft(bpts1,numPts,fTexLength);
@@ -939,7 +1174,7 @@ void __fastcall TTrack::Compile()
    }
    break;
  }
- if(Global::bManageNodes)
+ if (Global::bManageNodes)
   glEndList();
 };
 
@@ -952,115 +1187,119 @@ void TTrack::Release()
 
 void __fastcall TTrack::Render()
 {
-
-    if(bVisible && SquareMagnitude(Global::pCameraPosition-Segment->FastGetPoint(0.5)) < 810000)
-    {
-        if(!DisplayListID)
-        {
-            Compile();
-            if(Global::bManageNodes)
-                ResourceManager::Register(this);
-        };
-        SetLastUsage(Timer::GetSimulationTime());
-        glCallList(DisplayListID);
-        if (InMovement()) Release(); //zwrotnica w trakcie animacji do odrysowania
-    };
-
-    for (int i=0; i<iNumDynamics; i++)
-    {
-        Dynamics[i]->Render();
-    }
+ if (bVisible && SquareMagnitude(Global::pCameraPosition-Segment->FastGetPoint(0.5)) < 810000)
+ {
+  if (!DisplayListID)
+  {
+   Compile();
+   if (Global::bManageNodes)
+    ResourceManager::Register(this);
+  };
+  SetLastUsage(Timer::GetSimulationTime());
+  glCallList(DisplayListID);
+  if (InMovement()) Release(); //zwrotnica w trakcie animacji do odrysowania
+ };
+ for (int i=0; i<iNumDynamics; i++)
+ {
+  Dynamics[i]->Render();
+ }
 #ifdef _DEBUG
-            if (DebugModeFlag && ScannedFlag) //McZapkie-230702
-            {
-              vector3 pos1,pos2,pos3;
-              glDisable(GL_DEPTH_TEST);
-                  glDisable(GL_LIGHTING);
-              glColor3ub(255,0,0);
-              glBindTexture(GL_TEXTURE_2D,0);
-              glBegin(GL_LINE_STRIP);
-                  pos1=Segment->FastGetPoint_0();
-                  pos2=Segment->FastGetPoint(0.5);
-                  pos3=Segment->FastGetPoint_1();
-                  glVertex3f(pos1.x,pos1.y,pos1.z);
-                  glVertex3f(pos2.x,pos2.y+10,pos2.z);
-                  glVertex3f(pos3.x,pos3.y,pos3.z);
-              glEnd();
-              glEnable(GL_LIGHTING);
-              glEnable(GL_DEPTH_TEST);
-            }
+ if (DebugModeFlag && ScannedFlag) //McZapkie-230702
+ //if (iNumDynamics) //bêdzie kreska na zajêtym torze
+ {
+  vector3 pos1,pos2,pos3;
+  glDisable(GL_DEPTH_TEST);
+      glDisable(GL_LIGHTING);
+  glColor3ub(255,0,0);
+  glBindTexture(GL_TEXTURE_2D,0);
+  glBegin(GL_LINE_STRIP);
+      pos1=Segment->FastGetPoint_0();
+      pos2=Segment->FastGetPoint(0.5);
+      pos3=Segment->FastGetPoint_1();
+      glVertex3f(pos1.x,pos1.y,pos1.z);
+      glVertex3f(pos2.x,pos2.y+10,pos2.z);
+      glVertex3f(pos3.x,pos3.y,pos3.z);
+  glEnd();
+  glEnable(GL_LIGHTING);
+  glEnable(GL_DEPTH_TEST);
+  ScannedFlag=false;
+ }
 #endif
-   ScannedFlag=false;
-   glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
-   glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
-   glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
+ glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
+ glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
+ glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
 }
 
 void __fastcall TTrack::RenderAlpha()
 {
-    glColor3f(1.0f,1.0f,1.0f);
-//McZapkie-310702: zmiana oswietlenia w tunelu, wykopie
-    GLfloat ambientLight[4]= {0.5f,0.5f,0.5f,1.0f};
-    GLfloat diffuseLight[4]= {0.5f,0.5f,0.5f,1.0f};
-    GLfloat specularLight[4]={0.5f,0.5f,0.5f,1.0f};
-    switch (eEnvironment)
-    {
-     case e_canyon:
-      for (int li=0; li<3; li++)
-      {
-       //ambientLight[li]= Global::ambientDayLight[li]*0.8;
-       diffuseLight[li]= Global::diffuseDayLight[li]*0.4;
-       specularLight[li]=Global::specularDayLight[li]*0.5;
-      }
-      //glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
-      glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
-      glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
-      break;
-     case e_tunnel:
-      for (int li=0; li<3; li++)
-      {
-       ambientLight[li]= Global::ambientDayLight[li]*0.2;
-       diffuseLight[li]= Global::diffuseDayLight[li]*0.1;
-       specularLight[li]=Global::specularDayLight[li]*0.2;
-      }
-      glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
-      glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
-      glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
-      break;
-    }
-    for (int i=0; i<iNumDynamics; i++)
-    {
-        //if(SquareMagnitude(Global::pCameraPosition-Dynamics[i]->GetPosition())<20000)
-        Dynamics[i]->RenderAlpha();
-    }
+ if (!iNumDynamics) return; //po co kombinowaæ, jeœli nie ma pojazdów?
+ glColor3f(1.0f,1.0f,1.0f);
+ //McZapkie-310702: zmiana oswietlenia w tunelu, wykopie
+ GLfloat ambientLight[4]= {0.5f,0.5f,0.5f,1.0f};
+ GLfloat diffuseLight[4]= {0.5f,0.5f,0.5f,1.0f};
+ GLfloat specularLight[4]={0.5f,0.5f,0.5f,1.0f};
+ switch (eEnvironment)
+ {
+  case e_canyon:
+   for (int li=0; li<3; li++)
+   {
+    //ambientLight[li]= Global::ambientDayLight[li]*0.8;
+    diffuseLight[li]= Global::diffuseDayLight[li]*0.4;
+    specularLight[li]=Global::specularDayLight[li]*0.5;
+   }
+   //glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
+   glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
+   glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
+   break;
+  case e_tunnel:
+   for (int li=0; li<3; li++)
+   {
+    ambientLight[li]= Global::ambientDayLight[li]*0.2;
+    diffuseLight[li]= Global::diffuseDayLight[li]*0.1;
+    specularLight[li]=Global::specularDayLight[li]*0.2;
+   }
+   glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
+   glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
+   glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
+   break;
+ }
+ for (int i=0;i<iNumDynamics;i++)
+ {
+  //if (SquareMagnitude(Global::pCameraPosition-Dynamics[i]->GetPosition())<20000)
+  Dynamics[i]->RenderAlpha();
+ }
+ switch (eEnvironment)
+ {//przywrócenie globalnych ustawieñ œwiat³a
+  case e_canyon: //wykop
+  case e_tunnel: //tunel
    glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
    glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
    glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
+ }
 }
 
 bool __fastcall TTrack::CheckDynamicObject(TDynamicObject *Dynamic)
-{
-    for (int i=0; i<iNumDynamics; i++)
-        if (Dynamic==Dynamics[i])
-            return true;
-    return false;
+{//sprawdzenie, czy pojazd jest przypisany do toru
+ for (int i=0;i<iNumDynamics;i++)
+  if (Dynamic==Dynamics[i])
+   return true;
+ return false;
 };
 
 bool __fastcall TTrack::RemoveDynamicObject(TDynamicObject *Dynamic)
-{
-    for (int i=0; i<iNumDynamics; i++)
-    {
-        if (Dynamic==Dynamics[i])
-        {
-            iNumDynamics--;
-            for (i; i<iNumDynamics; i++)
-                Dynamics[i]=Dynamics[i+1];
-            return true;
-
-        }
-    }
-    Error("Cannot remove dynamic from track");
-    return false;
+{//usuniêcie pojazdu z listy przypisanych do toru
+ for (int i=0;i<iNumDynamics;i++)
+ {//sprawdzanie wszystkich po kolei
+  if (Dynamic==Dynamics[i])
+  {//znaleziony, przepisanie nastêpnych, ¿eby dziur nie by³o
+   --iNumDynamics;
+   for (i;i<iNumDynamics;i++)
+    Dynamics[i]=Dynamics[i+1];
+   return true;
+  }
+ }
+ Error("Cannot remove dynamic from track");
+ return false;
 }
 
 bool __fastcall TTrack::InMovement()
@@ -1098,7 +1337,7 @@ int __fastcall TTrack::RaArrayPrepare()
   {
    case 1: //tor
     if (eType==tt_Switch) //dla zwrotnicy tylko szyny
-     return 48*((TextureID1?SwitchExtension->Segments[0].RaSegCount():0)+(TextureID2?SwitchExtension->Segments[1].RaSegCount():0));
+     return 48*((TextureID1?SwitchExtension->Segments[0]->RaSegCount():0)+(TextureID2?SwitchExtension->Segments[1]->RaSegCount():0));
     else //dla toru podsypka plus szyny
      return (Segment->RaSegCount())*((TextureID1?48:0)+(TextureID2?8:0));
    case 2: //droga
@@ -1114,13 +1353,15 @@ void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Star
  //Ra: trzeba rozdzieliæ szyny od podsypki, aby móc grupowaæ wg tekstur
  double fHTW=0.5*fabs(fTrackWidth);
  double side=fabs(fTexWidth); //szerokœæ podsypki na zewn¹trz szyny albo pobocza
- double rozp=fHTW+side+fabs(fTexSlope); //brzeg zewnêtrzny
- double fHTW2,side2,rozp2,fTexHeight2;
+ double slop=fabs(fTexSlope); //brzeg zewnêtrzny
+ double rozp=fHTW+side+slop; //brzeg zewnêtrzny
+ double fHTW2,side2,slop2,rozp2,fTexHeight2;
  if (iTrapezoid&2) //ten bit oznacza, ¿e istnieje odpowiednie pNext
  {//Ra: na tym siê lubi wieszaæ, ciekawe co za œmieci siê pod³¹czaj¹...
   fHTW2=0.5*fabs(pNext->fTrackWidth); //po³owa rozstawu/nawierzchni
   side2=fabs(pNext->fTexWidth);
-  rozp2=fHTW2+side2+fabs(pNext->fTexSlope);
+  slop2=fabs(pNext->fTexSlope);
+  rozp2=fHTW2+side2+slop2;
   fTexHeight2=pNext->fTexHeight;
   //zabezpieczenia przed zawieszeniem - logowaæ to?
   if (fHTW2>5.0*fHTW) {fHTW2=fHTW; WriteLog("!!!! niedopasowanie 1");};
@@ -1129,7 +1370,7 @@ void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Star
   //if (fabs(fTexHeight2)>5.0*fabs(fTexHeight)) {fTexHeight2=fTexHeight; WriteLog("!!!! niedopasowanie 4");};
  }
  else //gdy nie ma nastêpnego albo jest nieodpowiednim koñcem podpiêty
- {fHTW2=fHTW; side2=side; rozp2=rozp; fTexHeight2=fTexHeight;}
+ {fHTW2=fHTW; side2=side; slop2=slop; rozp2=rozp; fTexHeight2=fTexHeight;}
  double roll1,roll2;
  switch (iCategoryFlag)
  {
@@ -1200,24 +1441,24 @@ void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Star
       if (SwitchExtension->RightSwitch)
       {//nowa wersja z SPKS, ale odwrotnie lewa/prawa
        SwitchExtension->iLeftVBO=Vert-Start; //indeks lewej iglicy
-       SwitchExtension->Segments[0].RaRenderLoft(Vert,rpts3,-nnumPts,fTexLength,0,2,SwitchExtension->fOffset1);
-       SwitchExtension->Segments[0].RaRenderLoft(Vert,rpts1,nnumPts,fTexLength,2);
-       SwitchExtension->Segments[0].RaRenderLoft(Vert,rpts2,nnumPts,fTexLength);
-       SwitchExtension->Segments[1].RaRenderLoft(Vert,rpts1,nnumPts,fTexLength);
+       SwitchExtension->Segments[0]->RaRenderLoft(Vert,rpts3,-nnumPts,fTexLength,0,2,SwitchExtension->fOffset1);
+       SwitchExtension->Segments[0]->RaRenderLoft(Vert,rpts1,nnumPts,fTexLength,2);
+       SwitchExtension->Segments[0]->RaRenderLoft(Vert,rpts2,nnumPts,fTexLength);
+       SwitchExtension->Segments[1]->RaRenderLoft(Vert,rpts1,nnumPts,fTexLength);
        SwitchExtension->iRightVBO=Vert-Start; //indeks prawej iglicy
-       SwitchExtension->Segments[1].RaRenderLoft(Vert,rpts4,-nnumPts,fTexLength,0,2,-fMaxOffset+SwitchExtension->fOffset1);
-       SwitchExtension->Segments[1].RaRenderLoft(Vert,rpts2,nnumPts,fTexLength,2);
+       SwitchExtension->Segments[1]->RaRenderLoft(Vert,rpts4,-nnumPts,fTexLength,0,2,-fMaxOffset+SwitchExtension->fOffset1);
+       SwitchExtension->Segments[1]->RaRenderLoft(Vert,rpts2,nnumPts,fTexLength,2);
       }
       else
       {//lewa dzia³a lepiej ni¿ prawa
-       SwitchExtension->Segments[0].RaRenderLoft(Vert,rpts1,nnumPts,fTexLength); //lewa szyna normalna ca³a
+       SwitchExtension->Segments[0]->RaRenderLoft(Vert,rpts1,nnumPts,fTexLength); //lewa szyna normalna ca³a
        SwitchExtension->iLeftVBO=Vert-Start; //indeks lewej iglicy
-       SwitchExtension->Segments[0].RaRenderLoft(Vert,rpts4,-nnumPts,fTexLength,0,2,-SwitchExtension->fOffset1); //prawa iglica
-       SwitchExtension->Segments[0].RaRenderLoft(Vert,rpts2,nnumPts,fTexLength,2); //prawa szyna za iglic¹
+       SwitchExtension->Segments[0]->RaRenderLoft(Vert,rpts4,-nnumPts,fTexLength,0,2,-SwitchExtension->fOffset1); //prawa iglica
+       SwitchExtension->Segments[0]->RaRenderLoft(Vert,rpts2,nnumPts,fTexLength,2); //prawa szyna za iglic¹
        SwitchExtension->iRightVBO=Vert-Start; //indeks prawej iglicy
-       SwitchExtension->Segments[1].RaRenderLoft(Vert,rpts3,-nnumPts,fTexLength,0,2,fMaxOffset-SwitchExtension->fOffset1); //lewa iglica
-       SwitchExtension->Segments[1].RaRenderLoft(Vert,rpts1,nnumPts,fTexLength,2); //lewa szyna za iglic¹
-       SwitchExtension->Segments[1].RaRenderLoft(Vert,rpts2,nnumPts,fTexLength); //prawa szyna normalnie ca³a
+       SwitchExtension->Segments[1]->RaRenderLoft(Vert,rpts3,-nnumPts,fTexLength,0,2,fMaxOffset-SwitchExtension->fOffset1); //lewa iglica
+       SwitchExtension->Segments[1]->RaRenderLoft(Vert,rpts1,nnumPts,fTexLength,2); //lewa szyna za iglic¹
+       SwitchExtension->Segments[1]->RaRenderLoft(Vert,rpts2,nnumPts,fTexLength); //prawa szyna normalnie ca³a
       }
      }
      break;
@@ -1225,57 +1466,117 @@ void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Star
   } //koniec obs³ugi torów
   break;
   case 2: //McZapkie-260302 - droga - rendering
+   switch (eType) //dalej zale¿nie od typu
+   {
+    case tt_Normal: //drogi proste, bo skrzy¿owania osobno
+    {vector6 bpts1[4]; //punkty g³ównej p³aszczyzny przydaj¹ siê do robienia boków
+     if (TextureID1||TextureID2) //punkty siê przydadz¹, nawet jeœli nawierzchni nie ma
+     {//double max=2.0*(fHTW>fHTW2?fHTW:fHTW2); //z szerszej strony jest 100%
+      double max=(iCategoryFlag==4)?0.0:fTexLength; //test: szerokoœæ dróg proporcjonalna do d³ugoœci
+      double map1=max>0.0?fHTW/max:0.5; //obciêcie tekstury od strony 1
+      double map2=max>0.0?fHTW2/max:0.5; //obciêcie tekstury od strony 2
+      if (iTrapezoid) //trapez albo przechy³ki
+      {//nawierzchnia trapezowata
+       Segment->GetRolls(roll1,roll2);
+       bpts1[0]=vector6(fHTW*cos(roll1),-fHTW*sin(roll1),0.5-map1); //lewy brzeg pocz¹tku
+       bpts1[1]=vector6(-bpts1[0].x,-bpts1[0].y,0.5+map1); //prawy brzeg pocz¹tku symetrycznie
+       bpts1[2]=vector6(fHTW2*cos(roll2),-fHTW2*sin(roll2),0.5-map2); //lewy brzeg koñca
+       bpts1[3]=vector6(-bpts1[2].x,-bpts1[2].y,0.5+map2); //prawy brzeg pocz¹tku symetrycznie
+      }
+      else
+      {bpts1[0]=vector6( fHTW,0.0,0.5-map1); //zawsze standardowe mapowanie
+       bpts1[1]=vector6(-fHTW,0.0,0.5+map1);
+      }
+     }
+     if (TextureID1) //jeœli podana by³a tekstura, generujemy trójk¹ty
+     {//tworzenie trójk¹tów nawierzchni szosy
+      Segment->RaRenderLoft(Vert,bpts1,iTrapezoid?-2:2,fTexLength);
+     }
+     if (TextureID2)
+     {//pobocze drogi - poziome przy przechy³ce (a mo¿e krawê¿nik i chodnik zrobiæ jak w Midtown Madness 2?)
+      //Ra: dorobiæ renderowanie chodnika
+      vector6 rpts1[6],rpts2[6]; //wspó³rzêdne przekroju i mapowania dla prawej i lewej strony
+      rpts1[0]=vector6(rozp,-fTexHeight,0.0); //lewy brzeg podstawy
+      rpts1[1]=vector6(bpts1[0].x+side,bpts1[0].y,0.5), //lewa krawêdŸ za³amania
+      rpts1[2]=vector6(bpts1[0].x,bpts1[0].y,1.0); //lewy brzeg pobocza (mapowanie mo¿e byæ inne
+      rpts2[0]=vector6(bpts1[1].x,bpts1[1].y,1.0); //prawy brzeg pobocza
+      rpts2[1]=vector6(bpts1[1].x-side,bpts1[1].y,0.5); //prawa krawêdŸ za³amania
+      rpts2[2]=vector6(-rozp,-fTexHeight,0.0); //prawy brzeg podstawy
+      if (iTrapezoid) //trapez albo przechy³ki
+      {//pobocza do trapezowatej nawierzchni - dodatkowe punkty z drugiej strony odcinka
+       rpts1[3]=vector6(rozp2,-fTexHeight2,0.0); //lewy brzeg lewego pobocza
+       rpts1[4]=vector6(bpts1[2].x+side2,bpts1[2].y,0.5); //krawêdŸ za³amania
+       rpts1[5]=vector6(bpts1[2].x,bpts1[2].y,1.0); //brzeg pobocza
+       rpts2[3]=vector6(bpts1[3].x,bpts1[3].y,1.0);
+       rpts2[4]=vector6(bpts1[3].x-side2,bpts1[3].y,0.5);
+       rpts2[5]=vector6(-rozp2,-fTexHeight2,0.0); //prawy brzeg prawego pobocza
+       Segment->RaRenderLoft(Vert,rpts1,-3,fTexLength);
+       Segment->RaRenderLoft(Vert,rpts2,-3,fTexLength);
+      }
+      else
+      {//pobocza zwyk³e, brak przechy³ki
+       Segment->RaRenderLoft(Vert,rpts1,3,fTexLength);
+       Segment->RaRenderLoft(Vert,rpts2,3,fTexLength);
+      }
+     }
+    }
+   }
+  break;
   case 4: //Ra: rzeki na razie jak drogi, przechy³ki na pewno nie maj¹
-  {vector6 bpts1[4]; //punkty g³ównej p³aszczyzny przydaj¹ siê do robienia boków
-   if (TextureID1||TextureID2) //punkty siê przydadz¹, nawet jeœli nawierzchni nie ma
-   {//double max=2.0*(fHTW>fHTW2?fHTW:fHTW2); //z szerszej strony jest 100%
-    double max=(iCategoryFlag==4)?0.0:fTexLength; //test: szerokoœæ dróg proporcjonalna do d³ugoœci
-    double map1=max>0.0?fHTW/max:0.5; //obciêcie tekstury od strony 1
-    double map2=max>0.0?fHTW2/max:0.5; //obciêcie tekstury od strony 2
-    if (iTrapezoid) //trapez albo przechy³ki
-    {//nawierzchnia trapezowata
-     Segment->GetRolls(roll1,roll2);
-     bpts1[0]=vector6(fHTW*cos(roll1),-fHTW*sin(roll1),0.5-map1); //lewy brzeg pocz¹tku
-     bpts1[1]=vector6(-bpts1[0].x,-bpts1[0].y,0.5+map1); //prawy brzeg pocz¹tku symetrycznie
-     bpts1[2]=vector6(fHTW2*cos(roll2),-fHTW2*sin(roll2),0.5-map2); //lewy brzeg koñca
-     bpts1[3]=vector6(-bpts1[2].x,-bpts1[2].y,0.5+map2); //prawy brzeg pocz¹tku symetrycznie
-    }
-    else
-    {bpts1[0]=vector6( fHTW,0.0,0.5-map1); //zawsze standardowe mapowanie
-     bpts1[1]=vector6(-fHTW,0.0,0.5+map1);
+   switch (eType) //dalej zale¿nie od typu
+   {
+    case tt_Normal: //drogi proste, bo skrzy¿owania osobno
+    {vector6 bpts1[4]; //punkty g³ównej p³aszczyzny przydaj¹ siê do robienia boków
+     if (TextureID1||TextureID2) //punkty siê przydadz¹, nawet jeœli nawierzchni nie ma
+     {//double max=2.0*(fHTW>fHTW2?fHTW:fHTW2); //z szerszej strony jest 100%
+      double max=(iCategoryFlag==4)?0.0:fTexLength; //test: szerokoœæ dróg proporcjonalna do d³ugoœci
+      double map1=max>0.0?fHTW/max:0.5; //obciêcie tekstury od strony 1
+      double map2=max>0.0?fHTW2/max:0.5; //obciêcie tekstury od strony 2
+      if (iTrapezoid) //trapez albo przechy³ki
+      {//nawierzchnia trapezowata
+       Segment->GetRolls(roll1,roll2);
+       bpts1[0]=vector6(fHTW*cos(roll1),-fHTW*sin(roll1),0.5-map1); //lewy brzeg pocz¹tku
+       bpts1[1]=vector6(-bpts1[0].x,-bpts1[0].y,0.5+map1); //prawy brzeg pocz¹tku symetrycznie
+       bpts1[2]=vector6(fHTW2*cos(roll2),-fHTW2*sin(roll2),0.5-map2); //lewy brzeg koñca
+       bpts1[3]=vector6(-bpts1[2].x,-bpts1[2].y,0.5+map2); //prawy brzeg pocz¹tku symetrycznie
+      }
+      else
+      {bpts1[0]=vector6( fHTW,0.0,0.5-map1); //zawsze standardowe mapowanie
+       bpts1[1]=vector6(-fHTW,0.0,0.5+map1);
+      }
+     }
+     if (TextureID1) //jeœli podana by³a tekstura, generujemy trójk¹ty
+     {//tworzenie trójk¹tów nawierzchni szosy
+      Segment->RaRenderLoft(Vert,bpts1,iTrapezoid?-2:2,fTexLength);
+     }
+     if (TextureID2)
+     {//pobocze drogi - poziome przy przechy³ce (a mo¿e krawê¿nik i chodnik zrobiæ jak w Midtown Madness 2?)
+      vector6 rpts1[6],rpts2[6]; //wspó³rzêdne przekroju i mapowania dla prawej i lewej strony
+      rpts1[0]=vector6(rozp,-fTexHeight,0.0); //lewy brzeg podstawy
+      rpts1[1]=vector6(bpts1[0].x+side,bpts1[0].y,0.5), //lewa krawêdŸ za³amania
+      rpts1[2]=vector6(bpts1[0].x,bpts1[0].y,1.0); //lewy brzeg pobocza (mapowanie mo¿e byæ inne
+      rpts2[0]=vector6(bpts1[1].x,bpts1[1].y,1.0); //prawy brzeg pobocza
+      rpts2[1]=vector6(bpts1[1].x-side,bpts1[1].y,0.5); //prawa krawêdŸ za³amania
+      rpts2[2]=vector6(-rozp,-fTexHeight,0.0); //prawy brzeg podstawy
+      if (iTrapezoid) //trapez albo przechy³ki
+      {//pobocza do trapezowatej nawierzchni - dodatkowe punkty z drugiej strony odcinka
+       rpts1[3]=vector6(rozp2,-fTexHeight2,0.0); //lewy brzeg lewego pobocza
+       rpts1[4]=vector6(bpts1[2].x+side2,bpts1[2].y,0.5); //krawêdŸ za³amania
+       rpts1[5]=vector6(bpts1[2].x,bpts1[2].y,1.0); //brzeg pobocza
+       rpts2[3]=vector6(bpts1[3].x,bpts1[3].y,1.0);
+       rpts2[4]=vector6(bpts1[3].x-side2,bpts1[3].y,0.5);
+       rpts2[5]=vector6(-rozp2,-fTexHeight2,0.0); //prawy brzeg prawego pobocza
+       Segment->RaRenderLoft(Vert,rpts1,-3,fTexLength);
+       Segment->RaRenderLoft(Vert,rpts2,-3,fTexLength);
+      }
+      else
+      {//pobocza zwyk³e, brak przechy³ki
+       Segment->RaRenderLoft(Vert,rpts1,3,fTexLength);
+       Segment->RaRenderLoft(Vert,rpts2,3,fTexLength);
+      }
+     }
     }
    }
-   if (TextureID1) //jeœli podana by³a tekstura, generujemy trójk¹ty
-   {//tworzenie trójk¹tów nawierzchni szosy
-    Segment->RaRenderLoft(Vert,bpts1,iTrapezoid?-2:2,fTexLength);
-   }
-   if (TextureID2)
-   {//pobocze drogi - poziome przy przechy³ce (a mo¿e krawê¿nik i chodnik zrobiæ jak w Midtown Madness 2?)
-    vector6 rpts1[6],rpts2[6]; //wspó³rzêdne przekroju i mapowania dla prawej i lewej strony
-    rpts1[0]=vector6(rozp,-fTexHeight,0.0); //lewy brzeg podstawy
-    rpts1[1]=vector6(bpts1[0].x+side,bpts1[0].y,0.5), //lewa krawêdŸ za³amania
-    rpts1[2]=vector6(bpts1[0].x,bpts1[0].y,1.0); //lewy brzeg pobocza (mapowanie mo¿e byæ inne
-    rpts2[0]=vector6(bpts1[1].x,bpts1[1].y,1.0); //prawy brzeg pobocza
-    rpts2[1]=vector6(bpts1[1].x-side,bpts1[1].y,0.5); //prawa krawêdŸ za³amania
-    rpts2[2]=vector6(-rozp,-fTexHeight,0.0); //prawy brzeg podstawy
-    if (iTrapezoid) //trapez albo przechy³ki
-    {//pobocza do trapezowatej nawierzchni - dodatkowe punkty z drugiej strony odcinka
-     rpts1[3]=vector6(rozp2,-fTexHeight2,0.0); //lewy brzeg lewego pobocza
-     rpts1[4]=vector6(bpts1[2].x+side2,bpts1[2].y,0.5); //krawêdŸ za³amania
-     rpts1[5]=vector6(bpts1[2].x,bpts1[2].y,1.0); //brzeg pobocza
-     rpts2[3]=vector6(bpts1[3].x,bpts1[3].y,1.0);
-     rpts2[4]=vector6(bpts1[3].x-side2,bpts1[3].y,0.5);
-     rpts2[5]=vector6(-rozp2,-fTexHeight2,0.0); //prawy brzeg prawego pobocza
-     Segment->RaRenderLoft(Vert,rpts1,-3,fTexLength);
-     Segment->RaRenderLoft(Vert,rpts2,-3,fTexLength);
-    }
-    else
-    {//pobocza zwyk³e, brak przechy³ki
-     Segment->RaRenderLoft(Vert,rpts1,3,fTexLength);
-     Segment->RaRenderLoft(Vert,rpts2,3,fTexLength);
-    }
-   }
-  }
   break;
  }
 };
@@ -1319,7 +1620,7 @@ void  __fastcall TTrack::RaRenderVBO(int iPtr)
   case 1: //tor
    if (eType==tt_Switch) //dla zwrotnicy tylko szyny
    {if (TextureID1)
-     if ((seg=SwitchExtension->Segments[0].RaSegCount())>0)
+     if ((seg=SwitchExtension->Segments[0]->RaSegCount())>0)
      {glBindTexture(GL_TEXTURE_2D,TextureID1); //szyny +
       for (i=0;i<seg;++i)
        glDrawArrays(GL_TRIANGLE_STRIP,iPtr+24*i,24);
@@ -1329,7 +1630,7 @@ void  __fastcall TTrack::RaRenderVBO(int iPtr)
       iPtr+=24*seg; //pominiêcie prawej szyny
      }
     if (TextureID2)
-     if ((seg=SwitchExtension->Segments[1].RaSegCount())>0)
+     if ((seg=SwitchExtension->Segments[1]->RaSegCount())>0)
      {glBindTexture(GL_TEXTURE_2D,TextureID2); //szyny -
       for (i=0;i<seg;++i)
        glDrawArrays(GL_TRIANGLE_STRIP,iPtr+24*i,24);
@@ -1434,6 +1735,25 @@ void  __fastcall TTrack::RaRenderDynamic()
 };
 
 //---------------------------------------------------------------------------
+bool __fastcall TTrack::SetConnections(int i)
+{//zapamiêtanie po³¹czen w segmencie
+ if (SwitchExtension)
+ {
+  SwitchExtension->pNexts[NextMask[i]]=pNext;
+  SwitchExtension->pPrevs[PrevMask[i]]=pPrev;
+  SwitchExtension->iNextDirection[NextMask[i]]=iNextDirection;
+  SwitchExtension->iPrevDirection[PrevMask[i]]=iPrevDirection;
+  if (eType==tt_Switch)
+  {
+   SwitchExtension->pPrevs[PrevMask[i+2]]=pPrev;
+   SwitchExtension->iPrevDirection[PrevMask[i+2]]=iPrevDirection;
+  }
+  if (i) Switch(0);
+  return true;
+ }
+ Error("Cannot set connections");
+ return false;
+}
 
 bool __fastcall TTrack::Switch(int i)
 {//prze³¹czenie torów z uruchomieniem animacji
@@ -1444,31 +1764,31 @@ bool __fastcall TTrack::Switch(int i)
    SwitchExtension->fDesiredOffset1=fMaxOffset*double(NextMask[i]); //od punktu 1
    //SwitchExtension->fDesiredOffset2=fMaxOffset*double(PrevMask[i]); //od punktu 2
    SwitchExtension->CurrentIndex=i;
-   Segment=SwitchExtension->Segments+i; //wybranie aktywnej drogi - potrzebne to?
+   Segment=SwitchExtension->Segments[i]; //wybranie aktywnej drogi - potrzebne to?
    pNext=SwitchExtension->pNexts[NextMask[i]]; //prze³¹czenie koñców
    pPrev=SwitchExtension->pPrevs[PrevMask[i]];
-   bNextSwitchDirection=SwitchExtension->bNextSwitchDirection[NextMask[i]];
-   bPrevSwitchDirection=SwitchExtension->bPrevSwitchDirection[PrevMask[i]];
+   iNextDirection=SwitchExtension->iNextDirection[NextMask[i]];
+   iPrevDirection=SwitchExtension->iPrevDirection[PrevMask[i]];
    fRadius=fRadiusTable[i]; //McZapkie: wybor promienia toru
    if (SwitchExtension->pOwner?SwitchExtension->pOwner->RaTrackAnimAdd(this):true) //jeœli nie dodane do animacji
     SwitchExtension->fOffset1=SwitchExtension->fDesiredOffset1; //nie ma siê co bawiæ
    return true;
   }
-  else
+  else if (eType==tt_Turn)
   {//blokowanie (0, szukanie torów) lub odblokowanie (1, roz³¹czenie) obrotnicy
    if (i)
-   {//0: roz³¹czenie obrotnicy od s¹siednich torów
-    if (pPrev)
-     if (bPrevSwitchDirection)
-      pPrev->pPrev=NULL;
+   {//0: roz³¹czenie s¹siednich torów od obrotnicy
+    if (pPrev) //jeœli jest tor od Point1 obrotnicy
+     if (iPrevDirection) //0:do³¹czony Point1, 1:do³¹czony Point2
+      pPrev->pNext=NULL; //roz³¹czamy od Point2
      else
-      pPrev->pNext=NULL;
-    if (pNext)
-     if (bPrevSwitchDirection)
-      pNext->pNext=NULL;
+      pPrev->pPrev=NULL; //roz³¹czamy od Point1
+    if (pNext) //jeœli jest tor od Point2 obrotnicy
+     if (iPrevDirection) //0:do³¹czony Point1, 1:do³¹czony Point2
+      pNext->pNext=NULL; //roz³¹czamy od Point2
      else
-      pNext->pPrev=NULL;
-    pNext=pPrev=NULL;
+      pNext->pPrev=NULL; //roz³¹czamy od Point1
+    pNext=pPrev=NULL; //na koñcu roz³¹czamy obrotnicê (wka¿niki do s¹siadów ju¿ niepotrzebne)
     fVelocity=0.0; //AI, nie ruszaj siê!
     if (SwitchExtension->pOwner)
      SwitchExtension->pOwner->RaTrackAnimAdd(this); //dodanie do listy animacyjnej
@@ -1484,8 +1804,38 @@ bool __fastcall TTrack::Switch(int i)
    SwitchExtension->CurrentIndex=i; //zapamiêtanie stanu zablokowania
    return true;
   }
+  else if (eType==tt_Cross)
+  {//to jest przydatne tylko do ³¹czenia odcinków
+   i&=1;
+   SwitchExtension->CurrentIndex=i;
+   Segment=SwitchExtension->Segments[i]; //wybranie aktywnej drogi - potrzebne to?
+   pNext=SwitchExtension->pNexts[NextMask[3*i]]; //prze³¹czenie koñców
+   pPrev=SwitchExtension->pPrevs[PrevMask[3*i]];
+   iNextDirection=SwitchExtension->iNextDirection[NextMask[3*i]];
+   iPrevDirection=SwitchExtension->iPrevDirection[PrevMask[3*i]];
+   return true;
+  }
  Error("Cannot switch normal track");
  return false;
+};
+
+bool __fastcall TTrack::SwitchForced(int i,TDynamicObject *o)
+{//rozprucie rozjazdu
+ if (SwitchExtension)
+  if (i!=SwitchExtension->CurrentIndex)
+  {switch (i)
+   {case 0:
+     if (SwitchExtension->EventPlus)
+      Global::pGround->AddToQuery(SwitchExtension->EventPlus,o); //dodanie do kolejki
+     break;
+    case 1:
+     if (SwitchExtension->EventMinus)
+      Global::pGround->AddToQuery(SwitchExtension->EventMinus,o); //dodanie do kolejki
+     break;
+   }
+   Switch(i); //jeœli siê tu nie prze³¹czy, to ka¿dy pojazd powtórzy event rozrprucia
+  }
+ return true;
 };
 
 void __fastcall TTrack::RaAnimListAdd(TTrack *t)
@@ -1507,7 +1857,7 @@ void __fastcall TTrack::RaAnimListAdd(TTrack *t)
 };
 
 TTrack* __fastcall TTrack::RaAnimate()
-{//wykonanie rekurencyjne animacji, wywo³ywane przed wyœwietleniem sektora z VBO
+{//wykonanie rekurencyjne animacji, wywo³ywane przed wyœwietleniem sektora
  //zwraca wskaŸnik toru wymagaj¹cego dalszej animacji
  if (SwitchExtension->pNextAnim)
   SwitchExtension->pNextAnim=SwitchExtension->pNextAnim->RaAnimate();
@@ -1544,19 +1894,19 @@ TTrack* __fastcall TTrack::RaAnimate()
      glGetBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iLeftVBO*sizeof(CVertNormTex),2*2*12*sizeof(CVertNormTex),&Vert);//pobranie fragmentu bufora VBO
      if (SwitchExtension->RightSwitch)
      {//nowa wersja z SPKS, ale odwrotnie lewa/prawa
-      SwitchExtension->Segments[0].RaAnimate(v,rpts3,-nnumPts,fTexLength,0,2,SwitchExtension->fOffset1);
+      SwitchExtension->Segments[0]->RaAnimate(v,rpts3,-nnumPts,fTexLength,0,2,SwitchExtension->fOffset1);
       glBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iLeftVBO*sizeof(CVertNormTex),2*2*12*sizeof(CVertNormTex),&Vert); //wys³anie fragmentu bufora VBO
       v=Vert;
       glGetBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iRightVBO*sizeof(CVertNormTex),2*2*12*sizeof(CVertNormTex),&Vert);//pobranie fragmentu bufora VBO
-      SwitchExtension->Segments[1].RaAnimate(v,rpts4,-nnumPts,fTexLength,0,2,-fMaxOffset+SwitchExtension->fOffset1);
+      SwitchExtension->Segments[1]->RaAnimate(v,rpts4,-nnumPts,fTexLength,0,2,-fMaxOffset+SwitchExtension->fOffset1);
      }
      else
      {//oryginalnie lewa dzia³a³a lepiej ni¿ prawa
-      SwitchExtension->Segments[0].RaAnimate(v,rpts4,-nnumPts,fTexLength,0,2,-SwitchExtension->fOffset1); //prawa iglica
+      SwitchExtension->Segments[0]->RaAnimate(v,rpts4,-nnumPts,fTexLength,0,2,-SwitchExtension->fOffset1); //prawa iglica
       glBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iLeftVBO*sizeof(CVertNormTex),2*2*12*sizeof(CVertNormTex),&Vert);//wys³anie fragmentu bufora VBO
       v=Vert;
       glGetBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iRightVBO*sizeof(CVertNormTex),2*2*12*sizeof(CVertNormTex),&Vert); //pobranie fragmentu bufora VBO
-      SwitchExtension->Segments[1].RaAnimate(v,rpts3,-nnumPts,fTexLength,0,2,fMaxOffset-SwitchExtension->fOffset1); //lewa iglica
+      SwitchExtension->Segments[1]->RaAnimate(v,rpts3,-nnumPts,fTexLength,0,2,fMaxOffset-SwitchExtension->fOffset1); //lewa iglica
      }
      glBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iRightVBO*sizeof(CVertNormTex),2*2*12*sizeof(CVertNormTex),&Vert); //wys³anie fragmentu bufora VBO
     }
@@ -1571,10 +1921,10 @@ TTrack* __fastcall TTrack::RaAnimate()
    //SwitchExtension->fOffset1=SwitchExtension->pAnim?SwitchExtension->pAnim->AngleGet():0.0; //pobranie k¹ta z modelu
    TAnimContainer *ac=SwitchExtension->pModel?SwitchExtension->pModel->GetContainer(NULL):NULL; //pobranie g³ównego submodelu
    if (ac?(ac->AngleGet()!=SwitchExtension->fOffset1):false) //czy przemieœci³o siê od ostatniego sprawdzania
-   {double hlen=0.5*SwitchExtension->Segments->GetLength(); //po³owa d³ugoœci
+   {double hlen=0.5*SwitchExtension->Segments[0]->GetLength(); //po³owa d³ugoœci
     SwitchExtension->fOffset1=180+ac->AngleGet(); //pobranie k¹ta z submodelu
     double sina=hlen*sin(DegToRad(SwitchExtension->fOffset1)),cosa=hlen*cos(DegToRad(SwitchExtension->fOffset1));
-    vector3 middle=SwitchExtension->Segments->FastGetPoint(0.5);
+    vector3 middle=SwitchExtension->Segments[0]->FastGetPoint(0.5);
     Segment->Init(middle+vector3(sina,0.0,cosa),middle-vector3(sina,0.0,cosa),5.0); //nowy odcinek
     if (Global::bUseVBO)
     {//dla OpenGL 1.4 odœwie¿y siê ca³y sektor, w póŸniejszych poprawiamy fragment
@@ -1594,4 +1944,16 @@ TTrack* __fastcall TTrack::RaAnimate()
  return m?this:SwitchExtension->pNextAnim; //zwraca obiekt do dalszej animacji
 };
 //---------------------------------------------------------------------------
+void __fastcall TTrack::RadioStop()
+{//przekazanie pojazdom rozkazu zatrzymania
+ for (int i=0;i<iNumDynamics;i++)
+  Dynamics[i]->RadioStop();
+};
 
+double __fastcall TTrack::WidthTotal()
+{//szerokoœæ z poboczem
+ if (iCategoryFlag==2) //jesli droga
+  if (fTexHeight>=0.0) //i ma boki zagiête w dó³ (chodnik jest w górê)
+   return 2.0*fabs(fTexWidth)+0.5*fabs(fTrackWidth+fTrackWidth2); //dodajemy pobocze
+ return 0.5*fabs(fTrackWidth+fTrackWidth2); //a tak tylko zwyk³a œrednia szerokoœæ
+};

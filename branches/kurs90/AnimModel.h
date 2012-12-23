@@ -32,13 +32,14 @@ public:
  __fastcall TAnimContainer();
  __fastcall ~TAnimContainer();
  bool __fastcall Init(TSubModel *pNewSubModel);
- std::string inline __fastcall GetName() { return (pSubModel?pSubModel->Name : std::string("")); };
+ std::string inline __fastcall GetName() { return std::string(pSubModel?pSubModel->asName.c_str():""); };
  //void __fastcall SetRotateAnim(vector3 vNewRotateAxis, double fNewDesiredAngle, double fNewRotateSpeed, bool bResetAngle=false);
  void __fastcall SetRotateAnim(vector3 vNewRotateAngles, double fNewRotateSpeed);
  void __fastcall SetTranslateAnim(vector3 vNewTranslate, double fNewSpeed);
  void __fastcall UpdateModel();
  bool __fastcall InMovement(); //czy w trakcie animacji?
  double _fastcall AngleGet() {return vRotateAngles.z;}; //jednak ostatnia, T3D ma inny uk³ad
+ void __fastcall WillBeAnimated() {if (pSubModel) pSubModel->WillBeAnimated();};
 };
 
 class TAnimModel
@@ -53,7 +54,7 @@ private:
  vector3 vAngle; //bazowe obroty egzemplarza wzglêdem osi
 public:
  TLightState lsLights[iMaxNumLights];
- GLuint ReplacableSkinId; //McZapkie-020802: zmienialne skory
+ GLuint ReplacableSkinId[5]; //McZapkie-020802: zmienialne skory
  __fastcall TAnimModel();
  __fastcall ~TAnimModel();
  bool __fastcall Init(TModel3d *pNewModel);
@@ -72,7 +73,7 @@ public:
  //void __fastcall Render(double fSquareDistance);
  //void __fastcall RenderAlpha(double fSquareDistance);
  void __fastcall RaPrepare();
- bool bTexAlpha; //¿eby nie sprawdzaæ za ka¿dym razem
+ int iTexAlpha; //¿eby nie sprawdzaæ za ka¿dym razem, dla 4 wymiennych tekstur
  int __fastcall Flags();
  void __fastcall RaAnglesSet(double a,double b,double c)
  {vAngle.x=a; vAngle.y=b; vAngle.z=c;};

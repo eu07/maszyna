@@ -239,10 +239,10 @@ TYPE
                   {zmienne}
                   CouplingFlag : byte; {0 - wirtualnie, 1 - sprzegi, 2 - pneumatycznie, 4 - sterowanie, 8 - kabel mocy}
                   Render: boolean;             {ABu: czy rysowac jak zaczepiony sprzeg}
-                  CoupleDist: real;            {ABu: optymalizacja - liczenie odleglosci raz na klatke, bez iteracji}
+                  CoupleDist: real;            {ABu: optymalizacja - liczenie odleglosci raz na klatkê, bez iteracji}
                   Connected: PMoverParameters; {co jest podlaczone}
                   CForce: real;                {sila z jaka dzialal}
-                  Dist: real;                  {strzalka ugiecia}
+                  Dist: real;                  {strzalka ugiecia zderzaków}
                   CheckCollision: boolean;     {czy sprawdzac sile czy pedy}
                 end;
 
@@ -352,6 +352,7 @@ TYPE
                        Status: byte;     {0: wylaczony, 1: wlaczony, 2: czuwak, 4: shp, 8: alarm, 16: hamowanie awaryjne}
                        SystemTimer, SystemSoundTimer, SystemBrakeTimer: real;
                        VelocityAllowed, NextVelocityAllowed: integer; {predkosc pokazywana przez sygnalizacje kabinowa}
+                       RadioStop:boolean; //czy jest RadioStop
                      end;
 
     {----------------------------------------------}
@@ -566,6 +567,7 @@ TYPE
                 {komenda przekazywana przez PutCommand}
                 {i wykonywana przez RunInternalCommand}
                 CommandOut: string;        {komenda przekazywana przez ExternalCommand}
+                CommandLast: string; //Ra: ostatnio wykonana komenda podgl¹du
                 ValueOut: real;            {argument komendy ktora ma byc przekazana na zewnatrz}
 
                 RunningShape:TTrackShape;{geometria toru po ktorym jedzie pojazd}
@@ -576,8 +578,8 @@ TYPE
                 Mains: boolean;    {polozenie glownego wylacznika}
                 MainCtrlPos: byte; {polozenie glownego nastawnika}
                 ScndCtrlPos: byte; {polozenie dodatkowego nastawnika}
-                ActiveDir: integer;{czy lok. jest wlaczona i w ktorym kierunku}
-                {-1 - do tylu, +1 - do przodu, 0 - wylaczona}
+                ActiveDir: integer; //czy lok. jest wlaczona i w ktorym kierunku:
+                //wzglêdem wybranej kabiny: -1 - do tylu, +1 - do przodu, 0 - wylaczona
                 CabNo: integer;    {! numer kabiny: 1 lub -1. W przeciwnym razie brak sterowania - rozrzad}
                 ActiveCab: integer; {! numer kabiny, w ktorej sie jest}
                 LastCab: integer;       { numer kabiny przed zmiana }
@@ -831,7 +833,7 @@ TYPE
                                  VelInitial:real; TypeNameInit, NameInit: string; LoadInitial:longint; LoadTypeInitial: string; Cab:integer);
                                                               {wywolac najpierw to}
                 function LoadChkFile(chkpath:string):Boolean;   {potem zaladowac z pliku}
-                function CheckLocomotiveParameters(ReadyFlag:boolean): boolean;  {a nastepnie sprawdzic}
+                function CheckLocomotiveParameters(ReadyFlag:boolean;Dir:longint): boolean;  {a nastepnie sprawdzic}
                 function EngineDescription(what:integer): string;  {opis stanu lokomotywy}
 
    {obsluga drzwi}
@@ -902,11 +904,12 @@ begin
   s2NNW:=NNW;
 end;
 
-function Distance(Loc1,Loc2: TLocation; Dim1,Dim2:TDimension) : real;
+function Distance(Loc1,Loc2:TLocation;Dim1,Dim2:TDimension):real;
+{zwraca odleg³oœæ pomiêdzy pojazdami (Loc1) i (Loc2) z uwzglêdnieneim ich d³ugoœci}
 var Dist:real;
 begin
-  Dist:=SQRT(SQR(Loc2.x-Loc1.x)+SQR(Loc1.y-Loc2.y));
-  Distance:=Dist-Dim2.L/2.0-Dim1.L/2.0;
+ Dist:=SQRT(SQR(Loc2.x-Loc1.x)+SQR(Loc1.y-Loc2.y));
+ Distance:=Dist-Dim2.L/2.0-Dim1.L/2.0;
 {  Distance:=Hypot(Loc2.x-Loc1.x,Loc2.y-Loc1.y)-(Dim2.L+Dim1.L)/2; }
 end;
 
@@ -2917,7 +2920,8 @@ end;
 
 {sprzegi}
 
-function TMoverParameters.Attach(ConnectNo: byte; ConnectToNr: byte; ConnectTo:PMoverParameters; CouplingType: byte): boolean; {laczenie}
+function TMoverParameters.Attach(ConnectNo:byte;ConnectToNr:byte;ConnectTo:PMoverParameters;CouplingType:byte):boolean;
+{³¹czenie do (ConnectNo) pojazdu (ConnectTo) stron¹ (ConnectToNr) }
 const dEpsilon=0.001;
 var ct:TCouplerType;
 begin
@@ -2926,14 +2930,16 @@ begin
    if (ConnectTo<>nil) then
     begin
       if (ConnectToNr<>2) then CouplerNr[ConnectNo]:=ConnectToNr; {2=nic nie pod³¹czone}
-      ct:=ConnectTo^.Couplers[CouplerNr[ConnectNo]].CouplerType;
-      if (((Distance(Loc,ConnectTo^.Loc,Dim,ConnectTo^.Dim)<=dEpsilon) and (CouplerType<>NoCoupler) and (CouplerType=ct))
+      ct:=ConnectTo^.Couplers[CouplerNr[ConnectNo]].CouplerType; //typ sprzêgu pod³¹czanego pojazdu
+      CoupleDist:=Distance(Loc,ConnectTo^.Loc,Dim,ConnectTo^.Dim); //odleg³oœæ pomiêdzy sprzêgami
+      if (((CoupleDist<=dEpsilon) and (CouplerType<>NoCoupler) and (CouplerType=ct))
          or (CouplingType and ctrain_coupler=0))
        then
         begin  {stykaja sie zderzaki i kompatybilne typy sprzegow chyba ze wirtualnie}
           Connected:=ConnectTo;
           CouplingFlag:=CouplingType;
-          Connected.Couplers[CouplerNr[ConnectNo]].CouplingFlag:=CouplingType;
+          if (CouplingType<>ctrain_virtual) //Ra: wirtualnego nie ³¹czymy zwrotnie!
+           then Connected.Couplers[CouplerNr[ConnectNo]].CouplingFlag:=CouplingType;
           Attach:=True;
         end
        else
@@ -4158,16 +4164,18 @@ begin
 end;
 
 procedure TMoverParameters.SetCoupleDist;
+{przeliczenie odleg³oœci sprzêgów}
 begin
-   with Couplers[0] do
-      if (Connected<>nil) then
-         CoupleDist:=Distance(Loc,Connected^.Loc,Dim,Connected^.Dim);
-   with Couplers[1] do
-      if (Connected<>nil) then
-         CoupleDist:=Distance(Loc,Connected^.Loc,Dim,Connected^.Dim);
+ with Couplers[0] do
+  if (Connected<>nil) then
+   CoupleDist:=Distance(Loc,Connected^.Loc,Dim,Connected^.Dim);
+ with Couplers[1] do
+  if (Connected<>nil) then
+   CoupleDist:=Distance(Loc,Connected^.Loc,Dim,Connected^.Dim);
 end;
 
-function TMoverParameters.CouplerForce(CouplerN:byte; dt:real):real;
+function TMoverParameters.CouplerForce(CouplerN:byte;dt:real):real;
+//wyliczenie si³y na sprzêgu
 var tempdist,newdist,distDelta,CF,dV,absdv,Fmax,BetaAvg:real; CNext:byte;
 const MaxDist=405.0; {ustawione + 5 m, bo skanujemy do 400 m }
       MinDist=0.5;   {ustawione +.5 m, zeby nie rozlaczac przy malych odleglosciach}
@@ -4180,7 +4188,7 @@ begin
    with Couplers[CouplerN] do
     begin
       CheckCollision:=False;
-      newdist:=CoupleDist;
+      newdist:=CoupleDist; //odleg³oœæ od sprzêgu s¹siada
       //newdist:=Distance(Loc,Connected^.Loc,Dim,Connected^.Dim);
       if (CouplerN=0) then
          begin
@@ -4248,7 +4256,7 @@ begin
               CF:=(-(SpringKC+Connected^.Couplers[CNext].SpringKC)*Dist/2.0)*DirF(CouplerN)-Fmax*dV*betaAvg
              else
               CF:=(-(SpringKC+Connected^.Couplers[CNext].SpringKC)*Dist/2.0)*DirF(CouplerN)*betaAvg-Fmax*dV*betaAvg;
-                {liczenie sily ze sprezystosci sprzegu}                                
+                {liczenie sily ze sprezystosci sprzegu}
             if Dist>(DmaxC+Connected^.Couplers[CNext].DmaxC) then {zderzenie}
             //***if tempdist>(DmaxC+Connected^.Couplers[CNext].DmaxC) then {zderzenie}
              CheckCollision:=True;
@@ -5212,6 +5220,7 @@ end;
 
 procedure TMoverParameters.PutCommand(NewCommand:string; NewValue1,NewValue2:real; NewLocation:TLocation);
 begin
+ CommandLast:=NewCommand; //zapamiêtanie komendy
   with CommandIn do
    begin
      Command:=NewCommand;
@@ -5461,6 +5470,7 @@ begin
       Status:=0;
       SystemTimer:=0; SystemBrakeTimer:=0;
       VelocityAllowed:=-1; NextVelocityAllowed:=-1;
+      RadioStop:=false; //domyœlnie nie ma 
     end;
     //ABu 240105:
     CouplerNr[0]:=1;
@@ -5527,7 +5537,7 @@ begin
   EngineDescription:=outstr;
 end;
 
-function TMoverParameters.CheckLocomotiveParameters(ReadyFlag:boolean): boolean;
+function TMoverParameters.CheckLocomotiveParameters(ReadyFlag:boolean;Dir:longint): boolean;
 var //k:integer;
     OK:boolean;
     b:byte;
@@ -5564,15 +5574,15 @@ begin
      CompressedVolume:=VeselVolume*MinCompressor*(9.8+Random);
      ScndPipePress:=MinCompressor*(9.8+Random)/10.0;
      PipePress:=CntrlPipePress;
-     LocalBrakePos:=0;
+     LocalBrakePos:=0; //wyluzowany hamulec pomocniczy
      if (BrakeSystem=Pneumatic) and (BrakeCtrlPosNo>0) then
       if CabNo=0 then
-       BrakeCtrlPos:=-2;
+       BrakeCtrlPos:=-2; //odciêcie na zespolonym
      MainSwitch(false);
      PantFront(true);
      PantRear(true);
-     MainSwitch(true);     
-     ActiveDir:=1;
+     MainSwitch(true);
+     ActiveDir:=Dir;
      LimPipePress:=CntrlPipePress;
    end
   else
@@ -6378,6 +6388,10 @@ begin
                 s:=ExtractKeyWord(lines,'EmergencyBrakeDelay=');
                if s<>'' then
                 EmergencyBrakeDelay:=s2r(DUE(s));
+               s:=ExtractKeyWord(lines,'RadioStop=');
+               if s<>'' then
+                if Pos('Yes',s)>0 then
+                 RadioStop:=true;
              end;
           if Pos('Clima:',lines)>0 then      {zrodlo mocy dla ogrzewania itp}
             begin

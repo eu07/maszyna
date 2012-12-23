@@ -74,6 +74,8 @@ USEUNIT("Feedback.cpp");
 USEUNIT("McZapkie\mtable.pas");
 USEUNIT("TextureDDS.cpp");
 USEUNIT("opengl\ARB_Multisample.cpp");
+USEUNIT("Float3d.cpp");
+USEUNIT("Classes.cpp");
 //---------------------------------------------------------------------------
 #include "World.h"
 
@@ -84,8 +86,8 @@ HWND	hWnd=NULL;			// Holds Our Window Handle
 TWorld World;
 
 
-bool active=TRUE;	// Window Active Flag Set To TRUE By Default
-bool fullscreen=TRUE;	// Fullscreen Flag Set To Fullscreen Mode By Default
+//bool active=TRUE;	//window active flag set to TRUE by default
+bool fullscreen=TRUE;	//fullscreen flag set to fullscreen mode by default
 int WindowWidth= 800;
 int WindowHeight= 600;
 int Bpp= 32;
@@ -111,8 +113,7 @@ int InitGL(GLvoid)										// All Setup For OpenGL Goes Here
     glEnableClientState(GL_NORMAL_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
-    World.Init(hWnd,hDC);
-    return true;
+ return World.Init(hWnd,hDC); //true jeœli wszystko pójdzie dobrze
 }
 //---------------------------------------------------------------------------
 
@@ -404,138 +405,132 @@ static int test= 0;
 
 PCOPYDATASTRUCT pDane;
 
-LRESULT CALLBACK WndProc(	HWND	hWnd,			// Handle For This Window
-							UINT	uMsg,			// Message For This Window
-							WPARAM	wParam,			// Additional Message Information
-							LPARAM	lParam)			// Additional Message Information
+LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
+			 UINT uMsg,	//message for this window
+			 WPARAM	wParam,	//additional message information
+			 LPARAM	lParam)	//additional message information
 {
  TRect rect;
- switch (uMsg)									// Check For Windows Messages
+ switch (uMsg) //check for windows messages
  {
   case WM_COPYDATA: //obs³uga danych przes³anych przez program steruj¹cy
    pDane=(PCOPYDATASTRUCT)lParam;
    if (pDane->dwData=='EU07') //sygnatura danych
     World.OnCommandGet((DaneRozkaz*)(pDane->lpData));
    break;
-	case WM_ACTIVATE:							// Watch For Window Activate Message
-	{
-           active= (LOWORD(wParam)!=WA_INACTIVE);
-           if (active)
-                SetCursorPos(mx,my);
-            ShowCursor(!active);
+  case WM_ACTIVATE: //watch for window activate message
+  {//Ra: uzale¿nienie aktywnoœci od bycia na wierzchu
+   Global::bActive=(LOWORD(wParam)!=WA_INACTIVE);
+   if (Global::bInactivePause)
+    //if (!Global::bActive)
+     Global::bPause=!Global::bActive; //w³¹czenie pauzy, gdy nieaktywy
+   if (Global::bActive)
+    SetCursorPos(mx,my);
+   ShowCursor(!Global::bActive);
 /*
-			if (!HIWORD(wParam))					// Check Minimization State
-			{
-				active=TRUE;						// Program Is Active
-			}
-			else
-			{
-				active=FALSE;						// Program Is No Longer Active
-			}*/
-
-			return 0;								// Return To The Message Loop
-		}
-
-		case WM_SYSCOMMAND:							// Intercept System Commands
-		{
-			switch (wParam)							// Check System Calls
-			{
-				case SC_SCREENSAVE:					// Screensaver Trying To Start?
-				case SC_MONITORPOWER:				// Monitor Trying To Enter Powersave?
-				return 0;							// Prevent From Happening
-			}
-			break;									// Exit
-		}
-
-		case WM_CLOSE:								// Did We Receive A Close Message?
-		{
-//            delete Form1;
-			PostQuitMessage(0);						// Send A Quit Message
-			return 0;								// Jump Back
-		}
-
-        case WM_MOUSEMOVE:
-        {
-//            mx= 100;//Global::iWindowWidth/2;
-  //          my= 100;//Global::iWindowHeight/2;
-        //        SetCursorPos(Global::iWindowWidth/2,Global::iWindowHeight/2);
-//            m_x= LOWORD(lParam);
-  //          m_y= HIWORD(lParam);
-            GetCursorPos(&mouse);
-
-
-
-            if (active && ((mouse.x!=mx) || (mouse.y!=my)))
-            {
-                World.OnMouseMove(double(mouse.x-mx)*0.005,double(mouse.y-my)*0.01);
-                SetCursorPos(mx,my);
-            }
-			return 0;								// Jump Back
-        };
-
-        case WM_KEYUP :
-        {
-            return 0;
-        };
-
-        case WM_KEYDOWN :
-        {
-            World.OnKeyPress(wParam);
-            switch (wParam)
-            {
-                case VK_F7:
-                 if (DebugModeFlag)
-                 {//siatki tyko w trybie tekstowym
-                  Global::bWireFrame=!Global::bWireFrame;
-                  Global::bReCompile=true; //czy odœwie¿yæ siatki
-                  //Ra: jeszcze usun¹æ siatki ze skompilowanych obiektów!
-                 }
-                break;
-            }
-			return 0;								// Jump Back
-        };
-        case WM_CHAR:
-        {
-            switch ((TCHAR) wParam)
-            {
-                case VK_ESCAPE:
-                    active= !active;
-                    break;
-//                case 'q':
-//                    done= true;
-//                    KillGLWindow();
-//                    PostQuitMessage(0);
-//                    DestroyWindow( hWnd );
-//                    break;
-            };
-            return 0;
-        }
-
-
-		case WM_SIZE:								// Resize The OpenGL Window
-		{
-			ReSizeGLScene(LOWORD(lParam),HIWORD(lParam));  // LoWord=Width, HiWord=Height
-            if (GetWindowRect(hWnd,&rect))
-            {//Ra: zmiana rozmiaru okna bez przesuwania myszy
-                mx= WindowWidth/2+rect.left;    // horizontal position
-                my= WindowHeight/2+rect.top;    // vertical position
-//                SetCursorPos(mx,my);
-            }
-			return 0;								// Jump Back
-		}
-
-		case WM_MOVE:
-		{
-            mx= WindowWidth/2+LOWORD(lParam);    // horizontal position
-            my= WindowHeight/2+HIWORD(lParam);    // vertical position
-//            SetCursorPos(mx,my);
-        }
-
-	}
-
-	// Pass All Unhandled Messages To DefWindowProc
-	return DefWindowProc(hWnd,uMsg,wParam,lParam);
-}
+   if (!HIWORD(wParam))	//check minimization state
+   	active=TRUE;	//program is active
+   else
+   	active=FALSE;	//program is no longer active
+*/
+   return 0; // return to the message loop
+  }
+  case WM_SYSCOMMAND: //intercept system commands
+  {
+   switch (wParam) //check system calls
+   {
+    case 61696: //F10
+     World.OnKeyPress(VK_F10);
+     return 0;
+    case SC_SCREENSAVE:	//screensaver trying to start?
+    case SC_MONITORPOWER: //monitor trying to enter powersave?
+    return 0; //prevent from happening
+   }
+   break; //exit
+  }
+  case WM_CLOSE: // did we receive a close message?
+  {
+   PostQuitMessage(0); //send a quit message [Alt]+[F4]
+   return 0; //jump back
+  }
+  case WM_MOUSEMOVE:
+  {
+   //mx= 100;//Global::iWindowWidth/2;
+   //my= 100;//Global::iWindowHeight/2;
+   //SetCursorPos(Global::iWindowWidth/2,Global::iWindowHeight/2);
+   //m_x= LOWORD(lParam);
+   //m_y= HIWORD(lParam);
+   GetCursorPos(&mouse);
+   if (Global::bActive && ((mouse.x!=mx) || (mouse.y!=my)))
+   {
+    World.OnMouseMove(double(mouse.x-mx)*0.005,double(mouse.y-my)*0.01);
+    SetCursorPos(mx,my);
+   }
+   return 0; // jump back
+  }
+  case WM_KEYUP :
+  {
+   return 0;
+  }
+  case WM_KEYDOWN :
+   if (Global::bActive)
+   {
+    if (wParam!=17) //bo naciœniêcia [Ctrl] nie ma po co przekazywaæ
+     World.OnKeyPress(wParam);
+    switch (wParam)
+    {
+     case 19: //[Pause]
+      if (!Global::iMultiplayer) //w multiplayerze pauza nie ma sensu
+       if (!Pressed(VK_CONTROL))
+        Global::bPause=!Global::bPause; //zmiana stanu zapauzowania
+      break;
+     case VK_F7:
+      if (DebugModeFlag)
+      {//siatki wyœwietlane tyko w trybie testowym
+       Global::bWireFrame=!Global::bWireFrame;
+       Global::bReCompile=true; //czy odœwie¿yæ siatki
+       //Ra: jeszcze usun¹æ siatki ze skompilowanych obiektów!
+      }
+     break;
+    }
+   }
+   return 0; // jump back
+  case WM_CHAR:
+  {
+/*
+   switch ((TCHAR) wParam)
+   {
+    // case 'q':
+    //  done= true;
+    //  KillGLWindow();
+    //  PostQuitMessage(0);
+    //  DestroyWindow( hWnd );
+    //  break;
+   };
+*/
+   return 0;
+  }
+  case WM_SIZE:	//resize the OpenGL window
+  {
+   ReSizeGLScene(LOWORD(lParam),HIWORD(lParam));  // LoWord=Width, HiWord=Height
+   if (GetWindowRect(hWnd,&rect))
+   {//Ra: zmiana rozmiaru okna bez przesuwania myszy
+    //mx=WindowWidth/2+rect.left;    // horizontal position
+    //my=WindowHeight/2+rect.top;    // vertical position
+    //SetCursorPos(mx,my);
+   }
+   return 0; //jump back
+  }
+  case WM_MOVE: //przesuwanie okna?
+  {
+   mx=WindowWidth/2+LOWORD(lParam);    // horizontal position
+   my=WindowHeight/2+HIWORD(lParam);    // vertical position
+   //SetCursorPos(mx,my);
+  }
+ }
+ // pass all unhandled messages to DefWindowProc
+ return DefWindowProc(hWnd,uMsg,wParam,lParam);
+};
 
 
 
@@ -599,67 +594,57 @@ int WINAPI WinMain( HINSTANCE hInstance,     //instance
     Global::asCurrentSceneryPath= csp;
 */
 
-    fullscreen= Global::bFullScreen;
-    WindowWidth= Global::iWindowWidth;
-    WindowHeight= Global::iWindowHeight;
-    Bpp= Global::iBpp;
-    if (Bpp!=32)
-        Bpp= 16;
-    // Create Our OpenGL Window
-	if (!CreateGLWindow(Global::asHumanCtrlVehicle.c_str(),WindowWidth,WindowHeight,Bpp,fullscreen))
-	{
-		return 0;									// Quit If Window Was Not Created
-	}
-    SetForegroundWindow(hWnd);
-//McZapkie: proba przeplukania klawiatury
-    while (Pressed(VK_F10))
-     {
-      Error("Keyboard buffer problem - press F10");
-     }
-
-    int iOldSpeed, iOldDelay;
-    SystemParametersInfo(SPI_GETKEYBOARDSPEED,0,&iOldSpeed,0);
-    SystemParametersInfo(SPI_GETKEYBOARDDELAY,0,&iOldDelay,0);
-
-    SystemParametersInfo(SPI_SETKEYBOARDSPEED,20,NULL,0);
-//    SystemParametersInfo(SPI_SETKEYBOARDDELAY,10,NULL,0);
-
-
-	while(!done)									// Loop That Runs While done=FALSE
-	{
-		if (PeekMessage(&msg,NULL,0,0,PM_REMOVE))	// Is There A Message Waiting?
-		{
-			if (msg.message==WM_QUIT)				// Have We Received A Quit Message?
-			{
-				done=TRUE;							// If So done=TRUE
-			}
-			else									// If Not, Deal With Window Messages
-			{
-//                if (msg.message==WM_CHAR)
-  //                  World.OnKeyPress(msg.wParam);
-				TranslateMessage(&msg);				// Translate The Message
-				DispatchMessage(&msg);				// Dispatch The Message
-			}
-		}
-		else										// If There Are No Messages
-		{
-
-            // Draw The Scene.  Watch for Quit Messages
-//            DrawGLScene()
-            if (active)
-    			if (World.Update()) 	                // Was There A Quit Received?
-    				SwapBuffers(hDC);					// Swap Buffers (Double Buffering)
-    			else
-		    		done=TRUE;							// ESC or DrawGLScene Signalled A Quit
-		}
-	}
-  Feedback::BitsClear(-1);
-    SystemParametersInfo(SPI_SETKEYBOARDSPEED,iOldSpeed,NULL,0);
-    SystemParametersInfo(SPI_SETKEYBOARDDELAY,iOldDelay,NULL,0);
-
-	// Shutdown
-	KillGLWindow();									// Kill The Window
-    return (msg.wParam);							// Exit The Program
+ fullscreen=Global::bFullScreen;
+ WindowWidth=Global::iWindowWidth;
+ WindowHeight=Global::iWindowHeight;
+ Bpp=Global::iBpp;
+ if (Bpp!=32) Bpp=16;
+ //create our OpenGL window
+ if (!CreateGLWindow(Global::asHumanCtrlVehicle.c_str(),WindowWidth,WindowHeight,Bpp,fullscreen))
+  return 0; //quit if window was not created
+ SetForegroundWindow(hWnd);
+ //McZapkie: proba przeplukania klawiatury
+ while (Pressed(VK_F10))
+  Error("Keyboard buffer problem - press F10");
+ int iOldSpeed, iOldDelay;
+ SystemParametersInfo(SPI_GETKEYBOARDSPEED,0,&iOldSpeed,0);
+ SystemParametersInfo(SPI_GETKEYBOARDDELAY,0,&iOldDelay,0);
+ SystemParametersInfo(SPI_SETKEYBOARDSPEED,20,NULL,0);
+ //SystemParametersInfo(SPI_SETKEYBOARDDELAY,10,NULL,0);
+ while (!done) //loop that runs while done=FALSE
+ {
+ if (PeekMessage(&msg,NULL,0,0,PM_REMOVE)) //is there a message waiting?
+  {
+   if (msg.message==WM_QUIT) //have we received a quit message?
+   {
+    done=TRUE;	//if so
+   }
+   else //if not, deal with window messages
+   {
+    //if (msg.message==WM_CHAR)
+    //World.OnKeyPress(msg.wParam);
+    TranslateMessage(&msg); //translate the message
+    DispatchMessage(&msg); //dispatch the message
+   }
+  }
+  else //if there are no messages
+  {
+   //draw the scene, watch for quit messages
+   //DrawGLScene()
+   //if (!pause)
+   //if (Global::bInactivePause?Global::bActive:true) //tak nie, bo spada z góry
+   if (World.Update()) // Was There A Quit Received?
+    SwapBuffers(hDC);	// Swap Buffers (Double Buffering)
+   else
+    done=TRUE; //[F10] or DrawGLScene signalled a quit
+  }
+ }
+ Feedback::BitsClear(-1); //wy³¹czenie komunikacji zwrotnej
+ SystemParametersInfo(SPI_SETKEYBOARDSPEED,iOldSpeed,NULL,0);
+ SystemParametersInfo(SPI_SETKEYBOARDDELAY,iOldDelay,NULL,0);
+ //shutdown
+ KillGLWindow(); //kill the window
+ return (msg.wParam); //exit the program
 }
 
 

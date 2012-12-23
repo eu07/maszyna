@@ -9,6 +9,19 @@
 #include "opengl/glew.h"
 #include "usefull.h"
 
+/*
+//Ra: miejsce umieszczenia tego jest deczko bezsensowne
+void __fastcall glDebug()
+{//logowanie b³êdów OpenGL
+ GLenum err;
+ if (Global::iErorrCounter==326) //tu wpisz o 1 mniej niz wartoœæ, przy której siê wy³o¿y³o
+  Global::iErorrCounter=Global::iErorrCounter+0; //do zastawiania pu³apki przed b³êdnym kodem
+ while ((err=glGetError())!=GL_NO_ERROR) //dalej jest pu³apka po wykonaniu b³êdnego kodu
+  WriteLog("OpenGL error found: "+AnsiString(err)+", step:"+AnsiString(Global::iErorrCounter));
+ ++Global::iErorrCounter;
+};
+*/
+
 class TTexturesManager
 {
 public:

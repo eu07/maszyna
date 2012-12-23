@@ -5,14 +5,33 @@
 #include "opengl/glew.h"
 #include "Parser.h"
 #include "dumb3d.h"
-#include "VBO.h"
 using namespace Math3D;
+#include "Float3d.h"
+#include "VBO.h"
 
 struct GLVERTEX
 {
  vector3 Point;
  vector3 Normal;
  float tu,tv;
+};
+
+class TStringPack
+{
+ char *data;
+ //+0 - 4 bajty: typ kromki
+ //+4 - 4 bajty: d³ugoœæ ³¹cznie z nag³ówkiem
+ //+8 - obszar ³añcuchów znakowych, ka¿dy zakoñczony zerem
+ int *index;
+ //+0 - 4 bajty: typ kromki
+ //+4 - 4 bajty: d³ugoœæ ³¹cznie z nag³ówkiem
+ //+8 - tabela indeksów
+public:
+ char* String(int n);
+ char* StringAt(int n) {return data+9+n;};
+ __fastcall TStringPack() {data=NULL; index=NULL;};
+ void __fastcall Init(char *d) {data=d;};
+ void __fastcall InitIndex(int *i) {index=i;};
 };
 
 class TMaterialColor
@@ -75,6 +94,7 @@ struct THitBoxContainer
 };
 */
 
+/* Ra: tego nie bêdziemy ju¿ u¿ywaæ, bo mo¿na wycisn¹æ wiêcej
 typedef enum
 {smt_Unknown,       //nieznany
  smt_Mesh,          //siatka
@@ -83,8 +103,14 @@ typedef enum
  smt_Text,          //generator tekstu
  smt_Stars          //wiele punktów œwietlnych
 } TSubModelType;
+*/
+//Ra: specjalne typy submodeli, poza tym GL_TRIANGLES itp.
+const int TP_ROTATOR=256;
+const int TP_FREESPOTLIGHT=257;
+const int TP_STARS=258;
+const int TP_TEXT=259;
 
-typedef enum //rodzaj animacji
+enum TAnimType //rodzaj animacji
 {at_None, //brak
  at_Rotate, //obrót wzglêdem wektora o k¹t
  at_RotateXYZ, //obrót wzglêdem osi o k¹ty
@@ -99,81 +125,154 @@ typedef enum //rodzaj animacji
  at_Hours24, //godziny p³ynnie 24h/360°
  at_Billboard, //obrót w pionie do kamery
  at_Wind, //ruch pod wp³ywem wiatru
- at_Sky //animacja nieba
-} TAnimType;
+ at_Sky, //animacja nieba
+ at_Undefined=0xFFFFFFFF //animacja chwilowo nieokreœlona
+};
 
 class TModel3d;
+class TSubModelInfo;
 
 class TSubModel
-{//klasa submodelu - pojedyncza siatka albo punkt œwietlny
+{//klasa submodelu - pojedyncza siatka, punkt œwietlny albo grupa punktów
+ //Ra: ta klasa ma mieæ wielkoœæ 320 bajtów, aby pokry³a siê z formatem binarnym
 private:
- TSubModelType eType;
- GLuint TextureID;
- int iFlags; //flagi informacyjne
- bool TexAlpha;        //McZapkie-141202: zeby bylo wiadomo czy sortowac ze wzgledu na przezroczystosc
+ TSubModel *Next;
+ TSubModel *Child;
+ int eType; //Ra: modele binarne daj¹ wiêcej mo¿liwoœci ni¿ mesh z³o¿ony z trójk¹tów
+ int iName; //numer ³añcucha z nazw¹ submodelu, albo -1 gdy anonimowy
+ TAnimType b_Anim;
+ int iFlags; //flagi informacyjne:
+ //bit  0: =1 faza rysowania zale¿y od wymiennej tekstury 0
+ //bit  1: =1 faza rysowania zale¿y od wymiennej tekstury 1
+ //bit  2: =1 faza rysowania zale¿y od wymiennej tekstury 2
+ //bit  3: =1 faza rysowania zale¿y od wymiennej tekstury 3
+ //bit  4: =1 rysowany w fazie nieprzezroczystych
+ //bit  5: =1 rysowany w fazie przezroczystych
+ //bit  7: =1 ta sama tekstura, co poprzedni albo nadrzêdny
+ //bit  8: =1 wierzcho³ki wyœwietlane z indeksów
+ //bit  9: =1 wczytano z pliku tekstowego (jest w³aœcicielem tablic)
+ //bit 13: =1 wystarczy przesuniêcie zamiast mno¿enia macierzy (trzy jedynki)
+ //bit 14: =1 wymagane przechowanie macierzy (animacje)
+ //bit 15: =1 wymagane przechowanie macierzy (transform niejedynkowy)
+ union
+ {//transform, nie ka¿dy submodel musi mieæ
+  float4x4 *fMatrix; //pojedyncza precyzja wystarcza
+  //matrix4x4 *dMatrix; //do testu macierz podwójnej precyzji
+  int iMatrix; //w pliku binarnym jest numer matrycy
+ };
+ int iNumVerts; //iloœæ wierzcho³ków (1 dla FreeSpotLight)
+ int iVboPtr; //pocz¹tek na liœcie wierzcho³ków albo indeksów
+ int iTexture; //numer nazwy tekstury, -1 wymienna, 0 brak
+ float fVisible; //próg jasnoœci œwiat³a do za³¹czenia submodelu
  float fLight; //próg jasnoœci œwiat³a do zadzia³ania selfillum
  float f4Ambient[4];
- float f4Diffuse[4];
+ float f4Diffuse[4]; //float ze wzglêdu na glMaterialfv()
  float f4Specular[4];
- //bool TexHash;
- GLuint uiDisplayList;
- double Transparency;
- bool bWire;
- double fWireSize;
- double fSquareMaxDist;
- double fSquareMinDist;
+ float f4Emision[4];
+ float fWireSize; //nie u¿ywane, ale wczytywane
+ float fSquareMaxDist;
+ float fSquareMinDist;
  //McZapkie-050702: parametry dla swiatla:
- double fNearAttenStart;
- double fNearAttenEnd;
+ float fNearAttenStart;
+ float fNearAttenEnd;
  bool bUseNearAtten;      //te 3 zmienne okreslaja rysowanie aureoli wokol zrodla swiatla
  int iFarAttenDecay;      //ta zmienna okresla typ zaniku natezenia swiatla (0:brak, 1,2: potega 1/R)
- double fFarDecayRadius;  //normalizacja j.w.
- double fcosFalloffAngle; //cosinus kata stozka pod ktorym widac swiatlo
- double fcosHotspotAngle; //cosinus kata stozka pod ktorym widac aureole i zwiekszone natezenie swiatla
- double fCosViewAngle;    //cos kata pod jakim sie teraz patrzy
- int Index;
- matrix4x4 Matrix;
+ float fFarDecayRadius;  //normalizacja j.w.
+ float fCosFalloffAngle; //cosinus k¹ta sto¿ka pod którym widaæ œwiat³o
+ float fCosHotspotAngle; //cosinus k¹ta sto¿ka pod którym widaæ aureolê i zwiêkszone natê¿enie œwiat³a
+ float fCosViewAngle;    //cos kata pod jakim sie teraz patrzy
+ //Ra: dalej s¹ zmienne robocze
+ int TextureID; //numer tekstury, -1 wymienna, 0 brak
+ bool bWire; //nie u¿ywane, ale wczytywane
+ bool TexAlpha;        //McZapkie-141202: zeby bylo wiadomo czy sortowac ze wzgledu na przezroczystosc
+ GLuint uiDisplayList; //roboczy numer listy wyœwietlania
+ float Transparency; //nie u¿ywane, ale wczytywane
+ //int Index;
  //ABu: te same zmienne, ale zdublowane dla Render i RenderAlpha,
  //bo sie chrzanilo przemieszczanie obiektow.
  //Ra: ju¿ siê nie chrzani
- double f_Angle;
- vector3 v_RotateAxis;
- vector3 v_Angles;
- vector3 v_TransVector;
- TSubModel *Next;
- TSubModel *Child;
+ float f_Angle;
+ float3 v_RotateAxis;
+ float3 v_Angles;
+ float3 v_TransVector;
  //vector3 HitBoxPts[6];
- int __fastcall SeekFaceNormal(DWORD *Masks, int f, DWORD dwMask, vector3 *pt, GLVERTEX *Vertices);
- int iNumVerts; //potrzebne do VBO
- int iVboPtr;
- GLVERTEX *Vertices; //do VBO
- int iAnimOwner;
+ float8 *Vertices; //roboczy wskaŸnik - wczytanie T3D do VBO
+ int iAnimOwner; //roboczy numer egzemplarza, który ustawi³ animacjê
+ TAnimType b_aAnim; //kody animacji oddzielnie, bo zerowane
+ char space[20];
+public:
+ AnsiString asTexture; //robocza nazwa tekstury do zapisania w pliku binarnym
+ bool Visible; //roboczy stan widocznoœci
+ //std::string Name; //robocza nazwa - ten typ nie lubi byc wczytywany z pliku
+ AnsiString asName; //robocza nazwa
+private:
+ //int __fastcall SeekFaceNormal(DWORD *Masks, int f,DWORD dwMask,vector3 *pt,GLVERTEX *Vertices);
+ int __fastcall SeekFaceNormal(DWORD *Masks,int f,DWORD dwMask,float3 *pt,float8 *Vertices);
  void __fastcall RaAnimation(TAnimType a);
 public:
- TAnimType b_Anim,b_aAnim; //kody animacji oddzielnie, bo zerowane
- bool Visible;
- std::string Name;
- static int iInstance;
+ static int iInstance; //identyfikator egzemplarza, który aktualnie renderuje model
+ static GLuint *ReplacableSkinId;
+ static int iAlpha;
  __fastcall TSubModel();
  __fastcall ~TSubModel();
  void __fastcall FirstInit();
  int __fastcall Load(cParser& Parser, TModel3d *Model,int Pos);
- void __fastcall AddChild(TSubModel *SubModel);
- void __fastcall AddNext(TSubModel *SubModel);
- void __fastcall SetRotate(vector3 vNewRotateAxis, double fNewAngle);
+ void __fastcall ChildAdd(TSubModel *SubModel);
+ void __fastcall NextAdd(TSubModel *SubModel);
+ TSubModel* __fastcall NextGet() {return Next;};
+ //void __fastcall SetRotate(vector3 vNewRotateAxis,float fNewAngle);
+ void __fastcall SetRotate(float3 vNewRotateAxis,float fNewAngle);
  void __fastcall SetRotateXYZ(vector3 vNewAngles);
+ void __fastcall SetRotateXYZ(float3 vNewAngles);
  void __fastcall SetTranslate(vector3 vNewTransVector);
- TSubModel* __fastcall GetFromName(std::string search);
- void __fastcall Render(GLuint ReplacableSkinId,bool bAlpha);
- void __fastcall RenderAlpha(GLuint ReplacableSkinId,bool bAlpha);
- void __fastcall RaRender(GLuint ReplacableSkinId,bool bAlpha);
- void __fastcall RaRenderAlpha(GLuint ReplacableSkinId,bool bAlpha);
- inline matrix4x4* __fastcall GetMatrix() { return &Matrix; };
- matrix4x4* __fastcall GetTransform();
+ void __fastcall SetTranslate(float3 vNewTransVector);
+ TSubModel* __fastcall GetFromName(AnsiString search);
+ void __fastcall Render();
+ void __fastcall RenderAlpha();
+ void __fastcall RaRender();
+ void __fastcall RaRenderAlpha();
+ //inline matrix4x4* __fastcall GetMatrix() { return dMatrix; };
+ inline float4x4* __fastcall GetMatrix() { return fMatrix; };
+ //matrix4x4* __fastcall GetTransform() {return Matrix;};
  inline void __fastcall Hide() { Visible= false; };
  void __fastcall RaArrayFill(CVertNormTex *Vert);
- void __fastcall Render();
+ //void __fastcall Render();
  int __fastcall Flags();
+ void __fastcall WillBeAnimated() {if (this) iFlags|=0x4000;};
+ void __fastcall InitialRotate(bool doit);
+ void __fastcall DisplayLists();
+ void __fastcall Info();
+ void __fastcall InfoSet(TSubModelInfo *info);
+ void __fastcall BinInit(TSubModel *s,float4x4 *m,float8 *v,TStringPack *t,TStringPack *n=NULL);
+ void __fastcall ReplacableSet(GLuint *r,int a)
+ {ReplacableSkinId=r; iAlpha=a;};
+};
+
+class TSubModelInfo
+{//klasa z informacjami o submodelach, do tworzenia pliku binarnego
+public:
+ TSubModel *pSubModel; //wskaŸnik na submodel
+ int iTransform; //numer transformu (-1 gdy brak)
+ int iName; //numer nazwy
+ int iTexture; //numer tekstury
+ int iNameLen; //d³ugoœæ nazwy
+ int iTextureLen; //d³ugoœæ tekstury
+ int iNext,iChild; //numer nastêpnego i potomnego
+ static int iTotalTransforms; //iloœæ transformów
+ static int iTotalNames; //iloœæ nazw
+ static int iTotalTextures; //iloœæ tekstur
+ static int iCurrent; //aktualny obiekt
+ static TSubModelInfo* pTable; //tabele obiektów pomocniczych
+ __fastcall TSubModelInfo()
+ {pSubModel=NULL;
+  iTransform=iName=iTexture=iNext=iChild=-1; //nie ma
+  iNameLen=iTextureLen=0;
+ }
+ void __fastcall Reset()
+ {pTable=this; //ustawienie wskaŸnika tabeli obiektów
+  iTotalTransforms=iTotalNames=iTotalTextures=iCurrent=0; //zerowanie liczników
+ }
+ __fastcall ~TSubModelInfo() {};
 };
 
 class TModel3d : public CMesh
@@ -182,39 +281,46 @@ private:
  //TMaterial *Materials;
  //int MaterialsCount; //Ra: nie u¿ywane
  //bool TractionPart; //Ra: nie u¿ywane
- TSubModel *Root;
+ TSubModel *Root; //drzewo submodeli
  int iFlags; //Ra: czy submodele maj¹ przezroczyste tekstury
+ int iNumVerts; //iloœæ wierzcho³ków (gdy nie ma VBO, to m_nVertexCount=0)
+ TStringPack Textures; //nazwy tekstur
+ TStringPack Names; //nazwy submodeli
+ int *iModel; //zawartoœæ pliku binarnego
+ int iSubModelsCount; //Ra: u¿ywane do tworzenia binarnych
+ AnsiString asBinary; //nazwa pod któr¹ zapisaæ model binarny
 public:
  inline TSubModel* __fastcall GetSMRoot() {return(Root);};
- //int SubModelsCount; //Ra: nie u¿ywane
  //double Radius; //Ra: nie u¿ywane
  __fastcall TModel3d();
  __fastcall TModel3d(char *FileName);
  __fastcall ~TModel3d();
  TSubModel* __fastcall GetFromName(const char *sName);
  //TMaterial* __fastcall GetMaterialFromName(char *sName);
- bool __fastcall AddTo(const char *Name, TSubModel *SubModel);
- void __fastcall LoadFromTextFile(char *FileName);
- bool __fastcall LoadFromFile(char *FileName);
- void __fastcall SaveToFile(char *FileName);
+ void __fastcall AddTo(const char *Name, TSubModel *SubModel);
+ void __fastcall LoadFromTextFile(char *FileName,bool dynamic);
+ void __fastcall LoadFromBinFile(char *FileName);
+ bool __fastcall LoadFromFile(char *FileName,bool dynamic);
+ void __fastcall SaveToBinFile(char *FileName);
  void __fastcall BreakHierarhy();
  //renderowanie specjalne
- void __fastcall Render(double fSquareDistance,GLuint ReplacableSkinId=0,bool bAlpha=false);
- void __fastcall RenderAlpha(double fSquareDistance,GLuint ReplacableSkinId=0,bool bAlpha=false);
- void __fastcall RaRender(double fSquareDistance,GLuint ReplacableSkinId=0,bool bAlpha=false);
- void __fastcall RaRenderAlpha(double fSquareDistance,GLuint ReplacableSkinId=0,bool bAlpha=false);
+ void __fastcall Render(double fSquareDistance,GLuint *ReplacableSkinId=NULL,int iAlpha=0x30300030);
+ void __fastcall RenderAlpha(double fSquareDistance,GLuint *ReplacableSkinId=NULL,int iAlpha=0x30300030);
+ void __fastcall RaRender(double fSquareDistance,GLuint *ReplacableSkinId=NULL,int iAlpha=0x30300030);
+ void __fastcall RaRenderAlpha(double fSquareDistance,GLuint *ReplacableSkinId=NULL,int iAlpha=0x30300030);
  //jeden k¹t obrotu
- void __fastcall Render(vector3 pPosition,double fAngle=0,GLuint ReplacableSkinId=0,bool bAlpha=false);
- void __fastcall RenderAlpha(vector3 pPosition,double fAngle=0,GLuint ReplacableSkinId=0,bool bAlpha=false);
- void __fastcall RaRender(vector3 pPosition,double fAngle=0,GLuint ReplacableSkinId=0,bool bAlpha=false);
- void __fastcall RaRenderAlpha(vector3 pPosition,double fAngle=0,GLuint ReplacableSkinId=0,bool bAlpha=false);
+ void __fastcall Render(vector3 pPosition,double fAngle=0,GLuint *ReplacableSkinId=NULL,int iAlpha=0x30300030);
+ void __fastcall RenderAlpha(vector3 pPosition,double fAngle=0,GLuint *ReplacableSkinId=NULL,int iAlpha=0x30300030);
+ void __fastcall RaRender(vector3 pPosition,double fAngle=0,GLuint *ReplacableSkinId=NULL,int iAlpha=0x30300030);
+ void __fastcall RaRenderAlpha(vector3 pPosition,double fAngle=0,GLuint *ReplacableSkinId=NULL,int iAlpha=0x30300030);
  //trzy k¹ty obrotu
- void __fastcall Render(vector3* vPosition,vector3* vAngle,GLuint ReplacableSkinId=0,bool bAlpha=false);
- void __fastcall RenderAlpha(vector3* vPosition,vector3* vAngle,GLuint ReplacableSkinId=0,bool bAlpha=false);
- void __fastcall RaRender(vector3* vPosition,vector3* vAngle,GLuint ReplacableSkinId=0,bool bAlpha=false);
- void __fastcall RaRenderAlpha(vector3* vPosition,vector3* vAngle,GLuint ReplacableSkinId=0,bool bAlpha=false);
+ void __fastcall Render(vector3* vPosition,vector3* vAngle,GLuint *ReplacableSkinId=NULL,int iAlpha=0x30300030);
+ void __fastcall RenderAlpha(vector3* vPosition,vector3* vAngle,GLuint *ReplacableSkinId=NULL,int iAlpha=0x30300030);
+ void __fastcall RaRender(vector3* vPosition,vector3* vAngle,GLuint *ReplacableSkinId=NULL,int iAlpha=0x30300030);
+ void __fastcall RaRenderAlpha(vector3* vPosition,vector3* vAngle,GLuint *ReplacableSkinId=NULL,int iAlpha=0x30300030);
  //inline int __fastcall GetSubModelsCount() { return (SubModelsCount); };
  int __fastcall Flags() {return iFlags;};
+ void __fastcall Init();
 };
 
 //typedef TModel3d *PModel3d;

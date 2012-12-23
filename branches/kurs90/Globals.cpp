@@ -48,7 +48,7 @@ bool Global::bWireFrame=false;
 bool Global::bTimeChange=false;
 float Global::iFriction=1;
 bool Global::bSoundEnabled=true;
-bool Global::bRenderAlpha=true;
+bool Global::bRenderAlpha=true; //Ra: wywalam tê flagê
 bool Global::bWriteLogEnabled=true;
 bool Global::bAdjustScreenFreq=true;
 bool Global::bEnableTraction=true;
@@ -61,7 +61,7 @@ bool Global::bDecompressDDS=false;
 //bool Global::WFreeFly=false;
 float Global::fMouseXScale=3.2;
 float Global::fMouseYScale=0.5;
-double Global::fFogStart=1000;
+double Global::fFogStart=1300;
 double Global::fFogEnd=2000;
 //double Global::tSinceStart=0;
 GLfloat Global::AtmoColor[]={0.6f,0.7f,0.8f};
@@ -86,7 +86,7 @@ char Global::szSceneryFile[256]="TD.scn";
 AnsiString Global::asCurrentSceneryPath="scenery/";
 AnsiString Global::asHumanCtrlVehicle="EU07-424";
 AnsiString Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath);
-bool Global::slowmotion; //Info o malym FPS... :)
+int Global::iSlowMotion=0; //info o malym FPS: 0-OK, 1-wy³¹czyæ multisampling 3-zmniejszenie promienia
 bool Global::changeDynObj; //info o zmianie pojazdu
 bool Global::detonatoryOK; //info o nowych detonatorach
 double Global::ABuDebug=0;
@@ -101,10 +101,10 @@ int Global::iFeedbackMode=1; //tryb pracy informacji zwrotnej
 double Global::fOpenGL=0.0; //wersja OpenGL - przyda siê
 bool Global::bOpenGL_1_5=false; //czy s¹ dostêpne funkcje OpenGL 1.5
 double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
-bool Global::bMultiplayer=false; //blokada dzia³ania niektórych eventów na rzecz kominikacji
+int Global::iMultiplayer=0; //blokada dzia³ania niektórych eventów na rzecz kominikacji
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asVersion="Compilation 2011-05-09, release 1.3.130.162."; //tutaj, bo wysy³any
+AnsiString Global::asVersion="Compilation 2011-08-06, release 1.3.219.212."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 GLint Global::iMaxTextureSize=16384;//maksymalny rozmiar tekstury
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
@@ -121,7 +121,18 @@ char** Global::szDefaultExt=Global::szTexturesDDS; //domyœlnie od DDS
 int Global::iMultisampling=2; //tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
 bool Global::bGlutFont=false; //tekst generowany przez GLUT
 int Global::iKeyLast=0; //ostatnio naciœniêty klawisz w celu logowania
+GLuint Global::iTextureId=0; //ostatnio u¿yta tekstura 2D
+bool Global::bPause=false; //globalna pauza ruchu
+bool Global::bActive=true; //czy jest aktywnym oknem
+int Global::iConvertModels=2; //tworzenie plików binarnych, 2-optymalizacja transformów
+int Global::iErorrCounter=0; //licznik sprawdzañ do œledzenia b³êdów OpenGL
+bool Global::bInactivePause=true; //automatyczna pauza, gdy okno nieaktywne
 
+/* Ra: trzeba by przerobiæ na cParser, ¿eby to dzia³a³o w scenerii
+void __fastcall Global::ParseConfig(TQueryParserComp *Parser)
+{
+};
+*/
 void __fastcall Global::LoadIniFile(AnsiString asFileName)
 {
  int i;
@@ -179,8 +190,8 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
          DebugModeFlag=(Parser->GetNextSymbol().LowerCase()==AnsiString("yes"));
         else if (str==AnsiString("soundenabled")) //McZapkie-040302 - blokada dzwieku - przyda sie do debugowania oraz na komp. bez karty dzw.
          bSoundEnabled=(Parser->GetNextSymbol().LowerCase()==AnsiString("yes"));
-        else if (str==AnsiString("renderalpha")) //McZapkie-1312302 - dwuprzebiegowe renderowanie
-         bRenderAlpha=(Parser->GetNextSymbol().LowerCase()==AnsiString("yes"));
+        //else if (str==AnsiString("renderalpha")) //McZapkie-1312302 - dwuprzebiegowe renderowanie
+        // bRenderAlpha=(Parser->GetNextSymbol().LowerCase()==AnsiString("yes"));
         else if (str==AnsiString("physicslog")) //McZapkie-030402 - logowanie parametrow fizycznych dla kazdego pojazdu z maszynista
          WriteLogFlag=(Parser->GetNextSymbol().LowerCase()==AnsiString("yes"));
         else if (str==AnsiString("physicsdeactivation")) //McZapkie-291103 - usypianie fizyki
@@ -251,7 +262,7 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
         else if (str==AnsiString("feedbackmode"))
          iFeedbackMode=Parser->GetNextSymbol().ToIntDef(1); //domyœlnie 1
         else if (str==AnsiString("multiplayer"))
-         bMultiplayer=Parser->GetNextSymbol().ToIntDef(0); //domyœlnie 0
+         iMultiplayer=Parser->GetNextSymbol().ToIntDef(0); //domyœlnie 0
         else if (str==AnsiString("maxtexturesize"))
         {//wymuszenie przeskalowania tekstur
          i=Parser->GetNextSymbol().ToIntDef(16384); //domyœlnie du¿e
@@ -298,6 +309,10 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
          bGlutFont=(Parser->GetNextSymbol().LowerCase()==AnsiString("yes"));
         else if (str==AnsiString("latitude")) //szerokoœæ geograficzna
          fLatitudeDeg=Parser->GetNextSymbol().ToDouble();
+        else if (str==AnsiString("convertmodels")) //tworzenie plików binarnych
+         iConvertModels=Parser->GetNextSymbol().ToIntDef(2); //domyœlnie 2
+        else if (str==AnsiString("inactivepause")) //automatyczna pauza, gdy okno nieaktywne
+         bInactivePause=(Parser->GetNextSymbol().LowerCase()==AnsiString("yes"));
     }
  //na koniec trochê zale¿noœci
  if (!bLoadTraction)
@@ -311,6 +326,8 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
  {//antyaliasing ca³oekranowy wy³¹cza rozmywanie drutów
   bSmoothTraction=false;
  }
+ if (iMultiplayer>0)
+  bInactivePause=false; //pauza nieaktywna, jeœli w³¹czona komunikacja
  Feedback::ModeSet(iFeedbackMode); //tryb pracy interfejsu zwrotnego
 }
 
@@ -457,7 +474,13 @@ void __fastcall Global::SetCameraRotation(double Yaw)
  pCameraRotationDeg=pCameraRotation*180.0/M_PI;
 }
 
-//}
+void __fastcall Global::BindTexture(GLuint t)
+{//ustawienie aktualnej tekstury, tylko gdy siê zmienia
+ if (t!=iTextureId)
+ {iTextureId=t;
+ }
+};
+
 
 //---------------------------------------------------------------------------
 

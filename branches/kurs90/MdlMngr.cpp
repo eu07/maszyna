@@ -31,14 +31,15 @@
 #define SeekFiles AnsiString("*.t3d")
 //#define SeekTextFiles AnsiString("*.t3d")
 
-TModel3d* __fastcall TMdlContainer::LoadModel(char *newName)
+TModel3d* __fastcall TMdlContainer::LoadModel(char *newName,bool dynamic)
 {
  SafeDeleteArray(Name);
  SafeDelete(Model);
  Name=new char[strlen(newName)+1];
  strcpy(Name,newName);
  Model=new TModel3d();
- Model->LoadFromTextFile(Name); //np. "models\\pkp/head1-y.t3d"
+ if (!Model->LoadFromFile(Name,dynamic)) //np. "models\\pkp/head1-y.t3d"
+  SafeDelete(Model);
  return Model;
 };
 
@@ -103,9 +104,10 @@ int __fastcall TModelsManager::LoadModels(char *asModelsPath)
 double Radius;
 
 
-TModel3d*  __fastcall TModelsManager::LoadModel(char *Name)
+TModel3d*  __fastcall TModelsManager::LoadModel(char *Name,bool dynamic)
 {
- TModel3d *mdl=NULL;;
+ TModel3d *mdl=NULL;
+/* //nie wymagamy ju¿ obecnoœci T3D
  WIN32_FIND_DATA FindFileData;
  HANDLE handle=FindFirstFile(Name,&FindFileData);
  if (handle==INVALID_HANDLE_VALUE)
@@ -115,19 +117,22 @@ TModel3d*  __fastcall TModelsManager::LoadModel(char *Name)
  }
  else
  {
-  if (Count==MAX_MODELS)
-   Error("FIXME: Too many models, program will now crash :)");
-  else
-  {
-   mdl=Models[Count].LoadModel(Name);
-   Count++;
-  }
+*/
+ if (Count==MAX_MODELS)
+  Error("FIXME: Too many models, program will now crash :)");
+ else
+ {
+  mdl=Models[Count].LoadModel(Name,dynamic);
+  if (mdl) Count++; //jeœli b³¹d wczytania modelu, to go nie wliczamy
+ }
+/*
  }
  FindClose(handle);
+*/
  return mdl;
 }
 
-TModel3d* __fastcall TModelsManager::GetModel(char *Name)
+TModel3d* __fastcall TModelsManager::GetModel(char *Name,bool dynamic)
 {
  char buf[255];
  AnsiString buftp=Global::asCurrentTexturePath;
@@ -153,7 +158,7 @@ TModel3d* __fastcall TModelsManager::GetModel(char *Name)
    return (Models[i].Model);
   }
  };
- tmpModel=LoadModel(buf);
+ tmpModel=LoadModel(buf,dynamic);
  Global::asCurrentTexturePath=buftp;
  return (tmpModel); //NULL jeœli b³¹d
 };
