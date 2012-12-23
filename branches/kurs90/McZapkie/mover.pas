@@ -1853,7 +1853,7 @@ begin
               begin
                 SendCtrlToNext('Brake',0,CabNo);
                 SetFlag(BrakeStatus,-b_epused);
-              end;
+           end;
            end;
 
         //yB: dla Oerlikona jest zdeka ulanskie napelnianie
@@ -1923,7 +1923,7 @@ begin
                 SendCtrlToNext('Brake',0,CabNo);
                 SetFlag(BrakeStatus,-b_epused);
               end;
-           end;
+              end;
 
         //yB: dla Oerlikona jest zdeka ulanskie napelnianie
         if(BrakeSubsystem=Oerlikon)and(BrakeSystem=Pneumatic)then
@@ -1933,7 +1933,6 @@ begin
             LimPipePress:=0.85;
             ActFlowSpeed:=FlowSpeedVal;
            end;
-
 (*    for b:=0 to 1 do  {poprawic to!}
      with Couplers[b] do
       if CouplingFlag and ctrain_controll=ctrain_controll then
@@ -2514,7 +2513,7 @@ begin
            if not c^.PhysicActivation then
             if Abs(dV)>0.000000001 then
              c^.Physic_ReActivation;  {aktywacja fizyki podlaczonego skladu}
-          end;
+     end;
                     //0.02+Random/140
       dpPipe:=(dpPipe-0.028*dt/(Dim.L*SpgTu*10));  //nieszczelnosci
 
@@ -2614,7 +2613,7 @@ begin
            if (Power<1)and(BrakeSystem=Pneumatic) then
              CntrlPipePress:=Max0R(CntrlPipePress,BrakeVP)
            else
-            begin
+         begin
              if (CabNo<>0) and (BrakeSystem=Pneumatic) then
               begin
                CntrlPipePress:=PipePress;
@@ -2642,7 +2641,7 @@ begin
           LowPipePress:=PipePress-deltaPipePress;
          end
         else
-         begin
+      begin
           HighPipePress:=BrakeVP;
           LowPipePress:=Volume/(10.0*(BrakeVVolume+BrakeVolume));
           deltaPipePRess:=HighPipePress-LowPipePress;

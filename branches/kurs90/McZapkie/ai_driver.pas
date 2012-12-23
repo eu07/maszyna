@@ -89,28 +89,18 @@ Type
                   HelpMeFlag: boolean;
                   {adres gracza}
                 {?  PlayerIP: IPAddress;  }
-                  {rzeczywisty/wirtualny maszynista}
-                  AIControllFlag: boolean;
-                  {Czy jest na peronie}
-                  OnStationFlag: boolean;
-                  {jakim pojazdem steruje}
-                  Controlling: PMoverParameters;
-                  {do jakiego pociagu nalezy}
-                  TrainSet: PTrainParameters;
-                  {numer rozkladowy tego pociagu}
-                  TrainNumber: integer;
-                  {komenda pobierana z pojazdu}
-                  OrderCommand: string;
-                  {argument komendy}
-                  OrderValue: real;
-                  {preferowane przyspieszenie}
-                  AccPreferred: real;
+                  AIControllFlag: boolean; //rzeczywisty/wirtualny maszynista
+                  OnStationFlag: boolean; //Czy jest na peronie
+                  Controlling: PMoverParameters; //jakim pojazdem steruje
+                  TrainSet: PTrainParameters; //do jakiego pociagu nalezy
+                  TrainNumber: integer; //numer rozkladowy tego pociagu
+                  OrderCommand: string; //komenda pobierana z pojazdu
+                  OrderValue: real; //argument komendy
+                  AccPreferred: real; //preferowane przyspieszenie
                   {chwilowe przyspieszenie, predkosc, predkosc dla manewrow}
                   AccDesired: real; VelDesired:real; VelforDriver: real; LastVel:real;
-                  {predkosc do ktorej dazy}
-                  VelActual : real;
-                  {predkosc przy nastepnym obiekcie}
-                  VelNext: real;
+                  VelActual : real; //predkosc do której d¹zy
+                  VelNext: real; //predkosc przy nastepnym obiekcie
                   {odleglosc od obiektu, ujemna jesli nieznana}
                   ProximityDist, ActualProximityDist: real;
                   {ustawia nowa predkosc do ktorej ma dazyc oraz predkosc przy nastepnym obiekcie}
@@ -129,7 +119,7 @@ Type
                   DriverFailCount: integer;
                   Need_TryAgain, Need_BrakeRelease: boolean;
                   MinProximityDist, MaxProximityDist: real;
-									bCheckSKP: boolean; 
+ 		  bCheckSKP: boolean;
 {funkcje}
                   procedure SetDriverPsyche;
                   function PrepareEngine: boolean;
@@ -156,12 +146,14 @@ Type
                   constructor Init(LocInitial:TLocation; RotInitial:TRotation;
                                    AI:boolean; NewControll:PMoverParameters; NewTrainSet:PTRainParameters; InitPsyche:boolean);
                   function OrderCurrent:string;
+                  procedure WaitingSet(Seconds:real);
 private
-                  VehicleName: string;
-                  VelMargin: real;
-                  WarningDuration: real;
-                  WaitingTime, WaitingExpireTime:real;
-                  function OrderDirectionChange(newdir:integer; Vehicle:PMoverParameters):integer;
+ VehicleName:string;
+ VelMargin:real;
+ WarningDuration:real;
+ WaitingTime:real; //zliczany czas oczekiwania do samoistnego ruszenia
+ WaitingExpireTime:real; //maksymlany czas oczekiwania do samoistnego ruszenia
+ function OrderDirectionChange(newdir:integer;Vehicle:PMoverParameters):integer;
 end;
 
 
@@ -235,13 +227,19 @@ begin
   OrderDirectionChange:=Round(VelforDriver);
 end;
 
+procedure TController.WaitingSet(Seconds:real);
+//ustawienie odczekania
+begin
+ WaitingTime:=-Seconds;
+end;
+
 procedure TController.SetVelocity(NewVel,NewVelNext:real);
 //ustawienie nowej prêdkoœci
 begin
- WaitingTime:=-WaitingExpireTime;
+ WaitingTime:=-WaitingExpireTime; //no albo przypisujemy -WaitingExpireTime, albo porównujemy z WaitingExpireTime
  MaxVelFlag:=False; MinVelFlag:=False;
- VelActual:=NewVel;   //prêdkoœæ oczekiwana
- VelNext:=NewVelNext; //prêdkoœæ nastêpna
+ VelActual:=NewVel;   //prêdkoœæ do której d¹¿y
+ VelNext:=NewVelNext; //prêdkoœæ przy nastêpnym obiekcie
  if (NewVel>NewVelNext) //jeœli oczekiwana wiêksza ni¿ nastêpna
   or (NewVel<Controlling^.Vel) //albo aktualna jest mniejsza ni¿ aktualna
  then
@@ -251,10 +249,10 @@ begin
 end;
 
 function TController.SetProximityVelocity(NewDist,NewVelNext:real):boolean;
-//informacja o ograniczeniu w pobli¿u
+//informacja o prêdkoœci w pewnej odleg³oœci
 begin
  if NewVelNext=0 then
-   WaitingTime:=0;
+   WaitingTime:=0; //nie trzeba ju¿ czekaæ
 {if ((NewVelNext>=0) and ((VelNext>=0) and (NewVelNext<VelNext)) or (NewVelNext<VelActual)) or (VelNext<0) then
   begin }
    MaxVelFlag:=False; MinVelFlag:=False;
@@ -556,18 +554,21 @@ end;
 function TController.IncSpeed: boolean;
 var OK:boolean;
 begin
-  ClearPendingExceptions;
-  OK:=True;
-   with Controlling^ do
+ ClearPendingExceptions;
+ OK:=True;
+ with Controlling^ do
+ begin
+  if (DoorOpenCtrl=1) and (Vel=0) and (DoorLeftOpened or DoorRightOpened) then  //AI zamyka drzwi przed odjazdem
    begin
-      if (DoorOpenCtrl=1) and (Vel=0) and (DoorLeftOpened or DoorRightOpened) then  //AI zamyka drzwi przed odjazdem
-        begin
-          DepartureSignal:=true;
-          DoorLeft(false);
-          DoorRight(false);
-          DepartureSignal:=false;
-        end
-      else
+    DepartureSignal:=true; //za³¹cenie bzyczka
+    DoorLeft(false); //zamykanie drzwi
+    DoorRight(false);
+    //DepartureSignal:=false;
+    //Ra: trzeba by ustawiæ jakiœ czas oczekiwania na zamkniêcie siê drzwi
+   end
+  else
+   begin
+    DepartureSignal:=false;
       case EngineType of
         None : if (MainCtrlPosNo>0) then {McZapkie-041003: wagon sterowniczy}
                 begin
@@ -632,52 +633,55 @@ begin
                      end;
                end;
       end {case}
-   end;
-  IncSpeed:=OK;
+  end;
+ end; //Controlling^
+ IncSpeed:=OK;
 end;
 
 function TController.DecSpeed: boolean;
 var OK:boolean;
 begin
-  OK:=True;
-  with Controlling^ do
-   begin
-      case EngineType of
-        None : if (MainCtrlPosNo>0) then  {McZapkie-041003: wagon sterowniczy}
-                  OK:=DecMainCtrl(1+ord(MainCtrlPos>2));
-        ElectricSeriesMotor:
-               begin
-                 DynamicBrakeSwitch(false);
-                 if MainCtrlPos>0 then
-                 while ScndCtrlPos>0 do
-                   OK:=DecScndCtrl(1);
-                 if {not OK} ScndCtrlPos=0 then
-                  OK:=DecMainCtrl(1+ord(MainCtrlPos>2));
-               end;
-        Dumb, DieselElectric : begin
-                 OK:=DecScndCtrl(2);
-                 if not OK then
-                  OK:=DecMainCtrl(2+(MainCtrlPos div 2));
-               end;
-        WheelsDriven :
-               begin
-                 OK:=False;
-               end;
-        DieselEngine :
-               begin
-                   OK:=false;
-                   if (Vel>dizel_minVelfullengage) then
-                    begin
-                      if RList[MainCtrlPos].Mn>0 then
-                       OK:=DecMainCtrl(1)
-                    end
-                   else
-                    while (RList[MainCtrlPos].Mn>0) and (MainCtrlPos>1) do
-                     OK:=DecMainCtrl(1);
-               end;
-      end {case}
-   end;
-  DecSpeed:=OK;
+ OK:=false; //domyœlnie false, aby wysz³o z pêtli while
+ with Controlling^ do
+  begin
+   case EngineType of
+    None:
+     if (MainCtrlPosNo>0) then  {McZapkie-041003: wagon sterowniczy}
+      OK:=DecMainCtrl(1+ord(MainCtrlPos>2));
+    ElectricSeriesMotor:
+     begin
+      OK:=True;
+      DynamicBrakeSwitch(false);
+      if MainCtrlPos>0 then
+       while ScndCtrlPos>0 do
+        OK:=DecScndCtrl(1);
+         if {not OK} ScndCtrlPos=0 then
+          OK:=DecMainCtrl(1+ord(MainCtrlPos>2));
+     end;
+    Dumb,DieselElectric:
+     begin
+      OK:=DecScndCtrl(2);
+      if not OK then
+       OK:=DecMainCtrl(2+(MainCtrlPos div 2));
+     end;
+    //WheelsDriven :
+    // begin
+    //  OK:=False;
+    // end;
+    DieselEngine :
+     begin
+      if (Vel>dizel_minVelfullengage) then
+       begin
+        if RList[MainCtrlPos].Mn>0 then
+         OK:=DecMainCtrl(1)
+       end
+      else
+       while (RList[MainCtrlPos].Mn>0) and (MainCtrlPos>1) do
+        OK:=DecMainCtrl(1);
+     end;
+   end {case}
+  end;
+ DecSpeed:=OK;
 end;
 
 
@@ -800,6 +804,7 @@ end;
 
 procedure TController.PutCommand(NewCommand:string; NewValue1,NewValue2:real; NewLocation:TLocation);
 begin
+ ClearPendingExceptions;
    if NewCommand='SetVelocity' then
     begin
       CommandLocation:=NewLocation;
@@ -810,13 +815,6 @@ begin
 					bCheckSKP:=true;
 				end;
     end
-   else if NewCommand='ShuntVelocity' then
-    begin
-      CommandLocation:=NewLocation;
-      SetVelocity(NewValue1,NewValue2);
-      if (OrderList[OrderPos]=Obey_train) and (NewValue1<>0) then
-       OrderList[OrderPos]:=Shunt;
-    end
    else
     if NewCommand='SetProximityVelocity' then
      begin
@@ -824,15 +822,20 @@ begin
           CommandLocation:=NewLocation;
  {        if Order=Shunt then Order:=Obey_train;}
       end
-     else if NewCommand='ShuntVelocity' then
-    begin
-      if NewValue1<>0 then
-      VehicleCount:=-2;
-      Prepare2press:=false;
+   else if NewCommand='ShuntVelocity' then
+    begin //Ra: by³y dwa, po³¹czy³em, ale nadal jest bez sensu
       CommandLocation:=NewLocation;
-      if (OrderList[OrderPos]<>Obey_train) then
+      //SetVelocity(NewValue1,NewValue2);
+      //if (OrderList[OrderPos]=Obey_train) and (NewValue1<>0) then
+      if (OrderList[OrderPos]=Prepare_engine) then//jeœli w trakcie odpalania
+       OrderList[OrderPos+1]:=Shunt //wstawimy do nastêpnej pozycji
+      else
+       OrderList[OrderPos]:=Shunt; //zamieniamy w aktualnej pozycji
+      if NewValue1<>0 then
+       VehicleCount:=-2;
+      Prepare2press:=false;
+      //if (OrderList[OrderPos]<>Obey_train) then
       SetVelocity(NewValue1,NewValue2);
-
     end
       else if NewCommand='Wait_for_orders' then
       OrderList[OrderPos]:=Wait_for_orders
@@ -858,8 +861,10 @@ begin
       begin
         if NewValue1<>VehicleCount then
          VehicleCount:=Trunc(NewValue1); {i co potem ? - trzeba zaprogramowac odczepianie}
-          OrderList[OrderPos]:=Shunt;
+        OrderList[OrderPos]:=Shunt;
       end
+     else if NewCommand='Jump_to_first_order' then
+      JumpToFirstOrder
      else if NewCommand='Jump_to_order' then
       begin
         if NewValue1=-1 then
@@ -1127,8 +1132,9 @@ begin
                end
               else
                SetDriverPsyche;
+              //no albo przypisujemy -WaitingExpireTime, albo porównujemy z WaitingExpireTime
               if (VelActual=0) and (WaitingTime>WaitingExpireTime) and (Controlling^.RunningTrack.Velmax<>0) then
-               begin
+               begin //jeœli stoi, a up³yn¹³ czas oczekiwania i tor ma niezerow¹ prêdkoœæ
                   with Controlling^ do
                      begin
                         if WriteLogFlag then
@@ -1518,4 +1524,5 @@ begin
 end;
 
 END.
+
 

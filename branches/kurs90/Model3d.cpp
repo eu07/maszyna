@@ -101,7 +101,7 @@ void __fastcall TSubModel::FirstInit()
  fCosFalloffAngle=0.5;
  fCosHotspotAngle=0.3;
  fCosViewAngle=0;
- fSquareMaxDist=10000;
+ fSquareMaxDist=10000*10000; //10km
  fSquareMinDist=0;
  iName=-1; //brak nazwy
  iTexture=0; //brak tekstury
@@ -308,7 +308,10 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
  else iFlags|=0x10;
  parser.ignoreToken();
  parser.getToken(fSquareMaxDist);
- fSquareMaxDist*=fSquareMaxDist;
+ if (fSquareMaxDist>=0.0)
+  fSquareMaxDist*=fSquareMaxDist;
+ else
+  fSquareMaxDist=10000*10000; //10km
  parser.ignoreToken();
  parser.getToken(fSquareMinDist);
  fSquareMinDist*=fSquareMinDist;
