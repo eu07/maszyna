@@ -270,7 +270,7 @@ end;
 
 function TestFlag(Flag:integer; Value:integer):boolean;
 begin
-  if Flag and Value=Value then
+  if (Flag and Value)=Value then
    TestFlag:=True
   else TestFlag:=False;
 end;

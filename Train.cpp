@@ -1256,53 +1256,53 @@ void __fastcall TTrain::OnKeyPress(int cKey)
           }
           else
           { //tryb freefly
-            int CouplNr=-1;
+            int CouplNr=-1; //normalnie ¿aden ze sprzêgów
             TDynamicObject *tmp;
-            tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), 1, 500, CouplNr);
+            tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1,500,CouplNr);
             if (tmp==NULL)
-            tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 500, CouplNr);
+             tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1,500,CouplNr);
             if (tmp&&(CouplNr!=-1))
             {
-              if (tmp->MoverParameters->Couplers[CouplNr].CouplingFlag==0)        //hak
+             if (tmp->MoverParameters->Couplers[CouplNr].CouplingFlag==0)        //hak
+             {
+              if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,ctrain_coupler))
               {
-                if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,ctrain_coupler))
-                {
-                  //tmp->MoverParameters->Couplers[CouplNr].Render=true;
-                  dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
-                  dsbCouplerAttach->Play( 0, 0, 0 );
-                }
+               tmp->MoverParameters->Couplers[CouplNr].Render=true; //pod³¹czony sprzêg bêdzie widoczny
+               dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
+               dsbCouplerAttach->Play(0,0,0);
               }
-              else
-              if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag,ctrain_pneumatic))    //pneumatyka
+             }
+             else
+             if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag,ctrain_pneumatic))    //pneumatyka
+             {
+              if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,tmp->MoverParameters->Couplers[CouplNr].CouplingFlag+ctrain_pneumatic))
               {
-                if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,tmp->MoverParameters->Couplers[CouplNr].CouplingFlag+ctrain_pneumatic))
-                {
-                  rsHiss.Play(1,DSBPLAY_LOOPING,true,tmp->GetPosition());
-                  DynamicObject->SetPneumatic(CouplNr,1);
-                  tmp->SetPneumatic(CouplNr,1);
-                }
+               rsHiss.Play(1,DSBPLAY_LOOPING,true,tmp->GetPosition());
+               DynamicObject->SetPneumatic(CouplNr,1);
+               tmp->SetPneumatic(CouplNr,1);
               }
-              else
-              if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag,ctrain_scndpneumatic))     //zasilajacy
+             }
+             else
+             if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag,ctrain_scndpneumatic))     //zasilajacy
+             {
+              if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,tmp->MoverParameters->Couplers[CouplNr].CouplingFlag+ctrain_scndpneumatic))
               {
-                if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,tmp->MoverParameters->Couplers[CouplNr].CouplingFlag+ctrain_scndpneumatic))
-                {
-//                  rsHiss.Play(1,DSBPLAY_LOOPING,true,tmp->GetPosition());
-                  dsbCouplerDetach->SetVolume(DSBVOLUME_MAX);
-                  dsbCouplerDetach->Play( 0, 0, 0 );
-                  DynamicObject->SetPneumatic(CouplNr,0);
-                  tmp->SetPneumatic(CouplNr,0);
-                }
+//               rsHiss.Play(1,DSBPLAY_LOOPING,true,tmp->GetPosition());
+               dsbCouplerDetach->SetVolume(DSBVOLUME_MAX);
+               dsbCouplerDetach->Play( 0, 0, 0 );
+               DynamicObject->SetPneumatic(CouplNr,0);
+               tmp->SetPneumatic(CouplNr,0);
               }
-              else
-              if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag,ctrain_controll))     //ukrotnionko
+             }
+             else
+             if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag,ctrain_controll))     //ukrotnionko
+             {
+              if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,tmp->MoverParameters->Couplers[CouplNr].CouplingFlag+ctrain_controll))
               {
-                if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,tmp->MoverParameters->Couplers[CouplNr].CouplingFlag+ctrain_controll))
-                {
-                  dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
-                  dsbCouplerAttach->Play( 0, 0, 0 );
-                }
+               dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
+               dsbCouplerAttach->Play( 0, 0, 0 );
               }
+             }
              else
               if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag,ctrain_passenger))     //mostek
               {
@@ -1342,7 +1342,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
             TDynamicObject *tmp;
             tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), 1, 500, CouplNr);
             if (tmp==NULL)
-            tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 500, CouplNr);
+             tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 500, CouplNr);
             if (tmp&&(CouplNr!=-1))
             {
               if (tmp->MoverParameters->Couplers[CouplNr].CouplingFlag>0)
@@ -1706,124 +1706,143 @@ void __fastcall TTrain::OnKeyPress(int cKey)
 void __fastcall TTrain::UpdateMechPosition(double dt)
 {
 
-    DynamicObject->vFront= DynamicObject->GetDirection();
+ DynamicObject->vFront= DynamicObject->GetDirection();
 
-    DynamicObject->vUp= vWorldUp;
-    DynamicObject->vFront.Normalize();
-    DynamicObject->vLeft= CrossProduct(DynamicObject->vUp,DynamicObject->vFront);
-    DynamicObject->vUp= CrossProduct(DynamicObject->vFront,DynamicObject->vLeft);
-    matrix4x4 mat;
+ DynamicObject->vUp= vWorldUp;
+ DynamicObject->vFront.Normalize();
+ DynamicObject->vLeft= CrossProduct(DynamicObject->vUp,DynamicObject->vFront);
+ DynamicObject->vUp= CrossProduct(DynamicObject->vFront,DynamicObject->vLeft);
+ matrix4x4 mat;
 
-    double a1,a2,atmp;
-    a1= (DynamicObject->Axle1.GetRoll());
-    a2= (DynamicObject->Axle4.GetRoll());
-    atmp=(a1+a2);
-    if (DynamicObject->ABuGetDirection()<0) atmp=-atmp;
-//    mat.Rotation( ((Axle1.GetRoll()+Axle4.GetRoll()))*0.5f, vFront );
-    mat.Rotation( atmp*0.5f, DynamicObject->vFront );
+ double a1,a2,atmp;
+ a1=(DynamicObject->Axle1.GetRoll()); //pobranie przechy³ki wózka
+ a2=(DynamicObject->Axle4.GetRoll()); //uwzglêdnia ju¿ kierunek ruchu
+ atmp=(a1+a2); //k¹t przechy³u pud³a
+ //mat.Rotation(((Axle1.GetRoll()+Axle4.GetRoll()))*0.5f,vFront); //przedtem by³o bez zmiennych
+ mat.Rotation(atmp*0.5f,DynamicObject->vFront); //obrót matrycy o k¹t pud³a
+ //Ra: tu by siê przyda³o uwzglêdniæ rozk³ad si³:
+ // - na postoju horyzont prosto, kabina skosem
+ // - przy szybkiej jeŸdzie kabina prosto, horyzont pochylony
 
-    DynamicObject->vUp= mat*DynamicObject->vUp;
-    DynamicObject->vLeft= mat*DynamicObject->vLeft;
+ DynamicObject->vUp=mat*DynamicObject->vUp;
+ DynamicObject->vLeft=mat*DynamicObject->vLeft;
 
 
-//    matrix4x4 mat;
-    mat.Identity();
+ //matrix4x4 mat;
+ mat.Identity();
 
-    mat.BasisChange(DynamicObject->vLeft,DynamicObject->vUp,DynamicObject->vFront);
-    DynamicObject->mMatrix= Inverse(mat);
+ mat.BasisChange(DynamicObject->vLeft,DynamicObject->vUp,DynamicObject->vFront);
+ DynamicObject->mMatrix= Inverse(mat);
 
-    vector3 pNewMechPosition;
-//McZapkie: najpierw policze pozycje w/m kabiny
+ vector3 pNewMechPosition;
+ //McZapkie: najpierw policzê pozycjê w/m kabiny
 
-    //McZapkie: poprawka starego bledu
-//    dt=Timer::GetDeltaTime();
+ //McZapkie: poprawka starego bledu
+ //dt=Timer::GetDeltaTime();
 
-    //ABu: rzucamy kabina tylko przy duzym FPS!
-    //Mala histereza, zeby bez przerwy nie przelaczalo przy FPS~17
-    //Granice mozna ustalic doswiadczalnie. Ja proponuje 14:20
-    double r1,r2,r3;
-    int iVel= DynamicObject->GetVelocity();
-    if (iVel>150) iVel=150;
-    if (!Global::slowmotion)
-    {
-      if (!(random((GetFPS()+1)/15)>0))
+ //ABu: rzucamy kabina tylko przy duzym FPS!
+ //Mala histereza, zeby bez przerwy nie przelaczalo przy FPS~17
+ //Granice mozna ustalic doswiadczalnie. Ja proponuje 14:20
+ double r1,r2,r3;
+ int iVel= DynamicObject->GetVelocity();
+ if (iVel>150) iVel=150;
+ if (!Global::iSlowMotion) //musi byæ pe³na prêdkoœæ
+ {
+   if (!(random((GetFPS()+1)/15)>0))
+   {
+      if ((iVel>0) && (random(155-iVel)<16))
       {
-         if ((iVel>0) && (random(155-iVel)<16))
-         {
-            r1= (double(random(iVel*2)-iVel)/((iVel*2)*4))*fMechSpringX;
-            r2= (double(random(iVel*2)-iVel)/((iVel*2)*4))*fMechSpringY;
-            r3= (double(random(iVel*2)-iVel)/((iVel*2)*4))*fMechSpringZ;
-            MechSpring.ComputateForces(vector3(r1,r2,r3),pMechShake);
-//          MechSpring.ComputateForces(vector3(double(random(200)-100)/200,double(random(200)-100)/200,double(random(200)-100)/500),pMechShake);
-         }
-         else
-            MechSpring.ComputateForces(vector3(-DynamicObject->MoverParameters->AccN*dt,DynamicObject->MoverParameters->AccV*dt*10,-DynamicObject->MoverParameters->AccS*dt),pMechShake);
+         r1= (double(random(iVel*2)-iVel)/((iVel*2)*4))*fMechSpringX;
+         r2= (double(random(iVel*2)-iVel)/((iVel*2)*4))*fMechSpringY;
+         r3= (double(random(iVel*2)-iVel)/((iVel*2)*4))*fMechSpringZ;
+         MechSpring.ComputateForces(vector3(r1,r2,r3),pMechShake);
+ //      MechSpring.ComputateForces(vector3(double(random(200)-100)/200,double(random(200)-100)/200,double(random(200)-100)/500),pMechShake);
       }
-      vMechVelocity-= (MechSpring.vForce2+vMechVelocity*100)*(fMechSpringX+fMechSpringY+fMechSpringZ)/(200);
+      else
+         MechSpring.ComputateForces(vector3(-DynamicObject->MoverParameters->AccN*dt,DynamicObject->MoverParameters->AccV*dt*10,-DynamicObject->MoverParameters->AccS*dt),pMechShake);
+   }
+   vMechVelocity-= (MechSpring.vForce2+vMechVelocity*100)*(fMechSpringX+fMechSpringY+fMechSpringZ)/(200);
 
-      //McZapkie:
-      pMechShake+= vMechVelocity*dt;
-    }
-    else
-      pMechShake-=pMechShake*Min0R(dt,1);
+   //McZapkie:
+   pMechShake+= vMechVelocity*dt;
+ }
+ else
+   pMechShake-=pMechShake*Min0R(dt,1);
 
-    pMechOffset+= vMechMovement*dt;
-    if ((pMechShake.y>fMechMaxSpring) || (pMechShake.y<-fMechMaxSpring))
-     vMechVelocity.y=-vMechVelocity.y;
-    //ABu011104: 5*pMechShake.y, zeby ladnie pudlem rzucalo :)
-    pNewMechPosition= pMechOffset+vector3(pMechShake.x,5*pMechShake.y,pMechShake.z);
-    vMechMovement= vMechMovement/2;
-//numer kabiny (-1: kabina B)
-    iCabn= (DynamicObject->MoverParameters->ActiveCab==-1 ? 2 : DynamicObject->MoverParameters->ActiveCab);
-    if (!DebugModeFlag)
-    {//sprawdzaj wiezy
-     if (pNewMechPosition.x<Cabine[iCabn].CabPos1.x) pNewMechPosition.x=Cabine[iCabn].CabPos1.x;
-     if (pNewMechPosition.x>Cabine[iCabn].CabPos2.x) pNewMechPosition.x=Cabine[iCabn].CabPos2.x;
-     if (pNewMechPosition.z<Cabine[iCabn].CabPos1.z) pNewMechPosition.z=Cabine[iCabn].CabPos1.z;
-     if (pNewMechPosition.z>Cabine[iCabn].CabPos2.z) pNewMechPosition.z=Cabine[iCabn].CabPos2.z;
-     if (pNewMechPosition.y>Cabine[iCabn].CabPos1.y+1.8) pNewMechPosition.y=Cabine[iCabn].CabPos1.y+1.8;
-     if (pNewMechPosition.y<Cabine[iCabn].CabPos1.y+0.5) pNewMechPosition.y=Cabine[iCabn].CabPos2.y+0.5;
+ pMechOffset+= vMechMovement*dt;
+ if ((pMechShake.y>fMechMaxSpring) || (pMechShake.y<-fMechMaxSpring))
+  vMechVelocity.y=-vMechVelocity.y;
+ //ABu011104: 5*pMechShake.y, zeby ladnie pudlem rzucalo :)
+ pNewMechPosition= pMechOffset+vector3(pMechShake.x,5*pMechShake.y,pMechShake.z);
+ vMechMovement= vMechMovement/2;
+ //numer kabiny (-1: kabina B)
+ iCabn= (DynamicObject->MoverParameters->ActiveCab==-1 ? 2 : DynamicObject->MoverParameters->ActiveCab);
+ if (!DebugModeFlag)
+ {//sprawdzaj wiezy
+  if (pNewMechPosition.x<Cabine[iCabn].CabPos1.x) pNewMechPosition.x=Cabine[iCabn].CabPos1.x;
+  if (pNewMechPosition.x>Cabine[iCabn].CabPos2.x) pNewMechPosition.x=Cabine[iCabn].CabPos2.x;
+  if (pNewMechPosition.z<Cabine[iCabn].CabPos1.z) pNewMechPosition.z=Cabine[iCabn].CabPos1.z;
+  if (pNewMechPosition.z>Cabine[iCabn].CabPos2.z) pNewMechPosition.z=Cabine[iCabn].CabPos2.z;
+  if (pNewMechPosition.y>Cabine[iCabn].CabPos1.y+1.8) pNewMechPosition.y=Cabine[iCabn].CabPos1.y+1.8;
+  if (pNewMechPosition.y<Cabine[iCabn].CabPos1.y+0.5) pNewMechPosition.y=Cabine[iCabn].CabPos2.y+0.5;
 
-     if (pMechOffset.x<Cabine[iCabn].CabPos1.x) pMechOffset.x=Cabine[iCabn].CabPos1.x;
-     if (pMechOffset.x>Cabine[iCabn].CabPos2.x) pMechOffset.x=Cabine[iCabn].CabPos2.x;
-     if (pMechOffset.z<Cabine[iCabn].CabPos1.z) pMechOffset.z=Cabine[iCabn].CabPos1.z;
-     if (pMechOffset.z>Cabine[iCabn].CabPos2.z) pMechOffset.z=Cabine[iCabn].CabPos2.z;
-     if (pMechOffset.y>Cabine[iCabn].CabPos1.y+1.8) pMechOffset.y=Cabine[iCabn].CabPos1.y+1.8;
-     if (pMechOffset.y<Cabine[iCabn].CabPos1.y+0.5) pMechOffset.y=Cabine[iCabn].CabPos2.y+0.5;
-    }
-    pMechPosition= DynamicObject->mMatrix*pNewMechPosition;
-    pMechPosition+= DynamicObject->GetPosition();
-}
+  if (pMechOffset.x<Cabine[iCabn].CabPos1.x) pMechOffset.x=Cabine[iCabn].CabPos1.x;
+  if (pMechOffset.x>Cabine[iCabn].CabPos2.x) pMechOffset.x=Cabine[iCabn].CabPos2.x;
+  if (pMechOffset.z<Cabine[iCabn].CabPos1.z) pMechOffset.z=Cabine[iCabn].CabPos1.z;
+  if (pMechOffset.z>Cabine[iCabn].CabPos2.z) pMechOffset.z=Cabine[iCabn].CabPos2.z;
+  if (pMechOffset.y>Cabine[iCabn].CabPos1.y+1.8) pMechOffset.y=Cabine[iCabn].CabPos1.y+1.8;
+  if (pMechOffset.y<Cabine[iCabn].CabPos1.y+0.5) pMechOffset.y=Cabine[iCabn].CabPos2.y+0.5;
+ }
+ pMechPosition= DynamicObject->mMatrix*pNewMechPosition;
+ pMechPosition+= DynamicObject->GetPosition();
+};
 
 //#include "dbgForm.h"
 
 bool __fastcall TTrain::Update()
 {
-
  DWORD stat;
-
- double dt= Timer::GetDeltaTime();
-
+ double dt=Timer::GetDeltaTime();
  if (DynamicObject->mdKabina)
+ {
+  tor=DynamicObject->GetTrack(); //McZapkie-180203
+  //McZapkie: predkosc wyswietlana na tachometrze brana jest z obrotow kol
+  float maxtacho=3;
+  fTachoVelocity=abs(11.31*DynamicObject->MoverParameters->WheelDiameter*DynamicObject->MoverParameters->nrot);
+  if (fTachoVelocity>1) //McZapkie-270503: podkrecanie tachometru
   {
-    
-    tor= DynamicObject->GetTrack(); //McZapkie-180203
+   if (fTachoCount<maxtacho)
+    fTachoCount+=dt;
+  }
+  else
+   if (fTachoCount>0)
+    fTachoCount-=dt;
 
-//McZapkie: predkosc wyswietlana na tachometrze brana jest z obrotow kol
-    float maxtacho=3;
-    fTachoVelocity= abs(11.31*DynamicObject->MoverParameters->WheelDiameter*DynamicObject->MoverParameters->nrot);
-    if (fTachoVelocity>1) //McZapkie-270503: podkrecanie tachometru
-     {
-      if (fTachoCount<maxtacho)
-       fTachoCount+=dt;
-     }
-    else
-     if (fTachoCount>0)
-      fTachoCount-=dt;
-
-    double vol=0;
+/* Ra: to by trzeba by³o przemyœleæ, zmienione na szybko problemy robi
+  //McZapkie: predkosc wyswietlana na tachometrze brana jest z obrotow kol
+  double vel=fabs(11.31*DynamicObject->MoverParameters->WheelDiameter*DynamicObject->MoverParameters->nrot);
+  if (iSekunda!=floor(GlobalTime->mr)||(vel<1.0))
+  {fTachoVelocity=vel;
+   if (fTachoVelocity>1.0) //McZapkie-270503: podkrecanie tachometru
+   {
+    if (fTachoCount<maxtacho)
+     fTachoCount+=dt;
+   }
+   else
+    if (fTachoCount>0)
+     fTachoCount-=dt;
+   if (DynamicObject->MoverParameters->TrainType==dt_EZT)
+    //dla EZT wskazówka porusza siê niestabilnie
+    if (fTachoVelocity>7.0)
+    {fTachoVelocity=floor(0.5+fTachoVelocity+random(5)-random(5)); //*floor(0.2*fTachoVelocity);
+     if (fTachoVelocity<0.0) fTachoVelocity=0.0;
+    }
+   iSekunda=floor(GlobalTime->mr);
+  }
+*/
+  double vol=0;
 //    int freq=1;
-    double dfreq;
+   double dfreq;
 
 //McZapkie-280302 - syczenie
       if (rsHiss.AM!=0)
@@ -3657,7 +3676,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
          {
           str= DynamicObject->asBaseDir+str;
           Global::asCurrentTexturePath=DynamicObject->asBaseDir;         //biezaca sciezka do tekstur to dynamic/...
-          DynamicObject->mdKabina=TModelsManager::GetModel(str.c_str()); //szukaj kabinê jako oddzielny model
+          DynamicObject->mdKabina=TModelsManager::GetModel(str.c_str(),true); //szukaj kabinê jako oddzielny model
           Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath); //z powrotem defaultowa sciezka do tekstur
          }
          else
@@ -4395,14 +4414,15 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
 //    btLampkaUnknown.Init("unknown",mdKabina,false);
        }
     }
-   else return false;
-   //ABu 050205: tego wczesniej nie bylo:
-   delete Parser;
-   if (!DynamicObject->mdKabina && !AnsiCompareStr(str,AnsiString("none"))) return false;
-    else
-     {
-     return true;
-     }
+ else return false;
+ //ABu 050205: tego wczesniej nie bylo:
+ delete Parser;
+ if (DynamicObject->mdKabina)
+ {
+  DynamicObject->mdKabina->Init(); //obrócenie modelu oraz optymalizacja, równie¿ zapisanie binarnego
+  return true;
+ }
+ return AnsiCompareStr(str,AnsiString("none"));
 }
 
 

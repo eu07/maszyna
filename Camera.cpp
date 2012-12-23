@@ -114,7 +114,7 @@ void __fastcall TCamera::Update()
 //    matrix4x4 mat;
         vector3 Vec=Velocity;
         Vec.RotateY(Yaw);
-        Pos=Pos+Vec*Timer::GetDeltaTime();
+        Pos=Pos+Vec*Timer::GetDeltaRenderTime(); //czas bez pauzy
         Velocity=Velocity/2; //p³ynne hamowanie ruchu
 //    double tmp= 10*DeltaTime;
 //        Velocity+= -Velocity*10 * Timer::GetDeltaTime();//( tmp<1 ? tmp : 1 );

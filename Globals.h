@@ -6,9 +6,18 @@
 #include <string>
 #include "opengl/glew.h"
 #include "dumb3d.h"
-//#include "Logs.h"
 
 using namespace Math3D;
+
+//Ra: taki zapis funkcjonuje lepiej, ale mo¿e nie jest optymalny
+#define vWorldFront vector3(0,0,1)
+#define vWorldUp vector3(0,1,0)
+#define vWorldLeft CrossProduct(vWorldUp,vWorldFront)
+
+//Ra: bo te poni¿ej to siê powiela³y w ka¿dym module odobno
+//vector3 vWorldFront=vector3(0,0,1);
+//vector3 vWorldUp=vector3(0,1,0);
+//vector3 vWorldLeft=CrossProduct(vWorldUp,vWorldFront);
 
 //definicje klawiszy
 const int k_IncMainCtrl= 0; //[Num+]
@@ -111,6 +120,8 @@ class TGround;
 
 class Global
 {
+private:
+ static GLuint iTextureId; //ostatnio u¿yta tekstura 2D
 public:
  //double Global::tSinceStart;
  static int Keys[MaxKeys];
@@ -174,7 +185,7 @@ public:
  static GLfloat noLight[];
  static GLfloat darkLight[];
  static GLfloat lightPos[4];
- static bool slowmotion;
+ static int iSlowMotion;
  static bool changeDynObj;
  static double ABuDebug;
  static bool detonatoryOK;
@@ -191,7 +202,7 @@ public:
  static double fOpenGL; //wersja OpenGL - przyda siê
  static bool bOpenGL_1_5; //czy s¹ dostêpne funkcje OpenGL 1.5
  static double fLuminance; //jasnoœæ œwiat³a do automatycznego zapalania
- static bool bMultiplayer; //blokada dzia³ania niektórych eventów na rzecz kominikacji
+ static int iMultiplayer; //blokada dzia³ania niektórych eventów na rzecz kominikacji
  static HWND hWnd; //uchwyt okna
  static int iCameraLast;
  static AnsiString asVersion;
@@ -210,6 +221,12 @@ public:
  static int iMultisampling; //tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
  static bool bGlutFont; //tekst generowany przez GLUT
  static int iKeyLast; //ostatnio naciœniêty klawisz w celu logowania
+ static bool bPause; //globalna pauza ruchu
+ static bool bActive; //czy jest aktywnym oknem
+ static void __fastcall BindTexture(GLuint t);
+ static int iConvertModels; //tworzenie plików binarnych
+ static int iErorrCounter; //licznik sprawdzañ do œledzenia b³êdów OpenGL
+ static bool bInactivePause; //automatyczna pauza, gdy okno nieaktywne
 };
 
 //---------------------------------------------------------------------------

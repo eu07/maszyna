@@ -3,17 +3,7 @@
 #ifndef EventH
 #define EventH
 
-#include "dumb3d.h"
-#include "RealSound.h"
-//#include "Ground.h"
-//#include "Track.h"
-#include "Event.h"
-//#include "Semaphore.h"
-//#include "DynObj.h"
-//#include "QueryParserComp.hpp"
-#include "parser.h"
-
-using namespace Math3D;
+#include "Classes.h"
 
 typedef enum { tp_Unknown, tp_Sound, tp_SoundPos, tp_Exit,
                tp_Disable, tp_Velocity, tp_Animation, tp_Lights,
@@ -30,15 +20,6 @@ const int conditional_memstring=1;
 const int conditional_memval1=2;
 const int conditional_memval2=4;
 const int conditional_memadd=8; //dodanie do poprzedniej zawartoœci
-
-class TTrack;
-class TEvent;
-class TTrain;
-class TDynamicObject;
-class TGroundNode;
-class TAnimModel;
-class TAnimContainer;
-class TMemCell;
 
 union TParam
 {

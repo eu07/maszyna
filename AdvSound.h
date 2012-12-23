@@ -27,7 +27,7 @@ public:
     void __fastcall Load(TQueryParserComp *Parser, vector3 pPosition);
     void __fastcall TurnOn(bool ListenerInside, vector3 NewPosition);
     void __fastcall TurnOff(bool ListenerInside, vector3 NewPosition);
-    __fastcall Free();
+    void __fastcall Free();
     void __fastcall Update(bool ListenerInside, vector3 NewPosition);
     void __fastcall UpdateAF(double A, double F, bool ListenerInside, vector3 NewPosition);
 };

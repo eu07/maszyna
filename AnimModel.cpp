@@ -163,7 +163,11 @@ __fastcall TAnimModel::TAnimModel()
  pModel=NULL;
  iNumLights=0;
  fBlinkTimer=0;
- ReplacableSkinId=0;
+ ReplacableSkinId[0]=0;
+ ReplacableSkinId[1]=0;
+ ReplacableSkinId[2]=0;
+ ReplacableSkinId[3]=0;
+ ReplacableSkinId[4]=0;
  for (int i=0;i<iMaxNumLights;i++)
  {
   LightsOn[i]=LightsOff[i]=NULL; //normalnie nie ma
@@ -186,11 +190,14 @@ bool __fastcall TAnimModel::Init(TModel3d *pNewModel)
 
 bool __fastcall TAnimModel::Init(AnsiString asName, AnsiString asReplacableTexture)
 {
-//    asName="models//"+asName;
-    if (asReplacableTexture!=AnsiString("none"))
-      ReplacableSkinId=TTexturesManager::GetTextureID(asReplacableTexture.c_str());
-    bTexAlpha=TTexturesManager::GetAlpha(ReplacableSkinId);
-    return (Init(TModelsManager::GetModel(asName.c_str())));
+ //asName="models//"+asName;
+ if (asReplacableTexture!=AnsiString("none"))
+  ReplacableSkinId[1]=TTexturesManager::GetTextureID(asReplacableTexture.c_str());
+ if (TTexturesManager::GetAlpha(ReplacableSkinId[1]))
+  iTexAlpha=0x31310031; //tekstura z kana³em alfa - nie renderowaæ w cyklu nieprzezroczystych
+ else
+  iTexAlpha=0x30300030; //tekstura nieprzezroczysta - nie renderowaæ w cyklu przezroczystych
+ return (Init(TModelsManager::GetModel(asName.c_str())));
 }
 
 bool __fastcall TAnimModel::Load(cParser *parser)
@@ -304,38 +311,46 @@ void __fastcall TAnimModel::RaPrepare()
   pCurrent->UpdateModel(); //przeliczenie animacji ka¿dego submodelu
 }
 
-void __fastcall TAnimModel::RaRender(vector3 pPosition, double fAngle)
+void __fastcall TAnimModel::RaRender(vector3 pPosition,double fAngle)
 {//sprawdza œwiat³a i rekurencyjnie renderuje TModel3d
  RaPrepare();
  if (pModel) //renderowanie rekurencyjne submodeli
-  pModel->RaRender(pPosition,fAngle,ReplacableSkinId,bTexAlpha);
+  pModel->RaRender(pPosition,fAngle,ReplacableSkinId,iTexAlpha);
 }
 
-void __fastcall TAnimModel::RaRenderAlpha(vector3 pPosition, double fAngle)
+void __fastcall TAnimModel::RaRenderAlpha(vector3 pPosition,double fAngle)
 {
  RaPrepare();
  if (pModel) //renderowanie rekurencyjne submodeli
-  pModel->RaRenderAlpha(pPosition,fAngle,ReplacableSkinId,bTexAlpha);
+  pModel->RaRenderAlpha(pPosition,fAngle,ReplacableSkinId,iTexAlpha);
 };
 
-void __fastcall TAnimModel::Render(vector3 pPosition, double fAngle)
+void __fastcall TAnimModel::Render(vector3 pPosition,double fAngle)
 {
  RaPrepare();
  if (pModel) //renderowanie rekurencyjne submodeli
-  pModel->Render(pPosition,fAngle,ReplacableSkinId,bTexAlpha);
+  pModel->Render(pPosition,fAngle,ReplacableSkinId,iTexAlpha);
 }
 
-void __fastcall TAnimModel::RenderAlpha(vector3 pPosition, double fAngle)
+void __fastcall TAnimModel::RenderAlpha(vector3 pPosition,double fAngle)
 {
  RaPrepare();
  if (pModel)
-  pModel->RenderAlpha(pPosition,fAngle,ReplacableSkinId,bTexAlpha);
+  pModel->RenderAlpha(pPosition,fAngle,ReplacableSkinId,iTexAlpha);
 };
 
 int __fastcall TAnimModel::Flags()
-{//informacja dla TGround, czy ma byæ Render() czy RenderAlpha()
- int i=pModel?pModel->Flags():0;
- return i|(ReplacableSkinId>0?(i&0x01010001)*(bTexAlpha?4:2):0);
+{//informacja dla TGround, czy ma byæ w Render, RenderAlpha, czy RenderMixed
+ int i=pModel?pModel->Flags():0; //pobranie flag ca³ego modelu
+ if (ReplacableSkinId[1]>0) //jeœli ma wymienn¹ teksturê 0
+  i|=(i&0x01010001)*((iTexAlpha&1)?0x20:0x10);
+ //if (ReplacableSkinId[2]>0) //jeœli ma wymienn¹ teksturê 1
+ // i|=(i&0x02020002)*((iTexAlpha&1)?0x10:0x08);
+ //if (ReplacableSkinId[3]>0) //jeœli ma wymienn¹ teksturê 2
+ // i|=(i&0x04040004)*((iTexAlpha&1)?0x08:0x04);
+ //if (ReplacableSkinId[4]>0) //jeœli ma wymienn¹ teksturê 3
+ // i|=(i&0x08080008)*((iTexAlpha&1)?0x04:0x02);
+ return i;
 };
 
 //-----------------------------------------------------------------------------
@@ -346,25 +361,25 @@ void __fastcall TAnimModel::Render(vector3* vPosition)
 {
  RaPrepare();
  if (pModel) //renderowanie rekurencyjne submodeli
-  pModel->Render(vPosition,&vAngle,ReplacableSkinId,bTexAlpha);
+  pModel->Render(vPosition,&vAngle,ReplacableSkinId,iTexAlpha);
 };
 void __fastcall TAnimModel::RenderAlpha(vector3* vPosition)
 {
  RaPrepare();
  if (pModel) //renderowanie rekurencyjne submodeli
-  pModel->RenderAlpha(vPosition,&vAngle,ReplacableSkinId,bTexAlpha);
+  pModel->RenderAlpha(vPosition,&vAngle,ReplacableSkinId,iTexAlpha);
 };
 void __fastcall TAnimModel::RaRender(vector3* vPosition)
 {
  RaPrepare();
  if (pModel) //renderowanie rekurencyjne submodeli
-  pModel->RaRender(vPosition,&vAngle,ReplacableSkinId,bTexAlpha);
+  pModel->RaRender(vPosition,&vAngle,ReplacableSkinId,iTexAlpha);
 };
 void __fastcall TAnimModel::RaRenderAlpha(vector3* vPosition)
 {
  RaPrepare();
  if (pModel) //renderowanie rekurencyjne submodeli
-  pModel->RaRenderAlpha(vPosition,&vAngle,ReplacableSkinId,bTexAlpha);
+  pModel->RaRenderAlpha(vPosition,&vAngle,ReplacableSkinId,iTexAlpha);
 };
 
 //---------------------------------------------------------------------------

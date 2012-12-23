@@ -23,10 +23,10 @@
 #include    "classes.hpp"
 #pragma hdrstop
 
+#include "Event.h"
+#include "parser.h"
 #include "Timer.h"
 #include "Usefull.h"
-
-#include "Event.h"
 
 __fastcall TEvent::TEvent()
 {
@@ -69,7 +69,7 @@ void __fastcall TEvent::Load(cParser* parser)
 
     parser->getTokens();
     *parser >> token;
-    asName= AnsiString(token.c_str());
+    asName=AnsiString(token.c_str()).LowerCase(); //u¿ycie parametrów mo¿e dawaæ wielkie
 
     parser->getTokens();
     *parser >> token;
@@ -190,7 +190,9 @@ void __fastcall TEvent::Load(cParser* parser)
             Params[12].asInt= 0;
             parser->getTokens(1,false);  //komendy 'case sensitive'
             *parser >> token;
-            str= AnsiString(token.c_str());
+            str=AnsiString(token.c_str());
+            if (str.SubString(1,19)=="PassengerStopPoint:")
+             if (str.Pos("#")) str=str.SubString(1,str.Pos("#")-1);
             Params[0].asText= new char[str.Length()+1];
             strcpy(Params[0].asText,str.c_str());
 //            if (str!=AnsiString("*"))       //*=nie brac tego pod uwage
@@ -211,7 +213,12 @@ void __fastcall TEvent::Load(cParser* parser)
 //            if (str!=AnsiString("*"))       //*=nie brac tego pod uwage
 //             {
 //              Params[12].asInt+=conditional_memval2;
-              Params[2].asdouble= str.ToDouble();
+             try
+             {Params[2].asdouble= str.ToDouble();}
+             catch (...)
+             {Params[2].asdouble=0;
+              WriteLog("Error: number expected in PutValues event.");
+             }
 //             }
 //            else
 //             Params[2].asdouble= 0;

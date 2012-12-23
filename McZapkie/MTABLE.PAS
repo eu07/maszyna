@@ -12,7 +12,7 @@ Type
                    StationName: string[32];   {nazwa stacji ( '_' zamiast spacji}
                    StationWare: string[32];   {typ i wyposazenie stacji, oddz. przecinkami}
                    TrackNo: byte;             {ilosc torow szlakowych}
-                   Ah, Am: integer;              {godz. i min. przyjazdu}
+                   Ah, Am: integer;           //godz. i min. przyjazdu, -1 gdy bez postoju
                    Dh, Dm: integer;              {godz. i min. odjazdu}
                    tm: real;                  {czas jazdy do tej stacji w min.}
                    WaitTime: integer;         {czas postoju}
@@ -25,7 +25,7 @@ Type
    TTrainParameters = class(TObject)
                         TrainName:string;
                         TTVmax:real;
-                        Relation1,Relation2: string;
+                        Relation1,Relation2: string; //nazwy stacji danego odcinka
                         BrakeRatio: real;
                         LocSeries: string;
                         LocLoad: real;
@@ -39,7 +39,10 @@ Type
                         {todo: str hh:mm to int i z powrotem}
                         function ShowRelation: string;
                         function WatchMTable(DistCounter:real): real;
-                        function UpdateMTable(hh,mm:real; NewName: string): boolean;                        
+                        function NextStop:string;
+                        function IsStop:boolean;
+                        function IsTimeToGo(hh,mm:real):boolean;
+                        function UpdateMTable(hh,mm:real; NewName: string): boolean;
                         constructor Init(NewTrainName:string);
                         function LoadTTfile(scnpath:string): boolean;
                       end;
@@ -58,9 +61,20 @@ var GlobalTime: TMTableTime;
 
 implementation
 
-function CompareTime(t1h,t1m,t2h,t2m:real):real; {roznica czasu w minutach, nie uwzglednia zmiany daty!!!}
+function CompareTime(t1h,t1m,t2h,t2m:real):real; {roznica czasu w minutach}
+//zwraca ró¿nicê czasu
+//jeœli pierwsza jest aktualna, a druga rozk³adowa, to ujemna oznacza opó¿nienie
+//na d³u¿sz¹ metê trzeba uwzglêdniæ datê, jakby opó¿nienia mia³y przekraczaæ 12h (towarowych)
+var
+ t:real;
 begin
-  CompareTime:=(t2h-t1h)*60+t2m-t1m;
+ t:=(t2h-t1h)*60+t2m-t1m; //jeœli t2=00:05, a t1=23:50, to ró¿nica wyjdzie ujemna
+ if (t<-720) then //jeœli ró¿nica przekracza 12h na minus
+  t:=t+1440 //to dodanie doby minut
+ else
+  if (t>720) then //jeœli przekracza 12h na plus
+   t:=t-1440; //to odjêcie doby minut
+ CompareTime:=t;
 end;
 
 function TTrainParameters.CheckTrainLatency: real;
@@ -82,28 +96,57 @@ begin
   WatchMTable:=dist;
 end;
 
+function TTrainParameters.NextStop:string;
+//pobranie nazwy nastêpnego miejsca zatrzymania
+begin
+ if StationIndex<StationCount
+ then
+  NextStop:='PassengerStopPoint:'+TimeTable[StationIndex+1].StationName
+ else
+  NextStop:='[End of route]'; //¿e niby koniec      
+end;
+
+function TTrainParameters.IsStop:boolean;
+//pytanie, czy zatrzymywaæ na aktualnej stacji
+begin
+ if StationIndex<StationCount
+ then
+  IsStop:=TimeTable[StationIndex+1].Ah>=0 //-1 to brak postoju
+ else
+  IsStop:=true; //na koñcu zatrzymaæ
+end;
+
 function TTrainParameters.UpdateMTable(hh,mm:real;NewName:string):boolean;
 {odfajkowanie dojechania do stacji (NewName) i przeliczenie opóŸnienia}
 var OK:boolean;
 begin
  OK:=false;
- if StationIndex<=StationCount then {albo <= !!! Ra: stacje s¹ 1..StationCount}
+ if StationIndex<StationCount then {Ra: "<", bo dodaje 1 przy przejœciu do nastêpnej stacji}
   begin
-   if TimeTable[1].km-TimeTable[0].km<0 then
-    Direction:=-1
-   else
-    Direction:=1; {prowizorka bo moze byc zmiana kilometrazu}
    if NewName=TimeTable[StationIndex+1].StationName then
-    begin
+    begin //Ra: wywo³anie mo¿e byæ powtarzane, jak stoi na W4
+     if TimeTable[StationIndex+1].km-TimeTable[StationIndex].km<0 then
+      Direction:=-1
+     else
+      Direction:=1; {prowizorka bo moze byc zmiana kilometrazu}
      LastStationLatency:=CompareTime(hh,mm,TimeTable[StationIndex].dh,TimeTable[StationIndex].dm);
      inc(StationIndex);
-     NextStationName:=TimeTable[StationIndex].StationName;
+     NextStationName:=TimeTable[StationIndex].StationName; //ju¿ zaliczona
+     TTVmax:=TimeTable[StationIndex].vmax; //Ra: nowa prêdkoœæ rozk³adowa na kolejnym odcinku
      OK:=true;
     end;
   end;
  UpdateMTable:=OK; {czy jest nastepna stacja}
 end;
 
+function TTrainParameters.IsTimeToGo(hh,mm:real):boolean;
+//sprawdzenie, czy mo¿na ju¿ odjechaæ
+begin
+ if (TimeTable[StationIndex].dh<0) then
+  IsTimeToGo:=true
+ else
+  IsTimeToGo:=CompareTime(hh,mm,TimeTable[StationIndex].dh,TimeTable[StationIndex].dm)<=0;
+end;
 
 function TTrainParameters.ShowRelation:string;
 {zwraca informacjê o relacji}
@@ -140,17 +183,20 @@ var
  fin:text;
  EndTable:boolean;
  vActual:real;
+
 procedure UpdateVelocity(StationCount:integer;vActual:real);
+//zapisywanie prêdkoœci maksymalnej do wczeœniejszych odcinków
 var i:integer;
 begin
  i:=StationCount;
- TTVmax:=vActual;  {PROWIZORKA!!!}
+ //TTVmax:=vActual;  {PROWIZORKA!!!}
  while (i>0) and (TimeTable[i-1].vmax=-1) do
   begin
    dec(i);
    TimeTable[i].vmax:=vActual;
   end;
 end;
+
 begin
  ConversionError:=666;
  s:=scnpath+TrainName+'.txt';
@@ -246,13 +292,13 @@ begin
                begin
                 if Pos(hrsd,s)>0 then
                  begin
-                  ah:=s2iE(Copy(s,1,Pos(hrsd,s)-1));
-                  am:=s2iE(Copy(s,Pos(hrsd,s)+1,Length(s)));
+                  ah:=s2iE(Copy(s,1,Pos(hrsd,s)-1)); //godzina przyjazdu
+                  am:=s2iE(Copy(s,Pos(hrsd,s)+1,Length(s))); //minuta przyjazdu
                  end
                 else
                  begin
-                  ah:=TimeTable[StationCount-1].ah;
-                  am:=s2iE(s); {tylko minuty podane}
+                  ah:=TimeTable[StationCount-1].ah; //godzina z poprzedniej pozycji
+                  am:=s2iE(s); //bo tylko minuty podane
                  end;
                end;
               repeat
@@ -289,16 +335,22 @@ begin
                begin
                 if Pos(hrsd,s)>0 then
                  begin
-                  dh:=s2iE(Copy(s,1,Pos(hrsd,s)-1));
-                  dm:=s2iE(Copy(s,Pos(hrsd,s)+1,Length(s)));
+                  dh:=s2iE(Copy(s,1,Pos(hrsd,s)-1)); //godzina odjazdu
+                  dm:=s2iE(Copy(s,Pos(hrsd,s)+1,Length(s))); //minuta odjazdu
                  end
                 else
                  begin
-                  dh:=TimeTable[StationCount-1].dh;
-                  dm:=s2iE(s); {tylko minuty podane}
+                  dh:=TimeTable[StationCount-1].dh; //godzina z poprzedniej pozycji
+                  dm:=s2iE(s); //bo tylko minuty podane
                  end;
-                WaitTime:=Trunc(CompareTime(ah,am,dh,dm)+0.1);
+               end
+              else
+               begin
+                dh:=ah; //odjazd o tej samej, co przyjazd
+                dm:=am; //bo s¹ u¿ywane do wyliczenia opóŸnienia po dojechaniu
                end;
+              if (ah>=0) then
+               WaitTime:=Trunc(CompareTime(ah,am,dh,dm)+0.1);
               repeat
                s:=ReadWord(fin);
               until (s<>'|') or (eof(fin));
@@ -337,26 +389,28 @@ begin
       NextStationName:=TimeTable[1].StationName;
 {      TTVmax:=TimeTable[1].vmax;  }
   end;
+ close(fin);
  LoadTTfile:=(ConversionError=0);
 end;
 
 procedure TMTableTime.UpdateMTableTime(deltaT:real);
+//dodanie czasu (deltaT) w sekundach, z przeliczeniem godziny
 begin
-  mr:=mr+deltaT;
-  if mr>60.0 then
+  mr:=mr+deltaT; //dodawanie sekund
+  while mr>60.0 do //przeliczenie sekund do w³aœciwego przedzia³u
    begin
      mr:=mr-60.0;
      inc(mm);
    end;
-  if mm>59 then
+  while mm>59 do //przeliczenie minut do w³aœciwego przedzia³u
    begin
      mm:=0;
      inc(hh);
    end;
-  if hh>23 then
+  while hh>23 do //przeliczenie godzin do w³aœciwego przedzia³u
    begin
      hh:=0;
-     inc(dd);
+     inc(dd); //zwiêkszenie numeru dnia
    end;
   GameTime:=GameTime+deltaT;
 end;
