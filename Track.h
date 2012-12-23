@@ -113,7 +113,7 @@ public:
  int iNextDirection; //0:Point1, 1:Point2, 3:do odchylonego na zwrotnicy
  int iPrevDirection;
  TTrackType eType;
- int iCategoryFlag;
+ int iCategoryFlag; //0x100 - usuwanie pojazów
  float fTrackWidth; //szerokoœæ w punkcie 1
  float fTrackWidth2; //szerokoœæ w punkcie 2 (g³ównie drogi i rzeki)
  float fFriction; //wspó³czynnik tarcia

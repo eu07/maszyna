@@ -344,14 +344,15 @@ private:
  void __fastcall OpenGLUpdate(HDC hDC);
  void __fastcall RaTriangleDivider(TGroundNode* node);
  void __fastcall Navigate(String ClassName,UINT Msg,WPARAM wParam,LPARAM lParam);
- void __fastcall WyslijEvent(const AnsiString &e,const AnsiString &d);
 public:
+ void __fastcall WyslijEvent(const AnsiString &e,const AnsiString &d);
  int iRendered; //iloœæ renderowanych sektorów, pobierana przy pokazywniu FPS
  void __fastcall WyslijString(const AnsiString &t,int n);
  void __fastcall WyslijWolny(const AnsiString &t);
  void __fastcall WyslijNamiary(TGroundNode* t);
  void __fastcall RadioStop(vector3 pPosition);
  TDynamicObject* __fastcall DynamicNearest(vector3 pPosition,double distance=20.0);
+ void __fastcall DynamicRemove(TDynamicObject* dyn);
 };
 //---------------------------------------------------------------------------
 #endif

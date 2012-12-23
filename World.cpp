@@ -101,6 +101,7 @@ TDynamicObject *Controlled=NULL; //pojazd, który prowadzimy
 
 bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 {
+ double time=(double)Now();
  Global::hWnd=NhWnd; //do WM_COPYDATA
  Global::detonatoryOK=true;
  WriteLog("--- MaSzyna ---"); //pierwsza linia jest gubiona
@@ -111,7 +112,7 @@ bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
  return false;
 #endif
  WriteLog("Online documentation and additional files on http://eu07.pl");
- WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx_EU, OLO_EU, Bart, Quark-t, ShaXbee, Oli_EU, youBy, KURS90 and others");
+ WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx_EU, OLO_EU, Bart, Quark-t, ShaXbee, Oli_EU, youBy, KURS90, Ra and others");
  WriteLog("Renderer:");
  WriteLog( (char*) glGetString(GL_RENDERER));
  WriteLog("Vendor:");
@@ -398,8 +399,8 @@ bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 
   	glEnable(GL_LIGHTING);
 /*-----------------------Sound Initialization-----------------------*/
-    TSoundsManager::Init( hWnd );
-    TSoundsManager::LoadSounds( "" );
+    TSoundsManager::Init(hWnd);
+    //TSoundsManager::LoadSounds( "" );
 /*---------------------Sound Initialization End---------------------*/
     WriteLog("Sound Init OK");
     if(Global::detonatoryOK)
@@ -557,6 +558,7 @@ bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
 
 //    Camera.Reset();
     ResetTimers();
+ WriteLog("Load time: "+AnsiString(0.1*floor(864000.0*((double)Now()-time)))+" seconds");
  return true;
 };
 
@@ -922,6 +924,7 @@ bool __fastcall TWorld::Update()
   }
   else if (Global::iTextMode==-1)
   {//tu mozna dodac dopisywanie do logu przebiegu lokomotywy
+   //WriteLog("Number of textures used: "+AnsiString(Global::iTextures));
     return false;
   }
   Camera.Update(); //uwzglêdnienie ruchu wywo³anego klawiszami
@@ -939,6 +942,12 @@ bool __fastcall TWorld::Update()
  //blablabla
  //Sleep(50);
  Ground.Update(dt,n); //ABu: zamiast 'n' bylo: 'Camera.Type==tp_Follow'
+ if (GetAsyncKeyState(VK_ESCAPE)<0)
+ {
+  Ground.Update(dt,n); //ABu: zamiast 'n' bylo: 'Camera.Type==tp_Follow'
+   Ground.Update(dt,n); //ABu: zamiast 'n' bylo: 'Camera.Type==tp_Follow'
+    Ground.Update(dt,n); //ABu: zamiast 'n' bylo: 'Camera.Type==tp_Follow'
+    }
  //Ground.Update(0.01,Camera.Type==tp_Follow);
  dt=GetDeltaTime();
  if (Camera.Type==tp_Follow)
@@ -1265,10 +1274,11 @@ bool __fastcall TWorld::Update()
      OutText1+=AnsiString(i);
      if (Global::bPause) OutText1+=" - paused";
      if (Controlled)
-     {OutText2=Controlled->TrainParams->ShowRelation();
-      if (!OutText2.IsEmpty())
-       OutText2=Bezogonkow(OutText2+", "+Controlled->asNextStop); //dopisanie punktu zatrzymania
-     }
+      if (Controlled->TrainParams)
+      {OutText2=Controlled->TrainParams->ShowRelation();
+       if (!OutText2.IsEmpty())
+        OutText2=Bezogonkow(OutText2+", "+Controlled->asNextStop); //dopisanie punktu zatrzymania
+      }
      //double CtrlPos=Controlled->MoverParameters->MainCtrlPos;
      //double CtrlPosNo=Controlled->MoverParameters->MainCtrlPosNo;
      //OutText2="defrot="+FloatToStrF(1+0.4*(CtrlPos/CtrlPosNo),ffFixed,2,5);
@@ -1319,7 +1329,7 @@ bool __fastcall TWorld::Update()
        if (tmp->MoverParameters->BrakeDelayFlag>1)
         OutText2+="R";
        else
-        OutText2+="G";
+       OutText2+="G";
       else
        OutText2+="P";
           if (tmp->MoverParameters->NominalBatteryVoltage>0)
@@ -1770,6 +1780,9 @@ void __fastcall TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
   {
    case 0: //odes³anie identyfikatora wersji
     Ground.WyslijString(Global::asVersion,0); //przedsatwienie siê
+    break;
+   case 1: //odes³anie identyfikatora wersji
+    Ground.WyslijString(Global::szSceneryFile,1); //nazwa scenerii
     break;
    case 2: //event
     if (Global::iMultiplayer)

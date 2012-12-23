@@ -24,7 +24,8 @@
 #include "classes.hpp"
 #pragma hdrstop
 
-#include "Mover.hpp"
+//#include "Mover.hpp"
+#include "ai_driver.hpp"
 #include "mctools.hpp"
 #include "MemCell.h"
 #include "Event.h"
@@ -91,9 +92,10 @@ bool __fastcall TMemCell::Load(cParser *parser)
     return true;
 }
 
-void __fastcall TMemCell::PutCommand(TMoverParameters *Mover, TLocation &Loc)
-{
-    Mover->PutCommand(szText,fValue1,fValue2,Loc);
+void __fastcall TMemCell::PutCommand(TController *Mech, TLocation &Loc)
+{//wys³anie zawartoœci komórki do AI
+ if (Mech)
+  Mech->PutCommand(szText,fValue1,fValue2,Loc);
 }
 
 bool __fastcall TMemCell::Compare(char *szTestText,double fTestValue1,double fTestValue2,int CheckMask)
