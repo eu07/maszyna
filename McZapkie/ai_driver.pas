@@ -746,6 +746,13 @@ begin
              Order:=Change_direction
          end;
       end
+     else if Pos('PassengerStopPoint:',Controlling^.CommandIn.Command)=1 then  {wskaznik W4}
+      begin
+       if Order=Obey_train then
+        begin
+         TrainSet^.UpdateMTable(GlobalTime.hh,GlobalTime.mm,Copy(Controlling^.CommandIn.Command,20,Length(Controlling^.CommandIn.Command)-20));
+        end 
+      end
 
      else OK:=False;
      if OK then

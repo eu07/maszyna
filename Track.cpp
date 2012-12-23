@@ -687,28 +687,28 @@ void __fastcall TTrack::Compile()
 
  switch (eEnvironment)
  {//modyfikacje oœwietlenia zale¿nie od œrodowiska
-     case e_canyon: //wykop
-         for(int li=0; li<3; li++)
-         {
-             ambientLight[li]=Global::ambientDayLight[li]*0.7;
-             diffuseLight[li]=Global::diffuseDayLight[li]*0.3;
-             specularLight[li]=Global::specularDayLight[li]*0.4;
-         }
-         glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
-         glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
-         glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
-     break;
-     case e_tunnel: //tunel
-         for(int li=0; li<3; li++)
-         {
-             ambientLight[li]=Global::ambientDayLight[li]*0.2;
-             diffuseLight[li]=Global::diffuseDayLight[li]*0.1;
-             specularLight[li]=Global::specularDayLight[li]*0.2;
-         }
-         glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
-         glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
-         glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
-     break;
+  case e_canyon: //wykop
+   for(int li=0; li<3; li++)
+   {
+    //ambientLight[li]=Global::ambientDayLight[li]*0.7;
+    diffuseLight[li]=Global::diffuseDayLight[li]*0.3;
+    specularLight[li]=Global::specularDayLight[li]*0.4;
+   }
+   //glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
+   glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
+   glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
+  break;
+  case e_tunnel: //tunel
+   for(int li=0; li<3; li++)
+   {
+    ambientLight[li]=Global::ambientDayLight[li]*0.2;
+    diffuseLight[li]=Global::diffuseDayLight[li]*0.1;
+    specularLight[li]=Global::specularDayLight[li]*0.2;
+   }
+   glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
+   glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
+   glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
+  break;
  }
 
  double fHTW=0.5*fabs(fTrackWidth); //po³owa szerokoœci
@@ -1006,33 +1006,28 @@ void __fastcall TTrack::RenderAlpha()
     switch (eEnvironment)
     {
      case e_canyon:
+      for (int li=0; li<3; li++)
       {
-        for (int li=0; li<3; li++)
-         {
-           ambientLight[li]= Global::ambientDayLight[li]*0.8;
-           diffuseLight[li]= Global::diffuseDayLight[li]*0.4;
-           specularLight[li]=Global::specularDayLight[li]*0.5;
-         }
-	    glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
-        glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
-	    glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
+       //ambientLight[li]= Global::ambientDayLight[li]*0.8;
+       diffuseLight[li]= Global::diffuseDayLight[li]*0.4;
+       specularLight[li]=Global::specularDayLight[li]*0.5;
       }
-     break;
+      //glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
+      glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
+      glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
+      break;
      case e_tunnel:
+      for (int li=0; li<3; li++)
       {
-        for (int li=0; li<3; li++)
-         {
-           ambientLight[li]= Global::ambientDayLight[li]*0.2;
-           diffuseLight[li]= Global::diffuseDayLight[li]*0.1;
-           specularLight[li]=Global::specularDayLight[li]*0.2;
-         }
-	glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
-	glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
-	glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
+       ambientLight[li]= Global::ambientDayLight[li]*0.2;
+       diffuseLight[li]= Global::diffuseDayLight[li]*0.1;
+       specularLight[li]=Global::specularDayLight[li]*0.2;
       }
-     break;
+      glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
+      glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
+      glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
+      break;
     }
-
     for (int i=0; i<iNumDynamics; i++)
     {
         //if(SquareMagnitude(Global::pCameraPosition-Dynamics[i]->GetPosition())<20000)
@@ -1297,11 +1292,11 @@ void  __fastcall TTrack::RaRenderVBO(int iPtr)
   case e_canyon: //wykop
    for (int li=0;li<3;li++)
    {
-    ambientLight[li]= Global::ambientDayLight[li]*0.7;
+    //ambientLight[li]= Global::ambientDayLight[li]*0.7;
     diffuseLight[li]= Global::diffuseDayLight[li]*0.3;
     specularLight[li]=Global::specularDayLight[li]*0.4;
    }
-   glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
+   //glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
    glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
    glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
   break;
@@ -1404,11 +1399,11 @@ void  __fastcall TTrack::RaRenderDynamic()
   case e_canyon: //wykop
    for (int li=0;li<3;li++)
    {
-    ambientLight[li]= Global::ambientDayLight[li]*0.7;
+    //ambientLight[li]= Global::ambientDayLight[li]*0.7;
     diffuseLight[li]= Global::diffuseDayLight[li]*0.3;
     specularLight[li]=Global::specularDayLight[li]*0.4;
    }
-   glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
+   //glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
    glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
    glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
   break;

@@ -87,19 +87,18 @@ __fastcall TSubModel::~TSubModel()
  delete[] Vertices;
 };
 
-int __fastcall TSubModel::SeekFaceNormal(DWORD *Masks,int f,DWORD dwMask,vector3 pt,GLVERTEX *Vertices)
-{
-    int iNumFaces=iNumVerts/3;
-
-    for (int i=f; i<iNumFaces; i++)
-    {
-        if ( ( (Masks[i] & dwMask)!=0 ) && ( (Vertices[i*3+0].Point==pt) ||
-                                                (Vertices[i*3+1].Point==pt) ||
-                                                (Vertices[i*3+2].Point==pt) ) )
-            return i;
-
-    }
-    return -1;
+int __fastcall TSubModel::SeekFaceNormal(DWORD *Masks,int f,DWORD dwMask,vector3 *pt,GLVERTEX *Vertices)
+{//szukanie punktu stycznego do (pt), zwraca numer wierzcho³ka, a nie trójk¹ta
+ int iNumFaces=iNumVerts/3; //bo maska powierzchni jest jedna na trójk¹t
+ GLVERTEX *p; //roboczy wskaŸnik
+ for (int i=f;i<iNumFaces;++i) //pêtla po trójk¹tach, od trójk¹ta (f)
+  if (Masks[i]&dwMask) //jeœli wspólna maska powierzchni
+  {p=Vertices+3*i;
+   if (p->Point==*pt) return 3*i;
+   if ((++p)->Point==*pt) return 3*i+1;
+   if ((++p)->Point==*pt) return 3*i+2;
+  }
+ return -1; //nie znaleziono stycznego wierzcho³ka
 }
 
 float emm1[]={1,1,1,0};
@@ -170,12 +169,13 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
    else if (type=="hours")         b_Anim=b_aAnim=at_Hours; //godziny p³ynnie
    else if (type=="hours24")       b_Anim=b_aAnim=at_Hours24; //godziny p³ynnie
    else if (type=="billboard")     b_Anim=b_aAnim=at_Billboard; //obrót w pionie do kamery
-   else if (type=="lightpos")      b_Anim=b_aAnim=at_LightPos; //w kierunku œwiat³a
+   else if (type=="wind")          b_Anim=b_aAnim=at_Wind; //ruch pod wp³ywem wiatru
+   else if (type=="sky")           b_Anim=b_aAnim=at_Sky; //aniamacja nieba
  }
  if (eType==smt_Mesh) readColor(parser,f4Ambient); //ignoruje token przed
  readColor(parser,f4Diffuse);
  if (eType==smt_Mesh) readColor(parser,f4Specular);
- parser.ignoreTokens(1); //zignorowanie nazwy œwiat³a
+ parser.ignoreTokens(1); //zignorowanie nazwy "SelfIllum:"
  {
   std::string light;
   parser.getToken(light);
@@ -188,35 +188,27 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
  };
  if (eType==smt_FreeSpotLight)
  {
-     if (!parser.expectToken("nearattenstart:"))
-         Error("Model light parse failure!");
-
-     parser.getToken(fNearAttenStart);
-
-     parser.ignoreToken();
-     parser.getToken(fNearAttenEnd);
-
-     parser.ignoreToken();
-     bUseNearAtten=parser.expectToken("true");
-
-     parser.ignoreToken();
-     parser.getToken(iFarAttenDecay);
-
-     parser.ignoreToken();
-     parser.getToken(fFarDecayRadius);
-
-     parser.ignoreToken();
-     parser.getToken(fcosFalloffAngle);
-     fcosFalloffAngle=cos(fcosFalloffAngle * M_PI / 180);
-
-     parser.ignoreToken();
-     parser.getToken(fcosHotspotAngle);
-     fcosHotspotAngle=cos(fcosHotspotAngle * M_PI / 180);
-     iNumVerts=1;
-     iFlags|=2; //rysowane w cyklu nieprzezroczystych
- };
-
- if (eType==smt_Mesh)
+  if (!parser.expectToken("nearattenstart:"))
+   Error("Model light parse failure!");
+  parser.getToken(fNearAttenStart);
+  parser.ignoreToken();
+  parser.getToken(fNearAttenEnd);
+  parser.ignoreToken();
+  bUseNearAtten=parser.expectToken("true");
+  parser.ignoreToken();
+  parser.getToken(iFarAttenDecay);
+  parser.ignoreToken();
+  parser.getToken(fFarDecayRadius);
+  parser.ignoreToken();
+  parser.getToken(fcosFalloffAngle);
+  fcosFalloffAngle=cos(fcosFalloffAngle * M_PI / 180);
+  parser.ignoreToken();
+  parser.getToken(fcosHotspotAngle);
+  fcosHotspotAngle=cos(fcosHotspotAngle * M_PI / 180);
+  iNumVerts=1;
+  iFlags|=2; //rysowane w cyklu nieprzezroczystych
+ }
+ else if (eType==smt_Mesh)
  {
   parser.ignoreToken();
   bWire=parser.expectToken("true");
@@ -246,7 +238,8 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
    TexAlpha=TTexturesManager::GetAlpha(TextureID);
    iFlags|=TexAlpha?4:2; //2-nieprzezroczysta, 4-przezroczysta
   };
- };
+ }
+ else iFlags|=2;
  parser.ignoreToken();
  parser.getToken(fSquareMaxDist);
  fSquareMaxDist*=fSquareMaxDist;
@@ -254,9 +247,9 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
  parser.getToken(fSquareMinDist);
  fSquareMinDist*=fSquareMinDist;
  parser.ignoreToken();
- readMatrix(parser,Matrix);
- int iNumFaces;
- DWORD *sg;
+ readMatrix(parser,Matrix); //wczytanie transform
+ int iNumFaces; //iloœæ trójk¹tów
+ DWORD *sg; //maski przynale¿noœci trójk¹tów do powierzchni
  if (eType==smt_Mesh)
  {//wczytywanie wierzcho³ków
   parser.ignoreToken();
@@ -269,55 +262,80 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
   }
   Vertices=new GLVERTEX[iNumVerts];
   iNumFaces=iNumVerts/3;
-  sg=new DWORD[iNumFaces];
+  sg=new DWORD[iNumFaces]; //maski powierzchni
   for (int i=0;i<iNumVerts;i++)
   {
    if (i%3==0)
-    parser.getToken(sg[i/3]); //kod powierzchni
+    parser.getToken(sg[i/3]); //maska powierzchni trójk¹ta
    parser.getToken(Vertices[i].Point.x);
    parser.getToken(Vertices[i].Point.y);
    parser.getToken(Vertices[i].Point.z);
-   Vertices[i].Normal=vector3(0,0,0); //bêdzie liczony potem
+   //Vertices[i].Normal=vector3(0,0,0); //bêdzie liczony potem
    parser.getToken(Vertices[i].tu);
    parser.getToken(Vertices[i].tv);
-   if ((i%3==2) && (Vertices[i  ].Point==Vertices[i-1].Point ||
-                    Vertices[i-1].Point==Vertices[i-2].Point ||
-                    Vertices[i-2].Point==Vertices[i  ].Point ))
-   {//je¿eli punkty siê nak³adaj¹ na siebie
-    --iNumFaces; //o jeden trójk¹t mniej
-    iNumVerts-=3; //czyli o 3 wierzcho³ki
-    i-=3; //wczytanie kolejnego w to miejsce
-    WriteLog("Degenerated triangle ignored");
-   }
-  }
-  int v=0;
-  int f;
-  int j;
-  vector3 norm;
-  for (int i=0;i<iNumFaces;i++)
-  {
-   for (j=0;j<3;j++)
-   {
-    norm=vector3(0,0,0);
-    f=SeekFaceNormal(sg,0,sg[i],Vertices[v].Point,Vertices);
-    norm=vector3(0,0,0);
-    while (f>=0)
-    {
-     norm+=SafeNormalize(CrossProduct(Vertices[f*3].Point-Vertices[f*3+1].Point,
-                                Vertices[f*3].Point-Vertices[f*3+2].Point));
-     f=SeekFaceNormal(sg,f+1,sg[i],Vertices[v].Point,Vertices);
+   if (i%3==2) //je¿eli wczytano 3 punkty
+    if (Vertices[i  ].Point==Vertices[i-1].Point ||
+        Vertices[i-1].Point==Vertices[i-2].Point ||
+        Vertices[i-2].Point==Vertices[i  ].Point)
+    {//je¿eli punkty siê nak³adaj¹ na siebie
+     --iNumFaces; //o jeden trójk¹t mniej
+     iNumVerts-=3; //czyli o 3 wierzcho³ki
+     i-=3; //wczytanie kolejnego w to miejsce
+     WriteLog("Degenerated triangle ignored");
     }
-    if (norm.Length()==0)
-        norm+=SafeNormalize(CrossProduct(Vertices[i*3].Point-Vertices[i*3+1].Point,
-                                   Vertices[i*3].Point-Vertices[i*3+2].Point));
-    if (norm.Length()>0)
-        Vertices[v].Normal=Normalize(norm);
-    //else f=0;
-    v++;
+  }
+  int i; //indeks dla trójk¹tów
+  vector3 *n=new vector3[iNumFaces]; //tablica wektorów normalnych dla trójk¹tów
+  for (i=0;i<iNumFaces;i++) //pêtla po trójk¹tach - bêdzie szybciej, jak wstêpnie przeliczymy normalne trójk¹tów
+   n[i]=SafeNormalize(CrossProduct(Vertices[i*3].Point-Vertices[i*3+1].Point,Vertices[i*3].Point-Vertices[i*3+2].Point));
+  int v; //indeks dla wierzcho³ków
+  int *wsp=new int[iNumVerts]; //z którego wierzcho³ka kopiowaæ wektor normalny
+  for (v=0;v<iNumVerts;v++)
+   wsp[v]=-1; //wektory normalne nie s¹ policzone
+  int f; //numer trójk¹ta stycznego
+  vector3 norm; //roboczy wektor normalny
+  for (v=0;v<iNumVerts;v++)
+  {//pêtla po wierzcho³kach trójk¹tów
+   if (wsp[v]>=0) //jeœli ju¿ by³ liczony wektor normalny z u¿yciem tego wierzcho³ka
+    Vertices[v].Normal=Vertices[wsp[v]].Normal; //to wystarczy skopiowaæ policzony wczeœniej
+   else
+   {//inaczej musimy dopiero policzyæ
+    i=v/3; //numer trójk¹ta
+    norm=vector3(0,0,0); //liczenie zaczynamy od zera
+    f=v; //zaczynamy dodawanie wektorów normalnych od w³asnego
+    while (f>=0)
+    {//sumowanie z wektorem normalnym s¹siada (w³¹cznie ze sob¹)
+     wsp[f]=v; //informacja, ¿e w tym wierzcho³ku jest ju¿ policzony wektor normalny
+     norm+=n[f/3];
+     f=SeekFaceNormal(sg,f/3+1,sg[i],&Vertices[v].Point,Vertices); //i szukanie od kolejnego trójk¹ta
+    }
+    Vertices[v].Normal=SafeNormalize(norm); //przepisanie do wierzcho³ka trójk¹ta
    }
   }
+  delete[] wsp;
+  delete[] n;
   delete[] sg;
- };
+ }
+ else if (eType==smt_Stars)
+ {//punkty œwiec¹ce dookólnie - sk³adnia jak dla smt_Mesh
+  parser.ignoreToken();
+  parser.getToken(iNumVerts);
+  Vertices=new GLVERTEX[iNumVerts];
+  int i,j;
+  for (i=0;i<iNumVerts;i++)
+  {
+   if (i%3==0)
+    parser.ignoreToken(); //maska powierzchni trójk¹ta
+   parser.getToken(Vertices[i].Point.x);
+   parser.getToken(Vertices[i].Point.y);
+   parser.getToken(Vertices[i].Point.z);
+   parser.getToken(j); //zakodowany kolor
+   parser.ignoreToken();
+   Vertices[i].Normal.x=((j    )&0xFF)/255.0; //R
+   Vertices[i].Normal.y=((j>> 8)&0xFF)/255.0; //G
+   Vertices[i].Normal.z=((j>>16)&0xFF)/255.0; //B
+  }
+ }
  if (!Global::bUseVBO)
  {//Ra: przy VBO to siê nie przyda
   if (eType==smt_Mesh)
@@ -332,29 +350,29 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
    glNewList(uiDisplayList,GL_COMPILE);
    glColor3fv(f4Diffuse);   //McZapkie-240702: zamiast ub
    //glMaterialfv(GL_FRONT,GL_AMBIENT_AND_DIFFUSE,f4Diffuse); //to samo, co glColor
-   if (Global::fLuminance<fLight)
-    glMaterialfv(GL_FRONT,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
+   //if (Global::fLuminance<fLight)
+   // glMaterialfv(GL_FRONT,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
 #ifdef USE_VERTEX_ARRAYS
    glDrawArrays(GL_TRIANGLES,0,iNumVerts);
 #else
    glBegin(bWire?GL_LINES:GL_TRIANGLES);
-   for(int i=0; i<iNumVerts; i++)
+   for (int i=0;i<iNumVerts;i++)
    {
-    glNormal3d(Vertices[i].Normal.x,Vertices[i].Normal.y,Vertices[i].Normal.z);
+    glNormal3dv(&Vertices[i].Normal.x);
     glTexCoord2f(Vertices[i].tu,Vertices[i].tv);
     glVertex3dv(&Vertices[i].Point.x);
    };
    glEnd();
 #endif
-  if (Global::fLuminance<fLight)
-   glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
-  glEndList();
- }
- else
- {
-  uiDisplayList=glGenLists(1);
-  glNewList(uiDisplayList,GL_COMPILE);
-  glBindTexture(GL_TEXTURE_2D,0);
+   //if (Global::fLuminance<fLight)
+   // glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
+   glEndList();
+  }
+  else if (eType==smt_FreeSpotLight)
+  {
+   uiDisplayList=glGenLists(1);
+   glNewList(uiDisplayList,GL_COMPILE);
+   glBindTexture(GL_TEXTURE_2D,0);
 //     if (eType==smt_FreeSpotLight)
 //      {
 //       if (iFarAttenDecay==0)
@@ -364,11 +382,30 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
 //TODO: poprawic zeby dzialalo
    //glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
    glColorMaterial(GL_FRONT,GL_EMISSION);
-   glDisable( GL_LIGHTING );  //Tolaris-030603: bo mu punkty swiecace sie blendowaly
+   glDisable(GL_LIGHTING);  //Tolaris-030603: bo mu punkty swiecace sie blendowaly
    glBegin(GL_POINTS);
-      glVertex3f(0,0,0);
+    glVertex3f(0,0,0);
    glEnd();
-   glEnable( GL_LIGHTING );
+   glEnable(GL_LIGHTING);
+   glColorMaterial(GL_FRONT,GL_AMBIENT_AND_DIFFUSE);
+   glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
+   glEndList();
+  }
+  else if (eType==smt_Stars)
+  {//punkty œwiec¹ce dookólnie
+   uiDisplayList=glGenLists(1);
+   glNewList(uiDisplayList,GL_COMPILE);
+   glBindTexture(GL_TEXTURE_2D,0); //tekstury nie ma
+   glColorMaterial(GL_FRONT,GL_EMISSION);
+   glDisable(GL_LIGHTING);  //Tolaris-030603: bo mu punkty swiecace sie blendowaly
+   glBegin(GL_POINTS);
+   for (int i=0;i<iNumVerts;i++)
+   {
+    glColor3d(Vertices[i].Normal.x,Vertices[i].Normal.y,Vertices[i].Normal.z);
+    glVertex3dv(&Vertices[i].Point.x);
+   };
+   glEnd();
+   glEnable(GL_LIGHTING);
    glColorMaterial(GL_FRONT,GL_AMBIENT_AND_DIFFUSE);
    glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
    glEndList();
@@ -496,10 +533,10 @@ void __fastcall TSubModel::RaAnimation(TAnimType a)
   case at_MinutesJump: //minuty z przeskokiem
    glRotatef(GlobalTime->mm*6.0,0.0,1.0,0.0);
    break;
-  case at_HoursJump: //godziny p³ynnie 12h/360°
+  case at_HoursJump: //godziny skokowo 12h/360°
    glRotatef(GlobalTime->hh*30.0*0.5,0.0,1.0,0.0);
    break;
-  case at_Hours24Jump: //godziny p³ynnie 24h/360°
+  case at_Hours24Jump: //godziny skokowo 24h/360°
    glRotatef(GlobalTime->hh*15.0*0.25,0.0,1.0,0.0);
    break;
   case at_Seconds: //sekundy p³ynnie
@@ -509,10 +546,12 @@ void __fastcall TSubModel::RaAnimation(TAnimType a)
    glRotatef(GlobalTime->mm*6.0+GlobalTime->mr*0.1,0.0,1.0,0.0);
    break;
   case at_Hours: //godziny p³ynnie 12h/360°
-   glRotatef(GlobalTime->hh*30.0+GlobalTime->mm*0.5+GlobalTime->mr/120.0,0.0,1.0,0.0);
+   //glRotatef(GlobalTime->hh*30.0+GlobalTime->mm*0.5+GlobalTime->mr/120.0,0.0,1.0,0.0);
+   glRotatef(0.5*Global::fTimeAngleDeg,0.0,1.0,0.0);
    break;
   case at_Hours24: //godziny p³ynnie 24h/360°
-   glRotatef(GlobalTime->hh*15.0+GlobalTime->mm*0.25+GlobalTime->mr/240.0,0.0,1.0,0.0);
+   //glRotatef(GlobalTime->hh*15.0+GlobalTime->mm*0.25+GlobalTime->mr/240.0,0.0,1.0,0.0);
+   glRotatef(Global::fTimeAngleDeg,0.0,1.0,0.0);
    break;
   case at_Billboard: //obrót w pionie do kamery
    {matrix4x4 mat; //potrzebujemy wspó³rzêdne przesuniêcia œrodka uk³adu wspó³rzêdnych submodelu
@@ -523,10 +562,13 @@ void __fastcall TSubModel::RaAnimation(TAnimType a)
     glRotated(atan2(gdzie.x,gdzie.z)*180.0/M_PI,0.0,1.0,0.0); //jedynie obracamy w pionie o k¹t
    }
    break;
-  case at_LightPos: //w kierunku œwiat³a
-   glRotatef(atan2(Global::lightPos[1],Global::lightPos[0]),1.0,0.0,0.0);
-   glRotatef(atan2(Global::lightPos[2],Global::lightPos[0]),0.0,1.0,0.0);
-   glRotatef(atan2(Global::lightPos[2],Global::lightPos[1]),0.0,0.0,1.0);
+  case at_Wind: //ruch pod wp³ywem wiatru (wiatr bêdziemy liczyæ potem...)
+   glRotated(1.5*sin(M_PI*GlobalTime->mr/6.0),0.0,1.0,0.0);
+   break;
+  case at_Sky: //animacja nieba
+   glRotated(Global::fLatitudeDeg,1.0,0.0,0.0); //ustawienie osi OY na pó³noc
+   //glRotatef(Global::fTimeAngleDeg,0.0,1.0,0.0); //obrót dobowy osi OX
+   glRotated(-fmod(Global::fSunSpeed*Global::fTimeAngleDeg,360.0),0.0,1.0,0.0); //obrót dobowy osi OX
    break;
  }
 };
@@ -620,6 +662,18 @@ void __fastcall TSubModel::RaRender(GLuint ReplacableSkinId,bool bAlpha)
     glEnable(GL_LIGHTING);
     //glColorMaterial(GL_FRONT,GL_AMBIENT_AND_DIFFUSE); //co ma ustawiaæ glColor
    }
+  }
+  else if (eType==smt_Stars)
+  {
+   //glDisable(GL_LIGHTING);  //Tolaris-030603: bo mu punkty swiecace sie blendowaly
+   if (Global::fLuminance<fLight)
+   {glMaterialfv(GL_FRONT,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
+    glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie punkty z VBO
+    //glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
+   }
+   //else
+   // glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie punkty
+   //glEnable(GL_LIGHTING);
   }
 /*Ra: tu coœ jest bez sensu...
     else
@@ -751,7 +805,7 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
     glCallList(uiDisplayList); //wyœwietlenie warunkowe
    }
   }
-  else
+  else if (eType==smt_Mesh)
   {if ((TextureID==-1)) // && (ReplacableSkinId!=0))
    {
     glBindTexture(GL_TEXTURE_2D,ReplacableSkinId);
@@ -768,6 +822,18 @@ void __fastcall TSubModel::Render(GLuint ReplacableSkinId,bool bAlpha)
     }
     else
      glCallList(uiDisplayList); //tylko dla siatki
+  }
+  else if (eType==smt_Stars)
+  {
+   //glDisable(GL_LIGHTING);  //Tolaris-030603: bo mu punkty swiecace sie blendowaly
+   if (Global::fLuminance<fLight)
+   {glMaterialfv(GL_FRONT,GL_EMISSION,f4Diffuse);  //zeby swiecilo na kolorowo
+    glCallList(uiDisplayList); //narysuj naraz wszystkie punkty z DL
+    glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
+   }
+   //else
+   // glDrawArrays(GL_TRIANGLES,iVboPtr,iNumVerts);  //narysuj naraz wszystkie punkty
+   //glEnable(GL_LIGHTING);
   }
   if (Child!=NULL)
    if (bAlpha?(iFlags&0x00020000):(iFlags&0x00030000))

@@ -720,11 +720,11 @@ TDynamicObject* TDynamicObject::ABuScanNearestObject(TTrack *Track, double ScanD
 //ABu 01.11.04 poczatek wyliczania przechylow pudla **********************
 void __fastcall TDynamicObject::ABuModelRoll()
 {
- double modelRoll=RadToDeg((Axle1.GetRoll()+Axle4.GetRoll())/2); //Ra: tu nie by³o DegToRad
+ double modelRoll=RadToDeg(0.5*(Axle1.GetRoll()+Axle4.GetRoll())); //Ra: tu nie by³o DegToRad
  //if (ABuGetDirection()<0) modelRoll=-modelRoll;
  mdModel->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
  if (mdKabina)
-  if(MoverParameters->ActiveCab==-1)
+  if (MoverParameters->ActiveCab==-1)
    mdKabina->GetSMRoot()->SetRotateXYZ(vector3(0,-modelRoll,0));
   else
    mdKabina->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
@@ -769,7 +769,7 @@ void __fastcall TDynamicObject::ABuCheckMyTrack()
    }
 }
 
-TDynamicObject* __fastcall ABuFindObject(TTrack *Track, TDynamicObject *MyPointer, double ScanDir, double MyScanDir, Byte MyCouplFound, Byte &CouplFound)
+TDynamicObject* __fastcall ABuFindObject(TTrack *Track,TDynamicObject *MyPointer,int ScanDir,int MyScanDir,Byte MyCouplFound,Byte &CouplFound)
 {  //Zwraca wskaznik najblizszego obiektu znajdujacego sie
    //na torze w okreslonym kierunku, ale tylko wtedy, kiedy
    //obiekty moga sie zderzyc, tzn. nie mijaja sie.
@@ -808,46 +808,30 @@ TDynamicObject* __fastcall ABuFindObject(TTrack *Track, TDynamicObject *MyPointe
                TestDist=(Track->Dynamics[i]->ABuGetTranslation())-MyTranslation;
                if ((TestDist>0)&&(TestDist<=MinDist))
                {
-                  if(ScanDir>0)
-                  {
-                     if(Track->Dynamics[i]->ABuGetDirection()>0) CouplFound=1;
-                                                    else CouplFound=0;
-                  }
+                  if (ScanDir>0)
+                   CouplFound=(Track->Dynamics[i]->ABuGetDirection()>0)?1:0;
                   else
-                  {
-                     if(Track->Dynamics[i]->ABuGetDirection()>0) CouplFound=0;
-                                                    else CouplFound=1;
-                  }
-                  //Szukamy sprzegu obiektu.
-                  if (ScanDir*MyScanDir>0)
-                  { //Orientacje torow zgodne.
-                     if (Track->Dynamics[i]->ABuGetDirection()>0)
-                        CouplFound=1-MyCouplFound;
-                     else
-                        CouplFound=MyCouplFound;
-                  }
-                  else
-                  { //Orientacje torow pprzeciwne.
-                     if (Track->Dynamics[i]->ABuGetDirection()>0)
-                        CouplFound=MyCouplFound;
-                     else
-                        CouplFound=1-MyCouplFound;
-                  }
-                  //Przesuniecie wzgledne pojazdow. Wyznaczane, zeby sprawdzic,
-                  //czy pojazdy faktycznie sie zderzaja (moga byc przesuniete
-                  //w/m toru tak, ze nie zachodza na siebie i wtedy sie mijaja).
+                   CouplFound=(Track->Dynamics[i]->ABuGetDirection()>0)?0:1;
+                  // Szukamy sprzegu obiektu.
+                  if (ScanDir*MyScanDir>0) //orientacje torów zgodne
+                   CouplFound=(Track->Dynamics[i]->ABuGetDirection()>0)?1-MyCouplFound:MyCouplFound;
+                  else //orientacje torów pprzeciwne
+                   CouplFound=(Track->Dynamics[i]->ABuGetDirection()>0)?MyCouplFound:1-MyCouplFound;
+                  // Przesuniecie wzgledne pojazdow. Wyznaczane, zeby sprawdzic,
+                  // czy pojazdy faktycznie sie zderzaja (moga byc przesuniete
+                  // w/m toru tak, ze nie zachodza na siebie i wtedy sie mijaja).
                   double RelOffsetH;
-                  if(MyCouplFound!=CouplFound)
-                     //Kabiny ustawione w tym samym kierunku.
-                     RelOffsetH=(MyPointer->MoverParameters->OffsetTrackH-Track->Dynamics[i]->MoverParameters->OffsetTrackH);
+                  if (MyCouplFound!=CouplFound)
+                   //Kabiny ustawione w tym samym kierunku.
+                   RelOffsetH=(MyPointer->MoverParameters->OffsetTrackH-Track->Dynamics[i]->MoverParameters->OffsetTrackH);
                   else
-                     //Kabiny ustawione w przeciwnych kierunkach.
-                     RelOffsetH=(MyPointer->MoverParameters->OffsetTrackH+Track->Dynamics[i]->MoverParameters->OffsetTrackH);
-                  if(RelOffsetH<0) RelOffsetH=-RelOffsetH;
-                  if(RelOffsetH<(((MyPointer->MoverParameters->Dim.W)+(Track->Dynamics[i]->MoverParameters->Dim.W))/2))
+                   //Kabiny ustawione w przeciwnych kierunkach.
+                   RelOffsetH=(MyPointer->MoverParameters->OffsetTrackH+Track->Dynamics[i]->MoverParameters->OffsetTrackH);
+                  if (RelOffsetH<0) RelOffsetH=-RelOffsetH;
+                  if (RelOffsetH<(((MyPointer->MoverParameters->Dim.W)+(Track->Dynamics[i]->MoverParameters->Dim.W))/2))
                   { //Bedzie zderzenie.
-                     iMinDist=i;
-                     MinDist=TestDist;
+                   iMinDist=i;
+                   MinDist=TestDist;
                   }
                }
             }
@@ -862,220 +846,204 @@ TDynamicObject* __fastcall ABuFindObject(TTrack *Track, TDynamicObject *MyPointe
                TestDist=MyTranslation-(Track->Dynamics[i]->ABuGetTranslation());
                if ((TestDist>0)&&(TestDist<MinDist))
                {
-                  if(ScanDir>0)
-                  {
-                     if(Track->Dynamics[i]->ABuGetDirection()>0) CouplFound=1;
-                                                    else CouplFound=0;
-                  }
+                  if (ScanDir>0)
+                   CouplFound=(Track->Dynamics[i]->ABuGetDirection()>0)?1:0;
                   else
-                  {
-                     if(Track->Dynamics[i]->ABuGetDirection()>0) CouplFound=0;
-                                                    else CouplFound=1;
-                  }
-                  //Szukamy sprzegu obiektu.
-                  if (ScanDir*MyScanDir>0)
-                  { //Orientacje torow zgodne.
-                     if (Track->Dynamics[i]->ABuGetDirection()>0)
-                        CouplFound=1-MyCouplFound;
-                     else
-                        CouplFound=MyCouplFound;
-                  }
-                  else
-                  { //Orientacje torow pprzeciwne.
-                     if (Track->Dynamics[i]->ABuGetDirection()>0)
-                        CouplFound=MyCouplFound;
-                     else
-                        CouplFound=1-MyCouplFound;
-                  }
-                  //Przesuniecie wzgledne pojazdow. Wyznaczane, zeby sprawdzic,
-                  //czy pojazdy faktycznie sie zderzaja (moga byc przesuniete
-                  //w/m toru tak, ze nie zachodza na siebie i wtedy sie mijaja).
+                   CouplFound=(Track->Dynamics[i]->ABuGetDirection()>0)?0:1;
+                  // Szukamy sprzegu obiektu.
+                  if (ScanDir*MyScanDir>0) //orientacje torow zgodne
+                   CouplFound=(Track->Dynamics[i]->ABuGetDirection()>0)?1-MyCouplFound:MyCouplFound;
+                  else //orientacje torow pprzeciwne
+                   CouplFound=(Track->Dynamics[i]->ABuGetDirection()>0)?MyCouplFound:1-MyCouplFound;
+                  // Przesuniecie wzgledne pojazdow. Wyznaczane, zeby sprawdzic,
+                  // czy pojazdy faktycznie sie zderzaja (moga byc przesuniete
+                  // w/m toru tak, ze nie zachodza na siebie i wtedy sie mijaja).
                   double RelOffsetH;
-                  if(MyCouplFound!=CouplFound)
-                     //Kabiny ustawione w tym samym kierunku.
-                     RelOffsetH=(MyPointer->MoverParameters->OffsetTrackH-Track->Dynamics[i]->MoverParameters->OffsetTrackH);
+                  if (MyCouplFound!=CouplFound)
+                   //Kabiny ustawione w tym samym kierunku.
+                   RelOffsetH=(MyPointer->MoverParameters->OffsetTrackH-Track->Dynamics[i]->MoverParameters->OffsetTrackH);
                   else
-                     //Kabiny ustawione w przeciwnych kierunkach.
-                     RelOffsetH=(MyPointer->MoverParameters->OffsetTrackH+Track->Dynamics[i]->MoverParameters->OffsetTrackH);
-                  if(RelOffsetH<0) RelOffsetH=-RelOffsetH;
-                  if(RelOffsetH<(((MyPointer->MoverParameters->Dim.W)+(Track->Dynamics[i]->MoverParameters->Dim.W))/2))
-                  { //Bedzie zderzenie.
-                     iMinDist=i;
-                     MinDist=TestDist;
+                   //Kabiny ustawione w przeciwnych kierunkach.
+                   RelOffsetH=(MyPointer->MoverParameters->OffsetTrackH+Track->Dynamics[i]->MoverParameters->OffsetTrackH);
+                  if (RelOffsetH<0) RelOffsetH=-RelOffsetH;
+                  if (RelOffsetH<(((MyPointer->MoverParameters->Dim.W)+(Track->Dynamics[i]->MoverParameters->Dim.W))/2))
+                  {//Bedzie zderzenie.
+                   iMinDist=i;
+                   MinDist=TestDist;
                   }
                }
             }
          }
       }
-      if (iMinDist>=0) return Track->Dynamics[iMinDist];
-                  else return NULL;
+      return (iMinDist>=0)?Track->Dynamics[iMinDist]:NULL;
    }
    return NULL;
 }
 
-void TDynamicObject::CouplersDettach(int MinDist,double MyScanDir)
-{  //Funkcja rozlaczajaca podlaczone sprzegi.
-   //MinDist - dystans minimalny, dla ktorego mozna rozlaczac.
-   if (MyScanDir>0)
+void TDynamicObject::CouplersDettach(double MinDist,int MyScanDir)
+{//funkcja roz³¹czajaca pod³¹czone sprzêgi
+ //MinDist - dystans minimalny, dla ktorego mozna roz³¹czaæ
+ if (MyScanDir>0)
+ {
+  if (PrevConnected) //pojazd od strony sprzêgu 0
+  {
+   if (MoverParameters->Couplers[0].Dist>MinDist)
    {
-      if (PrevConnected) //pojazd od strony sprzêgu 0
-      {
-         if (MoverParameters->Couplers[0].Dist > MinDist)
-         {
-            PrevConnected->MoverParameters->Couplers[PrevConnectedNo].Connected=NULL;
-            if (PrevConnectedNo==0)
-            {
-               PrevConnected->PrevConnectedNo=2; //sprzêg 0 nie pod³¹czony
-               PrevConnected->PrevConnected=NULL;
-            }
-            if (PrevConnectedNo==1)
-            {
-               PrevConnected->NextConnectedNo=2; //sprzêg 1 nie pod³¹czony
-               PrevConnected->NextConnected=NULL;
-            }
-            PrevConnected=NULL;
-            PrevConnectedNo=2; //sprzêg 0 nie pod³¹czony
-            MoverParameters->Couplers[0].Connected=NULL;
-         }
-      }
+    PrevConnected->MoverParameters->Couplers[PrevConnectedNo].Connected=NULL;
+    if (PrevConnectedNo==0)
+    {
+     PrevConnected->PrevConnectedNo=2; //sprzêg 0 nie pod³¹czony
+     PrevConnected->PrevConnected=NULL;
+    }
+    else if (PrevConnectedNo==1)
+    {
+     PrevConnected->NextConnectedNo=2; //sprzêg 1 nie pod³¹czony
+     PrevConnected->NextConnected=NULL;
+    }
+    PrevConnected=NULL;
+    PrevConnectedNo=2; //sprzêg 0 nie pod³¹czony
+    MoverParameters->Couplers[0].Connected=NULL;
    }
-   else
+  }
+ }
+ else
+ {
+  if (NextConnected) //pojazd od strony sprzêgu 1
+  {
+   if (MoverParameters->Couplers[1].Dist>MinDist)
    {
-      if (NextConnected) //pojazd od strony sprzêgu 1
-      {
-         if(MoverParameters->Couplers[1].Dist > MinDist)
-         {
-            NextConnected->MoverParameters->Couplers[NextConnectedNo].Connected=NULL;
-            if (NextConnectedNo==0)
-            {
-               NextConnected->PrevConnectedNo=2; //sprzêg 0 nie pod³¹czony
-               NextConnected->PrevConnected=NULL;
-            }
-            if (NextConnectedNo==1)
-            {
-               NextConnected->NextConnectedNo=2; //sprzêg 1 nie pod³¹czony
-               NextConnected->NextConnected=NULL;
-            }
-            NextConnected=NULL;
-            NextConnectedNo=2; //sprzêg 1 nie pod³¹czony
-            MoverParameters->Couplers[1].Connected=NULL;
-         }
-      }
+    NextConnected->MoverParameters->Couplers[NextConnectedNo].Connected=NULL;
+    if (NextConnectedNo==0)
+    {
+     NextConnected->PrevConnectedNo=2; //sprzêg 0 nie pod³¹czony
+     NextConnected->PrevConnected=NULL;
+    }
+    else if (NextConnectedNo==1)
+    {
+     NextConnected->NextConnectedNo=2; //sprzêg 1 nie pod³¹czony
+     NextConnected->NextConnected=NULL;
+    }
+    NextConnected=NULL;
+    NextConnectedNo=2; //sprzêg 1 nie pod³¹czony
+    MoverParameters->Couplers[1].Connected=NULL;
    }
+  }
+ }
 }
 
-void TDynamicObject::ABuScanObjects(TTrack *Track, double ScanDir, double ScanDist)
-{
-   //skanowanie toru w poszukiwaniu obiektow
-   double MyScanDir=ScanDir;  //Moja orientacja na torze.
-   Byte MyCouplFound; //Numer sprzegu do podlaczenia w obiekcie szukajacym.
-   MyCouplFound=(MyScanDir<0)?1:0;
-   Byte CouplFound=0; //Numer sprzegu do podlaczenia w znalezionym obiekcie.
-
-   if(ABuGetDirection()<0) ScanDir=-ScanDir;
-   TDynamicObject* FoundedObj;
-   FoundedObj=ABuFindObject(Track, this, ScanDir, MyScanDir, MyCouplFound, CouplFound);
-   if(FoundedObj==NULL)
-   {  //Szukanie najblizszego toru z jakims obiektem.
-      //Praktycznie przeklejone z TraceRoute()...
-      double ActDist;    //Przeskanowana odleglosc.
-      double CurrDist=0; //Aktualna dlugosc toru.
-      if (ScanDir>=0) ActDist=Track->Length()-ABuGetTranslation();
-                 else ActDist=ABuGetTranslation();
-      while(ActDist<ScanDist)
-      {
-         ActDist+=CurrDist;
-         if (ScanDir>0) //Do przodu.
-         {
-            if (Track->bNextSwitchDirection)
-            {
-               Track=Track->CurrentNext();
-               ScanDir= -ScanDir;
-            }
-            else
-            {
-               Track= Track->CurrentNext();
-            }
-         }
-         else //Do tylu.
-         {
-            if (Track->bPrevSwitchDirection)
-            {
-               Track= Track->CurrentPrev();
-               ScanDir= -ScanDir;
-            }
-            else
-            {
-               Track= Track->CurrentPrev();
-            }
-         }
-         if(Track!=NULL)
-         { // Jesli jest kolejny odcinek toru.
-            CurrDist=Track->Length();
-            FoundedObj=ABuFindObject(Track, this, ScanDir, MyScanDir, MyCouplFound, CouplFound);
-            if (FoundedObj!=NULL)
-            {
-               //if((Mechanik)&&(!EndTrack))
-               //{
-               //   EndTrack=true;
-               //   //Mechanik->SetProximityVelocity(0,20);
-               //   Mechanik->SetVelocity(0,0);
-               //}
-               ActDist=ScanDist;
-            }
-         }
-         else //Jesli nie ma, to wychodzimy.
-         {
-            if((Mechanik)&&(!EndTrack))
-            {
-               EndTrack=true;
-               Mechanik->SetProximityVelocity(ActDist-50,0);
-               //Mechanik->SetVelocity(0,0);
-            }
-            ActDist=ScanDist;
-         }
-      }
-   } //Koniec szukania najblizszego toru z jakims obiektem.
-
-   //Teraz odczepianie i jesli cos sie znalazlo doczepianie.
-   CouplersDettach(1, MyScanDir);
-   //I laczenie:
-   if(FoundedObj!=NULL)
-   {  MoverParameters->Attach(MyCouplFound,CouplFound,&(FoundedObj->MoverParameters), ctrain_virtual);
-      MoverParameters->Couplers[MyCouplFound].Render=false;
-      FoundedObj->MoverParameters->Attach(CouplFound,MyCouplFound,&(this->MoverParameters),ctrain_virtual);
-      FoundedObj->MoverParameters->Couplers[CouplFound].Render=true;
-
-      if (MyCouplFound==0)
-      {
-         PrevConnected=FoundedObj; //pojazd od strony sprzêgu 0
-         PrevConnectedNo=CouplFound;
-      }
-      else
-      {
-         NextConnected=FoundedObj; //pojazd od strony sprzêgu 1
-         NextConnectedNo=CouplFound;
-      }
-      if (CouplFound==0)
-      {
-         FoundedObj->PrevConnected=this;
-         FoundedObj->PrevConnectedNo=MyCouplFound;
-      }
-      else
-      {
-         FoundedObj->NextConnected=this;
-         FoundedObj->NextConnectedNo=MyCouplFound;
-      }
-      if ((Mechanik)&&(!EndTrack))
-      {
-         EndTrack=true;
-         if((this->MoverParameters->Couplers[MyCouplFound].CoupleDist)<50)
-            Mechanik->SetVelocity(0,0);
-         else
-            Mechanik->SetVelocity(20,20);
-         //Mechanik->SetProximityVelocity((this->MoverParameters->Couplers[MyCouplFound].Dist)-20,0);
-      }
+void TDynamicObject::ABuScanObjects(TTrack *Track,int ScanDir,double ScanDist)
+{//skanowanie toru w poszukiwaniu obiektow
+ //ScanDir: =1 - od strony Coupler 0, =-1 - od strony Coupler 1
+ int MyScanDir=ScanDir;  //Moja orientacja na torze.
+ Byte MyCouplFound; //numer sprzêgu do pod³¹czenia w obiekcie szukajacym
+ MyCouplFound=(MyScanDir<0)?1:0;
+ Byte CouplFound=0; //numer sprzêgu do pod³¹czenia w znalezionym obiekcie
+ if (ABuGetDirection()<0) ScanDir=-ScanDir; //ustalenie kierunku wzglêdem toru
+ TDynamicObject *FoundedObj; //znaleziony obiekt
+ FoundedObj=ABuFindObject(Track,this,ScanDir,MyScanDir,MyCouplFound,CouplFound);
+ if (FoundedObj==NULL) //jeœli nie ma
+ {//Szukanie najblizszego toru z jakims obiektem.
+  //Praktycznie przeklejone z TraceRoute()...
+  double ActDist;    //Przeskanowana odleglosc.
+  double CurrDist=0; //Aktualna dlugosc toru.
+  if (ScanDir>=0) ActDist=Track->Length()-ABuGetTranslation();
+  else ActDist=ABuGetTranslation();
+  while (ActDist<ScanDist)
+  {
+   ActDist+=CurrDist;
+   if (ScanDir>0) //Do przodu.
+   {
+    if (Track->bNextSwitchDirection)
+    {
+     Track=Track->CurrentNext();
+     ScanDir=-ScanDir;
+    }
+    else
+    {
+     Track=Track->CurrentNext();
+    }
    }
+   else //Do tylu.
+   {
+    if (Track->bPrevSwitchDirection)
+    {
+     Track=Track->CurrentPrev();
+     ScanDir=-ScanDir;
+    }
+    else
+    {
+     Track=Track->CurrentPrev();
+    }
+   }
+   if(Track!=NULL)
+   {// Jesli jest kolejny odcinek toru.
+    CurrDist=Track->Length();
+    FoundedObj=ABuFindObject(Track,this,ScanDir,MyScanDir,MyCouplFound,CouplFound);
+    if (FoundedObj!=NULL)
+    {
+     //if((Mechanik)&&(!EndTrack))
+     //{
+     //   EndTrack=true;
+     //   //Mechanik->SetProximityVelocity(0,20);
+     //   Mechanik->SetVelocity(0,0);
+     //}
+     ActDist=ScanDist;
+    }
+   }
+   else //Jesli nie ma, to wychodzimy.
+   {
+    if ((Mechanik)&&(!EndTrack))
+    {
+     EndTrack=true;
+     Mechanik->SetProximityVelocity(ActDist-50,0);
+     //Mechanik->SetVelocity(0,0);
+    }
+    ActDist=ScanDist;
+   }
+  }
+ } // Koniec szukania najbli¿szego toru z jakimœ obiektem.
+ // Teraz odczepianie i jeœli coœ siê znalaz³o, doczepianie.
+ CouplersDettach(1,MyScanDir);
+ // i ³¹czenie:
+ if (FoundedObj!=NULL)
+ {MoverParameters->Attach(MyCouplFound,CouplFound,&(FoundedObj->MoverParameters),ctrain_virtual);
+  MoverParameters->Couplers[MyCouplFound].Render=false;
+  FoundedObj->MoverParameters->Attach(CouplFound,MyCouplFound,&(this->MoverParameters),ctrain_virtual);
+  FoundedObj->MoverParameters->Couplers[CouplFound].Render=true;
+  if (MyCouplFound==0)
+  {
+   PrevConnected=FoundedObj; //pojazd od strony sprzêgu 0
+   PrevConnectedNo=CouplFound;
+  }
+  else
+  {
+   NextConnected=FoundedObj; //pojazd od strony sprzêgu 1
+   NextConnectedNo=CouplFound;
+  }
+  if (CouplFound==0)
+  {
+   if (FoundedObj->PrevConnected)
+    WriteLog("! Coupler error on "+asName+" - "+FoundedObj->asName+" is already connected");
+   FoundedObj->PrevConnected=this;
+   FoundedObj->PrevConnectedNo=MyCouplFound;
+  }
+  else
+  {
+   if (FoundedObj->NextConnected)
+    WriteLog("! Coupler error on "+asName+" - "+FoundedObj->asName+" is already connected");
+   FoundedObj->NextConnected=this;
+   FoundedObj->NextConnectedNo=MyCouplFound;
+  }
+  if ((Mechanik)&&(!EndTrack))
+  {
+   EndTrack=true;
+   if ((this->MoverParameters->Couplers[MyCouplFound].CoupleDist)<50)
+    Mechanik->SetVelocity(0,0);
+   else
+    Mechanik->SetVelocity(20,20);
+   //Mechanik->SetProximityVelocity((this->MoverParameters->Couplers[MyCouplFound].Dist)-20,0);
+  }
+ }
 }
 //----------ABu: koniec skanowania pojazdow
 
@@ -1160,7 +1128,7 @@ TTrack* __fastcall TraceRoute(double &fDistance, double &fDirection, TTrack *Tra
             else if(Track->Event1->Type==tp_PutValues)
               {
               AnsiString st1 = String(Track->Event1->Params[0].asText);
-              if (st1=="SetVelocity"||st1=="ShuntVelocity")
+              if (st1=="SetVelocity"||st1=="ShuntVelocity"||(st1.SubString(1,19)=="PassengerStopPoint:"))
                 {
                 fDistance= s;
                 return Track;
@@ -1179,7 +1147,7 @@ TTrack* __fastcall TraceRoute(double &fDistance, double &fDirection, TTrack *Tra
             else if(Track->Event2->Type==tp_PutValues)
               {
               AnsiString st1 = String(Track->Event2->Params[0].asText);
-              if (st1=="SetVelocity"||st1=="ShuntVelocity")
+              if (st1=="SetVelocity"||st1=="ShuntVelocity"||(st1.SubString(1,19)=="PassengerStopPoint:"))
                 {
                 fDistance= s;
                 return Track;
@@ -1317,7 +1285,7 @@ __fastcall TDynamicObject::TDynamicObject()
     bDisplayCab= false; //030303
     NextConnected=PrevConnected= NULL;
     NextConnectedNo=PrevConnectedNo=2; //ABu: Numery sprzegow. 2=nie pod³¹czony
-    CouplCounter=50;
+    CouplCounter=50; //bêdzie sprawdzaæ na pocz¹tku
     asName= "";
     bEnabled= true;
     MyTrack=NULL;
@@ -2344,31 +2312,28 @@ if (tmpTraction.TractionVoltage==0)
        }
 
 //ABu-160303 sledzenie toru przed obiektem: *******************************
-    //Z obserwacji: v>0 -> Coupler 0; v<0 ->coupler1.
-    //Rozroznienie jest tutaj, zeby niepotrzebnie
-    //nie skakac do funkcji. Nie jest uzaleznione
-    //od obecnosci AI, zeby uwzglednic np. jadace
-    //bez lokomotywy wagony.
-    EndTrack=false;
-    if(CouplCounter>25)
-    {
-       if (
-             (MoverParameters->V > 0)&&
-             (MoverParameters->Couplers[0].CouplingFlag==ctrain_virtual)
-          )
-          ABuScanObjects(MyTrack, 1, 300);
-       if (
-             (MoverParameters->V < 0)&&
-             (MoverParameters->Couplers[1].CouplingFlag==ctrain_virtual)
-          )
-          ABuScanObjects(MyTrack,-1, 300);
-       CouplCounter=random(20);
-    }
-    if (MoverParameters->V != 0)
-       CouplCounter++;
-    else
-       CouplCounter=25;
- return true; //Ra: chyba tak?      
+ //Z obserwacji: v>0 -> Coupler 0; v<0 ->coupler1.
+ //Rozroznienie jest tutaj, zeby niepotrzebnie
+ //nie skakac do funkcji. Nie jest uzaleznione
+ //od obecnosci AI, zeby uwzglednic np. jadace
+ //bez lokomotywy wagony.
+ EndTrack=false;
+ if (CouplCounter>25) //licznik, aby nie robiæ za ka¿dym razem
+ {//poszukiwanie czegoœ do zderzenia siê
+  if (MoverParameters->V>0) //jeœli jedzie do przodu (w kierunku Coupler 0)
+  {if (MoverParameters->Couplers[0].CouplingFlag==ctrain_virtual)
+    ABuScanObjects(MyTrack,1,300); //szukanie czegoœ do pod³¹czenia
+  }  
+  else if (MoverParameters->V<0) //jeœli jedzie do ty³u (w kierunku Coupler 1)
+   if (MoverParameters->Couplers[1].CouplingFlag==ctrain_virtual)
+    ABuScanObjects(MyTrack,-1,300);
+  CouplCounter=random(20); //ponowne sprawdzenie po losowym czasie
+ }
+ if (MoverParameters->V!=0)
+  CouplCounter++; //jazda sprzyja poszukiwaniu po³¹czenia
+ else
+  CouplCounter=25; //a bezruch nie
+ return true; //Ra: chyba tak?
 }
 
 bool __fastcall TDynamicObject::FastUpdate(double dt)
