@@ -103,8 +103,10 @@ const int k_EndSign=70;
 
 const int k_Active=71;
                         //Winger 020304
-const int k_WalkMode= 72;
-const int MaxKeys= 73;
+const int k_Battery=72;
+const int k_WalkMode=73;
+
+const int MaxKeys=74;
 
 //klasy dla wskaŸników globalnych
 class TGround;
@@ -144,6 +146,7 @@ public:
  static bool bAdjustScreenFreq;
  static bool bEnableTraction;
  static bool bLoadTraction;
+ static float iFriction;
  static bool bLiveTraction;
  static bool bManageNodes;
  static bool bDecompressDDS;

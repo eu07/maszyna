@@ -244,7 +244,6 @@ struct TMotorParameters
 	bool AutoSwitch;
 } ;
 
-
 struct TSecuritySystem
 {
 	Byte SystemType;
@@ -273,10 +272,11 @@ struct TTransmision
 #pragma option push -b-
 enum TCouplerType { NoCoupler, Articulated, Bare, Chain, Screw, Automatic };
 #pragma option pop
+
 class DELPHICLASS T_MoverParameters;
 struct TCoupling
 {
-	double SpringKB;            
+	double SpringKB;
 	double SpringKC;
 	double beta;
 	double DmaxB;
@@ -295,7 +295,7 @@ struct TCoupling
 	bool CheckCollision;
 } ;
 
-class PASCALIMPLEMENTATION T_MoverParameters : public System::TObject
+class PASCALIMPLEMENTATION T_MoverParameters : public System::TObject 
 {
 	typedef System::TObject inherited;
 	
@@ -319,7 +319,7 @@ public:
 	double TotalMass;
 	double HeatingPower;
 	double LightPower;
-	int BatteryVoltage;
+	double BatteryVoltage;
 	bool Battery;
 	bool EpFuse;
 	bool Signalling;
@@ -603,12 +603,16 @@ public:
 	bool __fastcall SandDoseOn(void);
 	bool __fastcall SecuritySystemReset(void);
 	void __fastcall SecuritySystemCheck(double dt);
+	bool __fastcall BatterySwitch(bool State);
+	bool __fastcall EpFuseSwitch(bool State);
 	bool __fastcall IncBrakeLevelOld(void);
 	bool __fastcall DecBrakeLevelOld(void);
 	bool __fastcall IncLocalBrakeLevel(Byte CtrlSpeed);
 	bool __fastcall DecLocalBrakeLevel(Byte CtrlSpeed);
 	bool __fastcall IncLocalBrakeLevelFAST(void);
 	bool __fastcall DecLocalBrakeLevelFAST(void);
+	bool __fastcall IncManualBrakeLevel(Byte CtrlSpeed);
+	bool __fastcall DecManualBrakeLevel(Byte CtrlSpeed);
 	bool __fastcall EmergencyBrakeSwitch(bool Switch);
 	bool __fastcall AntiSlippingBrake(void);
 	bool __fastcall BrakeReleaser(void);
@@ -624,6 +628,7 @@ public:
 	void __fastcall CompressorCheck(double dt);
 	void __fastcall UpdatePantVolume(double dt);
 	void __fastcall UpdateScndPipePressure(double dt);
+	void __fastcall UpdateBatteryVoltage(double dt);
 	void __fastcall ComputeConstans(void);
 	double __fastcall ComputeMass(void);
 	double __fastcall Adhesive(double staticfriction);
@@ -678,6 +683,7 @@ public:
 	AnsiString __fastcall EngineDescription(int what);
 	bool __fastcall DoorLeft(bool State);
 	bool __fastcall DoorRight(bool State);
+	bool __fastcall DoorBlockedFlag(void);
 	bool __fastcall PantFront(bool State);
 	bool __fastcall PantRear(bool State);
 public:
@@ -706,7 +712,7 @@ static const Shortint dtrack_thinrail = 0x8;
 static const Shortint dtrack_railbend = 0x10;
 static const Shortint dtrack_plants = 0x20;
 static const Shortint dtrack_nomove = 0x40;
-static const Byte dtrack_norail = 0x80;
+static const Shortint dtrack_norail = 0x80;
 static const Shortint dtrain_thinwheel = 0x1;
 static const Shortint dtrain_loadshift = 0x1;
 static const Shortint dtrain_wheelwear = 0x2;
@@ -760,7 +766,7 @@ static const Shortint s_CAalarm = 0x8;
 static const Shortint s_SHPalarm = 0x10;
 static const Shortint s_CAebrake = 0x20;
 static const Shortint s_SHPebrake = 0x40;
-static const Byte s_CAtest = 0x80;
+static const Shortint s_CAtest = 0x80;
 static const Shortint sound_none = 0x0;
 static const Shortint sound_loud = 0x1;
 static const Shortint sound_couplerstretch = 0x2;
@@ -779,6 +785,8 @@ static const Shortint dt_PseudoDiesel = 0x8;
 static const Shortint dt_ET22 = 0x10;
 static const Shortint dt_SN61 = 0x20;
 static const Shortint dt_181 = 0x40;
+static const Shortint dt_EP05 = 0x80;
+static const Shortint dt_ET40 = 0x100;
 extern PACKAGE double __fastcall Distance(const TLocation &Loc1, const TLocation &Loc2, const TDimension 
 	&Dim1, const TDimension &Dim2);
 
