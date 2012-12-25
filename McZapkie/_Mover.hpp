@@ -298,7 +298,7 @@ public:
 	double TotalMass;
 	double HeatingPower;
 	double LightPower;
-	int BatteryVoltage;
+	double BatteryVoltage;
 	bool Battery;
 	bool EpFuse;
 	bool Signalling;
@@ -582,12 +582,16 @@ public:
 	bool __fastcall SandDoseOn(void);
 	bool __fastcall SecuritySystemReset(void);
 	void __fastcall SecuritySystemCheck(double dt);
+	bool __fastcall BatterySwitch(bool State);
+	bool __fastcall EpFuseSwitch(bool State);
 	bool __fastcall IncBrakeLevelOld(void);
 	bool __fastcall DecBrakeLevelOld(void);
 	bool __fastcall IncLocalBrakeLevel(Byte CtrlSpeed);
 	bool __fastcall DecLocalBrakeLevel(Byte CtrlSpeed);
 	bool __fastcall IncLocalBrakeLevelFAST(void);
 	bool __fastcall DecLocalBrakeLevelFAST(void);
+	bool __fastcall IncManualBrakeLevel(Byte CtrlSpeed);
+	bool __fastcall DecManualBrakeLevel(Byte CtrlSpeed);
 	bool __fastcall EmergencyBrakeSwitch(bool Switch);
 	bool __fastcall AntiSlippingBrake(void);
 	bool __fastcall BrakeReleaser(void);
@@ -603,6 +607,7 @@ public:
 	void __fastcall CompressorCheck(double dt);
 	void __fastcall UpdatePantVolume(double dt);
 	void __fastcall UpdateScndPipePressure(double dt);
+	void __fastcall UpdateBatteryVoltage(double dt);
 	void __fastcall ComputeConstans(void);
 	double __fastcall ComputeMass(void);
 	double __fastcall Adhesive(double staticfriction);
@@ -657,6 +662,7 @@ public:
 	AnsiString __fastcall EngineDescription(int what);
 	bool __fastcall DoorLeft(bool State);
 	bool __fastcall DoorRight(bool State);
+	bool __fastcall DoorBlockedFlag(void);
 	bool __fastcall PantFront(bool State);
 	bool __fastcall PantRear(bool State);
 public:
@@ -779,6 +785,8 @@ static const Shortint dt_PseudoDiesel = 0x8;
 static const Shortint dt_ET22 = 0x10;
 static const Shortint dt_SN61 = 0x20;
 static const Shortint dt_181 = 0x40;
+static const Byte dt_EP05 = 0x80;
+static const Word dt_ET40 = 0x100;
 extern PACKAGE double __fastcall Distance(const TLocation &Loc1, const TLocation &Loc2, const TDimension 
 	&Dim1, const TDimension &Dim2);
 

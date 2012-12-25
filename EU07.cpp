@@ -561,7 +561,7 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
    {
     //MessageBeep(MB_ICONEXCLAMATION);
     //MessageBox(hWnd,"Couldn't capture the joystick",NULL,MB_OK|MB_ICONEXCLAMATION);
-    return -1;
+    //return -1; //Window creation error
    }
    break;
  }

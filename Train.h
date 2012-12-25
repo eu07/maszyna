@@ -124,7 +124,7 @@ public:
     TGauge DirKeyGauge;
     TGauge BrakeCtrlGauge;
     TGauge LocalBrakeGauge;
-
+    TGauge ManualBrakeGauge;
     TGauge BrakeProfileCtrlGauge;
     TGauge MaxCurrentCtrlGauge;
 
@@ -181,7 +181,8 @@ public:
     TGauge PantAllDownButtonGauge;
 //Winger 020304 - wlacznik ogrzewania
     TGauge TrainHeatingButtonGauge;
-
+    TGauge SignallingButtonGauge;
+    TGauge DoorSignallingButtonGauge;
 
 //    TModel3d *mdKabina; McZapkie-030303: to do dynobj
 
@@ -199,7 +200,14 @@ public:
       TButton btLampkaStycznB;
       TButton btLampkaWylSzybkiB;
       TButton btLampkaNadmPrzetwB;
-
+ //KURS90 lampki jazdy bezoporowej dla EU04
+      TButton btLampkaBezoporowaB;
+      TButton btLampkaBezoporowa;
+      TButton btLampkaUkrotnienie;
+      TButton btLampkaHamPosp;
+      TButton btLampkaRadio;
+      TButton btLampkaHamowanie1zes;
+      TButton btLampkaHamowanie2zes;
 //    TButton btLampkaUnknown;
     TButton btLampkaOpory;
     TButton btLampkaWysRozr;
@@ -220,12 +228,17 @@ public:
     TButton btLampkaRadiotelefon;
     TButton btLampkaHamienie;
     TButton btLampkaJazda;                   
+//KURS90
+      TButton btLampkaBoczniki;                
+      TButton btLampkaMaxSila;              
+      TButton btLampkaPrzekrMaxSila;              
 //    TButton bt;
 //
     TButton btLampkaDoorLeft;
     TButton btLampkaDoorRight;
     TButton btLampkaDepartureSignal;
-
+    TButton btLampkaBlokadaDrzwi;
+    TButton btLampkaHamulecReczny;
     TButton btLampkaForward; //Ra: lampki w przód i w ty³ dla komputerowych kabin
     TButton btLampkaBackward;
 
@@ -301,6 +314,7 @@ public:
 private:
     //PSound dsbBuzzer;
         PSound dsbCouplerStretch;
+        PSound dsbEN57_CouplerStretch;
         PSound dsbBufferClamp;
 //    TSubModel *smCzuwakShpOn;
 //    TSubModel *smCzuwakOn;
@@ -315,6 +329,7 @@ private:
     
     int CAflag; //hunter-131211: dla osobnego zbijania CA i SHP
 
+    double fPoslizgTimer;
 //    double fShpTimer;
 //    double fDblClickTimer;
     //ABu: Przeniesione do public. - Wiem, ze to nieladnie...

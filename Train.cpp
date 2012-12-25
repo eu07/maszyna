@@ -200,7 +200,8 @@ void __fastcall TTrain::OnKeyPress(int cKey)
 {
 
   bool isEztOer;
-  isEztOer=(DynamicObject->MoverParameters->TrainType==dt_EZT)&&(DynamicObject->MoverParameters->Mains)&&(DynamicObject->MoverParameters->BrakeSubsystem==Oerlikon)&&(DynamicObject->MoverParameters->ActiveDir!=0);
+  //isEztOer=(DynamicObject->MoverParameters->TrainType==dt_EZT)&&(DynamicObject->MoverParameters->Mains)&&(DynamicObject->MoverParameters->BrakeSubsystem==Oerlikon)&&(DynamicObject->MoverParameters->ActiveDir!=0);
+  isEztOer=((DynamicObject->MoverParameters->TrainType==dt_EZT)&&(DynamicObject->MoverParameters->Battery==true)&&(DynamicObject->MoverParameters->EpFuse==true)&&(DynamicObject->MoverParameters->BrakeSubsystem==Oerlikon)&&(DynamicObject->MoverParameters->ActiveDir!=0));
 
   if (GetAsyncKeyState(VK_SHIFT)<0)
    {//wciœniêty [Shift]
@@ -213,6 +214,17 @@ void __fastcall TTrain::OnKeyPress(int cKey)
           }
       }
       else
+      if (cKey==Global::Keys[k_DirectionBackward])
+      {
+      if (DynamicObject->MoverParameters->Radio==false)
+          {
+            dsbSwitch->SetVolume(DSBVOLUME_MAX);
+            dsbSwitch->Play( 0, 0, 0 );
+            DynamicObject->MoverParameters->Radio=true;
+          }
+      }
+      else
+
       if (cKey==Global::Keys[k_DecMainCtrlFAST])
           if (DynamicObject->MoverParameters->DecMainCtrl(2))
           {
@@ -275,7 +287,43 @@ void __fastcall TTrain::OnKeyPress(int cKey)
            }
       }
       else */
+      if (cKey==Global::Keys[k_Battery])
+      {
+         if(((DynamicObject->MoverParameters->TrainType==dt_EZT) || (DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)|| (DynamicObject->MoverParameters->EngineType==DieselElectric))&&(DynamicObject->MoverParameters->Battery==false))
+         {
+         if ((DynamicObject->MoverParameters->BatterySwitch(true)))
+           {
+               dsbSwitch->Play( 0, 0, 0 );
+               SetFlag(DynamicObject->MoverParameters->SecuritySystem.Status,s_active);
+               SetFlag(DynamicObject->MoverParameters->SecuritySystem.Status,s_SHPalarm) ;
 
+           }
+           }
+      }
+      else
+      if (cKey==Global::Keys[k_StLinOff])
+      {
+         if(DynamicObject->MoverParameters->TrainType==dt_EZT)
+         {
+         if ((DynamicObject->MoverParameters->Signalling==false))
+           {
+               dsbSwitch->Play( 0, 0, 0 );
+               DynamicObject->MoverParameters->Signalling=true;
+           }
+           }
+      }
+      else
+      if (cKey==Global::Keys[k_Sand])
+      {
+         if(DynamicObject->MoverParameters->TrainType==dt_EZT)
+         {
+         if ((DynamicObject->MoverParameters->DoorSignalling==false))
+           {
+               dsbSwitch->Play( 0, 0, 0 );
+               DynamicObject->MoverParameters->DoorSignalling=true;
+           }
+           }
+      }
       if (cKey==Global::Keys[k_Main])
       {
            if (fabs(MainOnButtonGauge.GetValue())<0.001)
@@ -484,6 +532,8 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       //-----------
       if (cKey==Global::Keys[k_PantFrontUp])   //Winger 160204: podn. przedn. pantografu
       {
+      if ((DynamicObject->MoverParameters->ActiveCab==1) || ((DynamicObject->MoverParameters->ActiveCab<1)&&(DynamicObject->MoverParameters->TrainType!=dt_ET40)&&(DynamicObject->MoverParameters->TrainType!=dt_ET41)&&(DynamicObject->MoverParameters->TrainType!=dt_ET42)&&(DynamicObject->MoverParameters->TrainType!=dt_EZT)))
+         {
            DynamicObject->MoverParameters->PantFrontSP=false;
            if (DynamicObject->MoverParameters->PantFront(true))
             if (DynamicObject->MoverParameters->PantFrontStart!=1)
@@ -492,8 +542,21 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                 dsbSwitch->Play(0,0,0);
             }
       }
+      if ((DynamicObject->MoverParameters->ActiveCab<1)&&((DynamicObject->MoverParameters->TrainType==dt_ET40)||(DynamicObject->MoverParameters->TrainType==dt_ET41)||(DynamicObject->MoverParameters->TrainType==dt_ET42)||(DynamicObject->MoverParameters->TrainType==dt_EZT)))
+      {
+           DynamicObject->MoverParameters->PantRearSP=false;
+           if(DynamicObject->MoverParameters->PantRear(true))
+            if(DynamicObject->MoverParameters->PantRearStart!=1)
+            {
+                dsbSwitch->SetVolume(DSBVOLUME_MAX);
+                dsbSwitch->Play( 0, 0, 0 );
+            }
+      }
+      }
       else
       if (cKey==Global::Keys[k_PantRearUp])   //Winger 160204: podn. tyln. pantografu
+      {
+      if ((DynamicObject->MoverParameters->ActiveCab==1) || ((DynamicObject->MoverParameters->ActiveCab<1)&&(DynamicObject->MoverParameters->TrainType!=dt_ET40)&&(DynamicObject->MoverParameters->TrainType!=dt_ET41)&&(DynamicObject->MoverParameters->TrainType!=dt_ET42)&&(DynamicObject->MoverParameters->TrainType!=dt_EZT)))
       {
            DynamicObject->MoverParameters->PantRearSP=false;
            if (DynamicObject->MoverParameters->PantRear(true))
@@ -503,6 +566,18 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                 dsbSwitch->Play(0,0,0);
             }
       }
+      if ((DynamicObject->MoverParameters->ActiveCab<1)&&((DynamicObject->MoverParameters->TrainType==dt_ET40)||(DynamicObject->MoverParameters->TrainType==dt_ET41)||(DynamicObject->MoverParameters->TrainType==dt_ET42)||(DynamicObject->MoverParameters->TrainType==dt_EZT)))
+      {
+           DynamicObject->MoverParameters->PantFrontSP=false;
+           if(DynamicObject->MoverParameters->PantFront(true))
+            if (DynamicObject->MoverParameters->PantFrontStart!=1)
+            {
+                dsbSwitch->SetVolume(DSBVOLUME_MAX);
+                dsbSwitch->Play( 0, 0, 0 );
+            }
+            }
+      }
+
       else
 //      if (cKey==Global::Keys[k_Active])   //yB 300407: przelacznik rozrzadu
 //      {
@@ -986,6 +1061,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else
       if (cKey==Global::Keys[k_DecBrakeLevel])
        {
+//now¹ wersjê dostarczy³ ZiomalCl ("fixed looped sound in ezt when using NUM_9 key")
          if ((DynamicObject->MoverParameters->BrakeCtrlPos>-1) || (keybrakecount>1))
           {
 
@@ -1193,6 +1269,19 @@ void __fastcall TTrain::OnKeyPress(int cKey)
            }
       }
       else
+
+     if (cKey==Global::Keys[k_Battery])
+      {
+        if((DynamicObject->MoverParameters->TrainType==dt_EZT) || (DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)|| (DynamicObject->MoverParameters->EngineType==DieselElectric))
+        if(DynamicObject->MoverParameters->BatterySwitch(false))
+           {
+              dsbSwitch->Play( 0, 0, 0 );
+              DynamicObject->MoverParameters->SecuritySystem.Status=0;
+              DynamicObject->MoverParameters->PantFront(false);
+              DynamicObject->MoverParameters->PantRear(false);
+           }
+      }
+
       //-----------
 //      if (cKey==Global::Keys[k_Active])   //yB 300407: przelacznik rozrzadu
 //      {
@@ -1350,18 +1439,29 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       }
       else
       //hunter-201211: piasecznica poprawiona oraz przeniesiona do TTrain::Update()
-      /*
       if (cKey==Global::Keys[k_Sand])
       {
+      /*
+        if (DynamicObject->MoverParameters->TrainType!=dt_EZT)
+        {
           if (DynamicObject->MoverParameters->SandDoseOn())
            if (DynamicObject->MoverParameters->SandDose)
             {
               dsbPneumaticRelay->SetVolume(-30);
               dsbPneumaticRelay->Play(0,0,0);
             }
+        }
+      */
+        if (DynamicObject->MoverParameters->TrainType==dt_EZT)
+        {
+          if(DynamicObject->MoverParameters->DoorSignalling==true)
+           {
+              dsbSwitch->Play( 0, 0, 0 );
+              DynamicObject->MoverParameters->DoorSignalling=false;
+           }
+            }
       }
       else
-      */
       if (cKey==Global::Keys[k_CabForward])
       {
        if (!CabChange(1))
@@ -1463,6 +1563,18 @@ void __fastcall TTrain::OnKeyPress(int cKey)
               dsbCouplerAttach->Play(0,0,0);
              }
             }
+             else
+              if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag,ctrain_passenger))     //mostek
+              {
+                if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,tmp->MoverParameters->Couplers[CouplNr].CouplingFlag+ctrain_passenger))
+                {
+//                  rsHiss.Play(1,DSBPLAY_LOOPING,true,tmp->GetPosition());
+                  dsbCouplerDetach->SetVolume(DSBVOLUME_MAX);
+                  dsbCouplerDetach->Play( 0, 0, 0 );
+                  DynamicObject->SetPneumatic(CouplNr,0);
+                  tmp->SetPneumatic(CouplNr,0);
+                }
+              }
            }
           }
         }
@@ -2664,7 +2776,10 @@ else
 //Winger 140404 - woltomierz NN
     if (LVoltageGauge.SubModel)
      {
-      LVoltageGauge.UpdateValue(DynamicObject->MoverParameters->BatteryVoltage);
+      if (DynamicObject->MoverParameters->Battery==true)
+      {LVoltageGauge.UpdateValue(DynamicObject->MoverParameters->BatteryVoltage);}
+      else
+      {LVoltageGauge.UpdateValue(0);}
       LVoltageGauge.Update();
      }
 
@@ -2774,11 +2889,25 @@ else
           btLampkaOpory.TurnOn();
         else
           btLampkaOpory.TurnOff();
+        if (( DynamicObject->MoverParameters->ResistorsFlagCheck()) || ( DynamicObject->MoverParameters->MainCtrlActualPos==0))
+          btLampkaBezoporowa.TurnOn();
+        else
+          btLampkaBezoporowa.TurnOff();    //Do EU04
         if ( (DynamicObject->MoverParameters->Itot!=0) || (DynamicObject->MoverParameters->BrakePress > 0.2) || ( DynamicObject->MoverParameters->PipePress < 0.36 ))
           btLampkaStyczn.TurnOff();     //
         else
         if (DynamicObject->MoverParameters->BrakePress < 0.1)
            btLampkaStyczn.TurnOn();      //mozna prowadzic rozruch
+         if (((TestFlag(DynamicObject->MoverParameters->Couplers[1].CouplingFlag,ctrain_controll)) && (DynamicObject->MoverParameters->ActiveCab==1)) ||
+        ((TestFlag(DynamicObject->MoverParameters->Couplers[0].CouplingFlag,ctrain_controll)) && (DynamicObject->MoverParameters->ActiveCab==-1)))
+           btLampkaUkrotnienie.TurnOn();
+        else
+           btLampkaUkrotnienie.TurnOff();
+         if ((TestFlag(DynamicObject->MoverParameters->BrakeStatus,+b_Rused+b_Ractive)))//Lampka drugiego stopnia hamowania
+
+           btLampkaHamPosp.TurnOn();
+        else
+           btLampkaHamPosp.TurnOff();
 
         //hunter-111211: wylacznik cisnieniowy
         if (DynamicObject->MoverParameters->TrainType!=dt_EZT)
@@ -2802,6 +2931,11 @@ else
           btLampkaWysRozr.TurnOn();
         else
           btLampkaWysRozr.TurnOff();
+        if ((( DynamicObject->MoverParameters->ScndCtrlActualPos > 0) ||  ( (DynamicObject->MoverParameters->RList[DynamicObject->MoverParameters->MainCtrlActualPos].ScndAct!=0)&&(DynamicObject->MoverParameters->RList[DynamicObject->MoverParameters->MainCtrlActualPos].ScndAct!=255)))&&(!DynamicObject->MoverParameters->DelayCtrlFlag))
+          btLampkaBoczniki.TurnOn();
+        else
+          btLampkaBoczniki.TurnOff();
+
 
         if ( DynamicObject->MoverParameters->ActiveDir!=0 ) //napiecie na nastawniku hamulcowym
          { btLampkaNapNastHam.TurnOn(); }
@@ -2842,10 +2976,37 @@ else
         btLampkaOpory.TurnOff();
         btLampkaStyczn.TurnOff();
         btLampkaNadmSil.TurnOff();
-
+        btLampkaUkrotnienie.TurnOff();
+        btLampkaHamPosp.TurnOff();
+        btLampkaBoczniki.TurnOff();
         btLampkaNapNastHam.TurnOff();
         btLampkaSprezarka.TurnOff();
+        btLampkaBezoporowa.TurnOff();
      }
+if ( DynamicObject->MoverParameters->Signalling==true )
+  {
+
+  if ((DynamicObject->MoverParameters->BrakePress>=0.145f)&&(DynamicObject->MoverParameters->Battery==true)&&(DynamicObject->MoverParameters->Signalling==true))
+     { btLampkaHamowanie1zes.TurnOn(); }
+  if (DynamicObject->MoverParameters->BrakePress<0.075f)
+     { btLampkaHamowanie1zes.TurnOff(); }
+  }
+  else
+  {
+  btLampkaHamowanie1zes.TurnOff();
+  }
+if ( DynamicObject->MoverParameters->DoorSignalling==true)
+  {
+  if ((DynamicObject->MoverParameters->DoorBlockedFlag())&& (DynamicObject->MoverParameters->Battery==true))
+     { btLampkaBlokadaDrzwi.TurnOn(); }
+  else
+     { btLampkaBlokadaDrzwi.TurnOff(); }
+  }
+  else
+  { btLampkaBlokadaDrzwi.TurnOff(); }
+
+
+
 
 { //yB - wskazniki drugiego czlonu
    TDynamicObject *tmp;
@@ -2863,6 +3024,10 @@ else
           btLampkaOporyB.TurnOn();
         else
           btLampkaOporyB.TurnOff();
+        if (( tmp->MoverParameters->ResistorsFlagCheck()) || ( tmp->MoverParameters->MainCtrlActualPos==0))
+          btLampkaBezoporowaB.TurnOn();
+        else
+          btLampkaBezoporowaB.TurnOff();    //Do EU04
         if ( (tmp->MoverParameters->Itot!=0) || (tmp->MoverParameters->BrakePress > 0.2) || ( tmp->MoverParameters->PipePress < 0.36 ))
           btLampkaStycznB.TurnOff();     //
         else
@@ -2894,7 +3059,14 @@ else
          { btLampkaSprezarkaB.TurnOn(); }
         else
          { btLampkaSprezarkaB.TurnOff(); }
-
+        if (( tmp->MoverParameters->BrakePress>=0.145f )&&(DynamicObject->MoverParameters->Battery==true)&&(DynamicObject->MoverParameters->Signalling==true))
+         { btLampkaHamowanie2zes.TurnOn(); }
+        if(( tmp->MoverParameters->BrakePress<0.075f )|| (DynamicObject->MoverParameters->Battery==false)||(DynamicObject->MoverParameters->Signalling==false))
+         { btLampkaHamowanie2zes.TurnOff(); }
+        if (tmp->MoverParameters->ConverterFlag==true)
+        btLampkaNadmPrzetwB.TurnOff();
+    else
+        btLampkaNadmPrzetwB.TurnOn();
       }
     else  //wylaczone
       {
@@ -2902,6 +3074,9 @@ else
         btLampkaOporyB.TurnOff();
         btLampkaStycznB.TurnOff();
         btLampkaSprezarkaB.TurnOff();
+        btLampkaBezoporowaB.TurnOff();
+        btLampkaHamowanie2zes.TurnOff();
+        btLampkaNadmPrzetwB.TurnOn();
       }
 
    //hunter-261211: jakis stary kod (i niezgodny z prawda), zahaszowalem
@@ -2912,12 +3087,33 @@ else
    //     btLampkaNadmPrzetwB.TurnOn();
 
 } //**************************************************** */
+if (DynamicObject->MoverParameters->Battery==true)
+{
+ //if ((DynamicObject->MoverParameters->BrakePress>=0.05f*DynamicObject->MoverParameters->MaxBrakePress) || (DynamicObject->MoverParameters->DynamicBrakeFlag))
+ if ((((DynamicObject->MoverParameters->BrakePress>=0.01f) || (DynamicObject->MoverParameters->DynamicBrakeFlag)) && (DynamicObject->MoverParameters->TrainType!=dt_EZT)) || ((DynamicObject->MoverParameters->TrainType==dt_EZT) && (DynamicObject->MoverParameters->BrakePress>=0.2f)&&(DynamicObject->MoverParameters->Signalling==true)))
 
-    if ((DynamicObject->MoverParameters->BrakePress>=0.05f*DynamicObject->MoverParameters->MaxBrakePress) || (DynamicObject->MoverParameters->DynamicBrakeFlag))
+
        btLampkaHamienie.TurnOn();
     else
        btLampkaHamienie.TurnOff();
+//KURS90
 
+     if (abs(DynamicObject->MoverParameters->Im)>=350)
+     { btLampkaMaxSila.TurnOn(); }
+    else
+    { btLampkaMaxSila.TurnOff(); }
+    if (abs(DynamicObject->MoverParameters->Im)>=450)
+     { btLampkaPrzekrMaxSila.TurnOn(); }
+    else
+     { btLampkaPrzekrMaxSila.TurnOff(); }
+     if (DynamicObject->MoverParameters->Radio==true)
+     { btLampkaRadio.TurnOn(); }
+    else
+    { btLampkaRadio.TurnOff(); }
+    if (DynamicObject->MoverParameters->ManualBrakePos>0)
+     { btLampkaHamulecReczny.TurnOn(); }
+    else
+    { btLampkaHamulecReczny.TurnOff(); }
 // NBMX wrzesien 2003 - drzwi oraz sygnal odjazdu
     if (DynamicObject->MoverParameters->DoorLeftOpened)
       btLampkaDoorLeft.TurnOn();
@@ -2928,6 +3124,13 @@ else
       btLampkaDoorRight.TurnOn();
     else
       btLampkaDoorRight.TurnOff();
+if (( DynamicObject->MoverParameters->ActiveDir!=0 ) && ( DynamicObject->MoverParameters->EpFuse==true))//napiecie na nastawniku hamulcowym
+
+          btLampkaNapNastHam.TurnOn();
+          //DynamicObject->MoverParameters->UpdateBatteryVoltage:=0.01;
+
+        else
+          btLampkaNapNastHam.TurnOff();
 
     if (DynamicObject->MoverParameters->ActiveDir>0)
      btLampkaForward.TurnOn(); //jazda do przodu
@@ -2938,7 +3141,19 @@ else
      btLampkaBackward.TurnOn(); //jazda do ty³u
     else
      btLampkaBackward.TurnOff();
-
+}
+else
+{
+//gdy bateria wy³¹czona
+btLampkaNapNastHam.TurnOff();
+btLampkaHamienie.TurnOff();
+btLampkaMaxSila.TurnOff();
+btLampkaPrzekrMaxSila.TurnOff();
+btLampkaRadio.TurnOff();
+btLampkaHamulecReczny.TurnOff();
+btLampkaDoorLeft.TurnOff();
+btLampkaDoorRight.TurnOff();
+}
 //McZapkie-080602: obroty (albo translacje) regulatorow
     if (MainCtrlGauge.SubModel)
      {
@@ -3006,7 +3221,11 @@ else
       LocalBrakeGauge.UpdateValue(double(DynamicObject->MoverParameters->LocalBrakePos));
      LocalBrakeGauge.Update();
     }
-
+    if (ManualBrakeGauge.SubModel!=NULL)
+     {
+      ManualBrakeGauge.UpdateValue(double(DynamicObject->MoverParameters->ManualBrakePos));
+      ManualBrakeGauge.Update();
+     }
     if (BrakeProfileCtrlGauge.SubModel)
     {
      BrakeProfileCtrlGauge.UpdateValue(double(DynamicObject->MoverParameters->BrakeDelayFlag==2?0.5:DynamicObject->MoverParameters->BrakeDelayFlag));
@@ -3043,14 +3262,21 @@ else
      }
 
 //NBMX dzwignia sprezarki
-//NBMX dzwignia sprezarki
     if (CompressorButtonGauge.SubModel)  //hunter-261211: poprawka
       CompressorButtonGauge.Update();
     if (MainButtonGauge.SubModel)
        MainButtonGauge.Update();
     if (RadioButtonGauge.SubModel)
      {
+      if (DynamicObject->MoverParameters->Radio)
+          {
       RadioButtonGauge.PutValue(1);
+
+          }
+      else
+          {
+          RadioButtonGauge.PutValue(0);
+          }
       RadioButtonGauge.Update();
      }
     if (ConverterButtonGauge.SubModel)
@@ -3277,6 +3503,32 @@ else
           //btLampkaOgrzewanieSkladu.TurnOff();
           }
     TrainHeatingButtonGauge.Update();
+    }
+    if (SignallingButtonGauge.SubModel!=NULL)
+    {
+      if (DynamicObject->MoverParameters->Signalling)
+          {
+          SignallingButtonGauge.PutValue(1);
+
+          }
+      else
+          {
+          SignallingButtonGauge.PutValue(0);
+          }
+    SignallingButtonGauge.Update();
+    }
+    if (DoorSignallingButtonGauge.SubModel!=NULL)
+    {
+      if (DynamicObject->MoverParameters->DoorSignalling)
+          {
+          DoorSignallingButtonGauge.PutValue(1);
+
+          }
+      else
+          {
+          DoorSignallingButtonGauge.PutValue(0);
+          }
+    DoorSignallingButtonGauge.Update();
     }
 
     if ((((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)&&(DynamicObject->MoverParameters->Mains==true)&&(DynamicObject->MoverParameters->ConvOvldFlag==false))||(DynamicObject->MoverParameters->ConverterFlag))&&(DynamicObject->MoverParameters->Heating==true))
@@ -4032,6 +4284,7 @@ else
     ConverterButtonGauge.Update();
     ConverterOffButtonGauge.Update();
     TrainHeatingButtonGauge.Update();
+    SignallingButtonGauge.Update();
     NextCurrentButtonGauge.Update();
     HornButtonGauge.Update();
     Universal1ButtonGauge.Update();
@@ -4426,6 +4679,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     DirKeyGauge.Clear();
     BrakeCtrlGauge.Clear();
     LocalBrakeGauge.Clear();
+         ManualBrakeGauge.Clear();
     BrakeProfileCtrlGauge.Clear();
     MaxCurrentCtrlGauge.Clear();
     MainOffButtonGauge.Clear();
@@ -4500,11 +4754,21 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     btLampkaPrzekRozn.Clear();
     btLampkaPrzekRoznPom.Clear();
     btLampkaNadmSil.Clear(4);
+         btLampkaUkrotnienie.Clear();
+         btLampkaHamPosp.Clear();
     btLampkaWylSzybki.Clear(3);
     btLampkaNadmWent.Clear(9);
     btLampkaNadmSpr.Clear(8);
     btLampkaOpory.Clear(2);
     btLampkaWysRozr.Clear(10);
+         btLampkaBezoporowa.Clear();
+         btLampkaBezoporowaB.Clear();
+         btLampkaMaxSila.Clear();
+         btLampkaPrzekrMaxSila.Clear();
+         btLampkaRadio.Clear();
+         btLampkaHamulecReczny.Clear();
+         btLampkaWysRozr.Clear();
+         btLampkaBlokadaDrzwi.Clear();
     btLampkaUniversal3.Clear();
     btLampkaWentZaluzje.Clear();
     btLampkaOgrzewanieSkladu.Clear();
@@ -4514,6 +4778,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     btLampkaDoorRight.Clear();
     btLampkaDepartureSignal.Clear();
     btLampkaRezerwa.Clear();
+         btLampkaBoczniki.Clear();
     btLampkaBocznikI.Clear();
     btLampkaBocznikII.Clear();
     btLampkaRadiotelefon.Clear();
@@ -4523,6 +4788,8 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     btLampkaNapNastHam.Clear();
     btLampkaJazda.Clear();
     btLampkaStycznB.Clear();
+         btLampkaHamowanie1zes.Clear();
+         btLampkaHamowanie2zes.Clear();
     btLampkaNadmPrzetwB.Clear();
     btLampkaWylSzybkiB.Clear();
     btLampkaForward.Clear();
@@ -4562,6 +4829,11 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     BrakeCtrlGauge.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("localbrake:"))                    //hamulec pomocniczy
     LocalBrakeGauge.Load(Parser,DynamicObject->mdKabina);
+        else
+        if (str==AnsiString("manualbrake:"))                    //hamulec reczny
+         {
+           ManualBrakeGauge.Load(Parser,DynamicObject->mdKabina);
+         }
    //sekcja przelacznikow obrotowych
    else if (str==AnsiString("brakeprofile_sw:"))                    //przelacznik tow/osob
     BrakeProfileCtrlGauge.Load(Parser,DynamicObject->mdKabina);
@@ -4637,6 +4909,16 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     PantAllDownButtonGauge.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("trainheating_sw:"))                       //grzanie skladu
     TrainHeatingButtonGauge.Load(Parser,DynamicObject->mdKabina);
+        else
+        if (str==AnsiString("signalling_sw:"))                       //Sygnalizacja hamowania
+         {
+           SignallingButtonGauge.Load(Parser,DynamicObject->mdKabina);
+         }
+        else
+        if (str==AnsiString("door_signalling_sw:"))                       //Sygnalizacja blokady drzwi
+         {
+           DoorSignallingButtonGauge.Load(Parser,DynamicObject->mdKabina);
+         }
    else if (str==AnsiString("nextcurrent_sw:"))                       //grzanie skladu
     NextCurrentButtonGauge.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("cablight_sw:"))                       //hunter-091012: swiatlo w kabinie
@@ -4727,6 +5009,30 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
    else if (str==AnsiString("ignitionkey:"))   //np. cisnienie sterownika skrzyni biegow
     IgnitionKeyGauge.Load(Parser,DynamicObject->mdKabina);
    //SEKCJA LAMPEK
+   else if (str==AnsiString("i-maxft:"))
+        {
+           btLampkaMaxSila.Load(Parser,DynamicObject->mdKabina);
+         }
+        else
+        if (str==AnsiString("i-maxftt:"))
+         {
+           btLampkaPrzekrMaxSila.Load(Parser,DynamicObject->mdKabina);
+         }
+        else
+       if (str==AnsiString("i-radio:"))
+         {
+           btLampkaRadio.Load(Parser,DynamicObject->mdKabina);
+         }
+        else
+      if (str==AnsiString("i-manual_brake:"))
+         {
+           btLampkaHamulecReczny.Load(Parser,DynamicObject->mdKabina);
+         }
+        else
+        if (str==AnsiString("i-door_blocked:"))
+         {
+           btLampkaBlokadaDrzwi.Load(Parser,DynamicObject->mdKabina);
+         }
    else if (str==AnsiString("i-slippery:"))
     btLampkaPoslizg.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("i-contactors:"))
@@ -4739,6 +5045,16 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     btLampkaPrzekRoznPom.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("i-motor_ovld:"))
     btLampkaNadmSil.Load(Parser,DynamicObject->mdKabina);
+       else
+         if (str==AnsiString("i-train_controll:"))
+         {
+           btLampkaUkrotnienie.Load(Parser,DynamicObject->mdKabina);
+         }
+       else
+         if (str==AnsiString("i-brake_delay_r:"))
+         {
+           btLampkaHamPosp.Load(Parser,DynamicObject->mdKabina);
+         }
    else if (str==AnsiString("i-mainbreaker:"))
     btLampkaWylSzybki.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("i-vent_ovld:"))
@@ -4747,6 +5063,16 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     btLampkaNadmSpr.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("i-resistors:"))
     btLampkaOpory.Load(Parser,DynamicObject->mdKabina);
+       else
+        if (str==AnsiString("i-no_resistors:"))
+         {
+           btLampkaBezoporowa.Load(Parser,DynamicObject->mdKabina);
+         }
+       else
+         if (str==AnsiString("i-no_resistors_b:"))
+         {
+           btLampkaBezoporowaB.Load(Parser,DynamicObject->mdKabina);
+         }
    else if (str==AnsiString("i-highcurrent:"))
     btLampkaWysRozr.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("i-universal3:"))
@@ -4784,8 +5110,23 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     btLampkaBocznikI.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("i-scnd2:"))
     btLampkaBocznikII.Load(Parser,DynamicObject->mdKabina);
+       else
+       if (str==AnsiString("i-scnd:"))
+         {
+           btLampkaBoczniki.Load(Parser,DynamicObject->mdKabina);
+         }
    else if (str==AnsiString("i-braking:"))
     btLampkaHamienie.Load(Parser,DynamicObject->mdKabina);
+       else
+        if (str==AnsiString("i-braking-ezt:"))
+         {
+           btLampkaHamowanie1zes.Load(Parser,DynamicObject->mdKabina);
+         }
+       else
+        if (str==AnsiString("i-braking-ezt2:"))
+         {
+           btLampkaHamowanie2zes.Load(Parser,DynamicObject->mdKabina);
+         }
    else if (str==AnsiString("i-compressor:"))
     btLampkaSprezarka.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("i-compressorb:"))

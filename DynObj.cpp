@@ -1716,7 +1716,7 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
   return false; //a normalnie powinny mieæ bEnabled==false
 
 //McZapkie-260202
-  MoverParameters->BatteryVoltage=90;
+  //MoverParameters->BatteryVoltage=90;
   if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
    if ((MechInside)||(MoverParameters->TrainType==dt_EZT))
    {
