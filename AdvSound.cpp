@@ -26,9 +26,9 @@ void __fastcall TAdvancedSound::Free()
 
 void __fastcall TAdvancedSound::Init(char *NameOn, char *Name, char *NameOff, double DistanceAttenuation, vector3 pPosition)
 {
-    SoundStart.Init(NameOn,DistanceAttenuation,pPosition.x,pPosition.y,pPosition.z);
-    SoundCommencing.Init(Name,DistanceAttenuation,pPosition.x,pPosition.y,pPosition.z);
-    SoundShut.Init(NameOff,DistanceAttenuation,pPosition.x,pPosition.y,pPosition.z);
+    SoundStart.Init(NameOn,DistanceAttenuation,pPosition.x,pPosition.y,pPosition.z,true);
+    SoundCommencing.Init(Name,DistanceAttenuation,pPosition.x,pPosition.y,pPosition.z,true);
+    SoundShut.Init(NameOff,DistanceAttenuation,pPosition.x,pPosition.y,pPosition.z,true);
     fStartLength= SoundStart.GetWaveTime();
     fShutLength= SoundShut.GetWaveTime();
     SoundStart.AM=1.0;

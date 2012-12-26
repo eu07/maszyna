@@ -148,7 +148,14 @@ TModel3d* __fastcall TModelsManager::GetModel(char *Name,bool dynamic)
   }
  }
  else
-  strcpy(buf,Name);
+ {strcpy(buf,Name);
+  if (dynamic) //na razie tak, bo nie wiadomo, jaki mo¿e mieæ wp³yw na pozosta³e modele
+   if (strchr(Name,'/')!=NULL)
+   {//pobieranie tekstur z katalogu, w którym jest model
+    Global::asCurrentTexturePath= Global::asCurrentTexturePath+AnsiString(Name);
+    Global::asCurrentTexturePath.Delete(Global::asCurrentTexturePath.Pos("/")+1,Global::asCurrentTexturePath.Length());
+   }
+ }
  StrLower(buf);
  for (int i=0; i<Count; i++)
  {

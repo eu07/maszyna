@@ -21,7 +21,7 @@ public:
  __fastcall TRealSound::TRealSound();
  __fastcall TRealSound::~TRealSound();
  void __fastcall TRealSound::Free();
- void __fastcall TRealSound::Init(char *SoundName,double SoundAttenuation,double X,double Y,double Z);
+ void __fastcall TRealSound::Init(char *SoundName,double SoundAttenuation,double X,double Y,double Z,bool Dynamic);
  double __fastcall TRealSound::ListenerDistance(vector3 ListenerPosition);
  void __fastcall TRealSound::Play(double Volume,int Looping,bool ListenerInside,vector3 NewPosition);
  void __fastcall TRealSound::Stop();

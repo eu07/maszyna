@@ -92,6 +92,7 @@ private:
  int iTrapezoid; //0-standard, 1-przechy³ka, 2-trapez, 3-oba
  GLuint DisplayListID;
  TIsolated *pIsolated; //obwód izolowany obs³uguj¹cy zajêcia/zwolnienia grupy torów
+ TGroundNode *pMyNode; //Ra: proteza, ¿eby tor zna³ swoj¹ nazwê TODO: odziedziczyæ TTrack z TGroundNode
 public:
  int iNumDynamics;
  TDynamicObject *Dynamics[iMaxNumDynamics];
@@ -129,7 +130,7 @@ public:
  bool ScannedFlag; //McZapkie: do zaznaczania kolorem torów skanowanych przez AI
  TTraction *pTraction; //drut zasilaj¹cy
 
- __fastcall TTrack();
+ __fastcall TTrack(TGroundNode *g);
  __fastcall ~TTrack();
  void __fastcall Init();
  TTrack* __fastcall NullCreate(int dir);
@@ -156,28 +157,35 @@ public:
  void __fastcall MoveMe(vector3 pPosition);
 
  void Release();
- void __fastcall Compile();
+ void __fastcall Compile(GLuint tex=0);
 
- void __fastcall Render();
- void __fastcall RenderAlpha();
- bool __fastcall InMovement(); //czy w trakcie animacji?
+ void __fastcall Render(); //renderowanie z Display Lists
+ int __fastcall RaArrayPrepare(); //zliczanie rozmiaru dla VBO sektroa
+ void  __fastcall RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Start); //wype³nianie VBO
+ void  __fastcall RaRenderVBO(int iPtr); //renderowanie z VBO sektora
+ void __fastcall RenderDyn(); //renderowanie nieprzezroczystych pojazdów (oba tryby)
+ void __fastcall RenderDynAlpha(); //renderowanie przezroczystych pojazdów (oba tryby)
 
- void __fastcall RaAssign(TGroundNode *gn,TAnimContainer *ac);
- void __fastcall RaAssign(TGroundNode *gn,TAnimModel *am);
- int __fastcall RaArrayPrepare();
- void  __fastcall RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Start);
- void  __fastcall RaRenderVBO(int iPtr);
- void  __fastcall RaRenderDynamic(); //pojazdy
  void __fastcall RaOwnerSet(TSubRect *o)
  {if (SwitchExtension) SwitchExtension->pOwner=o;};
+ bool __fastcall InMovement(); //czy w trakcie animacji?
+ void __fastcall RaAssign(TGroundNode *gn,TAnimContainer *ac);
+ void __fastcall RaAssign(TGroundNode *gn,TAnimModel *am);
  void __fastcall RaAnimListAdd(TTrack *t);
  TTrack* __fastcall RaAnimate();
+
  void __fastcall RadioStop();
  void __fastcall AxleCounter(int i,TDynamicObject *o)
  {if (pIsolated) pIsolated->Modify(i,o);}; //dodanie lub odjêcie osi
  AnsiString __fastcall IsolatedName();
  bool __fastcall IsolatedEventsAssign(TEvent *busy, TEvent *free);
  double __fastcall WidthTotal();
+ GLuint TextureGet(int i) {return i?TextureID1:TextureID2;};
+ bool __fastcall IsGroupable();
+ int __fastcall TestPoint(vector3 *Point);
+private:
+ void __fastcall EnvironmentSet();
+ void __fastcall EnvironmentReset();
 };
 
 //---------------------------------------------------------------------------

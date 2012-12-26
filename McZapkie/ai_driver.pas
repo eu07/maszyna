@@ -222,7 +222,8 @@ begin
      IncBrake;
     if ActiveDir=testd then
      VelforDriver:=-1;
-     if (ActiveDir<>0) and (TrainType=dt_EZT) then Imin:=IminHi;
+    if (ActiveDir>0) and (TrainType=dt_EZT)
+    then DirectionForward; //Ra: z przekazaniem do silnikowego
    end;
   OrderDirectionChange:=Round(VelforDriver);
 end;
@@ -575,6 +576,7 @@ begin
 {TODO: sprawdzanie innego czlonu                  if not FuseFlagCheck() then }
                     if (BrakePress<0.03*MaxBrakePress) then
                       begin
+                        if ActiveDir>0 then DirectionForward; //zeby EN57 jechaly na drugiej nastawie
                         OK:=IncMainCtrl(1);
                       end;
               end;
@@ -1066,7 +1068,7 @@ begin
            Obey_train : begin
                           if CategoryFlag=1 then  {jazda pociagowa}
                            begin
-                             MinProximityDist:=30; MaxProximityDist:=50; {m}
+                             MinProximityDist:=30; MaxProximityDist:=60; {m}
                              if (ActiveDir*CabNo<0) then
                                begin
                                   if (Couplers[0].CouplingFlag=0) then
@@ -1321,10 +1323,12 @@ begin
                   end;
 
                 if(AccDesired>=0) then while DecBrake do;  //jeœli przyspieszamy, to nie hamujemy
-                if(AccDesired<=0)or(Vel+VelMargin>VelDesired*0.95) then while DecSpeed do; //jeœli hamujemy, to nie przyspieszamy
+                //Ra: zmieni³em 0.95 na 1.0 - trzeba ustaliæ, sk¹d sie takie wartoœci bior¹
+                if(AccDesired<=0)or(Vel+VelMargin>VelDesired*1.0) then while DecSpeed do; //jeœli hamujemy, to nie przyspieszamy
 
                 {zwiekszanie predkosci:} //yB: usuniête ró¿ne dziwne warunki, oddzielamy czêœæ zadaj¹c¹ od wykonawczej
-                if ((AbsAccS<AccDesired)and(Vel<VelDesired*0.85-VelMargin)and(AccDesired>=0)) then
+                if ((AbsAccS<AccDesired)and(Vel<VelDesired*0.95-VelMargin)and(AccDesired>=0)) then
+                //Ra: zmieni³em 0.85 na 0.95 - trzeba ustaliæ, sk¹d sie takie wartoœci bior¹
        {          if not MaxVelFlag then }
                     if not IncSpeed then
                      MaxVelFlag:=True

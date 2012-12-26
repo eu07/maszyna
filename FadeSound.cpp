@@ -46,7 +46,7 @@ void __fastcall TFadeSound::Free()
 
 void __fastcall TFadeSound::Init(char *Name, float fNewFade)
 {
-    Sound= TSoundsManager::GetFromName(Name);
+    Sound= TSoundsManager::GetFromName(Name,false);
     if (Sound)
         Sound->SetVolume(0);
     fFade= fNewFade;

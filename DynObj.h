@@ -8,7 +8,6 @@
 #include "QueryParserComp.hpp"
 #include "AnimModel.h"
 #include "Mover.hpp"
-#include "ai_driver.hpp"
 #include "mtable.hpp"
 #include "TractionPower.h"
 //McZapkie:
@@ -26,15 +25,15 @@
 class TDynamicObject
 {
 private:
-    double fTrackBlock; //odleg³oœæ do przeszkody do dalszego ruchu
     TTrackShape ts;
     TTrackParam tp;
     void ABuLittleUpdate(double ObjSqrDist);
     bool btnOn; //ABu: czy byly uzywane buttony, jesli tak, to po renderingu wylacz
                 //bo ten sam model moze byc jeszcze wykorzystany przez inny obiekt!
-    double __fastcall ComputeRadius(vector3 p1, vector3 p2, vector3 p3, vector3 p4);
-    //vector3 pOldPos1; //Ra: nie u¿ywane
-    //vector3 pOldPos4;
+ double __fastcall ComputeRadius(vector3 p1,vector3 p2,vector3 p3,vector3 p4);
+ //vector3 pOldPos1; //Ra: nie u¿ywane
+ //vector3 pOldPos4;
+ vector3 vPosition; //Ra: pozycja pojazdu liczona zaraz po przesuniêciu
 //McZapkie-050402 - do krecenia kolami
     int iAnimatedAxles;
     int iAnimatedDoors;
@@ -129,24 +128,13 @@ private:
     bool renderme; //yB - czy renderowac
     char cp1, sp1, cp2, sp2; //ustawienia wezy
     TRealSound sBrakeAcc; //dzwiek przyspieszacza
- //Ra: poni¿sze przenieœæ do modu³u AI:
  int iAxleFirst; //numer pierwszej oœ w kierunku ruchu
- TEvent* eSignSkip; //miniêty sygna³ zezwalaj¹cy na jazdê, pomijany przy szukaniu
- double fSignSpeed; //prêdkoœæ w moemcie zobaczenia W4
-public:
- TEvent* eSignLast; //ostatnio znaleziony sygna³, o ile nie miniêty
-private:
- bool __fastcall CheckEvent(TEvent *e,bool prox);
- TEvent* __fastcall CheckTrackEvent(double fDirection,TTrack *Track);
- TTrack* __fastcall TraceRoute(double &fDistance,double &fDirection,TTrack *Track,TEvent*&Event);
- void SetProximityVelocity(double dist,double vel,const TLocation *pos);
- //Ra: koniec tych do przeniesienia do AI
- 	TDynamicObject *NewDynamic;
-		bool bDynChangeEnd;
-		bool bDynChangeStart;
+ int iInventory; //flagi bitowe posiadanych submodeli (np. œwiate³)
+ //TDynamicObject *NewDynamic; //Ra: nie u¿ywane
+ TDynamicObject* __fastcall ABuFindNearestObject(TTrack *Track,TDynamicObject *MyPointer,int &CouplNr);
 protected:
     bool bEnabled;
-    
+
     //TTrackFollower Axle2; //dwie osie z czterech (te s¹ protected)
     //TTrackFollower Axle3; //Ra: wy³¹czy³em, bo k¹ty s¹ liczone w Segment.cpp
     int iNumAxles; //iloœæ osi
@@ -154,22 +142,23 @@ protected:
     //Byte PrevConnectedNo;
     int CouplCounter;
     AnsiString asModel;
-    int iDirection;
-    void ScanEventTrack();
+    int iDirection; //kierunek wzglêdem czo³a sk³adu (1=zgodny,0=przeciwny)
     void ABuScanObjects(int ScanDir,double ScanDist);
     void __fastcall ABuCheckMyTrack();
 
 public:
-    TDynamicObject* __fastcall Prev(){return iDirection>0?PrevConnected:NextConnected;};
-    TDynamicObject* __fastcall Next(){return iDirection>0?NextConnected:PrevConnected;};
+ int iLights[2]; //bity zapalonych œwiate³
+ double fTrackBlock; //odleg³oœæ do przeszkody do dalszego ruchu
+ TDynamicObject* __fastcall Prev();
+ TDynamicObject* __fastcall Next();
     void __fastcall SetdMoveLen(double dMoveLen) {MoverParameters->dMoveLen=dMoveLen;}
     void __fastcall ResetdMoveLen() {MoverParameters->dMoveLen=0;}
     double __fastcall GetdMoveLen() {return MoverParameters->dMoveLen;}
 
-    bool __fastcall EndSignalsLight1Active() {return btEndSignals11.Active();};
-    bool __fastcall EndSignalsLight2Active() {return btEndSignals21.Active();};
-    bool __fastcall EndSignalsLight1oldActive() {return btEndSignals1.Active();};
-    bool __fastcall EndSignalsLight2oldActive() {return btEndSignals2.Active();};
+    //bool __fastcall EndSignalsLight1Active() {return btEndSignals11.Active();};
+    //bool __fastcall EndSignalsLight2Active() {return btEndSignals21.Active();};
+    //bool __fastcall EndSignalsLight1oldActive() {return btEndSignals1.Active();};
+    //bool __fastcall EndSignalsLight2oldActive() {return btEndSignals2.Active();};
     int __fastcall GetPneumatic(bool front, bool red);
     void __fastcall SetPneumatic(bool front, bool red);
 		AnsiString asName;
@@ -181,8 +170,8 @@ public:
 //youBy
     TRealSound rsDiesielInc;
 //youBy
-    TRealSound rscurve;    
-    
+    TRealSound rscurve;
+
 //youBy - dym
     //TSmoke Smog;
     //float EmR;
@@ -190,12 +179,12 @@ public:
 
     TDynamicObject *NextConnected; //pojazd pod³¹czony od strony sprzêgu 1 (kabina -1)
     TDynamicObject *PrevConnected; //pojazd pod³¹czony od strony sprzêgu 0 (kabina 1)
-    Byte NextConnectedNo;
-    Byte PrevConnectedNo;
+    int NextConnectedNo;
+    int PrevConnectedNo;
     vector3 modelRot;      //Obrot pudla w/m swiata
-    TDynamicObject* ABuScanNearestObject(TTrack *Track, double ScanDir, double ScanDist, int &CouplNr);
-    TDynamicObject* GetFirstDynamic(int cpl_type);
-		TDynamicObject* GetFirstCabDynamic(int cpl_type);
+    TDynamicObject* __fastcall ABuScanNearestObject(TTrack *Track, double ScanDir, double ScanDist, int &CouplNr);
+    TDynamicObject* __fastcall GetFirstDynamic(int cpl_type);
+    TDynamicObject* __fastcall GetFirstCabDynamic(int cpl_type);
     void ABuSetModelShake(vector3 mShake);
     TModel3d *mdLoad;
     TModel3d *mdPrzedsionek;
@@ -235,8 +224,8 @@ public:
     TController *Mechanik;
     TTrainParameters *TrainParams;
     bool MechInside;
-    TTrackFollower Axle1; //dwie osie z czterech (public)
-    TTrackFollower Axle4;
+    TTrackFollower Axle0; //oœ z przodu (od sprzêgu 0)
+    TTrackFollower Axle1; //oœ z ty³u (od sprzêgu 1)
 //McZapkie-270202
     bool Controller;
     bool bDisplayCab; //czy wyswietlac kabine w train.cpp
@@ -254,6 +243,7 @@ public:
     );
     void __fastcall AttachPrev(TDynamicObject *Object, int iType= 1);
     bool __fastcall UpdateForce(double dt, double dt1, bool FullVer);
+    void __fastcall LoadUpdate();
     bool __fastcall Update(double dt, double dt1);
     bool __fastcall FastUpdate(double dt);
     void __fastcall Move(double fDistance);
@@ -261,37 +251,52 @@ public:
     bool __fastcall Render();
     bool __fastcall RenderAlpha();
     vector3 inline __fastcall GetPosition();
-    inline vector3 __fastcall GetDirection() { return Axle4.pPosition-Axle1.pPosition; };
+    inline vector3 __fastcall AxlePositionGet() { return iAxleFirst?Axle1.pPosition:Axle0.pPosition; };
+    inline vector3 __fastcall GetDirection() { return Axle0.pPosition-Axle1.pPosition; };
     inline double __fastcall GetVelocity() { return MoverParameters->Vel; };
     inline double __fastcall GetLength() { return MoverParameters->Dim.L; };
     inline double __fastcall GetWidth() { return MoverParameters->Dim.W; };
-    inline TTrack* __fastcall GetTrack() { return (iAxleFirst?Axle1.GetTrack():Axle4.GetTrack()); };
-    void __fastcall UpdatePos();
-    void __fastcall DynChangeStart(TDynamicObject *Dyn);
-    void __fastcall DynChangeEnd(); 
+    inline TTrack* __fastcall GetTrack() { return (iAxleFirst?Axle1.GetTrack():Axle0.GetTrack()); };
+    //void __fastcall UpdatePos();
 
-    Mover::TMoverParameters *MoverParameters;
+ Mover::TMoverParameters *MoverParameters;
 
-    vector3 vUp,vFront,vLeft;
-    matrix4x4 mMatrix;
-    AnsiString asTrack;
- AnsiString asNextStop; //nazwa nastêpnego punktu zatrzymania wg rozk³adu
-
-    //McZapkie-260202
-    void __fastcall LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName, AnsiString ReplacableSkin);
+ vector3 vUp,vFront,vLeft;
+ matrix4x4 mMatrix;
+ AnsiString asTrack;
+ AnsiString asDestination; //dok¹d pojazd ma byæ kierowany "(stacja):(tor)"
+ //McZapkie-260202
+ void __fastcall LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName, AnsiString ReplacableSkin);
 
  inline double __fastcall ABuGetDirection() //ABu.
  {
-  return (Axle1.GetTrack()==MyTrack?Axle1.GetDirection():Axle4.GetDirection());
+  return (Axle1.GetTrack()==MyTrack?Axle1.GetDirection():Axle0.GetDirection());
  };
  inline double __fastcall ABuGetTranslation() //ABu.
  {//zwraca przesuniêcie wózka wzglêdem Point1 toru
-  return (Axle1.GetTrack()==MyTrack?Axle1.GetTranslation():Axle4.GetTranslation());
+  return (Axle1.GetTrack()==MyTrack?Axle1.GetTranslation():Axle0.GetTranslation());
+ };
+ inline double __fastcall RaDirectionGet()
+ {//zwraca kierunek pojazdu na torze z aktywn¹ os¹
+  return iAxleFirst?Axle1.GetDirection():Axle0.GetDirection();
+ };
+ inline double __fastcall RaTranslationGet()
+ {//zwraca przesuniêcie wózka wzglêdem Point1 toru z aktywn¹ osi¹
+  return iAxleFirst?Axle1.GetTranslation():Axle0.GetTranslation();
+ };
+ inline TTrack* __fastcall RaTrackGet()
+ {//zwraca tor z aktywn¹ osi¹
+  return iAxleFirst?Axle1.GetTrack():Axle0.GetTrack();
  };
  void CouplersDettach(double MinDist,int MyScanDir);
  void __fastcall RadioStop();
  void __fastcall RaLightsSet(int head,int rear);
  void __fastcall RaAxleEvent(TEvent *e);
+ TDynamicObject* __fastcall FirstFind(int &coupler_nr);
+ int __fastcall DirectionSet(int d); //ustawienie kierunku w sk³adzie
+ int __fastcall DirectionGet() {return iDirection?1:-1;}; //ustawienie kierunku w sk³adzie
+ bool DettachDistance(int dir);
+ int Dettach(int dir,int cnt);
 };
 
 

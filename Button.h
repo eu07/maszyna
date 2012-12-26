@@ -22,7 +22,7 @@ public:
  inline void TurnOn() { bOn= true; Update(); };
  inline void TurnOff() { bOn= false; Update(); };
  inline void Switch() { bOn= !bOn; Update(); };
- inline bool Active() { if ((pModelOn)||(pModelOff)) return true; return false;};
+ inline bool Active() { return (pModelOn)||(pModelOff);};
  void __fastcall Init(AnsiString asName, TModel3d *pModel, bool bNewOn=false);
  void __fastcall Load(TQueryParserComp *Parser, TModel3d *pModel);
 };
