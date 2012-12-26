@@ -23,11 +23,14 @@ namespace Mover
 {
 class TMoverParameters;
 class TLocation;
+class TRotation;
 };
 
-namespace Ai_driver
+namespace Mtable
 {
-class TController;
+class TTrainParameters; //rozk³ad jazdy
 };
+
+class TController; //obiekt steruj¹cy poci¹giem
 
 #endif

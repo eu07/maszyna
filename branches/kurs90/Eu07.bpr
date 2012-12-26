@@ -4,15 +4,15 @@
   <MACROS>
     <VERSION value="BCB.05.03"/>
     <PROJECT value="D:\EU07\EU07.exe"/>
-    <OBJFILES value="McZapkie\mover.obj McZapkie\ai_driver.obj QueryParserComp.obj 
-      McZapkie\mtable.obj EU07.obj dumb3d.obj Camera.obj Texture.obj World.obj 
-      Model3d.obj geometry.obj MdlMngr.obj Train.obj wavread.obj Timer.obj 
-      Event.obj MemCell.obj Logs.obj Spring.obj Button.obj Globals.obj Gauge.obj 
-      AnimModel.obj Ground.obj TrkFoll.obj Segment.obj Sound.obj AdvSound.obj 
-      Track.obj DynObj.obj RealSound.obj EvLaunch.obj FadeSound.obj Traction.obj 
-      TractionPower.obj parser.obj sky.obj AirCoupler.obj glew.obj 
-      ResourceManager.obj VBO.obj Feedback.obj TextureDDS.obj 
-      opengl\ARB_Multisample.obj Float3d.obj Classes.obj"/>
+    <OBJFILES value="McZapkie\mover.obj QueryParserComp.obj McZapkie\mtable.obj EU07.obj 
+      dumb3d.obj Camera.obj Texture.obj World.obj Model3d.obj geometry.obj 
+      MdlMngr.obj Train.obj wavread.obj Timer.obj Event.obj MemCell.obj Logs.obj 
+      Spring.obj Button.obj Globals.obj Gauge.obj AnimModel.obj Ground.obj 
+      TrkFoll.obj Segment.obj Sound.obj AdvSound.obj Track.obj DynObj.obj 
+      RealSound.obj EvLaunch.obj FadeSound.obj Traction.obj TractionPower.obj 
+      parser.obj sky.obj AirCoupler.obj glew.obj ResourceManager.obj VBO.obj 
+      Feedback.obj TextureDDS.obj opengl\ARB_Multisample.obj Float3d.obj 
+      Classes.obj Driver.obj Names.obj"/>
     <RESFILES value="EU07.res"/>
     <IDLFILES value=""/>
     <IDLGENFILES value=""/>
@@ -41,8 +41,8 @@
     <WARNINGS value="-w-par"/>
   </MACROS>
   <OPTIONS>
-    <IDLCFLAGS value="-Iopengl -IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl -src_suffix cpp 
-      -DGLEW_STATIC -D_DEBUG -DUSE_VBO -boa"/>
+    <IDLCFLAGS value="-src_suffix cpp -DGLEW_STATIC -D_DEBUG -DUSE_VBO -Iopengl -IMcZapkie 
+      -I$(BCB)\include -I$(BCB)\include\vcl -boa"/>
     <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a4 -6 -b- -k -y -v -vi- 
       -c -tW -tWM"/>
     <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
@@ -60,9 +60,9 @@
 IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=1
-MinorVer=3
-Release=253
-Build=231
+MinorVer=6
+Release=289
+Build=291
 Debug=1
 PreRelease=0
 Special=0
@@ -74,13 +74,13 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424, Kurs 2013 edition
-FileVersion=1.3.253.231
+FileVersion=1.6.289.291
 InternalName=Kurs 2013
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=eu07.exe
 ProductName=MaSzyna EU07-424
-ProductVersion=1.3
+ProductVersion=1.6
 Comments=
 
 [HistoryLists\hlIncludePath]
@@ -96,16 +96,15 @@ Count=1
 Item0=
 
 [HistoryLists\hlConditionals]
-Count=9
+Count=8
 Item0=GLEW_STATIC;_DEBUG;USE_VBO
-Item1=GLEW_STATIC;_DEBUG;USE_VBO0
-Item2=GLEW_STATIC;_DEBUG
-Item3=GLEW_STATIC;_DEBUG;_USE_OLD_RW_STL
-Item4=GLEW_STATIC
-Item5=GLEW_STATIC;USE_VERTEX_ARRAYS;_DEBUG
-Item6=GLEW_STATIC;USE_VERTEX_ARRAYS
-Item7=GLEW_STATIC;_DEBUG;USE_VERTEX_ARRAYS
-Item8=_DEBUG
+Item1=GLEW_STATIC;_DEBUG
+Item2=GLEW_STATIC;_DEBUG;_USE_OLD_RW_STL
+Item3=GLEW_STATIC
+Item4=GLEW_STATIC;USE_VERTEX_ARRAYS;_DEBUG
+Item5=GLEW_STATIC;USE_VERTEX_ARRAYS
+Item6=GLEW_STATIC;_DEBUG;USE_VERTEX_ARRAYS
+Item7=_DEBUG
 
 [HistoryLists\hlFinalOutputDir]
 Count=1

@@ -12,7 +12,8 @@ using namespace Math3D;
 
 //Ra: zmniejszone liczby, aby zrobiæ tabelkê i zoptymalizowaæ wyszukiwanie
 const int TP_MODEL=10;
-const int TP_SEMAPHORE=12; //Ra: ju¿ nie u¿ywane
+const int TP_MESH=11; //Ra: specjalny obiekt grupoj¹cy siatki dla tekstury
+const int TP_DUMMYTRACK=12; //Ra: zdublowanie obiektu toru dla rozdzielenia tekstur
 const int TP_DYNAMIC=14;
 const int TP_SOUND=15;
 const int TP_TRACK=16;
@@ -45,47 +46,62 @@ struct TGroundVertex
  vector3 Normal;
  float tu,tv;
  void HalfSet(const TGroundVertex &v1,const TGroundVertex &v2)
- {Point=0.5*(v1.Point+v2.Point);
+ {//wyliczenie wspó³rzêdnych i mapowania punktu na œrodku odcinka v1<->v2 
+  Point=0.5*(v1.Point+v2.Point);
   Normal=0.5*(v1.Normal+v2.Normal);
   tu=0.5*(v1.tu+v2.tu);
   tv=0.5*(v1.tv+v2.tv);
  }
+ void SetByX(const TGroundVertex &v1,const TGroundVertex &v2,double x)
+ {//wyliczenie wspó³rzêdnych i mapowania punktu na odcinku v1<->v2
+  double i=(x-v1.Point.x)/(v2.Point.x-v1.Point.x); //parametr równania
+  double j=1.0-i;
+  Point=j*v1.Point+i*v2.Point;
+  Normal=j*v1.Normal+i*v2.Normal;
+  tu=j*v1.tu+i*v2.tu;
+  tv=j*v1.tv+i*v2.tv;
+ }
+ void SetByZ(const TGroundVertex &v1,const TGroundVertex &v2,double z)
+ {//wyliczenie wspó³rzêdnych i mapowania punktu na odcinku v1<->v2
+  double i=(z-v1.Point.z)/(v2.Point.z-v1.Point.z); //parametr równania
+  double j=1.0-i;
+  Point=j*v1.Point+i*v2.Point;
+  Normal=j*v1.Normal+i*v2.Normal;
+  tu=j*v1.tu+i*v2.tu;
+  tv=j*v1.tv+i*v2.tv;
+ }
 };
 
-class TGroundNode;
-
-class TSubRect;
+class TSubRect; //sektor (aktualnie 200m×200m, ale mo¿e byæ zmieniony)
 
 class TGroundNode : public Resource
-{
+{//obiekt scenerii
 private:
 public:
- //TDynamicObject *NearestDynObj;
- //double DistToDynObj;
-
  TGroundNodeType iType; //typ obiektu
  union
- {
+ {//Ra: wska¿niki zale¿ne od typu - zrobiæ klasy dziedziczone zamiast
   void *Pointer; //do przypisywania NULL
-  TAnimModel *Model;
-  TDynamicObject *DynamicObject;
+  TAnimModel *Model; //model scenerii z animacjami
+  TDynamicObject *DynamicObject; //pojazd
   vector3 *Points; //punkty dla linii
-  TTrack *pTrack;
+  TTrack *pTrack; //trajektoria ruchu
   TGroundVertex *Vertices; //wierzcho³ki dla trójk¹tów
-  TMemCell *MemCell;
-  TEventLauncher *EvLaunch;
-  TTraction *Traction;
-  TTractionPowerSource *TractionPowerSource;
-  TRealSound *pStaticSound;
+  TMemCell *MemCell; //komórka pamiêci
+  TEventLauncher *EvLaunch; //wyzwalacz zdarzeñ
+  TTraction *Traction; //drut zasilaj¹cy
+  TTractionPowerSource *TractionPowerSource; //zasilanie drutu (zaniedbane w sceneriach)
+  TRealSound *pStaticSound; //dŸwiêk przestrzenny
+  TGroundNode *nNode; //obiekt renderuj¹cy grupowo ma tu wskaŸnik na listê obiektów
  };
- AnsiString asName;
+ AnsiString asName; //nazwa (nie zawsze ma znaczenie)
  union
  {
   int iNumVerts; //dla trójk¹tów
   int iNumPts; //dla linii
   //int iState; //Ra: nie u¿ywane - dŸwiêki zapêtlone
  };
- vector3 pCenter; //œrodek do przydzielenia sektora
+ vector3 pCenter; //wspó³rzêdne œrodka do przydzielenia sektora
 
  union
  {
@@ -95,81 +111,86 @@ public:
  };
  double fSquareRadius; //kwadrat widocznoœci do
  double fSquareMinRadius; //kwadrat widocznoœci od
- TGroundNode *pTriGroup; //Ra: obiekt grupuj¹cy trójk¹ty w TSubRect (ogranicza iloœæ DisplayList)
- GLuint DisplayListID; //numer siatki
+ //TGroundNode *nMeshGroup; //Ra: obiekt grupuj¹cy trójk¹ty w TSubRect dla tekstury
+ int iVersion; //wersja siatki (do wykonania rekompilacji)
+ //union ?
+ GLuint DisplayListID; //numer siatki DisplayLists
  int iVboPtr; //indeks w buforze VBO
- GLuint TextureID; //jedna tekstura na obiekt
+ GLuint TextureID; //g³ówna (jedna) tekstura obiektu
  int iFlags; //tryb przezroczystoœci: 0x10-nieprz.,0x20-przezroczysty,0x30-mieszany
  int Ambient[4],Diffuse[4],Specular[4]; //oœwietlenie
  bool bVisible;
- bool bStatic; //czy nie jest pojazdem - do zredukowania
- bool bAllocated; //Ra: zawsze true
+ //bool bStatic; //czy nie jest pojazdem - do zredukowania
+ //bool bAllocated; //Ra: zawsze true
  TGroundNode *Next; //lista wszystkich w scenerii, ostatni na pocz¹tku
- TGroundNode *pNext2; //lista w sektorze
- TGroundNode *pNext3; //lista obiektów podobnych, renderowanych grupowo
+ TGroundNode *nNext2; //lista obiektów w sektorze
+ TGroundNode *nNext3; //lista obiektów renderowanych we wspólnym cyklu
  __fastcall TGroundNode();
  __fastcall ~TGroundNode();
  void __fastcall Init(int n);
- void __fastcall InitCenter();
+ void __fastcall InitCenter(); //obliczenie wspó³rzêdnych œrodka
  void __fastcall InitNormals();
 
- void __fastcall MoveMe(vector3 pPosition);
+ void __fastcall MoveMe(vector3 pPosition); //przesuwanie (nie dzia³a)
 
  //bool __fastcall Disable();
- inline TGroundNode* __fastcall Find(const AnsiString &asNameToFind)
- {
-     if (asNameToFind==asName) return this; else if (Next) return Next->Find(asNameToFind);
-     return NULL;
- };
- inline TGroundNode* __fastcall Find(const AnsiString &asNameToFind, TGroundNodeType iNodeType )
- {
-     if ((iNodeType==iType) && (asNameToFind==asName))
-         return this;
-     else
-         if (Next) return Next->Find(asNameToFind,iNodeType);
-     return NULL;
+ inline TGroundNode* __fastcall Find(const AnsiString &asNameToFind,TGroundNodeType iNodeType)
+ {//wyszukiwanie czo³gowe z typem
+  if ((iNodeType==iType)&&(asNameToFind==asName))
+   return this;
+  else
+   if (Next) return Next->Find(asNameToFind,iNodeType);
+  return NULL;
  };
 
  void __fastcall Compile(bool many=false);
  void Release();
-
  bool __fastcall GetTraction();
- void __fastcall RenderHidden();
- void __fastcall Render();
- void __fastcall RenderAlpha(); //McZapkie-131202: dwuprzebiegowy rendering
- void __fastcall RaRenderVBO();
- void __fastcall RaRender();
- void __fastcall RaRenderAlpha(); //McZapkie-131202: dwuprzebiegowy rendering
+
+ void __fastcall RenderHidden();  //obs³uga dŸwiêków i wyzwalaczy zdarzeñ
+ void __fastcall Render();        //renderowanie nieprzezroczystych w Display Lists
+ void __fastcall RenderAlpha();   //renderowanie przezroczystych w Display Lists (McZapkie-131202)
+ void __fastcall RaRenderVBO();   //renderowanie (nieprzezroczystych) ze wspólnego VBO
+ void __fastcall RaRender();      //renderowanie nieprzezroczystych z w³asnego VBO
+ void __fastcall RaRenderAlpha(); //renderowanie przezroczystych z (w³asnego) VBO
 };
-//TSubRect *TGroundNode::pOwner=NULL; //tymczasowo w³aœciciel
 
 class TSubRect : public Resource, public CMesh
 {//sektor sk³adowy kwadratu kilometrowego
-private:
- TGroundNode *pTriGroup; //Ra: obiekt grupuj¹cy trójk¹ty (ogranicza iloœæ DisplayList)
- TTrack *pTrackAnim; //obiekty do przeliczenia animacji
 public:
- TGroundNode *pRootNode; //lista wszystkich obiektów w sektorze
- TGroundNode *pRenderHidden; //lista obiektów niewidocznych, "renderowanych" równie¿ z ty³u
- TGroundNode *pRenderRect;      //lista grup renderowanych z poziomu sektora
- TGroundNode *pRenderRectAlpha; //lista grup renderowanych z poziomu sektora
- TGroundNode *pRenderWires; //z poziomu sektora - druty
- TGroundNode *pRender;      //z w³asnych VBO - nieprzezroczyste
- TGroundNode *pRenderMixed; //z w³asnych VBO - nieprzezroczyste i przezroczyste
- TGroundNode *pRenderAlpha; //z w³asnych VBO - przezroczyste
- int iNodeCount; //licznik obiektów
- void __fastcall LoadNodes();
+ int iTracks; //iloœæ torów w (tTracks)
+ TTrack **tTracks; //tory do renderowania pojazdów
+private:
+ TTrack *tTrackAnim; //obiekty do przeliczenia animacji
+ TGroundNode *nRootMesh; //obiekty renderuj¹ce wg tekstury (wtórne, lista po nNext2)
+ TGroundNode *nMeshed;   //lista obiektów dla których istniej¹ obiekty renderuj¹ce grupowo
+public:
+ TGroundNode *nRootNode;        //wszystkie obiekty w sektorze, z wyj¹tkiem renderuj¹cych i pojazdów (nNext2)
+ TGroundNode *nRenderHidden;    //lista obiektów niewidocznych, "renderowanych" równie¿ z ty³u (nNext3)
+ TGroundNode *nRenderRect;      //z poziomu sektora - nieprzezroczyste (nNext3)
+ TGroundNode *nRenderRectAlpha; //z poziomu sektora - przezroczyste (nNext3)
+ TGroundNode *nRenderWires;     //z poziomu sektora - druty i inne linie (nNext3)
+ TGroundNode *nRender;          //indywidualnie - nieprzezroczyste (nNext3)
+ TGroundNode *nRenderMixed;     //indywidualnie - nieprzezroczyste i przezroczyste (nNext3)
+ TGroundNode *nRenderAlpha;     //indywidualnie - przezroczyste (nNext3)
+ int iNodeCount; //licznik obiektów, do pomijania pustych sektorów
+public:
+ void __fastcall LoadNodes(); //utworzenie VBO sektora
 public:
  __fastcall TSubRect();
  virtual __fastcall ~TSubRect();
- void __fastcall RaAddNode(TGroundNode *Node);
- void __fastcall AddNode(TGroundNode *Node);
- //void __fastcall RaGroupAdd(TGroundNode *Node) {if (pTriGroup) Node->pTriGroup=pTriGroup; else pTriGroup=Node;};
- //__fastcall Render() { if (pRootNode) pRootNode->Render(); };
- bool __fastcall StartVBO();
- virtual void Release();
- bool __fastcall RaTrackAnimAdd(TTrack *t);
- void __fastcall RaAnimate();
+ virtual void Release(); //zwalnianie VBO sektora
+ void __fastcall NodeAdd(TGroundNode *Node); //dodanie obiektu do sektora na etapie rozdzielania na sektory
+ void __fastcall RaNodeAdd(TGroundNode *Node); //dodanie obiektu do listy renderowania
+ void __fastcall Sort(); //optymalizacja obiektów w sektorze (sortowanie wg tekstur)
+ TTrack* __fastcall FindTrack(vector3 *Point,int &iConnection,TTrack *Exclude);
+ bool __fastcall StartVBO(); //ustwienie VBO sektora dla (nRenderRect), (nRenderRectAlpha) i (nRenderWires)
+ bool __fastcall RaTrackAnimAdd(TTrack *t); //zg³oszenie toru do animacji
+ void __fastcall RaAnimate(); //przeliczenie animacji torów
+ void __fastcall Render();        //renderowanie nieprzezroczystych w Display Lists
+ void __fastcall RenderAlpha();   //renderowanie przezroczystych w Display Lists (McZapkie-131202)
+ void __fastcall RaRender();      //renderowanie nieprzezroczystych z w³asnego VBO
+ void __fastcall RaRenderAlpha(); //renderowanie przezroczystych z (w³asnego) VBO
 };
 
 //Ra: trzeba sprawdziæ wydajnoœæ siatki
@@ -187,7 +208,7 @@ class TGroundRect : public TSubRect
 private:
  int iLastDisplay; //numer klatki w której by³ ostatnio wyœwietlany
  TSubRect *pSubRects;
- void __fastcall Init() { pSubRects= new TSubRect[iNumSubRects*iNumSubRects]; };
+ void __fastcall Init() { pSubRects=new TSubRect[iNumSubRects*iNumSubRects]; };
 public:
  static int iFrameNumber; //numer kolejny wyœwietlanej klatki
  __fastcall TGroundRect() { pSubRects=NULL; };
@@ -202,13 +223,19 @@ public:
  {//pobranie wskaŸnika do ma³ego kwadratu, bez tworzenia jeœli nie ma
   return (pSubRects?pSubRects+iRow*iNumSubRects+iCol:NULL);
  };
+ void __fastcall Optimize()
+ {//optymalizacja obiektów w sektorach
+  if (pSubRects)
+   for (int i=iNumSubRects*iNumSubRects-1;i>=0;--i)
+    pSubRects[i].Sort(); //optymalizacja obiektów w sektorach
+ };
  void __fastcall Render();
  void __fastcall RaRender()
  {//renderowanie kwadratu kilometrowego (VBO), jeœli jeszcze nie zrobione
   if (iLastDisplay!=iFrameNumber)
   {LoadNodes(); //ewentualne tworzenie siatek
    if (StartVBO())
-   {for (TGroundNode* node=pRenderRect;node!=NULL;node=node->pNext3)
+   {for (TGroundNode* node=nRenderRect;node;node=node->nNext3) //nastêpny tej grupy
      node->RaRenderVBO(); //nieprzezroczyste trójk¹ty kwadratu kilometrowego
     EndVBO();
     iLastDisplay=iFrameNumber;
@@ -224,7 +251,7 @@ class TGround
  vector3 CameraDirection; //zmienna robocza przy renderowaniu
  int const *iRange; //tabela widocznoœci
  //TGroundNode *RootNode; //lista wszystkich wêz³ów
- TGroundNode *RootDynamic; //lista pojazdów
+ TGroundNode *nRootDynamic; //lista pojazdów
  TGroundRect Rects[iNumRects][iNumRects]; //mapa kwadratów kilometrowych
  TEvent *RootEvent; //lista zdarzeñ
  TEvent *QueryRootEvent,*tmpEvent,*tmp2Event,*OldQRE;
@@ -236,9 +263,11 @@ class TGround
  TGroundNode *nRootOfType[TP_LAST]; //tablica grupuj¹ca obiekty, przyspiesza szukanie
  //TGroundNode *nLastOfType[TP_LAST]; //ostatnia
  TSubRect srGlobal; //zawiera obiekty globalne (na razie wyzwalacze czasowe)
+ int hh,mm,srh,srm,ssh,ssm; //ustawienia czasu
+ //int tracks,tracksfar; //liczniki torów
 public:
  TDynamicObject *LastDyn; //ABu: paskudnie, ale na bardzo szybko moze jakos przejdzie...
- TTrain *pTrain;
+ //TTrain *pTrain;
  //double fVDozwolona;
  //bool bTrabil;
 
@@ -246,22 +275,23 @@ public:
     __fastcall ~TGround();
     void __fastcall Free();
     bool __fastcall Init(AnsiString asFile);
+    void __fastcall FirstInit();
     bool __fastcall InitEvents();
     bool __fastcall InitTracks();
     bool __fastcall InitLaunchers();
-    TGroundNode* __fastcall FindTrack(vector3 Point, int &iConnection, TGroundNode *Exclude);
+    TTrack* __fastcall FindTrack(vector3 Point,int &iConnection,TGroundNode *Exclude);
     TGroundNode* __fastcall CreateGroundNode();
     TGroundNode* __fastcall AddGroundNode(cParser* parser);
-    bool __fastcall AddGroundNode(double x, double z, TGroundNode *Node)
+    bool __fastcall AddGroundNode(double x,double z,TGroundNode *Node)
     {
-        TSubRect *tmp= GetSubRect(x,z);
-        if (tmp)
-        {
-            tmp->AddNode(Node);
-            return true;
-        }
-        else
-            return false;
+     TSubRect *tmp=GetSubRect(x,z);
+     if (tmp)
+     {
+      tmp->NodeAdd(Node);
+      return true;
+     }
+     else
+      return false;
     };
 //    bool __fastcall Include(TQueryParserComp *Parser);
     TGroundNode* __fastcall GetVisible( AnsiString asName );
@@ -292,12 +322,12 @@ public:
             return NULL;
     }
 */
-    inline TGroundNode* __fastcall FindDynamic( AnsiString asNameToFind )
+    inline TGroundNode* __fastcall FindDynamic(AnsiString asNameToFind)
     {
-        for (TGroundNode *Current= RootDynamic; Current!=NULL; Current= Current->Next)
-            if ((Current->asName==asNameToFind))
-                return Current;
-        return NULL;
+     for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
+      if ((Current->asName==asNameToFind))
+       return Current;
+     return NULL;
     }
 
     inline TGroundNode* __fastcall FindGroundNode( AnsiString asNameToFind, TGroundNodeType iNodeType )
@@ -351,7 +381,7 @@ public:
  void __fastcall WyslijWolny(const AnsiString &t);
  void __fastcall WyslijNamiary(TGroundNode* t);
  void __fastcall RadioStop(vector3 pPosition);
- TDynamicObject* __fastcall DynamicNearest(vector3 pPosition,double distance=20.0);
+ TDynamicObject* __fastcall DynamicNearest(vector3 pPosition,double distance=20.0,bool mech=false);
  void __fastcall DynamicRemove(TDynamicObject* dyn);
 };
 //---------------------------------------------------------------------------

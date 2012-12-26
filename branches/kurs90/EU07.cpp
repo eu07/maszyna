@@ -26,6 +26,9 @@
 #include "classes.hpp"
 #include "Globals.h"
 #include "Feedback.h"
+#include "QueryParserComp.hpp"
+#include <Mover.hpp>
+#include "Train.h" //to tu bez sensu jest
 #pragma hdrstop
 
 USERES("EU07.res");
@@ -55,7 +58,6 @@ USEUNIT("Segment.cpp");
 USEUNIT("McZapkie\mover.pas");
 USEUNIT("Sound.cpp");
 USEUNIT("AdvSound.cpp");
-USEUNIT("McZapkie\ai_driver.pas");
 USEUNIT("Track.cpp");
 USEUNIT("DynObj.cpp");
 USEUNIT("RealSound.cpp");
@@ -76,6 +78,8 @@ USEUNIT("TextureDDS.cpp");
 USEUNIT("opengl\ARB_Multisample.cpp");
 USEUNIT("Float3d.cpp");
 USEUNIT("Classes.cpp");
+USEUNIT("Driver.cpp");
+USEUNIT("Names.cpp");
 //---------------------------------------------------------------------------
 #include "World.h"
 
@@ -488,7 +492,7 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
       if (DebugModeFlag)
       {//siatki wyœwietlane tyko w trybie testowym
        Global::bWireFrame=!Global::bWireFrame;
-       Global::bReCompile=true; //czy odœwie¿yæ siatki
+       ++Global::iReCompile; //odœwie¿yæ siatki
        //Ra: jeszcze usun¹æ siatki ze skompilowanych obiektów!
       }
      break;

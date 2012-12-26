@@ -4,13 +4,15 @@
 #define EventH
 
 #include "Classes.h"
+#include "dumb3d.h"
+using namespace Math3D;
 
 typedef enum { tp_Unknown, tp_Sound, tp_SoundPos, tp_Exit,
                tp_Disable, tp_Velocity, tp_Animation, tp_Lights,
                tp_UpdateValues, tp_GetValues, tp_PutValues,
                tp_Switch, tp_DynVel, tp_TrackVel, tp_Multiple,
                tp_AddValues, tp_Ignored, tp_CopyValues, tp_WhoIs,
-               tp_LogValues
+               tp_LogValues, tp_Visible
              }  TEventType;
 
 const int conditional_trackoccupied=-1;
@@ -65,9 +67,10 @@ public:
     __fastcall TEvent();
     __fastcall ~TEvent();
     void __fastcall Init();
-    void __fastcall Load(cParser* parser);
+    void __fastcall Load(cParser* parser,vector3 *org);
     void __fastcall AddToQuery(TEvent *Event);
-
+ AnsiString __fastcall CommandGet();
+ //vector3* __fastcall PositionGet();
 };
 
 //---------------------------------------------------------------------------

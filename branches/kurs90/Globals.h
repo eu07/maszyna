@@ -162,6 +162,7 @@ public:
  static char CreatorName5[30];
  static AnsiString asCurrentSceneryPath;
  static AnsiString asCurrentTexturePath;
+ static AnsiString asCurrentDynamicPath;
  //McZapkie-170602: zewnetrzna definicja pojazdu uzytkownika
  static AnsiString asHumanCtrlVehicle;
  static void __fastcall LoadIniFile(AnsiString asFileName="eu07.ini");
@@ -196,7 +197,7 @@ public:
  static int iBallastFiltering; //domyœlne rozmywanie tekstury podsypki
  static int iRailProFiltering; //domyœlne rozmywanie tekstury szyn
  static int iDynamicFiltering; //domyœlne rozmywanie tekstur pojazdów
- static bool bReCompile; //czy odœwie¿yæ siatki
+ static int iReCompile; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
  static bool bUseVBO; //czy jest VBO w karcie graficznej
  static int iFeedbackMode; //tryb pracy informacji zwrotnej
  static double fOpenGL; //wersja OpenGL - przyda siê
@@ -227,6 +228,9 @@ public:
  static int iConvertModels; //tworzenie plików binarnych
  static int iErorrCounter; //licznik sprawdzañ do œledzenia b³êdów OpenGL
  static bool bInactivePause; //automatyczna pauza, gdy okno nieaktywne
+ static int iTextures; //licznik u¿ytych tekstur
+ static int iSlowMotionMask; //maska wy³¹czanych w³aœciwoœci
+ static int iModifyTGA; //czy korygowaæ pliki TGA dla szybszego wczytywania
 };
 
 //---------------------------------------------------------------------------

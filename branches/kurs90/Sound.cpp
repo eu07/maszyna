@@ -7,10 +7,11 @@
 #define STRICT
 #include "Sound.h"
 #include "Usefull.h"
+#include "Globals.h"
 //#define SAFE_DELETE(p)  { if(p) { delete (p);     (p)=NULL; } }
 #define SAFE_RELEASE(p) { if(p) { (p)->Release(); (p)=NULL; } }
 
-char Directory[]= "Sounds\\";
+char Directory[]= "sounds\\";
 
 LPDIRECTSOUND       TSoundsManager::pDS;
 LPDIRECTSOUNDNOTIFY TSoundsManager::pDSNotify;
@@ -20,8 +21,9 @@ TSoundContainer *TSoundsManager::First=NULL;
 
 
 __fastcall TSoundContainer::TSoundContainer( LPDIRECTSOUND pDS, char *Directory, char *strFileName, int NConcurrent)
-{
+{//wczytanie pliku dŸwiêkowego
     int hr= 111;
+    DSBuffer=NULL; //na pocz¹tek, gdyby uruchomiæ dŸwiêków siê nie uda³o
 
     Concurrent= NConcurrent;
 
@@ -62,7 +64,8 @@ __fastcall TSoundContainer::TSoundContainer( LPDIRECTSOUND pDS, char *Directory,
 
     // Create the static DirectSound buffer
     if( FAILED( hr = pDS->CreateSoundBuffer( &dsbd, &(DSBuffer), NULL ) ) )
-        return;
+    //if (FAILED(pDS->CreateSoundBuffer(&dsbd,&(DSBuffer),NULL)))
+     return;
 
     // Remember how big the buffer is
     DWORD dwBufferBytes;
@@ -88,18 +91,20 @@ __fastcall TSoundContainer::TSoundContainer( LPDIRECTSOUND pDS, char *Directory,
     if( NULL == pbWavData )
         return ;//E_OUTOFMEMORY;
 
+    //if (FAILED(hr=pWaveSoundRead->Read( nWaveFileSize,pbWavData,&cbWavSize)))
     if( FAILED( hr = pWaveSoundRead->Read( nWaveFileSize,
                                            pbWavData,
                                            &cbWavSize ) ) )
-        return ;
+     return ;
 
     // Reset the file to the beginning
     pWaveSoundRead->Reset();
 
     // Lock the buffer down
+    //if (FAILED(hr=DSBuffer->Lock(0,dwBufferBytes,&pbData,&dwLength,&pbData2,&dwLength2,0)))
     if( FAILED( hr = DSBuffer->Lock( 0, dwBufferBytes, &pbData, &dwLength,
                                    &pbData2, &dwLength2, 0L ) ) )
-        return ;
+     return ;
 
     // Copy the memory to it.
     memcpy( pbData, pbWavData, dwBufferBytes );
@@ -109,9 +114,9 @@ __fastcall TSoundContainer::TSoundContainer( LPDIRECTSOUND pDS, char *Directory,
     pbData = NULL;
 
     // We dont need the wav file data buffer anymore, so delete it
-    SafeDeleteArray( pbWavData );
+    delete[] pbWavData;
 
-    SafeDelete( pWaveSoundRead );
+    delete pWaveSoundRead;
 
     DSBuffers.push(DSBuffer);
 
@@ -143,11 +148,12 @@ __fastcall TSoundContainer::~TSoundContainer()
 
 LPDIRECTSOUNDBUFFER __fastcall TSoundContainer::GetUnique(LPDIRECTSOUND pDS)
 {
-
-    LPDIRECTSOUNDBUFFER buff;
-    pDS->DuplicateSoundBuffer(DSBuffer,&buff);
-    DSBuffers.push(buff);
-    return DSBuffers.top();
+ if (!DSBuffer) return NULL;
+ //jeœli siê dobrze zainicjowa³o
+ LPDIRECTSOUNDBUFFER buff;
+ pDS->DuplicateSoundBuffer(DSBuffer,&buff);
+ if (buff) DSBuffers.push(buff);
+ return DSBuffers.top();
 };
 
 
@@ -158,36 +164,45 @@ __fastcall TSoundsManager::~TSoundsManager()
     Free();
 };
 
-__fastcall TSoundsManager::Free()
+void __fastcall TSoundsManager::Free()
 {
     SafeDelete( First );
     SAFE_RELEASE( pDS );
 };
 
 
-TSoundContainer* __fastcall TSoundsManager::LoadFromFile(char *Name,int Concurrent)
+TSoundContainer* __fastcall TSoundsManager::LoadFromFile(char *Dir,char *Name,int Concurrent)
 {
  TSoundContainer *Tmp=First;
- First=new TSoundContainer(pDS,Directory,Name,Concurrent);
+ First=new TSoundContainer(pDS,Dir,Name,Concurrent);
  First->Next=Tmp;
  Count++;
  return First; //albo NULL, jak nie wyjdzie (na razie zawsze wychodzi)
 };
 
 void __fastcall TSoundsManager::LoadSounds(char *Directory)
-{
+{//wczytanie wszystkich plików z katalogu - ma³o elastyczne
  WIN32_FIND_DATA FindFileData;
- HANDLE handle=FindFirstFile("Sounds\\*.wav",&FindFileData);
+ HANDLE handle=FindFirstFile("sounds\\*.wav",&FindFileData);
  if (handle!=INVALID_HANDLE_VALUE)
   do
   {
-   LoadFromFile(FindFileData.cFileName,1);
-  } while (FindNextFile(handle, &FindFileData));
+   LoadFromFile(Directory,FindFileData.cFileName,1);
+  } while (FindNextFile(handle,&FindFileData));
  FindClose(handle);
 };
 
-LPDIRECTSOUNDBUFFER __fastcall TSoundsManager::GetFromName(char *Name)
-{
+LPDIRECTSOUNDBUFFER __fastcall TSoundsManager::GetFromName(char *Name,bool Dynamic)
+{//wyszukanie dŸwiêku w pamiêci albo wczytanie z pliku
+ AnsiString file;
+ if (Dynamic)
+ {//próba wczytania z katalogu pojazdu
+  file=Global::asCurrentDynamicPath+AnsiString(Name);
+  if (FileExists(file))
+   Name=file.c_str(); //nowa nazwa
+  else
+   Dynamic=false; //wczytanie z "sounds/"
+ }
  TSoundContainer *Next=First;
  DWORD dwStatus;
  for (int i=0;i<Count;i++)
@@ -221,7 +236,10 @@ LPDIRECTSOUNDBUFFER __fastcall TSoundsManager::GetFromName(char *Name)
   else
    Next=Next->Next;
  };
- Next=LoadFromFile(Name,1);
+ if (Dynamic) //wczytanie z katalogu pojazdu
+  Next=LoadFromFile("",Name,1);
+ else
+  Next=LoadFromFile(Directory,Name,1);
  if (Next) return Next->GetUnique(pDS);
  Error("Cannot find sound "+AnsiString(Name));
  return (NULL);
@@ -254,16 +272,14 @@ void __fastcall TSoundsManager::RestoreAll()
                 if( hr == DSERR_BUFFERLOST )
                     Sleep( 10 );
             }
-            while( hr = Next->DSBuffer->Restore() );
+            while ( hr = Next->DSBuffer->Restore() );
 
-            char *Name= Next->Name;
-            int cc= Next->Concurrent;
-//            delete Next;
-  //          Next= new TSoundContainer(pDS, Directory, Name, cc);
-
-//            if( FAILED( hr = FillBuffer() ) );
-
-    //            return hr;
+//          char *Name= Next->Name;
+//          int cc= Next->Concurrent;
+//          delete Next;
+//          Next= new TSoundContainer(pDS, Directory, Name, cc);
+//          if( FAILED( hr = FillBuffer() ) );
+//           return hr;
         };
         Next= Next->Next;
     };
@@ -283,7 +299,7 @@ void __fastcall TSoundsManager::Init(HWND hWnd)
     pDS= NULL;
     pDSNotify= NULL;
 
-    HRESULT  hr=222;
+    HRESULT  hr; //=222;
     LPDIRECTSOUNDBUFFER pDSBPrimary = NULL;
 
 //    strcpy(Directory, NDirectory);
@@ -304,7 +320,7 @@ if (hr==DSERR_NODRIVER)
 if (hr==DSERR_OUTOFMEMORY)
     return;
 
-    hr=0;
+//  hr=0;
     };
 //    return ;
 

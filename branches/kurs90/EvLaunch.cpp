@@ -85,20 +85,17 @@ bool __fastcall TEventLauncher::Load(cParser *parser)
   DeltaTime=-DeltaTime; //dla ujemnego zmieniamy na dodatni
  else if (DeltaTime>0)
  {//wartoœæ dodatnia oznacza wyzwalanie o okreœlonej godzinie
-  WriteLog("EventLauncher at: "+AnsiString(DeltaTime)); //wyœwietlenie czasu
-  iHour=int(DeltaTime-iMinute)/100; //godzina to setki
-  WriteLog(IntToStr(iHour).c_str());
   iMinute=int(DeltaTime)%100; //minuty s¹ najm³odszymi cyframi dziesietnymi
-  WriteLog(IntToStr(iMinute).c_str());
-  DeltaTime=0;
+  iHour=int(DeltaTime-iMinute)/100; //godzina to setki
+  DeltaTime=0; //bez powtórzeñ
+  WriteLog("EventLauncher at "+IntToStr(iHour)+":"+IntToStr(iMinute)); //wyœwietlenie czasu
  }
-
  parser->getTokens();
  *parser >> token;
- asEvent1Name= AnsiString(token.c_str()); //pierwszy event
+ asEvent1Name=AnsiString(token.c_str()); //pierwszy event
  parser->getTokens();
  *parser >> token;
- asEvent2Name= AnsiString(token.c_str()); //drugi event
+ asEvent2Name=AnsiString(token.c_str()); //drugi event
 
  parser->getTokens();
  *parser >> token;

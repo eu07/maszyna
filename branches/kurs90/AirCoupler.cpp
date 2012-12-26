@@ -9,11 +9,7 @@
 
 __fastcall TAirCoupler::TAirCoupler()
 {
-    pModelOn= NULL;
-    pModelOff= NULL;
-    pModelxOn= NULL;      
-    bOn= false;
-    bxOn= false;    
+ Clear();
 }
 
 __fastcall TAirCoupler::~TAirCoupler()
@@ -21,43 +17,41 @@ __fastcall TAirCoupler::~TAirCoupler()
 }
 
 int __fastcall TAirCoupler::GetStatus()
-{
-int x=0;
-if(pModelOn) x=1;
-if(pModelxOn) x=2;
-return x;
+{//zwraca 1, jeœli istnieje model prosty, 2 gdy skoœny
+ int x=0;
+ if (pModelOn) x=1;
+ if (pModelxOn) x=2;
+ return x;
 }
 
 void __fastcall TAirCoupler::Clear()
-{
-    pModelOn= NULL;
-    pModelOff= NULL;
-    pModelxOn= NULL;    
-    bOn= false;
-    bxOn= false;    
+{//zerowanie wskaŸników
+ pModelOn=NULL;
+ pModelOff=NULL;
+ pModelxOn=NULL;
+ bOn=false;
+ bxOn=false;
 }
 
 
 void __fastcall TAirCoupler::Init(AnsiString asName, TModel3d *pModel)
-{
-    pModelOn= pModel->GetFromName(AnsiString(asName+"_on").c_str());
-    pModelOff= pModel->GetFromName(AnsiString(asName+"_off").c_str());
-    pModelxOn= pModel->GetFromName(AnsiString(asName+"_xon").c_str());
+{//wyszukanie submodeli
+ pModelOn=pModel->GetFromName(AnsiString(asName+"_on").c_str()); //po³¹czony na wprost
+ pModelOff=pModel->GetFromName(AnsiString(asName+"_off").c_str()); //odwieszony
+ pModelxOn=pModel->GetFromName(AnsiString(asName+"_xon").c_str()); //po³¹czony na skos
 }
 
 void __fastcall TAirCoupler::Load(TQueryParserComp *Parser, TModel3d *pModel)
 {
-    AnsiString str=Parser->GetNextSymbol().LowerCase();
-    if (pModel)
-     {
-       Init(str,pModel);
-     }
-    else
-     {
-       pModelOn=NULL;
-       pModelxOn=NULL;       
-       pModelOff=NULL;
-     }
+ AnsiString str=Parser->GetNextSymbol().LowerCase();
+ if (pModel)
+  Init(str,pModel);
+ else
+ {
+  pModelOn=NULL;
+  pModelxOn=NULL;
+  pModelOff=NULL;
+ }
 }
 
 void __fastcall TAirCoupler::Update()
