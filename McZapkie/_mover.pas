@@ -128,7 +128,8 @@ CONST
    ctrain_power=8;          //przewody zasilaj¹ce (WN)
    ctrain_passenger=16;     //mostek przejœciowy
    ctrain_scndpneumatic=32; //przewody 8 atm (¿ó³te; zasilanie powietrzem)
-   ctrain_heating=64;       //ogrzewanie (elektryczne?)
+   ctrain_heating=64;       //przewody ogrzewania WN
+   ctrain_depot=128;        //nie roz³¹czalny podczas zwyk³ych manewrów (miêdzycz³onowy), we wpisie wartoœæ ujemna
 
    {typ hamulca elektrodynamicznego}
    dbrake_none=0;
@@ -353,7 +354,7 @@ TYPE
                CouplerType: TCouplerType;     {typ sprzegu}
                {zmienne}
                CouplingFlag : byte; {0 - wirtualnie, 1 - sprzegi, 2 - pneumatycznie, 4 - sterowanie, 8 - kabel mocy}
-               AllowedFlag : byte;          //Ra: znaczenie jak wy¿ej, maska dostêpnych
+               AllowedFlag : Integer;       //Ra: znaczenie jak wy¿ej, maska dostêpnych
                Render: boolean;             {ABu: czy rysowac jak zaczepiony sprzeg}
                CoupleDist: real;            {ABu: optymalizacja - liczenie odleglosci raz na klatkê, bez iteracji}
                Connected: T_MoverParameters; {co jest podlaczone}
@@ -526,12 +527,16 @@ TYPE
                 Rot: TRotation;
                 Name: string;                       {nazwa wlasna}
                 Couplers: array[0..1] of TCoupling;  //urzadzenia zderzno-sprzegowe, polaczenia miedzy wagonami
+                HVCouplers: array[0..1] of array[0..1] of real; //przewod WN
                 ScanCounter: integer;   {pomocnicze do skanowania sprzegow}
                 EventFlag: boolean;                 {!o True jesli cos nietypowego sie wydarzy}
                 SoundFlag: byte;                    {!o patrz stale sound_ }
                 DistCounter: real;                  {! licznik kilometrow }
-                V, Vel, AccS, AccN, AccV: real;
-                {! predkosc w m/s i jej modul w km/h, przyspieszenie styczne i normalne w m/s^2}
+                V: real;    //predkosc w [m/s] wzglêdem sprzêgów (dodania gdy jedzie w stronê 0)
+                Vel: real;  //modu³ prêdkoœci w [km/h], u¿ywany przez AI
+                AccS: real; //efektywne przyspieszenie styczne w [m/s^2] (wszystkie si³y)
+                AccN: real; //przyspieszenie normalne w [m/s^2]
+                AccV: real;
                 nrot: real;
                 {! rotacja kol [obr/s]}
                 EnginePower: real;                  {! chwilowa moc silnikow}
@@ -1527,21 +1532,6 @@ begin
  DecScndCtrl:=OK;
 end;
 
-(*
-function T_MoverParameters.DirectionForward: boolean;
-begin
-  if (MainCtrlPosNo>0) and (ActiveDir<1) and (MainCtrlPos=0) then
-   begin
-     inc(ActiveDir);
-     DirAbsolute:=ActiveDir*CabNo;
-     DirectionForward:=True;
-     SendCtrlToNext('Direction',ActiveDir,CabNo);
-   end
-  else if (ActiveDir=1) and (MainCtrlPos=0) and (TrainType=dt_EZT) then
-    DirectionForward:=MinCurrentSwitch(true)
-  else
-    DirectionForward:=False;
-end;*)
 
 function T_MoverParameters.DirectionBackward: boolean;
 begin
@@ -4490,7 +4480,7 @@ begin
      else Couplers[b].CForce:=0;
     //FStand:=Fb+FrictionForce(RunningShape.R,RunningTrack.DamageFlag);
     FStand:=Fb+Fstand;
-    FTrain:=FTrain+TotalMassxg*RunningShape.dHtrack/RunningShape.Len;
+    FTrain:=FTrain+TotalMassxg*RunningShape.dHtrack; // /RunningShape.Len;
     {!niejawne przypisanie zmiennej!}
     FTotal:=FTrain-Sign(V)*FStand;
    end;
@@ -4526,8 +4516,36 @@ end;
 function T_MoverParameters.ComputeMovement(dt:real; dt1:real; Shape:TTrackShape; var Track:TTrackParam; var ElectricTraction:TTractionParam; NewLoc:TLocation; var NewRot:TRotation):real;
 var b:byte;
     Vprev,AccSprev:real;
+//    Iheat:real; prad ogrzewania
 const Vepsilon=1e-5; Aepsilon=1e-3; ASBSpeed=0.8;
 begin
+{
+    for b:=0 to 1 do //przekazywanie napiec
+     if ((Couplers[b].CouplingFlag and ctrain_power) = ctrain_power)or(((Couplers[b].CouplingFlag and ctrain_heating) = ctrain_heating)and(Heating)) then
+      begin
+        HVCouplers[1-b][1]:=Max0R(Abs(Voltage),Couplers[b].Connected.HVCouplers[Couplers[b].ConnectedNr][1]);
+      end
+     else
+        HVCouplers[1-b][1]:=Max0R(Abs(Voltage),0);
+      end;
+
+    for b:=0 to 1 do //przekazywanie pradow
+     if ((Couplers[b].CouplingFlag and ctrain_power) = ctrain_power)or(((Couplers[b].CouplingFlag and ctrain_heating) = ctrain_heating)and(Heating)) then //jesli spiety
+      begin
+        if (HVCouplers[b][1]) > 1 then //przewod pod napiecie
+          HVCouplers[b][0]:=Couplers[b].Connected.HVCouplers[1-Couplers[b].ConnectedNr][0]+Iheat//obci¹¿enie
+        else
+          HVCouplers[b][0]:=0;
+      end
+     else //pierwszy pojazd
+      begin
+        if (HVCouplers[b][1]) > 1 then //pod napieciem
+          HVCouplers[b][0]:=0+Iheat//obci¹¿enie
+        else
+          HVCouplers[b][0]:=0; 
+      end;
+}
+
   ClearPendingExceptions;
   if not TestFlag(DamageFlag,dtrain_out) then
    begin
@@ -4536,7 +4554,7 @@ begin
      RunningTraction:=ElectricTraction;
      with ElectricTraction do
       if not DynamicBrakeFlag then
-       RunningTraction.TractionVoltage:=TractionVoltage-Abs(TractionResistivity*Itot)
+       RunningTraction.TractionVoltage:=TractionVoltage-Abs(TractionResistivity*(Itot+HVCouplers[0][0]+HVCouplers[1][0]))
       else
        RunningTraction.TractionVoltage:=TractionVoltage;
    end;
@@ -5057,16 +5075,16 @@ Begin
    begin //Ra: uwzglêdniæ trzeba jeszcze zgodnoœæ sprzêgów
     if (CValue2>0) then
      begin //normalne ustawienie pojazdu
-      if (CValue1=1) then
+      if (CValue1=1) OR (CValue1=3) then
        DoorLeftOpened:=true;
-      if (CValue1=2) then
+      if (CValue1=2) OR (CValue1=3) then
        DoorRightOpened:=true;
      end
     else
      begin //odwrotne ustawienie pojazdu
-      if (CValue1=2) then
+      if (CValue1=2) OR (CValue1=3) then
        DoorLeftOpened:=true;
-      if (CValue1=1) then
+      if (CValue1=1) OR (CValue1=3) then
        DoorRightOpened:=true;
      end;
     OK:=SendCtrlToNext(command,CValue1,CValue2);
@@ -5075,16 +5093,16 @@ Begin
    begin //Ra: uwzglêdniæ trzeba jeszcze zgodnoœæ sprzêgów
     if (CValue2>0) then
      begin //normalne ustawienie pojazdu
-      if (CValue1=1) then
+      if (CValue1=1) OR (CValue1=3) then
        DoorLeftOpened:=false;
-      if (CValue1=2) then
+      if (CValue1=2) OR (CValue1=3) then
        DoorRightOpened:=false;
      end
     else
      begin //odwrotne ustawienie pojazdu
-      if (CValue1=2) then
+      if (CValue1=2) OR (CValue1=3) then
        DoorLeftOpened:=false;
-      if (CValue1=1) then
+      if (CValue1=1) OR (CValue1=3) then
        DoorRightOpened:=false;
      end;
     OK:=SendCtrlToNext(command,CValue1,CValue2);
@@ -5106,7 +5124,7 @@ Begin
         end;
      end
      else
-     begin //nie 'ezt' - odwrotne ustawienie pantografów: ^-.-^ zamiast ^-.^- 
+     begin //nie 'ezt' - odwrotne ustawienie pantografów: ^-.-^ zamiast ^-.^-
        if (CValue1=1) then
         if (TestFlag(Couplers[1].CouplingFlag,ctrain_controll)and(CValue2= 1))
          or(TestFlag(Couplers[0].CouplingFlag,ctrain_controll)and(CValue2=-1))
@@ -5417,7 +5435,7 @@ begin
   for b:=0 to 1 do
    with Couplers[b] do
     begin
-      AllowedFlag:=255; //domyœlnie wszystkie
+      AllowedFlag:=127; //domyœlnie wszystkie
       CouplingFlag:=0;
       Connected:=nil;
       ConnectedNr:=0; //Ra: to nie ma znaczenia jak nie pod³¹czony
@@ -5502,7 +5520,7 @@ begin
 
   with RunningShape do
    begin
-     R:=0; Len:=100; dHtrack:=0; dHrail:=0;
+     R:=0; Len:=1; dHtrack:=0; dHrail:=0;
    end;
  RunningTrack.CategoryFlag:=CategoryFlag;
   with RunningTrack do
@@ -5649,7 +5667,7 @@ begin
      PantRear(true);
      MainSwitch(true);
      ActiveDir:=Dir;
-     DirAbsolute:=ActiveDir*CabNo;
+     DirAbsolute:=ActiveDir*CabNo; //kierunek jazdy wzglêdem sprzêgów
      LimPipePress:=CntrlPipePress;
    end
   else
@@ -5877,6 +5895,8 @@ function EngineDecode(s:string):TEngineTypes;
    else if s='Dumb' then
     EngineDecode:=Dumb
    else if s='DieselElectric' then
+    EngineDecode:=DieselElectric    //youBy: spal-ele
+   else if s='DumbDE' then
     EngineDecode:=DieselElectric    //youBy: spal-ele
 {   else if s='EZT' then {dla kibla}
  {   EngineDecode:=EZT      }
@@ -6217,7 +6237,8 @@ begin
                 else
                  CouplerType:=NoCoupler;
                 s:=ExtractKeyWord(lines,'AllowedFlag=');
-                if s<>'' then AllowedFlag:=s2NNW(DUE(s));
+                if s<>'' then AllowedFlag:=s2i(DUE(s));
+                if (AllowedFlag<0) then AllowedFlag:=(-AllowedFlag) OR ctrain_depot;
                 if (CouplerType<>NoCoupler) and (CouplerType<>Bare) and (CouplerType<>Articulated) then
                  begin
                    s:=ExtractKeyWord(lines,'kC=');
@@ -6292,7 +6313,8 @@ begin
                 else
                  CouplerType:=NoCoupler;
                 s:=ExtractKeyWord(lines,'AllowedFlag=');
-                if s<>'' then AllowedFlag:=s2NNW(DUE(s));
+                if s<>'' then AllowedFlag:=s2i(DUE(s));
+                if (AllowedFlag<0) then AllowedFlag:=(-AllowedFlag) OR ctrain_depot;
                 if (CouplerType<>NoCoupler) and (CouplerType<>Bare) and (CouplerType<>Articulated) then
                  begin
                    s:=ExtractKeyWord(lines,'kC=');

@@ -884,33 +884,34 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       }
       }
       if (cKey==Global::Keys[k_EndSign])
-      {
-         int CouplNr=-1;
-         TDynamicObject *tmp;
-         tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), 1, 1500, CouplNr);
-         if (tmp==NULL)
-            tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 1500, CouplNr);
-         if (tmp&&(CouplNr!=-1))
+      {//Ra: umieszczenie tego w obs³udze kabiny jest nieco bez sensu
+       int CouplNr=-1;
+       TDynamicObject *tmp;
+       tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), 1, 1500, CouplNr);
+       if (tmp==NULL)
+        tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 1500, CouplNr);
+       if (tmp&&(CouplNr!=-1))
+       {
+        int mask=(GetAsyncKeyState(VK_CONTROL)<0)?2+32:64;
+        if (CouplNr==0)
+        {
+         if (((tmp->iLights[0])&mask)!=mask)
          {
-            if (CouplNr==0)
-            {
-               if (((tmp->iLights[0])&64)==0)
-               {
-                  tmp->iLights[0]|=64;
-                  dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                  dsbSwitch->Play(0,0,0);
-               }
-            }
-            else
-            {
-               if (((tmp->iLights[1])&64)==0)
-               {
-                  tmp->iLights[1]|=64;
-                  dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                  dsbSwitch->Play(0,0,0);
-               }
-            }
+          tmp->iLights[0]|=mask;
+          dsbSwitch->SetVolume(DSBVOLUME_MAX); //Ra: ten dŸwiêk tu to przegiêcie
+          dsbSwitch->Play(0,0,0);
          }
+        }
+        else
+        {
+         if (((tmp->iLights[1])&mask)!=mask)
+         {
+          tmp->iLights[1]|=mask;
+          dsbSwitch->SetVolume(DSBVOLUME_MAX); //Ra: ten dŸwiêk tu to przegiêcie
+          dsbSwitch->Play(0,0,0);
+         }
+        }
+       }
       }
    }
   else //McZapkie-240302 - klawisze bez shifta
@@ -1404,38 +1405,41 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       if (cKey==Global::Keys[k_Releaser])   //odluzniacz
       {
        if (!FreeFlyModeFlag)
-        {
-         if ((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)||(DynamicObject->MoverParameters->EngineType==DieselElectric))
-          if (DynamicObject->MoverParameters->TrainType!=dt_EZT)
-           if (DynamicObject->MoverParameters->BrakeCtrlPosNo>0)
-            {
-             ReleaserButtonGauge.PutValue(1);
-             if (DynamicObject->MoverParameters->BrakeReleaser())
-              {
-                 dsbPneumaticRelay->SetVolume(-80);
-                 dsbPneumaticRelay->Play(0,0,0);
-             }
-           }
-        }
-       else
        {
-         int CouplNr=-2;
-         TDynamicObject *temp;
-         temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 1500, CouplNr));
-         if (temp==NULL)
+        if ((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)||(DynamicObject->MoverParameters->EngineType==DieselElectric))
+         if (DynamicObject->MoverParameters->TrainType!=dt_EZT)
+          if (DynamicObject->MoverParameters->BrakeCtrlPosNo>0)
           {
-            CouplNr=-2;
-            temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1, 1500, CouplNr));
-          }
-         if (temp)
-          {
-           if (temp->MoverParameters->BrakeReleaser())
-            {
-             dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
-             dsbPneumaticRelay->Play(0,0,0);
-            }
+           ReleaserButtonGauge.PutValue(1);
+           if (DynamicObject->MoverParameters->BrakeReleaser())
+           {
+            dsbPneumaticRelay->SetVolume(-80);
+            dsbPneumaticRelay->Play(0,0,0);
+           }
           }
        }
+/* //OdluŸniacz przeniesiony do WOrld.cpp
+       else
+       {//Ra: odluŸnianie dowolnego pojazdu przy kamerze, by³o tylko we w³asnym sk³adzie
+        TDynamicObject *temp=Global::DynamicNearest();
+        int CouplNr=-2;
+        TDynamicObject *temp;
+        temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 1500, CouplNr));
+        if (temp==NULL)
+        {
+          CouplNr=-2;
+          temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1, 1500, CouplNr));
+        }
+        if (temp)
+        {
+         if (temp->MoverParameters->BrakeReleaser())
+         {
+          dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
+          dsbPneumaticRelay->Play(0,0,0);
+         }
+        }
+       }
+*/
       }
   //McZapkie-240302 - wylaczanie automatycznego pilota (w trybie ~debugmode mozna tylko raz)
       else if (cKey==VkKeyScan('q')) //bez Shift
@@ -1622,10 +1626,10 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       { //ABu051104: male zmiany, zeby mozna bylo rozlaczac odlegle wagony
         if (iCabn>0)
         {
-          if (!FreeFlyModeFlag) //tryb 'kabinowy'
+          if (!FreeFlyModeFlag) //tryb 'kabinowy' (pozwala równie¿ roz³¹czyæ sprzêgi zablokowane)
           {
            if (DynamicObject->DettachStatus(iCabn-1)<0) //jeœli jest co odczepiæ
-            if (DynamicObject->Dettach(iCabn-1,0)) //iCab==1:przód,iCab==2:ty³
+            if (DynamicObject->Dettach(iCabn-1)) //iCab==1:przód,iCab==2:ty³
             {
              dsbCouplerDetach->SetVolume(DSBVOLUME_MAX); //w kabinie ten dŸwiêk?
              dsbCouplerDetach->Play(0,0,0);
@@ -1640,12 +1644,13 @@ void __fastcall TTrain::OnKeyPress(int cKey)
             tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1,1500,CouplNr);
            if (tmp&&(CouplNr!=-1))
            {
-            if (tmp->DettachStatus(CouplNr)<0) //jeœli jest co odczepiæ i siê da
-             if (!tmp->Dettach(CouplNr,0))
-             {//dŸwiêk odczepiania
-              dsbCouplerDetach->SetVolume(DSBVOLUME_MAX);
-              dsbCouplerDetach->Play(0,0,0);
-             }
+            if ((tmp->MoverParameters->Couplers[CouplNr].CouplingFlag&ctrain_depot)==0) //je¿eli sprzêg niezablokowany
+             if (tmp->DettachStatus(CouplNr)<0) //jeœli jest co odczepiæ i siê da
+              if (!tmp->Dettach(CouplNr))
+              {//dŸwiêk odczepiania
+               dsbCouplerDetach->SetVolume(DSBVOLUME_MAX);
+               dsbCouplerDetach->Play(0,0,0);
+              }
            }
           }
           if (DynamicObject->Mechanik) //na wszelki wypadek
@@ -1953,18 +1958,18 @@ void __fastcall TTrain::OnKeyPress(int cKey)
        {
         if (CouplNr==0)
         {
-         if (((tmp->iLights[0])&64)==64)
+         if ((tmp->iLights[0])&(2+32+64))
          {
-          tmp->iLights[0]&=(255-64);
-          dsbSwitch->SetVolume(DSBVOLUME_MAX);
+          tmp->iLights[0]&=~(2+32+64);
+          dsbSwitch->SetVolume(DSBVOLUME_MAX); //Ra: ten dŸwiêk tu to przegiêcie
           dsbSwitch->Play(0,0,0);
          }
         }
         else
         {
-         if (((tmp->iLights[1])&64)==64)
+         if ((tmp->iLights[1])&(2+32+64))
          {
-          tmp->iLights[1]&=(255-64);
+          tmp->iLights[1]&=~(2+32+64);
           dsbSwitch->SetVolume(DSBVOLUME_MAX);
           dsbSwitch->Play(0,0,0);
          }
@@ -2150,35 +2155,13 @@ void __fastcall TTrain::OnKeyPress(int cKey)
 
 void __fastcall TTrain::UpdateMechPosition(double dt)
 {//Ra: mechanik powinien byæ telepany niezale¿nie od pozycji pojazdu
- //Ra: trzeba zrobiæ model bujania g³ow¹ i wczepiæ go do pojazdu 
+ //Ra: trzeba zrobiæ model bujania g³ow¹ i wczepiæ go do pojazdu
 
  //DynamicObject->vFront=DynamicObject->GetDirection(); //to jest ju¿ policzone
 
- //DynamicObject->vUp=vWorldUp;
- //DynamicObject->vFront.Normalize();
- //DynamicObject->vLeft=CrossProduct(DynamicObject->vUp,DynamicObject->vFront);
- //DynamicObject->vUp=CrossProduct(DynamicObject->vFront,DynamicObject->vLeft);
- //matrix4x4 mat;
- //double a1,a2,atmp;
- //a1=(DynamicObject->Axle1.GetRoll()); //pobranie przechy³ki wózka
- //a2=(DynamicObject->Axle0.GetRoll()); //uwzglêdnia ju¿ kierunek ruchu
- //atmp=(a1+a2); //k¹t przechy³u pud³a
- //mat.Rotation(((Axle1.GetRoll()+Axle0.GetRoll()))*0.5f,vFront); //przedtem by³o bez zmiennych
- //mat.Rotation(atmp*0.5f,DynamicObject->VectorFront()); //obrót matrycy o k¹t pud³a
  //Ra: tu by siê przyda³o uwzglêdniæ rozk³ad si³:
  // - na postoju horyzont prosto, kabina skosem
  // - przy szybkiej jeŸdzie kabina prosto, horyzont pochylony
-
- //Ra: nie wolno tu modyfikowaæ wektorów pojazdu!
- //DynamicObject->vUp=mat*DynamicObject->VectorUp();
- //DynamicObject->vLeft=mat*DynamicObject->vLeft;
-
-
- //matrix4x4 mat;
- //mat.Identity();
-
- //mat.BasisChange(DynamicObject->vLeft,DynamicObject->vUp,DynamicObject->vFront);
- //DynamicObject->mMatrix=Inverse(mat);
 
  vector3 pNewMechPosition;
  //McZapkie: najpierw policzê pozycjê w/m kabiny
@@ -2250,7 +2233,7 @@ bool __fastcall TTrain::Update()
  DWORD stat;
  double dt=Timer::GetDeltaTime();
  if (DynamicObject->mdKabina)
- {
+ {//Ra: TODO: odczyty klawiatury/pulpitu nie powinny byæ uzale¿nione od istnienia modelu kabiny 
   tor=DynamicObject->GetTrack(); //McZapkie-180203
   //McZapkie: predkosc wyswietlana na tachometrze brana jest z obrotow kol
   float maxtacho=3;
@@ -3256,14 +3239,38 @@ btLampkaDoorRight.TurnOff();
       DirKeyGauge.Update();
      }
     if (BrakeCtrlGauge.SubModel)
-     {
-      BrakeCtrlGauge.UpdateValue(double(DynamicObject->MoverParameters->BrakeCtrlPos));
-      BrakeCtrlGauge.Update();
+    {if (DynamicObject->Mechanik?(DynamicObject->Mechanik->AIControllFlag?false:Global::iFeedbackMode==4):false) //nie blokujemy AI
+     {//Ra: nie najlepsze miejsce, ale na pocz¹tek gdzieœ to daæ trzeba
+      double b=Console::AnalogGet(0); //odczyt z pulpitu i modyfikacja pozycji kranu
+      if ((b>=0.0))//&&(DynamicObject->MoverParameters->BrakeHandle==FV4a))
+      {b=(((Global::fCalibrateIn[0][3]*b)+Global::fCalibrateIn[0][2])*b+Global::fCalibrateIn[0][1])*b+Global::fCalibrateIn[0][0];
+       if (b<-2.0) b=-2.0; else if (b>DynamicObject->MoverParameters->BrakeCtrlPosNo) b=DynamicObject->MoverParameters->BrakeCtrlPosNo;
+       BrakeCtrlGauge.UpdateValue(b); //przesów bez zaokr¹glenia
+       DynamicObject->MoverParameters->BrakeCtrlPos=int(b); //sposób zaokr¹glania jest do ustalenia
+      }
+      else //standardowa prodedura z kranem powi¹zanym z klawiatur¹
+       BrakeCtrlGauge.UpdateValue(double(DynamicObject->MoverParameters->BrakeCtrlPos));
      }
+     else //standardowa prodedura z kranem powi¹zanym z klawiatur¹
+      BrakeCtrlGauge.UpdateValue(double(DynamicObject->MoverParameters->BrakeCtrlPos));
+     BrakeCtrlGauge.Update();
+    }
     if (LocalBrakeGauge.SubModel)
-     {
+    {if (DynamicObject->Mechanik?(DynamicObject->Mechanik->AIControllFlag?false:Global::iFeedbackMode==4):false) //nie blokujemy AI
+     {//Ra: nie najlepsze miejsce, ale na pocz¹tek gdzieœ to daæ trzeba
+      double b=Console::AnalogGet(1); //odczyt z pulpitu i modyfikacja pozycji kranu
+      if (b>=0.0)
+      {b=(((Global::fCalibrateIn[1][3]*b)+Global::fCalibrateIn[1][2])*b+Global::fCalibrateIn[1][1])*b+Global::fCalibrateIn[1][0];
+       if (b<0.0) b=0.0; else if (b>LocalBrakePosNo) b=LocalBrakePosNo;
+       LocalBrakeGauge.UpdateValue(b); //przesów bez zaokr¹glenia
+       DynamicObject->MoverParameters->LocalBrakePos=int(b); //sposób zaokr¹glania jest do ustalenia
+      }
+      else //standardowa prodedura z kranem powi¹zanym z klawiatur¹
+       LocalBrakeGauge.UpdateValue(double(DynamicObject->MoverParameters->LocalBrakePos));
+     }
+     else //standardowa prodedura z kranem powi¹zanym z klawiatur¹
       LocalBrakeGauge.UpdateValue(double(DynamicObject->MoverParameters->LocalBrakePos));
-      LocalBrakeGauge.Update();
+     LocalBrakeGauge.Update();
      }
     if (ManualBrakeGauge.SubModel!=NULL)
      {
@@ -3271,10 +3278,10 @@ btLampkaDoorRight.TurnOff();
       ManualBrakeGauge.Update();
      }
     if (BrakeProfileCtrlGauge.SubModel)
-     {
-      BrakeProfileCtrlGauge.UpdateValue(double(DynamicObject->MoverParameters->BrakeDelayFlag==2?0.5:DynamicObject->MoverParameters->BrakeDelayFlag));
-      BrakeProfileCtrlGauge.Update();
-     }
+    {
+     BrakeProfileCtrlGauge.UpdateValue(double(DynamicObject->MoverParameters->BrakeDelayFlag==2?0.5:DynamicObject->MoverParameters->BrakeDelayFlag));
+     BrakeProfileCtrlGauge.Update();
+    }
 
     if (MaxCurrentCtrlGauge.SubModel)
      {
@@ -3672,7 +3679,8 @@ btLampkaDoorRight.TurnOff();
      {
           fMainRelayTimer+=dt;
           MainOnButtonGauge.PutValue(1);
-          DynamicObject->MoverParameters->ConverterSwitch(false);
+          if (DynamicObject->MoverParameters->Mains!=true) //hunter-080812: poprawka
+           DynamicObject->MoverParameters->ConverterSwitch(false);
           if (fMainRelayTimer>DynamicObject->MoverParameters->InitialCtrlDelay) //wlaczanie WSa z opoznieniem
             if (DynamicObject->MoverParameters->MainSwitch(true))
             {

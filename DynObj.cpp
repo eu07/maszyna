@@ -57,15 +57,17 @@ int __fastcall TAnim::TypeSet(int i)
 {//ustawienie typu animacji i zale¿nej od niego iloœci animowanych submodeli
  switch (i)
  {case 0: iFlags=0x01; break; //0-oœ
-  case 1: iFlags=0x11; break; //1-wi¹zar
+  case 1: iFlags=0x11; break; //1-zderzak
   case 2: iFlags=0x21; break; //2-wózek
-  case 3: iFlags=0x31; break; //3-wahacz
-  case 4: iFlags=0x45; break; //4-pantograf
-  case 5: iFlags=0x51; break; //5-drzwi
-  case 6: iFlags=0x68; break; //6-t³ok i rozrz¹d
+  case 3: iFlags=0x31; break; //3-wi¹zar
+  case 4: iFlags=0x41; break; //4-wahacz
+  case 5: iFlags=0x55; break; //5-pantograf
+  case 6: iFlags=0x61; break; //6-drzwi
+  case 7: iFlags=0x78; break; //7-t³ok i rozrz¹d
   default: iFlags=0;
  }
- return iFlags&15; //ile jest animowanych elementów
+ yUpdate=NULL;
+ return iFlags&15; //ile jest animowanych elementów dla danego typu
 };
 void __fastcall TAnim::Parovoz()
 {//animowanie t³oka i rozrz¹du parowozu
@@ -111,7 +113,7 @@ TDynamicObject* __fastcall TDynamicObject::GetFirstDynamic(int cpl_type)
 {//Szukanie skrajnego po³¹czonego pojazdu w pociagu
  //od strony sprzegu (cpl_type) obiektu szukajacego
  //Ra: wystarczy jedna funkcja do szukania w obu kierunkach
- return FirstFind(cpl_type);
+ return FirstFind(cpl_type); //u¿ywa referencji
 };
 
 TDynamicObject* __fastcall TDynamicObject::GetFirstCabDynamic(int cpl_type)
@@ -215,6 +217,16 @@ void __fastcall TDynamicObject::SetPneumatic(bool front,bool red)
  {if (red) cp2=x; else sp2=x;} //który pokazywaæ z ty³u
 }
 
+void TDynamicObject::UpdateAxle(TAnim *pAnim)
+{//animacja osi
+ pAnim->smAnimated->SetRotate(float3(1,0,0),*pAnim->dWheelAngle);
+};
+
+void TDynamicObject::UpdateBoogie(TAnim *pAnim)
+{//animacja wózka
+ pAnim->smAnimated->SetRotate(float3(1,0,0),*pAnim->dWheelAngle);
+};
+
 //ABu 29.01.05 przeklejone z render i renderalpha: *********************
 void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
 {//ABu290105: pozbierane i uporzadkowane powtarzajace sie rzeczy z Render i RenderAlpha
@@ -270,10 +282,15 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
    //ABu011104: liczenie obrotow wozkow
    ABuBogies();
    //McZapkie-050402: obracanie kolami
+/*
    for (int i=0; i<iAnimatedAxles; i++)
     if (smAnimatedWheel[i])
      smAnimatedWheel[i]->SetRotate(float3(1,0,0),*pWheelAngle[i]);
      //smAnimatedWheel[i]->SetRotate(float3(1,0,0),dWheelAngle[1]);
+*/
+   for (int i=0;i<iAnimations;++i) //wykonanie kolejnych animacji
+    if (pAnimations[i].yUpdate) //jeœli zdefiniowana funkcja
+     pAnimations[i].yUpdate(pAnimations+i); //aktualizacja animacji (po³o¿enia submodeli
    //Mczapkie-100402: rysowanie lub nie - sprzegow
    //ABu-240105: Dodatkowy warunek: if (...).Render, zeby rysowal tylko jeden
    //z polaczonych sprzegow
@@ -732,14 +749,14 @@ void __fastcall TDynamicObject::ABuBogies()
  //bez zadnych gorek i innych przeszkod.
  if ((smBogie[0]!=NULL)&&(smBogie[1]!=NULL))
  {
-  modelRot.z=ABuAcos(Axle0.pPosition-Axle1.pPosition);
+  modelRot.z=ABuAcos(Axle0.pPosition-Axle1.pPosition); //k¹t obrotu pojazdu
   //bogieRot[0].z=ABuAcos(Axle0.pPosition-Axle3.pPosition);
   bogieRot[0].z=Axle0.vAngles.z;
+  bogieRot[0]=RadToDeg(modelRot-bogieRot[0]); //mno¿enie wektora przez sta³¹
+  smBogie[0]->SetRotateXYZ(bogieRot[0]);
   //bogieRot[1].z=ABuAcos(Axle2.pPosition-Axle1.pPosition);
   bogieRot[1].z=Axle1.vAngles.z;
-  bogieRot[0]=RadToDeg(modelRot-bogieRot[0]); //mno¿enie wektora przez sta³¹
   bogieRot[1]=RadToDeg(modelRot-bogieRot[1]);
-  smBogie[0]->SetRotateXYZ(bogieRot[0]);
   smBogie[1]->SetRotateXYZ(bogieRot[1]);
  }
 };
@@ -873,7 +890,7 @@ int TDynamicObject::DettachStatus(int dir)
  return (MoverParameters->DettachStatus(dir)); //czy jest w odpowiedniej odleg³oœci?
 }
 
-int TDynamicObject::Dettach(int dir,int cnt)
+int TDynamicObject::Dettach(int dir)
 {//roz³¹czenie sprzêgów rzeczywistych od strony (dir): 0=przód,1=ty³
  //zwraca maskê bitow¹ aktualnych sprzegów (0 jeœli roz³¹czony)
  if (MoverParameters->Couplers[dir].CouplingFlag) //odczepianie, o ile coœ pod³¹czone
@@ -968,13 +985,13 @@ void TDynamicObject::ABuScanObjects(int ScanDir,double ScanDist)
   {
    if (FoundedObj->PrevConnected)
     if (FoundedObj->PrevConnected!=this) //odœwie¿enie tego samego siê nie liczy
-     WriteLog("0! Coupler error on "+asName+":"+AnsiString(MyCouplFound)+" - "+FoundedObj->asName+":0 connected to "+FoundedObj->PrevConnected->asName+":"+AnsiString(FoundedObj->PrevConnectedNo));
+     WriteLog("0! Coupler warning on "+asName+":"+AnsiString(MyCouplFound)+" - "+FoundedObj->asName+":0 connected to "+FoundedObj->PrevConnected->asName+":"+AnsiString(FoundedObj->PrevConnectedNo));
   }
   else
   {
    if (FoundedObj->NextConnected)
     if (FoundedObj->NextConnected!=this) //odœwie¿enie tego samego siê nie liczy
-     WriteLog("0! Coupler error on "+asName+":"+AnsiString(MyCouplFound)+" - "+FoundedObj->asName+":1 connected to "+FoundedObj->NextConnected->asName+":"+AnsiString(FoundedObj->NextConnectedNo));
+     WriteLog("0! Coupler warning on "+asName+":"+AnsiString(MyCouplFound)+" - "+FoundedObj->asName+":1 connected to "+FoundedObj->NextConnected->asName+":"+AnsiString(FoundedObj->NextConnectedNo));
   }
 
 
@@ -1044,7 +1061,7 @@ void TDynamicObject::ABuScanObjects(int ScanDir,double ScanDist)
    {
     if (FoundedObj->PrevConnected)
      if (FoundedObj->PrevConnected!=this)
-      WriteLog("1! Coupler error on "+asName+":"+AnsiString(MyCouplFound)+" - "+FoundedObj->asName+":0 connected to "+FoundedObj->PrevConnected->asName+":"+AnsiString(FoundedObj->PrevConnectedNo));
+      WriteLog("1! Coupler warning on "+asName+":"+AnsiString(MyCouplFound)+" - "+FoundedObj->asName+":0 connected to "+FoundedObj->PrevConnected->asName+":"+AnsiString(FoundedObj->PrevConnectedNo));
     FoundedObj->PrevConnected=this;
     FoundedObj->PrevConnectedNo=MyCouplFound;
    }
@@ -1052,7 +1069,7 @@ void TDynamicObject::ABuScanObjects(int ScanDir,double ScanDist)
    {
     if (FoundedObj->NextConnected)
      if (FoundedObj->NextConnected!=this)
-      WriteLog("1! Coupler error on "+asName+":"+AnsiString(MyCouplFound)+" - "+FoundedObj->asName+":1 connected to "+FoundedObj->NextConnected->asName+":"+AnsiString(FoundedObj->NextConnectedNo));
+      WriteLog("1! Coupler warning on "+asName+":"+AnsiString(MyCouplFound)+" - "+FoundedObj->asName+":1 connected to "+FoundedObj->NextConnected->asName+":"+AnsiString(FoundedObj->NextConnectedNo));
     FoundedObj->NextConnected=this;
     FoundedObj->NextConnectedNo=MyCouplFound;
    }
@@ -1136,10 +1153,12 @@ __fastcall TDynamicObject::TDynamicObject()
   DoorSpeedFactor[i]=random(150);
   DoorSpeedFactor[i]=(DoorSpeedFactor[i]+100)/100;
  }
- iAnimatedAxles=0; //iloœæ obracanych osi
+ //iAnimatedAxles=0; //iloœæ obracanych osi
  iAnimatedDoors=0;
+/* stare
  for (int i=0;i<MaxAnimatedAxles;i++)
   smAnimatedWheel[i]=NULL;
+*/
  for (int i=0;i<MaxAnimatedDoors;i++)
   smAnimatedDoor[i]=NULL;
  mdModel=NULL;
@@ -1168,21 +1187,22 @@ __fastcall TDynamicObject::TDynamicObject()
  eng_frq_act=1;
  eng_turbo=0;
  cp1=cp2=sp1=sp2=0;
- iDirection=1; //stoi w kierunku tradycyjnym
- iAxleFirst=0; //numer pierwszej osi w kierunku ruchu (na ogó³)
- iInventory=0; //flagi bitowe posiadanych submodeli
+ iDirection=1; //stoi w kierunku tradycyjnym (0, gdy jest odwrócony)
+ iAxleFirst=0; //numer pierwszej osi w kierunku ruchu (prze³¹czenie nastêpuje, gdy osie sa na tym samym torze)
+ iInventory=0; //flagi bitowe posiadanych submodeli (zaktualizuje siê po wczytaniu MMD)
  RaLightsSet(0,0); //pocz¹tkowe zerowanie stanu œwiate³
- //Ra: domyœlne iloœci animacji zgodne wstecz
+ //Ra: domyœlne iloœci animacji dla zgodnoœci wstecz (gdy brak iloœci podanych w MMD)
  iAnimType[0]=8; //0-osie (8)
- iAnimType[1]=2; //1-wi¹zary (2) - mo¿na zast¹piæ osiami...
- iAnimType[2]=2; //2-wózki (2)
- iAnimType[3]=4; //3-wahacze (4) - np. nogi konia
- iAnimType[4]=2; //4-pantografy (2)
- iAnimType[5]=8; //5-drzwi (8)
- iAnimType[6]=0; //6-t³oki (napêd parowozu)
- //iAnimType[7]=8; //7-przestawiacze?
- //iAnimType[8]=8; //8-cylindry hamulcowe?
- iAnimations=26; //tyle by³o kiedyœ
+ iAnimType[1]=4; //1-zderzaki (4)
+ iAnimType[2]=2; //3-wózki (2)
+ iAnimType[3]=2; //2-wi¹zary (2) - mo¿na zast¹piæ osiami...
+ iAnimType[4]=4; //4-wahacze (4) - np. nogi konia
+ iAnimType[5]=2; //5-pantografy (2)
+ iAnimType[6]=8; //6-drzwi (8)
+ iAnimType[7]=0; //7-t³oki (napêd parowozu)
+ //iAnimType[8]=8; //8-przestawiacze?
+ //iAnimType[9]=8; //9-cylindry hamulcowe?
+ iAnimations=30; //tyle by³o kiedyœ w ka¿dym pojeŸdzie
  pAnimations=NULL;
  pAnimated=NULL;
  fShade=0.0; //standardowe oœwietlenie na starcie
@@ -1243,11 +1263,11 @@ double __fastcall TDynamicObject::Init(
  else DriverType=""; //nikt nie siedzi
  int Cab; //numer kabiny z obsad¹ (nie mo¿na zaj¹æ obu)
  if (DriverType.Pos("h")) //od przodu sk³adu
-  Cab=iDirection?1:-1; //iDirection=1 gdy normalnie, =0 odwrotnie
+  Cab=1;//iDirection?1:-1; //iDirection=1 gdy normalnie, =0 odwrotnie
  else if (DriverType.Pos("r")) //od ty³u sk³adu
-  Cab=iDirection?-1:1;
+  Cab=-1;//iDirection?-1:1;
  else if (DriverType=="c") //uaktywnianie wirtualnej kabiny
-  Cab=iDirection?1:-1;
+  Cab=iDirection?1:-1; //to przestawi steruj¹cy
  else if (DriverType=="p")
  {
   if (random(6)<3) Cab=1; else Cab=-1; //losowy przydzia³ kabiny
@@ -1273,7 +1293,7 @@ double __fastcall TDynamicObject::Init(
   return 0.0; //zerowa d³ugoœæ to brak pojazdu
  }
  bool driveractive=(fVel!=0.0); //jeœli prêdkoœæ niezerowa, to aktywujemy ruch
- if (!MoverParameters->CheckLocomotiveParameters(driveractive,iDirection?1:-1)) //jak jedzie lub obsadzony to gotowy do drogi
+ if (!MoverParameters->CheckLocomotiveParameters(driveractive,(fVel>0?1:-1)*Cab*(iDirection?1:-1))) //jak jedzie lub obsadzony to gotowy do drogi
  {
   Error("Parameters mismatch: dynamic object "+asName+" from\n"+BaseDir+"\\"+Type_Name);
   return 0.0; //zerowa d³ugoœæ to brak pojazdu
@@ -1303,19 +1323,9 @@ double __fastcall TDynamicObject::Init(
   if (DriverType.Pos("h")||DriverType.Pos("r"))
   {//McZapkie-110303: mechanik i rozklad tylko gdy jest obsada
    MoverParameters->ActiveCab=MoverParameters->CabNo; //ustalenie aktywnej kabiny (rozrz¹d)
-/*
-   if (MoverParameters->CabNo==-1)
-   {//ZiomalCl: jeœli AI prowadzi sk³ad w drugiej kabinie (inny kierunek),
-    //to musimy zmieniæ kabiny (kierunki) w pozosta³ych wagonach/cz³onach
-    //inaczej np. cz³on A ET41 bêdzie jecha³ w jedn¹ stronê, a cz³on B w drug¹
-    //Ra: tylko ¿e podczas wstawiania sk³adu nie ma jeszcze tego kolejnego cz³onu...
-    MoverParameters->CabDeactivisation();
-    MoverParameters->CabActivisation();
-   }
-*/
    Mechanik=new TController(Controller,this,NULL,Aggressive);
    if (TrainName.IsEmpty()) //jeœli nie w sk³adzie
-    Mechanik->PutCommand("Timetable:",fVel,0,NULL); //tryb poci¹gowy z ustalon¹ prêdkoœci¹
+    Mechanik->PutCommand("Timetable:",iDirection?-fVel:fVel,0,NULL); //tryb poci¹gowy z ustalon¹ prêdkoœci¹ (wzglêdem sprzêgów)
    //if (TrainName!="none")
    // Mechanik->PutCommand("Timetable:"+TrainName,fVel,0,NULL);
   }
@@ -1393,32 +1403,36 @@ double __fastcall TDynamicObject::Init(
  //iNumAxles=(MoverParameters->NAxles>3 ? 4 : 2 );
  iNumAxles=2;
  //McZapkie-090402: odleglosc miedzy czopami skretu lub osiami
- fHalfMaxAxleDist=Max0R(MoverParameters->BDist,MoverParameters->ADist)*0.5;
- if (fHalfMaxAxleDist>0.5*MoverParameters->Dim.L-0.1) //nie mog¹ byæ za daleko
-  fHalfMaxAxleDist=0.5*MoverParameters->Dim.L-0.1; //bo bêdzie "walenie w mur"
+ fAxleDist=Max0R(MoverParameters->BDist,MoverParameters->ADist);
+ if (fAxleDist>MoverParameters->Dim.L-0.2) //nie mog¹ byæ za daleko
+  fAxleDist=MoverParameters->Dim.L-0.2; //bo bêdzie "walenie w mur"
+ float fAxleDistHalf=fAxleDist*0.5;
  //WriteLog("Dynamic "+Type_Name+" of length "+MoverParameters->Dim.L+" at "+AnsiString(fDist));
+ //if (Track->Event0?(fDist<0.0)||(fDist>0.5*MoverParameters->Dim.L):true)
+ //przesuwanie pojazdu tak, aby jego pocz¹tek by³ we wskazanym miejcu
+  //bez przesuwania: zgodnoœæ wstecz, jeœli tor ma Event0, a pocz¹tek sk³adu by³by wysuniêty za ten tor
  fDist-=0.5*MoverParameters->Dim.L; //dodajemy pó³ d³ugoœci pojazdu (zliczanie na minus)
  switch (iNumAxles)
  {//Ra: pojazdy wstawiane s¹ na tor pocz¹tkowy, a potem przesuwane
   case 2: //ustawianie osi na torze
    Axle0.Init(Track,this,iDirection?1:-1);
-   Axle0.Move((iDirection?fDist:-fDist)+fHalfMaxAxleDist+0.01,false);
+   Axle0.Move((iDirection?fDist:-fDist)+fAxleDistHalf+0.01,false);
    Axle1.Init(Track,this,iDirection?1:-1);
-   Axle1.Move((iDirection?fDist:-fDist)-fHalfMaxAxleDist-0.01,false); //false, ¿eby nie generowaæ eventów
+   Axle1.Move((iDirection?fDist:-fDist)-fAxleDistHalf-0.01,false); //false, ¿eby nie generowaæ eventów
    //Axle2.Init(Track,this,iDirection?1:-1);
-   //Axle2.Move((iDirection?fDist:-fDist)-HalfMaxAxleDist+0.01),false);
+   //Axle2.Move((iDirection?fDist:-fDist)-fAxleDistHalft+0.01),false);
    //Axle3.Init(Track,this,iDirection?1:-1);
-   //Axle3.Move((iDirection?fDist:-fDist)+HalfMaxAxleDist-0.01),false);
+   //Axle3.Move((iDirection?fDist:-fDist)+fAxleDistHalf-0.01),false);
   break;
   case 4:
    Axle0.Init(Track,this,iDirection?1:-1);
-   Axle0.Move((iDirection?fDist:-fDist)+(fHalfMaxAxleDist+MoverParameters->ADist*0.5),false);
+   Axle0.Move((iDirection?fDist:-fDist)+(fAxleDistHalf+MoverParameters->ADist*0.5),false);
    Axle1.Init(Track,this,iDirection?1:-1);
-   Axle1.Move((iDirection?fDist:-fDist)-(fHalfMaxAxleDist+MoverParameters->ADist*0.5),false);
+   Axle1.Move((iDirection?fDist:-fDist)-(fAxleDistHalf+MoverParameters->ADist*0.5),false);
    //Axle2.Init(Track,this,iDirection?1:-1);
-   //Axle2.Move((iDirection?fDist:-fDist)-(HalfMaxAxleDist-MoverParameters->ADist*0.5),false);
+   //Axle2.Move((iDirection?fDist:-fDist)-(fAxleDistHalf-MoverParameters->ADist*0.5),false);
    //Axle3.Init(Track,this,iDirection?1:-1);
-   //Axle3.Move((iDirection?fDist:-fDist)+(HalfMaxAxleDist-MoverParameters->ADist*0.5),false);
+   //Axle3.Move((iDirection?fDist:-fDist)+(fAxleDistHalf-MoverParameters->ADist*0.5),false);
   break;
  }
  Move(0.0001); //potrzebne do wyliczenia aktualnej pozycji; nie mo¿e byæ zero, bo nie przeliczy pozycji
@@ -1446,30 +1460,14 @@ double __fastcall TDynamicObject::Init(
  //ABu: zainicjowanie zmiennej, zeby nic sie nie ruszylo
  //w pierwszej klatce, potem juz liczona prawidlowa wartosc masy
  MoverParameters->ComputeConstans();
+ /*Ra: to nie dzia³a - Event0 musi byæ wykonywany ci¹gle
  if (fVel==0.0) //jeœli stoi
   if (MoverParameters->CabNo!=0) //i ma kogoœ w kabinie
    if (Track->Event0) //a jest w tym torze event od stania
     RaAxleEvent(Track->Event0); //dodanie eventu stania do kolejki
+ */
  return MoverParameters->Dim.L; //d³ugoœæ wiêksza od zera oznacza OK; 2mm docisku?
 }
-/*
-bool __fastcall TDynamicObject::Move(double fDistance)
-{
-//    fDistance*= fDirection;
-//    switch (iNumAxles)
-//    {
-//        case 4:
-//            bEnabled&= Axle3.Move(fDistance,MoverParameters->V<0);
-//            bEnabled&= Axle2.Move(fDistance,MoverParameters->V>=0);
-//        case 2:
-            bEnabled&=Axle1.Move(fDistance,MoverParameters->V>=0);
-            bEnabled&=Axle0.Move(fDistance,MoverParameters->V<0);
-            Axle3.Move(fDistance,false);
-            Axle2.Move(fDistance,false);
-//        break;
-//    }
-}
-*/
 
 void __fastcall TDynamicObject::FastMove(double fDistance)
 {
@@ -1528,7 +1526,8 @@ void __fastcall TDynamicObject::Move(double fDistance)
   vCoulpler[1]=vPosition-dir; //wspó³rzêdne sprzêgu na koñcu
   MoverParameters->vCoulpler[0]=vCoulpler[0]; //tymczasowo kopiowane na inny poziom
   MoverParameters->vCoulpler[1]=vCoulpler[1];
-  //if (bTakeCare) //jeœli istotne s¹ szczegó³y (blisko kamery)
+  //bCameraNear=
+  //if (bCameraNear) //jeœli istotne s¹ szczegó³y (blisko kamery)
   {//przeliczenie cienia
    TTrack *t0=Axle0.GetTrack(); //ju¿ po przesuniêciu
    TTrack *t1=Axle1.GetTrack();
@@ -1548,7 +1547,7 @@ void __fastcall TDynamicObject::Move(double fDistance)
      double d=Axle0.GetTranslation(); //aktualne po³o¿enie na torze
      if (Axle0.GetDirection()<0)
       d=t0->fTrackLength-d; //od drugiej strony liczona d³ugoœæ
-     d/=2.0*fHalfMaxAxleDist; //rozsataw osi procentowe znajdowanie siê na torze
+     d/=fAxleDist; //rozsataw osi procentowe znajdowanie siê na torze
      switch (t0->eEnvironment)
      {//typ zmiany oœwietlenia - zak³adam, ¿e drugi tor ma e_flat
       case e_canyon: fShade=(d*0.65)+(1.0-d); break; //zacienienie w kanionie
@@ -1768,8 +1767,9 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
     if (bogieRot[0].z!=bogieRot[1].z) //wyliczenie promienia z obrotów osi - modyfikacjê zg³osi³ youBy
       ts.R=0.5*MoverParameters->BDist/sin(DegToRad(bogieRot[0].z-bogieRot[1].z)*0.5);
     //ts.R=ComputeRadius(Axle1.pPosition,Axle2.pPosition,Axle3.pPosition,Axle0.pPosition);
-    ts.Len=Max0R(MoverParameters->BDist,MoverParameters->ADist);
-    ts.dHtrack=Axle1.pPosition.y-Axle0.pPosition.y; //wektor miêdzy skrajnymi osiami (!!!odwrotny)
+    //Ra: sk³adow¹ pochylenia wzd³u¿nego mamy policzon¹ w jednostkowym wektorze vFront
+    ts.Len=1.0; //Max0R(MoverParameters->BDist,MoverParameters->ADist);
+    ts.dHtrack=-vFront.y; //Axle1.pPosition.y-Axle0.pPosition.y; //wektor miêdzy skrajnymi osiami (!!!odwrotny)
     ts.dHrail=(Axle1.GetRoll()+Axle0.GetRoll())*0.5; //œrednia przechy³ka pud³a
     //TTrackParam tp;
     tp.Width=MyTrack->fTrackWidth;
@@ -1852,15 +1852,7 @@ TGround::GetTraction;
 //      Mechanik->LastReactionTime=0;
 //     }
 
-      if (Mechanik->UpdateSituation(dt1))  //czuwanie AI
-//    if (Mechanik->ScanMe)
-      {
-       //if (Mechanik) //bo teraz mo¿e siê przesiaœæ
-       // Mechanik->ScanEventTrack(); //tor pocz¹tkowy zale¿y od po³o¿enia wózków
-//       if(MoverParameters->BrakeCtrlPos>0)
-//         MoverParameters->BrakeCtrlPos=MoverParameters->BrakeCtrlPosNo;
-//       Mechanik->ScanMe= false;
-      }
+      Mechanik->UpdateSituation(dt1); //przeb³yski œwiadomoœci AI
     }
 //    else
 //    { MoverParameters->SecuritySystemReset(); }
@@ -1916,7 +1908,7 @@ TGround::GetTraction;
 //taka prowizorka zeby sciszyc stukot dalekiej lokomotywy
    double ObjectDist;
    double vol=0;
-   double freq;
+   //double freq; //Ra: nie u¿ywane
    ObjectDist=SquareMagnitude(Global::pCameraPosition-vPosition);
 //McZapkie-270202
    if (MyTrack->fSoundDistance!=-1)
@@ -1927,13 +1919,13 @@ TGround::GetTraction;
         if (MyTrack->eEnvironment==e_tunnel)
          {
           vol*=1.1;
-          freq=1.02;
+          //freq=1.02;
          }
         else
         if (MyTrack->eEnvironment==e_bridge)
          {
           vol*=1.2;
-          freq=0.99;                             //MC: stukot w zaleznosci od tego gdzie jest tor
+          //freq=0.99;                             //MC: stukot w zaleznosci od tego gdzie jest tor
          }
         if (MyTrack->fSoundDistance!=dRailLength)
          {
@@ -2409,17 +2401,6 @@ bool __fastcall TDynamicObject::FastUpdate(double dt)
     //tp.CategoryFlag= MyTrack->iCategoryFlag&15;
     //tp.DamageFlag=MyTrack->iDamageFlag;
     //tp.QualityFlag=MyTrack->iQualityFlag;
-    //if (Mechanik)
-    //{
-    //
-    //    if (Mechanik->UpdateSituation(dt))  //czuwanie AI
-//  //       if (Mechanik->ScanMe)
-    //      {
-    //        ScanEventTrack();
-//  //          Mechanik->ScanMe= false;
-    //      }
-    //
-    //}
     dDOMoveLen=MoverParameters->FastComputeMovement(dt,ts,tp,l,r); // ,ts,tp,tmpTraction);
     //Move(dDOMoveLen);
     //ResetdMoveLen();
@@ -2573,6 +2554,7 @@ bool __fastcall TDynamicObject::Render()
   //double ObjDist= SquareMagnitude(Global::pCameraPosition-pos);
   if (this==Global::pUserDynamic)
   {//specjalne ustawienie, aby nie trzês³o
+   //if (Global::pWorld->) //tu trzeba by ustawiæ animacje na modelu zewnêtrznym
    glLoadIdentity(); //zacz¹æ od macierzy jedynkowej
    Global::pCamera->SetCabMatrix(vPosition); //specjalne ustawienie kamery
   }
@@ -3115,17 +3097,20 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
  AnsiString asFileName=BaseDir+TypeName+".mmd";
  AnsiString asLoadName=BaseDir+MoverParameters->LoadType+".t3d";
  fs=new TFileStream(asFileName,fmOpenRead|fmShareCompat);
- AnsiString str="";
+ if (!fs) return;
  int size=fs->Size;
+ if (!size) {return delete fs;};
  AnsiString asAnimName="";
  bool Stop_InternalData=false;
- str.SetLength(size);
- fs->Read(str.c_str(),size);
- str+="";
+ char* buf=new char[size+1]; //ci¹g bajtów o d³ugoœci równej rozmiwarowi pliku
+ buf[size]='\0'; //zakoñczony zerem na wszelki wypadek
+ fs->Read(buf,size);
  delete fs;
  TQueryParserComp *Parser;
  Parser=new TQueryParserComp(NULL);
- Parser->TextToParse=str;
+ Parser->TextToParse=AnsiString(buf);
+ delete[] buf;
+ AnsiString str;
  //Parser->LoadStringToParse(asFile);
  Parser->First();
  //DecimalSeparator= '.';
@@ -3194,19 +3179,23 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
         str=Parser->GetNextSymbol().LowerCase();
         if (str==AnsiString("animations:"))
         {//Ra: ustawienie iloœci poszczególnych animacji - musi byæ jako pierwsze, inaczej iloœci bêd¹ domyœlne
-         int co=0,ile;
-         do
-         {//kolejne liczby to iloœæ animacj, -1 to znacznik koñca
-          ile=Parser->GetNextSymbol().ToIntDef(-1); //iloœæ danego typu animacji
-          if (co<ANIM_TYPES)
-           if (ile>=0)
-           {iAnimType[co]=ile; //zapamiêtanie
-            iAnimations+=ile; //ogólna iloœæ animacji
-           }
-          ++co;
-         } while (ile>=0); //-1 to znacznik koñca
-         while (co<ANIM_TYPES) iAnimType[co++]=0; //zerowanie pozosta³ych
-         str=Parser->GetNextSymbol().LowerCase();
+         if (!pAnimations)
+         {//jeœli nie ma jeszcze tabeli animacji, mo¿na odczytaæ nowe iloœci
+          int co=0,ile;
+          iAnimations=0;
+          do
+          {//kolejne liczby to iloœæ animacj, -1 to znacznik koñca
+           ile=Parser->GetNextSymbol().ToIntDef(-1); //iloœæ danego typu animacji
+           if (co<ANIM_TYPES)
+            if (ile>=0)
+            {iAnimType[co]=ile; //zapamiêtanie
+             iAnimations+=ile; //ogólna iloœæ animacji
+            }
+           ++co;
+          } while (ile>=0); //-1 to znacznik koñca
+          while (co<ANIM_TYPES) iAnimType[co++]=0; //zerowanie pozosta³ych
+          str=Parser->GetNextSymbol().LowerCase();
+         }
         }
         if (!pAnimations)
         {//Ra: tworzenie tabeli animacji, jeœli jeszcze nie by³o
@@ -3228,6 +3217,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
         {
          int i,j,k,m;
          str=Parser->GetNextSymbol();
+/* stare animacje
          for (i=1;i<=MaxAnimatedAxles;++i)
          {//McZapkie-050402: wyszukiwanie kol o nazwie str*
           asAnimName=str+i;
@@ -3257,17 +3247,48 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
            else
             k=MoverParameters->AxleArangement[j++]; //pobranie kolejnego znaku
           } //Ra: pêtla uruchamiana tylko jeœli s¹ ró¿ne œrednice
+*/
+         for (i=0;i<iAnimType[0];++i) //iloœæ osi
+         {//McZapkie-050402: wyszukiwanie kol o nazwie str*
+          asAnimName=str+AnsiString(i+1);
+          pAnimations[i].smAnimated=mdModel->GetFromName(asAnimName.c_str()); //ustalenie submodelu
+          if (pAnimations[i].smAnimated)
+          {//++iAnimatedAxles;
+           pAnimations[i].smAnimated->WillBeAnimated(); //wy³¹czenie optymalizacji transformu
+           pAnimations[i].yUpdate=UpdateAxle; //animacja osi
+          }
+         }
+         //Ra: ustawianie indeksów osi
+         for (i=0;i<iAnimType[0];++i) //iloœæ osi (zabezpieczenie przed b³êdami w CHK)
+          pAnimations[i].dWheelAngle=dWheelAngle+1; //domyœlnie wskaŸnik na napêdzaj¹ce
+         i=0; j=1; k=0; m=0; //numer osi; kolejny znak; ile osi danego typu; która œrednica
+         if ((MoverParameters->WheelDiameterL!=MoverParameters->WheelDiameter)||(MoverParameters->WheelDiameterT!=MoverParameters->WheelDiameter))
+         {//obs³uga ró¿nych œrednic, o ile wystêpuj¹
+          while ((i<iAnimType[0])&&(j<=MoverParameters->AxleArangement.Length()))
+          {//wersja ze wskaŸnikami jest bardziej elastyczna na nietypowe uk³ady
+           if ((k>='A')&&(k<='J')) //10 chyba maksimum?
+           {pAnimations[i++].dWheelAngle=dWheelAngle+1; //obrót osi napêdzaj¹cych
+            --k; //nastêpna bêdzie albo taka sama, albo bierzemy kolejny znak
+            m=2; //nastêpuj¹ce toczne bêd¹ mia³y inn¹ œrednicê
+           }
+           else if ((k>='1')&&(k<='9'))
+           {pAnimations[i++].dWheelAngle=dWheelAngle+m; //obrót osi tocznych
+            --k; //nastêpna bêdzie albo taka sama, albo bierzemy kolejny znak
+           }
+           else
+            k=MoverParameters->AxleArangement[j++]; //pobranie kolejnego znaku
+          }
+         }
         }
         else if (str==AnsiString("animrodprefix:")) //prefiks wiazarow dwoch
          {
           str= Parser->GetNextSymbol();
           for (int i=1; i<=2; i++)
-           {
- //McZapkie-050402: wyszukiwanie max 2 wiazarow o nazwie str*
-            asAnimName=str+i;
-            smWiazary[i-1]=mdModel->GetFromName(asAnimName.c_str());
-            smWiazary[i-1]->WillBeAnimated();
-           }
+          {//McZapkie-050402: wyszukiwanie max 2 wiazarow o nazwie str*
+           asAnimName=str+i;
+           smWiazary[i-1]=mdModel->GetFromName(asAnimName.c_str());
+           smWiazary[i-1]->WillBeAnimated();
+          }
          }
         else
 //Pantografy - Winger 160204
@@ -3605,28 +3626,29 @@ void __fastcall TDynamicObject::RaLightsSet(int head,int rear)
  }
 };
 
+/*
 void __fastcall TDynamicObject::RaAxleEvent(TEvent *e)
 {//obs³uga eventu wykrytego przez wózek - jeœli steruj¹cy prêdkoœci¹, to ignorujemy
  //bo mamy w³asny mechanizm obs³ugi tych eventów i nie musz¹ iœæ do kolejki
+ //Ra: funkcja CheckEvent() nie mo¿e byæ tu u¿ywana, bo jest ze starego skanowania !!!!
  if (Mechanik) //tylko jeœli ma obsadê
- {if (!Mechanik->CheckEvent(e,true)) //jeœli nie jest ustawiaj¹cym prêdkoœæ
-   Global::pGround->AddToQuery(e,this); //dodanie do kolejki
-  else
- //if (Mechanik) //tylko jeœli ma obsadê
-  {//if (Controller!=Humandriver) //i nie u¿ytkownik (na razie)
-   // Mechanik->ScanEventTrack(); //dla pewnoœci robimy skanowanie
+ {//if (!Mechanik->CheckEvent(e,true)) //jeœli nie jest ustawiaj¹cym prêdkoœæ
+  if (e->bEnabled) //czy nale¿y dodaæ do kolejki
+   Global::AddToQuery(e,this); //dodanie do kolejki
+  else //nie ma potrzeby wysy³ania tego do serwera, skoro mo¿na wys³aæ zajêtoœæ toru
    if (Global::iMultiplayer) //potwierdzenie wykonania dla serwera - najczêœciej odczyt semafora
     Global::pGround->WyslijEvent(e->asName,GetName());
-  }
  }
  else
-  if (!Mechanik->CheckEvent(e,true)) //czy dodawany do kolejki, funkcja prawie statyczna
-   Global::pGround->AddToQuery(e,this); //dodanie do kolejki
+  //if (!Mechanik->CheckEvent(e,true)) //czy dodawany do kolejki, funkcja prawie statyczna
+ if (e->bEnabled) //czy nale¿y dodaæ do kolejki
+  Global::AddToQuery(e,this); //dodanie do kolejki
 };
+*/
 
 int __fastcall TDynamicObject::DirectionSet(int d)
 {//ustawienie kierunku w sk³adzie (wykonuje AI)
- iDirection=d>0?1:0; //d:1=zgodny,-1=przeciwny; iDirection:1=zgodny,0=przeciwny; 
+ iDirection=d>0?1:0; //d:1=zgodny,-1=przeciwny; iDirection:1=zgodny,0=przeciwny;
  CouplCounter=26; //do przeskanowania s¹ kolizje
  return 1-(iDirection?NextConnectedNo:PrevConnectedNo); //informacja o po³o¿eniu nastêpnego
 };
@@ -3673,7 +3695,7 @@ void __fastcall TDynamicObject::CoupleDist()
  else
  {//na drodze trzeba uwzglêdniæ wektory ruchu
   double d0=MoverParameters->Couplers[0].CoupleDist;
-  double d1=MoverParameters->Couplers[1].CoupleDist;
+  //double d1=MoverParameters->Couplers[1].CoupleDist; //sprzêg z ty³u samochodu mo¿na olaæ, dopóki nie jeŸdzi na wstecznym
   vector3 p1,p2;
   double d,w; //dopuszczalny dystans w poprzek
   MoverParameters->SetCoupleDist(); //liczenie standardowe

@@ -37,6 +37,7 @@ int TSubModel::iInstance; //numer renderowanego egzemplarza obiektu
 GLuint *TSubModel::ReplacableSkinId=NULL;
 int TSubModel::iAlpha=0x30300030; //maska do testowania flag tekstur wymiennych
 TModel3d* TSubModel::pRoot; //Ra: tymczasowo wskaŸnik na model widoczny z submodelu
+AnsiString* TSubModel::pasText;
 //przyk³ady dla TSubModel::iAlpha:
 // 0x30300030 - wszystkie bez kana³u alfa
 // 0x31310031 - tekstura -1 u¿ywana w danym cyklu, pozosta³e nie
@@ -260,8 +261,9 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
  };
  parser.ignoreToken();
  std::string token;
- parser.getToken(token); //ze zmian¹ na ma³e!
- //asName=AnsiString(token.c_str());
+ //parser.getToken(token1); //ze zmian¹ na ma³e!
+ parser.getTokens(1,false); //nazwa submodelu bez zmieny na ma³e
+ parser >> token;
  NameSet(token.c_str());
 
  if (parser.expectToken("anim:")) //Ra: ta informacja by siê przyda³a!
@@ -340,27 +342,27 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
   else if (texture.find("replacableskin")!=texture.npos)
   {// McZapkie-060702: zmienialne skory modelu
    TextureID=-1;
-   iFlags|=1; //zmienna tekstura 1
+   iFlags|=(Transparency==0.0)?0x10:1; //zmienna tekstura 1
   }
   else if (texture=="-1")
   {
    TextureID=-1;
-   iFlags|=1; //zmienna tekstura 1
+   iFlags|=(Transparency==0.0)?0x10:1; //zmienna tekstura 1
   }
   else if (texture=="-2")
   {
    TextureID=-2;
-   iFlags|=2; //zmienna tekstura 2
+   iFlags|=(Transparency==0.0)?0x10:2; //zmienna tekstura 2
   }
   else if (texture=="-3")
   {
    TextureID=-3;
-   iFlags|=4; //zmienna tekstura 3
+   iFlags|=(Transparency==0.0)?0x10:4; //zmienna tekstura 3
   }
   else if (texture=="-4")
   {
    TextureID=-4;
-   iFlags|=8; //zmienna tekstura 4
+   iFlags|=(Transparency==0.0)?0x10:8; //zmienna tekstura 4
   }
   else
   {//jesli tylko nazwa pliku to dawac biezaca sciezke do tekstur
@@ -644,7 +646,7 @@ void __fastcall TSubModel::DisplayLists()
 
 void __fastcall TSubModel::InitialRotate(bool doit)
 {//konwersja uk³adu wspó³rzêdnych na zgodny ze sceneri¹
- if (iFlags&0xC000) //jeœli jest animacja albo niejednostkowy
+ if (iFlags&0xC000) //jeœli jest animacja albo niejednostkowy transform
  {//niejednostkowy transform jest mno¿ony i wystarczy zabawy
   if (doit)
   {//obrót lewostronny
@@ -657,7 +659,7 @@ void __fastcall TSubModel::InitialRotate(bool doit)
    if (fMatrix->IdentityIs()) iFlags&=~0x8000; //jednak jednostkowa po obróceniu
   }
   if (Child)
-   Child->InitialRotate(false); //potomnych nie obracamy ju¿, tylko przegl¹damy
+   Child->InitialRotate(false); //potomnych nie obracamy ju¿, tylko ewentualnie optymalizujemy
   else
    if (Global::iConvertModels&2) //optymalizacja jest opcjonalna
     if ((iFlags&0xC000)==0x8000) //o ile nie ma animacji
@@ -723,9 +725,17 @@ int __fastcall TSubModel::FlagsCheck()
     Child->iFlags|=0x80; //to trzeba sprawdzaæ, jak z teksturami jest
   i=Child->FlagsCheck();
   iFlags|=0x00FF0000&((i<<16)|(i)|(i>>8)); //potomny, rodzeñstwo i dzieci
+  if (eType==TP_TEXT)
+  {//wy³¹czenie renderowania Next dla znaków wyœwietlacza tekstowego
+   TSubModel *p=Child;
+   while (p)
+   {p->iFlags&=0xC0FFFFFF;
+    p=p->Next;
+   }
+  }
  }
  if (Next)
- {//Next jest renderowany przed danym submodelem
+ {//Next jest renderowany po danym submodelu (kolejnoœæ odwrócona po wczytaniu T3D)
   if (TextureID) //o ile dany ma teksturê
    if ((TextureID!=Next->TextureID)||(i&0x00800000)) //a ma inn¹ albo dzieci zmieniaj¹
     iFlags|=0x80; //to dany submodel musi sobie j¹ ustawiaæ
@@ -788,13 +798,18 @@ struct ToLower
  char operator()(char input) { return tolower(input); }
 };
 
-TSubModel* __fastcall TSubModel::GetFromName(AnsiString search)
+TSubModel* __fastcall TSubModel::GetFromName(AnsiString search,bool i)
+{
+ return GetFromName(search.c_str(),i);
+};
+
+TSubModel* __fastcall TSubModel::GetFromName(char *search,bool i)
 {
  TSubModel* result;
  //std::transform(search.begin(),search.end(),search.begin(),ToLower());
- search=search.LowerCase();
- AnsiString name=AnsiString(pName);
- if (name==search)
+ //search=search.LowerCase();
+ //AnsiString name=AnsiString();
+ if ((i?stricmp(pName,search):strcmp(pName,search))==0)
   return this;
  if (Next)
  {
@@ -949,8 +964,8 @@ void __fastcall TSubModel::RenderDL()
    }
   }
   if (Child!=NULL)
-   if (iAlpha&iFlags&0x001F0000)
-    Child->RenderDL();
+    if (iAlpha&iFlags&0x001F0000)
+     Child->RenderDL();
   if (iFlags&0xC000)
    glPopMatrix();
  }
@@ -995,8 +1010,26 @@ void __fastcall TSubModel::RenderAlphaDL()
    // dorobiæ aureolê!
   }
   if (Child!=NULL)
-   if (iAlpha&iFlags&0x002F0000)
-    Child->RenderAlphaDL();
+   if (eType==TP_TEXT)
+   {//tekst renderujemy w specjalny sposób, zamiast submodeli z ³añcucha Child
+    int i,j=pasText->Length();
+    TSubModel *p;
+    char c;
+    for (i=1;i<=j;++i) //Ra: szukanie submodeli jest bez sensu, trzeba zrobiæ tabelkê wskaŸników
+    {
+     c=(*pasText)[i]; //znak do wyœwietlenia
+     p=Child;
+     while (p?c!=(*p->pName):false) p=p->Next; //szukanie znaku
+     if (p)
+     {
+      p->RenderAlphaDL();
+      if (p->fMatrix) glMultMatrixf(p->fMatrix->readArray()); //przesuwanie widoku
+     }
+    }
+   }
+   else
+    if (iAlpha&iFlags&0x002F0000)
+     Child->RenderAlphaDL();
   if (iFlags&0xC000)
    glPopMatrix();
  }
@@ -1379,11 +1412,11 @@ TSubModel* __fastcall TModel3d::GetFromName(const char *sName)
 {//wyszukanie submodelu po nazwie
  if (!sName) return Root; //potrzebne do terenu z E3D
  if (iFlags&0x0200) //wczytany z pliku tekstowego, wyszukiwanie rekurencyjne
-  return Root?Root->GetFromName(AnsiString(sName)):NULL;
+  return Root?Root->GetFromName(sName):NULL;
  else //wczytano z pliku binarnego, mo¿na wyszukaæ iteracyjnie
  {
   //for (int i=0;i<iSubModelsCount;++i)
-  return Root?Root->GetFromName(AnsiString(sName)):NULL;
+  return Root?Root->GetFromName(sName):NULL;
  }
 };
 
@@ -1511,7 +1544,9 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName,bool dynamic)
  while (token!="" || parser.eof())
  {
   std::string parent;
-  parser.getToken(parent);
+  //parser.getToken(parent);
+  parser.getTokens(1,false); //nazwa submodelu nadrzêdnego bez zmieny na ma³e
+  parser >> parent;
   if (parent=="") break;
   SubModel=new TSubModel();
   iNumVerts+=SubModel->Load(parser,this,iNumVerts);
@@ -1540,11 +1575,14 @@ void __fastcall TModel3d::Init()
  if (Root)
  {if (iFlags&0x0200) //jeœli wczytano z pliku tekstowego
   {//jest jakiœ dziwny b³¹d, ¿e obkrêcany ma byæ tylko ostatni submodel g³ównego ³añcucha
-   TSubModel *p=Root;
-   while (p->NextGet())
-    p=p->NextGet();
-   p->InitialRotate(true); //ostatniemu nale¿y siê konwersja uk³adu wspó³rzêdnych
-   Root->InitialRotate(false); //a poprzednim tylko optymalizacja
+   //TSubModel *p=Root;
+   //do
+   //{p->InitialRotate(true); //ostatniemu nale¿y siê konwersja uk³adu wspó³rzêdnych
+   // p=p->NextGet();
+   //}
+   //while (p->NextGet())
+   //Root->InitialRotate(false); //a poprzednim tylko optymalizacja
+   Root->InitialRotate(true); //argumet okreœla, czy wykonaæ pierwotny obrót
   }
   iFlags|=Root->FlagsCheck()|0x8000; //flagi ca³ego modelu
   if (!asBinary.IsEmpty()) //jeœli jest podana nazwa

@@ -32,16 +32,17 @@
 #include "World.h"
 
 
+
 //namespace Global {
 
 //parametry do u¿ytku wewnêtrznego
 //double Global::tSinceStart=0;
 TGround *Global::pGround=NULL;
-//char Global::CreatorName1[30]="Maciej Czapkiewicz";
-//char Global::CreatorName2[30]="Marcin Wozniak <Marcin_EU>";
-//char Global::CreatorName3[20]="Adam Bugiel <ABu>";
-//char Global::CreatorName4[30]="Arkadiusz Slusarczyk <Winger>";
-//char Global::CreatorName5[30]="Lukasz Kirchner <Nbmx>";
+//char Global::CreatorName1[30]="2001-2004 Maciej Czapkiewicz";
+//char Global::CreatorName2[30]="2001-2003 Marcin WoŸniak <Marcin_EU>";
+//char Global::CreatorName3[20]="2004-2005 Adam Bugiel <ABu>";
+//char Global::CreatorName4[30]="2004 Arkadiusz Œlusarczyk <Winger>";
+//char Global::CreatorName5[30]="£ukasz Kirchner <Nbmx>";
 AnsiString Global::asCurrentSceneryPath="scenery/";
 AnsiString Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath);
 AnsiString Global::asCurrentDynamicPath="";
@@ -56,8 +57,8 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asRelease="1.8.595.355";
-AnsiString Global::asVersion="Compilation 2012-06-12, release "+Global::asRelease+"."; //tutaj, bo wysy³any
+AnsiString Global::asRelease="1.8.637.372";
+AnsiString Global::asVersion="Compilation 2012-09-17, release "+Global::asRelease+"."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 double Global::fSunDeclination=0.0; //deklinacja S³oñca
@@ -103,7 +104,6 @@ bool Global::bRollFix=true; //czy wykonaæ przeliczanie przechy³ki
 int Global::Keys[MaxKeys];
 int Global::iWindowWidth=800;
 int Global::iWindowHeight=600;
-int Global::iBpp=32;
 int Global::iFeedbackMode=1; //tryb pracy informacji zwrotnej
 bool Global::bFreeFly=false;
 bool Global::bFullScreen=false;
@@ -154,6 +154,11 @@ int Global::iWriteLogEnabled=3; //maska bitowa: 1-zapis do pliku, 2-okienko
 bool Global::bManageNodes=true;
 bool Global::bDecompressDDS=false;
 
+//parametry do kalibracji
+//kolejno wspó³czynniki dla potêg 0, 1, 2, 3 wartoœci odczytanej z urz¹dzenia
+double Global::fCalibrateIn[6][4]={{0,1,0,0},{0,1,0,0},{0,1,0,0},{0,1,0,0},{0,1,0,0},{0,1,0,0}};
+double Global::fCalibrateOut[6][4]={{0,1,0,0},{0,1,0,0},{0,1,0,0},{0,1,0,0},{0,1,0,0},{0,1,0,0}};
+
 //parametry przejœciowe (do usuniêcia)
 //bool Global::bTimeChange=false; //Ra: ZiomalCl wy³¹czy³ star¹ wersjê nocy
 //bool Global::bRenderAlpha=true; //Ra: wywali³am tê flagê
@@ -161,6 +166,7 @@ bool Global::bnewAirCouplers=true;
 bool Global::bDoubleAmbient=false; //podwójna jasnoœæ ambient
 double Global::fSunSpeed=1.0; //prêdkoœæ ruchu S³oñca, zmienna do testów
 bool Global::bHideConsole=false; //hunter-271211: ukrywanie konsoli
+int Global::iBpp=32; //chyba ju¿ nie u¿ywa siê kart, na których 16bpp coœ poprawi
 
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
@@ -380,6 +386,24 @@ void __fastcall Global::ConfigParse(TQueryParserComp *qp,cParser *cp)
    fFpsDeviation=GetNextSymbol().ToDouble();
   else if (str==AnsiString("fpsradiusmax")) //maksymalny promieñ renderowania
    fFpsRadiusMax=GetNextSymbol().ToDouble();
+  else if (str==AnsiString("calibratein")) //parametry kalibracji wejœæ
+  {//
+   i=GetNextSymbol().ToIntDef(-1); //numer wejœcia
+   if ((i<0)||(i>5)) i=5; //na ostatni, bo i tak trzeba pomin¹æ wartoœci
+   fCalibrateIn[i][0]=GetNextSymbol().ToDouble(); //wyraz wolny
+   fCalibrateIn[i][1]=GetNextSymbol().ToDouble(); //mno¿nik
+   fCalibrateIn[i][2]=GetNextSymbol().ToDouble(); //mno¿nik dla kwadratu
+   fCalibrateIn[i][3]=GetNextSymbol().ToDouble(); //mno¿nik dla szeœcianu
+  }
+  else if (str==AnsiString("calibrateout")) //parametry kalibracji wyjœæ
+  {//
+   i=GetNextSymbol().ToIntDef(-1); //numer wejœcia
+   if ((i<0)||(i>5)) i=5; //na ostatni, bo i tak trzeba pomin¹æ wartoœci
+   fCalibrateOut[i][0]=GetNextSymbol().ToDouble(); //wyraz wolny
+   fCalibrateOut[i][1]=GetNextSymbol().ToDouble(); //mno¿nik
+   fCalibrateOut[i][2]=GetNextSymbol().ToDouble(); //mno¿nik dla kwadratu
+   fCalibrateOut[i][3]=GetNextSymbol().ToDouble(); //mno¿nik dla szeœcianu
+  }
  }
  while (str!="endconfig"); //(!Parser->EndOfFile)
  //na koniec trochê zale¿noœci
@@ -558,7 +582,15 @@ void __fastcall Global::TrainDelete(TDynamicObject *d)
  if (pWorld) pWorld->TrainDelete(d);
 };
 
+TDynamicObject* __fastcall Global::DynamicNearest()
+{//ustalenie pojazdu najbli¿szego kamerze
+ return pGround->DynamicNearest(pCamera->Pos);
+};
 
+bool __fastcall Global::AddToQuery(TEvent *event,TDynamicObject *who)
+{
+ return pGround->AddToQuery(event,who);
+};
 //---------------------------------------------------------------------------
 
 #pragma package(smart_init)
