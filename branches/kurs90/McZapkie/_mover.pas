@@ -193,8 +193,6 @@ CONST
    dt_181=$100; 
 
 TYPE
-    P_MoverParameters=^T_MoverParameters;
-
         {ogolne}
     TLocation = record
                   X,Y,Z: real;    {lokacja}
@@ -229,28 +227,6 @@ TYPE
                       TractionResistivity: real; {rezystancja styku}
                     end;
     {powyzsze parametry zwiazane sa z torem po ktorym aktualnie pojazd jedzie}
-
-    {sprzegi}
-    TCouplerType=(NoCoupler,Articulated,Bare,Chain,Screw,Automatic);
-    TCoupling = record
-                  {parametry}
-                  SpringKB,SpringKC,beta:real;   {stala sprezystosci zderzaka/sprzegu, %tlumiennosci }
-                  DmaxB,FmaxB,DmaxC,FmaxC: real; {tolerancja scisku/rozciagania, sila rozerwania}
-                  CouplerType: TCouplerType;     {typ sprzegu}
-                  {zmienne}
-                  CouplingFlag : byte; {0 - wirtualnie, 1 - sprzegi, 2 - pneumatycznie, 4 - sterowanie, 8 - kabel mocy}
-                  AllowedFlag : byte;          //Ra: znaczenie jak wy¿ej, maska dostêpnych
-                  Render: boolean;             {ABu: czy rysowac jak zaczepiony sprzeg}
-                  CoupleDist: real;            {ABu: optymalizacja - liczenie odleglosci raz na klatkê, bez iteracji}
-                  Connected: PMoverParameters; {co jest podlaczone}
-                  ConnectedNr: byte;           //Ra: od której strony pod³¹czony do (Connected): 0=przód, 1=ty³
-                  CForce: real;                {sila z jaka dzialal}
-                  Dist: real;                  {strzalka ugiecia zderzaków}
-                  CheckCollision: boolean;     {czy sprawdzac sile czy pedy}
-                end;
-
-    TCouplers= array[0..1] of TCoupling;
-    //TCouplerNr= array[0..1] of byte; //ABu: nr sprzegu z ktorym polaczony; Ra: wrzuciæ do TCoupling
 
     {typy hamulcow zespolonych}
     TBrakeSystem = (Individual, Pneumatic, ElectroPneumatic);
@@ -344,8 +320,8 @@ TYPE
     TMPTRelayTable = array[0..7] of TMPTRelay;
 
     TMotorParameters = record
-                        mfi,mIsat:real; { aproksymacja M(I) silnika} {dla dizla mIsat=przekladnia biegu}
-                        fi,Isat: real;  { aproksymacja E(n)=fi*n}    {dla dizla fi, mfi: predkosci przelozenia biegu <-> }
+                        mfi,mIsat:real; // aproksymacja M(I) silnika} {dla dizla mIsat=przekladnia biegu
+                        fi,Isat: real;  // aproksymacja E(n)=fi*n}    {dla dizla fi, mfi: predkosci przelozenia biegu <->
                         AutoSwitch: boolean;
                        end;
 
@@ -358,9 +334,41 @@ TYPE
                        RadioStop:boolean; //czy jest RadioStop
                      end;
 
+ //Ra: to oddzielnie, bo siê kompilatorowi miesza
+ TTransmision=
+  record  //liczba zebow przekladni}
+   NToothM, NToothW : byte;
+   Ratio: real;  {NToothW/NToothM}
+  end;
+
+ {sprzegi}
+ TCouplerType=(NoCoupler,Articulated,Bare,Chain,Screw,Automatic);
+ //Ra: T_MoverParameters jako klasa jest ju¿ wskaŸnikiem na poziomie Pascala
+ //P_MoverParameters=^T_MoverParameters
+ T_MoverParameters=class;
+ TCoupling = record
+               {parametry}
+               SpringKB,SpringKC,beta:real;   {stala sprezystosci zderzaka/sprzegu, %tlumiennosci }
+               DmaxB,FmaxB,DmaxC,FmaxC: real; {tolerancja scisku/rozciagania, sila rozerwania}
+               CouplerType: TCouplerType;     {typ sprzegu}
+               {zmienne}
+               CouplingFlag : byte; {0 - wirtualnie, 1 - sprzegi, 2 - pneumatycznie, 4 - sterowanie, 8 - kabel mocy}
+               AllowedFlag : byte;          //Ra: znaczenie jak wy¿ej, maska dostêpnych
+               Render: boolean;             {ABu: czy rysowac jak zaczepiony sprzeg}
+               CoupleDist: real;            {ABu: optymalizacja - liczenie odleglosci raz na klatkê, bez iteracji}
+               Connected: T_MoverParameters; {co jest podlaczone}
+               ConnectedNr: byte;           //Ra: od której strony pod³¹czony do (Connected): 0=przód, 1=ty³
+               CForce: real;                {sila z jaka dzialal}
+               Dist: real;                  {strzalka ugiecia zderzaków}
+               CheckCollision: boolean;     {czy sprawdzac sile czy pedy}
+             end;
+
+ //TCouplers= array[0..1] of TCoupling;
+ //TCouplerNr= array[0..1] of byte; //ABu: nr sprzegu z ktorym polaczony; Ra: wrzuciæ do TCoupling
+
     {----------------------------------------------}
     {glowny obiekt}
-    T_MoverParameters = class(TObject)
+    T_MoverParameters = class(TObject) //Ra: dodana kreska w celu zrobienia wrappera
                dMoveLen:real;
                filename:string;
                {---opis lokomotywy, wagonu itp}
@@ -391,6 +399,8 @@ TYPE
                Dim: TDimension;          {wymiary}
                Cx: real;                 {wsp. op. aerodyn.}
                WheelDiameter : real;     {srednica kol napednych}
+               WheelDiameterL : real;    //Ra: srednica kol tocznych przednich
+               WheelDiameterT : real;    //Ra: srednica kol tocznych tylnych
                TrackW: real;             {nominalna szerokosc toru [m]}
                AxleInertialMoment: real; {moment bezwladnosci zestawu kolowego}
                AxleArangement : string;  {uklad osi np. Bo'Bo' albo 1'C}
@@ -443,10 +453,11 @@ TYPE
                MotorParam: array[0..MotorParametersArraySize] of TMotorParameters;
                                         {rozne parametry silnika przy bocznikowaniach}
                                         {dla lokomotywy spalinowej z przekladnia mechaniczna: przelozenia biegow}
-               Transmision : record   {liczba zebow przekladni}
-                               NToothM, NToothW : byte;
-                               Ratio: real;  {NToothW/NToothM}
-                             end;
+               Transmision : TTransmision;
+                // record   {liczba zebow przekladni}
+                //  NToothM, NToothW : byte;
+                //  Ratio: real;  {NToothW/NToothM}
+                // end;
                NominalVoltage: real;   {nominalne napiecie silnika}
                WindingRes : real;
                CircuitRes : real;      {rezystancje silnika i obwodu}
@@ -511,10 +522,10 @@ TYPE
                 ScndS: boolean; {Czy jest bocznikowanie na szeregowej}
                         {--sekcja zmiennych}
                         {--opis konkretnego egzemplarza taboru}
-                Loc: TLocation;
+                Loc: TLocation; //pozycja pojazdów do wyznaczenia odleg³oœci pomiêdzy sprzêgami
                 Rot: TRotation;
                 Name: string;                       {nazwa wlasna}
-                Couplers: TCouplers;                {urzadzenia zderzno-sprzegowe, polaczenia miedzy wagonami}
+                Couplers: array[0..1] of TCoupling;  //urzadzenia zderzno-sprzegowe, polaczenia miedzy wagonami
                 ScanCounter: integer;   {pomocnicze do skanowania sprzegow}
                 EventFlag: boolean;                 {!o True jesli cos nietypowego sie wydarzy}
                 SoundFlag: byte;                    {!o patrz stale sound_ }
@@ -576,7 +587,7 @@ TYPE
 
                 RunningShape:TTrackShape;{geometria toru po ktorym jedzie pojazd}
                 RunningTrack:TTrackParam;{parametry toru po ktorym jedzie pojazd}
-                OffsetTrackH, OffsetTrackV: real;  {przesuniecie poz. i pion. w/m toru}
+                OffsetTrackH, OffsetTrackV: real;  {przesuniecie poz. i pion. w/m osi toru}
 
                 {-zmienne dla lokomotyw}
                 Mains: boolean;    {polozenie glownego wylacznika}
@@ -586,10 +597,10 @@ TYPE
                 //wzglêdem wybranej kabiny: -1 - do tylu, +1 - do przodu, 0 - wylaczona
                 CabNo: integer;    {! numer kabiny: 1 lub -1. W przeciwnym razie brak sterowania - rozrzad}
                 DirAbsolute: integer; //zadany kierunek jazdy wzglêdem sprzêgów (1=w strone 0,-1=w stronê 1) 
-                ActiveCab: integer; {! numer kabiny, w ktorej sie jest}
+                ActiveCab: integer; //numer kabiny, w ktorej jest obsada (zwykle jedna na sk³ad)
                 LastCab: integer;       { numer kabiny przed zmiana }
                 LastSwitchingTime: real; {czas ostatniego przelaczania czegos}
-                WarningSignal: byte;     {0: nie trabi, 1,2: trabi}
+                //WarningSignal: byte;     {0: nie trabi, 1,2: trabi}
                 DepartureSignal: boolean; {sygnal odjazdu}
                 InsideConsist: boolean;
                 {-zmienne dla lokomotywy elektrycznej}
@@ -604,6 +615,7 @@ TYPE
                 LastRelayTime: real;     {czas ostatniego przelaczania stycznikow}
                 AutoRelayFlag: boolean;  {mozna zmieniac jesli AutoRelayType=2}
                 FuseFlag: boolean;       {!o bezpiecznik nadmiarowy}
+                ConvOvldFlag: boolean;              {!  nadmiarowy przetwornicy i ogrzewania}
                 StLinFlag: boolean;       {!o styczniki liniowe}
                 ResistorsFlag: boolean;  {!o jazda rezystorowa}
                 RventRot: real;          {!s obroty wentylatorow rozruchowych}
@@ -735,13 +747,11 @@ TYPE
                 procedure UpdateScndPipePressure(dt:real);
                 procedure UpdateBatteryVoltage(dt:real);
                {! funkcje laczace/rozlaczajace sprzegi}
-               function Attach(ConnectNo: byte; ConnectToNr: byte; ConnectTo:PMoverParameters; CouplingType: byte):boolean; {laczenie}
-               function DettachDistance(ConnectNo: byte):boolean; //odleg³oœæ roz³¹czania
-               function Dettach(ConnectNo: byte):boolean;                    {rozlaczanie}
+               //Ra: przeniesione do C++
 
                {funkcje obliczajace sily}
                 procedure ComputeConstans; //ABu: wczesniejsze wyznaczenie stalych dla liczenia sil
-                procedure SetCoupleDist;   //ABu: wyznaczenie odleglosci miedzy wagonami
+                //procedure SetCoupleDist;   //ABu: wyznaczenie odleglosci miedzy wagonami
                 function ComputeMass:real;
                 function Adhesive(staticfriction:real): real;
                 function TractionForce(dt:real):real;
@@ -763,7 +773,7 @@ TYPE
 
                 {--funkcje dla lokomotyw}
                {! kierunek ruchu}
-                function DirectionForward: boolean;
+                //function DirectionForward: boolean;
                 function DirectionBackward: boolean;
                {! wylacznik glowny}
                 function MainSwitch(State:boolean): boolean;
@@ -835,7 +845,7 @@ TYPE
                 function ChangeOffsetH(DeltaOffset:real): boolean;
 
                 {! procedury I/O}
-                constructor Init(LocInitial:TLocation; RotInitial:TRotation;
+                constructor Init(//LocInitial:TLocation; RotInitial:TRotation;
                                  VelInitial:real; TypeNameInit, NameInit: string; LoadInitial:longint; LoadTypeInitial: string; Cab:integer);
                                                               {wywolac najpierw to}
                 function LoadChkFile(chkpath:string):Boolean;   {potem zaladowac z pliku}
@@ -911,7 +921,7 @@ begin
 end;
 
 function Distance(Loc1,Loc2:TLocation;Dim1,Dim2:TDimension):real;
-{zwraca odleg³oœæ pomiêdzy pojazdami (Loc1) i (Loc2) z uwzglêdnieneim ich d³ugoœci}
+//zwraca odleg³oœæ pomiêdzy pojazdami (Loc1) i (Loc2) z uwzglêdnieneim ich d³ugoœci (kule!)
 var Dist:real;
 begin
  Dist:=SQRT(SQR(Loc2.x-Loc1.x)+SQR(Loc1.y-Loc2.y));
@@ -984,13 +994,13 @@ begin
 end;
 {---------rozwiniecie deklaracji metod obiektu T_MoverParameters--------}
 function T_MoverParameters.GetTrainsetVoltage: boolean;
-{ABu: funkcja zwracajaca napiecie dla calego skladu, przydatna dla EZT}
+//ABu: funkcja zwracajaca napiecie dla calego skladu, przydatna dla EZT
 var voltf: boolean;
     voltr: boolean;
   begin
     if Couplers[0].Connected<>nil then
       begin
-        if Couplers[0].Connected^.PantFrontVolt or Couplers[0].Connected^.PantRearVolt then
+        if Couplers[0].Connected.PantFrontVolt or Couplers[0].Connected.PantRearVolt then
           voltf:=true
         else
           voltf:=false;
@@ -999,7 +1009,7 @@ var voltf: boolean;
         voltf:=false;
       if Couplers[1].Connected<>nil then
       begin
-        if Couplers[1].Connected^.PantFrontVolt or Couplers[1].Connected^.PantRearVolt then
+        if Couplers[1].Connected.PantFrontVolt or Couplers[1].Connected.PantRearVolt then
           voltr:=true
         else
           voltr:=false;
@@ -1112,7 +1122,7 @@ begin
      for b:=0 to 1 do
       with Couplers[b] do
        if TestFlag(CouplingFlag,ctrain_controll) then
-        Connected^.DynamicBrakeFlag:=DynamicBrakeFlag;
+        Connected.DynamicBrakeFlag:=DynamicBrakeFlag;
    {end;
    if (DynamicBrakeType=dbrake_passive) and (TrainType=dt_ET42) then
    begin
@@ -1132,33 +1142,33 @@ begin
    for b:=0 to 1 do
     with Couplers[b] do
      if TestFlag(CouplingFlag,ctrain_controll) then
-      if Connected^.SetInternalCommand(CtrlCommand,ctrlvalue,DirF(b)) then
-       OK:=Connected^.RunInternalCommand or OK;
+      if Connected.SetInternalCommand(CtrlCommand,ctrlvalue,DirF(b)) then
+       OK:=Connected.RunInternalCommand or OK;
   SendCtrlBroadcast:=OK;
 end;
 
 
 function T_MoverParameters.SendCtrlToNext(CtrlCommand:string;ctrlvalue,dir:real):boolean;
-//wys³anie komendy w kierunku dir (1=przod,-1=ty³)
+//wys³anie komendy w kierunku dir (1=przod,-1=ty³) do kolejnego pojazdu (jednego)
 var
  OK:Boolean;
- d:Integer;
+ d:Integer; //numer sprzêgu w kierunku którego wysy³amy
 begin
 //Ra: by³ problem z propagacj¹, jeœli w sk³adzie jest pojazd wstawiony odwrotnie
 //Ra: problem jest równie¿, jeœli AI bêdzie na koñcu sk³adu
  OK:=(dir<>0); // and Mains;
- d:=(1+Sign(dir)) div 2; //-1=>0, 1=>1 - wysy³anie tylko w ty³
+ d:=(1+Sign(dir)) div 2; //dir=-1=>d=0, dir=1=>d=1 - wysy³anie tylko w ty³
  if OK then
   with Couplers[d] do //w³asny sprzêg od strony (d)
    if TestFlag(CouplingFlag,ctrain_controll) then
     if ConnectedNr<>d then //jeœli ten nastpêny jest zgodny z aktualnym
      begin
-      if Connected^.SetInternalCommand(CtrlCommand,ctrlvalue,dir) then
-       OK:=Connected^.RunInternalCommand and OK;
+      if Connected.SetInternalCommand(CtrlCommand,ctrlvalue,dir) then
+       OK:=Connected.RunInternalCommand and OK; //tu jest rekurencja
      end
      else //jeœli nastêpny jest ustawiony przeciwnie, zmieniamy kierunek
-      if Connected^.SetInternalCommand(CtrlCommand,ctrlvalue,-dir) then
-       OK:=Connected^.RunInternalCommand and OK;
+      if Connected.SetInternalCommand(CtrlCommand,ctrlvalue,-dir) then
+       OK:=Connected.RunInternalCommand and OK; //tu jest rekurencja
  SendCtrlToNext:=OK;
 end;
 
@@ -1178,11 +1188,11 @@ function T_MoverParameters.CabActivisation:boolean;
 var OK:boolean;
 begin
   OK:=(CabNo=0);
-  if(OK)then
+  if (OK) then
    begin
      CabNo:=ActiveCab;
      DirAbsolute:=ActiveDir*CabNo;
-     SendCtrlToNext('CabActivisation',CabNo,ActiveCab);
+     SendCtrlToNext('CabActivisation',CabNo*ActiveCab,ActiveCab);
      //PantCheck;
    end;
   CabActivisation:=OK;
@@ -1193,7 +1203,7 @@ function T_MoverParameters.CabDeactivisation:boolean;
 var OK:boolean;
 begin
  OK:=(CabNo=ActiveCab);
- if(OK)then
+ if (OK) then
   begin
    LastCab:=CabNo;
    CabNo:=0;
@@ -1297,8 +1307,8 @@ begin
       else
           if (CtrlSpeed>1) and (ActiveDir<>0) {and (ScndCtrlPos=0)} and (TrainType<>dt_ET40) then
         begin
-          while (RList[MainCtrlPos].R>0) and IncMainCtrl(1) do
-           OK:=True ; {takie chamskie, potem poprawie}
+          while (RList[MainCtrlPos].R>0) and IncMainCtrl(1) do ;
+           //OK:=True ; {takie chamskie, potem poprawie} <-Ra: kto mia³ to poprawiæ i po co?
            if  ActiveDir=-1 then
             while (RList[MainCtrlPos].Bn>1) and IncMainCtrl(1) do
             dec(MainCtrlPos);
@@ -1517,6 +1527,7 @@ begin
  DecScndCtrl:=OK;
 end;
 
+(*
 function T_MoverParameters.DirectionForward: boolean;
 begin
   if (MainCtrlPosNo>0) and (ActiveDir<1) and (MainCtrlPos=0) then
@@ -1530,7 +1541,7 @@ begin
     DirectionForward:=MinCurrentSwitch(true)
   else
     DirectionForward:=False;
-end;
+end;*)
 
 function T_MoverParameters.DirectionBackward: boolean;
 begin
@@ -1559,7 +1570,7 @@ begin
  MainSwitch:=False; //Ra: przeniesione z koñca
   if ((Mains<>State) and (MainCtrlPosNo>0)) then
    begin
-    if (State=False) or ({(MainCtrlPos=0) and} (ScndCtrlPos=0) and (LastSwitchingTime>CtrlDelay) and not TestFlag(DamageFlag,dtrain_out)) then
+    if (State=False) or ({(MainCtrlPos=0) and} (ScndCtrlPos=0) and (ConvOvldFlag=false) and (LastSwitchingTime>CtrlDelay) and not TestFlag(DamageFlag,dtrain_out)) then
      begin
        if Mains then //jeœli by³ za³¹czony
         SendCtrlToNext('MainSwitch',ord(State),CabNo); //wys³anie wy³¹czenia do pozosta³ych?
@@ -2042,7 +2053,7 @@ begin
 UnBrake:=True;
 end;
 
- function T_MoverParameters.DecManualBrakeLevel(CtrlSpeed:byte):boolean;
+function T_MoverParameters.DecManualBrakeLevel(CtrlSpeed:byte):boolean;
 begin
   if ManualBrakePos>0 then
    begin
@@ -2141,6 +2152,8 @@ function T_MoverParameters.BrakeReleaser: boolean;
 var OK:boolean;
 begin
   if (BrakeCtrlPosNo>-2) and (PipePress<CntrlPipePress) and {(BrakeStatus=b_on)}(not TestFlag(BrakeStatus,b_dmg)) then
+  //Ra: BrakeCtrlPosNo jest typu Byte, wiêc nie mo¿e byæ mniejsze od 0!
+  //if {(BrakeCtrlPosNo>-1) and} (PipePress<CntrlPipePress) and {(BrakeStatus=b_on)}(not TestFlag(BrakeStatus,b_dmg)) then
    begin
      OK:=SetFlag(BrakeStatus,b_release);
      CntrlPipePress:=PipePress+0.015-0.0075*ord((BrakeSubsystem=Oerlikon)or(BrakeSubsystem=KE));
@@ -2170,7 +2183,8 @@ end;
 function T_MoverParameters.IncBrakePress(var brake:real;PressLimit,dp:real):boolean;
 begin
 //  if (DynamicBrakeType<>dbrake_switch) and (DynamicBrakeType<>dbrake_none) and ((BrakePress>0.2) or (PipePress<0.37{(LowPipePress+0.05)})) then
-    if (DynamicBrakeType<>dbrake_switch) and (DynamicBrakeType<>dbrake_none) and (BrakePress>0.2) then //yB radzi nie sprawdzaæ ciœnienia w przewodzie
+    if (DynamicBrakeType<>dbrake_switch) and (DynamicBrakeType<>dbrake_none) and (BrakePress>0.2) and (TrainType<>dt_EZT) then //yB radzi nie sprawdzaæ ciœnienia w przewodzie
+    //hunter-301211: dla EN57 silnikow nie odlaczamy
      begin
        DynamicBrakeFlag:=True;                 {uruchamianie hamulca ED albo odlaczanie silnikow}
        if (DynamicBrakeType=dbrake_automatic) and (abs(Im)>60) then            {nie napelniaj wiecej, jak na EP09}
@@ -2211,6 +2225,7 @@ var Rate,Speed,dp,sm:real;
 begin
   dpLocalValve:=0;
   dpBrake:=0;
+  sm:=1.0; //Ra: a ile powinno byæ i co to w³aœciwie jest?
   if (MaxBrakePress>0) and (not TestFlag(BrakeStatus,b_dmg)) then
    begin
        {hydrauliczny hamulec pomocniczy}
@@ -2361,7 +2376,7 @@ end;  {updatebrakepressure}
 
 procedure T_MoverParameters.UpdatePipePressure(dt:real);
 const LBDelay=15.0;kL=0.5;
-var {b: byte;} SpgTam,SpgTu,dV{,PWSpeed}:real; c: PMoverParameters;
+var {b: byte;} SpgTam,SpgTu,dV{,PWSpeed}:real; c: T_MoverParameters;
 begin
   //ABu: zmieniam na zlecenie Olo_EU
   //PWSpeed:=800/sqr(Dim.L); a
@@ -2521,27 +2536,27 @@ begin
        if TestFlag(Couplers[0].CouplingFlag,ctrain_pneumatic) then
          begin
            c:=Couplers[0].Connected; //skrot
-           SpgTam:=Spg*(1+kL*byte((c^.BrakeCtrlPosNo>0)and(c^.Power>1)and(c^.BrakeSystem=Pneumatic)));
-           dV:=PR(PipePress,c^.PipePress)*240*dt*sign(PipePress-c^.PipePress)*Spg;
-           c^.PipePress:=c^.PipePress+dV/(10*c^.Dim.L*SpgTam);
-           if c^.PipePress<0 then begin dV:=dV+PipePress*10*c^.Dim.L*SpgTam; c^.PipePress:=0;end;
+           SpgTam:=Spg*(1+kL*byte((c.BrakeCtrlPosNo>0)and(c.Power>1)and(c.BrakeSystem=Pneumatic)));
+           dV:=PR(PipePress,c.PipePress)*240*dt*sign(PipePress-c.PipePress)*Spg;
+           c.PipePress:=c.PipePress+dV/(10*c.Dim.L*SpgTam);
+           if c.PipePress<0 then begin dV:=dV+PipePress*10*c.Dim.L*SpgTam; c.PipePress:=0;end;
            dpPipe:=dpPipe-dV/(10*Dim.L*SpgTu);
-           if not c^.PhysicActivation then
+           if not c.PhysicActivation then
             if Abs(dV)>0.000000001 then
-             c^.Physic_ReActivation;  {aktywacja fizyki podlaczonego skladu}
+             c.Physic_ReActivation;  {aktywacja fizyki podlaczonego skladu}
           end;
       if Couplers[1].Connected<>nil then
        if TestFlag(Couplers[1].CouplingFlag,ctrain_pneumatic) then
          begin
            c:=Couplers[1].Connected; //skrot
-           SpgTam:=Spg*(1+kL*byte((c^.BrakeCtrlPosNo>0)and(c^.Power>1)and(c^.BrakeSystem=Pneumatic)));
-           dV:=PR(PipePress,c^.PipePress)*240*dt*sign(PipePress-c^.PipePress)*Spg;
-           c^.PipePress:=c^.PipePress+dV/(10*c^.Dim.L*SpgTam);
-           if c^.PipePress<0 then begin dV:=dV+PipePress*10*c^.Dim.L*SpgTam; c^.PipePress:=0;end;
+           SpgTam:=Spg*(1+kL*byte((c.BrakeCtrlPosNo>0)and(c.Power>1)and(c.BrakeSystem=Pneumatic)));
+           dV:=PR(PipePress,c.PipePress)*240*dt*sign(PipePress-c.PipePress)*Spg;
+           c.PipePress:=c.PipePress+dV/(10*c.Dim.L*SpgTam);
+           if c.PipePress<0 then begin dV:=dV+PipePress*10*c.Dim.L*SpgTam; c.PipePress:=0;end;
            dpPipe:=dpPipe-dV/(10*Dim.L*SpgTu);
-           if not c^.PhysicActivation then
+           if not c.PhysicActivation then
             if Abs(dV)>0.000000001 then
-             c^.Physic_ReActivation;  {aktywacja fizyki podlaczonego skladu}
+             c.Physic_ReActivation;  {aktywacja fizyki podlaczonego skladu}
      end;
                     //0.02+Random/140
       dpPipe:=(dpPipe-0.028*dt/(Dim.L*SpgTu*10));  //nieszczelnosci
@@ -2765,7 +2780,7 @@ var b:byte;
       with Couplers[b] do
        if TestFlag(CouplingFlag,ctrain_scndpneumatic) then
 
-        Connected^.CompressorFlag:=CompressorFlag;
+        Connected.CompressorFlag:=CompressorFlag;
           end;
          if (Compressor>MaxCompressor) or not CompressorAllow or ((CompressorPower<>0) and (not ConverterFlag)) or not Mains then
          CompressorFlag:=False;
@@ -2807,7 +2822,7 @@ for b:=0 to 1 do
       with Couplers[b] do
        if TestFlag(CouplingFlag,ctrain_controll) then
 
-        Connected^.PantVolume:=PantVolume;
+        Connected.PantVolume:=PantVolume;
  end;
 
 procedure T_MoverParameters.UpdateBatteryVoltage(dt:real);
@@ -2892,7 +2907,7 @@ end;
 procedure T_MoverParameters.UpdateScndPipePressure(dt: real);
 const Spz=0.5067;
 var USPP, dpSPipe,dpSpipeBV: real;
-    c: PMoverParameters;
+    c: T_MoverParameters;
 begin
 
   if (VeselVolume>0) then
@@ -2909,25 +2924,25 @@ begin
    if TestFlag(Couplers[0].CouplingFlag,ctrain_scndpneumatic) then
     begin
       c:=Couplers[0].Connected; //skrot
-      USPP:=PR(ScndPipePress,c^.ScndPipePress)*240.0*dt*sign(ScndPipePress-c^.ScndPipePress);
-      c^.ScndPipePress:=c^.ScndPipePress+USPP/(10.0*c^.Dim.L);
-      if c^.ScndPipePress<0 then begin USPP:=ScndPipePress*10*c^.Dim.L*Spz; c^.ScndPipePress:=0;end;
+      USPP:=PR(ScndPipePress,c.ScndPipePress)*240.0*dt*sign(ScndPipePress-c.ScndPipePress);
+      c.ScndPipePress:=c.ScndPipePress+USPP/(10.0*c.Dim.L);
+      if c.ScndPipePress<0 then begin USPP:=ScndPipePress*10*c.Dim.L*Spz; c.ScndPipePress:=0;end;
       dpSpipe:=dpSpipe-USPP/(10.0*Dim.L);
-      if not c^.PhysicActivation then
+      if not c.PhysicActivation then
        if Abs(USPP)>0.000000001 then
-        c^.Physic_ReActivation;  {aktywacja fizyki podlaczonego skladu}
+        c.Physic_ReActivation;  {aktywacja fizyki podlaczonego skladu}
     end;
   if Couplers[1].Connected<>nil then
    if TestFlag(Couplers[1].CouplingFlag,ctrain_scndpneumatic) then
      begin
        c:=Couplers[1].Connected; //skrot
-       USPP:=PR(ScndPipePress,c^.ScndPipePress)*240.0*dt*sign(ScndPipePress-c^.ScndPipePress);
-       c^.ScndPipePress:=c^.ScndPipePress+USPP/(10.0*c^.Dim.L);
-       if c^.ScndPipePress<0 then begin USPP:=ScndPipePress*10*c^.Dim.L*Spz; c^.ScndPipePress:=0;end;
+       USPP:=PR(ScndPipePress,c.ScndPipePress)*240.0*dt*sign(ScndPipePress-c.ScndPipePress);
+       c.ScndPipePress:=c.ScndPipePress+USPP/(10.0*c.Dim.L);
+       if c.ScndPipePress<0 then begin USPP:=ScndPipePress*10*c.Dim.L*Spz; c.ScndPipePress:=0;end;
        dpSpipe:=dpSpipe-USPP/(10.0*Dim.L);
-       if not c^.PhysicActivation then
+       if not c.PhysicActivation then
         if Abs(USPP)>0.000000001 then
-         c^.Physic_ReActivation;  {aktywacja fizyki podlaczonego skladu}
+         c.Physic_ReActivation;  {aktywacja fizyki podlaczonego skladu}
       end;
 
   dpSpipeBV:=0;
@@ -2946,82 +2961,7 @@ begin
 end;
 
 
-{sprzegi}
-
-function T_MoverParameters.Attach(ConnectNo:byte;ConnectToNr:byte;ConnectTo:PMoverParameters;CouplingType:byte):boolean;
-//³¹czenie do (ConnectNo) pojazdu (ConnectTo) stron¹ (ConnectToNr)
-//Ra: zwykle wykonywane dwukrotnie, dla ka¿dego pojazdu oddzielnie
-const dEpsilon=0.001;
-var ct:TCouplerType;
-begin
- with Couplers[ConnectNo] do
-  begin
-   if (ConnectTo<>nil) then
-    begin
-     if (ConnectToNr<>2) then ConnectedNr:=ConnectToNr; {2=nic nie pod³¹czone}
-     ct:=ConnectTo^.Couplers[ConnectedNr].CouplerType; //typ sprzêgu pod³¹czanego pojazdu
-     CoupleDist:=Distance(Loc,ConnectTo^.Loc,Dim,ConnectTo^.Dim); //odleg³oœæ pomiêdzy sprzêgami
-     if (((CoupleDist<=dEpsilon) and (CouplerType<>NoCoupler) and (CouplerType=ct))
-        or (CouplingType and ctrain_coupler=0))
-     then
-      begin  {stykaja sie zderzaki i kompatybilne typy sprzegow chyba ze wirtualnie}
-        Connected:=ConnectTo;
-        if CouplingFlag=ctrain_virtual then //jeœli wczeœniej nie by³o po³¹czone
-         begin //ustalenie z której strony rysowaæ sprzêg
-          Render:=True; //tego rysowaæ
-          Connected.Couplers[ConnectedNr].Render:=false; //a tego nie
-         end;
-        CouplingFlag:=CouplingType;
-        if (CouplingType<>ctrain_virtual) //Ra: wirtualnego nie ³¹czymy zwrotnie!
-        then //jeœli ³¹czenie sprzêgiem niewirtualnym, ustawiamy po³¹czenie zwrotne
-         Connected.Couplers[ConnectedNr].CouplingFlag:=CouplingType;
-        Attach:=True;
-      end
-     else
-      Attach:=False;
-    end
-   else
-    Attach:=False;
-  end;
-end;
-
-function T_MoverParameters.DettachDistance(ConnectNo: byte): boolean;
-//Ra: sprawdzenie, czy odleg³oœæ jest dobra do roz³¹czania
-begin
- with Couplers[ConnectNo] do
-  if (Connected<>nil) and
-  {ABu021104: zakomentowane 'and (CouplerType<>Articulated)' w warunku, nie wiem co to bylo, ale za to teraz dziala odczepianie... :) }
-  (((Distance(Loc,Connected^.Loc,Dim,Connected^.Dim)>0) {and (CouplerType<>Articulated)}) or
-   (TestFlag(DamageFlag,dtrain_coupling) or (CouplingFlag and ctrain_coupler=0)))
-   then
-    DettachDistance:=FALSE
-   else
-    DettachDistance:=TRUE;
-end;
-
-function T_MoverParameters.Dettach(ConnectNo: byte): boolean; {rozlaczanie}
-begin
- with Couplers[ConnectNo] do
-  begin
-   if (Connected<>nil) and
-   {ABu021104: zakomentowane 'and (CouplerType<>Articulated)' w warunku, nie wiem co to bylo, ale za to teraz dziala odczepianie... :) }
-   (((Distance(Loc,Connected^.Loc,Dim,Connected^.Dim)<=0) {and (CouplerType<>Articulated)}) or
-    (TestFlag(DamageFlag,dtrain_coupling) or (CouplingFlag and ctrain_coupler=0)))
-    then
-     begin  {gdy podlaczony oraz scisniete zderzaki chyba ze zerwany sprzeg albo tylko wirtualnie}
-{       Connected:=nil;  } {lepiej zostawic bo przeciez trzeba kontrolowac zderzenia odczepionych}
-       CouplingFlag:=0; //pozostaje sprzêg wirtualny
-       Connected.Couplers[ConnectedNr].CouplingFlag:=0; //pozostaje sprzêg wirtualny
-       Dettach:=True;
-     end
-   else
-     begin //od³¹czamy wê¿e i resztê, pozostaje sprzêg fizyczny
-       CouplingFlag:=CouplingFlag and ctrain_coupler;
-       Connected.Couplers[ConnectedNr].CouplingFlag:=CouplingFlag;
-       Dettach:=False; //jeszcze nie roz³¹czony
-     end
-  end;
-end;
+{sprzegi}{ Ra: przeniesione do C++}
 
 {lokomotywy}
 
@@ -3052,8 +2992,8 @@ begin
   for b:=0 to 1 do
    with Couplers[b] do
     if TestFlag(CouplingFlag,ctrain_controll) then
-     if Connected^.Power>0.01 then
-      FuseFlagCheck:=Connected^.FuseFlagCheck();
+     if Connected.Power>0.01 then
+      FuseFlagCheck:=Connected.FuseFlagCheck();
 end;
 
 function T_MoverParameters.FuseOn: boolean;
@@ -3105,8 +3045,8 @@ begin
    for b:=0 to 1 do
     with Couplers[b] do
      if TestFlag(CouplingFlag,ctrain_controll) then
-      if Connected^.Power>0.01 then
-       ShowCurrent:=Connected^.ShowCurrent(AmpN);
+      if Connected.Power>0.01 then
+       ShowCurrent:=Connected.ShowCurrent(AmpN);
 end;
 
 function T_MoverParameters.ShowEngineRotation(VehN:byte): integer;
@@ -3119,14 +3059,14 @@ begin
    2: for b:=0 to 1 do
        with Couplers[b] do
         if TestFlag(CouplingFlag,ctrain_controll) then
-         if Connected^.Power>0.01 then
-          ShowEngineRotation:=Trunc(Abs(Connected^.enrot));
+         if Connected.Power>0.01 then
+          ShowEngineRotation:=Trunc(Abs(Connected.enrot));
    3: if Couplers[1].Connected<>nil then
        if TestFlag(Couplers[1].CouplingFlag,ctrain_controll) then
-        if Couplers[1].Connected^.Couplers[1].Connected<>nil then
-         if TestFlag(Couplers[1].Connected^.Couplers[1].CouplingFlag,ctrain_controll) then
-          if Couplers[1].Connected^.Couplers[1].Connected^.Power>0.01 then
-           ShowEngineRotation:=Trunc(Abs(Couplers[1].Connected^.Couplers[1].Connected^.enrot));
+        if Couplers[1].Connected.Couplers[1].Connected<>nil then
+         if TestFlag(Couplers[1].Connected.Couplers[1].CouplingFlag,ctrain_controll) then
+          if Couplers[1].Connected.Couplers[1].Connected.Power>0.01 then
+           ShowEngineRotation:=Trunc(Abs(Couplers[1].Connected.Couplers[1].Connected.enrot));
   end;
 end;
 
@@ -3139,8 +3079,8 @@ function T_MoverParameters.V2n:real;
 const dmgn=0.5;
 var n,deltan:real;
 begin
-  n:=V/(Pi*WheelDiameter);  {predkosc obrotowa wynikajaca z liniowej}
-  deltan:=n-nrot;
+  n:=V/(Pi*WheelDiameter); //predkosc obrotowa wynikajaca z liniowej [obr/s]
+  deltan:=n-nrot; //"pochodna" prêdkoœci obrotowej
   if SlippingWheels then
    if Abs(deltan)<0.1 then
     SlippingWheels:=False; {wygaszenie poslizgu}
@@ -3336,16 +3276,15 @@ end;
 
 function T_MoverParameters.CutOffEngine: boolean; {wylacza uszkodzony silnik}
 begin
-  if (NPoweredAxles>0) and (CabNo=0) and (EngineType=ElectricSeriesMotor) then
-   begin
-     if SetFlag(DamageFlag,-dtrain_engine) then
-      begin
-        NPoweredAxles:=NPoweredAxles div 2;
-        CutOffEngine:=True;
-      end;
-   end
-  else
-   CutOffEngine:=False;
+ CutOffEngine:=False; //Ra: wartoœæ domyœlna, sprawdziæ to trzeba 
+ if (NPoweredAxles>0) and (CabNo=0) and (EngineType=ElectricSeriesMotor) then
+  begin
+   if SetFlag(DamageFlag,-dtrain_engine) then
+    begin
+     NPoweredAxles:=NPoweredAxles div 2;
+     CutOffEngine:=True;
+    end;
+  end
 end;
 
 {przelacznik pradu wysokiego rozruchu}
@@ -3422,7 +3361,16 @@ begin
 //        AutoRelayCheck:=False;
 //        Exit;
 //      end;
-if ((not Mains) or (FuseFlag)) and not((DynamicBrakeFlag) and (TrainType=dt_ET42)) then
+//yB: wychodzenie przy odcietym pradzie
+  if (ScndCtrlActualPos=255)then
+   begin
+    AutoRelayCheck:=False;
+    MainCtrlActualPos:=0;
+   end
+  else
+  //if (not Mains) or (FuseFlag) or (StLinFlag) then   //hunter-111211: wylacznik cisnieniowy
+  //if ((not Mains) or (FuseFlag)) and not((DynamicBrakeFlag) and (TrainType=dt_ET42)) then
+  if ((not Mains) or (FuseFlag)  or (StLinFlag)) and not((DynamicBrakeFlag) and (TrainType=dt_ET42)) then  //hunter-111211: wylacznik cisnieniowy
    begin
      AutoRelayCheck:=False;
      MainCtrlActualPos:=0;
@@ -3436,6 +3384,7 @@ if ((not Mains) or (FuseFlag)) and not((DynamicBrakeFlag) and (TrainType=dt_ET42
        DelayCtrlFlag:=False;
        SetFlag(SoundFlag,sound_relay); SetFlag(SoundFlag,sound_loud);
      end;
+    //if (TrainType<>dt_EZT) then //Ra: w EZT mo¿na daæ od razu na S albo R, wa³ ku³akowy sobie dokrêci
     if (LastRelayTime>CtrlDelay) and not DelayCtrlFlag then
      begin
       if (MainCtrlPos=0) and (TrainType<>dt_ET40) and (TrainType<>dt_EP05) then
@@ -3506,10 +3455,17 @@ if ((not Mains) or (FuseFlag)) and not((DynamicBrakeFlag) and (TrainType=dt_ET42
 
               begin
                 inc(MainCtrlActualPos);
+                //---------
+                //hunter-111211: poprawki
                 if MainCtrlActualPos>0 then
-                 if (Rlist[MainCtrlActualPos].R=0) and ((Rlist[MainCtrlActualPos].ScndAct=0) or (Rlist[MainCtrlActualPos].ScndAct=255)) then  {dzwieki przechodzenia na bezoporowa}
+                 //if (Rlist[MainCtrlActualPos].R=0) and ((Rlist[MainCtrlActualPos].ScndAct=0) or (Rlist[MainCtrlActualPos].ScndAct=255)) then  {dzwieki przechodzenia na bezoporowa}
+                 if (Rlist[MainCtrlActualPos].R=0) and (not (MainCtrlActualPos=MainCtrlPosNo)) then  //wejscie na bezoporowa
                   begin
                    SetFlag(SoundFlag,sound_manyrelay); SetFlag(SoundFlag,sound_loud);
+                  end
+                 else if (Rlist[MainCtrlActualPos].R>0) and (Rlist[MainCtrlActualPos-1].R=0) then //wejscie na drugi uklad
+                  begin
+                   SetFlag(SoundFlag,sound_manyrelay);
                   end;
 
               end
@@ -3518,8 +3474,9 @@ if ((not Mains) or (FuseFlag)) and not((DynamicBrakeFlag) and (TrainType=dt_ET42
               if not ((Rlist[MainCtrlActualPos].Mn<Rlist[MainCtrlPos].Mn) and (Rlist[MainCtrlActualPos-1].Mn>Rlist[MainCtrlActualPos].Mn)and (TrainType=dt_ET22) and (LastRelayTime<InitialCtrlDelay))then
               begin
                 dec(MainCtrlActualPos);
-                if MainCtrlActualPos>0 then
-                 if (Rlist[MainCtrlActualPos+1].R=0) and ((Rlist[MainCtrlActualPos+1].ScndAct=0) or (Rlist[MainCtrlActualPos+1].ScndAct=255)) then  {dzwieki schodzenia z bezoporowej}
+                if MainCtrlActualPos>0 then  //hunter-111211: poprawki
+                 //if (Rlist[MainCtrlActualPos+1].R=0) and ((Rlist[MainCtrlActualPos+1].ScndAct=0) or (Rlist[MainCtrlActualPos+1].ScndAct=255)) then  {dzwieki schodzenia z bezoporowej}
+                 if Rlist[MainCtrlActualPos].R=0 then  {dzwieki schodzenia z bezoporowej}
                   begin
                    SetFlag(SoundFlag,sound_manyrelay);
                   end;
@@ -3613,8 +3570,9 @@ if ((not Mains) or (FuseFlag)) and not((DynamicBrakeFlag) and (TrainType=dt_ET42
     else  {DelayCtrlFlag}
      if ((MainCtrlPos>1) and (MainCtrlActualPos>0) and DelayCtrlFlag) then
       begin
-        MainCtrlActualPos:=0;
-        OK:=True;
+       //if (TrainType<>dt_EZT) then //Ra: w EZT mo¿na daæ od razu na S albo R, wa³ ku³akowy sobie dokrêci
+       MainCtrlActualPos:=0; //Ra: tu jest chyba wy³¹czanie przy zbyt szybkim wejœciu na drug¹ pozycjê
+       OK:=True;
       end
       else
      if ((MainCtrlPos=0) and (TrainType=dt_EZT)) then
@@ -3651,8 +3609,8 @@ begin
    for b:=0 to 1 do
     with Couplers[b] do
      if TestFlag(CouplingFlag,ctrain_controll) then
-      if Connected^.Power>0.01 then
-       ResistorsFlagCheck:=Connected^.ResistorsFlagCheck();
+      if Connected.Power>0.01 then
+       ResistorsFlagCheck:=Connected.ResistorsFlagCheck();
 end;
 
 function T_MoverParameters.dizel_EngageSwitch(state: real): boolean;
@@ -4167,7 +4125,7 @@ begin
    case LocalBrake of
    NoBrake :      K:=0;
    ManualBrake :  K:=MaxBrakeForce*ManualBrakeRatio;
-   HydraulicBrake : K:=0;
+   HydraulicBrake : K:=MaxBrakeForce*LocalBrakeRatio;
    PneumaticBrake:if Compressor<MaxBrakePress then
                    K:=MaxBrakeForce*LocalBrakeRatio/2.0
                   else
@@ -4177,27 +4135,34 @@ begin
   begin
    K:=MaxBrakeForce*ManualBrakeRatio;
    end;
-  sm:=1;
-  //test pozycji pospiesznej
-  if TestFlag(BrakeDelays,bdelay_R)then
-   if(not TestFlag(BrakeStatus,b_Ractive)and(BrakeCtrlPosNo=0))then
-     sm:=0.5
-   else if(TestFlag(BrakeStatus,b_Ractive)and(BrakeCtrlPosNo>0))then
-     sm:=1.5;
-                //0.03
-  if (BrakePress)>(0.05*MaxBrakePress*sm) then         {nie luz}
-   begin
-//     if (BrakeSubsystem=Oerlikon) and (Vel>50) then //yB: to na razie komentuje, potem sie zrobi lepiej
-//      K:=K+BrakePress*P2FTrans*OerlikonForceFactor  {w kN}
-//     else
-      K:=K+BrakePress*P2FTrans;                     {w kN}
-     K:=K*BrakeCylNo/(NBrakeAxles*NBpA);            {w kN na os}
-   end;
-  if (BrakeMethod and 1 = 0) then
-    //  u:=0.6*((0.16*K+100)/(0.8*K+100))*((vel+100)/(5*vel+100))
-    u:=60*(0.16*K+100)/((0.8*K+100)*(3*Vel+100)){wsp. tarcia}
- else
-    u:=0.4*(0.4*K+100.0)*(Vel+80.0)/((0.8*K+100.0)*(2.0*Vel+80.0)); {wsp. tarcia}
+
+  if (BrakeSystem=Pneumatic)or(BrakeSystem=ElectroPneumatic) then
+  begin
+   sm:=1;
+   //test pozycji pospiesznej
+   if TestFlag(BrakeDelays,bdelay_R)then
+    if(not TestFlag(BrakeStatus,b_Ractive)and(BrakeCtrlPosNo=0))then
+      sm:=0.5
+    else if(TestFlag(BrakeStatus,b_Ractive)and(BrakeCtrlPosNo>0))then
+      sm:=1.5;
+                 //0.03
+   if (BrakePress)>(0.05*MaxBrakePress*sm) then         {nie luz}
+    begin
+ //     if (BrakeSubsystem=Oerlikon) and (Vel>50) then //yB: to na razie komentuje, potem sie zrobi lepiej
+ //      K:=K+BrakePress*P2FTrans*OerlikonForceFactor  {w kN}
+ //     else
+       K:=K+BrakePress*P2FTrans;                     {w kN}
+      K:=K*BrakeCylNo/(NBrakeAxles*NBpA);            {w kN na os}
+    end;
+   if (BrakeMethod and 1 = 0) then
+     u:=60*(0.16*K+100.0)/((0.8*K+100.0)*(3.0*Vel+100.0)) {wsp. tarcia}
+   else
+     u:=0.4*(0.4*K+100.0)*(Vel+80.0)/((0.8*K+100.0)*(2.0*Vel+80.0)); {wsp. tarcia}
+  end //BrakeSystem=Pneumatic
+  else
+  begin
+   u:=1;
+  end; //else BrakeSystem=Pneumatic
   UnitBrakeForce:=u*K*1000;                     {sila na jeden klocek w N}
   if (NBpA*UnitBrakeForce>TotalMassxg*Adhesive(RunningTrack.friction)/NAxles) and (Abs(V)>0.001) then
    {poslizg}
@@ -4215,17 +4180,6 @@ begin
 
  {  end; }
   BrakeForce:=Fb;
-end;
-
-procedure T_MoverParameters.SetCoupleDist;
-{przeliczenie odleg³oœci sprzêgów}
-begin
- with Couplers[0] do
-  if (Connected<>nil) then
-   CoupleDist:=Distance(Loc,Connected^.Loc,Dim,Connected^.Dim);
- with Couplers[1] do
-  if (Connected<>nil) then
-   CoupleDist:=Distance(Loc,Connected^.Loc,Dim,Connected^.Dim);
 end;
 
 function T_MoverParameters.CouplerForce(CouplerN:byte;dt:real):real;
@@ -4247,16 +4201,16 @@ begin
       if (CouplerN=0) then
          begin
             //ABu: bylo newdist+10*((...
-            tempdist:=((Connected^.dMoveLen*DirPatch(0,ConnectedNr))-dMoveLen);
+            tempdist:=((Connected.dMoveLen*DirPatch(0,ConnectedNr))-dMoveLen);
             newdist:=newdist+10.0*tempdist;
-            tempdist:=tempdist+CoupleDist; //ABu: proby szybkiego naprawienia bledu
+            //tempdist:=tempdist+CoupleDist; //ABu: proby szybkiego naprawienia bledu
          end
       else
          begin
             //ABu: bylo newdist+10*((...
-            tempdist:=((dMoveLen-(Connected^.dMoveLen*DirPatch(1,ConnectedNr))));
+            tempdist:=((dMoveLen-(Connected.dMoveLen*DirPatch(1,ConnectedNr))));
             newdist:=newdist+10.0*tempdist;
-            tempdist:=tempdist+CoupleDist; //ABu: proby szybkiego naprawienia bledu
+            //tempdist:=tempdist+CoupleDist; //ABu: proby szybkiego naprawienia bledu
          end;
 
       //blablabla
@@ -4269,7 +4223,7 @@ begin
          if (newdist>MaxDist) or ((ScanCounter>MaxCount)and(newdist>MinDist)) then
          //***if (tempdist>MaxDist) or ((ScanCounter>MaxCount)and(tempdist>MinDist)) then
           begin {zerwij kontrolnie wirtualny sprzeg}
-            Connected^.Couplers[CNext].Connected:=nil;
+            //Connected.Couplers[CNext].Connected:=nil; //Ra: ten pod³¹czony niekoniecznie jest wirtualny
             Connected:=nil;
             ScanCounter:=Random(500);
           end;
@@ -4283,10 +4237,10 @@ begin
           end
          else            {usrednij bo wspolny sprzeg}
           begin
-            BetaAvg:=(beta+Connected^.Couplers[CNext].beta)/2.0;
-            Fmax:=(FmaxC+FmaxB+Connected^.Couplers[CNext].FmaxC+Connected^.Couplers[CNext].FmaxB)*CouplerTune/2.0;
+            BetaAvg:=(beta+Connected.Couplers[CNext].beta)/2.0;
+            Fmax:=(FmaxC+FmaxB+Connected.Couplers[CNext].FmaxC+Connected.Couplers[CNext].FmaxB)*CouplerTune/2.0;
           end;
-         dV:=V-DirPatch(CouplerN,CNext)*Connected^.V;
+         dV:=V-DirPatch(CouplerN,CNext)*Connected.V;
          absdv:=abs(dV);
          if (newdist<-0.001) and (Dist>=-0.001) and (absdv>0.010) then {090503: dzwieki pracy zderzakow}
           begin
@@ -4307,22 +4261,22 @@ begin
          if Dist>0 then
           begin
             if distDelta>0 then
-              CF:=(-(SpringKC+Connected^.Couplers[CNext].SpringKC)*Dist/2.0)*DirF(CouplerN)-Fmax*dV*betaAvg
+              CF:=(-(SpringKC+Connected.Couplers[CNext].SpringKC)*Dist/2.0)*DirF(CouplerN)-Fmax*dV*betaAvg
              else
-              CF:=(-(SpringKC+Connected^.Couplers[CNext].SpringKC)*Dist/2.0)*DirF(CouplerN)*betaAvg-Fmax*dV*betaAvg;
+              CF:=(-(SpringKC+Connected.Couplers[CNext].SpringKC)*Dist/2.0)*DirF(CouplerN)*betaAvg-Fmax*dV*betaAvg;
                 {liczenie sily ze sprezystosci sprzegu}
-            if Dist>(DmaxC+Connected^.Couplers[CNext].DmaxC) then {zderzenie}
+            if Dist>(DmaxC+Connected.Couplers[CNext].DmaxC) then {zderzenie}
             //***if tempdist>(DmaxC+Connected^.Couplers[CNext].DmaxC) then {zderzenie}
              CheckCollision:=True;
           end;
          if Dist<0 then
           begin
             if distDelta>0 then
-              CF:=(-(SpringKB+Connected^.Couplers[CNext].SpringKB)*Dist/2.0)*DirF(CouplerN)-Fmax*dV*betaAvg
+              CF:=(-(SpringKB+Connected.Couplers[CNext].SpringKB)*Dist/2.0)*DirF(CouplerN)-Fmax*dV*betaAvg
             else
-              CF:=(-(SpringKB+Connected^.Couplers[CNext].SpringKB)*Dist/2.0)*DirF(CouplerN)*betaAvg-Fmax*dV*betaAvg;
+              CF:=(-(SpringKB+Connected.Couplers[CNext].SpringKB)*Dist/2.0)*DirF(CouplerN)*betaAvg-Fmax*dV*betaAvg;
                 {liczenie sily ze sprezystosci zderzaka}
-           if -Dist>(DmaxB+Connected^.Couplers[CNext].DmaxB) then  {zderzenie}
+           if -Dist>(DmaxB+Connected.Couplers[CNext].DmaxB) then  {zderzenie}
             //***if -tempdist>(DmaxB+Connected^.Couplers[CNext].DmaxB)/10 then  {zderzenie}
              begin
                CheckCollision:=True;
@@ -4333,7 +4287,7 @@ begin
        end;
       if (CouplingFlag<>ctrain_virtual)
       then         {uzgadnianie prawa Newtona}
-       Connected^.Couplers[1-CouplerN].CForce:=-CF;
+       Connected.Couplers[1-CouplerN].CForce:=-CF;
     end;
   CouplerForce:=CF;
 end;
@@ -4346,13 +4300,13 @@ begin
       begin
         VirtualCoupling:=(CouplingFlag=ctrain_virtual);
         Vprev:=V;
-        VprevC:=Connected^.V;
+        VprevC:=Connected.V;
         case CouplerN of
-         0 : CCF:=ComputeCollision(V,Connected^.V,TotalMass,Connected^.TotalMass,(beta+Connected^.Couplers[ConnectedNr].beta)/2.0,VirtualCoupling)/(dt{+0.01}); //yB: ej ej ej, a po
-         1 : CCF:=ComputeCollision(Connected^.V,V,Connected^.TotalMass,TotalMass,(beta+Connected^.Couplers[ConnectedNr].beta)/2.0,VirtualCoupling)/(dt{+0.01}); //czemu tu jest +0.01??
+         0 : CCF:=ComputeCollision(V,Connected.V,TotalMass,Connected.TotalMass,(beta+Connected.Couplers[ConnectedNr].beta)/2.0,VirtualCoupling)/(dt{+0.01}); //yB: ej ej ej, a po
+         1 : CCF:=ComputeCollision(Connected.V,V,Connected.TotalMass,TotalMass,(beta+Connected.Couplers[ConnectedNr].beta)/2.0,VirtualCoupling)/(dt{+0.01}); //czemu tu jest +0.01??
         end;
         AccS:=AccS+(V-Vprev)/dt;
-        Connected^.AccS:=Connected^.AccS+(Connected^.V-VprevC)/dt;
+        Connected.AccS:=Connected.AccS+(Connected.V-VprevC)/dt;
         if (Dist>0) and (not VirtualCoupling) then
          if FuzzyLogic(Abs(CCF),5*(FmaxC+1),p_coupldmg) then
           begin                            {! zerwanie sprzegu}
@@ -4362,8 +4316,8 @@ begin
              EmergencyBrakeFlag:=True;   {hamowanie nagle - zerwanie przewodow hamulcowych}
             CouplingFlag:=0;
             case CouplerN of             {wyzerowanie flag podlaczenia ale ciagle sa wirtualnie polaczone}
-             0 : Connected^.Couplers[1].CouplingFlag:=0;
-             1 : Connected^.Couplers[0].CouplingFlag:=0;
+             0 : Connected.Couplers[1].CouplingFlag:=0;
+             1 : Connected.Couplers[0].CouplingFlag:=0;
             end
           end ;
       end;
@@ -4435,7 +4389,7 @@ function T_MoverParameters.LoadingDone(LSpeed:real; LoadInit:string): boolean;
 var LoadChange:longint;
 begin
  ClearPendingExceptions; //zabezpieczenie dla Trunc()
- LoadingDone:=False; //nie zakoñczone
+ //LoadingDone:=False; //nie zakoñczone
  if (LoadInit<>'') then //nazwa ³adunku niepusta
   begin
    if Load>MaxLoad then
@@ -4476,7 +4430,7 @@ begin
 end;
 
 {-------------------------------------------------------------------}
-{WAZNA FUNKCJA - oblicza sile wypadkowa}
+{WAZNA FUNKCJA - oblicza si³ê wypadkow¹}
 procedure T_MoverParameters.ComputeTotalForce(dt: real; dt1: real; FullVer: boolean);
 var b: byte;
 begin
@@ -4489,7 +4443,7 @@ begin
     //juz zoptymalizowane:
     FStand:=FrictionForce(RunningShape.R,RunningTrack.DamageFlag);
     Vel:=Abs(V)*3.6;
-    nrot:=V2n;
+    nrot:=V2n(); //przeliczenie prêdkoœci liniowej na obrotow¹
 
     if TestFlag(BrakeMethod,2) and (PipePress<CntrlPipePress/3.0)then
       FStand:=Fstand+(RunningTrack.friction)*TrackBrakeForce;
@@ -4954,6 +4908,14 @@ begin
 end;
 
 function T_MoverParameters.RunCommand(command:string; CValue1,CValue2:real):boolean;
+//wys³anie komendy otrzymanej z kierunku CValue2 (wzglêdem sprzêgów: 1=przod,-1=ty³)
+// Ra: Jest tu problem z rekurencj¹. Trzeba by oddzieliæ wykonywanie komend od mechanizmu
+// ich propagacji w sk³adzie. Osobnym problemem mo¿e byæ propagacja tylko w jedn¹ stronê.
+// Jeœli jakiœ cz³on jest wstawiony odwrotnie, to równie¿ odwrotnie musi wykonywaæ
+// komendy zwi¹zane z kierunkami (PantFront, PantRear, DoorLeft, DoorRight).
+// Komenda musi byæ zdefiniowana tutaj, a jeœli siê wywo³uje funkcjê, to ona nie mo¿e
+// sama przesy³aæ do kolejnych pojazdów. Nale¿y te¿ siê zastanowiæ, czy dla uzyskania
+// jakiejœ zmiany (np. IncMainCtrl) lepiej wywo³aæ funkcjê, czy od razu wys³aæ komendê.
 var OK:boolean; testload:string;
 Begin
 {$B+} {cholernie mi sie nie podoba ta dyrektywa!!!}
@@ -5041,7 +5003,7 @@ Begin
 //  if OK then
     if (CabNo<>0) then
      LastCab:=CabNo;
-    case Trunc(CValue1) of
+    case Trunc(CValue1*CValue2) of
       1 : CabNo:= 1;
      -1 : CabNo:=-1;
     else CabNo:=0;
@@ -5091,22 +5053,47 @@ Begin
      else if (CValue1=0) then CompressorAllow:=false;
      OK:=SendCtrlToNext(command,CValue1,CValue2);
    end
-  else if command='DoorLeft' then         {NBMX}
-   begin
-     if (CValue1=1) then DoorLeftOpened:=true
-     else if (CValue1=0) then DoorLeftOpened:=false;
-     OK:=SendCtrlToNext(command,CValue1,CValue2);
+  else if command='DoorOpen' then         {NBMX}
+   begin //Ra: uwzglêdniæ trzeba jeszcze zgodnoœæ sprzêgów
+    if (CValue2>0) then
+     begin //normalne ustawienie pojazdu
+      if (CValue1=1) then
+       DoorLeftOpened:=true;
+      if (CValue1=2) then
+       DoorRightOpened:=true;
+     end
+    else
+     begin //odwrotne ustawienie pojazdu
+      if (CValue1=2) then
+       DoorLeftOpened:=true;
+      if (CValue1=1) then
+       DoorRightOpened:=true;
+     end;
+    OK:=SendCtrlToNext(command,CValue1,CValue2);
    end
-  else if command='DoorRight' then         {NBMX}
-   begin
-     if (CValue1=1) then DoorRightOpened:=true
-     else if (CValue1=0) then DoorRightOpened:=false;
-     OK:=SendCtrlToNext(command,CValue1,CValue2);
+  else if command='DoorClose' then         {NBMX}
+   begin //Ra: uwzglêdniæ trzeba jeszcze zgodnoœæ sprzêgów
+    if (CValue2>0) then
+     begin //normalne ustawienie pojazdu
+      if (CValue1=1) then
+       DoorLeftOpened:=false;
+      if (CValue1=2) then
+       DoorRightOpened:=false;
+     end
+    else
+     begin //odwrotne ustawienie pojazdu
+      if (CValue1=2) then
+       DoorLeftOpened:=false;
+      if (CValue1=1) then
+       DoorRightOpened:=false;
+     end;
+    OK:=SendCtrlToNext(command,CValue1,CValue2);
    end
-else if command='PantFront' then         {Winger 160204}
-   begin
+  else if command='PantFront' then         {Winger 160204}
+   begin //Ra: uwzglêdniæ trzeba jeszcze zgodnoœæ sprzêgów
+   //Czemu EZT ma byæ traktowane inaczej? Ukrotnienie ma, a cz³on mo¿e byæ odwrócony
      if (TrainType=dt_EZT) then
-     begin {dt_EZT}
+     begin //'ezt'
        if (CValue1=1) then
         begin
         PantFrontUp:=true;
@@ -5119,7 +5106,7 @@ else if command='PantFront' then         {Winger 160204}
         end;
      end
      else
-     begin {nie dt_EZT}
+     begin //nie 'ezt' - odwrotne ustawienie pantografów: ^-.-^ zamiast ^-.^- 
        if (CValue1=1) then
         if (TestFlag(Couplers[1].CouplingFlag,ctrain_controll)and(CValue2= 1))
          or(TestFlag(Couplers[0].CouplingFlag,ctrain_controll)and(CValue2=-1))
@@ -5150,7 +5137,7 @@ else if command='PantFront' then         {Winger 160204}
      OK:=SendCtrlToNext(command,CValue1,CValue2);
    end
   else if command='PantRear' then         {Winger 160204, ABu 310105 i 030305}
-   begin
+   begin //Ra: uwzglêdniæ trzeba jeszcze zgodnoœæ sprzêgów
      if (TrainType=dt_EZT) then
      begin {'ezt'}
       if (CValue1=1) then
@@ -5228,15 +5215,15 @@ else if command='PantFront' then         {Winger 160204}
      else OK:=False;
    end
   else if command='CabSignal' then {SHP,Indusi}
-   begin
-     if SecuritySystem.SystemType>1 then
+   begin //Ra: to powinno dzia³aæ tylko w cz³onie obsadzonym
+     if (ActiveCab<>0) and (SecuritySystem.SystemType>1) then //jeœli kabina jest obsadzona
       with SecuritySystem do
        begin
-         VelocityAllowed:=Trunc(CValue1);
-         NextVelocityAllowed:=Trunc(CValue2);
-         SystemSoundTimer:=0;
-         SetFlag(Status,s_active);
-         OK:=True;
+        VelocityAllowed:=Trunc(CValue1);
+        NextVelocityAllowed:=Trunc(CValue2);
+        SystemSoundTimer:=0;
+        SetFlag(Status,s_active);
+        OK:=True;
        end
       else OK:=False;
    end
@@ -5303,13 +5290,14 @@ begin
    end;                         {czy uruchomic tu RunInternalCommand? nie wiem}
 end;
 
-{dla samochodow}
+{dla samochodow - kolej nie wê¿ykuje}
 function T_MoverParameters.ChangeOffsetH(DeltaOffset:real):boolean;
 begin
   if TestFlag(CategoryFlag,2) and TestFlag(RunningTrack.CategoryFlag,2) then
    begin
      OffsetTrackH:=OffsetTrackH+DeltaOffset;
-     if abs(OffsetTrackH)>(RunningTrack.Width/1.95-TrackW/2.0) then
+//     if abs(OffsetTrackH)>(RunningTrack.Width/1.95-TrackW/2.0) then
+     if abs(OffsetTrackH)>(0.5*(RunningTrack.Width-Dim.W)-0.05) then //Ra: mo¿e pó³ pojazdu od brzegu?
       ChangeOffsetH:=False  {kola na granicy drogi}
      else
       ChangeOffsetH:=True;
@@ -5319,7 +5307,7 @@ end;
 
 {inicjalizacja}
 
-constructor T_MoverParameters.Init(LocInitial:TLocation; RotInitial:TRotation;
+constructor T_MoverParameters.Init(//LocInitial:TLocation; RotInitial:TRotation;
                                   VelInitial:real; TypeNameInit, NameInit: string; LoadInitial:longint; LoadTypeInitial: string; Cab:integer);
                                  {predkosc pocz. w km/h, ilosc ladunku, typ ladunku, numer kabiny}
 var b,k:integer;
@@ -5424,8 +5412,8 @@ begin
   PowerCorRatio:=1;
 
   {inicjalizacja zmiennych}
-  Loc:=LocInitial;
-  Rot:=RotInitial;
+  //Loc:=LocInitial; //Ra: to i tak trzeba potem przesun¹æ, po ustaleniu pozycji na torze (potrzebna d³ugoœæ)
+  //Rot:=RotInitial;
   for b:=0 to 1 do
    with Couplers[b] do
     begin
@@ -5455,6 +5443,7 @@ begin
   SlippingWheels:=False;
   SandDose:=False;
   FuseFlag:=False;
+  ConvOvldFlag:=false;   //hunter-251211
   StLinFlag:=False;
   ResistorsFlag:=False;
   Rventrot:=0;
@@ -5728,12 +5717,18 @@ begin
   DoorLeftOpened:=State;
   if (State=true) then
    begin
-     SendCtrlToNext('DoorLeft',1,CabNo);
-     CompressedVolume:=CompressedVolume-0.003;
+    if (CabNo>0) then
+     SendCtrlToNext('DoorOpen',1,CabNo) //1=lewe, 2=prawe
+    else
+     SendCtrlToNext('DoorOpen',2,CabNo); //zamiana
+    CompressedVolume:=CompressedVolume-0.003;
    end
   else
    begin
-    SendCtrlToNext('DoorLeft',0,CabNo);
+    if (CabNo>0) then
+     SendCtrlToNext('DoorClose',1,CabNo)
+    else
+     SendCtrlToNext('DoorClose',2,CabNo);
    end;
   end
   else
@@ -5748,12 +5743,18 @@ begin
   DoorRightOpened:=State;
   if (State=true) then
    begin
-     SendCtrlToNext('DoorRight',1,CabNo);
+    if (CabNo>0) then
+     SendCtrlToNext('DoorOpen',2,CabNo) //1=lewe, 2=prawe
+    else
+     SendCtrlToNext('DoorOpen',1,CabNo); //zamiana
           CompressedVolume:=CompressedVolume-0.003;
    end
   else
    begin
-    SendCtrlToNext('DoorRight',0,CabNo);
+    if (CabNo>0) then
+     SendCtrlToNext('DoorClose',2,CabNo)
+    else
+     SendCtrlToNext('DoorClose',1,CabNo);
    end;
  end
  else
@@ -5782,12 +5783,14 @@ begin
       PantFront:=false;
       PantFrontStart:=1;
       SendCtrlToNext('PantFront',0,CabNo);
+{Ra: nie ma potrzeby opuszczaæ obydwu na raz, jak mozemy ka¿dy osobno
       if (TrainType=dt_EZT) and (ActiveCab=1) then
        begin
         PantRearUp:=false;
         PantRearStart:=1;
         SendCtrlToNext('PantRear',0,CabNo);
        end;
+}
    end;
  end
  else
@@ -6015,8 +6018,8 @@ begin
               else if s='PSEUDODIESEL' then TrainType:=dt_PseudoDiesel
               else if s='181' then TrainType:=dt_181
               else if s='182' then TrainType:=dt_181; {na razie tak}
-            end;
-          if Pos('Load:',lines)>0 then      {stale parametry}
+            end
+          else if Pos('Load:',lines)>0 then      {stale parametry}
             begin
               LoadAccepted:=LowerCase(DUE(ExtractKeyWord(lines,'LoadAccepted=')));
               if LoadAccepted<>'' then
@@ -6031,10 +6034,11 @@ begin
                  s:=ExtractKeyWord(lines,'UnLoadSpeed=');
                  UnLoadSpeed:=s2rE(DUE(s));
                end;
-            end;
-          if Pos('Dimensions:',lines)>0 then      {wymiary}
-           with Dim do
-            begin
+            end
+          else if Pos('Dimensions:',lines)>0 then      {wymiary}
+           begin
+            with Dim do
+             begin
               SetFlag(OKFlag,dimensions_ok);
               s:=ExtractKeyWord(lines,'L=');
               L:=s2rE(DUE(s));
@@ -6045,12 +6049,23 @@ begin
               s:=ExtractKeyWord(lines,'Cx=');
               Cx:=s2r(DUE(s));
               if Cx=0 then Cx:=0.3;
-            end;
-          if Pos('Wheels:',lines)>0 then      {kola}
+             end;
+           end
+          else if Pos('Wheels:',lines)>0 then      {kola}
             begin
 {              SetFlag(OKFlag,wheels_ok);}
-              s:=ExtractKeyWord(lines,'D=');
+              s:=ExtractKeyWord(lines,'D='); //œrednica osi napêdzaj¹cych
               WheelDiameter:=s2rE(DUE(s));
+              s:=ExtractKeyWord(lines,'Dl='); //œrednica przednich osi tocznych
+              if s='' then
+               WheelDiameterL:=WheelDiameter //gdyby nie by³o parametru, lepsze to ni¿ zero
+              else
+               WheelDiameterL:=s2rE(DUE(s));
+              s:=ExtractKeyWord(lines,'Dt='); //œrednica tylnych osi tocznych
+              if s='' then
+               WheelDiameterT:=WheelDiameter //gdyby nie by³o parametru, lepsze to ni¿ zero
+              else
+               WheelDiameterT:=s2rE(DUE(s));
               s:=ExtractKeyWord(lines,'Tw=');
               TrackW:=s2rE(DUE(s));
               s:=ExtractKeyWord(lines,'AIM=');
@@ -6067,8 +6082,8 @@ begin
               ADist:=s2rE(DUE(s));
               s:=ExtractKeyWord(lines,'Bd=');
               BDist:=s2r(DUE(s));
-            end;
-          if Pos('Brake:',lines)>0 then      {hamulce}
+            end
+          else if Pos('Brake:',lines)>0 then      {hamulce}
             begin
               s:=DUE(ExtractKeyWord(lines,'BrakeType='));
               if s='Oerlikon' then BrakeSubSystem:=Oerlikon
@@ -6140,9 +6155,8 @@ begin
                CompressorPower:=2
               else if s='Main' then
                CompressorPower:=0;
-            end;
-
-          if Pos('Doors:',lines)>0 then      {drzwi}
+            end
+          else if Pos('Doors:',lines)>0 then      {drzwi}
             begin
               s:=DUE(ExtractKeyWord(lines,'OpenCtrl='));
               if s='DriverCtrl' then DoorOpenCtrl:=1
@@ -6180,8 +6194,8 @@ begin
               if s='Yes' then DoorBlocked:=true
               else
                 DoorBlocked:=false;
-            end;
-          if (Pos('BuffCoupl.',lines)>0) or (Pos('BuffCoupl1.',lines)>0) then  {zderzaki i sprzegi}
+            end
+          else if (Pos('BuffCoupl.',lines)>0) or (Pos('BuffCoupl1.',lines)>0) then  {zderzaki i sprzegi}
             begin
              with Couplers[0] do
               begin
@@ -6256,8 +6270,8 @@ begin
                    Couplers[1].CouplerType:=Couplers[0].CouplerType;
                  end;
 {                CouplerTune:=(1+Mass)/100000; }
-              end;
-          if (Pos('BuffCoupl2.',lines)>0) then  {zderzaki i sprzegi jesli sa rozne}
+              end
+          else if (Pos('BuffCoupl2.',lines)>0) then  {zderzaki i sprzegi jesli sa rozne}
             with Couplers[1] do
               begin
                 s:=DUE(ExtractKeyWord(lines,'CType='));
@@ -6319,13 +6333,13 @@ begin
                     beta:=0.55;
                   end;
 {                CouplerTune:=(1+Mass)/100000; }
-              end;
-          if Pos('TurboPos:',lines)>0 then      {turbo zalezne od pozycji nastawnika}
+              end
+          else if Pos('TurboPos:',lines)>0 then      {turbo zalezne od pozycji nastawnika}
            begin
             s:=ExtractKeyWord(lines,'TurboPos=');
             TurboTest:=s2b(DUE(s));
-           end;
-          if Pos('Cntrl.',lines)>0 then      {nastawniki}
+           end
+          else if Pos('Cntrl.',lines)>0 then      {nastawniki}
             begin
               s:=DUE(ExtractKeyWord(lines,'BrakeSystem='));
               if s='Pneumatic' then BrakeSystem:=Pneumatic
@@ -6427,8 +6441,8 @@ begin
 {                      readln(fin); }
                     end;
                 end;
-            end;
-          if Pos('Light:',lines)>0 then      {zrodlo mocy dla oswietlenia}
+            end
+          else if Pos('Light:',lines)>0 then      {zrodlo mocy dla oswietlenia}
             begin
               s:=DUE(ExtractKeyWord(lines,'Light='));
               if s<>'' then
@@ -6452,8 +6466,8 @@ begin
                  NominalBatteryVoltage:=s2r(DUE(s));
                  end;
                 //  else LightPowerSource.SourceType:=NotDefined;
-            end;
-          if Pos('Security:',lines)>0 then      {zrodlo mocy dla oswietlenia}
+            end
+          else if Pos('Security:',lines)>0 then      {zrodlo mocy dla oswietlenia}
             with SecuritySystem do
              begin
                s:=DUE(ExtractKeyWord(lines,'AwareSystem='));
@@ -6474,8 +6488,8 @@ begin
                if s<>'' then
                 if Pos('Yes',s)>0 then
                  RadioStop:=true;
-             end;
-          if Pos('Clima:',lines)>0 then      {zrodlo mocy dla ogrzewania itp}
+             end
+          else if Pos('Clima:',lines)>0 then      {zrodlo mocy dla ogrzewania itp}
             begin
               s:=DUE(ExtractKeyWord(lines,'Heating='));
               if s<>'' then
@@ -6491,8 +6505,8 @@ begin
                  else AlterHeatPowerSource.SourceType:=NotDefined;
                end
               else HeatingPowerSource.SourceType:=NotDefined;
-            end;
-          if Pos('Power:',lines)>0 then      {zrodlo mocy dla silnikow trakcyjnych itp}
+            end
+          else if Pos('Power:',lines)>0 then      {zrodlo mocy dla silnikow trakcyjnych itp}
             begin
               s:=DUE(ExtractKeyWord(lines,'EnginePower='));
               if s<>'' then
@@ -6514,8 +6528,8 @@ begin
                  else EnginePowerSource.SourceType:=NotDefined;
                end
               else SystemPowerSource.SourceType:=InternalSource;
-            end;
-          if Pos('Engine:',lines)>0 then    {stale parametry silnika}
+            end
+          else if Pos('Engine:',lines)>0 then    {stale parametry silnika}
           begin
            EngineType:=EngineDecode(DUE(ExtractKeyWord(lines,'EngineType=')));
            case EngineType of
@@ -6612,9 +6626,9 @@ begin
                end;}
            else ConversionError:=-13; {not implemented yet!}
            end;
-          end;
+          end
            { Typy przelacznika 'Winger 010304 }
-          if Pos('Switches:',lines)>0 then
+          else if Pos('Switches:',lines)>0 then
           begin
            s:=DUE(ExtractKeyWord(lines,'Pantograph='));
            PantSwitchType:=s;
@@ -6629,9 +6643,9 @@ begin
                begin
                PantSwitchType:='impulse';
                end;     }
-          end;
+          end
 
-          if Pos('MotorParamTable:',lines)>0 then
+          else if Pos('MotorParamTable:',lines)>0 then
            case EngineType of
             ElectricSeriesMotor:
              begin
@@ -6688,8 +6702,8 @@ begin
                 end;
              end
             else ConversionError:=-3;
-           end;
-          if Pos('Circuit:',lines)>0 then
+           end
+          else if Pos('Circuit:',lines)>0 then
            begin
              s:=ExtractKeyWord(lines,'CircuitRes=');
              CircuitRes:=s2r(DUE(s));
@@ -6703,8 +6717,8 @@ begin
              ImaxHi:=s2i(DUE(s));
              Imin:=IminLo;
              Imax:=ImaxLo;
-           end;
-          if Pos('RList:',lines)>0 then
+           end
+          else if Pos('RList:',lines)>0 then
            begin
              s:=DUE(ExtractKeyWord(lines,'RVent='));
              if s='Automatic' then RventType:=2
@@ -6738,8 +6752,8 @@ begin
                   end
                  else readln(fin);
                end;
-           end;
-          if Pos('DList:',lines)>0 then  {dla spalinowego silnika}
+           end
+          else if Pos('DList:',lines)>0 then  {dla spalinowego silnika}
            begin
              s:=ExtractKeyWord(lines,'Mmax=');
              dizel_Mmax:=s2rE(DUE(s));
@@ -6761,9 +6775,9 @@ begin
                begin
                  readln(fin, Rlist[k].Relay, Rlist[k].R, Rlist[k].Mn);
                end;
-           end;
+           end
 //youBy
-          if (Pos('WWList:',lines)>0) then  {dla spal-ele}
+          else if (Pos('WWList:',lines)>0) then  {dla spal-ele}
           begin
             RlistSize:=s2b(DUE(ExtractKeyWord(lines,'Size=')));
             for k:=0 to RlistSize do

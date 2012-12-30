@@ -299,13 +299,13 @@ begin
    if (Flag and Value)=0 then
     begin
       Flag:=Flag+Value;
-      iSetFlag:=True
+      iSetFlag:=True; //true, gdy by³o wczeœniej 0 i zosta³o ustawione
     end;
   if Value<0 then
    if (Flag and Abs(Value))=Abs(Value) then
     begin
-      Flag:=Flag+Value;
-      iSetFlag:=True
+      Flag:=Flag+Value; //Value jest ujemne, czyli zerowanie flagi
+      iSetFlag:=True; //true, gdy by³o wczeœniej 1 i zosta³o wyzerowane
     end;
 end;
 

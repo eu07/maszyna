@@ -200,19 +200,26 @@ bool __fastcall TAnimModel::Init(AnsiString asName, AnsiString asReplacableTextu
  return (Init(TModelsManager::GetModel(asName.c_str())));
 }
 
-bool __fastcall TAnimModel::Load(cParser *parser)
+bool __fastcall TAnimModel::Load(cParser *parser, bool ter)
 {//rozpoznanie wpisu modelu i ustawienie œwiate³
  AnsiString str;
  std::string token;
- parser->getTokens();
+ parser->getTokens(); //nazwa modelu
  *parser >> token;
  str=AnsiString(token.c_str());
- parser->getTokens();
+ parser->getTokens(); //tekstura
  *parser >> token;
  if (!Init(str,AnsiString(token.c_str())))
  {if (str!="notload")
   {//gdy brak modelu
-   Error(AnsiString("Model: "+str+" does not exist"));
+   if (ter) //jeœli teren
+   {if (str.SubString(str.Length()-3,4)==".t3d")
+     str[str.Length()-2]='e';
+    Global::asTerrainModel=str;
+    WriteLog(AnsiString("Terrain model \""+str+"\" will be created."));
+   }
+   else
+    ErrorLog(AnsiString("Missed file: "+str));
   }
  }
  else
@@ -234,10 +241,9 @@ bool __fastcall TAnimModel::Load(cParser *parser)
   LightsOff[6]=pModel->GetFromName("Light_Off06");
   LightsOff[7]=pModel->GetFromName("Light_Off07");
  }
- for (int i=0; i<iMaxNumLights;++i)
+ for (int i=0;i<iMaxNumLights;++i)
   if (LightsOn[i]||LightsOff[i]) //Ra: zlikwidowa³em wymóg istnienia obu
    iNumLights=i+1;
-
  int i=0;
  int ti;
 
@@ -258,13 +264,13 @@ bool __fastcall TAnimModel::Load(cParser *parser)
    parser->getTokens();
    *parser >> token;
    str=AnsiString(token.c_str());
-  } while (str!="endmodel");
+  } while ((str!="endmodel")&&(str!="endterrain"));
  }
  return true;
 }
 
 TAnimContainer* __fastcall TAnimModel::AddContainer(char *pName)
-{//dodanie submodelu do egzemplarza
+{//dodanie sterowania submodelem dla egzemplarza
  if (!pModel) return NULL;
  TSubModel *tsb=pModel->GetFromName(pName);
  if (tsb)
@@ -279,7 +285,7 @@ TAnimContainer* __fastcall TAnimModel::AddContainer(char *pName)
 }
 
 TAnimContainer* __fastcall TAnimModel::GetContainer(char *pName)
-{
+{//szukanie/dodanie sterowania submodelem dla egzemplarza
  if (!pName) return pRoot; //pobranie pierwszego (dla obrotnicy)
  TAnimContainer *pCurrent;
  for (pCurrent=pRoot;pCurrent!=NULL;pCurrent=pCurrent->pNext)
@@ -302,8 +308,8 @@ void __fastcall TAnimModel::RaPrepare()
    default: //zapalony albo zgaszony
     state=(lsLights[i]==ls_On);
   }
-  if (LightsOn[i])  LightsOn[i]->Visible=state;
-  if (LightsOff[i]) LightsOff[i]->Visible=!state;
+  if (LightsOn[i])  LightsOn[i]->iVisible=state;
+  if (LightsOff[i]) LightsOff[i]->iVisible=!state;
  }
  TSubModel::iInstance=(int)this; //¿eby nie robiæ cudzych animacji
  TAnimContainer *pCurrent;
@@ -311,28 +317,28 @@ void __fastcall TAnimModel::RaPrepare()
   pCurrent->UpdateModel(); //przeliczenie animacji ka¿dego submodelu
 }
 
-void __fastcall TAnimModel::RaRender(vector3 pPosition,double fAngle)
+void __fastcall TAnimModel::RenderVBO(vector3 pPosition,double fAngle)
 {//sprawdza œwiat³a i rekurencyjnie renderuje TModel3d
  RaPrepare();
  if (pModel) //renderowanie rekurencyjne submodeli
   pModel->RaRender(pPosition,fAngle,ReplacableSkinId,iTexAlpha);
 }
 
-void __fastcall TAnimModel::RaRenderAlpha(vector3 pPosition,double fAngle)
+void __fastcall TAnimModel::RenderAlphaVBO(vector3 pPosition,double fAngle)
 {
  RaPrepare();
  if (pModel) //renderowanie rekurencyjne submodeli
   pModel->RaRenderAlpha(pPosition,fAngle,ReplacableSkinId,iTexAlpha);
 };
 
-void __fastcall TAnimModel::Render(vector3 pPosition,double fAngle)
+void __fastcall TAnimModel::RenderDL(vector3 pPosition,double fAngle)
 {
  RaPrepare();
  if (pModel) //renderowanie rekurencyjne submodeli
   pModel->Render(pPosition,fAngle,ReplacableSkinId,iTexAlpha);
 }
 
-void __fastcall TAnimModel::RenderAlpha(vector3 pPosition,double fAngle)
+void __fastcall TAnimModel::RenderAlphaDL(vector3 pPosition,double fAngle)
 {
  RaPrepare();
  if (pModel)
@@ -357,25 +363,25 @@ int __fastcall TAnimModel::Flags()
 //2011-03-16 cztery nowe funkcje renderowania z mo¿liwoœci¹ pochylania obiektów
 //-----------------------------------------------------------------------------
 
-void __fastcall TAnimModel::Render(vector3* vPosition)
+void __fastcall TAnimModel::RenderDL(vector3* vPosition)
 {
  RaPrepare();
  if (pModel) //renderowanie rekurencyjne submodeli
   pModel->Render(vPosition,&vAngle,ReplacableSkinId,iTexAlpha);
 };
-void __fastcall TAnimModel::RenderAlpha(vector3* vPosition)
+void __fastcall TAnimModel::RenderAlphaDL(vector3* vPosition)
 {
  RaPrepare();
  if (pModel) //renderowanie rekurencyjne submodeli
   pModel->RenderAlpha(vPosition,&vAngle,ReplacableSkinId,iTexAlpha);
 };
-void __fastcall TAnimModel::RaRender(vector3* vPosition)
+void __fastcall TAnimModel::RenderVBO(vector3* vPosition)
 {
  RaPrepare();
  if (pModel) //renderowanie rekurencyjne submodeli
   pModel->RaRender(vPosition,&vAngle,ReplacableSkinId,iTexAlpha);
 };
-void __fastcall TAnimModel::RaRenderAlpha(vector3* vPosition)
+void __fastcall TAnimModel::RenderAlphaVBO(vector3* vPosition)
 {
  RaPrepare();
  if (pModel) //renderowanie rekurencyjne submodeli
@@ -383,6 +389,22 @@ void __fastcall TAnimModel::RaRenderAlpha(vector3* vPosition)
 };
 
 //---------------------------------------------------------------------------
-
+bool __fastcall TAnimModel::TerrainLoaded()
+{//zliczanie kwadratów kilometrowych (g³ówna linia po Next) do tworznia tablicy
+ return (this?pModel!=NULL:false);
+};
+int __fastcall TAnimModel::TerrainCount()
+{//zliczanie kwadratów kilometrowych (g³ówna linia po Next) do tworznia tablicy
+ return pModel?pModel->TerrainCount():0;
+};
+TSubModel* __fastcall TAnimModel::TerrainSquare(int n)
+{//pobieranie wskaŸników do pierwszego submodelu
+ return pModel?pModel->TerrainSquare(n):0;
+};
+void __fastcall TAnimModel::TerrainRenderVBO(int n)
+{//renderowanie terenu z VBO
+ if (pModel) pModel->TerrainRenderVBO(n);
+};
+//---------------------------------------------------------------------------
 #pragma package(smart_init)
 

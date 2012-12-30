@@ -36,7 +36,8 @@ void DxtcReadColor(GLushort Data, Color8888* Out)
 
 void DecompressDXT1(DDS_IMAGE_DATA lImage, const GLubyte *lCompData, GLubyte *Data)
 {
-	GLuint		x, y, i, j, k, Select;
+        GLint           x, y, i, j, k;
+	GLuint		Select;
 	const GLubyte		*Temp;
 	Color8888	colours[4], *col;
 	GLushort	color_0, color_1;
@@ -115,8 +116,8 @@ void DecompressDXT3(DDS_IMAGE_DATA lImage, const GLubyte *lCompData, GLubyte *Da
 	GLuint		bitmask, Offset;
 	const GLubyte* alpha;
 
-	for (GLuint y = 0; y < lImage.height; y += 4) {
-		for (GLuint x = 0; x < lImage.width; x += 4) {
+	for (GLint y = 0; y < lImage.height; y += 4) {
+		for (GLint x = 0; x < lImage.width; x += 4) {
 			alpha = Temp;
 			Temp += 8;
 			DxtcReadColors(Temp, colours);
@@ -137,8 +138,8 @@ void DecompressDXT3(DDS_IMAGE_DATA lImage, const GLubyte *lCompData, GLubyte *Da
 			colours[3].r = (colours[0].r + 2 * colours[1].r + 1) / 3;
 
 			GLuint k = 0;
-			for (GLuint j = 0; j < 4; j++) {
-				for (GLuint i = 0; i < 4; i++, k++) {
+			for (GLint j = 0; j < 4; j++) {
+				for (GLint i = 0; i < 4; i++, k++) {
 					GLuint Select = (bitmask & (0x03 << k*2)) >> k*2;
 					col = &colours[Select];
 
@@ -151,9 +152,9 @@ void DecompressDXT3(DDS_IMAGE_DATA lImage, const GLubyte *lCompData, GLubyte *Da
 				}
 			}
 
-			for (GLuint j = 0; j < 4; j++) {
+			for (GLint j = 0; j < 4; j++) {
 				GLushort word = alpha[2*j] + 256*alpha[2*j+1];
-				for (GLuint i = 0; i < 4; i++) {
+				for (GLint i = 0; i < 4; i++) {
 					if (((x + i) < lImage.width) && ((y + j) < lImage.height)) {
 						Offset = (y + j) * lImage.width * lImage.components + (x + i) * lImage.components + 3;
 						Data[Offset] = word & 0x0F;
@@ -168,7 +169,8 @@ void DecompressDXT3(DDS_IMAGE_DATA lImage, const GLubyte *lCompData, GLubyte *Da
 
 void DecompressDXT5(DDS_IMAGE_DATA lImage, const GLubyte *lCompData, GLubyte *Data)
 {
-	GLuint		x, y, z, i, j, k, Select;
+	GLint		x, y, z, i, j, k;
+	GLuint		Select;
 	const GLubyte		*Temp; //, r0, g0, b0, r1, g1, b1;
 	Color8888	colours[4], *col;
 	GLuint		bitmask, Offset;

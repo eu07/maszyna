@@ -187,7 +187,6 @@ private:
  bool TexAlpha;  //Ra: nie u¿ywane ju¿
  GLuint uiDisplayList; //roboczy numer listy wyœwietlania
  float Transparency; //nie u¿ywane, ale wczytywane
- //int Index;
  //ABu: te same zmienne, ale zdublowane dla Render i RenderAlpha,
  //bo sie chrzanilo przemieszczanie obiektow.
  //Ra: ju¿ siê nie chrzani
@@ -200,9 +199,11 @@ private:
  TAnimType b_aAnim; //kody animacji oddzielnie, bo zerowane
  char space[20]; //wolne miejsce na przysz³e zmienne (zmniejszyæ w miarê potrzeby)
 public:
- AnsiString asTexture; //robocza nazwa tekstury do zapisania w pliku binarnym
- bool Visible; //roboczy stan widocznoœci
- AnsiString asName; //robocza nazwa
+ int iVisible; //roboczy stan widocznoœci
+ //AnsiString asTexture; //robocza nazwa tekstury do zapisania w pliku binarnym
+ //AnsiString asName; //robocza nazwa
+ char *pTexture; //robocza nazwa tekstury do zapisania w pliku binarnym
+ char *pName; //robocza nazwa
 private:
  //int __fastcall SeekFaceNormal(DWORD *Masks, int f,DWORD dwMask,vector3 *pt,GLVERTEX *Vertices);
  int __fastcall SeekFaceNormal(DWORD *Masks,int f,DWORD dwMask,float3 *pt,float8 *Vertices);
@@ -211,6 +212,8 @@ public:
  static int iInstance; //identyfikator egzemplarza, który aktualnie renderuje model
  static GLuint *ReplacableSkinId;
  static int iAlpha; //maska bitowa dla danego przebiegu
+ static double fSquareDist;
+ static TModel3d* pRoot;
  __fastcall TSubModel();
  __fastcall ~TSubModel();
  void __fastcall FirstInit();
@@ -218,6 +221,10 @@ public:
  void __fastcall ChildAdd(TSubModel *SubModel);
  void __fastcall NextAdd(TSubModel *SubModel);
  TSubModel* __fastcall NextGet() {return Next;};
+ TSubModel* __fastcall ChildGet() {return Child;};
+ int __fastcall TriangleAdd(TModel3d *m,int tex,int tri);
+ float8* __fastcall TrianglePtr(int tex,int pos,int *la,int *ld,int*ls);
+ //float8* __fastcall TrianglePtr(const char *tex,int tri);
  //void __fastcall SetRotate(vector3 vNewRotateAxis,float fNewAngle);
  void __fastcall SetRotate(float3 vNewRotateAxis,float fNewAngle);
  void __fastcall SetRotateXYZ(vector3 vNewAngles);
@@ -225,17 +232,17 @@ public:
  void __fastcall SetTranslate(vector3 vNewTransVector);
  void __fastcall SetTranslate(float3 vNewTransVector);
  TSubModel* __fastcall GetFromName(AnsiString search);
- void __fastcall Render();
- void __fastcall RenderAlpha();
- void __fastcall RaRender();
- void __fastcall RaRenderAlpha();
- //inline matrix4x4* __fastcall GetMatrix() { return dMatrix; };
- inline float4x4* __fastcall GetMatrix() { return fMatrix; };
+ void __fastcall RenderDL();
+ void __fastcall RenderAlphaDL();
+ void __fastcall RenderVBO();
+ void __fastcall RenderAlphaVBO();
+ //inline matrix4x4* __fastcall GetMatrix() {return dMatrix;};
+ inline float4x4* __fastcall GetMatrix() {return fMatrix;};
  //matrix4x4* __fastcall GetTransform() {return Matrix;};
- inline void __fastcall Hide() { Visible= false; };
+ inline void __fastcall Hide() {iVisible=0;};
  void __fastcall RaArrayFill(CVertNormTex *Vert);
  //void __fastcall Render();
- int __fastcall Flags();
+ int __fastcall FlagsCheck();
  void __fastcall WillBeAnimated() {if (this) iFlags|=0x4000;};
  void __fastcall InitialRotate(bool doit);
  void __fastcall DisplayLists();
@@ -244,6 +251,12 @@ public:
  void __fastcall BinInit(TSubModel *s,float4x4 *m,float8 *v,TStringPack *t,TStringPack *n=NULL);
  void __fastcall ReplacableSet(GLuint *r,int a)
  {ReplacableSkinId=r; iAlpha=a;};
+ void __fastcall TextureNameSet(const char *n);
+ void __fastcall NameSet(const char *n);
+ //Ra: funkcje do budowania terenu z E3D
+ int __fastcall Flags() {return iFlags;};
+ void __fastcall UnFlagNext() {iFlags&=0x00FFFFFF;};
+ void __fastcall ColorsSet(int *a,int *d,int*s);
 };
 
 class TSubModelInfo
@@ -281,7 +294,9 @@ private:
  //bool TractionPart; //Ra: nie u¿ywane
  TSubModel *Root; //drzewo submodeli
  int iFlags; //Ra: czy submodele maj¹ przezroczyste tekstury
+public: //Ra: tymczasowo
  int iNumVerts; //iloœæ wierzcho³ków (gdy nie ma VBO, to m_nVertexCount=0)
+private:
  TStringPack Textures; //nazwy tekstur
  TStringPack Names; //nazwy submodeli
  int *iModel; //zawartoœæ pliku binarnego
@@ -295,7 +310,8 @@ public:
  __fastcall ~TModel3d();
  TSubModel* __fastcall GetFromName(const char *sName);
  //TMaterial* __fastcall GetMaterialFromName(char *sName);
- void __fastcall AddTo(const char *Name, TSubModel *SubModel);
+ void __fastcall AddToNamed(const char *Name, TSubModel *SubModel);
+ void __fastcall AddTo(TSubModel *tmp,TSubModel *SubModel);
  void __fastcall LoadFromTextFile(char *FileName,bool dynamic);
  void __fastcall LoadFromBinFile(char *FileName);
  bool __fastcall LoadFromFile(char *FileName,bool dynamic);
@@ -319,6 +335,10 @@ public:
  //inline int __fastcall GetSubModelsCount() { return (SubModelsCount); };
  int __fastcall Flags() {return iFlags;};
  void __fastcall Init();
+ char* __fastcall NameGet() {return Root?Root->pName:NULL;};
+ int __fastcall TerrainCount();
+ TSubModel* __fastcall TerrainSquare(int n);
+ void __fastcall TerrainRenderVBO(int n);
 };
 
 //---------------------------------------------------------------------------

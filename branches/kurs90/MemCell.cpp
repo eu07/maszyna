@@ -24,7 +24,7 @@
 #include "classes.hpp"
 #pragma hdrstop
 
-//#include "Mover.hpp"
+//#include "Mover.h"
 #include "Driver.h"
 #include "mctools.hpp"
 #include "MemCell.h"
@@ -35,15 +35,16 @@
 
 //---------------------------------------------------------------------------
 
-__fastcall TMemCell::TMemCell()
+__fastcall TMemCell::TMemCell(vector3 *p)
 {
-    fValue1=fValue2= 0;
-    szText= NULL;
+ fValue1=fValue2=0;
+ szText=NULL;
+ vPosition=*p; //ustawienie wspó³rzêdnych, bo do TGroundNode nie ma dostêpu
 }
 
 __fastcall TMemCell::~TMemCell()
 {
-    SafeDeleteArray(szText);
+ SafeDeleteArray(szText);
 }
 
 void __fastcall TMemCell::Init()
@@ -66,30 +67,47 @@ void __fastcall TMemCell::UpdateValues(char *szNewText, double fNewValue1, doubl
   if (TestFlag(CheckMask,conditional_memstring))
    strcpy(szText,szNewText);
   if (TestFlag(CheckMask,conditional_memval1))
-   fValue1= fNewValue1;
+   fValue1=fNewValue1;
   if (TestFlag(CheckMask,conditional_memval2))
-   fValue2= fNewValue2;
+   fValue2=fNewValue2;
+ }
+ if (TestFlag(CheckMask,conditional_memstring))
+ {//jeœli zmieniony tekst, próbujemy rozpoznaæ komendê
+  if (strcmp(szText,"SetVelocity")==0) //najpopularniejsze
+   eCommand=cm_SetVelocity;
+  else if (strcmp(szText,"ShuntVelocity")==0) //mniej popularne
+   eCommand=cm_ShuntVelocity;
+  else if (strcmp(szText,"Change_direction")==0) //zdarza siê
+   eCommand=cm_ChangeDirection;
+  else if (strcmp(szText,"OutsideStation")==0) //zdarza siê
+   eCommand=cm_OutsideStation;
+  else if (strcmp(szText,"PassengerStopPoint:")==0) //TODO: porównaæ pocz¹tki !!!
+   eCommand=cm_PassengerStopPoint;
+  else if (strcmp(szText,"SetProximityVelocity")==0) //nie powinno tego byæ
+   eCommand=cm_SetProximityVelocity;
+  else
+   eCommand=cm_Unknown; //ci¹g nierozpoznany (nie jest komend¹)
  }
 }
 
 bool __fastcall TMemCell::Load(cParser *parser)
 {
-    std::string token;
-    parser->getTokens(1,false);  //case sensitive
-    *parser >> token;
-    SafeDeleteArray(szText);
-    szText= new char[256];
-    strcpy(szText,token.c_str());
-    parser->getTokens(2);
-    *parser >> fValue1 >> fValue2;
-    parser->getTokens();
-    *parser >> token;
-    asTrackName= AnsiString(token.c_str());
-    parser->getTokens();
-    *parser >> token;
-    if (token.compare( "endmemcell" ) != 0)
-     Error("endmemcell statement missing");
-    return true;
+ std::string token;
+ parser->getTokens(1,false);  //case sensitive
+ *parser >> token;
+ SafeDeleteArray(szText);
+ szText=new char[256]; //musi byæ bufor do ³¹czenia tekstów
+ strcpy(szText,token.c_str());
+ parser->getTokens(2);
+ *parser >> fValue1 >> fValue2;
+ parser->getTokens();
+ *parser >> token;
+ asTrackName= AnsiString(token.c_str());
+ parser->getTokens();
+ *parser >> token;
+ if (token.compare("endmemcell")!=0)
+  Error("endmemcell statement missing");
+ return true;
 }
 
 void __fastcall TMemCell::PutCommand(TController *Mech, vector3 *Loc)

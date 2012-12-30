@@ -30,6 +30,7 @@ public:
     void __fastcall Free();
     void __fastcall Update(bool ListenerInside, vector3 NewPosition);
     void __fastcall UpdateAF(double A, double F, bool ListenerInside, vector3 NewPosition);
+ void __fastcall CopyIfEmpty(TAdvancedSound &s);
 };
 
 //---------------------------------------------------------------------------
