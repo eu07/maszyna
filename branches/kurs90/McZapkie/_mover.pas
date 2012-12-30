@@ -1,4 +1,4 @@
-unit mover;          {fizyka ruchu dla symulatora lokomotywy}
+unit _mover;          {fizyka ruchu dla symulatora lokomotywy}
 
 (*
     MaSzyna EU07 locomotive simulator
@@ -193,7 +193,7 @@ CONST
    dt_181=$100; 
 
 TYPE
-    PMoverParameters=^TMoverParameters;
+    P_MoverParameters=^T_MoverParameters;
 
         {ogolne}
     TLocation = record
@@ -360,7 +360,7 @@ TYPE
 
     {----------------------------------------------}
     {glowny obiekt}
-    TMoverParameters = class(TObject)
+    T_MoverParameters = class(TObject)
                dMoveLen:real;
                filename:string;
                {---opis lokomotywy, wagonu itp}
@@ -860,7 +860,7 @@ TYPE
                 procedure SendAVL(AccS,AccN,V,dL:real; CN:byte); }
               end;    {ufff}
 
-{   PMoverParameters=^TMoverParameters; }
+{   P_MoverParameters=^T_MoverParameters; }
 function Distance(Loc1,Loc2: TLocation; Dim1,Dim2:TDimension) : real;
 
 {----------------------------------------------------------------}
@@ -982,8 +982,8 @@ function SPR(ph,pl:real): real;
 begin
   SPR:=0.674*(ph-pl)/(1.13*ph-pl+0.013);
 end;
-{---------rozwiniecie deklaracji metod obiektu TMoverParameters--------}
-function TMoverParameters.GetTrainsetVoltage: boolean;
+{---------rozwiniecie deklaracji metod obiektu T_MoverParameters--------}
+function T_MoverParameters.GetTrainsetVoltage: boolean;
 {ABu: funkcja zwracajaca napiecie dla calego skladu, przydatna dla EZT}
 var voltf: boolean;
     voltr: boolean;
@@ -1011,7 +1011,7 @@ var voltf: boolean;
 
 
 
-function TMoverParameters.Physic_ReActivation: boolean;
+function T_MoverParameters.Physic_ReActivation: boolean;
  begin
    if PhysicActivation then
     Physic_Reactivation:=false
@@ -1026,7 +1026,7 @@ function TMoverParameters.Physic_ReActivation: boolean;
 
 {stosunek obecnego nastawienia sily hamowania do maksymalnej nastawy}
 {
-function TMoverParameters.BrakeRatio: real;
+function T_MoverParameters.BrakeRatio: real;
  begin
    if BrakeCtrlPosNo>0 then
     begin
@@ -1040,7 +1040,7 @@ function TMoverParameters.BrakeRatio: real;
  end;
 }
 
-function TMoverParameters.LocalBrakeRatio: real;
+function T_MoverParameters.LocalBrakeRatio: real;
 var LBR:real;
 begin
   if LocalBrakePosNo>0 then
@@ -1052,7 +1052,7 @@ begin
  LocalBrakeRatio:=LBR;
 end;
 
-function TMoverParameters.ManualBrakeRatio: real;
+function T_MoverParameters.ManualBrakeRatio: real;
 var MBR:real;
 begin
   if ManualBrakePosNo>0 then
@@ -1062,7 +1062,7 @@ begin
  ManualBrakeRatio:=MBR;
 end;
 
-function TMoverParameters.PipeRatio: real;
+function T_MoverParameters.PipeRatio: real;
 var pr:real;
 begin
   if DeltaPipePress>0 then
@@ -1084,7 +1084,7 @@ begin
   PipeRatio:=pr;
 end;
 
-function TMoverParameters.RealPipeRatio: real;
+function T_MoverParameters.RealPipeRatio: real;
 var rpp:real;
 begin
   if DeltaPipePress>0 then
@@ -1094,7 +1094,7 @@ begin
   RealPipeRatio:=rpp;
 end;
 
-function TMoverParameters.BrakeVP: real;
+function T_MoverParameters.BrakeVP: real;
 begin
   if BrakeVVolume>0 then
    BrakeVP:=Volume/(10.0*BrakeVVolume)
@@ -1102,7 +1102,7 @@ begin
 end;
 
 {reczne przelaczanie hamulca elektrodynamicznego}
-function TMoverParameters.DynamicBrakeSwitch(Switch:boolean):boolean;
+function T_MoverParameters.DynamicBrakeSwitch(Switch:boolean):boolean;
 var b:byte;
 begin
   if (DynamicBrakeType=dbrake_switch) and (MainCtrlPos=0) then
@@ -1124,7 +1124,7 @@ begin
 end;
 
 
-function TMoverParameters.SendCtrlBroadcast(CtrlCommand:string;ctrlvalue:real):boolean;
+function T_MoverParameters.SendCtrlBroadcast(CtrlCommand:string;ctrlvalue:real):boolean;
 var b:byte; OK:boolean;
 begin
   OK:=((CtrlCommand<>CommandIn.Command) and (ctrlvalue<>CommandIn.Value1));
@@ -1138,7 +1138,7 @@ begin
 end;
 
 
-function TMoverParameters.SendCtrlToNext(CtrlCommand:string;ctrlvalue,dir:real):boolean;
+function T_MoverParameters.SendCtrlToNext(CtrlCommand:string;ctrlvalue,dir:real):boolean;
 //wys³anie komendy w kierunku dir (1=przod,-1=ty³)
 var
  OK:Boolean;
@@ -1162,7 +1162,7 @@ begin
  SendCtrlToNext:=OK;
 end;
 
-procedure TMoverParameters.PantCheck;
+procedure T_MoverParameters.PantCheck;
 var c: boolean;
 begin
  { if (CabNo*LastCab<0) and (CabNo<>0) then
@@ -1173,7 +1173,7 @@ begin
    end; }
 end;
 
-function TMoverParameters.CabActivisation:boolean;
+function T_MoverParameters.CabActivisation:boolean;
 //za³¹czenie rozrz¹du
 var OK:boolean;
 begin
@@ -1188,7 +1188,7 @@ begin
   CabActivisation:=OK;
 end;
 
-function TMoverParameters.CabDeactivisation:boolean;
+function T_MoverParameters.CabDeactivisation:boolean;
 //wy³¹czenie rozrz¹du
 var OK:boolean;
 begin
@@ -1233,7 +1233,7 @@ end;
 
 {funkcje zwiekszajace/zmniejszajace nastawniki}
 
-function TMoverParameters.IncMainCtrl(CtrlSpeed:integer): boolean;
+function T_MoverParameters.IncMainCtrl(CtrlSpeed:integer): boolean;
 var //b:byte;
     OK:boolean;
 begin
@@ -1362,7 +1362,7 @@ begin
 end;
 
 
-function TMoverParameters.DecMainCtrl(CtrlSpeed:integer): boolean;
+function T_MoverParameters.DecMainCtrl(CtrlSpeed:integer): boolean;
 var //b:byte;
     OK:boolean;
 begin
@@ -1440,7 +1440,7 @@ begin
   DecMainCtrl:=OK;
 end;
 
-function TMoverParameters.IncScndCtrl(CtrlSpeed:integer): boolean;
+function T_MoverParameters.IncScndCtrl(CtrlSpeed:integer): boolean;
 var //b:byte;
     OK:boolean;
 begin
@@ -1479,7 +1479,7 @@ begin
  IncScndCtrl:=OK;
 end;
 
-function TMoverParameters.DecScndCtrl(CtrlSpeed:integer): boolean;
+function T_MoverParameters.DecScndCtrl(CtrlSpeed:integer): boolean;
 var //b:byte;
     OK:boolean;
 begin
@@ -1517,7 +1517,7 @@ begin
  DecScndCtrl:=OK;
 end;
 
-function TMoverParameters.DirectionForward: boolean;
+function T_MoverParameters.DirectionForward: boolean;
 begin
   if (MainCtrlPosNo>0) and (ActiveDir<1) and (MainCtrlPos=0) then
    begin
@@ -1532,7 +1532,7 @@ begin
     DirectionForward:=False;
 end;
 
-function TMoverParameters.DirectionBackward: boolean;
+function T_MoverParameters.DirectionBackward: boolean;
 begin
   if (ActiveDir=1) and (MainCtrlPos=0) and (TrainType=dt_EZT) then
     if MinCurrentSwitch(false) then
@@ -1554,7 +1554,7 @@ begin
    DirectionBackward:=False;
 end;
 
-function TMoverParameters.MainSwitch(State:boolean): boolean;
+function T_MoverParameters.MainSwitch(State:boolean): boolean;
 begin
  MainSwitch:=False; //Ra: przeniesione z koñca
   if ((Mains<>State) and (MainCtrlPosNo>0)) then
@@ -1586,7 +1586,7 @@ begin
   //else MainSwitch:=False;
 end;
 
-function TMoverParameters.ChangeCab(direction:integer): boolean;
+function T_MoverParameters.ChangeCab(direction:integer): boolean;
 //var //b:byte;
 //    c:boolean;
 begin
@@ -1632,7 +1632,7 @@ begin
   else
    ChangeCab:=False;
 end;
-function TMoverParameters.BatterySwitch(State:boolean):boolean;
+function T_MoverParameters.BatterySwitch(State:boolean):boolean;
 var b:byte;
 begin
   if (Battery<>State) then
@@ -1644,7 +1644,7 @@ if (Battery=true) then SendCtrlToNext('BatterySwitch',1,CabNo)
   else SendCtrlToNext('BatterySwitch',0,CabNo)
 end;
 
-function TMoverParameters.EpFuseSwitch(State:boolean):boolean;
+function T_MoverParameters.EpFuseSwitch(State:boolean):boolean;
 var b:byte;
 begin
   if (EpFuse<>State) then
@@ -1657,7 +1657,7 @@ if (EpFuse=true) then SendCtrlToNext('EpFuseSwitch',1,CabNo)
 end;
 
 {wl/wyl przetwornicy}
-function TMoverParameters.ConverterSwitch(State:boolean):boolean;
+function T_MoverParameters.ConverterSwitch(State:boolean):boolean;
 begin
  ConverterSwitch:=false; //Ra: normalnie chyba false?
  if (ConverterAllow<>State) then
@@ -1672,7 +1672,7 @@ begin
 end;
 
 {wl/wyl sprezarki}
-function TMoverParameters.CompressorSwitch(State:boolean):boolean;
+function T_MoverParameters.CompressorSwitch(State:boolean):boolean;
 begin
  CompressorSwitch:=false; //Ra: normalnie chyba tak?
 // if State=true then
@@ -1688,7 +1688,7 @@ begin
 end;
 
 {wl/wyl malej sprezarki}
-{function TMoverParameters.SmallCompressorSwitch(State:boolean):boolean;
+{function T_MoverParameters.SmallCompressorSwitch(State:boolean):boolean;
 begin
  if State=true then
   if ((SmallCompressorPower=1) then
@@ -1701,7 +1701,7 @@ begin
 end;
 }
 {sypanie piasku}
-function TMoverParameters.SandDoseOn : boolean;
+function T_MoverParameters.SandDoseOn : boolean;
 begin
   if (SandCapacity>0) then
    begin
@@ -1717,7 +1717,7 @@ begin
    SandDoseOn:=False;
 end;
 
-{function TMoverParameters.SecuritySystemReset : boolean;
+{function T_MoverParameters.SecuritySystemReset : boolean;
  procedure Reset;
   begin
   with SecuritySystem do
@@ -1774,7 +1774,7 @@ begin
 //  SendCtrlToNext('SecurityReset',0,CabNo);
 end; }
 
-function TMoverParameters.SecuritySystemReset : boolean;
+function T_MoverParameters.SecuritySystemReset : boolean;
 //zbijanie czuwaka/SHP
  procedure Reset;
   begin
@@ -1801,7 +1801,7 @@ begin
 end;
 
 {testowanie czuwaka/SHP}
-procedure TMoverParameters.SecuritySystemCheck(dt:real);
+procedure T_MoverParameters.SecuritySystemCheck(dt:real);
 begin
   with SecuritySystem do
    begin
@@ -1837,7 +1837,7 @@ end;
 
 {nastawy hamulca}
 
-function TMoverParameters.IncBrakeLevel:boolean;
+function T_MoverParameters.IncBrakeLevel:boolean;
 //var b:byte;
 begin
   if (BrakeCtrlPosNo>0) {and (LocalBrakePos=0)} then
@@ -1902,7 +1902,7 @@ begin
    IncBrakeLevel:=False;
 end;
 
-function TMoverParameters.DecBrakeLevel:boolean;
+function T_MoverParameters.DecBrakeLevel:boolean;
 //var b:byte;
 begin
   if (BrakeCtrlPosNo>0) {and (LocalBrakePos=0)} then
@@ -1971,7 +1971,7 @@ begin
       DecBrakeLevel:=False;
 end;
 
-function TMoverParameters.IncLocalBrakeLevelFAST:boolean;
+function T_MoverParameters.IncLocalBrakeLevelFAST:boolean;
 begin
   if (LocalBrakePos<LocalBrakePosNo) then
    begin
@@ -1983,7 +1983,7 @@ begin
 UnBrake:=True;
 end;
 
-function TMoverParameters.IncLocalBrakeLevel(CtrlSpeed:byte):boolean;
+function T_MoverParameters.IncLocalBrakeLevel(CtrlSpeed:byte):boolean;
 begin
   if (LocalBrakePos<LocalBrakePosNo) {and (BrakeCtrlPos<1)} then
    begin
@@ -1999,7 +1999,7 @@ begin
 UnBrake:=True;
 end;
 
-function TMoverParameters.IncManualBrakeLevel(CtrlSpeed:byte):boolean;
+function T_MoverParameters.IncManualBrakeLevel(CtrlSpeed:byte):boolean;
 begin
   if (ManualBrakePos<ManualBrakePosNo) {and (BrakeCtrlPos<1)} then
    begin
@@ -2014,7 +2014,7 @@ begin
      IncManualBrakeLevel:=False;
 end;
 
-function TMoverParameters.DecLocalBrakeLevelFAST():boolean;
+function T_MoverParameters.DecLocalBrakeLevelFAST():boolean;
 begin
   if LocalBrakePos>0 then
    begin
@@ -2026,7 +2026,7 @@ begin
 UnBrake:=True;
 end;
 
-function TMoverParameters.DecLocalBrakeLevel(CtrlSpeed:byte):boolean;
+function T_MoverParameters.DecLocalBrakeLevel(CtrlSpeed:byte):boolean;
 begin
   if LocalBrakePos>0 then
    begin
@@ -2042,7 +2042,7 @@ begin
 UnBrake:=True;
 end;
 
- function TMoverParameters.DecManualBrakeLevel(CtrlSpeed:byte):boolean;
+ function T_MoverParameters.DecManualBrakeLevel(CtrlSpeed:byte):boolean;
 begin
   if ManualBrakePos>0 then
    begin
@@ -2058,7 +2058,7 @@ begin
 
 end;
 
-function TMoverParameters.EmergencyBrakeSwitch(Switch:boolean): boolean;
+function T_MoverParameters.EmergencyBrakeSwitch(Switch:boolean): boolean;
 begin
   if (BrakeSystem<>Individual) and (BrakeCtrlPosNo>0) then
    begin
@@ -2082,7 +2082,7 @@ begin
    EmergencyBrakeSwitch:=False;   {nie ma hamulca bezpieczenstwa gdy nie ma hamulca zesp.}
 end;
 
-function TMoverParameters.AntiSlippingBrake: boolean;
+function T_MoverParameters.AntiSlippingBrake: boolean;
 begin
  AntiSlippingBrake:=False; //Ra: przeniesione z koñca
   if ASBType=1 then
@@ -2093,14 +2093,14 @@ begin
    end
 end;
 
-function TMoverParameters.AntiSlippingButton: boolean;
+function T_MoverParameters.AntiSlippingButton: boolean;
 var OK:boolean;
 begin
   OK:=SandDoseOn;
   AntiSlippingButton:=(AntiSlippingBrake or OK);
 end;
 
-function TMoverParameters.BrakeDelaySwitch(BDS:byte): boolean;
+function T_MoverParameters.BrakeDelaySwitch(BDS:byte): boolean;
 begin
 //  if BrakeCtrlPosNo>0 then
    if (BrakeDelayFlag<>BDS)and(TestFlag(BrakeDelays,BDS)) then
@@ -2115,7 +2115,7 @@ begin
    BrakeDelaySwitch:=False;
 end;
 
-function TMoverParameters.IncBrakeMult(): boolean;
+function T_MoverParameters.IncBrakeMult(): boolean;
 begin
   if (BCMFlag<3) and (BrakeCylMult[BCMFlag+1]>0) then
    begin
@@ -2126,7 +2126,7 @@ begin
  IncBrakeMult:=false;
 end;
 
-function TMoverParameters.DecBrakeMult(): boolean;
+function T_MoverParameters.DecBrakeMult(): boolean;
 begin
   if (BCMFlag>0) and (BrakeCylMult[BCMFlag-1]>0) then
    begin
@@ -2137,7 +2137,7 @@ begin
  DecBrakeMult:=false;
 end;
 
-function TMoverParameters.BrakeReleaser: boolean;
+function T_MoverParameters.BrakeReleaser: boolean;
 var OK:boolean;
 begin
   if (BrakeCtrlPosNo>-2) and (PipePress<CntrlPipePress) and {(BrakeStatus=b_on)}(not TestFlag(BrakeStatus,b_dmg)) then
@@ -2155,7 +2155,7 @@ begin
   BrakeReleaser:=OK;
 end;
 
-function TMoverParameters.SwitchEPBrake(state: byte):boolean;
+function T_MoverParameters.SwitchEPBrake(state: byte):boolean;
 var
   OK:boolean;
 begin
@@ -2167,7 +2167,7 @@ end;
 
 {uklady pneumatyczne}
 
-function TMoverParameters.IncBrakePress(var brake:real;PressLimit,dp:real):boolean;
+function T_MoverParameters.IncBrakePress(var brake:real;PressLimit,dp:real):boolean;
 begin
 //  if (DynamicBrakeType<>dbrake_switch) and (DynamicBrakeType<>dbrake_none) and ((BrakePress>0.2) or (PipePress<0.37{(LowPipePress+0.05)})) then
     if (DynamicBrakeType<>dbrake_switch) and (DynamicBrakeType<>dbrake_none) and (BrakePress>0.2) then //yB radzi nie sprawdzaæ ciœnienia w przewodzie
@@ -2188,7 +2188,7 @@ begin
      end;
 end;
 
-function TMoverParameters.DecBrakePress(var brake:real;PressLimit,dp:real):boolean;
+function T_MoverParameters.DecBrakePress(var brake:real;PressLimit,dp:real):boolean;
 begin
     if brake-dp>PressLimit then
      begin
@@ -2205,7 +2205,7 @@ begin
      DynamicBrakeFlag:=False;                {wylaczanie hamulca ED i/albo zalaczanie silnikow}
 end;
 
-procedure TMoverParameters.UpdateBrakePressure(dt:real);
+procedure T_MoverParameters.UpdateBrakePressure(dt:real);
 const LBDelay=5.0; {stala czasowa hamulca}
 var Rate,Speed,dp,sm:real;
 begin
@@ -2359,7 +2359,7 @@ begin
 end;  {updatebrakepressure}
 
 
-procedure TMoverParameters.UpdatePipePressure(dt:real);
+procedure T_MoverParameters.UpdatePipePressure(dt:real);
 const LBDelay=15.0;kL=0.5;
 var {b: byte;} SpgTam,SpgTu,dV{,PWSpeed}:real; c: PMoverParameters;
 begin
@@ -2731,7 +2731,7 @@ begin
 end;  {updatepipepressure}
 
 
-procedure TMoverParameters.CompressorCheck(dt:real);
+procedure T_MoverParameters.CompressorCheck(dt:real);
 var b:byte;
  begin
    if VeselVolume>0 then
@@ -2778,7 +2778,7 @@ var b:byte;
     end;
  end;
 
-procedure TMoverParameters.UpdatePantVolume(dt:real);
+procedure T_MoverParameters.UpdatePantVolume(dt:real);
  {KURS90 - sprezarka pantografow}
  var b:byte;
  begin
@@ -2810,7 +2810,7 @@ for b:=0 to 1 do
         Connected^.PantVolume:=PantVolume;
  end;
 
-procedure TMoverParameters.UpdateBatteryVoltage(dt:real);
+procedure T_MoverParameters.UpdateBatteryVoltage(dt:real);
 var sn1,sn2,sn3,sn4,sn5: real;
 begin
 if (batteryVoltage>0) and  (EngineType<>DieselEngine) and (EngineType<>WheelsDriven) and (NominalBatteryVoltage>0) then
@@ -2880,7 +2880,7 @@ BatteryVoltage:=90;
 end;
 
 
-procedure TMoverParameters.ConverterCheck;       {sprawdzanie przetwornicy}
+procedure T_MoverParameters.ConverterCheck;       {sprawdzanie przetwornicy}
 begin
 if (ConverterAllow=true)and(Mains=true) then
  ConverterFlag:=true
@@ -2889,7 +2889,7 @@ if (ConverterAllow=true)and(Mains=true) then
 end;
 
 //youBy - przewod zasilajacy
-procedure TMoverParameters.UpdateScndPipePressure(dt: real);
+procedure T_MoverParameters.UpdateScndPipePressure(dt: real);
 const Spz=0.5067;
 var USPP, dpSPipe,dpSpipeBV: real;
     c: PMoverParameters;
@@ -2948,7 +2948,7 @@ end;
 
 {sprzegi}
 
-function TMoverParameters.Attach(ConnectNo:byte;ConnectToNr:byte;ConnectTo:PMoverParameters;CouplingType:byte):boolean;
+function T_MoverParameters.Attach(ConnectNo:byte;ConnectToNr:byte;ConnectTo:PMoverParameters;CouplingType:byte):boolean;
 //³¹czenie do (ConnectNo) pojazdu (ConnectTo) stron¹ (ConnectToNr)
 //Ra: zwykle wykonywane dwukrotnie, dla ka¿dego pojazdu oddzielnie
 const dEpsilon=0.001;
@@ -2985,7 +2985,7 @@ begin
   end;
 end;
 
-function TMoverParameters.DettachDistance(ConnectNo: byte): boolean;
+function T_MoverParameters.DettachDistance(ConnectNo: byte): boolean;
 //Ra: sprawdzenie, czy odleg³oœæ jest dobra do roz³¹czania
 begin
  with Couplers[ConnectNo] do
@@ -2999,7 +2999,7 @@ begin
     DettachDistance:=TRUE;
 end;
 
-function TMoverParameters.Dettach(ConnectNo: byte): boolean; {rozlaczanie}
+function T_MoverParameters.Dettach(ConnectNo: byte): boolean; {rozlaczanie}
 begin
  with Couplers[ConnectNo] do
   begin
@@ -3025,7 +3025,7 @@ end;
 
 {lokomotywy}
 
-function TMoverParameters.ComputeRotatingWheel(WForce,dt,n:real): real;
+function T_MoverParameters.ComputeRotatingWheel(WForce,dt,n:real): real;
 var newn,eps:real;
 begin
   if (n=0) and (WForce*Sign(V)<0) then
@@ -3043,7 +3043,7 @@ end;
 {----------------------}
 {LOKOMOTYWA ELEKTRYCZNA}
 
-function TMoverParameters.FuseFlagCheck: boolean;
+function T_MoverParameters.FuseFlagCheck: boolean;
 var b:byte;
 begin
  FuseFlagCheck:=false;
@@ -3056,7 +3056,7 @@ begin
       FuseFlagCheck:=Connected^.FuseFlagCheck();
 end;
 
-function TMoverParameters.FuseOn: boolean;
+function T_MoverParameters.FuseOn: boolean;
 begin
  FuseOn:=False;
  if (MainCtrlPos=0) and (ScndCtrlPos=0) and (TrainType<>dt_ET40) and Mains then
@@ -3071,7 +3071,7 @@ begin
   end;
 end;
 
-procedure TMoverParameters.FuseOff;
+procedure T_MoverParameters.FuseOff;
 begin
   if not FuseFlag then
    begin
@@ -3083,7 +3083,7 @@ begin
 end;
 
 
-function TMoverParameters.ShowCurrent(AmpN:byte): integer;
+function T_MoverParameters.ShowCurrent(AmpN:byte): integer;
 var b,Bn:byte;
 begin
   ClearPendingExceptions;
@@ -3109,7 +3109,7 @@ begin
        ShowCurrent:=Connected^.ShowCurrent(AmpN);
 end;
 
-function TMoverParameters.ShowEngineRotation(VehN:byte): integer;
+function T_MoverParameters.ShowEngineRotation(VehN:byte): integer;
 var b:Byte; //,Bn:byte;
 begin
   ClearPendingExceptions;
@@ -3134,7 +3134,7 @@ end;
 {funkcje uzalezniajace sile pociagowa od predkosci: V2n, n2R, Current, Momentum}
 {----------------}
 
-function TMoverParameters.V2n:real;
+function T_MoverParameters.V2n:real;
 {przelicza predkosc liniowa na obrotowa}
 const dmgn=0.5;
 var n,deltan:real;
@@ -3159,7 +3159,7 @@ begin
   V2n:=n;
 end;
 
-function TMoverParameters.Current(n,U:real): real;
+function T_MoverParameters.Current(n,U:real): real;
 {wazna funkcja - liczy prad plynacy przez silniki polaczone szeregowo lub rownolegle}
 {w zaleznosci od polozenia nastawnikow MainCtrl i ScndCtrl oraz predkosci obrotowej n}
 {a takze wywala bezpiecznik nadmiarowy gdy za duzy prad lub za male napiecie}
@@ -3274,7 +3274,7 @@ begin
   end;
 end;
 
-function TMoverParameters.Momentum(I:real): real;
+function T_MoverParameters.Momentum(I:real): real;
 {liczy moment sily wytwarzany przez silnik elektryczny}
 var SP: byte;
 begin
@@ -3286,7 +3286,7 @@ begin
      Momentum:=mfi*I*(1-1.0/(Abs(I)/mIsat+1));
 end;
 
-function TMoverParameters.dizel_Momentum(dizel_fill,n,dt:real): real;
+function T_MoverParameters.dizel_Momentum(dizel_fill,n,dt:real): real;
 {liczy moment sily wytwarzany przez silnik spalinowy}
 var Moment, enMoment, eps, newn, friction: real;
 begin
@@ -3334,7 +3334,7 @@ begin
    Mains:=False;
 end;
 
-function TMoverParameters.CutOffEngine: boolean; {wylacza uszkodzony silnik}
+function T_MoverParameters.CutOffEngine: boolean; {wylacza uszkodzony silnik}
 begin
   if (NPoweredAxles>0) and (CabNo=0) and (EngineType=ElectricSeriesMotor) then
    begin
@@ -3349,7 +3349,7 @@ begin
 end;
 
 {przelacznik pradu wysokiego rozruchu}
-function TMoverParameters.MaxCurrentSwitch(State:boolean):boolean;
+function T_MoverParameters.MaxCurrentSwitch(State:boolean):boolean;
 begin
   MaxCurrentSwitch:=False;
   if (EngineType=ElectricSeriesMotor) then
@@ -3376,7 +3376,7 @@ end;
 
 
 {przelacznik pradu automatycznego rozruchu}
-function TMoverParameters.MinCurrentSwitch(State:boolean):boolean;
+function T_MoverParameters.MinCurrentSwitch(State:boolean):boolean;
 begin
   MinCurrentSwitch:=False;
   if ((EngineType=ElectricSeriesMotor) and (IminHi>IminLo)) or (TrainType=dt_EZT) then
@@ -3400,7 +3400,7 @@ end;
 
 
 {reczne przelaczanie samoczynnego rozruchu}
-function TMoverParameters.AutoRelaySwitch(State:boolean):boolean;
+function T_MoverParameters.AutoRelaySwitch(State:boolean):boolean;
  begin
    if (AutoRelayType=2) and (AutoRelayFlag<>State) then
     begin
@@ -3412,7 +3412,7 @@ function TMoverParameters.AutoRelaySwitch(State:boolean):boolean;
     AutoRelaySwitch:=False;
  end;
 
-function TMoverParameters.AutoRelayCheck: boolean;
+function T_MoverParameters.AutoRelayCheck: boolean;
 var OK:boolean; b:byte;
 begin
 //  if ((TrainType=dt_EZT{) or (TrainType=dt_ET22)}) and (Imin=IminLo)) or ((ActiveDir<0) and (TrainType<>dt_PseudoDiesel')) then
@@ -3642,7 +3642,7 @@ if ((not Mains) or (FuseFlag)) and not((DynamicBrakeFlag) and (TrainType=dt_ET42
   end;
 end;
 
-function TMoverParameters.ResistorsFlagCheck:boolean;  {sprawdzanie wskaznika oporow}
+function T_MoverParameters.ResistorsFlagCheck:boolean;  {sprawdzanie wskaznika oporow}
 var b:byte;
 begin
   ResistorsFlagCheck:=false;
@@ -3655,7 +3655,7 @@ begin
        ResistorsFlagCheck:=Connected^.ResistorsFlagCheck();
 end;
 
-function TMoverParameters.dizel_EngageSwitch(state: real): boolean;
+function T_MoverParameters.dizel_EngageSwitch(state: real): boolean;
 {zmienia parametr do ktorego dazy sprzeglo}
 begin
  if (EngineType=DieselEngine) and (state<=1) and (state>=0) and (state<>dizel_engagestate) then
@@ -3667,7 +3667,7 @@ begin
   dizel_EngageSwitch:=False;
 end;
 
-function TMoverParameters.dizel_EngageChange(dt: real): boolean;
+function T_MoverParameters.dizel_EngageChange(dt: real): boolean;
 {zmienia parametr do ktorego dazy sprzeglo}
 const engagedownspeed=0.9; engageupspeed=0.5;
 var engagespeed:real; //OK:boolean;
@@ -3697,7 +3697,7 @@ begin
 end;
 
 (*
-function TMoverParameters.dizel_rotateengine(Momentum,dt,n,engage:real): real;
+function T_MoverParameters.dizel_rotateengine(Momentum,dt,n,engage:real): real;
 {oblicza obroty silnika}
 var newn,eps:real;
 begin
@@ -3731,7 +3731,7 @@ begin
 end;
 *)
 
-function TMoverParameters.dizel_fillcheck(mcp:byte): real;
+function T_MoverParameters.dizel_fillcheck(mcp:byte): real;
 {oblicza napelnienie, uzwglednia regulator obrotow}
 var realfill,nreg: real;
 begin
@@ -3763,7 +3763,7 @@ begin
   dizel_fillcheck:=realfill;
 end;
 
-function TMoverParameters.dizel_AutoGearCheck: boolean;
+function T_MoverParameters.dizel_AutoGearCheck: boolean;
 {automatycznie zmienia biegi gdy predkosc przekroczy widelki}
 var OK: boolean;
 begin
@@ -3823,7 +3823,7 @@ begin
   dizel_AutoGearCheck:=OK;
 end;
 
-function TMoverParameters.dizel_Update(dt:real): boolean;
+function T_MoverParameters.dizel_Update(dt:real): boolean;
 {odœwie¿a informacje o silniku}
 //var OK:boolean;
 const fillspeed=2;
@@ -3845,7 +3845,7 @@ end;
 
 
 {przyczepnosc}
-function TMoverParameters.Adhesive(staticfriction:real): real;
+function T_MoverParameters.Adhesive(staticfriction:real): real;
 //var Adhesion: real;
 begin
   {Adhesion:=0;
@@ -3885,7 +3885,7 @@ end;
 
 {SILY}
 
-function TMoverParameters.TractionForce(dt:real):real;
+function T_MoverParameters.TractionForce(dt:real):real;
 var PosRatio,dmoment,dtrans,tmp,tmpV: real;
     i: byte;
 {oblicza sile trakcyjna lokomotywy (dla elektrowozu tez calkowity prad)}
@@ -4155,7 +4155,7 @@ begin
   TractionForce:=Ft
 end;
 
-function TMoverParameters.BrakeForce(Track:TTrackParam):real;
+function T_MoverParameters.BrakeForce(Track:TTrackParam):real;
 var u,K,Fb,NBrakeAxles,sm:real;
 //const OerlikonForceFactor=1.5;
 begin
@@ -4217,7 +4217,7 @@ begin
   BrakeForce:=Fb;
 end;
 
-procedure TMoverParameters.SetCoupleDist;
+procedure T_MoverParameters.SetCoupleDist;
 {przeliczenie odleg³oœci sprzêgów}
 begin
  with Couplers[0] do
@@ -4228,7 +4228,7 @@ begin
    CoupleDist:=Distance(Loc,Connected^.Loc,Dim,Connected^.Dim);
 end;
 
-function TMoverParameters.CouplerForce(CouplerN:byte;dt:real):real;
+function T_MoverParameters.CouplerForce(CouplerN:byte;dt:real):real;
 //wyliczenie si³y na sprzêgu
 var tempdist,newdist,distDelta,CF,dV,absdv,Fmax,BetaAvg:real; CNext:byte;
 const MaxDist=405.0; {ustawione + 5 m, bo skanujemy do 400 m }
@@ -4338,7 +4338,7 @@ begin
   CouplerForce:=CF;
 end;
 
-procedure TMoverParameters.CollisionDetect(CouplerN:byte; dt:real);
+procedure T_MoverParameters.CollisionDetect(CouplerN:byte; dt:real);
 var CCF,Vprev,VprevC:real; VirtualCoupling:boolean;
 begin
      CCF:=0;
@@ -4369,7 +4369,7 @@ begin
       end;
 end;
 
-procedure TMoverParameters.ComputeConstans;
+procedure T_MoverParameters.ComputeConstans;
 var BearingF,RollF,HideModifier: real;
 begin
   TotalMass:=ComputeMass;
@@ -4401,7 +4401,7 @@ begin
    end;
 end;
 
-function TMoverParameters.FrictionForce(R:real;TDamage:byte):real;
+function T_MoverParameters.FrictionForce(R:real;TDamage:byte):real;
 begin
 //ABu 240205: chyba juz ekstremalnie zoptymalizowana funkcja liczaca sily tarcia
    if (abs(V)>0.01) then
@@ -4410,7 +4410,7 @@ begin
       FrictionForce:=(FrictConst1*V*V)+FrictConst2s;
 end;
 
-function TMoverParameters.AddPulseForce(Multipler:integer): boolean; {dla drezyny}
+function T_MoverParameters.AddPulseForce(Multipler:integer): boolean; {dla drezyny}
 begin
   if (EngineType=WheelsDriven) and (EnginePowerSource.SourceType=InternalSource) and (EnginePowerSource.PowerType=BioPower) then
    begin
@@ -4430,7 +4430,7 @@ begin
 end;
 
 
-function TMoverParameters.LoadingDone(LSpeed:real; LoadInit:string): boolean;
+function T_MoverParameters.LoadingDone(LSpeed:real; LoadInit:string): boolean;
 //test zakoñczenia za³adunku/roz³adunku
 var LoadChange:longint;
 begin
@@ -4477,7 +4477,7 @@ end;
 
 {-------------------------------------------------------------------}
 {WAZNA FUNKCJA - oblicza sile wypadkowa}
-procedure TMoverParameters.ComputeTotalForce(dt: real; dt1: real; FullVer: boolean);
+procedure T_MoverParameters.ComputeTotalForce(dt: real; dt1: real; FullVer: boolean);
 var b: byte;
 begin
   if PhysicActivation then
@@ -4569,7 +4569,7 @@ end;
 
 {------------------------------------------------------------}
 {OBLICZENIE PRZEMIESZCZENIA}
-function TMoverParameters.ComputeMovement(dt:real; dt1:real; Shape:TTrackShape; var Track:TTrackParam; var ElectricTraction:TTractionParam; NewLoc:TLocation; var NewRot:TRotation):real;
+function T_MoverParameters.ComputeMovement(dt:real; dt1:real; Shape:TTrackShape; var Track:TTrackParam; var ElectricTraction:TTractionParam; NewLoc:TLocation; var NewRot:TRotation):real;
 var b:byte;
     Vprev,AccSprev:real;
 const Vepsilon=1e-5; Aepsilon=1e-3; ASBSpeed=0.8;
@@ -4765,7 +4765,7 @@ end; {ComputeMovement}
 
 {blablabla}
 {OBLICZENIE PRZEMIESZCZENIA}
-function TMoverParameters.FastComputeMovement(dt:real; Shape:TTrackShape; var Track:TTrackParam;NewLoc:TLocation; var NewRot:TRotation):real; //;var ElectricTraction:TTractionParam; NewLoc:TLocation; var NewRot:TRotation):real;
+function T_MoverParameters.FastComputeMovement(dt:real; Shape:TTrackShape; var Track:TTrackParam;NewLoc:TLocation; var NewRot:TRotation):real; //;var ElectricTraction:TTractionParam; NewLoc:TLocation; var NewRot:TRotation):real;
 var b:byte;
     Vprev,AccSprev:real;
 const Vepsilon=1e-5; Aepsilon=1e-3; ASBSpeed=0.8;
@@ -4887,7 +4887,7 @@ end; {FastComputeMovement}
 
 
 
-function TMoverParameters.ComputeMass: real;
+function T_MoverParameters.ComputeMass: real;
 var M:real;
 begin
  if Load>0 then
@@ -4920,7 +4920,7 @@ end;
 
 {przekazywanie komend i parametrow}
 
-function TMoverParameters.SetInternalCommand(NewCommand:string; NewValue1,NewValue2:real):boolean;
+function T_MoverParameters.SetInternalCommand(NewCommand:string; NewValue1,NewValue2:real):boolean;
 begin
   if (CommandIn.Command=Newcommand) and (commandIn.Value1=NewValue1) and (commandIn.Value2=NewValue2) then
    SetInternalCommand:=False
@@ -4935,13 +4935,13 @@ begin
     end;
 end;
 
-function TMoverParameters.GetExternalCommand(var Command:string):real;
+function T_MoverParameters.GetExternalCommand(var Command:string):real;
 begin
   Command:=CommandOut;
   GetExternalCommand:=ValueOut;
 end;
 
-function TMoverParameters.DoorBlockedFlag:Boolean;
+function T_MoverParameters.DoorBlockedFlag:Boolean;
 begin
 
   if (DoorBlocked=true) and (Vel<5) then
@@ -4953,7 +4953,7 @@ begin
 
 end;
 
-function TMoverParameters.RunCommand(command:string; CValue1,CValue2:real):boolean;
+function T_MoverParameters.RunCommand(command:string; CValue1,CValue2:real):boolean;
 var OK:boolean; testload:string;
 Begin
 {$B+} {cholernie mi sie nie podoba ta dyrektywa!!!}
@@ -5269,7 +5269,7 @@ else if command='PantFront' then         {Winger 160204}
 {$B-}
 End;
 
-function TMoverParameters.RunInternalCommand:boolean;
+function T_MoverParameters.RunInternalCommand:boolean;
 var OK:boolean;
 begin
   if CommandIn.Command<>'' then
@@ -5291,7 +5291,7 @@ begin
   RunInternalCommand:=OK;
 end;
 
-procedure TMoverParameters.PutCommand(NewCommand:string; NewValue1,NewValue2:real; NewLocation:TLocation);
+procedure T_MoverParameters.PutCommand(NewCommand:string; NewValue1,NewValue2:real; NewLocation:TLocation);
 begin
  CommandLast:=NewCommand; //zapamiêtanie komendy
   with CommandIn do
@@ -5304,7 +5304,7 @@ begin
 end;
 
 {dla samochodow}
-function TMoverParameters.ChangeOffsetH(DeltaOffset:real):boolean;
+function T_MoverParameters.ChangeOffsetH(DeltaOffset:real):boolean;
 begin
   if TestFlag(CategoryFlag,2) and TestFlag(RunningTrack.CategoryFlag,2) then
    begin
@@ -5319,7 +5319,7 @@ end;
 
 {inicjalizacja}
 
-constructor TMoverParameters.Init(LocInitial:TLocation; RotInitial:TRotation;
+constructor T_MoverParameters.Init(LocInitial:TLocation; RotInitial:TRotation;
                                   VelInitial:real; TypeNameInit, NameInit: string; LoadInitial:longint; LoadTypeInitial: string; Cab:integer);
                                  {predkosc pocz. w km/h, ilosc ladunku, typ ladunku, numer kabiny}
 var b,k:integer;
@@ -5570,7 +5570,7 @@ begin
  DerailReason:=0; //Ra: powód wykolejenia
 end;
 
-function TMoverParameters.EngineDescription(what:integer): string;  {opis stanu lokomotywy}
+function T_MoverParameters.EngineDescription(what:integer): string;  {opis stanu lokomotywy}
 var outstr: string;
 begin
   outstr:='';
@@ -5614,7 +5614,7 @@ begin
   EngineDescription:=outstr;
 end;
 
-function TMoverParameters.CheckLocomotiveParameters(ReadyFlag:boolean;Dir:longint): boolean;
+function T_MoverParameters.CheckLocomotiveParameters(ReadyFlag:boolean;Dir:longint): boolean;
 var //k:integer;
     OK:boolean;
     b:byte;
@@ -5720,7 +5720,7 @@ begin
   CheckLocomotiveParameters:=OK;
 end;
 
-function TMoverParameters.DoorLeft(State: Boolean):Boolean;
+function T_MoverParameters.DoorLeft(State: Boolean):Boolean;
 begin
  if (DoorLeftOpened<>State) and (DoorBlockedFlag=false) and (Battery=true) then
  begin
@@ -5740,7 +5740,7 @@ begin
     DoorLeft:=false;
 end;
 
-function TMoverParameters.DoorRight(State: Boolean):Boolean;
+function T_MoverParameters.DoorRight(State: Boolean):Boolean;
 begin
  if (DoorRightOpened<>State) and (DoorBlockedFlag=false) and (Battery=true) then
   begin
@@ -5761,7 +5761,7 @@ begin
 end;
 
 //Winger 160204 - pantografy
-function TMoverParameters.PantFront(State: Boolean):Boolean;
+function T_MoverParameters.PantFront(State: Boolean):Boolean;
 var pf1: Real;
 begin
 if (battery=true){ and ((TrainType<>dt_ET40)or ((TrainType=dt_ET40) and (EnginePowerSource.CollectorsNo>1)))}then
@@ -5797,7 +5797,7 @@ else
 SendCtrlToNext('PantFront',0,CabNo);
 end;
 
-function TMoverParameters.PantRear(State: Boolean):Boolean;
+function T_MoverParameters.PantRear(State: Boolean):Boolean;
 var pf1: Real;
 begin
 if battery=true then
@@ -5835,7 +5835,7 @@ end;
 
 
 
-{function TMoverParameters.Heating(State: Boolean):Boolean;
+{function T_MoverParameters.Heating(State: Boolean):Boolean;
 begin
  if (Heating<>State) then
   begin
@@ -5853,7 +5853,7 @@ begin
   SendCtrlToNext('PantRear',0,CabNo); }
 {end;}
 
-function TMoverParameters.LoadChkFile(chkpath:string):Boolean;
+function T_MoverParameters.LoadChkFile(chkpath:string):Boolean;
 const param_ok=1; wheels_ok=2; dimensions_ok=4;
 var
   lines,s: string;
