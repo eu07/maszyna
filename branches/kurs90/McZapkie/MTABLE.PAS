@@ -475,12 +475,12 @@ begin
    end;
   while mm>59 do //przeliczenie minut do w³aœciwego przedzia³u
    begin
-     mm:=0;
+     mm:=mm-60;
      inc(hh);
    end;
   while hh>23 do //przeliczenie godzin do w³aœciwego przedzia³u
    begin
-     hh:=0;
+     hh:=hh-24;
      inc(dd); //zwiêkszenie numeru dnia
    end;
   GameTime:=GameTime+deltaT;

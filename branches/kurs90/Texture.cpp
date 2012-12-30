@@ -4,19 +4,6 @@
     MaSzyna EU07 locomotive simulator
     Copyright (C) 2001-2004  Marcin Wozniak and others
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include <iostream>
@@ -608,57 +595,38 @@ TTexturesManager::AlphaValue TTexturesManager::LoadDDS(std::string fileName,int 
     GLuint offset = 0;
     int firstMipMap = 0;
     
-    while(data.width > Global::iMaxTextureSize || data.height > Global::iMaxTextureSize)
-    {
-        offset += ((data.width + 3) / 4) * ((data.height+3)/4) * data.blockSize;
-        data.width /= 2;
-        data.height /= 2;
-        firstMipMap++;
-    };
+ while ((data.width>Global::iMaxTextureSize)||(data.height>Global::iMaxTextureSize))
+ {//pomijanie zbyt du¿ych mipmap, jeœli wymagane jest ograniczenie rozmiaru
+  offset+=((data.width+3)/4)*((data.height+3)/4)*data.blockSize;
+  data.width/=2;
+  data.height/=2;
+  firstMipMap++;
+ };
 
-    // Load the mip-map levels
-    for (int i=0; i < data.numMipMaps - firstMipMap; i++)
-    {
-        if (!data.width) data.width = 1;
-        if (!data.height) data.height = 1;
-
-        GLuint size = ((data.width + 3) / 4) * ((data.height+3)/4) * data.blockSize;
-
-        if ((Global::bDecompressDDS)&&(i==1))  //should be i==0 but then problem with "glBindTexture()"
-        {
-            GLuint decomp_size = data.width * data.height * 4;
-            GLubyte* output = new GLubyte[decomp_size];
-            DecompressDXT(data, data.pixels + offset, output);
-
-            glTexImage2D(GL_TEXTURE_2D, i, GL_RGBA, data.width, data.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, output);
-
-            delete[] output;
-        }
-        else
-        {
-            glCompressedTexImage2D(
-                GL_TEXTURE_2D,
-                i,
-                data.format,
-                data.width,
-                data.height,
-                0,
-                size,
-                data.pixels + offset
-            );
-
-        }
-
-        offset += size;
-
-        // Half the image size for the next mip-map level...
-        data.width /= 2;
-        data.height /= 2;
-    };
-
-    delete[] data.pixels;
-    return std::make_pair(id, data.components == 4);
-
+ for (int i=0;i<data.numMipMaps-firstMipMap;i++)
+ {//wczytanie kolejnych poziomów mipmap
+  if (!data.width) data.width=1;
+  if (!data.height) data.height=1;
+  GLuint size=((data.width+3)/4)*((data.height+3)/4)*data.blockSize;
+  if (Global::bDecompressDDS)
+  {//programowa dekompresja DDS
+   //if (i==1) //should be i==0 but then problem with "glBindTexture()"
+   {GLuint decomp_size=data.width*data.height*4;
+    GLubyte* output=new GLubyte[decomp_size];
+    DecompressDXT(data,data.pixels+offset,output);
+    glTexImage2D(GL_TEXTURE_2D,i,GL_RGBA,data.width,data.height,0,GL_RGBA,GL_UNSIGNED_BYTE,output);
+    delete[] output;
+   }
+  }
+  else //przetwarzanie DDS przez OpenGL (istnieje odpowiednie rozszerzenie)
+   glCompressedTexImage2D(GL_TEXTURE_2D,i,data.format,data.width,data.height,0,size,data.pixels+offset);
+  offset+=size;
+  // Half the image size for the next mip-map level...
+  data.width/=2;
+  data.height/=2;
+ };
+ delete[] data.pixels;
+ return std::make_pair(id, data.components == 4);
 };
 
 void TTexturesManager::SetFiltering(int filter)

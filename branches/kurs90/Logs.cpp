@@ -29,7 +29,7 @@ void __fastcall WriteConsoleOnly(const char* str, double value)
 void __fastcall WriteConsoleOnly(const char* str)
 {
  //printf("%n ffafaf /n",str);
- SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),FOREGROUND_GREEN);
+ SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),FOREGROUND_GREEN|FOREGROUND_INTENSITY);
  DWORD wr= 0;
  WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE),str,strlen(str),&wr,NULL);
  WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE),endstring,strlen(endstring),&wr,NULL);

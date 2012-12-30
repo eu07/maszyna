@@ -78,7 +78,7 @@ public:
 
     TDynamicObject *DynamicObject;
 
-    AnsiString asMessage;
+    //AnsiString asMessage;
 
 //McZapkie: definicje wskaznikow
     TGauge VelocityGauge;
@@ -165,6 +165,10 @@ public:
     TGauge Universal2ButtonGauge;
     TGauge Universal3ButtonGauge;
     TGauge Universal4ButtonGauge;
+
+    TGauge CabLightButtonGauge; //hunter-091012: przelacznik oswietlania kabiny
+    TGauge CabLightDimButtonGauge; //hunter-091012: przelacznik przyciemnienia oswietlenia kabiny
+
 //NBMX wrzesien 2003 - obsluga drzwi
     TGauge DoorLeftButtonGauge;
     TGauge DoorRightButtonGauge;
@@ -238,6 +242,8 @@ public:
     TButton btLampkaForward; //Ra: lampki w przód i w ty³ dla komputerowych kabin
     TButton btLampkaBackward;
 
+    TButton btCabLight; //hunter-171012: lampa oswietlajaca kabine
+
     vector3 pPosition;
     vector3 pMechOffset; //driverNpos
     vector3 vMechMovement;
@@ -262,7 +268,7 @@ public:
     PSound dsbRelay;
     PSound dsbPneumaticRelay;
     PSound dsbSwitch;
-    PSound dsbPneumaticSwitch;    
+    PSound dsbPneumaticSwitch;
     PSound dsbReverserKey; //hunter-121211
 
     PSound dsbCouplerAttach;
@@ -300,7 +306,11 @@ public:
     TFadeSound sSmallCompressor;  //przetwornica
 
     int iCabLightFlag; //McZapkie:120503: oswietlenie kabiny (0: wyl, 1: przyciemnione, 2: pelne)
+    bool bCabLight; //hunter-091012: czy swiatlo jest zapalone?
+    bool bCabLightDim; //hunter-091012: czy przyciemnienie kabiny jest zapalone?
+
     vector3 pMechSittingPosition; //ABu 180404
+ vector3 __fastcall MirrorPosition(bool lewe);
 private:
     //PSound dsbBuzzer;
         PSound dsbCouplerStretch;
@@ -316,6 +326,8 @@ private:
     double fPoslizgTimer;
     float fConverterTimer;  //hunter-261211: dla przekaznika
     float fMainRelayTimer;  //hunter-141211: zalaczanie WSa z opoznieniem
+    float fCzuwakTestTimer;     //hunter-091012: do testu czuwaka
+    
     int CAflag; //hunter-131211: dla osobnego zbijania CA i SHP
 
 //    double fShpTimer;
@@ -332,6 +344,9 @@ private:
     float fPPress,fNPress;
     float fSPPress,fSNPress;
  int iSekunda; //Ra: sekunda aktualizacji prêdkoœci
+ int iRadioChannel; //numer aktualnego kana³u radiowego
+public:
+ int __fastcall RadioChannel() {return iRadioChannel;};
 };
 //---------------------------------------------------------------------------
 #endif

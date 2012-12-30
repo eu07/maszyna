@@ -27,14 +27,17 @@ enum TMovementStatus
 {//flagi bitowe ruchu (iDrivigFlags)
  moveStopCloser=1, //podjechaæ blisko W4 (nie podje¿d¿aæ na pocz¹tku ani po zmianie czo³a)
  moveStopPoint=2, //stawaæ na W4 (wy³¹czone podczas zmiany czo³a)
- moveAvaken=4, //po w³¹czeniu silnika pojazd nie przemieœci³ siê
+ //moveAvaken=4, //po w³¹czeniu silnika pojazd nie przemieœci³ siê
  movePress=8, //dociskanie przy od³¹czeniu (zamiast zmiennej Prepare2press)
  moveConnect=0x10, //jest blisko innego pojazdu i mo¿na próbowaæ pod³¹czyæ
- movePrimary=0x20, //ma priorytet w sk³adzie
+ movePrimary=0x20, //ma priorytet w sk³adzie (master)
  //moveStopThen=0x40, //nie podje¿d¿aæ do semafora, jeœli droga nie jest wolna
  moveStopHere=0x80, //nie podje¿d¿aæ do semafora, jeœli droga nie jest wolna
- moveStartHorn=0x100, //podaj sygna³ po podaniu wolnej drogi
- moveStartHornDone=0x200 //podano sygna³ po podaniu wolnej drogi
+ moveStartHorn=0x100, //podawaj sygna³ po podaniu wolnej drogi
+ moveStartHornNow=0x200, //podaj sygna³ po odhamowaniu
+ moveStartHornDone=0x400, //podano sygna³ po podaniu wolnej drogi
+ moveOerlikons=0x800, //sk³ad wy³¹cznie z zaworami? Oerlikona
+ moveIncSpeed=0x1000 //za³¹czenie jazdy (np. dla EZT)
 };
 
 enum TStopReason
@@ -98,7 +101,8 @@ private: //obs³uga tabelki prêdkoœci (musi mieæ mo¿liwoœæ odhaczania stacji w ro
  int iTableDirection; //kierunek zape³nienia tabelki wzglêdem pojazdu z AI
  double fLastVel; //prêdkoœæ na poprzednio sprawdzonym torze
  TTrack *tLast; //ostatni analizowany tor
- //TTrack tSignLast; //tor z ostatnio znalezionym eventem
+ TEvent *eSignSkip; //mo¿na pomin¹æ ten SBL po zatrzymaniu
+ TEvent* __fastcall CheckTrackEvent(double fDirection,TTrack *Track);
  bool __fastcall TableCheckEvent(TEvent *e);
  bool __fastcall TableAddNew();
  bool __fastcall TableNotFound(TEvent *e);
@@ -130,11 +134,13 @@ public:
  double ReactionTime; //czas reakcji Ra: czego? œwiadomoœci AI
  double fBrakeTime;  //wpisana wartoœæ jest zmniejszana do 0, gdy ujemna nale¿y zmieniæ nastawê hamulca
 private:
- bool Ready; //ABu: stan gotowosci do odjazdu - sprawdzenie odhamowania wagonow jest ustawiane w dynobj->cpp
+ double fReady; //poziom odhamowania wagonów
+ bool Ready; //ABu: stan gotowosci do odjazdu - sprawdzenie odhamowania wagonow
  double LastUpdatedTime; //czas od ostatniego logu
  double ElapsedTime; //czas od poczatku logu
  double deltalog; //przyrost czasu
  double LastReactionTime;
+ double fActionTime; //czas u¿ywany przy regulacji prêdkoœci i zamykaniu drzwi
  bool HelpMeFlag; //wystawiane True jesli cos niedobrego sie dzieje
 public:
  bool AIControllFlag; //rzeczywisty/wirtualny maszynista
@@ -143,11 +149,13 @@ private:
  TDynamicObject *pVehicle; //pojazd w którym siedzi steruj¹cy
  TDynamicObject *pVehicles[2]; //skrajne pojazdy w sk³adzie (niekoniecznie bezpoœrednio sterowane)
  TMoverParameters *Controlling; //jakim pojazdem steruje
- Mtable::TTrainParameters *TrainParams; //rozk³ad jazdy; do jakiego pociagu nalezy
+ Mtable::TTrainParameters *TrainParams; //rozk³ad jazdy zawsze jest, nawet jeœli pusty
  //int TrainNumber; //numer rozkladowy tego pociagu
  //AnsiString OrderCommand; //komenda pobierana z pojazdu
  //double OrderValue; //argument komendy
+ int iRadioChannel; //numer aktualnego kana³u radiowego
 public:
+ Mtable::TTrainParameters* __fastcall Timetable() {return TrainParams;};
  double AccPreferred; //preferowane przyspieszenie (wg psychiki kieruj¹cego, zmniejszana przy wykryciu kolizji)
  double AccDesired; //przyspieszenie, jakie ma utrzymywaæ (<0:nie przyspieszaj,<-0.1:hamuj)
  double VelDesired; //predkoœæ, z jak¹ ma jechaæ, <=VelActual
@@ -189,6 +197,7 @@ private:
  bool __fastcall DecBrake();
  bool __fastcall IncSpeed();
  bool __fastcall DecSpeed();
+ void __fastcall SpeedSet();
  void __fastcall RecognizeCommand(); //odczytuje komende przekazana lokomotywie
  void __fastcall Activation(); //umieszczenie obsady w odpowiednim cz³onie
 public:
@@ -219,8 +228,8 @@ public:
  __fastcall TController
  (bool AI,
   TDynamicObject *NewControll,
-  Mtable::TTrainParameters *NewTrainParams,
-  bool InitPsyche
+  bool InitPsyche,
+  bool primary=true //czy ma aktywnie prowadziæ?
  );
  AnsiString __fastcall OrderCurrent();
  void __fastcall WaitingSet(double Seconds);
@@ -237,21 +246,24 @@ private:
  void __fastcall Lights(int head,int rear);
  double __fastcall Distance(vector3 &p1,vector3 &n,vector3 &p2);
 private: //Ra: stare funkcje skanuj¹ce, u¿ywane do szukania sygnalizatora z ty³u
- TEvent* eSignLast; //ostatnio znaleziony sygna³, o ile nie miniêty
- bool __fastcall CheckEvent(TEvent *e);
- TEvent* __fastcall CheckTrackEvent(double fDirection,TTrack *Track);
+ //TEvent* eSignLast; //ostatnio znaleziony sygna³, o ile nie miniêty
+ TEvent* __fastcall CheckTrackEventBackward(double fDirection,TTrack *Track);
  TTrack* __fastcall BackwardTraceRoute(double &fDistance,double &fDirection,TTrack *Track,TEvent*&Event);
  void __fastcall SetProximityVelocity(double dist,double vel,const vector3 *pos);
  bool __fastcall BackwardScan();
 public:
+ void __fastcall PhysicsLog();
  AnsiString __fastcall StopReasonText();
  __fastcall ~TController();
  AnsiString __fastcall NextStop();
  void __fastcall TakeControl(bool yes);
  AnsiString __fastcall Relation();
  AnsiString __fastcall TrainName();
- double __fastcall StationCount();
- double __fastcall StationIndex();
+ int __fastcall StationCount();
+ int __fastcall StationIndex();
+ bool __fastcall IsStop();
+ bool __fastcall Primary() {return this?bool(iDrivigFlags&movePrimary):false;};
+ void __fastcall MoveTo(TDynamicObject *to);
 };
 
 #endif

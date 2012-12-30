@@ -128,7 +128,7 @@ public:
  //double Global::tSinceStart;
  static int Keys[MaxKeys];
  static vector3 pCameraPosition; //pozycja kamery w œwiecie
- static double pCameraRotation;  //kierunek bezwzglêdny kamery w œwiecie
+ static double pCameraRotation;  //kierunek bezwzglêdny kamery w œwiecie: 0=pó³noc, 90°=zachód (-azymut)
  static double pCameraRotationDeg;  //w stopniach, dla animacji billboard
  static vector3 pFreeCameraInit[10]; //pozycje kamery
  static vector3 pFreeCameraInitAngle[10];
@@ -189,7 +189,7 @@ public:
  static GLfloat darkLight[];
  static GLfloat lightPos[4];
  static int iSlowMotion;
- static bool changeDynObj;
+ static TDynamicObject *changeDynObj;
  static double ABuDebug;
  static bool detonatoryOK;
  static AnsiString asSky;
@@ -202,6 +202,7 @@ public:
  static int iReCompile; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
  static bool bUseVBO; //czy jest VBO w karcie graficznej
  static int iFeedbackMode; //tryb pracy informacji zwrotnej
+ static int iFeedbackPort; //dodatkowy adres dla informacji zwrotnych
  static double fOpenGL; //wersja OpenGL - przyda siê
  static bool bOpenGL_1_5; //czy s¹ dostêpne funkcje OpenGL 1.5
  static double fLuminance; //jasnoœæ œwiat³a do automatycznego zapalania
@@ -217,7 +218,7 @@ public:
  static double fMoveLight; //numer dnia w roku albo -1
  static bool bSmoothTraction; //wyg³adzanie drutów
  static double fSunDeclination; //deklinacja S³oñca
- static double fSunSpeed; //prêdkoœæ ruchu S³oñca, zmienna do testów
+ static double fTimeSpeed; //przyspieszenie czasu, zmienna do testów
  static double fTimeAngleDeg; //godzina w postaci k¹ta
  static double fLatitudeDeg; //szerokoœæ geograficzna
  static char* szTexturesTGA[4]; //lista tekstur od TGA
@@ -253,6 +254,8 @@ public:
  static TDynamicObject *pUserDynamic; //pojazd u¿ytkownika, renderowany bez trzêsienia
  static double fCalibrateIn[6][4]; //parametry kalibracyjne wejœæ z pulpitu
  static double fCalibrateOut[6][4]; //parametry kalibracyjne wyjœæ dla pulpitu
+ static double fBrakeStep; //krok zmiany hamulca dla klawiszy [Num3] i [Num9]
+ static bool bJoinEvents; //czy grupowaæ eventy o tych samych nazwach
  //metody
  static void __fastcall TrainDelete(TDynamicObject *d);
  static void __fastcall ConfigParse(Queryparsercomp::TQueryParserComp *qp,cParser *cp=NULL);

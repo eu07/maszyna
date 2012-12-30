@@ -4,19 +4,6 @@
     MaSzyna EU07 locomotive simulator
     Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 
@@ -57,25 +44,25 @@ void __fastcall TMemCell::Init()
 
 void __fastcall TMemCell::UpdateValues(char *szNewText, double fNewValue1, double fNewValue2, int CheckMask)
 {
- if (CheckMask&conditional_memadd)
+ if (CheckMask&update_memadd)
  {//dodawanie wartoœci
-  if (TestFlag(CheckMask,conditional_memstring))
+  if (TestFlag(CheckMask,update_memstring))
    strcat(szText,szNewText);
-  if (TestFlag(CheckMask,conditional_memval1))
+  if (TestFlag(CheckMask,update_memval1))
    fValue1+=fNewValue1;
-  if (TestFlag(CheckMask,conditional_memval2))
+  if (TestFlag(CheckMask,update_memval2))
    fValue2+=fNewValue2;
  }
  else
  {
-  if (TestFlag(CheckMask,conditional_memstring))
+  if (TestFlag(CheckMask,update_memstring))
    strcpy(szText,szNewText);
-  if (TestFlag(CheckMask,conditional_memval1))
+  if (TestFlag(CheckMask,update_memval1))
    fValue1=fNewValue1;
-  if (TestFlag(CheckMask,conditional_memval2))
+  if (TestFlag(CheckMask,update_memval2))
    fValue2=fNewValue2;
  }
- if (TestFlag(CheckMask,conditional_memstring))
+ if (TestFlag(CheckMask,update_memstring))
   CommandCheck();//jeœli zmieniony tekst, próbujemy rozpoznaæ komendê
 }
 

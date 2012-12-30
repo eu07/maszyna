@@ -126,13 +126,6 @@ void __fastcall TCamera::Update()
 
 }
 
-void __fastcall TCamera::Render()
-{
-
-
-}
-
-
 vector3 __fastcall TCamera::GetDirection()
 {
     matrix4x4 mat;
@@ -146,7 +139,7 @@ vector3 __fastcall TCamera::GetDirection()
 //bool __fastcall TCamera::GetMatrix(matrix4x4 &Matrix)
 bool __fastcall TCamera::SetMatrix()
 {
-    glRotated(-Roll*180.0f/M_PI,0,0,1);
+    glRotated(-Roll*180.0f/M_PI,0,0,1); //po wy³¹czeniu tego krêci siê pojazd, a sceneria nie
     glRotated(-Pitch*180.0f/M_PI,1,0,0);
     glRotated(-Yaw*180.0f/M_PI,0,1,0); //w zewnêtrznym widoku: kierunek patrzenia
 

@@ -3,19 +3,6 @@
     MaSzyna EU07 locomotive simulator
     Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "opengl/glew.h"
@@ -28,9 +15,10 @@
 #include "Console.h"
 #include "QueryParserComp.hpp"
 #include "Mover.h"
-#include "Train.h" //to tu bez sensu jest
 #include "Logs.h"
 #pragma hdrstop
+
+#include <dsound.h> //_clear87() itp.
 
 USERES("EU07.res");
 USEUNIT("dumb3d.cpp");
@@ -83,6 +71,8 @@ USEUNIT("Console.cpp");
 USEUNIT("Mover.cpp");
 USEUNIT("McZapkie\_mover.pas");
 USEUNIT("Console\PoKeys55.cpp");
+USEUNIT("Forth.cpp");
+USEUNIT("Console\LPT.cpp");
 //---------------------------------------------------------------------------
 #include "World.h"
 
@@ -502,9 +492,11 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
      case VK_ESCAPE: //[Esc] pauzuje tylko bez Debugmode
       if (DebugModeFlag) break;
      case 19: //[Pause]
-      if (!Global::iMultiplayer) //w multiplayerze pauza nie ma sensu
+      if (!Global::iMultiplayer||Global::bPause) //w multiplayerze pauza nie ma sensu
        if (!Console::Pressed(VK_CONTROL))
         Global::bPause=!Global::bPause; //zmiana stanu zapauzowania
+      if (Global::bPause) //jak pauza
+       Global::iTextMode=VK_F1; //to wyœwietliæ zegar i informacjê
       break;
      case VK_F7:
       if (DebugModeFlag)
@@ -613,7 +605,7 @@ int WINAPI WinMain( HINSTANCE hInstance,     //instance
     if (Global::iConvertModels>0)
      Global::iConvertModels=-Global::iConvertModels; //specjalny tryb
     else
-     Global::iConvertModels=-2; //z optymalizacj¹
+     Global::iConvertModels=-6; //z optymalizacj¹
    }
    else
     Error("Program usage: EU07 [-s sceneryfilepath] [-v vehiclename] [-modifytga] [-e3d]",!Global::iWriteLogEnabled);
@@ -681,7 +673,7 @@ int WINAPI WinMain( HINSTANCE hInstance,     //instance
     if (World.Update()) // Was There A Quit Received?
      SwapBuffers(hDC);	// Swap Buffers (Double Buffering)
     else
-     done=TRUE; //[F10] or DrawGLScene signalled a quit
+     done=true; //[F10] or DrawGLScene signalled a quit
    }
   }
   Console::Off(); //wy³¹czenie konsoli (komunikacji zwrotnej)

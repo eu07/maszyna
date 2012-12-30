@@ -3,19 +3,6 @@
     MaSzyna EU07 locomotive simulator
     Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 
@@ -55,19 +42,31 @@ const float maxrot=(M_PI/3.0); //60°
 //---------------------------------------------------------------------------
 int __fastcall TAnim::TypeSet(int i)
 {//ustawienie typu animacji i zale¿nej od niego iloœci animowanych submodeli
- switch (i)
- {case 0: iFlags=0x01; break; //0-oœ
-  case 1: iFlags=0x11; break; //1-zderzak
-  case 2: iFlags=0x21; break; //2-wózek
-  case 3: iFlags=0x31; break; //3-wi¹zar
-  case 4: iFlags=0x41; break; //4-wahacz
-  case 5: iFlags=0x55; break; //5-pantograf
-  case 6: iFlags=0x61; break; //6-drzwi
-  case 7: iFlags=0x78; break; //7-t³ok i rozrz¹d
+ fMaxDist=-1.0; //normalnie nie pokazywaæ
+ switch (i) //0-osie,1-drzwi,2-obracane,3-zderzaki,4-wózki,5-pantografy,6-t³oki
+ {case 0: iFlags=0x00; break; //0-oœ
+  case 1: iFlags=0x10; break; //1-drzwi
+  case 2: iFlags=0x20; break; //2-wahacz, dŸwignia itp.
+  case 3: iFlags=0x30; break; //3-zderzak
+  case 4: iFlags=0x40; break; //4-wózek
+  case 5: iFlags=0x55; break; //5-pantograf - 5 submodeli
+  case 6: iFlags=0x68; break; //6-t³ok i rozrz¹d - 8 submodeli
   default: iFlags=0;
  }
  yUpdate=NULL;
- return iFlags&15; //ile jest animowanych elementów dla danego typu
+ return iFlags&15; //ile wskaŸników rezerwowaæ dla danego typu animacji
+};
+__fastcall TAnim::TAnim()
+{//potrzebne to w ogóle?
+};
+__fastcall TAnim::~TAnim()
+{//usuwanie animacji
+/*
+ switch (iFlags&0xF0)
+ {//usuwanie struktur, zale¿nie ile zosta³o stworzonych
+  case 0x78: break;
+ }
+*/
 };
 void __fastcall TAnim::Parovoz()
 {//animowanie t³oka i rozrz¹du parowozu
@@ -227,48 +226,65 @@ void TDynamicObject::UpdateBoogie(TAnim *pAnim)
  pAnim->smAnimated->SetRotate(float3(1,0,0),*pAnim->dWheelAngle);
 };
 
+void TDynamicObject::UpdateDoorTranslate(TAnim *pAnim)
+{//animacja drzwi - przesuw
+ //WriteLog("Dla drzwi nr:", i);
+ //WriteLog("Wspolczynnik", DoorSpeedFactor[i]);
+ //Ra: te wspó³czynniki s¹ bez sensu, bo modyfikuj¹ wektor przesuniêcia
+ //w efekcie drzwi otwierane na zewn¹trz bêd¹ odlatywac dowolnie daleko :)
+ //ograniczy³em zakres ruchu funkcj¹ max
+ if (pAnim->smAnimated)
+ {
+  if (pAnim->iNumber&1)
+   pAnim->smAnimated->SetTranslate(vector3(0,0,Max0R(dDoorMoveR*pAnim->fSpeed,dDoorMoveR)));
+  else
+   pAnim->smAnimated->SetTranslate(vector3(0,0,Max0R(dDoorMoveL*pAnim->fSpeed,dDoorMoveL)));
+ }
+};
+
+void TDynamicObject::UpdateDoorRotate(TAnim *pAnim)
+{//animacja drzwi - obrót
+ if (pAnim->smAnimated)
+ {//if (MoverParameters->DoorOpenMethod==2) //obrotowe albo dwojlomne (trzeba kombinowac submodelami i ShiftL=90,R=180)
+  if (pAnim->iNumber&1)
+   pAnim->smAnimated->SetRotate(float3(1,0,0),dDoorMoveR);
+  else
+   pAnim->smAnimated->SetRotate(float3(1,0,0),dDoorMoveL);
+ }
+};
+
+void TDynamicObject::UpdatePant(TAnim *pAnim)
+{//animacja pantografu - 4 elementy obracane, jeden przesuwany w pionie
+ double k=0;
+ switch (pAnim->iNumber&1) //na razie dostêpne s¹ tylko 2 wspó³czynniki
+ {case 0: k=dPantAngleF; break; //przedni
+  case 1: k=dPantAngleR; break; //tylny
+ }
+ if (pAnim->smElement[0]) pAnim->smElement[0]->SetRotate(float3(1,0,0),k);
+ if (pAnim->smElement[1]) pAnim->smElement[1]->SetRotate(float3(-1,0,0),k);
+ if (pAnim->smElement[2]) pAnim->smElement[2]->SetRotate(float3(-1,0,0),k*1.81);
+ if (pAnim->smElement[3]) pAnim->smElement[3]->SetRotate(float3(1,0,0),k*1.81);
+ if (pAnim->smElement[4]) pAnim->smElement[4]->SetRotate(float3(1,0,0),k*0.81);
+};
+
 //ABu 29.01.05 przeklejone z render i renderalpha: *********************
 void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
 {//ABu290105: pozbierane i uporzadkowane powtarzajace sie rzeczy z Render i RenderAlpha
  //dodatkowy warunek, if (ObjSqrDist<...) zeby niepotrzebnie nie zmianiec w obiektach,
  //ktorych i tak nie widac
  //NBMX wrzesien, MC listopad: zuniwersalnione
- for (int i=0;i<iAnimatedDoors;i++)
- {
-  //WriteLog("Dla drzwi nr:", i);
-  //WriteLog("Wspolczynnik", DoorSpeedFactor[i]);
-  if (smAnimatedDoor[i]!=NULL)
-  {
-   if (MoverParameters->DoorOpenMethod==1) //przesuwne
-   {
-    if (i&1)
-    {
-     smAnimatedDoor[i]->SetTranslate(vector3(0,0,dDoorMoveR*DoorSpeedFactor[i]));
-    //dDoorMoveL=dDoorMoveL*DoorSpeedFactor[i];
-    }
-    else
-    {
-     smAnimatedDoor[i]->SetTranslate(vector3(0,0,dDoorMoveL*DoorSpeedFactor[i]));
-    //dDoorMoveR=dDoorMoveR*DoorSpeedFactor[i];
-    }
-   }
-   else
-   if (MoverParameters->DoorOpenMethod==2) //obrotowe albo dwojlomne (trzeba kombinowac submodelami i ShiftL=90,R=180)
-   {
-    if (i&1)
-     smAnimatedDoor[i]->SetRotate(float3(1,0,0),dDoorMoveR);
-    else
-     smAnimatedDoor[i]->SetRotate(float3(1,0,0),dDoorMoveL);
-   }
-  }
- } //for (int i=0;i<iAnimatedDoors;i++)
  btnOn=false; //czy przywróciæ stan domyœlny po renderowaniu
 
  if (ObjSqrDist<160000) //gdy bli¿ej ni¿ 400m
  {
+  for (int i=0;i<iAnimations;++i) //wykonanie kolejnych animacji
+   if (ObjSqrDist<pAnimations[i].fMaxDist)
+    if (pAnimations[i].yUpdate) //jeœli zdefiniowana funkcja
+     pAnimations[i].yUpdate(pAnimations+i); //aktualizacja animacji (po³o¿enia submodeli
   if (ObjSqrDist<2500) //gdy bli¿ej ni¿ 50m
   {
    //ABu290105: rzucanie pudlem
+   //te animacje wymagaj¹ bananów w modelach!
    mdModel->GetSMRoot()->SetTranslate(modelShake);
    if (mdKabina)
     mdKabina->GetSMRoot()->SetTranslate(modelShake);
@@ -288,9 +304,6 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
      smAnimatedWheel[i]->SetRotate(float3(1,0,0),*pWheelAngle[i]);
      //smAnimatedWheel[i]->SetRotate(float3(1,0,0),dWheelAngle[1]);
 */
-   for (int i=0;i<iAnimations;++i) //wykonanie kolejnych animacji
-    if (pAnimations[i].yUpdate) //jeœli zdefiniowana funkcja
-     pAnimations[i].yUpdate(pAnimations+i); //aktualizacja animacji (po³o¿enia submodeli
    //Mczapkie-100402: rysowanie lub nie - sprzegow
    //ABu-240105: Dodatkowy warunek: if (...).Render, zeby rysowal tylko jeden
    //z polaczonych sprzegow
@@ -461,6 +474,7 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
 //    if (dPantAngleF>0)
 //     dPantAngleF=0;
 
+/*
   if (Global::bLoadTraction)
   {
    if (smPatykird1[0])
@@ -485,10 +499,11 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
    if (smPatykisl[1])
       smPatykisl[1]->SetRotate(float3(1,0,0),dPantAngleR*0.81);
   }
-  if (smWiazary[0])
-     smWiazary[0]->SetRotate(float3(1,0,0),-dWheelAngle[1]);
-  if (smWiazary[1])
-     smWiazary[1]->SetRotate(float3(1,0,0),-dWheelAngle[1]);
+*/
+  //if (smWiazary[0])
+  //   smWiazary[0]->SetRotate(float3(1,0,0),-dWheelAngle[1]);
+  //if (smWiazary[1])
+  //   smWiazary[1]->SetRotate(float3(1,0,0),-dWheelAngle[1]);
   //przewody sterowania ukrotnionego
   if (TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_controll))
    {btCCtrl1.TurnOn(); btnOn=true;}
@@ -581,33 +596,9 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
 }
 //ABu 29.01.05 koniec przeklejenia *************************************
 
-double __fastcall ABuAcos(vector3 calc_temp)
+double __fastcall ABuAcos(const vector3 &calc_temp)
 {  //Odpowiednik funkcji Arccos, bo cos mi tam nie dzialalo.
-   //Dziala w zakresie calych 360 stopni.
-   //Wejscie: wektor, dla ktorego liczymy obrot wzgl. osi y
-   //Wyjscie: obrot
-   bool calc_sin;
-   double calc_angle;
-   if(fabs(calc_temp.x)>fabs(calc_temp.z)) {calc_sin=false; }
-                                      else {calc_sin=true;  };
-   double calc_dist=sqrt((calc_temp.x*calc_temp.x)+(calc_temp.z*calc_temp.z));
-   if (calc_dist!=0)
-   {
-        if(calc_sin)
-        {
-            calc_angle=asin(calc_temp.x/calc_dist);
-            if(calc_temp.z>0) {calc_angle=-calc_angle;    } //ok (1)
-                         else {calc_angle=M_PI+calc_angle;} // (2)
-        }
-        else
-        {
-            calc_angle=acos(calc_temp.z/calc_dist);
-            if(calc_temp.x>0) {calc_angle=M_PI+M_PI-calc_angle;} // (3)
-                         else {calc_angle=calc_angle;          } // (4)
-        }
-        return calc_angle;
-    }
-    return 0;
+ return atan2(-calc_temp.x,calc_temp.z); //Ra: tak proœciej
 }
 
 TDynamicObject* __fastcall TDynamicObject::ABuFindNearestObject(TTrack *Track,TDynamicObject *MyPointer,int &CouplNr)
@@ -720,26 +711,7 @@ TDynamicObject* __fastcall TDynamicObject::ABuScanNearestObject(TTrack *Track,do
 //ABu 01.11.04 poczatek wyliczania przechylow pudla **********************
 void __fastcall TDynamicObject::ABuModelRoll()
 {//ustawienie przechy³ki pojazdu i jego zawartoœci
-/* Ra: przechy³kê za³atwiamy na etapie przesuwania modelu
- double modelRoll=RadToDeg(0.5*(Axle0.GetRoll()+Axle1.GetRoll())); //Ra: tu nie by³o DegToRad
- //if (ABuGetDirection()<0) modelRoll=-modelRoll;
- if (modelRoll!=0.0)
- {//jak nie ma przechy³ki, to nie ma po co przechylaæ modeli
-  if (mdModel)
-   mdModel->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
-  if (mdKabina)
-   if (MoverParameters->ActiveCab==-1)
-    mdKabina->GetSMRoot()->SetRotateXYZ(vector3(0,-modelRoll,0));
-   else
-    mdKabina->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
-  if (mdLoad)
-   mdLoad->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
-  if (mdLowPolyInt)
-   mdLowPolyInt->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
-  if (mdPrzedsionek)
-   mdPrzedsionek->GetSMRoot()->SetRotateXYZ(vector3(0,modelRoll,0));
- }
-*/
+// Ra: przechy³kê za³atwiamy na etapie przesuwania modelu
 }
 
 //ABu 06.05.04 poczatek wyliczania obrotow wozkow **********************
@@ -1100,7 +1072,6 @@ __fastcall TDynamicObject::TDynamicObject()
  MoverParameters=NULL;
  Mechanik=NULL;
  MechInside=false;
- //TrainParams=NULL; //Ra: wywaliæ to st¹d!
  //McZapkie-270202
  Controller=AIdriver;
  bDisplayCab=false; //030303
@@ -1148,19 +1119,19 @@ __fastcall TDynamicObject::TDynamicObject()
  panth=0;
  dDoorMoveL=0.0;
  dDoorMoveR=0.0;
- for (int i=0;i<8;i++)
- {
-  DoorSpeedFactor[i]=random(150);
-  DoorSpeedFactor[i]=(DoorSpeedFactor[i]+100)/100;
- }
+ //for (int i=0;i<8;i++)
+ //{
+ // DoorSpeedFactor[i]=random(150);
+ // DoorSpeedFactor[i]=(DoorSpeedFactor[i]+100)/100;
+ //}
  //iAnimatedAxles=0; //iloœæ obracanych osi
- iAnimatedDoors=0;
+ //iAnimatedDoors=0;
 /* stare
  for (int i=0;i<MaxAnimatedAxles;i++)
   smAnimatedWheel[i]=NULL;
 */
- for (int i=0;i<MaxAnimatedDoors;i++)
-  smAnimatedDoor[i]=NULL;
+ //for (int i=0;i<MaxAnimatedDoors;i++)
+ // smAnimatedDoor[i]=NULL;
  mdModel=NULL;
  mdKabina=NULL;
  ReplacableSkinID[0]=0;
@@ -1169,7 +1140,7 @@ __fastcall TDynamicObject::TDynamicObject()
  ReplacableSkinID[3]=0;
  ReplacableSkinID[4]=0;
  iAlpha=0x30300030; //tak gdy tekstury wymienne nie maj¹ przezroczystoœci
- smWiazary[0]=smWiazary[1]=NULL;
+ //smWiazary[0]=smWiazary[1]=NULL;
  smWahacze[0]=smWahacze[1]=smWahacze[2]=smWahacze[3]=NULL;
  fWahaczeAmp=0;
  mdLoad=NULL;
@@ -1192,28 +1163,26 @@ __fastcall TDynamicObject::TDynamicObject()
  iInventory=0; //flagi bitowe posiadanych submodeli (zaktualizuje siê po wczytaniu MMD)
  RaLightsSet(0,0); //pocz¹tkowe zerowanie stanu œwiate³
  //Ra: domyœlne iloœci animacji dla zgodnoœci wstecz (gdy brak iloœci podanych w MMD)
- iAnimType[0]=8; //0-osie (8)
- iAnimType[1]=4; //1-zderzaki (4)
- iAnimType[2]=2; //3-wózki (2)
- iAnimType[3]=2; //2-wi¹zary (2) - mo¿na zast¹piæ osiami...
- iAnimType[4]=4; //4-wahacze (4) - np. nogi konia
- iAnimType[5]=2; //5-pantografy (2)
- iAnimType[6]=8; //6-drzwi (8)
- iAnimType[7]=0; //7-t³oki (napêd parowozu)
- //iAnimType[8]=8; //8-przestawiacze?
- //iAnimType[9]=8; //9-cylindry hamulcowe?
- iAnimations=30; //tyle by³o kiedyœ w ka¿dym pojeŸdzie
+ iAnimType[ANIM_WHEELS ]=8; //0-osie (8)
+ iAnimType[ANIM_DOORS  ]=8; //1-drzwi (8)
+ iAnimType[ANIM_LEVERS ]=4; //2-wahacze (4) - np. nogi konia
+ iAnimType[ANIM_BUFFERS]=4; //3-zderzaki (4)
+ iAnimType[ANIM_BOOGIES]=2; //4-wózki (2)
+ iAnimType[ANIM_PANTS  ]=2; //5-pantografy (2)
+ iAnimType[ANIM_STEAMS ]=0; //6-t³oki (napêd parowozu)
+ iAnimations=28; //tyle by³o kiedyœ w ka¿dym pojeŸdzie (2 wi¹zary wypad³y)
  pAnimations=NULL;
  pAnimated=NULL;
  fShade=0.0; //standardowe oœwietlenie na starcie
  iHornWarning=1; //numer syreny do u¿ycia po otrzymaniu sygna³u do jazdy
+ asDestination="none"; //stoj¹cy nigdzie nie jedzie
+ pValveGear=NULL; //Ra: tymczasowo
 }
 
 __fastcall TDynamicObject::~TDynamicObject()
 {//McZapkie-250302 - zamykanie logowania parametrow fizycznych
  SafeDelete(Mechanik);
  SafeDelete(MoverParameters);
- //SafeDelete(TrainParams); //Ra: wywaliæ to st¹d!
  //Ra: wy³¹czanie dŸwiêków powinno byæ dodane w ich destruktorach, ale siê sypie
 /* to te¿ siê sypie
  for (int i=0;i<MaxAxles;++i)
@@ -1228,8 +1197,8 @@ __fastcall TDynamicObject::~TDynamicObject()
  rsDiesielInc.Stop();
  rscurve.Stop();
 */
- delete pAnimations; //obiekty obs³uguj¹ce animacjê
- delete pAnimated; //lista animowanych submodeli
+ delete[] pAnimations; //obiekty obs³uguj¹ce animacjê
+ delete[] pAnimated; //lista animowanych submodeli
 }
 
 double __fastcall TDynamicObject::Init(
@@ -1238,7 +1207,7 @@ double __fastcall TDynamicObject::Init(
  AnsiString asReplacableSkin, //nazwa wymiennej tekstury
  AnsiString Type_Name, //nazwa CHK/MMD, np. "303E"
  TTrack *Track, //tor pocz¹tkowy wstwawienia (pocz¹tek sk³adu)
- double fDist, //dystans wzglêdem punktu 2
+ double fDist, //dystans wzglêdem punktu 1
  AnsiString DriverType, //typ obsady
  double fVel, //prêdkoœæ pocz¹tkowa
  AnsiString TrainName, //nazwa sk³adu, np. "PE2307"
@@ -1251,10 +1220,6 @@ double __fastcall TDynamicObject::Init(
  asBaseDir="dynamic\\"+BaseDir+"\\"; //McZapkie-310302
  asName=Name;
  AnsiString asAnimName=""; //zmienna robocza do wyszukiwania osi i wózków
- //TLocation l; //wspó³rzêdne w scenerii
- //l.X=l.Y=l.Z=0; //Ra: ustawianie tego teraz nie ma sensu, najpierw trzeba ustawiæ na torze
- //TRotation r;
- //r.Rx=r.Ry=r.Rz=0;
  //Ra: zmieniamy znaczenie obsady na jednoliterowe, ¿eby dosadziæ kierownika
  if (DriverType=="headdriver") DriverType="h"; //steruj¹cy kabin¹ +1
  else if (DriverType=="reardriver") DriverType="r"; //steruj¹cy kabin¹ -1
@@ -1298,6 +1263,7 @@ double __fastcall TDynamicObject::Init(
   Error("Parameters mismatch: dynamic object "+asName+" from\n"+BaseDir+"\\"+Type_Name);
   return 0.0; //zerowa d³ugoœæ to brak pojazdu
  }
+ MoverParameters->BrakeLevelSet(MoverParameters->BrakeCtrlPos); //poprawienie hamulca po ewentualnym przestawieniu przez Pascal
  if (MoverParameters->CategoryFlag&2) //jeœli samochód
  {//ustawianie samochodow na poboczu albo na œrodku drogi
   if (Track->fTrackWidth<3.5) //jeœli droga w¹ska
@@ -1317,13 +1283,14 @@ double __fastcall TDynamicObject::Init(
   if (Name==AnsiString(Global::asHumanCtrlVehicle)) //jeœli pojazd wybrany do prowadzenia
   {
    if (MoverParameters->EngineType!=Dumb) //i nie jest dumbem
-    Controller=Humandriver; //wsadzamy tam steruj¹cego
+    //if (!DebugModeFlag) //w Debugmode prowadzi teraz AI - bierki, kabina znika... :/
+     Controller=Humandriver; //wsadzamy tam steruj¹cego
   }
   //McZapkie-151102: rozk³ad jazdy czytany z pliku *.txt z katalogu w którym jest sceneria
   if (DriverType.Pos("h")||DriverType.Pos("r"))
   {//McZapkie-110303: mechanik i rozklad tylko gdy jest obsada
    MoverParameters->ActiveCab=MoverParameters->CabNo; //ustalenie aktywnej kabiny (rozrz¹d)
-   Mechanik=new TController(Controller,this,NULL,Aggressive);
+   Mechanik=new TController(Controller,this,Aggressive);
    if (TrainName.IsEmpty()) //jeœli nie w sk³adzie
     Mechanik->PutCommand("Timetable:",iDirection?-fVel:fVel,0,NULL); //tryb poci¹gowy z ustalon¹ prêdkoœci¹ (wzglêdem sprzêgów)
    //if (TrainName!="none")
@@ -1333,8 +1300,7 @@ double __fastcall TDynamicObject::Init(
    if (DriverType=="p")
    {//obserwator w charakterze pasa¿era
     //Ra: to jest niebezpieczne, bo w razie co bêdzie pomaga³ hamulcem bezpieczeñstwa
-    //TrainParams=new TTrainParameters(TrainName); //Ra: wywaliæ to st¹d!
-    //Mechanik=new TController(Controller,this,NULL,Easyman);
+    Mechanik=new TController(Controller,this,Easyman,false);
    }
  }
  // McZapkie-250202
@@ -1384,17 +1350,18 @@ double __fastcall TDynamicObject::Init(
  btHeadSignals23.Init("headlamp22",mdModel,false);
  TurnOff(); //resetowanie zmiennych submodeli
  //wyszukiwanie zderzakow
- for (int i=0;i<2;i++)
- {
-  asAnimName=AnsiString("buffer_left0")+(i+1);
-  smBuforLewy[i]=mdModel->GetFromName(asAnimName.c_str());
-  if (smBuforLewy[i])
-   smBuforLewy[i]->WillBeAnimated(); //ustawienie flagi animacji
-  asAnimName=AnsiString("buffer_right0")+(i+1);
-  smBuforPrawy[i]=mdModel->GetFromName(asAnimName.c_str());
-  if (smBuforPrawy[i])
-   smBuforPrawy[i]->WillBeAnimated();
- }
+ if (mdModel) //jeœli ma w czym szukaæ
+  for (int i=0;i<2;i++)
+  {
+   asAnimName=AnsiString("buffer_left0")+(i+1);
+   smBuforLewy[i]=mdModel->GetFromName(asAnimName.c_str());
+   if (smBuforLewy[i])
+    smBuforLewy[i]->WillBeAnimated(); //ustawienie flagi animacji
+   asAnimName=AnsiString("buffer_right0")+(i+1);
+   smBuforPrawy[i]=mdModel->GetFromName(asAnimName.c_str());
+   if (smBuforPrawy[i])
+    smBuforPrawy[i]->WillBeAnimated();
+  }
  for (int i=0;i<iAxles;i++) //wyszukiwanie osi (0 jest na koñcu, dlatego dodajemy d³ugoœæ?)
   dRailPosition[i]=(Reversed?-dWheelsPosition[i]:(dWheelsPosition[i]+MoverParameters->Dim.L))+fDist;
  //McZapkie-250202 end.
@@ -1408,10 +1375,13 @@ double __fastcall TDynamicObject::Init(
   fAxleDist=MoverParameters->Dim.L-0.2; //bo bêdzie "walenie w mur"
  float fAxleDistHalf=fAxleDist*0.5;
  //WriteLog("Dynamic "+Type_Name+" of length "+MoverParameters->Dim.L+" at "+AnsiString(fDist));
- //if (Track->Event0?(fDist<0.0)||(fDist>0.5*MoverParameters->Dim.L):true)
+ //if (Cab) //jeœli ma obsadê - zgodnoœæ wstecz, jeœli tor startowy ma Event0
+ // if (Track->Event0) //jeœli tor ma Event0
+ //  if (fDist>=0.0) //jeœli jeœli w starych sceneriach pocz¹tek sk³adu by³by wysuniêty na ten tor
+ //   if (fDist<=0.5*MoverParameters->Dim.L+0.2) //ale nie jest wysuniêty
+ //    fDist+=0.5*MoverParameters->Dim.L+0.2; //wysun¹æ go na ten tor
  //przesuwanie pojazdu tak, aby jego pocz¹tek by³ we wskazanym miejcu
-  //bez przesuwania: zgodnoœæ wstecz, jeœli tor ma Event0, a pocz¹tek sk³adu by³by wysuniêty za ten tor
- fDist-=0.5*MoverParameters->Dim.L; //dodajemy pó³ d³ugoœci pojazdu (zliczanie na minus)
+ fDist-=0.5*MoverParameters->Dim.L; //dodajemy pó³ d³ugoœci pojazdu, bo ustawiamy jego œrodek (zliczanie na minus)
  switch (iNumAxles)
  {//Ra: pojazdy wstawiane s¹ na tor pocz¹tkowy, a potem przesuwane
   case 2: //ustawianie osi na torze
@@ -1447,16 +1417,19 @@ double __fastcall TDynamicObject::Init(
  //pOldPos1=Axle0.pPosition;
  //ActualTrack= GetTrack(); //McZapkie-030303
  //ABuWozki 060504
- smBogie[0]=mdModel->GetFromName("bogie1"); //Ra: bo nazwy s¹ ma³ymi
- smBogie[1]=mdModel->GetFromName("bogie2");
- if (!smBogie[0])
-  smBogie[0]=mdModel->GetFromName("boogie01"); //Ra: alternatywna nazwa
- if (!smBogie[1])
-  smBogie[1]=mdModel->GetFromName("boogie02"); //Ra: alternatywna nazwa
- if (smBogie[0])
-  smBogie[0]->WillBeAnimated();
- if (smBogie[1])
-  smBogie[1]->WillBeAnimated();
+ if (mdModel) //jeœli ma w czym szukaæ
+ {
+  smBogie[0]=mdModel->GetFromName("bogie1"); //Ra: bo nazwy s¹ ma³ymi
+  smBogie[1]=mdModel->GetFromName("bogie2");
+  if (!smBogie[0])
+   smBogie[0]=mdModel->GetFromName("boogie01"); //Ra: alternatywna nazwa
+  if (!smBogie[1])
+   smBogie[1]=mdModel->GetFromName("boogie02"); //Ra: alternatywna nazwa
+  if (smBogie[0])
+   smBogie[0]->WillBeAnimated();
+  if (smBogie[1])
+   smBogie[1]->WillBeAnimated();
+ }
  //ABu: zainicjowanie zmiennej, zeby nic sie nie ruszylo
  //w pierwszej klatce, potem juz liczona prawidlowa wartosc masy
  MoverParameters->ComputeConstans();
@@ -1612,10 +1585,10 @@ void __fastcall TDynamicObject::AttachPrev(TDynamicObject *Object, int iType)
 
 bool __fastcall TDynamicObject::UpdateForce(double dt, double dt1, bool FullVer)
 {
-    if (!bEnabled)
-        return false;
-    if (dt>0)
-     MoverParameters->ComputeTotalForce(dt, dt1, FullVer);
+ if (!bEnabled)
+  return false;
+ if (dt>0)
+  MoverParameters->ComputeTotalForce(dt,dt1,FullVer);
  return true;
 }
 
@@ -1720,6 +1693,18 @@ void __fastcall TDynamicObject::UpdatePos()
   MoverParameters->Loc.Z=  vPosition.y;
 }
 */
+
+/*
+Ra:
+  Powinny byæ dwie funkcje wykonuj¹ce aktualizacjê fizyki. Jedna wykonuj¹ca
+krok obliczeñ, powtarzana odpowiedni¹ liczbê razy, a druga wykonuj¹ca zbiorcz¹
+aktualzacjê mniej istotnych elementów.
+  Ponadto nale¿a³o by ustaliæ odleg³oœæ sk³adów od kamery i jeœli przekracza
+ona np. 10km, to traktowaæ sk³ady jako uproszczone, np. bez wnikania w si³y
+na sprzêgach, opóŸnienie dzia³ania hamulca itp. Oczywiœcie musi mieæ to pewn¹
+histerezê czasow¹, aby te tryby pracy nie prze³¹cza³y siê zbyt szybko.
+*/
+
 
 bool __fastcall TDynamicObject::Update(double dt, double dt1)
 {
@@ -1852,7 +1837,9 @@ TGround::GetTraction;
 //      Mechanik->LastReactionTime=0;
 //     }
 
+      //Mechanik->PhysicsLog(); //tymczasowo logowanie
       Mechanik->UpdateSituation(dt1); //przeb³yski œwiadomoœci AI
+      //Mechanik->PhysicsLog(); //tymczasowo logowanie
     }
 //    else
 //    { MoverParameters->SecuritySystemReset(); }
@@ -1864,7 +1851,8 @@ TGround::GetTraction;
         MoverParameters->PipePress=0.50;
         MoverParameters->HighPipePress=0.50;
         MoverParameters->LowPipePress=0.35;
-        MoverParameters->BrakeCtrlPos=0;
+        MoverParameters->BrakeLevelSet(0);
+
        }
 
 
@@ -2297,8 +2285,6 @@ if (tmpTraction.TractionVoltage==0)
   }
 
 //NBMX Obsluga drzwi, MC: zuniwersalnione
-//   if (tempdoorfactor2!=120)
-//    tempdoorfactor=random(100);
    if ((dDoorMoveL<MoverParameters->DoorMaxShiftL) && (MoverParameters->DoorLeftOpened))
     dDoorMoveL+=dt1*0.5*MoverParameters->DoorOpenSpeed;
    if ((dDoorMoveL>0) && (!MoverParameters->DoorLeftOpened))
@@ -2430,11 +2416,6 @@ vector3 __fastcall TDynamicObject::GetPosition()
  return vPosition;
 };
 
-//vector3 __fastcall TDynamicObject::HeadPosition()
-//{//pobranie wspó³rzêdnych czo³a sk³adu
-// return vCoulpler[iDirection^1]; //iDirection=1 gdy sprzêg 0 jest z przodu w kierunku jazdy
-//};
-
 void __fastcall TDynamicObject::TurnOff()
 {//wy³¹czenie rysowania submodeli zmiennych dla egemplarza pojazdu
  btnOn=false;
@@ -2501,10 +2482,10 @@ bool __fastcall TDynamicObject::Render()
  if (ObjSqrDist<500) //jak jest blisko - do 70m
   modelrotate=0.01f; //ma³y k¹t, ¿eby nie znika³o
  else
- {//Global::pCameraRotation to k¹t bewzglêdny w œwiecie (zero - na po³udnie)
+ {//Global::pCameraRotation to k¹t bewzglêdny w œwiecie (zero - na pó³noc)
   tempangle=(vPosition-Global::pCameraPosition); //wektor od kamery
   modelrotate=ABuAcos(tempangle); //okreœlenie k¹ta
-  if (modelrotate>M_PI) modelrotate-=(2*M_PI);
+  //if (modelrotate>M_PI) modelrotate-=(2*M_PI);
   modelrotate+=Global::pCameraRotation;
  }
  if (modelrotate>M_PI) modelrotate-=(2*M_PI);
@@ -2518,20 +2499,6 @@ bool __fastcall TDynamicObject::Render()
  {
   TSubModel::iInstance=(int)this; //¿eby nie robiæ cudzych animacji
   //AnsiString asLoadName="";
-  //przejœcie na uk³ad wspó³rzêdnych modelu - tu siê zniekszta³ca?
-  //vFront=GetDirection();
-  //if ((MoverParameters->CategoryFlag&2) && (MoverParameters->CabNo<0)) //TODO: zrobic to eleganciej z plynnym zawracaniem
-  // vFront=-vFront;
-  //vUp=vWorldUp; //Ra: jeœli to wskazuje pionowo w górê
-  //vFront.Normalize(); //a to leci w dó³ lub w górê, to mamy problem z ortogonalnoœci¹ i skalowaniem
-  //vLeft=Normalize(CrossProduct(vWorldUp,vFront));
-  //vUp=CrossProduct(vFront,vLeft);
-  //matrix4x4 mat;
-  //mat.Identity();
-  //mat.BasisChange(vLeft,vUp,vFront);
-  //mMatrix=Inverse(mat);
-
-  //vector3 pos=vPosition;
   double ObjSqrDist=SquareMagnitude(Global::pCameraPosition-vPosition);
   ABuLittleUpdate(ObjSqrDist); //ustawianie zmiennych submodeli dla wspólnego modelu
 
@@ -2577,31 +2544,32 @@ bool __fastcall TDynamicObject::Render()
    glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
    glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
   }
-  if (mdLowPolyInt)
-   if (FreeFlyModeFlag?true:!mdKabina)
-    if (Global::bUseVBO)
-     mdLowPolyInt->RaRender(ObjSqrDist,ReplacableSkinID,iAlpha);
-    else
-     mdLowPolyInt->Render(ObjSqrDist,ReplacableSkinID,iAlpha);
-
   if (Global::bUseVBO)
+  {//wersja VBO
+   if (mdLowPolyInt)
+    if (FreeFlyModeFlag?true:!mdKabina)
+     mdLowPolyInt->RaRender(ObjSqrDist,ReplacableSkinID,iAlpha);
    mdModel->RaRender(ObjSqrDist,ReplacableSkinID,iAlpha);
-  else
-   mdModel->Render(ObjSqrDist,ReplacableSkinID,iAlpha);
-  if (mdLoad) //renderowanie nieprzezroczystego ³adunku
-   if (Global::bUseVBO)
+   if (mdLoad) //renderowanie nieprzezroczystego ³adunku
     mdLoad->RaRender(ObjSqrDist,ReplacableSkinID,iAlpha);
-   else
-    mdLoad->Render(ObjSqrDist,ReplacableSkinID,iAlpha);
-
-//rendering przedsionkow o ile istnieja
-  if (mdPrzedsionek)
-   //if (MoverParameters->filename==asBaseDir+"6ba.chk") //Ra: to tu bez sensu by³o
-   if (Global::bUseVBO)
+   if (mdPrzedsionek)
     mdPrzedsionek->RaRender(ObjSqrDist,ReplacableSkinID,iAlpha);
-   else
+  }
+  else
+  {//wersja Display Lists
+   if (mdLowPolyInt)
+    if (FreeFlyModeFlag?true:!mdKabina)
+     mdLowPolyInt->Render(ObjSqrDist,ReplacableSkinID,iAlpha);
+   mdModel->Render(ObjSqrDist,ReplacableSkinID,iAlpha);
+   if (mdLoad) //renderowanie nieprzezroczystego ³adunku
+    mdLoad->Render(ObjSqrDist,ReplacableSkinID,iAlpha);
+   if (mdPrzedsionek)
     mdPrzedsionek->Render(ObjSqrDist,ReplacableSkinID,iAlpha);
+  }
 
+  //Ra: czy ta kabina tu ma sens?
+  //Ra: czy nie renderuje siê dwukrotnie?
+  //Ra: dlaczego jest zablokowana w przezroczystych?
   if (mdKabina) //jeœli ma model kabiny
   if ((mdKabina!=mdModel) && bDisplayCab && FreeFlyModeFlag)
   {//rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
@@ -2973,18 +2941,6 @@ bool __fastcall TDynamicObject::RenderAlpha()
  if (renderme)
  {
   TSubModel::iInstance=(int)this; //¿eby nie robiæ cudzych animacji
-  //vFront=GetDirection(); //wektory ju¿ by³y liczone
-  //if ((MoverParameters->CategoryFlag&2) && (MoverParameters->CabNo<0)) //TODO: zrobic to eleganciej z plynnym zawracaniem
-  // vFront=-vFront;
-  //vUp=vWorldUp;
-  //vFront.Normalize(); //Ra: Po cholerê to jest drugi raz liczone? By³o w Render() i powinno zostaæ bez zmian.
-  //vLeft=CrossProduct(vUp,vFront);
-  //vUp=CrossProduct(vFront,vLeft);
-  //matrix4x4 mat;
-  //mat.Identity();
-  //mat.BasisChange(vLeft,vUp,vFront);
-  //mMatrix=Inverse(mat);
-  //vector3 pos=GetPosition();
   double ObjSqrDist=SquareMagnitude(Global::pCameraPosition-vPosition);
   ABuLittleUpdate(ObjSqrDist); //ustawianie zmiennych submodeli dla wspólnego modelu
   glPushMatrix();
@@ -3012,17 +2968,28 @@ bool __fastcall TDynamicObject::RenderAlpha()
    glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
    glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);
   }
-    if (Global::bUseVBO)
-    mdModel->RaRenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
-    else
-     mdModel->RenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
-
-    if (mdLoad) //Ra: dodane renderowanie przezroczystego ³adunku
-     if (Global::bUseVBO)
-      mdLoad->RaRenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
-     else
-      mdLoad->RenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
-
+  if (Global::bUseVBO)
+  {//wersja VBO
+   if (mdLowPolyInt)
+    if (FreeFlyModeFlag?true:!mdKabina)
+     mdLowPolyInt->RaRenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
+   mdModel->RaRenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
+   if (mdLoad)
+    mdLoad->RaRenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
+   //if (mdPrzedsionek) //Ra: przedsionków tu wczeœniej nie by³o - w³¹czyæ?
+   // mdPrzedsionek->RaRenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
+  }
+  else
+  {//wersja Display Lists
+   if (mdLowPolyInt)
+    if (FreeFlyModeFlag?true:!mdKabina)
+     mdLowPolyInt->RenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
+   mdModel->RenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
+   if (mdLoad)
+    mdLoad->RenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
+   //if (mdPrzedsionek) //Ra: przedsionków tu wczeœniej nie by³o - w³¹czyæ?
+   // mdPrzedsionek->RenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
+  }
 /* skoro false to mo¿na wyci¹c
     //ABu: Tylko w trybie freefly
     if (false)//((mdKabina!=mdModel) && bDisplayCab && FreeFlyModeFlag)
@@ -3096,6 +3063,11 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
  Global::asCurrentDynamicPath=BaseDir;
  AnsiString asFileName=BaseDir+TypeName+".mmd";
  AnsiString asLoadName=BaseDir+MoverParameters->LoadType+".t3d";
+ if (!FileExists(asFileName))
+ {
+  ErrorLog("Missed file: "+asFileName); //brak MMD
+  return;
+ }
  fs=new TFileStream(asFileName,fmOpenRead|fmShareCompat);
  if (!fs) return;
  int size=fs->Size;
@@ -3114,6 +3086,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
  //Parser->LoadStringToParse(asFile);
  Parser->First();
  //DecimalSeparator= '.';
+ TAnim *pants=NULL; //indeks obiektu animuj¹cego dla pantografu 0
  while (!Parser->EndOfFile && !Stop_InternalData)
  {
      str=Parser->GetNextSymbol().LowerCase();
@@ -3186,6 +3159,9 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
           do
           {//kolejne liczby to iloœæ animacj, -1 to znacznik koñca
            ile=Parser->GetNextSymbol().ToIntDef(-1); //iloœæ danego typu animacji
+           if (co==ANIM_PANTS)
+            if (!Global::bLoadTraction)
+             ile=0; //wy³¹czenie animacji pantografów
            if (co<ANIM_TYPES)
             if (ile>=0)
             {iAnimType[co]=ile; //zapamiêtanie
@@ -3196,6 +3172,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
           while (co<ANIM_TYPES) iAnimType[co++]=0; //zerowanie pozosta³ych
           str=Parser->GetNextSymbol().LowerCase();
          }
+         WriteLog("Total animations: "+AnsiString(iAnimations));
         }
         if (!pAnimations)
         {//Ra: tworzenie tabeli animacji, jeœli jeszcze nie by³o
@@ -3203,8 +3180,19 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
          int i,j,k=0,sm=0;
          for (j=0;j<ANIM_TYPES;++j)
           for (i=0;i<iAnimType[j];++i)
+          {
+           if (j==ANIM_PANTS) //zliczamy poprzednie animacje
+            if (!pants)
+             if (iAnimType[ANIM_PANTS]) //o ile jakieœ pantografy s¹ (a domyœlnie s¹)
+              pants=pAnimations+k; //zapamiêtanie na potrzeby wyszukania submodeli
+           pAnimations[k].iShift=sm; //przesuniêcie do przydzielenia wskaŸnika
            sm+=pAnimations[k++].TypeSet(j); //ustawienie typu animacji i zliczanie submodeli
-         pAnimated=new TSubModel*[sm]; //tabela na animowane submodele
+          }
+         if (sm) //o ile s¹ bardziej z³o¿one animacje
+         {pAnimated=new TSubModel*[sm]; //tabela na animowane submodele
+          for (k=0;k<iAnimations;++k)
+           pAnimations[k].smElement=pAnimated+pAnimations[k].iShift; //przydzielenie wskaŸnika do tabelki
+         }
         }
         if (str==AnsiString("lowpolyinterior:")) //ABu: wnetrze lowpoly
         {
@@ -3213,42 +3201,11 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
          Global::asCurrentTexturePath=BaseDir; //biezaca sciezka do tekstur to dynamic/...
          mdLowPolyInt=TModelsManager::GetModel(asModel.c_str(),true);
         }
-        else if (str==AnsiString("animwheelprefix:")) //prefiks krecacych sie kol
-        {
+        else if (str==AnsiString("animwheelprefix:"))
+        {//prefiks krêc¹cych siê kó³
          int i,j,k,m;
          str=Parser->GetNextSymbol();
-/* stare animacje
-         for (i=1;i<=MaxAnimatedAxles;++i)
-         {//McZapkie-050402: wyszukiwanie kol o nazwie str*
-          asAnimName=str+i;
-          smAnimatedWheel[i-1]=mdModel->GetFromName(asAnimName.c_str());
-          if (smAnimatedWheel[i-1])
-          {++iAnimatedAxles;
-           smAnimatedWheel[i-1]->WillBeAnimated(); //wy³¹czenie optymalizacji transformu
-          }
-          else break; //wyjœcie z pêtli
-         }
-         //Ra: ustawianie indeksów osi
-         for (i=0;i<MaxAnimatedAxles;++i) //zabezpieczenie przed b³êdami w CHK
-          pWheelAngle[i]=dWheelAngle+1; //domyœlnie wskaŸnik na napêdzaj¹ce
-         i=0; j=1; k=0; m=0; //numer osi; kolejny znak; ile osi danego typu; która œrednica
-         if ((MoverParameters->WheelDiameterL!=MoverParameters->WheelDiameter)||(MoverParameters->WheelDiameterT!=MoverParameters->WheelDiameter))
-          while ((i<iAnimatedAxles)&&(j<=MoverParameters->AxleArangement.Length()))
-          {//wersja ze wskaŸnikami jest bardziej elastyczna na nietypowe uk³ady
-           if ((k>='A')&&(k<='J')) //10 chyba maksimum?
-           {pWheelAngle[i++]=dWheelAngle+1; //obrót osi napêdzaj¹cych
-            --k; //nastêpna bêdzie albo taka sama, albo bierzemy kolejny znak
-            m=2; //nastêpuj¹ce toczne bêd¹ mia³y inn¹ œrednicê
-           }
-           else if ((k>='1')&&(k<='9'))
-           {pWheelAngle[i++]=dWheelAngle+m; //obrót osi tocznych
-            --k; //nastêpna bêdzie albo taka sama, albo bierzemy kolejny znak
-           }
-           else
-            k=MoverParameters->AxleArangement[j++]; //pobranie kolejnego znaku
-          } //Ra: pêtla uruchamiana tylko jeœli s¹ ró¿ne œrednice
-*/
-         for (i=0;i<iAnimType[0];++i) //iloœæ osi
+         for (i=0;i<iAnimType[ANIM_WHEELS];++i) //liczba osi
          {//McZapkie-050402: wyszukiwanie kol o nazwie str*
           asAnimName=str+AnsiString(i+1);
           pAnimations[i].smAnimated=mdModel->GetFromName(asAnimName.c_str()); //ustalenie submodelu
@@ -3256,15 +3213,16 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
           {//++iAnimatedAxles;
            pAnimations[i].smAnimated->WillBeAnimated(); //wy³¹czenie optymalizacji transformu
            pAnimations[i].yUpdate=UpdateAxle; //animacja osi
+           pAnimations[i].fMaxDist=50*50; //nie krêciæ w wiêkszej odleg³oœci
           }
          }
          //Ra: ustawianie indeksów osi
-         for (i=0;i<iAnimType[0];++i) //iloœæ osi (zabezpieczenie przed b³êdami w CHK)
+         for (i=0;i<iAnimType[ANIM_WHEELS];++i) //iloœæ osi (zabezpieczenie przed b³êdami w CHK)
           pAnimations[i].dWheelAngle=dWheelAngle+1; //domyœlnie wskaŸnik na napêdzaj¹ce
          i=0; j=1; k=0; m=0; //numer osi; kolejny znak; ile osi danego typu; która œrednica
          if ((MoverParameters->WheelDiameterL!=MoverParameters->WheelDiameter)||(MoverParameters->WheelDiameterT!=MoverParameters->WheelDiameter))
          {//obs³uga ró¿nych œrednic, o ile wystêpuj¹
-          while ((i<iAnimType[0])&&(j<=MoverParameters->AxleArangement.Length()))
+          while ((i<iAnimType[ANIM_WHEELS])&&(j<=MoverParameters->AxleArangement.Length()))
           {//wersja ze wskaŸnikami jest bardziej elastyczna na nietypowe uk³ady
            if ((k>='A')&&(k<='J')) //10 chyba maksimum?
            {pAnimations[i++].dWheelAngle=dWheelAngle+1; //obrót osi napêdzaj¹cych
@@ -3280,68 +3238,78 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
           }
          }
         }
-        else if (str==AnsiString("animrodprefix:")) //prefiks wiazarow dwoch
-         {
-          str= Parser->GetNextSymbol();
-          for (int i=1; i<=2; i++)
-          {//McZapkie-050402: wyszukiwanie max 2 wiazarow o nazwie str*
-           asAnimName=str+i;
-           smWiazary[i-1]=mdModel->GetFromName(asAnimName.c_str());
-           smWiazary[i-1]->WillBeAnimated();
-          }
-         }
-        else
+        //else if (str==AnsiString("animrodprefix:")) //prefiks wiazarow dwoch
+        // {
+        //  str= Parser->GetNextSymbol();
+        //  for (int i=1; i<=2; i++)
+        //  {//McZapkie-050402: wyszukiwanie max 2 wiazarow o nazwie str*
+        //   asAnimName=str+i;
+        //   smWiazary[i-1]=mdModel->GetFromName(asAnimName.c_str());
+        //   smWiazary[i-1]->WillBeAnimated();
+        //  }
+        // }
+        else if (str==AnsiString("animpantprefix:"))
+        {//Ra: pantografy po nowemu maj¹ literki i numerki
+        }
 //Pantografy - Winger 160204
-        if (str==AnsiString("animpantrd1prefix:"))              //prefiks ramion dolnych 1
-        {
+        if (str==AnsiString("animpantrd1prefix:"))
+        {//prefiks ramion dolnych 1
          str=Parser->GetNextSymbol();
-         for (int i=1;i<=2;i++)
-         {//Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
-          asAnimName=str+i;
-          smPatykird1[i-1]=mdModel->GetFromName(asAnimName.c_str());
-          smPatykird1[i-1]->WillBeAnimated();
-         }
+         if (pants)
+          for (int i=0;i<iAnimType[ANIM_PANTS];i++)
+          {//Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
+           asAnimName=str+AnsiString(i+1);
+           pants[i].smElement[0]=mdModel->GetFromName(asAnimName.c_str());
+           pants[i].smElement[0]->WillBeAnimated();
+          }
         }
-        else if (str==AnsiString("animpantrd2prefix:"))              //prefiks ramion dolnych 2
-        {
+        else if (str==AnsiString("animpantrd2prefix:"))
+        {//prefiks ramion dolnych 2
          str=Parser->GetNextSymbol();
-         for (int i=1;i<=2;i++)
-         {//Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
-          asAnimName=str+i;
-          smPatykird2[i-1]=mdModel->GetFromName(asAnimName.c_str());
-          smPatykird2[i-1]->WillBeAnimated();
-         }
+         if (pants)
+          for (int i=0;i<iAnimType[ANIM_PANTS];i++)
+          {//Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
+           asAnimName=str+AnsiString(i+1);
+           pants[i].smElement[1]=mdModel->GetFromName(asAnimName.c_str());
+           pants[i].smElement[1]->WillBeAnimated();
+          }
         }
-        else if (str==AnsiString("animpantrg1prefix:")) //prefiks ramion gornych 1
-        {
+        else if (str==AnsiString("animpantrg1prefix:"))
+        {//prefiks ramion górnych 1
          str=Parser->GetNextSymbol();
-         for (int i=1;i<=2;i++)
-         {//Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
-          asAnimName=str+i;
-          smPatykirg1[i-1]=mdModel->GetFromName(asAnimName.c_str());
-          smPatykirg1[i-1]->WillBeAnimated();
-         }
+         if (pants)
+          for (int i=0;i<iAnimType[ANIM_PANTS];i++)
+          {//Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
+           asAnimName=str+AnsiString(i+1);
+           pants[i].smElement[2]=mdModel->GetFromName(asAnimName.c_str());
+           pants[i].smElement[2]->WillBeAnimated();
+          }
         }
         else
-        if (str==AnsiString("animpantrg2prefix:")) //prefiks ramion gornych 2
-        {
+        if (str==AnsiString("animpantrg2prefix:"))
+        {//prefiks ramion górnych 2
          str=Parser->GetNextSymbol();
-         for (int i=1;i<=2;i++)
-         {//Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
-          asAnimName=str+i;
-          smPatykirg2[i-1]=mdModel->GetFromName(asAnimName.c_str());
-          smPatykirg2[i-1]->WillBeAnimated();
-         }
+         if (pants)
+          for (int i=0;i<iAnimType[ANIM_PANTS];i++)
+          {//Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
+           asAnimName=str+AnsiString(i+1);
+           pants[i].smElement[3]=mdModel->GetFromName(asAnimName.c_str());
+           pants[i].smElement[3]->WillBeAnimated();
+          }
         }
-        else if (str==AnsiString("animpantslprefix:")) //prefiks slizgaczy
-        {
+        else if (str==AnsiString("animpantslprefix:"))
+        {//prefiks œlizgaczy
          str=Parser->GetNextSymbol();
-         for (int i=1;i<=2;i++)
-         {//Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
-          asAnimName=str+i;
-          smPatykisl[i-1]=mdModel->GetFromName(asAnimName.c_str());
-          smPatykisl[i-1]->WillBeAnimated();
-         }
+         if (pants)
+          for (int i=0;i<iAnimType[ANIM_PANTS];i++)
+          {//Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
+           asAnimName=str+AnsiString(i+1);
+           pants[i].smElement[4]=mdModel->GetFromName(asAnimName.c_str());
+           pants[i].smElement[4]->WillBeAnimated();
+           pants[i].yUpdate=UpdatePant;
+           pants[i].fMaxDist=300*300; //nie podnosiæ w wiêkszej odleg³oœci
+           pants[i].iNumber=i;
+          }
         }
         else if (str==AnsiString("pantfactors:"))
         {//Winger 010304: parametry pantografow
@@ -3418,32 +3386,40 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
          str=Parser->GetNextSymbol();
          smMechanik=mdModel->GetFromName(str.c_str());
         }
-        else
-        if (str==AnsiString("animdoorprefix:"))           //nazwa animowanych dzwi
-        {
+        else if (str==AnsiString("animdoorprefix:"))
+        {//nazwa animowanych drzwi
+         int i,j,k,m;
          str=Parser->GetNextSymbol();
-         asAnimName="";
-         for (int i=1; i<=MaxAnimatedDoors; i++)
+         for (i=0,j=0;i<ANIM_DOORS;++i)
+          j+=iAnimType[i]; //zliczanie wczeœniejszych animacji
+         for (i=0;i<iAnimType[ANIM_DOORS];++i) //liczba drzwi
          {//NBMX wrzesien 2003: wyszukiwanie drzwi o nazwie str*
-          asAnimName=str+AnsiString(i);
-          smAnimatedDoor[i-1]=mdModel->GetFromName(asAnimName.c_str()); //szukanie submodelu
-          if (smAnimatedDoor[i-1])
-          {//kolejne drzwi znalezione
-           smAnimatedDoor[i-1]->WillBeAnimated();
-           ++iAnimatedDoors;
+          asAnimName=str+AnsiString(i+1);
+          pAnimations[i+j].smAnimated=mdModel->GetFromName(asAnimName.c_str()); //ustalenie submodelu
+          if (pAnimations[i+j].smAnimated)
+          {//++iAnimatedDoors;
+           pAnimations[i+j].smAnimated->WillBeAnimated(); //wy³¹czenie optymalizacji transformu
+           switch (MoverParameters->DoorOpenMethod)
+           {//od razu zapinamy potrzebny typ animacji
+            case 1: pAnimations[i+j].yUpdate=UpdateDoorTranslate; break;
+            case 2: pAnimations[i+j].yUpdate=UpdateDoorRotate; break;
+           }
+           pAnimations[i+j].iNumber=i; //parzyste dzia³aj¹ inaczej ni¿ nieparzyste
+           pAnimations[i+j].fMaxDist=300*300; //drzwi to z daleka widaæ
+           pAnimations[i+j].fSpeed=random(150); //oryginalny koncept z DoorSpeedFactor
+           pAnimations[i+j].fSpeed=(pAnimations[i+j].fSpeed+100)/100;
+           //Ra: te wspó³czynniki s¹ bez sensu, bo modyfikuj¹ wektor przesuniêcia
           }
-          else
-           i=MaxAnimatedDoors+1;
          }
         }
        }
      }
      else
-     if (str==AnsiString("sounds:"))                            //dzwieki
+     if (str==AnsiString("sounds:")) //dzwieki
       while (!Parser->EndOfFile && str!=AnsiString("endsounds"))
       {
        str= Parser->GetNextSymbol().LowerCase();
-       if (str==AnsiString("wheel_clatter:"))                    //polozenia osi w/m srodka pojazdu
+       if (str==AnsiString("wheel_clatter:")) //polozenia osi w/m srodka pojazdu
         {
          dSDist=Parser->GetNextSymbol().ToDouble();
          for (int i=0; i<iAxles; i++)
@@ -3607,12 +3583,18 @@ void __fastcall TDynamicObject::RaLightsSet(int head,int rear)
  if (rear==2+32+64)
  {//jeœli koniec poci¹gu, to trzeba ustaliæ, czy jest tam czynna lokomotywa
   //EN57 mo¿e nie mieæ koñcówek od œrodka cz³onu
-  //jeœli ma zarówno œwiat³a jak i koñcówki, ustaliæ, czy jest w stanie aktywnym
-  //np. lokomotywa na zimno bêdzie mieæ koñcówki a nie œwiat³a
-  if (iInventory&(iDirection?0x2A:0x15)) //czy ma jakieœ œwiat³a czerowone od danej strony
-   rear=2+32; //dwa œwiat³a czerwone
-  else
-   rear=64; //tablice blaszane
+  if (MoverParameters->Power>1.0) //jeœli ma moc napêdow¹
+   if (!MoverParameters->ActiveDir) //jeœli nie ma ustawionego kierunku
+   {//jeœli ma zarówno œwiat³a jak i koñcówki, ustaliæ, czy jest w stanie aktywnym
+    //np. lokomotywa na zimno bêdzie mieæ koñcówki a nie œwiat³a
+    rear=64; //tablice blaszane
+    //trzeba to uzale¿niæ od "za³¹czenia baterii" w pojeŸdzie
+   }
+  if (rear==2+32+64) //jeœli nadal obydwie mo¿liwoœci
+   if (iInventory&(iDirection?0x2A:0x15)) //czy ma jakieœ œwiat³a czerowone od danej strony
+    rear=2+32; //dwa œwiat³a czerwone
+   else
+    rear=64; //tablice blaszane
  }
  if (iDirection) //w zale¿noœci od kierunku pojazdu w sk³adzie
  {//jesli pojazd stoi sprzêgiem 0 w stronê czo³a
@@ -3626,30 +3608,21 @@ void __fastcall TDynamicObject::RaLightsSet(int head,int rear)
  }
 };
 
-/*
-void __fastcall TDynamicObject::RaAxleEvent(TEvent *e)
-{//obs³uga eventu wykrytego przez wózek - jeœli steruj¹cy prêdkoœci¹, to ignorujemy
- //bo mamy w³asny mechanizm obs³ugi tych eventów i nie musz¹ iœæ do kolejki
- //Ra: funkcja CheckEvent() nie mo¿e byæ tu u¿ywana, bo jest ze starego skanowania !!!!
- if (Mechanik) //tylko jeœli ma obsadê
- {//if (!Mechanik->CheckEvent(e,true)) //jeœli nie jest ustawiaj¹cym prêdkoœæ
-  if (e->bEnabled) //czy nale¿y dodaæ do kolejki
-   Global::AddToQuery(e,this); //dodanie do kolejki
-  else //nie ma potrzeby wysy³ania tego do serwera, skoro mo¿na wys³aæ zajêtoœæ toru
-   if (Global::iMultiplayer) //potwierdzenie wykonania dla serwera - najczêœciej odczyt semafora
-    Global::pGround->WyslijEvent(e->asName,GetName());
- }
- else
-  //if (!Mechanik->CheckEvent(e,true)) //czy dodawany do kolejki, funkcja prawie statyczna
- if (e->bEnabled) //czy nale¿y dodaæ do kolejki
-  Global::AddToQuery(e,this); //dodanie do kolejki
-};
-*/
-
 int __fastcall TDynamicObject::DirectionSet(int d)
 {//ustawienie kierunku w sk³adzie (wykonuje AI)
  iDirection=d>0?1:0; //d:1=zgodny,-1=przeciwny; iDirection:1=zgodny,0=przeciwny;
- CouplCounter=26; //do przeskanowania s¹ kolizje
+ CouplCounter=20; //¿eby normalnie skanowaæ kolizje, to musi ruszyæ z miejsca
+ if (MyTrack)
+ {//podczas wczytywania wstawiane jest AI, ale mo¿e jeszcze nie byæ toru
+  //AI ustawi kierunek ponownie po uruchomieniu silnika
+  if (iDirection) //jeœli w kierunku Coupler 0
+  {if (MoverParameters->Couplers[0].CouplingFlag==ctrain_virtual) //brak pojazdu podpiêtego?
+    ABuScanObjects(1,300); //szukanie czegoœ do pod³¹czenia
+  }
+  else
+   if (MoverParameters->Couplers[1].CouplingFlag==ctrain_virtual) //brak pojazdu podpiêtego?
+    ABuScanObjects(-1,300);
+ }
  return 1-(iDirection?NextConnectedNo:PrevConnectedNo); //informacja o po³o¿eniu nastêpnego
 };
 
@@ -3671,18 +3644,10 @@ TDynamicObject* __fastcall TDynamicObject::Next()
 };
 
 TDynamicObject* __fastcall TDynamicObject::Neightbour(int &dir)
-{//ustalenie nastêpnego w sk³adzie bez wzglêdu na prawid³owoœæ iDirection
- int d=1-(iDirection?NextConnectedNo:PrevConnectedNo);
- switch (d)
- {case  0:
-   dir=(iDirection?NextConnectedNo:PrevConnectedNo)?1:-1;
-   return (iDirection>0)?NextConnected:PrevConnected;
-  case  1: d=iDirection?1:-1;
-   return d>0?NextConnected:PrevConnected;
-  case -1: d=iDirection?1:-1;
-   return d>0?NextConnected:PrevConnected;
- }
- return NULL;
+{//ustalenie nastêpnego (1) albo poprzedniego (0) w sk³adzie bez wzglêdu na prawid³owoœæ iDirection
+ int d=dir; //zapamiêtanie kierunku
+ dir=1-(dir?NextConnectedNo:PrevConnectedNo); //nowa wartoœæ
+ return (d?(MoverParameters->Couplers[1].CouplingFlag?NextConnected:NULL):(MoverParameters->Couplers[0].CouplingFlag?PrevConnected:NULL));
 };
 
 

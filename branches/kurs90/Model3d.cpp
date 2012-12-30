@@ -3,19 +3,6 @@
     MaSzyna EU07 locomotive simulator
     Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include    "system.hpp"
@@ -400,7 +387,7 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
   if (iNumVerts%3)
   {
    iNumVerts=0;
-   Error("Mesh error, iNumVertices%3!=0");
+   Error("Mesh error, (iNumVertices="+AnsiString(iNumVerts)+")%3!=0");
    return 0;
   }
   //Vertices=new GLVERTEX[iNumVerts];
@@ -507,7 +494,7 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
 
 int __fastcall TSubModel::TriangleAdd(TModel3d *m,int tex,int tri)
 {//dodanie trójk¹tów do submodelu, u¿ywane przy tworzeniu E3D terenu
- TSubModel *s=this,**p;
+ TSubModel *s=this;
  while (s?(s->TextureID!=tex):false)
  {//szukanie submodelu o danej teksturze
   if (s==this)
@@ -809,8 +796,12 @@ TSubModel* __fastcall TSubModel::GetFromName(char *search,bool i)
  //std::transform(search.begin(),search.end(),search.begin(),ToLower());
  //search=search.LowerCase();
  //AnsiString name=AnsiString();
- if ((i?stricmp(pName,search):strcmp(pName,search))==0)
-  return this;
+ if (pName&&search)
+  if ((i?stricmp(pName,search):strcmp(pName,search))==0)
+   return this;
+  else
+   if (pName==search)
+    return this; //oba NULL
  if (Next)
  {
   result=Next->GetFromName(search);
@@ -886,7 +877,7 @@ void __fastcall TSubModel::RaAnimation(TAnimType a)
   case at_Sky: //animacja nieba
    glRotated(Global::fLatitudeDeg,1.0,0.0,0.0); //ustawienie osi OY na pó³noc
    //glRotatef(Global::fTimeAngleDeg,0.0,1.0,0.0); //obrót dobowy osi OX
-   glRotated(-fmod(Global::fSunSpeed*Global::fTimeAngleDeg,360.0),0.0,1.0,0.0); //obrót dobowy osi OX
+   glRotated(-fmod(Global::fTimeAngleDeg,360.0),0.0,1.0,0.0); //obrót dobowy osi OX
    break;
  }
 };
@@ -1554,19 +1545,21 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName,bool dynamic)
   //iSubModelsCount++;
   parser.getToken(token);
  }
-/* Ra: od wersji 334 przechylany jest ca³y model, a nie tylko pierwszy submodel
- //automatyczne banany czasem psu³y przechylanie kabin...
- if (dynamic&&Root)
- {if (Root->NextGet()) //jeœli ma jakiekolwiek kolejne
-  {//dynamic musi mieæ "banana", bo tylko pierwszy obiekt jest animowany, a nastêpne nie
-   SubModel=new TSubModel(); //utworzenie pustego
-   SubModel->ChildAdd(Root);
-   Root=SubModel;
-   ++iSubModelsCount;
+ //Ra: od wersji 334 przechylany jest ca³y model, a nie tylko pierwszy submodel
+ //ale bujanie kabiny nadal u¿ywa bananów :( od 393 przywrócone, ale z dodatkowym warunkiem
+ if (Global::iConvertModels&4)
+ {//automatyczne banany czasem psu³y przechylanie kabin...
+  if (dynamic&&Root)
+  {if (Root->NextGet()) //jeœli ma jakiekolwiek kolejne
+   {//dynamic musi mieæ "banana", bo tylko pierwszy obiekt jest animowany, a nastêpne nie
+    SubModel=new TSubModel(); //utworzenie pustego
+    SubModel->ChildAdd(Root);
+    Root=SubModel;
+    ++iSubModelsCount;
+   }
+   Root->WillBeAnimated(); //bo z tym jest du¿o problemów
   }
-  Root->WillBeAnimated(); //bo z tym jest du¿o problemów
  }
-*/
 }
 
 void __fastcall TModel3d::Init()
