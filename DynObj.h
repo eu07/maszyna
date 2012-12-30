@@ -3,12 +3,10 @@
 #ifndef DynObjH
 #define DynObjH
 
+#include "Classes.h"
 #include "TrkFoll.h"
-#include "Track.h"
 #include "QueryParserComp.hpp"
-#include "AnimModel.h"
-#include "Mover.hpp"
-#include "mtable.hpp"
+#include "Mover.h"
 #include "TractionPower.h"
 //McZapkie:
 #include "MdlMngr.h"
@@ -16,33 +14,120 @@
 #include "AdvSound.h"
 #include "Button.h"
 #include "AirCoupler.h"
-
+//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
 //McZapkie-250202
-  const MaxAxles=16; //ABu 280105: zmienione z 8 na 16
-  const MaxAnimatedAxles=16; //i to tez.
-  const MaxAnimatedDoors=8;  //NBMX  wrzesien 2003
+const MaxAxles=16; //ABu 280105: zmienione z 8 na 16
+const MaxAnimatedAxles=16; //i to tez.
+const MaxAnimatedDoors=16;  //NBMX  wrzesien 2003
+const ANIM_TYPES=7; //Ra: iloœæ typów animacji
+/*
+Ra: Utworzyæ klasê wyposa¿enia opcjonalnego, z której bêd¹ dziedziczyæ klasy drzwi,
+pantografów, napêdu parowozu i innych ruchomych czêœci pojazdów. Klasy powinny byæ
+pseudo-wirtualne, bo wirtualne mog¹ obni¿aæ wydajnosœæ.
+Przy wczytywaniu MMD utworzyæ tabelê wskaŸnikow na te dodatki. Przy wyœwietlaniu
+pojazdu wykonywaæ Update() na kolejnych obiektach wyposa¿enia.
+Rozwa¿yæ u¿ycie oddzielnych modeli dla niektórych pojazdów (np. lokomotywy), co
+zaoszczêdzi³o by czas ustawiania animacji na modelu wspólnym dla kilku pojazdów,
+szczególnie dla pojazdów w danej chwili nieruchomych (przy du¿ym zagêszczeniu
+modeli na stacjach na ogó³ przewaga jest tych nieruchomych).
+*/
+class TAnimValveGear
+{//wspó³czynniki do animacji parowozu (wartoœci przyk³adowe dla Pt47)
+ int iValues; //iloœæ liczb (wersja):
+ float fKorbowodR; //d³ugoœæ korby (pó³ skoku t³oka) [m]: 0.35
+ float fKorbowodL; //d³ugoœæ korbowodu [m]: 3.8
+ float fDrazekR;   //promieñ mimoœrodu (dr¹¿ka) [m]: 0.18
+ float fDrazekL;   //d³. dr¹¿ka mimoœrodowego [m]: 2.55889
+ float fJarzmoV;   //wysokoœæ w pionie osi jarzma od osi ko³a [m]: 0.751
+ float fJarzmoH;   //odleg³oœæ w poziomie osi jarzma od osi ko³a [m]: 2.550
+ float fJarzmoR;   //promieñ jarzma do styku z dr¹¿kiem [m]: 0.450
+ float fJarzmoA;   //k¹t mimoœrodu wzglêdem k¹ta ko³a [m]: -96.77416667
+ float fWdzidloL;  //d³ugoœæ wodzid³a [m]: 2.0
+ float fWahaczH;   //d³ugoœæ wahacza (góra) [m]: 0.14
+ float fSuwakH;    //wysokoœæ osi suwaka ponad osi¹ ko³a [m]: 0.62
+ float fWahaczL;   //d³ugoœæ wahacza (dó³) [m]: 0.84
+ float fLacznikL;  //d³ugoœæ ³¹cznika wahacza [m]: 0.75072
+ float fRamieL;    //odleg³oœæ ramienia krzy¿ulca od osi ko³a [m]: 0.192
+ float fSuwakL;    //odleg³oœæ œrodka t³oka/suwaka od osi ko³a [m]: 5.650
+//do³o¿yæ parametry dr¹¿ka nastawnicy
+//albo nawet zrobiæ dynamiczn¹ tablicê float[] i w ni¹ pakowaæ wszelkie wspó³czynniki, potem u¿ywaæ indeksów
+//wspó³czynniki mog¹ byæ wspólne dla 2-4 t³oków, albo ka¿dy t³ok mo¿e mieæ odrêbne
+};
+
+class TAnim
+{//klasa animowanej czêœci pojazdu (ko³a, drzwi, pantografy, burty, napêd parowozu, si³owniki itd.)
+ union
+ {
+  TSubModel *smAnimated; //animowany submodel (jeœli tylko jeden)
+  TSubModel **smElement; //jeœli animowanych elementów jest wiêcej (pantograf, napêd parowozu)
+ };
+ union
+ {//parametry animacji
+  TAnimValveGear *pValveGear; //wspó³czynniki do animacji parowozu
+  double *pWheelAngle; //wskaŸnik na k¹t obrotu osi
+  float *fParam; //ró¿ne parametry dla animacji
+ };
+ //void _fastcall Update(); //wskaŸnik do funkcji aktualizacji animacji
+ int iFlags; //flagi animacji
+public:
+ int __fastcall TypeSet(int i); //ustawienie typu
+ void __fastcall Parovoz(); //wykonanie obliczeñ animacji
+};
+
+//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
 
 class TDynamicObject
-{
+{//klasa pojazdu
 private:
-    TTrackShape ts;
-    TTrackParam tp;
-    void ABuLittleUpdate(double ObjSqrDist);
-    bool btnOn; //ABu: czy byly uzywane buttony, jesli tak, to po renderingu wylacz
-                //bo ten sam model moze byc jeszcze wykorzystany przez inny obiekt!
- double __fastcall ComputeRadius(vector3 p1,vector3 p2,vector3 p3,vector3 p4);
- //vector3 pOldPos1; //Ra: nie u¿ywane
- //vector3 pOldPos4;
  vector3 vPosition; //Ra: pozycja pojazdu liczona zaraz po przesuniêciu
-//McZapkie-050402 - do krecenia kolami
-    int iAnimatedAxles;
-    int iAnimatedDoors;
-    double DoorSpeedFactor[MaxAnimatedDoors];
-    double tempdoorfactor;
-    double tempdoorfactor2;
-    double pantspeedfactor;
-    TSubModel *smAnimatedWheel[MaxAnimatedAxles];
-    TSubModel *smAnimatedDoor[MaxAnimatedDoors];
+ //Ra: sprzatam animacje w pojeŸdzie
+ int iAnimType[ANIM_TYPES]; //0-osie,1-wi¹zary,2-wózki,3-wahacze,4-pantografy,5-drzwi,6-t³oki
+ int iAnimations; //ogólna iloœæ obiektów animuj¹cych
+ TAnim *pAnimations; //obiekty animuj¹ce
+ TSubModel **pAnimated; //lista animowanych submodeli (mo¿e byæ ich wiêcej ni¿ obiektów animuj¹cych)
+ double dWheelAngle[3]; //k¹ty obrotu kó³: 0=przednie toczne, 1=napêdzaj¹ce i wi¹zary, 2=tylne toczne
+ vector3 vCoulpler[2]; //wspó³rzêdne sprzêgów do liczenia zderzeñ
+ vector3 vUp,vFront,vLeft; //wektory jednostkowe ustawienia pojazdu
+private:
+//Ra: pocz¹tek animacji do ogarniêcia
+ //McZapkie-050402 - do krecenia kolami
+ int iAnimatedAxles; //iloœæ u¿ywanych (krêconych) osi
+ TSubModel *smAnimatedWheel[MaxAnimatedAxles]; //submodele poszczególnych osi
+ double *pWheelAngle[MaxAnimatedAxles]; //wska¿niki do odczytu k¹ta obrotu danej osi
+ //wi¹zary
+ TSubModel *smWiazary[2]; //mo¿na zast¹piæ je osiami
+ //ABuWozki 060504
+ vector3 bogieRot[2];   //Obroty wozkow w/m korpusu
+ TSubModel *smBogie[2]; //Wyszukiwanie max 2 wozkow
+ //wahacze
+ TSubModel *smWahacze[4];
+ double fWahaczeAmp;
+ //drzwi
+ int iAnimatedDoors;
+ TSubModel *smAnimatedDoor[MaxAnimatedDoors];
+ double DoorSpeedFactor[MaxAnimatedDoors];
+ //double tempdoorfactor;
+ //double tempdoorfactor2;
+ //Winger 160204 - pantografy
+ double pantspeedfactor;
+ TSubModel *smPatykird1[2];
+ TSubModel *smPatykird2[2];
+ TSubModel *smPatykirg1[2];
+ TSubModel *smPatykirg2[2];
+ TSubModel *smPatykisl[2];
+//Ra: koneic animacji do ogarniêcia
+private:
+ TTrackShape ts;
+ TTrackParam tp;
+ void ABuLittleUpdate(double ObjSqrDist);
+ bool btnOn; //ABu: czy byly uzywane buttony, jesli tak, to po renderingu wylacz
+             //bo ten sam model moze byc jeszcze wykorzystany przez inny obiekt!
+ double __fastcall ComputeRadius(vector3 p1,vector3 p2,vector3 p3,vector3 p4);
+
     TButton btCoupler1;     //sprzegi
     TButton btCoupler2;
     TAirCoupler btCPneumatic1;  //sprzegi powietrzne //yB - zmienione z Button na AirCoupler - krzyzyki
@@ -72,15 +157,6 @@ private:
     TButton btHeadSignals21;  //oswietlenie czolowe - tyl
     TButton btHeadSignals22;
     TButton btHeadSignals23;
-//Winger 160204 - pantografy
-    TSubModel *smPatykird1[2];
-    TSubModel *smPatykird2[2];
-    TSubModel *smPatykirg1[2];
-    TSubModel *smPatykirg2[2];
-    TSubModel *smPatykisl[2];
-    TSubModel *smWiazary[2];
-    TSubModel *smWahacze[4];
-    double fWahaczeAmp;
     TSubModel *smMechanik;
     TSubModel *smBuforLewy[2];
     TSubModel *smBuforPrawy[2];
@@ -118,22 +194,21 @@ private:
     double eng_frq_act;
     double eng_dfrq;
     double eng_turbo;
-    //ABuWozki 060504
-    vector3 bogieRot[2];   //Obroty wozkow w/m korpusu
-    TSubModel *smBogie[2]; //Wyszukiwanie max 2 wozkow
     void __fastcall ABuBogies();
     void __fastcall ABuModelRoll();
     vector3 modelShake;
 
     bool renderme; //yB - czy renderowac
-    char cp1, sp1, cp2, sp2; //ustawienia wezy
-    TRealSound sBrakeAcc; //dzwiek przyspieszacza
- int iAxleFirst; //numer pierwszej oœ w kierunku ruchu
+    char cp1, sp1, cp2, sp2; //ustawienia wê¿y
+    TRealSound sBrakeAcc; //dŸwiêk przyspieszacza
+ int iAxleFirst; //numer pierwszej osi w kierunku ruchu
  int iInventory; //flagi bitowe posiadanych submodeli (np. œwiate³)
- //TDynamicObject *NewDynamic; //Ra: nie u¿ywane
  TDynamicObject* __fastcall ABuFindNearestObject(TTrack *Track,TDynamicObject *MyPointer,int &CouplNr);
+ void __fastcall TurnOff();
+public:
+ int iHornWarning; //numer syreny do u¿ycia po otrzymaniu sygna³u do jazdy 
+ bool bEnabled; //Ra: wyjecha³ na portal i ma byæ usuniêty
 protected:
-    bool bEnabled;
 
     //TTrackFollower Axle2; //dwie osie z czterech (te s¹ protected)
     //TTrackFollower Axle3; //Ra: wy³¹czy³em, bo k¹ty s¹ liczone w Segment.cpp
@@ -142,29 +217,31 @@ protected:
     //Byte PrevConnectedNo;
     int CouplCounter;
     AnsiString asModel;
-    int iDirection; //kierunek wzglêdem czo³a sk³adu (1=zgodny,0=przeciwny)
+ int iDirection; //kierunek wzglêdem czo³a sk³adu (1=zgodny,0=przeciwny)
+public:
     void ABuScanObjects(int ScanDir,double ScanDist);
+protected:
+    TDynamicObject* __fastcall ABuFindObject(TTrack *Track,int ScanDir,Byte &CouplFound,double &dist);
     void __fastcall ABuCheckMyTrack();
 
 public:
+ float fHalfMaxAxleDist; //rozstaw wózków albo osi
+ float fShade; //0:normalnie, -1:w ciemnoœci, +1:dodatkowe œwiat³o (brak koloru?)
  int iLights[2]; //bity zapalonych œwiate³
  double fTrackBlock; //odleg³oœæ do przeszkody do dalszego ruchu
+ TDynamicObject* __fastcall PrevAny();
  TDynamicObject* __fastcall Prev();
  TDynamicObject* __fastcall Next();
     void __fastcall SetdMoveLen(double dMoveLen) {MoverParameters->dMoveLen=dMoveLen;}
     void __fastcall ResetdMoveLen() {MoverParameters->dMoveLen=0;}
     double __fastcall GetdMoveLen() {return MoverParameters->dMoveLen;}
 
-    //bool __fastcall EndSignalsLight1Active() {return btEndSignals11.Active();};
-    //bool __fastcall EndSignalsLight2Active() {return btEndSignals21.Active();};
-    //bool __fastcall EndSignalsLight1oldActive() {return btEndSignals1.Active();};
-    //bool __fastcall EndSignalsLight2oldActive() {return btEndSignals2.Active();};
     int __fastcall GetPneumatic(bool front, bool red);
     void __fastcall SetPneumatic(bool front, bool red);
 		AnsiString asName;
     AnsiString __fastcall GetName()
        {
-          return asName;
+          return this?asName:AnsiString("");
        };
 
 //youBy
@@ -199,7 +276,6 @@ public:
     double pcabe2;
     bool pcabc1x;
     double lastcabf;
-    double dWheelAngle;
     double StartTime;
     double PantTraction1; //Winger 170204
     double PantTraction2; //Winger 170204
@@ -222,7 +298,7 @@ public:
 
 //McZapkie-010302
     TController *Mechanik;
-    TTrainParameters *TrainParams;
+    //TTrainParameters *TrainParams; //Ra: rozk³ad jest na poziomie Driver, a nie pojazdu
     bool MechInside;
     TTrackFollower Axle0; //oœ z przodu (od sprzêgu 0)
     TTrackFollower Axle1; //oœ z ty³u (od sprzêgu 1)
@@ -251,17 +327,20 @@ public:
     bool __fastcall Render();
     bool __fastcall RenderAlpha();
     vector3 inline __fastcall GetPosition();
-    inline vector3 __fastcall AxlePositionGet() { return iAxleFirst?Axle1.pPosition:Axle0.pPosition; };
-    inline vector3 __fastcall GetDirection() { return Axle0.pPosition-Axle1.pPosition; };
+    inline vector3 __fastcall HeadPosition() {return vCoulpler[iDirection^1];}; //pobranie wspó³rzêdnych czo³a
+    inline vector3 __fastcall AxlePositionGet() {return iAxleFirst?Axle1.pPosition:Axle0.pPosition;};
+    inline vector3 __fastcall VectorFront() {return vFront;};
+    inline vector3 __fastcall VectorUp() {return vUp;};
+    inline vector3 __fastcall VectorLeft() {return vLeft;};
+    inline double* __fastcall Matrix() {return mMatrix.getArray();};
     inline double __fastcall GetVelocity() { return MoverParameters->Vel; };
     inline double __fastcall GetLength() { return MoverParameters->Dim.L; };
     inline double __fastcall GetWidth() { return MoverParameters->Dim.W; };
     inline TTrack* __fastcall GetTrack() { return (iAxleFirst?Axle1.GetTrack():Axle0.GetTrack()); };
     //void __fastcall UpdatePos();
 
- Mover::TMoverParameters *MoverParameters;
+ TMoverParameters *MoverParameters;
 
- vector3 vUp,vFront,vLeft;
  matrix4x4 mMatrix;
  AnsiString asTrack;
  AnsiString asDestination; //dok¹d pojazd ma byæ kierowany "(stacja):(tor)"
@@ -272,10 +351,10 @@ public:
  {
   return (Axle1.GetTrack()==MyTrack?Axle1.GetDirection():Axle0.GetDirection());
  };
- inline double __fastcall ABuGetTranslation() //ABu.
- {//zwraca przesuniêcie wózka wzglêdem Point1 toru
-  return (Axle1.GetTrack()==MyTrack?Axle1.GetTranslation():Axle0.GetTranslation());
- };
+// inline double __fastcall ABuGetTranslation() //ABu.
+// {//zwraca przesuniêcie wózka wzglêdem Point1 toru
+//  return (Axle1.GetTrack()==MyTrack?Axle1.GetTranslation():Axle0.GetTranslation());
+// };
  inline double __fastcall RaDirectionGet()
  {//zwraca kierunek pojazdu na torze z aktywn¹ os¹
   return iAxleFirst?Axle1.GetDirection():Axle0.GetDirection();
@@ -294,9 +373,12 @@ public:
  void __fastcall RaAxleEvent(TEvent *e);
  TDynamicObject* __fastcall FirstFind(int &coupler_nr);
  int __fastcall DirectionSet(int d); //ustawienie kierunku w sk³adzie
- int __fastcall DirectionGet() {return iDirection?1:-1;}; //ustawienie kierunku w sk³adzie
- bool DettachDistance(int dir);
+ int __fastcall DirectionGet() {return iDirection?1:-1;}; //odczyt kierunku w sk³adzie
+ int DettachStatus(int dir);
  int Dettach(int dir,int cnt);
+ TDynamicObject* __fastcall Neightbour(int &dir);
+ void __fastcall CoupleDist();
+
 };
 
 

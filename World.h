@@ -12,10 +12,13 @@
 #include "MdlMngr.h"
 #include "Globals.h"
 #include "sky.h"
-#include <winuser.h>
+//#include <winuser.h>
 
 class TWorld
 {
+ void __fastcall InOutKey();
+ void __fastcall FollowView();
+ void __fastcall DistantView();
 public:
     bool __fastcall Init(HWND NhWnd, HDC hDC);
     HWND hWnd;
@@ -25,6 +28,7 @@ public:
     void __fastcall OnMouseMove(double x, double y);
     void __fastcall OnCommandGet(DaneRozkaz *pRozkaz);
     bool __fastcall Update();
+    void __fastcall TrainDelete(TDynamicObject *d=NULL);
     __fastcall TWorld();
     __fastcall ~TWorld();
 
@@ -49,7 +53,10 @@ private:
 
     TSky Clouds;
     TEvent *KeyEvents[10];
-    int iCheckFPS; //kiedy znów sprawdziæ FPS, ¿eby wy³¹czaæ optymalizacji od razu do zera 
+    int iCheckFPS; //kiedy znów sprawdziæ FPS, ¿eby wy³¹czaæ optymalizacji od razu do zera
+public:
+ void __fastcall ModifyTGA(const AnsiString &dir="");
+ void __fastcall CreateE3D(const AnsiString &dir="",bool dyn=false);
 };
 //---------------------------------------------------------------------------
 #endif

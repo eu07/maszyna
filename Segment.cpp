@@ -7,8 +7,10 @@
 
 #include "Segment.h"
 #include "Usefull.h"
+#include "Globals.h"
+#include "Track.h"
 
-#define Precision 10000
+//#define Precision 10000
 
 #pragma package(smart_init)
 //---------------------------------------------------------------------------
@@ -25,7 +27,7 @@ __fastcall TSegment::TSegment(TTrack *owner)
  fTsBuffer=NULL;
  fStep=0;
  pOwner=owner;
-}
+};
 
 __fastcall TSegment::~TSegment()
 {
@@ -53,17 +55,43 @@ bool __fastcall TSegment::Init(
    fNewStep,fNewRoll1,fNewRoll2,
    true);
  }
-}
+};
 
 bool __fastcall TSegment::Init(
- vector3 NewPoint1,vector3 NewCPointOut,vector3 NewCPointIn,vector3 NewPoint2,
+ vector3 &NewPoint1,vector3 NewCPointOut,vector3 NewCPointIn,vector3 &NewPoint2,
  double fNewStep,double fNewRoll1, double fNewRoll2, bool bIsCurve)
 {//wersja uniwersalna (dla krzywej i prostego)
  Point1=NewPoint1;
  CPointOut=NewCPointOut;
  CPointIn=NewCPointIn;
  Point2=NewPoint2;
- fStoop=atan2((Point2.y-Point1.y),fLength); //pochylenie toru prostego, ¿eby nie liczyæ wielokrotnie
+ //poprawienie przechy³ki
+ fRoll1=DegToRad(fNewRoll1); //Ra: przeliczone jest bardziej przydatne do obliczeñ
+ fRoll2=DegToRad(fNewRoll2);
+ if (Global::bRollFix)
+ {//Ra: poprawianie przechy³ki
+  // Przechy³ka powinna byæ na œrodku wewnêtrznej szyny, a standardowo jest w osi
+  // toru. Dlatego trzeba podnieœæ tor oraz odpowiednio podwy¿szyæ podsypkê.
+  // Nie wykonywaæ tej funkcji, jeœli podwy¿szenie zosta³o uwzglêdnione w edytorze.
+  // Problematyczne mog¹ byc rozjazdy na przechy³ce - lepiej je modelowaæ w edytorze.
+  // Na razie wszystkie scenerie powinny byæ poprawiane.
+  // Jedynie problem bêdzie z podwójn¹ ramp¹ przechy³kow¹, która w œrodku bêdzie
+  // mieæ moment wypoziomowania, ale musi on byæ równie¿ podniesiony.
+  if (fRoll1!=0.0)
+  {//tylko jeœli jest przechy³ka
+   double w1=fabs(sin(fRoll1)*0.75); //0.5*w2+0.0325; //0.75m dla 1.435
+   Point1.y+=w1; //modyfikacja musi byæ przed policzeniem dalszych parametrów
+   if (bCurve) CPointOut.y+=w1; //prosty ma wektory jednostkowe
+   pOwner->MovedUp1(w1);//zwróciæ trzeba informacjê o podwy¿szeniu podsypki
+  }
+  if (fRoll2!=0.0)
+  {
+   double w2=fabs(sin(fRoll2)*0.75); //0.5*w2+0.0325; //0.75m dla 1.435
+   Point2.y+=w2; //modyfikacja musi byæ przed policzeniem dalszych parametrów
+   if (bCurve) CPointIn.y+=w2; //prosty ma wektory jednostkowe
+   //zwróciæ trzeba informacjê o podwy¿szeniu podsypki
+  }
+ }
  //Ra: ten k¹t jeszcze do przemyœlenia jest
  fDirection=-atan2(Point2.x-Point1.x,Point2.z-Point1.z); //k¹t w planie, ¿eby nie liczyæ wielokrotnie
  bCurve=bIsCurve;
@@ -72,12 +100,10 @@ bool __fastcall TSegment::Init(
   vC=3.0*(CPointOut-Point1); //t^1
   vB=3.0*(CPointIn-CPointOut)-vC; //t^2
   vA=Point2-Point1-vC-vB; //t^3
-  fLength=ComputeLength(Point1,CPointOut,CPointIn,Point2);
+  fLength=ComputeLength();
  }
  else
   fLength=(Point1-Point2).Length();
- fRoll1=DegToRad(fNewRoll1); //Ra: przeliczone jest bardziej przydatne
- fRoll2=DegToRad(fNewRoll2);
  fStep=fNewStep;
  if (fLength<=0)
  {
@@ -85,9 +111,10 @@ bool __fastcall TSegment::Init(
   //MessageBox(0,"Length<=0","TSegment::Init",MB_OK);
   return false; //zerowe nie mog¹ byæ
  }
+ fStoop=atan2((Point2.y-Point1.y),fLength); //pochylenie toru prostego, ¿eby nie liczyæ wielokrotnie
  SafeDeleteArray(fTsBuffer);
  if ((bCurve) && (fStep>0))
- {//Ra: prosty dostanie podzia³, jak ma wpisane kontrolne :(
+ {//Ra: prosty dostanie podzia³, jak ma ró¿n¹ przechy³kê na koñcach
   double s=0;
   int i=0;
   iSegCount=ceil(fLength/fStep); //potrzebne do VBO
@@ -199,17 +226,27 @@ vector3 __fastcall TSegment::RaInterpolate(double t)
  return t*(t*(t*vA+vB)+vC)+Point1; //9 mno¿eñ, 9 dodawañ
 };
 
-double __fastcall TSegment::ComputeLength(vector3 p1,vector3 cp1,vector3 cp2,vector3 p2)  //McZapkie-150503: dlugosc miedzy punktami krzywej
+vector3 __fastcall TSegment::RaInterpolate0(double t)
+{//wyliczenie XYZ na krzywej Beziera, na u¿ytek liczenia d³ugoœci nie jest dodawane Point1
+ return t*(t*(t*vA+vB)+vC); //9 mno¿eñ, 6 dodawañ
+};
+
+double __fastcall TSegment::ComputeLength()  //McZapkie-150503: dlugosc miedzy punktami krzywej
 {//obliczenie d³ugoœci krzywej Beziera za pomoc¹ interpolacji odcinkami
+ //Ra: zamieniæ na liczenie rekurencyjne œredniej z ciêciwy i ³amanej po kontrolnych
+ //Ra: koniec rekurencji jeœli po podziale suma d³ugoœci nie ró¿ni siê wiêcej ni¿ 0.5mm od poprzedniej
+ //Ra: ewentualnie rozpoznaæ ³uk okrêgu p³askiego i liczyæ ze wzoru na d³ugoœæ ³uku
  double t,l=0;
- vector3 tmp,last=p1;
- for (int i=1;i<=Precision;i++)
+ vector3 last=vector3(0,0,0); //d³ugoœæ liczona po przesuniêciu odcinka do pocz¹tku uk³adu
+ vector3 tmp=Point2-Point1;
+ int m=20.0*tmp.Length(); //by³o zawsze do 10000, teraz jest liczone odcinkami po oko³o 5cm
+ for (int i=1;i<=m;i++)
  {
-  t=double(i)/double(Precision);
+  t=double(i)/double(m); //wyznaczenie parametru na krzywej z przedzia³u (0,1>
   //tmp=Interpolate(t,p1,cp1,cp2,p2);
-  tmp=RaInterpolate(t);
-  t=vector3(tmp-last).Length();
-  l+=t;
+  tmp=RaInterpolate0(t); //obliczenie punktu dla tego parametru
+  t=vector3(tmp-last).Length(); //obliczenie d³ugoœci wektora
+  l+=t; //zwiêkszenie wyliczanej d³ugoœci
   last=tmp;
  }
  return (l);
@@ -262,8 +299,8 @@ void __fastcall TSegment::RaPositionGet(double fDistance,vector3 &p,vector3 &a)
   p=RaInterpolate(t);
   a.x=(1.0-t)*fRoll1+(t)*fRoll2; //przechy³ka w danym miejscu (zmienia siê liniowo)
   //pochodna jest 3*A*t^2+2*B*t+C
-  a.y=atan(t*(t*3.0*vA.y+2.0*vB.y)+vC.y); //pochylenie krzywej
-  a.z=-atan2(t*(t*3.0*vA.x+2.0*vB.x)+vC.x,t*(t*3.0*vA.z+2.0*vB.z)+vC.z); //kierunek krzywej w planie
+  a.y=atan(t*(t*3.0*vA.y+vB.y+vB.y)+vC.y); //pochylenie krzywej (w pionie)
+  a.z=-atan2(t*(t*3.0*vA.x+vB.x+vB.x)+vC.x,t*(t*3.0*vA.z+vB.z+vB.z)+vC.z); //kierunek krzywej w planie
  }
  else
  {//wyliczenie dla odcinka prostego jest prostsze
@@ -850,5 +887,6 @@ void __fastcall TSegment::RaAnimate(
   }
  }
 };
+//---------------------------------------------------------------------------
 
 

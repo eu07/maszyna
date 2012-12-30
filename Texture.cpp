@@ -52,8 +52,8 @@ TTexturesManager::Names::iterator TTexturesManager::LoadFromFile(std::string fil
 
     std::string realFileName(fileName);
     std::ifstream file(fileName.c_str());
-    if(!file.is_open())
-        realFileName.insert(0, szDefaultTexturePath);
+    if (!file.is_open())
+        realFileName.insert(0,szDefaultTexturePath);
     else
         file.close();
 
@@ -78,10 +78,11 @@ TTexturesManager::Names::iterator TTexturesManager::LoadFromFile(std::string fil
     _alphas.insert(texinfo); //zapamiêtanie stanu przezroczystoœci tekstury - mo¿na by tylko przezroczyste
     std::pair<Names::iterator, bool> ret = _names.insert(std::make_pair(fileName, texinfo.first));
 
-    if(!texinfo.first)
+    if (!texinfo.first)
     {
-        WriteLog("Failed");
-        return _names.end();
+     WriteLog("Failed");
+     ErrorLog("Missed texture: "+AnsiString(realFileName.c_str()));
+     return _names.end();
     };
 
     _alphas.insert(texinfo);
@@ -730,10 +731,10 @@ GLuint TTexturesManager::CreateTexture(char* buff,GLint bpp,int width,int height
   SetFiltering(filter); //cyfra po % w nazwie
  else
   SetFiltering(bHasAlpha&&bDollar,bHash); //znaki #, $ i kana³ alfa w nazwie
- glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
- glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
- glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
- glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
+ glPixelStorei(GL_UNPACK_ALIGNMENT,1);
+ glPixelStorei(GL_UNPACK_ROW_LENGTH,0);
+ glPixelStorei(GL_UNPACK_SKIP_ROWS,0);
+ glPixelStorei(GL_UNPACK_SKIP_PIXELS,0);
  if (bHasAlpha || bHash || (filter==0))
   glTexImage2D(GL_TEXTURE_2D,0,(bHasAlpha?GL_RGBA:GL_RGB),width,height,0,bpp,GL_UNSIGNED_BYTE,buff);
  else
@@ -742,12 +743,17 @@ GLuint TTexturesManager::CreateTexture(char* buff,GLint bpp,int width,int height
 }
 
 void TTexturesManager::Free()
-{
-
-    for(Names::iterator iter = _names.begin(); iter != _names.end(); iter++)
-        glDeleteTextures(1, &(iter->second));
-
+{//usuniêcie wszyskich tekstur (bez usuwania struktury)
+ for (Names::iterator iter=_names.begin();iter!=_names.end();iter++)
+  glDeleteTextures(1,&(iter->second));
 }
 
+std::string TTexturesManager::GetName(GLuint id)
+{//pobranie nazwy tekstury
+ for (Names::iterator iter=_names.begin();iter!=_names.end();iter++)
+  if (iter->second==id)
+   return iter->first;
+ return "";  
+};
 #pragma package(smart_init)
 

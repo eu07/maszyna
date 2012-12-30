@@ -23,9 +23,11 @@
 const int maxcab=2;
 
 // const double fCzuwakTime= 90.0f;
-const double fCzuwakBlink= 0.15f;
+const double fCzuwakBlink=0.15;
+const float fConverterPrzekaznik=1.5; //hunter-261211: do przekaznika nadmiarowego przetwornicy
                          //0.33f
 // const double fBuzzerTime= 5.0f;
+const float fHaslerTime=1.2;
 
 // const double fStycznTime= 0.5f;
 // const double fDblClickTime= 0.2f;
@@ -65,10 +67,11 @@ public:
 
 //    bool __fastcall SHP() { fShpTimer= 0; };
 
-    inline vector3 __fastcall GetDirection() { return DynamicObject->GetDirection(); };
-    inline vector3 __fastcall GetUp() { return DynamicObject->vUp; };
+    inline vector3 __fastcall GetDirection() { return DynamicObject->VectorFront(); };
+    inline vector3 __fastcall GetUp() { return DynamicObject->VectorUp(); };
     void __fastcall UpdateMechPosition(double dt);
     bool __fastcall Update();
+    void __fastcall MechStop();
 //    virtual bool __fastcall RenderAlpha();
 //McZapkie-310302: ladowanie parametrow z pliku
     bool __fastcall LoadMMediaFile(AnsiString asFileName);
@@ -132,6 +135,7 @@ public:
     TGauge ReleaserButtonGauge;
     TGauge AntiSlipButtonGauge;
     TGauge FuseButtonGauge;
+    TGauge ConverterFuseButtonGauge; //hunter-261211: przycisk odblokowania nadmiarowego przetwornic i ogrzewania
     TGauge StLinOffButtonGauge;
     TGauge RadioButtonGauge;
     TGauge UpperLightButtonGauge;
@@ -139,6 +143,14 @@ public:
     TGauge RightLightButtonGauge;
     TGauge LeftEndLightButtonGauge;
     TGauge RightEndLightButtonGauge;
+
+    //hunter-230112: przelacznik swiatel tylnich
+    TGauge RearUpperLightButtonGauge;
+    TGauge RearLeftLightButtonGauge;
+    TGauge RearRightLightButtonGauge;
+    TGauge RearLeftEndLightButtonGauge;
+    TGauge RearRightEndLightButtonGauge;
+
     TGauge IgnitionKeyGauge;
 
     TGauge CompressorButtonGauge;
@@ -227,7 +239,7 @@ public:
     TButton btLampkaBackward;
 
     vector3 pPosition;
-    vector3 pMechOffset;
+    vector3 pMechOffset; //driverNpos
     vector3 vMechMovement;
     vector3 pMechPosition;
     vector3 pMechShake;
@@ -245,11 +257,13 @@ public:
     double fMechRoll;
     double fMechPitch;
 
-    PSound dsbNastawnik;
+    PSound dsbNastawnikJazdy;
+    PSound dsbNastawnikBocz; //hunter-081211
     PSound dsbRelay;
     PSound dsbPneumaticRelay;
     PSound dsbSwitch;
     PSound dsbPneumaticSwitch;    
+    PSound dsbReverserKey; //hunter-121211
 
     PSound dsbCouplerAttach;
     PSound dsbCouplerDetach;
@@ -264,7 +278,7 @@ public:
     PSound dsbPantDown;
 
     PSound dsbWejscie_na_bezoporow;
-    PSound dsbWescie_na_drugi_uklad;
+    PSound dsbWejscie_na_drugi_uklad; //hunter-081211: poprawka literowki
 
 
 //    PSound dsbHiss1;
@@ -297,8 +311,13 @@ private:
 //    TSubModel *smShpOn;
 //    TSubModel *smCzuwakShpOff;
 //    double fCzuwakTimer;
-    double fBlinkTimer;
+ double fBlinkTimer;
+ float fHaslerTimer;
     double fPoslizgTimer;
+    float fConverterTimer;  //hunter-261211: dla przekaznika
+    float fMainRelayTimer;  //hunter-141211: zalaczanie WSa z opoznieniem
+    int CAflag; //hunter-131211: dla osobnego zbijania CA i SHP
+
 //    double fShpTimer;
 //    double fDblClickTimer;
     //ABu: Przeniesione do public. - Wiem, ze to nieladnie...

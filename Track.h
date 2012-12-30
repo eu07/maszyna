@@ -14,14 +14,13 @@ class TEvent;
 
 typedef enum { tt_Unknown, tt_Normal, tt_Switch, tt_Turn, tt_Cross, tt_Tributary } TTrackType;
 //McZapkie-100502
-typedef enum { e_unknown, e_flat, e_mountains, e_canyon, e_tunnel, e_bridge, e_bank } TEnvironmentType;
+typedef enum {e_unknown=-1, e_flat=0, e_mountains, e_canyon, e_tunnel, e_bridge, e_bank} TEnvironmentType;
+//Ra: opracowaæ alternatywny system cieni/œwiate³ z definiowaniem koloru oœwietlenia w halach
 
 class TTrack;
 class TGroundNode;
 class TSubRect;
 class TTraction;
-
-static const double fMaxOffset=0.1f;
 
 class TSwitchExtension
 {//dodatkowe dane do toru, który jest zwrotnic¹
@@ -49,12 +48,11 @@ public:
  TSubRect *pOwner; //sektor, któremu trzeba zg³osiæ animacjê
  TTrack *pNextAnim; //nastêpny tor do animowania
  TEvent *EventPlus,*EventMinus; //zdarzenia sygnalizacji rozprucia
+ float fVelocity; //maksymalne ograniczenie prêdkoœci (ustawianej eventem)
 private:
 };
 
 const int iMaxNumDynamics=40; //McZapkie-100303
-const int NextMask[4]={0,1,0,1}; //tor nastêpny dla stanów 0, 1, 2, 3
-const int PrevMask[4]={0,0,1,1}; //tor poprzedni dla stanów 0, 1, 2, 3
 
 class TIsolated
 {//obiekt zbieraj¹cy zajêtoœci z kilku odcinków
@@ -85,7 +83,7 @@ private:
  float fTexLength; //d³ugoœæ powtarzania tekstury w metrach
  float fTexRatio1; //proporcja rozmiarów tekstury dla nawierzchni drogi
  float fTexRatio2; //proporcja rozmiarów tekstury dla chodnika
- float fTexHeight; //wysokoœ brzegu wzglêdem trajektorii
+ float fTexHeight1; //wysokoœæ brzegu wzglêdem trajektorii
  float fTexWidth; //szerokoœæ boku
  float fTexSlope;
  double fRadiusTable[2]; //dwa promienie, drugi dla zwrotnicy
@@ -123,7 +121,9 @@ public:
  int iDamageFlag;
  TEnvironmentType eEnvironment; //dŸwiêk i oœwietlenie
  bool bVisible; //czy rysowany
+private:
  double fVelocity; //prêdkoœæ dla AI (powy¿ej roœnie prawdopowobieñstwo wykolejenia)
+public:
  //McZapkie-100502:
  double fTrackLength; //d³ugoœæ z wpisu, nigdzie nie u¿ywana
  double fRadius; //promieñ, dla zwrotnicy kopiowany z tabeli
@@ -133,6 +133,7 @@ public:
  __fastcall TTrack(TGroundNode *g);
  __fastcall ~TTrack();
  void __fastcall Init();
+ static TTrack* __fastcall Create400m(int what,double dx);
  TTrack* __fastcall NullCreate(int dir);
  inline bool __fastcall IsEmpty() { return (iNumDynamics<=0); };
  void __fastcall ConnectPrevPrev(TTrack *pNewPrev,int typ);
@@ -183,6 +184,10 @@ public:
  GLuint TextureGet(int i) {return i?TextureID1:TextureID2;};
  bool __fastcall IsGroupable();
  int __fastcall TestPoint(vector3 *Point);
+ void __fastcall MovedUp1(double dh);
+ AnsiString __fastcall NameGet();
+ void __fastcall VelocitySet(float v);
+ inline float __fastcall VelocityGet() {return fVelocity;};
 private:
  void __fastcall EnvironmentSet();
  void __fastcall EnvironmentReset();

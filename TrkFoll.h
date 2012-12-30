@@ -20,6 +20,7 @@ private:
  int iEventallFlag;
 
 public:
+ double fOffsetH; //Ra: odleg³oœæ œrodka osi od osi toru (dla samochodów)
  vector3 pPosition; //wspó³rzêdne XYZ w uk³adzie scenerii
  vector3 vAngles; //x:przechy³ka, y:pochylenie, z:kierunek w planie (w radianach)
  __fastcall TTrackFollower();

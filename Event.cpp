@@ -28,7 +28,8 @@
 #include "Timer.h"
 #include "Usefull.h"
 #include "MemCell.h"
-//#include "Ground.h"
+#include "Globals.h"
+#include "Ground.h"
 #pragma package(smart_init)
 
 __fastcall TEvent::TEvent()
@@ -41,16 +42,27 @@ __fastcall TEvent::TEvent()
  fDelay=0;
  fStartTime=0;
  Type=tp_Unknown;
- for (int i=0;i<10;i++)
+ for (int i=0;i<13;i++)
   Params[i].asPointer=NULL;
 }
 
 __fastcall TEvent::~TEvent()
 {
  switch (Type)
- {case tp_UpdateValues:
+ {//sprz¹tanie
+  case tp_Multiple:
+   //SafeDeleteArray(Params[9].asText); //nie usuwaæ - nazwa obiektu powi¹zanego zamieniana na wskaŸnik
+   if (Params[8].asInt&conditional_memstring) //o ile jest ³añcuch do porównania w memcompare
+    SafeDeleteArray(Params[10].asText);
+   break;
+  case tp_UpdateValues:
   case tp_AddValues:
    SafeDeleteArray(Params[0].asText);
+  break;
+  case tp_Animation: //nic
+   //SafeDeleteArray(Params[9].asText); //nie usuwaæ - nazwa jest zamieniana na wskaŸnik do submodelu
+  case tp_GetValues: //nic
+  break;
  }
 }
 
@@ -131,7 +143,6 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
 
     switch (Type)
     {
-
         case tp_AddValues:
             Params[12].asInt=conditional_memadd; //dodawanko
         case tp_UpdateValues:
@@ -174,44 +185,50 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
             *parser >> token;
         break;
         case tp_PutValues:
-            parser->getTokens(3);
-            *parser >> Params[3].asdouble >> Params[4].asdouble >> Params[5].asdouble; //polozenie X,Y,Z
-            if (org)
-            {//przesuniêcie
-             Params[3].asdouble+=org->x; //wspó³rzêdne w scenerii
-             Params[4].asdouble+=org->y;
-             Params[5].asdouble+=org->z;
-            }
-            Params[12].asInt=0;
-            parser->getTokens(1,false);  //komendy 'case sensitive'
-            *parser >> token;
-            str=AnsiString(token.c_str());
-            if (str.SubString(1,19)=="PassengerStopPoint:")
-             if (str.Pos("#")) str=str.SubString(1,str.Pos("#")-1); //obciêcie unikatowoœci
-            Params[0].asText=new char[str.Length()+1];
-            strcpy(Params[0].asText,str.c_str());
-//            if (str!=AnsiString("*"))       //*=nie brac tego pod uwage
-//              Params[12].asInt+=conditional_memstring;
-            parser->getTokens();
-            *parser >> token;
-            str=AnsiString(token.c_str());
-            try
-            {Params[1].asdouble=str.ToDouble();}
-            catch (...)
-            {Params[1].asdouble=0.0;
-             WriteLog("Error: number expected in PutValues event, found: "+str);
-            }
-            parser->getTokens();
-            *parser >> token;
-            str=AnsiString(token.c_str());
-            try
-            {Params[2].asdouble=str.ToDouble();}
-            catch (...)
-            {Params[2].asdouble=0.0;
-             WriteLog("Error: number expected in PutValues event, found: "+str);
-            }
-            parser->getTokens();
-            *parser >> token;
+         parser->getTokens(3);
+         *parser >> Params[3].asdouble >> Params[4].asdouble >> Params[5].asdouble; //polozenie X,Y,Z
+         if (org)
+         {//przesuniêcie
+          Params[3].asdouble+=org->x; //wspó³rzêdne w scenerii
+          Params[4].asdouble+=org->y;
+          Params[5].asdouble+=org->z;
+         }
+         Params[12].asInt=0;
+         parser->getTokens(1,false);  //komendy 'case sensitive'
+         *parser >> token;
+         str=AnsiString(token.c_str());
+         if (str.SubString(1,19)=="PassengerStopPoint:")
+          if (str.Pos("#")) str=str.SubString(1,str.Pos("#")-1); //obciêcie unikatowoœci
+         Params[0].asText=new char[str.Length()+1];
+         strcpy(Params[0].asText,str.c_str());
+//         if (str!=AnsiString("*"))       //*=nie brac tego pod uwage
+//           Params[12].asInt+=conditional_memstring;
+         parser->getTokens();
+         *parser >> token;
+         str=AnsiString(token.c_str());
+         if (str=="none")
+          Params[1].asdouble=0.0;
+         else
+          try
+          {Params[1].asdouble=str.ToDouble();}
+          catch (...)
+          {Params[1].asdouble=0.0;
+           WriteLog("Error: number expected in PutValues event, found: "+str);
+          }
+         parser->getTokens();
+         *parser >> token;
+         str=AnsiString(token.c_str());
+         if (str=="none")
+          Params[2].asdouble=0.0;
+         else
+          try
+          {Params[2].asdouble=str.ToDouble();}
+          catch (...)
+          {Params[2].asdouble=0.0;
+           WriteLog("Error: number expected in PutValues event, found: "+str);
+          }
+         parser->getTokens();
+         *parser >> token;
         break;
         case tp_Lights:
          i=0;
@@ -303,74 +320,78 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
             parser->getTokens(); *parser >> token;
         break;
         case tp_Multiple:
-            i=0;
-            Params[8].asInt=0;
+         i=0;
+         Params[8].asInt=0;
 
-            parser->getTokens();
-            *parser >> token;
-            str=AnsiString(token.c_str());
+         parser->getTokens();
+         *parser >> token;
+         str=AnsiString(token.c_str());
 
-            while (str!=AnsiString("endevent") && str!=AnsiString("condition"))
-            {
-             if ((str.SubString(1,5)!="none_")?(i<8):false)
-             {//eventy rozpoczynaj¹ce siê od "none_" s¹ ignorowane
-              Params[i].asText=new char[255];
-              strcpy(Params[i].asText,str.c_str());
-              i++;
-             }
-             else
-              WriteLog("Event \""+str+"\" ignored in multiple \""+asName+"\"!");
-             parser->getTokens();
-             *parser >> token;
-             str=AnsiString(token.c_str());
-            }
-            if (str==AnsiString("condition"))
-            {
-                Params[9].asText=new char[255];
-                strcpy(Params[9].asText,asNodeName.c_str());
-                parser->getTokens();
-                *parser >> token;
-                str=AnsiString(token.c_str());
-                if (str==AnsiString("trackoccupied"))
-                    Params[8].asInt=conditional_trackoccupied;
-                if (str==AnsiString("trackfree"))
-                    Params[8].asInt=conditional_trackfree;
-                if (str==AnsiString("propability"))
-                  {
-                    Params[8].asInt=conditional_propability;
-                    parser->getTokens();
-                    *parser >> Params[10].asdouble;
-                  }
-                if  (str==AnsiString("memcompare"))
-                  {
-                    Params[8].asInt=0;
-                    parser->getTokens(1,false);  //case sensitive
-                    *parser >> token;
-                    str=AnsiString(token.c_str());
-                    Params[10].asText=new char[255];
-                    strcpy(Params[10].asText,str.c_str());
-                    if (str!=AnsiString("*"))       //*=nie brac command pod uwage
-                     Params[8].asInt+=conditional_memstring;
-                    parser->getTokens();
-                    *parser >> token;
-                    str=AnsiString(token.c_str());
-                    if (str!=AnsiString("*"))       //*=nie brac val1 pod uwage
-                     {
-                      Params[11].asdouble=str.ToDouble();
-                      Params[8].asInt+=conditional_memval1;
-                     }
-                    parser->getTokens();
-                    *parser >> token;
-                    str=AnsiString(token.c_str());
-                    if (str!=AnsiString("*"))       //*=nie brac val2 pod uwage
-                     {
-                      Params[12].asdouble=str.ToDouble();
-                      Params[8].asInt+=conditional_memval2;
-                     }
-                  }
-                    parser->getTokens(); *parser >> token;
-
-            }
+         while (str!=AnsiString("endevent") && str!=AnsiString("condition"))
+         {
+          if ((str.SubString(1,5)!="none_")?(i<8):false)
+          {//eventy rozpoczynaj¹ce siê od "none_" s¹ ignorowane
+           Params[i].asText=new char[255];
+           strcpy(Params[i].asText,str.c_str());
+           i++;
+          }
+          else
+           WriteLog("Event \""+str+"\" ignored in multiple \""+asName+"\"!");
+          parser->getTokens();
+          *parser >> token;
+          str=AnsiString(token.c_str());
+         }
+         if (str==AnsiString("condition"))
+         {
+          if (!asNodeName.IsEmpty())
+          {//podczepienie ³añcucha, jeœli nie jest pusty
+           Params[9].asText=new char[asNodeName.Length()+1]; //usuwane i zamieniane na wskaŸnik
+           strcpy(Params[9].asText,asNodeName.c_str());
+          }
+          parser->getTokens();
+          *parser >> token;
+          str=AnsiString(token.c_str());
+          if (str==AnsiString("trackoccupied"))
+           Params[8].asInt=conditional_trackoccupied;
+          else if (str==AnsiString("trackfree"))
+           Params[8].asInt=conditional_trackfree;
+          else if (str==AnsiString("propability"))
+          {
+           Params[8].asInt=conditional_propability;
+           parser->getTokens();
+           *parser >> Params[10].asdouble;
+          }
+          else if (str==AnsiString("memcompare"))
+          {
+           Params[8].asInt=0;
+           parser->getTokens(1,false);  //case sensitive
+           *parser >> token;
+           str=AnsiString(token.c_str());
+           if (str!=AnsiString("*")) //"*" - nie brac command pod uwage
+           {//zapamiêtanie ³añcucha do porównania
+            Params[10].asText=new char[255];
+            strcpy(Params[10].asText,str.c_str());
+            Params[8].asInt|=conditional_memstring;
+           }
+           parser->getTokens();
+           *parser >> token;
+           str=AnsiString(token.c_str());
+           if (str!=AnsiString("*")) //"*" - nie brac val1 pod uwage
+           {
+            Params[11].asdouble=str.ToDouble();
+            Params[8].asInt|=conditional_memval1;
+           }
+           parser->getTokens();
+           *parser >> token;
+           str=AnsiString(token.c_str());
+           if (str!=AnsiString("*")) //"*" - nie brac val2 pod uwage
+           {
+            Params[12].asdouble=str.ToDouble();
+            Params[8].asInt|=conditional_memval2;
+           }
+          }
+          parser->getTokens(); *parser >> token;
+         }
         break;
         case tp_Ignored: //ignorowany
         case tp_Unknown: //nieznany
@@ -379,10 +400,15 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
           *parser >> token;
           str=AnsiString(token.c_str());
          } while (str!="endevent");
-
          WriteLog("Event \""+asName+(Type==tp_Unknown?"\" has unknown type.":"\" is ignored."));
          break;
     }
+ //if (Type!=tp_Unknown)
+  //if (Type!=tp_Ignored)
+   //if (asName.Pos("onstart")) //event uruchamiany automatycznie po starcie
+    //Global::pGround->AddToQuery(this,NULL); //dodanie do kolejki
+    //return true; //dodaæ do kolejki
+ //return false;
 }
 
 void __fastcall TEvent::AddToQuery(TEvent *Event)
@@ -403,22 +429,35 @@ AnsiString __fastcall TEvent::CommandGet()
  switch (Type)
  {//to siê wykonuje równie¿ sk³adu jad¹cego bez obs³ugi
   case tp_GetValues:
-   return String(Params[9].asMemCell->szText);
+   return String(Params[9].asMemCell->Text());
   case tp_PutValues:
    return String(Params[0].asText);
  }
  return ""; //inne eventy siê nie licz¹
 };
-/* //siê sprawa komplikuje
-vector3* __fastcall TEvent::PositionGet()
-{//pobranie wspó³rzêdnych eventu
+
+double __fastcall TEvent::ValueGet(int n)
+{//odczytanie komendy z eventu
+ n&=1; //tylko 1 albo 2 jest prawid³owy
  switch (Type)
  {//to siê wykonuje równie¿ sk³adu jad¹cego bez obs³ugi
   case tp_GetValues:
-   return &Params[8].asGroundNode->pCenter;
+   return n?Params[9].asMemCell->Value1():Params[9].asMemCell->Value2();
   case tp_PutValues:
-   return String(Params[0].asText);
+   return Params[2-n].asdouble;
  }
- return NULL; //inne eventy siê nie licz¹
+ return 0.0; //inne eventy siê nie licz¹
 };
-*/
+
+vector3 __fastcall TEvent::PositionGet()
+{//pobranie wspó³rzêdnych eventu
+ switch (Type)
+ {//
+  case tp_GetValues:
+   return Params[9].asMemCell->Position(); //wspó³rzêdne pod³¹czonej komórki pamiêci
+  case tp_PutValues:
+   return vector3(Params[3].asdouble,Params[4].asdouble,Params[5].asdouble);
+ }
+ return vector3(0,0,0); //inne eventy siê nie licz¹
+};
+
