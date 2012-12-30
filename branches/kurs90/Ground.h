@@ -259,7 +259,7 @@ class TGround
  TSubRect srGlobal; //zawiera obiekty globalne (na razie wyzwalacze czasowe)
  int hh,mm,srh,srm,ssh,ssm; //ustawienia czasu
  //int tracks,tracksfar; //liczniki torów
- TNames *sTracks; //posortowane nazwy torów 
+ TNames *sTracks; //posortowane nazwy torów i eventów 
 public:
  bool bDynamicRemove; //czy uruchomiæ procedurê usuwania pojazdów
  TDynamicObject *LastDyn; //ABu: paskudnie, ale na bardzo szybko moze jakos przejdzie...

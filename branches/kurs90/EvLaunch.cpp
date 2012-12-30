@@ -22,8 +22,6 @@
 #include    "system.hpp"
 #pragma hdrstop
 
-#include "Mover.h"
-#include "mctools.hpp"
 #include "mtable.hpp"
 #include "Timer.h"
 #include "Globals.h"
@@ -40,14 +38,17 @@
 //---------------------------------------------------------------------------
 
 __fastcall TEventLauncher::TEventLauncher()
-{
+{//ustawienie pocz¹tkowych wartoœci dla wszystkich zmiennych 
+ iKey=0;
  DeltaTime=-1;
  UpdatedTime=0;
  fVal1=fVal2=0;
  szText=NULL;
- iCheckMask=0;
- MemCell=NULL;
  iHour=iMinute=-1; //takiego czasu nigdy nie bêdzie
+ dRadius=0;
+ Event1=Event2=NULL;
+ MemCell=NULL;
+ iCheckMask=0;
 }
 
 __fastcall TEventLauncher::~TEventLauncher()
@@ -59,12 +60,10 @@ void __fastcall TEventLauncher::Init()
 {
 }
 
-
 bool __fastcall TEventLauncher::Load(cParser *parser)
 {//wczytanie wyzwalacza zdarzeñ
  AnsiString str;
  std::string token;
- //char *szKey;
  parser->getTokens();
  *parser >> dRadius; //promieñ dzia³ania
  if (dRadius>0.0)
@@ -78,12 +77,7 @@ bool __fastcall TEventLauncher::Load(cParser *parser)
    iKey=VkKeyScan(str[1]); //jeden znak jest konwertowany na kod klawisza
   else
    iKey=str.ToIntDef(0); //a jak wiêcej, to jakby numer klawisza jest
-  //szKey=new char[1];
-  //strcpy(szKey,str.c_str()); //Ra: to jest nieco niezwyk³e
-  //iKey=VkKeyScan(szKey[0]);
  }
- else
-  iKey=0;
  parser->getTokens();
  *parser >> DeltaTime;
  if (DeltaTime<0)
@@ -115,20 +109,20 @@ bool __fastcall TEventLauncher::Load(cParser *parser)
   SafeDeleteArray(szText);
   szText=new char[256];
   strcpy(szText,token.c_str());
-  if (token.compare("*")!=0)       //*=nie braæ command pod uwagê
+  if (token.compare("*")!=0) //*=nie braæ command pod uwagê
     iCheckMask|=conditional_memstring;
   parser->getTokens();
   *parser >> token;
-  if (token.compare("*")!=0)       //*=nie braæ command pod uwagê
+  if (token.compare("*")!=0) //*=nie braæ wartoœci 1. pod uwagê
   {
    iCheckMask|=conditional_memval1;
-   str= AnsiString(token.c_str());
-   fVal1= str.ToDouble();
+   str=AnsiString(token.c_str());
+   fVal1=str.ToDouble();
   }
-  else fVal1= 0;
+  else fVal1=0;
   parser->getTokens();
   *parser >> token;
-  if (token.compare("*")!=0)       //*=nie braæ command pod uwagê
+  if (token.compare("*")!=0) //*=nie braæ wartoœci 2. pod uwagê
   {
    iCheckMask|=conditional_memval2;
    str=AnsiString(token.c_str());

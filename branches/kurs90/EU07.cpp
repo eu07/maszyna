@@ -458,7 +458,7 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
    switch (wParam) //check system calls
    {
     case 61696: //F10
-     World.OnKeyPress(VK_F10);
+     World.OnKeyDown(VK_F10);
      return 0;
     case SC_SCREENSAVE:	//screensaver trying to start?
     case SC_MONITORPOWER: //monitor trying to enter powersave?
@@ -488,15 +488,19 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
   }
   case WM_KEYUP :
   {
+   World.OnKeyUp(wParam);
    return 0;
   }
   case WM_KEYDOWN :
    if (Global::bActive)
    {
     if (wParam!=17) //bo naciœniêcia [Ctrl] nie ma po co przekazywaæ
-     World.OnKeyPress(wParam);
+     if (wParam!=145) //[Scroll Lock] te¿ nie
+      World.OnKeyDown(wParam);
     switch (wParam)
     {
+     case VK_ESCAPE: //[Esc] pauzuje tylko bez Debugmode
+      if (DebugModeFlag) break;
      case 19: //[Pause]
       if (!Global::iMultiplayer) //w multiplayerze pauza nie ma sensu
        if (!Console::Pressed(VK_CONTROL))
@@ -634,7 +638,7 @@ int WINAPI WinMain( HINSTANCE hInstance,     //instance
  //McZapkie: proba przeplukania klawiatury
  Console *pConsole=new Console(); //Ra: nie wiem, czy ma to sens, ale jakoœ zainicjowac trzeba
  while (Console::Pressed(VK_F10))
-  Error("Keyboard buffer problem - press F10");
+  Error("Keyboard buffer problem - press F10"); //na Windows 98 lubi siê to pojawiaæ
  int iOldSpeed, iOldDelay;
  SystemParametersInfo(SPI_GETKEYBOARDSPEED,0,&iOldSpeed,0);
  SystemParametersInfo(SPI_GETKEYBOARDDELAY,0,&iOldDelay,0);
@@ -663,7 +667,7 @@ int WINAPI WinMain( HINSTANCE hInstance,     //instance
     else //if not, deal with window messages
     {
      //if (msg.message==WM_CHAR)
-     //World.OnKeyPress(msg.wParam);
+     //World.OnKeyDown(msg.wParam);
      TranslateMessage(&msg); //translate the message
      DispatchMessage(&msg); //dispatch the message
     }

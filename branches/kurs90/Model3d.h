@@ -134,7 +134,8 @@ class TSubModelInfo;
 
 class TSubModel
 {//klasa submodelu - pojedyncza siatka, punkt œwietlny albo grupa punktów
- //Ra: ta klasa ma mieæ wielkoœæ 320 bajtów, aby pokry³a siê z formatem binarnym
+ //Ra: ta klasa ma mieæ wielkoœæ 256 bajtów, aby pokry³a siê z formatem binarnym
+ //Ra: nie przestawiaæ zmiennych, bo wczytuj¹ siê z pliku binarnego!
 private:
  TSubModel *Next;
  TSubModel *Child;
@@ -214,6 +215,7 @@ public:
  static int iAlpha; //maska bitowa dla danego przebiegu
  static double fSquareDist;
  static TModel3d* pRoot;
+ static AnsiString* pasText; //tekst dla wyœwietlacza (!!!! do przemyœlenia)
  __fastcall TSubModel();
  __fastcall ~TSubModel();
  void __fastcall FirstInit();
@@ -231,7 +233,8 @@ public:
  void __fastcall SetRotateXYZ(float3 vNewAngles);
  void __fastcall SetTranslate(vector3 vNewTransVector);
  void __fastcall SetTranslate(float3 vNewTransVector);
- TSubModel* __fastcall GetFromName(AnsiString search);
+ TSubModel* __fastcall GetFromName(AnsiString search,bool i=true);
+ TSubModel* __fastcall GetFromName(char *search,bool i=true);
  void __fastcall RenderDL();
  void __fastcall RenderAlphaDL();
  void __fastcall RenderVBO();

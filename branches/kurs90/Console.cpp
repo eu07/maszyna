@@ -110,6 +110,7 @@ int __fastcall Console::On()
   delete PoKeys55;
   PoKeys55=NULL;
  }
+ return 0;
 };
 
 void __fastcall Console::Off()
@@ -199,6 +200,25 @@ void __fastcall Console::ValueSet(int x,double y)
  if (iMode==4)
   if (PoKeys55)
   {
-   PoKeys55->PWM(x,int(y)&0x0FFF); //zakres 0..1023 na razie
+   PoKeys55->PWM(x,(((Global::fCalibrateOut[x][3]*y)+Global::fCalibrateOut[x][2])*y+Global::fCalibrateOut[x][1])*y+Global::fCalibrateOut[x][0]); //zakres <0;1>
   }
 };
+
+void __fastcall Console::Update()
+{//funkcja powinna byæ wywo³ywana regularnie, np. raz w ka¿dej ramce ekranowej
+ if (iMode==4)
+  if (PoKeys55)
+   if (PoKeys55->Update())
+   {//wykrycie przestawionych prze³¹czników
+
+   }
+};
+
+float __fastcall Console::AnalogGet(int x)
+{//pobranie wartoœci analogowej
+ if (iMode==4)
+  if (PoKeys55)
+   return PoKeys55->fAnalog[x];
+ return -1.0;
+};
+

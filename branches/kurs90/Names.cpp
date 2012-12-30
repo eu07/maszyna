@@ -10,7 +10,7 @@
 #pragma package(smart_init)
 /*
 Modu³ zarz¹dzaj¹cy plikami oraz wyszukiwaniem obiektów wg nazw.
-1. Ma przydzielony z góry (EU07.INI) obszar pamiêci (rzêdu 64kB).
+1. Ma przydzielony z góry (EU07.INI) obszar pamiêci (rzêdu 16MB).
 2. W przypadku przepe³nienia dostêpnej pamiêci wyst¹pi b³¹d wczytywania.
 3. Obszar ten bêdzie zu¿ywany na rekordy obiektów oraz ci¹gi tekstowe z nazwami.
 4. Rekordy bêd¹ sortowane w ramach typu (tekstury, dŸwiêki, modele, node, eventy).
@@ -58,11 +58,17 @@ void __fastcall ItemRecord::ListGet(ItemRecord *r,int*&n)
 
 void* __fastcall ItemRecord::TreeFind(const char *n)
 {//wyszukanie ci¹gu (n)
+ ItemRecord *r=TreeFindRecord(n);
+ return r?r->pData:NULL;
+};
+
+ItemRecord* __fastcall ItemRecord::TreeFindRecord(const char *n)
+{//wyszukanie ci¹gu (n)
  ItemRecord *r=this; //¿eby nie robiæ rekurencji
  int i=0;
  do
  {
-  if (!n[i]) if (!r->cName[i]) return r->pData; //znaleziony
+  if (!n[i]) if (!r->cName[i]) return r; //znaleziony
   if (n[i]==r->cName[i])
    ++i; //porównaæ kolejny znak
   else
@@ -82,12 +88,13 @@ void* __fastcall ItemRecord::TreeFind(const char *n)
 
 __fastcall TNames::TNames()
 {//tworzenie bufora
- iSize=32*65536; //rozmiar bufora w bajtach
+ iSize=16*1024*1024; //rozmiar bufora w bajtach
  cBuffer=new char[iSize];
  ZeroMemory(cBuffer,iSize); //nie trzymaæ jakiœ starych œmieci
  rRecords=(ItemRecord*)cBuffer;
  cLast=cBuffer+iSize; //bajt za buforem
  iLast=-1;
+ ZeroMemory(rTypes,20*sizeof(ItemRecord*));
 };
 
 int __fastcall TNames::Add(int t,const char *n)
@@ -103,7 +110,7 @@ int __fastcall TNames::Add(int t,const char *n)
  else
   rTypes[t]->TreeAdd(rRecords+iLast,0); //doczepienie jako ga³¹Ÿ
  //rTypes[t]=Sort(t); //sortowanie uruchamiaæ rêcznie
- if ((iLast&0x0F)==0)
+ if ((iLast&0x3F)==0) //nie za czêsto, bo sortowania zajm¹ wiêcej czasu ni¿ wyszukiwania
   Sort(t); //optymalizacja drzewa co jakiœ czas
  return iLast;
 }
@@ -112,6 +119,18 @@ int __fastcall TNames::Add(int t,const char *n,void *d)
  int i=Add(t,n);
  rRecords[iLast].pData=d;
  return i;
+};
+
+bool __fastcall TNames::Update(int t,const char *n,void *d)
+{//dodanie jeœli nie ma, wymiana (d), gdy jest
+ ItemRecord *r=FindRecord(t,n); //najpierw sprawdziæ, czy ju¿ jest
+ if (r)
+ {//przy zdublowaniu nazwy podmieniaæ w drzewku na póŸniejszy
+  r->pData=d;
+  return true; //duplikat
+ }
+ //Add(t,n,d); //nazwa unikalna
+ return false; //zosta³ dodany nowy
 };
 
 ItemRecord* __fastcall TNames::TreeSet(int *n,int d,int u)
@@ -131,10 +150,18 @@ ItemRecord* __fastcall TNames::TreeSet(int *n,int d,int u)
 void __fastcall TNames::Sort(int t)
 {//przebudowa drzewa typu (t), zwraca wierzcho³ek drzewa
  if (iLast<3) return; //jak jest ma³o, to nie ma sensu sortowaæ
- int *r=new int[iLast+1]; //robocza tablica indeksów - numery posortowanych rekordów
- int *q=r; //wskaŸnik roboczy, przekazywany przez referencjê
- rTypes[t]->ListGet(rRecords,q); //drzewo jest ju¿ posortowane - zamieniæ je na listê
- rTypes[t]=TreeSet(r,0,(q-r)-1);
- delete[] r;
+ if (rTypes[t]) //jeœli jest jakiœ rekord danego typu
+ {int *r=new int[iLast+1]; //robocza tablica indeksów - numery posortowanych rekordów
+  int *q=r; //wskaŸnik roboczy, przekazywany przez referencjê
+  rTypes[t]->ListGet(rRecords,q); //drzewo jest ju¿ posortowane - zamieniæ je na listê
+  rTypes[t]=TreeSet(r,0,(q-r)-1);
+  delete[] r;
+ }
  return;
 };
+
+ItemRecord* __fastcall TNames::FindRecord(const int t,const char *n)
+{//poszukiwanie rekordu w celu np. zmiany wskaŸnika
+ return rTypes[t]?rTypes[t]->TreeFindRecord(n):NULL;
+};
+
