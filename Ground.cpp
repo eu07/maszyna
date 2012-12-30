@@ -4,19 +4,6 @@
     MaSzyna EU07 locomotive simulator
     Copyright (C) 2001-2004  Marcin Wozniak and others
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "system.hpp"
@@ -56,10 +43,6 @@
 bool bCondition; //McZapkie: do testowania warunku na event multiple
 AnsiString LogComment;
 
-// tablica pozycji sektorów do renderowania progresywnego (zale¿nie od FPS)
-//const int AreaFast[]={10,10,10,10,10,10,9,8,7,6,5}; //pe³ny zakres widocznoœci 2km
-//const int AreaSlow[]={ 7, 7, 7, 7, 7, 6,5,4,0,0,0}; //ograniczenie widocznoœci 1.5km
-//const int AreaMini[]={ 5, 5, 5, 5, 5, 4,0,0,0,0,0}; //ograniczenie widocznoœci 1km
 //---------------------------------------------------------------------------
 // Obiekt renderuj¹cy siatkê jest sztucznie tworzonym obiektem pomocniczym,
 // grupuj¹cym siatki obiektów dla danej tekstury. Obiektami sk³adowymi mog¹
@@ -1261,11 +1244,11 @@ TGroundNode* __fastcall TGround::FindGroundNode(AnsiString asNameToFind,TGroundN
 double fTrainSetVel=0;
 double fTrainSetDir=0;
 double fTrainSetDist=0; //odleg³oœæ sk³adu od punktu 1 w stronê punktu 2
-AnsiString asTrainSetTrack= "";
-int iTrainSetConnection= 0;
-bool bTrainSet= false;
-AnsiString asTrainName= "";
-int iTrainSetWehicleNumber= 0;
+AnsiString asTrainSetTrack="";
+int iTrainSetConnection=0;
+bool bTrainSet=false;
+AnsiString asTrainName="";
+int iTrainSetWehicleNumber=0;
 TGroundNode *TrainSetNode=NULL; //poprzedni pojazd do ³¹czenia
 TGroundNode *TrainSetDriver=NULL; //pojazd, któremu zostanie wys³any rozk³ad
 
@@ -1413,7 +1396,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
  else if (str=="line_strip")          tmp->iType=GL_LINE_STRIP;
  else if (str=="line_loop")           tmp->iType=GL_LINE_LOOP;
  else if (str=="model")               tmp->iType=TP_MODEL;
- else if (str=="terrain")             tmp->iType=TP_TERRAIN;
+ else if (str=="terrain")             tmp->iType=TP_TERRAIN; //tymczasowo do odwo³ania
  else if (str=="dynamic")             tmp->iType=TP_DYNAMIC;
  else if (str=="sound")               tmp->iType=TP_SOUND;
  else if (str=="track")               tmp->iType=TP_TRACK;
@@ -1551,7 +1534,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
 //            tmp->iState=(Parser->GetNextSymbol().LowerCase()=="loop"?DSBPLAY_LOOPING:0);
    parser->getTokens(); *parser >> token;
    break;
-  case TP_DYNAMIC :
+  case TP_DYNAMIC:
    tmp->DynamicObject=new TDynamicObject();
    //tmp->DynamicObject->Load(Parser);
    parser->getTokens();
@@ -1576,8 +1559,10 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
     parser->getTokens();
     *parser >> int1;
     if (int1<0) int1=(-int1)|ctrain_depot; //sprzêg zablokowany (pojazdy nieroz³¹czalne przy manewrach)
+    if (tf1!=-1.0)
+     if (fabs(tf1)>0.5) //maksymalna odleg³oœæ miêdzy sprzêgami - do przemyœlenia
+      int1=0; //likwidacja sprzêgu, jeœli odleg³oœæ zbyt du¿a - to powinno byæ uwzglêdniane w fizyce sprzêgów...
     TempConnectionType[iTrainSetWehicleNumber]=int1; //wartoœæ dodatnia
-    iTrainSetWehicleNumber++;
    }
    else
    {//pojazd wstawiony luzem
@@ -1593,6 +1578,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
     DriverType=AnsiString(token.c_str()); //McZapkie:010303: obsada
     parser->getTokens();
     *parser >> tf3; //prêdkoœæ
+    iTrainSetWehicleNumber=0;
    }
    parser->getTokens();
    *parser >> int2; //iloœæ ³adunku
@@ -1613,47 +1599,24 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    if (tmp1 && tmp1->pTrack)
    {//jeœli tor znaleziony
     Track=tmp1->pTrack;
+    if (!iTrainSetWehicleNumber) //jeœli pierwszy pojazd
+     if (Track->Event0) //jeœli tor ma Event0
+      if (fabs(fTrainSetVel)<=1.0) //a sk³ad stoi
+       if (fTrainSetDist>=0.0) //ale mo¿e nie siêgaæ na owy tor
+        if (fTrainSetDist<8.0) //i raczej nie siêga
+         fTrainSetDist=8.0; //przesuwamy oko³o pó³ EU07 dla wstecznej zgodnoœci
     //WriteLog("Dynamic shift: "+AnsiString(fTrainSetDist));
-    tf3=tmp->DynamicObject->Init(asNodeName,str1,Skin,str3,Track,(tf1==-1.0?fTrainSetDist:tf1+fTrainSetDist),DriverType,tf3,asTrainName,int2,str2,(tf1==-1.0));
+    if (!iTrainSetWehicleNumber) //dla pierwszego jest to przesuniêcie (ujemne = do ty³u)
+     if (tf1!=-1.0) //-1 wyj¹tkowo oznacza odwrócenie
+      tf1=-tf1; //a dla kolejnych odleg³oœæ miêdzy sprzêgami (ujemne = wbite)
+    tf3=tmp->DynamicObject->Init(asNodeName,str1,Skin,str3,Track,(tf1==-1.0?fTrainSetDist:fTrainSetDist-tf1),DriverType,tf3,asTrainName,int2,str2,(tf1==-1.0));
     if (tf3!=0.0) //zero oznacza b³¹d
     {fTrainSetDist-=tf3; //przesuniêcie dla kolejnego, minus bo idziemy w stronê punktu 1
      tmp->pCenter=tmp->DynamicObject->GetPosition();
-     if (TempConnectionType[iTrainSetWehicleNumber-1]) //jeœli jest sprzêg
+     if (TempConnectionType[iTrainSetWehicleNumber]) //jeœli jest sprzêg
       if (tmp->DynamicObject->MoverParameters->Couplers[tf1==-1.0?0:1].AllowedFlag&ctrain_depot) //jesli zablokowany
-       TempConnectionType[iTrainSetWehicleNumber-1]|=ctrain_depot; //bêdzie blokada
-/*
-     //McZapkie-030203: sygnaly czola pociagu, ale tylko dla pociagow jadacych
-     if (tf3>0.0) //predkosc poczatkowa, jak ja lubie takie nazwy zmiennych
-     {//œwiat³a w sk³adzie ruchomym - AI i tak zapali je sobie po swojemu
-      if (bTrainSet)
-      {//czo³o jest zawsze od pierwszego pojazdu w trainset
-       if (asTrainName!="none")
-       {//jadacy sk³ad z rozk³adem jest oœwietlony odpowiednio
-        if (iTrainSetWehicleNumber==1) //jeœli ma numer 0 (czyli aktualny jest 1)
-        {
-         tmp->DynamicObject->RaLightsSet(1+4+16,-1); //trojk¹t dla rozk³adowych
-         if ((tmp->DynamicObject->EndSignalsLight1Active())
-            ||(tmp->DynamicObject->EndSignalsLight1oldActive()))
-          tmp->DynamicObject->RaLightsSet(-1,2+32); //z ty³u
-         else
-          tmp->DynamicObject->RaLightsSet(-1,64);
-        }
-        if (iTrainSetWehicleNumber==2) //jeœli jest drugi pojazd, to gasi w pierwszym
-         LastDyn->RaLightsSet(-1,0); //zgaszone swiatla od strony wagonow
-       }
-       else
-       {//jak nie ma rozk³adu, to manewruje
-        if (iTrainSetWehicleNumber==1) //jeœli pierwszy w sk³adzie
-         tmp->DynamicObject->RaLightsSet(16,1); //manewry
-        if (iTrainSetWehicleNumber==2)
-         LastDyn->RaLightsSet(-1,0); //zgaszone swiatla od strony wagonow
-       }
-      }
-      else
-       tmp->DynamicObject->RaLightsSet(16,1); //manewry pojedynczego pojazdu
-      LastDyn=tmp->DynamicObject;
-     }
-*/
+       TempConnectionType[iTrainSetWehicleNumber]|=ctrain_depot; //bêdzie blokada
+     iTrainSetWehicleNumber++;
     }
     else
     {//LastNode=NULL;
@@ -1680,8 +1643,12 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    if (token.compare("enddynamic")!=0)
     Error("enddynamic statement missing");
    break;
-  case TP_TERRAIN:
+  case TP_TERRAIN: //TODO: zrobiæ jak zwyk³y, rozró¿nienie po nazwie albo czymœ innym
   case TP_MODEL:
+   if (rmin<0)
+   {tmp->iType=TP_TERRAIN;
+    tmp->fSquareMinRadius=0; //to w ogóle potrzebne?
+   }
    parser->getTokens(3);
    *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
    parser->getTokens();
@@ -1915,15 +1882,6 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    for (int i=0;i<nv;i++)
     tmp->Points[i]=TempVerts[i].Point;
    break;
-/*
-  case TP_ISOLATED: //lista torów w obwodzie izolowanym - na razie ignorowana
-   do
-   {//po¿arcie dodatkowych parametrów
-    parser->getTokens();
-    *parser >> token;
-   } while (token.compare("endisolated")!=0);
-   break;
-*/
  }
  return tmp;
 }
@@ -2012,6 +1970,9 @@ void __fastcall TGround::FirstInit()
  WriteLog("InitTracks");
  InitTracks(); //³¹czenie odcinków ze sob¹ i przyklejanie eventów
  WriteLog("InitTracks OK");
+ WriteLog("InitTraction");
+ InitTraction(); //³¹czenie drutów ze sob¹
+ WriteLog("InitTraction OK");
  WriteLog("InitEvents");
  InitEvents();
  WriteLog("InitEvents OK");
@@ -2126,8 +2087,10 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
         }
         else
         {//jeœli jest pojazdem
-         if (LastNode->DynamicObject->Mechanik)
-          TrainSetDriver=LastNode; //pojazd, któremu zostanie wys³any rozk³ad
+         //if (!bInitDone) FirstInit(); //jeœli nie by³o w scenerii
+         if (LastNode->DynamicObject->Mechanik) //ale mo¿e byæ pasa¿er
+          if (LastNode->DynamicObject->MoverParameters->ActiveCab) //aktywna kabina
+           TrainSetDriver=LastNode; //pojazd, któremu zostanie wys³any rozk³ad
          LastNode->Next=nRootDynamic;
          nRootDynamic=LastNode; //dopisanie z przodu do listy
          //if (bTrainSet && (LastNode?(LastNode->iType==TP_DYNAMIC):false))
@@ -2194,24 +2157,39 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
        delete tmp;
       else
       {//najpierw sprawdzamy, czy nie ma, a potem dopisujemy
-       if (FindEvent(tmp->asName))
+       TEvent *found=FindEvent(tmp->asName);
+       if (found)
        {//jeœli znaleziony duplikat
         int i=tmp->asName.Length();
-        if (tmp->asName[1]!='#') //zawsze jeden znak co najmniej jest
-         if (i>8?tmp->asName.SubString(i-7,8)!="_warning":true) //tymczasowo wyj¹tki
-          if (i>4?tmp->asName.SubString(i-3,4)!="_shp":true) //nie podlegaj¹ logowaniu
-           ErrorLog("Duplicated event: "+tmp->asName);
-        delete tmp; //bezlitoœnie usuwamy wszelkie duplikaty
-        tmp=NULL; //i nie pozwalamy zaœmiecaæ drzewka (nie wiadomo, który by siê wykona³)
+        if (tmp->asName[1]=='#') //zawsze jeden znak co najmniej jest
+        {delete tmp; tmp=NULL;} //utylizacja duplikatu z krzy¿ykiem
+        else if (i>8?tmp->asName.SubString(1,9)=="lineinfo:":false) //tymczasowo wyj¹tki
+        {delete tmp; tmp=NULL;} //tymczasowa utylizacja duplikatów W5
+        else if (i>8?tmp->asName.SubString(i-7,8)=="_warning":false) //tymczasowo wyj¹tki
+        {delete tmp; tmp=NULL;} //tymczasowa utylizacja duplikatu z tr¹bieniem
+        else if (i>4?tmp->asName.SubString(i-3,4)=="_shp":false) //nie podlegaj¹ logowaniu
+        {delete tmp; tmp=NULL;} //tymczasowa utylizacja duplikatu SHP
+        if (tmp) //jeœli nie zosta³ zutylizowany
+         if (Global::bJoinEvents)
+          found->Append(tmp); //doczepka (taki wirtualny multiple bez warunków)
+         else
+         {ErrorLog("Duplicated event: "+tmp->asName);
+          found->Append(tmp); //doczepka (taki wirtualny multiple bez warunków)
+          found->Type=tp_Ignored; //dezaktywacja pierwotnego - taka proteza na wsteczn¹ zgodnoœæ
+          //SafeDelete(tmp); //bezlitoœnie usuwamy wszelkie duplikaty, ¿eby nie zaœmiecaæ drzewka
+         }
        }
        if (tmp)
        {//jeœli nie duplikat
-        tmp->Next2=RootEvent;
+        tmp->Next2=RootEvent; //lista wszystkich eventów (m.in. do InitEvents)
         RootEvent=tmp;
-        if (RootEvent->Type!=tp_Ignored)
-         if (RootEvent->asName.Pos("onstart")) //event uruchamiany automatycznie po starcie
-          AddToQuery(RootEvent,NULL); //dodanie do kolejki
-        sTracks->Add(0,tmp->asName.c_str(),tmp); //dodanie do wyszukiwarki
+        if (!found)
+        {//jeœli nazwa wyst¹pi³a, to do kolejki i wyszukiwarki dodawany jest tylko pierwszy
+         if (RootEvent->Type!=tp_Ignored)
+          if (RootEvent->asName.Pos("onstart")) //event uruchamiany automatycznie po starcie
+           AddToQuery(RootEvent,NULL); //dodanie do kolejki
+         sTracks->Add(0,tmp->asName.c_str(),tmp); //dodanie do wyszukiwarki
+        }
        }
       }
      }
@@ -2451,17 +2429,6 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
     }
 
  delete parser;
-/* //Ra: testy sortownika nazw
- //TFileStream *fs=new TFileStream("names.txt",fmCreate);
- //fs->Write(sTracks->cBuffer,4*65536);
- //delete fs;
- int *r=new int[5000]; //robocza tablica indeksów - numery posortowanych rekordów
- int *q=r; //wskaŸnik roboczy, przekazywany przez referencjê
- sTracks->rTypes[TP_TRACK]->ListGet(sTracks->rRecords,q); //drzewo jest ju¿ posortowane - zamieniæ je na listê
- for (;r<q;++r) //wyœwietlenie listy nazw
-  WriteLog(sTracks->rRecords[*r].cName);
- delete[] r;
-*/
  sTracks->Sort(TP_TRACK); //finalne sortowanie drzewa torów
  sTracks->Sort(0); //finalne sortowanie drzewa eventów
  if (!bInitDone) FirstInit(); //jeœli nie by³o w scenerii
@@ -2471,182 +2438,195 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
 }
 
 bool __fastcall TGround::InitEvents()
-{
-    TGroundNode* tmp;
-    char buff[255];
-    int i;
-    for (TEvent *Current=RootEvent; Current!=NULL; Current= Current->Next2)
-    {
-        switch (Current->Type)
-        {
-            case tp_AddValues:
-            case tp_UpdateValues:
-                tmp= FindGroundNode(Current->asNodeName,TP_MEMCELL);
-
-                if (tmp)
-                 {
-//McZapkie-100302
-                    Current->Params[8].asGroundNode= tmp;
-                    Current->Params[9].asMemCell= tmp->MemCell;
-                    if (tmp->MemCell->asTrackName!=AnsiString("none"))
-                     {
-                      tmp=FindGroundNode(tmp->MemCell->asTrackName,TP_TRACK);
-                      if (tmp!=NULL)
-                       {
-                        Current->Params[10].asTrack= tmp->pTrack;
-                       }
-                      else
-                       Error("MemCell track not exist!");
-                     }
-                    else
-                     Current->Params[10].asTrack=NULL;
-                 }
-                else
-                    Error("Event \""+Current->asName+"\" cannot find memcell \""+
-                                     Current->asNodeName+"\"");
-            break;
-            case tp_GetValues:
-            case tp_WhoIs:
-            case tp_LogValues: //skojarzenie z memcell
-             tmp=FindGroundNode(Current->asNodeName,TP_MEMCELL);
-             if (tmp)
-             {
-              Current->Params[8].asGroundNode=tmp;
-              Current->Params[9].asMemCell=tmp->MemCell;
-              if (Current->Type==tp_GetValues) //jeœli odczyt komórki
-               if (tmp->MemCell->IsVelocity()) //a komórka zawiera komendê SetVelocity albo ShuntVelocity
-                Current->bEnabled=false; //to event nie bêdzie dodawany do kolejki
-             }
-             else
-              Error("Event \""+Current->asName+"\" cannot find memcell \""+Current->asNodeName+"\"");
-            break;
-            case tp_CopyValues :
-             tmp=FindGroundNode(Current->asNodeName,TP_MEMCELL); //komórka docelowa
-             if (tmp)
-             {
-              Current->Params[8].asGroundNode=tmp;
-              Current->Params[9].asMemCell=tmp->MemCell;
-             }
-             else
-              Error("Event \""+Current->asName+"\" cannot find memcell \""+Current->asNodeName+"\"");
-            break;
-            case tp_Animation:
-             tmp=FindGroundNode(Current->asNodeName,TP_MODEL); //egzemplarza modelu do animowania
-             if (tmp)
-             {
-              strcpy(buff,Current->Params[9].asText); //skopiowanie nazwy submodelu do bufora roboczego
-              SafeDeleteArray(Current->Params[9].asText); //usuniêcie nazwy submodelu
-              Current->Params[9].asAnimContainer=tmp->Model->GetContainer(buff); //submodel
-              if (Current->Params[9].asAnimContainer)
-               Current->Params[9].asAnimContainer->WillBeAnimated(); //oflagowanie animacji
-             }
-             else
-              Error("Event \""+Current->asName+"\" cannot find model \""+Current->asNodeName+"\"");
-             Current->asNodeName="";
-            break;
-            case tp_Lights:
-             tmp=FindGroundNode(Current->asNodeName,TP_MODEL);
-             if (tmp)
-              Current->Params[9].asModel=tmp->Model;
-             else
-              Error("Event \""+Current->asName+"\" cannot find model \""+
-                               Current->asNodeName+"\"");
-             Current->asNodeName="";
-            break;
-            case tp_Visible:
-             tmp=FindGroundNode(Current->asNodeName,TP_MODEL); //najpierw model
-             if (!tmp) tmp=FindGroundNode(Current->asNodeName,TP_TRACTION); //mo¿e druty?
-             if (!tmp) tmp=FindGroundNode(Current->asNodeName,TP_TRACK); //albo tory?
-             if (tmp)
-              Current->Params[9].asGroundNode=tmp;
-             else
-              Error("Event \""+Current->asName+"\" cannot find model \""+
-                               Current->asNodeName+"\"");
-             Current->asNodeName="";
-            break;
-            case tp_Switch:
-                tmp= FindGroundNode(Current->asNodeName,TP_TRACK);
-                if (tmp)
-                    Current->Params[9].asTrack=tmp->pTrack;
-                else
-                    Error("Event \""+Current->asName+"\" cannot find track \""+
-                                     Current->asNodeName+"\"");
-                Current->asNodeName="";
-            break;
-            case tp_Sound :
-                tmp= FindGroundNode(Current->asNodeName,TP_SOUND);
-                if (tmp)
-                    Current->Params[9].asRealSound= tmp->pStaticSound;
-                else
-                    Error("Event \""+Current->asName+"\" cannot find static sound \""+
-                                     Current->asNodeName+"\"");
-                Current->asNodeName="";
-            break;
-            case tp_TrackVel :
-                if (Current->asNodeName!=AnsiString(""))
-                {
-                    tmp= FindGroundNode(Current->asNodeName,TP_TRACK);
-                    if (tmp)
-                        Current->Params[9].asTrack= tmp->pTrack;
-                    else
-                        Error("Event \""+Current->asName+"\" cannot find track \""+
-                                         Current->asNodeName+"\"");
-                }
-                Current->asNodeName= "";
-            break;
-            case tp_DynVel :
-                if (Current->asNodeName==AnsiString("activator"))
-                    Current->Params[9].asDynamic= NULL;
-                else
-                {
-                    tmp= FindGroundNode(Current->asNodeName,TP_DYNAMIC);
-                    if (tmp)
-                        Current->Params[9].asDynamic= tmp->DynamicObject;
-                    else
-                        Error("Event \""+Current->asName+"\" cannot find dynamic \""+
-                                         Current->asNodeName+"\"");
-                }
-                Current->asNodeName= "";
-            break;
-            case tp_Multiple:
-             if (Current->Params[9].asText!=NULL)
-             {
-              strcpy(buff,Current->Params[9].asText);
-              SafeDeleteArray(Current->Params[9].asText);
-              if (Current->Params[8].asInt&(conditional_trackoccupied|conditional_trackfree))
-              {//jeœli chodzi o zajetosc toru
-               tmp=FindGroundNode(buff,TP_TRACK);
-               if (tmp) Current->Params[9].asTrack=tmp->pTrack;
-               if (!Current->Params[9].asTrack)
-                Error(AnsiString("Track \"")+AnsiString(buff)+"\" does not exist in \""+Current->asName+"\"");
-              }
-              else if (Current->Params[8].asInt&(conditional_memstring|conditional_memval1|conditional_memval2))
-              {//jeœli chodzi o komorke pamieciow¹
-               tmp=FindGroundNode(buff,TP_MEMCELL);
-               if (tmp) Current->Params[9].asMemCell=tmp->MemCell;
-               if (!Current->Params[9].asMemCell)
-                Error(AnsiString("MemCell \"")+AnsiString(buff)+AnsiString("\" does not exist"));
-              }
-             }
-             for (i=0;i<8;i++)
-             {
-              if (Current->Params[i].asText!=NULL)
-              {
-               strcpy(buff,Current->Params[i].asText);
-               SafeDeleteArray(Current->Params[i].asText);
-               Current->Params[i].asEvent=FindEvent(buff);
-               if (!Current->Params[i].asEvent) //Ra: tylko w logu informacja o braku
-                if (AnsiString(Current->Params[i].asText).SubString(1,5)!="none_")
-                {WriteLog(AnsiString("Event \"")+AnsiString(buff)+AnsiString("\" does not exist"));
-                 ErrorLog("Missed event: "+AnsiString(buff)+" in multiple "+Current->asName);
-                }
-              }
-             }
-            break;
-        }
-        if (Current->fDelay<0)
-            AddToQuery(Current,NULL);
+{//³¹czenie eventów z pozosta³ymi obiektami
+ TGroundNode* tmp;
+ char buff[255];
+ int i;
+ for (TEvent *Current=RootEvent;Current;Current=Current->Next2)
+ {
+  switch (Current->Type)
+  {
+   case tp_AddValues: //sumowanie wartoœci
+   case tp_UpdateValues: //zmiana wartoœci
+    tmp=FindGroundNode(Current->asNodeName,TP_MEMCELL);
+    if (tmp)
+    {//McZapkie-100302
+     if (Current->iFlags&(conditional_trackoccupied|conditional_trackfree))
+     {//jeœli chodzi o zajetosc toru (tor mo¿e byæ inny, ni¿ wpisany w komórce)
+      tmp=FindGroundNode(Current->asNodeName,TP_TRACK); //nazwa ta sama, co nazwa komórki
+      if (tmp) Current->Params[9].asTrack=tmp->pTrack;
+      if (!Current->Params[9].asTrack)
+       Error(AnsiString("Track \"")+AnsiString(buff)+"\" does not exist in \""+Current->asName+"\"");
+     }
+     Current->Params[4].asGroundNode=tmp;
+     Current->Params[5].asMemCell=tmp->MemCell; //komórka do aktualizacji
+     if (Current->iFlags&(conditional_memcompare))
+      Current->Params[9].asMemCell=tmp->MemCell; //komórka do badania warunku
+     if (tmp->MemCell->asTrackName!="none")
+     {//tu potrzebujemy wskaŸnik do komórki w (tmp)
+      tmp=FindGroundNode(tmp->MemCell->asTrackName,TP_TRACK);
+      if (tmp)
+       Current->Params[6].asTrack=tmp->pTrack;
+      else
+       Error("MemCell track not exist!");
+     }
+     else
+      Current->Params[6].asTrack=NULL;
     }
+    else
+     Error("Event \""+Current->asName+"\" cannot find memcell \""+Current->asNodeName+"\"");
+   break;
+   case tp_LogValues: //skojarzenie z memcell
+    if (Current->asNodeName.IsEmpty())
+    {//brak skojarzenia daje logowanie wszystkich 
+     Current->Params[9].asMemCell=NULL;
+     break;
+    }
+   case tp_GetValues:
+   case tp_WhoIs:
+    tmp=FindGroundNode(Current->asNodeName,TP_MEMCELL);
+    if (tmp)
+    {
+     Current->Params[8].asGroundNode=tmp;
+     Current->Params[9].asMemCell=tmp->MemCell;
+     if (Current->Type==tp_GetValues) //jeœli odczyt komórki
+      if (tmp->MemCell->IsVelocity()) //a komórka zawiera komendê SetVelocity albo ShuntVelocity
+       Current->bEnabled=false; //to event nie bêdzie dodawany do kolejki
+    }
+    else
+     Error("Event \""+Current->asName+"\" cannot find memcell \""+Current->asNodeName+"\"");
+   break;
+   case tp_CopyValues: //skopiowanie komórki do innej
+    tmp=FindGroundNode(Current->asNodeName,TP_MEMCELL); //komórka docelowa
+    if (tmp)
+    {
+     Current->Params[4].asGroundNode=tmp;
+     Current->Params[5].asMemCell=tmp->MemCell; //komórka docelowa
+    }
+    else
+     Error("Event \""+Current->asName+"\" cannot find memcell \""+Current->asNodeName+"\"");
+    strcpy(buff,Current->Params[9].asText); //skopiowanie nazwy drugiej komórki do bufora roboczego
+    SafeDeleteArray(Current->Params[9].asText); //usuniêcie nazwy komórki 
+    tmp=FindGroundNode(buff,TP_MEMCELL); //komórka Ÿód³owa
+    if (tmp)
+    {
+     Current->Params[8].asGroundNode=tmp;
+     Current->Params[9].asMemCell=tmp->MemCell; //komórka Ÿród³owa
+    }
+    else
+     Error("Event \""+Current->asName+"\" cannot find memcell \""+AnsiString(buff)+"\"");
+   break;
+   case tp_Animation: //animacja modelu
+    tmp=FindGroundNode(Current->asNodeName,TP_MODEL); //egzemplarza modelu do animowania
+    if (tmp)
+    {
+     strcpy(buff,Current->Params[9].asText); //skopiowanie nazwy submodelu do bufora roboczego
+     SafeDeleteArray(Current->Params[9].asText); //usuniêcie nazwy submodelu
+     Current->Params[9].asAnimContainer=tmp->Model->GetContainer(buff); //submodel
+     if (Current->Params[9].asAnimContainer)
+      Current->Params[9].asAnimContainer->WillBeAnimated(); //oflagowanie animacji
+    }
+    else
+     Error("Event \""+Current->asName+"\" cannot find model \""+Current->asNodeName+"\"");
+    Current->asNodeName="";
+   break;
+   case tp_Lights: //zmiana œwiete³ modelu
+    tmp=FindGroundNode(Current->asNodeName,TP_MODEL);
+    if (tmp)
+     Current->Params[9].asModel=tmp->Model;
+    else
+     Error("Event \""+Current->asName+"\" cannot find model \""+Current->asNodeName+"\"");
+    Current->asNodeName="";
+   break;
+   case tp_Visible: //ukrycie albo przywrócenie obiektu
+    tmp=FindGroundNode(Current->asNodeName,TP_MODEL); //najpierw model
+    if (!tmp) tmp=FindGroundNode(Current->asNodeName,TP_TRACTION); //mo¿e druty?
+    if (!tmp) tmp=FindGroundNode(Current->asNodeName,TP_TRACK); //albo tory?
+    if (tmp)
+     Current->Params[9].asGroundNode=tmp;
+    else
+     Error("Event \""+Current->asName+"\" cannot find model \""+Current->asNodeName+"\"");
+    Current->asNodeName="";
+   break;
+   case tp_Switch: //peze³o¿enie zwrotnicy albo zmiana stanu obrotnicy
+    tmp=FindGroundNode(Current->asNodeName,TP_TRACK);
+    if (tmp)
+     Current->Params[9].asTrack=tmp->pTrack;
+    else
+     Error("Event \""+Current->asName+"\" cannot find track \""+Current->asNodeName+"\"");
+    Current->asNodeName="";
+   break;
+   case tp_Sound: //odtworzenie dŸwiêku
+    tmp= FindGroundNode(Current->asNodeName,TP_SOUND);
+    if (tmp)
+     Current->Params[9].asRealSound=tmp->pStaticSound;
+    else
+     Error("Event \""+Current->asName+"\" cannot find static sound \""+Current->asNodeName+"\"");
+    Current->asNodeName="";
+   break;
+   case tp_TrackVel: //ustawienie prêdkoœci na torze
+    if (!Current->asNodeName.IsEmpty())
+    {
+     tmp=FindGroundNode(Current->asNodeName,TP_TRACK);
+     if (tmp)
+      Current->Params[9].asTrack=tmp->pTrack;
+     else
+      Error("Event \""+Current->asName+"\" cannot find track \""+Current->asNodeName+"\"");
+    }
+    Current->asNodeName= "";
+   break;
+   case tp_DynVel: //komunikacja z pojazdem o konkretnej nazwie
+    if (Current->asNodeName=="activator")
+     Current->Params[9].asDynamic=NULL;
+    else
+    {
+     tmp=FindGroundNode(Current->asNodeName,TP_DYNAMIC);
+     if (tmp)
+      Current->Params[9].asDynamic= tmp->DynamicObject;
+     else
+      Error("Event \""+Current->asName+"\" cannot find dynamic \""+Current->asNodeName+"\"");
+    }
+    Current->asNodeName= "";
+   break;
+   case tp_Multiple:
+    if (Current->Params[9].asText!=NULL)
+    {//powi¹zanie z komórk¹ pamiêci
+     strcpy(buff,Current->Params[9].asText);
+     SafeDeleteArray(Current->Params[9].asText);
+     if (Current->iFlags&(conditional_trackoccupied|conditional_trackfree))
+     {//jeœli chodzi o zajetosc toru
+      tmp=FindGroundNode(buff,TP_TRACK);
+      if (tmp) Current->Params[9].asTrack=tmp->pTrack;
+      if (!Current->Params[9].asTrack)
+       Error(AnsiString("Track \"")+AnsiString(buff)+"\" does not exist in \""+Current->asName+"\"");
+     }
+     else if (Current->iFlags&(conditional_memstring|conditional_memval1|conditional_memval2))
+     {//jeœli chodzi o komorke pamieciow¹
+      tmp=FindGroundNode(buff,TP_MEMCELL);
+      if (tmp) Current->Params[9].asMemCell=tmp->MemCell;
+      if (!Current->Params[9].asMemCell)
+       Error(AnsiString("MemCell \"")+AnsiString(buff)+AnsiString("\" does not exist in \""+Current->asName+"\""));
+     }
+    }
+    for (i=0;i<8;i++)
+    {
+     if (Current->Params[i].asText!=NULL)
+     {
+      strcpy(buff,Current->Params[i].asText);
+      SafeDeleteArray(Current->Params[i].asText);
+      Current->Params[i].asEvent=FindEvent(buff);
+      if (!Current->Params[i].asEvent) //Ra: tylko w logu informacja o braku
+       if (AnsiString(Current->Params[i].asText).SubString(1,5)!="none_")
+       {WriteLog(AnsiString("Event \"")+AnsiString(buff)+AnsiString("\" does not exist"));
+        ErrorLog("Missed event: "+AnsiString(buff)+" in multiple "+Current->asName);
+       }
+     }
+    }
+   break;
+  }
+  if (Current->fDelay<0)
+      AddToQuery(Current,NULL);
+ }
  for (TGroundNode *Current=nRootOfType[TP_MEMCELL];Current;Current=Current->Next)
  {//Ra: eventy komórek pamiêci, wykonywane po wys³aniu komendy do zatrzymanego pojazdu
   Current->MemCell->AssignEvents(FindEvent(Current->asName+":sent"));
@@ -2654,7 +2634,7 @@ bool __fastcall TGround::InitEvents()
  return true;
 }
 
-bool __fastcall TGround::InitTracks()
+void __fastcall TGround::InitTracks()
 {//³¹czenie torów ze sob¹ i z eventami
  TGroundNode *Current,*Model;
  TTrack *tmp; //znaleziony tor
@@ -2773,7 +2753,10 @@ bool __fastcall TGround::InitTracks()
     Track->iCategoryFlag|=0x100; //ustawienie flagi portalu
  }
  //WriteLog("Total "+AnsiString(tracks)+", far "+AnsiString(tracksfar));
- return true;
+}
+
+void __fastcall TGround::InitTraction()
+{//³¹czenie drutów ze sob¹ oraz z torami i eventami
 }
 
 void __fastcall TGround::TrackJoin(TGroundNode *Current)
@@ -2897,16 +2880,16 @@ TGroundNode* __fastcall TGround::GetNode( AnsiString asName )
 bool __fastcall TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
 {
  if (Event->bEnabled) //jeœli mo¿e byæ dodany do kolejki (nie u¿ywany w skanowaniu)
-  if (!Event->bLaunched)
-  {
-   WriteLog("EVENT ADDED TO QUEUE: "+Event->asName);
+  if (!Event->iQueued) //jeœli nie dodany jeszcze do kolejki
+  {//kolejka eventów jest posortowane wzglêdem (fStartTime)
+   WriteLog("EVENT ADDED TO QUEUE: "+Event->asName+(Node?AnsiString(" by "+Node->asName):AnsiString("")));
    Event->Activator=Node;
-   Event->fStartTime=fabs(Event->fDelay)+Timer::GetTime();
-   Event->bLaunched=true;
-   if (QueryRootEvent)
-    QueryRootEvent->AddToQuery(Event);
+   Event->fStartTime=fabs(Event->fDelay)+Timer::GetTime(); //czas od uruchomienia scenerii
+   ++Event->iQueued; //zabezpieczenie przed podwójnym dodaniem do kolejki
+   if (QueryRootEvent?Event->fStartTime>=QueryRootEvent->fStartTime:false)
+    QueryRootEvent->AddToQuery(Event); //dodanie gdzieœ w œrodku
    else
-   {
+   {//dodanie z przodu: albo nic nie ma, albo ma byæ wykonany szybciej ni¿ pierwszy
     Event->Next=QueryRootEvent;
     QueryRootEvent=Event;
    }
@@ -2914,245 +2897,331 @@ bool __fastcall TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
  return true;
 }
 
+bool __fastcall TGround::EventConditon(TEvent *e)
+{//sprawdzenie spelnienia warunków dla eventu
+ if (e->iFlags<=update_only) return true; //bezwarunkowo
+ if (e->iFlags&conditional_trackoccupied)
+  return (!e->Params[9].asTrack->IsEmpty());
+ else if (e->iFlags&conditional_trackfree)
+  return (e->Params[9].asTrack->IsEmpty());
+ else if (e->iFlags&conditional_propability)
+ {
+  double rprobability=1.0*rand()/RAND_MAX;
+  WriteLog("Random integer: "+CurrToStr(rprobability)+"/"+CurrToStr(e->Params[10].asdouble));
+  return (e->Params[10].asdouble>rprobability);
+ }
+ else if (e->iFlags&conditional_memcompare)
+ {//porównanie wartoœci
+  if (tmpEvent->Params[9].asMemCell->Compare(e->Params[10].asText,e->Params[11].asdouble,e->Params[12].asdouble,e->iFlags))
+   return true;
+  else if (Global::iWriteLogEnabled && DebugModeFlag)
+  {//nie zgadza siê wiêc sprawdzmy, co
+   LogComment=e->Params[9].asMemCell->Text()+AnsiString(" ")+FloatToStrF(e->Params[9].asMemCell->Value1(),ffFixed,8,2)+" "+FloatToStrF(tmpEvent->Params[9].asMemCell->Value2(),ffFixed,8,2)+" != ";
+   if (TestFlag(e->iFlags,conditional_memstring))
+    LogComment+=AnsiString(tmpEvent->Params[10].asText);
+   else
+    LogComment+="*";
+   if (TestFlag(tmpEvent->iFlags,conditional_memval1))
+    LogComment+=" "+FloatToStrF(tmpEvent->Params[11].asdouble,ffFixed,8,2);
+   else
+    LogComment+=" *";
+   if (TestFlag(tmpEvent->iFlags,conditional_memval2))
+    LogComment+=" "+FloatToStrF(tmpEvent->Params[12].asdouble,ffFixed,8,2);
+   else
+    LogComment+=" *";
+   WriteLog(LogComment.c_str());
+  }
+ }
+ return false;
+};
+
 bool __fastcall TGround::CheckQuery()
-{
-    TLocation loc;
-    int i;
-	double rprobability;
-    Double evtime, evlowesttime;
-    evlowesttime= 1000000;
-if (QueryRootEvent)
-   {
-   OldQRE= QueryRootEvent;
-   tmpEvent= QueryRootEvent;
-   }
-if (QueryRootEvent)
-{
- for (i=0; i<90; i++)
+{//sprawdzenie kolejki eventów oraz wykonanie tych, którym czas min¹³
+ TLocation loc;
+ int i;
+/* //Ra: to w ogóle jakiœ chory kod jest
+ Double evtime,evlowesttime; //Ra: co to za typ?
+ //evlowesttime=1000000;
+ if (QueryRootEvent)
  {
-  evtime = ((tmpEvent->fStartTime)-(Timer::GetTime()));
-  if (evtime<evlowesttime)
-   {
-   evlowesttime= evtime;
-   tmp2Event= tmpEvent;
-   }
-  if (tmpEvent->Next)
-   tmpEvent = tmpEvent->Next;
-  else
-   i=100;
+  OldQRE=QueryRootEvent;
+  tmpEvent=QueryRootEvent;
  }
-
- if (OldQRE!=tmp2Event)
+ if (QueryRootEvent)
  {
- QueryRootEvent->AddToQuery(QueryRootEvent);
- QueryRootEvent= tmp2Event;
+  for (i=0;i<90;++i)
+  {
+   evtime=((tmpEvent->fStartTime)-(Timer::GetTime())); //pobranie wartoœci zmiennej
+   if (evtime<evlowesttime)
+   {
+    evlowesttime=evtime;
+    tmp2Event=tmpEvent;
+   }
+   if (tmpEvent->Next)
+    tmpEvent=tmpEvent->Next;
+   else
+    i=100;
+  }
+  if (OldQRE!=tmp2Event)
+  {
+   QueryRootEvent->AddToQuery(QueryRootEvent);
+   QueryRootEvent=tmp2Event;
+  }
  }
-}
-    while (QueryRootEvent && QueryRootEvent->fStartTime<Timer::GetTime())
-    {
-
-        if (QueryRootEvent->bEnabled)
-        {
-        WriteLog("EVENT LAUNCHED: "+QueryRootEvent->asName);
-        switch (QueryRootEvent->Type)
-        {
-         case tp_CopyValues: //pobranie wartoœci z innej komórki
-/*
-          QueryRootEvent->Params[0].asText=QueryRootEvent->Params[9].asMemCell->U
-          QueryRootEvent->Params[1].asdouble=
-          QueryRootEvent->Params[2].asdouble=
-          QueryRootEvent->Params[12].asInt=conditional_memstring|conditional_memval1|conditional_memval2; //wszystko
 */
-         case tp_AddValues: //ró¿ni siê jedn¹ flag¹ od UpdateValues
-         case tp_UpdateValues:
-          QueryRootEvent->Params[9].asMemCell->UpdateValues(QueryRootEvent->Params[0].asText,QueryRootEvent->Params[1].asdouble,QueryRootEvent->Params[2].asdouble,QueryRootEvent->Params[12].asInt);
-//McZapkie-100302 - updatevalues oprocz zmiany wartosci robi putcommand dla wszystkich 'dynamic' na danym torze
-          if (QueryRootEvent->Params[10].asTrack)
-          {
-           //loc.X= -QueryRootEvent->Params[8].asGroundNode->pCenter.x;
-           //loc.Y=  QueryRootEvent->Params[8].asGroundNode->pCenter.z;
-           //loc.Z=  QueryRootEvent->Params[8].asGroundNode->pCenter.y;
-           for (int i=0;i<QueryRootEvent->Params[10].asTrack->iNumDynamics;++i)
-           {
-            //QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Params[10].asTrack->Dynamics[i]->Mechanik,loc);
-            QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Params[10].asTrack->Dynamics[i]->Mechanik,&QueryRootEvent->Params[8].asGroundNode->pCenter);
+/*
+ if (QueryRootEvent)
+ {//wypisanie kolejki
+  tmpEvent=QueryRootEvent;
+  WriteLog("--> Event queue:");
+  while (tmpEvent)
+  {
+   WriteLog(tmpEvent->asName+" "+AnsiString(tmpEvent->fStartTime));
+   tmpEvent=tmpEvent->Next;
+  }
+ }
+*/
+ while (QueryRootEvent&&(QueryRootEvent->fStartTime<Timer::GetTime()))
+ {//eventy s¹ posortowane wg czasu wykonania
+  tmpEvent=QueryRootEvent; //wyjêcie eventu z kolejki
+  if (QueryRootEvent->eJoined) //jeœli jest kolejny o takiej samej nazwie
+  {//to teraz on bêdzie nastêpny do wykonania
+   QueryRootEvent=QueryRootEvent->eJoined; //nastêpny bêdzie ten doczepiony
+   QueryRootEvent->Next=tmpEvent->Next; //pamiêtaj¹c o nastêpnym z kolejki
+   QueryRootEvent->fStartTime=tmpEvent->fStartTime; //czas musi byæ ten sam, bo nie jest aktualizowany
+   QueryRootEvent->Activator=tmpEvent->Activator; //pojazd aktywuj¹cy
+  }
+  else //a jak nazwa jest unikalna, to kolejka idzie dalej
+   QueryRootEvent=QueryRootEvent->Next; //NULL w skrajnym przypadku
+  if (tmpEvent->bEnabled)
+  {
+   WriteLog("EVENT LAUNCHED: "+tmpEvent->asName+(tmpEvent->Activator?AnsiString(" by "+tmpEvent->Activator->asName):AnsiString("")));
+   switch (tmpEvent->Type)
+   {
+    case tp_CopyValues: //skopiowanie wartoœci z innej komórki
+     tmpEvent->Params[5].asMemCell->UpdateValues
+     (tmpEvent->Params[9].asMemCell->Text(),
+      tmpEvent->Params[9].asMemCell->Value1(),
+      tmpEvent->Params[9].asMemCell->Value2(),
+      tmpEvent->iFlags
+     );
+    break;
+    case tp_AddValues: //ró¿ni siê jedn¹ flag¹ od UpdateValues
+    case tp_UpdateValues:
+     if (EventConditon(tmpEvent))
+     {//teraz mog¹ byæ warunki do tych eventów
+      tmpEvent->Params[5].asMemCell->UpdateValues(tmpEvent->Params[0].asText,tmpEvent->Params[1].asdouble,tmpEvent->Params[2].asdouble,tmpEvent->iFlags);
+      //McZapkie-100302 - updatevalues oprocz zmiany wartosci robi putcommand dla wszystkich 'dynamic' na danym torze
+      if (tmpEvent->Params[6].asTrack)
+      {
+       //loc.X= -tmpEvent->Params[8].asGroundNode->pCenter.x;
+       //loc.Y=  tmpEvent->Params[8].asGroundNode->pCenter.z;
+       //loc.Z=  tmpEvent->Params[8].asGroundNode->pCenter.y;
+       for (int i=0;i<tmpEvent->Params[6].asTrack->iNumDynamics;++i)
+       {
+        //tmpEvent->Params[9].asMemCell->PutCommand(tmpEvent->Params[10].asTrack->Dynamics[i]->Mechanik,loc);
+        tmpEvent->Params[5].asMemCell->PutCommand(tmpEvent->Params[6].asTrack->Dynamics[i]->Mechanik,&tmpEvent->Params[4].asGroundNode->pCenter);
+       }
+       if (DebugModeFlag)
+        WriteLog("Type: UpdateValues & Track command - "+AnsiString(tmpEvent->Params[0].asText)+" "+AnsiString(tmpEvent->Params[1].asdouble)+" "+AnsiString(tmpEvent->Params[2].asdouble));
+      }
+      else
+       if (DebugModeFlag)
+        WriteLog("Type: UpdateValues - "+AnsiString(tmpEvent->Params[0].asText)+" "+AnsiString(tmpEvent->Params[1].asdouble)+" "+AnsiString(tmpEvent->Params[2].asdouble));
+     }
+    break;
+    case tp_GetValues:
+     if (tmpEvent->Activator)
+     {
+      //loc.X= -tmpEvent->Params[8].asGroundNode->pCenter.x;
+      //loc.Y=  tmpEvent->Params[8].asGroundNode->pCenter.z;
+      //loc.Z=  tmpEvent->Params[8].asGroundNode->pCenter.y;
+      if (Global::iMultiplayer) //potwierdzenie wykonania dla serwera - najczêœciej odczyt semafora
+       WyslijEvent(tmpEvent->asName,tmpEvent->Activator->GetName());
+      //tmpEvent->Params[9].asMemCell->PutCommand(tmpEvent->Activator->Mechanik,loc);
+      tmpEvent->Params[9].asMemCell->PutCommand(tmpEvent->Activator->Mechanik,&tmpEvent->Params[8].asGroundNode->pCenter);
+     }
+     WriteLog("Type: GetValues");
+    break;
+    case tp_PutValues:
+     if (tmpEvent->Activator)
+     {
+      loc.X=-tmpEvent->Params[3].asdouble; //zamiana, bo fizyka ma inaczej ni¿ sceneria
+      loc.Y= tmpEvent->Params[5].asdouble;
+      loc.Z= tmpEvent->Params[4].asdouble;
+      if (tmpEvent->Activator->Mechanik) //przekazanie rozkazu do AI
+       tmpEvent->Activator->Mechanik->PutCommand(tmpEvent->Params[0].asText,tmpEvent->Params[1].asdouble,tmpEvent->Params[2].asdouble,loc);
+      else
+      {//przekazanie do pojazdu
+       tmpEvent->Activator->MoverParameters->PutCommand(tmpEvent->Params[0].asText,tmpEvent->Params[1].asdouble,tmpEvent->Params[2].asdouble,loc);
+      }
+     }
+     WriteLog("Type: PutValues");
+    break;
+    case tp_Lights:
+     if (tmpEvent->Params[9].asModel)
+      for (i=0; i<iMaxNumLights; i++)
+       if (tmpEvent->Params[i].asInt>=0) //-1 zostawia bez zmiany
+        tmpEvent->Params[9].asModel->lsLights[i]=(TLightState)tmpEvent->Params[i].asInt;
+    break;
+    case tp_Visible:
+     if (tmpEvent->Params[9].asGroundNode)
+      tmpEvent->Params[9].asGroundNode->bVisible=(tmpEvent->Params[i].asInt>0);
+    break;
+    case tp_Velocity :
+     Error("Not implemented yet :(");
+    break;
+    case tp_Exit :
+     MessageBox(0,tmpEvent->asNodeName.c_str()," THE END ",MB_OK);
+     Global::iTextMode=-1; //wy³¹czenie takie samo jak sekwencja F10 -> Y
+     return false;
+    case tp_Sound :
+     if (tmpEvent->Params[0].asInt==0)
+      tmpEvent->Params[9].asRealSound->Stop();
+     if (tmpEvent->Params[0].asInt==1)
+      tmpEvent->Params[9].asRealSound->Play(1,0,true,tmpEvent->Params[9].asRealSound->vSoundPosition);
+     if (tmpEvent->Params[0].asInt==-1)
+      tmpEvent->Params[9].asRealSound->Play(1,DSBPLAY_LOOPING,true,tmpEvent->Params[9].asRealSound->vSoundPosition);
+    break;
+    case tp_Disable :
+     Error("Not implemented yet :(");
+    break;
+    case tp_Animation : //Marcin: dorobic translacje - Ra: dorobi³em ;-)
+     if (tmpEvent->Params[0].asInt==1)
+      tmpEvent->Params[9].asAnimContainer->SetRotateAnim(
+       vector3(tmpEvent->Params[1].asdouble,
+               tmpEvent->Params[2].asdouble,
+               tmpEvent->Params[3].asdouble),
+               tmpEvent->Params[4].asdouble);
+     else if (tmpEvent->Params[0].asInt==2)
+      tmpEvent->Params[9].asAnimContainer->SetTranslateAnim(
+       vector3(tmpEvent->Params[1].asdouble,
+               tmpEvent->Params[2].asdouble,
+               tmpEvent->Params[3].asdouble),
+               tmpEvent->Params[4].asdouble);
+    break;
+    case tp_Switch :
+     if (tmpEvent->Params[9].asTrack)
+      tmpEvent->Params[9].asTrack->Switch(tmpEvent->Params[0].asInt);
+     if (Global::iMultiplayer) //dajemy znaæ do serwera o prze³o¿eniu
+      WyslijEvent(tmpEvent->asName,""); //wys³anie nazwy eventu prze³¹czajacego
+     //Ra: bardziej by siê przyda³a nazwa toru, ale nie ma do niej st¹d dostêpu
+    break;
+    case tp_TrackVel:
+     if (tmpEvent->Params[9].asTrack)
+     {
+      WriteLog("type: TrackVel");
+      //WriteLog("Vel: ",tmpEvent->Params[0].asdouble);
+      tmpEvent->Params[9].asTrack->VelocitySet(tmpEvent->Params[0].asdouble);
+      if (DebugModeFlag)
+       WriteLog("vel: ",tmpEvent->Params[9].asTrack->VelocityGet());
+     }
+    break;
+    case tp_DynVel:
+     Error("Event \"DynVel\" is obsolete");
+    break;
+    case tp_Multiple:
+    {
+     bCondition=EventConditon(tmpEvent);
+     if (bCondition||(tmpEvent->iFlags&conditional_anyelse)) //warunek spelniony albo by³o u¿yte else
+     {
+      WriteLog("Multiple passed");
+      for (i=0;i<8;++i)
+      {//dodawane do kolejki w kolejnoœci zapisania
+       if (tmpEvent->Params[i].asEvent)
+        if (bCondition!=bool(tmpEvent->iFlags&(conditional_else<<i)))
+        {
+         if (tmpEvent->Params[i].asEvent!=tmpEvent)
+          AddToQuery(tmpEvent->Params[i].asEvent,tmpEvent->Activator); //normalnie dodaæ
+         else //jeœli ma byæ rekurencja
+          if (tmpEvent->fDelay>=5.0) //to musi mieæ sensowny okres powtarzania
+           if (tmpEvent->iQueued<2)
+           {//trzeba zrobiæ wyj¹tek, aby event móg³ siê sam dodaæ do kolejki, raz ju¿ jest, ale bêdzie usuniêty
+            //pêtla eventowa mo¿e byæ uruchomiona wiele razy, ale tylko pierwsze uruchomienie zadzia³a
+            tmpEvent->iQueued=0; //tymczasowo, aby by³ ponownie dodany do kolejki
+            AddToQuery(tmpEvent,tmpEvent->Activator);
+            tmpEvent->iQueued=2; //kolejny raz ju¿ absolutnie nie dodawaæ
            }
-           if (DebugModeFlag)
-            WriteLog("Type: UpdateValues & Track command - "+AnsiString(QueryRootEvent->Params[0].asText)+" "+AnsiString(QueryRootEvent->Params[1].asdouble)+" "+AnsiString(QueryRootEvent->Params[2].asdouble));
-          }
-          else
-           if (DebugModeFlag)
-            WriteLog("Type: UpdateValues - "+AnsiString(QueryRootEvent->Params[0].asText)+" "+AnsiString(QueryRootEvent->Params[1].asdouble)+" "+AnsiString(QueryRootEvent->Params[2].asdouble));
-         break;
-         case tp_GetValues:
-          if (QueryRootEvent->Activator)
-          {
-           //loc.X= -QueryRootEvent->Params[8].asGroundNode->pCenter.x;
-           //loc.Y=  QueryRootEvent->Params[8].asGroundNode->pCenter.z;
-           //loc.Z=  QueryRootEvent->Params[8].asGroundNode->pCenter.y;
-           if (Global::iMultiplayer) //potwierdzenie wykonania dla serwera - najczêœciej odczyt semafora
-            WyslijEvent(QueryRootEvent->asName,QueryRootEvent->Activator->GetName());
-            //QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Activator->Mechanik,loc);
-           QueryRootEvent->Params[9].asMemCell->PutCommand(QueryRootEvent->Activator->Mechanik,&QueryRootEvent->Params[8].asGroundNode->pCenter);
-          }
-          WriteLog("Type: GetValues");
-         break;
-         case tp_PutValues:
-          if (QueryRootEvent->Activator)
-          {
-           loc.X=-QueryRootEvent->Params[3].asdouble; //zamiana, bo fizyka ma inaczej ni¿ sceneria
-           loc.Y= QueryRootEvent->Params[5].asdouble;
-           loc.Z= QueryRootEvent->Params[4].asdouble;
-           if (QueryRootEvent->Activator->Mechanik) //przekazanie rozkazu do AI
-            QueryRootEvent->Activator->Mechanik->PutCommand(QueryRootEvent->Params[0].asText,QueryRootEvent->Params[1].asdouble,QueryRootEvent->Params[2].asdouble,loc);
-           else
-           {//przekazanie do pojazdu
-            QueryRootEvent->Activator->MoverParameters->PutCommand(QueryRootEvent->Params[0].asText,QueryRootEvent->Params[1].asdouble,QueryRootEvent->Params[2].asdouble,loc);
-           }
-          }
-          WriteLog("Type: PutValues");
-         break;
-         case tp_Lights:
-          if (QueryRootEvent->Params[9].asModel)
-           for (i=0; i<iMaxNumLights; i++)
-            if (QueryRootEvent->Params[i].asInt>=0) //-1 zostawia bez zmiany
-             QueryRootEvent->Params[9].asModel->lsLights[i]=(TLightState)QueryRootEvent->Params[i].asInt;
-         break;
-         case tp_Visible:
-          if (QueryRootEvent->Params[9].asGroundNode)
-           QueryRootEvent->Params[9].asGroundNode->bVisible=(QueryRootEvent->Params[i].asInt>0);
-         break;
-         case tp_Velocity :
-             Error("Not implemented yet :(");
-         break;
-         case tp_Exit :
-             MessageBox(0,QueryRootEvent->asNodeName.c_str()," THE END ",MB_OK);
-             Global::iTextMode=-1; //wy³¹czenie takie samo jak sekwencja F10 -> Y
-             return false;
-         case tp_Sound :
-          if (QueryRootEvent->Params[0].asInt==0)
-            QueryRootEvent->Params[9].asRealSound->Stop();
-          if (QueryRootEvent->Params[0].asInt==1)
-            QueryRootEvent->Params[9].asRealSound->Play(1,0,true,QueryRootEvent->Params[9].asRealSound->vSoundPosition);
-          if (QueryRootEvent->Params[0].asInt==-1)
-            QueryRootEvent->Params[9].asRealSound->Play(1,DSBPLAY_LOOPING,true,QueryRootEvent->Params[9].asRealSound->vSoundPosition);
-         break;
-         case tp_Disable :
-             Error("Not implemented yet :(");
-         break;
-         case tp_Animation : //Marcin: dorobic translacje - Ra: dorobi³em ;-)
-          if (QueryRootEvent->Params[0].asInt==1)
-            QueryRootEvent->Params[9].asAnimContainer->SetRotateAnim(
-                 vector3(QueryRootEvent->Params[1].asdouble,
-                         QueryRootEvent->Params[2].asdouble,
-                         QueryRootEvent->Params[3].asdouble),
-                         QueryRootEvent->Params[4].asdouble);
-          else if (QueryRootEvent->Params[0].asInt==2)
-            QueryRootEvent->Params[9].asAnimContainer->SetTranslateAnim(
-                 vector3(QueryRootEvent->Params[1].asdouble,
-                         QueryRootEvent->Params[2].asdouble,
-                         QueryRootEvent->Params[3].asdouble),
-                         QueryRootEvent->Params[4].asdouble);
-         break;
-         case tp_Switch :
-          if (QueryRootEvent->Params[9].asTrack)
-           QueryRootEvent->Params[9].asTrack->Switch(QueryRootEvent->Params[0].asInt);
-          if (Global::iMultiplayer) //dajemy znaæ do serwera o prze³o¿eniu
-           WyslijEvent(QueryRootEvent->asName,""); //wys³anie nazwy eventu prze³¹czajacego
-          //Ra: bardziej by siê przyda³a nazwa toru, ale nie ma do niej st¹d dostêpu
-         break;
-         case tp_TrackVel :
-          if (QueryRootEvent->Params[9].asTrack)
-          {
-           WriteLog("type: TrackVel");
-//         WriteLog("Vel: ",QueryRootEvent->Params[0].asdouble);
-           QueryRootEvent->Params[9].asTrack->VelocitySet(QueryRootEvent->Params[0].asdouble);
-           if (DebugModeFlag)
-            WriteLog("vel: ",QueryRootEvent->Params[9].asTrack->VelocityGet());
-          }
-         break;
-         case tp_DynVel :
-          Error("Event \"DynVel\" is obsolete");
-         break;
-         case tp_Multiple :
-            {
-             bCondition=(QueryRootEvent->Params[8].asInt==0);  //bezwarunkowo
-             if (!bCondition)                                  //warunkowo
-              {
-               if (QueryRootEvent->Params[8].asInt==conditional_trackoccupied)
-                bCondition=(!QueryRootEvent->Params[9].asTrack->IsEmpty());
-               else
-               if (QueryRootEvent->Params[8].asInt==conditional_trackfree)
-                bCondition=(QueryRootEvent->Params[9].asTrack->IsEmpty());
-               else if (QueryRootEvent->Params[8].asInt==conditional_propability)
-               {
-                rprobability=1.0*rand()/RAND_MAX;
-                bCondition=(QueryRootEvent->Params[10].asdouble>rprobability);
-                WriteLog("Random integer: "+CurrToStr(rprobability)+"/"+CurrToStr(QueryRootEvent->Params[10].asdouble));
-               }
-               else
-               {
-                bCondition=
-                QueryRootEvent->Params[9].asMemCell->Compare(QueryRootEvent->Params[10].asText,
-                                                             QueryRootEvent->Params[11].asdouble,
-                                                             QueryRootEvent->Params[12].asdouble,
-                                                             QueryRootEvent->Params[8].asInt);
-                if (!bCondition && Global::iWriteLogEnabled && DebugModeFlag) //nie zgadza sie wiec sprawdzmy co
-                  {
-                    LogComment="";
-                    if (TestFlag(QueryRootEvent->Params[8].asInt,conditional_memstring))
-                     LogComment=AnsiString(QueryRootEvent->Params[10].asText)+"="+QueryRootEvent->Params[9].asMemCell->Text();
-                    if (TestFlag(QueryRootEvent->Params[8].asInt,conditional_memval1))
-                     LogComment+=" v1:"+FloatToStrF(QueryRootEvent->Params[11].asdouble,ffFixed,8,2)+"="+FloatToStrF(QueryRootEvent->Params[9].asMemCell->Value1(),ffFixed,8,2);
-                    if (TestFlag(QueryRootEvent->Params[8].asInt,conditional_memval2))
-                     LogComment+=" v2:"+FloatToStrF(QueryRootEvent->Params[12].asdouble,ffFixed,8,2)+"="+FloatToStrF(QueryRootEvent->Params[9].asMemCell->Value2(),ffFixed,8,2);
-                    WriteLog(LogComment.c_str());
-                  }
-                }
-              }
-             if (bCondition)                                  //warunek spelniony
-             {
-              WriteLog("Multiple passed");
-              for (i=0; i<8; i++)
-              {
-               if (QueryRootEvent->Params[i].asEvent)
-                AddToQuery(QueryRootEvent->Params[i].asEvent,QueryRootEvent->Activator);
-              }
-              if (Global::iMultiplayer) //dajemy znaæ do serwera o wykonaniu
-              {
-               if (QueryRootEvent->Activator)
-                WyslijEvent(QueryRootEvent->asName,QueryRootEvent->Activator->GetName());
-               else
-                WyslijEvent(QueryRootEvent->asName,"");
-              }
-             }
-            }
-         break;
-         case tp_WhoIs: //pobranie nazwy poci¹gu do komórki pamiêci
-          if (QueryRootEvent->Activator->Mechanik)
-          {//tylko jeœli ktoœ tam siedzi - nie powinno dotyczyæ pasa¿era!
-           QueryRootEvent->Params[9].asMemCell->UpdateValues(
-            QueryRootEvent->Activator->Mechanik->TrainName().c_str(),
-            QueryRootEvent->Activator->Mechanik->StationCount(),
-            QueryRootEvent->Activator->Mechanik->StationIndex(),
-            conditional_memstring|conditional_memval1|conditional_memval2);
-           WriteLog("Train detected: "+QueryRootEvent->Activator->Mechanik->TrainName());
-          }
-         break;
-         case tp_LogValues: //zapisanie zawartoœci komórki pamiêci do logu
-          WriteLog("Memcell \""+QueryRootEvent->asNodeName+"\": "+
-           QueryRootEvent->Params[9].asMemCell->Text()+", "+
-           QueryRootEvent->Params[9].asMemCell->Value1()+", "+
-           QueryRootEvent->Params[9].asMemCell->Value2());
-         break;
-        }
-        };
-        QueryRootEvent->bLaunched= false;
-        QueryRootEvent->fStartTime= 0;
-        QueryRootEvent= QueryRootEvent->Next;
+       }
+      }
+      if (Global::iMultiplayer) //dajemy znaæ do serwera o wykonaniu
+       if ((tmpEvent->iFlags&conditional_anyelse)==0) //jednoznaczne tylko, gdy nie by³o else
+       {
+        if (tmpEvent->Activator)
+         WyslijEvent(tmpEvent->asName,tmpEvent->Activator->GetName());
+        else
+         WyslijEvent(tmpEvent->asName,"");
+       }
+     }
     }
-    return true;
-
+    break;
+    case tp_WhoIs: //pobranie nazwy poci¹gu do komórki pamiêci
+     if (tmpEvent->iFlags&update_load)
+     {//jeœli pytanie o ³adunek
+      if (tmpEvent->iFlags&update_memadd) //jeœli typ pojazdu
+       tmpEvent->Params[9].asMemCell->UpdateValues(
+        tmpEvent->Activator->MoverParameters->TypeName.c_str(), //typ pojazdu
+        0, //na razie nic
+        0, //na razie nic
+        tmpEvent->iFlags&(update_memstring|update_memval1|update_memval2));
+      else //jeœli parametry ³adunku
+       tmpEvent->Params[9].asMemCell->UpdateValues(
+        tmpEvent->Activator->MoverParameters->LoadType!=""?tmpEvent->Activator->MoverParameters->LoadType.c_str():"none", //nazwa ³adunku
+        tmpEvent->Activator->MoverParameters->Load, //aktualna iloœæ
+        tmpEvent->Activator->MoverParameters->MaxLoad, //maksymalna iloœæ
+        tmpEvent->iFlags&(update_memstring|update_memval1|update_memval2));
+     }
+     else if (tmpEvent->iFlags&update_memadd)
+     {//jeœli miejsce docelowe pojazdu
+      tmpEvent->Params[9].asMemCell->UpdateValues(
+       tmpEvent->Activator->asDestination.c_str(), //adres docelowy
+       tmpEvent->Activator->DirectionGet(), //kierunek pojazdu wzglêdem czo³a sk³adu (1=zgodny,-1=przeciwny)
+       tmpEvent->Activator->MoverParameters->Power, //moc pojazdu silnikowego: 0 dla wagonu
+       tmpEvent->iFlags&(update_memstring|update_memval1|update_memval2));
+     }
+     else if (tmpEvent->Activator->Mechanik)
+      if (tmpEvent->Activator->Mechanik->Primary())
+      {//tylko jeœli ktoœ tam siedzi - nie powinno dotyczyæ pasa¿era!
+       tmpEvent->Params[9].asMemCell->UpdateValues(
+        tmpEvent->Activator->Mechanik->TrainName().c_str(),
+        tmpEvent->Activator->Mechanik->StationCount()-tmpEvent->Activator->Mechanik->StationIndex(), //ile przystanków do koñca
+        tmpEvent->Activator->Mechanik->IsStop()?1:0, //1, gdy ma tu zatrzymanie
+        tmpEvent->iFlags);
+       WriteLog("Train detected: "+tmpEvent->Activator->Mechanik->TrainName());
+      }
+    break;
+    case tp_LogValues: //zapisanie zawartoœci komórki pamiêci do logu
+     if (tmpEvent->Params[9].asMemCell) //jeœli by³a podana nazwa komórki
+      WriteLog("Memcell \""+tmpEvent->asNodeName+"\": "+
+       tmpEvent->Params[9].asMemCell->Text()+" "+
+       tmpEvent->Params[9].asMemCell->Value1()+" "+
+       tmpEvent->Params[9].asMemCell->Value2());
+     else //lista wszystkich
+      for (TGroundNode *Current=nRootOfType[TP_MEMCELL];Current;Current=Current->Next)
+       WriteLog("Memcell \""+Current->asName+"\": "+
+        Current->MemCell->Text()+" "+
+        Current->MemCell->Value1()+" "+
+        Current->MemCell->Value2());
+    break;
+   } //switch (tmpEvent->Type)
+  } //if (tmpEvent->bEnabled)
+  --tmpEvent->iQueued; //teraz moze byæ ponownie dodany do kolejki
+/*
+  if (QueryRootEvent->eJoined) //jeœli jest kolejny o takiej samej nazwie
+  {//to teraz jego dajemy do wykonania
+   QueryRootEvent->eJoined->Next=QueryRootEvent->Next; //pamiêtaj¹c o nastêpnym z kolejki
+   QueryRootEvent->eJoined->fStartTime=QueryRootEvent->fStartTime; //czas musi byæ ten sam, bo nie jest aktualizowany
+   //QueryRootEvent->fStartTime=0;
+   QueryRootEvent=QueryRootEvent->eJoined; //a wykonaæ ten doczepiony
+  }
+  else
+  {//a jak nazwa jest unikalna, to kolejka idzie dalej
+   //QueryRootEvent->fStartTime=0;
+   QueryRootEvent=QueryRootEvent->Next; //NULL w skrajnym przypadku
+  }
+*/
+ }  //while
+ return true;
 }
 
 void __fastcall TGround::OpenGLUpdate(HDC hDC)
@@ -3161,97 +3230,78 @@ void __fastcall TGround::OpenGLUpdate(HDC hDC)
 }
 
 bool __fastcall TGround::Update(double dt, int iter)
-//blablabla
-{
-   if(iter>1) //ABu: ponizsze wykonujemy tylko jesli wiecej niz jedna iteracja
+{//dt=krok czasu [s], dt*iter=czas od ostatnich przeliczeñ
+ if (iter>1) //ABu: ponizsze wykonujemy tylko jesli wiecej niz jedna iteracja
+ {//pierwsza iteracja i wyznaczenie stalych:
+  for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
+  {//
+   Current->DynamicObject->MoverParameters->ComputeConstans();
+   Current->DynamicObject->CoupleDist();
+   Current->DynamicObject->UpdateForce(dt,dt,false);
+  }
+  for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
+   Current->DynamicObject->FastUpdate(dt);
+  //pozostale iteracje
+  for (int i=1;i<(iter-1);++i) //jeœli iter==5, to wykona siê 3 razy
+  {
+   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
+    Current->DynamicObject->UpdateForce(dt,dt,false);
+   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
+    Current->DynamicObject->FastUpdate(dt);
+  }
+  //ABu 200205: a to robimy tylko raz, bo nie potrzeba wiêcej
+  //Winger 180204 - pantografy
+  double dt1=dt*iter; //ca³kowity czas
+  if (Global::bEnableTraction)
+  {
+   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
    {
-      //Pierwsza iteracja i wyznaczenie stalych:
-      for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
-      {
-         Current->DynamicObject->MoverParameters->ComputeConstans();
-         Current->DynamicObject->CoupleDist();
-         Current->DynamicObject->UpdateForce(dt,dt,false);
-      }
-      for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
-      {
-         Current->DynamicObject->FastUpdate(dt);
-      }
-      //pozostale iteracje
-      for(int i=1 ; i<(iter-1); i++)
-      {
-         for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
-         {
-            Current->DynamicObject->UpdateForce(dt,dt,false);
-         }
-         for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
-         {
-            Current->DynamicObject->FastUpdate(dt);
-         }
-      }
-      //ABu 200205: a to robimy tylko raz, bo nie potrzeba wiecej
-      //Winger 180204 - pantografy
-      double dt1=dt*iter;
-      if (Global::bEnableTraction)
-      {
-         for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
-         {
-            if ((Current->DynamicObject->MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
-            //ABu: usunalem, bo sie krzaczylo: && (Current->DynamicObject->MoverParameters->PantFrontUp || Current->DynamicObject->MoverParameters->PantRearUp))
-            //     a za to dodalem to:
-               &&(Current->DynamicObject->MoverParameters->CabNo!=0))
-               GetTraction(Current->DynamicObject->GetPosition(), Current->DynamicObject);
-            Current->DynamicObject->UpdateForce(dt, dt1, true);//,true);
-         }
-         for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
-         {
-            Current->DynamicObject->Update(dt,dt1);
-         }
-      }
-      else
-      {
-         for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
-         {
-            Current->DynamicObject->UpdateForce(dt, dt1, true);//,true);
-         }
-         for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
-         {
-            Current->DynamicObject->Update(dt,dt1);
-         }
-      }
+    if ((Current->DynamicObject->MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
+    //ABu: usunalem, bo sie krzaczylo: && (Current->DynamicObject->MoverParameters->PantFrontUp || Current->DynamicObject->MoverParameters->PantRearUp))
+    //     a za to dodalem to:
+       &&(Current->DynamicObject->MoverParameters->CabNo!=0))
+       GetTraction(Current->DynamicObject->GetPosition(),Current->DynamicObject);
+    Current->DynamicObject->UpdateForce(dt,dt1,true);//,true);
    }
-   else
-   //jezeli jest tylko jedna iteracja
+   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
+    Current->DynamicObject->Update(dt,dt1);
+  }
+  else
+  {
+   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
+    Current->DynamicObject->UpdateForce(dt,dt1,true);//,true);
+   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
+    Current->DynamicObject->Update(dt,dt1);
+  }
+ }
+ else
+ {//jezeli jest tylko jedna iteracja
+  if (Global::bEnableTraction)
+  {
+   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
    {
-      if (Global::bEnableTraction)
-      {
-         for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
-         {
-            if ((Current->DynamicObject->MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
-               &&(Current->DynamicObject->MoverParameters->CabNo!=0))
-               GetTraction(Current->DynamicObject->GetPosition(), Current->DynamicObject);
-            Current->DynamicObject->MoverParameters->ComputeConstans();
-            Current->DynamicObject->CoupleDist();
-            Current->DynamicObject->UpdateForce(dt,dt,true);//,true);
-         }
-         for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
-         {
-            Current->DynamicObject->Update(dt,dt);
-         }
-      }
-      else
-      {
-         for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
-         {
-            Current->DynamicObject->MoverParameters->ComputeConstans();
-            Current->DynamicObject->CoupleDist();
-            Current->DynamicObject->UpdateForce(dt,dt,true);//,true);
-         }
-         for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
-         {
-            Current->DynamicObject->Update(dt,dt);
-         }
-      }
+    if ((Current->DynamicObject->MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
+       &&(Current->DynamicObject->MoverParameters->CabNo!=0))
+       GetTraction(Current->DynamicObject->GetPosition(), Current->DynamicObject);
+    Current->DynamicObject->MoverParameters->ComputeConstans();
+    Current->DynamicObject->CoupleDist();
+    Current->DynamicObject->UpdateForce(dt,dt,true);//,true);
    }
+   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
+    Current->DynamicObject->Update(dt,dt);
+  }
+  else
+  {
+   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
+   {
+    Current->DynamicObject->MoverParameters->ComputeConstans();
+    Current->DynamicObject->CoupleDist();
+    Current->DynamicObject->UpdateForce(dt,dt,true);//,true);
+   }
+   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
+    Current->DynamicObject->Update(dt,dt);
+  }
+ }
  if (bDynamicRemove)
  {//jeœli jest coœ do usuniêcia z listy, to trzeba na koñcu
   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
@@ -3511,21 +3561,16 @@ bool __fastcall TGround::RenderDL(vector3 pPosition)
    {tmp->LoadNodes(); //oznaczanie aktywnych sektorów
     for (node=tmp->nRenderHidden;node;node=node->nNext3)
      node->RenderHidden();
+    //TODO: jeszcze dŸwiêki pojazdów by siê przyda³y
    }
  //renderowanie progresywne - zale¿ne od FPS oraz kierunku patrzenia
  iRendered=0; //iloœæ renderowanych sektorów
  vector3 direction;
- //iRange=(Global::iSlowMotion&6)?((Global::iSlowMotion&4)?AreaMini:AreaSlow):AreaFast;
- //n=(iRange[0]*n)/10; //przeliczenie (n) do aktualnego promienia rednerowania
- //n=(Global::iSlowMotion&6)?((Global::iSlowMotion&4)?25:52):90; //iloœæ sektorów w æwiartce (max 400)
  for (k=0;k<Global::iSegmentsRendered;++k) //sektory w kolejnoœci odleg³oœci
  {//przerobione na u¿ycie SectorOrder
   i=SectorOrder[k].x; //na starcie oba >=0
   j=SectorOrder[k].y;
   do
- //for (j=-n;j<=n;j++)
- //{k=iRange[j<0?-j:j]; //zasiêg na danym poziomie
- // for (i=-k;i<=k;i++)
   {
    if (j<=0) i=-i; //pierwszy przebieg: j<=0, i>=0; drugi: j>=0, i<=0; trzeci: j<=0, i<=0 czwarty: j>=0, i>=0;
    j=-j; //i oraz j musi byæ zmienione wczeœniej, ¿eby continue dzia³a³o
@@ -3597,21 +3642,16 @@ bool __fastcall TGround::RenderVBO(vector3 pPosition)
    if ((tmp=FastGetSubRect(i,j))!=NULL)
     for (node=tmp->nRenderHidden;node;node=node->nNext3)
      node->RenderHidden();
+    //TODO: jeszcze dŸwiêki pojazdów by siê przyda³y
   }
  //renderowanie progresywne - zale¿ne od FPS oraz kierunku patrzenia
  iRendered=0; //iloœæ renderowanych sektorów
  vector3 direction;
- //iRange=(Global::iSlowMotion&6)?((Global::iSlowMotion&4)?AreaMini:AreaSlow):AreaFast;
- //n=(iRange[0]*n)/10; //przeliczenie (n) do aktualnego promienia rednerowania
- //n=(Global::iSlowMotion&6)?((Global::iSlowMotion&4)?25:52):90; //iloœæ sektorów w æwiartce
  for (k=0;k<Global::iSegmentsRendered;++k) //sektory w kolejnoœci odleg³oœci
  {//przerobione na u¿ycie SectorOrder
   i=SectorOrder[k].x; //na starcie oba >=0
   j=SectorOrder[k].y;
   do
- //for (j=-n;j<=n;j++)
- //{k=iRange[j<0?-j:j]; //zasiêg na danym poziomie
- // for (i=-k;i<=k;i++)
   {
    if (j<=0) i=-i; //pierwszy przebieg: j<=0, i>=0; drugi: j>=0, i<=0; trzeci: j<=0, i<=0 czwarty: j>=0, i>=0;
    j=-j; //i oraz j musi byæ zmienione wczeœniej, ¿eby continue dzia³a³o
@@ -3888,6 +3928,18 @@ void __fastcall TGround::TerrainWrite()
      }
    }
  m->SaveToBinFile(AnsiString("models\\"+Global::asTerrainModel).c_str());
+};
+//---------------------------------------------------------------------------
+
+void __fastcall TGround::TrackBusyList()
+{//wys³anie informacji o wszystkich zajêtych odcinkach
+ TGroundNode *Current;
+ TTrack *Track;
+ AnsiString name;
+ for (Current=nRootOfType[TP_TRACK];Current;Current=Current->Next)
+  if (Current->asName.IsEmpty()) //musi byæ nazwa
+   if (Current->pTrack->iNumDynamics) //osi to chyba nie ma jak policzyæ
+    WyslijString(Current->asName,8); //zajêty
 };
 //---------------------------------------------------------------------------
 

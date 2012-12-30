@@ -259,7 +259,9 @@ class TGround
  TSubRect srGlobal; //zawiera obiekty globalne (na razie wyzwalacze czasowe)
  int hh,mm,srh,srm,ssh,ssm; //ustawienia czasu
  //int tracks,tracksfar; //liczniki torów
- TNames *sTracks; //posortowane nazwy torów i eventów 
+ TNames *sTracks; //posortowane nazwy torów i eventów
+private: //metody prywatne
+ bool __fastcall EventConditon(TEvent *e); 
 public:
  bool bDynamicRemove; //czy uruchomiæ procedurê usuwania pojazdów
  TDynamicObject *LastDyn; //ABu: paskudnie, ale na bardzo szybko moze jakos przejdzie...
@@ -272,8 +274,9 @@ public:
  void __fastcall Free();
  bool __fastcall Init(AnsiString asFile,HDC hDC);
  void __fastcall FirstInit();
+ void __fastcall InitTracks();
+ void __fastcall InitTraction();
  bool __fastcall InitEvents();
- bool __fastcall InitTracks();
  bool __fastcall InitLaunchers();
  TTrack* __fastcall FindTrack(vector3 Point,int &iConnection,TGroundNode *Exclude);
  TGroundNode* __fastcall CreateGroundNode();
@@ -375,6 +378,7 @@ public:
  void __fastcall DynamicRemove(TDynamicObject* dyn);
  void __fastcall TerrainRead(const AnsiString &f); 
  void __fastcall TerrainWrite();
+ void __fastcall TrackBusyList();
 };
 //---------------------------------------------------------------------------
 #endif

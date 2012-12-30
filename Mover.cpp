@@ -16,6 +16,7 @@ __fastcall TMoverParameters::TMoverParameters(double VelInitial,AnsiString TypeN
  DimHalf.x=0.5*Dim.W; //po³owa szerokoœci, OX jest w bok?
  DimHalf.y=0.5*Dim.L; //po³owa d³ugoœci, OY jest do przodu?
  DimHalf.z=0.5*Dim.H; //po³owa wysokoœci, OZ jest w górê?
+ BrakeLevelSet(-2); //Pascal ustawia na 0, przestawimy na odciêcie (CHK jest jeszcze nie wczytane!)
 };
 
 
@@ -84,7 +85,7 @@ int __fastcall TMoverParameters::DettachStatus(Byte ConnectNo)
  //if (CouplerType==Articulated) return false; //sprzêg nie do rozpiêcia - mo¿e byæ tylko urwany
  //Couplers[ConnectNo].CoupleDist=Distance(Loc,Couplers[ConnectNo].Connected->Loc,Dim,Couplers[ConnectNo].Connected->Dim);
  CouplerDist(ConnectNo);
- if (Couplers[ConnectNo].CoupleDist<0.0)
+ if (Couplers[ConnectNo].CouplerType==Screw?Couplers[ConnectNo].CoupleDist<0.0:true)
   return -Couplers[ConnectNo].CouplingFlag; //mo¿na roz³¹czaæ, jeœli dociœniêty
  return (Couplers[ConnectNo].CoupleDist>0.2)?-Couplers[ConnectNo].CouplingFlag:Couplers[ConnectNo].CouplingFlag;
 };
@@ -137,6 +138,104 @@ bool __fastcall TMoverParameters::DirectionForward()
   return true;
  }
  else if ((ActiveDir==1)&&(MainCtrlPos==0)&&(TrainType==dt_EZT))
-  return MinCurrentSwitch(true);
+  return MinCurrentSwitch(true); //"wysoki rozruch" EN57
+ return false;
+};
+
+// Nastawianie hamulców
+
+void __fastcall TMoverParameters::BrakeLevelSet(double b)
+{//ustawienie pozycji hamulca na wartoœæ (b) w zakresie od -2 do BrakeCtrlPosNo
+ //jedyny dopuszczalny sposób przestawienia hamulca zasadniczego
+ if (fBrakeCtrlPos==b) return; //nie przeliczaæ, jak nie ma zmiany
+ fBrakeCtrlPos=b;
+ if (fBrakeCtrlPos<-2.0)
+  fBrakeCtrlPos=-2.0; //odciêcie
+ else
+  if (fBrakeCtrlPos>double(BrakeCtrlPosNo))
+   fBrakeCtrlPos=BrakeCtrlPosNo;
+ int x=floor(fBrakeCtrlPos); //jeœli odwo³ujemy siê do BrakeCtrlPos w poœrednich, to musi byæ obciête a nie zaokr¹gone
+ while ((x>BrakeCtrlPos)&&(BrakeCtrlPos<BrakeCtrlPosNo)) //jeœli zwiêkszy³o siê o 1
+  if (!T_MoverParameters::IncBrakeLevelOld()) break; //wyjœcie awaryjne
+ while ((x<BrakeCtrlPos)&&(BrakeCtrlPos>=-1)) //jeœli zmniejszy³o siê o 1
+  if (!T_MoverParameters::DecBrakeLevelOld()) break;
+ BrakePressureActual=BrakePressureTable[BrakeCtrlPos+2]; //skopiowanie pozycji
+ if (BrakeSystem==Pneumatic?BrakeSubsystem==Oerlikon:false) //tylko Oerlikon akceptuje u³amki
+  if (fBrakeCtrlPos>0.0)
+  {//wartoœci poœrednie wyliczamy tylko dla hamowania
+   double u=fBrakeCtrlPos-double(x); //u³amek ponad wartoœæ ca³kowit¹
+   if (u>0.0)
+   {//wyliczamy wartoœci wa¿one
+    BrakePressureActual.PipePressureVal+=-u*BrakePressureActual.PipePressureVal+u*BrakePressureTable[BrakeCtrlPos+1+2].PipePressureVal;
+    //BrakePressureActual.BrakePressureVal+=-u*BrakePressureActual.BrakePressureVal+u*BrakePressureTable[BrakeCtrlPos+1].BrakePressureVal;  //to chyba nie bêdzie tak dzia³aæ, zw³aszcza w EN57
+    BrakePressureActual.FlowSpeedVal+=-u*BrakePressureActual.FlowSpeedVal+u*BrakePressureTable[BrakeCtrlPos+1+2].FlowSpeedVal;
+   }
+  }
+};
+
+bool __fastcall TMoverParameters::BrakeLevelAdd(double b)
+{//dodanie wartoœci (b) do pozycji hamulca (w tym ujemnej)
+ //zwraca false, gdy po dodaniu by³o by poza zakresem
+ BrakeLevelSet(fBrakeCtrlPos+b);
+ return b>0.0?(fBrakeCtrlPos<BrakeCtrlPosNo):(BrakeCtrlPos>-1.0); //true, jeœli mo¿na kontynuowaæ
+};
+
+bool __fastcall TMoverParameters::IncBrakeLevel()
+{//nowa wersja na u¿ytek AI, false gdy osi¹gniêto pozycjê BrakeCtrlPosNo
+ return BrakeLevelAdd(1.0);
+};
+
+bool __fastcall TMoverParameters::DecBrakeLevel()
+{//nowa wersja na u¿ytek AI, false gdy osi¹gniêto pozycjê -1
+ return BrakeLevelAdd(-1.0);
+};
+
+bool __fastcall TMoverParameters::ChangeCab(int direction)
+{//zmiana kabiny i resetowanie ustawien
+//var //b:byte;
+//    c:boolean;
+ if (abs(ActiveCab+direction)<2)
+ {
+//  if (ActiveCab+direction=0) then LastCab:=ActiveCab;
+   ActiveCab=ActiveCab+direction;
+   //ChangeCab=true;
+   if ((BrakeSystem==Pneumatic)&&(BrakeCtrlPosNo>0))
+   {
+    BrakeLevelSet(-2); //BrakeCtrlPos=-2;
+    LimPipePress=PipePress;
+    ActFlowSpeed=0;
+   }
+   else
+    BrakeLevelSet(0); //BrakeCtrlPos=0;
+//   if not TestFlag(BrakeStatus,b_dmg) then
+//    BrakeStatus:=b_off;
+   MainCtrlPos=0;
+   ScndCtrlPos=0;
+   if ((EngineType!=DieselEngine)&&(EngineType!=DieselElectric))
+   {
+    Mains=false;
+    CompressorAllow=false;
+    ConverterAllow=false;
+   }
+//   if (ActiveCab<>LastCab) and (ActiveCab<>0) then
+//    begin
+//     c:=PantFrontUp;
+//     PantFrontUp:=PantRearUp;
+//     PantRearUp:=c;
+//    end; //yB: poszlo do wylacznika rozrzadu
+  ActiveDir=0;
+  DirAbsolute=0;
+  return true;
+ }
+ return false;
+};
+
+bool __fastcall TMoverParameters::CurrentSwitch(int direction)
+{//rozruch wysoki (true) albo niski (false)
+ //Ra: przenios³em z Train.cpp, nie wiem czy ma to sens
+ if (MaxCurrentSwitch(direction))
+ {if (TrainType!=dt_EZT)
+   return (MinCurrentSwitch(direction));
+ }
  return false;
 };

@@ -3,19 +3,6 @@
     MaSzyna EU07 locomotive simulator
     Copyright (C) 2001-2004  Marcin Wozniak and others
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 //nag³ówki identyczne w ka¿dym pliku...
@@ -712,7 +699,7 @@ bool __fastcall TTrack::AssignEvents(TEvent *NewEvent0,TEvent *NewEvent1,TEvent 
  }
  else
  {
-  Error(AnsiString("Event 0 cannot be assigned to track, track already has one"));
+  Error(AnsiString("Event0 cannot be assigned to track, track already has one"));
   bError=true;
  }
  if (!Event1)
@@ -734,7 +721,7 @@ bool __fastcall TTrack::AssignEvents(TEvent *NewEvent0,TEvent *NewEvent1,TEvent 
  }
  else
  {
-  Error(AnsiString("Event 1 cannot be assigned to track, track already has one"));
+  Error(AnsiString("Event1 cannot be assigned to track, track already has one"));
   bError=true;
  }
  if (!Event2)
@@ -756,7 +743,7 @@ bool __fastcall TTrack::AssignEvents(TEvent *NewEvent0,TEvent *NewEvent1,TEvent 
  }
  else
  {
-  Error(AnsiString("Event 2 cannot be assigned to track, track already has one"));
+  Error(AnsiString("Event2 cannot be assigned to track, track already has one"));
   bError=true;
  }
  return !bError;
@@ -777,14 +764,14 @@ bool __fastcall TTrack::AssignallEvents(TEvent *NewEvent0,TEvent *NewEvent1,TEve
   {
    if (!asEvent0Name.IsEmpty())
    {
-    Error(AnsiString("Eventall 0 \"")+asEventall0Name+AnsiString("\" does not exist"));
+    Error(AnsiString("Eventall0 \"")+asEventall0Name+AnsiString("\" does not exist"));
     bError=true;
    }
   }
  }
  else
  {
-  Error(AnsiString("Eventall 0 cannot be assigned to track, track already has one"));
+  Error(AnsiString("Eventall0 cannot be assigned to track, track already has one"));
   bError=true;
  }
  if (!Eventall1)
@@ -799,14 +786,14 @@ bool __fastcall TTrack::AssignallEvents(TEvent *NewEvent0,TEvent *NewEvent1,TEve
   {
    if (!asEvent0Name.IsEmpty())
    {//Ra: tylko w logu informacja
-    WriteLog(AnsiString("Eventall 1 \"")+asEventall1Name+AnsiString("\" does not exist"));
+    WriteLog(AnsiString("Eventall1 \"")+asEventall1Name+AnsiString("\" does not exist"));
     bError=true;
    }
   }
  }
  else
  {
-  Error(AnsiString("Eventall 1 cannot be assigned to track, track already has one"));
+  Error(AnsiString("Eventall1 cannot be assigned to track, track already has one"));
   bError=true;
  }
  if (!Eventall2)
@@ -821,14 +808,14 @@ bool __fastcall TTrack::AssignallEvents(TEvent *NewEvent0,TEvent *NewEvent1,TEve
   {
    if (!asEvent0Name.IsEmpty())
    {//Ra: tylko w logu informacja
-    WriteLog(AnsiString("Eventall 2 \"")+asEventall2Name+AnsiString("\" does not exist"));
+    WriteLog(AnsiString("Eventall2 \"")+asEventall2Name+AnsiString("\" does not exist"));
     bError=true;
    }
   }
  }
  else
  {
-  Error(AnsiString("Eventall 2 cannot be assigned to track, track already has one"));
+  Error(AnsiString("Eventall2 cannot be assigned to track, track already has one"));
   bError=true;
  }
  return !bError;
@@ -1408,6 +1395,10 @@ bool __fastcall TTrack::RemoveDynamicObject(TDynamicObject *Dynamic)
    --iNumDynamics;
    for (i;i<iNumDynamics;i++)
     Dynamics[i]=Dynamics[i+1];
+   if (Global::iMultiplayer) //jeœli multiplayer
+    if (!iNumDynamics) //jeœli ju¿ nie ma ¿adnego
+     if (pMyNode->asName!="none")
+      Global::pGround->WyslijString(pMyNode->asName,9); //przekazanie informacji o zwolnieniu toru
    return true;
   }
  }

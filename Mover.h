@@ -20,6 +20,7 @@ public:
  vector3 DimHalf; //po³owy rozmiarów do obliczeñ geometrycznych
  //int WarningSignal; //0: nie trabi, 1,2: trabi syren¹ o podanym numerze
  unsigned char WarningSignal; //tymczasowo 8bit, ze wzglêdu na funkcje w MTools
+ double fBrakeCtrlPos; //p³ynna nastawa hamulca zespolonego
 private:
  double __fastcall CouplerDist(Byte Coupler);
 public:
@@ -34,6 +35,12 @@ public:
  bool __fastcall Dettach(Byte ConnectNo);
  void __fastcall SetCoupleDist();
  bool __fastcall DirectionForward();
+ void __fastcall BrakeLevelSet(double b);
+ bool __fastcall BrakeLevelAdd(double b);
+ bool __fastcall IncBrakeLevel(); //wersja na u¿ytek AI
+ bool __fastcall DecBrakeLevel();
+ bool __fastcall ChangeCab(int direction);
+ bool __fastcall CurrentSwitch(int direction);
 };
 
 #endif

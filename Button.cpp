@@ -32,6 +32,7 @@ void __fastcall TButton::Clear(int i)
 
 void __fastcall TButton::Init(AnsiString asName, TModel3d *pModel, bool bNewOn)
 {
+ if (!pModel) return; //nie ma w czym szukaæ
  pModelOn=pModel->GetFromName(AnsiString(asName+"_on").c_str());
  pModelOff=pModel->GetFromName(AnsiString(asName+"_off").c_str());
  bOn=bNewOn;

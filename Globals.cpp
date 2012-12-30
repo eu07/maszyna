@@ -3,19 +3,6 @@
     MaSzyna EU07 locomotive simulator
     Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "system.hpp"
@@ -42,12 +29,12 @@ TGround *Global::pGround=NULL;
 //char Global::CreatorName2[30]="2001-2003 Marcin WoŸniak <Marcin_EU>";
 //char Global::CreatorName3[20]="2004-2005 Adam Bugiel <ABu>";
 //char Global::CreatorName4[30]="2004 Arkadiusz Œlusarczyk <Winger>";
-//char Global::CreatorName5[30]="£ukasz Kirchner <Nbmx>";
+//char Global::CreatorName5[30]="2003-2009 £ukasz Kirchner <Nbmx>";
 AnsiString Global::asCurrentSceneryPath="scenery/";
 AnsiString Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath);
 AnsiString Global::asCurrentDynamicPath="";
 int Global::iSlowMotion=0; //info o malym FPS: 0-OK, 1-wy³¹czyæ multisampling, 3-promieñ 1.5km, 7-1km
-bool Global::changeDynObj; //info o zmianie pojazdu
+TDynamicObject *Global::changeDynObj=NULL; //info o zmianie pojazdu
 bool Global::detonatoryOK; //info o nowych detonatorach
 double Global::ABuDebug=0;
 AnsiString Global::asSky="1";
@@ -57,8 +44,8 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asRelease="1.8.637.372";
-AnsiString Global::asVersion="Compilation 2012-09-17, release "+Global::asRelease+"."; //tutaj, bo wysy³any
+AnsiString Global::asRelease="1.8.712.394";
+AnsiString Global::asVersion="Compilation 2012-12-20, release "+Global::asRelease+"."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 double Global::fSunDeclination=0.0; //deklinacja S³oñca
@@ -99,12 +86,14 @@ GLfloat Global::noLight[]         ={0.00f,0.00f,0.00f,1.0f};
 GLfloat Global::darkLight[]       ={0.03f,0.03f,0.03f,1.0f}; //œladowe
 GLfloat Global::lightPos[4];
 bool Global::bRollFix=true; //czy wykonaæ przeliczanie przechy³ki
+bool Global::bJoinEvents=false; //czy grupowaæ eventy o tych samych nazwach
 
 //parametry u¿ytkowe (jak komu pasuje)
 int Global::Keys[MaxKeys];
 int Global::iWindowWidth=800;
 int Global::iWindowHeight=600;
 int Global::iFeedbackMode=1; //tryb pracy informacji zwrotnej
+int Global::iFeedbackPort=0; //dodatkowy adres dla informacji zwrotnych
 bool Global::bFreeFly=false;
 bool Global::bFullScreen=false;
 bool Global::bInactivePause=true; //automatyczna pauza, gdy okno nieaktywne
@@ -116,6 +105,7 @@ int Global::iMultiplayer=0; //blokada dzia³ania niektórych funkcji na rzecz komi
 double Global::fMoveLight=-1; //ruchome œwiat³o
 double Global::fLatitudeDeg=52.0; //szerokoœæ geograficzna
 float Global::iFriction=1;
+double Global::fBrakeStep=1.0; //krok zmiany hamulca dla klawiszy [Num3] i [Num9]
 
 
 //parametry wydajnoœciowe (np. regulacja FPS, szybkoœæ wczytywania)
@@ -133,7 +123,7 @@ bool Global::bSmoothTraction=false; //wyg³adzanie drutów starym sposobem
 char** Global::szDefaultExt=Global::szTexturesDDS; //domyœlnie od DDS
 int Global::iMultisampling=2; //tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
 bool Global::bGlutFont=false; //czy tekst generowany przez GLUT32.DLL
-int Global::iConvertModels=2; //tworzenie plików binarnych, 2-optymalizacja transformów
+int Global::iConvertModels=6; //tworzenie plików binarnych, 2-optymalizacja transformów
 int Global::iSlowMotionMask=-1; //maska wy³¹czanych w³aœciwoœci dla zwiêkszenia FPS
 int Global::iModifyTGA=7; //czy korygowaæ pliki TGA dla szybszego wczytywania
 //bool Global::bTerrainCompact=true; //czy zapisaæ teren w pliku
@@ -152,7 +142,7 @@ bool Global::bWireFrame=false;
 bool Global::bSoundEnabled=true;
 int Global::iWriteLogEnabled=3; //maska bitowa: 1-zapis do pliku, 2-okienko
 bool Global::bManageNodes=true;
-bool Global::bDecompressDDS=false;
+bool Global::bDecompressDDS=false; //czy programowa dekompresja DDS
 
 //parametry do kalibracji
 //kolejno wspó³czynniki dla potêg 0, 1, 2, 3 wartoœci odczytanej z urz¹dzenia
@@ -164,7 +154,7 @@ double Global::fCalibrateOut[6][4]={{0,1,0,0},{0,1,0,0},{0,1,0,0},{0,1,0,0},{0,1
 //bool Global::bRenderAlpha=true; //Ra: wywali³am tê flagê
 bool Global::bnewAirCouplers=true;
 bool Global::bDoubleAmbient=false; //podwójna jasnoœæ ambient
-double Global::fSunSpeed=1.0; //prêdkoœæ ruchu S³oñca, zmienna do testów
+double Global::fTimeSpeed=1.0; //przyspieszenie czasu, zmienna do testów
 bool Global::bHideConsole=false; //hunter-271211: ukrywanie konsoli
 int Global::iBpp=32; //chyba ju¿ nie u¿ywa siê kart, na których 16bpp coœ poprawi
 
@@ -324,6 +314,8 @@ void __fastcall Global::ConfigParse(TQueryParserComp *qp,cParser *cp)
    bUseVBO=(GetNextSymbol().LowerCase()==AnsiString("yes"));
   else if (str==AnsiString("feedbackmode"))
    iFeedbackMode=GetNextSymbol().ToIntDef(1); //domyœlnie 1
+  else if (str==AnsiString("feedbackport"))
+   iFeedbackPort=GetNextSymbol().ToIntDef(0); //domyœlnie 0
   else if (str==AnsiString("multiplayer"))
    iMultiplayer=GetNextSymbol().ToIntDef(0); //domyœlnie 0
   else if (str==AnsiString("maxtexturesize"))
@@ -360,8 +352,8 @@ void __fastcall Global::ConfigParse(TQueryParserComp *qp,cParser *cp)
   }
   else if (str==AnsiString("smoothtraction")) //podwójna jasnoœæ ambient
    bSmoothTraction=(GetNextSymbol().LowerCase()==AnsiString("yes"));
-  else if (str==AnsiString("sunspeed")) //prêdkoœæ ruchu S³oñca, zmienna do testów
-   fSunSpeed=GetNextSymbol().ToIntDef(1);
+  else if (str==AnsiString("timespeed")) //przyspieszenie czasu, zmienna do testów
+   fTimeSpeed=GetNextSymbol().ToIntDef(1);
   else if (str==AnsiString("multisampling")) //tryb antyaliasingu: 0=brak,1=2px,2=4px
    iMultisampling=GetNextSymbol().ToIntDef(2); //domyœlnie 2
   else if (str==AnsiString("glutfont")) //tekst generowany przez GLUT
@@ -369,7 +361,7 @@ void __fastcall Global::ConfigParse(TQueryParserComp *qp,cParser *cp)
   else if (str==AnsiString("latitude")) //szerokoœæ geograficzna
    fLatitudeDeg=GetNextSymbol().ToDouble();
   else if (str==AnsiString("convertmodels")) //tworzenie plików binarnych
-   iConvertModels=GetNextSymbol().ToIntDef(2); //domyœlnie 2
+   iConvertModels=GetNextSymbol().ToIntDef(6); //domyœlnie 6
   else if (str==AnsiString("inactivepause")) //automatyczna pauza, gdy okno nieaktywne
    bInactivePause=(GetNextSymbol().LowerCase()==AnsiString("yes"));
   else if (str==AnsiString("slowmotion")) //tworzenie plików binarnych
@@ -404,6 +396,12 @@ void __fastcall Global::ConfigParse(TQueryParserComp *qp,cParser *cp)
    fCalibrateOut[i][2]=GetNextSymbol().ToDouble(); //mno¿nik dla kwadratu
    fCalibrateOut[i][3]=GetNextSymbol().ToDouble(); //mno¿nik dla szeœcianu
   }
+  else if (str==AnsiString("brakestep")) //krok zmiany hamulca dla klawiszy [Num3] i [Num9]
+   fBrakeStep=GetNextSymbol().ToDouble();
+  else if (str==AnsiString("joinduplicatedevents")) //czy grupowaæ eventy o tych samych nazwach
+   bJoinEvents=(GetNextSymbol().LowerCase()==AnsiString("yes"));
+  else if (str==AnsiString("pause")) //czy po wczytaniu ma byæ pauza?
+   bPause=(GetNextSymbol().LowerCase()==AnsiString("yes"));
  }
  while (str!="endconfig"); //(!Parser->EndOfFile)
  //na koniec trochê zale¿noœci
@@ -420,11 +418,12 @@ void __fastcall Global::ConfigParse(TQueryParserComp *qp,cParser *cp)
  }
  if (iMultiplayer>0)
   bInactivePause=false; //pauza nieaktywna, jeœli w³¹czona komunikacja
- Console::ModeSet(iFeedbackMode); //tryb pracy konsoli sterowniczej
+ Console::ModeSet(iFeedbackMode,iFeedbackPort); //tryb pracy konsoli sterowniczej
  fFpsMin=fFpsAverage-fFpsDeviation; //dolna granica FPS, przy której promieñ scenerii bêdzie zmniejszany
  fFpsMax=fFpsAverage+fFpsDeviation; //górna granica FPS, przy której promieñ scenerii bêdzie zwiêkszany
  iFpsRadiusMax=0.000025*fFpsRadiusMax*fFpsRadiusMax; //maksymalny promieñ renderowania 3000.0 -> 225
  if (iFpsRadiusMax>400) iFpsRadiusMax=400;
+ if (bPause) iTextMode=VK_F1; //jak pauza, to pokazaæ zegar
 }
 
 void __fastcall Global::InitKeys(AnsiString asFileName)
