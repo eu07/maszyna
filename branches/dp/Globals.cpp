@@ -104,7 +104,7 @@ AnsiString Global::asHumanCtrlVehicle="EU07-424";
 int Global::iMultiplayer=0; //blokada dzia³ania niektórych funkcji na rzecz kominikacji
 double Global::fMoveLight=-1; //ruchome œwiat³o
 double Global::fLatitudeDeg=52.0; //szerokoœæ geograficzna
-float Global::fFriction=1.0;
+float Global::fFriction=1.0; //mno¿nik tarcia - KURS90
 double Global::fBrakeStep=1.0; //krok zmiany hamulca dla klawiszy [Num3] i [Num9]
 
 
