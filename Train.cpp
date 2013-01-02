@@ -304,7 +304,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
            {
                dsbSwitch->Play( 0, 0, 0 );
                SetFlag(DynamicObject->MoverParameters->SecuritySystem.Status,s_active);
-               SetFlag(DynamicObject->MoverParameters->SecuritySystem.Status,s_alarm) ;
+               SetFlag(DynamicObject->MoverParameters->SecuritySystem.Status,s_SHPalarm) ;
 
            }
            }
