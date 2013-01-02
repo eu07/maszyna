@@ -187,10 +187,10 @@ CONST
    dt_ET42=4;
    dt_PseudoDiesel=8;
    dt_ET22=$10; //u¿ywane od Megapacka
-   dt_SN61=$20; //nie u¿ywane
-   dt_181=$40;
-   dt_EP05=$80; //Megapack
-   dt_ET40=$100; //Megapack
+   dt_SN61=$20; //nie u¿ywane w warunkach, ale ustawiane z CHK
+   dt_EP05=$40;
+   dt_ET40=$80;
+   dt_181=$100; 
 
 TYPE
     {ogolne}
@@ -1089,6 +1089,7 @@ begin
  ManualBrakeRatio:=MBR;
 end;
 
+
 function T_MoverParameters.PipeRatio: real;
 var pr:real;
 begin
@@ -1376,8 +1377,7 @@ begin
   if (MainCtrlPosNo>0) and (CabNo<>0) then
    begin
       if MainCtrlPos>0 then
-       if ((TrainType<>dt_ET22) or (ScndCtrlPos=0)) then //Ra: ET22 blokuje nastawnik przy boczniku
-         begin
+       begin
          if CoupledCtrl and (ScndCtrlPos>0) then
           begin
             dec(ScndCtrlPos); {wspolny wal}
@@ -2091,7 +2091,7 @@ begin
 UnBrake:=True;
 end;
 
- function T_MoverParameters.DecManualBrakeLevel(CtrlSpeed:byte):boolean;
+function T_MoverParameters.DecManualBrakeLevel(CtrlSpeed:byte):boolean;
 begin
   if ManualBrakePos>0 then
    begin
@@ -2272,8 +2272,7 @@ begin
         end;
 
        {elektropneumatyczny hamulec zasadniczy}
-       //if (BrakePressureActual.BrakeType=ElectroPneumatic) and Mains and (ActiveDir<>0)then
-       if (BrakePressureTable[BrakeCtrlPos].BrakeType=ElectroPneumatic) and (Battery=true) and (EpFuse=true)and (ActiveDir<>0)then
+       if (BrakePressureActual.BrakeType=ElectroPneumatic) and Mains and (ActiveDir<>0)then
          with BrakePressureActual do
           if BrakePressureVal<>-1 then
            begin
@@ -2800,15 +2799,14 @@ procedure T_MoverParameters.UpdatePantVolume(dt:real);
  {KURS90 - sprezarka pantografow}
  var b:byte;
  begin
-(*
    if PantCompFlag=true then
     begin
      PantVolume:=PantVolume+dt/30.0;
     end;
  {Winger - ZROBIC}
-*)
+(*
 
- if (PantCompFlag=true) and (Battery=true) then
+   if (PantCompFlag=true) and (Battery=true) then
     begin      {napelnianie zbiornikow pantografow}
      PantVolume:=PantVolume+dt*0.001*(2*0.45-((0.1/PantVolume/10)-0.1))/0.45;
 
@@ -2833,7 +2831,8 @@ for b:=0 to 1 do
        if TestFlag(CouplingFlag,ctrain_controll) then
 
         Connected.PantVolume:=PantVolume;
- end;
+*)
+end;
 
 procedure T_MoverParameters.UpdateBatteryVoltage(dt:real);
 var sn1,sn2,sn3,sn4,sn5: real;
@@ -2851,16 +2850,12 @@ begin
      if (Mains) then
      sn3:=(dt*0.05)
      else sn3:=0;
-(* //Ra: no tak, wyrzuci³em lampy st¹d, wiêc nie bêd¹ pobieraæ pr¹du
-     if (HeadSignalsFlag>0) then
+{     if (HeadSignalsFlag>0) then
      sn4:=dt*0.003
-     else sn4:=0;
-     if (EndSignalsFlag>0) then
+     else} sn4:=0;
+{     if (EndSignalsFlag>0) then
      sn5:=dt*0.001
-     else sn5:=0;
-*)
-     sn4:=0;
-     sn5:=0;
+     else} sn5:=0;
      end;
      if ((NominalBatteryVoltage)/(BatteryVoltage)>=1.22) and (battery=true) then
      begin  {90V}
@@ -2873,16 +2868,12 @@ begin
      if (Mains)  then
      sn3:=(dt*0.001)
      else sn3:=0;
-(*
-     if (HeadSignalsFlag>0) then
+{     if (HeadSignalsFlag>0) then
      sn4:=(dt*0.0030)
-     else sn4:=0;
-     if (EndSignalsFlag>0) then
+     else} sn4:=0;
+{     if (EndSignalsFlag>0) then
      sn5:=(dt*0.0010)
-     else sn5:=0;
-(*)
-     sn4:=0;
-     sn5:=0;
+     else} sn5:=0;
      end;
      if (battery=false) then
     begin
@@ -3134,17 +3125,6 @@ begin
   ResistorsFlag:=ResistorsFlag or ((DynamicBrakeFlag=true) and (DynamicBrakeType=dbrake_automatic));
   R:=RList[MainCtrlActualPos].R+CircuitRes;
   Mn:=RList[MainCtrlActualPos].Mn;
-  if DynamicBrakeFlag and (TrainType=dt_ET42) then { KURS90 azeby mozna bylo hamowac przy opuszczonych pantografach }
-  SP:=ScndCtrlActualPos;
-   if (ScndInMain) then
-    if not (Rlist[MainCtrlActualPos].ScndAct=255) then
-     SP:=Rlist[MainCtrlActualPos].ScndAct;
-      with MotorParam[SP] do
-       begin
-        Rz:=WindingRes+R;
-        MotorCurrent:=-fi*n/Rz;
-       end;
-
   if DynamicBrakeFlag and (not FuseFlag) and (DynamicBrakeType=dbrake_automatic) and Mains then     {hamowanie EP09}
    with MotorParam[ScndCtrlPosNo] do
      begin
@@ -3207,15 +3187,6 @@ begin
 {  if Abs(CabNo)<2 then Im:=MotorCurrent*ActiveDir*CabNo
    else Im:=0;
 }
-
-  if (DynamicBrakeType=dbrake_switch) and ((BrakePress>0.2) or (PipePress<0.36)) then
-  begin
-    Im:=0;
-  MotorCurrent:=0;
-  //Im:=0;
-  Itot:=0;
-  end
-    else
   Im:=MotorCurrent;
   Current:=Im; {prad brany do liczenia sily trakcyjnej}
 {  EnginePower:=Im*Im*RList[MainCtrlActualPos].Bn*RList[MainCtrlActualPos].Mn*WindingRes;}
@@ -3460,9 +3431,8 @@ Przy zmianie iloœci ga³êzi musisz:
      begin
        if (MainCtrlPos=0) then
         DelayCtrlFlag:=(TrainType<>dt_EZT); //Ra: w EZT mo¿na daæ od razu na S albo R, wa³ ku³akowy sobie dokrêci
-//       if (((RList[MainCtrlActualPos].R=0) and ((not CoupledCtrl) or (Imin=IminLo))) or (MainCtrlActualPos=RListSize))
-      if (((RList[MainCtrlActualPos].R=0) and ((not CoupledCtrl) or ((Imin=IminLo) and (ScndS=True)))) or (MainCtrlActualPos=RListSize))
-       and ((ScndCtrlActualPos>0) or (ScndCtrlPos>0)) then
+       if (((RList[MainCtrlActualPos].R=0) and ((not CoupledCtrl) or (Imin=IminLo))) or (MainCtrlActualPos=RListSize))
+          and ((ScndCtrlActualPos>0) or (ScndCtrlPos>0)) then
         begin //zmieniaj scndctrlactualpos
           if (not AutoRelayFlag) or (not MotorParam[ScndCtrlActualPos].AutoSwitch) then
            begin                                                {scnd bez samoczynnego rozruchu}
@@ -3510,8 +3480,7 @@ Przy zmianie iloœci ga³êzi musisz:
         end
        else
         begin //zmieniaj mainctrlactualpos
-          if ((TrainType=dt_EZT) and (Scnds=true) and (Imin=IminLo)) then
-//          if ((TrainType=dt_EZT) and (Imin=IminLo)) or ((ActiveDir<0) and (TrainType<>dt_PseudoDiesel)) then
+          if ((TrainType=dt_EZT) and (Imin=IminLo)) or ((ActiveDir<0) and (TrainType<>dt_PseudoDiesel)) then
            if Rlist[MainCtrlActualPos+1].Bn>1 then
             begin //to jest za³¹czanie boczników na po³¹czeniu szeregowym dla N1
               AutoRelayCheck:=False;
@@ -4992,12 +4961,14 @@ end;
 
 function T_MoverParameters.DoorBlockedFlag:Boolean;
 begin
+
   if (DoorBlocked=true) and (Vel<5) then
   DoorBlockedFlag:=False;
   if (DoorBlocked=true) and (Vel>=5) then
   DoorBlockedFlag:=True
   else
   DoorBlockedFlag:=False;
+
 end;
 
 function T_MoverParameters.RunCommand(command:string; CValue1,CValue2:real):boolean;
@@ -5801,7 +5772,6 @@ end;
 
 function T_MoverParameters.DoorLeft(State: Boolean):Boolean;
 begin
- //if (DoorLeftOpened<>State) then
  if (DoorLeftOpened<>State) and (DoorBlockedFlag=false) and (Battery=true) then
  begin
   DoorLeft:=true;
@@ -5811,7 +5781,7 @@ begin
     if (CabNo>0) then
      SendCtrlToNext('DoorOpen',1,CabNo) //1=lewe, 2=prawe
     else
-     SendCtrlToNext('DoorOpen',2,CabNo) //zamiana
+     SendCtrlToNext('DoorOpen',2,CabNo); //zamiana
    end
   else
    begin
@@ -5827,7 +5797,6 @@ end;
 
 function T_MoverParameters.DoorRight(State: Boolean):Boolean;
 begin
- //if (DoorRightOpened<>State) then
  if (DoorRightOpened<>State) and (DoorBlockedFlag=false) and (Battery=true) then
   begin
   DoorRight:=true;
@@ -5855,8 +5824,7 @@ end;
 function T_MoverParameters.PantFront(State: Boolean):Boolean;
 var pf1: Real;
 begin
-if (battery=true){ and ((TrainType<>dt_ET40)or ((TrainType=dt_ET40) and (EnginePowerSource.CollectorsNo>1)))}then
-begin
+ PantFront:=true;
  if (State=true) then pf1:=1
   else pf1:=0;
  if (PantFrontUp<>State) then
@@ -5864,7 +5832,6 @@ begin
   PantFrontUp:=State;
   if (State=true) then
    begin
-      PantFront:=true;
       PantFrontStart:=0;
       SendCtrlToNext('PantFront',1,CabNo);
    end
@@ -5874,7 +5841,7 @@ begin
       PantFrontStart:=1;
       SendCtrlToNext('PantFront',0,CabNo);
 {Ra: nie ma potrzeby opuszczaæ obydwu na raz, jak mozemy ka¿dy osobno
-      if (TrainType=dt_EZT) and (ActiveCab=1) then
+      if (TrainType=dt_EZT) then
        begin
         PantRearUp:=false;
         PantRearStart:=1;
@@ -5883,19 +5850,14 @@ begin
 }
    end;
  end
- 
  else
  SendCtrlToNext('PantFront',pf1,CabNo);
-end
-else
-SendCtrlToNext('PantFront',0,CabNo);
 end;
 
 function T_MoverParameters.PantRear(State: Boolean):Boolean;
 var pf1: Real;
 begin
-if battery=true then
- begin
+ PantRear:=true;
  if (State=true) then pf1:=1
  else pf1:=0;
  if (PantRearUp<>State) then
@@ -5903,7 +5865,6 @@ if battery=true then
   PantRearUp:=State;
   if (State=true) then
    begin
-     PantRear:=true;
      PantRearStart:=0;
      SendCtrlToNext('PantRear',1,CabNo);
    end
@@ -5912,19 +5873,10 @@ if battery=true then
      PantRear:=false;
      PantRearStart:=1;
      SendCtrlToNext('PantRear',0,CabNo);
-     if (TrainType=dt_EZT) and (ActiveCab<1) then
-       begin
-        PantFrontUp:=false;
-        PantFrontStart:=1;
-        SendCtrlToNext('PantFront',0,CabNo);
-       end;
    end;
  end
  else
   SendCtrlToNext('PantRear',pf1,CabNo);
-  end
- else
- SendCtrlToNext('PantRear',0,CabNo);
 end;
 
 
@@ -6483,9 +6435,10 @@ begin
                   else
                     if s='HydraulicBrake' then LocalBrake:=HydraulicBrake
                       else LocalBrake:=NoBrake;
-              s:=DUE(ExtractKeyWord(lines,'ManualBrake='));
+                s:=DUE(ExtractKeyWord(lines,'ManualBrake='));
               if s='Yes' then MBrake:=true
-              else MBrake:=false;
+
+                                        else MBrake:=false;
              s:=DUE(ExtractKeyWord(lines,'DynamicBrake='));
              if s='Passive' then DynamicBrakeType:=dbrake_passive
               else
@@ -6513,10 +6466,11 @@ begin
               if s='Yes' then
                CoupledCtrl:=True    {wspolny wal}
               else CoupledCtrl:=False;
-              s:=DUE(ExtractKeyWord(lines,'ScndS='));
+             s:=DUE(ExtractKeyWord(lines,'ScndS='));
               if s='Yes' then
                ScndS:=True    {brak pozycji rownoleglej przy niskiej nastawie PSR}
               else ScndS:=False;
+
               s:=ExtractKeyWord(lines,'IniCDelay=');
               InitialCtrlDelay:=s2r(DUE(s));
               s:=ExtractKeyWord(lines,'SCDelay=');
@@ -6562,11 +6516,9 @@ begin
                  else AlterLightPowerSource.SourceType:=NotDefined;
                end ;
                s:=ExtractKeyWord(lines,'Volt=');
-                 if s<>'' then
                  NominalVoltage:=s2r(DUE(s));
 
              s:=ExtractKeyWord(lines,'LMaxVoltage=');
-                 if s<>'' then
                  begin
                  BatteryVoltage:=s2r(DUE(s));
                  NominalBatteryVoltage:=s2r(DUE(s));
