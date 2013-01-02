@@ -76,8 +76,6 @@ void __fastcall TTraction::Optimize()
       float mid= 0.5;
       float t;
 
-//w TD ustawiæ 1, 2, 3, 4, 5 drutów na kolejnych sekcjach i obejrzeæ efekt
-
       //Przewod nosny 'Marcin
       if (Wires != 1)
       {
@@ -87,7 +85,6 @@ void __fastcall TTraction::Optimize()
            {
                pt3= pPoint3+v1*f;
                t= (1-fabs(f-mid)*2);
-              if ((Wires<4)||((i!=0)&&(i!=iNumSections-2))) 
                glVertex3f(pt3.x,pt3.y-sqrt(t)*fHeightDifference,pt3.z);
                f+= step;
            }
@@ -96,31 +93,13 @@ void __fastcall TTraction::Optimize()
        }
 
       //Drugi przewod jezdny 'Winger
-      if (Wires > 2)
+      if (Wires == 3)
       {
       glBegin(GL_LINE_STRIP);
           glVertex3f(pPoint1.x+(pPoint2.z/ddp-pPoint1.z/ddp)*WireOffset,pPoint1.y,pPoint1.z+(-pPoint2.x/ddp+pPoint1.x/ddp)*WireOffset);
           glVertex3f(pPoint2.x+(pPoint2.z/ddp-pPoint1.z/ddp)*WireOffset,pPoint2.y,pPoint2.z+(-pPoint2.x/ddp+pPoint1.x/ddp)*WireOffset);
       glEnd();
       }
-
-      f= step; 
-  
-      if (Wires == 4) 
-      { 
-      glBegin(GL_LINE_STRIP); 
-          glVertex3f(pPoint3.x,pPoint3.y-0.65f*fHeightDifference,pPoint3.z); 
-          for (int i=0; i<iNumSections-1; i++) 
-          { 
-              pt3= pPoint3+v1*f; 
-              t= (1-fabs(f-mid)*2); 
-              glVertex3f(pt3.x,pt3.y-sqrt(t)*fHeightDifference-((i==0)||(i==iNumSections-2)?0.25f*fHeightDifference:+0.05),pt3.z); 
-              f+= step; 
-          } 
-          glVertex3f(pPoint4.x,pPoint4.y-0.65f*fHeightDifference,pPoint4.z); 
-      glEnd(); 
-      } 
-  
 
       f= step;
 
@@ -130,26 +109,18 @@ void __fastcall TTraction::Optimize()
        glBegin(GL_LINES);
            for (int i=0; i<iNumSections-1; i++)
            {
-              float flo,flo1; 
-              flo=(Wires==4?0.25f*fHeightDifference:0); 
-              flo1=(Wires==4?+0.05:0); 
                pt3= pPoint3+v1*f;
                pt4= pPoint1+v2*f;
                t= (1-fabs(f-mid)*2);
                if ((i%2) == 0)
                {
-               glVertex3f(pt3.x,pt3.y-sqrt(t)*fHeightDifference-((i==0)||(i==iNumSections-2)?flo:flo1),pt3.z);
+               glVertex3f(pt3.x,pt3.y-sqrt(t)*fHeightDifference,pt3.z);
                glVertex3f(pt4.x-(pPoint2.z/ddp-pPoint1.z/ddp)*WireOffset,pt4.y,pt4.z-(-pPoint2.x/ddp+pPoint1.x/ddp)*WireOffset);
                }
                else
                {
-               glVertex3f(pt3.x,pt3.y-sqrt(t)*fHeightDifference-((i==0)||(i==iNumSections-2)?flo:flo1),pt3.z);
+               glVertex3f(pt3.x,pt3.y-sqrt(t)*fHeightDifference,pt3.z);
                glVertex3f(pt4.x+(pPoint2.z/ddp-pPoint1.z/ddp)*WireOffset,pt4.y,pt4.z+(-pPoint2.x/ddp+pPoint1.x/ddp)*WireOffset);
-               } 
-               if((Wires==4)&&((i==1)||(i==iNumSections-3))) 
-               { 
-               glVertex3f(pt3.x,pt3.y-sqrt(t)*fHeightDifference-0.05,pt3.z); 
-               glVertex3f(pt3.x,pt3.y-sqrt(t)*fHeightDifference,pt3.z); 
                }
                //endif;
                f+= step;
@@ -184,6 +155,7 @@ void __fastcall TTraction::Render(float mgn)   //McZapkie: mgn to odleglosc od o
   float r,g,b;
   switch (Material)
   {//Ra: kolory podzieli³em przez 2, bo po zmianie ambient za jasne by³y
+   //trzeba uwzglêdniæ kierunek œwiecenia S³oñca - tylko ze S³oñcem widaæ kolor
    case 1:
     if (TestFlag(DamageFlag,1))
     {
@@ -343,6 +315,7 @@ void  __fastcall TTraction::RaRenderVBO(float mgn,int iPtr)
   float r,g,b;
   switch (Material)
   {//Ra: kolory podzieli³em przez 2, bo po zmianie ambient za jasne by³y
+   //trzeba uwzglêdniæ kierunek œwiecenia S³oñca - tylko ze S³oñcem widaæ kolor
    case 1:
     if (TestFlag(DamageFlag,1))
     {

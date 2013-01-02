@@ -1307,8 +1307,8 @@ bool __fastcall TController::PrepareEngine()
    Controlling->PantFront(true);
    Controlling->PantRear(true);
   }
-      if (Controlling->EngineType==DieselElectric)
-      Controlling->Battery=true;
+  if (Controlling->EngineType==DieselElectric)
+   Controlling->Battery=true;
  }
  //Ra: rozdziawianie drzwi po odpaleniu nie jest potrzebne
  //if (Controlling->DoorOpenCtrl==1)
@@ -1427,7 +1427,6 @@ bool __fastcall TController::ReleaseEngine()
    Lights(0,0); //gasimy œwiat³a
   OrderNext(Wait_for_orders); //¿eby nie próbowa³ coœ robiæ dalej
   TableClear(); //zapominamy ograniczenia
-  Controlling->BatterySwitch(false);
  }
  return OK;
 }

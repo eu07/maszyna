@@ -251,6 +251,7 @@ private:
     TRealSound rsWentylator; //McZapkie-030302
     TRealSound rsPisk; //McZapkie-260302
     TRealSound rsDerailment; //McZapkie-051202
+    TRealSound rsPrzekladnia;
     TAdvancedSound sHorn1;
     TAdvancedSound sHorn2;
     TAdvancedSound sCompressor; //NBMX wrzesien 2003

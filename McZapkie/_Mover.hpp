@@ -784,9 +784,9 @@ static const Shortint dt_ET42 = 0x4;
 static const Shortint dt_PseudoDiesel = 0x8;
 static const Shortint dt_ET22 = 0x10;
 static const Shortint dt_SN61 = 0x20;
-static const Shortint dt_181 = 0x40;
-static const Byte dt_EP05 = 0x80;
-static const Word dt_ET40 = 0x100;
+static const Shortint dt_EP05 = 0x40;
+static const Byte dt_ET40 = 0x80;
+static const Word dt_181 = 0x100;
 extern PACKAGE double __fastcall Distance(const TLocation &Loc1, const TLocation &Loc2, const TDimension 
 	&Dim1, const TDimension &Dim2);
 

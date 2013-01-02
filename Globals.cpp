@@ -44,8 +44,8 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asRelease="1.8.712.395";
-AnsiString Global::asVersion="Compilation 2012-12-25, release "+Global::asRelease+"."; //tutaj, bo wysy³any
+AnsiString Global::asRelease="1.8.734.396";
+AnsiString Global::asVersion="Compilation 2013-01-02, release "+Global::asRelease+"."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 double Global::fSunDeclination=0.0; //deklinacja S³oñca
@@ -104,8 +104,8 @@ AnsiString Global::asHumanCtrlVehicle="EU07-424";
 int Global::iMultiplayer=0; //blokada dzia³ania niektórych funkcji na rzecz kominikacji
 double Global::fMoveLight=-1; //ruchome œwiat³o
 double Global::fLatitudeDeg=52.0; //szerokoœæ geograficzna
+float Global::fFriction=1.0;
 double Global::fBrakeStep=1.0; //krok zmiany hamulca dla klawiszy [Num3] i [Num9]
-float Global::iFriction=1;
 
 
 //parametry wydajnoœciowe (np. regulacja FPS, szybkoœæ wczytywania)
@@ -274,8 +274,8 @@ void __fastcall Global::ConfigParse(TQueryParserComp *qp,cParser *cp)
   {//Winger 140404 - ladowanie sie trakcji
    bLoadTraction=(GetNextSymbol().LowerCase()==AnsiString("yes"));
   }
-  else if (str==AnsiString("friction"))
-   iFriction=GetNextSymbol().ToDouble();
+  else if (str==AnsiString("friction")) //mno¿nik tarcia - KURS90
+   fFriction=GetNextSymbol().ToDouble();
   else if (str==AnsiString("livetraction"))
   {//Winger 160404 - zaleznosc napiecia loka od trakcji
    bLiveTraction=(GetNextSymbol().LowerCase()==AnsiString("yes"));

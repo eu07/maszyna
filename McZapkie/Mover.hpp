@@ -276,7 +276,7 @@ enum TCouplerType { NoCoupler, Articulated, Bare, Chain, Screw, Automatic };
 class DELPHICLASS T_MoverParameters;
 struct TCoupling
 {
-	double SpringKB;
+	double SpringKB;            
 	double SpringKC;
 	double beta;
 	double DmaxB;
@@ -712,7 +712,7 @@ static const Shortint dtrack_thinrail = 0x8;
 static const Shortint dtrack_railbend = 0x10;
 static const Shortint dtrack_plants = 0x20;
 static const Shortint dtrack_nomove = 0x40;
-static const Shortint dtrack_norail = 0x80;
+static const Byte dtrack_norail = 0x80;
 static const Shortint dtrain_thinwheel = 0x1;
 static const Shortint dtrain_loadshift = 0x1;
 static const Shortint dtrain_wheelwear = 0x2;
@@ -738,7 +738,7 @@ static const Shortint ctrain_power = 0x8;
 static const Shortint ctrain_passenger = 0x10;
 static const Shortint ctrain_scndpneumatic = 0x20;
 static const Shortint ctrain_heating = 0x40;
-static const Shortint ctrain_depot = 0x80;
+static const Byte ctrain_depot = 0x80;
 static const Shortint dbrake_none = 0x0;
 static const Shortint dbrake_passive = 0x1;
 static const Shortint dbrake_switch = 0x2;
@@ -766,7 +766,7 @@ static const Shortint s_CAalarm = 0x8;
 static const Shortint s_SHPalarm = 0x10;
 static const Shortint s_CAebrake = 0x20;
 static const Shortint s_SHPebrake = 0x40;
-static const Shortint s_CAtest = 0x80;
+static const Byte s_CAtest = 0x80;
 static const Shortint sound_none = 0x0;
 static const Shortint sound_loud = 0x1;
 static const Shortint sound_couplerstretch = 0x2;
@@ -784,9 +784,9 @@ static const Shortint dt_ET42 = 0x4;
 static const Shortint dt_PseudoDiesel = 0x8;
 static const Shortint dt_ET22 = 0x10;
 static const Shortint dt_SN61 = 0x20;
-static const Shortint dt_181 = 0x40;
-static const Shortint dt_EP05 = 0x80;
-static const Shortint dt_ET40 = 0x100;
+static const Shortint dt_EP05 = 0x40;
+static const Byte dt_ET40 = 0x80;
+static const Word dt_181 = 0x100;
 extern PACKAGE double __fastcall Distance(const TLocation &Loc1, const TLocation &Loc2, const TDimension 
 	&Dim1, const TDimension &Dim2);
 
