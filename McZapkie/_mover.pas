@@ -1089,7 +1089,6 @@ begin
  ManualBrakeRatio:=MBR;
 end;
 
-
 function T_MoverParameters.PipeRatio: real;
 var pr:real;
 begin
@@ -1377,6 +1376,7 @@ begin
   if (MainCtrlPosNo>0) and (CabNo<>0) then
    begin
       if MainCtrlPos>0 then
+       //if ((TrainType<>dt_ET22) or (ScndCtrlPos=0)) then //Ra: ET22 blokuje nastawnik przy boczniku
        begin
          if CoupledCtrl and (ScndCtrlPos>0) then
           begin
@@ -2273,6 +2273,7 @@ begin
 
        {elektropneumatyczny hamulec zasadniczy}
        if (BrakePressureActual.BrakeType=ElectroPneumatic) and Mains and (ActiveDir<>0)then
+       //if (BrakePressureTable[BrakeCtrlPos].BrakeType=ElectroPneumatic) and (Battery=true) and (EpFuse=true)and (ActiveDir<>0)then
          with BrakePressureActual do
           if BrakePressureVal<>-1 then
            begin
@@ -2850,12 +2851,16 @@ begin
      if (Mains) then
      sn3:=(dt*0.05)
      else sn3:=0;
-{     if (HeadSignalsFlag>0) then
+(* //Ra: no tak, wyrzuci³em lampy st¹d, wiêc nie bêd¹ pobieraæ pr¹du
+     if (HeadSignalsFlag>0) then
      sn4:=dt*0.003
-     else} sn4:=0;
-{     if (EndSignalsFlag>0) then
+     else sn4:=0;
+     if (EndSignalsFlag>0) then
      sn5:=dt*0.001
-     else} sn5:=0;
+     else sn5:=0;
+*)
+     sn4:=0;
+     sn5:=0;
      end;
      if ((NominalBatteryVoltage)/(BatteryVoltage)>=1.22) and (battery=true) then
      begin  {90V}
@@ -2868,12 +2873,16 @@ begin
      if (Mains)  then
      sn3:=(dt*0.001)
      else sn3:=0;
-{     if (HeadSignalsFlag>0) then
+(*
+     if (HeadSignalsFlag>0) then
      sn4:=(dt*0.0030)
-     else} sn4:=0;
-{     if (EndSignalsFlag>0) then
+     else sn4:=0;
+     if (EndSignalsFlag>0) then
      sn5:=(dt*0.0010)
-     else} sn5:=0;
+     else sn5:=0;
+(*)
+     sn4:=0;
+     sn5:=0;
      end;
      if (battery=false) then
     begin
@@ -3432,6 +3441,7 @@ Przy zmianie iloœci ga³êzi musisz:
        if (MainCtrlPos=0) then
         DelayCtrlFlag:=(TrainType<>dt_EZT); //Ra: w EZT mo¿na daæ od razu na S albo R, wa³ ku³akowy sobie dokrêci
        if (((RList[MainCtrlActualPos].R=0) and ((not CoupledCtrl) or (Imin=IminLo))) or (MainCtrlActualPos=RListSize))
+      //if (((RList[MainCtrlActualPos].R=0) and ((not CoupledCtrl) or ((Imin=IminLo) and (ScndS=True)))) or (MainCtrlActualPos=RListSize))
           and ((ScndCtrlActualPos>0) or (ScndCtrlPos>0)) then
         begin //zmieniaj scndctrlactualpos
           if (not AutoRelayFlag) or (not MotorParam[ScndCtrlActualPos].AutoSwitch) then
@@ -4961,14 +4971,12 @@ end;
 
 function T_MoverParameters.DoorBlockedFlag:Boolean;
 begin
-
   if (DoorBlocked=true) and (Vel<5) then
   DoorBlockedFlag:=False;
   if (DoorBlocked=true) and (Vel>=5) then
   DoorBlockedFlag:=True
   else
   DoorBlockedFlag:=False;
-
 end;
 
 function T_MoverParameters.RunCommand(command:string; CValue1,CValue2:real):boolean;
@@ -6435,10 +6443,9 @@ begin
                   else
                     if s='HydraulicBrake' then LocalBrake:=HydraulicBrake
                       else LocalBrake:=NoBrake;
-                s:=DUE(ExtractKeyWord(lines,'ManualBrake='));
+              s:=DUE(ExtractKeyWord(lines,'ManualBrake='));
               if s='Yes' then MBrake:=true
-
-                                        else MBrake:=false;
+              else MBrake:=false;
              s:=DUE(ExtractKeyWord(lines,'DynamicBrake='));
              if s='Passive' then DynamicBrakeType:=dbrake_passive
               else
@@ -6466,11 +6473,10 @@ begin
               if s='Yes' then
                CoupledCtrl:=True    {wspolny wal}
               else CoupledCtrl:=False;
-             s:=DUE(ExtractKeyWord(lines,'ScndS='));
+              s:=DUE(ExtractKeyWord(lines,'ScndS='));
               if s='Yes' then
                ScndS:=True    {brak pozycji rownoleglej przy niskiej nastawie PSR}
               else ScndS:=False;
-
               s:=ExtractKeyWord(lines,'IniCDelay=');
               InitialCtrlDelay:=s2r(DUE(s));
               s:=ExtractKeyWord(lines,'SCDelay=');
@@ -6516,9 +6522,11 @@ begin
                  else AlterLightPowerSource.SourceType:=NotDefined;
                end ;
                s:=ExtractKeyWord(lines,'Volt=');
+                 if s<>'' then
                  NominalVoltage:=s2r(DUE(s));
 
              s:=ExtractKeyWord(lines,'LMaxVoltage=');
+                 if s<>'' then
                  begin
                  BatteryVoltage:=s2r(DUE(s));
                  NominalBatteryVoltage:=s2r(DUE(s));

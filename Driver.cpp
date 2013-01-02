@@ -1427,6 +1427,7 @@ bool __fastcall TController::ReleaseEngine()
    Lights(0,0); //gasimy œwiat³a
   OrderNext(Wait_for_orders); //¿eby nie próbowa³ coœ robiæ dalej
   TableClear(); //zapominamy ograniczenia
+  Controlling->BatterySwitch(false);
  }
  return OK;
 }

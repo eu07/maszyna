@@ -201,6 +201,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
 
   bool isEztOer;
   isEztOer=(DynamicObject->MoverParameters->TrainType==dt_EZT)&&(DynamicObject->MoverParameters->Mains)&&(DynamicObject->MoverParameters->BrakeSubsystem==Oerlikon)&&(DynamicObject->MoverParameters->ActiveDir!=0);
+  //isEztOer=((DynamicObject->MoverParameters->TrainType==dt_EZT)&&(DynamicObject->MoverParameters->Battery==true)&&(DynamicObject->MoverParameters->EpFuse==true)&&(DynamicObject->MoverParameters->BrakeSubsystem==Oerlikon)&&(DynamicObject->MoverParameters->ActiveDir!=0));
 
   if (GetAsyncKeyState(VK_SHIFT)<0)
    {//wciœniêty [Shift]
@@ -286,16 +287,6 @@ void __fastcall TTrain::OnKeyPress(int cKey)
            }
       }
       else */
-
-      if (cKey==Global::Keys[k_Main])
-      {
-           if (fabs(MainOnButtonGauge.GetValue())<0.001)
-           {
-               dsbSwitch->SetVolume(DSBVOLUME_MAX);
-               dsbSwitch->Play(0,0,0);
-           }
-      }
-      else
       if (cKey==Global::Keys[k_Battery])
       {
          if(((DynamicObject->MoverParameters->TrainType==dt_EZT) || (DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)|| (DynamicObject->MoverParameters->EngineType==DieselElectric))&&(DynamicObject->MoverParameters->Battery==false))
@@ -331,6 +322,14 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                dsbSwitch->Play( 0, 0, 0 );
                DynamicObject->MoverParameters->DoorSignalling=true;
            }
+           }
+      }
+      if (cKey==Global::Keys[k_Main])
+      {
+           if (fabs(MainOnButtonGauge.GetValue())<0.001)
+           {
+               dsbSwitch->SetVolume(DSBVOLUME_MAX);
+               dsbSwitch->Play(0,0,0);
            }
       }
       else
@@ -1035,6 +1034,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else
       if (cKey==Global::Keys[k_DecBrakeLevel])
        {
+//now¹ wersjê dostarczy³ ZiomalCl ("fixed looped sound in ezt when using NUM_9 key")
          if ((DynamicObject->MoverParameters->BrakeCtrlPos>-1) || (keybrakecount>1))
           {
 
@@ -1420,9 +1420,9 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       }
       else
       //hunter-201211: piasecznica poprawiona oraz przeniesiona do TTrain::Update()
-      /*
       if (cKey==Global::Keys[k_Sand])
       {
+      /*
         if (DynamicObject->MoverParameters->TrainType!=dt_EZT)
         {
           if (DynamicObject->MoverParameters->SandDoseOn())
@@ -1432,6 +1432,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
               dsbPneumaticRelay->Play(0,0,0);
             }
         }
+      */
         if (DynamicObject->MoverParameters->TrainType==dt_EZT)
         {
           if(DynamicObject->MoverParameters->DoorSignalling==true)
@@ -1442,7 +1443,6 @@ void __fastcall TTrain::OnKeyPress(int cKey)
         }
       }
       else
-      */
       if (cKey==Global::Keys[k_CabForward])
       {
        if (!CabChange(1))
@@ -1543,6 +1543,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
               dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
               dsbCouplerAttach->Play(0,0,0);
              }
+            }
              else
               if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag,ctrain_passenger))     //mostek
               {
@@ -1559,7 +1560,6 @@ void __fastcall TTrain::OnKeyPress(int cKey)
            }
           }
         }
-      }
       else
       if (cKey==Global::Keys[k_DeCouple])
       { //ABu051104: male zmiany, zeby mozna bylo rozlaczac odlegle wagony
@@ -2925,6 +2925,7 @@ else
         else
           btLampkaBoczniki.TurnOff();
 
+
         if ( DynamicObject->MoverParameters->ActiveDir!=0 ) //napiecie na nastawniku hamulcowym
          { btLampkaNapNastHam.TurnOn(); }
         else
@@ -2964,12 +2965,10 @@ else
         btLampkaOpory.TurnOff();
         btLampkaStyczn.TurnOff();
         btLampkaNadmSil.TurnOff();
-
-        btLampkaNapNastHam.TurnOff();
-        btLampkaSprezarka.TurnOff();
         btLampkaUkrotnienie.TurnOff();
         btLampkaHamPosp.TurnOff();
         btLampkaBoczniki.TurnOff();
+        btLampkaNapNastHam.TurnOff();
         btLampkaSprezarka.TurnOff();
         btLampkaBezoporowa.TurnOff();
      }
@@ -3054,7 +3053,9 @@ if ( DynamicObject->MoverParameters->DoorSignalling==true)
         if(( tmp->MoverParameters->BrakePress<0.075f )|| (DynamicObject->MoverParameters->Battery==false)||(DynamicObject->MoverParameters->Signalling==false))
          { btLampkaHamowanie2zes.TurnOff(); }
         if (tmp->MoverParameters->ConverterFlag==true)
-        btLampkaNadmPrzetwB.TurnOff();
+         btLampkaNadmPrzetwB.TurnOff();
+        else
+         btLampkaNadmPrzetwB.TurnOn();
       }
     else  //wylaczone
       {
@@ -3125,18 +3126,18 @@ if (DynamicObject->MoverParameters->Battery==true)
      btLampkaBackward.TurnOn(); //jazda do ty³u
     else
      btLampkaBackward.TurnOff();
-}
-else
-{
-btLampkaNapNastHam.TurnOff();
-btLampkaHamienie.TurnOff();
-btLampkaMaxSila.TurnOff();
-btLampkaPrzekrMaxSila.TurnOff();
-btLampkaRadio.TurnOff();
-btLampkaHamulecReczny.TurnOff();
-btLampkaDoorLeft.TurnOff();
-btLampkaDoorRight.TurnOff();
-}
+ }
+ else
+ {//gdy bateria wy³¹czona
+  btLampkaNapNastHam.TurnOff();
+  btLampkaHamienie.TurnOff();
+  btLampkaMaxSila.TurnOff();
+  btLampkaPrzekrMaxSila.TurnOff();
+  btLampkaRadio.TurnOff();
+  btLampkaHamulecReczny.TurnOff();
+  btLampkaDoorLeft.TurnOff();
+  btLampkaDoorRight.TurnOff();
+ }
 //McZapkie-080602: obroty (albo translacje) regulatorow
     if (MainCtrlGauge.SubModel)
      {
@@ -3244,7 +3245,6 @@ btLampkaDoorRight.TurnOff();
       DepartureSignalButtonGauge.Update();
      }
 
-//NBMX dzwignia sprezarki
 //NBMX dzwignia sprezarki
     if (CompressorButtonGauge.SubModel)  //hunter-261211: poprawka
       CompressorButtonGauge.Update();
@@ -4129,7 +4129,7 @@ if ( Console::Pressed(Global::Keys[k_Main]) )                //[]
          MainButtonGauge.PutValue(0);
 
 if ( Console::Pressed(Global::Keys[k_CurrentNext]))
-   {
+ {
    if (DynamicObject->MoverParameters->TrainType!=dt_EZT)
    {
       if (ShowNextCurrent==false)
@@ -4145,8 +4145,8 @@ if ( Console::Pressed(Global::Keys[k_CurrentNext]))
    }
    else
    {
-    } 
-   }  
+   } 
+ }  
 else
    {
       if (ShowNextCurrent==true)
@@ -4752,13 +4752,13 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     btLampkaNadmWent.Clear(9);
     btLampkaNadmSpr.Clear(8);
     btLampkaOpory.Clear(2);
+    btLampkaWysRozr.Clear(10);
     btLampkaBezoporowa.Clear();
     btLampkaBezoporowaB.Clear();
     btLampkaMaxSila.Clear();
     btLampkaPrzekrMaxSila.Clear();
     btLampkaRadio.Clear();
     btLampkaHamulecReczny.Clear();
-    btLampkaWysRozr.Clear(10);
     btLampkaBlokadaDrzwi.Clear();
     btLampkaUniversal3.Clear();
     btLampkaWentZaluzje.Clear();

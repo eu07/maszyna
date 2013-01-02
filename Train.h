@@ -323,13 +323,13 @@ private:
 //    double fCzuwakTimer;
  double fBlinkTimer;
  float fHaslerTimer;
-    double fPoslizgTimer;
     float fConverterTimer;  //hunter-261211: dla przekaznika
     float fMainRelayTimer;  //hunter-141211: zalaczanie WSa z opoznieniem
     float fCzuwakTestTimer;     //hunter-091012: do testu czuwaka
     
     int CAflag; //hunter-131211: dla osobnego zbijania CA i SHP
 
+    double fPoslizgTimer;
 //    double fShpTimer;
 //    double fDblClickTimer;
     //ABu: Przeniesione do public. - Wiem, ze to nieladnie...
