@@ -53,6 +53,8 @@ __fastcall TEvent::~TEvent()
   break;
   case tp_Animation: //nic
    //SafeDeleteArray(Params[9].asText); //nie usuwaæ - nazwa jest zamieniana na wskaŸnik do submodelu
+   if (Params[0].asInt==4) //jeœli z pliku VMD
+    delete[] Params[8].asPointer; //zwolniæ obszar
   case tp_GetValues: //nic
   break;
  }
@@ -372,9 +374,9 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
   case tp_Animation:
    parser->getTokens();
    *parser >> token;
-   Params[0].asInt=0; //nieznany typ
+   Params[0].asInt=0; //na razie nieznany typ
    if (token.compare("rotate")==0)
-   {
+   {//obrót wzglêdem osi
     parser->getTokens();
     *parser >> token;
     Params[9].asText=new char[255]; //nazwa submodelu
@@ -385,12 +387,27 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
    }
    else
    if (token.compare("translate")==0)
-   {
+   {//przesuw o wektor
     parser->getTokens();
     *parser >> token;
     Params[9].asText=new char[255]; //nazwa submodelu
     strcpy(Params[9].asText,token.c_str());
     Params[0].asInt=2;
+    parser->getTokens(4);
+    *parser >> Params[1].asdouble >> Params[2].asdouble >> Params[3].asdouble >> Params[4].asdouble;
+   }
+   else if (token.substr(token.length()-4,4)==".vmd") //na razie tu, mo¿e bêdzie inaczej
+   {//animacja z pliku VMD
+    TFileStream *fs=new TFileStream("models\\"+AnsiString(token.c_str()),fmOpenRead);
+    Params[7].asInt=fs->Size;
+    Params[8].asPointer=new char[fs->Size];
+    fs->Read(Params[8].asPointer,fs->Size); //wczytanie pliku
+    delete fs;
+    parser->getTokens();
+    *parser >> token;
+    Params[9].asText=new char[255]; //nazwa submodelu
+    strcpy(Params[9].asText,token.c_str());
+    Params[0].asInt=4; //rodzaj animacji
     parser->getTokens(4);
     *parser >> Params[1].asdouble >> Params[2].asdouble >> Params[3].asdouble >> Params[4].asdouble;
    }

@@ -16,10 +16,58 @@
 //McZapkie:
 #include "Texture.h"
 #include "Globals.h"
+//---------------------------------------------------------------------------
+#pragma package(smart_init)
+//---------------------------------------------------------------------------
 
 
 const double fOnTime= 0.66;
 const double fOffTime= fOnTime+0.66;
+
+__fastcall TAnimAdvanced::TAnimAdvanced()
+{
+};
+__fastcall TAnimAdvanced::~TAnimAdvanced()
+{
+ //delete[] pVocaloidMotionData; //plik zosta³ zmodyfikowany
+};
+
+int __fastcall TAnimAdvanced::SortByBone()
+{//sortowanie pliku animacji w celu optymalniejszego wykonania
+ //rekordy zostaj¹ u³o¿one wg kolejnych ramek dla ka¿dej koœci
+ //u³o¿enie koœci alfabetycznie nie jest niezbêdne, ale upraszcza sortowanie b¹belkowe
+ TAnimVocaloidFrame buf; //bufor roboczy (przyda³o by siê pascalowe Swap()
+ int i,j,k,swaps=0,last=iMovements-1,e;
+ for (i=0;i<iMovements;++i)
+  for (j=0;j<15;++j)
+   if (pMovementData[i].cBone[j]=='\0') //jeœli znacznik koñca
+    for (++j;j<15;++j)
+     pMovementData[i].cBone[j]='\0'; //zerowanie bajtów za znacznikiem koñca
+ for (i=0;i<last;++i) //do przedostatniego
+ {//dopóki nie posortowane
+  j=i; //z którym porównywaæ
+  k=i; //z którym zamieniæ (nie trzeba zamieniaæ, jeœli ==i)
+  while (++j<iMovements)
+  {e=strcmp(pMovementData[k].cBone,pMovementData[j].cBone); //numery trzeba porównywaæ inaczej
+   if (e>0)
+    k=j; //trzeba zamieniæ - ten pod j jest mniejszy
+   else if (!e)
+    if (pMovementData[k].iFrame>pMovementData[j].iFrame)
+     k=j; //numer klatki pod j jest mniejszy
+  }
+  if (k>i)
+  {//jeœli trzeba przestawiæ
+   //buf=pMovementData[i];
+   //pMovementData[i]=pMovementData[k];
+   //pMovementData[k]=buf;
+   memcpy(&buf,pMovementData+i,sizeof(TAnimVocaloidFrame));
+   memcpy(pMovementData+i,pMovementData+k,sizeof(TAnimVocaloidFrame));
+   memcpy(pMovementData+k,&buf,sizeof(TAnimVocaloidFrame));
+   ++swaps;
+  }
+ }
+ return swaps;
+};
 
 __fastcall TAnimContainer::TAnimContainer()
 {
@@ -30,13 +78,17 @@ __fastcall TAnimContainer::TAnimContainer()
  vTranslation=vector3(0.0f,0.0f,0.0f); //aktualne przesuniêcie
  vTranslateTo=vector3(0.0f,0.0f,0.0f); //docelowe przesuniêcie
  fTranslateSpeed=0.0;
+ fAngleSpeed=0.0;
  pSubModel=NULL;
  iAnim=0; //po³o¿enie pocz¹tkowe
+ pMovementData=NULL; //nie ma zaawansowanej animacji
+ mAnim=NULL; //nie ma macierzy obrotu dla submodelu
 }
 
 __fastcall TAnimContainer::~TAnimContainer()
 {
  SafeDelete(pNext);
+ delete mAnim; //AnimContainer jest w³aœcicielem takich macierzy
 }
 
 bool __fastcall TAnimContainer::Init(TSubModel *pNewSubModel)
@@ -62,26 +114,64 @@ void __fastcall TAnimContainer::SetTranslateAnim(vector3 vNewTranslate, double f
  iAnim|=2;
 }
 
+void __fastcall TAnimContainer::AnimSetVMD(double fNewSpeed)
+{
+ if (!this) return; //wywo³ywane z eventu, gdy brak modelu
+ //skala do ustalenia, "cal" japoñski (sun) to nieco ponad 3cm
+ //X-w lewo, Y-w górê, Z-do ty³u
+ //minimalna wysokoœæ to -7.66, a nadal musi byæ ponad pod³og¹
+ //if (pMovementData->iFrame>0) return; //tylko pierwsza ramka
+ vTranslateTo=vector3(0.1*pMovementData->f3Vector.x,0.1*pMovementData->f3Vector.z,0.1*pMovementData->f3Vector.y);
+ if (LengthSquared3(vTranslateTo)>0.0?true:LengthSquared3(vTranslation)>0.0)
+  {//jeœli ma byæ przesuniête albo jest przesuniêcie
+   iAnim|=2; //wy³¹czy siê samo
+   if (fNewSpeed>0.0)
+    fTranslateSpeed=fNewSpeed; //prêdkoœæ jest mno¿nikiem, nie podlega skalowaniu
+   else //za póŸno na animacje, trzeba przestawiæ
+    vTranslation=vTranslateTo;
+  }
+ if ((qCurrent.w<1.0)||(pMovementData->qAngle.w<1.0))
+ {//jeœli jest jakiœ obrót
+  if (!mAnim)
+  {mAnim=new float4x4(); //nowa macierz animacji
+   mAnim->Identity(); //jedynkowanie na pocz¹tek
+  }
+  iAnim|=4; //animacja kwaternionowa
+  //---+ - macha rêkami do ty³u zamiast do przodu
+  //-+-+ - d³oñ ma w górze zamiast na pasie w pozycji pocz¹tkowej
+  //+--+ - g³owa do ty³u w pozycji pocz¹tkowej
+  //--++ - pozycja pocz¹tkowa dobra
+  qDesired=float4(-pMovementData->qAngle.x,-pMovementData->qAngle.z,pMovementData->qAngle.y,pMovementData->qAngle.w); //tu trzeba bêdzie osie zamieniæ
+  qCurrent=qDesired; //a to animowaæ, przynajmniej liniowo...
+ }
+ //if (!strcmp(pSubModel->pName,"?Z?“?^?[")) //jak g³ówna koœæ
+ // WriteLog(AnsiString(pMovementData->iFrame)+": "+AnsiString(pMovementData->f3Vector.x)+" "+AnsiString(pMovementData->f3Vector.y)+" "+AnsiString(pMovementData->f3Vector.z));
+}
+
 void __fastcall TAnimContainer::UpdateModel()
 {
  if (pSubModel)
  {
-  if (fTranslateSpeed!=0)
+  if (fTranslateSpeed!=0.0)
   {
-   vector3 dif=vTranslateTo-vTranslation;
-   vector3 s=SafeNormalize(dif);
-   s=fTranslateSpeed*s*Timer::GetDeltaTime();
-   if (LengthSquared3(s)>LengthSquared3(dif)) s=dif; //¿eby nie jecha³o na drug¹ stronê
-   if (s.x==0?s.y==0?s.z==0:false:false)
-   {vTranslation=vTranslateTo; //nie potrzeba przeliczaæ ju¿
-    fTranslateSpeed=0.0;
-    if (vTranslation.x==0.0)
-     if (vTranslation.y==0.0)
-      if (vTranslation.z==0.0)
-       iAnim&=~2; //przesuniêcie jest zerowe - jest w punkcie pocz¹tkowym
+   vector3 dif=vTranslateTo-vTranslation; //wektor w kierunku docelowym
+   double l=LengthSquared3(dif); //d³ugoœæ wektora potrzebnego przemieszczenia
+   if (l>=0.0001)
+   {//jeœli do przemieszczenia jest ponad 1cm
+    vector3 s=SafeNormalize(dif); //jednostkowy wektor kierunku
+    s=fTranslateSpeed*s*Timer::GetDeltaTime(); //przemieszczenie w podanym czasie z dan¹ prêdkoœci¹
+    if (LengthSquared3(s)<l) //¿eby nie jecha³o na drug¹ stronê
+     vTranslation+=s;
+    else
+     vTranslation=vTranslateTo; //koniec animacji
    }
    else
-    vTranslation+=s;
+   {//koniec animowania
+    vTranslation=vTranslateTo;
+    fTranslateSpeed=0.0; //wy³¹czenie przeliczania wektora
+    if (LengthSquared3(vTranslation)<=0.0001) //jeœli jest w punkcie pocz¹tkowym
+     iAnim&=~2; //wy³¹czyæ zmianê pozycji submodelu
+   }
   }
   if (fRotateSpeed!=0)
   {
@@ -128,11 +218,21 @@ void __fastcall TAnimContainer::UpdateModel()
       iAnim&=~1; //k¹ty s¹ zerowe
    if (!anim) fRotateSpeed=0.0; //nie potrzeba przeliczaæ ju¿
   }
-  if (iAnim&3) //zmieniona pozycja wzglêdem pocz¹tkowej
-  {pSubModel->SetTranslate(vTranslation);
-   pSubModel->SetRotateXYZ(vRotateAngles); //ustawia typ animacji
+  if (fAngleSpeed!=0.0)
+  {//obrót kwaternionu (interpolacja)
   }
+  if (iAnim&1) //zmieniona pozycja wzglêdem pocz¹tkowej
+   pSubModel->SetRotateXYZ(vRotateAngles); //ustawia typ animacji
+  if (iAnim&2) //zmieniona pozycja wzglêdem pocz¹tkowej
+   pSubModel->SetTranslate(vTranslation);
+  if (iAnim&4) //zmieniona pozycja wzglêdem pocz¹tkowej
+  {
+   mAnim->Quaternion(&qCurrent); //wype³nienie macierzy
+  }
+  pSubModel->mAnimMatrix=mAnim; //u¿yczenie do submodelu (na czas renderowania!)
  }
+ //if (!strcmp(pSubModel->pName,"?Z?“?^?[")) //jak g³ówna koœæ
+ // WriteLog(AnsiString(pMovementData->iFrame)+": "+AnsiString(iAnim)+" "+AnsiString(vTranslation.x)+" "+AnsiString(vTranslation.y)+" "+AnsiString(vTranslation.z));
 }
 
 bool __fastcall TAnimContainer::InMovement()
@@ -161,10 +261,12 @@ __fastcall TAnimModel::TAnimModel()
   lsLights[i]=ls_Off; //a jeœli s¹, to wy³¹czone
  }
  vAngle.x=vAngle.y=vAngle.z=0.0; //zerowanie obrotów egzemplarza
+ pAdvanced=NULL; //nie ma zaawansowanej animacji
 }
 
 __fastcall TAnimModel::~TAnimModel()
 {
+ delete pAdvanced; //nie ma zaawansowanej animacji
  SafeDelete(pRoot);
 }
 
@@ -301,6 +403,8 @@ void __fastcall TAnimModel::RaPrepare()
  }
  TSubModel::iInstance=(int)this; //¿eby nie robiæ cudzych animacji
  TSubModel::pasText=&asText; //przekazanie tekstu do wyœwietlacza (!!!! do przemyœlenia)
+ if (pAdvanced) //jeœli jest zaawansowana animacja
+  Advanced(); //wykonaæ co tam trzeba
  TAnimContainer *pCurrent;
  for (pCurrent=pRoot;pCurrent!=NULL;pCurrent=pCurrent->pNext)
   pCurrent->UpdateModel(); //przeliczenie animacji ka¿dego submodelu
@@ -395,5 +499,121 @@ void __fastcall TAnimModel::TerrainRenderVBO(int n)
  if (pModel) pModel->TerrainRenderVBO(n);
 };
 //---------------------------------------------------------------------------
-#pragma package(smart_init)
+
+void __fastcall TAnimModel::Advanced()
+{//wykonanie zaawansowanych animacji na submodelach
+ pAdvanced->fCurrent+=pAdvanced->fFrequency*Timer::GetDeltaTime(); //aktualna ramka zmiennoprzecinkowo
+ int frame=floor(pAdvanced->fCurrent); //numer klatki jako int
+ TAnimContainer *pCurrent;
+ if (pAdvanced->fCurrent>=pAdvanced->fLast)
+ {//animacja zosta³a zakoñczona
+  delete pAdvanced;
+  pAdvanced=NULL; //dalej ju¿ nic
+  for (pCurrent=pRoot;pCurrent!=NULL;pCurrent=pCurrent->pNext)
+   if (pCurrent->pMovementData) //jeœli obs³ugiwany tabelk¹ animacji
+    pCurrent->pMovementData=NULL; //usuwanie wskaŸników
+ }
+ else
+ {//coœ trzeba poanimowaæ - wszystkie animowane submodele s¹ w tym ³añcuchu
+  for (pCurrent=pRoot;pCurrent!=NULL;pCurrent=pCurrent->pNext)
+   if (pCurrent->pMovementData) //jeœli obs³ugiwany tabelk¹ animacji
+    if (frame>=pCurrent->pMovementData->iFrame) //koniec czekania
+     if (!strcmp(pCurrent->pMovementData->cBone,(pCurrent->pMovementData+1)->cBone))
+     {//jak kolejna ramka dotyczy tego samego submodelu, ustawiæ animacjê do kolejnej ramki
+      ++pCurrent->pMovementData; //kolejna klatka
+      pCurrent->AnimSetVMD(pAdvanced->fFrequency/(double(pCurrent->pMovementData->iFrame)-pAdvanced->fCurrent));
+      //pCurrent->UpdateModel(); //przeliczenie animacji ka¿dego submodelu
+     }
+     else
+      pCurrent->pMovementData=NULL; //inna nazwa, animowanie zakoñczone w aktualnym po³o¿eniu
+ }
+};
+
+void __fastcall TAnimModel::AnimationVND(void* pData, double a, double b, double c, double d)
+{//rozpoczêcie wykonywania animacji z podanego pliku
+ //tabela w pliku musi byæ posortowana wg klatek dla kolejnych koœci!
+ //skrócone nagranie ma 3:42 = 222 sekundy, animacja koñczy siê na klatce 6518
+ //daje to 29.36 (~=30) klatek na sekundê
+ //w opisach jest podawane 24 albo 36 jako standard - powiedzmy, parametr (d) to FPS animacji
+ delete pAdvanced; //usuniêcie ewentualnego poprzedniego
+ pAdvanced=NULL; //gdyby siê nie uda³o rozpoznaæ pliku
+ if (AnsiString((char*)pData)=="Vocaloid Motion Data 0002")
+ {
+  pAdvanced=new TAnimAdvanced();
+  pAdvanced->pVocaloidMotionData=(char*)pData; //podczepienie pliku danych
+  pAdvanced->iMovements=*((int*)(((char*)pData)+50)); //numer ostatniej klatki
+  pAdvanced->pMovementData=(TAnimVocaloidFrame*)(((char*)pData)+54); //rekordy animacji
+  //WriteLog(sizeof(TAnimVocaloidFrame));
+  pAdvanced->fFrequency=d;
+  pAdvanced->fCurrent=0.0; //aktualna ramka
+  pAdvanced->fLast=0.0; //ostatnia ramka
+/*
+  pAdvanced->SortByBone();
+    TFileStream *fs=new TFileStream("models\\1.vmd",fmCreate);
+    fs->Write(pData,2948728);
+    delete fs;
+*/
+
+  int i,j,k=0,idx=0;
+  AnsiString name;
+  TAnimContainer *pSub;
+  for (i=0;i<pAdvanced->iMovements;++i)
+  {if (strcmp(pAdvanced->pMovementData[i].cBone,name.c_str()))
+   {//jeœli pozycja w tabelce nie by³a wyszukiwana w submodelach
+    pSub=GetContainer(pAdvanced->pMovementData[i].cBone); //szukanie
+    if (pSub) //znaleziony
+    {pSub->pMovementData=pAdvanced->pMovementData+i; //gotów do animowania
+     pSub->AnimSetVMD(0.0); //usuawienie pozycji pocz¹tkowej (powinna byæ zerowa, inaczej bêdzie skok)
+    }
+    name=AnsiString(pAdvanced->pMovementData[i].cBone); //nowa nazwa do pomijania
+   }
+   if (pAdvanced->fLast<pAdvanced->pMovementData[i].iFrame)
+    pAdvanced->fLast=pAdvanced->pMovementData[i].iFrame;
+  }
+/*
+  for (i=0;i<pAdvanced->iMovements;++i)
+  if (AnsiString(pAdvanced->pMovementData[i+1].cBone)!=AnsiString(pAdvanced->pMovementData[i].cBone))
+  {//generowane dla ostatniej klatki danej koœci
+   name="";
+   for (j=0;j<15;j++)
+    name+=IntToHex((unsigned char)pAdvanced->pMovementData[i].cBone[j],2);
+   WriteLog(name+","
+    +AnsiString(pAdvanced->pMovementData[i].cBone)+","
+    +AnsiString(idx)+"," //indeks
+    +AnsiString(i+1-idx)+"," //ile pozycji animacji
+    +AnsiString(k)+"," //pierwsza klatka
+    +AnsiString(pAdvanced->pMovementData[i].iFrame)+"," //ostatnia klatka
+    +AnsiString(pAdvanced->pMovementData[i].f3Vector.x)+","
+    +AnsiString(pAdvanced->pMovementData[i].f3Vector.y)+","
+    +AnsiString(pAdvanced->pMovementData[i].f3Vector.z)+","
+    +AnsiString(pAdvanced->pMovementData[i].fAngle[0])+","
+    +AnsiString(pAdvanced->pMovementData[i].fAngle[1])+","
+    +AnsiString(pAdvanced->pMovementData[i].fAngle[2])+","
+    +AnsiString(pAdvanced->pMovementData[i].fAngle[3])
+
+    );
+   idx=i+1;
+   k=pAdvanced->pMovementData[i+1].iFrame; //pierwsza klatka nastêpnego
+  }
+  else
+   if (pAdvanced->pMovementData[i].iFrame>0)
+    if ((k>pAdvanced->pMovementData[i].iFrame)||(k==0))
+     k=pAdvanced->pMovementData[i].iFrame; //pierwsza niezerowa ramka
+*/
+/*
+  for (i=0;i<pAdvanced->iMovements;++i)
+   if (AnsiString(pAdvanced->pMovementData[i].cBone)=="\x89\x45\x90\x65\x8E\x77\x82\x4F")
+   {name="";
+    for (j=0;j<15;j++)
+     name+=IntToHex((unsigned char)pAdvanced->pMovementData[i].cBone[j],2);
+    WriteLog(name+","
+     +AnsiString(i)+"," //pozycja w tabeli
+     +AnsiString(pAdvanced->pMovementData[i].iFrame)+"," //pierwsza klatka
+    );
+   }
+*/
+ }
+};
+
+//---------------------------------------------------------------------------
 
