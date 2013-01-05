@@ -880,6 +880,8 @@ void __fastcall TSubModel::RaAnimation(TAnimType a)
    glRotated(-fmod(Global::fTimeAngleDeg,360.0),0.0,1.0,0.0); //obrót dobowy osi OX
    break;
  }
+ if (mAnimMatrix) //mo¿na by to daæ np. do at_Translate
+  glMultMatrixf(mAnimMatrix->readArray());
 };
 
 void __fastcall TSubModel::RenderDL()
@@ -1291,7 +1293,7 @@ void __fastcall TSubModel::Info()
 
 void __fastcall TSubModel::InfoSet(TSubModelInfo *info)
 {//ustawienie danych wg obiektu pomocniczego do zapisania w pliku
- int ile=(char*)&TexAlpha-(char*)&eType; //iloœæ bajtów pomiêdzy tymi zmiennymi 
+ int ile=(char*)&uiDisplayList-(char*)&eType; //iloœæ bajtów pomiêdzy tymi zmiennymi 
  ZeroMemory(this,sizeof(TSubModel)); //zerowaie ca³oœci
  CopyMemory(this,info->pSubModel,ile); //skopiowanie pamiêci 1:1
  iTexture=info->iTexture;//numer nazwy tekstury, a nie numer w OpenGL

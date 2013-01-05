@@ -2522,9 +2522,14 @@ bool __fastcall TGround::InitEvents()
     {
      strcpy(buff,Current->Params[9].asText); //skopiowanie nazwy submodelu do bufora roboczego
      SafeDeleteArray(Current->Params[9].asText); //usuniêcie nazwy submodelu
-     Current->Params[9].asAnimContainer=tmp->Model->GetContainer(buff); //submodel
-     if (Current->Params[9].asAnimContainer)
-      Current->Params[9].asAnimContainer->WillBeAnimated(); //oflagowanie animacji
+     if (Current->Params[0].asInt==4)
+      Current->Params[9].asModel=tmp->Model; //model dla ca³omodelowych animacji
+     else
+     {//standardowo przypisanie submodelu
+      Current->Params[9].asAnimContainer=tmp->Model->GetContainer(buff); //submodel
+      if (Current->Params[9].asAnimContainer)
+       Current->Params[9].asAnimContainer->WillBeAnimated(); //oflagowanie animacji
+     }
     }
     else
      Error("Event \""+Current->asName+"\" cannot find model \""+Current->asNodeName+"\"");
@@ -3092,13 +3097,20 @@ bool __fastcall TGround::CheckQuery()
        vector3(tmpEvent->Params[1].asdouble,
                tmpEvent->Params[2].asdouble,
                tmpEvent->Params[3].asdouble),
-               tmpEvent->Params[4].asdouble);
+       tmpEvent->Params[4].asdouble);
      else if (tmpEvent->Params[0].asInt==2)
       tmpEvent->Params[9].asAnimContainer->SetTranslateAnim(
        vector3(tmpEvent->Params[1].asdouble,
                tmpEvent->Params[2].asdouble,
                tmpEvent->Params[3].asdouble),
-               tmpEvent->Params[4].asdouble);
+       tmpEvent->Params[4].asdouble);
+     else if (tmpEvent->Params[0].asInt==4)
+      tmpEvent->Params[9].asModel->AnimationVND(
+       tmpEvent->Params[8].asPointer,
+       tmpEvent->Params[1].asdouble, //tu mog¹ byæ dodatkowe parametry, np. od-do
+       tmpEvent->Params[2].asdouble,
+       tmpEvent->Params[3].asdouble,
+       tmpEvent->Params[4].asdouble);
     break;
     case tp_Switch :
      if (tmpEvent->Params[9].asTrack)

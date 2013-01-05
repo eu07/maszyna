@@ -47,6 +47,14 @@ inline float3 CrossProduct(const float3& v1,const float3& v2)
 {return float3(v1.y*v2.z-v1.z*v2.y,v2.x*v1.z-v2.z*v1.x,v1.x*v2.y-v1.y*v2.x);
 }
 
+class float4
+{//kwaternion obrotu
+public:
+ float x,y,z,w;
+ __fastcall float4() {x=y=z=0.f;w=1.f;};
+ __fastcall float4(float a,float b,float c,float d) {x=a;y=b;z=c;w=d;};
+};
+
 struct float8
 {//wiercho³ek 3D z wektorem normalnym i mapowaniem, pojedyncza precyzja
 public:
@@ -69,7 +77,7 @@ public:
   e[0]=e[5]=e[10]=e[15]=1.0f;
  }
  const float* operator[](int i) const {return &e[i<<2];};
- void InitialRotate()
+ void __fastcall InitialRotate()
  {//taka specjalna rotacja, nie ma co ci¹gaæ trygonometrii
   float f;
   for (int i=0;i<16;i+=4)
@@ -85,6 +93,7 @@ public:
     return false;
   return true;
  }
+ void __fastcall Quaternion(float4 *q);
 };
 
 inline float3 operator*(const float4x4& m,const float3& v)
