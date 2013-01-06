@@ -133,16 +133,30 @@ void __fastcall TAnimContainer::AnimSetVMD(double fNewSpeed)
  if ((qCurrent.w<1.0)||(pMovementData->qAngle.w<1.0))
  {//jeœli jest jakiœ obrót
   if (!mAnim)
-  {mAnim=new float4x4(); //nowa macierz animacji
+  {mAnim=new float4x4(); //bêdzie potrzebna macierz animacji
    mAnim->Identity(); //jedynkowanie na pocz¹tek
   }
   iAnim|=4; //animacja kwaternionowa
-  //---+ - macha rêkami do ty³u zamiast do przodu
+  qStart=qCurrent; //potrzebna pocz¹tkowa do interpolacji
+  //---+ - te¿ niby dobrze, ale nie tak tr¹ca w³osy na pocz¹tku (macha w dó³)
   //-+-+ - d³oñ ma w górze zamiast na pasie w pozycji pocz¹tkowej
-  //+--+ - g³owa do ty³u w pozycji pocz¹tkowej
-  //--++ - pozycja pocz¹tkowa dobra
-  qDesired=float4(-pMovementData->qAngle.x,-pMovementData->qAngle.z,pMovementData->qAngle.y,pMovementData->qAngle.w); //tu trzeba bêdzie osie zamieniæ
-  qCurrent=qDesired; //a to animowaæ, przynajmniej liniowo...
+  //+--+ - g³owa do ty³u (broda w górê) w pozycji pocz¹tkowej
+  //--++ - pozycja pocz¹tkowa dobra, tr¹ca u góry, ale z rêkami jakoœ nie tak
+  //++++ - k³adzie siê brzuchem do góry
+  //-+++ - rêce w górze na pocz¹tku, zamiast w dó³, ³okieæ jakby w przeciwn¹ stronê
+  //+-++ - nie podnosi rêko do g³owy
+  //++-+ - d³oñ ma w górze zamiast na pasie
+  qDesired=float4(-pMovementData->qAngle.x,-pMovementData->qAngle.z,+pMovementData->qAngle.y,pMovementData->qAngle.w); //tu trzeba bêdzie osie zamieniæ
+  if (fNewSpeed>0.0)
+  {fAngleSpeed=fNewSpeed; //wtedy animowaæ za pomoc¹ interpolacji
+   fAngleCurrent=0.0; //pocz¹tek interpolacji
+  }
+  else
+  {//za póŸno na animacjê, mo¿na tylko przestawiæ w docelowe miejsce
+   fAngleSpeed=0.0;
+   fAngleCurrent=1.0; //interpolacja zakoñczona
+   qCurrent=qDesired;
+  }
  }
  //if (!strcmp(pSubModel->pName,"?Z?“?^?[")) //jak g³ówna koœæ
  // WriteLog(AnsiString(pMovementData->iFrame)+": "+AnsiString(pMovementData->f3Vector.x)+" "+AnsiString(pMovementData->f3Vector.y)+" "+AnsiString(pMovementData->f3Vector.z));
@@ -159,7 +173,7 @@ void __fastcall TAnimContainer::UpdateModel()
    if (l>=0.0001)
    {//jeœli do przemieszczenia jest ponad 1cm
     vector3 s=SafeNormalize(dif); //jednostkowy wektor kierunku
-    s=fTranslateSpeed*s*Timer::GetDeltaTime(); //przemieszczenie w podanym czasie z dan¹ prêdkoœci¹
+    s=s*(fTranslateSpeed*Timer::GetDeltaTime()); //przemieszczenie w podanym czasie z dan¹ prêdkoœci¹
     if (LengthSquared3(s)<l) //¿eby nie jecha³o na drug¹ stronê
      vTranslation+=s;
     else
@@ -227,7 +241,20 @@ void __fastcall TAnimContainer::UpdateModel()
    pSubModel->SetTranslate(vTranslation);
   if (iAnim&4) //zmieniona pozycja wzglêdem pocz¹tkowej
   {
-   mAnim->Quaternion(&qCurrent); //wype³nienie macierzy
+   if (fAngleSpeed>0.0f)
+   {fAngleCurrent+=fAngleSpeed*Timer::GetDeltaTime(); //aktualny parametr interpolacji
+    if (fAngleCurrent>=1.0f)
+    {//interpolacja zakoñczona, ustawienie na pozycjê koñcow¹
+     qCurrent=qDesired;
+     fAngleSpeed=0.0; //wy³¹czenie przeliczania wektora
+    }
+    else
+    {//obliczanie pozycji poœredniej
+     //qCurrent=Normalize(Slerp(qStart,qDesired,fAngleCurrent)); //interpolacja sferyczna k¹ta
+     qCurrent=Slerp(qStart,qDesired,fAngleCurrent); //interpolacja sferyczna k¹ta
+    }
+   }
+   mAnim->Quaternion(&qCurrent); //wype³nienie macierzy (wymaga normalizacji?)
   }
   pSubModel->mAnimMatrix=mAnim; //u¿yczenie do submodelu (na czas renderowania!)
  }
@@ -522,7 +549,6 @@ void __fastcall TAnimModel::Advanced()
      {//jak kolejna ramka dotyczy tego samego submodelu, ustawiæ animacjê do kolejnej ramki
       ++pCurrent->pMovementData; //kolejna klatka
       pCurrent->AnimSetVMD(pAdvanced->fFrequency/(double(pCurrent->pMovementData->iFrame)-pAdvanced->fCurrent));
-      //pCurrent->UpdateModel(); //przeliczenie animacji ka¿dego submodelu
      }
      else
       pCurrent->pMovementData=NULL; //inna nazwa, animowanie zakoñczone w aktualnym po³o¿eniu
@@ -550,7 +576,7 @@ void __fastcall TAnimModel::AnimationVND(void* pData, double a, double b, double
 /*
   pAdvanced->SortByBone();
     TFileStream *fs=new TFileStream("models\\1.vmd",fmCreate);
-    fs->Write(pData,2948728);
+    fs->Write(pData,2198342); //2948728);
     delete fs;
 */
 
