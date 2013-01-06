@@ -35,9 +35,11 @@ private:
  vector3 vTranslation;
  vector3 vTranslateTo;
  double fTranslateSpeed; //mo¿e tu daæ wektor?
- float4 qCurrent;
- float4 qDesired;
- float fAngleSpeed;
+ float4 qCurrent; //aktualny interpolowany
+ float4 qStart; //pozycja pocz¹tkowa (0 dla interpolacji)
+ float4 qDesired; //pozycja koñcowa (1 dla interpolacji)
+ float fAngleCurrent; //parametr interpolacyjny: 0=start, 1=docelowy
+ float fAngleSpeed; //zmiana parametru interpolacji w sekundach
  TSubModel *pSubModel;
  float4x4 *mAnim; //macierz do animacji kwaternionowych 
  int iAnim; //animacja: 1-obrót Eulera, 2-przesuw, 4-obrót kwaternionem
