@@ -270,6 +270,10 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
    else if (type=="billboard")     b_Anim=b_aAnim=at_Billboard; //obrót w pionie do kamery
    else if (type=="wind")          b_Anim=b_aAnim=at_Wind; //ruch pod wp³ywem wiatru
    else if (type=="sky")           b_Anim=b_aAnim=at_Sky; //aniamacja nieba
+   else if (type=="ik")            b_Anim=b_aAnim=at_IK; //IK: zadaj¹cy
+   else if (type=="ik11")          b_Anim=b_aAnim=at_IK11; //IK: kierunkowany
+   else if (type=="ik21")          b_Anim=b_aAnim=at_IK21; //IK: kierunkowany
+   else if (type=="ik22")          b_Anim=b_aAnim=at_IK22; //IK: kierunkowany
    else b_Anim=b_aAnim=at_Undefined; //nieznana forma animacji
   }
  }
@@ -780,6 +784,12 @@ void __fastcall TSubModel::SetTranslate(vector3 vNewTransVector)
  iAnimOwner=iInstance; //zapamiêtanie czyja jest animacja
 }
 
+void __fastcall TSubModel::SetRotateIK1(float3 vNewAngles)
+{//obrócenie submodelu o podane k¹ty wokó³ osi lokalnego uk³adu
+ v_Angles=vNewAngles;
+ iAnimOwner=iInstance; //zapamiêtanie czyja jest animacja
+}
+
 struct ToLower
 {
  char operator()(char input) { return tolower(input); }
@@ -879,9 +889,15 @@ void __fastcall TSubModel::RaAnimation(TAnimType a)
    //glRotatef(Global::fTimeAngleDeg,0.0,1.0,0.0); //obrót dobowy osi OX
    glRotated(-fmod(Global::fTimeAngleDeg,360.0),0.0,1.0,0.0); //obrót dobowy osi OX
    break;
+  case at_IK11: //ostatni element animacji szkieletowej (podudzie, stopa)
+   glRotatef(v_Angles.z,0.0,1.0,0.0); //obrót wzglêdem osi pionowej (azymut)
+   glRotatef(v_Angles.x,1.0,0.0,0.0); //obrót wzglêdem poziomu (deklinacja)
+   break;
  }
  if (mAnimMatrix) //mo¿na by to daæ np. do at_Translate
-  glMultMatrixf(mAnimMatrix->readArray());
+ {glMultMatrixf(mAnimMatrix->readArray());
+  mAnimMatrix=NULL; //jak animator bêdzie potrzebowa³, to ustawi ponownie
+ }
 };
 
 void __fastcall TSubModel::RenderDL()

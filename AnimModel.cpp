@@ -130,7 +130,7 @@ void __fastcall TAnimContainer::AnimSetVMD(double fNewSpeed)
    else //za póŸno na animacje, trzeba przestawiæ
     vTranslation=vTranslateTo;
   }
- if ((qCurrent.w<1.0)||(pMovementData->qAngle.w<1.0))
+ //if ((qCurrent.w<1.0)||(pMovementData->qAngle.w<1.0))
  {//jeœli jest jakiœ obrót
   if (!mAnim)
   {mAnim=new float4x4(); //bêdzie potrzebna macierz animacji
@@ -141,12 +141,12 @@ void __fastcall TAnimContainer::AnimSetVMD(double fNewSpeed)
   //---+ - te¿ niby dobrze, ale nie tak tr¹ca w³osy na pocz¹tku (macha w dó³)
   //-+-+ - d³oñ ma w górze zamiast na pasie w pozycji pocz¹tkowej
   //+--+ - g³owa do ty³u (broda w górê) w pozycji pocz¹tkowej
-  //--++ - pozycja pocz¹tkowa dobra, tr¹ca u góry, ale z rêkami jakoœ nie tak
+  //--++ - pozycja pocz¹tkowa dobra, tr¹ca u góry, ale z rêkami jakoœ nie tak, kó³ko w przeciwn¹ stronê
   //++++ - k³adzie siê brzuchem do góry
   //-+++ - rêce w górze na pocz¹tku, zamiast w dó³, ³okieæ jakby w przeciwn¹ stronê
-  //+-++ - nie podnosi rêko do g³owy
+  //+-++ - nie podnosi rêki do g³owy
   //++-+ - d³oñ ma w górze zamiast na pasie
-  qDesired=float4(-pMovementData->qAngle.x,-pMovementData->qAngle.z,+pMovementData->qAngle.y,pMovementData->qAngle.w); //tu trzeba bêdzie osie zamieniæ
+  qDesired=Normalize(float4(-pMovementData->qAngle.x,-pMovementData->qAngle.z,-pMovementData->qAngle.y,pMovementData->qAngle.w)); //tu trzeba bêdzie osie zamieniæ
   if (fNewSpeed>0.0)
   {fAngleSpeed=fNewSpeed; //wtedy animowaæ za pomoc¹ interpolacji
    fAngleCurrent=0.0; //pocz¹tek interpolacji
@@ -159,12 +159,13 @@ void __fastcall TAnimContainer::AnimSetVMD(double fNewSpeed)
   }
  }
  //if (!strcmp(pSubModel->pName,"?Z?“?^?[")) //jak g³ówna koœæ
- // WriteLog(AnsiString(pMovementData->iFrame)+": "+AnsiString(pMovementData->f3Vector.x)+" "+AnsiString(pMovementData->f3Vector.y)+" "+AnsiString(pMovementData->f3Vector.z));
+ if (!strcmp(pSubModel->pName,"¶‚Â‚Üæ‚h‚j")) //IK lewej stopy
+  WriteLog(AnsiString(pMovementData->iFrame)+": "+AnsiString(pMovementData->f3Vector.x)+" "+AnsiString(pMovementData->f3Vector.y)+" "+AnsiString(pMovementData->f3Vector.z));
 }
 
 void __fastcall TAnimContainer::UpdateModel()
 {
- if (pSubModel)
+ if (pSubModel) //pozbyæ siê tego - sprawdzaæ wczeœniej
  {
   if (fTranslateSpeed!=0.0)
   {
@@ -250,16 +251,53 @@ void __fastcall TAnimContainer::UpdateModel()
     }
     else
     {//obliczanie pozycji poœredniej
-     //qCurrent=Normalize(Slerp(qStart,qDesired,fAngleCurrent)); //interpolacja sferyczna k¹ta
-     qCurrent=Slerp(qStart,qDesired,fAngleCurrent); //interpolacja sferyczna k¹ta
+     //normalizacja jest wymagana do interpolacji w nastêpnej animacji
+     qCurrent=Normalize(Slerp(qStart,qDesired,fAngleCurrent)); //interpolacja sferyczna k¹ta
+     //qCurrent=Slerp(qStart,qDesired,fAngleCurrent); //interpolacja sferyczna k¹ta
+     if (qCurrent.w==1.0) //rozpoznaæ brak obrotu i wy³¹czyæ w iAnim w takim przypadku
+      iAnim&=~4; //k¹ty s¹ zerowe
     }
    }
    mAnim->Quaternion(&qCurrent); //wype³nienie macierzy (wymaga normalizacji?)
+   pSubModel->mAnimMatrix=mAnim; //u¿yczenie do submodelu (na czas renderowania!)
   }
-  pSubModel->mAnimMatrix=mAnim; //u¿yczenie do submodelu (na czas renderowania!)
  }
  //if (!strcmp(pSubModel->pName,"?Z?“?^?[")) //jak g³ówna koœæ
  // WriteLog(AnsiString(pMovementData->iFrame)+": "+AnsiString(iAnim)+" "+AnsiString(vTranslation.x)+" "+AnsiString(vTranslation.y)+" "+AnsiString(vTranslation.z));
+}
+
+void __fastcall TAnimContainer::UpdateModelIK()
+{//odwrotna kinematyka wyliczana dopiero po ustawieniu macierzy w submodelach
+ if (pSubModel) //pozbyæ siê tego - sprawdzaæ wczeœniej
+ {
+  if (pSubModel->b_Anim&at_IK)
+  {//odwrotna kinematyka
+   float3 d,k;
+   TSubModel *ch=pSubModel->ChildGet();
+   switch (pSubModel->b_Anim)
+   {
+    case at_IK11: //stopa: ustawiæ w kierunku czubka (pierwszy potomny)
+     d=ch->Translation1Get(); //wektor wzglêdem aktualnego uk³adu (nie uwzglêdnia obrotu)
+     k=float3(RadToDeg(atan2(d.z,hypot(d.x,d.y))),0.0,-RadToDeg(atan2(d.y,d.x))); //proste skierowanie na punkt
+     pSubModel->SetRotateIK1(k);
+     //if (!strcmp(pSubModel->pName,"?Z?“?^?[")) //jak g³ówna koœæ
+     // WriteLog("--> "+AnsiString(k.x)+" "+AnsiString(k.y)+" "+AnsiString(k.z));
+     //Ra: to ju¿ jest dobrze, mo¿e byæ inna æwiartka i znak
+    break;
+    case at_IK22: //udo: ustawiæ w kierunku pierwszej potomnej pierwszej potomnej (kostki)
+     //pozycjê kostki nale¿y okreœliæ wzglêdem koœci centralnej (+biodro mo¿e byæ pochylone)
+     //potem wyliczyæ ewentualne odchylenie w tej i nastêpnej
+     //w sumie to proste, jak wyznaczenie k¹tów w trójk¹cie o znanej d³ugoœci boków...
+     d=ch->Translation2Get(); //wektor wzglêdem aktualnego uk³adu (nie uwzglêdnia obrotu)
+     //if ()
+     {//koœæ IK jest dalej ni¿ pozycja spoczynkowa
+      k=float3(RadToDeg(atan2(d.z,hypot(d.x,d.y))),0.0,-RadToDeg(atan2(d.y,d.x))); //proste skierowanie na punkt
+      pSubModel->SetRotateIK1(k);
+     }
+    break;
+   }
+  }
+ }
 }
 
 bool __fastcall TAnimContainer::InMovement()
@@ -435,6 +473,9 @@ void __fastcall TAnimModel::RaPrepare()
  TAnimContainer *pCurrent;
  for (pCurrent=pRoot;pCurrent!=NULL;pCurrent=pCurrent->pNext)
   pCurrent->UpdateModel(); //przeliczenie animacji ka¿dego submodelu
+ //if () //tylko dla modeli z IK !!!!
+  for (pCurrent=pRoot;pCurrent!=NULL;pCurrent=pCurrent->pNext) //albo osobny ³añcuch
+   pCurrent->UpdateModelIK(); //przeliczenie odwrotnej kinematyki
 }
 
 void __fastcall TAnimModel::RenderVBO(vector3 pPosition,double fAngle)

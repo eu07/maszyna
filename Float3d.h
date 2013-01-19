@@ -27,6 +27,9 @@ inline float3 operator-(const float3& v)
 inline float3 operator-(const float3 &v1,const float3 &v2)
 {return float3(v1.x-v2.x,v1.y-v2.y,v1.z-v2.z);
 };
+inline float3 operator+(const float3 &v1,const float3 &v2)
+{return float3(v1.x+v2.x,v1.y+v2.y,v1.z+v2.z);
+};
 double inline __fastcall float3::Length() const
 {return sqrt(x*x+y*y+z*z);
 };
@@ -173,6 +176,8 @@ public:
   return true;
  }
  void __fastcall Quaternion(float4 *q);
+ inline float3* TranslationGet()
+ {return (float3*)(e+12);}
 };
 
 inline float3 operator*(const float4x4& m,const float3& v)
