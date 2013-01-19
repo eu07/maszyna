@@ -29,7 +29,7 @@ class TAnimContainer
 {//opakowanie submodelu, okreœlaj¹ce animacjê egzemplarza - obs³ugiwane jako lista
 friend class TAnimModel;
 private:
- vector3 vRotateAngles;
+ vector3 vRotateAngles; //dla obrotów Eulera
  vector3 vDesiredAngles;
  double fRotateSpeed;
  vector3 vTranslation;
@@ -41,8 +41,12 @@ private:
  float fAngleCurrent; //parametr interpolacyjny: 0=start, 1=docelowy
  float fAngleSpeed; //zmiana parametru interpolacji w sekundach
  TSubModel *pSubModel;
- float4x4 *mAnim; //macierz do animacji kwaternionowych 
- int iAnim; //animacja: 1-obrót Eulera, 2-przesuw, 4-obrót kwaternionem
+ float4x4 *mAnim; //macierz do animacji kwaternionowych
+ //dla kinematyki odwróconej u¿ywane s¹ kwaterniony
+ float fLength; //d³ugoœæ koœci dla IK
+ int iAnim; //animacja: +1-obrót Eulera, +2-przesuw, +4-obrót kwaternionem, +8-IK
+ //+0x100: pierwszy stopieñ IK - obróciæ w stronê pierwszego potomnego (dziecka)
+ //+0x200: drugi stopieñ IK - dostosowaæ do pozycji potomnego potomnego (wnuka)
  union
  {//mog¹ byæ animacje klatkowe ró¿nego typu, wskaŸniki u¿ywa AnimModel
   TAnimVocaloidFrame *pMovementData; //wskaŸnik do klatki
@@ -59,6 +63,7 @@ public:
  void __fastcall SetTranslateAnim(vector3 vNewTranslate, double fNewSpeed);
  void __fastcall AnimSetVMD(double fNewSpeed);
  void __fastcall UpdateModel();
+ void __fastcall UpdateModelIK();
  bool __fastcall InMovement(); //czy w trakcie animacji?
  double _fastcall AngleGet() {return vRotateAngles.z;}; //jednak ostatnia, T3D ma inny uk³ad
  void __fastcall WillBeAnimated() {if (pSubModel) pSubModel->WillBeAnimated();};

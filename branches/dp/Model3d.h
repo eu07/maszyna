@@ -126,7 +126,11 @@ enum TAnimType //rodzaj animacji
  at_Billboard, //obrót w pionie do kamery
  at_Wind, //ruch pod wp³ywem wiatru
  at_Sky, //animacja nieba
- at_Undefined=0xFFFFFFFF //animacja chwilowo nieokreœlona
+ at_IK=0x100, //odwrotna kinematyka - submodel steruj¹cy (np. staw skokowy)
+ at_IK11=0x101, //odwrotna kinematyka - submodel nadrzêdny do sterowango (np. stopa)
+ at_IK21=0x102, //odwrotna kinematyka - submodel nadrzêdny do sterowango (np. podudzie)
+ at_IK22=0x103, //odwrotna kinematyka - submodel nadrzêdny do nadrzêdnego sterowango (np. udo)
+ at_Undefined=0x800000FF //animacja chwilowo nieokreœlona
 };
 
 class TModel3d;
@@ -141,7 +145,9 @@ private:
  TSubModel *Child;
  int eType; //Ra: modele binarne daj¹ wiêcej mo¿liwoœci ni¿ mesh z³o¿ony z trójk¹tów
  int iName; //numer ³añcucha z nazw¹ submodelu, albo -1 gdy anonimowy
+public: //chwilowo
  TAnimType b_Anim;
+private:
  int iFlags; //flagi informacyjne:
  //bit  0: =1 faza rysowania zale¿y od wymiennej tekstury 0
  //bit  1: =1 faza rysowania zale¿y od wymiennej tekstury 1
@@ -194,12 +200,13 @@ private:
  float f_Angle;
  float3 v_RotateAxis;
  float3 v_Angles;
+public: //chwilowo
  float3 v_TransVector;
  float8 *Vertices; //roboczy wskaŸnik - wczytanie T3D do VBO
  int iAnimOwner; //roboczy numer egzemplarza, który ustawi³ animacjê
  TAnimType b_aAnim; //kody animacji oddzielnie, bo zerowane
 public:
- float4x4 *mAnimMatrix; //macierz do animacji kwaternionowych (nale¿y do AnimContainer) 
+ float4x4 *mAnimMatrix; //macierz do animacji kwaternionowych (nale¿y do AnimContainer)
  char space[16]; //wolne miejsce na przysz³e zmienne (zmniejszyæ w miarê potrzeby)
 public:
  int iVisible; //roboczy stan widocznoœci
@@ -235,6 +242,7 @@ public:
  void __fastcall SetRotateXYZ(float3 vNewAngles);
  void __fastcall SetTranslate(vector3 vNewTransVector);
  void __fastcall SetTranslate(float3 vNewTransVector);
+ void __fastcall SetRotateIK1(float3 vNewAngles);
  TSubModel* __fastcall GetFromName(AnsiString search,bool i=true);
  TSubModel* __fastcall GetFromName(char *search,bool i=true);
  void __fastcall RenderDL();
@@ -262,6 +270,10 @@ public:
  int __fastcall Flags() {return iFlags;};
  void __fastcall UnFlagNext() {iFlags&=0x00FFFFFF;};
  void __fastcall ColorsSet(int *a,int *d,int*s);
+ inline float3 Translation1Get()
+ {return fMatrix?*(fMatrix->TranslationGet())+v_TransVector:v_TransVector;}
+ inline float3 Translation2Get()
+ {return *(fMatrix->TranslationGet())+Child->Translation1Get();}
 };
 
 class TSubModelInfo
