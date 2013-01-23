@@ -2152,6 +2152,23 @@ void __fastcall TWorld::CreateE3D(const AnsiString &dir,bool dyn)
          i=loads.Pos(",");
         }
        }
+       if (tmp->DynamicObject->iCabs)
+       {//jeœli ma jak¹kolwiek kabinê
+        delete Train;
+        Train=new TTrain();
+        if (tmp->DynamicObject->iCabs&1)
+        {tmp->DynamicObject->MoverParameters->ActiveCab=1;
+         Train->Init(tmp->DynamicObject,true);
+        }
+        if (tmp->DynamicObject->iCabs&4)
+        {tmp->DynamicObject->MoverParameters->ActiveCab=-1;
+         Train->Init(tmp->DynamicObject,true);
+        }
+        if (tmp->DynamicObject->iCabs&2)
+        {tmp->DynamicObject->MoverParameters->ActiveCab=0;
+         Train->Init(tmp->DynamicObject,true);
+        }
+       }
        Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath); //z powrotem defaultowa sciezka do tekstur
       }
      }
