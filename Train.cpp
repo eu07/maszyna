@@ -127,12 +127,13 @@ __fastcall TTrain::~TTrain()
    DynamicObject->Mechanik->TakeControl(true); //likwidacja kabiny wymaga przejêcia przez AI
 }
 
-bool __fastcall TTrain::Init(TDynamicObject *NewDynamicObject)
+bool __fastcall TTrain::Init(TDynamicObject *NewDynamicObject,bool e3d)
 {//powi¹zanie rêcznego sterowania kabin¹ z pojazdem
  //Global::pUserDynamic=NewDynamicObject; //pojazd renderowany bez trzêsienia
  DynamicObject=NewDynamicObject;
- if (DynamicObject->Mechanik==NULL)
-  return false;
+ if (!e3d)
+  if (DynamicObject->Mechanik==NULL)
+   return false;
  //if (DynamicObject->Mechanik->AIControllFlag==AIdriver)
  // return false;
  DynamicObject->MechInside=true;

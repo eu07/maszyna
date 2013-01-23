@@ -115,6 +115,7 @@ TDynamicObject* __fastcall TDynamicObject::GetFirstDynamic(int cpl_type)
  return FirstFind(cpl_type); //u¿ywa referencji
 };
 
+/*
 TDynamicObject* __fastcall TDynamicObject::GetFirstCabDynamic(int cpl_type)
 {//ZiomalCl: szukanie skrajnego obiektu z kabin¹
  TDynamicObject* temp=this;
@@ -144,6 +145,7 @@ TDynamicObject* __fastcall TDynamicObject::GetFirstCabDynamic(int cpl_type)
  }
  return NULL; //to tylko po wyczerpaniu pêtli
 };
+*/
 
 void TDynamicObject::ABuSetModelShake(vector3 mShake)
 {
@@ -1177,6 +1179,7 @@ __fastcall TDynamicObject::TDynamicObject()
  iHornWarning=1; //numer syreny do u¿ycia po otrzymaniu sygna³u do jazdy
  asDestination="none"; //stoj¹cy nigdzie nie jedzie
  pValveGear=NULL; //Ra: tymczasowo
+ iCabs=0; //maski bitowe modeli kabin
 }
 
 __fastcall TDynamicObject::~TDynamicObject()
@@ -3524,7 +3527,24 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
       }
      else
      if (str==AnsiString("internaldata:"))                            //dalej nie czytaj
-      Stop_InternalData= true;
+     {while (!Parser->EndOfFile)
+      {//zbieranie informacji o kabinach
+       str=Parser->GetNextSymbol().LowerCase();
+       if (str=="cab0model:")
+       {str=Parser->GetNextSymbol();
+        if (str!="none") iCabs=2;
+       }
+       else if (str=="cab1model:")
+       {str=Parser->GetNextSymbol();
+        if (str!="none") iCabs=1;
+       }
+       else if (str=="cab2model:")
+       {str=Parser->GetNextSymbol();
+        if (str!="none") iCabs=4;
+       }
+      }
+      Stop_InternalData=true;
+     }
  }
  //ABu 050205 - tego wczesniej nie bylo i uciekala pamiec:
  delete Parser;

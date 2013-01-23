@@ -320,7 +320,7 @@ public:
 
  TDynamicObject* __fastcall ABuScanNearestObject(TTrack *Track, double ScanDir, double ScanDist, int &CouplNr);
  TDynamicObject* __fastcall GetFirstDynamic(int cpl_type);
- TDynamicObject* __fastcall GetFirstCabDynamic(int cpl_type);
+ //TDynamicObject* __fastcall GetFirstCabDynamic(int cpl_type);
  void ABuSetModelShake(vector3 mShake);
 
 
@@ -330,6 +330,7 @@ public:
 //McZapkie-270202
     bool Controller;
     bool bDisplayCab; //czy wyswietlac kabine w train.cpp
+    int iCabs; //maski bitowe modeli kabin
     TTrack *MyTrack; //McZapkie-030303: tor na ktorym stoi, ABu
     AnsiString asBaseDir;
     GLuint ReplacableSkinID[5];  //McZapkie:zmienialne nadwozie
