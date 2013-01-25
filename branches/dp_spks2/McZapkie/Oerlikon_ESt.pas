@@ -68,7 +68,7 @@ end;
 
 function TNESt3.GetCRP: real;
 begin
-
+  GetCRP:=CntrlRes.P;
 end;
 
 

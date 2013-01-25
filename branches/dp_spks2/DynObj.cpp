@@ -1381,7 +1381,7 @@ double __fastcall TDynamicObject::Init(
    }
    if (ActPar.Pos("X")>0) //agonalny wylaczanie 20%, usrednienie przekladni
    {
-    if (random(10)<2) //losowanie 2/10
+    if (random(100)<20) //losowanie 20/100
     {
      MoverParameters->BrakeStatus|=128; //wylacz
      MoverParameters->Hamulec->ForceEmptiness();
@@ -1389,21 +1389,25 @@ double __fastcall TDynamicObject::Init(
     }
     if(MoverParameters->BrakeCylMult[2]*MoverParameters->BrakeCylMult[1]>0.01) //jesli jest nastawiacz mechaniczny PL
     {
-     float rnd=random(10);
-     if (rnd<2) //losowanie 2/10         usrednienie
+     float rnd=random(100);
+     if (rnd<20) //losowanie 20/100         usrednienie
      {
        MoverParameters->BrakeCylMult[2]=MoverParameters->BrakeCylMult[1]=(MoverParameters->BrakeCylMult[2]+MoverParameters->BrakeCylMult[1])/2;
      }
      else
-     if (rnd<7) //losowanie 7/10-2/10    oslabienie
+     if (rnd<70) //losowanie 70/100-20/100    oslabienie
      {
        MoverParameters->BrakeCylMult[1]=MoverParameters->BrakeCylMult[1]*0.50;
        MoverParameters->BrakeCylMult[2]=MoverParameters->BrakeCylMult[2]*0.75;
      }
      else
-     if (rnd<8) //losowanie 8/10-7/10    tylko prozny
+     if (rnd<80) //losowanie 80/100-70/100    tylko prozny
      {
        MoverParameters->BrakeCylMult[2]=MoverParameters->BrakeCylMult[1];
+     }
+     else      //tylko ladowny
+     {
+       MoverParameters->BrakeCylMult[1]=MoverParameters->BrakeCylMult[2];
      }
     }
    }

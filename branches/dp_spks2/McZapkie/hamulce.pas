@@ -911,13 +911,15 @@ var VVP, BVP, CVP: real;
 begin
   BVP:=BrakeRes.P;
   VVP:=ValveRes.P;
+//  if (BVP<VVP) then
+//    VVP:=(BVP+VVP)/2;
   CVP:=CntrlRes.P-0.0;
 
 //sprawdzanie stanu
  if (BrakeStatus and 1)=1 then
-   if(VVP+0.003+BCP/BVM<CVP)then
+   if(VVP+0.03+BCP/BVM<CVP)then
      BrakeStatus:=(BrakeStatus or 2) //hamowanie stopniowe
-   else if(VVP-0.003+BCP/BVM>CVP) then
+   else if(VVP-0.03+BCP/BVM>CVP) then
      BrakeStatus:=(BrakeStatus and 252) //luzowanie
    else if(VVP+BCP/BVM>CVP) then
      BrakeStatus:=(BrakeStatus and 253) //zatrzymanie napelaniania
@@ -941,7 +943,7 @@ begin
   VVP:=ValveRes.P;
 
 //przeplyw ZS <-> PG
-  if(BVP<CVP-0.05)or(BrakeStatus>0)or(bp>0.25)then
+  if(BVP<CVP-0.1)or(BrakeStatus>0)or(bp>0.25)then
     CVs:=0
   else
     if(VVP>CVP+0.4)then
@@ -964,7 +966,7 @@ begin
   VVP:=ValveRes.P;
 
 //przeplyw ZP <-> rozdzielacz
-  if(BVP<CVP-0.05)then
+  if(BVP<CVP-0.3)then
     BVs:=0.6
   else
     if(BCP<0.5) then
