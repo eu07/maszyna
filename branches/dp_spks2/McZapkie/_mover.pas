@@ -1318,7 +1318,7 @@ begin
   begin
    if DelayCtrlFlag then
     begin
-     if (LastRelayTime>InitialCtrlDelay) then
+     if (LastRelayTime>=InitialCtrlDelay) then
       LastRelayTime:=0;
     end
    else if (LastRelayTime>CtrlDelay) then
@@ -1352,7 +1352,7 @@ begin
               end
              else
               if CtrlSpeed>1 then
-               OK:=DecMainCtrl(1) and DecMainCtrl(CtrlSpeed-1);
+               OK:=DecMainCtrl(1) and DecMainCtrl(2); //CtrlSpeed-1);
             ElectricSeriesMotor:
              if CtrlSpeed=1 then
               begin
@@ -1405,7 +1405,7 @@ begin
   begin
    if DelayCtrlFlag then
     begin
-     if (LastRelayTime>InitialCtrlDelay) then
+     if (LastRelayTime>=InitialCtrlDelay) then
       LastRelayTime:=0;
     end
    else if (LastRelayTime>CtrlDownDelay) then
@@ -1462,8 +1462,9 @@ function T_MoverParameters.DecScndCtrl(CtrlSpeed:integer): boolean;
 var //b:byte;
     OK:boolean;
 begin
-  if (MainCtrlPos=0)and(CabNo<>0)and(TrainType=dt_ET42)and(ScndCtrlPos=0)and not(DynamicBrakeFlag)then
+  if (MainCtrlPos=0)and(CabNo<>0)and(TrainType=dt_ET42)and(ScndCtrlPos=0)and not(DynamicBrakeFlag)and(CtrlSpeed=1)then
    begin
+    //Ra: AI wywo³uje z CtrlSpeed=2 albo gdy ScndCtrlPos>0
     OK:=DynamicBrakeSwitch(true);
    end
   else
@@ -2846,7 +2847,7 @@ begin
     MainCtrlActualPos:=0;
    end
   else
-  if (not Mains) or (FuseFlag) or (StLinFlag) then   //hunter-111211: wylacznik cisnieniowy
+  if (not Mains) or (FuseFlag) or (StLinFlag) or (MainCtrlPos=0) then   //hunter-111211: wylacznik cisnieniowy
    begin
      AutoRelayCheck:=False;
      MainCtrlActualPos:=0;
@@ -2855,23 +2856,66 @@ begin
   else
    begin
     OK:=False;
-    if DelayCtrlFlag and (MainCtrlPos=1) and (MainCtrlActualPos=1) and (LastRelayTime>InitialCtrlDelay) then
+    if DelayCtrlFlag and (MainCtrlPos=1) and (MainCtrlActualPos=1) and (LastRelayTime>=InitialCtrlDelay) then
      begin
        DelayCtrlFlag:=False;
        SetFlag(SoundFlag,sound_relay); SetFlag(SoundFlag,sound_loud);
      end;
 
+(*
+=========== Opis przesla³ youBy =========== 
+
+1) Styczniki liniowe
+
+Zamykaj¹ siê na pierwszej pozycji po czasie InicDelay.
+Roz³¹czaj¹ siê, gdy trac¹ zasilanie.
+
+Lampka zasilana przez zestyk pomocniczy bierny styczników liniowych i wy³¹cznika ciœnieniowego
+
+
+2) Wy³¹cznik ciœnieniowy CH i PG (jeden albo dwa).
+
+CH (1 flaga):
+Umo¿liwia zasilanie styczników liniowych od zejœcia poni¿ej BPOn.
+Uniemo¿liwia zasilanie styczników liniowych od wejœcia ponad BPOff.1
+
+PG (2 flaga):
+Umo¿liwia zasilanie styczników liniowych od zejœcia poni¿ej PPOn.
+Uniemo¿liwia zasilanie styczników liniowych od wejœcia ponad PPOff.
+
+
+3) Rozrz¹d indywidualny (siódemeczka i te sprawy):
+
+Klep sobie stycznikami w obie strony z odpowiednim opóŸnieniem przejœcia. Przy 0NG roz³¹cz liniowe i ustaw uk³ad styczników na 0, przy szeregowej wejdŸ na szereg (jeœli FSCircuit).
+
+4) Wa³ ku³akowy dwukierunkowy (czechy i inne takie):
+
+Klep sobie wa³em w obie strony z odpowiednim opóŸnieniem przejœcia. Przy 0NG roz³¹cz liniowe. (Mog¹ byæ konstrukcje z przejœciem na skróty do ni¿szych pozycji - g³ównie 0).
+
+5) Wa³ ku³akowy jednokierunkowy (EZT pokroju EN57):
+Klep sobie wa³em w górê z odpowiednim opóŸnieniem przejœcia. Przy przestawieniu na ni¿sz¹, stój. Przy 0NG roz³¹cz liniowe, dojdŸ do koñca i siê przewróæ na 0.
+
+Dodatek
+6) Boczniki na szeregu
+Blokujemy 4 styczniki w odpowiedniej pozycji i zawsze mamy 1 ga³¹Ÿ, w której jest Bn*Mn silników.
+
+7) Wa³ grupowy w byku
+Przy zmianie iloœci ga³êzi musisz:
+- roz³¹czyæ liniowe
+- wejœæ wy¿ej
+- za³¹czyæ liniowe
+*)
 
     //if (TrainType<>dt_EZT) then //Ra: w EZT mo¿na daæ od razu na S albo R, wa³ ku³akowy sobie dokrêci
     //hunter-101012: rozbicie CtrlDelay na CtrlDelay i CtrlDownDelay
     //if (LastRelayTime>CtrlDelay) or (LastRelayTime>CtrlDownDelay) and not DelayCtrlFlag then //po co, skoro sa powtorzone warunki na to
     if (not DelayCtrlFlag) then
      begin
-       if MainCtrlPos=0 then
+       if (MainCtrlPos=0) then
         DelayCtrlFlag:=(TrainType<>dt_EZT); //Ra: w EZT mo¿na daæ od razu na S albo R, wa³ ku³akowy sobie dokrêci
        if (((RList[MainCtrlActualPos].R=0) and ((not CoupledCtrl) or (Imin=IminLo))) or (MainCtrlActualPos=RListSize))
           and ((ScndCtrlActualPos>0) or (ScndCtrlPos>0)) then
-        begin   {zmieniaj scndctrlactualpos}
+        begin //zmieniaj scndctrlactualpos
           if (not AutoRelayFlag) or (not MotorParam[ScndCtrlActualPos].AutoSwitch) then
            begin                                                {scnd bez samoczynnego rozruchu}
              if (ScndCtrlActualPos<ScndCtrlPos) then
@@ -2894,7 +2938,7 @@ begin
              else OK:=False;
            end
           else
-           begin                                                {scnd z samoczynnym rozruchem}
+           begin //scnd z samoczynnym rozruchem
              if ScndCtrlPos<ScndCtrlActualPos then
               begin
                 if (LastRelayTime>CtrlDownDelay) then
@@ -2917,15 +2961,15 @@ begin
            end;
         end
        else
-        begin          {zmieniaj mainctrlactualpos}
-          if ((TrainType=dt_EZT{) or (TrainType=dt_ET22)}) and (Imin=IminLo)) or ((ActiveDir<0) and (TrainType<>dt_PseudoDiesel)) then
+        begin //zmieniaj mainctrlactualpos
+          if ((TrainType=dt_EZT) and (Imin=IminLo)) or ((ActiveDir<0) and (TrainType<>dt_PseudoDiesel)) then
            if Rlist[MainCtrlActualPos+1].Bn>1 then
-            begin
+            begin //to jest za³¹czanie boczników na po³¹czeniu szeregowym dla N1
               AutoRelayCheck:=False;
-              Exit;
+              Exit; //Ra: to powoduje, ¿e EN57 nie wy³¹cza siê przy IminLo
            end;
           if (not AutoRelayFlag) or (not RList[MainCtrlActualPos].AutoSwitch) then
-           begin                                                {main bez samoczynnego rozruchu}
+           begin //main bez samoczynnego rozruchu
              if Rlist[MainCtrlActualPos].Relay<MainCtrlPos then
               begin
                if (Rlist[MainCtrlPos].R=0) and (MainCtrlPos>0) and (not (MainCtrlPos=MainCtrlPosNo)) and (FastSerialCircuit=1) then
@@ -2961,9 +3005,18 @@ begin
                 end
                else if (LastRelayTime>CtrlDownDelay) then
                 begin
-                 dec(MainCtrlActualPos);
-                 OK:=True;
-                 if MainCtrlActualPos>0 then  //hunter-111211: poprawki
+                 if (TrainType<>dt_EZT) then //tutaj powinien byæ tryb sterowania wa³em
+                  begin
+                   dec(MainCtrlActualPos);
+                   OK:=True;
+                  end
+                 else
+                  if (MainCtrlPos=0) then
+                   begin
+                    MainCtrlActualPos:=0; //tylko cofniêcie na 0 ustawia wa³ na 0
+                    OK:=True;
+                   end;
+                  if MainCtrlActualPos>0 then  //hunter-111211: poprawki
                   if Rlist[MainCtrlActualPos].R=0 then  {dzwieki schodzenia z bezoporowej}
                    begin
                     SetFlag(SoundFlag,sound_manyrelay);
@@ -2982,14 +3035,18 @@ begin
               else
                OK:=False;
            end
-          else                                                  {main z samoczynnym rozruchem}
+          else  //main z samoczynnym rozruchem - np. EN57
            begin
              OK:=False;
              if MainCtrlPos<Rlist[MainCtrlActualPos].Relay then
-              begin
+              begin //pozycja zadana mniejsza ni¿ ustawiona na wale
                if (LastRelayTime>CtrlDownDelay) then
                 begin
-                 dec(MainCtrlActualPos);
+                 if (TrainType<>dt_EZT) then //tutaj powinien byæ tryb sterowania wa³em
+                  dec(MainCtrlActualPos) //tu jest wa³ dwukierunkowy
+                 else
+                  if (MainCtrlPos=0) then
+                   MainCtrlActualPos:=0; //tylko cofniêcie na 0 ustawia wa³ na 0
                  OK:=True;
                 end
               end
@@ -3000,7 +3057,7 @@ begin
                  begin
                   if (LastRelayTime>CtrlDelay) then
                    begin
-                    inc(MainCtrlActualPos);
+                    inc(MainCtrlActualPos); //posuwanie wa³u ku³akowego do przodu
                     OK:=True
                    end
                  end;
@@ -3015,7 +3072,7 @@ begin
        OK:=True;
       end
      else
-      if (MainCtrlPos=1) and (MainCtrlActualPos=0) then
+      if ((MainCtrlPos=1)or(TrainType=dt_EZT)) and (MainCtrlActualPos=0) then
        MainCtrlActualPos:=1
       else
        if (MainCtrlPos=0) and (MainCtrlActualPos>0) then
@@ -3126,7 +3183,7 @@ begin
   nreg:=0;
   if Mains and (MainCtrlPosNo>0) then
    begin
-     if dizel_enginestart and (LastSwitchingTime>0.9*InitialCtrlDelay) then {wzbogacenie przy rozruchu}
+     if dizel_enginestart and (LastSwitchingTime>=0.9*InitialCtrlDelay) then {wzbogacenie przy rozruchu}
       realfill:=1
      else
       realfill:=RList[mcp].R;                                               {napelnienie zalezne od MainCtrlPos}
@@ -3216,7 +3273,7 @@ function T_MoverParameters.dizel_Update(dt:real): boolean;
 const fillspeed=2;
 begin
   //dizel_Update:=false;
-  if dizel_enginestart and (LastSwitchingTime>InitialCtrlDelay) then
+  if dizel_enginestart and (LastSwitchingTime>=InitialCtrlDelay) then
     begin
       dizel_enginestart:=false;
       LastSwitchingTime:=0;
@@ -5744,6 +5801,8 @@ begin
               s:=DUE(ExtractKeyWord(lines,'CompressorPower='));
               if s='Converter' then
                CompressorPower:=2
+              else if s='Engine' then
+               CompressorPower:=3
               else if s='Main' then
                CompressorPower:=0;
             end
@@ -5856,6 +5915,7 @@ begin
                    Couplers[1].FmaxB:=Couplers[0].FmaxB;
                    Couplers[1].beta:=Couplers[0].beta;
                    Couplers[1].CouplerType:=Couplers[0].CouplerType;
+                   Couplers[1].AllowedFlag:=Couplers[0].AllowedFlag;
                  end;
 {                CouplerTune:=(1+Mass)/100000; }
               end

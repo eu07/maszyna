@@ -85,7 +85,7 @@ int __fastcall TMoverParameters::DettachStatus(Byte ConnectNo)
  //if (CouplerType==Articulated) return false; //sprzêg nie do rozpiêcia - mo¿e byæ tylko urwany
  //Couplers[ConnectNo].CoupleDist=Distance(Loc,Couplers[ConnectNo].Connected->Loc,Dim,Couplers[ConnectNo].Connected->Dim);
  CouplerDist(ConnectNo);
- if (Couplers[ConnectNo].CoupleDist<0.0)
+ if (Couplers[ConnectNo].CouplerType==Screw?Couplers[ConnectNo].CoupleDist<0.0:true)
   return -Couplers[ConnectNo].CouplingFlag; //mo¿na roz³¹czaæ, jeœli dociœniêty
  return (Couplers[ConnectNo].CoupleDist>0.2)?-Couplers[ConnectNo].CouplingFlag:Couplers[ConnectNo].CouplingFlag;
 };

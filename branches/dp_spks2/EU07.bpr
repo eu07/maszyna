@@ -58,9 +58,9 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=1
 MinorVer=8
-Release=696
-Build=390
-Debug=0
+Release=742
+Build=394
+Debug=1
 PreRelease=0
 Special=0
 Private=0
@@ -71,7 +71,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.8.696.390
+FileVersion=1.8.742.394
 InternalName=8th by Ra + SPKS
 LegalCopyright=
 LegalTrademarks=
@@ -89,9 +89,8 @@ Count=1
 Item0=Console;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
 
 [HistoryLists\hlDebugSourcePath]
-Count=2
-Item0=C:\Ra\dp\McZapkie\
-Item1=$(BCB)\source\vcl
+Count=1
+Item0=$(BCB)\source\vcl
 
 [HistoryLists\hlConditionals]
 Count=8
@@ -113,7 +112,7 @@ Item3=D:\EU07\
 Item4=D:\EU07DDS\
 
 [Debugging]
-DebugSourceDirs=C:\Ra\dp\McZapkie\
+DebugSourceDirs=
 
 [Parameters]
 RunParams=-s AI_start3.scn -v ghostview

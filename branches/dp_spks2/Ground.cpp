@@ -1505,9 +1505,17 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    if (DebugModeFlag)
     if (!tmp->asName.IsEmpty())
      WriteLog(tmp->asName.c_str());
-   if (!tmp->asName.IsEmpty()) //jest pusta gdy "none"
-    sTracks->Add(TP_TRACK,tmp->asName.c_str(),tmp); //dodanie do wyszukiwarki
    tmp->pTrack->Load(parser,pOrigin,tmp->asName); //w nazwie mo¿e byæ nazwa odcinka izolowanego
+   if (!tmp->asName.IsEmpty()) //jest pusta gdy "none"
+   {//dodanie do wyszukiwarki
+    if (sTracks->Update(TP_TRACK,tmp->asName.c_str(),tmp)) //najpierw sprawdziæ, czy ju¿ jest
+    {//przy zdublowaniu wskaŸnik zostanie podmieniony w drzewku na póŸniejszy (zgodnoœæ wsteczna)
+     if (tmp->pTrack->iCategoryFlag&1) //jeœli jest zdublowany tor kolejowy
+      ErrorLog("Duplicated track: "+tmp->asName); //to zg³aszaæ duplikat
+    }
+    else
+     sTracks->Add(TP_TRACK,tmp->asName.c_str(),tmp); //nazwa jest unikalna
+   }
    tmp->pCenter=(tmp->pTrack->CurrentSegment()->FastGetPoint_0()+
                  tmp->pTrack->CurrentSegment()->FastGetPoint(0.5)+
                  tmp->pTrack->CurrentSegment()->FastGetPoint_1() )/3.0;
@@ -1566,6 +1574,9 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
     int2=0; //zeruje po wykorzystaniu
 //    *parser >> int1; //yB: nastawy i takie tam TUTAJ!!!!!
     if (int1<0) int1=(-int1)|ctrain_depot; //sprzêg zablokowany (pojazdy nieroz³¹czalne przy manewrach)
+    if (tf1!=-1.0)
+     if (fabs(tf1)>0.5) //maksymalna odleg³oœæ miêdzy sprzêgami - do przemyœlenia
+      int1=0; //likwidacja sprzêgu, jeœli odleg³oœæ zbyt du¿a - to powinno byæ uwzglêdniane w fizyce sprzêgów...
     TempConnectionType[iTrainSetWehicleNumber]=int1; //wartoœæ dodatnia
    }
    else
@@ -1610,8 +1621,11 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
         if (fTrainSetDist<8.0) //i raczej nie siêga
          fTrainSetDist=8.0; //przesuwamy oko³o pó³ EU07 dla wstecznej zgodnoœci
     //WriteLog("Dynamic shift: "+AnsiString(fTrainSetDist));
-    tf3=tmp->DynamicObject->Init(asNodeName,str1,Skin,str3,Track,(tf1==-1.0?fTrainSetDist:tf1+fTrainSetDist),DriverType,tf3,asTrainName,int2,str2,(tf1==-1.0),str4);
-    if (tf3>0.0) //zero oznacza b³¹d
+    if (!iTrainSetWehicleNumber) //dla pierwszego jest to przesuniêcie (ujemne = do ty³u)
+     if (tf1!=-1.0) //-1 wyj¹tkowo oznacza odwrócenie
+      tf1=-tf1; //a dla kolejnych odleg³oœæ miêdzy sprzêgami (ujemne = wbite)
+    tf3=tmp->DynamicObject->Init(asNodeName,str1,Skin,str3,Track,(tf1==-1.0?fTrainSetDist:fTrainSetDist-tf1),DriverType,tf3,asTrainName,int2,str2,(tf1==-1.0),str4);
+    if (tf3!=0.0) //zero oznacza b³¹d
     {fTrainSetDist-=tf3; //przesuniêcie dla kolejnego, minus bo idziemy w stronê punktu 1
      tmp->pCenter=tmp->DynamicObject->GetPosition();
      if (TempConnectionType[iTrainSetWehicleNumber]) //jeœli jest sprzêg
@@ -3929,6 +3943,18 @@ void __fastcall TGround::TerrainWrite()
      }
    }
  m->SaveToBinFile(AnsiString("models\\"+Global::asTerrainModel).c_str());
+};
+//---------------------------------------------------------------------------
+
+void __fastcall TGround::TrackBusyList()
+{//wys³anie informacji o wszystkich zajêtych odcinkach
+ TGroundNode *Current;
+ TTrack *Track;
+ AnsiString name;
+ for (Current=nRootOfType[TP_TRACK];Current;Current=Current->Next)
+  if (Current->asName.IsEmpty()) //musi byæ nazwa
+   if (Current->pTrack->iNumDynamics) //osi to chyba nie ma jak policzyæ
+    WyslijString(Current->asName,8); //zajêty
 };
 //---------------------------------------------------------------------------
 
