@@ -58,11 +58,17 @@ void __fastcall ItemRecord::ListGet(ItemRecord *r,int*&n)
 
 void* __fastcall ItemRecord::TreeFind(const char *n)
 {//wyszukanie ci¹gu (n)
+ ItemRecord *r=TreeFindRecord(n);
+ return r?r->pData:NULL;
+};
+
+ItemRecord* __fastcall ItemRecord::TreeFindRecord(const char *n)
+{//wyszukanie ci¹gu (n)
  ItemRecord *r=this; //¿eby nie robiæ rekurencji
  int i=0;
  do
  {
-  if (!n[i]) if (!r->cName[i]) return r->pData; //znaleziony
+  if (!n[i]) if (!r->cName[i]) return r; //znaleziony
   if (n[i]==r->cName[i])
    ++i; //porównaæ kolejny znak
   else
@@ -88,6 +94,7 @@ __fastcall TNames::TNames()
  rRecords=(ItemRecord*)cBuffer;
  cLast=cBuffer+iSize; //bajt za buforem
  iLast=-1;
+ ZeroMemory(rTypes,20*sizeof(ItemRecord*));
 };
 
 int __fastcall TNames::Add(int t,const char *n)
@@ -112,6 +119,18 @@ int __fastcall TNames::Add(int t,const char *n,void *d)
  int i=Add(t,n);
  rRecords[iLast].pData=d;
  return i;
+};
+
+bool __fastcall TNames::Update(int t,const char *n,void *d)
+{//dodanie jeœli nie ma, wymiana (d), gdy jest
+ ItemRecord *r=FindRecord(t,n); //najpierw sprawdziæ, czy ju¿ jest
+ if (r)
+ {//przy zdublowaniu nazwy podmieniaæ w drzewku na póŸniejszy
+  r->pData=d;
+  return true; //duplikat
+ }
+ //Add(t,n,d); //nazwa unikalna
+ return false; //zosta³ dodany nowy
 };
 
 ItemRecord* __fastcall TNames::TreeSet(int *n,int d,int u)
@@ -140,3 +159,9 @@ void __fastcall TNames::Sort(int t)
  }
  return;
 };
+
+ItemRecord* __fastcall TNames::FindRecord(const int t,const char *n)
+{//poszukiwanie rekordu w celu np. zmiany wskaŸnika
+ return rTypes[t]?rTypes[t]->TreeFindRecord(n):NULL;
+};
+

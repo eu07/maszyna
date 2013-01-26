@@ -1395,6 +1395,10 @@ bool __fastcall TTrack::RemoveDynamicObject(TDynamicObject *Dynamic)
    --iNumDynamics;
    for (i;i<iNumDynamics;i++)
     Dynamics[i]=Dynamics[i+1];
+   if (Global::iMultiplayer) //jeœli multiplayer
+    if (!iNumDynamics) //jeœli ju¿ nie ma ¿adnego
+     if (pMyNode->asName!="none")
+      Global::pGround->WyslijString(pMyNode->asName,9); //przekazanie informacji o zwolnieniu toru
    return true;
   }
  }

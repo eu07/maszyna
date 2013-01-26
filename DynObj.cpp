@@ -360,6 +360,7 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
   if (ObjSqrDist<2500) //gdy bli¿ej ni¿ 50m
   {
    //ABu290105: rzucanie pudlem
+   //te animacje wymagaj¹ bananów w modelach!
    mdModel->GetSMRoot()->SetTranslate(modelShake);
    if (mdKabina)
     mdKabina->GetSMRoot()->SetTranslate(modelShake);
@@ -1514,17 +1515,18 @@ double __fastcall TDynamicObject::Init(
  btHeadSignals23.Init("headlamp22",mdModel,false);
  TurnOff(); //resetowanie zmiennych submodeli
  //wyszukiwanie zderzakow
- for (int i=0;i<2;i++)
- {
-  asAnimName=AnsiString("buffer_left0")+(i+1);
-  smBuforLewy[i]=mdModel->GetFromName(asAnimName.c_str());
-  if (smBuforLewy[i])
-   smBuforLewy[i]->WillBeAnimated(); //ustawienie flagi animacji
-  asAnimName=AnsiString("buffer_right0")+(i+1);
-  smBuforPrawy[i]=mdModel->GetFromName(asAnimName.c_str());
-  if (smBuforPrawy[i])
-   smBuforPrawy[i]->WillBeAnimated();
- }
+ if (mdModel) //jeœli ma w czym szukaæ
+  for (int i=0;i<2;i++)
+  {
+   asAnimName=AnsiString("buffer_left0")+(i+1);
+   smBuforLewy[i]=mdModel->GetFromName(asAnimName.c_str());
+   if (smBuforLewy[i])
+    smBuforLewy[i]->WillBeAnimated(); //ustawienie flagi animacji
+   asAnimName=AnsiString("buffer_right0")+(i+1);
+   smBuforPrawy[i]=mdModel->GetFromName(asAnimName.c_str());
+   if (smBuforPrawy[i])
+    smBuforPrawy[i]->WillBeAnimated();
+  }
  for (int i=0;i<iAxles;i++) //wyszukiwanie osi (0 jest na koñcu, dlatego dodajemy d³ugoœæ?)
   dRailPosition[i]=(Reversed?-dWheelsPosition[i]:(dWheelsPosition[i]+MoverParameters->Dim.L))+fDist;
  //McZapkie-250202 end.
@@ -1580,16 +1582,19 @@ double __fastcall TDynamicObject::Init(
  //pOldPos1=Axle0.pPosition;
  //ActualTrack= GetTrack(); //McZapkie-030303
  //ABuWozki 060504
- smBogie[0]=mdModel->GetFromName("bogie1"); //Ra: bo nazwy s¹ ma³ymi
- smBogie[1]=mdModel->GetFromName("bogie2");
- if (!smBogie[0])
-  smBogie[0]=mdModel->GetFromName("boogie01"); //Ra: alternatywna nazwa
- if (!smBogie[1])
-  smBogie[1]=mdModel->GetFromName("boogie02"); //Ra: alternatywna nazwa
- if (smBogie[0])
-  smBogie[0]->WillBeAnimated();
- if (smBogie[1])
-  smBogie[1]->WillBeAnimated();
+ if (mdModel) //jeœli ma w czym szukaæ
+ {
+  smBogie[0]=mdModel->GetFromName("bogie1"); //Ra: bo nazwy s¹ ma³ymi
+  smBogie[1]=mdModel->GetFromName("bogie2");
+  if (!smBogie[0])
+   smBogie[0]=mdModel->GetFromName("boogie01"); //Ra: alternatywna nazwa
+  if (!smBogie[1])
+   smBogie[1]=mdModel->GetFromName("boogie02"); //Ra: alternatywna nazwa
+  if (smBogie[0])
+   smBogie[0]->WillBeAnimated();
+  if (smBogie[1])
+   smBogie[1]->WillBeAnimated();
+ }
  //ABu: zainicjowanie zmiennej, zeby nic sie nie ruszylo
  //w pierwszej klatce, potem juz liczona prawidlowa wartosc masy
  MoverParameters->ComputeConstans();
@@ -3088,7 +3093,8 @@ bool __fastcall TDynamicObject::RenderAlpha()
   else
   {//wersja Display Lists
    if (mdLowPolyInt)
-    mdLowPolyInt->RenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
+    if (FreeFlyModeFlag?true:!mdKabina)
+     mdLowPolyInt->RenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
    mdModel->RenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
    if (mdLoad)
     mdLoad->RenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
@@ -3168,6 +3174,11 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
  Global::asCurrentDynamicPath=BaseDir;
  AnsiString asFileName=BaseDir+TypeName+".mmd";
  AnsiString asLoadName=BaseDir+MoverParameters->LoadType+".t3d";
+ if (!FileExists(asFileName))
+ {
+  ErrorLog("Missed file: "+asFileName); //brak MMD
+  return;
+ }
  fs=new TFileStream(asFileName,fmOpenRead|fmShareCompat);
  if (!fs) return;
  int size=fs->Size;
@@ -3683,12 +3694,18 @@ void __fastcall TDynamicObject::RaLightsSet(int head,int rear)
  if (rear==2+32+64)
  {//jeœli koniec poci¹gu, to trzeba ustaliæ, czy jest tam czynna lokomotywa
   //EN57 mo¿e nie mieæ koñcówek od œrodka cz³onu
-  //jeœli ma zarówno œwiat³a jak i koñcówki, ustaliæ, czy jest w stanie aktywnym
-  //np. lokomotywa na zimno bêdzie mieæ koñcówki a nie œwiat³a
-  if (iInventory&(iDirection?0x2A:0x15)) //czy ma jakieœ œwiat³a czerowone od danej strony
-   rear=2+32; //dwa œwiat³a czerwone
-  else
-   rear=64; //tablice blaszane
+  if (MoverParameters->Power>1.0) //jeœli ma moc napêdow¹
+   if (!MoverParameters->ActiveDir) //jeœli nie ma ustawionego kierunku
+   {//jeœli ma zarówno œwiat³a jak i koñcówki, ustaliæ, czy jest w stanie aktywnym
+    //np. lokomotywa na zimno bêdzie mieæ koñcówki a nie œwiat³a
+    rear=64; //tablice blaszane
+    //trzeba to uzale¿niæ od "za³¹czenia baterii" w pojeŸdzie
+   }
+  if (rear==2+32+64) //jeœli nadal obydwie mo¿liwoœci
+   if (iInventory&(iDirection?0x2A:0x15)) //czy ma jakieœ œwiat³a czerowone od danej strony
+    rear=2+32; //dwa œwiat³a czerwone
+   else
+    rear=64; //tablice blaszane
  }
  if (iDirection) //w zale¿noœci od kierunku pojazdu w sk³adzie
  {//jesli pojazd stoi sprzêgiem 0 w stronê czo³a

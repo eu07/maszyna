@@ -378,6 +378,7 @@ public:
  void __fastcall DynamicRemove(TDynamicObject* dyn);
  void __fastcall TerrainRead(const AnsiString &f); 
  void __fastcall TerrainWrite();
+ void __fastcall TrackBusyList();
 };
 //---------------------------------------------------------------------------
 #endif
