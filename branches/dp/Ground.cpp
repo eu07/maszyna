@@ -2595,22 +2595,27 @@ bool __fastcall TGround::InitEvents()
    break;
    case tp_Multiple:
     if (Current->Params[9].asText!=NULL)
-    {//powi¹zanie z komórk¹ pamiêci
+    {//przepisanie nazwy do bufora
      strcpy(buff,Current->Params[9].asText);
      SafeDeleteArray(Current->Params[9].asText);
-     if (Current->iFlags&(conditional_trackoccupied|conditional_trackfree))
-     {//jeœli chodzi o zajetosc toru
-      tmp=FindGroundNode(buff,TP_TRACK);
-      if (tmp) Current->Params[9].asTrack=tmp->pTrack;
-      if (!Current->Params[9].asTrack)
-       Error(AnsiString("Track \"")+AnsiString(buff)+"\" does not exist in \""+Current->asName+"\"");
+    }
+    else buff[0]='\0';
+    if (Current->iFlags&(conditional_trackoccupied|conditional_trackfree))
+    {//jeœli chodzi o zajetosc toru
+     tmp=FindGroundNode(buff,TP_TRACK);
+     if (tmp) Current->Params[9].asTrack=tmp->pTrack;
+     if (!Current->Params[9].asTrack)
+     {ErrorLog(AnsiString("Bad event: Track \"")+AnsiString(buff)+"\" does not exist in \""+Current->asName+"\"");
+      Current->iFlags&=~(conditional_trackoccupied|conditional_trackfree); //zerowanie flag
      }
-     else if (Current->iFlags&(conditional_memstring|conditional_memval1|conditional_memval2))
-     {//jeœli chodzi o komorke pamieciow¹
-      tmp=FindGroundNode(buff,TP_MEMCELL);
-      if (tmp) Current->Params[9].asMemCell=tmp->MemCell;
-      if (!Current->Params[9].asMemCell)
-       Error(AnsiString("MemCell \"")+AnsiString(buff)+AnsiString("\" does not exist in \""+Current->asName+"\""));
+    }
+    else if (Current->iFlags&(conditional_memstring|conditional_memval1|conditional_memval2))
+    {//jeœli chodzi o komorke pamieciow¹
+     tmp=FindGroundNode(buff,TP_MEMCELL);
+     if (tmp) Current->Params[9].asMemCell=tmp->MemCell;
+     if (!Current->Params[9].asMemCell)
+     {ErrorLog(AnsiString("Bad event: MemCell \"")+AnsiString(buff)+AnsiString("\" does not exist in \""+Current->asName+"\""));
+      Current->iFlags&=~(conditional_memstring|conditional_memval1|conditional_memval2);
      }
     }
     for (i=0;i<8;i++)
