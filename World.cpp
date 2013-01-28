@@ -200,7 +200,9 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
  if (glewGetExtension("GL_ARB_vertex_buffer_object")) //czy jest VBO w karcie graficznej
  {
   if (AnsiString((char*)glGetString(GL_VENDOR)).Pos("Intel")) //wymuszenie tylko dla kart Intel
-   Global::bUseVBO=true; //VBO w³¹czane tylko, jeœli jest obs³uga
+  {Global::bUseVBO=true; //VBO w³¹czane tylko, jeœli jest obs³uga
+   Global::iMultisampling=0; //to robi problemy na "Intel(R) HD Graphics Family" - czarny ekran
+  }
   if (Global::bUseVBO)
    WriteLog("Ra: The VBO is found and will be used.");
   else
