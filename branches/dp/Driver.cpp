@@ -21,6 +21,7 @@
 #include "World.h"
 
 #define LOGVELOCITY 0
+#define LOGORDERS 0
 #define LOGSTOPS 1
 #define LOGBACKSCAN 0
 /*
@@ -542,12 +543,17 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
        {//to siê wykona tylko raz po zatrzymaniu na W4
         if (TrainParams->DirectionChange()) //jeœli "@" w rozk³adzie, to wykonanie dalszych komend
         {//wykonanie kolejnej komendy, nie dotyczy ostatniej stacji
-         JumpToNextOrder(); //przejœcie do kolejnego rozkazu (zmiana kierunku, odczepianie)
-         iDrivigFlags&=~moveStopCloser; //ma nie podje¿d¿aæ pod W4 po przeciwnej stronie
          if (Controlling->TrainType==dt_EZT)
-          iDrivigFlags|=moveStopHere; //EZT ma staæ przy peronie
+         {iDrivigFlags|=moveStopHere; //EZT ma staæ przy peronie
+          if (OrderNextGet()!=Change_direction)
+          {OrderPush(Change_direction); //zmiana kierunku
+           OrderPush(TrainParams->StationIndex<TrainParams->StationCount?Obey_train:Shunt); //to dalej wg rozk³adu
+          }
+         }
          else //a dla lokomotyw...
           iDrivigFlags&=~(moveStopPoint|moveStopHere); //pozwolenie na przejechanie za W4 przed czasem i nie ma staæ
+         JumpToNextOrder(); //przejœcie do kolejnego rozkazu (zmiana kierunku, odczepianie)
+         iDrivigFlags&=~moveStopCloser; //ma nie podje¿d¿aæ pod W4 po przeciwnej stronie
          sSpeedTable[i].iFlags=0; //ten W4 nie liczy siê ju¿ zupe³nie (nie wyœle SetVelocity)
          sSpeedTable[i].fVelNext=-1; //jechaæ
          continue; //nie analizowaæ prêdkoœci
@@ -901,6 +907,9 @@ void __fastcall TController::OrdersClear()
  OrderTop=1; //szczyt stosu rozkazów
  for (int b=0;b<maxorders;b++)
   OrderList[b]=Wait_for_orders;
+#if LOGORDERS
+ WriteLog("--> OrdersClear");
+#endif
 };
 
 void __fastcall TController::Activation()
@@ -1982,6 +1991,10 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
    if ((NewValue1>=0)&&(NewValue1<maxorders))
    {OrderPos=floor(NewValue1);
     if (!OrderPos) OrderPos=1; //zgodnoœæ wstecz: dopiero pierwsza uruchamia
+#if LOGORDERS
+    WriteLog("--> Jump_to_order");
+    OrdersDump();
+#endif
    }
 /*
   if (WriteLogFlag)
@@ -2382,6 +2395,10 @@ bool __fastcall TController::UpdateSituation(double dt)
      OrderPos=1; //w zerowym zawsze jest czekanie
     else
      ++OrderPos;
+#if LOGORDERS
+    WriteLog("--> Jump_to_first_order");
+    OrdersDump();
+#endif
    break;
    case Wait_for_orders: //jeœli czeka, te¿ ma skanowaæ, ¿eby odpaliæ siê od semafora
 /*
@@ -2935,7 +2952,8 @@ void __fastcall TController::JumpToNextOrder()
    OrderPos=0;
  }
  OrderCheck();
-#if LOGVELOCITY
+#if LOGORDERS
+ WriteLog("--> JumpToNextOrder");
  OrdersDump(); //normalnie nie ma po co tego wypisywaæ
 #endif
 };
@@ -2945,6 +2963,10 @@ void __fastcall TController::JumpToFirstOrder()
  OrderPos=1;
  if (OrderTop==0) OrderTop=1;
  OrderCheck();
+#if LOGORDERS
+ WriteLog("--> JumpToFirstOrder");
+ OrdersDump(); //normalnie nie ma po co tego wypisywaæ
+#endif
 };
 
 void __fastcall TController::OrderCheck()
@@ -2980,6 +3002,10 @@ void __fastcall TController::OrderNext(TOrders NewOrder)
    ++OrderTop; //pomijamy wszystkie tymczasowe prace
  }
  OrderList[OrderTop++]=NewOrder; //dodanie rozkazu jako nastêpnego
+#if LOGORDERS
+ WriteLog("--> OrderNext");
+ OrdersDump(); //normalnie nie ma po co tego wypisywaæ
+#endif
 }
 
 void __fastcall TController::OrderPush(TOrders NewOrder)
@@ -2990,6 +3016,10 @@ void __fastcall TController::OrderPush(TOrders NewOrder)
  if (OrderList[OrderTop]!=NewOrder) //jeœli jest to samo, to nie dodajemy
   OrderList[OrderTop++]=NewOrder; //dodanie rozkazu na stos
  //if (OrderTop<OrderPos) OrderTop=OrderPos;
+#if LOGORDERS
+ WriteLog("--> OrderPush");
+ OrdersDump(); //normalnie nie ma po co tego wypisywaæ
+#endif
 }
 
 void __fastcall TController::OrdersDump()
@@ -3085,6 +3115,9 @@ void __fastcall TController::OrdersInit(double fVel)
   else
    SetVelocity(0,0,stopSleep); //prêdkoœæ w przedziale (0;1) oznacza, ¿e ma staæ
  }
+#if LOGORDERS
+ WriteLog("--> OrdersInit");
+#endif
  if (DebugModeFlag) //normalnie nie ma po co tego wypisywaæ
   OrdersDump(); //wypisanie kontrolne tabelki rozkazów
  //McZapkie! - zeby w ogole AI ruszyl to musi wykonac powyzsze rozkazy
