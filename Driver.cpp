@@ -544,7 +544,9 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
         {//wykonanie kolejnej komendy, nie dotyczy ostatniej stacji
          JumpToNextOrder(); //przejœcie do kolejnego rozkazu (zmiana kierunku, odczepianie)
          iDrivigFlags&=~moveStopCloser; //ma nie podje¿d¿aæ pod W4 po przeciwnej stronie
-         if (Controlling->TrainType!=dt_EZT) //EZT ma staæ przy peronie, a dla lokomotyw...
+         if (Controlling->TrainType==dt_EZT)
+          iDrivigFlags|=moveStopHere; //EZT ma staæ przy peronie
+         else //a dla lokomotyw...
           iDrivigFlags&=~(moveStopPoint|moveStopHere); //pozwolenie na przejechanie za W4 przed czasem i nie ma staæ
          sSpeedTable[i].iFlags=0; //ten W4 nie liczy siê ju¿ zupe³nie (nie wyœle SetVelocity)
          sSpeedTable[i].fVelNext=-1; //jechaæ
