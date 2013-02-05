@@ -2456,7 +2456,7 @@ bool __fastcall TGround::InitEvents()
       tmp=FindGroundNode(Current->asNodeName,TP_TRACK); //nazwa ta sama, co nazwa komórki
       if (tmp) Current->Params[9].asTrack=tmp->pTrack;
       if (!Current->Params[9].asTrack)
-       Error(AnsiString("Track \"")+AnsiString(buff)+"\" does not exist in \""+Current->asName+"\"");
+       ErrorLog("Bad event: "+AnsiString("track \"")+AnsiString(buff)+"\" does not exist in \""+Current->asName+"\"");
      }
      Current->Params[4].asGroundNode=tmp;
      Current->Params[5].asMemCell=tmp->MemCell; //komórka do aktualizacji
@@ -2468,17 +2468,17 @@ bool __fastcall TGround::InitEvents()
       if (tmp)
        Current->Params[6].asTrack=tmp->pTrack;
       else
-       Error("MemCell track not exist!");
+       ErrorLog("Bad MemCell: track \""+tmp->MemCell->asTrackName+"\" not exist in "+tmp->MemCell->asTrackName);
      }
      else
       Current->Params[6].asTrack=NULL;
     }
     else
-     Error("Event \""+Current->asName+"\" cannot find memcell \""+Current->asNodeName+"\"");
+     ErrorLog("Bad event: "+Current->asName+"\" cannot find memcell \""+Current->asNodeName+"\"");
    break;
    case tp_LogValues: //skojarzenie z memcell
     if (Current->asNodeName.IsEmpty())
-    {//brak skojarzenia daje logowanie wszystkich 
+    {//brak skojarzenia daje logowanie wszystkich
      Current->Params[9].asMemCell=NULL;
      break;
     }

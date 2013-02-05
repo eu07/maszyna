@@ -919,6 +919,8 @@ void __fastcall TController::Activation()
  {//jeúli jest ustalony kierunek
   TDynamicObject *old=pVehicle,*d=pVehicle; //w tym siedzi AI
   int brake=Controlling->LocalBrakePos;
+  while (Controlling->ActiveDir<0) Controlling->DirectionForward(); //kierunek na 0
+  while (Controlling->ActiveDir>0) Controlling->DirectionBackward();
   if (TestFlag(d->MoverParameters->Couplers[iDirectionOrder<0?1:0].CouplingFlag,ctrain_controll))
   {Controlling->MainSwitch(false); //dezaktywacja czuwaka, jeúli przejúcie do innego cz≥onu
    Controlling->DecLocalBrakeLevel(10); //zwolnienie hamulca w opuszczanym pojeüdzie
