@@ -4658,10 +4658,12 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
      Global::asCurrentTexturePath=DynamicObject->asBaseDir; //bie¿¹ca sciezka do tekstur to dynamic/...
      TModel3d *k=TModelsManager::GetModel(str.c_str(),true); //szukaj kabinê jako oddzielny model
      Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath); //z powrotem defaultowa sciezka do tekstur
-     if (DynamicObject->mdKabina!=k)
+     //if (DynamicObject->mdKabina!=k)
+     if (k)
       DynamicObject->mdKabina=k; //nowa kabina
-     else
-      break; //wyjœcie z pêtli, bo model zostaje bez zmian
+     //(mdKabina) mo¿e zostaæ to samo po przejœciu do innego cz³onu bez zmiany kabiny, przy powrocie musi byæ wi¹zanie ponowne
+     //else
+     // break; //wyjœcie z pêtli, bo model zostaje bez zmian
     }
     else if (cabindex==1) //model tylko, gdy nie ma kabiny 1
      DynamicObject->mdKabina=DynamicObject->mdModel;   //McZapkie-170103: szukaj elementy kabiny w glownym modelu
