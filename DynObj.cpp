@@ -1285,9 +1285,10 @@ double __fastcall TDynamicObject::Init(
  {//McZapkie-040602: jeœli coœ siedzi w pojeŸdzie
   if (Name==AnsiString(Global::asHumanCtrlVehicle)) //jeœli pojazd wybrany do prowadzenia
   {
-   if (MoverParameters->EngineType!=Dumb) //i nie jest dumbem
-    //if (!DebugModeFlag) //w Debugmode prowadzi teraz AI - bierki, kabina znika... :/
-     Controller=Humandriver; //wsadzamy tam steruj¹cego
+   if (DebugModeFlag?false:MoverParameters->EngineType!=Dumb) //jak nie Debugmode i nie jest dumbem
+    Controller=Humandriver; //wsadzamy tam steruj¹cego
+   else //w przeciwnym razie trzeba w³¹czyæ pokazywanie kabiny
+    bDisplayCab=true;
   }
   //McZapkie-151102: rozk³ad jazdy czytany z pliku *.txt z katalogu w którym jest sceneria
   if (DriverType.Pos("h")||DriverType.Pos("r"))
