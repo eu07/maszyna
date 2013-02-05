@@ -1460,7 +1460,7 @@ bool __fastcall TWorld::Update()
        //Train->DynamicObject->MoverParameters->ActFlowSpeed=0;
        Train->DynamicObject->MoverParameters->SecuritySystem.Status=1;
        //Train->DynamicObject->MoverParameters->ActiveCab=CabNr;
-       Train->DynamicObject->MoverParameters->CabActivisation();
+       Train->DynamicObject->MoverParameters->CabActivisation(); //za³¹czenie rozrz¹du (wirtualne kabiny)
        Train->DynamicObject->Controller=Humandriver;
        Train->DynamicObject->MechInside=true;
        //Train->DynamicObject->Mechanik=new TController(l,r,Controlled->Controller,&Controlled->MoverParameters,&Controlled->TrainParams,Aggressive);

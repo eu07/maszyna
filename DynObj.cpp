@@ -1235,7 +1235,7 @@ double __fastcall TDynamicObject::Init(
  else if (DriverType.Pos("r")) //od ty³u sk³adu
   Cab=-1;//iDirection?-1:1;
  else if (DriverType=="c") //uaktywnianie wirtualnej kabiny
-  Cab=iDirection?1:-1; //to przestawi steruj¹cy
+  Cab=0; //iDirection?1:-1; //to przestawi steruj¹cy
  else if (DriverType=="p")
  {
   if (random(6)<3) Cab=1; else Cab=-1; //losowy przydzia³ kabiny
@@ -1293,7 +1293,7 @@ double __fastcall TDynamicObject::Init(
   //McZapkie-151102: rozk³ad jazdy czytany z pliku *.txt z katalogu w którym jest sceneria
   if (DriverType.Pos("h")||DriverType.Pos("r"))
   {//McZapkie-110303: mechanik i rozklad tylko gdy jest obsada
-   MoverParameters->ActiveCab=MoverParameters->CabNo; //ustalenie aktywnej kabiny (rozrz¹d)
+   //MoverParameters->ActiveCab=MoverParameters->CabNo; //ustalenie aktywnej kabiny (rozrz¹d)
    Mechanik=new TController(Controller,this,Aggressive);
    if (TrainName.IsEmpty()) //jeœli nie w sk³adzie
     Mechanik->PutCommand("Timetable:",iDirection?-fVel:fVel,0,NULL); //tryb poci¹gowy z ustalon¹ prêdkoœci¹ (wzglêdem sprzêgów)
@@ -2016,7 +2016,7 @@ lastcabf=(MoverParameters->CabNo*MoverParameters->DoubleTr);
 if (MoverParameters->TrainType==dt_EZT)
   lastcabf=1;
 if (lastcabf==0)
- lastcabf=MoverParameters->LastCab;
+ lastcabf=1; //MoverParameters->LastCab;
 if (lastcabf==1)
 {
 pcabc1=MoverParameters->PantFrontUp;
