@@ -1626,7 +1626,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    }
    else
    {//gdy tor nie znaleziony
-    Error("Track does not exist \""+tmp->DynamicObject->asTrack+"\"");
+    ErrorLog("Missed track: dynamic placed on \""+tmp->DynamicObject->asTrack+"\"");
     delete tmp;
     tmp=NULL; //nie mo¿e byæ tu return, bo trzeba pomin¹æ jeszcze enddynamic
    }
@@ -2125,9 +2125,12 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
      if (str==AnsiString("endtrainset"))
      {//McZapkie-110103: sygnaly konca pociagu ale tylko dla pociagow rozkladowych
       if (TrainSetNode) //trainset bez dynamic siê sypa³
-      {
+      {//powinien te¿ tu wchodziæ, gdy pojazd bez trainset
        if (TrainSetDriver) //pojazd, któremu zostanie wys³any rozk³ad
+       {
+        TrainSetDriver->DynamicObject->MoverParameters->CabActivisation(); //za³¹czenie rozrz¹du (wirtualne kabiny)
         TrainSetDriver->DynamicObject->Mechanik->PutCommand("Timetable:"+asTrainName,fTrainSetVel,0,NULL);
+       }
        if (asTrainName!="none")
        {//gdy podana nazwa, w³¹czenie jazdy poci¹gowej
 /*
@@ -2456,7 +2459,7 @@ bool __fastcall TGround::InitEvents()
       tmp=FindGroundNode(Current->asNodeName,TP_TRACK); //nazwa ta sama, co nazwa komórki
       if (tmp) Current->Params[9].asTrack=tmp->pTrack;
       if (!Current->Params[9].asTrack)
-       ErrorLog("Bad event: "+AnsiString("track \"")+AnsiString(buff)+"\" does not exist in \""+Current->asName+"\"");
+       ErrorLog("Bad event: track \""+AnsiString(buff)+"\" does not exist in \""+Current->asName+"\"");
      }
      Current->Params[4].asGroundNode=tmp;
      Current->Params[5].asMemCell=tmp->MemCell; //komórka do aktualizacji
@@ -2468,13 +2471,13 @@ bool __fastcall TGround::InitEvents()
       if (tmp)
        Current->Params[6].asTrack=tmp->pTrack;
       else
-       ErrorLog("Bad MemCell: track \""+tmp->MemCell->asTrackName+"\" not exist in "+tmp->MemCell->asTrackName);
+       ErrorLog("Bad memcell: track \""+tmp->MemCell->asTrackName+"\" not exist in "+tmp->MemCell->asTrackName);
      }
      else
       Current->Params[6].asTrack=NULL;
     }
     else
-     ErrorLog("Bad event: "+Current->asName+"\" cannot find memcell \""+Current->asNodeName+"\"");
+     ErrorLog("Bad event: \""+Current->asName+"\" cannot find memcell \""+Current->asNodeName+"\"");
    break;
    case tp_LogValues: //skojarzenie z memcell
     if (Current->asNodeName.IsEmpty())
