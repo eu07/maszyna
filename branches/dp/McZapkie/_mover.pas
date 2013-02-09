@@ -5723,7 +5723,7 @@ begin
      PantFront(true);
      PantRear(true);
      MainSwitch(true);
-     ActiveDir:=Dir; //nastawnik kierunkowy
+     ActiveDir:=0; //Dir; //nastawnik kierunkowy - musi byæ ustawiane osobno!
      DirAbsolute:=ActiveDir*CabNo; //kierunek jazdy wzglêdem sprzêgów
      LimPipePress:=CntrlPipePress;
    end

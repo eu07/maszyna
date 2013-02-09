@@ -1116,6 +1116,17 @@ void __fastcall TController::Lights(int head,int rear)
  pVehicles[1]->RaLightsSet(-1,rear); //zapalenie koñcówek w ostatnim
 }
 
+void __fastcall TController::DirectionInitial()
+{//ustawienie kierunku po wczytaniu trainset (mo¿e jechaæ na wstecznym
+ Controlling->CabActivisation(); //za³¹czenie rozrz¹du (wirtualne kabiny)
+ if (Controlling->Vel>0.5)
+ {//jeœli na starcie jedzie
+  iDirection=iDirectionOrder=(Controlling->V>0?1:-1); //pocz¹tkowa prêdkoœæ wymusza kierunek jazdy
+  DirectionForward(Controlling->V*Controlling->CabNo>=0.0); //a dalej ustawienie nawrotnika
+  CheckVehicles(); //sprawdzenie œwiate³ oraz skrajnych pojazdów do skanowania
+ }
+};
+
 int __fastcall TController::OrderDirectionChange(int newdir,TMoverParameters *Vehicle)
 {//zmiana kierunku jazdy, niezale¿nie od kabiny
  int testd=newdir;
@@ -1129,7 +1140,7 @@ int __fastcall TController::OrderDirectionChange(int newdir,TMoverParameters *Ve
   if (testd==0)
    VelforDriver=-1; //kierunek zosta³ zmieniony na ¿¹dany, mo¿na jechaæ
  }
- else
+ else //jeœli jedzie
   VelforDriver=0; //ma siê zatrzymaæ w celu zmiany kierunku
  if ((Vehicle->ActiveDir==0)&&(VelforDriver<Vehicle->Vel)) //Ra: to jest chyba bez sensu
   IncBrake(); //niech hamuje
@@ -1804,9 +1815,20 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
     if (NewValue1<0) //dla ujemnej prêdkoœci
      iDirectionOrder=-iDirectionOrder; //ma jechaæ w drug¹ stronê
 */
+   if (AIControllFlag) //jeœli prowadzi komputer
+    Activation(); //umieszczenie obs³ugi we w³aœciwym cz³onie, ustawienie nawrotnika w przód
   }
-  if (AIControllFlag) //jeœli prowadzi komputer
-   Activation(); //umieszczenie obs³ugi we w³aœciwym cz³onie, ustawienie nawrotnika w przód
+/*
+  else
+   if (!iDirectionOrder)
+  {//jeœli nie ma kierunku, trzeba ustaliæ
+   if (Controlling->V!=0.0)
+    iDirectionOrder=Controlling->V>0?1:-1;
+   else
+    iDirectionOrder=Controlling->ActiveCab;
+   if (!iDirectionOrder) iDirectionOrder=1;
+  }
+*/
   //jeœli wysy³ane z Trainset, to wszystko jest ju¿ odpowiednio ustawione
   //if (!NewLocation) //jeœli wysy³ane z Trainset
   // if (Controlling->CabNo*Controlling->V*NewValue1<0) //jeœli zadana prêdkoœæ niezgodna z aktualnym kierunkiem jazdy

@@ -118,6 +118,7 @@ __fastcall TTrain::TTrain()
  dsbSlipAlarm=NULL; //Bombardier 011010: alarm przy poslizgu dla 181/182
  dsbCouplerStretch=NULL;
  dsbBufferClamp=NULL;
+ iRadioChannel=0;
 }
 
 __fastcall TTrain::~TTrain()

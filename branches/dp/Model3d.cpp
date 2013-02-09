@@ -934,7 +934,7 @@ void __fastcall TSubModel::RenderDL()
    matrix4x4 mat; //macierz opisuje uk³ad renderowania wzglêdem kamery
    glGetDoublev(GL_MODELVIEW_MATRIX,mat.getArray());
    //k¹t miêdzy kierunkiem œwiat³a a wspó³rzêdnymi kamery
-   vector3 gdzie=mat*vector3(0,0,0); //pozycja wzglêdna punktu œwiec¹cego
+   vector3 gdzie=mat*vector3(0,0,0); //pozycja punktu œwiec¹cego wzglêdem kamery
    fCosViewAngle=DotProduct(Normalize(mat*vector3(0,0,1)-gdzie),Normalize(gdzie));
    if (fCosViewAngle>fCosFalloffAngle)  //k¹t wiêkszy ni¿ maksymalny sto¿ek swiat³a
    {
@@ -1082,12 +1082,12 @@ void __fastcall TSubModel::RenderVBO()
   }
   else if (eType==TP_FREESPOTLIGHT)
   {
-   matrix4x4 mat;
+   matrix4x4 mat; //macierz opisuje uk³ad renderowania wzglêdem kamery
    glGetDoublev(GL_MODELVIEW_MATRIX,mat.getArray());
    //k¹t miêdzy kierunkiem œwiat³a a wspó³rzêdnymi kamery
    vector3 gdzie=mat*vector3(0,0,0); //pozycja punktu œwiec¹cego wzglêdem kamery
    fCosViewAngle=DotProduct(Normalize(mat*vector3(0,0,1)-gdzie),Normalize(gdzie));
-   if (fCosViewAngle>fCosFalloffAngle)  //kat wiekszy niz max stozek swiatla
+   if (fCosViewAngle>fCosFalloffAngle)  //k¹t wiêkszy ni¿ maksymalny sto¿ek swiat³a
    {
     double Distdimm=1.0;
     if (fCosViewAngle<fCosHotspotAngle) //zmniejszona jasnoœæ miêdzy Hotspot a Falloff
