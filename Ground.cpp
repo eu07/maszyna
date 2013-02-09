@@ -337,7 +337,7 @@ void __fastcall TGroundNode::RenderAlphaVBO()
     glAlphaFunc(GL_GREATER,0.04);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 #endif
-    Traction->RaRenderVBO(mgn,iVboPtr);
+    Traction->RenderVBO(mgn,iVboPtr);
    }
    return;
   case TP_MODEL:
@@ -585,7 +585,7 @@ void __fastcall TGroundNode::RenderAlphaDL()
  {
   case TP_TRACTION:
    if (bVisible)
-    Traction->Render(mgn);
+    Traction->RenderDL(mgn);
    return;
   case TP_MODEL:
    Model->RenderAlphaDL(&pCenter);
@@ -915,6 +915,18 @@ void __fastcall TSubRect::RaAnimate()
    Release(); //opró¿nienie VBO sektora, aby siê odœwie¿y³ z nowymi ustawieniami
  }
  tTrackAnim=tTrackAnim->RaAnimate(); //przeliczenie animacji kolejnego
+};
+
+TTraction* __fastcall TSubRect::FindTraction(vector3 *Point,int &iConnection,TTraction *Exclude)
+{//szukanie przês³a w sektorze, którego koniec jest najbli¿szy (*Point)
+ TGroundNode *Current;
+ for (Current=nRenderWires;Current;Current=Current->Next)
+  if ((Current->iType==TP_TRACTION)&&(Current->Traction!=Exclude))
+   {
+    iConnection=Current->Traction->TestPoint(Point);
+    if (iConnection>=0) return Current->Traction;
+   }
+ return NULL;
 };
 
 void __fastcall TSubRect::LoadNodes()
@@ -2128,7 +2140,7 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
       {//powinien te¿ tu wchodziæ, gdy pojazd bez trainset
        if (TrainSetDriver) //pojazd, któremu zostanie wys³any rozk³ad
        {
-        TrainSetDriver->DynamicObject->MoverParameters->CabActivisation(); //za³¹czenie rozrz¹du (wirtualne kabiny)
+        TrainSetDriver->DynamicObject->Mechanik->DirectionInitial();
         TrainSetDriver->DynamicObject->Mechanik->PutCommand("Timetable:"+asTrainName,fTrainSetVel,0,NULL);
        }
        if (asTrainName!="none")
@@ -2770,7 +2782,43 @@ void __fastcall TGround::InitTracks()
 
 void __fastcall TGround::InitTraction()
 {//³¹czenie drutów ze sob¹ oraz z torami i eventami
-}
+ TGroundNode *Current;
+ TTraction *tmp; //znalezione przês³o
+ TTraction *Traction;
+ int iConnection,state;
+ AnsiString name;
+ for (Current=nRootOfType[TP_TRACTION];Current;Current=Current->Next)
+ {
+  Traction=Current->Traction;
+  if (!Traction->pPrev) //tylko jeœli jeszcze nie pod³¹czony
+  {
+   tmp=FindTraction(&Traction->pPoint1,iConnection,Current);
+   switch (iConnection)
+   {
+    case 0:
+     Traction->Connect(0,tmp,0);
+    break;
+    case 1:
+     Traction->Connect(0,tmp,1);
+    break;
+   }
+  }
+  if (!Traction->pNext) //tylko jeœli jeszcze nie pod³¹czony
+  {
+   tmp=FindTraction(&Traction->pPoint2,iConnection,Current);
+   switch (iConnection)
+   {
+    case 0:
+     Traction->Connect(1,tmp,0);
+    break;
+    case 1:
+     Traction->Connect(1,tmp,1);
+    break;
+   }
+  }
+  break;
+ }
+};
 
 void __fastcall TGround::TrackJoin(TGroundNode *Current)
 {//wyszukiwanie s¹siednich torów do pod³¹czenia (wydzielone na u¿ytek obrotnicy)
@@ -2843,12 +2891,14 @@ TTrack* __fastcall TGround::FindTrack(vector3 Point,int &iConnection,TGroundNode
   if ((sr=FastGetSubRect(c+y,r+x))!=NULL)
    if ((tmp=sr->FindTrack(&Point,iConnection,Exclude->pTrack))!=NULL)
     return tmp;
-  if ((sr=FastGetSubRect(c+y,r-x))!=NULL)
-   if ((tmp=sr->FindTrack(&Point,iConnection,Exclude->pTrack))!=NULL)
-    return tmp;
-  if ((sr=FastGetSubRect(c-y,r+x))!=NULL)
-   if ((tmp=sr->FindTrack(&Point,iConnection,Exclude->pTrack))!=NULL)
-    return tmp;
+  if (x)
+   if ((sr=FastGetSubRect(c+y,r-x))!=NULL)
+    if ((tmp=sr->FindTrack(&Point,iConnection,Exclude->pTrack))!=NULL)
+     return tmp;
+  if (y)
+   if ((sr=FastGetSubRect(c-y,r+x))!=NULL)
+    if ((tmp=sr->FindTrack(&Point,iConnection,Exclude->pTrack))!=NULL)
+     return tmp;
   if ((sr=FastGetSubRect(c-y,r-x))!=NULL)
    if ((tmp=sr->FindTrack(&Point,iConnection,Exclude->pTrack))!=NULL)
     return tmp;
@@ -2867,6 +2917,41 @@ TTrack* __fastcall TGround::FindTrack(vector3 Point,int &iConnection,TGroundNode
  return NULL;
 }
 
+TTraction* __fastcall TGround::FindTraction(vector3 *Point,int &iConnection,TGroundNode *Exclude)
+{//wyszukiwanie innego przês³a koñcz¹cego siê w (Point)
+ TTraction *Traction;
+ TGroundNode *Current;
+ TTraction *tmp;
+ iConnection=-1;
+ TSubRect *sr;
+ //najpierw szukamy w okolicznych segmentach
+ int c=GetColFromX(Point->x);
+ int r=GetRowFromZ(Point->z);
+ if ((sr=FastGetSubRect(c,r))!=NULL) //wiêkszoœæ bêdzie w tym samym sektorze
+  if ((tmp=sr->FindTraction(Point,iConnection,Exclude->Traction))!=NULL)
+   return tmp;
+ int i,x,y;
+ for (i=1;i<9;++i) //sektory w kolejnoœci odleg³oœci, 4 jest tu wystarczaj¹ce, 9 na wszelki wypadek
+ {//wszystkie przês³a powinny zostaæ znajdowaæ siê w s¹siednich 8 sektorach
+  x=SectorOrder[i].x;
+  y=SectorOrder[i].y;
+  if ((sr=FastGetSubRect(c+y,r+x))!=NULL)
+   if ((tmp=sr->FindTraction(Point,iConnection,Exclude->Traction))!=NULL)
+    return tmp;
+  if (x)
+   if ((sr=FastGetSubRect(c+y,r-x))!=NULL)
+    if ((tmp=sr->FindTraction(Point,iConnection,Exclude->Traction))!=NULL)
+     return tmp;
+  if (y)
+   if ((sr=FastGetSubRect(c-y,r+x))!=NULL)
+    if ((tmp=sr->FindTraction(Point,iConnection,Exclude->Traction))!=NULL)
+     return tmp;
+  if ((sr=FastGetSubRect(c-y,r-x))!=NULL)
+   if ((tmp=sr->FindTraction(Point,iConnection,Exclude->Traction))!=NULL)
+    return tmp;
+ }
+ return NULL;
+}
 
 /*
 TGroundNode* __fastcall TGround::CreateGroundNode()

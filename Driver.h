@@ -41,7 +41,7 @@ enum TMovementStatus
 };
 
 enum TStopReason
-{//powód zatrzymania, dodawany do SetVelocity 0
+{//powód zatrzymania, dodawany do SetVelocity 0 - w zasadzie do usuniêcia
  stopNone,  //nie ma powodu - powinien jechaæ
  stopSleep, //nie zosta³ odpalony, to nie pojedzie
  stopSem,   //semafor zamkniêty
@@ -55,6 +55,23 @@ enum TStopReason
  stopRadio, //komunikat przekazany radiem (Radiostop)
  stopExt,   //komenda z zewn¹trz
  stopError  //z powodu b³êdu w obliczeniu drogi hamowania
+};
+
+enum TAction
+{//przechowanie aktualnego stanu AI od poprzedniego przeb³ysku œwiadomoœci
+ actUnknown //stan nieznany (domyœlny na pocz¹tku)
+    //ruszanie z miejsca
+    //przyhamowanie przed ograniczeniem
+    //hamowanie w celu precyzyjnego zatrzymania
+    //luzowanie sk³adu przed odjazdem
+    //luzowanie sk³adu po zmniejszeniu prêdkoœci
+    //dojazd w celu podczepienia
+    //zatrzymanie na przystanku
+    //zg³oszona gotowoœæ do odjazdu od kierownika
+    //hamowanie awaryjne
+    //ruszanie pod górê
+    //hamowanie kontrolne
+    //próba hamulca
 };
 
 class TSpeedPos
@@ -141,6 +158,7 @@ private:
  double deltalog; //przyrost czasu
  double LastReactionTime;
  double fActionTime; //czas u¿ywany przy regulacji prêdkoœci i zamykaniu drzwi
+ TAction eAction; //aktualny stan
  bool HelpMeFlag; //wystawiane True jesli cos niedobrego sie dzieje
 public:
  bool AIControllFlag; //rzeczywisty/wirtualny maszynista
@@ -264,6 +282,7 @@ public:
  bool __fastcall IsStop();
  bool __fastcall Primary() {return this?bool(iDrivigFlags&movePrimary):false;};
  void __fastcall MoveTo(TDynamicObject *to);
+ void __fastcall DirectionInitial();
 };
 
 #endif

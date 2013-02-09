@@ -1296,7 +1296,10 @@ double __fastcall TDynamicObject::Init(
    //MoverParameters->ActiveCab=MoverParameters->CabNo; //ustalenie aktywnej kabiny (rozrz¹d)
    Mechanik=new TController(Controller,this,Aggressive);
    if (TrainName.IsEmpty()) //jeœli nie w sk³adzie
+   {
+    Mechanik->DirectionInitial();  //za³¹czenie rozrz¹du (wirtualne kabiny) itd.
     Mechanik->PutCommand("Timetable:",iDirection?-fVel:fVel,0,NULL); //tryb poci¹gowy z ustalon¹ prêdkoœci¹ (wzglêdem sprzêgów)
+   }
    //if (TrainName!="none")
    // Mechanik->PutCommand("Timetable:"+TrainName,fVel,0,NULL);
   }
