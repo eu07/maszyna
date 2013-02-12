@@ -59,19 +59,22 @@ enum TStopReason
 
 enum TAction
 {//przechowanie aktualnego stanu AI od poprzedniego przeb³ysku œwiadomoœci
- actUnknown //stan nieznany (domyœlny na pocz¹tku)
-    //ruszanie z miejsca
-    //przyhamowanie przed ograniczeniem
-    //hamowanie w celu precyzyjnego zatrzymania
-    //luzowanie sk³adu przed odjazdem
-    //luzowanie sk³adu po zmniejszeniu prêdkoœci
-    //dojazd w celu podczepienia
-    //zatrzymanie na przystanku
-    //zg³oszona gotowoœæ do odjazdu od kierownika
-    //hamowanie awaryjne
-    //ruszanie pod górê
-    //hamowanie kontrolne
-    //próba hamulca
+ actUnknownm,  //stan nieznany (domyœlny na pocz¹tku)
+ //podnieœ pantograf (info dla u¿ytkownika)
+ //za³¹cz przetwornicê (info dla u¿ytkownika)
+ //za³¹cz sprê¿arkê (info dla u¿ytkownika)
+ actGo,        //ruszanie z miejsca
+ actSlow,      //przyhamowanie przed ograniczeniem
+ sctStop,      //hamowanie w celu precyzyjnego zatrzymania
+ actIdle,      //luzowanie sk³adu przed odjazdem
+ actRelease,   //luzowanie sk³adu po zmniejszeniu prêdkoœci
+ actConnect,   //dojazd w celu podczepienia
+ actWait,      //czekanie na przystanku
+ actReady,     //zg³oszona gotowoœæ do odjazdu od kierownika
+ actEmergency, //hamowanie awaryjne
+ actGoUphill,  //ruszanie pod górê
+ actTest,      //hamowanie kontrolne (podczas jazdy)
+ actTrial      //próba hamulca (na postoju)
 };
 
 class TSpeedPos

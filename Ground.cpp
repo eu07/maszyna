@@ -2015,6 +2015,8 @@ void __fastcall TGround::FirstInit()
  //musi byæ tutaj, bo wczeœniej nie mieliœmy wartoœci œwiat³a
  if (Global::bDoubleAmbient) //Ra: wczeœniej by³o ambient dawane na obydwa œwiat³a
   glLightModelfv(GL_LIGHT_MODEL_AMBIENT,Global::ambientDayLight);
+ if (Global::fMoveLight>=0.0) //albo tak, albo niech ustala minimum ciemnoœci w nocy 
+  glLightModelfv(GL_LIGHT_MODEL_AMBIENT,Global::ambientDayLight);
  glEnable(GL_LIGHTING);
  WriteLog("FirstInit is done");
 };
@@ -2325,7 +2327,7 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
       parser.getTokens(); parser >> lp.x;
       parser.getTokens(); parser >> lp.y;
       parser.getTokens(); parser >> lp.z;
-      lp=Normalize(lp);
+      lp=Normalize(lp); //kierunek padania
       Global::lightPos[0]=lp.x; //daylight position
       Global::lightPos[1]=lp.y;
       Global::lightPos[2]=lp.z;
