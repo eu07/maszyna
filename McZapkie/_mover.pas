@@ -1168,7 +1168,7 @@ begin
 //Ra: problem jest równie¿, jeœli AI bêdzie na koñcu sk³adu
  OK:=(dir<>0); // and Mains;
  d:=(1+Sign(dir)) div 2; //dir=-1=>d=0, dir=1=>d=1 - wysy³anie tylko w ty³
- if OK then
+ if OK then //musi byæ wybrana niezerowa kabina
   with Couplers[d] do //w³asny sprzêg od strony (d)
    if TestFlag(CouplingFlag,ctrain_controll) then
     if ConnectedNr<>d then //jeœli ten nastpêny jest zgodny z aktualnym
@@ -1204,7 +1204,7 @@ begin
    begin
      CabNo:=ActiveCab; //sterowanie jest z kabiny z obsad¹
      DirAbsolute:=ActiveDir*CabNo;
-     SendCtrlToNext('CabActivisation',CabNo*ActiveCab,ActiveCab);
+     SendCtrlToNext('CabActivisation',1,CabNo);
      //PantCheck;
    end;
   CabActivisation:=OK;
@@ -1221,7 +1221,7 @@ begin
    CabNo:=0;
    DirAbsolute:=ActiveDir*CabNo;
    DepartureSignal:=false; //nie buczeæ z nieaktywnej kabiny
-   SendCtrlToNext('CabActivisation',0,ActiveCab);
+   SendCtrlToNext('CabActivisation',0,CabNo);
   end;
  CabDeactivisation:=OK;
 end;
@@ -4973,12 +4973,10 @@ end;
 
 function T_MoverParameters.DoorBlockedFlag:Boolean;
 begin
-  if (DoorBlocked=true) and (Vel<5) then
-  DoorBlockedFlag:=False;
-  if (DoorBlocked=true) and (Vel>=5) then
-  DoorBlockedFlag:=True
-  else
-  DoorBlockedFlag:=False;
+ if (DoorBlocked=true) and (Vel<5.0) then
+  DoorBlockedFlag:=false;
+ if (DoorBlocked=true) and (Vel>=5.0) then
+  DoorBlockedFlag:=true
 end;
 
 function T_MoverParameters.RunCommand(command:string; CValue1,CValue2:real):boolean;
@@ -5079,10 +5077,10 @@ Begin
 //  if OK then
     //if (CabNo<>0) then
     // LastCab:=CabNo;
-    case Trunc(CValue1*CValue2) of
+    case Trunc(CValue1*CValue2) of //CValue2 ma zmieniany znak przy niezgodnoœci sprzêgów
       1 : CabNo:= 1;
      -1 : CabNo:=-1;
-    else CabNo:=0;
+    else CabNo:=0; //gdy CValue1==0
     end;
     DirAbsolute:=ActiveDir*CabNo;
     //PantCheck; //ewentualnie automatyczna zamiana podniesionych pantografów

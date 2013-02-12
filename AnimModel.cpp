@@ -159,8 +159,8 @@ void __fastcall TAnimContainer::AnimSetVMD(double fNewSpeed)
   }
  }
  //if (!strcmp(pSubModel->pName,"?Z?“?^?[")) //jak g³ówna koœæ
- if (!strcmp(pSubModel->pName,"¶‚Â‚Üæ‚h‚j")) //IK lewej stopy
-  WriteLog(AnsiString(pMovementData->iFrame)+": "+AnsiString(pMovementData->f3Vector.x)+" "+AnsiString(pMovementData->f3Vector.y)+" "+AnsiString(pMovementData->f3Vector.z));
+ //if (!strcmp(pSubModel->pName,"¶‚Â‚Üæ‚h‚j")) //IK lewej stopy
+ // WriteLog(AnsiString(pMovementData->iFrame)+": "+AnsiString(pMovementData->f3Vector.x)+" "+AnsiString(pMovementData->f3Vector.y)+" "+AnsiString(pMovementData->f3Vector.z));
 }
 
 void __fastcall TAnimContainer::UpdateModel()

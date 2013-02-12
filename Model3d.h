@@ -193,7 +193,7 @@ private:
  int bWire; //nie u¿ywane, ale wczytywane
  //short TexAlpha;  //Ra: nie u¿ywane ju¿
  GLuint uiDisplayList; //roboczy numer listy wyœwietlania
- float Transparency; //nie u¿ywane, ale wczytywane
+ float Opacity; //nie u¿ywane, ale wczytywane
  //ABu: te same zmienne, ale zdublowane dla Render i RenderAlpha,
  //bo sie chrzanilo przemieszczanie obiektow.
  //Ra: ju¿ siê nie chrzani
