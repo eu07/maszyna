@@ -56,10 +56,10 @@
 [Version Info]
 IncludeVerInfo=1
 AutoIncBuild=0
-MajorVer=1
-MinorVer=8
-Release=750
-Build=397
+MajorVer=13
+MinorVer=2
+Release=753
+Build=398
 Debug=1
 PreRelease=0
 Special=0
@@ -71,13 +71,13 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.8.750.397
-InternalName=8th by Ra + Megapack
+FileVersion=13.2.753.398
+InternalName=8th by Ra
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=eu07.exe
 ProductName=MaSzyna EU07-424
-ProductVersion=1.8
+ProductVersion=13.2
 Comments=
 
 [HistoryLists\hlIncludePath]
@@ -112,7 +112,7 @@ Item1=D:\EU07DDS\
 DebugSourceDirs=
 
 [Parameters]
-RunParams=-s dolny-slask-kibel-do-tylu.scn -v EN57-001rb
+RunParams=
 HostApplication=
 RemoteHost=
 RemotePath=

@@ -2,7 +2,7 @@
 #ifndef RealSoundH
 #define RealSoundH
 
-#include "sound.h"
+#include "Sound.h"
 #include "Geometry.h"
 
 class TRealSound

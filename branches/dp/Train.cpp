@@ -219,6 +219,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       if (cKey==Global::Keys[k_DirectionBackward])
       {
       if (DynamicObject->MoverParameters->Radio==false)
+        if (GetAsyncKeyState(VK_CONTROL)>=0)
           {
             dsbSwitch->SetVolume(DSBVOLUME_MAX);
             dsbSwitch->Play( 0, 0, 0 );
@@ -1213,7 +1214,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else
       if (cKey==Global::Keys[k_DirectionBackward])  //r
       {
-        if (GetAsyncKeyState(VK_CONTROL)<0)
+        if (GetAsyncKeyState(VK_CONTROL)>=0)
           if (DynamicObject->MoverParameters->Radio==true)
           {
             dsbSwitch->SetVolume(DSBVOLUME_MAX);
@@ -2889,8 +2890,8 @@ else
         else
         if (DynamicObject->MoverParameters->BrakePress < 0.1)
            btLampkaStyczn.TurnOn();      //mozna prowadzic rozruch
-         if (((TestFlag(DynamicObject->MoverParameters->Couplers[1].CouplingFlag,ctrain_controll)) && (DynamicObject->MoverParameters->ActiveCab==1)) ||
-        ((TestFlag(DynamicObject->MoverParameters->Couplers[0].CouplingFlag,ctrain_controll)) && (DynamicObject->MoverParameters->ActiveCab==-1)))
+         if (((TestFlag(DynamicObject->MoverParameters->Couplers[1].CouplingFlag,ctrain_controll)) && (DynamicObject->MoverParameters->CabNo==1)) ||
+        ((TestFlag(DynamicObject->MoverParameters->Couplers[0].CouplingFlag,ctrain_controll)) && (DynamicObject->MoverParameters->CabNo==-1)))
            btLampkaUkrotnienie.TurnOn();
         else
            btLampkaUkrotnienie.TurnOff();
@@ -4564,8 +4565,6 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
          {
           str=Parser->GetNextSymbol().LowerCase();
           dsbDoorOpen=TSoundsManager::GetFromName(str.c_str(),true);
-          dsbCouplerStretch=TSoundsManager::GetFromName("en57_couplers.wav",true);
-          dsbBufferClamp=TSoundsManager::GetFromName("en57_couplers.wav",true);
          }
       }
     }
