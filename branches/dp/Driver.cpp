@@ -919,6 +919,7 @@ void __fastcall TController::Activation()
  {//jeœli jest ustalony kierunek
   TDynamicObject *old=pVehicle,*d=pVehicle; //w tym siedzi AI
   int brake=Controlling->LocalBrakePos;
+  while (DecSpeed(true)); //wymuszenie zerowania nastawnika jazdy
   while (Controlling->ActiveDir<0) Controlling->DirectionForward(); //kierunek na 0
   while (Controlling->ActiveDir>0) Controlling->DirectionBackward();
   if (TestFlag(d->MoverParameters->Couplers[iDirectionOrder<0?1:0].CouplingFlag,ctrain_controll))
@@ -1616,15 +1617,16 @@ bool __fastcall TController::IncSpeed()
  return OK;
 }
 
-bool __fastcall TController::DecSpeed()
+bool __fastcall TController::DecSpeed(bool force)
 {//zmniejszenie prêdkoœci (ale nie hamowanie)
  bool OK=false; //domyœlnie false, aby wysz³o z pêtli while
  switch (Controlling->EngineType)
  {
   case None: //McZapkie-041003: wagon sterowniczy
    iDrivigFlags&=~moveIncSpeed; //usuniêcie flagi jazdy
-   //if (Controlling->MainCtrlPosNo>0) //McZapkie-041003: wagon sterowniczy, np. EZT
-   // OK=Controlling->DecMainCtrl(1+(Controlling->MainCtrlPos>2?1:0));
+   if (force) //przy aktywacji kabiny jest potrzeba natychmiastowego wyzerowania
+    if (Controlling->MainCtrlPosNo>0) //McZapkie-041003: wagon sterowniczy, np. EZT
+     OK=Controlling->DecMainCtrl(1+(Controlling->MainCtrlPos>2?1:0));
    return false;
   case ElectricSeriesMotor:
    OK=Controlling->DecScndCtrl(2); //najpierw bocznik na zero
@@ -2956,7 +2958,7 @@ bool __fastcall TController::UpdateSituation(double dt)
    if (ReactionTime>fWarningDuration)
     ReactionTime=fWarningDuration; //wczeœniejszy przeb³ysk œwiadomoœci, by zakoñczyæ tr¹bienie
   }
-  if (Controlling->Vel>=5.0) //jesli jedzie, mo¿na odblokowaæ tr¹bienie, bo siê wtedy nie w³¹czy
+  if (Controlling->Vel>=3.0) //jesli jedzie, mo¿na odblokowaæ tr¹bienie, bo siê wtedy nie w³¹czy
   {iDrivigFlags&=~moveStartHornDone; //zatr¹bi dopiero jak nastêpnym razem stanie
    iDrivigFlags|=moveStartHorn; //i tr¹biæ przed nastêpnym ruszeniem
   }

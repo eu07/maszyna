@@ -1173,6 +1173,7 @@ bool __fastcall TWorld::Update()
   Global::SetCameraRotation(Camera.Yaw-M_PI);
  }
  Ground.CheckQuery();
+ Global::bSmudge=FreeFlyModeFlag?false:((Train->DynamicObject->fShade<=0.0)?(Global::fLuminance<=0.25):(Train->DynamicObject->fShade*Global::fLuminance<=0.25));
 
  if (!Render()) return false;
 
@@ -1192,8 +1193,11 @@ bool __fastcall TWorld::Update()
    glMultMatrixd(Train->DynamicObject->mMatrix.getArray()); //ta macierz nie ma przesuniêcia
 
 //*yB: moje smuuugi 1
-  if ((Train->DynamicObject->fShade<=0.0)?(Global::fLuminance<=0.25):(Train->DynamicObject->fShade*Global::fLuminance<=0.25))
+  if (Global::bSmudge)
   {//Ra: uwzglêdni³em zacienienie pojazdu przy zapalaniu smug
+   //1. warunek na smugê wyznaczyc wczeœniej
+   //2. jeœli smuga w³¹czona, nie renderowaæ pojazdu u¿ytkownika w DynObj
+   //3. jeœli smuga w³aczona, wyrenderowaæ pojazd u¿ytkownia po dodaniu smugi do sceny
    glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_ONE);
 //    glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_DST_COLOR);
 //    glBlendFunc(GL_SRC_ALPHA_SATURATE,GL_ONE);
@@ -1203,17 +1207,18 @@ bool __fastcall TWorld::Update()
     glColor4f(1.0f,1.0f,1.0f,1.0f);
     glBindTexture(GL_TEXTURE_2D,light);       // Select our texture
     glBegin(GL_QUADS);
+    float fSmudge=Train->DynamicObject->MoverParameters->DimHalf.y+7; //gdzie zaczynaæ smugê
      if (Train->DynamicObject->iLights[0]&21)
      {//wystarczy jeden zapalony z przodu
-      glTexCoord2f(0,0); glVertex3f( 15.0,0.0,  15.0);
-      glTexCoord2f(1,0); glVertex3f(-15.0,0.0,  15.0);
+      glTexCoord2f(0,0); glVertex3f( 15.0,0.0,+fSmudge); //rysowanie wzglêdem po³o¿enia modelu
+      glTexCoord2f(1,0); glVertex3f(-15.0,0.0,+fSmudge);
       glTexCoord2f(1,1); glVertex3f(-15.0,2.5, 250.0);
       glTexCoord2f(0,1); glVertex3f( 15.0,2.5, 250.0);
      }
      if (Train->DynamicObject->iLights[1]&21)
      {//wystarczy jeden zapalony z ty³u
-      glTexCoord2f(0,0); glVertex3f(-15.0,0.0, -15.0);
-      glTexCoord2f(1,0); glVertex3f( 15.0,0.0, -15.0);
+      glTexCoord2f(0,0); glVertex3f(-15.0,0.0,-fSmudge);
+      glTexCoord2f(1,0); glVertex3f( 15.0,0.0,-fSmudge);
       glTexCoord2f(1,1); glVertex3f( 15.0,2.5,-250.0);
       glTexCoord2f(0,1); glVertex3f(-15.0,2.5,-250.0);
      }
@@ -1225,9 +1230,14 @@ bool __fastcall TWorld::Update()
     glEnable(GL_FOG);
    }
 //yB: moje smuuugi 1 - koniec*/
+   glEnable(GL_LIGHTING); //po renderowaniu drutów albo kabiny mo¿e byæ to wy³¹czone
 
-    //oswietlenie kabiny
-   glEnable(GL_LIGHTING); //po renderowaniu drutów mo¿e byæ wy³¹czone
+   //Ra: pojazd u¿ytkownika nale¿a³o by renderowaæ po smudze, aby go nie rozœwietla³a
+   Global::bSmudge=false; //aby model u¿ytkownika siê teraz wyrenderowa³
+   Train->DynamicObject->Render();
+   Train->DynamicObject->RenderAlpha(); //przezroczyste fragmenty pojazdów na torach
+
+   //oswietlenie kabiny
    GLfloat ambientCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
    GLfloat diffuseCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
    GLfloat specularCabLight[4]={ 0.5f,  0.5f, 0.5f, 1.0f };
@@ -1898,30 +1908,15 @@ bool __fastcall TWorld::Render()
  glDisable(GL_FOG);
    Clouds.Render();
  glEnable(GL_FOG);
-/* //przeniesione do kodu wczeœniejszego ni¿ wywo³anie tej funkcji
-    //wyliczenie bezwzglêdnego kierunku kamery (do znikania niepotrzebnych pojazdów)
-    if (FreeFlyModeFlag|!Controlled)
-     Global::SetCameraRotation(Camera.Yaw-M_PI);
-    else
-    {//kierunek pojazdu oraz kierunek wzglêdny
-     vector3 tempangle;
-     double modelrotate;
-     tempangle=Controlled->VectorFront()*(Controlled->MoverParameters->ActiveCab==-1 ? -1 : 1);
-     modelrotate=ABuAcos(tempangle);
-     Global::SetCameraRotation(Camera.Yaw-modelrotate); //tu ju¿ trzeba uwzglêdniæ lusterka
-    }
-*/
  if (Global::bUseVBO)
  {//renderowanie przez VBO
   if (!Ground.RenderVBO(Camera.Pos)) return false;
-  //if (Global::bRenderAlpha) //Ra: wywalam tê flagê
    if (!Ground.RenderAlphaVBO(Camera.Pos))
     return false;
  }
  else
  {//renderowanie przez Display List
   if (!Ground.RenderDL(Camera.Pos)) return false;
-  //if (Global::bRenderAlpha) //Ra: wywalam tê flagê
    if (!Ground.RenderAlphaDL(Camera.Pos))
     return false;
  }

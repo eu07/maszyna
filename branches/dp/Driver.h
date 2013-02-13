@@ -217,7 +217,7 @@ private:
  bool __fastcall IncBrake();
  bool __fastcall DecBrake();
  bool __fastcall IncSpeed();
- bool __fastcall DecSpeed();
+ bool __fastcall DecSpeed(bool force=false);
  void __fastcall SpeedSet();
  void __fastcall RecognizeCommand(); //odczytuje komende przekazana lokomotywie
  void __fastcall Activation(); //umieszczenie obsady w odpowiednim cz³onie

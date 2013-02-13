@@ -27,7 +27,6 @@ USEUNIT("Texture.cpp");
 USEUNIT("World.cpp");
 USELIB("opengl\glut32.lib");
 USEUNIT("Model3d.cpp");
-USEUNIT("geometry.cpp");
 USEUNIT("MdlMngr.cpp");
 USEUNIT("Train.cpp");
 USEUNIT("wavread.cpp");
