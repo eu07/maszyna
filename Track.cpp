@@ -1335,8 +1335,7 @@ void TTrack::Release()
 
 void __fastcall TTrack::Render()
 {
- //if (bVisible && SquareMagnitude(Global::pCameraPosition-Segment->FastGetPoint(0.5)) < 810000)
- if (bVisible) //Ra: tory s¹ renderowane sektorami i nie ma sensu ka¿dorazowo liczyæ odleg³oœci 
+ if (bVisible) //Ra: tory s¹ renderowane sektorami i nie ma sensu ka¿dorazowo liczyæ odleg³oœci
  {
   if (!DisplayListID)
   {
@@ -1345,7 +1344,7 @@ void __fastcall TTrack::Render()
     ResourceManager::Register(this);
   };
   SetLastUsage(Timer::GetSimulationTime());
-  EnvironmentSet(); //oœwietlenie nie mo¿e byæ skompilowane, bo mo¿e siê zmieniaæ z czasem 
+  EnvironmentSet(); //oœwietlenie nie mo¿e byæ skompilowane, bo mo¿e siê zmieniaæ z czasem
   glCallList(DisplayListID);
   EnvironmentReset(); //ustawienie oœwietlenia na zwyk³e
   if (InMovement()) Release(); //zwrotnica w trakcie animacji do odrysowania

@@ -2174,7 +2174,7 @@ void __fastcall TTrain::UpdateMechPosition(double dt)
   if (pMechOffset.y>Cabine[iCabn].CabPos1.y+1.8) pMechOffset.y=Cabine[iCabn].CabPos1.y+1.8;
   if (pMechOffset.y<Cabine[iCabn].CabPos1.y+0.5) pMechOffset.y=Cabine[iCabn].CabPos2.y+0.5;
  }
- pMechPosition=DynamicObject->mMatrix*pNewMechPosition;
+ pMechPosition=DynamicObject->mMatrix*pNewMechPosition; //po³o¿enie wzglêdem œrodka pojazdu w uk³adzie scenerii
  pMechPosition+=DynamicObject->GetPosition();
 };
 

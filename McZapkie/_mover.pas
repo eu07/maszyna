@@ -1221,7 +1221,7 @@ begin
    CabNo:=0;
    DirAbsolute:=ActiveDir*CabNo;
    DepartureSignal:=false; //nie buczeæ z nieaktywnej kabiny
-   SendCtrlToNext('CabActivisation',0,CabNo);
+   SendCtrlToNext('CabActivisation',0,ActiveCab); //CabNo==0!
   end;
  CabDeactivisation:=OK;
 end;
@@ -1550,7 +1550,7 @@ begin
   if (ActiveDir=1) and (MainCtrlPos=0) and (TrainType=dt_EZT) then
     if MinCurrentSwitch(false) then
     begin
-      DirectionBackward:=True;
+      DirectionBackward:=True; //
       Exit;
     end;
   if (MainCtrlPosNo>0) and (ActiveDir>-1) and (MainCtrlPos=0) then
@@ -1640,27 +1640,25 @@ end;
 }
 
 function T_MoverParameters.BatterySwitch(State:boolean):boolean;
-var b:byte;
 begin
-  if (Battery<>State) then
-     begin
-     Battery:=State;
-     BatterySwitch:=true;
-     end;
-if (Battery=true) then SendCtrlToNext('BatterySwitch',1,CabNo)
-  else SendCtrlToNext('BatterySwitch',0,CabNo)
+ if (Battery<>State) then
+  begin
+   Battery:=State;
+  end;
+ if (Battery=true) then SendCtrlToNext('BatterySwitch',1,CabNo)
+  else SendCtrlToNext('BatterySwitch',0,CabNo);
+ BatterySwitch:=true;
 end;
 
 function T_MoverParameters.EpFuseSwitch(State:boolean):boolean;
-var b:byte;
 begin
-  if (EpFuse<>State) then
-     begin
-     EpFuse:=State;
-     EpFuseSwitch:=true;
-     end;
-if (EpFuse=true) then SendCtrlToNext('EpFuseSwitch',1,CabNo)
-  else SendCtrlToNext('EpFuseSwitch',0,CabNo)
+ if (EpFuse<>State) then
+  begin
+   EpFuse:=State;
+  end;
+ if (EpFuse=true) then SendCtrlToNext('EpFuseSwitch',1,CabNo)
+  else SendCtrlToNext('EpFuseSwitch',0,CabNo);
+ EpFuseSwitch:=true;
 end;
 
 {wl/wyl przetwornicy}
@@ -4973,8 +4971,8 @@ end;
 
 function T_MoverParameters.DoorBlockedFlag:Boolean;
 begin
- if (DoorBlocked=true) and (Vel<5.0) then
-  DoorBlockedFlag:=false;
+ //if (DoorBlocked=true) and (Vel<5.0) then
+ DoorBlockedFlag:=false;
  if (DoorBlocked=true) and (Vel>=5.0) then
   DoorBlockedFlag:=true
 end;

@@ -1240,9 +1240,9 @@ void __fastcall TGround::Free()
 
 TGroundNode* __fastcall TGround::FindGroundNode(AnsiString asNameToFind,TGroundNodeType iNodeType)
 {//wyszukiwanie obiektu o podanej nazwie i konkretnym typie
- if (iNodeType==TP_TRACK)
+ if ((iNodeType==TP_TRACK)||(iNodeType==TP_MEMCELL))
  {//wyszukiwanie w drzewie binarnym
-  return (TGroundNode*)sTracks->Find(TP_TRACK,asNameToFind.c_str());
+  return (TGroundNode*)sTracks->Find(iNodeType,asNameToFind.c_str());
  }
  //standardowe wyszukiwanie liniowe
  TGroundNode *Current;
@@ -1504,6 +1504,15 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    tmp->pCenter+=pOrigin;
    tmp->MemCell=new TMemCell(&tmp->pCenter);
    tmp->MemCell->Load(parser);
+   if (!tmp->asName.IsEmpty()) //jest pusta gdy "none"
+   {//dodanie do wyszukiwarki
+    if (sTracks->Update(TP_MEMCELL,tmp->asName.c_str(),tmp)) //najpierw sprawdziæ, czy ju¿ jest
+    {//przy zdublowaniu wskaŸnik zostanie podmieniony w drzewku na póŸniejszy (zgodnoœæ wsteczna)
+     ErrorLog("Duplicated memcell: "+tmp->asName); //to zg³aszaæ duplikat
+    }
+    else
+     sTracks->Add(TP_MEMCELL,tmp->asName.c_str(),tmp); //nazwa jest unikalna
+   }
    break;
   case TP_EVLAUNCH :
    parser->getTokens(3);
@@ -2447,6 +2456,7 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
 
  delete parser;
  sTracks->Sort(TP_TRACK); //finalne sortowanie drzewa torów
+ sTracks->Sort(TP_MEMCELL); //finalne sortowanie drzewa komórek pamiêci
  sTracks->Sort(0); //finalne sortowanie drzewa eventów
  if (!bInitDone) FirstInit(); //jeœli nie by³o w scenerii
  if (Global::pTerrainCompact)

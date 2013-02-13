@@ -5,15 +5,15 @@
     <VERSION value="BCB.05.03"/>
     <PROJECT value="D:\EU07\EU07.exe"/>
     <OBJFILES value="QueryParserComp.obj McZapkie\mtable.obj McZapkie\_mover.obj EU07.obj 
-      dumb3d.obj Camera.obj Texture.obj World.obj Model3d.obj geometry.obj 
-      MdlMngr.obj Train.obj wavread.obj Timer.obj Event.obj MemCell.obj Logs.obj 
-      Spring.obj Button.obj Globals.obj Gauge.obj AnimModel.obj Ground.obj 
-      TrkFoll.obj Segment.obj Sound.obj AdvSound.obj Track.obj DynObj.obj 
-      RealSound.obj EvLaunch.obj FadeSound.obj Traction.obj TractionPower.obj 
-      parser.obj sky.obj AirCoupler.obj glew.obj ResourceManager.obj VBO.obj 
-      TextureDDS.obj opengl\ARB_Multisample.obj Float3d.obj Classes.obj 
-      Driver.obj Names.obj Console.obj Mover.obj Console\PoKeys55.obj Forth.obj 
-      Console\LPT.obj"/>
+      dumb3d.obj Camera.obj Texture.obj World.obj Model3d.obj MdlMngr.obj 
+      Train.obj wavread.obj Timer.obj Event.obj MemCell.obj Logs.obj Button.obj 
+      Globals.obj Gauge.obj AnimModel.obj Ground.obj TrkFoll.obj Segment.obj 
+      Sound.obj AdvSound.obj Track.obj DynObj.obj RealSound.obj EvLaunch.obj 
+      FadeSound.obj Traction.obj TractionPower.obj parser.obj sky.obj 
+      AirCoupler.obj glew.obj ResourceManager.obj VBO.obj TextureDDS.obj 
+      opengl\ARB_Multisample.obj Float3d.obj Classes.obj Driver.obj Names.obj 
+      Console.obj Mover.obj Console\PoKeys55.obj Forth.obj Console\LPT.obj 
+      Spring.obj"/>
     <RESFILES value="EU07.res"/>
     <IDLFILES value=""/>
     <IDLGENFILES value=""/>
@@ -38,8 +38,8 @@
     <WARNINGS value="-w-par"/>
   </MACROS>
   <OPTIONS>
-    <IDLCFLAGS value="-IConsole -Iopengl -IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl 
-      -src_suffix cpp -DGLEW_STATIC -D_DEBUG -boa"/>
+    <IDLCFLAGS value="-src_suffix cpp -DGLEW_STATIC -D_DEBUG -IConsole -Iopengl -IMcZapkie 
+      -I$(BCB)\include -I$(BCB)\include\vcl -boa"/>
     <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a1 -6 -b- -k -y -v -vi- 
       -c -tW -tWM"/>
     <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
@@ -58,7 +58,7 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=13
 MinorVer=2
-Release=753
+Release=754
 Build=398
 Debug=1
 PreRelease=0
@@ -71,7 +71,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=13.2.753.398
+FileVersion=13.2.754.398
 InternalName=8th by Ra
 LegalCopyright=
 LegalTrademarks=

@@ -2493,6 +2493,11 @@ bool __fastcall TDynamicObject::Render()
   //double ObjDist= SquareMagnitude(Global::pCameraPosition-pos);
   if (this==Global::pUserDynamic)
   {//specjalne ustawienie, aby nie trzês³o
+   if (Global::bSmudge)
+   {//jak smuga, to rysowaæ po smudze
+    glPopMatrix(); //to trzeba zebraæ przed wyœciem
+    return true;
+   }
    //if (Global::pWorld->) //tu trzeba by ustawiæ animacje na modelu zewnêtrznym
    glLoadIdentity(); //zacz¹æ od macierzy jedynkowej
    Global::pCamera->SetCabMatrix(vPosition); //specjalne ustawienie kamery
@@ -2918,6 +2923,11 @@ bool __fastcall TDynamicObject::RenderAlpha()
   glPushMatrix();
   if (this==Global::pUserDynamic)
   {//specjalne ustawienie, aby nie trzês³o
+   if (Global::bSmudge)
+   {//jak smuga, to rysowaæ po smudze
+    glPopMatrix(); //to trzeba zebraæ przed wyœciem
+    return true;
+   }
    glLoadIdentity(); //zacz¹æ od macierzy jedynkowej
    Global::pCamera->SetCabMatrix(vPosition); //specjalne ustawienie kamery
   }
@@ -3019,7 +3029,7 @@ bool __fastcall TDynamicObject::RenderAlpha()
    glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
    glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
   }
-  glPopMatrix ( );
+  glPopMatrix();
   if (btnOn) TurnOff(); //przywrócenie domyœlnych pozycji submodeli
  }
  return true;
