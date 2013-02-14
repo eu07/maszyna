@@ -1228,14 +1228,15 @@ bool __fastcall TWorld::Update()
     glEnable(GL_DEPTH_TEST);
     //glEnable(GL_LIGHTING); //i tak siê w³¹czy potem
     glEnable(GL_FOG);
-   }
-//yB: moje smuuugi 1 - koniec*/
-   glEnable(GL_LIGHTING); //po renderowaniu drutów albo kabiny mo¿e byæ to wy³¹czone
+    glEnable(GL_LIGHTING); //po renderowaniu smugi jest to wy³¹czone
+    //Ra: pojazd u¿ytkownika nale¿a³o by renderowaæ po smudze, aby go nie rozœwietla³a
+    Global::bSmudge=false; //aby model u¿ytkownika siê teraz wyrenderowa³
+    Train->DynamicObject->Render();
+    Train->DynamicObject->RenderAlpha(); //przezroczyste fragmenty pojazdów na torach
+   } //yB: moje smuuugi 1 - koniec*/
+   else
+    glEnable(GL_LIGHTING); //po renderowaniu drutów mo¿e byæ to wy³¹czone
 
-   //Ra: pojazd u¿ytkownika nale¿a³o by renderowaæ po smudze, aby go nie rozœwietla³a
-   Global::bSmudge=false; //aby model u¿ytkownika siê teraz wyrenderowa³
-   Train->DynamicObject->Render();
-   Train->DynamicObject->RenderAlpha(); //przezroczyste fragmenty pojazdów na torach
 
    //oswietlenie kabiny
    GLfloat ambientCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
@@ -1269,7 +1270,7 @@ bool __fastcall TWorld::Update()
     }
     break;
    }
-   switch (Train->iCabLightFlag)
+   switch (Train->iCabLightFlag) //Ra: uzele¿nic od napiêcia w obwodzie sterowania 
    { //hunter-091012: uzaleznienie jasnosci od przetwornicy
     case 0: //œwiat³o wewnêtrzne zgaszone
      break;
@@ -1588,6 +1589,11 @@ bool __fastcall TWorld::Update()
         OutText4=tmp->Mechanik->StopReasonText();
         if (!OutText4.IsEmpty()) OutText4+="; "; //aby ³adniejszy odstêp by³
         //if (Controlled->Mechanik && (Controlled->Mechanik->AIControllFlag==AIdriver))
+        AnsiString flags="bwaccmsshhhoi; "; //flagi AI
+        for (int i=0,j=1;i<=12;++i,j<<=1)
+         if (tmp->Mechanik->DrivigFlags()&j) //jak bit ustawiony
+          flags[i+1]^=0x20; //to zmiana na wielkie
+        OutText4+=flags;
         OutText4+=AnsiString("Driver: Vd=")+FloatToStrF(tmp->Mechanik->VelDesired,ffFixed,4,0)
         +AnsiString(" ad=")+FloatToStrF(tmp->Mechanik->AccDesired,ffFixed,5,2)
         +AnsiString(" Pd=")+FloatToStrF(tmp->Mechanik->ActualProximityDist,ffFixed,4,0)

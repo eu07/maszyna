@@ -39,6 +39,7 @@ class TNames; //obiekt sortuj¹cy nazwy
 typedef enum
 {//binarne odpowiedniki komend w komórce pamiêci
  cm_Unknown, //ci¹g nierozpoznany (nie jest komend¹)
+ cm_Ready, //W4 zezwala na odjazd, ale semafor mo¿e zatrzymaæ
  cm_SetVelocity,
  cm_ShuntVelocity,
  cm_SetProximityVelocity,

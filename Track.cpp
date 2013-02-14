@@ -665,8 +665,20 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
    *parser >> a2;
    Segment->AngleSet(1,a2);
   }
+  else if (str=="fouling1")
+  {//wskazanie modelu ukresu w kierunku 1
+   parser->getTokens();
+   *parser >> token;
+   //Segment->AngleSet(1,a2);
+  }
+  else if (str=="fouling2")
+  {//wskazanie modelu ukresu w kierunku 2
+   parser->getTokens();
+   *parser >> token;
+   //Segment->AngleSet(1,a2);
+  }
   else
-   Error("Unknown track property: \""+str+"\"");
+   ErrorLog("Unknown property: \""+str+"\" in track \""+name+"\"");
   parser->getTokens(); *parser >> token;
   str=AnsiString(token.c_str());
  }
