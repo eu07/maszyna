@@ -6,14 +6,14 @@
     <PROJECT value="D:\EU07\EU07.exe"/>
     <OBJFILES value="QueryParserComp.obj McZapkie\mtable.obj McZapkie\_mover.obj EU07.obj 
       dumb3d.obj Camera.obj Texture.obj World.obj Model3d.obj MdlMngr.obj 
-      Train.obj wavread.obj Timer.obj Event.obj MemCell.obj Logs.obj Button.obj 
-      Globals.obj Gauge.obj AnimModel.obj Ground.obj TrkFoll.obj Segment.obj 
-      Sound.obj AdvSound.obj Track.obj DynObj.obj RealSound.obj EvLaunch.obj 
-      FadeSound.obj Traction.obj TractionPower.obj parser.obj sky.obj 
-      AirCoupler.obj glew.obj ResourceManager.obj VBO.obj TextureDDS.obj 
-      opengl\ARB_Multisample.obj Float3d.obj Classes.obj Driver.obj Names.obj 
-      Console.obj Mover.obj Console\PoKeys55.obj Forth.obj Console\LPT.obj 
-      Spring.obj"/>
+      Train.obj wavread.obj Timer.obj Event.obj MemCell.obj Logs.obj Spring.obj 
+      Button.obj Globals.obj Gauge.obj AnimModel.obj Ground.obj TrkFoll.obj 
+      Segment.obj Sound.obj AdvSound.obj Track.obj DynObj.obj RealSound.obj 
+      EvLaunch.obj FadeSound.obj Traction.obj TractionPower.obj parser.obj 
+      sky.obj AirCoupler.obj opengl\glew.obj ResourceManager.obj VBO.obj 
+      TextureDDS.obj opengl\ARB_Multisample.obj Float3d.obj Classes.obj 
+      Driver.obj Names.obj Console.obj Mover.obj Console\PoKeys55.obj Forth.obj 
+      Console\LPT.obj"/>
     <RESFILES value="EU07.res"/>
     <IDLFILES value=""/>
     <IDLGENFILES value=""/>
@@ -58,8 +58,8 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=13
 MinorVer=2
-Release=754
-Build=398
+Release=755
+Build=399
 Debug=1
 PreRelease=0
 Special=0
@@ -71,7 +71,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=13.2.754.398
+FileVersion=13.2.755.399
 InternalName=8th by Ra
 LegalCopyright=
 LegalTrademarks=
@@ -112,7 +112,7 @@ Item1=D:\EU07DDS\
 DebugSourceDirs=
 
 [Parameters]
-RunParams=
+RunParams=-s AI_start3up.scn -v ghostview
 HostApplication=
 RemoteHost=
 RemotePath=

@@ -578,6 +578,8 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
          iDrivigFlags&=~moveStartHorn; //bez tr¹bienia przed odjazdem
          sSpeedTable[i].iFlags=0; //nie liczy siê ju¿ zupe³nie (nie wyœle SetVelocity)
          sSpeedTable[i].fVelNext=-1; //mo¿na jechaæ za W4
+         if (go==cm_Unknown) //jeœli nie by³o komendy wczeœniej
+          go=cm_Ready; //gotów do odjazdu z W4 (semafor mo¿e zatrzymaæ)
          continue; //nie analizowaæ prêdkoœci
         } //koniec startu z zatrzymania
        } //koniec obs³ugi pocz¹tkowych stacji
@@ -631,7 +633,7 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
         sSpeedTable[i].iFlags=0; //to mo¿na usun¹æ, bo podstawowy automat usuwa tylko niezwrowe
       }
       else
-       if (go==cm_Unknown)
+       if (go<=cm_Ready)
         if (v!=0.0) //komenda jest tylko gdy ma jechaæ, bo stoi na podstawie tabelki
         {//jeœli nie by³o komendy wczeœniej - pierwsza siê liczy - ustawianie VelActual
          go=cm_ShuntVelocity; //w trybie poci¹gowym tylko jeœli w³¹cza tryb manewrowy (v!=0.0)
@@ -639,7 +641,7 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
         }
      }
      else //if (sSpeedTable[i].iFlags&0x100) //jeœli semafor !!! Komendê trzeba sprawdziæ !!!!
-      if (go==cm_Unknown) //jeœli nie by³o komendy wczeœniej - pierwsza siê liczy - ustawianie VelActual
+      if (go<=cm_Ready) //jeœli nie by³o komendy wczeœniej - pierwsza siê liczy - ustawianie VelActual
        if (v<0.0?true:v>=1.0) //bo wartoœæ 0.1 s³u¿y do hamowania tylko
        {go=cm_SetVelocity; //mo¿e odjechaæ
         VelActual=v; //nie do koñca tak, to jest druga prêdkoœæ; -1 nie wpisywaæ...
@@ -1626,7 +1628,7 @@ bool __fastcall TController::DecSpeed(bool force)
    iDrivigFlags&=~moveIncSpeed; //usuniêcie flagi jazdy
    if (force) //przy aktywacji kabiny jest potrzeba natychmiastowego wyzerowania
     if (Controlling->MainCtrlPosNo>0) //McZapkie-041003: wagon sterowniczy, np. EZT
-     OK=Controlling->DecMainCtrl(1+(Controlling->MainCtrlPos>2?1:0));
+     Controlling->DecMainCtrl(1+(Controlling->MainCtrlPos>2?1:0));
    return false;
   case ElectricSeriesMotor:
    OK=Controlling->DecScndCtrl(2); //najpierw bocznik na zero
@@ -1930,7 +1932,8 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
    OrderNext(o); //to samo robiæ po zmianie
   else if (!o) //jeœli wczeœniej by³o czekanie
    OrderNext(Shunt); //to dalej jazda manewrowa
-  iDrivigFlags&=~moveStartHorn; //bez tr¹bienia po ruszeniu z zatrzymania
+  if (Controlling->Vel>1.0) //jeœli jedzie
+   iDrivigFlags&=~moveStartHorn; //to bez tr¹bienia po ruszeniu z zatrzymania
   //Change_direction wykona siê samo i nastêpnie przejdzie do kolejnej komendy
  }
  else if (NewCommand=="Obey_train")
@@ -2565,6 +2568,8 @@ bool __fastcall TController::UpdateSituation(double dt)
      //if (VelActual!=VelDesired) //je¿eli prêdkoœæ zalecana jest inna (ale tryb te¿ mo¿e byæ inny)
      switch (comm)
      {//ustawienie VelActual - trochê proteza = do przemyœlenia
+      case cm_Ready: //W4 zezwoli³ na jazdê
+       if (VelNext==0.0) break; //ale jak coœ z przodu zamyka, to ma staæ
       case cm_SetVelocity: //od wersji 357 semafor nie budzi wy³¹czonej lokomotywy
        if (!(OrderList[OrderPos]&~(Obey_train|Shunt))) //jedzie w dowolnym trybie albo Wait_for_orders
         if (fabs(VelActual)>=1.0) //0.1 nie wysy³a siê do samochodow, bo potem nie rusz¹

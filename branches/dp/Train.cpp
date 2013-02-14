@@ -1214,13 +1214,15 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else
       if (cKey==Global::Keys[k_DirectionBackward])  //r
       {
-        if (GetAsyncKeyState(VK_CONTROL)>=0)
+        if (GetAsyncKeyState(VK_CONTROL)<0)
+        {//wciœniêty [Ctrl]
           if (DynamicObject->MoverParameters->Radio==true)
           {
             dsbSwitch->SetVolume(DSBVOLUME_MAX);
             dsbSwitch->Play( 0, 0, 0 );
             DynamicObject->MoverParameters->Radio=false;
           }
+        }
         else
         if (DynamicObject->MoverParameters->DirectionBackward())
           {

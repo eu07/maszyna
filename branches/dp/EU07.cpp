@@ -56,7 +56,7 @@ USEUNIT("TractionPower.cpp");
 USEUNIT("parser.cpp");
 USEUNIT("sky.cpp");
 USEUNIT("AirCoupler.cpp");
-USEUNIT("glew.c");
+USEUNIT("opengl\glew.c");
 USEUNIT("ResourceManager.cpp");
 USEUNIT("VBO.cpp");
 USEUNIT("McZapkie\mtable.pas");
@@ -627,7 +627,7 @@ int WINAPI WinMain( HINSTANCE hInstance,     //instance
     if (Global::iConvertModels>0)
      Global::iConvertModels=-Global::iConvertModels; //specjalny tryb
     else
-     Global::iConvertModels=-6; //z optymalizacj¹
+     Global::iConvertModels=-7; //z optymalizacj¹, bananami i prawid³owym Opacity
    }
    else
     Error("Program usage: EU07 [-s sceneryfilepath] [-v vehiclename] [-modifytga] [-e3d]",!Global::iWriteLogEnabled);
