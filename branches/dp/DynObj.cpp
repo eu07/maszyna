@@ -954,6 +954,7 @@ void TDynamicObject::ABuScanObjects(int ScanDir,double ScanDist)
  }
 */
 
+ if (DebugModeFlag)
  if (FoundedObj) //kod s³u¿¹cy do logowania b³êdów
   if (CouplFound==0)
   {
@@ -1033,6 +1034,7 @@ void TDynamicObject::ABuScanObjects(int ScanDir,double ScanDist)
    FoundedObj->MoverParameters->Attach(CouplFound,MyCouplFound,this->MoverParameters,ctrain_virtual);
    if (CouplFound==0) //jeœli widoczny sprzêg 0 znalezionego
    {
+    if (DebugModeFlag)
     if (FoundedObj->PrevConnected)
      if (FoundedObj->PrevConnected!=this)
       WriteLog("1! Coupler warning on "+asName+":"+AnsiString(MyCouplFound)+" - "+FoundedObj->asName+":0 connected to "+FoundedObj->PrevConnected->asName+":"+AnsiString(FoundedObj->PrevConnectedNo));
@@ -1041,6 +1043,7 @@ void TDynamicObject::ABuScanObjects(int ScanDir,double ScanDist)
    }
    else //jeœli widoczny sprzêg 1 znalezionego
    {
+    if (DebugModeFlag)
     if (FoundedObj->NextConnected)
      if (FoundedObj->NextConnected!=this)
       WriteLog("1! Coupler warning on "+asName+":"+AnsiString(MyCouplFound)+" - "+FoundedObj->asName+":1 connected to "+FoundedObj->NextConnected->asName+":"+AnsiString(FoundedObj->NextConnectedNo));

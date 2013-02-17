@@ -1225,21 +1225,27 @@ void __fastcall TController::SetDriverPsyche()
  if ((Psyche==Aggressive)&&(OrderList[OrderPos]==Obey_train))
  {
   ReactionTime=HardReactionTime; //w zaleznosci od charakteru maszynisty
-  AccPreferred=HardAcceleration; //agresywny
   //if (Controlling)
   if (Controlling->CategoryFlag&2)
-   WaitingExpireTime=1; //tyle ma czekaæ samochód, zanim siê ruszy
+  {WaitingExpireTime=1; //tyle ma czekaæ samochód, zanim siê ruszy
+   AccPreferred=3.0; //[m/ss] agresywny
+  }
   else
-   WaitingExpireTime=61; //tyle ma czekaæ, zanim siê ruszy
+  {WaitingExpireTime=61; //tyle ma czekaæ, zanim siê ruszy
+   AccPreferred=HardAcceleration; //agresywny
+  }
  }
  else
  {
   ReactionTime=EasyReactionTime; //spokojny
-  AccPreferred=EasyAcceleration;
   if (Controlling->CategoryFlag&2)
-   WaitingExpireTime=3; //tyle ma czekaæ samochód, zanim siê ruszy
+  {WaitingExpireTime=3; //tyle ma czekaæ samochód, zanim siê ruszy
+   AccPreferred=2.0; //[m/ss]
+  }
   else
-   WaitingExpireTime=65; //tyle ma czekaæ, zanim siê ruszy
+  {WaitingExpireTime=65; //tyle ma czekaæ, zanim siê ruszy
+   AccPreferred=EasyAcceleration;
+  }
  }
  if (Controlling)
  {//with Controlling do
@@ -1624,7 +1630,7 @@ bool __fastcall TController::DecSpeed(bool force)
  {
   case None: //McZapkie-041003: wagon sterowniczy
    iDrivigFlags&=~moveIncSpeed; //usuniêcie flagi jazdy
-   if (force?true:(Controlling->MainCtrlPos=1)) //przy aktywacji kabiny jest potrzeba natychmiastowego wyzerowania
+   if (force) //przy aktywacji kabiny jest potrzeba natychmiastowego wyzerowania
     if (Controlling->MainCtrlPosNo>0) //McZapkie-041003: wagon sterowniczy, np. EZT
      Controlling->DecMainCtrl(1+(Controlling->MainCtrlPos>2?1:0));
    return false;
@@ -1668,7 +1674,7 @@ void __fastcall TController::SpeedSet()
    if (Controlling->MainCtrlPosNo>0)
    {//jeœli ma czym krêciæ
     //TODO: sprawdzanie innego czlonu //if (!FuseFlagCheck())
-    if (AccDesired<fAccGravity+0.05) //jeœli nie ma przyspieszaæ
+    if ((AccDesired<fAccGravity+0.05)||(Controlling->Vel>=VelDesired)) //jeœli nie ma przyspieszaæ
      Controlling->DecMainCtrl(2); //na zero
     else
      if (fActionTime>=0.0)
@@ -2737,7 +2743,9 @@ bool __fastcall TController::UpdateSituation(double dt)
           }
           else if (ActualProximityDist>fBrakeDist)
           {//jeœli ma stan¹æ, a mieœci siê w drodze hamowania
-           if (vel<30.0)  //trzymaj 30 km/h
+           if (vel<10.0)  //jeœli prêdkoœæ jest ³atwa do zatrzymania
+            AccDesired=AccDesired<0.0?0.0:0.1*AccPreferred;
+           else if (vel<30.0)  //trzymaj 30 km/h
             AccDesired=Min0R(0.5*AccDesired,AccPreferred); //jak jest tu 0.5, to samochody siê dobijaj¹ do siebie
            else
             AccDesired=0.0;
@@ -2874,7 +2882,7 @@ bool __fastcall TController::UpdateSituation(double dt)
       //zwiekszanie predkosci
       if (AbsAccS+fAccGravity<AccDesired) //jeœli przyspieszenie pojazdu jest mniejsze ni¿ ¿¹dane oraz
        if (vel<VelDesired-fVelMinus) //jeœli prêdkoœæ w kierunku czo³a jest mniejsza od dozwolona o margines
-        if ((ActualProximityDist>fMaxProximityDist+fMaxProximityDist)?true:(vel<VelNext))
+        if ((ActualProximityDist>fMaxProximityDist)?true:(vel<VelNext))
          IncSpeed(); //to mo¿na przyspieszyæ
       //if ((AbsAccS<AccDesired)&&(vel<VelDesired))
        //if (!MaxVelFlag) //Ra: to nie jest u¿ywane
