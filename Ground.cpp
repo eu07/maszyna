@@ -2577,7 +2577,7 @@ bool __fastcall TGround::InitEvents()
     if (tmp)
      Current->Params[9].asModel=tmp->Model;
     else
-     Error("Event \""+Current->asName+"\" cannot find model \""+Current->asNodeName+"\"");
+     ErrorLog("Bad lights: event \""+Current->asName+"\" cannot find model \""+Current->asNodeName+"\"");
     Current->asNodeName="";
    break;
    case tp_Visible: //ukrycie albo przywrócenie obiektu
@@ -2587,7 +2587,7 @@ bool __fastcall TGround::InitEvents()
     if (tmp)
      Current->Params[9].asGroundNode=tmp;
     else
-     Error("Event \""+Current->asName+"\" cannot find model \""+Current->asNodeName+"\"");
+     ErrorLog("Bad visibility: event \""+Current->asName+"\" cannot find model \""+Current->asNodeName+"\"");
     Current->asNodeName="";
    break;
    case tp_Switch: //peze³o¿enie zwrotnicy albo zmiana stanu obrotnicy
@@ -2595,7 +2595,7 @@ bool __fastcall TGround::InitEvents()
     if (tmp)
      Current->Params[9].asTrack=tmp->pTrack;
     else
-     Error("Event \""+Current->asName+"\" cannot find track \""+Current->asNodeName+"\"");
+     ErrorLog("Bad switch: event \""+Current->asName+"\" cannot find track \""+Current->asNodeName+"\"");
     Current->asNodeName="";
    break;
    case tp_Sound: //odtworzenie dŸwiêku
@@ -2603,7 +2603,7 @@ bool __fastcall TGround::InitEvents()
     if (tmp)
      Current->Params[9].asRealSound=tmp->pStaticSound;
     else
-     Error("Event \""+Current->asName+"\" cannot find static sound \""+Current->asNodeName+"\"");
+     ErrorLog("Bad sound: event \""+Current->asName+"\" cannot find static sound \""+Current->asNodeName+"\"");
     Current->asNodeName="";
    break;
    case tp_TrackVel: //ustawienie prêdkoœci na torze
@@ -2613,7 +2613,7 @@ bool __fastcall TGround::InitEvents()
      if (tmp)
       Current->Params[9].asTrack=tmp->pTrack;
      else
-      Error("Event \""+Current->asName+"\" cannot find track \""+Current->asNodeName+"\"");
+      ErrorLog("Bad velocity: event \""+Current->asName+"\" cannot find track \""+Current->asNodeName+"\"");
     }
     Current->asNodeName= "";
    break;
