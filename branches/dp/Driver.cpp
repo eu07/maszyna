@@ -35,6 +35,10 @@ w tym pierwszym. Obejmuje zarówno maszynistê jak i kierownika poci¹gu
 Przeniesiona tutaj zosta³a zawartoœæ ai_driver.pas przerobiona na C++.
 Równie¿ niektóre funkcje dotycz¹ce sk³adów z DynObj.cpp.
 
+Teoria jest wtedy kiedy wszystko wiemy, ale nic nie dzia³a.
+Praktyka jest wtedy, kiedy wszystko dzia³a, ale nikt nie wie dlaczego.
+Tutaj ³¹czymy teoriê z praktyk¹ - tu nic nie dzia³a i nikt nie wie dlaczego…
+
 */
 
 
@@ -255,17 +259,7 @@ TEvent* __fastcall TController::CheckTrackEvent(double fDirection,TTrack *Track)
  TEvent* e=(fDirection>0)?Track->Event2:Track->Event1;
  if (!e) return NULL;
  if (e->bEnabled) return NULL;
-/* jednak wszystkie W4 do tabelki, bo jej czyszczenie na przystanku wprowadza zamieszanie
- if (e->Type==tp_PutValues)
- {//do tabelki idzie tylko rozpoznany W4
-  AnsiString command=e->CommandGet();
-  if (command.SubString(1,19)=="PassengerStopPoint:")
-   if (asNextStop.IsEmpty()) //poci¹g ma okreœlone miejsce zatrzymania
-    return NULL; //ignorowaæ, jeœli nie ma zatrzymania
-   else
-    return (command==asNextStop)?e:NULL; //nazwa zatrzymania siê zgadza
- }
-*/
+ //jednak wszystkie W4 do tabelki, bo jej czyszczenie na przystanku wprowadza zamieszanie
  return e;
 }
 
@@ -275,6 +269,7 @@ bool __fastcall TController::TableAddNew()
  //TODO: jeszcze sprawdziæ, czy siê na iFirst nie na³o¿y
  //TODO: wstawiæ tu wywo³anie odtykacza - teraz jest to w TableTraceRoute()
  //TODO: jeœli ostatnia pozycja zajêta, ustawiaæ dodatkowe flagi - teraz jest to w TableTraceRoute()
+ //TODO: przyda³o by siê te¿ posortowaæ tabelkê wg odleg³oœci (ale nie w tym miejscu)
  return true; //false gdy siê na³o¿y
 };
 
@@ -417,7 +412,7 @@ void __fastcall TController::TableCheck(double fDistance)
 {//przeliczenie odleg³oœci w tabelce, ewentualnie doskanowanie (bez analizy prêdkoœci itp.)
  if (iTableDirection!=iDirection)
   TableTraceRoute(fDistance,pVehicles[1]); //jak zmiana kierunku, to skanujemy od koñca sk³adu
- else
+ else if (iTableDirection)
  {//trzeba sprawdziæ, czy coœ siê zmieni³o
   vector3 dir=pVehicles[0]->VectorFront()*pVehicles[0]->DirectionGet(); //wektor kierunku jazdy
   vector3 pos=pVehicles[0]->HeadPosition(); //zaczynamy od pozycji pojazdu
@@ -541,6 +536,10 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
          }
        if (TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,asNextStop.SubString(20,asNextStop.Length())))
        {//to siê wykona tylko raz po zatrzymaniu na W4
+        if (TrainParams->CheckTrainLatency()<0.0)
+         iDrivigFlags|=moveLate; //odnotowano spóŸnienie
+        else
+         iDrivigFlags&=~moveLate; //przyjazd o czasie
         if (TrainParams->DirectionChange()) //jeœli "@" w rozk³adzie, to wykonanie dalszych komend
         {//wykonanie kolejnej komendy, nie dotyczy ostatniej stacji
          if (Controlling->TrainType==dt_EZT)
@@ -808,7 +807,7 @@ __fastcall TController::TController
 */
 
  //ScanMe=False;
- VelMargin=2; //Controlling->Vmax*0.015;
+ //VelMargin=2; //Controlling->Vmax*0.015;
  fWarningDuration=0.0; //nic do wytr¹bienia
  WaitingExpireTime=31.0; //tyle ma czekaæ, zanim siê ruszy
  WaitingTime=0.0;
@@ -833,11 +832,15 @@ __fastcall TController::TController
   //fDriverBraking=0.0065; //mno¿one przez (v^2+40*v) [km/h] daje prawie drogê hamowania [m]
   fDriverBraking=0.02; //coœ nie hamuj¹ te samochody zbyt dobrze
   fDriverDist=5.0; //5m - zachowywany odstêp przed kolizj¹
+  fVelPlus=10.0; //dopuszczalne przekroczenie prêdkoœci na ograniczeniu bez hamowania
+  fVelMinus=2.0; //margines prêdkoœci powoduj¹cy za³¹czenie napêdu
  }
  else
  {//poci¹gi i statki
   fDriverBraking=0.05; //mno¿one przez (v^2+40*v) [km/h] daje prawie drogê hamowania [m]
   fDriverDist=50.0; //50m - zachowywany odstêp przed kolizj¹
+  fVelPlus=5.0; //dopuszczalne przekroczenie prêdkoœci na ograniczeniu bez hamowania
+  fVelMinus=5.0; //margines prêdkoœci powoduj¹cy za³¹czenie napêdu
  }
  SetDriverPsyche(); //na koñcu, bo wymaga ustawienia zmiennych
  AccDesired=AccPreferred;
@@ -1122,7 +1125,7 @@ void __fastcall TController::Lights(int head,int rear)
 void __fastcall TController::DirectionInitial()
 {//ustawienie kierunku po wczytaniu trainset (mo¿e jechaæ na wstecznym
  Controlling->CabActivisation(); //za³¹czenie rozrz¹du (wirtualne kabiny)
- if (Controlling->Vel>0.5)
+ if (Controlling->Vel>0.0)
  {//jeœli na starcie jedzie
   iDirection=iDirectionOrder=(Controlling->V>0?1:-1); //pocz¹tkowa prêdkoœæ wymusza kierunek jazdy
   DirectionForward(Controlling->V*Controlling->CabNo>=0.0); //a dalej ustawienie nawrotnika
@@ -1337,11 +1340,6 @@ bool __fastcall TController::PrepareEngine()
   if (Controlling->EngineType==DieselElectric)
    Controlling->Battery=true;
  }
- //Ra: rozdziawianie drzwi po odpaleniu nie jest potrzebne
- //if (Controlling->DoorOpenCtrl==1)
- // if (!Controlling->DoorRightOpened)
- //  Controlling->DoorRight(true);  //McZapkie: taka prowizorka bo powinien wiedziec gdzie peron
-//voltfront:=true;
  if (Controlling->PantFrontVolt||Controlling->PantRearVolt||voltfront||voltrear)
  {//najpierw ustalamy kierunek, jeœli nie zosta³ ustalony
   if (!iDirection) //jeœli nie ma ustalonego kierunku
@@ -1626,7 +1624,7 @@ bool __fastcall TController::DecSpeed(bool force)
  {
   case None: //McZapkie-041003: wagon sterowniczy
    iDrivigFlags&=~moveIncSpeed; //usuniêcie flagi jazdy
-   if (force) //przy aktywacji kabiny jest potrzeba natychmiastowego wyzerowania
+   if (force?true:(Controlling->MainCtrlPos=1)) //przy aktywacji kabiny jest potrzeba natychmiastowego wyzerowania
     if (Controlling->MainCtrlPosNo>0) //McZapkie-041003: wagon sterowniczy, np. EZT
      Controlling->DecMainCtrl(1+(Controlling->MainCtrlPos>2?1:0));
    return false;
@@ -1670,11 +1668,11 @@ void __fastcall TController::SpeedSet()
    if (Controlling->MainCtrlPosNo>0)
    {//jeœli ma czym krêciæ
     //TODO: sprawdzanie innego czlonu //if (!FuseFlagCheck())
-    if (AccDesired<0.05) //jeœli nie ma przyspieszaæ
+    if (AccDesired<fAccGravity+0.05) //jeœli nie ma przyspieszaæ
      Controlling->DecMainCtrl(2); //na zero
     else
      if (fActionTime>=0.0)
-     {//jak ju¿ mo¿na coœ poruszaæ
+     {//jak ju¿ mo¿na coœ poruszaæ, przetok roz³¹czaæ od razu
       if (iDrivigFlags&moveIncSpeed)
       {//jak ma jechac
        if (fReady<0.04) //0.05*Controlling->MaxBrakePress)
@@ -1685,7 +1683,7 @@ void __fastcall TController::SpeedSet()
          case 0:
           Controlling->IncMainCtrl(1); //przetok
          case 1:
-          if (VelDesired>10) Controlling->IncMainCtrl(1); //szeregowa
+          if (VelDesired>20) Controlling->IncMainCtrl(1); //szeregowa
          case 2:
           if (VelDesired>50) Controlling->IncMainCtrl(1); //równoleg³a
          case 3:
@@ -2083,7 +2081,8 @@ void __fastcall TController::PhysicsLog()
 bool __fastcall TController::UpdateSituation(double dt)
 {//uruchamiaæ przynajmniej raz na sekundê
  if ((iDrivigFlags&movePrimary)==0) return true; //pasywny nic nie robi
- double AbsAccS,VelReduced;
+ double AbsAccS;
+ //double VelReduced; //o ile km/h mo¿e przekroczyæ dozwolon¹ prêdkoœæ bez hamowania
  bool UpdateOK=false;
  if (AIControllFlag)
  {//yb: zeby EP nie musial sie bawic z ciesnieniem w PG
@@ -2228,7 +2227,8 @@ bool __fastcall TController::UpdateSituation(double dt)
     if (iDrivigFlags&moveConnect)
     {//jeœli stan¹³ ju¿ blisko, unikaj¹c zderzenia i mo¿na próbowaæ pod³¹czyæ
      fMinProximityDist=-0.01; fMaxProximityDist=0.0; //[m] dojechaæ maksymalnie
-     VelReduced=2; //[km/h]
+     fVelPlus=0.5; //dopuszczalne przekroczenie prêdkoœci na ograniczeniu bez hamowania
+     fVelMinus=1.0; //margines prêdkoœci powoduj¹cy za³¹czenie napêdu
      if (AIControllFlag)
      {//to robi tylko AI, wersjê dla cz³owieka trzeba dopiero zrobiæ
       //sprzêgi sprawdzamy w pierwszej kolejnoœci, bo jak po³¹czony, to koniec
@@ -2284,7 +2284,9 @@ bool __fastcall TController::UpdateSituation(double dt)
     else
     {//jak daleko, to jazda jak dla Shunt na kolizjê
      fMinProximityDist=0.0; fMaxProximityDist=5.0; //[m] w takim przedziale odleg³oœci powinien stan¹æ
-     VelReduced=5; //[km/h]
+     fVelPlus=1.0; //dopuszczalne przekroczenie prêdkoœci na ograniczeniu bez hamowania
+     fVelMinus=2.0; //margines prêdkoœci powoduj¹cy za³¹czenie napêdu
+     //VelReduced=5; //[km/h]
      //if (Controlling->Vel<0.5) //jeœli ju¿ prawie stan¹³
       if (pVehicles[0]->fTrackBlock<=20.0) //przy zderzeniu fTrackBlock nie jest miarodajne
        iDrivigFlags|=moveConnect; //pocz¹tek podczepiania, z wy³¹czeniem sprawdzania fTrackBlock
@@ -2292,7 +2294,8 @@ bool __fastcall TController::UpdateSituation(double dt)
    break;
    case Disconnect: //20.07.03 - manewrowanie wagonami
     fMinProximityDist=1.0; fMaxProximityDist=10.0; //[m]
-    VelReduced=5; //[km/h]
+    fVelPlus=1.0; //dopuszczalne przekroczenie prêdkoœci na ograniczeniu bez hamowania
+    fVelMinus=1.0; //margines prêdkoœci powoduj¹cy za³¹czenie napêdu
     if (AIControllFlag)
     {if (iVehicleCount>=0) //jeœli by³a podana iloœæ wagonów
      {
@@ -2381,23 +2384,35 @@ bool __fastcall TController::UpdateSituation(double dt)
    case Shunt:
     //na jaka odleglosc i z jaka predkoscia ma podjechac
     fMinProximityDist=2.0; fMaxProximityDist=4.0; //[m]
-    VelReduced=5; //[km/h]
+    fVelPlus=2.0; //dopuszczalne przekroczenie prêdkoœci na ograniczeniu bez hamowania
+    fVelMinus=3.0; //margines prêdkoœci powoduj¹cy za³¹czenie napêdu
     break;
    case Obey_train:
     //na jaka odleglosc i z jaka predkoscia ma podjechac do przeszkody
     if (Controlling->CategoryFlag&1) //jeœli poci¹g
     {
      fMinProximityDist=10.0; fMaxProximityDist=20.0; //[m]
+     fVelPlus=5.0; //dopuszczalne przekroczenie prêdkoœci na ograniczeniu bez hamowania
+     if (iDrivigFlags&moveLate)
+      fVelMinus=1.0; //jeœli spóŸniony, to gna
+     else
+     {//gdy nie musi siê sprê¿aæ
+      fVelMinus=int(0.1*VelDesired); //margines prêdkoœci powoduj¹cy za³¹czenie napêdu
+      if (fVelMinus>5.0) fVelMinus=5.0;
+     }
     }
     else //samochod (sokista te¿)
     {
      fMinProximityDist=7.0; fMaxProximityDist=10.0; //[m]
+     fVelPlus=10.0; //dopuszczalne przekroczenie prêdkoœci na ograniczeniu bez hamowania
+     fVelMinus=2.0; //margines prêdkoœci powoduj¹cy za³¹czenie napêdu
     }
-    VelReduced=4; //[km/h]
+    //VelReduced=4; //[km/h]
     break;
    default:
     fMinProximityDist=0.01; fMaxProximityDist=2.0; //[m]
-    VelReduced=1; //[km/h]
+    fVelPlus=2.0; //dopuszczalne przekroczenie prêdkoœci na ograniczeniu bez hamowania
+    fVelMinus=5.0; //margines prêdkoœci powoduj¹cy za³¹czenie napêdu
   } //switch
   switch (OrderList[OrderPos])
   {//co robi maszynista
@@ -2461,7 +2476,7 @@ bool __fastcall TController::UpdateSituation(double dt)
          {SetVelocity(0,0,stopJoin); //1. faza odczepiania: zatrzymanie
           //WriteLog("Zatrzymanie w celu odczepienia");
          }
-     }   
+     }
     }
     else
      SetDriverPsyche(); //Ra: by³o w PrepareEngine(), potrzebne tu?
@@ -2603,7 +2618,7 @@ bool __fastcall TController::UpdateSituation(double dt)
       }
      double vel=Controlling->Vel; //prêdkoœæ w kierunku jazdy
      if (iDirection*Controlling->V<0) vel=-vel; //ujemna, gdy jedzie w przeciwn¹ stronê, ni¿ powinien
-     if (VelDesired<0.0) VelDesired=fVelMax; //bo <0 w VelDesired nie mo¿e byæ
+     if (VelDesired<0.0) VelDesired=fVelMax; //bo VelDesired<0 oznacza prêdkoœæ maksymaln¹
      //Ra: jazda na widocznoœæ
      if (pVehicles[0]->fTrackBlock<1000.0) //przy 300m sta³ z zapamiêtan¹ kolizj¹
       pVehicles[0]->ABuScanObjects(pVehicles[0]->DirectionGet(),300.0); //skanowanie sprawdzaj¹ce
@@ -2682,7 +2697,7 @@ bool __fastcall TController::UpdateSituation(double dt)
      if (VelforDriver>=0) //tu jest zero przy zmianie kierunku jazdy
       VelDesired=Min0R(VelDesired,VelforDriver); //Ra: tu mo¿e byæ 40, jeœli mechanik nie ma znajomoœci szlaaku, albo kierowca jeŸdzi 70
      if (TrainParams)
-      if (TrainParams->CheckTrainLatency()<10.0)
+      if (TrainParams->CheckTrainLatency()<5.0)
        if (TrainParams->TTVmax>0.0)
         VelDesired=Min0R(VelDesired,TrainParams->TTVmax); //jesli nie spozniony to nie przekraczaæ rozkladowej
      AbsAccS=Controlling->AccS; //wypadkowa si³ stycznych do toru
@@ -2703,7 +2718,7 @@ bool __fastcall TController::UpdateSituation(double dt)
      {//gdy zbli¿a siê i jest za szybki do nowej prêdkoœci, albo stoi na zatrzymaniu
       if (vel>0.0)
       {//jeœli jedzie
-       if ((vel<VelReduced+VelNext)&&(ActualProximityDist>fMaxProximityDist*(1+0.1*vel))) //dojedz do semafora/przeszkody
+       if ((vel<VelNext)&&(ActualProximityDist>fMaxProximityDist*(1+0.1*vel))) //dojedz do semafora/przeszkody
        {//jeœli jedzie wolniej ni¿ mo¿na i jest wystarczaj¹co daleko, to mo¿na przyspieszyæ
         if (AccPreferred>0.0) //jeœli nie ma zawalidrogi
          AccDesired=0.5*AccPreferred;
@@ -2712,7 +2727,7 @@ bool __fastcall TController::UpdateSituation(double dt)
        else if (ActualProximityDist>fMinProximityDist)
        {//jedzie szybciej, ni¿ trzeba na koñcu ActualProximityDist
         if (vel<VelNext+40.0) //dwustopniowe hamowanie - niski przy ma³ej ró¿nicy
-        {//jeœli jedzie wolniej ni¿ VelNext+35km/h //Ra: 40, ¿eby nie kombinowa³
+        {//jeœli jedzie wolniej ni¿ VelNext+35km/h //Ra: 40, ¿eby nie kombinowa³ na zwrotnicach
          if (VelNext==0.0)
          {//jeœli ma siê zatrzymaæ, musi byæ to robione precyzyjnie i skutecznie
           if (ActualProximityDist<fMaxProximityDist) //jak min¹³ ju¿ maksymalny dystans
@@ -2731,11 +2746,11 @@ bool __fastcall TController::UpdateSituation(double dt)
            AccDesired=-(vel*vel)/(25.92*(ActualProximityDist+0.1));//-fMinProximityDist));//-0.1; //mniejsze opóŸnienie przy ma³ej ró¿nicy
           ReactionTime=0.1; //i orientuj siê szybciej, jak masz stan¹æ
          }
-         else if (vel<VelNext+VelReduced) //jeœli niewielkie przekroczenie
+         else if (vel<VelNext+fVelPlus) //jeœli niewielkie przekroczenie, ale ma jechaæ
           AccDesired=0.0; //to olej (zacznij luzowaæ)
          else
-         {//jeœli wiêksze przekroczenie ni¿ VelReduced [km/h]
-          AccDesired=(VelNext*VelNext-vel*vel)/(25.92*ActualProximityDist+0.1); //mniejsze opóŸnienie przy ma³ej ró¿nicy
+         {//jeœli wiêksze przekroczenie ni¿ fVelPlus [km/h], ale ma jechaæ
+          AccDesired=((VelNext+fVelPlus)*(VelNext+fVelPlus)-vel*vel)/(25.92*ActualProximityDist+0.1); //mniejsze opóŸnienie przy ma³ej ró¿nicy
           if (ActualProximityDist<fMaxProximityDist)
            ReactionTime=0.1; //i orientuj siê szybciej, jeœli w krytycznym przedziale
          }
@@ -2750,6 +2765,8 @@ bool __fastcall TController::UpdateSituation(double dt)
        else
        {//jest bli¿ej ni¿ fMinProximityDist
         VelDesired=Min0R(VelDesired,VelNext); //utrzymuj predkosc bo juz blisko
+        if (vel<VelNext+fVelPlus) //jeœli niewielkie przekroczenie, ale ma jechaæ
+         AccDesired=0.0; //to olej (zacznij luzowaæ)
         ReactionTime=0.1; //i orientuj siê szybciej
        }
       }
@@ -2776,7 +2793,7 @@ bool __fastcall TController::UpdateSituation(double dt)
       if (VelDesired==0.0) //jesli stoj, to hamuj, ale i tak juz za pozno :)
        AccDesired=-0.9; //hamuj solidnie
       else
-       if ((vel<VelDesired+5)) //o 5 km/h to olej
+       if ((vel<VelDesired+fVelPlus)) //o 5 km/h to olej
        {if ((AccDesired>0.0))
          AccDesired=0.0;
        }
@@ -2850,14 +2867,15 @@ bool __fastcall TController::UpdateSituation(double dt)
           while (DecBrake());  //jeœli przyspieszamy, to nie hamujemy
       //Ra: zmieni³em 0.95 na 1.0 - trzeba ustaliæ, sk¹d sie takie wartoœci bior¹
       //margines dla prêdkoœci jest doliczany tylko jeœli oczekiwana prêdkoœæ jest wiêksza od 5km/h
-      if ((fAccGravity<-0.01?AccDesired<-0.1:AbsAccS+fAccGravity>AccDesired)||(vel+(VelDesired>5.0?VelMargin:0.0)>VelDesired))
+      if ((fAccGravity<-0.01?AccDesired<-0.1:AbsAccS+fAccGravity>AccDesired)||(vel>VelDesired))
        if (!Prepare2press)
         while (DecSpeed()); //jeœli hamujemy, to nie przyspieszamy
       //yB: usuniête ró¿ne dziwne warunki, oddzielamy czêœæ zadaj¹c¹ od wykonawczej
       //zwiekszanie predkosci
       if (AbsAccS+fAccGravity<AccDesired) //jeœli przyspieszenie pojazdu jest mniejsze ni¿ ¿¹dane oraz
-       if (vel<(VelDesired>5.0?VelDesired-5:VelDesired)) //jeœli prêdkoœæ w kierunku czo³a jest mniejsza ni¿ dozwolona
-        IncSpeed();
+       if (vel<VelDesired-fVelMinus) //jeœli prêdkoœæ w kierunku czo³a jest mniejsza od dozwolona o margines
+        if ((ActualProximityDist>fMaxProximityDist+fMaxProximityDist)?true:(vel<VelNext))
+         IncSpeed(); //to mo¿na przyspieszyæ
       //if ((AbsAccS<AccDesired)&&(vel<VelDesired))
        //if (!MaxVelFlag) //Ra: to nie jest u¿ywane
        //if (!IncSpeed()) //Ra: to tutaj jest bez sensu, bo nie doci¹gnie do bezoporowej
@@ -2873,7 +2891,7 @@ bool __fastcall TController::UpdateSituation(double dt)
       //zmniejszanie predkosci
       if (((fAccGravity<-0.05)&&(vel<0))||((AccDesired<fAccGravity-0.1)&&(AccDesired<AbsAccS+fAccGravity-0.05))) //u góry ustawia siê hamowanie na -0.2
       //if not MinVelFlag)
-       if (fBrakeTime<0?true:(AccDesired<-0.3)||(Controlling->BrakeCtrlPos<=0))
+       if (fBrakeTime<0?true:(AccDesired<fAccGravity-0.3)||(Controlling->BrakeCtrlPos<=0))
         if (!IncBrake()) //jeœli up³yn¹³ czas reakcji hamulca, chyba ¿e nag³e albo luzowa³
          MinVelFlag=true;
         else

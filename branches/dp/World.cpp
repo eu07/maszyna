@@ -1586,14 +1586,14 @@ bool __fastcall TWorld::Update()
        OutText4="";
        if (tmp->Mechanik)
        {//o ile jest ktoœ w œrodku
-        OutText4=tmp->Mechanik->StopReasonText();
-        if (!OutText4.IsEmpty()) OutText4+="; "; //aby ³adniejszy odstêp by³
+        //OutText4=tmp->Mechanik->StopReasonText();
+        //if (!OutText4.IsEmpty()) OutText4+="; "; //aby ³adniejszy odstêp by³
         //if (Controlled->Mechanik && (Controlled->Mechanik->AIControllFlag==AIdriver))
-        AnsiString flags="bwaccmsshhhoi; "; //flagi AI
+        AnsiString flags="bwaccmlshhhoi; "; //flagi AI
         for (int i=0,j=1;i<=12;++i,j<<=1)
          if (tmp->Mechanik->DrivigFlags()&j) //jak bit ustawiony
           flags[i+1]^=0x20; //to zmiana na wielkie
-        OutText4+=flags;
+        OutText4=flags;
         OutText4+=AnsiString("Driver: Vd=")+FloatToStrF(tmp->Mechanik->VelDesired,ffFixed,4,0)
         +AnsiString(" ad=")+FloatToStrF(tmp->Mechanik->AccDesired,ffFixed,5,2)
         +AnsiString(" Pd=")+FloatToStrF(tmp->Mechanik->ActualProximityDist,ffFixed,4,0)
