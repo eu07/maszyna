@@ -31,7 +31,7 @@ enum TMovementStatus
  movePress=8, //dociskanie przy od³¹czeniu (zamiast zmiennej Prepare2press)
  moveConnect=0x10, //jest blisko innego pojazdu i mo¿na próbowaæ pod³¹czyæ
  movePrimary=0x20, //ma priorytet w sk³adzie (master)
- //moveStopThen=0x40, //nie podje¿d¿aæ do semafora, jeœli droga nie jest wolna
+ moveLate=0x40, //flaga spóŸnienia, w³¹czy bardziej
  moveStopHere=0x80, //nie podje¿d¿aæ do semafora, jeœli droga nie jest wolna
  moveStartHorn=0x100, //podawaj sygna³ po podaniu wolnej drogi
  moveStartHornNow=0x200, //podaj sygna³ po odhamowaniu
@@ -63,6 +63,7 @@ enum TAction
  //podnieœ pantograf (info dla u¿ytkownika)
  //za³¹cz przetwornicê (info dla u¿ytkownika)
  //za³¹cz sprê¿arkê (info dla u¿ytkownika)
+ actDrive,     //jazda
  actGo,        //ruszanie z miejsca
  actSlow,      //przyhamowanie przed ograniczeniem
  sctStop,      //hamowanie w celu precyzyjnego zatrzymania
@@ -256,7 +257,9 @@ public:
  void __fastcall WaitingSet(double Seconds);
 private:
  AnsiString VehicleName;
- double VelMargin;
+ //double VelMargin; //nieokreœlone znaczenie
+ double fVelPlus; //dopuszczalne przekroczenie prêdkoœci na ograniczeniu bez hamowania
+ double fVelMinus; //margines prêdkoœci powoduj¹cy za³¹czenie napêdu
  double fWarningDuration; //ile czasu jeszcze tr¹biæ
  double fStopTime; //czas postoju przed dalsz¹ jazd¹ (np. na przystanku)
  double WaitingTime; //zliczany czas oczekiwania do samoistnego ruszenia

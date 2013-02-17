@@ -1240,7 +1240,7 @@ void __fastcall TGround::Free()
 
 TGroundNode* __fastcall TGround::FindGroundNode(AnsiString asNameToFind,TGroundNodeType iNodeType)
 {//wyszukiwanie obiektu o podanej nazwie i konkretnym typie
- if ((iNodeType==TP_TRACK)||(iNodeType==TP_MEMCELL))
+ if ((iNodeType==TP_TRACK)||(iNodeType==TP_MEMCELL)||(iNodeType==TP_MODEL))
  {//wyszukiwanie w drzewie binarnym
   return (TGroundNode*)sTracks->Find(iNodeType,asNameToFind.c_str());
  }
@@ -1408,7 +1408,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
  else if (str=="line_strip")          tmp->iType=GL_LINE_STRIP;
  else if (str=="line_loop")           tmp->iType=GL_LINE_LOOP;
  else if (str=="model")               tmp->iType=TP_MODEL;
- else if (str=="terrain")             tmp->iType=TP_TERRAIN; //tymczasowo do odwo³ania
+ //else if (str=="terrain")             tmp->iType=TP_TERRAIN; //tymczasowo do odwo³ania
  else if (str=="dynamic")             tmp->iType=TP_DYNAMIC;
  else if (str=="sound")               tmp->iType=TP_SOUND;
  else if (str=="track")               tmp->iType=TP_TRACK;
@@ -1664,7 +1664,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    if (token.compare("enddynamic")!=0)
     Error("enddynamic statement missing");
    break;
-  case TP_TERRAIN: //TODO: zrobiæ jak zwyk³y, rozró¿nienie po nazwie albo czymœ innym
+  //case TP_TERRAIN: //TODO: zrobiæ jak zwyk³y, rozró¿nienie po nazwie albo czymœ innym
   case TP_MODEL:
    if (rmin<0)
    {tmp->iType=TP_TERRAIN;
@@ -1726,9 +1726,18 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
      //tmp->nNode[i].asName=
     }
    }
+   else if (!tmp->asName.IsEmpty()) //jest pusta gdy "none"
+   {//dodanie do wyszukiwarki
+    if (sTracks->Update(TP_MODEL,tmp->asName.c_str(),tmp)) //najpierw sprawdziæ, czy ju¿ jest
+    {//przy zdublowaniu wskaŸnik zostanie podmieniony w drzewku na póŸniejszy (zgodnoœæ wsteczna)
+     ErrorLog("Duplicated model: "+tmp->asName); //to zg³aszaæ duplikat
+    }
+    else
+     sTracks->Add(TP_MODEL,tmp->asName.c_str(),tmp); //nazwa jest unikalna
+   }
    //str=Parser->GetNextSymbol().LowerCase();
    break;
-  case TP_GEOMETRY :
+  //case TP_GEOMETRY :
   case GL_TRIANGLES :
   case GL_TRIANGLE_STRIP :
   case GL_TRIANGLE_FAN :
@@ -2457,6 +2466,7 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
  delete parser;
  sTracks->Sort(TP_TRACK); //finalne sortowanie drzewa torów
  sTracks->Sort(TP_MEMCELL); //finalne sortowanie drzewa komórek pamiêci
+ sTracks->Sort(TP_MODEL); //finalne sortowanie drzewa modeli
  sTracks->Sort(0); //finalne sortowanie drzewa eventów
  if (!bInitDone) FirstInit(); //jeœli nie by³o w scenerii
  if (Global::pTerrainCompact)
@@ -3929,7 +3939,7 @@ TDynamicObject* __fastcall TGround::DynamicNearest(vector3 pPosition,double dist
   for (i=c-1;i<=c+1;i++)
    if ((tmp=FastGetSubRect(i,j))!=NULL)
     for (node=tmp->nRootNode;node;node=node->nNext2) //nastêpny z sektora
-     if (node->iType==TP_TRACK)
+     if (node->iType==TP_TRACK) //Ra: przebudowaæ na u¿ycie tabeli torów?
       for (k=0;k<node->pTrack->iNumDynamics;k++)
        if ((sqd=SquareMagnitude(node->pTrack->Dynamics[k]->GetPosition()-pPosition))<sqm)
         if (mech?(node->pTrack->Dynamics[k]->Mechanik!=NULL):true) //czy ma mieæ obsadê

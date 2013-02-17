@@ -329,6 +329,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       }
       if (cKey==Global::Keys[k_Main])
       {
+       DynamicObject->MoverParameters->BatterySwitch(true); //na razie tutaj
            if (fabs(MainOnButtonGauge.GetValue())<0.001)
            {
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
