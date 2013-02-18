@@ -4467,7 +4467,7 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
         if (str==AnsiString("brakesound:"))                    //hamowanie zwykle:
          {
           str=Parser->GetNextSymbol();
-          rsBrake.Init(str.c_str(),-1,0,0,0,true);
+          rsBrake.Init(str.c_str(),-1,0,0,0,true,true);
           rsBrake.AM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->MaxBrakeForce*1000);
           rsBrake.AA=Parser->GetNextSymbol().ToDouble();
           rsBrake.FM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
@@ -4517,7 +4517,7 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
         if (str==AnsiString("runningnoise:"))                    //szum podczas jazdy:
          {
           str=Parser->GetNextSymbol();
-          rsRunningNoise.Init(str.c_str(),-1,0,0,0,true);
+          rsRunningNoise.Init(str.c_str(),-1,0,0,0,true,true);
           rsRunningNoise.AM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
           rsRunningNoise.AA=Parser->GetNextSymbol().ToDouble();
           rsRunningNoise.FM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
@@ -4527,7 +4527,7 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
         if (str==AnsiString("engageslippery:"))                    //tarcie tarcz sprzegla:
          {
           str=Parser->GetNextSymbol();
-          rsEngageSlippery.Init(str.c_str(),-1,0,0,0,true);
+          rsEngageSlippery.Init(str.c_str(),-1,0,0,0,true,true);
           rsEngageSlippery.AM=Parser->GetNextSymbol().ToDouble();
           rsEngageSlippery.AA=Parser->GetNextSymbol().ToDouble();
           rsEngageSlippery.FM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->nmax);

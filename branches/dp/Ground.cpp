@@ -2031,9 +2031,18 @@ void __fastcall TGround::FirstInit()
  glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);  //kolor padaj¹cy
  glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight); //kolor odbity
  //musi byæ tutaj, bo wczeœniej nie mieliœmy wartoœci œwiat³a
- if (Global::bDoubleAmbient) //Ra: wczeœniej by³o ambient dawane na obydwa œwiat³a
+ if (Global::fMoveLight>=0.0) //albo tak, albo niech ustala minimum ciemnoœci w nocy
+ {
+  Global::fLuminance= //obliczenie luminacji "œwiat³a w ciemnoœci"
+   +0.150*Global::ambientDayLight[0]  //R
+   +0.295*Global::ambientDayLight[1]  //G
+   +0.055*Global::ambientDayLight[2]; //B
+  if (Global::fLuminance>0.15) //jeœli mia³o by byæ za jasno
+   for (int i=0;i<3;i++)
+    Global::ambientDayLight[i]*=0.15/Global::fLuminance; //ograniczenie jasnoœci w nocy
   glLightModelfv(GL_LIGHT_MODEL_AMBIENT,Global::ambientDayLight);
- if (Global::fMoveLight>=0.0) //albo tak, albo niech ustala minimum ciemnoœci w nocy 
+ }
+ else if (Global::bDoubleAmbient) //Ra: wczeœniej by³o ambient dawane na obydwa œwiat³a
   glLightModelfv(GL_LIGHT_MODEL_AMBIENT,Global::ambientDayLight);
  glEnable(GL_LIGHTING);
  WriteLog("FirstInit is done");

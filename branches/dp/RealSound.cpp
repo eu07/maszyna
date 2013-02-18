@@ -38,10 +38,11 @@ void __fastcall TRealSound::Free()
 {
 }
 
-void __fastcall TRealSound::Init(char *SoundName, double DistanceAttenuation, double X, double Y, double Z,bool Dynamic)
+void __fastcall TRealSound::Init(char *SoundName, double DistanceAttenuation, double X, double Y, double Z,bool Dynamic,bool freqmod)
 {
 //    Nazwa= SoundName;
     pSound= TSoundsManager::GetFromName(SoundName,Dynamic,&fFrequency);
+    if (freqmod) fFrequency=22050.0; //dla modulowanych nie mo¿w byæ zmiany mno¿nika
     if (pSound)
     {
      AM= 1.0;
