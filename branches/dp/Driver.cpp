@@ -924,7 +924,8 @@ void __fastcall TController::Activation()
  {//jeœli jest ustalony kierunek
   TDynamicObject *old=pVehicle,*d=pVehicle; //w tym siedzi AI
   int brake=Controlling->LocalBrakePos;
-  while (DecSpeed(true)); //wymuszenie zerowania nastawnika jazdy
+  while (Controlling->MainCtrlPos) //samo zapêtlenie DecSpeed() nie wystarcza :/
+   DecSpeed(true); //wymuszenie zerowania nastawnika jazdy
   while (Controlling->ActiveDir<0) Controlling->DirectionForward(); //kierunek na 0
   while (Controlling->ActiveDir>0) Controlling->DirectionBackward();
   if (TestFlag(d->MoverParameters->Couplers[iDirectionOrder<0?1:0].CouplingFlag,ctrain_controll))
@@ -1370,7 +1371,7 @@ bool __fastcall TController::PrepareEngine()
   {//czêœæ wykonawcza dla sterowania przez komputer
    if (Controlling->ConvOvldFlag)
    {//wywali³ bezpiecznik nadmiarowy przetwornicy
-    while (DecSpeed()); //zerowanie napêdu
+    while (DecSpeed(true)); //zerowanie napêdu
     Controlling->ConvOvldFlag=false; //reset nadmiarowego
    }
    else if (!Controlling->Mains)
@@ -1443,7 +1444,7 @@ bool __fastcall TController::ReleaseEngine()
   if (!Controlling->DecBrakeLevel()) //tu moze zmieniaæ na -2, ale to bez znaczenia
    if (!Controlling->IncLocalBrakeLevel(1))
    {
-    while (DecSpeed()); //zerowanie nastawników
+    while (DecSpeed(true)); //zerowanie nastawników
     if (Controlling->ActiveDir==1)
      Controlling->DirectionBackward();
     if (Controlling->ActiveDir==-1)
@@ -1658,6 +1659,8 @@ bool __fastcall TController::DecSpeed(bool force)
    else
     while ((Controlling->RList[Controlling->MainCtrlPos].Mn>0)&&(Controlling->MainCtrlPos>1))
      OK=Controlling->DecMainCtrl(1);
+   if (force) //przy aktywacji kabiny jest potrzeba natychmiastowego wyzerowania
+    OK=Controlling->DecMainCtrl(1+(Controlling->MainCtrlPos>2?1:0));
   break;
  }
  return OK;
