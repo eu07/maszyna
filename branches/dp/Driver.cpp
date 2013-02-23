@@ -436,9 +436,9 @@ void __fastcall TController::TableCheck(double fDistance)
     }
     else if (sSpeedTable[i].iFlags&0x100) //jeœli event
     {if (sSpeedTable[i].fDist<(sSpeedTable[i].eEvent->Type==tp_PutValues?-fLength:0)) //jeœli jest z ty³u
-      if ((Controlling->CategoryFlag&1)?sSpeedTable[i].fVelNext!=0.0:sSpeedTable[i].fDist<-fLength)
+      if ((Controlling->CategoryFlag&1)?false:sSpeedTable[i].fDist<-fLength)
       {//poci¹g staje zawsze, a samochód tylko jeœli nie przejedzie ca³¹ d³ugoœci¹ (mo¿e byæ zaskoczony zmian¹)
-       sSpeedTable[i].iFlags&=~1; //degradacja pozycji
+       sSpeedTable[i].iFlags&=~1; //degradacja pozycji dla samochodu; semafory usuwane tylko przy sprawdzaniu, bo wysy³aj¹ komendy
       }
     }
     //if (sSpeedTable[i].fDist<-20.0*fLength) //jeœli to coœ jest 20 razy dalej ni¿ d³ugoœæ sk³adu
@@ -637,6 +637,8 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
         {//jeœli nie by³o komendy wczeœniej - pierwsza siê liczy - ustawianie VelActual
          go=cm_ShuntVelocity; //w trybie poci¹gowym tylko jeœli w³¹cza tryb manewrowy (v!=0.0)
          VelActual=v; //nie do koñca tak, to jest druga prêdkoœæ
+         if (sSpeedTable[i].fDist<0.0) //jeœli przejechany
+          sSpeedTable[i].iFlags=0; //to mo¿na usun¹æ (nie mog¹ byæ usuwane w skanowaniu)
         }
      }
      else //if (sSpeedTable[i].iFlags&0x100) //jeœli semafor !!! Komendê trzeba sprawdziæ !!!!
@@ -644,6 +646,8 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
        if (v<0.0?true:v>=1.0) //bo wartoœæ 0.1 s³u¿y do hamowania tylko
        {go=cm_SetVelocity; //mo¿e odjechaæ
         VelActual=v; //nie do koñca tak, to jest druga prêdkoœæ; -1 nie wpisywaæ...
+        if (sSpeedTable[i].fDist<0.0) //jeœli przejechany
+         sSpeedTable[i].iFlags=0; //to mo¿na usun¹æ (nie mog¹ byæ usuwane w skanowaniu)
        }
        else if (sSpeedTable[i].eEvent->StopCommand())
        {//jeœli prêdkoœæ jest zerowa, a komórka zawiera komendê
@@ -1190,7 +1194,7 @@ void __fastcall TController::SetVelocity(double NewVel,double NewVelNext,TStopRe
     if (iDrivigFlags&moveStartHorn) //jezeli tr¹bienie w³¹czone
      if (!(iDrivigFlags&moveStartHornDone)) //jeœli nie zatr¹bione
       if (Controlling->CategoryFlag&1) //tylko poci¹gi tr¹bi¹ (unimogi tylko na torach, wiêc trzeba raczej sprawdzaæ tor)
-       if (NewVel>1.0) //o ile prêdkoœæ jest znacz¹ca
+       if ((NewVel>1.0)||(NewVel<0.0)) //o ile prêdkoœæ jest znacz¹ca
        {//fWarningDuration=0.3; //czas tr¹bienia
         //if (AIControllFlag) //jak siedzi krasnoludek, to w³¹czy tr¹bienie
         // Controlling->WarningSignal=pVehicle->iHornWarning; //wysokoœæ tonu (2=wysoki)
