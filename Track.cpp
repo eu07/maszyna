@@ -411,7 +411,7 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
  }
  else
   eType=tt_Unknown;
- if (DebugModeFlag)
+ if (Global::iWriteLogEnabled&4)
   WriteLog(str.c_str());
  parser->getTokens(4);
  *parser >> fTrackLength >> fTrackWidth >> fFriction >> fSoundDistance;
@@ -469,7 +469,7 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
    fTexHeight1=-fTexHeight1; //rzeki maj¹ wysokoœæ odwrotnie ni¿ drogi
  }
  else
-  if (DebugModeFlag) WriteLog("unvis");
+  if (Global::iWriteLogEnabled&4) WriteLog("unvis");
  Init();
  double segsize=5.0; //d³ugoœæ odcinka segmentowania
  switch (eType)

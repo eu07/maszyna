@@ -1523,7 +1523,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    break;
   case TP_TRACK :
    tmp->pTrack=new TTrack(tmp);
-   if (DebugModeFlag)
+   if (Global::iWriteLogEnabled&4)
     if (!tmp->asName.IsEmpty())
      WriteLog(tmp->asName.c_str());
    tmp->pTrack->Load(parser,pOrigin,tmp->asName); //w nazwie mo¿e byæ nazwa odcinka izolowanego
@@ -2037,9 +2037,9 @@ void __fastcall TGround::FirstInit()
    +0.150*Global::ambientDayLight[0]  //R
    +0.295*Global::ambientDayLight[1]  //G
    +0.055*Global::ambientDayLight[2]; //B
-  if (Global::fLuminance>0.15) //jeœli mia³o by byæ za jasno
+  if (Global::fLuminance>0.1) //jeœli mia³o by byæ za jasno
    for (int i=0;i<3;i++)
-    Global::ambientDayLight[i]*=0.15/Global::fLuminance; //ograniczenie jasnoœci w nocy
+    Global::ambientDayLight[i]*=0.1/Global::fLuminance; //ograniczenie jasnoœci w nocy
   glLightModelfv(GL_LIGHT_MODEL_AMBIENT,Global::ambientDayLight);
  }
  else if (Global::bDoubleAmbient) //Ra: wczeœniej by³o ambient dawane na obydwa œwiat³a
