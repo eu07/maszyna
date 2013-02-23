@@ -195,7 +195,7 @@ bool __fastcall TSpeedPos::Update(vector3 *p,vector3 *dir,double &len)
      return true; //jeszcze trzeba skanowanie wykonaæ od tego toru
     }
     if ((iFlags&32)?false:tTrack->iNumDynamics>0) //jeœli jeszcze nie wjechano na tor, a coœ na nim jest
-     fDist-=30.0,fVelNext=0; //to niech stanie w zwiêkszonej odleg³oœci
+     fDist-=30.0,fVelNext=0.0; //to niech stanie w zwiêkszonej odleg³oœci
     else if (fVelNext==0.0) //jeœli zosta³a wyzerowana
      fVelNext=tTrack->VelocityGet(); //odczyt prêdkoœci
    }
@@ -221,7 +221,7 @@ bool __fastcall TSpeedPos::Set(TEvent *e,double d)
  eEvent=e;
  vPos=e->PositionGet(); //wspó³rzêdne eventu albo komórki pamiêci (zrzutowaæ na tor?)
  CommandCheck(); //sprawdzenie typu komendy w evencie i okreœlenie prêdkoœci
- return fVelNext==0; //true gdy zatrzymanie, wtedy nie ma po co skanowaæ dalej
+ return fVelNext==0.0; //true gdy zatrzymanie, wtedy nie ma po co skanowaæ dalej
 };
 
 void __fastcall TSpeedPos::Set(TTrack *t,double d,int f)
@@ -2408,6 +2408,7 @@ bool __fastcall TController::UpdateSituation(double dt)
      {//gdy nie musi siê sprê¿aæ
       fVelMinus=int(0.1*VelDesired); //margines prêdkoœci powoduj¹cy za³¹czenie napêdu
       if (fVelMinus>5.0) fVelMinus=5.0;
+      else if (fVelMinus<1.0) fVelMinus=1.0; //¿eby nie rusza³ przy 0.1
      }
     }
     else //samochod (sokista te¿)
@@ -2593,6 +2594,8 @@ bool __fastcall TController::UpdateSituation(double dt)
      switch (comm)
      {//ustawienie VelActual - trochê proteza = do przemyœlenia
       case cm_Ready: //W4 zezwoli³ na jazdê
+       TableCheck(scanmax); //ewentualne doskanowanie trasy za W4, który zezwoli³ na jazdê
+       TableUpdate(VelDesired,ActualProximityDist,VelNext,AccDesired); //aktualizacja po skanowaniu
        if (VelNext==0.0) break; //ale jak coœ z przodu zamyka, to ma staæ
       case cm_SetVelocity: //od wersji 357 semafor nie budzi wy³¹czonej lokomotywy
        if (!(OrderList[OrderPos]&~(Obey_train|Shunt))) //jedzie w dowolnym trybie albo Wait_for_orders

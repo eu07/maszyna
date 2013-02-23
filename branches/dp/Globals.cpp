@@ -44,8 +44,8 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asRelease="13.2.760.403";
-AnsiString Global::asVersion="Compilation 2013-02-19, release "+Global::asRelease+"."; //tutaj, bo wysy³any
+AnsiString Global::asRelease="13.2.761.404";
+AnsiString Global::asVersion="Compilation 2013-02-23, release "+Global::asRelease+"."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 double Global::fSunDeclination=0.0; //deklinacja S³oñca
@@ -141,7 +141,7 @@ double Global::fRadiusFactor=1.1; //wspó³czynnik jednorazowej zmiany promienia s
 //parametry testowe (do testowania scenerii i obiektów)
 bool Global::bWireFrame=false;
 bool Global::bSoundEnabled=true;
-int Global::iWriteLogEnabled=3; //maska bitowa: 1-zapis do pliku, 2-okienko
+int Global::iWriteLogEnabled=3; //maska bitowa: 1-zapis do pliku, 2-okienko, 4-nazwy torów
 bool Global::bManageNodes=true;
 bool Global::bDecompressDDS=false; //czy programowa dekompresja DDS
 
