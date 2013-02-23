@@ -485,13 +485,15 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
   {//o ile dana pozycja tabelki jest istotna
    if (sSpeedTable[i].iFlags&0x400)
    {//jeœli przystanek, trzeba obs³u¿yæ wg rozk³adu
-    if (sSpeedTable[i].eEvent->CommandGet()!=asNextStop) //tylko gdy nazwa zatrzymania siê zgadza
-    {
-     sSpeedTable[i].fVelNext=-1; //aby zosta³y usuniête z tabelki
+    if (sSpeedTable[i].eEvent->CommandGet()!=asNextStop)
+    {//jeœli nazwa nie jest zgodna
+     if (sSpeedTable[i].fDist<-fLength) //jeœli zosta³ przejechany
+      sSpeedTable[i].iFlags=0; //to mo¿na usun¹æ (nie mog¹ byæ usuwane w skanowaniu)
      continue; //ignorowanie jakby nie by³o tej pozycji
     }
     else if (iDrivigFlags&moveStopPoint) //jeœli pomijanie W4, to nie sprawdza czasu odjazdu
-    {if (!TrainParams->IsStop())
+    {//tylko gdy nazwa zatrzymania siê zgadza
+     if (!TrainParams->IsStop())
      {//jeœli nie ma tu postoju
       sSpeedTable[i].fVelNext=-1; //maksymalna prêdkoœæ w tym miejscu
       if (sSpeedTable[i].fDist<200.0) //przy 160km/h jedzie 44m/s, to da dok³adnoœæ rzêdu 5 sekund
