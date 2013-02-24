@@ -3444,6 +3444,16 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
          rsWentylator.FA=Parser->GetNextSymbol().ToDouble();
         }
        else
+       if ((str==AnsiString("transmission:")) && (MoverParameters->EngineType==ElectricSeriesMotor))    //plik z dzwiekiem, mnozniki i ofsety amp. i czest.
+        {
+         str= Parser->GetNextSymbol();
+         rsPrzekladnia.Init(str.c_str(),Parser->GetNextSymbol().ToDouble(),GetPosition().x,GetPosition().y,GetPosition().z,true);
+         rsPrzekladnia.AM=0.029;
+         rsPrzekladnia.AA=0.1;
+         rsPrzekladnia.FM=0.005;
+         rsPrzekladnia.FA=1.0;
+        }
+       else
        if (str==AnsiString("brake:"))                      //plik z piskiem hamulca, mnozniki i ofsety amplitudy.
         {
          str= Parser->GetNextSymbol();
