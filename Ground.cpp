@@ -2494,27 +2494,27 @@ bool __fastcall TGround::InitEvents()
   {
    case tp_AddValues: //sumowanie wartoœci
    case tp_UpdateValues: //zmiana wartoœci
-    tmp=FindGroundNode(Current->asNodeName,TP_MEMCELL);
+    tmp=FindGroundNode(Current->asNodeName,TP_MEMCELL); //nazwa komórki powi¹zanej z eventem
     if (tmp)
     {//McZapkie-100302
      if (Current->iFlags&(conditional_trackoccupied|conditional_trackfree))
      {//jeœli chodzi o zajetosc toru (tor mo¿e byæ inny, ni¿ wpisany w komórce)
-      tmp=FindGroundNode(Current->asNodeName,TP_TRACK); //nazwa ta sama, co nazwa komórki
+      tmp=FindGroundNode(Current->asNodeName,TP_TRACK); //nazwa toru ta sama, co nazwa komórki
       if (tmp) Current->Params[9].asTrack=tmp->pTrack;
       if (!Current->Params[9].asTrack)
-       ErrorLog("Bad event: track \""+AnsiString(buff)+"\" does not exist in \""+Current->asName+"\"");
+       ErrorLog("Bad event: track \""+AnsiString(Current->asNodeName)+"\" does not exists in \""+Current->asName+"\"");
      }
      Current->Params[4].asGroundNode=tmp;
      Current->Params[5].asMemCell=tmp->MemCell; //komórka do aktualizacji
      if (Current->iFlags&(conditional_memcompare))
       Current->Params[9].asMemCell=tmp->MemCell; //komórka do badania warunku
-     if (tmp->MemCell->asTrackName!="none")
+     if (tmp->MemCell->asTrackName!="none") //tor powi¹zany z komórk¹ powi¹zan¹ z eventem
      {//tu potrzebujemy wskaŸnik do komórki w (tmp)
       tmp=FindGroundNode(tmp->MemCell->asTrackName,TP_TRACK);
       if (tmp)
        Current->Params[6].asTrack=tmp->pTrack;
       else
-       ErrorLog("Bad memcell: track \""+tmp->MemCell->asTrackName+"\" not exist in "+tmp->MemCell->asTrackName);
+       ErrorLog("Bad memcell: track \""+tmp->MemCell->asTrackName+"\" not exists in \""+tmp->MemCell->asTrackName+"\"");
      }
      else
       Current->Params[6].asTrack=NULL;
@@ -2540,7 +2540,7 @@ bool __fastcall TGround::InitEvents()
        Current->bEnabled=false; //to event nie bêdzie dodawany do kolejki
     }
     else
-     Error("Event \""+Current->asName+"\" cannot find memcell \""+Current->asNodeName+"\"");
+     ErrorLog("Bad event: \""+Current->asName+"\" cannot find memcell \""+Current->asNodeName+"\"");
    break;
    case tp_CopyValues: //skopiowanie komórki do innej
     tmp=FindGroundNode(Current->asNodeName,TP_MEMCELL); //komórka docelowa
@@ -2550,9 +2550,9 @@ bool __fastcall TGround::InitEvents()
      Current->Params[5].asMemCell=tmp->MemCell; //komórka docelowa
     }
     else
-     Error("Event \""+Current->asName+"\" cannot find memcell \""+Current->asNodeName+"\"");
+     ErrorLog("Bad copyvalues: event \""+Current->asName+"\" cannot find memcell \""+Current->asNodeName+"\"");
     strcpy(buff,Current->Params[9].asText); //skopiowanie nazwy drugiej komórki do bufora roboczego
-    SafeDeleteArray(Current->Params[9].asText); //usuniêcie nazwy komórki 
+    SafeDeleteArray(Current->Params[9].asText); //usuniêcie nazwy komórki
     tmp=FindGroundNode(buff,TP_MEMCELL); //komórka Ÿód³owa
     if (tmp)
     {
@@ -2560,7 +2560,7 @@ bool __fastcall TGround::InitEvents()
      Current->Params[9].asMemCell=tmp->MemCell; //komórka Ÿród³owa
     }
     else
-     Error("Event \""+Current->asName+"\" cannot find memcell \""+AnsiString(buff)+"\"");
+     ErrorLog("Bad copyvalues: event \""+Current->asName+"\" cannot find memcell \""+AnsiString(buff)+"\"");
    break;
    case tp_Animation: //animacja modelu
     tmp=FindGroundNode(Current->asNodeName,TP_MODEL); //egzemplarza modelu do animowania
@@ -2578,7 +2578,7 @@ bool __fastcall TGround::InitEvents()
      }
     }
     else
-     Error("Event \""+Current->asName+"\" cannot find model \""+Current->asNodeName+"\"");
+     ErrorLog("Bad animation: event \""+Current->asName+"\" cannot find model \""+Current->asNodeName+"\"");
     Current->asNodeName="";
    break;
    case tp_Lights: //zmiana œwiete³ modelu
