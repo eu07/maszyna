@@ -91,6 +91,7 @@ protected:
 	bool DCV;
 	double ASBP;
 	Byte BrakeStatus;
+	Byte SoundFlag;
 	
 public:
 	__fastcall TBrake(double i_mbp, double i_bcr, double i_bcd, double i_brc, Byte i_bcn, Byte i_BD, Byte 
@@ -111,6 +112,7 @@ public:
 	Byte __fastcall GetStatus(void);
 	void __fastcall SetASBP(double press);
 	void __fastcall ForceEmptiness(void);
+	Byte __fastcall GetSoundFlag(void);
 public:
 	#pragma option push -w-inl
 	/* TObject.Destroy */ inline __fastcall virtual ~TBrake(void) { }
@@ -480,6 +482,7 @@ public:
 	virtual void __fastcall Init(double press);
 	virtual double __fastcall GetCP(void);
 	virtual void __fastcall SetReductor(double nAdj);
+	virtual double __fastcall GetSound(Byte i);
 public:
 	#pragma option push -w-inl
 	/* TObject.Create */ inline __fastcall THandle(void) : System::TObject() { }
@@ -526,11 +529,13 @@ private:
 	double RP;
 	double XP;
 	double RedAdj;
+	double Sounds[5];
 	
 public:
 	virtual double __fastcall GetPF(double i_bcp, double pp, double hp, double dt, double ep);
 	virtual void __fastcall Init(double press);
 	virtual void __fastcall SetReductor(double nAdj);
+	virtual double __fastcall GetSound(Byte i);
 public:
 	#pragma option push -w-inl
 	/* TObject.Create */ inline __fastcall TFV4aM(void) : THandle() { }
@@ -730,6 +735,11 @@ static const Shortint df_bc = 0x10;
 static const Shortint df_cv = 0x20;
 static const Shortint df_PP = 0x40;
 static const Byte df_RR = 0x80;
+static const Shortint s_fv4a_b = 0x0;
+static const Shortint s_fv4a_u = 0x1;
+static const Shortint s_fv4a_e = 0x2;
+static const Shortint s_fv4a_x = 0x3;
+static const Shortint s_fv4a_t = 0x4;
 static const Shortint bp_P10 = 0x0;
 static const Shortint bp_P10Bg = 0x2;
 static const Shortint bp_P10Bgu = 0x1;
@@ -748,7 +758,13 @@ static const Shortint bp_PKPBgu = 0xe;
 static const Byte bp_MHS = 0x80;
 static const Shortint bp_P10yBg = 0xf;
 static const Shortint bp_P10yBgu = 0x10;
-#define Spg  (7.917000E-01)
+static const Shortint sf_Acc = 0x1;
+static const Shortint sf_BR = 0x2;
+static const Shortint sf_CylB = 0x4;
+static const Shortint sf_CylU = 0x8;
+static const Shortint sf_rel = 0x10;
+static const Shortint sf_ep = 0x20;
+#define SpgD  (7.917000E-01)
 #define SpO  (5.067000E-01)
 extern PACKAGE double BPT[9][2];
 extern PACKAGE double BPT_394[7][2];

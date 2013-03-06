@@ -91,7 +91,7 @@ begin
     BrakeStatus:=BrakeStatus and 247
    else
     begin
-     CntrlRes.Flow(+PF(CVP,0,0.1)*dt);
+     CntrlRes.Flow(+PF(CVP,0,0.01)*dt);
     end;
 end;
 

@@ -1028,7 +1028,8 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       {
        //while (DynamicObject->MoverParameters->IncBrakeLevel());
        DynamicObject->MoverParameters->BrakeLevelSet(DynamicObject->MoverParameters->BrakeCtrlPosNo);
-       DynamicObject->MoverParameters->EmergencyBrakeFlag=true;
+       if(DynamicObject->MoverParameters->BrakeCtrlPosNo<=0.1)
+         DynamicObject->MoverParameters->EmergencyBrakeFlag=true;
       }
       else
       if (cKey==Global::Keys[k_Brake3])
@@ -1052,7 +1053,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
        }
        //while (DynamicObject->MoverParameters->BrakeCtrlPos>DynamicObject->MoverParameters->BrakeCtrlPosNo/2 && DynamicObject->MoverParameters->DecBrakeLevel());
        //while (DynamicObject->MoverParameters->BrakeCtrlPos<DynamicObject->MoverParameters->BrakeCtrlPosNo/2 && DynamicObject->MoverParameters->IncBrakeLevel());
-       DynamicObject->MoverParameters->BrakeLevelSet(DynamicObject->MoverParameters->BrakeCtrlPosNo/2);
+       DynamicObject->MoverParameters->BrakeLevelSet(DynamicObject->MoverParameters->BrakeCtrlPosNo/2+(DynamicObject->MoverParameters->BrakeHandle==FV4a?1:0));
        if (GetAsyncKeyState(VK_CONTROL)<0)
         if (DynamicObject->MoverParameters->BrakeHandle==FV4a)
          DynamicObject->MoverParameters->BrakeLevelSet(-2);
@@ -2183,40 +2184,113 @@ bool __fastcall TTrain::Update()
    double dfreq;
 
 //McZapkie-280302 - syczenie
-      if (rsHiss.AM!=0)            //upuszczanie z PG
+      if(DynamicObject->MoverParameters->BrakeHandle==FV4a)
        {
-          fPPress=(4*fPPress+Max0R(DynamicObject->MoverParameters->dpLocalValve,DynamicObject->MoverParameters->dpMainValve))/(4+1);
-          if (fPPress>0)
-           {
-            vol=2*rsHiss.AM*fPPress*0.01;
-           }
-          if (vol>0.01)
-           {
-            rsHiss.Play(vol,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
-           }
-          else
-           {
-            rsHiss.Stop();
-           }
-       }
+        if (rsHiss.AM!=0)            //upuszczanie z PG
+         {
+            fPPress=(1*fPPress+DynamicObject->MoverParameters->Handle->GetSound(s_fv4a_b))/(2);
+            if (fPPress>0)
+             {
+              vol=rsHiss.AM*fPPress;
+             }
+            if (vol>0.001)
+             {
+              rsHiss.Play(vol,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
+             }
+            else
+             {
+              rsHiss.Stop();
+             }
+         }
+        if (rsHissU.AM!=0)            //upuszczanie z PG
+         {
+            fNPress=(1*fPPress+DynamicObject->MoverParameters->Handle->GetSound(s_fv4a_u))/(2);
+            if (fNPress<0)
+             {
+              vol=-rsHissU.AM*fNPress;
+             }
+            if (vol>0.001)
+             {
+              rsHissU.Play(vol,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
+             }
+            else
+             {
+              rsHissU.Stop();
+             }
+         }
+        if (rsHissE.AM!=0)            //upuszczanie przy naglym
+         {
+            vol=-DynamicObject->MoverParameters->Handle->GetSound(s_fv4a_e)*rsHissE.AM;
+            if (vol>0.001)
+             {
+              rsHissE.Play(vol,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
+             }
+            else
+             {
+              rsHissE.Stop();
+             }
+         }
+        if (rsHissX.AM!=0)            //upuszczanie sterujacego fala
+         {
+            vol=DynamicObject->MoverParameters->Handle->GetSound(s_fv4a_x)*rsHissX.AM;
+            if (vol>0.001)
+             {
+              rsHissX.Play(vol,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
+             }
+            else
+             {
+              rsHissX.Stop();
+             }
+         }
+        if (rsHissT.AM!=0)            //upuszczanie z czasowego
+         {
+            vol=DynamicObject->MoverParameters->Handle->GetSound(s_fv4a_t)*rsHissT.AM;
+            if (vol>0.001)
+             {
+              rsHissT.Play(vol,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
+             }
+            else
+             {
+              rsHissT.Stop();
+             }
+         }
 
-      if (rsHiss2.AM!=0)           //napelnianie PG
+       } //koniec FV4a
+      else //jesli nie FV4a
        {
-          fNPress=(4*fNPress+Min0R(DynamicObject->MoverParameters->dpLocalValve,DynamicObject->MoverParameters->dpMainValve))/(4+1);
-          if (fNPress<0)
-           {
-            vol=-2*rsHiss.AM*fNPress*0.004;
-           }
-           if (vol>0.01)
-           {
-            rsHiss2.Play(vol,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
-           }
-          else
-           {
-            rsHiss2.Stop();
-           }
-       }
-
+        if (rsHiss.AM!=0)            //upuszczanie z PG
+         {
+            fPPress=(4*fPPress+Max0R(DynamicObject->MoverParameters->dpLocalValve,DynamicObject->MoverParameters->dpMainValve))/(4+1);
+            if (fPPress>0)
+             {
+              vol=2*rsHiss.AM*fPPress*0.01;
+             }
+            if (vol>0.01)
+             {
+              rsHiss.Play(vol,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
+             }
+            else
+             {
+              rsHiss.Stop();
+             }
+         }
+        if (rsHissU.AM!=0)           //napelnianie PG
+         {
+            fNPress=(4*fNPress+Min0R(DynamicObject->MoverParameters->dpLocalValve,DynamicObject->MoverParameters->dpMainValve))/(4+1);
+            if (fNPress<0)
+             {
+              vol=-2*rsHissU.AM*fNPress*0.004;
+             }
+             if (vol>0.01)
+             {
+              rsHissU.Play(vol,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
+             }
+            else
+             {
+              rsHissU.Stop();
+             }
+         }
+       } //koniec nie FV4a
 
 //Winger-160404 - syczenie pomocniczego (luzowanie)
 /*      if (rsSBHiss.AM!=0)
@@ -4348,11 +4422,41 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
         if (str==AnsiString("airsound2:"))                    //syk:
          {
           str=Parser->GetNextSymbol();
-          rsHiss2.Init(str.c_str(),-1,0,0,0,true);
-          rsHiss2.AM=Parser->GetNextSymbol().ToDouble();
-          rsHiss2.AA=Parser->GetNextSymbol().ToDouble();
-          rsHiss2.FM=0.0;
-          rsHiss2.FA=1.0;
+          rsHissU.Init(str.c_str(),-1,0,0,0,true);
+          rsHissU.AM=Parser->GetNextSymbol().ToDouble();
+          rsHissU.AA=Parser->GetNextSymbol().ToDouble();
+          rsHissU.FM=0.0;
+          rsHissU.FA=1.0;
+         }
+        else
+        if (str==AnsiString("airsound3:"))                    //syk:
+         {
+          str=Parser->GetNextSymbol();
+          rsHissE.Init(str.c_str(),-1,0,0,0,true);
+          rsHissE.AM=Parser->GetNextSymbol().ToDouble();
+          rsHissE.AA=Parser->GetNextSymbol().ToDouble();
+          rsHissE.FM=0.0;
+          rsHissE.FA=1.0;
+         }
+        else
+        if (str==AnsiString("airsound4:"))                    //syk:
+         {
+          str=Parser->GetNextSymbol();
+          rsHissX.Init(str.c_str(),-1,0,0,0,true);
+          rsHissX.AM=Parser->GetNextSymbol().ToDouble();
+          rsHissX.AA=Parser->GetNextSymbol().ToDouble();
+          rsHissX.FM=0.0;
+          rsHissX.FA=1.0;
+         }
+        else
+        if (str==AnsiString("airsound5:"))                    //syk:
+         {
+          str=Parser->GetNextSymbol();
+          rsHissT.Init(str.c_str(),-1,0,0,0,true);
+          rsHissT.AM=Parser->GetNextSymbol().ToDouble();
+          rsHissT.AA=Parser->GetNextSymbol().ToDouble();
+          rsHissT.FM=0.0;
+          rsHissT.FA=1.0;
          }
         else
         if (str==AnsiString("fadesound:"))                    //syk:

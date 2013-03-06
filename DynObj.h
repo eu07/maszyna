@@ -272,7 +272,11 @@ private:
     vector3 modelShake;
 
     bool renderme; //yB - czy renderowac
-    TRealSound sBrakeAcc; //dŸwiêk przyspieszacza
+//    TRealSound sBrakeAcc; //dŸwiêk przyspieszacza
+    PSound sBrakeAcc;
+    bool bBrakeAcc;
+    TRealSound rsUnbrake; //yB - odglos luzowania     
+    float ModCamRot;
  int iInventory; //flagi bitowe posiadanych submodeli (np. œwiate³)
  void __fastcall TurnOff();
 public:

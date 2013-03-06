@@ -363,6 +363,7 @@ public:
 	double BrakeSlckAdj;
 	double BrakeRigEff;
 	double RapidMult;
+	double Spg;
 	double MinCompressor;
 	double MaxCompressor;
 	double CompressorSpeed;
@@ -767,7 +768,6 @@ static const Shortint sound_bufferbump = 0x8;
 static const Shortint sound_relay = 0x10;
 static const Shortint sound_manyrelay = 0x20;
 static const Shortint sound_brakeacc = 0x40;
-#define Spg  (5.067000E-01)
 extern PACKAGE bool PhysicActivationFlag;
 static const Shortint dt_Default = 0x0;
 static const Shortint dt_EZT = 0x1;

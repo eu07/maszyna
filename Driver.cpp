@@ -1652,6 +1652,7 @@ void __fastcall TController::SpeedSet()
         {//ruch nastawnika uzale¿niony jest od aktualnie ustawionej pozycji
          case 0:
           Controlling->IncMainCtrl(1); //przetok
+          break;
          case 1:
           if (VelDesired>10) Controlling->IncMainCtrl(1); //szeregowa
          case 2:
@@ -2063,7 +2064,7 @@ bool __fastcall TController::UpdateSituation(double dt)
     //Ra: odluŸnianie prze³adowanych lokomotyw, ci¹gniêtych na zimno - prowizorka...
     if (AIControllFlag) //sk³ad jak dot¹d by³ wyluzowany
     {if (Controlling->BrakeCtrlPos==0) //jest pozycja jazdy
-      if (fabs(p->MoverParameters->PipePress-5.0)<-0.05) //jeœli ciœnienie jak dla jazdy
+      if ((p->MoverParameters->PipePress-5.0)>-0.05) //jeœli ciœnienie jak dla jazdy
        if (p->MoverParameters->CntrlPipePress>p->MoverParameters->PipePress+0.08) //za du¿o w zbiorniku
         p->MoverParameters->BrakeReleaser(); //indywidualne luzowanko
      if (p->MoverParameters->Power>0.01) //jeœli ma silnik
