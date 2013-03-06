@@ -175,6 +175,11 @@ double TRealSound::GetWaveTime() //McZapkie: na razie tylko dla 22KHz/8bps
  return WaveTime/22000;  // wielkosc w bajtach przez czestotliwosc probkowania
 }
 
+void __fastcall TRealSound::SetPan(int Pan)
+{
+  pSound->SetPan(Pan);
+}
+
 int TRealSound::GetStatus()
 {
 DWORD stat;
