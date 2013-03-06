@@ -285,7 +285,10 @@ public:
     TRealSound rsBrake;
     TRealSound rsSlippery;
     TRealSound rsHiss;  //upuszczanie
-    TRealSound rsHiss2; //napelnianie
+    TRealSound rsHissU; //napelnianie
+    TRealSound rsHissE; //nagle
+    TRealSound rsHissX; //fala
+    TRealSound rsHissT; //czasowy
     TRealSound rsSBHiss;
     TRealSound rsRunningNoise;
     TRealSound rsEngageSlippery;

@@ -3,8 +3,8 @@ unit hamulce;          {fizyka hamulcow dla symulatora}
 (*
     MaSzyna EU07 - SPKS
     Brakes.
-    Copyright (C) 2007-2012 Maciej Cierniak
-*)
+    Copyright (C) 2007-2013 Maciej Cierniak
+*)                                                                                        
 
 
 (*
@@ -61,6 +61,13 @@ CONST
    df_PP  = 64;  //zawsze niski stopien
    df_RR  =128;  //zawsze wysoki stopien
 
+   {indeksy dzwiekow FV4a}
+   s_fv4a_b = 0; //hamowanie
+   s_fv4a_u = 1; //luzowanie
+   s_fv4a_e = 2; //hamowanie nagle   
+   s_fv4a_x = 3; //wyplyw sterujacego fala
+   s_fv4a_t = 4; //wyplyw z czasowego
+
    {pary cierne}
    bp_P10    =   0;
    bp_P10Bg  =   2; //¿eliwo fosforowe P10
@@ -81,7 +88,15 @@ CONST
    bp_P10yBg =  15; //¿eliwo fosforowe P10
    bp_P10yBgu=  16;
 
-   Spg=0.7917;
+   sf_Acc  = 1;  //przyspieszacz
+   sf_BR   = 2;  //przekladnia
+   sf_CylB = 4;  //cylinder - napelnianie
+   sf_CylU = 8;  //cylinder - oproznianie
+   sf_rel  = 16; //odluzniacz
+   sf_ep   = 32; //zawory ep
+   
+
+   SpgD=0.7917;
    SpO=0.5067;  //przekroj przewodu 1" w l/m
                 //wyj: jednostka dosyc dziwna, ale wszystkie obliczenia
                 //i pojemnosci sa podane w litrach (rozsadne wielkosci)
@@ -89,7 +104,7 @@ CONST
                 //a predkosc przeplywu w m/s
 
 //   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (14, 5.4), (9, 5.0), (6, 4.6), (9, 4.5), (9, 4.0), (9, 3.5), (9, 2.8), (34, 2.8));
-   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (10, 5.0), (5, 5.0), (5, 4.6), (5, 4.2), (5, 3.8), (5, 3.4), (5, 2.8), (13, 2.8));
+   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (7, 5.0), (7, 5.0), (7, 4.6), (7, 4.2), (7, 3.8), (7, 3.4), (7, 2.8), (8, 2.8));
    BPT_394: array[-1..5] of array [0..1] of real= ((13, 10.0), (5, 5.0), (0, -1), (5, -1), (5, 0.0), (5, 0.0), (18, 0.0));
 //   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (12, 5.4), (9, 5.0), (9, 4.6), (9, 4.2), (9, 3.8), (9, 3.4), (9, 2.8), (34, 2.8));
 //      BPT: array[-2..6] of array [0..1] of real= ((0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0));
@@ -138,7 +153,8 @@ TYPE
         DCV: boolean;              //podwojny zawor zwrotny
         ASBP: real;                //cisnienie hamulca pp
 
-        BrakeStatus: byte; //flaga stamnu
+        BrakeStatus: byte; //flaga stanu
+        SoundFlag: byte;
       public
         constructor Create(i_mbp, i_bcr, i_bcd, i_brc: real;
                            i_bcn, i_BD, i_mat, i_ba, i_nbpa: byte);
@@ -161,6 +177,7 @@ TYPE
         function GetStatus(): byte; //flaga statusu, moze sie przydac do odglosow
         procedure SetASBP(press: real); //ustalenie cisnienia pp
         procedure ForceEmptiness();
+        function GetSoundFlag: byte;
 //        procedure
     end;
 
@@ -330,6 +347,7 @@ TYPE
         procedure Init(press: real); virtual;
         function GetCP(): real; virtual;
         procedure SetReductor(nAdj: real); virtual;
+        function GetSound(i: byte): real; virtual;
       end;
 
     TFV4a= class(THandle)
@@ -345,10 +363,12 @@ TYPE
         CP, TP, RP: real;      //zbiornik steruj¹cy, czasowy, redukcyjny
         XP: real;              //komora powietrzna w reduktorze — jest potrzebna do odwzorowania fali
         RedAdj: real;          //dostosowanie reduktora cisnienia (krecenie kapturkiem)
+        Sounds: array[0..4] of real;       //wielkosci przeplywow dla dzwiekow
       public
         function GetPF(i_bcp:real; pp, hp, dt, ep: real): real; override;
         procedure Init(press: real); override;
         procedure SetReductor(nAdj: real); override;
+        function GetSound(i: byte): real; override;
       end;
 
     TM394= class(THandle)
@@ -427,6 +447,8 @@ implementation
 uses _mover;
 //---FUNKCJE OGOLNE---
 
+const DPL=0.1;
+
 function PR(p1,p2:real):real;
 var ph,pl: real;
 begin
@@ -455,8 +477,8 @@ begin
   sg:=PL/PH; //bezwymiarowy stosunek cisnien
   fm:=PH*197*S*sign(P2-P1); //najwyzszy mozliwy przeplyw, wraz z kierunkiem
   if (SG>0.5) then //jesli ponizej stosunku krytycznego
-    if (PH-PL)<0.1 then //niewielka roznica cisnien
-      PF:=10*(PH-PL)*fm*2*SQRT((sg)*(1-sg))
+    if (PH-PL)<DPL then //niewielka roznica cisnien
+      PF:=1/DPL*(PH-PL)*fm*2*SQRT((sg)*(1-sg))
     else
       PF:=fm*2*SQRT((sg)*(1-sg))
   else             //powyzej stosunku krytycznego
@@ -468,15 +490,15 @@ var sg,fm: real;
 begin
   if LIM>PL then
    begin
-    LIM:=LIM+1;   
+    LIM:=LIM+1;
     PH:=PH+1; //wyzsze cisnienie absolutne
     PL:=PL+1;  //nizsze cisnienie absolutne
     sg:=PL/PH; //bezwymiarowy stosunek cisnien
     fm:=PH*197*S; //najwyzszy mozliwy przeplyw, wraz z kierunkiem
     if (LIM-PL)<0.1 then fm:=fm*10*(LIM-PL); //jesli jestesmy przy nastawieniu, to zawor sie przymyka
     if (SG>0.5) then //jesli ponizej stosunku krytycznego
-      if (PH-PL)<0.1 then //niewielka roznica cisnien
-        PFVa:=10*(PH-PL)*fm*2*SQRT((sg)*(1-sg))
+      if (PH-PL)<DPL then //niewielka roznica cisnien
+        PFVa:=1/DPL*(PH-PL)*fm*2*SQRT((sg)*(1-sg))
       else
         PFVa:=fm*2*SQRT((sg)*(1-sg))
     else             //powyzej stosunku krytycznego
@@ -498,8 +520,8 @@ begin
     fm:=PH*197*S; //najwyzszy mozliwy przeplyw, wraz z kierunkiem
     if (PH-LIM)<0.1 then fm:=fm*10*(PH-LIM); //jesli jestesmy przy nastawieniu, to zawor sie przymyka
     if (SG>0.5) then //jesli ponizej stosunku krytycznego
-    if (PH-PL)<0.1 then //niewielka roznica cisnien
-        PFVd:=10*(PH-PL)*fm*2*SQRT((sg)*(1-sg))
+    if (PH-PL)<DPL then //niewielka roznica cisnien
+        PFVd:=1/DPL*(PH-PL)*fm*2*SQRT((sg)*(1-sg))
       else
         PFVd:=fm*2*SQRT((sg)*(1-sg))
     else             //powyzej stosunku krytycznego
@@ -560,7 +582,7 @@ end;
 
 
 (* NOWSZA WERSJA - maksymalne ciœnienie to ok. 4,75 bar, co powoduje
-//                 problemy przy rapidzie w lokomotywach, gdyz jest
+//                 problemy przy rapidzie w lokomotywach, gdyz jest3
 //                 osiagany wierzcholek paraboli
 function TBrakeCyl.P:real;
 var VtoC: real;
@@ -746,6 +768,12 @@ begin
   GetStatus:=BrakeStatus;
 end;
 
+function TBrake.GetSoundFlag: byte;
+begin
+  GetSoundFlag:=SoundFlag;
+  SoundFlag:=0;
+end;
+
 procedure TBrake.SetASBP(press: real);
 begin
   ASBP:=press;
@@ -916,23 +944,33 @@ begin
   CVP:=CntrlRes.P-0.0;
 
 //sprawdzanie stanu
- if (BrakeStatus and 1)=1 then
-   if(VVP+0.03+BCP/BVM<CVP)then
+ if ((BrakeStatus and 1)=1)and(BCP>0.25)then
+   if(VVP+0.003+BCP/BVM<CVP)then
      BrakeStatus:=(BrakeStatus or 2) //hamowanie stopniowe
-   else if(VVP-0.03+BCP/BVM>CVP) then
+   else if(VVP-0.003+(BCP-0.1)/BVM>CVP) then
      BrakeStatus:=(BrakeStatus and 252) //luzowanie
    else if(VVP+BCP/BVM>CVP) then
      BrakeStatus:=(BrakeStatus and 253) //zatrzymanie napelaniania
    else
  else
-   if(VVP+0.10<CVP)and(BCP<0.1)then    //poczatek hamowania
+   if(VVP+0.10<CVP)and(BCP<0.25)then    //poczatek hamowania
     begin
+     if (BrakeStatus and 1)=0 then
+      begin
+       ValveRes.CreatePress(0.02*VVP);
+       SoundFlag:=SoundFlag or sf_Acc;
+       ValveRes.Act;
+      end;
      BrakeStatus:=(BrakeStatus or 3);
-     ValveRes.CreatePress(0.8*VVP);
-//       dV1:=0.5;
+
+//     ValveRes.CreatePress(0);
+//     dV1:=1;
     end
-   else if(VVP+BCP/BVM<CVP)and((CVP-VVP)*BVM>0.25) then //zatrzymanie luzowanie
+   else if(VVP+(BCP-0.1)/BVM<CVP)and((CVP-VVP)*BVM>0.25)and(BCP>0.25)then //zatrzymanie luzowanie
      BrakeStatus:=(BrakeStatus or 1);
+
+ if (BrakeStatus and 1)=0 then
+   SoundFlag:=SoundFlag or sf_CylU;
 end;
 
 function TESt.CVs(bp: real): real;
@@ -943,7 +981,7 @@ begin
   VVP:=ValveRes.P;
 
 //przeplyw ZS <-> PG
-  if(BVP<CVP-0.1)or(BrakeStatus>0)or(bp>0.25)then
+  if(VVP<CVP-0.12)or(BVP<CVP-0.3)or(bp>0.4)then
     CVs:=0
   else
     if(VVP>CVP+0.4)then
@@ -1097,7 +1135,7 @@ begin
   CheckReleaser(dt);
 
 //sprawdzanie stanu
- if (BrakeStatus and 1)=1 then
+ if ((BrakeStatus and 1)=1)and(BCP>0.25) then
    if(VVP+0.003+BCP/BVM<CVP)then
      BrakeStatus:=(BrakeStatus or 2) //hamowanie stopniowe
    else if(VVP-0.003+BCP/BVM>CVP) then
@@ -1106,10 +1144,15 @@ begin
      BrakeStatus:=(BrakeStatus and 253) //zatrzymanie napelaniania
    else
  else
-   if(VVP+0.10<CVP)and(BCP<0.1) then    //poczatek hamowania
+   if(VVP+0.10<CVP)and(BCP<0.25) then    //poczatek hamowania
     begin
+     if (BrakeStatus and 1)=0 then
+      begin
+       ValveRes.CreatePress(0.2*VVP);
+       SoundFlag:=SoundFlag or sf_Acc;
+       ValveRes.Act;
+      end;
      BrakeStatus:=(BrakeStatus or 3);
-     dV1:=1.25;
     end
    else if(VVP+BCP/BVM<CVP)and(BCP>0.25) then //zatrzymanie luzowanie
      BrakeStatus:=(BrakeStatus or 1);
@@ -1130,17 +1173,17 @@ begin
 
 //hamulec EP
   temp:=BVP*Byte(EPS>0);
-  dV:=PF(temp,LBP,0.0015)*dt*EPS*EPS*Byte(LBP*EPS<MaxBP*LoadC);
+  dV:=PF(temp,LBP,0.00023+0.00090*Byte(EPS<0))*dt*EPS*EPS*Byte(LBP*EPS<MaxBP*LoadC);
   LBP:=LBP-dV;
 
 //luzowanie KI
   if(BrakeStatus and b_hld)=b_off then
-   dV:=PF(0,BCP,0.00037)*dt
+   dV:=PF(0,BCP,0.00083)*dt
   else dV:=0;
   ImplsRes.Flow(-dV);
 //przeplyw ZP <-> KI
   if ((BrakeStatus and b_on)=b_on) and (BCP<MaxBP) then
-   dV:=PF(BVP,BCP,0.0014)*dt
+   dV:=PF(BVP,BCP,0.0006)*dt
   else dV:=0;
   BrakeRes.Flow(dV);
   ImplsRes.Flow(-dV);
@@ -1199,16 +1242,16 @@ function TESt3.GetPF(PP, dt, Vel: real): real;
 var dv, dv1, temp:real;
     VVP, BVP, BCP, CVP: real;
 begin
- BVP:=BrakeRes.P;
- VVP:=ValveRes.P;
- BCP:=BrakeCyl.P;
- CVP:=CntrlRes.P-0.0;
+  BVP:=BrakeRes.P;
+  VVP:=ValveRes.P;
+  BCP:=BrakeCyl.P;
+  CVP:=CntrlRes.P-0.0;
 
  dV:=0; dV1:=0;
 
 //sprawdzanie stanu
   CheckState(BCP, dV1);
-  CheckReleaser(dt);  
+  CheckReleaser(dt);
 
   CVP:=CntrlRes.P;
   VVP:=ValveRes.P;
@@ -1458,8 +1501,8 @@ begin
    if(CVP<1)then
      BrakeStatus:=BrakeStatus and 247
    else
-    begin
-     dV:=PF(CVP,BCP,0.008)*dt;
+    begin           //008
+     dV:=PF(CVP,BCP,0.024)*dt;
      CntrlRes.Flow(+dV);
 //     dV1:=+dV; //minus potem jest
 //     ImplsRes.Flow(-dV1);
@@ -2068,6 +2111,10 @@ begin
   GetCP:=0;
 end;
 
+function THandle.GetSound(i: byte): real;
+begin
+  GetSound:=0;
+end;
 
 //---FV4a---
 
@@ -2158,93 +2205,97 @@ begin
 end;
 const
   LBDelay = 100;
-  xpM = 0.4; //mnoznik membrany komory pod
+  xpM = 0.33; //mnoznik membrany komory pod
 var
-  LimPP, dpPipe, dpMainValve, ActFlowSpeed: real;
+  LimPP, dpPipe, dpMainValve, ActFlowSpeed, dp: real;
+  i: byte;
 begin
-          ep:=pp/2+ep/2; //SPKS!!
+//          ep:=pp/2*1.5+ep/2*0.5; //SPKS!!
+//          ep:=pp;
+          ep:=cp/3+pp/3+ep/3;
+          ep:=cp;
+
+          for i:=0 to 4 do
+            Sounds[i]:=0;
+          dp:=0;  
 
           i_bcp:=Max0R(Min0R(i_bcp,5.999),-1.999); //na wszelki wypadek, zeby nie wyszlo poza zakres
 
-          if(tp>0)then  //jesli czasowy jest niepusty
-            tp:=tp-dt*0.07 //od cisnienia 5 do 0 w 60 sekund ((5-0)*dt/75)
+          if(tp>0)then
+           begin  //jesli czasowy jest niepusty
+            dp:=0.07; //od cisnienia 5 do 0 w 60 sekund ((5-0)*dt/75)
+            tp:=tp-dp*dt;
+            Sounds[s_fv4a_t]:=dp;
+           end
           else       //.08
-            tp:=0;         //jak pusty, to pusty
+           begin
+            tp:=0;
+           end;
 
-          if(xp>0)then  //jesli komora pod niepusta jest niepusty
-            xp:=xp-dt*1 //od cisnienia 5 do 0 w 10 sekund ((5-0)*dt/10)
+          if(xp>0)then //jesli komora pod niepusta jest niepusty
+           begin
+            dp:=2.5;
+            Sounds[s_fv4a_x]:=dp*xp;
+            xp:=xp-dt*dp; //od cisnienia 5 do 0 w 10 sekund ((5-0)*dt/10)
+           end
           else       //.75
             xp:=0;         //jak pusty, to pusty
 
-          if(cp>rp+0.05)then
-            if(cp>rp+0.15)then
-              xp:=xp-3*PR(cp,xp)*dt
-            else
-              xp:=xp-3*(cp-(rp+0.05))/(0.1)*PR(cp,xp)*dt;
-
-//          Limpp:=Min0R(BPT[Round(i_bcp)][1]+tp*0.08,HP); //pozycja + czasowy lub zasilanie
           Limpp:=Min0R(LPP_RP(i_bcp)+tp*0.08+RedAdj,HP); //pozycja + czasowy lub zasilanie
           ActFlowSpeed:=BPT[Round(i_bcp)][0];
 
-//          if(i_bcp=i_bcpNo)then limpp:=Min0R(BPT[Round(i_bcp-1)][1]+tp*0.08,HP);
-          if(Limpp>cp)then //podwyzszanie szybkie
-            cp:=cp+60*Min0R(abs(Limpp-cp),0.05)*PR(cp,Limpp)*dt //zbiornik sterujacy
-          else
-            cp:=cp+17*Min0R(abs(Limpp-cp),0.05)*PR(cp,Limpp)*dt; //zbiornik sterujacy
+          if(i_bcp=-1)then ep:=Min0R(HP,5.4+RedAdj);
 
+          if(ep>rp+0.01)then
+            if(ep>rp+0.11)then
+              xp:=xp-16*PR(ep,xp)*dt
+            else
+              xp:=xp-16*(ep-(ep+0.01))/(0.1)*PR(ep,xp)*dt;
+
+          if(Limpp>cp)then //podwyzszanie szybkie
+            cp:=cp+5*60*Min0R(abs(Limpp-cp),0.05)*PR(cp,Limpp)*dt //zbiornik sterujacy
+          else
+            cp:=cp+13*Min0R(abs(Limpp-cp),0.05)*PR(cp,Limpp)*dt; //zbiornik sterujacy
+
+          Limpp:=ep; //cp
+          dpPipe:=Min0R(HP,Limpp+xp*xpM);
+
+          dpMainValve:=PF(dpPipe,pp,ActFlowSpeed/(LBDelay));
+
+          if Round(i_bcp)=-1 then
+           begin
+            if(tp<5)then tp:=tp+dt; //5/10
+              dpMainValve:=dpMainValve+PF(dpPipe,pp,(ActFlowSpeed)/(LBDelay))//coby nie przeszkadzal przy ladowaniu z zaworu obok
+           end;
+
+          ep:=dpPipe;
           if(rp>ep)then //zaworek zwrotny do opozniajacego
             rp:=rp+PF(rp,ep,0.01)*dt //szybki upust
           else
             if(i_bcp=0)then
-              rp:=rp+PF(rp,ep,0.0003)*dt //powolne wzrastanie, ale szybsze na jezdzie
+              rp:=rp+PF(rp,ep,0.0005)*dt //powolne wzrastanie, ale szybsze na jezdzie
             else
-              rp:=rp+PF(rp,ep,0.0003/6)*dt; //powolne wzrastanie i to bardzo
+              rp:=rp+PF(rp,ep,0.0001)*dt; //powolne wzrastanie i to bardzo
           if (rp<ep) and (rp<BPT[Round(i_bcpNo)][1])then //jesli jestesmy ponizej cisnienia w sterujacym (2.9 bar)
-            rp:=rp+PF(rp,cp,0.001)*dt; //przypisz cisnienie w PG - wydluzanie napelniania o czas potrzebny do napelnienia PG
-
-
-          Limpp:=cp;
-          dpPipe:=Min0R(HP,Limpp+xp*xpM);
-
-          if(dpPipe>pp)then //napelnianie
-           begin
-            if(Round(i_bcp)=0)and(tp>2)then //na pozycji jazdy mamy mocniejsze napelnianie z czasowym
-              dpMainValve:=PF(dpPipe,pp,ActFlowSpeed*2/(LBDelay))*dt
-//                dpMainValve:=-PFVa(Min0R(dpPipe+0.1,HP),pp,ActFlowSpeed/(LBDelay),dpPipe)
-            else //normalne napelnianie
-              dpMainValve:=PF(dpPipe,pp,ActFlowSpeed/(LBDelay))*dt
-           end
-          else //spuszczanie
-              dpMainValve:=PF(dpPipe,pp,ActFlowSpeed/(LBDelay))*dt;
-
-//          if(cp>rp+0.05)then
-//            dpMainValve:=PF(Min0R(cp,HP),pp,(ActFlowSpeed)/(LBDelay))*dt;
-
-
-          if Round(i_bcp)=-1 then
-           begin
-//            cp:=cp+5*Min0R(abs(Limpp-cp),0.2)*PR(cp,Limpp)*dt/2;
-            if(tp<5)then tp:=tp+1.5*dt;
-//            if(cp+0.03<5.4)then
-//            if(rp+0.03<5.4)or(cp+0.03<5.4)then //fala
-              dpMainValve:=dpMainValve+PF(dpPipe,pp,(ActFlowSpeed)/(LBDelay))*dt//coby nie przeszkadzal przy ladowaniu z zaworu obok
-//              dpMainValve:=20*Min0R(abs(ep-7.1),0.05)*PF(HP,pp,(ActFlowSpeed)/(LBDelay))*dt
-{            else
-             begin
-             rp:=5.45;
-              if (cp<pp-0.01) then                  //: /34*9
-                dpMainValve:=PF(dpPipe,pp,(ActFlowSpeed)/34*9/(LBDelay))*dt
-              else
-                dpMainValve:=PF(dpPipe,pp,(ActFlowSpeed)/(LBDelay))*dt
-             end; }
-           end;
+            rp:=rp+PF(rp,cp,0.005)*dt; //przypisz cisnienie w PG - wydluzanie napelniania o czas potrzebny do napelnienia PG
 
           if(Round(i_bcp)=i_bcpNo)then
            begin
-            dpMainValve:=PF(0,pp,(ActFlowSpeed)/(LBDelay))*dt;
+            dp:=PF(0,pp,(ActFlowSpeed)/(LBDelay));
+            dpMainValve:=dp;
+            Sounds[s_fv4a_e]:=-dp;
+            Sounds[s_fv4a_u]:=0;
+            Sounds[s_fv4a_b]:=0;
+           end
+          else
+           begin
+            if dpMainValve>0 then
+              Sounds[s_fv4a_b]:=dpMainValve
+            else
+              Sounds[s_fv4a_u]:=-dpMainValve;
            end;
 
-  GetPF:=dpMainValve;
+  GetPF:=dpMainValve*dt;
 end;
 
 procedure TFV4aM.Init(press: real);
@@ -2258,6 +2309,14 @@ end;
 procedure TFV4aM.SetReductor(nAdj: real);
 begin
   RedAdj:= nAdj;
+end;
+
+function TFV4aM.GetSound(i: byte): real;
+begin
+  if i>4 then
+    GetSound:=0
+  else
+    GetSound:=Sounds[i];  
 end;
 
 

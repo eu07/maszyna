@@ -148,8 +148,6 @@ CONST
    sound_manyrelay=32;
    sound_brakeacc=64;
 
-   Spg=0.5067;
-
    PhysicActivationFlag: boolean=False;
 
    //szczególne typy pojazdów (inna obs³uga) dla zmiennej TrainType
@@ -388,7 +386,7 @@ TYPE
 
                Hamulec: TBrake;
                Handle: THandle;
-               LocHandle: THandle; 
+               LocHandle: THandle;
                Pipe, Pipe2: TReservoir;
 
                LocalBrake: TLocalBrake;  {rodzaj hamulca indywidualnego}
@@ -417,7 +415,7 @@ TYPE
                BrakeSlckAdj: real; {opor nastawiacza skoku tloka, kN}
                BrakeRigEff: real; {sprawnosc przekladni dzwigniowej}               
                RapidMult: real; {przelozenie rapida}
-
+               Spg: real;
                MinCompressor,MaxCompressor,CompressorSpeed:real;
                {cisnienie wlaczania, zalaczania sprezarki, wydajnosc sprezarki}
                BrakeDelay: TBrakeDelayTable; {opoznienie hamowania/odhamowania t/o}
@@ -2194,7 +2192,7 @@ begin
   if(Couplers[1].Connected<>nil)and(Couplers[0].Connected<>nil)then
     if (TestFlag(Couplers[0].CouplingFlag,ctrain_pneumatic))and(TestFlag(Couplers[1].CouplingFlag,ctrain_pneumatic))then
      begin
-      dv:=0.25*dt*PF(Couplers[0].Connected.PipePress,Couplers[1].Connected.PipePress,Spg*0.7);
+      dv:=0.05*dt*PF(Couplers[0].Connected.PipePress,Couplers[1].Connected.PipePress,Spg*0.7)*0;
       Couplers[0].Connected.Pipe.Flow(+dv);
       Couplers[1].Connected.Pipe.Flow(-dv);
      end;
@@ -2225,15 +2223,21 @@ begin
 
           dpMainValve:=Handle.GetPF(BrakeCtrlPosR, PipePress, temp, dt, EqvtPipePress);
           if (dpMainValve<0)and(PipePressureVal>0.01) then             {50}
-            Pipe2.Flow(dpMainValve);
+            if Compressor>ScndPipePress then
+             begin
+              CompressedVolume:=CompressedVolume+dpMainValve/1500;
+              Pipe2.Flow(dpMainValve/3);
+             end
+            else
+              Pipe2.Flow(dpMainValve);
 end;
 
 //      if(EmergencyBrakeFlag)and(BrakeCtrlPosNo=0)then         {ulepszony hamulec bezp.}
       if(EmergencyBrakeFlag)then         {ulepszony hamulec bezp.}
-        dpMainValve:=dpMainValve/2+PF(0,PipePress,0.2*Spg)*dt;
-
+        dpMainValve:=dpMainValve/1+PF(0,PipePress,0.15)*dt;
+                                                //0.2*Spg
       Pipe.Flow(-dpMainValve);
-      Pipe.Flow(-(Pipe.P)*0.01*dt);
+      Pipe.Flow(-(PipePress)*0.001*dt);
 //      dpMainValve:=dpMainValve/(Dim.L*Spg*20);
 
       CntrlPipePress:=Hamulec.GetVRP;
@@ -2389,7 +2393,7 @@ begin
    if TestFlag(Couplers[0].CouplingFlag,ctrain_scndpneumatic) then
     begin
       c:=Couplers[0].Connected; //skrot
-       dv1:=0.5*dt*PF(ScndPipePress,c.ScndPipePress,Spg*0.75);
+       dv1:=0.5*dt*PF(ScndPipePress,c.ScndPipePress,Spz*0.75);
        if (dv1*dv1>0.00000000000001) then c.Physic_Reactivation;
        c.Pipe2.Flow(-dv1);
     end;
@@ -2398,14 +2402,14 @@ begin
    if TestFlag(Couplers[1].CouplingFlag,ctrain_scndpneumatic) then
      begin
        c:=Couplers[1].Connected; //skrot
-       dv2:=0.5*dt*PF(ScndPipePress,c.ScndPipePress,Spg*0.75);
+       dv2:=0.5*dt*PF(ScndPipePress,c.ScndPipePress,Spz*0.75);
        if (dv2*dv2>0.00000000000001) then c.Physic_Reactivation;
        c.Pipe2.Flow(-dv2);
       end;
   if(Couplers[1].Connected<>nil)and(Couplers[0].Connected<>nil)then
     if (TestFlag(Couplers[0].CouplingFlag,ctrain_scndpneumatic))and(TestFlag(Couplers[1].CouplingFlag,ctrain_scndpneumatic))then
      begin
-      dv:=0.25*dt*PF(Couplers[0].Connected.ScndPipePress,Couplers[1].Connected.ScndPipePress,Spg*0.7);
+      dv:=0.25*dt*PF(Couplers[0].Connected.ScndPipePress,Couplers[1].Connected.ScndPipePress,Spz*0.25);
       Couplers[0].Connected.Pipe2.Flow(+dv);
       Couplers[1].Connected.Pipe2.Flow(-dv);
       end;
@@ -5189,10 +5193,16 @@ else
   LocHandle := THandle.Create;
 end;
 
+//ustalanie srednicy przewodu glownego (lokomotywa lub napêdowy
+  if((TestFlag(BrakeDelays,bdelay_G)and ( (not TestFlag(BrakeDelays,bdelay_R)) or (Power>1)) ))then
+    Spg:=0.792
+  else
+    Spg:=0.507;
+
   Pipe:= TReservoir.Create;
   Pipe2:= TReservoir.Create;
-  Pipe.CreateCap((Dim.L+0.5)*Spg*1.1); //dlugosc x przekroj x odejscia i takie tam
-  Pipe2.CreateCap((Dim.L+0.5)*Spg*1.1);
+  Pipe.CreateCap((Dim.L+0.5)*Spg*1); //dlugosc x przekroj x odejscia i takie tam
+  Pipe2.CreateCap((Dim.L+0.5)*Spg*1);
 
  {to dac potem do init}
   if ReadyFlag then     {gotowy do drogi}

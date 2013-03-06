@@ -1151,6 +1151,7 @@ __fastcall TDynamicObject::TDynamicObject()
  //McZapkie-270202
  Controller=AIdriver;
  bDisplayCab=false; //030303
+ bBrakeAcc=false;
  NextConnected=PrevConnected=NULL;
  NextConnectedNo=PrevConnectedNo=2; //ABu: Numery sprzegow. 2=nie pod³¹czony
  CouplCounter=50; //bêdzie sprawdzaæ na pocz¹tku
@@ -1371,6 +1372,12 @@ double __fastcall TDynamicObject::Init(
     MoverParameters->Hamulec->ForceEmptiness();
     MoverParameters->BrakeReleaser();  //odluznij automatycznie
    }
+   if (ActPar.Pos("E")>0) //oprozniony
+   {
+    MoverParameters->Hamulec->ForceEmptiness();
+    MoverParameters->BrakeReleaser();  //odluznij automatycznie    
+   }
+
    if (ActPar.Pos("1")>0) //wylaczanie 10%
    {
     if (random(10)<1) //losowanie 1/10
@@ -2109,16 +2116,25 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
 //McZapkie-260202 end
 
 //yB: przyspieszacz (moze zadziala, ale dzwiek juz jest)
-if(ObjectDist<50000)
- if(TestFlag(MoverParameters->SoundFlag,sound_brakeacc))
-   sBrakeAcc.Play(-1,0,MechInside,vPosition);
- else;
-// if(MoverParameters->BrakePress=0)
-//   sBrakeAcc.Stop();
-else
-  sBrakeAcc.Stop();
-
-SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);
+int flag=MoverParameters->Hamulec->GetSoundFlag();
+if((bBrakeAcc)&&(TestFlag(flag,sf_Acc))&&(ObjectDist<50000))
+  {
+   sBrakeAcc->SetVolume(-ObjectDist/10-(FreeFlyModeFlag?0:2000));
+   sBrakeAcc->Play(0,0,0);
+   sBrakeAcc->SetPan(10000*sin(ModCamRot)*abs(sin(ModCamRot)));
+  }
+if ((rsUnbrake.AM!=0)&&(ObjectDist<50000))
+  {
+   if ((TestFlag(flag,sf_CylU)) && ((MoverParameters->BrakePress*MoverParameters->MaxBrakePress[3])>0.05))
+    {
+     vol=Min0R(0.2+1.6*sqrt(MoverParameters->BrakePress/MoverParameters->MaxBrakePress[3]),1);
+     vol=vol+(FreeFlyModeFlag?0:-0.5)-ObjectDist/50000;
+     rsUnbrake.SetPan(10000*sin(ModCamRot)*abs(sin(ModCamRot)));
+     rsUnbrake.Play(vol,DSBPLAY_LOOPING,MechInside,GetPosition());
+    }
+   else
+    rsUnbrake.Stop();
+  }
 
 /*//z EXE Kursa
 
@@ -2518,16 +2534,8 @@ bool __fastcall TDynamicObject::FastUpdate(double dt)
 //yB: przyspieszacz (moze zadziala, ale dzwiek juz jest)
 double ObjectDist;
 ObjectDist=SquareMagnitude(Global::pCameraPosition-vPosition);
-if(ObjectDist<50000)
- if(TestFlag(MoverParameters->SoundFlag,sound_brakeacc))
-   sBrakeAcc.Play(-1,0,MechInside,vPosition);
- else;
-// if(MoverParameters->BrakePress=0)
-//   sBrakeAcc.Stop();
-else
-  sBrakeAcc.Stop();
 
-SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);
+//SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);
  if (MoverParameters->LoadStatus)
   LoadUpdate(); //zmiana modelu ³adunku
  return true; //Ra: chyba tak?
@@ -2602,9 +2610,9 @@ bool __fastcall TDynamicObject::Render()
  //przeklejka
  double ObjSqrDist=SquareMagnitude(Global::pCameraPosition-vPosition);
  //koniec przeklejki
- if (ObjSqrDist<500) //jak jest blisko - do 70m
-  modelrotate=0.01f; //ma³y k¹t, ¿eby nie znika³o
- else
+// if (ObjSqrDist<500) //jak jest blisko - do 70m
+//  modelrotate=0.01f; //ma³y k¹t, ¿eby nie znika³o
+// else
  {//Global::pCameraRotation to k¹t bewzglêdny w œwiecie (zero - na pó³noc)
   tempangle=(vPosition-Global::pCameraPosition); //wektor od kamery
   modelrotate=ABuAcos(tempangle); //okreœlenie k¹ta
@@ -2613,6 +2621,10 @@ bool __fastcall TDynamicObject::Render()
  }
  if (modelrotate>M_PI) modelrotate-=(2*M_PI);
  if (modelrotate<-M_PI) modelrotate+=(2*M_PI);
+ ModCamRot=modelrotate;
+
+ if (ObjSqrDist<500) //jak jest blisko - do 70m
+  modelrotate=0.01f; //ma³y k¹t, ¿eby nie znika³o
 
  modelrotate=abs(modelrotate);
 
@@ -2867,7 +2879,7 @@ bool __fastcall TDynamicObject::Render()
 //McZapkie-280302 - pisk mocno zacisnietych hamulcow - trzeba jeszcze zabezpieczyc przed brakiem deklaracji w mmedia.dta
     if (rsPisk.AM!=0)
      {
-      if ((MoverParameters->Vel>0.01) && (!MoverParameters->SlippingWheels) && (MoverParameters->UnitBrakeForce>rsPisk.AM))
+      if ((MoverParameters->Vel>(rsPisk.GetStatus()!=0?0.01:0.5)) && (!MoverParameters->SlippingWheels) && (MoverParameters->UnitBrakeForce>rsPisk.AM))
        {
         vol=MoverParameters->UnitBrakeForce/(rsPisk.AM+1)+rsPisk.AA;
         rsPisk.Play(vol,DSBPLAY_LOOPING,MechInside,GetPosition());
@@ -3583,11 +3595,23 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
        if (str==AnsiString("brakeacc:"))                      //plik z przyspieszaczem (upust po zlapaniu hamowania)
         {
          str= Parser->GetNextSymbol();
-         sBrakeAcc.Init(str.c_str(),Parser->GetNextSymbol().ToDouble(),GetPosition().x,GetPosition().y,GetPosition().z,true);
-         sBrakeAcc.AM=1.0;
-         sBrakeAcc.AA=0.0;
-         sBrakeAcc.FM=1.0;
-         sBrakeAcc.FA=0.0;
+//         sBrakeAcc.Init(str.c_str(),Parser->GetNextSymbol().ToDouble(),GetPosition().x,GetPosition().y,GetPosition().z,true);
+          sBrakeAcc=TSoundsManager::GetFromName(str.c_str(),true);
+          bBrakeAcc=true;
+//         sBrakeAcc.AM=1.0;
+//         sBrakeAcc.AA=0.0;
+//         sBrakeAcc.FM=1.0;
+//         sBrakeAcc.FA=0.0;
+        }
+       else
+       if (str==AnsiString("unbrake:"))                      //plik z piskiem hamulca, mnozniki i ofsety amplitudy.
+        {
+         str= Parser->GetNextSymbol();
+         rsUnbrake.Init(str.c_str(),Parser->GetNextSymbol().ToDouble(),GetPosition().x,GetPosition().y,GetPosition().z,true);
+         rsUnbrake.AM=1.0;
+         rsUnbrake.AA=0.0;
+         rsUnbrake.FM=1.0;
+         rsUnbrake.FA=0.0;
         }
        else
        if (str==AnsiString("derail:"))                      //dzwiek przy wykolejeniu
