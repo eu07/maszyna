@@ -251,7 +251,7 @@ LPDIRECTSOUNDBUFFER __fastcall TSoundsManager::GetFromName(char *Name,bool Dynam
    *fSamplingRate=Next->fSamplingRate; //czêstotliwoœæ
   return Next->GetUnique(pDS);
  }
- Error("Cannot find sound "+AnsiString(Name));
+ ErrorLog("Missed sound: "+AnsiString(Name));
  return (NULL);
 };
 

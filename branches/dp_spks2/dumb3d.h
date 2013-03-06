@@ -70,6 +70,14 @@ public:
 //        };
 //    	scalar_t e[3];
 //    };
+ bool inline __fastcall Equal(vector3 *v)
+ {//sprawdzenie odleg³oœci punktów
+  if (fabs(x-v->x)>0.02) return false; //szeœcian zamiast kuli
+  if (fabs(z-v->z)>0.02) return false;
+  if (fabs(y-v->y)>0.02) return false;
+  return true;
+ };
+
 private:
 };
 

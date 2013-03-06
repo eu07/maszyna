@@ -272,3 +272,10 @@ float __fastcall Console::AnalogGet(int x)
  return -1.0;
 };
 
+unsigned char __fastcall Console::DigitalGet(int x)
+{//pobranie wartoœci cyfrowej
+ if (iMode==4)
+  if (PoKeys55)
+   return PoKeys55->DInputs[x];
+ return 0;
+};

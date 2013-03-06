@@ -103,6 +103,61 @@ GLvoid __fastcall TWorld::glPrint(const char *txt) //custom GL "Print" routine
  }
 }
 
+/* Ra: do opracowania: wybor karty graficznej ~Intel gdy s¹ dwie...
+BOOL GetDisplayMonitorInfo(int nDeviceIndex, LPSTR lpszMonitorInfo)
+{
+    FARPROC EnumDisplayDevices;
+    HINSTANCE  hInstUser32;
+    DISPLAY_DEVICE DispDev;
+    char szSaveDeviceName[33];  // 32 + 1 for the null-terminator
+    BOOL bRet = TRUE;
+        HRESULT hr;
+
+    hInstUser32 = LoadLibrary("c:\\windows\User32.DLL");
+    if (!hInstUser32) return FALSE;
+
+    // Get the address of the EnumDisplayDevices function
+    EnumDisplayDevices = (FARPROC)GetProcAddress(hInstUser32,"EnumDisplayDevicesA");
+    if (!EnumDisplayDevices) {
+        FreeLibrary(hInstUser32);
+        return FALSE;
+    }
+
+    ZeroMemory(&DispDev, sizeof(DispDev));
+    DispDev.cb = sizeof(DispDev);
+
+    // After the first call to EnumDisplayDevices,
+    // DispDev.DeviceString is the adapter name
+    if (EnumDisplayDevices(NULL, nDeviceIndex, &DispDev, 0))
+        {
+                hr = StringCchCopy(szSaveDeviceName, 33, DispDev.DeviceName);
+                if (FAILED(hr))
+                {
+                // TODO: write error handler
+                }
+
+        // After second call, DispDev.DeviceString is the
+        // monitor name for that device
+        EnumDisplayDevices(szSaveDeviceName, 0, &DispDev, 0);
+
+                // In the following, lpszMonitorInfo must be 128 + 1 for
+                // the null-terminator.
+                hr = StringCchCopy(lpszMonitorInfo, 129, DispDev.DeviceString);
+                if (FAILED(hr))
+                {
+                // TODO: write error handler
+                }
+
+    } else    {
+        bRet = FALSE;
+    }
+
+    FreeLibrary(hInstUser32);
+
+    return bRet;
+}
+*/
+
 bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
 {
  double time=(double)Now();
@@ -145,7 +200,9 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
  if (glewGetExtension("GL_ARB_vertex_buffer_object")) //czy jest VBO w karcie graficznej
  {
   if (AnsiString((char*)glGetString(GL_VENDOR)).Pos("Intel")) //wymuszenie tylko dla kart Intel
-   Global::bUseVBO=true; //VBO w³¹czane tylko, jeœli jest obs³uga
+  {Global::bUseVBO=true; //VBO w³¹czane tylko, jeœli jest obs³uga
+   Global::iMultisampling=0; //to robi problemy na "Intel(R) HD Graphics Family" - czarny ekran
+  }
   if (Global::bUseVBO)
    WriteLog("Ra: The VBO is found and will be used.");
   else
@@ -1121,6 +1178,7 @@ bool __fastcall TWorld::Update()
   Global::SetCameraRotation(Camera.Yaw-M_PI);
  }
  Ground.CheckQuery();
+ Global::bSmudge=FreeFlyModeFlag?false:((Train->DynamicObject->fShade<=0.0)?(Global::fLuminance<=0.25):(Train->DynamicObject->fShade*Global::fLuminance<=0.25));
 
  if (!Render()) return false;
 
@@ -1140,8 +1198,11 @@ bool __fastcall TWorld::Update()
    glMultMatrixd(Train->DynamicObject->mMatrix.getArray()); //ta macierz nie ma przesuniêcia
 
 //*yB: moje smuuugi 1
-  if ((Train->DynamicObject->fShade<=0.0)?(Global::fLuminance<=0.25):(Train->DynamicObject->fShade*Global::fLuminance<=0.25))
+  if (Global::bSmudge)
   {//Ra: uwzglêdni³em zacienienie pojazdu przy zapalaniu smug
+   //1. warunek na smugê wyznaczyc wczeœniej
+   //2. jeœli smuga w³¹czona, nie renderowaæ pojazdu u¿ytkownika w DynObj
+   //3. jeœli smuga w³aczona, wyrenderowaæ pojazd u¿ytkownia po dodaniu smugi do sceny
    glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_ONE);
 //    glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_DST_COLOR);
 //    glBlendFunc(GL_SRC_ALPHA_SATURATE,GL_ONE);
@@ -1151,17 +1212,18 @@ bool __fastcall TWorld::Update()
     glColor4f(1.0f,1.0f,1.0f,1.0f);
     glBindTexture(GL_TEXTURE_2D,light);       // Select our texture
     glBegin(GL_QUADS);
+    float fSmudge=Train->DynamicObject->MoverParameters->DimHalf.y+7; //gdzie zaczynaæ smugê
      if (Train->DynamicObject->iLights[0]&21)
      {//wystarczy jeden zapalony z przodu
-      glTexCoord2f(0,0); glVertex3f( 15.0,0.0,  15.0);
-      glTexCoord2f(1,0); glVertex3f(-15.0,0.0,  15.0);
+      glTexCoord2f(0,0); glVertex3f( 15.0,0.0,+fSmudge); //rysowanie wzglêdem po³o¿enia modelu
+      glTexCoord2f(1,0); glVertex3f(-15.0,0.0,+fSmudge);
       glTexCoord2f(1,1); glVertex3f(-15.0,2.5, 250.0);
       glTexCoord2f(0,1); glVertex3f( 15.0,2.5, 250.0);
      }
      if (Train->DynamicObject->iLights[1]&21)
      {//wystarczy jeden zapalony z ty³u
-      glTexCoord2f(0,0); glVertex3f(-15.0,0.0, -15.0);
-      glTexCoord2f(1,0); glVertex3f( 15.0,0.0, -15.0);
+      glTexCoord2f(0,0); glVertex3f(-15.0,0.0,-fSmudge);
+      glTexCoord2f(1,0); glVertex3f( 15.0,0.0,-fSmudge);
       glTexCoord2f(1,1); glVertex3f( 15.0,2.5,-250.0);
       glTexCoord2f(0,1); glVertex3f(-15.0,2.5,-250.0);
      }
@@ -1171,11 +1233,17 @@ bool __fastcall TWorld::Update()
     glEnable(GL_DEPTH_TEST);
     //glEnable(GL_LIGHTING); //i tak siê w³¹czy potem
     glEnable(GL_FOG);
-   }
-//yB: moje smuuugi 1 - koniec*/
+    glEnable(GL_LIGHTING); //po renderowaniu smugi jest to wy³¹czone
+    //Ra: pojazd u¿ytkownika nale¿a³o by renderowaæ po smudze, aby go nie rozœwietla³a
+    Global::bSmudge=false; //aby model u¿ytkownika siê teraz wyrenderowa³
+    Train->DynamicObject->Render();
+    Train->DynamicObject->RenderAlpha(); //przezroczyste fragmenty pojazdów na torach
+   } //yB: moje smuuugi 1 - koniec*/
+   else
+    glEnable(GL_LIGHTING); //po renderowaniu drutów mo¿e byæ to wy³¹czone
 
-    //oswietlenie kabiny
-   glEnable(GL_LIGHTING); //po renderowaniu drutów mo¿e byæ wy³¹czone
+
+   //oswietlenie kabiny
    GLfloat ambientCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
    GLfloat diffuseCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
    GLfloat specularCabLight[4]={ 0.5f,  0.5f, 0.5f, 1.0f };
@@ -1207,7 +1275,7 @@ bool __fastcall TWorld::Update()
     }
     break;
    }
-   switch (Train->iCabLightFlag)
+   switch (Train->iCabLightFlag) //Ra: uzele¿nic od napiêcia w obwodzie sterowania 
    { //hunter-091012: uzaleznienie jasnosci od przetwornicy
     case 0: //œwiat³o wewnêtrzne zgaszone
      break;
@@ -1408,7 +1476,7 @@ bool __fastcall TWorld::Update()
        //Train->DynamicObject->MoverParameters->ActFlowSpeed=0;
        Train->DynamicObject->MoverParameters->SecuritySystem.Status=1;
        //Train->DynamicObject->MoverParameters->ActiveCab=CabNr;
-       Train->DynamicObject->MoverParameters->CabActivisation();
+       Train->DynamicObject->MoverParameters->CabActivisation(); //za³¹czenie rozrz¹du (wirtualne kabiny)
        Train->DynamicObject->Controller=Humandriver;
        Train->DynamicObject->MechInside=true;
        //Train->DynamicObject->Mechanik=new TController(l,r,Controlled->Controller,&Controlled->MoverParameters,&Controlled->TrainParams,Aggressive);
@@ -1540,9 +1608,14 @@ bool __fastcall TWorld::Update()
        OutText4="";
        if (tmp->Mechanik)
        {//o ile jest ktoœ w œrodku
-        OutText4=tmp->Mechanik->StopReasonText();
-        if (!OutText4.IsEmpty()) OutText4+="; "; //aby ³adniejszy odstêp by³
+        //OutText4=tmp->Mechanik->StopReasonText();
+        //if (!OutText4.IsEmpty()) OutText4+="; "; //aby ³adniejszy odstêp by³
         //if (Controlled->Mechanik && (Controlled->Mechanik->AIControllFlag==AIdriver))
+        AnsiString flags="bwaccmlshhhoi; "; //flagi AI
+        for (int i=0,j=1;i<=12;++i,j<<=1)
+         if (tmp->Mechanik->DrivigFlags()&j) //jak bit ustawiony
+          flags[i+1]^=0x20; //to zmiana na wielkie
+        OutText4=flags;
         OutText4+=AnsiString("Driver: Vd=")+FloatToStrF(tmp->Mechanik->VelDesired,ffFixed,4,0)
         +AnsiString(" ad=")+FloatToStrF(tmp->Mechanik->AccDesired,ffFixed,5,2)
         +AnsiString(" Pd=")+FloatToStrF(tmp->Mechanik->ActualProximityDist,ffFixed,4,0)
@@ -1863,30 +1936,15 @@ bool __fastcall TWorld::Render()
  glDisable(GL_FOG);
    Clouds.Render();
  glEnable(GL_FOG);
-/* //przeniesione do kodu wczeœniejszego ni¿ wywo³anie tej funkcji
-    //wyliczenie bezwzglêdnego kierunku kamery (do znikania niepotrzebnych pojazdów)
-    if (FreeFlyModeFlag|!Controlled)
-     Global::SetCameraRotation(Camera.Yaw-M_PI);
-    else
-    {//kierunek pojazdu oraz kierunek wzglêdny
-     vector3 tempangle;
-     double modelrotate;
-     tempangle=Controlled->VectorFront()*(Controlled->MoverParameters->ActiveCab==-1 ? -1 : 1);
-     modelrotate=ABuAcos(tempangle);
-     Global::SetCameraRotation(Camera.Yaw-modelrotate); //tu ju¿ trzeba uwzglêdniæ lusterka
-    }
-*/
  if (Global::bUseVBO)
  {//renderowanie przez VBO
   if (!Ground.RenderVBO(Camera.Pos)) return false;
-  //if (Global::bRenderAlpha) //Ra: wywalam tê flagê
    if (!Ground.RenderAlphaVBO(Camera.Pos))
     return false;
  }
  else
  {//renderowanie przez Display List
   if (!Ground.RenderDL(Camera.Pos)) return false;
-  //if (Global::bRenderAlpha) //Ra: wywalam tê flagê
    if (!Ground.RenderAlphaDL(Camera.Pos))
     return false;
  }
@@ -2172,6 +2230,23 @@ void __fastcall TWorld::CreateE3D(const AnsiString &dir,bool dyn)
            at-=tmp->DynamicObject->Init("",dir.SubString(9,dir.Length()-9),"none",sr.Name.SubString(1,sr.Name.Length()-4),trk,at,"nobody",0.0,"none",1.0,load,false,"");
          loads.Delete(1,i); //usuniêcie z nastêpuj¹cym przecinkiem
          i=loads.Pos(",");
+        }
+       }
+       if (tmp->DynamicObject->iCabs)
+       {//jeœli ma jak¹kolwiek kabinê
+        delete Train;
+        Train=new TTrain();
+        if (tmp->DynamicObject->iCabs&1)
+        {tmp->DynamicObject->MoverParameters->ActiveCab=1;
+         Train->Init(tmp->DynamicObject,true);
+        }
+        if (tmp->DynamicObject->iCabs&4)
+        {tmp->DynamicObject->MoverParameters->ActiveCab=-1;
+         Train->Init(tmp->DynamicObject,true);
+        }
+        if (tmp->DynamicObject->iCabs&2)
+        {tmp->DynamicObject->MoverParameters->ActiveCab=0;
+         Train->Init(tmp->DynamicObject,true);
         }
        }
        Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath); //z powrotem defaultowa sciezka do tekstur

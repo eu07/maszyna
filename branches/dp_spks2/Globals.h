@@ -256,6 +256,7 @@ public:
  static double fCalibrateOut[6][4]; //parametry kalibracyjne wyjœæ dla pulpitu
  static double fBrakeStep; //krok zmiany hamulca dla klawiszy [Num3] i [Num9]
  static bool bJoinEvents; //czy grupowaæ eventy o tych samych nazwach
+ static bool bSmudge; //czy wyœwietlaæ smugê, a pojazd u¿ytkownika na koñcu
  //metody
  static void __fastcall TrainDelete(TDynamicObject *d);
  static void __fastcall ConfigParse(Queryparsercomp::TQueryParserComp *qp,cParser *cp=NULL);

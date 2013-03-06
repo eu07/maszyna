@@ -88,7 +88,7 @@ void __fastcall TSubModel::FirstInit()
  //Hits=NULL;
  //CollisionPts=NULL;
  //CollisionPtsCount=0;
- Transparency=0;
+ Opacity=100.0;
  bWire=false;
  fWireSize=0;
  fNearAttenStart=40;
@@ -270,6 +270,10 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
    else if (type=="billboard")     b_Anim=b_aAnim=at_Billboard; //obrót w pionie do kamery
    else if (type=="wind")          b_Anim=b_aAnim=at_Wind; //ruch pod wp³ywem wiatru
    else if (type=="sky")           b_Anim=b_aAnim=at_Sky; //aniamacja nieba
+   else if (type=="ik")            b_Anim=b_aAnim=at_IK; //IK: zadaj¹cy
+   else if (type=="ik11")          b_Anim=b_aAnim=at_IK11; //IK: kierunkowany
+   else if (type=="ik21")          b_Anim=b_aAnim=at_IK21; //IK: kierunkowany
+   else if (type=="ik22")          b_Anim=b_aAnim=at_IK22; //IK: kierunkowany
    else b_Anim=b_aAnim=at_Undefined; //nieznana forma animacji
   }
  }
@@ -316,7 +320,9 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
   parser.ignoreToken();
   parser.getToken(fWireSize);
   parser.ignoreToken();
-  Transparency=readIntAsDouble(parser,100.0f);
+  Opacity=readIntAsDouble(parser,100.0f); //wymagane jest 0 dla szyb, 100 idzie w nieprzezroczyste
+  if ((Global::iConvertModels&1)==0) //dla zgodnoœci wstecz
+   Opacity=0.0; //wszystko idzie w przezroczyste albo zale¿nie od tekstury
   if (!parser.expectToken("map:"))
    Error("Model map parse failure!");
   std::string texture;
@@ -329,27 +335,27 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
   else if (texture.find("replacableskin")!=texture.npos)
   {// McZapkie-060702: zmienialne skory modelu
    TextureID=-1;
-   iFlags|=(Transparency==0.0)?0x10:1; //zmienna tekstura 1
+   iFlags|=(Opacity<100.0)?1:0x10; //zmienna tekstura 1
   }
   else if (texture=="-1")
   {
    TextureID=-1;
-   iFlags|=(Transparency==0.0)?0x10:1; //zmienna tekstura 1
+   iFlags|=(Opacity<100.0)?1:0x10; //zmienna tekstura 1
   }
   else if (texture=="-2")
   {
    TextureID=-2;
-   iFlags|=(Transparency==0.0)?0x10:2; //zmienna tekstura 2
+   iFlags|=(Opacity<100.0)?2:0x10; //zmienna tekstura 2
   }
   else if (texture=="-3")
   {
    TextureID=-3;
-   iFlags|=(Transparency==0.0)?0x10:4; //zmienna tekstura 3
+   iFlags|=(Opacity<100.0)?4:0x10; //zmienna tekstura 3
   }
   else if (texture=="-4")
   {
    TextureID=-4;
-   iFlags|=(Transparency==0.0)?0x10:8; //zmienna tekstura 4
+   iFlags|=(Opacity<100.0)?8:0x10; //zmienna tekstura 4
   }
   else
   {//jesli tylko nazwa pliku to dawac biezaca sciezke do tekstur
@@ -780,6 +786,12 @@ void __fastcall TSubModel::SetTranslate(vector3 vNewTransVector)
  iAnimOwner=iInstance; //zapamiêtanie czyja jest animacja
 }
 
+void __fastcall TSubModel::SetRotateIK1(float3 vNewAngles)
+{//obrócenie submodelu o podane k¹ty wokó³ osi lokalnego uk³adu
+ v_Angles=vNewAngles;
+ iAnimOwner=iInstance; //zapamiêtanie czyja jest animacja
+}
+
 struct ToLower
 {
  char operator()(char input) { return tolower(input); }
@@ -879,6 +891,14 @@ void __fastcall TSubModel::RaAnimation(TAnimType a)
    //glRotatef(Global::fTimeAngleDeg,0.0,1.0,0.0); //obrót dobowy osi OX
    glRotated(-fmod(Global::fTimeAngleDeg,360.0),0.0,1.0,0.0); //obrót dobowy osi OX
    break;
+  case at_IK11: //ostatni element animacji szkieletowej (podudzie, stopa)
+   glRotatef(v_Angles.z,0.0,1.0,0.0); //obrót wzglêdem osi pionowej (azymut)
+   glRotatef(v_Angles.x,1.0,0.0,0.0); //obrót wzglêdem poziomu (deklinacja)
+   break;
+ }
+ if (mAnimMatrix) //mo¿na by to daæ np. do at_Translate
+ {glMultMatrixf(mAnimMatrix->readArray());
+  mAnimMatrix=NULL; //jak animator bêdzie potrzebowa³, to ustawi ponownie
  }
 };
 
@@ -916,7 +936,7 @@ void __fastcall TSubModel::RenderDL()
    matrix4x4 mat; //macierz opisuje uk³ad renderowania wzglêdem kamery
    glGetDoublev(GL_MODELVIEW_MATRIX,mat.getArray());
    //k¹t miêdzy kierunkiem œwiat³a a wspó³rzêdnymi kamery
-   vector3 gdzie=mat*vector3(0,0,0); //pozycja wzglêdna punktu œwiec¹cego
+   vector3 gdzie=mat*vector3(0,0,0); //pozycja punktu œwiec¹cego wzglêdem kamery
    fCosViewAngle=DotProduct(Normalize(mat*vector3(0,0,1)-gdzie),Normalize(gdzie));
    if (fCosViewAngle>fCosFalloffAngle)  //k¹t wiêkszy ni¿ maksymalny sto¿ek swiat³a
    {
@@ -1064,12 +1084,12 @@ void __fastcall TSubModel::RenderVBO()
   }
   else if (eType==TP_FREESPOTLIGHT)
   {
-   matrix4x4 mat;
+   matrix4x4 mat; //macierz opisuje uk³ad renderowania wzglêdem kamery
    glGetDoublev(GL_MODELVIEW_MATRIX,mat.getArray());
    //k¹t miêdzy kierunkiem œwiat³a a wspó³rzêdnymi kamery
    vector3 gdzie=mat*vector3(0,0,0); //pozycja punktu œwiec¹cego wzglêdem kamery
    fCosViewAngle=DotProduct(Normalize(mat*vector3(0,0,1)-gdzie),Normalize(gdzie));
-   if (fCosViewAngle>fCosFalloffAngle)  //kat wiekszy niz max stozek swiatla
+   if (fCosViewAngle>fCosFalloffAngle)  //k¹t wiêkszy ni¿ maksymalny sto¿ek swiat³a
    {
     double Distdimm=1.0;
     if (fCosViewAngle<fCosHotspotAngle) //zmniejszona jasnoœæ miêdzy Hotspot a Falloff
@@ -1291,7 +1311,7 @@ void __fastcall TSubModel::Info()
 
 void __fastcall TSubModel::InfoSet(TSubModelInfo *info)
 {//ustawienie danych wg obiektu pomocniczego do zapisania w pliku
- int ile=(char*)&TexAlpha-(char*)&eType; //iloœæ bajtów pomiêdzy tymi zmiennymi 
+ int ile=(char*)&uiDisplayList-(char*)&eType; //iloœæ bajtów pomiêdzy tymi zmiennymi 
  ZeroMemory(this,sizeof(TSubModel)); //zerowaie ca³oœci
  CopyMemory(this,info->pSubModel,ile); //skopiowanie pamiêci 1:1
  iTexture=info->iTexture;//numer nazwy tekstury, a nie numer w OpenGL
