@@ -310,7 +310,13 @@ public:
 	double TotalMass;
 	double HeatingPower;
 	double LightPower;
-	int BatteryVoltage;
+	double BatteryVoltage;
+	bool Battery;
+	bool EpFuse;
+	bool Signalling;
+	bool DoorSignalling;
+	bool Radio;
+	double NominalBatteryVoltage;
 	TDimension Dim;
 	double Cx;
 	double WheelDiameter;
@@ -372,6 +378,7 @@ public:
 	Byte MainCtrlPosNo;
 	Byte ScndCtrlPosNo;
 	bool ScndInMain;
+	bool MBrake;
 	TSecuritySystem SecuritySystem;
 	TScheme RList[65];
 	int RlistSize;
@@ -441,6 +448,7 @@ public:
 	double DoorMaxShiftL;
 	double DoorMaxShiftR;
 	Byte DoorOpenMethod;
+	bool ScndS;
 	TLocation Loc;
 	TRotation Rot;
 	AnsiString Name;
@@ -491,6 +499,7 @@ public:
 	double BrakeCtrlPosR;
 	double BrakeCtrlPos2;
 	Byte LocalBrakePos;
+	Byte ManualBrakePos;
 	double LocalBrakePosA;
 	Byte BrakeStatus;
 	bool EmergencyBrakeFlag;
@@ -524,6 +533,9 @@ public:
 	double enrot;
 	double Im;
 	double Itot;
+	double IHeating;
+	double ITraction;
+	double TotalCurrent;
 	double Mm;
 	double Mw;
 	double Fw;
@@ -542,6 +554,7 @@ public:
 	bool ResistorsFlag;
 	double RventRot;
 	bool UnBrake;
+	double PantPress;
 	bool s_CAtestebrake;
 	double dizel_fill;
 	double dizel_engagestate;
@@ -557,6 +570,7 @@ public:
 	AnsiString LoadType;
 	Byte LoadStatus;
 	double LastLoadChangeTime;
+	bool DoorBlocked;
 	bool DoorLeftOpened;
 	bool DoorRightOpened;
 	bool PantFrontUp;
@@ -580,6 +594,7 @@ public:
 	bool __fastcall Physic_ReActivation(void);
 	void __fastcall PantCheck(void);
 	double __fastcall LocalBrakeRatio(void);
+	double __fastcall ManualBrakeRatio(void);
 	double __fastcall PipeRatio(void);
 	double __fastcall RealPipeRatio(void);
 	double __fastcall BrakeVP(void);
@@ -596,12 +611,16 @@ public:
 	bool __fastcall SandDoseOn(void);
 	bool __fastcall SecuritySystemReset(void);
 	void __fastcall SecuritySystemCheck(double dt);
+	bool __fastcall BatterySwitch(bool State);
+	bool __fastcall EpFuseSwitch(bool State);
 	bool __fastcall IncBrakeLevelOld(void);
 	bool __fastcall DecBrakeLevelOld(void);
 	bool __fastcall IncLocalBrakeLevel(Byte CtrlSpeed);
 	bool __fastcall DecLocalBrakeLevel(Byte CtrlSpeed);
 	bool __fastcall IncLocalBrakeLevelFAST(void);
 	bool __fastcall DecLocalBrakeLevelFAST(void);
+	bool __fastcall IncManualBrakeLevel(Byte CtrlSpeed);
+	bool __fastcall DecManualBrakeLevel(Byte CtrlSpeed);
 	bool __fastcall EmergencyBrakeSwitch(bool Switch);
 	bool __fastcall AntiSlippingBrake(void);
 	bool __fastcall BrakeReleaser(void);
@@ -617,6 +636,7 @@ public:
 	void __fastcall CompressorCheck(double dt);
 	void __fastcall UpdatePantVolume(double dt);
 	void __fastcall UpdateScndPipePressure(double dt);
+	void __fastcall UpdateBatteryVoltage(double dt);
 	double __fastcall GetDVc(double dt);
 	void __fastcall ComputeConstans(void);
 	double __fastcall ComputeMass(void);
@@ -672,6 +692,7 @@ public:
 	AnsiString __fastcall EngineDescription(int what);
 	bool __fastcall DoorLeft(bool State);
 	bool __fastcall DoorRight(bool State);
+	bool __fastcall DoorBlockedFlag(void);
 	bool __fastcall PantFront(bool State);
 	bool __fastcall PantRear(bool State);
 public:
@@ -714,6 +735,7 @@ static const Shortint MotorParametersArraySize = 0x8;
 static const Shortint maxcc = 0x4;
 static const Shortint LocalBrakePosNo = 0xa;
 static const Shortint MainBrakeMaxPos = 0xa;
+static const Shortint ManualBrakePosNo = 0x14;
 static const Shortint dtrack_railwear = 0x2;
 static const Shortint dtrack_freerail = 0x4;
 static const Shortint dtrack_thinrail = 0x8;
@@ -776,7 +798,9 @@ static const Shortint dt_ET42 = 0x4;
 static const Shortint dt_PseudoDiesel = 0x8;
 static const Shortint dt_ET22 = 0x10;
 static const Shortint dt_SN61 = 0x20;
-static const Shortint dt_181 = 0x40;
+static const Shortint dt_EP05 = 0x40;
+static const Byte dt_ET40 = 0x80;
+static const Word dt_181 = 0x100;
 extern PACKAGE double __fastcall Distance(const TLocation &Loc1, const TLocation &Loc2, const TDimension 
 	&Dim1, const TDimension &Dim2);
 

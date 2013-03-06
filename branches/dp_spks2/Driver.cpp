@@ -1298,14 +1298,18 @@ bool __fastcall TController::PrepareEngine()
  {//czêœæ wykonawcza dla sterowania przez komputer
   if (Controlling->EnginePowerSource.SourceType==CurrentCollector)
   {
+   Controlling->BatterySwitch(true);
    Controlling->PantFront(true);
    Controlling->PantRear(true);
   }
   if (Controlling->TrainType==dt_EZT)
   {
+   Controlling->BatterySwitch(true);
    Controlling->PantFront(true);
    Controlling->PantRear(true);
   }
+  if (Controlling->EngineType==DieselElectric)
+   Controlling->Battery=true;
  }
  //Ra: rozdziawianie drzwi po odpaleniu nie jest potrzebne
  //if (Controlling->DoorOpenCtrl==1)
@@ -1424,6 +1428,7 @@ bool __fastcall TController::ReleaseEngine()
    Lights(0,0); //gasimy œwiat³a
   OrderNext(Wait_for_orders); //¿eby nie próbowa³ coœ robiæ dalej
   TableClear(); //zapominamy ograniczenia
+  Controlling->BatterySwitch(false);
  }
  return OK;
 }

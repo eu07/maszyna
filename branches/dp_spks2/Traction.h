@@ -4,11 +4,8 @@
 #define TractionH
 
 #include "opengl/glew.h"
-#include "opengl/glut.h"
 #include "dumb3d.h"
 #include "VBO.h"
-//#include "Geometry.h"
-//#include "AnimModel.h"
 
 using namespace Math3D;
 
@@ -16,7 +13,11 @@ class TTraction
 {
 private:
  vector3 vUp,vFront,vLeft;
- //matrix4x4 mMatrix;
+ matrix4x4 mMatrix;
+ //matryca do wyliczania pozycji drutu w zale¿noœci od [X,Y,k¹t] w scenerii:
+ // - x: odleg³oœæ w bok (czy odbierak siê nie zsun¹³)
+ // - y: przyjmuje wartoœæ <0,1>, jeœli pod drutem (wzd³u¿)
+ // - z: wysokoœæ bezwzglêdna drutu w danym miejsu
  TTraction *pPrev,*pNext; //³¹czenie drutów w sieæ
 public:
     GLuint uiDisplayList;

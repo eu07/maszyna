@@ -24,6 +24,7 @@
 #include "Event.h"
 #include "Driver.h"
 #include "Camera.h" //bo likwidujemy trzêsienie
+#include "Console.h"
 #pragma package(smart_init)
 
 //Ra: taki zapis funkcjonuje lepiej, ale mo¿e nie jest optymalny
@@ -1889,7 +1890,7 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
   return false; //a normalnie powinny mieæ bEnabled==false
 
 //McZapkie-260202
-  MoverParameters->BatteryVoltage=90;
+  //MoverParameters->BatteryVoltage=90;
   if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
    if ((MechInside)||(MoverParameters->TrainType==dt_EZT))
    {
@@ -1931,7 +1932,7 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
     //TTrackParam tp;
     tp.Width=MyTrack->fTrackWidth;
 //McZapkie-250202
-    tp.friction=MyTrack->fFriction;
+    tp.friction=MyTrack->fFriction*Global::fFriction;
     tp.CategoryFlag=MyTrack->iCategoryFlag&15;
     tp.DamageFlag=MyTrack->iDamageFlag;
     tp.QualityFlag=MyTrack->iQualityFlag;
@@ -1964,6 +1965,11 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
     }
     else
      tmpTraction.TractionVoltage=3400;
+    /* KURS90 przywrocenie braku mozliwosci jazdy, gdy nie ma trakcji*/
+   /* {
+    if  ((PantTraction1==601) && (PantTraction2==601)&& (NoVoltTime>1))
+    tmpTraction.TractionVoltage=0;
+    }*/
    }
    else
     tmpTraction.TractionVoltage=3400;
@@ -1974,6 +1980,10 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
 
 
 
+     /*if  ((Global::bLiveTraction) && ((MoverParameters->PantFront(true)) || (MoverParameters->PantRear(true))))
+{
+TGround::GetTraction;
+}   */
 //McZapkie: predkosc w torze przekazac do TrackParam
 //McZapkie: Vel ma wymiar km/h (absolutny), V ma wymiar m/s , taka przyjalem notacje
     tp.Velmax=MyTrack->VelocityGet();
@@ -2025,8 +2035,8 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
      if (MoverParameters->MainSwitch(False))
       MoverParameters->EventFlag=True;
       }
-    if (MoverParameters->TrainType=="et42"){
-     if (((TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab>0)&&(NextConnected-> MoverParameters->TrainType!="et42"))||((TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab<0)&&(PrevConnected-> MoverParameters->TrainType!="et42")))
+    if (MoverParameters->TrainType==dt_ET42){
+     if (((TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab>0)&&(NextConnected-> MoverParameters->TrainType!=dt_ET42))||((TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab<0)&&(PrevConnected-> MoverParameters->TrainType!=dt_ET42)))
      {
      if (MoverParameters->MainSwitch(False))
       MoverParameters->EventFlag=True;
@@ -2858,6 +2868,18 @@ bool __fastcall TDynamicObject::Render()
            }
           else
            rsWentylator.Stop();
+        }
+        if (MoverParameters->TrainType==dt_ET40)
+        {
+          if (MoverParameters->Vel>0.1)
+           {
+            freq=rsPrzekladnia.FM*(MoverParameters->Vel)+rsPrzekladnia.FA;
+            rsPrzekladnia.AdjFreq(freq,dt);
+            vol=rsPrzekladnia.AM*(MoverParameters->Vel)+rsPrzekladnia.AA;
+            rsPrzekladnia.Play(vol,DSBPLAY_LOOPING,MechInside,GetPosition());
+           }
+          else
+           rsPrzekladnia.Stop();
         }
      }
 

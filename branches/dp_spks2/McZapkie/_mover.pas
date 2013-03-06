@@ -57,6 +57,11 @@ zwiekszenie nacisku przy duzych predkosciach w hamulcach Oerlikona
 32. wylaczanie obliczen dla nieruchomych wagonow
 33. Zbudowany model rozdzielacza powietrza roznych systemow
 34. Poprawiona pozycja napelniania uderzeniowego i hamulec EP
+-35. Dodane baterie akumulatorow (KURS90)
+-36. Hamowanie elektrodynamiczne w ET42 i poprawione w EP09
+-37. jednokierunkowosc walu kulakowego w EZT (nie do konca)
+-38. wal kulakowy w ET40
+-39. poprawiona blokada nastawnika w ET40
 ...
 *)
 
@@ -69,8 +74,9 @@ CONST
    ResArraySize=64;            {dla silnikow elektrycznych}
    MotorParametersArraySize=8;
    maxcc=4;                    {max. ilosc odbierakow pradu}
-   LocalBrakePosNo=10;         {ilosc nastaw hamulca recznego lub pomocniczego}
+   LocalBrakePosNo=10;         {ilosc nastaw hamulca pomocniczego}
    MainBrakeMaxPos=10;          {max. ilosc nastaw hamulca zasadniczego}
+   ManualBrakePosNo=20;        {ilosc nastaw hamulca recznego}
 
    {uszkodzenia toru}
    dtrack_railwear=2;
@@ -157,9 +163,11 @@ CONST
    dt_ET41=2;
    dt_ET42=4;
    dt_PseudoDiesel=8;
-   dt_ET22=$10; //nie u¿ywane w warunkach, ale ustawiane z CHK
+   dt_ET22=$10; //u¿ywane od Megapacka
    dt_SN61=$20; //nie u¿ywane w warunkach, ale ustawiane z CHK
-   dt_181=$40;
+   dt_EP05=$40;
+   dt_ET40=$80;
+   dt_181=$100; 
 
 TYPE
     {ogolne}
@@ -361,7 +369,13 @@ TYPE
                Mred: real;    {Ra: zredukowane masy wiruj¹ce; potrzebne do obliczeñ hamowania}
                TotalMass:real; {wyliczane przez ComputeMass}
                HeatingPower, LightPower: real; {moc pobierana na ogrzewanie/oswietlenie}
-               BatteryVoltage: integer;        {Winger - baterie w elektrykach}
+               BatteryVoltage: real;        {Winger - baterie w elektrykach}
+               Battery: boolean; {Czy sa zalavzone baterie}
+               EpFuse: boolean; {Czy sa zalavzone baterie}
+               Signalling: boolean;         {Czy jest zalaczona sygnalizacja hamowania ostatniego wagonu}
+               DoorSignalling: boolean;         {Czy jest zalaczona sygnalizacja blokady drzwi}
+               Radio: boolean;         {Czy jest zalaczony radiotelefon}
+               NominalBatteryVoltage: real;        {Winger - baterie w elektrykach}
                Dim: TDimension;          {wymiary}
                Cx: real;                 {wsp. op. aerodyn.}
                WheelDiameter : real;     {srednica kol napednych}
@@ -424,6 +438,7 @@ TYPE
                MainCtrlPosNo: byte;     {ilosc pozycji nastawnika}
                ScndCtrlPosNo: byte;
                ScndInMain: boolean;     {zaleznosc bocznika od nastawnika}
+               MBrake: boolean;     {Czy jest hamulec reczny}
                SecuritySystem: TSecuritySystem;
 
                        {-sekcja parametrow dla lokomotywy elektrycznej}
@@ -501,6 +516,7 @@ TYPE
                 DoorOpenSpeed, DoorCloseSpeed: real;      {predkosc otwierania i zamykania w j.u. }
                 DoorMaxShiftL,DoorMaxShiftR: real;{szerokosc otwarcia lub kat}
                 DoorOpenMethod: byte;             {sposob otwarcia - 1: przesuwne, 2: obrotowe}
+                ScndS: boolean; {Czy jest bocznikowanie na szeregowej}
 
                         {--sekcja zmiennych}
                         {--opis konkretnego egzemplarza taboru}
@@ -549,6 +565,7 @@ TYPE
                 BrakeCtrlPosR:real;                 {nastawa hamulca zespolonego - plynna dla FV4a}
                 BrakeCtrlPos2:real;                 {nastawa hamulca zespolonego - kapturek dla FV4a}
                 LocalBrakePos:byte;                 {nastawa hamulca indywidualnego}
+                ManualBrakePos:byte;                 {nastawa hamulca recznego}
                 LocalBrakePosA: real;
                 BrakeStatus: byte; {0 - odham, 1 - ham., 2 - uszk., 4 - odluzniacz, 8 - antyposlizg, 16 - uzyte EP, 32 - pozycja R, 64 - powrot z R}
                 EmergencyBrakeFlag: boolean;        {hamowanie nagle}
@@ -592,7 +609,7 @@ TYPE
                 InsideConsist: boolean;
                 {-zmienne dla lokomotywy elektrycznej}
                 RunningTraction:TTractionParam;{parametry sieci trakcyjnej najblizej lokomotywy}
-                enrot, Im, Itot, Mm, Mw, Fw, Ft: real;
+                enrot, Im, Itot,IHeating,ITraction, TotalCurrent, Mm, Mw, Fw, Ft: real;
                 {ilosc obrotow, prad silnika i calkowity, momenty, sily napedne}
                 //Ra: Im jest ujemny, jeœli lok jedzie w stronê sprzêgu 1
                 //a ujemne powinien byæ przy odwróconej polaryzacji sieci...
@@ -610,6 +627,7 @@ TYPE
                 ResistorsFlag: boolean;  {!o jazda rezystorowa}
                 RventRot: real;          {!s obroty wentylatorow rozruchowych}
                 UnBrake: boolean;       {w EZT - nacisniete odhamowywanie}
+                PantPress: real; {Cisnienie w zbiornikach pantografow}
                 s_CAtestebrake: boolean; //hunter-091012: zmienna dla testu ca
 
 
@@ -635,6 +653,7 @@ TYPE
                 LoadStatus: byte; //+1=trwa rozladunek,+2=trwa zaladunek,+4=zakoñczono,0=zaktualizowany model
                 LastLoadChangeTime: real; //raz (roz)³adowania
 
+                DoorBlocked: boolean;    //Czy jest blokada drzwi
                 DoorLeftOpened: boolean;  //stan drzwi
                 DoorRightOpened: boolean;
                 PantFrontUp: boolean;  //stan patykow 'Winger 160204
@@ -669,6 +688,7 @@ TYPE
 
 {                function BrakeRatio: real;  }
                 function LocalBrakeRatio: real;
+                function ManualBrakeRatio: real;
                 function PipeRatio: real; {ile napelniac}
                 function RealPipeRatio: real; {jak szybko}
                 function BrakeVP: real;                
@@ -697,6 +717,8 @@ TYPE
                 function SecuritySystemReset:boolean;
                 {test czuwaka/SHP}
                 procedure SecuritySystemCheck(dt:real);
+                function BatterySwitch(State:boolean):boolean;
+                function EpFuseSwitch(State:boolean):boolean;
 
                {! stopnie hamowania - hamulec zasadniczy}
                 function IncBrakeLevelOld:boolean;
@@ -707,6 +729,10 @@ TYPE
                {! ABu 010205: - skrajne polozenia ham. pomocniczego}
                 function IncLocalBrakeLevelFAST:boolean;
                 function DecLocalBrakeLevelFAST:boolean;
+
+                {! stopnie hamowania - hamulec reczny}
+                function IncManualBrakeLevel(CtrlSpeed:byte):boolean;
+                function DecManualBrakeLevel(CtrlSpeed:byte):boolean;
 
                {! hamulec bezpieczenstwa}
                 function EmergencyBrakeSwitch(Switch:boolean): boolean;
@@ -731,6 +757,7 @@ TYPE
                 procedure CompressorCheck(dt:real); {wlacza, wylacza kompresor, laduje zbiornik}
                 procedure UpdatePantVolume(dt:real); {jw ale uklad zasilania pantografow}
                 procedure UpdateScndPipePressure(dt:real);
+                procedure UpdateBatteryVoltage(dt:real);
                 function GetDVc(dt:real):real;
 
                {! funkcje laczace/rozlaczajace sprzegi}
@@ -842,6 +869,8 @@ TYPE
    {obsluga drzwi}
                 function DoorLeft(State: Boolean): Boolean;    {obsluga dzwi lewych}
                 function DoorRight(State: Boolean): Boolean;
+                function DoorBlockedFlag: Boolean; //czy blokada drzwi jest aktualnie za³¹czona
+
    {obsluga pantografow - Winger 160204}
                 function PantFront(State: Boolean): Boolean;
                 function PantRear(State: Boolean): Boolean;
@@ -1045,6 +1074,16 @@ begin
 // if TestFlag(BrakeStatus,b_antislip) then
 //   LBR:=Max0R(LBR,PipeRatio)+0.4;
  LocalBrakeRatio:=LBR;
+end;
+
+function T_MoverParameters.ManualBrakeRatio: real;
+var MBR:real;
+begin
+  if ManualBrakePosNo>0 then
+   MBR:=ManualBrakePos/ManualBrakePosNo
+  else
+   MBR:=0;
+ ManualBrakeRatio:=MBR;
 end;
 
 function T_MoverParameters.PipeRatio: real;
@@ -1334,6 +1373,7 @@ begin
   if (MainCtrlPosNo>0) and (CabNo<>0) then
    begin
       if MainCtrlPos>0 then
+       //if ((TrainType<>dt_ET22) or (ScndCtrlPos=0)) then //Ra: ET22 blokuje nastawnik przy boczniku
        begin
          if CoupledCtrl and (ScndCtrlPos>0) then
           begin
@@ -1595,6 +1635,30 @@ begin
   ChangeCab:=False;
 end;
 }
+
+function T_MoverParameters.BatterySwitch(State:boolean):boolean;
+var b:byte;
+begin
+  if (Battery<>State) then
+     begin
+     Battery:=State;
+     BatterySwitch:=true;
+     end;
+if (Battery=true) then SendCtrlToNext('BatterySwitch',1,CabNo)
+  else SendCtrlToNext('BatterySwitch',0,CabNo)
+end;
+
+function T_MoverParameters.EpFuseSwitch(State:boolean):boolean;
+var b:byte;
+begin
+  if (EpFuse<>State) then
+     begin
+     EpFuse:=State;
+     EpFuseSwitch:=true;
+     end;
+if (EpFuse=true) then SendCtrlToNext('EpFuseSwitch',1,CabNo)
+  else SendCtrlToNext('EpFuseSwitch',0,CabNo)
+end;
 
 {wl/wyl przetwornicy}
 function T_MoverParameters.ConverterSwitch(State:boolean):boolean;
@@ -1967,6 +2031,21 @@ begin
 UnBrake:=True;
 end;
 
+function T_MoverParameters.IncManualBrakeLevel(CtrlSpeed:byte):boolean;
+begin
+  if (ManualBrakePos<ManualBrakePosNo) {and (BrakeCtrlPos<1)} then
+   begin
+     while (ManualBrakePos<ManualBrakePosNo) and (CtrlSpeed>0) do
+      begin
+       inc(ManualBrakePos);
+       dec(CtrlSpeed);
+      end;
+     IncManualBrakeLevel:=True;
+   end
+  else
+     IncManualBrakeLevel:=False;
+end;
+
 function T_MoverParameters.DecLocalBrakeLevelFAST():boolean;
 begin
   if LocalBrakePos>0 then
@@ -1993,6 +2072,22 @@ begin
   else
      DecLocalBrakeLevel:=False;
 UnBrake:=True;
+end;
+
+function T_MoverParameters.DecManualBrakeLevel(CtrlSpeed:byte):boolean;
+begin
+  if ManualBrakePos>0 then
+   begin
+     while (CtrlSpeed>0) and (ManualBrakePos>0) do
+      begin
+        dec(ManualBrakePos);
+        dec(CtrlSpeed);
+      end;
+     DecManualBrakeLevel:=True;
+   end
+  else
+     DecManualBrakeLevel:=False;
+
 end;
 
 function T_MoverParameters.EmergencyBrakeSwitch(Switch:boolean): boolean;
@@ -2363,12 +2458,119 @@ procedure T_MoverParameters.CompressorCheck(dt:real);
  end;
 
 procedure T_MoverParameters.UpdatePantVolume(dt:real);
+ {KURS90 - sprezarka pantografow}
+ var b:byte;
  begin
    if PantCompFlag=true then
     begin
      PantVolume:=PantVolume+dt/30.0;
     end;
  {Winger - ZROBIC}
+(*
+
+   if (PantCompFlag=true) and (Battery=true) then
+    begin      {napelnianie zbiornikow pantografow}
+     PantVolume:=PantVolume+dt*0.001*(2*0.45-((0.1/PantVolume/10)-0.1))/0.45;
+
+    end;
+
+if ScndPipePress>0.45 then
+   begin     {korzystanie ze zbiornika glownego}
+   PantPress:=ScndPipePress;
+   PantVolume:=(ScndPipePress*0.1*10)+0.1;
+   end
+   else
+   PantPress:=(PantVolume/0.10/10)-0.1;
+
+if (PantCompFlag=false) and (PantVolume>0.1) then
+PantVolume:=PantVolume-dt*0.00003;    {nieszczelnosci}
+
+  if PantPress<0.35 then
+ if MainSwitch(False) and  (EngineType=ElectricSeriesMotor) then
+      EventFlag:=True;   {wywalenie szybkiego z powodu niskiego cisnienia}
+for b:=0 to 1 do
+      with Couplers[b] do
+       if TestFlag(CouplingFlag,ctrain_controll) then
+
+        Connected.PantVolume:=PantVolume;
+*)
+end;
+
+procedure T_MoverParameters.UpdateBatteryVoltage(dt:real);
+var sn1,sn2,sn3,sn4,sn5: real;
+begin
+if (batteryVoltage>0) and  (EngineType<>DieselEngine) and (EngineType<>WheelsDriven) and (NominalBatteryVoltage>0) then
+begin
+ if ((NominalBatteryVoltage)/(BatteryVoltage)<1.22) and (Battery=true)  then
+     begin     {110V}
+     if ConverterFlag=false then
+     sn1:=(dt*50)     {szybki spadek do ok 90V}
+     else sn1:=0;
+     if (ConverterFlag=true) then
+     sn2:=-(dt*50)      {szybki wzrost do 110V}
+     else sn2:=0;
+     if (Mains) then
+     sn3:=(dt*0.05)
+     else sn3:=0;
+(* //Ra: no tak, wyrzuci³em lampy st¹d, wiêc nie bêd¹ pobieraæ pr¹du
+     if (HeadSignalsFlag>0) then
+     sn4:=dt*0.003
+     else sn4:=0;
+     if (EndSignalsFlag>0) then
+     sn5:=dt*0.001
+     else sn5:=0;
+*)
+     sn4:=0;
+     sn5:=0;
+     end;
+     if ((NominalBatteryVoltage)/(BatteryVoltage)>=1.22) and (battery=true) then
+     begin  {90V}
+     if (PantCompFlag=true) then
+     sn1:=(dt*0.0046)
+     else sn1:=0;
+     if (ConverterFlag=true)  then
+     sn2:=-(dt*50) {szybki wzrost do 110V}
+     else sn2:=0;
+     if (Mains)  then
+     sn3:=(dt*0.001)
+     else sn3:=0;
+(*
+     if (HeadSignalsFlag>0) then
+     sn4:=(dt*0.0030)
+     else sn4:=0;
+     if (EndSignalsFlag>0) then
+     sn5:=(dt*0.0010)
+     else sn5:=0;
+(*)
+     sn4:=0;
+     sn5:=0;
+     end;
+     if (battery=false) then
+    begin
+       if ((NominalBatteryVoltage)/(BatteryVoltage)<1.22) then
+         sn1:=dt*50
+       else
+        sn1:=0;
+        sn2:=dt*0.000001;
+        sn3:=dt*0.000001;
+        sn4:=dt*0.000001;
+        sn5:=dt*0.000001;   {bardzo powolny spadek przy wylaczonych bateriach}
+    end;
+     BatteryVoltage:=BatteryVoltage-(sn1+sn2+sn3+sn4+sn5);
+     if ((NominalBatteryVoltage/BatteryVoltage)>1.57)  then
+       if MainSwitch(False) and  (EngineType<>DieselEngine) and (EngineType<>WheelsDriven) then
+         EventFlag:=True;            //wywalanie szybkiego z powodu zbyt niskiego napiecia
+
+     if  (BatteryVoltage>NominalBatteryVoltage) then
+     BatteryVoltage:=NominalBatteryVoltage; {wstrzymanie ladowania pow. 110V}
+     if  BatteryVoltage<0.01 then
+      BatteryVoltage:=0.01;
+  end
+  else
+  if (NominalBatteryVoltage=0) then
+  BatteryVoltage:=0
+  else
+BatteryVoltage:=90;
 end;
 
 
@@ -2918,6 +3120,7 @@ Przy zmianie iloœci ga³êzi musisz:
        if (MainCtrlPos=0) then
         DelayCtrlFlag:=(TrainType<>dt_EZT); //Ra: w EZT mo¿na daæ od razu na S albo R, wa³ ku³akowy sobie dokrêci
        if (((RList[MainCtrlActualPos].R=0) and ((not CoupledCtrl) or (Imin=IminLo))) or (MainCtrlActualPos=RListSize))
+      //if (((RList[MainCtrlActualPos].R=0) and ((not CoupledCtrl) or ((Imin=IminLo) and (ScndS=True)))) or (MainCtrlActualPos=RListSize))
           and ((ScndCtrlActualPos>0) or (ScndCtrlPos>0)) then
         begin //zmieniaj scndctrlactualpos
           if (not AutoRelayFlag) or (not MotorParam[ScndCtrlActualPos].AutoSwitch) then
@@ -4229,7 +4432,7 @@ begin
  ConverterCheck;
  UpdateBrakePressure(dt);
  UpdatePipePressure(dt);
-
+ UpdateBatteryVoltage(dt);
  UpdateScndPipePressure(dt); // druga rurka, youBy
 
 {hamulec antyposlizgowy - wylaczanie}
@@ -4371,7 +4574,7 @@ begin
  UpdateBrakePressure(dt);
  UpdatePipePressure(dt);
  UpdateScndPipePressure(dt); // druga rurka, youBy
-
+ UpdateBatteryVoltage(dt);
 {hamulec antyposlizgowy - wylaczanie}
  if(BrakeSlippingTimer>ASBSpeed)and(ASBType<>128)then
    Hamulec.ASB(0);
@@ -4432,6 +4635,16 @@ function T_MoverParameters.GetExternalCommand(var Command:string):real;
 begin
   Command:=CommandOut;
   GetExternalCommand:=ValueOut;
+end;
+
+function T_MoverParameters.DoorBlockedFlag:Boolean;
+begin
+  if (DoorBlocked=true) and (Vel<5) then
+  DoorBlockedFlag:=False;
+  if (DoorBlocked=true) and (Vel>=5) then
+  DoorBlockedFlag:=True
+  else
+  DoorBlockedFlag:=False;
 end;
 
 function T_MoverParameters.RunCommand(command:string; CValue1,CValue2:real):boolean;
@@ -4533,6 +4746,18 @@ Begin
    begin
      if (CValue1=1) then ConverterAllow:=true
      else if (CValue1=0) then ConverterAllow:=false;
+     OK:=SendCtrlToNext(command,CValue1,CValue2);
+   end
+  else if command='BatterySwitch' then         {NBMX}
+   begin
+     if (CValue1=1) then Battery:=true
+     else if (CValue1=0) then Battery:=false;
+     OK:=SendCtrlToNext(command,CValue1,CValue2);
+   end
+   else if command='EpFuseSwitch' then         {NBMX}
+   begin
+     if (CValue1=1) then EpFuse:=true
+     else if (CValue1=0) then EpFuse:=false;
      OK:=SendCtrlToNext(command,CValue1,CValue2);
    end
   else if command='CompressorSwitch' then         {NBMX}
@@ -4946,6 +5171,11 @@ begin
   CompressorAllow:=False;
   DoorLeftOpened:=False;
   DoorRightOpened:=false;
+  battery:=false;
+  EpFuse:=true;
+  Signalling:=false;
+  Radio:=true;
+  DoorSignalling:=False;
   UnBrake:=false;
 //Winger 160204
   PantVolume:=3.5;
@@ -5287,7 +5517,7 @@ end;
      BrakeDelay[b]:=BrakeDelay[b]*(2.5+Random)/3.0;
    end;
 
-  if(TypeName='et22')then
+  if(TrainType=dt_ET22)then
     CompressorPower:=0;
 
 //  Hamulec.Init(10*PipePress, 10*HighPipePress-0.15, 10*LowPipePress-0.15, 10*BrakePress, BrakeDelayFlag);
@@ -5300,7 +5530,7 @@ end;
 
 function T_MoverParameters.DoorLeft(State: Boolean):Boolean;
 begin
- if (DoorLeftOpened<>State) then
+ if (DoorLeftOpened<>State) and (DoorBlockedFlag=false) and (Battery=true) then
  begin
   DoorLeft:=true;
   DoorLeftOpened:=State;
@@ -5309,7 +5539,7 @@ begin
     if (CabNo>0) then
      SendCtrlToNext('DoorOpen',1,CabNo) //1=lewe, 2=prawe
     else
-     SendCtrlToNext('DoorOpen',2,CabNo) //zamiana
+     SendCtrlToNext('DoorOpen',2,CabNo); //zamiana
    end
   else
    begin
@@ -5325,7 +5555,7 @@ end;
 
 function T_MoverParameters.DoorRight(State: Boolean):Boolean;
 begin
- if (DoorRightOpened<>State) then
+ if (DoorRightOpened<>State) and (DoorBlockedFlag=false) and (Battery=true) then
   begin
   DoorRight:=true;
   DoorRightOpened:=State;
@@ -5642,6 +5872,8 @@ begin
               else if s='ET41' then TrainType:=dt_ET41
               else if s='ET42' then TrainType:=dt_ET42
               else if s='ET22' then TrainType:=dt_ET22
+              else if s='ET40' then TrainType:=dt_ET40
+              else if s='EP05' then TrainType:=dt_EP05
               else if s='SN61' then TrainType:=dt_SN61
               else if s='PSEUDODIESEL' then TrainType:=dt_PseudoDiesel
               else if s='181' then TrainType:=dt_181
@@ -5850,6 +6082,10 @@ begin
                DoorClosureWarning:=true
               else
                DoorClosureWarning:=false;
+               s:=DUE(ExtractKeyWord(lines,'DoorBlocked='));
+              if s='Yes' then DoorBlocked:=true
+              else
+                DoorBlocked:=false;
             end
           else if (Pos('BuffCoupl.',lines)>0) or (Pos('BuffCoupl1.',lines)>0) then  {zderzaki i sprzegi}
             begin
@@ -6071,6 +6307,9 @@ begin
                   else
                     if s='HydraulicBrake' then LocalBrake:=HydraulicBrake
                       else LocalBrake:=NoBrake;
+              s:=DUE(ExtractKeyWord(lines,'ManualBrake='));
+              if s='Yes' then MBrake:=true
+              else MBrake:=false;
              s:=DUE(ExtractKeyWord(lines,'DynamicBrake='));
              if s='Passive' then DynamicBrakeType:=dbrake_passive
               else
@@ -6098,6 +6337,10 @@ begin
               if s='Yes' then
                CoupledCtrl:=True    {wspolny wal}
               else CoupledCtrl:=False;
+              s:=DUE(ExtractKeyWord(lines,'ScndS='));
+              if s='Yes' then
+               ScndS:=True    {brak pozycji rownoleglej przy niskiej nastawie PSR}
+              else ScndS:=False;
               s:=ExtractKeyWord(lines,'IniCDelay=');
               InitialCtrlDelay:=s2r(DUE(s));
               s:=ExtractKeyWord(lines,'SCDelay=');
@@ -6141,8 +6384,18 @@ begin
                     PowerParamDecode(lines,'AlterL',AlterLightPowerSource)
                   end
                  else AlterLightPowerSource.SourceType:=NotDefined;
-               end
-              else LightPowerSource.SourceType:=NotDefined;
+               end ;
+               s:=ExtractKeyWord(lines,'Volt=');
+                 if s<>'' then
+                 NominalVoltage:=s2r(DUE(s));
+
+             s:=ExtractKeyWord(lines,'LMaxVoltage=');
+                 if s<>'' then
+                 begin
+                 BatteryVoltage:=s2r(DUE(s));
+                 NominalBatteryVoltage:=s2r(DUE(s));
+               end;
+              //else LightPowerSource.SourceType:=NotDefined;
             end
           else if Pos('Security:',lines)>0 then      {zrodlo mocy dla oswietlenia}
             with SecuritySystem do
