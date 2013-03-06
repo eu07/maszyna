@@ -155,6 +155,7 @@ void __fastcall TTraction::Render(float mgn)   //McZapkie: mgn to odleglosc od o
   float r,g,b;
   switch (Material)
   {//Ra: kolory podzieli³em przez 2, bo po zmianie ambient za jasne by³y
+   //trzeba uwzglêdniæ kierunek œwiecenia S³oñca - tylko ze S³oñcem widaæ kolor
    case 1:
     if (TestFlag(DamageFlag,1))
     {
@@ -314,6 +315,7 @@ void  __fastcall TTraction::RaRenderVBO(float mgn,int iPtr)
   float r,g,b;
   switch (Material)
   {//Ra: kolory podzieli³em przez 2, bo po zmianie ambient za jasne by³y
+   //trzeba uwzglêdniæ kierunek œwiecenia S³oñca - tylko ze S³oñcem widaæ kolor
    case 1:
     if (TestFlag(DamageFlag,1))
     {

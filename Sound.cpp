@@ -40,11 +40,13 @@ __fastcall TSoundContainer::TSoundContainer( LPDIRECTSOUND pDS, char *Directory,
     pWaveSoundRead = new CWaveSoundRead();
 
     // Load the wave file
-    if( FAILED( pWaveSoundRead->Open( Name ) ) )
-    {
+    if (FAILED(pWaveSoundRead->Open(Name)))
+     if(FAILED(pWaveSoundRead->Open(strFileName)))
+     {
 //        SetFileUI( hDlg, TEXT("Bad wave file.") );
-        return;
-    }
+      return;
+      ErrorLog("Missed sound: "+AnsiString(strFileName));
+     }
 
     strcpy(Name,AnsiString(strFileName).LowerCase().c_str());
 
@@ -57,6 +59,7 @@ __fastcall TSoundContainer::TSoundContainer( LPDIRECTSOUND pDS, char *Directory,
     dsbd.dwFlags       = DSBCAPS_STATIC | DSBCAPS_CTRLPAN | DSBCAPS_CTRLVOLUME | DSBCAPS_CTRLFREQUENCY;
     dsbd.dwBufferBytes = pWaveSoundRead->m_ckIn.cksize;
     dsbd.lpwfxFormat   = pWaveSoundRead->m_pwfx;
+    fSamplingRate=pWaveSoundRead->m_pwfx->nSamplesPerSec;
 
 //    pDSBuffer= (LPDIRECTSOUNDBUFFER*) malloc(Concurrent*sizeof(LPDIRECTSOUNDBUFFER));
 //    for (int i=0; i<Concurrent; i++)
@@ -192,7 +195,7 @@ void __fastcall TSoundsManager::LoadSounds(char *Directory)
  FindClose(handle);
 };
 
-LPDIRECTSOUNDBUFFER __fastcall TSoundsManager::GetFromName(char *Name,bool Dynamic)
+LPDIRECTSOUNDBUFFER __fastcall TSoundsManager::GetFromName(char *Name,bool Dynamic,float *fSamplingRate)
 {//wyszukanie dŸwiêku w pamiêci albo wczytanie z pliku
  AnsiString file;
  if (Dynamic)
@@ -209,6 +212,8 @@ LPDIRECTSOUNDBUFFER __fastcall TSoundsManager::GetFromName(char *Name,bool Dynam
  {
   if (strcmp(Name,Next->Name)==0)
   {
+    if (fSamplingRate)
+    *fSamplingRate=Next->fSamplingRate; //czêstotliwoœæ
    return (Next->GetUnique(pDS));
 //      DSBuffers.
      /*
@@ -240,7 +245,12 @@ LPDIRECTSOUNDBUFFER __fastcall TSoundsManager::GetFromName(char *Name,bool Dynam
   Next=LoadFromFile("",Name,1);
  else
   Next=LoadFromFile(Directory,Name,1);
- if (Next) return Next->GetUnique(pDS);
+ if (Next)
+ {//
+  if (fSamplingRate)
+   *fSamplingRate=Next->fSamplingRate; //czêstotliwoœæ
+  return Next->GetUnique(pDS);
+ }
  Error("Cannot find sound "+AnsiString(Name));
  return (NULL);
 };

@@ -11,6 +11,7 @@ private:
  PSound pSound;
  char* Nazwa;  //dla celow odwszawiania
  double fDistance,fPreviousDistance;  //dla liczenia Dopplera
+ float fFrequency; //czêstotliwoœæ samplowania pliku
 public:
  vector3 vSoundPosition;      //polozenie zrodla dzwieku
  double dSoundAtt;  //odleglosc polowicznego zaniku dzwieku
