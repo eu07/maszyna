@@ -525,7 +525,6 @@ public:
 	int CabNo;
 	int DirAbsolute;
 	int ActiveCab;
-	int LastCab;
 	double LastSwitchingTime;
 	bool DepartureSignal;
 	bool InsideConsist;
@@ -592,7 +591,6 @@ public:
 	double TotalMassxg;
 	bool __fastcall GetTrainsetVoltage(void);
 	bool __fastcall Physic_ReActivation(void);
-	void __fastcall PantCheck(void);
 	double __fastcall LocalBrakeRatio(void);
 	double __fastcall ManualBrakeRatio(void);
 	double __fastcall PipeRatio(void);

@@ -44,8 +44,8 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asRelease="1.8.734.396";
-AnsiString Global::asVersion="Compilation 2013-01-02, release "+Global::asRelease+"."; //tutaj, bo wysy³any
+AnsiString Global::asRelease="13.2.765.408";
+AnsiString Global::asVersion="Compilation 2013-02-25, release "+Global::asRelease+"."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 double Global::fSunDeclination=0.0; //deklinacja S³oñca
@@ -64,6 +64,7 @@ cParser *Global::pParser=NULL;
 int Global::iSegmentsRendered=90; //iloœæ segmentów do regulacji wydajnoœci
 TCamera* Global::pCamera=NULL; //parametry kamery
 TDynamicObject *Global::pUserDynamic=NULL; //pojazd u¿ytkownika, renderowany bez trzêsienia
+bool Global::bSmudge=false; //czy wyœwietlaæ smugê, a pojazd u¿ytkownika na koñcu
 
 //parametry scenerii
 vector3 Global::pCameraPosition;
@@ -97,8 +98,8 @@ int Global::iFeedbackPort=0; //dodatkowy adres dla informacji zwrotnych
 bool Global::bFreeFly=false;
 bool Global::bFullScreen=false;
 bool Global::bInactivePause=true; //automatyczna pauza, gdy okno nieaktywne
-float Global::fMouseXScale=3.2;
-float Global::fMouseYScale=0.5;
+float Global::fMouseXScale=1.5;
+float Global::fMouseYScale=0.2;
 char Global::szSceneryFile[256]="td.scn";
 AnsiString Global::asHumanCtrlVehicle="EU07-424";
 int Global::iMultiplayer=0; //blokada dzia³ania niektórych funkcji na rzecz kominikacji
@@ -140,7 +141,7 @@ double Global::fRadiusFactor=1.1; //wspó³czynnik jednorazowej zmiany promienia s
 //parametry testowe (do testowania scenerii i obiektów)
 bool Global::bWireFrame=false;
 bool Global::bSoundEnabled=true;
-int Global::iWriteLogEnabled=3; //maska bitowa: 1-zapis do pliku, 2-okienko
+int Global::iWriteLogEnabled=3; //maska bitowa: 1-zapis do pliku, 2-okienko, 4-nazwy torów
 bool Global::bManageNodes=true;
 bool Global::bDecompressDDS=false; //czy programowa dekompresja DDS
 

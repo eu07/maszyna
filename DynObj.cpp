@@ -192,6 +192,7 @@ TDynamicObject* __fastcall TDynamicObject::GetFirstDynamic(int cpl_type)
  return FirstFind(cpl_type); //u¿ywa referencji
 };
 
+/*
 TDynamicObject* __fastcall TDynamicObject::GetFirstCabDynamic(int cpl_type)
 {//ZiomalCl: szukanie skrajnego obiektu z kabin¹
  TDynamicObject* temp=this;
@@ -221,6 +222,7 @@ TDynamicObject* __fastcall TDynamicObject::GetFirstCabDynamic(int cpl_type)
  }
  return NULL; //to tylko po wyczerpaniu pêtli
 };
+*/
 
 void TDynamicObject::ABuSetModelShake(vector3 mShake)
 {
@@ -1029,6 +1031,7 @@ void TDynamicObject::ABuScanObjects(int ScanDir,double ScanDist)
  }
 */
 
+ if (DebugModeFlag)
  if (FoundedObj) //kod s³u¿¹cy do logowania b³êdów
   if (CouplFound==0)
   {
@@ -1108,6 +1111,7 @@ void TDynamicObject::ABuScanObjects(int ScanDir,double ScanDist)
    FoundedObj->MoverParameters->Attach(CouplFound,MyCouplFound,this->MoverParameters,ctrain_virtual);
    if (CouplFound==0) //jeœli widoczny sprzêg 0 znalezionego
    {
+    if (DebugModeFlag)
     if (FoundedObj->PrevConnected)
      if (FoundedObj->PrevConnected!=this)
       WriteLog("1! Coupler warning on "+asName+":"+AnsiString(MyCouplFound)+" - "+FoundedObj->asName+":0 connected to "+FoundedObj->PrevConnected->asName+":"+AnsiString(FoundedObj->PrevConnectedNo));
@@ -1116,6 +1120,7 @@ void TDynamicObject::ABuScanObjects(int ScanDir,double ScanDist)
    }
    else //jeœli widoczny sprzêg 1 znalezionego
    {
+    if (DebugModeFlag)
     if (FoundedObj->NextConnected)
      if (FoundedObj->NextConnected!=this)
       WriteLog("1! Coupler warning on "+asName+":"+AnsiString(MyCouplFound)+" - "+FoundedObj->asName+":1 connected to "+FoundedObj->NextConnected->asName+":"+AnsiString(FoundedObj->NextConnectedNo));
@@ -1255,6 +1260,7 @@ __fastcall TDynamicObject::TDynamicObject()
  iHornWarning=1; //numer syreny do u¿ycia po otrzymaniu sygna³u do jazdy
  asDestination="none"; //stoj¹cy nigdzie nie jedzie
  pValveGear=NULL; //Ra: tymczasowo
+ iCabs=0; //maski bitowe modeli kabin
 }
 
 __fastcall TDynamicObject::~TDynamicObject()
@@ -1311,7 +1317,7 @@ double __fastcall TDynamicObject::Init(
  else if (DriverType.Pos("r")) //od ty³u sk³adu
   Cab=-1;//iDirection?-1:1;
  else if (DriverType=="c") //uaktywnianie wirtualnej kabiny
-  Cab=iDirection?1:-1; //to przestawi steruj¹cy
+  Cab=0; //iDirection?1:-1; //to przestawi steruj¹cy
  else if (DriverType=="p")
  {
   if (random(6)<3) Cab=1; else Cab=-1; //losowy przydzia³ kabiny
@@ -1455,17 +1461,21 @@ double __fastcall TDynamicObject::Init(
  {//McZapkie-040602: jeœli coœ siedzi w pojeŸdzie
   if (Name==AnsiString(Global::asHumanCtrlVehicle)) //jeœli pojazd wybrany do prowadzenia
   {
-   if (MoverParameters->EngineType!=Dumb) //i nie jest dumbem
-    //if (!DebugModeFlag) //w Debugmode prowadzi teraz AI - bierki, kabina znika... :/
-     Controller=Humandriver; //wsadzamy tam steruj¹cego
+   if (DebugModeFlag?false:MoverParameters->EngineType!=Dumb) //jak nie Debugmode i nie jest dumbem
+    Controller=Humandriver; //wsadzamy tam steruj¹cego
+   else //w przeciwnym razie trzeba w³¹czyæ pokazywanie kabiny
+    bDisplayCab=true;
   }
   //McZapkie-151102: rozk³ad jazdy czytany z pliku *.txt z katalogu w którym jest sceneria
   if (DriverType.Pos("h")||DriverType.Pos("r"))
   {//McZapkie-110303: mechanik i rozklad tylko gdy jest obsada
-   MoverParameters->ActiveCab=MoverParameters->CabNo; //ustalenie aktywnej kabiny (rozrz¹d)
+   //MoverParameters->ActiveCab=MoverParameters->CabNo; //ustalenie aktywnej kabiny (rozrz¹d)
    Mechanik=new TController(Controller,this,Aggressive);
    if (TrainName.IsEmpty()) //jeœli nie w sk³adzie
+   {
+    Mechanik->DirectionInitial();  //za³¹czenie rozrz¹du (wirtualne kabiny) itd.
     Mechanik->PutCommand("Timetable:",iDirection?-fVel:fVel,0,NULL); //tryb poci¹gowy z ustalon¹ prêdkoœci¹ (wzglêdem sprzêgów)
+   }
    //if (TrainName!="none")
    // Mechanik->PutCommand("Timetable:"+TrainName,fVel,0,NULL);
   }
@@ -2196,7 +2206,7 @@ lastcabf=(MoverParameters->CabNo*MoverParameters->DoubleTr);
 if (MoverParameters->TrainType==dt_EZT)
   lastcabf=1;
 if (lastcabf==0)
- lastcabf=MoverParameters->LastCab;
+ lastcabf=1; //MoverParameters->LastCab;
 if (lastcabf==1)
 {
 pcabc1=MoverParameters->PantFrontUp;
@@ -2666,6 +2676,11 @@ bool __fastcall TDynamicObject::Render()
   //double ObjDist= SquareMagnitude(Global::pCameraPosition-pos);
   if (this==Global::pUserDynamic)
   {//specjalne ustawienie, aby nie trzês³o
+   if (Global::bSmudge)
+   {//jak smuga, to rysowaæ po smudze
+    glPopMatrix(); //to trzeba zebraæ przed wyœciem
+    return true;
+   }
    //if (Global::pWorld->) //tu trzeba by ustawiæ animacje na modelu zewnêtrznym
    glLoadIdentity(); //zacz¹æ od macierzy jedynkowej
    Global::pCamera->SetCabMatrix(vPosition); //specjalne ustawienie kamery
@@ -3091,6 +3106,11 @@ bool __fastcall TDynamicObject::RenderAlpha()
   glPushMatrix();
   if (this==Global::pUserDynamic)
   {//specjalne ustawienie, aby nie trzês³o
+   if (Global::bSmudge)
+   {//jak smuga, to rysowaæ po smudze
+    glPopMatrix(); //to trzeba zebraæ przed wyœciem
+    return true;
+   }
    glLoadIdentity(); //zacz¹æ od macierzy jedynkowej
    Global::pCamera->SetCabMatrix(vPosition); //specjalne ustawienie kamery
   }
@@ -3192,7 +3212,7 @@ bool __fastcall TDynamicObject::RenderAlpha()
    glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
    glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
   }
-  glPopMatrix ( );
+  glPopMatrix();
   if (btnOn) TurnOff(); //przywrócenie domyœlnych pozycji submodeli
  }
  return true;
@@ -3582,7 +3602,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
        if ((str==AnsiString("engine:")) && (MoverParameters->Power>0))   //plik z dzwiekiem silnika, mnozniki i ofsety amp. i czest.
         {
          str= Parser->GetNextSymbol();
-         rsSilnik.Init(str.c_str(),Parser->GetNextSymbol().ToDouble(),GetPosition().x,GetPosition().y,GetPosition().z,true);
+         rsSilnik.Init(str.c_str(),Parser->GetNextSymbol().ToDouble(),GetPosition().x,GetPosition().y,GetPosition().z,true,true);
          if (MoverParameters->EngineType==DieselEngine)
           rsSilnik.AM=Parser->GetNextSymbol().ToDouble()/(MoverParameters->Power+MoverParameters->nmax*60);
          else if (MoverParameters->EngineType==DieselElectric)
@@ -3597,11 +3617,21 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
        if ((str==AnsiString("ventilator:")) && (MoverParameters->EngineType==ElectricSeriesMotor))    //plik z dzwiekiem wentylatora, mnozniki i ofsety amp. i czest.
         {
          str= Parser->GetNextSymbol();
-         rsWentylator.Init(str.c_str(),Parser->GetNextSymbol().ToDouble(),GetPosition().x,GetPosition().y,GetPosition().z,true);
+         rsWentylator.Init(str.c_str(),Parser->GetNextSymbol().ToDouble(),GetPosition().x,GetPosition().y,GetPosition().z,true,true);
          rsWentylator.AM=Parser->GetNextSymbol().ToDouble()/MoverParameters->RVentnmax;
          rsWentylator.AA=Parser->GetNextSymbol().ToDouble();
          rsWentylator.FM=Parser->GetNextSymbol().ToDouble()/MoverParameters->RVentnmax;
          rsWentylator.FA=Parser->GetNextSymbol().ToDouble();
+        }
+       else
+       if ((str==AnsiString("transmission:")) && (MoverParameters->EngineType==ElectricSeriesMotor))    //plik z dzwiekiem, mnozniki i ofsety amp. i czest.
+        {
+         str= Parser->GetNextSymbol();
+         rsPrzekladnia.Init(str.c_str(),Parser->GetNextSymbol().ToDouble(),GetPosition().x,GetPosition().y,GetPosition().z,true);
+         rsPrzekladnia.AM=0.029;
+         rsPrzekladnia.AA=0.1;
+         rsPrzekladnia.FM=0.005;
+         rsPrzekladnia.FA=1.0;
         }
        else
        if (str==AnsiString("brake:"))                      //plik z piskiem hamulca, mnozniki i ofsety amplitudy.
@@ -3703,6 +3733,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
         }
        if (str==AnsiString("converter:"))                      //pliki z przetwornica
         {
+         //if (MoverParameters->EngineType==DieselElectric) //bêdzie modulowany?
          sConverter.Load(Parser,GetPosition());
         }
        if (str==AnsiString("turbo:"))                      //pliki z turbogeneratorem
@@ -3716,7 +3747,24 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
       }
      else
      if (str==AnsiString("internaldata:"))                            //dalej nie czytaj
-      Stop_InternalData= true;
+     {while (!Parser->EndOfFile)
+      {//zbieranie informacji o kabinach
+       str=Parser->GetNextSymbol().LowerCase();
+       if (str=="cab0model:")
+       {str=Parser->GetNextSymbol();
+        if (str!="none") iCabs=2;
+       }
+       else if (str=="cab1model:")
+       {str=Parser->GetNextSymbol();
+        if (str!="none") iCabs=1;
+       }
+       else if (str=="cab2model:")
+       {str=Parser->GetNextSymbol();
+        if (str!="none") iCabs=4;
+       }
+      }
+      Stop_InternalData=true;
+     }
  }
  //ABu 050205 - tego wczesniej nie bylo i uciekala pamiec:
  delete Parser;

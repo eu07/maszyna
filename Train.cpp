@@ -118,6 +118,7 @@ __fastcall TTrain::TTrain()
  dsbSlipAlarm=NULL; //Bombardier 011010: alarm przy poslizgu dla 181/182
  dsbCouplerStretch=NULL;
  dsbBufferClamp=NULL;
+ iRadioChannel=0;
 }
 
 __fastcall TTrain::~TTrain()
@@ -127,12 +128,13 @@ __fastcall TTrain::~TTrain()
    DynamicObject->Mechanik->TakeControl(true); //likwidacja kabiny wymaga przejêcia przez AI
 }
 
-bool __fastcall TTrain::Init(TDynamicObject *NewDynamicObject)
+bool __fastcall TTrain::Init(TDynamicObject *NewDynamicObject,bool e3d)
 {//powi¹zanie rêcznego sterowania kabin¹ z pojazdem
  //Global::pUserDynamic=NewDynamicObject; //pojazd renderowany bez trzêsienia
  DynamicObject=NewDynamicObject;
- if (DynamicObject->Mechanik==NULL)
-  return false;
+ if (!e3d)
+  if (DynamicObject->Mechanik==NULL)
+   return false;
  //if (DynamicObject->Mechanik->AIControllFlag==AIdriver)
  // return false;
  DynamicObject->MechInside=true;
@@ -217,6 +219,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       if (cKey==Global::Keys[k_DirectionBackward])
       {
       if (DynamicObject->MoverParameters->Radio==false)
+        if (GetAsyncKeyState(VK_CONTROL)>=0)
           {
             dsbSwitch->SetVolume(DSBVOLUME_MAX);
             dsbSwitch->Play( 0, 0, 0 );
@@ -326,6 +329,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       }
       if (cKey==Global::Keys[k_Main])
       {
+       DynamicObject->MoverParameters->BatterySwitch(true); //na razie tutaj
            if (fabs(MainOnButtonGauge.GetValue())<0.001)
            {
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
@@ -1236,12 +1240,14 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       if (cKey==Global::Keys[k_DirectionBackward])  //r
       {
         if (GetAsyncKeyState(VK_CONTROL)<0)
+        {//wciœniêty [Ctrl]
           if (DynamicObject->MoverParameters->Radio==true)
           {
             dsbSwitch->SetVolume(DSBVOLUME_MAX);
             dsbSwitch->Play( 0, 0, 0 );
             DynamicObject->MoverParameters->Radio=false;
           }
+        }
         else
         if (DynamicObject->MoverParameters->DirectionBackward())
           {
@@ -2195,7 +2201,7 @@ void __fastcall TTrain::UpdateMechPosition(double dt)
   if (pMechOffset.y>Cabine[iCabn].CabPos1.y+1.8) pMechOffset.y=Cabine[iCabn].CabPos1.y+1.8;
   if (pMechOffset.y<Cabine[iCabn].CabPos1.y+0.5) pMechOffset.y=Cabine[iCabn].CabPos2.y+0.5;
  }
- pMechPosition=DynamicObject->mMatrix*pNewMechPosition;
+ pMechPosition=DynamicObject->mMatrix*pNewMechPosition; //po³o¿enie wzglêdem œrodka pojazdu w uk³adzie scenerii
  pMechPosition+=DynamicObject->GetPosition();
 };
 
@@ -3003,8 +3009,8 @@ else
         else
         if (DynamicObject->MoverParameters->BrakePress < 1)
            btLampkaStyczn.TurnOn();      //mozna prowadzic rozruch
-         if (((TestFlag(DynamicObject->MoverParameters->Couplers[1].CouplingFlag,ctrain_controll)) && (DynamicObject->MoverParameters->ActiveCab==1)) ||
-        ((TestFlag(DynamicObject->MoverParameters->Couplers[0].CouplingFlag,ctrain_controll)) && (DynamicObject->MoverParameters->ActiveCab==-1)))
+         if (((TestFlag(DynamicObject->MoverParameters->Couplers[1].CouplingFlag,ctrain_controll)) && (DynamicObject->MoverParameters->CabNo==1)) ||
+        ((TestFlag(DynamicObject->MoverParameters->Couplers[0].CouplingFlag,ctrain_controll)) && (DynamicObject->MoverParameters->CabNo==-1)))
            btLampkaUkrotnienie.TurnOn();
         else
            btLampkaUkrotnienie.TurnOff();
@@ -4490,7 +4496,7 @@ bool TTrain::CabChange(int iDirection)
   if (DynamicObject->MoverParameters->ChangeCab(iDirection))
    if (InitializeCab(DynamicObject->MoverParameters->ActiveCab,DynamicObject->asBaseDir+DynamicObject->MoverParameters->TypeName+".mmd"))
    {//zmiana kabiny w ramach tego samego pojazdu
-    DynamicObject->MoverParameters->CabActivisation();
+    DynamicObject->MoverParameters->CabActivisation(); //za³¹czenie rozrz¹du (wirtualne kabiny)
     return true; //uda³o siê zmieniæ kabinê
    }
   DynamicObject->MoverParameters->CabActivisation(); //aktywizacja poprzedniej, bo jeszcze nie wiadomo, czy jakiœ pojazd jest
@@ -4636,7 +4642,7 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
         if (str==AnsiString("brakesound:"))                    //hamowanie zwykle:
          {
           str=Parser->GetNextSymbol();
-          rsBrake.Init(str.c_str(),-1,0,0,0,true);
+          rsBrake.Init(str.c_str(),-1,0,0,0,true,true);
           rsBrake.AM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->MaxBrakeForce*1000);
           rsBrake.AA=Parser->GetNextSymbol().ToDouble();
           rsBrake.FM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
@@ -4726,7 +4732,7 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
         if (str==AnsiString("runningnoise:"))                    //szum podczas jazdy:
          {
           str=Parser->GetNextSymbol();
-          rsRunningNoise.Init(str.c_str(),-1,0,0,0,true);
+          rsRunningNoise.Init(str.c_str(),-1,0,0,0,true,true);
           rsRunningNoise.AM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
           rsRunningNoise.AA=Parser->GetNextSymbol().ToDouble();
           rsRunningNoise.FM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
@@ -4736,7 +4742,7 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
         if (str==AnsiString("engageslippery:"))                    //tarcie tarcz sprzegla:
          {
           str=Parser->GetNextSymbol();
-          rsEngageSlippery.Init(str.c_str(),-1,0,0,0,true);
+          rsEngageSlippery.Init(str.c_str(),-1,0,0,0,true,true);
           rsEngageSlippery.AM=Parser->GetNextSymbol().ToDouble();
           rsEngageSlippery.AA=Parser->GetNextSymbol().ToDouble();
           rsEngageSlippery.FM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->nmax);
@@ -4777,8 +4783,6 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
          {
           str=Parser->GetNextSymbol().LowerCase();
           dsbDoorOpen=TSoundsManager::GetFromName(str.c_str(),true);
-          dsbCouplerStretch=TSoundsManager::GetFromName("en57_couplers.wav",true);
-          dsbBufferClamp=TSoundsManager::GetFromName("en57_couplers.wav",true);
          }
       }
     }
@@ -4872,10 +4876,12 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
      Global::asCurrentTexturePath=DynamicObject->asBaseDir; //bie¿¹ca sciezka do tekstur to dynamic/...
      TModel3d *k=TModelsManager::GetModel(str.c_str(),true); //szukaj kabinê jako oddzielny model
      Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath); //z powrotem defaultowa sciezka do tekstur
-     if (DynamicObject->mdKabina!=k)
+     //if (DynamicObject->mdKabina!=k)
+     if (k)
       DynamicObject->mdKabina=k; //nowa kabina
-     else
-      break; //wyjœcie z pêtli, bo model zostaje bez zmian
+     //(mdKabina) mo¿e zostaæ to samo po przejœciu do innego cz³onu bez zmiany kabiny, przy powrocie musi byæ wi¹zanie ponowne
+     //else
+     // break; //wyjœcie z pêtli, bo model zostaje bez zmian
     }
     else if (cabindex==1) //model tylko, gdy nie ma kabiny 1
      DynamicObject->mdKabina=DynamicObject->mdModel;   //McZapkie-170103: szukaj elementy kabiny w glownym modelu

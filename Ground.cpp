@@ -337,7 +337,7 @@ void __fastcall TGroundNode::RenderAlphaVBO()
     glAlphaFunc(GL_GREATER,0.04);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 #endif
-    Traction->RaRenderVBO(mgn,iVboPtr);
+    Traction->RenderVBO(mgn,iVboPtr);
    }
    return;
   case TP_MODEL:
@@ -585,7 +585,7 @@ void __fastcall TGroundNode::RenderAlphaDL()
  {
   case TP_TRACTION:
    if (bVisible)
-    Traction->Render(mgn);
+    Traction->RenderDL(mgn);
    return;
   case TP_MODEL:
    Model->RenderAlphaDL(&pCenter);
@@ -917,6 +917,18 @@ void __fastcall TSubRect::RaAnimate()
  tTrackAnim=tTrackAnim->RaAnimate(); //przeliczenie animacji kolejnego
 };
 
+TTraction* __fastcall TSubRect::FindTraction(vector3 *Point,int &iConnection,TTraction *Exclude)
+{//szukanie przês³a w sektorze, którego koniec jest najbli¿szy (*Point)
+ TGroundNode *Current;
+ for (Current=nRenderWires;Current;Current=Current->Next)
+  if ((Current->iType==TP_TRACTION)&&(Current->Traction!=Exclude))
+   {
+    iConnection=Current->Traction->TestPoint(Point);
+    if (iConnection>=0) return Current->Traction;
+   }
+ return NULL;
+};
+
 void __fastcall TSubRect::LoadNodes()
 {//utworzenie siatek VBO dla wszystkich node w sektorze
  if (m_nVertexCount>=0) return; //obiekty by³y ju¿ sprawdzone
@@ -1228,9 +1240,9 @@ void __fastcall TGround::Free()
 
 TGroundNode* __fastcall TGround::FindGroundNode(AnsiString asNameToFind,TGroundNodeType iNodeType)
 {//wyszukiwanie obiektu o podanej nazwie i konkretnym typie
- if (iNodeType==TP_TRACK)
+ if ((iNodeType==TP_TRACK)||(iNodeType==TP_MEMCELL)||(iNodeType==TP_MODEL))
  {//wyszukiwanie w drzewie binarnym
-  return (TGroundNode*)sTracks->Find(TP_TRACK,asNameToFind.c_str());
+  return (TGroundNode*)sTracks->Find(iNodeType,asNameToFind.c_str());
  }
  //standardowe wyszukiwanie liniowe
  TGroundNode *Current;
@@ -1396,7 +1408,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
  else if (str=="line_strip")          tmp->iType=GL_LINE_STRIP;
  else if (str=="line_loop")           tmp->iType=GL_LINE_LOOP;
  else if (str=="model")               tmp->iType=TP_MODEL;
- else if (str=="terrain")             tmp->iType=TP_TERRAIN; //tymczasowo do odwo³ania
+ //else if (str=="terrain")             tmp->iType=TP_TERRAIN; //tymczasowo do odwo³ania
  else if (str=="dynamic")             tmp->iType=TP_DYNAMIC;
  else if (str=="sound")               tmp->iType=TP_SOUND;
  else if (str=="track")               tmp->iType=TP_TRACK;
@@ -1492,6 +1504,15 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    tmp->pCenter+=pOrigin;
    tmp->MemCell=new TMemCell(&tmp->pCenter);
    tmp->MemCell->Load(parser);
+   if (!tmp->asName.IsEmpty()) //jest pusta gdy "none"
+   {//dodanie do wyszukiwarki
+    if (sTracks->Update(TP_MEMCELL,tmp->asName.c_str(),tmp)) //najpierw sprawdziæ, czy ju¿ jest
+    {//przy zdublowaniu wskaŸnik zostanie podmieniony w drzewku na póŸniejszy (zgodnoœæ wsteczna)
+     ErrorLog("Duplicated memcell: "+tmp->asName); //to zg³aszaæ duplikat
+    }
+    else
+     sTracks->Add(TP_MEMCELL,tmp->asName.c_str(),tmp); //nazwa jest unikalna
+   }
    break;
   case TP_EVLAUNCH :
    parser->getTokens(3);
@@ -1502,7 +1523,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    break;
   case TP_TRACK :
    tmp->pTrack=new TTrack(tmp);
-   if (DebugModeFlag)
+   if (Global::iWriteLogEnabled&4)
     if (!tmp->asName.IsEmpty())
      WriteLog(tmp->asName.c_str());
    tmp->pTrack->Load(parser,pOrigin,tmp->asName); //w nazwie mo¿e byæ nazwa odcinka izolowanego
@@ -1641,7 +1662,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    }
    else
    {//gdy tor nie znaleziony
-    Error("Track does not exist \""+tmp->DynamicObject->asTrack+"\"");
+    ErrorLog("Missed track: dynamic placed on \""+tmp->DynamicObject->asTrack+"\"");
     delete tmp;
     tmp=NULL; //nie mo¿e byæ tu return, bo trzeba pomin¹æ jeszcze enddynamic
    }
@@ -1658,7 +1679,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    if (token.compare("enddynamic")!=0)
     Error("enddynamic statement missing");
    break;
-  case TP_TERRAIN: //TODO: zrobiæ jak zwyk³y, rozró¿nienie po nazwie albo czymœ innym
+  //case TP_TERRAIN: //TODO: zrobiæ jak zwyk³y, rozró¿nienie po nazwie albo czymœ innym
   case TP_MODEL:
    if (rmin<0)
    {tmp->iType=TP_TERRAIN;
@@ -1720,9 +1741,18 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
      //tmp->nNode[i].asName=
     }
    }
+   else if (!tmp->asName.IsEmpty()) //jest pusta gdy "none"
+   {//dodanie do wyszukiwarki
+    if (sTracks->Update(TP_MODEL,tmp->asName.c_str(),tmp)) //najpierw sprawdziæ, czy ju¿ jest
+    {//przy zdublowaniu wskaŸnik zostanie podmieniony w drzewku na póŸniejszy (zgodnoœæ wsteczna)
+     ErrorLog("Duplicated model: "+tmp->asName); //to zg³aszaæ duplikat
+    }
+    else
+     sTracks->Add(TP_MODEL,tmp->asName.c_str(),tmp); //nazwa jest unikalna
+   }
    //str=Parser->GetNextSymbol().LowerCase();
    break;
-  case TP_GEOMETRY :
+  //case TP_GEOMETRY :
   case GL_TRIANGLES :
   case GL_TRIANGLE_STRIP :
   case GL_TRIANGLE_FAN :
@@ -2016,7 +2046,18 @@ void __fastcall TGround::FirstInit()
  glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);  //kolor padaj¹cy
  glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight); //kolor odbity
  //musi byæ tutaj, bo wczeœniej nie mieliœmy wartoœci œwiat³a
- if (Global::bDoubleAmbient) //Ra: wczeœniej by³o ambient dawane na obydwa œwiat³a
+ if (Global::fMoveLight>=0.0) //albo tak, albo niech ustala minimum ciemnoœci w nocy
+ {
+  Global::fLuminance= //obliczenie luminacji "œwiat³a w ciemnoœci"
+   +0.150*Global::ambientDayLight[0]  //R
+   +0.295*Global::ambientDayLight[1]  //G
+   +0.055*Global::ambientDayLight[2]; //B
+  if (Global::fLuminance>0.1) //jeœli mia³o by byæ za jasno
+   for (int i=0;i<3;i++)
+    Global::ambientDayLight[i]*=0.1/Global::fLuminance; //ograniczenie jasnoœci w nocy
+  glLightModelfv(GL_LIGHT_MODEL_AMBIENT,Global::ambientDayLight);
+ }
+ else if (Global::bDoubleAmbient) //Ra: wczeœniej by³o ambient dawane na obydwa œwiat³a
   glLightModelfv(GL_LIGHT_MODEL_AMBIENT,Global::ambientDayLight);
  glEnable(GL_LIGHTING);
  WriteLog("FirstInit is done");
@@ -2140,9 +2181,12 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
      if (str==AnsiString("endtrainset"))
      {//McZapkie-110103: sygnaly konca pociagu ale tylko dla pociagow rozkladowych
       if (TrainSetNode) //trainset bez dynamic siê sypa³
-      {
+      {//powinien te¿ tu wchodziæ, gdy pojazd bez trainset
        if (TrainSetDriver) //pojazd, któremu zostanie wys³any rozk³ad
+       {
+        TrainSetDriver->DynamicObject->Mechanik->DirectionInitial();
         TrainSetDriver->DynamicObject->Mechanik->PutCommand("Timetable:"+asTrainName,fTrainSetVel,0,NULL);
+       }
        if (asTrainName!="none")
        {//gdy podana nazwa, w³¹czenie jazdy poci¹gowej
 /*
@@ -2325,7 +2369,7 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
       parser.getTokens(); parser >> lp.x;
       parser.getTokens(); parser >> lp.y;
       parser.getTokens(); parser >> lp.z;
-      lp=Normalize(lp);
+      lp=Normalize(lp); //kierunek padania
       Global::lightPos[0]=lp.x; //daylight position
       Global::lightPos[1]=lp.y;
       Global::lightPos[2]=lp.z;
@@ -2445,6 +2489,8 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
 
  delete parser;
  sTracks->Sort(TP_TRACK); //finalne sortowanie drzewa torów
+ sTracks->Sort(TP_MEMCELL); //finalne sortowanie drzewa komórek pamiêci
+ sTracks->Sort(TP_MODEL); //finalne sortowanie drzewa modeli
  sTracks->Sort(0); //finalne sortowanie drzewa eventów
  if (!bInitDone) FirstInit(); //jeœli nie by³o w scenerii
  if (Global::pTerrainCompact)
@@ -2463,37 +2509,37 @@ bool __fastcall TGround::InitEvents()
   {
    case tp_AddValues: //sumowanie wartoœci
    case tp_UpdateValues: //zmiana wartoœci
-    tmp=FindGroundNode(Current->asNodeName,TP_MEMCELL);
+    tmp=FindGroundNode(Current->asNodeName,TP_MEMCELL); //nazwa komórki powi¹zanej z eventem
     if (tmp)
     {//McZapkie-100302
      if (Current->iFlags&(conditional_trackoccupied|conditional_trackfree))
      {//jeœli chodzi o zajetosc toru (tor mo¿e byæ inny, ni¿ wpisany w komórce)
-      tmp=FindGroundNode(Current->asNodeName,TP_TRACK); //nazwa ta sama, co nazwa komórki
+      tmp=FindGroundNode(Current->asNodeName,TP_TRACK); //nazwa toru ta sama, co nazwa komórki
       if (tmp) Current->Params[9].asTrack=tmp->pTrack;
       if (!Current->Params[9].asTrack)
-       Error(AnsiString("Track \"")+AnsiString(buff)+"\" does not exist in \""+Current->asName+"\"");
+       ErrorLog("Bad event: track \""+AnsiString(Current->asNodeName)+"\" does not exists in \""+Current->asName+"\"");
      }
      Current->Params[4].asGroundNode=tmp;
      Current->Params[5].asMemCell=tmp->MemCell; //komórka do aktualizacji
      if (Current->iFlags&(conditional_memcompare))
       Current->Params[9].asMemCell=tmp->MemCell; //komórka do badania warunku
-     if (tmp->MemCell->asTrackName!="none")
+     if (tmp->MemCell->asTrackName!="none") //tor powi¹zany z komórk¹ powi¹zan¹ z eventem
      {//tu potrzebujemy wskaŸnik do komórki w (tmp)
       tmp=FindGroundNode(tmp->MemCell->asTrackName,TP_TRACK);
       if (tmp)
        Current->Params[6].asTrack=tmp->pTrack;
       else
-       Error("MemCell track not exist!");
+       ErrorLog("Bad memcell: track \""+tmp->MemCell->asTrackName+"\" not exists in \""+tmp->MemCell->asTrackName+"\"");
      }
      else
       Current->Params[6].asTrack=NULL;
     }
     else
-     Error("Event \""+Current->asName+"\" cannot find memcell \""+Current->asNodeName+"\"");
+     ErrorLog("Bad event: \""+Current->asName+"\" cannot find memcell \""+Current->asNodeName+"\"");
    break;
    case tp_LogValues: //skojarzenie z memcell
     if (Current->asNodeName.IsEmpty())
-    {//brak skojarzenia daje logowanie wszystkich 
+    {//brak skojarzenia daje logowanie wszystkich
      Current->Params[9].asMemCell=NULL;
      break;
     }
@@ -2509,7 +2555,7 @@ bool __fastcall TGround::InitEvents()
        Current->bEnabled=false; //to event nie bêdzie dodawany do kolejki
     }
     else
-     Error("Event \""+Current->asName+"\" cannot find memcell \""+Current->asNodeName+"\"");
+     ErrorLog("Bad event: \""+Current->asName+"\" cannot find memcell \""+Current->asNodeName+"\"");
    break;
    case tp_CopyValues: //skopiowanie komórki do innej
     tmp=FindGroundNode(Current->asNodeName,TP_MEMCELL); //komórka docelowa
@@ -2519,9 +2565,9 @@ bool __fastcall TGround::InitEvents()
      Current->Params[5].asMemCell=tmp->MemCell; //komórka docelowa
     }
     else
-     Error("Event \""+Current->asName+"\" cannot find memcell \""+Current->asNodeName+"\"");
+     ErrorLog("Bad copyvalues: event \""+Current->asName+"\" cannot find memcell \""+Current->asNodeName+"\"");
     strcpy(buff,Current->Params[9].asText); //skopiowanie nazwy drugiej komórki do bufora roboczego
-    SafeDeleteArray(Current->Params[9].asText); //usuniêcie nazwy komórki 
+    SafeDeleteArray(Current->Params[9].asText); //usuniêcie nazwy komórki
     tmp=FindGroundNode(buff,TP_MEMCELL); //komórka Ÿód³owa
     if (tmp)
     {
@@ -2529,7 +2575,7 @@ bool __fastcall TGround::InitEvents()
      Current->Params[9].asMemCell=tmp->MemCell; //komórka Ÿród³owa
     }
     else
-     Error("Event \""+Current->asName+"\" cannot find memcell \""+AnsiString(buff)+"\"");
+     ErrorLog("Bad copyvalues: event \""+Current->asName+"\" cannot find memcell \""+AnsiString(buff)+"\"");
    break;
    case tp_Animation: //animacja modelu
     tmp=FindGroundNode(Current->asNodeName,TP_MODEL); //egzemplarza modelu do animowania
@@ -2537,12 +2583,17 @@ bool __fastcall TGround::InitEvents()
     {
      strcpy(buff,Current->Params[9].asText); //skopiowanie nazwy submodelu do bufora roboczego
      SafeDeleteArray(Current->Params[9].asText); //usuniêcie nazwy submodelu
-     Current->Params[9].asAnimContainer=tmp->Model->GetContainer(buff); //submodel
-     if (Current->Params[9].asAnimContainer)
-      Current->Params[9].asAnimContainer->WillBeAnimated(); //oflagowanie animacji
+     if (Current->Params[0].asInt==4)
+      Current->Params[9].asModel=tmp->Model; //model dla ca³omodelowych animacji
+     else
+     {//standardowo przypisanie submodelu
+      Current->Params[9].asAnimContainer=tmp->Model->GetContainer(buff); //submodel
+      if (Current->Params[9].asAnimContainer)
+       Current->Params[9].asAnimContainer->WillBeAnimated(); //oflagowanie animacji
+     }
     }
     else
-     Error("Event \""+Current->asName+"\" cannot find model \""+Current->asNodeName+"\"");
+     ErrorLog("Bad animation: event \""+Current->asName+"\" cannot find model \""+Current->asNodeName+"\"");
     Current->asNodeName="";
    break;
    case tp_Lights: //zmiana œwiete³ modelu
@@ -2550,7 +2601,7 @@ bool __fastcall TGround::InitEvents()
     if (tmp)
      Current->Params[9].asModel=tmp->Model;
     else
-     Error("Event \""+Current->asName+"\" cannot find model \""+Current->asNodeName+"\"");
+     ErrorLog("Bad lights: event \""+Current->asName+"\" cannot find model \""+Current->asNodeName+"\"");
     Current->asNodeName="";
    break;
    case tp_Visible: //ukrycie albo przywrócenie obiektu
@@ -2560,7 +2611,7 @@ bool __fastcall TGround::InitEvents()
     if (tmp)
      Current->Params[9].asGroundNode=tmp;
     else
-     Error("Event \""+Current->asName+"\" cannot find model \""+Current->asNodeName+"\"");
+     ErrorLog("Bad visibility: event \""+Current->asName+"\" cannot find model \""+Current->asNodeName+"\"");
     Current->asNodeName="";
    break;
    case tp_Switch: //peze³o¿enie zwrotnicy albo zmiana stanu obrotnicy
@@ -2568,7 +2619,7 @@ bool __fastcall TGround::InitEvents()
     if (tmp)
      Current->Params[9].asTrack=tmp->pTrack;
     else
-     Error("Event \""+Current->asName+"\" cannot find track \""+Current->asNodeName+"\"");
+     ErrorLog("Bad switch: event \""+Current->asName+"\" cannot find track \""+Current->asNodeName+"\"");
     Current->asNodeName="";
    break;
    case tp_Sound: //odtworzenie dŸwiêku
@@ -2576,7 +2627,7 @@ bool __fastcall TGround::InitEvents()
     if (tmp)
      Current->Params[9].asRealSound=tmp->pStaticSound;
     else
-     Error("Event \""+Current->asName+"\" cannot find static sound \""+Current->asNodeName+"\"");
+     ErrorLog("Bad sound: event \""+Current->asName+"\" cannot find static sound \""+Current->asNodeName+"\"");
     Current->asNodeName="";
    break;
    case tp_TrackVel: //ustawienie prêdkoœci na torze
@@ -2586,7 +2637,7 @@ bool __fastcall TGround::InitEvents()
      if (tmp)
       Current->Params[9].asTrack=tmp->pTrack;
      else
-      Error("Event \""+Current->asName+"\" cannot find track \""+Current->asNodeName+"\"");
+      ErrorLog("Bad velocity: event \""+Current->asName+"\" cannot find track \""+Current->asNodeName+"\"");
     }
     Current->asNodeName= "";
    break;
@@ -2605,22 +2656,27 @@ bool __fastcall TGround::InitEvents()
    break;
    case tp_Multiple:
     if (Current->Params[9].asText!=NULL)
-    {//powi¹zanie z komórk¹ pamiêci
+    {//przepisanie nazwy do bufora
      strcpy(buff,Current->Params[9].asText);
      SafeDeleteArray(Current->Params[9].asText);
-     if (Current->iFlags&(conditional_trackoccupied|conditional_trackfree))
-     {//jeœli chodzi o zajetosc toru
-      tmp=FindGroundNode(buff,TP_TRACK);
-      if (tmp) Current->Params[9].asTrack=tmp->pTrack;
-      if (!Current->Params[9].asTrack)
-       Error(AnsiString("Track \"")+AnsiString(buff)+"\" does not exist in \""+Current->asName+"\"");
+    }
+    else buff[0]='\0';
+    if (Current->iFlags&(conditional_trackoccupied|conditional_trackfree))
+    {//jeœli chodzi o zajetosc toru
+     tmp=FindGroundNode(buff,TP_TRACK);
+     if (tmp) Current->Params[9].asTrack=tmp->pTrack;
+     if (!Current->Params[9].asTrack)
+     {ErrorLog(AnsiString("Bad event: Track \"")+AnsiString(buff)+"\" does not exist in \""+Current->asName+"\"");
+      Current->iFlags&=~(conditional_trackoccupied|conditional_trackfree); //zerowanie flag
      }
-     else if (Current->iFlags&(conditional_memstring|conditional_memval1|conditional_memval2))
-     {//jeœli chodzi o komorke pamieciow¹
-      tmp=FindGroundNode(buff,TP_MEMCELL);
-      if (tmp) Current->Params[9].asMemCell=tmp->MemCell;
-      if (!Current->Params[9].asMemCell)
-       Error(AnsiString("MemCell \"")+AnsiString(buff)+AnsiString("\" does not exist in \""+Current->asName+"\""));
+    }
+    else if (Current->iFlags&(conditional_memstring|conditional_memval1|conditional_memval2))
+    {//jeœli chodzi o komorke pamieciow¹
+     tmp=FindGroundNode(buff,TP_MEMCELL);
+     if (tmp) Current->Params[9].asMemCell=tmp->MemCell;
+     if (!Current->Params[9].asMemCell)
+     {ErrorLog(AnsiString("Bad event: MemCell \"")+AnsiString(buff)+AnsiString("\" does not exist in \""+Current->asName+"\""));
+      Current->iFlags&=~(conditional_memstring|conditional_memval1|conditional_memval2);
      }
     }
     for (i=0;i<8;i++)
@@ -2772,7 +2828,43 @@ void __fastcall TGround::InitTracks()
 
 void __fastcall TGround::InitTraction()
 {//³¹czenie drutów ze sob¹ oraz z torami i eventami
-}
+ TGroundNode *Current;
+ TTraction *tmp; //znalezione przês³o
+ TTraction *Traction;
+ int iConnection,state;
+ AnsiString name;
+ for (Current=nRootOfType[TP_TRACTION];Current;Current=Current->Next)
+ {
+  Traction=Current->Traction;
+  if (!Traction->pPrev) //tylko jeœli jeszcze nie pod³¹czony
+  {
+   tmp=FindTraction(&Traction->pPoint1,iConnection,Current);
+   switch (iConnection)
+   {
+    case 0:
+     Traction->Connect(0,tmp,0);
+    break;
+    case 1:
+     Traction->Connect(0,tmp,1);
+    break;
+   }
+  }
+  if (!Traction->pNext) //tylko jeœli jeszcze nie pod³¹czony
+  {
+   tmp=FindTraction(&Traction->pPoint2,iConnection,Current);
+   switch (iConnection)
+   {
+    case 0:
+     Traction->Connect(1,tmp,0);
+    break;
+    case 1:
+     Traction->Connect(1,tmp,1);
+    break;
+   }
+  }
+  break;
+ }
+};
 
 void __fastcall TGround::TrackJoin(TGroundNode *Current)
 {//wyszukiwanie s¹siednich torów do pod³¹czenia (wydzielone na u¿ytek obrotnicy)
@@ -2845,12 +2937,14 @@ TTrack* __fastcall TGround::FindTrack(vector3 Point,int &iConnection,TGroundNode
   if ((sr=FastGetSubRect(c+y,r+x))!=NULL)
    if ((tmp=sr->FindTrack(&Point,iConnection,Exclude->pTrack))!=NULL)
     return tmp;
-  if ((sr=FastGetSubRect(c+y,r-x))!=NULL)
-   if ((tmp=sr->FindTrack(&Point,iConnection,Exclude->pTrack))!=NULL)
-    return tmp;
-  if ((sr=FastGetSubRect(c-y,r+x))!=NULL)
-   if ((tmp=sr->FindTrack(&Point,iConnection,Exclude->pTrack))!=NULL)
-    return tmp;
+  if (x)
+   if ((sr=FastGetSubRect(c+y,r-x))!=NULL)
+    if ((tmp=sr->FindTrack(&Point,iConnection,Exclude->pTrack))!=NULL)
+     return tmp;
+  if (y)
+   if ((sr=FastGetSubRect(c-y,r+x))!=NULL)
+    if ((tmp=sr->FindTrack(&Point,iConnection,Exclude->pTrack))!=NULL)
+     return tmp;
   if ((sr=FastGetSubRect(c-y,r-x))!=NULL)
    if ((tmp=sr->FindTrack(&Point,iConnection,Exclude->pTrack))!=NULL)
     return tmp;
@@ -2869,6 +2963,41 @@ TTrack* __fastcall TGround::FindTrack(vector3 Point,int &iConnection,TGroundNode
  return NULL;
 }
 
+TTraction* __fastcall TGround::FindTraction(vector3 *Point,int &iConnection,TGroundNode *Exclude)
+{//wyszukiwanie innego przês³a koñcz¹cego siê w (Point)
+ TTraction *Traction;
+ TGroundNode *Current;
+ TTraction *tmp;
+ iConnection=-1;
+ TSubRect *sr;
+ //najpierw szukamy w okolicznych segmentach
+ int c=GetColFromX(Point->x);
+ int r=GetRowFromZ(Point->z);
+ if ((sr=FastGetSubRect(c,r))!=NULL) //wiêkszoœæ bêdzie w tym samym sektorze
+  if ((tmp=sr->FindTraction(Point,iConnection,Exclude->Traction))!=NULL)
+   return tmp;
+ int i,x,y;
+ for (i=1;i<9;++i) //sektory w kolejnoœci odleg³oœci, 4 jest tu wystarczaj¹ce, 9 na wszelki wypadek
+ {//wszystkie przês³a powinny zostaæ znajdowaæ siê w s¹siednich 8 sektorach
+  x=SectorOrder[i].x;
+  y=SectorOrder[i].y;
+  if ((sr=FastGetSubRect(c+y,r+x))!=NULL)
+   if ((tmp=sr->FindTraction(Point,iConnection,Exclude->Traction))!=NULL)
+    return tmp;
+  if (x)
+   if ((sr=FastGetSubRect(c+y,r-x))!=NULL)
+    if ((tmp=sr->FindTraction(Point,iConnection,Exclude->Traction))!=NULL)
+     return tmp;
+  if (y)
+   if ((sr=FastGetSubRect(c-y,r+x))!=NULL)
+    if ((tmp=sr->FindTraction(Point,iConnection,Exclude->Traction))!=NULL)
+     return tmp;
+  if ((sr=FastGetSubRect(c-y,r-x))!=NULL)
+   if ((tmp=sr->FindTraction(Point,iConnection,Exclude->Traction))!=NULL)
+    return tmp;
+ }
+ return NULL;
+}
 
 /*
 TGroundNode* __fastcall TGround::CreateGroundNode()
@@ -3107,13 +3236,20 @@ bool __fastcall TGround::CheckQuery()
        vector3(tmpEvent->Params[1].asdouble,
                tmpEvent->Params[2].asdouble,
                tmpEvent->Params[3].asdouble),
-               tmpEvent->Params[4].asdouble);
+       tmpEvent->Params[4].asdouble);
      else if (tmpEvent->Params[0].asInt==2)
       tmpEvent->Params[9].asAnimContainer->SetTranslateAnim(
        vector3(tmpEvent->Params[1].asdouble,
                tmpEvent->Params[2].asdouble,
                tmpEvent->Params[3].asdouble),
-               tmpEvent->Params[4].asdouble);
+       tmpEvent->Params[4].asdouble);
+     else if (tmpEvent->Params[0].asInt==4)
+      tmpEvent->Params[9].asModel->AnimationVND(
+       tmpEvent->Params[8].asPointer,
+       tmpEvent->Params[1].asdouble, //tu mog¹ byæ dodatkowe parametry, np. od-do
+       tmpEvent->Params[2].asdouble,
+       tmpEvent->Params[3].asdouble,
+       tmpEvent->Params[4].asdouble);
     break;
     case tp_Switch :
      if (tmpEvent->Params[9].asTrack)
@@ -3827,7 +3963,7 @@ TDynamicObject* __fastcall TGround::DynamicNearest(vector3 pPosition,double dist
   for (i=c-1;i<=c+1;i++)
    if ((tmp=FastGetSubRect(i,j))!=NULL)
     for (node=tmp->nRootNode;node;node=node->nNext2) //nastêpny z sektora
-     if (node->iType==TP_TRACK)
+     if (node->iType==TP_TRACK) //Ra: przebudowaæ na u¿ycie tabeli torów?
       for (k=0;k<node->pTrack->iNumDynamics;k++)
        if ((sqd=SquareMagnitude(node->pTrack->Dynamics[k]->GetPosition()-pPosition))<sqm)
         if (mech?(node->pTrack->Dynamics[k]->Mechanik!=NULL):true) //czy ma mieæ obsadê

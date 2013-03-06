@@ -126,7 +126,11 @@ enum TAnimType //rodzaj animacji
  at_Billboard, //obrót w pionie do kamery
  at_Wind, //ruch pod wp³ywem wiatru
  at_Sky, //animacja nieba
- at_Undefined=0xFFFFFFFF //animacja chwilowo nieokreœlona
+ at_IK=0x100, //odwrotna kinematyka - submodel steruj¹cy (np. staw skokowy)
+ at_IK11=0x101, //odwrotna kinematyka - submodel nadrzêdny do sterowango (np. stopa)
+ at_IK21=0x102, //odwrotna kinematyka - submodel nadrzêdny do sterowango (np. podudzie)
+ at_IK22=0x103, //odwrotna kinematyka - submodel nadrzêdny do nadrzêdnego sterowango (np. udo)
+ at_Undefined=0x800000FF //animacja chwilowo nieokreœlona
 };
 
 class TModel3d;
@@ -141,7 +145,9 @@ private:
  TSubModel *Child;
  int eType; //Ra: modele binarne daj¹ wiêcej mo¿liwoœci ni¿ mesh z³o¿ony z trójk¹tów
  int iName; //numer ³añcucha z nazw¹ submodelu, albo -1 gdy anonimowy
+public: //chwilowo
  TAnimType b_Anim;
+private:
  int iFlags; //flagi informacyjne:
  //bit  0: =1 faza rysowania zale¿y od wymiennej tekstury 0
  //bit  1: =1 faza rysowania zale¿y od wymiennej tekstury 1
@@ -176,7 +182,7 @@ private:
  //McZapkie-050702: parametry dla swiatla:
  float fNearAttenStart;
  float fNearAttenEnd;
- bool bUseNearAtten;      //te 3 zmienne okreslaja rysowanie aureoli wokol zrodla swiatla
+ int bUseNearAtten;      //te 3 zmienne okreslaja rysowanie aureoli wokol zrodla swiatla
  int iFarAttenDecay;      //ta zmienna okresla typ zaniku natezenia swiatla (0:brak, 1,2: potega 1/R)
  float fFarDecayRadius;  //normalizacja j.w.
  float fCosFalloffAngle; //cosinus k¹ta sto¿ka pod którym widaæ œwiat³o
@@ -184,21 +190,24 @@ private:
  float fCosViewAngle;    //cos kata pod jakim sie teraz patrzy
  //Ra: dalej s¹ zmienne robocze, mo¿na je przestawiaæ z zachowaniem rozmiaru klasy
  int TextureID; //numer tekstury, -1 wymienna, 0 brak
- bool bWire; //nie u¿ywane, ale wczytywane
- bool TexAlpha;  //Ra: nie u¿ywane ju¿
+ int bWire; //nie u¿ywane, ale wczytywane
+ //short TexAlpha;  //Ra: nie u¿ywane ju¿
  GLuint uiDisplayList; //roboczy numer listy wyœwietlania
- float Transparency; //nie u¿ywane, ale wczytywane
+ float Opacity; //nie u¿ywane, ale wczytywane
  //ABu: te same zmienne, ale zdublowane dla Render i RenderAlpha,
  //bo sie chrzanilo przemieszczanie obiektow.
  //Ra: ju¿ siê nie chrzani
  float f_Angle;
  float3 v_RotateAxis;
  float3 v_Angles;
+public: //chwilowo
  float3 v_TransVector;
  float8 *Vertices; //roboczy wskaŸnik - wczytanie T3D do VBO
  int iAnimOwner; //roboczy numer egzemplarza, który ustawi³ animacjê
  TAnimType b_aAnim; //kody animacji oddzielnie, bo zerowane
- char space[20]; //wolne miejsce na przysz³e zmienne (zmniejszyæ w miarê potrzeby)
+public:
+ float4x4 *mAnimMatrix; //macierz do animacji kwaternionowych (nale¿y do AnimContainer)
+ char space[16]; //wolne miejsce na przysz³e zmienne (zmniejszyæ w miarê potrzeby)
 public:
  int iVisible; //roboczy stan widocznoœci
  //AnsiString asTexture; //robocza nazwa tekstury do zapisania w pliku binarnym
@@ -233,6 +242,7 @@ public:
  void __fastcall SetRotateXYZ(float3 vNewAngles);
  void __fastcall SetTranslate(vector3 vNewTransVector);
  void __fastcall SetTranslate(float3 vNewTransVector);
+ void __fastcall SetRotateIK1(float3 vNewAngles);
  TSubModel* __fastcall GetFromName(AnsiString search,bool i=true);
  TSubModel* __fastcall GetFromName(char *search,bool i=true);
  void __fastcall RenderDL();
@@ -260,6 +270,10 @@ public:
  int __fastcall Flags() {return iFlags;};
  void __fastcall UnFlagNext() {iFlags&=0x00FFFFFF;};
  void __fastcall ColorsSet(int *a,int *d,int*s);
+ inline float3 Translation1Get()
+ {return fMatrix?*(fMatrix->TranslationGet())+v_TransVector:v_TransVector;}
+ inline float3 Translation2Get()
+ {return *(fMatrix->TranslationGet())+Child->Translation1Get();}
 };
 
 class TSubModelInfo

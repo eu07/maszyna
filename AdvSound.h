@@ -2,8 +2,8 @@
 #ifndef AdvSoundH
 #define AdvSoundH
 
-#include "sound.h"
-#include "realsound.h"
+#include "Sound.h"
+#include "RealSound.h"
 #include "QueryParserComp.hpp"
 
 typedef enum {ss_Off, ss_Starting, ss_Commencing, ss_ShuttingDown} TSoundState;

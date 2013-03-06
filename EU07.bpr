@@ -6,11 +6,11 @@
     <PROJECT value="E:\MaSzyna_01_13\MaSzyna_01_13\EU07.exe"/>
     <OBJFILES value="QueryParserComp.obj McZapkie\mtable.obj McZapkie\_mover.obj 
       McZapkie\hamulce.obj EU07.obj dumb3d.obj Camera.obj Texture.obj World.obj 
-      Model3d.obj geometry.obj MdlMngr.obj Train.obj wavread.obj Timer.obj 
-      Event.obj MemCell.obj Logs.obj Spring.obj Button.obj Globals.obj Gauge.obj 
+      Model3d.obj MdlMngr.obj Train.obj wavread.obj Timer.obj Event.obj 
+      MemCell.obj Logs.obj Spring.obj Button.obj Globals.obj Gauge.obj 
       AnimModel.obj Ground.obj TrkFoll.obj Segment.obj Sound.obj AdvSound.obj 
       Track.obj DynObj.obj RealSound.obj EvLaunch.obj FadeSound.obj Traction.obj 
-      TractionPower.obj parser.obj sky.obj AirCoupler.obj glew.obj 
+      TractionPower.obj parser.obj sky.obj AirCoupler.obj opengl\glew.obj 
       ResourceManager.obj VBO.obj TextureDDS.obj opengl\ARB_Multisample.obj 
       Float3d.obj Classes.obj Driver.obj Names.obj Console.obj Mover.obj 
       Console\PoKeys55.obj Forth.obj Console\LPT.obj"/>
@@ -40,7 +40,7 @@
   <OPTIONS>
     <IDLCFLAGS value="-src_suffix cpp -DGLEW_STATIC -D_DEBUG -IConsole -Iopengl -IMcZapkie 
       -I$(BCB)\include -I$(BCB)\include\vcl -boa"/>
-    <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a4 -6 -b- -k -y -v -vi- 
+    <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a1 -6 -b- -k -y -v -vi- 
       -c -tW -tWM"/>
     <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
     <RFLAGS value=""/>
@@ -56,10 +56,10 @@
 [Version Info]
 IncludeVerInfo=1
 AutoIncBuild=0
-MajorVer=1
-MinorVer=8
-Release=734
-Build=396
+MajorVer=13
+MinorVer=2
+Release=765
+Build=408
 Debug=1
 PreRelease=0
 Special=0
@@ -71,13 +71,13 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=1.8.734.396
-InternalName=8th by Ra + Megapack + SPKS
+FileVersion=13.2.765.408
+InternalName=8th by Ra + SPKS
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=eu07.exe
 ProductName=MaSzyna EU07-424
-ProductVersion=1.8
+ProductVersion=13.2
 Comments=
 
 [HistoryLists\hlIncludePath]

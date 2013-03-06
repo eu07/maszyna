@@ -3,7 +3,7 @@
 #ifndef FadeSoundH
 #define FadeSoundH
 
-#include "sound.h"
+#include "Sound.h"
 #include "AdvSound.h"
 
 class TFadeSound

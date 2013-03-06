@@ -240,9 +240,17 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName,int 
  // check if width, height and bpp is correct
  if ( !width || !height || (header[4]!=24 && header[4]!=32))
  {
+  WriteLog("Bad texture: "+AnsiString(fileName.c_str())+" has wrong header or bits per pixel");
   file.close();
   return fail;
  };
+ {//sprawdzenie prawid³owoœci rozmiarów
+  int i,j;
+  for (i=width,j=0;i;i>>=1) if (i&1) ++j;
+  if (j==1)
+   for (i=height,j=0;i;i>>=1) if (i&1) ++j;
+  if (j!=1) WriteLog("Bad texture: "+AnsiString(fileName.c_str())+" is "+AnsiString(width)+"×"+AnsiString(height));
+ }
  GLuint bpp=header[4];	//grab the TGA's bits per pixel (24 or 32)
  GLuint bytesPerPixel=bpp/8; // divide by 8 to get the bytes per pixel
  GLuint imageSize=width*height*bytesPerPixel; //calculate the memory required for the TGA data
