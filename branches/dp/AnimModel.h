@@ -57,7 +57,8 @@ public:
  __fastcall ~TAnimContainer();
  bool __fastcall Init(TSubModel *pNewSubModel);
  //std::string inline __fastcall GetName() { return std::string(pSubModel?pSubModel->asName.c_str():""); };
- std::string inline __fastcall GetName() { return std::string(pSubModel?pSubModel->pName:""); };
+ //std::string inline __fastcall GetName() { return std::string(pSubModel?pSubModel->pName:""); };
+ char* __fastcall NameGet() {return (pSubModel?pSubModel->pName:NULL);};
  //void __fastcall SetRotateAnim(vector3 vNewRotateAxis, double fNewDesiredAngle, double fNewRotateSpeed, bool bResetAngle=false);
  void __fastcall SetRotateAnim(vector3 vNewRotateAngles, double fNewRotateSpeed);
  void __fastcall SetTranslateAnim(vector3 vNewTranslate, double fNewSpeed);

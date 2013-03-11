@@ -444,7 +444,8 @@ TAnimContainer* __fastcall TAnimModel::GetContainer(char *pName)
  if (!pName) return pRoot; //pobranie pierwszego (dla obrotnicy)
  TAnimContainer *pCurrent;
  for (pCurrent=pRoot;pCurrent!=NULL;pCurrent=pCurrent->pNext)
-  if (pCurrent->GetName()==pName)
+  //if (pCurrent->GetName()==pName)
+  if (stricmp(pCurrent->NameGet(),pName)==0)
    return pCurrent;
  return AddContainer(pName);
 }
