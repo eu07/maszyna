@@ -2130,7 +2130,7 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
         {//jeœli jest pojazdem
          //if (!bInitDone) FirstInit(); //jeœli nie by³o w scenerii
          if (LastNode->DynamicObject->Mechanik) //ale mo¿e byæ pasa¿er
-          if (LastNode->DynamicObject->MoverParameters->ActiveCab) //aktywna kabina
+          if (LastNode->DynamicObject->Mechanik->Primary()) //jeœli jest g³ównym (pasa¿er nie jest)
            TrainSetDriver=LastNode; //pojazd, któremu zostanie wys³any rozk³ad
          LastNode->Next=nRootDynamic;
          nRootDynamic=LastNode; //dopisanie z przodu do listy
