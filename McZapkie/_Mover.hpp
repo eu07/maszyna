@@ -621,7 +621,7 @@ public:
 	bool __fastcall DecManualBrakeLevel(Byte CtrlSpeed);
 	bool __fastcall EmergencyBrakeSwitch(bool Switch);
 	bool __fastcall AntiSlippingBrake(void);
-	bool __fastcall BrakeReleaser(void);
+	bool __fastcall BrakeReleaser(Byte state);
 	bool __fastcall SwitchEPBrake(Byte state);
 	bool __fastcall AntiSlippingButton(void);
 	bool __fastcall IncBrakePress(double &brake, double PressLimit, double dp);

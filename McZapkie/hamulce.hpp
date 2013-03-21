@@ -26,7 +26,7 @@ class PASCALIMPLEMENTATION TReservoir : public System::TObject
 {
 	typedef System::TObject inherited;
 	
-private:
+protected:
 	double Cap;
 	double Vol;
 	double dVol;
@@ -46,6 +46,8 @@ public:
 	
 };
 
+
+typedef TReservoir* *PReservoir;
 
 class DELPHICLASS TBrakeCyl;
 class PASCALIMPLEMENTATION TBrakeCyl : public TReservoir 
@@ -770,6 +772,8 @@ extern PACKAGE double BPT[9][2];
 extern PACKAGE double BPT_394[7][2];
 static const Shortint i_bcpno = 0x6;
 extern PACKAGE double __fastcall PF(double P1, double P2, double S);
+extern PACKAGE double __fastcall PFVa(double PH, double PL, double S, double LIM);
+extern PACKAGE double __fastcall PFVd(double PH, double PL, double S, double LIM);
 
 }	/* namespace Hamulce */
 #if !defined(NO_IMPLICIT_NAMESPACE_USE)
