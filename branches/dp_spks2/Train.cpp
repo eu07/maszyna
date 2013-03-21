@@ -1382,7 +1382,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
           if (DynamicObject->MoverParameters->BrakeCtrlPosNo>0)
           {
            ReleaserButtonGauge.PutValue(1);
-           if (DynamicObject->MoverParameters->BrakeReleaser())
+           if (DynamicObject->MoverParameters->BrakeReleaser(1))
            {
             dsbPneumaticRelay->SetVolume(-80);
             dsbPneumaticRelay->Play(0,0,0);
@@ -2211,7 +2211,8 @@ bool __fastcall TTrain::Update()
 {
  DWORD stat;
  double dt=Timer::GetDeltaTime();
- DynamicObject->MoverParameters->Hamulec->Releaser(0); //odluŸniacz rêczny
+// DynamicObject->MoverParameters->Hamulec->Releaser(0); //odluŸniacz rêczny
+ DynamicObject->MoverParameters->BrakeReleaser(0);
  if (DynamicObject->mdKabina)
  {//Ra: TODO: odczyty klawiatury/pulpitu nie powinny byæ uzale¿nione od istnienia modelu kabiny 
   tor=DynamicObject->GetTrack(); //McZapkie-180203
@@ -3989,7 +3990,7 @@ if (DynamicObject->MoverParameters->Battery==true)
            if ((DynamicObject->MoverParameters->BrakeCtrlPosNo>0)&&(DynamicObject->MoverParameters->ActiveDir!=0))
             {
              ReleaserButtonGauge.PutValue(1);
-             DynamicObject->MoverParameters->BrakeReleaser();
+             DynamicObject->MoverParameters->BrakeReleaser(1);
             }
          } //FFMF
      } //releaser

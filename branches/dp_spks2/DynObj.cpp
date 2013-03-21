@@ -1377,12 +1377,12 @@ double __fastcall TDynamicObject::Init(
    {
     MoverParameters->BrakeStatus|=128; //wylacz
     MoverParameters->Hamulec->ForceEmptiness();
-    MoverParameters->BrakeReleaser();  //odluznij automatycznie
+    MoverParameters->BrakeReleaser(1);  //odluznij automatycznie
    }
    if (ActPar.Pos("E")>0) //oprozniony
    {
     MoverParameters->Hamulec->ForceEmptiness();
-    MoverParameters->BrakeReleaser();  //odluznij automatycznie    
+    MoverParameters->BrakeReleaser(1);  //odluznij automatycznie
    }
 
    if (ActPar.Pos("1")>0) //wylaczanie 10%
@@ -1391,7 +1391,7 @@ double __fastcall TDynamicObject::Init(
     {
      MoverParameters->BrakeStatus|=128; //wylacz
      MoverParameters->Hamulec->ForceEmptiness();
-     MoverParameters->BrakeReleaser();  //odluznij automatycznie
+     MoverParameters->BrakeReleaser(1);  //odluznij automatycznie
     }
    }
    if (ActPar.Pos("X")>0) //agonalny wylaczanie 20%, usrednienie przekladni
@@ -1400,7 +1400,7 @@ double __fastcall TDynamicObject::Init(
     {
      MoverParameters->BrakeStatus|=128; //wylacz
      MoverParameters->Hamulec->ForceEmptiness();
-     MoverParameters->BrakeReleaser();  //odluznij automatycznie
+     MoverParameters->BrakeReleaser(1);  //odluznij automatycznie
     }
     if(MoverParameters->BrakeCylMult[2]*MoverParameters->BrakeCylMult[1]>0.01) //jesli jest nastawiacz mechaniczny PL
     {

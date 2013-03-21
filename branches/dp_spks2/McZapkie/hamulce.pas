@@ -113,7 +113,7 @@ CONST
 TYPE
   //klasa obejmujaca pojedyncze zbiorniki
     TReservoir= class
-      private
+      protected
         Cap: real;
         Vol: real;
         dVol: real;
@@ -126,6 +126,8 @@ TYPE
         procedure Flow(dv: real);
         procedure Act;
     end;
+
+    PReservoir=^TReservoir;
 
     TBrakeCyl= class(TReservoir)
       public
@@ -441,6 +443,9 @@ TYPE
       end;
 
 function PF(P1,P2,S:real):real;
+
+function PFVa(PH,PL,S,LIM:real):real; //zawor napelniajacy z PH do PL, PL do LIM
+function PFVd(PH,PL,S,LIM:real):real; //zawor wypuszczajacy z PH do PL, PH do LIM
 
 implementation
 
@@ -2268,6 +2273,14 @@ begin
               dpMainValve:=dpMainValve+PF(dpPipe,pp,(ActFlowSpeed)/(LBDelay))//coby nie przeszkadzal przy ladowaniu z zaworu obok
            end;
 
+          if Round(i_bcp)=0 then
+           begin
+            if(tp>2)then
+              dpMainValve:=dpMainValve+0.5*PF(dpPipe,pp,(ActFlowSpeed)/(LBDelay))//coby nie przeszkadzal przy ladowaniu z zaworu obok
+           end;
+
+
+
           ep:=dpPipe;
           if(rp>ep)then //zaworek zwrotny do opozniajacego
             rp:=rp+PF(rp,ep,0.01)*dt //szybki upust
@@ -2275,7 +2288,7 @@ begin
             if(i_bcp=0)then
               rp:=rp+PF(rp,ep,0.0005)*dt //powolne wzrastanie, ale szybsze na jezdzie
             else
-              rp:=rp+PF(rp,ep,0.0001)*dt; //powolne wzrastanie i to bardzo
+              rp:=rp+PF(rp,ep,0.0001/2)*dt; //powolne wzrastanie i to bardzo
           if (rp<ep) and (rp<BPT[Round(i_bcpNo)][1])then //jesli jestesmy ponizej cisnienia w sterujacym (2.9 bar)
             rp:=rp+PF(rp,cp,0.005)*dt; //przypisz cisnienie w PG - wydluzanie napelniania o czas potrzebny do napelnienia PG
 

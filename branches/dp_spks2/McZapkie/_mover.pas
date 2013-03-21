@@ -739,7 +739,7 @@ TYPE
                {hamulec przeciwposlizgowy}
                 function AntiSlippingBrake: boolean;
                {odluzniacz}
-                function BrakeReleaser: boolean;
+                function BrakeReleaser(state: byte):boolean;
                 function SwitchEPBrake(state: byte):boolean;
 
                {! reczny wlacznik urzadzen antyposlizgowych}
@@ -2177,12 +2177,12 @@ begin
  DecBrakeMult:=false;
 end;
 
-function T_MoverParameters.BrakeReleaser: boolean;
+function T_MoverParameters.BrakeReleaser(state: byte): boolean;
 var OK:boolean;
 begin
-  Hamulec.Releaser(1);
+  Hamulec.Releaser(state);
   if CabNo<>0 then //rekurencyjne wys³anie do nastêpnego
-   OK:=SendCtrlToNext('BrakeReleaser',0,CabNo);
+   OK:=SendCtrlToNext('BrakeReleaser',state,CabNo);
   BrakeReleaser:=OK;
 end;
 
@@ -2310,9 +2310,9 @@ if (BrakeCtrlPosNo>1) and (ActiveCab*ActiveCab>0)then
 with BrakePressureTable[BrakeCtrlPos] do
 begin
           dpLocalValve:=LocHandle.GetPF(LocalBrakePos/LocalBrakePosNo, Hamulec.GetBCP, ScndPipePress, dt, 0);
-          if(BrakeHandle=FV4a)and((PipePress<2.75)and((Hamulec.GetStatus and b_rls)=0)) then
-            temp:=PipePress+0.00001
-          else
+//          if(BrakeHandle=FV4a)and((PipePress<2.75)and((Hamulec.GetStatus and b_rls)=0)) then
+//            temp:=PipePress+0.00001
+//          else
             temp:=ScndPipePress;
           Handle.SetReductor(BrakeCtrlPos2);
 
@@ -2611,7 +2611,7 @@ begin
   if(Couplers[1].Connected<>nil)and(Couplers[0].Connected<>nil)then
     if (TestFlag(Couplers[0].CouplingFlag,ctrain_scndpneumatic))and(TestFlag(Couplers[1].CouplingFlag,ctrain_scndpneumatic))then
      begin
-      dv:=0.25*dt*PF(Couplers[0].Connected.ScndPipePress,Couplers[1].Connected.ScndPipePress,Spz*0.25);
+      dv:=0.00025*dt*PF(Couplers[0].Connected.ScndPipePress,Couplers[1].Connected.ScndPipePress,Spz*0.25);
       Couplers[0].Connected.Pipe2.Flow(+dv);
       Couplers[1].Connected.Pipe2.Flow(-dv);
       end;
@@ -4187,7 +4187,7 @@ begin
     if SlippingWheels then
      begin
   {     TrainForce:=TrainForce-Fb; }
-       nrot:=ComputeRotatingWheel((FTrain-Fb*Sign(V)-Fstand)/NAxles-Sign(nrot*Pi*WheelDiameter-V)*Adhesive(RunningTrack.friction)*TotalMassxg,dt,nrot);
+       nrot:=ComputeRotatingWheel((FTrain-Fb*Sign(V)-Fstand)/NAxles-Sign(nrot*Pi*WheelDiameter-V)*Adhesive(RunningTrack.friction)*TotalMass,dt,nrot);
        FTrain:=sign(FTrain)*TotalMassxg*Adhesive(RunningTrack.friction);
        Fb:=Min0R(Fb,TotalMassxg*Adhesive(RunningTrack.friction));
      end;
@@ -4690,7 +4690,7 @@ Begin
    end //youby - odluzniacz hamulcow, przyda sie
   else if command='BrakeReleaser' then
    begin
-     OK:=BrakeReleaser; //samo siê przesy³a dalej
+     OK:=BrakeReleaser(Round(CValue1)); //samo siê przesy³a dalej
      //OK:=SendCtrlToNext(command,CValue1,CValue2); //to robi³o kaskadê 2^n
    end
   else if command='MainSwitch' then
@@ -5693,6 +5693,8 @@ begin
      BrakeValve:=KE
    else if s='ESt3' then
      BrakeValve:=ESt3
+   else if s='NESt3' then
+     BrakeValve:=NESt3
    else if s='ESt3AL2' then
      BrakeValve:=ESt3AL2
    else if s='LSt' then

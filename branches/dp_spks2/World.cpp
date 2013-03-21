@@ -752,7 +752,7 @@ void __fastcall TWorld::OnKeyDown(int cKey)
      temp->MoverParameters->BrakeStatus^=128;
     }
     else
-    if (temp->MoverParameters->BrakeReleaser())
+    if (temp->MoverParameters->BrakeReleaser(1))
     {
      //temp->sBrakeAcc->
      //dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);

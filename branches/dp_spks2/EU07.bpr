@@ -72,7 +72,7 @@ CodePage=1250
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
 FileVersion=13.2.765.408
-InternalName=8th by Ra + SPKS
+InternalName=8th by Ra
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=eu07.exe
@@ -116,7 +116,7 @@ Item5=D:\EU07DDS\
 DebugSourceDirs=
 
 [Parameters]
-RunParams=-s td.scn -v ET22-256
+RunParams=-s nest.scn -v ET22-256-w
 HostApplication=
 RemoteHost=
 RemotePath=
