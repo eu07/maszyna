@@ -22,9 +22,10 @@ public: //na razie
  TTraction *pPrev,*pNext; //³¹czenie drutów w sieæ
  int iPrev,iNext; //do którego koñca siê ³¹czy
 public:
-    GLuint uiDisplayList;
-    vector3 pPoint1,pPoint2,pPoint3,pPoint4;
-    double fHeightDifference;//,fMiddleHeight;
+ GLuint uiDisplayList;
+ vector3 pPoint1,pPoint2,pPoint3,pPoint4;
+ vector3 vParametric; //wspó³czynniki równania parametrycznego odcinka
+ double fHeightDifference;//,fMiddleHeight;
   //  int iCategory,iMaterial,iDamageFlag;
 //    float fU,fR,fMaxI,fWireThickness;
     int iNumSections;
@@ -56,6 +57,7 @@ public:
  void __fastcall RenderVBO(float mgn,int iPtr);
  int __fastcall TestPoint(vector3 *Point);
  void __fastcall Connect(int my,TTraction *with,int to);
+ void __fastcall Init();
 };
 //---------------------------------------------------------------------------
 #endif

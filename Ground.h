@@ -301,7 +301,7 @@ public:
  void __fastcall MoveGroundNode(vector3 pPosition);
  bool __fastcall Update(double dt, int iter);
  bool __fastcall AddToQuery(TEvent *Event, TDynamicObject *Node);
- bool __fastcall GetTraction(vector3 pPosition, TDynamicObject *model);
+ bool __fastcall GetTraction(TDynamicObject *model);
  bool __fastcall RenderDL(vector3 pPosition);
  bool __fastcall RenderAlphaDL(vector3 pPosition);
  bool __fastcall RenderVBO(vector3 pPosition);

@@ -5136,3 +5136,4 @@ vector3 __fastcall TTrain::MirrorPosition(bool lewe)
  }
  return DynamicObject->GetPosition(); //wspó³rzêdne œrodka pojazdu
 };
+
