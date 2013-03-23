@@ -1352,9 +1352,9 @@ double __fastcall TDynamicObject::Init(
  iInventory|=btEndSignalsTab1.Active()?0x40:0; //tabliczki blaszane
  iInventory|=btEndSignalsTab2.Active()?0x80:0;
  //ABu Uwaga! tu zmienic w modelu!
- btHeadSignals11.Init("headlamp13",mdModel,false);
- btHeadSignals12.Init("headlamp11",mdModel,false);
- btHeadSignals13.Init("headlamp12",mdModel,false);
+ btHeadSignals11.Init("headlamp13",mdModel,false); //lewe
+ btHeadSignals12.Init("headlamp11",mdModel,false); //górne
+ btHeadSignals13.Init("headlamp12",mdModel,false); //prawe
  btHeadSignals21.Init("headlamp23",mdModel,false);
  btHeadSignals22.Init("headlamp21",mdModel,false);
  btHeadSignals23.Init("headlamp22",mdModel,false);

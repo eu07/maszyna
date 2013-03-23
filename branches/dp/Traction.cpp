@@ -371,3 +371,8 @@ void __fastcall TTraction::Connect(int my,TTraction *with,int to)
   iNext=to;
  }
 };
+
+void __fastcall TTraction::Init()
+{//przeliczenie parametrów
+ vParametric=pPoint2-pPoint1; //wektor mno¿ników parametru dla równania parametrycznego
+};

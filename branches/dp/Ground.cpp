@@ -1486,6 +1486,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    *parser >> token;
    if ( token.compare( "endtraction" )!=0)
      Error("ENDTRACTION delimiter missing! "+str2+" found instead.");
+   tmp->Traction->Init(); //przeliczenie parametrów
    if (Global::bLoadTraction)
     tmp->Traction->Optimize();
    tmp->pCenter=(tmp->Traction->pPoint2+tmp->Traction->pPoint1)*0.5f;
@@ -3389,14 +3390,14 @@ bool __fastcall TGround::Update(double dt, int iter)
   //Winger 180204 - pantografy
   double dt1=dt*iter; //ca³kowity czas
   if (Global::bEnableTraction)
-  {
+  {//Ra: zmieniæ warunek na sprawdzanie pantografów w jednej zmiennej: czy pantografy i czy podniesione
    for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
    {
     if ((Current->DynamicObject->MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
     //ABu: usunalem, bo sie krzaczylo: && (Current->DynamicObject->MoverParameters->PantFrontUp || Current->DynamicObject->MoverParameters->PantRearUp))
     //     a za to dodalem to:
        &&(Current->DynamicObject->MoverParameters->CabNo!=0))
-       GetTraction(Current->DynamicObject->GetPosition(),Current->DynamicObject);
+       GetTraction(Current->DynamicObject);
     Current->DynamicObject->UpdateForce(dt,dt1,true);//,true);
    }
    for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
@@ -3418,7 +3419,7 @@ bool __fastcall TGround::Update(double dt, int iter)
    {
     if ((Current->DynamicObject->MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
        &&(Current->DynamicObject->MoverParameters->CabNo!=0))
-       GetTraction(Current->DynamicObject->GetPosition(), Current->DynamicObject);
+       GetTraction(Current->DynamicObject);
     Current->DynamicObject->MoverParameters->ComputeConstans();
     Current->DynamicObject->CoupleDist();
     Current->DynamicObject->UpdateForce(dt,dt,true);//,true);
@@ -3452,227 +3453,266 @@ bool __fastcall TGround::Update(double dt, int iter)
 }
 
 //Winger 170204 - szukanie trakcji nad pantografami
-bool __fastcall TGround::GetTraction(vector3 pPosition, TDynamicObject *model)
+bool __fastcall TGround::GetTraction(TDynamicObject *model)
 {//Ra: to siê powinno daæ uproœciæ
-    double t1x,t1y,t1z,t2x,t2y,t2z,dx,dy,dz,p1rx,p1rz,p2rx,p2rz,odl1,odl2,ntx1,ntx2,nty1,nty2,ntz1,ntz2;
-    double p1x,p1z,p2x,p2z,py;
-    double bp1xl,bp1y,bp1zl,bp2xl,bp2y,bp2zl,bp1xp,bp1zp,bp2xp,bp2zp;
-    double t1p1x,t1p1y,t1p1z,t2p1x,t2p1y,t2p1z,wsp1,wsp2;
-    double odlt1t2, odlt1p1, rwt1t2, odlt2p1;
-    double wsp1wb,np1wx,np1wy,np1wz,np2wx,np2wy,np2wz,zt1,zt2,zp1w,zp2w;
-    double t1p2x,t1p2y,t1p2z,t2p2x,t2p2y,t2p2z;
-    double odlt1p2,odlt2p2;
-    double wsp2wb,dynwys,nty1pk,nty2pk;
-    double zt1x,zt2x,p1wy,p2wy,wspwp;
-    double maxwyspant,minwyspant,szerpant;
-    double p1wx,p1wz,p2wx,p2wz,liczwsp1,liczwsp2,p1a1,p1a2,p1b1,p1b2,p2a1,p2a2,p2b1,p2b2;
-    vector3 dirx, diry, dirz, dwys;
-    vector3 pant1,pant2, pant1l, pant1p, pant2l, pant2p;
-    vector3 tr1p1, tr1p2, tr2p1, tr2p2;
-    TGroundNode *node,*oldnode;
-    p1z= model->pant1x;
-    py= model->panty;
-    p2z= model->pant2x;
-//    model->mdModel->GetFromName
-    wspwp= model->panth;
-    dirz= model->VectorFront();
-    diry= model->VectorUp();
-    dirx= model->VectorLeft();
-    dwys= model->GetPosition();
-    dynwys= dwys.y;
-    np1wy=1000;
-    np2wy=1000;
-    //p1wy=0;
-    //p2wy=0;
-    int n= 1; //iloœæ sektorów mapy do przeszukania
-    int c= GetColFromX(pPosition.x);
-    int r= GetRowFromZ(pPosition.z);
-    TSubRect *tmp,*tmp2;
-    pant1= pPosition+(dirx*0)+(diry*py)+(dirz*p1z);
-    pant1l= pant1+(dirx*-1)+(diry*0)+(dirz*0);
-    pant1p= pant1+(dirx*1)+(diry*0)+(dirz*0);
-    pant2= pPosition+(dirx*0)+(diry*py)+(dirz*p2z);
-    pant2l= pant2+(dirx*-1)+(diry*0)+(dirz*0);
-    pant2p= pant2+(dirx*1)+(diry*0)+(dirz*0);
-    bp1xl= pant1l.x;
-    bp1zl= pant1l.z;
-    bp1xp= pant1p.x;
-    bp1zp= pant1p.z;
-    bp2xl= pant2l.x;
-    bp2zl= pant2l.z;
-    bp2xp= pant2p.x;
-    bp2zp= pant2p.z;
-    for (int j= r-n; j<=r+n; j++)
-        for (int i= c-n; i<=c+n; i++)
-        {
-            tmp= FastGetSubRect(i,j);
-            if (tmp)
-            {
-                for (node=tmp->nRenderWires;node;node=node->nNext3)  //nastêpny z grupy
-                {//w grupie tej s¹ druty oraz inne linie
-                    if (node->iType==TP_TRACTION)
-                    {
-                        t1x= node->Traction->pPoint1.x;
-                        t1z= node->Traction->pPoint1.z;
-                        t1y= node->Traction->pPoint1.y;
-                        t2x= node->Traction->pPoint2.x;
-                        t2z= node->Traction->pPoint2.z;
-                        t2y= node->Traction->pPoint2.y;
-                        //Patyk 1
-                         p1wx=277;
-                         p1wz=277;
-                         //zt1x=t1x;
-                         //zt2x=t2x;
-                         liczwsp1=(t2z-t1z)*(bp1xp-bp1xl)-(bp1zp-bp1zl)*(t2x-t1x);
-                         if (liczwsp1!=0)
-                          {
-                          p1wx=((bp1xp-bp1xl)*(t2x-t1x)*(bp1zl-t1z)-(bp1zp-bp1zl)*(t2x-t1x)*bp1xl+(t2z-t1z)*(bp1xp-bp1xl)*t1x)/liczwsp1;
-                          liczwsp2= t2x-t1x;
-                          if (liczwsp2!=0)
-                           p1wz=(t2z-t1z)*(p1wx-t1x)/liczwsp2+t1z;
-                          else
-                           {
-                           liczwsp2=bp1xp-bp1xl;
-                           if (liczwsp2!=0)
-                            p1wz=(bp1zp-bp1zl)*(p1wx-bp1xl)/liczwsp2+bp1zl;
-                           }
-                          p1a1=hypot(p1wx-t1x,p1wz-t1z);
-                          p1a2=hypot(p1wx-t2x,p1wz-t2z);
-                          p1b1=hypot(p1wx-bp1xl,p1wz-bp1zl);
-                          p1b2=hypot(p1wx-bp1xp,p1wz-bp1zp);
-                          if ((p1a1+p1a2-0.1>hypot(t2x-t1x,t2z-t1z)) || (p1b1+p1b2-1>hypot(bp1xp-bp1xl,bp1zp-bp1zl)))
-                           {
-                           p1wx=277;
-                           p1wz=277;
-                           }
-                          }
-                          if ((p1wx!=277) && (p1wz!=277))
-                           {
-                                zt1=t1x-t2x;
-                                if (zt1<0)
-                                 zt1=-zt1;
-                                zt2=t1z-t2z;
-                                if (zt2<0)
-                                 zt2=-zt2;
-                                if (zt1<=zt2)
-                                 {
-                                 zt1x=t1z;
-                                 zt2x=t2z;
-                                 zp1w=p1wz;
-                                 }
-                                else
-                                 {
-                                 zt1x=t1x;
-                                 zt2x=t2x;
-                                 zp1w=p1wx;
-                                 }
-                                p1wy=(t2y-t1y)*(zp1w-zt1x)/(zt2x-zt1x)+t1y;
-                                if (p1wy<np1wy)
-                                 np1wy=p1wy;
-                          }
-
-                        //Patyk 2
-                         p2wx=277;
-                         p2wz=277;
-                         //zt1x=t1x;
-                         //zt2x=t2x;
-                         liczwsp1=(t2z-t1z)*(bp2xp-bp2xl)-(bp2zp-bp2zl)*(t2x-t1x);
-                         if (liczwsp1!=0)
-                          {
-                          p2wx=((bp2xp-bp2xl)*(t2x-t1x)*(bp2zl-t1z)-(bp2zp-bp2zl)*(t2x-t1x)*bp2xl+(t2z-t1z)*(bp2xp-bp2xl)*t1x)/liczwsp1;
-                          liczwsp2= t2x-t1x;
-                          if (liczwsp2!=0)
-                           p2wz=(t2z-t1z)*(p2wx-t1x)/liczwsp2+t1z;
-                          else
-                           {
-                           liczwsp2=bp2xp-bp2xl;
-                           if (liczwsp2!=0)
-                            p2wz=(bp2zp-bp2zl)*(p2wx-bp2xl)/liczwsp2+bp2zl;
-                           }
-                          p2a1=hypot(p2wx-t1x,p2wz-t1z);
-                          p2a2=hypot(p2wx-t2x,p2wz-t2z);
-                          p2b1=hypot(p2wx-bp2xl,p2wz-bp2zl);
-                          p2b2=hypot(p2wx-bp2xp,p2wz-bp2zp);
-                          if ((p2a1+p2a2-0.1>hypot(t2x-t1x,t2z-t1z)) || (p2b1+p2b2-1>hypot(bp2xp-bp2xl,bp2zp-bp2zl)))
-                           {
-                           p2wx=277;
-                           p2wz=277;
-                           }
-                          }
-                          if ((p2wx!=277) && (p2wz!=277))
-                           {
-                                zt1=t1x-t2x;
-                                if (zt1<0)
-                                 zt1=-zt1;
-                                zt2=t1z-t2z;
-                                if (zt2<0)
-                                 zt2=-zt2;
-                                if (zt1<=zt2)
-                                 {
-                                 zt1x=t1z;
-                                 zt2x=t2z;
-                                 zp2w=p2wz;
-                                 }
-                                else
-                                 {
-                                 zt1x=t1x;
-                                 zt2x=t2x;
-                                 zp2w=p2wx;
-                                 }
-                                p2wy=(t2y-t1y)*(zp2w-zt1x)/(zt2x-zt1x)+t1y;
-                                if (p2wy<np2wy)
-                                 np2wy=p2wy;
-                          }
-                    }
-                }
-            }
-        }
-
-    nty1=np1wy-dynwys+0.4-wspwp;
-    nty2=np2wy-dynwys+0.4-wspwp;
-    nty1pk=nty1;
-    nty2pk=nty2;
-    wsp1wb=nty1-6.039;
-    if (wsp1wb<0)
-    wsp1wb=-wsp1wb;
-    wsp1= 1-wsp1wb;
-    nty1= nty1-(wsp1*0.17);
-    if (nty1pk>6.039)
-    {
-        wsp1wb=nty1pk-6.544;
-        if (wsp1wb<0)
-        wsp1wb=-wsp1wb;
-        wsp1= 0.5-wsp1wb;
-        nty1= nty1-(wsp1*0.19);
-    }
-    if (nty1<0)
-    nty1=-nty1;
-    if ((nty1<10)&&(nty1>0))
-     model->PantTraction1= nty1;
-    wsp1wb=nty2-6.039;
-    if (wsp1wb<0)
-    wsp1wb=-wsp1wb;
-    wsp1= 1-wsp1wb;
-    nty2= nty2-(wsp1*0.17);
-    if (nty2pk>6.039)
-    {
-        wsp1wb=nty2pk-6.544;
-        if (wsp1wb<0)
-        wsp1wb=-wsp1wb;
-        wsp1= 0.5-wsp1wb;
-        nty2= nty2-(wsp1*0.19);
-    }
-    if (nty2<0)
-    nty2=-nty2;
-    if ((nty2<10)&&(nty2>0))
-     model->PantTraction2= nty2;
-    if ((np1wy==1000) && (np2wy==1000))
+ //tu powinno te¿ zapamiêtaæ drut zasilaj¹cy dla ka¿dego pantografu, ¿eby odczytaæ napiêcie
+ //jeœli pojazd siê nie porusza, to nie ma sensu przeliczaæ tego wiêcej ni¿ raz
+ //utworzyæ trzeba równanie p³aszczyzny, w której porusza siê pantograf, z zerem pomiêdzy g³ówkami szyn
+ //wyznaczyæ punkt wspólny p³aszczyzny i prostej drutu
+ //pomijaæ odcinki, które maj¹ koñce po jednej stronie p³aszczyzny
+ //dla pantografów bocznych, zero musi byæ innym miejscu
+ //wektorem normalnym p³aszczyzny jest wektor (vFront)
+ //wyliczyæ trzeba wyraz swobodny równania rormalnego
+ //d=-p.x*vFront.x-p.y*vFront.y-p.z*vFront.z
+ double t1x,t1y,t1z,t2x,t2y,t2z,dx,dy,dz,p1rx,p1rz,p2rx,p2rz,odl1,odl2,ntx1,ntx2,nty1,nty2,ntz1,ntz2;
+ double p1x,p1z,p2x,p2z,py;
+ double bp1xl,bp1y,bp1zl,bp2xl,bp2y,bp2zl,bp1xp,bp1zp,bp2xp,bp2zp;
+ double t1p1x,t1p1y,t1p1z,t2p1x,t2p1y,t2p1z,wsp1,wsp2;
+ double odlt1t2, odlt1p1, rwt1t2, odlt2p1;
+ double wsp1wb,np1wx,np1wy,np1wz,np2wx,np2wy,np2wz,zt1,zt2,zp1w,zp2w;
+ double t1p2x,t1p2y,t1p2z,t2p2x,t2p2y,t2p2z;
+ double odlt1p2,odlt2p2;
+ double wsp2wb,dynwys,nty1pk,nty2pk;
+ double zt1x,zt2x,p1wy,p2wy,wspwp;
+ double maxwyspant,minwyspant,szerpant;
+ double p1wx,p1wz,p2wx,p2wz,liczwsp1,liczwsp2,p1a1,p1a2,p1b1,p1b2,p2a1,p2a2,p2b1,p2b2;
+ double fRaDist; //wyraz wolny, czyli "odleg³oœæ" p³aszczyzny od OXYZ
+ double fRaParam; //parametr równania parametrycznego odcinka drutu
+ double fVertical; //odleg³oœæ w pionie; musi byæ w zasiêgu ruchu "pionowego" pantografu
+ double fHorizontal; //odleg³oœæ w bok; powinna byæ mniejsza ni¿ pó³ szerokoœci pantografu
+ vector3 vLeft,vUp,vFront,dwys;
+ vector3 pant1,pant2,pant1l,pant1p,pant2l,pant2p;
+ vector3 tr1p1,tr1p2,tr2p1,tr2p2;
+ vector3 vParam; //wspó³czynniki równania parametrycznego drutu
+ vector3 vStyk; //punkt przebicia drutu przez p³aszczyznê ruchu pantografu
+ vector3 vGdzie; //wektor po³o¿enia drutu wzglêdem pojazdu
+ TGroundNode *node;
+ p1z=model->pant1x; //wczytywane z MMD przesuniêcie wzglêdem œrodka do przodu
+ py=model->panty;
+ p2z=model->pant2x; //wczytywane z MMD przesuniêcie wzglêdem œrodka do przodu (ujemne)
+ wspwp=model->panth;
+ vFront=model->VectorFront(); //wektor normalny dla p³aszczyzny ruchu pantografu
+ vUp=model->VectorUp();
+ vLeft=model->VectorLeft();
+ dwys=model->GetPosition(); //œrodek pojazdu
+ dynwys=dwys.y;
+ np1wy=1000;
+ np2wy=1000;
+ //p1wy=0;
+ //p2wy=0;
+ int n=1; //iloœæ sektorów mapy do przeszukania
+ int c=GetColFromX(dwys.x);
+ int r=GetRowFromZ(dwys.z);
+ TSubRect *tmp;
+ pant1=dwys+(vLeft*0)+(vUp*py)+(vFront*p1z); //istniej¹ te¿ pantografy asymetryczne
+ pant1l=pant1+(vLeft*-1)+(vUp*0)+(vFront*0);
+ pant1p=pant1+(vLeft*1)+(vUp*0)+(vFront*0);
+ pant2=dwys+(vLeft*0)+(vUp*py)+(vFront*p2z);
+ pant2l=pant2+(vLeft*-1)+(vUp*0)+(vFront*0);
+ pant2p=pant2+(vLeft*1)+(vUp*0)+(vFront*0);
+ bp1xl=pant1l.x;
+ bp1zl=pant1l.z;
+ bp1xp=pant1p.x;
+ bp1zp=pant1p.z;
+ bp2xl=pant2l.x;
+ bp2zl=pant2l.z;
+ bp2xp=pant2p.x;
+ bp2zp=pant2p.z;
+ for (int j=r-n;j<=r+n;j++)
+  for (int i=c-n;i<=c+n;i++)
+  {//zamieniæ na poszukiwania przy u¿yciu tabeli najbli¿szych sektorów?
+   tmp=FastGetSubRect(i,j);
+   if (tmp)
+   {
+    for (node=tmp->nRenderWires;node;node=node->nNext3)  //nastêpny z grupy
+    {//w grupie tej s¹ druty oraz inne linie
+     if (node->iType==TP_TRACTION)
      {
-     model->PantTraction1= 5.8171;
-     model->PantTraction2= 5.8171;
+      t1x=node->Traction->pPoint1.x;
+      t1z=node->Traction->pPoint1.z;
+      t1y=node->Traction->pPoint1.y;
+      t2x=node->Traction->pPoint2.x;
+      t2z=node->Traction->pPoint2.z;
+      t2y=node->Traction->pPoint2.y;
+      vParam=node->Traction->vParametric; //wspó³czynniki równania parametrycznego
+      if (model->MoverParameters->PantFrontUp)
+      {//Patyk 1
+       //obliczamy wyraz wolny równania p³aszczyzny (to miejsce nie jest odpowienie)
+       fRaDist=-pant1.x*vFront.x-pant1.y*vFront.y-pant1.z*vFront.z;
+       //podstawiamy równanie parametryczne drutu do równania p³aszczyzny pantografu
+       //vFront.x*(t1x+t*vParam.x)+vFront.y*(t1y+t*vParam.y)+vFront.z*(t1z+t*vParam.z)+fRaDist=0;
+       fRaParam=-(DotProduct(vFront,node->Traction->pPoint1)+fRaDist)/DotProduct(vFront,vParam);
+       //powinien wyjœæ parametr t w przedziale <0,1>, inaczej drut jest poza zasiêgiem
+       if ((fRaParam>=0.0)?(fRaParam<=1.0):false)
+       {//jeœli t jest w przedziale, wyznaczyæ odleg³oœæ wzd³u¿ wektorów vUp i vLeft
+        vStyk=node->Traction->pPoint1+fRaParam*vParam; //punkt styku p³aszczyzny z drutem (dla generatora ³uku el.)
+        vGdzie=vStyk-pant1; //wektor
+        //odleg³oœæ w pionie musi byæ w zasiêgu ruchu "pionowego" pantografu
+        fVertical=DotProduct(vGdzie,vUp); //musi siê mieœciæ w przedziale ruchu pantografu
+        //odleg³oœæ w bok powinna byæ mniejsza ni¿ pó³ szerokoœci pantografu
+        fHorizontal=DotProduct(vGdzie,vLeft); //to siê musi mieœciæ w przedziale zaleznym od szerokoœci pantografu
+        //jeœli w pionie albo w bok jest za daleko, to dany drut jest nieu¿yteczny
+        //po wyselekcjonowaniu drutu, przypisaæ go do toru, ¿eby nie trzeba by³o szukaæ
+        //dla 3 koñcowych przêse³ sprawdziæ wszystkie dostêpne przês³a
+        //bo mog¹ byæ umieszczone równolegle nad torem - po³¹czyæ w pierœcieñ
+        //najlepiej, jakby odcinki równoleg³e by³y oznaczone we wpisach
+        WriteLog("Drut: "+AnsiString(fHorizontal)+" "+AnsiString(fVertical));
+       }
+       p1wx=277;
+       p1wz=277;
+       //zt1x=t1x;
+       //zt2x=t2x;
+       liczwsp1=(t2z-t1z)*(bp1xp-bp1xl)-(bp1zp-bp1zl)*(t2x-t1x);
+       if (liczwsp1!=0)
+       {
+        p1wx=((bp1xp-bp1xl)*(t2x-t1x)*(bp1zl-t1z)-(bp1zp-bp1zl)*(t2x-t1x)*bp1xl+(t2z-t1z)*(bp1xp-bp1xl)*t1x)/liczwsp1;
+        liczwsp2=t2x-t1x;
+        if (liczwsp2!=0)
+         p1wz=(t2z-t1z)*(p1wx-t1x)/liczwsp2+t1z;
+        else
+        {
+         liczwsp2=bp1xp-bp1xl;
+         if (liczwsp2!=0)
+          p1wz=(bp1zp-bp1zl)*(p1wx-bp1xl)/liczwsp2+bp1zl;
+        }
+        p1a1=hypot(p1wx-t1x,p1wz-t1z);
+        p1a2=hypot(p1wx-t2x,p1wz-t2z);
+        p1b1=hypot(p1wx-bp1xl,p1wz-bp1zl);
+        p1b2=hypot(p1wx-bp1xp,p1wz-bp1zp);
+        if ((p1a1+p1a2-0.1>hypot(t2x-t1x,t2z-t1z)) || (p1b1+p1b2-1>hypot(bp1xp-bp1xl,bp1zp-bp1zl)))
+        {
+         p1wx=277;
+         p1wz=277;
+        }
+       }
+       if ((p1wx!=277) && (p1wz!=277))
+       {
+        zt1=t1x-t2x;
+        if (zt1<0)
+         zt1=-zt1;
+        zt2=t1z-t2z;
+        if (zt2<0)
+         zt2=-zt2;
+        if (zt1<=zt2)
+        {
+         zt1x=t1z;
+         zt2x=t2z;
+         zp1w=p1wz;
+        }
+        else
+        {
+         zt1x=t1x;
+         zt2x=t2x;
+         zp1w=p1wx;
+        }
+        p1wy=(t2y-t1y)*(zp1w-zt1x)/(zt2x-zt1x)+t1y;
+        if (p1wy<np1wy)
+         np1wy=p1wy;
+       }
+      } //Patyk 1
+      if (model->MoverParameters->PantRearUp)
+      {//Patyk 2
+       p2wx=277;
+       p2wz=277;
+       //zt1x=t1x;
+       //zt2x=t2x;
+       liczwsp1=(t2z-t1z)*(bp2xp-bp2xl)-(bp2zp-bp2zl)*(t2x-t1x);
+       if (liczwsp1!=0)
+       {
+        p2wx=((bp2xp-bp2xl)*(t2x-t1x)*(bp2zl-t1z)-(bp2zp-bp2zl)*(t2x-t1x)*bp2xl+(t2z-t1z)*(bp2xp-bp2xl)*t1x)/liczwsp1;
+        liczwsp2= t2x-t1x;
+        if (liczwsp2!=0)
+         p2wz=(t2z-t1z)*(p2wx-t1x)/liczwsp2+t1z;
+        else
+        {
+         liczwsp2=bp2xp-bp2xl;
+         if (liczwsp2!=0)
+          p2wz=(bp2zp-bp2zl)*(p2wx-bp2xl)/liczwsp2+bp2zl;
+        }
+        p2a1=hypot(p2wx-t1x,p2wz-t1z);
+        p2a2=hypot(p2wx-t2x,p2wz-t2z);
+        p2b1=hypot(p2wx-bp2xl,p2wz-bp2zl);
+        p2b2=hypot(p2wx-bp2xp,p2wz-bp2zp);
+        if ((p2a1+p2a2-0.1>hypot(t2x-t1x,t2z-t1z)) || (p2b1+p2b2-1>hypot(bp2xp-bp2xl,bp2zp-bp2zl)))
+        {
+         p2wx=277;
+         p2wz=277;
+        }
+       }
+       if ((p2wx!=277) && (p2wz!=277))
+       {
+        zt1=t1x-t2x;
+        if (zt1<0)
+         zt1=-zt1;
+        zt2=t1z-t2z;
+        if (zt2<0)
+         zt2=-zt2;
+        if (zt1<=zt2)
+        {
+         zt1x=t1z;
+         zt2x=t2z;
+         zp2w=p2wz;
+        }
+        else
+        {
+         zt1x=t1x;
+         zt2x=t2x;
+         zp2w=p2wx;
+        }
+        p2wy=(t2y-t1y)*(zp2w-zt1x)/(zt2x-zt1x)+t1y;
+        if (p2wy<np2wy)
+         np2wy=p2wy;
+       }
+      } //Patyk 2
      }
-    return true;
-}
+    }
+   }
+  }
+ nty1=np1wy-dynwys+0.4-wspwp;
+ nty2=np2wy-dynwys+0.4-wspwp;
+ nty1pk=nty1;
+ nty2pk=nty2;
+ wsp1wb=nty1-6.039;
+ if (wsp1wb<0)
+ wsp1wb=-wsp1wb;
+ wsp1=1-wsp1wb;
+ nty1=nty1-(wsp1*0.17);
+ if (nty1pk>6.039)
+ {
+  wsp1wb=nty1pk-6.544;
+  if (wsp1wb<0)
+  wsp1wb=-wsp1wb;
+  wsp1=0.5-wsp1wb;
+  nty1=nty1-(wsp1*0.19);
+ }
+ if (nty1<0)
+ nty1=-nty1;
+ if ((nty1<10)&&(nty1>0))
+  model->PantTraction1= nty1;
+ wsp1wb=nty2-6.039;
+ if (wsp1wb<0)
+ wsp1wb=-wsp1wb;
+ wsp1=1-wsp1wb;
+ nty2=nty2-(wsp1*0.17);
+ if (nty2pk>6.039)
+ {
+  wsp1wb=nty2pk-6.544;
+  if (wsp1wb<0)
+  wsp1wb=-wsp1wb;
+  wsp1=0.5-wsp1wb;
+  nty2=nty2-(wsp1*0.19);
+ }
+ if (nty2<0)
+ nty2=-nty2;
+ if ((nty2<10)&&(nty2>0))
+  model->PantTraction2=nty2;
+ if ((np1wy==1000)&&(np2wy==1000))
+ {
+  model->PantTraction1=5.8171;
+  model->PantTraction2=5.8171;
+ }
+ return true;
+};
 
 bool __fastcall TGround::RenderDL(vector3 pPosition)
 {//renderowanie scenerii z Display List - faza nieprzezroczystych
