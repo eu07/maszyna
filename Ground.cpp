@@ -3538,10 +3538,10 @@ bool __fastcall TGround::GetTraction(TDynamicObject *model)
       if (model->MoverParameters->PantFrontUp)
       {//Patyk 1
        //obliczamy wyraz wolny równania p³aszczyzny (to miejsce nie jest odpowienie)
-       fRaDist=-pant1.x*vFront.x-pant1.y*vFront.y-pant1.z*vFront.z;
+       fRaDist=-DotProduct(pant1,vFront);
        //podstawiamy równanie parametryczne drutu do równania p³aszczyzny pantografu
        //vFront.x*(t1x+t*vParam.x)+vFront.y*(t1y+t*vParam.y)+vFront.z*(t1z+t*vParam.z)+fRaDist=0;
-       fRaParam=-(DotProduct(vFront,node->Traction->pPoint1)+fRaDist)/DotProduct(vFront,vParam);
+       fRaParam=-(DotProduct(node->Traction->pPoint1,vFront)+fRaDist)/DotProduct(vParam,vFront);
        //powinien wyjœæ parametr t w przedziale <0,1>, inaczej drut jest poza zasiêgiem
        if ((fRaParam>=0.0)?(fRaParam<=1.0):false)
        {//jeœli t jest w przedziale, wyznaczyæ odleg³oœæ wzd³u¿ wektorów vUp i vLeft
@@ -3556,7 +3556,7 @@ bool __fastcall TGround::GetTraction(TDynamicObject *model)
         //dla 3 koñcowych przêse³ sprawdziæ wszystkie dostêpne przês³a
         //bo mog¹ byæ umieszczone równolegle nad torem - po³¹czyæ w pierœcieñ
         //najlepiej, jakby odcinki równoleg³e by³y oznaczone we wpisach
-        WriteLog("Drut: "+AnsiString(fHorizontal)+" "+AnsiString(fVertical));
+        //WriteLog("Drut: "+AnsiString(fHorizontal)+" "+AnsiString(fVertical));
        }
        p1wx=277;
        p1wz=277;
