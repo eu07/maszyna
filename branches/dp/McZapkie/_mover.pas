@@ -524,7 +524,6 @@ TYPE
                 DoorMaxShiftL,DoorMaxShiftR: real;{szerokosc otwarcia lub kat}
                 DoorOpenMethod: byte;             {sposob otwarcia - 1: przesuwne, 2: obrotowe}
                 ScndS: boolean; {Czy jest bocznikowanie na szeregowej}
-
                         {--sekcja zmiennych}
                         {--opis konkretnego egzemplarza taboru}
                 Loc: TLocation; //pozycja pojazdów do wyznaczenia odleg³oœci pomiêdzy sprzêgami
@@ -656,7 +655,6 @@ TYPE
                 LoadType: string;   {co jest zaladowane}
                 LoadStatus: byte; //+1=trwa rozladunek,+2=trwa zaladunek,+4=zakoñczono,0=zaktualizowany model
                 LastLoadChangeTime: real; //raz (roz)³adowania
-
                 DoorBlocked: boolean;    //Czy jest blokada drzwi
                 DoorLeftOpened: boolean;  //stan drzwi
                 DoorRightOpened: boolean;
@@ -1138,6 +1136,11 @@ begin
       with Couplers[b] do
        if TestFlag(CouplingFlag,ctrain_controll) then
         Connected.DynamicBrakeFlag:=DynamicBrakeFlag;
+   {end;
+   if (DynamicBrakeType=dbrake_passive) and (TrainType=dt_ET42) then
+   begin
+   DynamicBrakeFlag:=False;
+   DynamicBrakeSwitch:=False;}
    end
   else
    DynamicBrakeSwitch:=False;
@@ -5832,6 +5835,8 @@ end;
 function T_MoverParameters.PantFront(State: Boolean):Boolean;
 var pf1: Real;
 begin
+if (battery=true){ and ((TrainType<>dt_ET40)or ((TrainType=dt_ET40) and (EnginePowerSource.CollectorsNo>1)))}then
+begin
  PantFront:=true;
  if (State=true) then pf1:=1
   else pf1:=0;
@@ -5860,11 +5865,14 @@ begin
  end
  else
  SendCtrlToNext('PantFront',pf1,CabNo);
+end
 end;
 
 function T_MoverParameters.PantRear(State: Boolean):Boolean;
 var pf1: Real;
 begin
+if battery=true then
+ begin
  PantRear:=true;
  if (State=true) then pf1:=1
  else pf1:=0;
@@ -5885,6 +5893,7 @@ begin
  end
  else
   SendCtrlToNext('PantRear',pf1,CabNo);
+ end
 end;
 
 

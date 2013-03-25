@@ -2017,7 +2017,8 @@ SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);
  }
 //Winger 160204 - pantografy
 if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
-{
+{//Ra: pantografy nie mog¹ byæ uzale¿niane od kabiny
+/*
 lastcabf=(MoverParameters->CabNo*MoverParameters->DoubleTr);
 if (MoverParameters->TrainType==dt_EZT)
   lastcabf=1;
@@ -2025,12 +2026,14 @@ if (lastcabf==0)
  lastcabf=1; //MoverParameters->LastCab;
 if (lastcabf==1)
 {
+*/
 pcabc1=MoverParameters->PantFrontUp;
 pcabc2=MoverParameters->PantRearUp;
 pcabd1=MoverParameters->PantFrontStart;
 pcabd2=MoverParameters->PantRearStart;
 pcp1p=MoverParameters->PantFrontVolt;
 pcp2p=MoverParameters->PantRearVolt;
+/*
 }
 if (lastcabf==-1)
 {
@@ -2041,7 +2044,7 @@ pcabd2=MoverParameters->PantFrontStart;
 pcp1p=MoverParameters->PantRearVolt;
 pcp2p=MoverParameters->PantFrontVolt;
 }
-
+*/
    //double ObjectDist2;
    //double vol2=0;
    double TempPantVol;
@@ -2156,15 +2159,17 @@ pcp2p=MoverParameters->PantFrontVolt;
     }
    if ((dPantAngleR<0) && (!pcabc2))
     dPantAngleR+=5*0.05*40*dt1;
-
+/*
 if (lastcabf==1)
 {
+*/
 MoverParameters->PantFrontUp=pcabc1;
 MoverParameters->PantRearUp=pcabc2;
 MoverParameters->PantFrontStart=pcabd1;
 MoverParameters->PantRearStart=pcabd2;
 MoverParameters->PantFrontVolt=pcp1p;
 MoverParameters->PantRearVolt=pcp2p;
+/*
 }
 if (lastcabf==-1)
 {
@@ -2175,7 +2180,7 @@ MoverParameters->PantFrontStart=pcabd2;
 MoverParameters->PantRearVolt=pcp1p;
 MoverParameters->PantFrontVolt=pcp2p;
 }
-
+*/
 if ((MoverParameters->PantFrontSP==false) && (MoverParameters->PantFrontUp==false))
     {
     sPantDown.Play(vol,0,MechInside,vPosition);
