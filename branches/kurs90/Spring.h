@@ -16,7 +16,6 @@ const double	m_Ckf	= 0.7f;	    // Default Kinetic Friction
 
 #include "dumb3d.h"
 using namespace Math3D;
-//#include "Geometry.h"
 
 class TSpring
 {

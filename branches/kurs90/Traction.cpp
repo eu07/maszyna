@@ -20,7 +20,7 @@
 
 TTraction::TTraction()
 {
-    pPoint1=pPoint2=pPoint3=pPoint4= vector3(0,0,0);
+    pPoint1=pPoint2=pPoint3=pPoint4=vector3(0,0,0);
     vFront=vector3(0,0,1);
     vUp=vector3(0,1,0);
     vLeft=vector3(1,0,0);
@@ -165,7 +165,7 @@ void __fastcall TTraction::InitCenter(vector3 Angles, vector3 pOrigin)
     fSquaredRadius= SquareMagnitude((pPoint2-pPoint1)*0.5f);
 } */
 
-void __fastcall TTraction::Render(float mgn)   //McZapkie: mgn to odleglosc od obserwatora
+void __fastcall TTraction::RenderDL(float mgn)   //McZapkie: mgn to odleglosc od obserwatora
 {
   //McZapkie: ustalanie przezroczystosci i koloru linii:
  if (Wires!=0 && !TestFlag(DamageFlag,128))  //rysuj jesli sa druty i nie zerwana
@@ -326,7 +326,7 @@ void  __fastcall TTraction::RaArrayFill(CVertNormTex *Vert)
   WriteLog("!!! Wygenerowano punktów "+AnsiString(Vert-old)+", powinno byæ "+AnsiString(iLines));
 };
 
-void  __fastcall TTraction::RaRenderVBO(float mgn,int iPtr)
+void  __fastcall TTraction::RenderVBO(float mgn,int iPtr)
 {//renderowanie z u¿yciem VBO
  if (Wires!=0 && !TestFlag(DamageFlag,128))  //rysuj jesli sa druty i nie zerwana
  {
@@ -376,3 +376,30 @@ void  __fastcall TTraction::RaRenderVBO(float mgn,int iPtr)
  }
 };
 
+int __fastcall TTraction::TestPoint(vector3 *Point)
+{//sprawdzanie, czy przês³a mo¿na po³¹czyæ
+ if (pPrev==NULL)
+  if (pPoint1.Equal(Point))
+   return 0;
+ if (pNext==NULL)
+  if (pPoint2.Equal(Point))
+   return 1;
+ return -1;
+};
+
+void __fastcall TTraction::Connect(int my,TTraction *with,int to)
+{//³¹czenie segmentu (with) od strony (my) do jego (to)
+ if (my)
+ {pPrev=with;
+  iPrev=to;
+ }
+ else
+ {pNext=with;
+  iNext=to;
+ }
+};
+
+void __fastcall TTraction::Init()
+{//przeliczenie parametrów
+ vParametric=pPoint2-pPoint1; //wektor mno¿ników parametru dla równania parametrycznego
+};

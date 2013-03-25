@@ -26,6 +26,7 @@ __fastcall TRealSound::TRealSound()
  vSoundPosition.y=0;
  vSoundPosition.z=0;
  fDistance=fPreviousDistance=0.0;
+ fFrequency=22050.0; //czêstotliwoœæ samplowania pliku
 }
 
 __fastcall TRealSound::~TRealSound()
@@ -37,10 +38,11 @@ void __fastcall TRealSound::Free()
 {
 }
 
-void __fastcall TRealSound::Init(char *SoundName, double DistanceAttenuation, double X, double Y, double Z,bool Dynamic)
+void __fastcall TRealSound::Init(char *SoundName, double DistanceAttenuation, double X, double Y, double Z,bool Dynamic,bool freqmod)
 {
 //    Nazwa= SoundName;
-    pSound= TSoundsManager::GetFromName(SoundName,Dynamic);
+    pSound= TSoundsManager::GetFromName(SoundName,Dynamic,&fFrequency);
+    if (freqmod) fFrequency=22050.0; //dla modulowanych nie mo¿w byæ zmiany mno¿nika
     if (pSound)
     {
      AM= 1.0;
@@ -155,10 +157,10 @@ void __fastcall TRealSound::AdjFreq(double Freq, double dt) //McZapkie TODO: dor
      df= Freq*(1+Vlist/299.8);
     }
    else
-    df=Freq; 
+    df=Freq;
    if (Timer::GetSoundTimer())
     {
-     df=22050.0*df; //TODO - brac czestotliwosc probkowania z wav
+     df=fFrequency*df; //TODO - brac czestotliwosc probkowania z wav
      pSound->SetFrequency(( df<DSBFREQUENCY_MIN ? DSBFREQUENCY_MIN : (df>DSBFREQUENCY_MAX ? DSBFREQUENCY_MAX : df) ) );
     }
   }

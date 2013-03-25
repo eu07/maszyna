@@ -18,11 +18,14 @@ private:
  // - x: odleg³oœæ w bok (czy odbierak siê nie zsun¹³)
  // - y: przyjmuje wartoœæ <0,1>, jeœli pod drutem (wzd³u¿)
  // - z: wysokoœæ bezwzglêdna drutu w danym miejsu
+public: //na razie
  TTraction *pPrev,*pNext; //³¹czenie drutów w sieæ
+ int iPrev,iNext; //do którego koñca siê ³¹czy
 public:
-    GLuint uiDisplayList;
-    vector3 pPoint1,pPoint2,pPoint3,pPoint4;
-    double fHeightDifference;//,fMiddleHeight;
+ GLuint uiDisplayList;
+ vector3 pPoint1,pPoint2,pPoint3,pPoint4;
+ vector3 vParametric; //wspó³czynniki równania parametrycznego odcinka
+ double fHeightDifference;//,fMiddleHeight;
   //  int iCategory,iMaterial,iDamageFlag;
 //    float fU,fR,fMaxI,fWireThickness;
     int iNumSections;
@@ -39,7 +42,7 @@ public:
 //    bool bVisible;
 //    DWORD dwFlags;
 
-    void __fastcall TTraction::Optimize();
+    void __fastcall Optimize();
 
     TTraction();
     ~TTraction();
@@ -48,10 +51,13 @@ public:
 //    virtual bool __fastcall Hit(double x, double z, vector3 &hitPoint, vector3 &hitDirection) { return TNode::Hit(x,z,hitPoint,hitDirection); };
   //  virtual bool __fastcall Move(double dx, double dy, double dz) { return false; };
 //    virtual void __fastcall SelectedRender();
-    void __fastcall Render(float mgn);
-    int __fastcall RaArrayPrepare();
-    void  __fastcall RaArrayFill(CVertNormTex *Vert);
-    void  __fastcall RaRenderVBO(float mgn,int iPtr);
+ void __fastcall RenderDL(float mgn);
+ int __fastcall RaArrayPrepare();
+ void __fastcall RaArrayFill(CVertNormTex *Vert);
+ void __fastcall RenderVBO(float mgn,int iPtr);
+ int __fastcall TestPoint(vector3 *Point);
+ void __fastcall Connect(int my,TTraction *with,int to);
+ void __fastcall Init();
 };
 //---------------------------------------------------------------------------
 #endif

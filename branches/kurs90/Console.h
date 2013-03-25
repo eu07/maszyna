@@ -30,6 +30,7 @@ public:
  static void __fastcall ValueSet(int x,double y);
  static void __fastcall Update();
  static float __fastcall AnalogGet(int x);
+ static unsigned char __fastcall DigitalGet(int x); 
 };
 
 #endif

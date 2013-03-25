@@ -18,7 +18,7 @@ const int TP_TERRAIN=13; //Ra: specjalny model dla terenu
 const int TP_DYNAMIC=14;
 const int TP_SOUND=15;
 const int TP_TRACK=16;
-const int TP_GEOMETRY=17;
+//const int TP_GEOMETRY=17;
 const int TP_MEMCELL=18;
 const int TP_EVLAUNCH=19; //MC
 const int TP_TRACTION=20;
@@ -188,6 +188,7 @@ public:
  void __fastcall RaNodeAdd(TGroundNode *Node); //dodanie obiektu do listy renderowania
  void __fastcall Sort(); //optymalizacja obiektów w sektorze (sortowanie wg tekstur)
  TTrack* __fastcall FindTrack(vector3 *Point,int &iConnection,TTrack *Exclude);
+ TTraction* __fastcall FindTraction(vector3 *Point,int &iConnection,TTraction *Exclude);
  bool __fastcall StartVBO(); //ustwienie VBO sektora dla (nRenderRect), (nRenderRectAlpha) i (nRenderWires)
  bool __fastcall RaTrackAnimAdd(TTrack *t); //zg³oszenie toru do animacji
  void __fastcall RaAnimate(); //przeliczenie animacji torów
@@ -279,6 +280,7 @@ public:
  bool __fastcall InitEvents();
  bool __fastcall InitLaunchers();
  TTrack* __fastcall FindTrack(vector3 Point,int &iConnection,TGroundNode *Exclude);
+ TTraction* __fastcall FindTraction(vector3 *Point,int &iConnection,TGroundNode *Exclude);
  TGroundNode* __fastcall CreateGroundNode();
  TGroundNode* __fastcall AddGroundNode(cParser* parser);
  bool __fastcall AddGroundNode(double x,double z,TGroundNode *Node)
@@ -299,7 +301,7 @@ public:
  void __fastcall MoveGroundNode(vector3 pPosition);
  bool __fastcall Update(double dt, int iter);
  bool __fastcall AddToQuery(TEvent *Event, TDynamicObject *Node);
- bool __fastcall GetTraction(vector3 pPosition, TDynamicObject *model);
+ bool __fastcall GetTraction(TDynamicObject *model);
  bool __fastcall RenderDL(vector3 pPosition);
  bool __fastcall RenderAlphaDL(vector3 pPosition);
  bool __fastcall RenderVBO(vector3 pPosition);
@@ -330,29 +332,6 @@ public:
  }
 
  TGroundNode* __fastcall FindGroundNode(AnsiString asNameToFind,TGroundNodeType iNodeType);
-
-//Winger - to smierdzi
-/*    inline TGroundNode* __fastcall FindTraction( TGroundNodeType iNodeType )
-    {
-        TGroundNode *Current;
-        TGroundNode *CurrDynObj;
-        char trrx, trry, trrz;
-        for (Current= RootNode; Current!=NULL; Current= Current->Next)
-            if (Current->iType==iNodeType) // && (Current->Points->x )
-//              if
-                {
-                trrx= char(Current->Points->x);
-                trry= char(Current->Points->y);
-                trrz= char(Current->Points->z);
-                if (trrx!=0)
-                        {
-                        WriteLog("Znalazlem trakcje, qrwa!", trrx + trry + trrz);
-                        return Current;
-                        }
-                }
-        return NULL;
-    }
-*/
  TGroundRect* __fastcall GetRect(double x, double z) { return &Rects[GetColFromX(x)/iNumSubRects][GetRowFromZ(z)/iNumSubRects]; };
  TSubRect* __fastcall GetSubRect(double x, double z) { return GetSubRect(GetColFromX(x),GetRowFromZ(z)); };
  TSubRect* __fastcall FastGetSubRect(double x, double z) { return FastGetSubRect(GetColFromX(x),GetRowFromZ(z)); };
@@ -376,7 +355,7 @@ public:
  void __fastcall RadioStop(vector3 pPosition);
  TDynamicObject* __fastcall DynamicNearest(vector3 pPosition,double distance=20.0,bool mech=false);
  void __fastcall DynamicRemove(TDynamicObject* dyn);
- void __fastcall TerrainRead(const AnsiString &f); 
+ void __fastcall TerrainRead(const AnsiString &f);
  void __fastcall TerrainWrite();
  void __fastcall TrackBusyList();
 };
