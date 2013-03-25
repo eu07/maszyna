@@ -427,6 +427,7 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
     World.OnCommandGet((DaneRozkaz*)(pDane->lpData));
    break;
   case WM_ACTIVATE: //watch for window activate message
+  //case WM_ACTIVATEAPP:
   {//Ra: uzale¿nienie aktywnoœci od bycia na wierzchu
    Global::bActive=(LOWORD(wParam)!=WA_INACTIVE);
    if (Global::bInactivePause)
@@ -540,7 +541,29 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
    mx=WindowWidth/2+LOWORD(lParam);    // horizontal position
    my=WindowHeight/2+HIWORD(lParam);    // vertical position
    //SetCursorPos(mx,my);
+   break;
   }
+  case WM_PAINT:
+  {//odrysowanie okna
+   break;
+  }
+  //case WM_ERASEBKGND: //Process this message to keep Windows from erasing background.
+  case MM_JOY1BUTTONDOWN:
+  {
+   //WriteLog("Joystick button "+AnsiString(wParam));
+   break;
+  }
+  case WM_CREATE:
+   /* Capture the joystick. If this fails, beep and display
+    * error, then quit.
+    */
+   if (joySetCapture(hWnd,JOYSTICKID1,0,FALSE))
+   {
+    //MessageBeep(MB_ICONEXCLAMATION);
+    //MessageBox(hWnd,"Couldn't capture the joystick",NULL,MB_OK|MB_ICONEXCLAMATION);
+    //return -1;
+   }
+   break;
  }
  // pass all unhandled messages to DefWindowProc
  return DefWindowProc(hWnd,uMsg,wParam,lParam);
@@ -636,6 +659,8 @@ int WINAPI WinMain( HINSTANCE hInstance,     //instance
  SystemParametersInfo(SPI_GETKEYBOARDDELAY,0,&iOldDelay,0);
  SystemParametersInfo(SPI_SETKEYBOARDSPEED,20,NULL,0);
  //SystemParametersInfo(SPI_SETKEYBOARDDELAY,10,NULL,0);
+ if (!joyGetNumDevs())
+  WriteLog("No joystick");
  if (Global::iModifyTGA<0)
  {//tylko modyfikacja TGA, bez uruchamiania symulacji
   Global::iMaxTextureSize=64; //¿eby nie zamulaæ pamiêci

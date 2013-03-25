@@ -145,7 +145,7 @@ public:
  static bool bAdjustScreenFreq;
  static bool bEnableTraction;
  static bool bLoadTraction;
- static float iFriction;
+ static float fFriction;
  static bool bLiveTraction;
  static bool bManageNodes;
  static bool bDecompressDDS;

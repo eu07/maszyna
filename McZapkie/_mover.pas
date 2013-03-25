@@ -77,6 +77,7 @@ CONST
    LocalBrakePosNo=10;         {ilosc nastaw hamulca pomocniczego}
    MainBrakeMaxPos=10;          {max. ilosc nastaw hamulca zasadniczego}
    ManualBrakePosNo=20;        {ilosc nastaw hamulca recznego}
+
    {uszkodzenia toru}
    dtrack_railwear=2;
    dtrack_freerail=4;
@@ -192,7 +193,7 @@ CONST
    dt_181=$100; 
 
 TYPE
-        {ogolne}
+    {ogolne}
     TLocation = record
                   X,Y,Z: real;    {lokacja}
                 end;
@@ -311,7 +312,7 @@ TYPE
                 Pmin: real;
                 Pmax: real;
                 end;
-    TShuntSchemeTable = array[0..32] of TShuntScheme;            
+    TShuntSchemeTable = array[0..32] of TShuntScheme;
     TMPTRelay = record {lista przekaznikow bocznikowania}
                 Iup: real;
                 Idown: real;
@@ -523,6 +524,7 @@ TYPE
                 DoorMaxShiftL,DoorMaxShiftR: real;{szerokosc otwarcia lub kat}
                 DoorOpenMethod: byte;             {sposob otwarcia - 1: przesuwne, 2: obrotowe}
                 ScndS: boolean; {Czy jest bocznikowanie na szeregowej}
+
                         {--sekcja zmiennych}
                         {--opis konkretnego egzemplarza taboru}
                 Loc: TLocation; //pozycja pojazdów do wyznaczenia odleg³oœci pomiêdzy sprzêgami
@@ -557,7 +559,6 @@ TYPE
                 PipeBrakePress:real;                {!o cisnienie w cylindrach hamulcowych z przewodu}
                 PipePress: real;                    {!o cisnienie w przewodzie glownym}
                 PPP: real;                          {!o poprzednie cisnienie w przewodzie glownym}
-                AIControllFlag: boolean;
                 Volume: real;                       {objetosc spr. powietrza w zbiorniku hamulca}
                 CompressedVolume:real;              {objetosc spr. powietrza w ukl. zasilania}
                 PantVolume:real;                    {objetosc spr. powietrza w ukl. pantografu}
@@ -569,7 +570,7 @@ TYPE
                 ConverterAllow: boolean;             {zezwolenie na prace przetwornicy NBMX}
                 BrakeCtrlPos:integer;               {nastawa hamulca zespolonego}
                 LocalBrakePos:byte;                 {nastawa hamulca indywidualnego}
-                 ManualBrakePos:byte;                 {nastawa hamulca recznego}
+                ManualBrakePos:byte;                 {nastawa hamulca recznego}
                 BrakeStatus: byte; {0 - odham, 1 - ham., 2 - uszk., 4 - odluzniacz, 8 - antyposlizg, 16 - uzyte EP, 32 - pozycja R, 64 - powrot z R}
                 EmergencyBrakeFlag: boolean;        {hamowanie nagle}
                 BrakeDelayFlag: byte;               {nastawa opoznienia ham. osob/towar/posp/exp 0/1/2/4}
@@ -655,6 +656,7 @@ TYPE
                 LoadType: string;   {co jest zaladowane}
                 LoadStatus: byte; //+1=trwa rozladunek,+2=trwa zaladunek,+4=zakoñczono,0=zaktualizowany model
                 LastLoadChangeTime: real; //raz (roz)³adowania
+
                 DoorBlocked: boolean;    //Czy jest blokada drzwi
                 DoorLeftOpened: boolean;  //stan drzwi
                 DoorRightOpened: boolean;
@@ -690,7 +692,7 @@ TYPE
 
 {                function BrakeRatio: real;  }
                 function LocalBrakeRatio: real;
-                 function ManualBrakeRatio: real;
+                function ManualBrakeRatio: real;
                 function PipeRatio: real; {ile napelniac}
                 function RealPipeRatio: real; {jak szybko}
                 function BrakeVP: real;                
@@ -721,6 +723,7 @@ TYPE
                 procedure SecuritySystemCheck(dt:real);
                 function BatterySwitch(State:boolean):boolean;
                 function EpFuseSwitch(State:boolean):boolean;
+
                {! stopnie hamowania - hamulec zasadniczy}
                 function IncBrakeLevelOld:boolean;
                 function DecBrakeLevelOld:boolean;
@@ -759,6 +762,7 @@ TYPE
                 procedure UpdatePantVolume(dt:real); {jw ale uklad zasilania pantografow}
                 procedure UpdateScndPipePressure(dt:real);
                 procedure UpdateBatteryVoltage(dt:real);
+
                {! funkcje laczace/rozlaczajace sprzegi}
                //Ra: przeniesione do C++
 
@@ -2981,7 +2985,7 @@ for b:=0 to 1 do
        if TestFlag(CouplingFlag,ctrain_controll) then
 
         Connected.PantVolume:=PantVolume;
- end;
+end;
 
 procedure T_MoverParameters.UpdateBatteryVoltage(dt:real);
 var sn1,sn2,sn3,sn4,sn5: real;
@@ -2999,12 +3003,16 @@ begin
      if (Mains) then
      sn3:=(dt*0.05)
      else sn3:=0;
-{     if (HeadSignalsFlag>0) then
+(* //Ra: no tak, wyrzuci³em lampy st¹d, wiêc nie bêd¹ pobieraæ pr¹du
+     if (HeadSignalsFlag>0) then
      sn4:=dt*0.003
-     else} sn4:=0;
-{     if (EndSignalsFlag>0) then
+     else sn4:=0;
+     if (EndSignalsFlag>0) then
      sn5:=dt*0.001
-     else} sn5:=0;
+     else sn5:=0;
+*)
+     sn4:=0;
+     sn5:=0;
      end;
      if ((NominalBatteryVoltage)/(BatteryVoltage)>=1.22) and (battery=true) then
      begin  {90V}
@@ -3017,12 +3025,16 @@ begin
      if (Mains)  then
      sn3:=(dt*0.001)
      else sn3:=0;
-{     if (HeadSignalsFlag>0) then
+(*
+     if (HeadSignalsFlag>0) then
      sn4:=(dt*0.0030)
-     else} sn4:=0;
-{     if (EndSignalsFlag>0) then
+     else sn4:=0;
+     if (EndSignalsFlag>0) then
      sn5:=(dt*0.0010)
-     else} sn5:=0;
+     else sn5:=0;
+(*)
+     sn4:=0;
+     sn5:=0;
      end;
      if (battery=false) then
     begin
@@ -5386,14 +5398,12 @@ end;
 
 function T_MoverParameters.DoorBlockedFlag:Boolean;
 begin
-
   if (DoorBlocked=true) and (Vel<5) then
   DoorBlockedFlag:=False;
   if (DoorBlocked=true) and (Vel>=5) then
   DoorBlockedFlag:=True
   else
   DoorBlockedFlag:=False;
-
 end;
 
 function T_MoverParameters.RunCommand(command:string; CValue1,CValue2:real):boolean;
@@ -6883,10 +6893,9 @@ begin
                   else
                     if s='HydraulicBrake' then LocalBrake:=HydraulicBrake
                       else LocalBrake:=NoBrake;
-                s:=DUE(ExtractKeyWord(lines,'ManualBrake='));
+              s:=DUE(ExtractKeyWord(lines,'ManualBrake='));
               if s='Yes' then MBrake:=true
-
-                                        else MBrake:=false;
+              else MBrake:=false;
              s:=DUE(ExtractKeyWord(lines,'DynamicBrake='));
              if s='Passive' then DynamicBrakeType:=dbrake_passive
               else
@@ -6914,11 +6923,10 @@ begin
               if s='Yes' then
                CoupledCtrl:=True    {wspolny wal}
               else CoupledCtrl:=False;
-             s:=DUE(ExtractKeyWord(lines,'ScndS='));
+              s:=DUE(ExtractKeyWord(lines,'ScndS='));
               if s='Yes' then
                ScndS:=True    {brak pozycji rownoleglej przy niskiej nastawie PSR}
               else ScndS:=False;
-
               s:=ExtractKeyWord(lines,'IniCDelay=');
               InitialCtrlDelay:=s2r(DUE(s));
               s:=ExtractKeyWord(lines,'SCDelay=');
@@ -6964,14 +6972,16 @@ begin
                  else AlterLightPowerSource.SourceType:=NotDefined;
                end ;
                s:=ExtractKeyWord(lines,'Volt=');
+                 if s<>'' then
                  NominalVoltage:=s2r(DUE(s));
 
              s:=ExtractKeyWord(lines,'LMaxVoltage=');
+                 if s<>'' then
                  begin
                  BatteryVoltage:=s2r(DUE(s));
                  NominalBatteryVoltage:=s2r(DUE(s));
-                 end;
-                //  else LightPowerSource.SourceType:=NotDefined;
+               end;
+              //else LightPowerSource.SourceType:=NotDefined;
             end
           else if Pos('Security:',lines)>0 then      {zrodlo mocy dla oswietlenia}
             with SecuritySystem do

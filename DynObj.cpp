@@ -1759,7 +1759,7 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
     //TTrackParam tp;
     tp.Width=MyTrack->fTrackWidth;
 //McZapkie-250202
-    tp.friction=MyTrack->fFriction/Global::iFriction;
+    tp.friction=MyTrack->fFriction*Global::fFriction;
     tp.CategoryFlag=MyTrack->iCategoryFlag&15;
     tp.DamageFlag=MyTrack->iDamageFlag;
     tp.QualityFlag=MyTrack->iQualityFlag;
