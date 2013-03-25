@@ -411,7 +411,7 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
  }
  else
   eType=tt_Unknown;
- if (DebugModeFlag)
+ if (Global::iWriteLogEnabled&4)
   WriteLog(str.c_str());
  parser->getTokens(4);
  *parser >> fTrackLength >> fTrackWidth >> fFriction >> fSoundDistance;
@@ -469,7 +469,7 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
    fTexHeight1=-fTexHeight1; //rzeki maj¹ wysokoœæ odwrotnie ni¿ drogi
  }
  else
-  if (DebugModeFlag) WriteLog("unvis");
+  if (Global::iWriteLogEnabled&4) WriteLog("unvis");
  Init();
  double segsize=5.0; //d³ugoœæ odcinka segmentowania
  switch (eType)
@@ -665,8 +665,20 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
    *parser >> a2;
    Segment->AngleSet(1,a2);
   }
+  else if (str=="fouling1")
+  {//wskazanie modelu ukresu w kierunku 1
+   parser->getTokens();
+   *parser >> token;
+   //Segment->AngleSet(1,a2);
+  }
+  else if (str=="fouling2")
+  {//wskazanie modelu ukresu w kierunku 2
+   parser->getTokens();
+   *parser >> token;
+   //Segment->AngleSet(1,a2);
+  }
   else
-   Error("Unknown track property: \""+str+"\"");
+   ErrorLog("Unknown property: \""+str+"\" in track \""+name+"\"");
   parser->getTokens(); *parser >> token;
   str=AnsiString(token.c_str());
  }
@@ -1335,8 +1347,7 @@ void TTrack::Release()
 
 void __fastcall TTrack::Render()
 {
- //if (bVisible && SquareMagnitude(Global::pCameraPosition-Segment->FastGetPoint(0.5)) < 810000)
- if (bVisible) //Ra: tory s¹ renderowane sektorami i nie ma sensu ka¿dorazowo liczyæ odleg³oœci 
+ if (bVisible) //Ra: tory s¹ renderowane sektorami i nie ma sensu ka¿dorazowo liczyæ odleg³oœci
  {
   if (!DisplayListID)
   {
@@ -1345,7 +1356,7 @@ void __fastcall TTrack::Render()
     ResourceManager::Register(this);
   };
   SetLastUsage(Timer::GetSimulationTime());
-  EnvironmentSet(); //oœwietlenie nie mo¿e byæ skompilowane, bo mo¿e siê zmieniaæ z czasem 
+  EnvironmentSet(); //oœwietlenie nie mo¿e byæ skompilowane, bo mo¿e siê zmieniaæ z czasem
   glCallList(DisplayListID);
   EnvironmentReset(); //ustawienie oœwietlenia na zwyk³e
   if (InMovement()) Release(); //zwrotnica w trakcie animacji do odrysowania

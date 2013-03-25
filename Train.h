@@ -62,7 +62,7 @@ public:
     __fastcall ~TTrain();
 //    bool __fastcall Init(TTrack *Track);
 //McZapkie-010302
-    bool __fastcall Init(TDynamicObject *NewDynamicObject);
+    bool __fastcall Init(TDynamicObject *NewDynamicObject,bool e3d=false);
     void __fastcall OnKeyPress(int cKey);
 
 //    bool __fastcall SHP() { fShpTimer= 0; };
@@ -323,13 +323,13 @@ private:
 //    double fCzuwakTimer;
  double fBlinkTimer;
  float fHaslerTimer;
+    float fPoslizgTimer;
     float fConverterTimer;  //hunter-261211: dla przekaznika
     float fMainRelayTimer;  //hunter-141211: zalaczanie WSa z opoznieniem
     float fCzuwakTestTimer;     //hunter-091012: do testu czuwaka
     
     int CAflag; //hunter-131211: dla osobnego zbijania CA i SHP
 
-    double fPoslizgTimer;
 //    double fShpTimer;
 //    double fDblClickTimer;
     //ABu: Przeniesione do public. - Wiem, ze to nieladnie...

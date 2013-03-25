@@ -31,7 +31,7 @@ enum TMovementStatus
  movePress=8, //dociskanie przy od³¹czeniu (zamiast zmiennej Prepare2press)
  moveConnect=0x10, //jest blisko innego pojazdu i mo¿na próbowaæ pod³¹czyæ
  movePrimary=0x20, //ma priorytet w sk³adzie (master)
- //moveStopThen=0x40, //nie podje¿d¿aæ do semafora, jeœli droga nie jest wolna
+ moveLate=0x40, //flaga spóŸnienia, w³¹czy bardziej
  moveStopHere=0x80, //nie podje¿d¿aæ do semafora, jeœli droga nie jest wolna
  moveStartHorn=0x100, //podawaj sygna³ po podaniu wolnej drogi
  moveStartHornNow=0x200, //podaj sygna³ po odhamowaniu
@@ -41,7 +41,7 @@ enum TMovementStatus
 };
 
 enum TStopReason
-{//powód zatrzymania, dodawany do SetVelocity 0
+{//powód zatrzymania, dodawany do SetVelocity 0 - w zasadzie do usuniêcia
  stopNone,  //nie ma powodu - powinien jechaæ
  stopSleep, //nie zosta³ odpalony, to nie pojedzie
  stopSem,   //semafor zamkniêty
@@ -55,6 +55,27 @@ enum TStopReason
  stopRadio, //komunikat przekazany radiem (Radiostop)
  stopExt,   //komenda z zewn¹trz
  stopError  //z powodu b³êdu w obliczeniu drogi hamowania
+};
+
+enum TAction
+{//przechowanie aktualnego stanu AI od poprzedniego przeb³ysku œwiadomoœci
+ actUnknownm,  //stan nieznany (domyœlny na pocz¹tku)
+ //podnieœ pantograf (info dla u¿ytkownika)
+ //za³¹cz przetwornicê (info dla u¿ytkownika)
+ //za³¹cz sprê¿arkê (info dla u¿ytkownika)
+ actDrive,     //jazda
+ actGo,        //ruszanie z miejsca
+ actSlow,      //przyhamowanie przed ograniczeniem
+ sctStop,      //hamowanie w celu precyzyjnego zatrzymania
+ actIdle,      //luzowanie sk³adu przed odjazdem
+ actRelease,   //luzowanie sk³adu po zmniejszeniu prêdkoœci
+ actConnect,   //dojazd w celu podczepienia
+ actWait,      //czekanie na przystanku
+ actReady,     //zg³oszona gotowoœæ do odjazdu od kierownika
+ actEmergency, //hamowanie awaryjne
+ actGoUphill,  //ruszanie pod górê
+ actTest,      //hamowanie kontrolne (podczas jazdy)
+ actTrial      //próba hamulca (na postoju)
 };
 
 class TSpeedPos
@@ -141,6 +162,7 @@ private:
  double deltalog; //przyrost czasu
  double LastReactionTime;
  double fActionTime; //czas u¿ywany przy regulacji prêdkoœci i zamykaniu drzwi
+ TAction eAction; //aktualny stan
  bool HelpMeFlag; //wystawiane True jesli cos niedobrego sie dzieje
 public:
  bool AIControllFlag; //rzeczywisty/wirtualny maszynista
@@ -196,7 +218,7 @@ private:
  bool __fastcall IncBrake();
  bool __fastcall DecBrake();
  bool __fastcall IncSpeed();
- bool __fastcall DecSpeed();
+ bool __fastcall DecSpeed(bool force=false);
  void __fastcall SpeedSet();
  void __fastcall RecognizeCommand(); //odczytuje komende przekazana lokomotywie
  void __fastcall Activation(); //umieszczenie obsady w odpowiednim cz³onie
@@ -235,7 +257,9 @@ public:
  void __fastcall WaitingSet(double Seconds);
 private:
  AnsiString VehicleName;
- double VelMargin;
+ //double VelMargin; //nieokreœlone znaczenie
+ double fVelPlus; //dopuszczalne przekroczenie prêdkoœci na ograniczeniu bez hamowania
+ double fVelMinus; //margines prêdkoœci powoduj¹cy za³¹czenie napêdu
  double fWarningDuration; //ile czasu jeszcze tr¹biæ
  double fStopTime; //czas postoju przed dalsz¹ jazd¹ (np. na przystanku)
  double WaitingTime; //zliczany czas oczekiwania do samoistnego ruszenia
@@ -263,7 +287,9 @@ public:
  int __fastcall StationIndex();
  bool __fastcall IsStop();
  bool __fastcall Primary() {return this?bool(iDrivigFlags&movePrimary):false;};
+ int inline __fastcall DrivigFlags() {return iDrivigFlags;};
  void __fastcall MoveTo(TDynamicObject *to);
+ void __fastcall DirectionInitial();
 };
 
 #endif

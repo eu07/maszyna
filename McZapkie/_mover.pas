@@ -524,7 +524,6 @@ TYPE
                 DoorMaxShiftL,DoorMaxShiftR: real;{szerokosc otwarcia lub kat}
                 DoorOpenMethod: byte;             {sposob otwarcia - 1: przesuwne, 2: obrotowe}
                 ScndS: boolean; {Czy jest bocznikowanie na szeregowej}
-
                         {--sekcja zmiennych}
                         {--opis konkretnego egzemplarza taboru}
                 Loc: TLocation; //pozycja pojazdów do wyznaczenia odleg³oœci pomiêdzy sprzêgami
@@ -606,7 +605,7 @@ TYPE
                 CabNo: integer; //numer kabiny, z której jest sterowanie: 1 lub -1; w przeciwnym razie brak sterowania - rozrzad
                 DirAbsolute: integer; //zadany kierunek jazdy wzglêdem sprzêgów (1=w strone 0,-1=w stronê 1)
                 ActiveCab: integer; //numer kabiny, w ktorej jest obsada (zwykle jedna na sk³ad)
-                LastCab: integer;       { numer kabiny przed zmiana }
+                //LastCab: integer; //poprzedni numer kabiny do zamiany pantografów
                 LastSwitchingTime: real; {czas ostatniego przelaczania czegos}
                 //WarningSignal: byte;     {0: nie trabi, 1,2: trabi}
                 DepartureSignal: boolean; {sygnal odjazdu}
@@ -656,7 +655,6 @@ TYPE
                 LoadType: string;   {co jest zaladowane}
                 LoadStatus: byte; //+1=trwa rozladunek,+2=trwa zaladunek,+4=zakoñczono,0=zaktualizowany model
                 LastLoadChangeTime: real; //raz (roz)³adowania
-
                 DoorBlocked: boolean;    //Czy jest blokada drzwi
                 DoorLeftOpened: boolean;  //stan drzwi
                 DoorRightOpened: boolean;
@@ -688,7 +686,7 @@ TYPE
 
                 function GetTrainsetVoltage: boolean;
                 function Physic_ReActivation: boolean;
-                procedure PantCheck; //pomocnicza, do sprawdzania pantografow
+                //procedure PantCheck; //pomocnicza, do sprawdzania pantografow
 
 {                function BrakeRatio: real;  }
                 function LocalBrakeRatio: real;
@@ -1175,7 +1173,7 @@ begin
 //Ra: problem jest równie¿, jeœli AI bêdzie na koñcu sk³adu
  OK:=(dir<>0); // and Mains;
  d:=(1+Sign(dir)) div 2; //dir=-1=>d=0, dir=1=>d=1 - wysy³anie tylko w ty³
- if OK then
+ if OK then //musi byæ wybrana niezerowa kabina
   with Couplers[d] do //w³asny sprzêg od strony (d)
    if TestFlag(CouplingFlag,ctrain_controll) then
     if ConnectedNr<>d then //jeœli ten nastpêny jest zgodny z aktualnym
@@ -1189,6 +1187,7 @@ begin
  SendCtrlToNext:=OK;
 end;
 
+(* Ra: to jest bez sensu, PantFront jest zawsze od strony sprzêgu 0
 procedure T_MoverParameters.PantCheck;
 var c: boolean;
 begin
@@ -1199,17 +1198,18 @@ begin
      PantRearUp:=c;
    end; }
 end;
+*)
 
 function T_MoverParameters.CabActivisation:boolean;
 //za³¹czenie rozrz¹du
 var OK:boolean;
 begin
-  OK:=(CabNo=0);
+  OK:=(CabNo=0); //numer kabiny, z której jest sterowanie
   if (OK) then
    begin
-     CabNo:=ActiveCab;
+     CabNo:=ActiveCab; //sterowanie jest z kabiny z obsad¹
      DirAbsolute:=ActiveDir*CabNo;
-     SendCtrlToNext('CabActivisation',CabNo*ActiveCab,ActiveCab);
+     SendCtrlToNext('CabActivisation',1,CabNo);
      //PantCheck;
    end;
   CabActivisation:=OK;
@@ -1219,14 +1219,14 @@ function T_MoverParameters.CabDeactivisation:boolean;
 //wy³¹czenie rozrz¹du
 var OK:boolean;
 begin
- OK:=(CabNo=ActiveCab);
+ OK:=(CabNo=ActiveCab); //o ile obsada jest w kabinie ze sterowaniem
  if (OK) then
   begin
-   LastCab:=CabNo;
+   //LastCab:=CabNo;
    CabNo:=0;
    DirAbsolute:=ActiveDir*CabNo;
    DepartureSignal:=false; //nie buczeæ z nieaktywnej kabiny
-   SendCtrlToNext('CabActivisation',0,ActiveCab);
+   SendCtrlToNext('CabActivisation',0,ActiveCab); //CabNo==0!
   end;
  CabDeactivisation:=OK;
 end;
@@ -1323,7 +1323,7 @@ begin
 
        end
       else
-          if (CtrlSpeed>1) and (ActiveDir<>0) {and (ScndCtrlPos=0)} and (TrainType<>dt_ET40) then
+       if (CtrlSpeed>1) and (ActiveDir<>0) {and (ScndCtrlPos=0)} and (TrainType<>dt_ET40) then
         begin
           while (RList[MainCtrlPos].R>0) and IncMainCtrl(1) do ;
            //OK:=True ; {takie chamskie, potem poprawie} <-Ra: kto mia³ to poprawiæ i po co?
@@ -1588,7 +1588,7 @@ begin
   if (ActiveDir=1) and (MainCtrlPos=0) and (TrainType=dt_EZT) then
     if MinCurrentSwitch(false) then
     begin
-      DirectionBackward:=True;
+      DirectionBackward:=True; //
       Exit;
     end;
   if (MainCtrlPosNo>0) and (ActiveDir>-1) and (MainCtrlPos=0) then
@@ -1642,72 +1642,70 @@ function T_MoverParameters.ChangeCab(direction:integer): boolean;
 //var //b:byte;
 //    c:boolean;
 begin
-  if Abs(ActiveCab+direction)<2 then
-   begin
+ if Abs(ActiveCab+direction)<2 then
+  begin
 //  if (ActiveCab+direction=0) then LastCab:=ActiveCab;
-     ActiveCab:=ActiveCab+direction;
-     ChangeCab:=True;
-     if (BrakeSystem=Pneumatic) and (BrakeCtrlPosNo>0) then
-      begin
-        BrakeCtrlPos:=-2;
-        LimPipePress:=PipePress;
-        ActFlowSpeed:= 0;
-      end  
-     else
-     if (TrainType=dt_EZT) and (BrakeCtrlPosNo>0) then
-        begin
-        BrakeCtrlPos:=5;
-        end
-     else
-        begin
-        BrakeCtrlPos:=0;
-        end;
-     if not TestFlag(BrakeStatus,b_dmg) then
-      BrakeStatus:=b_off;
-     MainCtrlPos:=0;
-     ScndCtrlPos:=0;
-     if (EngineType<>DieselEngine) and (EngineType<>DieselElectric) then
+   ActiveCab:=ActiveCab+direction;
+   ChangeCab:=True;
+   if (BrakeSystem=Pneumatic) and (BrakeCtrlPosNo>0) then
+    begin
+     BrakeCtrlPos:=-2;
+     LimPipePress:=PipePress;
+     ActFlowSpeed:= 0;
+    end
+   else
+    if (TrainType=dt_EZT) and (BrakeCtrlPosNo>0) then
      begin
-       Mains:=False;
-       CompressorAllow:=false;
-       ConverterAllow:=false;
+      BrakeCtrlPos:=5;
+     end
+    else
+     begin
+      BrakeCtrlPos:=0;
      end;
+    if not TestFlag(BrakeStatus,b_dmg) then
+     BrakeStatus:=b_off;
+   MainCtrlPos:=0;
+   ScndCtrlPos:=0;
+   if (EngineType<>DieselEngine) and (EngineType<>DieselElectric) then
+    begin
+     Mains:=False;
+     CompressorAllow:=false;
+     ConverterAllow:=false;
+    end;
 //   if (ActiveCab<>LastCab) and (ActiveCab<>0) then
 //    begin
 //     c:=PantFrontUp;
 //     PantFrontUp:=PantRearUp;
 //     PantRearUp:=c;
 //    end; //yB: poszlo do wylacznika rozrzadu
-     ActiveDir:=0;
+   ActiveDir:=0;
    DirAbsolute:=0;
-   end
-  else
-   ChangeCab:=False;
+  end
+ else
+  ChangeCab:=False;
 end;
 }
 
 function T_MoverParameters.BatterySwitch(State:boolean):boolean;
-var b:byte;
 begin
-  if (Battery<>State) then
-     begin
-     Battery:=State;
-     BatterySwitch:=true;
-     end;
-if (Battery=true) then SendCtrlToNext('BatterySwitch',1,CabNo)
-  else SendCtrlToNext('BatterySwitch',0,CabNo)
+ if (Battery<>State) then
+  begin
+   Battery:=State;
+  end;
+ if (Battery=true) then SendCtrlToNext('BatterySwitch',1,CabNo)
+  else SendCtrlToNext('BatterySwitch',0,CabNo);
+ BatterySwitch:=true;
 end;
 
 function T_MoverParameters.EpFuseSwitch(State:boolean):boolean;
-var b:byte;
 begin
-  if (EpFuse<>State) then
-     begin
-     EpFuse:=State;
-     EpFuseSwitch:=true;
-     end;
-if (EpFuse=true) then SendCtrlToNext('EpFuseSwitch',1,CabNo)
-  else SendCtrlToNext('EpFuseSwitch',0,CabNo)
+ if (EpFuse<>State) then
+  begin
+   EpFuse:=State;
+  end;
+ if (EpFuse=true) then SendCtrlToNext('EpFuseSwitch',1,CabNo)
+  else SendCtrlToNext('EpFuseSwitch',0,CabNo);
+ EpFuseSwitch:=true;
 end;
 
 {wl/wyl przetwornicy}
@@ -3183,13 +3181,13 @@ end;
 
 procedure T_MoverParameters.FuseOff;
 begin
-  if not FuseFlag then
-   begin
+ if not FuseFlag then
+  begin
    FuseFlag:=True;
    EventFlag:=True;
    SetFlag(SoundFlag,sound_relay);
    SetFlag(SoundFlag,sound_loud);
-   end;
+  end;
 end;
 
 
@@ -3888,7 +3886,7 @@ Przy zmianie iloœci ga³êzi musisz:
                   OK:=True;
                  end
               end
-              else
+             else
               if (ScndCtrlPos>ScndCtrlActualPos) then
                if Abs(Im)<Imin then
                 if MotorParam[ScndCtrlActualPos].AutoSwitch then
@@ -3912,29 +3910,29 @@ Przy zmianie iloœci ga³êzi musisz:
           if (not AutoRelayFlag) or (not RList[MainCtrlActualPos].AutoSwitch) then
            begin //main bez samoczynnego rozruchu
              if Rlist[MainCtrlActualPos].Relay<MainCtrlPos then
-                 begin
+              begin
                if (Rlist[MainCtrlPos].R=0) and (MainCtrlPos>0) and (not (MainCtrlPos=MainCtrlPosNo)) and (FastSerialCircuit=1) then
                 begin
                  MainCtrlActualPos:=MainCtrlPos; //hunter-111012: szybkie wchodzenie na bezoporowa (303E)
                  OK:=true;
                  SetFlag(SoundFlag,sound_manyrelay); SetFlag(SoundFlag,sound_loud);
-                 end
+                end
                else if (LastRelayTime>CtrlDelay) then
-              begin
-                inc(MainCtrlActualPos);
+                begin
+                 inc(MainCtrlActualPos);
                  OK:=True;
-                //---------
-                //hunter-111211: poprawki
-                if MainCtrlActualPos>0 then
-                 if (Rlist[MainCtrlActualPos].R=0) and (not (MainCtrlActualPos=MainCtrlPosNo)) then  //wejscie na bezoporowa
-                  begin
-                   SetFlag(SoundFlag,sound_manyrelay); SetFlag(SoundFlag,sound_loud);
-                  end
-                 else if (Rlist[MainCtrlActualPos].R>0) and (Rlist[MainCtrlActualPos-1].R=0) then //wejscie na drugi uklad
-                  begin
-                   SetFlag(SoundFlag,sound_manyrelay);
-                  end;
-              end
+                 //---------
+                 //hunter-111211: poprawki
+                 if MainCtrlActualPos>0 then
+                  if (Rlist[MainCtrlActualPos].R=0) and (not (MainCtrlActualPos=MainCtrlPosNo)) then  //wejscie na bezoporowa
+                   begin
+                    SetFlag(SoundFlag,sound_manyrelay); SetFlag(SoundFlag,sound_loud);
+                   end
+                  else if (Rlist[MainCtrlActualPos].R>0) and (Rlist[MainCtrlActualPos-1].R=0) then //wejscie na drugi uklad
+                   begin
+                    SetFlag(SoundFlag,sound_manyrelay);
+                   end;
+                end
               end
              else if Rlist[MainCtrlActualPos].Relay>MainCtrlPos then
               begin
@@ -4001,7 +3999,7 @@ Przy zmianie iloœci ga³êzi musisz:
                     inc(MainCtrlActualPos); //posuwanie wa³u ku³akowego do przodu
                     OK:=True
                    end
-               end;
+                 end;
            end;
         end;
      end
@@ -4012,7 +4010,7 @@ Przy zmianie iloœci ga³êzi musisz:
        MainCtrlActualPos:=0; //Ra: tu jest chyba wy³¹czanie przy zbyt szybkim wejœciu na drug¹ pozycjê
        OK:=True;
       end
-      else
+     else
       if ((MainCtrlPos=1)or(TrainType=dt_EZT)) and (MainCtrlActualPos=0) then
        MainCtrlActualPos:=1
       else
@@ -4730,10 +4728,11 @@ var CCF,Vprev,VprevC:real; VirtualCoupling:boolean;
 begin
      CCF:=0;
      with Couplers[CouplerN] do
+      if (Connected<>nil) then //Ra: siê wysypywa³o
       begin
         VirtualCoupling:=(CouplingFlag=ctrain_virtual);
         Vprev:=V;
-        VprevC:=Connected.V;
+        VprevC:=Connected.V; //Ra: siê wysypywa³o tutaj
         case CouplerN of
          0 : CCF:=ComputeCollision(V,Connected.V,TotalMass,Connected.TotalMass,(beta+Connected.Couplers[ConnectedNr].beta)/2.0,VirtualCoupling)/(dt{+0.01}); //yB: ej ej ej, a po
          1 : CCF:=ComputeCollision(Connected.V,V,Connected.TotalMass,TotalMass,(beta+Connected.Couplers[ConnectedNr].beta)/2.0,VirtualCoupling)/(dt{+0.01}); //czemu tu jest +0.01??
@@ -5398,12 +5397,10 @@ end;
 
 function T_MoverParameters.DoorBlockedFlag:Boolean;
 begin
-  if (DoorBlocked=true) and (Vel<5) then
-  DoorBlockedFlag:=False;
-  if (DoorBlocked=true) and (Vel>=5) then
-  DoorBlockedFlag:=True
-  else
-  DoorBlockedFlag:=False;
+ //if (DoorBlocked=true) and (Vel<5.0) then
+ DoorBlockedFlag:=false;
+ if (DoorBlocked=true) and (Vel>=5.0) then
+  DoorBlockedFlag:=true
 end;
 
 function T_MoverParameters.RunCommand(command:string; CValue1,CValue2:real):boolean;
@@ -5502,12 +5499,12 @@ Begin
    begin
 //  OK:=Power>0.01;
 //  if OK then
-    if (CabNo<>0) then
-     LastCab:=CabNo;
-    case Trunc(CValue1*CValue2) of
+    //if (CabNo<>0) then
+    // LastCab:=CabNo;
+    case Trunc(CValue1*CValue2) of //CValue2 ma zmieniany znak przy niezgodnoœci sprzêgów
       1 : CabNo:= 1;
      -1 : CabNo:=-1;
-    else CabNo:=0;
+    else CabNo:=0; //gdy CValue1==0
     end;
     DirAbsolute:=ActiveDir*CabNo;
     //PantCheck; //ewentualnie automatyczna zamiana podniesionych pantografów
@@ -5938,9 +5935,11 @@ begin
   ScndCtrlActualPos:=0;
   Heating:=false;
   Mains:=False;
-  ActiveDir:=0; CabNo:=Cab;
+  ActiveDir:=0; //kierunek nie ustawiony
+  CabNo:=0; //sterowania nie ma, ustawiana przez CabActivization()
+  ActiveCab:=Cab;  //obsada w podanej kabinie
   DirAbsolute:=0;
-  LastCab:=Cab;
+  //LastCab:=0;
   SlippingWheels:=False;
   SandDose:=False;
   FuseFlag:=False;
@@ -6149,7 +6148,7 @@ begin
      PantFront(true);
      PantRear(true);
      MainSwitch(true);
-     ActiveDir:=Dir; //nastawnik kierunkowy
+     ActiveDir:=0; //Dir; //nastawnik kierunkowy - musi byæ ustawiane osobno!
      DirAbsolute:=ActiveDir*CabNo; //kierunek jazdy wzglêdem sprzêgów
      LimPipePress:=CntrlPipePress;
    end
@@ -6248,7 +6247,7 @@ begin
      SendCtrlToNext('DoorOpen',2,CabNo) //1=lewe, 2=prawe
     else
      SendCtrlToNext('DoorOpen',1,CabNo); //zamiana
-          CompressedVolume:=CompressedVolume-0.003;
+    CompressedVolume:=CompressedVolume-0.003;
    end
   else
    begin
