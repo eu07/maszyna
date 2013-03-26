@@ -536,24 +536,50 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       //-----------
       if (cKey==Global::Keys[k_PantFrontUp])   //Winger 160204: podn. przedn. pantografu
       {
-           DynamicObject->MoverParameters->PantFrontSP=false;
-           if (DynamicObject->MoverParameters->PantFront(true))
-            if (DynamicObject->MoverParameters->PantFrontStart!=1)
-            {
-                dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                dsbSwitch->Play(0,0,0);
-            }
+       if ((DynamicObject->MoverParameters->ActiveCab==1)||((DynamicObject->MoverParameters->ActiveCab<1)&&(DynamicObject->MoverParameters->TrainType!=dt_ET40)&&(DynamicObject->MoverParameters->TrainType!=dt_ET41)&&(DynamicObject->MoverParameters->TrainType!=dt_ET42)&&(DynamicObject->MoverParameters->TrainType!=dt_EZT)))
+       {
+        DynamicObject->MoverParameters->PantFrontSP=false;
+        if (DynamicObject->MoverParameters->PantFront(true))
+         if (DynamicObject->MoverParameters->PantFrontStart!=1)
+         {
+          dsbSwitch->SetVolume(DSBVOLUME_MAX);
+          dsbSwitch->Play(0,0,0);
+         }
+       }
+       if ((DynamicObject->MoverParameters->ActiveCab<1)&&((DynamicObject->MoverParameters->TrainType==dt_ET40)||(DynamicObject->MoverParameters->TrainType==dt_ET41)||(DynamicObject->MoverParameters->TrainType==dt_ET42)||(DynamicObject->MoverParameters->TrainType==dt_EZT)))
+       {
+        DynamicObject->MoverParameters->PantRearSP=false;
+        if(DynamicObject->MoverParameters->PantRear(true))
+         if(DynamicObject->MoverParameters->PantRearStart!=1)
+         {
+          dsbSwitch->SetVolume(DSBVOLUME_MAX);
+          dsbSwitch->Play(0,0,0);
+         }
+       }
       }
       else
       if (cKey==Global::Keys[k_PantRearUp])   //Winger 160204: podn. tyln. pantografu
       {
-           DynamicObject->MoverParameters->PantRearSP=false;
-           if (DynamicObject->MoverParameters->PantRear(true))
-            if (DynamicObject->MoverParameters->PantRearStart!=1)
-            {
-                dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                dsbSwitch->Play(0,0,0);
-            }
+       if ((DynamicObject->MoverParameters->ActiveCab==1)||((DynamicObject->MoverParameters->ActiveCab<1)&&(DynamicObject->MoverParameters->TrainType!=dt_ET40)&&(DynamicObject->MoverParameters->TrainType!=dt_ET41)&&(DynamicObject->MoverParameters->TrainType!=dt_ET42)&&(DynamicObject->MoverParameters->TrainType!=dt_EZT)))
+       {
+        DynamicObject->MoverParameters->PantRearSP=false;
+        if (DynamicObject->MoverParameters->PantRear(true))
+         if (DynamicObject->MoverParameters->PantRearStart!=1)
+         {
+          dsbSwitch->SetVolume(DSBVOLUME_MAX);
+          dsbSwitch->Play(0,0,0);
+         }
+       }
+       if ((DynamicObject->MoverParameters->ActiveCab<1)&&((DynamicObject->MoverParameters->TrainType==dt_ET40)||(DynamicObject->MoverParameters->TrainType==dt_ET41)||(DynamicObject->MoverParameters->TrainType==dt_ET42)||(DynamicObject->MoverParameters->TrainType==dt_EZT)))
+       {
+        DynamicObject->MoverParameters->PantFrontSP=false;
+        if(DynamicObject->MoverParameters->PantFront(true))
+         if (DynamicObject->MoverParameters->PantFrontStart!=1)
+         {
+          dsbSwitch->SetVolume(DSBVOLUME_MAX);
+          dsbSwitch->Play(0,0,0);
+         }
+       }
       }
       else
 //      if (cKey==Global::Keys[k_Active])   //yB 300407: przelacznik rozrzadu
@@ -1671,21 +1697,45 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else
       if (cKey==Global::Keys[k_PantFrontDown])   //Winger 160204: opuszczanie prz. patyka
       {
-           if (DynamicObject->MoverParameters->PantFront(false))
-            {
-                dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                dsbSwitch->Play(0,0,0);
-            }
+       if ((DynamicObject->MoverParameters->ActiveCab==1)||((DynamicObject->MoverParameters->ActiveCab<1)&&(DynamicObject->MoverParameters->TrainType!=dt_ET40)&&(DynamicObject->MoverParameters->TrainType!=dt_ET41)&&(DynamicObject->MoverParameters->TrainType!=dt_ET42)&&(DynamicObject->MoverParameters->TrainType!=dt_EZT)))
+       {
+        if (DynamicObject->MoverParameters->PantFront(false))
+        {
+         dsbSwitch->SetVolume(DSBVOLUME_MAX);
+         dsbSwitch->Play(0,0,0);
+        }
+       }
+       if ((DynamicObject->MoverParameters->ActiveCab<1)&&((DynamicObject->MoverParameters->TrainType==dt_ET40)||(DynamicObject->MoverParameters->TrainType==dt_ET41)||(DynamicObject->MoverParameters->TrainType==dt_ET42)||(DynamicObject->MoverParameters->TrainType==dt_EZT)))
+       {
+        if (DynamicObject->MoverParameters->PantRear(false))
+        {
+         dsbSwitch->SetVolume(DSBVOLUME_MAX);
+         dsbSwitch->Play( 0, 0, 0 );
+        }
+       }
       }
       else if (cKey==Global::Keys[k_PantRearDown])   //Winger 160204: opuszczanie tyl. patyka
       {
-           if (DynamicObject->MoverParameters->PantSwitchType=="impulse")
-            PantFrontButtonOffGauge.PutValue(1);
-            if (DynamicObject->MoverParameters->PantRear(false))
-             {
-                 dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                 dsbSwitch->Play(0,0,0);
-             }
+       if ((DynamicObject->MoverParameters->ActiveCab==1)||((DynamicObject->MoverParameters->ActiveCab<1)&&(DynamicObject->MoverParameters->TrainType!=dt_ET40)&&(DynamicObject->MoverParameters->TrainType!=dt_ET41)&&(DynamicObject->MoverParameters->TrainType!=dt_ET42)&&(DynamicObject->MoverParameters->TrainType!=dt_EZT)))
+       {
+        if (DynamicObject->MoverParameters->PantSwitchType=="impulse")
+         PantFrontButtonOffGauge.PutValue(1);
+        if (DynamicObject->MoverParameters->PantRear(false))
+        {
+         dsbSwitch->SetVolume(DSBVOLUME_MAX);
+         dsbSwitch->Play(0,0,0);
+        }
+       }
+       if ((DynamicObject->MoverParameters->ActiveCab<1)&&((DynamicObject->MoverParameters->TrainType==dt_ET40)||(DynamicObject->MoverParameters->TrainType==dt_ET41)||(DynamicObject->MoverParameters->TrainType==dt_ET42)||(DynamicObject->MoverParameters->TrainType==dt_EZT)))
+       {
+        /* if (DynamicObject->MoverParameters->PantSwitchType=="impulse")
+        PantRearButtonOffGauge.PutValue(1);  */
+        if (DynamicObject->MoverParameters->PantFront(false))
+        {
+         dsbSwitch->SetVolume(DSBVOLUME_MAX);
+         dsbSwitch->Play(0,0,0);
+        }
+       }
       }
       else if (cKey==Global::Keys[k_Heating])   //Winger 020304: ogrzewanie - wylaczenie
       {

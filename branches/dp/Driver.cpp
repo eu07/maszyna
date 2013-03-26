@@ -2159,9 +2159,18 @@ bool __fastcall TController::UpdateSituation(double dt)
      if (!Controlling->ChangeOffsetH(-0.01*Controlling->Vel*dt)) //ruch w poprzek drogi
       Controlling->ChangeOffsetH(0.01*Controlling->Vel*dt); //Ra: co to mia³o byæ, to nie wiem
    if (Controlling->EnginePowerSource.SourceType==CurrentCollector)
-   {Controlling->PantRear(true); //jazda na tylnym
+   {
+    if (iDirection>=0) //jak jedzie w kierunku sprzêgu 0
+     Controlling->PantRear(true); //jazda na tylnym
+    else
+     Controlling->PantFront(true);
     if (Controlling->Vel>30) //opuszczenie przedniego po rozpêdzeniu siê
-     Controlling->PantFront(false);
+    {
+     if (iDirection>=0) //jak jedzie w kierunku sprzêgu 0
+      Controlling->PantFront(false); //opuszcza od sprzêgu 0
+     else
+      Controlling->PantRear(false); //opuszcza od sprzêgu 1
+    }
     else //ewentualnie jak siê rozpêdza, to ustaw rozruch
      //if (fMass>800.0) //Ra: taki sobie warunek na wysoki rozruch
      // if (fAccGravity<-0.1) //jak pochylenie wiêksze ni¿ 10‰
