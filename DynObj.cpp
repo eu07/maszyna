@@ -2015,190 +2015,155 @@ SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);
   if (dWheelAngle[1]>360.0) dWheelAngle[1]-=360.0;
   if (dWheelAngle[2]>360.0) dWheelAngle[2]-=360.0;
  }
-//Winger 160204 - pantografy
-if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
-{//Ra: pantografy nie mog¹ byæ uzale¿niane od kabiny
-/*
-lastcabf=(MoverParameters->CabNo*MoverParameters->DoubleTr);
-if (MoverParameters->TrainType==dt_EZT)
-  lastcabf=1;
-if (lastcabf==0)
- lastcabf=1; //MoverParameters->LastCab;
-if (lastcabf==1)
-{
-*/
-pcabc1=MoverParameters->PantFrontUp;
-pcabc2=MoverParameters->PantRearUp;
-pcabd1=MoverParameters->PantFrontStart;
-pcabd2=MoverParameters->PantRearStart;
-pcp1p=MoverParameters->PantFrontVolt;
-pcp2p=MoverParameters->PantRearVolt;
-/*
-}
-if (lastcabf==-1)
-{
-pcabc1=MoverParameters->PantRearUp;
-pcabc2=MoverParameters->PantFrontUp;
-pcabd1=MoverParameters->PantRearStart;
-pcabd2=MoverParameters->PantFrontStart;
-pcp1p=MoverParameters->PantRearVolt;
-pcp2p=MoverParameters->PantFrontVolt;
-}
-*/
-   //double ObjectDist2;
-   //double vol2=0;
-   double TempPantVol;
-   double PantFrontDiff;
-   double PantRearDiff;
-
-//   double StartTime= Timer::GetfSinceStart();
-   StartTime= StartTime+dt1;
-   PantFrontDiff=dPantAngleFT-dPantAngleF;
-   if (PantFrontDiff<0)
-   PantFrontDiff=-PantFrontDiff;
-   if (PantFrontDiff<1)
-    {
-    if ((pcp1p==false) && (pcp2p==false) && (pcabc1==true))
-     sPantUp.Play(vol,0,MechInside,vPosition);
-    pcp1p=true;
-    }
-   else
-    pcp1p=false;
-
-   PantRearDiff=dPantAngleRT-dPantAngleR;
-   if (PantRearDiff<0)
+ if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
+ {//Winger 160204 - pantografy; Ra: nie mog¹ byæ uzale¿niane od kabiny
+  /*
+  lastcabf=(MoverParameters->CabNo*MoverParameters->DoubleTr);
+  if (MoverParameters->TrainType==dt_EZT)
+   lastcabf=1;
+  if (lastcabf==0)
+   lastcabf=1; //MoverParameters->LastCab;
+  if (lastcabf==1)
+  {
+  */
+  pcabc1=MoverParameters->PantFrontUp;
+  pcabc2=MoverParameters->PantRearUp;
+  pcabd1=MoverParameters->PantFrontStart;
+  pcabd2=MoverParameters->PantRearStart;
+  pcp1p=MoverParameters->PantFrontVolt;
+  pcp2p=MoverParameters->PantRearVolt;
+  //double ObjectDist2;
+  //double vol2=0;
+  double TempPantVol;
+  double PantFrontDiff;
+  double PantRearDiff;
+  //   double StartTime= Timer::GetfSinceStart();
+  StartTime= StartTime+dt1;
+  PantFrontDiff=dPantAngleFT-dPantAngleF;
+  if (PantFrontDiff<0)
+  PantFrontDiff=-PantFrontDiff;
+  if (PantFrontDiff<1)
+  {
+   if ((pcp1p==false)&&(pcp2p==false)&&(pcabc1==true))
+    sPantUp.Play(vol,0,MechInside,vPosition);
+   pcp1p=true;
+  }
+  else
+   pcp1p=false;
+  PantRearDiff=dPantAngleRT-dPantAngleR;
+  if (PantRearDiff<0)
    PantRearDiff=-PantRearDiff;
-   if (PantRearDiff<1)
-    {
-    if ((pcp2p==false) && (pcp1p==false) && (pcabc2==true))
-     sPantUp.Play(vol,0,MechInside,vPosition);
-    pcp2p=true;
-    }
-   else
-    pcp2p=false;
-
-   //ObjectDist2=SquareMagnitude(Global::pCameraPosition-vPosition)/100;
-   //vol2=255-ObjectDist2;
-   //if ((MoverParameters->CompressedVolume<3.3)) //&& (MoverParameters->PantVolume<5.2))
-// //  if (MoverParameters->PantVolume<5.2) &&
-   // TempPantVol= MoverParameters->PantVolume;
-   //else
-   // TempPantVol= MoverParameters->CompressedVolume;
-   //if (TempPantVol>6)
-   // TempPantVol=6;
-   //if (MoverParameters->TrainType==dt_EZT)
-   // TempPantVol+= 2;
-    //if (vol2<0) vol2=0; //Ra: vol2 nie u¿ywane dalej
-   if (StartTime<2)
-    pantspeedfactor=10;
-   else
-    //ABu: uniezaleznienie od TempPantVol, bo sie krzaczylo...
-    pantspeedfactor = 100*dt1;
-    //pantspeedfactor = ((TempPantVol-2.5)/5)*180*dt1;
+  if (PantRearDiff<1)
+  {
+   if ((pcp2p==false)&&(pcp1p==false)&&(pcabc2==true))
+    sPantUp.Play(vol,0,MechInside,vPosition);
+   pcp2p=true;
+  }
+  else
+   pcp2p=false;
+  //ObjectDist2=SquareMagnitude(Global::pCameraPosition-vPosition)/100;
+  //vol2=255-ObjectDist2;
+  //if ((MoverParameters->CompressedVolume<3.3)) //&& (MoverParameters->PantVolume<5.2))
+  ////  if (MoverParameters->PantVolume<5.2) &&
+  // TempPantVol= MoverParameters->PantVolume;
+  //else
+  // TempPantVol= MoverParameters->CompressedVolume;
+  //if (TempPantVol>6)
+  // TempPantVol=6;
+  //if (MoverParameters->TrainType==dt_EZT)
+  // TempPantVol+= 2;
+   //if (vol2<0) vol2=0; //Ra: vol2 nie u¿ywane dalej
+  if (StartTime<2)
+   pantspeedfactor=10;
+  else
+   //ABu: uniezaleznienie od TempPantVol, bo sie krzaczylo...
+   pantspeedfactor=100*dt1;
+  //pantspeedfactor=((TempPantVol-2.5)/5)*180*dt1;
 
 //z EXE Kursa
-  //pantspeedfactor = (MoverParameters->PantPress)*20*dt1;
+  //pantspeedfactor=(MoverParameters->PantPress)*20*dt1;
 
-    pantspeedfactor*=abs(MoverParameters->CabNo);
-   //if ((PantTraction1==5.8171) && (PantTraction2==5.8171))
-   // pantspeedfactor=10;
-   if (pantspeedfactor<0)
-    pantspeedfactor=0;
+  pantspeedfactor*=abs(MoverParameters->CabNo);
+  //if ((PantTraction1==5.8171) && (PantTraction2==5.8171))
+  // pantspeedfactor=10;
+  if (pantspeedfactor<0)
+   pantspeedfactor=0;
 
 //Przedni
-   if (PantTraction1>600)
+  if (PantTraction1>600)
    pcabd1=0;
-   dPantAngleFT= -(PantTraction1*28.9-136.938); //*-30+135);
-   if ((dPantAngleF>dPantAngleFT) && (pcabc1))
-    {
-    //dPantAngleF-=5*0.05*pantspeedfactor*(pcabd1*5*(dPantAngleF-dPantAngleFT)+1);
-    dPantAngleF-=5*0.05*pantspeedfactor*(pcabd1*5*PantFrontDiff+1);
-    if (dPantAngleF<dPantAngleFT)
-       {
-       dPantAngleF=dPantAngleFT;
-       pcabd1=1;
-       }
-    }
-   if (dPantAngleF<-70)
-     pcabc1=false;
-   if ((dPantAngleF<dPantAngleFT) && (pcabc1) && ((dPantAngleF-dPantAngleFT>0.2) || (dPantAngleFT-dPantAngleF>0.2)))
-    {
-    //dPantAngleF+=5*0.05*(5*(dPantAngleFT-dPantAngleF)+1)*40*dt1;
-    dPantAngleF+=5*0.05*(5*PantFrontDiff+1)*40*dt1;
-    if (dPantAngleF>dPantAngleFT)
-       {
-       dPantAngleF=dPantAngleFT;
-       }
-    }
-   if ((dPantAngleF<0) && (!pcabc1))
-    dPantAngleF+=5*0.05*40*dt1;
-
-//Tylny
-   if (PantTraction2>600)
-   pcabd2=0;
-   dPantAngleRT= -(PantTraction2*28.9-136.938);
-//ABu: ponizej tylko dla testow:
-//    dPantAngleR=dPantAngleRT;
-
-   if ((dPantAngleR>dPantAngleRT) && (pcabc2))
+  dPantAngleFT=-(PantTraction1*28.9-136.938); //*-30+135);
+  if ((dPantAngleF>dPantAngleFT)&&(pcabc1))
+  {
+   //dPantAngleF-=5*0.05*pantspeedfactor*(pcabd1*5*(dPantAngleF-dPantAngleFT)+1);
+   dPantAngleF-=5*0.05*pantspeedfactor*(pcabd1*5*PantFrontDiff+1);
+   if (dPantAngleF<dPantAngleFT)
    {
-    dPantAngleR-=5*0.05*pantspeedfactor*(pcabd2*5*(dPantAngleR-dPantAngleRT)+1);
-    if (dPantAngleR<dPantAngleRT)
-    {
-     dPantAngleR=dPantAngleRT;
-     pcabd2=1;
-    }
+    dPantAngleF=dPantAngleFT;
+    pcabd1=1;
    }
-   if (dPantAngleR<-70)
-     pcabc2=false;
-   if ((dPantAngleR<dPantAngleRT) && (pcabc2) && ((dPantAngleR-dPantAngleRT>0.2) || (dPantAngleRT-dPantAngleR>0.2)))
-    {
-     dPantAngleR+=5*0.05*(5*(dPantAngleRT-dPantAngleR)+1)*40*dt1;
-     if (dPantAngleR>dPantAngleRT)
-      dPantAngleR=dPantAngleRT;
-    }
-   if ((dPantAngleR<0) && (!pcabc2))
-    dPantAngleR+=5*0.05*40*dt1;
-/*
-if (lastcabf==1)
-{
-*/
-MoverParameters->PantFrontUp=pcabc1;
-MoverParameters->PantRearUp=pcabc2;
-MoverParameters->PantFrontStart=pcabd1;
-MoverParameters->PantRearStart=pcabd2;
-MoverParameters->PantFrontVolt=pcp1p;
-MoverParameters->PantRearVolt=pcp2p;
-/*
-}
-if (lastcabf==-1)
-{
-MoverParameters->PantRearUp=pcabc1;
-MoverParameters->PantFrontUp=pcabc2;
-MoverParameters->PantRearStart=pcabd1;
-MoverParameters->PantFrontStart=pcabd2;
-MoverParameters->PantRearVolt=pcp1p;
-MoverParameters->PantFrontVolt=pcp2p;
-}
-*/
-if ((MoverParameters->PantFrontSP==false) && (MoverParameters->PantFrontUp==false))
-    {
-    sPantDown.Play(vol,0,MechInside,vPosition);
-    MoverParameters->PantFrontSP=true;
-    }
-if ((MoverParameters->PantRearSP==false) && (MoverParameters->PantRearUp==false))
-    {
-    sPantDown.Play(vol,0,MechInside,vPosition);
-    MoverParameters->PantRearSP=true;
-    }
-
-//Winger 240404 - wylaczanie sprezarki i przetwornicy przy braku napiecia
-if (tmpTraction.TractionVoltage==0)
-    {
-    MoverParameters->ConverterFlag=false;
-    MoverParameters->CompressorFlag=false;
-    }
-}
+  }
+  if (dPantAngleF<-70)
+   pcabc1=false;
+  if ((dPantAngleF<dPantAngleFT) && (pcabc1) && ((dPantAngleF-dPantAngleFT>0.2) || (dPantAngleFT-dPantAngleF>0.2)))
+  {
+   //dPantAngleF+=5*0.05*(5*(dPantAngleFT-dPantAngleF)+1)*40*dt1;
+   dPantAngleF+=5*0.05*(5*PantFrontDiff+1)*40*dt1;
+   if (dPantAngleF>dPantAngleFT)
+   {
+    dPantAngleF=dPantAngleFT;
+   }
+  }
+  if ((dPantAngleF<0) && (!pcabc1))
+   dPantAngleF+=5*0.05*40*dt1;
+  //Tylny
+  if (PantTraction2>600)
+   pcabd2=0;
+  dPantAngleRT= -(PantTraction2*28.9-136.938);
+  //ABu: ponizej tylko dla testow:
+  //    dPantAngleR=dPantAngleRT;
+  if ((dPantAngleR>dPantAngleRT) && (pcabc2))
+  {
+   dPantAngleR-=5*0.05*pantspeedfactor*(pcabd2*5*(dPantAngleR-dPantAngleRT)+1);
+   if (dPantAngleR<dPantAngleRT)
+   {
+    dPantAngleR=dPantAngleRT;
+    pcabd2=1;
+   }
+  }
+  if (dPantAngleR<-70)
+   pcabc2=false;
+  if ((dPantAngleR<dPantAngleRT)&&(pcabc2)&&((dPantAngleR-dPantAngleRT>0.2)||(dPantAngleRT-dPantAngleR>0.2)))
+  {
+   dPantAngleR+=5*0.05*(5*(dPantAngleRT-dPantAngleR)+1)*40*dt1;
+   if (dPantAngleR>dPantAngleRT)
+    dPantAngleR=dPantAngleRT;
+  }
+  if ((dPantAngleR<0) && (!pcabc2))
+   dPantAngleR+=5*0.05*40*dt1;
+  MoverParameters->PantFrontUp=pcabc1;
+  MoverParameters->PantRearUp=pcabc2;
+  MoverParameters->PantFrontStart=pcabd1;
+  MoverParameters->PantRearStart=pcabd2;
+  MoverParameters->PantFrontVolt=pcp1p;
+  MoverParameters->PantRearVolt=pcp2p;
+  if ((MoverParameters->PantFrontSP==false)&&(MoverParameters->PantFrontUp==false))
+  {
+   sPantDown.Play(vol,0,MechInside,vPosition);
+   MoverParameters->PantFrontSP=true;
+  }
+  if ((MoverParameters->PantRearSP==false)&&(MoverParameters->PantRearUp==false))
+  {
+   sPantDown.Play(vol,0,MechInside,vPosition);
+   MoverParameters->PantRearSP=true;
+  }
+  //Winger 240404 - wylaczanie sprezarki i przetwornicy przy braku napiecia
+  if (tmpTraction.TractionVoltage==0)
+  {
+   MoverParameters->ConverterFlag=false;
+   MoverParameters->CompressorFlag=false;
+  }
+ }
  else if (MoverParameters->EnginePowerSource.SourceType==InternalSource)
   if (MoverParameters->EnginePowerSource.PowerType==SteamPower)
    if (smPatykird1[0])
@@ -2375,8 +2340,8 @@ bool __fastcall TDynamicObject::FastUpdate(double dt)
 //yB: przyspieszacz (moze zadziala, ale dzwiek juz jest)
 double ObjectDist;
 ObjectDist=SquareMagnitude(Global::pCameraPosition-vPosition);
-if(ObjectDist<50000)
- if(TestFlag(MoverParameters->SoundFlag,sound_brakeacc))
+if (ObjectDist<50000)
+ if (TestFlag(MoverParameters->SoundFlag,sound_brakeacc))
    sBrakeAcc.Play(-1,0,MechInside,vPosition);
  else;
 // if(MoverParameters->BrakePress=0)

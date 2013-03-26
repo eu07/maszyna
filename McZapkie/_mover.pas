@@ -605,7 +605,6 @@ TYPE
                 CabNo: integer; //numer kabiny, z której jest sterowanie: 1 lub -1; w przeciwnym razie brak sterowania - rozrzad
                 DirAbsolute: integer; //zadany kierunek jazdy wzglêdem sprzêgów (1=w strone 0,-1=w stronê 1)
                 ActiveCab: integer; //numer kabiny, w ktorej jest obsada (zwykle jedna na sk³ad)
-                //LastCab: integer; //poprzedni numer kabiny do zamiany pantografów
                 LastSwitchingTime: real; {czas ostatniego przelaczania czegos}
                 //WarningSignal: byte;     {0: nie trabi, 1,2: trabi}
                 DepartureSignal: boolean; {sygnal odjazdu}
@@ -686,7 +685,6 @@ TYPE
 
                 function GetTrainsetVoltage: boolean;
                 function Physic_ReActivation: boolean;
-                //procedure PantCheck; //pomocnicza, do sprawdzania pantografow
 
 {                function BrakeRatio: real;  }
                 function LocalBrakeRatio: real;
@@ -1185,19 +1183,6 @@ begin
  SendCtrlToNext:=OK;
 end;
 
-(* Ra: to jest bez sensu, PantFront jest zawsze od strony sprzêgu 0
-procedure T_MoverParameters.PantCheck;
-var c: boolean;
-begin
-  if (CabNo*LastCab<0) and (CabNo<>0) then
-   begin
-     c:=PantFrontUp;
-     PantFrontUp:=PantRearUp;
-     PantRearUp:=c;
-   end;
-end;
-*)
-
 function T_MoverParameters.CabActivisation:boolean;
 //za³¹czenie rozrz¹du
 var OK:boolean;
@@ -1208,7 +1193,6 @@ begin
      CabNo:=ActiveCab; //sterowanie jest z kabiny z obsad¹
      DirAbsolute:=ActiveDir*CabNo;
      SendCtrlToNext('CabActivisation',1,CabNo);
-     //PantCheck;
    end;
   CabActivisation:=OK;
 end;
@@ -1220,7 +1204,6 @@ begin
  OK:=(CabNo=ActiveCab); //o ile obsada jest w kabinie ze sterowaniem
  if (OK) then
   begin
-   //LastCab:=CabNo;
    CabNo:=0;
    DirAbsolute:=ActiveDir*CabNo;
    DepartureSignal:=false; //nie buczeæ z nieaktywnej kabiny
@@ -1607,7 +1590,6 @@ function T_MoverParameters.ChangeCab(direction:integer): boolean;
 begin
  if Abs(ActiveCab+direction)<2 then
   begin
-//  if (ActiveCab+direction=0) then LastCab:=ActiveCab;
    ActiveCab:=ActiveCab+direction;
    ChangeCab:=True;
    if (BrakeSystem=Pneumatic) and (BrakeCtrlPosNo>0) then
@@ -1628,12 +1610,6 @@ begin
      CompressorAllow:=false;
      ConverterAllow:=false;
     end;
-//   if (ActiveCab<>LastCab) and (ActiveCab<>0) then
-//    begin
-//     c:=PantFrontUp;
-//     PantFrontUp:=PantRearUp;
-//     PantRearUp:=c;
-//    end; //yB: poszlo do wylacznika rozrzadu
    ActiveDir:=0;
    DirAbsolute:=0;
   end
@@ -5075,16 +5051,12 @@ Begin
   else if command='CabActivisation' then
    begin
 //  OK:=Power>0.01;
-//  if OK then
-    //if (CabNo<>0) then
-    // LastCab:=CabNo;
     case Trunc(CValue1*CValue2) of //CValue2 ma zmieniany znak przy niezgodnoœci sprzêgów
       1 : CabNo:= 1;
      -1 : CabNo:=-1;
     else CabNo:=0; //gdy CValue1==0
     end;
     DirAbsolute:=ActiveDir*CabNo;
-    //PantCheck; //ewentualnie automatyczna zamiana podniesionych pantografów
     OK:=SendCtrlToNext(command,CValue1,CValue2);
    end
   else if command='AutoRelaySwitch' then
@@ -5514,7 +5486,6 @@ begin
   CabNo:=0; //sterowania nie ma, ustawiana przez CabActivization()
   ActiveCab:=Cab;  //obsada w podanej kabinie
   DirAbsolute:=0;
-  //LastCab:=0;
   SlippingWheels:=False;
   SandDose:=False;
   FuseFlag:=False;
