@@ -605,7 +605,6 @@ TYPE
                 CabNo: integer; //numer kabiny, z której jest sterowanie: 1 lub -1; w przeciwnym razie brak sterowania - rozrzad
                 DirAbsolute: integer; //zadany kierunek jazdy wzglêdem sprzêgów (1=w strone 0,-1=w stronê 1)
                 ActiveCab: integer; //numer kabiny, w ktorej jest obsada (zwykle jedna na sk³ad)
-                //LastCab: integer; //poprzedni numer kabiny do zamiany pantografów
                 LastSwitchingTime: real; {czas ostatniego przelaczania czegos}
                 //WarningSignal: byte;     {0: nie trabi, 1,2: trabi}
                 DepartureSignal: boolean; {sygnal odjazdu}
@@ -686,7 +685,6 @@ TYPE
 
                 function GetTrainsetVoltage: boolean;
                 function Physic_ReActivation: boolean;
-                //procedure PantCheck; //pomocnicza, do sprawdzania pantografow
 
 {                function BrakeRatio: real;  }
                 function LocalBrakeRatio: real;
@@ -1187,19 +1185,6 @@ begin
  SendCtrlToNext:=OK;
 end;
 
-(* Ra: to jest bez sensu, PantFront jest zawsze od strony sprzêgu 0
-procedure T_MoverParameters.PantCheck;
-var c: boolean;
-begin
- { if (CabNo*LastCab<0) and (CabNo<>0) then
-   begin
-     c:=PantFrontUp;
-     PantFrontUp:=PantRearUp;
-     PantRearUp:=c;
-   end; }
-end;
-*)
-
 function T_MoverParameters.CabActivisation:boolean;
 //za³¹czenie rozrz¹du
 var OK:boolean;
@@ -1210,7 +1195,6 @@ begin
      CabNo:=ActiveCab; //sterowanie jest z kabiny z obsad¹
      DirAbsolute:=ActiveDir*CabNo;
      SendCtrlToNext('CabActivisation',1,CabNo);
-     //PantCheck;
    end;
   CabActivisation:=OK;
 end;
@@ -1222,7 +1206,6 @@ begin
  OK:=(CabNo=ActiveCab); //o ile obsada jest w kabinie ze sterowaniem
  if (OK) then
   begin
-   //LastCab:=CabNo;
    CabNo:=0;
    DirAbsolute:=ActiveDir*CabNo;
    DepartureSignal:=false; //nie buczeæ z nieaktywnej kabiny
@@ -1319,8 +1302,6 @@ begin
               dec(MainCtrlPos);
               OK:=false;
              end;
-
-
        end
       else
        if (CtrlSpeed>1) and (ActiveDir<>0) {and (ScndCtrlPos=0)} and (TrainType<>dt_ET40) then
@@ -1416,7 +1397,7 @@ begin
       if MainCtrlPos>0 then
        begin
          if (TrainType<>dt_ET22) or ((TrainType=dt_ET22) and (ScndCtrlPos=0)) then
-         begin
+       begin
          if CoupledCtrl and (ScndCtrlPos>0) then
           begin
             dec(ScndCtrlPos); {wspolny wal}
@@ -3345,7 +3326,7 @@ begin
            MotorCurrent:=0;
          end;{else DBF}
        end;{with}
-    end;{255}
+   end;
 {  if Abs(CabNo)<2 then Im:=MotorCurrent*ActiveDir*CabNo
    else Im:=0;
 }
@@ -4419,7 +4400,7 @@ begin
         PosRatio:=DEList[MainCtrlPos].genpower / DEList[MainCtrlPosNo].genpower;  {stosunek mocy teraz do mocy max}
         if (MainCtrlPos>0) and (ConverterFlag) then
           if tmpV < (Vhyp*(Power-HeatingPower*byte(Heating))/DEList[MainCtrlPosNo].genpower) then //czy na czesci prostej, czy na hiperboli
-            Ft:=(Ftmax - (Ftmax - (1000 * DEList[MainCtrlPosNo].genpower / (Vhyp+Vadd) / PowerCorRatio)) * (tmpV/Vhyp)) * PosRatio //posratio - bo sila jakos tam sie rozklada
+            Ft:=(Ftmax - (Ftmax - (1000.0 * DEList[MainCtrlPosNo].genpower / (Vhyp+Vadd) / PowerCorRatio)) * (tmpV/Vhyp)) * PosRatio //posratio - bo sila jakos tam sie rozklada
           else //na hiperboli                             //1.107 - wspolczynnik sredniej nadwyzki Ft w symku nad charakterystyka
             Ft:=1000.0 * tmp / (tmpV+Vadd) / PowerCorRatio //tu jest zawarty stosunek mocy
         else Ft:=0; //jak nastawnik na zero, to sila tez zero
@@ -4505,7 +4486,7 @@ begin
               if (MPTRelay[ScndCtrlPos].Idown<Im) and (ScndCtrlPos>0) then
                 dec(ScndCtrlPos);
              end;
-41: 
+          41: 
             begin 
               if (MainCtrlPos=MainCtrlPosNo) and (tmpV*3.6>MPTRelay[ScndCtrlPos].Iup) and (ScndCtrlPos<ScndCtrlPosNo)then 
                 begin inc(ScndCtrlPos); enrot:=enrot*0.73; end; 
@@ -4513,31 +4494,31 @@ begin
                 dec(ScndCtrlPos); 
             end; 
           45: 
-            begin 
+             begin
               //wzrastanie 
               if (MainCtrlPos>11) and (ScndCtrlPos<ScndCtrlPosNo) then 
-              if (ScndCtrlPos=0) then 
-                if (MPTRelay[ScndCtrlPos].Iup>Im) then 
-                inc(ScndCtrlPos) 
-                else 
-              else 
+               if (ScndCtrlPos=0) then
+                if (MPTRelay[ScndCtrlPos].Iup>Im) then
+                 inc(ScndCtrlPos)
+                else
+               else
                 if (MPTRelay[ScndCtrlPos].Iup<Vel) then 
-                inc(ScndCtrlPos); 
+                 inc(ScndCtrlPos);
   
-              //malenie 
+              //malenie
               if(ScndCtrlPos>0)and(MainCtrlPos<12)then 
               if (ScndCtrlPos=ScndCtrlPosNo)then 
                 if (MPTRelay[ScndCtrlPos].Idown<Im)then 
-                dec(ScndCtrlPos) 
-                else 
-              else 
+                 dec(ScndCtrlPos)
+                else
+               else
                 if(MPTRelay[ScndCtrlPos].Idown>Vel)then 
-                dec(ScndCtrlPos); 
+                 dec(ScndCtrlPos);
               if (MainCtrlPos<11)and(ScndCtrlPos>2) then ScndCtrlPos:=2; 
               if (MainCtrlPos<9)and(ScndCtrlPos>0) then ScndCtrlPos:=0; 
-            end; 
+             end;
         end;
-        end;
+     end;
    None: begin end;
    {EZT: begin end;}
    end; {case EngineType}
@@ -4553,7 +4534,7 @@ begin
    NBrakeAxles:=NPoweredAxles
   else
    NBrakeAxles:=NAxles;
-   case LocalBrake of
+  case LocalBrake of
    NoBrake :      K:=0;
    ManualBrake :  K:=MaxBrakeForce*ManualBrakeRatio;
    HydraulicBrake : K:=MaxBrakeForce*LocalBrakeRatio;
@@ -5498,16 +5479,12 @@ Begin
   else if command='CabActivisation' then
    begin
 //  OK:=Power>0.01;
-//  if OK then
-    //if (CabNo<>0) then
-    // LastCab:=CabNo;
     case Trunc(CValue1*CValue2) of //CValue2 ma zmieniany znak przy niezgodnoœci sprzêgów
       1 : CabNo:= 1;
      -1 : CabNo:=-1;
     else CabNo:=0; //gdy CValue1==0
     end;
     DirAbsolute:=ActiveDir*CabNo;
-    //PantCheck; //ewentualnie automatyczna zamiana podniesionych pantografów
     OK:=SendCtrlToNext(command,CValue1,CValue2);
    end
   else if command='AutoRelaySwitch' then
@@ -5939,7 +5916,6 @@ begin
   CabNo:=0; //sterowania nie ma, ustawiana przez CabActivization()
   ActiveCab:=Cab;  //obsada w podanej kabinie
   DirAbsolute:=0;
-  //LastCab:=0;
   SlippingWheels:=False;
   SandDose:=False;
   FuseFlag:=False;
