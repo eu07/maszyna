@@ -663,8 +663,8 @@ TYPE
                 PantRearSP: boolean;
                 PantFrontStart: integer;  //stan patykow 'Winger 160204
                 PantRearStart: integer;
-                PantFrontVolt: boolean;   //pantograf pod napieciem? 'Winger 160404
-                PantRearVolt: boolean;
+                PantFrontVolt: real;   //pantograf pod napieciem? 'Winger 160404
+                PantRearVolt: real;
                 PantSwitchType: string;
                 ConvSwitchType: string;
 
@@ -683,7 +683,7 @@ TYPE
                 {--funkcje}
 
 
-                function GetTrainsetVoltage: boolean;
+                function GetTrainsetVoltage: real;
                 function Physic_ReActivation: boolean;
 
 {                function BrakeRatio: real;  }
@@ -1005,32 +1005,33 @@ function SPR(ph,pl:real): real;
 begin
   SPR:=0.674*(ph-pl)/(1.13*ph-pl+0.013);
 end;
+
 {---------rozwiniecie deklaracji metod obiektu T_MoverParameters--------}
-function T_MoverParameters.GetTrainsetVoltage: boolean;
+
+function T_MoverParameters.GetTrainsetVoltage: real;
 //ABu: funkcja zwracajaca napiecie dla calego skladu, przydatna dla EZT
-var voltf: boolean;
-    voltr: boolean;
-  begin
-    if Couplers[0].Connected<>nil then
-      begin
-        if Couplers[0].Connected.PantFrontVolt or Couplers[0].Connected.PantRearVolt then
-          voltf:=true
-        else
-          voltf:=false;
-      end
-      else
-        voltf:=false;
-      if Couplers[1].Connected<>nil then
-      begin
-        if Couplers[1].Connected.PantFrontVolt or Couplers[1].Connected.PantRearVolt then
-          voltr:=true
-        else
-          voltr:=false;
-      end
-      else
-        voltr:=false;
-    GetTrainsetVoltage:=voltf or voltr;
-  end;
+var volt: real;
+begin
+ volt:=0.0;
+  if Couplers[1].Connected<>nil then
+   begin //zwykle silnikowy jest z ty³u
+    if (Couplers[1].Connected.PantFrontVolt<>0.0) then
+     volt:=Couplers[1].Connected.PantFrontVolt
+    else
+     if (Couplers[1].Connected.PantRearVolt<>0.0) then
+      volt:=Couplers[1].Connected.PantRearVolt;
+   end;
+  if (volt=0.0) then
+   if Couplers[0].Connected<>nil then
+    begin
+     if (Couplers[0].Connected.PantFrontVolt<>0.0) then
+      volt:=Couplers[0].Connected.PantFrontVolt
+     else
+      if (Couplers[0].Connected.PantRearVolt<>0.0) then
+       volt:=Couplers[0].Connected.PantRearVolt;
+    end;
+  GetTrainsetVoltage:=volt;
+end;
 
 
 
@@ -1625,7 +1626,6 @@ function T_MoverParameters.ChangeCab(direction:integer): boolean;
 begin
  if Abs(ActiveCab+direction)<2 then
   begin
-//  if (ActiveCab+direction=0) then LastCab:=ActiveCab;
    ActiveCab:=ActiveCab+direction;
    ChangeCab:=True;
    if (BrakeSystem=Pneumatic) and (BrakeCtrlPosNo>0) then
@@ -1653,12 +1653,6 @@ begin
      CompressorAllow:=false;
      ConverterAllow:=false;
     end;
-//   if (ActiveCab<>LastCab) and (ActiveCab<>0) then
-//    begin
-//     c:=PantFrontUp;
-//     PantFrontUp:=PantRearUp;
-//     PantRearUp:=c;
-//    end; //yB: poszlo do wylacznika rozrzadu
    ActiveDir:=0;
    DirAbsolute:=0;
   end
@@ -1750,7 +1744,9 @@ begin
    SandDoseOn:=False;
 end;
 
-{function T_MoverParameters.SecuritySystemReset : boolean;
+(*
+function T_MoverParameters.SecuritySystemReset : boolean;
+//zbijanie czuwaka/SHP
  procedure Reset;
   begin
   with SecuritySystem do
@@ -1759,7 +1755,7 @@ end;
     SecuritySystem.SystemBrakeTimer:=0;
     SecuritySystem.SystemSoundTimer:=0;
     SecuritySystem.Status:=s_waiting;
-    end;
+  end;
   procedure ResetSHP;
   begin
     SecuritySystem.SystemBrakeTimer:=0;
@@ -1805,9 +1801,8 @@ begin
      SecuritySystemReset:=False;
      end;
 //  SendCtrlToNext('SecurityReset',0,CabNo);
-end; }
+end;
 
-(*
 function T_MoverParameters.SecuritySystemReset : boolean;
 //zbijanie czuwaka/SHP
  procedure Reset;
@@ -2668,7 +2663,7 @@ begin
          dpPipe:=sign(BrakeVP-PipePress)*PR(PipePress,BrakeVP)*(Dim.L*SpgTu/(Dim.L*SpgTu+100*BrakeVVolume))*dt/50;
      end;        {PR*sign}
       dpPipe:=dpPipe*5;
-      dpPipe:=(dpPipe)*(10*BrakeVVolume)/(SpgTu*Dim.L);
+      dpPipe:=(dpPipe)*(10.0*BrakeVVolume)/(SpgTu*Dim.L);
       while (dpPipe<>0) and ((BrakeVP-PipePress)/(dpPipe)<2.0) do
         dpPipe:=(BrakeVP-PipePress)/50;
       Volume:=Volume-dpPipe*SpgTu*Dim.L/10;
@@ -2936,34 +2931,28 @@ var b:byte;
 
 procedure T_MoverParameters.UpdatePantVolume(dt:real);
  {KURS90 - sprezarka pantografow}
- var b:byte;
- begin
-
-   if (PantCompFlag=true) and (Battery=true) then
-    begin      {napelnianie zbiornikow pantografow}
-     PantVolume:=PantVolume+dt*0.001*(2*0.45-((0.1/PantVolume/10)-0.1))/0.45;
-
-    end;
-
-if ScndPipePress>0.45 then
-   begin     {korzystanie ze zbiornika glownego}
+var b:byte;
+begin
+ if (PantCompFlag=true) and (Battery=true) then
+  begin      {napelnianie zbiornikow pantografow}
+   PantVolume:=PantVolume+dt*0.001*(2*0.45-((0.1/PantVolume/10)-0.1))/0.45;
+  end;
+ if ScndPipePress>0.45 then //Ra: dodaæ kurek trójdro¿ny
+  begin     {korzystanie ze zbiornika glownego}
    PantPress:=ScndPipePress;
    PantVolume:=(ScndPipePress*0.1*10)+0.1;
-   end
-   else
-   PantPress:=(PantVolume/0.10/10)-0.1;
-
-if (PantCompFlag=false) and (PantVolume>0.1) then
-PantVolume:=PantVolume-dt*0.00003;    {nieszczelnosci}
-
-  if PantPress<0.35 then
- if MainSwitch(False) and  (EngineType=ElectricSeriesMotor) then
-      EventFlag:=True;   {wywalenie szybkiego z powodu niskiego cisnienia}
-for b:=0 to 1 do
-      with Couplers[b] do
-       if TestFlag(CouplingFlag,ctrain_controll) then
-
-        Connected.PantVolume:=PantVolume;
+  end
+ else
+  PantPress:=(PantVolume/0.10/10)-0.1; //tu by siê przyda³a objêtoœæ zbiornika
+ if (PantCompFlag=false) and (PantVolume>0.1) then
+  PantVolume:=PantVolume-dt*0.0003;    {nieszczelnosci}
+ if PantPress<0.35 then
+  if MainSwitch(False) and  (EngineType=ElectricSeriesMotor) then
+   EventFlag:=True;   {wywalenie szybkiego z powodu niskiego cisnienia}
+ for b:=0 to 1 do
+  with Couplers[b] do
+   if TestFlag(CouplingFlag,ctrain_controll) then
+    Connected.PantVolume:=PantVolume; //przekazanie ciœnienia do s¹siedniego cz³onu
 end;
 
 procedure T_MoverParameters.UpdateBatteryVoltage(dt:real);
@@ -4495,7 +4484,7 @@ begin
             end; 
           45: 
              begin
-              //wzrastanie 
+              //wzrastanie
               if (MainCtrlPos>11) and (ScndCtrlPos<ScndCtrlPosNo) then 
                if (ScndCtrlPos=0) then
                 if (MPTRelay[ScndCtrlPos].Iup>Im) then
@@ -4504,18 +4493,18 @@ begin
                else
                 if (MPTRelay[ScndCtrlPos].Iup<Vel) then 
                  inc(ScndCtrlPos);
-  
+
               //malenie
               if(ScndCtrlPos>0)and(MainCtrlPos<12)then 
               if (ScndCtrlPos=ScndCtrlPosNo)then 
-                if (MPTRelay[ScndCtrlPos].Idown<Im)then 
+                if (MPTRelay[ScndCtrlPos].Idown<Im)then
                  dec(ScndCtrlPos)
                 else
                else
-                if(MPTRelay[ScndCtrlPos].Idown>Vel)then 
+                if (MPTRelay[ScndCtrlPos].Idown>Vel)then
                  dec(ScndCtrlPos);
-              if (MainCtrlPos<11)and(ScndCtrlPos>2) then ScndCtrlPos:=2; 
-              if (MainCtrlPos<9)and(ScndCtrlPos>0) then ScndCtrlPos:=0; 
+              if (MainCtrlPos<11)and(ScndCtrlPos>2) then ScndCtrlPos:=2;
+              if (MainCtrlPos<9)and(ScndCtrlPos>0) then ScndCtrlPos:=0;
              end;
         end;
      end;
@@ -5004,13 +4993,13 @@ begin
         if (HVCouplers[b][1]) > 1 then //pod napieciem
           HVCouplers[b][0]:=0+Iheat//obci¹¿enie
         else
-          HVCouplers[b][0]:=0; 
+          HVCouplers[b][0]:=0;
       end;
 }
 
   ClearPendingExceptions;
   if not TestFlag(DamageFlag,dtrain_out) then
-   begin
+   begin //Ra: to przepisywanie tu jest bez sensu
      RunningShape:=Shape;
      RunningTrack:=Track;
      RunningTraction:=ElectricTraction;
@@ -6251,8 +6240,8 @@ begin
   PantFrontUp:=State;
   if (State=true) then
    begin
-      PantFrontStart:=0;
-      SendCtrlToNext('PantFront',1,CabNo);
+    PantFrontStart:=0;
+    SendCtrlToNext('PantFront',1,CabNo);
    end
   else
    begin

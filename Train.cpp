@@ -411,16 +411,13 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                dsbSwitch->Play(0,0,0);
          }
        }
-      else
-      //-----------
-
-      if (cKey==Global::Keys[k_SmallCompressor])   //Winger 160404: mala sprezarka wl
-      {
+      else if (cKey==Global::Keys[k_SmallCompressor])   //Winger 160404: mala sprezarka wl
+      {//Ra: dŸwiêk, gdy razem z [Shift] 
 //           if (DynamicObject->MoverParameters->CompressorSwitch(true))
 //           {
                DynamicObject->MoverParameters->PantCompFlag=true;
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
-               dsbSwitch->Play(0,0,0);
+               dsbSwitch->Play(0,0,0); //dŸwiêk tylko po naciœniêciu klawisza
 //           }
       }
       else if (cKey==VkKeyScan('q')) //ze Shiftem - w³¹czenie AI
@@ -1188,7 +1185,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
        DynamicObject->MoverParameters->BrakeLevelSet(0);
       }
       else
-      if (cKey==Global::Keys[k_WaveBrake])
+      if (cKey==Global::Keys[k_WaveBrake]) //[Num.]
       {
           if ((isEztOer) && (DynamicObject->MoverParameters->BrakeCtrlPos!=-1))
             {
@@ -1448,6 +1445,15 @@ void __fastcall TTrain::OnKeyPress(int cKey)
         }
        }
 */
+      }
+      else if (cKey==Global::Keys[k_SmallCompressor])   //Winger 160404: mala sprezarka wl
+      {//Ra: bez [Shift] te¿ daæ dŸwiêk
+//           if (DynamicObject->MoverParameters->CompressorSwitch(true))
+//           {
+               DynamicObject->MoverParameters->PantCompFlag=true;
+               dsbSwitch->SetVolume(DSBVOLUME_MAX);
+               dsbSwitch->Play(0,0,0); //dŸwiêk tylko po naciœniêciu klawisza
+//           }
       }
   //McZapkie-240302 - wylaczanie automatycznego pilota (w trybie ~debugmode mozna tylko raz)
       else if (cKey==VkKeyScan('q')) //bez Shift
@@ -3913,7 +3919,7 @@ if (DynamicObject->MoverParameters->Battery==true)
      if ( Console::Pressed(VK_SHIFT)&&Console::Pressed(Global::Keys[k_Converter]) )   //NBMX 14-09-2003: przetwornica wl
       {                           //(DynamicObject->MoverParameters->CompressorPower<2)
         ConverterButtonGauge.PutValue(1);
-        if ((DynamicObject->MoverParameters->PantFrontVolt) || (DynamicObject->MoverParameters->PantRearVolt) || (DynamicObject->MoverParameters->EnginePowerSource.SourceType!=CurrentCollector) || (!Global::bLiveTraction))
+        if ((DynamicObject->MoverParameters->PantFrontVolt!=0.0)||(DynamicObject->MoverParameters->PantRearVolt!=0.0)||(DynamicObject->MoverParameters->EnginePowerSource.SourceType!=CurrentCollector)||(!Global::bLiveTraction))
          DynamicObject->MoverParameters->ConverterSwitch(true);
         //if ((DynamicObject->MoverParameters->EngineType!=ElectricSeriesMotor)&&(DynamicObject->MoverParameters->TrainType!=dt_EZT)) //hunter-110212: poprawka dla EZT
         if (DynamicObject->MoverParameters->CompressorPower==2) //hunter-091012: tak jest poprawnie
@@ -3987,24 +3993,19 @@ if (DynamicObject->MoverParameters->Battery==true)
            }
         }
      }
-
-     if ( Console::Pressed(Global::Keys[k_SmallCompressor]))   //Winger 160404: mala sprezarka wl
-          {
-           if((DynamicObject->MoverParameters->PantPress<0.55))
-           {
-               DynamicObject->MoverParameters->PantCompFlag= true;
-               //dsbSwitch->SetVolume(DSBVOLUME_MAX);
-               //dsbSwitch->Play( 0, 0, 0 );
-           }
-           else
-           {
-            DynamicObject->MoverParameters->PantCompFlag= false;
-            }
+     if (Console::Pressed(Global::Keys[k_SmallCompressor]))
+     {//Winger 160404: mala sprezarka wl
+      if ((DynamicObject->MoverParameters->PantPress<0.48))
+      {//ciœnienie wg http://www.transportszynowy.pl/eu06-07pneumat.php
+       DynamicObject->MoverParameters->PantCompFlag=true;
+       //dsbSwitch->SetVolume(DSBVOLUME_MAX); //tu dŸwiêk byæ nie mo¿e
+       //dsbSwitch->Play( 0, 0, 0 );
       }
-      if ( !Console::Pressed(Global::Keys[k_SmallCompressor]))
-      {
-            DynamicObject->MoverParameters->PantCompFlag= false;
-            }
+      else
+       DynamicObject->MoverParameters->PantCompFlag=false;
+     }
+     else //Ra: przecieœæ to na zwolnienie klawisza
+      DynamicObject->MoverParameters->PantCompFlag=false;
      if ( Console::Pressed(Global::Keys[k_Univ2]) )
      {
         if (!DebugModeFlag)
@@ -4240,7 +4241,7 @@ if (DynamicObject->MoverParameters->Battery==true)
 //    bool kEP;
 //    kEP=(DynamicObject->MoverParameters->BrakeSubsystem==Knorr)||(DynamicObject->MoverParameters->BrakeSubsystem==Hik)||(DynamicObject->MoverParameters->BrakeSubsystem==Kk);
     if ((DynamicObject->MoverParameters->BrakeSystem==ElectroPneumatic)&&(DynamicObject->MoverParameters->BrakeSubsystem==Knorr)&&(DynamicObject->MoverParameters->EpFuse==true))
-     if (Console::Pressed(Global::Keys[k_AntiSlipping] ) )
+     if (Console::Pressed(Global::Keys[k_AntiSlipping])) //kEP
       {
        AntiSlipButtonGauge.UpdateValue(1);
        if (DynamicObject->MoverParameters->SwitchEPBrake(1))

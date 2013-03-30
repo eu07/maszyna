@@ -1990,7 +1990,7 @@ void TWorld::ShowHints(void)
    else
    if (Controlled->MoverParameters->V==0)
    {
-      if (!(Controlled->MoverParameters->PantFrontVolt||Controlled->MoverParameters->PantRearVolt))
+      if ((Controlled->MoverParameters->PantFrontVolt==0.0)||(Controlled->MoverParameters->PantRearVolt==0.0))
          {
          OutText1="Jezdziles juz kiedys lokomotywa? Pierwszy raz? Dobra, to zaczynamy.";
          OutText2="No to co, trzebaby chyba podniesc pantograf?";
