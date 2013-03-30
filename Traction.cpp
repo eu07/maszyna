@@ -34,6 +34,7 @@ TTraction::TTraction()
     asPowerSupplyName="";
 //    mdPole= NULL;
 //    ReplacableSkinID= 0;
+ pPrev=pNext=NULL;
 }
 
 TTraction::~TTraction()
@@ -363,12 +364,24 @@ int __fastcall TTraction::TestPoint(vector3 *Point)
 void __fastcall TTraction::Connect(int my,TTraction *with,int to)
 {//³¹czenie segmentu (with) od strony (my) do jego (to)
  if (my)
- {pPrev=with;
-  iPrev=to;
+ {//do mojego Point2
+  pNext=with;
+  iNext=to;
  }
  else
- {pNext=with;
-  iNext=to;
+ {//do mojego Point1
+  pPrev=with;
+  iPrev=to;
+ }
+ if (to)
+ {//do jego Point2
+  with->pNext=this;
+  with->iNext=my;
+ }
+ else
+ {//do jego Point1
+  with->pPrev=this;
+  with->iPrev=my;
  }
 };
 

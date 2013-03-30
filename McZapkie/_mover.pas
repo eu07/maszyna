@@ -663,8 +663,8 @@ TYPE
                 PantRearSP: boolean;
                 PantFrontStart: integer;  //stan patykow 'Winger 160204
                 PantRearStart: integer;
-                PantFrontVolt: boolean;   //pantograf pod napieciem? 'Winger 160404
-                PantRearVolt: boolean;
+                PantFrontVolt: real;   //pantograf pod napieciem? 'Winger 160404
+                PantRearVolt: real;
                 PantSwitchType: string;
                 ConvSwitchType: string;
 
@@ -683,7 +683,7 @@ TYPE
                 {--funkcje}
 
 
-                function GetTrainsetVoltage: boolean;
+                function GetTrainsetVoltage: real;
                 function Physic_ReActivation: boolean;
 
 {                function BrakeRatio: real;  }
@@ -1005,32 +1005,33 @@ function SPR(ph,pl:real): real;
 begin
   SPR:=0.674*(ph-pl)/(1.13*ph-pl+0.013);
 end;
+
 {---------rozwiniecie deklaracji metod obiektu T_MoverParameters--------}
-function T_MoverParameters.GetTrainsetVoltage: boolean;
+
+function T_MoverParameters.GetTrainsetVoltage: real;
 //ABu: funkcja zwracajaca napiecie dla calego skladu, przydatna dla EZT
-var voltf: boolean;
-    voltr: boolean;
-  begin
-    if Couplers[0].Connected<>nil then
-      begin
-        if Couplers[0].Connected.PantFrontVolt or Couplers[0].Connected.PantRearVolt then
-          voltf:=true
-        else
-          voltf:=false;
-      end
-      else
-        voltf:=false;
-      if Couplers[1].Connected<>nil then
-      begin
-        if Couplers[1].Connected.PantFrontVolt or Couplers[1].Connected.PantRearVolt then
-          voltr:=true
-        else
-          voltr:=false;
-      end
-      else
-        voltr:=false;
-    GetTrainsetVoltage:=voltf or voltr;
-  end;
+var volt: real;
+begin
+ volt:=0.0;
+  if Couplers[1].Connected<>nil then
+   begin //zwykle silnikowy jest z ty³u
+    if (Couplers[1].Connected.PantFrontVolt<>0.0) then
+     volt:=Couplers[1].Connected.PantFrontVolt
+    else
+     if (Couplers[1].Connected.PantRearVolt<>0.0) then
+      volt:=Couplers[1].Connected.PantRearVolt;
+   end;
+  if (volt=0.0) then
+   if Couplers[0].Connected<>nil then
+    begin
+     if (Couplers[0].Connected.PantFrontVolt<>0.0) then
+      volt:=Couplers[0].Connected.PantFrontVolt
+     else
+      if (Couplers[0].Connected.PantRearVolt<>0.0) then
+       volt:=Couplers[0].Connected.PantRearVolt;
+    end;
+  GetTrainsetVoltage:=volt;
+end;
 
 
 
@@ -1277,7 +1278,8 @@ begin
               SetFlag(SoundFlag,sound_relay); {wylaczanie wysokiego rozruchu}
 {         if (EngineType=ElectricSeriesMotor) and (MainCtrlPos=1) then
           MainCtrlActualPos:=1;
-}          end;
+}
+           end;
         if(DynamicBrakeFlag)then
           if(TrainType=dt_ET42)then
             if MainCtrlPos>20 then
@@ -1393,7 +1395,7 @@ begin
                 OK:=True;
               end
              else
-              if CtrlSpeed>1 then
+              if (CtrlSpeed>1) {and (ScndCtrlPos=0)} then
                begin
                  OK:=True;
                   if (RList[MainCtrlPos].R=0)
@@ -1574,9 +1576,11 @@ begin
        if (State=False) then //jeœli wy³¹czony
         begin
          //SetFlag(SoundFlag,sound_relay); //hunter-091012: przeniesione do Train.cpp, zeby sie nie zapetlal
+         // if (SecuritySystem.Status<>12) then
          SecuritySystem.Status:=0; //deaktywacja czuwaka
         end
        else
+       //if (SecuritySystem.Status<>12) then
         SecuritySystem.Status:=s_waiting; //aktywacja czuwaka
      end
    end
@@ -1712,6 +1716,13 @@ function T_MoverParameters.SecuritySystemReset : boolean;
     SecuritySystem.Status:=s_waiting; //aktywacja czuwaka
     SecuritySystem.VelocityAllowed:=-1;
   end;
+  procedure ResetSHP;
+  begin
+    SecuritySystem.SystemBrakeTimer:=0;
+    SecuritySystem.SystemSoundTimer:=0;
+    SecuritySystem.VelocityAllowed:=-1;
+    SecuritySystem.Status:=s_waiting;
+  end;
 begin
   with SecuritySystem do
     if (SystemType>0) and (Status>0) then
@@ -1729,7 +1740,6 @@ begin
 end;
 
 {testowanie czuwaka/SHP}
-
 procedure T_MoverParameters.SecuritySystemCheck(dt:real);
 begin
   with SecuritySystem do
@@ -2345,6 +2355,7 @@ begin
               begin
                 dpLocalValve:=(0.01+Rate)*MaxBrakePress*PR(MaxBrakePress,LocBrakePress)*dt/4.0;//5*2
                 IncBrakePress(LocBrakePress,Rate*MaxBrakePress,dpLocalValve);
+                {odluznianie hamulca pomocniczego przy uzyciu hamulca ED w ET42 (KURS90)}
               end;
             if LocBrakePress>Rate*MaxBrakePress then
               begin
@@ -2379,7 +2390,7 @@ end;  {updatebrakepressure}
 
 procedure T_MoverParameters.UpdatePipePressure(dt:real);
 const LBDelay=15.0;kL=0.5;
-var {b: byte;} dV{,PWSpeed}:real; c: T_MoverParameters;
+var {b: byte;} SpgTam,SpgTu,dV{,PWSpeed}:real; c: T_MoverParameters;
 begin
   //ABu: zmieniam na zlecenie Olo_EU
   //PWSpeed:=800/sqr(Dim.L); a
@@ -2390,6 +2401,7 @@ begin
 //  PWSpeed:=280/Dim.L; // d 280
 
   dpMainValve:=0;
+  SpgTu:=Spg*(1+kL*byte((BrakeCtrlPosNo>0)and(Power>1)and(BrakeSystem=Pneumatic)));
 
   if (HighPipePress>0) or (LowPipePress<0) then
    begin
@@ -2405,6 +2417,17 @@ begin
               ActFlowSpeed:=FlowSpeedVal*Byte(BrakeType<>ElectroPneumatic)+4*Byte(BrakeType=ElectroPneumatic);
               if(PipePressureVal>0)then
                LimPipePress:=PipePressureVal;
+            {begin
+              ActFlowSpeed:=FlowSpeedVal*Byte(BrakeType<>ElectroPneumatic)+6*Byte(BrakeType=ElectroPneumatic);
+              if(Activedir=0)and(PipePressureVal>=0)then
+                LimPipePress:=PipePressureVal
+              else
+                if(PipePressureVal<BrakePressureTable[-1].PipePressureVal)then
+                  if (PipePressureVal>0)then
+                    LimPipePress:=0
+                  else
+                else
+                  LimPipePress:=PipePressureVal; }
              end
             else
              begin
@@ -2522,8 +2545,6 @@ begin
       if (dpPipe<>0) and ((BrakeVP-PipePress)/(dpPipe)<2.0) then
         dpPipe:=(BrakeVP-PipePress)/5.0;
       Volume:=Volume-dpPipe*Spg*Dim.L/10.0;
-
-
 //yB: liczenie roznicy w sprzegach (przeplywy objetosci) (usunalem Spg dla optymalizacji)
       if Couplers[0].Connected<>nil then
        if TestFlag(Couplers[0].CouplingFlag,ctrain_pneumatic) then
@@ -2687,6 +2708,7 @@ begin
         if(BrakeCtrlPosNo=0)and(PipeBrakePress<0.002)and(BrakeVP>(CntrlPipePress-0.005))then
          begin
           SetFlag(SoundFlag,+sound_brakeacc);
+          //SetFlag(SoundFlag,sound_brakeacc); SetFlag(SoundFlag,sound_loud);
           PipePress:=PipePress*(Dim.L*Spg/(Dim.L*Spg+0.5));
          end;
       end;
@@ -2735,6 +2757,7 @@ end;  {updatepipepressure}
 
 
 procedure T_MoverParameters.CompressorCheck(dt:real);
+var b:byte;
  begin
    if VeselVolume>0 then
     begin
@@ -2777,41 +2800,28 @@ procedure T_MoverParameters.CompressorCheck(dt:real);
 
 procedure T_MoverParameters.UpdatePantVolume(dt:real);
  {KURS90 - sprezarka pantografow}
- var b:byte;
- begin
-   if PantCompFlag=true then
-    begin
-     PantVolume:=PantVolume+dt/30.0;
-    end;
- {Winger - ZROBIC}
-(*
-
-   if (PantCompFlag=true) and (Battery=true) then
-    begin      {napelnianie zbiornikow pantografow}
-     PantVolume:=PantVolume+dt*0.001*(2*0.45-((0.1/PantVolume/10)-0.1))/0.45;
-
-    end;
-
-if ScndPipePress>0.45 then
-   begin     {korzystanie ze zbiornika glownego}
+var b:byte;
+begin
+ if (PantCompFlag=true) and (Battery=true) then
+  begin      {napelnianie zbiornikow pantografow}
+   PantVolume:=PantVolume+dt*0.001*(2*0.45-((0.1/PantVolume/10)-0.1))/0.45;
+  end;
+ if ScndPipePress>0.45 then //Ra: dodaæ kurek trójdro¿ny
+  begin     {korzystanie ze zbiornika glownego}
    PantPress:=ScndPipePress;
    PantVolume:=(ScndPipePress*0.1*10)+0.1;
-   end
-   else
-   PantPress:=(PantVolume/0.10/10)-0.1;
-
-if (PantCompFlag=false) and (PantVolume>0.1) then
-PantVolume:=PantVolume-dt*0.00003;    {nieszczelnosci}
-
-  if PantPress<0.35 then
- if MainSwitch(False) and  (EngineType=ElectricSeriesMotor) then
-      EventFlag:=True;   {wywalenie szybkiego z powodu niskiego cisnienia}
-for b:=0 to 1 do
-      with Couplers[b] do
-       if TestFlag(CouplingFlag,ctrain_controll) then
-
-        Connected.PantVolume:=PantVolume;
-*)
+  end
+ else
+  PantPress:=(PantVolume/0.10/10)-0.1; //tu by siê przyda³a objêtoœæ zbiornika
+ if (PantCompFlag=false) and (PantVolume>0.1) then
+  PantVolume:=PantVolume-dt*0.0003;    {nieszczelnosci}
+ if PantPress<0.35 then
+  if MainSwitch(False) and  (EngineType=ElectricSeriesMotor) then
+   EventFlag:=True;   {wywalenie szybkiego z powodu niskiego cisnienia}
+ for b:=0 to 1 do
+  with Couplers[b] do
+   if TestFlag(CouplingFlag,ctrain_controll) then
+    Connected.PantVolume:=PantVolume; //przekazanie ciœnienia do s¹siedniego cz³onu
 end;
 
 procedure T_MoverParameters.UpdateBatteryVoltage(dt:real);
@@ -2999,7 +3009,7 @@ begin
  if (MainCtrlPos=0) and (ScndCtrlPos=0) and Mains then
   begin
    SendCtrlToNext('FuseSwitch',1,CabNo);
-   if (EngineType=ElectricSeriesMotor) and FuseFlag then
+   if ((EngineType=ElectricSeriesMotor)or((EngineType=DieselElectric))) and FuseFlag then
     begin
      FuseFlag:=False;  {wlaczenie ponowne obwodu}
      FuseOn:=True;
@@ -3849,7 +3859,7 @@ begin
   if (EngineType=DieselElectric) then
     begin
      tmp:=DEList[MainCtrlPos].rpm/60.0;
-     if (Heating) and (MainCtrlPosNo>MainCtrlPos) then
+     if (Heating) and (HeatingPower>0) and (MainCtrlPosNo>MainCtrlPos) then
      begin
        i:=MainCtrlPosNo;
        while (DEList[i-2].rpm/60.0>tmp) do
@@ -3994,6 +4004,7 @@ begin
       PosRatio:=tmp/DEList[MainCtrlPosNo].genpower;
 
       end;
+        if (FuseFlag) then Ft:=0 else
         Ft:=Ft*DirAbsolute; //ActiveDir * CabNo; //zwrot sily i jej wartosc
         Fw:=Ft/NPoweredAxles; //sila na obwodzie kola
         Mw:=Fw*WheelDiameter / 2.0; // moment na osi kola
@@ -4092,8 +4103,8 @@ begin
                  dec(ScndCtrlPos);
               if (MainCtrlPos<9)and(ScndCtrlPos>2) then ScndCtrlPos:=2;
               if (MainCtrlPos<6)and(ScndCtrlPos>0) then ScndCtrlPos:=0;              
-             end
-          else end;
+             end;
+        end;
      end;
    None: begin end;
    {EZT: begin end;}
@@ -4576,13 +4587,13 @@ begin
         if (HVCouplers[b][1]) > 1 then //pod napieciem
           HVCouplers[b][0]:=0+Iheat//obci¹¿enie
         else
-          HVCouplers[b][0]:=0; 
+          HVCouplers[b][0]:=0;
       end;
 }
 
   ClearPendingExceptions;
   if not TestFlag(DamageFlag,dtrain_out) then
-   begin
+   begin //Ra: to przepisywanie tu jest bez sensu
      RunningShape:=Shape;
      RunningTrack:=Track;
      RunningTraction:=ElectricTraction;
@@ -5067,11 +5078,13 @@ Begin
    end
   else if command='FuseSwitch' then
    begin
-      if (EngineType=ElectricSeriesMotor) and FuseFlag and (CValue1=1) and
+      if ((EngineType=ElectricSeriesMotor)or(EngineType=DieselElectric)) and FuseFlag and (CValue1=1) and
          (MainCtrlActualPos=0) and (ScndCtrlActualPos=0) and Mains then
 {      if (EngineType=ElectricSeriesMotor) and (CValue1=1) and
          (MainCtrlActualPos=0) and (ScndCtrlActualPos=0) and Mains then}
         FuseFlag:=False;  {wlaczenie ponowne obwodu}
+     // if ((EngineType=ElectricSeriesMotor)or(EngineType=DieselElectric)) and not FuseFlag and (CValue1=0) and Mains then
+     //   FuseFlag:=True;      
       OK:=SendCtrlToNext(command,CValue1,CValue2);
    end
   else if command='ConverterSwitch' then         {NBMX}
@@ -5764,6 +5777,7 @@ begin
      SendCtrlToNext('DoorOpen',1,CabNo) //1=lewe, 2=prawe
     else
      SendCtrlToNext('DoorOpen',2,CabNo); //zamiana
+    CompressedVolume:=CompressedVolume-0.003;
    end
   else
    begin
@@ -5789,6 +5803,7 @@ begin
      SendCtrlToNext('DoorOpen',2,CabNo) //1=lewe, 2=prawe
     else
      SendCtrlToNext('DoorOpen',1,CabNo); //zamiana
+    CompressedVolume:=CompressedVolume-0.003;
    end
   else
    begin
@@ -5816,8 +5831,8 @@ begin
   PantFrontUp:=State;
   if (State=true) then
    begin
-      PantFrontStart:=0;
-      SendCtrlToNext('PantFront',1,CabNo);
+    PantFrontStart:=0;
+    SendCtrlToNext('PantFront',1,CabNo);
    end
   else
    begin
@@ -5825,7 +5840,7 @@ begin
       PantFrontStart:=1;
       SendCtrlToNext('PantFront',0,CabNo);
 {Ra: nie ma potrzeby opuszczaæ obydwu na raz, jak mozemy ka¿dy osobno
-      if (TrainType=dt_EZT) then
+      if (TrainType=dt_EZT) and (ActiveCab=1) then
        begin
         PantRearUp:=false;
         PantRearStart:=1;

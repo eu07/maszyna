@@ -920,7 +920,7 @@ void __fastcall TSubRect::RaAnimate()
 TTraction* __fastcall TSubRect::FindTraction(vector3 *Point,int &iConnection,TTraction *Exclude)
 {//szukanie przês³a w sektorze, którego koniec jest najbli¿szy (*Point)
  TGroundNode *Current;
- for (Current=nRenderWires;Current;Current=Current->Next)
+ for (Current=nRenderWires;Current;Current=Current->nNext3)
   if ((Current->iType==TP_TRACTION)&&(Current->Traction!=Exclude))
    {
     iConnection=Current->Traction->TestPoint(Point);
@@ -2848,7 +2848,6 @@ void __fastcall TGround::InitTraction()
     break;
    }
   }
-  break;
  }
 };
 
@@ -2970,14 +2969,14 @@ TTraction* __fastcall TGround::FindTraction(vector3 *Point,int &iConnection,TGro
   if ((sr=FastGetSubRect(c+y,r+x))!=NULL)
    if ((tmp=sr->FindTraction(Point,iConnection,Exclude->Traction))!=NULL)
     return tmp;
-  if (x)
-   if ((sr=FastGetSubRect(c+y,r-x))!=NULL)
+  if (x&&y)
+  {if ((sr=FastGetSubRect(c+y,r-x))!=NULL)
     if ((tmp=sr->FindTraction(Point,iConnection,Exclude->Traction))!=NULL)
      return tmp;
-  if (y)
    if ((sr=FastGetSubRect(c-y,r+x))!=NULL)
     if ((tmp=sr->FindTraction(Point,iConnection,Exclude->Traction))!=NULL)
      return tmp;
+  }
   if ((sr=FastGetSubRect(c-y,r-x))!=NULL)
    if ((tmp=sr->FindTraction(Point,iConnection,Exclude->Traction))!=NULL)
     return tmp;
@@ -3476,7 +3475,6 @@ bool __fastcall TGround::GetTraction(TDynamicObject *model)
  double zt1x,zt2x,p1wy,p2wy,wspwp;
  double maxwyspant,minwyspant,szerpant;
  double p1wx,p1wz,p2wx,p2wz,liczwsp1,liczwsp2,p1a1,p1a2,p1b1,p1b2,p2a1,p2a2,p2b1,p2b2;
- double fRaDist; //wyraz wolny, czyli "odleg³oœæ" p³aszczyzny od OXYZ
  double fRaParam; //parametr równania parametrycznego odcinka drutu
  double fVertical; //odleg³oœæ w pionie; musi byæ w zasiêgu ruchu "pionowego" pantografu
  double fHorizontal; //odleg³oœæ w bok; powinna byæ mniejsza ni¿ pó³ szerokoœci pantografu
@@ -3487,14 +3485,14 @@ bool __fastcall TGround::GetTraction(TDynamicObject *model)
  vector3 vStyk; //punkt przebicia drutu przez p³aszczyznê ruchu pantografu
  vector3 vGdzie; //wektor po³o¿enia drutu wzglêdem pojazdu
  TGroundNode *node;
- p1z=model->pant1x; //wczytywane z MMD przesuniêcie wzglêdem œrodka do przodu
+ p1z=model->pant1x; //wczytywane z MMD przesuniêcie wzglêdem œrodka do ty³u (powinno byæ dodatnie)
  py=model->panty;
- p2z=model->pant2x; //wczytywane z MMD przesuniêcie wzglêdem œrodka do przodu (ujemne)
+ p2z=model->pant2x; //wczytywane z MMD przesuniêcie wzglêdem œrodka do ty³u (powinno byæ ujemne)
  wspwp=model->panth;
  vFront=model->VectorFront(); //wektor normalny dla p³aszczyzny ruchu pantografu
- vUp=model->VectorUp();
- vLeft=model->VectorLeft();
- dwys=model->GetPosition(); //œrodek pojazdu
+ vUp=model->VectorUp(); //wektor pionu pud³a (pochylony od pionu na przechy³ce)
+ vLeft=model->VectorLeft(); //wektor odleg³oœci w bok (odchylony od poziomu na przechy³ce)
+ dwys=model->GetPosition(); //wspó³rzêdne œrodka pojazdu
  dynwys=dwys.y;
  np1wy=1000;
  np2wy=1000;
@@ -3510,6 +3508,81 @@ bool __fastcall TGround::GetTraction(TDynamicObject *model)
  pant2=dwys+(vLeft*0)+(vUp*py)+(vFront*p2z);
  pant2l=pant2+(vLeft*-1)+(vUp*0)+(vFront*0);
  pant2p=pant2+(vLeft*1)+(vUp*0)+(vFront*0);
+ for (int k=0;k<=1;++k) //numer pantografu
+  if (k?model->MoverParameters->PantRearUp:model->MoverParameters->PantFrontUp)
+  {//Ra: jeœli podniesiony przedni
+   if (model->PowerWire[k])
+   {//mamy drut z poprzedniego przebiegu
+    while (model->PowerWire[k])
+    {//powtarzane a¿ do znalezienia odpowiedniego odcinka na liœcie dwukierunkowej
+     //obliczamy wyraz wolny równania p³aszczyzny (to miejsce nie jest odpowienie)
+     vParam=model->PowerWire[k]->vParametric; //wspó³czynniki równania parametrycznego
+     fRaParam=-DotProduct(k?pant2:pant1,vFront);
+     //podstawiamy równanie parametryczne drutu do równania p³aszczyzny pantografu
+     //vFront.x*(t1x+t*vParam.x)+vFront.y*(t1y+t*vParam.y)+vFront.z*(t1z+t*vParam.z)+fRaDist=0;
+     fRaParam=-(DotProduct(model->PowerWire[k]->pPoint1,vFront)+fRaParam)/DotProduct(vParam,vFront);
+     if (fRaParam<-0.001) //histereza rzêdu 7cm na 70m typowego przês³a daje 1 promil
+      model->PowerWire[k]=model->PowerWire[k]->pPrev;
+     else if (fRaParam>1.001)
+      model->PowerWire[k]=model->PowerWire[k]->pNext;
+     else
+     {//jeœli t jest w przedziale, wyznaczyæ odleg³oœæ wzd³u¿ wektorów vUp i vLeft
+      vStyk=model->PowerWire[k]->pPoint1+fRaParam*vParam; //punkt styku p³aszczyzny z drutem (dla generatora ³uku el.)
+      vGdzie=vStyk-pant1; //wektor
+      //odleg³oœæ w pionie musi byæ w zasiêgu ruchu "pionowego" pantografu
+      fVertical=DotProduct(vGdzie,vUp); //musi siê mieœciæ w przedziale ruchu pantografu
+      //odleg³oœæ w bok powinna byæ mniejsza ni¿ pó³ szerokoœci pantografu
+      fHorizontal=DotProduct(vGdzie,vLeft); //to siê musi mieœciæ w przedziale zaleznym od szerokoœci pantografu
+      //jeœli w pionie albo w bok jest za daleko, to dany drut jest nieu¿yteczny
+      if (fabs(fHorizontal)>1.0)
+       model->PowerWire[k]=NULL; //nie liczy siê
+      else
+      {//po wyselekcjonowaniu drutu, przypisaæ go do toru, ¿eby nie trzeba by³o szukaæ
+       //dla 3 koñcowych przêse³ sprawdziæ wszystkie dostêpne przês³a
+       //bo mog¹ byæ umieszczone równolegle nad torem - po³¹czyæ w pierœcieñ
+       //najlepiej, jakby odcinki równoleg³e by³y oznaczone we wpisach
+       //WriteLog("Drut: "+AnsiString(fHorizontal)+" "+AnsiString(fVertical));
+       break; //koniec pêtli, aktualny drut pasuje
+      }
+     }
+    }
+   }
+   if (!model->PowerWire[k]) //else nie, bo móg³ byæ wyrzucony
+   {//poszukiwanie po okolicznych sektorach
+    for (int j=r-n;j<=r+n;j++)
+     for (int i=c-n;i<=c+n;i++)
+     {//poszukiwanie po najbli¿szych sektorach niewiele da przy wiêkszym zagêszczeniu
+      tmp=FastGetSubRect(i,j);
+      if (tmp)
+      {//dany sektor mo¿e nie mieæ nic w œrodku
+       for (node=tmp->nRenderWires;node;node=node->nNext3)  //nastêpny z grupy
+        if (node->iType==TP_TRACTION) //w grupie tej s¹ druty oraz inne linie
+        {
+         vParam=node->Traction->vParametric; //wspó³czynniki równania parametrycznego
+         fRaParam=-DotProduct(pant1,vFront);
+         fRaParam=-(DotProduct(node->Traction->pPoint1,vFront)+fRaParam)/DotProduct(vParam,vFront);
+         if ((fRaParam>=0.0)?(fRaParam<=1.0):false)
+         {//jeœli t jest w przedziale, wyznaczyæ odleg³oœæ wzd³u¿ wektorów vUp i vLeft
+          vStyk=node->Traction->pPoint1+fRaParam*vParam; //punkt styku p³aszczyzny z drutem (dla generatora ³uku el.)
+          vGdzie=vStyk-pant1; //wektor
+          fVertical=DotProduct(vGdzie,vUp); //musi siê mieœciæ w przedziale ruchu pantografu
+          fHorizontal=DotProduct(vGdzie,vLeft); //to siê musi mieœciæ w przedziale zaleznym od szerokoœci pantografu
+          if (fabs(fHorizontal)<=1.0)
+           model->PowerWire[k]=node->Traction; //jakiœ znaleziony
+         }
+        }
+      }
+     }
+   }
+   if (model->PowerWire[k])
+    if (k)
+     model->PantTraction2=fVertical+model->panty+0.18;
+    else
+     model->PantTraction1=fVertical+model->panty+0.18;
+  }
+  else
+   model->PowerWire[k]=NULL; //pantograf opuszczony
+/*
  bp1xl=pant1l.x;
  bp1zl=pant1l.z;
  bp1xp=pant1p.x;
@@ -3538,10 +3611,10 @@ bool __fastcall TGround::GetTraction(TDynamicObject *model)
       if (model->MoverParameters->PantFrontUp)
       {//Patyk 1
        //obliczamy wyraz wolny równania p³aszczyzny (to miejsce nie jest odpowienie)
-       fRaDist=-DotProduct(pant1,vFront);
+       fRaParam=-DotProduct(pant1,vFront);
        //podstawiamy równanie parametryczne drutu do równania p³aszczyzny pantografu
        //vFront.x*(t1x+t*vParam.x)+vFront.y*(t1y+t*vParam.y)+vFront.z*(t1z+t*vParam.z)+fRaDist=0;
-       fRaParam=-(DotProduct(node->Traction->pPoint1,vFront)+fRaDist)/DotProduct(vParam,vFront);
+       fRaParam=-(DotProduct(node->Traction->pPoint1,vFront)+fRaParam)/DotProduct(vParam,vFront);
        //powinien wyjœæ parametr t w przedziale <0,1>, inaczej drut jest poza zasiêgiem
        if ((fRaParam>=0.0)?(fRaParam<=1.0):false)
        {//jeœli t jest w przedziale, wyznaczyæ odleg³oœæ wzd³u¿ wektorów vUp i vLeft
@@ -3711,6 +3784,7 @@ bool __fastcall TGround::GetTraction(TDynamicObject *model)
   model->PantTraction1=5.8171;
   model->PantTraction2=5.8171;
  }
+*/
  return true;
 };
 
