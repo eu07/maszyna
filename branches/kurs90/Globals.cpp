@@ -44,8 +44,8 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asRelease="13.3.774.409";
-AnsiString Global::asVersion="Compilation 2013-03-12, release "+Global::asRelease+"."; //tutaj, bo wysy³any
+AnsiString Global::asRelease="13.3.784.410";
+AnsiString Global::asVersion="Compilation 2013-03-30, release "+Global::asRelease+"."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 double Global::fSunDeclination=0.0; //deklinacja S³oñca
@@ -425,6 +425,8 @@ void __fastcall Global::ConfigParse(TQueryParserComp *qp,cParser *cp)
  iFpsRadiusMax=0.000025*fFpsRadiusMax*fFpsRadiusMax; //maksymalny promieñ renderowania 3000.0 -> 225
  if (iFpsRadiusMax>400) iFpsRadiusMax=400;
  if (bPause) iTextMode=VK_F1; //jak pauza, to pokazaæ zegar
+ bLiveTraction=true; //tymczasowo w³¹czony odczyt napiêcia z sieci - chyba mo¿na na sta³e zostawiæ
+ bEnableTraction=true; //to te¿
 }
 
 void __fastcall Global::InitKeys(AnsiString asFileName)

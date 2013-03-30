@@ -570,8 +570,8 @@ public:
 	bool PantRearSP;
 	int PantFrontStart;
 	int PantRearStart;
-	bool PantFrontVolt;
-	bool PantRearVolt;
+	double PantFrontVolt;
+	double PantRearVolt;
 	AnsiString PantSwitchType;
 	AnsiString ConvSwitchType;
 	bool Heating;
@@ -581,7 +581,7 @@ public:
 	double FrictConst2s;
 	double FrictConst2d;
 	double TotalMassxg;
-	bool __fastcall GetTrainsetVoltage(void);
+	double __fastcall GetTrainsetVoltage(void);
 	bool __fastcall Physic_ReActivation(void);
 	double __fastcall LocalBrakeRatio(void);
 	double __fastcall ManualBrakeRatio(void);

@@ -1360,7 +1360,7 @@ bool __fastcall TController::PrepareEngine()
    {//ustalenie kierunku, gdy stoi
     iDirection=Controlling->CabNo; //wg wybranej kabiny
     if (!iDirection) //jeœli nie ma ustalonego kierunku
-     if (Controlling->PantFrontVolt||Controlling->PantRearVolt||voltfront||voltrear)
+     if ((Controlling->PantFrontVolt!=0.0)||(Controlling->PantRearVolt!=0.0)||voltfront||voltrear)
      {if (Controlling->Couplers[1].CouplingFlag==ctrain_virtual) //jeœli z ty³u nie ma nic
        iDirection=-1; //jazda w kierunku sprzêgu 1
       if (Controlling->Couplers[0].CouplingFlag==ctrain_virtual) //jeœli z przodu nie ma nic
@@ -1368,7 +1368,7 @@ bool __fastcall TController::PrepareEngine()
      }
    }
    else //ustalenie kierunku, gdy jedzie
-    if (Controlling->PantFrontVolt||Controlling->PantRearVolt||voltfront||voltrear)
+     if ((Controlling->PantFrontVolt!=0.0)||(Controlling->PantRearVolt!=0.0)||voltfront||voltrear)
      if (Controlling->V<0) //jedzie do ty³u
       iDirection=-1; //jazda w kierunku sprzêgu 1
      else //jak nie do ty³u, to do przodu

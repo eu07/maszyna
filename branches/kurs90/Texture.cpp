@@ -583,6 +583,13 @@ TTexturesManager::AlphaValue TTexturesManager::LoadDDS(std::string fileName,int 
     data.width      = ddsd.dwWidth;
     data.height     = ddsd.dwHeight;
     data.numMipMaps = ddsd.dwMipMapCount;
+ {//sprawdzenie prawid³owoœci rozmiarów
+  int i,j;
+  for (i=data.width,j=0;i;i>>=1) if (i&1) ++j;
+  if (j==1)
+   for (i=data.height,j=0;i;i>>=1) if (i&1) ++j;
+  if (j!=1) WriteLog("Bad texture: "+AnsiString(fileName.c_str())+" is "+AnsiString(data.width)+"×"+AnsiString(data.height));
+ }
 
     if (ddsd.ddpfPixelFormat.dwFourCC == FOURCC_DXT1)
         data.components = 3;

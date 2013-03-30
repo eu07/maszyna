@@ -25,6 +25,7 @@
 #include "Driver.h"
 #include "Camera.h" //bo likwidujemy trzêsienie
 #include "Console.h"
+#include "Traction.h"
 #pragma package(smart_init)
 
 //Ra: taki zapis funkcjonuje lepiej, ale mo¿e nie jest optymalny
@@ -1183,6 +1184,8 @@ __fastcall TDynamicObject::TDynamicObject()
  asDestination="none"; //stoj¹cy nigdzie nie jedzie
  pValveGear=NULL; //Ra: tymczasowo
  iCabs=0; //maski bitowe modeli kabin
+ PowerWire[0]=NULL; //na pocz¹tku nie pod³¹czony do pr¹du
+ PowerWire[1]=NULL;
 }
 
 __fastcall TDynamicObject::~TDynamicObject()
@@ -1726,24 +1729,24 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
  if (!bEnabled)
   return false; //a normalnie powinny mieæ bEnabled==false
 
-//McZapkie-260202
-  //MoverParameters->BatteryVoltage=90;
-  if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
-   if ((MechInside)||(MoverParameters->TrainType==dt_EZT))
-   {
-    //if ((!MoverParameters->PantCompFlag)&&(MoverParameters->CompressedVolume>=2.8))
+ //McZapkie-260202
+ //MoverParameters->BatteryVoltage=90;
+ if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
+  if ((MechInside)||(MoverParameters->TrainType==dt_EZT))
+  {
+   //if ((!MoverParameters->PantCompFlag)&&(MoverParameters->CompressedVolume>=2.8))
+   // MoverParameters->PantVolume=MoverParameters->CompressedVolume;
+   if (MoverParameters->PantPress<0.35)
+   {// 0.35 wg http://www.transportszynowy.pl/eu06-07pneumat.php
+    //if (!MoverParameters->PantCompFlag)
     // MoverParameters->PantVolume=MoverParameters->CompressedVolume;
-    if (MoverParameters->PantPress<0.33)
-    {
-     if (!MoverParameters->PantCompFlag)
-     // MoverParameters->PantVolume=MoverParameters->CompressedVolume;
-     MoverParameters->PantFront(false); //opuszczenie pantografów przy niskim ciœnieniu
-     MoverParameters->PantRear(false);
-    }
-    //Winger - automatyczne wylaczanie malej sprezarki.
-    //if (MoverParameters->PantPress>=0.45)
-    // MoverParameters->PantCompFlag=false;
+    MoverParameters->PantFront(false); //opuszczenie pantografów przy niskim ciœnieniu
+    MoverParameters->PantRear(false);
    }
+   //Winger - automatyczne wylaczanie malej sprezarki. Ra: w _mover.pas
+   //if (MoverParameters->PantPress>=0.45)
+   // MoverParameters->PantCompFlag=false;
+  }
 
     double dDOMoveLen;
 
@@ -1789,16 +1792,22 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
    {
     if (Global::bLiveTraction)
     {
-     if ((MoverParameters->PantFrontVolt)||(MoverParameters->PantRearVolt)||
+     if ((MoverParameters->PantFrontVolt!=0.0)||(MoverParameters->PantRearVolt!=0.0)||
       //ABu: no i sprawdzenie dla EZT:
-      ((MoverParameters->TrainType==dt_EZT)&&(MoverParameters->GetTrainsetVoltage())))
+      ((MoverParameters->TrainType==dt_EZT)&&(MoverParameters->GetTrainsetVoltage()!=0.0)))
       NoVoltTime=0;
      else
       NoVoltTime=NoVoltTime+dt;
      if (NoVoltTime>1.0) //jeœli brak zasilania d³u¿ej ni¿ przez 1 sekundê
       tmpTraction.TractionVoltage=0;
      else
-      tmpTraction.TractionVoltage=3400; //3550
+     {tmpTraction.TractionVoltage=MoverParameters->PantRearVolt;
+      if (tmpTraction.TractionVoltage==0.0)
+       tmpTraction.TractionVoltage=MoverParameters->PantFrontVolt;
+      if (tmpTraction.TractionVoltage==0.0)
+       if (MoverParameters->TrainType==dt_EZT)
+        tmpTraction.TractionVoltage=MoverParameters->GetTrainsetVoltage(); //ostatnia szansa
+     }
     }
     else
      tmpTraction.TractionVoltage=3400;
@@ -2055,17 +2064,7 @@ SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);*/
   lastcabf=(MoverParameters->CabNo*MoverParameters->DoubleTr);
   if (MoverParameters->TrainType==dt_EZT)
    lastcabf=1;
-  if (lastcabf==0)
-   lastcabf=1; //MoverParameters->LastCab;
-  if (lastcabf==1)
-  {
   */
-  pcabc1=MoverParameters->PantFrontUp;
-  pcabc2=MoverParameters->PantRearUp;
-  pcabd1=MoverParameters->PantFrontStart;
-  pcabd2=MoverParameters->PantRearStart;
-  pcp1p=MoverParameters->PantFrontVolt;
-  pcp2p=MoverParameters->PantRearVolt;
   //double ObjectDist2;
   //double vol2=0;
   double TempPantVol;
@@ -2073,28 +2072,28 @@ SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);*/
   double PantRearDiff;
   //   double StartTime= Timer::GetfSinceStart();
   StartTime= StartTime+dt1;
-  PantFrontDiff=dPantAngleFT-dPantAngleF;
+  PantFrontDiff=dPantAngleFT-dPantAngleF; //docelowy-aktualny
   if (PantFrontDiff<0)
-  PantFrontDiff=-PantFrontDiff;
-  if (PantFrontDiff<1)
+   PantFrontDiff=-PantFrontDiff;
+  if (MoverParameters->PantFrontUp?(PantFrontDiff<1):false)
   {
-   if ((pcp1p==false)&&(pcp2p==false)&&(pcabc1==true))
+   if ((MoverParameters->PantFrontVolt==0.0)&&(MoverParameters->PantRearVolt==0.0))
     sPantUp.Play(vol,0,MechInside,vPosition);
-   pcp1p=true;
+   MoverParameters->PantFrontVolt=PowerWire[0]?PowerWire[0]->NominalVoltage:0.0;
   }
   else
-   pcp1p=false;
+   MoverParameters->PantFrontVolt=0.0;
   PantRearDiff=dPantAngleRT-dPantAngleR;
   if (PantRearDiff<0)
    PantRearDiff=-PantRearDiff;
-  if (PantRearDiff<1)
+  if (MoverParameters->PantRearUp?(PantRearDiff<1):false)
   {
-   if ((pcp2p==false)&&(pcp1p==false)&&(pcabc2==true))
+   if ((MoverParameters->PantRearVolt==0.0)&&(MoverParameters->PantFrontVolt==0.0))
     sPantUp.Play(vol,0,MechInside,vPosition);
-   pcp2p=true;
+   MoverParameters->PantRearVolt=PowerWire[1]?PowerWire[1]->NominalVoltage:0.0;
   }
   else
-   pcp2p=false;
+   MoverParameters->PantRearVolt=0.0;
   //ObjectDist2=SquareMagnitude(Global::pCameraPosition-vPosition)/100;
   //vol2=255-ObjectDist2;
   //if ((MoverParameters->CompressedVolume<3.3)) //&& (MoverParameters->PantVolume<5.2))
@@ -2111,12 +2110,11 @@ SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);*/
    pantspeedfactor=10;
   else
    //ABu: uniezaleznienie od TempPantVol, bo sie krzaczylo...
-   //pantspeedfactor=100*dt1;
+  //pantspeedfactor=100*dt1;
   //pantspeedfactor=((TempPantVol-2.5)/2)*40*dt1;
-   pantspeedfactor=(MoverParameters->PantPress)*20*dt1;
 
 //z EXE Kursa
-  //pantspeedfactor = (MoverParameters->PantPress)*20*dt1;
+  pantspeedfactor=(MoverParameters->PantPress)*20*dt1;
 
   pantspeedfactor*=abs(MoverParameters->CabNo);
   //if ((PantTraction1==5.8171) && (PantTraction2==5.8171))
@@ -2126,21 +2124,21 @@ SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);*/
 
 //Przedni
   if (PantTraction1>600)
-   pcabd1=0;
-  dPantAngleFT= -(PantTraction1*28.9-136.938); //*-30+135);
-  if ((dPantAngleF>dPantAngleFT) && (pcabc1))
+   MoverParameters->PantFrontStart=0;
+  dPantAngleFT=-(PantTraction1*28.9-136.938); //*-30+135);
+  if ((dPantAngleF>dPantAngleFT)&&(MoverParameters->PantFrontUp))
   {
-   //dPantAngleF-=5*0.05*pantspeedfactor*(pcabd1*5*(dPantAngleF-dPantAngleFT)+1);
-   dPantAngleF-=5*0.05*pantspeedfactor*(pcabd1*5*PantFrontDiff+1);
+   //dPantAngleF-=5*0.05*pantspeedfactor*(MoverParameters->PantFrontStart*5*(dPantAngleF-dPantAngleFT)+1);
+   dPantAngleF-=5*0.05*pantspeedfactor*(MoverParameters->PantFrontStart*5*PantFrontDiff+1);
    if (dPantAngleF<dPantAngleFT)
    {
     dPantAngleF=dPantAngleFT;
-    pcabd1=1;
+    MoverParameters->PantFrontStart=1;
    }
   }
   if (dPantAngleF<-70)
-   pcabc1=false;
-  if ((dPantAngleF<dPantAngleFT) && (pcabc1) && ((dPantAngleF-dPantAngleFT>0.2) || (dPantAngleFT-dPantAngleF>0.2)))
+   MoverParameters->PantFrontUp=false;
+  if ((dPantAngleF<dPantAngleFT) && (MoverParameters->PantFrontUp) && ((dPantAngleF-dPantAngleFT>0.2) || (dPantAngleFT-dPantAngleF>0.2)))
   {
    //dPantAngleF+=5*0.05*(5*(dPantAngleFT-dPantAngleF)+1)*40*dt1;
    dPantAngleF+=5*0.05*(5*PantFrontDiff+1)*40*dt1;
@@ -2149,39 +2147,33 @@ SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);*/
     dPantAngleF=dPantAngleFT;
    }
   }
-  if ((dPantAngleF<0) && (!pcabc1))
+  if ((dPantAngleF<0) && (!MoverParameters->PantFrontUp))
    dPantAngleF+=5*0.05*40*dt1;
   //Tylny
   if (PantTraction2>600)
-   pcabd2=0;
+   MoverParameters->PantRearStart=0;
   dPantAngleRT= -(PantTraction2*28.9-136.938);
   //ABu: ponizej tylko dla testow:
   //    dPantAngleR=dPantAngleRT;
-  if ((dPantAngleR>dPantAngleRT) && (pcabc2))
+  if ((dPantAngleR>dPantAngleRT) && (MoverParameters->PantRearUp))
   {
-   dPantAngleR-=5*0.05*pantspeedfactor*(pcabd2*5*(dPantAngleR-dPantAngleRT)+1);
+   dPantAngleR-=5*0.05*pantspeedfactor*(MoverParameters->PantRearStart*5*(dPantAngleR-dPantAngleRT)+1);
    if (dPantAngleR<dPantAngleRT)
    {
     dPantAngleR=dPantAngleRT;
-    pcabd2=1;
+    MoverParameters->PantRearStart=1;
    }
   }
   if (dPantAngleR<-70)
-   pcabc2=false;
-  if ((dPantAngleR<dPantAngleRT) && (pcabc2) && ((dPantAngleR-dPantAngleRT>0.2) || (dPantAngleRT-dPantAngleR>0.2)))
+   MoverParameters->PantRearUp=false;
+  if ((dPantAngleR<dPantAngleRT)&&(MoverParameters->PantRearUp)&&((dPantAngleR-dPantAngleRT>0.2)||(dPantAngleRT-dPantAngleR>0.2)))
   {
    dPantAngleR+=5*0.05*(5*(dPantAngleRT-dPantAngleR)+1)*40*dt1;
    if (dPantAngleR>dPantAngleRT)
     dPantAngleR=dPantAngleRT;
   }
-  if ((dPantAngleR<0) && (!pcabc2))
+  if ((dPantAngleR<0) && (!MoverParameters->PantRearUp))
    dPantAngleR+=5*0.05*40*dt1;
-  MoverParameters->PantFrontUp=pcabc1;
-  MoverParameters->PantRearUp=pcabc2;
-  MoverParameters->PantFrontStart=pcabd1;
-  MoverParameters->PantRearStart=pcabd2;
-  MoverParameters->PantFrontVolt=pcp1p;
-  MoverParameters->PantRearVolt=pcp2p;
   if ((MoverParameters->PantFrontSP==false)&&(MoverParameters->PantFrontUp==false))
   {
    sPantDown.Play(vol,0,MechInside,vPosition);
@@ -3307,6 +3299,8 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
          pant2x=Parser->GetNextSymbol().ToDouble();
          panty=Parser->GetNextSymbol().ToDouble();
          panth=Parser->GetNextSymbol().ToDouble();
+         if ((pant1x<0)&&(pant2x>0)) //pierwsza powinna byæ dodatnia, a druga ujemna  
+         {pant1x=-pant1x; pant2x=-pant2x;}
         }
         else if (str==AnsiString("animpistonprefix:"))
         {//prefiks t³oczysk - na razie u¿ywamy modeli pantografów

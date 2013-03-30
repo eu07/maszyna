@@ -196,6 +196,7 @@ public:
  double panty;       //Winger 010304
  double panth;       //Winger 010304
  double NoVoltTime;
+ TTraction *PowerWire[2]; //aktualnie podczepione druty, na razie tu
  bool pcp1p;
  bool pcp2p;
  double dDoorMoveL; //NBMX
