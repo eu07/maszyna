@@ -24,6 +24,7 @@
 #define LOGORDERS 0
 #define LOGSTOPS 1
 #define LOGBACKSCAN 0
+#define LOGPRESS 0
 /*
 
 Modu³ obs³uguj¹cy sterowanie pojazdami (sk³adami poci¹gów, samochodami).
@@ -1513,6 +1514,7 @@ bool __fastcall TController::IncBrake()
       OK=false;
     }
    }
+   if (Controlling->BrakeCtrlPos>0) Controlling->BrakeReleaser(0);
    break;
   case ElectroPneumatic:
    if (Controlling->BrakeCtrlPos<Controlling->BrakeCtrlPosNo)
@@ -2093,18 +2095,21 @@ void __fastcall TController::PhysicsLog()
 {//zapis logu - na razie tylko wypisanie parametrów
    if (LogFile.is_open())
    {
-//    LogFile << ElapsedTime<<" "<<fabs(11.31*Controlling->WheelDiameter*Controlling->nrot)<<" ";
-//    LogFile << Controlling->AccS<<" "<<Controlling->Couplers[1].Dist<<" "<<Controlling->Couplers[1].CForce<<" ";
-//    LogFile << Controlling->Ft<<" "<<Controlling->Ff<<" "<<Controlling->Fb<<" "<<Controlling->BrakePress<<" ";
-//    LogFile << Controlling->PipePress<<" "<<Controlling->Im<<" "<<int(Controlling->MainCtrlPos)<<"   ";
-//    LogFile << int(Controlling->ScndCtrlPos)<<"   "<<int(Controlling->BrakeCtrlPos)<<"   "<<int(Controlling->LocalBrakePos)<<"   ";
-//    LogFile << int(Controlling->ActiveDir)<<"   "<<Controlling->CommandIn.Command.c_str()<<" "<<Controlling->CommandIn.Value1<<" ";
-//    LogFile << Controlling->CommandIn.Value2<<" "<<int(Controlling->SecuritySystem.Status)<<" "<<int(Controlling->SlippingWheels)<<"\r\n";
+#if LOGPRESS==0
+    LogFile << ElapsedTime<<" "<<fabs(11.31*Controlling->WheelDiameter*Controlling->nrot)<<" ";
+    LogFile << Controlling->AccS<<" "<<Controlling->Couplers[1].Dist<<" "<<Controlling->Couplers[1].CForce<<" ";
+    LogFile << Controlling->Ft<<" "<<Controlling->Ff<<" "<<Controlling->Fb<<" "<<Controlling->BrakePress<<" ";
+    LogFile << Controlling->PipePress<<" "<<Controlling->Im<<" "<<int(Controlling->MainCtrlPos)<<"   ";
+    LogFile << int(Controlling->ScndCtrlPos)<<"   "<<int(Controlling->BrakeCtrlPos)<<"   "<<int(Controlling->LocalBrakePos)<<"   ";
+    LogFile << int(Controlling->ActiveDir)<<"   "<<Controlling->CommandIn.Command.c_str()<<" "<<Controlling->CommandIn.Value1<<" ";
+    LogFile << Controlling->CommandIn.Value2<<" "<<int(Controlling->SecuritySystem.Status)<<" "<<int(Controlling->SlippingWheels)<<"\r\n";
+#endif
+#if LOGPRESS
     LogFile << ElapsedTime<<"\t"<<fabs(11.31*Controlling->WheelDiameter*Controlling->nrot)<<"\t";
     LogFile << Controlling->AccS<<"\t";
     LogFile << Controlling->PipePress<<"\t"<<Controlling->CntrlPipePress<<"\t"<<Controlling->BrakePress<<"\t";
     LogFile << Controlling->Volume<<"\t"<<Controlling->Hamulec->GetCRP()<<"\n";
-
+#endif
     LogFile.flush();
    }
 };
@@ -2881,6 +2886,7 @@ bool __fastcall TController::UpdateSituation(double dt)
          if ((Controlling->EqvtPipePress<4.95)&&(fReady>0.35))//{((Volume/BrakeVVolume/10)<0.485)})
          {if (iDrivigFlags&moveOerlikons) //a reszta sk³adu jest na to gotowa
            Controlling->BrakeLevelSet(-1); //nape³nianie w Oerlikonie
+          if (Controlling->PipePress<3.0) Controlling->BrakeReleaser(1);
          }
          else
           if (Need_BrakeRelease)

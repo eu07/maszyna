@@ -2212,7 +2212,7 @@ bool __fastcall TTrain::Update()
  DWORD stat;
  double dt=Timer::GetDeltaTime();
 // DynamicObject->MoverParameters->Hamulec->Releaser(0); //odluŸniacz rêczny
- DynamicObject->MoverParameters->BrakeReleaser(0);
+// DynamicObject->MoverParameters->BrakeReleaser(0);
  if (DynamicObject->mdKabina)
  {//Ra: TODO: odczyty klawiatury/pulpitu nie powinny byæ uzale¿nione od istnienia modelu kabiny 
   tor=DynamicObject->GetTrack(); //McZapkie-180203
@@ -2315,7 +2315,7 @@ bool __fastcall TTrain::Update()
             fNPress=(1*fPPress+DynamicObject->MoverParameters->Handle->GetSound(s_fv4a_u))/(2);
             if (fNPress<0)
              {
-              vol=-rsHissU.AM*fNPress;
+              vol=rsHissU.AM*fNPress;
              }
             if (vol>0.001)
              {
@@ -3981,19 +3981,21 @@ if (DynamicObject->MoverParameters->Battery==true)
       */
      //-----------------
 
-    if (Console::Pressed(Global::Keys[k_Releaser])) //yB: odluzniacz caly czas trzymany, warunki powinny byc takie same, jak przy naciskaniu. Wlasciwie stamtad mozna wyrzucic sprawdzanie nacisniecia.
+    if (!FreeFlyModeFlag)
      {
-        if (!FreeFlyModeFlag)
-         {
-         if ((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)||(DynamicObject->MoverParameters->EngineType==DieselElectric))
+      if (Console::Pressed(Global::Keys[k_Releaser])) //yB: odluzniacz caly czas trzymany, warunki powinny byc takie same, jak przy naciskaniu. Wlasciwie stamtad mozna wyrzucic sprawdzanie nacisniecia.
+       {
+        if ((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)||(DynamicObject->MoverParameters->EngineType==DieselElectric))
           if (DynamicObject->MoverParameters->TrainType!=dt_EZT)
-           if ((DynamicObject->MoverParameters->BrakeCtrlPosNo>0)&&(DynamicObject->MoverParameters->ActiveDir!=0))
-            {
-             ReleaserButtonGauge.PutValue(1);
-             DynamicObject->MoverParameters->BrakeReleaser(1);
-            }
-         } //FFMF
-     } //releaser
+            if ((DynamicObject->MoverParameters->BrakeCtrlPosNo>0)&&(DynamicObject->MoverParameters->ActiveDir!=0))
+             {
+              ReleaserButtonGauge.PutValue(1);
+              DynamicObject->MoverParameters->BrakeReleaser(1);
+             }
+       } //releaser
+      else DynamicObject->MoverParameters->BrakeReleaser(0);
+   } //FFMF
+
 
 
 
