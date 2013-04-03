@@ -113,7 +113,7 @@ public:
 	void __fastcall ASB(Byte state);
 	Byte __fastcall GetStatus(void);
 	void __fastcall SetASBP(double press);
-	void __fastcall ForceEmptiness(void);
+	virtual void __fastcall ForceEmptiness(void);
 	Byte __fastcall GetSoundFlag(void);
 public:
 	#pragma option push -w-inl

@@ -1383,6 +1383,8 @@ double __fastcall TDynamicObject::Init(
    {
     MoverParameters->Hamulec->ForceEmptiness();
     MoverParameters->BrakeReleaser(1);  //odluznij automatycznie
+    MoverParameters->Pipe->CreatePress(0);
+    MoverParameters->Pipe2->CreatePress(0);    
    }
 
    if (ActPar.Pos("1")>0) //wylaczanie 10%

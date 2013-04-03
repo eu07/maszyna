@@ -18,17 +18,17 @@ Co jest:
 - tylko 16",14",12",10"
 - nieprzekladnik rura
 - przekladnik 1:1
+- przekladniki AL2
+- przeciwposlizgi
+- rapid REL2
+- HGB300
+- inne srednice
 Co brakuje:
 - dobry przyspieszacz
-- przekladniki AL2
-- rapid REL2
 - mozliwosc zasilania z wysokiego cisnienia ESt4
 - ep: EP1 i EP2
-- HGB300
-- przeciwposlizgi
 - samoczynne ep
 - PZZ dla dodatkowego
-- inne srednice
 *)
 
 interface
@@ -36,16 +36,25 @@ interface
 uses mctools,sysutils,friction,hamulce;//,klasy_ham;
 
 CONST
- dMAX= 8;
- dON = 0; //osobowy napelnianie (+ZP)
- dOO = 1; //osobowy oproznianie
- dTN = 2; //towarowy napelnianie (+ZP)
- dTO = 3; //towarowy oproznianie
+ dMAX=10;  //dysze
+ dON = 0;  //osobowy napelnianie (+ZP)
+ dOO = 1;  //osobowy oproznianie
+ dTN = 2;  //towarowy napelnianie (+ZP)
+ dTO = 3;  //towarowy oproznianie
  dP  = 4;  //zbiornik pomocniczy
  dSd = 5;  //zbiornik sterujacy
  dSm = 6;  //zbiornik sterujacy
- dPd = 7;
- dPm = 8;
+ dPd = 7;  //duzy przelot zamykajcego
+ dPm = 8;  //maly przelot zamykajacego
+ dPO = 9;  //zasilanie pomocniczego O
+ dPT =10;  //zasilanie pomocniczego T
+
+//przekladniki
+  p_none  = 0;
+  p_rapid = 1;
+  p_pp    = 2;
+  p_al2   = 3;
+
 
 
 TYPE
@@ -64,6 +73,14 @@ TYPE
         procedure Update(dt:real); override;
       end;
 
+    TPrzeciwposlizg= class(TRura) //przy napelnianiu - rura, przy poslizgu - upust
+      private
+        Poslizg: boolean;
+      public
+        procedure SetPoslizg(flag: boolean);
+        procedure Update(dt:real); override;
+      end;
+
     TRapid= class(TPrzekladnik) //przekladnik dwustopniowy
       private
         RapidStatus: boolean; //status rapidu
@@ -71,19 +88,23 @@ TYPE
         Komora2: real;
       public
         procedure SetRapidParams(mult: real);
-        procedure SetRapidStatus(rs: boolean);        
+        procedure SetRapidStatus(rs: boolean);
         procedure Update(dt:real); override;
       end;
 
     TPrzekCiagly= class(TPrzekladnik) //AL2
       private
+        Mult: real;
       public
+        procedure SetMult(m: real);
+        procedure Update(dt:real); override;
       end;
 
     TPrzekZalamany= class(TPrzekladnik) //Knicksventil
       private
       public
       end;
+
 
     TNESt3= class(TBrake)
       private
@@ -98,16 +119,26 @@ TYPE
         Przekladniki: array[1..3] of TPrzekladnik;
         RapidStatus: boolean;
         RapidStaly: boolean;
+        LoadC: real;
+        TareM, LoadM: real;       //masa proznego i pelnego
+        TareBP: real;             //cisnienie dla proznego
+        HBG300: real;             //zawor ograniczajacy cisnienie
+        Podskok: real;            //podskok preznosci poczatkowej
+        HPBR: real;               //zasilanie ZP z wysokiego cisnienia
+        autom: boolean;           //odluzniacz samoczynny
       public
-        function GetPF(PP, dt, Vel: real): real; override;     //przeplyw miedzy komora wstepna i PG
-        procedure EStParams(i_crc: real);                 //parametry charakterystyczne dla ESt
+        function GetPF(PP, dt, Vel: real): real; override;          //przeplyw miedzy komora wstepna i PG
+        procedure EStParams(i_crc: real);                           //parametry charakterystyczne dla ESt
         procedure Init(PP, HPP, LPP, BP: real; BDF: byte); override;
         function GetCRP: real; override;
-        procedure CheckState(BCP: real; var dV1: real); //glowny przyrzad rozrzadczy
-        procedure CheckReleaser(dt: real); //odluzniacz
-        function CVs(bp: real): real;      //napelniacz sterujacego
-        function BVs(BCP: real): real;     //napelniacz pomocniczego
-        procedure SetSize(size: integer);  //ustawianie dysz (rozmiaru ZR)
+        procedure CheckState(BCP: real; var dV1: real);             //glowny przyrzad rozrzadczy
+        procedure CheckReleaser(dt: real);                          //odluzniacz
+        function CVs(bp: real): real;                               //napelniacz sterujacego
+        function BVs(BCP: real): real;                              //napelniacz pomocniczego
+        procedure SetSize(size: integer; params: string);    //ustawianie dysz (rozmiaru ZR), przekladniki
+        procedure PLC(mass: real);                                  //wspolczynnik cisnienia przystawki wazacej
+        procedure SetLP(TM, LM, TBP: real);                         //parametry przystawki wazacej
+        procedure ForceEmptiness(); override;                       //wymuszenie bycia pustym        
       end;
 
 
@@ -131,6 +162,26 @@ begin
   dVol:=0;
 end;
 
+// ------ PRZECIWPOSLIG ------
+
+procedure TPrzeciwposlizg.SetPoslizg(flag: boolean);
+begin
+  Poslizg:=flag;
+end;
+
+procedure TPrzeciwposlizg.Update(dt: real);
+begin
+  if (Poslizg) then
+   begin
+    BrakeRes.Flow(dVol);
+    Next.Flow(PF(Next.P,0,d2A(10))*dt); 
+   end
+  else
+    Next.Flow(dVol);
+  dVol:=0;
+end;
+
+
 // ------ PRZEKLADNIK ------
 
 procedure TPrzekladnik.Update(dt: real);
@@ -149,7 +200,7 @@ begin
 
   Next.Flow(dV);
   if dV>0 then
-  BrakeRes.Flow(-dV);  
+  BrakeRes.Flow(-dV);
 
 end;
 
@@ -194,6 +245,32 @@ begin
 
 end;
 
+// ------ PRZEK£ADNIK CI¥G£Y ------
+
+procedure TPrzekCiagly.SetMult(m:real);
+begin
+  Mult:=m;
+end;
+
+procedure TPrzekCiagly.Update(dt: real);
+var BCP, BVP, dV: real;
+begin
+  BVP:=BrakeRes.P;
+  BCP:=Next.P;
+
+  if(BCP>P*Mult)then
+   dV:=-PFVd(BCP,0,d2A(8),P*Mult)*dt
+  else
+  if(BCP<P*Mult)then
+   dV:=PFVa(BVP,BCP,d2A(8),P*Mult)*dt
+  else dV:=0;
+
+  Next.Flow(dV);
+  if dV>0 then
+  BrakeRes.Flow(-dV);
+
+end;
+
 // ------ OERLIKON EST NA BOGATO ------
 
 function TNESt3.GetPF(PP, dt, Vel: real): real;     //przeplyw miedzy komora wstepna i PG
@@ -224,8 +301,8 @@ begin
   else dV:=0;
 //  BrakeCyl.Flow(-dV);
   Przekladniki[1].Flow(-dV);
-  if(BrakeStatus and b_on)=b_on then
-   dV:=PF(BVP,BCP,Nozzles[dTN]*(nastG+2*Byte(BCP<0.7))+Nozzles[dON]*(1-nastG))*dt
+  if((BrakeStatus and b_on)=b_on)and(Przekladniki[1].P*HBG300<MaxBP)then
+   dV:=PF(BVP,BCP,Nozzles[dTN]*(nastG+2*Byte(BCP<Podskok))+Nozzles[dON]*(1-nastG))*dt
   else dV:=0;
 //  BrakeCyl.Flow(-dV);
   Przekladniki[1].Flow(-dV);
@@ -238,14 +315,20 @@ begin
      begin
       RapidStatus:=(((BrakeDelayFlag and bdelay_R)=bdelay_R) and ((Vel>70) or ((RapidStatus) and (Vel>50)) or (RapidStaly)));
       (Przekladniki[i] as TRapid).SetRapidStatus(RapidStatus);
-     end;
+     end
+    else
+    if (Przekladniki[i] is TPrzeciwposlizg) then
+      (Przekladniki[i] as TPrzeciwposlizg).SetPoslizg((BrakeStatus and b_asb)=b_asb)
+    else
+    if (Przekladniki[i] is TPrzekCiagly) then
+      (Przekladniki[i] as TPrzekCiagly).SetMult(LoadC);
    end;
 
 
 //przeplyw testowy miedzypojemnosci
   dV:=PF(MPP,VVP,BVs(BCP))+PF(MPP,CVP,CVs(BCP));
   if(MPP-0.05>BVP)then
-    dV:=dV+PF(MPP,BVP,Nozzles[dTN]*nastG+(1-nastG)*Nozzles[dON]);
+    dV:=dV+PF(MPP,BVP,Nozzles[dPT]*nastG+(1-nastG)*Nozzles[dPO]);
   if MPP>VVP then dV:=dV+PF(MPP,VVP,d2A(5));
   Miedzypoj.Flow(dV*dt*0.15);
 
@@ -255,11 +338,11 @@ begin
   dV:=PF(CVP,MPP,temp)*dt;
   CntrlRes.Flow(+dV);
   ValveRes.Flow(-0.02*dV);
-  dV1:=dV1-0.98*dV;
+  dV1:=dV1+0.98*dV;
 
 //przeplyw ZP <-> MPJ
   if(MPP-0.05>BVP)then
-   dV:=PF(BVP,MPP,Nozzles[dTN]*nastG+(1-nastG)*Nozzles[dON])*dt
+   dV:=PF(BVP,MPP,Nozzles[dPT]*nastG+(1-nastG)*Nozzles[dPO])*dt
   else dV:=0;
   BrakeRes.Flow(dV);
   dV1:=dV1+dV*0.98;
@@ -295,12 +378,12 @@ begin
    CntrlRes:=TReservoir.Create;
    CntrlRes.CreateCap(15);
    CntrlRes.CreatePress(1*HPP);
-   BrakeStatus:=0;
+   BrakeStatus:=Byte(BP>1)*1;
    Miedzypoj:=TReservoir.Create;
    Miedzypoj.CreateCap(5);
-   Miedzypoj.CreatePress(1*PP);
+   Miedzypoj.CreatePress(PP);
 
-   BVM:=1/(HPP-0.1-LPP)*MaxBP;
+   BVM:=1/(HPP-0.05-LPP)*MaxBP;
 
    BrakeDelayFlag:=BDF;
 
@@ -316,8 +399,8 @@ end;
 
 function TNESt3.GetCRP: real;
 begin
-//  GetCRP:=CntrlRes.P;
-  GetCRP:=Przekladniki[1].P;
+  GetCRP:=CntrlRes.P;
+//  GetCRP:=Przekladniki[1].P;
 //  GetCRP:=Miedzypoj.P;
 end;
 
@@ -334,13 +417,13 @@ begin
 
 //sprawdzanie stanu
 // if ((BrakeStatus and 1)=1)and(BCP>0.25)then
-   if(VVP+0.002+BCP/BVM<CVP-0.15)then
+   if(VVP+0.002+BCP/BVM<CVP-0.05)and(Przys_blok)then
      BrakeStatus:=(BrakeStatus or 3) //hamowanie stopniowe
-   else if(VVP-0.002+(BCP-0.05)/BVM>CVP-0.15) then
+   else if(VVP-0.002+(BCP-0.1)/BVM>CVP-0.05) then
      BrakeStatus:=(BrakeStatus and 252) //luzowanie
-   else if(VVP+BCP/BVM>CVP-0.15) then
+   else if(VVP+BCP/BVM>CVP-0.05) then
      BrakeStatus:=(BrakeStatus and 253) //zatrzymanie napelaniania
-   else if(VVP+(BCP-0.05)/BVM<CVP-0.15)then //zatrzymanie luzowanie
+   else if(VVP+(BCP-0.1)/BVM<CVP-0.05)and(BCP>0.25)then //zatrzymanie luzowania
      BrakeStatus:=(BrakeStatus or 1);
 
  if (BrakeStatus and 1)=0 then
@@ -349,7 +432,7 @@ begin
  if(VVP+0.10<CVP)and(BCP<0.25)then    //poczatek hamowania
    if (not Przys_blok) then
     begin
-     ValveRes.CreatePress(0.2*VVP);
+     ValveRes.CreatePress(0.1*VVP);
      SoundFlag:=SoundFlag or sf_Acc;
      ValveRes.Act;
      Przys_blok:=true;
@@ -373,12 +456,11 @@ begin
 
 //odluzniacz automatyczny
  if(BrakeStatus and b_rls=b_rls)then
-   if(CVP<VVP+0.3)then
-    BrakeStatus:=BrakeStatus and 247
-   else
-    begin
-     CntrlRes.Flow(+PF(CVP,0,0.02)*dt);
-    end;
+  begin
+   CntrlRes.Flow(+PF(CVP,0,0.02)*dt);
+   if(CVP<VVP+0.3)or(not autom)then
+     BrakeStatus:=BrakeStatus and 247;
+  end;
 end;
 
 
@@ -395,9 +477,9 @@ begin
     CVS:=0
   else
   if(MPP>CVP-0.08)then
-    CVs:=d2A(1.1)
+    CVs:=Nozzles[dSD]
   else
-    CVs:=d2A(0.9);
+    CVs:=Nozzles[dSm];
 end;
 
 
@@ -411,51 +493,90 @@ begin
 
 //przeplyw ZP <-> rozdzielacz
   if(MPP<CVP-0.3)then
-    BVs:=d2A(3.8)
+    BVs:=Nozzles[dP]
   else
     if(BCP<0.5) then
       if(Zamykajacy)then
-        BVs:=d2A(1.0)  //1.25
+        BVs:=Nozzles[dPm]  //1.25
       else
-        BVs:=d2A(2.5)
+        BVs:=Nozzles[dPD]
     else
       BVs:=0;
 end;
 
+procedure TNESt3.PLC(mass: real);
+begin
+  LoadC:=1+Byte(Mass<LoadM)*((TareBP+(MaxBP-TareBP)*(mass-TareM)/(LoadM-TareM))/MaxBP-1);
+end;
 
-procedure TNESt3.SetSize(size: integer);     //ustawianie dysz (rozmiaru ZR)
+procedure TNESt3.ForceEmptiness();
+begin
+  ValveRes.CreatePress(0);
+  BrakeRes.CreatePress(0);
+  Miedzypoj.CreatePress(0);
+  CntrlRes.CreatePress(0);
+
+  BrakeStatus:=0;
+
+  ValveRes.Act();
+  BrakeRes.Act();
+  Miedzypoj.Act();
+  CntrlRes.Act();
+end;
+
+
+procedure TNESt3.SetLP(TM, LM, TBP: real);
+begin
+  TareM:=TM;
+  LoadM:=LM;
+  TareBP:=TBP;
+end;
+
+
+procedure TNESt3.SetSize(size: integer; params: string);     //ustawianie dysz (rozmiaru ZR)
+const
+  dNO1l = 1.250;
+  dNT1l = 0.510;
+  dOO1l = 0.907;
+  dOT1l = 0.524;
 var
   i:integer;
 begin
-//  Przekladniki[1]:=TPrzekladnik.Create;
-  Przekladniki[1]:=TRura.Create;
-//  Przekladniki[1].CreateCap(1);
-//  Przekladniki[1].CreatePress(BrakeCyl.P);
-  Przekladniki[2]:=TRapid.Create;
-  Przekladniki[2].CreateCap(1);
-  Przekladniki[2].CreatePress(BrakeCyl.P);
-  (Przekladniki[2] as TRapid).SetRapidParams(2);
 
-  Przekladniki[3]:=TRura.Create;
+  if Pos('ESt3',params)>0 then
+   begin
+     Podskok:=0.7;
+     Przekladniki[1]:=TRura.Create;
+     Przekladniki[3]:=TRura.Create;
+   end
+  else
+   begin
+    Podskok:=-1;
+    Przekladniki[1]:=TRapid.Create;
+    (Przekladniki[1] as TRapid).SetRapidParams(2);
+    Przekladniki[3]:=TPrzeciwposlizg.Create;
+   end;
 
-  Przekladniki[1].Next:=@Przekladniki[2];
-  Przekladniki[1].BrakeRes:=@BrakeRes;
+  if Pos('AL2',params)>0 then
+    Przekladniki[2]:=TPrzekCiagly.Create
+  else
+   Przekladniki[2]:=TRura.Create;
 
-  Przekladniki[2].Next:=@Przekladniki[3];
-  Przekladniki[2].BrakeRes:=@BrakeRes;
+  if (Pos('3d',params)+Pos('4d',params)>0) then autom:=false else autom:=true;
+  if (Pos('HBG300',params)>0) then HBG300:=1 else HBG300:=0;
 
-  Przekladniki[3].Next:=@BrakeCyl;
-  Przekladniki[3].BrakeRes:=@BrakeRes;
   case size of
     16:
      begin   //dON,dOO,dTN,dTO,dP,dS
-      Nozzles[dON]:=1.25;//5.0;
-      Nozzles[dOO]:=0.907;//3.4;
+      Nozzles[dON]:=5.0;//5.0;
+      Nozzles[dOO]:=3.4;//3.4;
       Nozzles[dTN]:=2.0;
       Nozzles[dTO]:=1.75;
       Nozzles[dP]:=3.8;
       Nozzles[dPd]:=2.70;
       Nozzles[dPm]:=1.25;
+      Nozzles[dPO]:=Nozzles[dON];
+      Nozzles[dPT]:=Nozzles[dTN];
      end;
     14:
      begin   //dON,dOO,dTN,dTO,dP,dS
@@ -466,6 +587,8 @@ begin
       Nozzles[dP]:=3.4;
       Nozzles[dPd]:=2.20;
       Nozzles[dPm]:=1.10;
+      Nozzles[dPO]:=Nozzles[dON];
+      Nozzles[dPT]:=Nozzles[dTN];
      end;
     12:
      begin   //dON,dOO,dTN,dTO,dP,dS
@@ -476,6 +599,8 @@ begin
       Nozzles[dP]:=2.65;
       Nozzles[dPd]:=1.80;
       Nozzles[dPm]:=0.85;
+      Nozzles[dPO]:=Nozzles[dON];
+      Nozzles[dPT]:=Nozzles[dTN];
      end;
     10:
      begin   //dON,dOO,dTN,dTO,dP,dS
@@ -486,6 +611,44 @@ begin
       Nozzles[dP]:=1.6;
       Nozzles[dPd]:=1.55;
       Nozzles[dPm]:=0.7;
+      Nozzles[dPO]:=Nozzles[dON];
+      Nozzles[dPT]:=Nozzles[dTN];
+     end;
+    200:
+     begin   //dON,dOO,dTN,dTO,dP,dS
+      Nozzles[dON]:=dNO1l;
+      Nozzles[dOO]:=dOO1l/1.15;
+      Nozzles[dTN]:=dNT1l;
+      Nozzles[dTO]:=dOT1l;
+      Nozzles[dP]:=7.4;
+      Nozzles[dPd]:=5.3;
+      Nozzles[dPm]:=2.5;
+      Nozzles[dPO]:=7.28;
+      Nozzles[dPT]:=2.96;
+     end;
+    150:
+     begin   //dON,dOO,dTN,dTO,dP,dS
+      Nozzles[dON]:=dNO1l;
+      Nozzles[dOO]:=dOO1l;
+      Nozzles[dTN]:=dNT1l;
+      Nozzles[dTO]:=dOT1l;
+      Nozzles[dP]:=5.8;
+      Nozzles[dPd]:=4.1;
+      Nozzles[dPm]:=1.9;
+      Nozzles[dPO]:=6.33;
+      Nozzles[dPT]:=2.58;
+     end;
+    100:
+     begin   //dON,dOO,dTN,dTO,dP,dS
+      Nozzles[dON]:=dNO1l;
+      Nozzles[dOO]:=dOO1l;
+      Nozzles[dTN]:=dNT1l;
+      Nozzles[dTO]:=dOT1l;
+      Nozzles[dP]:=4.2;
+      Nozzles[dPd]:=2.9;
+      Nozzles[dPm]:=1.4;
+      Nozzles[dPO]:=5.19;
+      Nozzles[dPT]:=2.14;
      end;
     else
      begin
@@ -507,6 +670,17 @@ begin
    begin
     Nozzles[i]:=d2A(Nozzles[i]); //(/1000^2*pi/4*1000)
    end;
+
+  for i:=1 to 3 do
+   begin
+    Przekladniki[i].BrakeRes:=@BrakeRes;
+    Przekladniki[i].CreateCap(i);
+    Przekladniki[i].CreatePress(BrakeCyl.P);
+    if i<3 then
+      Przekladniki[i].Next:=@Przekladniki[i+1]
+    else
+      Przekladniki[i].Next:=@BrakeCyl;
+   end
 end;
 
 end.

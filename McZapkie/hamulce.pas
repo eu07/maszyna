@@ -101,10 +101,10 @@ CONST
                 //wyj: jednostka dosyc dziwna, ale wszystkie obliczenia
                 //i pojemnosci sa podane w litrach (rozsadne wielkosci)
                 //zas dlugosc pojazdow jest podana w metrach
-                //a predkosc przeplywu w m/s
-
+                //a predkosc przeplywu w m/s                           //3.5
+                                                                       //7
 //   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (14, 5.4), (9, 5.0), (6, 4.6), (9, 4.5), (9, 4.0), (9, 3.5), (9, 2.8), (34, 2.8));
-   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (7, 5.0), (7, 5.0), (7, 4.6), (7, 4.2), (7, 3.8), (7, 3.4), (7, 2.8), (8, 2.8));
+   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (7, 5.0), (3.5, 5.0), (4.5, 4.6), (4.5, 4.2), (4.5, 3.8), (4.5, 3.4), (4.5, 2.8), (8, 2.8));
    BPT_394: array[-1..5] of array [0..1] of real= ((13, 10.0), (5, 5.0), (0, -1), (5, -1), (5, 0.0), (5, 0.0), (18, 0.0));
 //   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (12, 5.4), (9, 5.0), (9, 4.6), (9, 4.2), (9, 3.8), (9, 3.4), (9, 2.8), (34, 2.8));
 //      BPT: array[-2..6] of array [0..1] of real= ((0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0));
@@ -178,7 +178,7 @@ TYPE
         procedure ASB(state: byte); //hamulec przeciwposlizgowy
         function GetStatus(): byte; //flaga statusu, moze sie przydac do odglosow
         procedure SetASBP(press: real); //ustalenie cisnienia pp
-        procedure ForceEmptiness();
+        procedure ForceEmptiness(); virtual;
         function GetSoundFlag: byte;
 //        procedure
     end;
@@ -483,7 +483,8 @@ begin
   fm:=PH*197*S*sign(P2-P1); //najwyzszy mozliwy przeplyw, wraz z kierunkiem
   if (SG>0.5) then //jesli ponizej stosunku krytycznego
     if (PH-PL)<DPL then //niewielka roznica cisnien
-      PF:=1/DPL*(PH-PL)*fm*2*SQRT((sg)*(1-sg))
+      PF:=(1-sg)/DPL*fm*2*SQRT((DPL)*(1-DPL))
+//      PF:=1/DPL*(PH-PL)*fm*2*SQRT((sg)*(1-sg))
     else
       PF:=fm*2*SQRT((sg)*(1-sg))
   else             //powyzej stosunku krytycznego
@@ -503,7 +504,7 @@ begin
     if (LIM-PL)<0.1 then fm:=fm*10*(LIM-PL); //jesli jestesmy przy nastawieniu, to zawor sie przymyka
     if (SG>0.5) then //jesli ponizej stosunku krytycznego
       if (PH-PL)<DPL then //niewielka roznica cisnien
-        PFVa:=1/DPL*(PH-PL)*fm*2*SQRT((sg)*(1-sg))
+        PFVa:=(PH-PL)/DPL*fm*2*SQRT((sg)*(1-sg))
       else
         PFVa:=fm*2*SQRT((sg)*(1-sg))
     else             //powyzej stosunku krytycznego
@@ -526,7 +527,7 @@ begin
     if (PH-LIM)<0.1 then fm:=fm*10*(PH-LIM); //jesli jestesmy przy nastawieniu, to zawor sie przymyka
     if (SG>0.5) then //jesli ponizej stosunku krytycznego
     if (PH-PL)<DPL then //niewielka roznica cisnien
-        PFVd:=1/DPL*(PH-PL)*fm*2*SQRT((sg)*(1-sg))
+        PFVd:=(PH-PL)/DPL*fm*2*SQRT((sg)*(1-sg))
       else
         PFVd:=fm*2*SQRT((sg)*(1-sg))
     else             //powyzej stosunku krytycznego
@@ -788,6 +789,8 @@ procedure TBrake.ForceEmptiness();
 begin
   ValveRes.CreatePress(0);
   BrakeRes.CreatePress(0);
+  ValveRes.Act();
+  BrakeRes.Act();
 end;
 
 
@@ -1503,7 +1506,7 @@ begin
 
 //sprawdzanie stanu
  if(BrakeStatus and b_rls=b_rls)then
-   if(CVP<1)then
+   if(CVP<1*0)then
      BrakeStatus:=BrakeStatus and 247
    else
     begin           //008
@@ -2265,19 +2268,24 @@ begin
           Limpp:=ep; //cp
           dpPipe:=Min0R(HP,Limpp+xp*xpM);
 
-          dpMainValve:=PF(dpPipe,pp,ActFlowSpeed/(LBDelay));
+          if dpPipe>pp then
+            dpMainValve:=-PFVa(HP,pp,ActFlowSpeed/(LBDelay),dpPipe)
+          else
+            dpMainValve:=PFVd(pp,0,ActFlowSpeed/(LBDelay),dpPipe);
 
           if Round(i_bcp)=-1 then
            begin
             if(tp<5)then tp:=tp+dt; //5/10
-              dpMainValve:=dpMainValve+PF(dpPipe,pp,(ActFlowSpeed)/(LBDelay))//coby nie przeszkadzal przy ladowaniu z zaworu obok
+//            dpMainValve:=dpMainValve*2;//+1*PF(dpPipe,pp,(ActFlowSpeed)/(LBDelay))//coby nie przeszkadzal przy ladowaniu z zaworu obok
            end;
 
           if Round(i_bcp)=0 then
            begin
             if(tp>2)then
-              dpMainValve:=dpMainValve+0.5*PF(dpPipe,pp,(ActFlowSpeed)/(LBDelay))//coby nie przeszkadzal przy ladowaniu z zaworu obok
+              dpMainValve:=dpMainValve*1.5;//+0.5*PF(dpPipe,pp,(ActFlowSpeed)/(LBDelay))//coby nie przeszkadzal przy ladowaniu z zaworu obok
            end;
+
+
 
 
 
@@ -2292,13 +2300,14 @@ begin
           if (rp<ep) and (rp<BPT[Round(i_bcpNo)][1])then //jesli jestesmy ponizej cisnienia w sterujacym (2.9 bar)
             rp:=rp+PF(rp,cp,0.005)*dt; //przypisz cisnienie w PG - wydluzanie napelniania o czas potrzebny do napelnienia PG
 
-          if(Round(i_bcp)=i_bcpNo)then
+          if(Round(i_bcp)=i_bcpNo)or(Round(i_bcp)=-2)then
            begin
             dp:=PF(0,pp,(ActFlowSpeed)/(LBDelay));
             dpMainValve:=dp;
             Sounds[s_fv4a_e]:=-dp;
             Sounds[s_fv4a_u]:=0;
             Sounds[s_fv4a_b]:=0;
+            Sounds[s_fv4a_x]:=0;            
            end
           else
            begin

@@ -65,6 +65,30 @@ public:
 };
 
 
+class DELPHICLASS TPrzeciwposlizg;
+class PASCALIMPLEMENTATION TPrzeciwposlizg : public TRura 
+{
+	typedef TRura inherited;
+	
+private:
+	bool Poslizg;
+	
+public:
+	void __fastcall SetPoslizg(bool flag);
+	virtual void __fastcall Update(double dt);
+public:
+	#pragma option push -w-inl
+	/* TReservoir.Create */ inline __fastcall TPrzeciwposlizg(void) : TRura() { }
+	#pragma option pop
+	
+public:
+	#pragma option push -w-inl
+	/* TObject.Destroy */ inline __fastcall virtual ~TPrzeciwposlizg(void) { }
+	#pragma option pop
+	
+};
+
+
 class DELPHICLASS TRapid;
 class PASCALIMPLEMENTATION TRapid : public TPrzekladnik 
 {
@@ -97,6 +121,12 @@ class PASCALIMPLEMENTATION TPrzekCiagly : public TPrzekladnik
 {
 	typedef TPrzekladnik inherited;
 	
+private:
+	double Mult;
+	
+public:
+	void __fastcall SetMult(double m);
+	virtual void __fastcall Update(double dt);
 public:
 	#pragma option push -w-inl
 	/* TReservoir.Create */ inline __fastcall TPrzekCiagly(void) : TPrzekladnik() { }
@@ -134,7 +164,7 @@ class PASCALIMPLEMENTATION TNESt3 : public Hamulce::TBrake
 	typedef Hamulce::TBrake inherited;
 	
 private:
-	double Nozzles[9];
+	double Nozzles[11];
 	Hamulce::TReservoir* CntrlRes;
 	double BVM;
 	Byte ValveFlag;
@@ -145,6 +175,14 @@ private:
 	TPrzekladnik* Przekladniki[3];
 	bool RapidStatus;
 	bool RapidStaly;
+	double LoadC;
+	double TareM;
+	double LoadM;
+	double TareBP;
+	double HBG300;
+	double Podskok;
+	double HPBR;
+	bool autom;
 	
 public:
 	virtual double __fastcall GetPF(double PP, double dt, double Vel);
@@ -155,7 +193,10 @@ public:
 	void __fastcall CheckReleaser(double dt);
 	double __fastcall CVs(double bp);
 	double __fastcall BVs(double BCP);
-	void __fastcall SetSize(int size);
+	void __fastcall SetSize(int size, AnsiString params);
+	void __fastcall PLC(double mass);
+	void __fastcall SetLP(double TM, double LM, double TBP);
+	virtual void __fastcall ForceEmptiness(void);
 public:
 	#pragma option push -w-inl
 	/* TBrake.Create */ inline __fastcall TNESt3(double i_mbp, double i_bcr, double i_bcd, double i_brc
@@ -172,7 +213,7 @@ public:
 
 
 //-- var, const, procedure ---------------------------------------------------
-static const Shortint dMAX = 0x8;
+static const Shortint dMAX = 0xa;
 static const Shortint dON = 0x0;
 static const Shortint dOO = 0x1;
 static const Shortint dTN = 0x2;
@@ -182,6 +223,12 @@ static const Shortint dSd = 0x5;
 static const Shortint dSm = 0x6;
 static const Shortint dPd = 0x7;
 static const Shortint dPm = 0x8;
+static const Shortint dPO = 0x9;
+static const Shortint dPT = 0xa;
+static const Shortint p_none = 0x0;
+static const Shortint p_rapid = 0x1;
+static const Shortint p_pp = 0x2;
+static const Shortint p_al2 = 0x3;
 
 }	/* namespace Oerlikon_est */
 #if !defined(NO_IMPLICIT_NAMESPACE_USE)

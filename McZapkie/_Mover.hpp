@@ -369,6 +369,8 @@ public:
 	double BrakeSlckAdj;
 	double BrakeRigEff;
 	double RapidMult;
+	int BrakeValveSize;
+	AnsiString BrakeValveParams;
 	double Spg;
 	double MinCompressor;
 	double MaxCompressor;
@@ -472,6 +474,7 @@ public:
 	double FStand;
 	double FTotal;
 	double UnitBrakeForce;
+	double Ntotal;
 	bool SlippingWheels;
 	bool SandDose;
 	double Sand;
