@@ -27,7 +27,7 @@ const ANIM_PANTS  =5; //pantografy
 const ANIM_STEAMS =6; //napêd parowozu
 
 class TAnim;
-typedef void (__closure *TUpdate)(TAnim *pAnim); //typ funkcji aktualizuj¹cej animacje
+typedef void (__closure *TUpdate)(TAnim *pAnim); //typ funkcji aktualizuj¹cej po³o¿enie submodeli
 
 //McZapkie-250202
 const MaxAxles=16; //ABu 280105: zmienione z 8 na 16
@@ -67,6 +67,21 @@ class TAnimValveGear
 //wspó³czynniki mog¹ byæ wspólne dla 2-4 t³oków, albo ka¿dy t³ok mo¿e mieæ odrêbne
 };
 
+class TAnimPant
+{//wspó³czynniki do animacji pantografu
+public:
+ double pantx;        //Winger 010304: przesuniêcie (dodatnie dla przedniego)
+ double panty;        //Winger 010304: wysokoœæ ponad g³ówk¹ szyny, odejmowana od wysokoœci drutu
+ double panth;        //Ra: pocz¹tkowy k¹t dolnego ramienia (odejmowany przy animacji)
+ double pantu;        //Ra: pocz¹tkowy k¹t górnego ramienia (odejmowany przy animacji)
+ double PantTraction; //Winger 170204: wysokoœæ drutu ponad punktem na wysokoœci panty p.g.s.
+ double PantWys;      //Ra: wysokoœæ uniesienia œlizgu do porównania z wysokoœci¹ drutu
+ double dPantAngle;   //Winger 160204: aktualny k¹t ramienia dolnego
+ double dPantAngleT;  //Ra: aktualny k¹t ramienia górnego
+ double NoVoltTime;
+ TTraction *PowerWire; //aktualnie podczepione druty, na razie tu
+};
+
 class TAnim
 {//klasa animowanej czêœci pojazdu (ko³a, drzwi, pantografy, burty, napêd parowozu, si³owniki itd.)
 public:
@@ -81,6 +96,7 @@ public:
   TAnimValveGear *pValveGear; //wspó³czynniki do animacji parowozu
   double *dWheelAngle; //wskaŸnik na k¹t obrotu osi
   float *fParam; //ró¿ne parametry dla animacji
+  TAnimPant *fParamPants; //ró¿ne parametry dla animacji
  };
  //void _fastcall Update(); //wskaŸnik do funkcji aktualizacji animacji
  int iFlags; //flagi animacji
@@ -134,35 +150,25 @@ public: //modele sk³adowe pojazdu
  float fShade; //zacienienie: 0:normalnie, -1:w ciemnoœci, +1:dodatkowe œwiat³o (brak koloru?)
 
 private: //zmienne i metody do animacji submodeli; Ra: sprzatam animacje w pojeŸdzie
+public: //tymczasowo udostêpnione do wyszukiwania drutu
  int iAnimType[ANIM_TYPES]; //0-osie,1-drzwi,2-obracane,3-zderzaki,4-wózki,5-pantografy,6-t³oki
- int iAnimations; //iloœæ obiektów animuj¹cych
+private:
+ int iAnimations; //liczba obiektów animuj¹cych
  TAnim *pAnimations; //obiekty animuj¹ce (zawieraj¹ wskaŸnik do funkcji wykonuj¹cej animacjê)
  TSubModel **pAnimated; //lista animowanych submodeli (mo¿e byæ ich wiêcej ni¿ obiektów animuj¹cych)
  double dWheelAngle[3]; //k¹ty obrotu kó³: 0=przednie toczne, 1=napêdzaj¹ce i wi¹zary, 2=tylne toczne
- void UpdateNone(TAnim *pAnim) {}; //animacja pusta
+ void UpdateNone(TAnim *pAnim) {}; //animacja pusta (funkcje ustawiania submodeli, gdy blisko kamery)
  void UpdateAxle(TAnim *pAnim); //animacja osi
  void UpdateBoogie(TAnim *pAnim); //animacja wózka
  void UpdateDoorTranslate(TAnim *pAnim); //animacja drzwi - przesuw
  void UpdateDoorRotate(TAnim *pAnim); //animacja drzwi - obrót
  void UpdatePant(TAnim *pAnim); //animacja pantografu
 private: //Ra: ci¹g dalszy animacji, dopiero do ogarniêcia
- //McZapkie-050402 - do krecenia kolami
- //int iAnimatedAxles; //iloœæ u¿ywanych (krêconych) osi
- //TSubModel *smAnimatedWheel[MaxAnimatedAxles]; //submodele poszczególnych osi
- //double *pWheelAngle[MaxAnimatedAxles]; //wska¿niki do odczytu k¹ta obrotu danej osi
- //wi¹zary
- //TSubModel *smWiazary[2]; //pozostaje zast¹piæ je osiami
  //ABuWozki 060504
  vector3 bogieRot[2];   //Obroty wozkow w/m korpusu
  TSubModel *smBogie[2]; //Wyszukiwanie max 2 wozkow
  TSubModel *smWahacze[4]; //wahacze (np. nogi, dŸwignia w drezynie)
  double fWahaczeAmp;
- //drzwi
- //int iAnimatedDoors;
- //TSubModel *smAnimatedDoor[MaxAnimatedDoors];
- //double DoorSpeedFactor[MaxAnimatedDoors];
- //double tempdoorfactor;
- //double tempdoorfactor2;
  //Winger 160204 - pantografy
  double pantspeedfactor;
  TSubModel *smPatykird1[2];
@@ -174,31 +180,8 @@ private: //Ra: ci¹g dalszy animacji, dopiero do ogarniêcia
  TSubModel *smBuforPrawy[2];
  TAnimValveGear *pValveGear;
 public:
- bool pcabc1;        //Winger 040304 - zaleznosc pantografu od kabiny
- bool pcabc2;
- double pcabd1;
- double pcabd2;
- double pcabe1;
- double pcabe2;
- bool pcabc1x;
- double lastcabf;
- double StartTime;
- double PantTraction1; //Winger 170204
- double PantTraction2; //Winger 170204
- double PantWysF;      //Winger 180204
- double PantWysR;      //Winger 180204
- double dPantAngleF;  //Winger 160204
- double dPantAngleR;  //Winger 160204
- double dPantAngleFT;  //Winger 170204
- double dPantAngleRT;  //Winger 170204
- double pant1x;      //Winger 010304
- double pant2x;      //Winger 010304
- double panty;       //Winger 010304
- double panth;       //Winger 010304
- double NoVoltTime;
- TTraction *PowerWire[2]; //aktualnie podczepione druty, na razie tu
- bool pcp1p;
- bool pcp2p;
+ TAnim *pants; //indeks obiektu animuj¹cego dla pantografu 0
+ double NoVoltTime; //czas od utraty zasilania
  double dDoorMoveL; //NBMX
  double dDoorMoveR; //NBMX
 //Ra: koneic animacji do ogarniêcia
