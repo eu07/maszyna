@@ -5523,7 +5523,7 @@ begin
   DoorSignalling:=False;
   UnBrake:=false;
 //Winger 160204
-  PantVolume:=3.5;
+  PantVolume:=0.48; //aby podniesione pantografy opad³y w krótkim czasie przy wy³¹czonej sprê¿arce
   PantFrontUp:=false;
   PantRearUp:=false;
   PantFrontStart:=0;
@@ -5714,7 +5714,7 @@ begin
    begin                {zahamowany}
      Volume:=BrakeVVolume*(MaxBrakePress+CntrlPipePress)*5;
      CompressedVolume:=VeselVolume*MinCompressor*5.5;
-     ScndPipePress:=0.5;
+     ScndPipePress:=0.39; //nie spowoduje nape³nienia zbiornika pantografu
      PipePress:=LowPipePress;
      PipeBrakePress:=MaxBrakePress*0.5;
      BrakePress:=MaxBrakePress*0.5;

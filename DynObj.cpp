@@ -267,14 +267,14 @@ void TDynamicObject::UpdateDoorRotate(TAnim *pAnim)
 void TDynamicObject::UpdatePant(TAnim *pAnim)
 {//animacja pantografu - 4 obracane ramiona, œlizg pi¹ty
  float a,b,c;
- a=RadToDeg(pAnim->fParamPants->dPantAngle-pAnim->fParamPants->panth);
- b=RadToDeg(pAnim->fParamPants->dPantAngleT-pAnim->fParamPants->pantu);
+ a=RadToDeg(pAnim->fParamPants->fAngleL-pAnim->fParamPants->fAngleL0);
+ b=RadToDeg(pAnim->fParamPants->fAngleU-pAnim->fParamPants->fAngleU0);
  c=a+b;
- if (pAnim->smElement[0]) pAnim->smElement[0]->SetRotate(float3(-1,0,0),a);
+ if (pAnim->smElement[0]) pAnim->smElement[0]->SetRotate(float3(-1,0,0),a); //dolne ramiê
  if (pAnim->smElement[1]) pAnim->smElement[1]->SetRotate(float3(1,0,0),a);
- if (pAnim->smElement[2]) pAnim->smElement[2]->SetRotate(float3(1,0,0),c);
+ if (pAnim->smElement[2]) pAnim->smElement[2]->SetRotate(float3(1,0,0),c); //górne ramiê
  if (pAnim->smElement[3]) pAnim->smElement[3]->SetRotate(float3(-1,0,0),c);
- if (pAnim->smElement[4]) pAnim->smElement[4]->SetRotate(float3(-1,0,0),b);
+ if (pAnim->smElement[4]) pAnim->smElement[4]->SetRotate(float3(-1,0,0),b); //œlizg
 };
 
 //ABu 29.01.05 przeklejone z render i renderalpha: *********************
@@ -1716,7 +1716,6 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
   return false; //a normalnie powinny mieæ bEnabled==false
 
  //McZapkie-260202
- //MoverParameters->BatteryVoltage=90;
  if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
   if ((MechInside)||(MoverParameters->TrainType==dt_EZT))
   {
@@ -1724,15 +1723,16 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
    // MoverParameters->PantVolume=MoverParameters->CompressedVolume;
    if (MoverParameters->PantPress<0.35)
    {// 0.35 wg http://www.transportszynowy.pl/eu06-07pneumat.php
+    //"Wy³¹czniki ciœnieniowe odbieraków pr¹du wy³¹czaj¹ sterowanie wy³¹cznika szybkiego oraz uniemo¿liwiaj¹ podniesienie odbieraków pr¹du, gdy w instalacji rozrz¹du ciœnienie spadnie poni¿ej wartoœci 3,5 bara."
     //if (!MoverParameters->PantCompFlag)
     // MoverParameters->PantVolume=MoverParameters->CompressedVolume;
     MoverParameters->PantFront(false); //opuszczenie pantografów przy niskim ciœnieniu
     MoverParameters->PantRear(false);
    }
-   //Winger - automatyczne wylaczanie malej sprezarki. Ra: w _mover.pas
-   //if (MoverParameters->PantPress>=0.45)
-   // MoverParameters->PantCompFlag=false;
-  }
+   //Winger - automatyczne wylaczanie malej sprezarki
+   else if (MoverParameters->PantPress>=0.48)
+    MoverParameters->PantCompFlag=false;
+  } //Ra: do Mover to trzeba przenieœæ, ¿eby AI te¿ mog³o sobie podpompowaæ
 
     double dDOMoveLen;
 
@@ -2019,6 +2019,18 @@ SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);
   for (int i=0;i<iAnimType[ANIM_PANTS];++i)
   {//pêtla po wszystkich pantografach
    p=pants[i].fParamPants;
+   if (p->PantWys<0)
+   {//patograf zosta³ po³amany, liczony nie bêdzie
+    if (p->fAngleL>p->fAngleL0)
+     p->fAngleL-=0.2*dt1; //nieco szybciej ni¿ jak dla opuszczania
+    if (p->fAngleL<p->fAngleL0)
+     p->fAngleL=p->fAngleL0; //k¹t graniczny
+    if (p->fAngleU<M_PI)
+     p->fAngleU+=0.5*dt1; //górne siê musi ruszaæ szybciej.
+    if (p->fAngleU>M_PI)
+     p->fAngleU=M_PI;
+    continue;
+   }
    PantDiff=p->PantTraction-p->PantWys; //docelowy-aktualny
    switch (i)
    {//trzeba usun¹æ to rozró¿nienie
@@ -2048,11 +2060,14 @@ SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);
    else
     pantspeedfactor=0.0;
    if (pantspeedfactor<0) pantspeedfactor=0;
-   k=p->dPantAngle;
+   k=p->fAngleL;
    if (i?MoverParameters->PantRearUp:MoverParameters->PantFrontUp) //jeœli ma byæ podniesiony
    {if (PantDiff>0.001) //jeœli nie dolega do drutu
     {//jeœli poprzednia wysokoœæ jest mniejsza ni¿ po¿¹dana, zwiêkszyæ k¹t dolnego ramienia zgodnie z ciœnieniem
-     k+=pantspeedfactor; //dolne ramiê
+     if (pantspeedfactor>0.55*PantDiff) //0.55 to oko³o pochodna k¹ta po wysokoœci
+      k+=0.55*PantDiff; //ograniczenie "skoku" w danej klatce
+     else
+      k+=pantspeedfactor; //dolne ramiê
      //jeœli przekroczono k¹t graniczny, zablokowaæ pantograf (wymaga interwencji poci¹gu sieciowego)
     }
     else if (PantDiff<-0.001)
@@ -2060,27 +2075,27 @@ SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);
      //jeœli wysokoœæ jest zbyt du¿a, wyznaczyæ zmniejszenie k¹ta
      //jeœli zmniejszenie k¹ta jest zbyt du¿e, przejœæ do trybu ³amania pantografu
      //if (PantFrontDiff<-0.05) //skok w dó³ o 5cm daje z³¹manie pantografu
-     k+=0.4*PantDiff; //mniej wiêcej pochodna k¹ta po wysokoœci
+     k+=0.4*PantDiff; //mniej ni¿ pochodna k¹ta po wysokoœci
     } //jeœli wysokoœæ jest dobra, nic wiêcej nie liczyæ
    }
    else
    {//jeœli ma byæ na dole
-    if (k>p->panth) //jeœli wy¿ej ni¿ po³o¿enie wyjœciowe
+    if (k>p->fAngleL0) //jeœli wy¿ej ni¿ po³o¿enie wyjœciowe
      k-=0.15*dt1; //ruch w dó³
-    if (k<p->panth)
-     k=p->panth; //po³o¿enie minimalne
+    if (k<p->fAngleL0)
+     k=p->fAngleL0; //po³o¿enie minimalne
    }
-   if (k!=p->dPantAngle)
+   if (k!=p->fAngleL)
    {//¿eby nie liczyæ w kilku miejscach ani gdy nie potrzeba
-    p->dPantAngle=k; //zmieniony k¹t
+    p->fAngleL=k; //zmieniony k¹t
     //wyliczyæ k¹t górnego ramienia z wzoru (a)cosinusowego
     //=acos((b*cos()+c)/a)
     //p->dPantAngleT=acos((1.22*cos(k)+0.535)/1.755); //górne ramiê
-    p->dPantAngleT=acos((1.17629*cos(k)+0.548835)/1.7244822); //górne ramiê
+    p->fAngleU=acos((1.176289*cos(k)+0.54555075)/1.724482197); //górne ramiê
     //wyliczyæ aktualn¹ wysokoœæ z wzoru sinusowego
     //h=a*sin()+b*sin()
     //p->PantWys=1.22*sin(k)+1.755*sin(p->dPantAngleT); //wysokoœæ ca³oœci
-    p->PantWys=1.17629*sin(k)+1.7244822*sin(p->dPantAngleT); //wysokoœæ ca³oœci
+    p->PantWys=1.176289*sin(k)+1.724482197*sin(p->fAngleU); //wysokoœæ ca³oœci
    }
   } //koniec pêtli po pantografach
   if ((MoverParameters->PantFrontSP==false)&&(MoverParameters->PantFrontUp==false))
@@ -3209,21 +3224,22 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
          double pant1x=Parser->GetNextSymbol().ToDouble();
          double pant2x=Parser->GetNextSymbol().ToDouble();
          double panty=Parser->GetNextSymbol().ToDouble();
-         double panth=DegToRad(Parser->GetNextSymbol().ToDouble());
+         double panth=Parser->GetNextSymbol().ToDouble();
          if ((pant1x<0)&&(pant2x>0)) //pierwsza powinna byæ dodatnia, a druga ujemna
          {pant1x=-pant1x; pant2x=-pant2x;}
          if (pants)
           for (int i=0;i<iAnimType[ANIM_PANTS];++i)
           {//przepisanie wspó³czynników do pantografów (na razie nie bêdzie lepiej)
-           pants[i].fParamPants->pantx=(i&1)?pant2x:pant1x;
-           pants[i].fParamPants->panty=panty;
-           pants[i].fParamPants->panth=panth;
-           pants[i].fParamPants->dPantAngle=panth; //pocz¹tkowy k¹t
-           //pants[i].fParamPants->pantu=acos((1.22*cos(panth)+0.535)/1.755); //górne ramiê
-           pants[i].fParamPants->pantu=acos((1.17629*cos(panth)+0.548835)/1.7244822); //górne ramiê
-           pants[i].fParamPants->dPantAngleT=pants[i].fParamPants->pantu; //pocz¹tkowy k¹t
-           //pants[i].fParamPants->PantWys=1.22*sin(panth)+1.755*sin(pants[i].fParamPants->pantu); //wysokoœæ pocz¹tkowa
-           pants[i].fParamPants->PantWys=1.17629*sin(panth)+1.7244822*sin(pants[i].fParamPants->pantu); //wysokoœæ pocz¹tkowa
+           pants[i].fParamPants->fAngleL0=DegToRad(2.8547285515689267247882521833308);
+           pants[i].fParamPants->fAngleL=pants[i].fParamPants->fAngleL0; //pocz¹tkowy k¹t dolnego ramienia
+           //pants[i].fParamPants->pantu=acos((1.22*cos(pants[i].fParamPants->fAngleL)+0.535)/1.755); //górne ramiê
+           pants[i].fParamPants->fAngleU0=acos((1.176289*cos(pants[i].fParamPants->fAngleL)+0.54555075)/1.724482197); //górne ramiê
+           pants[i].fParamPants->fAngleU=pants[i].fParamPants->fAngleU0; //pocz¹tkowy k¹t
+           //pants[i].fParamPants->PantWys=1.22*sin(pants[i].fParamPants->fAngleL)+1.755*sin(pants[i].fParamPants->fAngleU); //wysokoœæ pocz¹tkowa
+           pants[i].fParamPants->PantWys=1.176289*sin(pants[i].fParamPants->fAngleL)+1.724482197*sin(pants[i].fParamPants->fAngleU); //wysokoœæ pocz¹tkowa
+           pants[i].fParamPants->vPos.x=(i&1)?pant2x:pant1x;
+           pants[i].fParamPants->vPos.y=panty-panth-pants[i].fParamPants->PantWys; //np. 4.429-0.097=4.332=~4.335
+           pants[i].fParamPants->vPos.z=0; //niezerowe dla pantografów asymetrycznych
            pants[i].fParamPants->PantTraction=pants[i].fParamPants->PantWys;
           }
         }

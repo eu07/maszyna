@@ -329,12 +329,12 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       }
       if (cKey==Global::Keys[k_Main])
       {
-       DynamicObject->MoverParameters->BatterySwitch(true); //na razie tutaj
-           if (fabs(MainOnButtonGauge.GetValue())<0.001)
-           {
-               dsbSwitch->SetVolume(DSBVOLUME_MAX);
-               dsbSwitch->Play(0,0,0);
-           }
+       //DynamicObject->MoverParameters->BatterySwitch(true); //na razie tutaj
+       if (fabs(MainOnButtonGauge.GetValue())<0.001)
+       {
+        dsbSwitch->SetVolume(DSBVOLUME_MAX);
+        dsbSwitch->Play(0,0,0);
+       }
       }
       else
       //-----------
@@ -413,12 +413,13 @@ void __fastcall TTrain::OnKeyPress(int cKey)
        }
       else if (cKey==Global::Keys[k_SmallCompressor])   //Winger 160404: mala sprezarka wl
       {//Ra: dŸwiêk, gdy razem z [Shift] 
-//           if (DynamicObject->MoverParameters->CompressorSwitch(true))
-//           {
-               DynamicObject->MoverParameters->PantCompFlag=true;
-               dsbSwitch->SetVolume(DSBVOLUME_MAX);
-               dsbSwitch->Play(0,0,0); //dŸwiêk tylko po naciœniêciu klawisza
-//           }
+       if (!DynamicObject->MoverParameters->PantCompFlag)
+        if (DynamicObject->MoverParameters->PantPress<0.48)
+        {
+         DynamicObject->MoverParameters->PantCompFlag=true;
+         dsbSwitch->SetVolume(DSBVOLUME_MAX);
+         dsbSwitch->Play(0,0,0); //dŸwiêk tylko po naciœniêciu klawisza
+        }
       }
       else if (cKey==VkKeyScan('q')) //ze Shiftem - w³¹czenie AI
       {//McZapkie-240302 - wlaczanie automatycznego pilota (zadziala tylko w trybie debugmode)
@@ -1413,12 +1414,13 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       }
       else if (cKey==Global::Keys[k_SmallCompressor])   //Winger 160404: mala sprezarka wl
       {//Ra: bez [Shift] te¿ daæ dŸwiêk
-//           if (DynamicObject->MoverParameters->CompressorSwitch(true))
-//           {
-               DynamicObject->MoverParameters->PantCompFlag=true;
-               dsbSwitch->SetVolume(DSBVOLUME_MAX);
-               dsbSwitch->Play(0,0,0); //dŸwiêk tylko po naciœniêciu klawisza
-//           }
+       if (!DynamicObject->MoverParameters->PantCompFlag)
+        if (DynamicObject->MoverParameters->PantPress<0.48)
+        {
+         DynamicObject->MoverParameters->PantCompFlag=true;
+         dsbSwitch->SetVolume(DSBVOLUME_MAX);
+         dsbSwitch->Play(0,0,0); //dŸwiêk tylko po naciœniêciu klawisza
+        }
       }
   //McZapkie-240302 - wylaczanie automatycznego pilota (w trybie ~debugmode mozna tylko raz)
       else if (cKey==VkKeyScan('q')) //bez Shift
@@ -3921,18 +3923,8 @@ if (DynamicObject->MoverParameters->Battery==true)
            }
         }
      }
-     if (Console::Pressed(Global::Keys[k_SmallCompressor]))
-     {//Winger 160404: mala sprezarka wl
-      if ((DynamicObject->MoverParameters->PantPress<0.48))
-      {//ciœnienie wg http://www.transportszynowy.pl/eu06-07pneumat.php
-       DynamicObject->MoverParameters->PantCompFlag=true;
-       //dsbSwitch->SetVolume(DSBVOLUME_MAX); //tu dŸwiêk byæ nie mo¿e
-       //dsbSwitch->Play( 0, 0, 0 );
-      }
-      else
-       DynamicObject->MoverParameters->PantCompFlag=false;
-     }
-     else //Ra: przecieœæ to na zwolnienie klawisza
+     if (!Console::Pressed(Global::Keys[k_SmallCompressor]))
+     //Ra: przecieœæ to na zwolnienie klawisza
       DynamicObject->MoverParameters->PantCompFlag=false;
      if ( Console::Pressed(Global::Keys[k_Univ2]) )
      {
@@ -4774,12 +4766,13 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     PantAllDownButtonGauge.Clear();
     VelocityGauge.Clear();
     I1Gauge.Clear();
-    I1Gauge.Output(5); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
+    I1Gauge.Output((DynamicObject->MoverParameters->TrainType&(dt_EZT))?0:5); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
     I2Gauge.Clear();
     I2Gauge.Output(4); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
     I3Gauge.Clear();
     //I3Gauge.Output(3); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
     ItotalGauge.Clear();
+    I1Gauge.Output((DynamicObject->MoverParameters->TrainType&(dt_EZT))?5:0); //Ra: kana³u komunikacji zwrotnej
     CylHamGauge.Clear();
     PrzGlGauge.Clear();
     ZbGlGauge.Clear();
