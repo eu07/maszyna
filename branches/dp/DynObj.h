@@ -70,14 +70,14 @@ class TAnimValveGear
 class TAnimPant
 {//wspó³czynniki do animacji pantografu
 public:
- double pantx;        //Winger 010304: przesuniêcie (dodatnie dla przedniego)
- double panty;        //Winger 010304: wysokoœæ ponad g³ówk¹ szyny, odejmowana od wysokoœci drutu
- double panth;        //Ra: pocz¹tkowy k¹t dolnego ramienia (odejmowany przy animacji)
- double pantu;        //Ra: pocz¹tkowy k¹t górnego ramienia (odejmowany przy animacji)
+ vector3 vPos;        //Ra: wspó³rzêdne punktu zerowego pantografu (X dodatnie dla przedniego)
+ //double panth;        //Ra: wysokoœæ œlizgu, odejmowana od wysokoœci drutu
+ double fAngleL0;     //Ra: pocz¹tkowy k¹t dolnego ramienia (odejmowany przy animacji)
+ double fAngleU0;     //Ra: pocz¹tkowy k¹t górnego ramienia (odejmowany przy animacji)
  double PantTraction; //Winger 170204: wysokoœæ drutu ponad punktem na wysokoœci panty p.g.s.
  double PantWys;      //Ra: wysokoœæ uniesienia œlizgu do porównania z wysokoœci¹ drutu
- double dPantAngle;   //Winger 160204: aktualny k¹t ramienia dolnego
- double dPantAngleT;  //Ra: aktualny k¹t ramienia górnego
+ double fAngleL;   //Winger 160204: aktualny k¹t ramienia dolnego
+ double fAngleU;  //Ra: aktualny k¹t ramienia górnego
  double NoVoltTime;
  TTraction *PowerWire; //aktualnie podczepione druty, na razie tu
 };
