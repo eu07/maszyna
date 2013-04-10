@@ -2231,7 +2231,8 @@ begin
 
           if(tp>0)then
            begin  //jesli czasowy jest niepusty
-            dp:=0.07; //od cisnienia 5 do 0 w 60 sekund ((5-0)*dt/75)
+//            dp:=0.07; //od cisnienia 5 do 0 w 60 sekund ((5-0)*dt/75)
+            dp:=0.045;  //2.5 w 55 sekund (5,35->5,15 w PG)
             tp:=tp-dp*dt;
             Sounds[s_fv4a_t]:=dp;
            end
@@ -2296,7 +2297,7 @@ begin
             if(i_bcp=0)then
               rp:=rp+PF(rp,ep,0.0005)*dt //powolne wzrastanie, ale szybsze na jezdzie
             else
-              rp:=rp+PF(rp,ep,0.0001/2)*dt; //powolne wzrastanie i to bardzo
+              rp:=rp+PF(rp,ep,0.000093)*dt; //powolne wzrastanie i to bardzo
           if (rp<ep) and (rp<BPT[Round(i_bcpNo)][1])then //jesli jestesmy ponizej cisnienia w sterujacym (2.9 bar)
             rp:=rp+PF(rp,cp,0.005)*dt; //przypisz cisnienie w PG - wydluzanie napelniania o czas potrzebny do napelnienia PG
 

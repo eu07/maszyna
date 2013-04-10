@@ -2336,7 +2336,11 @@ end;
                                                 //0.2*Spg
       Pipe.Flow(-dpMainValve);
       Pipe.Flow(-(PipePress)*0.001*dt);
-//      dpMainValve:=dpMainValve/(Dim.L*Spg*20);
+//      if Heating then
+//        Pipe.Flow(PF(PipePress,0,d2A(7))*dt);
+//      if ConverterFlag then
+//        Pipe.Flow(PF(PipePress,0,d2A(12))*dt);
+      dpMainValve:=dpMainValve/(Dim.L*Spg*20);
 
       CntrlPipePress:=Hamulec.GetVRP;
 

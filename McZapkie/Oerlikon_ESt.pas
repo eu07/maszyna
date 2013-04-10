@@ -141,6 +141,7 @@ TYPE
         procedure ForceEmptiness(); override;                       //wymuszenie bycia pustym        
       end;
 
+function d2A(d: real):real;
 
 implementation
 
