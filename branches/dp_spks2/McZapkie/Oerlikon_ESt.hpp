@@ -229,6 +229,7 @@ static const Shortint p_none = 0x0;
 static const Shortint p_rapid = 0x1;
 static const Shortint p_pp = 0x2;
 static const Shortint p_al2 = 0x3;
+extern PACKAGE double __fastcall d2A(double d);
 
 }	/* namespace Oerlikon_est */
 #if !defined(NO_IMPLICIT_NAMESPACE_USE)

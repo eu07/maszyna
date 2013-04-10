@@ -316,7 +316,7 @@ public:
 
     TRealSound rsDiesielInc; //youBy
     TRealSound rscurve; //youBy
-
+//    std::ofstream PneuLogFile; //zapis parametrow pneumatycznych
 //youBy - dym
     //TSmoke Smog;
     //float EmR;

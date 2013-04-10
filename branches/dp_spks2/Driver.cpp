@@ -795,8 +795,7 @@ __fastcall TController::TController
  iDriverFailCount=0;
  Need_TryAgain=false; //true, jeœli druga pozycja w elektryku nie za³apa³a
  Need_BrakeRelease=true;
-// deltalog=1.0;
- deltalog=0.1;
+ deltalog=1.0;
 
  if (WriteLogFlag)
  {
@@ -2147,7 +2146,7 @@ bool __fastcall TController::UpdateSituation(double dt)
     if (AIControllFlag) //sk³ad jak dot¹d by³ wyluzowany
     {if (Controlling->BrakeCtrlPos==0) //jest pozycja jazdy
       if ((p->MoverParameters->PipePress-5.0)>-0.1) //jeœli ciœnienie jak dla jazdy
-       if (p->MoverParameters->CntrlPipePress>p->MoverParameters->PipePress+0.12) //za du¿o w zbiorniku
+       if (p->MoverParameters->Hamulec->GetCRP()>p->MoverParameters->PipePress+0.12) //za du¿o w zbiorniku
         p->MoverParameters->BrakeReleaser(1); //indywidualne luzowanko
      if (p->MoverParameters->Power>0.01) //jeœli ma silnik
       if (p->MoverParameters->FuseFlag) //wywalony nadmiarowy
@@ -2211,9 +2210,9 @@ bool __fastcall TController::UpdateSituation(double dt)
   if (LastUpdatedTime>deltalog)
   {//zapis do pliku DAT
    PhysicsLog();
-//   if (fabs(Controlling->V)>0.1) //Ra: [m/s]
-    deltalog=0.1;//0.2
-//   else deltalog=1.0;
+   if (fabs(Controlling->V)>0.1) //Ra: [m/s]
+    deltalog=0.2;
+   else deltalog=1.0;
    LastUpdatedTime=0.0;
   }
   else
@@ -2880,13 +2879,13 @@ bool __fastcall TController::UpdateSituation(double dt)
          Controlling->BrakeLevelSet(0);
 //        if ((Controlling->BrakeCtrlPos<0)&&(Controlling->PipeBrakePress<0.01))//{(CntrlPipePress-(Volume/BrakeVVolume/10)<0.01)})
 //         Controlling->IncBrakeLevel();
+        if ((Controlling->PipePress<3.0)&&(AccDesired>-0.03)) Controlling->BrakeReleaser(1);
         if ((Controlling->BrakeCtrlPos==0)&&(AbsAccS<0.0)&&(AccDesired>-0.03))
         //if FuzzyLogicAI(CntrlPipePress-PipePress,0.01,1))
 //         if ((Controlling->BrakePress>0.5)&&(Controlling->LocalBrakePos<0.5))//{((Volume/BrakeVVolume/10)<0.485)})
          if ((Controlling->EqvtPipePress<4.95)&&(fReady>0.35))//{((Volume/BrakeVVolume/10)<0.485)})
          {if (iDrivigFlags&moveOerlikons) //a reszta sk³adu jest na to gotowa
            Controlling->BrakeLevelSet(-1); //nape³nianie w Oerlikonie
-          if (Controlling->PipePress<3.0) Controlling->BrakeReleaser(1);
          }
          else
           if (Need_BrakeRelease)
