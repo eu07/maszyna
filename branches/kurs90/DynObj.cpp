@@ -44,14 +44,20 @@ const float maxrot=(M_PI/3.0); //60°
 int __fastcall TAnim::TypeSet(int i)
 {//ustawienie typu animacji i zale¿nej od niego iloœci animowanych submodeli
  fMaxDist=-1.0; //normalnie nie pokazywaæ
- switch (i) //0-osie,1-drzwi,2-obracane,3-zderzaki,4-wózki,5-pantografy,6-t³oki
- {case 0: iFlags=0x00; break; //0-oœ
-  case 1: iFlags=0x10; break; //1-drzwi
-  case 2: iFlags=0x20; break; //2-wahacz, dŸwignia itp.
-  case 3: iFlags=0x30; break; //3-zderzak
-  case 4: iFlags=0x40; break; //4-wózek
-  case 5: iFlags=0x55; break; //5-pantograf - 5 submodeli
-  case 6: iFlags=0x68; break; //6-t³ok i rozrz¹d - 8 submodeli
+ switch (i)
+ {//maska 0x00F: ile u¿ywa wskaŸników na submodele (0 gdy jeden, wtedy bez tablicy)
+  //maska 0x0F0: 0-osie,1-drzwi,2-obracane,3-zderzaki,4-wózki,5-pantografy,6-t³oki
+  //maska 0xF00: ile u¿ywa liczb float dla wspó³czynników i stanu
+  case 0: iFlags=0x000; break; //0-oœ
+  case 1: iFlags=0x010; break; //1-drzwi
+  case 2: iFlags=0x020; break; //2-wahacz, dŸwignia itp.
+  case 3: iFlags=0x030; break; //3-zderzak
+  case 4: iFlags=0x040; break; //4-wózek
+  case 5: //5-pantograf - 5 submodeli
+   iFlags=0x055;
+   fParamPants=new TAnimPant();
+  break;
+  case 6: iFlags=0x068; break; //6-t³ok i rozrz¹d - 8 submodeli
   default: iFlags=0;
  }
  yUpdate=NULL;
@@ -62,12 +68,14 @@ __fastcall TAnim::TAnim()
 };
 __fastcall TAnim::~TAnim()
 {//usuwanie animacji
-/*
  switch (iFlags&0xF0)
  {//usuwanie struktur, zale¿nie ile zosta³o stworzonych
-  case 0x78: break;
+  case 0x50: //5-pantograf
+   delete fParamPants;
+  break;
+  case 0x60: //6-t³ok i rozrz¹d
+  break;
  }
-*/
 };
 void __fastcall TAnim::Parovoz()
 {//animowanie t³oka i rozrz¹du parowozu
@@ -248,7 +256,7 @@ void TDynamicObject::UpdateDoorTranslate(TAnim *pAnim)
 void TDynamicObject::UpdateDoorRotate(TAnim *pAnim)
 {//animacja drzwi - obrót
  if (pAnim->smAnimated)
- {//if (MoverParameters->DoorOpenMethod==2) //obrotowe albo dwojlomne (trzeba kombinowac submodelami i ShiftL=90,R=180)
+ {//if (MoverParameters->DoorOpenMethod==2) //obrotowe albo dwój³omne (trzeba kombinowac submodelami i ShiftL=90,R=180)
   if (pAnim->iNumber&1)
    pAnim->smAnimated->SetRotate(float3(1,0,0),dDoorMoveR);
   else
@@ -257,17 +265,16 @@ void TDynamicObject::UpdateDoorRotate(TAnim *pAnim)
 };
 
 void TDynamicObject::UpdatePant(TAnim *pAnim)
-{//animacja pantografu - 4 elementy obracane, jeden przesuwany w pionie
- double k=0;
- switch (pAnim->iNumber&1) //na razie dostêpne s¹ tylko 2 wspó³czynniki
- {case 0: k=dPantAngleF; break; //przedni
-  case 1: k=dPantAngleR; break; //tylny
- }
- if (pAnim->smElement[0]) pAnim->smElement[0]->SetRotate(float3(1,0,0),k);
- if (pAnim->smElement[1]) pAnim->smElement[1]->SetRotate(float3(-1,0,0),k);
- if (pAnim->smElement[2]) pAnim->smElement[2]->SetRotate(float3(-1,0,0),k*1.81);
- if (pAnim->smElement[3]) pAnim->smElement[3]->SetRotate(float3(1,0,0),k*1.81);
- if (pAnim->smElement[4]) pAnim->smElement[4]->SetRotate(float3(1,0,0),k*0.81);
+{//animacja pantografu - 4 obracane ramiona, œlizg pi¹ty
+ float a,b,c;
+ a=RadToDeg(pAnim->fParamPants->fAngleL-pAnim->fParamPants->fAngleL0);
+ b=RadToDeg(pAnim->fParamPants->fAngleU-pAnim->fParamPants->fAngleU0);
+ c=a+b;
+ if (pAnim->smElement[0]) pAnim->smElement[0]->SetRotate(float3(-1,0,0),a); //dolne ramiê
+ if (pAnim->smElement[1]) pAnim->smElement[1]->SetRotate(float3(1,0,0),a);
+ if (pAnim->smElement[2]) pAnim->smElement[2]->SetRotate(float3(1,0,0),c); //górne ramiê
+ if (pAnim->smElement[3]) pAnim->smElement[3]->SetRotate(float3(-1,0,0),c);
+ if (pAnim->smElement[4]) pAnim->smElement[4]->SetRotate(float3(-1,0,0),b); //œlizg
 };
 
 //ABu 29.01.05 przeklejone z render i renderalpha: *********************
@@ -1098,31 +1105,12 @@ __fastcall TDynamicObject::TDynamicObject()
  dWheelAngle[1]=0.0;
  dWheelAngle[2]=0.0;
  //Winger 160204 - pantografy
- //PantVolume = 3.5;
- StartTime=0;
  NoVoltTime=0;
- dPantAngleF=0.0;
- dPantAngleR=0.0;
- PantTraction1=10;
- PantTraction2=10;
- if (!Global::bEnableTraction)
- {
-  PantTraction1=5.8;
-  PantTraction2=5.8;
- }
- dPantAngleFT=0.0;
- dPantAngleRT=0.0;
- PantWysF=0.0;
- PantWysR=0.0;
  smPatykird1[0]=smPatykird1[1]=NULL;
  smPatykird2[0]=smPatykird2[1]=NULL;
  smPatykirg1[0]=smPatykirg1[1]=NULL;
  smPatykirg2[0]=smPatykirg2[1]=NULL;
  smPatykisl[0]=smPatykisl[1]=NULL;
- pant1x=0;
- pant2x=0;
- panty=0;
- panth=0;
  dDoorMoveL=0.0;
  dDoorMoveR=0.0;
  //for (int i=0;i<8;i++)
@@ -1184,8 +1172,6 @@ __fastcall TDynamicObject::TDynamicObject()
  asDestination="none"; //stoj¹cy nigdzie nie jedzie
  pValveGear=NULL; //Ra: tymczasowo
  iCabs=0; //maski bitowe modeli kabin
- PowerWire[0]=NULL; //na pocz¹tku nie pod³¹czony do pr¹du
- PowerWire[1]=NULL;
 }
 
 __fastcall TDynamicObject::~TDynamicObject()
@@ -1730,7 +1716,6 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
   return false; //a normalnie powinny mieæ bEnabled==false
 
  //McZapkie-260202
- //MoverParameters->BatteryVoltage=90;
  if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
   if ((MechInside)||(MoverParameters->TrainType==dt_EZT))
   {
@@ -1738,15 +1723,16 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
    // MoverParameters->PantVolume=MoverParameters->CompressedVolume;
    if (MoverParameters->PantPress<0.35)
    {// 0.35 wg http://www.transportszynowy.pl/eu06-07pneumat.php
+    //"Wy³¹czniki ciœnieniowe odbieraków pr¹du wy³¹czaj¹ sterowanie wy³¹cznika szybkiego oraz uniemo¿liwiaj¹ podniesienie odbieraków pr¹du, gdy w instalacji rozrz¹du ciœnienie spadnie poni¿ej wartoœci 3,5 bara."
     //if (!MoverParameters->PantCompFlag)
     // MoverParameters->PantVolume=MoverParameters->CompressedVolume;
     MoverParameters->PantFront(false); //opuszczenie pantografów przy niskim ciœnieniu
     MoverParameters->PantRear(false);
    }
-   //Winger - automatyczne wylaczanie malej sprezarki. Ra: w _mover.pas
-   //if (MoverParameters->PantPress>=0.45)
-   // MoverParameters->PantCompFlag=false;
-  }
+   //Winger - automatyczne wylaczanie malej sprezarki
+   else if (MoverParameters->PantPress>=0.48)
+    MoverParameters->PantCompFlag=false;
+  } //Ra: do Mover to trzeba przenieœæ, ¿eby AI te¿ mog³o sobie podpompowaæ
 
     double dDOMoveLen;
 
@@ -2058,122 +2044,94 @@ SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);*/
   if (dWheelAngle[1]>360.0) dWheelAngle[1]-=360.0;
   if (dWheelAngle[2]>360.0) dWheelAngle[2]-=360.0;
  }
- if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
- {//Winger 160204 - pantografy; Ra: nie mog¹ byæ uzale¿niane od kabiny
-  /*
-  lastcabf=(MoverParameters->CabNo*MoverParameters->DoubleTr);
-  if (MoverParameters->TrainType==dt_EZT)
-   lastcabf=1;
-  */
-  //double ObjectDist2;
-  //double vol2=0;
-  double TempPantVol;
-  double PantFrontDiff;
-  double PantRearDiff;
-  //   double StartTime= Timer::GetfSinceStart();
-  StartTime= StartTime+dt1;
-  PantFrontDiff=dPantAngleFT-dPantAngleF; //docelowy-aktualny
-  if (PantFrontDiff<0)
-   PantFrontDiff=-PantFrontDiff;
-  if (MoverParameters->PantFrontUp?(PantFrontDiff<1):false)
-  {
-   if ((MoverParameters->PantFrontVolt==0.0)&&(MoverParameters->PantRearVolt==0.0))
-    sPantUp.Play(vol,0,MechInside,vPosition);
-   MoverParameters->PantFrontVolt=PowerWire[0]?PowerWire[0]->NominalVoltage:0.0;
-  }
-  else
-   MoverParameters->PantFrontVolt=0.0;
-  PantRearDiff=dPantAngleRT-dPantAngleR;
-  if (PantRearDiff<0)
-   PantRearDiff=-PantRearDiff;
-  if (MoverParameters->PantRearUp?(PantRearDiff<1):false)
-  {
-   if ((MoverParameters->PantRearVolt==0.0)&&(MoverParameters->PantFrontVolt==0.0))
-    sPantUp.Play(vol,0,MechInside,vPosition);
-   MoverParameters->PantRearVolt=PowerWire[1]?PowerWire[1]->NominalVoltage:0.0;
-  }
-  else
-   MoverParameters->PantRearVolt=0.0;
-  //ObjectDist2=SquareMagnitude(Global::pCameraPosition-vPosition)/100;
-  //vol2=255-ObjectDist2;
-  //if ((MoverParameters->CompressedVolume<3.3)) //&& (MoverParameters->PantVolume<5.2))
-  ////  if (MoverParameters->PantVolume<5.2) &&
-  // TempPantVol= MoverParameters->PantVolume;
-  //else
-  // TempPantVol= MoverParameters->CompressedVolume;
-  //if (TempPantVol>6)
-  // TempPantVol=6;
-  //if (MoverParameters->TrainType==dt_EZT)
-  // TempPantVol+= 2;
-   //if (vol2<0) vol2=0; //Ra: vol2 nie u¿ywane dalej
-  if (StartTime<2)
-   pantspeedfactor=10;
-  else
-   //ABu: uniezaleznienie od TempPantVol, bo sie krzaczylo...
-  //pantspeedfactor=100*dt1;
-  //pantspeedfactor=((TempPantVol-2.5)/2)*40*dt1;
-
-//z EXE Kursa
-  pantspeedfactor=(MoverParameters->PantPress)*20*dt1;
-
-  pantspeedfactor*=abs(MoverParameters->CabNo);
-  //if ((PantTraction1==5.8171) && (PantTraction2==5.8171))
-  // pantspeedfactor=10;
-  if (pantspeedfactor<0)
-   pantspeedfactor=0;
-
-//Przedni
-  if (PantTraction1>600)
-   MoverParameters->PantFrontStart=0;
-  dPantAngleFT=-(PantTraction1*28.9-136.938); //*-30+135);
-  if ((dPantAngleF>dPantAngleFT)&&(MoverParameters->PantFrontUp))
-  {
-   //dPantAngleF-=5*0.05*pantspeedfactor*(MoverParameters->PantFrontStart*5*(dPantAngleF-dPantAngleFT)+1);
-   dPantAngleF-=5*0.05*pantspeedfactor*(MoverParameters->PantFrontStart*5*PantFrontDiff+1);
-   if (dPantAngleF<dPantAngleFT)
-   {
-    dPantAngleF=dPantAngleFT;
-    MoverParameters->PantFrontStart=1;
+ if (pants)
+ //if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector) //??
+ {//przeliczanie k¹tów dla pantografów
+  double k; //tymczasowy k¹t
+  double PantDiff;
+  TAnimPant *p; //wskaŸnik do obiektu danych pantografu
+  for (int i=0;i<iAnimType[ANIM_PANTS];++i)
+  {//pêtla po wszystkich pantografach
+   p=pants[i].fParamPants;
+   if (p->PantWys<0)
+   {//patograf zosta³ po³amany, liczony nie bêdzie
+    if (p->fAngleL>p->fAngleL0)
+     p->fAngleL-=0.2*dt1; //nieco szybciej ni¿ jak dla opuszczania
+    if (p->fAngleL<p->fAngleL0)
+     p->fAngleL=p->fAngleL0; //k¹t graniczny
+    if (p->fAngleU<M_PI)
+     p->fAngleU+=0.5*dt1; //górne siê musi ruszaæ szybciej.
+    if (p->fAngleU>M_PI)
+     p->fAngleU=M_PI;
+    continue;
    }
-  }
-  if (dPantAngleF<-70)
-   MoverParameters->PantFrontUp=false;
-  if ((dPantAngleF<dPantAngleFT) && (MoverParameters->PantFrontUp) && ((dPantAngleF-dPantAngleFT>0.2) || (dPantAngleFT-dPantAngleF>0.2)))
-  {
-   //dPantAngleF+=5*0.05*(5*(dPantAngleFT-dPantAngleF)+1)*40*dt1;
-   dPantAngleF+=5*0.05*(5*PantFrontDiff+1)*40*dt1;
-   if (dPantAngleF>dPantAngleFT)
-   {
-    dPantAngleF=dPantAngleFT;
+   PantDiff=p->PantTraction-p->PantWys; //docelowy-aktualny
+   switch (i)
+   {//trzeba usun¹æ to rozró¿nienie
+    case 0:
+     if (MoverParameters->PantFrontUp?(PantDiff<0.01):false)
+     {
+      if ((MoverParameters->PantFrontVolt==0.0)&&(MoverParameters->PantRearVolt==0.0))
+       sPantUp.Play(vol,0,MechInside,vPosition);
+      MoverParameters->PantFrontVolt=p->PowerWire?p->PowerWire->NominalVoltage:0.0;
+     }
+     else
+      MoverParameters->PantFrontVolt=0.0;
+    break;
+    case 1:
+     if (MoverParameters->PantRearUp?(PantDiff<0.01):false)
+     {
+      if ((MoverParameters->PantRearVolt==0.0)&&(MoverParameters->PantFrontVolt==0.0))
+       sPantUp.Play(vol,0,MechInside,vPosition);
+      MoverParameters->PantRearVolt=p->PowerWire?p->PowerWire->NominalVoltage:0.0;
+     }
+     else
+      MoverParameters->PantRearVolt=0.0;
+    break;
+   } //pozosta³e na razie nie obs³ugiwane
+   if (MoverParameters->PantPress>0.33)
+    pantspeedfactor=0.15*(MoverParameters->PantPress)*dt1; //z EXE Kursa
+   else
+    pantspeedfactor=0.0;
+   if (pantspeedfactor<0) pantspeedfactor=0;
+   k=p->fAngleL;
+   if (i?MoverParameters->PantRearUp:MoverParameters->PantFrontUp) //jeœli ma byæ podniesiony
+   {if (PantDiff>0.001) //jeœli nie dolega do drutu
+    {//jeœli poprzednia wysokoœæ jest mniejsza ni¿ po¿¹dana, zwiêkszyæ k¹t dolnego ramienia zgodnie z ciœnieniem
+     if (pantspeedfactor>0.55*PantDiff) //0.55 to oko³o pochodna k¹ta po wysokoœci
+      k+=0.55*PantDiff; //ograniczenie "skoku" w danej klatce
+     else
+      k+=pantspeedfactor; //dolne ramiê
+     //jeœli przekroczono k¹t graniczny, zablokowaæ pantograf (wymaga interwencji poci¹gu sieciowego)
+    }
+    else if (PantDiff<-0.001)
+    {//drut siê obni¿y³ albo zosta³ podniesiony za wysoko
+     //jeœli wysokoœæ jest zbyt du¿a, wyznaczyæ zmniejszenie k¹ta
+     //jeœli zmniejszenie k¹ta jest zbyt du¿e, przejœæ do trybu ³amania pantografu
+     //if (PantFrontDiff<-0.05) //skok w dó³ o 5cm daje z³¹manie pantografu
+     k+=0.4*PantDiff; //mniej ni¿ pochodna k¹ta po wysokoœci
+    } //jeœli wysokoœæ jest dobra, nic wiêcej nie liczyæ
    }
-  }
-  if ((dPantAngleF<0) && (!MoverParameters->PantFrontUp))
-   dPantAngleF+=5*0.05*40*dt1;
-  //Tylny
-  if (PantTraction2>600)
-   MoverParameters->PantRearStart=0;
-  dPantAngleRT= -(PantTraction2*28.9-136.938);
-  //ABu: ponizej tylko dla testow:
-  //    dPantAngleR=dPantAngleRT;
-  if ((dPantAngleR>dPantAngleRT) && (MoverParameters->PantRearUp))
-  {
-   dPantAngleR-=5*0.05*pantspeedfactor*(MoverParameters->PantRearStart*5*(dPantAngleR-dPantAngleRT)+1);
-   if (dPantAngleR<dPantAngleRT)
-   {
-    dPantAngleR=dPantAngleRT;
-    MoverParameters->PantRearStart=1;
+   else
+   {//jeœli ma byæ na dole
+    if (k>p->fAngleL0) //jeœli wy¿ej ni¿ po³o¿enie wyjœciowe
+     k-=0.15*dt1; //ruch w dó³
+    if (k<p->fAngleL0)
+     k=p->fAngleL0; //po³o¿enie minimalne
    }
-  }
-  if (dPantAngleR<-70)
-   MoverParameters->PantRearUp=false;
-  if ((dPantAngleR<dPantAngleRT)&&(MoverParameters->PantRearUp)&&((dPantAngleR-dPantAngleRT>0.2)||(dPantAngleRT-dPantAngleR>0.2)))
-  {
-   dPantAngleR+=5*0.05*(5*(dPantAngleRT-dPantAngleR)+1)*40*dt1;
-   if (dPantAngleR>dPantAngleRT)
-    dPantAngleR=dPantAngleRT;
-  }
-  if ((dPantAngleR<0) && (!MoverParameters->PantRearUp))
-   dPantAngleR+=5*0.05*40*dt1;
+   if (k!=p->fAngleL)
+   {//¿eby nie liczyæ w kilku miejscach ani gdy nie potrzeba
+    p->fAngleL=k; //zmieniony k¹t
+    //wyliczyæ k¹t górnego ramienia z wzoru (a)cosinusowego
+    //=acos((b*cos()+c)/a)
+    //p->dPantAngleT=acos((1.22*cos(k)+0.535)/1.755); //górne ramiê
+    p->fAngleU=acos((1.176289*cos(k)+0.54555075)/1.724482197); //górne ramiê
+    //wyliczyæ aktualn¹ wysokoœæ z wzoru sinusowego
+    //h=a*sin()+b*sin()
+    //p->PantWys=1.22*sin(k)+1.755*sin(p->dPantAngleT); //wysokoœæ ca³oœci
+    p->PantWys=1.176289*sin(k)+1.724482197*sin(p->fAngleU); //wysokoœæ ca³oœci
+   }
+  } //koniec pêtli po pantografach
   if ((MoverParameters->PantFrontSP==false)&&(MoverParameters->PantFrontUp==false))
   {
    sPantDown.Play(vol,0,MechInside,vPosition);
@@ -2195,6 +2153,7 @@ SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);*/
   if (MoverParameters->EnginePowerSource.PowerType==SteamPower)
    if (smPatykird1[0])
   {//Ra: animacja rozrz¹du parowozu, na razie nieoptymalizowane
+/* //Ra: tymczasowo wy³¹czone ze wzglêdu na porz¹dkowanie animacji pantografów
    double fi,dx,c2,ka,kc;
    double sin_fi,cos_fi;
    double L1=1.6688888888888889;
@@ -2254,6 +2213,7 @@ SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);*/
     if (smPatykird2[i]) //na razie zabezpieczenie
      smPatykird2[i]->SetRotateXYZ(vector3(RadToDeg(-gam-ksi),0,0)); //obrócenie dr¹¿ka mimoœrodowego
    }
+*/
   }
 
 //NBMX Obsluga drzwi, MC: zuniwersalnione
@@ -3068,7 +3028,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
  //Parser->LoadStringToParse(asFile);
  Parser->First();
  //DecimalSeparator= '.';
- TAnim *pants=NULL; //indeks obiektu animuj¹cego dla pantografu 0
+ pants=NULL; //wskaŸnik pierwszego obiektu animuj¹cego dla pantografów
  while (!Parser->EndOfFile && !Stop_InternalData)
  {
      str=Parser->GetNextSymbol().LowerCase();
@@ -3295,12 +3255,27 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
         }
         else if (str==AnsiString("pantfactors:"))
         {//Winger 010304: parametry pantografow
-         pant1x=Parser->GetNextSymbol().ToDouble();
-         pant2x=Parser->GetNextSymbol().ToDouble();
-         panty=Parser->GetNextSymbol().ToDouble();
-         panth=Parser->GetNextSymbol().ToDouble();
-         if ((pant1x<0)&&(pant2x>0)) //pierwsza powinna byæ dodatnia, a druga ujemna  
+         double pant1x=Parser->GetNextSymbol().ToDouble();
+         double pant2x=Parser->GetNextSymbol().ToDouble();
+         double panty=Parser->GetNextSymbol().ToDouble();
+         double panth=Parser->GetNextSymbol().ToDouble();
+         if ((pant1x<0)&&(pant2x>0)) //pierwsza powinna byæ dodatnia, a druga ujemna
          {pant1x=-pant1x; pant2x=-pant2x;}
+         if (pants)
+          for (int i=0;i<iAnimType[ANIM_PANTS];++i)
+          {//przepisanie wspó³czynników do pantografów (na razie nie bêdzie lepiej)
+           pants[i].fParamPants->fAngleL0=DegToRad(2.8547285515689267247882521833308);
+           pants[i].fParamPants->fAngleL=pants[i].fParamPants->fAngleL0; //pocz¹tkowy k¹t dolnego ramienia
+           //pants[i].fParamPants->pantu=acos((1.22*cos(pants[i].fParamPants->fAngleL)+0.535)/1.755); //górne ramiê
+           pants[i].fParamPants->fAngleU0=acos((1.176289*cos(pants[i].fParamPants->fAngleL)+0.54555075)/1.724482197); //górne ramiê
+           pants[i].fParamPants->fAngleU=pants[i].fParamPants->fAngleU0; //pocz¹tkowy k¹t
+           //pants[i].fParamPants->PantWys=1.22*sin(pants[i].fParamPants->fAngleL)+1.755*sin(pants[i].fParamPants->fAngleU); //wysokoœæ pocz¹tkowa
+           pants[i].fParamPants->PantWys=1.176289*sin(pants[i].fParamPants->fAngleL)+1.724482197*sin(pants[i].fParamPants->fAngleU); //wysokoœæ pocz¹tkowa
+           pants[i].fParamPants->vPos.x=(i&1)?pant2x:pant1x;
+           pants[i].fParamPants->vPos.y=panty-panth-pants[i].fParamPants->PantWys; //np. 4.429-0.097=4.332=~4.335
+           pants[i].fParamPants->vPos.z=0; //niezerowe dla pantografów asymetrycznych
+           pants[i].fParamPants->PantTraction=pants[i].fParamPants->PantWys;
+          }
         }
         else if (str==AnsiString("animpistonprefix:"))
         {//prefiks t³oczysk - na razie u¿ywamy modeli pantografów
@@ -3324,10 +3299,12 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
         }
         else if (str==AnsiString("pistonfactors:"))
         {//Ra: parametry silnika parowego (t³oka)
+/* //Ra: tymczasowo wy³¹czone ze wzglêdu na porz¹dkowanie animacji pantografów
          pant1x=Parser->GetNextSymbol().ToDouble(); //k¹t przesuniêcia dla pierwszego t³oka
          pant2x=Parser->GetNextSymbol().ToDouble(); //k¹t przesuniêcia dla drugiego t³oka
          panty=Parser->GetNextSymbol().ToDouble(); //d³ugoœæ korby (r)
          panth=Parser->GetNextSymbol().ToDouble(); //d³ugoœ korbowodu (k)
+*/
          MoverParameters->EnginePowerSource.PowerType=SteamPower; //Ra: po chamsku, ale z CHK nie dzia³a
         }
         else if (str==AnsiString("animreturnprefix:"))

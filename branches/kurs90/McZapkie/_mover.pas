@@ -1283,7 +1283,7 @@ begin
 {         if (EngineType=ElectricSeriesMotor) and (MainCtrlPos=1) then
           MainCtrlActualPos:=1;
 }
-               end;
+           end;
            if (CtrlSpeed=1) and (ActiveDir=-1) and (RList[MainCtrlPos].Bn>1) and (TrainType<>dt_pseudodiesel) then
             begin
                   dec(MainCtrlPos);
@@ -5929,7 +5929,7 @@ begin
   DoorSignalling:=False;
   UnBrake:=false;
 //Winger 160204
-  PantVolume:=0.55;
+  PantVolume:=0.55; //aby podniesione pantografy opad³y w krótkim czasie przy wy³¹czonej sprê¿arce
   PantFrontUp:=false;
   PantRearUp:=false;
   PantFrontStart:=0;
@@ -6121,7 +6121,7 @@ begin
    begin                {zahamowany}
      Volume:=BrakeVVolume*(MaxBrakePress+CntrlPipePress)*5;
      CompressedVolume:=VeselVolume*MinCompressor*5.5;
-     ScndPipePress:=0.5;
+     ScndPipePress:=0.39; //nie spowoduje nape³nienia zbiornika pantografu
      PipePress:=LowPipePress;
      PipeBrakePress:=MaxBrakePress*0.5;
      BrakePress:=MaxBrakePress*0.5;
