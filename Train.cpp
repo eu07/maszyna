@@ -289,16 +289,6 @@ void __fastcall TTrain::OnKeyPress(int cKey)
            }
       }
       else */
-
-      if (cKey==Global::Keys[k_Main])
-      {
-           if (fabs(MainOnButtonGauge.GetValue())<0.001)
-           {
-               dsbSwitch->SetVolume(DSBVOLUME_MAX);
-               dsbSwitch->Play(0,0,0);
-           }
-      }
-      else
       if (cKey==Global::Keys[k_Battery])
       {
          if(((DynamicObject->MoverParameters->TrainType==dt_EZT) || (DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)|| (DynamicObject->MoverParameters->EngineType==DieselElectric))&&(DynamicObject->MoverParameters->Battery==false))
@@ -335,6 +325,14 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                DynamicObject->MoverParameters->DoorSignalling=true;
            }
            }
+      }
+      if (cKey==Global::Keys[k_Main])
+      {
+       if (fabs(MainOnButtonGauge.GetValue())<0.001)
+       {
+        dsbSwitch->SetVolume(DSBVOLUME_MAX);
+        dsbSwitch->Play(0,0,0);
+       }
       }
       else
       //-----------
@@ -413,12 +411,13 @@ void __fastcall TTrain::OnKeyPress(int cKey)
        }
       else if (cKey==Global::Keys[k_SmallCompressor])   //Winger 160404: mala sprezarka wl
       {//Ra: dŸwiêk, gdy razem z [Shift] 
-//           if (DynamicObject->MoverParameters->CompressorSwitch(true))
-//           {
-               DynamicObject->MoverParameters->PantCompFlag=true;
-               dsbSwitch->SetVolume(DSBVOLUME_MAX);
-               dsbSwitch->Play(0,0,0); //dŸwiêk tylko po naciœniêciu klawisza
-//           }
+       if (!DynamicObject->MoverParameters->PantCompFlag)
+        if (DynamicObject->MoverParameters->PantPress<0.48)
+        {
+         DynamicObject->MoverParameters->PantCompFlag=true;
+         dsbSwitch->SetVolume(DSBVOLUME_MAX);
+         dsbSwitch->Play(0,0,0); //dŸwiêk tylko po naciœniêciu klawisza
+        }
       }
       else if (cKey==VkKeyScan('q')) //ze Shiftem - w³¹czenie AI
       {//McZapkie-240302 - wlaczanie automatycznego pilota (zadziala tylko w trybie debugmode)
@@ -1075,8 +1074,6 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                        dsbPneumaticRelay->Play(0,0,0);
                     }
                  }
-
-
                  }
               }
           }
@@ -1448,12 +1445,13 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       }
       else if (cKey==Global::Keys[k_SmallCompressor])   //Winger 160404: mala sprezarka wl
       {//Ra: bez [Shift] te¿ daæ dŸwiêk
-//           if (DynamicObject->MoverParameters->CompressorSwitch(true))
-//           {
-               DynamicObject->MoverParameters->PantCompFlag=true;
-               dsbSwitch->SetVolume(DSBVOLUME_MAX);
-               dsbSwitch->Play(0,0,0); //dŸwiêk tylko po naciœniêciu klawisza
-//           }
+       if (!DynamicObject->MoverParameters->PantCompFlag)
+        if (DynamicObject->MoverParameters->PantPress<0.48)
+        {
+         DynamicObject->MoverParameters->PantCompFlag=true;
+         dsbSwitch->SetVolume(DSBVOLUME_MAX);
+         dsbSwitch->Play(0,0,0); //dŸwiêk tylko po naciœniêciu klawisza
+        }
       }
   //McZapkie-240302 - wylaczanie automatycznego pilota (w trybie ~debugmode mozna tylko raz)
       else if (cKey==VkKeyScan('q')) //bez Shift
@@ -2622,30 +2620,11 @@ if (!ShowNextCurrent)
       I3GaugeB.Update();
      }
     if (ItotalGaugeB.SubModel)
-    {
-      if (DynamicObject->MoverParameters->TrainType!=dt_EZT)
-
      {
       ItotalGaugeB.UpdateValue(DynamicObject->MoverParameters->ShowCurrent(0));
       ItotalGaugeB.Update();
      }
-      else
-        {
-          if(((TestFlag(DynamicObject->MoverParameters->Couplers[1].CouplingFlag,ctrain_controll))
-          && (DynamicObject->MoverParameters->ActiveCab>0)))
-          {
-           ItotalGaugeB.UpdateValue(DynamicObject->NextConnected->MoverParameters->ShowCurrent(0)); //Winger czy to nie jest zle? *DynamicObject->MoverParameters->Mains);
-           ItotalGaugeB.Update();
-           }
-           if(((TestFlag(DynamicObject->MoverParameters->Couplers[0].CouplingFlag,ctrain_controll))
-           && (DynamicObject->MoverParameters->ActiveCab<0)))
-           {
-           ItotalGaugeB.UpdateValue(DynamicObject->PrevConnected->MoverParameters->ShowCurrent(0)); //Winger czy to nie jest zle? *DynamicObject->MoverParameters->Mains);
-           ItotalGaugeB.Update();
-           }
-         }
-
-   }  }
+}
 else
 {
    //ABu 100205: prad w nastepnej lokomotywie, przycisk w ET41
@@ -2852,27 +2831,9 @@ else
      
     if (HVoltageGauge.SubModel)
      {
-      if ((DynamicObject->MoverParameters->TrainType!=dt_EZT)&&(DynamicObject->MoverParameters->EngineType!=DieselElectric))
-      {
+      if (DynamicObject->MoverParameters->EngineType!=DieselElectric)
         HVoltageGauge.UpdateValue(DynamicObject->MoverParameters->RunningTraction.TractionVoltage); //Winger czy to nie jest zle? *DynamicObject->MoverParameters->Mains);
-      HVoltageGauge.Update();
-      }
-      if (DynamicObject->MoverParameters->TrainType==dt_EZT)
-      {
-      if(((TestFlag(DynamicObject->MoverParameters->Couplers[1].CouplingFlag,ctrain_controll))
-       && (DynamicObject->MoverParameters->ActiveCab>0)))
-        {
-        HVoltageGauge.UpdateValue(DynamicObject->NextConnected->MoverParameters->RunningTraction.TractionVoltage); //Winger czy to nie jest zle? *DynamicObject->MoverParameters->Mains);
-        HVoltageGauge.Update();
-        }
-      if(((TestFlag(DynamicObject->MoverParameters->Couplers[0].CouplingFlag,ctrain_controll))
-       && (DynamicObject->MoverParameters->ActiveCab<0)))
-       {
-        HVoltageGauge.UpdateValue(DynamicObject->PrevConnected->MoverParameters->RunningTraction.TractionVoltage); //Winger czy to nie jest zle? *DynamicObject->MoverParameters->Mains);
-        HVoltageGauge.Update();
-       }
-      }
-       if (DynamicObject->MoverParameters->EngineType==DieselElectric)
+      else
         HVoltageGauge.UpdateValue(DynamicObject->MoverParameters->Voltage);
       HVoltageGauge.Update();
      }
@@ -3993,18 +3954,8 @@ if (DynamicObject->MoverParameters->Battery==true)
            }
         }
      }
-     if (Console::Pressed(Global::Keys[k_SmallCompressor]))
-     {//Winger 160404: mala sprezarka wl
-      if ((DynamicObject->MoverParameters->PantPress<0.48))
-      {//ciœnienie wg http://www.transportszynowy.pl/eu06-07pneumat.php
-       DynamicObject->MoverParameters->PantCompFlag=true;
-       //dsbSwitch->SetVolume(DSBVOLUME_MAX); //tu dŸwiêk byæ nie mo¿e
-       //dsbSwitch->Play( 0, 0, 0 );
-      }
-      else
-       DynamicObject->MoverParameters->PantCompFlag=false;
-     }
-     else //Ra: przecieœæ to na zwolnienie klawisza
+     if (!Console::Pressed(Global::Keys[k_SmallCompressor]))
+     //Ra: przecieœæ to na zwolnienie klawisza
       DynamicObject->MoverParameters->PantCompFlag=false;
      if ( Console::Pressed(Global::Keys[k_Univ2]) )
      {
@@ -4883,12 +4834,13 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     PantAllDownButtonGauge.Clear();
     VelocityGauge.Clear();
     I1Gauge.Clear();
-    I1Gauge.Output(5); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
+    I1Gauge.Output((DynamicObject->MoverParameters->TrainType&(dt_EZT))?0:5); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
     I2Gauge.Clear();
     I2Gauge.Output(4); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
     I3Gauge.Clear();
     //I3Gauge.Output(3); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
     ItotalGauge.Clear();
+    I1Gauge.Output((DynamicObject->MoverParameters->TrainType&(dt_EZT))?5:0); //Ra: kana³u komunikacji zwrotnej
     CylHamGauge.Clear();
     PrzGlGauge.Clear();
     ZbGlGauge.Clear();

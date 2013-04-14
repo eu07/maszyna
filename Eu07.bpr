@@ -57,9 +57,9 @@
 IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=13
-MinorVer=3
-Release=784
-Build=410
+MinorVer=4
+Release=788
+Build=411
 Debug=1
 PreRelease=0
 Special=0
@@ -70,14 +70,14 @@ CodePage=1250
 
 [Version Info Keys]
 CompanyName=EU07 Team
-FileDescription=MaSzyna EU07-424
-FileVersion=13.3.784.410
+FileDescription=MaSzyna EU07-424, Kurs 2013 edition
+FileVersion=13.4.788.411
 InternalName=9th by Ra
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=eu07.exe
 ProductName=MaSzyna EU07-424
-ProductVersion=13.3
+ProductVersion=13.4
 Comments=
 
 [HistoryLists\hlIncludePath]
