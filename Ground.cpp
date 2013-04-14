@@ -2969,7 +2969,7 @@ TTraction* __fastcall TGround::FindTraction(vector3 *Point,int &iConnection,TGro
   if ((sr=FastGetSubRect(c+y,r+x))!=NULL)
    if ((tmp=sr->FindTraction(Point,iConnection,Exclude->Traction))!=NULL)
     return tmp;
-  if (x&&y)
+  if (x&y)
   {if ((sr=FastGetSubRect(c+y,r-x))!=NULL)
     if ((tmp=sr->FindTraction(Point,iConnection,Exclude->Traction))!=NULL)
      return tmp;

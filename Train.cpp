@@ -329,7 +329,6 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       }
       if (cKey==Global::Keys[k_Main])
       {
-       //DynamicObject->MoverParameters->BatterySwitch(true); //na razie tutaj
        if (fabs(MainOnButtonGauge.GetValue())<0.001)
        {
         dsbSwitch->SetVolume(DSBVOLUME_MAX);
@@ -1013,7 +1012,6 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                        dsbPneumaticRelay->SetVolume(-80);
                        dsbPneumaticRelay->Play(0,0,0);
                     }
-                    else;
                  }
               }
           }
@@ -1042,7 +1040,6 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                        dsbPneumaticRelay->SetVolume(-80);
                        dsbPneumaticRelay->Play(0,0,0);
                     }
-                    else;
                  }
               }
           }
@@ -3849,7 +3846,7 @@ if (DynamicObject->MoverParameters->Battery==true)
      if ( Console::Pressed(VK_SHIFT)&&Console::Pressed(Global::Keys[k_Converter]) )   //NBMX 14-09-2003: przetwornica wl
       {                           //(DynamicObject->MoverParameters->CompressorPower<2)
         ConverterButtonGauge.PutValue(1);
-        if ((DynamicObject->MoverParameters->PantFrontVolt!=0.0) || (DynamicObject->MoverParameters->PantRearVolt!=0.0) || (DynamicObject->MoverParameters->EnginePowerSource.SourceType!=CurrentCollector) || (!Global::bLiveTraction))
+        if ((DynamicObject->MoverParameters->PantFrontVolt!=0.0)||(DynamicObject->MoverParameters->PantRearVolt!=0.0)||(DynamicObject->MoverParameters->EnginePowerSource.SourceType!=CurrentCollector)||(!Global::bLiveTraction))
          DynamicObject->MoverParameters->ConverterSwitch(true);
         //if ((DynamicObject->MoverParameters->EngineType!=ElectricSeriesMotor)&&(DynamicObject->MoverParameters->TrainType!=dt_EZT)) //hunter-110212: poprawka dla EZT
         if (DynamicObject->MoverParameters->CompressorPower==2) //hunter-091012: tak jest poprawnie
@@ -4149,7 +4146,7 @@ if (DynamicObject->MoverParameters->Battery==true)
 //    bool kEP;
 //    kEP=(DynamicObject->MoverParameters->BrakeSubsystem==Knorr)||(DynamicObject->MoverParameters->BrakeSubsystem==Hik)||(DynamicObject->MoverParameters->BrakeSubsystem==Kk);
     if ((DynamicObject->MoverParameters->BrakeSystem==ElectroPneumatic)&&((DynamicObject->MoverParameters->BrakeSubsystem==Knorr)||(DynamicObject->MoverParameters->BrakeSubsystem==Hik)||(DynamicObject->MoverParameters->BrakeSubsystem==Kk)))
-     if (Console::Pressed(Global::Keys[k_AntiSlipping]))                             //kEP
+     if (Console::Pressed(Global::Keys[k_AntiSlipping])) //kEP
       {
        AntiSlipButtonGauge.UpdateValue(1);
        if (DynamicObject->MoverParameters->SwitchEPBrake(1))
