@@ -25,6 +25,8 @@ __fastcall TPoKeys55::TPoKeys55()
  fAnalog[0]=fAnalog[1]=fAnalog[2]=fAnalog[3]=fAnalog[4]=fAnalog[5]=fAnalog[6]=-1.0;
  iPWM[0]=iPWM[1]=iPWM[2]=iPWM[3]=iPWM[4]=iPWM[5]=0;
  iPWM[6]=1024;
+ iInputs[0]=0; //czy normalnie s¹ w stanie wysokim?
+ iRepated=0;
 };
 //---------------------------------------------------------------------------
 __fastcall TPoKeys55::~TPoKeys55()
@@ -230,7 +232,7 @@ bool __fastcall TPoKeys55::PWM(int x,float y)
 
 bool __fastcall TPoKeys55::Update()
 {//funkcja powinna byæ wywo³ywana regularnie, np. raz w ka¿dej ramce ekranowej
- switch (++iFaza)
+ switch (iFaza)
  {case 1: //uaktualnienie PWM raz na jakiœ czas
    OutputBuffer[9]=0x3F; //maska u¿ytych PWM
    *((int*)(OutputBuffer+10))=iPWM[0]; //PWM1 (pin 22)
@@ -241,10 +243,12 @@ bool __fastcall TPoKeys55::Update()
    *((int*)(OutputBuffer+30))=iPWM[5]; //PWM6 (pin 17)
    *((int*)(OutputBuffer+34))=iPWM[6]; //PWM period
    Write(0xCB,1); //wys³anie ustawieñ (1-ustaw, 0-odczyt)
+   ++iFaza; //ta faza zosta³a zakoñczona
   break;
-  case 2: //odczyt wejœæ analogowych - komenda
-   Write(0x3A,0); //0x3A - Analog inputs reading – all analog inputs in one command
-   if (Read())
+  case 2: //odczyt wejœæ analogowych - komenda i przetwarzanie
+   if (iLastCommand!=0x3A) //asynchroniczne ustawienie kontrolki mo¿e namieszaæ
+    Write(0x3A,0); //0x3A - Analog inputs reading – all analog inputs in one command
+   else if (Read())
    {//jest odebrana ramka i zgodnoœæ numeru ¿¹dania - wchodzi tu w ogóle?
     fAnalog[0]=((InputBuffer[21]<<8)+InputBuffer[22])/4095.0f; //pin 47
     fAnalog[1]=((InputBuffer[19]<<8)+InputBuffer[20])/4095.0f; //pin 46
@@ -253,52 +257,26 @@ bool __fastcall TPoKeys55::Update()
     fAnalog[4]=((InputBuffer[13]<<8)+InputBuffer[14])/4095.0f; //pin 43
     fAnalog[5]=((InputBuffer[11]<<8)+InputBuffer[12])/4095.0f; //pin 42
     fAnalog[6]=((InputBuffer[ 9]<<8)+InputBuffer[10])/4095.0f; //pin 41
-    iFaza++; //odczyt w nastêpnej kolejnoœci mo¿na ju¿ pomin¹æ
+    ++iFaza; //skoro odczytano, mo¿na przejœæ do kolejnej fazy
+    //iRepated=0; //zerowanie licznika prób
    }
+   //else ++iRepated; //licznik nieudanych prób
   break;
-  case 3: //odczyt wejœæ analogowych - przetwarzanie
-   if (iLastCommand==0x3A) //asynchroniczne ustawienie kontrolki mo¿e namieszaæ
-    if (Read())
-    {//jest odebrana ramka i zgodnoœæ numeru ¿¹dania
-     fAnalog[0]=((InputBuffer[21]<<8)+InputBuffer[22])/4095.0f; //pin 47
-     fAnalog[1]=((InputBuffer[19]<<8)+InputBuffer[20])/4095.0f; //pin 46
-     fAnalog[2]=((InputBuffer[17]<<8)+InputBuffer[18])/4095.0f; //pin 45
-     fAnalog[3]=((InputBuffer[15]<<8)+InputBuffer[16])/4095.0f; //pin 44
-     fAnalog[4]=((InputBuffer[13]<<8)+InputBuffer[14])/4095.0f; //pin 43
-     fAnalog[5]=((InputBuffer[11]<<8)+InputBuffer[12])/4095.0f; //pin 42
-     fAnalog[6]=((InputBuffer[ 9]<<8)+InputBuffer[10])/4095.0f; //pin 41
-    }
-    else
-     iFaza--; //powtarzanie odczytu do skutku (mo¿e zawiesiæ?)
-  break;
-  case 4: //odczyt wejœæ cyfrowych - komenda
-   Write(0x31,0); //0x31: blokowy odczyt wejœæ
-   if (Read())
+  case 3: //odczyt wejœæ cyfrowych - komenda i przetwarzanie
+   if (iLastCommand!=0x31) //asynchroniczne ustawienie kontrolki mo¿e namieszaæ
+    Write(0x31,0); //0x31: blokowy odczyt wejœæ
+   else if (Read())
    {//jest odebrana ramka i zgodnoœæ numeru ¿¹dania
-    for(int i=3;i<7;i++)
-    {
-     DInputs[i-3]=InputBuffer[i];
-    }
-    iFaza=0;
-//    iFaza++; //odczyt w nastêpnej kolejnoœci mo¿na ju¿ pomin¹æ
+    iInputs[0]=*((int*)(InputBuffer+3)); //odczyt 32 bitów
+    iFaza=0; //skoro odczytano, mo¿na cykl od pocz¹tku
+    //iRepated=0; //zerowanie licznika prób
    }
+   //else ++iRepated; //licznik nieudanych prób
   break;
-  case 5: //odczyt wejœæ cyfrowych - przetwarzanie
-   if (iLastCommand==0x31) //asynchroniczne ustawienie kontrolki mo¿e namieszaæ
-    if (Read())
-    {//jest odebrana ramka i zgodnoœæ numeru ¿¹dania
-     AnsiString log="";
-     for(int i=3;i<7;i++)
-     {
-      log=log+IntToStr(InputBuffer[i])+" ";
-      DInputs[i-3]=InputBuffer[i];
-     }
-     iFaza=0; //cykl od pocz¹tku
-    }
-    else
-     iFaza--; //powtarzanie odczytu do skutku (mo¿e zawiesiæ?)
-  break;
+  default:
+   iFaza=0; //na wypadek, gdyby zb³¹dzi³o po jakichœ zmianach w kodzie
  }
+ //if (iRepated>10) iFaza=0; //da to coœ?
  return (!iFaza); //dalsze operacje tylko po ca³ym cyklu
 };
 

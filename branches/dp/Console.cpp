@@ -276,6 +276,6 @@ unsigned char __fastcall Console::DigitalGet(int x)
 {//pobranie wartoœci cyfrowej
  if (iMode==4)
   if (PoKeys55)
-   return PoKeys55->DInputs[x];
+   return PoKeys55->iInputs[x];
  return 0;
 };
