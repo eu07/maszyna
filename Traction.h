@@ -21,6 +21,7 @@ private:
 public: //na razie
  TTraction *pPrev,*pNext; //³¹czenie drutów w sieæ
  int iPrev,iNext; //do którego koñca siê ³¹czy
+ int iLast; //ustawiony bit 0, jeœli jest ostatnim drutem w sekcji; bit1 - przedostatni
 public:
  GLuint uiDisplayList;
  vector3 pPoint1,pPoint2,pPoint3,pPoint4;
@@ -58,6 +59,7 @@ public:
  int __fastcall TestPoint(vector3 *Point);
  void __fastcall Connect(int my,TTraction *with,int to);
  void __fastcall Init();
+ void __fastcall WhereIs();
 };
 //---------------------------------------------------------------------------
 #endif

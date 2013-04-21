@@ -2087,15 +2087,18 @@ SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);
    }
    if (k!=p->fAngleL)
    {//¿eby nie liczyæ w kilku miejscach ani gdy nie potrzeba
-    p->fAngleL=k; //zmieniony k¹t
-    //wyliczyæ k¹t górnego ramienia z wzoru (a)cosinusowego
-    //=acos((b*cos()+c)/a)
-    //p->dPantAngleT=acos((1.22*cos(k)+0.535)/1.755); //górne ramiê
-    p->fAngleU=acos((1.176289*cos(k)+0.54555075)/1.724482197); //górne ramiê
-    //wyliczyæ aktualn¹ wysokoœæ z wzoru sinusowego
-    //h=a*sin()+b*sin()
-    //p->PantWys=1.22*sin(k)+1.755*sin(p->dPantAngleT); //wysokoœæ ca³oœci
-    p->PantWys=1.176289*sin(k)+1.724482197*sin(p->fAngleU); //wysokoœæ ca³oœci
+    if (k+p->fAngleU<M_PI)
+    {//o ile nie zosta³ osi¹gniêty k¹t maksymalny
+     p->fAngleL=k; //zmieniony k¹t
+     //wyliczyæ k¹t górnego ramienia z wzoru (a)cosinusowego
+     //=acos((b*cos()+c)/a)
+     //p->dPantAngleT=acos((1.22*cos(k)+0.535)/1.755); //górne ramiê
+     p->fAngleU=acos((1.176289*cos(k)+0.54555075)/1.724482197); //górne ramiê
+     //wyliczyæ aktualn¹ wysokoœæ z wzoru sinusowego
+     //h=a*sin()+b*sin()
+     //p->PantWys=1.22*sin(k)+1.755*sin(p->dPantAngleT); //wysokoœæ ca³oœci
+     p->PantWys=1.176289*sin(k)+1.724482197*sin(p->fAngleU); //wysokoœæ ca³oœci
+    }
    }
   } //koniec pêtli po pantografach
   if ((MoverParameters->PantFrontSP==false)&&(MoverParameters->PantFrontUp==false))
