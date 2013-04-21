@@ -35,6 +35,7 @@ TTraction::TTraction()
 //    mdPole= NULL;
 //    ReplacableSkinID= 0;
  pPrev=pNext=NULL;
+ iLast=1; //¿e niby ostatni drut
 }
 
 TTraction::~TTraction()
@@ -383,6 +384,22 @@ void __fastcall TTraction::Connect(int my,TTraction *with,int to)
   with->pPrev=this;
   with->iPrev=my;
  }
+ if (pPrev) //jeœli z obu stron pod³¹czony
+  if (pNext)
+   iLast=0; //to nie jest ostatnim
+ if (with->pPrev) //temu te¿, bo drugi raz ³¹czenie siê nie nie wykona
+  if (with->pNext)
+   with->iLast=0; //to nie jest ostatnim
+};
+
+void __fastcall TTraction::WhereIs()
+{//ustalenie przedostatnich przêse³
+ if (iLast) return; //ma ju¿ ustalon¹ informacjê o po³o¿eniu
+ if (pPrev?pPrev->iLast==1:false) //jeœli poprzedni jest ostatnim
+  iLast=2; //jest przedostatnim
+ else
+  if (pNext?pNext->iLast==1:false) //jeœli nastêpny jest ostatnim
+   iLast=2; //jest przedostatnim
 };
 
 void __fastcall TTraction::Init()
