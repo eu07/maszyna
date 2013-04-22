@@ -1164,7 +1164,7 @@ __fastcall TDynamicObject::TDynamicObject()
  iAnimType[ANIM_BOOGIES]=2; //4-wózki (2)
  iAnimType[ANIM_PANTS  ]=2; //5-pantografy (2)
  iAnimType[ANIM_STEAMS ]=0; //6-t³oki (napêd parowozu)
- iAnimations=28; //tyle by³o kiedyœ w ka¿dym pojeŸdzie (2 wi¹zary wypad³y)
+ iAnimations=0; //na razie nie ma ¿adnego
  pAnimations=NULL;
  pAnimated=NULL;
  fShade=0.0; //standardowe oœwietlenie na starcie
@@ -3087,6 +3087,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
         }
         if (!pAnimations)
         {//Ra: tworzenie tabeli animacji, jeœli jeszcze nie by³o
+         if (!iAnimations) iAnimations=28; //tyle by³o kiedyœ w ka¿dym pojeŸdzie (2 wi¹zary wypad³y)
          pAnimations=new TAnim[iAnimations];
          int i,j,k=0,sm=0;
          for (j=0;j<ANIM_TYPES;++j)
@@ -3166,12 +3167,25 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
         if (str==AnsiString("animpantrd1prefix:"))
         {//prefiks ramion dolnych 1
          str=Parser->GetNextSymbol();
+         float4x4 m; //macierz do wyliczenia pozycji i wektora ruchu pantografu
+         TSubModel *sm;
          if (pants)
           for (int i=0;i<iAnimType[ANIM_PANTS];i++)
           {//Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
            asAnimName=str+AnsiString(i+1);
-           pants[i].smElement[0]=mdModel->GetFromName(asAnimName.c_str());
-           pants[i].smElement[0]->WillBeAnimated();
+           sm=mdModel->GetFromName(asAnimName.c_str());
+           pants[i].smElement[0]=sm;
+           sm->WillBeAnimated();
+           m=float4x4(*sm->GetMatrix()); //skopiowanie, bo bêdziemy mno¿yæ
+           m(3)[1]=m[3][1]+0.054; //w górê o wysokoœæ œlizgu (na razie tak)
+           while (sm->Parent)
+           {
+            if (sm->Parent->GetMatrix())
+             m=*sm->Parent->GetMatrix()*m;
+            sm=sm->Parent;
+           }
+           pants[i].fParamPants->vPos.z=m[3][0]; //przesuniêcie w bok (asymetria)
+           pants[i].fParamPants->vPos.y=m[3][1]; //przesuniêcie w górê odczytane z modelu
           }
         }
         else if (str==AnsiString("animpantrd2prefix:"))
@@ -3241,8 +3255,8 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
            //pants[i].fParamPants->PantWys=1.22*sin(pants[i].fParamPants->fAngleL)+1.755*sin(pants[i].fParamPants->fAngleU); //wysokoœæ pocz¹tkowa
            pants[i].fParamPants->PantWys=1.176289*sin(pants[i].fParamPants->fAngleL)+1.724482197*sin(pants[i].fParamPants->fAngleU); //wysokoœæ pocz¹tkowa
            pants[i].fParamPants->vPos.x=(i&1)?pant2x:pant1x;
-           pants[i].fParamPants->vPos.y=panty-panth-pants[i].fParamPants->PantWys; //np. 4.429-0.097=4.332=~4.335
-           pants[i].fParamPants->vPos.z=0; //niezerowe dla pantografów asymetrycznych
+           //pants[i].fParamPants->vPos.y=panty-panth-pants[i].fParamPants->PantWys; //np. 4.429-0.097=4.332=~4.335
+           //pants[i].fParamPants->vPos.z=0; //niezerowe dla pantografów asymetrycznych
            pants[i].fParamPants->PantTraction=pants[i].fParamPants->PantWys;
           }
         }
