@@ -426,7 +426,6 @@ void __fastcall Global::ConfigParse(TQueryParserComp *qp,cParser *cp)
  if (iFpsRadiusMax>400) iFpsRadiusMax=400;
  if (bPause) iTextMode=VK_F1; //jak pauza, to pokazaæ zegar
  bLiveTraction=true; //tymczasowo w³¹czony odczyt napiêcia z sieci - chyba mo¿na na sta³e zostawiæ
- bEnableTraction=true; //to te¿
 }
 
 void __fastcall Global::InitKeys(AnsiString asFileName)

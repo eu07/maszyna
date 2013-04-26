@@ -3392,7 +3392,7 @@ bool __fastcall TGround::Update(double dt, int iter)
   //ABu 200205: a to robimy tylko raz, bo nie potrzeba wiêcej
   //Winger 180204 - pantografy
   double dt1=dt*iter; //ca³kowity czas
-  if (Global::bEnableTraction)
+  //if (Global::bEnableTraction) //bLoadTraction?
   {//Ra: zmieniæ warunek na sprawdzanie pantografów w jednej zmiennej: czy pantografy i czy podniesione
    for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
    {
@@ -3406,6 +3406,7 @@ bool __fastcall TGround::Update(double dt, int iter)
    for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
     Current->DynamicObject->Update(dt,dt1);
   }
+/*
   else
   {
    for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
@@ -3413,10 +3414,11 @@ bool __fastcall TGround::Update(double dt, int iter)
    for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
     Current->DynamicObject->Update(dt,dt1);
   }
+*/
  }
  else
  {//jezeli jest tylko jedna iteracja
-  if (Global::bEnableTraction)
+  //if (Global::bEnableTraction) //bLoadTraction?
   {
    for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
    {
@@ -3430,6 +3432,7 @@ bool __fastcall TGround::Update(double dt, int iter)
    for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
     Current->DynamicObject->Update(dt,dt);
   }
+/*
   else
   {
    for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
@@ -3441,6 +3444,7 @@ bool __fastcall TGround::Update(double dt, int iter)
    for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
     Current->DynamicObject->Update(dt,dt);
   }
+*/
  }
  if (bDynamicRemove)
  {//jeœli jest coœ do usuniêcia z listy, to trzeba na koñcu
@@ -3545,8 +3549,8 @@ bool __fastcall TGround::GetTraction(TDynamicObject *model)
           vGdzie=vStyk-pant0; //wektor
           fVertical=DotProduct(vGdzie,vUp); //musi siê mieœciæ w przedziale ruchu pantografu
           if (fVertical>=0.0) //jeœli ponad pantografem (bo mo¿e ³apaæ druty spod wiaduktu)
-           if (fVertical<p->PantWys-0.15) //jeœli drut jest ni¿ej ni¿ 15cm pod œlizgiem
-           {//prze³¹czamy w tryb po³amania, o ile jedzie
+           if (Global::bEnableTraction?fVertical<p->PantWys-0.15:false) //jeœli drut jest ni¿ej ni¿ 15cm pod œlizgiem
+           {//prze³¹czamy w tryb po³amania, o ile jedzie; (bEnableTraction) aby da³o siê jeŸdziæ na koœlawych sceneriach
             fHorizontal=DotProduct(vGdzie,vLeft); //i do tego jeszcze wejdzie pod œlizg
             if (fabs(fHorizontal)<=0.8) //0.635 dla AKP-1 AKP-4E
              p->PantWys=-1.0; //ujemna liczba oznacza po³amanie
