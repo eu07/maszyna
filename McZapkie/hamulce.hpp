@@ -532,6 +532,7 @@ private:
 	double XP;
 	double RedAdj;
 	double Sounds[5];
+	bool Fala;
 	
 public:
 	virtual double __fastcall GetPF(double i_bcp, double pp, double hp, double dt, double ep);

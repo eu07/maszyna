@@ -54,6 +54,7 @@ CONST
   p_rapid = 1;
   p_pp    = 2;
   p_al2   = 3;
+  p_ppz   = 4;
 
 
 
@@ -100,6 +101,15 @@ TYPE
         procedure Update(dt:real); override;
       end;
 
+    TPrzek_PZZ= class(TPrzekladnik) //podwojny zawor zwrotny
+      private
+        LBP: real;
+      public
+        procedure SetLBP(P: real);
+        procedure Update(dt:real); override;
+      end;
+
+
     TPrzekZalamany= class(TPrzekladnik) //Knicksventil
       private
       public
@@ -126,6 +136,7 @@ TYPE
         Podskok: real;            //podskok preznosci poczatkowej
         HPBR: real;               //zasilanie ZP z wysokiego cisnienia
         autom: boolean;           //odluzniacz samoczynny
+        LBP: real;                //cisnienie hamulca pomocniczego        
       public
         function GetPF(PP, dt, Vel: real): real; override;          //przeplyw miedzy komora wstepna i PG
         procedure EStParams(i_crc: real);                           //parametry charakterystyczne dla ESt
@@ -135,10 +146,11 @@ TYPE
         procedure CheckReleaser(dt: real);                          //odluzniacz
         function CVs(bp: real): real;                               //napelniacz sterujacego
         function BVs(BCP: real): real;                              //napelniacz pomocniczego
-        procedure SetSize(size: integer; params: string);    //ustawianie dysz (rozmiaru ZR), przekladniki
+        procedure SetSize(size: integer; params: string);           //ustawianie dysz (rozmiaru ZR), przekladniki
         procedure PLC(mass: real);                                  //wspolczynnik cisnienia przystawki wazacej
         procedure SetLP(TM, LM, TBP: real);                         //parametry przystawki wazacej
-        procedure ForceEmptiness(); override;                       //wymuszenie bycia pustym        
+        procedure ForceEmptiness(); override;                       //wymuszenie bycia pustym
+        procedure SetLBP(P: real);                                  //cisnienie z hamulca pomocniczego
       end;
 
 function d2A(d: real):real;
@@ -272,6 +284,34 @@ begin
 
 end;
 
+// ------ PRZEK£ADNIK CI¥G£Y ------
+
+procedure TPrzek_PZZ.SetLBP(P:real);
+begin
+  LBP:=P;
+end;
+
+procedure TPrzek_PZZ.Update(dt: real);
+var BCP, BVP, dV, Pgr: real;
+begin
+  BVP:=BrakeRes.P;
+  BCP:=Next.P;
+
+  Pgr:=Max0R(LBP,P);
+
+  if(BCP>Pgr)then
+   dV:=-PFVd(BCP,0,d2A(8),Pgr)*dt
+  else
+  if(BCP<Pgr)then
+   dV:=PFVa(BVP,BCP,d2A(8),Pgr)*dt
+  else dV:=0;
+
+  Next.Flow(dV);
+  if dV>0 then
+  BrakeRes.Flow(-dV);
+
+end;
+
 // ------ OERLIKON EST NA BOGATO ------
 
 function TNESt3.GetPF(PP, dt, Vel: real): real;     //przeplyw miedzy komora wstepna i PG
@@ -322,14 +362,17 @@ begin
       (Przekladniki[i] as TPrzeciwposlizg).SetPoslizg((BrakeStatus and b_asb)=b_asb)
     else
     if (Przekladniki[i] is TPrzekCiagly) then
-      (Przekladniki[i] as TPrzekCiagly).SetMult(LoadC);
+      (Przekladniki[i] as TPrzekCiagly).SetMult(LoadC)
+    else
+    if (Przekladniki[i] is TPrzek_PZZ) then
+      (Przekladniki[i] as TPrzek_PZZ).SetLBP(LBP);
    end;
 
 
 //przeplyw testowy miedzypojemnosci
   dV:=PF(MPP,VVP,BVs(BCP))+PF(MPP,CVP,CVs(BCP));
   if(MPP-0.05>BVP)then
-    dV:=dV+PF(MPP,BVP,Nozzles[dPT]*nastG+(1-nastG)*Nozzles[dPO]);
+    dV:=dV+PF(MPP-0.05,BVP,Nozzles[dPT]*nastG+(1-nastG)*Nozzles[dPO]);
   if MPP>VVP then dV:=dV+PF(MPP,VVP,d2A(5));
   Miedzypoj.Flow(dV*dt*0.15);
 
@@ -343,7 +386,7 @@ begin
 
 //przeplyw ZP <-> MPJ
   if(MPP-0.05>BVP)then
-   dV:=PF(BVP,MPP,Nozzles[dPT]*nastG+(1-nastG)*Nozzles[dPO])*dt
+   dV:=PF(BVP,MPP-0.05,Nozzles[dPT]*nastG+(1-nastG)*Nozzles[dPO])*dt
   else dV:=0;
   BrakeRes.Flow(dV);
   dV1:=dV1+dV*0.98;
@@ -534,6 +577,13 @@ begin
 end;
 
 
+procedure TNESt3.SetLBP(P: real);
+begin
+  LBP:=P;
+end;
+
+
+
 procedure TNESt3.SetSize(size: integer; params: string);     //ustawianie dysz (rozmiaru ZR)
 const
   dNO1l = 1.250;
@@ -561,6 +611,9 @@ begin
   if Pos('AL2',params)>0 then
     Przekladniki[2]:=TPrzekCiagly.Create
   else
+  if Pos('PZZ',params)>0 then
+   Przekladniki[2]:=TPrzek_PZZ.Create
+  else
    Przekladniki[2]:=TRura.Create;
 
   if (Pos('3d',params)+Pos('4d',params)>0) then autom:=false else autom:=true;
@@ -582,8 +635,8 @@ begin
     14:
      begin   //dON,dOO,dTN,dTO,dP,dS
       Nozzles[dON]:=4.3;
-      Nozzles[dOO]:=1.83;
-      Nozzles[dTN]:=2.85;
+      Nozzles[dOO]:=2.85;
+      Nozzles[dTN]:=1.83;
       Nozzles[dTO]:=1.57;
       Nozzles[dP]:=3.4;
       Nozzles[dPd]:=2.20;
@@ -594,8 +647,8 @@ begin
     12:
      begin   //dON,dOO,dTN,dTO,dP,dS
       Nozzles[dON]:=3.7;
-      Nozzles[dOO]:=1.62;
-      Nozzles[dTN]:=2.50;
+      Nozzles[dOO]:=2.50;
+      Nozzles[dTN]:=1.65;
       Nozzles[dTO]:=1.39;
       Nozzles[dP]:=2.65;
       Nozzles[dPd]:=1.80;
@@ -606,8 +659,8 @@ begin
     10:
      begin   //dON,dOO,dTN,dTO,dP,dS
       Nozzles[dON]:=3.1;
-      Nozzles[dOO]:=1.35;
-      Nozzles[dTN]:=2.0;
+      Nozzles[dOO]:=2.0;
+      Nozzles[dTN]:=1.35;
       Nozzles[dTO]:=1.13;
       Nozzles[dP]:=1.6;
       Nozzles[dPd]:=1.55;

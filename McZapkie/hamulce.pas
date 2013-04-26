@@ -366,6 +366,7 @@ TYPE
         XP: real;              //komora powietrzna w reduktorze — jest potrzebna do odwzorowania fali
         RedAdj: real;          //dostosowanie reduktora cisnienia (krecenie kapturkiem)
         Sounds: array[0..4] of real;       //wielkosci przeplywow dla dzwiekow
+        Fala: boolean;
       public
         function GetPF(i_bcp:real; pp, hp, dt, ep: real): real; override;
         procedure Init(press: real); override;
@@ -1529,7 +1530,7 @@ begin
   dV:=PF(CVP,VVP,0.0015*temp/1.8/2)*dt;
   CntrlRes.Flow(+dV);
   ValveRes.Flow(-0.04*dV);
-  dV1:=dV1-0.96*dV;
+  dV1:=dV1+0.96*dV;
 
 
 //luzowanie KI  {G}
@@ -2255,11 +2256,14 @@ begin
 
           if(i_bcp=-1)then ep:=Min0R(HP,5.4+RedAdj);
 
-          if(ep>rp+0.01)then
-            if(ep>rp+0.11)then
-              xp:=xp-16*PR(ep,xp)*dt
-            else
-              xp:=xp-16*(ep-(ep+0.01))/(0.1)*PR(ep,xp)*dt;
+          if(ep>rp+0.2)then Fala:=true;
+          if(Fala)then
+            if(ep>rp+0.01)then
+              if(ep>rp+0.11)then
+                xp:=xp-16*PR(ep,xp)*dt
+              else
+                xp:=xp-16*(ep-(ep+0.01))/(0.1)*PR(ep,xp)*dt
+            else Fala:=false;
 
           if(Limpp>cp)then //podwyzszanie szybkie
             cp:=cp+5*60*Min0R(abs(Limpp-cp),0.05)*PR(cp,Limpp)*dt //zbiornik sterujacy
@@ -2294,7 +2298,7 @@ begin
           if(rp>ep)then //zaworek zwrotny do opozniajacego
             rp:=rp+PF(rp,ep,0.01)*dt //szybki upust
           else
-            if(i_bcp=0)then
+            if(Round(i_bcp)=0)then
               rp:=rp+PF(rp,ep,0.0005)*dt //powolne wzrastanie, ale szybsze na jezdzie
             else
               rp:=rp+PF(rp,ep,0.000093/2)*dt; //powolne wzrastanie i to bardzo  //jednak trzeba wydluzyc, bo obecnie zle dziala

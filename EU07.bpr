@@ -58,7 +58,7 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=13
 MinorVer=4
-Release=790
+Release=797
 Build=408
 Debug=1
 PreRelease=0
@@ -71,7 +71,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=13.4.790.408
+FileVersion=13.4.797.408
 InternalName=8th by Ra + SPKS
 LegalCopyright=
 LegalTrademarks=
@@ -117,7 +117,7 @@ Item6=D:\EU07DDS\
 DebugSourceDirs=
 
 [Parameters]
-RunParams=-s nest.scn -v ET22-256-w
+RunParams=-s $.scn -v ep07-422-tv
 HostApplication=
 RemoteHost=
 RemotePath=

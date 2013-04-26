@@ -2313,7 +2313,7 @@ if (BrakeCtrlPosNo>1) and (ActiveCab*ActiveCab>0)then
 with BrakePressureTable[BrakeCtrlPos] do
 begin
           dpLocalValve:=LocHandle.GetPF(LocalBrakePos/LocalBrakePosNo, Hamulec.GetBCP, ScndPipePress, dt, 0);
-          if(BrakeHandle=FV4a)and((PipePress<2.75)and((Hamulec.GetStatus and b_rls)=0)) then
+          if(BrakeHandle=FV4a)and((PipePress<2.75)and((Hamulec.GetStatus and b_rls)=0))and(BrakeValve=LSt)then
             temp:=PipePress+0.00001
           else
             temp:=ScndPipePress;
@@ -2369,10 +2369,14 @@ end;
             end;
        EP2:      (Hamulec as TEStEP2).PLC(TotalMass);
        ESt3AL2,NESt3,ESt4,ESt3:
-         if MBPM<2 then
-          (Hamulec as TNESt3).PLC(MaxBrakePress[LoadFlag])
-        else
-          (Hamulec as TNESt3).PLC(TotalMass);
+         begin
+          if MBPM<2 then
+            (Hamulec as TNESt3).PLC(MaxBrakePress[LoadFlag])
+          else
+            (Hamulec as TNESt3).PLC(TotalMass);
+          LocBrakePress:=LocHandle.GetCP;            
+          (Hamulec as TNESt3).SetLBP(LocBrakePress);
+         end; 
        KE:
       begin
          LocBrakePress:=LocHandle.GetCP;
@@ -2417,7 +2421,7 @@ end;
     Pipe.CreatePress(-1);
     Pipe.Act;
    end;
-
+                                       
   if CompressedVolume<0 then
    CompressedVolume:=0;
 end;  {updatepipepressure}
