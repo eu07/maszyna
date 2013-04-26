@@ -1924,9 +1924,12 @@ bool __fastcall TWorld::Render()
  Camera.SetMatrix(); //ustawienie macierzy kamery wzglêdem pocz¹tku scenerii
  glLightfv(GL_LIGHT0,GL_POSITION,Global::lightPos);
 
- glDisable(GL_FOG);
-   Clouds.Render();
- glEnable(GL_FOG);
+ if (!Global::bWireFrame)
+ {//bez nieba w trybie rysowania linii
+  glDisable(GL_FOG);
+  Clouds.Render();
+  glEnable(GL_FOG);
+ }
  if (Global::bUseVBO)
  {//renderowanie przez VBO
   if (!Ground.RenderVBO(Camera.Pos)) return false;
