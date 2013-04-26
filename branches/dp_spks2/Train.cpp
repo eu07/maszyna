@@ -5052,9 +5052,9 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
    //sekcja przelacznikow obrotowych
    else if (str==AnsiString("brakeprofile_sw:"))                    //przelacznik tow/osob/posp
     BrakeProfileCtrlGauge.Load(Parser,DynamicObject->mdKabina);
-   else if (str==AnsiString("brakeprofileG_sw:"))                   //przelacznik tow/osob
+   else if (str==AnsiString("brakeprofileg_sw:"))                   //przelacznik tow/osob
     BrakeProfileG.Load(Parser,DynamicObject->mdKabina);
-   else if (str==AnsiString("brakeprofileR_sw:"))                   //przelacznik osob/posp
+   else if (str==AnsiString("brakeprofiler_sw:"))                   //przelacznik osob/posp
     BrakeProfileR.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("maxcurrent_sw:"))                    //przelacznik rozruchu
     MaxCurrentCtrlGauge.Load(Parser,DynamicObject->mdKabina);

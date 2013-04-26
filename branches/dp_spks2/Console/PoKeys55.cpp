@@ -307,6 +307,12 @@ bool __fastcall TPoKeys55::Update()
 //   iFaza=0; //cykl od pocz¹tku
    WriteLog("5");
   break;
+  case 6: //zabezpieczenie na wypadek wyjscia poza
+   iFaza=0;
+  break;
+  default:
+   iFaza=1;
+  break;
  }
  return (!iFaza); //dalsze operacje tylko po ca³ym cyklu
 };

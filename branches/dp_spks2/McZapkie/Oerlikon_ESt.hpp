@@ -140,6 +140,30 @@ public:
 };
 
 
+class DELPHICLASS TPrzek_PZZ;
+class PASCALIMPLEMENTATION TPrzek_PZZ : public TPrzekladnik 
+{
+	typedef TPrzekladnik inherited;
+	
+private:
+	double LBP;
+	
+public:
+	void __fastcall SetLBP(double P);
+	virtual void __fastcall Update(double dt);
+public:
+	#pragma option push -w-inl
+	/* TReservoir.Create */ inline __fastcall TPrzek_PZZ(void) : TPrzekladnik() { }
+	#pragma option pop
+	
+public:
+	#pragma option push -w-inl
+	/* TObject.Destroy */ inline __fastcall virtual ~TPrzek_PZZ(void) { }
+	#pragma option pop
+	
+};
+
+
 class DELPHICLASS TPrzekZalamany;
 class PASCALIMPLEMENTATION TPrzekZalamany : public TPrzekladnik 
 {
@@ -183,6 +207,7 @@ private:
 	double Podskok;
 	double HPBR;
 	bool autom;
+	double LBP;
 	
 public:
 	virtual double __fastcall GetPF(double PP, double dt, double Vel);
@@ -197,6 +222,7 @@ public:
 	void __fastcall PLC(double mass);
 	void __fastcall SetLP(double TM, double LM, double TBP);
 	virtual void __fastcall ForceEmptiness(void);
+	void __fastcall SetLBP(double P);
 public:
 	#pragma option push -w-inl
 	/* TBrake.Create */ inline __fastcall TNESt3(double i_mbp, double i_bcr, double i_bcd, double i_brc
@@ -229,6 +255,7 @@ static const Shortint p_none = 0x0;
 static const Shortint p_rapid = 0x1;
 static const Shortint p_pp = 0x2;
 static const Shortint p_al2 = 0x3;
+static const Shortint p_ppz = 0x4;
 extern PACKAGE double __fastcall d2A(double d);
 
 }	/* namespace Oerlikon_est */

@@ -2382,7 +2382,7 @@ bool __fastcall TController::UpdateSituation(double dt)
        //while ((Controlling->BrakeCtrlPos<3)&&Controlling->IncBrakeLevel());
        Controlling->BrakeLevelSet(Controlling->BrakeSystem==ElectroPneumatic?1:3);
        double p=Controlling->BrakePressureActual.PipePressureVal; //tu mo¿e byæ 0 albo -1 nawet
-       if (p<3.7) p=3.7; //TODO: zabezpieczenie przed dziwnymi CHK do czasu wyjaœnienia sensu 0 oraz -1 w tym miejscu
+       if (p<3.9) p=3.9; //TODO: zabezpieczenie przed dziwnymi CHK do czasu wyjaœnienia sensu 0 oraz -1 w tym miejscu
        if (Controlling->BrakeSystem==ElectroPneumatic?Controlling->BrakePress>2:Controlling->PipePress<p+0.1)
        {//jeœli w miarê zosta³ zahamowany (ciœnienie mniejsze ni¿ podane na pozycji 3, zwyle 0.37)
         if (Controlling->BrakeSystem==ElectroPneumatic)
