@@ -2259,10 +2259,10 @@ begin
           if(ep>rp+0.2)then Fala:=true;
           if(Fala)then
             if(ep>rp+0.01)then
-              if(ep>rp+0.11)then
+//              if(ep>rp+0.11)then
                 xp:=xp-16*PR(ep,xp)*dt
-              else
-                xp:=xp-16*(ep-(ep+0.01))/(0.1)*PR(ep,xp)*dt
+//              else
+//                xp:=xp-16*(ep-(ep+0.01))/(0.1)*PR(ep,xp)*dt
             else Fala:=false;
 
           if(Limpp>cp)then //podwyzszanie szybkie

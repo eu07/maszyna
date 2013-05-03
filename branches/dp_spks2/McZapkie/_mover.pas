@@ -5442,15 +5442,15 @@ else
 end;
 
 //ustalanie srednicy przewodu glownego (lokomotywa lub napêdowy
-  if((TestFlag(BrakeDelays,bdelay_G)and ( (not TestFlag(BrakeDelays,bdelay_R)) or (Power>1)) ))then
+  if (TestFlag(BrakeDelays,bdelay_G))and((not TestFlag(BrakeDelays,bdelay_R)) or (Power>1))then
     Spg:=0.792
   else
     Spg:=0.507;
 
   Pipe:= TReservoir.Create;
-  Pipe2:= TReservoir.Create;
-  Pipe.CreateCap((Dim.L+0.5)*Spg*1); //dlugosc x przekroj x odejscia i takie tam
-  Pipe2.CreateCap((Dim.L+0.5)*Spg*1);
+  Pipe2:= TReservoir.Create;  //zabezpieczenie, bo sie PG wywala... :(
+  Pipe.CreateCap((Max0R(Dim.L,14)+0.5)*Spg*1); //dlugosc x przekroj x odejscia i takie tam
+  Pipe2.CreateCap((Max0R(Dim.L,14)+0.5)*Spg*1);
 
  {to dac potem do init}
   if ReadyFlag then     {gotowy do drogi}
