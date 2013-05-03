@@ -2312,8 +2312,8 @@ bool __fastcall TTrain::Update()
          }
         if (rsHissU.AM!=0)            //upuszczanie z PG
          {
-            fNPress=(1*fPPress+DynamicObject->MoverParameters->Handle->GetSound(s_fv4a_u))/(2);
-            if (fNPress<0)
+            fNPress=(1*fNPress+DynamicObject->MoverParameters->Handle->GetSound(s_fv4a_u))/(2);
+            if (fNPress>0)
              {
               vol=rsHissU.AM*fNPress;
              }
