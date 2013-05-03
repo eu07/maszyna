@@ -2254,7 +2254,7 @@ begin
           Limpp:=Min0R(LPP_RP(i_bcp)+tp*0.08+RedAdj,HP); //pozycja + czasowy lub zasilanie
           ActFlowSpeed:=BPT[Round(i_bcp)][0];
 
-          if(i_bcp=-1)then ep:=Min0R(HP,5.4+RedAdj);
+          if (Round(i_bcp)=-1)then ep:=Min0R(HP,5.4+RedAdj);
 
           if(ep>rp+0.2)then Fala:=true;
           if(Fala)then

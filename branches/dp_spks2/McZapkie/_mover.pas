@@ -2320,7 +2320,7 @@ begin
           Handle.SetReductor(BrakeCtrlPos2);
 
           dpMainValve:=Handle.GetPF(BrakeCtrlPosR, PipePress, temp, dt, EqvtPipePress);
-          if (dpMainValve<0)and(PipePressureVal>0.01) then             {50}
+          if (dpMainValve<0){and(PipePressureVal>0.01)} then             {50}
             if Compressor>ScndPipePress then
              begin
               CompressedVolume:=CompressedVolume+dpMainValve/1500;
