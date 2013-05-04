@@ -333,7 +333,7 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
     {
      str=AnsiString(token.c_str());
      if (i<8)
-      Params[i].asInt=str.ToInt();
+      Params[i].asdouble=str.ToDouble(); //teraz mo¿e mieæ u³amek
      i++;
     }
    }
