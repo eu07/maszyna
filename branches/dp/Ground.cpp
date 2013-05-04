@@ -3193,9 +3193,9 @@ bool __fastcall TGround::CheckQuery()
     break;
     case tp_Lights:
      if (tmpEvent->Params[9].asModel)
-      for (i=0; i<iMaxNumLights; i++)
-       if (tmpEvent->Params[i].asInt>=0) //-1 zostawia bez zmiany
-        tmpEvent->Params[9].asModel->lsLights[i]=(TLightState)tmpEvent->Params[i].asInt;
+      for (i=0;i<iMaxNumLights;i++)
+       if (tmpEvent->Params[i].asdouble>=0) //-1 zostawia bez zmiany
+        tmpEvent->Params[9].asModel->LightSet(i,tmpEvent->Params[i].asdouble); //teraz te¿ u³amek
     break;
     case tp_Visible:
      if (tmpEvent->Params[9].asGroundNode)

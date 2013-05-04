@@ -98,8 +98,10 @@ private:
  AnsiString asText; //tekst dla wyœwietlacza znakowego
  TAnimAdvanced *pAdvanced;
  void __fastcall Advanced();
-public:
  TLightState lsLights[iMaxNumLights];
+ float fDark; //poziom zapalanie œwiat³a (powinno byæ chyba powi¹zane z danym œwiat³em?)
+ float fOnTime,fOffTime; //by³y sta³ymi, teraz mog¹ byæ zmienne dla ka¿dego egzemplarza
+public:
  GLuint ReplacableSkinId[5]; //McZapkie-020802: zmienialne skory
  __fastcall TAnimModel();
  __fastcall ~TAnimModel();
@@ -125,6 +127,7 @@ public:
  TSubModel* __fastcall TerrainSquare(int n);
  void __fastcall TerrainRenderVBO(int n);
  void __fastcall AnimationVND(void* pData, double a, double b, double c, double d);
+ void __fastcall LightSet(int n,float v);
 };
 
 //---------------------------------------------------------------------------
