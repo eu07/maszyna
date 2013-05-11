@@ -24,7 +24,7 @@ __fastcall TPoKeys55::TPoKeys55()
  iLastCommand=0;
  fAnalog[0]=fAnalog[1]=fAnalog[2]=fAnalog[3]=fAnalog[4]=fAnalog[5]=fAnalog[6]=-1.0;
  iPWM[0]=iPWM[1]=iPWM[2]=iPWM[3]=iPWM[4]=iPWM[5]=0;
- iPWM[6]=1024;
+ iPWM[6]=4096;
  iInputs[0]=0; //czy normalnie s¹ w stanie wysokim?
  iRepated=0;
 };
@@ -233,7 +233,7 @@ bool __fastcall TPoKeys55::PWM(int x,float y)
 bool __fastcall TPoKeys55::Update()
 {//funkcja powinna byæ wywo³ywana regularnie, np. raz w ka¿dej ramce ekranowej
  switch (iFaza)
- {case 1: //uaktualnienie PWM raz na jakiœ czas
+ {case 0: //uaktualnienie PWM raz na jakiœ czas
    OutputBuffer[9]=0x3F; //maska u¿ytych PWM
    *((int*)(OutputBuffer+10))=iPWM[0]; //PWM1 (pin 22)
    *((int*)(OutputBuffer+14))=iPWM[1]; //PWM2 (pin 21)
@@ -245,7 +245,7 @@ bool __fastcall TPoKeys55::Update()
    Write(0xCB,1); //wys³anie ustawieñ (1-ustaw, 0-odczyt)
    ++iFaza; //ta faza zosta³a zakoñczona
   break;
-  case 2: //odczyt wejœæ analogowych - komenda i przetwarzanie
+  case 1: //odczyt wejœæ analogowych - komenda i przetwarzanie
    if (iLastCommand!=0x3A) //asynchroniczne ustawienie kontrolki mo¿e namieszaæ
     Write(0x3A,0); //0x3A - Analog inputs reading – all analog inputs in one command
    else if (Read())
@@ -262,7 +262,7 @@ bool __fastcall TPoKeys55::Update()
    }
    //else ++iRepated; //licznik nieudanych prób
   break;
-  case 3: //odczyt wejœæ cyfrowych - komenda i przetwarzanie
+  case 2: //odczyt wejœæ cyfrowych - komenda i przetwarzanie
    if (iLastCommand!=0x31) //asynchroniczne ustawienie kontrolki mo¿e namieszaæ
     Write(0x31,0); //0x31: blokowy odczyt wejœæ
    else if (Read())
