@@ -4763,13 +4763,13 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     PantAllDownButtonGauge.Clear();
     VelocityGauge.Clear();
     I1Gauge.Clear();
-    I1Gauge.Output((DynamicObject->MoverParameters->TrainType&(dt_EZT))?0:5); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
+    I1Gauge.Output((DynamicObject->MoverParameters->TrainType&(dt_EZT))?-1:5); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
     I2Gauge.Clear();
     I2Gauge.Output(4); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
     I3Gauge.Clear();
     //I3Gauge.Output(3); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
     ItotalGauge.Clear();
-    I1Gauge.Output((DynamicObject->MoverParameters->TrainType&(dt_EZT))?5:0); //Ra: kana³u komunikacji zwrotnej
+    ItotalGauge.Output((DynamicObject->MoverParameters->TrainType&(dt_EZT))?5:-1); //Ra: kana³u komunikacji zwrotnej
     CylHamGauge.Clear();
     PrzGlGauge.Clear();
     ZbGlGauge.Clear();
