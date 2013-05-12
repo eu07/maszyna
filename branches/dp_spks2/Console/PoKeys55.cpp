@@ -25,7 +25,7 @@ __fastcall TPoKeys55::TPoKeys55()
  iLastCommand=0;
  fAnalog[0]=fAnalog[1]=fAnalog[2]=fAnalog[3]=fAnalog[4]=fAnalog[5]=fAnalog[6]=-1.0;
  iPWM[0]=iPWM[1]=iPWM[2]=iPWM[3]=iPWM[4]=iPWM[5]=0;
- iPWM[6]=1024;
+ iPWM[6]=4096;
 };
 //---------------------------------------------------------------------------
 __fastcall TPoKeys55::~TPoKeys55()

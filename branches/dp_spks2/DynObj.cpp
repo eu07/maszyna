@@ -2139,19 +2139,19 @@ TGround::GetTraction;
 
 //yB: przyspieszacz (moze zadziala, ale dzwiek juz jest)
 int flag=MoverParameters->Hamulec->GetSoundFlag();
-if((bBrakeAcc)&&(TestFlag(flag,sf_Acc))&&(ObjectDist<50000))
+if((bBrakeAcc)&&(TestFlag(flag,sf_Acc))&&(ObjectDist<2500))
   {
-   sBrakeAcc->SetVolume(-ObjectDist/10-(FreeFlyModeFlag?0:2000));
+   sBrakeAcc->SetVolume(-ObjectDist*3-(FreeFlyModeFlag?0:2000));
    sBrakeAcc->Play(0,0,0);
-   sBrakeAcc->SetPan(10000*sin(ModCamRot)*abs(sin(ModCamRot)));
+   sBrakeAcc->SetPan(10000*sin(ModCamRot));
   }
-if ((rsUnbrake.AM!=0)&&(ObjectDist<50000))
+if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
   {
    if ((TestFlag(flag,sf_CylU)) && ((MoverParameters->BrakePress*MoverParameters->MaxBrakePress[3])>0.05))
     {
-     vol=Min0R(0.2+1.6*sqrt(MoverParameters->BrakePress/MoverParameters->MaxBrakePress[3]),1);
-     vol=vol+(FreeFlyModeFlag?0:-0.5)-ObjectDist/50000;
-     rsUnbrake.SetPan(10000*sin(ModCamRot)*abs(sin(ModCamRot)));
+     vol=Min0R(0.2+1.6*sqrt((MoverParameters->BrakePress>0?MoverParameters->BrakePress:0)/MoverParameters->MaxBrakePress[3]),1);
+     vol=vol+(FreeFlyModeFlag?0:-0.5)-ObjectDist/5000;
+     rsUnbrake.SetPan(10000*sin(ModCamRot));
      rsUnbrake.Play(vol,DSBPLAY_LOOPING,MechInside,GetPosition());
     }
    else
