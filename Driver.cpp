@@ -24,7 +24,7 @@
 #define LOGORDERS 0
 #define LOGSTOPS 1
 #define LOGBACKSCAN 0
-#define LOGPRESS 0
+#define LOGPRESS 1
 /*
 
 Modu³ obs³uguj¹cy sterowanie pojazdami (sk³adami poci¹gów, samochodami).
@@ -795,7 +795,7 @@ __fastcall TController::TController
  iDriverFailCount=0;
  Need_TryAgain=false; //true, jeœli druga pozycja w elektryku nie za³apa³a
  Need_BrakeRelease=true;
- deltalog=1.0;
+ deltalog=0.05;//1.0;
 
  if (WriteLogFlag)
  {
@@ -1113,7 +1113,9 @@ bool __fastcall TController::CheckVehicles()
   if (AIControllFlag) //jeœli prowadzi komputer
    if (OrderCurrentGet()==Obey_train) //jeœli jazda poci¹gowa
    {Lights(1+4+16,2+32+64); //œwiat³a poci¹gowe (Pc1) i koñcówki (Pc5)
+#if LOGPRESS==0
     AutoRewident(); //nastawianie hamulca do jazdy poci¹gowej
+#endif
    }
    else if (OrderCurrentGet()&(Shunt|Connect))
     Lights(16,(pVehicles[1]->MoverParameters->ActiveCab)?1:0); //œwiat³a manewrowe (Tb1) na pojeŸdzie z napêdem
@@ -2211,8 +2213,8 @@ bool __fastcall TController::UpdateSituation(double dt)
   {//zapis do pliku DAT
    PhysicsLog();
    if (fabs(Controlling->V)>0.1) //Ra: [m/s]
-    deltalog=0.2;
-   else deltalog=1.0;
+    deltalog=0.05;//0.2;
+   else deltalog=0.05;//1.0;
    LastUpdatedTime=0.0;
   }
   else
