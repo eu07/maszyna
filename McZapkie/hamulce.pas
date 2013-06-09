@@ -64,7 +64,7 @@ CONST
    {indeksy dzwiekow FV4a}
    s_fv4a_b = 0; //hamowanie
    s_fv4a_u = 1; //luzowanie
-   s_fv4a_e = 2; //hamowanie nagle   
+   s_fv4a_e = 2; //hamowanie nagle
    s_fv4a_x = 3; //wyplyw sterujacego fala
    s_fv4a_t = 4; //wyplyw z czasowego
 
@@ -94,7 +94,12 @@ CONST
    sf_CylU = 8;  //cylinder - oproznianie
    sf_rel  = 16; //odluzniacz
    sf_ep   = 32; //zawory ep
-   
+
+   bh_FS = 1;  //fala
+   bh_RP = 2;  //jazda
+   bh_NP = 3;  //odciecie
+   bh_MB = 4;  //pelne
+   bh_EB = 5;  //nagle
 
    SpgD=0.7917;
    SpO=0.5067;  //przekroj przewodu 1" w l/m
@@ -343,6 +348,7 @@ TYPE
   //klasa obejmujaca krany
     THandle= class
       private
+
 //        BCP: integer;
       public
         function GetPF(i_bcp:real; pp, hp, dt, ep: real): real; virtual;
@@ -2369,7 +2375,10 @@ begin
     if cp<Limpp then
       cp:=cp+6*(2+Byte(bcp<0))*Min0R(abs(Limpp-cp),0.05)*PR(cp,Limpp)*dt //zbiornik sterujacy
     else
-      cp:=cp+4*(1+Byte(bcp<>3)+Byte(bcp>4))*Min0R(abs(Limpp-cp),0.05)*PR(cp,Limpp)*dt; //zbiornik sterujacy
+      if bcp=0 then
+        cp:=cp-0.4*dt/60
+      else
+        cp:=cp+4*(1+Byte(bcp<>3)+Byte(bcp>4))*Min0R(abs(Limpp-cp),0.05)*PR(cp,Limpp)*dt; //zbiornik sterujacy
 
   Limpp:=cp;
   dpPipe:=Min0R(HP,Limpp);
@@ -2420,7 +2429,7 @@ var
   bcp: integer;
 begin
   bcp:=Round(i_bcp);
-  if bcp<-1 then bcp:=1;
+  if i_bcp<-1 then bcp:=1;
   Limpp:=BPT_K[bcp][1];
   if Limpp<0 then
     Limpp:=0.5*pp
