@@ -203,7 +203,12 @@ bool __fastcall TMoverParameters::ChangeCab(int direction)
    //ChangeCab=true;
    if ((BrakeSystem==Pneumatic)&&(BrakeCtrlPosNo>0))
    {
-    BrakeLevelSet(-2); //BrakeCtrlPos=-2;
+    if(BrakeHandle==FV4a)   //!!!POBIERAÆ WARTOŒÆ Z KLASY ZAWORU!!!
+     BrakeLevelSet(-2); //BrakeCtrlPos=-2;
+    else if((BrakeHandle==FVel6)||(BrakeHandle==St113))
+     BrakeLevelSet(2); 
+    else
+     BrakeLevelSet(1);
     LimPipePress=PipePress;
     ActFlowSpeed=0;
    }

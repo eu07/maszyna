@@ -767,6 +767,11 @@ static const Shortint sf_CylB = 0x4;
 static const Shortint sf_CylU = 0x8;
 static const Shortint sf_rel = 0x10;
 static const Shortint sf_ep = 0x20;
+static const Shortint bh_FS = 0x1;
+static const Shortint bh_RP = 0x2;
+static const Shortint bh_NP = 0x3;
+static const Shortint bh_MB = 0x4;
+static const Shortint bh_EB = 0x5;
 #define SpgD  (7.917000E-01)
 #define SpO  (5.067000E-01)
 extern PACKAGE double BPT[9][2];
