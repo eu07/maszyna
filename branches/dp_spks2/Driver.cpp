@@ -24,7 +24,7 @@
 #define LOGORDERS 0
 #define LOGSTOPS 1
 #define LOGBACKSCAN 0
-#define LOGPRESS 1
+#define LOGPRESS 0
 /*
 
 Modu³ obs³uguj¹cy sterowanie pojazdami (sk³adami poci¹gów, samochodami).
@@ -800,8 +800,12 @@ __fastcall TController::TController
  if (WriteLogFlag)
  {
   LogFile.open(AnsiString(VehicleName+".dat").c_str(),std::ios::in | std::ios::out | std::ios::trunc);
-//  LogFile << AnsiString(" Time [s]   Velocity [m/s]  Acceleration [m/ss]   Coupler.Dist[m]  Coupler.Force[N]  TractionForce [kN]  FrictionForce [kN]   BrakeForce [kN]    BrakePress [MPa]   PipePress [MPa]   MotorCurrent [A]    MCP SCP BCP LBP DmgFlag Command CVal1 CVal2").c_str() << "\r\n";
+#if LOGPRESS==0
+  LogFile << AnsiString(" Time [s]   Velocity [m/s]  Acceleration [m/ss]   Coupler.Dist[m]  Coupler.Force[N]  TractionForce [kN]  FrictionForce [kN]   BrakeForce [kN]    BrakePress [MPa]   PipePress [MPa]   MotorCurrent [A]    MCP SCP BCP LBP DmgFlag Command CVal1 CVal2").c_str() << "\r\n";
+#endif
+#if LOGPRESS==1
   LogFile << AnsiString("t\tVel\tAcc\tPP\tVVP\tBP\tBVP\tCVP").c_str() << "\n";
+#endif
   LogFile.flush();
  }
 /*
@@ -2105,7 +2109,7 @@ void __fastcall TController::PhysicsLog()
     LogFile << int(Controlling->ActiveDir)<<"   "<<Controlling->CommandIn.Command.c_str()<<" "<<Controlling->CommandIn.Value1<<" ";
     LogFile << Controlling->CommandIn.Value2<<" "<<int(Controlling->SecuritySystem.Status)<<" "<<int(Controlling->SlippingWheels)<<"\r\n";
 #endif
-#if LOGPRESS
+#if LOGPRESS==1
     LogFile << ElapsedTime<<"\t"<<fabs(11.31*Controlling->WheelDiameter*Controlling->nrot)<<"\t";
     LogFile << Controlling->AccS<<"\t";
     LogFile << Controlling->PipePress<<"\t"<<Controlling->CntrlPipePress<<"\t"<<Controlling->BrakePress<<"\t";

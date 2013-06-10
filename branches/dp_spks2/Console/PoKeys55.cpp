@@ -276,36 +276,28 @@ bool __fastcall TPoKeys55::Update()
    Write(0x31,0); //0x31: blokowy odczyt wejœæ
    if (Read())
    {//jest odebrana ramka i zgodnoœæ numeru ¿¹dania
-    AnsiString log="";
     for(int i=3;i<7;i++)
     {
-     log=log+IntToStr(InputBuffer[i])+" ";
      DInputs[i-3]=InputBuffer[i];
     }
-    WriteLog(log);
     iFaza=0;
 //    iFaza++; //odczyt w nastêpnej kolejnoœci mo¿na ju¿ pomin¹æ
    }
-   WriteLog("4");
   break;
   case 5: //odczyt wejœæ cyfrowych - przetwarzanie
    if (iLastCommand==0x31) //asynchroniczne ustawienie kontrolki mo¿e namieszaæ
     if (Read())
     {//jest odebrana ramka i zgodnoœæ numeru ¿¹dania
-     AnsiString log="";
      for(int i=3;i<7;i++)
       {
-       log=log+IntToStr(InputBuffer[i])+" ";
        DInputs[i-3]=InputBuffer[i];
       }
-     WriteLog(log);
      iFaza=0;
     }
     else
      iFaza--; //powtarzanie odczytu do skutku (mo¿e zawiesiæ?)
 
 //   iFaza=0; //cykl od pocz¹tku
-   WriteLog("5");
   break;
   case 6: //zabezpieczenie na wypadek wyjscia poza
    iFaza=0;
