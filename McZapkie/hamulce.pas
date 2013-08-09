@@ -2218,6 +2218,10 @@ begin
   i_pos:=Round(pos-0.5); //zaokraglone w dol
   LPP_RP:=BPT[i_pos][1]+(BPT[i_pos+1][1]-BPT[i_pos][1])*(pos-i_pos); //interpolacja liniowa
 end;
+function EQ(pos: real; i_pos: real): boolean;
+begin
+  EQ:=(pos<=i_pos+0.5)and(pos>i_pos-0.5);
+end;
 const
   LBDelay = 100;
   xpM = 0.33; //mnoznik membrany komory pod
@@ -2232,7 +2236,7 @@ begin
 
           for i:=0 to 4 do
             Sounds[i]:=0;
-          dp:=0;  
+          dp:=0;
 
           i_bcp:=Max0R(Min0R(i_bcp,5.999),-1.999); //na wszelki wypadek, zeby nie wyszlo poza zakres
 
@@ -2260,7 +2264,7 @@ begin
           Limpp:=Min0R(LPP_RP(i_bcp)+tp*0.08+RedAdj,HP); //pozycja + czasowy lub zasilanie
           ActFlowSpeed:=BPT[Round(i_bcp)][0];
 
-          if (Round(i_bcp)=-1)then ep:=Min0R(HP,5.4+RedAdj);
+          if(EQ(i_bcp,-1))then ep:=Min0R(HP,5.4+RedAdj);
 
           if(ep>rp+0.2)then Fala:=true;
           if(Fala)then
@@ -2284,13 +2288,13 @@ begin
           else
             dpMainValve:=PFVd(pp,0,ActFlowSpeed/(LBDelay),dpPipe);
 
-          if Round(i_bcp)=-1 then
+          if EQ(i_bcp,-1) then
            begin
             if(tp<5)then tp:=tp+dt; //5/10
 //            dpMainValve:=dpMainValve*2;//+1*PF(dpPipe,pp,(ActFlowSpeed)/(LBDelay))//coby nie przeszkadzal przy ladowaniu z zaworu obok
            end;
 
-          if Round(i_bcp)=0 then
+          if EQ(i_bcp,0) then
            begin
             if(tp>2)then
               dpMainValve:=dpMainValve*1.5;//+0.5*PF(dpPipe,pp,(ActFlowSpeed)/(LBDelay))//coby nie przeszkadzal przy ladowaniu z zaworu obok
@@ -2304,14 +2308,14 @@ begin
           if(rp>ep)then //zaworek zwrotny do opozniajacego
             rp:=rp+PF(rp,ep,0.01)*dt //szybki upust
           else
-            if(Round(i_bcp)=0)then
+            if(EQ(i_bcp,0))then
               rp:=rp+PF(rp,ep,0.0005)*dt //powolne wzrastanie, ale szybsze na jezdzie
             else
               rp:=rp+PF(rp,ep,0.000093/2)*dt; //powolne wzrastanie i to bardzo  //jednak trzeba wydluzyc, bo obecnie zle dziala
           if (rp<ep) and (rp<BPT[Round(i_bcpNo)][1])then //jesli jestesmy ponizej cisnienia w sterujacym (2.9 bar)
             rp:=rp+PF(rp,cp,0.005)*dt; //przypisz cisnienie w PG - wydluzanie napelniania o czas potrzebny do napelnienia PG
 
-          if(Round(i_bcp)=i_bcpNo)or(Round(i_bcp)=-2)then
+          if(EQ(i_bcp,i_bcpNo))or(EQ(i_bcp,-2))then
            begin
             dp:=PF(0,pp,(ActFlowSpeed)/(LBDelay));
             dpMainValve:=dp;
