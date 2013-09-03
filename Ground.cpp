@@ -3240,7 +3240,7 @@ bool __fastcall TGround::CheckQuery()
        tmpEvent->Params[3].asdouble,
        tmpEvent->Params[4].asdouble);
     break;
-    case tp_Switch :
+    case tp_Switch:
      if (tmpEvent->Params[9].asTrack)
       tmpEvent->Params[9].asTrack->Switch(tmpEvent->Params[0].asInt);
      if (Global::iMultiplayer) //dajemy znaæ do serwera o prze³o¿eniu
