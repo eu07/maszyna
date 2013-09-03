@@ -3162,12 +3162,12 @@ void __fastcall TController::OrdersInit(double fVel)
     {//dla zwyk³ego sk³adu wagonowego odczepiamy lokomotywê
      OrderPush(Disconnect); //odczepienie lokomotywy
      OrderPush(Shunt); //a dalej manewry
-     if (i<=TrainParams->StationCount)
+     if (i<=TrainParams->StationCount) //130827: to siê jednak nie sprawdza
      {//"@" na ostatniej robi tylko odpiêcie
-      OrderPush(Change_direction); //zmiana kierunku
-      OrderPush(Shunt); //jazda na drug¹ stronê sk³adu
-      OrderPush(Change_direction); //zmiana kierunku
-      OrderPush(Connect); //jazda pod wagony
+      //OrderPush(Change_direction); //zmiana kierunku
+      //OrderPush(Shunt); //jazda na drug¹ stronê sk³adu
+      //OrderPush(Change_direction); //zmiana kierunku
+      //OrderPush(Connect); //jazda pod wagony
      }
     }
     if (i<TrainParams->StationCount) //jak nie ostatnia stacja
