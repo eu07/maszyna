@@ -1399,9 +1399,11 @@ __fastcall TModel3d::~TModel3d()
  //póŸniej siê jeszcze usuwa obiekt z którego dziedziczymy tabelê VBO
 };
 
-void __fastcall TModel3d::AddToNamed(const char *Name,TSubModel *SubModel)
+TSubModel* __fastcall TModel3d::AddToNamed(const char *Name,TSubModel *SubModel)
 {
- AddTo(Name?GetFromName(Name):NULL,SubModel); //szukanie nadrzêdnego
+ TSubModel *sm=Name?GetFromName(Name):NULL;
+ AddTo(sm,SubModel); //szukanie nadrzêdnego
+ return sm; //zwracamy wskaŸnik do nadrzêdnego submodelu
 };
 
 void __fastcall TModel3d::AddTo(TSubModel *tmp,TSubModel *SubModel)
@@ -1538,7 +1540,13 @@ void __fastcall TModel3d::LoadFromBinFile(char *FileName)
   i=j;
  }
  for (i=0;i<iSubModelsCount;++i)
-  Root[i].BinInit(Root,m,(float8*)m_pVNT,&Textures,&Names); //aktualizacja wskaŸników w submodelach
+ {//aktualizacja wskaŸników w submodelach
+  Root[i].BinInit(Root,m,(float8*)m_pVNT,&Textures,&Names);
+  if (Root[i].ChildGet())
+   Root[i].ChildGet()->Parent=Root+i; //wpisanie wskaŸnika nadrzêdnego do potmnego
+  if (Root[i].NextGet())
+   Root[i].NextGet()->Parent=Root[i].Parent; //skopiowanie wskaŸnika nadrzêdnego do kolejnego
+ }
  iFlags&=~0x0200;
  return;
 };
@@ -1561,7 +1569,7 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName,bool dynamic)
   if (parent=="") break;
   SubModel=new TSubModel();
   iNumVerts+=SubModel->Load(parser,this,iNumVerts);
-  AddToNamed(parent.c_str(),SubModel);
+  SubModel->Parent=AddToNamed(parent.c_str(),SubModel); //bêdzie potrzebne do wyliczenia pozycji, np. pantografu
   //iSubModelsCount++;
   parser.getToken(token);
  }

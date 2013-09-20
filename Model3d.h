@@ -207,8 +207,9 @@ public: //chwilowo
  TAnimType b_aAnim; //kody animacji oddzielnie, bo zerowane
 public:
  float4x4 *mAnimMatrix; //macierz do animacji kwaternionowych (nale¿y do AnimContainer)
- char space[16]; //wolne miejsce na przysz³e zmienne (zmniejszyæ w miarê potrzeby)
+ char space[12]; //wolne miejsce na przysz³e zmienne (zmniejszyæ w miarê potrzeby)
 public:
+ TSubModel *Parent; //nadrzêdny, np. do wymna¿ania macierzy
  int iVisible; //roboczy stan widocznoœci
  //AnsiString asTexture; //robocza nazwa tekstury do zapisania w pliku binarnym
  //AnsiString asName; //robocza nazwa
@@ -327,7 +328,7 @@ public:
  __fastcall ~TModel3d();
  TSubModel* __fastcall GetFromName(const char *sName);
  //TMaterial* __fastcall GetMaterialFromName(char *sName);
- void __fastcall AddToNamed(const char *Name, TSubModel *SubModel);
+ TSubModel* __fastcall AddToNamed(const char *Name, TSubModel *SubModel);
  void __fastcall AddTo(TSubModel *tmp,TSubModel *SubModel);
  void __fastcall LoadFromTextFile(char *FileName,bool dynamic);
  void __fastcall LoadFromBinFile(char *FileName);
