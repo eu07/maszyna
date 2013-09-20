@@ -1196,23 +1196,23 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else
       //---------------
       //hunter-131211: zbicie czuwaka przeniesione do TTrain::Update()
-      /* if (cKey==Global::Keys[k_Czuwak]))
-      {
-//          dsbBuzzer->Stop();
-          if (DynamicObject->MoverParameters->SecuritySystemReset())
-           if (fabs(SecurityResetButtonGauge.GetValue())<0.001)
-            {
-               dsbSwitch->SetVolume(DSBVOLUME_MAX);
-               dsbSwitch->Play(0,0,0);
-            }
-          SecurityResetButtonGauge.PutValue(1);
+      if (cKey==Global::Keys[k_Czuwak])
+      {//Ra: tu zosta³ tylko dŸwiêk
+       //dsbBuzzer->Stop();
+       //if (DynamicObject->MoverParameters->SecuritySystemReset())
+       if (fabs(SecurityResetButtonGauge.GetValue())<0.001)
+       {
+        dsbSwitch->SetVolume(DSBVOLUME_MAX);
+        dsbSwitch->Play(0,0,0);
+       }
+       //SecurityResetButtonGauge.PutValue(1);
       }
-      else */
+      else
       //---------------
       //hunter-221211: hamulec przeciwposlizgowy przeniesiony do TTrain::Update()
       if (cKey==Global::Keys[k_AntiSlipping])
       {
-        if (DynamicObject->MoverParameters->TrainType!=dt_EZT)
+        if (DynamicObject->MoverParameters->ASBType==1)
          {
           //if (DynamicObject->MoverParameters->AntiSlippingButton())
            if (fabs(AntiSlipButtonGauge.GetValue())<0.001)
@@ -1380,7 +1380,6 @@ void __fastcall TTrain::OnKeyPress(int cKey)
 
       }
       else
-/*
       //-----------
       //hunter-261211: przetwornica i sprzezarka przeniesione do TTrain::Update()
       if (cKey==Global::Keys[k_Converter])
@@ -1403,7 +1402,6 @@ void __fastcall TTrain::OnKeyPress(int cKey)
        }
       else
       //-----------
-*/
       if (cKey==Global::Keys[k_Releaser])   //odluzniacz
       {
        if (!FreeFlyModeFlag)
@@ -4058,18 +4056,6 @@ if (DynamicObject->MoverParameters->Battery==true)
         }
      } */
 
-
-     if (( !Console::Pressed(Global::Keys[k_DecBrakeLevel]) )&&( !Console::Pressed(Global::Keys[k_WaveBrake]) )&&(DynamicObject->MoverParameters->BrakeCtrlPos==-1)&&(DynamicObject->MoverParameters->BrakeSubsystem==Oerlikon)&&(DynamicObject->MoverParameters->BrakeSystem==ElectroPneumatic)&&(DynamicObject->Controller!= AIdriver))
-     {
-     //DynamicObject->MoverParameters->BrakeCtrlPos=(DynamicObject->MoverParameters->BrakeCtrlPos)+1;
-     DynamicObject->MoverParameters->IncBrakeLevel();
-     keybrakecount = 0;
-       if ((DynamicObject->MoverParameters->TrainType==dt_EZT)&&(DynamicObject->MoverParameters->Battery==true)&&(DynamicObject->MoverParameters->EpFuse==true)&&(DynamicObject->MoverParameters->ActiveDir!=0))
-       {
-       dsbPneumaticSwitch->SetVolume(-10);
-       dsbPneumaticSwitch->Play( 0, 0, 0 );
-       }
-     }
      //ABu030405 obsluga lampki uniwersalnej:
      if ((LampkaUniversal3_st)&&(btLampkaUniversal3.Active()))
      {
@@ -4253,8 +4239,8 @@ if ( Console::Pressed(Global::Keys[k_CurrentNext]))
    {
    if (Console::Pressed(VK_SHIFT))
      {
-      if (Console::Pressed(VK_F3))
-        {
+      if (Console::Pressed(k_CurrentNext))
+        {//Ra: by³o pod VK_F3
         if ((DynamicObject->MoverParameters->EpFuseSwitch(true)))
            {
            dsbPneumaticSwitch->SetVolume(-10);
@@ -4264,8 +4250,8 @@ if ( Console::Pressed(Global::Keys[k_CurrentNext]))
      }
     else
      {
-      if (Console::Pressed(VK_F3))
-        {
+      if (Console::Pressed(k_CurrentNext))
+        {//Ra: by³o pod VK_F3
         if (Console::Pressed(VK_CONTROL))
          {
         if ((DynamicObject->MoverParameters->EpFuseSwitch(false)))
@@ -4331,15 +4317,15 @@ else
      long tmpVol;
      int trackVol;
      trackVol=3550-2000;
-     if ( DynamicObject->MoverParameters->CompressorFlag==true )
+     if (DynamicObject->MoverParameters->RunningTraction.TractionVoltage<2000)
       {
-       sConverter.Volume(5);
+       tmpVol=0;
       }
      else
       {
        tmpVol=DynamicObject->MoverParameters->RunningTraction.TractionVoltage-2000;
       }
-     sConverter.Volume(10);
+     sConverter.Volume(-2000*(trackVol-tmpVol)/trackVol);
 
        if (!sConverter.Playing())
          sConverter.TurnOn();
