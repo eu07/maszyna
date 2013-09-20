@@ -11,9 +11,10 @@ class TPoKeys55
  int iPWMbits;
  int iLastCommand;
  int iFaza;
+ int iRepated;
 public:
- float fAnalog[7]; //wejœcia analogowe, stan <0.0,1.0> ++
- int DInputs[8];
+ float fAnalog[7]; //wejœcia analogowe, stan <0.0,1.0>
+ int iInputs[8];
  __fastcall TPoKeys55();
  __fastcall ~TPoKeys55();
  bool __fastcall Connect();

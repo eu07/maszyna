@@ -1754,7 +1754,7 @@ function T_MoverParameters.SecuritySystemReset : boolean;
     SecuritySystem.SystemTimer:=0;
     SecuritySystem.SystemBrakeTimer:=0;
     SecuritySystem.SystemSoundTimer:=0;
-    SecuritySystem.Status:=s_waiting;
+    SecuritySystem.Status:=s_waiting; //aktywacja czuwaka
   end;
   procedure ResetSHP;
   begin
@@ -2945,7 +2945,7 @@ begin
  else
   PantPress:=(PantVolume/0.10/10)-0.1; //tu by siê przyda³a objêtoœæ zbiornika
  if (PantCompFlag=false) and (PantVolume>0.1) then
-  PantVolume:=PantVolume-dt*0.0003;    {nieszczelnosci}
+  PantVolume:=PantVolume-dt*0.0003; //nieszczelnosci: 0.0003=0.3l/s
  if PantPress<0.35 then
   if MainSwitch(False) and  (EngineType=ElectricSeriesMotor) then
    EventFlag:=True;   {wywalenie szybkiego z powodu niskiego cisnienia}
@@ -4475,7 +4475,7 @@ begin
               if (MPTRelay[ScndCtrlPos].Idown<Im) and (ScndCtrlPos>0) then
                 dec(ScndCtrlPos);
              end;
-          41: 
+          41:
             begin 
               if (MainCtrlPos=MainCtrlPosNo) and (tmpV*3.6>MPTRelay[ScndCtrlPos].Iup) and (ScndCtrlPos<ScndCtrlPosNo)then 
                 begin inc(ScndCtrlPos); enrot:=enrot*0.73; end; 
@@ -5929,7 +5929,7 @@ begin
   DoorSignalling:=False;
   UnBrake:=false;
 //Winger 160204
-  PantVolume:=0.55; //aby podniesione pantografy opad³y w krótkim czasie przy wy³¹czonej sprê¿arce
+  PantVolume:=0.48; //aby podniesione pantografy opad³y w krótkim czasie przy wy³¹czonej sprê¿arce
   PantFrontUp:=false;
   PantRearUp:=false;
   PantFrontStart:=0;

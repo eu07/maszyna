@@ -38,8 +38,7 @@ TDynamicObject *Controlled=NULL; //pojazd, który prowadzimy
 
 using namespace Timer;
 
-const double fMaxDt=0.01; //[s] sta³y krok czasowy fizyki
-const double fTimeMax=1.00; //[s] maksymalny czas aktualizacji w jednek klatce 
+const double fTimeMax=1.00; //[s] maksymalny czas aktualizacji w jednek klatce
 
 __fastcall TWorld::TWorld()
 {
@@ -51,13 +50,13 @@ __fastcall TWorld::TWorld()
   KeyEvents[i]=NULL; //eventy wyzwalane klawiszami cyfrowymi
  Global::iSlowMotion=0;
  //Global::changeDynObj=NULL;
- //lastmm=61; //ABu: =61, zeby zawsze inicjowac kolor czarnej mgly przy warunku (GlobalTime->mm!=lastmm) :)
  OutText1=""; //teksty wyœwietlane na ekranie
  OutText2="";
  OutText3="";
  iCheckFPS=0; //kiedy znów sprawdziæ FPS, ¿eby wy³¹czaæ optymalizacji od razu do zera
  pDynamicNearest=NULL;
- fTimeBuffer=0.0; //bufor czasu aktualizacji dla sta³ego kroku fizyki 
+ fTimeBuffer=0.0; //bufor czasu aktualizacji dla sta³ego kroku fizyki
+ fMaxDt=0.01; //[s] pocz¹tkowy krok czasowy fizyki
 }
 
 __fastcall TWorld::~TWorld()
@@ -937,6 +936,22 @@ bool __fastcall TWorld::Update()
     if (Global::iMultisampling) //a multisampling jest w³¹czony
      glEnable(GL_MULTISAMPLE);
   }
+/*
+  if (!Global::bPause)
+   if (GetFPS()<=5)
+   {//zwiêkszenie kroku fizyki przy s³abym FPS
+    if (fMaxDt<0.05)
+    {fMaxDt=0.05; //Ra: tak nie mo¿e byæ, bo s¹ problemy na sprzêgach
+     WriteLog("Phisics step switched to 0.05s!");
+    }
+   }
+   else if (GetFPS()>12)
+    if (fMaxDt>0.01)
+    {//powrót do podstawowego kroku fizyki
+     fMaxDt=0.01;
+     WriteLog("Phisics step switched to 0.01s!");
+    }
+*/
   iCheckFPS=0.25*GetFPS(); //tak za 0.25 sekundy sprawdziæ ponownie (jeszcze przycina?)
  }
  UpdateTimers(Global::bPause);
@@ -1030,7 +1045,7 @@ bool __fastcall TWorld::Update()
    glClearColor(sky.x,sky.y,sky.z,0.0); //kolor nieba
   }
  } //koniec dzia³añ niewykonywanych podczas pauzy
- Console::Update();
+ //Console::Update(); //tu jest zale¿ne od FPS, co nie jest korzystne
  if (Global::bActive)
  {//obs³uga ruchu kamery tylko gdy okno jest aktywne
   if (Console::Pressed(VK_LBUTTON))
@@ -1062,28 +1077,26 @@ bool __fastcall TWorld::Update()
   }
   Camera.Update(); //uwzglêdnienie ruchu wywo³anego klawiszami
  } //koniec bloku pomijanego przy nieaktywnym oknie
-#if 0
- //Ra: na razie po staremu
- double dt=fTimeBuffer+GetDeltaTime(); //[s] czas od poprzedniego sprawdzania
- if (dt>=fMaxDt) //jest co najmniej jeden krok; normalnie 0.01s
- {//Ra: czas dla fizyki jest skwantowany
-  double iter=ceil(dt/fMaxDt); //ile kroków siê zmieœci³o od ostatniego sprawdzania?
+#if 1
+ fTimeBuffer+=GetDeltaTime(); //[s] dodanie czasu od poprzedniej ramki
+ if (fTimeBuffer>=fMaxDt) //jest co najmniej jeden krok; normalnie 0.01s
+ {//Ra: czas dla fizyki jest skwantowany - fizykê lepiej przeliczaæ sta³ym krokiem
+  Console::Update(); //w tym miejscu ma ograniczenie na liczbê wywo³añ w sekundzie (max 100) 
+  double iter=ceil(fTimeBuffer/fMaxDt); //ile kroków siê zmieœci³o od ostatniego sprawdzania?
   int n=int(iter); //ile kroków jako int
-  //dt=dt/iter; //Ra: fizykê lepiej by by³o przeliczaæ ze sta³ym krokiem
-  fTimeBuffer=dt-iter*fMaxDt; //reszta czasu na potem (do bufora)
-  dt=fMaxDt; //Ra: teraz czas kroku jest sta³y
-  if (n>20) n=20; //McZapkie-081103: przesuniecie granicy FPS z 10 na 5
-  //blablabla - Ra: co za inteligencja...
-  Ground.Update(dt,n); //ABu: zamiast 'n' bylo: 'Camera.Type==tp_Follow'
+  fTimeBuffer-=iter*fMaxDt; //reszta czasu na potem (do bufora)
+  if (n>20) n=20; //Ra: je¿eli FPS jest zatrwa¿aj¹co niski, to fizyka nie mo¿e zaj¹æ ca³kowicie procesora
+  Ground.Update(fMaxDt,n); //Ra: teraz czas kroku jest (wzglêdnie) sta³y
   if (DebugModeFlag)
    if (GetAsyncKeyState(VK_ESCAPE)<0)
    {//yB doda³ przyspieszacz fizyki
-    Ground.Update(dt,n);
-    Ground.Update(dt,n);
-    Ground.Update(dt,n);
-    Ground.Update(dt,n); //5 razy
+    Ground.Update(fMaxDt,n);
+    Ground.Update(fMaxDt,n);
+    Ground.Update(fMaxDt,n);
+    Ground.Update(fMaxDt,n); //5 razy
    }
  }
+ double dt; //potrzebne dalej
 #else
  //poprzednie jakoœ tam dzia³a³o
  double dt=GetDeltaTime();

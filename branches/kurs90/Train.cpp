@@ -1212,7 +1212,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       //hunter-221211: hamulec przeciwposlizgowy przeniesiony do TTrain::Update()
       if (cKey==Global::Keys[k_AntiSlipping])
       {
-      if  (DynamicObject->MoverParameters->TrainType!=dt_EZT)
+        if (DynamicObject->MoverParameters->TrainType!=dt_EZT)
          {
           //if (DynamicObject->MoverParameters->AntiSlippingButton())
            if (fabs(AntiSlipButtonGauge.GetValue())<0.001)
@@ -4834,16 +4834,19 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     PantAllDownButtonGauge.Clear();
     VelocityGauge.Clear();
     I1Gauge.Clear();
-    I1Gauge.Output((DynamicObject->MoverParameters->TrainType&(dt_EZT))?0:5); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
+    I1Gauge.Output((DynamicObject->MoverParameters->TrainType&(dt_EZT))?-1:5); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
     I2Gauge.Clear();
-    I2Gauge.Output(4); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
+    I2Gauge.Output(4); //Ra: sterowanie miernikiem: drugi amperomierz
     I3Gauge.Clear();
     //I3Gauge.Output(3); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
     ItotalGauge.Clear();
-    I1Gauge.Output((DynamicObject->MoverParameters->TrainType&(dt_EZT))?5:0); //Ra: kana³u komunikacji zwrotnej
+    ItotalGauge.Output((DynamicObject->MoverParameters->TrainType&(dt_EZT))?5:-1); //Ra: kana³u komunikacji zwrotnej
     CylHamGauge.Clear();
+    CylHamGauge.Output(2); //Ra: sterowanie miernikiem: cylinder hamulcowy
     PrzGlGauge.Clear();
+    PrzGlGauge.Output(1); //Ra: sterowanie miernikiem: przewód g³ówny
     ZbGlGauge.Clear();
+    ZbGlGauge.Output(0); //Ra: sterowanie miernikiem: zbiornik g³ówny
 
     VelocityGaugeB.Clear();
     I1GaugeB.Clear();
@@ -4866,6 +4869,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     HVoltageGauge.Clear();
     HVoltageGauge.Output(3); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
     LVoltageGauge.Clear();
+    //LVoltageGauge.Output(0); //Ra: sterowanie miernikiem: niskie napiêcie
     enrot1mGauge.Clear();
     enrot2mGauge.Clear();
     enrot3mGauge.Clear();

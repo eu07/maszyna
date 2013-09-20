@@ -34,7 +34,6 @@ public:
  __fastcall ~TWorld();
  //double Aspect;
 private:
- //byte lastmm; //ABu: zeby bylo wiadomo, czy zmienil sie czas
  AnsiString OutText1; //teksty na ekranie
  AnsiString OutText2;
  AnsiString OutText3;
@@ -52,6 +51,7 @@ private:
  TEvent *KeyEvents[10];
  int iCheckFPS; //kiedy znów sprawdziæ FPS, ¿eby wy³¹czaæ optymalizacji od razu do zera
  double fTimeBuffer; //bufor czasu aktualizacji dla sta³ego kroku fizyki
+ double fMaxDt; //[s] krok czasowy fizyki (0.01 dla normalnych warunków)
 public:
  void __fastcall ModifyTGA(const AnsiString &dir="");
  void __fastcall CreateE3D(const AnsiString &dir="",bool dyn=false);

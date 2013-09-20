@@ -21,9 +21,6 @@
 //---------------------------------------------------------------------------
 
 
-const double fOnTime= 0.66;
-const double fOffTime= fOnTime+0.66;
-
 __fastcall TAnimAdvanced::TAnimAdvanced()
 {
 };
@@ -327,6 +324,9 @@ __fastcall TAnimModel::TAnimModel()
  }
  vAngle.x=vAngle.y=vAngle.z=0.0; //zerowanie obrotów egzemplarza
  pAdvanced=NULL; //nie ma zaawansowanej animacji
+ fDark=0.25; //standardowy próg zaplania
+ fOnTime=0.66;
+ fOffTime=fOnTime+0.66;
 }
 
 __fastcall TAnimModel::~TAnimModel()
@@ -412,14 +412,13 @@ bool __fastcall TAnimModel::Load(cParser *parser, bool ter)
   str=AnsiString(token.c_str());
   do
   {
-   ti=str.ToInt(); //stan œwiat³a jest liczb¹
-   if (i<iMaxNumLights)
-    lsLights[i]=(TLightState)ti;
+   ti=str.ToDouble(); //stan œwiat³a jest liczb¹ z u³amkiem
+   LightSet(i,ti);
    i++;
    parser->getTokens();
    *parser >> token;
    str=AnsiString(token.c_str());
-  } while ((str!="endmodel")&&(str!="endterrain")); //tymczasowo oba do odwo³ania
+  } while (str!="endmodel");
  }
  return true;
 }
@@ -460,7 +459,7 @@ void __fastcall TAnimModel::RaPrepare()
   {case ls_Blink: //migotanie
     state=fBlinkTimer<fOnTime; break;
    case ls_Dark: //zapalone, gdy ciemno
-    state=Global::fLuminance<=0.25; break;
+    state=Global::fLuminance<=fDark; break;
    default: //zapalony albo zgaszony
     state=(lsLights[i]==ls_On);
   }
@@ -683,5 +682,26 @@ void __fastcall TAnimModel::AnimationVND(void* pData, double a, double b, double
  }
 };
 
+//---------------------------------------------------------------------------
+void __fastcall TAnimModel::LightSet(int n,float v)
+{//ustawienie œwiat³a (n) na wartoœæ (v)
+ if (n>=iMaxNumLights) return; //przekroczony zakres
+ lsLights[n]=TLightState(int(v));
+ switch (lsLights[n])
+ {//interpretacja u³amka zale¿nie od typu
+  case 0: //ustalenie czasu migotania, t<1s (f>1Hz), np. 0.1 => t=0.1 (f=10Hz)
+  break;
+  case 1: //ustalenie wype³nienia u³amkiem, np. 1.25 => zapalony przez 1/4 okresu
+  break;
+  case 2: //ustalenie czêstotliwoœci migotania, f<1Hz (t>1s), np. 2.2 => f=0.2Hz (t=5s)
+  break;
+  case 3: //zapalenie œwiate³ zale¿ne od oœwietlenia scenerii
+   if (v>3.0)
+    fDark=v-3.0; //ustawienie indywidualnego progu zapalania
+   else
+    fDark=0.25; //standardowy próg zaplania
+  break;
+ }
+};
 //---------------------------------------------------------------------------
 
