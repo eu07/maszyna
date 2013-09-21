@@ -1852,32 +1852,31 @@ TGround::GetTraction;
         MoverParameters->SecuritySystemReset();
     else
      if ((Controller!=Humandriver)&&(MoverParameters->BrakeCtrlPos<0)&&(!TestFlag(MoverParameters->BrakeStatus,1))&&((MoverParameters->CntrlPipePress)>0.51))
-//       {
+//       {//Ra: to jest do poprawienia przy okazji SPKS
 ////        MoverParameters->PipePress=0.50;
         MoverParameters->BrakeLevelSet(0);
 
 //       }
 
-
-/* //z EXE Kursa
+    //fragment "z EXE Kursa"
     if ((MoverParameters->Battery==false)&&(Controller==Humandriver)&& (MoverParameters->EngineType!=DieselEngine) && (MoverParameters->EngineType!=WheelsDriven))
-     {
-     if (MoverParameters->MainSwitch(False))
+    {//jeœli bateria wy³¹czona, a nie diesel ani drezyna reczna
+     if (MoverParameters->MainSwitch(False)) //wy³¹czyæ zasilanie
       MoverParameters->EventFlag=True;
-      }
-    if (MoverParameters->TrainType==dt_ET42){
-     if (((TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab>0)&&(NextConnected-> MoverParameters->TrainType!=dt_ET42))||((TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab<0)&&(PrevConnected-> MoverParameters->TrainType!=dt_ET42)))
-     {
-     if (MoverParameters->MainSwitch(False))
-      MoverParameters->EventFlag=True;
-      }
+    }
+    if (MoverParameters->TrainType==dt_ET42)
+    {//powinny byæ wszystkie dwucz³ony oraz EZT
+     if (((TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab>0)&&(NextConnected->MoverParameters->TrainType!=dt_ET42))||((TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab<0)&&(PrevConnected->MoverParameters->TrainType!=dt_ET42)))
+     {//sprawdzenie, czy z ty³u kabiny mamy drugi cz³on
+      if (MoverParameters->MainSwitch(False))
+       MoverParameters->EventFlag=True;
+     }
      if ((!(TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab>0))||(!(TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab<0)))
-      {
-     if (MoverParameters->MainSwitch(False))
-      MoverParameters->EventFlag=True;
-      }
-      }
-*/
+     {
+      if (MoverParameters->MainSwitch(False))
+       MoverParameters->EventFlag=True;
+     }
+    }
 
 
 //McZapkie-260202 - dMoveLen przyda sie przy stukocie kol
@@ -1956,7 +1955,7 @@ TGround::GetTraction;
 //McZapkie-260202 end
 
 //yB: przyspieszacz (moze zadziala, ale dzwiek juz jest)
-if(ObjectDist<50000)
+/*if(ObjectDist<50000)
  if(TestFlag(MoverParameters->SoundFlag,sound_brakeacc))
    sBrakeAcc.Play(-1,0,MechInside,vPosition);
  else;
@@ -1965,11 +1964,10 @@ if(ObjectDist<50000)
 else
   sBrakeAcc.Stop();
 
-SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);
+SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);*/
 
-/*//z EXE Kursa
-
-      /* if (MoverParameters->TrainType=="et42")
+   //fragment z EXE Kursa
+      /* if (MoverParameters->TrainType==dt_ET42)
            {
            if ((MoverParameters->DynamicBrakeType=dbrake_switch) && ((MoverParameters->BrakePress > 0.2) || ( MoverParameters->PipePress < 0.36 )))
                         {
@@ -1982,24 +1980,23 @@ SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);
 
                         }
            }   */
-/*
-        if ((MoverParameters->TrainType=="et40") || (MoverParameters->TrainType=="ep05"))
+    if ((MoverParameters->TrainType==dt_ET40) || (MoverParameters->TrainType==dt_EP05))
+    {//dla ET40 i EU06 automatyczne cofanie nastawnika - i tak nie bêdzie to dzia³aæ dobrze...
+     /* if ((MoverParameters->MainCtrlPos>MoverParameters->MainCtrlActualPos)&&(abs(MoverParameters->Im)>MoverParameters->IminHi))
         {
-       /* if ((MoverParameters->MainCtrlPos>MoverParameters->MainCtrlActualPos)&&(abs(MoverParameters->Im)>MoverParameters->IminHi))
-          {
-          MoverParameters->DecMainCtrl(1);
-          } */
-/*
-          if (( !Console::Pressed(Global::Keys[k_IncMainCtrl]))&&(MoverParameters->MainCtrlPos>MoverParameters->MainCtrlActualPos))
-          {
-          MoverParameters->DecMainCtrl(1);
-          }
-          if (( !Console::Pressed(Global::Keys[k_DecMainCtrl]))&&(MoverParameters->MainCtrlPos<MoverParameters->MainCtrlActualPos))
-          {
-          MoverParameters->IncMainCtrl(1);
-          }
-        }
-*/
+         MoverParameters->DecMainCtrl(1);
+        } */
+     if (( !Console::Pressed(Global::Keys[k_IncMainCtrl]))&&(MoverParameters->MainCtrlPos>MoverParameters->MainCtrlActualPos))
+     {
+      MoverParameters->DecMainCtrl(1);
+     }
+     if (( !Console::Pressed(Global::Keys[k_DecMainCtrl]))&&(MoverParameters->MainCtrlPos<MoverParameters->MainCtrlActualPos))
+     {
+      MoverParameters->IncMainCtrl(1);
+     }
+    }
+
+
 
  if (MoverParameters->Vel!=0)
  {//McZapkie-050402: krecenie kolami:
@@ -2294,7 +2291,8 @@ bool __fastcall TDynamicObject::FastUpdate(double dt)
     FastMove(dDOMoveLen);
 
 //yB: przyspieszacz (moze zadziala, ale dzwiek juz jest)
-double ObjectDist;
+/*double ObjectDist;
+//Ra: to ju¿ by³o wczeœniej - wywaliæ?
 ObjectDist=SquareMagnitude(Global::pCameraPosition-vPosition);
 if (ObjectDist<50000)
  if (TestFlag(MoverParameters->SoundFlag,sound_brakeacc))
@@ -2305,7 +2303,7 @@ if (ObjectDist<50000)
 else
   sBrakeAcc.Stop();
 
-SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);
+SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);   */
  if (MoverParameters->LoadStatus)
   LoadUpdate(); //zmiana modelu ³adunku
  return true; //Ra: chyba tak?
@@ -2672,10 +2670,10 @@ bool __fastcall TDynamicObject::Render()
      }
 
 //if ((MoverParameters->ConverterFlag==false) && (MoverParameters->TrainType!=dt_ET22))
-if ((MoverParameters->ConverterFlag==false)&&(MoverParameters->CompressorPower!=0))
+if ((MoverParameters->ConverterFlag==false)&&(MoverParameters->CompressorPower>0))
  MoverParameters->CompressorFlag=false;
-//if (MoverParameters->CompressorPower==2)
-// MoverParameters->CompressorAllow=MoverParameters->ConverterFlag;
+if (MoverParameters->CompressorPower==2)
+ MoverParameters->CompressorAllow=MoverParameters->ConverterFlag;
 
 // McZapkie! - dzwiek compressor.wav tylko gdy dziala sprezarka
     if (MoverParameters->VeselVolume!=0)
@@ -3662,3 +3660,4 @@ void __fastcall TDynamicObject::CoupleDist()
     }
  }
 };
+
