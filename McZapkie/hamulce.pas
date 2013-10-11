@@ -2266,9 +2266,9 @@ begin
 
           if(EQ(i_bcp,-1))then ep:=Min0R(HP,5.4+RedAdj);
 
-          if(ep>rp+0.2)then Fala:=true;
+          if(ep>rp+0.3)then Fala:=true;
           if(Fala)then
-            if(ep>rp+0.01)then
+            if(ep>rp+0.02)then
 //              if(ep>rp+0.11)then
                 xp:=xp-16*PR(ep,xp)*dt
 //              else
@@ -2306,12 +2306,12 @@ begin
 
           ep:=dpPipe;
           if(rp>ep)then //zaworek zwrotny do opozniajacego
-            rp:=rp+PF(rp,ep,0.01)*dt //szybki upust
+            rp:=rp+PF(rp,ep,0.001)*dt //szybki upust
           else
             if(EQ(i_bcp,0))then
               rp:=rp+PF(rp,ep,0.0005)*dt //powolne wzrastanie, ale szybsze na jezdzie
             else
-              rp:=rp+PF(rp,ep,0.000093/2)*dt; //powolne wzrastanie i to bardzo  //jednak trzeba wydluzyc, bo obecnie zle dziala
+              rp:=rp+PF(rp,ep,0.000093/2*2)*dt; //powolne wzrastanie i to bardzo  //jednak trzeba wydluzyc, bo obecnie zle dziala
           if (rp<ep) and (rp<BPT[Round(i_bcpNo)][1])then //jesli jestesmy ponizej cisnienia w sterujacym (2.9 bar)
             rp:=rp+PF(rp,cp,0.005)*dt; //przypisz cisnienie w PG - wydluzanie napelniania o czas potrzebny do napelnienia PG
 
@@ -2322,7 +2322,7 @@ begin
             Sounds[s_fv4a_e]:=-dp;
             Sounds[s_fv4a_u]:=0;
             Sounds[s_fv4a_b]:=0;
-            Sounds[s_fv4a_x]:=0;            
+            Sounds[s_fv4a_x]:=0;
            end
           else
            begin
