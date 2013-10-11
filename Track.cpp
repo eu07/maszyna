@@ -94,15 +94,23 @@ void __fastcall TIsolated::Modify(int i,TDynamicObject *o)
  {//grupa zajêta
   iAxles+=i;
   if (!iAxles)
+  {
    if (eFree)
     Global::AddToQuery(eFree,o); //dodanie zwolnienia do kolejki
+   if (Global::iMultiplayer) //jeœli multiplayer
+    Global::pGround->WyslijString(asName,12); //wys³anie pakietu o zwolnieniu
+  }
  }
  else
  {//grupa by³a wolna
   iAxles+=i;
   if (iAxles)
+  {
    if (eBusy)
     Global::AddToQuery(eBusy,o); //dodanie zajêtoœci do kolejki
+   if (Global::iMultiplayer) //jeœli multiplayer
+     Global::pGround->WyslijString(asName,11); //wys³anie pakietu o zajêciu
+  }
  }
 };
 

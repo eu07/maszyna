@@ -358,6 +358,8 @@ public:
  void __fastcall TerrainRead(const AnsiString &f);
  void __fastcall TerrainWrite();
  void __fastcall TrackBusyList();
+ void __fastcall IsolatedBusyList();
+ void __fastcall IsolatedBusy(const AnsiString t);
 };
 //---------------------------------------------------------------------------
 #endif

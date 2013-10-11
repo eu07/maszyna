@@ -2489,7 +2489,8 @@ bool __fastcall TTrain::Update()
      {
       if ((!DynamicObject->MoverParameters->SlippingWheels) && (DynamicObject->MoverParameters->UnitBrakeForce>10.0) && (DynamicObject->GetVelocity()>0.01))
        {
-        vol=rsBrake.AA+rsBrake.AM*(DynamicObject->GetVelocity()*100+DynamicObject->MoverParameters->UnitBrakeForce);
+//        vol=rsBrake.AA+rsBrake.AM*(DynamicObject->GetVelocity()*100+DynamicObject->MoverParameters->UnitBrakeForce);
+        vol=rsBrake.AM*sqrt((DynamicObject->GetVelocity()*DynamicObject->MoverParameters->UnitBrakeForce));        
         dfreq=rsBrake.FA+rsBrake.FM*DynamicObject->GetVelocity();
         rsBrake.AdjFreq(dfreq,0);
         rsBrake.Play(vol,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
@@ -3657,10 +3658,11 @@ if (DynamicObject->MoverParameters->Battery==true)
     //----------
     //hunter-261211: jakis stary kod (i niezgodny z prawda),
     //zahaszowalem i poprawilem
-    //if (DynamicObject->MoverParameters->ConverterFlag==true)
-    //    btLampkaNadmPrzetw.TurnOff();
-    //else
-    //    btLampkaNadmPrzetw.TurnOn();
+    //youBy-220913: ale przyda sie do lampki samej przetwornicy
+    if (DynamicObject->MoverParameters->ConverterFlag==true)
+     btLampkaPrzetw.TurnOff();
+    else
+     btLampkaPrzetw.TurnOn();
     if (DynamicObject->MoverParameters->ConvOvldFlag==true)
      btLampkaNadmPrzetw.TurnOn();
     else
@@ -4974,6 +4976,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     btLampkaPoslizg.Clear(6);
     btLampkaStyczn.Clear(5);
     btLampkaNadmPrzetw.Clear(7);
+    btLampkaPrzetw.Clear();    
     btLampkaPrzekRozn.Clear();
     btLampkaPrzekRoznPom.Clear();
     btLampkaNadmSil.Clear(4);
@@ -4993,7 +4996,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     btLampkaBlokadaDrzwi.Clear();
     btLampkaUniversal3.Clear();
     btLampkaWentZaluzje.Clear();
-    btLampkaOgrzewanieSkladu.Clear();
+    btLampkaOgrzewanieSkladu.Clear(11);
     btLampkaSHP.Clear(0);
     btLampkaCzuwaka.Clear(1);
     btLampkaDoorLeft.Clear();
@@ -5244,6 +5247,8 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     btLampkaStyczn.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("i-conv_ovld:"))
     btLampkaNadmPrzetw.Load(Parser,DynamicObject->mdKabina);
+   else if (str==AnsiString("i-converter:"))
+    btLampkaPrzetw.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("i-diff_relay:"))
     btLampkaPrzekRozn.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("i-diff_relay2:"))
