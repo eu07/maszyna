@@ -4,7 +4,6 @@
 
 #include <setupapi.h>
 #include "PoKeys55.h"
-#include "Logs.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
 //HIDscaner: http://forum.simflight.com/topic/68257-latest-lua-package-for-fsuipc-and-wideclient/
@@ -289,21 +288,16 @@ bool __fastcall TPoKeys55::Update()
     if (Read())
     {//jest odebrana ramka i zgodnoœæ numeru ¿¹dania
      for(int i=3;i<7;i++)
-      {
-       DInputs[i-3]=InputBuffer[i];
-      }
-     iFaza=0;
+     {
+      DInputs[i-3]=InputBuffer[i];
+     }
+     iFaza=0; //cykl od pocz¹tku
     }
     else
      iFaza--; //powtarzanie odczytu do skutku (mo¿e zawiesiæ?)
-
-//   iFaza=0; //cykl od pocz¹tku
-  break;
-  case 6: //zabezpieczenie na wypadek wyjscia poza
-   iFaza=0;
   break;
   default:
-   iFaza=1;
+   iFaza=0;
   break;
  }
  return (!iFaza); //dalsze operacje tylko po ca³ym cyklu

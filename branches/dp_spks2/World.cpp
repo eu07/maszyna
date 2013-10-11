@@ -2163,6 +2163,14 @@ void __fastcall TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
     break;
    case 8: //ponowne wys³anie informacji o zajêtych odcinkach toru
     Ground.TrackBusyList();
+    break;
+   case 9: //ponowne wys³anie informacji o zajêtych odcinkach izolowanych
+    Ground.IsolatedBusyList();
+    break;
+   case 10: //badanie zajêtoœci jednego odcinka izolowanego
+    Ground.IsolatedBusy(AnsiString(pRozkaz->cString+1,(unsigned)(pRozkaz->cString[0])));
+    break;
+
   }
 };
 

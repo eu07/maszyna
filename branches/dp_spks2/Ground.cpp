@@ -2145,7 +2145,7 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
         {//jeœli jest pojazdem
          //if (!bInitDone) FirstInit(); //jeœli nie by³o w scenerii
          if (LastNode->DynamicObject->Mechanik) //ale mo¿e byæ pasa¿er
-          if (LastNode->DynamicObject->MoverParameters->ActiveCab) //aktywna kabina
+          if (LastNode->DynamicObject->Mechanik->Primary()) //jeœli jest g³ównym (pasa¿er nie jest)
            TrainSetDriver=LastNode; //pojazd, któremu zostanie wys³any rozk³ad
          LastNode->Next=nRootDynamic;
          nRootDynamic=LastNode; //dopisanie z przodu do listy
@@ -4093,4 +4093,23 @@ void __fastcall TGround::TrackBusyList()
     WyslijString(Current->asName,8); //zajêty
 };
 //---------------------------------------------------------------------------
-
+void __fastcall TGround::IsolatedBusyList()
+{//wys³anie informacji o wszystkich zajêtych odcinkach izolowanych
+ TIsolated *Current=NULL;
+ for (Current=Current->Root();Current;Current=Current->Next())
+  if (Current->Busy()) //sprawdz zajetosc
+   WyslijString(Current->asName,11); //zajêty
+  else
+   WyslijString(Current->asName,12); //wolny
+};
+//---------------------------------------------------------------------------
+void __fastcall TGround::IsolatedBusy(const AnsiString t)
+{//wys³anie informacji o wszystkich zajêtych odcinkach izolowanych
+ TIsolated *Current=NULL;
+ for (Current=Current->Root();Current;Current=Current->Next())
+  if (Current->asName==t)
+   if (Current->Busy()) //sprawdz zajetosc
+    WyslijString(Current->asName,11); //zajêty
+    WyslijString("none",12); //wolny none - koniec przesylania
+};
+//---------------------------------------------------------------------------

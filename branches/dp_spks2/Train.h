@@ -193,6 +193,7 @@ public:
     TButton btLampkaPoslizg;
     TButton btLampkaStyczn;
     TButton btLampkaNadmPrzetw;
+    TButton btLampkaPrzetw;
     TButton btLampkaPrzekRozn;
     TButton btLampkaPrzekRoznPom;
     TButton btLampkaNadmSil;
