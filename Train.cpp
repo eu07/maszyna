@@ -4819,6 +4819,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     PantFrontButtonOffGauge.Clear();
     PantAllDownButtonGauge.Clear();
     VelocityGauge.Clear();
+    VelocityGauge.Output(6); //Ra: prêdkoœæ na pin 43 - wyjœcie analogowe (to nie jest PWM)
     I1Gauge.Clear();
     I1Gauge.Output((DynamicObject->MoverParameters->TrainType&(dt_EZT))?-1:5); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
     I2Gauge.Clear();
