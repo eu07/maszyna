@@ -44,8 +44,8 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asRelease="13.7.806.414";
-AnsiString Global::asVersion="Compilation 2013-07-01, release "+Global::asRelease+"."; //tutaj, bo wysy³any
+AnsiString Global::asRelease="13.11.818.415";
+AnsiString Global::asVersion="Compilation 2013-11-01, release "+Global::asRelease+"."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 double Global::fSunDeclination=0.0; //deklinacja S³oñca
@@ -102,7 +102,7 @@ float Global::fMouseXScale=1.5;
 float Global::fMouseYScale=0.2;
 char Global::szSceneryFile[256]="td.scn";
 AnsiString Global::asHumanCtrlVehicle="EU07-424";
-int Global::iMultiplayer=0; //blokada dzia³ania niektórych funkcji na rzecz kominikacji
+int Global::iMultiplayer=0; //blokada dzia³ania niektórych funkcji na rzecz komunikacji
 double Global::fMoveLight=-1; //ruchome œwiat³o
 double Global::fLatitudeDeg=52.0; //szerokoœæ geograficzna
 float Global::fFriction=1.0; //mno¿nik tarcia - KURS90
@@ -148,7 +148,7 @@ bool Global::bDecompressDDS=false; //czy programowa dekompresja DDS
 //parametry do kalibracji
 //kolejno wspó³czynniki dla potêg 0, 1, 2, 3 wartoœci odczytanej z urz¹dzenia
 double Global::fCalibrateIn[6][4]={{0,1,0,0},{0,1,0,0},{0,1,0,0},{0,1,0,0},{0,1,0,0},{0,1,0,0}};
-double Global::fCalibrateOut[6][4]={{0,1,0,0},{0,1,0,0},{0,1,0,0},{0,1,0,0},{0,1,0,0},{0,1,0,0}};
+double Global::fCalibrateOut[7][4]={{0,1,0,0},{0,1,0,0},{0,1,0,0},{0,1,0,0},{0,1,0,0},{0,1,0,0},{0,1,0,0}};
 
 //parametry przejœciowe (do usuniêcia)
 //bool Global::bTimeChange=false; //Ra: ZiomalCl wy³¹czy³ star¹ wersjê nocy
@@ -391,9 +391,9 @@ void __fastcall Global::ConfigParse(TQueryParserComp *qp,cParser *cp)
   else if (str==AnsiString("calibrateout")) //parametry kalibracji wyjœæ
   {//
    i=GetNextSymbol().ToIntDef(-1); //numer wejœcia
-   if ((i<0)||(i>5)) i=5; //na ostatni, bo i tak trzeba pomin¹æ wartoœci
+   if ((i<0)||(i>6)) i=6; //na ostatni, bo i tak trzeba pomin¹æ wartoœci
    fCalibrateOut[i][0]=GetNextSymbol().ToDouble(); //wyraz wolny
-   fCalibrateOut[i][1]=GetNextSymbol().ToDouble(); //mno¿nik
+   fCalibrateOut[i][1]=GetNextSymbol().ToDouble(); //mno¿nik liniowy
    fCalibrateOut[i][2]=GetNextSymbol().ToDouble(); //mno¿nik dla kwadratu
    fCalibrateOut[i][3]=GetNextSymbol().ToDouble(); //mno¿nik dla szeœcianu
   }

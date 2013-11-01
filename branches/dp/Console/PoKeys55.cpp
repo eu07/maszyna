@@ -23,8 +23,8 @@ __fastcall TPoKeys55::TPoKeys55()
  iFaza=0;
  iLastCommand=0;
  fAnalog[0]=fAnalog[1]=fAnalog[2]=fAnalog[3]=fAnalog[4]=fAnalog[5]=fAnalog[6]=-1.0;
- iPWM[0]=iPWM[1]=iPWM[2]=iPWM[3]=iPWM[4]=iPWM[5]=0;
- iPWM[6]=4096;
+ iPWM[0]=iPWM[1]=iPWM[2]=iPWM[3]=iPWM[4]=iPWM[5]=iPWM[6]=0;
+ iPWM[7]=4096;
  iInputs[0]=0; //czy normalnie s¹ w stanie wysokim?
  iRepated=0;
 };
@@ -149,7 +149,7 @@ bool __fastcall TPoKeys55::Connect()
  return false;
 }
 //---------------------------------------------------------------------------
-bool __fastcall TPoKeys55::Write(unsigned char c,unsigned char b3,unsigned char b4)
+bool __fastcall TPoKeys55::Write(unsigned char c,unsigned char b3,unsigned char b4,unsigned char b5)
 {
  DWORD BytesWritten=0;
  OutputBuffer[0]=0;    //The first byte is the "Report ID" and does not get transmitted over the USB bus. Always set=0.
@@ -157,7 +157,7 @@ bool __fastcall TPoKeys55::Write(unsigned char c,unsigned char b3,unsigned char 
  OutputBuffer[2]=iLastCommand=c;    //operacja: 0x31: blokowy odczyt wejœæ
  OutputBuffer[3]=b3;   //np. numer pinu (o 1 mniej ni¿ numer na p³ytce)
  OutputBuffer[4]=b4;
- OutputBuffer[5]=0;
+ OutputBuffer[5]=b5;
  OutputBuffer[6]=0;
  OutputBuffer[7]=++cRequest; //numer ¿¹dania
  OutputBuffer[8]=0;
@@ -225,13 +225,14 @@ AnsiString __fastcall TPoKeys55::Version()
 
 bool __fastcall TPoKeys55::PWM(int x,float y)
 {//ustawienie wskazanego PWM (@12Mhz: 12000=1ms=1000Hz)
- //iPWM[6]=1024; //1024==85333.3333333333ns=11718.75Hz
+ //iPWM[7]=1024; //1024==85333.3333333333ns=11718.75Hz
  iPWM[x]=int(0.5f+0x0FFF*y)&0x0FFF; //0x0FFF=4095
  return true;
 }
 
 bool __fastcall TPoKeys55::Update()
 {//funkcja powinna byæ wywo³ywana regularnie, np. raz w ka¿dej ramce ekranowej
+ //131101 Ra: do poprawienia, bo jak siê PoKeys zawiesi, to w nieskoñczonoœæ czeka na potwierdzenie
  switch (iFaza)
  {case 0: //uaktualnienie PWM raz na jakiœ czas
    OutputBuffer[9]=0x3F; //maska u¿ytych PWM
@@ -241,7 +242,7 @@ bool __fastcall TPoKeys55::Update()
    *((int*)(OutputBuffer+22))=iPWM[3]; //PWM4 (pin 19)
    *((int*)(OutputBuffer+26))=iPWM[4]; //PWM5 (pin 18)
    *((int*)(OutputBuffer+30))=iPWM[5]; //PWM6 (pin 17)
-   *((int*)(OutputBuffer+34))=iPWM[6]; //PWM period
+   *((int*)(OutputBuffer+34))=iPWM[7]; //PWM period
    Write(0xCB,1); //wys³anie ustawieñ (1-ustaw, 0-odczyt)
    ++iFaza; //ta faza zosta³a zakoñczona
   break;
@@ -249,7 +250,7 @@ bool __fastcall TPoKeys55::Update()
    if (iLastCommand!=0x3A) //asynchroniczne ustawienie kontrolki mo¿e namieszaæ
     Write(0x3A,0); //0x3A - Analog inputs reading – all analog inputs in one command
    else if (Read())
-   {//jest odebrana ramka i zgodnoœæ numeru ¿¹dania - wchodzi tu w ogóle?
+   {//jest odebrana ramka i zgodnoœæ numeru ¿¹dania
     fAnalog[0]=((InputBuffer[21]<<8)+InputBuffer[22])/4095.0f; //pin 47
     fAnalog[1]=((InputBuffer[19]<<8)+InputBuffer[20])/4095.0f; //pin 46
     fAnalog[2]=((InputBuffer[17]<<8)+InputBuffer[18])/4095.0f; //pin 45
@@ -268,10 +269,15 @@ bool __fastcall TPoKeys55::Update()
    else if (Read())
    {//jest odebrana ramka i zgodnoœæ numeru ¿¹dania
     iInputs[0]=*((int*)(InputBuffer+3)); //odczyt 32 bitów
-    iFaza=0; //skoro odczytano, mo¿na cykl od pocz¹tku
+    iFaza=3; //skoro odczytano, mo¿na kolejny cykl
     //iRepated=0; //zerowanie licznika prób
    }
    //else ++iRepated; //licznik nieudanych prób
+  break;
+  case 3: //ustawienie wyjœæ analogowych, 0..4095 mapowaæ na 0..65520 (<<4)
+   Write(0x41,43-1,(iPWM[6]>>4),(iPWM[6]<<4)); //wys³anie ustawieñ
+   iFaza=0; //++iFaza; //ta faza zosta³a zakoñczona
+   //powinno jeszcze przyjœæ potwierdzenie o kodzie 0x41
   break;
   default:
    iFaza=0; //na wypadek, gdyby zb³¹dzi³o po jakichœ zmianach w kodzie

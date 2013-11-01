@@ -1186,7 +1186,8 @@ bool __fastcall TWorld::Update()
   Global::SetCameraRotation(Camera.Yaw-M_PI);
  }
  Ground.CheckQuery();
- Global::bSmudge=FreeFlyModeFlag?false:((Train->DynamicObject->fShade<=0.0)?(Global::fLuminance<=0.25):(Train->DynamicObject->fShade*Global::fLuminance<=0.25));
+ //przy 0.25 smuga gaœnie o 6:37 w Quarku, a mog³aby ju¿ 5:40
+ Global::bSmudge=FreeFlyModeFlag?false:((Train->DynamicObject->fShade<=0.0)?(Global::fLuminance<=0.15):(Train->DynamicObject->fShade*Global::fLuminance<=0.15));
 
  if (!Render()) return false;
 
