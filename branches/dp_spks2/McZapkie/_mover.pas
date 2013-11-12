@@ -3834,13 +3834,14 @@ begin
                  //0.03
 
   u:=((BrakePress*P2FTrans)-BrakeCylSpring)*BrakeCylMult[0]-BrakeSlckAdj;
-  if (u*BrakeRigEff>Ntotal) or (u<Ntotal) then
+  if (u*BrakeRigEff>Ntotal) or (u<Ntotal) then //histereza na nacisku klockow
     Ntotal:=u;
 
-  if Ntotal>0 then         {nie luz}
+  if (NBrakeAxles*NBpA>0) then
     begin
-     K:=K+Ntotal;                     {w kN}
-     K:=K*BrakeCylNo/(NBrakeAxles*NBpA);            {w kN na os}
+      if Ntotal>0 then         {nie luz}
+        K:=K+Ntotal;                     {w kN}
+      K:=K*BrakeCylNo/(NBrakeAxles*NBpA);            {w kN na os}
     end;
   if (BrakeSystem=Pneumatic)or(BrakeSystem=ElectroPneumatic) then
   begin
@@ -3858,9 +3859,9 @@ begin
 {  else
    begin
 {     SlippingWheels:=False;}
-     if (LocalBrake=ManualBrake) and (BrakePress<0.3) then
-      Fb:=UnitBrakeForce*NBpA {ham. reczny dziala na jedna os}
-     else
+//     if (LocalBrake=ManualBrake) and (BrakePress<0.3) then
+//      Fb:=UnitBrakeForce*NBpA {ham. reczny dziala na jedna os}
+//     else  //yB: to nie do konca ma sens, poniewa¿ rêczny w wagonie dzia³a na jeden cylinder hamulcowy/wózek, dlatego potrzebne s¹ oddzielnie liczone osie
       Fb:=UnitBrakeForce*NBrakeAxles*NBpA;
 
 //  u:=((BrakePress*P2FTrans)-BrakeCylSpring*BrakeCylMult[BCMFlag]/BrakeCylNo-0.83*BrakeSlckAdj/(BrakeCylNo))*BrakeCylNo;
