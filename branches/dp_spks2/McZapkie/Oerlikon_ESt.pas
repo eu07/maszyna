@@ -87,8 +87,9 @@ TYPE
         RapidStatus: boolean; //status rapidu
         RapidMult: real;      //przelozenie (w dol)
         Komora2: real;
+        DN,DL: real;          //srednice dysz napelniania i luzowania
       public
-        procedure SetRapidParams(mult: real);
+        procedure SetRapidParams(mult: real; size: real);
         procedure SetRapidStatus(rs: boolean);
         procedure Update(dt:real); override;
       end;
@@ -219,10 +220,20 @@ end;
 
 // ------ PRZEKLADNIK RAPID ------
 
-procedure TRapid.SetRapidParams(mult: real);
+procedure TRapid.SetRapidParams(mult: real; size: real);
 begin
   RapidMult:=mult;
   RapidStatus:=false;
+  if (size>0.1) then //dopasowywanie srednicy przekladnika
+   begin
+    DN:=D2A(size*0.4);
+    DL:=D2A(size*0.4);
+   end
+  else
+   begin
+    DN:=D2A(5);
+    DL:=D2A(5);
+   end;
 end;
 
 procedure TRapid.SetRapidStatus(rs: boolean);
@@ -246,10 +257,10 @@ begin
    end;
 
   if(BCP*RapidMult>P*actMult)then
-   dV:=-PFVd(BCP,0,d2A(5),P*actMult/RapidMult)*dt
+   dV:=-PFVd(BCP,0,DL,P*actMult/RapidMult)*dt
   else
   if(BCP*RapidMult<P*ActMult)then
-   dV:=PFVa(BVP,BCP,d2A(5),P*actMult/RapidMult)*dt
+   dV:=PFVa(BVP,BCP,DN,P*actMult/RapidMult)*dt
   else dV:=0;
 
   Next.Flow(dV);
@@ -604,7 +615,10 @@ begin
    begin
     Podskok:=-1;
     Przekladniki[1]:=TRapid.Create;
-    (Przekladniki[1] as TRapid).SetRapidParams(2);
+    if Pos('-s216',params)>0 then
+      (Przekladniki[1] as TRapid).SetRapidParams(2,16)
+    else
+      (Przekladniki[1] as TRapid).SetRapidParams(2,0);
     Przekladniki[3]:=TPrzeciwposlizg.Create;
    end;
 
@@ -679,6 +693,18 @@ begin
       Nozzles[dPm]:=2.5;
       Nozzles[dPO]:=7.28;
       Nozzles[dPT]:=2.96;
+     end;
+    375:
+     begin   //dON,dOO,dTN,dTO,dP,dS
+      Nozzles[dON]:=dNO1l;
+      Nozzles[dOO]:=dOO1l/1.15;
+      Nozzles[dTN]:=dNT1l;
+      Nozzles[dTO]:=dOT1l;
+      Nozzles[dP]:=13.0;
+      Nozzles[dPd]:=9.6;
+      Nozzles[dPm]:=4.4;
+      Nozzles[dPO]:=9.92;
+      Nozzles[dPT]:=3.99;
      end;
     150:
      begin   //dON,dOO,dTN,dTO,dP,dS

@@ -98,9 +98,11 @@ private:
 	bool RapidStatus;
 	double RapidMult;
 	double Komora2;
+	double DN;
+	double DL;
 	
 public:
-	void __fastcall SetRapidParams(double mult);
+	void __fastcall SetRapidParams(double mult, double size);
 	void __fastcall SetRapidStatus(bool rs);
 	virtual void __fastcall Update(double dt);
 public:
