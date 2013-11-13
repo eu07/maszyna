@@ -235,6 +235,8 @@ void __fastcall Console::BitsUpdate(int mask)
      PoKeys55->Write(0x40,26-1,iBits&0x200?1:0);
     if (mask&0x400) //b10 Kontrolka wysokiego rozruchu
      PoKeys55->Write(0x40,31-1,iBits&0x400?1:0);
+    if (mask&0x800) //b11 Kontrolka ogrzewania poci¹gu 
+     PoKeys55->Write(0x40,33-1,iBits&0x800?1:0);
    }
    break;
  }

@@ -4885,7 +4885,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     btLampkaBlokadaDrzwi.Clear();
     btLampkaUniversal3.Clear();
     btLampkaWentZaluzje.Clear();
-    btLampkaOgrzewanieSkladu.Clear();
+    btLampkaOgrzewanieSkladu.Clear(11);
     btLampkaSHP.Clear(0);
     btLampkaCzuwaka.Clear(1);
     btLampkaDoorLeft.Clear();
