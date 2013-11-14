@@ -213,30 +213,30 @@ void __fastcall Console::BitsUpdate(int mask)
   case 4: //PoKeys55 wg Marcela - wersja druga z koñca 2012
    if (PoKeys55)
    {//pewnie trzeba bêdzie to dodatkowo buforowaæ i oczekiwaæ na potwierdzenie
-    if (mask&0x001) //gdy SHP
-     PoKeys55->Write(0x40,23-1,iBits&0x001?1:0);
-    if (mask&0x002) //gdy zmieniony CA
-     PoKeys55->Write(0x40,24-1,iBits&0x002?1:0);
-    if (mask&0x004) //gdy jazda na oporach
-     PoKeys55->Write(0x40,32-1,iBits&0x004?1:0);
-    if (mask&0x008) //b3 Lampka WS (wy³¹cznika szybkiego)
-     PoKeys55->Write(0x40,25-1,iBits&0x008?1:0);
-    if (mask&0x010) //b4 Lampka przekaŸnika nadmiarowego silników trakcyjnych
-     PoKeys55->Write(0x40,27-1,iBits&0x010?1:0);
-    if (mask&0x020) //b5 Lampka styczników liniowych
-     PoKeys55->Write(0x40,29-1,iBits&0x020?1:0);
-    if (mask&0x040) //b6 Lampka poœlizgu
-     PoKeys55->Write(0x40,30-1,iBits&0x040?1:0);
-    if (mask&0x080) //b7 Lampka "przetwornicy"
-     PoKeys55->Write(0x40,28-1,iBits&0x080?1:0);
-    if (mask&0x100) //b8 Kontrolka przekaŸnika nadmiarowego sprê¿arki
-     PoKeys55->Write(0x40,33-1,iBits&0x100?1:0);
-    if (mask&0x200) //b9 Kontrolka sygnalizacji wentylatorów i oporów
-     PoKeys55->Write(0x40,26-1,iBits&0x200?1:0);
-    if (mask&0x400) //b10 Kontrolka wysokiego rozruchu
-     PoKeys55->Write(0x40,31-1,iBits&0x400?1:0);
-    if (mask&0x800) //b11 Kontrolka ogrzewania poci¹gu 
-     PoKeys55->Write(0x40,33-1,iBits&0x800?1:0);
+    if (mask&0x0001) //b0 gdy SHP
+     PoKeys55->Write(0x40,23-1,iBits&0x0001?1:0);
+    if (mask&0x0002) //b1 gdy zmieniony CA
+     PoKeys55->Write(0x40,24-1,iBits&0x0002?1:0);
+    if (mask&0x0004) //b2 gdy jazda na oporach
+     PoKeys55->Write(0x40,32-1,iBits&0x0004?1:0);
+    if (mask&0x0008) //b3 Lampka WS (wy³¹cznika szybkiego)
+     PoKeys55->Write(0x40,25-1,iBits&0x0008?1:0);
+    if (mask&0x0010) //b4 Lampka przekaŸnika nadmiarowego silników trakcyjnych
+     PoKeys55->Write(0x40,27-1,iBits&0x0010?1:0);
+    if (mask&0x0020) //b5 Lampka styczników liniowych
+     PoKeys55->Write(0x40,29-1,iBits&0x0020?1:0);
+    if (mask&0x0040) //b6 Lampka poœlizgu
+     PoKeys55->Write(0x40,30-1,iBits&0x0040?1:0);
+    if (mask&0x0080) //b7 Lampka "przetwornicy"
+     PoKeys55->Write(0x40,28-1,iBits&0x0080?1:0);
+    if (mask&0x0100) //b8 Kontrolka przekaŸnika nadmiarowego sprê¿arki
+     PoKeys55->Write(0x40,33-1,iBits&0x0100?1:0);
+    if (mask&0x0200) //b9 Kontrolka sygnalizacji wentylatorów i oporów
+     PoKeys55->Write(0x40,26-1,iBits&0x0200?1:0);
+    if (mask&0x0400) //b10 Kontrolka wysokiego rozruchu
+     PoKeys55->Write(0x40,31-1,iBits&0x0400?1:0);
+    if (mask&0x0800) //b11 Kontrolka ogrzewania poci¹gu
+     PoKeys55->Write(0x40,34-1,iBits&0x0800?1:0);
    }
    break;
  }
