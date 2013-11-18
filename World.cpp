@@ -1186,7 +1186,8 @@ bool __fastcall TWorld::Update()
   Global::SetCameraRotation(Camera.Yaw-M_PI);
  }
  Ground.CheckQuery();
- Global::bSmudge=FreeFlyModeFlag?false:((Train->DynamicObject->fShade<=0.0)?(Global::fLuminance<=0.25):(Train->DynamicObject->fShade*Global::fLuminance<=0.25));
+ //przy 0.25 smuga gaœnie o 6:37 w Quarku, a mog³aby ju¿ 5:40
+ Global::bSmudge=FreeFlyModeFlag?false:((Train->DynamicObject->fShade<=0.0)?(Global::fLuminance<=0.15):(Train->DynamicObject->fShade*Global::fLuminance<=0.15));
 
  if (!Render()) return false;
 
@@ -1933,9 +1934,12 @@ bool __fastcall TWorld::Render()
  Camera.SetMatrix(); //ustawienie macierzy kamery wzglêdem pocz¹tku scenerii
  glLightfv(GL_LIGHT0,GL_POSITION,Global::lightPos);
 
+ if (!Global::bWireFrame)
+ {//bez nieba w trybie rysowania linii
  glDisable(GL_FOG);
    Clouds.Render();
  glEnable(GL_FOG);
+ }
  if (Global::bUseVBO)
  {//renderowanie przez VBO
   if (!Ground.RenderVBO(Camera.Pos)) return false;

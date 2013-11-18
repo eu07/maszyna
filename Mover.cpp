@@ -206,9 +206,12 @@ bool __fastcall TMoverParameters::ChangeCab(int direction)
     ActFlowSpeed=0;
    }
    else
+    //if (TrainType=dt_EZT) and (BrakeCtrlPosNo>0) then
+    //  BrakeCtrlPos:=5; //z Megapacka
+    //else
     BrakeLevelSet(0); //BrakeCtrlPos=0;
 //   if not TestFlag(BrakeStatus,b_dmg) then
-//    BrakeStatus:=b_off;
+//    BrakeStatus:=b_off; //z Megapacka
    MainCtrlPos=0;
    ScndCtrlPos=0;
    if ((EngineType!=DieselEngine)&&(EngineType!=DieselElectric))
