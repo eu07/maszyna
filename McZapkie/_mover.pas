@@ -57,11 +57,11 @@ zwiekszenie nacisku przy duzych predkosciach w hamulcach Oerlikona
 32. wylaczanie obliczen dla nieruchomych wagonow
 33. Zbudowany model rozdzielacza powietrza roznych systemow
 34. Poprawiona pozycja napelniania uderzeniowego i hamulec EP
--35. Dodane baterie akumulatorow (KURS90)
--36. Hamowanie elektrodynamiczne w ET42 i poprawione w EP09
--37. jednokierunkowosc walu kulakowego w EZT (nie do konca)
--38. wal kulakowy w ET40
--39. poprawiona blokada nastawnika w ET40
+35. Dodane baterie akumulatorow (KURS90)
+36. Hamowanie elektrodynamiczne w ET42 i poprawione w EP09
+37. jednokierunkowosc walu kulakowego w EZT (nie do konca)
+38. wal kulakowy w ET40
+39. poprawiona blokada nastawnika w ET40
 ...
 *)
 
@@ -1098,6 +1098,8 @@ begin
       pr:=(HighPipePress-1.0/3.0*DeltaPipePress-Max0R(LowPipePress,PipePress))/(DeltaPipePress*2.0/3.0);
      if (not TestFlag(BrakeStatus,b_Ractive)) and (BrakeMethod and 1 = 0) and TestFlag(BrakeDelays,bdelay_R) and (Power<1) and (BrakeCtrlPos<1) then
       pr:=Min0R(0.5,pr);
+      //if (Compressor>0.5) then
+      // pr:=pr*1.333; //dziwny rapid wywalamy
     end
    else
      pr:=(HighPipePress-Max0R(LowPipePress,Min0R(HighPipePress,PipePress)))/DeltaPipePress
@@ -1251,15 +1253,16 @@ begin
  if (MainCtrlPosNo>0) and (CabNo<>0) then
   begin
    if MainCtrlPos<MainCtrlPosNo then
+    if (TrainType<>dt_ET22) or ((TrainType=dt_ET22) and (ScndCtrlPos=0)) then //w ET22 nie da siê krêciæ nastawnikiem przy w³¹czonym boczniku
     case EngineType of
      None, Dumb, DieselElectric:      { EZT:}
-      if CtrlSpeed=1 then
-       begin
+      if ((CtrlSpeed=1) and (TrainType<>dt_EZT)) or ((CtrlSpeed=1) and (TrainType=dt_EZT)and (activedir<>0)) then
+       begin //w EZT nie da siê za³¹czyæ pozycji bez ustawienia kierunku
         inc(MainCtrlPos);
         OK:=True;
        end
       else
-       if CtrlSpeed>1 then
+       if ((CtrlSpeed>1) and (TrainType<>dt_EZT)) or ((CtrlSpeed>1) and (TrainType=dt_EZT)and (activedir<>0)) then
          OK:=IncMainCtrl(1) and IncMainCtrl(CtrlSpeed-1);
      ElectricSeriesMotor:
       if (CtrlSpeed=1) and (ActiveDir<>0) then
@@ -1280,6 +1283,17 @@ begin
           MainCtrlActualPos:=1;
 }
            end;
+           if (CtrlSpeed=1) and (ActiveDir=-1) and (RList[MainCtrlPos].Bn>1) and (TrainType<>dt_pseudodiesel) then
+            begin //blokada wejœcia na równoleg³¹ podczas jazdy do ty³u
+                  dec(MainCtrlPos);
+                  OK:=false;
+                end;
+            {if (TrainType='et40') then
+              if Abs(Im)>IminHi then
+                begin
+                dec(MainCtrlPos); //Blokada nastawnika po przekroczeniu minimalnego pradu
+                OK:=false;
+                end; }
         if(DynamicBrakeFlag)then
           if(TrainType=dt_ET42)then
             if MainCtrlPos>20 then
@@ -1289,10 +1303,18 @@ begin
              end;
        end
       else
-       if (CtrlSpeed>1) and (ActiveDir<>0) then
-        begin
+       if (CtrlSpeed>1) and (ActiveDir<>0) {and (ScndCtrlPos=0)} and (TrainType<>dt_ET40) then
+        begin //szybkie przejœcie na bezoporow¹
           while (RList[MainCtrlPos].R>0) and IncMainCtrl(1) do ;
            //OK:=True ; {takie chamskie, potem poprawie} <-Ra: kto mia³ to poprawiæ i po co?
+           if  ActiveDir=-1 then
+            while (RList[MainCtrlPos].Bn>1) and IncMainCtrl(1) do
+            dec(MainCtrlPos);
+            OK:=False ; 
+            {if (TrainType=dt_ET40)  then
+             while Abs (Im)>IminHi do
+               dec(MainCtrlPos);
+              OK:=false ;  }
          if(DynamicBrakeFlag)then
            if(TrainType=dt_ET42)then
              while(MainCtrlPos>20)do
@@ -1366,7 +1388,7 @@ begin
   if (MainCtrlPosNo>0) and (CabNo<>0) then
    begin
       if MainCtrlPos>0 then
-       //if ((TrainType<>dt_ET22) or (ScndCtrlPos=0)) then //Ra: ET22 blokuje nastawnik przy boczniku
+       if ((TrainType<>dt_ET22) or (ScndCtrlPos=0)) then //Ra: ET22 blokuje nastawnik przy boczniku
        begin
          if CoupledCtrl and (ScndCtrlPos>0) then
           begin
@@ -1376,7 +1398,7 @@ begin
          else
           case EngineType of
             None, Dumb, DieselElectric:   { EZT:}
-             if CtrlSpeed=1 then
+             if ((CtrlSpeed=1) and {(ScndCtrlPos=0) and} (EngineType<>DieselElectric)) or ((CtrlSpeed=1)and(EngineType=DieselElectric))then
               begin
                 dec(MainCtrlPos);
                 OK:=True;
@@ -1385,12 +1407,12 @@ begin
               if CtrlSpeed>1 then
                OK:=DecMainCtrl(1) and DecMainCtrl(2); //CtrlSpeed-1);
             ElectricSeriesMotor:
-             if CtrlSpeed=1 then
+             if (CtrlSpeed=1) {and (ScndCtrlPos=0)} then
               begin
                 dec(MainCtrlPos);
-                if (MainCtrlPos=0) and (ScndCtrlPos=0) then
+                if (MainCtrlPos=0) and (ScndCtrlPos=0) and (TrainType<>dt_ET40)and(TrainType<>dt_EP05) then
                  StLinFlag:=false;
-                if (MainCtrlPos=0) then
+                if (MainCtrlPos=0) and (TrainType<>dt_ET40) and (TrainType<>dt_EP05) then
                  MainCtrlActualPos:=0;
                 OK:=True;
               end
@@ -1456,8 +1478,8 @@ begin
   else
  if (ScndCtrlPosNo>0) and (CabNo<>0) and not ((TrainType=dt_ET42)and((Imax=ImaxHi)or((DynamicBrakeFlag)and(MainCtrlPos>0)))) then
   begin
-{      if (RList[MainCtrlPos].R=0) and (MainCtrlPos>0) and (ScndCtrlPos<ScndCtrlPosNo) and (not CoupledCtrl) then}
-   if (ScndCtrlPos<ScndCtrlPosNo) and (not CoupledCtrl) and ((EngineType<>DieselElectric) or (not AutoRelayFlag)) then
+   //if (RList[MainCtrlPos].R=0) and (MainCtrlPos>0) and (ScndCtrlPos<ScndCtrlPosNo) and (not CoupledCtrl) then
+   if (ScndCtrlPos<ScndCtrlPosNo) and ((RList[MainCtrlPos].R=0) or (TrainType<>dt_ET22)) and (activedir<>0) and (not CoupledCtrl) then
     begin
       if CtrlSpeed=1 then
        begin
@@ -1605,7 +1627,7 @@ begin
    else
     BrakeCtrlPos:=0;
 //   if not TestFlag(BrakeStatus,b_dmg) then
-//    BrakeStatus:=b_off;
+//    BrakeStatus:=b_off; //z Megapacka
    MainCtrlPos:=0;
    ScndCtrlPos:=0;
    if (EngineType<>DieselEngine) and (EngineType<>DieselElectric) then
@@ -1710,6 +1732,8 @@ function T_MoverParameters.SecuritySystemReset : boolean;
 //zbijanie czuwaka/SHP
  procedure Reset;
   begin
+  with SecuritySystem do
+    if not(TestFlag(SystemType,2) and TestFlag(Status,s_active)) then
     SecuritySystem.SystemTimer:=0;
     SecuritySystem.SystemBrakeTimer:=0;
     SecuritySystem.SystemSoundTimer:=0;
@@ -1725,7 +1749,8 @@ function T_MoverParameters.SecuritySystemReset : boolean;
   end;
 begin
   with SecuritySystem do
-    if (SystemType>0) and (Status>0) then
+    begin
+    if (Status=3) or (Status=2) or (Status=11) or (Status=26)or(Status=27) then
       begin
         SecuritySystemReset:=True;
         if (Status<s_ebrake) then
@@ -1733,6 +1758,73 @@ begin
         else
           if EmergencyBrakeSwitch(False) then
            Reset;
+      end;
+
+      if (Status=5) or (Status=13) or (Status=29) or (Status=4) or ((Status=12) and (activedir<>0)) or (Status=28) then  {Wlaczone tylko SHP}
+    {  begin
+        SecuritySystemReset:=True;
+        if (Status<s_ebrake) then
+         ResetSHP
+        else
+          if EmergencyBrakeSwitch(False) then
+           ResetSHP;
+      end;
+      if (Status=7) or (Status=15) or (Status=30) or (Status=31) then  {Wlaczone SHP i CA}
+     { begin
+        SecuritySystemReset:=True;
+        if (Status<s_ebrake) then
+         begin
+         ResetSHP;
+         SecuritySystem.Status:=3;
+         end
+        else
+          if EmergencyBrakeSwitch(False) then
+           ResetSHP;
+      end
+    else
+     SecuritySystemReset:=False;
+     end;
+//  SendCtrlToNext('SecurityReset',0,CabNo);
+end;
+
+function T_MoverParameters.SecuritySystemReset : boolean;
+//zbijanie czuwaka/SHP
+ procedure Reset;
+  begin
+   SecuritySystem.SystemTimer:=0;
+   if TestFlag(SecuritySystem.Status,s_aware) then
+    begin
+     SecuritySystem.SystemBrakeCATimer:=0;
+     SecuritySystem.SystemSoundCATimer:=0;
+     SetFlag(SecuritySystem.Status,-s_aware);
+     SetFlag(SecuritySystem.Status,-s_CAalarm);
+     SetFlag(SecuritySystem.Status,-s_CAebrake);
+     EmergencyBrakeFlag:=false;
+     SecuritySystem.VelocityAllowed:=-1;
+    end
+   else if TestFlag(SecuritySystem.Status,s_active) then
+    begin
+     SecuritySystem.SystemBrakeSHPTimer:=0;
+     SecuritySystem.SystemSoundSHPTimer:=0;
+     SetFlag(SecuritySystem.Status,-s_active);
+     SetFlag(SecuritySystem.Status,-s_SHPalarm);
+     SetFlag(SecuritySystem.Status,-s_SHPebrake);
+     EmergencyBrakeFlag:=false;
+     SecuritySystem.VelocityAllowed:=-1;
+    end;
+  end;
+begin
+  with SecuritySystem do
+    if (SystemType>0) and (Status>0) and ((status<>12) or ((status=12) and (activedir<>0))) then
+    //if (SystemType>0) and (Status>0) then
+      begin
+        SecuritySystemReset:=True;
+        if not (ActiveDir=0) then
+         if not TestFlag(Status,s_CAebrake) or not TestFlag(Status,s_SHPebrake) then
+          Reset;
+        //else
+        //  if EmergencyBrakeSwitch(False) then
+        //   Reset;
       end
     else
      SecuritySystemReset:=False;
@@ -2146,6 +2238,7 @@ begin
       BrakeDelayFlag:=BDS;
       BrakeDelaySwitch:=True;
       BrakeStatus:=(BrakeStatus and 191);
+      //kopowanie nastawy hamulca do kolejnego czlonu - do przemyœlenia
       if CabNo<>0 then
        SendCtrlToNext('BrakeDelay',BrakeDelayFlag,CabNo);
     end
@@ -2261,6 +2354,7 @@ begin
         end;
 
        {elektropneumatyczny hamulec zasadniczy}
+       //do przemyœlenia przy integracji z SPKS
        if (BrakePressureActual.BrakeType=ElectroPneumatic) and Mains and (ActiveDir<>0)then
        //if (BrakePressureTable[BrakeCtrlPos].BrakeType=ElectroPneumatic) and (Battery=true) and (EpFuse=true)and (ActiveDir<>0)then
          with BrakePressureActual do
@@ -2315,7 +2409,7 @@ begin
             Rate:=PipeRatio*sm;
             if TestFlag(BrakeDelays,bdelay_R)then
               if(not TestFlag(BrakeStatus,b_Ractive)and(BrakeCtrlPosNo=0)and((BrakeMethod and 1)=0))then
-                sm:=sm*0.5;
+                sm:=sm*0.5; //2B|~2B? W Megapacku wykomentowane
 
             Speed:=RealPipeRatio*sm;
 
@@ -2340,6 +2434,13 @@ begin
                 else if(BrakeDelayFlag=bdelay_G)then
                  dpBrake:=(1.2-Speed)/1.2*sm*MaxBrakePress*PR(PipeBrakePress,0)*dt/(BrakeDelay[3])
                 else
+            //     if (TestFlag(BrakeDelays,bdelay_R)) and (byte(BrakeMethod and 1)=0) and (BrakeCtrlPosNo=0) then
+            //       if PipeBrakePress>0.5*MaxBrakePress then
+            //         dpBrake:=MaxBrakePress*PR(PipeBrakePress,0)*dt/2
+            //          //dpBrake:=(1.2-Speed)/1.2*sm*MaxBrakePress*PR(PipeBrakePress,0)*dt/(BrakeDelay[1])
+            //       else
+            //         dpBrake:=(1.2-Speed)/1.2*sm*MaxBrakePress*PR(PipeBrakePress,0)*dt/(BrakeDelay[1])
+            //     else //w SPKS ma byæ inaczej
                  dpBrake:=(1.2-Speed)/1.2*sm*MaxBrakePress*PR(PipeBrakePress,0)*dt/(BrakeDelay[1]);
 
                  if(dpBrake<0)then dpBrake:=0;
@@ -2362,6 +2463,12 @@ begin
                 dpLocalValve:=(1.01-Rate)*MaxBrakePress*PR(LocBrakePress,0)*dt/7.0;//8*2
                 DecBrakePress(LocBrakePress,Rate*MaxBrakePress,dpLocalValve);
               end;
+       //     if ((TrainType=dt_ET42)and(ScndCtrlActualPos<255)and(DynamicBrakeFlag))then  //odluzniacz
+       //    begin
+       //       dpLocalValve:=1.01*MaxBrakePress*PR(LocBrakePress,0)*dt/7;//8*2
+       //         DecBrakePress(LocBrakePress,{Rate*MaxBrakePress}0,dpLocalValve);
+       //      {odluznianie hamulca pomocniczego przy uzyciu hamulca ED w ET42 (KURS90)}
+       //      end //w SPKS inaczej
            end;
         end;{Pneumatic}
    if (BrakeSystem=Pneumatic) or (BrakeSystem=ElectroPneumatic) then
@@ -3006,8 +3113,8 @@ end;
 function T_MoverParameters.FuseOn: boolean;
 begin
  FuseOn:=False;
- if (MainCtrlPos=0) and (ScndCtrlPos=0) and Mains then
-  begin
+ if (MainCtrlPos=0) and (ScndCtrlPos=0) and (TrainType<>dt_ET40) and Mains then
+  begin //w ET40 jest blokada nastawnika, ale czy dzia³a dobrze?
    SendCtrlToNext('FuseSwitch',1,CabNo);
    if ((EngineType=ElectricSeriesMotor)or((EngineType=DieselElectric))) and FuseFlag then
     begin
@@ -3123,7 +3230,18 @@ begin
   ResistorsFlag:=ResistorsFlag or ((DynamicBrakeFlag=true) and (DynamicBrakeType=dbrake_automatic));
   R:=RList[MainCtrlActualPos].R+CircuitRes;
   Mn:=RList[MainCtrlActualPos].Mn;
-  if DynamicBrakeFlag and (not FuseFlag) and (DynamicBrakeType=dbrake_automatic) and Mains then     {hamowanie EP09}
+  if DynamicBrakeFlag and (TrainType=dt_ET42) then { KURS90 azeby mozna bylo hamowac przy opuszczonych pantografach }
+  SP:=ScndCtrlActualPos;
+   if(ScndInMain)then
+    if not (Rlist[MainCtrlActualPos].ScndAct=255) then
+     SP:=Rlist[MainCtrlActualPos].ScndAct;
+    with MotorParam[SP] do
+  begin
+  Rz:=WindingRes+R;
+  MotorCurrent:=-fi*n/Rz;
+  end;
+
+  if DynamicBrakeFlag and (not FuseFlag) and (DynamicBrakeType=dbrake_automatic) and ConverterFlag and Mains then     {hamowanie EP09}
    with MotorParam[ScndCtrlPosNo] do
      begin
        MotorCurrent:=-fi*n/ep09resED; {TODO: zrobic bardziej uniwersalne nie tylko dla EP09}
@@ -4276,7 +4394,8 @@ begin
              begin
                CheckCollision:=True;
                if (CouplerType=Automatic) and (CouplingFlag=0) then  {sprzeganie wagonow z samoczynnymi sprzegami}
-                CouplingFlag:=ctrain_coupler+ctrain_pneumatic+ctrain_controll;
+                //CouplingFlag:=ctrain_coupler+ctrain_pneumatic+ctrain_controll+ctrain_passenger+ctrain_scndpneumatic;
+                CouplingFlag:=ctrain_coupler+ctrain_pneumatic+ctrain_controll; //EN57
              end;
           end;
        end;
@@ -4909,18 +5028,18 @@ function T_MoverParameters.ComputeMass: real;
 var M:real;
 begin
  if Load>0 then
-  begin
+  begin //zak³adamy, ¿e ³adunek jest pisany ma³ymi literami
    if LoadQuantity='tonns' then
     M:=Load*1000
-   else if LowerCase(LoadType)=LowerCase('Passengers') then
+   else if (LoadType='passengers') then
     M:=Load*80
-   else if LoadType='Luggage' then
+   else if LoadType='luggage' then
     M:=Load*100
-   else if LoadType='Cars' then
+   else if LoadType='cars' then
     M:=Load*800
-   else if LoadType='Containers' then
+   else if LoadType='containers' then
     M:=Load*8000
-   else if LoadType='Transformers' then
+   else if LoadType='transformers' then
     M:=Load*50000
    else
     M:=Load*1000;
@@ -5687,7 +5806,8 @@ begin
 
  if(BrakeVVolume=0)and(MaxBrakePress>0)and(BrakeSystem<>Individual)then
    BrakeVVolume:=MaxBrakePress/(CntrlPipePress-MaxBrakePress)*BrakeVolume;
- if BrakeVVolume=0 then BrakeVVolume:=0.01;
+ if BrakeVVolume=0 then BrakeVVolume:=0.01; //w SPKS czytane z FIZ?
+ if BrakeVVolume<0 then BrakeVVolume:=BrakeVolume*5;
 
  {to dac potem do init}
   if ReadyFlag then     {gotowy do drogi}
@@ -5723,6 +5843,9 @@ begin
       BrakeCtrlPos:=-2; //Ra: hamulec jest poprawiany w DynObj.cpp
      LimPipePress:=LowPipePress;
      BrakeStatus:=b_on;
+     //z Megapacka, ale tak nie mo¿na zmieniaæ BrakeCtrlPos
+     //if (TrainType=dt_EZT) and (BrakeCtrlPosNo>0) then
+     //   BrakeCtrlPos:=5;
    end;
   ActFlowSpeed:=0;
 
@@ -5737,7 +5860,7 @@ begin
       bcmsno:=bcmsno+1;
       bcmss:=b;
      end;
-  case bcmsno of
+  case bcmsno of //ustawienie pró¿ny/³adowny, w SPKS lepiej
    1: BCMFlag:=bcmss;
    2: if (Load>MaxLoad*0.55) then BCMFlag:=bcmss+1 else BCMFlag:=bcmss;
    3: if (Load>MaxLoad*0.70) then BCMFlag:=bcmss+2 else if (Load>MaxLoad*0.35) then BCMFlag:=bcmss+1 else BCMFlag:=bcmss;
