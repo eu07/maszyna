@@ -3172,18 +3172,23 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
           {//Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
            asAnimName=str+AnsiString(i+1);
            sm=mdModel->GetFromName(asAnimName.c_str());
-           pants[i].smElement[0]=sm;
-           sm->WillBeAnimated();
-           m=float4x4(*sm->GetMatrix()); //skopiowanie, bo bêdziemy mno¿yæ
-           m(3)[1]=m[3][1]+0.054; //w górê o wysokoœæ œlizgu (na razie tak)
-           while (sm->Parent)
-           {
-            if (sm->Parent->GetMatrix())
-             m=*sm->Parent->GetMatrix()*m;
-            sm=sm->Parent;
+           pants[i].smElement[0]=sm; //jak NULL, to nie bêdzie animowany
+           if (sm)
+           {//w EP09 wywala³o siê tu z powodu NULL
+            sm->WillBeAnimated();
+            m=float4x4(*sm->GetMatrix()); //skopiowanie, bo bêdziemy mno¿yæ
+            m(3)[1]=m[3][1]+0.054; //w górê o wysokoœæ œlizgu (na razie tak)
+            while (sm->Parent)
+            {
+             if (sm->Parent->GetMatrix())
+              m=*sm->Parent->GetMatrix()*m;
+             sm=sm->Parent;
+            }
+            pants[i].fParamPants->vPos.z=m[3][0]; //przesuniêcie w bok (asymetria)
+            pants[i].fParamPants->vPos.y=m[3][1]; //przesuniêcie w górê odczytane z modelu
            }
-           pants[i].fParamPants->vPos.z=m[3][0]; //przesuniêcie w bok (asymetria)
-           pants[i].fParamPants->vPos.y=m[3][1]; //przesuniêcie w górê odczytane z modelu
+           else
+            ErrorLog("Bad model: "+asFileName+" - missed submodel "+asAnimName); //brak MMD
           }
         }
         else if (str==AnsiString("animpantrd2prefix:"))
