@@ -1388,6 +1388,7 @@ begin
   if (MainCtrlPosNo>0) and (CabNo<>0) then
    begin
       if MainCtrlPos>0 then
+       begin
        if ((TrainType<>dt_ET22) or (ScndCtrlPos=0)) then //Ra: ET22 blokuje nastawnik przy boczniku
        begin
          if CoupledCtrl and (ScndCtrlPos>0) then
@@ -1437,6 +1438,7 @@ begin
                   DecMainCtrl(1);
                  OK:=True ;
                end;
+          end;
           end;
        end
       else
@@ -1625,6 +1627,12 @@ begin
      ActFlowSpeed:= 0;
     end
    else
+    if (TrainType=dt_EZT) and (BrakeCtrlPosNo>0) then
+     begin
+      BrakeCtrlPos:=5;
+     end
+    else
+     begin
     BrakeCtrlPos:=0;
 //   if not TestFlag(BrakeStatus,b_dmg) then
 //    BrakeStatus:=b_off; //z Megapacka
@@ -2893,6 +2901,11 @@ var b:byte;
           begin
             CompressorFlag:=True;
             LastSwitchingTime:=0;
+            for b:=0 to 1 do
+      with Couplers[b] do
+       if TestFlag(CouplingFlag,ctrain_scndpneumatic) then
+
+        Connected.CompressorFlag:=CompressorFlag;
           end;
          if (Compressor>MaxCompressor) or not CompressorAllow or ((CompressorPower<>0) and (not ConverterFlag)) or not Mains then
          CompressorFlag:=False;
@@ -3253,6 +3266,7 @@ begin
      end
   else
   if (RList[MainCtrlActualPos].Bn=0) or FuseFlag or StLinFlag or DelayCtrlFlag then
+  //if (RList[MainCtrlActualPos].Bn=0) or FuseFlag or StLinFlag or DelayCtrlFlag or ((TrainType=dt_ET42)and(not(ConverterFlag)and not(DynamicBrakeFlag)))  then //z Megapacka
     MotorCurrent:=0                    {wylaczone}
   else                                 {wlaczone}
    begin
@@ -3269,14 +3283,19 @@ begin
          begin
            if DynamicBrakeType>1 then
             begin
-              if DynamicBrakeType<>dbrake_automatic then
-               MotorCurrent:=-fi*n/Rz  {hamowanie silnikiem na oporach rozruchowych}
+              //if DynamicBrakeType<>dbrake_automatic then
+              // MotorCurrent:=-fi*n/Rz  {hamowanie silnikiem na oporach rozruchowych}
 (*               begin
                  U:=0;
                  Isf:=Isat;
                  Delta:=SQR(Isf*Rz+Mn*fi*n-U)+4*U*Isf*Rz;
                  MotorCurrent:=(U-Isf*Rz-Mn*fi*n+SQRT(Delta))/(2*Rz)
                end*)
+            if (DynamicBrakeType=dbrake_switch) and (TrainType<>dt_ET42) then
+             begin //z Megapacka
+             Rz:=WindingRes+R;
+             MotorCurrent:=-fi*n/Rz;  //{hamowanie silnikiem na oporach rozruchowych}
+               end;
             end
            else
              MotorCurrent:=0;        {odciecie pradu od silnika}
@@ -3303,6 +3322,15 @@ begin
 {  if Abs(CabNo)<2 then Im:=MotorCurrent*ActiveDir*CabNo
    else Im:=0;
 }
+
+  if (DynamicBrakeType=dbrake_switch) and ((BrakePress>0.2) or (PipePress<0.36)) then
+  begin
+    Im:=0;
+  MotorCurrent:=0;
+  //Im:=0;
+  Itot:=0;
+  end
+    else
   Im:=MotorCurrent;
   Current:=Im; {prad brany do liczenia sily trakcyjnej}
 {  EnginePower:=Im*Im*RList[MainCtrlActualPos].Bn*RList[MainCtrlActualPos].Mn*WindingRes;}
@@ -3465,6 +3493,256 @@ function T_MoverParameters.AutoRelaySwitch(State:boolean):boolean;
  end;
 
 function T_MoverParameters.AutoRelayCheck: boolean;
+var OK:boolean; b:byte;
+begin
+//  if ((TrainType=dt_EZT{) or (TrainType=dt_ET22)}) and (Imin=IminLo)) or ((ActiveDir<0) and (TrainType<>dt_PseudoDiesel')) then
+//     if Rlist[MainCtrlActualPos].Bn>1 then
+//      begin
+//        dec(MainCtrlActualPos);
+//        AutoRelayCheck:=False;
+//        Exit;
+//      end;
+//yB: wychodzenie przy odcietym pradzie
+  if (ScndCtrlActualPos=255)then
+   begin
+    AutoRelayCheck:=False;
+    MainCtrlActualPos:=0;
+   end
+  else
+  //if (not Mains) or (FuseFlag) or (StLinFlag) then   //hunter-111211: wylacznik cisnieniowy
+  //if ((not Mains) or (FuseFlag)) and not((DynamicBrakeFlag) and (TrainType=dt_ET42)) then
+  if ((not Mains) or (FuseFlag)  or (StLinFlag)) and not((DynamicBrakeFlag) and (TrainType=dt_ET42)) then  //hunter-111211: wylacznik cisnieniowy
+   begin
+     AutoRelayCheck:=False;
+     MainCtrlActualPos:=0;
+     ScndCtrlActualPos:=0;
+   end
+  else
+   begin
+    OK:=False;
+    if DelayCtrlFlag and (MainCtrlPos=1) and (MainCtrlActualPos=1) and (LastRelayTime>InitialCtrlDelay) then
+     begin
+       DelayCtrlFlag:=False;
+       SetFlag(SoundFlag,sound_relay); SetFlag(SoundFlag,sound_loud);
+     end;
+    //if (TrainType<>dt_EZT) then //Ra: w EZT mo¿na daæ od razu na S albo R, wa³ ku³akowy sobie dokrêci
+    if (LastRelayTime>CtrlDelay) and not DelayCtrlFlag then
+     begin
+      if (MainCtrlPos=0) and (TrainType<>dt_ET40) and (TrainType<>dt_EP05) then
+        DelayCtrlFlag:=True;
+      if (MainCtrlPos=0) and ((TrainType=dt_ET40)or(TrainType=dt_EP05)) and (MainCtrlActualPos=0) then
+      DelayCtrlFlag:=True;
+
+      if (((RList[MainCtrlActualPos].R=0) and ((not CoupledCtrl) or ((Imin=IminLo) and (ScndS=True)))) or (MainCtrlActualPos=RListSize))
+          and ((ScndCtrlActualPos>0) or (ScndCtrlPos>0)) then
+        begin   {zmieniaj scndctrlactualpos}
+          if (not AutoRelayFlag) or (not MotorParam[ScndCtrlActualPos].AutoSwitch) then
+           begin                                                {scnd bez samoczynnego rozruchu}
+             OK:=True;
+             if (ScndCtrlActualPos<ScndCtrlPos) then
+              inc(ScndCtrlActualPos)
+             else
+              if (ScndCtrlActualPos>ScndCtrlPos) and (TrainType<>dt_EZT) then
+               dec(ScndCtrlActualPos)
+
+              else
+              if (ScndCtrlActualPos>ScndCtrlPos) and (TrainType=dt_EZT) then
+
+               Exit       {utkniecie walu kulakowego}
+             else OK:=False;
+           end
+          else
+           begin                                                {scnd z samoczynnym rozruchem}
+             if (ScndCtrlPos<ScndCtrlActualPos) and (TrainType<>dt_EZT) then
+              begin
+                dec(ScndCtrlActualPos);
+                OK:=True;
+              end
+              else
+              if (ScndCtrlPos<ScndCtrlActualPos) and (TrainType=dt_EZT) then
+              begin
+                Exit;    {utkniecie walu kulakowego}
+              end
+             else
+              if (ScndCtrlPos>ScndCtrlActualPos) then
+               if Abs(Im)<Imin then
+                if MotorParam[ScndCtrlActualPos].AutoSwitch then
+                 begin
+                   inc(ScndCtrlActualPos);
+                   OK:=True
+                 end;
+           end;
+        end
+       else
+        begin          {zmieniaj mainctrlactualpos}
+          if ((TrainType=dt_EZT) and (Scnds=true) and (Imin=IminLo)) then
+           if Rlist[MainCtrlActualPos+1].Bn>1 then
+            begin
+              AutoRelayCheck:=False;
+              Exit;
+           end;
+          if (not AutoRelayFlag) or (not RList[MainCtrlActualPos].AutoSwitch) then
+           begin                                                {main bez samoczynnego rozruchu}
+             OK:=True;
+             if Rlist[MainCtrlActualPos].Relay<MainCtrlPos then
+                if ((Rlist[MainCtrlActualPos].Mn>Rlist[MainCtrlPos].Mn)and (RList[MainCtrlActualPos+1].Mn<Rlist[MainCtrlActualPos].Mn) and (TrainType=dt_ET22) and (LastRelayTime<InitialCtrlDelay))then
+                 begin
+                 Itot:=0;
+                 Im:=0;
+                 OK:=False;             {odciecie pradu, przy przelaczaniu silnikow w ET22}
+                 end
+                 else
+                 //if (Rlist[MainCtrlActualPos].R=0) and (Rlist[MainCtrlPos].R>0) and (TrainType=dt_ET22) and (LastRelayTime<InitialCtrlDelay) then
+
+              begin
+                inc(MainCtrlActualPos);
+                //---------
+                //hunter-111211: poprawki
+                if MainCtrlActualPos>0 then
+                 //if (Rlist[MainCtrlActualPos].R=0) and ((Rlist[MainCtrlActualPos].ScndAct=0) or (Rlist[MainCtrlActualPos].ScndAct=255)) then  {dzwieki przechodzenia na bezoporowa}
+                 if (Rlist[MainCtrlActualPos].R=0) and (not (MainCtrlActualPos=MainCtrlPosNo)) then  //wejscie na bezoporowa
+                  begin
+                   SetFlag(SoundFlag,sound_manyrelay); SetFlag(SoundFlag,sound_loud);
+                  end
+                 else if (Rlist[MainCtrlActualPos].R>0) and (Rlist[MainCtrlActualPos-1].R=0) then //wejscie na drugi uklad
+                  begin
+                   SetFlag(SoundFlag,sound_manyrelay);
+                  end;
+
+              end
+             else if (Rlist[MainCtrlActualPos].Relay>MainCtrlPos) and (TrainType<>dt_EZT) then
+              begin
+              if not ((Rlist[MainCtrlActualPos].Mn<Rlist[MainCtrlPos].Mn) and (Rlist[MainCtrlActualPos-1].Mn>Rlist[MainCtrlActualPos].Mn)and (TrainType=dt_ET22) and (LastRelayTime<InitialCtrlDelay))then
+              begin
+                dec(MainCtrlActualPos);
+                if MainCtrlActualPos>0 then  //hunter-111211: poprawki
+                 //if (Rlist[MainCtrlActualPos+1].R=0) and ((Rlist[MainCtrlActualPos+1].ScndAct=0) or (Rlist[MainCtrlActualPos+1].ScndAct=255)) then  {dzwieki schodzenia z bezoporowej}
+                 if Rlist[MainCtrlActualPos].R=0 then  {dzwieki schodzenia z bezoporowej}
+                  begin
+                   SetFlag(SoundFlag,sound_manyrelay);
+                  end;
+              end
+             else
+               begin
+                 Itot:=0;
+                 Im:=0;
+                 OK:=False;           {odciecie pradu, przy przelaczaniu silnikow w ET22}
+                 end;
+              end
+              else if (Rlist[MainCtrlActualPos].Relay>MainCtrlPos) and (TrainType=dt_EZT) and (MainCtrlPos>0) then     //K90
+              begin
+              Exit;      {utkniecie walu kulakowego}
+              end
+             else if  (TrainType=dt_EZT) and (MainCtrlPos=0) then
+              MainCtrlActualPos:=0
+              else
+              if (Rlist[MainCtrlActualPos].R>0) and (ScndCtrlActualPos>0) and (TrainType<>dt_EZT) then
+               Dec(ScndCtrlActualPos) {boczniki nie dzialaja na poz. oporowych}
+              else
+              if (ScndCtrlPos<ScndCtrlActualPos) and (TrainType=dt_EZT) then
+               Exit {boczniki nie dzialaja na poz. oporowych}
+              else
+               OK:=False;
+           end
+          else                                                  {main z samoczynnym rozruchem}
+           begin
+             OK:=False;
+             if (MainCtrlPos<Rlist[MainCtrlActualPos].Relay) and (TrainType<>dt_EZT) then
+             begin
+             if not ((Rlist[MainCtrlActualPos].Mn<Rlist[MainCtrlPos].Mn)and (Rlist[MainCtrlActualPos-1].Mn>Rlist[MainCtrlActualPos].Mn) and (TrainType=dt_ET22) and (LastRelayTime<InitialCtrlDelay))then
+              begin
+                dec(MainCtrlActualPos);
+                OK:=True;
+                if MainCtrlActualPos>0 then
+                   if (Rlist[MainCtrlActualPos+1].R=0) and ((Rlist[MainCtrlActualPos+1].ScndAct=0) or (Rlist[MainCtrlActualPos+1].ScndAct=255)) then  {dzwieki schodzenia z bezoporowej}
+                    begin
+                    SetFlag(SoundFlag,sound_manyrelay);
+                    end;
+              end
+             else
+               begin
+               Itot:=0;
+               Im:=0;
+               OK:=False;      {odciecie pradu, przy przelaczaniu silnikow w ET22}
+               end;
+             end
+             else
+             if (MainCtrlPos<Rlist[MainCtrlActualPos].Relay) and (MainCtrlPos>0) and (TrainType=dt_EZT)  then
+              begin
+                AutoRelayCheck:=False;
+                Exit;    {utkniecie walu}
+              end
+             else
+             if (TrainType=dt_EZT) and (MainCtrlPos=0) then
+              begin
+                MainCtrlActualPos:=0;
+                ScndCtrlActualPos:=0;
+              end
+              else
+             if ((ScndCtrlPos<ScndCtrlActualPos) and (TrainType=dt_EZT)) then
+              begin
+                Exit;  {utkniecie walu}
+              end
+             else
+              if (MainCtrlPos>Rlist[MainCtrlActualPos].Relay)  or ((MainCtrlActualPos<RListSize) and (MainCtrlPos=Rlist[MainCtrlActualPos+1].Relay)) then
+              begin
+              if ((Rlist[MainCtrlActualPos].Mn>Rlist[MainCtrlPos].Mn) and(RList[MainCtrlActualPos+1].Mn<Rlist[MainCtrlActualPos].Mn) and (TrainType=dt_ET22) and (LastRelayTime<InitialCtrlDelay))then
+               begin
+               Itot:=0;
+               Im:=0;
+               OK:=False; {odciecie pradu, przy przelaczaniu silnikow w ET22}
+              end
+             else
+               if Abs(Im)<Imin then
+                 begin
+                   inc(MainCtrlActualPos);
+
+                   OK:=True;
+                   if MainCtrlActualPos>0 then
+                    if (Rlist[MainCtrlActualPos].R=0) and ((Rlist[MainCtrlActualPos].ScndAct=0) or (Rlist[MainCtrlActualPos].ScndAct=255)) then  {dzwieki przechodzenia na bezoporowa}
+                     begin
+                      SetFlag(SoundFlag,sound_manyrelay); SetFlag(SoundFlag,sound_loud);
+                     end;
+                 end;
+               end;
+           end;
+        end;
+     end
+    else  {DelayCtrlFlag}
+     if ((MainCtrlPos>1) and (MainCtrlActualPos>0) and DelayCtrlFlag) then
+      begin
+       //if (TrainType<>dt_EZT) then //Ra: w EZT mo¿na daæ od razu na S albo R, wa³ ku³akowy sobie dokrêci
+       MainCtrlActualPos:=0; //Ra: tu jest chyba wy³¹czanie przy zbyt szybkim wejœciu na drug¹ pozycjê
+       OK:=True;
+      end
+      else
+     if ((MainCtrlPos=0) and (TrainType=dt_EZT)) then
+      begin
+        MainCtrlActualPos:=0;
+        ScndCtrlActualPos:=0; {zejscie walu kulakowego do 0 po ustawieniu nastawnika na 0}
+        OK:=True;
+      end
+     else
+      if (MainCtrlPos=1) and (MainCtrlActualPos=0) then
+       MainCtrlActualPos:=1
+      else
+       if (MainCtrlPos=0) and (MainCtrlActualPos>0) and (TrainType<>dt_EZT) and (TrainType<>dt_ET40) and (TrainType<>dt_EP05) then
+        begin
+         dec(MainCtrlActualPos);
+         OK:=true;
+        end;
+       if (MainCtrlPos=0) and (MainCtrlActualPos>0) and ((TrainType=dt_ET40)or(TrainType=dt_EP05)) and (LastRelayTime>(InitialCtrlDelay*2)) then
+        begin
+         dec(MainCtrlActualPos);
+         OK:=true; {wal kulakowy w ET40}
+        end;
+    if OK then LastRelayTime:=0;
+    AutoRelayCheck:=OK;
+  end;
+end;
+
+(*
+function T_MoverParameters.AutoRelayCheck: boolean;
 var OK:boolean; //b:byte;
 begin
 //  if ((TrainType=dt_EZT{) or (TrainType=dt_ET22)}) and (Imin=IminLo)) or ((ActiveDir<0) and (TrainType<>dt_PseudoDiesel')) then
@@ -3495,7 +3773,7 @@ begin
        DelayCtrlFlag:=False;
        SetFlag(SoundFlag,sound_relay); SetFlag(SoundFlag,sound_loud);
      end;
-
+*)
 (*
 =========== Opis przesla³ youBy =========== 
 
@@ -3539,7 +3817,7 @@ Przy zmianie iloœci ga³êzi musisz:
 - wejœæ wy¿ej
 - za³¹czyæ liniowe
 *)
-
+(*
     //if (TrainType<>dt_EZT) then //Ra: w EZT mo¿na daæ od razu na S albo R, wa³ ku³akowy sobie dokrêci
     //hunter-101012: rozbicie CtrlDelay na CtrlDelay i CtrlDownDelay
     //if (LastRelayTime>CtrlDelay) or (LastRelayTime>CtrlDownDelay) and not DelayCtrlFlag then //po co, skoro sa powtorzone warunki na to
@@ -3720,6 +3998,7 @@ Przy zmianie iloœci ga³êzi musisz:
     AutoRelayCheck:=OK;
   end;
 end;
+*)
 
 function T_MoverParameters.ResistorsFlagCheck:boolean;  {sprawdzanie wskaznika oporow}
 var b:byte;
@@ -4075,7 +4354,7 @@ begin
          if MainSwitch(False) then
           EventFlag:=True;            {wywalanie szybkiego z powodu niewlasciwego napiecia}
 
-        if ((DynamicBrakeType=dbrake_automatic) and (DynamicBrakeFlag)) then
+        if (((DynamicBrakeType=dbrake_automatic)or(DynamicBrakeType=dbrake_switch)) and (DynamicBrakeFlag)) then
          Itot:=Im*2   {2x2 silniki w EP09}
         else
          Itot:=Im*RList[MainCtrlActualPos].Bn;   {prad silnika * ilosc galezi}
@@ -4115,6 +4394,7 @@ begin
         if (MainCtrlPos>0) and (ConverterFlag) then
           if tmpV < (Vhyp*(Power-HeatingPower*byte(Heating))/DEList[MainCtrlPosNo].genpower) then //czy na czesci prostej, czy na hiperboli
             Ft:=(Ftmax - ((Ftmax - 1000.0 * DEList[MainCtrlPosNo].genpower / (Vhyp+Vadd)) * (tmpV/Vhyp) / PowerCorRatio)) * PosRatio //posratio - bo sila jakos tam sie rozklada
+            //Ft:=(Ftmax - (Ftmax - (1000.0 * DEList[MainCtrlPosNo].genpower / (Vhyp+Vadd) / PowerCorRatio)) * (tmpV/Vhyp)) * PosRatio //wersja z Megapacka
           else //na hiperboli                             //1.107 - wspolczynnik sredniej nadwyzki Ft w symku nad charakterystyka
             Ft:=1000.0 * tmp / (tmpV+Vadd) / PowerCorRatio //tu jest zawarty stosunek mocy
         else Ft:=0; //jak nastawnik na zero, to sila tez zero
@@ -4174,6 +4454,8 @@ begin
 
        end;
 
+         if (Imax>1) and (Im>Imax) then FuseOff;
+         if FuseFlag then Voltage:=0;         
 
      //przekazniki bocznikowania, kazdy inny dla kazdej pozycji
          if (MainCtrlPos = 0) or (ShuntMode) then
@@ -4197,6 +4479,37 @@ begin
                 inc(ScndCtrlPos);
               if (MPTRelay[ScndCtrlPos].Idown<Im) and (ScndCtrlPos>0) then
                 dec(ScndCtrlPos);
+             end;
+          41:
+            begin 
+              if (MainCtrlPos=MainCtrlPosNo) and (tmpV*3.6>MPTRelay[ScndCtrlPos].Iup) and (ScndCtrlPos<ScndCtrlPosNo)then 
+                begin inc(ScndCtrlPos); enrot:=enrot*0.73; end; 
+              if (Im>MPTRelay[ScndCtrlPos].Idown)and (ScndCtrlPos>0) then 
+                dec(ScndCtrlPos); 
+            end; 
+          45: 
+             begin
+              //wzrastanie
+              if (MainCtrlPos>11) and (ScndCtrlPos<ScndCtrlPosNo) then 
+               if (ScndCtrlPos=0) then
+                if (MPTRelay[ScndCtrlPos].Iup>Im) then
+                 inc(ScndCtrlPos)
+                else
+               else
+                if (MPTRelay[ScndCtrlPos].Iup<Vel) then 
+                 inc(ScndCtrlPos);
+
+              //malenie
+              if(ScndCtrlPos>0)and(MainCtrlPos<12)then 
+              if (ScndCtrlPos=ScndCtrlPosNo)then 
+                if (MPTRelay[ScndCtrlPos].Idown<Im)then
+                 dec(ScndCtrlPos)
+                else
+               else
+                if (MPTRelay[ScndCtrlPos].Idown>Vel)then
+                 dec(ScndCtrlPos);
+              if (MainCtrlPos<11)and(ScndCtrlPos>2) then ScndCtrlPos:=2;
+              if (MainCtrlPos<9)and(ScndCtrlPos>0) then ScndCtrlPos:=0;
              end;
           46:
              begin
@@ -4241,13 +4554,17 @@ begin
    NBrakeAxles:=NAxles;
   case LocalBrake of
    NoBrake :      K:=0;
-   ManualBrake :  K:=MaxBrakeForce*LocalBrakeRatio;
+   ManualBrake :  K:=MaxBrakeForce*ManualBrakeRatio;
    HydraulicBrake : K:=MaxBrakeForce*LocalBrakeRatio;
    PneumaticBrake:if Compressor<MaxBrakePress then
                    K:=MaxBrakeForce*LocalBrakeRatio/2.0
                   else
                    K:=0;
   end;
+  if MBrake=true then
+  begin
+   K:=MaxBrakeForce*ManualBrakeRatio;
+   end;
 
   if (BrakeSystem=Pneumatic)or(BrakeSystem=ElectroPneumatic) then
   begin
@@ -4286,7 +4603,7 @@ begin
 {  else
    begin
 {     SlippingWheels:=False;}
-     if (LocalBrake=ManualBrake) and (BrakePress<0.05*MaxBrakePress) then
+     if ((LocalBrake=ManualBrake)or(MBrake=true)) and (BrakePress<0.05*MaxBrakePress) then
       Fb:=UnitBrakeForce*NBpA {ham. reczny dziala na jedna os}
      else
       Fb:=UnitBrakeForce*NBrakeAxles*NBpA;
