@@ -3265,11 +3265,14 @@ begin
           MotorCurrent:=0;
      end
   else
-  if (RList[MainCtrlActualPos].Bn=0) or FuseFlag or StLinFlag or DelayCtrlFlag or ((TrainType=dt_ET42)and(not(ConverterFlag)and not(DynamicBrakeFlag)))  then
+  if (RList[MainCtrlActualPos].Bn=0) or FuseFlag or StLinFlag or DelayCtrlFlag then
+  //if (RList[MainCtrlActualPos].Bn=0) or FuseFlag or StLinFlag or DelayCtrlFlag or ((TrainType=dt_ET42)and(not(ConverterFlag)and not(DynamicBrakeFlag)))  then //z Megapacka
     MotorCurrent:=0                    {wylaczone}
   else                                 {wlaczone}
    begin
    SP:=ScndCtrlActualPos;
+   if(ScndCtrlActualPos<255)then  {tak smiesznie bede wylaczal }
+    begin
      if(ScndInMain)then
       if not (Rlist[MainCtrlActualPos].ScndAct=255) then
        SP:=Rlist[MainCtrlActualPos].ScndAct;
@@ -3280,8 +3283,16 @@ begin
          begin
            if DynamicBrakeType>1 then
             begin
+              //if DynamicBrakeType<>dbrake_automatic then
+              // MotorCurrent:=-fi*n/Rz  {hamowanie silnikiem na oporach rozruchowych}
+(*               begin
+                 U:=0;
+                 Isf:=Isat;
+                 Delta:=SQR(Isf*Rz+Mn*fi*n-U)+4*U*Isf*Rz;
+                 MotorCurrent:=(U-Isf*Rz-Mn*fi*n+SQRT(Delta))/(2*Rz)
+               end*)
             if (DynamicBrakeType=dbrake_switch) and (TrainType<>dt_ET42) then
-             begin
+             begin //z Megapacka
              Rz:=WindingRes+R;
              MotorCurrent:=-fi*n/Rz;  //{hamowanie silnikiem na oporach rozruchowych}
                end;
@@ -3304,6 +3315,9 @@ begin
            MotorCurrent:=0;
          end;{else DBF}
        end;{with}
+    end{255}
+   else
+    MotorCurrent:=0;
    end;
 {  if Abs(CabNo)<2 then Im:=MotorCurrent*ActiveDir*CabNo
    else Im:=0;
@@ -3812,6 +3826,7 @@ Przy zmianie iloœci ga³êzi musisz:
        if (MainCtrlPos=0) then
         DelayCtrlFlag:=(TrainType<>dt_EZT); //Ra: w EZT mo¿na daæ od razu na S albo R, wa³ ku³akowy sobie dokrêci
        if (((RList[MainCtrlActualPos].R=0) and ((not CoupledCtrl) or (Imin=IminLo))) or (MainCtrlActualPos=RListSize))
+      //if (((RList[MainCtrlActualPos].R=0) and ((not CoupledCtrl) or ((Imin=IminLo) and (ScndS=True)))) or (MainCtrlActualPos=RListSize))
           and ((ScndCtrlActualPos>0) or (ScndCtrlPos>0)) then
         begin //zmieniaj scndctrlactualpos
           if (not AutoRelayFlag) or (not MotorParam[ScndCtrlActualPos].AutoSwitch) then
@@ -4378,7 +4393,8 @@ begin
         PosRatio:=DEList[MainCtrlPos].genpower / DEList[MainCtrlPosNo].genpower;  {stosunek mocy teraz do mocy max}
         if (MainCtrlPos>0) and (ConverterFlag) then
           if tmpV < (Vhyp*(Power-HeatingPower*byte(Heating))/DEList[MainCtrlPosNo].genpower) then //czy na czesci prostej, czy na hiperboli
-            Ft:=(Ftmax - (Ftmax - (1000.0 * DEList[MainCtrlPosNo].genpower / (Vhyp+Vadd) / PowerCorRatio)) * (tmpV/Vhyp)) * PosRatio //posratio - bo sila jakos tam sie rozklada
+            Ft:=(Ftmax - ((Ftmax - 1000.0 * DEList[MainCtrlPosNo].genpower / (Vhyp+Vadd)) * (tmpV/Vhyp) / PowerCorRatio)) * PosRatio //posratio - bo sila jakos tam sie rozklada
+            //Ft:=(Ftmax - (Ftmax - (1000.0 * DEList[MainCtrlPosNo].genpower / (Vhyp+Vadd) / PowerCorRatio)) * (tmpV/Vhyp)) * PosRatio //wersja z Megapacka
           else //na hiperboli                             //1.107 - wspolczynnik sredniej nadwyzki Ft w symku nad charakterystyka
             Ft:=1000.0 * tmp / (tmpV+Vadd) / PowerCorRatio //tu jest zawarty stosunek mocy
         else Ft:=0; //jak nastawnik na zero, to sila tez zero
@@ -4494,6 +4510,30 @@ begin
                  dec(ScndCtrlPos);
               if (MainCtrlPos<11)and(ScndCtrlPos>2) then ScndCtrlPos:=2;
               if (MainCtrlPos<9)and(ScndCtrlPos>0) then ScndCtrlPos:=0;
+             end;
+          46:
+             begin
+              //wzrastanie
+              if (MainCtrlPos>9) and (ScndCtrlPos<ScndCtrlPosNo) then
+               if (ScndCtrlPos) mod 2 = 0 then
+                if (MPTRelay[ScndCtrlPos].Iup>Im) then
+                 inc(ScndCtrlPos)
+                else
+               else
+                if (MPTRelay[ScndCtrlPos-1].Iup>Im) and (MPTRelay[ScndCtrlPos].Iup<Vel) then
+                 inc(ScndCtrlPos);
+
+              //malenie
+              if (MainCtrlPos<10) and (ScndCtrlPos>0)then
+               if (ScndCtrlPos) mod 2 = 0 then
+                if (MPTRelay[ScndCtrlPos].Idown<Im)then
+                 dec(ScndCtrlPos)
+                else
+               else
+                if (MPTRelay[ScndCtrlPos+1].Idown<Im) and (MPTRelay[ScndCtrlPos].Idown>Vel)then
+                 dec(ScndCtrlPos);
+              if (MainCtrlPos<9)and(ScndCtrlPos>2) then ScndCtrlPos:=2;
+              if (MainCtrlPos<6)and(ScndCtrlPos>0) then ScndCtrlPos:=0;              
              end;
         end;
      end;
