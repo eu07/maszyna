@@ -1376,7 +1376,7 @@ void __fastcall TGround::RaTriangleDivider(TGroundNode* node)
 TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
 {//wczytanie wpisu typu "node"
  //parser->LoadTraction=Global::bLoadTraction; //Ra: tu nie potrzeba powtarzaæ
- AnsiString str,str1,str2,str3,Skin,DriverType,asNodeName;
+ AnsiString str,str1,str2,str3,str4,Skin,DriverType,asNodeName;
  int nv,ti,i,n;
  double tf,r,rmin,tf1,tf2,tf3,tf4,l,dist,mgn;
  int int1,int2;
@@ -1579,7 +1579,22 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
     DriverType=AnsiString(token.c_str()); //McZapkie:010303 - w przyszlosci rozne konfiguracje mechanik/pomocnik itp
     tf3=fTrainSetVel; //prêdkoœæ
     parser->getTokens();
-    *parser >> int1;
+    *parser >> token;
+    str4=AnsiString(token.c_str());
+    int2=str4.Pos("."); //yB: wykorzystuje tutaj zmienna, ktora potem bedzie ladunkiem
+    if (int2>0) //yB: jesli znalazl kropke, to ja przetwarza jako parametry
+    {
+      int dlugosc= str4.Length();
+      int1=str4.SubString(1, int2-1).ToInt(); //niech sprzegiem bedzie do kropki cos
+      str4=str4.SubString(int2+1, dlugosc-int2);
+    }
+    else
+    {
+     int1=str4.ToInt();
+     str4="";
+    }
+    int2=0; //zeruje po wykorzystaniu
+//    *parser >> int1; //yB: nastawy i takie tam TUTAJ!!!!!
     if (int1<0) int1=(-int1)|ctrain_depot; //sprzêg zablokowany (pojazdy nieroz³¹czalne przy manewrach)
     if (tf1!=-1.0)
      if (fabs(tf1)>0.5) //maksymalna odleg³oœæ miêdzy sprzêgami - do przemyœlenia
@@ -1633,7 +1648,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
      if (tf1!=-1.0) //-1 wyj¹tkowo oznacza odwrócenie
       tf1=-tf1; //a dla kolejnych odleg³oœæ miêdzy sprzêgami (ujemne = wbite)
 */
-    tf3=tmp->DynamicObject->Init(asNodeName,str1,Skin,str3,Track,(tf1==-1.0?fTrainSetDist:fTrainSetDist-tf1),DriverType,tf3,asTrainName,int2,str2,(tf1==-1.0));
+    tf3=tmp->DynamicObject->Init(asNodeName,str1,Skin,str3,Track,(tf1==-1.0?fTrainSetDist:fTrainSetDist-tf1),DriverType,tf3,asTrainName,int2,str2,(tf1==-1.0),str4);
     if (tf3!=0.0) //zero oznacza b³¹d
     {fTrainSetDist-=tf3; //przesuniêcie dla kolejnego, minus bo idziemy w stronê punktu 1
      tmp->pCenter=tmp->DynamicObject->GetPosition();
@@ -3980,3 +3995,24 @@ void __fastcall TGround::TrackBusyList()
 };
 //---------------------------------------------------------------------------
 
+void __fastcall TGround::IsolatedBusyList()
+{//wys³anie informacji o wszystkich zajêtych odcinkach izolowanych
+ TIsolated *Current=NULL;
+ for (Current=Current->Root();Current;Current=Current->Next())
+  if (Current->Busy()) //sprawdz zajetosc
+   WyslijString(Current->asName,11); //zajêty
+  else
+   WyslijString(Current->asName,12); //wolny
+};
+//---------------------------------------------------------------------------
+
+void __fastcall TGround::IsolatedBusy(const AnsiString t)
+{//wys³anie informacji o wszystkich zajêtych odcinkach izolowanych
+ TIsolated *Current=NULL;
+ for (Current=Current->Root();Current;Current=Current->Next())
+  if (Current->asName==t)
+   if (Current->Busy()) //sprawdz zajetosc
+    WyslijString(Current->asName,11); //zajêty
+    WyslijString("none",12); //wolny none - koniec przesylania
+};
+//---------------------------------------------------------------------------
