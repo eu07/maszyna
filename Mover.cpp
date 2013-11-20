@@ -149,6 +149,7 @@ void __fastcall TMoverParameters::BrakeLevelSet(double b)
  //jedyny dopuszczalny sposób przestawienia hamulca zasadniczego
  if (fBrakeCtrlPos==b) return; //nie przeliczaæ, jak nie ma zmiany
  fBrakeCtrlPos=b;
+ BrakeCtrlPosR=b;
  if (fBrakeCtrlPos<-2.0)
   fBrakeCtrlPos=-2.0; //odciêcie
  else
@@ -160,7 +161,8 @@ void __fastcall TMoverParameters::BrakeLevelSet(double b)
  while ((x<BrakeCtrlPos)&&(BrakeCtrlPos>=-1)) //jeœli zmniejszy³o siê o 1
   if (!T_MoverParameters::DecBrakeLevelOld()) break;
  BrakePressureActual=BrakePressureTable[BrakeCtrlPos+2]; //skopiowanie pozycji
- if (BrakeSystem==Pneumatic?BrakeSubsystem==Oerlikon:false) //tylko Oerlikon akceptuje u³amki
+// if (BrakeSystem==Pneumatic?BrakeSubsystem==Oerlikon:false) //tylko Oerlikon akceptuje u³amki     //youBy: obawiam sie, ze tutaj to nie dziala :P
+ if(false)
   if (fBrakeCtrlPos>0.0)
   {//wartoœci poœrednie wyliczamy tylko dla hamowania
    double u=fBrakeCtrlPos-double(x); //u³amek ponad wartoœæ ca³kowit¹
@@ -201,7 +203,12 @@ bool __fastcall TMoverParameters::ChangeCab(int direction)
    //ChangeCab=true;
    if ((BrakeSystem==Pneumatic)&&(BrakeCtrlPosNo>0))
    {
-    BrakeLevelSet(-2); //BrakeCtrlPos=-2;
+    if (BrakeHandle==FV4a)   //!!!POBIERAÆ WARTOŒÆ Z KLASY ZAWORU!!!
+     BrakeLevelSet(-2); //BrakeCtrlPos=-2;
+    else if ((BrakeHandle==FVel6)||(BrakeHandle==St113))
+     BrakeLevelSet(2); 
+    else
+     BrakeLevelSet(1);
     LimPipePress=PipePress;
     ActFlowSpeed=0;
    }
