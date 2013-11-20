@@ -38,7 +38,7 @@ TDynamicObject *Controlled=NULL; //pojazd, który prowadzimy
 
 using namespace Timer;
 
-const double fTimeMax=1.00; //[s] maksymalny czas aktualizacji w jednek klatce
+const double fTimeMax=1.00; //[s] maksymalny czas aktualizacji w jednek klatce 
 
 __fastcall TWorld::TWorld()
 {
@@ -55,7 +55,7 @@ __fastcall TWorld::TWorld()
  OutText3="";
  iCheckFPS=0; //kiedy znów sprawdziæ FPS, ¿eby wy³¹czaæ optymalizacji od razu do zera
  pDynamicNearest=NULL;
- fTimeBuffer=0.0; //bufor czasu aktualizacji dla sta³ego kroku fizyki
+ fTimeBuffer=0.0; //bufor czasu aktualizacji dla sta³ego kroku fizyki 
  fMaxDt=0.01; //[s] pocz¹tkowy krok czasowy fizyki
 }
 
@@ -164,7 +164,7 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
  Global::pCamera=&Camera; //Ra: wskaŸnik potrzebny do likwidacji drgañ
  Global::detonatoryOK=true;
  WriteLog("Starting MaSzyna rail vehicle simulator.");
- WriteLog(Global::asVersion);
+ WriteLog(Global::asVersion+" SPKS");
 #if sizeof(TSubModel)!=256
  Error("Wrong sizeof(TSubModel) is "+AnsiString(sizeof(TSubModel)));
  return false;
@@ -746,7 +746,12 @@ void __fastcall TWorld::OnKeyDown(int cKey)
    TDynamicObject *temp=Global::DynamicNearest();
    if (temp)
    {
-    if (temp->MoverParameters->BrakeReleaser())
+    if (GetAsyncKeyState(VK_CONTROL)<0) //z ctrl odcinanie
+    {
+     temp->MoverParameters->BrakeStatus^=128;
+    }
+    else
+    if (temp->MoverParameters->BrakeReleaser(1))
     {
      //temp->sBrakeAcc->
      //dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
@@ -1550,14 +1555,25 @@ bool __fastcall TWorld::Update()
        OutText1+=AnsiString(", put: ")+tmp->MoverParameters->CommandLast;
       OutText2="Damage status: "+tmp->MoverParameters->EngineDescription(0);//+" Engine status: ";
       OutText2+="; Brake delay: ";
-      if (tmp->MoverParameters->BrakeDelayFlag>0)
-       if (tmp->MoverParameters->BrakeDelayFlag>1)
-        OutText2+="R";
-       else
+      if((tmp->MoverParameters->BrakeDelayFlag&bdelay_G)==bdelay_G)
        OutText2+="G";
-      else
+      if((tmp->MoverParameters->BrakeDelayFlag&bdelay_P)==bdelay_P)
        OutText2+="P";
-      OutText2+=AnsiString(", BTP:")+FloatToStrF(tmp->MoverParameters->BCMFlag,ffFixed,5,0);
+      if((tmp->MoverParameters->BrakeDelayFlag&bdelay_R)==bdelay_R)
+       OutText2+="R";
+      if((tmp->MoverParameters->BrakeDelayFlag&bdelay_M)==bdelay_M)
+       OutText2+="+Mg";
+      OutText2+=AnsiString(", BTP:")+FloatToStrF(tmp->MoverParameters->LoadFlag,ffFixed,5,0);
+
+//          OutText2+=AnsiString(", u:")+FloatToStrF(tmp->MoverParameters->u,ffFixed,3,3);
+//          OutText2+=AnsiString(", N:")+FloatToStrF((tmp->MoverParameters->BrakePress*tmp->MoverParameters->P2FTrans-tmp->MoverParameters->BrakeCylSpring)*tmp->MoverParameters->BrakeCylNo*tmp->MoverParameters->BrakeCylMult[0]-tmp->MoverParameters->BrakeSlckAdj,ffFixed,4,0);
+//          OutText3= AnsiString("BP: ")+FloatToStrF(tmp->MoverParameters->BrakePress,ffFixed,5,2)+AnsiString(", ");
+//          OutText3+= AnsiString("PP: ")+FloatToStrF(tmp->MoverParameters->PipePress,ffFixed,5,2)+AnsiString(", ");
+//          OutText3+= AnsiString("BVP: ")+FloatToStrF(tmp->MoverParameters->Volume,ffFixed,5,3)+AnsiString(", ");
+//          OutText3+= FloatToStrF(tmp->MoverParameters->CntrlPipePress,ffFixed,5,3)+AnsiString(", ");
+//          OutText3+= FloatToStrF(tmp->MoverParameters->Hamulec->GetCRP(),ffFixed,5,3)+AnsiString(", ");
+//          OutText3+= FloatToStrF(tmp->MoverParameters->BrakeStatus,ffFixed,5,0)+AnsiString(", ");
+//          OutText3+= AnsiString("HP: ")+FloatToStrF(tmp->MoverParameters->ScndPipePress,ffFixed,5,2)+AnsiString(". ");
 //      OutText2+= FloatToStrF(tmp->MoverParameters->CompressorPower,ffFixed,5,0)+AnsiString(", ");
 //yB      if(tmp->MoverParameters->BrakeSubsystem==Knorr) OutText2+=" Knorr";
 //yB      if(tmp->MoverParameters->BrakeSubsystem==Oerlikon) OutText2+=" Oerlikon";
@@ -1565,16 +1581,20 @@ bool __fastcall TWorld::Update()
 //yB      if(tmp->MoverParameters->BrakeSubsystem==WeLu) OutText2+=" £estingha³s";
       //OutText2= " GetFirst: "+AnsiString(tmp->GetFirstDynamic(1)->MoverParameters->Name)+" Damage status="+tmp->MoverParameters->EngineDescription(0)+" Engine status: ";
       //OutText2+= " GetLast: "+AnsiString(tmp->GetLastDynamic(1)->MoverParameters->Name)+" Damage status="+tmp->MoverParameters->EngineDescription(0)+" Engine status: ";
-      if (Train) //jeœli jest kabina
-       OutText2+=AnsiString(", RT:")+AnsiString(Train->RadioChannel());
-      OutText3= AnsiString("Brake press: ")+FloatToStrF(tmp->MoverParameters->BrakePress,ffFixed,5,2)+AnsiString(", ");
-      OutText3+= AnsiString("Pipe press: ")+FloatToStrF(tmp->MoverParameters->PipePress,ffFixed,5,2)+AnsiString(", ");
-      OutText3+= AnsiString("BVP: ")+FloatToStrF(tmp->MoverParameters->BrakeVP(),ffFixed,5,2)+AnsiString(", ");
-      OutText3+= FloatToStrF(tmp->MoverParameters->CntrlPipePress,ffFixed,5,2)+AnsiString(", ");
+      OutText3= AnsiString("BP: ")+FloatToStrF(tmp->MoverParameters->BrakePress,ffFixed,5,2)+AnsiString(", ");
+      OutText3+= FloatToStrF(tmp->MoverParameters->BrakeStatus,ffFixed,5,0)+AnsiString(", ");
+      OutText3+= AnsiString("PP: ")+FloatToStrF(tmp->MoverParameters->PipePress,ffFixed,5,2)+AnsiString("/");
+      OutText3+= FloatToStrF(tmp->MoverParameters->ScndPipePress,ffFixed,5,2)+AnsiString("/");
+      OutText3+= FloatToStrF(tmp->MoverParameters->EqvtPipePress,ffFixed,5,2)+AnsiString(", ");
+      OutText3+= AnsiString("BVP: ")+FloatToStrF(tmp->MoverParameters->Volume,ffFixed,5,3)+AnsiString(", ");
+      OutText3+= FloatToStrF(tmp->MoverParameters->CntrlPipePress,ffFixed,5,3)+AnsiString(", ");
+      OutText3+= FloatToStrF(tmp->MoverParameters->Hamulec->GetCRP(),ffFixed,5,3)+AnsiString(", ");
+      OutText3+= FloatToStrF(tmp->MoverParameters->BrakeStatus,ffFixed,5,0)+AnsiString(", ");
+//      OutText3+= AnsiString("BVP: ")+FloatToStrF(tmp->MoverParameters->BrakeVP(),ffFixed,5,2)+AnsiString(", ");
+
+//      OutText3+= FloatToStrF(tmp->MoverParameters->CntrlPipePress,ffFixed,5,2)+AnsiString(", ");
 //      OutText3+= FloatToStrF(tmp->MoverParameters->HighPipePress,ffFixed,5,2)+AnsiString(", ");
 //      OutText3+= FloatToStrF(tmp->MoverParameters->LowPipePress,ffFixed,5,2)+AnsiString(", ");
-      OutText3+= FloatToStrF(tmp->MoverParameters->BrakeStatus,ffFixed,5,0)+AnsiString(", ");
-      OutText3+= AnsiString("Pipe2 press: ")+FloatToStrF(tmp->MoverParameters->ScndPipePress,ffFixed,5,2)+AnsiString(". ");
 
       if ((tmp->MoverParameters->LocalBrakePos)>0)
        OutText3+= AnsiString("local brake active. ");
@@ -1779,7 +1799,7 @@ bool __fastcall TWorld::Update()
        {OutText3+=AnsiString(" Vtrack ")+FloatToStrF(Controlled->MoverParameters->RunningTrack.Velmax,ffFixed,8,2);}
 //      WriteLog(Controlled->MoverParameters->TrainType.c_str());
       if ((Controlled->MoverParameters->EnginePowerSource.SourceType==CurrentCollector) || (Controlled->MoverParameters->TrainType==dt_EZT))
-       {OutText3+=AnsiString(" zb.pant. ")+FloatToStrF(Controlled->MoverParameters->PantVolume,ffFixed,8,3);}
+       {OutText3+=AnsiString(" zb.pant. ")+FloatToStrF(Controlled->MoverParameters->PantVolume,ffFixed,8,2);}
   //McZapkie: komenda i jej parametry
        if (Controlled->MoverParameters->CommandIn.Command!=AnsiString(""))
         OutText4=AnsiString("C:")+AnsiString(Controlled->MoverParameters->CommandIn.Command)
@@ -1927,9 +1947,9 @@ bool __fastcall TWorld::Render()
 
  if (!Global::bWireFrame)
  {//bez nieba w trybie rysowania linii
-  glDisable(GL_FOG);
-  Clouds.Render();
-  glEnable(GL_FOG);
+ glDisable(GL_FOG);
+   Clouds.Render();
+ glEnable(GL_FOG);
  }
  if (Global::bUseVBO)
  {//renderowanie przez VBO
@@ -2158,6 +2178,14 @@ void __fastcall TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
     break;
    case 8: //ponowne wys³anie informacji o zajêtych odcinkach toru
     Ground.TrackBusyList();
+    break;
+   case 9: //ponowne wys³anie informacji o zajêtych odcinkach izolowanych
+    Ground.IsolatedBusyList();
+    break;
+   case 10: //badanie zajêtoœci jednego odcinka izolowanego
+    Ground.IsolatedBusy(AnsiString(pRozkaz->cString+1,(unsigned)(pRozkaz->cString[0])));
+    break;
+
   }
 };
 
@@ -2210,7 +2238,7 @@ void __fastcall TWorld::CreateE3D(const AnsiString &dir,bool dyn)
        TGroundNode *tmp=new TGroundNode();
        tmp->DynamicObject=new TDynamicObject();
        //Global::asCurrentTexturePath=dir; //pojazdy maj¹ tekstury we w³asnych katalogach
-       at-=tmp->DynamicObject->Init("",dir.SubString(9,dir.Length()-9),"none",sr.Name.SubString(1,sr.Name.Length()-4),trk,at,"nobody",0.0,"none",0.0,"",false);
+       at-=tmp->DynamicObject->Init("",dir.SubString(9,dir.Length()-9),"none",sr.Name.SubString(1,sr.Name.Length()-4),trk,at,"nobody",0.0,"none",0.0,"",false,"");
        //po wczytaniu CHK zrobiæ pêtlê po ³adunkach, aby ka¿dy z nich skonwertowaæ
        AnsiString loads,load;
        loads=tmp->DynamicObject->MoverParameters->LoadAccepted; //typy ³adunków
@@ -2222,7 +2250,7 @@ void __fastcall TWorld::CreateE3D(const AnsiString &dir,bool dyn)
          load=loads.SubString(1,i-1);
          if (FileExists(dir+load+".t3d")) //o ile jest plik ³adunku, bo inaczej nie ma to sensu
           if (!FileExists(dir+load+".e3d")) //a nie ma jeszcze odpowiednika binarnego
-           at-=tmp->DynamicObject->Init("",dir.SubString(9,dir.Length()-9),"none",sr.Name.SubString(1,sr.Name.Length()-4),trk,at,"nobody",0.0,"none",1.0,load,false);
+           at-=tmp->DynamicObject->Init("",dir.SubString(9,dir.Length()-9),"none",sr.Name.SubString(1,sr.Name.Length()-4),trk,at,"nobody",0.0,"none",1.0,load,false,"");
          loads.Delete(1,i); //usuniêcie z nastêpuj¹cym przecinkiem
          i=loads.Pos(",");
         }
