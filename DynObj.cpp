@@ -117,6 +117,83 @@ TDynamicObject* __fastcall TDynamicObject::FirstFind(int &coupler_nr)
 };
 
 //---------------------------------------------------------------------------
+float __fastcall TDynamicObject::GetEPP()
+{//szukanie skrajnego po³¹czonego pojazdu w pociagu
+ //od strony sprzegu (coupler_nr) obiektu (start)
+ TDynamicObject* temp=this;
+ int coupler_nr=0;
+ float eq=0,am=0;
+
+ for (int i=0;i<300;i++) //ograniczenie do 300 na wypadek zapêtlenia sk³adu
+ {
+  if (!temp)
+   break; //Ra: zabezpieczenie przed ewentaulnymi b³êdami sprzêgów
+  eq+=temp->MoverParameters->PipePress*temp->MoverParameters->Dim.L;
+  am+=temp->MoverParameters->Dim.L;
+  if ((temp->MoverParameters->Couplers[coupler_nr].CouplingFlag&2)!=2)
+   break; //nic nie ma ju¿ dalej pod³¹czone
+  if (coupler_nr==0)
+  {//je¿eli szukamy od sprzêgu 0
+   if (temp->PrevConnected) //jeœli mamy coœ z przodu
+   {
+    if (temp->PrevConnectedNo==0) //jeœli pojazd od strony sprzêgu 0 jest odwrócony
+     coupler_nr=1-coupler_nr; //to zmieniamy kierunek sprzêgu
+    temp=temp->PrevConnected; //ten jest od strony 0
+   }
+   else
+    break; //jeœli jednak z przodu nic nie ma
+  }
+  else
+  {
+   if (temp->NextConnected)
+   {if (temp->NextConnectedNo==1) //jeœli pojazd od strony sprzêgu 1 jest odwrócony
+     coupler_nr=1-coupler_nr; //to zmieniamy kierunek sprzêgu
+    temp=temp->NextConnected; //ten pojazd jest od strony 1
+   }
+   else
+    break; //jeœli jednak z ty³u nic nie ma
+  }
+ }
+
+ temp=this;
+ coupler_nr=1;
+ for (int i=0;i<300;i++) //ograniczenie do 300 na wypadek zapêtlenia sk³adu
+ {
+  if (!temp)
+   break; //Ra: zabezpieczenie przed ewentaulnymi b³êdami sprzêgów
+  eq+=temp->MoverParameters->PipePress*temp->MoverParameters->Dim.L;
+  am+=temp->MoverParameters->Dim.L;
+  if ((temp->MoverParameters->Couplers[coupler_nr].CouplingFlag&2)!=2)
+   break; //nic nie ma ju¿ dalej pod³¹czone
+  if (coupler_nr==0)
+  {//je¿eli szukamy od sprzêgu 0
+   if (temp->PrevConnected) //jeœli mamy coœ z przodu
+   {
+    if (temp->PrevConnectedNo==0) //jeœli pojazd od strony sprzêgu 0 jest odwrócony
+     coupler_nr=1-coupler_nr; //to zmieniamy kierunek sprzêgu
+    temp=temp->PrevConnected; //ten jest od strony 0
+   }
+   else
+    break; //jeœli jednak z przodu nic nie ma
+  }
+  else
+  {
+   if (temp->NextConnected)
+   {if (temp->NextConnectedNo==1) //jeœli pojazd od strony sprzêgu 1 jest odwrócony
+     coupler_nr=1-coupler_nr; //to zmieniamy kierunek sprzêgu
+    temp=temp->NextConnected; //ten pojazd jest od strony 1
+   }
+   else
+    break; //jeœli jednak z ty³u nic nie ma
+  }
+ }
+ eq-=MoverParameters->PipePress*MoverParameters->Dim.L;
+ am-=MoverParameters->Dim.L;
+ return eq/am;
+};
+
+
+//---------------------------------------------------------------------------
 TDynamicObject* __fastcall TDynamicObject::GetFirstDynamic(int cpl_type)
 {//Szukanie skrajnego po³¹czonego pojazdu w pociagu
  //od strony sprzegu (cpl_type) obiektu szukajacego
@@ -1088,6 +1165,7 @@ __fastcall TDynamicObject::TDynamicObject()
  //McZapkie-270202
  Controller=AIdriver;
  bDisplayCab=false; //030303
+ bBrakeAcc=false;
  NextConnected=PrevConnected=NULL;
  NextConnectedNo=PrevConnectedNo=2; //ABu: Numery sprzegow. 2=nie pod³¹czony
  CouplCounter=50; //bêdzie sprawdzaæ na pocz¹tku
@@ -1105,6 +1183,8 @@ __fastcall TDynamicObject::TDynamicObject()
  dWheelAngle[1]=0.0;
  dWheelAngle[2]=0.0;
  //Winger 160204 - pantografy
+ //PantVolume = 3.5;
+ StartTime=0;
  NoVoltTime=0;
  smPatykird1[0]=smPatykird1[1]=NULL;
  smPatykird2[0]=smPatykird2[1]=NULL;
@@ -1208,7 +1288,8 @@ double __fastcall TDynamicObject::Init(
  AnsiString TrainName, //nazwa sk³adu, np. "PE2307"
  float Load, //iloœæ ³adunku
  AnsiString LoadType, //nazwa ³adunku
- bool Reversed //true, jeœli ma staæ odwrotnie w sk³adzie
+ bool Reversed, //true, jeœli ma staæ odwrotnie w sk³adzie
+ AnsiString MoreParams //dodatkowe parametry wczytywane w postaci tekstowej
 )
 {//Ustawienie pocz¹tkowe pojazdu
  iDirection=(Reversed?0:1); //Ra: 0, jeœli ma byæ wstawiony jako obrócony ty³em
@@ -1259,6 +1340,102 @@ double __fastcall TDynamicObject::Init(
   return 0.0; //zerowa d³ugoœæ to brak pojazdu
  }
  MoverParameters->BrakeLevelSet(MoverParameters->BrakeCtrlPos); //poprawienie hamulca po ewentualnym przestawieniu przez Pascal
+
+//dodatkowe parametry yB
+ MoreParams+="."; //wykonuje o jedn¹ iteracjê za ma³o, wiêc trzeba mu dodaæ kropkê na koniec
+ int kropka=MoreParams.Pos("."); //znajdŸ kropke
+ AnsiString ActPar; //na parametry
+ while(kropka>0) //jesli sa kropki jeszcze
+ {
+  int dlugosc=MoreParams.Length();
+  ActPar=MoreParams.SubString(1,kropka-1).UpperCase();     //pierwszy parametr;
+  MoreParams=MoreParams.SubString(kropka+1,dlugosc-kropka);  //reszta do dalszej obrobki
+  kropka=MoreParams.Pos(".");
+
+  if(ActPar.SubString(1,1)=="B") //jesli hamulce
+  {  //sprawdzanie kolejno nastaw
+   WriteLog("Wpis hamulca: " + ActPar);
+   if (ActPar.Pos("G")>0) {MoverParameters->BrakeDelaySwitch(bdelay_G);}
+   if (ActPar.Pos("P")>0) {MoverParameters->BrakeDelaySwitch(bdelay_P);}
+   if (ActPar.Pos("R")>0) {MoverParameters->BrakeDelaySwitch(bdelay_R);}
+   if (ActPar.Pos("M")>0) {MoverParameters->BrakeDelaySwitch(bdelay_R);MoverParameters->BrakeDelaySwitch(bdelay_R+bdelay_M);}
+   //wylaczanie hamulca
+   if (ActPar.Pos("<>")>0) //wylaczanie na probe hamowania naglego
+   {
+    MoverParameters->BrakeStatus|=128; //wylacz
+   }
+   if (ActPar.Pos("0")>0) //wylaczanie na sztywno
+   {
+    MoverParameters->BrakeStatus|=128; //wylacz
+    MoverParameters->Hamulec->ForceEmptiness();
+    MoverParameters->BrakeReleaser(1);  //odluznij automatycznie
+   }
+   if (ActPar.Pos("E")>0) //oprozniony
+   {
+    MoverParameters->Hamulec->ForceEmptiness();
+    MoverParameters->BrakeReleaser(1);  //odluznij automatycznie
+    MoverParameters->Pipe->CreatePress(0);
+    MoverParameters->Pipe2->CreatePress(0);    
+   }
+
+   if (ActPar.Pos("1")>0) //wylaczanie 10%
+   {
+    if (random(10)<1) //losowanie 1/10
+    {
+     MoverParameters->BrakeStatus|=128; //wylacz
+     MoverParameters->Hamulec->ForceEmptiness();
+     MoverParameters->BrakeReleaser(1);  //odluznij automatycznie
+    }
+   }
+   if (ActPar.Pos("X")>0) //agonalny wylaczanie 20%, usrednienie przekladni
+   {
+    if (random(100)<20) //losowanie 20/100
+    {
+     MoverParameters->BrakeStatus|=128; //wylacz
+     MoverParameters->Hamulec->ForceEmptiness();
+     MoverParameters->BrakeReleaser(1);  //odluznij automatycznie
+    }
+    if(MoverParameters->BrakeCylMult[2]*MoverParameters->BrakeCylMult[1]>0.01) //jesli jest nastawiacz mechaniczny PL
+    {
+     float rnd=random(100);
+     if (rnd<20) //losowanie 20/100         usrednienie
+     {
+       MoverParameters->BrakeCylMult[2]=MoverParameters->BrakeCylMult[1]=(MoverParameters->BrakeCylMult[2]+MoverParameters->BrakeCylMult[1])/2;
+     }
+     else
+     if (rnd<70) //losowanie 70/100-20/100    oslabienie
+     {
+       MoverParameters->BrakeCylMult[1]=MoverParameters->BrakeCylMult[1]*0.50;
+       MoverParameters->BrakeCylMult[2]=MoverParameters->BrakeCylMult[2]*0.75;
+     }
+     else
+     if (rnd<80) //losowanie 80/100-70/100    tylko prozny
+     {
+       MoverParameters->BrakeCylMult[2]=MoverParameters->BrakeCylMult[1];
+     }
+     else      //tylko ladowny
+     {
+       MoverParameters->BrakeCylMult[1]=MoverParameters->BrakeCylMult[2];
+     }
+    }
+   }
+   //nastawianie ladunku
+   if (ActPar.Pos("T")>0) //prozny
+   { MoverParameters->DecBrakeMult(); MoverParameters->DecBrakeMult(); } //dwa razy w dol
+   if (ActPar.Pos("H")>0) //ladowny I (dla P-£ dalej prozny)
+   { MoverParameters->IncBrakeMult(); MoverParameters->IncBrakeMult(); MoverParameters->DecBrakeMult(); } //dwa razy w gore i obniz
+   if (ActPar.Pos("F")>0) //ladowny II
+   { MoverParameters->IncBrakeMult(); MoverParameters->IncBrakeMult(); } //dwa razy w gore
+   if (ActPar.Pos("N")>0) //parametr neutralny
+   { }
+  } //koniec hamulce
+  else if(ActPar.SubString(1,1)=="") //tu mozna wpisac inny prefiks i inne rzeczy
+  {
+    //jakies inne prefiksy
+  }
+
+ } //koniec while kropka
+
  if (MoverParameters->CategoryFlag&2) //jeœli samochód
  {//ustawianie samochodow na poboczu albo na œrodku drogi
   if (Track->fTrackWidth<3.5) //jeœli droga w¹ska
@@ -1822,6 +1999,8 @@ TGround::GetTraction;
 
     if (Mechanik)
     {
+     MoverParameters->EqvtPipePress= GetEPP(); //srednie cisnienie w PG
+
 /*
      //ABu: proba szybkiego naprawienia bledu z zatrzymujacymi sie bez powodu skladami
      if ((MoverParameters->CabNo!=0)&&(Controller!=Humandriver)&&(!MoverParameters->Mains)&&(Mechanik->EngineActive))
@@ -1955,16 +2134,26 @@ TGround::GetTraction;
 //McZapkie-260202 end
 
 //yB: przyspieszacz (moze zadziala, ale dzwiek juz jest)
-/*if(ObjectDist<50000)
- if(TestFlag(MoverParameters->SoundFlag,sound_brakeacc))
-   sBrakeAcc.Play(-1,0,MechInside,vPosition);
- else;
-// if(MoverParameters->BrakePress=0)
-//   sBrakeAcc.Stop();
-else
-  sBrakeAcc.Stop();
+int flag=MoverParameters->Hamulec->GetSoundFlag();
+if((bBrakeAcc)&&(TestFlag(flag,sf_Acc))&&(ObjectDist<2500))
+  {
+   sBrakeAcc->SetVolume(-ObjectDist*3-(FreeFlyModeFlag?0:2000));
+   sBrakeAcc->Play(0,0,0);
+   sBrakeAcc->SetPan(10000*sin(ModCamRot));
+  }
+if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
+  {
+   if ((TestFlag(flag,sf_CylU)) && ((MoverParameters->BrakePress*MoverParameters->MaxBrakePress[3])>0.05))
+    {
+     vol=Min0R(0.2+1.6*sqrt((MoverParameters->BrakePress>0?MoverParameters->BrakePress:0)/MoverParameters->MaxBrakePress[3]),1);
+     vol=vol+(FreeFlyModeFlag?0:-0.5)-ObjectDist/5000;
+     rsUnbrake.SetPan(10000*sin(ModCamRot));
+     rsUnbrake.Play(vol,DSBPLAY_LOOPING,MechInside,GetPosition());
+    }
+   else
+    rsUnbrake.Stop();
+  }
 
-SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);*/
 
    //fragment z EXE Kursa
       /* if (MoverParameters->TrainType==dt_ET42)
@@ -2291,19 +2480,11 @@ bool __fastcall TDynamicObject::FastUpdate(double dt)
     FastMove(dDOMoveLen);
 
 //yB: przyspieszacz (moze zadziala, ale dzwiek juz jest)
-/*double ObjectDist;
+double ObjectDist;
 //Ra: to ju¿ by³o wczeœniej - wywaliæ?
 ObjectDist=SquareMagnitude(Global::pCameraPosition-vPosition);
-if (ObjectDist<50000)
- if (TestFlag(MoverParameters->SoundFlag,sound_brakeacc))
-   sBrakeAcc.Play(-1,0,MechInside,vPosition);
- else;
-// if(MoverParameters->BrakePress=0)
-//   sBrakeAcc.Stop();
-else
-  sBrakeAcc.Stop();
 
-SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);   */
+//SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);
  if (MoverParameters->LoadStatus)
   LoadUpdate(); //zmiana modelu ³adunku
  return true; //Ra: chyba tak?
@@ -2389,6 +2570,7 @@ bool __fastcall TDynamicObject::Render()
  }
  if (modelrotate>M_PI) modelrotate-=(2*M_PI);
  if (modelrotate<-M_PI) modelrotate+=(2*M_PI);
+ ModCamRot=modelrotate;
 
  modelrotate=abs(modelrotate);
 
@@ -2660,7 +2842,7 @@ bool __fastcall TDynamicObject::Render()
 //McZapkie-280302 - pisk mocno zacisnietych hamulcow - trzeba jeszcze zabezpieczyc przed brakiem deklaracji w mmedia.dta
     if (rsPisk.AM!=0)
      {
-      if ((MoverParameters->Vel>0.01) && (!MoverParameters->SlippingWheels) && (MoverParameters->UnitBrakeForce>rsPisk.AM))
+      if ((MoverParameters->Vel>(rsPisk.GetStatus()!=0?0.01:0.5)) && (!MoverParameters->SlippingWheels) && (MoverParameters->UnitBrakeForce>rsPisk.AM))
        {
         vol=MoverParameters->UnitBrakeForce/(rsPisk.AM+1)+rsPisk.AA;
         rsPisk.Play(vol,DSBPLAY_LOOPING,MechInside,GetPosition());
@@ -2670,10 +2852,10 @@ bool __fastcall TDynamicObject::Render()
      }
 
 //if ((MoverParameters->ConverterFlag==false) && (MoverParameters->TrainType!=dt_ET22))
-if ((MoverParameters->ConverterFlag==false)&&(MoverParameters->CompressorPower>0))
+if ((MoverParameters->ConverterFlag==false)&&(MoverParameters->CompressorPower!=0))
  MoverParameters->CompressorFlag=false;
-if (MoverParameters->CompressorPower==2)
- MoverParameters->CompressorAllow=MoverParameters->ConverterFlag;
+//if (MoverParameters->CompressorPower==2)
+// MoverParameters->CompressorAllow=MoverParameters->ConverterFlag;
 
 // McZapkie! - dzwiek compressor.wav tylko gdy dziala sprezarka
     if (MoverParameters->VeselVolume!=0)
@@ -3429,11 +3611,23 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
        if (str==AnsiString("brakeacc:"))                      //plik z przyspieszaczem (upust po zlapaniu hamowania)
         {
          str= Parser->GetNextSymbol();
-         sBrakeAcc.Init(str.c_str(),Parser->GetNextSymbol().ToDouble(),GetPosition().x,GetPosition().y,GetPosition().z,true);
-         sBrakeAcc.AM=1.0;
-         sBrakeAcc.AA=0.0;
-         sBrakeAcc.FM=1.0;
-         sBrakeAcc.FA=0.0;
+//         sBrakeAcc.Init(str.c_str(),Parser->GetNextSymbol().ToDouble(),GetPosition().x,GetPosition().y,GetPosition().z,true);
+          sBrakeAcc=TSoundsManager::GetFromName(str.c_str(),true);
+          bBrakeAcc=true;
+//         sBrakeAcc.AM=1.0;
+//         sBrakeAcc.AA=0.0;
+//         sBrakeAcc.FM=1.0;
+//         sBrakeAcc.FA=0.0;
+        }
+       else
+       if (str==AnsiString("unbrake:"))                      //plik z piskiem hamulca, mnozniki i ofsety amplitudy.
+        {
+         str= Parser->GetNextSymbol();
+         rsUnbrake.Init(str.c_str(),Parser->GetNextSymbol().ToDouble(),GetPosition().x,GetPosition().y,GetPosition().z,true);
+         rsUnbrake.AM=1.0;
+         rsUnbrake.AA=0.0;
+         rsUnbrake.FM=1.0;
+         rsUnbrake.FA=0.0;
         }
        else
        if (str==AnsiString("derail:"))                      //dzwiek przy wykolejeniu
