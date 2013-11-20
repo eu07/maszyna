@@ -66,7 +66,7 @@ zwiekszenie nacisku przy duzych predkosciach w hamulcach Oerlikona
 *)
 
 
-interface uses mctools,sysutils;
+interface uses mctools,sysutils,hamulce,Oerlikon_ESt;
 
 CONST
    Go=True;
@@ -126,27 +126,6 @@ CONST
    dbrake_reversal=4;
    dbrake_automatic=8;
 
-   {nastawy hamulca}
-   bdelay_P=0;
-   bdelay_G=1;
-   bdelay_R=2;
-   bdelay_E=4;
-
-   {status hamulca}
-   b_off=0;
-   b_on=1;
-   b_dmg=2;
-   b_release=4;
-   b_antislip=8;
-   b_epused=16;
-   b_Rused=32;
-   b_Ractive=64;
-
-   {typ hamulca kolejowego}
-   bp_classic=0;
-   bp_diameter=1;
-   bp_magnetic=2;
-
    {status czuwaka/SHP}
    {
    s_waiting=1; //dzia³a
@@ -174,8 +153,6 @@ CONST
    sound_relay=16;
    sound_manyrelay=32;
    sound_brakeacc=64;
-
-   Spg=0.5067;
 
    PhysicActivationFlag: boolean=False;
 
@@ -231,7 +208,9 @@ TYPE
     {typy hamulcow zespolonych}
     TBrakeSystem = (Individual, Pneumatic, ElectroPneumatic);
     {podtypy hamulcow zespolonych}
-    TBrakeSubsystem = (Standard, WeLu, Knorr, KE, Hik, Kk, Oerlikon);
+    TBrakeSubSystem = (ss_None, ss_W, ss_K, ss_KK, ss_Hik, ss_ESt, ss_KE, ss_LSt, ss_MT, ss_Dako);
+    TBrakeValve = (NoValve, W, W_Lu_VI, W_Lu_L, W_Lu_XR, K, Kg, Kp, Kss, Kkg, Kkp, Kks, Hikg1, Hikss, Hikp1, KE, SW, NESt3, ESt3, LSt, ESt4, ESt3AL2, EP1, EP2, M483, CV1_L_TR, CV1, CV1_R, Other);
+    TBrakeHandle = (NoHandle, West, FV4a, M394, M254, FVel1, FVel6, D2, Knorr, FD1, BS2, testH, St113);
     {typy hamulcow indywidualnych}
     TLocalBrake = (NoBrake, ManualBrake, PneumaticBrake, HydraulicBrake);
 
@@ -414,8 +393,15 @@ TYPE
                SandCapacity: integer;    {zasobnik piasku [kg]}
                BrakeSystem: TBrakeSystem;{rodzaj hamulca zespolonego}
                BrakeSubsystem: TBrakeSubsystem;
+               BrakeValve: TBrakeValve;
+               BrakeHandle: TBrakeHandle;
+               BrakeLocHandle: TBrakeHandle;
                MBPM: real; {masa najwiekszego cisnienia}
-//               BrakeVariety: byte;
+
+               Hamulec: TBrake;
+               Handle: THandle;
+               LocHandle: THandle;
+               Pipe, Pipe2: TReservoir;
 
                LocalBrake: TLocalBrake;  {rodzaj hamulca indywidualnego}
                BrakePressureTable: TBrakePressureTable; {wyszczegolnienie cisnien w rurze}
@@ -423,7 +409,8 @@ TYPE
                ASBType: byte;            {0: brak hamulca przeciwposlizgowego, 1: reczny, 2: automat}
                TurboTest: byte;
                MaxBrakeForce: real;      {maksymalna sila nacisku hamulca}
-               MaxBrakePress,P2FTrans: real;
+               MaxBrakePress: array[0..4] of real; //pomocniczy, proz, sred, lad, pp
+               P2FTrans: real;
                TrackBrakeForce: real;    {sila nacisku hamulca szynowego}
                BrakeMethod: byte;        {flaga rodzaju hamulca}
                {max. cisnienie w cyl. ham., stala proporcjonalnosci p-K}
@@ -435,9 +422,16 @@ TYPE
                {pojemnosc powietrza w ukladzie hamulcowym, w ukladzie glownej sprezarki [m^3] }
                BrakeCylNo: integer; {ilosc cylindrow ham.}
                BrakeCylRadius, BrakeCylDist: real;
-               BrakeCylMult: array[0..3] of real;
-               BCMFlag: byte;
+               BrakeCylMult: array[0..2] of real;
+               LoadFlag: byte;
                {promien cylindra, skok cylindra, przekladnia hamulcowa}
+               BrakeCylSpring: real; {suma nacisku sprezyn powrotnych, kN}
+               BrakeSlckAdj: real; {opor nastawiacza skoku tloka, kN}
+               BrakeRigEff: real; {sprawnosc przekladni dzwigniowej}               
+               RapidMult: real; {przelozenie rapidu}
+               BrakeValveSize: integer;
+               BrakeValveParams: string;
+               Spg: real;
                MinCompressor,MaxCompressor,CompressorSpeed:real;
                {cisnienie wlaczania, zalaczania sprezarki, wydajnosc sprezarki}
                BrakeDelay: TBrakeDelayTable; {opoznienie hamowania/odhamowania t/o}
@@ -462,6 +456,7 @@ TYPE
                 // end;
                NominalVoltage: real;   {nominalne napiecie silnika}
                WindingRes : real;
+               u: real; //wspolczynnik tarcia yB wywalic!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                CircuitRes : real;      {rezystancje silnika i obwodu}
                IminLo,IminHi: integer; {prady przelacznika automatycznego rozruchu, uzywane tez przez ai_driver}
                ImaxLo,ImaxHi: integer; {maksymalny prad niskiego i wysokiego rozruchu}
@@ -524,6 +519,7 @@ TYPE
                 DoorMaxShiftL,DoorMaxShiftR: real;{szerokosc otwarcia lub kat}
                 DoorOpenMethod: byte;             {sposob otwarcia - 1: przesuwne, 2: obrotowe}
                 ScndS: boolean; {Czy jest bocznikowanie na szeregowej}
+
                         {--sekcja zmiennych}
                         {--opis konkretnego egzemplarza taboru}
                 Loc: TLocation; //pozycja pojazdów do wyznaczenia odleg³oœci pomiêdzy sprzêgami
@@ -547,6 +543,7 @@ TYPE
                 FTrain,FStand: real;                {! sila pociagowa i oporow ruchu}
                 FTotal: real;                       {! calkowita sila dzialajaca na pojazd}
                 UnitBrakeForce: real;               {!s si³a hamowania przypadaj¹ca na jeden element}
+                Ntotal: real;               {!s si³a nacisku klockow}
                 SlippingWheels,SandDose: boolean;   {! poslizg kol, sypanie piasku}
                 Sand: real;                         {ilosc piasku}
                 BrakeSlippingTimer:real;            {pomocnicza zmienna do wylaczania przeciwposlizgu}
@@ -557,7 +554,7 @@ TYPE
                 LocBrakePress:real;                 {!o cisnienie w cylindrach hamulcowych z pomocniczego}
                 PipeBrakePress:real;                {!o cisnienie w cylindrach hamulcowych z przewodu}
                 PipePress: real;                    {!o cisnienie w przewodzie glownym}
-                PPP: real;                          {!o poprzednie cisnienie w przewodzie glownym}
+                EqvtPipePress: real;                {!o cisnienie w przewodzie glownym skladu}
                 Volume: real;                       {objetosc spr. powietrza w zbiorniku hamulca}
                 CompressedVolume:real;              {objetosc spr. powietrza w ukl. zasilania}
                 PantVolume:real;                    {objetosc spr. powietrza w ukl. pantografu}
@@ -568,8 +565,11 @@ TYPE
                 ConverterFlag: boolean;              {!  czy wlaczona przetwornica NBMX}
                 ConverterAllow: boolean;             {zezwolenie na prace przetwornicy NBMX}
                 BrakeCtrlPos:integer;               {nastawa hamulca zespolonego}
+                BrakeCtrlPosR:real;                 {nastawa hamulca zespolonego - plynna dla FV4a}
+                BrakeCtrlPos2:real;                 {nastawa hamulca zespolonego - kapturek dla FV4a}
                 LocalBrakePos:byte;                 {nastawa hamulca indywidualnego}
                 ManualBrakePos:byte;                 {nastawa hamulca recznego}
+                LocalBrakePosA: real;
                 BrakeStatus: byte; {0 - odham, 1 - ham., 2 - uszk., 4 - odluzniacz, 8 - antyposlizg, 16 - uzyte EP, 32 - pozycja R, 64 - powrot z R}
                 EmergencyBrakeFlag: boolean;        {hamowanie nagle}
                 BrakeDelayFlag: byte;               {nastawa opoznienia ham. osob/towar/posp/exp 0/1/2/4}
@@ -654,6 +654,7 @@ TYPE
                 LoadType: string;   {co jest zaladowane}
                 LoadStatus: byte; //+1=trwa rozladunek,+2=trwa zaladunek,+4=zakoñczono,0=zaktualizowany model
                 LastLoadChangeTime: real; //raz (roz)³adowania
+
                 DoorBlocked: boolean;    //Czy jest blokada drzwi
                 DoorLeftOpened: boolean;  //stan drzwi
                 DoorRightOpened: boolean;
@@ -739,7 +740,7 @@ TYPE
                {hamulec przeciwposlizgowy}
                 function AntiSlippingBrake: boolean;
                {odluzniacz}
-                function BrakeReleaser: boolean;
+                function BrakeReleaser(state: byte):boolean;
                 function SwitchEPBrake(state: byte):boolean;
 
                {! reczny wlacznik urzadzen antyposlizgowych}
@@ -758,6 +759,7 @@ TYPE
                 procedure UpdatePantVolume(dt:real); {jw ale uklad zasilania pantografow}
                 procedure UpdateScndPipePressure(dt:real);
                 procedure UpdateBatteryVoltage(dt:real);
+                function GetDVc(dt:real):real;
 
                {! funkcje laczace/rozlaczajace sprzegi}
                //Ra: przeniesione do C++
