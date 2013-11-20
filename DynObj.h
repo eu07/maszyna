@@ -257,7 +257,11 @@ private:
     vector3 modelShake;
 
     bool renderme; //yB - czy renderowac
-    TRealSound sBrakeAcc; //dŸwiêk przyspieszacza
+    //TRealSound sBrakeAcc; //dŸwiêk przyspieszacza
+    PSound sBrakeAcc;
+    bool bBrakeAcc;
+    TRealSound rsUnbrake; //yB - odglos luzowania     
+    float ModCamRot;
  int iInventory; //flagi bitowe posiadanych submodeli (np. œwiate³)
  void __fastcall TurnOff();
 public:
@@ -296,7 +300,7 @@ public:
 
     TRealSound rsDiesielInc; //youBy
     TRealSound rscurve; //youBy
-
+//    std::ofstream PneuLogFile; //zapis parametrow pneumatycznych
 //youBy - dym
     //TSmoke Smog;
     //float EmR;
@@ -379,6 +383,7 @@ public:
  void __fastcall RaLightsSet(int head,int rear);
  //void __fastcall RaAxleEvent(TEvent *e);
  TDynamicObject* __fastcall FirstFind(int &coupler_nr);
+ float __fastcall GetEPP(); //wyliczanie sredniego cisnienia w PG
  int __fastcall DirectionSet(int d); //ustawienie kierunku w sk³adzie
  int __fastcall DirectionGet() {return iDirection?1:-1;}; //odczyt kierunku w sk³adzie
  int DettachStatus(int dir);
