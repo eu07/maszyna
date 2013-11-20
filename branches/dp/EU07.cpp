@@ -69,6 +69,7 @@ USEUNIT("Names.cpp");
 USEUNIT("Console.cpp");
 USEUNIT("Mover.cpp");
 USEUNIT("McZapkie\_mover.pas");
+USEUNIT("McZapkie\hamulce.pas");
 USEUNIT("Console\PoKeys55.cpp");
 USEUNIT("Forth.cpp");
 USEUNIT("Console\LPT.cpp");
