@@ -202,7 +202,9 @@ void __fastcall TTrain::OnKeyPress(int cKey)
 {
 
   bool isEztOer;
-  isEztOer=((DynamicObject->MoverParameters->TrainType==dt_EZT)&&(DynamicObject->MoverParameters->Battery==true)&&(DynamicObject->MoverParameters->EpFuse==true)&&(DynamicObject->MoverParameters->BrakeSubsystem==Oerlikon)&&(DynamicObject->MoverParameters->ActiveDir!=0));
+  isEztOer=((DynamicObject->MoverParameters->TrainType==dt_EZT)&&(DynamicObject->MoverParameters->Battery==true)&&(DynamicObject->MoverParameters->EpFuse==true)&&(DynamicObject->MoverParameters->BrakeSubsystem==ss_ESt)&&(DynamicObject->MoverParameters->ActiveDir!=0)); //od yB
+  //isEztOer=(DynamicObject->MoverParameters->TrainType==dt_EZT)&&(DynamicObject->MoverParameters->Mains)&&(DynamicObject->MoverParameters->BrakeSubsystem==ss_ESt)&&(DynamicObject->MoverParameters->ActiveDir!=0);
+  //isEztOer=((DynamicObject->MoverParameters->TrainType==dt_EZT)&&(DynamicObject->MoverParameters->Battery==true)&&(DynamicObject->MoverParameters->EpFuse==true)&&(DynamicObject->MoverParameters->BrakeSubsystem==Oerlikon)&&(DynamicObject->MoverParameters->ActiveDir!=0));
 
   if (GetAsyncKeyState(VK_SHIFT)<0)
    {//wciœniêty [Shift]
@@ -342,7 +344,15 @@ void __fastcall TTrain::OnKeyPress(int cKey)
               int CouplNr=-2;
               if (!FreeFlyModeFlag)
               {
-                  if (DynamicObject->MoverParameters->BrakeDelaySwitch(0))
+                  if (GetAsyncKeyState(VK_CONTROL)<0)
+                   if (DynamicObject->MoverParameters->BrakeDelaySwitch(bdelay_R+bdelay_M))
+                     {
+                       dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
+                       dsbPneumaticRelay->Play(0,0,0);
+                     }
+                   else;
+                  else
+                  if (DynamicObject->MoverParameters->BrakeDelaySwitch(bdelay_P))
                    {
                        dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
                        dsbPneumaticRelay->Play(0,0,0);
@@ -359,7 +369,15 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                  }
                  if (temp)
                  {
-                    if (temp->MoverParameters->BrakeDelaySwitch(0))
+                    if (GetAsyncKeyState(VK_CONTROL)<0)
+                     if (temp->MoverParameters->BrakeDelaySwitch(bdelay_R+bdelay_M))
+                       {
+                         dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
+                         dsbPneumaticRelay->Play(0,0,0);
+                       }
+                     else;
+                    else
+                    if (temp->MoverParameters->BrakeDelaySwitch(bdelay_P))
                      {
                        dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
                        dsbPneumaticRelay->Play(0,0,0);
@@ -1078,7 +1096,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
               }
           }
       else
-      if (cKey==Global::Keys[k_IncBrakeLevel])
+      if ((cKey==Global::Keys[k_IncBrakeLevel])&&(DynamicObject->MoverParameters->BrakeHandle!=FV4a))
        //if (DynamicObject->MoverParameters->IncBrakeLevel())
        if (DynamicObject->MoverParameters->BrakeLevelAdd(Global::fBrakeStep)) //nieodpowiedni warunek; true, jeœli mo¿na dalej krêciæ
           {
@@ -1091,7 +1109,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
            }
           else;
       else
-      if (cKey==Global::Keys[k_DecBrakeLevel])
+      if ((cKey==Global::Keys[k_DecBrakeLevel])&&(DynamicObject->MoverParameters->BrakeHandle!=FV4a))
        {
 //now¹ wersjê dostarczy³ ZiomalCl ("fixed looped sound in ezt when using NUM_9 key")
          if ((DynamicObject->MoverParameters->BrakeCtrlPos>-1) || (keybrakecount>1))
@@ -1128,7 +1146,8 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       {
        //while (DynamicObject->MoverParameters->IncBrakeLevel());
        DynamicObject->MoverParameters->BrakeLevelSet(DynamicObject->MoverParameters->BrakeCtrlPosNo);
-       DynamicObject->MoverParameters->EmergencyBrakeFlag=true;
+       if(DynamicObject->MoverParameters->BrakeCtrlPosNo<=0.1)
+        DynamicObject->MoverParameters->EmergencyBrakeFlag=true;
       }
       else
       if (cKey==Global::Keys[k_Brake3])
@@ -1152,9 +1171,9 @@ void __fastcall TTrain::OnKeyPress(int cKey)
        }
        //while (DynamicObject->MoverParameters->BrakeCtrlPos>DynamicObject->MoverParameters->BrakeCtrlPosNo/2 && DynamicObject->MoverParameters->DecBrakeLevel());
        //while (DynamicObject->MoverParameters->BrakeCtrlPos<DynamicObject->MoverParameters->BrakeCtrlPosNo/2 && DynamicObject->MoverParameters->IncBrakeLevel());
-       DynamicObject->MoverParameters->BrakeLevelSet(DynamicObject->MoverParameters->BrakeCtrlPosNo/2);
+       DynamicObject->MoverParameters->BrakeLevelSet(DynamicObject->MoverParameters->BrakeCtrlPosNo/2+(DynamicObject->MoverParameters->BrakeHandle==FV4a?1:0));
        if (GetAsyncKeyState(VK_CONTROL)<0)
-        if ((DynamicObject->MoverParameters->BrakeSubsystem==Oerlikon)&&(DynamicObject->MoverParameters->BrakeSystem==Pneumatic))
+        if (DynamicObject->MoverParameters->BrakeHandle==FV4a)
          DynamicObject->MoverParameters->BrakeLevelSet(-2);
       }
       else
@@ -1172,6 +1191,12 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else
       if (cKey==Global::Keys[k_Brake0])
       {
+        if (Console::Pressed(VK_CONTROL))
+         {
+          DynamicObject->MoverParameters->BrakeCtrlPos2= 0; //wyrownaj kapturek
+         }
+        else
+         {
           if ((isEztOer) && ((DynamicObject->MoverParameters->BrakeCtrlPos==1)||(DynamicObject->MoverParameters->BrakeCtrlPos==-1)))
             {
              dsbPneumaticSwitch->SetVolume(-10);
@@ -1180,11 +1205,12 @@ void __fastcall TTrain::OnKeyPress(int cKey)
        //while (DynamicObject->MoverParameters->BrakeCtrlPos>0 && DynamicObject->MoverParameters->DecBrakeLevel());
        //while (DynamicObject->MoverParameters->BrakeCtrlPos<0 && DynamicObject->MoverParameters->IncBrakeLevel());
        DynamicObject->MoverParameters->BrakeLevelSet(0);
+	    }
       }
       else
       if (cKey==Global::Keys[k_WaveBrake]) //[Num.]
       {
-          if ((isEztOer) && (DynamicObject->MoverParameters->BrakeCtrlPos!=-1))
+          if ((isEztOer) && (DynamicObject->MoverParameters->Mains) && (DynamicObject->MoverParameters->BrakeCtrlPos!=-1))
             {
              dsbPneumaticSwitch->SetVolume(-10);
              dsbPneumaticSwitch->Play(0,0,0);
@@ -1212,7 +1238,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       //hunter-221211: hamulec przeciwposlizgowy przeniesiony do TTrain::Update()
       if (cKey==Global::Keys[k_AntiSlipping])
       {
-        if (DynamicObject->MoverParameters->ASBType==1)
+        if (DynamicObject->MoverParameters->BrakeSystem!=ElectroPneumatic)
          {
           //if (DynamicObject->MoverParameters->AntiSlippingButton())
            if (fabs(AntiSlipButtonGauge.GetValue())<0.001)
@@ -1338,14 +1364,14 @@ void __fastcall TTrain::OnKeyPress(int cKey)
               if (!FreeFlyModeFlag)
               {
                   if (GetAsyncKeyState(VK_CONTROL)<0)
-                   if (DynamicObject->MoverParameters->BrakeDelaySwitch(2))
+                   if (DynamicObject->MoverParameters->BrakeDelaySwitch(bdelay_R))
                      {
                        dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
                        dsbPneumaticRelay->Play(0,0,0);
                      }
                    else;
                   else
-                   if (DynamicObject->MoverParameters->BrakeDelaySwitch(1))
+                   if (DynamicObject->MoverParameters->BrakeDelaySwitch(bdelay_G))
                      {
                        dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
                        dsbPneumaticRelay->Play(0,0,0);
@@ -1363,14 +1389,14 @@ void __fastcall TTrain::OnKeyPress(int cKey)
                  if (temp)
                  {
                   if (GetAsyncKeyState(VK_CONTROL)<0)
-                    if (temp->MoverParameters->BrakeDelaySwitch(2))
+                    if (temp->MoverParameters->BrakeDelaySwitch(bdelay_R))
                      {
                        dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
                        dsbPneumaticRelay->Play(0,0,0);
                      }
                     else;
                   else
-                    if (temp->MoverParameters->BrakeDelaySwitch(1))
+                    if (temp->MoverParameters->BrakeDelaySwitch(bdelay_G))
                      {
                        dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
                        dsbPneumaticRelay->Play(0,0,0);
@@ -1411,7 +1437,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
           if (DynamicObject->MoverParameters->BrakeCtrlPosNo>0)
           {
            ReleaserButtonGauge.PutValue(1);
-           if (DynamicObject->MoverParameters->BrakeReleaser())
+           if (DynamicObject->MoverParameters->BrakeReleaser(1))
            {
             dsbPneumaticRelay->SetVolume(-80);
             dsbPneumaticRelay->Play(0,0,0);
@@ -2272,6 +2298,8 @@ bool __fastcall TTrain::Update()
 {
  DWORD stat;
  double dt=Timer::GetDeltaTime();
+// DynamicObject->MoverParameters->Hamulec->Releaser(0); //odluŸniacz rêczny
+// DynamicObject->MoverParameters->BrakeReleaser(0);
  if (DynamicObject->mdKabina)
  {//Ra: TODO: odczyty klawiatury/pulpitu nie powinny byæ uzale¿nione od istnienia modelu kabiny 
   tor=DynamicObject->GetTrack(); //McZapkie-180203
@@ -2351,19 +2379,88 @@ bool __fastcall TTrain::Update()
    double dfreq;
 
 //McZapkie-280302 - syczenie
-      if (rsHiss.AM!=0)
+      if(DynamicObject->MoverParameters->BrakeHandle==FV4a)
        {
-          fPPress=(fPPress+Max0R(DynamicObject->MoverParameters->dpLocalValve,DynamicObject->MoverParameters->dpMainValve))/2;
+        if (rsHiss.AM!=0)            //upuszczanie z PG
+         {
+            fPPress=(1*fPPress+DynamicObject->MoverParameters->Handle->GetSound(s_fv4a_b))/(2);
           if (fPPress>0)
            {
             vol=2*rsHiss.AM*fPPress;
            }
-          fNPress=(fNPress+Min0R(DynamicObject->MoverParameters->dpLocalValve,DynamicObject->MoverParameters->dpMainValve))/2;
-          if (fNPress<0 && -fNPress>fPPress)
+            if (vol>0.001)
            {
-            vol=-2*rsHiss.AM*fNPress;
+              rsHiss.Play(vol,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
            }
-          if (vol>0.1)
+            else
+             {
+              rsHiss.Stop();
+             }
+         }
+        if (rsHissU.AM!=0)            //upuszczanie z PG
+         {
+            fNPress=(1*fNPress+DynamicObject->MoverParameters->Handle->GetSound(s_fv4a_u))/(2);
+            if (fNPress>0)
+             {
+              vol=rsHissU.AM*fNPress;
+             }
+            if (vol>0.001)
+             {
+              rsHissU.Play(vol,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
+             }
+            else
+             {
+              rsHissU.Stop();
+             }
+         }
+        if (rsHissE.AM!=0)            //upuszczanie przy naglym
+         {
+            vol=-DynamicObject->MoverParameters->Handle->GetSound(s_fv4a_e)*rsHissE.AM;
+            if (vol>0.001)
+             {
+              rsHissE.Play(vol,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
+             }
+            else
+             {
+              rsHissE.Stop();
+             }
+         }
+        if (rsHissX.AM!=0)            //upuszczanie sterujacego fala
+         {
+            vol=DynamicObject->MoverParameters->Handle->GetSound(s_fv4a_x)*rsHissX.AM;
+            if (vol>0.001)
+             {
+              rsHissX.Play(vol,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
+             }
+            else
+             {
+              rsHissX.Stop();
+             }
+         }
+        if (rsHissT.AM!=0)            //upuszczanie z czasowego
+         {
+            vol=DynamicObject->MoverParameters->Handle->GetSound(s_fv4a_t)*rsHissT.AM;
+            if (vol>0.001)
+             {
+              rsHissT.Play(vol,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
+             }
+            else
+             {
+              rsHissT.Stop();
+             }
+         }
+
+       } //koniec FV4a
+      else //jesli nie FV4a
+       {
+        if (rsHiss.AM!=0)            //upuszczanie z PG
+         {
+            fPPress=(4*fPPress+Max0R(DynamicObject->MoverParameters->dpLocalValve,DynamicObject->MoverParameters->dpMainValve))/(4+1);
+            if (fPPress>0)
+             {
+              vol=2*rsHiss.AM*fPPress*0.01;
+             }
+            if (vol>0.01)
            {
             rsHiss.Play(vol,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
            }
@@ -2372,6 +2469,23 @@ bool __fastcall TTrain::Update()
             rsHiss.Stop();
            }
        }
+        if (rsHissU.AM!=0)           //napelnianie PG
+         {
+            fNPress=(4*fNPress+Min0R(DynamicObject->MoverParameters->dpLocalValve,DynamicObject->MoverParameters->dpMainValve))/(4+1);
+            if (fNPress<0)
+             {
+              vol=-2*rsHissU.AM*fNPress*0.004;
+             }
+             if (vol>0.01)
+             {
+              rsHissU.Play(vol,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
+             }
+            else
+             {
+              rsHissU.Stop();
+             }
+         }
+       } //koniec nie FV4a
 
 //Winger-160404 - syczenie pomocniczego (luzowanie)
 /*      if (rsSBHiss.AM!=0)
@@ -2462,7 +2576,8 @@ bool __fastcall TTrain::Update()
      {
       if ((!DynamicObject->MoverParameters->SlippingWheels) && (DynamicObject->MoverParameters->UnitBrakeForce>10.0) && (DynamicObject->GetVelocity()>0.01))
        {
-        vol=rsBrake.AA+rsBrake.AM*(DynamicObject->GetVelocity()*100+DynamicObject->MoverParameters->UnitBrakeForce);
+//        vol=rsBrake.AA+rsBrake.AM*(DynamicObject->GetVelocity()*100+DynamicObject->MoverParameters->UnitBrakeForce);
+        vol=rsBrake.AM*sqrt((DynamicObject->GetVelocity()*DynamicObject->MoverParameters->UnitBrakeForce));        
         dfreq=rsBrake.FA+rsBrake.FM*DynamicObject->GetVelocity();
         rsBrake.AdjFreq(dfreq,0);
         rsBrake.Play(vol,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
@@ -2797,33 +2912,38 @@ else
 
     if (CylHamGauge.SubModel)
      {
-      CylHamGauge.UpdateValue(DynamicObject->MoverParameters->BrakePress);
+      CylHamGauge.UpdateValue(DynamicObject->MoverParameters->BrakePress*0.1f);
       CylHamGauge.Update();
      }
     if (CylHamGaugeB.SubModel)
      {
-      CylHamGaugeB.UpdateValue(DynamicObject->MoverParameters->BrakePress);
+      CylHamGaugeB.UpdateValue(DynamicObject->MoverParameters->BrakePress*0.1f);
       CylHamGaugeB.Update();
      }
     if (PrzGlGauge.SubModel)
      {
-      PrzGlGauge.UpdateValue(DynamicObject->MoverParameters->PipePress);
+      PrzGlGauge.UpdateValue(DynamicObject->MoverParameters->PipePress*0.1f);
       PrzGlGauge.Update();
      }
     if (PrzGlGaugeB.SubModel)
      {
-      PrzGlGaugeB.UpdateValue(DynamicObject->MoverParameters->PipePress);
+      PrzGlGaugeB.UpdateValue(DynamicObject->MoverParameters->PipePress*0.1f);
       PrzGlGaugeB.Update();
+     }
+    if (ZbSGauge.SubModel)
+     {
+      ZbSGauge.UpdateValue(DynamicObject->MoverParameters->Handle->GetCP()*0.1f);
+      ZbSGauge.Update();
      }
 // McZapkie! - zamiast pojemnosci cisnienie
     if (ZbGlGauge.SubModel)
      {
-      ZbGlGauge.UpdateValue(DynamicObject->MoverParameters->Compressor);
+      ZbGlGauge.UpdateValue(DynamicObject->MoverParameters->Compressor*0.1f);
       ZbGlGauge.Update();
      }
     if (ZbGlGaugeB.SubModel)
      {
-      ZbGlGaugeB.UpdateValue(DynamicObject->MoverParameters->Compressor);
+      ZbGlGaugeB.UpdateValue(DynamicObject->MoverParameters->Compressor*0.1f);
       ZbGlGaugeB.Update();
      }
      
@@ -2973,25 +3093,26 @@ else
           btLampkaBezoporowa.TurnOn();
         else
           btLampkaBezoporowa.TurnOff();    //Do EU04
-        if ( (DynamicObject->MoverParameters->Itot!=0) || (DynamicObject->MoverParameters->BrakePress > 0.2) || ( DynamicObject->MoverParameters->PipePress < 0.36 ))
+        if ( (DynamicObject->MoverParameters->Itot!=0) || (DynamicObject->MoverParameters->BrakePress > 2) || ( DynamicObject->MoverParameters->PipePress < 0.3.6 ))
           btLampkaStyczn.TurnOff();     //
         else
-        if (DynamicObject->MoverParameters->BrakePress < 0.1)
+        if (DynamicObject->MoverParameters->BrakePress < 1)
            btLampkaStyczn.TurnOn();      //mozna prowadzic rozruch
          if (((TestFlag(DynamicObject->MoverParameters->Couplers[1].CouplingFlag,ctrain_controll)) && (DynamicObject->MoverParameters->CabNo==1)) ||
         ((TestFlag(DynamicObject->MoverParameters->Couplers[0].CouplingFlag,ctrain_controll)) && (DynamicObject->MoverParameters->CabNo==-1)))
            btLampkaUkrotnienie.TurnOn();
         else
            btLampkaUkrotnienie.TurnOff();
-         if ((TestFlag(DynamicObject->MoverParameters->BrakeStatus,+b_Rused+b_Ractive)))//Lampka drugiego stopnia hamowania
 
+//         if ((TestFlag(DynamicObject->MoverParameters->BrakeStatus,+b_Rused+b_Ractive)))//Lampka drugiego stopnia hamowania
+         if ((TestFlag(DynamicObject->MoverParameters->BrakeStatus,1)))//Lampka drugiego stopnia hamowania  //TODO: youBy wyci¹gn¹æ flagê wysokiego stopnia
            btLampkaHamPosp.TurnOn();
         else
            btLampkaHamPosp.TurnOff();
 
         //hunter-111211: wylacznik cisnieniowy
         if (DynamicObject->MoverParameters->TrainType!=dt_EZT)
-         if (((DynamicObject->MoverParameters->BrakePress > 0.2) || ( DynamicObject->MoverParameters->PipePress < 0.36 )) && ( DynamicObject->MoverParameters->MainCtrlPos != 0 ))
+         if (((DynamicObject->MoverParameters->BrakePress > 2) || ( DynamicObject->MoverParameters->PipePress < 3.6 )) && ( DynamicObject->MoverParameters->MainCtrlPos != 0 ))
           DynamicObject->MoverParameters->StLinFlag=true;
         //-------
 
@@ -3117,7 +3238,7 @@ if ( DynamicObject->MoverParameters->DoorSignalling==true)
         //-----------------
         //hunter-271211: brak jazdy w drugim czlonie, gdy w pierwszym tez nie ma (i odwrotnie)
         if (tmp->MoverParameters->TrainType!=dt_EZT)
-         if (((tmp->MoverParameters->BrakePress > 0.2) || ( tmp->MoverParameters->PipePress < 0.36 )) && ( tmp->MoverParameters->MainCtrlPos != 0 ))
+         if (((tmp->MoverParameters->BrakePress > 2) || ( tmp->MoverParameters->PipePress < 3.6 )) && ( tmp->MoverParameters->MainCtrlPos != 0 ))
           {
            tmp->MoverParameters->MainCtrlActualPos=0; //inaczej StLinFlag nie zmienia sie na false w drugim pojezdzie
            //tmp->MoverParameters->StLinFlag=true;
@@ -3139,9 +3260,9 @@ if ( DynamicObject->MoverParameters->DoorSignalling==true)
          { btLampkaSprezarkaB.TurnOn(); }
         else
          { btLampkaSprezarkaB.TurnOff(); }
-        if (( tmp->MoverParameters->BrakePress>=0.145f )&&(DynamicObject->MoverParameters->Battery==true)&&(DynamicObject->MoverParameters->Signalling==true))
+        if (( tmp->MoverParameters->BrakePress>=0.145f*10 )&&(DynamicObject->MoverParameters->Battery==true)&&(DynamicObject->MoverParameters->Signalling==true))
          { btLampkaHamowanie2zes.TurnOn(); }
-        if(( tmp->MoverParameters->BrakePress<0.075f )|| (DynamicObject->MoverParameters->Battery==false)||(DynamicObject->MoverParameters->Signalling==false))
+        if(( tmp->MoverParameters->BrakePress<0.075f*10 )|| (DynamicObject->MoverParameters->Battery==false)||(DynamicObject->MoverParameters->Signalling==false))
          { btLampkaHamowanie2zes.TurnOff(); }
         if (tmp->MoverParameters->ConverterFlag==true)
          btLampkaNadmPrzetwB.TurnOff();
@@ -3169,7 +3290,8 @@ if ( DynamicObject->MoverParameters->DoorSignalling==true)
 } //**************************************************** */
 if (DynamicObject->MoverParameters->Battery==true)
 {
- if ((((DynamicObject->MoverParameters->BrakePress>=0.01f) || (DynamicObject->MoverParameters->DynamicBrakeFlag)) && (DynamicObject->MoverParameters->TrainType!=dt_EZT)) || ((DynamicObject->MoverParameters->TrainType==dt_EZT) && (DynamicObject->MoverParameters->BrakePress>=0.2f)&&(DynamicObject->MoverParameters->Signalling==true)))
+ if ((((DynamicObject->MoverParameters->BrakePress>=0.1f) || (DynamicObject->MoverParameters->DynamicBrakeFlag)) && (DynamicObject->MoverParameters->TrainType!=dt_EZT)) || ((DynamicObject->MoverParameters->TrainType==dt_EZT) && (DynamicObject->MoverParameters->BrakePress>=0.2f)&&(DynamicObject->MoverParameters->Signalling==true)))
+ //if ((DynamicObject->MoverParameters->BrakePress>=0.3f) || (DynamicObject->MoverParameters->DynamicBrakeFlag))
        btLampkaHamienie.TurnOn();
     else
        btLampkaHamienie.TurnOff();
@@ -3264,7 +3386,7 @@ if (DynamicObject->MoverParameters->Battery==true)
     {if (DynamicObject->Mechanik?(DynamicObject->Mechanik->AIControllFlag?false:Global::iFeedbackMode==4):false) //nie blokujemy AI
      {//Ra: nie najlepsze miejsce, ale na pocz¹tek gdzieœ to daæ trzeba
       double b=Console::AnalogGet(0); //odczyt z pulpitu i modyfikacja pozycji kranu
-      if ((b>=0.0))//&&(DynamicObject->MoverParameters->BrakeHandle==FV4a))
+      if ((b>=0.0)&&(DynamicObject->MoverParameters->BrakeHandle==FV4a))
       {b=(((Global::fCalibrateIn[0][3]*b)+Global::fCalibrateIn[0][2])*b+Global::fCalibrateIn[0][1])*b+Global::fCalibrateIn[0][0];
        if (b<-2.0) b=-2.0; else if (b>DynamicObject->MoverParameters->BrakeCtrlPosNo) b=DynamicObject->MoverParameters->BrakeCtrlPosNo;
        BrakeCtrlGauge.UpdateValue(b); //przesów bez zaokr¹glenia
@@ -3282,11 +3404,11 @@ if (DynamicObject->MoverParameters->Battery==true)
     {if (DynamicObject->Mechanik?(DynamicObject->Mechanik->AIControllFlag?false:Global::iFeedbackMode==4):false) //nie blokujemy AI
      {//Ra: nie najlepsze miejsce, ale na pocz¹tek gdzieœ to daæ trzeba
       double b=Console::AnalogGet(1); //odczyt z pulpitu i modyfikacja pozycji kranu
-      if (b>=0.0)
+      if ((b>=0.0)&&(DynamicObject->MoverParameters->BrakeLocHandle==FD1))
       {b=(((Global::fCalibrateIn[1][3]*b)+Global::fCalibrateIn[1][2])*b+Global::fCalibrateIn[1][1])*b+Global::fCalibrateIn[1][0];
-       if (b<0.0) b=0.0; else if (b>LocalBrakePosNo) b=LocalBrakePosNo;
+       if (b<0.0) b=0.0; else if (b>Hamulce::LocalBrakePosNo) b=Hamulce::LocalBrakePosNo;
        LocalBrakeGauge.UpdateValue(b); //przesów bez zaokr¹glenia
-       DynamicObject->MoverParameters->LocalBrakePos=int(b); //sposób zaokr¹glania jest do ustalenia
+       DynamicObject->MoverParameters->LocalBrakePos=int(1.09*b); //sposób zaokr¹glania jest do ustalenia
       }
       else //standardowa prodedura z kranem powi¹zanym z klawiatur¹
        LocalBrakeGauge.UpdateValue(double(DynamicObject->MoverParameters->LocalBrakePos));
@@ -3302,8 +3424,18 @@ if (DynamicObject->MoverParameters->Battery==true)
      }
     if (BrakeProfileCtrlGauge.SubModel)
     {
-     BrakeProfileCtrlGauge.UpdateValue(double(DynamicObject->MoverParameters->BrakeDelayFlag==2?0.5:DynamicObject->MoverParameters->BrakeDelayFlag));
+     BrakeProfileCtrlGauge.UpdateValue(double(DynamicObject->MoverParameters->BrakeDelayFlag==4?2:DynamicObject->MoverParameters->BrakeDelayFlag-1));
      BrakeProfileCtrlGauge.Update();
+     }
+    if (BrakeProfileG.SubModel)
+     {
+      BrakeProfileG.UpdateValue(double(DynamicObject->MoverParameters->BrakeDelayFlag==bdelay_G?1:0));
+      BrakeProfileG.Update();
+     }
+    if (BrakeProfileR.SubModel)
+     {
+      BrakeProfileR.UpdateValue(double(DynamicObject->MoverParameters->BrakeDelayFlag==bdelay_R?1:0));
+      BrakeProfileR.Update();
     }
 
     if (MaxCurrentCtrlGauge.SubModel)
@@ -3613,10 +3745,11 @@ if (DynamicObject->MoverParameters->Battery==true)
     //----------
     //hunter-261211: jakis stary kod (i niezgodny z prawda),
     //zahaszowalem i poprawilem
-    //if (DynamicObject->MoverParameters->ConverterFlag==true)
-    //    btLampkaNadmPrzetw.TurnOff();
-    //else
-    //    btLampkaNadmPrzetw.TurnOn();
+    //youBy-220913: ale przyda sie do lampki samej przetwornicy
+    if (DynamicObject->MoverParameters->ConverterFlag==true)
+     btLampkaPrzetw.TurnOff();
+    else
+     btLampkaPrzetw.TurnOn();
     if (DynamicObject->MoverParameters->ConvOvldFlag==true)
      btLampkaNadmPrzetw.TurnOn();
     else
@@ -3937,6 +4070,24 @@ if (DynamicObject->MoverParameters->Battery==true)
       */
      //-----------------
 
+    if (!FreeFlyModeFlag)
+     {
+      if (Console::Pressed(Global::Keys[k_Releaser])) //yB: odluzniacz caly czas trzymany, warunki powinny byc takie same, jak przy naciskaniu. Wlasciwie stamtad mozna wyrzucic sprawdzanie nacisniecia.
+       {
+        if ((DynamicObject->MoverParameters->EngineType==ElectricSeriesMotor)||(DynamicObject->MoverParameters->EngineType==DieselElectric))
+          if (DynamicObject->MoverParameters->TrainType!=dt_EZT)
+            if ((DynamicObject->MoverParameters->BrakeCtrlPosNo>0)&&(DynamicObject->MoverParameters->ActiveDir!=0))
+             {
+              ReleaserButtonGauge.PutValue(1);
+              DynamicObject->MoverParameters->BrakeReleaser(1);
+             }
+       } //releaser
+      else DynamicObject->MoverParameters->BrakeReleaser(0);
+   } //FFMF
+
+
+
+
      if ( Console::Pressed(Global::Keys[k_Univ1]) )
      {
         if (!DebugModeFlag)
@@ -4130,7 +4281,7 @@ if (DynamicObject->MoverParameters->Battery==true)
            }
      }
      // Odskakiwanie hamulce EP
-     if ((!Console::Pressed(Global::Keys[k_DecBrakeLevel]))&&(!Console::Pressed(Global::Keys[k_WaveBrake]) )&&(DynamicObject->MoverParameters->BrakeCtrlPos==-1)&&(DynamicObject->MoverParameters->BrakeSubsystem==Oerlikon)&&(DynamicObject->MoverParameters->BrakeSystem==ElectroPneumatic)&&(DynamicObject->Controller!=AIdriver))
+     if ((!Console::Pressed(Global::Keys[k_DecBrakeLevel]))&&(!Console::Pressed(Global::Keys[k_WaveBrake]) )&&(DynamicObject->MoverParameters->BrakeCtrlPos==-1)&&(DynamicObject->MoverParameters->BrakeHandle==FVel6)&&(DynamicObject->Controller!=AIdriver))
      {
      //DynamicObject->MoverParameters->BrakeCtrlPos=(DynamicObject->MoverParameters->BrakeCtrlPos)+1;
      //DynamicObject->MoverParameters->IncBrakeLevel();
@@ -4175,9 +4326,41 @@ if (DynamicObject->MoverParameters->Battery==true)
        }
      }
 
+    if ((DynamicObject->MoverParameters->BrakeHandle==FV4a)&&(Console::Pressed(Global::Keys[k_IncBrakeLevel])))
+     {
+      if (Console::Pressed(VK_CONTROL))
+       {
+        DynamicObject->MoverParameters->BrakeCtrlPos2-=dt/20.0;
+        if(DynamicObject->MoverParameters->BrakeCtrlPos2<-1.5) DynamicObject->MoverParameters->BrakeCtrlPos2=-1.5;
+       }
+      else
+       {
+//        DynamicObject->MoverParameters->BrakeCtrlPosR+=(DynamicObject->MoverParameters->BrakeCtrlPosR>DynamicObject->MoverParameters->BrakeCtrlPosNo?0:dt*2);
+        DynamicObject->MoverParameters->BrakeLevelAdd(dt*2);
+//        DynamicObject->MoverParameters->BrakeCtrlPos= floor(DynamicObject->MoverParameters->BrakeCtrlPosR+0.499);
+       }
+     }
+
+    if ((DynamicObject->MoverParameters->BrakeHandle==FV4a)&&(Console::Pressed(Global::Keys[k_DecBrakeLevel])))
+     {
+      if (Console::Pressed(VK_CONTROL))
+       {
+        DynamicObject->MoverParameters->BrakeCtrlPos2+=(DynamicObject->MoverParameters->BrakeCtrlPos2>2?0:dt/20.0);
+        if(DynamicObject->MoverParameters->BrakeCtrlPos2<-3) DynamicObject->MoverParameters->BrakeCtrlPos2=-3;
+       }
+      else
+       {
+//        DynamicObject->MoverParameters->BrakeCtrlPosR-=(DynamicObject->MoverParameters->BrakeCtrlPosR<-1?0:dt*2);
+//        DynamicObject->MoverParameters->BrakeCtrlPos= floor(DynamicObject->MoverParameters->BrakeCtrlPosR+0.499);
+        DynamicObject->MoverParameters->BrakeLevelAdd(-dt*2);
+       }
+     }
+
+
+
 //    bool kEP;
 //    kEP=(DynamicObject->MoverParameters->BrakeSubsystem==Knorr)||(DynamicObject->MoverParameters->BrakeSubsystem==Hik)||(DynamicObject->MoverParameters->BrakeSubsystem==Kk);
-    if ((DynamicObject->MoverParameters->BrakeSystem==ElectroPneumatic)&&(DynamicObject->MoverParameters->BrakeSubsystem==Knorr)&&(DynamicObject->MoverParameters->EpFuse==true))
+    if ((DynamicObject->MoverParameters->BrakeSystem==ElectroPneumatic)&&((DynamicObject->MoverParameters->BrakeHandle==St113))&&(DynamicObject->MoverParameters->EpFuse==true))
      if (Console::Pressed(Global::Keys[k_AntiSlipping])) //kEP
       {
        AntiSlipButtonGauge.UpdateValue(1);
@@ -4605,6 +4788,46 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
           rsHiss.FA=1.0;
          }
         else
+        if (str==AnsiString("airsound2:"))                    //syk:
+         {
+          str=Parser->GetNextSymbol();
+          rsHissU.Init(str.c_str(),-1,0,0,0,true);
+          rsHissU.AM=Parser->GetNextSymbol().ToDouble();
+          rsHissU.AA=Parser->GetNextSymbol().ToDouble();
+          rsHissU.FM=0.0;
+          rsHissU.FA=1.0;
+         }
+        else
+        if (str==AnsiString("airsound3:"))                    //syk:
+         {
+          str=Parser->GetNextSymbol();
+          rsHissE.Init(str.c_str(),-1,0,0,0,true);
+          rsHissE.AM=Parser->GetNextSymbol().ToDouble();
+          rsHissE.AA=Parser->GetNextSymbol().ToDouble();
+          rsHissE.FM=0.0;
+          rsHissE.FA=1.0;
+         }
+        else
+        if (str==AnsiString("airsound4:"))                    //syk:
+         {
+          str=Parser->GetNextSymbol();
+          rsHissX.Init(str.c_str(),-1,0,0,0,true);
+          rsHissX.AM=Parser->GetNextSymbol().ToDouble();
+          rsHissX.AA=Parser->GetNextSymbol().ToDouble();
+          rsHissX.FM=0.0;
+          rsHissX.FA=1.0;
+         }
+        else
+        if (str==AnsiString("airsound5:"))                    //syk:
+         {
+          str=Parser->GetNextSymbol();
+          rsHissT.Init(str.c_str(),-1,0,0,0,true);
+          rsHissT.AM=Parser->GetNextSymbol().ToDouble();
+          rsHissT.AA=Parser->GetNextSymbol().ToDouble();
+          rsHissT.FM=0.0;
+          rsHissT.FA=1.0;
+         }
+        else
         if (str==AnsiString("fadesound:"))                    //syk:
          {
           str=Parser->GetNextSymbol();
@@ -4790,6 +5013,8 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     LocalBrakeGauge.Clear();
     ManualBrakeGauge.Clear();
     BrakeProfileCtrlGauge.Clear();
+    BrakeProfileG.Clear();
+    BrakeProfileR.Clear();
     MaxCurrentCtrlGauge.Clear();
     MainOffButtonGauge.Clear();
     MainOnButtonGauge.Clear();
@@ -4834,6 +5059,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     PrzGlGauge.Output(1); //Ra: sterowanie miernikiem: przewód g³ówny
     ZbGlGauge.Clear();
     ZbGlGauge.Output(0); //Ra: sterowanie miernikiem: zbiornik g³ówny
+    ZbSGauge.Clear();
 
     VelocityGaugeB.Clear();
     I1GaugeB.Clear();
@@ -4866,6 +5092,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     btLampkaPoslizg.Clear(6);
     btLampkaStyczn.Clear(5);
     btLampkaNadmPrzetw.Clear(7);
+    btLampkaPrzetw.Clear();    
     btLampkaPrzekRozn.Clear();
     btLampkaPrzekRoznPom.Clear();
     btLampkaNadmSil.Clear(4);
@@ -4946,8 +5173,12 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
    else if (str==AnsiString("manualbrake:"))                    //hamulec reczny
     ManualBrakeGauge.Load(Parser,DynamicObject->mdKabina);
    //sekcja przelacznikow obrotowych
-   else if (str==AnsiString("brakeprofile_sw:"))                    //przelacznik tow/osob
+   else if (str==AnsiString("brakeprofile_sw:"))                    //przelacznik tow/osob/posp
     BrakeProfileCtrlGauge.Load(Parser,DynamicObject->mdKabina);
+   else if (str==AnsiString("brakeprofileg_sw:"))                   //przelacznik tow/osob
+    BrakeProfileG.Load(Parser,DynamicObject->mdKabina);
+   else if (str==AnsiString("brakeprofiler_sw:"))                   //przelacznik osob/posp
+    BrakeProfileR.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("maxcurrent_sw:"))                    //przelacznik rozruchu
     MaxCurrentCtrlGauge.Load(Parser,DynamicObject->mdKabina);
    //SEKCJA przyciskow sprezynujacych
@@ -5054,6 +5285,8 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     CylHamGauge.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("pipepress:"))                    //manometr przewodu hamulcowego
     PrzGlGauge.Load(Parser,DynamicObject->mdKabina);
+   else if (str==AnsiString("limpipepress:"))                  //manometr zbiornika sterujacego zaworu maszynisty
+    ZbSGauge.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("compressor:"))                    //manometr sprezarki/zbiornika glownego
     ZbGlGauge.Load(Parser,DynamicObject->mdKabina);
    //*************************************************************
@@ -5130,6 +5363,8 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     btLampkaStyczn.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("i-conv_ovld:"))
     btLampkaNadmPrzetw.Load(Parser,DynamicObject->mdKabina);
+   else if (str==AnsiString("i-converter:"))
+    btLampkaPrzetw.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("i-diff_relay:"))
     btLampkaPrzekRozn.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("i-diff_relay2:"))
