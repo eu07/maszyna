@@ -27,6 +27,7 @@ public:
  void __fastcall TRealSound::Play(double Volume,int Looping,bool ListenerInside,vector3 NewPosition);
  void __fastcall TRealSound::Stop();
  void __fastcall TRealSound::AdjFreq(double Freq,double dt);
+ void __fastcall TRealSound::SetPan(int Pan); 
  double TRealSound::GetWaveTime(); //McZapkie TODO: dorobic dla roznych bps
  int TRealSound::GetStatus();
  void __fastcall TRealSound::ResetPosition();

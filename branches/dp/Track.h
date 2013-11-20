@@ -68,6 +68,9 @@ public:
  __fastcall ~TIsolated();
  static TIsolated* __fastcall Find(const AnsiString &n); //znalezienie obiektu albo utworzenie nowego
  void __fastcall Modify(int i,TDynamicObject *o); //dodanie lub odjêcie osi
+ bool __fastcall Busy() { return (iAxles>0); };
+ TIsolated* __fastcall Root() { return (pRoot); };
+ TIsolated* __fastcall Next() { return (pNext); }; 
 };
 
 class TTrack : public Resource
