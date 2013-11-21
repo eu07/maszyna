@@ -57,19 +57,20 @@ const int iMaxNumDynamics=40; //McZapkie-100303
 class TIsolated
 {//obiekt zbieraj¹cy zajêtoœci z kilku odcinków
  int iAxles; //iloœæ osi na odcinkach obs³ugiwanych przez obiekt
- TIsolated *pNext;
- static TIsolated *pRoot;
+ TIsolated *pNext; //odcinki izolowane s¹ trzymane w postaci listy jednikierunkowej
+ static TIsolated *pRoot; //pocz¹tek listy
 public:
  AnsiString asName; //nazwa obiektu, baza do nazw eventów
  TEvent *eBusy; //zdarzenie wyzwalane po zajêciu grupy
  TEvent *eFree; //zdarzenie wyzwalane po ca³kowitym zwolnieniu zajêtoœci grupy
+ TMemCell *pMemCell; //automatyczna komórka pamiêci, która wspó³pracuje z odcinkiem izolowanym
  __fastcall TIsolated();
  __fastcall TIsolated(const AnsiString &n,TIsolated *i);
  __fastcall ~TIsolated();
  static TIsolated* __fastcall Find(const AnsiString &n); //znalezienie obiektu albo utworzenie nowego
  void __fastcall Modify(int i,TDynamicObject *o); //dodanie lub odjêcie osi
  bool __fastcall Busy() { return (iAxles>0); };
- TIsolated* __fastcall Root() { return (pRoot); };
+ static TIsolated* __fastcall Root() { return (pRoot); };
  TIsolated* __fastcall Next() { return (pNext); }; 
 };
 
