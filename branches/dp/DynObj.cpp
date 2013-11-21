@@ -1184,7 +1184,6 @@ __fastcall TDynamicObject::TDynamicObject()
  dWheelAngle[2]=0.0;
  //Winger 160204 - pantografy
  //PantVolume = 3.5;
- StartTime=0;
  NoVoltTime=0;
  smPatykird1[0]=smPatykird1[1]=NULL;
  smPatykird2[0]=smPatykird2[1]=NULL;
@@ -1898,7 +1897,7 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
   {
    //if ((!MoverParameters->PantCompFlag)&&(MoverParameters->CompressedVolume>=2.8))
    // MoverParameters->PantVolume=MoverParameters->CompressedVolume;
-   if (MoverParameters->PantPress<0.35)
+   if (MoverParameters->PantPress<3.5)
    {// 0.35 wg http://www.transportszynowy.pl/eu06-07pneumat.php
     //"Wy³¹czniki ciœnieniowe odbieraków pr¹du wy³¹czaj¹ sterowanie wy³¹cznika szybkiego oraz uniemo¿liwiaj¹ podniesienie odbieraków pr¹du, gdy w instalacji rozrz¹du ciœnienie spadnie poni¿ej wartoœci 3,5 bara."
     //if (!MoverParameters->PantCompFlag)
@@ -1907,7 +1906,7 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
     MoverParameters->PantRear(false);
    }
    //Winger - automatyczne wylaczanie malej sprezarki
-   else if (MoverParameters->PantPress>=0.48)
+   else if (MoverParameters->PantPress>=4.8)
     MoverParameters->PantCompFlag=false;
   } //Ra: do Mover to trzeba przenieœæ, ¿eby AI te¿ mog³o sobie podpompowaæ
 
@@ -2241,8 +2240,8 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
       MoverParameters->PantRearVolt=0.0;
     break;
    } //pozosta³e na razie nie obs³ugiwane
-   if (MoverParameters->PantPress>0.33)
-    pantspeedfactor=0.15*(MoverParameters->PantPress)*dt1; //z EXE Kursa
+   if (MoverParameters->PantPress>3.3)
+    pantspeedfactor=0.015*(MoverParameters->PantPress)*dt1; //z EXE Kursa
    else
     pantspeedfactor=0.0;
    if (pantspeedfactor<0) pantspeedfactor=0;
