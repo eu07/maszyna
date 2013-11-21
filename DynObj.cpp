@@ -1985,11 +1985,6 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
     }
     else
      tmpTraction.TractionVoltage=3400;
-    /* KURS90 przywrocenie braku mozliwosci jazdy, gdy nie ma trakcji*/
-   /* {
-    if  ((PantTraction1==601) && (PantTraction2==601)&& (NoVoltTime>1))
-    tmpTraction.TractionVoltage=0;
-    }*/
    }
    else
     tmpTraction.TractionVoltage=3400;
@@ -2049,22 +2044,22 @@ TGround::GetTraction;
 //       }
 
     //fragment "z EXE Kursa"
-    if ((MoverParameters->Battery==false)&&(Controller==Humandriver)&& (MoverParameters->EngineType!=DieselEngine) && (MoverParameters->EngineType!=WheelsDriven))
+    if ((!MoverParameters->Battery)&&(Controller==Humandriver)&&(MoverParameters->EngineType!=DieselEngine)&&(MoverParameters->EngineType!=WheelsDriven))
     {//jeœli bateria wy³¹czona, a nie diesel ani drezyna reczna
      if (MoverParameters->MainSwitch(False)) //wy³¹czyæ zasilanie
-      MoverParameters->EventFlag=True;
+      MoverParameters->EventFlag=true;
     }
     if (MoverParameters->TrainType==dt_ET42)
     {//powinny byæ wszystkie dwucz³ony oraz EZT
      if (((TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab>0)&&(NextConnected->MoverParameters->TrainType!=dt_ET42))||((TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab<0)&&(PrevConnected->MoverParameters->TrainType!=dt_ET42)))
      {//sprawdzenie, czy z ty³u kabiny mamy drugi cz³on
       if (MoverParameters->MainSwitch(False))
-       MoverParameters->EventFlag=True;
+       MoverParameters->EventFlag=true;
      }
      if ((!(TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab>0))||(!(TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab<0)))
      {
       if (MoverParameters->MainSwitch(False))
-       MoverParameters->EventFlag=True;
+       MoverParameters->EventFlag=true;
      }
     }
 

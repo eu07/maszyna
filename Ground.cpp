@@ -2827,6 +2827,25 @@ void __fastcall TGround::InitTracks()
     Track->iCategoryFlag|=0x100; //ustawienie flagi portalu
  }
  //WriteLog("Total "+AnsiString(tracks)+", far "+AnsiString(tracksfar));
+ TIsolated *p=TIsolated::Root();
+ while (p)
+ {//jeœli siê znajdzie, to podaæ wskaŸnik
+  Current=FindGroundNode(p->asName,TP_MEMCELL); //czy jest komóka o odpowiedniej nazwie
+  if (Current)
+   p->pMemCell=Current->MemCell; //przypisanie powi¹zanej komórki
+  else
+  {//utworzenie automatycznej komórki
+   Current=new TGroundNode(); //to nie musi mieæ nazwy, nazwa w wyszukiwarce wystarczy
+   //Current->asName=p->asName; //mazwa identyczna, jak nazwa odcinka izolowanego
+   Current->MemCell=new TMemCell(NULL); //nowa komórka
+   sTracks->Add(TP_MEMCELL,p->asName.c_str(),Current); //dodanie do wyszukiwarki
+   Current->Next=nRootOfType[TP_MEMCELL]; //to nie powinno tutaj byæ, bo robi siê œmietnik
+   nRootOfType[TP_MEMCELL]=Current;
+   iNumNodes++;
+   p->pMemCell=Current->MemCell; //wskaŸnik komóki przekazany do odcinka izolowanego
+  }
+  p=p->Next();
+ }
 }
 
 void __fastcall TGround::InitTraction()
@@ -3996,10 +4015,10 @@ void __fastcall TGround::TrackBusyList()
 //---------------------------------------------------------------------------
 
 void __fastcall TGround::IsolatedBusyList()
-{//wys³anie informacji o wszystkich zajêtych odcinkach izolowanych
- TIsolated *Current=NULL;
- for (Current=Current->Root();Current;Current=Current->Next())
-  if (Current->Busy()) //sprawdz zajetosc
+{//wys³anie informacji o wszystkich odcinkach izolowanych
+ TIsolated *Current;
+ for (Current=TIsolated::Root();Current;Current=Current->Next())
+  if (Current->Busy()) //sprawdŸ zajêtoœæ
    WyslijString(Current->asName,11); //zajêty
   else
    WyslijString(Current->asName,12); //wolny
@@ -4008,11 +4027,11 @@ void __fastcall TGround::IsolatedBusyList()
 
 void __fastcall TGround::IsolatedBusy(const AnsiString t)
 {//wys³anie informacji o wszystkich zajêtych odcinkach izolowanych
- TIsolated *Current=NULL;
- for (Current=Current->Root();Current;Current=Current->Next())
+ TIsolated *Current;
+ for (Current=TIsolated::Root();Current;Current=Current->Next())
   if (Current->asName==t)
-   if (Current->Busy()) //sprawdz zajetosc
+   if (Current->Busy()) //sprawdŸ zajetoœæ
     WyslijString(Current->asName,11); //zajêty
-    WyslijString("none",12); //wolny none - koniec przesylania
+ WyslijString("none",12); //wolny none - koniec przesy³ania
 };
 //---------------------------------------------------------------------------

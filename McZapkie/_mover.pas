@@ -756,7 +756,6 @@ TYPE
                 procedure UpdateBrakePressure(dt: real);
                 procedure UpdatePipePressure(dt:real);
                 procedure CompressorCheck(dt:real); {wlacza, wylacza kompresor, laduje zbiornik}
-                //procedure UpdatePantVolume(dt:real); {jw ale uklad zasilania pantografow}
                 procedure UpdateScndPipePressure(dt:real);
                 procedure UpdateBatteryVoltage(dt:real);
                 function GetDVc(dt:real):real;
@@ -2563,34 +2562,6 @@ procedure T_MoverParameters.CompressorCheck(dt:real);
       end;
     end;
  end;
-
-(* //Ra: przeniesione do Mover.cpp!
-procedure T_MoverParameters.UpdatePantVolume(dt:real);
- {KURS90 - sprezarka pantografow}
-var b:byte;
-begin
- if (PantCompFlag=true) and (Battery=true) then
-  begin      {napelnianie zbiornikow pantografow}
-   PantVolume:=PantVolume+dt*0.001*(2*0.45-((0.1/PantVolume/10)-0.1))/0.45;
-  end;
- if ScndPipePress>0.45 then //Ra: dodaæ kurek trójdro¿ny
-  begin     {korzystanie ze zbiornika glownego}
-   PantPress:=ScndPipePress;
-   PantVolume:=(ScndPipePress*0.1*10)+0.1;
-  end
- else
-  PantPress:=(PantVolume/0.10/10)-0.1; //tu by siê przyda³a objêtoœæ zbiornika
- if (PantCompFlag=false) and (PantVolume>0.1) then
-  PantVolume:=PantVolume-dt*0.0003; //nieszczelnosci: 0.0003=0.3l/s
- if PantPress<3.5 then
-  if MainSwitch(False) and  (EngineType=ElectricSeriesMotor) then
-   EventFlag:=True;   {wywalenie szybkiego z powodu niskiego cisnienia}
- for b:=0 to 1 do
-  with Couplers[b] do
-   if TestFlag(CouplingFlag,ctrain_controll) then
-    Connected.PantVolume:=PantVolume; //przekazanie ciœnienia do s¹siedniego cz³onu
-end;
-*)
 
 procedure T_MoverParameters.UpdateBatteryVoltage(dt:real);
 var sn1,sn2,sn3,sn4,sn5: real;
@@ -4946,7 +4917,6 @@ begin
      CompressorFlag:=False;
    end;
  CompressorCheck(dt);
- //UpdatePantVolume(dt); //Ra: przeniesione do Mover.cpp!
  ConverterCheck;
  UpdateBrakePressure(dt);
  UpdatePipePressure(dt);
@@ -5087,7 +5057,6 @@ begin
      CompressorFlag:=False;
    end;
  CompressorCheck(dt);
- //UpdatePantVolume(dt); //Ra: przeniesione do Mover.cpp!
  ConverterCheck;
  UpdateBrakePressure(dt);
  UpdatePipePressure(dt);

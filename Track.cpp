@@ -18,6 +18,8 @@
 #include "Mover.h"
 #include "DynObj.h"
 #include "AnimModel.h"
+#include "MemCell.h"
+#include "Event.h"
 
 #pragma package(smart_init)
 
@@ -61,6 +63,7 @@ __fastcall TIsolated::TIsolated(const AnsiString &n,TIsolated *i)
  pNext=i;
  iAxles=0;
  eBusy=eFree=NULL;
+ pMemCell=NULL; //podpi¹æ istniej¹c¹ albo utworzyæ pust¹
 };
 
 __fastcall TIsolated::~TIsolated()
@@ -94,11 +97,13 @@ void __fastcall TIsolated::Modify(int i,TDynamicObject *o)
  {//grupa zajêta
   iAxles+=i;
   if (!iAxles)
-  {
+  {//jeœli po zmianie nie ma ¿adnej osi na odcinku izolowanym
    if (eFree)
     Global::AddToQuery(eFree,o); //dodanie zwolnienia do kolejki
    if (Global::iMultiplayer) //jeœli multiplayer
     Global::pGround->WyslijString(asName,12); //wys³anie pakietu o zwolnieniu
+   if (pMemCell) //w powi¹zanej komórce
+    pMemCell->UpdateValues(NULL,0,int(pMemCell->Value2())&~0xFF,update_memval2); //"zerujemy" ostatni¹ wartoœæ
   }
  }
  else
@@ -110,6 +115,8 @@ void __fastcall TIsolated::Modify(int i,TDynamicObject *o)
     Global::AddToQuery(eBusy,o); //dodanie zajêtoœci do kolejki
    if (Global::iMultiplayer) //jeœli multiplayer
      Global::pGround->WyslijString(asName,11); //wys³anie pakietu o zajêciu
+   if (pMemCell) //w powi¹zanej komórce
+    pMemCell->UpdateValues(NULL,0,int(pMemCell->Value2())|1,update_memval2); //zmieniamy ostatni¹ wartoœæ na nieparzyst¹
   }
  }
 };

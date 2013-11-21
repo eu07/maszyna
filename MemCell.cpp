@@ -28,7 +28,7 @@ __fastcall TMemCell::TMemCell(vector3 *p)
 {
  fValue1=fValue2=0;
  szText=NULL;
- vPosition=*p; //ustawienie wspó³rzêdnych, bo do TGroundNode nie ma dostêpu
+ vPosition=p?*p:vector3(0,0,0); //ustawienie wspó³rzêdnych, bo do TGroundNode nie ma dostêpu
  bCommand=false; //komenda wys³ana
  OnSent=NULL;
 }
