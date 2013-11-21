@@ -17,6 +17,7 @@ __fastcall TMoverParameters::TMoverParameters(double VelInitial,AnsiString TypeN
  DimHalf.y=0.5*Dim.L; //po³owa d³ugoœci, OY jest do przodu?
  DimHalf.z=0.5*Dim.H; //po³owa wysokoœci, OZ jest w górê?
  BrakeLevelSet(-2); //Pascal ustawia na 0, przestawimy na odciêcie (CHK jest jeszcze nie wczytane!)
+ bPantKurek3=true; //domyœlnie zbiornik pantografu po³¹czony jest ze zbiornikiem g³ównym
 };
 
 
@@ -249,3 +250,30 @@ bool __fastcall TMoverParameters::CurrentSwitch(int direction)
  }
  return false;
 };
+
+void __fastcall TMoverParameters::UpdatePantVolume(double dt)
+{//KURS90 - sprezarka pantografow
+ if (bPantKurek3) //kurek zamyka po³¹czenie z ZG
+ {//zbiornik pantografu po³¹czony ze zbiornikiem g³ównym - ma³¹ sprê¿ark¹ siê tego nie napompuje
+  //if (ScndPipePress>4.5) //Ra: dodaæ kurek trójdro¿ny
+  {//korzystanie ze zbiornika glownego
+   PantPress=ScndPipePress;
+   PantVolume=(ScndPipePress*0.1*10)+0.1;
+  }
+ }
+ else
+ {if (PantCompFlag&&Battery) //w³¹czona bateria i ma³a sprê¿arka
+   PantVolume+=dt*0.001*(2*0.45-((0.1/PantVolume/10)-0.1))/0.45; //napelnianie zbiornikow pantografow
+  PantPress=(PantVolume/0.10/10)-0.1; //tu by siê przyda³a objêtoœæ zbiornika
+ }
+ if (!PantCompFlag&&(PantVolume>0.1))
+  PantVolume-=dt*0.0003; //nieszczelnosci: 0.0003=0.3l/s
+ if (PantPress<3.5)
+  if (MainSwitch(False)&&(EngineType=ElectricSeriesMotor))
+   EventFlag=true; //wywalenie szybkiego z powodu niskiego cisnienia
+ //if (TrainType!=dt_EZT) //w EN57 pompuje siê tylko w silnikowym
+ for (int b=0;b<=1;++b)
+  if (TestFlag(Couplers[b].CouplingFlag,ctrain_controll))
+   Couplers[b].Connected->PantVolume=PantVolume; //przekazanie ciœnienia do s¹siedniego cz³onu
+};
+

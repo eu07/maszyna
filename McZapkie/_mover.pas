@@ -756,7 +756,7 @@ TYPE
                 procedure UpdateBrakePressure(dt: real);
                 procedure UpdatePipePressure(dt:real);
                 procedure CompressorCheck(dt:real); {wlacza, wylacza kompresor, laduje zbiornik}
-                procedure UpdatePantVolume(dt:real); {jw ale uklad zasilania pantografow}
+                //procedure UpdatePantVolume(dt:real); {jw ale uklad zasilania pantografow}
                 procedure UpdateScndPipePressure(dt:real);
                 procedure UpdateBatteryVoltage(dt:real);
                 function GetDVc(dt:real):real;
@@ -2564,6 +2564,7 @@ procedure T_MoverParameters.CompressorCheck(dt:real);
     end;
  end;
 
+(* //Ra: przeniesione do Mover.cpp!
 procedure T_MoverParameters.UpdatePantVolume(dt:real);
  {KURS90 - sprezarka pantografow}
 var b:byte;
@@ -2589,6 +2590,7 @@ begin
    if TestFlag(CouplingFlag,ctrain_controll) then
     Connected.PantVolume:=PantVolume; //przekazanie ciœnienia do s¹siedniego cz³onu
 end;
+*)
 
 procedure T_MoverParameters.UpdateBatteryVoltage(dt:real);
 var sn1,sn2,sn3,sn4,sn5: real;
@@ -4944,7 +4946,7 @@ begin
      CompressorFlag:=False;
    end;
  CompressorCheck(dt);
- UpdatePantVolume(dt);
+ //UpdatePantVolume(dt); //Ra: przeniesione do Mover.cpp!
  ConverterCheck;
  UpdateBrakePressure(dt);
  UpdatePipePressure(dt);
@@ -5085,7 +5087,7 @@ begin
      CompressorFlag:=False;
    end;
  CompressorCheck(dt);
- UpdatePantVolume(dt);
+ //UpdatePantVolume(dt); //Ra: przeniesione do Mover.cpp!
  ConverterCheck;
  UpdateBrakePressure(dt);
  UpdatePipePressure(dt);

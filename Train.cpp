@@ -428,8 +428,10 @@ void __fastcall TTrain::OnKeyPress(int cKey)
          }
        }
       else if (cKey==Global::Keys[k_SmallCompressor])   //Winger 160404: mala sprezarka wl
-      {//Ra: dŸwiêk, gdy razem z [Shift] 
-       if (!DynamicObject->MoverParameters->PantCompFlag)
+      {//Ra: dŸwiêk, gdy razem z [Shift]
+       if (Console::Pressed(VK_CONTROL)) //z [Ctrl]
+        DynamicObject->MoverParameters->bPantKurek3=true; //zbiornik pantografu po³¹czony jest ze zbiornikiem g³ównym (pompowanie nie ma sensu)
+       else if (!DynamicObject->MoverParameters->PantCompFlag)
         if (DynamicObject->MoverParameters->PantPress<4.8)
         {
          DynamicObject->MoverParameters->PantCompFlag=true;
@@ -1469,7 +1471,9 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       }
       else if (cKey==Global::Keys[k_SmallCompressor])   //Winger 160404: mala sprezarka wl
       {//Ra: bez [Shift] te¿ daæ dŸwiêk
-       if (!DynamicObject->MoverParameters->PantCompFlag)
+       if (Console::Pressed(VK_CONTROL)) //z [Ctrl]
+        DynamicObject->MoverParameters->bPantKurek3=false; //zbiornik pantografu po³¹czony jest z ma³¹ sprê¿ark¹ (pompowanie ma sens, ale potem trzeba prze³¹czyæ)
+       else if (!DynamicObject->MoverParameters->PantCompFlag)
         if (DynamicObject->MoverParameters->PantPress<4.8)
         {
          DynamicObject->MoverParameters->PantCompFlag=true;
@@ -4105,7 +4109,7 @@ if (DynamicObject->MoverParameters->Battery==true)
      }
      if (!Console::Pressed(Global::Keys[k_SmallCompressor]))
      //Ra: przecieœæ to na zwolnienie klawisza
-      DynamicObject->MoverParameters->PantCompFlag=false;
+      DynamicObject->MoverParameters->PantCompFlag=false; //wy³¹czona, gdy nie trzymamy klawisza
      if ( Console::Pressed(Global::Keys[k_Univ2]) )
      {
         if (!DebugModeFlag)
