@@ -3093,7 +3093,7 @@ else
           btLampkaBezoporowa.TurnOn();
         else
           btLampkaBezoporowa.TurnOff();    //Do EU04
-        if ( (DynamicObject->MoverParameters->Itot!=0) || (DynamicObject->MoverParameters->BrakePress > 2) || ( DynamicObject->MoverParameters->PipePress < 0.3.6 ))
+        if ( (DynamicObject->MoverParameters->Itot!=0) || (DynamicObject->MoverParameters->BrakePress > 2) || ( DynamicObject->MoverParameters->PipePress < 3.6 ))
           btLampkaStyczn.TurnOff();     //
         else
         if (DynamicObject->MoverParameters->BrakePress < 1)

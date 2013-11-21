@@ -3054,6 +3054,7 @@ begin
      begin
        dizel_engagedeltaomega:=0;
        enrot:=abs(n);                          {jest przyczepnosc tarcz}
+     end  
 (*
      end
    end
