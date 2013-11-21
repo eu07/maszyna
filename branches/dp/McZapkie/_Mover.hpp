@@ -635,7 +635,6 @@ public:
 	void __fastcall UpdateBrakePressure(double dt);
 	void __fastcall UpdatePipePressure(double dt);
 	void __fastcall CompressorCheck(double dt);
-	void __fastcall UpdatePantVolume(double dt);
 	void __fastcall UpdateScndPipePressure(double dt);
 	void __fastcall UpdateBatteryVoltage(double dt);
 	double __fastcall GetDVc(double dt);

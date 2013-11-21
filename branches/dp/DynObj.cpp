@@ -2059,6 +2059,7 @@ TGround::GetTraction;
 
 //McZapkie-260202 - dMoveLen przyda sie przy stukocie kol
     dDOMoveLen=GetdMoveLen()+MoverParameters->ComputeMovement(dt,dt1,ts,tp,tmpTraction,l,r);
+    MoverParameters->UpdatePantVolume(dt); //Ra: pneumatyka pantografów przeniesiona do Mover.cpp!
 //yB: zeby zawsze wrzucalo w jedna strone zakretu
     MoverParameters->AccN*=-ABuGetDirection();
     //if (dDOMoveLen!=0.0) //Ra: nie mo¿e byæ, bo blokuje Event0
@@ -2474,6 +2475,7 @@ bool __fastcall TDynamicObject::FastUpdate(double dt)
     //tp.DamageFlag=MyTrack->iDamageFlag;
     //tp.QualityFlag=MyTrack->iQualityFlag;
     dDOMoveLen=MoverParameters->FastComputeMovement(dt,ts,tp,l,r); // ,ts,tp,tmpTraction);
+    MoverParameters->UpdatePantVolume(dt); //Ra: pneumatyka pantografów przeniesiona do Mover.cpp!
     //Move(dDOMoveLen);
     //ResetdMoveLen();
     FastMove(dDOMoveLen);

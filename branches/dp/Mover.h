@@ -21,6 +21,7 @@ public:
  //int WarningSignal; //0: nie trabi, 1,2: trabi syren¹ o podanym numerze
  unsigned char WarningSignal; //tymczasowo 8bit, ze wzglêdu na funkcje w MTools
  double fBrakeCtrlPos; //p³ynna nastawa hamulca zespolonego
+ bool bPantKurek3; //kurek trójdrogowy (pantografu): true=po³¹czenie z ZG, false=po³¹czenie z ma³¹ sprê¿ark¹
 private:
  double __fastcall CouplerDist(Byte Coupler);
 public:
@@ -41,6 +42,7 @@ public:
  bool __fastcall DecBrakeLevel();
  bool __fastcall ChangeCab(int direction);
  bool __fastcall CurrentSwitch(int direction);
+ void __fastcall UpdatePantVolume(double dt);
 };
 
 #endif
