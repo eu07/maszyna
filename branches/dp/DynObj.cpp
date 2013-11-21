@@ -2488,9 +2488,9 @@ bool __fastcall TDynamicObject::FastUpdate(double dt)
     FastMove(dDOMoveLen);
 
 //yB: przyspieszacz (moze zadziala, ale dzwiek juz jest)
-double ObjectDist;
+//double ObjectDist;
 //Ra: to ju¿ by³o wczeœniej - wywaliæ?
-ObjectDist=SquareMagnitude(Global::pCameraPosition-vPosition);
+//ObjectDist=SquareMagnitude(Global::pCameraPosition-vPosition);
 
 //SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);
  if (MoverParameters->LoadStatus)
