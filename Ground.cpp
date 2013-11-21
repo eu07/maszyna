@@ -3048,17 +3048,39 @@ bool __fastcall TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
 {
  if (Event->bEnabled) //jeœli mo¿e byæ dodany do kolejki (nie u¿ywany w skanowaniu)
   if (!Event->iQueued) //jeœli nie dodany jeszcze do kolejki
-  {//kolejka eventów jest posortowane wzglêdem (fStartTime)
-   WriteLog("EVENT ADDED TO QUEUE: "+Event->asName+(Node?AnsiString(" by "+Node->asName):AnsiString("")));
+  {//kolejka eventów jest posortowana wzglêdem (fStartTime)
    Event->Activator=Node;
-   Event->fStartTime=fabs(Event->fDelay)+Timer::GetTime(); //czas od uruchomienia scenerii
-   ++Event->iQueued; //zabezpieczenie przed podwójnym dodaniem do kolejki
-   if (QueryRootEvent?Event->fStartTime>=QueryRootEvent->fStartTime:false)
-    QueryRootEvent->AddToQuery(Event); //dodanie gdzieœ w œrodku
-   else
-   {//dodanie z przodu: albo nic nie ma, albo ma byæ wykonany szybciej ni¿ pierwszy
-    Event->Next=QueryRootEvent;
-    QueryRootEvent=Event;
+   if (Event->Type==tp_AddValues?(Event->fDelay==0.0):false)
+   {//eventy AddValues trzeba wykonywaæ natychmiastowo, inaczej kolejka mo¿e zgubiæ jakieœ dodawanie
+    //Ra: kopiowanie wykonania tu jest bez sensu, lepiej by by³o wydzieliæ funkcjê wykonuj¹c¹ eventy i j¹ wywo³aæ
+    if (EventConditon(Event))
+    {//teraz mog¹ byæ warunki do tych eventów
+     Event->Params[5].asMemCell->UpdateValues(Event->Params[0].asText,Event->Params[1].asdouble,Event->Params[2].asdouble,Event->iFlags);
+     if (Event->Params[6].asTrack)
+     {//McZapkie-100302 - updatevalues oprocz zmiany wartosci robi putcommand dla wszystkich 'dynamic' na danym torze
+      for (int i=0;i<Event->Params[6].asTrack->iNumDynamics;++i)
+       Event->Params[5].asMemCell->PutCommand(Event->Params[6].asTrack->Dynamics[i]->Mechanik,&Event->Params[4].asGroundNode->pCenter);
+      if (DebugModeFlag)
+       WriteLog("Type: UpdateValues & Track command - "+AnsiString(Event->Params[0].asText)+" "+AnsiString(Event->Params[1].asdouble)+" "+AnsiString(Event->Params[2].asdouble));
+     }
+     else
+      if (DebugModeFlag)
+       WriteLog("Type: UpdateValues - "+AnsiString(Event->Params[0].asText)+" "+AnsiString(Event->Params[1].asdouble)+" "+AnsiString(Event->Params[2].asdouble));
+    }
+    Event=QueryRootEvent->eJoined; //jeœli jest kolejny o takiej samej nazwie, to idzie do kolejki
+   }
+   if (Event)
+   {//standardowe dodanie do kolejki
+    WriteLog("EVENT ADDED TO QUEUE: "+Event->asName+(Node?AnsiString(" by "+Node->asName):AnsiString("")));
+    Event->fStartTime=fabs(Event->fDelay)+Timer::GetTime(); //czas od uruchomienia scenerii
+    ++Event->iQueued; //zabezpieczenie przed podwójnym dodaniem do kolejki
+    if (QueryRootEvent?Event->fStartTime>=QueryRootEvent->fStartTime:false)
+     QueryRootEvent->AddToQuery(Event); //dodanie gdzieœ w œrodku
+    else
+    {//dodanie z przodu: albo nic nie ma, albo ma byæ wykonany szybciej ni¿ pierwszy
+     Event->Next=QueryRootEvent;
+     QueryRootEvent=Event;
+    }
    }
   }
  return true;
@@ -3149,7 +3171,7 @@ bool __fastcall TGround::CheckQuery()
  }
 */
  while (QueryRootEvent&&(QueryRootEvent->fStartTime<Timer::GetTime()))
- {//eventy s¹ posortowane wg czasu wykonania
+ {//eventy s¹ posortowana wg czasu wykonania
   tmpEvent=QueryRootEvent; //wyjêcie eventu z kolejki
   if (QueryRootEvent->eJoined) //jeœli jest kolejny o takiej samej nazwie
   {//to teraz on bêdzie nastêpny do wykonania
@@ -3178,17 +3200,10 @@ bool __fastcall TGround::CheckQuery()
      if (EventConditon(tmpEvent))
      {//teraz mog¹ byæ warunki do tych eventów
       tmpEvent->Params[5].asMemCell->UpdateValues(tmpEvent->Params[0].asText,tmpEvent->Params[1].asdouble,tmpEvent->Params[2].asdouble,tmpEvent->iFlags);
-      //McZapkie-100302 - updatevalues oprocz zmiany wartosci robi putcommand dla wszystkich 'dynamic' na danym torze
       if (tmpEvent->Params[6].asTrack)
-      {
-       //loc.X= -tmpEvent->Params[8].asGroundNode->pCenter.x;
-       //loc.Y=  tmpEvent->Params[8].asGroundNode->pCenter.z;
-       //loc.Z=  tmpEvent->Params[8].asGroundNode->pCenter.y;
+      {//McZapkie-100302 - updatevalues oprocz zmiany wartosci robi putcommand dla wszystkich 'dynamic' na danym torze
        for (int i=0;i<tmpEvent->Params[6].asTrack->iNumDynamics;++i)
-       {
-        //tmpEvent->Params[9].asMemCell->PutCommand(tmpEvent->Params[10].asTrack->Dynamics[i]->Mechanik,loc);
         tmpEvent->Params[5].asMemCell->PutCommand(tmpEvent->Params[6].asTrack->Dynamics[i]->Mechanik,&tmpEvent->Params[4].asGroundNode->pCenter);
-       }
        if (DebugModeFlag)
         WriteLog("Type: UpdateValues & Track command - "+AnsiString(tmpEvent->Params[0].asText)+" "+AnsiString(tmpEvent->Params[1].asdouble)+" "+AnsiString(tmpEvent->Params[2].asdouble));
       }
@@ -4008,7 +4023,7 @@ void __fastcall TGround::TrackBusyList()
  TTrack *Track;
  AnsiString name;
  for (Current=nRootOfType[TP_TRACK];Current;Current=Current->Next)
-  if (Current->asName.IsEmpty()) //musi byæ nazwa
+  if (!Current->asName.IsEmpty()) //musi byæ nazwa
    if (Current->pTrack->iNumDynamics) //osi to chyba nie ma jak policzyæ
     WyslijString(Current->asName,8); //zajêty
 };
