@@ -1374,7 +1374,19 @@ double __fastcall TDynamicObject::Init(
     MoverParameters->Hamulec->ForceEmptiness();
     MoverParameters->BrakeReleaser(1);  //odluznij automatycznie
     MoverParameters->Pipe->CreatePress(0);
-    MoverParameters->Pipe2->CreatePress(0);    
+    MoverParameters->Pipe2->CreatePress(0);
+   }
+   if (ActPar.Pos("Q")>0) //oprozniony
+   {
+//    MoverParameters->Hamulec->ForceEmptiness(); //TODO: sprawdzic, dlaczego pojawia sie blad przy uzyciu tej linijki w lokomotywie
+    MoverParameters->BrakeReleaser(1);  //odluznij automatycznie
+    MoverParameters->Pipe->CreatePress(0.0);
+    MoverParameters->PipePress=0.0;
+    MoverParameters->Pipe2->CreatePress(0.0);
+    MoverParameters->ScndPipePress=0.0;
+    MoverParameters->PantVolume=1;
+    MoverParameters->PantPress=0;
+    MoverParameters->CompressedVolume=0;
    }
 
    if (ActPar.Pos("1")>0) //wylaczanie 10%
