@@ -252,25 +252,23 @@ bool __fastcall TMoverParameters::CurrentSwitch(int direction)
 };
 
 void __fastcall TMoverParameters::UpdatePantVolume(double dt)
-{//KURS90 - sprezarka pantografow
+{//KURS90 - sprê¿arka pantografów
  if (bPantKurek3) //kurek zamyka po³¹czenie z ZG
  {//zbiornik pantografu po³¹czony ze zbiornikiem g³ównym - ma³¹ sprê¿ark¹ siê tego nie napompuje
-  //if (ScndPipePress>4.5) //Ra: dodaæ kurek trójdro¿ny
-  {//korzystanie ze zbiornika glownego
-   PantPress=ScndPipePress;
-   PantVolume=(ScndPipePress*0.1*10)+0.1;
-  }
+  PantPress=ScndPipePress;
+  PantVolume=(ScndPipePress*0.1*10)+0.1; //objêtoœæ, na wypadek odciêcia kurkiem
  }
  else
- {if (PantCompFlag&&Battery) //w³¹czona bateria i ma³a sprê¿arka
-   PantVolume+=dt*0.001*(2*0.45-((0.1/PantVolume/10)-0.1))/0.45; //napelnianie zbiornikow pantografow
+ {//zbiornik g³ówny odciêty, mo¿na pompowaæ pantografy
+  if (PantCompFlag&&Battery) //w³¹czona bateria i ma³a sprê¿arka
+   PantVolume+=dt*0.001*(2*0.45-((0.1/PantVolume/10)-0.1))/0.45; //nape³nianie zbiornika pantografów
   PantPress=(PantVolume/0.10/10)-0.1; //tu by siê przyda³a objêtoœæ zbiornika
  }
  if (!PantCompFlag&&(PantVolume>0.1))
-  PantVolume-=dt*0.0003; //nieszczelnosci: 0.0003=0.3l/s
+  PantVolume-=dt*0.0003; //nieszczelnoœci: 0.0003=0.3l/s
  if (PantPress<3.5)
-  if (MainSwitch(False)&&(EngineType=ElectricSeriesMotor))
-   EventFlag=true; //wywalenie szybkiego z powodu niskiego cisnienia
+  if (MainSwitch(False)&&(EngineType==ElectricSeriesMotor))
+   EventFlag=true; //wywalenie szybkiego z powodu niskiego ciœnienia
  //if (TrainType!=dt_EZT) //w EN57 pompuje siê tylko w silnikowym
  for (int b=0;b<=1;++b)
   if (TestFlag(Couplers[b].CouplingFlag,ctrain_controll))
