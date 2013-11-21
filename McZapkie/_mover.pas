@@ -2581,7 +2581,7 @@ begin
   PantPress:=(PantVolume/0.10/10)-0.1; //tu by siê przyda³a objêtoœæ zbiornika
  if (PantCompFlag=false) and (PantVolume>0.1) then
   PantVolume:=PantVolume-dt*0.0003; //nieszczelnosci: 0.0003=0.3l/s
- if PantPress<0.35 then
+ if PantPress<3.5 then
   if MainSwitch(False) and  (EngineType=ElectricSeriesMotor) then
    EventFlag:=True;   {wywalenie szybkiego z powodu niskiego cisnienia}
  for b:=0 to 1 do

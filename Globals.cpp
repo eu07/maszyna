@@ -25,7 +25,7 @@
 //parametry do u¿ytku wewnêtrznego
 //double Global::tSinceStart=0;
 TGround *Global::pGround=NULL;
-//char Global::CreatorName1[30]="2001-2004 Maciej Czapkiewicz";
+//char Global::CreatorName1[30]="2001-2004 Maciej Czapkiewicz <McZapkie>";
 //char Global::CreatorName2[30]="2001-2003 Marcin WoŸniak <Marcin_EU>";
 //char Global::CreatorName3[20]="2004-2005 Adam Bugiel <ABu>";
 //char Global::CreatorName4[30]="2004 Arkadiusz Œlusarczyk <Winger>";

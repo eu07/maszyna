@@ -1653,7 +1653,8 @@ bool __fastcall TWorld::Update()
       else
       {//wyœwietlenie wspó³rzêdnych w scenerii oraz k¹ta kamery
        OutText1="Camera position: "+FloatToStrF(Camera.Pos.x,ffFixed,6,2)+" "+FloatToStrF(Camera.Pos.y,ffFixed,6,2)+" "+FloatToStrF(Camera.Pos.z,ffFixed,6,2);
-       OutText1+=", direction: "+AnsiString("S SEE NEN NWW SW").SubString(1+2*floor(fmod(8+(Camera.Yaw+0.5*M_PI_4)/M_PI_4,8)),2);
+       OutText1+=", azimuth: "+FloatToStrF(180.0-RadToDeg(Camera.Yaw),ffFixed,3,0); //ma byæ azymut, czyli 0 na pó³nocy i roœnie na wschód
+       OutText1+=" "+AnsiString("S SEE NEN NWW SW").SubString(1+2*floor(fmod(8+(Camera.Yaw+0.5*M_PI_4)/M_PI_4,8)),2);
       }
       //OutText3= AnsiString("  Online documentation (PL, ENG, DE, soon CZ): http://www.eu07.pl");
       //OutText3="enrot="+FloatToStrF(Controlled->MoverParameters->enrot,ffFixed,6,2);
@@ -1854,7 +1855,10 @@ bool __fastcall TWorld::Update()
       OutText1=tmp->Mechanik->Relation();
       glPrint(Bezogonkow(OutText1).c_str());
       glRasterPos2f(-0.25f,0.19f);
-      glPrint("|----------------------------|-------|-------|");
+      //glPrint("|============================|=======|=======|=====|");
+      //glPrint("| Posterunek                 | Przyj.| Odj.  | Vmax|");
+      //glPrint("|============================|=======|=======|=====|");
+      glPrint("|----------------------------|-------|-------|-----|");
       TMTableLine *t;
       for (int i=tt->StationIndex;i<=tt->StationCount;++i)
       {//wyœwietlenie pozycji z rozk³adu
@@ -1862,12 +1866,14 @@ bool __fastcall TWorld::Update()
        OutText1=AnsiString(AnsiString(t->StationName)+"                        ").SubString(1,26);
        OutText2=(t->Ah>=0)?AnsiString(int(100+t->Ah)).SubString(2,2)+":"+AnsiString(int(100+t->Am)).SubString(2,2):AnsiString("     ");
        OutText3=(t->Dh>=0)?AnsiString(int(100+t->Dh)).SubString(2,2)+":"+AnsiString(int(100+t->Dm)).SubString(2,2):AnsiString("     ");
+       OutText4="   "+FloatToStrF(t->vmax,ffFixed,3,0);
+       OutText4=OutText4.SubString(OutText4.Length()-2,3); //z wyrównaniem do prawej
        //if (AnsiString(t->StationWare).Pos("@"))
-       OutText1="| "+OutText1+" | "+OutText2+" | "+OutText3+" | "+AnsiString(t->StationWare);
+       OutText1="| "+OutText1+" | "+OutText2+" | "+OutText3+" | "+OutText4+" | "+AnsiString(t->StationWare);
        glRasterPos2f(-0.25f,0.18f-0.02f*(i-tt->StationIndex));
        glPrint(Bezogonkow(OutText1).c_str());
        glRasterPos2f(-0.25f,0.17f-0.02f*(i-tt->StationIndex));
-       glPrint("|----------------------------|-------|-------|");
+       glPrint("|----------------------------|-------|-------|-----|");
       }
      }
     }

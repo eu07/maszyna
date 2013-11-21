@@ -181,7 +181,6 @@ private: //Ra: ci¹g dalszy animacji, dopiero do ogarniêcia
  TAnimValveGear *pValveGear;
 public:
  TAnim *pants; //indeks obiektu animuj¹cego dla pantografu 0
- double StartTime; //yB-211113: DODANE BO COŒTAM
  double NoVoltTime; //czas od utraty zasilania
  double dDoorMoveL; //NBMX
  double dDoorMoveR; //NBMX

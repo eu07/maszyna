@@ -18,11 +18,15 @@
 
 __fastcall TGauge::TGauge()
 {
- fFriction=0;
- SubModel=NULL;
  eType=gt_Unknown;
+ fFriction=0.0;
+ fDesiredValue=0.0;
+ fValue=0.0;
+ fOffset=0.0;
+ fScale=0.0;
  fStepSize=5;
  iChannel=-1; //kana³ analogowej komunikacji zwrotnej
+ SubModel=NULL;
 }
 
 __fastcall TGauge::~TGauge()

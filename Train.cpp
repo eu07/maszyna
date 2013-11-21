@@ -430,7 +430,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else if (cKey==Global::Keys[k_SmallCompressor])   //Winger 160404: mala sprezarka wl
       {//Ra: dŸwiêk, gdy razem z [Shift] 
        if (!DynamicObject->MoverParameters->PantCompFlag)
-        if (DynamicObject->MoverParameters->PantPress<0.48)
+        if (DynamicObject->MoverParameters->PantPress<4.8)
         {
          DynamicObject->MoverParameters->PantCompFlag=true;
          dsbSwitch->SetVolume(DSBVOLUME_MAX);
@@ -1470,7 +1470,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else if (cKey==Global::Keys[k_SmallCompressor])   //Winger 160404: mala sprezarka wl
       {//Ra: bez [Shift] te¿ daæ dŸwiêk
        if (!DynamicObject->MoverParameters->PantCompFlag)
-        if (DynamicObject->MoverParameters->PantPress<0.48)
+        if (DynamicObject->MoverParameters->PantPress<4.8)
         {
          DynamicObject->MoverParameters->PantCompFlag=true;
          dsbSwitch->SetVolume(DSBVOLUME_MAX);
