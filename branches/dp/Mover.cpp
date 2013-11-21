@@ -256,13 +256,13 @@ void __fastcall TMoverParameters::UpdatePantVolume(double dt)
  if (bPantKurek3) //kurek zamyka po³¹czenie z ZG
  {//zbiornik pantografu po³¹czony ze zbiornikiem g³ównym - ma³¹ sprê¿ark¹ siê tego nie napompuje
   PantPress=ScndPipePress;
-  PantVolume=(ScndPipePress*0.1*10)+0.1; //objêtoœæ, na wypadek odciêcia kurkiem
+  PantVolume=(ScndPipePress+1)*0.1; //objêtoœæ, na wypadek odciêcia kurkiem
  }
  else
  {//zbiornik g³ówny odciêty, mo¿na pompowaæ pantografy
   if (PantCompFlag&&Battery) //w³¹czona bateria i ma³a sprê¿arka
    PantVolume+=dt*0.001*(2*0.45-((0.1/PantVolume/10)-0.1))/0.45; //nape³nianie zbiornika pantografów
-  PantPress=(PantVolume/0.10/10)-0.1; //tu by siê przyda³a objêtoœæ zbiornika
+  PantPress=(10*PantVolume)-1; //tu by siê przyda³a objêtoœæ zbiornika
  }
  if (!PantCompFlag&&(PantVolume>0.1))
   PantVolume-=dt*0.0003; //nieszczelnoœci: 0.0003=0.3l/s
