@@ -146,6 +146,11 @@ void __fastcall TSpeedPos::CommandCheck()
  {//ignorowaæ
   fVelNext=-1;
  }
+ //else if (command=="OutsideStation")
+ //{//w trybie manewrowym: skanowaæ od niej wstecz i stan¹æ po wyjechaniu za sygnalizator i zmieniæ kierunek
+ // //w trybie poci¹gowym: mo¿na przyspieszyæ do wskazanej prêdkoœci (po zjechaniu z rozjazdów)
+ // fVelNext=-1;
+ //}
  else
  {//inna komenda w evencie skanowanym powoduje zatrzymanie i wys³anie tej komendy
   iFlags&=~0xE00; //nie manewrowa, nie przystanek, nie zatrzymaæ na SBL
@@ -1315,7 +1320,7 @@ bool __fastcall TController::PrepareEngine()
  //with Controlling do
  if (((Controlling->EnginePowerSource.SourceType==CurrentCollector)||(Controlling->TrainType==dt_EZT)))
  {
-  if (Controlling->GetTrainsetVoltage())
+  if (Controlling->GetTrainsetVoltage()) //sprawdzanie, czy zasilanie jest mo¿e w innym cz³onie
   {
    voltfront=true;
    voltrear=true;
@@ -1350,8 +1355,18 @@ bool __fastcall TController::PrepareEngine()
   if (Controlling->EnginePowerSource.SourceType==CurrentCollector)
   {
    Controlling->BatterySwitch(true);
-   Controlling->PantFront(true);
-   Controlling->PantRear(true);
+   if (Controlling->PantPress>4.3)
+   {//je¿eli jest wystarczaj¹ce ciœnienie w pantografach
+    if (!Controlling->bPantKurek3)
+     Controlling->PantCompFlag=false; //sprê¿arkê pantografów mo¿na ju¿ wy³¹czyæ
+    Controlling->PantFront(true);
+    Controlling->PantRear(true);
+   }
+   else if (Controlling->PantPress<4.2) //¿eby nie za³¹cza³ zaraz po przekroczeniu 4.0
+   {//za³¹czenie ma³ej sprê¿arki
+    Controlling->bPantKurek3=false; //od³¹czenie zbiornika g³ównego, bo z nim nie da rady napompowaæ
+    Controlling->PantCompFlag=true; //za³¹czenie sprê¿arki pantografów
+   }
   }
   if (Controlling->TrainType==dt_EZT)
   {
@@ -2174,7 +2189,11 @@ bool __fastcall TController::UpdateSituation(double dt)
  HelpMeFlag=false;
  //Winger 020304
  if (AIControllFlag)
- {if (Controlling->Vel>0.0)
+ {
+  if (Controlling->EnginePowerSource.SourceType==CurrentCollector)
+   if (Controlling->ScndPipePress>4.3) //gdy g³ówna sprê¿arka bezpiecznie nabije ciœnienie
+    Controlling->bPantKurek3=true; //to mo¿na przestawiæ kurek na zasilanie pantografów z g³ównej pneumatyki
+  if (Controlling->Vel>0.0)
   {//je¿eli jedzie
    //przy prowadzeniu samochodu trzeba ka¿d¹ oœ odsuwaæ oddzielnie, inaczej kicha wychodzi
    if (Controlling->CategoryFlag&2) //jeœli samochód
