@@ -164,7 +164,7 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
  Global::pCamera=&Camera; //Ra: wskaŸnik potrzebny do likwidacji drgañ
  Global::detonatoryOK=true;
  WriteLog("Starting MaSzyna rail vehicle simulator.");
- WriteLog(Global::asVersion+" SPKS");
+ WriteLog(Global::asVersion);
 #if sizeof(TSubModel)!=256
  Error("Wrong sizeof(TSubModel) is "+AnsiString(sizeof(TSubModel)));
  return false;

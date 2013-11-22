@@ -56,6 +56,7 @@ int __fastcall TAnim::TypeSet(int i)
   case 5: //5-pantograf - 5 submodeli
    iFlags=0x055;
    fParamPants=new TAnimPant();
+   fParamPants->vPos=vector3(0,0,0);
   break;
   case 6: iFlags=0x068; break; //6-t³ok i rozrz¹d - 8 submodeli
   default: iFlags=0;
@@ -2046,19 +2047,19 @@ TGround::GetTraction;
     //fragment "z EXE Kursa"
     if ((!MoverParameters->Battery)&&(Controller==Humandriver)&&(MoverParameters->EngineType!=DieselEngine)&&(MoverParameters->EngineType!=WheelsDriven))
     {//jeœli bateria wy³¹czona, a nie diesel ani drezyna reczna
-     if (MoverParameters->MainSwitch(False)) //wy³¹czyæ zasilanie
+     if (MoverParameters->MainSwitch(false)) //wy³¹czyæ zasilanie
       MoverParameters->EventFlag=true;
     }
     if (MoverParameters->TrainType==dt_ET42)
     {//powinny byæ wszystkie dwucz³ony oraz EZT
      if (((TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab>0)&&(NextConnected->MoverParameters->TrainType!=dt_ET42))||((TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab<0)&&(PrevConnected->MoverParameters->TrainType!=dt_ET42)))
      {//sprawdzenie, czy z ty³u kabiny mamy drugi cz³on
-      if (MoverParameters->MainSwitch(False))
+      if (MoverParameters->MainSwitch(false))
        MoverParameters->EventFlag=true;
      }
      if ((!(TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab>0))||(!(TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab<0)))
      {
-      if (MoverParameters->MainSwitch(False))
+      if (MoverParameters->MainSwitch(false))
        MoverParameters->EventFlag=true;
      }
     }
@@ -3378,18 +3379,40 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
             pants[i].fParamPants->vPos.y=m[3][1]; //przesuniêcie w górê odczytane z modelu
            }
            else
-            ErrorLog("Bad model: "+asFileName+" - missed submodel "+asAnimName); //brak MMD
+            ErrorLog("Bad model: "+asFileName+" - missed submodel "+asAnimName); //brak ramienia
           }
         }
         else if (str==AnsiString("animpantrd2prefix:"))
         {//prefiks ramion dolnych 2
          str=Parser->GetNextSymbol();
+         float4x4 m; //macierz do wyliczenia pozycji i wektora ruchu pantografu
+         TSubModel *sm;
          if (pants)
           for (int i=0;i<iAnimType[ANIM_PANTS];i++)
           {//Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
            asAnimName=str+AnsiString(i+1);
-           pants[i].smElement[1]=mdModel->GetFromName(asAnimName.c_str());
-           pants[i].smElement[1]->WillBeAnimated();
+           sm=mdModel->GetFromName(asAnimName.c_str());
+           pants[i].smElement[1]=sm; //jak NULL, to nie bêdzie animowany
+           if (sm)
+           {//w EP09 wywala³o siê tu z powodu NULL
+            sm->WillBeAnimated();
+            if (pants[i].fParamPants->vPos.y==0.0)
+            {//jeœli pierwsze ramiê nie ustawi³o tej wartoœci, próbowaæ drugim
+             //!!!! docelowo zrobiæ niezale¿n¹ animacjê ramion z ka¿dej strony
+             m=float4x4(*sm->GetMatrix()); //skopiowanie, bo bêdziemy mno¿yæ
+             m(3)[1]=m[3][1]+0.054; //w górê o wysokoœæ œlizgu (na razie tak)
+             while (sm->Parent)
+             {
+              if (sm->Parent->GetMatrix())
+               m=*sm->Parent->GetMatrix()*m;
+              sm=sm->Parent;
+             }
+             pants[i].fParamPants->vPos.z=m[3][0]; //przesuniêcie w bok (asymetria)
+             pants[i].fParamPants->vPos.y=m[3][1]; //przesuniêcie w górê odczytane z modelu
+            }
+           }
+           else
+            ErrorLog("Bad model: "+asFileName+" - missed submodel "+asAnimName); //brak ramienia
           }
         }
         else if (str==AnsiString("animpantrg1prefix:"))
