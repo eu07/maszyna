@@ -18,6 +18,7 @@ __fastcall TMoverParameters::TMoverParameters(double VelInitial,AnsiString TypeN
  DimHalf.z=0.5*Dim.H; //po³owa wysokoœci, OZ jest w górê?
  BrakeLevelSet(-2); //Pascal ustawia na 0, przestawimy na odciêcie (CHK jest jeszcze nie wczytane!)
  bPantKurek3=true; //domyœlnie zbiornik pantografu po³¹czony jest ze zbiornikiem g³ównym
+ iProblem=0; //pojazd w pe³ni gotowy do ruchu
 };
 
 

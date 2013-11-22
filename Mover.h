@@ -13,6 +13,13 @@
 #include "dumb3d.h"
 using namespace Math3D;
 
+enum TProblem //lista problemów taboru, które uniemo¿liwiaj¹ jazdê
+{//flagi bitowe
+ pr_Hamuje=1, //pojazd ma za³¹czony hamulec lub zatarte osie
+ pr_Pantografy=2, //pojazd wymaga napompowania pantografów
+ pr_Ostatni=0x80000000 //ostatnia flaga bitowa
+};
+
 class TMoverParameters : public T_MoverParameters
 {//Ra: wrapper na kod pascalowy, przejmuj¹cy jego funkcje
 public:
@@ -22,6 +29,7 @@ public:
  unsigned char WarningSignal; //tymczasowo 8bit, ze wzglêdu na funkcje w MTools
  double fBrakeCtrlPos; //p³ynna nastawa hamulca zespolonego
  bool bPantKurek3; //kurek trójdrogowy (pantografu): true=po³¹czenie z ZG, false=po³¹czenie z ma³¹ sprê¿ark¹
+ int iProblem; //flagi problemów z taborem, aby AI nie musia³o porównywaæ; 0=mo¿e jechaæ
 private:
  double __fastcall CouplerDist(Byte Coupler);
 public:

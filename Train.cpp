@@ -4109,7 +4109,8 @@ if (DynamicObject->MoverParameters->Battery==true)
      }
      if (!Console::Pressed(Global::Keys[k_SmallCompressor]))
      //Ra: przecieœæ to na zwolnienie klawisza
-      DynamicObject->MoverParameters->PantCompFlag=false; //wy³¹czona, gdy nie trzymamy klawisza
+      if (DynamicObject->Mechanik?!DynamicObject->Mechanik->AIControllFlag:false) //nie wy³¹czaæ, gdy AI
+       DynamicObject->MoverParameters->PantCompFlag=false; //wy³¹czona, gdy nie trzymamy klawisza
      if ( Console::Pressed(Global::Keys[k_Univ2]) )
      {
         if (!DebugModeFlag)
