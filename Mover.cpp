@@ -270,7 +270,7 @@ void __fastcall TMoverParameters::UpdatePantVolume(double dt)
  if (PantPress<3.5)
   if (MainSwitch(False)&&(EngineType==ElectricSeriesMotor))
    EventFlag=true; //wywalenie szybkiego z powodu niskiego ciœnienia
- //if (TrainType!=dt_EZT) //w EN57 pompuje siê tylko w silnikowym
+ //if (TrainType==dt_EZT)?:) //w EN57 pompuje siê tylko w silnikowym
  for (int b=0;b<=1;++b)
   if (TestFlag(Couplers[b].CouplingFlag,ctrain_controll))
    Couplers[b].Connected->PantVolume=PantVolume; //przekazanie ciœnienia do s¹siedniego cz³onu

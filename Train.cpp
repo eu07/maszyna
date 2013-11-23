@@ -429,15 +429,17 @@ void __fastcall TTrain::OnKeyPress(int cKey)
        }
       else if (cKey==Global::Keys[k_SmallCompressor])   //Winger 160404: mala sprezarka wl
       {//Ra: dŸwiêk, gdy razem z [Shift]
-       if (Console::Pressed(VK_CONTROL)) //z [Ctrl]
-        DynamicObject->MoverParameters->bPantKurek3=true; //zbiornik pantografu po³¹czony jest ze zbiornikiem g³ównym (pompowanie nie ma sensu)
-       else if (!DynamicObject->MoverParameters->PantCompFlag)
-        if (DynamicObject->MoverParameters->PantPress<4.8)
-        {
-         DynamicObject->MoverParameters->PantCompFlag=true;
-         dsbSwitch->SetVolume(DSBVOLUME_MAX);
-         dsbSwitch->Play(0,0,0); //dŸwiêk tylko po naciœniêciu klawisza
-        }
+       if (!DynamicObject->MoverParameters->ActiveCab) //to dzia³a tylko z maszynowego
+        if (Console::Pressed(VK_CONTROL)) //z [Ctrl]
+         DynamicObject->MoverParameters->bPantKurek3=true; //zbiornik pantografu po³¹czony jest ze zbiornikiem g³ównym (pompowanie nie ma sensu)
+        else if (!DynamicObject->MoverParameters->PantCompFlag) //z [Shift] daæ rêczne pompowanie
+         if (DynamicObject->MoverParameters->Battery) //jeszcze musi byæ za³¹czona bateria
+          if (DynamicObject->MoverParameters->PantPress<4.8)
+          {
+           DynamicObject->MoverParameters->PantCompFlag=true;
+           dsbSwitch->SetVolume(DSBVOLUME_MAX);
+           dsbSwitch->Play(0,0,0); //dŸwiêk tylko po naciœniêciu klawisza
+          }
       }
       else if (cKey==VkKeyScan('q')) //ze Shiftem - w³¹czenie AI
       {//McZapkie-240302 - wlaczanie automatycznego pilota (zadziala tylko w trybie debugmode)
@@ -1471,15 +1473,17 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       }
       else if (cKey==Global::Keys[k_SmallCompressor])   //Winger 160404: mala sprezarka wl
       {//Ra: bez [Shift] te¿ daæ dŸwiêk
-       if (Console::Pressed(VK_CONTROL)) //z [Ctrl]
-        DynamicObject->MoverParameters->bPantKurek3=false; //zbiornik pantografu po³¹czony jest z ma³¹ sprê¿ark¹ (pompowanie ma sens, ale potem trzeba prze³¹czyæ)
-       else if (!DynamicObject->MoverParameters->PantCompFlag)
-        if (DynamicObject->MoverParameters->PantPress<4.8)
-        {
-         DynamicObject->MoverParameters->PantCompFlag=true;
-         dsbSwitch->SetVolume(DSBVOLUME_MAX);
-         dsbSwitch->Play(0,0,0); //dŸwiêk tylko po naciœniêciu klawisza
-        }
+       if (!DynamicObject->MoverParameters->ActiveCab) //to dzia³a tylko z maszynowego
+        if (Console::Pressed(VK_CONTROL)) //z [Ctrl]
+         DynamicObject->MoverParameters->bPantKurek3=false; //zbiornik pantografu po³¹czony jest z ma³¹ sprê¿ark¹ (pompowanie ma sens, ale potem trzeba prze³¹czyæ)
+        else if (!DynamicObject->MoverParameters->PantCompFlag)
+         if (DynamicObject->MoverParameters->Battery) //jeszcze musi byæ za³¹czona bateria
+          if (DynamicObject->MoverParameters->PantPress<4.8)
+          {
+           DynamicObject->MoverParameters->PantCompFlag=true;
+           dsbSwitch->SetVolume(DSBVOLUME_MAX);
+           dsbSwitch->Play(0,0,0); //dŸwiêk tylko po naciœniêciu klawisza
+          }
       }
   //McZapkie-240302 - wylaczanie automatycznego pilota (w trybie ~debugmode mozna tylko raz)
       else if (cKey==VkKeyScan('q')) //bez Shift

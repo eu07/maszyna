@@ -86,7 +86,7 @@ TYPE
       private
         RapidStatus: boolean; //status rapidu
         RapidMult: real;      //przelozenie (w dol)
-        Komora2: real;
+//        Komora2: real;
         DN,DL: real;          //srednice dysz napelniania i luzowania
       public
         procedure SetRapidParams(mult: real; size: real);
@@ -122,9 +122,9 @@ TYPE
         Nozzles: array[0..dMAX] of real; //dysze
         CntrlRes: TReservoir;      //zbiornik steruj¹cy
         BVM: real;                 //przelozenie PG-CH
-        ValveFlag: byte;           //polozenie roznych zaworkow
+//        ValveFlag: byte;           //polozenie roznych zaworkow
         Zamykajacy: boolean;       //pamiec zaworka zamykajacego
-        Przys_wlot: boolean;       //wlot do komory przyspieszacza
+//        Przys_wlot: boolean;       //wlot do komory przyspieszacza
         Przys_blok: boolean;       //blokada przyspieszacza
         Miedzypoj: TReservoir;     //pojemnosc posrednia (urojona) do napelniania ZP i ZS
         Przekladniki: array[1..3] of TPrzekladnik;
@@ -135,7 +135,7 @@ TYPE
         TareBP: real;             //cisnienie dla proznego
         HBG300: real;             //zawor ograniczajacy cisnienie
         Podskok: real;            //podskok preznosci poczatkowej
-        HPBR: real;               //zasilanie ZP z wysokiego cisnienia
+//        HPBR: real;               //zasilanie ZP z wysokiego cisnienia
         autom: boolean;           //odluzniacz samoczynny
         LBP: real;                //cisnienie hamulca pomocniczego        
       public
@@ -336,16 +336,13 @@ begin
   BCP:=Przekladniki[1].P;
   CVP:=CntrlRes.P-0.0;
   MPP:=Miedzypoj.P;
-  dV:=0; dV1:=0;
+  dV1:=0;
 
   nastG:=(BrakeDelayFlag and bdelay_G);
 
 //sprawdzanie stanu
   CheckState(BCP, dV1);
   CheckReleaser(dt);
-
-  CVP:=CntrlRes.P;
-  VVP:=ValveRes.P;
 
 //luzowanie
   if(BrakeStatus and b_hld)=b_off then
@@ -461,9 +458,8 @@ end;
 
 
 procedure TNESt3.CheckState(BCP: real; var dV1: real); //glowny przyrzad rozrzadczy
-var VVP, BVP, CVP, MPP: real;
+var VVP, CVP, MPP: real;
 begin
-  BVP:=BrakeRes.P;  //-> tu ma byc komora rozprezna
   VVP:=ValveRes.P;
   CVP:=CntrlRes.P;
   MPP:=Miedzypoj.P;
@@ -520,11 +516,9 @@ end;
 
 
 function TNESt3.CVs(bp: real): real;      //napelniacz sterujacego
-var VVP, BVP, CVP, MPP: real;
+var CVP, MPP: real;
 begin
-  BVP:=BrakeRes.P;
   CVP:=CntrlRes.P;
-  VVP:=ValveRes.P;
   MPP:=Miedzypoj.P;
 
 //przeplyw ZS <-> PG
@@ -539,11 +533,9 @@ end;
 
 
 function TNESt3.BVs(BCP: real): real;     //napelniacz pomocniczego
-var VVP, BVP, CVP, MPP: real;
+var CVP, MPP: real;
 begin
-  BVP:=BrakeRes.P;
   CVP:=CntrlRes.P;
-  VVP:=ValveRes.P;
   MPP:=Miedzypoj.P;
 
 //przeplyw ZP <-> rozdzielacz
