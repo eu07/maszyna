@@ -97,7 +97,6 @@ class PASCALIMPLEMENTATION TRapid : public TPrzekladnik
 private:
 	bool RapidStatus;
 	double RapidMult;
-	double Komora2;
 	double DN;
 	double DL;
 	
@@ -193,9 +192,7 @@ private:
 	double Nozzles[11];
 	Hamulce::TReservoir* CntrlRes;
 	double BVM;
-	Byte ValveFlag;
 	bool Zamykajacy;
-	bool Przys_wlot;
 	bool Przys_blok;
 	Hamulce::TReservoir* Miedzypoj;
 	TPrzekladnik* Przekladniki[3];
@@ -207,7 +204,6 @@ private:
 	double TareBP;
 	double HBG300;
 	double Podskok;
-	double HPBR;
 	bool autom;
 	double LBP;
 	
