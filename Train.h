@@ -51,7 +51,7 @@ private:
 };
 
 
-class TTrain//:public TDynamicObject
+class TTrain
 {
 public:
     bool CabChange(int iDirection);
@@ -76,7 +76,11 @@ public:
 //McZapkie-310302: ladowanie parametrow z pliku
     bool __fastcall LoadMMediaFile(AnsiString asFileName);
 
-    TDynamicObject *DynamicObject;
+//private: //¿eby go nic z zewn¹trz nie przestawia³o
+ TDynamicObject *DynamicObject; //przestawia zmiana pojazdu [F5]
+private: //¿eby go nic z zewn¹trz nie przestawia³o
+ TMoverParameters *pControlled; //
+public: //reszta mo¿e byæ publiczna
 
     //AnsiString asMessage;
 
@@ -356,6 +360,7 @@ private:
  int iRadioChannel; //numer aktualnego kana³u radiowego
 public:
  int __fastcall RadioChannel() {return iRadioChannel;};
+ inline TDynamicObject* __fastcall Dynamic() {return DynamicObject;};
 };
 //---------------------------------------------------------------------------
 #endif

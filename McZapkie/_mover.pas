@@ -2564,6 +2564,7 @@ procedure T_MoverParameters.CompressorCheck(dt:real);
  end;
 
 procedure T_MoverParameters.UpdateBatteryVoltage(dt:real);
+{//do Mover.cpp to daæ, stan œwiate³ te¿ tam}
 var sn1,sn2,sn3,sn4,sn5: real;
 begin
 if (batteryVoltage>0) and  (EngineType<>DieselEngine) and (EngineType<>WheelsDriven) and (NominalBatteryVoltage>0) then
