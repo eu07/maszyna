@@ -609,42 +609,42 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
   //sygnaly konca pociagu
   if (btEndSignals1.Active())
   {
-   if (TestFlag(iLights[0],2)
-     ||TestFlag(iLights[0],32))
+   if (TestFlag(MoverParameters->iLights[0],2)
+     ||TestFlag(MoverParameters->iLights[0],32))
     {btEndSignals1.TurnOn(); btnOn=true;}
    //else btEndSignals1.TurnOff();
   }
   else
   {
-   if (TestFlag(iLights[0],2))
+   if (TestFlag(MoverParameters->iLights[0],2))
     {btEndSignals11.TurnOn(); btnOn=true;}
    //else btEndSignals11.TurnOff();
-   if (TestFlag(iLights[0],32))
+   if (TestFlag(MoverParameters->iLights[0],32))
     {btEndSignals13.TurnOn(); btnOn=true;}
    //else btEndSignals13.TurnOff();
   }
 
   if (btEndSignals2.Active())
   {
-   if (TestFlag(iLights[1],2)
-     ||TestFlag(iLights[1],32))
+   if (TestFlag(MoverParameters->iLights[1],2)
+     ||TestFlag(MoverParameters->iLights[1],32))
     {btEndSignals2.TurnOn(); btnOn=true;}
    //else btEndSignals2.TurnOff();
   }
   else
   {
-   if (TestFlag(iLights[1],2))
+   if (TestFlag(MoverParameters->iLights[1],2))
     {btEndSignals21.TurnOn(); btnOn=true;}
    //else btEndSignals21.TurnOff();
-   if (TestFlag(iLights[1],32))
+   if (TestFlag(MoverParameters->iLights[1],32))
     {btEndSignals23.TurnOn(); btnOn=true;}
    //else btEndSignals23.TurnOff();
   }
   //tablice blaszane:
-  if (TestFlag(iLights[0],64))
+  if (TestFlag(MoverParameters->iLights[0],64))
    {btEndSignalsTab1.TurnOn(); btnOn=true;}
   //else btEndSignalsTab1.TurnOff();
-  if (TestFlag(iLights[1],64))
+  if (TestFlag(MoverParameters->iLights[1],64))
    {btEndSignalsTab2.TurnOn(); btnOn=true;}
   //else btEndSignalsTab2.TurnOff();
   //McZapkie-181002: krecenie wahaczem (korzysta z kata obrotu silnika)
@@ -663,22 +663,22 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
   //if (ObjSqrDist<80000) ABuModelRoll(); //przechy³ki od 400m
  }
  //sygnaly czola pociagu //Ra: wyœwietlamy bez ograniczeñ odleg³oœci, by by³y widoczne z daleka
- if (TestFlag(iLights[0],1))
+ if (TestFlag(MoverParameters->iLights[0],1))
   {btHeadSignals11.TurnOn(); btnOn=true;}
  //else btHeadSignals11.TurnOff();
- if (TestFlag(iLights[0],4))
+ if (TestFlag(MoverParameters->iLights[0],4))
   {btHeadSignals12.TurnOn(); btnOn=true;}
  //else btHeadSignals12.TurnOff();
- if (TestFlag(iLights[0],16))
+ if (TestFlag(MoverParameters->iLights[0],16))
   {btHeadSignals13.TurnOn(); btnOn=true;}
  //else btHeadSignals13.TurnOff();
- if (TestFlag(iLights[1],1))
+ if (TestFlag(MoverParameters->iLights[1],1))
   {btHeadSignals21.TurnOn(); btnOn=true;}
  //else btHeadSignals21.TurnOff();
- if (TestFlag(iLights[1],4))
+ if (TestFlag(MoverParameters->iLights[1],4))
   {btHeadSignals22.TurnOn(); btnOn=true;}
  //else btHeadSignals22.TurnOff();
- if (TestFlag(iLights[1],16))
+ if (TestFlag(MoverParameters->iLights[1],16))
   {btHeadSignals23.TurnOn(); btnOn=true;}
  //else btHeadSignals23.TurnOff();
 }
@@ -3457,8 +3457,8 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
         {//Winger 010304: parametry pantografow
          double pant1x=Parser->GetNextSymbol().ToDouble();
          double pant2x=Parser->GetNextSymbol().ToDouble();
-         double panty=Parser->GetNextSymbol().ToDouble();
-         double panth=Parser->GetNextSymbol().ToDouble();
+         //double panty=Parser->GetNextSymbol().ToDouble();
+         //double panth=Parser->GetNextSymbol().ToDouble();
          if ((pant1x<0)&&(pant2x>0)) //pierwsza powinna byæ dodatnia, a druga ujemna
          {pant1x=-pant1x; pant2x=-pant2x;}
          if (pants)
@@ -3781,6 +3781,7 @@ void __fastcall TDynamicObject::RadioStop()
 
 void __fastcall TDynamicObject::RaLightsSet(int head,int rear)
 {//zapalenie œwiate³ z przodu i z ty³u, zale¿ne od kierunku pojazdu
+ if (!MoverParameters) return; //mo¿e tego nie byæ na pocz¹tku
  if (rear==2+32+64)
  {//jeœli koniec poci¹gu, to trzeba ustaliæ, czy jest tam czynna lokomotywa
   //EN57 mo¿e nie mieæ koñcówek od œrodka cz³onu
@@ -3799,13 +3800,13 @@ void __fastcall TDynamicObject::RaLightsSet(int head,int rear)
  }
  if (iDirection) //w zale¿noœci od kierunku pojazdu w sk³adzie
  {//jesli pojazd stoi sprzêgiem 0 w stronê czo³a
-  if (head>=0) iLights[0]=head;
-  if (rear>=0) iLights[1]=rear;
+  if (head>=0) MoverParameters->iLights[0]=head;
+  if (rear>=0) MoverParameters->iLights[1]=rear;
  }
  else
  {//jak jest odwrócony w sk³adzie (-1), to zapalamy odwrotnie
-  if (head>=0) iLights[1]=head;
-  if (rear>=0) iLights[0]=rear;
+  if (head>=0) MoverParameters->iLights[1]=head;
+  if (rear>=0) MoverParameters->iLights[0]=rear;
  }
 };
 

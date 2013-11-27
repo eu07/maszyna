@@ -3544,10 +3544,10 @@ void __fastcall TController::TakeControl(bool yes)
   if (OrderCurrentGet()) //jeœli coœ robi
    PrepareEngine(); //niech sprawdzi stan silnika
   else //jeœli nic nie robi
-   if (pVehicle->iLights[Controlling->CabNo<0?1:0]&21) //któreœ ze œwiate³ zapalone?
+   if (pVehicle->MoverParameters->iLights[Controlling->CabNo<0?1:0]&21) //któreœ ze œwiate³ zapalone?
    {//od wersji 357 oczekujemy podania komend dla AI przez sceneriê
     OrderNext(Prepare_engine);
-    if (pVehicle->iLights[Controlling->CabNo<0?1:0]&4) //górne œwiat³o zapalone
+    if (pVehicle->MoverParameters->iLights[Controlling->CabNo<0?1:0]&4) //górne œwiat³o zapalone
      OrderNext(Obey_train); //jazda poci¹gowa
     else
      OrderNext(Shunt); //jazda manewrowa

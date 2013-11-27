@@ -30,6 +30,7 @@ public:
  double fBrakeCtrlPos; //p³ynna nastawa hamulca zespolonego
  bool bPantKurek3; //kurek trójdrogowy (pantografu): true=po³¹czenie z ZG, false=po³¹czenie z ma³¹ sprê¿ark¹
  int iProblem; //flagi problemów z taborem, aby AI nie musia³o porównywaæ; 0=mo¿e jechaæ
+ int iLights[2]; //bity zapalonych œwiate³ tutaj, ¿eby da³o siê liczyæ pobór pr¹du 
 private:
  double __fastcall CouplerDist(Byte Coupler);
 public:

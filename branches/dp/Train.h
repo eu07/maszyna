@@ -76,7 +76,7 @@ public:
 //McZapkie-310302: ladowanie parametrow z pliku
     bool __fastcall LoadMMediaFile(AnsiString asFileName);
 
-//private: //¿eby go nic z zewn¹trz nie przestawia³o
+private: //¿eby go nic z zewn¹trz nie przestawia³o
  TDynamicObject *DynamicObject; //przestawia zmiana pojazdu [F5]
 private: //¿eby go nic z zewn¹trz nie przestawia³o
  TMoverParameters *pControlled; //
@@ -361,6 +361,7 @@ private:
 public:
  int __fastcall RadioChannel() {return iRadioChannel;};
  inline TDynamicObject* __fastcall Dynamic() {return DynamicObject;};
+ void __fastcall DynamicSet(TDynamicObject *d);
 };
 //---------------------------------------------------------------------------
 #endif

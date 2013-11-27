@@ -1148,13 +1148,21 @@ bool __fastcall TWorld::Update()
     Camera.Yaw=0; //odchylenie na bok od Camera.LookAt
 #else
     //Camera.Yaw powinno byæ wyzerowane, aby po powrocie patrzeæ do przodu
-    Camera.Pos=Controlled->GetPosition()+Train->MirrorPosition(lr);
+    Camera.Pos=Controlled->GetPosition()+Train->MirrorPosition(lr); //pozycja lusterka
     Camera.Yaw=0; //odchylenie na bok od Camera.LookAt
     if (Train->Dynamic()->MoverParameters->ActiveCab==0)
      Camera.LookAt=Camera.Pos-Train->GetDirection(); //gdy w korytarzu
-    else  //patrzenie w kierunku osi pojazdu, z uwzglêdnieniem kabiny
-     Camera.LookAt=Camera.Pos-Train->GetDirection()*Train->Dynamic()->MoverParameters->ActiveCab; //-1 albo 1
-    Global::SetCameraRotation(M_PI-modelrotate); //tu ju¿ trzeba uwzglêdniæ lusterka
+    else
+     if (Console::Pressed(VK_SHIFT))
+     {//patrzenie w bok przez szybê
+      Camera.LookAt=Camera.Pos-(lr?-1:1)*Train->Dynamic()->VectorLeft()*Train->Dynamic()->MoverParameters->ActiveCab;
+      Global::SetCameraRotation(-modelrotate);
+     }
+     else
+     {//patrzenie w kierunku osi pojazdu, z uwzglêdnieniem kabiny - jakby z lusterka, ale bez odbicia
+      Camera.LookAt=Camera.Pos-Train->GetDirection()*Train->Dynamic()->MoverParameters->ActiveCab; //-1 albo 1
+      Global::SetCameraRotation(M_PI-modelrotate); //tu ju¿ trzeba uwzglêdniæ lusterka
+     }
 #endif
     Camera.Roll=atan(Train->pMechShake.x*Train->fMechRoll); //hustanie kamery na boki
     Camera.Pitch=atan(Train->vMechVelocity.z*Train->fMechPitch); //hustanie kamery przod tyl
@@ -1227,14 +1235,14 @@ bool __fastcall TWorld::Update()
     glBindTexture(GL_TEXTURE_2D,light);       // Select our texture
     glBegin(GL_QUADS);
     float fSmudge=Train->Dynamic()->MoverParameters->DimHalf.y+7; //gdzie zaczynaæ smugê
-     if (Train->Dynamic()->iLights[0]&21)
+     if (Train->Dynamic()->MoverParameters->iLights[0]&21)
      {//wystarczy jeden zapalony z przodu
       glTexCoord2f(0,0); glVertex3f( 15.0,0.0,+fSmudge); //rysowanie wzglêdem po³o¿enia modelu
       glTexCoord2f(1,0); glVertex3f(-15.0,0.0,+fSmudge);
       glTexCoord2f(1,1); glVertex3f(-15.0,2.5, 250.0);
       glTexCoord2f(0,1); glVertex3f( 15.0,2.5, 250.0);
      }
-     if (Train->Dynamic()->iLights[1]&21)
+     if (Train->Dynamic()->MoverParameters->iLights[1]&21)
      {//wystarczy jeden zapalony z ty³u
       glTexCoord2f(0,0); glVertex3f(-15.0,0.0,-fSmudge);
       glTexCoord2f(1,0); glVertex3f( 15.0,0.0,-fSmudge);
@@ -1481,7 +1489,7 @@ bool __fastcall TWorld::Update()
       if (!Train->Dynamic()->Mechanik->AIControllFlag) //tylko jeœli rêcznie prowadzony
        Train->Dynamic()->Mechanik->MoveTo(temp); //przsuniêcie obiektu zarz¹dzaj¹cego
      //Train->DynamicObject=NULL;
-     Train->DynamicObject=temp;
+     Train->DynamicSet(temp);
      Controlled=temp;
      Global::asHumanCtrlVehicle=Train->Dynamic()->GetName();
      if (Train->Dynamic()->Mechanik) //AI mo¿e sobie samo pójœæ
