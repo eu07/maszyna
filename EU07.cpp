@@ -421,6 +421,8 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
  TRect rect;
  switch (uMsg) //check for windows messages
  {
+  case WM_PASTE: //[Ctrl]+[V] potrzebujemy do innych celów
+   return 0;
   case WM_COPYDATA: //obs³uga danych przes³anych przez program steruj¹cy
    pDane=(PCOPYDATASTRUCT)lParam;
    if (pDane->dwData=='EU07') //sygnatura danych
