@@ -76,7 +76,7 @@ void __fastcall TWorld::TrainDelete(TDynamicObject *d)
 {//usuniêcie pojazdu prowadzonego przez u¿ytkownika
  if (d)
   if (Train)
-   if (Train->DynamicObject!=d)
+   if (Train->Dynamic()!=d)
     return; //nie tego usuwaæ
  delete Train; //i nie ma czym sterowaæ
  Train=NULL;
@@ -562,7 +562,7 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
      Train=new TTrain();
      if (Train->Init(PlayerTrain->DynamicObject))
      {
-      Controlled=Train->DynamicObject;
+      Controlled=Train->Dynamic();
       Global::pUserDynamic=Controlled; //renerowanie pojazdu wzglêdem kabiny
       WriteLog("Player train init OK");
       if (Global::detonatoryOK)
@@ -623,8 +623,8 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
  WriteLog("Load time: "+FloatToStrF((86400.0*((double)Now()-time)),ffFixed,7,1)+" seconds");
  if (DebugModeFlag) //w Debugmode automatyczne w³¹czenie AI
   if (Train)
-   if (Train->DynamicObject->Mechanik)
-    Train->DynamicObject->Mechanik->TakeControl(true);
+   if (Train->Dynamic()->Mechanik)
+    Train->Dynamic()->Mechanik->TakeControl(true);
  return true;
 };
 
@@ -827,8 +827,8 @@ void __fastcall TWorld::InOutKey()
  {//je¿eli poza kabin¹, przestawiamy w jej okolicê - OK
   Global::pUserDynamic=NULL; //bez renderowania wzglêdem kamery
   if (Train)
-  {//Train->DynamicObject->ABuSetModelShake(vector3(0,0,0));
-   Train->DynamicObject->bDisplayCab=false;
+  {//Train->Dynamic()->ABuSetModelShake(vector3(0,0,0));
+   Train->Dynamic()->bDisplayCab=false;
    DistantView();
   }
  }
@@ -836,8 +836,8 @@ void __fastcall TWorld::InOutKey()
  {//jazda w kabinie
   if (Train)
   {Global::pUserDynamic=Controlled; //renerowanie wzglêdem kamery
-   Train->DynamicObject->bDisplayCab=true;
-   Train->DynamicObject->ABuSetModelShake(vector3(0,0,0)); //zerowanie przesuniêcia przed powrotem?
+   Train->Dynamic()->bDisplayCab=true;
+   Train->Dynamic()->ABuSetModelShake(vector3(0,0,0)); //zerowanie przesuniêcia przed powrotem?
    //Camera.Stop(); //zatrzymanie ruchu
    Train->MechStop();
    FollowView(); //na pozycjê mecha
@@ -875,7 +875,7 @@ void __fastcall TWorld::FollowView()
   if (FreeFlyModeFlag)
   {//je¿eli poza kabin¹, przestawiamy w jej okolicê - OK
    if (Train)
-    Train->DynamicObject->ABuSetModelShake(vector3(0,0,0)); //wy³¹czenie trzêsienia na si³ê?
+    Train->Dynamic()->ABuSetModelShake(vector3(0,0,0)); //wy³¹czenie trzêsienia na si³ê?
    //Camera.Pos=Train->pMechPosition+Normalize(Train->GetDirection())*20;
    DistantView();
    //¿eby nie bylo numerów z 'fruwajacym' lokiem - konsekwencja bujania pud³a
@@ -886,10 +886,10 @@ void __fastcall TWorld::FollowView()
    Camera.Pos=Train->pMechPosition;//Train.GetPosition1();
    Camera.Roll=atan(Train->pMechShake.x*Train->fMechRoll);       //hustanie kamery na boki
    Camera.Pitch-=atan(Train->vMechVelocity.z*Train->fMechPitch);  //hustanie kamery przod tyl
-   if (Train->DynamicObject->MoverParameters->ActiveCab==0)
+   if (Train->Dynamic()->MoverParameters->ActiveCab==0)
     Camera.LookAt=Train->pMechPosition+Train->GetDirection();
    else //patrz w strone wlasciwej kabiny
-    Camera.LookAt=Train->pMechPosition+Train->GetDirection()*Train->DynamicObject->MoverParameters->ActiveCab;
+    Camera.LookAt=Train->pMechPosition+Train->GetDirection()*Train->Dynamic()->MoverParameters->ActiveCab;
    Train->pMechOffset.x=Train->pMechSittingPosition.x;
    Train->pMechOffset.y=Train->pMechSittingPosition.y;
    Train->pMechOffset.z=Train->pMechSittingPosition.z;
@@ -1142,7 +1142,7 @@ bool __fastcall TWorld::Update()
     Camera.Pos=Train->MirrorPosition(lr); //robocza wartoœæ
     if (Controlled->MoverParameters->ActiveCab<0) lr=!lr; //w drugiej kabinie odwrotnie jest œrodek
     Camera.LookAt=Controlled->GetPosition()+vector3(lr?2.0:-2.0,Camera.Pos.y,0); //trochê na zewn¹trz, u¿yæ szerokoœci pojazdu
-    //Camera.LookAt=Train->pMechPosition+Train->GetDirection()*Train->DynamicObject->MoverParameters->ActiveCab;
+    //Camera.LookAt=Train->pMechPosition+Train->GetDirection()*Train->Dynamic()->MoverParameters->ActiveCab;
     Camera.Pos+=Controlled->GetPosition();
     //Camera.RaLook(); //jednorazowe przestawienie kamery
     Camera.Yaw=0; //odchylenie na bok od Camera.LookAt
@@ -1150,10 +1150,10 @@ bool __fastcall TWorld::Update()
     //Camera.Yaw powinno byæ wyzerowane, aby po powrocie patrzeæ do przodu
     Camera.Pos=Controlled->GetPosition()+Train->MirrorPosition(lr);
     Camera.Yaw=0; //odchylenie na bok od Camera.LookAt
-    if (Train->DynamicObject->MoverParameters->ActiveCab==0)
+    if (Train->Dynamic()->MoverParameters->ActiveCab==0)
      Camera.LookAt=Camera.Pos-Train->GetDirection(); //gdy w korytarzu
     else  //patrzenie w kierunku osi pojazdu, z uwzglêdnieniem kabiny
-     Camera.LookAt=Camera.Pos-Train->GetDirection()*Train->DynamicObject->MoverParameters->ActiveCab; //-1 albo 1
+     Camera.LookAt=Camera.Pos-Train->GetDirection()*Train->Dynamic()->MoverParameters->ActiveCab; //-1 albo 1
     Global::SetCameraRotation(M_PI-modelrotate); //tu ju¿ trzeba uwzglêdniæ lusterka
 #endif
     Camera.Roll=atan(Train->pMechShake.x*Train->fMechRoll); //hustanie kamery na boki
@@ -1177,10 +1177,10 @@ bool __fastcall TWorld::Update()
     if (Controlled) Controlled->ABuSetModelShake(temp);
     //ABu: koniec rzucania
 
-    if (Train->DynamicObject->MoverParameters->ActiveCab==0)
+    if (Train->Dynamic()->MoverParameters->ActiveCab==0)
      Camera.LookAt=Train->pMechPosition+Train->GetDirection(); //gdy w korytarzu
     else  //patrzenie w kierunku osi pojazdu, z uwzglêdnieniem kabiny
-     Camera.LookAt=Train->pMechPosition+Train->GetDirection()*Train->DynamicObject->MoverParameters->ActiveCab; //-1 albo 1
+     Camera.LookAt=Train->pMechPosition+Train->GetDirection()*Train->Dynamic()->MoverParameters->ActiveCab; //-1 albo 1
     Camera.vUp=Train->GetUp();
     Global::SetCameraRotation(Camera.Yaw-modelrotate); //tu ju¿ trzeba uwzglêdniæ lusterka
    }
@@ -1192,7 +1192,7 @@ bool __fastcall TWorld::Update()
  }
  Ground.CheckQuery();
  //przy 0.25 smuga gaœnie o 6:37 w Quarku, a mog³aby ju¿ 5:40
- Global::bSmudge=FreeFlyModeFlag?false:((Train->DynamicObject->fShade<=0.0)?(Global::fLuminance<=0.15):(Train->DynamicObject->fShade*Global::fLuminance<=0.15));
+ Global::bSmudge=FreeFlyModeFlag?false:((Train->Dynamic()->fShade<=0.0)?(Global::fLuminance<=0.15):(Train->Dynamic()->fShade*Global::fLuminance<=0.15));
 
  if (!Render()) return false;
 
@@ -1202,14 +1202,14 @@ bool __fastcall TWorld::Update()
  {//rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
   glPushMatrix();
   //ABu: Rendering kabiny jako ostatniej, zeby bylo widac przez szyby, tylko w widoku ze srodka
-  if ((Train->DynamicObject->mdKabina!=Train->DynamicObject->mdModel) && Train->DynamicObject->bDisplayCab && !FreeFlyModeFlag)
+  if ((Train->Dynamic()->mdKabina!=Train->Dynamic()->mdModel) && Train->Dynamic()->bDisplayCab && !FreeFlyModeFlag)
   {
-   vector3 pos=Train->DynamicObject->GetPosition(); //wszpó³rzêdne pojazdu z kabin¹
+   vector3 pos=Train->Dynamic()->GetPosition(); //wszpó³rzêdne pojazdu z kabin¹
    //glTranslatef(pos.x,pos.y,pos.z); //przesuniêcie o wektor (tak by³o i trzês³o)
    //aby pozbyæ siê choæ trochê trzêsienia, trzeba by nie przeliczaæ kabiny do punktu zerowego scenerii
    glLoadIdentity(); //zacz¹æ od macierzy jedynkowej
    Camera.SetCabMatrix(pos); //widok z kamery po przesuniêciu
-   glMultMatrixd(Train->DynamicObject->mMatrix.getArray()); //ta macierz nie ma przesuniêcia
+   glMultMatrixd(Train->Dynamic()->mMatrix.getArray()); //ta macierz nie ma przesuniêcia
 
 //*yB: moje smuuugi 1
   if (Global::bSmudge)
@@ -1226,15 +1226,15 @@ bool __fastcall TWorld::Update()
     glColor4f(1.0f,1.0f,1.0f,1.0f);
     glBindTexture(GL_TEXTURE_2D,light);       // Select our texture
     glBegin(GL_QUADS);
-    float fSmudge=Train->DynamicObject->MoverParameters->DimHalf.y+7; //gdzie zaczynaæ smugê
-     if (Train->DynamicObject->iLights[0]&21)
+    float fSmudge=Train->Dynamic()->MoverParameters->DimHalf.y+7; //gdzie zaczynaæ smugê
+     if (Train->Dynamic()->iLights[0]&21)
      {//wystarczy jeden zapalony z przodu
       glTexCoord2f(0,0); glVertex3f( 15.0,0.0,+fSmudge); //rysowanie wzglêdem po³o¿enia modelu
       glTexCoord2f(1,0); glVertex3f(-15.0,0.0,+fSmudge);
       glTexCoord2f(1,1); glVertex3f(-15.0,2.5, 250.0);
       glTexCoord2f(0,1); glVertex3f( 15.0,2.5, 250.0);
      }
-     if (Train->DynamicObject->iLights[1]&21)
+     if (Train->Dynamic()->iLights[1]&21)
      {//wystarczy jeden zapalony z ty³u
       glTexCoord2f(0,0); glVertex3f(-15.0,0.0,-fSmudge);
       glTexCoord2f(1,0); glVertex3f( 15.0,0.0,-fSmudge);
@@ -1250,8 +1250,8 @@ bool __fastcall TWorld::Update()
     glEnable(GL_LIGHTING); //po renderowaniu smugi jest to wy³¹czone
     //Ra: pojazd u¿ytkownika nale¿a³o by renderowaæ po smudze, aby go nie rozœwietla³a
     Global::bSmudge=false; //aby model u¿ytkownika siê teraz wyrenderowa³
-    Train->DynamicObject->Render();
-    Train->DynamicObject->RenderAlpha(); //przezroczyste fragmenty pojazdów na torach
+    Train->Dynamic()->Render();
+    Train->Dynamic()->RenderAlpha(); //przezroczyste fragmenty pojazdów na torach
    } //yB: moje smuuugi 1 - koniec*/
    else
     glEnable(GL_LIGHTING); //po renderowaniu drutów mo¿e byæ to wy³¹czone
@@ -1267,7 +1267,7 @@ bool __fastcall TWorld::Update()
     diffuseCabLight[li]= Global::diffuseDayLight[li]*0.5;
     specularCabLight[li]=Global::specularDayLight[li]*0.5;
    }
-   switch (Train->DynamicObject->MyTrack->eEnvironment)
+   switch (Train->Dynamic()->MyTrack->eEnvironment)
    {//wp³yw œwiet³a zewnêtrznego
     case e_canyon:
     {
@@ -1294,7 +1294,7 @@ bool __fastcall TWorld::Update()
     case 0: //œwiat³o wewnêtrzne zgaszone
      break;
     case 1: //œwiat³o wewnêtrzne przygaszone (255 216 176)
-     if (Train->DynamicObject->MoverParameters->ConverterFlag==true) //jasnosc dla zalaczonej przetwornicy
+     if (Train->Dynamic()->MoverParameters->ConverterFlag==true) //jasnosc dla zalaczonej przetwornicy
       {
        ambientCabLight[0]=Max0R(0.700,ambientCabLight[0])*0.75; //R
        ambientCabLight[1]=Max0R(0.593,ambientCabLight[1])*0.75; //G
@@ -1316,7 +1316,7 @@ bool __fastcall TWorld::Update()
       }
      break;
     case 2: //œwiat³o wewnêtrzne zapalone (255 216 176)
-     if (Train->DynamicObject->MoverParameters->ConverterFlag==true) //jasnosc dla zalaczonej przetwornicy
+     if (Train->Dynamic()->MoverParameters->ConverterFlag==true) //jasnosc dla zalaczonej przetwornicy
       {
        ambientCabLight[0]=Max0R(1.000,ambientCabLight[0]); //R
        ambientCabLight[1]=Max0R(0.847,ambientCabLight[1]); //G
@@ -1343,13 +1343,13 @@ bool __fastcall TWorld::Update()
    glLightfv(GL_LIGHT0,GL_SPECULAR,specularCabLight);
    if (Global::bUseVBO)
    {//renderowanie z u¿yciem VBO
-    Train->DynamicObject->mdKabina->RaRender(0.0,Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->iAlpha);
-    Train->DynamicObject->mdKabina->RaRenderAlpha(0.0,Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->iAlpha);
+    Train->Dynamic()->mdKabina->RaRender(0.0,Train->Dynamic()->ReplacableSkinID,Train->Dynamic()->iAlpha);
+    Train->Dynamic()->mdKabina->RaRenderAlpha(0.0,Train->Dynamic()->ReplacableSkinID,Train->Dynamic()->iAlpha);
    }
    else
    {//renderowanie z Display List
-    Train->DynamicObject->mdKabina->Render(0.0,Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->iAlpha);
-    Train->DynamicObject->mdKabina->RenderAlpha(0.0,Train->DynamicObject->ReplacableSkinID,Train->DynamicObject->iAlpha);
+    Train->Dynamic()->mdKabina->Render(0.0,Train->Dynamic()->ReplacableSkinID,Train->Dynamic()->iAlpha);
+    Train->Dynamic()->mdKabina->RenderAlpha(0.0,Train->Dynamic()->ReplacableSkinID,Train->Dynamic()->iAlpha);
    }
    //przywrócenie standardowych, bo zawsze s¹ zmieniane
    glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
@@ -1444,63 +1444,63 @@ bool __fastcall TWorld::Update()
      Train->rsBrake.Stop();
      Train->rsEngageSlippery.Stop();
      Train->rsSlippery.Stop();
-     if (Train->DynamicObject->Mechanik) //AI mo¿e sobie samo pójœæ
-      if (!Train->DynamicObject->Mechanik->AIControllFlag) //tylko jeœli rêcznie prowadzony
+     if (Train->Dynamic()->Mechanik) //AI mo¿e sobie samo pójœæ
+      if (!Train->Dynamic()->Mechanik->AIControllFlag) //tylko jeœli rêcznie prowadzony
       {//jeœli prowadzi AI, to mu nie robimy dywersji!
-       Train->DynamicObject->MoverParameters->CabDeactivisation();
-       Train->DynamicObject->Controller=AIdriver;
-       Train->DynamicObject->MoverParameters->SecuritySystem.Status=0;
-       Train->DynamicObject->MoverParameters->ActiveCab=0;
-       Train->DynamicObject->MoverParameters->BrakeLevelSet(-2);
-       Train->DynamicObject->MechInside=false;
+       Train->Dynamic()->MoverParameters->CabDeactivisation();
+       Train->Dynamic()->Controller=AIdriver;
+       Train->Dynamic()->MoverParameters->SecuritySystem.Status=0;
+       Train->Dynamic()->MoverParameters->ActiveCab=0;
+       Train->Dynamic()->MoverParameters->BrakeLevelSet(-2);
+       Train->Dynamic()->MechInside=false;
       }
      //int CabNr;
      TDynamicObject *temp=Global::changeDynObj;
      //CabNr=temp->MoverParameters->ActiveCab;
 /*
-     if (Train->DynamicObject->MoverParameters->ActiveCab==-1)
+     if (Train->Dynamic()->MoverParameters->ActiveCab==-1)
      {
-      temp=Train->DynamicObject->NextConnected; //pojazd od strony sprzêgu 1
-      CabNr=(Train->DynamicObject->NextConnectedNo==0)?1:-1;
+      temp=Train->Dynamic()->NextConnected; //pojazd od strony sprzêgu 1
+      CabNr=(Train->Dynamic()->NextConnectedNo==0)?1:-1;
      }
      else
      {
-      temp=Train->DynamicObject->PrevConnected; //pojazd od strony sprzêgu 0
-      CabNr=(Train->DynamicObject->PrevConnectedNo==0)?1:-1;
+      temp=Train->Dynamic()->PrevConnected; //pojazd od strony sprzêgu 0
+      CabNr=(Train->Dynamic()->PrevConnectedNo==0)?1:-1;
      }
 */
-     Train->DynamicObject->bDisplayCab=false;
-     Train->DynamicObject->ABuSetModelShake(vector3(0,0,0));
-     ///Train->DynamicObject->MoverParameters->LimPipePress=-1;
-     ///Train->DynamicObject->MoverParameters->ActFlowSpeed=0;
-     ///Train->DynamicObject->Mechanik->CloseLog();
-     ///SafeDelete(Train->DynamicObject->Mechanik);
+     Train->Dynamic()->bDisplayCab=false;
+     Train->Dynamic()->ABuSetModelShake(vector3(0,0,0));
+     ///Train->Dynamic()->MoverParameters->LimPipePress=-1;
+     ///Train->Dynamic()->MoverParameters->ActFlowSpeed=0;
+     ///Train->Dynamic()->Mechanik->CloseLog();
+     ///SafeDelete(Train->Dynamic()->Mechanik);
 
-     //Train->DynamicObject->mdKabina=NULL;
-     if (Train->DynamicObject->Mechanik) //AI mo¿e sobie samo pójœæ
-      if (!Train->DynamicObject->Mechanik->AIControllFlag) //tylko jeœli rêcznie prowadzony
-       Train->DynamicObject->Mechanik->MoveTo(temp); //przsuniêcie obiektu zarz¹dzaj¹cego
+     //Train->Dynamic()->mdKabina=NULL;
+     if (Train->Dynamic()->Mechanik) //AI mo¿e sobie samo pójœæ
+      if (!Train->Dynamic()->Mechanik->AIControllFlag) //tylko jeœli rêcznie prowadzony
+       Train->Dynamic()->Mechanik->MoveTo(temp); //przsuniêcie obiektu zarz¹dzaj¹cego
      //Train->DynamicObject=NULL;
      Train->DynamicObject=temp;
      Controlled=temp;
-     Global::asHumanCtrlVehicle=Train->DynamicObject->GetName();
-     if (Train->DynamicObject->Mechanik) //AI mo¿e sobie samo pójœæ
-      if (!Train->DynamicObject->Mechanik->AIControllFlag) //tylko jeœli rêcznie prowadzony
-      {Train->DynamicObject->MoverParameters->LimPipePress=Controlled->MoverParameters->PipePress;
-       //Train->DynamicObject->MoverParameters->ActFlowSpeed=0;
-       Train->DynamicObject->MoverParameters->SecuritySystem.Status=1;
-       //Train->DynamicObject->MoverParameters->ActiveCab=CabNr;
-       Train->DynamicObject->MoverParameters->CabActivisation(); //za³¹czenie rozrz¹du (wirtualne kabiny)
-       Train->DynamicObject->Controller=Humandriver;
-       Train->DynamicObject->MechInside=true;
-       //Train->DynamicObject->Mechanik=new TController(l,r,Controlled->Controller,&Controlled->MoverParameters,&Controlled->TrainParams,Aggressive);
-       //Train->InitializeCab(CabNr,Train->DynamicObject->asBaseDir+Train->DynamicObject->MoverParameters->TypeName+".mmd");
+     Global::asHumanCtrlVehicle=Train->Dynamic()->GetName();
+     if (Train->Dynamic()->Mechanik) //AI mo¿e sobie samo pójœæ
+      if (!Train->Dynamic()->Mechanik->AIControllFlag) //tylko jeœli rêcznie prowadzony
+      {Train->Dynamic()->MoverParameters->LimPipePress=Controlled->MoverParameters->PipePress;
+       //Train->Dynamic()->MoverParameters->ActFlowSpeed=0;
+       Train->Dynamic()->MoverParameters->SecuritySystem.Status=1;
+       //Train->Dynamic()->MoverParameters->ActiveCab=CabNr;
+       Train->Dynamic()->MoverParameters->CabActivisation(); //za³¹czenie rozrz¹du (wirtualne kabiny)
+       Train->Dynamic()->Controller=Humandriver;
+       Train->Dynamic()->MechInside=true;
+       //Train->Dynamic()->Mechanik=new TController(l,r,Controlled->Controller,&Controlled->MoverParameters,&Controlled->TrainParams,Aggressive);
+       //Train->InitializeCab(CabNr,Train->Dynamic()->asBaseDir+Train->Dynamic()->MoverParameters->TypeName+".mmd");
       }
-     Train->InitializeCab(Train->DynamicObject->MoverParameters->CabNo,Train->DynamicObject->asBaseDir+Train->DynamicObject->MoverParameters->TypeName+".mmd");
+     Train->InitializeCab(Train->Dynamic()->MoverParameters->CabNo,Train->Dynamic()->asBaseDir+Train->Dynamic()->MoverParameters->TypeName+".mmd");
      if (!FreeFlyModeFlag)
      {Global::pUserDynamic=Controlled; //renerowanie wzglêdem kamery
-      Train->DynamicObject->bDisplayCab=true;
-      Train->DynamicObject->ABuSetModelShake(vector3(0,0,0)); //zerowanie przesuniêcia przed powrotem?
+      Train->Dynamic()->bDisplayCab=true;
+      Train->Dynamic()->ABuSetModelShake(vector3(0,0,0)); //zerowanie przesuniêcia przed powrotem?
       Train->MechStop();
       FollowView(); //na pozycjê mecha
      }
@@ -1766,9 +1766,9 @@ bool __fastcall TWorld::Update()
       //else
       //OutText3+=AnsiString("; test:")+AnsiString(Controlled->MoverParameters->TrainType[1]);
 
-      //OutText3+=FloatToStrF(Train->DynamicObject->MoverParameters->EndSignalsFlag,ffFixed,3,0);;
+      //OutText3+=FloatToStrF(Train->Dynamic()->MoverParameters->EndSignalsFlag,ffFixed,3,0);;
 
-      //OutText3+=FloatToStrF(Train->DynamicObject->MoverParameters->EndSignalsFlag&byte(((((1+Train->DynamicObject->MoverParameters->CabNo)/2)*30)+2)),ffFixed,3,0);;
+      //OutText3+=FloatToStrF(Train->Dynamic()->MoverParameters->EndSignalsFlag&byte(((((1+Train->Dynamic()->MoverParameters->CabNo)/2)*30)+2)),ffFixed,3,0);;
 
       //OutText3+=AnsiString("; Ftmax=")+FloatToStrF(Controlled->MoverParameters->Ftmax,ffFixed,3,0);
       //OutText3+=AnsiString("; FTotal=")+FloatToStrF(Controlled->MoverParameters->FTotal/1000.0f,ffFixed,3,2);
@@ -1969,7 +1969,7 @@ bool __fastcall TWorld::Render()
    if (!Ground.RenderAlphaDL(Camera.Pos))
     return false;
  }
- TSubModel::iInstance=(int)(Train?Train->DynamicObject:0); //¿eby nie robiæ cudzych animacji
+ TSubModel::iInstance=(int)(Train?Train->Dynamic():0); //¿eby nie robiæ cudzych animacji
  //if (Camera.Type==tp_Follow)
  if (Train) Train->Update();
  //if (Global::bRenderAlpha)
@@ -2293,7 +2293,7 @@ void __fastcall TWorld::CreateE3D(const AnsiString &dir,bool dyn)
 void __fastcall TWorld::CabChange(TDynamicObject *old,TDynamicObject *now)
 {//ewentualna zmiana kabiny u¿ytkownikowi
  if (Train)
-  if (Train->DynamicObject==old)
+  if (Train->Dynamic()==old)
    Global::changeDynObj=now; //uruchomienie protezy
 };
 //---------------------------------------------------------------------------

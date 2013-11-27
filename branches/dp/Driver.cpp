@@ -971,6 +971,7 @@ void __fastcall TController::Activation()
   {//jeœli zmieniony zosta³ pojazd prowadzony
    Global::pWorld->CabChange(old,pVehicle); //ewentualna zmiana kabiny u¿ytkownikowi
    Controlling=pVehicle->MoverParameters; //skrót do obiektu parametrów, mo¿e byæ nowy
+   //Ra: mo¿e dla EN57 ustawiæ Controlling na cz³on silnikowy?
   }
   //Ra: to prze³¹czanie poni¿ej jest tu bez sensu
   Controlling->ActiveCab=iDirection; //aktywacja kabiny w prowadzonym poje¿dzie
