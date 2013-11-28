@@ -609,42 +609,42 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
   //sygnaly konca pociagu
   if (btEndSignals1.Active())
   {
-   if (TestFlag(MoverParameters->iLights[0],2)
-     ||TestFlag(MoverParameters->iLights[0],32))
+   if (TestFlag(iLights[0],2)
+     ||TestFlag(iLights[0],32))
     {btEndSignals1.TurnOn(); btnOn=true;}
    //else btEndSignals1.TurnOff();
   }
   else
   {
-   if (TestFlag(MoverParameters->iLights[0],2))
+   if (TestFlag(iLights[0],2))
     {btEndSignals11.TurnOn(); btnOn=true;}
    //else btEndSignals11.TurnOff();
-   if (TestFlag(MoverParameters->iLights[0],32))
+   if (TestFlag(iLights[0],32))
     {btEndSignals13.TurnOn(); btnOn=true;}
    //else btEndSignals13.TurnOff();
   }
 
   if (btEndSignals2.Active())
   {
-   if (TestFlag(MoverParameters->iLights[1],2)
-     ||TestFlag(MoverParameters->iLights[1],32))
+   if (TestFlag(iLights[1],2)
+     ||TestFlag(iLights[1],32))
     {btEndSignals2.TurnOn(); btnOn=true;}
    //else btEndSignals2.TurnOff();
   }
   else
   {
-   if (TestFlag(MoverParameters->iLights[1],2))
+   if (TestFlag(iLights[1],2))
     {btEndSignals21.TurnOn(); btnOn=true;}
    //else btEndSignals21.TurnOff();
-   if (TestFlag(MoverParameters->iLights[1],32))
+   if (TestFlag(iLights[1],32))
     {btEndSignals23.TurnOn(); btnOn=true;}
    //else btEndSignals23.TurnOff();
   }
   //tablice blaszane:
-  if (TestFlag(MoverParameters->iLights[0],64))
+  if (TestFlag(iLights[0],64))
    {btEndSignalsTab1.TurnOn(); btnOn=true;}
   //else btEndSignalsTab1.TurnOff();
-  if (TestFlag(MoverParameters->iLights[1],64))
+  if (TestFlag(iLights[1],64))
    {btEndSignalsTab2.TurnOn(); btnOn=true;}
   //else btEndSignalsTab2.TurnOff();
   //McZapkie-181002: krecenie wahaczem (korzysta z kata obrotu silnika)
@@ -663,22 +663,22 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
   //if (ObjSqrDist<80000) ABuModelRoll(); //przechy³ki od 400m
  }
  //sygnaly czola pociagu //Ra: wyœwietlamy bez ograniczeñ odleg³oœci, by by³y widoczne z daleka
- if (TestFlag(MoverParameters->iLights[0],1))
+ if (TestFlag(iLights[0],1))
   {btHeadSignals11.TurnOn(); btnOn=true;}
  //else btHeadSignals11.TurnOff();
- if (TestFlag(MoverParameters->iLights[0],4))
+ if (TestFlag(iLights[0],4))
   {btHeadSignals12.TurnOn(); btnOn=true;}
  //else btHeadSignals12.TurnOff();
- if (TestFlag(MoverParameters->iLights[0],16))
+ if (TestFlag(iLights[0],16))
   {btHeadSignals13.TurnOn(); btnOn=true;}
  //else btHeadSignals13.TurnOff();
- if (TestFlag(MoverParameters->iLights[1],1))
+ if (TestFlag(iLights[1],1))
   {btHeadSignals21.TurnOn(); btnOn=true;}
  //else btHeadSignals21.TurnOff();
- if (TestFlag(MoverParameters->iLights[1],4))
+ if (TestFlag(iLights[1],4))
   {btHeadSignals22.TurnOn(); btnOn=true;}
  //else btHeadSignals22.TurnOff();
- if (TestFlag(MoverParameters->iLights[1],16))
+ if (TestFlag(iLights[1],16))
   {btHeadSignals23.TurnOn(); btnOn=true;}
  //else btHeadSignals23.TurnOff();
 }
@@ -1325,6 +1325,7 @@ double __fastcall TDynamicObject::Init(
 */
  //utworzenie parametrów fizyki
  MoverParameters=new TMoverParameters(iDirection?fVel:-fVel,Type_Name,asName,Load,LoadType,Cab);
+ iLights=MoverParameters->iLights; //wska¿nik na stan w³asnych œwiate³ (zmienimy dla rozrz¹dczych EZT)
  //McZapkie: TypeName musi byc nazw¹ CHK/MMD pojazdu
  if (!MoverParameters->LoadChkFile(asBaseDir))
  {//jak wczytanie CHK siê nie uda, to b³¹d
@@ -1744,26 +1745,32 @@ void __fastcall TDynamicObject::AttachPrev(TDynamicObject *Object, int iType)
  MoverParameters->Couplers[iDirection].Render=false;
  Object->MoverParameters->Attach(Object->iDirection^1,iDirection,MoverParameters,iType,true);
  Object->MoverParameters->Couplers[Object->iDirection^1].Render=true; //rysowanie sprzêgu w do³¹czanym
- if (!iDirection)
+ if (iDirection)
+ {//³¹czenie standardowe
+  NextConnected=Object; //normalnie doczepiamy go sobie do sprzêgu 1
+  NextConnectedNo=Object->iDirection^1;
+ }
+ else
  {//³¹czenie odwrotne
   PrevConnected=Object; //doczepiamy go sobie do sprzêgu 0, gdy stoimy odwrotnie
   PrevConnectedNo=Object->iDirection^1;
  }
- else
- {//³¹czenie standardowe
-  NextConnected=Object; //doczepiamy go sobie do sprzêgu 1
-  NextConnectedNo=Object->iDirection^1;
- }
- if (!Object->iDirection)
- {//do³¹czany jest odwrotnie ustawiany
-  Object->NextConnected=this; //on ma nas z ty³u
-  Object->NextConnectedNo=iDirection;
- }
- else
+ if (Object->iDirection)
  {//do³¹czany jest normalnie ustawiany
   Object->PrevConnected=this; //on ma nas z przodu
   Object->PrevConnectedNo=iDirection;
  }
+ else
+ {//do³¹czany jest odwrotnie ustawiany
+  Object->NextConnected=this; //on ma nas z ty³u
+  Object->NextConnectedNo=iDirection;
+ }
+ if (MoverParameters->TrainType&dt_EZT) //w przypadku ³¹czenia cz³onów, œwiat³a w rozrz¹dczym zale¿¹ od stanu w silnikowym
+  if (MoverParameters->Couplers[iDirection].AllowedFlag&ctrain_depot) //gdy sprzêgi ³¹czone warsztatowo (powiedzmy)
+   if ((MoverParameters->Power<1.0)&&(Object->MoverParameters->Power>1.0)) //my nie mamy mocy, ale ten drugi ma
+    iLights=Object->MoverParameters->iLights; //to w tym z moc¹ bêd¹ œwiat³a za³¹czane, a w tym bez tylko widoczne
+   else if ((MoverParameters->Power>1.0)&&(Object->MoverParameters->Power<1.0)) //my mamy moc, ale ten drugi nie ma
+    Object->iLights=MoverParameters->iLights; //to w tym z moc¹ bêd¹ œwiat³a za³¹czane, a w tym bez tylko widoczne
  return;
  //SetPneumatic(1,1); //Ra: to i tak siê nie wykonywa³o po return
  //SetPneumatic(1,0);
@@ -3800,13 +3807,13 @@ void __fastcall TDynamicObject::RaLightsSet(int head,int rear)
  }
  if (iDirection) //w zale¿noœci od kierunku pojazdu w sk³adzie
  {//jesli pojazd stoi sprzêgiem 0 w stronê czo³a
-  if (head>=0) MoverParameters->iLights[0]=head;
-  if (rear>=0) MoverParameters->iLights[1]=rear;
+  if (head>=0) iLights[0]=head;
+  if (rear>=0) iLights[1]=rear;
  }
  else
  {//jak jest odwrócony w sk³adzie (-1), to zapalamy odwrotnie
-  if (head>=0) MoverParameters->iLights[1]=head;
-  if (rear>=0) MoverParameters->iLights[0]=rear;
+  if (head>=0) iLights[1]=head;
+  if (rear>=0) iLights[0]=rear;
  }
 };
 
