@@ -223,7 +223,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
         if (GetAsyncKeyState(VK_CONTROL)>=0)
           {
             dsbSwitch->SetVolume(DSBVOLUME_MAX);
-            dsbSwitch->Play( 0, 0, 0 );
+            dsbSwitch->Play(0,0,0);
             pControlled->Radio=true;
           }
       }
@@ -297,7 +297,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
          {
          if ((pControlled->BatterySwitch(true)))
            {
-               dsbSwitch->Play( 0, 0, 0 );
+               dsbSwitch->Play(0,0,0);
                SetFlag(pControlled->SecuritySystem.Status,s_active);
                SetFlag(pControlled->SecuritySystem.Status,s_SHPalarm) ;
 
@@ -311,7 +311,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
          {
          if ((pControlled->Signalling==false))
            {
-               dsbSwitch->Play( 0, 0, 0 );
+               dsbSwitch->Play(0,0,0);
                pControlled->Signalling=true;
            }
            }
@@ -323,7 +323,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
          {
          if ((pControlled->DoorSignalling==false))
            {
-               dsbSwitch->Play( 0, 0, 0 );
+               dsbSwitch->Play(0,0,0);
                pControlled->DoorSignalling=true;
            }
            }
@@ -1303,7 +1303,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
           if (pControlled->Radio==true)
           {
             dsbSwitch->SetVolume(DSBVOLUME_MAX);
-            dsbSwitch->Play( 0, 0, 0 );
+            dsbSwitch->Play(0,0,0);
             pControlled->Radio=false;
           }
         }
@@ -1345,7 +1345,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
         if((pControlled->TrainType==dt_EZT) || (pControlled->EngineType==ElectricSeriesMotor)|| (pControlled->EngineType==DieselElectric))
         if(pControlled->BatterySwitch(false))
            {
-              dsbSwitch->Play( 0, 0, 0 );
+              dsbSwitch->Play(0,0,0);
               pControlled->SecuritySystem.Status=0;
               pControlled->PantFront(false);
               pControlled->PantRear(false);
@@ -1540,7 +1540,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
         {
           if(pControlled->DoorSignalling==true)
            {
-              dsbSwitch->Play( 0, 0, 0 );
+              dsbSwitch->Play(0,0,0);
               pControlled->DoorSignalling=false;
            }
         }
@@ -1597,7 +1597,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
             }*/
           }
           else
-          { //tryb freefly
+          {//tryb freefly
            int CouplNr=-1; //normalnie ¿aden ze sprzêgów
            TDynamicObject *tmp;
            tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1,1500,CouplNr);
@@ -1607,58 +1607,63 @@ void __fastcall TTrain::OnKeyPress(int cKey)
            {
             if (tmp->MoverParameters->Couplers[CouplNr].CouplingFlag==0) //najpierw hak
             {
-             if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,ctrain_coupler))
-             {
-              //tmp->MoverParameters->Couplers[CouplNr].Render=true; //pod³¹czony sprzêg bêdzie widoczny
-              if (DynamicObject->Mechanik) //na wszelki wypadek
-               DynamicObject->Mechanik->CheckVehicles(); //aktualizacja flag kierunku w sk³adzie
-              dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
-              dsbCouplerAttach->Play(0,0,0);
-             }
+             if ((tmp->MoverParameters->Couplers[CouplNr].Connected->Couplers[CouplNr].AllowedFlag&tmp->MoverParameters->Couplers[CouplNr].AllowedFlag&ctrain_coupler)==ctrain_coupler)
+              if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,ctrain_coupler))
+              {
+               //tmp->MoverParameters->Couplers[CouplNr].Render=true; //pod³¹czony sprzêg bêdzie widoczny
+               if (DynamicObject->Mechanik) //na wszelki wypadek
+                DynamicObject->Mechanik->CheckVehicles(); //aktualizacja flag kierunku w sk³adzie
+               dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
+               dsbCouplerAttach->Play(0,0,0);
+              }
             }
             else
             if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag,ctrain_pneumatic))    //pneumatyka
             {
-             if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,tmp->MoverParameters->Couplers[CouplNr].CouplingFlag+ctrain_pneumatic))
-             {
-              rsHiss.Play(1,DSBPLAY_LOOPING,true,tmp->GetPosition());
-              DynamicObject->SetPneumatic(CouplNr,1); //Ra: to mi siê nie podoba !!!!
-              tmp->SetPneumatic(CouplNr,1);
-             }
+             if ((tmp->MoverParameters->Couplers[CouplNr].Connected->Couplers[CouplNr].AllowedFlag&tmp->MoverParameters->Couplers[CouplNr].AllowedFlag&ctrain_pneumatic)==ctrain_pneumatic)
+              if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,tmp->MoverParameters->Couplers[CouplNr].CouplingFlag+ctrain_pneumatic))
+              {
+               rsHiss.Play(1,DSBPLAY_LOOPING,true,tmp->GetPosition());
+               DynamicObject->SetPneumatic(CouplNr,1); //Ra: to mi siê nie podoba !!!!
+               tmp->SetPneumatic(CouplNr,1);
+              }
             }
             else
             if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag,ctrain_scndpneumatic))     //zasilajacy
             {
-             if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,tmp->MoverParameters->Couplers[CouplNr].CouplingFlag+ctrain_scndpneumatic))
-             {
+             if ((tmp->MoverParameters->Couplers[CouplNr].Connected->Couplers[CouplNr].AllowedFlag&tmp->MoverParameters->Couplers[CouplNr].AllowedFlag&ctrain_scndpneumatic)==ctrain_scndpneumatic)
+              if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,tmp->MoverParameters->Couplers[CouplNr].CouplingFlag+ctrain_scndpneumatic))
+              {
 //              rsHiss.Play(1,DSBPLAY_LOOPING,true,tmp->GetPosition());
-              dsbCouplerDetach->SetVolume(DSBVOLUME_MAX);
-              dsbCouplerDetach->Play(0,0,0);
-              DynamicObject->SetPneumatic(CouplNr,0); //Ra: to mi siê nie podoba !!!!
-              tmp->SetPneumatic(CouplNr,0);
-             }
+               dsbCouplerDetach->SetVolume(DSBVOLUME_MAX);
+               dsbCouplerDetach->Play(0,0,0);
+               DynamicObject->SetPneumatic(CouplNr,0); //Ra: to mi siê nie podoba !!!!
+               tmp->SetPneumatic(CouplNr,0);
+              }
             }
             else
             if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag,ctrain_controll))     //ukrotnionko
             {
-             if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,tmp->MoverParameters->Couplers[CouplNr].CouplingFlag+ctrain_controll))
-             {
-              dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
-              dsbCouplerAttach->Play(0,0,0);
-             }
-            }
-             else
-              if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag,ctrain_passenger))     //mostek
+             if ((tmp->MoverParameters->Couplers[CouplNr].Connected->Couplers[CouplNr].AllowedFlag&tmp->MoverParameters->Couplers[CouplNr].AllowedFlag&ctrain_controll)==ctrain_controll)
+              if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,tmp->MoverParameters->Couplers[CouplNr].CouplingFlag+ctrain_controll))
               {
-                if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,tmp->MoverParameters->Couplers[CouplNr].CouplingFlag+ctrain_passenger))
-                {
-//                  rsHiss.Play(1,DSBPLAY_LOOPING,true,tmp->GetPosition());
-                  dsbCouplerDetach->SetVolume(DSBVOLUME_MAX);
-                  dsbCouplerDetach->Play( 0, 0, 0 );
-                  DynamicObject->SetPneumatic(CouplNr,0);
-                  tmp->SetPneumatic(CouplNr,0);
-                }
+               dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
+               dsbCouplerAttach->Play(0,0,0);
               }
+            }
+            else
+            if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag,ctrain_passenger))     //mostek
+            {
+             if ((tmp->MoverParameters->Couplers[CouplNr].Connected->Couplers[CouplNr].AllowedFlag&tmp->MoverParameters->Couplers[CouplNr].AllowedFlag&ctrain_passenger)==ctrain_passenger)
+              if (tmp->MoverParameters->Attach(CouplNr,2,tmp->MoverParameters->Couplers[CouplNr].Connected,tmp->MoverParameters->Couplers[CouplNr].CouplingFlag+ctrain_passenger))
+              {
+//                  rsHiss.Play(1,DSBPLAY_LOOPING,true,tmp->GetPosition());
+               dsbCouplerDetach->SetVolume(DSBVOLUME_MAX);
+               dsbCouplerDetach->Play(0,0,0);
+               DynamicObject->SetPneumatic(CouplNr,0);
+               tmp->SetPneumatic(CouplNr,0);
+              }
+             }
             }
            }
           }
@@ -1779,7 +1784,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
         if (pControlled->PantRear(false))
         {
          dsbSwitch->SetVolume(DSBVOLUME_MAX);
-         dsbSwitch->Play( 0, 0, 0 );
+         dsbSwitch->Play(0,0,0);
         }
        }
       }
@@ -2144,7 +2149,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
         {
           if(pControlled->Signalling==true)
            {
-              dsbSwitch->Play( 0, 0, 0 );
+              dsbSwitch->Play(0,0,0);
               pControlled->Signalling=false;
         }
        }
@@ -3796,7 +3801,7 @@ if (pControlled->Battery==true)
         {
           dsbBuzzer->GetStatus(&stat);
           if (!(stat&DSBSTATUS_PLAYING))
-             dsbBuzzer->Play( 0, 0, DSBPLAY_LOOPING );
+             dsbBuzzer->Play(0,0,DSBPLAY_LOOPING);
         }
        else
         {
@@ -4415,44 +4420,44 @@ if ( Console::Pressed(Global::Keys[k_CurrentNext]))
  {
    if (pControlled->TrainType!=dt_EZT)
    {
-      if (ShowNextCurrent==false)
-      {
-         if (NextCurrentButtonGauge.SubModel)
-         {
-            NextCurrentButtonGauge.UpdateValue(1);
-            dsbSwitch->SetVolume(DSBVOLUME_MAX);
-            dsbSwitch->Play(0,0,0);
-            ShowNextCurrent=true;
-         }
-      }
+    if (ShowNextCurrent==false)
+    {
+     if (NextCurrentButtonGauge.SubModel)
+     {
+      NextCurrentButtonGauge.UpdateValue(1);
+      dsbSwitch->SetVolume(DSBVOLUME_MAX);
+      dsbSwitch->Play(0,0,0);
+      ShowNextCurrent=true;
+     }
+    }
    }
    else
    {
-   if (Console::Pressed(VK_SHIFT))
-     {
-      if (Console::Pressed(k_CurrentNext))
-        {//Ra: by³o pod VK_F3
-        if ((pControlled->EpFuseSwitch(true)))
-           {
-           dsbPneumaticSwitch->SetVolume(-10);
-            dsbPneumaticSwitch->Play( 0, 0, 0 );
-           }
-        }
+    if (Console::Pressed(VK_SHIFT))
+    {
+     if (Console::Pressed(k_CurrentNext))
+     {//Ra: by³o pod VK_F3
+      if ((pControlled->EpFuseSwitch(true)))
+      {
+       dsbPneumaticSwitch->SetVolume(-10);
+       dsbPneumaticSwitch->Play(0,0,0);
+      }
      }
+    }
     else
-     {
-      if (Console::Pressed(k_CurrentNext))
-        {//Ra: by³o pod VK_F3
-        if (Console::Pressed(VK_CONTROL))
-         {
-        if ((pControlled->EpFuseSwitch(false)))
-           {
-           dsbPneumaticSwitch->SetVolume(-10);
-            dsbPneumaticSwitch->Play( 0, 0, 0 );
-           }
-          }
-        }
+    {
+     if (Console::Pressed(k_CurrentNext))
+     {//Ra: by³o pod VK_F3
+      if (Console::Pressed(VK_CONTROL))
+      {
+       if ((pControlled->EpFuseSwitch(false)))
+       {
+        dsbPneumaticSwitch->SetVolume(-10);
+        dsbPneumaticSwitch->Play(0,0,0);
+       }
+      }
      }
+    }
    } 
  }  
 else
@@ -5503,6 +5508,7 @@ void __fastcall TTrain::DynamicSet(TDynamicObject *d)
  //problemem jest wa³ ku³akowy, który dzia³a w silnikowym jak nastawnik
  //ale wa³ ku³akowy mo¿e byæ te¿ w cz³onie z kabin¹, np. w EZT typu S+D
  //problem siê robi ze œwiat³ami, które bêd¹ zapalane w silnikowym, ale musz¹ œwieciæ siê w rozrz¹dczych
+ //dla EZT œwiat³¹ czo³owe bêd¹ "zapalane w silnikowym", ale widziane z rozrz¹dczych
  //równie¿ wczytywanie MMD powinno dotyczyæ aktualnego cz³onu
  //problematyczna mo¿e byæ kwestia wybranej kabiny (w silnikowym...)
  //równie¿ hamowanie wykonuje siê zaworem w cz³onie, a nie w silnikowym...

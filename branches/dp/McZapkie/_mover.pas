@@ -884,7 +884,6 @@ TYPE
                 procedure SendAVL(AccS,AccN,V,dL:real; CN:byte); }
               end;    {ufff}
 
-{   P_MoverParameters=^T_MoverParameters; }
 function Distance(Loc1,Loc2: TLocation; Dim1,Dim2:TDimension) : real;
 
 {----------------------------------------------------------------}
@@ -962,18 +961,6 @@ begin
 end;
 
 {-----zderzaki,sprzegi----}
-
-{ABu: ta funkcja jest ignorowana, bo nie uwzgledniaja przylaczenia
- sprzegow 0 <-> 0 oraz 1 <-> 1. Zamiast niej tablica: CouplerNr[CouplerN];}
-{
-function CouplerNext(CouplerN:byte):byte;
-begin
-  case CouplerN of
-    0: CouplerNext:=1;
-    1: CouplerNext:=0;
-  end;
-end;
-}
 
 {poprawka dla liczenia sil przy ustawieniu przeciwnym obiektow:}
 function DirPatch(Coupler1:byte; Coupler2:byte): real;

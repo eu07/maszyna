@@ -281,6 +281,7 @@ protected:
     void __fastcall ABuCheckMyTrack();
 
 public:
+ int *iLights; //wskaŸnik na bity zapalonych œwiate³ (w³asne albo innego cz³onu)
  double fTrackBlock; //odleg³oœæ do przeszkody do dalszego ruchu (wykrywanie kolizji z innym pojazdem)
  TDynamicObject* __fastcall PrevAny();
  TDynamicObject* __fastcall Prev();
