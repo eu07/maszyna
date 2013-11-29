@@ -774,7 +774,7 @@ __fastcall TController::TController
  VelNext=120.0;
  AIControllFlag=AI;
  pVehicle=NewControll;
- Controlling=pVehicle->MoverParameters; //skrót do obiektu parametrów
+ ControllingSet(); //utworzenie po³¹czenia do sterowanego pojazdu
  pVehicles[0]=pVehicle->GetFirstDynamic(0); //pierwszy w kierunku jazdy (Np. Pc1)
  pVehicles[1]=pVehicle->GetFirstDynamic(1); //ostatni w kierunku jazdy (koñcówki)
 /*
@@ -940,14 +940,14 @@ void __fastcall TController::Activation()
  if (iDirection)
  {//jeœli jest ustalony kierunek
   TDynamicObject *old=pVehicle,*d=pVehicle; //w tym siedzi AI
-  int brake=Controlling->LocalBrakePos;
+  int brake=pBraked->LocalBrakePos;
   while (Controlling->MainCtrlPos) //samo zapêtlenie DecSpeed() nie wystarcza :/
    DecSpeed(true); //wymuszenie zerowania nastawnika jazdy
   while (Controlling->ActiveDir<0) Controlling->DirectionForward(); //kierunek na 0
   while (Controlling->ActiveDir>0) Controlling->DirectionBackward();
   if (TestFlag(d->MoverParameters->Couplers[iDirectionOrder<0?1:0].CouplingFlag,ctrain_controll))
   {Controlling->MainSwitch(false); //dezaktywacja czuwaka, jeœli przejœcie do innego cz³onu
-   Controlling->DecLocalBrakeLevel(10); //zwolnienie hamulca w opuszczanym pojeŸdzie
+   pBraked->DecLocalBrakeLevel(10); //zwolnienie hamulca w opuszczanym pojeŸdzie
   }
   Controlling->ActiveCab=Controlling->CabNo; //u¿ytkownik moze zmieniæ ActiveCab wychodz¹c
   Controlling->CabDeactivisation(); //tak jest w Train.cpp
@@ -970,7 +970,7 @@ void __fastcall TController::Activation()
   if (pVehicle!=old)
   {//jeœli zmieniony zosta³ pojazd prowadzony
    Global::pWorld->CabChange(old,pVehicle); //ewentualna zmiana kabiny u¿ytkownikowi
-   Controlling=pVehicle->MoverParameters; //skrót do obiektu parametrów, mo¿e byæ nowy
+   ControllingSet(); //utworzenie po³¹czenia do sterowanego pojazdu, mo¿e byæ nowy
    //Ra: mo¿e dla EN57 ustawiæ Controlling na cz³on silnikowy?
   }
   //Ra: to prze³¹czanie poni¿ej jest tu bez sensu
@@ -981,7 +981,7 @@ void __fastcall TController::Activation()
   DirectionForward(true); //nawrotnik do przodu
   //if (AIControllFlag) //jeœli prowadzi komputer - tutaj zawsze
    if (brake) //hamowanie tylko jeœli by³ wczeœniej zahamowany (bo mo¿liwe, ¿e jedzie!)
-    Controlling->IncLocalBrakeLevel(brake); //zahamuj jak wczeœniej
+    pBraked->IncLocalBrakeLevel(brake); //zahamuj jak wczeœniej
   CheckVehicles(); //sprawdzenie sk³adu, AI zapali œwiat³a
   TableClear(); //resetowanie tabelki skanowania torów
  }
@@ -1084,7 +1084,7 @@ bool __fastcall TController::CheckVehicles()
   if (p->Mechanik) //jeœli ma obsadê
    if (p->Mechanik!=this) //ale chodzi o inny pojazd, ni¿ aktualnie sprawdzaj¹cy
     if (p->Mechanik->iDrivigFlags&movePrimary) //a tamten ma priorytet
-     if ((iDrivigFlags&movePrimary)&&(Controlling->DirAbsolute)&&(Controlling->BrakeCtrlPos>=-1)) //jeœli rz¹dzi i ma kierunek
+     if ((iDrivigFlags&movePrimary)&&(Controlling->DirAbsolute)&&(pBraked->BrakeCtrlPos>=-1)) //jeœli rz¹dzi i ma kierunek
       p->Mechanik->iDrivigFlags&=~movePrimary; //dezaktywuje tamtego
      else
       main=false; //nici z rz¹dzenia
@@ -1107,6 +1107,7 @@ bool __fastcall TController::CheckVehicles()
  delete[] pVehicles;
  pVehicles=new TDynamicObject*[iVehicles];
 */
+ ControllingSet(); //ustalenie cz³onu do sterowania (mo¿e byæ inny ni¿ zasiedziany)
  if (iDrivigFlags&movePrimary)
  {//jeœli jest aktywnie prowadz¹cym pojazd, mo¿e zrobiæ w³asny porz¹dek
   p=pVehicles[0];
@@ -1273,7 +1274,7 @@ void __fastcall TController::SetDriverPsyche()
  {//with Controlling do
   if (Controlling->MainCtrlPos<3)
    ReactionTime=Controlling->InitialCtrlDelay+ReactionTime;
-  if (Controlling->BrakeCtrlPos>1)
+  if (pBraked->BrakeCtrlPos>1)
    ReactionTime=0.5*ReactionTime;
 /*
   if (Controlling->Vel>0.1) //o ile jedziemy
@@ -1472,8 +1473,8 @@ bool __fastcall TController::ReleaseEngine()
   if (Controlling->ActiveDir==0)
    OK=Controlling->Mains; //tylko to testujemy dla pojazdu cz³owieka
  if (AIControllFlag)
-  if (!Controlling->DecBrakeLevel()) //tu moze zmieniaæ na -2, ale to bez znaczenia
-   if (!Controlling->IncLocalBrakeLevel(1))
+  if (!pBraked->DecBrakeLevel()) //tu moze zmieniaæ na -2, ale to bez znaczenia
+   if (!pBraked->IncLocalBrakeLevel(1))
    {
     while (DecSpeed(true)); //zerowanie nastawników
     if (Controlling->ActiveDir==1)
@@ -1498,19 +1499,19 @@ bool __fastcall TController::ReleaseEngine()
 bool __fastcall TController::IncBrake()
 {//zwiêkszenie hamowania
  bool OK=false;
- switch (Controlling->BrakeSystem)
+ switch (pBraked->BrakeSystem)
  {
   case Individual:
-   OK=Controlling->IncLocalBrakeLevel(1+floor(0.5+fabs(AccDesired)));
+   OK=pBraked->IncLocalBrakeLevel(1+floor(0.5+fabs(AccDesired)));
    break;
   case Pneumatic:
-   if ((Controlling->Couplers[0].Connected==NULL)&&(Controlling->Couplers[1].Connected==NULL))
-    OK=Controlling->IncLocalBrakeLevel(1+floor(0.5+fabs(AccDesired))); //hamowanie lokalnym bo luzem jedzie
+   if ((pBraked->Couplers[0].Connected==NULL)&&(pBraked->Couplers[1].Connected==NULL))
+    OK=pBraked->IncLocalBrakeLevel(1+floor(0.5+fabs(AccDesired))); //hamowanie lokalnym bo luzem jedzie
    else
-   {if (Controlling->BrakeCtrlPos+1==Controlling->BrakeCtrlPosNo)
+   {if (pBraked->BrakeCtrlPos+1==pBraked->BrakeCtrlPosNo)
     {
      if (AccDesired<-1.5) //hamowanie nagle
-      OK=Controlling->IncBrakeLevel();
+      OK=pBraked->IncBrakeLevel();
      else
       OK=false;
     }
@@ -1527,20 +1528,20 @@ bool __fastcall TController::IncBrake()
            else
 */
 //dodane dla towarowego
-     if (Controlling->BrakeDelayFlag==bdelay_G?-AccDesired*6.6>Min0R(2,Controlling->BrakeCtrlPos):true)
+     if (pBraked->BrakeDelayFlag==bdelay_G?-AccDesired*6.6>Min0R(2,pBraked->BrakeCtrlPos):true)
      {
-      OK=Controlling->IncBrakeLevel();
+      OK=pBraked->IncBrakeLevel();
      }
      else
       OK=false;
     }
    }
-   if (Controlling->BrakeCtrlPos>0) Controlling->BrakeReleaser(0);
+   if (pBraked->BrakeCtrlPos>0) pBraked->BrakeReleaser(0);
    break;
   case ElectroPneumatic:
-   if (Controlling->BrakeCtrlPos<Controlling->BrakeCtrlPosNo)
-    if (Controlling->BrakePressureTable[Controlling->BrakeCtrlPos+1+2].BrakeType==ElectroPneumatic) //+2 to indeks Pascala 
-     OK=Controlling->IncBrakeLevel();
+   if (pBraked->BrakeCtrlPos<pBraked->BrakeCtrlPosNo)
+    if (pBraked->BrakePressureTable[pBraked->BrakeCtrlPos+1+2].BrakeType==ElectroPneumatic) //+2 to indeks Pascala 
+     OK=pBraked->IncBrakeLevel();
     else
      OK=false;
   }
@@ -1550,33 +1551,33 @@ bool __fastcall TController::IncBrake()
 bool __fastcall TController::DecBrake()
 {//zmniejszenie si³y hamowania
  bool OK=false;
- switch (Controlling->BrakeSystem)
+ switch (pBraked->BrakeSystem)
  {
   case Individual:
-   OK=Controlling->DecLocalBrakeLevel(1+floor(0.5+fabs(AccDesired)));
+   OK=pBraked->DecLocalBrakeLevel(1+floor(0.5+fabs(AccDesired)));
    break;
   case Pneumatic:
-   if (Controlling->BrakeCtrlPos>0)
-    OK=Controlling->DecBrakeLevel();
+   if (pBraked->BrakeCtrlPos>0)
+    OK=pBraked->DecBrakeLevel();
    if (!OK)
-    OK=Controlling->DecLocalBrakeLevel(2);
-   if (Controlling->PipePress<3.0) 
+    OK=pBraked->DecLocalBrakeLevel(2);
+   if (pBraked->PipePress<3.0) 
    Need_BrakeRelease=true;
    break;
   case ElectroPneumatic:
-   //if (Controlling->BrakeCtrlPos>(Controlling->BrakeSubsystem==Oerlikon?-1:0))
-   if (Controlling->BrakeCtrlPos>((iDrivigFlags&moveOerlikons)?-1:0))
-    if (Controlling->BrakePressureTable[Controlling->BrakeCtrlPos-1+2].BrakeType==ElectroPneumatic) //+2 to indeks Pascala
-     OK=Controlling->DecBrakeLevel();
+   //if (pBraked->BrakeCtrlPos>(pBraked->BrakeSubsystem==Oerlikon?-1:0))
+   if (pBraked->BrakeCtrlPos>((iDrivigFlags&moveOerlikons)?-1:0))
+    if (pBraked->BrakePressureTable[pBraked->BrakeCtrlPos-1+2].BrakeType==ElectroPneumatic) //+2 to indeks Pascala
+     OK=pBraked->DecBrakeLevel();
     else
-    {if ((Controlling->BrakeSubsystem==ss_W))
+    {if ((pBraked->BrakeSubsystem==ss_W))
      {//jeœli Knorr
-      Controlling->SwitchEPBrake((Controlling->BrakePress>0.0)?1:0);
+      pBraked->SwitchEPBrake((pBraked->BrakePress>0.0)?1:0);
      }
      OK=false;
     }
     if (!OK)
-     OK=Controlling->DecLocalBrakeLevel(2);
+     OK=pBraked->DecLocalBrakeLevel(2);
    break;
  }
  return OK;
@@ -2119,17 +2120,17 @@ void __fastcall TController::PhysicsLog()
 #if LOGPRESS==0
     LogFile << ElapsedTime<<" "<<fabs(11.31*Controlling->WheelDiameter*Controlling->nrot)<<" ";
     LogFile << Controlling->AccS<<" "<<Controlling->Couplers[1].Dist<<" "<<Controlling->Couplers[1].CForce<<" ";
-    LogFile << Controlling->Ft<<" "<<Controlling->Ff<<" "<<Controlling->Fb<<" "<<Controlling->BrakePress<<" ";
-    LogFile << Controlling->PipePress<<" "<<Controlling->Im<<" "<<int(Controlling->MainCtrlPos)<<"   ";
-    LogFile << int(Controlling->ScndCtrlPos)<<"   "<<int(Controlling->BrakeCtrlPos)<<"   "<<int(Controlling->LocalBrakePos)<<"   ";
+    LogFile << Controlling->Ft<<" "<<Controlling->Ff<<" "<<Controlling->Fb<<" "<<pBraked->BrakePress<<" ";
+    LogFile << pBraked->PipePress<<" "<<Controlling->Im<<" "<<int(Controlling->MainCtrlPos)<<"   ";
+    LogFile << int(Controlling->ScndCtrlPos)<<"   "<<int(pBraked->BrakeCtrlPos)<<"   "<<int(pBraked->LocalBrakePos)<<"   ";
     LogFile << int(Controlling->ActiveDir)<<"   "<<Controlling->CommandIn.Command.c_str()<<" "<<Controlling->CommandIn.Value1<<" ";
     LogFile << Controlling->CommandIn.Value2<<" "<<int(Controlling->SecuritySystem.Status)<<" "<<int(Controlling->SlippingWheels)<<"\r\n";
 #endif
 #if LOGPRESS==1
     LogFile << ElapsedTime<<"\t"<<fabs(11.31*Controlling->WheelDiameter*Controlling->nrot)<<"\t";
     LogFile << Controlling->AccS<<"\t";
-    LogFile << Controlling->PipePress<<"\t"<<Controlling->CntrlPipePress<<"\t"<<Controlling->BrakePress<<"\t";
-    LogFile << Controlling->Volume<<"\t"<<Controlling->Hamulec->GetCRP()<<"\n";
+    LogFile << Controlling->PipePress<<"\t"<<pBraked->CntrlPipePress<<"\t"<<pBraked->BrakePress<<"\t";
+    LogFile << pBraked->Volume<<"\t"<<pBraked->Hamulec->GetCRP()<<"\n";
 #endif
     LogFile.flush();
    }
@@ -2143,8 +2144,8 @@ bool __fastcall TController::UpdateSituation(double dt)
  bool UpdateOK=false;
  if (AIControllFlag)
  {//yb: zeby EP nie musial sie bawic z ciesnieniem w PG
-//  if (Controlling->BrakeSystem==ElectroPneumatic)
-//   Controlling->PipePress=0.5; //yB: w SPKS s¹ poprawnie zrobione pozycje
+//  if (pBraked->BrakeSystem==ElectroPneumatic)
+//   pBraked->PipePress=0.5; //yB: w SPKS s¹ poprawnie zrobione pozycje
   if (Controlling->SlippingWheels)
   {
    Controlling->SandDoseOn(); //piasku!
@@ -2166,7 +2167,7 @@ bool __fastcall TController::UpdateSituation(double dt)
    {Ready=false; //nie gotowy
     //Ra: odluŸnianie prze³adowanych lokomotyw, ci¹gniêtych na zimno - prowizorka...
     if (AIControllFlag) //sk³ad jak dot¹d by³ wyluzowany
-    {if (Controlling->BrakeCtrlPos==0) //jest pozycja jazdy
+    {if (pBraked->BrakeCtrlPos==0) //jest pozycja jazdy
       if ((p->MoverParameters->PipePress-5.0)>-0.1) //jeœli ciœnienie jak dla jazdy
        if (p->MoverParameters->Hamulec->GetCRP()>p->MoverParameters->PipePress+0.12) //za du¿o w zbiorniku
         p->MoverParameters->BrakeReleaser(1); //indywidualne luzowanko
@@ -2184,7 +2185,7 @@ bool __fastcall TController::UpdateSituation(double dt)
  fAccGravity/=iDirection*fMass; //si³ê generuj¹ pojazdy na pochyleniu ale dzia³a ona ca³oœæ sk³adu, wiêc a=F/m
  if (!Ready) //v367: jeœli wg powy¿szych warunków sk³ad nie jest odhamowany
   if (fAccGravity<-0.05) //jeœli ma pod górê na tyle, by siê stoczyæ
-   //if (Controlling->BrakePress<0.08) //to wystarczy, ¿e zadzia³aj¹ liniowe (nie ma ich jeszcze!!!)
+   //if (pBraked->BrakePress<0.08) //to wystarczy, ¿e zadzia³aj¹ liniowe (nie ma ich jeszcze!!!)
    if (fReady<0.8) //delikatniejszy warunek, obejmuje wszystkie wagony
     Ready=true; //¿eby uznaæ za odhamowany
  HelpMeFlag=false;
@@ -2192,7 +2193,7 @@ bool __fastcall TController::UpdateSituation(double dt)
  if (AIControllFlag)
  {
   if (Controlling->EnginePowerSource.SourceType==CurrentCollector)
-   if (Controlling->ScndPipePress>4.3) //gdy g³ówna sprê¿arka bezpiecznie nabije ciœnienie
+   if (pBraked->ScndPipePress>4.3) //gdy g³ówna sprê¿arka bezpiecznie nabije ciœnienie
     Controlling->bPantKurek3=true; //to mo¿na przestawiæ kurek na zasilanie pantografów z g³ównej pneumatyki
   if (Controlling->Vel>0.0)
   {//je¿eli jedzie
@@ -2263,7 +2264,7 @@ bool __fastcall TController::UpdateSituation(double dt)
   // 1. Ustaliæ istotn¹ odleg³oœæ zainteresowania (np. 3×droga hamowania z V.max).
   fBrakeDist=fDriverBraking*Controlling->Vel*(40.0+Controlling->Vel); //przybli¿ona droga hamowania
   if (fMass>1000.0) fBrakeDist*=1.5; //korekta dla ciê¿kich, bo prze¿ynaj¹ - da to coœ?
-  if (Controlling->BrakeDelayFlag==bdelay_G) fBrakeDist=fBrakeDist+2*Controlling->Vel; //dla nastawienia G koniecznie nale¿y wyd³u¿yæ drogê na czas reakcji
+  if (pBraked->BrakeDelayFlag==bdelay_G) fBrakeDist=fBrakeDist+2*Controlling->Vel; //dla nastawienia G koniecznie nale¿y wyd³u¿yæ drogê na czas reakcji
   //double scanmax=(Controlling->Vel>0.0)?3*fDriverDist+fBrakeDist:10.0*fDriverDist;
   double scanmax=(Controlling->Vel>0.0)?150+fBrakeDist:20.0*fDriverDist; //1000m dla stoj¹cych poci¹gów
   // 2. Sprawdziæ, czy tabelka pokrywa za³o¿ony odcinek (nie musi, jeœli jest STOP).
@@ -2287,7 +2288,7 @@ bool __fastcall TController::UpdateSituation(double dt)
     if (!Controlling->SecuritySystemReset()) //to skasuj
      //if ((TestFlag(Controlling->SecuritySystem.Status,s_ebrake))&&(Controlling->BrakeCtrlPos==0)&&(AccDesired>0.0))
      if ((TestFlag(Controlling->SecuritySystem.Status,s_SHPebrake)||TestFlag(Controlling->SecuritySystem.Status,s_CAebrake))&&(Controlling->BrakeCtrlPos==0)&&(AccDesired>0.0))
-      Controlling->BrakeLevelSet(0); //!!! hm, mo¿e po prostu normalnie sterowaæ hamulcem?
+      pBraked->BrakeLevelSet(0); //!!! hm, mo¿e po prostu normalnie sterowaæ hamulcem?
   }
   switch (OrderList[OrderPos])
   {//ustalenie prêdkoœci przy doczepianiu i odczepianiu, dystansów w pozosta³ych przypadkach
@@ -2370,7 +2371,7 @@ bool __fastcall TController::UpdateSituation(double dt)
       if (Prepare2press) //jeœli dociskanie w celu odczepienia
       {//3. faza odczepiania.
        SetVelocity(2,0); //jazda w ustawionym kierunku z prêdkoœci¹ 2
-       if ((Controlling->MainCtrlPos>0)||(Controlling->BrakeSystem==ElectroPneumatic)) //jeœli jazda
+       if ((Controlling->MainCtrlPos>0)||(pBraked->BrakeSystem==ElectroPneumatic)) //jeœli jazda
        {
         //WriteLog("Odczepianie w kierunku "+AnsiString(Controlling->DirAbsolute));
         TDynamicObject *p=pVehicle; //pojazd do odczepienia, w (pVehicle) siedzi AI
@@ -2401,10 +2402,10 @@ bool __fastcall TController::UpdateSituation(double dt)
          } //a jak nie, to dociskaæ dalej
        }
        if (iVehicleCount>=0) //zmieni siê po odczepieniu
-        if (!Controlling->DecLocalBrakeLevel(1))
+        if (!pBraked->DecLocalBrakeLevel(1))
         {//dociœnij sklad
          //WriteLog("Dociskanie");
-         //Controlling->BrakeReleaser(); //wyluzuj lokomotywê
+         //pBraked->BrakeReleaser(); //wyluzuj lokomotywê
          //Ready=true; //zamiast sprawdzenia odhamowania ca³ego sk³adu
          IncSpeed(); //dla (Ready)==false nie ruszy
         }
@@ -2413,18 +2414,18 @@ bool __fastcall TController::UpdateSituation(double dt)
       {//2. faza odczepiania: zmieñ kierunek na przeciwny i dociœnij
        //za rad¹ yB ustawiamy pozycjê 3 kranu (ruszanie kranem w innych miejscach powino zostaæ wy³¹czone)
        //WriteLog("Zahamowanie sk³adu");
-       //while ((Controlling->BrakeCtrlPos>3)&&Controlling->DecBrakeLevel());
-       //while ((Controlling->BrakeCtrlPos<3)&&Controlling->IncBrakeLevel());
-       Controlling->BrakeLevelSet(Controlling->BrakeSystem==ElectroPneumatic?1:3);
-       double p=Controlling->BrakePressureActual.PipePressureVal; //tu mo¿e byæ 0 albo -1 nawet
+       //while ((pBraked->BrakeCtrlPos>3)&&pBraked->DecBrakeLevel());
+       //while ((pBraked->BrakeCtrlPos<3)&&pBraked->IncBrakeLevel());
+       pBraked->BrakeLevelSet(pBraked->BrakeSystem==ElectroPneumatic?1:3);
+       double p=pBraked->BrakePressureActual.PipePressureVal; //tu mo¿e byæ 0 albo -1 nawet
        if (p<3.9) p=3.9; //TODO: zabezpieczenie przed dziwnymi CHK do czasu wyjaœnienia sensu 0 oraz -1 w tym miejscu
-       if (Controlling->BrakeSystem==ElectroPneumatic?Controlling->BrakePress>2:Controlling->PipePress<p+0.1)
+       if (pBraked->BrakeSystem==ElectroPneumatic?pBraked->BrakePress>2:pBraked->PipePress<p+0.1)
        {//jeœli w miarê zosta³ zahamowany (ciœnienie mniejsze ni¿ podane na pozycji 3, zwyle 0.37)
-        if (Controlling->BrakeSystem==ElectroPneumatic)
-         Controlling->BrakeLevelSet(0); //wy³¹czenie EP, gdy wystarczy (mo¿e nie byæ potrzebne, bo na pocz¹tku jest)
+        if (pBraked->BrakeSystem==ElectroPneumatic)
+         pBraked->BrakeLevelSet(0); //wy³¹czenie EP, gdy wystarczy (mo¿e nie byæ potrzebne, bo na pocz¹tku jest)
         //WriteLog("Luzowanie lokomotywy i zmiana kierunku");
-        Controlling->BrakeReleaser(1); //wyluzuj lokomotywê; a ST45?
-        Controlling->DecLocalBrakeLevel(10); //zwolnienie hamulca
+        pBraked->BrakeReleaser(1); //wyluzuj lokomotywê; a ST45?
+        pBraked->DecLocalBrakeLevel(10); //zwolnienie hamulca
         Prepare2press=true; //nastêpnie bêdzie dociskanie
         DirectionForward(Controlling->ActiveDir<0); //zmiana kierunku jazdy na przeciwny (dociskanie)
         CheckVehicles(); //od razu zmieniæ œwiat³a (zgasiæ) - bez tego siê nie odczepi
@@ -2454,6 +2455,8 @@ bool __fastcall TController::UpdateSituation(double dt)
     fMinProximityDist=2.0; fMaxProximityDist=4.0; //[m]
     fVelPlus=2.0; //dopuszczalne przekroczenie prêdkoœci na ograniczeniu bez hamowania
     fVelMinus=3.0; //margines prêdkoœci powoduj¹cy za³¹czenie napêdu
+    if (fVelMinus>0.1*fShuntVelocity)
+     fVelMinus=0.1*fShuntVelocity; //by³y problemy z jazd¹ np. 3km/h podczas ³adowania wagonów
     break;
    case Obey_train:
     //na jaka odleglosc i z jaka predkoscia ma podjechac do przeszkody
@@ -2832,8 +2835,8 @@ bool __fastcall TController::UpdateSituation(double dt)
          AccDesired=(VelNext*VelNext-vel*vel)/(20.73*ActualProximityDist+0.1); //najpierw hamuje mocniej, potem zluzuje
         if (AccPreferred<AccDesired)
          AccDesired=AccPreferred; //(1+abs(AccDesired))
-        //ReactionTime=0.5*Controlling->BrakeDelay[2+2*Controlling->BrakeDelayFlag]; //aby szybkosc hamowania zalezala od przyspieszenia i opoznienia hamulcow
-        //fBrakeTime=0.5*Controlling->BrakeDelay[2+2*Controlling->BrakeDelayFlag]; //aby szybkosc hamowania zalezala od przyspieszenia i opoznienia hamulcow
+        //ReactionTime=0.5*pBraked->BrakeDelay[2+2*pBraked->BrakeDelayFlag]; //aby szybkosc hamowania zalezala od przyspieszenia i opoznienia hamulcow
+        //fBrakeTime=0.5*pBraked->BrakeDelay[2+2*pBraked->BrakeDelayFlag]; //aby szybkosc hamowania zalezala od przyspieszenia i opoznienia hamulcow
        }
        else
        {//jest bli¿ej ni¿ fMinProximityDist
@@ -2907,31 +2910,31 @@ bool __fastcall TController::UpdateSituation(double dt)
           SetDriverPsyche();
         }
        }
-      if (Controlling->BrakeSystem==Pneumatic) //nape³nianie uderzeniowe
-       if (Controlling->BrakeHandle==FV4a)
+      if (pBraked->BrakeSystem==Pneumatic) //nape³nianie uderzeniowe
+       if (pBraked->BrakeHandle==FV4a)
        {
-        if (Controlling->BrakeCtrlPos==-2)
-         Controlling->BrakeLevelSet(0);
-//        if ((Controlling->BrakeCtrlPos<0)&&(Controlling->PipeBrakePress<0.01))//{(CntrlPipePress-(Volume/BrakeVVolume/10)<0.01)})
-//         Controlling->IncBrakeLevel();
-        if ((Controlling->PipePress<3.0)&&(AccDesired>-0.03)) Controlling->BrakeReleaser(1);
-        if ((Controlling->BrakeCtrlPos==0)&&(AbsAccS<0.0)&&(AccDesired>-0.03))
+        if (pBraked->BrakeCtrlPos==-2)
+         pBraked->BrakeLevelSet(0);
+//        if ((pBraked->BrakeCtrlPos<0)&&(pBraked->PipeBrakePress<0.01))//{(CntrlPipePress-(Volume/BrakeVVolume/10)<0.01)})
+//         pBraked->IncBrakeLevel();
+        if ((pBraked->PipePress<3.0)&&(AccDesired>-0.03)) pBraked->BrakeReleaser(1);
+        if ((pBraked->BrakeCtrlPos==0)&&(AbsAccS<0.0)&&(AccDesired>-0.03))
         //if FuzzyLogicAI(CntrlPipePress-PipePress,0.01,1))
-//         if ((Controlling->BrakePress>0.5)&&(Controlling->LocalBrakePos<0.5))//{((Volume/BrakeVVolume/10)<0.485)})
-         if ((Controlling->EqvtPipePress<4.95)&&(fReady>0.35))//{((Volume/BrakeVVolume/10)<0.485)})
+//         if ((pBraked->BrakePress>0.5)&&(pBraked->LocalBrakePos<0.5))//{((Volume/BrakeVVolume/10)<0.485)})
+         if ((pBraked->EqvtPipePress<4.95)&&(fReady>0.35))//{((Volume/BrakeVVolume/10)<0.485)})
          {if (iDrivigFlags&moveOerlikons) //a reszta sk³adu jest na to gotowa
-           Controlling->BrakeLevelSet(-1); //nape³nianie w Oerlikonie
+           pBraked->BrakeLevelSet(-1); //nape³nianie w Oerlikonie
          }
          else
           if (Need_BrakeRelease)
           {
            Need_BrakeRelease=false;
-           Controlling->BrakeReleaser(1);
+           pBraked->BrakeReleaser(1);
            //DecBrakeLevel(); //z tym by jeszcze mia³o jakiœ sens
           }
-//        if ((Controlling->BrakeCtrlPos<0)&&(Controlling->BrakePress<0.3))//{(CntrlPipePress-(Volume/BrakeVVolume/10)<0.01)})
-        if ((Controlling->BrakeCtrlPos<0)&&(Controlling->EqvtPipePress>(fReady<0.25?5.1:5.2)))//{(CntrlPipePress-(Volume/BrakeVVolume/10)<0.01)})
-         Controlling->IncBrakeLevel();          
+//        if ((pBraked->BrakeCtrlPos<0)&&(pBraked->BrakePress<0.3))//{(CntrlPipePress-(Volume/BrakeVVolume/10)<0.01)})
+        if ((pBraked->BrakeCtrlPos<0)&&(pBraked->EqvtPipePress>(fReady<0.25?5.1:5.2)))//{(CntrlPipePress-(Volume/BrakeVVolume/10)<0.01)})
+         pBraked->IncBrakeLevel();          
        }
 #if LOGVELOCITY
       WriteLog("Dist="+FloatToStrF(ActualProximityDist,ffFixed,7,1)+", VelDesired="+FloatToStrF(VelDesired,ffFixed,7,1)+", AccDesired="+FloatToStrF(AccDesired,ffFixed,7,3)+", VelActual="+AnsiString(VelActual)+", VelNext="+AnsiString(VelNext));
@@ -2939,7 +2942,7 @@ bool __fastcall TController::UpdateSituation(double dt)
 
       if (AccDesired>=0.0)
        if (Prepare2press)
-        Controlling->BrakeReleaser(1); //wyluzuj lokomotywê
+        pBraked->BrakeReleaser(1); //wyluzuj lokomotywê
        else
         if (OrderList[OrderPos]!=Disconnect) //przy od³¹czaniu nie zwalniamy tu hamulca
          if ((AccDesired>0.0)||(fAccGravity*fAccGravity<0.001)) //luzuj tylko na plaskim lub przy ruszaniu
@@ -2970,12 +2973,12 @@ bool __fastcall TController::UpdateSituation(double dt)
       //zmniejszanie predkosci
       if (((fAccGravity<-0.05)&&(vel<0))||((AccDesired<fAccGravity-0.1)&&(AccDesired<AbsAccS+fAccGravity-0.05))) //u góry ustawia siê hamowanie na -0.2
       //if not MinVelFlag)
-       if (fBrakeTime<0?true:(AccDesired<fAccGravity-0.3)||(Controlling->BrakeCtrlPos<=0))
+       if (fBrakeTime<0?true:(AccDesired<fAccGravity-0.3)||(pBraked->BrakeCtrlPos<=0))
         if (!IncBrake()) //jeœli up³yn¹³ czas reakcji hamulca, chyba ¿e nag³e albo luzowa³
          MinVelFlag=true;
         else
         {MinVelFlag=false;
-         fBrakeTime=3+0.5*(Controlling->BrakeDelay[2+2*Controlling->BrakeDelayFlag]-3);
+         fBrakeTime=3+0.5*(pBraked->BrakeDelay[2+2*pBraked->BrakeDelayFlag]-3);
          //Ra: ten czas nale¿y zmniejszyæ, jeœli czas dojazdu do zatrzymania jest mniejszy
          fBrakeTime*=0.5; //Ra: tymczasowo, bo prze¿yna S1
         }
@@ -2985,13 +2988,13 @@ bool __fastcall TController::UpdateSituation(double dt)
        //yB: luzuje hamulec dopiero przy ró¿nicy opóŸnieñ rzêdu 0.2
        if (OrderList[OrderPos]!=Disconnect) //przy od³¹czaniu nie zwalniamy tu hamulca
         DecBrake(); //tutaj zmniejsza³o o 1 przy odczepianiu
-       fBrakeTime=(Controlling->BrakeDelay[1+2*Controlling->BrakeDelayFlag])/3.0;
+       fBrakeTime=(pBraked->BrakeDelay[1+2*pBraked->BrakeDelayFlag])/3.0;
        fBrakeTime*=0.5; //Ra: tymczasowo, bo prze¿yna S1
       }
       //Mietek-end1
       SpeedSet(); //ci¹gla regulacja prêdkoœci
 #if LOGVELOCITY
-      WriteLog("BrakePos="+AnsiString(Controlling->BrakeCtrlPos)+", MainCtrl="+AnsiString(Controlling->MainCtrlPos));
+      WriteLog("BrakePos="+AnsiString(pBraked->BrakeCtrlPos)+", MainCtrl="+AnsiString(Controlling->MainCtrlPos));
 #endif
 
       //zapobieganie poslizgowi w czlonie silnikowym; Ra: Couplers[1] powinno byæ
@@ -3001,8 +3004,8 @@ bool __fastcall TController::UpdateSituation(double dt)
          if (Controlling->ScndCtrlPos>0?!Controlling->DecScndCtrl(1):true)
          {
           if (!Controlling->DecMainCtrl(1))
-           if (Controlling->BrakeCtrlPos==Controlling->BrakeCtrlPosNo)
-            Controlling->DecBrakeLevel();
+           if (pBraked->BrakeCtrlPos==pBraked->BrakeCtrlPosNo)
+            pBraked->DecBrakeLevel();
           ++iDriverFailCount;
          }
       //zapobieganie poslizgowi u nas
@@ -3010,8 +3013,8 @@ bool __fastcall TController::UpdateSituation(double dt)
       {
        if (!Controlling->DecScndCtrl(2)) //bocznik na zero
         Controlling->DecMainCtrl(1);
-       if (Controlling->BrakeCtrlPos==Controlling->BrakeCtrlPosNo) //jeœli ostatnia pozycja hamowania
-        Controlling->DecBrakeLevel(); //to cofnij hamulec
+       if (pBraked->BrakeCtrlPos==pBraked->BrakeCtrlPosNo) //jeœli ostatnia pozycja hamowania
+        pBraked->DecBrakeLevel(); //to cofnij hamulec
        else
         Controlling->AntiSlippingButton();
        ++iDriverFailCount;
@@ -3036,8 +3039,8 @@ bool __fastcall TController::UpdateSituation(double dt)
     {//odhamowywanie sk³adu po zatrzymaniu i zabezpieczanie lokomotywy
      if ((OrderList[OrderPos]&(Disconnect|Connect))==0) //przy (p)od³¹czaniu nie zwalniamy tu hamulca
       if ((Controlling->V==0.0)&&((VelDesired==0.0)||(AccDesired==0.0)))
-       if ((Controlling->BrakeCtrlPos<1)||!Controlling->DecBrakeLevel())
-        Controlling->IncLocalBrakeLevel(1); //dodatkowy na pozycjê 1
+       if ((pBraked->BrakeCtrlPos<1)||!pBraked->DecBrakeLevel())
+        pBraked->IncLocalBrakeLevel(1); //dodatkowy na pozycjê 1
     }
     break; //rzeczy robione przy jezdzie
   } //switch (OrderList[OrderPos])
@@ -3623,12 +3626,27 @@ bool __fastcall TController::IsStop()
 void __fastcall TController::MoveTo(TDynamicObject *to)
 {//przesuniêcie AI do innego pojazdu (przy zmianie kabiny)
  //Controlling->CabDeactivisation(); //wy³¹czenie kabiny w opuszczanym
- pVehicle->Mechanik=NULL; //tam ju¿ nie ma
+ pVehicle->Mechanik=to->Mechanik; //¿eby siê zamieni³y, jak jest jakieœ drugie
  pVehicle=to;
- Controlling=pVehicle->MoverParameters; //skrót do obiektu parametrów
+ ControllingSet(); //utworzenie po³¹czenia do sterowanego pojazdu
  pVehicle->Mechanik=this;
  //iDirection=0; //kierunek jazdy trzeba dopiero zgadn¹æ
 };
 
-
-
+void __fastcall TController::ControllingSet()
+{//znajduje cz³on do sterowania w EZT bêdzie to silnikowy
+ //problematyczne jest sterowanie z cz³onu biernego, dlatego damy AI silnikowy
+ //dziêki temu bêdzie wirtualna kabina w silnikowym, dzia³aj¹ca w rozrz¹dczym
+ pBraked=Controlling=pVehicle->MoverParameters; //domyœlny skrót do obiektu parametrów
+ if (Controlling->TrainType&dt_EZT) //na razie dotyczy to EZT
+  if (pVehicle->NextConnected?Controlling->Couplers[1].AllowedFlag&ctrain_depot:false)
+  {//gdy jest cz³on od sprzêgu 1, a sprzêg ³¹czony warsztatowo (powiedzmy)
+   if ((Controlling->Power<1.0)&&(Controlling->Couplers[1].Connected->Power>1.0)) //my nie mamy mocy, ale ten drugi ma
+    Controlling=pVehicle->NextConnected->MoverParameters; //bêdziemy sterowaæ tym z moc¹
+  }
+  else if (pVehicle->PrevConnected?Controlling->Couplers[0].AllowedFlag&ctrain_depot:false)
+  {//gdy jest cz³on od sprzêgu 0, a sprzêg ³¹czony warsztatowo (powiedzmy)
+   if ((Controlling->Power<1.0)&&(Controlling->Couplers[0].Connected->Power>1.0)) //my nie mamy mocy, ale ten drugi ma
+    Controlling=pVehicle->PrevConnected->MoverParameters; //bêdziemy sterowaæ tym z moc¹
+  }
+};
