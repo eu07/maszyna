@@ -79,7 +79,8 @@ public:
 private: //¿eby go nic z zewn¹trz nie przestawia³o
  TDynamicObject *DynamicObject; //przestawia zmiana pojazdu [F5]
 private: //¿eby go nic z zewn¹trz nie przestawia³o
- TMoverParameters *pControlled; //
+ TMoverParameters *pControlled; //cz³on, w którym sterujemy silnikiem
+ TMoverParameters *pBraked; //cz³on, w którym sterujemy hamulcem
 public: //reszta mo¿e byæ publiczna
 
     //AnsiString asMessage;
@@ -361,6 +362,7 @@ private:
 public:
  int __fastcall RadioChannel() {return iRadioChannel;};
  inline TDynamicObject* __fastcall Dynamic() {return DynamicObject;};
+ inline TMoverParameters* __fastcall Controlled() {return pControlled;};
  void __fastcall DynamicSet(TDynamicObject *d);
 };
 //---------------------------------------------------------------------------

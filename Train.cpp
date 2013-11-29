@@ -202,9 +202,9 @@ void __fastcall TTrain::OnKeyPress(int cKey)
 {
 
   bool isEztOer;
-  isEztOer=((pControlled->TrainType==dt_EZT)&&(pControlled->Battery==true)&&(pControlled->EpFuse==true)&&(pControlled->BrakeSubsystem==ss_ESt)&&(pControlled->ActiveDir!=0)); //od yB
-  //isEztOer=(pControlled->TrainType==dt_EZT)&&(pControlled->Mains)&&(pControlled->BrakeSubsystem==ss_ESt)&&(pControlled->ActiveDir!=0);
-  //isEztOer=((pControlled->TrainType==dt_EZT)&&(pControlled->Battery==true)&&(pControlled->EpFuse==true)&&(pControlled->BrakeSubsystem==Oerlikon)&&(pControlled->ActiveDir!=0));
+  isEztOer=((pControlled->TrainType==dt_EZT)&&(pControlled->Battery==true)&&(pControlled->EpFuse==true)&&(pBraked->BrakeSubsystem==ss_ESt)&&(pControlled->ActiveDir!=0)); //od yB
+  //isEztOer=(pControlled->TrainType==dt_EZT)&&(pControlled->Mains)&&(pBraked->BrakeSubsystem==ss_ESt)&&(pControlled->ActiveDir!=0);
+  //isEztOer=((pControlled->TrainType==dt_EZT)&&(pControlled->Battery==true)&&(pControlled->EpFuse==true)&&(pBraked->BrakeSubsystem==Oerlikon)&&(pControlled->ActiveDir!=0));
 
   if (GetAsyncKeyState(VK_SHIFT)<0)
    {//wciœniêty [Shift]
@@ -270,11 +270,11 @@ void __fastcall TTrain::OnKeyPress(int cKey)
        else;
       else
       if (cKey==Global::Keys[k_IncLocalBrakeLevelFAST])
-          if (pControlled->IncLocalBrakeLevel(2));
+          if (pBraked->IncLocalBrakeLevel(2));
           else;
       else
       if (cKey==Global::Keys[k_DecLocalBrakeLevelFAST])
-          if (pControlled->DecLocalBrakeLevel(2));
+          if (pBraked->DecLocalBrakeLevel(2));
           else;
   // McZapkie-240302 - wlaczanie glownego obwodu klawiszem M+shift
       //-----------
@@ -345,14 +345,14 @@ void __fastcall TTrain::OnKeyPress(int cKey)
               if (!FreeFlyModeFlag)
               {
                   if (GetAsyncKeyState(VK_CONTROL)<0)
-                   if (pControlled->BrakeDelaySwitch(bdelay_R+bdelay_M))
+                   if (pBraked->BrakeDelaySwitch(bdelay_R+bdelay_M))
                      {
                        dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
                        dsbPneumaticRelay->Play(0,0,0);
                      }
                    else;
                   else
-                  if (pControlled->BrakeDelaySwitch(bdelay_P))
+                  if (pBraked->BrakeDelaySwitch(bdelay_P))
                    {
                        dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
                        dsbPneumaticRelay->Play(0,0,0);
@@ -1014,15 +1014,15 @@ void __fastcall TTrain::OnKeyPress(int cKey)
               if (!FreeFlyModeFlag)
               {
               if (GetAsyncKeyState(VK_CONTROL)<0)
-                if ((pControlled->LocalBrake==ManualBrake)||(pControlled->MBrake==true))
+                if ((pBraked->LocalBrake==ManualBrake)||(pBraked->MBrake==true))
                 {
-                pControlled->IncManualBrakeLevel(1);
+                pBraked->IncManualBrakeLevel(1);
                 }
                 else;
               else
-              if (pControlled->LocalBrake!=ManualBrake)
+              if (pBraked->LocalBrake!=ManualBrake)
                 {
-                pControlled->IncLocalBrakeLevel(1);
+                pBraked->IncLocalBrakeLevel(1);
                 }
               }
               else
@@ -1062,13 +1062,13 @@ void __fastcall TTrain::OnKeyPress(int cKey)
               if (!FreeFlyModeFlag)
               {
                 if (GetAsyncKeyState(VK_CONTROL)<0)
-                if ((pControlled->LocalBrake==ManualBrake)||(pControlled->MBrake==true))
+                if ((pBraked->LocalBrake==ManualBrake)||(pBraked->MBrake==true))
 
-                  {pControlled->DecManualBrakeLevel(1); }
+                  {pBraked->DecManualBrakeLevel(1); }
                  else;
                 else
-                 if (pControlled->LocalBrake!=ManualBrake)
-                  {pControlled->DecLocalBrakeLevel(1);}
+                 if (pBraked->LocalBrake!=ManualBrake)
+                  {pBraked->DecLocalBrakeLevel(1);}
               }
               else
               {
@@ -1100,12 +1100,12 @@ void __fastcall TTrain::OnKeyPress(int cKey)
               }
           }
       else
-      if ((cKey==Global::Keys[k_IncBrakeLevel])&&(pControlled->BrakeHandle!=FV4a))
-       //if (pControlled->IncBrakeLevel())
-       if (pControlled->BrakeLevelAdd(Global::fBrakeStep)) //nieodpowiedni warunek; true, jeœli mo¿na dalej krêciæ
+      if ((cKey==Global::Keys[k_IncBrakeLevel])&&(pBraked->BrakeHandle!=FV4a))
+       //if (pBraked->IncBrakeLevel())
+       if (pBraked->BrakeLevelAdd(Global::fBrakeStep)) //nieodpowiedni warunek; true, jeœli mo¿na dalej krêciæ
           {
            keybrakecount=0;
-           if ((isEztOer) && (pControlled->BrakeCtrlPos<3))
+           if ((isEztOer) && (pBraked->BrakeCtrlPos<3))
             {
              dsbPneumaticSwitch->SetVolume(-10);
              dsbPneumaticSwitch->Play(0,0,0);
@@ -1113,29 +1113,29 @@ void __fastcall TTrain::OnKeyPress(int cKey)
            }
           else;
       else
-      if ((cKey==Global::Keys[k_DecBrakeLevel])&&(pControlled->BrakeHandle!=FV4a))
+      if ((cKey==Global::Keys[k_DecBrakeLevel])&&(pBraked->BrakeHandle!=FV4a))
        {
 //now¹ wersjê dostarczy³ ZiomalCl ("fixed looped sound in ezt when using NUM_9 key")
-         if ((pControlled->BrakeCtrlPos>-1) || (keybrakecount>1))
+         if ((pBraked->BrakeCtrlPos>-1) || (keybrakecount>1))
           {
 
-            if ((isEztOer) && (pControlled->Mains) && (pControlled->BrakeCtrlPos!=-1))
+            if ((isEztOer) && (pControlled->Mains) && (pBraked->BrakeCtrlPos!=-1))
             {
              dsbPneumaticSwitch->SetVolume(-10);
              dsbPneumaticSwitch->Play(0,0,0);
             }
-            //pControlled->DecBrakeLevel();
-            pControlled->BrakeLevelAdd(-Global::fBrakeStep);
+            //pBraked->DecBrakeLevel();
+            pBraked->BrakeLevelAdd(-Global::fBrakeStep);
 
           }
            else keybrakecount+=1;
 //koniec wersji dostarczonej przez ZiomalCl
 /* wersja poprzednia - ten pierwszy if ze œrednikiem nie dzia³a³ jak warunek
-         if ((pControlled->BrakeCtrlPos>-1)|| (keybrakecount>1))
+         if ((pBraked->BrakeCtrlPos>-1)|| (keybrakecount>1))
           {
-            if (pControlled->DecBrakeLevel());
+            if (pBraked->DecBrakeLevel());
               {
-              if ((isEztOer) && (pControlled->BrakeCtrlPos<2)&&(keybrakecount<=1))
+              if ((isEztOer) && (pBraked->BrakeCtrlPos<2)&&(keybrakecount<=1))
               {
                dsbPneumaticSwitch->SetVolume(-10);
                dsbPneumaticSwitch->Play(0,0,0);
@@ -1148,80 +1148,80 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else
       if (cKey==Global::Keys[k_EmergencyBrake])
       {
-       //while (pControlled->IncBrakeLevel());
-       pControlled->BrakeLevelSet(pControlled->BrakeCtrlPosNo);
-       if(pControlled->BrakeCtrlPosNo<=0.1)
-        pControlled->EmergencyBrakeFlag=true;
+       //while (pBraked->IncBrakeLevel());
+       pBraked->BrakeLevelSet(pBraked->BrakeCtrlPosNo);
+       if(pBraked->BrakeCtrlPosNo<=0.1)
+        pBraked->EmergencyBrakeFlag=true;
       }
       else
       if (cKey==Global::Keys[k_Brake3])
       {
-          if ((isEztOer) && ((pControlled->BrakeCtrlPos==1)||(pControlled->BrakeCtrlPos==-1)))
+          if ((isEztOer) && ((pBraked->BrakeCtrlPos==1)||(pBraked->BrakeCtrlPos==-1)))
             {
              dsbPneumaticSwitch->SetVolume(-10);
              dsbPneumaticSwitch->Play(0,0,0);
             }
-       //while (pControlled->BrakeCtrlPos>pControlled->BrakeCtrlPosNo-1 && pControlled->DecBrakeLevel());
-       //while (pControlled->BrakeCtrlPos<pControlled->BrakeCtrlPosNo-1 && pControlled->IncBrakeLevel());
-       pControlled->BrakeLevelSet(pControlled->BrakeCtrlPosNo-1);
+       //while (pBraked->BrakeCtrlPos>pBraked->BrakeCtrlPosNo-1 && pBraked->DecBrakeLevel());
+       //while (pBraked->BrakeCtrlPos<pBraked->BrakeCtrlPosNo-1 && pBraked->IncBrakeLevel());
+       pBraked->BrakeLevelSet(pBraked->BrakeCtrlPosNo-1);
       }
       else
       if (cKey==Global::Keys[k_Brake2])
       {
-       if ((isEztOer) && ((pControlled->BrakeCtrlPos==1)||(pControlled->BrakeCtrlPos==-1)))
+       if ((isEztOer) && ((pBraked->BrakeCtrlPos==1)||(pBraked->BrakeCtrlPos==-1)))
        {
         dsbPneumaticSwitch->SetVolume(-10);
         dsbPneumaticSwitch->Play(0,0,0);
        }
-       //while (pControlled->BrakeCtrlPos>pControlled->BrakeCtrlPosNo/2 && pControlled->DecBrakeLevel());
-       //while (pControlled->BrakeCtrlPos<pControlled->BrakeCtrlPosNo/2 && pControlled->IncBrakeLevel());
-       pControlled->BrakeLevelSet(pControlled->BrakeCtrlPosNo/2+(pControlled->BrakeHandle==FV4a?1:0));
+       //while (pBraked->BrakeCtrlPos>pBraked->BrakeCtrlPosNo/2 && pBraked->DecBrakeLevel());
+       //while (pBraked->BrakeCtrlPos<pBraked->BrakeCtrlPosNo/2 && pBraked->IncBrakeLevel());
+       pBraked->BrakeLevelSet(pBraked->BrakeCtrlPosNo/2+(pBraked->BrakeHandle==FV4a?1:0));
        if (GetAsyncKeyState(VK_CONTROL)<0)
-        if (pControlled->BrakeHandle==FV4a)
-         pControlled->BrakeLevelSet(-2);
+        if (pBraked->BrakeHandle==FV4a)
+         pBraked->BrakeLevelSet(-2);
       }
       else
       if (cKey==Global::Keys[k_Brake1])
       {
-          if ((isEztOer)&& (pControlled->BrakeCtrlPos!=1))
+          if ((isEztOer)&& (pBraked->BrakeCtrlPos!=1))
             {
              dsbPneumaticSwitch->SetVolume(-10);
              dsbPneumaticSwitch->Play(0,0,0);
             }
-       //while (pControlled->BrakeCtrlPos>1 && pControlled->DecBrakeLevel());
-       //while (pControlled->BrakeCtrlPos<1 && pControlled->IncBrakeLevel());
-       pControlled->BrakeLevelSet(1);
+       //while (pBraked->BrakeCtrlPos>1 && pBraked->DecBrakeLevel());
+       //while (pBraked->BrakeCtrlPos<1 && pBraked->IncBrakeLevel());
+       pBraked->BrakeLevelSet(1);
       }
       else
       if (cKey==Global::Keys[k_Brake0])
       {
         if (Console::Pressed(VK_CONTROL))
          {
-          pControlled->BrakeCtrlPos2= 0; //wyrownaj kapturek
+          pBraked->BrakeCtrlPos2= 0; //wyrownaj kapturek
          }
         else
          {
-          if ((isEztOer) && ((pControlled->BrakeCtrlPos==1)||(pControlled->BrakeCtrlPos==-1)))
+          if ((isEztOer) && ((pBraked->BrakeCtrlPos==1)||(pBraked->BrakeCtrlPos==-1)))
             {
              dsbPneumaticSwitch->SetVolume(-10);
              dsbPneumaticSwitch->Play(0,0,0);
             }
-       //while (pControlled->BrakeCtrlPos>0 && pControlled->DecBrakeLevel());
-       //while (pControlled->BrakeCtrlPos<0 && pControlled->IncBrakeLevel());
-       pControlled->BrakeLevelSet(0);
+       //while (pBraked->BrakeCtrlPos>0 && pBraked->DecBrakeLevel());
+       //while (pBraked->BrakeCtrlPos<0 && pBraked->IncBrakeLevel());
+       pBraked->BrakeLevelSet(0);
 	    }
       }
       else
       if (cKey==Global::Keys[k_WaveBrake]) //[Num.]
       {
-          if ((isEztOer) && (pControlled->Mains) && (pControlled->BrakeCtrlPos!=-1))
+          if ((isEztOer) && (pControlled->Mains) && (pBraked->BrakeCtrlPos!=-1))
             {
              dsbPneumaticSwitch->SetVolume(-10);
              dsbPneumaticSwitch->Play(0,0,0);
             }
-       //while (pControlled->BrakeCtrlPos>-1 && pControlled->DecBrakeLevel());
-       //while (pControlled->BrakeCtrlPos<-1 && pControlled->IncBrakeLevel());
-       pControlled->BrakeLevelSet(-1);
+       //while (pBraked->BrakeCtrlPos>-1 && pBraked->DecBrakeLevel());
+       //while (pBraked->BrakeCtrlPos<-1 && pBraked->IncBrakeLevel());
+       pBraked->BrakeLevelSet(-1);
       }
       else
       //---------------
@@ -1242,7 +1242,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       //hunter-221211: hamulec przeciwposlizgowy przeniesiony do TTrain::Update()
       if (cKey==Global::Keys[k_AntiSlipping])
       {
-        if (pControlled->BrakeSystem!=ElectroPneumatic)
+        if (pBraked->BrakeSystem!=ElectroPneumatic)
          {
           //if (pControlled->AntiSlippingButton())
            if (fabs(AntiSlipButtonGauge.GetValue())<0.001)
@@ -1368,14 +1368,14 @@ void __fastcall TTrain::OnKeyPress(int cKey)
               if (!FreeFlyModeFlag)
               {
                   if (GetAsyncKeyState(VK_CONTROL)<0)
-                   if (pControlled->BrakeDelaySwitch(bdelay_R))
+                   if (pBraked->BrakeDelaySwitch(bdelay_R))
                      {
                        dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
                        dsbPneumaticRelay->Play(0,0,0);
                      }
                    else;
                   else
-                   if (pControlled->BrakeDelaySwitch(bdelay_G))
+                   if (pBraked->BrakeDelaySwitch(bdelay_G))
                      {
                        dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
                        dsbPneumaticRelay->Play(0,0,0);
@@ -1438,10 +1438,10 @@ void __fastcall TTrain::OnKeyPress(int cKey)
        {
         if ((pControlled->EngineType==ElectricSeriesMotor)||(pControlled->EngineType==DieselElectric))
          if (pControlled->TrainType!=dt_EZT)
-          if (pControlled->BrakeCtrlPosNo>0)
+          if (pBraked->BrakeCtrlPosNo>0)
           {
            ReleaserButtonGauge.PutValue(1);
-           if (pControlled->BrakeReleaser(1))
+           if (pBraked->BrakeReleaser(1))
            {
             dsbPneumaticRelay->SetVolume(-80);
             dsbPneumaticRelay->Play(0,0,0);
@@ -1549,9 +1549,8 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       if (cKey==Global::Keys[k_CabForward])
       {
        if (!CabChange(1))
-        if (TestFlag(pControlled->Couplers[0].CouplingFlag,ctrain_passenger))
-        {
-//TODO: przejscie do nastepnego pojazdu, wskaznik do niego: pControlled->Couplers[0].Connected
+        if (TestFlag(DynamicObject->MoverParameters->Couplers[0].CouplingFlag,ctrain_passenger))
+        {//przejscie do nastepnego pojazdu
          Global::changeDynObj=DynamicObject->PrevConnected;
          Global::changeDynObj->MoverParameters->ActiveCab=DynamicObject->PrevConnectedNo?-1:1;
         }
@@ -1559,9 +1558,8 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else if (cKey==Global::Keys[k_CabBackward])
       {
        if (!CabChange(-1))
-        if (TestFlag(pControlled->Couplers[1].CouplingFlag,ctrain_passenger))
-        {
-//TODO: przejscie do poprzedniego, wskaznik do niego: pControlled->Couplers[1].Connected
+        if (TestFlag(DynamicObject->MoverParameters->Couplers[1].CouplingFlag,ctrain_passenger))
+        {//przejscie do poprzedniego
          Global::changeDynObj=DynamicObject->NextConnected;
          Global::changeDynObj->MoverParameters->ActiveCab=DynamicObject->NextConnectedNo?-1:1;
         }
@@ -2281,10 +2279,10 @@ void __fastcall TTrain::UpdateMechPosition(double dt)
  if (DynamicObject->Mechanik) //mo¿e nie byæ?
   if (DynamicObject->Mechanik->AIControllFlag) //jeœli prowadzi AI
   {//Ra: przesiadka, jeœli AI zmieni³o kabinê (a cz³on?)...
-   if (iCabn!=(pControlled->ActiveCab==-1?2:pControlled->ActiveCab))
-    InitializeCab(pControlled->ActiveCab,DynamicObject->asBaseDir+pControlled->TypeName+".mmd");
+   if (iCabn!=(DynamicObject->MoverParameters->ActiveCab==-1?2:DynamicObject->MoverParameters->ActiveCab))
+    InitializeCab(DynamicObject->MoverParameters->ActiveCab,DynamicObject->asBaseDir+DynamicObject->MoverParameters->TypeName+".mmd");
   }
- iCabn=(pControlled->ActiveCab==-1?2:pControlled->ActiveCab);
+ iCabn=(DynamicObject->MoverParameters->ActiveCab==-1?2:DynamicObject->MoverParameters->ActiveCab);
  if (!DebugModeFlag)
  {//sprawdzaj wiêzy //Ra: nie tu!
   if (pNewMechPosition.x<Cabine[iCabn].CabPos1.x) pNewMechPosition.x=Cabine[iCabn].CabPos1.x;
@@ -2309,8 +2307,8 @@ bool __fastcall TTrain::Update()
 {
  DWORD stat;
  double dt=Timer::GetDeltaTime();
-// pControlled->Hamulec->Releaser(0); //odluŸniacz rêczny
-// pControlled->BrakeReleaser(0);
+// pBraked->Hamulec->Releaser(0); //odluŸniacz rêczny
+// pBraked->BrakeReleaser(0);
  if (DynamicObject->mdKabina)
  {//Ra: TODO: odczyty klawiatury/pulpitu nie powinny byæ uzale¿nione od istnienia modelu kabiny 
   tor=DynamicObject->GetTrack(); //McZapkie-180203
@@ -2391,11 +2389,11 @@ bool __fastcall TTrain::Update()
    double dfreq;
 
 //McZapkie-280302 - syczenie
-      if(pControlled->BrakeHandle==FV4a)
+      if (pBraked->BrakeHandle==FV4a)
        {
         if (rsHiss.AM!=0)            //upuszczanie z PG
          {
-            fPPress=(1*fPPress+pControlled->Handle->GetSound(s_fv4a_b))/(2);
+            fPPress=(1*fPPress+pBraked->Handle->GetSound(s_fv4a_b))/(2);
           if (fPPress>0)
            {
             vol=2*rsHiss.AM*fPPress;
@@ -2411,7 +2409,7 @@ bool __fastcall TTrain::Update()
          }
         if (rsHissU.AM!=0)            //upuszczanie z PG
          {
-            fNPress=(1*fNPress+pControlled->Handle->GetSound(s_fv4a_u))/(2);
+            fNPress=(1*fNPress+pBraked->Handle->GetSound(s_fv4a_u))/(2);
             if (fNPress>0)
              {
               vol=rsHissU.AM*fNPress;
@@ -2427,7 +2425,7 @@ bool __fastcall TTrain::Update()
          }
         if (rsHissE.AM!=0)            //upuszczanie przy naglym
          {
-            vol=-pControlled->Handle->GetSound(s_fv4a_e)*rsHissE.AM;
+            vol=-pBraked->Handle->GetSound(s_fv4a_e)*rsHissE.AM;
             if (vol>0.001)
              {
               rsHissE.Play(vol,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
@@ -2439,7 +2437,7 @@ bool __fastcall TTrain::Update()
          }
         if (rsHissX.AM!=0)            //upuszczanie sterujacego fala
          {
-            vol=pControlled->Handle->GetSound(s_fv4a_x)*rsHissX.AM;
+            vol=pBraked->Handle->GetSound(s_fv4a_x)*rsHissX.AM;
             if (vol>0.001)
              {
               rsHissX.Play(vol,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
@@ -2451,7 +2449,7 @@ bool __fastcall TTrain::Update()
          }
         if (rsHissT.AM!=0)            //upuszczanie z czasowego
          {
-            vol=pControlled->Handle->GetSound(s_fv4a_t)*rsHissT.AM;
+            vol=pBraked->Handle->GetSound(s_fv4a_t)*rsHissT.AM;
             if (vol>0.001)
              {
               rsHissT.Play(vol,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
@@ -2467,7 +2465,7 @@ bool __fastcall TTrain::Update()
        {
         if (rsHiss.AM!=0)            //upuszczanie z PG
          {
-            fPPress=(4*fPPress+Max0R(pControlled->dpLocalValve,pControlled->dpMainValve))/(4+1);
+            fPPress=(4*fPPress+Max0R(pBraked->dpLocalValve,pBraked->dpMainValve))/(4+1);
             if (fPPress>0)
              {
               vol=2*rsHiss.AM*fPPress*0.01;
@@ -2483,7 +2481,7 @@ bool __fastcall TTrain::Update()
        }
         if (rsHissU.AM!=0)           //napelnianie PG
          {
-            fNPress=(4*fNPress+Min0R(pControlled->dpLocalValve,pControlled->dpMainValve))/(4+1);
+            fNPress=(4*fNPress+Min0R(pBraked->dpLocalValve,pBraked->dpMainValve))/(4+1);
             if (fNPress<0)
              {
               vol=-2*rsHissU.AM*fNPress*0.004;
@@ -2502,7 +2500,7 @@ bool __fastcall TTrain::Update()
 //Winger-160404 - syczenie pomocniczego (luzowanie)
 /*      if (rsSBHiss.AM!=0)
        {
-          fSPPress=(pControlled->LocalBrakeRatio())-(pControlled->LocalBrakePos);
+          fSPPress=(pBraked->LocalBrakeRatio())-(pBraked->LocalBrakePos);
           if (fSPPress>0)
            {
             vol=2*rsSBHiss.AM*fSPPress;
@@ -2524,10 +2522,10 @@ bool __fastcall TTrain::Update()
      {
        if (DynamicObject->GetVelocity()!=0)
         {
-          if (!TestFlag(pControlled->DamageFlag,dtrain_wheelwear)) //McZpakie-221103: halas zalezny od kola
+          if (!TestFlag(pBraked->DamageFlag,dtrain_wheelwear)) //McZpakie-221103: halas zalezny od kola
            {
-             dfreq=rsRunningNoise.FM*pControlled->Vel+rsRunningNoise.FA;
-             vol=rsRunningNoise.AM*pControlled->Vel+rsRunningNoise.AA;
+             dfreq=rsRunningNoise.FM*pBraked->Vel+rsRunningNoise.FA;
+             vol=rsRunningNoise.AM*pBraked->Vel+rsRunningNoise.AA;
               switch (tor->eEnvironment)
               {
                   case e_tunnel:
@@ -2551,10 +2549,10 @@ bool __fastcall TTrain::Update()
 
            }
           else                                                   //uszkodzone kolo (podkucie)
-           if (fabs(pControlled->nrot)>0.01)
+           if (fabs(pBraked->nrot)>0.01)
            {
-             dfreq=rsRunningNoise.FM*pControlled->Vel+rsRunningNoise.FA;
-             vol=rsRunningNoise.AM*pControlled->Vel+rsRunningNoise.AA;
+             dfreq=rsRunningNoise.FM*pBraked->Vel+rsRunningNoise.FA;
+             vol=rsRunningNoise.AM*pBraked->Vel+rsRunningNoise.AA;
               switch (tor->eEnvironment)
               {
                   case e_tunnel:
@@ -2574,8 +2572,8 @@ bool __fastcall TTrain::Update()
                   break;
               }
            }
-          if (fabs(pControlled->nrot)>0.01)
-           vol*=1+pControlled->UnitBrakeForce/(1+pControlled->MaxBrakeForce); //hamulce wzmagaja halas
+          if (fabs(pBraked->nrot)>0.01)
+           vol*=1+pBraked->UnitBrakeForce/(1+pBraked->MaxBrakeForce); //hamulce wzmagaja halas
           vol=vol*(20.0+tor->iDamageFlag)/21;
           rsRunningNoise.AdjFreq(dfreq,0);
           rsRunningNoise.Play(vol, DSBPLAY_LOOPING, true, DynamicObject->GetPosition());
@@ -2586,10 +2584,10 @@ bool __fastcall TTrain::Update()
 
     if (rsBrake.AM!=0)
      {
-      if ((!pControlled->SlippingWheels) && (pControlled->UnitBrakeForce>10.0) && (DynamicObject->GetVelocity()>0.01))
+      if ((!pBraked->SlippingWheels) && (pBraked->UnitBrakeForce>10.0) && (DynamicObject->GetVelocity()>0.01))
        {
-//        vol=rsBrake.AA+rsBrake.AM*(DynamicObject->GetVelocity()*100+pControlled->UnitBrakeForce);
-        vol=rsBrake.AM*sqrt((DynamicObject->GetVelocity()*pControlled->UnitBrakeForce));        
+//        vol=rsBrake.AA+rsBrake.AM*(DynamicObject->GetVelocity()*100+pBraked->UnitBrakeForce);
+        vol=rsBrake.AM*sqrt((DynamicObject->GetVelocity()*pBraked->UnitBrakeForce));        
         dfreq=rsBrake.FA+rsBrake.FM*DynamicObject->GetVelocity();
         rsBrake.AdjFreq(dfreq,0);
         rsBrake.Play(vol,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
@@ -2924,38 +2922,38 @@ else
 
     if (CylHamGauge.SubModel)
      {
-      CylHamGauge.UpdateValue(pControlled->BrakePress*0.1f);
+      CylHamGauge.UpdateValue(pBraked->BrakePress*0.1f);
       CylHamGauge.Update();
      }
     if (CylHamGaugeB.SubModel)
      {
-      CylHamGaugeB.UpdateValue(pControlled->BrakePress*0.1f);
+      CylHamGaugeB.UpdateValue(pBraked->BrakePress*0.1f);
       CylHamGaugeB.Update();
      }
     if (PrzGlGauge.SubModel)
      {
-      PrzGlGauge.UpdateValue(pControlled->PipePress*0.1f);
+      PrzGlGauge.UpdateValue(pBraked->PipePress*0.1f);
       PrzGlGauge.Update();
      }
     if (PrzGlGaugeB.SubModel)
      {
-      PrzGlGaugeB.UpdateValue(pControlled->PipePress*0.1f);
+      PrzGlGaugeB.UpdateValue(pBraked->PipePress*0.1f);
       PrzGlGaugeB.Update();
      }
     if (ZbSGauge.SubModel)
      {
-      ZbSGauge.UpdateValue(pControlled->Handle->GetCP()*0.1f);
+      ZbSGauge.UpdateValue(pBraked->Handle->GetCP()*0.1f);
       ZbSGauge.Update();
      }
 // McZapkie! - zamiast pojemnosci cisnienie
     if (ZbGlGauge.SubModel)
      {
-      ZbGlGauge.UpdateValue(pControlled->Compressor*0.1f);
+      ZbGlGauge.UpdateValue(pBraked->Compressor*0.1f);
       ZbGlGauge.Update();
      }
     if (ZbGlGaugeB.SubModel)
      {
-      ZbGlGaugeB.UpdateValue(pControlled->Compressor*0.1f);
+      ZbGlGaugeB.UpdateValue(pBraked->Compressor*0.1f);
       ZbGlGaugeB.Update();
      }
      
@@ -3078,7 +3076,7 @@ else
      }
      else
      {
-      if ((pControlled->UnitBrakeForce>100.0) && (DynamicObject->GetVelocity()>1.0))
+      if ((pBraked->UnitBrakeForce>100.0) && (DynamicObject->GetVelocity()>1.0))
       {
        rsSlippery.Play(rsSlippery.AM*veldiff+rsSlippery.AA,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
        if (pControlled->TrainType==dt_181)
@@ -3105,10 +3103,10 @@ else
           btLampkaBezoporowa.TurnOn();
         else
           btLampkaBezoporowa.TurnOff();    //Do EU04
-        if ( (pControlled->Itot!=0) || (pControlled->BrakePress > 2) || ( pControlled->PipePress < 3.6 ))
+        if ( (pControlled->Itot!=0) || (pBraked->BrakePress > 2) || ( pBraked->PipePress < 3.6 ))
           btLampkaStyczn.TurnOff();     //
         else
-        if (pControlled->BrakePress < 1)
+        if (pBraked->BrakePress < 1)
            btLampkaStyczn.TurnOn();      //mozna prowadzic rozruch
          if (((TestFlag(pControlled->Couplers[1].CouplingFlag,ctrain_controll)) && (pControlled->CabNo==1)) ||
         ((TestFlag(pControlled->Couplers[0].CouplingFlag,ctrain_controll)) && (pControlled->CabNo==-1)))
@@ -3117,14 +3115,14 @@ else
            btLampkaUkrotnienie.TurnOff();
 
 //         if ((TestFlag(pControlled->BrakeStatus,+b_Rused+b_Ractive)))//Lampka drugiego stopnia hamowania
-         if ((TestFlag(pControlled->BrakeStatus,1)))//Lampka drugiego stopnia hamowania  //TODO: youBy wyci¹gn¹æ flagê wysokiego stopnia
+         if ((TestFlag(pBraked->BrakeStatus,1)))//Lampka drugiego stopnia hamowania  //TODO: youBy wyci¹gn¹æ flagê wysokiego stopnia
            btLampkaHamPosp.TurnOn();
         else
            btLampkaHamPosp.TurnOff();
 
-        //hunter-111211: wylacznik cisnieniowy
+        //hunter-111211: wylacznik cisnieniowy - Ra: tutaj?
         if (pControlled->TrainType!=dt_EZT)
-         if (((pControlled->BrakePress > 2) || ( pControlled->PipePress < 3.6 )) && ( pControlled->MainCtrlPos != 0 ))
+         if (((pBraked->BrakePress > 2) || ( pBraked->PipePress < 3.6 )) && ( pControlled->MainCtrlPos != 0 ))
           pControlled->StLinFlag=true;
         //-------
 
@@ -3199,7 +3197,7 @@ else
 if ( pControlled->Signalling==true )
   {
 
-  if ((pControlled->BrakePress>=0.145f)&&(pControlled->Battery==true)&&(pControlled->Signalling==true))
+  if ((pBraked->BrakePress>=0.145f)&&(pControlled->Battery==true)&&(pControlled->Signalling==true))
      { btLampkaHamowanie1zes.TurnOn(); }
   if (pControlled->BrakePress<0.075f)
      { btLampkaHamowanie1zes.TurnOff(); }
@@ -3302,7 +3300,7 @@ if ( pControlled->DoorSignalling==true)
 } //**************************************************** */
 if (pControlled->Battery==true)
 {
- if ((((pControlled->BrakePress>=0.1f) || (pControlled->DynamicBrakeFlag)) && (pControlled->TrainType!=dt_EZT)) || ((pControlled->TrainType==dt_EZT) && (pControlled->BrakePress>=0.2f)&&(pControlled->Signalling==true)))
+ if ((((pBraked->BrakePress>=0.1f) || (pControlled->DynamicBrakeFlag)) && (pControlled->TrainType!=dt_EZT)) || ((pControlled->TrainType==dt_EZT) && (pControlled->BrakePress>=0.2f)&&(pControlled->Signalling==true)))
  //if ((pControlled->BrakePress>=0.3f) || (pControlled->DynamicBrakeFlag))
        btLampkaHamienie.TurnOn();
     else
@@ -3321,7 +3319,7 @@ if (pControlled->Battery==true)
      { btLampkaRadio.TurnOn(); }
     else
     { btLampkaRadio.TurnOff(); }
-    if (pControlled->ManualBrakePos>0)
+    if (pBraked->ManualBrakePos>0)
      { btLampkaHamulecReczny.TurnOn(); }
     else
     { btLampkaHamulecReczny.TurnOff(); }
@@ -3398,55 +3396,55 @@ if (pControlled->Battery==true)
     {if (DynamicObject->Mechanik?(DynamicObject->Mechanik->AIControllFlag?false:Global::iFeedbackMode==4):false) //nie blokujemy AI
      {//Ra: nie najlepsze miejsce, ale na pocz¹tek gdzieœ to daæ trzeba
       double b=Console::AnalogGet(0); //odczyt z pulpitu i modyfikacja pozycji kranu
-      if ((b>=0.0)&&(pControlled->BrakeHandle==FV4a))
+      if ((b>=0.0)&&(pBraked->BrakeHandle==FV4a))
       {b=(((Global::fCalibrateIn[0][3]*b)+Global::fCalibrateIn[0][2])*b+Global::fCalibrateIn[0][1])*b+Global::fCalibrateIn[0][0];
-       if (b<-2.0) b=-2.0; else if (b>pControlled->BrakeCtrlPosNo) b=pControlled->BrakeCtrlPosNo;
+       if (b<-2.0) b=-2.0; else if (b>pBraked->BrakeCtrlPosNo) b=pBraked->BrakeCtrlPosNo;
        BrakeCtrlGauge.UpdateValue(b); //przesów bez zaokr¹glenia
-       pControlled->BrakeLevelSet(b);
+       pBraked->BrakeLevelSet(b);
       }
       //else //standardowa prodedura z kranem powi¹zanym z klawiatur¹
-      // BrakeCtrlGauge.UpdateValue(double(pControlled->BrakeCtrlPos));
+      // BrakeCtrlGauge.UpdateValue(double(pBraked->BrakeCtrlPos));
      }
      //else //standardowa prodedura z kranem powi¹zanym z klawiatur¹
-     // BrakeCtrlGauge.UpdateValue(double(pControlled->BrakeCtrlPos));
-     BrakeCtrlGauge.UpdateValue(pControlled->fBrakeCtrlPos);
+     // BrakeCtrlGauge.UpdateValue(double(pBraked->BrakeCtrlPos));
+     BrakeCtrlGauge.UpdateValue(pBraked->fBrakeCtrlPos);
      BrakeCtrlGauge.Update();
     }
     if (LocalBrakeGauge.SubModel)
     {if (DynamicObject->Mechanik?(DynamicObject->Mechanik->AIControllFlag?false:Global::iFeedbackMode==4):false) //nie blokujemy AI
      {//Ra: nie najlepsze miejsce, ale na pocz¹tek gdzieœ to daæ trzeba
       double b=Console::AnalogGet(1); //odczyt z pulpitu i modyfikacja pozycji kranu
-      if ((b>=0.0)&&(pControlled->BrakeLocHandle==FD1))
+      if ((b>=0.0)&&(pBraked->BrakeLocHandle==FD1))
       {b=(((Global::fCalibrateIn[1][3]*b)+Global::fCalibrateIn[1][2])*b+Global::fCalibrateIn[1][1])*b+Global::fCalibrateIn[1][0];
        if (b<0.0) b=0.0; else if (b>Hamulce::LocalBrakePosNo) b=Hamulce::LocalBrakePosNo;
        LocalBrakeGauge.UpdateValue(b); //przesów bez zaokr¹glenia
-       pControlled->LocalBrakePos=int(1.09*b); //sposób zaokr¹glania jest do ustalenia
+       pBraked->LocalBrakePos=int(1.09*b); //sposób zaokr¹glania jest do ustalenia
       }
       else //standardowa prodedura z kranem powi¹zanym z klawiatur¹
-       LocalBrakeGauge.UpdateValue(double(pControlled->LocalBrakePos));
+       LocalBrakeGauge.UpdateValue(double(pBraked->LocalBrakePos));
      }
      else //standardowa prodedura z kranem powi¹zanym z klawiatur¹
-      LocalBrakeGauge.UpdateValue(double(pControlled->LocalBrakePos));
+      LocalBrakeGauge.UpdateValue(double(pBraked->LocalBrakePos));
      LocalBrakeGauge.Update();
     }
     if (ManualBrakeGauge.SubModel!=NULL)
      {
-      ManualBrakeGauge.UpdateValue(double(pControlled->ManualBrakePos));
+      ManualBrakeGauge.UpdateValue(double(pBraked->ManualBrakePos));
       ManualBrakeGauge.Update();
      }
     if (BrakeProfileCtrlGauge.SubModel)
     {
-     BrakeProfileCtrlGauge.UpdateValue(double(pControlled->BrakeDelayFlag==4?2:pControlled->BrakeDelayFlag-1));
+     BrakeProfileCtrlGauge.UpdateValue(double(pBraked->BrakeDelayFlag==4?2:pBraked->BrakeDelayFlag-1));
      BrakeProfileCtrlGauge.Update();
      }
     if (BrakeProfileG.SubModel)
      {
-      BrakeProfileG.UpdateValue(double(pControlled->BrakeDelayFlag==bdelay_G?1:0));
+      BrakeProfileG.UpdateValue(double(pBraked->BrakeDelayFlag==bdelay_G?1:0));
       BrakeProfileG.Update();
      }
     if (BrakeProfileR.SubModel)
      {
-      BrakeProfileR.UpdateValue(double(pControlled->BrakeDelayFlag==bdelay_R?1:0));
+      BrakeProfileR.UpdateValue(double(pBraked->BrakeDelayFlag==bdelay_R?1:0));
       BrakeProfileR.Update();
     }
 
@@ -3826,22 +3824,22 @@ if (pControlled->Battery==true)
      {
       if (Console::Pressed(VK_SHIFT))
          {
-         SetFlag(pControlled->WarningSignal,2);
-         pControlled->WarningSignal&=(255-1);
+         SetFlag(pBraked->WarningSignal,2);
+         pBraked->WarningSignal&=(255-1);
          if (HornButtonGauge.SubModel)
             HornButtonGauge.UpdateValue(1);
          }
       else
          {
-         SetFlag(pControlled->WarningSignal,1);
-         pControlled->WarningSignal&=(255-2);
+         SetFlag(pBraked->WarningSignal,1);
+         pBraked->WarningSignal&=(255-2);
          if (HornButtonGauge.SubModel)
             HornButtonGauge.UpdateValue(-1);
          }
      }
     else
      {
-        pControlled->WarningSignal=0;
+        pBraked->WarningSignal=0;
         if (HornButtonGauge.SubModel)
            HornButtonGauge.UpdateValue(0);
      }
@@ -3849,7 +3847,7 @@ if (pControlled->Battery==true)
     if ( Console::Pressed(Global::Keys[k_Horn2]) )
      if (Global::Keys[k_Horn2]!=Global::Keys[k_Horn])
      {
-        SetFlag(pControlled->WarningSignal,2);
+        SetFlag(pBraked->WarningSignal,2);
      }
 
      //----------------
@@ -4088,13 +4086,13 @@ if (pControlled->Battery==true)
        {
         if ((pControlled->EngineType==ElectricSeriesMotor)||(pControlled->EngineType==DieselElectric))
           if (pControlled->TrainType!=dt_EZT)
-            if ((pControlled->BrakeCtrlPosNo>0)&&(pControlled->ActiveDir!=0))
+            if ((pBraked->BrakeCtrlPosNo>0)&&(pControlled->ActiveDir!=0))
              {
               ReleaserButtonGauge.PutValue(1);
-              pControlled->BrakeReleaser(1);
+              pBraked->BrakeReleaser(1);
              }
        } //releaser
-      else pControlled->BrakeReleaser(0);
+      else pBraked->BrakeReleaser(0);
    } //FFMF
 
 
@@ -4294,13 +4292,13 @@ if (pControlled->Battery==true)
            }
      }
      // Odskakiwanie hamulce EP
-     if ((!Console::Pressed(Global::Keys[k_DecBrakeLevel]))&&(!Console::Pressed(Global::Keys[k_WaveBrake]) )&&(pControlled->BrakeCtrlPos==-1)&&(pControlled->BrakeHandle==FVel6)&&(DynamicObject->Controller!=AIdriver))
+     if ((!Console::Pressed(Global::Keys[k_DecBrakeLevel]))&&(!Console::Pressed(Global::Keys[k_WaveBrake]) )&&(pBraked->BrakeCtrlPos==-1)&&(pBraked->BrakeHandle==FVel6)&&(DynamicObject->Controller!=AIdriver))
      {
-     //pControlled->BrakeCtrlPos=(pControlled->BrakeCtrlPos)+1;
-     //pControlled->IncBrakeLevel();
-     pControlled->BrakeLevelSet(pControlled->BrakeCtrlPos+1);
+     //pBraked->BrakeCtrlPos=(pBraked->BrakeCtrlPos)+1;
+     //pBraked->IncBrakeLevel();
+     pBraked->BrakeLevelSet(pBraked->BrakeCtrlPos+1);
      keybrakecount=0;
-       if ((pControlled->TrainType==dt_EZT)&&(pControlled->Mains)&&(pControlled->ActiveDir!=0))
+       if ((pBraked->TrainType==dt_EZT)&&(pControlled->Mains)&&(pControlled->ActiveDir!=0))
        {
        dsbPneumaticSwitch->SetVolume(-10);
        dsbPneumaticSwitch->Play(0,0,0);
@@ -4308,72 +4306,72 @@ if (pControlled->Battery==true)
      }
 
     //Ra: przeklejka z SPKS - p³ynne poruszanie hamulcem
-    //if ((pControlled->BrakeHandle==FV4a)&&(Console::Pressed(Global::Keys[k_IncBrakeLevel])))
+    //if ((pBraked->BrakeHandle==FV4a)&&(Console::Pressed(Global::Keys[k_IncBrakeLevel])))
     if ((Console::Pressed(Global::Keys[k_IncBrakeLevel])))
      {
       if (Console::Pressed(VK_CONTROL))
        {
-        //pControlled->BrakeCtrlPos2-=dt/20.0;
-        //if (pControlled->BrakeCtrlPos2<-1.5) pControlled->BrakeCtrlPos2=-1.5;
+        //pBraked->BrakeCtrlPos2-=dt/20.0;
+        //if (pBraked->BrakeCtrlPos2<-1.5) pBraked->BrakeCtrlPos2=-1.5;
        }
       else
        {
-        //pControlled->BrakeCtrlPosR+=(pControlled->BrakeCtrlPosR>pControlled->BrakeCtrlPosNo?0:dt*2);
-        //pControlled->BrakeCtrlPos= floor(pControlled->BrakeCtrlPosR+0.499);
+        //pBraked->BrakeCtrlPosR+=(pBraked->BrakeCtrlPosR>pBraked->BrakeCtrlPosNo?0:dt*2);
+        //pBraked->BrakeCtrlPos= floor(pBraked->BrakeCtrlPosR+0.499);
        }
      }
-    //if ((pControlled->BrakeHandle==FV4a)&&(Console::Pressed(Global::Keys[k_DecBrakeLevel])))
+    //if ((pBraked->BrakeHandle==FV4a)&&(Console::Pressed(Global::Keys[k_DecBrakeLevel])))
     if ((Console::Pressed(Global::Keys[k_DecBrakeLevel])))
      {
       if (Console::Pressed(VK_CONTROL))
        {
-        //pControlled->BrakeCtrlPos2+=(pControlled->BrakeCtrlPos2>2?0:dt/20.0);
-        //if (pControlled->BrakeCtrlPos2<-3) pControlled->BrakeCtrlPos2=-3;
-        //pControlled->BrakeLevelAdd(pControlled->fBrakeCtrlPos<-1?0:dt*2);
+        //pBraked->BrakeCtrlPos2+=(pBraked->BrakeCtrlPos2>2?0:dt/20.0);
+        //if (pBraked->BrakeCtrlPos2<-3) pBraked->BrakeCtrlPos2=-3;
+        //pBraked->BrakeLevelAdd(pBraked->fBrakeCtrlPos<-1?0:dt*2);
        }
       else
        {
-        //pControlled->BrakeCtrlPosR-=(pControlled->BrakeCtrlPosR<-1?0:dt*2);
-        //pControlled->BrakeCtrlPos= floor(pControlled->BrakeCtrlPosR+0.499);
-        //pControlled->BrakeLevelAdd(pControlled->fBrakeCtrlPos<-1?0:-dt*2);
+        //pBraked->BrakeCtrlPosR-=(pBraked->BrakeCtrlPosR<-1?0:dt*2);
+        //pBraked->BrakeCtrlPos= floor(pBraked->BrakeCtrlPosR+0.499);
+        //pBraked->BrakeLevelAdd(pBraked->fBrakeCtrlPos<-1?0:-dt*2);
        }
      }
 
-    if ((pControlled->BrakeHandle==FV4a)&&(Console::Pressed(Global::Keys[k_IncBrakeLevel])))
+    if ((pBraked->BrakeHandle==FV4a)&&(Console::Pressed(Global::Keys[k_IncBrakeLevel])))
      {
       if (Console::Pressed(VK_CONTROL))
        {
-        pControlled->BrakeCtrlPos2-=dt/20.0;
-        if(pControlled->BrakeCtrlPos2<-1.5) pControlled->BrakeCtrlPos2=-1.5;
+        pBraked->BrakeCtrlPos2-=dt/20.0;
+        if(pBraked->BrakeCtrlPos2<-1.5) pBraked->BrakeCtrlPos2=-1.5;
        }
       else
        {
-//        pControlled->BrakeCtrlPosR+=(pControlled->BrakeCtrlPosR>pControlled->BrakeCtrlPosNo?0:dt*2);
-        pControlled->BrakeLevelAdd(dt*2);
-//        pControlled->BrakeCtrlPos= floor(pControlled->BrakeCtrlPosR+0.499);
+//        pBraked->BrakeCtrlPosR+=(pBraked->BrakeCtrlPosR>pBraked->BrakeCtrlPosNo?0:dt*2);
+        pBraked->BrakeLevelAdd(dt*2);
+//        pBraked->BrakeCtrlPos= floor(pBraked->BrakeCtrlPosR+0.499);
        }
      }
 
-    if ((pControlled->BrakeHandle==FV4a)&&(Console::Pressed(Global::Keys[k_DecBrakeLevel])))
+    if ((pBraked->BrakeHandle==FV4a)&&(Console::Pressed(Global::Keys[k_DecBrakeLevel])))
      {
       if (Console::Pressed(VK_CONTROL))
        {
-        pControlled->BrakeCtrlPos2+=(pControlled->BrakeCtrlPos2>2?0:dt/20.0);
-        if(pControlled->BrakeCtrlPos2<-3) pControlled->BrakeCtrlPos2=-3;
+        pBraked->BrakeCtrlPos2+=(pBraked->BrakeCtrlPos2>2?0:dt/20.0);
+        if(pBraked->BrakeCtrlPos2<-3) pBraked->BrakeCtrlPos2=-3;
        }
       else
        {
-//        pControlled->BrakeCtrlPosR-=(pControlled->BrakeCtrlPosR<-1?0:dt*2);
-//        pControlled->BrakeCtrlPos= floor(pControlled->BrakeCtrlPosR+0.499);
-        pControlled->BrakeLevelAdd(-dt*2);
+//        pBraked->BrakeCtrlPosR-=(pBraked->BrakeCtrlPosR<-1?0:dt*2);
+//        pBraked->BrakeCtrlPos= floor(pBraked->BrakeCtrlPosR+0.499);
+        pBraked->BrakeLevelAdd(-dt*2);
        }
      }
 
 
 
 //    bool kEP;
-//    kEP=(pControlled->BrakeSubsystem==Knorr)||(pControlled->BrakeSubsystem==Hik)||(pControlled->BrakeSubsystem==Kk);
-    if ((pControlled->BrakeSystem==ElectroPneumatic)&&((pControlled->BrakeHandle==St113))&&(pControlled->EpFuse==true))
+//    kEP=(pBraked->BrakeSubsystem==Knorr)||(pBraked->BrakeSubsystem==Hik)||(pBraked->BrakeSubsystem==Kk);
+    if ((pBraked->BrakeSystem==ElectroPneumatic)&&((pBraked->BrakeHandle==St113))&&(pControlled->EpFuse==true))
      if (Console::Pressed(Global::Keys[k_AntiSlipping])) //kEP
       {
        AntiSlipButtonGauge.UpdateValue(1);
@@ -4618,20 +4616,20 @@ bool TTrain::CabChange(int iDirection)
 {//McZapkie-090902: zmiana kabiny 1->0->2 i z powrotem
  if (DynamicObject->Mechanik?DynamicObject->Mechanik->AIControllFlag:true) //jeœli prowadzi AI albo jest w innym cz³onie
  {//jak AI prowadzi, to nie mo¿na mu mieszaæ
-  if (abs(pControlled->ActiveCab+iDirection)>1)
+  if (abs(DynamicObject->MoverParameters->ActiveCab+iDirection)>1)
    return false; //ewentualna zmiana pojazdu
-  pControlled->ActiveCab=pControlled->ActiveCab+iDirection;
+  DynamicObject->MoverParameters->ActiveCab=DynamicObject->MoverParameters->ActiveCab+iDirection;
  }
  else
  {//jeœli pojazd prowadzony rêcznie albo wcale (wagon)
-  pControlled->CabDeactivisation();
-  if (pControlled->ChangeCab(iDirection))
-   if (InitializeCab(pControlled->ActiveCab,DynamicObject->asBaseDir+pControlled->TypeName+".mmd"))
+  DynamicObject->MoverParameters->CabDeactivisation();
+  if (DynamicObject->MoverParameters->ChangeCab(iDirection))
+   if (InitializeCab(DynamicObject->MoverParameters->ActiveCab,DynamicObject->asBaseDir+DynamicObject->MoverParameters->TypeName+".mmd"))
    {//zmiana kabiny w ramach tego samego pojazdu
-    pControlled->CabActivisation(); //za³¹czenie rozrz¹du (wirtualne kabiny)
+    DynamicObject->MoverParameters->CabActivisation(); //za³¹czenie rozrz¹du (wirtualne kabiny)
     return true; //uda³o siê zmieniæ kabinê
    }
-  pControlled->CabActivisation(); //aktywizacja poprzedniej, bo jeszcze nie wiadomo, czy jakiœ pojazd jest
+  DynamicObject->MoverParameters->CabActivisation(); //aktywizacja poprzedniej, bo jeszcze nie wiadomo, czy jakiœ pojazd jest
  }
  return false; //ewentualna zmiana pojazdu
 }
@@ -4775,9 +4773,9 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
          {
           str=Parser->GetNextSymbol();
           rsBrake.Init(str.c_str(),-1,0,0,0,true,true);
-          rsBrake.AM=Parser->GetNextSymbol().ToDouble()/(1+pControlled->MaxBrakeForce*1000);
+          rsBrake.AM=Parser->GetNextSymbol().ToDouble()/(1+pBraked->MaxBrakeForce*1000);
           rsBrake.AA=Parser->GetNextSymbol().ToDouble();
-          rsBrake.FM=Parser->GetNextSymbol().ToDouble()/(1+pControlled->Vmax);
+          rsBrake.FM=Parser->GetNextSymbol().ToDouble()/(1+pBraked->Vmax);
           rsBrake.FA=Parser->GetNextSymbol().ToDouble();
          }
         else
@@ -4785,7 +4783,7 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
          {
           str=Parser->GetNextSymbol();
           rsSlippery.Init(str.c_str(),-1,0,0,0,true);
-          rsSlippery.AM=Parser->GetNextSymbol().ToDouble()/(1+pControlled->Vmax);
+          rsSlippery.AM=Parser->GetNextSymbol().ToDouble()/(1+pBraked->Vmax);
           rsSlippery.AA=Parser->GetNextSymbol().ToDouble();
           rsSlippery.FM=0.0;
           rsSlippery.FA=1.0;
@@ -4865,9 +4863,9 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
          {
           str=Parser->GetNextSymbol();
           rsRunningNoise.Init(str.c_str(),-1,0,0,0,true,true);
-          rsRunningNoise.AM=Parser->GetNextSymbol().ToDouble()/(1+pControlled->Vmax);
+          rsRunningNoise.AM=Parser->GetNextSymbol().ToDouble()/(1+pBraked->Vmax);
           rsRunningNoise.AA=Parser->GetNextSymbol().ToDouble();
-          rsRunningNoise.FM=Parser->GetNextSymbol().ToDouble()/(1+pControlled->Vmax);
+          rsRunningNoise.FM=Parser->GetNextSymbol().ToDouble()/(1+pBraked->Vmax);
           rsRunningNoise.FA=Parser->GetNextSymbol().ToDouble();
          }
         else
@@ -4877,7 +4875,7 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
           rsEngageSlippery.Init(str.c_str(),-1,0,0,0,true,true);
           rsEngageSlippery.AM=Parser->GetNextSymbol().ToDouble();
           rsEngageSlippery.AA=Parser->GetNextSymbol().ToDouble();
-          rsEngageSlippery.FM=Parser->GetNextSymbol().ToDouble()/(1+pControlled->nmax);
+          rsEngageSlippery.FM=Parser->GetNextSymbol().ToDouble()/(1+pBraked->nmax);
           rsEngageSlippery.FA=Parser->GetNextSymbol().ToDouble();
          }
         else
@@ -5505,14 +5503,24 @@ vector3 __fastcall TTrain::MirrorPosition(bool lewe)
 void __fastcall TTrain::DynamicSet(TDynamicObject *d)
 {//taka proteza: chcê pod³¹czyæ kabinê EN57 bezpoœrednio z silnikowym, aby nie robiæ tego przez ukrotnienie
  //drugi silnikowy i tak musi byæ ukrotniony, podobnie jak kolejna jednostka
- //problemem jest wa³ ku³akowy, który dzia³a w silnikowym jak nastawnik
- //ale wa³ ku³akowy mo¿e byæ te¿ w cz³onie z kabin¹, np. w EZT typu S+D
  //problem siê robi ze œwiat³ami, które bêd¹ zapalane w silnikowym, ale musz¹ œwieciæ siê w rozrz¹dczych
  //dla EZT œwiat³¹ czo³owe bêd¹ "zapalane w silnikowym", ale widziane z rozrz¹dczych
  //równie¿ wczytywanie MMD powinno dotyczyæ aktualnego cz³onu
  //problematyczna mo¿e byæ kwestia wybranej kabiny (w silnikowym...)
  //równie¿ hamowanie wykonuje siê zaworem w cz³onie, a nie w silnikowym...
  DynamicObject=d; //jedyne miejsce zmiany
- pControlled=d?DynamicObject->MoverParameters:NULL; //albo silnikowy w EZT
+ pBraked=pControlled=d?DynamicObject->MoverParameters:NULL; //albo silnikowy w EZT
+ if (!DynamicObject) return;
+ if (pControlled->TrainType&dt_EZT) //na razie dotyczy to EZT
+  if (DynamicObject->NextConnected?pControlled->Couplers[1].AllowedFlag&ctrain_depot:false)
+  {//gdy jest cz³on od sprzêgu 1, a sprzêg ³¹czony warsztatowo (powiedzmy)
+   if ((pControlled->Power<1.0)&&(pControlled->Couplers[1].Connected->Power>1.0)) //my nie mamy mocy, ale ten drugi ma
+    pControlled=DynamicObject->NextConnected->MoverParameters; //bêdziemy sterowaæ tym z moc¹
+  }
+  else if (DynamicObject->PrevConnected?pControlled->Couplers[0].AllowedFlag&ctrain_depot:false)
+  {//gdy jest cz³on od sprzêgu 0, a sprzêg ³¹czony warsztatowo (powiedzmy)
+   if ((pControlled->Power<1.0)&&(pControlled->Couplers[0].Connected->Power>1.0)) //my nie mamy mocy, ale ten drugi ma
+    pControlled=DynamicObject->PrevConnected->MoverParameters; //bêdziemy sterowaæ tym z moc¹
+  }
 };
 
