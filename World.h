@@ -48,7 +48,8 @@ private:
  GLuint	base; //numer DL dla znaków w napisach
  GLuint light; //numer tekstury dla smugi
  TSky Clouds;
- TEvent *KeyEvents[10];
+ TEvent *KeyEvents[10]; //eventy wyzwalane z klawiaury
+ TMoverParameters *mvControlled; //wskaŸnik na cz³on silnikowy, do wyœwietlania jego parametrów
  int iCheckFPS; //kiedy znów sprawdziæ FPS, ¿eby wy³¹czaæ optymalizacji od razu do zera
  double fTimeBuffer; //bufor czasu aktualizacji dla sta³ego kroku fizyki
  double fMaxDt; //[s] krok czasowy fizyki (0.01 dla normalnych warunków)

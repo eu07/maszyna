@@ -80,7 +80,7 @@ private: //¿eby go nic z zewn¹trz nie przestawia³o
  TDynamicObject *DynamicObject; //przestawia zmiana pojazdu [F5]
 private: //¿eby go nic z zewn¹trz nie przestawia³o
  TMoverParameters *pControlled; //cz³on, w którym sterujemy silnikiem
- TMoverParameters *pBraked; //cz³on, w którym sterujemy hamulcem
+ TMoverParameters *pOccupied; //cz³on, w którym sterujemy hamulcem
 public: //reszta mo¿e byæ publiczna
 
     //AnsiString asMessage;

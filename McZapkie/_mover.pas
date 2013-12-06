@@ -757,7 +757,7 @@ TYPE
                 procedure UpdatePipePressure(dt:real);
                 procedure CompressorCheck(dt:real); {wlacza, wylacza kompresor, laduje zbiornik}
                 procedure UpdateScndPipePressure(dt:real);
-                procedure UpdateBatteryVoltage(dt:real);
+                //procedure UpdateBatteryVoltage(dt:real);
                 function GetDVc(dt:real):real;
 
                {! funkcje laczace/rozlaczajace sprzegi}
@@ -2550,6 +2550,7 @@ procedure T_MoverParameters.CompressorCheck(dt:real);
     end;
  end;
 
+(* //Ra: przeniesione do C++, gdzie jest informacja o zapalonych œwiat³ach
 procedure T_MoverParameters.UpdateBatteryVoltage(dt:real);
 {//do Mover.cpp to daæ, stan œwiate³ te¿ tam}
 var sn1,sn2,sn3,sn4,sn5: real;
@@ -2567,14 +2568,13 @@ begin
      if (Mains) then
      sn3:=(dt*0.05)
      else sn3:=0;
-(* //Ra: no tak, wyrzuci³em lampy st¹d, wiêc nie bêd¹ pobieraæ pr¹du
+//Ra: no tak, wyrzuci³em lampy st¹d, wiêc nie bêd¹ pobieraæ pr¹du
      if (HeadSignalsFlag>0) then
      sn4:=dt*0.003
      else sn4:=0;
      if (EndSignalsFlag>0) then
      sn5:=dt*0.001
      else sn5:=0;
-*)
      sn4:=0;
      sn5:=0;
      end;
@@ -2589,14 +2589,12 @@ begin
      if (Mains)  then
      sn3:=(dt*0.001)
      else sn3:=0;
-(*
      if (HeadSignalsFlag>0) then
      sn4:=(dt*0.0030)
      else sn4:=0;
      if (EndSignalsFlag>0) then
      sn5:=(dt*0.0010)
      else sn5:=0;
-(*)
      sn4:=0;
      sn5:=0;
      end;
@@ -2627,7 +2625,7 @@ begin
   else
 BatteryVoltage:=90;
 end;
-
+*)
 
 procedure T_MoverParameters.ConverterCheck;       {sprawdzanie przetwornicy}
 begin
@@ -4908,7 +4906,7 @@ begin
  ConverterCheck;
  UpdateBrakePressure(dt);
  UpdatePipePressure(dt);
- UpdateBatteryVoltage(dt);
+ //UpdateBatteryVoltage(dt);
  UpdateScndPipePressure(dt); // druga rurka, youBy
 
 {hamulec antyposlizgowy - wylaczanie}
@@ -5049,7 +5047,7 @@ begin
  UpdateBrakePressure(dt);
  UpdatePipePressure(dt);
  UpdateScndPipePressure(dt); // druga rurka, youBy
- UpdateBatteryVoltage(dt);
+ //UpdateBatteryVoltage(dt);
 {hamulec antyposlizgowy - wylaczanie}
  if(BrakeSlippingTimer>ASBSpeed)and(ASBType<>128)then
    Hamulec.ASB(0);
