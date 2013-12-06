@@ -136,6 +136,7 @@ public: //parametry po³o¿enia pojazdu dostêpne publicznie
  AnsiString asDestination; //dok¹d pojazd ma byæ kierowany "(stacja):(tor)"
  matrix4x4 mMatrix; //macierz przekszta³cenia do renderowania modeli
  TMoverParameters *MoverParameters; //parametry fizyki ruchu oraz przeliczanie
+ //TMoverParameters *pControlled; //wskaŸnik do sterowanego cz³onu silnikowego
  TDynamicObject *NextConnected; //pojazd pod³¹czony od strony sprzêgu 1 (kabina -1)
  TDynamicObject *PrevConnected; //pojazd pod³¹czony od strony sprzêgu 0 (kabina 1)
  int NextConnectedNo; //numer sprzêgu pod³¹czonego z ty³u
@@ -390,7 +391,7 @@ public:
  int Dettach(int dir);
  TDynamicObject* __fastcall Neightbour(int &dir);
  void __fastcall CoupleDist();
-
+ TDynamicObject* __fastcall ControlledFind();
 };
 
 

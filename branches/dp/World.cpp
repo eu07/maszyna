@@ -81,6 +81,7 @@ void __fastcall TWorld::TrainDelete(TDynamicObject *d)
  delete Train; //i nie ma czym sterowaæ
  Train=NULL;
  Controlled=NULL; //tego te¿ ju¿ nie ma
+ mvControlled=NULL;
  Global::pUserDynamic=NULL; //tego te¿ nie ma
 };
 
@@ -563,6 +564,7 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
      if (Train->Init(PlayerTrain->DynamicObject))
      {
       Controlled=Train->Dynamic();
+      mvControlled=Controlled->ControlledFind()->MoverParameters;
       Global::pUserDynamic=Controlled; //renerowanie pojazdu wzglêdem kabiny
       WriteLog("Player train init OK");
       if (Global::detonatoryOK)
@@ -583,6 +585,7 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
       }
       SwapBuffers(hDC); // Swap Buffers (Double Buffering)
       Controlled=NULL;
+      mvControlled=NULL;
       Camera.Type=tp_Free;
      }
     }
@@ -599,6 +602,7 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
      FreeFlyModeFlag=true; //Ra: automatycznie w³¹czone latanie
      SwapBuffers(hDC); //swap buffers (double buffering)
      Controlled=NULL;
+     mvControlled=NULL;
      Camera.Type=tp_Free;
     }
     glEnable(GL_DEPTH_TEST);
@@ -1491,6 +1495,7 @@ bool __fastcall TWorld::Update()
      //Train->DynamicObject=NULL;
      Train->DynamicSet(temp);
      Controlled=temp;
+     mvControlled=Controlled->ControlledFind()->MoverParameters;
      Global::asHumanCtrlVehicle=Train->Dynamic()->GetName();
      if (Train->Dynamic()->Mechanik) //AI mo¿e sobie samo pójœæ
       if (!Train->Dynamic()->Mechanik->AIControllFlag) //tylko jeœli rêcznie prowadzony
@@ -1533,8 +1538,8 @@ bool __fastcall TWorld::Update()
        if (!OutText2.IsEmpty()) //jeœli jest podana relacja, to dodajemy punkt nastêpnego zatrzymania
         OutText2=Bezogonkow(OutText2+": -> "+Controlled->Mechanik->NextStop()); //dopisanie punktu zatrzymania
       }
-     //double CtrlPos=Controlled->MoverParameters->MainCtrlPos;
-     //double CtrlPosNo=Controlled->MoverParameters->MainCtrlPosNo;
+     //double CtrlPos=mvControlled->MainCtrlPos;
+     //double CtrlPosNo=mvControlled->MainCtrlPosNo;
      //OutText2="defrot="+FloatToStrF(1+0.4*(CtrlPos/CtrlPosNo),ffFixed,2,5);
      OutText3=""; //Pomoc w sterowaniu - [F9]";
      //OutText3=AnsiString(Global::pCameraRotationDeg); //k¹t kamery wzglêdem pó³nocy
@@ -1679,6 +1684,7 @@ bool __fastcall TWorld::Update()
           Controlled->Mechanik->TakeControl(true); //oddajemy dotychczasowy AI
         if (DebugModeFlag?true:tmp->MoverParameters->Vel<=5.0)
         {Controlled=tmp; //przejmujemy nowy
+         mvControlled=Controlled->ControlledFind()->MoverParameters;
          if (!Train) //jeœli niczym jeszcze nie jeŸdzilismy
           Train=new TTrain();
          if (Train->Init(Controlled))
@@ -1739,25 +1745,25 @@ bool __fastcall TWorld::Update()
       OutText1+=AnsiString("; d_omega ")+FloatToStrF(Controlled->MoverParameters->dizel_engagedeltaomega,ffFixed,6,3);
       OutText2 =AnsiString("ham zesp ")+FloatToStrF(Controlled->MoverParameters->fBrakeCtrlPos,ffFixed,6,1);
       OutText2+=AnsiString("; ham pom ")+FloatToStrF(Controlled->MoverParameters->LocalBrakePos,ffFixed,6,0);
-      //Controlled->MoverParameters->MainCtrlPos;
-      //if (Controlled->MoverParameters->MainCtrlPos<0)
+      //mvControlled->MainCtrlPos;
+      //if (mvControlled->MainCtrlPos<0)
       //    OutText2+= AnsiString("; nastawnik 0");
-//      if (Controlled->MoverParameters->MainCtrlPos>iPozSzereg)
-          OutText2+= AnsiString("; nastawnik ") + (Controlled->MoverParameters->MainCtrlPos);
+//      if (mvControlled->MainCtrlPos>iPozSzereg)
+          OutText2+= AnsiString("; nastawnik ") + (mvControlled->MainCtrlPos);
 //      else
-//          OutText2+= AnsiString("; nastawnik S") + Controlled->MoverParameters->MainCtrlPos;
+//          OutText2+= AnsiString("; nastawnik S") + mvControlled->MainCtrlPos;
 
-      OutText2+=AnsiString("; bocznik:")+Controlled->MoverParameters->ScndCtrlPos;
-      if (Controlled->MoverParameters->TrainType==dt_EZT)
-       OutText2+=AnsiString("; I=")+FloatToStrF(Controlled->MoverParameters->ShowCurrent(1),ffFixed,6,2);
+      OutText2+=AnsiString("; bocznik:")+mvControlled->ScndCtrlPos;
+      if (mvControlled->TrainType==dt_EZT)
+       OutText2+=AnsiString("; I=")+FloatToStrF(mvControlled->ShowCurrent(1),ffFixed,6,2);
       else
-       OutText2+=AnsiString("; I=")+FloatToStrF(Controlled->MoverParameters->Im,ffFixed,6,2);
+       OutText2+=AnsiString("; I=")+FloatToStrF(mvControlled->Im,ffFixed,6,2);
       //OutText2+=AnsiString("; I2=")+FloatToStrF(Controlled->NextConnected->MoverParameters->Im,ffFixed,6,2);
-      OutText2+=AnsiString("; V=")+FloatToStrF(Controlled->MoverParameters->RunningTraction.TractionVoltage,ffFixed,5,1);
-      //OutText2+=AnsiString("; rvent=")+FloatToStrF(Controlled->MoverParameters->RventRot,ffFixed,6,2);
+      OutText2+=AnsiString("; V=")+FloatToStrF(mvControlled->RunningTraction.TractionVoltage,ffFixed,5,1);
+      //OutText2+=AnsiString("; rvent=")+FloatToStrF(mvControlled->RventRot,ffFixed,6,2);
       OutText2+=AnsiString("; R=")+FloatToStrF(Controlled->MoverParameters->RunningShape.R,ffFixed,4,1);
       OutText2+=AnsiString(" An=")+FloatToStrF(Controlled->MoverParameters->AccN,ffFixed,4,2);
-      //OutText2+=AnsiString("; P=")+FloatToStrF(Controlled->MoverParameters->EnginePower,ffFixed,6,1);
+      //OutText2+=AnsiString("; P=")+FloatToStrF(mvControlled->EnginePower,ffFixed,6,1);
       OutText3+=AnsiString("cyl.ham. ")+FloatToStrF(Controlled->MoverParameters->BrakePress,ffFixed,5,2);
       OutText3+=AnsiString("; prz.gl. ")+FloatToStrF(Controlled->MoverParameters->PipePress,ffFixed,5,2);
       OutText3+=AnsiString("; zb.gl. ")+FloatToStrF(Controlled->MoverParameters->CompressedVolume,ffFixed,6,2);
@@ -1765,7 +1771,7 @@ bool __fastcall TWorld::Update()
       OutText3+=AnsiString("; p.zas. ")+FloatToStrF(Controlled->MoverParameters->ScndPipePress,ffFixed,6,2);
 
       //ABu: testy sprzegow-> (potem przeniesc te zmienne z public do protected!)
-      //OutText3+=AnsiString("; EnginePwr=")+FloatToStrF(Controlled->MoverParameters->EnginePower,ffFixed,1,5);
+      //OutText3+=AnsiString("; EnginePwr=")+FloatToStrF(mvControlled->EnginePower,ffFixed,1,5);
       //OutText3+=AnsiString("; nn=")+FloatToStrF(Controlled->NextConnectedNo,ffFixed,1,0);
       //OutText3+=AnsiString("; PR=")+FloatToStrF(Controlled->dPantAngleR,ffFixed,3,0);
       //OutText3+=AnsiString("; PF=")+FloatToStrF(Controlled->dPantAngleF,ffFixed,3,0);
@@ -1784,14 +1790,14 @@ bool __fastcall TWorld::Update()
       //Controlled->mdModel->GetSMRoot()->SetTranslate(vector3(0,1,0));
 
       //McZapkie: warto wiedziec w jakim stanie sa przelaczniki
-      if (Controlled->MoverParameters->ConvOvldFlag)
+      if (mvControlled->ConvOvldFlag)
        OutText3+=" C! ";
-      else if (!Controlled->MoverParameters->Mains)
-       OutText3+=" () ";
-      else if (Controlled->MoverParameters->FuseFlag)
+      else if (mvControlled->FuseFlag)
        OutText3+=" F! ";
+      else if (!mvControlled->Mains)
+       OutText3+=" () ";
       else
-       switch (Controlled->MoverParameters->ActiveDir*(Controlled->MoverParameters->Imin==Controlled->MoverParameters->IminLo?1:2))
+       switch (mvControlled->ActiveDir*(mvControlled->Imin==mvControlled->IminLo?1:2))
        {
         case  2: {OutText3+=" >> "; break;}
         case  1: {OutText3+=" -> "; break;}
@@ -1807,9 +1813,9 @@ bool __fastcall TWorld::Update()
       else
        {OutText3+=AnsiString(" Vtrack ")+FloatToStrF(Controlled->MoverParameters->RunningTrack.Velmax,ffFixed,8,2);}
 //      WriteLog(Controlled->MoverParameters->TrainType.c_str());
-      if ((Controlled->MoverParameters->EnginePowerSource.SourceType==CurrentCollector) || (Controlled->MoverParameters->TrainType==dt_EZT))
-       {OutText3+=AnsiString(" zb.pant. ")+FloatToStrF(Controlled->MoverParameters->PantVolume,ffFixed,8,2);
-        OutText3+=(Controlled->MoverParameters->bPantKurek3?"=ZG":"|ZG");
+      if ((mvControlled->EnginePowerSource.SourceType==CurrentCollector) || (mvControlled->TrainType==dt_EZT))
+       {OutText3+=AnsiString(" zb.pant. ")+FloatToStrF(mvControlled->PantVolume,ffFixed,8,2);
+        OutText3+=(mvControlled->bPantKurek3?"=ZG":"|ZG");
        }
   //McZapkie: komenda i jej parametry
        if (Controlled->MoverParameters->CommandIn.Command!=AnsiString(""))
@@ -2024,7 +2030,7 @@ void TWorld::ShowHints(void)
         OutText2="   (nacisnij spacje)";
       }
    else
-   if(Controlled->MoverParameters->FuseFlag)
+   if (mvControlled->FuseFlag)
       {
         OutText1="Czlowieku, delikatniej troche! Gdzie sie spieszysz?";
         OutText2="Wybilo Ci bezpiecznik nadmiarowy, teraz musisz wlaczyc go ponownie.";
@@ -2032,34 +2038,34 @@ void TWorld::ShowHints(void)
 
       }
    else
-   if (Controlled->MoverParameters->V==0)
+   if (mvControlled->V==0)
    {
-      if ((Controlled->MoverParameters->PantFrontVolt==0.0)||(Controlled->MoverParameters->PantRearVolt==0.0))
+      if ((mvControlled->PantFrontVolt==0.0)||(mvControlled->PantRearVolt==0.0))
          {
          OutText1="Jezdziles juz kiedys lokomotywa? Pierwszy raz? Dobra, to zaczynamy.";
          OutText2="No to co, trzebaby chyba podniesc pantograf?";
          OutText3="   (wcisnij 'shift+P' - przedni, 'shift+O' - tylny)";
          }
       else
-      if (!Controlled->MoverParameters->Mains)
+      if (!mvControlled->Mains)
          {
          OutText1="Dobra, mozemy zalaczyc wylacznik szybki lokomotywy.";
          OutText2="   (wcisnij 'shift+M')";
          }
       else
-      if (!Controlled->MoverParameters->ConverterAllow)
+      if (!mvControlled->ConverterAllow)
          {
          OutText1="Teraz wlacz przetwornice.";
          OutText2="   (wcisnij 'shift+X')";
          }
       else
-      if (!Controlled->MoverParameters->CompressorAllow)
+      if (!mvControlled->CompressorAllow)
          {
          OutText1="Teraz wlacz sprezarke.";
          OutText2="   (wcisnij 'shift+C')";
          }
       else
-      if (Controlled->MoverParameters->ActiveDir==0)
+      if (mvControlled->ActiveDir==0)
          {
          OutText1="Ustaw nastawnik kierunkowy na kierunek, w ktorym chcesz jechac.";
          OutText2="   ('d' - do przodu, 'r' - do tylu)";
@@ -2077,18 +2083,18 @@ void TWorld::ShowHints(void)
          OutText2="   ('4' na klawiaturze numerycznej)";
          }
       else
-      if (Controlled->MoverParameters->MainCtrlPos==0)
+      if (mvControlled->MainCtrlPos==0)
          {
          OutText1="Teraz juz mozesz ruszyc ustawiajac pierwsza pozycje na nastawniku jazdy.";
          OutText2="   (jeden raz '+' na klawiaturze numerycznej)";
          }
       else
-      if((Controlled->MoverParameters->MainCtrlPos>0)&&(Controlled->MoverParameters->ShowCurrent(1)!=0))
+      if((mvControlled->MainCtrlPos>0)&&(mvControlled->ShowCurrent(1)!=0))
          {
          OutText1="Dobrze, mozesz teraz wlaczac kolejne pozycje nastawnika.";
          OutText2="   ('+' na klawiaturze numerycznej, tylko z wyczuciem)";
          }
-      if((Controlled->MoverParameters->MainCtrlPos>1)&&(Controlled->MoverParameters->ShowCurrent(1)==0))
+      if((mvControlled->MainCtrlPos>1)&&(mvControlled->ShowCurrent(1)==0))
          {
          OutText1="Spieszysz sie gdzies? Zejdz nastawnikiem na zero i probuj jeszcze raz!";
          OutText2="   (teraz do oporu '-' na klawiaturze numerycznej)";
@@ -2097,9 +2103,9 @@ void TWorld::ShowHints(void)
    else
    {
       OutText1="Aby przyspieszyc mozesz wrzucac kolejne pozycje nastawnika.";
-      if(Controlled->MoverParameters->MainCtrlPos==28)
+      if(mvControlled->MainCtrlPos==28)
       {OutText1="Przy tym ustawienu mozesz bocznikowac silniki - sprobuj: '/' i '*' ";}
-      if(Controlled->MoverParameters->MainCtrlPos==43)
+      if(mvControlled->MainCtrlPos==43)
       {OutText1="Przy tym ustawienu mozesz bocznikowac silniki - sprobuj: '/' i '*' ";}
 
       OutText2="Aby zahamowac zejdz nastawnikiem do 0 ('-' do oporu) i ustaw kran hamulca";

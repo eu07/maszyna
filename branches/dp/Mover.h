@@ -52,6 +52,7 @@ public:
  bool __fastcall ChangeCab(int direction);
  bool __fastcall CurrentSwitch(int direction);
  void __fastcall UpdatePantVolume(double dt);
+ void __fastcall UpdateBatteryVoltage(double dt);
 };
 
 #endif

@@ -271,9 +271,79 @@ void __fastcall TMoverParameters::UpdatePantVolume(double dt)
  if (PantPress<3.5)
   if (MainSwitch(False)&&(EngineType==ElectricSeriesMotor))
    EventFlag=true; //wywalenie szybkiego z powodu niskiego ciœnienia
- //if (TrainType==dt_EZT)?:) //w EN57 pompuje siê tylko w silnikowym
+ if ((TrainType==dt_EZT)?Power>1:true) //w EN57 pompuje siê tylko w silnikowym
+ //pierwotnie w CHK pantografy mia³y równie¿ rozrz¹dcze EZT 
  for (int b=0;b<=1;++b)
   if (TestFlag(Couplers[b].CouplingFlag,ctrain_controll))
    Couplers[b].Connected->PantVolume=PantVolume; //przekazanie ciœnienia do s¹siedniego cz³onu
+ //czy np. w ET40, ET41, ET42 pantografy cz³onów maj¹ po³¹czenie pneumatyczne
+};
+
+void __fastcall TMoverParameters::UpdateBatteryVoltage(double dt)
+{//przeliczenie obci¹¿enia baterii
+ double sn1,sn2,sn3,sn4,sn5; //Ra: zrobiæ z tego amperomierz NN
+ if ((BatteryVoltage>0)&&(EngineType!=DieselEngine)&&(EngineType!=WheelsDriven)&&(NominalBatteryVoltage>0))
+ {
+  if ((NominalBatteryVoltage/BatteryVoltage<1.22)&&Battery)
+  {//110V
+   if (!ConverterFlag)
+    sn1=(dt*50); //szybki spadek do ok 90V
+   else sn1=0;
+   if (ConverterFlag)
+    sn2=-(dt*50); //szybki wzrost do 110V
+   else sn2=0;
+   if (Mains)
+    sn3=(dt*0.05);
+   else sn3=0;
+   if (iLights[0]>0) //rozpisaæ na poszczególne ¿arówki...
+    sn4=dt*0.003;
+   else sn4=0;
+   if (iLights[1]>0)
+    sn5=dt*0.001;
+   else sn5=0;
+  };
+  if ((NominalBatteryVoltage/BatteryVoltage>=1.22)&&Battery)
+  {//90V
+   if (PantCompFlag)
+    sn1=(dt*0.0046);
+   else sn1=0;
+   if (ConverterFlag)
+    sn2=-(dt*50); //szybki wzrost do 110V
+   else sn2=0;
+   if (Mains)
+    sn3=(dt*0.001);
+   else sn3=0;
+   if (iLights[0]>0)
+    sn4=(dt*0.0030);
+   else sn4=0;
+   if (iLights[1]>0)
+    sn5=(dt*0.0010);
+   else sn5=0;
+  };
+  if (!Battery)
+  {
+   if (NominalBatteryVoltage/BatteryVoltage<1.22)
+    sn1=dt*50;
+   else
+    sn1=0;
+    sn2=dt*0.000001;
+    sn3=dt*0.000001;
+    sn4=dt*0.000001;
+    sn5=dt*0.000001; //bardzo powolny spadek przy wy³¹czonych bateriach
+  };
+  BatteryVoltage-=(sn1+sn2+sn3+sn4+sn5);
+  if (NominalBatteryVoltage/BatteryVoltage>1.57)
+    if (MainSwitch(false)&&(EngineType!=DieselEngine)&&(EngineType!=WheelsDriven))
+      EventFlag=true; //wywalanie szybkiego z powodu zbyt niskiego napiecia
+  if (BatteryVoltage>NominalBatteryVoltage)
+   BatteryVoltage=NominalBatteryVoltage; //wstrzymanie ³adowania pow. 110V
+  if (BatteryVoltage<0.01)
+   BatteryVoltage=0.01;
+ }
+ else
+  if (NominalBatteryVoltage==0) 
+   BatteryVoltage=0;
+  else
+   BatteryVoltage=90;
 };
 

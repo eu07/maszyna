@@ -2074,6 +2074,7 @@ TGround::GetTraction;
 
 //McZapkie-260202 - dMoveLen przyda sie przy stukocie kol
     dDOMoveLen=GetdMoveLen()+MoverParameters->ComputeMovement(dt,dt1,ts,tp,tmpTraction,l,r);
+    MoverParameters->UpdateBatteryVoltage(dt); //jest ju¿ w Mover.cpp
     if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector) //tylko jeœli pantografuj¹cy
      MoverParameters->UpdatePantVolume(dt); //Ra: pneumatyka pantografów przeniesiona do Mover.cpp!
 //yB: zeby zawsze wrzucalo w jedna strone zakretu
@@ -2491,7 +2492,9 @@ bool __fastcall TDynamicObject::FastUpdate(double dt)
     //tp.DamageFlag=MyTrack->iDamageFlag;
     //tp.QualityFlag=MyTrack->iQualityFlag;
     dDOMoveLen=MoverParameters->FastComputeMovement(dt,ts,tp,l,r); // ,ts,tp,tmpTraction);
-    MoverParameters->UpdatePantVolume(dt); //Ra: pneumatyka pantografów przeniesiona do Mover.cpp!
+    MoverParameters->UpdateBatteryVoltage(dt); //jest ju¿ w Mover.cpp
+    if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector) //tylko jeœli pantografuj¹cy
+     MoverParameters->UpdatePantVolume(dt); //Ra: pneumatyka pantografów przeniesiona do Mover.cpp!
     //Move(dDOMoveLen);
     //ResetdMoveLen();
     FastMove(dDOMoveLen);
@@ -3714,7 +3717,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
          }
        if (str==AnsiString("pantographup:"))            //pliki dzwiekow pantografow
         {
-         str= Parser->GetNextSymbol();
+         str=Parser->GetNextSymbol();
          sPantUp.Init(str.c_str(),50,GetPosition().x,GetPosition().y,GetPosition().z,true);
          sPantUp.AM=50000;
          sPantUp.AA=-1*(105-random(10))/100;
@@ -3859,7 +3862,6 @@ TDynamicObject* __fastcall TDynamicObject::Neightbour(int &dir)
  return (d?(MoverParameters->Couplers[1].CouplingFlag?NextConnected:NULL):(MoverParameters->Couplers[0].CouplingFlag?PrevConnected:NULL));
 };
 
-
 void __fastcall TDynamicObject::CoupleDist()
 {//obliczenie odleg³oœci sprzêgów
  if (MyTrack?(MyTrack->iCategoryFlag&1):true) //jeœli nie ma przypisanego toru, to liczyæ jak dla kolei
@@ -3898,5 +3900,30 @@ void __fastcall TDynamicObject::CoupleDist()
       MoverParameters->Couplers[0].CoupleDist=(d0<10?50:d0); //przywrócenie poprzedniej
     }
  }
+};
+
+TDynamicObject* __fastcall TDynamicObject::ControlledFind()
+{//taka proteza: chcê pod³¹czyæ kabinê EN57 bezpoœrednio z silnikowym, aby nie robiæ tego przez ukrotnienie
+ //drugi silnikowy i tak musi byæ ukrotniony, podobnie jak kolejna jednostka
+ //lepiej by by³o przesy³aæ komendy sterowania, co jednak wymaga przebudowy transmisji komend (LD)
+ //problem siê robi ze œwiat³ami, które bêd¹ zapalane w silnikowym, ale musz¹ œwieciæ siê w rozrz¹dczych
+ //dla EZT œwiat³¹ czo³owe bêd¹ "zapalane w silnikowym", ale widziane z rozrz¹dczych
+ //równie¿ wczytywanie MMD powinno dotyczyæ aktualnego cz³onu
+ //problematyczna mo¿e byæ kwestia wybranej kabiny (w silnikowym...)
+ //jeœli silnikowy bêdzie zapiêty odwrotnie (tzn. -1), to i tak powinno jeŸdziæ dobrze
+ //równie¿ hamowanie wykonuje siê zaworem w cz³onie, a nie w silnikowym...
+ TDynamicObject *d=this; //zaczynamy od aktualnego
+ if (d->MoverParameters->TrainType&dt_EZT) //na razie dotyczy to EZT
+  if (d->NextConnected?d->MoverParameters->Couplers[1].AllowedFlag&ctrain_depot:false)
+  {//gdy jest cz³on od sprzêgu 1, a sprzêg ³¹czony warsztatowo (powiedzmy)
+   if ((d->MoverParameters->Power<1.0)&&(d->NextConnected->MoverParameters->Power>1.0)) //my nie mamy mocy, ale ten drugi ma
+    d=d->NextConnected; //bêdziemy sterowaæ tym z moc¹
+  }
+  else if (d->PrevConnected?d->MoverParameters->Couplers[0].AllowedFlag&ctrain_depot:false)
+  {//gdy jest cz³on od sprzêgu 0, a sprzêg ³¹czony warsztatowo (powiedzmy)
+   if ((d->MoverParameters->Power<1.0)&&(d->PrevConnected->MoverParameters->Power>1.0)) //my nie mamy mocy, ale ten drugi ma
+    d=d->PrevConnected; //bêdziemy sterowaæ tym z moc¹
+  }
+ return d; 
 };
 

@@ -171,7 +171,7 @@ private:
  TDynamicObject *pVehicle; //pojazd w którym siedzi steruj¹cy
  TDynamicObject *pVehicles[2]; //skrajne pojazdy w sk³adzie (niekoniecznie bezpoœrednio sterowane)
  TMoverParameters *Controlling; //jakim pojazdem steruje (mo¿e silnikowym w EZT)
- TMoverParameters *pBraked; //jakim pojazdem hamuje
+ TMoverParameters *pOccupied; //jakim pojazdem hamuje
  Mtable::TTrainParameters *TrainParams; //rozk³ad jazdy zawsze jest, nawet jeœli pusty
  //int TrainNumber; //numer rozkladowy tego pociagu
  //AnsiString OrderCommand; //komenda pobierana z pojazdu
