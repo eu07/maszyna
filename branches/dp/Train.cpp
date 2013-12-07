@@ -295,7 +295,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       {
          if(((pControlled->TrainType==dt_EZT) || (pControlled->EngineType==ElectricSeriesMotor)|| (pControlled->EngineType==DieselElectric))&&(pControlled->Battery==false))
          {
-         if ((pControlled->BatterySwitch(true)))
+         if ((pOccupied->BatterySwitch(true)))
            {
                dsbSwitch->Play(0,0,0);
                SetFlag(pControlled->SecuritySystem.Status,s_active);
@@ -1342,8 +1342,8 @@ void __fastcall TTrain::OnKeyPress(int cKey)
 
       if (cKey==Global::Keys[k_Battery])
       {
-        if((pControlled->TrainType==dt_EZT) || (pControlled->EngineType==ElectricSeriesMotor)|| (pControlled->EngineType==DieselElectric))
-        if(pControlled->BatterySwitch(false))
+       if ((pControlled->TrainType==dt_EZT) || (pControlled->EngineType==ElectricSeriesMotor)|| (pControlled->EngineType==DieselElectric))
+        if (pOccupied->BatterySwitch(false))
            {
               dsbSwitch->Play(0,0,0);
               pControlled->SecuritySystem.Status=0;
