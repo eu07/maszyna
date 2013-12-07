@@ -2308,11 +2308,10 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
      //wyliczyæ k¹t górnego ramienia z wzoru (a)cosinusowego
      //=acos((b*cos()+c)/a)
      //p->dPantAngleT=acos((1.22*cos(k)+0.535)/1.755); //górne ramiê
-     p->fAngleU=acos((1.176289*cos(k)+0.54555075)/1.724482197); //górne ramiê
+     p->fAngleU=acos((p->fLenL1*cos(k)+0.54555075)/p->fLenU1); //górne ramiê
      //wyliczyæ aktualn¹ wysokoœæ z wzoru sinusowego
      //h=a*sin()+b*sin()
-     //p->PantWys=1.22*sin(k)+1.755*sin(p->dPantAngleT); //wysokoœæ ca³oœci
-     p->PantWys=1.176289*sin(k)+1.724482197*sin(p->fAngleU); //wysokoœæ ca³oœci
+     p->PantWys=p->fLenL1*sin(k)+p->fLenU1*sin(p->fAngleU); //wysokoœæ ca³oœci
     }
    }
   } //koniec pêtli po pantografach
