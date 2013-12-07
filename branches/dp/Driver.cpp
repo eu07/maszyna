@@ -1724,10 +1724,10 @@ void __fastcall TController::SpeedSet()
      if (fActionTime>=0.0)
      {//jak ju¿ mo¿na coœ poruszaæ, przetok roz³¹czaæ od razu
       if (iDrivigFlags&moveIncSpeed)
-      {//jak ma jechac
+      {//jak ma jechaæ
        if (fReady<0.4) //0.05*Controlling->MaxBrakePress)
        {//jak jest odhamowany
-        if (pOccupied->ActiveDir>0) pOccupied->DirectionForward(); //zeby EN57 jechaly na drugiej nastawie
+        if (pOccupied->ActiveDir>0) pOccupied->DirectionForward(); //¿eby EN57 jecha³y na drugiej nastawie
         switch (Controlling->MainCtrlPos)
         {//ruch nastawnika uzale¿niony jest od aktualnie ustawionej pozycji
          case 0:
