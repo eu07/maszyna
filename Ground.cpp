@@ -3061,13 +3061,13 @@ bool __fastcall TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
       for (int i=0;i<Event->Params[6].asTrack->iNumDynamics;++i)
        Event->Params[5].asMemCell->PutCommand(Event->Params[6].asTrack->Dynamics[i]->Mechanik,&Event->Params[4].asGroundNode->pCenter);
       if (DebugModeFlag)
-       WriteLog("Type: UpdateValues & Track command - "+AnsiString(Event->Params[0].asText)+" "+AnsiString(Event->Params[1].asdouble)+" "+AnsiString(Event->Params[2].asdouble));
+       WriteLog("EVENT EXECUTED: AddValues & Track command - "+AnsiString(Event->Params[0].asText)+" "+AnsiString(Event->Params[1].asdouble)+" "+AnsiString(Event->Params[2].asdouble));
      }
      else
       if (DebugModeFlag)
-       WriteLog("Type: UpdateValues - "+AnsiString(Event->Params[0].asText)+" "+AnsiString(Event->Params[1].asdouble)+" "+AnsiString(Event->Params[2].asdouble));
+       WriteLog("EVENT EXECUTED: AddValues - "+AnsiString(Event->Params[0].asText)+" "+AnsiString(Event->Params[1].asdouble)+" "+AnsiString(Event->Params[2].asdouble));
     }
-    Event=QueryRootEvent->eJoined; //jeœli jest kolejny o takiej samej nazwie, to idzie do kolejki
+    Event=Event->eJoined; //jeœli jest kolejny o takiej samej nazwie, to idzie do kolejki
    }
    if (Event)
    {//standardowe dodanie do kolejki
