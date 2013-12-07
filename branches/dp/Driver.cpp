@@ -1732,7 +1732,7 @@ void __fastcall TController::SpeedSet()
         {//ruch nastawnika uzale¿niony jest od aktualnie ustawionej pozycji
          case 0:
           Controlling->IncMainCtrl(1); //przetok
-          //break; //Ra: przez to EN57 nie jeŸdzi?
+          break; //Ra: przez to EN57 nie jeŸdzi? tego nie powinno byæ, ale nie startuje z wy¿szej pozycji !!!!
          case 1:
           if (VelDesired>20) Controlling->IncMainCtrl(1); //szeregowa
          case 2:
