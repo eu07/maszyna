@@ -1356,7 +1356,7 @@ bool __fastcall TController::PrepareEngine()
  {//czêœæ wykonawcza dla sterowania przez komputer
   if (Controlling->EnginePowerSource.SourceType==CurrentCollector)
   {
-   Controlling->BatterySwitch(true);
+   pOccupied->BatterySwitch(true);
    if (Controlling->PantPress>4.3)
    {//je¿eli jest wystarczaj¹ce ciœnienie w pantografach
     if ((!Controlling->bPantKurek3)||(Controlling->PantPress<=Controlling->ScndPipePress)) //kurek prze³¹czony albo g³ówna ju¿ pompuje
@@ -1372,7 +1372,7 @@ bool __fastcall TController::PrepareEngine()
   }
   if (pOccupied->TrainType==dt_EZT)
   {
-   Controlling->BatterySwitch(true);
+   pOccupied->BatterySwitch(true);
    Controlling->PantFront(true);
    Controlling->PantRear(true);
   }
@@ -1492,7 +1492,7 @@ bool __fastcall TController::ReleaseEngine()
    Lights(0,0); //gasimy œwiat³a
   OrderNext(Wait_for_orders); //¿eby nie próbowa³ coœ robiæ dalej
   TableClear(); //zapominamy ograniczenia
-  Controlling->BatterySwitch(false);
+  pOccupied->BatterySwitch(false);
  }
  return OK;
 }
@@ -2886,20 +2886,21 @@ bool __fastcall TController::UpdateSituation(double dt)
      //koniec wybiegu i hamowania
      if (AIControllFlag)
      {//czêœæ wykonawcza tylko dla AI, dla cz³owieka jedynie napisy
-      if (Controlling->ConvOvldFlag)
+      if (Controlling->ConvOvldFlag||!Controlling->Mains) //WS mo¿e wywaliæ z powodu b³êdu w drutach
       {//wywali³ bezpiecznik nadmiarowy przetwornicy
        //while (DecSpeed()); //zerowanie napêdu
        //Controlling->ConvOvldFlag=false; //reset nadmiarowego
        PrepareEngine(); //próba ponownego za³¹czenia
       }
       //w³¹czanie bezpiecznika
-      if ((Controlling->EngineType==ElectricSeriesMotor)||(Controlling->TrainType&dt_EZT))
+      if ((Controlling->EngineType==ElectricSeriesMotor)||(Controlling->TrainType&dt_EZT)||(Controlling->EngineType==DieselElectric))
        if (Controlling->FuseFlag||Need_TryAgain)
        {Need_TryAgain=false; //true, jeœli druga pozycja w elektryku nie za³apa³a
         //if (!Controlling->DecScndCtrl(1)) //krêcenie po ma³u
         // if (!Controlling->DecMainCtrl(1)) //nastawnik jazdy na 0
         Controlling->DecScndCtrl(2); //nastawnik bocznikowania na 0
         Controlling->DecMainCtrl(2); //nastawnik jazdy na 0
+        Controlling->MainSwitch(true); //Ra: doda³em, bo EN57 stawa³y po wywaleniu
         if (!Controlling->FuseOn())
          HelpMeFlag=true;
         else
