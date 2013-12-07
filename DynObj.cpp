@@ -2043,11 +2043,11 @@ TGround::GetTraction;
 //    { MoverParameters->SecuritySystemReset(); }
     if (MoverParameters->ActiveCab==0)
         MoverParameters->SecuritySystemReset();
-    else
-     if ((Controller!=Humandriver)&&(MoverParameters->BrakeCtrlPos<0)&&(!TestFlag(MoverParameters->BrakeStatus,1))&&((MoverParameters->CntrlPipePress)>0.51))
+//    else
+//     if ((Controller!=Humandriver)&&(MoverParameters->BrakeCtrlPos<0)&&(!TestFlag(MoverParameters->BrakeStatus,1))&&((MoverParameters->CntrlPipePress)>0.51))
 //       {//Ra: to jest do poprawienia przy okazji SPKS
 ////        MoverParameters->PipePress=0.50;
-        MoverParameters->BrakeLevelSet(0);
+//        MoverParameters->BrakeLevelSet(0); //Ra: co to mia³o byæ ???? to nie pozwala wyluzowaæ AI w EN57 !!!!
 
 //       }
 
