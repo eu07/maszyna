@@ -56,7 +56,18 @@ int __fastcall TAnim::TypeSet(int i)
   case 5: //5-pantograf - 5 submodeli
    iFlags=0x055;
    fParamPants=new TAnimPant();
-   fParamPants->vPos=vector3(0,0,0);
+   fParamPants->vPos=vector3(0,0,0); //przypisanie domyœnych wspó³czynników do pantografów
+   fParamPants->fLenL1=1.176289; //1.22;
+   fParamPants->fLenU1=1.724482197; //1.755;
+   fParamPants->fAngleL0=DegToRad(2.8547285515689267247882521833308);
+   fParamPants->fAngleL=fParamPants->fAngleL0; //pocz¹tkowy k¹t dolnego ramienia
+   //fParamPants->pantu=acos((1.22*cos(fParamPants->fAngleL)+0.535)/1.755); //górne ramiê
+   fParamPants->fAngleU0=acos((1.176289*cos(fParamPants->fAngleL)+0.54555075)/1.724482197); //górne ramiê
+   fParamPants->fAngleU=fParamPants->fAngleU0; //pocz¹tkowy k¹t
+   //fParamPants->PantWys=1.22*sin(fParamPants->fAngleL)+1.755*sin(fParamPants->fAngleU); //wysokoœæ pocz¹tkowa
+   //fParamPants->PantWys=1.176289*sin(fParamPants->fAngleL)+1.724482197*sin(fParamPants->fAngleU); //wysokoœæ pocz¹tkowa
+   fParamPants->PantWys=fParamPants->fLenL1*sin(fParamPants->fAngleL)+fParamPants->fLenU1*sin(fParamPants->fAngleU); //wysokoœæ pocz¹tkowa
+   fParamPants->PantTraction=fParamPants->PantWys;
   break;
   case 6: iFlags=0x068; break; //6-t³ok i rozrz¹d - 8 submodeli
   default: iFlags=0;
@@ -3390,6 +3401,30 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
             }
             pants[i].fParamPants->vPos.z=m[3][0]; //przesuniêcie w bok (asymetria)
             pants[i].fParamPants->vPos.y=m[3][1]; //przesuniêcie w górê odczytane z modelu
+            if ((sm=pants[i].smElement[0]->ChildGet())!=NULL)
+            {//jeœli ma potomny, mo¿na policzyæ d³ugoœæ (odleg³oœæ potomnego od osi obrotu)
+             m=float4x4(*sm->GetMatrix()); //wystarczy³by wskaŸnik, nie trzeba kopiowaæ
+             //mo¿e trzeba: pobraæ macierz dolnego ramienia, wyzerowaæ przesuniêcie, przemno¿yæ przez macierz górnego
+             pants[i].fParamPants->fLenL1=hypot(m(3)[1],m(3)[2]); //po osi OX nie potrzeba
+             pants[i].fParamPants->fAngleL0=atan2(fabs(m(3)[2]),fabs(m(3)[1]));
+             //if (pants[i].fParamPants->fAngleL0<M_PI_2) pants[i].fParamPants->fAngleL0+=M_PI; //gdyby w odwrotn¹ stronê wysz³o
+             //if ((pants[i].fParamPants->fAngleL0<0.03)||(pants[i].fParamPants->fAngleL0>0.09)) //normalnie ok. 0.05
+             // pants[i].fParamPants->fAngleL0=pants[i].fParamPants->fAngleL;
+             pants[i].fParamPants->fAngleL=pants[i].fParamPants->fAngleL0; //pocz¹tkowy k¹t dolnego ramienia
+             if ((sm=sm->ChildGet())!=NULL)
+             {//jeœli dalej jest œlizg, mo¿na policzyæ d³ugoœæ górnego ramienia
+              m=float4x4(*sm->GetMatrix()); //wystarczy³by wskaŸnik, nie trzeba kopiowaæ
+              //trzeba by uwzglêdniæ macierz dolnego ramienia, ¿eby uzyskaæ k¹t do poziomu...
+              pants[i].fParamPants->fLenU1=hypot(m(3)[1],m(3)[2]); //po osi OX nie potrzeba
+              //pants[i].fParamPants->pantu=acos((1.22*cos(pants[i].fParamPants->fAngleL)+0.535)/1.755); //górne ramiê
+              //pants[i].fParamPants->fAngleU0=acos((1.176289*cos(pants[i].fParamPants->fAngleL)+0.54555075)/1.724482197); //górne ramiê
+              pants[i].fParamPants->fAngleU0=atan2(-m(3)[2],-m(3)[1]); //pocz¹tkowy k¹t górnego ramienia, odczytany z modelu
+              //if (pants[i].fParamPants->fAngleU0<M_PI_2) pants[i].fParamPants->fAngleU0+=M_PI; //gdyby w odwrotn¹ stronê wysz³o
+              if ((pants[i].fParamPants->fAngleU0<0.03)||(pants[i].fParamPants->fAngleU0>0.09)) //normalnie ok. 0.07
+               pants[i].fParamPants->fAngleU0=acos((pants[i].fParamPants->fLenL1*cos(pants[i].fParamPants->fAngleL)+0.54555075)/pants[i].fParamPants->fLenU1);
+              pants[i].fParamPants->fAngleU=pants[i].fParamPants->fAngleU0; //pocz¹tkowy k¹t
+             }
+            }
            }
            else
             ErrorLog("Bad model: "+asFileName+" - missed submodel "+asAnimName); //brak ramienia
@@ -3476,13 +3511,11 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
          if (pants)
           for (int i=0;i<iAnimType[ANIM_PANTS];++i)
           {//przepisanie wspó³czynników do pantografów (na razie nie bêdzie lepiej)
-           pants[i].fParamPants->fAngleL0=DegToRad(2.8547285515689267247882521833308);
            pants[i].fParamPants->fAngleL=pants[i].fParamPants->fAngleL0; //pocz¹tkowy k¹t dolnego ramienia
-           //pants[i].fParamPants->pantu=acos((1.22*cos(pants[i].fParamPants->fAngleL)+0.535)/1.755); //górne ramiê
-           pants[i].fParamPants->fAngleU0=acos((1.176289*cos(pants[i].fParamPants->fAngleL)+0.54555075)/1.724482197); //górne ramiê
            pants[i].fParamPants->fAngleU=pants[i].fParamPants->fAngleU0; //pocz¹tkowy k¹t
            //pants[i].fParamPants->PantWys=1.22*sin(pants[i].fParamPants->fAngleL)+1.755*sin(pants[i].fParamPants->fAngleU); //wysokoœæ pocz¹tkowa
-           pants[i].fParamPants->PantWys=1.176289*sin(pants[i].fParamPants->fAngleL)+1.724482197*sin(pants[i].fParamPants->fAngleU); //wysokoœæ pocz¹tkowa
+           //pants[i].fParamPants->PantWys=1.176289*sin(pants[i].fParamPants->fAngleL)+1.724482197*sin(pants[i].fParamPants->fAngleU); //wysokoœæ pocz¹tkowa
+           pants[i].fParamPants->PantWys=pants[i].fParamPants->fLenL1*sin(pants[i].fParamPants->fAngleL)+pants[i].fParamPants->fLenU1*sin(pants[i].fParamPants->fAngleU); //wysokoœæ pocz¹tkowa
            pants[i].fParamPants->vPos.x=(i&1)?pant2x:pant1x;
            //pants[i].fParamPants->vPos.y=panty-panth-pants[i].fParamPants->PantWys; //np. 4.429-0.097=4.332=~4.335
            //pants[i].fParamPants->vPos.z=0; //niezerowe dla pantografów asymetrycznych

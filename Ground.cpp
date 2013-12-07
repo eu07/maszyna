@@ -3533,6 +3533,7 @@ bool __fastcall TGround::GetTraction(TDynamicObject *model)
    pant0=dwys+(vLeft*p->vPos.z)+(vUp*p->vPos.y)+(vFront*p->vPos.x);
    if (p->PowerWire)
    {//mamy drut z poprzedniego przebiegu
+    int n=30; //¿eby siê nie zapêtli³
     while (p->PowerWire)
     {//powtarzane a¿ do znalezienia odpowiedniego odcinka na liœcie dwukierunkowej
      //obliczamy wyraz wolny równania p³aszczyzny (to miejsce nie jest odpowienie)
@@ -3571,6 +3572,8 @@ bool __fastcall TGround::GetTraction(TDynamicObject *model)
        break; //koniec pêtli, aktualny drut pasuje
       }
      }
+     if (--n<=0) //coœ za d³ugo to szukanie trwa
+      p->PowerWire=NULL;
     }
    }
    if (!p->PowerWire) //else nie, bo móg³ zostaæ wyrzucony
