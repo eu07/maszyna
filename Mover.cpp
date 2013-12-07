@@ -271,7 +271,7 @@ void __fastcall TMoverParameters::UpdatePantVolume(double dt)
  if (PantPress<3.5)
   if (MainSwitch(False)&&(EngineType==ElectricSeriesMotor))
    EventFlag=true; //wywalenie szybkiego z powodu niskiego ciœnienia
- if ((TrainType==dt_EZT)?Power>1:true) //w EN57 pompuje siê tylko w silnikowym
+ if (TrainType!=dt_EZT) //w EN57 pompuje siê tylko w silnikowym
  //pierwotnie w CHK pantografy mia³y równie¿ rozrz¹dcze EZT 
  for (int b=0;b<=1;++b)
   if (TestFlag(Couplers[b].CouplingFlag,ctrain_controll))
@@ -295,10 +295,10 @@ void __fastcall TMoverParameters::UpdateBatteryVoltage(double dt)
    if (Mains)
     sn3=(dt*0.05);
    else sn3=0;
-   if (iLights[0]>0) //rozpisaæ na poszczególne ¿arówki...
+   if (iLights[0]&63) //64=blachy, nie ci¹gn¹ pr¹du //rozpisaæ na poszczególne ¿arówki...
     sn4=dt*0.003;
    else sn4=0;
-   if (iLights[1]>0)
+   if (iLights[1]&63) //64=blachy, nie ci¹gn¹ pr¹du
     sn5=dt*0.001;
    else sn5=0;
   };
@@ -313,10 +313,10 @@ void __fastcall TMoverParameters::UpdateBatteryVoltage(double dt)
    if (Mains)
     sn3=(dt*0.001);
    else sn3=0;
-   if (iLights[0]>0)
+   if (iLights[0]&63) //64=blachy, nie ci¹gn¹ pr¹du
     sn4=(dt*0.0030);
    else sn4=0;
-   if (iLights[1]>0)
+   if (iLights[1]&63) //64=blachy, nie ci¹gn¹ pr¹du
     sn5=(dt*0.0010);
    else sn5=0;
   };
@@ -341,9 +341,47 @@ void __fastcall TMoverParameters::UpdateBatteryVoltage(double dt)
    BatteryVoltage=0.01;
  }
  else
-  if (NominalBatteryVoltage==0) 
+  if (NominalBatteryVoltage==0)
    BatteryVoltage=0;
   else
    BatteryVoltage=90;
 };
 
+/* Ukrotnienie EN57:
+1 //uk³ad szeregowy
+2 //uk³ad równoleg³y
+3 //bocznik 1
+4 //bocznik 2
+5 //bocznik 3
+6 //do przodu
+7 //do ty³u
+8 //1 przyspieszenie
+9 //minus obw. 2 przyspieszenia
+10 //jazda na oporach
+11 //SHP
+12A //podnoszenie pantografu przedniego
+12B //podnoszenie pantografu tylnego
+13A //opuszczanie pantografu przedniego
+13B //opuszczanie wszystkich pantografów
+14 //za³¹czenie WS
+15 //rozrz¹d (WS, PSR, wa³ ku³akowy)
+16 //odblok PN
+18 //sygnalizacja przetwornicy g³ównej
+19 //luzowanie EP
+20 //hamowanie EP
+21 //rezerwa** (1900+: zamykanie drzwi prawych)
+22 //za³. przetwornicy g³ównej
+23 //wy³. przetwornicy g³ównej
+24 //za³. przetw. oœwietlenia
+25 //wy³. przetwornicy oœwietlenia
+26 //sygnalizacja WS
+28 //sprê¿arka
+29 //ogrzewanie
+30 //rezerwa* (1900+: zamykanie drzwi lewych)
+31 //otwieranie drzwi prawych
+32H //zadzia³anie PN siln. trakcyjnych
+33 //sygna³ odjazdu
+34 //rezerwa (sygnalizacja poœlizgu)
+35 //otwieranie drzwi lewych
+ZN //masa
+*/

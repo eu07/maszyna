@@ -1912,7 +1912,7 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
   return false; //a normalnie powinny mieæ bEnabled==false
 
  //McZapkie-260202
- if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
+ if ((MoverParameters->EnginePowerSource.SourceType==CurrentCollector)&&(MoverParameters->Power>1.0)) //aby rozrz¹dczy nie opuszcza³ silnikowemu
   if ((MechInside)||(MoverParameters->TrainType==dt_EZT))
   {
    //if ((!MoverParameters->PantCompFlag)&&(MoverParameters->CompressedVolume>=2.8))
@@ -1923,7 +1923,7 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
     //if (!MoverParameters->PantCompFlag)
     // MoverParameters->PantVolume=MoverParameters->CompressedVolume;
     MoverParameters->PantFront(false); //opuszczenie pantografów przy niskim ciœnieniu
-    MoverParameters->PantRear(false);
+    MoverParameters->PantRear(false); //to idzie w ukrotnieniu, a nie powinno...
    }
    //Winger - automatyczne wylaczanie malej sprezarki
    else if (MoverParameters->PantPress>=4.8)
@@ -2076,7 +2076,8 @@ TGround::GetTraction;
     dDOMoveLen=GetdMoveLen()+MoverParameters->ComputeMovement(dt,dt1,ts,tp,tmpTraction,l,r);
     MoverParameters->UpdateBatteryVoltage(dt); //jest ju¿ w Mover.cpp
     if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector) //tylko jeœli pantografuj¹cy
-     MoverParameters->UpdatePantVolume(dt); //Ra: pneumatyka pantografów przeniesiona do Mover.cpp!
+     if (MoverParameters->Power>1.0) //w rozrz¹dczym nie (jest b³¹d w FIZ!)
+      MoverParameters->UpdatePantVolume(dt); //Ra: pneumatyka pantografów przeniesiona do Mover.cpp!
 //yB: zeby zawsze wrzucalo w jedna strone zakretu
     MoverParameters->AccN*=-ABuGetDirection();
     //if (dDOMoveLen!=0.0) //Ra: nie mo¿e byæ, bo blokuje Event0
@@ -2235,7 +2236,7 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
     continue;
    }
    PantDiff=p->PantTraction-p->PantWys; //docelowy-aktualny
-   switch (i)
+   switch (i) //numer pantografu
    {//trzeba usun¹æ to rozró¿nienie
     case 0:
      if (MoverParameters->PantFrontUp?(PantDiff<0.01):false)
@@ -2494,7 +2495,8 @@ bool __fastcall TDynamicObject::FastUpdate(double dt)
     dDOMoveLen=MoverParameters->FastComputeMovement(dt,ts,tp,l,r); // ,ts,tp,tmpTraction);
     MoverParameters->UpdateBatteryVoltage(dt); //jest ju¿ w Mover.cpp
     if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector) //tylko jeœli pantografuj¹cy
-     MoverParameters->UpdatePantVolume(dt); //Ra: pneumatyka pantografów przeniesiona do Mover.cpp!
+     if (MoverParameters->Power>1.0) //w rozrz¹dczym nie (jest b³¹d w FIZ!)
+      MoverParameters->UpdatePantVolume(dt); //Ra: pneumatyka pantografów przeniesiona do Mover.cpp!
     //Move(dDOMoveLen);
     //ResetdMoveLen();
     FastMove(dDOMoveLen);

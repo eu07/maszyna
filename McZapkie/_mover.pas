@@ -69,8 +69,8 @@ zwiekszenie nacisku przy duzych predkosciach w hamulcach Oerlikona
 interface uses mctools,sysutils,hamulce,Oerlikon_ESt;
 
 CONST
-   Go=True;
-   Hold=False;                 {dla CheckLocomotiveParameters}
+   Go=true;
+   Hold=false;                 {dla CheckLocomotiveParameters}
    ResArraySize=64;            {dla silnikow elektrycznych}
    MotorParametersArraySize=8;
    maxcc=4;                    {max. ilosc odbierakow pradu}
@@ -127,20 +127,13 @@ CONST
    dbrake_automatic=8;
 
    {status czuwaka/SHP}
-   {
-   s_waiting=1; //dzia³a
-   s_aware=2;   //czuwak miga
-   s_active=4;  //SHP œwieci
-   s_alarm=8;   //buczy
-   s_ebrake=16; //hamuje
-   }
    //hunter-091012: rozdzielenie alarmow, dodanie testu czuwaka
    s_waiting=1; //dzia³a
    s_aware=2;   //czuwak miga
    s_active=4;  //SHP œwieci
-   s_CAalarm=8;   //buczy
-   s_SHPalarm=16;   //buczy
-   s_CAebrake=32; //hamuje
+   s_CAalarm=8;    //buczy
+   s_SHPalarm=16;  //buczy
+   s_CAebrake=32;  //hamuje
    s_SHPebrake=64; //hamuje
    s_CAtest=128;
    
@@ -154,7 +147,7 @@ CONST
    sound_manyrelay=32;
    sound_brakeacc=64;
 
-   PhysicActivationFlag: boolean=False;
+   PhysicActivationFlag: boolean=false;
 
    //szczególne typy pojazdów (inna obs³uga) dla zmiennej TrainType
    //zamienione na flagi bitowe, aby szybko wybieraæ grupê (np. EZT+SZT)
@@ -473,7 +466,7 @@ TYPE
                RVentType: byte;        {0 - brak, 1 - jest, 2 - automatycznie wlaczany}
                RVentnmax: real;      {maks. obroty wentylatorow oporow rozruchowych}
                RVentCutOff: real;      {rezystancja wylaczania wentylatorow dla RVentType=2}
-               CompressorPower: integer; {0: bezp. z obwodow silnika, 1: z przetwornicy, reczne, 2: w przetwornicy, stale}
+               CompressorPower: integer; {0: bezp. z obwodow silnika, 1: z przetwornicy, reczne, 2: w przetwornicy, stale, 5: z silnikowego}
                SmallCompressorPower: integer; {Winger ZROBIC}
 
                       {-sekcja parametrow dla lokomotywy spalinowej z przekladnia mechaniczna}
@@ -528,7 +521,7 @@ TYPE
                 Couplers: array[0..1] of TCoupling;  //urzadzenia zderzno-sprzegowe, polaczenia miedzy wagonami
                 HVCouplers: array[0..1] of array[0..1] of real; //przewod WN
                 ScanCounter: integer;   {pomocnicze do skanowania sprzegow}
-                EventFlag: boolean;                 {!o True jesli cos nietypowego sie wydarzy}
+                EventFlag: boolean;                 {!o true jesli cos nietypowego sie wydarzy}
                 SoundFlag: byte;                    {!o patrz stale sound_ }
                 DistCounter: real;                  {! licznik kilometrow }
                 V: real;    //predkosc w [m/s] wzglêdem sprzêgów (dodania gdy jedzie w stronê 0)
@@ -1120,7 +1113,7 @@ begin
   if (DynamicBrakeType=dbrake_switch) and (MainCtrlPos=0) then
    begin
      DynamicBrakeFlag:=Switch;
-     DynamicBrakeSwitch:=True;
+     DynamicBrakeSwitch:=true;
      for b:=0 to 1 do
       with Couplers[b] do
        if TestFlag(CouplingFlag,ctrain_controll) then
@@ -1128,11 +1121,11 @@ begin
    {end;
    if (DynamicBrakeType=dbrake_passive) and (TrainType=dt_ET42) then
    begin
-   DynamicBrakeFlag:=False;
-   DynamicBrakeSwitch:=False;}
+   DynamicBrakeFlag:=false;
+   DynamicBrakeSwitch:=false;}
    end
   else
-   DynamicBrakeSwitch:=False;
+   DynamicBrakeSwitch:=false;
 end;
 
 
@@ -1247,7 +1240,7 @@ begin
       if ((CtrlSpeed=1) and (TrainType<>dt_EZT)) or ((CtrlSpeed=1) and (TrainType=dt_EZT)and (activedir<>0)) then
        begin //w EZT nie da siê za³¹czyæ pozycji bez ustawienia kierunku
         inc(MainCtrlPos);
-        OK:=True;
+        OK:=true;
        end
       else
        if ((CtrlSpeed>1) and (TrainType<>dt_EZT)) or ((CtrlSpeed>1) and (TrainType=dt_EZT)and (activedir<>0)) then
@@ -1256,7 +1249,7 @@ begin
       if (CtrlSpeed=1) and (ActiveDir<>0) then
        begin
         inc(MainCtrlPos);
-        OK:=True;
+        OK:=true;
          if Imax=ImaxHi then
           if RList[MainCtrlPos].Bn>1 then
            begin
@@ -1294,11 +1287,11 @@ begin
        if (CtrlSpeed>1) and (ActiveDir<>0) {and (ScndCtrlPos=0)} and (TrainType<>dt_ET40) then
         begin //szybkie przejœcie na bezoporow¹
           while (RList[MainCtrlPos].R>0) and IncMainCtrl(1) do ;
-           //OK:=True ; {takie chamskie, potem poprawie} <-Ra: kto mia³ to poprawiæ i po co?
+           //OK:=true ; {takie chamskie, potem poprawie} <-Ra: kto mia³ to poprawiæ i po co?
            if  ActiveDir=-1 then
             while (RList[MainCtrlPos].Bn>1) and IncMainCtrl(1) do
             dec(MainCtrlPos);
-            OK:=False ; 
+            OK:=false;
             {if (TrainType=dt_ET40)  then
              while Abs (Im)>IminHi do
                dec(MainCtrlPos);
@@ -1313,7 +1306,7 @@ begin
       if CtrlSpeed=1 then
        begin
         inc(MainCtrlPos);
-        OK:=True;
+        OK:=true;
         if MainCtrlPos>0 then
          CompressorAllow:=true
         else
@@ -1324,20 +1317,20 @@ begin
         begin
           while (MainCtrlPos<MainCtrlPosNo) do
            IncMainCtrl(1);
-          OK:=True ;
+          OK:=true;
         end;
      WheelsDriven:
       OK:=AddPulseForce(CtrlSpeed);
     end {case EngineType}
    else
     if CoupledCtrl then {wspolny wal}
-      begin //Ra:tu jest coœ bez sensu, OK=False i EN57 stoi
+      begin //Ra:tu jest coœ bez sensu, OK=false i EN57 stoi
         if ScndCtrlPos<ScndCtrlPosNo then //3<3 -> false
           begin
             inc(ScndCtrlPos);
-            OK:=True;
+            OK:=true;
           end
-         else OK:=False;
+         else OK:=false;
       end;
    if OK then
     begin
@@ -1346,7 +1339,7 @@ begin
     end;
   end
  else {nie ma sterowania}
-  OK:=False;
+  OK:=false;
  //if OK then LastRelayTime:=0;
 
  //hunter-101012: poprawka
@@ -1382,7 +1375,7 @@ begin
          if CoupledCtrl and (ScndCtrlPos>0) then
           begin
             dec(ScndCtrlPos); {wspolny wal}
-            OK:=True;
+            OK:=true;
           end
          else
           case EngineType of
@@ -1390,7 +1383,7 @@ begin
              if ((CtrlSpeed=1) and {(ScndCtrlPos=0) and} (EngineType<>DieselElectric)) or ((CtrlSpeed=1)and(EngineType=DieselElectric))then
               begin
                 dec(MainCtrlPos);
-                OK:=True;
+                OK:=true;
               end
              else
               if CtrlSpeed>1 then
@@ -1403,12 +1396,12 @@ begin
                  StLinFlag:=false;
                 if (MainCtrlPos=0) and (TrainType<>dt_ET40) and (TrainType<>dt_EP05) then
                  MainCtrlActualPos:=0;
-                OK:=True;
+                OK:=true;
               end
              else
               if (CtrlSpeed>1) {and (ScndCtrlPos=0)} then
                begin
-                 OK:=True;
+                 OK:=true;
                   if (RList[MainCtrlPos].R=0)
                    then DecMainCtrl(1);
                   while (RList[MainCtrlPos].R>0) and DecMainCtrl(1) do ; {takie chamskie, potem poprawie}
@@ -1417,14 +1410,14 @@ begin
              if CtrlSpeed=1 then
               begin
                 dec(MainCtrlPos);
-                OK:=True;
+                OK:=true;
               end
               else
               if CtrlSpeed>1 then
                begin
                  while (MainCtrlPos>0) or (RList[MainCtrlPos].Mn>0) do
                   DecMainCtrl(1);
-                 OK:=True ;
+                 OK:=true;
                end;
           end;
           end;
@@ -1433,7 +1426,7 @@ begin
        if EngineType=WheelsDriven then
         OK:=AddPulseForce(-CtrlSpeed)
        else
-        OK:=False;
+        OK:=false;
       if OK then
        begin
           {OK:=}SendCtrlToNext('MainCtrl',MainCtrlPos,CabNo);  {hmmmm...???!!!}
@@ -1441,7 +1434,7 @@ begin
        end;
    end
   else
-   OK:=False;
+   OK:=false;
  //if OK then LastRelayTime:=0;
  //hunter-101012: poprawka
  if OK then
@@ -1463,7 +1456,7 @@ var //b:byte;
 begin
   if (MainCtrlPos=0)and(CabNo<>0)and(TrainType=dt_ET42)and(ScndCtrlPos=0)and(DynamicBrakeFlag)then
    begin
-    OK:=DynamicBrakeSwitch(False);
+    OK:=DynamicBrakeSwitch(false);
    end
   else
  if (ScndCtrlPosNo>0) and (CabNo<>0) and not ((TrainType=dt_ET42)and((Imax=ImaxHi)or((DynamicBrakeFlag)and(MainCtrlPos>0)))) then
@@ -1480,10 +1473,10 @@ begin
         begin
           ScndCtrlPos:=ScndCtrlPosNo; {takie chamskie, potem poprawie}
         end;
-      OK:=True;
+      OK:=true;
     end
    else {nie mozna zmienic}
-    OK:=False;
+    OK:=false;
    if OK then
     begin
       {OK:=}SendCtrlToNext('MainCtrl',MainCtrlPos,CabNo);   {???}
@@ -1491,7 +1484,7 @@ begin
     end;
   end
  else {nie ma sterowania}
-  OK:=False;
+  OK:=false;
  //if OK then LastRelayTime:=0;
  //hunter-101012: poprawka
  if OK then
@@ -1524,10 +1517,10 @@ begin
         begin
           ScndCtrlPos:=0; {takie chamskie, potem poprawie}
         end;
-      OK:=True;
+      OK:=true;
      end
     else
-     OK:=False;
+     OK:=false;
     if OK then
      begin
       {OK:=}SendCtrlToNext('MainCtrl',MainCtrlPos,CabNo);  {???}
@@ -1535,7 +1528,7 @@ begin
      end;
    end
   else
-   OK:=False;
+   OK:=false;
  //if OK then LastRelayTime:=0;
  //hunter-101012: poprawka
  if OK then
@@ -1550,7 +1543,7 @@ begin
   if (ActiveDir=1) and (MainCtrlPos=0) and (TrainType=dt_EZT) then
     if MinCurrentSwitch(false) then
     begin
-      DirectionBackward:=True; //
+      DirectionBackward:=true; //
       Exit;
     end;
   if (MainCtrlPosNo>0) and (ActiveDir>-1) and (MainCtrlPos=0) then
@@ -1560,32 +1553,32 @@ begin
 {    else}
     dec(ActiveDir);
     DirAbsolute:=ActiveDir*CabNo;
-    DirectionBackward:=True;
+    DirectionBackward:=true;
     SendCtrltoNext('Direction',ActiveDir,CabNo);
    end
   else
-   DirectionBackward:=False;
+   DirectionBackward:=false;
 end;
 
 function T_MoverParameters.MainSwitch(State:boolean): boolean;
 begin
- MainSwitch:=False; //Ra: przeniesione z koñca
+ MainSwitch:=false; //Ra: przeniesione z koñca
   if ((Mains<>State) and (MainCtrlPosNo>0)) then
    begin
-    if (State=False) or ({(MainCtrlPos=0) and} (ScndCtrlPos=0) and (ConvOvldFlag=false) and (LastSwitchingTime>CtrlDelay) and not TestFlag(DamageFlag,dtrain_out)) then
+    if (State=false) or ({(MainCtrlPos=0) and} (ScndCtrlPos=0) and (ConvOvldFlag=false) and (LastSwitchingTime>CtrlDelay) and not TestFlag(DamageFlag,dtrain_out)) then
      begin
        if Mains then //jeœli by³ za³¹czony
         SendCtrlToNext('MainSwitch',ord(State),CabNo); //wys³anie wy³¹czenia do pozosta³ych?
        Mains:=State;
        if Mains then //jeœli zosta³ za³¹czony
         SendCtrlToNext('MainSwitch',ord(State),CabNo); //wyslanie po wlaczeniu albo przed wylaczeniem
-       MainSwitch:=True; //wartoœæ zwrotna
+       MainSwitch:=true; //wartoœæ zwrotna
        LastSwitchingTime:=0;
        if (EngineType=DieselEngine) and Mains then
         begin
           dizel_enginestart:=State;
         end;
-       if (State=False) then //jeœli wy³¹czony
+       if (State=false) then //jeœli wy³¹czony
         begin
          //SetFlag(SoundFlag,sound_relay); //hunter-091012: przeniesione do Train.cpp, zeby sie nie zapetlal
          // if (SecuritySystem.Status<>12) then
@@ -1596,7 +1589,7 @@ begin
         SecuritySystem.Status:=s_waiting; //aktywacja czuwaka
      end
    end
-  //else MainSwitch:=False;
+  //else MainSwitch:=false;
 end;
 
 {//przeniesione do C++
@@ -1607,7 +1600,7 @@ begin
  if Abs(ActiveCab+direction)<2 then
   begin
    ActiveCab:=ActiveCab+direction;
-   ChangeCab:=True;
+   ChangeCab:=true;
    if (BrakeSystem=Pneumatic) and (BrakeCtrlPosNo>0) then
     begin
      BrakeCtrlPos:=-2;
@@ -1630,7 +1623,7 @@ begin
    ScndCtrlPos:=0;
    if (EngineType<>DieselEngine) and (EngineType<>DieselElectric) then
     begin
-     Mains:=False;
+     Mains:=false;
      CompressorAllow:=false;
      ConverterAllow:=false;
     end;
@@ -1638,7 +1631,7 @@ begin
    DirAbsolute:=0;
   end
  else
-  ChangeCab:=False;
+  ChangeCab:=false;
 end;
 }
 
@@ -1713,16 +1706,16 @@ function T_MoverParameters.SandDoseOn : boolean;
 begin
   if (SandCapacity>0) then
    begin
-     SandDoseOn:=True;
+     SandDoseOn:=true;
      if SandDose then
-      SandDose:=False
+      SandDose:=false
      else
-      if Sand>0 then SandDose:=True;
+      if Sand>0 then SandDose:=true;
      if CabNo<>0 then
        SendCtrlToNext('SandDoseOn',1,CabNo);
    end
   else
-   SandDoseOn:=False;
+   SandDoseOn:=false;
 end;
 
 (*
@@ -1750,37 +1743,37 @@ begin
     begin
     if (Status=3) or (Status=2) or (Status=11) or (Status=26)or(Status=27) then
       begin
-        SecuritySystemReset:=True;
+        SecuritySystemReset:=true;
         if (Status<s_ebrake) then
          Reset
         else
-          if EmergencyBrakeSwitch(False) then
+          if EmergencyBrakeSwitch(false) then
            Reset;
       end;
 
       if (Status=5) or (Status=13) or (Status=29) or (Status=4) or ((Status=12) and (activedir<>0)) or (Status=28) then  {Wlaczone tylko SHP}
     {  begin
-        SecuritySystemReset:=True;
+        SecuritySystemReset:=true;
         if (Status<s_ebrake) then
          ResetSHP
         else
-          if EmergencyBrakeSwitch(False) then
+          if EmergencyBrakeSwitch(false) then
            ResetSHP;
       end;
       if (Status=7) or (Status=15) or (Status=30) or (Status=31) then  {Wlaczone SHP i CA}
      { begin
-        SecuritySystemReset:=True;
+        SecuritySystemReset:=true;
         if (Status<s_ebrake) then
          begin
          ResetSHP;
          SecuritySystem.Status:=3;
          end
         else
-          if EmergencyBrakeSwitch(False) then
+          if EmergencyBrakeSwitch(false) then
            ResetSHP;
       end
     else
-     SecuritySystemReset:=False;
+     SecuritySystemReset:=false;
      end;
 //  SendCtrlToNext('SecurityReset',0,CabNo);
 end;
@@ -1816,16 +1809,16 @@ begin
     if (SystemType>0) and (Status>0) and ((status<>12) or ((status=12) and (activedir<>0))) then
     //if (SystemType>0) and (Status>0) then
       begin
-        SecuritySystemReset:=True;
+        SecuritySystemReset:=true;
         if not (ActiveDir=0) then
          if not TestFlag(Status,s_CAebrake) or not TestFlag(Status,s_SHPebrake) then
           Reset;
         //else
-        //  if EmergencyBrakeSwitch(False) then
+        //  if EmergencyBrakeSwitch(false) then
         //   Reset;
       end
     else
-     SecuritySystemReset:=False;
+     SecuritySystemReset:=false;
 //  SendCtrlToNext('SecurityReset',0,CabNo);
 end;
 
@@ -1858,7 +1851,7 @@ begin
                SetFlag(Status,s_ebrake);
         if TestFlag(Status,s_ebrake) then
          if not EmergencyBrakeFlag then
-           EmergencyBrakeSwitch(True);
+           EmergencyBrakeSwitch(true);
       end;
    end;
 end;
@@ -1896,16 +1889,16 @@ begin
   with SecuritySystem do
     if (SystemType>0) and (Status>0) then
       begin
-        SecuritySystemReset:=True;
+        SecuritySystemReset:=true;
         if not (ActiveDir=0) then
          if not TestFlag(Status,s_CAebrake) or not TestFlag(Status,s_SHPebrake) then
           Reset;
         //else
-        //  if EmergencyBrakeSwitch(False) then
+        //  if EmergencyBrakeSwitch(false) then
         //   Reset;
       end
     else
-     SecuritySystemReset:=False;
+     SecuritySystemReset:=false;
 //  SendCtrlToNext('SecurityReset',0,CabNo);
 end;
 
@@ -1958,7 +1951,7 @@ begin
 
        //wdrazanie hamowania naglego
         if TestFlag(Status,s_SHPebrake) or TestFlag(Status,s_CAebrake) or (s_CAtestebrake=true) then
-         EmergencyBrakeFlag:=True;
+         EmergencyBrakeFlag:=true;
       end;
    end;
 end;
@@ -1991,7 +1984,7 @@ begin
 
 //youBy: EP po nowemu
 
-        IncBrakeLevelOld:=True;
+        IncBrakeLevelOld:=true;
         if (BrakePressureActual.PipePressureVal<0)and(BrakePressureTable[BrakeCtrlPos-1].PipePressureVal>0) then
           LimPipePress:=PipePress;
 
@@ -2013,13 +2006,13 @@ begin
       end
      else
       begin
-        IncBrakeLevelOld:=False;
+        IncBrakeLevelOld:=false;
 {        if BrakeSystem=Pneumatic then
-         EmergencyBrakeSwitch(True); }
+         EmergencyBrakeSwitch(true); }
       end;
    end
   else
-   IncBrakeLevelOld:=False;
+   IncBrakeLevelOld:=false;
 end;
 
 function T_MoverParameters.DecBrakeLevelOld:boolean;
@@ -2052,7 +2045,7 @@ begin
 //          BrakeStatus:=b_off;   {luzowanie jesli dziala oraz nie byl wlaczony odluzniacz}
 
 //youBy: EP po nowemu
-        DecBrakeLevelOld:=True;
+        DecBrakeLevelOld:=true;
 //        if (BrakePressureTable[BrakeCtrlPos].PipePressureVal<0.0)and(BrakePressureTable[BrakeCtrlPos+1].PipePressureVal>0) then
 //          LimPipePress:=PipePress;
 
@@ -2077,10 +2070,10 @@ begin
 *)
       end
      else
-      DecBrakeLevelOld:=False;
+      DecBrakeLevelOld:=false;
    end
      else
-      DecBrakeLevelOld:=False;
+      DecBrakeLevelOld:=false;
 end;
 
 function T_MoverParameters.IncLocalBrakeLevelFAST:boolean;
@@ -2088,11 +2081,11 @@ begin
   if (LocalBrakePos<LocalBrakePosNo) then
    begin
      LocalBrakePos:=LocalBrakePosNo;
-     IncLocalBrakeLevelFAST:=True;
+     IncLocalBrakeLevelFAST:=true;
    end
   else
-     IncLocalBrakeLevelFAST:=False;
-UnBrake:=True;
+     IncLocalBrakeLevelFAST:=false;
+UnBrake:=true;
 end;
 
 function T_MoverParameters.IncLocalBrakeLevel(CtrlSpeed:byte):boolean;
@@ -2104,11 +2097,11 @@ begin
        inc(LocalBrakePos);
        dec(CtrlSpeed);
       end;
-     IncLocalBrakeLevel:=True;
+     IncLocalBrakeLevel:=true;
    end
   else
-     IncLocalBrakeLevel:=False;
-UnBrake:=True;
+     IncLocalBrakeLevel:=false;
+UnBrake:=true;
 end;
 
 function T_MoverParameters.IncManualBrakeLevel(CtrlSpeed:byte):boolean;
@@ -2120,10 +2113,10 @@ begin
        inc(ManualBrakePos);
        dec(CtrlSpeed);
       end;
-     IncManualBrakeLevel:=True;
+     IncManualBrakeLevel:=true;
    end
   else
-     IncManualBrakeLevel:=False;
+     IncManualBrakeLevel:=false;
 end;
 
 function T_MoverParameters.DecLocalBrakeLevelFAST():boolean;
@@ -2131,11 +2124,11 @@ begin
   if LocalBrakePos>0 then
    begin
      LocalBrakePos:=0;
-     DecLocalBrakeLevelFAST:=True;
+     DecLocalBrakeLevelFAST:=true;
    end
   else
-     DecLocalBrakeLevelFAST:=False;
-UnBrake:=True;
+     DecLocalBrakeLevelFAST:=false;
+UnBrake:=true;
 end;
 
 function T_MoverParameters.DecLocalBrakeLevel(CtrlSpeed:byte):boolean;
@@ -2147,11 +2140,11 @@ begin
         dec(LocalBrakePos);
         dec(CtrlSpeed);
       end;
-     DecLocalBrakeLevel:=True;
+     DecLocalBrakeLevel:=true;
    end
   else
-     DecLocalBrakeLevel:=False;
-UnBrake:=True;
+     DecLocalBrakeLevel:=false;
+UnBrake:=true;
 end;
 
 function T_MoverParameters.DecManualBrakeLevel(CtrlSpeed:byte):boolean;
@@ -2163,10 +2156,10 @@ begin
         dec(ManualBrakePos);
         dec(CtrlSpeed);
       end;
-     DecManualBrakeLevel:=True;
+     DecManualBrakeLevel:=true;
    end
   else
-     DecManualBrakeLevel:=False;
+     DecManualBrakeLevel:=false;
 
 end;
 
@@ -2177,29 +2170,29 @@ begin
      if (not EmergencyBrakeFlag) and Switch then
       begin
         EmergencyBrakeFlag:=Switch;
-        EmergencyBrakeSwitch:=True;
+        EmergencyBrakeSwitch:=true;
       end
      else
       begin
-        if (Abs(V)<0.1) and (Switch=False) then  {odblokowanie hamulca bezpieczenistwa tylko po zatrzymaniu}
+        if (Abs(V)<0.1) and (Switch=false) then  {odblokowanie hamulca bezpieczenistwa tylko po zatrzymaniu}
          begin
            EmergencyBrakeFlag:=Switch;
-           EmergencyBrakeSwitch:=True;
+           EmergencyBrakeSwitch:=true;
          end
         else
-         EmergencyBrakeSwitch:=False;
+         EmergencyBrakeSwitch:=false;
       end;
    end
   else
-   EmergencyBrakeSwitch:=False;   {nie ma hamulca bezpieczenstwa gdy nie ma hamulca zesp.}
+   EmergencyBrakeSwitch:=false;   {nie ma hamulca bezpieczenstwa gdy nie ma hamulca zesp.}
 end;
 
 function T_MoverParameters.AntiSlippingBrake: boolean;
 begin
- AntiSlippingBrake:=False; //Ra: przeniesione z koñca
+ AntiSlippingBrake:=false; //Ra: przeniesione z koñca
   if ASBType=1 then
    begin
-     AntiSlippingBrake:=True;  //SPKS!!
+     AntiSlippingBrake:=true;  //SPKS!!
      Hamulec.ASB(1);
      BrakeSlippingTimer:=0;
    end
@@ -2218,14 +2211,14 @@ begin
    if Hamulec.SetBDF(BDS) then
     begin
       BrakeDelayFlag:=BDS;
-      BrakeDelaySwitch:=True;
+      BrakeDelaySwitch:=true;
       BrakeStatus:=(BrakeStatus and 191);
       //kopowanie nastawy hamulca do kolejnego czlonu - do przemyœlenia
       if CabNo<>0 then
        SendCtrlToNext('BrakeDelay',BrakeDelayFlag,CabNo);
     end
   else
-   BrakeDelaySwitch:=False;
+   BrakeDelaySwitch:=false;
 end;
 
 function T_MoverParameters.IncBrakeMult(): boolean;
@@ -2278,7 +2271,7 @@ begin
     if(state>0)then
       temp:=(Handle as TSt113).GetCP
     else
-      temp:=0;  
+      temp:=0;
     Hamulec.SetEPS(temp);
     SendCtrlToNext('Brake',temp,CabNo);
    end;
@@ -2295,18 +2288,18 @@ begin
     if (DynamicBrakeType<>dbrake_switch) and (DynamicBrakeType<>dbrake_none) and (BrakePress>0.2) and (TrainType<>dt_EZT) then //yB radzi nie sprawdzaæ ciœnienia w przewodzie
     //hunter-301211: dla EN57 silnikow nie odlaczamy
      begin
-       DynamicBrakeFlag:=True;                 {uruchamianie hamulca ED albo odlaczanie silnikow}
+       DynamicBrakeFlag:=true;                 {uruchamianie hamulca ED albo odlaczanie silnikow}
        if (DynamicBrakeType=dbrake_automatic) and (abs(Im)>60) then            {nie napelniaj wiecej, jak na EP09}
          dp:=0.0;
      end;
     if brake+dp<PressLimit then
      begin
        brake:=brake+dp;
-       IncBrakePress:=True;
+       IncBrakePress:=true;
      end
     else
      begin
-       IncBrakePress:=False;
+       IncBrakePress:=false;
        brake:=PressLimit;
      end;
 end;
@@ -2316,16 +2309,16 @@ begin
     if brake-dp>PressLimit then
      begin
        brake:=brake-dp;
-       DecBrakePress:=True;
+       DecBrakePress:=true;
      end
     else
      begin
-       DecBrakePress:=False;
+       DecBrakePress:=false;
        brake:=PressLimit;
      end;
 //  if (DynamicBrakeType<>dbrake_switch) and ((BrakePress<0.1) and (PipePress>0.45{(LowPipePress+0.06)})) then
     if (DynamicBrakeType<>dbrake_switch) and (BrakePress<0.1) then //yB radzi nie sprawdzaæ ciœnienia w przewodzie
-     DynamicBrakeFlag:=False;                {wylaczanie hamulca ED i/albo zalaczanie silnikow}
+     DynamicBrakeFlag:=false;                {wylaczanie hamulca ED i/albo zalaczanie silnikow}
 end;
 
 procedure T_MoverParameters.UpdateBrakePressure(dt:real);
@@ -2452,7 +2445,7 @@ end;
             (Hamulec as TNESt3).PLC(MaxBrakePress[LoadFlag])
       else
             (Hamulec as TNESt3).PLC(TotalMass);
-          LocBrakePress:=LocHandle.GetCP;            
+          LocBrakePress:=LocHandle.GetCP;
           (Hamulec as TNESt3).SetLBP(LocBrakePress);
         end;
      KE:
@@ -2499,7 +2492,7 @@ end;
     Pipe.CreatePress(-1);
     Pipe.Act;
      end;
-                                       
+
   if CompressedVolume<0 then
    CompressedVolume:=0;
 end;  {updatepipepressure}
@@ -2532,15 +2525,23 @@ procedure T_MoverParameters.CompressorCheck(dt:real);
  {        if (not CompressorFlag) and (Compressor<MinCompressor) and Mains and (LastSwitchingTime>CtrlDelay) then}
          if (not CompressorFlag) and (Compressor<MinCompressor) and Mains and (CompressorAllow) and ((ConverterFlag) or (CompressorPower=0)) and (LastSwitchingTime>CtrlDelay) then
           begin
-            CompressorFlag:=True;
+            CompressorFlag:=true;
             LastSwitchingTime:=0;
 //            for b:=0 to 1 do //z Megapacka
 //      with Couplers[b] do
 //       if TestFlag(CouplingFlag,ctrain_scndpneumatic) then
 //        Connected.CompressorFlag:=CompressorFlag;
           end;
-         if (Compressor>MaxCompressor) or not CompressorAllow or ((CompressorPower<>0) and (not ConverterFlag)) or not Mains then
-         CompressorFlag:=False;
+         if (CompressorPower=5) then //jeœli zasilanie z s¹siedniego cz³onu
+          begin
+           if (Couplers[1].Connected<>NIL) then
+            CompressorFlag:=Couplers[1].Connected.CompressorAllow and Couplers[1].Connected.ConverterFlag and Couplers[1].Connected.Mains
+           else
+            CompressorFlag:=false; 
+          end
+         else
+          if (Compressor>MaxCompressor) or not CompressorAllow or ((CompressorPower<>0) and (not ConverterFlag)) or not Mains then
+           CompressorFlag:=false;
          if CompressorFlag then
           if (EngineType=DieselElectric) and (CompressorPower>0) then
            CompressedVolume:=CompressedVolume+dt*CompressorSpeed*(2*MaxCompressor-Compressor)/MaxCompressor*(DEList[MainCtrlPos].rpm/DEList[MainCtrlPosNo].rpm)
@@ -2611,8 +2612,8 @@ begin
     end;
      BatteryVoltage:=BatteryVoltage-(sn1+sn2+sn3+sn4+sn5);
      if ((NominalBatteryVoltage/BatteryVoltage)>1.57)  then
-       if MainSwitch(False) and  (EngineType<>DieselEngine) and (EngineType<>WheelsDriven) then
-         EventFlag:=True;            //wywalanie szybkiego z powodu zbyt niskiego napiecia
+       if MainSwitch(false) and  (EngineType<>DieselEngine) and (EngineType<>WheelsDriven) then
+         EventFlag:=true;            //wywalanie szybkiego z powodu zbyt niskiego napiecia
 
      if  (BatteryVoltage>NominalBatteryVoltage) then
      BatteryVoltage:=NominalBatteryVoltage; {wstrzymanie ladowania pow. 110V}
@@ -2693,8 +2694,6 @@ begin
 end;
 
 
-{sprzegi}{ Ra: przeniesione do C++}
-
 {lokomotywy}
 
 function T_MoverParameters.ComputeRotatingWheel(WForce,dt,n:real): real;
@@ -2730,14 +2729,14 @@ end;
 
 function T_MoverParameters.FuseOn: boolean;
 begin
- FuseOn:=False;
+ FuseOn:=false;
  if (MainCtrlPos=0) and (ScndCtrlPos=0) and (TrainType<>dt_ET40) and Mains then
   begin //w ET40 jest blokada nastawnika, ale czy dzia³a dobrze?
    SendCtrlToNext('FuseSwitch',1,CabNo);
    if ((EngineType=ElectricSeriesMotor)or((EngineType=DieselElectric))) and FuseFlag then
     begin
-     FuseFlag:=False;  {wlaczenie ponowne obwodu}
-     FuseOn:=True;
+     FuseFlag:=false;  {wlaczenie ponowne obwodu}
+     FuseOn:=true;
      SetFlag(SoundFlag,sound_relay); SetFlag(SoundFlag,sound_loud);
     end;
   end;
@@ -2747,8 +2746,8 @@ procedure T_MoverParameters.FuseOff;
 begin
  if not FuseFlag then
   begin
-   FuseFlag:=True;
-   EventFlag:=True;
+   FuseFlag:=true;
+   EventFlag:=true;
    SetFlag(SoundFlag,sound_relay);
    SetFlag(SoundFlag,sound_loud);
   end;
@@ -2815,17 +2814,17 @@ begin
   deltan:=n-nrot; //"pochodna" prêdkoœci obrotowej
   if SlippingWheels then
    if Abs(deltan)<0.1 then
-    SlippingWheels:=False; {wygaszenie poslizgu}
+    SlippingWheels:=false; {wygaszenie poslizgu}
   if SlippingWheels then   {nie ma zwiazku z predkoscia liniowa V}
    begin                   {McZapkie-221103: uszkodzenia kol podczas poslizgu}
      if deltan>dmgn then
       if FuzzyLogic(deltan,dmgn,p_slippdmg) then
         if SetFlag(DamageFlag,dtrain_wheelwear)   {podkucie}
-          then EventFlag:=True;
+          then EventFlag:=true;
      if deltan<-dmgn then
       if FuzzyLogic(-deltan,dmgn,p_slippdmg) then
         if SetFlag(DamageFlag,dtrain_thinwheel)  {wycieranie sie obreczy}
-          then EventFlag:=True;
+          then EventFlag:=true;
      n:=nrot;               {predkosc obrotowa nie zalezy od predkosci liniowej}
    end;
   V2n:=n;
@@ -2848,9 +2847,9 @@ begin
   if (DynamicBrakeType=dbrake_automatic) then
    begin
     if (ConverterFlag) and (BrakePress>0.2) and ((Hamulec as TLSt).GetEDBCP>0.2) then
-      DynamicBrakeFlag:=True
+      DynamicBrakeFlag:=true
     else if ((Hamulec as TLSt).GetEDBCP<0.2) then
-      DynamicBrakeFlag:=False;
+      DynamicBrakeFlag:=false;
    end;
 //wylacznik cisnieniowy
   if BrakePress>2 then
@@ -2964,16 +2963,16 @@ begin
   if Motorcurrent>0 then
   begin
     if FuzzyLogic(Abs(n),nmax*1.1,p_elengproblem) then
-     if MainSwitch(False) then
-       EventFlag:=True;                                      {zbyt duze obroty - wywalanie wskutek ognia okreznego}
+     if MainSwitch(false) then
+       EventFlag:=true;                                      {zbyt duze obroty - wywalanie wskutek ognia okreznego}
     if TestFlag(DamageFlag,dtrain_engine) then
      if FuzzyLogic(MotorCurrent,ImaxLo/10.0,p_elengproblem) then
-      if MainSwitch(False) then
-       EventFlag:=True;                                      {uszkodzony silnik (uplywy)}
+      if MainSwitch(false) then
+       EventFlag:=true;                                      {uszkodzony silnik (uplywy)}
     if (FuzzyLogic(Abs(Im),Imax*2,p_elengproblem) or FuzzyLogic(Abs(n),nmax*1.11,p_elengproblem)) then
 {       or FuzzyLogic(Abs(U/Mn),2*NominalVoltage,1)) then } {poprawic potem}
      if (SetFlag(DamageFlag,dtrain_engine)) then
-       EventFlag:=True;
+       EventFlag:=true;
   {! dorobic grzanie oporow rozruchowych i silnika}
   end;
 end;
@@ -3037,18 +3036,18 @@ begin
    end;
   dizel_Momentum:=Moment;
   if (enrot=0) and (not dizel_enginestart) then
-   Mains:=False;
+   Mains:=false;
 end;
 
 function T_MoverParameters.CutOffEngine: boolean; {wylacza uszkodzony silnik}
 begin
- CutOffEngine:=False; //Ra: wartoœæ domyœlna, sprawdziæ to trzeba 
+ CutOffEngine:=false; //Ra: wartoœæ domyœlna, sprawdziæ to trzeba 
  if (NPoweredAxles>0) and (CabNo=0) and (EngineType=ElectricSeriesMotor) then
   begin
    if SetFlag(DamageFlag,-dtrain_engine) then
     begin
      NPoweredAxles:=NPoweredAxles div 2;
-     CutOffEngine:=True;
+     CutOffEngine:=true;
     end;
   end
 end;
@@ -3056,14 +3055,14 @@ end;
 {przelacznik pradu wysokiego rozruchu}
 function T_MoverParameters.MaxCurrentSwitch(State:boolean):boolean;
 begin
-  MaxCurrentSwitch:=False;
+  MaxCurrentSwitch:=false;
   if (EngineType=ElectricSeriesMotor) then
    if (ImaxHi>ImaxLo) then
    begin
      if State and (Imax=ImaxLo) and (RList[MainCtrlPos].Bn<2) and not ((TrainType=dt_ET42)and(MainctrlPos>0)) then
       begin
         Imax:=ImaxHi;
-        MaxCurrentSwitch:=True;
+        MaxCurrentSwitch:=true;
         if CabNo<>0 then
          SendCtrlToNext('MaxCurrentSwitch',1,CabNo);
       end;
@@ -3072,7 +3071,7 @@ begin
      if not ((TrainType=dt_ET42)and(MainctrlPos>0)) then
       begin
         Imax:=ImaxLo;
-        MaxCurrentSwitch:=True;
+        MaxCurrentSwitch:=true;
         if CabNo<>0 then
          SendCtrlToNext('MaxCurrentSwitch',0,CabNo);
       end;
@@ -3083,20 +3082,20 @@ end;
 {przelacznik pradu automatycznego rozruchu}
 function T_MoverParameters.MinCurrentSwitch(State:boolean):boolean;
 begin
-  MinCurrentSwitch:=False;
+  MinCurrentSwitch:=false;
   if ((EngineType=ElectricSeriesMotor) and (IminHi>IminLo)) or (TrainType=dt_EZT) then
    begin
      if State and (Imin=IminLo) then
       begin
         Imin:=IminHi;
-        MinCurrentSwitch:=True;
+        MinCurrentSwitch:=true;
         if CabNo<>0 then
          SendCtrlToNext('MinCurrentSwitch',1,CabNo);
       end;
      if (not State) and (Imin=IminHi) then
       begin
         Imin:=IminLo;
-        MinCurrentSwitch:=True;
+        MinCurrentSwitch:=true;
         if CabNo<>0 then
          SendCtrlToNext('MinCurrentSwitch',0,CabNo);
       end;
@@ -3110,11 +3109,11 @@ function T_MoverParameters.AutoRelaySwitch(State:boolean):boolean;
    if (AutoRelayType=2) and (AutoRelayFlag<>State) then
     begin
       AutoRelayFlag:=State;
-      AutoRelaySwitch:=True;
+      AutoRelaySwitch:=true;
       SendCtrlToNext('AutoRelaySwitch',ord(State),CabNo);
     end
    else
-    AutoRelaySwitch:=False;
+    AutoRelaySwitch:=false;
  end;
 
 function T_MoverParameters.AutoRelayCheck: boolean;
@@ -3124,13 +3123,13 @@ begin
 //     if Rlist[MainCtrlActualPos].Bn>1 then
 //      begin
 //        dec(MainCtrlActualPos);
-//        AutoRelayCheck:=False;
+//        AutoRelayCheck:=false;
 //        Exit;
 //      end;
 //yB: wychodzenie przy odcietym pradzie
   if (ScndCtrlActualPos=255)then
    begin
-    AutoRelayCheck:=False;
+    AutoRelayCheck:=false;
     MainCtrlActualPos:=0;
    end
   else
@@ -3138,32 +3137,32 @@ begin
   //if ((not Mains) or (FuseFlag)) and not((DynamicBrakeFlag) and (TrainType=dt_ET42)) then
   if ((not Mains) or (FuseFlag)  or (StLinFlag)) and not((DynamicBrakeFlag) and (TrainType=dt_ET42)) then  //hunter-111211: wylacznik cisnieniowy
    begin
-     AutoRelayCheck:=False;
+     AutoRelayCheck:=false;
      MainCtrlActualPos:=0;
      ScndCtrlActualPos:=0;
    end
   else
    begin
-    OK:=False;
+    OK:=false;
     if DelayCtrlFlag and (MainCtrlPos=1) and (MainCtrlActualPos=1) and (LastRelayTime>InitialCtrlDelay) then
      begin
-       DelayCtrlFlag:=False;
+       DelayCtrlFlag:=false;
        SetFlag(SoundFlag,sound_relay); SetFlag(SoundFlag,sound_loud);
      end;
     //if (TrainType<>dt_EZT) then //Ra: w EZT mo¿na daæ od razu na S albo R, wa³ ku³akowy sobie dokrêci
     if (LastRelayTime>CtrlDelay) and not DelayCtrlFlag then
      begin
       if (MainCtrlPos=0) and (TrainType<>dt_ET40) and (TrainType<>dt_EP05) then
-        DelayCtrlFlag:=True;
+        DelayCtrlFlag:=true;
       if (MainCtrlPos=0) and ((TrainType=dt_ET40)or(TrainType=dt_EP05)) and (MainCtrlActualPos=0) then
-      DelayCtrlFlag:=True;
+      DelayCtrlFlag:=true;
 
-      if (((RList[MainCtrlActualPos].R=0) and ((not CoupledCtrl) or ((Imin=IminLo) and (ScndS=True)))) or (MainCtrlActualPos=RListSize))
+      if (((RList[MainCtrlActualPos].R=0) and ((not CoupledCtrl) or ((Imin=IminLo) and (ScndS=true)))) or (MainCtrlActualPos=RListSize))
           and ((ScndCtrlActualPos>0) or (ScndCtrlPos>0)) then
         begin   {zmieniaj scndctrlactualpos}
           if (not AutoRelayFlag) or (not MotorParam[ScndCtrlActualPos].AutoSwitch) then
            begin                                                {scnd bez samoczynnego rozruchu}
-             OK:=True;
+             OK:=true;
              if (ScndCtrlActualPos<ScndCtrlPos) then
               inc(ScndCtrlActualPos)
              else
@@ -3174,14 +3173,14 @@ begin
               if (ScndCtrlActualPos>ScndCtrlPos) and (TrainType=dt_EZT) then
 
                Exit       {utkniecie walu kulakowego}
-             else OK:=False;
+             else OK:=false;
            end
           else
            begin                                                {scnd z samoczynnym rozruchem}
              if (ScndCtrlPos<ScndCtrlActualPos) and (TrainType<>dt_EZT) then
               begin
                 dec(ScndCtrlActualPos);
-                OK:=True;
+                OK:=true;
               end
               else
               if (ScndCtrlPos<ScndCtrlActualPos) and (TrainType=dt_EZT) then
@@ -3194,7 +3193,7 @@ begin
                 if MotorParam[ScndCtrlActualPos].AutoSwitch then
                  begin
                    inc(ScndCtrlActualPos);
-                   OK:=True
+                   OK:=true
                  end;
            end;
         end
@@ -3203,18 +3202,18 @@ begin
           if ((TrainType=dt_EZT) and (Scnds=true) and (Imin=IminLo)) then
            if Rlist[MainCtrlActualPos+1].Bn>1 then
             begin
-              AutoRelayCheck:=False;
+              AutoRelayCheck:=false;
               Exit;
            end;
           if (not AutoRelayFlag) or (not RList[MainCtrlActualPos].AutoSwitch) then
            begin                                                {main bez samoczynnego rozruchu}
-             OK:=True;
+             OK:=true;
              if Rlist[MainCtrlActualPos].Relay<MainCtrlPos then
                 if ((Rlist[MainCtrlActualPos].Mn>Rlist[MainCtrlPos].Mn)and (RList[MainCtrlActualPos+1].Mn<Rlist[MainCtrlActualPos].Mn) and (TrainType=dt_ET22) and (LastRelayTime<InitialCtrlDelay))then
                  begin
                  Itot:=0;
                  Im:=0;
-                 OK:=False;             {odciecie pradu, przy przelaczaniu silnikow w ET22}
+                 OK:=false;             {odciecie pradu, przy przelaczaniu silnikow w ET22}
                  end
                  else
                  //if (Rlist[MainCtrlActualPos].R=0) and (Rlist[MainCtrlPos].R>0) and (TrainType=dt_ET22) and (LastRelayTime<InitialCtrlDelay) then
@@ -3251,7 +3250,7 @@ begin
                begin
                  Itot:=0;
                  Im:=0;
-                 OK:=False;           {odciecie pradu, przy przelaczaniu silnikow w ET22}
+                 OK:=false;           {odciecie pradu, przy przelaczaniu silnikow w ET22}
                  end;
               end
               else if (Rlist[MainCtrlActualPos].Relay>MainCtrlPos) and (TrainType=dt_EZT) and (MainCtrlPos>0) then     //K90
@@ -3267,17 +3266,17 @@ begin
               if (ScndCtrlPos<ScndCtrlActualPos) and (TrainType=dt_EZT) then
                Exit {boczniki nie dzialaja na poz. oporowych}
               else
-               OK:=False;
+               OK:=false;
            end
           else                                                  {main z samoczynnym rozruchem}
            begin
-             OK:=False;
+             OK:=false;
              if (MainCtrlPos<Rlist[MainCtrlActualPos].Relay) and (TrainType<>dt_EZT) then
              begin
              if not ((Rlist[MainCtrlActualPos].Mn<Rlist[MainCtrlPos].Mn)and (Rlist[MainCtrlActualPos-1].Mn>Rlist[MainCtrlActualPos].Mn) and (TrainType=dt_ET22) and (LastRelayTime<InitialCtrlDelay))then
               begin
                 dec(MainCtrlActualPos);
-                OK:=True;
+                OK:=true;
                 if MainCtrlActualPos>0 then
                    if (Rlist[MainCtrlActualPos+1].R=0) and ((Rlist[MainCtrlActualPos+1].ScndAct=0) or (Rlist[MainCtrlActualPos+1].ScndAct=255)) then  {dzwieki schodzenia z bezoporowej}
                     begin
@@ -3288,13 +3287,13 @@ begin
                begin
                Itot:=0;
                Im:=0;
-               OK:=False;      {odciecie pradu, przy przelaczaniu silnikow w ET22}
+               OK:=false;      {odciecie pradu, przy przelaczaniu silnikow w ET22}
                end;
      end
              else
              if (MainCtrlPos<Rlist[MainCtrlActualPos].Relay) and (MainCtrlPos>0) and (TrainType=dt_EZT)  then
               begin
-                AutoRelayCheck:=False;
+                AutoRelayCheck:=false;
                 Exit;    {utkniecie walu}
               end
              else
@@ -3315,14 +3314,14 @@ begin
                begin
                Itot:=0;
                Im:=0;
-               OK:=False; {odciecie pradu, przy przelaczaniu silnikow w ET22}
+               OK:=false; {odciecie pradu, przy przelaczaniu silnikow w ET22}
               end
              else
                if Abs(Im)<Imin then
                  begin
                    inc(MainCtrlActualPos);
 
-                   OK:=True;
+                   OK:=true;
                    if MainCtrlActualPos>0 then
                     if (Rlist[MainCtrlActualPos].R=0) and ((Rlist[MainCtrlActualPos].ScndAct=0) or (Rlist[MainCtrlActualPos].ScndAct=255)) then  {dzwieki przechodzenia na bezoporowa}
                      begin
@@ -3338,14 +3337,14 @@ begin
       begin
        //if (TrainType<>dt_EZT) then //Ra: w EZT mo¿na daæ od razu na S albo R, wa³ ku³akowy sobie dokrêci
        MainCtrlActualPos:=0; //Ra: tu jest chyba wy³¹czanie przy zbyt szybkim wejœciu na drug¹ pozycjê
-       OK:=True;
+       OK:=true;
       end
       else
      if ((MainCtrlPos=0) and (TrainType=dt_EZT)) then
       begin
         MainCtrlActualPos:=0;
         ScndCtrlActualPos:=0; {zejscie walu kulakowego do 0 po ustawieniu nastawnika na 0}
-        OK:=True;
+        OK:=true;
       end
      else
       if (MainCtrlPos=1) and (MainCtrlActualPos=0) then
@@ -3387,18 +3386,18 @@ end;
    end;
   dizel_Momentum:=Moment;
   if (enrot=0) and (not dizel_enginestart) then
-   Mains:=False;
+   Mains:=false;
 end;
 
 function T_MoverParameters.CutOffEngine: boolean; {wylacza uszkodzony silnik}
 begin
- CutOffEngine:=False; //Ra: wartoœæ domyœlna, sprawdziæ to trzeba 
+ CutOffEngine:=false; //Ra: wartoœæ domyœlna, sprawdziæ to trzeba 
  if (NPoweredAxles>0) and (CabNo=0) and (EngineType=ElectricSeriesMotor) then
   begin
    if SetFlag(DamageFlag,-dtrain_engine) then
     begin
      NPoweredAxles:=NPoweredAxles div 2;
-     CutOffEngine:=True;
+     CutOffEngine:=true;
     end;
   end
 end;
@@ -3406,14 +3405,14 @@ end;
 {przelacznik pradu wysokiego rozruchu}
 function T_MoverParameters.MaxCurrentSwitch(State:boolean):boolean;
 begin
-  MaxCurrentSwitch:=False;
+  MaxCurrentSwitch:=false;
   if (EngineType=ElectricSeriesMotor) then
    if (ImaxHi>ImaxLo) then
    begin
      if State and (Imax=ImaxLo) and (RList[MainCtrlPos].Bn<2) and not ((TrainType=dt_ET42)and(MainctrlPos>0)) then
       begin
         Imax:=ImaxHi;
-        MaxCurrentSwitch:=True;
+        MaxCurrentSwitch:=true;
         if CabNo<>0 then
          SendCtrlToNext('MaxCurrentSwitch',1,CabNo);
       end;
@@ -3422,7 +3421,7 @@ begin
      if not ((TrainType=dt_ET42)and(MainctrlPos>0)) then
       begin
         Imax:=ImaxLo;
-        MaxCurrentSwitch:=True;
+        MaxCurrentSwitch:=true;
         if CabNo<>0 then
          SendCtrlToNext('MaxCurrentSwitch',0,CabNo);
       end;
@@ -3433,20 +3432,20 @@ end;
 {przelacznik pradu automatycznego rozruchu}
 function T_MoverParameters.MinCurrentSwitch(State:boolean):boolean;
 begin
-  MinCurrentSwitch:=False;
+  MinCurrentSwitch:=false;
   if ((EngineType=ElectricSeriesMotor) and (IminHi>IminLo)) or (TrainType=dt_EZT) then
    begin
      if State and (Imin=IminLo) then
       begin
         Imin:=IminHi;
-        MinCurrentSwitch:=True;
+        MinCurrentSwitch:=true;
         if CabNo<>0 then
          SendCtrlToNext('MinCurrentSwitch',1,CabNo);
       end;
      if (not State) and (Imin=IminHi) then
       begin
         Imin:=IminLo;
-        MinCurrentSwitch:=True;
+        MinCurrentSwitch:=true;
         if CabNo<>0 then
          SendCtrlToNext('MinCurrentSwitch',0,CabNo);
       end;
@@ -3460,11 +3459,11 @@ function T_MoverParameters.AutoRelaySwitch(State:boolean):boolean;
    if (AutoRelayType=2) and (AutoRelayFlag<>State) then
     begin
       AutoRelayFlag:=State;
-      AutoRelaySwitch:=True;
+      AutoRelaySwitch:=true;
       SendCtrlToNext('AutoRelaySwitch',ord(State),CabNo);
     end
    else
-    AutoRelaySwitch:=False;
+    AutoRelaySwitch:=false;
  end;
 
 function T_MoverParameters.AutoRelayCheck: boolean;
@@ -3474,28 +3473,28 @@ begin
 //     if Rlist[MainCtrlActualPos].Bn>1 then
 //      begin
 //        dec(MainCtrlActualPos);
-//        AutoRelayCheck:=False;
+//        AutoRelayCheck:=false;
 //        Exit;
 //      end;
 //yB: wychodzenie przy odcietym pradzie
   if (ScndCtrlActualPos=255)then
    begin
-    AutoRelayCheck:=False;
+    AutoRelayCheck:=false;
     MainCtrlActualPos:=0;
    end
   else
   if (not Mains) or (FuseFlag) or (StLinFlag) or (MainCtrlPos=0) then   //hunter-111211: wylacznik cisnieniowy
    begin
-     AutoRelayCheck:=False;
+     AutoRelayCheck:=false;
      MainCtrlActualPos:=0;
      ScndCtrlActualPos:=0;
    end
   else
    begin
-    OK:=False;
+    OK:=false;
     if DelayCtrlFlag and (MainCtrlPos=1) and (MainCtrlActualPos=1) and (LastRelayTime>=InitialCtrlDelay) then
      begin
-       DelayCtrlFlag:=False;
+       DelayCtrlFlag:=false;
        SetFlag(SoundFlag,sound_relay); SetFlag(SoundFlag,sound_loud);
      end;
 
@@ -3551,7 +3550,7 @@ Przy zmianie iloœci ga³êzi musisz:
        if (MainCtrlPos=0) then
         DelayCtrlFlag:=(TrainType<>dt_EZT); //Ra: w EZT mo¿na daæ od razu na S albo R, wa³ ku³akowy sobie dokrêci
        if (((RList[MainCtrlActualPos].R=0) and ((not CoupledCtrl) or (Imin=IminLo))) or (MainCtrlActualPos=RListSize))
-      //if (((RList[MainCtrlActualPos].R=0) and ((not CoupledCtrl) or ((Imin=IminLo) and (ScndS=True)))) or (MainCtrlActualPos=RListSize))
+      //if (((RList[MainCtrlActualPos].R=0) and ((not CoupledCtrl) or ((Imin=IminLo) and (ScndS=true)))) or (MainCtrlActualPos=RListSize))
           and ((ScndCtrlActualPos>0) or (ScndCtrlPos>0)) then
         begin //zmieniaj scndctrlactualpos
           if (not AutoRelayFlag) or (not MotorParam[ScndCtrlActualPos].AutoSwitch) then
@@ -3561,7 +3560,7 @@ Przy zmianie iloœci ga³êzi musisz:
                if (LastRelayTime>CtrlDelay) then
                 begin
                  inc(ScndCtrlActualPos);
-                 OK:=True;
+                 OK:=true;
                 end
               end
              else
@@ -3570,10 +3569,10 @@ Przy zmianie iloœci ga³êzi musisz:
                 if (LastRelayTime>CtrlDownDelay) then
                  begin
                   dec(ScndCtrlActualPos);
-                  OK:=True;
+                  OK:=true;
                  end
                end
-             else OK:=False;
+             else OK:=false;
            end
           else
            begin //scnd z samoczynnym rozruchem
@@ -3582,7 +3581,7 @@ Przy zmianie iloœci ga³êzi musisz:
                 if (LastRelayTime>CtrlDownDelay) then
                  begin
                   dec(ScndCtrlActualPos);
-                  OK:=True;
+                  OK:=true;
                  end
               end
              else
@@ -3593,7 +3592,7 @@ Przy zmianie iloœci ga³êzi musisz:
                   if (LastRelayTime>CtrlDelay) then
                    begin
                     inc(ScndCtrlActualPos);
-                    OK:=True
+                    OK:=true
                    end
                  end;
            end;
@@ -3603,7 +3602,7 @@ Przy zmianie iloœci ga³êzi musisz:
           if ((TrainType=dt_EZT) and (Imin=IminLo)) or ((ActiveDir<0) and (TrainType<>dt_PseudoDiesel)) then
            if Rlist[MainCtrlActualPos+1].Bn>1 then
             begin //to jest za³¹czanie boczników na po³¹czeniu szeregowym dla N1
-              AutoRelayCheck:=False;
+              AutoRelayCheck:=false;
               Exit; //Ra: to powoduje, ¿e EN57 nie wy³¹cza siê przy IminLo
            end;
           if (not AutoRelayFlag) or (not RList[MainCtrlActualPos].AutoSwitch) then
@@ -3619,7 +3618,7 @@ Przy zmianie iloœci ga³êzi musisz:
                else if (LastRelayTime>CtrlDelay) then
                 begin
                  inc(MainCtrlActualPos);
-                 OK:=True;
+                 OK:=true;
                  //---------
                  //hunter-111211: poprawki
                  if MainCtrlActualPos>0 then
@@ -3646,13 +3645,13 @@ Przy zmianie iloœci ga³êzi musisz:
                  if (TrainType<>dt_EZT) then //tutaj powinien byæ tryb sterowania wa³em
                   begin
                    dec(MainCtrlActualPos);
-                   OK:=True;
+                   OK:=true;
                   end
                  else
                   if (MainCtrlPos=0) then
                    begin
                     MainCtrlActualPos:=0; //tylko cofniêcie na 0 ustawia wa³ na 0
-                    OK:=True;
+                    OK:=true;
                    end;
                   if MainCtrlActualPos>0 then  //hunter-111211: poprawki
                   if Rlist[MainCtrlActualPos].R=0 then  {dzwieki schodzenia z bezoporowej}
@@ -3671,11 +3670,11 @@ Przy zmianie iloœci ga³êzi musisz:
                  end
                end
               else
-               OK:=False;
+               OK:=false;
            end
           else  //main z samoczynnym rozruchem - np. EN57
            begin
-             OK:=False;
+             OK:=false;
              if MainCtrlPos<Rlist[MainCtrlActualPos].Relay then
               begin //pozycja zadana mniejsza ni¿ ustawiona na wale
                if (LastRelayTime>CtrlDownDelay) then
@@ -3685,7 +3684,7 @@ Przy zmianie iloœci ga³êzi musisz:
                  else
                   if (MainCtrlPos=0) then
                    MainCtrlActualPos:=0; //tylko cofniêcie na 0 ustawia wa³ na 0
-                 OK:=True;
+                 OK:=true;
                 end
               end
              else
@@ -3696,7 +3695,7 @@ Przy zmianie iloœci ga³êzi musisz:
                   if (LastRelayTime>CtrlDelay) then
                    begin
                     inc(MainCtrlActualPos); //posuwanie wa³u ku³akowego do przodu
-                    OK:=True
+                    OK:=true
                    end
                  end;
            end;
@@ -3707,7 +3706,7 @@ Przy zmianie iloœci ga³êzi musisz:
       begin
        //if (TrainType<>dt_EZT) then //Ra: w EZT mo¿na daæ od razu na S albo R, wa³ ku³akowy sobie dokrêci
        MainCtrlActualPos:=0; //Ra: tu jest chyba wy³¹czanie przy zbyt szybkim wejœciu na drug¹ pozycjê
-       OK:=True;
+       OK:=true;
       end
      else
       if ((MainCtrlPos=1)or(TrainType=dt_EZT)) and (MainCtrlActualPos=0) then
@@ -3743,10 +3742,10 @@ begin
  if (EngineType=DieselEngine) and (state<=1) and (state>=0) and (state<>dizel_engagestate) then
   begin
     dizel_engagestate:=state;
-    dizel_EngageSwitch:=True
+    dizel_EngageSwitch:=true
   end
  else
-  dizel_EngageSwitch:=False;
+  dizel_EngageSwitch:=false;
 end;
 
 function T_MoverParameters.dizel_EngageChange(dt: real): boolean;
@@ -3932,12 +3931,12 @@ function T_MoverParameters.Adhesive(staticfriction:real): real;
 begin
   {Adhesion:=0;
   case SlippingWheels of
-   True:
+   true:
       if SandDose then
        Adhesion:=0.48
       else
        Adhesion:=staticfriction*0.2;
-   False:
+   false:
       if SandDose then
        Adhesion:=Max0R(staticfriction*(100+Vel)/(50+Vel)*1.1,0.48)
       else
@@ -3948,7 +3947,7 @@ begin
 
   //ABu: male przerobki, tylko czy to da jakikolwiek skutek w FPS?
   //     w kazdym razie zaciemni kod na pewno :)
-  if SlippingWheels=False then
+  if SlippingWheels=false then
      begin
         if SandDose then
            Adhesive:=(Max0R(staticfriction*(100.0+Vel)/((50.0+Vel)*11.0),0.048))*(11.0-2.0*random)
@@ -4075,8 +4074,8 @@ begin
         if (Abs(Im)>Imax) then
          FuseOff;                     {wywalanie bezpiecznika z powodu przetezenia silnikow}
         if (Abs(Voltage)<EnginePowerSource.MaxVoltage/2.0) or (Abs(Voltage)>EnginePowerSource.MaxVoltage*2) then
-         if MainSwitch(False) then
-          EventFlag:=True;            {wywalanie szybkiego z powodu niewlasciwego napiecia}
+         if MainSwitch(false) then
+          EventFlag:=true;            {wywalanie szybkiego z powodu niewlasciwego napiecia}
 
         if (((DynamicBrakeType=dbrake_automatic)or(DynamicBrakeType=dbrake_switch)) and (DynamicBrakeFlag)) then
          Itot:=Im*2   {2x2 silniki w EP09}
@@ -4313,11 +4312,11 @@ begin
    {poslizg}
    begin
 {     Fb:=Adhesive(Track.friction)*Mass*g;  }
-     SlippingWheels:=True;
+     SlippingWheels:=true;
    end;
 {  else
    begin
-{     SlippingWheels:=False;}
+{     SlippingWheels:=false;}
 //     if (LocalBrake=ManualBrake)or(MBrake=true)) and (BrakePress<0.3) then
 //      Fb:=UnitBrakeForce*NBpA {ham. reczny dziala na jedna os}
 //     else  //yB: to nie do konca ma sens, poniewa¿ rêczny w wagonie dzia³a na jeden cylinder hamulcowy/wózek, dlatego potrzebne s¹ oddzielnie liczone osie
@@ -4341,7 +4340,7 @@ begin
 {  if Couplers[CouplerN].CForce=0 then  {nie bylo uzgadniane wiec policz}
    with Couplers[CouplerN] do
     begin
-      CheckCollision:=False;
+      CheckCollision:=false;
       newdist:=CoupleDist; //odleg³oœæ od sprzêgu s¹siada
       //newdist:=Distance(Loc,Connected^.Loc,Dim,Connected^.Dim);
       if (CouplerN=0) then
@@ -4413,7 +4412,7 @@ begin
                 {liczenie sily ze sprezystosci sprzegu}
             if Dist>(DmaxC+Connected.Couplers[CNext].DmaxC) then {zderzenie}
             //***if tempdist>(DmaxC+Connected^.Couplers[CNext].DmaxC) then {zderzenie}
-             CheckCollision:=True;
+             CheckCollision:=true;
           end;
          if Dist<0 then
           begin
@@ -4425,7 +4424,7 @@ begin
            if -Dist>(DmaxB+Connected.Couplers[CNext].DmaxB) then  {zderzenie}
             //***if -tempdist>(DmaxB+Connected^.Couplers[CNext].DmaxB)/10 then  {zderzenie}
              begin
-               CheckCollision:=True;
+               CheckCollision:=true;
                if (CouplerType=Automatic) and (CouplingFlag=0) then  {sprzeganie wagonow z samoczynnymi sprzegami}
                 //CouplingFlag:=ctrain_coupler+ctrain_pneumatic+ctrain_controll+ctrain_passenger+ctrain_scndpneumatic;
                 CouplingFlag:=ctrain_coupler+ctrain_pneumatic+ctrain_controll; //EN57
@@ -4459,9 +4458,9 @@ begin
          if FuzzyLogic(Abs(CCF),5*(FmaxC+1),p_coupldmg) then
           begin                            {! zerwanie sprzegu}
             if SetFlag(DamageFlag,dtrain_coupling) then
-             EventFlag:=True;
+             EventFlag:=true;
             if (Couplers[CouplerN].CouplingFlag and ctrain_pneumatic>0) then
-             EmergencyBrakeFlag:=True;   {hamowanie nagle - zerwanie przewodow hamulcowych}
+             EmergencyBrakeFlag:=true;   {hamowanie nagle - zerwanie przewodow hamulcowych}
             CouplingFlag:=0;
             case CouplerN of             {wyzerowanie flag podlaczenia ale ciagle sa wirtualnie polaczone}
              0 : Connected.Couplers[1].CouplingFlag:=0;
@@ -4567,7 +4566,7 @@ begin
      PulseForceCount:=PulseForceCount+Abs(Multipler);
      AddPulseForce:=(PulseForce>0);
    end
-  else AddPulseForce:=False;
+  else AddPulseForce:=false;
 end;
 
 
@@ -4576,7 +4575,7 @@ function T_MoverParameters.LoadingDone(LSpeed:real; LoadInit:string): boolean;
 var LoadChange:longint;
 begin
  ClearPendingExceptions; //zabezpieczenie dla Trunc()
- //LoadingDone:=False; //nie zakoñczone
+ //LoadingDone:=false; //nie zakoñczone
  if (LoadInit<>'') then //nazwa ³adunku niepusta
   begin
    if Load>MaxLoad then
@@ -4623,7 +4622,7 @@ var b: byte;
 begin
   if PhysicActivation then
    begin
-  {  EventFlag:=False;                                             {jesli cos sie zlego wydarzy to ustawiane na True}
+  {  EventFlag:=false;                                             {jesli cos sie zlego wydarzy to ustawiane na true}
   {  SoundFlag:=0;                                                 {jesli ma byc jakis dzwiek to zapalany jet odpowiedni bit}
   {to powinno byc zerowane na zewnatrz}
 
@@ -4635,7 +4634,7 @@ begin
     if TestFlag(BrakeMethod,bp_MHS) and (PipePress<3.0) and (Vel>45) then //ustawione na sztywno na 3 bar
       FStand:=Fstand+(RunningTrack.friction)*TrackBrakeForce;
 
-//    if(FullVer=True) then
+//    if(FullVer=true) then
 //    begin //ABu: to dla optymalizacji, bo chyba te rzeczy wystarczy sprawdzac 1 raz na klatke?
        LastSwitchingTime:=LastSwitchingTime+dt1;
        if EngineType=ElectricSeriesMotor then
@@ -4658,7 +4657,7 @@ begin
        FTrain:=0;
     Fb:=BrakeForce(RunningTrack);
     if Max0R(Abs(FTrain),Fb)>TotalMassxg*Adhesive(RunningTrack.friction) then    {poslizg}
-     SlippingWheels:=True;
+     SlippingWheels:=true;
     if SlippingWheels then
      begin
   {     TrainForce:=TrainForce-Fb; }
@@ -4666,7 +4665,7 @@ begin
        FTrain:=sign(FTrain)*TotalMassxg*Adhesive(RunningTrack.friction);
        Fb:=Min0R(Fb,TotalMassxg*Adhesive(RunningTrack.friction));
      end;
-  {  else SlippingWheels:=False; }
+  {  else SlippingWheels:=false; }
   {  FStand:=0; }
     for b:=0 to 1 do
      if (Couplers[b].Connected<>nil) {and (Couplers[b].CouplerType<>Bare) and (Couplers[b].CouplerType<>Articulated)} then
@@ -4796,8 +4795,8 @@ begin
        or TestFlag(Track.DamageFlag,dtrack_norail) then
         if SetFlag(DamageFlag,dtrain_out) then
          begin
-           EventFlag:=True;
-           MainS:=False;
+           EventFlag:=true;
+           MainS:=false;
            RunningShape.R:=0;
            if (TestFlag(Track.DamageFlag,dtrack_norail)) then
             DerailReason:=1 //Ra: powód wykolejenia: brak szyn
@@ -4808,8 +4807,8 @@ begin
         if FuzzyLogic(Abs(Track.Width-TrackW),TrackW/10.0,1) then
          if SetFlag(DamageFlag,dtrain_out) then
           begin
-            EventFlag:=True;
-            MainS:=False;
+            EventFlag:=true;
+            MainS:=false;
             RunningShape.R:=0;
             DerailReason:=3; //Ra: powód wykolejenia: za szeroki tor
           end;
@@ -4818,8 +4817,8 @@ begin
      if not TestFlag(RunningTrack.CategoryFlag,CategoryFlag) then
       if SetFlag(DamageFlag,dtrain_out) then
         begin
-          EventFlag:=True;
-          MainS:=False;
+          EventFlag:=true;
+          MainS:=false;
           DerailReason:=4; //Ra: powód wykolejenia: nieodpowiednia trajektoria
         end;
 
@@ -4900,7 +4899,7 @@ begin
   else
    begin
      Compressor:=0;
-     CompressorFlag:=False;
+     CompressorFlag:=false;
    end;
  CompressorCheck(dt);
  ConverterCheck;
@@ -4920,11 +4919,11 @@ begin
 //  if Sand>0 then
 //   begin
 //     Sand:=Sand-NPoweredAxles*SandSpeed*dt;
-//     if Random<dt then SandDose:=False;
+//     if Random<dt then SandDose:=false;
 //   end
 //  else
 //   begin
-//     SandDose:=False;
+//     SandDose:=false;
 //     Sand:=0;
 //   end;
 {czuwak/SHP}
@@ -4974,16 +4973,16 @@ begin
 //       or TestFlag(Track.DamageFlag,dtrack_norail) then
 //        if SetFlag(DamageFlag,dtrain_out) then
 //         begin
-//           EventFlag:=True;
-//           MainS:=False;
+//           EventFlag:=true;
+//           MainS:=false;
 //           RunningShape.R:=0;
 //         end;
 //     {wykolejanie na poszerzeniu toru}
 //        if FuzzyLogic(Abs(Track.Width-TrackW),TrackW/10,1) then
 //         if SetFlag(DamageFlag,dtrain_out) then
 //          begin
-//            EventFlag:=True;
-//            MainS:=False;
+//            EventFlag:=true;
+//            MainS:=false;
 //            RunningShape.R:=0;
 //          end;
 //      end;
@@ -4991,8 +4990,8 @@ begin
 //     if not TestFlag(RunningTrack.CategoryFlag,CategoryFlag) then
 //      if SetFlag(DamageFlag,dtrain_out) then
 //        begin
-//          EventFlag:=True;
-//          MainS:=False;
+//          EventFlag:=true;
+//          MainS:=false;
 //        end;
 
      V:=V+(3.0*AccS-AccSprev)*dt/2.0;                                  {przyrost predkosci}
@@ -5040,7 +5039,7 @@ begin
   else
    begin
      Compressor:=0;
-     CompressorFlag:=False;
+     CompressorFlag:=false;
    end;
  CompressorCheck(dt);
  ConverterCheck;
@@ -5092,14 +5091,14 @@ end;
 function T_MoverParameters.SetInternalCommand(NewCommand:string; NewValue1,NewValue2:real):boolean;
 begin
   if (CommandIn.Command=Newcommand) and (commandIn.Value1=NewValue1) and (commandIn.Value2=NewValue2) then
-   SetInternalCommand:=False
+   SetInternalCommand:=false
   else
    with CommandIn do
     begin
      Command:=NewCommand;
      Value1:=NewValue1;
      Value2:=NewValue2;
-     SetInternalCommand:=True;
+     SetInternalCommand:=true;
      LastLoadChangeTime:=0; //zerowanie czasu (roz)³adowania
     end;
 end;
@@ -5130,7 +5129,7 @@ function T_MoverParameters.RunCommand(command:string; CValue1,CValue2:real):bool
 var OK:boolean; testload:string;
 Begin
 {$B+} {cholernie mi sie nie podoba ta dyrektywa!!!}
-  OK:=False;
+  OK:=false;
   ClearPendingExceptions();
 
   {test komend sterowania ukrotnionego}
@@ -5170,11 +5169,11 @@ Begin
    begin
      if CValue1=1 then
       begin
-        Mains:=True;
+        Mains:=true;
         if (EngineType=DieselEngine) and Mains then
           dizel_enginestart:=true;
       end
-     else Mains:=False;
+     else Mains:=false;
      OK:=SendCtrlToNext(command,CValue1,CValue2);
    end
   else if command='Direction' then
@@ -5196,8 +5195,8 @@ Begin
    end
   else if command='AutoRelaySwitch' then
    begin
-     if (CValue1=1) and (AutoRelayType=2) then AutoRelayFlag:=True
-     else AutoRelayFlag:=False;
+     if (CValue1=1) and (AutoRelayType=2) then AutoRelayFlag:=true
+     else AutoRelayFlag:=false;
      OK:=SendCtrlToNext(command,CValue1,CValue2);
    end
   else if command='FuseSwitch' then
@@ -5206,9 +5205,9 @@ Begin
          (MainCtrlActualPos=0) and (ScndCtrlActualPos=0) and Mains then
 {      if (EngineType=ElectricSeriesMotor) and (CValue1=1) and
          (MainCtrlActualPos=0) and (ScndCtrlActualPos=0) and Mains then}
-        FuseFlag:=False;  {wlaczenie ponowne obwodu}
+        FuseFlag:=false;  {wlaczenie ponowne obwodu}
      // if ((EngineType=ElectricSeriesMotor)or(EngineType=DieselElectric)) and not FuseFlag and (CValue1=0) and Mains then
-     //   FuseFlag:=True;      
+     //   FuseFlag:=true;      
       OK:=SendCtrlToNext(command,CValue1,CValue2);
    end
   else if command='ConverterSwitch' then         {NBMX}
@@ -5382,19 +5381,19 @@ Begin
   else if command='Emergency_brake' then
    begin
      if EmergencyBrakeSwitch(Trunc(CValue1)=1) then
-       OK:=True
-     else OK:=False;
+       OK:=true
+     else OK:=false;
    end
   else if command='BrakeDelay' then
    begin
       BrakeDelayFlag:=Trunc(CValue1);
-      OK:=True;
+      OK:=true;
    end
   else if command='SandDoseOn' then
    begin
      if SandDoseOn then
-       OK:=True
-     else OK:=False;
+       OK:=true
+     else OK:=false;
    end
   else if command='CabSignal' then {SHP,Indusi}
    begin //Ra: to powinno dzia³aæ tylko w cz³onie obsadzonym
@@ -5405,14 +5404,14 @@ Begin
         NextVelocityAllowed:=Trunc(CValue2);
         SystemSoundSHPTimer:=0; //hunter-091012
         SetFlag(Status,s_active);
-        OK:=True;
+        OK:=true;
        end
-      else OK:=False;
+      else OK:=false;
    end
  {naladunek/rozladunek}
   else if Pos('Load=',command)=1 then
    begin
-    OK:=False; //bêdzie powtarzane a¿ siê za³aduje
+    OK:=false; //bêdzie powtarzane a¿ siê za³aduje
     if (Vel=0) and (MaxLoad>0) and (Load<MaxLoad*(1+OverLoadFactor)) then //czy mo¿na ³adowac?
      if Distance(Loc,CommandIn.Location,Dim,Dim)<10 then //ten peron/rampa
       begin
@@ -5424,7 +5423,7 @@ Begin
    end
   else if Pos('UnLoad=',command)=1 then
    begin
-    OK:=False; //bêdzie powtarzane a¿ siê roz³aduje
+    OK:=false; //bêdzie powtarzane a¿ siê roz³aduje
     if (Vel=0) and (Load>0) then //czy jest co rozladowac?
      if Distance(Loc,CommandIn.Location,Dim,Dim)<10 then //ten peron
       begin
@@ -5456,7 +5455,7 @@ begin
       end;
    end
   else
-   OK:=False;
+   OK:=false;
   RunInternalCommand:=OK;
 end;
 
@@ -5480,11 +5479,11 @@ begin
      OffsetTrackH:=OffsetTrackH+DeltaOffset;
 //     if abs(OffsetTrackH)>(RunningTrack.Width/1.95-TrackW/2.0) then
      if abs(OffsetTrackH)>(0.5*(RunningTrack.Width-Dim.W)-0.05) then //Ra: mo¿e pó³ pojazdu od brzegu?
-      ChangeOffsetH:=False  {kola na granicy drogi}
+      ChangeOffsetH:=false  {kola na granicy drogi}
      else
-      ChangeOffsetH:=True;
+      ChangeOffsetH:=true;
    end
-  else ChangeOffsetH:=False;
+  else ChangeOffsetH:=false;
 end;
 
 {inicjalizacja}
@@ -5504,7 +5503,7 @@ begin
      RList[b].R:=0;
      RList[b].Bn:=0;
      RList[b].Mn:=0;
-     RList[b].AutoSwitch:=False;
+     RList[b].AutoSwitch:=false;
    end;
   WheelDiameter:=1.0;
   BrakeCtrlPosNo:=0;
@@ -5607,29 +5606,29 @@ begin
       Render:=false;
       CForce:=0;
       Dist:=0;
-      CheckCollision:=False;
+      CheckCollision:=false;
     end;
   ScanCounter:=0;
   BrakeCtrlPos:=-2; //to nie ma znaczenia, konstruktor w Mover.cpp zmienia na -2
   BrakeDelayFlag:=0;
   BrakeStatus:=b_off;
-  EmergencyBrakeFlag:=False;
+  EmergencyBrakeFlag:=false;
   MainCtrlPos:=0;
   ScndCtrlPos:=0;
   MainCtrlActualPos:=0;
   ScndCtrlActualPos:=0;
   Heating:=false;
-  Mains:=False;
+  Mains:=false;
   ActiveDir:=0; //kierunek nie ustawiony
   CabNo:=0; //sterowania nie ma, ustawiana przez CabActivization()
   ActiveCab:=Cab;  //obsada w podanej kabinie
   DirAbsolute:=0;
-  SlippingWheels:=False;
-  SandDose:=False;
-  FuseFlag:=False;
+  SlippingWheels:=false;
+  SandDose:=false;
+  FuseFlag:=false;
   ConvOvldFlag:=false;   //hunter-251211
-  StLinFlag:=False;
-  ResistorsFlag:=False;
+  StLinFlag:=false;
+  ResistorsFlag:=false;
   Rventrot:=0;
   enrot:=0;
   nrot:=0;
@@ -5638,14 +5637,14 @@ begin
   BrakePress:=0;
   Compressor:=0;
   ConverterFlag:=false;
-  CompressorAllow:=False;
-  DoorLeftOpened:=False;
+  CompressorAllow:=false;
+  DoorLeftOpened:=false;
   DoorRightOpened:=false;
   battery:=false;
   EpFuse:=true;
   Signalling:=false;
   Radio:=true;
-  DoorSignalling:=False;
+  DoorSignalling:=false;
   UnBrake:=false;
 //Winger 160204
   PantVolume:=0.48; //aby podniesione pantografy opad³y w krótkim czasie przy wy³¹czonej sprê¿arce
@@ -5659,18 +5658,16 @@ begin
   BrakeSlippingTimer:=0;
   dpBrake:=0; dpPipe:=0; dpMainValve:=0; dpLocalValve:=0;
   MBPM:=1;
-  DynamicBrakeFlag:=False;
+  DynamicBrakeFlag:=false;
   BrakeSystem:=Individual;
   BrakeSubsystem:=ss_None;
   Ft:=0; Ff:=0; Fb:=0;
   Ftotal:=0; FStand:=0; FTrain:=0;
   AccS:=0; AccN:=0; AccV:=0;
-  EventFlag:=False; SoundFlag:=0;
+  EventFlag:=false; SoundFlag:=0;
   Vel:=Abs(VelInitial); V:=VelInitial/3.6;
   LastSwitchingTime:=0;
   LastRelayTime:=0;
-  //EndSignalsFlag:=0;
-  //HeadSignalsFlag:=0;
   DistCounter:=0;
   PulseForce:=0;
   PulseForceTimer:=0;
@@ -5796,7 +5793,7 @@ var //k:integer;
 const
     DefBrakeTable:array[1..8]of Byte=(15,4,25,25,13,3,12,2);
 begin
-  OK:=True;
+  OK:=true;
   AutoRelayFlag:=(AutoRelayType=1);
   Sand:=SandCapacity;
   if (Pos('o',AxleArangement)>0) and (EngineType=ElectricSeriesMotor) then
@@ -5804,11 +5801,11 @@ begin
   if (Pos(LoadType,LoadAccepted)=0) and (LoadType<>'') then
    begin
      Load:=0;
-     OK:=False;
+     OK:=false;
    end;
   if BrakeSystem=Individual then
    if BrakeSubSystem<>ss_None then
-    OK:=False; {!}
+    OK:=false; {!}
 
  if(BrakeVVolume=0)and(MaxBrakePress[3]>0)and(BrakeSystem<>Individual)then
    BrakeVVolume:=MaxBrakePress[3]/(5-MaxBrakePress[3])*(BrakeCylRadius*BrakeCylRadius*BrakeCylDist*BrakeCylNo*pi)*1000;
@@ -6283,7 +6280,7 @@ function PowerDecode(s:string): TPowerType;
      end;
   end;
 begin
-  //OK:=True;
+  //OK:=true;
   OKflag:=0;
   LineCount:=0;
   ConversionError:=666;
@@ -6295,7 +6292,7 @@ begin
 {$I+}
   if IOresult<>0 then
    begin
-     OK:=False;
+     OK:=false;
      ConversionError:=-8;
    end
   else
@@ -6526,6 +6523,8 @@ begin
                CompressorPower:=2
               else if s='Engine' then
                CompressorPower:=3
+              else if s='Coupler1' then
+               CompressorPower:=5 //w³¹czana w silnikowym EZT
               else if s='Main' then
                CompressorPower:=0;
             end
@@ -6816,12 +6815,12 @@ begin
                 AutoRelayType:=0;
               s:=DUE(ExtractKeyWord(lines,'CoupledCtrl='));
               if s='Yes' then
-               CoupledCtrl:=True    {wspolny wal}
-              else CoupledCtrl:=False;
+               CoupledCtrl:=true    {wspolny wal}
+              else CoupledCtrl:=false;
               s:=DUE(ExtractKeyWord(lines,'ScndS='));
               if s='Yes' then
-               ScndS:=True    {brak pozycji rownoleglej przy niskiej nastawie PSR}
-              else ScndS:=False;
+               ScndS:=true    {brak pozycji rownoleglej przy niskiej nastawie PSR}
+              else ScndS:=false;
               s:=ExtractKeyWord(lines,'IniCDelay=');
               InitialCtrlDelay:=s2r(DUE(s));
               s:=ExtractKeyWord(lines,'SCDelay=');
@@ -7025,8 +7024,8 @@ begin
                  ShuntModeAllow:=Boolean(s2b(DUE(s)));
                  if (ShuntModeAllow) then
                  begin
-                   ShuntModeAllow:=True;
-                   ShuntMode:=False;
+                   ShuntModeAllow:=true;
+                   ShuntMode:=false;
                    AnPos:=0;
                    ImaxHi:=2;
                    ImaxLo:=1;
@@ -7065,7 +7064,7 @@ begin
                   with MotorParam[k] do
                   read(fin, bl, mfi,mIsat, fi,Isat);
                   if AutoRelayType=0 then
-                   MotorParam[k].AutoSwitch:=False
+                   MotorParam[k].AutoSwitch:=false
                   else begin
                          readln(fin,i);
                          MotorParam[k].AutoSwitch:=Boolean(i);
@@ -7103,7 +7102,7 @@ begin
                   with MotorParam[k] do
                   read(fin, bl, mIsat, fi,mfi);
                   if AutoRelayType=0 then
-                   MotorParam[k].AutoSwitch:=False
+                   MotorParam[k].AutoSwitch:=false
                   else begin
                          readln(fin,i);
                          MotorParam[k].AutoSwitch:=Boolean(i);
@@ -7152,7 +7151,7 @@ begin
                begin
                  read(fin, Rlist[k].Relay, Rlist[k].R, Rlist[k].Bn, Rlist[k].Mn);
 {                 if AutoRelayType=0 then
-                  Rlist[k].AutoSwitch:=False
+                  Rlist[k].AutoSwitch:=false
                  else begin  }  {to sie przyda do pozycji przejsciowych}
                  read(fin,i);
                  Rlist[k].AutoSwitch:=Boolean(i);
@@ -7206,19 +7205,19 @@ begin
         end;
       end; {koniec filtru importu parametrow}
      if ConversionError=0 then
-      OK:=True
+      OK:=true
      else
-      OK:=False;
+      OK:=false;
    end; {otwarty plik}
   if OK then
    if OKflag<>param_ok{+wheels_ok}+dimensions_ok then
     begin
-      OK:=False;
+      OK:=false;
       ConversionError:=-OKflag; {brakowalo jakiejs waznej linii z parametrami}
     end;
   if OK and (Mass<=0) then
    begin
-     OK:=False;
+     OK:=false;
      ConversionError:=-666;
    end;
   LoadChkFile:=OK;
