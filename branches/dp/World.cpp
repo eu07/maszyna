@@ -1814,7 +1814,7 @@ bool __fastcall TWorld::Update()
        {OutText3+=AnsiString(" Vtrack ")+FloatToStrF(Controlled->MoverParameters->RunningTrack.Velmax,ffFixed,8,2);}
 //      WriteLog(Controlled->MoverParameters->TrainType.c_str());
       if ((mvControlled->EnginePowerSource.SourceType==CurrentCollector) || (mvControlled->TrainType==dt_EZT))
-       {OutText3+=AnsiString(" zb.pant. ")+FloatToStrF(mvControlled->PantVolume,ffFixed,8,2);
+       {OutText3+=AnsiString(" pant. ")+FloatToStrF(mvControlled->PantPress,ffFixed,8,2);
         OutText3+=(mvControlled->bPantKurek3?"=ZG":"|ZG");
        }
   //McZapkie: komenda i jej parametry

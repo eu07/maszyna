@@ -298,8 +298,10 @@ TYPE
                        end;
 
     TSecuritySystem= record
-                       SystemType: byte; {0: brak, 1: czuwak aktywny, 2: SHP/sygnalizacja kabinowa}
-                       AwareDelay,SoundSignalDelay,EmergencyBrakeDelay:real;
+                       SystemType:byte; {0: brak, 1: czuwak aktywny, 2: SHP/sygnalizacja kabinowa}
+                       AwareDelay:real; //czas powtarzania czuwaka
+                       AwareMinSpeed:real; //minimalna prêdkoœæ za³¹czenia czuwaka, normalnie 10% Vmax
+                       SoundSignalDelay,EmergencyBrakeDelay:real;
                        Status: byte;     {0: wylaczony, 1: wlaczony, 2: czuwak, 4: shp, 8: alarm, 16: hamowanie awaryjne}
                        //SystemTimer, SystemSoundTimer, SystemBrakeTimer: real;
                        SystemTimer, SystemSoundCATimer, SystemSoundSHPTimer, SystemBrakeCATimer, SystemBrakeSHPTimer, SystemBrakeCATestTimer: real; //hunter-091012
@@ -1912,7 +1914,7 @@ begin
      if (SystemType>0) and (Status>0) then
       begin
        //CA
-       if (Vel>(0.1*Vmax)) then  //predkosc wieksza od 10% Vmax - Ra: domyœlnie, a zrobiæ wczytywanie jawne z FIZ
+       if (Vel>=AwareMinSpeed) then  //domyœlnie predkoœæ wiêksza od 10% Vmax, albo podanej jawnie w FIZ
        begin
         SystemTimer:=SystemTimer+dt;
         if TestFlag(SystemType,1) and TestFlag(Status,s_aware) then //jeœli œwieci albo miga
@@ -5720,6 +5722,7 @@ begin
       SystemTimer:=0; SystemBrakeCATimer:=0; SystemBrakeSHPTimer:=0; //hunter-091012
       VelocityAllowed:=-1; NextVelocityAllowed:=-1;
       RadioStop:=false; //domyœlnie nie ma
+      AwareMinSpeed:=0.1*Vmax;
     end;
     //ABu 240105:
     //CouplerNr[0]:=1;
@@ -6893,6 +6896,11 @@ begin
                s:=ExtractKeyWord(lines,'AwareDelay=');
                if s<>'' then
                 AwareDelay:=s2r(DUE(s));
+               s:=ExtractKeyWord(lines,'AwareMinSpeed=');
+               if s<>'' then
+                AwareMinSpeed:=s2r(DUE(s))
+               else
+                AwareMinSpeed:=0.1*Vmax; //domyœlnie 10% Vmax
                s:=ExtractKeyWord(lines,'SoundSignalDelay=');
                if s<>'' then
                  SoundSignalDelay:=s2r(DUE(s));
