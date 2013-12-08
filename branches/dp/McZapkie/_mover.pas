@@ -1234,104 +1234,106 @@ begin
  if (MainCtrlPosNo>0) and (CabNo<>0) then
   begin
    if MainCtrlPos<MainCtrlPosNo then
-    if (TrainType<>dt_ET22) or ((TrainType=dt_ET22) and (ScndCtrlPos=0)) then //w ET22 nie da siê krêciæ nastawnikiem przy w³¹czonym boczniku
-    case EngineType of
-     None, Dumb, DieselElectric:      { EZT:}
-      if ((CtrlSpeed=1) and (TrainType<>dt_EZT)) or ((CtrlSpeed=1) and (TrainType=dt_EZT)and (activedir<>0)) then
-       begin //w EZT nie da siê za³¹czyæ pozycji bez ustawienia kierunku
-        inc(MainCtrlPos);
-        OK:=true;
-       end
-      else
-       if ((CtrlSpeed>1) and (TrainType<>dt_EZT)) or ((CtrlSpeed>1) and (TrainType=dt_EZT)and (activedir<>0)) then
-         OK:=IncMainCtrl(1) and IncMainCtrl(CtrlSpeed-1);
-     ElectricSeriesMotor:
-      if (CtrlSpeed=1) and (ActiveDir<>0) then
-       begin
-        inc(MainCtrlPos);
-        OK:=true;
-         if Imax=ImaxHi then
-          if RList[MainCtrlPos].Bn>1 then
-           begin
-            if(TrainType=dt_ET42)then
-             begin
-              dec(MainCtrlPos);
-              OK:=false;
-             end;
-            if MaxCurrentSwitch(false) then
-              SetFlag(SoundFlag,sound_relay); {wylaczanie wysokiego rozruchu}
-{         if (EngineType=ElectricSeriesMotor) and (MainCtrlPos=1) then
-          MainCtrlActualPos:=1;
-}
-           end;
-           if (CtrlSpeed=1) and (ActiveDir=-1) and (RList[MainCtrlPos].Bn>1) and (TrainType<>dt_pseudodiesel) then
-            begin //blokada wejœcia na równoleg³¹ podczas jazdy do ty³u
-                  dec(MainCtrlPos);
-                  OK:=false;
-                end;
-            {if (TrainType='et40') then
-              if Abs(Im)>IminHi then
-                begin
-                dec(MainCtrlPos); //Blokada nastawnika po przekroczeniu minimalnego pradu
-                OK:=false;
-                end; }
-        if(DynamicBrakeFlag)then
-          if(TrainType=dt_ET42)then
-            if MainCtrlPos>20 then
-             begin
-              dec(MainCtrlPos);
-              OK:=false;
-             end;
-       end
-      else
-       if (CtrlSpeed>1) and (ActiveDir<>0) {and (ScndCtrlPos=0)} and (TrainType<>dt_ET40) then
-        begin //szybkie przejœcie na bezoporow¹
-          while (RList[MainCtrlPos].R>0) and IncMainCtrl(1) do ;
-           //OK:=true ; {takie chamskie, potem poprawie} <-Ra: kto mia³ to poprawiæ i po co?
-           if  ActiveDir=-1 then
-            while (RList[MainCtrlPos].Bn>1) and IncMainCtrl(1) do
-            dec(MainCtrlPos);
-            OK:=false;
-            {if (TrainType=dt_ET40)  then
-             while Abs (Im)>IminHi do
+    begin
+     if (TrainType<>dt_ET22) or ((TrainType=dt_ET22) and (ScndCtrlPos=0)) then //w ET22 nie da siê krêciæ nastawnikiem przy w³¹czonym boczniku
+     case EngineType of
+      None, Dumb, DieselElectric:      { EZT:}
+       if ((CtrlSpeed=1) and (TrainType<>dt_EZT)) or ((CtrlSpeed=1) and (TrainType=dt_EZT)and (activedir<>0)) then
+        begin //w EZT nie da siê za³¹czyæ pozycji bez ustawienia kierunku
+         inc(MainCtrlPos);
+         OK:=true;
+        end
+       else
+        if ((CtrlSpeed>1) and (TrainType<>dt_EZT)) or ((CtrlSpeed>1) and (TrainType=dt_EZT)and (activedir<>0)) then
+          OK:=IncMainCtrl(1) and IncMainCtrl(CtrlSpeed-1);
+      ElectricSeriesMotor:
+       if (CtrlSpeed=1) and (ActiveDir<>0) then
+        begin
+         inc(MainCtrlPos);
+         OK:=true;
+          if Imax=ImaxHi then
+           if RList[MainCtrlPos].Bn>1 then
+            begin
+             if(TrainType=dt_ET42)then
+              begin
                dec(MainCtrlPos);
-              OK:=false ;  }
+               OK:=false;
+              end;
+             if MaxCurrentSwitch(false) then
+               SetFlag(SoundFlag,sound_relay); {wylaczanie wysokiego rozruchu}
+ {         if (EngineType=ElectricSeriesMotor) and (MainCtrlPos=1) then
+           MainCtrlActualPos:=1;
+ }
+            end;
+            if (CtrlSpeed=1) and (ActiveDir=-1) and (RList[MainCtrlPos].Bn>1) and (TrainType<>dt_pseudodiesel) then
+             begin //blokada wejœcia na równoleg³¹ podczas jazdy do ty³u
+                   dec(MainCtrlPos);
+                   OK:=false;
+                 end;
+             {if (TrainType='et40') then
+               if Abs(Im)>IminHi then
+                 begin
+                 dec(MainCtrlPos); //Blokada nastawnika po przekroczeniu minimalnego pradu
+                 OK:=false;
+                 end; }
          if(DynamicBrakeFlag)then
            if(TrainType=dt_ET42)then
-             while(MainCtrlPos>20)do
+             if MainCtrlPos>20 then
+              begin
                dec(MainCtrlPos);
-         OK:=false;
-        end;
-     DieselEngine:
-      if CtrlSpeed=1 then
-       begin
-        inc(MainCtrlPos);
-        OK:=true;
-        if MainCtrlPos>0 then
-         CompressorAllow:=true
-        else
-         CompressorAllow:=false;
-       end
-      else
-       if CtrlSpeed>1 then
+               OK:=false;
+              end;
+        end
+       else
+        if (CtrlSpeed>1) and (ActiveDir<>0) {and (ScndCtrlPos=0)} and (TrainType<>dt_ET40) then
+         begin //szybkie przejœcie na bezoporow¹
+           while (RList[MainCtrlPos].R>0) and IncMainCtrl(1) do ;
+            //OK:=true ; {takie chamskie, potem poprawie} <-Ra: kto mia³ to poprawiæ i po co?
+            if  ActiveDir=-1 then
+             while (RList[MainCtrlPos].Bn>1) and IncMainCtrl(1) do
+             dec(MainCtrlPos);
+             OK:=false;
+             {if (TrainType=dt_ET40)  then
+              while Abs (Im)>IminHi do
+                dec(MainCtrlPos);
+               OK:=false ;  }
+          if(DynamicBrakeFlag)then
+            if(TrainType=dt_ET42)then
+              while(MainCtrlPos>20)do
+                dec(MainCtrlPos);
+          OK:=false;
+         end;
+      DieselEngine:
+       if CtrlSpeed=1 then
         begin
-          while (MainCtrlPos<MainCtrlPosNo) do
-           IncMainCtrl(1);
-          OK:=true;
-        end;
-     WheelsDriven:
-      OK:=AddPulseForce(CtrlSpeed);
-    end {case EngineType}
-   else
-    if CoupledCtrl then {wspolny wal}
-      begin //Ra:tu jest coœ bez sensu, OK=false i EN57 stoi
-        if ScndCtrlPos<ScndCtrlPosNo then //3<3 -> false
-          begin
-            inc(ScndCtrlPos);
-            OK:=true;
-          end
-         else OK:=false;
-      end;
+         inc(MainCtrlPos);
+         OK:=true;
+         if MainCtrlPos>0 then
+          CompressorAllow:=true
+         else
+          CompressorAllow:=false;
+        end
+       else
+        if CtrlSpeed>1 then
+         begin
+           while (MainCtrlPos<MainCtrlPosNo) do
+            IncMainCtrl(1);
+           OK:=true;
+         end;
+      WheelsDriven:
+       OK:=AddPulseForce(CtrlSpeed);
+     end //case EngineType of
+    end
+   else //MainCtrlPos>=MainCtrlPosNo
+    if (CoupledCtrl) then //wspólny wa³ nastawnika jazdy i bocznikowania
+     begin
+      if (ScndCtrlPos<ScndCtrlPosNo) then //3<3 -> false
+       begin
+        inc(ScndCtrlPos);
+        OK:=true;
+       end
+      else OK:=false;
+     end;
    if OK then
     begin
      {OK:=}SendCtrlToNext('MainCtrl',MainCtrlPos,CabNo);  {???}
@@ -1637,6 +1639,7 @@ end;
 
 function T_MoverParameters.BatterySwitch(State:boolean):boolean;
 begin
+ //Ra: ukrotnienie za³¹czania baterii jest jak¹œ fikcj¹...
  if (Battery<>State) then
   begin
    Battery:=State;
@@ -1909,7 +1912,7 @@ begin
      if (SystemType>0) and (Status>0) then
       begin
        //CA
-       if (Vel>(0.1*Vmax)) then  //predkosc wieksza od 10% Vmax
+       if (Vel>(0.1*Vmax)) then  //predkosc wieksza od 10% Vmax - Ra: domyœlnie, a zrobiæ wczytywanie jawne z FIZ
        begin
         SystemTimer:=SystemTimer+dt;
         if TestFlag(SystemType,1) and TestFlag(Status,s_aware) then //jeœli œwieci albo miga
@@ -6523,8 +6526,10 @@ begin
                CompressorPower:=2
               else if s='Engine' then
                CompressorPower:=3
+              else if s='Coupler0' then
+               CompressorPower:=4 //w³¹czana w silnikowym EZT z przodu
               else if s='Coupler1' then
-               CompressorPower:=5 //w³¹czana w silnikowym EZT
+               CompressorPower:=5 //w³¹czana w silnikowym EZT z ty³u
               else if s='Main' then
                CompressorPower:=0;
             end
@@ -6927,7 +6932,7 @@ begin
                   ConversionError:=-666;  {perpetuum mobile?}
                end
               else EnginePowerSource.SourceType:=NotDefined;
-              if EnginePowerSource.SourceType=NotDefined then
+              //if EnginePowerSource.SourceType=NotDefined then
                begin
                  s:=DUE(ExtractKeyWord(lines,'SystemPower='));
                  if s<>'' then
@@ -6935,9 +6940,9 @@ begin
                     SystemPowerSource.SourceType:=PowerSourceDecode(s);
                     PowerParamDecode(lines,'',SystemPowerSource);
                   end
-                 else EnginePowerSource.SourceType:=NotDefined;
+                 else SystemPowerSource.SourceType:=NotDefined;
                end
-              else SystemPowerSource.SourceType:=InternalSource;
+              //else SystemPowerSource.SourceType:=InternalSource;
             end
           else if Pos('Engine:',lines)>0 then    {stale parametry silnika}
           begin
