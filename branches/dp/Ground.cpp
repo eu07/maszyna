@@ -3620,6 +3620,9 @@ bool __fastcall TGround::GetTraction(TDynamicObject *model)
       } //sektor istnieje
      } //pêtla po sektorach
    } //koniec poszukiwania w sektorach
+   if (!p->PowerWire) //jeœli drut nie znaleziony
+    if (!Global::bLiveTraction) //ale mo¿na oszukiwaæ
+     model->pants[k].fParamPants->PantTraction=1.2; //to dajemy coœ tam dla picu
   } //koniec obs³ugi podniesionego
   else
    p->PowerWire=NULL; //pantograf opuszczony
