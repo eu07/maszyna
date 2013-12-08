@@ -1554,6 +1554,8 @@ void __fastcall TTrain::OnKeyPress(int cKey)
          Global::changeDynObj=DynamicObject->PrevConnected;
          Global::changeDynObj->MoverParameters->ActiveCab=DynamicObject->PrevConnectedNo?-1:1;
         }
+       if (DynamicObject->MoverParameters->ActiveCab)
+        pControlled->PantCompFlag=false; //wyjœcie z maszynowego wy³¹cza sprê¿arkê
       }
       else if (cKey==Global::Keys[k_CabBackward])
       {
@@ -1563,6 +1565,8 @@ void __fastcall TTrain::OnKeyPress(int cKey)
          Global::changeDynObj=DynamicObject->NextConnected;
          Global::changeDynObj->MoverParameters->ActiveCab=DynamicObject->NextConnectedNo?-1:1;
         }
+       if (DynamicObject->MoverParameters->ActiveCab)
+        pControlled->PantCompFlag=false; //wyjœcie z maszynowego wy³¹cza sprê¿arkê
       }
       else
       if (cKey==Global::Keys[k_Couple])
