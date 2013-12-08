@@ -57,6 +57,7 @@ int __fastcall TAnim::TypeSet(int i)
    iFlags=0x055;
    fParamPants=new TAnimPant();
    fParamPants->vPos=vector3(0,0,0); //przypisanie domyœnych wspó³czynników do pantografów
+   fParamPants->fHeight=0.07; //wysokoœæ œlizgu ponad oœ obrotu
    fParamPants->fLenL1=1.176289; //1.22;
    fParamPants->fLenU1=1.724482197; //1.755;
    fParamPants->fAngleL0=DegToRad(2.8547285515689267247882521833308);
@@ -66,7 +67,7 @@ int __fastcall TAnim::TypeSet(int i)
    fParamPants->fAngleU=fParamPants->fAngleU0; //pocz¹tkowy k¹t
    //fParamPants->PantWys=1.22*sin(fParamPants->fAngleL)+1.755*sin(fParamPants->fAngleU); //wysokoœæ pocz¹tkowa
    //fParamPants->PantWys=1.176289*sin(fParamPants->fAngleL)+1.724482197*sin(fParamPants->fAngleU); //wysokoœæ pocz¹tkowa
-   fParamPants->PantWys=fParamPants->fLenL1*sin(fParamPants->fAngleL)+fParamPants->fLenU1*sin(fParamPants->fAngleU); //wysokoœæ pocz¹tkowa
+   fParamPants->PantWys=fParamPants->fLenL1*sin(fParamPants->fAngleL)+fParamPants->fLenU1*sin(fParamPants->fAngleU)+fParamPants->fHeight; //wysokoœæ pocz¹tkowa
    fParamPants->PantTraction=fParamPants->PantWys;
   break;
   case 6: iFlags=0x068; break; //6-t³ok i rozrz¹d - 8 submodeli
@@ -2311,7 +2312,7 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
      p->fAngleU=acos((p->fLenL1*cos(k)+0.54555075)/p->fLenU1); //górne ramiê
      //wyliczyæ aktualn¹ wysokoœæ z wzoru sinusowego
      //h=a*sin()+b*sin()
-     p->PantWys=p->fLenL1*sin(k)+p->fLenU1*sin(p->fAngleU); //wysokoœæ ca³oœci
+     p->PantWys=p->fLenL1*sin(k)+p->fLenU1*sin(p->fAngleU)+p->fHeight; //wysokoœæ ca³oœci
     }
    }
   } //koniec pêtli po pantografach
@@ -3503,8 +3504,8 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
         {//Winger 010304: parametry pantografow
          double pant1x=Parser->GetNextSymbol().ToDouble();
          double pant2x=Parser->GetNextSymbol().ToDouble();
-         //double panty=Parser->GetNextSymbol().ToDouble();
-         //double panth=Parser->GetNextSymbol().ToDouble();
+         double panty=Parser->GetNextSymbol().ToDouble(); //i tak trzeba to pobraæ
+         double panth=Parser->GetNextSymbol().ToDouble();
          if ((pant1x<0)&&(pant2x>0)) //pierwsza powinna byæ dodatnia, a druga ujemna
          {pant1x=-pant1x; pant2x=-pant2x;}
          if (pants)
@@ -3514,8 +3515,9 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
            pants[i].fParamPants->fAngleU=pants[i].fParamPants->fAngleU0; //pocz¹tkowy k¹t
            //pants[i].fParamPants->PantWys=1.22*sin(pants[i].fParamPants->fAngleL)+1.755*sin(pants[i].fParamPants->fAngleU); //wysokoœæ pocz¹tkowa
            //pants[i].fParamPants->PantWys=1.176289*sin(pants[i].fParamPants->fAngleL)+1.724482197*sin(pants[i].fParamPants->fAngleU); //wysokoœæ pocz¹tkowa
-           pants[i].fParamPants->PantWys=pants[i].fParamPants->fLenL1*sin(pants[i].fParamPants->fAngleL)+pants[i].fParamPants->fLenU1*sin(pants[i].fParamPants->fAngleU); //wysokoœæ pocz¹tkowa
            pants[i].fParamPants->vPos.x=(i&1)?pant2x:pant1x;
+           pants[i].fParamPants->fHeight=panth; //wysokoœæ œlizgu jest zapisana w MMD
+           pants[i].fParamPants->PantWys=pants[i].fParamPants->fLenL1*sin(pants[i].fParamPants->fAngleL)+pants[i].fParamPants->fLenU1*sin(pants[i].fParamPants->fAngleU)+pants[i].fParamPants->fHeight; //wysokoœæ pocz¹tkowa
            //pants[i].fParamPants->vPos.y=panty-panth-pants[i].fParamPants->PantWys; //np. 4.429-0.097=4.332=~4.335
            //pants[i].fParamPants->vPos.z=0; //niezerowe dla pantografów asymetrycznych
            pants[i].fParamPants->PantTraction=pants[i].fParamPants->PantWys;
