@@ -4021,7 +4021,7 @@ if (pControlled->Battery==true)
      if ( Console::Pressed(VK_SHIFT)&&Console::Pressed(Global::Keys[k_Converter]) )   //NBMX 14-09-2003: przetwornica wl
       {                           //(pControlled->CompressorPower<2)
         ConverterButtonGauge.PutValue(1);
-        if ((pControlled->PantFrontVolt!=0.0)||(pControlled->PantRearVolt!=0.0)||(pControlled->EnginePowerSource.SourceType!=CurrentCollector)||(!Global::bLiveTraction))
+        if ((pControlled->PantFrontVolt!=0.0)||(pControlled->PantRearVolt!=0.0)||(pControlled->EnginePowerSource.SourceType!=CurrentCollector)/*||(!Global::bLiveTraction)*/)
          pControlled->ConverterSwitch(true);
         //if ((pControlled->EngineType!=ElectricSeriesMotor)&&(pControlled->TrainType!=dt_EZT)) //hunter-110212: poprawka dla EZT
         if (pControlled->CompressorPower==2) //hunter-091012: tak jest poprawnie

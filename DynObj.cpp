@@ -2004,10 +2004,10 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
      }
     }
     else
-     tmpTraction.TractionVoltage=3400;
+     tmpTraction.TractionVoltage=0.95*MoverParameters->EnginePowerSource.MaxVoltage;
    }
    else
-    tmpTraction.TractionVoltage=3400;
+    tmpTraction.TractionVoltage=0.95*MoverParameters->EnginePowerSource.MaxVoltage;
    tmpTraction.TractionFreq=0;
    tmpTraction.TractionMaxCurrent=7500; //Ra: chyba za du¿o? powinno wywalaæ przy 1500
    tmpTraction.TractionResistivity=0.3;
@@ -2251,27 +2251,33 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
    switch (i) //numer pantografu
    {//trzeba usun¹æ to rozró¿nienie
     case 0:
-     if (MoverParameters->PantFrontUp?(PantDiff<0.01):false)
-     {
-      if ((MoverParameters->PantFrontVolt==0.0)&&(MoverParameters->PantRearVolt==0.0))
-       sPantUp.Play(vol,0,MechInside,vPosition);
-      MoverParameters->PantFrontVolt=p->PowerWire?p->PowerWire->NominalVoltage:0.0;
-     }
+     if (!Global::bLiveTraction) //jeœli nie odczyt z drutu
+      MoverParameters->PantFrontVolt=(p->PantWys>1.0)?0.95*MoverParameters->EnginePowerSource.MaxVoltage:0.0;
      else
-      MoverParameters->PantFrontVolt=0.0;
+      if (MoverParameters->PantFrontUp?(PantDiff<0.01):false)
+      {
+       if ((MoverParameters->PantFrontVolt==0.0)&&(MoverParameters->PantRearVolt==0.0))
+        sPantUp.Play(vol,0,MechInside,vPosition);
+       MoverParameters->PantFrontVolt=p->PowerWire?p->PowerWire->NominalVoltage:0.0;
+      }
+      else
+       MoverParameters->PantFrontVolt=0.0;
     break;
     case 1:
-     if (MoverParameters->PantRearUp?(PantDiff<0.01):false)
-     {
-      if ((MoverParameters->PantRearVolt==0.0)&&(MoverParameters->PantFrontVolt==0.0))
-       sPantUp.Play(vol,0,MechInside,vPosition);
-      MoverParameters->PantRearVolt=p->PowerWire?p->PowerWire->NominalVoltage:0.0;
-     }
+     if (!Global::bLiveTraction) //jeœli nie odczyt z drutu
+      MoverParameters->PantRearVolt=(p->PantWys>1.0)?0.95*MoverParameters->EnginePowerSource.MaxVoltage:0.0;
      else
-      MoverParameters->PantRearVolt=0.0;
+      if (MoverParameters->PantRearUp?(PantDiff<0.01):false)
+      {
+       if ((MoverParameters->PantRearVolt==0.0)&&(MoverParameters->PantFrontVolt==0.0))
+        sPantUp.Play(vol,0,MechInside,vPosition);
+       MoverParameters->PantRearVolt=p->PowerWire?p->PowerWire->NominalVoltage:0.0;
+      }
+      else
+       MoverParameters->PantRearVolt=0.0;
     break;
    } //pozosta³e na razie nie obs³ugiwane
-   if (MoverParameters->PantPress>3.3)
+   if (MoverParameters->PantPress>3.3) //Ra: wysokoœæ zale¿y od ciœnienia !!!
     pantspeedfactor=0.015*(MoverParameters->PantPress)*dt1; //z EXE Kursa
    else
     pantspeedfactor=0.0;
@@ -3285,7 +3291,8 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
            ile=Parser->GetNextSymbol().ToIntDef(-1); //iloœæ danego typu animacji
            if (co==ANIM_PANTS)
             if (!Global::bLoadTraction)
-             ile=0; //wy³¹czenie animacji pantografów
+             if (!DebugModeFlag) //w debugmode pantografy maj¹ "niby dzia³aæ"
+              ile=0; //wy³¹czenie animacji pantografów
            if (co<ANIM_TYPES)
             if (ile>=0)
             {iAnimType[co]=ile; //zapamiêtanie

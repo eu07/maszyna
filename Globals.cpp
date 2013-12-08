@@ -44,8 +44,8 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asRelease="13.12.852.418";
-AnsiString Global::asVersion="Compilation 2013-12-07, release "+Global::asRelease+"."; //tutaj, bo wysy³any
+AnsiString Global::asRelease="13.12.858.419";
+AnsiString Global::asVersion="Compilation 2013-12-08, release "+Global::asRelease+"."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 double Global::fSunDeclination=0.0; //deklinacja S³oñca
@@ -406,10 +406,10 @@ void __fastcall Global::ConfigParse(TQueryParserComp *qp,cParser *cp)
  }
  while (str!="endconfig"); //(!Parser->EndOfFile)
  //na koniec trochê zale¿noœci
- if (!bLoadTraction)
+ if (!bLoadTraction) //wczytywanie drutów i s³upów
  {//tutaj wy³¹czenie, bo mog¹ nie byæ zdefiniowane w INI
-  bEnableTraction=false;
-  bLiveTraction=false;
+  bEnableTraction=false; //false = pantograf siê nie po³amie
+  bLiveTraction=false; //false = pantografy zawsze zbieraj¹ 95% MaxVoltage
  }
  //if (fMoveLight>0) bDoubleAmbient=false; //wtedy tylko jedno œwiat³o ruchome
  //if (fOpenGL<1.3) iMultisampling=0; //mo¿na by z góry wy³¹czyæ, ale nie mamy jeszcze fOpenGL
@@ -425,7 +425,6 @@ void __fastcall Global::ConfigParse(TQueryParserComp *qp,cParser *cp)
  iFpsRadiusMax=0.000025*fFpsRadiusMax*fFpsRadiusMax; //maksymalny promieñ renderowania 3000.0 -> 225
  if (iFpsRadiusMax>400) iFpsRadiusMax=400;
  if (bPause) iTextMode=VK_F1; //jak pauza, to pokazaæ zegar
- bLiveTraction=true; //tymczasowo w³¹czony odczyt napiêcia z sieci - chyba mo¿na na sta³e zostawiæ
 }
 
 void __fastcall Global::InitKeys(AnsiString asFileName)
