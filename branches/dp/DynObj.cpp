@@ -2251,8 +2251,8 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
    switch (i) //numer pantografu
    {//trzeba usun¹æ to rozró¿nienie
     case 0:
-     if (!Global::bLiveTraction) //jeœli nie odczyt z drutu
-      MoverParameters->PantFrontVolt=(p->PantWys>1.0)?0.95*MoverParameters->EnginePowerSource.MaxVoltage:0.0;
+     if (Global::bLiveTraction?false:!p->PowerWire) //jeœli nie ma drutu, mo¿e pooszukiwaæ
+      MoverParameters->PantFrontVolt=(p->PantWys>1.2)?0.95*MoverParameters->EnginePowerSource.MaxVoltage:0.0;
      else
       if (MoverParameters->PantFrontUp?(PantDiff<0.01):false)
       {
@@ -2264,8 +2264,8 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
        MoverParameters->PantFrontVolt=0.0;
     break;
     case 1:
-     if (!Global::bLiveTraction) //jeœli nie odczyt z drutu
-      MoverParameters->PantRearVolt=(p->PantWys>1.0)?0.95*MoverParameters->EnginePowerSource.MaxVoltage:0.0;
+     if (Global::bLiveTraction?false:!p->PowerWire) //jeœli nie ma drutu, mo¿e pooszukiwaæ
+      MoverParameters->PantRearVolt=(p->PantWys>1.2)?0.95*MoverParameters->EnginePowerSource.MaxVoltage:0.0;
      else
       if (MoverParameters->PantRearUp?(PantDiff<0.01):false)
       {
@@ -3289,10 +3289,10 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
           do
           {//kolejne liczby to iloœæ animacj, -1 to znacznik koñca
            ile=Parser->GetNextSymbol().ToIntDef(-1); //iloœæ danego typu animacji
-           if (co==ANIM_PANTS)
-            if (!Global::bLoadTraction)
-             if (!DebugModeFlag) //w debugmode pantografy maj¹ "niby dzia³aæ"
-              ile=0; //wy³¹czenie animacji pantografów
+           //if (co==ANIM_PANTS)
+           // if (!Global::bLoadTraction)
+           //  if (!DebugModeFlag) //w debugmode pantografy maj¹ "niby dzia³aæ"
+           //   ile=0; //wy³¹czenie animacji pantografów
            if (co<ANIM_TYPES)
             if (ile>=0)
             {iAnimType[co]=ile; //zapamiêtanie
