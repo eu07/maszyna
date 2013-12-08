@@ -618,39 +618,40 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
   if (TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_passenger))
    {btCPass2.TurnOn(); btnOn=true;}
   //else btCPass2.TurnOff();
-  //sygnaly konca pociagu
-  if (btEndSignals1.Active())
-  {
-   if (TestFlag(iLights[0],2)
-     ||TestFlag(iLights[0],32))
-    {btEndSignals1.TurnOn(); btnOn=true;}
-   //else btEndSignals1.TurnOff();
-  }
-  else
-  {
-   if (TestFlag(iLights[0],2))
-    {btEndSignals11.TurnOn(); btnOn=true;}
-   //else btEndSignals11.TurnOff();
-   if (TestFlag(iLights[0],32))
-    {btEndSignals13.TurnOn(); btnOn=true;}
-   //else btEndSignals13.TurnOff();
-  }
-
-  if (btEndSignals2.Active())
-  {
-   if (TestFlag(iLights[1],2)
-     ||TestFlag(iLights[1],32))
-    {btEndSignals2.TurnOn(); btnOn=true;}
-   //else btEndSignals2.TurnOff();
-  }
-  else
-  {
-   if (TestFlag(iLights[1],2))
-    {btEndSignals21.TurnOn(); btnOn=true;}
-   //else btEndSignals21.TurnOff();
-   if (TestFlag(iLights[1],32))
-    {btEndSignals23.TurnOn(); btnOn=true;}
-   //else btEndSignals23.TurnOff();
+  if (MoverParameters->Battery)
+  {//sygnaly konca pociagu
+   if (btEndSignals1.Active())
+   {
+    if (TestFlag(iLights[0],2)
+      ||TestFlag(iLights[0],32))
+     {btEndSignals1.TurnOn(); btnOn=true;}
+    //else btEndSignals1.TurnOff();
+   }
+   else
+   {
+    if (TestFlag(iLights[0],2))
+     {btEndSignals11.TurnOn(); btnOn=true;}
+    //else btEndSignals11.TurnOff();
+    if (TestFlag(iLights[0],32))
+     {btEndSignals13.TurnOn(); btnOn=true;}
+    //else btEndSignals13.TurnOff();
+   }
+   if (btEndSignals2.Active())
+   {
+    if (TestFlag(iLights[1],2)
+      ||TestFlag(iLights[1],32))
+     {btEndSignals2.TurnOn(); btnOn=true;}
+    //else btEndSignals2.TurnOff();
+   }
+   else
+   {
+    if (TestFlag(iLights[1],2))
+     {btEndSignals21.TurnOn(); btnOn=true;}
+    //else btEndSignals21.TurnOff();
+    if (TestFlag(iLights[1],32))
+     {btEndSignals23.TurnOn(); btnOn=true;}
+    //else btEndSignals23.TurnOff();
+   }
   }
   //tablice blaszane:
   if (TestFlag(iLights[0],64))
@@ -674,25 +675,27 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
   //Ra: przechy³kê za³atwiamy na etapie przesuwania modelu
   //if (ObjSqrDist<80000) ABuModelRoll(); //przechy³ki od 400m
  }
- //sygnaly czola pociagu //Ra: wyœwietlamy bez ograniczeñ odleg³oœci, by by³y widoczne z daleka
- if (TestFlag(iLights[0],1))
-  {btHeadSignals11.TurnOn(); btnOn=true;}
- //else btHeadSignals11.TurnOff();
- if (TestFlag(iLights[0],4))
-  {btHeadSignals12.TurnOn(); btnOn=true;}
- //else btHeadSignals12.TurnOff();
- if (TestFlag(iLights[0],16))
-  {btHeadSignals13.TurnOn(); btnOn=true;}
- //else btHeadSignals13.TurnOff();
- if (TestFlag(iLights[1],1))
-  {btHeadSignals21.TurnOn(); btnOn=true;}
- //else btHeadSignals21.TurnOff();
- if (TestFlag(iLights[1],4))
-  {btHeadSignals22.TurnOn(); btnOn=true;}
- //else btHeadSignals22.TurnOff();
- if (TestFlag(iLights[1],16))
-  {btHeadSignals23.TurnOn(); btnOn=true;}
- //else btHeadSignals23.TurnOff();
+ if (MoverParameters->Battery)
+ {//sygnaly czola pociagu //Ra: wyœwietlamy bez ograniczeñ odleg³oœci, by by³y widoczne z daleka
+  if (TestFlag(iLights[0],1))
+   {btHeadSignals11.TurnOn(); btnOn=true;}
+  //else btHeadSignals11.TurnOff();
+  if (TestFlag(iLights[0],4))
+   {btHeadSignals12.TurnOn(); btnOn=true;}
+  //else btHeadSignals12.TurnOff();
+  if (TestFlag(iLights[0],16))
+   {btHeadSignals13.TurnOn(); btnOn=true;}
+  //else btHeadSignals13.TurnOff();
+  if (TestFlag(iLights[1],1))
+   {btHeadSignals21.TurnOn(); btnOn=true;}
+  //else btHeadSignals21.TurnOff();
+  if (TestFlag(iLights[1],4))
+   {btHeadSignals22.TurnOn(); btnOn=true;}
+  //else btHeadSignals22.TurnOff();
+  if (TestFlag(iLights[1],16))
+   {btHeadSignals23.TurnOn(); btnOn=true;}
+  //else btHeadSignals23.TurnOff();
+ }
 }
 //ABu 29.01.05 koniec przeklejenia *************************************
 
