@@ -259,6 +259,7 @@ struct TSecuritySystem
 {
 	Byte SystemType;
 	double AwareDelay;
+	double AwareMinSpeed;
 	double SoundSignalDelay;
 	double EmergencyBrakeDelay;
 	Byte Status;
