@@ -76,6 +76,7 @@ public:
  double fLenU1; //d³ugoœæ górnego ramienia 1, odczytana z modelu
  double fLenL2; //d³ugoœæ dolnego ramienia 2, odczytana z modelu
  double fLenU2; //d³ugoœæ górnego ramienia 2, odczytana z modelu
+ double fHeight; //wysokoœæ œlizgu ponad oœ obrotu
  double fAngleL0; //Ra: pocz¹tkowy k¹t dolnego ramienia (odejmowany przy animacji)
  double fAngleU0; //Ra: pocz¹tkowy k¹t górnego ramienia (odejmowany przy animacji)
  double PantTraction; //Winger 170204: wysokoœæ drutu ponad punktem na wysokoœci vPos.y p.g.s.
