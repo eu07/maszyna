@@ -38,8 +38,8 @@
     <WARNINGS value="-w-par"/>
   </MACROS>
   <OPTIONS>
-    <IDLCFLAGS value="-src_suffix cpp -DGLEW_STATIC -D_DEBUG -IConsole -Iopengl -IMcZapkie 
-      -I$(BCB)\include -I$(BCB)\include\vcl -boa"/>
+    <IDLCFLAGS value="-IConsole -Iopengl -IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl 
+      -src_suffix cpp -DGLEW_STATIC -D_DEBUG -boa"/>
     <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a1 -6 -b- -k -y -v -vi- 
       -c -tW -tWM"/>
     <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
@@ -58,8 +58,8 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=13
 MinorVer=12
-Release=858
-Build=419
+Release=861
+Build=420
 Debug=1
 PreRelease=0
 Special=0
@@ -71,7 +71,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=13.12.858.419
+FileVersion=13.12.861.420
 InternalName=9th by Ra + SPKS + MP
 LegalCopyright=
 LegalTrademarks=

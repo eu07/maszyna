@@ -263,7 +263,7 @@ void __fastcall TMoverParameters::UpdatePantVolume(double dt)
  else
  {//zbiornik g³ówny odciêty, mo¿na pompowaæ pantografy
   if (PantCompFlag&&Battery) //w³¹czona bateria i ma³a sprê¿arka
-   PantVolume+=dt*0.001*(2*0.45-((0.1/PantVolume/10)-0.1))/0.45; //nape³nianie zbiornika pantografów
+   PantVolume+=dt*0.005*(2*0.45-((0.1/PantVolume/10)-0.1))/0.45; //nape³nianie zbiornika pantografów
   PantPress=(10*PantVolume)-1; //tu by siê przyda³a objêtoœæ zbiornika
  }
  if (!PantCompFlag&&(PantVolume>0.1))

@@ -1919,7 +1919,7 @@ histerezê czasow¹, aby te tryby pracy nie prze³¹cza³y siê zbyt szybko.
 bool __fastcall TDynamicObject::Update(double dt, double dt1)
 {
  if (dt==0) return true; //Ra: pauza
- if (!MoverParameters->PhysicActivation)
+ if (!MoverParameters->PhysicActivation&&!MechInside) //to drugie, bo bêd¹c w maszynowym blokuje siê fizyka
   return true;   //McZapkie: wylaczanie fizyki gdy nie potrzeba
  if (!MyTrack)
   return false; //pojazdy postawione na torach portalowych maj¹ MyTrack==NULL
