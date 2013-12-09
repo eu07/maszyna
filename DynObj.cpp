@@ -57,9 +57,9 @@ int __fastcall TAnim::TypeSet(int i)
    iFlags=0x055;
    fParamPants=new TAnimPant();
    fParamPants->vPos=vector3(0,0,0); //przypisanie domyœnych wspó³czynników do pantografów
-   fParamPants->fHeight=0.07; //wysokoœæ œlizgu ponad oœ obrotu
    fParamPants->fLenL1=1.176289; //1.22;
    fParamPants->fLenU1=1.724482197; //1.755;
+   fParamPants->fHeight=0.07; //wysokoœæ œlizgu ponad oœ obrotu
    fParamPants->fAngleL0=DegToRad(2.8547285515689267247882521833308);
    fParamPants->fAngleL=fParamPants->fAngleL0; //pocz¹tkowy k¹t dolnego ramienia
    //fParamPants->pantu=acos((1.22*cos(fParamPants->fAngleL)+0.535)/1.755); //górne ramiê
@@ -69,6 +69,7 @@ int __fastcall TAnim::TypeSet(int i)
    //fParamPants->PantWys=1.176289*sin(fParamPants->fAngleL)+1.724482197*sin(fParamPants->fAngleU); //wysokoœæ pocz¹tkowa
    fParamPants->PantWys=fParamPants->fLenL1*sin(fParamPants->fAngleL)+fParamPants->fLenU1*sin(fParamPants->fAngleU)+fParamPants->fHeight; //wysokoœæ pocz¹tkowa
    fParamPants->PantTraction=fParamPants->PantWys;
+   fParamPants->PowerWire=NULL;
   break;
   case 6: iFlags=0x068; break; //6-t³ok i rozrz¹d - 8 submodeli
   default: iFlags=0;
