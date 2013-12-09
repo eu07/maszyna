@@ -237,6 +237,10 @@ void __fastcall Console::BitsUpdate(int mask)
      PoKeys55->Write(0x40,31-1,iBits&0x0400?1:0);
     if (mask&0x0800) //b11 Kontrolka ogrzewania poci¹gu
      PoKeys55->Write(0x40,34-1,iBits&0x0800?1:0);
+    if (mask&0x1000) //b12 Ciœnienie w cylindrach do odbijania w haslerze
+     PoKeys55->Write(0x40,52-1,iBits&0x1000?1:0);
+    if (mask&0x2000) //b13 Pr¹d na silnikach do odbijania w haslerze
+     PoKeys55->Write(0x40,53-1,iBits&0x2000?1:0);
    }
    break;
  }

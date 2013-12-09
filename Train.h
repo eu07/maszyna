@@ -192,7 +192,6 @@ public: //reszta mo¿e byæ publiczna
     TGauge TrainHeatingButtonGauge;
     TGauge SignallingButtonGauge;
     TGauge DoorSignallingButtonGauge;
-
 //    TModel3d *mdKabina; McZapkie-030303: to do dynobj
 
     TButton btLampkaPoslizg;
@@ -232,16 +231,16 @@ public: //reszta mo¿e byæ publiczna
 //youBy - jakies dodatkowe lampki
     TButton btLampkaNapNastHam;
     TButton btLampkaSprezarka;
-    TButton btLampkaSprezarkaB;    
+    TButton btLampkaSprezarkaB;
     TButton btLampkaBocznikI;
     TButton btLampkaBocznikII;
     TButton btLampkaRadiotelefon;
     TButton btLampkaHamienie;
-    TButton btLampkaJazda;                   
+    TButton btLampkaJazda;
 //KURS90
-      TButton btLampkaBoczniki;                
-      TButton btLampkaMaxSila;              
-      TButton btLampkaPrzekrMaxSila;              
+      TButton btLampkaBoczniki;
+      TButton btLampkaMaxSila;
+      TButton btLampkaPrzekrMaxSila;
 //    TButton bt;
 //
     TButton btLampkaDoorLeft;
@@ -253,6 +252,9 @@ public: //reszta mo¿e byæ publiczna
     TButton btLampkaBackward;
 
     TButton btCabLight; //hunter-171012: lampa oswietlajaca kabine
+    //Ra 2013-12: wirtualne "lampki" do odbijania na haslerze w PoKeys
+    TButton btHaslerBrakes; //ciœnienie w cylindrach
+    TButton btHaslerCurrent; //pr¹d na silnikach
 
     vector3 pPosition;
     vector3 pMechOffset; //driverNpos

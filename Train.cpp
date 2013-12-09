@@ -4612,6 +4612,9 @@ else
     FuseButtonGauge.UpdateValue(0);
     ConverterFuseButtonGauge.UpdateValue(0);    
   }
+ //wyprowadzenie sygna³ów dla haslera na PoKeys (zaznaczanie na taœmie) 
+ btHaslerBrakes.Turn(DynamicObject->MoverParameters->BrakePress>0.4); //ciœnienie w cylindrach
+ btHaslerCurrent.Turn(DynamicObject->MoverParameters->Im!=0.0); //pr¹d na silnikach
  return true; //(DynamicObject->Update(dt));
 }  //koniec update
 
@@ -5162,6 +5165,8 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     RearUpperLightButtonGauge.Clear();
     RearLeftEndLightButtonGauge.Clear();
     RearRightEndLightButtonGauge.Clear();
+    btHaslerBrakes.Clear(12); //ciœnienie w cylindrach do odbijania na haslerze
+    btHaslerCurrent.Clear(13); //pr¹d na silnikach do odbijania na haslerze
    }
    //SEKCJA REGULATOROW
    else if (str==AnsiString("mainctrl:"))                    //nastawnik
