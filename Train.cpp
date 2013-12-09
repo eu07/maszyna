@@ -2352,10 +2352,10 @@ bool __fastcall TTrain::Update()
 */
 
   //hunter-080812: wyrzucanie szybkiego na elektrykach gdy nie ma napiecia przy dowolnym ustawieniu kierunkowego
-  //Ra: to ju¿ jest w T_MoverParameters::TractionForce()
-  //if (pControlled->EngineType==ElectricSeriesMotor)
-  // if (pControlled->RunningTraction.TractionVoltage<0.5*pControlled->MaxVoltage) //minimalne napiêcie pobieraæ z FIZ!
-  //  pControlled->MainSwitch(False);
+  //Ra: to ju¿ jest w T_MoverParameters::TractionForce(), ale zale¿y od kierunku
+  if (pControlled->EngineType==ElectricSeriesMotor)
+   if (pControlled->RunningTraction.TractionVoltage<0.5*pControlled->MaxVoltage) //minimalne napiêcie pobieraæ z FIZ!
+    pControlled->MainSwitch(False);
 
   //hunter-091012: swiatlo
    if (bCabLight==true)
