@@ -1799,7 +1799,7 @@ bool __fastcall TDynamicObject::UpdateForce(double dt, double dt1, bool FullVer)
  if (!bEnabled)
   return false;
  if (dt>0)
-  MoverParameters->ComputeTotalForce(dt,dt1,FullVer);
+  MoverParameters->ComputeTotalForce(dt,dt1,FullVer); //wywalenie WS zale¿y od ustawienia kierunku
  return true;
 }
 
