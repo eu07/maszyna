@@ -1933,9 +1933,10 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
   {
    //if ((!MoverParameters->PantCompFlag)&&(MoverParameters->CompressedVolume>=2.8))
    // MoverParameters->PantVolume=MoverParameters->CompressedVolume;
-   if (MoverParameters->PantPress<3.5)
-   {// 0.35 wg http://www.transportszynowy.pl/eu06-07pneumat.php
+   if (MoverParameters->PantPress<(MoverParameters->TrainType==dt_EZT?2.4:3.5))
+   {// 3.5 wg http://www.transportszynowy.pl/eu06-07pneumat.php
     //"Wy³¹czniki ciœnieniowe odbieraków pr¹du wy³¹czaj¹ sterowanie wy³¹cznika szybkiego oraz uniemo¿liwiaj¹ podniesienie odbieraków pr¹du, gdy w instalacji rozrz¹du ciœnienie spadnie poni¿ej wartoœci 3,5 bara."
+    //Ra 2013-12: Niebugoc³aw mówi, ¿e w EZT podnosz¹ siê przy 2.5
     //if (!MoverParameters->PantCompFlag)
     // MoverParameters->PantVolume=MoverParameters->CompressedVolume;
     MoverParameters->PantFront(false); //opuszczenie pantografów przy niskim ciœnieniu
@@ -1986,25 +1987,27 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
    //napiecie sieci trakcyjnej
 
    TTractionParam tmpTraction;
-   if ((MoverParameters->EnginePowerSource.SourceType==CurrentCollector)||(MoverParameters->TrainType==dt_EZT))
+   if ((MoverParameters->EnginePowerSource.SourceType==CurrentCollector)/*||(MoverParameters->TrainType==dt_EZT)*/)
    {
     if (Global::bLiveTraction)
-    {
-     if ((MoverParameters->PantFrontVolt!=0.0)||(MoverParameters->PantRearVolt!=0.0)||
-      //ABu: no i sprawdzenie dla EZT:
-      ((MoverParameters->TrainType==dt_EZT)&&(MoverParameters->GetTrainsetVoltage()!=0.0)))
+    {//Ra 2013-12: to ni¿ej jest chyba trochê bez sensu
+     double v=MoverParameters->PantRearVolt;
+     if (v==0.0)
+     {v=MoverParameters->PantFrontVolt;
+      if (v==0.0)
+       if (MoverParameters->TrainType&(dt_ET40|dt_ET41|dt_ET42)) //dwucz³ony mog¹ mieæ sprzêg WN
+        v=MoverParameters->GetTrainsetVoltage(); //ostatnia szansa
+     }
+     if (v!=0.0)
+     {//jeœli jest zasilanie
       NoVoltTime=0;
+      tmpTraction.TractionVoltage=v;
+     }
      else
-      NoVoltTime=NoVoltTime+dt;
-     if (NoVoltTime>1.0) //jeœli brak zasilania d³u¿ej ni¿ przez 1 sekundê
-      tmpTraction.TractionVoltage=0;
-     else
-     {tmpTraction.TractionVoltage=MoverParameters->PantRearVolt;
-      if (tmpTraction.TractionVoltage==0.0)
-       tmpTraction.TractionVoltage=MoverParameters->PantFrontVolt;
-      if (tmpTraction.TractionVoltage==0.0)
-       if (MoverParameters->TrainType==dt_EZT)
-        tmpTraction.TractionVoltage=MoverParameters->GetTrainsetVoltage(); //ostatnia szansa
+     {NoVoltTime=NoVoltTime+dt;
+      if (NoVoltTime>1.0) //jeœli brak zasilania d³u¿ej ni¿ przez 1 sekundê
+       tmpTraction.TractionVoltage=0; //Ra 2013-12: po co tak?
+       //pControlled->MainSwitch(false); //mo¿e tak?
      }
     }
     else
@@ -2281,8 +2284,8 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
        MoverParameters->PantRearVolt=0.0;
     break;
    } //pozosta³e na razie nie obs³ugiwane
-   if (MoverParameters->PantPress>3.3) //Ra: wysokoœæ zale¿y od ciœnienia !!!
-    pantspeedfactor=0.015*(MoverParameters->PantPress)*dt1; //z EXE Kursa
+   if (MoverParameters->PantPress>(MoverParameters->TrainType==dt_EZT?2.5:3.3)) //Ra 2013-12: Niebugoc³aw mówi, ¿e w EZT podnosz¹ siê przy 2.5
+    pantspeedfactor=0.015*(MoverParameters->PantPress)*dt1; //z EXE Kursa  //Ra: wysokoœæ zale¿y od ciœnienia !!!
    else
     pantspeedfactor=0.0;
    if (pantspeedfactor<0) pantspeedfactor=0;
