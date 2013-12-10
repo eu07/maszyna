@@ -1413,6 +1413,7 @@ bool __fastcall TController::PrepareEngine()
     //      OK:=(OrderDirectionChange(ChangeDir,Controlling)=-1);
     //      OK:=IncMainCtrl(1);
     //   end;
+    while (DecSpeed(true)); //zerowanie napêdu
     OK=Controlling->MainSwitch(true);
    }
    else
