@@ -2212,10 +2212,11 @@ bool __fastcall TController::UpdateSituation(double dt)
      Controlling->PantFront(true);
     if (pOccupied->Vel>10) //opuszczenie przedniego po rozpêdzeniu siê
     {
-     if (iDirection>=0) //jak jedzie w kierunku sprzêgu 0
-      Controlling->PantFront(false); //opuszcza od sprzêgu 0
-     else
-      Controlling->PantRear(false); //opuszcza od sprzêgu 1
+     if (Controlling->EnginePowerSource.CollectorsNo>1) //o ile wiêcej ni¿ jeden
+      if (iDirection>=0) //jak jedzie w kierunku sprzêgu 0
+       Controlling->PantFront(false); //opuszcza od sprzêgu 0
+      else
+       Controlling->PantRear(false); //opuszcza od sprzêgu 1
     }
     else //ewentualnie jak siê rozpêdza, to ustaw rozruch
      //if (fMass>800.0) //Ra: taki sobie warunek na wysoki rozruch
