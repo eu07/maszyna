@@ -1071,7 +1071,7 @@ bool __fastcall TWorld::Update()
     if (d&&pDynamicNearest) //jeœli jakiœ jest znaleziony wczeœniej
      if (100.0*LengthSquared3(d->GetPosition()-Camera.Pos)>LengthSquared3(pDynamicNearest->GetPosition()-Camera.Pos))
       d=pDynamicNearest; //jeœli najbli¿szy nie jest 10 razy bli¿ej ni¿ poprzedni najbli¿szy, zostaje poprzedni
-    if (d) pDynamicNearest=d; //zmiana nanowy, jeœli coœ znaleziony niepusty
+    if (d) pDynamicNearest=d; //zmiana na nowy, jeœli coœ znaleziony niepusty
     if (pDynamicNearest) Camera.LookAt=pDynamicNearest->GetPosition();
    }
    if (FreeFlyModeFlag)

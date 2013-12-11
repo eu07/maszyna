@@ -2005,7 +2005,7 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
      }
      else
      {NoVoltTime=NoVoltTime+dt;
-      if (NoVoltTime>1.0) //jeœli brak zasilania d³u¿ej ni¿ przez 1 sekundê
+      if (NoVoltTime>0.3) //jeœli brak zasilania d³u¿ej ni¿ przez 1 sekundê
        tmpTraction.TractionVoltage=0; //Ra 2013-12: po co tak?
        //pControlled->MainSwitch(false); //mo¿e tak?
      }
