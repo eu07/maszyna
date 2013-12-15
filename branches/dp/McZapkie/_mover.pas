@@ -997,22 +997,24 @@ var volt: real;
 begin
  volt:=0.0;
   if Couplers[1].Connected<>nil then
-   begin //zwykle silnikowy jest z ty³u
-    if (Couplers[1].Connected.PantFrontVolt<>0.0) then
-     volt:=Couplers[1].Connected.PantFrontVolt
-    else
-     if (Couplers[1].Connected.PantRearVolt<>0.0) then
-      volt:=Couplers[1].Connected.PantRearVolt;
-   end;
+   if (TestFlag(Couplers[1].CouplingFlag,ctrain_power)) then //czy jest sprzêg WN
+    begin //najczêœciej silnikowy jest z ty³u
+     if (Couplers[1].Connected.PantFrontVolt<>0.0) then
+      volt:=Couplers[1].Connected.PantFrontVolt
+     else
+      if (Couplers[1].Connected.PantRearVolt<>0.0) then
+       volt:=Couplers[1].Connected.PantRearVolt;
+    end;
   if (volt=0.0) then
-    if Couplers[0].Connected<>nil then
-      begin
-     if (Couplers[0].Connected.PantFrontVolt<>0.0) then
-      volt:=Couplers[0].Connected.PantFrontVolt
+   if Couplers[0].Connected<>nil then
+    if (TestFlag(Couplers[0].CouplingFlag,ctrain_power)) then //czy jest sprzêg WN
+     begin
+      if (Couplers[0].Connected.PantFrontVolt<>0.0) then
+       volt:=Couplers[0].Connected.PantFrontVolt
       else
-      if (Couplers[0].Connected.PantRearVolt<>0.0) then
-       volt:=Couplers[0].Connected.PantRearVolt;
-  end;
+       if (Couplers[0].Connected.PantRearVolt<>0.0) then
+        volt:=Couplers[0].Connected.PantRearVolt;
+     end;
   GetTrainsetVoltage:=volt;
 end;
 

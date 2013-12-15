@@ -82,10 +82,17 @@ bool __fastcall TEventLauncher::Load(cParser *parser)
  parser->getTokens();
  *parser >> token;
  asEvent2Name=AnsiString(token.c_str()); //drugi event
-
- parser->getTokens();
- *parser >> token;
- str=AnsiString(token.c_str());
+ if ((asEvent2Name=="end")||(asEvent2Name=="condition"))
+ {//drugiego eventu mo¿e nie byæ, bo s¹ z tym problemy, ale ciii...
+  str=asEvent2Name; //rozpoznane s³owo idzie do dalszego przetwarzania
+  asEvent2Name="none"; //a drugiego eventu nie ma
+ }
+ else
+ {//gdy s¹ dwa eventy
+  parser->getTokens();
+  *parser >> token;
+  str=AnsiString(token.c_str());
+ }
  if (str==AnsiString("condition"))
  {//obs³uga wyzwalania warunkowego
   parser->getTokens();

@@ -1995,7 +1995,7 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
      if (v==0.0)
      {v=MoverParameters->PantFrontVolt;
       if (v==0.0)
-       if (MoverParameters->TrainType&(dt_ET40|dt_ET41|dt_ET42)) //dwucz³ony mog¹ mieæ sprzêg WN
+       if (MoverParameters->TrainType&(dt_EZT|dt_ET40|dt_ET41|dt_ET42)) //dwucz³ony mog¹ mieæ sprzêg WN
         v=MoverParameters->GetTrainsetVoltage(); //ostatnia szansa
      }
      if (v!=0.0)
