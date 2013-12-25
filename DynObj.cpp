@@ -2071,13 +2071,18 @@ TGround::GetTraction;
 //       }
 
     //fragment "z EXE Kursa"
-    if ((!MoverParameters->Battery)&&(Controller==Humandriver)&&(MoverParameters->EngineType!=DieselEngine)&&(MoverParameters->EngineType!=WheelsDriven))
-    {//jeœli bateria wy³¹czona, a nie diesel ani drezyna reczna
-     if (MoverParameters->MainSwitch(false)) //wy³¹czyæ zasilanie
-      MoverParameters->EventFlag=true;
-    }
+    if (MoverParameters->Mains) //nie wchodziæ w funkcjê bez potrzeby
+     if ((!MoverParameters->Battery)&&(Controller==Humandriver)&&(MoverParameters->EngineType!=DieselEngine)&&(MoverParameters->EngineType!=WheelsDriven))
+     {//jeœli bateria wy³¹czona, a nie diesel ani drezyna reczna
+      if (MoverParameters->MainSwitch(false)) //wy³¹czyæ zasilanie
+       MoverParameters->EventFlag=true;
+     }
     if (MoverParameters->TrainType==dt_ET42)
     {//powinny byæ wszystkie dwucz³ony oraz EZT
+/*
+     //Ra: to jest bez sensu, bo wy³¹cza WS przy przechodzeniu przez "wewnêtrzne" kabiny (z powodu ActiveCab)
+     //trzeba to zrobiæ inaczej, np. dla cz³onu A sprawdzaæ, czy jest B
+     //albo sprawdzaæ w momencie za³¹czania WS i zmiany w sprzêgach
      if (((TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab>0)&&(NextConnected->MoverParameters->TrainType!=dt_ET42))||((TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab<0)&&(PrevConnected->MoverParameters->TrainType!=dt_ET42)))
      {//sprawdzenie, czy z ty³u kabiny mamy drugi cz³on
       if (MoverParameters->MainSwitch(false))
@@ -2088,6 +2093,7 @@ TGround::GetTraction;
       if (MoverParameters->MainSwitch(false))
        MoverParameters->EventFlag=true;
      }
+*/
     }
 
 

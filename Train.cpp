@@ -1566,7 +1566,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
          Global::changeDynObj->MoverParameters->ActiveCab=DynamicObject->NextConnectedNo?-1:1;
         }
        if (DynamicObject->MoverParameters->ActiveCab)
-        pControlled->PantCompFlag=false; //wyjœcie z maszynowego wy³¹cza sprê¿arkê
+        pControlled->PantCompFlag=false; //wyjœcie z maszynowego wy³¹cza sprê¿arkê pomocnicz¹
       }
       else
       if (cKey==Global::Keys[k_Couple])
@@ -5120,7 +5120,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     btLampkaNadmWent.Clear(9);
     btLampkaNadmSpr.Clear(8);
     btLampkaOpory.Clear(2);
-    btLampkaWysRozr.Clear(10);
+    btLampkaWysRozr.Clear((pControlled->TrainType&(dt_ET22))?-1:10); //ET22 nie ma tej lampki
     btLampkaBezoporowa.Clear();
     btLampkaBezoporowaB.Clear();
     btLampkaMaxSila.Clear();
