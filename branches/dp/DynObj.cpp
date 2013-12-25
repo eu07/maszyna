@@ -2239,8 +2239,7 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
   if (dWheelAngle[1]>360.0) dWheelAngle[1]-=360.0;
   if (dWheelAngle[2]>360.0) dWheelAngle[2]-=360.0;
  }
- if (pants)
- //if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector) //??
+ if (pants) //pantograf mo¿e byæ w wagonie kuchennym albo pojeŸdzie rewizyjnym (np. SR61)
  {//przeliczanie k¹tów dla pantografów
   double k; //tymczasowy k¹t
   double PantDiff;
