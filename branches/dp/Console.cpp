@@ -101,10 +101,17 @@ int Console::iMode=0;
 int Console::iConfig=0;
 TPoKeys55 *Console::PoKeys55=NULL;
 TLPT *Console::LPT=NULL;
+int Console::iSwitch[8]; //bistabilne w kabinie, za³¹czane z [Shift], wy³¹czane bez
+int Console::iButton[8]; //monostabilne w kabinie, za³¹czane podczas trzymania klawisza
 
 __fastcall Console::Console()
 {
  PoKeys55=NULL;
+ for (int i=0;i<8;++i)
+ {//zerowanie prze³¹czników
+  iSwitch[i]=0; //bity 0..127 - bez [Ctrl], 128..255 - z [Ctrl]
+  iButton[i]=0; //bity 0..127 - bez [Shift], 128..255 - z [Shift]
+ }
 };
 
 __fastcall Console::~Console()
@@ -120,6 +127,8 @@ void __fastcall Console::ModeSet(int m,int h)
 
 int __fastcall Console::On()
 {//za³¹czenie konsoli (np. nawi¹zanie komunikacji)
+ iSwitch[0]=iSwitch[1]=iSwitch[2]=iSwitch[3]=0; //bity 0..127 - bez [Ctrl]
+ iSwitch[4]=iSwitch[5]=iSwitch[6]=iSwitch[7]=0; //bity 128..255 - z [Ctrl]
  switch (iMode)
  {case 1: //kontrolki klawiatury
   case 2: //kontrolki klawiatury
@@ -285,3 +294,35 @@ unsigned char __fastcall Console::DigitalGet(int x)
    return PoKeys55->iInputs[x];
  return 0;
 };
+
+void __fastcall Console::OnKeyDown(int k)
+{//naciœniêcie klawisza z powoduje wy³¹czenie, a
+ if (k&0x10000) //jeœli [Shift]
+ {//ustawienie bitu w tabeli prze³¹czników bistabilnych
+  if (k&0x20000) //jeœli [Ctrl], to zestaw dodatkowy
+   iSwitch[4+(char(k)>>5)]|=1<<(k&31); //za³¹cz bistabliny dodatkowy
+  else
+  {//z [Shift] w³¹czenie bitu bistabilnego i dodatkowego monostabilnego
+   iSwitch[char(k)>>5]|=1<<(k&31); //za³¹cz bistabliny podstawowy
+   iButton[4+(char(k)>>5)]|=(1<<(k&31)); //za³¹cz monostabilny dodatkowy
+  }
+ }
+ else
+ {//zerowanie bitu w tabeli prze³¹czników bistabilnych
+  if (k&0x20000) //jeœli [Ctrl], to zestaw dodatkowy
+   iSwitch[4+(char(k)>>5)]&=~(1<<(k&31)); //wy³¹cz bistabilny dodatkowy
+  else
+  {iSwitch[char(k)>>5]&=~(1<<(k&31)); //wy³¹cz bistabilny podstawowy
+   iButton[char(k)>>5]|=1<<(k&31); //za³¹cz monostabilny podstawowy
+  }
+ }
+};
+void __fastcall Console::OnKeyUp(int k)
+{//puszczenie klawisza w zasadzie nie ma znaczenia dla iSwitch, ale zeruje iButton
+ if ((k&0x20000)==0) //monostabilne tylko bez [Ctrl]
+  if (k&0x10000) //jeœli [Shift]
+   iButton[4+(char(k)>>5)]&=~(1<<(k&31)); //wy³¹cz monostabilny dodatkowy
+  else
+   iButton[char(k)>>5]&=~(1<<(k&31)); //wy³¹cz monostabilny podstawowy
+};
+

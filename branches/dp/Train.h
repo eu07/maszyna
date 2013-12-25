@@ -236,7 +236,7 @@ public: //reszta mo¿e byæ publiczna
     TButton btLampkaBocznikII;
     TButton btLampkaRadiotelefon;
     TButton btLampkaHamienie;
-    TButton btLampkaJazda;
+    TButton btLampkaJazda; //Ra: nie u¿ywane
 //KURS90
       TButton btLampkaBoczniki;
       TButton btLampkaMaxSila;

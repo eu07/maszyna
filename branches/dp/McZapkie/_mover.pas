@@ -4080,9 +4080,10 @@ begin
          end;
         if (Abs(Im)>Imax) then
          FuseOff;                     {wywalanie bezpiecznika z powodu przetezenia silnikow}
-        if (Abs(Voltage)<EnginePowerSource.MaxVoltage/2.0) or (Abs(Voltage)>EnginePowerSource.MaxVoltage*2) then
-         if MainSwitch(false) then
-          EventFlag:=true;            {wywalanie szybkiego z powodu niewlasciwego napiecia}
+        if (Mains) then //nie wchodziæ w funkcjê bez potrzeby
+         if (Abs(Voltage)<EnginePowerSource.MaxVoltage/2.0) or (Abs(Voltage)>EnginePowerSource.MaxVoltage*2) then
+          if MainSwitch(false) then
+           EventFlag:=true; //wywalanie szybkiego z powodu niew³aœciwego napiêcia
 
         if (((DynamicBrakeType=dbrake_automatic)or(DynamicBrakeType=dbrake_switch)) and (DynamicBrakeFlag)) then
          Itot:=Im*2   {2x2 silniki w EP09}

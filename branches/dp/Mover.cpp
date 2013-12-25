@@ -197,19 +197,16 @@ bool __fastcall TMoverParameters::DecBrakeLevel()
 
 bool __fastcall TMoverParameters::ChangeCab(int direction)
 {//zmiana kabiny i resetowanie ustawien
-//var //b:byte;
-//    c:boolean;
  if (abs(ActiveCab+direction)<2)
  {
 //  if (ActiveCab+direction=0) then LastCab:=ActiveCab;
    ActiveCab=ActiveCab+direction;
-   //ChangeCab=true;
    if ((BrakeSystem==Pneumatic)&&(BrakeCtrlPosNo>0))
    {
     if (BrakeHandle==FV4a)   //!!!POBIERAÆ WARTOŒÆ Z KLASY ZAWORU!!!
      BrakeLevelSet(-2); //BrakeCtrlPos=-2;
     else if ((BrakeHandle==FVel6)||(BrakeHandle==St113))
-     BrakeLevelSet(2); 
+     BrakeLevelSet(2);
     else
      BrakeLevelSet(1);
     LimPipePress=PipePress;
@@ -224,20 +221,15 @@ bool __fastcall TMoverParameters::ChangeCab(int direction)
 //    BrakeStatus:=b_off; //z Megapacka
    MainCtrlPos=0;
    ScndCtrlPos=0;
-   if ((EngineType!=DieselEngine)&&(EngineType!=DieselElectric))
-   {
-    Mains=false;
-    CompressorAllow=false;
-    ConverterAllow=false;
-   }
-//   if (ActiveCab<>LastCab) and (ActiveCab<>0) then
-//    begin
-//     c:=PantFrontUp;
-//     PantFrontUp:=PantRearUp;
-//     PantRearUp:=c;
-//    end; //yB: poszlo do wylacznika rozrzadu
-  ActiveDir=0;
-  DirAbsolute=0;
+   //Ra: to poni¿ej jest bez sensu - mo¿na przejœæ nie wy³¹czaj¹c
+   //if ((EngineType!=DieselEngine)&&(EngineType!=DieselElectric))
+   //{
+   // Mains=false;
+   // CompressorAllow=false;
+   // ConverterAllow=false;
+   //}
+  //ActiveDir=0;
+  //DirAbsolute=0;
   return true;
  }
  return false;
@@ -270,15 +262,17 @@ void __fastcall TMoverParameters::UpdatePantVolume(double dt)
  }
  if (!PantCompFlag&&(PantVolume>0.1))
   PantVolume-=dt*0.0003; //nieszczelnoœci: 0.0003=0.3l/s
- if (PantPress<3.5)
-  if (MainSwitch(False)&&(EngineType==ElectricSeriesMotor))
-   EventFlag=true; //wywalenie szybkiego z powodu niskiego ciœnienia
+ if (Mains) //nie wchodziæ w funkcjê bez potrzeby
+  if (PantPress<3.5)
+   if (MainSwitch(false)&&(EngineType==ElectricSeriesMotor))
+    EventFlag=true; //wywalenie szybkiego z powodu niskiego ciœnienia
  if (TrainType!=dt_EZT) //w EN57 pompuje siê tylko w silnikowym
  //pierwotnie w CHK pantografy mia³y równie¿ rozrz¹dcze EZT 
  for (int b=0;b<=1;++b)
   if (TestFlag(Couplers[b].CouplingFlag,ctrain_controll))
-   Couplers[b].Connected->PantVolume=PantVolume; //przekazanie ciœnienia do s¹siedniego cz³onu
- //czy np. w ET40, ET41, ET42 pantografy cz³onów maj¹ po³¹czenie pneumatyczne
+   if (Couplers[b].Connected->PantVolume<PantVolume) //bo inaczej trzeba w obydwu cz³onach przestawiaæ
+    Couplers[b].Connected->PantVolume=PantVolume; //przekazanie ciœnienia do s¹siedniego cz³onu
+ //czy np. w ET40, ET41, ET42 pantografy cz³onów maj¹ po³¹czenie pneumatyczne?
 };
 
 void __fastcall TMoverParameters::UpdateBatteryVoltage(double dt)
