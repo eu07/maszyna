@@ -276,7 +276,7 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
   break;
   case tp_PutValues:
    parser->getTokens(3);
-   *parser >> Params[3].asdouble >> Params[4].asdouble >> Params[5].asdouble; //polozenie X,Y,Z
+   *parser >> Params[3].asdouble >> Params[4].asdouble >> Params[5].asdouble; //po³o¿enie X,Y,Z
    if (org)
    {//przesuniêcie
     Params[3].asdouble+=org->x; //wspó³rzêdne w scenerii
@@ -290,10 +290,26 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
    if (str.SubString(1,19)=="PassengerStopPoint:")
    {if (str.Pos("#")) str=str.SubString(1,str.Pos("#")-1); //obciêcie unikatowoœci
     bEnabled=false; //nie do kolejki (dla SetVelocity te¿, ale jak jest do toru dowi¹zany)
+    Params[6].asCommand=cm_PassengerStopPoint;
    }
-   if (str=="SetVelocity") bEnabled=false;
-   else if (str=="ShuntVelocity") bEnabled=false;
-   else if (str=="SetProximityVelocity") bEnabled=false;
+   else if (str=="SetVelocity")
+   {bEnabled=false;
+    Params[6].asCommand=cm_SetVelocity;
+   }
+   else if (str=="ShuntVelocity")
+   {bEnabled=false;
+    Params[6].asCommand=cm_ShuntVelocity;
+   }
+   else if (str=="SetProximityVelocity")
+   {bEnabled=false;
+    Params[6].asCommand=cm_SetProximityVelocity;
+   }
+   else if (str=="OutsideStation")
+   {bEnabled=true; //ma byæ skanowny, aby AI nie przekracza³o W5
+    Params[6].asCommand=cm_OutsideStation;
+   }
+   else
+    Params[6].asCommand=cm_Unknown;
    Params[0].asText=new char[str.Length()+1];
    strcpy(Params[0].asText,str.c_str());
    parser->getTokens();
@@ -489,6 +505,18 @@ AnsiString __fastcall TEvent::CommandGet()
    return String(Params[0].asText);
  }
  return ""; //inne eventy siê nie licz¹
+};
+
+TCommandType __fastcall TEvent::Command()
+{//odczytanie komendy z eventu
+ switch (Type)
+ {//to siê wykonuje równie¿ dla sk³adu jad¹cego bez obs³ugi
+  case tp_GetValues:
+   return Params[9].asMemCell->Command();
+  case tp_PutValues:
+   return Params[6].asCommand; //komenda zakodowana binarnie
+ }
+ return cm_Unknown; //inne eventy siê nie licz¹
 };
 
 double __fastcall TEvent::ValueGet(int n)

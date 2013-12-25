@@ -113,15 +113,15 @@ void __fastcall TSpeedPos::Clear()
 
 void __fastcall TSpeedPos::CommandCheck()
 {//sprawdzenie typu komendy w evencie i okreœlenie prêdkoœci
- AnsiString command=eEvent->CommandGet();
+ TCommandType command=eEvent->Command();
  double value1=eEvent->ValueGet(1);
  double value2=eEvent->ValueGet(2);
- if (command=="ShuntVelocity")
+ if (command==cm_ShuntVelocity)
  {//prêdkoœæ manewrow¹ zapisaæ, najwy¿ej AI zignoruje przy analizie tabelki
   fVelNext=value1; //powinno byæ value2, bo druga okreœla "za"?
   iFlags|=0x200;
  }
- else if (command=="SetVelocity")
+ else if (command==cm_SetVelocity)
  {//w semaforze typu "m" jest ShuntVelocity dla Ms2 i SetVelocity dla S1
   //SetVelocity * 0    -> mo¿na jechaæ, ale stan¹æ przed
   //SetVelocity 0 20   -> stan¹æ przed, potem mo¿na jechaæ 20 (SBL)
@@ -136,21 +136,22 @@ void __fastcall TSpeedPos::CommandCheck()
     iFlags|=0x800; //flaga, ¿e ma zatrzymaæ; na pewno nie zezwoli na manewry
    }
  }
- else if (command.SubString(1,19)=="PassengerStopPoint:") //nie ma dostêpu do rozk³adu
+ else if (command==cm_PassengerStopPoint) //nie ma dostêpu do rozk³adu
  {//przystanek, najwy¿ej AI zignoruje przy analizie tabelki
   if ((iFlags&0x400)==0)
    fVelNext=0.0; //TrainParams->IsStop()?0.0:-1.0; //na razie tak
   iFlags|=0x400; //niestety nie da siê w tym miejscu wspó³pracowaæ z rozk³adem
  }
- else if (command=="SetProximityVelocity")
+ else if (command==cm_SetProximityVelocity)
  {//ignorowaæ
   fVelNext=-1;
  }
- //else if (command=="OutsideStation")
- //{//w trybie manewrowym: skanowaæ od niej wstecz i stan¹æ po wyjechaniu za sygnalizator i zmieniæ kierunek
- // //w trybie poci¹gowym: mo¿na przyspieszyæ do wskazanej prêdkoœci (po zjechaniu z rozjazdów)
- // fVelNext=-1;
- //}
+ else if (command==cm_OutsideStation)
+ {//w trybie manewrowym: skanowaæ od niej wstecz i stan¹æ po wyjechaniu za sygnalizator i zmieniæ kierunek
+  //w trybie poci¹gowym: mo¿na przyspieszyæ do wskazanej prêdkoœci (po zjechaniu z rozjazdów)
+  fVelNext=-1;
+  iFlags|=0x2100; //W5
+ }
  else
  {//inna komenda w evencie skanowanym powoduje zatrzymanie i wys³anie tej komendy
   iFlags&=~0xE00; //nie manewrowa, nie przystanek, nie zatrzymaæ na SBL
@@ -619,9 +620,20 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
    v=sSpeedTable[i].fVelNext; //odczyt prêdkoœci do zmiennej pomocniczej
    if (sSpeedTable[i].iFlags&0x100) //W4 mo¿e siê deaktywowaæ
    {//je¿eli event, mo¿e byæ potrzeba wys³ania komendy, aby ruszy³
-    if (sSpeedTable[i].iFlags&0x800)
+    if (sSpeedTable[i].iFlags&0x2000)
+    {//jeœli W5, to reakcja zale¿na od trybu jazdy
+     if (OrderCurrentGet()&Obey_train)
+     {//w trybie poci¹gowym: mo¿na przyspieszyæ do wskazanej prêdkoœci (po zjechaniu z rozjazdów)
+      v=-1.0; //ignorowaæ?
+     }
+     else
+     {//w trybie manewrowym: skanowaæ od niej wstecz, stan¹æ po wyjechaniu za sygnalizator i zmieniæ kierunek
+      v=0.0; //zmiana kierunku mo¿e byæ podanym sygna³em, ale wypada³o by zmieniæ œwiat³o wczeœniej
+     }
+    }
+    else if (sSpeedTable[i].iFlags&0x800)
     {//jeœli S1 na SBL
-     if (pOccupied->Vel<2.0) //stan¹æ nie musi, ale zwolniæ prznyajmniej
+     if (pOccupied->Vel<2.0) //stan¹æ nie musi, ale zwolniæ przynajmniej
       if (sSpeedTable[i].fDist<fMaxProximityDist) //jest w maksymalnym zasiêgu
        eSignSkip=sSpeedTable[i].eEvent; //to mo¿na go pomin¹æ (wzi¹æ drug¹ prêdkosæ)
      if (eSignSkip!=sSpeedTable[i].eEvent) //jeœli ten SBL nie jest do pominiêcia
@@ -3438,7 +3450,7 @@ bool __fastcall TController::BackwardScan()
      scandist=(pos-e->Params[8].asGroundNode->pCenter).Length()-10; //10m luzu
      if (scandist<0) scandist=0; //ujemnych nie ma po co wysy³aæ
      bool move=false; //czy AI w trybie manewerowym ma doci¹gn¹æ pod S1
-     if (e->CommandGet()=="SetVelocity")
+     if (e->Command()==cm_SetVelocity)
       if ((vmechmax==0.0)?(OrderCurrentGet()==Shunt):false)
        move=true; //AI w trybie manewerowym ma doci¹gn¹æ pod S1
       else
@@ -3467,7 +3479,7 @@ bool __fastcall TController::BackwardScan()
       }
      if (OrderCurrentGet()?OrderCurrentGet()==Shunt:true) //w Wait_for_orders te¿ widzi tarcze
      {//reakcja AI w trybie manewrowym dodatkowo na sygna³y manewrowe
-      if (move?true:e->CommandGet()=="ShuntVelocity")
+      if (move?true:e->Command()==cm_ShuntVelocity)
       {//jeœli powy¿ej by³o SetVelocity 0 0, to doci¹gamy pod S1
        if ((scandist>fMinProximityDist)?(pOccupied->Vel>0.0)||(vmechmax==0.0):false)
        {//jeœli tarcza jest daleko, to:

@@ -47,6 +47,7 @@ union TParam
     int asInt;
     TRealSound *asRealSound;
     char *asText;
+    TCommandType asCommand;
 };
 
 class TEvent
@@ -75,6 +76,7 @@ public: //metody
  void __fastcall Load(cParser* parser,vector3 *org);
  void __fastcall AddToQuery(TEvent *Event);
  AnsiString __fastcall CommandGet();
+ TCommandType __fastcall Command();
  double __fastcall ValueGet(int n);
  vector3 __fastcall PositionGet();
  bool __fastcall StopCommand();

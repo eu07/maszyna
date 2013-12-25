@@ -86,8 +86,8 @@ public:
  //double fAcc;
  int iFlags;
  //1=istotny,2=tor,4=odwrotnie,8-zwrotnica (mo¿e siê zmieniæ),16-stan zwrotnicy,32-miniêty,64=koniec,128=³uk
- //0x100=event,0x200=manewrowa,0x400=przystanek,0x800=SBL,0x1000=wys³ana komenda
- //0x10000=zatkanie
+ //0x100=event,0x200=manewrowa,0x400=przystanek,0x800=SBL,0x1000=wys³ana komenda,0x2000=W5
+ //0x10000=zatkanie 
  vector3 vPos; //wspó³rzêdne XYZ do liczenia odleg³oœci
  struct
  {
