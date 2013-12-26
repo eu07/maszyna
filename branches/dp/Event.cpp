@@ -305,7 +305,7 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
     Params[6].asCommand=cm_SetProximityVelocity;
    }
    else if (str=="OutsideStation")
-   {bEnabled=true; //ma byæ skanowny, aby AI nie przekracza³o W5
+   {bEnabled=false; //ma byæ skanowny, aby AI nie przekracza³o W5
     Params[6].asCommand=cm_OutsideStation;
    }
    else

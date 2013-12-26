@@ -37,7 +37,9 @@ enum TMovementStatus
  moveStartHornNow=0x200, //podaj sygna³ po odhamowaniu
  moveStartHornDone=0x400, //podano sygna³ po podaniu wolnej drogi
  moveOerlikons=0x800, //sk³ad wy³¹cznie z zaworami? Oerlikona
- moveIncSpeed=0x1000 //za³¹czenie jazdy (np. dla EZT)
+ moveIncSpeed=0x1000, //za³¹czenie jazdy (np. dla EZT)
+ moveTrackEnd=0x2000, //dalsza jazda trwale ograniczona (W5, koniec toru)
+ moveSwitchFound=0x4000 //ustawiana, jeœli na drodze skanowania jest rozjazd
 };
 
 enum TStopReason
