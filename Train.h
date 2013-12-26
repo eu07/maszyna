@@ -63,7 +63,8 @@ public:
 //    bool __fastcall Init(TTrack *Track);
 //McZapkie-010302
     bool __fastcall Init(TDynamicObject *NewDynamicObject,bool e3d=false);
-    void __fastcall OnKeyPress(int cKey);
+    void __fastcall OnKeyDown(int cKey);
+    void __fastcall OnKeyUp(int cKey);
 
 //    bool __fastcall SHP() { fShpTimer= 0; };
 
