@@ -486,6 +486,7 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
  eSignNext=NULL;
  int i,k=iLast-iFirst+1;
  if (k<0) k+=iSpeedTableSize; //iloœæ pozycji do przeanalizowania
+ iDrivigFlags&=~(moveTrackEnd|moveSwitchFound); //te flagi s¹ ustawiane w razie potrzeby
  for (i=iFirst;k>0;--k,i=(i+1)%iSpeedTableSize)
  {//sprawdzenie rekordów od (iFirst) do (iLast), o ile s¹ istotne
   if (sSpeedTable[i].iFlags&1) //badanie istotnoœci
@@ -618,7 +619,9 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
     }
    } //koniec obs³ugi W4
    v=sSpeedTable[i].fVelNext; //odczyt prêdkoœci do zmiennej pomocniczej
-   if (sSpeedTable[i].iFlags&0x100) //W4 mo¿e siê deaktywowaæ
+   if (sSpeedTable[i].iFlags&8)
+    iDrivigFlags|=moveSwitchFound; //rozjazd z przodu ogranicza np. sens skanowania wstecz
+   else if (sSpeedTable[i].iFlags&0x100) //W4 mo¿e siê deaktywowaæ
    {//je¿eli event, mo¿e byæ potrzeba wys³ania komendy, aby ruszy³
     if (sSpeedTable[i].iFlags&0x2000)
     {//jeœli W5, to reakcja zale¿na od trybu jazdy
@@ -629,6 +632,8 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
      else
      {//w trybie manewrowym: skanowaæ od niej wstecz, stan¹æ po wyjechaniu za sygnalizator i zmieniæ kierunek
       v=0.0; //zmiana kierunku mo¿e byæ podanym sygna³em, ale wypada³o by zmieniæ œwiat³o wczeœniej
+      if (!(iDrivigFlags&moveSwitchFound)) //jeœli nie ma rozjazdu
+       iDrivigFlags|=moveTrackEnd; //to dalsza jazda trwale ograniczona (W5, koniec toru)
      }
     }
     else if (sSpeedTable[i].iFlags&0x800)
@@ -1222,7 +1227,7 @@ void __fastcall TController::SetVelocity(double NewVel,double NewVelNext,TStopRe
   if (OrderList[OrderPos]?OrderList[OrderPos]&(Obey_train|Shunt|Connect|Prepare_engine):true) //jeœli jedzie w dowolnym trybie
    if ((pOccupied->Vel<1.0)) //jesli stoi (na razie, bo chyba powinien te¿, gdy hamuje przed semaforem)
     if (iDrivigFlags&moveStartHorn) //jezeli tr¹bienie w³¹czone
-     if (!(iDrivigFlags&moveStartHornDone)) //jeœli nie zatr¹bione
+     if (!(iDrivigFlags&(moveStartHornDone|moveConnect))) //jeœli nie zatr¹bione i nie jest to moment pod³¹czania sk³adu
       if (pOccupied->CategoryFlag&1) //tylko poci¹gi tr¹bi¹ (unimogi tylko na torach, wiêc trzeba raczej sprawdzaæ tor)
        if ((NewVel>1.0)||(NewVel<0.0)) //o ile prêdkoœæ jest znacz¹ca
        {//fWarningDuration=0.3; //czas tr¹bienia
@@ -3308,7 +3313,6 @@ TEvent* __fastcall TController::CheckTrackEventBackward(double fDirection,TTrack
 
 TTrack* __fastcall TController::BackwardTraceRoute(double &fDistance,double &fDirection,TTrack *Track,TEvent*&Event)
 {//szukanie sygnalizatora w kierunku przeciwnym jazdy (eventu odczytu komórki pamiêci)
- //Ra: funkcja aktualnie nie u¿ywana, przerania na skanowanie wstecz
  TTrack *pTrackChVel=Track; //tor ze zmian¹ prêdkoœci
  TTrack *pTrackFrom; //odcinek poprzedni, do znajdywania koñca dróg
  double fDistChVel=-1; //odleg³oœæ do toru ze zmian¹ prêdkoœci
@@ -3413,6 +3417,7 @@ bool __fastcall TController::BackwardScan()
   double scanmax=1000; //1000m do ty³u, ¿eby widzia³ przeciwny koniec stacji
   double scandist=scanmax; //zmodyfikuje na rzeczywiœcie przeskanowane
   TEvent *e=NULL; //event potencjalnie od semafora
+  //opcjonalnie mo¿e byæ skanowanie od "wskaŸnika" z przodu, np. W5, Tm=Ms1, koniec toru
   TTrack *scantrack=BackwardTraceRoute(scandist,scandir,pVehicles[0]->RaTrackGet(),e); //wg drugiej osi w kierunku ruchu
   vector3 dir=startdir*pVehicles[0]->VectorFront(); //wektor w kierunku jazdy/szukania
   if (!scantrack) //jeœli wykryto koniec toru
@@ -3492,7 +3497,7 @@ bool __fastcall TController::BackwardScan()
          WriteLog(edir);
 #endif
          //SetProximityVelocity(scandist,vmechmax,&sl);
-         return false;
+         return iDrivigFlags&moveTrackEnd; //jeœli jedzie na W5 albo koniec toru, to mo¿na zmieniæ kierunek
         }
        }
        else //ustawiamy prêdkoœæ tylko wtedy, gdy ma ruszyæ, albo stan¹æ albo ma staæ pod tarcz¹

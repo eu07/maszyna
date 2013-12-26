@@ -1086,10 +1086,11 @@ bool __fastcall TWorld::Update()
   }
   Camera.Update(); //uwzglêdnienie ruchu wywo³anego klawiszami
  } //koniec bloku pomijanego przy nieaktywnym oknie
-#if 1
+#if 0
  fTimeBuffer+=GetDeltaTime(); //[s] dodanie czasu od poprzedniej ramki
  if (fTimeBuffer>=fMaxDt) //jest co najmniej jeden krok; normalnie 0.01s
  {//Ra: czas dla fizyki jest skwantowany - fizykê lepiej przeliczaæ sta³ym krokiem
+  //tak mo¿na np. moc silników itp., ale ruch musi byæ przeliczany w ka¿dej klatce, bo inaczej skacze 
   Console::Update(); //w tym miejscu ma ograniczenie na liczbê wywo³añ w sekundzie (max 100) 
   double iter=ceil(fTimeBuffer/fMaxDt); //ile kroków siê zmieœci³o od ostatniego sprawdzania?
   int n=int(iter); //ile kroków jako int
@@ -1636,8 +1637,8 @@ bool __fastcall TWorld::Update()
         //OutText4=tmp->Mechanik->StopReasonText();
         //if (!OutText4.IsEmpty()) OutText4+="; "; //aby ³adniejszy odstêp by³
         //if (Controlled->Mechanik && (Controlled->Mechanik->AIControllFlag==AIdriver))
-        AnsiString flags="bwaccmlshhhoi; "; //flagi AI
-        for (int i=0,j=1;i<=12;++i,j<<=1)
+        AnsiString flags="bwaccmlshhhoibs; "; //flagi AI
+        for (int i=0,j=1;i<=14;++i,j<<=1)
          if (tmp->Mechanik->DrivigFlags()&j) //jak bit ustawiony
           flags[i+1]^=0x20; //to zmiana na wielkie
         OutText4=flags;
