@@ -38,8 +38,8 @@ enum TMovementStatus
  moveStartHornDone=0x400, //podano sygna³ po podaniu wolnej drogi
  moveOerlikons=0x800, //sk³ad wy³¹cznie z zaworami? Oerlikona
  moveIncSpeed=0x1000, //za³¹czenie jazdy (np. dla EZT)
- moveTrackEnd=0x2000, //dalsza jazda trwale ograniczona (W5, koniec toru)
- moveSwitchFound=0x4000 //ustawiana, jeœli na drodze skanowania jest rozjazd
+ moveTrackEnd=0x2000, //dalsza jazda do przodu trwale ograniczona (W5, koniec toru)
+ moveSwitchFound=0x4000 //na drodze skanowania do przodu jest rozjazd
 };
 
 enum TStopReason
@@ -61,10 +61,11 @@ enum TStopReason
 
 enum TAction
 {//przechowanie aktualnego stanu AI od poprzedniego przeb³ysku œwiadomoœci
- actUnknownm,  //stan nieznany (domyœlny na pocz¹tku)
- //podnieœ pantograf (info dla u¿ytkownika)
- //za³¹cz przetwornicê (info dla u¿ytkownika)
- //za³¹cz sprê¿arkê (info dla u¿ytkownika)
+ actUnknown,   //stan nieznany (domyœlny na pocz¹tku)
+ actPantUp,    //podnieœ pantograf (info dla u¿ytkownika)
+ actConv,      //za³¹cz przetwornicê (info dla u¿ytkownika)
+ actCompr,     //za³¹cz sprê¿arkê (info dla u¿ytkownika)
+ actSleep,     //œpi (wygaszony)
  actDrive,     //jazda
  actGo,        //ruszanie z miejsca
  actSlow,      //przyhamowanie przed ograniczeniem
@@ -206,7 +207,7 @@ private:
  int iDirectionOrder; //¿adany kierunek jazdy (s³u¿y do zmiany kierunku)
  int iVehicleCount; //iloœæ pojazdów do od³¹czenia albo zabrania ze sk³adu (-1=wszystkie)
  int iCoupler; //sprzêg, który nale¿y u¿yæ przy ³¹czeniu
- bool Prepare2press; //dociskanie w celu od³¹czenia
+ //bool Prepare2press; //dociskanie w celu od³¹czenia
  int iDriverFailCount; //licznik b³êdów AI
  bool Need_TryAgain; //true, jeœli druga pozycja w elektryku nie za³apa³a
  bool Need_BrakeRelease;
