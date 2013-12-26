@@ -742,8 +742,8 @@ void __fastcall TWorld::OnKeyDown(int cKey)
  else if (!Global::bPause) //||(cKey==VK_F4)) //podczas pauzy sterownaie nie dzia³a, F4 tak
   if (Train)
    if (Controlled)
-    if ((Controlled->Controller==Humandriver)?true:DebugModeFlag||(cKey=='Q')) //||(cKey==VK_F4))
-     Train->OnKeyPress(cKey); //przekazanie klawisza do kabiny
+    if ((Controlled->Controller==Humandriver)?true:DebugModeFlag||(cKey=='Q'))
+     Train->OnKeyDown(cKey); //przekazanie klawisza do kabiny
  if (FreeFlyModeFlag) //aby nie odluŸnia³o wagonu za lokomotyw¹
   if (cKey==Global::Keys[k_Releaser]) //odluŸniacz
   {//dzia³a globalnie, sprawdziæ zasiêg
@@ -786,6 +786,11 @@ void __fastcall TWorld::OnKeyDown(int cKey)
 
 void __fastcall TWorld::OnKeyUp(int cKey)
 {//zwolnienie klawisza; (cKey) to kod klawisza, cyfrowe i literowe siê zgadzaj¹
+ if (!Global::bPause) //podczas pauzy sterownaie nie dzia³a
+  if (Train)
+   if (Controlled)
+    if ((Controlled->Controller==Humandriver)?true:DebugModeFlag||(cKey=='Q'))
+     Train->OnKeyUp(cKey); //przekazanie zwolnienia klawisza do kabiny
 };
 
 void __fastcall TWorld::OnMouseMove(double x, double y)

@@ -480,10 +480,11 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
    return 0; // jump back
   }
   case WM_KEYUP :
-  {
-   World.OnKeyUp(wParam);
-   return 0;
-  }
+   if (Global::bActive)
+   {
+    World.OnKeyUp(wParam);
+    return 0;
+   }
   case WM_KEYDOWN :
    if (Global::bActive)
    {

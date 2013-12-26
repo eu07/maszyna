@@ -198,9 +198,8 @@ bool __fastcall TTrain::Init(TDynamicObject *NewDynamicObject,bool e3d)
 }
 
 
-void __fastcall TTrain::OnKeyPress(int cKey)
-{
-
+void __fastcall TTrain::OnKeyDown(int cKey)
+{//naciœniêcie klawisza
   bool isEztOer;
   isEztOer=((pControlled->TrainType==dt_EZT)&&(pControlled->Battery==true)&&(pControlled->EpFuse==true)&&(pOccupied->BrakeSubsystem==ss_ESt)&&(pControlled->ActiveDir!=0)); //od yB
   //isEztOer=(pControlled->TrainType==dt_EZT)&&(pControlled->Mains)&&(pOccupied->BrakeSubsystem==ss_ESt)&&(pControlled->ActiveDir!=0);
@@ -942,13 +941,6 @@ void __fastcall TTrain::OnKeyPress(int cKey)
               dsbNastawnikJazdy->Play(0,0,0);
           }
       }
-/*
-      else if (cKey==Global::Keys[k_FreeFlyMode])
-      {//Ra: to tutaj trochê bruŸdzi
-       FreeFlyModeFlag=!FreeFlyModeFlag;
-       DynamicObject->ABuSetModelShake(vector3(0,0,0));
-      }
-*/
       else if (cKey==Global::Keys[k_DecMainCtrl])
           if (pControlled->DecMainCtrl(1))
           {
@@ -2135,7 +2127,7 @@ void __fastcall TTrain::OnKeyPress(int cKey)
       else
       if (cKey==Global::Keys[k_StLinOff])   //Winger 110904: wylacznik st. liniowych
       {
-       if((pControlled->TrainType!=dt_EZT)&&(pControlled->TrainType!=dt_EP05)&& (pControlled->TrainType!=dt_ET40))
+       if ((pControlled->TrainType!=dt_EZT)&&(pControlled->TrainType!=dt_EP05)&& (pControlled->TrainType!=dt_ET40))
        {
         StLinOffButtonGauge.PutValue(1); //Ra: by³o Fuse...
         dsbSwitch->SetVolume(DSBVOLUME_MAX);
@@ -2227,6 +2219,20 @@ void __fastcall TTrain::OnKeyPress(int cKey)
    }
 }
 
+void __fastcall TTrain::OnKeyUp(int cKey)
+{//zwolnienie klawisza
+ if (GetAsyncKeyState(VK_SHIFT)<0)
+ {//wciœniêty [Shift]
+ }
+ else
+ {
+  if (cKey==Global::Keys[k_StLinOff])   //Winger 110904: wylacznik st. liniowych
+  {//zwolnienie klawisza daje powrót przycisku do zwyk³ego stanu
+   if ((pControlled->TrainType!=dt_EZT)&&(pControlled->TrainType!=dt_EP05)&& (pControlled->TrainType!=dt_ET40))
+    StLinOffButtonGauge.PutValue(0);
+  }
+ }
+};
 
 void __fastcall TTrain::UpdateMechPosition(double dt)
 {//Ra: mechanik powinien byæ telepany niezale¿nie od pozycji pojazdu
