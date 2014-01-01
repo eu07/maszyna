@@ -25,9 +25,9 @@ class TTraction;
 class TSwitchExtension
 {//dodatkowe dane do toru, który jest zwrotnic¹
 public:
- __fastcall TSwitchExtension(TTrack *owner);
+ __fastcall TSwitchExtension(TTrack *owner,int what);
  __fastcall ~TSwitchExtension();
- TSegment *Segments[4]; //dwa tory od punktu 1, pozosta³e dwa od 2?
+ TSegment *Segments[6]; //dwa tory od punktu 1, pozosta³e dwa od 2? Ra 140101: 6 po³¹czeñ dla skrzy¿owañ
  TTrack *pNexts[2];
  TTrack *pPrevs[2];
  bool iNextDirection[2];

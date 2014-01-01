@@ -31,7 +31,7 @@ const int NextMask[4]={0,1,0,1}; //tor nastêpny dla stanów 0, 1, 2, 3
 const int PrevMask[4]={0,0,1,1}; //tor poprzedni dla stanów 0, 1, 2, 3
 TIsolated *TIsolated::pRoot=NULL;
 
-__fastcall TSwitchExtension::TSwitchExtension(TTrack *owner)
+__fastcall TSwitchExtension::TSwitchExtension(TTrack *owner,int what)
 {//na pocz¹tku wszystko puste
  CurrentIndex=0;
  pNexts[0]=NULL; //wskaŸniki do kolejnych odcinków ruchu
@@ -42,10 +42,12 @@ __fastcall TSwitchExtension::TSwitchExtension(TTrack *owner)
  pOwner=NULL;
  pNextAnim=NULL;
  bMovement=false; //nie potrzeba przeliczaæ fOffset1
- Segments[0]=new TSegment(owner);
- Segments[1]=new TSegment(owner);
- Segments[3]=NULL;
- Segments[4]=NULL;
+ Segments[0]=new TSegment(owner); //z punktu 1 do 2
+ Segments[1]=new TSegment(owner); //z punktu 3 do 4 (1=3 dla zwrotnic) 
+ Segments[3]=NULL; //z punktu 1 do 3       skrzy¿owanie od góry:
+ Segments[4]=NULL; //z punktu 2 do 4              1
+ Segments[5]=NULL; //z punktu 3 do 2            3 x 4
+ Segments[6]=NULL; //z punktu 4 do 3              2
  EventPlus=EventMinus=NULL;
  fVelocity=-1.0; //maksymalne ograniczenie prêdkoœci (ustawianej eventem)
 }
@@ -180,14 +182,16 @@ void __fastcall TTrack::Init()
  switch (eType)
  {
   case tt_Switch:
+   SwitchExtension=new TSwitchExtension(this,2); //na wprost i na bok
+  break;
   case tt_Cross:
-   SwitchExtension=new TSwitchExtension(this);
+   SwitchExtension=new TSwitchExtension(this,6); //6 po³¹czeñ
   break;
   case tt_Normal:
    Segment=new TSegment(this);
   break;
   case tt_Turn: //oba potrzebne
-   SwitchExtension=new TSwitchExtension(this);
+   SwitchExtension=new TSwitchExtension(this,1); //kopia oryginalnego toru
    Segment=new TSegment(this);
   break;
  }
@@ -517,7 +521,7 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
     Segment->Init(p1,cp1+p1,cp2+p2,p2,segsize,r1,r2); //gdy ³uk (ustawia bCurve=true)
    if ((r1!=0)||(r2!=0)) iTrapezoid=1; //s¹ przechy³ki do uwzglêdniania w rysowaniu
    if (eType==tt_Turn) //obrotnica ma doklejkê
-   {SwitchExtension=new TSwitchExtension(this); //zwrotnica ma doklejkê
+   {SwitchExtension=new TSwitchExtension(this,1); //dodatkowe zmienne dla obrotnicy
     SwitchExtension->Segments[0]->Init(p1,p2,segsize); //kopia oryginalnego toru
    }
    else if (iCategoryFlag&2)
@@ -542,7 +546,7 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
    //wtedy dzieli siê na dodatkowe odcinki (po 0.2m, bo R=0) i animacjê diabli bior¹
    //Ra: na razie nie podejmujê siê przerabiania iglic
 
-   SwitchExtension=new TSwitchExtension(this); //zwrotnica ma doklejkê
+   SwitchExtension=new TSwitchExtension(this,eType==tt_Cross?6:2); //zwrotnica ma doklejkê
 
    p1=LoadPoint(parser)+pOrigin; //pobranie wspó³rzêdnych P1
    parser->getTokens();
@@ -908,8 +912,8 @@ bool __fastcall TTrack::AddDynamicObject(TDynamicObject *Dynamic)
 };
 
 void __fastcall TTrack::MoveMe(vector3 pPosition)
-{
-    if(SwitchExtension)
+{//to nie jest u¿ywane
+    if (SwitchExtension)
     {
         SwitchExtension->Segments[0]->MoveMe(1*pPosition);
         SwitchExtension->Segments[1]->MoveMe(1*pPosition);

@@ -1599,49 +1599,6 @@ begin
   //else MainSwitch:=false;
 end;
 
-{//przeniesione do C++
-function T_MoverParameters.ChangeCab(direction:integer): boolean;
-//var //b:byte;
-//    c:boolean;
-begin
- if Abs(ActiveCab+direction)<2 then
-  begin
-   ActiveCab:=ActiveCab+direction;
-   ChangeCab:=true;
-   if (BrakeSystem=Pneumatic) and (BrakeCtrlPosNo>0) then
-    begin
-     BrakeCtrlPos:=-2;
-     BrakeCtrlPosR:=-2;
-     LimPipePress:=PipePress;
-     ActFlowSpeed:= 0;
-    end
-   else
-    if (TrainType=dt_EZT) and (BrakeCtrlPosNo>0) then
-     begin
-      BrakeCtrlPos:=5;
-     end
-    else
-     begin
-    BrakeCtrlPos:=0;
-    BrakeCtrlPosR:=0;
-//   if not TestFlag(BrakeStatus,b_dmg) then
-//    BrakeStatus:=b_off; //z Megapacka
-   MainCtrlPos:=0;
-   ScndCtrlPos:=0;
-   if (EngineType<>DieselEngine) and (EngineType<>DieselElectric) then
-    begin
-     Mains:=false;
-     CompressorAllow:=false;
-     ConverterAllow:=false;
-    end;
-   ActiveDir:=0;
-   DirAbsolute:=0;
-  end
- else
-  ChangeCab:=false;
-end;
-}
-
 function T_MoverParameters.BatterySwitch(State:boolean):boolean;
 begin
  //Ra: ukrotnienie za³¹czania baterii jest jak¹œ fikcj¹...
@@ -1727,6 +1684,7 @@ begin
 end;
 
 (*
+//Ra: to jest do przejrzenia i uporz¹dkowania
 function T_MoverParameters.SecuritySystemReset : boolean;
 //zbijanie czuwaka/SHP
  procedure Reset;
@@ -2366,7 +2324,7 @@ begin
       if (dv2*dv2>0.00000000000001) then c.Physic_Reactivation;
       c.Pipe.Flow(-dv2);
      end;
-  if(Couplers[1].Connected<>nil)and(Couplers[0].Connected<>nil)then
+  if (Couplers[1].Connected<>nil)and(Couplers[0].Connected<>nil) then
     if (TestFlag(Couplers[0].CouplingFlag,ctrain_pneumatic))and(TestFlag(Couplers[1].CouplingFlag,ctrain_pneumatic))then
      begin
       dv:=0.05*dt*PF(Couplers[0].Connected.PipePress,Couplers[1].Connected.PipePress,(Spg*0.85)/(1+0.03*Dim.L))*0;
@@ -2426,7 +2384,7 @@ end;
       case BrakeValve of
       W:
       begin
-          if(BrakeLocHandle<>NoHandle)then
+          if (BrakeLocHandle<>NoHandle) then
            begin
             LocBrakePress:=LocHandle.GetCP;
            (Hamulec as TWest).SetLBP(LocBrakePress);
@@ -2545,7 +2503,7 @@ procedure T_MoverParameters.CompressorCheck(dt:real);
            if (Couplers[1].Connected<>NIL) then
             CompressorFlag:=Couplers[1].Connected.CompressorAllow and Couplers[1].Connected.ConverterFlag and Couplers[1].Connected.Mains
            else
-            CompressorFlag:=false; 
+            CompressorFlag:=false;
           end
          else
           if (Compressor>MaxCompressor) or not CompressorAllow or ((CompressorPower<>0) and (not ConverterFlag)) or not Mains then
@@ -2558,83 +2516,6 @@ procedure T_MoverParameters.CompressorCheck(dt:real);
       end;
     end;
  end;
-
-(* //Ra: przeniesione do C++, gdzie jest informacja o zapalonych œwiat³ach
-procedure T_MoverParameters.UpdateBatteryVoltage(dt:real);
-{//do Mover.cpp to daæ, stan œwiate³ te¿ tam}
-var sn1,sn2,sn3,sn4,sn5: real;
-begin
-if (batteryVoltage>0) and  (EngineType<>DieselEngine) and (EngineType<>WheelsDriven) and (NominalBatteryVoltage>0) then
-begin
- if ((NominalBatteryVoltage)/(BatteryVoltage)<1.22) and (Battery=true)  then
-     begin     {110V}
-     if ConverterFlag=false then
-     sn1:=(dt*50)     {szybki spadek do ok 90V}
-     else sn1:=0;
-     if (ConverterFlag=true) then
-     sn2:=-(dt*50)      {szybki wzrost do 110V}
-     else sn2:=0;
-     if (Mains) then
-     sn3:=(dt*0.05)
-     else sn3:=0;
-//Ra: no tak, wyrzuci³em lampy st¹d, wiêc nie bêd¹ pobieraæ pr¹du
-     if (HeadSignalsFlag>0) then
-     sn4:=dt*0.003
-     else sn4:=0;
-     if (EndSignalsFlag>0) then
-     sn5:=dt*0.001
-     else sn5:=0;
-     sn4:=0;
-     sn5:=0;
-     end;
-     if ((NominalBatteryVoltage)/(BatteryVoltage)>=1.22) and (battery=true) then
-     begin  {90V}
-     if (PantCompFlag=true) then
-     sn1:=(dt*0.0046)
-     else sn1:=0;
-     if (ConverterFlag=true)  then
-     sn2:=-(dt*50) {szybki wzrost do 110V}
-     else sn2:=0;
-     if (Mains)  then
-     sn3:=(dt*0.001)
-     else sn3:=0;
-     if (HeadSignalsFlag>0) then
-     sn4:=(dt*0.0030)
-     else sn4:=0;
-     if (EndSignalsFlag>0) then
-     sn5:=(dt*0.0010)
-     else sn5:=0;
-     sn4:=0;
-     sn5:=0;
-     end;
-     if (battery=false) then
-    begin
-       if ((NominalBatteryVoltage)/(BatteryVoltage)<1.22) then
-         sn1:=dt*50
-       else
-        sn1:=0;
-        sn2:=dt*0.000001;
-        sn3:=dt*0.000001;
-        sn4:=dt*0.000001;
-        sn5:=dt*0.000001;   {bardzo powolny spadek przy wylaczonych bateriach}
-    end;
-     BatteryVoltage:=BatteryVoltage-(sn1+sn2+sn3+sn4+sn5);
-     if ((NominalBatteryVoltage/BatteryVoltage)>1.57)  then
-       if MainSwitch(false) and  (EngineType<>DieselEngine) and (EngineType<>WheelsDriven) then
-         EventFlag:=true;            //wywalanie szybkiego z powodu zbyt niskiego napiecia
-
-     if  (BatteryVoltage>NominalBatteryVoltage) then
-     BatteryVoltage:=NominalBatteryVoltage; {wstrzymanie ladowania pow. 110V}
-     if  BatteryVoltage<0.01 then
-      BatteryVoltage:=0.01;
-  end
-  else
-  if (NominalBatteryVoltage=0) then
-  BatteryVoltage:=0
-  else
-BatteryVoltage:=90;
-end;
-*)
 
 procedure T_MoverParameters.ConverterCheck;       {sprawdzanie przetwornicy}
 begin
@@ -2990,7 +2871,7 @@ function T_MoverParameters.Momentum(I:real): real;
 var SP: byte;
 begin
    SP:=ScndCtrlActualPos;
-   if(ScndInMain)then
+   if (ScndInMain) then
     if not (Rlist[MainCtrlActualPos].ScndAct=255) then
      SP:=Rlist[MainCtrlActualPos].ScndAct;
     with MotorParam[SP] do
@@ -3020,7 +2901,7 @@ begin
      begin
        dizel_engagedeltaomega:=0;
        enrot:=abs(n);                          {jest przyczepnosc tarcz}
-     end  
+     end
 (*
      end
    end
@@ -3049,7 +2930,7 @@ end;
 
 function T_MoverParameters.CutOffEngine: boolean; {wylacza uszkodzony silnik}
 begin
- CutOffEngine:=false; //Ra: wartoœæ domyœlna, sprawdziæ to trzeba 
+ CutOffEngine:=false; //Ra: wartoœæ domyœlna, sprawdziæ to trzeba
  if (NPoweredAxles>0) and (CabNo=0) and (EngineType=ElectricSeriesMotor) then
   begin
    if SetFlag(DamageFlag,-dtrain_engine) then
@@ -3399,7 +3280,7 @@ end;
 
 function T_MoverParameters.CutOffEngine: boolean; {wylacza uszkodzony silnik}
 begin
- CutOffEngine:=false; //Ra: wartoœæ domyœlna, sprawdziæ to trzeba 
+ CutOffEngine:=false; //Ra: wartoœæ domyœlna, sprawdziæ to trzeba
  if (NPoweredAxles>0) and (CabNo=0) and (EngineType=ElectricSeriesMotor) then
   begin
    if SetFlag(DamageFlag,-dtrain_engine) then
@@ -3507,7 +3388,7 @@ begin
      end;
 
 (*
-=========== Opis przesla³ youBy =========== 
+=========== Opis przesla³ youBy ===========
 
 1) Styczniki liniowe
 
@@ -4187,7 +4068,7 @@ begin
        end;
 
          if (Imax>1) and (Im>Imax) then FuseOff;
-         if FuseFlag then Voltage:=0;         
+         if FuseFlag then Voltage:=0;
 
      //przekazniki bocznikowania, kazdy inny dla kazdej pozycji
          if (MainCtrlPos = 0) or (ShuntMode) then
@@ -4213,27 +4094,27 @@ begin
                 dec(ScndCtrlPos);
              end;
           41:
-            begin 
-              if (MainCtrlPos=MainCtrlPosNo) and (tmpV*3.6>MPTRelay[ScndCtrlPos].Iup) and (ScndCtrlPos<ScndCtrlPosNo)then 
-                begin inc(ScndCtrlPos); enrot:=enrot*0.73; end; 
-              if (Im>MPTRelay[ScndCtrlPos].Idown)and (ScndCtrlPos>0) then 
-                dec(ScndCtrlPos); 
-            end; 
-          45: 
+            begin
+              if (MainCtrlPos=MainCtrlPosNo) and (tmpV*3.6>MPTRelay[ScndCtrlPos].Iup) and (ScndCtrlPos<ScndCtrlPosNo)then
+                begin inc(ScndCtrlPos); enrot:=enrot*0.73; end;
+              if (Im>MPTRelay[ScndCtrlPos].Idown)and (ScndCtrlPos>0) then
+                dec(ScndCtrlPos);
+            end;
+          45:
              begin
               //wzrastanie
-              if (MainCtrlPos>11) and (ScndCtrlPos<ScndCtrlPosNo) then 
+              if (MainCtrlPos>11) and (ScndCtrlPos<ScndCtrlPosNo) then
                if (ScndCtrlPos=0) then
                 if (MPTRelay[ScndCtrlPos].Iup>Im) then
                  inc(ScndCtrlPos)
                 else
                else
-                if (MPTRelay[ScndCtrlPos].Iup<Vel) then 
+                if (MPTRelay[ScndCtrlPos].Iup<Vel) then
                  inc(ScndCtrlPos);
 
               //malenie
-              if(ScndCtrlPos>0)and(MainCtrlPos<12)then 
-              if (ScndCtrlPos=ScndCtrlPosNo)then 
+              if(ScndCtrlPos>0)and(MainCtrlPos<12)then
+              if (ScndCtrlPos=ScndCtrlPosNo)then
                 if (MPTRelay[ScndCtrlPos].Idown<Im)then
                  dec(ScndCtrlPos)
                 else
@@ -4265,7 +4146,7 @@ begin
                 if (MPTRelay[ScndCtrlPos+1].Idown<Im) and (MPTRelay[ScndCtrlPos].Idown>Vel)then
                  dec(ScndCtrlPos);
               if (MainCtrlPos<9)and(ScndCtrlPos>2) then ScndCtrlPos:=2;
-              if (MainCtrlPos<6)and(ScndCtrlPos>0) then ScndCtrlPos:=0;              
+              if (MainCtrlPos<6)and(ScndCtrlPos>0) then ScndCtrlPos:=0;
              end;
         end;
      end;
@@ -4497,7 +4378,7 @@ begin
 
 (*    if NPoweredAxles>0 then
      RollF:=RollF*1.5;    {dodatkowe lozyska silnikow}*)
-    if(NPoweredAxles>0)then //drobna optymalka
+    if (NPoweredAxles>0) then //drobna optymalka
      begin
        RollF:=RollF+0.025;
        if(Ft*Ft<1)then
@@ -4747,7 +4628,7 @@ begin
         if (HVCouplers[b][1]) > 1 then //pod napieciem
           HVCouplers[b][0]:=0+Iheat//obci¹¿enie
         else
-          HVCouplers[b][0]:=0; 
+          HVCouplers[b][0]:=0;
       end;
 }
 
@@ -5057,7 +4938,7 @@ begin
  UpdateScndPipePressure(dt); // druga rurka, youBy
  //UpdateBatteryVoltage(dt);
 {hamulec antyposlizgowy - wylaczanie}
- if(BrakeSlippingTimer>ASBSpeed)and(ASBType<>128)then
+ if (BrakeSlippingTimer>ASBSpeed)and(ASBType<>128) then
    Hamulec.ASB(0);
  BrakeSlippingTimer:=BrakeSlippingTimer+dt;
 end; {FastComputeMovement}
@@ -5216,7 +5097,7 @@ Begin
          (MainCtrlActualPos=0) and (ScndCtrlActualPos=0) and Mains then}
         FuseFlag:=false;  {wlaczenie ponowne obwodu}
      // if ((EngineType=ElectricSeriesMotor)or(EngineType=DieselElectric)) and not FuseFlag and (CValue1=0) and Mains then
-     //   FuseFlag:=true;      
+     //   FuseFlag:=true;
       OK:=SendCtrlToNext(command,CValue1,CValue2);
    end
   else if command='ConverterSwitch' then         {NBMX}
