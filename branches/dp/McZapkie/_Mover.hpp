@@ -145,6 +145,7 @@ struct TBoilerType
 
 struct TCurrentCollector
 {
+	int CollectorsNo;
 	double MinH;
 	double MaxH;
 	double CSW;
@@ -177,7 +178,6 @@ struct TPowerParameters
 		};
 		struct 
 		{
-			Byte CollectorsNo;
 			TCurrentCollector CollectorParameters;
 			
 		};

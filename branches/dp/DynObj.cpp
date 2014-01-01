@@ -60,6 +60,7 @@ int __fastcall TAnim::TypeSet(int i)
    fParamPants->fLenL1=1.176289; //1.22;
    fParamPants->fLenU1=1.724482197; //1.755;
    fParamPants->fHeight=0.07; //wysokoœæ œlizgu ponad oœ obrotu
+   fParamPants->fWidth=0.635; //po³owa szerokoœci œlizgu, 0.635 dla AKP-1 i AKP-4E
    fParamPants->fAngleL0=DegToRad(2.8547285515689267247882521833308);
    fParamPants->fAngleL=fParamPants->fAngleL0; //pocz¹tkowy k¹t dolnego ramienia
    //fParamPants->pantu=acos((1.22*cos(fParamPants->fAngleL)+0.535)/1.755); //górne ramiê
@@ -2264,7 +2265,7 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
    {//trzeba usun¹æ to rozró¿nienie
     case 0:
      if (Global::bLiveTraction?false:!p->PowerWire) //jeœli nie ma drutu, mo¿e pooszukiwaæ
-      MoverParameters->PantFrontVolt=(p->PantWys>1.2)?0.95*MoverParameters->EnginePowerSource.MaxVoltage:0.0;
+      MoverParameters->PantFrontVolt=(p->PantWys>=1.4)?0.95*MoverParameters->EnginePowerSource.MaxVoltage:0.0;
      else
       if (MoverParameters->PantFrontUp?(PantDiff<0.01):false)
       {
@@ -2277,7 +2278,7 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
     break;
     case 1:
      if (Global::bLiveTraction?false:!p->PowerWire) //jeœli nie ma drutu, mo¿e pooszukiwaæ
-      MoverParameters->PantRearVolt=(p->PantWys>1.2)?0.95*MoverParameters->EnginePowerSource.MaxVoltage:0.0;
+      MoverParameters->PantRearVolt=(p->PantWys>=1.4)?0.95*MoverParameters->EnginePowerSource.MaxVoltage:0.0;
      else
       if (MoverParameters->PantRearUp?(PantDiff<0.01):false)
       {
@@ -3540,6 +3541,8 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
            //pants[i].fParamPants->vPos.y=panty-panth-pants[i].fParamPants->PantWys; //np. 4.429-0.097=4.332=~4.335
            //pants[i].fParamPants->vPos.z=0; //niezerowe dla pantografów asymetrycznych
            pants[i].fParamPants->PantTraction=pants[i].fParamPants->PantWys;
+           //if (panty<3.0)
+           // pants[i].fParamPants->fWidth=0.5*panty; //po³owa szerokoœci œlizgu; jest w "Power: CSW="
           }
         }
         else if (str==AnsiString("animpistonprefix:"))

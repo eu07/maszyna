@@ -242,6 +242,7 @@ TYPE
                   end;
     {rodzaj odbieraka pradu}
     TCurrentCollector = record
+                          CollectorsNo: longint; //musi byæ tu, bo inaczej siê kopie
                           MinH,MaxH: real;
                           CSW: real;      {szerokosc slizgacza}
                         end;
@@ -257,7 +258,7 @@ TYPE
                           Transducer : (InputVoltage: real);
                           Generator  : (GeneratorEngine: TEngineTypes);
                           Accumulator: (MaxCapacity: real; RechargeSource:TPowerSource);
-                          CurrentCollector: (CollectorsNo: byte; CollectorParameters: TCurrentCollector);
+                          CurrentCollector: (CollectorParameters: TCurrentCollector);
                           PowerCable : (PowerTrans:TPowerType; SteamPressure: real);
                           Heater : (Grate: TGrateType; Boiler: TBoilerType);
                        end;
@@ -6261,9 +6262,9 @@ function PowerDecode(s:string): TPowerType;
                        RechargeSource:=PowerSourceDecode(s);
                      end;
         CurrentCollector: begin
-                            CollectorsNo:=s2bE(DUE(ExtractKeyWord(lines,'CollectorsNo=')));
                             with CollectorParameters do
                              begin
+                               CollectorsNo:=s2lE(DUE(ExtractKeyWord(lines,'CollectorsNo=')));
                                MinH:=s2rE(DUE(ExtractKeyWord(lines,'MinH=')));
                                MaxH:=s2rE(DUE(ExtractKeyWord(lines,'MaxH=')));
                                CSW:=s2rE(DUE(ExtractKeyWord(lines,'CSW=')));
