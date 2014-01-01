@@ -25,6 +25,8 @@ public:
  char cBezier[64]; //krzywe Béziera do interpolacji dla x,y,z i obrotu
 };
 
+class TEvent;
+
 class TAnimContainer
 {//opakowanie submodelu, okreœlaj¹ce animacjê egzemplarza - obs³ugiwane jako lista
 friend class TAnimModel;
@@ -51,6 +53,7 @@ private:
  {//mog¹ byæ animacje klatkowe ró¿nego typu, wskaŸniki u¿ywa AnimModel
   TAnimVocaloidFrame *pMovementData; //wskaŸnik do klatki
  };
+ TEvent *evDone; //ewent wykonywany po zakoñczeniu animacji, np. zapór, obrotnicy
 public:
  TAnimContainer *pNext;
  __fastcall TAnimContainer();
@@ -68,6 +71,7 @@ public:
  bool __fastcall InMovement(); //czy w trakcie animacji?
  double _fastcall AngleGet() {return vRotateAngles.z;}; //jednak ostatnia, T3D ma inny uk³ad
  void __fastcall WillBeAnimated() {if (pSubModel) pSubModel->WillBeAnimated();};
+ void __fastcall EventAssign(TEvent *ev);
 };
 
 class TAnimAdvanced

@@ -16,6 +16,7 @@
 //McZapkie:
 #include "Texture.h"
 #include "Globals.h"
+#include "Ground.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
 //---------------------------------------------------------------------------
@@ -80,6 +81,7 @@ __fastcall TAnimContainer::TAnimContainer()
  iAnim=0; //po³o¿enie pocz¹tkowe
  pMovementData=NULL; //nie ma zaawansowanej animacji
  mAnim=NULL; //nie ma macierzy obrotu dla submodelu
+ evDone=NULL; //powiadamianie o zakoñczeniu animacji
 }
 
 __fastcall TAnimContainer::~TAnimContainer()
@@ -175,7 +177,7 @@ void __fastcall TAnimContainer::UpdateModel()
     if (LengthSquared3(s)<l) //¿eby nie jecha³o na drug¹ stronê
      vTranslation+=s;
     else
-     vTranslation=vTranslateTo; //koniec animacji
+     vTranslation=vTranslateTo; //koniec animacji, "koniec animowania" uruchomi siê w nastêpnej klatce
    }
    else
    {//koniec animowania
@@ -183,6 +185,7 @@ void __fastcall TAnimContainer::UpdateModel()
     fTranslateSpeed=0.0; //wy³¹czenie przeliczania wektora
     if (LengthSquared3(vTranslation)<=0.0001) //jeœli jest w punkcie pocz¹tkowym
      iAnim&=~2; //wy³¹czyæ zmianê pozycji submodelu
+    if (evDone) Global::pGround->AddToQuery(evDone,NULL); //wykonanie eventu informuj¹cego o zakoñczeniu
    }
   }
   if (fRotateSpeed!=0)
@@ -228,7 +231,11 @@ void __fastcall TAnimContainer::UpdateModel()
     if (vRotateAngles.y==0.0)
      if (vRotateAngles.z==0.0)
       iAnim&=~1; //k¹ty s¹ zerowe
-   if (!anim) fRotateSpeed=0.0; //nie potrzeba przeliczaæ ju¿
+   if (!anim)
+   {//nie potrzeba przeliczaæ ju¿
+    fRotateSpeed=0.0; 
+    if (evDone) Global::pGround->AddToQuery(evDone,NULL); //wykonanie eventu informuj¹cego o zakoñczeniu
+   }
   }
   if (fAngleSpeed!=0.0)
   {//obrót kwaternionu (interpolacja)
@@ -245,6 +252,7 @@ void __fastcall TAnimContainer::UpdateModel()
     {//interpolacja zakoñczona, ustawienie na pozycjê koñcow¹
      qCurrent=qDesired;
      fAngleSpeed=0.0; //wy³¹czenie przeliczania wektora
+     if (evDone) Global::pGround->AddToQuery(evDone,NULL); //wykonanie eventu informuj¹cego o zakoñczeniu
     }
     else
     {//obliczanie pozycji poœredniej
