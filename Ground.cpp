@@ -3560,7 +3560,7 @@ bool __fastcall TGround::GetTraction(TDynamicObject *model)
       //odleg³oœæ w bok powinna byæ mniejsza ni¿ pó³ szerokoœci pantografu
       fHorizontal=DotProduct(vGdzie,vLeft); //to siê musi mieœciæ w przedziale zaleznym od szerokoœci pantografu
       //jeœli w pionie albo w bok jest za daleko, to dany drut jest nieu¿yteczny
-      if (fabs(fHorizontal)>0.8) //0.635 dla AKP-1 AKP-4E
+      if (fabs(fHorizontal)>p->fWidth) //0.635 dla AKP-1 AKP-4E
        p->PowerWire=NULL; //nie liczy siê
       else
       {//po wyselekcjonowaniu drutu, przypisaæ go do toru, ¿eby nie trzeba by³o szukaæ
@@ -3604,13 +3604,16 @@ bool __fastcall TGround::GetTraction(TDynamicObject *model)
            if (Global::bEnableTraction?fVertical<p->PantWys-0.15:false) //jeœli drut jest ni¿ej ni¿ 15cm pod œlizgiem
            {//prze³¹czamy w tryb po³amania, o ile jedzie; (bEnableTraction) aby da³o siê jeŸdziæ na koœlawych sceneriach
             fHorizontal=DotProduct(vGdzie,vLeft); //i do tego jeszcze wejdzie pod œlizg
-            if (fabs(fHorizontal)<=0.8) //0.635 dla AKP-1 AKP-4E
-             p->PantWys=-1.0; //ujemna liczba oznacza po³amanie
+            if (fabs(fHorizontal)<=p->fWidth) //0.635 dla AKP-1 AKP-4E
+            {p->PantWys=-1.0; //ujemna liczba oznacza po³amanie
+             if (model->MoverParameters->EnginePowerSource.CollectorParameters.CollectorsNo>0) //liczba pantografów
+              --model->MoverParameters->EnginePowerSource.CollectorParameters.CollectorsNo; //teraz bêdzie mniejsza
+            }
            }
            else if (fVertical<p->PantTraction) //ale ni¿ej, ni¿ poprzednio znaleziony
            {
             fHorizontal=DotProduct(vGdzie,vLeft); //to siê musi mieœciæ w przedziale zaleznym od szerokoœci pantografu
-            if (fabs(fHorizontal)<=0.7) //0.635 dla AKP-1 AKP-4E
+            if (fabs(fHorizontal)<=p->fWidth) //0.635 dla AKP-1 AKP-4E
             {p->PowerWire=node->Traction; //jakiœ znaleziony
              p->PantTraction=fVertical; //zapamiêtanie nowej wysokoœci
             }
@@ -3622,7 +3625,7 @@ bool __fastcall TGround::GetTraction(TDynamicObject *model)
    } //koniec poszukiwania w sektorach
    if (!p->PowerWire) //jeœli drut nie znaleziony
     if (!Global::bLiveTraction) //ale mo¿na oszukiwaæ
-     model->pants[k].fParamPants->PantTraction=1.2; //to dajemy coœ tam dla picu
+     model->pants[k].fParamPants->PantTraction=1.4; //to dajemy coœ tam dla picu
   } //koniec obs³ugi podniesionego
   else
    p->PowerWire=NULL; //pantograf opuszczony

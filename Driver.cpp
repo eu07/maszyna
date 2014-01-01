@@ -2232,7 +2232,7 @@ bool __fastcall TController::UpdateSituation(double dt)
      Controlling->PantFront(true);
     if (pOccupied->Vel>10) //opuszczenie przedniego po rozpêdzeniu siê
     {
-     if (Controlling->EnginePowerSource.CollectorsNo>1) //o ile wiêcej ni¿ jeden
+     if (Controlling->EnginePowerSource.CollectorParameters.CollectorsNo>1) //o ile wiêcej ni¿ jeden
       if (iDirection>=0) //jak jedzie w kierunku sprzêgu 0
        Controlling->PantFront(false); //opuszcza od sprzêgu 0
       else
