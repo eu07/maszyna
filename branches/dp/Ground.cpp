@@ -3606,8 +3606,11 @@ bool __fastcall TGround::GetTraction(TDynamicObject *model)
             fHorizontal=DotProduct(vGdzie,vLeft); //i do tego jeszcze wejdzie pod œlizg
             if (fabs(fHorizontal)<=p->fWidth) //0.635 dla AKP-1 AKP-4E
             {p->PantWys=-1.0; //ujemna liczba oznacza po³amanie
+             p->PowerWire=NULL; //bo inaczej siê zasila w nieskoñczonoœæ z po³amanego
              if (model->MoverParameters->EnginePowerSource.CollectorParameters.CollectorsNo>0) //liczba pantografów
               --model->MoverParameters->EnginePowerSource.CollectorParameters.CollectorsNo; //teraz bêdzie mniejsza
+             if (DebugModeFlag)
+              ErrorLog("Pant. break: at "+FloatToStrF(pant0.x,ffFixed,7,2)+" "+FloatToStrF(pant0.y,ffFixed,7,2)+" "+FloatToStrF(pant0.z,ffFixed,7,2));
             }
            }
            else if (fVertical<p->PantTraction) //ale ni¿ej, ni¿ poprzednio znaleziony
