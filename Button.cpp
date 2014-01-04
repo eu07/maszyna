@@ -30,7 +30,7 @@ void __fastcall TButton::Clear(int i)
  Update(); //kasowanie bitu Feedback, o ile jakiœ ustawiony
 };
 
-void __fastcall TButton::Init(AnsiString asName, TModel3d *pModel, bool bNewOn)
+void __fastcall TButton::Init(AnsiString asName,TModel3d *pModel,bool bNewOn)
 {
  if (!pModel) return; //nie ma w czym szukaæ
  pModelOn=pModel->GetFromName(AnsiString(asName+"_on").c_str());

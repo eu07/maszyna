@@ -7,12 +7,11 @@
 #include "QueryParserComp.hpp"
 
 class TButton
-{
+{//animacja dwustanowa, w³¹cza jeden z dwóch submodeli (jednego z nich mo¿e nie byæ)
 private:
- //TButtonType eType;
- TSubModel *pModelOn,*pModelOff;
+ TSubModel *pModelOn,*pModelOff; //submodel dla stanu za³¹czonego i wy³¹czonego
  bool bOn;
- int iFeedbackBit; //Ra: informacja zwrotna: 0=SHP, 1=CA, 2-na oporach
+ int iFeedbackBit; //Ra: bit informacji zwrotnej, do wyprowadzenia na pulpit
  void __fastcall Update();
 public:
  __fastcall TButton();
@@ -24,7 +23,7 @@ public:
  inline void TurnOff() { bOn=false; Update(); };
  inline void Switch() { bOn=!bOn; Update(); };
  inline bool Active() { return (pModelOn)||(pModelOff);};
- void __fastcall Init(AnsiString asName, TModel3d *pModel, bool bNewOn=false);
+ void __fastcall Init(AnsiString asName,TModel3d *pModel,bool bNewOn=false);
  void __fastcall Load(TQueryParserComp *Parser,TModel3d *pModel1,TModel3d *pModel2=NULL);
 };
 
