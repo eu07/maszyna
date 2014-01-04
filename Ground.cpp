@@ -1213,7 +1213,7 @@ void __fastcall TGround::Free()
  for (TEvent *Current=RootEvent;Current;)
  {
   tmp=Current;
-  Current=Current->Next2;
+  Current=Current->evNext2;
   delete tmp;
  }
  TGroundNode *tmpn;
@@ -1614,8 +1614,9 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
     *parser >> token;
     DriverType=AnsiString(token.c_str()); //McZapkie:010303: obsada
     parser->getTokens();
-    *parser >> tf3; //prêdkoœæ
+    *parser >> tf3; //prêdkoœæ, niektórzy wpisuj¹ tu "3" jako sprzêg, ¿eby nie by³o tabliczki
     iTrainSetWehicleNumber=0;
+    TempConnectionType[iTrainSetWehicleNumber]=3; //likwidacja tabliczki na koñcu?
    }
    parser->getTokens();
    *parser >> int2; //iloœæ ³adunku
@@ -1637,7 +1638,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    {//jeœli tor znaleziony
     Track=tmp1->pTrack;
     if (!iTrainSetWehicleNumber) //jeœli pierwszy pojazd
-     if (Track->Event0) //jeœli tor ma Event0
+     if (Track->evEvent0) //jeœli tor ma Event0
       if (fabs(fTrainSetVel)<=1.0) //a sk³ad stoi
        if (fTrainSetDist>=0.0) //ale mo¿e nie siêgaæ na owy tor
         if (fTrainSetDist<8.0) //i raczej nie siêga
@@ -2203,7 +2204,7 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
       }
       if (LastNode) //ostatni wczytany obiekt
        if (LastNode->iType==TP_DYNAMIC) //o ile jest pojazdem (na ogó³ jest, ale kto wie...)
-        if (!TempConnectionType[iTrainSetWehicleNumber-1]) //jeœli ostatni pojazd ma sprzêg 0
+        if (iTrainSetWehicleNumber?!TempConnectionType[iTrainSetWehicleNumber-1]:false) //jeœli ostatni pojazd ma sprzêg 0
          LastNode->DynamicObject->RaLightsSet(-1,2+32+64); //to za³o¿ymy mu koñcówki blaszane (jak AI siê odpali, to sobie poprawi)
       bTrainSet=false;
       fTrainSetVel=0;
@@ -2243,7 +2244,7 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
        }
        if (tmp)
        {//jeœli nie duplikat
-        tmp->Next2=RootEvent; //lista wszystkich eventów (m.in. do InitEvents)
+        tmp->evNext2=RootEvent; //lista wszystkich eventów (m.in. do InitEvents)
         RootEvent=tmp;
         if (!found)
         {//jeœli nazwa wyst¹pi³a, to do kolejki i wyszukiwarki dodawany jest tylko pierwszy
@@ -2506,7 +2507,7 @@ bool __fastcall TGround::InitEvents()
  TGroundNode* tmp;
  char buff[255];
  int i;
- for (TEvent *Current=RootEvent;Current;Current=Current->Next2)
+ for (TEvent *Current=RootEvent;Current;Current=Current->evNext2)
  {
   switch (Current->Type)
   {
@@ -2592,7 +2593,10 @@ bool __fastcall TGround::InitEvents()
      {//standardowo przypisanie submodelu
       Current->Params[9].asAnimContainer=tmp->Model->GetContainer(buff); //submodel
       if (Current->Params[9].asAnimContainer)
-       Current->Params[9].asAnimContainer->WillBeAnimated(); //oflagowanie animacji
+      {Current->Params[9].asAnimContainer->WillBeAnimated(); //oflagowanie animacji
+       if (!Current->Params[9].asAnimContainer->Event()) //nie szukaæ, gdy znaleziony
+        Current->Params[9].asAnimContainer->EventAssign(FindEvent(Current->asNodeName+"."+AnsiString(buff)+":done"));
+      }
      }
     }
     else
@@ -2729,12 +2733,12 @@ void __fastcall TGround::InitTracks()
    Track->asEventall2Name.IsEmpty()?NULL:FindEvent(Track->asEventall2Name)); //MC-280503
   switch (Track->eType)
   {
-   case tt_Turn: //obrotnicê te¿ ³¹czymy na starcie z innymi torami
+   case tt_Table: //obrotnicê te¿ ³¹czymy na starcie z innymi torami
     Model=FindGroundNode(Current->asName,TP_MODEL); //szukamy modelu o tej samej nazwie
     if (tmp) //mamy model, trzeba zapamiêtaæ wskaŸnik do jego animacji
     {//jak coœ pójdzie Ÿle, to robimy z tego normalny tor
      //Track->ModelAssign(tmp->Model->GetContainer(NULL)); //wi¹zanie toru z modelem obrotnicy
-     Track->RaAssign(Current,Model->Model); //wi¹zanie toru z modelem obrotnicy
+     Track->RaAssign(Current,Model->Model,FindEvent(Current->asName+":done"),FindEvent(Current->asName+":joined")); //wi¹zanie toru z modelem obrotnicy
      //break; //jednak po³¹czê z s¹siednim, jak ma siê wysypywaæ null track
     }
    case tt_Normal: //tylko proste s¹ pod³¹czane do rozjazdów, st¹d dwa rozjazdy siê nie po³¹cz¹ ze sob¹
@@ -3067,7 +3071,7 @@ bool __fastcall TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
       if (DebugModeFlag)
        WriteLog("EVENT EXECUTED: AddValues - "+AnsiString(Event->Params[0].asText)+" "+AnsiString(Event->Params[1].asdouble)+" "+AnsiString(Event->Params[2].asdouble));
     }
-    Event=Event->eJoined; //jeœli jest kolejny o takiej samej nazwie, to idzie do kolejki
+    Event=Event->evJoined; //jeœli jest kolejny o takiej samej nazwie, to idzie do kolejki
    }
    if (Event)
    {//standardowe dodanie do kolejki
@@ -3078,7 +3082,7 @@ bool __fastcall TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
      QueryRootEvent->AddToQuery(Event); //dodanie gdzieœ w œrodku
     else
     {//dodanie z przodu: albo nic nie ma, albo ma byæ wykonany szybciej ni¿ pierwszy
-     Event->Next=QueryRootEvent;
+     Event->evNext=QueryRootEvent;
      QueryRootEvent=Event;
     }
    }
@@ -3173,15 +3177,15 @@ bool __fastcall TGround::CheckQuery()
  while (QueryRootEvent&&(QueryRootEvent->fStartTime<Timer::GetTime()))
  {//eventy s¹ posortowana wg czasu wykonania
   tmpEvent=QueryRootEvent; //wyjêcie eventu z kolejki
-  if (QueryRootEvent->eJoined) //jeœli jest kolejny o takiej samej nazwie
+  if (QueryRootEvent->evJoined) //jeœli jest kolejny o takiej samej nazwie
   {//to teraz on bêdzie nastêpny do wykonania
-   QueryRootEvent=QueryRootEvent->eJoined; //nastêpny bêdzie ten doczepiony
-   QueryRootEvent->Next=tmpEvent->Next; //pamiêtaj¹c o nastêpnym z kolejki
+   QueryRootEvent=QueryRootEvent->evJoined; //nastêpny bêdzie ten doczepiony
+   QueryRootEvent->evNext=tmpEvent->evNext; //pamiêtaj¹c o nastêpnym z kolejki
    QueryRootEvent->fStartTime=tmpEvent->fStartTime; //czas musi byæ ten sam, bo nie jest aktualizowany
    QueryRootEvent->Activator=tmpEvent->Activator; //pojazd aktywuj¹cy
   }
   else //a jak nazwa jest unikalna, to kolejka idzie dalej
-   QueryRootEvent=QueryRootEvent->Next; //NULL w skrajnym przypadku
+   QueryRootEvent=QueryRootEvent->evNext; //NULL w skrajnym przypadku
   if (tmpEvent->bEnabled)
   {
    WriteLog("EVENT LAUNCHED: "+tmpEvent->asName+(tmpEvent->Activator?AnsiString(" by "+tmpEvent->Activator->asName):AnsiString("")));

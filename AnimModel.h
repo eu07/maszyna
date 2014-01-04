@@ -72,6 +72,7 @@ public:
  double _fastcall AngleGet() {return vRotateAngles.z;}; //jednak ostatnia, T3D ma inny uk³ad
  void __fastcall WillBeAnimated() {if (pSubModel) pSubModel->WillBeAnimated();};
  void __fastcall EventAssign(TEvent *ev);
+ TEvent* __fastcall Event() {return evDone;};
 };
 
 class TAnimAdvanced

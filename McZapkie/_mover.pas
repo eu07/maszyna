@@ -2744,7 +2744,7 @@ begin
   if BrakePress>2 then
    begin
 //    StLinFlag:=true;
-    DelayCtrlFlag:=true;
+    DelayCtrlFlag:=(TrainType<>dt_EZT); //EN57 nie ma czekania na 1. pozycji
     DynamicBrakeFlag:=false;
    end;
   if BrakeSubSystem=ss_LSt then
@@ -3042,9 +3042,9 @@ begin
     if (LastRelayTime>CtrlDelay) and not DelayCtrlFlag then
      begin
       if (MainCtrlPos=0) and (TrainType<>dt_ET40) and (TrainType<>dt_EP05) then
-        DelayCtrlFlag:=true;
+        DelayCtrlFlag:=true;  //(TrainType<>dt_EZT); //EN57 nie ma czekania na 1. pozycji
       if (MainCtrlPos=0) and ((TrainType=dt_ET40)or(TrainType=dt_EP05)) and (MainCtrlActualPos=0) then
-      DelayCtrlFlag:=true;
+      DelayCtrlFlag:=true; //(TrainType<>dt_EZT); //EN57 nie ma czekania na 1. pozycji
 
       if (((RList[MainCtrlActualPos].R=0) and ((not CoupledCtrl) or ((Imin=IminLo) and (ScndS=true)))) or (MainCtrlActualPos=RListSize))
           and ((ScndCtrlActualPos>0) or (ScndCtrlPos>0)) then

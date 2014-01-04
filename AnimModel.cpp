@@ -16,7 +16,6 @@
 //McZapkie:
 #include "Texture.h"
 #include "Globals.h"
-#include "Ground.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
 //---------------------------------------------------------------------------
@@ -185,7 +184,7 @@ void __fastcall TAnimContainer::UpdateModel()
     fTranslateSpeed=0.0; //wy³¹czenie przeliczania wektora
     if (LengthSquared3(vTranslation)<=0.0001) //jeœli jest w punkcie pocz¹tkowym
      iAnim&=~2; //wy³¹czyæ zmianê pozycji submodelu
-    if (evDone) Global::pGround->AddToQuery(evDone,NULL); //wykonanie eventu informuj¹cego o zakoñczeniu
+    if (evDone) Global::AddToQuery(evDone,NULL); //wykonanie eventu informuj¹cego o zakoñczeniu
    }
   }
   if (fRotateSpeed!=0)
@@ -234,7 +233,7 @@ void __fastcall TAnimContainer::UpdateModel()
    if (!anim)
    {//nie potrzeba przeliczaæ ju¿
     fRotateSpeed=0.0; 
-    if (evDone) Global::pGround->AddToQuery(evDone,NULL); //wykonanie eventu informuj¹cego o zakoñczeniu
+    if (evDone) Global::AddToQuery(evDone,NULL); //wykonanie eventu informuj¹cego o zakoñczeniu
    }
   }
   if (fAngleSpeed!=0.0)
@@ -252,7 +251,7 @@ void __fastcall TAnimContainer::UpdateModel()
     {//interpolacja zakoñczona, ustawienie na pozycjê koñcow¹
      qCurrent=qDesired;
      fAngleSpeed=0.0; //wy³¹czenie przeliczania wektora
-     if (evDone) Global::pGround->AddToQuery(evDone,NULL); //wykonanie eventu informuj¹cego o zakoñczeniu
+     if (evDone) Global::AddToQuery(evDone,NULL); //wykonanie eventu informuj¹cego o zakoñczeniu
     }
     else
     {//obliczanie pozycji poœredniej
@@ -309,6 +308,11 @@ bool __fastcall TAnimContainer::InMovement()
 {//czy trwa animacja - informacja dla obrotnicy
  return fRotateSpeed!=0.0;
 }
+
+void __fastcall TAnimContainer::EventAssign(TEvent *ev)
+{//przypisanie eventu wykonywanego po zakoñczeniu animacji
+ evDone=ev;
+};
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------

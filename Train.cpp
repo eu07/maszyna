@@ -117,6 +117,7 @@ __fastcall TTrain::TTrain()
  dsbBuzzer=NULL;
  dsbSlipAlarm=NULL; //Bombardier 011010: alarm przy poslizgu dla 181/182
  dsbCouplerStretch=NULL;
+ dsbEN57_CouplerStretch=NULL;
  dsbBufferClamp=NULL;
  iRadioChannel=0;
 }
@@ -5540,3 +5541,41 @@ void __fastcall TTrain::DynamicSet(TDynamicObject *d)
   }
 };
 
+void __fastcall TTrain::Silence()
+{//wyciszenie dŸwiêków przy wychodzeniu
+ if (dsbNastawnikJazdy) dsbNastawnikJazdy->Stop();
+ if (dsbNastawnikBocz) dsbNastawnikBocz->Stop();
+ if (dsbRelay) dsbRelay->Stop();
+ if (dsbPneumaticRelay) dsbPneumaticRelay->Stop();
+ if (dsbSwitch) dsbSwitch->Stop();
+ if (dsbPneumaticSwitch) dsbPneumaticSwitch->Stop();
+ if (dsbReverserKey) dsbReverserKey->Stop();
+ if (dsbCouplerAttach) dsbCouplerAttach->Stop();
+ if (dsbCouplerDetach) dsbCouplerDetach->Stop();
+ if (dsbDieselIgnition) dsbDieselIgnition->Stop();
+ if (dsbDoorClose) dsbDoorClose->Stop();
+ if (dsbDoorOpen) dsbDoorOpen->Stop();
+ if (dsbPantUp) dsbPantUp->Stop();
+ if (dsbPantDown) dsbPantDown->Stop();
+ if (dsbWejscie_na_bezoporow) dsbWejscie_na_bezoporow->Stop();
+ if (dsbWejscie_na_drugi_uklad) dsbWejscie_na_drugi_uklad->Stop();
+ rsBrake.Stop();
+ rsSlippery.Stop();
+ rsHiss.Stop();
+ rsHissU.Stop();
+ rsHissE.Stop();
+ rsHissX.Stop();
+ rsHissT.Stop();
+ rsSBHiss.Stop();
+ rsRunningNoise.Stop();
+ rsEngageSlippery.Stop();
+ rsFadeSound.Stop();
+ if (dsbHasler) dsbHasler->Stop(); //wy³¹czenie dŸwiêków opuszczanej kabiny
+ if (dsbBuzzer) dsbBuzzer->Stop();
+ if (dsbSlipAlarm) dsbSlipAlarm->Stop(); //dŸwiêk alarmu przy poœlizgu
+ //sConverter.Stop();
+ //sSmallCompressor->Stop();
+ if (dsbCouplerStretch) dsbCouplerStretch->Stop();
+ if (dsbEN57_CouplerStretch) dsbEN57_CouplerStretch->Stop();
+ if (dsbBufferClamp) dsbBufferClamp->Stop();
+};

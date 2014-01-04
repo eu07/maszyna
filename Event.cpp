@@ -21,7 +21,7 @@
 
 __fastcall TEvent::TEvent()
 {
- Next=Next2=NULL;
+ evNext=evNext2=NULL;
  bEnabled=false; //false dla eventów u¿ywanych do skanowania sygna³ów (nie dodawane do kolejki)
  asNodeName="";
  iQueued=0; //nie zosta³ dodany do kolejki
@@ -31,7 +31,7 @@ __fastcall TEvent::TEvent()
  Type=tp_Unknown;
  for (int i=0;i<13;i++)
   Params[i].asPointer=NULL;
- eJoined=NULL; //nie ma kolejnego z t¹ sam¹ nazw¹, usuwane s¹ wg listy Next2
+ evJoined=NULL; //nie ma kolejnego z t¹ sam¹ nazw¹, usuwane s¹ wg listy Next2
  Activator=NULL;
  iFlags=0;
 };
@@ -58,7 +58,7 @@ __fastcall TEvent::~TEvent()
   case tp_GetValues: //nic
   break;
  }
- eJoined=NULL; //nie usuwaæ podczepionych tutaj
+ evJoined=NULL; //nie usuwaæ podczepionych tutaj
 };
 
 void __fastcall TEvent::Init()
@@ -482,14 +482,14 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
  }
 };
 
-void __fastcall TEvent::AddToQuery(TEvent *Event)
+void __fastcall TEvent::AddToQuery(TEvent *e)
 {//dodanie eventu do kolejki
- if (Next?(Event->fStartTime>=Next->fStartTime):false)
-  Next->AddToQuery(Event); //sortowanie wg czasu
+ if (evNext?(e->fStartTime>=evNext->fStartTime):false)
+  evNext->AddToQuery(e); //sortowanie wg czasu
  else
  {//dodanie z przodu
-  Event->Next=Next;
-  Next=Event;
+  e->evNext=evNext;
+  evNext=e;
  }
 }
 
@@ -559,10 +559,10 @@ void __fastcall TEvent::StopCommandSent()
 
 void __fastcall TEvent::Append(TEvent *e)
 {//doczepienie kolejnych z t¹ sam¹ nazw¹
- if (eJoined)
-  eJoined->Append(e); //rekurencja! - góra kilkanaœcie eventów bêdzie potrzebne
+ if (evJoined)
+  evJoined->Append(e); //rekurencja! - góra kilkanaœcie eventów bêdzie potrzebne
  else
- {eJoined=e;
+ {evJoined=e;
   e->bEnabled=true; //ten doczepiony mo¿e byæ tylko kolejkowany
  }
 };
