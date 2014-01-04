@@ -284,13 +284,13 @@ public: //reszta mo¿e byæ publiczna
     PSound dsbPneumaticSwitch;
     PSound dsbReverserKey; //hunter-121211
 
-    PSound dsbCouplerAttach;
-    PSound dsbCouplerDetach;
+    PSound dsbCouplerAttach; //Ra: w kabinie????
+    PSound dsbCouplerDetach; //Ra: w kabinie???
 
     PSound dsbDieselIgnition;
 
-    PSound dsbDoorClose;
-    PSound dsbDoorOpen;
+    PSound dsbDoorClose; //Ra: w kabinie???
+    PSound dsbDoorOpen; //Ra: w kabinie???
 
 //Winger 010304
     PSound dsbPantUp;
@@ -319,8 +319,8 @@ public: //reszta mo¿e byæ publiczna
     PSound dsbHasler;
     PSound dsbBuzzer;
     PSound dsbSlipAlarm; //Bombardier 011010: alarm przy poslizgu dla 181/182
-    TFadeSound sConverter;  //przetwornica
-    TFadeSound sSmallCompressor;  //przetwornica
+    //TFadeSound sConverter;  //przetwornica
+    //TFadeSound sSmallCompressor;  //przetwornica
 
     int iCabLightFlag; //McZapkie:120503: oswietlenie kabiny (0: wyl, 1: przyciemnione, 2: pelne)
     bool bCabLight; //hunter-091012: czy swiatlo jest zapalone?
@@ -343,7 +343,7 @@ private:
     float fConverterTimer;  //hunter-261211: dla przekaznika
     float fMainRelayTimer;  //hunter-141211: zalaczanie WSa z opoznieniem
     float fCzuwakTestTimer;     //hunter-091012: do testu czuwaka
-    
+
     int CAflag; //hunter-131211: dla osobnego zbijania CA i SHP
 
     double fPoslizgTimer;
@@ -367,6 +367,7 @@ public:
  inline TDynamicObject* __fastcall Dynamic() {return DynamicObject;};
  inline TMoverParameters* __fastcall Controlled() {return pControlled;};
  void __fastcall DynamicSet(TDynamicObject *d);
+ void __fastcall Silence();
 };
 //---------------------------------------------------------------------------
 #endif

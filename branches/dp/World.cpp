@@ -572,6 +572,7 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
        glRasterPos2f(-0.25f, -0.19f);
        glPrint("OK.");
       }
+      FollowView();
       SwapBuffers(hDC); // Swap Buffers (Double Buffering)
      }
      else
@@ -1453,15 +1454,7 @@ bool __fastcall TWorld::Update()
     if (Global::changeDynObj)
     {//ABu zmiana pojazdu - przejœcie do innego
      //Ra: to nie mo¿e byæ tak robione, to zbytnia proteza jest
-     Train->dsbHasler->Stop(); //wy³¹czenie dŸwiêków opuszczanej kabiny
-     Train->dsbBuzzer->Stop();
-     if (Train->dsbSlipAlarm) Train->dsbSlipAlarm->Stop(); //dŸwiêk alarmu przy poœlizgu
-     Train->rsHiss.Stop();
-     Train->rsSBHiss.Stop();
-     Train->rsRunningNoise.Stop();
-     Train->rsBrake.Stop();
-     Train->rsEngageSlippery.Stop();
-     Train->rsSlippery.Stop();
+     Train->Silence(); //wy³¹czenie dŸwiêków opuszczanej kabiny
      if (Train->Dynamic()->Mechanik) //AI mo¿e sobie samo pójœæ
       if (!Train->Dynamic()->Mechanik->AIControllFlag) //tylko jeœli rêcznie prowadzony
       {//jeœli prowadzi AI, to mu nie robimy dywersji!
@@ -1691,8 +1684,10 @@ bool __fastcall TWorld::Update()
         if (DebugModeFlag?true:tmp->MoverParameters->Vel<=5.0)
         {Controlled=tmp; //przejmujemy nowy
          mvControlled=Controlled->ControlledFind()->MoverParameters;
-         if (!Train) //jeœli niczym jeszcze nie jeŸdzilismy
-          Train=new TTrain();
+         if (Train)
+          Train->Silence(); //wyciszenie dŸwiêków opuszczanego pojazdu
+         else
+          Train=new TTrain(); //jeœli niczym jeszcze nie jeŸdzilismy
          if (Train->Init(Controlled))
          {//przejmujemy sterowanie
           if (!DebugModeFlag) //w DebugMode nadal prowadzi AI
@@ -2161,7 +2156,7 @@ void __fastcall TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
     {//WriteLog("Komunikat: "+AnsiString(pRozkaz->Name1));
      TEvent *e=Ground.FindEvent(AnsiString(pRozkaz->cString+1,(unsigned)(pRozkaz->cString[0])));
      if (e)
-      if ((e->Type==tp_Multiple)||bool(e->eJoined)) //tylko jawne albo niejawne Multiple
+      if ((e->Type==tp_Multiple)||bool(e->evJoined)) //tylko jawne albo niejawne Multiple
        Ground.AddToQuery(e,NULL); //drugi parametr to dynamic wywo³uj¹cy - tu brak
     }
     break;

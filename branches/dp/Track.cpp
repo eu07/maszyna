@@ -48,7 +48,7 @@ __fastcall TSwitchExtension::TSwitchExtension(TTrack *owner,int what)
  Segments[4]=NULL; //z punktu 2 do 4              1
  Segments[5]=NULL; //z punktu 3 do 2            3 x 4
  Segments[6]=NULL; //z punktu 4 do 3              2
- EventPlus=EventMinus=NULL;
+ evPlus=evMinus=NULL;
  fVelocity=-1.0; //maksymalne ograniczenie prêdkoœci (ustawianej eventem)
 }
 __fastcall TSwitchExtension::~TSwitchExtension()
@@ -64,7 +64,7 @@ __fastcall TIsolated::TIsolated(const AnsiString &n,TIsolated *i)
  asName=n;
  pNext=i;
  iAxles=0;
- eBusy=eFree=NULL;
+ evBusy=evFree=NULL;
  pMemCell=NULL; //podpi¹æ istniej¹c¹ albo utworzyæ pust¹
 };
 
@@ -100,8 +100,8 @@ void __fastcall TIsolated::Modify(int i,TDynamicObject *o)
   iAxles+=i;
   if (!iAxles)
   {//jeœli po zmianie nie ma ¿adnej osi na odcinku izolowanym
-   if (eFree)
-    Global::AddToQuery(eFree,o); //dodanie zwolnienia do kolejki
+   if (evFree)
+    Global::AddToQuery(evFree,o); //dodanie zwolnienia do kolejki
    if (Global::iMultiplayer) //jeœli multiplayer
     Global::pGround->WyslijString(asName,12); //wys³anie pakietu o zwolnieniu
    if (pMemCell) //w powi¹zanej komórce
@@ -113,8 +113,8 @@ void __fastcall TIsolated::Modify(int i,TDynamicObject *o)
   iAxles+=i;
   if (iAxles)
   {
-   if (eBusy)
-    Global::AddToQuery(eBusy,o); //dodanie zajêtoœci do kolejki
+   if (evBusy)
+    Global::AddToQuery(evBusy,o); //dodanie zajêtoœci do kolejki
    if (Global::iMultiplayer) //jeœli multiplayer
      Global::pGround->WyslijString(asName,11); //wys³anie pakietu o zajêciu
    if (pMemCell) //w powi¹zanej komórce
@@ -126,7 +126,7 @@ void __fastcall TIsolated::Modify(int i,TDynamicObject *o)
 
 __fastcall TTrack::TTrack(TGroundNode *g)
 {//tworzenie nowego odcinka ruchu
- pNext=pPrev=NULL; //s¹siednie
+ trNext=trPrev=NULL; //s¹siednie
  Segment=NULL; //dane odcinka
  SwitchExtension=NULL; //dodatkowe parametry zwrotnicy i obrotnicy
  TextureID1=0; //tekstura szyny
@@ -145,12 +145,12 @@ __fastcall TTrack::TTrack(TGroundNode *g)
  eEnvironment=e_flat;
  bVisible=true;
  iEvents=0; //Ra: flaga informuj¹ca o obecnoœci eventów
- Event0=NULL;
- Event1=NULL;
- Event2=NULL;
- Eventall0=NULL;
- Eventall1=NULL;
- Eventall2=NULL;
+ evEvent0=NULL;
+ evEvent1=NULL;
+ evEvent2=NULL;
+ evEventall0=NULL;
+ evEventall1=NULL;
+ evEventall2=NULL;
  fVelocity=-1; //ograniczenie prêdkoœci
  fTrackLength=100.0;
  fRadius=0; //promieñ wybranego toru zwrotnicy
@@ -190,7 +190,7 @@ void __fastcall TTrack::Init()
   case tt_Normal:
    Segment=new TSegment(this);
   break;
-  case tt_Turn: //oba potrzebne
+  case tt_Table: //oba potrzebne
    SwitchExtension=new TSwitchExtension(this,1); //kopia oryginalnego toru
    Segment=new TSegment(this);
   break;
@@ -289,7 +289,7 @@ TTrack* __fastcall TTrack::NullCreate(int dir)
     trk2->iPrevDirection=1; //zwrotnie do tego samego odcinka
    break;
   }
-  trk2->pPrev=this;
+  trk2->trPrev=this;
   trk->ConnectNextNext(trk2,1); //po³¹czenie dwóch dodatkowych odcinków
   tmp2->pCenter=(0.5*(p1+p2)); //œrodek, aby siê mog³o wyœwietliæ
  }
@@ -309,9 +309,9 @@ void __fastcall TTrack::ConnectPrevPrev(TTrack *pTrack,int typ)
 {//³aczenie torów - Point1 w³asny do Point1 cudzego
  if (pTrack)
  {
-  pPrev=pTrack;
+  trPrev=pTrack;
   iPrevDirection=0;
-  pTrack->pPrev=this;
+  pTrack->trPrev=this;
   pTrack->iPrevDirection=0;
  }
 }
@@ -319,9 +319,9 @@ void __fastcall TTrack::ConnectPrevNext(TTrack *pTrack,int typ)
 {//³aczenie torów - Point1 w³asny do Point2 cudzego
  if (pTrack)
  {
-  pPrev=pTrack;
+  trPrev=pTrack;
   iPrevDirection=typ|1; //1:zwyk³y lub pierwszy zwrotnicy, 3:drugi zwrotnicy
-  pTrack->pNext=this;
+  pTrack->trNext=this;
   pTrack->iNextDirection=0;
   if (bVisible)
    if (pTrack->bVisible)
@@ -338,9 +338,9 @@ void __fastcall TTrack::ConnectNextPrev(TTrack *pTrack,int typ)
 {//³aczenie torów - Point2 w³asny do Point1 cudzego
  if (pTrack)
  {
-  pNext=pTrack;
+  trNext=pTrack;
   iNextDirection=0;
-  pTrack->pPrev=this;
+  pTrack->trPrev=this;
   pTrack->iPrevDirection=1;
   if (bVisible)
    if (pTrack->bVisible)
@@ -357,9 +357,9 @@ void __fastcall TTrack::ConnectNextNext(TTrack *pTrack,int typ)
 {//³aczenie torów - Point2 w³asny do Point2 cudzego
  if (pTrack)
  {
-  pNext=pTrack;
+  trNext=pTrack;
   iNextDirection=typ|1; //1:zwyk³y lub pierwszy zwrotnicy, 3:drugi zwrotnicy
-  pTrack->pNext=this;
+  pTrack->trNext=this;
   pTrack->iNextDirection=1;
  }
 }
@@ -407,7 +407,12 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
  }
  else if (str=="turn")
  {//Ra: to jest obrotnica
-  eType=tt_Turn;
+  eType=tt_Table;
+  iCategoryFlag=1;
+ }
+ else if (str=="table")
+ {//Ra: obrotnica, przesuwnica albo wywrotnica
+  eType=tt_Table;
   iCategoryFlag=1;
  }
  else if (str=="road")
@@ -493,7 +498,7 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
  double segsize=5.0; //d³ugoœæ odcinka segmentowania
  switch (eType)
  {//Ra: ³uki segmentowane co 5m albo 314-k¹tem foremnym
-  case tt_Turn: //obrotnica jest prawie jak zwyk³y tor
+  case tt_Table: //obrotnica jest prawie jak zwyk³y tor
   case tt_Normal:
    p1=LoadPoint(parser)+pOrigin; //pobranie wspó³rzêdnych P1
    parser->getTokens();
@@ -520,7 +525,7 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
    else
     Segment->Init(p1,cp1+p1,cp2+p2,p2,segsize,r1,r2); //gdy ³uk (ustawia bCurve=true)
    if ((r1!=0)||(r2!=0)) iTrapezoid=1; //s¹ przechy³ki do uwzglêdniania w rysowaniu
-   if (eType==tt_Turn) //obrotnica ma doklejkê
+   if (eType==tt_Table) //obrotnica ma doklejkê
    {SwitchExtension=new TSwitchExtension(this,1); //dodatkowe zmienne dla obrotnicy
     SwitchExtension->Segments[0]->Init(p1,p2,segsize); //kopia oryginalnego toru
    }
@@ -711,11 +716,11 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
 bool __fastcall TTrack::AssignEvents(TEvent *NewEvent0,TEvent *NewEvent1,TEvent *NewEvent2)
 {
  bool bError=false;
- if (!Event0)
+ if (!evEvent0)
  {
   if (NewEvent0)
   {
-   Event0=NewEvent0;
+   evEvent0=NewEvent0;
    asEvent0Name="";
    iEvents|=1; //sumaryczna informacja o eventach
   }
@@ -733,11 +738,11 @@ bool __fastcall TTrack::AssignEvents(TEvent *NewEvent0,TEvent *NewEvent1,TEvent 
   Error(AnsiString("Event0 cannot be assigned to track, track already has one"));
   bError=true;
  }
- if (!Event1)
+ if (!evEvent1)
  {
   if (NewEvent1)
   {
-   Event1=NewEvent1;
+   evEvent1=NewEvent1;
    asEvent1Name="";
    iEvents|=2; //sumaryczna informacja o eventach
   }
@@ -755,11 +760,11 @@ bool __fastcall TTrack::AssignEvents(TEvent *NewEvent0,TEvent *NewEvent1,TEvent 
   Error(AnsiString("Event1 cannot be assigned to track, track already has one"));
   bError=true;
  }
- if (!Event2)
+ if (!evEvent2)
  {
   if (NewEvent2)
   {
-   Event2=NewEvent2;
+   evEvent2=NewEvent2;
    asEvent2Name="";
    iEvents|=4; //sumaryczna informacja o eventach
   }
@@ -783,11 +788,11 @@ bool __fastcall TTrack::AssignEvents(TEvent *NewEvent0,TEvent *NewEvent1,TEvent 
 bool __fastcall TTrack::AssignallEvents(TEvent *NewEvent0,TEvent *NewEvent1,TEvent *NewEvent2)
 {
  bool bError=false;
- if (!Eventall0)
+ if (!evEventall0)
  {
   if (NewEvent0)
   {
-   Eventall0=NewEvent0;
+   evEventall0=NewEvent0;
    asEventall0Name="";
    iEvents|=8; //sumaryczna informacja o eventach
   }
@@ -805,11 +810,11 @@ bool __fastcall TTrack::AssignallEvents(TEvent *NewEvent0,TEvent *NewEvent1,TEve
   Error(AnsiString("Eventall0 cannot be assigned to track, track already has one"));
   bError=true;
  }
- if (!Eventall1)
+ if (!evEventall1)
  {
   if (NewEvent1)
   {
-   Eventall1=NewEvent1;
+   evEventall1=NewEvent1;
    asEventall1Name="";
    iEvents|=16; //sumaryczna informacja o eventach
   }
@@ -827,11 +832,11 @@ bool __fastcall TTrack::AssignallEvents(TEvent *NewEvent0,TEvent *NewEvent1,TEve
   Error(AnsiString("Eventall1 cannot be assigned to track, track already has one"));
   bError=true;
  }
- if (!Eventall2)
+ if (!evEventall2)
  {
   if (NewEvent2)
   {
-   Eventall2=NewEvent2;
+   evEventall2=NewEvent2;
    asEventall2Name="";
    iEvents|=32; //sumaryczna informacja o eventach
   }
@@ -856,9 +861,9 @@ bool __fastcall TTrack::AssignForcedEvents(TEvent *NewEventPlus, TEvent *NewEven
 {//ustawienie eventów sygnalizacji rozprucia
  if (SwitchExtension)
  {if (NewEventPlus)
-   SwitchExtension->EventPlus=NewEventPlus;
+   SwitchExtension->evPlus=NewEventPlus;
   if (NewEventMinus)
-   SwitchExtension->EventMinus=NewEventMinus;
+   SwitchExtension->evMinus=NewEventMinus;
   return true;
  }
  return false;
@@ -867,7 +872,7 @@ bool __fastcall TTrack::AssignForcedEvents(TEvent *NewEventPlus, TEvent *NewEven
 AnsiString __fastcall TTrack::IsolatedName()
 {//podaje nazwê odcinka izolowanego, jesli nie ma on jeszcze przypisanych zdarzeñ
  if (pIsolated)
-  if (!pIsolated->eBusy&&!pIsolated->eFree)
+  if (!pIsolated->evBusy&&!pIsolated->evFree)
    return pIsolated->asName;
  return "";
 };
@@ -876,9 +881,9 @@ bool __fastcall TTrack::IsolatedEventsAssign(TEvent *busy, TEvent *free)
 {//ustawia zdarzenia dla odcinka izolowanego
  if (pIsolated)
  {if (busy)
-   pIsolated->eBusy=busy;
+   pIsolated->evBusy=busy;
   if (free)
-   pIsolated->eFree=free;
+   pIsolated->evFree=free;
   return true;
  }
  return false;
@@ -1007,14 +1012,14 @@ void __fastcall TTrack::Compile(GLuint tex)
  vector3 normal2;
  if (iTrapezoid&2) //ten bit oznacza, ¿e istnieje odpowiednie pNext
  {//Ra: jest OK
-  fHTW2=0.5*fabs(pNext->fTrackWidth); //po³owa rozstawu/nawierzchni
-  side2=fabs(pNext->fTexWidth);
-  slop2=fabs(pNext->fTexSlope);
+  fHTW2=0.5*fabs(trNext->fTrackWidth); //po³owa rozstawu/nawierzchni
+  side2=fabs(trNext->fTexWidth);
+  slop2=fabs(trNext->fTexSlope);
   rozp2=fHTW2+side2+slop2; //szerokoœæ podstawy
-  fTexHeight2=pNext->fTexHeight1;
+  fTexHeight2=trNext->fTexHeight1;
   hypot2=hypot(slop2,fTexHeight2);
   if (hypot2==0.0) hypot2=1.0;
-  normal2=vector3(pNext->fTexSlope/hypot2,fTexHeight2/hypot2,0.0);
+  normal2=vector3(trNext->fTexSlope/hypot2,fTexHeight2/hypot2,0.0);
  }
  else //gdy nie ma nastêpnego albo jest nieodpowiednim koñcem podpiêty
  {fHTW2=fHTW; side2=side; slop2=slop; rozp2=rozp; fTexHeight2=fTexHeight1; hypot2=hypot1; normal2=normal1;}
@@ -1039,7 +1044,7 @@ void __fastcall TTrack::Compile(GLuint tex)
     }
    switch (eType) //dalej zale¿nie od typu
    {
-    case tt_Turn: //obrotnica jak zwyk³y tor, tylko animacja dochodzi
+    case tt_Table: //obrotnica jak zwyk³y tor, tylko animacja dochodzi
      if (InMovement()) //jeœli siê krêci
      {//wyznaczamy wspó³rzêdne koñców, przy za³o¿eniu sta³ego œródka i d³ugoœci
       double hlen=0.5*SwitchExtension->Segments[0]->GetLength(); //po³owa d³ugoœci
@@ -1048,8 +1053,11 @@ void __fastcall TTrack::Compile(GLuint tex)
       if (ac)
        SwitchExtension->fOffset1=ac?180+ac->AngleGet():0.0; //pobranie k¹ta z modelu
       double sina=hlen*sin(DegToRad(SwitchExtension->fOffset1)),cosa=hlen*cos(DegToRad(SwitchExtension->fOffset1));
-      vector3 middle=SwitchExtension->Segments[0]->FastGetPoint(0.5);
+      vector3 middle=SwitchExtension->pMyNode->pCenter; //SwitchExtension->Segments[0]->FastGetPoint(0.5);
       Segment->Init(middle+vector3(sina,0.0,cosa),middle-vector3(sina,0.0,cosa),5.0);
+      //aktualizacja pojazdów na torze
+      for (int i=0;i<iNumDynamics;i++)
+       Dynamics[i]->Move(0.000001); //minimalny ruch, aby przeliczyæ pozycjê i k¹ty
      }
     case tt_Normal:
      if (TextureID2)
@@ -1441,7 +1449,7 @@ bool __fastcall TTrack::InMovement()
  if (SwitchExtension)
  {if (eType==tt_Switch)
    return SwitchExtension->bMovement; //ze zwrotnic¹ ³atwiej
-  if (eType==tt_Turn)
+  if (eType==tt_Table)
    if (SwitchExtension->pModel)
    {if (!SwitchExtension->CurrentIndex) return false; //0=zablokowana siê nie animuje
     //trzeba ka¿dorazowo porównywaæ z k¹tem modelu
@@ -1454,13 +1462,17 @@ bool __fastcall TTrack::InMovement()
 };
 void __fastcall TTrack::RaAssign(TGroundNode *gn,TAnimContainer *ac)
 {//Ra: wi¹zanie toru z modelem obrotnicy
- //if (eType==tt_Turn) SwitchExtension->pAnim=p;
+ //if (eType==tt_Table) SwitchExtension->pAnim=p;
 };
-void __fastcall TTrack::RaAssign(TGroundNode *gn,TAnimModel *am)
+void __fastcall TTrack::RaAssign(TGroundNode *gn,TAnimModel *am,TEvent *done,TEvent *joined)
 {//Ra: wi¹zanie toru z modelem obrotnicy
- if (eType==tt_Turn)
+ if (eType==tt_Table)
  {SwitchExtension->pModel=am;
   SwitchExtension->pMyNode=gn;
+  SwitchExtension->evMinus=done; //event zakoñczenia animacji (zadanie nowej przed³u¿a)
+  SwitchExtension->evPlus=joined; //event potwierdzenia po³¹czenia (gdy nie znajdzie, to siê nie po³¹czy)
+  if (am->GetContainer(NULL)) //mo¿e nie byæ?
+   am->GetContainer(NULL)->EventAssign(done); //zdarzenie zakoñczenia animacji
  }
 };
 
@@ -1499,14 +1511,14 @@ void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Star
  vector3 normal2;
  if (iTrapezoid&2) //ten bit oznacza, ¿e istnieje odpowiednie pNext
  {//Ra: jest OK
-  fHTW2=0.5*fabs(pNext->fTrackWidth); //po³owa rozstawu/nawierzchni
-  side2=fabs(pNext->fTexWidth);
-  slop2=fabs(pNext->fTexSlope); //nie jest u¿ywane póŸniej
+  fHTW2=0.5*fabs(trNext->fTrackWidth); //po³owa rozstawu/nawierzchni
+  side2=fabs(trNext->fTexWidth);
+  slop2=fabs(trNext->fTexSlope); //nie jest u¿ywane póŸniej
   rozp2=fHTW2+side2+slop2;
-  fTexHeight2=pNext->fTexHeight1;
+  fTexHeight2=trNext->fTexHeight1;
   hypot2=hypot(slop2,fTexHeight2);
   if (hypot2==0.0) hypot2=1.0;
-  normal2=vector3(pNext->fTexSlope/hypot2,fTexHeight2/hypot2,0.0);
+  normal2=vector3(trNext->fTexSlope/hypot2,fTexHeight2/hypot2,0.0);
  }
  else //gdy nie ma nastêpnego albo jest nieodpowiednim koñcem podpiêty
  {fHTW2=fHTW; side2=side; slop2=slop; rozp2=rozp; fTexHeight2=fTexHeight1; hypot2=hypot1; normal2=normal1;}
@@ -1534,7 +1546,7 @@ void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Star
     }
    switch (eType) //dalej zale¿nie od typu
    {
-    case tt_Turn: //obrotnica jak zwyk³y tor, tylko animacja dochodzi
+    case tt_Table: //obrotnica jak zwyk³y tor, tylko animacja dochodzi
      SwitchExtension->iLeftVBO=Vert-Start; //indeks toru obrotnicy
     case tt_Normal:
      if (TextureID2)
@@ -1967,13 +1979,13 @@ bool __fastcall TTrack::SetConnections(int i)
 {//zapamiêtanie po³¹czen w segmencie
  if (SwitchExtension)
  {
-  SwitchExtension->pNexts[NextMask[i]]=pNext;
-  SwitchExtension->pPrevs[PrevMask[i]]=pPrev;
+  SwitchExtension->pNexts[NextMask[i]]=trNext;
+  SwitchExtension->pPrevs[PrevMask[i]]=trPrev;
   SwitchExtension->iNextDirection[NextMask[i]]=iNextDirection;
   SwitchExtension->iPrevDirection[PrevMask[i]]=iPrevDirection;
   if (eType==tt_Switch)
   {
-   SwitchExtension->pPrevs[PrevMask[i+2]]=pPrev;
+   SwitchExtension->pPrevs[PrevMask[i+2]]=trPrev;
    SwitchExtension->iPrevDirection[PrevMask[i+2]]=iPrevDirection;
   }
   if (i) Switch(0);
@@ -1993,8 +2005,8 @@ bool __fastcall TTrack::Switch(int i)
    //SwitchExtension->fDesiredOffset2=fMaxOffset*double(PrevMask[i]); //od punktu 2
    SwitchExtension->CurrentIndex=i;
    Segment=SwitchExtension->Segments[i]; //wybranie aktywnej drogi - potrzebne to?
-   pNext=SwitchExtension->pNexts[NextMask[i]]; //prze³¹czenie koñców
-   pPrev=SwitchExtension->pPrevs[PrevMask[i]];
+   trNext=SwitchExtension->pNexts[NextMask[i]]; //prze³¹czenie koñców
+   trPrev=SwitchExtension->pPrevs[PrevMask[i]];
    iNextDirection=SwitchExtension->iNextDirection[NextMask[i]];
    iPrevDirection=SwitchExtension->iPrevDirection[PrevMask[i]];
    fRadius=fRadiusTable[i]; //McZapkie: wybor promienia toru
@@ -2002,21 +2014,21 @@ bool __fastcall TTrack::Switch(int i)
     SwitchExtension->fOffset1=SwitchExtension->fDesiredOffset1; //nie ma siê co bawiæ
    return true;
   }
-  else if (eType==tt_Turn)
+  else if (eType==tt_Table)
   {//blokowanie (0, szukanie torów) lub odblokowanie (1, roz³¹czenie) obrotnicy
    if (i)
    {//0: roz³¹czenie s¹siednich torów od obrotnicy
-    if (pPrev) //jeœli jest tor od Point1 obrotnicy
+    if (trPrev) //jeœli jest tor od Point1 obrotnicy
      if (iPrevDirection) //0:do³¹czony Point1, 1:do³¹czony Point2
-      pPrev->pNext=NULL; //roz³¹czamy od Point2
+      trPrev->trNext=NULL; //roz³¹czamy od Point2
      else
-      pPrev->pPrev=NULL; //roz³¹czamy od Point1
-    if (pNext) //jeœli jest tor od Point2 obrotnicy
-     if (iPrevDirection) //0:do³¹czony Point1, 1:do³¹czony Point2
-      pNext->pNext=NULL; //roz³¹czamy od Point2
+      trPrev->trPrev=NULL; //roz³¹czamy od Point1
+    if (trNext) //jeœli jest tor od Point2 obrotnicy
+     if (iNextDirection) //0:do³¹czony Point1, 1:do³¹czony Point2
+      trNext->trNext=NULL; //roz³¹czamy od Point2
      else
-      pNext->pPrev=NULL; //roz³¹czamy od Point1
-    pNext=pPrev=NULL; //na koñcu roz³¹czamy obrotnicê (wka¿niki do s¹siadów ju¿ niepotrzebne)
+      trNext->trPrev=NULL; //roz³¹czamy od Point1
+    trNext=trPrev=NULL; //na koñcu roz³¹czamy obrotnicê (wkaŸniki do s¹siadów ju¿ niepotrzebne)
     fVelocity=0.0; //AI, nie ruszaj siê!
     if (SwitchExtension->pOwner)
      SwitchExtension->pOwner->RaTrackAnimAdd(this); //dodanie do listy animacyjnej
@@ -2026,8 +2038,17 @@ bool __fastcall TTrack::Switch(int i)
     RaAnimate(); //ostatni etap animowania
     //zablokowanie pozycji i po³¹czenie do s¹siednich torów
     Global::pGround->TrackJoin(SwitchExtension->pMyNode);
-    if (pNext||pPrev)
-     fVelocity=6.0; //jazda dozwolona
+    if (trNext||trPrev)
+    {fVelocity=6.0; //jazda dozwolona
+     if (trPrev)
+      if (trPrev->fVelocity==0.0) //ustawienie 0 da mo¿liwoœæ zatrzymania AI na obrotnicy
+       trPrev->VelocitySet(6.0); //odblokowanie do³¹czonego toru do jazdy
+     if (trNext)
+      if (trNext->fVelocity==0.0)
+       trNext->VelocitySet(6.0);
+     if (SwitchExtension->evPlus) //w starych sceneriach mo¿e nie byæ
+      Global::AddToQuery(SwitchExtension->evPlus,NULL); //potwierdzenie wykonania (np. odpala WZ)
+    }
    }
    SwitchExtension->CurrentIndex=i; //zapamiêtanie stanu zablokowania
    return true;
@@ -2037,8 +2058,8 @@ bool __fastcall TTrack::Switch(int i)
    i&=1;
    SwitchExtension->CurrentIndex=i;
    Segment=SwitchExtension->Segments[i]; //wybranie aktywnej drogi - potrzebne to?
-   pNext=SwitchExtension->pNexts[NextMask[3*i]]; //prze³¹czenie koñców
-   pPrev=SwitchExtension->pPrevs[PrevMask[3*i]];
+   trNext=SwitchExtension->pNexts[NextMask[3*i]]; //prze³¹czenie koñców
+   trPrev=SwitchExtension->pPrevs[PrevMask[3*i]];
    iNextDirection=SwitchExtension->iNextDirection[NextMask[3*i]];
    iPrevDirection=SwitchExtension->iPrevDirection[PrevMask[3*i]];
    return true;
@@ -2053,12 +2074,12 @@ bool __fastcall TTrack::SwitchForced(int i,TDynamicObject *o)
   if (i!=SwitchExtension->CurrentIndex)
   {switch (i)
    {case 0:
-     if (SwitchExtension->EventPlus)
-      Global::AddToQuery(SwitchExtension->EventPlus,o); //dodanie do kolejki
+     if (SwitchExtension->evPlus)
+      Global::AddToQuery(SwitchExtension->evPlus,o); //dodanie do kolejki
      break;
     case 1:
-     if (SwitchExtension->EventMinus)
-      Global::AddToQuery(SwitchExtension->EventMinus,o); //dodanie do kolejki
+     if (SwitchExtension->evMinus)
+      Global::AddToQuery(SwitchExtension->evMinus,o); //dodanie do kolejki
      break;
    }
    Switch(i); //jeœli siê tu nie prze³¹czy, to ka¿dy pojazd powtórzy event rozrprucia
@@ -2142,12 +2163,13 @@ TTrack* __fastcall TTrack::RaAnimate()
   else //gdy Display List
    Release(); //niszczenie skompilowanej listy, aby siê wygenerowa³a nowa
  }
- else if (eType==tt_Turn) //dla obrotnicy - szyny i podsypka
+ else if (eType==tt_Table) //dla obrotnicy - szyny i podsypka
  {
   if (SwitchExtension->pModel&&SwitchExtension->CurrentIndex) //0=zablokowana siê nie animuje
   {//trzeba ka¿dorazowo porównywaæ z k¹tem modelu
    //SwitchExtension->fOffset1=SwitchExtension->pAnim?SwitchExtension->pAnim->AngleGet():0.0; //pobranie k¹ta z modelu
    TAnimContainer *ac=SwitchExtension->pModel?SwitchExtension->pModel->GetContainer(NULL):NULL; //pobranie g³ównego submodelu
+   //if (ac) ac->EventAssign(SwitchExtension->evMinus); //event zakoñczenia animacji, trochê bez sensu tutaj
    if (ac?(ac->AngleGet()!=SwitchExtension->fOffset1):false) //czy przemieœci³o siê od ostatniego sprawdzania
    {double hlen=0.5*SwitchExtension->Segments[0]->GetLength(); //po³owa d³ugoœci
     SwitchExtension->fOffset1=180+ac->AngleGet(); //pobranie k¹ta z submodelu
@@ -2188,7 +2210,7 @@ double __fastcall TTrack::WidthTotal()
 
 bool __fastcall TTrack::IsGroupable()
 {//czy wyœwietlanie toru mo¿e byæ zgrupwane z innymi
- if ((eType==tt_Switch)||(eType==tt_Turn)) return false; //tory ruchome nie s¹ grupowane
+ if ((eType==tt_Switch)||(eType==tt_Table)) return false; //tory ruchome nie s¹ grupowane
  if ((eEnvironment==e_canyon)||(eEnvironment==e_tunnel)) return false; //tory ze zmian¹ œwiat³a
  return true;
 };
@@ -2209,10 +2231,10 @@ int __fastcall TTrack::TestPoint(vector3 *Point)
  switch (eType)
  {
   case tt_Normal: //zwyk³y odcinek
-   if (pPrev==NULL)
+   if (trPrev==NULL)
     if (Equal(Segment->FastGetPoint_0(),Point))
      return 0;
-   if (pNext==NULL)
+   if (trNext==NULL)
     if (Equal(Segment->FastGetPoint_1(),Point))
      return 1;
   break;
@@ -2221,14 +2243,14 @@ int __fastcall TTrack::TestPoint(vector3 *Point)
    //Ra: TODO: jak siê zmieni na bezpoœrednie odwo³ania do segmentow zwrotnicy,
    //to siê wykoleja, poniewa¿ pNext zale¿y od prze³o¿enia
    Switch(0);
-   if (pPrev==NULL)
+   if (trPrev==NULL)
     //if (Equal(SwitchExtension->Segments[0]->FastGetPoint_0(),Point))
     if (Equal(Segment->FastGetPoint_0(),Point))
     {
      Switch(state);
      return 2;
     }
-   if (pNext==NULL)
+   if (trNext==NULL)
     //if (Equal(SwitchExtension->Segments[0]->FastGetPoint_1(),Point))
     if (Equal(Segment->FastGetPoint_1(),Point))
     {
@@ -2236,14 +2258,14 @@ int __fastcall TTrack::TestPoint(vector3 *Point)
      return 3;
     }
    Switch(1); //mo¿na by siê pozbyæ tego prze³¹czania
-   if (pPrev==NULL) //Ra: z tym chyba nie potrzeba ³¹czyæ
+   if (trPrev==NULL) //Ra: z tym chyba nie potrzeba ³¹czyæ
     //if (Equal(SwitchExtension->Segments[1]->FastGetPoint_0(),Point))
     if (Equal(Segment->FastGetPoint_0(),Point))
     {
      Switch(state);//Switch(0);
      return 4;
     }
-   if (pNext==NULL) //TODO: to zale¿y od prze³o¿enia zwrotnicy
+   if (trNext==NULL) //TODO: to zale¿y od prze³o¿enia zwrotnicy
     //if (Equal(SwitchExtension->Segments[1]->FastGetPoint_1(),Point))
     if (Equal(Segment->FastGetPoint_1(),Point))
     {

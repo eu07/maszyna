@@ -263,7 +263,7 @@ void __fastcall TController::TableClear()
 
 TEvent* __fastcall TController::CheckTrackEvent(double fDirection,TTrack *Track)
 {//sprawdzanie eventów na podanym torze do podstawowego skanowania
- TEvent* e=(fDirection>0)?Track->Event2:Track->Event1;
+ TEvent* e=(fDirection>0)?Track->evEvent2:Track->evEvent1;
  if (!e) return NULL;
  if (e->bEnabled) return NULL;
  //jednak wszystkie W4 do tabelki, bo jej czyszczenie na przystanku wprowadza zamieszanie
@@ -1752,8 +1752,7 @@ void __fastcall TController::SpeedSet()
         switch (Controlling->MainCtrlPos)
         {//ruch nastawnika uzale¿niony jest od aktualnie ustawionej pozycji
          case 0:
-          Controlling->IncMainCtrl(1); //przetok
-          break; //Ra: przez to EN57 nie jeŸdzi? tego nie powinno byæ, ale nie startuje z wy¿szej pozycji !!!!
+          Controlling->IncMainCtrl(1); //przetok; bez "break", bo nie ma czekania na 1. pozycji
          case 1:
           if (VelDesired>20) Controlling->IncMainCtrl(1); //szeregowa
          case 2:
@@ -3309,7 +3308,7 @@ double __fastcall TController::Distance(vector3 &p1,vector3 &n,vector3 &p2)
 
 TEvent* __fastcall TController::CheckTrackEventBackward(double fDirection,TTrack *Track)
 {//sprawdzanie eventu w torze, czy jest sygna³owym - skanowanie do ty³u
- TEvent* e=(fDirection>0)?Track->Event2:Track->Event1;
+ TEvent* e=(fDirection>0)?Track->evEvent2:Track->evEvent1;
  if (e)
   if (!e->bEnabled) //jeœli sygna³owy (nie dodawany do kolejki)
    if (e->Type==tp_GetValues) //PutValues nie mo¿e siê zmieniæ

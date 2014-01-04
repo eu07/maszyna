@@ -12,7 +12,7 @@
 
 class TEvent;
 
-typedef enum { tt_Unknown, tt_Normal, tt_Switch, tt_Turn, tt_Cross, tt_Tributary } TTrackType;
+typedef enum { tt_Unknown, tt_Normal, tt_Switch, tt_Table, tt_Cross, tt_Tributary } TTrackType;
 //McZapkie-100502
 typedef enum {e_unknown=-1, e_flat=0, e_mountains, e_canyon, e_tunnel, e_bridge, e_bank} TEnvironmentType;
 //Ra: opracowaæ alternatywny system cieni/œwiate³ z definiowaniem koloru oœwietlenia w halach
@@ -47,7 +47,7 @@ public:
  int iLeftVBO,iRightVBO; //indeksy iglic w VBO
  TSubRect *pOwner; //sektor, któremu trzeba zg³osiæ animacjê
  TTrack *pNextAnim; //nastêpny tor do animowania
- TEvent *EventPlus,*EventMinus; //zdarzenia sygnalizacji rozprucia
+ TEvent *evPlus,*evMinus; //zdarzenia sygnalizacji rozprucia
  float fVelocity; //maksymalne ograniczenie prêdkoœci (ustawianej eventem)
 private:
 };
@@ -61,8 +61,8 @@ class TIsolated
  static TIsolated *pRoot; //pocz¹tek listy
 public:
  AnsiString asName; //nazwa obiektu, baza do nazw eventów
- TEvent *eBusy; //zdarzenie wyzwalane po zajêciu grupy
- TEvent *eFree; //zdarzenie wyzwalane po ca³kowitym zwolnieniu zajêtoœci grupy
+ TEvent *evBusy; //zdarzenie wyzwalane po zajêciu grupy
+ TEvent *evFree; //zdarzenie wyzwalane po ca³kowitym zwolnieniu zajêtoœci grupy
  TMemCell *pMemCell; //automatyczna komórka pamiêci, która wspó³pracuje z odcinkiem izolowanym
  __fastcall TIsolated();
  __fastcall TIsolated(const AnsiString &n,TIsolated *i);
@@ -79,8 +79,8 @@ class TTrack : public Resource
 private:
  TSwitchExtension *SwitchExtension; //dodatkowe dane do toru, który jest zwrotnic¹
  TSegment *Segment;
- TTrack *pNext; //odcinek od strony punktu 2 - to powinno byæ w segmencie
- TTrack *pPrev; //odcinek od strony punktu 1
+ TTrack *trNext; //odcinek od strony punktu 2 - to powinno byæ w segmencie
+ TTrack *trPrev; //odcinek od strony punktu 1
  //McZapkie-070402: dodalem zmienne opisujace rozmiary tekstur
  GLuint TextureID1; //tekstura szyn albo nawierzchni
  GLuint TextureID2; //tekstura automatycznej podsypki albo pobocza
@@ -99,14 +99,14 @@ public:
  int iNumDynamics;
  TDynamicObject *Dynamics[iMaxNumDynamics];
  int iEvents; //Ra: flaga informuj¹ca o obecnoœci eventów
- TEvent *Eventall0;  //McZapkie-140302: wyzwalany gdy pojazd stoi
- TEvent *Eventall1;
- TEvent *Eventall2;
- TEvent *Event0;  //McZapkie-280503: wyzwalany tylko gdy headdriver
- TEvent *Event1;
- TEvent *Event2;
- TEvent *EventBusy; //Ra: wyzwalane, gdy zajmowany; nazwa automatyczna
- TEvent *EventFree; //Ra: wyzwalane, gdy zwalniany; nazwa automatyczna
+ TEvent *evEventall0;  //McZapkie-140302: wyzwalany gdy pojazd stoi
+ TEvent *evEventall1;
+ TEvent *evEventall2;
+ TEvent *evEvent0;  //McZapkie-280503: wyzwalany tylko gdy headdriver
+ TEvent *evEvent1;
+ TEvent *evEvent2;
+ TEvent *evEventBusy; //Ra: wyzwalane, gdy zajmowany; nazwa automatyczna
+ TEvent *evEventFree; //Ra: wyzwalane, gdy zwalniany; nazwa automatyczna
  AnsiString asEventall0Name; //nazwy eventów
  AnsiString asEventall1Name;
  AnsiString asEventall2Name;
@@ -146,8 +146,8 @@ public:
  void __fastcall ConnectNextNext(TTrack *pNewNext,int typ);
  inline double __fastcall Length() { return Segment->GetLength(); };
  inline TSegment* __fastcall CurrentSegment() { return Segment; };
- inline TTrack* __fastcall CurrentNext() {return (pNext);};
- inline TTrack* __fastcall CurrentPrev() {return (pPrev);};
+ inline TTrack* __fastcall CurrentNext() {return (trNext);};
+ inline TTrack* __fastcall CurrentPrev() {return (trPrev);};
  bool __fastcall SetConnections(int i);
  bool __fastcall Switch(int i);
  bool __fastcall SwitchForced(int i,TDynamicObject *o);
@@ -175,7 +175,7 @@ public:
  {if (SwitchExtension) SwitchExtension->pOwner=o;};
  bool __fastcall InMovement(); //czy w trakcie animacji?
  void __fastcall RaAssign(TGroundNode *gn,TAnimContainer *ac);
- void __fastcall RaAssign(TGroundNode *gn,TAnimModel *am);
+ void __fastcall RaAssign(TGroundNode *gn,TAnimModel *am,TEvent *done,TEvent *joined);
  void __fastcall RaAnimListAdd(TTrack *t);
  TTrack* __fastcall RaAnimate();
 
@@ -183,7 +183,7 @@ public:
  void __fastcall AxleCounter(int i,TDynamicObject *o)
  {if (pIsolated) pIsolated->Modify(i,o);}; //dodanie lub odjêcie osi
  AnsiString __fastcall IsolatedName();
- bool __fastcall IsolatedEventsAssign(TEvent *busy, TEvent *free);
+ bool __fastcall IsolatedEventsAssign(TEvent *busy,TEvent *free);
  double __fastcall WidthTotal();
  GLuint TextureGet(int i) {return i?TextureID1:TextureID2;};
  bool __fastcall IsGroupable();

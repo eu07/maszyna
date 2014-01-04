@@ -50,8 +50,8 @@ union TParam
     TCommandType asCommand;
 };
 
-class TEvent
-{
+class TEvent //zmienne: ev*
+{//zdarzenie
 private:
  void __fastcall Conditions(cParser* parser,AnsiString s);
 public:
@@ -59,8 +59,8 @@ public:
  bool bEnabled; //false gdy ma nie byæ dodawany do kolejki (skanowanie sygna³ów)
  int iQueued; //ile razy dodany do kolejki
  //bool bIsHistory;
- TEvent *Next; //nastêpny w kolejce
- TEvent *Next2;
+ TEvent *evNext; //nastêpny w kolejce
+ TEvent *evNext2;
  TEventType Type;
  double fStartTime;
  double fDelay;
@@ -68,13 +68,13 @@ public:
  TParam Params[13]; //McZapkie-070502 //Ra: zamieniæ to na union/struct
  unsigned int iFlags; //zamiast Params[8] z flagami warunku
  AnsiString asNodeName; //McZapkie-100302 - dodalem zeby zapamietac nazwe toru
- TEvent *eJoined; //kolejny event z t¹ sam¹ nazw¹ - od wersji 378
+ TEvent *evJoined; //kolejny event z t¹ sam¹ nazw¹ - od wersji 378
 public: //metody
  __fastcall TEvent();
  __fastcall ~TEvent();
  void __fastcall Init();
  void __fastcall Load(cParser* parser,vector3 *org);
- void __fastcall AddToQuery(TEvent *Event);
+ void __fastcall AddToQuery(TEvent *e);
  AnsiString __fastcall CommandGet();
  TCommandType __fastcall Command();
  double __fastcall ValueGet(int n);

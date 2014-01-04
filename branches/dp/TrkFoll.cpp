@@ -84,13 +84,13 @@ bool __fastcall TTrackFollower::Move(double fDistance,bool bPrimary)
     if (iSetFlag(iEventFlag,-1)) //zawsze zeruje flagê sprawdzenia, jak mechanik dosi¹dzie, to siê nie wykona
      if (Owner->Mechanik) //tylko dla jednego cz³onu
       //if (TestFlag(iEventFlag,1)) //McZapkie-280503: wyzwalanie event tylko dla pojazdow z obsada
-      if (bPrimary && pCurrentTrack->Event1 && (!pCurrentTrack->Event1->iQueued))
-       Global::AddToQuery(pCurrentTrack->Event1,Owner); //dodanie do kolejki
+      if (bPrimary && pCurrentTrack->evEvent1 && (!pCurrentTrack->evEvent1->iQueued))
+       Global::AddToQuery(pCurrentTrack->evEvent1,Owner); //dodanie do kolejki
        //Owner->RaAxleEvent(pCurrentTrack->Event1); //Ra: dynamic zdecyduje, czy dodaæ do kolejki
     //if (TestFlag(iEventallFlag,1))
     if (iSetFlag(iEventallFlag,-1)) //McZapkie-280503: wyzwalanie eventall dla wszystkich pojazdow
-     if (bPrimary && pCurrentTrack->Eventall1 && (!pCurrentTrack->Eventall1->iQueued))
-      Global::AddToQuery(pCurrentTrack->Eventall1,Owner); //dodanie do kolejki
+     if (bPrimary && pCurrentTrack->evEventall1 && (!pCurrentTrack->evEventall1->iQueued))
+      Global::AddToQuery(pCurrentTrack->evEventall1,Owner); //dodanie do kolejki
       //Owner->RaAxleEvent(pCurrentTrack->Eventall1); //Ra: dynamic zdecyduje, czy dodaæ do kolejki
    }
    else if (fDistance>0)
@@ -98,25 +98,25 @@ bool __fastcall TTrackFollower::Move(double fDistance,bool bPrimary)
     if (iSetFlag(iEventFlag,-2)) //zawsze ustawia flagê sprawdzenia, jak mechanik dosi¹dzie, to siê nie wykona
      if (Owner->Mechanik) //tylko dla jednego cz³onu
       //if (TestFlag(iEventFlag,2)) //sprawdzanie jest od razu w pierwszym warunku
-      if (bPrimary && pCurrentTrack->Event2 && (!pCurrentTrack->Event2->iQueued))
-       Global::AddToQuery(pCurrentTrack->Event2,Owner);
+      if (bPrimary && pCurrentTrack->evEvent2 && (!pCurrentTrack->evEvent2->iQueued))
+       Global::AddToQuery(pCurrentTrack->evEvent2,Owner);
        //Owner->RaAxleEvent(pCurrentTrack->Event2); //Ra: dynamic zdecyduje, czy dodaæ do kolejki
     //if (TestFlag(iEventallFlag,2))
     if (iSetFlag(iEventallFlag,-2)) //sprawdza i zeruje na przysz³oœæ, true jeœli zmieni z 2 na 0
-     if (bPrimary && pCurrentTrack->Eventall2 && (!pCurrentTrack->Eventall2->iQueued))
-      Global::AddToQuery(pCurrentTrack->Eventall2,Owner);
+     if (bPrimary && pCurrentTrack->evEventall2 && (!pCurrentTrack->evEventall2->iQueued))
+      Global::AddToQuery(pCurrentTrack->evEventall2,Owner);
       //Owner->RaAxleEvent(pCurrentTrack->Eventall2); //Ra: dynamic zdecyduje, czy dodaæ do kolejki
    }
    else //if (fDistance==0) //McZapkie-140602: wyzwalanie zdarzenia gdy pojazd stoi
    {
     if (Owner->Mechanik) //tylko dla jednego cz³onu
-     if (pCurrentTrack->Event0)
-      if (!pCurrentTrack->Event0->iQueued)
-       Global::AddToQuery(pCurrentTrack->Event0,Owner);
+     if (pCurrentTrack->evEvent0)
+      if (!pCurrentTrack->evEvent0->iQueued)
+       Global::AddToQuery(pCurrentTrack->evEvent0,Owner);
        //Owner->RaAxleEvent(pCurrentTrack->Event0); //Ra: dynamic zdecyduje, czy dodaæ do kolejki
-    if (pCurrentTrack->Eventall0)
-     if (!pCurrentTrack->Eventall0->iQueued)
-      Global::AddToQuery(pCurrentTrack->Eventall0,Owner);
+    if (pCurrentTrack->evEventall0)
+     if (!pCurrentTrack->evEventall0->iQueued)
+      Global::AddToQuery(pCurrentTrack->evEventall0,Owner);
       //Owner->RaAxleEvent(pCurrentTrack->Eventall0); //Ra: dynamic zdecyduje, czy dodaæ do kolejki
    }
   }
@@ -209,15 +209,15 @@ bool __fastcall TTrackFollower::Move(double fDistance,bool bPrimary)
     if (Owner->MoverParameters->ActiveCab!=0)
     //if (Owner->MoverParameters->CabNo!=0)
     {
-     if (pCurrentTrack->Event1 && pCurrentTrack->Event1->fDelay<=-1.0f)
-      Global::AddToQuery(pCurrentTrack->Event1,Owner);
-     if (pCurrentTrack->Event2 && pCurrentTrack->Event2->fDelay<=-1.0f)
-      Global::AddToQuery(pCurrentTrack->Event2,Owner);
+     if (pCurrentTrack->evEvent1 && pCurrentTrack->evEvent1->fDelay<=-1.0f)
+      Global::AddToQuery(pCurrentTrack->evEvent1,Owner);
+     if (pCurrentTrack->evEvent2 && pCurrentTrack->evEvent2->fDelay<=-1.0f)
+      Global::AddToQuery(pCurrentTrack->evEvent2,Owner);
     }
-    if (pCurrentTrack->Eventall1 && pCurrentTrack->Eventall1->fDelay<=-1.0f)
-     Global::AddToQuery(pCurrentTrack->Eventall1,Owner);
-    if (pCurrentTrack->Eventall2 && pCurrentTrack->Eventall2->fDelay<=-1.0f)
-     Global::AddToQuery(pCurrentTrack->Eventall2,Owner);
+    if (pCurrentTrack->evEventall1 && pCurrentTrack->evEventall1->fDelay<=-1.0f)
+     Global::AddToQuery(pCurrentTrack->evEventall1,Owner);
+    if (pCurrentTrack->evEventall2 && pCurrentTrack->evEventall2->fDelay<=-1.0f)
+     Global::AddToQuery(pCurrentTrack->evEventall2,Owner);
    }
    fCurrentDistance=s;
    //fDistance=0;
