@@ -23,38 +23,37 @@ __fastcall TGauge::TGauge()
  fDesiredValue=0.0;
  fValue=0.0;
  fOffset=0.0;
- fScale=0.0;
+ fScale=1.0;
  fStepSize=5;
  iChannel=-1; //kana³ analogowej komunikacji zwrotnej
  SubModel=NULL;
-}
+};
 
 __fastcall TGauge::~TGauge()
 {
-}
+};
 
 void __fastcall TGauge::Clear()
 {
-  SubModel= NULL;
-  eType= gt_Unknown;
-  fValue= 0;
-  fDesiredValue= 0;
-}
-
+ SubModel=NULL;
+ eType=gt_Unknown;
+ fValue=0;
+ fDesiredValue=0;
+};
 
 void __fastcall TGauge::Init(TSubModel *NewSubModel,TGaugeType eNewType,double fNewScale,double fNewOffset,double fNewFriction,double fNewValue)
 {//ustawienie parametrów animacji submodelu
  if (NewSubModel)
- {
+ {//warunek na wszelki wypadek, gdyby siê submodel nie pod³¹czy³
   fFriction=fNewFriction;
   fValue=fNewValue;
   fOffset=fNewOffset;
   fScale=fNewScale;
   SubModel=NewSubModel;
   eType=eNewType;
-  NewSubModel->WillBeAnimated(); //wy³¹czenie ignowania jedynkowego transformu 
+  NewSubModel->WillBeAnimated(); //wy³¹czenie ignowania jedynkowego transformu
  }
-}
+};
 
 void __fastcall TGauge::Load(TQueryParserComp *Parser,TModel3d *md1,TModel3d *md2)
 {
@@ -73,89 +72,79 @@ void __fastcall TGauge::Load(TQueryParserComp *Parser,TModel3d *md1,TModel3d *md
   Init(sm,gt_Wiper,val3,val4,val5);
  else
   Init(sm,gt_Rotate,val3,val4,val5);
-}
+};
 
 
 void __fastcall TGauge::PermIncValue(double fNewDesired)
 {
-//    double p;
-//    p= fNewDesired;
-    fDesiredValue= fDesiredValue+fNewDesired*fScale+fOffset;
-    if (fDesiredValue-fOffset>360/fScale)
-    {
-       fDesiredValue=fDesiredValue-(360/fScale);
-       fValue=fValue-(360/fScale);
-    }
-}
+ fDesiredValue=fDesiredValue+fNewDesired*fScale+fOffset;
+ if (fDesiredValue-fOffset>360/fScale)
+ {
+  fDesiredValue=fDesiredValue-(360/fScale);
+  fValue=fValue-(360/fScale);
+ }
+};
 
 void __fastcall TGauge::IncValue(double fNewDesired)
 {
-//    double p;
-//    p= fNewDesired;
-    fDesiredValue= fDesiredValue+fNewDesired*fScale+fOffset;
-    if (fDesiredValue>fScale+fOffset)
-       fDesiredValue=fScale+fOffset;
-}
+ fDesiredValue=fDesiredValue+fNewDesired*fScale+fOffset;
+ if (fDesiredValue>fScale+fOffset)
+  fDesiredValue=fScale+fOffset;
+};
 
 void __fastcall TGauge::DecValue(double fNewDesired)
 {
-//    double p;
-//    p= fNewDesired;
-    fDesiredValue= fDesiredValue-fNewDesired*fScale+fOffset;
-    if(fDesiredValue<0) fDesiredValue=0;
-}
+ fDesiredValue=fDesiredValue-fNewDesired*fScale+fOffset;
+ if (fDesiredValue<0) fDesiredValue=0;
+};
 
 void __fastcall TGauge::UpdateValue(double fNewDesired)
-{
-//    double p;
-//    p= fNewDesired;
+{//ustawienie wartoœci docelowej
  fDesiredValue=fNewDesired*fScale+fOffset;
  if (iChannel>=0)
   Console::ValueSet(iChannel,fNewDesired);
-}
+};
 
-void __fastcall TGauge::PutValue(double fNewDesired) //McZapkie-281102: natychmiastowe wpisanie wartosci
-{
-    fDesiredValue= fNewDesired*fScale+fOffset;
-    fValue=fDesiredValue;
-}
-
+void __fastcall TGauge::PutValue(double fNewDesired)
+{//McZapkie-281102: natychmiastowe wpisanie wartosci
+ fDesiredValue=fNewDesired*fScale+fOffset;
+ fValue=fDesiredValue;
+};
 
 void __fastcall TGauge::Update()
 {
-    float dt=Timer::GetDeltaTime();
-    if (fFriction>0 && dt<fFriction/2)     //McZapkie-281102: zabezpieczenie przed oscylacjami dla dlugich czasow
-        fValue+= dt*(fDesiredValue-fValue)/fFriction;
-    else
-        fValue= fDesiredValue;
-    if (SubModel)
-    {
-     switch (eType)
-     {
-      case gt_Rotate:
-       SubModel->SetRotate(float3(0,1,0),fValue*360.0);
-      break;
-      case gt_Move:
-       SubModel->SetTranslate(float3(0,0,fValue));
-      break;
-      case gt_Wiper:
-       SubModel->SetRotate(float3(0,1,0),fValue*360.0);
-       TSubModel *sm=SubModel->ChildGet();
-       if (sm)
-       {sm->SetRotate(float3(0,1,0),fValue*360.0);
-        sm=sm->ChildGet();
-        if (sm)
-         sm->SetRotate(float3(0,1,0),fValue*360.0);
-       }
-      break;
-     }
+ float dt=Timer::GetDeltaTime();
+ if ((fFriction>0)&&(dt<0.5*fFriction)) //McZapkie-281102: zabezpieczenie przed oscylacjami dla dlugich czasow
+  fValue+=dt*(fDesiredValue-fValue)/fFriction;
+ else
+  fValue=fDesiredValue;
+ if (SubModel)
+ {//warunek na wszelki wypadek, gdyby siê submodel nie pod³¹czy³
+  switch (eType)
+  {
+   case gt_Rotate:
+    SubModel->SetRotate(float3(0,1,0),fValue*360.0);
+   break;
+   case gt_Move:
+    SubModel->SetTranslate(float3(0,0,fValue));
+   break;
+   case gt_Wiper:
+    SubModel->SetRotate(float3(0,1,0),fValue*360.0);
+    TSubModel *sm=SubModel->ChildGet();
+    if (sm)
+    {sm->SetRotate(float3(0,1,0),fValue*360.0);
+     sm=sm->ChildGet();
+     if (sm)
+      sm->SetRotate(float3(0,1,0),fValue*360.0);
     }
-
-}
+   break;
+  }
+ }
+};
 
 void __fastcall TGauge::Render()
 {
-}
+};
 
 //---------------------------------------------------------------------------
 
