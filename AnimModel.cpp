@@ -306,7 +306,7 @@ void __fastcall TAnimContainer::UpdateModelIK()
 
 bool __fastcall TAnimContainer::InMovement()
 {//czy trwa animacja - informacja dla obrotnicy
- return fRotateSpeed!=0.0;
+ return (fRotateSpeed!=0.0)||(fTranslateSpeed!=0.0);
 }
 
 void __fastcall TAnimContainer::EventAssign(TEvent *ev)

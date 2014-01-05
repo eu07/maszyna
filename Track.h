@@ -49,6 +49,7 @@ public:
  TTrack *pNextAnim; //nastêpny tor do animowania
  TEvent *evPlus,*evMinus; //zdarzenia sygnalizacji rozprucia
  float fVelocity; //maksymalne ograniczenie prêdkoœci (ustawianej eventem)
+ vector3 vTrans;
 private:
 };
 
