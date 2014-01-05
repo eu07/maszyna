@@ -70,6 +70,7 @@ public:
  void __fastcall UpdateModelIK();
  bool __fastcall InMovement(); //czy w trakcie animacji?
  double _fastcall AngleGet() {return vRotateAngles.z;}; //jednak ostatnia, T3D ma inny uk³ad
+ vector3 _fastcall TransGet() {return vector3(-vTranslation.x,vTranslation.z,vTranslation.y);}; //zmiana, bo T3D ma inny uk³ad
  void __fastcall WillBeAnimated() {if (pSubModel) pSubModel->WillBeAnimated();};
  void __fastcall EventAssign(TEvent *ev);
  TEvent* __fastcall Event() {return evDone;};

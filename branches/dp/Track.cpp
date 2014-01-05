@@ -43,13 +43,14 @@ __fastcall TSwitchExtension::TSwitchExtension(TTrack *owner,int what)
  pNextAnim=NULL;
  bMovement=false; //nie potrzeba przeliczaæ fOffset1
  Segments[0]=new TSegment(owner); //z punktu 1 do 2
- Segments[1]=new TSegment(owner); //z punktu 3 do 4 (1=3 dla zwrotnic) 
+ Segments[1]=new TSegment(owner); //z punktu 3 do 4 (1=3 dla zwrotnic)
  Segments[3]=NULL; //z punktu 1 do 3       skrzy¿owanie od góry:
  Segments[4]=NULL; //z punktu 2 do 4              1
  Segments[5]=NULL; //z punktu 3 do 2            3 x 4
  Segments[6]=NULL; //z punktu 4 do 3              2
  evPlus=evMinus=NULL;
  fVelocity=-1.0; //maksymalne ograniczenie prêdkoœci (ustawianej eventem)
+ vTrans=vector3(0,0,0); //docelowa translacja przesuwnicy
 }
 __fastcall TSwitchExtension::~TSwitchExtension()
 {//nie ma nic do usuwania
@@ -1045,20 +1046,22 @@ void __fastcall TTrack::Compile(GLuint tex)
    switch (eType) //dalej zale¿nie od typu
    {
     case tt_Table: //obrotnica jak zwyk³y tor, tylko animacja dochodzi
+/* //to jest przeliczane w RaAnimate(), tutaj tylko regeneracja siatek
      if (InMovement()) //jeœli siê krêci
      {//wyznaczamy wspó³rzêdne koñców, przy za³o¿eniu sta³ego œródka i d³ugoœci
-      double hlen=0.5*SwitchExtension->Segments[0]->GetLength(); //po³owa d³ugoœci
       //SwitchExtension->fOffset1=SwitchExtension->pAnim?SwitchExtension->pAnim->AngleGet():0.0; //pobranie k¹ta z modelu
       TAnimContainer *ac=SwitchExtension->pModel?SwitchExtension->pModel->GetContainer(NULL):NULL;
       if (ac)
-       SwitchExtension->fOffset1=ac?180+ac->AngleGet():0.0; //pobranie k¹ta z modelu
-      double sina=hlen*sin(DegToRad(SwitchExtension->fOffset1)),cosa=hlen*cos(DegToRad(SwitchExtension->fOffset1));
-      vector3 middle=SwitchExtension->pMyNode->pCenter; //SwitchExtension->Segments[0]->FastGetPoint(0.5);
-      Segment->Init(middle+vector3(sina,0.0,cosa),middle-vector3(sina,0.0,cosa),5.0);
-      //aktualizacja pojazdów na torze
-      for (int i=0;i<iNumDynamics;i++)
-       Dynamics[i]->Move(0.000001); //minimalny ruch, aby przeliczyæ pozycjê i k¹ty
+       if ((ac->AngleGet()!=SwitchExtension->fOffset1)||!(ac->TransGet()==SwitchExtension->vTrans)) //czy przemieœci³o siê od ostatniego sprawdzania
+       {SwitchExtension->fOffset1=ac->AngleGet(); //pobranie k¹ta z modelu
+        double hlen=0.5*SwitchExtension->Segments[0]->GetLength(); //po³owa d³ugoœci
+        double sina=-hlen*sin(DegToRad(SwitchExtension->fOffset1)),cosa=-hlen*cos(DegToRad(SwitchExtension->fOffset1));
+        SwitchExtension->vTrans=ac->TransGet();
+        vector3 middle=SwitchExtension->pMyNode->pCenter+SwitchExtension->vTrans; //SwitchExtension->Segments[0]->FastGetPoint(0.5);
+        Segment->Init(middle+vector3(sina,0.0,cosa),middle-vector3(sina,0.0,cosa),5.0);
+       }
      }
+*/
     case tt_Normal:
      if (TextureID2)
       if (tex?TextureID2==tex:true) //jeœli pasuje do grupy (tex)
@@ -1454,7 +1457,7 @@ bool __fastcall TTrack::InMovement()
    {if (!SwitchExtension->CurrentIndex) return false; //0=zablokowana siê nie animuje
     //trzeba ka¿dorazowo porównywaæ z k¹tem modelu
     TAnimContainer *ac=SwitchExtension->pModel?SwitchExtension->pModel->GetContainer(NULL):NULL;
-    return ac?(ac->AngleGet()!=SwitchExtension->fOffset1):false;
+    return ac?(ac->AngleGet()!=SwitchExtension->fOffset1)||!(ac->TransGet()==SwitchExtension->vTrans):false;
     //return true; //jeœli jest taki obiekt
    }
  }
@@ -2170,25 +2173,30 @@ TTrack* __fastcall TTrack::RaAnimate()
    //SwitchExtension->fOffset1=SwitchExtension->pAnim?SwitchExtension->pAnim->AngleGet():0.0; //pobranie k¹ta z modelu
    TAnimContainer *ac=SwitchExtension->pModel?SwitchExtension->pModel->GetContainer(NULL):NULL; //pobranie g³ównego submodelu
    //if (ac) ac->EventAssign(SwitchExtension->evMinus); //event zakoñczenia animacji, trochê bez sensu tutaj
-   if (ac?(ac->AngleGet()!=SwitchExtension->fOffset1):false) //czy przemieœci³o siê od ostatniego sprawdzania
-   {double hlen=0.5*SwitchExtension->Segments[0]->GetLength(); //po³owa d³ugoœci
-    SwitchExtension->fOffset1=180+ac->AngleGet(); //pobranie k¹ta z submodelu
-    double sina=hlen*sin(DegToRad(SwitchExtension->fOffset1)),cosa=hlen*cos(DegToRad(SwitchExtension->fOffset1));
-    vector3 middle=SwitchExtension->Segments[0]->FastGetPoint(0.5);
-    Segment->Init(middle+vector3(sina,0.0,cosa),middle-vector3(sina,0.0,cosa),5.0); //nowy odcinek
-    if (Global::bUseVBO)
-    {//dla OpenGL 1.4 odœwie¿y siê ca³y sektor, w póŸniejszych poprawiamy fragment
-     if (Global::bOpenGL_1_5) //dla OpenGL 1.4 to siê nie wykona poprawnie
-     {int size=RaArrayPrepare(); //wielkoœæ tabeli potrzebna dla tej obrotnicy
-      CVertNormTex *Vert=new CVertNormTex[size]; //bufor roboczy
-      //CVertNormTex *v=Vert; //zmieniane przez
-      RaArrayFill(Vert,Vert-SwitchExtension->iLeftVBO); //iLeftVBO powinno zostaæ niezmienione
-      glBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iLeftVBO*sizeof(CVertNormTex),size*sizeof(CVertNormTex),Vert); //wys³anie fragmentu bufora VBO
+   if (ac)
+    if ((ac->AngleGet()!=SwitchExtension->fOffset1)||!(ac->TransGet()==SwitchExtension->vTrans)) //czy przemieœci³o siê od ostatniego sprawdzania
+    {double hlen=0.5*SwitchExtension->Segments[0]->GetLength(); //po³owa d³ugoœci
+     SwitchExtension->fOffset1=ac->AngleGet(); //pobranie k¹ta z submodelu
+     double sina=-hlen*sin(DegToRad(SwitchExtension->fOffset1)),cosa=-hlen*cos(DegToRad(SwitchExtension->fOffset1));
+     SwitchExtension->vTrans=ac->TransGet();
+     vector3 middle=SwitchExtension->pMyNode->pCenter+SwitchExtension->vTrans; //SwitchExtension->Segments[0]->FastGetPoint(0.5);
+     Segment->Init(middle+vector3(sina,0.0,cosa),middle-vector3(sina,0.0,cosa),5.0); //nowy odcinek
+     for (int i=0;i<iNumDynamics;i++)
+      Dynamics[i]->Move(0.000001); //minimalny ruch, aby przeliczyæ pozycjê i k¹ty
+     if (Global::bUseVBO)
+     {//dla OpenGL 1.4 odœwie¿y siê ca³y sektor, w póŸniejszych poprawiamy fragment
+      //aktualizacja pojazdów na torze
+      if (Global::bOpenGL_1_5) //dla OpenGL 1.4 to siê nie wykona poprawnie
+      {int size=RaArrayPrepare(); //wielkoœæ tabeli potrzebna dla tej obrotnicy
+       CVertNormTex *Vert=new CVertNormTex[size]; //bufor roboczy
+       //CVertNormTex *v=Vert; //zmieniane przez
+       RaArrayFill(Vert,Vert-SwitchExtension->iLeftVBO); //iLeftVBO powinno zostaæ niezmienione
+       glBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iLeftVBO*sizeof(CVertNormTex),size*sizeof(CVertNormTex),Vert); //wys³anie fragmentu bufora VBO
+      }
      }
-    }
-    else //gdy Display List
-     Release(); //niszczenie skompilowanej listy, aby siê wygenerowa³a nowa
-   } //animacja trwa nadal
+     else //gdy Display List
+      Release(); //niszczenie skompilowanej listy, aby siê wygenerowa³a nowa
+    } //animacja trwa nadal
   } else m=false; //koniec animacji albo w ogóle nie po³¹czone z modelem
  }
  return m?this:SwitchExtension->pNextAnim; //zwraca obiekt do dalszej animacji
