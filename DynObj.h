@@ -83,7 +83,7 @@ public:
  double PantWys; //Ra: aktualna wysokoœæ uniesienia œlizgu do porównania z wysokoœci¹ drutu
  double fAngleL; //Winger 160204: aktualny k¹t ramienia dolnego
  double fAngleU; //Ra: aktualny k¹t ramienia górnego
- double NoVoltTime; //czas bez zasilania
+ double NoVoltTime; //czas od utraty kontaktu z drutem
  TTraction *hvPowerWire; //aktualnie podczepione druty, na razie tu
 };
 

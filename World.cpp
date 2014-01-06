@@ -635,7 +635,7 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
 
 void __fastcall TWorld::OnKeyDown(int cKey)
 {//(cKey) to kod klawisza, cyfrowe i literowe siê zgadzaj¹
- if (!Global::bPause)
+ if (!Global::iPause)
  {//podczas pauzy klawisze nie dzia³aj¹
   AnsiString info="Key pressed: [";
   if (Console::Pressed(VK_SHIFT)) info+="Shift]+[";
@@ -667,7 +667,7 @@ void __fastcall TWorld::OnKeyDown(int cKey)
  {int i=cKey-'0'; //numer klawisza
   if (Console::Pressed(VK_SHIFT))
   {//z [Shift] uruchomienie eventu
-   if (!Global::bPause) //podczas pauzy klawisze nie dzia³aj¹
+   if (!Global::iPause) //podczas pauzy klawisze nie dzia³aj¹
     if (KeyEvents[i])
      Ground.AddToQuery(KeyEvents[i],NULL);
   }
@@ -744,7 +744,7 @@ void __fastcall TWorld::OnKeyDown(int cKey)
  {//hamowanie wszystkich pojazdów w okolicy
   Ground.RadioStop(Camera.Pos);
  }
- else if (!Global::bPause) //||(cKey==VK_F4)) //podczas pauzy sterownaie nie dzia³a, F4 tak
+ else if (!Global::iPause) //||(cKey==VK_F4)) //podczas pauzy sterownaie nie dzia³a, F4 tak
   if (Train)
    if (Controlled)
     if ((Controlled->Controller==Humandriver)?true:DebugModeFlag||(cKey=='Q'))
@@ -791,7 +791,7 @@ void __fastcall TWorld::OnKeyDown(int cKey)
 
 void __fastcall TWorld::OnKeyUp(int cKey)
 {//zwolnienie klawisza; (cKey) to kod klawisza, cyfrowe i literowe siê zgadzaj¹
- if (!Global::bPause) //podczas pauzy sterownaie nie dzia³a
+ if (!Global::iPause) //podczas pauzy sterownaie nie dzia³a
   if (Train)
    if (Controlled)
     if ((Controlled->Controller==Humandriver)?true:DebugModeFlag||(cKey=='Q'))
@@ -974,8 +974,8 @@ bool __fastcall TWorld::Update()
 */
   iCheckFPS=0.25*GetFPS(); //tak za 0.25 sekundy sprawdziæ ponownie (jeszcze przycina?)
  }
- UpdateTimers(Global::bPause);
- if (!Global::bPause)
+ UpdateTimers(Global::iPause);
+ if (!Global::iPause)
  {//jak pauza, to nie ma po co tego przeliczaæ
   GlobalTime->UpdateMTableTime(GetDeltaTime()); //McZapkie-300302: czas rozkladowy
   //Ra: przeliczenie k¹ta czasu (do animacji zale¿nych od czasu)
@@ -1188,8 +1188,11 @@ bool __fastcall TWorld::Update()
    else
    {//patrzenie standardowe
     Camera.Pos=Train->pMechPosition;//Train.GetPosition1();
-    Camera.Roll=atan(Train->pMechShake.x*Train->fMechRoll); //hustanie kamery na boki
-    Camera.Pitch-=atan(Train->vMechVelocity.z*Train->fMechPitch); //hustanie kamery przod tyl //Ra: tu jest uciekanie kamery w górê!!!
+    if (!Global::iPause)
+    {//podczas pauzy nie przeliczaæ k¹tów przypadkowymi wartoœciami
+     Camera.Roll=atan(Train->pMechShake.x*Train->fMechRoll); //hustanie kamery na boki
+     Camera.Pitch-=atan(Train->vMechVelocity.z*Train->fMechPitch); //hustanie kamery przod tyl //Ra: tu jest uciekanie kamery w górê!!!
+    }
     //ABu011104: rzucanie pudlem
     vector3 temp;
     if (abs(Train->pMechShake.y)<0.25)
@@ -1536,7 +1539,7 @@ bool __fastcall TWorld::Update()
      i=floor(GlobalTime->mr); //bo inaczej potrafi zrobiæ "hh:mm:010"
      if (i<10) OutText1+="0";
      OutText1+=AnsiString(i);
-     if (Global::bPause) OutText1+=" - paused";
+     if (Global::iPause) OutText1+=" - paused";
      if (Controlled)
       if (Controlled->Mechanik)
       {OutText2=Controlled->Mechanik->Relation();

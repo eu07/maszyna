@@ -432,9 +432,11 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
   //case WM_ACTIVATEAPP:
   {//Ra: uzale¿nienie aktywnoœci od bycia na wierzchu
    Global::bActive=(LOWORD(wParam)!=WA_INACTIVE);
-   if (Global::bInactivePause)
-    //if (!Global::bActive)
-     Global::bPause=!Global::bActive; //w³¹czenie pauzy, gdy nieaktywy
+   if (Global::bInactivePause) //jeœli ma byæ pauzowanie okna w tle
+    if (Global::bActive)
+     Global::iPause&=~4; //odpauzowanie, gdy jest na pierwszym planie
+    else
+     Global::iPause|=4; //w³¹czenie pauzy, gdy nieaktywy
    if (Global::bActive)
     SetCursorPos(mx,my);
    ShowCursor(!Global::bActive);
@@ -496,10 +498,12 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
      case VK_ESCAPE: //[Esc] pauzuje tylko bez Debugmode
       if (DebugModeFlag) break;
      case 19: //[Pause]
-      if (!Global::iMultiplayer||Global::bPause) //w multiplayerze pauza nie ma sensu
-       if (!Console::Pressed(VK_CONTROL))
-        Global::bPause=!Global::bPause; //zmiana stanu zapauzowania
-      if (Global::bPause) //jak pauza
+      if (Global::iPause&1) //jeœli pauza startowa
+       Global::iPause&=~1; //odpauzowanie, gdy po wczytaniu mia³o nie startowaæ
+      else if (!Global::iMultiplayer) //w multiplayerze pauza nie ma sensu
+       if (!Console::Pressed(VK_CONTROL)) //z [Ctrl] to radiostop jest
+        Global::iPause^=2; //zmiana stanu zapauzowania
+      if (Global::iPause) //jak pauza
        Global::iTextMode=VK_F1; //to wyœwietliæ zegar i informacjê
       break;
      case VK_F7:

@@ -26,18 +26,27 @@ __fastcall TPoKeys55::TPoKeys55()
  iPWM[0]=iPWM[1]=iPWM[2]=iPWM[3]=iPWM[4]=iPWM[5]=iPWM[6]=0;
  iPWM[7]=4096;
  iInputs[0]=0; //czy normalnie s¹ w stanie wysokim?
- iRepated=0;
+ iRepeats=0;
 };
 //---------------------------------------------------------------------------
 __fastcall TPoKeys55::~TPoKeys55()
 {
- if (WriteHandle!=INVALID_HANDLE_VALUE) CloseHandle(WriteHandle);
- if (ReadHandle!=INVALID_HANDLE_VALUE) CloseHandle(ReadHandle);
+ Close();
+};
+//---------------------------------------------------------------------------
+bool __fastcall TPoKeys55::Close()
+{//roz³¹czenie komunikacji
+ if (WriteHandle!=INVALID_HANDLE_VALUE)
+  CloseHandle(WriteHandle);
+ WriteHandle=INVALID_HANDLE_VALUE;
+ if (ReadHandle!=INVALID_HANDLE_VALUE)
+  CloseHandle(ReadHandle);
+ ReadHandle=INVALID_HANDLE_VALUE;
 };
 //---------------------------------------------------------------------------
 bool __fastcall TPoKeys55::Connect()
 {//Ra: to jest do wyczyszcznia z niepotrzebnych zmiennych i komunikatów
-
+ Close();
  GUID InterfaceClassGuid={0x4d1e55b2,0xf16f,0x11cf,0x88,0xcb,0x00,0x11,0x11,0x00,0x00,0x30}; //wszystkie HID tak maj¹
  HDEVINFO DeviceInfoTable;
  PSP_DEVICE_INTERFACE_DATA InterfaceDataStructure=new SP_DEVICE_INTERFACE_DATA;
@@ -57,7 +66,7 @@ bool __fastcall TPoKeys55::Connect()
  //First populate a list of plugged in devices (by specifying "DIGCF_PRESENT"), which are of the specified class GUID.
  DeviceInfoTable=SetupDiGetClassDevs(&InterfaceClassGuid,NULL,NULL,DIGCF_PRESENT|DIGCF_DEVICEINTERFACE);
  //Now look through the list we just populated.  We are trying to see if any of them match our device.
- while(true)
+ while (true)
  {
   InterfaceDataStructure->cbSize=sizeof(SP_DEVICE_INTERFACE_DATA);
   if (SetupDiEnumDeviceInterfaces(DeviceInfoTable, NULL, &InterfaceClassGuid, InterfaceIndex, InterfaceDataStructure))
@@ -140,6 +149,7 @@ bool __fastcall TPoKeys55::Connect()
     //StateLabel->Enabled=true;//Make label no longer greyed out
    }
    SetupDiDestroyDeviceInfoList(DeviceInfoTable);	//Clean up the old structure we no longer need.
+   iRepeats=0; //nowe szanse na pod³¹czenie
    return true;
   }
   InterfaceIndex++;
@@ -245,6 +255,7 @@ bool __fastcall TPoKeys55::Update()
    *((int*)(OutputBuffer+34))=iPWM[7]; //PWM period
    Write(0xCB,1); //wys³anie ustawieñ (1-ustaw, 0-odczyt)
    ++iFaza; //ta faza zosta³a zakoñczona
+   //iRepeats=0;
   break;
   case 1: //odczyt wejœæ analogowych - komenda i przetwarzanie
    if (iLastCommand!=0x3A) //asynchroniczne ustawienie kontrolki mo¿e namieszaæ
@@ -259,9 +270,9 @@ bool __fastcall TPoKeys55::Update()
     fAnalog[5]=((InputBuffer[11]<<8)+InputBuffer[12])/4095.0f; //pin 42
     fAnalog[6]=((InputBuffer[ 9]<<8)+InputBuffer[10])/4095.0f; //pin 41
     ++iFaza; //skoro odczytano, mo¿na przejœæ do kolejnej fazy
-    //iRepated=0; //zerowanie licznika prób
+    iRepeats=0; //zerowanie licznika prób
    }
-   //else ++iRepated; //licznik nieudanych prób
+   else ++iRepeats; //licznik nieudanych prób
   break;
   case 2: //odczyt wejœæ cyfrowych - komenda i przetwarzanie
    if (iLastCommand!=0x31) //asynchroniczne ustawienie kontrolki mo¿e namieszaæ
@@ -270,19 +281,23 @@ bool __fastcall TPoKeys55::Update()
    {//jest odebrana ramka i zgodnoœæ numeru ¿¹dania
     iInputs[0]=*((int*)(InputBuffer+3)); //odczyt 32 bitów
     iFaza=3; //skoro odczytano, mo¿na kolejny cykl
-    //iRepated=0; //zerowanie licznika prób
+    iRepeats=0; //zerowanie licznika prób
    }
-   //else ++iRepated; //licznik nieudanych prób
+   else ++iRepeats; //licznik nieudanych prób
   break;
   case 3: //ustawienie wyjœæ analogowych, 0..4095 mapowaæ na 0..65520 (<<4)
    Write(0x41,43-1,(iPWM[6]>>4),(iPWM[6]<<4)); //wys³anie ustawieñ
    iFaza=0; //++iFaza; //ta faza zosta³a zakoñczona
    //powinno jeszcze przyjœæ potwierdzenie o kodzie 0x41
+   //iRepeats=0;
   break;
   default:
    iFaza=0; //na wypadek, gdyby zb³¹dzi³o po jakichœ zmianach w kodzie
+   //iRepeats=0;
  }
- //if (iRepated>10) iFaza=0; //da to coœ?
- return (!iFaza); //dalsze operacje tylko po ca³ym cyklu
+ if (iRepeats>=5) ++iFaza; //przekroczenie liczby prób wymusza kolejn¹ fazê
+ return (iRepeats<5); //true oznacza prawid³owe dzia³anie
+ //czy w przypadku b³êdu komunikacji z PoKeys w³¹czaæ pauzê?
+ //dopiero poprawne pod³¹czenie zeruje licznik prób
 };
 

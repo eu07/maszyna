@@ -199,7 +199,9 @@ bool __fastcall TSpeedPos::Update(vector3 *p,vector3 *dir,double &len)
     {//Ra: zak³adam, ¿e s¹ tylko 2 mo¿liwe stany
      iFlags^=16;
      fVelNext=tTrack->VelocityGet(); //nowa prêdkoœæ
-     return true; //jeszcze trzeba skanowanie wykonaæ od tego toru
+     if ((iFlags&32)==0) return true; //jeszcze trzeba skanowanie wykonaæ od tego toru
+     //problem jest chyba, jeœli zwrotnica siê prze³o¿y zaraz po zjechaniu z niej
+     //na Mydelniczce potrafi skanowaæ na wprost mimo pojechania na bok
     }
     if ((iFlags&32)?false:tTrack->iNumDynamics>0) //jeœli jeszcze nie wjechano na tor, a coœ na nim jest
      fDist-=30.0,fVelNext=0.0; //to niech stanie w zwiêkszonej odleg³oœci
