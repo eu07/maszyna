@@ -70,7 +70,7 @@ int __fastcall TAnim::TypeSet(int i)
    //fParamPants->PantWys=1.176289*sin(fParamPants->fAngleL)+1.724482197*sin(fParamPants->fAngleU); //wysokoœæ pocz¹tkowa
    fParamPants->PantWys=fParamPants->fLenL1*sin(fParamPants->fAngleL)+fParamPants->fLenU1*sin(fParamPants->fAngleU)+fParamPants->fHeight; //wysokoœæ pocz¹tkowa
    fParamPants->PantTraction=fParamPants->PantWys;
-   fParamPants->PowerWire=NULL;
+   fParamPants->hvPowerWire=NULL;
   break;
   case 6: iFlags=0x068; break; //6-t³ok i rozrz¹d - 8 submodeli
   default: iFlags=0;
@@ -2271,27 +2271,27 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
    switch (i) //numer pantografu
    {//trzeba usun¹æ to rozró¿nienie
     case 0:
-     if (Global::bLiveTraction?false:!p->PowerWire) //jeœli nie ma drutu, mo¿e pooszukiwaæ
+     if (Global::bLiveTraction?false:!p->hvPowerWire) //jeœli nie ma drutu, mo¿e pooszukiwaæ
       MoverParameters->PantFrontVolt=(p->PantWys>=1.4)?0.95*MoverParameters->EnginePowerSource.MaxVoltage:0.0;
      else
       if (MoverParameters->PantFrontUp?(PantDiff<0.01):false)
       {
        if ((MoverParameters->PantFrontVolt==0.0)&&(MoverParameters->PantRearVolt==0.0))
         sPantUp.Play(vol,0,MechInside,vPosition);
-       MoverParameters->PantFrontVolt=p->PowerWire?p->PowerWire->NominalVoltage:0.0;
+       MoverParameters->PantFrontVolt=p->hvPowerWire?p->hvPowerWire->NominalVoltage:0.0;
       }
       else
        MoverParameters->PantFrontVolt=0.0;
     break;
     case 1:
-     if (Global::bLiveTraction?false:!p->PowerWire) //jeœli nie ma drutu, mo¿e pooszukiwaæ
+     if (Global::bLiveTraction?false:!p->hvPowerWire) //jeœli nie ma drutu, mo¿e pooszukiwaæ
       MoverParameters->PantRearVolt=(p->PantWys>=1.4)?0.95*MoverParameters->EnginePowerSource.MaxVoltage:0.0;
      else
       if (MoverParameters->PantRearUp?(PantDiff<0.01):false)
       {
        if ((MoverParameters->PantRearVolt==0.0)&&(MoverParameters->PantFrontVolt==0.0))
         sPantUp.Play(vol,0,MechInside,vPosition);
-       MoverParameters->PantRearVolt=p->PowerWire?p->PowerWire->NominalVoltage:0.0;
+       MoverParameters->PantRearVolt=p->hvPowerWire?p->hvPowerWire->NominalVoltage:0.0;
       }
       else
        MoverParameters->PantRearVolt=0.0;

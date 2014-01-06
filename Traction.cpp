@@ -34,7 +34,7 @@ TTraction::TTraction()
     asPowerSupplyName="";
 //    mdPole= NULL;
 //    ReplacableSkinID= 0;
- pPrev=pNext=NULL;
+ hvNext[0]=hvNext[1]=NULL;
  iLast=1; //¿e niby ostatni drut
 }
 
@@ -380,10 +380,10 @@ void  __fastcall TTraction::RenderVBO(float mgn,int iPtr)
 
 int __fastcall TTraction::TestPoint(vector3 *Point)
 {//sprawdzanie, czy przês³a mo¿na po³¹czyæ
- if (pPrev==NULL)
+ if (!hvNext[0])
   if (pPoint1.Equal(Point))
    return 0;
- if (pNext==NULL)
+ if (!hvNext[1])
   if (pPoint2.Equal(Point))
    return 1;
  return -1;
@@ -393,39 +393,39 @@ void __fastcall TTraction::Connect(int my,TTraction *with,int to)
 {//³¹czenie segmentu (with) od strony (my) do jego (to)
  if (my)
  {//do mojego Point2
-  pNext=with;
-  iNext=to;
+  hvNext[1]=with;
+  iNext[1]=to;
  }
  else
  {//do mojego Point1
-  pPrev=with;
-  iPrev=to;
+  hvNext[0]=with;
+  iNext[0]=to;
  }
  if (to)
  {//do jego Point2
-  with->pNext=this;
-  with->iNext=my;
+  with->hvNext[1]=this;
+  with->iNext[1]=my;
  }
  else
  {//do jego Point1
-  with->pPrev=this;
-  with->iPrev=my;
+  with->hvNext[0]=this;
+  with->iNext[0]=my;
  }
- if (pPrev) //jeœli z obu stron pod³¹czony
-  if (pNext)
+ if (hvNext[0]) //jeœli z obu stron pod³¹czony
+  if (hvNext[1])
    iLast=0; //to nie jest ostatnim
- if (with->pPrev) //temu te¿, bo drugi raz ³¹czenie siê nie nie wykona
-  if (with->pNext)
+ if (with->hvNext[0]) //temu te¿, bo drugi raz ³¹czenie siê nie nie wykona
+  if (with->hvNext[1])
    with->iLast=0; //to nie jest ostatnim
 };
 
 void __fastcall TTraction::WhereIs()
 {//ustalenie przedostatnich przêse³
  if (iLast) return; //ma ju¿ ustalon¹ informacjê o po³o¿eniu
- if (pPrev?pPrev->iLast==1:false) //jeœli poprzedni jest ostatnim
+ if (hvNext[0]?hvNext[0]->iLast==1:false) //jeœli poprzedni jest ostatnim
   iLast=2; //jest przedostatnim
  else
-  if (pNext?pNext->iLast==1:false) //jeœli nastêpny jest ostatnim
+  if (hvNext[1]?hvNext[1]->iLast==1:false) //jeœli nastêpny jest ostatnim
    iLast=2; //jest przedostatnim
 };
 

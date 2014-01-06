@@ -92,7 +92,7 @@ public:
   TGroundVertex *Vertices; //wierzcho³ki dla trójk¹tów
   TMemCell *MemCell; //komórka pamiêci
   TEventLauncher *EvLaunch; //wyzwalacz zdarzeñ
-  TTraction *Traction; //drut zasilaj¹cy
+  TTraction *hvTraction; //drut zasilaj¹cy
   TTractionPowerSource *TractionPowerSource; //zasilanie drutu (zaniedbane w sceneriach)
   TRealSound *pStaticSound; //dŸwiêk przestrzenny
   TGroundNode *nNode; //obiekt renderuj¹cy grupowo ma tu wskaŸnik na listê obiektów
@@ -300,7 +300,8 @@ public:
  TGroundNode* __fastcall GetNode(AnsiString asName);
  bool __fastcall AddDynamic(TGroundNode *Node);
  void __fastcall MoveGroundNode(vector3 pPosition);
- bool __fastcall Update(double dt, int iter);
+ void __fastcall UpdatePhys(double dt,int iter); //aktualizacja fizyki sta³ym krokiem
+ bool __fastcall Update(double dt,int iter); //aktualizacja przesuniêæ zgodna z FPS
  bool __fastcall AddToQuery(TEvent *Event, TDynamicObject *Node);
  bool __fastcall GetTraction(TDynamicObject *model);
  bool __fastcall RenderDL(vector3 pPosition);
