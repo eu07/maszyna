@@ -15,7 +15,7 @@ private:
  static int iMode; //tryb pracy
  static int iConfig; //dodatkowa informacja o sprzêcie (np. numer LPT)
  static int iBits; //podstawowy zestaw lampek
- static TPoKeys55 *PoKeys55;
+ static TPoKeys55 *PoKeys55[2]; //mo¿e ich byæ kilka
  static TLPT *LPT;
  static void __fastcall BitsUpdate(int mask);
  //zmienne dla trybu "jednokabinowego", potrzebne do wspó³pracy z pulpitem (PoKeys)

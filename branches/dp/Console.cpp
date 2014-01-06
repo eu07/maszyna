@@ -99,14 +99,14 @@ void SetLedState(char Code,bool bOn)
 int Console::iBits=0; //zmienna statyczna - obiekt Console jest jednen wspólny
 int Console::iMode=0;
 int Console::iConfig=0;
-TPoKeys55 *Console::PoKeys55=NULL;
+TPoKeys55 *Console::PoKeys55[2]={NULL,NULL};
 TLPT *Console::LPT=NULL;
 int Console::iSwitch[8]; //bistabilne w kabinie, za³¹czane z [Shift], wy³¹czane bez
 int Console::iButton[8]; //monostabilne w kabinie, za³¹czane podczas trzymania klawisza
 
 __fastcall Console::Console()
 {
- PoKeys55=NULL;
+ PoKeys55[0]=PoKeys55[1]=NULL;
  for (int i=0;i<8;++i)
  {//zerowanie prze³¹czników
   iSwitch[i]=0; //bity 0..127 - bez [Ctrl], 128..255 - z [Ctrl]
@@ -116,7 +116,8 @@ __fastcall Console::Console()
 
 __fastcall Console::~Console()
 {
- delete PoKeys55;
+ delete PoKeys55[0];
+ delete PoKeys55[1];
 };
 
 void __fastcall Console::ModeSet(int m,int h)
@@ -148,15 +149,15 @@ int __fastcall Console::On()
    }
   break;
   case 4: //PoKeys
-   PoKeys55=new TPoKeys55();
-   if (PoKeys55?PoKeys55->Connect():false)
-   {WriteLog("Found "+PoKeys55->Version());
+   PoKeys55[0]=new TPoKeys55();
+   if (PoKeys55[0]?PoKeys55[0]->Connect():false)
+   {WriteLog("Found "+PoKeys55[0]->Version());
     BitsUpdate(-1); //aktualizacjia stanów, bo przy wczytywaniu mog³o byæ nieaktywne
    }
    else
    {//po³¹czenie nie wysz³o, ma byæ NULL
-    delete PoKeys55;
-    PoKeys55=NULL;
+    delete PoKeys55[0];
+    PoKeys55[0]=NULL;
    }
   break;
  }
@@ -172,7 +173,8 @@ void __fastcall Console::Off()
    SetLedState(VK_SCROLL,true); //przyciœniêty
    SetLedState(VK_SCROLL,false); //zwolniony
   }
- delete PoKeys55; PoKeys55=NULL;
+ delete PoKeys55[0]; PoKeys55[0]=NULL;
+ delete PoKeys55[1]; PoKeys55[1]=NULL;
  delete LPT; LPT=NULL;
 };
 
@@ -220,36 +222,36 @@ void __fastcall Console::BitsUpdate(int mask)
     LPT->Out(iBits);
    break;
   case 4: //PoKeys55 wg Marcela - wersja druga z koñca 2012
-   if (PoKeys55)
+   if (PoKeys55[0])
    {//pewnie trzeba bêdzie to dodatkowo buforowaæ i oczekiwaæ na potwierdzenie
     if (mask&0x0001) //b0 gdy SHP
-     PoKeys55->Write(0x40,23-1,iBits&0x0001?1:0);
+     PoKeys55[0]->Write(0x40,23-1,iBits&0x0001?1:0);
     if (mask&0x0002) //b1 gdy zmieniony CA
-     PoKeys55->Write(0x40,24-1,iBits&0x0002?1:0);
+     PoKeys55[0]->Write(0x40,24-1,iBits&0x0002?1:0);
     if (mask&0x0004) //b2 gdy jazda na oporach
-     PoKeys55->Write(0x40,32-1,iBits&0x0004?1:0);
+     PoKeys55[0]->Write(0x40,32-1,iBits&0x0004?1:0);
     if (mask&0x0008) //b3 Lampka WS (wy³¹cznika szybkiego)
-     PoKeys55->Write(0x40,25-1,iBits&0x0008?1:0);
+     PoKeys55[0]->Write(0x40,25-1,iBits&0x0008?1:0);
     if (mask&0x0010) //b4 Lampka przekaŸnika nadmiarowego silników trakcyjnych
-     PoKeys55->Write(0x40,27-1,iBits&0x0010?1:0);
+     PoKeys55[0]->Write(0x40,27-1,iBits&0x0010?1:0);
     if (mask&0x0020) //b5 Lampka styczników liniowych
-     PoKeys55->Write(0x40,29-1,iBits&0x0020?1:0);
+     PoKeys55[0]->Write(0x40,29-1,iBits&0x0020?1:0);
     if (mask&0x0040) //b6 Lampka poœlizgu
-     PoKeys55->Write(0x40,30-1,iBits&0x0040?1:0);
+     PoKeys55[0]->Write(0x40,30-1,iBits&0x0040?1:0);
     if (mask&0x0080) //b7 Lampka "przetwornicy"
-     PoKeys55->Write(0x40,28-1,iBits&0x0080?1:0);
+     PoKeys55[0]->Write(0x40,28-1,iBits&0x0080?1:0);
     if (mask&0x0100) //b8 Kontrolka przekaŸnika nadmiarowego sprê¿arki
-     PoKeys55->Write(0x40,33-1,iBits&0x0100?1:0);
+     PoKeys55[0]->Write(0x40,33-1,iBits&0x0100?1:0);
     if (mask&0x0200) //b9 Kontrolka sygnalizacji wentylatorów i oporów
-     PoKeys55->Write(0x40,26-1,iBits&0x0200?1:0);
+     PoKeys55[0]->Write(0x40,26-1,iBits&0x0200?1:0);
     if (mask&0x0400) //b10 Kontrolka wysokiego rozruchu
-     PoKeys55->Write(0x40,31-1,iBits&0x0400?1:0);
+     PoKeys55[0]->Write(0x40,31-1,iBits&0x0400?1:0);
     if (mask&0x0800) //b11 Kontrolka ogrzewania poci¹gu
-     PoKeys55->Write(0x40,34-1,iBits&0x0800?1:0);
+     PoKeys55[0]->Write(0x40,34-1,iBits&0x0800?1:0);
     if (mask&0x1000) //b12 Ciœnienie w cylindrach do odbijania w haslerze
-     PoKeys55->Write(0x40,52-1,iBits&0x1000?1:0);
+     PoKeys55[0]->Write(0x40,52-1,iBits&0x1000?1:0);
     if (mask&0x2000) //b13 Pr¹d na silnikach do odbijania w haslerze
-     PoKeys55->Write(0x40,53-1,iBits&0x2000?1:0);
+     PoKeys55[0]->Write(0x40,53-1,iBits&0x2000?1:0);
    }
    break;
  }
@@ -263,35 +265,41 @@ bool __fastcall Console::Pressed(int x)
 void __fastcall Console::ValueSet(int x,double y)
 {//ustawienie wartoœci (y) na kanale analogowym (x)
  if (iMode==4)
-  if (PoKeys55)
+  if (PoKeys55[0])
   {
-   PoKeys55->PWM(x,(((Global::fCalibrateOut[x][3]*y)+Global::fCalibrateOut[x][2])*y+Global::fCalibrateOut[x][1])*y+Global::fCalibrateOut[x][0]); //zakres <0;1>
+   PoKeys55[0]->PWM(x,(((Global::fCalibrateOut[x][3]*y)+Global::fCalibrateOut[x][2])*y+Global::fCalibrateOut[x][1])*y+Global::fCalibrateOut[x][0]); //zakres <0;1>
   }
 };
 
 void __fastcall Console::Update()
 {//funkcja powinna byæ wywo³ywana regularnie, np. raz w ka¿dej ramce ekranowej
  if (iMode==4)
-  if (PoKeys55)
-   if (PoKeys55->Update())
-   {//wykrycie przestawionych prze³¹czników
-
+  if (PoKeys55[0])
+   if (PoKeys55[0]->Update())
+   {//wykrycie przestawionych prze³¹czników?
+    Global::iPause&=~8;
+   }
+   else
+   {//b³¹d komunikacji - zapauzowaæ symulacjê?
+    Global::iPause|=8; //tak???
+    Global::iTextMode=VK_F1; //pokazanie czasu/pauzy
+    PoKeys55[0]->Connect(); //próba ponownego pod³¹czenia
    }
 };
 
 float __fastcall Console::AnalogGet(int x)
 {//pobranie wartoœci analogowej
  if (iMode==4)
-  if (PoKeys55)
-   return PoKeys55->fAnalog[x];
+  if (PoKeys55[0])
+   return PoKeys55[0]->fAnalog[x];
  return -1.0;
 };
 
 unsigned char __fastcall Console::DigitalGet(int x)
 {//pobranie wartoœci cyfrowej
  if (iMode==4)
-  if (PoKeys55)
-   return PoKeys55->iInputs[x];
+  if (PoKeys55[0])
+   return PoKeys55[0]->iInputs[x];
  return 0;
 };
 
