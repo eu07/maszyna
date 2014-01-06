@@ -933,13 +933,13 @@ bool __fastcall TWorld::Update()
  else
  {//jak dosz³o do zera, to sprawdzamy wydajnoœæ
   if (GetFPS()<Global::fFpsMin)
-  {Global::iSegmentsRendered-=random(20); //floor(0.5+Global::iSegmentsRendered/Global::fRadiusFactor);
+  {Global::iSegmentsRendered-=random(10); //floor(0.5+Global::iSegmentsRendered/Global::fRadiusFactor);
    if (Global::iSegmentsRendered<10) //jeœli jest co zmniejszaæ
     Global::iSegmentsRendered=10; //10=minimalny promieñ to 600m
   }
   else if (GetFPS()>Global::fFpsMax) //jeœli jest du¿o FPS
    if (Global::iSegmentsRendered<Global::iFpsRadiusMax) //jeœli jest co zwiêkszaæ
-   {Global::iSegmentsRendered+=random(20); //floor(0.5+Global::iSegmentsRendered*Global::fRadiusFactor);
+   {Global::iSegmentsRendered+=random(5); //floor(0.5+Global::iSegmentsRendered*Global::fRadiusFactor);
     if (Global::iSegmentsRendered>Global::iFpsRadiusMax) //5.6km (22*22*M_PI)
      Global::iSegmentsRendered=Global::iFpsRadiusMax;
    }
@@ -1097,30 +1097,30 @@ bool __fastcall TWorld::Update()
   }
   Camera.Update(); //uwzglêdnienie ruchu wywo³anego klawiszami
  } //koniec bloku pomijanego przy nieaktywnym oknie
-#if 0
- fTimeBuffer+=GetDeltaTime(); //[s] dodanie czasu od poprzedniej ramki
+ //poprzednie jakoœ tam dzia³a³o
+ double dt=GetDeltaTime();
+ fTimeBuffer+=dt; //[s] dodanie czasu od poprzedniej ramki
  if (fTimeBuffer>=fMaxDt) //jest co najmniej jeden krok; normalnie 0.01s
  {//Ra: czas dla fizyki jest skwantowany - fizykê lepiej przeliczaæ sta³ym krokiem
-  //tak mo¿na np. moc silników itp., ale ruch musi byæ przeliczany w ka¿dej klatce, bo inaczej skacze 
-  Console::Update(); //w tym miejscu ma ograniczenie na liczbê wywo³añ w sekundzie (max 100) 
+  //tak mo¿na np. moc silników itp., ale ruch musi byæ przeliczany w ka¿dej klatce, bo inaczej skacze
+  Console::Update(); //obs³uga cykli PoKeys (np. aktualizacja wyjœæ analogowych)
+#if 0
   double iter=ceil(fTimeBuffer/fMaxDt); //ile kroków siê zmieœci³o od ostatniego sprawdzania?
   int n=int(iter); //ile kroków jako int
   fTimeBuffer-=iter*fMaxDt; //reszta czasu na potem (do bufora)
   if (n>20) n=20; //Ra: je¿eli FPS jest zatrwa¿aj¹co niski, to fizyka nie mo¿e zaj¹æ ca³kowicie procesora
-  Ground.Update(fMaxDt,n); //Ra: teraz czas kroku jest (wzglêdnie) sta³y
+  Ground.UpdatePhys(fMaxDt,n); //Ra: teraz czas kroku jest (wzglêdnie) sta³y
   if (DebugModeFlag)
-   if (GetAsyncKeyState(VK_ESCAPE)<0)
-   {//yB doda³ przyspieszacz fizyki
-    Ground.Update(fMaxDt,n);
-    Ground.Update(fMaxDt,n);
-    Ground.Update(fMaxDt,n);
-    Ground.Update(fMaxDt,n); //5 razy
-   }
+   if (Global::bActive) //nie przyspieszaæ, gdy jedzie w tle :)
+    if (GetAsyncKeyState(VK_ESCAPE)<0)
+    {//yB doda³ przyspieszacz fizyki
+     Ground.UpdatePhys(fMaxDt,n);
+     Ground.UpdatePhys(fMaxDt,n);
+     Ground.UpdatePhys(fMaxDt,n);
+     Ground.UpdatePhys(fMaxDt,n); //w sumie 5 razy
+    }
+#endif
  }
- double dt; //potrzebne dalej
-#else
- //poprzednie jakoœ tam dzia³a³o
- double dt=GetDeltaTime();
  double iter;
  int n=1;
  if (dt>fMaxDt) //normalnie 0.01s
@@ -1128,19 +1128,20 @@ bool __fastcall TWorld::Update()
   iter=ceil(dt/fMaxDt);
   n=iter;
   dt=dt/iter; //Ra: fizykê lepiej by by³o przeliczaæ ze sta³ym krokiem
+  if (n>20) n=20; //McZapkie-081103: przesuniecie granicy FPS z 10 na 5
  }
- if (n>20) n=20; //McZapkie-081103: przesuniecie granicy FPS z 10 na 5
+ else n=1;
  //blablabla
- Ground.Update(dt,n); //ABu: zamiast 'n' bylo: 'Camera.Type==tp_Follow'
+ Ground.Update(dt,n); //tu zrobiæ tylko coklatkow¹ aktualizacjê przesuniêæ
  if (DebugModeFlag)
-  if (GetAsyncKeyState(VK_ESCAPE)<0)
-  {//yB doda³ przyspieszacz fizyki
-   Ground.Update(dt,n);
-   Ground.Update(dt,n);
-   Ground.Update(dt,n);
-   Ground.Update(dt,n); //5 razy
-  }
-#endif
+  if (Global::bActive) //nie przyspieszaæ, gdy jedzie w tle :)
+   if (GetAsyncKeyState(VK_ESCAPE)<0)
+   {//yB doda³ przyspieszacz fizyki
+    Ground.Update(dt,n);
+    Ground.Update(dt,n);
+    Ground.Update(dt,n);
+    Ground.Update(dt,n); //5 razy
+   }
  dt=GetDeltaTime(); //czas niekwantowany
  if (Camera.Type==tp_Follow)
  {if (Train)

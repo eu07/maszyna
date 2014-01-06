@@ -161,7 +161,7 @@ __fastcall TTrack::TTrack(TGroundNode *g)
  ScannedFlag=false;
  DisplayListID=0;
  iTrapezoid=0; //parametry kszta³tu: 0-standard, 1-przechy³ka, 2-trapez, 3-oba
- pTraction=NULL; //drut zasilaj¹cy najbli¿szy Point1 toru
+ hvTraction=NULL; //drut zasilaj¹cy najbli¿szy Point1 toru
  fTexRatio1=1.0; //proporcja boków tekstury nawierzchni (¿eby zaoszczêdziæ na rozmiarach tekstur...)
  fTexRatio2=1.0; //proporcja boków tekstury chodnika (¿eby zaoszczêdziæ na rozmiarach tekstur...)
  iPrevDirection=0; //domyœlnie wirtualne odcinki do³¹czamy stron¹ od Point1

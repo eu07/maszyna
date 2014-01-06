@@ -10,7 +10,7 @@
 using namespace Math3D;
 
 class TTraction 
-{
+{//drut zasilaj¹cy, dla wskaŸników u¿ywaæ przedrostka "hv"
 private:
  vector3 vUp,vFront,vLeft;
  matrix4x4 mMatrix;
@@ -19,8 +19,8 @@ private:
  // - y: przyjmuje wartoœæ <0,1>, jeœli pod drutem (wzd³u¿)
  // - z: wysokoœæ bezwzglêdna drutu w danym miejsu
 public: //na razie
- TTraction *pPrev,*pNext; //³¹czenie drutów w sieæ
- int iPrev,iNext; //do którego koñca siê ³¹czy
+ TTraction *hvNext[2]; //³¹czenie drutów w sieæ
+ int iNext[2]; //do którego koñca siê ³¹czy
  int iLast; //ustawiony bit 0, jeœli jest ostatnim drutem w sekcji; bit1 - przedostatni
 public:
  GLuint uiDisplayList;

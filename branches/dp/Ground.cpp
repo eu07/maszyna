@@ -91,7 +91,7 @@ __fastcall TGroundNode::~TGroundNode()
   switch (iType)
   {case TP_MEMCELL:    SafeDelete(MemCell); break;
    case TP_EVLAUNCH:   SafeDelete(EvLaunch); break;
-   case TP_TRACTION:   SafeDelete(Traction); break;
+   case TP_TRACTION:   SafeDelete(hvTraction); break;
    case TP_TRACTIONPOWERSOURCE:
                        SafeDelete(TractionPowerSource); break;
    case TP_TRACK:      SafeDelete(pTrack); break;
@@ -221,11 +221,11 @@ void __fastcall TGroundNode::MoveMe(vector3 pPosition)
  switch (iType)
  {
   case TP_TRACTION:
-   Traction->pPoint1+=pPosition;
-   Traction->pPoint2+=pPosition;
-   Traction->pPoint3+=pPosition;
-   Traction->pPoint4+=pPosition;
-   Traction->Optimize();
+   hvTraction->pPoint1+=pPosition;
+   hvTraction->pPoint2+=pPosition;
+   hvTraction->pPoint3+=pPosition;
+   hvTraction->pPoint4+=pPosition;
+   hvTraction->Optimize();
    break;
   case TP_MODEL:
   case TP_DYNAMIC:
@@ -337,7 +337,7 @@ void __fastcall TGroundNode::RenderAlphaVBO()
     glAlphaFunc(GL_GREATER,0.04);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 #endif
-    Traction->RenderVBO(mgn,iVboPtr);
+    hvTraction->RenderVBO(mgn,iVboPtr);
    }
    return;
   case TP_MODEL:
@@ -585,7 +585,7 @@ void __fastcall TGroundNode::RenderAlphaDL()
  {
   case TP_TRACTION:
    if (bVisible)
-    Traction->RenderDL(mgn);
+    hvTraction->RenderDL(mgn);
    return;
   case TP_MODEL:
    Model->RenderAlphaDL(&pCenter);
@@ -921,10 +921,10 @@ TTraction* __fastcall TSubRect::FindTraction(vector3 *Point,int &iConnection,TTr
 {//szukanie przês³a w sektorze, którego koniec jest najbli¿szy (*Point)
  TGroundNode *Current;
  for (Current=nRenderWires;Current;Current=Current->nNext3)
-  if ((Current->iType==TP_TRACTION)&&(Current->Traction!=Exclude))
+  if ((Current->iType==TP_TRACTION)&&(Current->hvTraction!=Exclude))
    {
-    iConnection=Current->Traction->TestPoint(Point);
-    if (iConnection>=0) return Current->Traction;
+    iConnection=Current->hvTraction->TestPoint(Point);
+    if (iConnection>=0) return Current->hvTraction;
    }
  return NULL;
 };
@@ -956,7 +956,7 @@ void __fastcall TSubRect::LoadNodes()
     break;
    case TP_TRACTION:
     n->iVboPtr=m_nVertexCount; //nowy pocz¹tek
-    n->iNumVerts=n->Traction->RaArrayPrepare(); //zliczenie wierzcho³ków
+    n->iNumVerts=n->hvTraction->RaArrayPrepare(); //zliczenie wierzcho³ków
     m_nVertexCount+=n->iNumVerts;
     break;
   }
@@ -1003,7 +1003,7 @@ void __fastcall TSubRect::LoadNodes()
       break;
      case TP_TRACTION:
       if (n->iNumVerts) //druty mog¹ byæ niewidoczne...?
-       n->Traction->RaArrayFill(m_pVNT+n->iVboPtr);
+       n->hvTraction->RaArrayFill(m_pVNT+n->iVboPtr);
       break;
     }
    n=n->nNext2; //nastêpny z sektora
@@ -1440,50 +1440,50 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
  switch (tmp->iType)
  {
   case TP_TRACTION :
-   tmp->Traction=new TTraction();
+   tmp->hvTraction=new TTraction();
    parser->getTokens();
    *parser >> token;
-   tmp->Traction->asPowerSupplyName=AnsiString(token.c_str());
+   tmp->hvTraction->asPowerSupplyName=AnsiString(token.c_str());
    parser->getTokens(3);
-   *parser >> tmp->Traction->NominalVoltage >> tmp->Traction->MaxCurrent >> tmp->Traction->Resistivity;
+   *parser >> tmp->hvTraction->NominalVoltage >> tmp->hvTraction->MaxCurrent >> tmp->hvTraction->Resistivity;
    parser->getTokens();
    *parser >> token;
    if (token.compare("cu")==0)
-    tmp->Traction->Material=1;
+    tmp->hvTraction->Material=1;
    else if (token.compare("al")==0)
-    tmp->Traction->Material=2;
+    tmp->hvTraction->Material=2;
    else
-    tmp->Traction->Material=0;
+    tmp->hvTraction->Material=0;
    parser->getTokens();
-   *parser >> tmp->Traction->WireThickness;
+   *parser >> tmp->hvTraction->WireThickness;
    parser->getTokens();
-   *parser >> tmp->Traction->DamageFlag;
+   *parser >> tmp->hvTraction->DamageFlag;
    parser->getTokens(3);
-   *parser >> tmp->Traction->pPoint1.x >> tmp->Traction->pPoint1.y >> tmp->Traction->pPoint1.z;
-   tmp->Traction->pPoint1+=pOrigin;
+   *parser >> tmp->hvTraction->pPoint1.x >> tmp->hvTraction->pPoint1.y >> tmp->hvTraction->pPoint1.z;
+   tmp->hvTraction->pPoint1+=pOrigin;
    parser->getTokens(3);
-   *parser >> tmp->Traction->pPoint2.x >> tmp->Traction->pPoint2.y >> tmp->Traction->pPoint2.z;
-   tmp->Traction->pPoint2+=pOrigin;
+   *parser >> tmp->hvTraction->pPoint2.x >> tmp->hvTraction->pPoint2.y >> tmp->hvTraction->pPoint2.z;
+   tmp->hvTraction->pPoint2+=pOrigin;
    parser->getTokens(3);
-   *parser >> tmp->Traction->pPoint3.x >> tmp->Traction->pPoint3.y >> tmp->Traction->pPoint3.z;
-   tmp->Traction->pPoint3+=pOrigin;
+   *parser >> tmp->hvTraction->pPoint3.x >> tmp->hvTraction->pPoint3.y >> tmp->hvTraction->pPoint3.z;
+   tmp->hvTraction->pPoint3+=pOrigin;
    parser->getTokens(3);
-   *parser >> tmp->Traction->pPoint4.x >> tmp->Traction->pPoint4.y >> tmp->Traction->pPoint4.z;
-   tmp->Traction->pPoint4+=pOrigin;
+   *parser >> tmp->hvTraction->pPoint4.x >> tmp->hvTraction->pPoint4.y >> tmp->hvTraction->pPoint4.z;
+   tmp->hvTraction->pPoint4+=pOrigin;
    parser->getTokens();
    *parser >> tf1;
-   tmp->Traction->fHeightDifference=
-    (tmp->Traction->pPoint3.y-tmp->Traction->pPoint1.y+
-     tmp->Traction->pPoint4.y-tmp->Traction->pPoint2.y)*0.5f-tf1;
+   tmp->hvTraction->fHeightDifference=
+    (tmp->hvTraction->pPoint3.y-tmp->hvTraction->pPoint1.y+
+     tmp->hvTraction->pPoint4.y-tmp->hvTraction->pPoint2.y)*0.5f-tf1;
    parser->getTokens();
    *parser >> tf1;
    if (tf1>0)
-    tmp->Traction->iNumSections=(tmp->Traction->pPoint1-tmp->Traction->pPoint2).Length()/tf1;
-   else tmp->Traction->iNumSections=0;
+    tmp->hvTraction->iNumSections=(tmp->hvTraction->pPoint1-tmp->hvTraction->pPoint2).Length()/tf1;
+   else tmp->hvTraction->iNumSections=0;
    parser->getTokens();
-   *parser >> tmp->Traction->Wires;
+   *parser >> tmp->hvTraction->Wires;
    parser->getTokens();
-   *parser >> tmp->Traction->WireOffset;
+   *parser >> tmp->hvTraction->WireOffset;
    parser->getTokens();
    *parser >> token;
    tmp->bVisible=(token.compare("vis")==0);
@@ -1491,10 +1491,10 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    *parser >> token;
    if ( token.compare( "endtraction" )!=0)
      Error("ENDTRACTION delimiter missing! "+str2+" found instead.");
-   tmp->Traction->Init(); //przeliczenie parametrów
+   tmp->hvTraction->Init(); //przeliczenie parametrów
    if (Global::bLoadTraction)
-    tmp->Traction->Optimize();
-   tmp->pCenter=(tmp->Traction->pPoint2+tmp->Traction->pPoint1)*0.5f;
+    tmp->hvTraction->Optimize();
+   tmp->pCenter=(tmp->hvTraction->pPoint2+tmp->hvTraction->pPoint1)*0.5f;
    //if (!Global::bLoadTraction) SafeDelete(tmp); //Ra: tak byæ nie mo¿e, bo NULL to b³¹d
    break;
   case TP_TRACTIONPOWERSOURCE :
@@ -2866,8 +2866,8 @@ void __fastcall TGround::InitTraction()
  AnsiString name;
  for (Current=nRootOfType[TP_TRACTION];Current;Current=Current->Next)
  {
-  Traction=Current->Traction;
-  if (!Traction->pPrev) //tylko jeœli jeszcze nie pod³¹czony
+  Traction=Current->hvTraction;
+  if (!Traction->hvNext[0]) //tylko jeœli jeszcze nie pod³¹czony
   {
    tmp=FindTraction(&Traction->pPoint1,iConnection,Current);
    switch (iConnection)
@@ -2880,7 +2880,7 @@ void __fastcall TGround::InitTraction()
     break;
    }
   }
-  if (!Traction->pNext) //tylko jeœli jeszcze nie pod³¹czony
+  if (!Traction->hvNext[1]) //tylko jeœli jeszcze nie pod³¹czony
   {
    tmp=FindTraction(&Traction->pPoint2,iConnection,Current);
    switch (iConnection)
@@ -2895,7 +2895,7 @@ void __fastcall TGround::InitTraction()
   }
  }
  for (Current=nRootOfType[TP_TRACTION];Current;Current=Current->Next)
-  Current->Traction->WhereIs(); //oznakowanie przedostatnich przêse³
+  Current->hvTraction->WhereIs(); //oznakowanie przedostatnich przêse³
 };
 
 void __fastcall TGround::TrackJoin(TGroundNode *Current)
@@ -3006,7 +3006,7 @@ TTraction* __fastcall TGround::FindTraction(vector3 *Point,int &iConnection,TGro
  int c=GetColFromX(Point->x);
  int r=GetRowFromZ(Point->z);
  if ((sr=FastGetSubRect(c,r))!=NULL) //wiêkszoœæ bêdzie w tym samym sektorze
-  if ((tmp=sr->FindTraction(Point,iConnection,Exclude->Traction))!=NULL)
+  if ((tmp=sr->FindTraction(Point,iConnection,Exclude->hvTraction))!=NULL)
    return tmp;
  int i,x,y;
  for (i=1;i<9;++i) //sektory w kolejnoœci odleg³oœci, 4 jest tu wystarczaj¹ce, 9 na wszelki wypadek
@@ -3014,18 +3014,18 @@ TTraction* __fastcall TGround::FindTraction(vector3 *Point,int &iConnection,TGro
   x=SectorOrder[i].x;
   y=SectorOrder[i].y;
   if ((sr=FastGetSubRect(c+y,r+x))!=NULL)
-   if ((tmp=sr->FindTraction(Point,iConnection,Exclude->Traction))!=NULL)
+   if ((tmp=sr->FindTraction(Point,iConnection,Exclude->hvTraction))!=NULL)
     return tmp;
   if (x&y)
   {if ((sr=FastGetSubRect(c+y,r-x))!=NULL)
-    if ((tmp=sr->FindTraction(Point,iConnection,Exclude->Traction))!=NULL)
+    if ((tmp=sr->FindTraction(Point,iConnection,Exclude->hvTraction))!=NULL)
      return tmp;
    if ((sr=FastGetSubRect(c-y,r+x))!=NULL)
-    if ((tmp=sr->FindTraction(Point,iConnection,Exclude->Traction))!=NULL)
+    if ((tmp=sr->FindTraction(Point,iConnection,Exclude->hvTraction))!=NULL)
      return tmp;
   }
   if ((sr=FastGetSubRect(c-y,r-x))!=NULL)
-   if ((tmp=sr->FindTraction(Point,iConnection,Exclude->Traction))!=NULL)
+   if ((tmp=sr->FindTraction(Point,iConnection,Exclude->hvTraction))!=NULL)
     return tmp;
  }
  return NULL;
@@ -3137,7 +3137,7 @@ bool __fastcall TGround::CheckQuery()
 {//sprawdzenie kolejki eventów oraz wykonanie tych, którym czas min¹³
  TLocation loc;
  int i;
-/* //Ra: to w ogóle jakiœ chory kod jest
+/* //Ra: to w ogóle jakiœ chory kod jest; wygl¹da jak wyszukanie eventu z najlepszym czasem
  Double evtime,evlowesttime; //Ra: co to za typ?
  //evlowesttime=1000000;
  if (QueryRootEvent)
@@ -3179,7 +3179,7 @@ bool __fastcall TGround::CheckQuery()
   }
  }
 */
- while (QueryRootEvent&&(QueryRootEvent->fStartTime<Timer::GetTime()))
+ while (QueryRootEvent?QueryRootEvent->fStartTime<Timer::GetTime():false)
  {//eventy s¹ posortowana wg czasu wykonania
   tmpEvent=QueryRootEvent; //wyjêcie eventu z kolejki
   if (QueryRootEvent->evJoined) //jeœli jest kolejny o takiej samej nazwie
@@ -3188,11 +3188,12 @@ bool __fastcall TGround::CheckQuery()
    QueryRootEvent->evNext=tmpEvent->evNext; //pamiêtaj¹c o nastêpnym z kolejki
    QueryRootEvent->fStartTime=tmpEvent->fStartTime; //czas musi byæ ten sam, bo nie jest aktualizowany
    QueryRootEvent->Activator=tmpEvent->Activator; //pojazd aktywuj¹cy
+   //w sumie mo¿na by go dodaæ normalnie do kolejki, ale trzeba te po³¹czone posortowaæ wg czasu wykonania
   }
   else //a jak nazwa jest unikalna, to kolejka idzie dalej
    QueryRootEvent=QueryRootEvent->evNext; //NULL w skrajnym przypadku
   if (tmpEvent->bEnabled)
-  {
+  {//w zasadzie te wy³¹czone s¹ skanowane i nie powinny siê nigdy w kolejce znaleŸæ
    WriteLog("EVENT LAUNCHED: "+tmpEvent->asName+(tmpEvent->Activator?AnsiString(" by "+tmpEvent->Activator->asName):AnsiString("")));
    switch (tmpEvent->Type)
    {
@@ -3201,7 +3202,7 @@ bool __fastcall TGround::CheckQuery()
      (tmpEvent->Params[9].asMemCell->Text(),
       tmpEvent->Params[9].asMemCell->Value1(),
       tmpEvent->Params[9].asMemCell->Value2(),
-      tmpEvent->iFlags
+      tmpEvent->iFlags //flagi okreœlaj¹, co ma byæ skopiowane
      );
     break;
     case tp_AddValues: //ró¿ni siê jedn¹ flag¹ od UpdateValues
@@ -3227,7 +3228,7 @@ bool __fastcall TGround::CheckQuery()
       //loc.X= -tmpEvent->Params[8].asGroundNode->pCenter.x;
       //loc.Y=  tmpEvent->Params[8].asGroundNode->pCenter.z;
       //loc.Z=  tmpEvent->Params[8].asGroundNode->pCenter.y;
-      if (Global::iMultiplayer) //potwierdzenie wykonania dla serwera - najczêœciej odczyt semafora
+      if (Global::iMultiplayer) //potwierdzenie wykonania dla serwera (odczyt semafora ju¿ tak nie dzia³a)
        WyslijEvent(tmpEvent->asName,tmpEvent->Activator->GetName());
       //tmpEvent->Params[9].asMemCell->PutCommand(tmpEvent->Activator->Mechanik,loc);
       tmpEvent->Params[9].asMemCell->PutCommand(tmpEvent->Activator->Mechanik,&tmpEvent->Params[8].asGroundNode->pCenter);
@@ -3307,11 +3308,11 @@ bool __fastcall TGround::CheckQuery()
     break;
     case tp_TrackVel:
      if (tmpEvent->Params[9].asTrack)
-     {
+     {//prêdkoœæ na zwrotnicy mo¿e byæ ograniczona z góry we wpisie, wiêkszej siê ustawi eventem
       WriteLog("type: TrackVel");
       //WriteLog("Vel: ",tmpEvent->Params[0].asdouble);
       tmpEvent->Params[9].asTrack->VelocitySet(tmpEvent->Params[0].asdouble);
-      if (DebugModeFlag)
+      if (DebugModeFlag) //wyœwietlana jest ta faktycznie ustawiona
        WriteLog("vel: ",tmpEvent->Params[9].asTrack->VelocityGet());
      }
     break;
@@ -3418,17 +3419,25 @@ bool __fastcall TGround::CheckQuery()
    QueryRootEvent=QueryRootEvent->Next; //NULL w skrajnym przypadku
   }
 */
- }  //while
+ } //while
  return true;
 }
 
 void __fastcall TGround::OpenGLUpdate(HDC hDC)
 {
  SwapBuffers(hDC); //swap buffers (double buffering)
-}
+};
 
-bool __fastcall TGround::Update(double dt, int iter)
-{//dt=krok czasu [s], dt*iter=czas od ostatnich przeliczeñ
+void __fastcall TGround::UpdatePhys(double dt,int iter)
+{//aktualizacja fizyki sta³ym krokiem: dt=krok czasu [s], dt*iter=czas od ostatnich przeliczeñ
+};
+
+bool __fastcall TGround::Update(double dt,int iter)
+{//aktualizacja animacji krokiem FPS: dt=krok czasu [s], dt*iter=czas od ostatnich przeliczeñ
+ //Ra: w zasadzie to trzeba by utworzyæ oddzieln¹ listê taboru do liczenia fizyki
+ //    na któr¹ by siê zapisywa³y wszystkie pojazdy bêd¹ce w ruchu
+ //    pojazdy stoj¹ce nie potrzebuj¹ aktualizacji, chyba ¿e np. ktoœ im zmieni nastawê hamulca
+ //    oddzieln¹ listê mo¿na by zrobiæ na pojazdy z napêdem, najlepiej posortowan¹ wg typu napêdu
  if (iter>1) //ABu: ponizsze wykonujemy tylko jesli wiecej niz jedna iteracja
  {//pierwsza iteracja i wyznaczenie stalych:
   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
@@ -3450,59 +3459,31 @@ bool __fastcall TGround::Update(double dt, int iter)
   //ABu 200205: a to robimy tylko raz, bo nie potrzeba wiêcej
   //Winger 180204 - pantografy
   double dt1=dt*iter; //ca³kowity czas
-  //if (Global::bEnableTraction) //bLoadTraction?
+  for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
   {//Ra: zmieniæ warunek na sprawdzanie pantografów w jednej zmiennej: czy pantografy i czy podniesione
-   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
-   {
-    if ((Current->DynamicObject->MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
-    //ABu: usunalem, bo sie krzaczylo: && (Current->DynamicObject->MoverParameters->PantFrontUp || Current->DynamicObject->MoverParameters->PantRearUp))
-    //     a za to dodalem to:
-       &&(Current->DynamicObject->MoverParameters->CabNo!=0))
-       GetTraction(Current->DynamicObject);
-    Current->DynamicObject->UpdateForce(dt,dt1,true);//,true);
-   }
-   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
-    Current->DynamicObject->Update(dt,dt1);
+   if (Current->DynamicObject->MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
+   //ABu: usunalem, bo sie krzaczylo: && (Current->DynamicObject->MoverParameters->PantFrontUp || Current->DynamicObject->MoverParameters->PantRearUp))
+   //     a za to dodalem to:
+   //   &&(Current->DynamicObject->MoverParameters->CabNo!=0)) //Ra: ten warunek jest bez sensu odk¹d trzeba pompowaæ z maszynowego
+      GetTraction(Current->DynamicObject);
+   Current->DynamicObject->UpdateForce(dt,dt1,true);//,true);
   }
-/*
-  else
-  {
-   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
-    Current->DynamicObject->UpdateForce(dt,dt1,true);//,true);
-   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
-    Current->DynamicObject->Update(dt,dt1);
-  }
-*/
+  for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
+   Current->DynamicObject->Update(dt,dt1);
  }
  else
  {//jezeli jest tylko jedna iteracja
-  //if (Global::bEnableTraction) //bLoadTraction?
+  for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
   {
-   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
-   {
-    if ((Current->DynamicObject->MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
-       &&(Current->DynamicObject->MoverParameters->CabNo!=0))
-       GetTraction(Current->DynamicObject);
-    Current->DynamicObject->MoverParameters->ComputeConstans();
-    Current->DynamicObject->CoupleDist();
-    Current->DynamicObject->UpdateForce(dt,dt,true);//,true);
-   }
-   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
-    Current->DynamicObject->Update(dt,dt);
+   if (Current->DynamicObject->MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
+      //&&(Current->DynamicObject->MoverParameters->CabNo!=0))
+      GetTraction(Current->DynamicObject);
+   Current->DynamicObject->MoverParameters->ComputeConstans();
+   Current->DynamicObject->CoupleDist();
+   Current->DynamicObject->UpdateForce(dt,dt,true);//,true);
   }
-/*
-  else
-  {
-   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
-   {
-    Current->DynamicObject->MoverParameters->ComputeConstans();
-    Current->DynamicObject->CoupleDist();
-    Current->DynamicObject->UpdateForce(dt,dt,true);//,true);
-   }
-   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
-    Current->DynamicObject->Update(dt,dt);
-  }
-*/
+  for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
+   Current->DynamicObject->Update(dt,dt);
  }
  if (bDynamicRemove)
  {//jeœli jest coœ do usuniêcia z listy, to trzeba na koñcu
@@ -3515,7 +3496,7 @@ bool __fastcall TGround::Update(double dt, int iter)
   bDynamicRemove=false; //na razie koniec
  }
  return true;
-}
+};
 
 //Winger 170204 - szukanie trakcji nad pantografami
 bool __fastcall TGround::GetTraction(TDynamicObject *model)
@@ -3540,29 +3521,29 @@ bool __fastcall TGround::GetTraction(TDynamicObject *model)
   if (k?model->MoverParameters->PantRearUp:model->MoverParameters->PantFrontUp)
   {//jeœli pantograf podniesiony
    pant0=dwys+(vLeft*p->vPos.z)+(vUp*p->vPos.y)+(vFront*p->vPos.x);
-   if (p->PowerWire)
+   if (p->hvPowerWire)
    {//mamy drut z poprzedniego przebiegu
     int n=30; //¿eby siê nie zapêtli³
-    while (p->PowerWire)
+    while (p->hvPowerWire)
     {//powtarzane a¿ do znalezienia odpowiedniego odcinka na liœcie dwukierunkowej
      //obliczamy wyraz wolny równania p³aszczyzny (to miejsce nie jest odpowienie)
-     vParam=p->PowerWire->vParametric; //wspó³czynniki równania parametrycznego
+     vParam=p->hvPowerWire->vParametric; //wspó³czynniki równania parametrycznego
      fRaParam=-DotProduct(pant0,vFront);
      //podstawiamy równanie parametryczne drutu do równania p³aszczyzny pantografu
      //vFront.x*(t1x+t*vParam.x)+vFront.y*(t1y+t*vParam.y)+vFront.z*(t1z+t*vParam.z)+fRaDist=0;
-     fRaParam=-(DotProduct(p->PowerWire->pPoint1,vFront)+fRaParam)/DotProduct(vParam,vFront);
+     fRaParam=-(DotProduct(p->hvPowerWire->pPoint1,vFront)+fRaParam)/DotProduct(vParam,vFront);
      if (fRaParam<-0.001) //histereza rzêdu 7cm na 70m typowego przês³a daje 1 promil
-      p->PowerWire=p->PowerWire->pPrev;
+      p->hvPowerWire=p->hvPowerWire->hvNext[0];
      else if (fRaParam>1.001)
-      p->PowerWire=p->PowerWire->pNext;
-     else if (p->PowerWire->iLast&3)
+      p->hvPowerWire=p->hvPowerWire->hvNext[1];
+     else if (p->hvPowerWire->iLast&3)
      {//dla ostatniego i przedostatniego przês³a wymuszamy szukanie innego
-      p->PowerWire=NULL; //nie to, ¿e nie ma, ale trzeba sprawdziæ inne
+      p->hvPowerWire=NULL; //nie to, ¿e nie ma, ale trzeba sprawdziæ inne
       break;
      }
      else
      {//jeœli t jest w przedziale, wyznaczyæ odleg³oœæ wzd³u¿ wektorów vUp i vLeft
-      vStyk=p->PowerWire->pPoint1+fRaParam*vParam; //punkt styku p³aszczyzny z drutem (dla generatora ³uku el.)
+      vStyk=p->hvPowerWire->pPoint1+fRaParam*vParam; //punkt styku p³aszczyzny z drutem (dla generatora ³uku el.)
       vGdzie=vStyk-pant0; //wektor
       //odleg³oœæ w pionie musi byæ w zasiêgu ruchu "pionowego" pantografu
       fVertical=DotProduct(vGdzie,vUp); //musi siê mieœciæ w przedziale ruchu pantografu
@@ -3570,7 +3551,7 @@ bool __fastcall TGround::GetTraction(TDynamicObject *model)
       fHorizontal=DotProduct(vGdzie,vLeft); //to siê musi mieœciæ w przedziale zaleznym od szerokoœci pantografu
       //jeœli w pionie albo w bok jest za daleko, to dany drut jest nieu¿yteczny
       if (fabs(fHorizontal)>p->fWidth) //0.635 dla AKP-1 AKP-4E
-       p->PowerWire=NULL; //nie liczy siê
+       p->hvPowerWire=NULL; //nie liczy siê
       else
       {//po wyselekcjonowaniu drutu, przypisaæ go do toru, ¿eby nie trzeba by³o szukaæ
        //dla 3 koñcowych przêse³ sprawdziæ wszystkie dostêpne przês³a
@@ -3582,10 +3563,10 @@ bool __fastcall TGround::GetTraction(TDynamicObject *model)
       }
      }
      if (--n<=0) //coœ za d³ugo to szukanie trwa
-      p->PowerWire=NULL;
+      p->hvPowerWire=NULL;
     }
    }
-   if (!p->PowerWire) //else nie, bo móg³ zostaæ wyrzucony
+   if (!p->hvPowerWire) //else nie, bo móg³ zostaæ wyrzucony
    {//poszukiwanie po okolicznych sektorach
     int c=GetColFromX(dwys.x)+1;
     int r=GetRowFromZ(dwys.z)+1;
@@ -3601,12 +3582,12 @@ bool __fastcall TGround::GetTraction(TDynamicObject *model)
        for (node=tmp->nRenderWires;node;node=node->nNext3)  //nastêpny z grupy
         if (node->iType==TP_TRACTION) //w grupie tej s¹ druty oraz inne linie
         {
-         vParam=node->Traction->vParametric; //wspó³czynniki równania parametrycznego
+         vParam=node->hvTraction->vParametric; //wspó³czynniki równania parametrycznego
          fRaParam=-DotProduct(pant0,vFront);
-         fRaParam=-(DotProduct(node->Traction->pPoint1,vFront)+fRaParam)/DotProduct(vParam,vFront);
+         fRaParam=-(DotProduct(node->hvTraction->pPoint1,vFront)+fRaParam)/DotProduct(vParam,vFront);
          if ((fRaParam>=-0.001)?(fRaParam<=1.001):false)
          {//jeœli t jest w przedziale, wyznaczyæ odleg³oœæ wzd³u¿ wektorów vUp i vLeft
-          vStyk=node->Traction->pPoint1+fRaParam*vParam; //punkt styku p³aszczyzny z drutem (dla generatora ³uku el.)
+          vStyk=node->hvTraction->pPoint1+fRaParam*vParam; //punkt styku p³aszczyzny z drutem (dla generatora ³uku el.)
           vGdzie=vStyk-pant0; //wektor
           fVertical=DotProduct(vGdzie,vUp); //musi siê mieœciæ w przedziale ruchu pantografu
           if (fVertical>=0.0) //jeœli ponad pantografem (bo mo¿e ³apaæ druty spod wiaduktu)
@@ -3615,7 +3596,7 @@ bool __fastcall TGround::GetTraction(TDynamicObject *model)
             fHorizontal=DotProduct(vGdzie,vLeft); //i do tego jeszcze wejdzie pod œlizg
             if (fabs(fHorizontal)<=p->fWidth) //0.635 dla AKP-1 AKP-4E
             {p->PantWys=-1.0; //ujemna liczba oznacza po³amanie
-             p->PowerWire=NULL; //bo inaczej siê zasila w nieskoñczonoœæ z po³amanego
+             p->hvPowerWire=NULL; //bo inaczej siê zasila w nieskoñczonoœæ z po³amanego
              if (model->MoverParameters->EnginePowerSource.CollectorParameters.CollectorsNo>0) //liczba pantografów
               --model->MoverParameters->EnginePowerSource.CollectorParameters.CollectorsNo; //teraz bêdzie mniejsza
              if (DebugModeFlag)
@@ -3626,7 +3607,7 @@ bool __fastcall TGround::GetTraction(TDynamicObject *model)
            {
             fHorizontal=DotProduct(vGdzie,vLeft); //to siê musi mieœciæ w przedziale zaleznym od szerokoœci pantografu
             if (fabs(fHorizontal)<=p->fWidth) //0.635 dla AKP-1 AKP-4E
-            {p->PowerWire=node->Traction; //jakiœ znaleziony
+            {p->hvPowerWire=node->hvTraction; //jakiœ znaleziony
              p->PantTraction=fVertical; //zapamiêtanie nowej wysokoœci
             }
            }
@@ -3635,12 +3616,12 @@ bool __fastcall TGround::GetTraction(TDynamicObject *model)
       } //sektor istnieje
      } //pêtla po sektorach
    } //koniec poszukiwania w sektorach
-   if (!p->PowerWire) //jeœli drut nie znaleziony
+   if (!p->hvPowerWire) //jeœli drut nie znaleziony
     if (!Global::bLiveTraction) //ale mo¿na oszukiwaæ
      model->pants[k].fParamPants->PantTraction=1.4; //to dajemy coœ tam dla picu
   } //koniec obs³ugi podniesionego
   else
-   p->PowerWire=NULL; //pantograf opuszczony
+   p->hvPowerWire=NULL; //pantograf opuszczony
  }
  return true;
 };
