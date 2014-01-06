@@ -243,6 +243,8 @@ private:
     TRealSound rsPisk; //McZapkie-260302
     TRealSound rsDerailment; //McZapkie-051202
     TRealSound rsPrzekladnia;
+    TRealSound rsDoorClose; //Ra: przeniesione z kabiny
+    TRealSound rsDoorOpen; //Ra: przeniesione z kabiny
     TAdvancedSound sHorn1;
     TAdvancedSound sHorn2;
     TAdvancedSound sCompressor; //NBMX wrzesien 2003
@@ -250,6 +252,7 @@ private:
     TAdvancedSound sSmallCompressor;
     TAdvancedSound sDepartureSignal;
     TAdvancedSound sTurbo;
+
 //Winger 010304
 //    TRealSound rsPanTup; //PSound sPantUp;
     TRealSound sPantUp;
@@ -345,8 +348,9 @@ public:
     bool __fastcall FastUpdate(double dt);
     void __fastcall Move(double fDistance);
     void __fastcall FastMove(double fDistance);
-    bool __fastcall Render();
-    bool __fastcall RenderAlpha();
+    void __fastcall Render();
+    void __fastcall RenderAlpha();
+    void __fastcall RenderSounds();
     vector3 inline __fastcall GetPosition();
     inline vector3 __fastcall HeadPosition() {return vCoulpler[iDirection^1];}; //pobranie wspó³rzêdnych czo³a
     inline vector3 __fastcall RearPosition() {return vCoulpler[iDirection];}; //pobranie wspó³rzêdnych ty³u

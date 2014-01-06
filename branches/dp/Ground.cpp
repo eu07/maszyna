@@ -1085,6 +1085,11 @@ void __fastcall TSubRect::RenderAlphaVBO()
   tTracks[j]->RenderDynAlpha(); //przezroczyste fragmenty pojazdów na torach
 };
 
+void __fastcall TSubRect::RenderSounds()
+{//aktualizacja dŸwiêków w pojazdach sektora (sektor mo¿e nie byæ wyœwietlany)
+ for (int j=0;j<iTracks;++j)
+  tTracks[j]->RenderDynSounds(); //dŸwiêki pojazdów id¹ niezale¿nie od wyœwietlania
+};
 //---------------------------------------------------------------------------
 //------------------ Kwadrat kilometrowy ------------------------------------
 //---------------------------------------------------------------------------
@@ -3663,7 +3668,7 @@ bool __fastcall TGround::RenderDL(vector3 pPosition)
    {tmp->LoadNodes(); //oznaczanie aktywnych sektorów
     for (node=tmp->nRenderHidden;node;node=node->nNext3)
      node->RenderHidden();
-    //TODO: jeszcze dŸwiêki pojazdów by siê przyda³y
+    tmp->RenderSounds(); //jeszcze dŸwiêki pojazdów by siê przyda³y, równie¿ niewidocznych
    }
  //renderowanie progresywne - zale¿ne od FPS oraz kierunku patrzenia
  iRendered=0; //iloœæ renderowanych sektorów
@@ -3742,9 +3747,10 @@ bool __fastcall TGround::RenderVBO(vector3 pPosition)
   for (i=c-n;i<=c+n;i++)
   {
    if ((tmp=FastGetSubRect(i,j))!=NULL)
-    for (node=tmp->nRenderHidden;node;node=node->nNext3)
+   {for (node=tmp->nRenderHidden;node;node=node->nNext3)
      node->RenderHidden();
-    //TODO: jeszcze dŸwiêki pojazdów by siê przyda³y
+    tmp->RenderSounds(); //jeszcze dŸwiêki pojazdów by siê przyda³y, równie¿ niewidocznych
+   }
   }
  //renderowanie progresywne - zale¿ne od FPS oraz kierunku patrzenia
  iRendered=0; //iloœæ renderowanych sektorów
@@ -4064,5 +4070,26 @@ void __fastcall TGround::IsolatedBusy(const AnsiString t)
    if (Current->Busy()) //sprawdŸ zajetoœæ
     WyslijString(Current->asName,11); //zajêty
  WyslijString("none",12); //wolny none - koniec przesy³ania
+};
+//---------------------------------------------------------------------------
+
+void __fastcall TGround::Silence(vector3 gdzie)
+{//wyciszenie wszystkiego w sektorach przed przeniesieniem kamery z (gdzie)
+ int tr,tc;
+ TGroundNode *node;
+ int n=2*iNumSubRects; //(2*==2km) promieñ wyœwietlanej mapy w sektorach
+ int c=GetColFromX(gdzie.x); //sektory wg dotychczasowej pozycji kamery
+ int r=GetRowFromZ(gdzie.z);
+ TSubRect *tmp;
+ int i,j,k;
+ //renderowanie czo³gowe dla obiektów aktywnych a niewidocznych
+ for (j=r-n;j<=r+n;j++)
+  for (i=c-n;i<=c+n;i++)
+   if ((tmp=FastGetSubRect(i,j))!=NULL)
+   {//tylko dŸwiêki interesuj¹
+    for (node=tmp->nRenderHidden;node;node=node->nNext3)
+     node->RenderHidden();
+    tmp->RenderSounds(); //dŸwiêki pojazdów by siê przyda³o wy³¹czyæ
+   }
 };
 //---------------------------------------------------------------------------

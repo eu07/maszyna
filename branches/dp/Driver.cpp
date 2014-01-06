@@ -1739,7 +1739,7 @@ void __fastcall TController::SpeedSet()
    if (Controlling->MainCtrlPosNo>0)
    {//jeœli ma czym krêciæ
     //TODO: sprawdzanie innego czlonu //if (!FuseFlagCheck())
-    if ((AccDesired<fAccGravity+0.05)||(pOccupied->Vel>=VelDesired)) //jeœli nie ma przyspieszaæ
+    if ((AccDesired<fAccGravity+0.05)||(pOccupied->Vel>=VelDesired+fVelPlus)) //jeœli nie ma przyspieszaæ
      Controlling->DecMainCtrl(2); //na zero
     else
      if (fActionTime>=0.0)
@@ -2834,14 +2834,21 @@ bool __fastcall TController::UpdateSituation(double dt)
           else if (ActualProximityDist>fBrakeDist)
           {//jeœli ma stan¹æ, a mieœci siê w drodze hamowania
            if (vel<10.0)  //jeœli prêdkoœæ jest ³atwa do zatrzymania
-            AccDesired=AccDesired<0.0?0.0:0.1*AccPreferred;
+           {//tu jest trochê problem, bo do punktu zatrzymania dobija na raty
+            //AccDesired=AccDesired<0.0?0.0:0.1*AccPreferred;
+            AccDesired=0.1*AccPreferred; //proteza trochê
+           }
            else if (vel<30.0)  //trzymaj 30 km/h
             AccDesired=Min0R(0.5*AccDesired,AccPreferred); //jak jest tu 0.5, to samochody siê dobijaj¹ do siebie
            else
             AccDesired=0.0;
           }
           else //25.92 (=3.6*3.6*2) - przelicznik z km/h na m/s
-           AccDesired=-(vel*vel)/(25.92*(ActualProximityDist+0.1));//-fMinProximityDist));//-0.1; //mniejsze opóŸnienie przy ma³ej ró¿nicy
+           if (vel<fVelPlus) //jeœli niewielkie przekroczenie
+            //AccDesired=0.0;
+            AccDesired=0.1*AccPreferred; //proteza trochê: to niech nie hamuje
+           else
+            AccDesired=-(vel*vel)/(25.92*(ActualProximityDist+0.1));//-fMinProximityDist));//-0.1; //mniejsze opóŸnienie przy ma³ej ró¿nicy
           ReactionTime=0.1; //i orientuj siê szybciej, jak masz stan¹æ
          }
          else if (vel<VelNext+fVelPlus) //jeœli niewielkie przekroczenie, ale ma jechaæ

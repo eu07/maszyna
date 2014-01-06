@@ -263,9 +263,11 @@ void __fastcall TMoverParameters::UpdatePantVolume(double dt)
  if (!PantCompFlag&&(PantVolume>0.1))
   PantVolume-=dt*0.0003; //nieszczelnoœci: 0.0003=0.3l/s
  if (Mains) //nie wchodziæ w funkcjê bez potrzeby
-  if (PantPress<3.5)
-   if (MainSwitch(false)&&(EngineType==ElectricSeriesMotor))
-    EventFlag=true; //wywalenie szybkiego z powodu niskiego ciœnienia
+  if (EngineType==ElectricSeriesMotor) //nie dotyczy... czego w³aœciwie?
+   if (PantPress<3.5)
+    if ((TrainType&(dt_EZT|dt_ET40|dt_ET41|dt_ET42))?(GetTrainsetVoltage()<2200):true) //to jest trochê proteza; zasilanie cz³onu mo¿e byæ przez sprzêg WN
+     if (MainSwitch(false))
+      EventFlag=true; //wywalenie szybkiego z powodu niskiego ciœnienia
  if (TrainType!=dt_EZT) //w EN57 pompuje siê tylko w silnikowym
  //pierwotnie w CHK pantografy mia³y równie¿ rozrz¹dcze EZT 
  for (int b=0;b<=1;++b)

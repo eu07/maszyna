@@ -287,7 +287,7 @@ public: //reszta mo¿e byæ publiczna
     PSound dsbCouplerAttach; //Ra: w kabinie????
     PSound dsbCouplerDetach; //Ra: w kabinie???
 
-    PSound dsbDieselIgnition;
+    PSound dsbDieselIgnition; //Ra: w kabinie???
 
     PSound dsbDoorClose; //Ra: w kabinie???
     PSound dsbDoorOpen; //Ra: w kabinie???

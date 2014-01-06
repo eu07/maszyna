@@ -1928,6 +1928,13 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
  if (!bEnabled)
   return false; //a normalnie powinny mieæ bEnabled==false
 
+//Ra: przenios³em - no ju¿ lepiej tu, ni¿ w wyœwietlaniu!
+//if ((MoverParameters->ConverterFlag==false) && (MoverParameters->TrainType!=dt_ET22))
+if ((MoverParameters->ConverterFlag==false)&&(MoverParameters->CompressorPower!=0))
+ MoverParameters->CompressorFlag=false;
+//if (MoverParameters->CompressorPower==2)
+// MoverParameters->CompressorAllow=MoverParameters->ConverterFlag;
+
  //McZapkie-260202
  if ((MoverParameters->EnginePowerSource.SourceType==CurrentCollector)&&(MoverParameters->Power>1.0)) //aby rozrz¹dczy nie opuszcza³ silnikowemu
   if ((MechInside)||(MoverParameters->TrainType==dt_EZT))
@@ -2601,7 +2608,7 @@ void __fastcall Cone(vector3 p,double d,float fNr)
 }
 */
 
-bool __fastcall TDynamicObject::Render()
+void __fastcall TDynamicObject::Render()
 {//rysowanie elementów nieprzezroczystych
  //youBy - sprawdzamy, czy jest sens renderowac
  double modelrotate;
@@ -2657,7 +2664,7 @@ bool __fastcall TDynamicObject::Render()
    if (Global::bSmudge)
    {//jak smuga, to rysowaæ po smudze
     glPopMatrix(); //to trzeba zebraæ przed wyœciem
-    return true;
+    return;
    }
    //if (Global::pWorld->) //tu trzeba by ustawiæ animacje na modelu zewnêtrznym
    glLoadIdentity(); //zacz¹æ od macierzy jedynkowej
@@ -2765,8 +2772,10 @@ bool __fastcall TDynamicObject::Render()
   glPopMatrix();
   if (btnOn) TurnOff(); //przywrócenie domyœlnych pozycji submodeli
  } //yB - koniec mieszania z grafika
+};
 
-
+void __fastcall TDynamicObject::RenderSounds()
+{//przeliczanie dŸwiêków, bo bêdzie s³ychaæ bez wyœwietlania sektora z pojazdem
  //McZapkie-010302: ulepszony dzwiek silnika
  double freq;
  double vol=0;
@@ -2904,8 +2913,9 @@ bool __fastcall TDynamicObject::Render()
      }
 
 //if ((MoverParameters->ConverterFlag==false) && (MoverParameters->TrainType!=dt_ET22))
-if ((MoverParameters->ConverterFlag==false)&&(MoverParameters->CompressorPower!=0))
- MoverParameters->CompressorFlag=false;
+//if ((MoverParameters->ConverterFlag==false)&&(MoverParameters->CompressorPower!=0))
+// MoverParameters->CompressorFlag=false; //Ra: wywaliæ to st¹d, tu tylko dla wyœwietlanych!
+//Ra: no to ju¿ wiemy, dlaczego poci¹gi je¿d¿¹ lepiej, gdy siê na nie patrzy!
 //if (MoverParameters->CompressorPower==2)
 // MoverParameters->CompressorAllow=MoverParameters->ConverterFlag;
 
@@ -3071,10 +3081,9 @@ else sTurbo.TurnOff(MechInside,GetPosition());
     rsDerailment.Stop();
  }
 */
- return true;
 };
 
-bool __fastcall TDynamicObject::RenderAlpha()
+void __fastcall TDynamicObject::RenderAlpha()
 {//rysowanie elementów pó³przezroczystych
  if (renderme)
  {
@@ -3087,7 +3096,7 @@ bool __fastcall TDynamicObject::RenderAlpha()
    if (Global::bSmudge)
    {//jak smuga, to rysowaæ po smudze
     glPopMatrix(); //to trzeba zebraæ przed wyœciem
-    return true;
+    return;
    }
    glLoadIdentity(); //zacz¹æ od macierzy jedynkowej
    Global::pCamera->SetCabMatrix(vPosition); //specjalne ustawienie kamery
@@ -3193,7 +3202,7 @@ bool __fastcall TDynamicObject::RenderAlpha()
   glPopMatrix();
   if (btnOn) TurnOff(); //przywrócenie domyœlnych pozycji submodeli
  }
- return true;
+ return;
 } //koniec renderalpha
 
 

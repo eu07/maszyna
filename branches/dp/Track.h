@@ -171,6 +171,7 @@ public:
  void  __fastcall RaRenderVBO(int iPtr); //renderowanie z VBO sektora
  void __fastcall RenderDyn(); //renderowanie nieprzezroczystych pojazdów (oba tryby)
  void __fastcall RenderDynAlpha(); //renderowanie przezroczystych pojazdów (oba tryby)
+ void __fastcall RenderDynSounds(); //odtwarzanie dŸwiêków pojazdów jest niezale¿ne od ich wyœwietlania
 
  void __fastcall RaOwnerSet(TSubRect *o)
  {if (SwitchExtension) SwitchExtension->pOwner=o;};
