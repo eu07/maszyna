@@ -2636,6 +2636,9 @@ bool __fastcall TTrain::Update()
        }
       }
 
+  if (FreeFlyModeFlag)
+   rsFadeSound.Stop(); //wy³¹cz to cholerne cykanie!
+  else
    rsFadeSound.Play(1,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
 
 // McZapkie! - to wazne - SoundFlag wystawiane jest przez moje moduly
@@ -5501,6 +5504,7 @@ void __fastcall TTrain::MechStop()
  pMechPosition=vector3(0,0,0);
  pMechShake=vector3(0,0,0);
  vMechMovement=vector3(0,0,0);
+ vMechVelocity=vector3(0,0,0); //tu zostawa³y jakieœ u³amki, powoduj¹ce uciekanie kamery
  //pMechShake=vMechVelocity=vector3(0,0,0);
 };
 

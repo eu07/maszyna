@@ -690,7 +690,11 @@ void __fastcall TWorld::OnKeyDown(int cKey)
       +AnsiString(i)+" endcamera");
     }
     else //równie¿ przeskakiwanie
-     Camera.Init(Global::pFreeCameraInit[i],Global::pFreeCameraInitAngle[i]);
+    {//Ra: to z t¹ kamer¹ (Camera.Pos i Global::pCameraPosition) jest trochê bez sensu
+     Global::SetCameraPosition(Global::pFreeCameraInit[i]); //nowa pozycja dla generowania obiektów
+     Ground.Silence(Camera.Pos); //wyciszenie wszystkiego z poprzedniej pozycji
+     Camera.Init(Global::pFreeCameraInit[i],Global::pFreeCameraInitAngle[i]); //przestawienie
+    }
    }
   //bêdzie jeszcze za³¹czanie sprzêgów z [Ctrl]
  }
@@ -838,6 +842,7 @@ void __fastcall TWorld::InOutKey()
   Global::pUserDynamic=NULL; //bez renderowania wzglêdem kamery
   if (Train)
   {//Train->Dynamic()->ABuSetModelShake(vector3(0,0,0));
+   Train->Silence(); //wy³¹czenie dŸwiêków kabiny
    Train->Dynamic()->bDisplayCab=false;
    DistantView();
   }
@@ -938,13 +943,13 @@ bool __fastcall TWorld::Update()
     if (Global::iSegmentsRendered>Global::iFpsRadiusMax) //5.6km (22*22*M_PI)
      Global::iSegmentsRendered=Global::iFpsRadiusMax;
    }
-  if ((GetFPS()<16)&&(Global::iSlowMotion<7))
+  if ((GetFPS()<12)&&(Global::iSlowMotion<7))
   {Global::iSlowMotion=(Global::iSlowMotion<<1)+1; //zapalenie kolejnego bitu
    if (Global::iSlowMotionMask&1)
     if (Global::iMultisampling) //a multisampling jest w³¹czony
      glDisable(GL_MULTISAMPLE); //wy³¹czenie multisamplingu powinno poprawiæ FPS
   }
-  else if ((GetFPS()>25)&&Global::iSlowMotion)
+  else if ((GetFPS()>20)&&Global::iSlowMotion)
   {//FPS siê zwiêkszy³, mo¿na w³¹czyæ bajery
    Global::iSlowMotion=(Global::iSlowMotion>>1); //zgaszenie bitu
    if (Global::iSlowMotion==0) //jeœli jest pe³na prêdkoœæ
@@ -1183,7 +1188,7 @@ bool __fastcall TWorld::Update()
    {//patrzenie standardowe
     Camera.Pos=Train->pMechPosition;//Train.GetPosition1();
     Camera.Roll=atan(Train->pMechShake.x*Train->fMechRoll); //hustanie kamery na boki
-    Camera.Pitch-=atan(Train->vMechVelocity.z*Train->fMechPitch); //hustanie kamery przod tyl
+    Camera.Pitch-=atan(Train->vMechVelocity.z*Train->fMechPitch); //hustanie kamery przod tyl //Ra: tu jest uciekanie kamery w górê!!!
     //ABu011104: rzucanie pudlem
     vector3 temp;
     if (abs(Train->pMechShake.y)<0.25)

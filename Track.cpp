@@ -1977,6 +1977,11 @@ void __fastcall TTrack::RenderDynAlpha()
  //EnvironmentReset();
 };
 
+void __fastcall TTrack::RenderDynSounds()
+{//odtwarzanie dŸwiêków pojazdów jest niezale¿ne od ich wyœwietlania
+ for (int i=0;i<iNumDynamics;i++)
+  Dynamics[i]->RenderSounds(); //sam sprawdza, czy VBO; zmienia kontekst VBO!
+};
 //---------------------------------------------------------------------------
 bool __fastcall TTrack::SetConnections(int i)
 {//zapamiêtanie po³¹czen w segmencie

@@ -196,6 +196,7 @@ public:
  void __fastcall RenderAlphaDL();  //renderowanie przezroczystych w Display Lists (McZapkie-131202)
  void __fastcall RenderVBO();      //renderowanie nieprzezroczystych z w³asnego VBO
  void __fastcall RenderAlphaVBO(); //renderowanie przezroczystych z (w³asnego) VBO
+ void __fastcall RenderSounds();   //dŸwiêki pojazdów z niewidocznych sektorów
 };
 
 //Ra: trzeba sprawdziæ wydajnoœæ siatki
@@ -360,6 +361,7 @@ public:
  void __fastcall TrackBusyList();
  void __fastcall IsolatedBusyList();
  void __fastcall IsolatedBusy(const AnsiString t);
+ void __fastcall Silence(vector3 gdzie);
 };
 //---------------------------------------------------------------------------
 #endif
