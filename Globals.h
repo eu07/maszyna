@@ -214,6 +214,7 @@ public:
  static int iViewMode; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty, 4-obwody
  static GLint iMaxTextureSize; //maksymalny rozmiar tekstury
  static int iTextMode; //tryb pracy wyœwietlacza tekstowego
+ static int iScreenMode[12]; //numer ekranu wyœwietlacza tekstowego
  static bool bDoubleAmbient; //podwójna jasnoœæ ambient
  static double fMoveLight; //numer dnia w roku albo -1
  static bool bSmoothTraction; //wyg³adzanie drutów

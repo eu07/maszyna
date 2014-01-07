@@ -94,8 +94,8 @@ public:
  vector3 vPos; //wspó³rzêdne XYZ do liczenia odleg³oœci
  struct
  {
-  TTrack *tTrack; //wskaŸnik na tor o zmiennej prêdkoœci (zwrotnica, obrotnica)
-  TEvent *eEvent; //po³¹czenie z eventem albo komórk¹ pamiêci
+  TTrack *trTrack; //wskaŸnik na tor o zmiennej prêdkoœci (zwrotnica, obrotnica)
+  TEvent *evEvent; //po³¹czenie z eventem albo komórk¹ pamiêci
  };
  void __fastcall CommandCheck();
 public:
@@ -103,6 +103,7 @@ public:
  bool __fastcall Update(vector3 *p,vector3 *dir,double &len);
  bool __fastcall Set(TEvent *e,double d);
  void __fastcall Set(TTrack *t,double d,int f);
+ AnsiString __fastcall TableText();
 };
 
 //----------------------------------------------------------------------------
@@ -295,6 +296,7 @@ public:
  int inline __fastcall DrivigFlags() {return iDrivigFlags;};
  void __fastcall MoveTo(TDynamicObject *to);
  void __fastcall DirectionInitial();
+ AnsiString __fastcall TableText(int i);
 };
 
 #endif
