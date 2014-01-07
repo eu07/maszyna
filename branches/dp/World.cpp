@@ -699,39 +699,48 @@ void __fastcall TWorld::OnKeyDown(int cKey)
   //bêdzie jeszcze za³¹czanie sprzêgów z [Ctrl]
  }
  else if ((cKey>=VK_F1)?(cKey<=VK_F12):false)
- {if (Global::iTextMode==cKey)
-   Global::iTextMode=0; //wy³¹czenie napisów
-  else
-   switch (cKey)
-   {case VK_F1: //czas i relacja
-    case VK_F2: //parametry pojazdu
-    case VK_F3:
-    case VK_F5: //przesiadka do innego pojazdu
-    case VK_F8: //FPS
-    case VK_F9: //wersja, typ wyœwietlania, b³êdy OpenGL
-    case VK_F10:
+ {
+  switch (cKey)
+  {case VK_F1: //czas i relacja
+   case VK_F3:
+   case VK_F5: //przesiadka do innego pojazdu
+   case VK_F8: //FPS
+   case VK_F9: //wersja, typ wyœwietlania, b³êdy OpenGL
+   case VK_F10:
+    if (Global::iTextMode==cKey)
+     Global::iTextMode=0; //wy³¹czenie napisów
+    else
      Global::iTextMode=cKey;
-    break;
-    case VK_F12: //coœ tam jeszcze
-     if (Console::Pressed(VK_CONTROL)&&Console::Pressed(VK_SHIFT))
-      DebugModeFlag=!DebugModeFlag; //taka opcjonalna funkcja, mo¿e siê czasem przydaæ
+   break;
+   case VK_F2: //parametry pojazdu
+    if (Global::iTextMode==cKey) //jeœli kolejne naciœniêcie
+     ++Global::iScreenMode[cKey-VK_F1]; //koeljny ekran
+    else
+    {//pierwsze naciœniêcie daje pierwszy (tzn. zerowy) ekran
+     Global::iTextMode=cKey;
+     Global::iScreenMode[cKey-VK_F1]=0;
+    }
+   break;
+   case VK_F12: //coœ tam jeszcze
+    if (Console::Pressed(VK_CONTROL)&&Console::Pressed(VK_SHIFT))
+     DebugModeFlag=!DebugModeFlag; //taka opcjonalna funkcja, mo¿e siê czasem przydaæ
+    else
+     Global::iTextMode=cKey;
+   break;
+   case VK_F4:
+    InOutKey();
+   break;
+   case VK_F6:
+    if (DebugModeFlag)
+    {//przyspieszenie symulacji do testowania scenerii... uwaga na FPS!
+     //Global::iViewMode=VK_F6;
+     if (Console::Pressed(VK_CONTROL))
+      Global::fTimeSpeed=(Console::Pressed(VK_SHIFT)?10.0:5.0);
      else
-      Global::iTextMode=cKey;
-    break;
-    case VK_F4:
-     InOutKey();
-    break;
-    case VK_F6:
-     if (DebugModeFlag)
-     {//przyspieszenie symulacji do testowania scenerii... uwaga na FPS!
-      //Global::iViewMode=VK_F6;
-      if (Console::Pressed(VK_CONTROL))
-       Global::fTimeSpeed=(Console::Pressed(VK_SHIFT)?10.0:5.0);
-      else
-       Global::fTimeSpeed=(Console::Pressed(VK_SHIFT)?2.0:1.0);
-     }
-    break;
-   }
+      Global::fTimeSpeed=(Console::Pressed(VK_SHIFT)?2.0:1.0);
+    }
+   break;
+  }
   //if (cKey!=VK_F4)
   return; //nie s¹ przekazywane do pojazdu wcale
  }
@@ -1528,6 +1537,16 @@ bool __fastcall TWorld::Update()
      Global::changeDynObj=NULL;
     }
 
+ glDisable(GL_LIGHTING);
+ if (Controlled)
+  SetWindowText(hWnd,AnsiString(Controlled->MoverParameters->Name).c_str());
+ else
+  SetWindowText(hWnd,Global::szSceneryFile); //nazwa scenerii
+ glBindTexture(GL_TEXTURE_2D, 0);
+ glColor4f(1.0f,0.0f,0.0f,1.0f);
+ glLoadIdentity();
+
+
     if (Global::iTextMode==VK_F1)
     {//tekst pokazywany po wciœniêciu [F1]
      //Global::iViewMode=VK_F1;
@@ -1563,28 +1582,30 @@ bool __fastcall TWorld::Update()
      TDynamicObject *tmp=FreeFlyModeFlag?Ground.DynamicNearest(Camera.Pos):Controlled; //w trybie latania lokalizujemy wg mapy
      if (tmp)
      {
-      OutText3="";
-      OutText1="Vehicle name:  "+AnsiString(tmp->MoverParameters->Name);
-//yB      OutText1+="; d:  "+FloatToStrF(tmp->ABuGetDirection(),ffFixed,2,0);
-      //OutText1=FloatToStrF(tmp->MoverParameters->Couplers[0].CouplingFlag,ffFixed,3,2)+", ";
-      //OutText1+=FloatToStrF(tmp->MoverParameters->Couplers[1].CouplingFlag,ffFixed,3,2);
-      if (tmp->Mechanik) //jeœli jest prowadz¹cy
-      {//ostatnia komenda dla AI
-       OutText1+=", command: "+tmp->Mechanik->OrderCurrent();
-      }
-      if (!tmp->MoverParameters->CommandLast.IsEmpty())
-       OutText1+=AnsiString(", put: ")+tmp->MoverParameters->CommandLast;
-      OutText2="Damage status: "+tmp->MoverParameters->EngineDescription(0);//+" Engine status: ";
-      OutText2+="; Brake delay: ";
-      if((tmp->MoverParameters->BrakeDelayFlag&bdelay_G)==bdelay_G)
-       OutText2+="G";
-      if((tmp->MoverParameters->BrakeDelayFlag&bdelay_P)==bdelay_P)
-       OutText2+="P";
-      if((tmp->MoverParameters->BrakeDelayFlag&bdelay_R)==bdelay_R)
-       OutText2+="R";
-      if((tmp->MoverParameters->BrakeDelayFlag&bdelay_M)==bdelay_M)
-       OutText2+="+Mg";
-      OutText2+=AnsiString(", BTP:")+FloatToStrF(tmp->MoverParameters->LoadFlag,ffFixed,5,0);
+      if (Global::iScreenMode[Global::iTextMode-VK_F1]==0)
+      {//jeœli domyœlny ekran po pierwszym naciœniêciu
+       OutText3="";
+       OutText1="Vehicle name:  "+AnsiString(tmp->MoverParameters->Name);
+//yB       OutText1+="; d:  "+FloatToStrF(tmp->ABuGetDirection(),ffFixed,2,0);
+       //OutText1=FloatToStrF(tmp->MoverParameters->Couplers[0].CouplingFlag,ffFixed,3,2)+", ";
+       //OutText1+=FloatToStrF(tmp->MoverParameters->Couplers[1].CouplingFlag,ffFixed,3,2);
+       if (tmp->Mechanik) //jeœli jest prowadz¹cy
+       {//ostatnia komenda dla AI
+        OutText1+=", command: "+tmp->Mechanik->OrderCurrent();
+       }
+       if (!tmp->MoverParameters->CommandLast.IsEmpty())
+        OutText1+=AnsiString(", put: ")+tmp->MoverParameters->CommandLast;
+       OutText2="Damage status: "+tmp->MoverParameters->EngineDescription(0);//+" Engine status: ";
+       OutText2+="; Brake delay: ";
+       if((tmp->MoverParameters->BrakeDelayFlag&bdelay_G)==bdelay_G)
+        OutText2+="G";
+       if((tmp->MoverParameters->BrakeDelayFlag&bdelay_P)==bdelay_P)
+        OutText2+="P";
+       if((tmp->MoverParameters->BrakeDelayFlag&bdelay_R)==bdelay_R)
+        OutText2+="R";
+       if((tmp->MoverParameters->BrakeDelayFlag&bdelay_M)==bdelay_M)
+        OutText2+="+Mg";
+       OutText2+=AnsiString(", BTP:")+FloatToStrF(tmp->MoverParameters->LoadFlag,ffFixed,5,0);
 
 //          OutText2+=AnsiString(", u:")+FloatToStrF(tmp->MoverParameters->u,ffFixed,3,3);
 //          OutText2+=AnsiString(", N:")+FloatToStrF((tmp->MoverParameters->BrakePress*tmp->MoverParameters->P2FTrans-tmp->MoverParameters->BrakeCylSpring)*tmp->MoverParameters->BrakeCylNo*tmp->MoverParameters->BrakeCylMult[0]-tmp->MoverParameters->BrakeSlckAdj,ffFixed,4,0);
@@ -1600,43 +1621,43 @@ bool __fastcall TWorld::Update()
 //yB      if(tmp->MoverParameters->BrakeSubsystem==Oerlikon) OutText2+=" Oerlikon";
 //yB      if(tmp->MoverParameters->BrakeSubsystem==Hik) OutText2+=" Hik";
 //yB      if(tmp->MoverParameters->BrakeSubsystem==WeLu) OutText2+=" £estingha³s";
-      //OutText2= " GetFirst: "+AnsiString(tmp->GetFirstDynamic(1)->MoverParameters->Name)+" Damage status="+tmp->MoverParameters->EngineDescription(0)+" Engine status: ";
-      //OutText2+= " GetLast: "+AnsiString(tmp->GetLastDynamic(1)->MoverParameters->Name)+" Damage status="+tmp->MoverParameters->EngineDescription(0)+" Engine status: ";
-      OutText3= AnsiString("BP: ")+FloatToStrF(tmp->MoverParameters->BrakePress,ffFixed,5,2)+AnsiString(", ");
-      OutText3+= FloatToStrF(tmp->MoverParameters->BrakeStatus,ffFixed,5,0)+AnsiString(", ");
-      OutText3+= AnsiString("PP: ")+FloatToStrF(tmp->MoverParameters->PipePress,ffFixed,5,2)+AnsiString("/");
-      OutText3+= FloatToStrF(tmp->MoverParameters->ScndPipePress,ffFixed,5,2)+AnsiString("/");
-      OutText3+= FloatToStrF(tmp->MoverParameters->EqvtPipePress,ffFixed,5,2)+AnsiString(", ");
-      OutText3+= AnsiString("BVP: ")+FloatToStrF(tmp->MoverParameters->Volume,ffFixed,5,3)+AnsiString(", ");
-      OutText3+= FloatToStrF(tmp->MoverParameters->CntrlPipePress,ffFixed,5,3)+AnsiString(", ");
-      OutText3+= FloatToStrF(tmp->MoverParameters->Hamulec->GetCRP(),ffFixed,5,3)+AnsiString(", ");
-      OutText3+= FloatToStrF(tmp->MoverParameters->BrakeStatus,ffFixed,5,0)+AnsiString(", ");
-//      OutText3+= AnsiString("BVP: ")+FloatToStrF(tmp->MoverParameters->BrakeVP(),ffFixed,5,2)+AnsiString(", ");
+       //OutText2= " GetFirst: "+AnsiString(tmp->GetFirstDynamic(1)->MoverParameters->Name)+" Damage status="+tmp->MoverParameters->EngineDescription(0)+" Engine status: ";
+       //OutText2+= " GetLast: "+AnsiString(tmp->GetLastDynamic(1)->MoverParameters->Name)+" Damage status="+tmp->MoverParameters->EngineDescription(0)+" Engine status: ";
+       OutText3=AnsiString("BP: ")+FloatToStrF(tmp->MoverParameters->BrakePress,ffFixed,5,2)+AnsiString(", ");
+       OutText3+=FloatToStrF(tmp->MoverParameters->BrakeStatus,ffFixed,5,0)+AnsiString(", ");
+       OutText3+=AnsiString("PP: ")+FloatToStrF(tmp->MoverParameters->PipePress,ffFixed,5,2)+AnsiString("/");
+       OutText3+=FloatToStrF(tmp->MoverParameters->ScndPipePress,ffFixed,5,2)+AnsiString("/");
+       OutText3+=FloatToStrF(tmp->MoverParameters->EqvtPipePress,ffFixed,5,2)+AnsiString(", ");
+       OutText3+=AnsiString("BVP: ")+FloatToStrF(tmp->MoverParameters->Volume,ffFixed,5,3)+AnsiString(", ");
+       OutText3+=FloatToStrF(tmp->MoverParameters->CntrlPipePress,ffFixed,5,3)+AnsiString(", ");
+       OutText3+=FloatToStrF(tmp->MoverParameters->Hamulec->GetCRP(),ffFixed,5,3)+AnsiString(", ");
+       OutText3+=FloatToStrF(tmp->MoverParameters->BrakeStatus,ffFixed,5,0)+AnsiString(", ");
+//      OutText3+=AnsiString("BVP: ")+FloatToStrF(tmp->MoverParameters->BrakeVP(),ffFixed,5,2)+AnsiString(", ");
 
-//      OutText3+= FloatToStrF(tmp->MoverParameters->CntrlPipePress,ffFixed,5,2)+AnsiString(", ");
-//      OutText3+= FloatToStrF(tmp->MoverParameters->HighPipePress,ffFixed,5,2)+AnsiString(", ");
-//      OutText3+= FloatToStrF(tmp->MoverParameters->LowPipePress,ffFixed,5,2)+AnsiString(", ");
+//      OutText3+=FloatToStrF(tmp->MoverParameters->CntrlPipePress,ffFixed,5,2)+AnsiString(", ");
+//      OutText3+=FloatToStrF(tmp->MoverParameters->HighPipePress,ffFixed,5,2)+AnsiString(", ");
+//      OutText3+=FloatToStrF(tmp->MoverParameters->LowPipePress,ffFixed,5,2)+AnsiString(", ");
 
-      if ((tmp->MoverParameters->LocalBrakePos)>0)
-       OutText3+= AnsiString("local brake active. ");
-      else
-       OutText3+= AnsiString("local brake inactive. ");
+       if ((tmp->MoverParameters->LocalBrakePos)>0)
+        OutText3+=AnsiString("local brake active. ");
+       else
+        OutText3+=AnsiString("local brake inactive. ");
 /*
-      //OutText3+= AnsiString("LSwTim: ")+FloatToStrF(tmp->MoverParameters->LastSwitchingTime,ffFixed,5,2);
-      //OutText3+= AnsiString(" Physic: ")+FloatToStrF(tmp->MoverParameters->PhysicActivation,ffFixed,5,2);
-      //OutText3+= AnsiString(" ESF: ")+FloatToStrF(tmp->MoverParameters->EndSignalsFlag,ffFixed,5,0);
-      OutText3+= AnsiString(" dPAngF: ")+FloatToStrF(tmp->dPantAngleF,ffFixed,5,0);
-      OutText3+= AnsiString(" dPAngFT: ")+FloatToStrF(-(tmp->PantTraction1*28.9-136.938),ffFixed,5,0);
-      if (tmp->lastcabf==1)
-      {
-      OutText3+= AnsiString(" pcabc1: ")+FloatToStrF(tmp->MoverParameters->PantFrontUp,ffFixed,5,0);
-      OutText3+= AnsiString(" pcabc2: ")+FloatToStrF(tmp->MoverParameters->PantRearUp,ffFixed,5,0);
-      }
-      if (tmp->lastcabf==-1)
-      {
-      OutText3+= AnsiString(" pcabc1: ")+FloatToStrF(tmp->MoverParameters->PantRearUp,ffFixed,5,0);
-      OutText3+= AnsiString(" pcabc2: ")+FloatToStrF(tmp->MoverParameters->PantFrontUp,ffFixed,5,0);
-      }
+       //OutText3+=AnsiString("LSwTim: ")+FloatToStrF(tmp->MoverParameters->LastSwitchingTime,ffFixed,5,2);
+       //OutText3+=AnsiString(" Physic: ")+FloatToStrF(tmp->MoverParameters->PhysicActivation,ffFixed,5,2);
+       //OutText3+=AnsiString(" ESF: ")+FloatToStrF(tmp->MoverParameters->EndSignalsFlag,ffFixed,5,0);
+       OutText3+=AnsiString(" dPAngF: ")+FloatToStrF(tmp->dPantAngleF,ffFixed,5,0);
+       OutText3+=AnsiString(" dPAngFT: ")+FloatToStrF(-(tmp->PantTraction1*28.9-136.938),ffFixed,5,0);
+       if (tmp->lastcabf==1)
+       {
+        OutText3+=AnsiString(" pcabc1: ")+FloatToStrF(tmp->MoverParameters->PantFrontUp,ffFixed,5,0);
+        OutText3+=AnsiString(" pcabc2: ")+FloatToStrF(tmp->MoverParameters->PantRearUp,ffFixed,5,0);
+       }
+       if (tmp->lastcabf==-1)
+       {
+        OutText3+=AnsiString(" pcabc1: ")+FloatToStrF(tmp->MoverParameters->PantRearUp,ffFixed,5,0);
+        OutText3+=AnsiString(" pcabc2: ")+FloatToStrF(tmp->MoverParameters->PantFrontUp,ffFixed,5,0);
+       }
 */
        OutText4="";
        if (tmp->Mechanik)
@@ -1670,17 +1691,35 @@ bool __fastcall TWorld::Update()
         WriteLog(OutText3);
         WriteLog(OutText4);
        }
-      }
+      } //koniec treœci podstawowego ekranu FK_V2
       else
-      {//wyœwietlenie wspó³rzêdnych w scenerii oraz k¹ta kamery
-       OutText1="Camera position: "+FloatToStrF(Camera.Pos.x,ffFixed,6,2)+" "+FloatToStrF(Camera.Pos.y,ffFixed,6,2)+" "+FloatToStrF(Camera.Pos.z,ffFixed,6,2);
-       OutText1+=", azimuth: "+FloatToStrF(180.0-RadToDeg(Camera.Yaw),ffFixed,3,0); //ma byæ azymut, czyli 0 na pó³nocy i roœnie na wschód
-       OutText1+=" "+AnsiString("S SEE NEN NWW SW").SubString(1+2*floor(fmod(8+(Camera.Yaw+0.5*M_PI_4)/M_PI_4,8)),2);
-      }
-      //OutText3= AnsiString("  Online documentation (PL, ENG, DE, soon CZ): http://www.eu07.pl");
-      //OutText3="enrot="+FloatToStrF(Controlled->MoverParameters->enrot,ffFixed,6,2);
-      //OutText3="; n="+FloatToStrF(Controlled->MoverParameters->n,ffFixed,6,2);
-    }
+      {//ekran drugi, czyli tabelka skanowania AI
+       if (tmp->Mechanik) //¿eby by³a tabelka, musi byæ AI
+       {//tabelka jest na u¿ytek testuj¹cych scenerie, wiêc nie musi byæ "³adna"
+        glColor3f(0.0f,1.0f,0.0f); //a, damy zielony
+        glTranslatef(0.0f,0.0f,-0.50f);
+        glRasterPos2f(-0.25f,0.20f);
+        OutText1="Scan table:";
+        glPrint(Bezogonkow(OutText1).c_str());
+        int i=-1;
+        while ((OutText1=tmp->Mechanik->TableText(++i))!="")
+        {//wyœwietlenie pozycji z tabelki
+         glRasterPos2f(-0.25f,0.19f-0.01f*i);
+         glPrint(Bezogonkow(OutText1).c_str());
+        }
+       }
+      } //koniec ekanu skanowania
+     } //koniec obs³ugi, gdy mamy wskaŸnik do pojazdu
+     else
+     {//wyœwietlenie wspó³rzêdnych w scenerii oraz k¹ta kamery, gdy nie mamy wskaŸnika
+      OutText1="Camera position: "+FloatToStrF(Camera.Pos.x,ffFixed,6,2)+" "+FloatToStrF(Camera.Pos.y,ffFixed,6,2)+" "+FloatToStrF(Camera.Pos.z,ffFixed,6,2);
+      OutText1+=", azimuth: "+FloatToStrF(180.0-RadToDeg(Camera.Yaw),ffFixed,3,0); //ma byæ azymut, czyli 0 na pó³nocy i roœnie na wschód
+      OutText1+=" "+AnsiString("S SEE NEN NWW SW").SubString(1+2*floor(fmod(8+(Camera.Yaw+0.5*M_PI_4)/M_PI_4,8)),2);
+     }
+     //OutText3= AnsiString("  Online documentation (PL, ENG, DE, soon CZ): http://www.eu07.pl");
+     //OutText3="enrot="+FloatToStrF(Controlled->MoverParameters->enrot,ffFixed,6,2);
+     //OutText3="; n="+FloatToStrF(Controlled->MoverParameters->n,ffFixed,6,2);
+    } //koniec treœci podstawowego ekranu FK_V2
     else if (Global::iTextMode==VK_F5)
     {//przesiadka do innego pojazdu
      if (FreeFlyModeFlag) //jeœli tryb latania
@@ -1838,15 +1877,6 @@ bool __fastcall TWorld::Update()
         +AnsiString(" Pd=")+FloatToStrF(Controlled->Mechanik->ActualProximityDist,ffFixed,4,0)
         +AnsiString(" Vn=")+FloatToStrF(Controlled->Mechanik->VelNext,ffFixed,4,0);
      }
-
- glDisable(GL_LIGHTING);
- if (Controlled)
-  SetWindowText(hWnd,AnsiString(Controlled->MoverParameters->Name).c_str());
- else
-  SetWindowText(hWnd,Global::szSceneryFile); //nazwa scenerii
- glBindTexture(GL_TEXTURE_2D, 0);
- glColor4f(1.0f,0.0f,0.0f,1.0f);
- glLoadIdentity();
 
 //ABu 150205: prosty help, zeby sie na forum nikt nie pytal, jak ma ruszyc :)
 
