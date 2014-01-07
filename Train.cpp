@@ -3172,13 +3172,33 @@ else
         else
          { btLampkaSprezarka.TurnOff(); }
         //boczniki
-        unsigned char scp; //Ra: dopisa³em "unsigned" 
-        scp=pControlled->RList[pControlled->MainCtrlActualPos].ScndAct;
-        scp=(scp==255?0:scp);
-        if ((pControlled->ScndCtrlActualPos>0)||(pControlled->ScndInMain)&&(scp>0))
-         { btLampkaBocznikI.TurnOn(); }
+        unsigned char scp; //Ra: dopisa³em "unsigned"
+        //Ra: w SU45 boczniki wchodz¹ na MainCtrlPos, a nie na MainCtrlActualPos - pokiæka³ ktoœ?
+        scp=pControlled->RList[pControlled->MainCtrlPos].ScndAct;
+        scp=(scp==255?0:scp); //Ra: whatta hella is this?
+        if ((pControlled->ScndCtrlPos>0)||(pControlled->ScndInMain)&&(scp>0))
+        {//boczniki pojedynczo
+         btLampkaBocznik1.TurnOn();
+         if (pControlled->ScndCtrlPos>1)
+         {//w³¹czony 2. i byæ mo¿e 3.
+          btLampkaBocznik2.TurnOn();
+          if (pControlled->ScndCtrlPos>2)
+           btLampkaBocznik3.TurnOn();
+          else
+           btLampkaBocznik3.TurnOff();
+         }
+         else
+         {//wy³¹czone dwa
+          btLampkaBocznik2.TurnOff();
+          btLampkaBocznik3.TurnOff();
+         }
+        }
         else
-         { btLampkaBocznikI.TurnOff(); }
+        {//wy³¹czone wszystkie trzy
+         btLampkaBocznik1.TurnOff();
+         btLampkaBocznik2.TurnOff();
+         btLampkaBocznik3.TurnOff();
+        }
 /*
         { //sprezarka w drugim wozie
         bool comptemp=false;
@@ -5148,8 +5168,9 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     btLampkaDepartureSignal.Clear();
     btLampkaRezerwa.Clear();
     btLampkaBoczniki.Clear();
-    btLampkaBocznikI.Clear();
-    btLampkaBocznikII.Clear();
+    btLampkaBocznik1.Clear();
+    btLampkaBocznik2.Clear();
+    btLampkaBocznik3.Clear();
     btLampkaRadiotelefon.Clear();
     btLampkaHamienie.Clear();
     btLampkaSprezarka.Clear();
@@ -5450,12 +5471,14 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     btLampkaDepartureSignal.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("i-reserve:"))
     btLampkaRezerwa.Load(Parser,DynamicObject->mdKabina);
-   else if (str==AnsiString("i-scnd1:"))
-    btLampkaBocznikI.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("i-scnd:"))
     btLampkaBoczniki.Load(Parser,DynamicObject->mdKabina);
+   else if (str==AnsiString("i-scnd1:"))
+    btLampkaBocznik1.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("i-scnd2:"))
-    btLampkaBocznikII.Load(Parser,DynamicObject->mdKabina);
+    btLampkaBocznik2.Load(Parser,DynamicObject->mdKabina);
+   else if (str==AnsiString("i-scnd3:"))
+    btLampkaBocznik3.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("i-braking:"))
     btLampkaHamienie.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("i-braking-ezt:"))

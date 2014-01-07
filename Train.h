@@ -233,8 +233,9 @@ public: //reszta mo¿e byæ publiczna
     TButton btLampkaNapNastHam;
     TButton btLampkaSprezarka;
     TButton btLampkaSprezarkaB;
-    TButton btLampkaBocznikI;
-    TButton btLampkaBocznikII;
+    TButton btLampkaBocznik1;
+    TButton btLampkaBocznik2;
+    TButton btLampkaBocznik3;
     TButton btLampkaRadiotelefon;
     TButton btLampkaHamienie;
     TButton btLampkaJazda; //Ra: nie u¿ywane
