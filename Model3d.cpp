@@ -1331,6 +1331,7 @@ void __fastcall TSubModel::InfoSet(TSubModelInfo *info)
 
 void __fastcall TSubModel::BinInit(TSubModel *s,float4x4 *m,float8 *v,TStringPack *t,TStringPack *n)
 {//ustawienie wskaŸników w submodelu
+ iVisible=1; //tymczasowo u¿ywane
  Child=((int)Child>0)?s+(int)Child:NULL; //zerowy nie mo¿e byæ potomnym
  Next=((int)Next>0)?s+(int)Next:NULL; //zerowy nie mo¿e byæ nastêpnym
  fMatrix=((iMatrix>=0)&&m)?m+iMatrix:NULL;
@@ -1364,7 +1365,6 @@ void __fastcall TSubModel::BinInit(TSubModel *s,float4x4 *m,float8 *v,TStringPac
  b_aAnim=b_Anim; //skopiowanie animacji do drugiego cyklu
  iFlags&=~0x0200; //wczytano z pliku binarnego (nie jest w³aœcicielem tablic)
  Vertices=v+iVboPtr;
- iVisible=1; //tymczasowo u¿ywane
  //if (!iNumVerts) eType=-1; //tymczasowo zmiana typu, ¿eby siê nie renderowa³o na si³ê
 };
 
