@@ -252,6 +252,10 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
  parser.getTokens(1,false); //nazwa submodelu bez zmieny na ma³e
  parser >> token;
  NameSet(token.c_str());
+ if (token.find("_on")+3==token.length()) //jeœli nazwa koñczy siê na "_on"
+  iVisible=0; //to domyœlnie wy³¹czyæ, ¿eby siê nie nak³ada³o z obiektem "_off"
+ else if (token.find("Light_On")==0) //jeœli nazwa zaczyna siê od "Light_On"
+  iVisible=0; //to domyœlnie wy³¹czyæ, ¿eby siê nie nak³ada³o z obiektem "Light_Off"
 
  if (parser.expectToken("anim:")) //Ra: ta informacja by siê przyda³a!
  {//rodzaj animacji
@@ -1331,7 +1335,19 @@ void __fastcall TSubModel::BinInit(TSubModel *s,float4x4 *m,float8 *v,TStringPac
  Next=((int)Next>0)?s+(int)Next:NULL; //zerowy nie mo¿e byæ nastêpnym
  fMatrix=((iMatrix>=0)&&m)?m+iMatrix:NULL;
  //if (n&&(iName>=0)) asName=AnsiString(n->String(iName)); else asName="";
- if (n&&(iName>=0)) pName=n->String(iName); else pName=NULL;
+ if (n&&(iName>=0))
+ {pName=n->String(iName);
+  AnsiString s=AnsiString(pName);
+  if (!s.IsEmpty())
+  {//jeœli dany submodel jest zgaszonym œwiat³em, to domyœlnie go ukrywamy
+   if (s.SubString(s.Length()-2,3)=="_on") //jeœli jest kontrolk¹ w stanie zapalonym
+    iVisible=0; //to domyœlnie wy³¹czyæ, ¿eby siê nie nak³ada³o z obiektem "_off"
+   else if (s.SubString(1,8)=="Light_On") //jeœli jest œwiat³em numerowanym
+    iVisible=0; //to domyœlnie wy³¹czyæ, ¿eby siê nie nak³ada³o z obiektem "Light_Off"
+  }
+ }
+ else
+  pName=NULL;
  if (iTexture>0)
  {//obs³uga sta³ej tekstury
   //TextureID=TTexturesManager::GetTextureID(t->String(TextureID));
