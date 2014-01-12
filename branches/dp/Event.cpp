@@ -19,21 +19,25 @@
 #include "Ground.h"
 #pragma package(smart_init)
 
-__fastcall TEvent::TEvent()
+__fastcall TEvent::TEvent(AnsiString m)
 {
+ //asName=""; //czy nazwa eventu jest niezbêdna w tym przypadku? chyba nie
  evNext=evNext2=NULL;
  bEnabled=false; //false dla eventów u¿ywanych do skanowania sygna³ów (nie dodawane do kolejki)
- asNodeName="";
+ asNodeName=m; //nazwa obiektu powi¹zanego
  iQueued=0; //nie zosta³ dodany do kolejki
  //bIsHistory=false;
  fDelay=0;
  fStartTime=0; //0 nie ma sensu
- Type=tp_Unknown;
+ Type=m.IsEmpty()?tp_Unknown:tp_GetValues; //utworzenie niejawnego odczytu komórki pamiêci w torze
  for (int i=0;i<13;i++)
   Params[i].asPointer=NULL;
  evJoined=NULL; //nie ma kolejnego z t¹ sam¹ nazw¹, usuwane s¹ wg listy Next2
  Activator=NULL;
  iFlags=0;
+ //event niejawny jest tworzony przed faz¹ InitEvents, która podmienia nazwê komórki pamiêci na wskaŸnik
+ //Current->Params[8].asGroundNode=m; //to siê ustawi w InitEvents
+ //Current->Params[9].asMemCell=m->MemCell;
 };
 
 __fastcall TEvent::~TEvent()

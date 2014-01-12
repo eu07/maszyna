@@ -342,6 +342,7 @@ public:
  int __fastcall GetRowFromZ(double z) { return (z/fSubRectSize+fHalfTotalNumSubRects); };
  int __fastcall GetColFromX(double x) { return (x/fSubRectSize+fHalfTotalNumSubRects); };
  TEvent* __fastcall FindEvent(const AnsiString &asEventName);
+ TEvent* __fastcall FindEventScan(const AnsiString &asEventName);
  void __fastcall TrackJoin(TGroundNode *Current);
 private:
  void __fastcall OpenGLUpdate(HDC hDC);
