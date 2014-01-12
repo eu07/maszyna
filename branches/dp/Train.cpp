@@ -3106,17 +3106,11 @@ else
       if (dsbSlipAlarm) dsbSlipAlarm->Stop();
     }
 
-    if ( pControlled->Mains )
+    if (pControlled->Mains)
      {
         btLampkaWylSzybki.TurnOn();
-        if ( pControlled->ResistorsFlagCheck())
-          btLampkaOpory.TurnOn();
-        else
-          btLampkaOpory.TurnOff();
-        if (( pControlled->ResistorsFlagCheck()) || ( pControlled->MainCtrlActualPos==0))
-          btLampkaBezoporowa.TurnOn();
-        else
-          btLampkaBezoporowa.TurnOff();    //Do EU04
+        btLampkaOpory.Turn(pControlled->ResistorsFlagCheck());
+        btLampkaBezoporowa.Turn(pControlled->ResistorsFlagCheck()||(pControlled->MainCtrlActualPos==0)); //do EU04
         if ( (pControlled->Itot!=0) || (pOccupied->BrakePress > 2) || ( pOccupied->PipePress < 3.6 ))
           btLampkaStyczn.TurnOff();     //
         else
@@ -3129,10 +3123,7 @@ else
            btLampkaUkrotnienie.TurnOff();
 
 //         if ((TestFlag(pControlled->BrakeStatus,+b_Rused+b_Ractive)))//Lampka drugiego stopnia hamowania
-         if ((TestFlag(pOccupied->BrakeStatus,1)))//Lampka drugiego stopnia hamowania  //TODO: youBy wyci¹gn¹æ flagê wysokiego stopnia
-           btLampkaHamPosp.TurnOn();
-        else
-           btLampkaHamPosp.TurnOff();
+        btLampkaHamPosp.Turn((TestFlag(pOccupied->BrakeStatus,1))) ;//lampka drugiego stopnia hamowania  //TODO: youBy wyci¹gn¹æ flagê wysokiego stopnia
 
         //hunter-111211: wylacznik cisnieniowy - Ra: tutaj?
         if (pControlled->TrainType!=dt_EZT)
@@ -3141,10 +3132,7 @@ else
         //-------
 
         //hunter-121211: lampka zanikowo-pradowego wentylatorow:
-        if ((pControlled->RventRot<5.0) && (pControlled->ResistorsFlagCheck()))
-          btLampkaNadmWent.TurnOn();
-        else
-          btLampkaNadmWent.TurnOff();
+        btLampkaNadmWent.Turn((pControlled->RventRot<5.0)&&pControlled->ResistorsFlagCheck());
         //-------
 
         btLampkaNadmSil.Turn(pControlled->FuseFlagCheck());
@@ -3170,7 +3158,7 @@ else
          btLampkaBocznik4.Turn(pControlled->ScndCtrlPos>3);
         }
         else
-        {//wy³¹czone wszystkie trzy
+        {//wy³¹czone wszystkie cztery
          btLampkaBocznik1.TurnOff();
          btLampkaBocznik2.TurnOff();
          btLampkaBocznik3.TurnOff();
@@ -3185,11 +3173,7 @@ else
         if ((DynamicObject->PrevConnected) && (!comptemp))
            if (TestFlag(pControlled->Couplers[0].CouplingFlag,ctrain_controll))
               comptemp=DynamicObject->PrevConnected->MoverParameters->CompressorFlag;
-             if (comptemp)
-         { btLampkaSprezarkaB.TurnOn(); }
-        else
-         { btLampkaSprezarkaB.TurnOff(); }
-        }
+        btLampkaSprezarkaB.Turn(comptemp);
 */
      }
     else  //wylaczone
@@ -3217,15 +3201,12 @@ if ( pControlled->Signalling==true )
   {
   btLampkaHamowanie1zes.TurnOff();
   }
-if ( pControlled->DoorSignalling==true)
+  if ( pControlled->DoorSignalling==true)
   {
-  if ((pControlled->DoorBlockedFlag())&& (pControlled->Battery==true))
-     { btLampkaBlokadaDrzwi.TurnOn(); }
-  else
-     { btLampkaBlokadaDrzwi.TurnOff(); }
+   btLampkaBlokadaDrzwi.Turn(pControlled->DoorBlockedFlag()&&pControlled->Battery);
   }
   else
-  { btLampkaBlokadaDrzwi.TurnOff(); }
+   btLampkaBlokadaDrzwi.TurnOff();
 
 
 
@@ -3239,17 +3220,11 @@ if ( pControlled->DoorSignalling==true)
       tmp=DynamicObject->PrevConnected;
 
    if (tmp)
-    if ( tmp->MoverParameters->Mains )
+    if (tmp->MoverParameters->Mains)
       {
         btLampkaWylSzybkiB.TurnOn();
-        if ( tmp->MoverParameters->ResistorsFlagCheck())
-          btLampkaOporyB.TurnOn();
-        else
-          btLampkaOporyB.TurnOff();
-        if (( tmp->MoverParameters->ResistorsFlagCheck()) || ( tmp->MoverParameters->MainCtrlActualPos==0))
-          btLampkaBezoporowaB.TurnOn();
-        else
-          btLampkaBezoporowaB.TurnOff();    //Do EU04
+        btLampkaOporyB.Turn(tmp->MoverParameters->ResistorsFlagCheck());
+        btLampkaBezoporowaB.Turn(tmp->MoverParameters->ResistorsFlagCheck()||(tmp->MoverParameters->MainCtrlActualPos==0)); //do EU04
         if ( (tmp->MoverParameters->Itot!=0) || (tmp->MoverParameters->BrakePress > 0.2) || ( tmp->MoverParameters->PipePress < 0.36 ))
           btLampkaStycznB.TurnOff();     //
         else
@@ -3270,25 +3245,16 @@ if ( pControlled->DoorSignalling==true)
 
         //-----------------
         //hunter-271211: sygnalizacja poslizgu w pierwszym pojezdzie, gdy wystapi w drugim
-        if  (tmp->MoverParameters->SlippingWheels)
-         btLampkaPoslizg.TurnOn();
-        else
-         btLampkaPoslizg.TurnOff();
+        btLampkaPoslizg.Turn(tmp->MoverParameters->SlippingWheels);
         //-----------------
 
 
-        if ( tmp->MoverParameters->CompressorFlag==true ) //mutopsitka dziala
-         { btLampkaSprezarkaB.TurnOn(); }
-        else
-         { btLampkaSprezarkaB.TurnOff(); }
+        btLampkaSprezarkaB.Turn(tmp->MoverParameters->CompressorFlag); //mutopsitka dziala
         if (( tmp->MoverParameters->BrakePress>=0.145f*10 )&&(pControlled->Battery==true)&&(pControlled->Signalling==true))
          { btLampkaHamowanie2zes.TurnOn(); }
         if(( tmp->MoverParameters->BrakePress<0.075f*10 )|| (pControlled->Battery==false)||(pControlled->Signalling==false))
          { btLampkaHamowanie2zes.TurnOff(); }
-        if (tmp->MoverParameters->ConverterFlag==true)
-         btLampkaNadmPrzetwB.TurnOff();
-        else
-         btLampkaNadmPrzetwB.TurnOn();
+        btLampkaNadmPrzetwB.Turn(!tmp->MoverParameters->ConverterFlag);
       }
     else  //wylaczone
       {
@@ -3309,60 +3275,23 @@ if ( pControlled->DoorSignalling==true)
    //     btLampkaNadmPrzetwB.TurnOn();
 
 } //**************************************************** */
-if (pControlled->Battery==true)
-{
- if ((((pOccupied->BrakePress>=0.1f) || (pControlled->DynamicBrakeFlag)) && (pControlled->TrainType!=dt_EZT)) || ((pControlled->TrainType==dt_EZT) && (pControlled->BrakePress>=0.2f)&&(pControlled->Signalling==true)))
- //if ((pControlled->BrakePress>=0.3f) || (pControlled->DynamicBrakeFlag))
-       btLampkaHamienie.TurnOn();
-    else
-       btLampkaHamienie.TurnOff();
-//KURS90
-
-     if (abs(pControlled->Im)>=350)
-     { btLampkaMaxSila.TurnOn(); }
-    else
-    { btLampkaMaxSila.TurnOff(); }
-    if (abs(pControlled->Im)>=450)
-     { btLampkaPrzekrMaxSila.TurnOn(); }
-    else
-     { btLampkaPrzekrMaxSila.TurnOff(); }
-     if (pControlled->Radio==true)
-     { btLampkaRadio.TurnOn(); }
-    else
-    { btLampkaRadio.TurnOff(); }
-    if (pOccupied->ManualBrakePos>0)
-     { btLampkaHamulecReczny.TurnOn(); }
-    else
-    { btLampkaHamulecReczny.TurnOff(); }
-// NBMX wrzesien 2003 - drzwi oraz sygnal odjazdu
-    if (pControlled->DoorLeftOpened)
-      btLampkaDoorLeft.TurnOn();
-    else
-      btLampkaDoorLeft.TurnOff();
-
-    if (pControlled->DoorRightOpened)
-      btLampkaDoorRight.TurnOn();
-    else
-      btLampkaDoorRight.TurnOff();
-    if (( pControlled->ActiveDir!=0 ) && ( pControlled->EpFuse==true))//napiecie na nastawniku hamulcowym
-     btLampkaNapNastHam.TurnOn();
-    //pControlled->UpdateBatteryVoltage:=0.01;
-    else
-     btLampkaNapNastHam.TurnOff();
-
-    if (pControlled->ActiveDir>0)
-     btLampkaForward.TurnOn(); //jazda do przodu
-    else
-     btLampkaForward.TurnOff();
-
-    if (pControlled->ActiveDir<0)
-     btLampkaBackward.TurnOn(); //jazda do ty³u
-    else
-     btLampkaBackward.TurnOff();
+ if (pControlled->Battery)
+ {
+  btLampkaHamienie.Turn((pControlled->TrainType&dt_EZT)?((pControlled->BrakePress>=0.2)&&pControlled->Signalling):((pOccupied->BrakePress>=0.1)||(pControlled->DynamicBrakeFlag)));
+  //KURS90
+  btLampkaMaxSila.Turn(abs(pControlled->Im)>=350);
+  btLampkaPrzekrMaxSila.Turn(abs(pControlled->Im)>=450);
+  btLampkaRadio.Turn(pControlled->Radio);
+  btLampkaHamulecReczny.Turn(pOccupied->ManualBrakePos>0);
+  //NBMX wrzesien 2003 - drzwi oraz sygna³ odjazdu
+  btLampkaDoorLeft.Turn(pControlled->DoorLeftOpened);
+  btLampkaDoorRight.Turn(pControlled->DoorRightOpened);
+  btLampkaNapNastHam.Turn((pControlled->ActiveDir!=0)&&(pControlled->EpFuse)); //napiecie na nastawniku hamulcowym
+  btLampkaForward.Turn(pControlled->ActiveDir>0); //jazda do przodu
+  btLampkaBackward.Turn(pControlled->ActiveDir<0); //jazda do ty³u
  }
  else
  {//gdy bateria wy³¹czona
-  btLampkaNapNastHam.TurnOff();
   btLampkaHamienie.TurnOff();
   btLampkaMaxSila.TurnOff();
   btLampkaPrzekrMaxSila.TurnOff();
@@ -3370,6 +3299,9 @@ if (pControlled->Battery==true)
   btLampkaHamulecReczny.TurnOff();
   btLampkaDoorLeft.TurnOff();
   btLampkaDoorRight.TurnOff();
+  btLampkaNapNastHam.TurnOff();
+  btLampkaForward.TurnOff();
+  btLampkaBackward.TurnOff();
  }
 //McZapkie-080602: obroty (albo translacje) regulatorow
     if (MainCtrlGauge.SubModel)
@@ -3468,19 +3400,13 @@ if (pControlled->Battery==true)
 // NBMX wrzesien 2003 - drzwi
     if (DoorLeftButtonGauge.SubModel)
     {
-      if (pControlled->DoorLeftOpened)
-        DoorLeftButtonGauge.PutValue(1);
-      else
-        DoorLeftButtonGauge.PutValue(0);
-      DoorLeftButtonGauge.Update();
+     DoorLeftButtonGauge.PutValue(pControlled->DoorLeftOpened?1:0);
+     DoorLeftButtonGauge.Update();
     }
     if (DoorRightButtonGauge.SubModel)
     {
-      if (pControlled->DoorRightOpened)
-        DoorRightButtonGauge.PutValue(1);
-      else
-        DoorRightButtonGauge.PutValue(0);
-      DoorRightButtonGauge.Update();
+     DoorRightButtonGauge.PutValue(pControlled->DoorRightOpened?1:0);
+     DoorRightButtonGauge.Update();
     }
     if (DepartureSignalButtonGauge.SubModel)
      {
@@ -3494,18 +3420,10 @@ if (pControlled->Battery==true)
     if (MainButtonGauge.SubModel)
        MainButtonGauge.Update();
     if (RadioButtonGauge.SubModel)
-     {
-      if (pControlled->Radio)
-          {
-      RadioButtonGauge.PutValue(1);
-
-          }
-      else
-          {
-          RadioButtonGauge.PutValue(0);
-          }
-      RadioButtonGauge.Update();
-     }
+    {
+     RadioButtonGauge.PutValue(pControlled->Radio?1:0);
+     RadioButtonGauge.Update();
+    }
     if (ConverterButtonGauge.SubModel)
       ConverterButtonGauge.Update();
     if (ConverterOffButtonGauge.SubModel)
@@ -3514,11 +3432,11 @@ if (pControlled->Battery==true)
     if (((DynamicObject->iLights[0])==0)
       &&((DynamicObject->iLights[1])==0))
      {
-        RightLightButtonGauge.PutValue(0);
-        LeftLightButtonGauge.PutValue(0);
-        UpperLightButtonGauge.PutValue(0);
-        RightEndLightButtonGauge.PutValue(0);
-        LeftEndLightButtonGauge.PutValue(0);
+      RightLightButtonGauge.PutValue(0);
+      LeftLightButtonGauge.PutValue(0);
+      UpperLightButtonGauge.PutValue(0);
+      RightEndLightButtonGauge.PutValue(0);
+      LeftEndLightButtonGauge.PutValue(0);
      }
 
      //---------
@@ -3573,7 +3491,7 @@ if (pControlled->Battery==true)
         RearLeftLightButtonGauge.PutValue(1);
 
 
-     //koncowki
+     //koñcówki
      if ((DynamicObject->iLights[0]&2)==2)
       if ((pOccupied->ActiveCab)==1)
        {
@@ -3632,7 +3550,7 @@ if (pControlled->Battery==true)
         RearUpperLightButtonGauge.PutValue(1);
      //--------------
      //REFLEKTOR PRAWY
-     //glowne oswietlenie
+     //g³ówne oœwietlenie
      if ((DynamicObject->iLights[0]&16)==16)
       if ((pOccupied->ActiveCab)==1)
         RightLightButtonGauge.PutValue(1);
@@ -3646,7 +3564,7 @@ if (pControlled->Battery==true)
         RearRightLightButtonGauge.PutValue(1);
 
 
-     //koncowki
+     //koñcówki
      if ((DynamicObject->iLights[0]&32)==32)
       if ((pOccupied->ActiveCab)==1)
        {
@@ -3703,59 +3621,40 @@ if (pControlled->Battery==true)
     }
     if (PantRearButtonGauge.SubModel)
     {
-      if (pControlled->PantRearUp)
-          PantRearButtonGauge.PutValue(1);
-      else
-          PantRearButtonGauge.PutValue(0);
+     PantRearButtonGauge.PutValue(pControlled->PantRearUp?1:0);
      PantRearButtonGauge.Update();
-     }
+    }
     if (PantFrontButtonOffGauge.SubModel)
     {
      PantFrontButtonOffGauge.Update();
     }
 //Winger 020304 - ogrzewanie
     //----------
-    //hunter-080812: poprawka na ogrzewanie w elektrykach - usuniete uzaleznienie od przetwornicy 
+    //hunter-080812: poprawka na ogrzewanie w elektrykach - usuniete uzaleznienie od przetwornicy
     if (TrainHeatingButtonGauge.SubModel)
     {
-      if (pControlled->Heating)
-          {
-          TrainHeatingButtonGauge.PutValue(1);
-          //if (pControlled->ConverterFlag==true)
-          // btLampkaOgrzewanieSkladu.TurnOn();
-          }
-      else
-          {
-          TrainHeatingButtonGauge.PutValue(0);
-          //btLampkaOgrzewanieSkladu.TurnOff();
-          }
-    TrainHeatingButtonGauge.Update();
+     if (pControlled->Heating)
+     {
+      TrainHeatingButtonGauge.PutValue(1);
+      //if (pControlled->ConverterFlag==true)
+      // btLampkaOgrzewanieSkladu.TurnOn();
+     }
+     else
+     {
+      TrainHeatingButtonGauge.PutValue(0);
+      //btLampkaOgrzewanieSkladu.TurnOff();
+     }
+     TrainHeatingButtonGauge.Update();
     }
     if (SignallingButtonGauge.SubModel!=NULL)
     {
-      if (pControlled->Signalling)
-          {
-          SignallingButtonGauge.PutValue(1);
-
-          }
-      else
-          {
-          SignallingButtonGauge.PutValue(0);
-          }
-    SignallingButtonGauge.Update();
+     SignallingButtonGauge.PutValue(pControlled->Signalling?1:0);
+     SignallingButtonGauge.Update();
     }
     if (DoorSignallingButtonGauge.SubModel!=NULL)
     {
-      if (pControlled->DoorSignalling)
-          {
-          DoorSignallingButtonGauge.PutValue(1);
-
-          }
-      else
-          {
-          DoorSignallingButtonGauge.PutValue(0);
-          }
-    DoorSignallingButtonGauge.Update();
+     DoorSignallingButtonGauge.PutValue(pControlled->DoorSignalling?1:0);
+     DoorSignallingButtonGauge.Update();
     }
 
     if ((((pControlled->EngineType==ElectricSeriesMotor)&&(pControlled->Mains==true)&&(pControlled->ConvOvldFlag==false))||(pControlled->ConverterFlag))&&(pControlled->Heating==true))
@@ -3767,14 +3666,8 @@ if (pControlled->Battery==true)
     //hunter-261211: jakis stary kod (i niezgodny z prawda),
     //zahaszowalem i poprawilem
     //youBy-220913: ale przyda sie do lampki samej przetwornicy
-    if (pControlled->ConverterFlag==true)
-     btLampkaPrzetw.TurnOff();
-    else
-     btLampkaPrzetw.TurnOn();
-    if (pControlled->ConvOvldFlag==true)
-     btLampkaNadmPrzetw.TurnOn();
-    else
-     btLampkaNadmPrzetw.TurnOff();
+    btLampkaPrzetw.Turn(!pControlled->ConverterFlag);
+    btLampkaNadmPrzetw.Turn(pControlled->ConvOvldFlag);
     //----------
 
 
@@ -3789,20 +3682,10 @@ if (pControlled->Battery==true)
        //hunter-091012: dodanie testu czuwaka
        if ((TestFlag(pControlled->SecuritySystem.Status,s_aware))||(TestFlag(pControlled->SecuritySystem.Status,s_CAtest)))
         {
-         if (fBlinkTimer>0)
-          btLampkaCzuwaka.TurnOn();
-         else
-          btLampkaCzuwaka.TurnOff();
+         btLampkaCzuwaka.Turn(fBlinkTimer>0);
         }
         else btLampkaCzuwaka.TurnOff();
-       if (TestFlag(pControlled->SecuritySystem.Status,s_active))
-        {
-//         if (fBlinkTimer>0)
-          btLampkaSHP.TurnOn();
-//         else
-//          btLampkaSHP.TurnOff();
-        }
-        else btLampkaSHP.TurnOff();
+       btLampkaSHP.Turn(TestFlag(pControlled->SecuritySystem.Status,s_active));
 
        //hunter-091012: rozdzielenie alarmow
        //if (TestFlag(pControlled->SecuritySystem.Status,s_alarm))
@@ -3899,9 +3782,7 @@ if (pControlled->Battery==true)
            dsbRelay->Play(0,0,0);
      }
      else
-     {
-          MainOffButtonGauge.UpdateValue(0);
-     }
+      MainOffButtonGauge.UpdateValue(0);
 
      /* if (cKey==Global::Keys[k_Main])     //z shiftem
       {
@@ -3942,9 +3823,7 @@ if (pControlled->Battery==true)
           pControlled->SecuritySystemReset();
          }
         else if (fCzuwakTestTimer>1.0)
-         {
-          SetFlag(pControlled->SecuritySystem.Status,s_CAtest);
-         }
+         SetFlag(pControlled->SecuritySystem.Status,s_CAtest);
      }
      else
      {
@@ -4024,9 +3903,7 @@ if (pControlled->Battery==true)
       }
      }
      else
-     {
       AntiSlipButtonGauge.UpdateValue(0);
-     }
      //-----------------
      //hunter-261211: przetwornica i sprezarka
      if ( Console::Pressed(VK_SHIFT)&&Console::Pressed(Global::Keys[k_Converter]) )   //NBMX 14-09-2003: przetwornica wl
@@ -4109,39 +3986,31 @@ if (pControlled->Battery==true)
 
 
 
-     if ( Console::Pressed(Global::Keys[k_Univ1]) )
+     if (Console::Pressed(Global::Keys[k_Univ1]))
      {
-        if (!DebugModeFlag)
-        {
-           if (Universal1ButtonGauge.SubModel)
-           if (Console::Pressed(VK_SHIFT))
-           {
-              Universal1ButtonGauge.IncValue(dt/2);
-           }
-           else
-           {
-              Universal1ButtonGauge.DecValue(dt/2);
-           }
-        }
+      if (!DebugModeFlag)
+      {
+       if (Universal1ButtonGauge.SubModel)
+        if (Console::Pressed(VK_SHIFT))
+         Universal1ButtonGauge.IncValue(dt/2);
+        else
+         Universal1ButtonGauge.DecValue(dt/2);
+      }
      }
      if (!Console::Pressed(Global::Keys[k_SmallCompressor]))
      //Ra: przecieœæ to na zwolnienie klawisza
       if (DynamicObject->Mechanik?!DynamicObject->Mechanik->AIControllFlag:false) //nie wy³¹czaæ, gdy AI
        pControlled->PantCompFlag=false; //wy³¹czona, gdy nie trzymamy klawisza
-     if ( Console::Pressed(Global::Keys[k_Univ2]) )
+     if (Console::Pressed(Global::Keys[k_Univ2]))
      {
-        if (!DebugModeFlag)
-        {
-           if (Universal2ButtonGauge.SubModel)
-           if (Console::Pressed(VK_SHIFT))
-           {
-              Universal2ButtonGauge.IncValue(dt/2);
-           }
-           else
-           {
-              Universal2ButtonGauge.DecValue(dt/2);
-           }
-        }
+      if (!DebugModeFlag)
+      {
+       if (Universal2ButtonGauge.SubModel)
+        if (Console::Pressed(VK_SHIFT))
+         Universal2ButtonGauge.IncValue(dt/2);
+        else
+         Universal2ButtonGauge.DecValue(dt/2);
+      }
      }
 
      //hunter-091012: zrobione z uwzglednieniem przelacznika swiatla
@@ -5148,6 +5017,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     btLampkaBocznik1.Clear();
     btLampkaBocznik2.Clear();
     btLampkaBocznik3.Clear();
+    btLampkaBocznik4.Clear();
     btLampkaRadiotelefon.Clear();
     btLampkaHamienie.Clear();
     btLampkaSprezarka.Clear();
@@ -5456,6 +5326,8 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     btLampkaBocznik2.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("i-scnd3:"))
     btLampkaBocznik3.Load(Parser,DynamicObject->mdKabina);
+   else if (str==AnsiString("i-scnd4:"))
+    btLampkaBocznik4.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("i-braking:"))
     btLampkaHamienie.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("i-braking-ezt:"))
