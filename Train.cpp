@@ -3147,30 +3147,16 @@ else
           btLampkaNadmWent.TurnOff();
         //-------
 
-        if ( pControlled->FuseFlagCheck() )
-          btLampkaNadmSil.TurnOn();
-        else
-          btLampkaNadmSil.TurnOff();
-
-        if ( pControlled->Imax==pControlled->ImaxHi )
-          btLampkaWysRozr.TurnOn();
-        else
-          btLampkaWysRozr.TurnOff();
+        btLampkaNadmSil.Turn(pControlled->FuseFlagCheck());
+        btLampkaWysRozr.Turn(pControlled->Imax==pControlled->ImaxHi);
         if ((( pControlled->ScndCtrlActualPos > 0) ||  ( (pControlled->RList[pControlled->MainCtrlActualPos].ScndAct!=0)&&(pControlled->RList[pControlled->MainCtrlActualPos].ScndAct!=255)))&&(!pControlled->DelayCtrlFlag))
           btLampkaBoczniki.TurnOn();
         else
           btLampkaBoczniki.TurnOff();
 
 
-        if ( pControlled->ActiveDir!=0 ) //napiecie na nastawniku hamulcowym
-         { btLampkaNapNastHam.TurnOn(); }
-        else
-         { btLampkaNapNastHam.TurnOff(); }
-
-        if ( pControlled->CompressorFlag==true ) //mutopsitka dziala
-         { btLampkaSprezarka.TurnOn(); }
-        else
-         { btLampkaSprezarka.TurnOff(); }
+        btLampkaNapNastHam.Turn(pControlled->ActiveDir!=0); //napiecie na nastawniku hamulcowym
+        btLampkaSprezarka.Turn(pControlled->CompressorFlag); //mutopsitka dziala
         //boczniki
         unsigned char scp; //Ra: dopisa³em "unsigned"
         //Ra: w SU45 boczniki wchodz¹ na MainCtrlPos, a nie na MainCtrlActualPos - pokiæka³ ktoœ?
@@ -3179,25 +3165,16 @@ else
         if ((pControlled->ScndCtrlPos>0)||(pControlled->ScndInMain)&&(scp>0))
         {//boczniki pojedynczo
          btLampkaBocznik1.TurnOn();
-         if (pControlled->ScndCtrlPos>1)
-         {//w³¹czony 2. i byæ mo¿e 3.
-          btLampkaBocznik2.TurnOn();
-          if (pControlled->ScndCtrlPos>2)
-           btLampkaBocznik3.TurnOn();
-          else
-           btLampkaBocznik3.TurnOff();
-         }
-         else
-         {//wy³¹czone dwa
-          btLampkaBocznik2.TurnOff();
-          btLampkaBocznik3.TurnOff();
-         }
+         btLampkaBocznik2.Turn(pControlled->ScndCtrlPos>1);
+         btLampkaBocznik3.Turn(pControlled->ScndCtrlPos>2);
+         btLampkaBocznik4.Turn(pControlled->ScndCtrlPos>3);
         }
         else
         {//wy³¹czone wszystkie trzy
          btLampkaBocznik1.TurnOff();
          btLampkaBocznik2.TurnOff();
          btLampkaBocznik3.TurnOff();
+         btLampkaBocznik4.TurnOff();
         }
 /*
         { //sprezarka w drugim wozie
