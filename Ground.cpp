@@ -1976,6 +1976,19 @@ TEvent* __fastcall TGround::FindEvent(const AnsiString &asEventName)
 */
 }
 
+TEvent* __fastcall TGround::FindEventScan(const AnsiString &asEventName)
+{//wyszukanie eventu z opcj¹ utworzenia niejawnego dla komórek skanowanych
+ TEvent *e=(TEvent*)sTracks->Find(0,asEventName.c_str()); //wyszukiwanie w drzewie eventów
+ if (e) return e; //jak istnieje, to w porz¹dku
+ if (asEventName.SubString(asEventName.Length()-4,5)==":scan") //jeszcze mo¿e byæ event niejawny
+ {//no to szukamy komórki pamiêci o nazwie zawartej w evencie
+  AnsiString n=asEventName.SubString(1,asEventName.Length()-5); //do dwukropka
+  if (sTracks->Find(TP_MEMCELL,n.c_str())) //jeœli jest takowa komórka pamiêci
+   e=new TEvent(n); //utworzenie niejawnego eventu jej odczytu
+ }
+ return e; //utworzony albo siê nie uda³o  
+}
+
 void __fastcall TGround::FirstInit()
 {//ustalanie zale¿noœci na scenerii przed wczytaniem pojazdów
  if (bInitDone) return; //Ra: ¿eby nie robi³o siê dwa razy
@@ -2730,8 +2743,8 @@ void __fastcall TGround::InitTracks()
   Track=Current->pTrack;
   Track->AssignEvents(
    Track->asEvent0Name.IsEmpty()?NULL:FindEvent(Track->asEvent0Name),
-   Track->asEvent1Name.IsEmpty()?NULL:FindEvent(Track->asEvent1Name),
-   Track->asEvent2Name.IsEmpty()?NULL:FindEvent(Track->asEvent2Name));
+   Track->asEvent1Name.IsEmpty()?NULL:FindEventScan(Track->asEvent1Name),
+   Track->asEvent2Name.IsEmpty()?NULL:FindEventScan(Track->asEvent2Name));
   Track->AssignallEvents(
    Track->asEventall0Name.IsEmpty()?NULL:FindEvent(Track->asEventall0Name),
    Track->asEventall1Name.IsEmpty()?NULL:FindEvent(Track->asEventall1Name),

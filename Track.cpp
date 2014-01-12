@@ -729,14 +729,14 @@ bool __fastcall TTrack::AssignEvents(TEvent *NewEvent0,TEvent *NewEvent1,TEvent 
   {
    if (!asEvent0Name.IsEmpty())
    {
-    Error(AnsiString("Event0 \"")+asEvent0Name+AnsiString("\" does not exist"));
+    ErrorLog(AnsiString("Bad track: Event0 \"")+asEvent0Name+AnsiString("\" does not exist"));
     bError=true;
    }
   }
  }
  else
  {
-  Error(AnsiString("Event0 cannot be assigned to track, track already has one"));
+  ErrorLog(AnsiString("Bad track: Event0 cannot be assigned to track, track already has one"));
   bError=true;
  }
  if (!evEvent1)
@@ -747,18 +747,15 @@ bool __fastcall TTrack::AssignEvents(TEvent *NewEvent0,TEvent *NewEvent1,TEvent 
    asEvent1Name="";
    iEvents|=2; //sumaryczna informacja o eventach
   }
-  else
-  {
-   if (!asEvent0Name.IsEmpty())
-   {//Ra: tylko w logu informacja
-    WriteLog(AnsiString("Event1 \"")+asEvent1Name+AnsiString("\" does not exist").c_str());
-    bError=true;
-   }
+  else if (!asEvent1Name.IsEmpty())
+  {//Ra: tylko w logu informacja
+   ErrorLog(AnsiString("Bad track: Event1 \"")+asEvent1Name+AnsiString("\" does not exist").c_str());
+   bError=true;
   }
  }
  else
  {
-  Error(AnsiString("Event1 cannot be assigned to track, track already has one"));
+  ErrorLog(AnsiString("Bad track: Event1 cannot be assigned to track, track already has one"));
   bError=true;
  }
  if (!evEvent2)
@@ -769,18 +766,15 @@ bool __fastcall TTrack::AssignEvents(TEvent *NewEvent0,TEvent *NewEvent1,TEvent 
    asEvent2Name="";
    iEvents|=4; //sumaryczna informacja o eventach
   }
-  else
-  {
-   if (!asEvent0Name.IsEmpty())
-   {//Ra: tylko w logu informacja
-    WriteLog(AnsiString("Event2 \"")+asEvent2Name+AnsiString("\" does not exist"));
-    bError=true;
-   }
+  else if (!asEvent2Name.IsEmpty())
+  {//Ra: tylko w logu informacja
+   ErrorLog(AnsiString("Bad track: Event2 \"")+asEvent2Name+AnsiString("\" does not exist"));
+   bError=true;
   }
  }
  else
  {
-  Error(AnsiString("Event2 cannot be assigned to track, track already has one"));
+  ErrorLog(AnsiString("Bad track: Event2 cannot be assigned to track, track already has one"));
   bError=true;
  }
  return !bError;

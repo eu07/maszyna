@@ -70,7 +70,7 @@ public:
  AnsiString asNodeName; //McZapkie-100302 - dodalem zeby zapamietac nazwe toru
  TEvent *evJoined; //kolejny event z t¹ sam¹ nazw¹ - od wersji 378
 public: //metody
- __fastcall TEvent();
+ __fastcall TEvent(AnsiString m="");
  __fastcall ~TEvent();
  void __fastcall Init();
  void __fastcall Load(cParser* parser,vector3 *org);
