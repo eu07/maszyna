@@ -14,12 +14,10 @@
 #include "MdlMngr.h"
 #include "Globals.h"
 
-//#define SeekFiles AnsiString("*.o3d")
 #define SeekFiles AnsiString("*.t3d")
-//#define SeekTextFiles AnsiString("*.t3d")
 
 TModel3d* __fastcall TMdlContainer::LoadModel(char *newName,bool dynamic)
-{
+{//wczytanie modelu do kontenerka
  SafeDeleteArray(Name);
  SafeDelete(Model);
  Name=new char[strlen(newName)+1];
@@ -32,12 +30,12 @@ TModel3d* __fastcall TMdlContainer::LoadModel(char *newName,bool dynamic)
 
 TMdlContainer *TModelsManager::Models;
 int TModelsManager::Count;
-const MAX_MODELS= 600;
+const MAX_MODELS=1000;
 
 void __fastcall TModelsManager::Init()
 {
-    Models= new TMdlContainer[MAX_MODELS];
-    Count= 0;
+ Models=new TMdlContainer[MAX_MODELS];
+ Count=0;
 }
 /*
 __fastcall TModelsManager::TModelsManager()
@@ -54,68 +52,20 @@ __fastcall TModelsManager::~TModelsManager()
   */
 void __fastcall TModelsManager::Free()
 {
-    SafeDeleteArray(Models);
+ SafeDeleteArray(Models);
 }
 
 
-int __fastcall TModelsManager::LoadModels(char *asModelsPath)
-{
-    Error("LoadModels is obsolete");
-    return -1;
-/*
-    WIN32_FIND_DATA FindFileData;
-    HANDLE handle= FindFirstFile(AnsiString(asModelsPath+SeekFiles).c_str(), &FindFileData);
-    if (handle==INVALID_HANDLE_VALUE) return(0);
-
-    for (Count= 1; FindNextFile(handle, &FindFileData); Count++);
-
-    FindClose(handle);
-
-    Models= new TMdlContainer[Count];
-
-    handle= FindFirstFile(AnsiString(asModelsPath+SeekFiles).c_str(), &FindFileData);
-    for (int i=0; i<Count; i++)
-    {
-
-        Models[i].Model= new TModel3d();
-        Models[i].Model->LoadFromTextFile(AnsiString(asModelsPath+AnsiString(FindFileData.cFileName)).c_str());
-        strcpy(Models[i].Name,AnsiString(FindFileData.cFileName).LowerCase().c_str());
-//        *strchr(Models[i].Name,'.')= 0;
-//        AnsiString(Models[i].Name).LowerCase();
-        FindNextFile(handle, &FindFileData);
-    };
-    FindClose(handle);
-    return(Count);*/
-};
-
-double Radius;
-
-
 TModel3d*  __fastcall TModelsManager::LoadModel(char *Name,bool dynamic)
-{
+{//wczytanie modelu do tablicy
  TModel3d *mdl=NULL;
-/* //nie wymagamy ju¿ obecnoœci T3D
- WIN32_FIND_DATA FindFileData;
- HANDLE handle=FindFirstFile(Name,&FindFileData);
- if (handle==INVALID_HANDLE_VALUE)
- {
-  //WriteLog("Missed model "+AnsiString(Name));
-  return NULL; //zg³oszenie b³êdu wy¿ej
- }
- else
- {
-*/
- if (Count==MAX_MODELS)
+ if (Count>=MAX_MODELS)
   Error("FIXME: Too many models, program will now crash :)");
  else
  {
   mdl=Models[Count].LoadModel(Name,dynamic);
   if (mdl) Count++; //jeœli b³¹d wczytania modelu, to go nie wliczamy
  }
-/*
- }
- FindClose(handle);
-*/
  return mdl;
 }
 
@@ -130,7 +80,7 @@ TModel3d* __fastcall TModelsManager::GetModel(const char *Name,bool dynamic)
   strcat(buf,Name);
   if (strchr(Name,'/')!=NULL)
   {
-   Global::asCurrentTexturePath= Global::asCurrentTexturePath+AnsiString(Name);
+   Global::asCurrentTexturePath=Global::asCurrentTexturePath+AnsiString(Name);
    Global::asCurrentTexturePath.Delete(Global::asCurrentTexturePath.Pos("/")+1,Global::asCurrentTexturePath.Length());
   }
  }
@@ -139,16 +89,16 @@ TModel3d* __fastcall TModelsManager::GetModel(const char *Name,bool dynamic)
   if (dynamic) //na razie tak, bo nie wiadomo, jaki mo¿e mieæ wp³yw na pozosta³e modele
    if (strchr(Name,'/')!=NULL)
    {//pobieranie tekstur z katalogu, w którym jest model
-    Global::asCurrentTexturePath= Global::asCurrentTexturePath+AnsiString(Name);
+    Global::asCurrentTexturePath=Global::asCurrentTexturePath+AnsiString(Name);
     Global::asCurrentTexturePath.Delete(Global::asCurrentTexturePath.Pos("/")+1,Global::asCurrentTexturePath.Length());
    }
  }
  StrLower(buf);
- for (int i=0; i<Count; i++)
+ for (int i=0;i<Count;i++)
  {
   if (strcmp(buf,Models[i].Name)==0)
   {
-   Global::asCurrentTexturePath= buftp;
+   Global::asCurrentTexturePath=buftp;
    return (Models[i].Model);
   }
  };
