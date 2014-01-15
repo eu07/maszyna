@@ -58,7 +58,7 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=13
 MinorVer=8
-Release=806
+Release=821
 Build=414
 Debug=0
 PreRelease=0
@@ -71,7 +71,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=13.8.806.414
+FileVersion=13.8.821.414
 InternalName=9th by Ra + SPKS
 LegalCopyright=
 LegalTrademarks=
@@ -121,7 +121,7 @@ Item10=D:\EU07DDS\
 DebugSourceDirs=
 
 [Parameters]
-RunParams=-s $.scn -v sm48-043
+RunParams=-s $.scn -v eu07-310
 HostApplication=
 RemoteHost=
 RemotePath=

@@ -3299,7 +3299,7 @@ if (DynamicObject->MoverParameters->Battery==true)
     {if (DynamicObject->Mechanik?(DynamicObject->Mechanik->AIControllFlag?false:Global::iFeedbackMode==4):false) //nie blokujemy AI
      {//Ra: nie najlepsze miejsce, ale na pocz¹tek gdzieœ to daæ trzeba
       double b=Console::AnalogGet(0); //odczyt z pulpitu i modyfikacja pozycji kranu
-      if ((b>=0.0)&&(DynamicObject->MoverParameters->BrakeHandle==FV4a))
+      if ((b>=0.0)&&((DynamicObject->MoverParameters->BrakeHandle==FV4a)||(DynamicObject->MoverParameters->BrakeHandle==FVel6)))
       {b=(((Global::fCalibrateIn[0][3]*b)+Global::fCalibrateIn[0][2])*b+Global::fCalibrateIn[0][1])*b+Global::fCalibrateIn[0][0];
        if (b<-2.0) b=-2.0; else if (b>DynamicObject->MoverParameters->BrakeCtrlPosNo) b=DynamicObject->MoverParameters->BrakeCtrlPosNo;
        BrakeCtrlGauge.UpdateValue(b); //przesów bez zaokr¹glenia
@@ -4191,7 +4191,7 @@ if (DynamicObject->MoverParameters->Battery==true)
            }
      }
      // Odskakiwanie hamulce EP
-     if ((!Console::Pressed(Global::Keys[k_DecBrakeLevel]))&&(!Console::Pressed(Global::Keys[k_WaveBrake]) )&&(DynamicObject->MoverParameters->BrakeCtrlPos==-1)&&(DynamicObject->MoverParameters->BrakeHandle==FVel6)&&(DynamicObject->Controller!=AIdriver))
+     if ((!Console::Pressed(Global::Keys[k_DecBrakeLevel]))&&(!Global::iFeedbackMode==4)&&(!Console::Pressed(Global::Keys[k_WaveBrake]) )&&(DynamicObject->MoverParameters->BrakeCtrlPos==-1)&&(DynamicObject->MoverParameters->BrakeHandle==FVel6)&&(DynamicObject->Controller!=AIdriver))
      {
      //DynamicObject->MoverParameters->BrakeCtrlPos=(DynamicObject->MoverParameters->BrakeCtrlPos)+1;
      //DynamicObject->MoverParameters->IncBrakeLevel();
