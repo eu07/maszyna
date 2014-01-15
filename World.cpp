@@ -446,7 +446,7 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
     glColor3f(3.0f,3.0f,3.0f);
 
      GLuint logo;
-     logo=TTexturesManager::GetTextureID("logo",6);
+     logo=TTexturesManager::GetTextureID(szTexturePath,szSceneryPath,"logo",6);
      glBindTexture(GL_TEXTURE_2D,logo);       // Select our texture
 
      glBegin(GL_QUADS);		        // Drawing using triangles
@@ -622,7 +622,7 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
      KeyEvents[9]=Ground.FindEvent("keyctrl09");
     }
  //glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);  //{Texture blends with object background}
- light=TTexturesManager::GetTextureID("smuga.tga");
+ light=TTexturesManager::GetTextureID(szTexturePath,szSceneryPath,"smuga.tga");
  //Camera.Reset();
  ResetTimers();
  WriteLog("Load time: "+FloatToStrF((86400.0*((double)Now()-time)),ffFixed,7,1)+" seconds");
@@ -1139,7 +1139,7 @@ bool __fastcall TWorld::Update()
   dt=dt/iter; //Ra: fizykê lepiej by by³o przeliczaæ ze sta³ym krokiem
   if (n>20) n=20; //McZapkie-081103: przesuniecie granicy FPS z 10 na 5
  }
- else n=1;
+ //else n=1;
  //blablabla
  Ground.Update(dt,n); //tu zrobiæ tylko coklatkow¹ aktualizacjê przesuniêæ
  if (DebugModeFlag)
@@ -2263,7 +2263,7 @@ void __fastcall TWorld::ModifyTGA(const AnsiString &dir)
      ModifyTGA(dir+sr.Name+"/");
     else
      if (sr.Name.LowerCase().SubString(sr.Name.Length()-3,4)==".tga")
-      TTexturesManager::GetTextureID(AnsiString(dir+sr.Name).c_str());
+      TTexturesManager::GetTextureID(NULL,NULL,AnsiString(dir+sr.Name).c_str());
   } while (FindNext(sr)==0);
   FindClose(sr);
  }
@@ -2334,7 +2334,7 @@ void __fastcall TWorld::CreateE3D(const AnsiString &dir,bool dyn)
          Train->Init(tmp->DynamicObject,true);
         }
        }
-       Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath); //z powrotem defaultowa sciezka do tekstur
+       Global::asCurrentTexturePath=AnsiString(szTexturePath); //z powrotem defaultowa sciezka do tekstur
       }
      }
      else if (sr.Name.LowerCase().SubString(sr.Name.Length()-3,4)==".t3d")
