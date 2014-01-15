@@ -4888,7 +4888,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
      str=DynamicObject->asBaseDir+str;
      Global::asCurrentTexturePath=DynamicObject->asBaseDir; //bie¿¹ca sciezka do tekstur to dynamic/...
      TModel3d *k=TModelsManager::GetModel(str.c_str(),true); //szukaj kabinê jako oddzielny model
-     Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath); //z powrotem defaultowa sciezka do tekstur
+     Global::asCurrentTexturePath=AnsiString(szTexturePath); //z powrotem defaultowa sciezka do tekstur
      //if (DynamicObject->mdKabina!=k)
      if (k)
       DynamicObject->mdKabina=k; //nowa kabina

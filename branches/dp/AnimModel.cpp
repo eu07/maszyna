@@ -359,7 +359,7 @@ bool __fastcall TAnimModel::Init(AnsiString asName, AnsiString asReplacableTextu
  if (asReplacableTexture.SubString(1,1)=="*") //od gwiazdki zaczynaj¹ siê teksty na wyœwietlaczach
   asText=asReplacableTexture.SubString(2,asReplacableTexture.Length()-1); //zapamiêtanie tekstu
  else if (asReplacableTexture!="none")
-  ReplacableSkinId[1]=TTexturesManager::GetTextureID(asReplacableTexture.c_str());
+  ReplacableSkinId[1]=TTexturesManager::GetTextureID(NULL,NULL,asReplacableTexture.c_str());
  if (TTexturesManager::GetAlpha(ReplacableSkinId[1]))
   iTexAlpha=0x31310031; //tekstura z kana³em alfa - nie renderowaæ w cyklu nieprzezroczystych
  else
@@ -633,7 +633,7 @@ void __fastcall TAnimModel::AnimationVND(void* pData, double a, double b, double
     delete fs;
 */
 
-  int i,j,k=0,idx=0;
+  int i,j,k,idx;
   AnsiString name;
   TAnimContainer *pSub;
   for (i=0;i<pAdvanced->iMovements;++i)

@@ -1813,7 +1813,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
        tmp->PROBLEND = false;
        }
 #endif
-   tmp->TextureID=TTexturesManager::GetTextureID(str.c_str());
+   tmp->TextureID=TTexturesManager::GetTextureID(szTexturePath,szSceneryPath,str.c_str());
    tmp->iFlags=TTexturesManager::GetAlpha(tmp->TextureID)?0x220:0x210; //z usuwaniem
    if (((tmp->iType==GL_TRIANGLES)&&(tmp->iFlags&0x10))?Global::pTerrainCompact->TerrainLoaded():false)
    {//jeœli jest tekstura nieprzezroczysta, a teren za³adowany, to pomijamy trójk¹ty

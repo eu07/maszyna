@@ -1814,7 +1814,7 @@ void __fastcall TDynamicObject::LoadUpdate()
   //if (MoverParameters->LoadType!=AnsiString("passengers"))
   Global::asCurrentTexturePath=asBaseDir; //bie¿¹ca œcie¿ka do tekstur to dynamic/...
   mdLoad=TModelsManager::GetModel(asLoadName.c_str()); //nowy ³adunek
-  Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath); //z powrotem defaultowa sciezka do tekstur
+  Global::asCurrentTexturePath=AnsiString(szTexturePath); //z powrotem defaultowa sciezka do tekstur
   //Ra: w MMD mo¿na by zapisaæ po³o¿enie modelu ³adunku (np. wêgiel) w zale¿noœci od za³adowania
  }
  else if (MoverParameters->Load==0)
@@ -3251,7 +3251,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
        if (ReplacableSkin!=AnsiString("none"))
        {
         ReplacableSkin=Global::asCurrentTexturePath+ReplacableSkin;      //skory tez z dynamic/...
-        ReplacableSkinID[1]=TTexturesManager::GetTextureID(ReplacableSkin.c_str(),Global::iDynamicFiltering);
+        ReplacableSkinID[1]=TTexturesManager::GetTextureID(szTexturePath,szSceneryPath,ReplacableSkin.c_str(),Global::iDynamicFiltering);
         if (TTexturesManager::GetAlpha(ReplacableSkinID[1]))
          iAlpha=0x31310031; //tekstura -1 z kana³em alfa - nie renderowaæ w cyklu nieprzezroczystych
         else
@@ -3298,7 +3298,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
         }
         else //Ra: tu wczytywanie modelu ³adunku jest w porz¹dku
          mdLoad=TModelsManager::GetModel(asLoadName.c_str(),true);  //ladunek
-       Global::asCurrentTexturePath=AnsiString(szDefaultTexturePath); //z powrotem defaultowa sciezka do tekstur
+       Global::asCurrentTexturePath=AnsiString(szTexturePath); //z powrotem defaultowa sciezka do tekstur
        while (!Parser->EndOfFile && str!=AnsiString("endmodels"))
        {
         str=Parser->GetNextSymbol().LowerCase();

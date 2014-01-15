@@ -38,10 +38,10 @@ TTexturesManager::Names::iterator TTexturesManager::LoadFromFile(std::string fil
 
     std::string realFileName(fileName);
     std::ifstream file(fileName.c_str());
-    if (!file.is_open())
-        realFileName.insert(0,szDefaultTexturePath);
-    else
-        file.close();
+    //if (!file.is_open())
+    //    realFileName.insert(0,szTexturePath); //doklejanie katalogu w paru miejscach nie ma sensu
+    //else
+    //    file.close();
 
     //char* cFileName = const_cast<char*>(fileName.c_str());
 
@@ -88,54 +88,93 @@ struct ReplaceSlash
     }
 };
 
-GLuint TTexturesManager::GetTextureID(std::string fileName,int filter)
+GLuint TTexturesManager::GetTextureID(char* dir,char* where,std::string fileName,int filter)
 {//ustalenie numeru tekstury, wczytanie jeœli nie jeszcze takiej nie by³o
+ //najpierw szukamy w katalogu, z którego wywo³ywana jest tekstura, potem z wy¿szego
+ //Ra: przerobiæ na wyszukiwanie w drzewie nazw, do którego zapisywaæ np. rozmiary, przezroczystoœæ
+ //Ra: ustalaæ, które tekstury mo¿na wczytaæ ju¿ w trakcie symulacji
  size_t pos=fileName.find(':'); //szukamy dwukropka
  if (pos!=std::string::npos) //po dwukropku mog¹ byæ podane dodatkowe informacje
   fileName=fileName.substr(0,pos); //niebêd¹ce nazw¹ tekstury
- std::transform(fileName.begin(),fileName.end(),fileName.begin(),ReplaceSlash());
+ std::transform(fileName.begin(),fileName.end(),fileName.begin(),ReplaceSlash()); //zamiana "/" na "\"
  //jeœli bie¿aca œcie¿ka do tekstur nie zosta³a dodana to dodajemy domyœln¹
- if (fileName.find('\\')==std::string::npos)
-  fileName.insert(0,szDefaultTexturePath);
+ //if (fileName.find('\\')==std::string::npos) //bz sensu
+ // fileName.insert(0,szDefaultTexturePath);
+ //najpierw szukamy w podanym katalogu, potem w domyœlnym
  Names::iterator iter;
- if (fileName.find('.')==std::string::npos)
- {//Ra: wypróbowanie rozszerzeñ po kolei, zaczynaj¹c od domyœlnego
-  fileName.append("."); //kropka bêdze na pewno, resztê trzeba próbowaæ
+ std::ifstream file;
+ if ((fileName.find('.')==fileName.npos)?true:(fileName.rfind('.')<fileName.rfind('\\'))) //pierwsza kropka od prawej jest wczeœniej ni¿ "\"
+ {//Ra: jeœli nie ma kropki w nazwie pliku, wypróbowanie rozszerzeñ po kolei, zaczynaj¹c od domyœlnego
+  fileName.append("."); //kropkê trzeba dodaæ na pewno, resztê trzeba próbowaæ
   std::string test; //zmienna robocza
   for (int i=0;i<4;++i)
   {//najpierw szukamy w magazynie
    test=fileName;
-   test.append(Global::szDefaultExt[i]);
-   iter=_names.find(fileName); //czy mamy ju¿ w magazynie?
+   if (where) test.insert(0,where); //œcie¿ka obiektu wywo³uj¹cego
+   test.append(Global::szDefaultExt[i]); //dodanie jednego z kilku rozszerzeñ
+   iter=_names.find(test); //czy mamy ju¿ w magazynie?
    if (iter!=_names.end())
     return iter->second; //znalezione!
-   test.insert(0,szDefaultTexturePath); //jeszcze próba z dodatkow¹ œcie¿k¹
-   iter=_names.find(fileName); //czy mamy ju¿ w magazynie?
-   if (iter!=_names.end())
-    return iter->second; //znalezione!
-  }
-  for (int i=0;i<4;++i)
-  {//w magazynie nie ma, to sprawdzamy na dysku
    test=fileName;
-   test.append(Global::szDefaultExt[i]);
-   std::ifstream file(test.c_str());
+   if (dir) test.insert(0,dir); //jeszcze próba z dodatkow¹ œcie¿k¹
+   test.append(Global::szDefaultExt[i]); //dodanie jednego z kilku rozszerzeñ
+   iter=_names.find(test); //czy mamy ju¿ w magazynie?
+   if (iter!=_names.end())
+    return iter->second; //znalezione!
+  //}
+  //for (int i=0;i<4;++i)
+  //{//w magazynie nie ma, to sprawdzamy na dysku
+   test=fileName;
+   if (where) test.insert(0,where); //œcie¿ka obiektu wywo³uj¹cego
+   test.append(Global::szDefaultExt[i]); //dodanie jednego z kilku rozszerzeñ
+   file.open(test.c_str());
    if (!file.is_open())
-   {test.insert(0,szDefaultTexturePath);
+   {test=fileName;
+    if (dir) test.insert(0,dir); //próba z dodatkow¹ œcie¿k¹
+    test.append(Global::szDefaultExt[i]); //dodanie jednego z kilku rozszerzeñ
     file.open(test.c_str());
    }
    if (file.is_open())
-   {
-    fileName.append(Global::szDefaultExt[i]); //dopisanie znalezionego
-    file.close();
+   {//jak znaleziony, to plik zostaje otwarty
+    fileName=test; //zapamiêtanie znalezionego rozszerzenia
     break; //wyjœcie z pêtli na etapie danego rozszerzenia
    }
   }
  }
- iter=_names.find(fileName); //czy mamy ju¿ w magazynie
- if (iter==_names.end())
-  iter=LoadFromFile(fileName,filter);
+ else
+ {//gdy jest kropka, to rozszerzenie jest jawne
+  std::string test; //zmienna robocza
+  //najpierw szukamy w magazynie
+  test=fileName;
+  if (where) test.insert(0,where); //œcie¿ka obiektu wywo³uj¹cego
+  iter=_names.find(test); //czy mamy ju¿ w magazynie?
+  if (iter!=_names.end())
+   return iter->second; //znalezione!
+  test=fileName;
+  if (dir) test.insert(0,dir); //jeszcze próba z dodatkow¹ œcie¿k¹
+  iter=_names.find(test); //czy mamy ju¿ w magazynie?
+  if (iter!=_names.end())
+   return iter->second; //znalezione!
+  //w magazynie nie ma, to sprawdzamy na dysku
+  test=fileName;
+  if (where) test.insert(0,where); //œcie¿ka obiektu wywo³uj¹cego
+  file.open(test.c_str());
+  if (!file.is_open())
+  {//jak znaleziony, to plik zostaje otwarty
+   test=fileName;
+   if (dir) test.insert(0,dir); //próba z dodatkow¹ œcie¿k¹
+   file.open(test.c_str());
+   if (file.is_open())
+    fileName=test; //ustalenie nowej nazwy
+  }
+ }
+ if (file.is_open())
+ {//plik pozostaje otwarty, gdy znaleziono na dysku
+  file.close(); //mo¿na ju¿ zamkn¹æ
+  iter=LoadFromFile(fileName,filter); //doda siê do magazynu i zwróci swoj¹ pozycjê
+ }
  return (iter!=_names.end()?iter->second:0);
-}
+};
 
 bool TTexturesManager::GetAlpha(GLuint id)
 {//atrybut przezroczystoœci dla tekstury o podanym numerze (id)

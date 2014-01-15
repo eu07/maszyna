@@ -477,14 +477,14 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
   parser->getTokens();
   *parser >> token;
   str=AnsiString(token.c_str());   //railtex
-  TextureID1=(str=="none"?0:TTexturesManager::GetTextureID(str.c_str(),(iCategoryFlag&1)?Global::iRailProFiltering:Global::iBallastFiltering));
+  TextureID1=(str=="none"?0:TTexturesManager::GetTextureID(szTexturePath,szSceneryPath,str.c_str(),(iCategoryFlag&1)?Global::iRailProFiltering:Global::iBallastFiltering));
   parser->getTokens();
   *parser >> fTexLength; //tex tile length
   if (fTexLength<0.01) fTexLength=4; //Ra: zabezpiecznie przed zawieszeniem
   parser->getTokens();
   *parser >> token;
   str=AnsiString(token.c_str());   //sub || railtex
-  TextureID2=(str=="none"?0:TTexturesManager::GetTextureID(str.c_str(),(eType==tt_Normal)?Global::iBallastFiltering:Global::iRailProFiltering));
+  TextureID2=(str=="none"?0:TTexturesManager::GetTextureID(szTexturePath,szSceneryPath,str.c_str(),(eType==tt_Normal)?Global::iBallastFiltering:Global::iRailProFiltering));
   parser->getTokens(3);
   *parser >> fTexHeight1 >> fTexWidth >> fTexSlope;
 //     fTexHeight=Parser->GetNextSymbol().ToDouble(); //tex sub height
