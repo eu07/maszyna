@@ -109,7 +109,7 @@ CONST
                 //a predkosc przeplywu w m/s                           //3.5
                                                                        //7
 //   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (14, 5.4), (9, 5.0), (6, 4.6), (9, 4.5), (9, 4.0), (9, 3.5), (9, 2.8), (34, 2.8));
-   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (7, 5.0), (3.5, 5.0), (4.5, 4.6), (4.5, 4.2), (4.5, 3.8), (4.5, 3.4), (4.5, 2.8), (8, 2.8));
+   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (7, 5.0), (2.5, 5.0), (4.5, 4.6), (4.5, 4.2), (4.5, 3.8), (4.5, 3.4), (4.5, 2.8), (8, 2.8));
    BPT_394: array[-1..5] of array [0..1] of real= ((13, 10.0), (5, 5.0), (0, -1), (5, -1), (5, 0.0), (5, 0.0), (18, 0.0));
 //   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (12, 5.4), (9, 5.0), (9, 4.6), (9, 4.2), (9, 3.8), (9, 3.4), (9, 2.8), (34, 2.8));
 //      BPT: array[-2..6] of array [0..1] of real= ((0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0));
@@ -450,6 +450,7 @@ TYPE
       end;
 
 function PF(P1,P2,S:real):real;
+function PF1(P1,P2,S:real):real;
 
 function PFVa(PH,PL,S,LIM:real):real; //zawor napelniajacy z PH do PL, PL do LIM
 function PFVd(PH,PL,S,LIM:real):real; //zawor wypuszczajacy z PH do PL, PH do LIM
@@ -496,6 +497,23 @@ begin
       PF:=fm*2*SQRT((sg)*(1-sg))
   else             //powyzej stosunku krytycznego
     PF:=fm;
+end;
+
+function PF1(P1,P2,S:real):real;
+var ph,pl,sg,fm: real;
+const DPS=0.001;
+begin
+  PH:=Max0R(P1,P2)+1; //wyzsze cisnienie absolutne
+  PL:=P1+P2-PH+2;  //nizsze cisnienie absolutne
+  sg:=PL/PH; //bezwymiarowy stosunek cisnien
+  fm:=PH*197*S*sign(P2-P1); //najwyzszy mozliwy przeplyw, wraz z kierunkiem
+  if (SG>0.5) then //jesli ponizej stosunku krytycznego
+    if (SG<DPS) then //niewielka roznica cisnien
+      PF1:=(1-SG)/DPS*fm*2*SQRT((DPS)*(1-DPS))
+    else
+      PF1:=fm*2*SQRT((sg)*(1-sg))
+  else             //powyzej stosunku krytycznego
+    PF1:=fm;
 end;
 
 function PFVa(PH,PL,S,LIM:real):real; //zawor napelniajacy z PH do PL, PL do LIM
@@ -2227,12 +2245,13 @@ const
   xpM = 0.33; //mnoznik membrany komory pod
 var
   LimPP, dpPipe, dpMainValve, ActFlowSpeed, dp: real;
+  pom: real;
   i: byte;
 begin
-//          ep:=pp/2*1.5+ep/2*0.5; //SPKS!!
+          ep:=pp/2*1.5+ep/2*0.5; //SPKS!!
 //          ep:=pp;
-          ep:=cp/3+pp/3+ep/3;
-          ep:=cp;
+//          ep:=cp/3+pp/3+ep/3;
+//          ep:=cp;
 
           for i:=0 to 4 do
             Sounds[i]:=0;
@@ -2264,11 +2283,11 @@ begin
           Limpp:=Min0R(LPP_RP(i_bcp)+tp*0.08+RedAdj,HP); //pozycja + czasowy lub zasilanie
           ActFlowSpeed:=BPT[Round(i_bcp)][0];
 
-          if(EQ(i_bcp,-1))then ep:=Min0R(HP,5.4+RedAdj);
+          if(EQ(i_bcp,-1))then pom:=Min0R(HP,5.4+RedAdj) else pom:=Min0R(cp,HP);
 
-          if(ep>rp+0.3)then Fala:=true;
+          if(pom>rp+0.3)then Fala:=true;
           if(Fala)then
-            if(ep>rp+0.02)then
+            if(pom>rp+0.05)then
 //              if(ep>rp+0.11)then
                 xp:=xp-16*PR(ep,xp)*dt
 //              else
@@ -2280,7 +2299,7 @@ begin
           else
             cp:=cp+13*Min0R(abs(Limpp-cp),0.05)*PR(cp,Limpp)*dt; //zbiornik sterujacy
 
-          Limpp:=ep; //cp
+          Limpp:=pom; //cp
           dpPipe:=Min0R(HP,Limpp+xp*xpM);
 
           if dpPipe>pp then
@@ -2291,6 +2310,7 @@ begin
           if EQ(i_bcp,-1) then
            begin
             if(tp<5)then tp:=tp+dt; //5/10
+            if(tp<1)then tp:=tp-0.5*dt; //5/10            
 //            dpMainValve:=dpMainValve*2;//+1*PF(dpPipe,pp,(ActFlowSpeed)/(LBDelay))//coby nie przeszkadzal przy ladowaniu z zaworu obok
            end;
 
@@ -2633,7 +2653,13 @@ begin
   ActFlowSpeed:=2*Byte((i_bcp<3) or (i_bcp=4));
   dpMainValve:=PF(Limpp,pp,ActFlowSpeed/(LBDelay))*dt;
   GetPF:=dpMainValve;
-  EPS:=i_bcp*Byte(i_bcp<2);
+  if(i_bcp<-0.5)then
+    EPS:=-1
+  else if(i_bcp>0.5)and(i_bcp<1.5)then
+    EPS:=1
+  else
+    EPS:=0;
+//    EPS:=i_bcp*Byte(i_bcp<2)
 end;
 
 function TFVel6.GetCP: real;
