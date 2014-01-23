@@ -3249,9 +3249,9 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
        Global::asCurrentTexturePath=BaseDir;                    //biezaca sciezka do tekstur to dynamic/...
        mdModel=TModelsManager::GetModel(asModel.c_str(),true);
        if (ReplacableSkin!=AnsiString("none"))
-       {
+       {//tekstura wymienna jest raczej jedynie w "dynamic\" 
         ReplacableSkin=Global::asCurrentTexturePath+ReplacableSkin;      //skory tez z dynamic/...
-        ReplacableSkinID[1]=TTexturesManager::GetTextureID(szTexturePath,szSceneryPath,ReplacableSkin.c_str(),Global::iDynamicFiltering);
+        ReplacableSkinID[1]=TTexturesManager::GetTextureID(NULL,NULL,ReplacableSkin.c_str(),Global::iDynamicFiltering);
         if (TTexturesManager::GetAlpha(ReplacableSkinID[1]))
          iAlpha=0x31310031; //tekstura -1 z kana³em alfa - nie renderowaæ w cyklu nieprzezroczystych
         else
@@ -3354,6 +3354,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
          asModel=BaseDir+asModel; //McZapkie-200702 - dynamics maja swoje modele w dynamic/basedir
          Global::asCurrentTexturePath=BaseDir; //biezaca sciezka do tekstur to dynamic/...
          mdLowPolyInt=TModelsManager::GetModel(asModel.c_str(),true);
+         //Global::asCurrentTexturePath=AnsiString(szTexturePath); //kiedyœ uproszczone wnêtrze miesza³o tekstury nieba
         }
         else if (str==AnsiString("animwheelprefix:"))
         {//prefiks krêc¹cych siê kó³
@@ -3846,6 +3847,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
  if (mdPrzedsionek) mdPrzedsionek->Init();
  if (mdLowPolyInt) mdLowPolyInt->Init();
  //sHorn2.CopyIfEmpty(sHorn1); //¿eby jednak tr¹bi³ te¿ drugim
+ Global::asCurrentTexturePath=AnsiString(szTexturePath); //kiedyœ uproszczone wnêtrze miesza³o tekstury nieba
 }
 
 //---------------------------------------------------------------------------
