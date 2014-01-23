@@ -2339,6 +2339,7 @@ void __fastcall TWorld::CreateE3D(const AnsiString &dir,bool dyn)
      }
      else if (sr.Name.LowerCase().SubString(sr.Name.Length()-3,4)==".t3d")
      {//z modelami jest proœciej
+      Global::asCurrentTexturePath=dir;
       TModelsManager::GetModel(AnsiString(dir+sr.Name).c_str(),false);
      }
   } while (FindNext(sr)==0);

@@ -115,12 +115,15 @@ GLuint TTexturesManager::GetTextureID(char* dir,char* where,std::string fileName
    iter=_names.find(test); //czy mamy ju¿ w magazynie?
    if (iter!=_names.end())
     return iter->second; //znalezione!
-   test=fileName;
-   if (dir) test.insert(0,dir); //jeszcze próba z dodatkow¹ œcie¿k¹
-   test.append(Global::szDefaultExt[i]); //dodanie jednego z kilku rozszerzeñ
-   iter=_names.find(test); //czy mamy ju¿ w magazynie?
-   if (iter!=_names.end())
-    return iter->second; //znalezione!
+   if (dir)
+   {//mo¿e we wskazanym katalogu?
+    test=fileName;
+    test.insert(0,dir); //jeszcze próba z dodatkow¹ œcie¿k¹
+    test.append(Global::szDefaultExt[i]); //dodanie jednego z kilku rozszerzeñ
+    iter=_names.find(test); //czy mamy ju¿ w magazynie?
+    if (iter!=_names.end())
+     return iter->second; //znalezione!
+   }
   //}
   //for (int i=0;i<4;++i)
   //{//w magazynie nie ma, to sprawdzamy na dysku
