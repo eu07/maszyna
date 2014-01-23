@@ -41,8 +41,13 @@ void __fastcall TRealSound::Free()
 void __fastcall TRealSound::Init(char *SoundName, double DistanceAttenuation, double X, double Y, double Z,bool Dynamic,bool freqmod)
 {
 //    Nazwa= SoundName;
-    pSound= TSoundsManager::GetFromName(SoundName,Dynamic,&fFrequency);
-    if (freqmod) fFrequency=22050.0; //dla modulowanych nie mo¿w byæ zmiany mno¿nika
+    pSound=TSoundsManager::GetFromName(SoundName,Dynamic,&fFrequency);
+    if (freqmod)
+     if (fFrequency!=22050.0)
+     {//dla modulowanych nie mo¿e byæ zmiany mno¿nika, bo czêstotliwoœæ w nag³ówku by³¹ ignorowana, a mog³a byæ inna ni¿ 22050
+      fFrequency=22050.0;
+      ErrorLog("Bad sound: "+AnsiString(strFileName)+" as modulated, should have 22.05kHz in header");
+     }
     if (pSound)
     {
      AM= 1.0;
