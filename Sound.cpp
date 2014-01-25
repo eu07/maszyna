@@ -57,6 +57,8 @@ __fastcall TSoundContainer::TSoundContainer( LPDIRECTSOUND pDS, char *Directory,
     ZeroMemory( &dsbd, sizeof(DSBUFFERDESC) );
     dsbd.dwSize        = sizeof(DSBUFFERDESC);
     dsbd.dwFlags       = DSBCAPS_STATIC | DSBCAPS_CTRLPAN | DSBCAPS_CTRLVOLUME | DSBCAPS_CTRLFREQUENCY;
+    if (!Global::bInactivePause) //jeœli prze³¹czony w t³o ma nadal dzia³aæ
+     dsbd.dwFlags|=DSBCAPS_GLOBALFOCUS; //to dŸwiêki maj¹ byæ równie¿ s³yszalne
     dsbd.dwBufferBytes = pWaveSoundRead->m_ckIn.cksize;
     dsbd.lpwfxFormat   = pWaveSoundRead->m_pwfx;
     fSamplingRate=pWaveSoundRead->m_pwfx->nSamplesPerSec;
@@ -344,6 +346,8 @@ if (hr==DSERR_OUTOFMEMORY)
     ZeroMemory( &dsbd, sizeof(DSBUFFERDESC) );
     dsbd.dwSize        = sizeof(DSBUFFERDESC);
     dsbd.dwFlags       = DSBCAPS_PRIMARYBUFFER;
+    if (!Global::bInactivePause) //jeœli prze³¹czony w t³o ma nadal dzia³aæ
+     dsbd.dwFlags|=DSBCAPS_GLOBALFOCUS; //to dŸwiêki maj¹ byæ równie¿ s³yszalne
     dsbd.dwBufferBytes = 0;
     dsbd.lpwfxFormat   = NULL;
 
