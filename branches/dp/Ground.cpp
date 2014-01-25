@@ -1818,7 +1818,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    if (((tmp->iType==GL_TRIANGLES)&&(tmp->iFlags&0x10))?Global::pTerrainCompact->TerrainLoaded():false)
    {//jeœli jest tekstura nieprzezroczysta, a teren za³adowany, to pomijamy trójk¹ty
     do
-    {//pomijanie wtrójk¹tów
+    {//pomijanie trójk¹tów
      parser->getTokens();
      *parser >> token;
     } while (token.compare("endtri")!=0);

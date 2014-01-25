@@ -229,7 +229,7 @@ public:
  __fastcall TSubModel();
  __fastcall ~TSubModel();
  void __fastcall FirstInit();
- int __fastcall Load(cParser& Parser, TModel3d *Model,int Pos);
+ int __fastcall Load(cParser& Parser, TModel3d *Model,int Pos,bool dynamic);
  void __fastcall ChildAdd(TSubModel *SubModel);
  void __fastcall NextAdd(TSubModel *SubModel);
  TSubModel* __fastcall NextGet() {return Next;};

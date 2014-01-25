@@ -88,7 +88,7 @@ void __fastcall TSubModel::FirstInit()
  //Hits=NULL;
  //CollisionPts=NULL;
  //CollisionPtsCount=0;
- Opacity=100.0;
+ Opacity=1.0; //przy wczytywaniu modeli by³o dzielone przez 100...
  bWire=false;
  fWireSize=0;
  fNearAttenStart=40;
@@ -223,7 +223,7 @@ inline void readMatrix(cParser& parser,float4x4& matrix)
    parser.getToken(matrix(x)[y]);
 };
 
-int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
+int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos,bool dynamic)
 {//Ra: VBO tworzone na poziomie modelu, a nie submodeli
  iNumVerts=0;
  iVboPtr=Pos; //pozycja w VBO
@@ -252,10 +252,14 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
  parser.getTokens(1,false); //nazwa submodelu bez zmieny na ma³e
  parser >> token;
  NameSet(token.c_str());
- if (token.find("_on")+3==token.length()) //jeœli nazwa koñczy siê na "_on"
-  iVisible=0; //to domyœlnie wy³¹czyæ, ¿eby siê nie nak³ada³o z obiektem "_off"
- else if (token.find("Light_On")==0) //jeœli nazwa zaczyna siê od "Light_On"
-  iVisible=0; //to domyœlnie wy³¹czyæ, ¿eby siê nie nak³ada³o z obiektem "Light_Off"
+ if (dynamic)
+ {//dla pojazdu, blokujemy za³¹czone submodele, które mog¹ byæ nieobs³ugiwane
+  if (token.find("_on")+3==token.length()) //jeœli nazwa koñczy siê na "_on"
+   iVisible=0; //to domyœlnie wy³¹czyæ, ¿eby siê nie nak³ada³o z obiektem "_off"
+ }
+ else //dla pozosta³ych modeli blokujemy zapalone œwiat³a, które mog¹ byæ nieobs³ugiwane
+  if (token.find("Light_On")==0) //jeœli nazwa zaczyna siê od "Light_On"
+   iVisible=0; //to domyœlnie wy³¹czyæ, ¿eby siê nie nak³ada³o z obiektem "Light_Off"
 
  if (parser.expectToken("anim:")) //Ra: ta informacja by siê przyda³a!
  {//rodzaj animacji
@@ -339,30 +343,30 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
   else if (texture.find("replacableskin")!=texture.npos)
   {// McZapkie-060702: zmienialne skory modelu
    TextureID=-1;
-   iFlags|=(Opacity<100.0)?1:0x10; //zmienna tekstura 1
+   iFlags|=(Opacity<1.0)?1:0x10; //zmienna tekstura 1
   }
   else if (texture=="-1")
   {
    TextureID=-1;
-   iFlags|=(Opacity<100.0)?1:0x10; //zmienna tekstura 1
+   iFlags|=(Opacity<1.0)?1:0x10; //zmienna tekstura 1
   }
   else if (texture=="-2")
   {
    TextureID=-2;
-   iFlags|=(Opacity<100.0)?2:0x10; //zmienna tekstura 2
+   iFlags|=(Opacity<1.0)?2:0x10; //zmienna tekstura 2
   }
   else if (texture=="-3")
   {
    TextureID=-3;
-   iFlags|=(Opacity<100.0)?4:0x10; //zmienna tekstura 3
+   iFlags|=(Opacity<1.0)?4:0x10; //zmienna tekstura 3
   }
   else if (texture=="-4")
   {
    TextureID=-4;
-   iFlags|=(Opacity<100.0)?8:0x10; //zmienna tekstura 4
+   iFlags|=(Opacity<1.0)?8:0x10; //zmienna tekstura 4
   }
   else
-  {//jesli tylko nazwa pliku to dawac biezaca sciezke do tekstur
+  {//jeœli tylko nazwa pliku, to dawaæ bie¿¹c¹ œcie¿kê do tekstur
    //asTexture=AnsiString(texture.c_str()); //zapamiêtanie nazwy tekstury
    TextureNameSet(texture.c_str());
    if (texture.find_first_of("/\\")==texture.npos)
@@ -370,7 +374,13 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
    TextureID=TTexturesManager::GetTextureID(szTexturePath,Global::asCurrentTexturePath.c_str(),texture);
    //TexAlpha=TTexturesManager::GetAlpha(TextureID);
    //iFlags|=TexAlpha?0x20:0x10; //0x10-nieprzezroczysta, 0x20-przezroczysta
-   iFlags|=TTexturesManager::GetAlpha(TextureID)?0x20:0x10; //0x10-nieprzezroczysta, 0x20-przezroczysta
+   if (Opacity<1.0) //przezroczystoœæ z tekstury brana tylko dla Opacity 0!
+    iFlags|=TTexturesManager::GetAlpha(TextureID)?0x20:0x10; //0x10-nieprzezroczysta, 0x20-przezroczysta
+   else
+    iFlags|=0x10; //normalnie nieprzezroczyste
+   //renderowanie w cyklu przezroczystych tylko jeœli:
+   //1. Opacity=0 (przejœciowo <1, czy tam <100) oraz
+   //2. tekstura ma przezroczystoœæ
   };
  }
  else iFlags|=0x10;
@@ -1362,7 +1372,11 @@ void __fastcall TSubModel::BinInit(TSubModel *s,float4x4 *m,float8 *v,TStringPac
   TextureID=TTexturesManager::GetTextureID(szTexturePath,Global::asCurrentTexturePath.c_str(),t.c_str());
   //TexAlpha=TTexturesManager::GetAlpha(TextureID); //zmienna robocza
   //ustawienie cyklu przezroczyste/nieprzezroczyste zale¿nie od w³asnoœci sta³ej tekstury
-  iFlags=(iFlags&~0x30)|(TTexturesManager::GetAlpha(TextureID)?0x20:0x10); //0x10-nieprzezroczysta, 0x20-przezroczysta
+  //iFlags=(iFlags&~0x30)|(TTexturesManager::GetAlpha(TextureID)?0x20:0x10); //0x10-nieprzezroczysta, 0x20-przezroczysta
+  if (Opacity<1.0) //przezroczystoœæ z tekstury brana tylko dla Opacity 0!
+   iFlags|=TTexturesManager::GetAlpha(TextureID)?0x20:0x10; //0x10-nieprzezroczysta, 0x20-przezroczysta
+  else
+   iFlags|=0x10; //normalnie nieprzezroczyste
  }
  b_aAnim=b_Anim; //skopiowanie animacji do drugiego cyklu
  iFlags&=~0x0200; //wczytano z pliku binarnego (nie jest w³aœcicielem tablic)
@@ -1586,7 +1600,7 @@ void __fastcall TModel3d::LoadFromTextFile(char *FileName,bool dynamic)
   parser >> parent;
   if (parent=="") break;
   SubModel=new TSubModel();
-  iNumVerts+=SubModel->Load(parser,this,iNumVerts);
+  iNumVerts+=SubModel->Load(parser,this,iNumVerts,dynamic);
   SubModel->Parent=AddToNamed(parent.c_str(),SubModel); //bêdzie potrzebne do wyliczenia pozycji, np. pantografu
   //iSubModelsCount++;
   parser.getToken(token);
