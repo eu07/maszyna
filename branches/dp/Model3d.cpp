@@ -365,8 +365,8 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos)
   {//jesli tylko nazwa pliku to dawac biezaca sciezke do tekstur
    //asTexture=AnsiString(texture.c_str()); //zapamiêtanie nazwy tekstury
    TextureNameSet(texture.c_str());
-   //if (texture.find_first_of("/\\")==texture.npos)
-   // texture.insert(0,Global::asCurrentTexturePath.c_str());
+   if (texture.find_first_of("/\\")==texture.npos)
+    texture.insert(0,Global::asCurrentTexturePath.c_str());
    TextureID=TTexturesManager::GetTextureID(szTexturePath,Global::asCurrentTexturePath.c_str(),texture);
    //TexAlpha=TTexturesManager::GetAlpha(TextureID);
    //iFlags|=TexAlpha?0x20:0x10; //0x10-nieprzezroczysta, 0x20-przezroczysta
@@ -1355,8 +1355,8 @@ void __fastcall TSubModel::BinInit(TSubModel *s,float4x4 *m,float8 *v,TStringPac
   //asTexture=AnsiString(t->String(iTexture));
   pTexture=t->String(iTexture);
   AnsiString t=AnsiString(pTexture);
-  //if (t.LastDelimiter("/\\")==0)
-  // t.Insert(Global::asCurrentTexturePath,1);
+  if (t.LastDelimiter("/\\")==0)
+   t.Insert(Global::asCurrentTexturePath,1);
   TextureID=TTexturesManager::GetTextureID(szTexturePath,Global::asCurrentTexturePath.c_str(),t.c_str());
   //TexAlpha=TTexturesManager::GetAlpha(TextureID); //zmienna robocza
   //ustawienie cyklu przezroczyste/nieprzezroczyste zale¿nie od w³asnoœci sta³ej tekstury

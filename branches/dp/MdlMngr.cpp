@@ -88,6 +88,8 @@ TModel3d* __fastcall TModelsManager::GetModel(const char *Name,bool dynamic)
  // - wczytanie modelu animowanego - Init() - sprawdziæ
  char buf[255];
  AnsiString buftp=Global::asCurrentTexturePath; //zapamiêtanie aktualnej œcie¿ki do tekstur, bo bêdzie tyczmasowo zmieniana
+/*
+// Ra: niby tak jest lepiej, ale dzia³a gorzej, wiêc przywrócone jest oryginalne
  //nawet jeœli model bêdzie pobrany z tablicy, to trzeba ustaliæ œcie¿kê dla tekstur 
  if (dynamic) //na razie tak, bo nie wiadomo, jaki mo¿e mieæ wp³yw na pozosta³e modele
  {//dla pojazdów podana jest zawsze pe³na œcie¿ka do modelu
@@ -123,6 +125,35 @@ TModel3d* __fastcall TModelsManager::GetModel(const char *Name,bool dynamic)
   {
    Global::asCurrentTexturePath=buftp; //odtworzenie œcie¿ki do tekstur
    return (Models[i].Model); //model znaleziony
+  }
+ };
+*/
+ if (strchr(Name,'\\')==NULL)
+ {
+  strcpy(buf,"models\\"); //Ra: by³o by lepiej katalog dodaæ w parserze
+  strcat(buf,Name);
+  if (strchr(Name,'/')!=NULL)
+  {
+   Global::asCurrentTexturePath= Global::asCurrentTexturePath+AnsiString(Name);
+   Global::asCurrentTexturePath.Delete(Global::asCurrentTexturePath.Pos("/")+1,Global::asCurrentTexturePath.Length());
+  }
+ }
+ else
+ {strcpy(buf,Name);
+  if (dynamic) //na razie tak, bo nie wiadomo, jaki mo¿e mieæ wp³yw na pozosta³e modele
+   if (strchr(Name,'/')!=NULL)
+   {//pobieranie tekstur z katalogu, w którym jest model
+    Global::asCurrentTexturePath= Global::asCurrentTexturePath+AnsiString(Name);
+    Global::asCurrentTexturePath.Delete(Global::asCurrentTexturePath.Pos("/")+1,Global::asCurrentTexturePath.Length());
+   }
+ }
+ StrLower(buf);
+ for (int i=0; i<Count; i++)
+ {
+  if (strcmp(buf,Models[i].Name)==0)
+  {
+   Global::asCurrentTexturePath= buftp;
+   return (Models[i].Model);
   }
  };
  TModel3d* tmpModel=LoadModel(buf,dynamic); //model nie znaleziony, to wczytaæ

@@ -2489,7 +2489,7 @@ bool __fastcall TController::UpdateSituation(double dt)
     }
    break;
    case Shunt:
-    //na jaka odleglosc i z jaka predkoscia ma podjechac
+    //na jak¹ odlegloœæ i z jak¹ predkoœci¹ ma podjechaæ
     fMinProximityDist=2.0; fMaxProximityDist=4.0; //[m]
     fVelPlus=2.0; //dopuszczalne przekroczenie prêdkoœci na ograniczeniu bez hamowania
     fVelMinus=3.0; //margines prêdkoœci powoduj¹cy za³¹czenie napêdu
