@@ -936,7 +936,7 @@ void __fastcall TSubModel::RenderDL()
    }
   }
   else if (eType==TP_FREESPOTLIGHT)
-  {
+  {//wersja DL
    matrix4x4 mat; //macierz opisuje uk³ad renderowania wzglêdem kamery
    glGetDoublev(GL_MODELVIEW_MATRIX,mat.getArray());
    //k¹t miêdzy kierunkiem œwiat³a a wspó³rzêdnymi kamery
@@ -1087,7 +1087,7 @@ void __fastcall TSubModel::RenderVBO()
    }
   }
   else if (eType==TP_FREESPOTLIGHT)
-  {
+  {//wersja VBO
    matrix4x4 mat; //macierz opisuje uk³ad renderowania wzglêdem kamery
    glGetDoublev(GL_MODELVIEW_MATRIX,mat.getArray());
    //k¹t miêdzy kierunkiem œwiat³a a wspó³rzêdnymi kamery
@@ -1127,18 +1127,19 @@ void __fastcall TSubModel::RenderVBO()
               Distdimm=1;
 
 */
+    glBindTexture(GL_TEXTURE_2D,0); //nie teksturowaæ
     //glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
     //glColorMaterial(GL_FRONT,GL_EMISSION);
     float color[4]={f4Diffuse[0]*Distdimm,f4Diffuse[1]*Distdimm,f4Diffuse[2]*Distdimm,0};
     //glColor3f(f4Diffuse[0]*Distdimm,f4Diffuse[1]*Distdimm,f4Diffuse[2]*Distdimm);
-    //glColorMaterial(GL_FRONT,GL_EMISSION);
+    glColorMaterial(GL_FRONT,GL_EMISSION);
     glDisable(GL_LIGHTING);  //Tolaris-030603: bo mu punkty swiecace sie blendowaly
     glColor3fv(color); //inaczej s¹ bia³e
     glMaterialfv(GL_FRONT,GL_EMISSION,color);
     glDrawArrays(GL_POINTS,iVboPtr,iNumVerts);  //narysuj wierzcho³ek z VBO
-    glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
     glEnable(GL_LIGHTING);
-    //glColorMaterial(GL_FRONT,GL_AMBIENT_AND_DIFFUSE); //co ma ustawiaæ glColor
+    glColorMaterial(GL_FRONT,GL_AMBIENT_AND_DIFFUSE); //co ma ustawiaæ glColor
+    glMaterialfv(GL_FRONT,GL_EMISSION,emm2); //bez tego s³upy siê œwiec¹
    }
   }
   else if (eType==TP_STARS)
