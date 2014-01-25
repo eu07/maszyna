@@ -759,6 +759,7 @@ void __fastcall TWorld::OnKeyDown(int cKey)
     if ((Controlled->Controller==Humandriver)?true:DebugModeFlag||(cKey=='Q'))
      Train->OnKeyDown(cKey); //przekazanie klawisza do kabiny
  if (FreeFlyModeFlag) //aby nie odluŸnia³o wagonu za lokomotyw¹
+ {//operacje wykonywane na dowolnym pojeŸdzie, przeniesione tu z kabiny
   if (cKey==Global::Keys[k_Releaser]) //odluŸniacz
   {//dzia³a globalnie, sprawdziæ zasiêg
    TDynamicObject *temp=Global::DynamicNearest();
@@ -778,7 +779,7 @@ void __fastcall TWorld::OnKeyDown(int cKey)
    }
   }
   else if (cKey==Global::Keys[k_Heating]) //Ra: klawisz nie jest najszczêœliwszy
-  {//Ra: zabrane z kabiny
+  {//zmiana pró¿ny/³adowny; Ra: zabrane z kabiny
    TDynamicObject *temp=Global::DynamicNearest();
    if (temp)
    {
@@ -790,7 +791,45 @@ void __fastcall TWorld::OnKeyDown(int cKey)
      }
    }
   }
-
+  else if (cKey==Global::Keys[k_IncLocalBrakeLevel])
+  {//zahamowanie dowolnego pojazdu
+   TDynamicObject *temp=Global::DynamicNearest();
+   if (temp)
+   {
+    if (GetAsyncKeyState(VK_CONTROL)<0)
+     if ((temp->MoverParameters->LocalBrake==ManualBrake)||(temp->MoverParameters->MBrake==true))
+      temp->MoverParameters->IncManualBrakeLevel(1);
+     else;
+    else
+     if (temp->MoverParameters->LocalBrake!=ManualBrake)
+      if (temp->MoverParameters->IncLocalBrakeLevelFAST())
+       if (Train)
+       {//dŸwiêk oczywiœcie jest w kabinie
+        Train->dsbPneumaticRelay->SetVolume(-80);
+        Train->dsbPneumaticRelay->Play(0,0,0);
+       }
+   }
+  }
+  else if (cKey==Global::Keys[k_DecLocalBrakeLevel])
+  {//odhamowanie dowolnego pojazdu
+   TDynamicObject *temp=Global::DynamicNearest();
+   if (temp)
+   {
+    if (GetAsyncKeyState(VK_CONTROL)<0)
+     if ((temp->MoverParameters->LocalBrake==ManualBrake)||(temp->MoverParameters->MBrake==true))
+      temp->MoverParameters->DecManualBrakeLevel(1);
+     else;
+    else
+     if (temp->MoverParameters->LocalBrake!=ManualBrake)
+      if (temp->MoverParameters->DecLocalBrakeLevelFAST())
+       if (Train)
+       {//dŸwiêk oczywiœcie jest w kabinie
+        Train->dsbPneumaticRelay->SetVolume(-80);
+        Train->dsbPneumaticRelay->Play(0,0,0);
+       }
+   }
+  }
+ }
  //switch (cKey)
  //{case 'a': //ignorowanie repetycji
  // case 'A': Global::iKeyLast=cKey; break;
@@ -1644,7 +1683,9 @@ bool __fastcall TWorld::Update()
 //      OutText3+=FloatToStrF(tmp->MoverParameters->HighPipePress,ffFixed,5,2)+AnsiString(", ");
 //      OutText3+=FloatToStrF(tmp->MoverParameters->LowPipePress,ffFixed,5,2)+AnsiString(", ");
 
-       if ((tmp->MoverParameters->LocalBrakePos)>0)
+       if (tmp->MoverParameters->ManualBrakePos>0)
+        OutText3+=AnsiString("manual brake active. ");
+       else if (tmp->MoverParameters->LocalBrakePos>0)
         OutText3+=AnsiString("local brake active. ");
        else
         OutText3+=AnsiString("local brake inactive. ");

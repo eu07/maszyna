@@ -1006,18 +1006,16 @@ void __fastcall TTrain::OnKeyDown(int cKey)
               int CouplNr=-2;
               if (!FreeFlyModeFlag)
               {
-              if (GetAsyncKeyState(VK_CONTROL)<0)
+               if (GetAsyncKeyState(VK_CONTROL)<0)
                 if ((pOccupied->LocalBrake==ManualBrake)||(pOccupied->MBrake==true))
                 {
                 pOccupied->IncManualBrakeLevel(1);
                 }
                 else;
-              else
-              if (pOccupied->LocalBrake!=ManualBrake)
-                {
+               else if (pOccupied->LocalBrake!=ManualBrake)
                 pOccupied->IncLocalBrakeLevel(1);
-                }
               }
+/* Ra: przeniesione do World.cpp
               else
               {
                  TDynamicObject *temp;
@@ -1047,6 +1045,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
                    }
                  }
               }
+*/
           }
       else
       if (cKey==Global::Keys[k_DecLocalBrakeLevel])
@@ -1054,15 +1053,15 @@ void __fastcall TTrain::OnKeyDown(int cKey)
               int CouplNr=-2;
               if (!FreeFlyModeFlag)
               {
-                if (GetAsyncKeyState(VK_CONTROL)<0)
+               if (GetAsyncKeyState(VK_CONTROL)<0)
                 if ((pOccupied->LocalBrake==ManualBrake)||(pOccupied->MBrake==true))
-
-                  {pOccupied->DecManualBrakeLevel(1); }
-                 else;
-                else
-                 if (pOccupied->LocalBrake!=ManualBrake)
-                  {pOccupied->DecLocalBrakeLevel(1);}
+                 pOccupied->DecManualBrakeLevel(1);
+                else;
+               else
+                if (pOccupied->LocalBrake!=ManualBrake)
+                 pOccupied->DecLocalBrakeLevel(1);
               }
+/* Ra: przeniesione do World.cpp
               else
               {
                  TDynamicObject *temp;
@@ -1091,6 +1090,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
                  }
                  }
               }
+*/
           }
       else
       if ((cKey==Global::Keys[k_IncBrakeLevel])&&(pOccupied->BrakeHandle!=FV4a))
@@ -1441,28 +1441,6 @@ void __fastcall TTrain::OnKeyDown(int cKey)
            }
           }
        }
-/* //OdluŸniacz przeniesiony do World.cpp
-       else
-       {//Ra: odluŸnianie dowolnego pojazdu przy kamerze, by³o tylko we w³asnym sk³adzie
-        TDynamicObject *temp=Global::DynamicNearest();
-        int CouplNr=-2;
-        TDynamicObject *temp;
-        temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 1500, CouplNr));
-        if (temp==NULL)
-        {
-          CouplNr=-2;
-          temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1, 1500, CouplNr));
-        }
-        if (temp)
-        {
-         if (temp->MoverParameters->BrakeReleaser())
-         {
-          dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
-          dsbPneumaticRelay->Play(0,0,0);
-         }
-        }
-       }
-*/
       }
       else if (cKey==Global::Keys[k_SmallCompressor])   //Winger 160404: mala sprezarka wl
       {//Ra: bez [Shift] te¿ daæ dŸwiêk
