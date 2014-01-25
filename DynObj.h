@@ -348,7 +348,7 @@ public:
     void __fastcall Render();
     void __fastcall RenderAlpha();
     void __fastcall RenderSounds();
-    vector3 inline __fastcall GetPosition();
+    inline vector3 __fastcall GetPosition() {return vPosition;};
     inline vector3 __fastcall HeadPosition() {return vCoulpler[iDirection^1];}; //pobranie wspó³rzêdnych czo³a
     inline vector3 __fastcall RearPosition() {return vCoulpler[iDirection];}; //pobranie wspó³rzêdnych ty³u
     inline vector3 __fastcall AxlePositionGet() {return iAxleFirst?Axle1.pPosition:Axle0.pPosition;};

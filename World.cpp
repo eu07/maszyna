@@ -895,17 +895,21 @@ void __fastcall TWorld::FollowView()
  Camera.Reset(); //likwidacja obrotów - patrzy horyzontalnie na po³udnie
  if (Controlled) //jest pojazd do prowadzenia?
  {
+  vector3 camStara=Camera.Pos; //przestawianie kamery jest bez sensu: do przerobienia na potem
   //Controlled->ABuSetModelShake(vector3(0,0,0));
   if (FreeFlyModeFlag)
   {//je¿eli poza kabin¹, przestawiamy w jej okolicê - OK
    if (Train)
     Train->Dynamic()->ABuSetModelShake(vector3(0,0,0)); //wy³¹czenie trzêsienia na si³ê?
    //Camera.Pos=Train->pMechPosition+Normalize(Train->GetDirection())*20;
-   DistantView();
+   DistantView(); //przestawienie kamery
    //¿eby nie bylo numerów z 'fruwajacym' lokiem - konsekwencja bujania pud³a
+   Global::SetCameraPosition(Camera.Pos); //tu ustawiæ now¹, bo od niej licz¹ siê odleg³oœci
+   Ground.Silence(camStara); //wyciszenie dŸwiêków z poprzedniej pozycji
   }
   else if (Train)
   {//korekcja ustawienia w kabinie - OK
+   vector3 camStara=Camera.Pos; //przestawianie kamery jest bez sensu: do przerobienia na potem
    //Ra: czy to tu jest potrzebne, bo przelicza siê kawa³ek dalej?
    Camera.Pos=Train->pMechPosition;//Train.GetPosition1();
    Camera.Roll=atan(Train->pMechShake.x*Train->fMechRoll);       //hustanie kamery na boki
@@ -917,6 +921,8 @@ void __fastcall TWorld::FollowView()
    Train->pMechOffset.x=Train->pMechSittingPosition.x;
    Train->pMechOffset.y=Train->pMechSittingPosition.y;
    Train->pMechOffset.z=Train->pMechSittingPosition.z;
+   Global::SetCameraPosition(Train->Dynamic()->GetPosition()); //tu ustawiæ now¹, bo od niej licz¹ siê odleg³oœci
+   Ground.Silence(camStara); //wyciszenie dŸwiêków z poprzedniej pozycji
   }
  }
  else DistantView();
