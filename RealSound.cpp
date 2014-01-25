@@ -13,6 +13,7 @@
 #include "RealSound.h"
 #include "Globals.h"
 #include "Timer.h"
+#include "Logs.h"
 
 __fastcall TRealSound::TRealSound()
 {
@@ -46,11 +47,11 @@ void __fastcall TRealSound::Init(char *SoundName, double DistanceAttenuation, do
      if (fFrequency!=22050.0)
      {//dla modulowanych nie mo¿e byæ zmiany mno¿nika, bo czêstotliwoœæ w nag³ówku by³¹ ignorowana, a mog³a byæ inna ni¿ 22050
       fFrequency=22050.0;
-      ErrorLog("Bad sound: "+AnsiString(strFileName)+" as modulated, should have 22.05kHz in header");
+      ErrorLog("Bad sound: "+AnsiString(SoundName)+" as modulated, should have 22.05kHz in header");
      }
     if (pSound)
     {
-     AM= 1.0;
+     AM=1.0;
      pSound->SetVolume(DSBVOLUME_MIN);
     }
     else
