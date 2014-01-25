@@ -1264,20 +1264,20 @@ bool __fastcall TWorld::Update()
     glBindTexture(GL_TEXTURE_2D,light);       // Select our texture
     glBegin(GL_QUADS);
     float fSmudge=Train->Dynamic()->MoverParameters->DimHalf.y+7; //gdzie zaczynaæ smugê
-     if (Train->Dynamic()->MoverParameters->iLights[0]&21)
-     {//wystarczy jeden zapalony z przodu
-      glTexCoord2f(0,0); glVertex3f( 15.0,0.0,+fSmudge); //rysowanie wzglêdem po³o¿enia modelu
-      glTexCoord2f(1,0); glVertex3f(-15.0,0.0,+fSmudge);
-      glTexCoord2f(1,1); glVertex3f(-15.0,2.5, 250.0);
-      glTexCoord2f(0,1); glVertex3f( 15.0,2.5, 250.0);
-     }
-     if (Train->Dynamic()->MoverParameters->iLights[1]&21)
-     {//wystarczy jeden zapalony z ty³u
-      glTexCoord2f(0,0); glVertex3f(-15.0,0.0,-fSmudge);
-      glTexCoord2f(1,0); glVertex3f( 15.0,0.0,-fSmudge);
-      glTexCoord2f(1,1); glVertex3f( 15.0,2.5,-250.0);
-      glTexCoord2f(0,1); glVertex3f(-15.0,2.5,-250.0);
-     }
+    if (Train->Controlled()->iLights[0]&21)
+    {//wystarczy jeden zapalony z przodu
+     glTexCoord2f(0,0); glVertex3f( 15.0,0.0,+fSmudge); //rysowanie wzglêdem po³o¿enia modelu
+     glTexCoord2f(1,0); glVertex3f(-15.0,0.0,+fSmudge);
+     glTexCoord2f(1,1); glVertex3f(-15.0,2.5, 250.0);
+     glTexCoord2f(0,1); glVertex3f( 15.0,2.5, 250.0);
+    }
+    if (Train->Controlled()->iLights[1]&21)
+    {//wystarczy jeden zapalony z ty³u
+     glTexCoord2f(0,0); glVertex3f(-15.0,0.0,-fSmudge);
+     glTexCoord2f(1,0); glVertex3f( 15.0,0.0,-fSmudge);
+     glTexCoord2f(1,1); glVertex3f( 15.0,2.5,-250.0);
+     glTexCoord2f(0,1); glVertex3f(-15.0,2.5,-250.0);
+    }
     glEnd();
 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

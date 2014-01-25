@@ -3325,7 +3325,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
           while (co<ANIM_TYPES) iAnimType[co++]=0; //zerowanie pozosta³ych
           str=Parser->GetNextSymbol().LowerCase();
          }
-         WriteLog("Total animations: "+AnsiString(iAnimations));
+         //WriteLog("Total animations: "+AnsiString(iAnimations));
         }
         if (!pAnimations)
         {//Ra: tworzenie tabeli animacji, jeœli jeszcze nie by³o

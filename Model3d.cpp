@@ -1330,7 +1330,7 @@ void __fastcall TSubModel::InfoSet(TSubModelInfo *info)
  pTexture=pName=NULL;
 };
 
-void __fastcall TSubModel::BinInit(TSubModel *s,float4x4 *m,float8 *v,TStringPack *t,TStringPack *n)
+void __fastcall TSubModel::BinInit(TSubModel *s,float4x4 *m,float8 *v,TStringPack *t,TStringPack *n,bool dynamic)
 {//ustawienie wskaŸników w submodelu
  iVisible=1; //tymczasowo u¿ywane
  Child=((int)Child>0)?s+(int)Child:NULL; //zerowy nie mo¿e byæ potomnym
@@ -1342,10 +1342,11 @@ void __fastcall TSubModel::BinInit(TSubModel *s,float4x4 *m,float8 *v,TStringPac
   AnsiString s=AnsiString(pName);
   if (!s.IsEmpty())
   {//jeœli dany submodel jest zgaszonym œwiat³em, to domyœlnie go ukrywamy
-   if (s.SubString(s.Length()-2,3)=="_on") //jeœli jest kontrolk¹ w stanie zapalonym
-    iVisible=0; //to domyœlnie wy³¹czyæ, ¿eby siê nie nak³ada³o z obiektem "_off"
-   else if (s.SubString(1,8)=="Light_On") //jeœli jest œwiat³em numerowanym
+   if (s.SubString(1,8)=="Light_On") //jeœli jest œwiat³em numerowanym
     iVisible=0; //to domyœlnie wy³¹czyæ, ¿eby siê nie nak³ada³o z obiektem "Light_Off"
+   else if (dynamic) //inaczej wy³¹cza³o smugê w latarniach
+    if (s.SubString(s.Length()-2,3)=="_on") //jeœli jest kontrolk¹ w stanie zapalonym
+     iVisible=0; //to domyœlnie wy³¹czyæ, ¿eby siê nie nak³ada³o z obiektem "_off"
   }
  }
  else
@@ -1471,7 +1472,7 @@ bool __fastcall TModel3d::LoadFromFile(char *FileName,bool dynamic)
    name.Delete(i,4);
  asBinary=name+".e3d";
  if (FileExists(asBinary))
- {LoadFromBinFile(asBinary.c_str());
+ {LoadFromBinFile(asBinary.c_str(),dynamic);
   asBinary=""; //wy³¹czenie zapisu
   Init();
  }
@@ -1485,7 +1486,7 @@ bool __fastcall TModel3d::LoadFromFile(char *FileName,bool dynamic)
  return Root?(iSubModelsCount>0):false; //brak pliku albo problem z wczytaniem
 };
 
-void __fastcall TModel3d::LoadFromBinFile(char *FileName)
+void __fastcall TModel3d::LoadFromBinFile(char *FileName,bool dynamic)
 {//wczytanie modelu z pliku binarnego
  WriteLog("Loading - binary model: "+AnsiString(FileName));
  int i=0,j,k,ch,size;
@@ -1558,7 +1559,7 @@ void __fastcall TModel3d::LoadFromBinFile(char *FileName)
  }
  for (i=0;i<iSubModelsCount;++i)
  {//aktualizacja wskaŸników w submodelach
-  Root[i].BinInit(Root,m,(float8*)m_pVNT,&Textures,&Names);
+  Root[i].BinInit(Root,m,(float8*)m_pVNT,&Textures,&Names,dynamic);
   if (Root[i].ChildGet())
    Root[i].ChildGet()->Parent=Root+i; //wpisanie wskaŸnika nadrzêdnego do potmnego
   if (Root[i].NextGet())
