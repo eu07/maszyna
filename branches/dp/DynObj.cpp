@@ -2550,10 +2550,10 @@ bool __fastcall TDynamicObject::FastUpdate(double dt)
 }
 
 //McZapkie-040402: liczenie pozycji uwzgledniajac wysokosc szyn itp.
-vector3 __fastcall TDynamicObject::GetPosition()
-{//Ra: pozycja pojazdu jest liczona zaraz po przesuniêciu
- return vPosition;
-};
+//vector3 __fastcall TDynamicObject::GetPosition()
+//{//Ra: pozycja pojazdu jest liczona zaraz po przesuniêciu
+// return vPosition;
+//};
 
 void __fastcall TDynamicObject::TurnOff()
 {//wy³¹czenie rysowania submodeli zmiennych dla egemplarza pojazdu
