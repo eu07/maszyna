@@ -262,7 +262,7 @@ public:
  void __fastcall DisplayLists();
  void __fastcall Info();
  void __fastcall InfoSet(TSubModelInfo *info);
- void __fastcall BinInit(TSubModel *s,float4x4 *m,float8 *v,TStringPack *t,TStringPack *n=NULL);
+ void __fastcall BinInit(TSubModel *s,float4x4 *m,float8 *v,TStringPack *t,TStringPack *n=NULL,bool dynamic=false);
  void __fastcall ReplacableSet(GLuint *r,int a)
  {ReplacableSkinId=r; iAlpha=a;};
  void __fastcall TextureNameSet(const char *n);
@@ -331,7 +331,7 @@ public:
  TSubModel* __fastcall AddToNamed(const char *Name, TSubModel *SubModel);
  void __fastcall AddTo(TSubModel *tmp,TSubModel *SubModel);
  void __fastcall LoadFromTextFile(char *FileName,bool dynamic);
- void __fastcall LoadFromBinFile(char *FileName);
+ void __fastcall LoadFromBinFile(char *FileName,bool dynamic);
  bool __fastcall LoadFromFile(char *FileName,bool dynamic);
  void __fastcall SaveToBinFile(char *FileName);
  void __fastcall BreakHierarhy();
