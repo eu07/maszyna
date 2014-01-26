@@ -1673,12 +1673,13 @@ bool __fastcall TController::IncSpeed()
   break;
   case Dumb:
   case DieselElectric:
-   if (Ready||(iDrivigFlags&movePress)) //{(BrakePress<=0.01*MaxBrakePress)}
-   {
-    OK=Controlling->IncMainCtrl(1);
-    if (!OK)
-     OK=Controlling->IncScndCtrl(1);
-   }
+   if (!Controlling->FuseFlag)
+    if (Ready||(iDrivigFlags&movePress)) //{(BrakePress<=0.01*MaxBrakePress)}
+    {
+     OK=Controlling->IncMainCtrl(1);
+     if (!OK)
+      OK=Controlling->IncScndCtrl(1);
+    }
    break;
   case WheelsDriven:
    if (sin(Controlling->eAngle)>0)
