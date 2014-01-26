@@ -58,7 +58,7 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=14
 MinorVer=1
-Release=901
+Release=906
 Build=423
 Debug=1
 PreRelease=0
@@ -71,7 +71,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=14.1.901.423
+FileVersion=14.1.906.423
 InternalName=9th by Ra + SPKS + MP
 LegalCopyright=
 LegalTrademarks=

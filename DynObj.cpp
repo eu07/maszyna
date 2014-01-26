@@ -666,12 +666,18 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
   for (int i=0;i<4;++i)
    if (smWahacze[i])
     smWahacze[i]->SetRotate(float3(1,0,0),fWahaczeAmp*cos(MoverParameters->eAngle));
-  if (smMechanik)
-  {
-   if (Mechanik&&(Controller!=Humandriver))  //rysowanie figurki mechanika
-    smMechanik->iVisible=true;
-   else
-    smMechanik->iVisible=false;
+  if (Mechanik&&(Controller!=Humandriver))
+  {//rysowanie figurki mechanika
+   if (smMechanik0) //mechanik od strony sprzêgu 0
+    if (smMechanik1) //jak jest drugi, to tego tylko pokazujemy
+     smMechanik0->iVisible=MoverParameters->ActiveCab>0;
+    else
+    {//jak jest tylko jeden, to do drugiej kabiny go obracamy
+     smMechanik0->iVisible=(MoverParameters->ActiveCab!=0);
+     smMechanik0->SetRotate(float3(0,0,1),MoverParameters->ActiveCab>=0?0:180); //obrót wzglêdem osi Z
+    }
+   if (smMechanik1) //mechanik od strony sprzêgu 1
+    smMechanik1->iVisible=MoverParameters->ActiveCab<0;
   }
   //ABu: Przechyly na zakretach
   //Ra: przechy³kê za³atwiamy na etapie przesuwania modelu
@@ -1237,7 +1243,7 @@ __fastcall TDynamicObject::TDynamicObject()
  mdLoad=NULL;
  mdLowPolyInt=NULL;
  mdPrzedsionek=NULL;
- smMechanik=NULL;
+ smMechanik0=smMechanik1=NULL;
  smBuforLewy[0]=smBuforLewy[1]=NULL;
  smBuforPrawy[0]=smBuforPrawy[1]=NULL;
  enginevolume=0;
@@ -3623,7 +3629,16 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
         if (str==AnsiString("engineer:"))
         {//nazwa submodelu maszynisty
          str=Parser->GetNextSymbol();
-         smMechanik=mdModel->GetFromName(str.c_str());
+         smMechanik0=mdModel->GetFromName(str.c_str());
+         if (!smMechanik0)
+         {//jak nie ma bez numerka, to mo¿e jest z numerkiem?
+          smMechanik0=mdModel->GetFromName(AnsiString(str+"1").c_str());
+          smMechanik1=mdModel->GetFromName(AnsiString(str+"2").c_str());
+         }
+         //aby da³o siê go obracaæ, musi mieæ w³¹czon¹ animacjê w T3D!
+         //if (!smMechanik1) //jeœli drugiego nie ma
+         // if (smMechanik0) //a jest pierwszy
+         //  smMechanik0->WillBeAnimated(); //to bêdziemy go obracaæ
         }
         else if (str==AnsiString("animdoorprefix:"))
         {//nazwa animowanych drzwi
@@ -3677,6 +3692,8 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
         {
          str= Parser->GetNextSymbol();
          rsSilnik.Init(str.c_str(),Parser->GetNextSymbol().ToDouble(),GetPosition().x,GetPosition().y,GetPosition().z,true,true);
+         if (rsSilnik.GetWaveTime()==0)
+          ErrorLog("Missed sound: \""+str+"\" for "+asFileName);
          if (MoverParameters->EngineType==DieselEngine)
           rsSilnik.AM=Parser->GetNextSymbol().ToDouble()/(MoverParameters->Power+MoverParameters->nmax*60);
          else if (MoverParameters->EngineType==DieselElectric)
