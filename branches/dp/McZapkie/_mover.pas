@@ -1918,6 +1918,10 @@ begin
        //wdrazanie hamowania naglego
         if TestFlag(Status,s_SHPebrake) or TestFlag(Status,s_CAebrake) or (s_CAtestebrake=true) then
          EmergencyBrakeFlag:=true;
+      end
+     else if not (Battery) then
+      begin //wy³¹czenie baterii deaktywuje sprzêt
+       SecuritySystem.Status:=0; //deaktywacja czuwaka
       end;
    end;
 end;
