@@ -1003,7 +1003,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
       else
       if (cKey==Global::Keys[k_IncLocalBrakeLevel])
           {//ABu: male poprawki, zeby bylo mozna przyhamowac dowolny wagon
-              int CouplNr=-2;
+              //int CouplNr=-2;
               if (!FreeFlyModeFlag)
               {
                if (GetAsyncKeyState(VK_CONTROL)<0)
@@ -1050,7 +1050,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
       else
       if (cKey==Global::Keys[k_DecLocalBrakeLevel])
           {//ABu: male poprawki, zeby bylo mozna odhamowac dowolny wagon
-              int CouplNr=-2;
+              //int CouplNr=-2;
               if (!FreeFlyModeFlag)
               {
                if (GetAsyncKeyState(VK_CONTROL)<0)
