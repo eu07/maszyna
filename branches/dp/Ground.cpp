@@ -2889,6 +2889,19 @@ void __fastcall TGround::InitTraction()
  int iConnection,state;
  AnsiString name;
  for (Current=nRootOfType[TP_TRACTION];Current;Current=Current->Next)
+ {//pod³¹czenie do zasilacza, ¿eby mo¿na by³o sumowaæ pr¹d kilku pojazdów
+  //a jednoczeœnie z jednego miejsca zmieniaæ napiêcie eventem
+  //wykonywane najpierw, ¿eby mo¿na by³o logowaæ pod³¹czenie 2 zasilaczy do jednego drutu
+  //TODO: przemyœleæ dzia³anie izolatora zawieszonego na przêœle (2 ró¿ne zasilania przês³a)
+  //- mo¿e niech przês³o z izolatorem ma nazwê "*"? "none" nie bêdzie odpowiednie
+  Traction=Current->hvTraction;
+  gnPower=FindGroundNode(Traction->asPowerSupplyName,TP_TRACTIONPOWERSOURCE);
+  if (gnPower) //jak zasilacz znaleziony
+   Traction->psPower=gnPower->psTractionPowerSource; //to pod³¹czyæ do przês³a
+  else
+   ErrorLog("Missed TractionPowerSource: "+Traction->asPowerSupplyName);
+ }
+ for (Current=nRootOfType[TP_TRACTION];Current;Current=Current->Next)
  {
   Traction=Current->hvTraction;
   if (!Traction->hvNext[0]) //tylko jeœli jeszcze nie pod³¹czony
@@ -2903,6 +2916,10 @@ void __fastcall TGround::InitTraction()
      Traction->Connect(0,tmp,1);
     break;
    }
+   //Ra: na razie wy³¹czone, ¿eby nie steresowaæ twórców scenerii
+   //if (Traction->hvNext[0]) //jeœli zosta³ pod³¹czony
+   // if (Traction->psPower!=tmp->psPower)
+   //  ErrorLog("Bad power: at..."); //dodaæ wspó³rzêdne Traction->pPoint1
   }
   if (!Traction->hvNext[1]) //tylko jeœli jeszcze nie pod³¹czony
   {
@@ -2916,14 +2933,11 @@ void __fastcall TGround::InitTraction()
      Traction->Connect(1,tmp,1);
     break;
    }
+   //Ra: na razie wy³¹czone, ¿eby nie steresowaæ twórców scenerii
+   //if (Traction->hvNext[1]) //jeœli zosta³ pod³¹czony
+   // if (Traction->psPower!=tmp->psPower)
+   //  ErrorLog("Bad power: at..."); //dodaæ wspó³rzêdne Traction->pPoint2
   }
-  //pod³¹czenie do zasilacza, ¿eby sumowaæ pr¹d kilku pojazdów
-  //a jednoczeœnie z jednego miejsca zmieniaæ napiêcie eventem
-  gnPower=FindGroundNode(Traction->asPowerSupplyName,TP_TRACTIONPOWERSOURCE);
-  if (gnPower) //jak zasilacz znaleziony
-   Traction->psPower=gnPower->psTractionPowerSource; //to pod³¹czyæ do przês³a
-  else
-   ErrorLog("Missed TractionPowerSource: "+Traction->asPowerSupplyName);
  }
  for (Current=nRootOfType[TP_TRACTION];Current;Current=Current->Next)
   Current->hvTraction->WhereIs(); //oznakowanie przedostatnich przêse³
