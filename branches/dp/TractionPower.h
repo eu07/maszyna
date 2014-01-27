@@ -35,6 +35,7 @@ public:
     bool __fastcall Render();
     bool __fastcall Update(double dt);
     double __fastcall GetVoltage(double Current);
+    void __fastcall VoltageSet(double v) {NominalVoltage=v;};
 };
 
 //---------------------------------------------------------------------------

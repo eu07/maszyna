@@ -93,7 +93,7 @@ __fastcall TGroundNode::~TGroundNode()
    case TP_EVLAUNCH:   SafeDelete(EvLaunch); break;
    case TP_TRACTION:   SafeDelete(hvTraction); break;
    case TP_TRACTIONPOWERSOURCE:
-                       SafeDelete(TractionPowerSource); break;
+                       SafeDelete(psTractionPowerSource); break;
    case TP_TRACK:      SafeDelete(pTrack); break;
    case TP_DYNAMIC:    SafeDelete(DynamicObject); break;
    case TP_MODEL:
@@ -1497,14 +1497,14 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    tmp->pCenter=(tmp->hvTraction->pPoint2+tmp->hvTraction->pPoint1)*0.5f;
    //if (!Global::bLoadTraction) SafeDelete(tmp); //Ra: tak byæ nie mo¿e, bo NULL to b³¹d
    break;
-  case TP_TRACTIONPOWERSOURCE :
+  case TP_TRACTIONPOWERSOURCE:
    parser->getTokens(3);
    *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
    tmp->pCenter+=pOrigin;
-   tmp->TractionPowerSource=new TTractionPowerSource();
-   tmp->TractionPowerSource->Load(parser);
+   tmp->psTractionPowerSource=new TTractionPowerSource();
+   tmp->psTractionPowerSource->Load(parser);
    break;
-  case TP_MEMCELL :
+  case TP_MEMCELL:
    parser->getTokens(3);
    *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
    tmp->pCenter+=pOrigin;
@@ -1520,7 +1520,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
      sTracks->Add(TP_MEMCELL,tmp->asName.c_str(),tmp); //nazwa jest unikalna
    }
    break;
-  case TP_EVLAUNCH :
+  case TP_EVLAUNCH:
    parser->getTokens(3);
    *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
    tmp->pCenter+=pOrigin;
@@ -2719,6 +2719,17 @@ bool __fastcall TGround::InitEvents()
      }
     }
    break;
+   case tp_Voltage: //zmiana napiêcia w zasilaczu (TractionPowerSource)
+    if (!Current->asNodeName.IsEmpty())
+    {
+     tmp=FindGroundNode(Current->asNodeName,TP_TRACTIONPOWERSOURCE); //pod³¹czenie zasilacza
+     if (tmp)
+      Current->Params[9].psPower=tmp->psTractionPowerSource;
+     else
+      ErrorLog("Bad voltage: event \""+Current->asName+"\" cannot find power source \""+Current->asNodeName+"\"");
+    }
+    Current->asNodeName= "";
+   break;
   }
   if (Current->fDelay<0)
       AddToQuery(Current,NULL);
@@ -2872,7 +2883,7 @@ void __fastcall TGround::InitTracks()
 
 void __fastcall TGround::InitTraction()
 {//³¹czenie drutów ze sob¹ oraz z torami i eventami
- TGroundNode *Current;
+ TGroundNode *Current,*gnPower;
  TTraction *tmp; //znalezione przês³o
  TTraction *Traction;
  int iConnection,state;
@@ -2906,6 +2917,13 @@ void __fastcall TGround::InitTraction()
     break;
    }
   }
+  //pod³¹czenie do zasilacza, ¿eby sumowaæ pr¹d kilku pojazdów
+  //a jednoczeœnie z jednego miejsca zmieniaæ napiêcie eventem
+  gnPower=FindGroundNode(Traction->asPowerSupplyName,TP_TRACTIONPOWERSOURCE);
+  if (gnPower) //jak zasilacz znaleziony
+   Traction->psPower=gnPower->psTractionPowerSource; //to pod³¹czyæ do przês³a
+  else
+   ErrorLog("Missed TractionPowerSource: "+Traction->asPowerSupplyName);
  }
  for (Current=nRootOfType[TP_TRACTION];Current;Current=Current->Next)
   Current->hvTraction->WhereIs(); //oznakowanie przedostatnich przêse³
@@ -3414,6 +3432,13 @@ bool __fastcall TGround::CheckQuery()
         Current->MemCell->Text()+" "+
         Current->MemCell->Value1()+" "+
         Current->MemCell->Value2());
+    break;
+    case tp_Voltage: //zmiana napiêcia w zasilaczu (TractionPowerSource)
+     if (tmpEvent->Params[9].psPower)
+     {//na razie takie chamskie ustawienie napiêcia zasilania
+      WriteLog("type: Voltage");
+      tmpEvent->Params[9].psPower->VoltageSet(tmpEvent->Params[0].asdouble);
+     }
     break;
    } //switch (tmpEvent->Type)
   } //if (tmpEvent->bEnabled)

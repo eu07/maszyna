@@ -182,6 +182,8 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
   Type=tp_WhoIs;
  else if (str==AnsiString("logvalues"))
   Type=tp_LogValues;
+ else if (str==AnsiString("voltage"))
+  Type=tp_Voltage; //zmiana napiêcia w zasilaczu (TractionPowerSource)
  else
   Type=tp_Unknown;
 
@@ -473,6 +475,11 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
     str=AnsiString(token.c_str());
    }
    Conditions(parser,str); //sprawdzanie warunków
+  break;
+  case tp_Voltage: //zmiana napiêcia w zasilaczu (TractionPowerSource)
+   parser->getTokens();
+   *parser >> Params[0].asdouble; //Ra 2014-01-27
+   parser->getTokens(); *parser >> token;
   break;
   case tp_Ignored: //ignorowany
   case tp_Unknown: //nieznany
