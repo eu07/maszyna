@@ -3650,24 +3650,24 @@ if ( pControlled->Signalling==true )
 
 
 //McZapkie-141102: SHP i czuwak, TODO: sygnalizacja kabinowa
-    if (pControlled->SecuritySystem.Status>0)
+    if (pOccupied->SecuritySystem.Status>0)
      {
        if (fBlinkTimer>fCzuwakBlink)
            fBlinkTimer=-fCzuwakBlink;
        else
            fBlinkTimer+=dt;
-           
+
        //hunter-091012: dodanie testu czuwaka
-       if ((TestFlag(pControlled->SecuritySystem.Status,s_aware))||(TestFlag(pControlled->SecuritySystem.Status,s_CAtest)))
+       if ((TestFlag(pOccupied->SecuritySystem.Status,s_aware))||(TestFlag(pOccupied->SecuritySystem.Status,s_CAtest)))
         {
          btLampkaCzuwaka.Turn(fBlinkTimer>0);
         }
         else btLampkaCzuwaka.TurnOff();
-       btLampkaSHP.Turn(TestFlag(pControlled->SecuritySystem.Status,s_active));
+       btLampkaSHP.Turn(TestFlag(pOccupied->SecuritySystem.Status,s_active));
 
        //hunter-091012: rozdzielenie alarmow
        //if (TestFlag(pControlled->SecuritySystem.Status,s_alarm))
-       if (TestFlag(pControlled->SecuritySystem.Status,s_CAalarm)||TestFlag(pControlled->SecuritySystem.Status,s_SHPalarm))
+       if (TestFlag(pOccupied->SecuritySystem.Status,s_CAalarm)||TestFlag(pOccupied->SecuritySystem.Status,s_SHPalarm))
         {
           dsbBuzzer->GetStatus(&stat);
           if (!(stat&DSBSTATUS_PLAYING))
@@ -3798,23 +3798,23 @@ if ( pControlled->Signalling==true )
         if (CAflag==false)
          {
           CAflag=true;
-          pControlled->SecuritySystemReset();
+          pOccupied->SecuritySystemReset();
          }
         else if (fCzuwakTestTimer>1.0)
-         SetFlag(pControlled->SecuritySystem.Status,s_CAtest);
+         SetFlag(pOccupied->SecuritySystem.Status,s_CAtest);
      }
      else
      {
       fCzuwakTestTimer=0;
       SecurityResetButtonGauge.UpdateValue(0);
-      if (TestFlag(pControlled->SecuritySystem.Status,s_CAtest))//&&(!TestFlag(pControlled->SecuritySystem.Status,s_CAebrake)))
+      if (TestFlag(pOccupied->SecuritySystem.Status,s_CAtest))//&&(!TestFlag(pControlled->SecuritySystem.Status,s_CAebrake)))
        {
-        SetFlag(pControlled->SecuritySystem.Status,-s_CAtest);
-        pControlled->s_CAtestebrake=false;
-        pControlled->SecuritySystem.SystemBrakeCATestTimer=0;
-        if ((!TestFlag(pControlled->SecuritySystem.Status,s_SHPebrake))
-         ||(!TestFlag(pControlled->SecuritySystem.Status,s_CAebrake)))
-        pControlled->EmergencyBrakeFlag=false;
+        SetFlag(pOccupied->SecuritySystem.Status,-s_CAtest);
+        pOccupied->s_CAtestebrake=false;
+        pOccupied->SecuritySystem.SystemBrakeCATestTimer=0;
+        if ((!TestFlag(pOccupied->SecuritySystem.Status,s_SHPebrake))
+         ||(!TestFlag(pOccupied->SecuritySystem.Status,s_CAebrake)))
+        pOccupied->EmergencyBrakeFlag=false;
        }
       CAflag=false;
      }
