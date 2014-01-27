@@ -1589,7 +1589,7 @@ begin
         begin
          //SetFlag(SoundFlag,sound_relay); //hunter-091012: przeniesione do Train.cpp, zeby sie nie zapetlal
          // if (SecuritySystem.Status<>12) then
-         SecuritySystem.Status:=0; //deaktywacja czuwaka
+         SecuritySystem.Status:=0; //deaktywacja czuwaka; Ra: a nie bateri¹?
         end
        else
        //if (SecuritySystem.Status<>12) then
@@ -1609,6 +1609,8 @@ begin
  if (Battery=true) then SendCtrlToNext('BatterySwitch',1,CabNo)
   else SendCtrlToNext('BatterySwitch',0,CabNo);
  BatterySwitch:=true;
+ //if (Battery) then
+ // SecuritySystem.Status:=s_waiting; //aktywacja czuwaka
 end;
 
 function T_MoverParameters.EpFuseSwitch(State:boolean):boolean;
@@ -1872,7 +1874,7 @@ procedure T_MoverParameters.SecuritySystemCheck(dt:real);
 begin
   with SecuritySystem do
    begin
-     if (SystemType>0) and (Status>0) and (Battery) then
+     if (SystemType>0) and (Status>0) {and (Battery)} then //Ra: EZT ma bateriê w silnikowym :/
       begin
        //CA
        if (Vel>=AwareMinSpeed) then  //domyœlnie predkoœæ wiêksza od 10% Vmax, albo podanej jawnie w FIZ
@@ -1918,11 +1920,13 @@ begin
        //wdrazanie hamowania naglego
         if TestFlag(Status,s_SHPebrake) or TestFlag(Status,s_CAebrake) or (s_CAtestebrake=true) then
          EmergencyBrakeFlag:=true;
-      end
+      end;
+{//Ra: EZT ma bateriê w silnikowym, do przemyœlenia na póŸniej, jak ma dzia³aæ
      else if not (Battery) then
       begin //wy³¹czenie baterii deaktywuje sprzêt
        SecuritySystem.Status:=0; //deaktywacja czuwaka
       end;
+}
    end;
 end;
 
@@ -5291,7 +5295,7 @@ Begin
    end
   else if command='CabSignal' then {SHP,Indusi}
    begin //Ra: to powinno dzia³aæ tylko w cz³onie obsadzonym
-     if (ActiveCab<>0) and (Battery) and (SecuritySystem.SystemType>1) then //jeœli kabina jest obsadzona
+     if (ActiveCab<>0) {and (Battery)} and (SecuritySystem.SystemType>1) then //jeœli kabina jest obsadzona
       with SecuritySystem do
        begin
         VelocityAllowed:=Trunc(CValue1);
