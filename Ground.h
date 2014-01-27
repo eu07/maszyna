@@ -22,7 +22,7 @@ const int TP_TRACK=16;
 const int TP_MEMCELL=18;
 const int TP_EVLAUNCH=19; //MC
 const int TP_TRACTION=20;
-const int TP_TRACTIONPOWERSOURCE= 21; //MC
+const int TP_TRACTIONPOWERSOURCE=21; //MC
 //const int TP_ISOLATED=22; //Ra
 const int TP_SUBMODEL=22; //Ra: submodele terenu
 const int TP_LAST=25; //rozmiar tablicy
@@ -93,7 +93,7 @@ public:
   TMemCell *MemCell; //komórka pamiêci
   TEventLauncher *EvLaunch; //wyzwalacz zdarzeñ
   TTraction *hvTraction; //drut zasilaj¹cy
-  TTractionPowerSource *TractionPowerSource; //zasilanie drutu (zaniedbane w sceneriach)
+  TTractionPowerSource *psTractionPowerSource; //zasilanie drutu (zaniedbane w sceneriach)
   TRealSound *pStaticSound; //dŸwiêk przestrzenny
   TGroundNode *nNode; //obiekt renderuj¹cy grupowo ma tu wskaŸnik na listê obiektów
  };

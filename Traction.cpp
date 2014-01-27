@@ -36,6 +36,7 @@ TTraction::TTraction()
 //    ReplacableSkinID= 0;
  hvNext[0]=hvNext[1]=NULL;
  iLast=1; //¿e niby ostatni drut
+ psPower=NULL; //na pocz¹tku nie pod³¹czone
 }
 
 TTraction::~TTraction()

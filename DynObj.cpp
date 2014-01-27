@@ -2284,7 +2284,10 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
       {
        if ((MoverParameters->PantFrontVolt==0.0)&&(MoverParameters->PantRearVolt==0.0))
         sPantUp.Play(vol,0,MechInside,vPosition);
-       MoverParameters->PantFrontVolt=p->hvPowerWire?p->hvPowerWire->NominalVoltage:0.0;
+       if (p->hvPowerWire) //TODO: wyliczyæ trzeba pr¹d przypadaj¹cy na pantograf i wstawiæ do GetVoltage()
+        MoverParameters->PantFrontVolt=p->hvPowerWire->psPower?p->hvPowerWire->psPower->GetVoltage(0):p->hvPowerWire->NominalVoltage;
+       else
+        MoverParameters->PantFrontVolt=0.0;
       }
       else
        MoverParameters->PantFrontVolt=0.0;
@@ -2297,7 +2300,10 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
       {
        if ((MoverParameters->PantRearVolt==0.0)&&(MoverParameters->PantFrontVolt==0.0))
         sPantUp.Play(vol,0,MechInside,vPosition);
-       MoverParameters->PantRearVolt=p->hvPowerWire?p->hvPowerWire->NominalVoltage:0.0;
+       if (p->hvPowerWire) //TODO: wyliczyæ trzeba pr¹d przypadaj¹cy na pantograf i wstawiæ do GetVoltage()
+        MoverParameters->PantRearVolt=p->hvPowerWire->psPower?p->hvPowerWire->psPower->GetVoltage(0):p->hvPowerWire->NominalVoltage;
+       else
+        MoverParameters->PantRearVolt=0.0;
       }
       else
        MoverParameters->PantRearVolt=0.0;

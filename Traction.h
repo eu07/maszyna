@@ -9,6 +9,8 @@
 
 using namespace Math3D;
 
+class TTractionPowerSource; 
+
 class TTraction 
 {//drut zasilaj¹cy, dla wskaŸników u¿ywaæ przedrostka "hv"
 private:
@@ -27,21 +29,22 @@ public:
  vector3 pPoint1,pPoint2,pPoint3,pPoint4;
  vector3 vParametric; //wspó³czynniki równania parametrycznego odcinka
  double fHeightDifference;//,fMiddleHeight;
-  //  int iCategory,iMaterial,iDamageFlag;
-//    float fU,fR,fMaxI,fWireThickness;
-    int iNumSections;
-    int iLines; //ilosc linii dla VBO
-    float NominalVoltage;
-    float MaxCurrent;
-    float Resistivity;
-    DWORD Material;   //1: Cu, 2: Al
-    float WireThickness;
-    DWORD DamageFlag; //1: zasniedziale, 128: zerwana
-    int Wires;
-    float WireOffset;
-    AnsiString asPowerSupplyName; //McZapkie: nazwa podstacji trakcyjnej
-//    bool bVisible;
-//    DWORD dwFlags;
+ //int iCategory,iMaterial,iDamageFlag;
+ //float fU,fR,fMaxI,fWireThickness;
+ int iNumSections;
+ int iLines; //ilosc linii dla VBO
+ float NominalVoltage;
+ float MaxCurrent;
+ float Resistivity;
+ DWORD Material;   //1: Cu, 2: Al
+ float WireThickness;
+ DWORD DamageFlag; //1: zasniedziale, 128: zerwana
+ int Wires;
+ float WireOffset;
+ AnsiString asPowerSupplyName; //McZapkie: nazwa podstacji trakcyjnej
+ TTractionPowerSource *psPower; //zasilacz (opcjonalnie mo¿e to byæ pulpit steruj¹cy w hali!)
+ //bool bVisible;
+ //DWORD dwFlags;
 
     void __fastcall Optimize();
 

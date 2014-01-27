@@ -12,7 +12,8 @@ typedef enum { tp_Unknown, tp_Sound, tp_SoundPos, tp_Exit,
                tp_UpdateValues, tp_GetValues, tp_PutValues,
                tp_Switch, tp_DynVel, tp_TrackVel, tp_Multiple,
                tp_AddValues, tp_Ignored, tp_CopyValues, tp_WhoIs,
-               tp_LogValues, tp_Visible
+               tp_LogValues, tp_Visible,
+               tp_Voltage
              }  TEventType;
 
 const int update_memstring          =0x0000001; //zmodyfikowaæ tekst (UpdateValues)
@@ -48,6 +49,7 @@ union TParam
     TRealSound *asRealSound;
     char *asText;
     TCommandType asCommand;
+    TTractionPowerSource *psPower;
 };
 
 class TEvent //zmienne: ev*
