@@ -298,8 +298,8 @@ void __fastcall TTrain::OnKeyDown(int cKey)
          if ((pOccupied->BatterySwitch(true)))
            {
                dsbSwitch->Play(0,0,0);
-               SetFlag(pControlled->SecuritySystem.Status,s_active);
-               SetFlag(pControlled->SecuritySystem.Status,s_SHPalarm) ;
+               SetFlag(pOccupied->SecuritySystem.Status,s_active);
+               SetFlag(pOccupied->SecuritySystem.Status,s_SHPalarm);
 
            }
            }
@@ -1222,7 +1222,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
       if (cKey==Global::Keys[k_Czuwak])
       {//Ra: tu zosta³ tylko dŸwiêk
        //dsbBuzzer->Stop();
-       //if (pControlled->SecuritySystemReset())
+       //if (pOccupied->SecuritySystemReset())
        if (fabs(SecurityResetButtonGauge.GetValue())<0.001)
        {
         dsbSwitch->SetVolume(DSBVOLUME_MAX);
@@ -1339,7 +1339,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
         if (pOccupied->BatterySwitch(false))
            {
               dsbSwitch->Play(0,0,0);
-              pControlled->SecuritySystem.Status=0;
+              pOccupied->SecuritySystem.Status=0;
               pControlled->PantFront(false);
               pControlled->PantRear(false);
            }
@@ -3822,16 +3822,16 @@ if ( pControlled->Signalling==true )
      if ( Console::Pressed(Global::Keys[k_Czuwak]) )
      {
       SecurityResetButtonGauge.PutValue(1);
-      if ((pControlled->SecuritySystem.Status&s_aware)&&
-          (pControlled->SecuritySystem.Status&s_active))
+      if ((pOccupied->SecuritySystem.Status&s_aware)&&
+          (pOccupied->SecuritySystem.Status&s_active))
        {
-        pControlled->SecuritySystem.SystemTimer=0;
-        pControlled->SecuritySystem.Status-=s_aware;
-        pControlled->SecuritySystem.VelocityAllowed=-1;
+        pOccupied->SecuritySystem.SystemTimer=0;
+        pOccupied->SecuritySystem.Status-=s_aware;
+        pOccupied->SecuritySystem.VelocityAllowed=-1;
         CAflag=1;
        }
       else if (CAflag!=1)
-        pControlled->SecuritySystemReset();
+        pOccupied->SecuritySystemReset();
      }
      else
      {
