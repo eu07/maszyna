@@ -554,7 +554,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
       //-----------
       if (cKey==Global::Keys[k_PantFrontUp])   //Winger 160204: podn. przedn. pantografu
       {
-       if ((pControlled->ActiveCab==1)||((pControlled->ActiveCab<1)&&(pControlled->TrainType!=dt_ET40)&&(pControlled->TrainType!=dt_ET41)&&(pControlled->TrainType!=dt_ET42)&&(pControlled->TrainType!=dt_EZT)))
+       if ((pOccupied->ActiveCab==1)||((pOccupied->ActiveCab<1)&&(pControlled->TrainType!=dt_ET40)&&(pControlled->TrainType!=dt_ET41)&&(pControlled->TrainType!=dt_ET42)&&(pControlled->TrainType!=dt_EZT)))
        {
         pControlled->PantFrontSP=false;
         if (pControlled->PantFront(true))
@@ -564,7 +564,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
           dsbSwitch->Play(0,0,0);
          }
        }
-       if ((pControlled->ActiveCab<1)&&((pControlled->TrainType==dt_ET40)||(pControlled->TrainType==dt_ET41)||(pControlled->TrainType==dt_ET42)||(pControlled->TrainType==dt_EZT)))
+       if ((pOccupied->ActiveCab<1)&&((pControlled->TrainType==dt_ET40)||(pControlled->TrainType==dt_ET41)||(pControlled->TrainType==dt_ET42)||(pControlled->TrainType==dt_EZT)))
        {
         pControlled->PantRearSP=false;
         if(pControlled->PantRear(true))
@@ -578,7 +578,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
       else
       if (cKey==Global::Keys[k_PantRearUp])   //Winger 160204: podn. tyln. pantografu
       {
-       if ((pControlled->ActiveCab==1)||((pControlled->ActiveCab<1)&&(pControlled->TrainType!=dt_ET40)&&(pControlled->TrainType!=dt_ET41)&&(pControlled->TrainType!=dt_ET42)&&(pControlled->TrainType!=dt_EZT)))
+       if ((pOccupied->ActiveCab==1)||((pOccupied->ActiveCab<1)&&(pControlled->TrainType!=dt_ET40)&&(pControlled->TrainType!=dt_ET41)&&(pControlled->TrainType!=dt_ET42)&&(pControlled->TrainType!=dt_EZT)))
        {
         pControlled->PantRearSP=false;
         if (pControlled->PantRear(true))
@@ -588,7 +588,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
           dsbSwitch->Play(0,0,0);
          }
        }
-       if ((pControlled->ActiveCab<1)&&((pControlled->TrainType==dt_ET40)||(pControlled->TrainType==dt_ET41)||(pControlled->TrainType==dt_ET42)||(pControlled->TrainType==dt_EZT)))
+       if ((pOccupied->ActiveCab<1)&&((pControlled->TrainType==dt_ET40)||(pControlled->TrainType==dt_ET41)||(pControlled->TrainType==dt_ET42)||(pControlled->TrainType==dt_EZT)))
        {
         pControlled->PantFrontSP=false;
         if(pControlled->PantFront(true))
@@ -1744,7 +1744,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
       else
       if (cKey==Global::Keys[k_PantFrontDown])   //Winger 160204: opuszczanie prz. patyka
       {
-       if ((pControlled->ActiveCab==1)||((pControlled->ActiveCab<1)&&(pControlled->TrainType!=dt_ET40)&&(pControlled->TrainType!=dt_ET41)&&(pControlled->TrainType!=dt_ET42)&&(pControlled->TrainType!=dt_EZT)))
+       if ((pOccupied->ActiveCab==1)||((pOccupied->ActiveCab<1)&&(pControlled->TrainType!=dt_ET40)&&(pControlled->TrainType!=dt_ET41)&&(pControlled->TrainType!=dt_ET42)&&(pControlled->TrainType!=dt_EZT)))
        {
         if (pControlled->PantFront(false))
         {
@@ -1752,7 +1752,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
          dsbSwitch->Play(0,0,0);
         }
        }
-       if ((pControlled->ActiveCab<1)&&((pControlled->TrainType==dt_ET40)||(pControlled->TrainType==dt_ET41)||(pControlled->TrainType==dt_ET42)||(pControlled->TrainType==dt_EZT)))
+       if ((pOccupied->ActiveCab<1)&&((pControlled->TrainType==dt_ET40)||(pControlled->TrainType==dt_ET41)||(pControlled->TrainType==dt_ET42)||(pControlled->TrainType==dt_EZT)))
        {
         if (pControlled->PantRear(false))
         {
@@ -1763,7 +1763,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
       }
       else if (cKey==Global::Keys[k_PantRearDown])   //Winger 160204: opuszczanie tyl. patyka
       {
-       if ((pControlled->ActiveCab==1)||((pControlled->ActiveCab<1)&&(pControlled->TrainType!=dt_ET40)&&(pControlled->TrainType!=dt_ET41)&&(pControlled->TrainType!=dt_ET42)&&(pControlled->TrainType!=dt_EZT)))
+       if ((pOccupied->ActiveCab==1)||((pOccupied->ActiveCab<1)&&(pControlled->TrainType!=dt_ET40)&&(pControlled->TrainType!=dt_ET41)&&(pControlled->TrainType!=dt_ET42)&&(pControlled->TrainType!=dt_EZT)))
        {
         if (pControlled->PantSwitchType=="impulse")
          PantFrontButtonOffGauge.PutValue(1);
@@ -1773,7 +1773,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
          dsbSwitch->Play(0,0,0);
         }
        }
-       if ((pControlled->ActiveCab<1)&&((pControlled->TrainType==dt_ET40)||(pControlled->TrainType==dt_ET41)||(pControlled->TrainType==dt_ET42)||(pControlled->TrainType==dt_EZT)))
+       if ((pOccupied->ActiveCab<1)&&((pControlled->TrainType==dt_ET40)||(pControlled->TrainType==dt_ET41)||(pControlled->TrainType==dt_ET42)||(pControlled->TrainType==dt_EZT)))
        {
         /* if (pControlled->PantSwitchType=="impulse")
         PantRearButtonOffGauge.PutValue(1);  */
@@ -2846,10 +2846,10 @@ else
    TDynamicObject *tmp;
    tmp=NULL;
    if (DynamicObject->NextConnected)
-      if ((TestFlag(pControlled->Couplers[1].CouplingFlag,ctrain_controll)) && (pControlled->ActiveCab==1))
+      if ((TestFlag(pControlled->Couplers[1].CouplingFlag,ctrain_controll)) && (pOccupied->ActiveCab==1))
          tmp=DynamicObject->NextConnected;
    if (DynamicObject->PrevConnected)
-      if ((TestFlag(pControlled->Couplers[0].CouplingFlag,ctrain_controll)) && (pControlled->ActiveCab==-1))
+      if ((TestFlag(pControlled->Couplers[0].CouplingFlag,ctrain_controll)) && (pOccupied->ActiveCab==-1))
          tmp=DynamicObject->PrevConnected;
    if (tmp)
     if (tmp->MoverParameters->Power>0)
@@ -3192,9 +3192,9 @@ if ( pControlled->Signalling==true )
 { //yB - wskazniki drugiego czlonu
    TDynamicObject *tmp;
    tmp=NULL;
-   if ((TestFlag(pControlled->Couplers[1].CouplingFlag,ctrain_controll)) && (pControlled->ActiveCab>0))
+   if ((TestFlag(pControlled->Couplers[1].CouplingFlag,ctrain_controll)) && (pOccupied->ActiveCab>0))
       tmp=DynamicObject->NextConnected;
-   if ((TestFlag(pControlled->Couplers[0].CouplingFlag,ctrain_controll)) && (pControlled->ActiveCab<0))
+   if ((TestFlag(pControlled->Couplers[0].CouplingFlag,ctrain_controll)) && (pOccupied->ActiveCab<0))
       tmp=DynamicObject->PrevConnected;
 
    if (tmp)
