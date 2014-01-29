@@ -2471,60 +2471,74 @@ end;  {updatepipepressure}
 
 
 procedure T_MoverParameters.CompressorCheck(dt:real);
- begin
-   if VeselVolume>0 then
-    begin
-     if MaxCompressor-MinCompressor<0.0001 then
-      begin
-{        if Mains and (MainCtrlPos>1) then}
-        if CompressorAllow and Mains and (MainCtrlPos>0) then
-         begin
-           if (Compressor<MaxCompressor) then
-            if (EngineType=DieselElectric) and (CompressorPower>0) then
-             CompressedVolume:=CompressedVolume+dt*CompressorSpeed*(2*MaxCompressor-Compressor)/MaxCompressor*(DEList[MainCtrlPos].rpm/DEList[MainCtrlPosNo].rpm)
-            else
-             CompressedVolume:=CompressedVolume+dt*CompressorSpeed*(2*MaxCompressor-Compressor)/MaxCompressor
-           else
-            begin
-              CompressedVolume:=CompressedVolume*0.8;
-              SetFlag(SoundFlag,sound_relay);
-              SetFlag(SoundFlag,sound_loud);
-            end;
-         end;
-      end
-     else
-      begin
- {        if (not CompressorFlag) and (Compressor<MinCompressor) and Mains and (LastSwitchingTime>CtrlDelay) then}
-         if (not CompressorFlag) and (Compressor<MinCompressor) and Mains and (CompressorAllow) and ((ConverterFlag) or (CompressorPower=0)) and (LastSwitchingTime>CtrlDelay) then
-          begin
-            CompressorFlag:=true;
-            LastSwitchingTime:=0;
-//            for b:=0 to 1 do //z Megapacka
-//      with Couplers[b] do
-//       if TestFlag(CouplingFlag,ctrain_scndpneumatic) then
-//        Connected.CompressorFlag:=CompressorFlag;
-          end;
-         if (CompressorPower=5) then //jeœli zasilanie z s¹siedniego cz³onu
-          begin
-           if (Couplers[1].Connected<>NIL) then
-            CompressorFlag:=Couplers[1].Connected.CompressorAllow and Couplers[1].Connected.ConverterFlag and Couplers[1].Connected.Mains
-           else
-            CompressorFlag:=false;
-          end
-         else
-          if (Compressor>MaxCompressor) or not CompressorAllow or ((CompressorPower<>0) and (not ConverterFlag)) or not Mains then
-           CompressorFlag:=false;
-         if CompressorFlag then
-          if (EngineType=DieselElectric) and (CompressorPower>0) then
-           CompressedVolume:=CompressedVolume+dt*CompressorSpeed*(2*MaxCompressor-Compressor)/MaxCompressor*(DEList[MainCtrlPos].rpm/DEList[MainCtrlPosNo].rpm)
-          else
-           CompressedVolume:=CompressedVolume+dt*CompressorSpeed*(2*MaxCompressor-Compressor)/MaxCompressor;
-      end;
-    end;
- end;
-
-procedure T_MoverParameters.ConverterCheck;       {sprawdzanie przetwornicy}
 begin
+ //if (CompressorSpeed>0.0) then //ten warunek zosta³ sprawdzony przy wywo³aniu funkcji
+ if (VeselVolume>0) then
+  begin
+   if MaxCompressor-MinCompressor<0.0001 then
+    begin
+{     if Mains and (MainCtrlPos>1) then}
+     if CompressorAllow and Mains and (MainCtrlPos>0) then
+      begin
+        if (Compressor<MaxCompressor) then
+         if (EngineType=DieselElectric) and (CompressorPower>0) then
+          CompressedVolume:=CompressedVolume+dt*CompressorSpeed*(2*MaxCompressor-Compressor)/MaxCompressor*(DEList[MainCtrlPos].rpm/DEList[MainCtrlPosNo].rpm)
+         else
+          CompressedVolume:=CompressedVolume+dt*CompressorSpeed*(2*MaxCompressor-Compressor)/MaxCompressor
+        else
+         begin
+           CompressedVolume:=CompressedVolume*0.8;
+           SetFlag(SoundFlag,sound_relay);
+           SetFlag(SoundFlag,sound_loud);
+         end;
+      end;
+    end
+   else
+    begin
+     if (CompressorFlag) then //jeœli sprê¿arka za³¹czona
+      begin //sprawdziæ mo¿liwe warunki wy³¹czenia sprê¿arki
+       if (CompressorPower=5) then //jeœli zasilanie z s¹siedniego cz³onu
+        begin //zasilanie sprê¿arki w cz³onie ra z cz³onu silnikowego (sprzêg 1)
+         if (Couplers[1].Connected<>NIL) then
+          CompressorFlag:=Couplers[1].Connected.CompressorAllow and Couplers[1].Connected.ConverterFlag and Couplers[1].Connected.Mains
+         else
+          CompressorFlag:=false; //bez tamtego cz³onu nie zadzia³a
+        end
+       else
+        CompressorFlag:=(CompressorAllow) and ((ConverterFlag) or (CompressorPower=0)) and (Mains);
+      if (Compressor>MaxCompressor) then //wy³¹cznik ciœnieniowy jest niezale¿ny od sposobu zasilania
+       CompressorFlag:=false;
+      end
+     else //jeœli nie za³¹czona
+      if (Compressor<MinCompressor) and (LastSwitchingTime>CtrlDelay) then //jeœli nie za³¹czona, a ciœnienie za ma³e
+       begin //za³¹czenie przy ma³ym ciœnieniu
+        if (CompressorPower=5) then //jeœli zasilanie z s¹siedniego cz³onu
+         begin //zasilanie sprê¿arki w cz³onie ra z cz³onu silnikowego (sprzêg 1)
+          if (Couplers[1].Connected<>NIL) then
+           CompressorFlag:=Couplers[1].Connected.CompressorAllow and Couplers[1].Connected.ConverterFlag and Couplers[1].Connected.Mains
+          else
+           CompressorFlag:=false; //bez tamtego cz³onu nie zadzia³a
+         end
+        else
+         CompressorFlag:=(CompressorAllow) and ((ConverterFlag) or (CompressorPower=0)) and (Mains);
+        if (CompressorFlag) then //jeœli zosta³a za³¹czona
+         LastSwitchingTime:=0; //to trzeba ograniczyæ ponowne w³¹czenie
+       end;
+//          for b:=0 to 1 do //z Megapacka
+//    with Couplers[b] do
+//     if TestFlag(CouplingFlag,ctrain_scndpneumatic) then
+//      Connected.CompressorFlag:=CompressorFlag;
+     if CompressorFlag then
+      if (EngineType=DieselElectric) and (CompressorPower>0) then
+       CompressedVolume:=CompressedVolume+dt*CompressorSpeed*(2*MaxCompressor-Compressor)/MaxCompressor*(DEList[MainCtrlPos].rpm/DEList[MainCtrlPosNo].rpm)
+      else
+       CompressedVolume:=CompressedVolume+dt*CompressorSpeed*(2*MaxCompressor-Compressor)/MaxCompressor;
+    end;
+  end;
+end;
+
+procedure T_MoverParameters.ConverterCheck;
+begin //sprawdzanie przetwornicy
 if (ConverterAllow=true)and(Mains=true) then
  ConverterFlag:=true
  else
@@ -4797,8 +4811,9 @@ begin
      Compressor:=0;
      CompressorFlag:=false;
    end;
- CompressorCheck(dt);
- ConverterCheck;
+ ConverterCheck();
+ if (CompressorSpeed>0.0) then //sprê¿arka musi mieæ jak¹œ niezerow¹ wydajnoœæ
+  CompressorCheck(dt); //¿eby rozwa¿aæ jej za³¹czenie i pracê
  UpdateBrakePressure(dt);
  UpdatePipePressure(dt);
  //UpdateBatteryVoltage(dt);
@@ -4937,8 +4952,9 @@ begin
      Compressor:=0;
      CompressorFlag:=false;
    end;
- CompressorCheck(dt);
- ConverterCheck;
+ ConverterCheck();
+ if (CompressorSpeed>0.0) then //sprê¿arka musi mieæ jak¹œ niezerow¹ wydajnoœæ
+  CompressorCheck(dt); //¿eby rozwa¿aæ jej za³¹czenie i pracê
  UpdateBrakePressure(dt);
  UpdatePipePressure(dt);
  UpdateScndPipePressure(dt); // druga rurka, youBy
@@ -6420,9 +6436,9 @@ begin
                CompressorPower:=2
               else if s='Engine' then
                CompressorPower:=3
-              else if s='Coupler0' then
-               CompressorPower:=4 //w³¹czana w silnikowym EZT z przodu
               else if s='Coupler1' then
+               CompressorPower:=4 //w³¹czana w silnikowym EZT z przodu
+              else if s='Coupler2' then
                CompressorPower:=5 //w³¹czana w silnikowym EZT z ty³u
               else if s='Main' then
                CompressorPower:=0;

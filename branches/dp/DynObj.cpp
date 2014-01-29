@@ -1936,8 +1936,9 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
 
 //Ra: przenios³em - no ju¿ lepiej tu, ni¿ w wyœwietlaniu!
 //if ((MoverParameters->ConverterFlag==false) && (MoverParameters->TrainType!=dt_ET22))
-if ((MoverParameters->ConverterFlag==false)&&(MoverParameters->CompressorPower!=0))
- MoverParameters->CompressorFlag=false;
+//Ra: to nie mo¿e tu byæ, bo wy³¹cza sprê¿arkê w rozrz¹dczym EZT!
+//if ((MoverParameters->ConverterFlag==false)&&(MoverParameters->CompressorPower!=0))
+// MoverParameters->CompressorFlag=false;
 //if (MoverParameters->CompressorPower==2)
 // MoverParameters->CompressorAllow=MoverParameters->ConverterFlag;
 
@@ -2368,7 +2369,7 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
   if (tmpTraction.TractionVoltage==0)
   {
    MoverParameters->ConverterFlag=false;
-   MoverParameters->CompressorFlag=false;
+   MoverParameters->CompressorFlag=false; //Ra: to jest w¹tpliwe - wy³¹czenie sprê¿arki powinno byæ w jednym miejscu!
   }
  }
  else if (MoverParameters->EnginePowerSource.SourceType==InternalSource)
