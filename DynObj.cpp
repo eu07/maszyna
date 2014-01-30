@@ -663,9 +663,10 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
    {btEndSignalsTab2.TurnOn(); btnOn=true;}
   //else btEndSignalsTab2.TurnOff();
   //McZapkie-181002: krecenie wahaczem (korzysta z kata obrotu silnika)
-  for (int i=0;i<4;++i)
-   if (smWahacze[i])
-    smWahacze[i]->SetRotate(float3(1,0,0),fWahaczeAmp*cos(MoverParameters->eAngle));
+  if (iAnimType[ANIM_LEVERS])
+   for (int i=0;i<4;++i)
+    if (smWahacze[i])
+     smWahacze[i]->SetRotate(float3(1,0,0),fWahaczeAmp*cos(MoverParameters->eAngle));
   if (Mechanik&&(Controller!=Humandriver))
   {//rysowanie figurki mechanika
    if (smMechanik0) //mechanik od strony sprzêgu 0
@@ -1209,11 +1210,11 @@ __fastcall TDynamicObject::TDynamicObject()
  //Winger 160204 - pantografy
  //PantVolume = 3.5;
  NoVoltTime=0;
- smPatykird1[0]=smPatykird1[1]=NULL;
- smPatykird2[0]=smPatykird2[1]=NULL;
- smPatykirg1[0]=smPatykirg1[1]=NULL;
- smPatykirg2[0]=smPatykirg2[1]=NULL;
- smPatykisl[0]=smPatykisl[1]=NULL;
+ //smPatykird1[0]=smPatykird1[1]=NULL;
+ //smPatykird2[0]=smPatykird2[1]=NULL;
+ //smPatykirg1[0]=smPatykirg1[1]=NULL;
+ //smPatykirg2[0]=smPatykirg2[1]=NULL;
+ //smPatykisl[0]=smPatykisl[1]=NULL;
  dDoorMoveL=0.0;
  dDoorMoveR=0.0;
  //for (int i=0;i<8;i++)
@@ -1275,6 +1276,9 @@ __fastcall TDynamicObject::TDynamicObject()
  asDestination="none"; //stoj¹cy nigdzie nie jedzie
  pValveGear=NULL; //Ra: tymczasowo
  iCabs=0; //maski bitowe modeli kabin
+ smBrakeSet=NULL; //nastawa hamulca (wajcha)
+ smLoadSet=NULL; //nastawa ³adunku (wajcha)
+ smWiper=NULL; //wycieraczka (poniek¹d te¿ wajcha)
 }
 
 __fastcall TDynamicObject::~TDynamicObject()
@@ -1322,16 +1326,16 @@ double __fastcall TDynamicObject::Init(
  //Ra: zmieniamy znaczenie obsady na jednoliterowe, ¿eby dosadziæ kierownika
  if (DriverType=="headdriver") DriverType="h"; //steruj¹cy kabin¹ +1
  else if (DriverType=="reardriver") DriverType="r"; //steruj¹cy kabin¹ -1
- else if (DriverType=="connected") DriverType="c"; //tego trzeba siê pozbyæ na rzecz ukrotnienia
+ //else if (DriverType=="connected") DriverType="c"; //tego trzeba siê pozbyæ na rzecz ukrotnienia
  else if (DriverType=="passenger") DriverType="p"; //to do przemyœlenia
- else DriverType=""; //nikt nie siedzi
+ else if (DriverType=="nobody") DriverType=""; //nikt nie siedzi
  int Cab; //numer kabiny z obsad¹ (nie mo¿na zaj¹æ obu)
- if (DriverType.Pos("h")) //od przodu sk³adu
+ if (DriverType.Pos("h")||DriverType.Pos("1")) //od przodu sk³adu
   Cab=1;//iDirection?1:-1; //iDirection=1 gdy normalnie, =0 odwrotnie
- else if (DriverType.Pos("r")) //od ty³u sk³adu
+ else if (DriverType.Pos("r")||DriverType.Pos("2")) //od ty³u sk³adu
   Cab=-1;//iDirection?-1:1;
- else if (DriverType=="c") //uaktywnianie wirtualnej kabiny
-  Cab=0; //iDirection?1:-1; //to przestawi steruj¹cy
+ //else if (DriverType=="c") //uaktywnianie wirtualnej kabiny
+ // Cab=0; //iDirection?1:-1; //to przestawi steruj¹cy
  else if (DriverType=="p")
  {
   if (random(6)<3) Cab=1; else Cab=-1; //losowy przydzia³ kabiny
@@ -1369,7 +1373,7 @@ double __fastcall TDynamicObject::Init(
  MoreParams+="."; //wykonuje o jedn¹ iteracjê za ma³o, wiêc trzeba mu dodaæ kropkê na koniec
  int kropka=MoreParams.Pos("."); //znajdŸ kropke
  AnsiString ActPar; //na parametry
- while(kropka>0) //jesli sa kropki jeszcze
+ while (kropka>0) //jesli sa kropki jeszcze
  {
   int dlugosc=MoreParams.Length();
   ActPar=MoreParams.SubString(1,kropka-1).UpperCase();     //pierwszy parametr;
@@ -1382,7 +1386,7 @@ double __fastcall TDynamicObject::Init(
    if (ActPar.Pos("G")>0) {MoverParameters->BrakeDelaySwitch(bdelay_G);}
    if (ActPar.Pos("P")>0) {MoverParameters->BrakeDelaySwitch(bdelay_P);}
    if (ActPar.Pos("R")>0) {MoverParameters->BrakeDelaySwitch(bdelay_R);}
-   if (ActPar.Pos("M")>0) {MoverParameters->BrakeDelaySwitch(bdelay_R);MoverParameters->BrakeDelaySwitch(bdelay_R+bdelay_M);}
+   if (ActPar.Pos("M")>0) {MoverParameters->BrakeDelaySwitch(bdelay_R); MoverParameters->BrakeDelaySwitch(bdelay_R+bdelay_M);}
    //wylaczanie hamulca
    if (ActPar.Pos("<>")>0) //wylaczanie na probe hamowania naglego
    {
@@ -1431,27 +1435,27 @@ double __fastcall TDynamicObject::Init(
      MoverParameters->Hamulec->ForceEmptiness();
      MoverParameters->BrakeReleaser(1);  //odluznij automatycznie
     }
-    if(MoverParameters->BrakeCylMult[2]*MoverParameters->BrakeCylMult[1]>0.01) //jesli jest nastawiacz mechaniczny PL
+    if (MoverParameters->BrakeCylMult[2]*MoverParameters->BrakeCylMult[1]>0.01) //jesli jest nastawiacz mechaniczny PL
     {
      float rnd=random(100);
      if (rnd<20) //losowanie 20/100         usrednienie
      {
-       MoverParameters->BrakeCylMult[2]=MoverParameters->BrakeCylMult[1]=(MoverParameters->BrakeCylMult[2]+MoverParameters->BrakeCylMult[1])/2;
+      MoverParameters->BrakeCylMult[2]=MoverParameters->BrakeCylMult[1]=(MoverParameters->BrakeCylMult[2]+MoverParameters->BrakeCylMult[1])/2;
      }
      else
      if (rnd<70) //losowanie 70/100-20/100    oslabienie
      {
-       MoverParameters->BrakeCylMult[1]=MoverParameters->BrakeCylMult[1]*0.50;
-       MoverParameters->BrakeCylMult[2]=MoverParameters->BrakeCylMult[2]*0.75;
+      MoverParameters->BrakeCylMult[1]=MoverParameters->BrakeCylMult[1]*0.50;
+      MoverParameters->BrakeCylMult[2]=MoverParameters->BrakeCylMult[2]*0.75;
      }
      else
      if (rnd<80) //losowanie 80/100-70/100    tylko prozny
      {
-       MoverParameters->BrakeCylMult[2]=MoverParameters->BrakeCylMult[1];
+      MoverParameters->BrakeCylMult[2]=MoverParameters->BrakeCylMult[1];
      }
      else      //tylko ladowny
      {
-       MoverParameters->BrakeCylMult[1]=MoverParameters->BrakeCylMult[2];
+      MoverParameters->BrakeCylMult[1]=MoverParameters->BrakeCylMult[2];
      }
     }
    }
@@ -1477,8 +1481,8 @@ double __fastcall TDynamicObject::Init(
   if (Track->fTrackWidth<3.5) //jeœli droga w¹ska
    MoverParameters->OffsetTrackH=0.0; //to stawiamy na œrodku, niezale¿nie od stanu ruchu
   else
-  if (driveractive) //od 3.5m do 6.0m jedzie po œrodku pasa, dla szerszych w odleg³oœci 1.5m
-   MoverParameters->OffsetTrackH=Track->fTrackWidth<6.0?-Track->fTrackWidth*0.25:-1.5;
+  if (driveractive) //od 3.5m do 8.0m jedzie po œrodku pasa, dla szerszych w odleg³oœci 1.5m
+   MoverParameters->OffsetTrackH=Track->fTrackWidth<=8.0?-Track->fTrackWidth*0.25:-1.5;
   else //jak stoi, to ko³em na poboczu i pobieramy szerokoœæ razem z poboczem, ale nie z chodnikiem
    MoverParameters->OffsetTrackH=-0.5*(Track->WidthTotal()-MoverParameters->Dim.W)+0.05;
   iHornWarning=0; //nie bêdzie tr¹bienia po podaniu zezwolenia na jazdê
@@ -2374,7 +2378,7 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
  }
  else if (MoverParameters->EnginePowerSource.SourceType==InternalSource)
   if (MoverParameters->EnginePowerSource.PowerType==SteamPower)
-   if (smPatykird1[0])
+   //if (smPatykird1[0])
   {//Ra: animacja rozrz¹du parowozu, na razie nieoptymalizowane
 /* //Ra: tymczasowo wy³¹czone ze wzglêdu na porz¹dkowanie animacji pantografów
    double fi,dx,c2,ka,kc;
@@ -2504,8 +2508,8 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
  {switch (MoverParameters->DerailReason)
   {case 1: WriteLog(asName+" derailed due to end of track"); break;
    case 2: WriteLog(asName+" derailed due to too high speed"); break;
-   case 3: WriteLog(asName+" derailed due to track width"); break;
-   case 4: WriteLog(asName+" derailed due to wrong track type"); break;
+   case 3: ErrorLog("Bad dynamic: "+asName+" derailed due to track width"); break; //b³¹d w scenerii
+   case 4: ErrorLog("Bad dynamic: "+asName+" derailed due to wrong track type"); break; //b³¹d w scenerii
   }
   MoverParameters->DerailReason=0; //¿eby tylko raz
  }
@@ -2551,12 +2555,6 @@ bool __fastcall TDynamicObject::FastUpdate(double dt)
     //ResetdMoveLen();
     FastMove(dDOMoveLen);
 
-//yB: przyspieszacz (moze zadziala, ale dzwiek juz jest)
-//double ObjectDist;
-//Ra: to ju¿ by³o wczeœniej - wywaliæ?
-//ObjectDist=SquareMagnitude(Global::pCameraPosition-vPosition);
-
-//SetFlag(MoverParameters->SoundFlag,-sound_brakeacc);
  if (MoverParameters->LoadStatus)
   LoadUpdate(); //zmiana modelu ³adunku
  return true; //Ra: chyba tak?
@@ -3573,9 +3571,9 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
          str=Parser->GetNextSymbol();
          for (int i=1;i<=2;i++)
          {
-          asAnimName=str+i;
-          smPatykird1[i-1]=mdModel->GetFromName(asAnimName.c_str());
-          smPatykird1[i-1]->WillBeAnimated();
+          //asAnimName=str+i;
+          //smPatykird1[i-1]=mdModel->GetFromName(asAnimName.c_str());
+          //smPatykird1[i-1]->WillBeAnimated();
          }
         }
         else if (str==AnsiString("animconrodprefix:"))
@@ -3583,9 +3581,9 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
          str=Parser->GetNextSymbol();
          for (int i=1;i<=2;i++)
          {
-          asAnimName=str+i;
-          smPatykirg1[i-1]=mdModel->GetFromName(asAnimName.c_str());
-          smPatykirg1[i-1]->WillBeAnimated();
+          //asAnimName=str+i;
+          //smPatykirg1[i-1]=mdModel->GetFromName(asAnimName.c_str());
+          //smPatykirg1[i-1]->WillBeAnimated();
          }
         }
         else if (str==AnsiString("pistonfactors:"))
@@ -3603,9 +3601,9 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
          str=Parser->GetNextSymbol();
          for (int i=1;i<=2;i++)
          {
-          asAnimName=str+i;
-          smPatykird2[i-1]=mdModel->GetFromName(asAnimName.c_str());
-          smPatykird2[i-1]->WillBeAnimated();
+          //asAnimName=str+i;
+          //smPatykird2[i-1]=mdModel->GetFromName(asAnimName.c_str());
+          //smPatykird2[i-1]->WillBeAnimated();
          }
         }
         else if (str==AnsiString("animexplinkprefix:")) //animreturnprefix:
@@ -3613,9 +3611,9 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
          str=Parser->GetNextSymbol();
          for (int i=1;i<=2;i++)
          {
-          asAnimName=str+i;
-          smPatykirg2[i-1]=mdModel->GetFromName(asAnimName.c_str());
-          smPatykirg2[i-1]->WillBeAnimated();
+          //asAnimName=str+i;
+          //smPatykirg2[i-1]=mdModel->GetFromName(asAnimName.c_str());
+          //smPatykirg2[i-1]->WillBeAnimated();
          }
         }
         else if (str==AnsiString("animpendulumprefix:"))

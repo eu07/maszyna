@@ -2238,7 +2238,7 @@ var
   temp: real;
 begin
   OK:=false;
-  if (BrakeHandle = St113) and (ActiveCab*ActiveCab>0) then
+  if (BrakeHandle = St113) and (ActiveCab<>0) then
    begin
     if(state>0)then
       temp:=(Handle as TSt113).GetCP
@@ -2352,7 +2352,7 @@ begin
 
   dpMainValve:=0;
 
-if (BrakeCtrlPosNo>1) and (ActiveCab*ActiveCab>0)then
+if (BrakeCtrlPosNo>1) and (ActiveCab<>0)then
 with BrakePressureTable[BrakeCtrlPos] do
    begin
           dpLocalValve:=LocHandle.GetPF(LocalBrakePos/LocalBrakePosNo, Hamulec.GetBCP, ScndPipePress, dt, 0);
@@ -2431,7 +2431,7 @@ end;
          end;
      end;
 
-      if (BrakeHandle = FVel6) and (ActiveCab*ActiveCab>0) then
+      if (BrakeHandle = FVel6) and (ActiveCab<>0) then
       begin
         temp:=(Handle as TFVel6).GetCP;
         Hamulec.SetEPS(temp);

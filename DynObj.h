@@ -124,7 +124,7 @@ class TDynamicObject
 {//klasa pojazdu
 private: //po³o¿enie pojazdu w œwiecie oraz parametry ruchu
  vector3 vPosition; //Ra: pozycja pojazdu liczona zaraz po przesuniêciu
- vector3 vCoulpler[2]; //wspó³rzêdne sprzêgów do liczenia zderzeñ
+ vector3 vCoulpler[2]; //wspó³rzêdne sprzêgów do liczenia zderzeñ czo³owych
  vector3 vUp,vFront,vLeft; //wektory jednostkowe ustawienia pojazdu
  int iDirection; //kierunek pojazdu wzglêdem czo³a sk³adu (1=zgodny,0=przeciwny)
  TTrackShape ts; //parametry toru przekazywane do fizyki
@@ -177,11 +177,11 @@ private: //Ra: ci¹g dalszy animacji, dopiero do ogarniêcia
  double fWahaczeAmp;
  //Winger 160204 - pantografy
  double pantspeedfactor;
- TSubModel *smPatykird1[2];
- TSubModel *smPatykird2[2];
- TSubModel *smPatykirg1[2];
- TSubModel *smPatykirg2[2];
- TSubModel *smPatykisl[2];
+ //TSubModel *smPatykird1[2];
+ //TSubModel *smPatykird2[2];
+ //TSubModel *smPatykirg1[2];
+ //TSubModel *smPatykirg2[2];
+ //TSubModel *smPatykisl[2];
  TSubModel *smBuforLewy[2];
  TSubModel *smBuforPrawy[2];
  TAnimValveGear *pValveGear;
@@ -190,6 +190,9 @@ public:
  double NoVoltTime; //czas od utraty zasilania
  double dDoorMoveL; //NBMX
  double dDoorMoveR; //NBMX
+ TSubModel *smBrakeSet; //nastawa hamulca (wajcha)
+ TSubModel *smLoadSet; //nastawa ³adunku (wajcha)
+ TSubModel *smWiper; //wycieraczka (poniek¹d te¿ wajcha)
 //Ra: koneic animacji do ogarniêcia
 
 private:
@@ -268,7 +271,7 @@ private:
     //TRealSound sBrakeAcc; //dŸwiêk przyspieszacza
     PSound sBrakeAcc;
     bool bBrakeAcc;
-    TRealSound rsUnbrake; //yB - odglos luzowania     
+    TRealSound rsUnbrake; //yB - odglos luzowania
     float ModCamRot;
  int iInventory; //flagi bitowe posiadanych submodeli (np. œwiate³)
  void __fastcall TurnOff();
