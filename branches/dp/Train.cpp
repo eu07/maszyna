@@ -3103,7 +3103,7 @@ else
 //         if ((TestFlag(pControlled->BrakeStatus,+b_Rused+b_Ractive)))//Lampka drugiego stopnia hamowania
         btLampkaHamPosp.Turn((TestFlag(pOccupied->BrakeStatus,1))) ;//lampka drugiego stopnia hamowania  //TODO: youBy wyci¹gn¹æ flagê wysokiego stopnia
 
-        //hunter-111211: wylacznik cisnieniowy - Ra: tutaj?
+        //hunter-111211: wylacznik cisnieniowy - Ra: tutaj? w kabinie?
         if (pControlled->TrainType!=dt_EZT)
          if (((pOccupied->BrakePress > 2) || ( pOccupied->PipePress < 3.6 )) && ( pControlled->MainCtrlPos != 0 ))
           pControlled->StLinFlag=true;
@@ -3210,7 +3210,7 @@ if ( pControlled->Signalling==true )
            btLampkaStycznB.TurnOn();      //mozna prowadzic rozruch
 
         //-----------------
-        //hunter-271211: brak jazdy w drugim czlonie, gdy w pierwszym tez nie ma (i odwrotnie)
+        //hunter-271211: brak jazdy w drugim czlonie, gdy w pierwszym tez nie ma (i odwrotnie) - Ra: tutaj? w kabinie?
         if (tmp->MoverParameters->TrainType!=dt_EZT)
          if (((tmp->MoverParameters->BrakePress > 2) || ( tmp->MoverParameters->PipePress < 3.6 )) && ( tmp->MoverParameters->MainCtrlPos != 0 ))
           {
