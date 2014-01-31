@@ -1862,7 +1862,14 @@ void __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
 
 bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,double NewValue2,const vector3 *NewLocation,TStopReason reason)
 {//analiza komendy
- if (NewCommand=="Emergency_brake") //wymuszenie zatrzymania, niezale¿nie kto prowadzi
+ if (NewCommand=="CabSignal")
+ {//SHP wyzwalane jest przez cz³on z obsad¹, ale obs³ugiwane przez silnikowy
+  //nie jest to najlepiej zrobione, ale bez symulacji obwodów lepiej nie bêdzie
+  Controlling->PutCommand(NewCommand,NewValue1,NewValue2,pOccupied->Loc);
+  Controlling->RunInternalCommand(); //rozpoznaj komende bo lokomotywa jej nie rozpoznaje
+  return true; //za³atwione
+ }
+ else if (NewCommand=="Emergency_brake") //wymuszenie zatrzymania, niezale¿nie kto prowadzi
  {//Ra: no nadal nie jest zbyt piêknie
   SetVelocity(0,0,reason);
   pOccupied->PutCommand("Emergency_brake",1.0,1.0,pOccupied->Loc);
