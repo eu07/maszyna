@@ -59,12 +59,13 @@ int __fastcall TAnim::TypeSet(int i)
    fParamPants->vPos=vector3(0,0,0); //przypisanie domyœnych wspó³czynników do pantografów
    fParamPants->fLenL1=1.176289; //1.22;
    fParamPants->fLenU1=1.724482197; //1.755;
+   fParamPants->fHoriz=0.54555075; //przesuniêcie œlizgu w d³ugoœci pojazdu wzglêdem osi obrotu dolnego ramienia
    fParamPants->fHeight=0.07; //wysokoœæ œlizgu ponad oœ obrotu
    fParamPants->fWidth=0.635; //po³owa szerokoœci œlizgu, 0.635 dla AKP-1 i AKP-4E
    fParamPants->fAngleL0=DegToRad(2.8547285515689267247882521833308);
    fParamPants->fAngleL=fParamPants->fAngleL0; //pocz¹tkowy k¹t dolnego ramienia
    //fParamPants->pantu=acos((1.22*cos(fParamPants->fAngleL)+0.535)/1.755); //górne ramiê
-   fParamPants->fAngleU0=acos((1.176289*cos(fParamPants->fAngleL)+0.54555075)/1.724482197); //górne ramiê
+   fParamPants->fAngleU0=acos((fParamPants->fLenL1*cos(fParamPants->fAngleL)+fParamPants->fHoriz)/fParamPants->fLenU1); //górne ramiê
    fParamPants->fAngleU=fParamPants->fAngleU0; //pocz¹tkowy k¹t
    //fParamPants->PantWys=1.22*sin(fParamPants->fAngleL)+1.755*sin(fParamPants->fAngleU); //wysokoœæ pocz¹tkowa
    //fParamPants->PantWys=1.176289*sin(fParamPants->fAngleL)+1.724482197*sin(fParamPants->fAngleU); //wysokoœæ pocz¹tkowa
@@ -2307,7 +2308,7 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
      //wyliczyæ k¹t górnego ramienia z wzoru (a)cosinusowego
      //=acos((b*cos()+c)/a)
      //p->dPantAngleT=acos((1.22*cos(k)+0.535)/1.755); //górne ramiê
-     p->fAngleU=acos((p->fLenL1*cos(k)+0.54555075)/p->fLenU1); //górne ramiê
+     p->fAngleU=acos((p->fLenL1*cos(k)+p->fHoriz)/p->fLenU1); //górne ramiê
      //wyliczyæ aktualn¹ wysokoœæ z wzoru sinusowego
      //h=a*sin()+b*sin()
      p->PantWys=p->fLenL1*sin(k)+p->fLenU1*sin(p->fAngleU)+p->fHeight; //wysokoœæ ca³oœci
@@ -3401,6 +3402,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
             {//jeœli ma potomny, mo¿na policzyæ d³ugoœæ (odleg³oœæ potomnego od osi obrotu)
              m=float4x4(*sm->GetMatrix()); //wystarczy³by wskaŸnik, nie trzeba kopiowaæ
              //mo¿e trzeba: pobraæ macierz dolnego ramienia, wyzerowaæ przesuniêcie, przemno¿yæ przez macierz górnego
+             pants[i].fParamPants->fHoriz=-fabs(m(3)[1]);
              pants[i].fParamPants->fLenL1=hypot(m(3)[1],m(3)[2]); //po osi OX nie potrzeba
              pants[i].fParamPants->fAngleL0=atan2(fabs(m(3)[2]),fabs(m(3)[1]));
              //if (pants[i].fParamPants->fAngleL0<M_PI_2) pants[i].fParamPants->fAngleL0+=M_PI; //gdyby w odwrotn¹ stronê wysz³o
@@ -3411,13 +3413,14 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
              {//jeœli dalej jest œlizg, mo¿na policzyæ d³ugoœæ górnego ramienia
               m=float4x4(*sm->GetMatrix()); //wystarczy³by wskaŸnik, nie trzeba kopiowaæ
               //trzeba by uwzglêdniæ macierz dolnego ramienia, ¿eby uzyskaæ k¹t do poziomu...
+              pants[i].fParamPants->fHoriz+=fabs(m(3)[1]); //ró¿nica d³ugoœci rzutów ramion na p³aszczyznê podstawy (jedna dodatnia, druga ujemna)
               pants[i].fParamPants->fLenU1=hypot(m(3)[1],m(3)[2]); //po osi OX nie potrzeba
               //pants[i].fParamPants->pantu=acos((1.22*cos(pants[i].fParamPants->fAngleL)+0.535)/1.755); //górne ramiê
               //pants[i].fParamPants->fAngleU0=acos((1.176289*cos(pants[i].fParamPants->fAngleL)+0.54555075)/1.724482197); //górne ramiê
               pants[i].fParamPants->fAngleU0=atan2(-m(3)[2],-m(3)[1]); //pocz¹tkowy k¹t górnego ramienia, odczytany z modelu
               //if (pants[i].fParamPants->fAngleU0<M_PI_2) pants[i].fParamPants->fAngleU0+=M_PI; //gdyby w odwrotn¹ stronê wysz³o
               if ((pants[i].fParamPants->fAngleU0<0.03)||(pants[i].fParamPants->fAngleU0>0.09)) //normalnie ok. 0.07
-               pants[i].fParamPants->fAngleU0=acos((pants[i].fParamPants->fLenL1*cos(pants[i].fParamPants->fAngleL)+0.54555075)/pants[i].fParamPants->fLenU1);
+               pants[i].fParamPants->fAngleU0=acos((pants[i].fParamPants->fLenL1*cos(pants[i].fParamPants->fAngleL)+pants[i].fParamPants->fHoriz)/pants[i].fParamPants->fLenU1);
               pants[i].fParamPants->fAngleU=pants[i].fParamPants->fAngleU0; //pocz¹tkowy k¹t
              }
             }
