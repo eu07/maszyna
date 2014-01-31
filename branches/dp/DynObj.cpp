@@ -1976,7 +1976,7 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
    TTractionParam tmpTraction;
    if ((MoverParameters->EnginePowerSource.SourceType==CurrentCollector)/*||(MoverParameters->TrainType==dt_EZT)*/)
    {
-    if (Global::bLiveTraction)
+    //if (Global::bLiveTraction)
     {//Ra 2013-12: to ni¿ej jest chyba trochê bez sensu
      double v=MoverParameters->PantRearVolt;
      if (v==0.0)
@@ -1997,8 +1997,8 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
        //pControlled->MainSwitch(false); //mo¿e tak?
      }
     }
-    else
-     tmpTraction.TractionVoltage=0.95*MoverParameters->EnginePowerSource.MaxVoltage;
+    //else //Ra: nie no, trzeba podnieœæ pantografy, jak nie bêdzie drutu, to bêd¹ mia³y pr¹d po osi¹gniêciu 1.4m
+    // tmpTraction.TractionVoltage=0.95*MoverParameters->EnginePowerSource.MaxVoltage;
    }
    else
     tmpTraction.TractionVoltage=0.95*MoverParameters->EnginePowerSource.MaxVoltage;
@@ -2239,7 +2239,7 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
    {//trzeba usun¹æ to rozró¿nienie
     case 0:
      if (Global::bLiveTraction?false:!p->hvPowerWire) //jeœli nie ma drutu, mo¿e pooszukiwaæ
-      MoverParameters->PantFrontVolt=(p->PantWys>=1.4)?0.95*MoverParameters->EnginePowerSource.MaxVoltage:0.0;
+      MoverParameters->PantFrontVolt=(p->PantWys>=1.2)?0.95*MoverParameters->EnginePowerSource.MaxVoltage:0.0;
      else
       if (MoverParameters->PantFrontUp?(PantDiff<0.01):false)
       {
@@ -2255,7 +2255,7 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
     break;
     case 1:
      if (Global::bLiveTraction?false:!p->hvPowerWire) //jeœli nie ma drutu, mo¿e pooszukiwaæ
-      MoverParameters->PantRearVolt=(p->PantWys>=1.4)?0.95*MoverParameters->EnginePowerSource.MaxVoltage:0.0;
+      MoverParameters->PantRearVolt=(p->PantWys>=1.2)?0.95*MoverParameters->EnginePowerSource.MaxVoltage:0.0;
      else
       if (MoverParameters->PantRearUp?(PantDiff<0.01):false)
       {
@@ -3528,8 +3528,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
            //pants[i].fParamPants->vPos.y=panty-panth-pants[i].fParamPants->PantWys; //np. 4.429-0.097=4.332=~4.335
            //pants[i].fParamPants->vPos.z=0; //niezerowe dla pantografów asymetrycznych
            pants[i].fParamPants->PantTraction=pants[i].fParamPants->PantWys;
-           //if (panty<3.0)
-           // pants[i].fParamPants->fWidth=0.5*panty; //po³owa szerokoœci œlizgu; jest w "Power: CSW="
+           pants[i].fParamPants->fWidth=0.5*MoverParameters->EnginePowerSource.CollectorParameters.CSW; //po³owa szerokoœci œlizgu; jest w "Power: CSW="
           }
         }
         else if (str==AnsiString("animpistonprefix:"))
