@@ -75,6 +75,7 @@ public:
  double fLenU1; //d³ugoœæ górnego ramienia 1, odczytana z modelu
  double fLenL2; //d³ugoœæ dolnego ramienia 2, odczytana z modelu
  double fLenU2; //d³ugoœæ górnego ramienia 2, odczytana z modelu
+ double fHoriz; //przesuniêcie œlizgu w d³ugoœci pojazdu wzglêdem osi obrotu dolnego ramienia
  double fHeight; //wysokoœæ œlizgu ponad oœ obrotu, odejmowana od wysokoœci drutu
  double fWidth; //po³owa szerokoœci œlizgu, do wykrycia zeœlizgniêcia siê drutu
  double fAngleL0; //Ra: pocz¹tkowy k¹t dolnego ramienia (odejmowany przy animacji)
