@@ -1337,7 +1337,7 @@ void __fastcall TSubModel::Info()
 
 void __fastcall TSubModel::InfoSet(TSubModelInfo *info)
 {//ustawienie danych wg obiektu pomocniczego do zapisania w pliku
- int ile=(char*)&uiDisplayList-(char*)&eType; //iloœæ bajtów pomiêdzy tymi zmiennymi 
+ int ile=(char*)&uiDisplayList-(char*)&eType; //iloœæ bajtów pomiêdzy tymi zmiennymi
  ZeroMemory(this,sizeof(TSubModel)); //zerowaie ca³oœci
  CopyMemory(this,info->pSubModel,ile); //skopiowanie pamiêci 1:1
  iTexture=info->iTexture;//numer nazwy tekstury, a nie numer w OpenGL
@@ -1401,6 +1401,21 @@ void __fastcall TSubModel::ColorsSet(int *a,int *d,int*s)
  if (a) for (i=0;i<4;++i) f4Ambient[i]=a[i]/255.0;
  if (d) for (i=0;i<4;++i) f4Diffuse[i]=d[i]/255.0;
  if (s) for (i=0;i<4;++i) f4Specular[i]=s[i]/255.0;
+};
+void __fastcall TSubModel::ParentMatrix(float4x4 *m)
+{//pobranie transformacji wzglêdem wstawienia modelu
+ //jeœli nie zosta³o wykonane Init() (tzn. zaraz po wczytaniu T3D), to dodatkowy obrót
+ //obrót T3D jest wymagany np. do policzenia wysokoœci pantografów
+ *m=float4x4(*fMatrix); //skopiowanie, bo bêdziemy mno¿yæ
+ //m(3)[1]=m[3][1]+0.054; //w górê o wysokoœæ œlizgu (na razie tak)
+ TSubModel *sm=this;
+ while (sm->Parent)
+ {//przenieœæ tê funkcjê do modelu
+  if (sm->Parent->GetMatrix())
+   *m=*sm->Parent->GetMatrix()**m;
+  sm=sm->Parent;
+ }
+ //dla ostatniego mo¿e byæ potrzebny dodatkowy obrót, jeœli wczytano z T3D, a nie obrócono jeszcze
 };
 //---------------------------------------------------------------------------
 
