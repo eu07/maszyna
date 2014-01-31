@@ -14,6 +14,7 @@
 #include "Globals.h"
 #include "Timer.h"
 #include "Logs.h"
+#include "McZapkie\mctools.hpp"
 
 __fastcall TRealSound::TRealSound()
 {
@@ -102,6 +103,8 @@ void __fastcall TRealSound::Play(double Volume, int Looping, bool ListenerInside
    else
     Volume=Volume*dS/(dS+fDistance);
   }
+  if (FreeFlyModeFlag) //gdy swobodne latanie
+   fPreviousDistance=fDistance; //to efektu Dopplera nie bêdzie
   //McZapkie-010302 - babranie tylko z niezbyt odleglymi dzwiekami
   if ((dSoundAtt==-1)||(fDistance<20.0*dS))
   {
@@ -209,3 +212,4 @@ void __fastcall TRealSound::ResetPosition()
 
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
+
