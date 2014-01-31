@@ -207,8 +207,9 @@ public: //chwilowo
  TAnimType b_aAnim; //kody animacji oddzielnie, bo zerowane
 public:
  float4x4 *mAnimMatrix; //macierz do animacji kwaternionowych (nale¿y do AnimContainer)
- char space[12]; //wolne miejsce na przysz³e zmienne (zmniejszyæ w miarê potrzeby)
+ char space[8]; //wolne miejsce na przysz³e zmienne (zmniejszyæ w miarê potrzeby)
 public:
+ TSubModel **smLetter; //wskaŸnik na tablicê submdeli do generoania tekstu (docelowo zapisaæ do E3D)
  TSubModel *Parent; //nadrzêdny, np. do wymna¿ania macierzy
  int iVisible; //roboczy stan widocznoœci
  //AnsiString asTexture; //robocza nazwa tekstury do zapisania w pliku binarnym
