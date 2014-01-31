@@ -457,7 +457,7 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
      glEnd();
      //~logo; Ra: to jest bez sensu zapis
     glColor3f(0.0f,0.0f,100.0f);
-    if(Global::detonatoryOK)
+    if (Global::detonatoryOK)
     {
     glRasterPos2f(-0.25f, -0.09f);
     glPrint("Uruchamianie / Initializing...");
@@ -472,7 +472,7 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
     //TSoundsManager::LoadSounds( "" );
 /*---------------------Sound Initialization End---------------------*/
     WriteLog("Sound Init OK");
-    if(Global::detonatoryOK)
+    if (Global::detonatoryOK)
     {
     glRasterPos2f(-0.25f, -0.11f);
     glPrint("OK.");
@@ -1294,41 +1294,44 @@ bool __fastcall TWorld::Update()
    glMultMatrixd(Train->Dynamic()->mMatrix.getArray()); //ta macierz nie ma przesuniêcia
 
 //*yB: moje smuuugi 1
-  if (Global::bSmudge)
-  {//Ra: uwzglêdni³em zacienienie pojazdu przy zapalaniu smug
-   //1. warunek na smugê wyznaczyc wczeœniej
-   //2. jeœli smuga w³¹czona, nie renderowaæ pojazdu u¿ytkownika w DynObj
-   //3. jeœli smuga w³aczona, wyrenderowaæ pojazd u¿ytkownia po dodaniu smugi do sceny
-   glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_ONE);
+   if (Global::bSmudge)
+   {//Ra: uwzglêdni³em zacienienie pojazdu przy zapalaniu smug
+    //1. warunek na smugê wyznaczyc wczeœniej
+    //2. jeœli smuga w³¹czona, nie renderowaæ pojazdu u¿ytkownika w DynObj
+    //3. jeœli smuga w³aczona, wyrenderowaæ pojazd u¿ytkownia po dodaniu smugi do sceny
+    if (Train->Controlled()->Battery)
+    {//trochê na skróty z t¹ bateri¹
+     glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_ONE);
 //    glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_DST_COLOR);
 //    glBlendFunc(GL_SRC_ALPHA_SATURATE,GL_ONE);
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_LIGHTING);
-    glDisable(GL_FOG);
-    glColor4f(1.0f,1.0f,1.0f,1.0f);
-    glBindTexture(GL_TEXTURE_2D,light);       // Select our texture
-    glBegin(GL_QUADS);
-    float fSmudge=Train->Dynamic()->MoverParameters->DimHalf.y+7; //gdzie zaczynaæ smugê
-    if (Train->Controlled()->iLights[0]&21)
-    {//wystarczy jeden zapalony z przodu
-     glTexCoord2f(0,0); glVertex3f( 15.0,0.0,+fSmudge); //rysowanie wzglêdem po³o¿enia modelu
-     glTexCoord2f(1,0); glVertex3f(-15.0,0.0,+fSmudge);
-     glTexCoord2f(1,1); glVertex3f(-15.0,2.5, 250.0);
-     glTexCoord2f(0,1); glVertex3f( 15.0,2.5, 250.0);
-    }
-    if (Train->Controlled()->iLights[1]&21)
-    {//wystarczy jeden zapalony z ty³u
-     glTexCoord2f(0,0); glVertex3f(-15.0,0.0,-fSmudge);
-     glTexCoord2f(1,0); glVertex3f( 15.0,0.0,-fSmudge);
-     glTexCoord2f(1,1); glVertex3f( 15.0,2.5,-250.0);
-     glTexCoord2f(0,1); glVertex3f(-15.0,2.5,-250.0);
-    }
-    glEnd();
+     glDisable(GL_DEPTH_TEST);
+     glDisable(GL_LIGHTING);
+     glDisable(GL_FOG);
+     glColor4f(1.0f,1.0f,1.0f,1.0f);
+     glBindTexture(GL_TEXTURE_2D,light);       // Select our texture
+     glBegin(GL_QUADS);
+     float fSmudge=Train->Dynamic()->MoverParameters->DimHalf.y+7; //gdzie zaczynaæ smugê
+     if (Train->Controlled()->iLights[0]&21)
+     {//wystarczy jeden zapalony z przodu
+      glTexCoord2f(0,0); glVertex3f( 15.0,0.0,+fSmudge); //rysowanie wzglêdem po³o¿enia modelu
+      glTexCoord2f(1,0); glVertex3f(-15.0,0.0,+fSmudge);
+      glTexCoord2f(1,1); glVertex3f(-15.0,2.5, 250.0);
+      glTexCoord2f(0,1); glVertex3f( 15.0,2.5, 250.0);
+     }
+     if (Train->Controlled()->iLights[1]&21)
+     {//wystarczy jeden zapalony z ty³u
+      glTexCoord2f(0,0); glVertex3f(-15.0,0.0,-fSmudge);
+      glTexCoord2f(1,0); glVertex3f( 15.0,0.0,-fSmudge);
+      glTexCoord2f(1,1); glVertex3f( 15.0,2.5,-250.0);
+      glTexCoord2f(0,1); glVertex3f(-15.0,2.5,-250.0);
+     }
+     glEnd();
 
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_DEPTH_TEST);
-    //glEnable(GL_LIGHTING); //i tak siê w³¹czy potem
-    glEnable(GL_FOG);
+     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+     glEnable(GL_DEPTH_TEST);
+     //glEnable(GL_LIGHTING); //i tak siê w³¹czy potem
+     glEnable(GL_FOG);
+    }
     glEnable(GL_LIGHTING); //po renderowaniu smugi jest to wy³¹czone
     //Ra: pojazd u¿ytkownika nale¿a³o by renderowaæ po smudze, aby go nie rozœwietla³a
     Global::bSmudge=false; //aby model u¿ytkownika siê teraz wyrenderowa³
@@ -1523,7 +1526,7 @@ bool __fastcall TWorld::Update()
       {//jeœli prowadzi AI, to mu nie robimy dywersji!
        Train->Dynamic()->MoverParameters->CabDeactivisation();
        Train->Dynamic()->Controller=AIdriver;
-       Train->Dynamic()->MoverParameters->SecuritySystem.Status=0;
+       //Train->Dynamic()->MoverParameters->SecuritySystem.Status=0; //rozwala CA w EZT
        Train->Dynamic()->MoverParameters->ActiveCab=0;
        Train->Dynamic()->MoverParameters->BrakeLevelSet(-2);
        Train->Dynamic()->MechInside=false;
@@ -1595,6 +1598,7 @@ bool __fastcall TWorld::Update()
     if (Global::iTextMode==VK_F1)
     {//tekst pokazywany po wciœniêciu [F1]
      //Global::iViewMode=VK_F1;
+     glColor3f(1.0f,1.0f,1.0f); //a, damy bia³ym
      OutText1="Time: "+AnsiString((int)GlobalTime->hh)+":";
      int i=GlobalTime->mm; //bo inaczej potrafi zrobiæ "hh:010"
      if (i<10) OutText1+="0";

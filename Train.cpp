@@ -298,8 +298,8 @@ void __fastcall TTrain::OnKeyDown(int cKey)
          if ((pOccupied->BatterySwitch(true)))
            {
                dsbSwitch->Play(0,0,0);
-               SetFlag(pOccupied->SecuritySystem.Status,s_active);
-               SetFlag(pOccupied->SecuritySystem.Status,s_SHPalarm);
+               SetFlag(pControlled->SecuritySystem.Status,s_active);
+               SetFlag(pControlled->SecuritySystem.Status,s_SHPalarm);
 
            }
            }
@@ -1222,7 +1222,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
       if (cKey==Global::Keys[k_Czuwak])
       {//Ra: tu zosta³ tylko dŸwiêk
        //dsbBuzzer->Stop();
-       //if (pOccupied->SecuritySystemReset())
+       //if (pControlled->SecuritySystemReset())
        if (fabs(SecurityResetButtonGauge.GetValue())<0.001)
        {
         dsbSwitch->SetVolume(DSBVOLUME_MAX);
@@ -1339,7 +1339,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
         if (pOccupied->BatterySwitch(false))
            {
               dsbSwitch->Play(0,0,0);
-              pOccupied->SecuritySystem.Status=0;
+              //pControlled->SecuritySystem.Status=0;
               pControlled->PantFront(false);
               pControlled->PantRear(false);
            }
@@ -2667,7 +2667,7 @@ bool __fastcall TTrain::Update()
   if (pControlled->SoundFlag==0)
    if (pControlled->EventFlag)
     if (TestFlag(pControlled->DamageFlag,dtrain_wheelwear))
-     {
+     {//Ra: przenieœæ do DynObj!
       if (rsRunningNoise.AM!=0)
        {
         rsRunningNoise.Stop();
@@ -2694,8 +2694,6 @@ bool __fastcall TTrain::Update()
 */
 
     // McZapkie! - koniec obslugi dzwiekow z mover.pas
-
-//if (!DebugModeFlag) try{//podobno to tutaj sypie DDS //trykacz i tak nie dzia³a
 
 //McZapkie-030402: poprawione i uzupelnione amperomierze
 if (!ShowNextCurrent)
@@ -2877,8 +2875,6 @@ else
      }
 }
 
-//}catch(...){WriteLog("!!!! Problem z amperomierzami");}; //trykacz i tak nie dzia³a
-
 //McZapkie-240302    VelocityGauge.UpdateValue(DynamicObject->GetVelocity());
     //fHaslerTimer+=dt;
     //if (fHaslerTimer>fHaslerTime)
@@ -2905,7 +2901,7 @@ else
     if (ClockMInd.SubModel)
      {
       ClockSInd.UpdateValue(int(GlobalTime->mr));
-      ClockSInd.Update();     
+      ClockSInd.Update();
       ClockMInd.UpdateValue(GlobalTime->mm);
       ClockMInd.Update();
       ClockHInd.UpdateValue(GlobalTime->hh+GlobalTime->mm/60.0);
@@ -2948,7 +2944,7 @@ else
       ZbGlGaugeB.UpdateValue(pOccupied->Compressor*0.1f);
       ZbGlGaugeB.Update();
      }
-     
+
     if (HVoltageGauge.SubModel)
      {
       if (pControlled->EngineType!=DieselElectric)
@@ -3650,7 +3646,7 @@ if ( pControlled->Signalling==true )
 
 
 //McZapkie-141102: SHP i czuwak, TODO: sygnalizacja kabinowa
-    if (pOccupied->SecuritySystem.Status>0)
+    if (pControlled->SecuritySystem.Status>0)
      {
        if (fBlinkTimer>fCzuwakBlink)
            fBlinkTimer=-fCzuwakBlink;
@@ -3658,16 +3654,16 @@ if ( pControlled->Signalling==true )
            fBlinkTimer+=dt;
 
        //hunter-091012: dodanie testu czuwaka
-       if ((TestFlag(pOccupied->SecuritySystem.Status,s_aware))||(TestFlag(pOccupied->SecuritySystem.Status,s_CAtest)))
+       if ((TestFlag(pControlled->SecuritySystem.Status,s_aware))||(TestFlag(pControlled->SecuritySystem.Status,s_CAtest)))
         {
          btLampkaCzuwaka.Turn(fBlinkTimer>0);
         }
         else btLampkaCzuwaka.TurnOff();
-       btLampkaSHP.Turn(TestFlag(pOccupied->SecuritySystem.Status,s_active));
+       btLampkaSHP.Turn(TestFlag(pControlled->SecuritySystem.Status,s_active));
 
        //hunter-091012: rozdzielenie alarmow
        //if (TestFlag(pControlled->SecuritySystem.Status,s_alarm))
-       if (TestFlag(pOccupied->SecuritySystem.Status,s_CAalarm)||TestFlag(pOccupied->SecuritySystem.Status,s_SHPalarm))
+       if (TestFlag(pControlled->SecuritySystem.Status,s_CAalarm)||TestFlag(pControlled->SecuritySystem.Status,s_SHPalarm))
         {
           dsbBuzzer->GetStatus(&stat);
           if (!(stat&DSBSTATUS_PLAYING))
@@ -3792,28 +3788,28 @@ if ( pControlled->Signalling==true )
      //hunter-131211: czuwak przeniesiony z OnKeyPress
      //hunter-091012: zrobiony test czuwaka
      if ( Console::Pressed(Global::Keys[k_Czuwak]) )
-     {
+     {//czuwak testuje kierunek, wiêc musi byæ w silnikowym, bo w rozrz¹dczym nie ma kierunku 
       fCzuwakTestTimer+=dt;
       SecurityResetButtonGauge.PutValue(1);
         if (CAflag==false)
          {
           CAflag=true;
-          pOccupied->SecuritySystemReset();
+          pControlled->SecuritySystemReset();
          }
         else if (fCzuwakTestTimer>1.0)
-         SetFlag(pOccupied->SecuritySystem.Status,s_CAtest);
+         SetFlag(pControlled->SecuritySystem.Status,s_CAtest);
      }
      else
      {
       fCzuwakTestTimer=0;
       SecurityResetButtonGauge.UpdateValue(0);
-      if (TestFlag(pOccupied->SecuritySystem.Status,s_CAtest))//&&(!TestFlag(pControlled->SecuritySystem.Status,s_CAebrake)))
+      if (TestFlag(pControlled->SecuritySystem.Status,s_CAtest))//&&(!TestFlag(pControlled->SecuritySystem.Status,s_CAebrake)))
        {
-        SetFlag(pOccupied->SecuritySystem.Status,-s_CAtest);
-        pOccupied->s_CAtestebrake=false;
-        pOccupied->SecuritySystem.SystemBrakeCATestTimer=0;
-        if ((!TestFlag(pOccupied->SecuritySystem.Status,s_SHPebrake))
-         ||(!TestFlag(pOccupied->SecuritySystem.Status,s_CAebrake)))
+        SetFlag(pControlled->SecuritySystem.Status,-s_CAtest);
+        pControlled->s_CAtestebrake=false;
+        pControlled->SecuritySystem.SystemBrakeCATestTimer=0;
+        if ((!TestFlag(pControlled->SecuritySystem.Status,s_SHPebrake))
+         ||(!TestFlag(pControlled->SecuritySystem.Status,s_CAebrake)))
         pOccupied->EmergencyBrakeFlag=false;
        }
       CAflag=false;
@@ -3822,16 +3818,16 @@ if ( pControlled->Signalling==true )
      if ( Console::Pressed(Global::Keys[k_Czuwak]) )
      {
       SecurityResetButtonGauge.PutValue(1);
-      if ((pOccupied->SecuritySystem.Status&s_aware)&&
-          (pOccupied->SecuritySystem.Status&s_active))
+      if ((pControlled->SecuritySystem.Status&s_aware)&&
+          (pControlled->SecuritySystem.Status&s_active))
        {
-        pOccupied->SecuritySystem.SystemTimer=0;
-        pOccupied->SecuritySystem.Status-=s_aware;
-        pOccupied->SecuritySystem.VelocityAllowed=-1;
+        pControlled->SecuritySystem.SystemTimer=0;
+        pControlled->SecuritySystem.Status-=s_aware;
+        pControlled->SecuritySystem.VelocityAllowed=-1;
         CAflag=1;
        }
       else if (CAflag!=1)
-        pOccupied->SecuritySystemReset();
+        pControlled->SecuritySystemReset();
      }
      else
      {
@@ -4464,7 +4460,7 @@ else
     AntiSlipButtonGauge.UpdateValue(0);
     DepartureSignalButtonGauge.UpdateValue(0);
     FuseButtonGauge.UpdateValue(0);
-    ConverterFuseButtonGauge.UpdateValue(0);    
+    ConverterFuseButtonGauge.UpdateValue(0);
   }
  //wyprowadzenie sygna³ów dla haslera na PoKeys (zaznaczanie na taœmie) 
  btHaslerBrakes.Turn(DynamicObject->MoverParameters->BrakePress>0.4); //ciœnienie w cylindrach
@@ -5433,3 +5429,4 @@ void __fastcall TTrain::Silence()
  if (dsbEN57_CouplerStretch) dsbEN57_CouplerStretch->Stop();
  if (dsbBufferClamp) dsbBufferClamp->Stop();
 };
+

@@ -1585,15 +1585,15 @@ begin
         begin
           dizel_enginestart:=State;
         end;
-       if (State=false) then //jeœli wy³¹czony
-        begin
+       //if (State=false) then //jeœli wy³¹czony
+       // begin
          //SetFlag(SoundFlag,sound_relay); //hunter-091012: przeniesione do Train.cpp, zeby sie nie zapetlal
          // if (SecuritySystem.Status<>12) then
-         SecuritySystem.Status:=0; //deaktywacja czuwaka; Ra: a nie bateri¹?
-        end
-       else
+       //  SecuritySystem.Status:=0; //deaktywacja czuwaka; Ra: a nie bateri¹?
+       // end
+       //else
        //if (SecuritySystem.Status<>12) then
-        SecuritySystem.Status:=s_waiting; //aktywacja czuwaka
+       // SecuritySystem.Status:=s_waiting; //aktywacja czuwaka
      end
    end
   //else MainSwitch:=false;
@@ -1872,9 +1872,11 @@ end;
 
 procedure T_MoverParameters.SecuritySystemCheck(dt:real);
 begin
+//Ra: z CA/SHP w EZT jest ten problem, ¿e w rozrz¹dczym nie ma kierunku, a w silnikowym nie ma obsady
+//poza tym jest zdefiniowany we wszystkich 3 cz³onach EN57
   with SecuritySystem do
    begin
-     if (SystemType>0) and (Status>0) and (Battery) then //Ra: EZT ma czuwak w rozrz¹dczym!
+     if (SystemType>0) and (Status>0) and (Battery) then //Ra: EZT ma teraz czuwak w silnikowym
       begin
        //CA
        if (Vel>=AwareMinSpeed) then  //domyœlnie predkoœæ wiêksza od 10% Vmax, albo podanej jawnie w FIZ
@@ -1923,7 +1925,7 @@ begin
       end
      else if not (Battery) then
       begin //wy³¹czenie baterii deaktywuje sprzêt
-       SecuritySystem.Status:=0; //deaktywacja czuwaka
+       //SecuritySystem.Status:=0; //deaktywacja czuwaka
       end;
    end;
 end;
@@ -5132,6 +5134,10 @@ Begin
    begin
      if (CValue1=1) then Battery:=true
      else if (CValue1=0) then Battery:=false;
+     if (Battery) then
+      SecuritySystem.Status:=SecuritySystem.Status or s_waiting //aktywacja czuwaka
+     else
+      SecuritySystem.Status:=0; //wy³¹czenie czuwaka
      OK:=SendCtrlToNext(command,CValue1,CValue2);
    end
    else if command='EpFuseSwitch' then         {NBMX}
@@ -5309,16 +5315,16 @@ Begin
    end
   else if command='CabSignal' then {SHP,Indusi}
    begin //Ra: to powinno dzia³aæ tylko w cz³onie obsadzonym
-     if (ActiveCab<>0) and (Battery) and (SecuritySystem.SystemType>1) then //jeœli kabina jest obsadzona
+     if ((TrainType=dt_EZT)or(ActiveCab<>0)) and (Battery) and (SecuritySystem.SystemType>1) then //jeœli kabina jest obsadzona (silnikowy w EZT?)
       with SecuritySystem do
        begin
         VelocityAllowed:=Trunc(CValue1);
         NextVelocityAllowed:=Trunc(CValue2);
         SystemSoundSHPTimer:=0; //hunter-091012
         SetFlag(Status,s_active);
-        OK:=true;
-       end
-      else OK:=false;
+       end;
+     //else OK:=false;
+    OK:=true; //true, gdy mo¿na usun¹æ komendê
    end
  {naladunek/rozladunek}
   else if Pos('Load=',command)=1 then
@@ -6792,9 +6798,11 @@ begin
                end;
               //else LightPowerSource.SourceType:=NotDefined;
             end
-          else if Pos('Security:',lines)>0 then      {zrodlo mocy dla oswietlenia}
-            with SecuritySystem do
-             begin
+          else if Pos('Security:',lines)>0 then
+           begin
+            if (TrainType<>dt_EZT)or(Power>1) then //dla EZT tylko w silnikowym
+             with SecuritySystem do
+              begin
                s:=DUE(ExtractKeyWord(lines,'AwareSystem='));
                if Pos('Active',s)>0 then
                 SetFlag(SystemType,1);
@@ -6818,7 +6826,8 @@ begin
                if s<>'' then
                 if Pos('Yes',s)>0 then
                  RadioStop:=true;
-             end
+              end
+            end
           else if Pos('Clima:',lines)>0 then      {zrodlo mocy dla ogrzewania itp}
             begin
               s:=DUE(ExtractKeyWord(lines,'Heating='));

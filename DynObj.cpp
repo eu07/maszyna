@@ -572,40 +572,7 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
  }
 
    //Winger 160204 - podnoszenie pantografow
-// Przedni patyk
-//    if (dPantAngleF>0)
-//     dPantAngleF=0;
 
-/*
-  if (Global::bLoadTraction)
-  {
-   if (smPatykird1[0])
-      smPatykird1[0]->SetRotate(float3(1,0,0),dPantAngleF);
-   if (smPatykird2[0])
-      smPatykird2[0]->SetRotate(float3(-1,0,0),dPantAngleF);
-   if (smPatykirg1[0])
-      smPatykirg1[0]->SetRotate(float3(-1,0,0),dPantAngleF*1.81);
-   if (smPatykirg2[0])
-      smPatykirg2[0]->SetRotate(float3(1,0,0),dPantAngleF*1.81);
-   if (smPatykisl[0])
-      smPatykisl[0]->SetRotate(float3(1,0,0),dPantAngleF*0.81);
-   //Tylny patyk
-   if (smPatykird1[1])
-      smPatykird1[1]->SetRotate(float3(1,0,0),dPantAngleR);
-   if (smPatykird2[1])
-      smPatykird2[1]->SetRotate(float3(-1,0,0),dPantAngleR);
-   if (smPatykirg1[1])
-      smPatykirg1[1]->SetRotate(float3(-1,0,0),dPantAngleR*1.81);
-   if (smPatykirg2[1])
-      smPatykirg2[1]->SetRotate(float3(1,0,0),dPantAngleR*1.81);
-   if (smPatykisl[1])
-      smPatykisl[1]->SetRotate(float3(1,0,0),dPantAngleR*0.81);
-  }
-*/
-  //if (smWiazary[0])
-  //   smWiazary[0]->SetRotate(float3(1,0,0),-dWheelAngle[1]);
-  //if (smWiazary[1])
-  //   smWiazary[1]->SetRotate(float3(1,0,0),-dWheelAngle[1]);
   //przewody sterowania ukrotnionego
   if (TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_controll))
    {btCCtrl1.TurnOn(); btnOn=true;}
@@ -685,7 +652,7 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
   //if (ObjSqrDist<80000) ABuModelRoll(); //przechy³ki od 400m
  }
  if (MoverParameters->Battery)
- {//sygnaly czola pociagu //Ra: wyœwietlamy bez ograniczeñ odleg³oœci, by by³y widoczne z daleka
+ {//sygna³y czo³a pociagu //Ra: wyœwietlamy bez ograniczeñ odleg³oœci, by by³y widoczne z daleka
   if (TestFlag(iLights[0],1))
    {btHeadSignals11.TurnOn(); btnOn=true;}
   //else btHeadSignals11.TurnOff();
@@ -939,9 +906,9 @@ TDynamicObject* __fastcall TDynamicObject::ABuFindObject(TTrack *Track,int ScanD
       if (Track->iCategoryFlag&254) //trajektoria innego typu ni¿ tor kolejowy
       {//dla torów nie ma sensu tego sprawdzaæ, rzadko co jedzie po jednej szynie i siê mija
        //Ra: mijanie samochodów wcale nie jest proste
-       // Przesuniecie wzgledne pojazdow. Wyznaczane, zeby sprawdzic,
-       // czy pojazdy faktycznie sie zderzaja (moga byc przesuniete
-       // w/m siebie tak, ze nie zachodza na siebie i wtedy sie mijaja).
+       // Przesuniêcie wzglêdne pojazdów. Wyznaczane, ¿eby sprawdziæ,
+       // czy pojazdy faktycznie siê zderzaj¹ (mog¹ byæ przesuniête
+       // w/m siebie tak, ¿e nie zachodz¹ na siebie i wtedy sie mijaj¹).
        double RelOffsetH; //wzajemna odleg³oœæ poprzeczna
        if (CouplFound) //my na tym torze byœmy byli w kierunku Point1
         //dla CouplFound=1 s¹ zwroty zgodne - istotna ró¿nica przesuniêæ
@@ -2053,18 +2020,6 @@ TGround::GetTraction;
     {
      MoverParameters->EqvtPipePress= GetEPP(); //srednie cisnienie w PG
 
-/*
-     //ABu: proba szybkiego naprawienia bledu z zatrzymujacymi sie bez powodu skladami
-     if ((MoverParameters->CabNo!=0)&&(Controller!=Humandriver)&&(!MoverParameters->Mains)&&(Mechanik->EngineActive))
-     {//Ra: wywaliæ to st¹d!!!!
-      MoverParameters->PantRear(false);
-      MoverParameters->PantFront(false);
-      MoverParameters->PantRear(true);
-      MoverParameters->PantFront(true);
-      MoverParameters->DecMainCtrl(2); //?
-      MoverParameters->MainSwitch(true);
-     };
-*/
 //yB: cos (AI) tu jest nie kompatybilne z czyms (hamulce)
 //   if (Controller!=Humandriver)
 //    if (Mechanik->LastReactionTime>0.5)
@@ -2079,8 +2034,8 @@ TGround::GetTraction;
     }
 //    else
 //    { MoverParameters->SecuritySystemReset(); }
-    if (MoverParameters->ActiveCab==0)
-        MoverParameters->SecuritySystemReset();
+    //if (MoverParameters->ActiveCab==0)
+    //    MoverParameters->SecuritySystemReset(); //Ra: to tu nie powinno byæ, czuwak za³¹czany jest bateri¹, ewentualnie rozrz¹dem
 //    else
 //     if ((Controller!=Humandriver)&&(MoverParameters->BrakeCtrlPos<0)&&(!TestFlag(MoverParameters->BrakeStatus,1))&&((MoverParameters->CntrlPipePress)>0.51))
 //       {//Ra: to jest do poprawienia przy okazji SPKS
@@ -4015,6 +3970,6 @@ TDynamicObject* __fastcall TDynamicObject::ControlledFind()
    if ((d->MoverParameters->Power<1.0)&&(d->PrevConnected->MoverParameters->Power>1.0)) //my nie mamy mocy, ale ten drugi ma
     d=d->PrevConnected; //bêdziemy sterowaæ tym z moc¹
   }
- return d; 
+ return d;
 };
 
