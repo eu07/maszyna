@@ -110,6 +110,7 @@ void __fastcall TSubModel::FirstInit()
  f4Diffuse[0]=f4Diffuse[1]=f4Diffuse[2]=f4Diffuse[3]=1.0; //{1,1,1,1};
  f4Specular[0]=f4Specular[1]=f4Specular[2]=0.0; f4Specular[3]=1.0; //{0,0,0,1};
  f4Emision[0]=f4Emision[1]=f4Emision[2]=f4Emision[3]=1.0;
+ smLetter=NULL; //u¿ywany tylko roboczo dla TP_TEXT, do przyspieszenia wyœwietlania
 };
 
 __fastcall TSubModel::~TSubModel()
@@ -130,6 +131,7 @@ __fastcall TSubModel::~TSubModel()
  {//wczytano z pliku binarnego (nie jest w³aœcicielem tablic)
  }
 */
+ delete[] smLetter; //u¿ywany tylko roboczo dla TP_TEXT, do przyspieszenia wyœwietlania
 };
 
 void __fastcall TSubModel::TextureNameSet(const char *n)
@@ -1040,13 +1042,22 @@ void __fastcall TSubModel::RenderAlphaDL()
     int i,j=pasText->Length();
     TSubModel *p;
     char c;
-    for (i=1;i<=j;++i) //Ra: szukanie submodeli jest bez sensu, trzeba zrobiæ tabelkê wskaŸników
-    {
-     c=(*pasText)[i]; //znak do wyœwietlenia
+    if (!smLetter)
+    {//jeœli nie ma tablicy, to j¹ stworzyæ; miejsce nieodpowiednie, ale tymczasowo mo¿e byæ
+     smLetter=new TSubModel*[256]; //tablica wskaŸników submodeli dla wyœwietlania tekstu
+     ZeroMemory(smLetter,256*sizeof(TSubModel*)); //wype³nianie zerami
      p=Child;
-     while (p?c!=(*p->pName):false) p=p->Next; //szukanie znaku
-     if (p)
+     while (p)
      {
+      smLetter[*p->pName]=p;
+      p=p->Next; //kolejny znak
+     }
+    }
+    for (i=1;i<=j;++i)
+    {
+     p=smLetter[(*pasText)[i]]; //znak do wyœwietlenia
+     if (p)
+     {//na razie tylko jako przezroczyste
       p->RenderAlphaDL();
       if (p->fMatrix) glMultMatrixf(p->fMatrix->readArray()); //przesuwanie widoku
      }
