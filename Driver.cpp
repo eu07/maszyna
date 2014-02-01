@@ -604,6 +604,11 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
          sSpeedTable[i].fVelNext=-1; //mo¿na jechaæ za W4
          if (go==cm_Unknown) //jeœli nie by³o komendy wczeœniej
           go=cm_Ready; //gotów do odjazdu z W4 (semafor mo¿e zatrzymaæ)
+         if (rsGuardSignal)
+         {//jeœli mamy g³os kierownika, to odegraæ
+          rsGuardSignal->Play(1,0,true,pVehicle->GetPosition()); //za pierwszym razem siê nie odgrywa?
+          //rsGuardSignal->AdjFreq(1.0,Timer::GetDeltaTime());
+         }
          continue; //nie analizowaæ prêdkoœci
         } //koniec startu z zatrzymania
        } //koniec obs³ugi pocz¹tkowych stacji
@@ -903,6 +908,7 @@ __fastcall TController::TController
  iRadioChannel=1; //numer aktualnego kana³u radiowego
  fActionTime=0.0;
  eAction=actSleep;
+ rsGuardSignal=NULL; //komunikat od kierownika
 };
 
 void __fastcall TController::CloseLog()
@@ -921,6 +927,7 @@ void __fastcall TController::CloseLog()
 
 __fastcall TController::~TController()
 {//wykopanie mechanika z roboty
+ delete rsGuardSignal;
  delete TrainParams;
  delete[] sSpeedTable;
  CloseLog();
@@ -1627,6 +1634,9 @@ bool __fastcall TController::IncSpeed()
  if ((pOccupied->DoorOpenCtrl==1)&&(pOccupied->Vel==0.0)) //jeœli ma drzwi i stoi
  {if (pOccupied->DoorLeftOpened||pOccupied->DoorRightOpened)
   {//AI zamyka drzwi przed odjazdem
+   if (rsGuardSignal) //jeœli jest dŸwiêk kierownika
+    if (rsGuardSignal->GetStatus()&DSBSTATUS_PLAYING) //jeœli gada, to nie jedziemy
+     return false;
    if (pOccupied->DoorClosureWarning)
     pOccupied->DepartureSignal=true; //za³¹cenie bzyczka
    pOccupied->DoorLeft(false); //zamykanie drzwi
@@ -1885,6 +1895,7 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
    TrainParams=new TTrainParameters(NewCommand); //rozk³ad jazdy
   else
    TrainParams->NewName(NewCommand); //czyœci tabelkê przystanków
+  delete rsGuardSignal; rsGuardSignal=NULL; //wywalenie kierownika
   if (NewCommand!="none")
   {if (!TrainParams->LoadTTfile(Global::asCurrentSceneryPath,floor(NewValue2+0.5),NewValue1)) //pierwszy parametr to przesuniêcie rozk³adu w czasie
    {
@@ -1898,6 +1909,13 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
     TrainParams->StationIndexInc(); //przejœcie do nastêpnej
     asNextStop=TrainParams->NextStop();
     iDrivigFlags|=movePrimary; //skoro dosta³ rozk³ad, to jest teraz g³ównym
+    NewCommand=Global::asCurrentSceneryPath+NewCommand+".wav"; //na razie jeden
+    if (FileExists(NewCommand))
+    {//wczytanie odjazdu
+     rsGuardSignal=new TRealSound();
+     rsGuardSignal->Init(NewCommand.c_str(),1500*1500,pVehicle->GetPosition().x,pVehicle->GetPosition().y,pVehicle->GetPosition().z,false);
+     //rsGuardSignal->Stop();
+    }
    }
   }
   if (NewLocation) //jeœli podane wspó³rzêdne eventu/komórki ustawiaj¹cej rozk³ad (trainset nie podaje)
