@@ -181,6 +181,7 @@ private:
  //AnsiString OrderCommand; //komenda pobierana z pojazdu
  //double OrderValue; //argument komendy
  int iRadioChannel; //numer aktualnego kana³u radiowego
+ TRealSound *rsGuardSignal; //komunikat od kierownika
 public:
  Mtable::TTrainParameters* __fastcall Timetable() {return TrainParams;};
  double AccPreferred; //preferowane przyspieszenie (wg psychiki kieruj¹cego, zmniejszana przy wykryciu kolizji)

@@ -1609,8 +1609,10 @@ begin
  if (Battery=true) then SendCtrlToNext('BatterySwitch',1,CabNo)
   else SendCtrlToNext('BatterySwitch',0,CabNo);
  BatterySwitch:=true;
- if (Battery) then
-  SecuritySystem.Status:=s_waiting; //aktywacja czuwaka
+ if (Battery) and ((ActiveCab<>0) or (TrainType=dt_EZT)) then
+  SecuritySystem.Status:=SecuritySystem.Status or s_waiting //aktywacja czuwaka
+ else
+  SecuritySystem.Status:=0; //wy³¹czenie czuwaka
 end;
 
 function T_MoverParameters.EpFuseSwitch(State:boolean):boolean;
@@ -5134,7 +5136,7 @@ Begin
    begin
      if (CValue1=1) then Battery:=true
      else if (CValue1=0) then Battery:=false;
-     if (Battery) then
+     if (Battery) and ((ActiveCab<>0) or (TrainType=dt_EZT)) then
       SecuritySystem.Status:=SecuritySystem.Status or s_waiting //aktywacja czuwaka
      else
       SecuritySystem.Status:=0; //wy³¹czenie czuwaka

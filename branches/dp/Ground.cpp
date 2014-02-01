@@ -271,13 +271,13 @@ void __fastcall TGroundNode::RenderVBO()
   case TP_TRACTION: return;
   case TP_TRACK: if (iNumVerts) pTrack->RaRenderVBO(iVboPtr); return;
   case TP_MODEL: Model->RenderVBO(&pCenter); return;
-  case TP_SOUND: //McZapkie - dzwiek zapetlony w zaleznosci od odleglosci
-   if ((pStaticSound->GetStatus()&DSBSTATUS_PLAYING)==DSBPLAY_LOOPING)
-   {
-    pStaticSound->Play(1,DSBPLAY_LOOPING,true,pStaticSound->vSoundPosition);
-    pStaticSound->AdjFreq(1.0,Timer::GetDeltaTime());
-   }
-   return; //Ra: TODO sprawdziæ, czy dŸwiêki nie s¹ tylko w RenderHidden
+  //case TP_SOUND: //McZapkie - dzwiek zapetlony w zaleznosci od odleglosci
+  // if ((pStaticSound->GetStatus()&DSBSTATUS_PLAYING)==DSBPLAY_LOOPING)
+  // {
+  //  pStaticSound->Play(1,DSBPLAY_LOOPING,true,pStaticSound->vSoundPosition);
+  //  pStaticSound->AdjFreq(1.0,Timer::GetDeltaTime());
+  // }
+  // return; //Ra: TODO sprawdziæ, czy dŸwiêki nie s¹ tylko w RenderHidden
   case TP_MEMCELL: return;
   case TP_EVLAUNCH:
    if (EvLaunch->Render())
@@ -2648,7 +2648,7 @@ bool __fastcall TGround::InitEvents()
     Current->asNodeName="";
    break;
    case tp_Sound: //odtworzenie dŸwiêku
-    tmp= FindGroundNode(Current->asNodeName,TP_SOUND);
+    tmp=FindGroundNode(Current->asNodeName,TP_SOUND);
     if (tmp)
      Current->Params[9].asRealSound=tmp->pStaticSound;
     else
