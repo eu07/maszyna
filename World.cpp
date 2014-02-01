@@ -1566,7 +1566,7 @@ bool __fastcall TWorld::Update()
       if (!Train->Dynamic()->Mechanik->AIControllFlag) //tylko jeœli rêcznie prowadzony
       {Train->Dynamic()->MoverParameters->LimPipePress=Controlled->MoverParameters->PipePress;
        //Train->Dynamic()->MoverParameters->ActFlowSpeed=0;
-       Train->Dynamic()->MoverParameters->SecuritySystem.Status=1;
+       //Train->Dynamic()->MoverParameters->SecuritySystem.Status=1;
        //Train->Dynamic()->MoverParameters->ActiveCab=CabNr;
        Train->Dynamic()->MoverParameters->CabActivisation(); //za³¹czenie rozrz¹du (wirtualne kabiny)
        Train->Dynamic()->Controller=Humandriver;
