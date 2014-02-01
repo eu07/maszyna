@@ -1970,7 +1970,7 @@ bool __fastcall TWorld::Update()
       for (int i=tt->StationIndex;i<=tt->StationCount;++i)
       {//wyœwietlenie pozycji z rozk³adu
        t=tt->TimeTable+i; //linijka rozk³adu
-       OutText1=AnsiString(AnsiString(t->StationName)+"                        ").SubString(1,26);
+       OutText1=AnsiString(AnsiString(t->StationName)+"                          ").SubString(1,26);
        OutText2=(t->Ah>=0)?AnsiString(int(100+t->Ah)).SubString(2,2)+":"+AnsiString(int(100+t->Am)).SubString(2,2):AnsiString("     ");
        OutText3=(t->Dh>=0)?AnsiString(int(100+t->Dh)).SubString(2,2)+":"+AnsiString(int(100+t->Dm)).SubString(2,2):AnsiString("     ");
        OutText4="   "+FloatToStrF(t->vmax,ffFixed,3,0);

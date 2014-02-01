@@ -60,9 +60,9 @@ void __fastcall TRealSound::Init(char *SoundName, double DistanceAttenuation, do
   AM=0;
   ErrorLog("Missed file: "+AnsiString(SoundName));
  }
- if (DistanceAttenuation>0)
+ if (DistanceAttenuation>0.0)
  {
-  dSoundAtt=DistanceAttenuation;
+  dSoundAtt=DistanceAttenuation*DistanceAttenuation;
   vSoundPosition.x=X;
   vSoundPosition.y=Y;
   vSoundPosition.z=Z;
@@ -83,46 +83,46 @@ double __fastcall TRealSound::ListenerDistance(vector3 ListenerPosition)
 void __fastcall TRealSound::Play(double Volume, int Looping, bool ListenerInside, vector3 NewPosition)
 {
  if (!pSound) return;
- double vol;
+ long int vol;
  double dS;
 // double Distance;
  DWORD stat;
  if ((Global::bSoundEnabled)&&(AM!=0))
  {
-  if (Volume>1)
-   Volume=1;
+  if (Volume>1.0)
+   Volume=1.0;
   fPreviousDistance=fDistance;
-  fDistance=0;
-  if (dSoundAtt!=-1)
+  fDistance=0.0; //??
+  if (dSoundAtt>0.0)
   {
-   vSoundPosition= NewPosition;
-   dS=dSoundAtt*dSoundAtt; //bo odleglosc podawana w kwadracie
+   vSoundPosition=NewPosition;
+   dS=dSoundAtt; //*dSoundAtt; //bo odleglosc podawana w kwadracie
    fDistance=ListenerDistance(Global::pCameraPosition);
-   if (!ListenerInside)     //oslabianie dzwiekow
-    Volume=Volume*dS/(dS+2*fDistance);
-   else
+   if (ListenerInside) //os³abianie dŸwiêków z odleg³oœci¹
     Volume=Volume*dS/(dS+fDistance);
+   else
+    Volume=Volume*dS/(dS+2*fDistance); //podwójne dla ListenerInside=false
   }
   if (FreeFlyModeFlag) //gdy swobodne latanie
    fPreviousDistance=fDistance; //to efektu Dopplera nie bêdzie
-  //McZapkie-010302 - babranie tylko z niezbyt odleglymi dzwiekami
+  //McZapkie-010302 - babranie tylko z niezbyt odleglymi dŸwiêkami
   if ((dSoundAtt==-1)||(fDistance<20.0*dS))
   {
 //   vol=2*Volume+1;
 //   if (vol<1) vol=1;
 //   vol=10000*(log(vol)-1);
 //   vol=10000*(vol-1);
-   int glos=1;
-   vol=Volume*glos;
-   if (vol<0) vol=0;
-   vol=-5000+5000*vol;
-   if (vol>0)
-    vol=0;
+   //int glos=1;
+   //Volume=Volume*glos; //Ra: whatta hella is this
+   if (Volume<0.0) Volume=0.0;
+   vol=-5000.0+5000.0*Volume;
+   if (vol>=0)
+    vol=-1;
    if (Timer::GetSoundTimer())
-    pSound->SetVolume(vol);
+    pSound->SetVolume(vol); //Attenuation, in hundredths of a decibel (dB).
    pSound->GetStatus(&stat);
-    if (!(stat&DSBSTATUS_PLAYING))
-     pSound->Play(0,0,Looping);
+   if (!(stat&DSBSTATUS_PLAYING))
+    pSound->Play(0,0,Looping);
   }
   else //wylacz dzwiek bo daleko
   {
@@ -177,14 +177,14 @@ void __fastcall TRealSound::AdjFreq(double Freq, double dt) //McZapkie TODO: dor
 }
 
 double TRealSound::GetWaveTime() //McZapkie: na razie tylko dla 22KHz/8bps
-{
+{//u¿ywana do pomiaru czasu dla dŸwiêków z pocz¹tkiem i koñcem
  if (!pSound) return 0.0;
  double WaveTime;
  DSBCAPS caps;
  caps.dwSize=sizeof(caps);
  pSound->GetCaps(&caps);
  WaveTime=caps.dwBufferBytes;
- return WaveTime/22000;  // wielkosc w bajtach przez czestotliwosc probkowania
+ return WaveTime/fFrequency;  // wielkosc w bajtach przez czestotliwosc probkowania
 }
 
 void __fastcall TRealSound::SetPan(int Pan)
@@ -201,7 +201,7 @@ DWORD stat;
     return stat;
   }
  else
-  return 0; 
+  return 0;
 }
 
 void __fastcall TRealSound::ResetPosition()

@@ -604,11 +604,8 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
          sSpeedTable[i].fVelNext=-1; //mo¿na jechaæ za W4
          if (go==cm_Unknown) //jeœli nie by³o komendy wczeœniej
           go=cm_Ready; //gotów do odjazdu z W4 (semafor mo¿e zatrzymaæ)
-         if (rsGuardSignal)
-         {//jeœli mamy g³os kierownika, to odegraæ
-          rsGuardSignal->Play(1,0,true,pVehicle->GetPosition()); //za pierwszym razem siê nie odgrywa?
-          //rsGuardSignal->AdjFreq(1.0,Timer::GetDeltaTime());
-         }
+         if (rsGuardSignal) //jeœli mamy g³os kierownika, to odegraæ
+          iDrivigFlags|=moveGuardSignal;
          continue; //nie analizowaæ prêdkoœci
         } //koniec startu z zatrzymania
        } //koniec obs³ugi pocz¹tkowych stacji
@@ -1630,19 +1627,19 @@ bool __fastcall TController::DecBrake()
 
 bool __fastcall TController::IncSpeed()
 {//zwiêkszenie prêdkoœci; zwraca false, jeœli dalej siê nie da zwiêkszaæ
+ if (rsGuardSignal) //jeœli jest dŸwiêk kierownika
+  if (rsGuardSignal->GetStatus()&DSBSTATUS_PLAYING) //jeœli gada, to nie jedziemy
+   return false;
  bool OK=true;
  if ((pOccupied->DoorOpenCtrl==1)&&(pOccupied->Vel==0.0)) //jeœli ma drzwi i stoi
  {if (pOccupied->DoorLeftOpened||pOccupied->DoorRightOpened)
   {//AI zamyka drzwi przed odjazdem
-   if (rsGuardSignal) //jeœli jest dŸwiêk kierownika
-    if (rsGuardSignal->GetStatus()&DSBSTATUS_PLAYING) //jeœli gada, to nie jedziemy
-     return false;
    if (pOccupied->DoorClosureWarning)
     pOccupied->DepartureSignal=true; //za³¹cenie bzyczka
    pOccupied->DoorLeft(false); //zamykanie drzwi
    pOccupied->DoorRight(false);
    //Ra: trzeba by ustawiæ jakiœ czas oczekiwania na zamkniêcie siê drzwi
-   fActionTime=-1.5; //czekanie sekundê, mo¿e trochê d³u¿ej
+   fActionTime=-1.5-0.1*random(10); //czekanie sekundê, mo¿e trochê d³u¿ej
   }
  }
  //pOccupied->DepartureSignal=false;
@@ -1761,7 +1758,7 @@ void __fastcall TController::SpeedSet()
  switch (pOccupied->EngineType)
  {
   case None: //McZapkie-041003: wagon sterowniczy
-   if (fActionTime>=0.0)
+   if (fActionTime>=-1.0)
     pOccupied->DepartureSignal=false; //trochê niech pobuczy, zanim pojedzie
    if (Controlling->MainCtrlPosNo>0)
    {//jeœli ma czym krêciæ
@@ -2838,6 +2835,16 @@ bool __fastcall TController::UpdateSituation(double dt)
       if (TrainParams->CheckTrainLatency()<5.0)
        if (TrainParams->TTVmax>0.0)
         VelDesired=Min0R(VelDesired,TrainParams->TTVmax); //jesli nie spozniony to nie przekraczaæ rozkladowej
+     if (iDrivigFlags&moveGuardSignal)
+      if (VelDesired>0.0)
+       if (VelNext>0.0)
+       {//komunikat od kierownika tu, bo musi byæ wolna droga i odczekany czas stania
+        iDrivigFlags&=~moveGuardSignal; //tylko raz nadaæ
+        rsGuardSignal->Stop();
+        rsGuardSignal->Play(1.0,0,true,pVehicle->GetPosition()); //czemu nie zawsze siê odgrywa?
+        //rsGuardSignal->AdjFreq(1.0,Timer::GetDeltaTime());
+        //ErrorLog("Kierownik: "+AnsiString(rsGuardSignal->vol)+" "+AnsiString(rsGuardSignal->fDistance)+" "+AnsiString(rsGuardSignal->v)+" ");
+       }
      AbsAccS=pOccupied->AccS; //wypadkowa si³ stycznych do toru
      if (pOccupied->V<0.0) AbsAccS=-AbsAccS;
      //else if (pOccupied->V==0.0) AbsAccS=0; //fabs(fAccGravity); //Ra: jesli sk³ad stoi, to dzia³a na niego sk³adowa styczna grawitacji
