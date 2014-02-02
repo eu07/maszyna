@@ -3296,7 +3296,13 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
         }
         if (!pAnimations)
         {//Ra: tworzenie tabeli animacji, jeœli jeszcze nie by³o
-         if (!iAnimations) iAnimations=28; //tyle by³o kiedyœ w ka¿dym pojeŸdzie (2 wi¹zary wypad³y)
+         if (!iAnimations) //jeœli nie podano jawnie, ile ma byæ animacji
+          iAnimations=28; //tyle by³o kiedyœ w ka¿dym pojeŸdzie (2 wi¹zary wypad³y)
+         if (MoverParameters->EnginePowerSource.SourceType!=CurrentCollector)
+         {//nie bêdzie pantografów, to siê trochê uproœci
+          iAnimations-=iAnimType[ANIM_PANTS]; //domyœlnie by³y 2 pantografy
+          iAnimType[ANIM_PANTS]=0;
+         }
          pAnimations=new TAnim[iAnimations];
          int i,j,k=0,sm=0;
          for (j=0;j<ANIM_TYPES;++j)

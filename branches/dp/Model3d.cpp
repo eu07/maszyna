@@ -331,6 +331,7 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos,bool dyna
   parser.getToken(fWireSize);
   parser.ignoreToken();
   Opacity=readIntAsDouble(parser,100.0f); //wymagane jest 0 dla szyb, 100 idzie w nieprzezroczyste
+  if (Opacity>1.0) Opacity*=0.01; //w 2013 by³ b³¹d i aby go obejœæ, trzeba by³o wpisaæ 10000.0
   if ((Global::iConvertModels&1)==0) //dla zgodnoœci wstecz
    Opacity=0.0; //wszystko idzie w przezroczyste albo zale¿nie od tekstury
   if (!parser.expectToken("map:"))

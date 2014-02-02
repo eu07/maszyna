@@ -44,14 +44,14 @@ void __fastcall TRealSound::Init(char *SoundName, double DistanceAttenuation, do
 {
  //Nazwa=SoundName; //to tak raczej nie zadzia³a, (SoundName) jest tymczasowe
  pSound=TSoundsManager::GetFromName(SoundName,Dynamic,&fFrequency);
- if (freqmod)
-  if (fFrequency!=22050.0)
-  {//dla modulowanych nie mo¿e byæ zmiany mno¿nika, bo czêstotliwoœæ w nag³ówku by³¹ ignorowana, a mog³a byæ inna ni¿ 22050
-   fFrequency=22050.0;
-   ErrorLog("Bad sound: "+AnsiString(SoundName)+", as modulated, should have 22.05kHz in header");
-  }
  if (pSound)
  {
+  if (freqmod)
+   if (fFrequency!=22050.0)
+   {//dla modulowanych nie mo¿e byæ zmiany mno¿nika, bo czêstotliwoœæ w nag³ówku by³¹ ignorowana, a mog³a byæ inna ni¿ 22050
+    fFrequency=22050.0;
+    ErrorLog("Bad sound: "+AnsiString(SoundName)+", as modulated, should have 22.05kHz in header");
+   }
   AM=1.0;
   pSound->SetVolume(DSBVOLUME_MIN);
  }
