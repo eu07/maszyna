@@ -55,7 +55,7 @@ void __fastcall SetSimulationTime(double t)
 }
 
 bool __fastcall GetSoundTimer()
-{
+{//Ra: byæ mo¿e, by dŸwiêki nie modyfikowa³y siê zbyt czêsto, po 0.1s zeruje siê ten licznik
  return (fSoundTimer==0.0f);
 }
 

@@ -58,7 +58,7 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=14
 MinorVer=2
-Release=923
+Release=924
 Build=423
 Debug=1
 PreRelease=0
@@ -71,7 +71,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=14.2.923.423
+FileVersion=14.2.924.423
 InternalName=9th by Ra + SPKS + MP
 LegalCopyright=
 LegalTrademarks=
@@ -104,14 +104,15 @@ Item6=GLEW_STATIC;_DEBUG;USE_VERTEX_ARRAYS
 Item7=_DEBUG
 
 [HistoryLists\hlFinalOutputDir]
-Count=1
+Count=2
 Item0=C:\EU07\
+Item1=C:\EU07DDS\
 
 [Debugging]
 DebugSourceDirs=
 
 [Parameters]
-RunParams=
+RunParams=-s quarkmce2007-widno.scn -v EN57-2040ra
 HostApplication=
 RemoteHost=
 RemotePath=
