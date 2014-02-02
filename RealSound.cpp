@@ -118,7 +118,7 @@ void __fastcall TRealSound::Play(double Volume, int Looping, bool ListenerInside
    vol=-5000.0+5000.0*Volume;
    if (vol>=0)
     vol=-1;
-   if (Timer::GetSoundTimer())
+   if (Timer::GetSoundTimer()||!Looping) //Ra: po co to jest?
     pSound->SetVolume(vol); //Attenuation, in hundredths of a decibel (dB).
    pSound->GetStatus(&stat);
    if (!(stat&DSBSTATUS_PLAYING))

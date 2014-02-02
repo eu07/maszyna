@@ -1655,6 +1655,10 @@ bool __fastcall TWorld::Update()
        if((tmp->MoverParameters->BrakeDelayFlag&bdelay_M)==bdelay_M)
         OutText2+="+Mg";
        OutText2+=AnsiString(", BTP:")+FloatToStrF(tmp->MoverParameters->LoadFlag,ffFixed,5,0);
+       if ((tmp->MoverParameters->EnginePowerSource.SourceType==CurrentCollector) || (tmp->MoverParameters->TrainType==dt_EZT))
+       {OutText2+=AnsiString(", pant. ")+FloatToStrF(tmp->MoverParameters->PantPress,ffFixed,8,2);
+        OutText2+=(tmp->MoverParameters->bPantKurek3?"=ZG":"|ZG");
+       }
 
 //          OutText2+=AnsiString(", u:")+FloatToStrF(tmp->MoverParameters->u,ffFixed,3,3);
 //          OutText2+=AnsiString(", N:")+FloatToStrF((tmp->MoverParameters->BrakePress*tmp->MoverParameters->P2FTrans-tmp->MoverParameters->BrakeCylSpring)*tmp->MoverParameters->BrakeCylNo*tmp->MoverParameters->BrakeCylMult[0]-tmp->MoverParameters->BrakeSlckAdj,ffFixed,4,0);

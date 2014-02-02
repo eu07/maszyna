@@ -3313,12 +3313,12 @@ bool __fastcall TGround::CheckQuery()
      Global::iTextMode=-1; //wy³¹czenie takie samo jak sekwencja F10 -> Y
      return false;
     case tp_Sound :
-     if (tmpEvent->Params[0].asInt==0)
-      tmpEvent->Params[9].asRealSound->Stop();
-     if (tmpEvent->Params[0].asInt==1)
-      tmpEvent->Params[9].asRealSound->Play(1,0,true,tmpEvent->Params[9].asRealSound->vSoundPosition);
-     if (tmpEvent->Params[0].asInt==-1)
-      tmpEvent->Params[9].asRealSound->Play(1,DSBPLAY_LOOPING,true,tmpEvent->Params[9].asRealSound->vSoundPosition);
+     switch (tmpEvent->Params[0].asInt)
+     {//trzy mo¿liwe przypadki:
+      case 0: tmpEvent->Params[9].asRealSound->Stop(); break;
+      case 1: tmpEvent->Params[9].asRealSound->Play(1,0,true,tmpEvent->Params[9].asRealSound->vSoundPosition); break;
+      case -1: tmpEvent->Params[9].asRealSound->Play(1,DSBPLAY_LOOPING,true,tmpEvent->Params[9].asRealSound->vSoundPosition); break;
+     }
     break;
     case tp_Disable :
      Error("Not implemented yet :(");
