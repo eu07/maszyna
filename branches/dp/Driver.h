@@ -183,6 +183,7 @@ private:
  //double OrderValue; //argument komendy
  int iRadioChannel; //numer aktualnego kana³u radiowego
  TRealSound *rsGuardSignal; //komunikat od kierownika
+ int iGuardRadio; //numer kana³u radiowego kierownika (0, gdy nie u¿ywa radia)
 public:
  Mtable::TTrainParameters* __fastcall Timetable() {return TrainParams;};
  double AccPreferred; //preferowane przyspieszenie (wg psychiki kieruj¹cego, zmniejszana przy wykryciu kolizji)
