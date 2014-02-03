@@ -277,7 +277,7 @@ public:
  inline float3 Translation2Get()
  {return *(fMatrix->TranslationGet())+Child->Translation1Get();}
  void __fastcall ParentMatrix(float4x4 *m);
- float __fastcall MaxZ();
+ float __fastcall MaxY(const float4x4 &m);
 };
 
 class TSubModelInfo

@@ -3394,28 +3394,19 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
            if (sm)
            {//w EP09 wywala³o siê tu z powodu NULL
             sm->WillBeAnimated();
-            //sm->ParentMatrix(m); //pobranie macierzy transformacji
-            m=float4x4(*sm->GetMatrix()); //skopiowanie, bo bêdziemy mno¿yæ
+            sm->ParentMatrix(&m); //pobranie macierzy transformacji
             //m(3)[1]=m[3][1]+0.054; //w górê o wysokoœæ œlizgu (na razie tak)
-            while (sm->Parent)
-            {//przenieœæ tê funkcjê do modelu...
-             if (sm->Parent->GetMatrix())
-              m=*sm->Parent->GetMatrix()*m;
-             sm=sm->Parent;
-            }
             if ((mdModel->Flags()&0x8000)==0) //jeœli wczytano z T3D
-            {//mo¿e byæ potrzebny dodatkowy obrót, jeœli wczytano z T3D, tzn. pred wykonaniem Init()
-             m.InitialRotate();
-            }
+             m.InitialRotate(); //mo¿e byæ potrzebny dodatkowy obrót, jeœli wczytano z T3D, tzn. przed wykonaniem Init()
             pants[i].fParamPants->vPos.z=m[3][0]; //przesuniêcie w bok (asymetria)
             pants[i].fParamPants->vPos.y=m[3][1]; //przesuniêcie w górê odczytane z modelu
             if ((sm=pants[i].smElement[0]->ChildGet())!=NULL)
             {//jeœli ma potomny, mo¿na policzyæ d³ugoœæ (odleg³oœæ potomnego od osi obrotu)
              m=float4x4(*sm->GetMatrix()); //wystarczy³by wskaŸnik, nie trzeba kopiowaæ
              //mo¿e trzeba: pobraæ macierz dolnego ramienia, wyzerowaæ przesuniêcie, przemno¿yæ przez macierz górnego
-             pants[i].fParamPants->fHoriz=-fabs(m(3)[1]);
-             pants[i].fParamPants->fLenL1=hypot(m(3)[1],m(3)[2]); //po osi OX nie potrzeba
-             pants[i].fParamPants->fAngleL0=atan2(fabs(m(3)[2]),fabs(m(3)[1]));
+             pants[i].fParamPants->fHoriz=-fabs(m[3][1]);
+             pants[i].fParamPants->fLenL1=hypot(m[3][1],m[3][2]); //po osi OX nie potrzeba
+             pants[i].fParamPants->fAngleL0=atan2(fabs(m[3][2]),fabs(m[3][1]));
              //if (pants[i].fParamPants->fAngleL0<M_PI_2) pants[i].fParamPants->fAngleL0+=M_PI; //gdyby w odwrotn¹ stronê wysz³o
              //if ((pants[i].fParamPants->fAngleL0<0.03)||(pants[i].fParamPants->fAngleL0>0.09)) //normalnie ok. 0.05
              // pants[i].fParamPants->fAngleL0=pants[i].fParamPants->fAngleL;
@@ -3425,17 +3416,24 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
               m=float4x4(*sm->GetMatrix()); //wystarczy³by wskaŸnik, nie trzeba kopiowaæ
               //trzeba by uwzglêdniæ macierz dolnego ramienia, ¿eby uzyskaæ k¹t do poziomu...
               pants[i].fParamPants->fHoriz+=fabs(m(3)[1]); //ró¿nica d³ugoœci rzutów ramion na p³aszczyznê podstawy (jedna dodatnia, druga ujemna)
-              pants[i].fParamPants->fLenU1=hypot(m(3)[1],m(3)[2]); //po osi OX nie potrzeba
+              pants[i].fParamPants->fLenU1=hypot(m[3][1],m[3][2]); //po osi OX nie potrzeba
               //pants[i].fParamPants->pantu=acos((1.22*cos(pants[i].fParamPants->fAngleL)+0.535)/1.755); //górne ramiê
               //pants[i].fParamPants->fAngleU0=acos((1.176289*cos(pants[i].fParamPants->fAngleL)+0.54555075)/1.724482197); //górne ramiê
-              pants[i].fParamPants->fAngleU0=atan2(fabs(m(3)[2]),fabs(m(3)[1])); //pocz¹tkowy k¹t górnego ramienia, odczytany z modelu
+              pants[i].fParamPants->fAngleU0=atan2(fabs(m[3][2]),fabs(m[3][1])); //pocz¹tkowy k¹t górnego ramienia, odczytany z modelu
               //if (pants[i].fParamPants->fAngleU0<M_PI_2) pants[i].fParamPants->fAngleU0+=M_PI; //gdyby w odwrotn¹ stronê wysz³o
               //if (pants[i].fParamPants->fAngleU0<0)
               // pants[i].fParamPants->fAngleU0=-pants[i].fParamPants->fAngleU0;
               //if ((pants[i].fParamPants->fAngleU0<0.00)||(pants[i].fParamPants->fAngleU0>0.09)) //normalnie ok. 0.07
               // pants[i].fParamPants->fAngleU0=acos((pants[i].fParamPants->fLenL1*cos(pants[i].fParamPants->fAngleL)+pants[i].fParamPants->fHoriz)/pants[i].fParamPants->fLenU1);
               pants[i].fParamPants->fAngleU=pants[i].fParamPants->fAngleU0; //pocz¹tkowy k¹t
-              //pants[i].fParamPants->fHeight=sm->MaxZ(); //Ra: chyba s¹ jakieœ œmieci w œlizgach, bo sk¹d tam 30cm?
+              /* //Ra: ze wzglêdu na to, ¿e modele pantografów jest zr¹bane, ich mierzenie nie ma obecnie sensu
+              sm->ParentMatrix(&m); //pobranie macierzy transformacji pivota œlizgu wzglêdem wstawienia pojazdu
+              if ((mdModel->Flags()&0x8000)==0) //jeœli wczytano z T3D
+               m.InitialRotate(); //mo¿e byæ potrzebny dodatkowy obrót, jeœli wczytano z T3D, tzn. przed wykonaniem Init()
+              pants[i].fParamPants->fHeight=sm->MaxY(m); //przeliczenie maksimum wysokoœci wierzcho³ków wzglêdem macierzy
+              pants[i].fParamPants->fHeight-=m[3][1]; //odjêcie wysokoœci pivota œlizgu
+              //ErrorLog(pants[i].fParamPants->fHeight);
+              */
              }
             }
            }
@@ -3530,6 +3528,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
            //pants[i].fParamPants->PantWys=1.22*sin(pants[i].fParamPants->fAngleL)+1.755*sin(pants[i].fParamPants->fAngleU); //wysokoœæ pocz¹tkowa
            //pants[i].fParamPants->PantWys=1.176289*sin(pants[i].fParamPants->fAngleL)+1.724482197*sin(pants[i].fParamPants->fAngleU); //wysokoœæ pocz¹tkowa
            pants[i].fParamPants->vPos.x=(i&1)?pant2x:pant1x;
+           //if (pants[i].fParamPants->fHeight==0.0) //gdy jest nieprawdopodobna wartoœæ (np. nie znaleziony œlizg)
            pants[i].fParamPants->fHeight=(i&1)?pant2h:pant1h; //wysokoœæ œlizgu jest zapisana w MMD
            pants[i].fParamPants->PantWys=pants[i].fParamPants->fLenL1*sin(pants[i].fParamPants->fAngleL)+pants[i].fParamPants->fLenU1*sin(pants[i].fParamPants->fAngleU)+pants[i].fParamPants->fHeight; //wysokoœæ pocz¹tkowa
            //pants[i].fParamPants->vPos.y=panty-panth-pants[i].fParamPants->PantWys; //np. 4.429-0.097=4.332=~4.335
