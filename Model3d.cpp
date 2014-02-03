@@ -1418,6 +1418,17 @@ void __fastcall TSubModel::ParentMatrix(float4x4 *m)
  }
  //dla ostatniego mo¿e byæ potrzebny dodatkowy obrót, jeœli wczytano z T3D, a nie obrócono jeszcze
 };
+float __fastcall TSubModel::MaxZ()
+{//obliczenie maksymalnej wysokoœci, na pocz¹tek œlizgu w pantografie
+ if (eType!=4) return 0; //tylko dla trójk¹tów liczymy
+ if (iNumVerts<1) return 0;
+ if (!Vertices) return 0;
+ float m=Vertices[0].Point.z;
+ for (int i=1;i<iNumVerts;++i)
+  if (m<Vertices[i].Point.z)
+   m=Vertices[i].Point.z;
+ return m;
+};
 //---------------------------------------------------------------------------
 
 __fastcall TModel3d::TModel3d()
