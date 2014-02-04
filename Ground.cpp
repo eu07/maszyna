@@ -1448,12 +1448,16 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    *parser >> tmp->hvTraction->NominalVoltage >> tmp->hvTraction->MaxCurrent >> tmp->hvTraction->Resistivity;
    parser->getTokens();
    *parser >> token;
-   if (token.compare("cu")==0)
-    tmp->hvTraction->Material=1;
-   else if (token.compare("al")==0)
-    tmp->hvTraction->Material=2;
-   else
+   //Ra 2014-02: a tutaj damy symbol sieci i jej budowê, np.:
+   // SKB70-C, CuCd70-2C, KB95-2C, C95-C, C95-2C, YC95-2C, YpC95-2C, YC120-2C
+   // YpC120-2C, YzC120-2C, YwsC120-2C, YC150-C150, YC150-2C150, C150-C150
+   // C120-2C, 2C120-2C, 2C120-2C-1, 2C120-2C-2, 2C120-2C-3, 2C120-2C-4
+   if (token.compare("none")==0)
     tmp->hvTraction->Material=0;
+   else if (token.compare("al")==0)
+    tmp->hvTraction->Material=2; //1=aluminiowa, rysuje siê na czarno
+   else
+    tmp->hvTraction->Material=1; //1=miedziana, rysuje siê na zielono albo czerwono
    parser->getTokens();
    *parser >> tmp->hvTraction->WireThickness;
    parser->getTokens();

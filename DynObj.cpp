@@ -2659,7 +2659,7 @@ void __fastcall TDynamicObject::Render()
   if (Global::bUseVBO)
   {//wersja VBO
    if (mdLowPolyInt)
-    if (FreeFlyModeFlag?true:!mdKabina)
+    if (FreeFlyModeFlag?true:!mdKabina||!bDisplayCab)
      mdLowPolyInt->RaRender(ObjSqrDist,ReplacableSkinID,iAlpha);
    mdModel->RaRender(ObjSqrDist,ReplacableSkinID,iAlpha);
    if (mdLoad) //renderowanie nieprzezroczystego ³adunku
@@ -2670,7 +2670,7 @@ void __fastcall TDynamicObject::Render()
   else
   {//wersja Display Lists
    if (mdLowPolyInt)
-    if (FreeFlyModeFlag?true:!mdKabina)
+    if (FreeFlyModeFlag?true:!mdKabina||!bDisplayCab)
      mdLowPolyInt->Render(ObjSqrDist,ReplacableSkinID,iAlpha);
    mdModel->Render(ObjSqrDist,ReplacableSkinID,iAlpha);
    if (mdLoad) //renderowanie nieprzezroczystego ³adunku
@@ -3090,7 +3090,7 @@ void __fastcall TDynamicObject::RenderAlpha()
   if (Global::bUseVBO)
   {//wersja VBO
    if (mdLowPolyInt)
-    if (FreeFlyModeFlag?true:!mdKabina)
+    if (FreeFlyModeFlag?true:!mdKabina||!bDisplayCab)
      mdLowPolyInt->RaRenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
    mdModel->RaRenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
    if (mdLoad)
@@ -3101,7 +3101,7 @@ void __fastcall TDynamicObject::RenderAlpha()
   else
   {//wersja Display Lists
    if (mdLowPolyInt)
-    if (FreeFlyModeFlag?true:!mdKabina)
+    if (FreeFlyModeFlag?true:!mdKabina||!bDisplayCab)
      mdLowPolyInt->RenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
    mdModel->RenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
    if (mdLoad)
@@ -3426,14 +3426,24 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
               //if ((pants[i].fParamPants->fAngleU0<0.00)||(pants[i].fParamPants->fAngleU0>0.09)) //normalnie ok. 0.07
               // pants[i].fParamPants->fAngleU0=acos((pants[i].fParamPants->fLenL1*cos(pants[i].fParamPants->fAngleL)+pants[i].fParamPants->fHoriz)/pants[i].fParamPants->fLenU1);
               pants[i].fParamPants->fAngleU=pants[i].fParamPants->fAngleU0; //pocz¹tkowy k¹t
-              /* //Ra: ze wzglêdu na to, ¿e modele pantografów jest zr¹bane, ich mierzenie nie ma obecnie sensu
+              //Ra: ze wzglêdu na to, ¿e niektóre modele pantografów s¹ zr¹bane, ich mierzenie ma obecnie ograniczony sens
               sm->ParentMatrix(&m); //pobranie macierzy transformacji pivota œlizgu wzglêdem wstawienia pojazdu
               if ((mdModel->Flags()&0x8000)==0) //jeœli wczytano z T3D
                m.InitialRotate(); //mo¿e byæ potrzebny dodatkowy obrót, jeœli wczytano z T3D, tzn. przed wykonaniem Init()
-              pants[i].fParamPants->fHeight=sm->MaxY(m); //przeliczenie maksimum wysokoœci wierzcho³ków wzglêdem macierzy
-              pants[i].fParamPants->fHeight-=m[3][1]; //odjêcie wysokoœci pivota œlizgu
-              //ErrorLog(pants[i].fParamPants->fHeight);
-              */
+              float det=Det(m);
+              if (fabs(det-1.0)<0.001) //dopuszczamy 1 promil b³êdu na skalowaniu œlizgu
+              {//skalowanie jest w normie, mo¿na pobraæ wymiary z modelu
+               pants[i].fParamPants->fHeight=sm->MaxY(m); //przeliczenie maksimum wysokoœci wierzcho³ków wzglêdem macierzy
+               pants[i].fParamPants->fHeight-=m[3][1]; //odjêcie wysokoœci pivota œlizgu
+               pants[i].fParamPants->vPos.x=m[3][2]; //przy okazji odczytaæ z modelu pozycjê w d³ugoœci
+               //ErrorLog("Model OK: "+asModel+", height="+pants[i].fParamPants->fHeight);
+               //ErrorLog("Model OK: "+asModel+", pos.x="+pants[i].fParamPants->vPos.x);
+              }
+              else
+              {//gdy ktoœ przesadzi³ ze skalowaniem
+               pants[i].fParamPants->fHeight=0.0; //niech bêdzie odczyt z pantfactors:
+               ErrorLog("Bad model: "+asModel+", scale of "+AnsiString(sm->pName)+" is "+AnsiString(100.0*det)+"%");
+              }
              }
             }
            }
@@ -3527,9 +3537,11 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
            pants[i].fParamPants->fAngleU=pants[i].fParamPants->fAngleU0; //pocz¹tkowy k¹t
            //pants[i].fParamPants->PantWys=1.22*sin(pants[i].fParamPants->fAngleL)+1.755*sin(pants[i].fParamPants->fAngleU); //wysokoœæ pocz¹tkowa
            //pants[i].fParamPants->PantWys=1.176289*sin(pants[i].fParamPants->fAngleL)+1.724482197*sin(pants[i].fParamPants->fAngleU); //wysokoœæ pocz¹tkowa
-           pants[i].fParamPants->vPos.x=(i&1)?pant2x:pant1x;
-           //if (pants[i].fParamPants->fHeight==0.0) //gdy jest nieprawdopodobna wartoœæ (np. nie znaleziony œlizg)
-           pants[i].fParamPants->fHeight=(i&1)?pant2h:pant1h; //wysokoœæ œlizgu jest zapisana w MMD
+           if (pants[i].fParamPants->fHeight==0.0) //gdy jest nieprawdopodobna wartoœæ (np. nie znaleziony œlizg)
+           {//gdy pomiary modelu nie uda³y siê, odczyt podanych parametrów z MMD
+            pants[i].fParamPants->vPos.x=(i&1)?pant2x:pant1x;
+            pants[i].fParamPants->fHeight=(i&1)?pant2h:pant1h; //wysokoœæ œlizgu jest zapisana w MMD
+           }
            pants[i].fParamPants->PantWys=pants[i].fParamPants->fLenL1*sin(pants[i].fParamPants->fAngleL)+pants[i].fParamPants->fLenU1*sin(pants[i].fParamPants->fAngleU)+pants[i].fParamPants->fHeight; //wysokoœæ pocz¹tkowa
            //pants[i].fParamPants->vPos.y=panty-panth-pants[i].fParamPants->PantWys; //np. 4.429-0.097=4.332=~4.335
            //pants[i].fParamPants->vPos.z=0; //niezerowe dla pantografów asymetrycznych
