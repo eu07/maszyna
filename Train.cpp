@@ -319,14 +319,14 @@ void __fastcall TTrain::OnKeyDown(int cKey)
       else
       if (cKey==Global::Keys[k_Sand])
       {
-         if(pControlled->TrainType==dt_EZT)
-         {
-         if ((pControlled->DoorSignalling==false))
-           {
-               dsbSwitch->Play(0,0,0);
-               pControlled->DoorSignalling=true;
-           }
-           }
+       if(pControlled->TrainType==dt_EZT)
+       {
+        if (!pControlled->DoorSignalling)
+        {
+         dsbSwitch->Play(0,0,0);
+         pControlled->DoorSignalling=true;
+        }
+       }
       }
       if (cKey==Global::Keys[k_Main])
       {
@@ -486,8 +486,8 @@ void __fastcall TTrain::OnKeyDown(int cKey)
       else
       if (cKey==Global::Keys[k_OpenLeft])   //NBMX 17-09-2003: otwieranie drzwi
       {
-         if (pControlled->DoorOpenCtrl==1)
-           if (pControlled->CabNo<0?pControlled->DoorRight(true):pControlled->DoorLeft(true))
+         if (pOccupied->DoorOpenCtrl==1)
+           if (pOccupied->CabNo<0?pOccupied->DoorRight(true):pOccupied->DoorLeft(true))
              {
                  dsbSwitch->SetVolume(DSBVOLUME_MAX);
                  dsbSwitch->Play(0,0,0);
@@ -498,8 +498,8 @@ void __fastcall TTrain::OnKeyDown(int cKey)
       else
       if (cKey==Global::Keys[k_OpenRight])   //NBMX 17-09-2003: otwieranie drzwi
       {
-         if (pControlled->DoorCloseCtrl==1)
-           if (pControlled->CabNo<0?pControlled->DoorLeft(true):pControlled->DoorRight(true))
+         if (pOccupied->DoorCloseCtrl==1)
+           if (pOccupied->CabNo<0?pOccupied->DoorLeft(true):pOccupied->DoorRight(true))
            {
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
                dsbSwitch->Play(0,0,0);
@@ -1509,7 +1509,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
       */
         if (pControlled->TrainType==dt_EZT)
         {
-          if(pControlled->DoorSignalling==true)
+          if (pControlled->DoorSignalling)
            {
               dsbSwitch->Play(0,0,0);
               pControlled->DoorSignalling=false;
@@ -1680,7 +1680,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
       else
       if (cKey==Global::Keys[k_CloseLeft])   //NBMX 17-09-2003: zamykanie drzwi
       {
-           if (pControlled->CabNo<0?pControlled->DoorRight(false):pControlled->DoorLeft(false))
+           if (pOccupied->CabNo<0?pOccupied->DoorRight(false):pOccupied->DoorLeft(false))
            {
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
                dsbSwitch->Play(0,0,0);
@@ -1690,7 +1690,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
       }
       else if (cKey==Global::Keys[k_CloseRight])   //NBMX 17-09-2003: zamykanie drzwi
       {
-           if (pControlled->CabNo<0?pControlled->DoorLeft(false):pControlled->DoorRight(false))
+           if (pOccupied->CabNo<0?pOccupied->DoorLeft(false):pOccupied->DoorRight(false))
            {
                dsbSwitch->SetVolume(DSBVOLUME_MAX);
                dsbSwitch->Play(0,0,0);
@@ -3175,12 +3175,7 @@ if ( pControlled->Signalling==true )
   {
   btLampkaHamowanie1zes.TurnOff();
   }
-  if ( pControlled->DoorSignalling==true)
-  {
-   btLampkaBlokadaDrzwi.Turn(pControlled->DoorBlockedFlag()&&pControlled->Battery);
-  }
-  else
-   btLampkaBlokadaDrzwi.TurnOff();
+  btLampkaBlokadaDrzwi.Turn(pControlled->DoorSignalling?pOccupied->DoorBlockedFlag()&&pControlled->Battery:false);
 
 
 
@@ -3258,8 +3253,8 @@ if ( pControlled->Signalling==true )
   btLampkaRadio.Turn(pControlled->Radio);
   btLampkaHamulecReczny.Turn(pOccupied->ManualBrakePos>0);
   //NBMX wrzesien 2003 - drzwi oraz sygna³ odjazdu
-  btLampkaDoorLeft.Turn(pControlled->DoorLeftOpened);
-  btLampkaDoorRight.Turn(pControlled->DoorRightOpened);
+  btLampkaDoorLeft.Turn(pOccupied->DoorLeftOpened);
+  btLampkaDoorRight.Turn(pOccupied->DoorRightOpened);
   btLampkaNapNastHam.Turn((pControlled->ActiveDir!=0)&&(pControlled->EpFuse)); //napiecie na nastawniku hamulcowym
   btLampkaForward.Turn(pControlled->ActiveDir>0); //jazda do przodu
   btLampkaBackward.Turn(pControlled->ActiveDir<0); //jazda do ty³u
@@ -3374,12 +3369,12 @@ if ( pControlled->Signalling==true )
 // NBMX wrzesien 2003 - drzwi
     if (DoorLeftButtonGauge.SubModel)
     {
-     DoorLeftButtonGauge.PutValue(pControlled->DoorLeftOpened?1:0);
+     DoorLeftButtonGauge.PutValue(pOccupied->DoorLeftOpened?1:0);
      DoorLeftButtonGauge.Update();
     }
     if (DoorRightButtonGauge.SubModel)
     {
-     DoorRightButtonGauge.PutValue(pControlled->DoorRightOpened?1:0);
+     DoorRightButtonGauge.PutValue(pOccupied->DoorRightOpened?1:0);
      DoorRightButtonGauge.Update();
     }
     if (DepartureSignalButtonGauge.SubModel)
