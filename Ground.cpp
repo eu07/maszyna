@@ -3486,6 +3486,8 @@ void __fastcall TGround::OpenGLUpdate(HDC hDC)
 
 void __fastcall TGround::UpdatePhys(double dt,int iter)
 {//aktualizacja fizyki sta³ym krokiem: dt=krok czasu [s], dt*iter=czas od ostatnich przeliczeñ
+ for (TGroundNode *Current=nRootOfType[TP_TRACTIONPOWERSOURCE];Current;Current=Current->nNext)
+  Current->psTractionPowerSource->Update(dt*iter); //zerowanie sumy pr¹dów
 };
 
 bool __fastcall TGround::Update(double dt,int iter)
