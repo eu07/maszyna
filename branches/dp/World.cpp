@@ -1158,11 +1158,11 @@ bool __fastcall TWorld::Update()
  {//Ra: czas dla fizyki jest skwantowany - fizykê lepiej przeliczaæ sta³ym krokiem
   //tak mo¿na np. moc silników itp., ale ruch musi byæ przeliczany w ka¿dej klatce, bo inaczej skacze
   Console::Update(); //obs³uga cykli PoKeys (np. aktualizacja wyjœæ analogowych)
-#if 0
   double iter=ceil(fTimeBuffer/fMaxDt); //ile kroków siê zmieœci³o od ostatniego sprawdzania?
   int n=int(iter); //ile kroków jako int
   fTimeBuffer-=iter*fMaxDt; //reszta czasu na potem (do bufora)
   if (n>20) n=20; //Ra: je¿eli FPS jest zatrwa¿aj¹co niski, to fizyka nie mo¿e zaj¹æ ca³kowicie procesora
+#if 0
   Ground.UpdatePhys(fMaxDt,n); //Ra: teraz czas kroku jest (wzglêdnie) sta³y
   if (DebugModeFlag)
    if (Global::bActive) //nie przyspieszaæ, gdy jedzie w tle :)
@@ -1186,6 +1186,7 @@ bool __fastcall TWorld::Update()
  }
  //else n=1;
  //blablabla
+ Ground.UpdatePhys(dt,n); //na razie tu
  Ground.Update(dt,n); //tu zrobiæ tylko coklatkow¹ aktualizacjê przesuniêæ
  if (DebugModeFlag)
   if (Global::bActive) //nie przyspieszaæ, gdy jedzie w tle :)
