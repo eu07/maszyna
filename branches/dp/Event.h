@@ -36,7 +36,7 @@ union TParam
 {
     void *asPointer;
     TMemCell *asMemCell;
-    TGroundNode *asGroundNode;
+    TGroundNode *nGroundNode;
     TTrack *asTrack;
     TAnimModel *asModel;
     TAnimContainer *asAnimContainer;

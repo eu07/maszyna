@@ -125,7 +125,7 @@ public:
  int iFlags; //tryb przezroczystoœci: 0x10-nieprz.,0x20-przezroczysty,0x30-mieszany
  int Ambient[4],Diffuse[4],Specular[4]; //oœwietlenie
  bool bVisible;
- TGroundNode *Next; //lista wszystkich w scenerii, ostatni na pocz¹tku
+ TGroundNode *nNext; //lista wszystkich w scenerii, ostatni na pocz¹tku
  TGroundNode *nNext2; //lista obiektów w sektorze
  TGroundNode *nNext3; //lista obiektów renderowanych we wspólnym cyklu
  __fastcall TGroundNode();
@@ -143,7 +143,7 @@ public:
   if ((iNodeType==iType)&&(asNameToFind==asName))
    return this;
   else
-   if (Next) return Next->Find(asNameToFind,iNodeType);
+   if (nNext) return nNext->Find(asNameToFind,iNodeType);
   return NULL;
  };
 
@@ -246,7 +246,7 @@ class TGround
 {
  vector3 CameraDirection; //zmienna robocza przy renderowaniu
  int const *iRange; //tabela widocznoœci
- //TGroundNode *RootNode; //lista wszystkich wêz³ów
+ //TGroundNode *nRootNode; //lista wszystkich wêz³ów
  TGroundNode *nRootDynamic; //lista pojazdów
  TGroundRect Rects[iNumRects][iNumRects]; //mapa kwadratów kilometrowych
  TEvent *RootEvent; //lista zdarzeñ
@@ -327,7 +327,7 @@ public:
 */
  inline TGroundNode* __fastcall FindDynamic(AnsiString asNameToFind)
  {
-  for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
+  for (TGroundNode *Current=nRootDynamic;Current;Current=Current->nNext)
    if ((Current->asName==asNameToFind))
     return Current;
   return NULL;

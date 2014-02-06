@@ -555,13 +555,13 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
 
     strcat(buff,Global::asHumanCtrlVehicle.c_str());
     WriteLog(buff);
-    TGroundNode *PlayerTrain=NULL;
+    TGroundNode *nPlayerTrain=NULL;
     if (Global::asHumanCtrlVehicle!="ghostview")
-     PlayerTrain=Ground.FindDynamic(Global::asHumanCtrlVehicle);
-    if (PlayerTrain)
+     nPlayerTrain=Ground.FindDynamic(Global::asHumanCtrlVehicle);
+    if (nPlayerTrain)
     {
      Train=new TTrain();
-     if (Train->Init(PlayerTrain->DynamicObject))
+     if (Train->Init(nPlayerTrain->DynamicObject))
      {
       Controlled=Train->Dynamic();
       mvControlled=Controlled->ControlledFind()->MoverParameters;

@@ -59,7 +59,7 @@ __fastcall TGroundNode::TGroundNode()
 {//nowy obiekt terenu - pusty
  iType=GL_POINTS;
  Vertices=NULL;
- Next=nNext2=NULL;
+ nNext=nNext2=NULL;
  pCenter=vector3(0,0,0);
  iCount=0; //wierzcho³ków w trójk¹cie
  //iNumPts=0; //punktów w linii
@@ -1226,7 +1226,7 @@ void __fastcall TGround::Free()
  {for (TGroundNode *Current=nRootOfType[i];Current;)
   {
    tmpn=Current;
-   Current=Current->Next;
+   Current=Current->nNext;
    delete tmpn;
   }
   nRootOfType[i]=NULL;
@@ -1234,7 +1234,7 @@ void __fastcall TGround::Free()
  for (TGroundNode *Current=nRootDynamic;Current;)
  {
   tmpn=Current;
-  Current=Current->Next;
+  Current=Current->nNext;
   delete tmpn;
  }
  iNumNodes=0;
@@ -1251,7 +1251,7 @@ TGroundNode* __fastcall TGround::FindGroundNode(AnsiString asNameToFind,TGroundN
  }
  //standardowe wyszukiwanie liniowe
  TGroundNode *Current;
- for (Current=nRootOfType[iNodeType];Current;Current=Current->Next)
+ for (Current=nRootOfType[iNodeType];Current;Current=Current->nNext)
   if (Current->asName==asNameToFind)
    return Current;
  return NULL;
@@ -1266,8 +1266,8 @@ int iTrainSetConnection=0;
 bool bTrainSet=false;
 AnsiString asTrainName="";
 int iTrainSetWehicleNumber=0;
-TGroundNode *TrainSetNode=NULL; //poprzedni pojazd do ³¹czenia
-TGroundNode *TrainSetDriver=NULL; //pojazd, któremu zostanie wys³any rozk³ad
+TGroundNode *nTrainSetNode=NULL; //poprzedni pojazd do ³¹czenia
+TGroundNode *nTrainSetDriver=NULL; //pojazd, któremu zostanie wys³any rozk³ad
 
 TGroundVertex TempVerts[10000]; //tu wczytywane s¹ trójk¹ty
 Byte TempConnectionType[200]; //Ra: sprzêgi w sk³adzie; ujemne, gdy odwrotnie
@@ -1335,7 +1335,7 @@ void __fastcall TGround::RaTriangleDivider(TGroundNode* node)
  ntri->fSquareRadius=node->fSquareRadius;
  ntri->fSquareMinRadius=node->fSquareMinRadius;
  ntri->bVisible=node->bVisible; //a s¹ jakieœ niewidoczne?
- ntri->Next=nRootOfType[GL_TRIANGLES];
+ ntri->nNext=nRootOfType[GL_TRIANGLES];
  nRootOfType[GL_TRIANGLES]=ntri; //dopisanie z przodu do listy
  iNumNodes++;
  switch (divide&3)
@@ -2000,7 +2000,7 @@ void __fastcall TGround::FirstInit()
  WriteLog("InitNormals");
  int i,j;
  for (i=0;i<TP_LAST;++i)
- {for (TGroundNode *Current=nRootOfType[i];Current;Current=Current->Next)
+ {for (TGroundNode *Current=nRootOfType[i];Current;Current=Current->nNext)
   {
    Current->InitNormals();
    if (Current->iType!=TP_DYNAMIC)
@@ -2163,7 +2163,7 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
        if (LastNode) //dopiero na koniec dopisujemy do tablic
         if (LastNode->iType!=TP_DYNAMIC)
         {//jeœli nie jest pojazdem
-         LastNode->Next=nRootOfType[LastNode->iType]; //ostatni dodany do³¹czamy na koñcu nowego
+         LastNode->nNext=nRootOfType[LastNode->iType]; //ostatni dodany do³¹czamy na koñcu nowego
          nRootOfType[LastNode->iType]=LastNode; //ustawienie nowego na pocz¹tku listy
          iNumNodes++;
         }
@@ -2172,13 +2172,13 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
          //if (!bInitDone) FirstInit(); //jeœli nie by³o w scenerii
          if (LastNode->DynamicObject->Mechanik) //ale mo¿e byæ pasa¿er
           if (LastNode->DynamicObject->Mechanik->Primary()) //jeœli jest g³ównym (pasa¿er nie jest)
-           TrainSetDriver=LastNode; //pojazd, któremu zostanie wys³any rozk³ad
-         LastNode->Next=nRootDynamic;
+           nTrainSetDriver=LastNode; //pojazd, któremu zostanie wys³any rozk³ad
+         LastNode->nNext=nRootDynamic;
          nRootDynamic=LastNode; //dopisanie z przodu do listy
          //if (bTrainSet && (LastNode?(LastNode->iType==TP_DYNAMIC):false))
-         if (TrainSetNode) //je¿eli istnieje wczeœniejszy TP_DYNAMIC
-          TrainSetNode->DynamicObject->AttachPrev(LastNode->DynamicObject,TempConnectionType[iTrainSetWehicleNumber-2]);
-         TrainSetNode=LastNode; //ostatnio wczytany
+         if (nTrainSetNode) //je¿eli istnieje wczeœniejszy TP_DYNAMIC
+          nTrainSetNode->DynamicObject->AttachPrev(LastNode->DynamicObject,TempConnectionType[iTrainSetWehicleNumber-2]);
+         nTrainSetNode=LastNode; //ostatnio wczytany
         }
       }
       else
@@ -2191,8 +2191,8 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
      if (str==AnsiString("trainset"))
      {
       iTrainSetWehicleNumber=0;
-      TrainSetNode=NULL;
-      TrainSetDriver=NULL; //pojazd, któremu zostanie wys³any rozk³ad
+      nTrainSetNode=NULL;
+      nTrainSetDriver=NULL; //pojazd, któremu zostanie wys³any rozk³ad
       bTrainSet=true;
       parser.getTokens();
       parser >> token;
@@ -2206,12 +2206,12 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
      else
      if (str==AnsiString("endtrainset"))
      {//McZapkie-110103: sygnaly konca pociagu ale tylko dla pociagow rozkladowych
-      if (TrainSetNode) //trainset bez dynamic siê sypa³
+      if (nTrainSetNode) //trainset bez dynamic siê sypa³
       {//powinien te¿ tu wchodziæ, gdy pojazd bez trainset
-       if (TrainSetDriver) //pojazd, któremu zostanie wys³any rozk³ad
+       if (nTrainSetDriver) //pojazd, któremu zostanie wys³any rozk³ad
        {
-        TrainSetDriver->DynamicObject->Mechanik->DirectionInitial();
-        TrainSetDriver->DynamicObject->Mechanik->PutCommand("Timetable:"+asTrainName,fTrainSetVel,0,NULL);
+        nTrainSetDriver->DynamicObject->Mechanik->DirectionInitial();
+        nTrainSetDriver->DynamicObject->Mechanik->PutCommand("Timetable:"+asTrainName,fTrainSetVel,0,NULL);
        }
        if (asTrainName!="none")
        {//gdy podana nazwa, w³¹czenie jazdy poci¹gowej
@@ -2231,7 +2231,7 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
       bTrainSet=false;
       fTrainSetVel=0;
       //iTrainSetConnection=0;
-      TrainSetNode=NULL;
+      nTrainSetNode=NULL;
       iTrainSetWehicleNumber=0;
      }
      else if (str==AnsiString("event"))
@@ -2545,7 +2545,7 @@ bool __fastcall TGround::InitEvents()
       if (!Current->Params[9].asTrack)
        ErrorLog("Bad event: track \""+AnsiString(Current->asNodeName)+"\" does not exists in \""+Current->asName+"\"");
      }
-     Current->Params[4].asGroundNode=tmp;
+     Current->Params[4].nGroundNode=tmp;
      Current->Params[5].asMemCell=tmp->MemCell; //komórka do aktualizacji
      if (Current->iFlags&(conditional_memcompare))
       Current->Params[9].asMemCell=tmp->MemCell; //komórka do badania warunku
@@ -2574,7 +2574,7 @@ bool __fastcall TGround::InitEvents()
     tmp=FindGroundNode(Current->asNodeName,TP_MEMCELL);
     if (tmp)
     {
-     Current->Params[8].asGroundNode=tmp;
+     Current->Params[8].nGroundNode=tmp;
      Current->Params[9].asMemCell=tmp->MemCell;
      if (Current->Type==tp_GetValues) //jeœli odczyt komórki
       if (tmp->MemCell->IsVelocity()) //a komórka zawiera komendê SetVelocity albo ShuntVelocity
@@ -2587,7 +2587,7 @@ bool __fastcall TGround::InitEvents()
     tmp=FindGroundNode(Current->asNodeName,TP_MEMCELL); //komórka docelowa
     if (tmp)
     {
-     Current->Params[4].asGroundNode=tmp;
+     Current->Params[4].nGroundNode=tmp;
      Current->Params[5].asMemCell=tmp->MemCell; //komórka docelowa
     }
     else
@@ -2597,7 +2597,7 @@ bool __fastcall TGround::InitEvents()
     tmp=FindGroundNode(buff,TP_MEMCELL); //komórka Ÿód³owa
     if (tmp)
     {
-     Current->Params[8].asGroundNode=tmp;
+     Current->Params[8].nGroundNode=tmp;
      Current->Params[9].asMemCell=tmp->MemCell; //komórka Ÿród³owa
     }
     else
@@ -2638,7 +2638,7 @@ bool __fastcall TGround::InitEvents()
     if (!tmp) tmp=FindGroundNode(Current->asNodeName,TP_TRACTION); //mo¿e druty?
     if (!tmp) tmp=FindGroundNode(Current->asNodeName,TP_TRACK); //albo tory?
     if (tmp)
-     Current->Params[9].asGroundNode=tmp;
+     Current->Params[9].nGroundNode=tmp;
     else
      ErrorLog("Bad visibility: event \""+Current->asName+"\" cannot find model \""+Current->asNodeName+"\"");
     Current->asNodeName="";
@@ -2738,7 +2738,7 @@ bool __fastcall TGround::InitEvents()
   if (Current->fDelay<0)
       AddToQuery(Current,NULL);
  }
- for (TGroundNode *Current=nRootOfType[TP_MEMCELL];Current;Current=Current->Next)
+ for (TGroundNode *Current=nRootOfType[TP_MEMCELL];Current;Current=Current->nNext)
  {//Ra: eventy komórek pamiêci, wykonywane po wys³aniu komendy do zatrzymanego pojazdu
   Current->MemCell->AssignEvents(FindEvent(Current->asName+":sent"));
  }
@@ -2753,7 +2753,7 @@ void __fastcall TGround::InitTracks()
  int iConnection,state;
  AnsiString name;
  //tracks=tracksfar=0;
- for (Current=nRootOfType[TP_TRACK];Current;Current=Current->Next)
+ for (Current=nRootOfType[TP_TRACK];Current;Current=Current->nNext)
  {
   Track=Current->pTrack;
   Track->AssignEvents(
@@ -2876,7 +2876,7 @@ void __fastcall TGround::InitTracks()
    //Current->asName=p->asName; //mazwa identyczna, jak nazwa odcinka izolowanego
    Current->MemCell=new TMemCell(NULL); //nowa komórka
    sTracks->Add(TP_MEMCELL,p->asName.c_str(),Current); //dodanie do wyszukiwarki
-   Current->Next=nRootOfType[TP_MEMCELL]; //to nie powinno tutaj byæ, bo robi siê œmietnik
+   Current->nNext=nRootOfType[TP_MEMCELL]; //to nie powinno tutaj byæ, bo robi siê œmietnik
    nRootOfType[TP_MEMCELL]=Current;
    iNumNodes++;
    p->pMemCell=Current->MemCell; //wskaŸnik komóki przekazany do odcinka izolowanego
@@ -2892,7 +2892,7 @@ void __fastcall TGround::InitTraction()
  TTraction *Traction;
  int iConnection,state;
  AnsiString name;
- for (Current=nRootOfType[TP_TRACTION];Current;Current=Current->Next)
+ for (Current=nRootOfType[TP_TRACTION];Current;Current=Current->nNext)
  {//pod³¹czenie do zasilacza, ¿eby mo¿na by³o sumowaæ pr¹d kilku pojazdów
   //a jednoczeœnie z jednego miejsca zmieniaæ napiêcie eventem
   //wykonywane najpierw, ¿eby mo¿na by³o logowaæ pod³¹czenie 2 zasilaczy do jednego drutu
@@ -2905,7 +2905,7 @@ void __fastcall TGround::InitTraction()
   else
    ErrorLog("Missed TractionPowerSource: "+Traction->asPowerSupplyName);
  }
- for (Current=nRootOfType[TP_TRACTION];Current;Current=Current->Next)
+ for (Current=nRootOfType[TP_TRACTION];Current;Current=Current->nNext)
  {
   Traction=Current->hvTraction;
   if (!Traction->hvNext[0]) //tylko jeœli jeszcze nie pod³¹czony
@@ -2943,7 +2943,7 @@ void __fastcall TGround::InitTraction()
    //  ErrorLog("Bad power: at..."); //dodaæ wspó³rzêdne Traction->pPoint2
   }
  }
- for (Current=nRootOfType[TP_TRACTION];Current;Current=Current->Next)
+ for (Current=nRootOfType[TP_TRACTION];Current;Current=Current->nNext)
   Current->hvTraction->WhereIs(); //oznakowanie przedostatnich przêse³
 };
 
@@ -2977,7 +2977,7 @@ bool __fastcall TGround::InitLaunchers()
  TGroundNode *Current,*tmp;
  TEventLauncher *EventLauncher;
  int i;
- for (Current=nRootOfType[TP_EVLAUNCH];Current;Current=Current->Next)
+ for (Current=nRootOfType[TP_EVLAUNCH];Current;Current=Current->nNext)
  {
   EventLauncher=Current->EvLaunch;
   if (EventLauncher->iCheckMask!=0)
@@ -3117,7 +3117,7 @@ bool __fastcall TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
      if (Event->Params[6].asTrack)
      {//McZapkie-100302 - updatevalues oprocz zmiany wartosci robi putcommand dla wszystkich 'dynamic' na danym torze
       for (int i=0;i<Event->Params[6].asTrack->iNumDynamics;++i)
-       Event->Params[5].asMemCell->PutCommand(Event->Params[6].asTrack->Dynamics[i]->Mechanik,&Event->Params[4].asGroundNode->pCenter);
+       Event->Params[5].asMemCell->PutCommand(Event->Params[6].asTrack->Dynamics[i]->Mechanik,&Event->Params[4].nGroundNode->pCenter);
       if (DebugModeFlag)
        WriteLog("EVENT EXECUTED: AddValues & Track command - "+AnsiString(Event->Params[0].asText)+" "+AnsiString(Event->Params[1].asdouble)+" "+AnsiString(Event->Params[2].asdouble));
      }
@@ -3262,7 +3262,7 @@ bool __fastcall TGround::CheckQuery()
       if (tmpEvent->Params[6].asTrack)
       {//McZapkie-100302 - updatevalues oprocz zmiany wartosci robi putcommand dla wszystkich 'dynamic' na danym torze
        for (int i=0;i<tmpEvent->Params[6].asTrack->iNumDynamics;++i)
-        tmpEvent->Params[5].asMemCell->PutCommand(tmpEvent->Params[6].asTrack->Dynamics[i]->Mechanik,&tmpEvent->Params[4].asGroundNode->pCenter);
+        tmpEvent->Params[5].asMemCell->PutCommand(tmpEvent->Params[6].asTrack->Dynamics[i]->Mechanik,&tmpEvent->Params[4].nGroundNode->pCenter);
        if (DebugModeFlag)
         WriteLog("Type: UpdateValues & Track command - "+AnsiString(tmpEvent->Params[0].asText)+" "+AnsiString(tmpEvent->Params[1].asdouble)+" "+AnsiString(tmpEvent->Params[2].asdouble));
       }
@@ -3274,13 +3274,13 @@ bool __fastcall TGround::CheckQuery()
     case tp_GetValues:
      if (tmpEvent->Activator)
      {
-      //loc.X= -tmpEvent->Params[8].asGroundNode->pCenter.x;
-      //loc.Y=  tmpEvent->Params[8].asGroundNode->pCenter.z;
-      //loc.Z=  tmpEvent->Params[8].asGroundNode->pCenter.y;
+      //loc.X= -tmpEvent->Params[8].nGroundNode->pCenter.x;
+      //loc.Y=  tmpEvent->Params[8].nGroundNode->pCenter.z;
+      //loc.Z=  tmpEvent->Params[8].nGroundNode->pCenter.y;
       if (Global::iMultiplayer) //potwierdzenie wykonania dla serwera (odczyt semafora ju¿ tak nie dzia³a)
        WyslijEvent(tmpEvent->asName,tmpEvent->Activator->GetName());
       //tmpEvent->Params[9].asMemCell->PutCommand(tmpEvent->Activator->Mechanik,loc);
-      tmpEvent->Params[9].asMemCell->PutCommand(tmpEvent->Activator->Mechanik,&tmpEvent->Params[8].asGroundNode->pCenter);
+      tmpEvent->Params[9].asMemCell->PutCommand(tmpEvent->Activator->Mechanik,&tmpEvent->Params[8].nGroundNode->pCenter);
      }
      WriteLog("Type: GetValues");
     break;
@@ -3306,8 +3306,8 @@ bool __fastcall TGround::CheckQuery()
         tmpEvent->Params[9].asModel->LightSet(i,tmpEvent->Params[i].asdouble); //teraz te¿ u³amek
     break;
     case tp_Visible:
-     if (tmpEvent->Params[9].asGroundNode)
-      tmpEvent->Params[9].asGroundNode->bVisible=(tmpEvent->Params[i].asInt>0);
+     if (tmpEvent->Params[9].nGroundNode)
+      tmpEvent->Params[9].nGroundNode->bVisible=(tmpEvent->Params[i].asInt>0);
     break;
     case tp_Velocity :
      Error("Not implemented yet :(");
@@ -3445,7 +3445,7 @@ bool __fastcall TGround::CheckQuery()
        tmpEvent->Params[9].asMemCell->Value1()+" "+
        tmpEvent->Params[9].asMemCell->Value2());
      else //lista wszystkich
-      for (TGroundNode *Current=nRootOfType[TP_MEMCELL];Current;Current=Current->Next)
+      for (TGroundNode *Current=nRootOfType[TP_MEMCELL];Current;Current=Current->nNext)
        WriteLog("Memcell \""+Current->asName+"\": "+
         Current->MemCell->Text()+" "+
         Current->MemCell->Value1()+" "+
@@ -3496,26 +3496,26 @@ bool __fastcall TGround::Update(double dt,int iter)
  //    oddzieln¹ listê mo¿na by zrobiæ na pojazdy z napêdem, najlepiej posortowan¹ wg typu napêdu
  if (iter>1) //ABu: ponizsze wykonujemy tylko jesli wiecej niz jedna iteracja
  {//pierwsza iteracja i wyznaczenie stalych:
-  for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
+  for (TGroundNode *Current=nRootDynamic;Current;Current=Current->nNext)
   {//
    Current->DynamicObject->MoverParameters->ComputeConstans();
    Current->DynamicObject->CoupleDist();
    Current->DynamicObject->UpdateForce(dt,dt,false);
   }
-  for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
+  for (TGroundNode *Current=nRootDynamic;Current;Current=Current->nNext)
    Current->DynamicObject->FastUpdate(dt);
   //pozostale iteracje
   for (int i=1;i<(iter-1);++i) //jeœli iter==5, to wykona siê 3 razy
   {
-   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
+   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->nNext)
     Current->DynamicObject->UpdateForce(dt,dt,false);
-   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
+   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->nNext)
     Current->DynamicObject->FastUpdate(dt);
   }
   //ABu 200205: a to robimy tylko raz, bo nie potrzeba wiêcej
   //Winger 180204 - pantografy
   double dt1=dt*iter; //ca³kowity czas
-  for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
+  for (TGroundNode *Current=nRootDynamic;Current;Current=Current->nNext)
   {//Ra: zmieniæ warunek na sprawdzanie pantografów w jednej zmiennej: czy pantografy i czy podniesione
    if (Current->DynamicObject->MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
    //ABu: usunalem, bo sie krzaczylo: && (Current->DynamicObject->MoverParameters->PantFrontUp || Current->DynamicObject->MoverParameters->PantRearUp))
@@ -3524,12 +3524,12 @@ bool __fastcall TGround::Update(double dt,int iter)
       GetTraction(Current->DynamicObject);
    Current->DynamicObject->UpdateForce(dt,dt1,true);//,true);
   }
-  for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
+  for (TGroundNode *Current=nRootDynamic;Current;Current=Current->nNext)
    Current->DynamicObject->Update(dt,dt1);
  }
  else
  {//jezeli jest tylko jedna iteracja
-  for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
+  for (TGroundNode *Current=nRootDynamic;Current;Current=Current->nNext)
   {
    if (Current->DynamicObject->MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
       //&&(Current->DynamicObject->MoverParameters->CabNo!=0))
@@ -3538,12 +3538,12 @@ bool __fastcall TGround::Update(double dt,int iter)
    Current->DynamicObject->CoupleDist();
    Current->DynamicObject->UpdateForce(dt,dt,true);//,true);
   }
-  for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
+  for (TGroundNode *Current=nRootDynamic;Current;Current=Current->nNext)
    Current->DynamicObject->Update(dt,dt);
  }
  if (bDynamicRemove)
  {//jeœli jest coœ do usuniêcia z listy, to trzeba na koñcu
-  for (TGroundNode *Current=nRootDynamic;Current;Current=Current->Next)
+  for (TGroundNode *Current=nRootDynamic;Current;Current=Current->nNext)
    if (!Current->DynamicObject->bEnabled)
    {
     DynamicRemove(Current->DynamicObject); //usuniêcie tego i pod³¹czonych
@@ -3983,12 +3983,12 @@ void __fastcall TGround::DynamicRemove(TDynamicObject* dyn)
    //node=NULL; //nie znalezione
    while (*n?(*n)->DynamicObject!=d:false)
    {//usuwanie z listy pojazdów
-    n=&((*n)->Next); //sprawdzenie kolejnego pojazdu na liœcie
+    n=&((*n)->nNext); //sprawdzenie kolejnego pojazdu na liœcie
    }
    if ((*n)->DynamicObject==d)
    {//jeœli znaleziony
     node=(*n); //zapamiêtanie wêz³a, aby go usun¹æ
-    (*n)=node->Next; //pominiêcie na liœcie
+    (*n)=node->nNext; //pominiêcie na liœcie
     Global::TrainDelete(d);
     d=d->Next(); //przejœcie do kolejnego pojazdu, póki jeszcze jest
     delete node; //usuwanie fizyczne z pamiêci
@@ -4081,7 +4081,7 @@ void __fastcall TGround::TrackBusyList()
  TGroundNode *Current;
  TTrack *Track;
  AnsiString name;
- for (Current=nRootOfType[TP_TRACK];Current;Current=Current->Next)
+ for (Current=nRootOfType[TP_TRACK];Current;Current=Current->nNext)
   if (!Current->asName.IsEmpty()) //musi byæ nazwa
    if (Current->pTrack->iNumDynamics) //osi to chyba nie ma jak policzyæ
     WyslijString(Current->asName,8); //zajêty
