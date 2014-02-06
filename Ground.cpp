@@ -2887,30 +2887,31 @@ void __fastcall TGround::InitTracks()
 
 void __fastcall TGround::InitTraction()
 {//³¹czenie drutów ze sob¹ oraz z torami i eventami
- TGroundNode *Current,*gnPower;
+ TGroundNode *nCurrent,*nPower;
  TTraction *tmp; //znalezione przês³o
  TTraction *Traction;
  int iConnection,state;
  AnsiString name;
- for (Current=nRootOfType[TP_TRACTION];Current;Current=Current->nNext)
+ for (nCurrent=nRootOfType[TP_TRACTION];nCurrent;nCurrent=nCurrent->nNext)
  {//pod³¹czenie do zasilacza, ¿eby mo¿na by³o sumowaæ pr¹d kilku pojazdów
   //a jednoczeœnie z jednego miejsca zmieniaæ napiêcie eventem
   //wykonywane najpierw, ¿eby mo¿na by³o logowaæ pod³¹czenie 2 zasilaczy do jednego drutu
   //TODO: przemyœleæ dzia³anie izolatora zawieszonego na przêœle (2 ró¿ne zasilania przês³a)
   //- mo¿e niech przês³o z izolatorem ma nazwê "*"? "none" nie bêdzie odpowiednie
-  Traction=Current->hvTraction;
-  gnPower=FindGroundNode(Traction->asPowerSupplyName,TP_TRACTIONPOWERSOURCE);
-  if (gnPower) //jak zasilacz znaleziony
-   Traction->psPower=gnPower->psTractionPowerSource; //to pod³¹czyæ do przês³a
+  Traction=nCurrent->hvTraction;
+  nPower=FindGroundNode(Traction->asPowerSupplyName,TP_TRACTIONPOWERSOURCE);
+  if (nPower) //jak zasilacz znaleziony
+   Traction->psPower=nPower->psTractionPowerSource; //to pod³¹czyæ do przês³a
   else
-   ErrorLog("Missed TractionPowerSource: "+Traction->asPowerSupplyName);
+   if (Traction->asPowerSupplyName!="*") //gwiazdka dla przês³a z izolatorem
+    ErrorLog("Missed TractionPowerSource: "+Traction->asPowerSupplyName);
  }
- for (Current=nRootOfType[TP_TRACTION];Current;Current=Current->nNext)
+ for (nCurrent=nRootOfType[TP_TRACTION];nCurrent;nCurrent=nCurrent->nNext)
  {
-  Traction=Current->hvTraction;
+  Traction=nCurrent->hvTraction;
   if (!Traction->hvNext[0]) //tylko jeœli jeszcze nie pod³¹czony
   {
-   tmp=FindTraction(&Traction->pPoint1,iConnection,Current);
+   tmp=FindTraction(&Traction->pPoint1,iConnection,nCurrent);
    switch (iConnection)
    {
     case 0:
@@ -2920,14 +2921,15 @@ void __fastcall TGround::InitTraction()
      Traction->Connect(0,tmp,1);
     break;
    }
-   //Ra: na razie wy³¹czone, ¿eby nie steresowaæ twórców scenerii
-   //if (Traction->hvNext[0]) //jeœli zosta³ pod³¹czony
-   // if (Traction->psPower!=tmp->psPower)
-   //  ErrorLog("Bad power: at..."); //dodaæ wspó³rzêdne Traction->pPoint1
+   //Ra: to mo¿e dodatkowo steresowaæ twórców scenerii
+   if (Traction->hvNext[0]) //jeœli zosta³ pod³¹czony
+    if (Traction->psPower) //tylko przês³o z izolatorem mo¿e nie mieæ zasilania, bo ma 2, trzeba sprawdzaæ s¹siednie
+     if (Traction->psPower!=tmp->psPower)
+      ErrorLog("Bad power: at "+FloatToStrF(Traction->pPoint1.x,ffFixed,6,2)+" "+FloatToStrF(Traction->pPoint1.y,ffFixed,6,2)+" "+FloatToStrF(Traction->pPoint1.z,ffFixed,6,2)); //dodaæ wspó³rzêdne
   }
   if (!Traction->hvNext[1]) //tylko jeœli jeszcze nie pod³¹czony
   {
-   tmp=FindTraction(&Traction->pPoint2,iConnection,Current);
+   tmp=FindTraction(&Traction->pPoint2,iConnection,nCurrent);
    switch (iConnection)
    {
     case 0:
@@ -2937,14 +2939,15 @@ void __fastcall TGround::InitTraction()
      Traction->Connect(1,tmp,1);
     break;
    }
-   //Ra: na razie wy³¹czone, ¿eby nie steresowaæ twórców scenerii
-   //if (Traction->hvNext[1]) //jeœli zosta³ pod³¹czony
-   // if (Traction->psPower!=tmp->psPower)
-   //  ErrorLog("Bad power: at..."); //dodaæ wspó³rzêdne Traction->pPoint2
+   //Ra: to mo¿e dodatkowo steresowaæ twórców scenerii
+   if (Traction->hvNext[1]) //jeœli zosta³ pod³¹czony
+    if (Traction->psPower) //tylko przês³o z izolatorem mo¿e nie mieæ zasilania, bo ma 2, trzeba sprawdzaæ s¹siednie
+     if (Traction->psPower!=tmp->psPower)
+      ErrorLog("Bad power: at "+FloatToStrF(Traction->pPoint2.x,ffFixed,6,2)+" "+FloatToStrF(Traction->pPoint2.y,ffFixed,6,2)+" "+FloatToStrF(Traction->pPoint2.z,ffFixed,6,2)); //dodaæ wspó³rzêdne
   }
  }
- for (Current=nRootOfType[TP_TRACTION];Current;Current=Current->nNext)
-  Current->hvTraction->WhereIs(); //oznakowanie przedostatnich przêse³
+ for (nCurrent=nRootOfType[TP_TRACTION];nCurrent;nCurrent=nCurrent->nNext)
+  nCurrent->hvTraction->WhereIs(); //oznakowanie przedostatnich przêse³
 };
 
 void __fastcall TGround::TrackJoin(TGroundNode *Current)
