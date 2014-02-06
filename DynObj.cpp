@@ -2325,11 +2325,13 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
    sPantDown.Play(vol,0,MechInside,vPosition);
    MoverParameters->PantRearSP=true;
   }
-  //Winger 240404 - wylaczanie sprezarki i przetwornicy przy braku napiecia
-  if (tmpTraction.TractionVoltage==0)
-  {
-   MoverParameters->ConverterFlag=false;
-   MoverParameters->CompressorFlag=false; //Ra: to jest w¹tpliwe - wy³¹czenie sprê¿arki powinno byæ w jednym miejscu!
+  if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
+  {//Winger 240404 - wylaczanie sprezarki i przetwornicy przy braku napiecia
+   if (tmpTraction.TractionVoltage==0)
+   {//to coœ wy³¹cza³o dŸwiêk silnika w ST43!
+    MoverParameters->ConverterFlag=false;
+    MoverParameters->CompressorFlag=false; //Ra: to jest w¹tpliwe - wy³¹czenie sprê¿arki powinno byæ w jednym miejscu!
+   }
   }
  }
  else if (MoverParameters->EnginePowerSource.SourceType==InternalSource)
@@ -3298,11 +3300,13 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
         {//Ra: tworzenie tabeli animacji, jeœli jeszcze nie by³o
          if (!iAnimations) //jeœli nie podano jawnie, ile ma byæ animacji
           iAnimations=28; //tyle by³o kiedyœ w ka¿dym pojeŸdzie (2 wi¹zary wypad³y)
+         /* //pojazd mo¿e mieæ pantograf do innych celów ni¿ napêd
          if (MoverParameters->EnginePowerSource.SourceType!=CurrentCollector)
          {//nie bêdzie pantografów, to siê trochê uproœci
           iAnimations-=iAnimType[ANIM_PANTS]; //domyœlnie by³y 2 pantografy
           iAnimType[ANIM_PANTS]=0;
          }
+         */
          pAnimations=new TAnim[iAnimations];
          int i,j,k=0,sm=0;
          for (j=0;j<ANIM_TYPES;++j)
