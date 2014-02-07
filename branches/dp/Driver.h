@@ -145,6 +145,7 @@ private: //parametry aktualnego sk³adu
 public:
  TEvent *eSignNext; //sygna³ zmieniaj¹cy prêdkoœæ, do pokazania na [F2]
  AnsiString asNextStop; //nazwa nastêpnego punktu zatrzymania wg rozk³adu
+ int iStationStart; //numer pierwszej stacji pokazywanej na podgl¹dzie rozk³adu
 private: //parametry sterowania pojazdem (stan, hamowanie)
  double fShuntVelocity; //maksymalna prêdkoœæ manewrowania, zale¿y m.in. od sk³adu
  int iVehicles; //iloœæ pojazdów w sk³adzie

@@ -1972,7 +1972,7 @@ bool __fastcall TWorld::Update()
       //glPrint("|============================|=======|=======|=====|");
       glPrint("|----------------------------|-------|-------|-----|");
       TMTableLine *t;
-      for (int i=tt->StationIndex;i<=tt->StationCount;++i)
+      for (int i=tmp->Mechanik->iStationStart;i<=tt->StationCount;++i)
       {//wyœwietlenie pozycji z rozk³adu
        t=tt->TimeTable+i; //linijka rozk³adu
        OutText1=AnsiString(AnsiString(t->StationName)+"                          ").SubString(1,26);
@@ -1982,9 +1982,16 @@ bool __fastcall TWorld::Update()
        OutText4=OutText4.SubString(OutText4.Length()-2,3); //z wyrównaniem do prawej
        //if (AnsiString(t->StationWare).Pos("@"))
        OutText1="| "+OutText1+" | "+OutText2+" | "+OutText3+" | "+OutText4+" | "+AnsiString(t->StationWare);
-       glRasterPos2f(-0.25f,0.18f-0.02f*(i-tt->StationIndex));
-       glPrint(Bezogonkow(OutText1).c_str());
-       glRasterPos2f(-0.25f,0.17f-0.02f*(i-tt->StationIndex));
+       glRasterPos2f(-0.25f,0.18f-0.02f*(i-tmp->Mechanik->iStationStart));
+       if ((tmp->Mechanik->iStationStart<tt->StationIndex)?(i<tt->StationIndex):false)
+       {//czas min¹³ i odjazd by³, to nazwa stacji bêdzie na zielono
+        glColor3f(0.0f,1.0f,0.0f);
+        glPrint(Bezogonkow(OutText1).c_str());
+        glColor3f(1.0f,1.0f,1.0f); //a reszta bia³ym
+       }
+       else //normalne wyœwietlanie, bez zmiany kolorów
+        glPrint(Bezogonkow(OutText1).c_str());
+       glRasterPos2f(-0.25f,0.17f-0.02f*(i-tmp->Mechanik->iStationStart));
        glPrint("|----------------------------|-------|-------|-----|");
       }
      }

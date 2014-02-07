@@ -645,6 +645,8 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
      if (OrderCurrentGet()&Obey_train)
      {//w trybie poci¹gowym: mo¿na przyspieszyæ do wskazanej prêdkoœci (po zjechaniu z rozjazdów)
       v=-1.0; //ignorowaæ?
+      if (sSpeedTable[i].fDist<0.0) //jeœli wskaŸnik zosta³ miniêty
+       iStationStart=TrainParams->StationIndex; //zaktualizowaæ wyœwietlanie rozk³adu
      }
      else
      {//w trybie manewrowym: skanowaæ od niej wstecz, stan¹æ po wyjechaniu za sygnalizator i zmieniæ kierunek
@@ -671,7 +673,7 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
       {//jeœli tryb poci¹gowy a tarcze ma ShuntVelocity 0 0
        v=-1; //ignorowaæ, chyba ¿e prêdkoœæ stanie siê niezerowa
        if (sSpeedTable[i].iFlags&0x20) //a jak przejechana
-        sSpeedTable[i].iFlags=0; //to mo¿na usun¹æ, bo podstawowy automat usuwa tylko niezwrowe
+        sSpeedTable[i].iFlags=0; //to mo¿na usun¹æ, bo podstawowy automat usuwa tylko niezerowe
       }
       else
        if (go<=cm_Ready)
@@ -907,6 +909,7 @@ __fastcall TController::TController
  eAction=actSleep;
  rsGuardSignal=NULL; //komunikat od kierownika
  iGuardRadio=0; //nie przez radio
+ iStationStart=0; //nic?
 };
 
 void __fastcall TController::CloseLog()
@@ -1905,6 +1908,7 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
    {//inicjacja pierwszego przystanku i pobranie jego nazwy
     TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,TrainParams->NextStationName);
     TrainParams->StationIndexInc(); //przejœcie do nastêpnej
+    iStationStart=TrainParams->StationIndex;
     asNextStop=TrainParams->NextStop();
     iDrivigFlags|=movePrimary; //skoro dosta³ rozk³ad, to jest teraz g³ównym
     NewCommand=Global::asCurrentSceneryPath+NewCommand+".wav"; //na razie jeden
