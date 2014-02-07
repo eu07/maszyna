@@ -149,6 +149,9 @@ struct TCurrentCollector
 	double MinH;
 	double MaxH;
 	double CSW;
+	double MinV;
+	double MaxV;
+	double MinPress;
 } ;
 
 #pragma option push -b-

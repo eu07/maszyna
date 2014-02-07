@@ -243,8 +243,10 @@ TYPE
     {rodzaj odbieraka pradu}
     TCurrentCollector = record
                           CollectorsNo: longint; //musi byæ tu, bo inaczej siê kopie
-                          MinH,MaxH: real;
-                          CSW: real;      {szerokosc slizgacza}
+                          MinH,MaxH: real; //zakres ruchu pantografu, nigdzie nie u¿ywany
+                          CSW: real;       //szerokoœæ œlizgacza
+                          MinV,MaxV: real; //minimalne i maksymalne akceptowane napiêcie
+                          MinPress: real;  //minimalne ciœnienie do za³¹czenia WS
                         end;
     {typy zrodel mocy}
     TPowerSource = (NotDefined, InternalSource, Transducer, Generator, Accumulator, CurrentCollector, PowerCable, Heater);
@@ -3987,7 +3989,7 @@ begin
         if (Abs(Im)>Imax) then
          FuseOff;                     {wywalanie bezpiecznika z powodu przetezenia silnikow}
         if (Mains) then //nie wchodziæ w funkcjê bez potrzeby
-         if (Abs(Voltage)<EnginePowerSource.MaxVoltage/2.0) or (Abs(Voltage)>EnginePowerSource.MaxVoltage*2) then
+         if (Abs(Voltage)<EnginePowerSource.CollectorParameters.MinV) or (Abs(Voltage)>EnginePowerSource.CollectorParameters.MaxV) then
           if MainSwitch(false) then
            EventFlag:=true; //wywalanie szybkiego z powodu niew³aœciwego napiêcia
 
@@ -6179,6 +6181,17 @@ function PowerDecode(s:string): TPowerType;
                                MinH:=s2rE(DUE(ExtractKeyWord(lines,'MinH=')));
                                MaxH:=s2rE(DUE(ExtractKeyWord(lines,'MaxH=')));
                                CSW:=s2rE(DUE(ExtractKeyWord(lines,'CSW=')));
+                               MaxV:=s2rE(DUE(ExtractKeyWord(lines,'MaxVoltage=')));
+                               s:=ExtractKeyWord(lines,'MinV='); //napiêcie roz³¹czaj¹ce WS
+                               if s='' then
+                                MinV:=0.5*MaxV //gdyby parametr nie podany
+                               else
+                                MinV:=s2rE(DUE(s));
+                               s:=ExtractKeyWord(lines,'MinPress='); //ciœnienie roz³¹czaj¹ce WS
+                               if s='' then
+                                MinPress:=2.0 //domyœlnie 2 bary do za³¹czenia WS
+                               else
+                                MinPress:=s2rE(DUE(s));
                              end;
                           end;
         PowerCable : begin
