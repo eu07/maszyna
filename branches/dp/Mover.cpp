@@ -264,8 +264,8 @@ void __fastcall TMoverParameters::UpdatePantVolume(double dt)
   PantVolume-=dt*0.0003; //nieszczelnoœci: 0.0003=0.3l/s
  if (Mains) //nie wchodziæ w funkcjê bez potrzeby
   if (EngineType==ElectricSeriesMotor) //nie dotyczy... czego w³aœciwie?
-   if (PantPress<3.5)
-    if ((TrainType&(dt_EZT|dt_ET40|dt_ET41|dt_ET42))?(GetTrainsetVoltage()<2200):true) //to jest trochê proteza; zasilanie cz³onu mo¿e byæ przez sprzêg WN
+   if (PantPress<EnginePowerSource.CollectorParameters.MinPress)
+    if ((TrainType&(dt_EZT|dt_ET40|dt_ET41|dt_ET42))?(GetTrainsetVoltage()<EnginePowerSource.CollectorParameters.MinV):true) //to jest trochê proteza; zasilanie cz³onu mo¿e byæ przez sprzêg WN
      if (MainSwitch(false))
       EventFlag=true; //wywalenie szybkiego z powodu niskiego ciœnienia
  if (TrainType!=dt_EZT) //w EN57 pompuje siê tylko w silnikowym
@@ -285,10 +285,10 @@ void __fastcall TMoverParameters::UpdateBatteryVoltage(double dt)
   if ((NominalBatteryVoltage/BatteryVoltage<1.22)&&Battery)
   {//110V
    if (!ConverterFlag)
-    sn1=(dt*50); //szybki spadek do ok 90V
+    sn1=(dt*10); //szybki spadek do ok 90V
    else sn1=0;
    if (ConverterFlag)
-    sn2=-(dt*50); //szybki wzrost do 110V
+    sn2=-(dt*10); //szybki wzrost do 110V
    else sn2=0;
    if (Mains)
     sn3=(dt*0.05);
