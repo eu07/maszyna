@@ -107,8 +107,10 @@ bool __fastcall TMemCell::Load(cParser *parser)
  SafeDeleteArray(szText);
  szText=new char[256]; //musi byæ bufor do ³¹czenia tekstów
  strcpy(szText,token.c_str());
- parser->getTokens(2);
- *parser >> fValue1 >> fValue2;
+ parser->getTokens();
+ *parser >> fValue1;
+ parser->getTokens();
+ *parser >> fValue2;
  parser->getTokens();
  *parser >> token;
  asTrackName= AnsiString(token.c_str());
