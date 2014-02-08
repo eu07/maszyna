@@ -37,6 +37,7 @@ TTraction::TTraction()
  hvNext[0]=hvNext[1]=NULL;
  iLast=1; //¿e niby ostatni drut
  psPower=NULL; //na pocz¹tku nie pod³¹czone
+ hvParallel=NULL; //normalnie brak bie¿ni wspólnej
 }
 
 TTraction::~TTraction()
