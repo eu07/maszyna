@@ -2912,7 +2912,8 @@ void __fastcall TGround::InitTraction()
    Traction->psPower=nPower->psTractionPowerSource; //to pod³¹czyæ do przês³a
   else
    if (Traction->asPowerSupplyName!="*") //gwiazdka dla przês³a z izolatorem
-    ErrorLog("Missed TractionPowerSource: "+Traction->asPowerSupplyName);
+    if (Traction->asPowerSupplyName!="none") //dopuszczamy na razie brak pod³¹czenia?
+     ErrorLog("Missed TractionPowerSource: "+Traction->asPowerSupplyName);
   if (!Traction->asParallel.IsEmpty()) //bêdzie wskaŸnik na inne przês³o
   {nPower=FindGroundNode(Traction->asPowerSupplyName,TP_TRACTION);
    if (nPower) Traction->hvParallel=nPower->hvTraction; //o ile znalezione
@@ -2936,10 +2937,10 @@ void __fastcall TGround::InitTraction()
     break;
    }
    //Ra: to mo¿e dodatkowo steresowaæ twórców scenerii
-   if (Traction->hvNext[0]) //jeœli zosta³ pod³¹czony
-    if (Traction->psPower) //tylko przês³o z izolatorem mo¿e nie mieæ zasilania, bo ma 2, trzeba sprawdzaæ s¹siednie
-     if (Traction->psPower!=tmp->psPower)
-      ErrorLog("Bad power: at "+FloatToStrF(Traction->pPoint1.x,ffFixed,6,2)+" "+FloatToStrF(Traction->pPoint1.y,ffFixed,6,2)+" "+FloatToStrF(Traction->pPoint1.z,ffFixed,6,2)); //dodaæ wspó³rzêdne
+   //if (Traction->hvNext[0]) //jeœli zosta³ pod³¹czony
+   // if (Traction->psPower) //tylko przês³o z izolatorem mo¿e nie mieæ zasilania, bo ma 2, trzeba sprawdzaæ s¹siednie
+   //  if (Traction->psPower!=tmp->psPower)
+   //   ErrorLog("Bad power: at "+FloatToStrF(Traction->pPoint1.x,ffFixed,6,2)+" "+FloatToStrF(Traction->pPoint1.y,ffFixed,6,2)+" "+FloatToStrF(Traction->pPoint1.z,ffFixed,6,2)); //dodaæ wspó³rzêdne
   }
   if (!Traction->hvNext[1]) //tylko jeœli jeszcze nie pod³¹czony
   {
@@ -2954,10 +2955,10 @@ void __fastcall TGround::InitTraction()
     break;
    }
    //Ra: to mo¿e dodatkowo steresowaæ twórców scenerii
-   if (Traction->hvNext[1]) //jeœli zosta³ pod³¹czony
-    if (Traction->psPower) //tylko przês³o z izolatorem mo¿e nie mieæ zasilania, bo ma 2, trzeba sprawdzaæ s¹siednie
-     if (Traction->psPower!=tmp->psPower)
-      ErrorLog("Bad power: at "+FloatToStrF(Traction->pPoint2.x,ffFixed,6,2)+" "+FloatToStrF(Traction->pPoint2.y,ffFixed,6,2)+" "+FloatToStrF(Traction->pPoint2.z,ffFixed,6,2)); //dodaæ wspó³rzêdne
+   //if (Traction->hvNext[1]) //jeœli zosta³ pod³¹czony
+   // if (Traction->psPower) //tylko przês³o z izolatorem mo¿e nie mieæ zasilania, bo ma 2, trzeba sprawdzaæ s¹siednie
+   //  if (Traction->psPower!=tmp->psPower)
+   //   ErrorLog("Bad power: at "+FloatToStrF(Traction->pPoint2.x,ffFixed,6,2)+" "+FloatToStrF(Traction->pPoint2.y,ffFixed,6,2)+" "+FloatToStrF(Traction->pPoint2.z,ffFixed,6,2)); //dodaæ wspó³rzêdne
   }
  }
  for (nCurrent=nRootOfType[TP_TRACTION];nCurrent;nCurrent=nCurrent->nNext)

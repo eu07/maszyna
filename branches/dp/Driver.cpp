@@ -990,6 +990,7 @@ void __fastcall TController::Activation()
   if (TestFlag(d->MoverParameters->Couplers[iDirectionOrder<0?1:0].CouplingFlag,ctrain_controll))
   {mvControlling->MainSwitch(false); //dezaktywacja czuwaka, jeœli przejœcie do innego cz³onu
    mvOccupied->DecLocalBrakeLevel(10); //zwolnienie hamulca w opuszczanym pojeŸdzie
+   mvOccupied->BrakeLevelSet((mvOccupied->BrakeHandle==FVel6)?4:-2); //odciêcie na zaworze maszynisty, FVel6 po drugiej stronie nie luzuje
   }
   mvOccupied->ActiveCab=mvOccupied->CabNo; //u¿ytkownik moze zmieniæ ActiveCab wychodz¹c
   mvOccupied->CabDeactivisation(); //tak jest w Train.cpp
@@ -1004,7 +1005,7 @@ void __fastcall TController::Activation()
      iDirection=-iDirection; //to bêdziemy jechaæ w drug¹ stronê wzglêdem zasiedzianego pojazdu
     pVehicle->Mechanik=NULL; //tam ju¿ nikogo nie ma
     pVehicle->MoverParameters->CabNo=0; //wy³¹czanie kabin po drodze
-    //pVehicle->MoverParameters->ActiveCab=0;
+    pVehicle->MoverParameters->ActiveCab=0; //i zaznaczenie, ¿e nie ma tam nikogo
     pVehicle=d; //a mechu ma nowy pojazd (no, cz³on)
    }
    else break; //jak zajête, albo koniec sk³adu, to mechanik dalej nie idzie (wywaliæ drugiego?)

@@ -247,7 +247,7 @@ bool __fastcall TMoverParameters::CurrentSwitch(int direction)
 
 void __fastcall TMoverParameters::UpdatePantVolume(double dt)
 {//KURS90 - sprê¿arka pantografów
- if (bPantKurek3) //kurek zamyka po³¹czenie z ZG
+ if ((TrainType==dt_EZT)?(PantPress<ScndPipePress):bPantKurek3) //kurek zamyka po³¹czenie z ZG
  {//zbiornik pantografu po³¹czony ze zbiornikiem g³ównym - ma³¹ sprê¿ark¹ siê tego nie napompuje
   //Ra 2013-12: Niebugoc³aw mówi, ¿e w EZT nie ma potrzeby odcinaæ kurkiem
   PantPress=ScndPipePress;
