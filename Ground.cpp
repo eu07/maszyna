@@ -1493,8 +1493,16 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    tmp->bVisible=(token.compare("vis")==0);
    parser->getTokens();
    *parser >> token;
-   if ( token.compare( "endtraction" )!=0)
-     Error("ENDTRACTION delimiter missing! "+str2+" found instead.");
+   if (token.compare("parallel")==0)
+   {//jawne wskazanie innego przês³a, na które mo¿e przestawiæ siê pantograf
+    parser->getTokens();
+    *parser >> token; //wypada³o by to zapamiêtaæ...
+    tmp->hvTraction->asParallel=AnsiString(token.c_str());
+    parser->getTokens();
+    *parser >> token; //a tu ju¿ powinien byæ koniec
+   }
+   if (token.compare("endtraction")!=0)
+    Error("ENDTRACTION delimiter missing! "+str2+" found instead.");
    tmp->hvTraction->Init(); //przeliczenie parametrów
    if (Global::bLoadTraction)
     tmp->hvTraction->Optimize();
@@ -2905,6 +2913,12 @@ void __fastcall TGround::InitTraction()
   else
    if (Traction->asPowerSupplyName!="*") //gwiazdka dla przês³a z izolatorem
     ErrorLog("Missed TractionPowerSource: "+Traction->asPowerSupplyName);
+  if (!Traction->asParallel.IsEmpty()) //bêdzie wskaŸnik na inne przês³o
+  {nPower=FindGroundNode(Traction->asPowerSupplyName,TP_TRACTION);
+   if (nPower) Traction->hvParallel=nPower->hvTraction; //o ile znalezione
+   if (!Traction->hvParallel)
+    ErrorLog("Missed overhead: "+Traction->asParallel); //logowanie braku
+  }
  }
  for (nCurrent=nRootOfType[TP_TRACTION];nCurrent;nCurrent=nCurrent->nNext)
  {
@@ -2947,7 +2961,9 @@ void __fastcall TGround::InitTraction()
   }
  }
  for (nCurrent=nRootOfType[TP_TRACTION];nCurrent;nCurrent=nCurrent->nNext)
-  nCurrent->hvTraction->WhereIs(); //oznakowanie przedostatnich przêse³
+ {nCurrent->hvTraction->WhereIs(); //oznakowanie przedostatnich przêse³
+  //if (!Traction->hvParallel) //jeszcze utworzyæ pêtle z bie¿ni wspólnych
+ }
 };
 
 void __fastcall TGround::TrackJoin(TGroundNode *Current)

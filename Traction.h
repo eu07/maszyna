@@ -43,6 +43,8 @@ public:
  float WireOffset;
  AnsiString asPowerSupplyName; //McZapkie: nazwa podstacji trakcyjnej
  TTractionPowerSource *psPower; //zasilacz (opcjonalnie mo¿e to byæ pulpit steruj¹cy w hali!)
+ AnsiString asParallel; //nazwa przês³a, z którym mo¿e byæ bie¿nia wspólna
+ TTraction *hvParallel; //jednokierunkowa i zapêtlona lista przêse³ ewentualnej bie¿ni wspólnej
  //bool bVisible;
  //DWORD dwFlags;
 
