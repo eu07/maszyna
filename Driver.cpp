@@ -3500,7 +3500,8 @@ bool __fastcall TController::BackwardScan()
   return false; //nie robimy nic
  double scandir=startdir*pVehicles[0]->RaDirectionGet(); //szukamy od pierwszej osi w wybranym kierunku
  if (scandir!=0.0) //skanowanie toru w poszukiwaniu eventów GetValues (PutValues nie s¹ przydatne)
- {//Ra: skanowanie drogi proporcjonalnej do kwadratu aktualnej prêdkoœci (+150m), no chyba ¿e stoi (wtedy 1000m)
+ {//Ra: przy wstecznym skanowaniu prêdkoœæ nie ma znaczenia
+  //scanback=pVehicles[1]->NextDistance(fLength+1000.0); //odleg³oœæ do nastêpnego pojazdu, 1000 gdy nic nie ma
   double scanmax=1000; //1000m do ty³u, ¿eby widzia³ przeciwny koniec stacji
   double scandist=scanmax; //zmodyfikuje na rzeczywiœcie przeskanowane
   TEvent *e=NULL; //event potencjalnie od semafora

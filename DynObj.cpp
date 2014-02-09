@@ -3938,6 +3938,15 @@ TDynamicObject* __fastcall TDynamicObject::Next()
   return iDirection?NextConnected:PrevConnected;
  return NULL; //gdy sprzêg wirtualny, to jakby nic nie by³o
 };
+double __fastcall TDynamicObject::NextDistance(double d)
+{//ustalenie odleg³oœci do nastêpnego pojazdu, potrzebne do wstecznego skanowania
+ if (!MoverParameters->Couplers[iDirection].Connected)
+  return d; //jeœli nic nie ma, zwrócenie domyœlnej wartoœci
+ if ((d<=0.0)||(MoverParameters->Couplers[iDirection].CoupleDist<d))
+  return MoverParameters->Couplers[iDirection].Dist;
+ else
+  return d;
+};
 
 TDynamicObject* __fastcall TDynamicObject::Neightbour(int &dir)
 {//ustalenie nastêpnego (1) albo poprzedniego (0) w sk³adzie bez wzglêdu na prawid³owoœæ iDirection
