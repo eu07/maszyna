@@ -1755,6 +1755,7 @@ bool __fastcall TWorld::Update()
         glColor3f(0.0f,1.0f,0.0f); //a, damy zielony
         glTranslatef(0.0f,0.0f,-0.50f);
         glRasterPos2f(-0.25f,0.20f);
+        //OutText1="Scan distance: "+AnsiString(tmp->Mechanik->scanmax)+", back: "+AnsiString(tmp->Mechanik->scanback);
         OutText1="Scan table:";
         glPrint(Bezogonkow(OutText1).c_str());
         int i=-1;
