@@ -2346,7 +2346,7 @@ bool __fastcall TController::UpdateSituation(double dt)
   if (fMass>1000.0) fBrakeDist*=1.5; //korekta dla ciê¿kich, bo prze¿ynaj¹ - da to coœ?
   if (mvOccupied->BrakeDelayFlag==bdelay_G) fBrakeDist=fBrakeDist+2*mvOccupied->Vel; //dla nastawienia G koniecznie nale¿y wyd³u¿yæ drogê na czas reakcji
   //double scanmax=(mvOccupied->Vel>0.0)?3*fDriverDist+fBrakeDist:10.0*fDriverDist;
-  double scanmax=(mvOccupied->Vel>0.0)?150+fBrakeDist:20.0*fDriverDist; //1000m dla stoj¹cych poci¹gów
+  double scanmax=(mvOccupied->Vel>1.0)?150+fBrakeDist:20.0*fDriverDist; //1000m dla stoj¹cych poci¹gów
   // 2. Sprawdziæ, czy tabelka pokrywa za³o¿ony odcinek (nie musi, jeœli jest STOP).
   // 3. Sprawdziæ, czy trajektoria ruchu przechodzi przez zwrotnice - jeœli tak, to sprawdziæ, czy stan siê nie zmieni³.
   // 4. Ewentualnie uzupe³niæ tabelkê informacjami o sygna³ach i ograniczeniach, jeœli siê "zu¿y³a".
