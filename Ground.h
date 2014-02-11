@@ -94,7 +94,7 @@ public:
   TEventLauncher *EvLaunch; //wyzwalacz zdarzeñ
   TTraction *hvTraction; //drut zasilaj¹cy
   TTractionPowerSource *psTractionPowerSource; //zasilanie drutu (zaniedbane w sceneriach)
-  TRealSound *pStaticSound; //dŸwiêk przestrzenny
+  TTextSound *tsStaticSound; //dŸwiêk przestrzenny
   TGroundNode *nNode; //obiekt renderuj¹cy grupowo ma tu wskaŸnik na listê obiektów
  };
  AnsiString asName; //nazwa (nie zawsze ma znaczenie)

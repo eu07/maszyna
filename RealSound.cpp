@@ -210,6 +210,21 @@ void __fastcall TRealSound::ResetPosition()
   pSound->SetCurrentPosition(0);
 }
 
+void __fastcall TTextSound::Init(char *SoundName,double SoundAttenuation,double X,double Y,double Z,bool Dynamic,bool freqmod)
+{//dodatkowo doczytuje plik tekstowy
+ TRealSound::Init(SoundName,SoundAttenuation,X,Y,Z,Dynamic,freqmod);
+ AnsiString txt=AnsiString(SoundName);
+ txt.Delete(txt.Length()-3,4); //obciêcie rozszerzenia
+ txt+="-pl.wav"; //na razie po polsku
+ if (FileExists(txt))
+ {//wczytanie
+  TFileStream *ts=new TFileStream(txt,fmOpenRead);
+  asText=AnsiString::StringOfChar(' ',ts->Size);
+  ts->Read(asText.c_str(),ts->Size);
+  delete ts;
+ }
+};
+
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
 

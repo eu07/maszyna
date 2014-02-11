@@ -236,7 +236,7 @@ void __fastcall TGroundNode::MoveMe(vector3 pPosition)
    pTrack->MoveMe(pPosition);
    break;
   case TP_SOUND: //McZapkie - dzwiek zapetlony w zaleznosci od odleglosci
-   pStaticSound->vSoundPosition+=pPosition;
+   tsStaticSound->vSoundPosition+=pPosition;
    break;
   case GL_LINES:
   case GL_LINE_STRIP:
@@ -488,10 +488,10 @@ void __fastcall TGroundNode::RenderHidden()
  switch (iType)
  {
   case TP_SOUND: //McZapkie - dzwiek zapetlony w zaleznosci od odleglosci
-   if ((pStaticSound->GetStatus()&DSBSTATUS_PLAYING)==DSBPLAY_LOOPING)
+   if ((tsStaticSound->GetStatus()&DSBSTATUS_PLAYING)==DSBPLAY_LOOPING)
    {
-    pStaticSound->Play(1,DSBPLAY_LOOPING,true,pStaticSound->vSoundPosition);
-    pStaticSound->AdjFreq(1.0,Timer::GetDeltaTime());
+    tsStaticSound->Play(1,DSBPLAY_LOOPING,true,tsStaticSound->vSoundPosition);
+    tsStaticSound->AdjFreq(1.0,Timer::GetDeltaTime());
    }
    return;
   case TP_EVLAUNCH:
@@ -1391,7 +1391,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
  GLuint TexID;
  TGroundNode *tmp1;
  TTrack *Track;
- TRealSound *tmpsound;
+ TTextSound *tmpsound;
  std::string token;
  parser->getTokens(2);
  *parser >> r >> rmin;
@@ -1443,7 +1443,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    tmp->hvTraction=new TTraction();
    parser->getTokens();
    *parser >> token;
-   tmp->hvTraction->asPowerSupplyName=AnsiString(token.c_str());
+   tmp->hvTraction->asPowerSupplyName=AnsiString(token.c_str()); //nazwa zasilacza
    parser->getTokens(3);
    *parser >> tmp->hvTraction->NominalVoltage >> tmp->hvTraction->MaxCurrent >> tmp->hvTraction->Resistivity;
    parser->getTokens();
@@ -1560,14 +1560,14 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
                  tmp->pTrack->CurrentSegment()->FastGetPoint_1() )/3.0;
    break;
   case TP_SOUND :
-   tmp->pStaticSound=new TRealSound;
+   tmp->tsStaticSound=new TTextSound;
    parser->getTokens(3);
    *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
    tmp->pCenter+=pOrigin;
    parser->getTokens();
    *parser >> token;
    str=AnsiString(token.c_str());
-   tmp->pStaticSound->Init(str.c_str(),sqrt(tmp->fSquareRadius),tmp->pCenter.x,tmp->pCenter.y,tmp->pCenter.z,false);
+   tmp->tsStaticSound->Init(str.c_str(),sqrt(tmp->fSquareRadius),tmp->pCenter.x,tmp->pCenter.y,tmp->pCenter.z,false);
 
 //            tmp->pDirectSoundBuffer=TSoundsManager::GetFromName(str.c_str());
 //            tmp->iState=(Parser->GetNextSymbol().LowerCase()=="loop"?DSBPLAY_LOOPING:0);
@@ -2662,7 +2662,7 @@ bool __fastcall TGround::InitEvents()
    case tp_Sound: //odtworzenie dŸwiêku
     tmp=FindGroundNode(Current->asNodeName,TP_SOUND);
     if (tmp)
-     Current->Params[9].asRealSound=tmp->pStaticSound;
+     Current->Params[9].tsTextSound=tmp->tsStaticSound;
     else
      ErrorLog("Bad sound: event \""+Current->asName+"\" cannot find static sound \""+Current->asNodeName+"\"");
     Current->asNodeName="";
@@ -3339,9 +3339,9 @@ bool __fastcall TGround::CheckQuery()
     case tp_Sound :
      switch (tmpEvent->Params[0].asInt)
      {//trzy mo¿liwe przypadki:
-      case 0: tmpEvent->Params[9].asRealSound->Stop(); break;
-      case 1: tmpEvent->Params[9].asRealSound->Play(1,0,true,tmpEvent->Params[9].asRealSound->vSoundPosition); break;
-      case -1: tmpEvent->Params[9].asRealSound->Play(1,DSBPLAY_LOOPING,true,tmpEvent->Params[9].asRealSound->vSoundPosition); break;
+      case 0: tmpEvent->Params[9].tsTextSound->Stop(); break;
+      case 1: tmpEvent->Params[9].tsTextSound->Play(1,0,true,tmpEvent->Params[9].tsTextSound->vSoundPosition); break;
+      case -1: tmpEvent->Params[9].tsTextSound->Play(1,DSBPLAY_LOOPING,true,tmpEvent->Params[9].tsTextSound->vSoundPosition); break;
      }
     break;
     case tp_Disable :

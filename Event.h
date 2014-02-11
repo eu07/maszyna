@@ -46,7 +46,7 @@ union TParam
     bool asBool;
     double asdouble;
     int asInt;
-    TRealSound *asRealSound;
+    TTextSound *tsTextSound;
     char *asText;
     TCommandType asCommand;
     TTractionPowerSource *psPower;
