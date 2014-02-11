@@ -1768,7 +1768,7 @@ void __fastcall TController::SpeedSet()
    if (mvControlling->MainCtrlPosNo>0)
    {//jeœli ma czym krêciæ
     //TODO: sprawdzanie innego czlonu //if (!FuseFlagCheck())
-    if ((AccDesired<fAccGravity+0.05)||(mvOccupied->Vel>=VelDesired+fVelPlus)) //jeœli nie ma przyspieszaæ
+    if ((AccDesired<fAccGravity-0.05)||(mvOccupied->Vel>=VelDesired+fVelPlus)) //jeœli nie ma przyspieszaæ
      mvControlling->DecMainCtrl(2); //na zero
     else
      if (fActionTime>=0.0)

@@ -2624,49 +2624,49 @@ bool __fastcall TTrain::Update()
 // Mysle ze wystarczy sprawdzac a potem zerowac SoundFlag tutaj
 // a nie w DynObject - gdyby cos poszlo zle to po co szarpac dzwiekiem co 10ms.
 
-  if (TestFlag(mvControlled->SoundFlag,sound_relay)) // przekaznik - gdy bezpiecznik, automatyczny rozruch itp
+  if (TestFlag(mvOccupied->SoundFlag,sound_relay)) // przekaznik - gdy bezpiecznik, automatyczny rozruch itp
   {
-    if (mvControlled->EventFlag || TestFlag(mvControlled->SoundFlag,sound_loud))
+    if (mvOccupied->EventFlag || TestFlag(mvOccupied->SoundFlag,sound_loud))
     {
-     mvControlled->EventFlag=False;
+     mvOccupied->EventFlag=false; //Ra: w kabinie?
      dsbRelay->SetVolume(DSBVOLUME_MAX);
     }
     else
      {
-     dsbRelay->SetVolume(-40);
+      dsbRelay->SetVolume(-40);
      }
-     if (!TestFlag(mvControlled->SoundFlag,sound_manyrelay))
+     if (!TestFlag(mvOccupied->SoundFlag,sound_manyrelay))
        dsbRelay->Play(0,0,0);
      else
       {
-        if (TestFlag(mvControlled->SoundFlag,sound_loud))
+        if (TestFlag(mvOccupied->SoundFlag,sound_loud))
          dsbWejscie_na_bezoporow->Play(0,0,0);
         else
          dsbWejscie_na_drugi_uklad->Play(0,0,0);
       }
   }
   // potem dorobic bufory, sprzegi jako RealSound.
-  if (TestFlag(mvControlled->SoundFlag,sound_bufferclamp)) // zderzaki uderzaja o siebie
+  if (TestFlag(mvOccupied->SoundFlag,sound_bufferclamp)) // zderzaki uderzaja o siebie
    {
-    if (TestFlag(mvControlled->SoundFlag,sound_loud))
+    if (TestFlag(mvOccupied->SoundFlag,sound_loud))
      dsbBufferClamp->SetVolume(DSBVOLUME_MAX);
     else
      dsbBufferClamp->SetVolume(-20);
     dsbBufferClamp->Play(0,0,0);
   }
   if (dsbCouplerStretch)
-   if (TestFlag(mvControlled->SoundFlag,sound_couplerstretch)) // sprzegi sie rozciagaja
+   if (TestFlag(mvOccupied->SoundFlag,sound_couplerstretch)) // sprzegi sie rozciagaja
    {
-    if (TestFlag(mvControlled->SoundFlag,sound_loud))
+    if (TestFlag(mvOccupied->SoundFlag,sound_loud))
      dsbCouplerStretch->SetVolume(DSBVOLUME_MAX);
     else
      dsbCouplerStretch->SetVolume(-20);
     dsbCouplerStretch->Play(0,0,0);
    }
 
-  if (mvControlled->SoundFlag==0)
-   if (mvControlled->EventFlag)
-    if (TestFlag(mvControlled->DamageFlag,dtrain_wheelwear))
+  if (mvOccupied->SoundFlag==0)
+   if (mvOccupied->EventFlag)
+    if (TestFlag(mvOccupied->DamageFlag,dtrain_wheelwear))
      {//Ra: przenieœæ do DynObj!
       if (rsRunningNoise.AM!=0)
        {
@@ -2682,7 +2682,7 @@ bool __fastcall TTrain::Update()
         rsRunningNoise.FA=fa;
         rsRunningNoise.FM-fm;
        }
-      mvControlled->EventFlag=False;
+      mvOccupied->EventFlag=false;
      }
 
   mvControlled->SoundFlag=0;
