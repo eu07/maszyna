@@ -17,6 +17,7 @@ class TSubModel; //fragment modelu (tu do wyœwietlania terenu)
 class TMemCell; //komórka pamiêci
 class cParser;
 class TRealSound; //dŸwiêk ze wspó³rzêdnymi XYZ
+class TTextSound; //dŸwiêk ze stenogramem
 class TEventLauncher;
 class TTraction; //drut
 class TTractionPowerSource; //zasilanie drutów

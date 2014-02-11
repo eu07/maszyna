@@ -34,5 +34,12 @@ public:
  //void __fastcall TRealSound::FreqReset(float f=22050.0) {fFrequency=f;};
 };
 
+class TTextSound : public TRealSound
+{//dŸwiêk ze stenogramem
+ AnsiString asText;
+public:
+ void __fastcall Init(char *SoundName,double SoundAttenuation,double X,double Y,double Z,bool Dynamic,bool freqmod=false);
+};
+
 //---------------------------------------------------------------------------
 #endif

@@ -604,7 +604,7 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
          sSpeedTable[i].fVelNext=-1; //mo¿na jechaæ za W4
          if (go==cm_Unknown) //jeœli nie by³o komendy wczeœniej
           go=cm_Ready; //gotów do odjazdu z W4 (semafor mo¿e zatrzymaæ)
-         if (rsGuardSignal) //jeœli mamy g³os kierownika, to odegraæ
+         if (tsGuardSignal) //jeœli mamy g³os kierownika, to odegraæ
           iDrivigFlags|=moveGuardSignal;
          continue; //nie analizowaæ prêdkoœci
         } //koniec startu z zatrzymania
@@ -907,7 +907,7 @@ __fastcall TController::TController
  iRadioChannel=1; //numer aktualnego kana³u radiowego
  fActionTime=0.0;
  eAction=actSleep;
- rsGuardSignal=NULL; //komunikat od kierownika
+ tsGuardSignal=NULL; //komunikat od kierownika
  iGuardRadio=0; //nie przez radio
  iStationStart=0; //nic?
 };
@@ -928,7 +928,7 @@ void __fastcall TController::CloseLog()
 
 __fastcall TController::~TController()
 {//wykopanie mechanika z roboty
- delete rsGuardSignal;
+ delete tsGuardSignal;
  delete TrainParams;
  delete[] sSpeedTable;
  CloseLog();
@@ -1632,8 +1632,8 @@ bool __fastcall TController::DecBrake()
 
 bool __fastcall TController::IncSpeed()
 {//zwiêkszenie prêdkoœci; zwraca false, jeœli dalej siê nie da zwiêkszaæ
- if (rsGuardSignal) //jeœli jest dŸwiêk kierownika
-  if (rsGuardSignal->GetStatus()&DSBSTATUS_PLAYING) //jeœli gada, to nie jedziemy
+ if (tsGuardSignal) //jeœli jest dŸwiêk kierownika
+  if (tsGuardSignal->GetStatus()&DSBSTATUS_PLAYING) //jeœli gada, to nie jedziemy
    return false;
  bool OK=true;
  if ((mvOccupied->DoorOpenCtrl==1)&&(mvOccupied->Vel==0.0)) //jeœli ma drzwi i stoi
@@ -1897,7 +1897,7 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
    TrainParams=new TTrainParameters(NewCommand); //rozk³ad jazdy
   else
    TrainParams->NewName(NewCommand); //czyœci tabelkê przystanków
-  delete rsGuardSignal; rsGuardSignal=NULL; //wywalenie kierownika
+  delete tsGuardSignal; tsGuardSignal=NULL; //wywalenie kierownika
   if (NewCommand!="none")
   {if (!TrainParams->LoadTTfile(Global::asCurrentSceneryPath,floor(NewValue2+0.5),NewValue1)) //pierwszy parametr to przesuniêcie rozk³adu w czasie
    {
@@ -1915,8 +1915,8 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
     NewCommand=Global::asCurrentSceneryPath+NewCommand+".wav"; //na razie jeden
     if (FileExists(NewCommand))
     {//wczytanie dŸwiêku odjazdu podawanego bezpoœrenido
-     rsGuardSignal=new TRealSound();
-     rsGuardSignal->Init(NewCommand.c_str(),30,pVehicle->GetPosition().x,pVehicle->GetPosition().y,pVehicle->GetPosition().z,false);
+     tsGuardSignal=new TTextSound();
+     tsGuardSignal->Init(NewCommand.c_str(),30,pVehicle->GetPosition().x,pVehicle->GetPosition().y,pVehicle->GetPosition().z,false);
      //rsGuardSignal->Stop();
      iGuardRadio=0; //nie przez radio
     }
@@ -1924,8 +1924,8 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
     {NewCommand.Insert("radio",NewCommand.Length()-3); //wstawienie przed kropk¹
      if (FileExists(NewCommand))
      {//wczytanie dŸwiêku odjazdu w wersji radiowej (s³ychaæ tylko w kabinie)
-      rsGuardSignal=new TRealSound();
-      rsGuardSignal->Init(NewCommand.c_str(),-1,pVehicle->GetPosition().x,pVehicle->GetPosition().y,pVehicle->GetPosition().z,false);
+      tsGuardSignal=new TTextSound();
+      tsGuardSignal->Init(NewCommand.c_str(),-1,pVehicle->GetPosition().x,pVehicle->GetPosition().y,pVehicle->GetPosition().z,false);
       iGuardRadio=iRadioChannel;
      }
     }
@@ -2859,17 +2859,17 @@ bool __fastcall TController::UpdateSituation(double dt)
        if (VelNext>0.0)
        {//komunikat od kierownika tu, bo musi byæ wolna droga i odczekany czas stania
         iDrivigFlags&=~moveGuardSignal; //tylko raz nadaæ
-        rsGuardSignal->Stop();
+        tsGuardSignal->Stop();
         //w zasadzie to powinien mieæ flagê, czy jest dŸwiêkiem radiowym, czy bezpoœrednim
         //albo trzeba zrobiæ dwa dŸwiêki, jeden bezpoœredni, s³yszalny w pobli¿u, a drugi radiowy, s³yszalny w innych lokomotywach
         //na razie zak³adam, ¿e to nie jest dŸwiêk radiowy, bo trzeba by zrobiæ obs³ugê kana³ów radiowych itd.
         if (!iGuardRadio) //jeœli nie przez radio
-         rsGuardSignal->Play(1.0,0,!FreeFlyModeFlag,pVehicle->GetPosition()); //dla true jest g³oœniej
+         tsGuardSignal->Play(1.0,0,!FreeFlyModeFlag,pVehicle->GetPosition()); //dla true jest g³oœniej
         else
          //if (iGuardRadio==iRadioChannel) //zgodnoœæ kana³u
          if (!FreeFlyModeFlag) //obserwator musi byæ w œrodku pojazdu
           if (SquareMagnitude(pVehicle->GetPosition()-Global::pCameraPosition)<2000*2000) //w odleg³oœci mniejszej ni¿ 2km
-           rsGuardSignal->Play(1.0,0,true,pVehicle->GetPosition()); //dŸwiêk niby przez radio
+           tsGuardSignal->Play(1.0,0,true,pVehicle->GetPosition()); //dŸwiêk niby przez radio
        }
      AbsAccS=mvOccupied->AccS; //wypadkowa si³ stycznych do toru
      if (mvOccupied->V<0.0) AbsAccS=-AbsAccS;
