@@ -2911,7 +2911,7 @@ bool __fastcall TController::UpdateSituation(double dt)
            if (vel<10.0)  //jeœli prêdkoœæ jest ³atwa do zatrzymania
            {//tu jest trochê problem, bo do punktu zatrzymania dobija na raty
             //AccDesired=AccDesired<0.0?0.0:0.1*AccPreferred;
-            AccDesired=0.1*AccPreferred; //proteza trochê
+            AccDesired=0.5*AccPreferred; //proteza trochê; jak tu wychodzi 0.05, to loki maj¹ problem utrzymaæ takie przyspieszenie
            }
            else if (vel<30.0)  //trzymaj 30 km/h
             AccDesired=Min0R(0.5*AccDesired,AccPreferred); //jak jest tu 0.5, to samochody siê dobijaj¹ do siebie
