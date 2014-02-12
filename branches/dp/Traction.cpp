@@ -17,6 +17,73 @@
 //---------------------------------------------------------------------------
 
 #pragma package(smart_init)
+/*
+
+=== Koncepcja dwustronnego zasilania sekcji sieci trakcyjnej, Ra 2014-02 ===
+0. Ka¿de przês³o sieci mo¿e mieæ wpisan¹ nazwê zasilacza, a tak¿e napiêcie
+nominalne i maksymalny pr¹d, które stanowi¹ redundancjê do danych zasilacza.
+Rezystancja mo¿e siê zmieniaæ, materia³ i gruboœæ drutu powinny byæ wspólny
+dla segmentu. Podanie punktów umo¿liwia ³¹czenie przêse³ w listy dwukierunkowe,
+co usprawnia wyszukiwania kolejnych przese³ podczas jazdy. Dla bie¿ni wspólnej
+powinna byæ podana nazwa innego przês³a w parametrze "parallel". WskaŸniki
+na przês³a bie¿ni wspólnej maj¹ byæ uk³adane w jednokierunkowy pierœcieñ.
+1. Problemem jest ustalenie topologii sekcji dla linii dwutorowych. Nad ka¿dym
+torem powinna znajdowaæ siê oddzielna sekcja sieci, aby mog³a zostaæ od³¹czona
+w przypadku zwarcia. Sekcje nad równoleg³ymi torami s¹ równie¿ ³¹czone
+równolegle przez kabiny sekcyjne, co zmniejsza p³yn¹ce pr¹dy i spadki napiêæ.
+2. Drugim zagadnieniem jest zasilanie sekcji jednoczeœnie z dwóch stron, czyli
+sekcja musi mieæ swoj¹ nazwê oraz wskazanie dwóch zasilaczy ze wskazaniem
+geograficznym ich po³o¿enia. Dodatkow¹ trudnoœci¹ jest brak po³¹czenia
+pomiêdzy segmentami naprê¿ania. Podsumowuj¹c, ka¿dy segment naprê¿ania powinien
+mieæ przypisanie do sekcji zasilania, a dodatkowo skrajne segmenty powinny
+wskazywaæ dwa ró¿ne zasilacze.
+3. Zasilaczem sieci mo¿e byæ podstacja, która w wersji 3kV powinna generowaæ
+pod obci¹¿eniem napiêcie maksymalne rzêdu 3600V, a spadek napiêcia nastêpuje
+na jej rezystancji wewnêtrznej oraz na przewodach trakcyjnych. Zasilaczem mo¿e
+byæ równie¿ kabina sekcyjna, która jest zasilana z podstacji poprzez przewody
+trakcyjne.
+4. Dla uproszczenia mo¿na przyj¹æ, ¿e zasilanie pojazdu odbywaæ siê bêdzie z
+dwóch s¹siednich podstacji, pomiêdzy którymi mo¿e byæ dowolna liczba kabin
+sekcyjnych. W przypadku wy³¹czenia jednej z tych podstacji, zasilanie mo¿e
+byæ pobierane z kolejnej. £¹cznie nale¿y rozwa¿aæ 4 najbli¿sze podstacje,
+przy czym do obliczeñ mo¿na przyjmowaæ 2 z nich.
+5. Przês³a sieci s¹ ³¹czone w listê dwukierunkow¹, wiêc wystarczy nazwê
+sekcji wpisaæ w jednym z nich, wpisanie w ka¿dym nie przeszkadza.
+Alternatywnym sposobem ³¹czenia segmentów naprê¿ania mo¿e byæ wpisywanie
+nazw przêse³ jako "parallel", co mo¿e byæ uci¹¿liwe dla autorów scenerii.
+W skrajnych przês³ach nale¿a³oby dodatkowo wpisaæ nazwê zasilacza, bêdzie
+to jednoczeœnie wskazanie przês³a, do którego pod³¹czone s¹ przewody
+zasilaj¹ce. Konieczne jest odró¿nienie nazwy sekcji od nazwy zasilacza, co
+mo¿na uzyskaæ ró¿nicuj¹c ich nazwy albo np. specyficznie ustawiaj¹c wartoœæ
+pr¹du albo napiêcia przês³a.
+6. Jeœli dany segment naprê¿ania jest wspólny dla dwóch sekcji zasilania,
+to jedno z przêse³ musi mieæ nazwê "*" (gwiazdka), co bêdzie oznacza³o, ¿e
+ma zamontowany izolator. Dla uzyskania efektów typu ³uk elektryczny, nale¿a³o
+by wskazaæ po³o¿enie izolatora i jego d³ugoœæ (ew. typ).
+7. Równie¿ w parametrach zasilacza nale¿a³o by okreœliæ, czy jest podstacj¹,
+czy jedynie kabin¹ sekcyjn¹. Ró¿niæ siê one bêd¹ fizyk¹ dzia³ania.
+8. Dla zbudowanej topologii sekcji i zasilaczy nale¿a³o by zbudowaæ dynamiczny
+schemat zastêpczy. Dynamika polega na wy³¹czaniu sekcji ze zwarciem oraz
+przeci¹¿onych podstacji. Musi byæ te¿ mo¿liwoœæ wy³¹czenia sekcji albo
+podstacji za pomoc¹ eventu.
+9. Dla ka¿dej sekcji musi byæ tworzony obiekt, wskazuj¹cy na podstacje
+zasilaj¹ce na koñcach, stan w³¹czenia, zwarcia, przepiêcia. Do tego obiektu
+musi wskazywaæ ka¿de przês³o z aktywnym zasilaniem.
+
+          z.1                  z.2             z.3
+   -=-a---1*1---c-=---c---=-c--2*2--e---=---e-3-*-3--g-=-
+   -=-b---1*1---d-=---d---=-d--2*2--f---=---e-3-*-3--h-=-
+
+   nazwy sekcji (@): a,b,c,d,e,f,g,h
+   nazwy zasilaczy (#): 1,2,3
+   przês³o z izolatorem: *
+   przês³a bez wskazania nazwy sekcji/zasilacza: -
+   segment naprêzania: =-x-=
+   segment naprê¿ania z izolatorem: =---@---#*#---@---=
+   segment naprê¿ania bez izolatora: =--------@------=
+
+*/
+
 
 TTraction::TTraction()
 {
