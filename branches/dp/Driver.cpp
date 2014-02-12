@@ -1105,7 +1105,7 @@ void __fastcall TController::AutoRewident()
  }
 };
 
-bool __fastcall TController::CheckVehicles()
+bool __fastcall TController::CheckVehicles(bool n)
 {//sprawdzenie stanu posiadanych pojazdów w sk³adzie i zapalenie œwiate³
  TDynamicObject* p; //roboczy wskaŸnik na pojazd
  iVehicles=0; //iloœæ pojazdów w sk³adzie
@@ -1164,7 +1164,8 @@ bool __fastcall TController::CheckVehicles()
    d=p->DirectionSet(d?1:-1); //zwraca po³o¿enie nastêpnego (1=zgodny,0=odwrócony - wzglêdem czo³a sk³adu)
    p=p->Next(); //pojazd pod³¹czony od ty³u (licz¹c od czo³a)
   }
-  if (AIControllFlag) //jeœli prowadzi komputer
+  if (AIControllFlag)
+  {//jeœli prowadzi komputer
    if (OrderCurrentGet()==Obey_train) //jeœli jazda poci¹gowa
    {Lights(1+4+16,2+32+64); //œwiat³a poci¹gowe (Pc1) i koñcówki (Pc5)
 #if LOGPRESS==0
@@ -1178,6 +1179,16 @@ bool __fastcall TController::CheckVehicles()
      Lights(16,0); //œwiat³a manewrowe (Tb1) tylko z przodu, aby nie pozostawiæ odczepionego ze œwiat³em
     else //jak dociska
      Lights(0,16); //œwiat³a manewrowe (Tb1) tylko z przodu, aby nie pozostawiæ odczepionego ze œwiat³em
+  }
+  else //Ra 2014-02: lepiej tu ni¿ w pêtli obs³uguj¹cej komendy, bo tam siê zmieni informacja o sk³adzie
+   if (n) //gdy cz³owiek i gdy nast¹pi³o po³¹cznie
+    if (OrderCurrentGet()&(Connect))
+    {
+     iDrivigFlags&=~moveConnect; //zdjêcie flagi doczepiania
+     JumpToNextOrder(); //wykonanie nastêpnej komendy
+     if (OrderCurrentGet()&(Change_direction))
+      JumpToNextOrder(); //zmianê kierunku te¿ mo¿na olaæ, ale zmieniæ kierunek skanowania!
+    }
  } //blok wykonywany, gdy aktywnie prowadzi
  return true;
 }
@@ -2387,8 +2398,8 @@ bool __fastcall TController::UpdateSituation(double dt)
        if (pVehicles[0]->MoverParameters->Couplers[0].Connected) //jeœli jest coœ wykryte (a chyba jest, nie?)
         if (pVehicles[0]->MoverParameters->Attach(0,2,pVehicles[0]->MoverParameters->Couplers[0].Connected,iCoupler))
         {
-         //dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
-         //dsbCouplerAttach->Play(0,0,0);
+         //pVehicles[0]->dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
+         //pVehicles[0]->dsbCouplerAttach->Play(0,0,0);
         }
        //WriteLog("CoupleDist[0]="+AnsiString(pVehicles[0]->MoverParameters->Couplers[0].CoupleDist)+", Connected[0]="+AnsiString(pVehicles[0]->MoverParameters->Couplers[0].CouplingFlag));
        ok=(pVehicles[0]->MoverParameters->Couplers[0].CouplingFlag==iCoupler); //uda³o siê? (mog³o czêœciowo)
@@ -2398,8 +2409,8 @@ bool __fastcall TController::UpdateSituation(double dt)
        if (pVehicles[0]->MoverParameters->Couplers[1].Connected) //jeœli jest coœ wykryte (a chyba jest, nie?)
         if (pVehicles[0]->MoverParameters->Attach(1,2,pVehicles[0]->MoverParameters->Couplers[1].Connected,iCoupler))
         {
-         //dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
-         //dsbCouplerAttach->Play(0,0,0);
+         //pVehicles[0]->dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
+         //pVehicles[0]->dsbCouplerAttach->Play(0,0,0);
         }
        //WriteLog("CoupleDist[1]="+AnsiString(Controlling->Couplers[1].CoupleDist)+", Connected[0]="+AnsiString(Controlling->Couplers[1].CouplingFlag));
        ok=(pVehicles[0]->MoverParameters->Couplers[1].CouplingFlag==iCoupler); //uda³o siê? (mog³o czêœciowo)
@@ -2413,22 +2424,22 @@ bool __fastcall TController::UpdateSituation(double dt)
       }
       else
        SetVelocity(2.0,0.0); //jazda w ustawionym kierunku z prêdkoœci¹ 2 (18s)
-/*
-      else if ((iDrivigFlags&moveConnect)==0) //jeœli nie zbli¿y³ siê dostatecznie
-       if (pVehicles[0]->fTrackBlock>100.0) //ta odleg³oœæ mo¿e byæ rzadko odœwie¿ana
-       {SetVelocity(20.0,5.0); //jazda w ustawionym kierunku z prêdkoœci¹ 20
-        //SetProximityVelocity(-pVehicles[0]->fTrackBlock+50,0); //to nie dzia³a dobrze
-        //SetProximityVelocity(pVehicles[0]->fTrackBlock,0); //to te¿ nie dzia³a dobrze
-        //vCommandLocation=pVehicles[0]->AxlePositionGet()+pVehicles[0]->fTrackBlock*SafeNormalize(iDirection*pVehicles[0]->GetDirection());
-        //WriteLog(AnsiString(vCommandLocation.x)+" "+AnsiString(vCommandLocation.z));
-       }
-      else
-       {SetVelocity(2.0,0.0); //jazda w ustawionym kierunku z prêdkoœci¹ 2 (18s)
-        if (pVehicles[0]->fTrackBlock<2.0) //przy zderzeniu fTrackBlock nie jest miarodajne
-         iDrivigFlags|=moveConnect; //wy³¹czenie sprawdzania fTrackBlock
-       }
+     } //if (AIControllFlag) //koniec zblokowania, bo by³a zmienna lokalna
+/* //Ra 2014-02: lepiej tam, bo jak tam siê odŸwie¿y sk³ad, to tu pVehicles[0] bêdzie czymœ innym
+     else
+     {//jeœli cz³owiek ma pod³¹czyæ, to czekamy na zmianê stanu sprzêgów na koñcach dotychczasowego sk³adu
+      bool ok; //true gdy siê pod³¹czy (uzyskany sprzêg bêdzie zgodny z ¿¹danym)
+      if (pVehicles[0]->DirectionGet()>0) //jeœli sprzêg 0
+       ok=(pVehicles[0]->MoverParameters->Couplers[0].CouplingFlag>0); //==iCoupler); //uda³o siê? (mog³o czêœciowo)
+      else //if (pVehicles[0]->MoverParameters->DirAbsolute<0) //jeœli sprzêg 1
+       ok=(pVehicles[0]->MoverParameters->Couplers[1].CouplingFlag>0); //==iCoupler); //uda³o siê? (mog³o czêœciowo)
+      if (ok)
+      {//je¿eli zosta³ pod³¹czony
+       iDrivigFlags&=~moveConnect; //zdjêcie flagi doczepiania
+       JumpToNextOrder(); //wykonanie nastêpnej komendy
+      }
+     }
 */
-     } //if (AIControllFlag) //koniec bloknawias, bo by³a zmienna lokalna
     }
     else
     {//jak daleko, to jazda jak dla Shunt na kolizjê

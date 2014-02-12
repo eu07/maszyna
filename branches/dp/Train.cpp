@@ -1585,7 +1585,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
               {
                //tmp->MoverParameters->Couplers[CouplNr].Render=true; //pod³¹czony sprzêg bêdzie widoczny
                if (DynamicObject->Mechanik) //na wszelki wypadek
-                DynamicObject->Mechanik->CheckVehicles(); //aktualizacja flag kierunku w sk³adzie
+                DynamicObject->Mechanik->CheckVehicles(true); //aktualizacja flag kierunku w sk³adzie
                dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
                dsbCouplerAttach->Play(0,0,0);
               }
