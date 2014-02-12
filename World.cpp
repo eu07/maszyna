@@ -851,7 +851,7 @@ void __fastcall TWorld::OnMouseMove(double x, double y)
  Camera.OnCursorMove(x*Global::fMouseXScale,-y*Global::fMouseYScale);
 }
 
-AnsiString __fastcall Bezogonkow(AnsiString str)
+AnsiString __fastcall Bezogonkow(AnsiString str, bool _=false)
 {//wyciêcie liter z ogonkami, bo OpenGL nie umie wyœwietliæ
  for (int i=1;i<=str.Length();++i)
   switch (str[i])
@@ -874,7 +874,7 @@ AnsiString __fastcall Bezogonkow(AnsiString str)
    case 'Œ': str[i]='S'; break;
    case '¯': str[i]='Z'; break;
    case '': str[i]='Z'; break;
-   case '_': str[i]=' '; break; //a to ju¿ na plus - w nazwach stacji nie mog¹ byæ u¿ywane spacje 
+   case '_': if (_) str[i]=' '; break; //a to ju¿ na plus - w nazwach stacji nie mog¹ byæ u¿ywane spacje
    default:
     if (str[i]&128) str[i]='?';
     else if (str[i]<' ') str[i]=' ';
@@ -1613,7 +1613,7 @@ bool __fastcall TWorld::Update()
       if (Controlled->Mechanik)
       {OutText2=Controlled->Mechanik->Relation();
        if (!OutText2.IsEmpty()) //jeœli jest podana relacja, to dodajemy punkt nastêpnego zatrzymania
-        OutText2=Bezogonkow(OutText2+": -> "+Controlled->Mechanik->NextStop()); //dopisanie punktu zatrzymania
+        OutText2=Bezogonkow(OutText2+": -> "+Controlled->Mechanik->NextStop(),true); //dopisanie punktu zatrzymania
       }
      //double CtrlPos=mvControlled->MainCtrlPos;
      //double CtrlPosNo=mvControlled->MainCtrlPosNo;
@@ -1966,7 +1966,7 @@ bool __fastcall TWorld::Update()
       glTranslatef(0.0f,0.0f,-0.50f);
       glRasterPos2f(-0.25f,0.20f);
       OutText1=tmp->Mechanik->Relation();
-      glPrint(Bezogonkow(OutText1).c_str());
+      glPrint(Bezogonkow(OutText1,true).c_str());
       glRasterPos2f(-0.25f,0.19f);
       //glPrint("|============================|=======|=======|=====|");
       //glPrint("| Posterunek                 | Przyj.| Odj.  | Vmax|");
@@ -1987,11 +1987,11 @@ bool __fastcall TWorld::Update()
        if ((tmp->Mechanik->iStationStart<tt->StationIndex)?(i<tt->StationIndex):false)
        {//czas min¹³ i odjazd by³, to nazwa stacji bêdzie na zielono
         glColor3f(0.0f,1.0f,0.0f);
-        glPrint(Bezogonkow(OutText1).c_str());
+        glPrint(Bezogonkow(OutText1,true).c_str());
         glColor3f(1.0f,1.0f,1.0f); //a reszta bia³ym
        }
        else //normalne wyœwietlanie, bez zmiany kolorów
-        glPrint(Bezogonkow(OutText1).c_str());
+        glPrint(Bezogonkow(OutText1,true).c_str());
        glRasterPos2f(-0.25f,0.17f-0.02f*(i-tmp->Mechanik->iStationStart));
        glPrint("|----------------------------|-------|-------|-----|");
       }

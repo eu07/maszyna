@@ -211,14 +211,14 @@ bool __fastcall TSpeedPos::Update(vector3 *p,vector3 *dir,double &len)
    }
   }
 #if LOGVELOCITY
-  WriteLog("-> Dist="+FloatToStrF(fDist,ffFixed,7,1)+", Track="+tTrack->NameGet()+", Vel="+AnsiString(fVelNext)+", Flags="+AnsiString(iFlags));
+  WriteLog("-> Flags=#"+IntToHex(iFlags,5)+", Vel="+AnsiString(fVelNext)+", Dist="+FloatToStrF(fDist,ffFixed,7,1)+", Track="+trTrack->NameGet());
 #endif
  }
  else if (iFlags&0x100) //jeœli event
  {//odczyt komórki pamiêci najlepiej by by³o zrobiæ jako notyfikacjê, czyli zmiana komórki wywo³a jak¹œ podan¹ funkcjê
   CommandCheck(); //sprawdzenie typu komendy w evencie i okreœlenie prêdkoœci
 #if LOGVELOCITY
-  WriteLog("-> Dist="+FloatToStrF(fDist,ffFixed,7,1)+", Event="+eEvent->asName+", Vel="+AnsiString(fVelNext)+", Flags="+AnsiString(iFlags));
+  WriteLog("-> Flags=#"+IntToHex(iFlags,5)+", Vel="+AnsiString(fVelNext)+", Dist="+FloatToStrF(fDist,ffFixed,7,1)+", Event="+evEvent->asName);
 #endif
  }
  return false;
@@ -229,9 +229,9 @@ AnsiString __fastcall TSpeedPos::TableText()
  if (iFlags&0x1)
  {//o ile pozycja istotna
   if (iFlags&0x2) //jeœli tor
-   return "Dist="+FloatToStrF(fDist,ffFixed,7,1)+", Track="+trTrack->NameGet()+", Vel="+AnsiString(fVelNext)+", Flags="+AnsiString(iFlags);
+   return "Flags=#"+IntToHex(iFlags,5)+", Vel="+AnsiString(fVelNext)+", Dist="+FloatToStrF(fDist,ffFixed,7,1)+", Track="+trTrack->NameGet();
   else if (iFlags&0x100) //jeœli event
-   return "Dist="+FloatToStrF(fDist,ffFixed,7,1)+", Event="+evEvent->asName+", Vel="+AnsiString(fVelNext)+", Flags="+AnsiString(iFlags);
+   return "Flags=#"+IntToHex(iFlags,5)+", Vel="+AnsiString(fVelNext)+", Dist="+FloatToStrF(fDist,ffFixed,7,1)+", Event="+evEvent->asName;
  }
  return "Empty";
 }
@@ -2731,7 +2731,11 @@ bool __fastcall TController::UpdateSituation(double dt)
       // VelActual:=0.0; //na wszelki wypadek niech zahamuje
      } //Change_direction (tylko dla AI)
     //ustalanie zadanej predkosci
-    if (EngineActive) //jeœli ma silnik odpalony, to skanuje w poszukiwaniu sygna³ów
+    if (AIControllFlag) //jeœli prowadzi AI
+     if (!EngineActive) //jeœli silnik nie odpalony, to próbowaæ naprawiæ
+      if (OrderList[OrderPos]&(Change_direction|Connect|Disconnect|Shunt|Obey_train)) //jeœli coœ ma robiæ
+       PrepareEngine(); //to niech odpala do skutku
+    if (iDirection) //jeœli ma kierunek, to skanuje w poszukiwaniu sygna³ów
     {//jeœli jest wybrany kierunek jazdy, mo¿na ustaliæ prêdkoœæ jazdy
      //Ra: tu by jeszcze trzeba by³o wstawiæ uzale¿nienie (VelDesired) od odleg³oœci od przeszkody
      // no chyba ¿eby to uwzgldniæ ju¿ w (ActualProximityDist)
@@ -3113,7 +3117,7 @@ bool __fastcall TController::UpdateSituation(double dt)
       //Mietek-end1
       SpeedSet(); //ci¹gla regulacja prêdkoœci
 #if LOGVELOCITY
-      WriteLog("BrakePos="+AnsiString(mvOccupied->BrakeCtrlPos)+", MainCtrl="+AnsiString(Controlling->MainCtrlPos));
+      WriteLog("BrakePos="+AnsiString(mvOccupied->BrakeCtrlPos)+", MainCtrl="+AnsiString(mvControlling->MainCtrlPos));
 #endif
 
 /* //Ra: mamy teraz wska¿nik na cz³on silnikowy, gorzej jak s¹ dwa w ukrotnieniu...
@@ -3152,10 +3156,6 @@ bool __fastcall TController::UpdateSituation(double dt)
      {//tu mozna daæ komunikaty tekstowe albo s³owne: przyspiesz, hamuj (lekko, œrednio, mocno)
      }
     } //kierunek ró¿ny od zera
-    else
-     if (AIControllFlag) //jeœli prowadzi AI
-      if (OrderList[OrderPos]&(Change_direction|Connect|Disconnect|Shunt|Obey_train)) //jeœli coœ ma robiæ
-       PrepareEngine(); //to niech odpala do skutku
     if (AIControllFlag)
     {//odhamowywanie sk³adu po zatrzymaniu i zabezpieczanie lokomotywy
      if ((OrderList[OrderPos]&(Disconnect|Connect))==0) //przy (p)od³¹czaniu nie zwalniamy tu hamulca
