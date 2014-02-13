@@ -62,6 +62,7 @@ __fastcall TSoundContainer::TSoundContainer( LPDIRECTSOUND pDS, char *Directory,
     dsbd.dwBufferBytes = pWaveSoundRead->m_ckIn.cksize;
     dsbd.lpwfxFormat   = pWaveSoundRead->m_pwfx;
     fSamplingRate=pWaveSoundRead->m_pwfx->nSamplesPerSec;
+    iBitsPerSample=pWaveSoundRead->m_pwfx->wBitsPerSample;
 
 //    pDSBuffer= (LPDIRECTSOUNDBUFFER*) malloc(Concurrent*sizeof(LPDIRECTSOUNDBUFFER));
 //    for (int i=0; i<Concurrent; i++)

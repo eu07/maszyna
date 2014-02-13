@@ -2685,7 +2685,7 @@ bool __fastcall TTrain::Update()
       mvOccupied->EventFlag=false;
      }
 
-  mvControlled->SoundFlag=0;
+  mvOccupied->SoundFlag=0;
 /*
     for (int b=0; b<2; b++) //MC: aby zerowac stukanie przekaznikow w czlonie silnikowym
      if (TestFlag(mvControlled->Couplers[b].CouplingFlag,ctrain_controll))

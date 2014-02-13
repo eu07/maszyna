@@ -1533,9 +1533,9 @@ bool __fastcall TController::ReleaseEngine()
    if (!mvOccupied->IncLocalBrakeLevel(1))
    {
     while (DecSpeed(true)); //zerowanie nastawników
-    if (mvOccupied->ActiveDir==1)
+    while (mvOccupied->ActiveDir>0)
      mvOccupied->DirectionBackward();
-    if (mvOccupied->ActiveDir==-1)
+    while (mvOccupied->ActiveDir<0)
      mvOccupied->DirectionForward();
    }
  OK=OK&&(mvOccupied->Vel<0.01);
@@ -1547,6 +1547,7 @@ bool __fastcall TController::ReleaseEngine()
   if (AIControllFlag)
   {Lights(0,0); //gasimy œwiat³a
    mvOccupied->BatterySwitch(false);
+
   }
   OrderNext(Wait_for_orders); //¿eby nie próbowa³ coœ robiæ dalej
   TableClear(); //zapominamy ograniczenia
