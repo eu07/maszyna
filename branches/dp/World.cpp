@@ -1157,6 +1157,7 @@ bool __fastcall TWorld::Update()
  if (fTimeBuffer>=fMaxDt) //jest co najmniej jeden krok; normalnie 0.01s
  {//Ra: czas dla fizyki jest skwantowany - fizykê lepiej przeliczaæ sta³ym krokiem
   //tak mo¿na np. moc silników itp., ale ruch musi byæ przeliczany w ka¿dej klatce, bo inaczej skacze
+  Global::tranTexts.Update(); //obiekt obs³uguj¹cy stenogramy dŸwiêków na ekranie
   Console::Update(); //obs³uga cykli PoKeys (np. aktualizacja wyjœæ analogowych)
   double iter=ceil(fTimeBuffer/fMaxDt); //ile kroków siê zmieœci³o od ostatniego sprawdzania?
   int n=int(iter); //ile kroków jako int
@@ -1986,7 +1987,7 @@ bool __fastcall TWorld::Update()
        glRasterPos2f(-0.25f,0.18f-0.02f*(i-tmp->Mechanik->iStationStart));
        if ((tmp->Mechanik->iStationStart<tt->StationIndex)?(i<tt->StationIndex):false)
        {//czas min¹³ i odjazd by³, to nazwa stacji bêdzie na zielono
-        glColor3f(0.0f,1.0f,0.0f);
+        glColor3f(0.0f,1.0f,0.0f); //zielone
         glPrint(Bezogonkow(OutText1,true).c_str());
         glColor3f(1.0f,1.0f,1.0f); //a reszta bia³ym
        }
@@ -2018,6 +2019,20 @@ bool __fastcall TWorld::Update()
     {glRasterPos2f(-0.25f, 0.17f);
      glPrint(OutText4.c_str());
      OutText4="";
+    }
+   }
+  }
+  if (Global::iTextMode==VK_F1)
+  {//stenogramy dŸwiêków
+   glColor3f(1.0f,1.0f,0.0f); //¿ó³te
+   for (int i=0;i<5;++i)
+   {//kilka linijek
+    if (Global::asTranscript[i].IsEmpty())
+     break; //dalej nie trzeba
+    else
+    {
+     glRasterPos2f(-0.20f,-0.05f-0.01f*i);
+     glPrint(Bezogonkow(Global::asTranscript[i]).c_str());
     }
    }
   }

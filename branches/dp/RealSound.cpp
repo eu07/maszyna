@@ -213,9 +213,14 @@ void __fastcall TRealSound::ResetPosition()
 void __fastcall TTextSound::Init(char *SoundName,double SoundAttenuation,double X,double Y,double Z,bool Dynamic,bool freqmod)
 {//dodatkowo doczytuje plik tekstowy
  TRealSound::Init(SoundName,SoundAttenuation,X,Y,Z,Dynamic,freqmod);
+ fTime=GetWaveTime();
  AnsiString txt=AnsiString(SoundName);
  txt.Delete(txt.Length()-3,4); //obciêcie rozszerzenia
- txt+="-pl.wav"; //na razie po polsku
+ for (int i=txt.Length();i>0;--i)
+  if (txt[i]=='/') txt[i]='\\'; //bo nie rozumi
+ txt+="-pl.txt"; //na razie po polsku
+ if (!FileExists(txt))
+  txt="sounds\\"+txt; //œcie¿ka mo¿e nie byæ podana
  if (FileExists(txt))
  {//wczytanie
   TFileStream *ts=new TFileStream(txt,fmOpenRead);
@@ -223,6 +228,12 @@ void __fastcall TTextSound::Init(char *SoundName,double SoundAttenuation,double 
   ts->Read(asText.c_str(),ts->Size);
   delete ts;
  }
+};
+void __fastcall TTextSound::Play(double Volume,int Looping,bool ListenerInside,vector3 NewPosition)
+{
+ TRealSound::Play(Volume,Looping,ListenerInside,NewPosition);
+ if (!asText.IsEmpty())
+  Global::tranTexts.Add(asText.c_str(),fTime,true);
 };
 
 //---------------------------------------------------------------------------

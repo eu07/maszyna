@@ -66,6 +66,8 @@ int Global::iSegmentsRendered=90; //iloœæ segmentów do regulacji wydajnoœci
 TCamera* Global::pCamera=NULL; //parametry kamery
 TDynamicObject *Global::pUserDynamic=NULL; //pojazd u¿ytkownika, renderowany bez trzêsienia
 bool Global::bSmudge=false; //czy wyœwietlaæ smugê, a pojazd u¿ytkownika na koñcu
+AnsiString Global::asTranscript[5]; //napisy na ekranie (widoczne)
+TTranscripts Global::tranTexts; //obiekt obs³uguj¹cy stenogramy dŸwiêków na ekranie
 
 //parametry scenerii
 vector3 Global::pCameraPosition;
@@ -593,5 +595,112 @@ bool __fastcall Global::AddToQuery(TEvent *event,TDynamicObject *who)
  return pGround->AddToQuery(event,who);
 };
 //---------------------------------------------------------------------------
+
+__fastcall TTranscripts::TTranscripts()
+{
+ iCount=0; //brak linijek do wyœwietlenia
+ iStart=0; //wype³niaæ od linijki 0
+ for (int i=0;i<MAX_TRANSCRIPTS;++i)
+ {//to do konstruktora mo¿na by daæ
+  aLines[i].fHide=-1.0; //wolna pozycja (czas symulacji, 360.0 to doba)
+  aLines[i].iNext=-1; //nie ma kolejnej
+ }
+ fRefreshTime=360.0; //wartoœc zaporowa
+};
+__fastcall TTranscripts::~TTranscripts()
+{
+};
+void __fastcall TTranscripts::AddLine(char *txt,float show,float hide,bool it)
+{//dodanie linii do tabeli, (show) i (hide) w [s] od aktualnego czasu
+ if (show==hide) return; //komentarz jest ignorowany
+ show=Global::fTimeAngleDeg+show/240.0; //jeœli doba to 360, to 1s bêdzie równe 1/240
+ hide=Global::fTimeAngleDeg+hide/240.0;
+ int i=iStart,j; //od czegoœ trzeba zacz¹æ
+ while ((aLines[i].iNext>=0)?(aLines[aLines[i].iNext].fShow<show):false) //póki nie koniec i wczeœniej puszczane
+  i=aLines[i].iNext; //przejœcie do kolejnej linijki
+ //(i) wskazuje na liniê, po której nale¿y wstawiæ dany tekst, chyba ¿e
+ for (j=0;j<MAX_TRANSCRIPTS;++i)
+  if (aLines[j].fHide<0.0)
+  {//znaleziony pierwszy wolny
+   if (aLines[iStart].fHide<0.0) //jeœli tablica jest pusta
+    iStart=j; //fHide trzeba sprawdziæ przed ewentualnym nadpisaniem, gdy i=j=0
+   else
+    aLines[i].iNext=j; //a nowy bêdzie za tamtym
+   aLines[j].asText=AnsiString(txt); //bez sensu, wystarczy³by wskaŸnik
+   aLines[j].fShow=show; //wyœwietlaæ od
+   aLines[j].fHide=hide; //wyœwietlaæ do
+   aLines[j].bItalic=it;
+   aLines[j].iNext=aLines[i].iNext; //nastêpny bêdzie za nowym
+   if (fRefreshTime>show) //jeœli odœwie¿acz ustawiony jest na póŸniej
+    fRefreshTime=show; //to odœwie¿yæ wczeœniej
+   break; //wiêcej ju¿ nic
+  }
+};
+void __fastcall TTranscripts::Add(char *txt,float len,bool backgorund)
+{//dodanie tekstów, d³ugoœæ dŸwiêku, czy istotne
+ if (!txt) return; //pusty tekst
+ int i=0,j=int(0.5+10.0*len); //[0.1s]
+ if (*txt=='[')
+ {//powinny byæ dwa nawiasy
+  while (*++txt?*txt!=']':false)
+   if ((*txt>='0')&&(*txt<='9'))
+    i=10*i+int(*txt-'0'); //pierwsza liczba a¿ do ]
+  if (*txt?*++txt=='[':false)
+  {j=0; //drugi nawias okreœla czas zakoñczenia wyœwietlania
+   while (*++txt?*txt!=']':false)
+    if ((*txt>='0')&&(*txt<='9'))
+     j=10*j+int(*txt-'0'); //druga liczba a¿ do ]
+   if (*txt) ++txt; //pominiêcie drugiego ]
+  }
+ }
+ AddLine(txt,0.1*i,0.1*j,false);
+};
+void __fastcall TTranscripts::Update()
+{//usuwanie niepotrzebnych (nie czêœciej ni¿ 10 razy na sekundê)
+ if (fRefreshTime>Global::fTimeAngleDeg)
+  return; //nie czas jeszcze na zmiany
+ //czas odœwie¿enia mo¿na ustaliæ wg tabelki, kiedy coœ siê w niej zmienia
+ fRefreshTime=Global::fTimeAngleDeg+360.0; //wartoœæ zaporowa
+ int i=iStart,j=-1; //od czegoœ trzeba zacz¹æ
+ bool change=false; //czy zmieniaæ napisy?
+ do
+ {
+  if (aLines[i].fHide>=0.0) //o ile aktywne
+   if (aLines[i].fHide<Global::fTimeAngleDeg)
+   {//gdy czas wyœwietlania up³yn¹³
+    aLines[i].fHide=-1.0; //teraz bêdzie woln¹ pozycj¹
+    if (i==iStart)
+     iStart=aLines[i].iNext>=0?aLines[i].iNext:0; //przestawienie pierwszego
+    else if (j>=0)
+     aLines[j].iNext=aLines[i].iNext; //usuniêcie ze œrodka
+    change=true;
+   }
+   else
+   {//gdy ma byæ pokazane
+    if (aLines[i].fShow>Global::fTimeAngleDeg) //bêdzie pokazane w przysz³oœci
+     if (fRefreshTime>aLines[i].fShow) //a nie ma nic wczeœniej
+      fRefreshTime=aLines[i].fShow;
+    if (fRefreshTime>aLines[i].fHide)
+     fRefreshTime=aLines[i].fHide;
+   }
+  //mo¿na by jeszcze wykrywaæ, które nowe maj¹ byæ pokazane
+  j=i;
+  i=aLines[i].iNext; //kolejna linijka
+ } while (i>=0); //póki po tablicy
+ change=true; //bo na razie nie ma warunku, ¿e coœ siê doda³o
+ if (change)
+ {//aktualizacja linijek ekranowych
+  i=iStart; j=-1;
+  do
+  {
+   if (aLines[i].fHide>0.0) //jeœli nie ukryte
+    if (aLines[i].fShow<Global::fTimeAngleDeg) //to dodanie linijki do wyœwietlania
+     Global::asTranscript[++j]=aLines[i].asText; //skopiowanie tekstu
+   i=aLines[i].iNext; //kolejna linijka
+  } while (i>=0); //póki po tablicy
+  for (++j;j<5;++j)
+   Global::asTranscript[j]=""; //i czyszczenie nieu¿ywanych linijek
+ }
+};
 
 #pragma package(smart_init)

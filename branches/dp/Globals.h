@@ -120,6 +120,31 @@ class TQueryParserComp; //stary(?) parser
 class cParser; //nowy (powolny!) parser
 class TEvent;
 
+class TTranscript
+{//klasa obs³uguj¹ca linijkê napisu do dŸwiêku
+public:
+ float fShow; //czas pokazania
+ float fHide; //czas ukrycia/usuniêcia
+ AnsiString asText; //tekst gotowy do wyœwietlenia (usuniête znaczniki czasu)
+ bool bItalic; //czy kursywa (dŸwiêk nieistotny dla prowadz¹cego)
+ int iNext; //nastêpna u¿ywana linijka, ¿eby nie przestawiaæ fizycznie tabeli
+};
+
+#define MAX_TRANSCRIPTS 30
+class TTranscripts
+{//klasa obs³uguj¹ca napisy do dŸwiêków
+ TTranscript aLines[MAX_TRANSCRIPTS]; //pozycje na napisy do wyœwietlenia
+ int iCount; //liczba zajêtych pozycji
+ int iStart; //pierwsza istotna pozycja w tabeli, ¿eby sortowaæ przestawiaj¹c numerki
+ float fRefreshTime;
+public:
+ __fastcall TTranscripts();
+ __fastcall ~TTranscripts();
+ void __fastcall AddLine(char *txt,float show,float hide,bool it);
+ void __fastcall Add(char *txt,float len,bool backgorund=false); //dodanie tekstów, d³ugoœæ dŸwiêku, czy istotne
+ void __fastcall Update(); //usuwanie niepotrzebnych (ok. 10 razy na sekundê)
+};
+
 class Global
 {
 private:
@@ -258,6 +283,8 @@ public:
  static double fBrakeStep; //krok zmiany hamulca dla klawiszy [Num3] i [Num9]
  static bool bJoinEvents; //czy grupowaæ eventy o tych samych nazwach
  static bool bSmudge; //czy wyœwietlaæ smugê, a pojazd u¿ytkownika na koñcu
+ static AnsiString asTranscript[5]; //napisy na ekranie (widoczne)
+ static TTranscripts tranTexts; //obiekt obs³uguj¹cy stenogramy dŸwiêków na ekranie
  //metody
  static void __fastcall TrainDelete(TDynamicObject *d);
  static void __fastcall ConfigParse(Queryparsercomp::TQueryParserComp *qp,cParser *cp=NULL);
