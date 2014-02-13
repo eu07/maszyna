@@ -37,8 +37,10 @@ public:
 class TTextSound : public TRealSound
 {//dŸwiêk ze stenogramem
  AnsiString asText;
+ float fTime; //czas trwania
 public:
  void __fastcall Init(char *SoundName,double SoundAttenuation,double X,double Y,double Z,bool Dynamic,bool freqmod=false);
+ void __fastcall Play(double Volume,int Looping,bool ListenerInside,vector3 NewPosition);
 };
 
 //---------------------------------------------------------------------------
