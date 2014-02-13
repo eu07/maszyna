@@ -27,6 +27,7 @@ public:
  char Name[80];
  LPDIRECTSOUNDBUFFER DSBuffer;
  float fSamplingRate; //czêstotliwoœæ odczytana z pliku
+ int iBitsPerSample; //ile bitów na próbkê
  TSoundContainer *Next;
  std::stack< LPDIRECTSOUNDBUFFER > DSBuffers;
  LPDIRECTSOUNDBUFFER __fastcall GetUnique(LPDIRECTSOUND pDS);

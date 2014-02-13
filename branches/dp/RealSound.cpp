@@ -184,7 +184,7 @@ double TRealSound::GetWaveTime() //McZapkie: na razie tylko dla 22KHz/8bps
  caps.dwSize=sizeof(caps);
  pSound->GetCaps(&caps);
  WaveTime=caps.dwBufferBytes;
- return WaveTime/fFrequency;  // wielkosc w bajtach przez czestotliwosc probkowania
+ return WaveTime/fFrequency; //(pSound->);  // wielkosc w bajtach przez czestotliwosc probkowania
 }
 
 void __fastcall TRealSound::SetPan(int Pan)
