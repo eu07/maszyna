@@ -7,7 +7,7 @@
 
 class TRealSound
 {
-private:
+protected:
  PSound pSound;
  char* Nazwa;  //dla celow odwszawiania
  double fDistance,fPreviousDistance;  //dla liczenia Dopplera
