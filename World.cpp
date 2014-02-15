@@ -2022,8 +2022,8 @@ bool __fastcall TWorld::Update()
     }
    }
   }
-  if (Global::iTextMode==VK_F1)
-  {//stenogramy dŸwiêków
+  if ((Global::iTextMode!=VK_F3)&&((Global::iTextMode!=VK_F2)?true:!Global::iScreenMode))
+  {//stenogramy dŸwiêków (ukryæ, gdy tabelka skanowania lub rozk³ad)
    glColor3f(1.0f,1.0f,0.0f); //¿ó³te
    for (int i=0;i<5;++i)
    {//kilka linijek

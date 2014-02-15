@@ -231,9 +231,14 @@ void __fastcall TTextSound::Init(char *SoundName,double SoundAttenuation,double 
 };
 void __fastcall TTextSound::Play(double Volume,int Looping,bool ListenerInside,vector3 NewPosition)
 {
- TRealSound::Play(Volume,Looping,ListenerInside,NewPosition);
  if (!asText.IsEmpty())
-  Global::tranTexts.Add(asText.c_str(),fTime,true);
+ {//jeœli ma powi¹zany tekst
+  DWORD stat;
+  pSound->GetStatus(&stat);
+  if (!(stat&DSBSTATUS_PLAYING)) //jeœli nie jest aktualnie odgrywany
+   Global::tranTexts.Add(asText.c_str(),fTime,true);
+ }
+ TRealSound::Play(Volume,Looping,ListenerInside,NewPosition);
 };
 
 //---------------------------------------------------------------------------

@@ -44,8 +44,8 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asRelease="14.2.948.427";
-AnsiString Global::asVersion="Compilation 2014-02-13, release "+Global::asRelease+"."; //tutaj, bo wysy³any
+AnsiString Global::asRelease="14.2.949.428";
+AnsiString Global::asVersion="Compilation 2014-02-15, release "+Global::asRelease+"."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 int Global::iScreenMode[12]={0,0,0,0,0,0,0,0,0,0,0,0}; //numer ekranu wyœwietlacza tekstowego
@@ -615,26 +615,34 @@ void __fastcall TTranscripts::AddLine(char *txt,float show,float hide,bool it)
  if (show==hide) return; //komentarz jest ignorowany
  show=Global::fTimeAngleDeg+show/240.0; //jeœli doba to 360, to 1s bêdzie równe 1/240
  hide=Global::fTimeAngleDeg+hide/240.0;
- int i=iStart,j; //od czegoœ trzeba zacz¹æ
+ int i=iStart,j,k; //od czegoœ trzeba zacz¹æ
  while ((aLines[i].iNext>=0)?(aLines[aLines[i].iNext].fShow<show):false) //póki nie koniec i wczeœniej puszczane
   i=aLines[i].iNext; //przejœcie do kolejnej linijki
  //(i) wskazuje na liniê, po której nale¿y wstawiæ dany tekst, chyba ¿e
- for (j=0;j<MAX_TRANSCRIPTS;++i)
-  if (aLines[j].fHide<0.0)
-  {//znaleziony pierwszy wolny
-   if (aLines[iStart].fHide<0.0) //jeœli tablica jest pusta
-    iStart=j; //fHide trzeba sprawdziæ przed ewentualnym nadpisaniem, gdy i=j=0
-   else
-    aLines[i].iNext=j; //a nowy bêdzie za tamtym
-   aLines[j].asText=AnsiString(txt); //bez sensu, wystarczy³by wskaŸnik
-   aLines[j].fShow=show; //wyœwietlaæ od
-   aLines[j].fHide=hide; //wyœwietlaæ do
-   aLines[j].bItalic=it;
-   aLines[j].iNext=aLines[i].iNext; //nastêpny bêdzie za nowym
-   if (fRefreshTime>show) //jeœli odœwie¿acz ustawiony jest na póŸniej
-    fRefreshTime=show; //to odœwie¿yæ wczeœniej
-   break; //wiêcej ju¿ nic
-  }
+ while (txt?*txt:false)
+  for (j=0;j<MAX_TRANSCRIPTS;++j)
+   if (aLines[j].fHide<0.0)
+   {//znaleziony pierwszy wolny
+    aLines[j].iNext=aLines[i].iNext; //dotychczasowy nastêpny bêdzie za nowym
+    if (aLines[iStart].fHide<0.0) //jeœli tablica jest pusta
+     iStart=j; //fHide trzeba sprawdziæ przed ewentualnym nadpisaniem, gdy i=j=0
+    else
+     aLines[i].iNext=j; //a nowy bêdzie za tamtym wczeœniejszym
+    aLines[j].fShow=show; //wyœwietlaæ od
+    aLines[j].fHide=hide; //wyœwietlaæ do
+    aLines[j].bItalic=it;
+    aLines[j].asText=AnsiString(txt); //bez sensu, wystarczy³by wskaŸnik
+    if ((k=aLines[j].asText.Pos("|"))>0)
+    {//jak jest podzia³ linijki na wiersze
+     aLines[j].asText=aLines[j].asText.SubString(1,k-1);
+     txt+=k;
+    }
+    else
+     txt=NULL; //koniec dodawania
+    if (fRefreshTime>show) //jeœli odœwie¿acz ustawiony jest na póŸniej
+     fRefreshTime=show; //to odœwie¿yæ wczeœniej
+    break; //wiêcej ju¿ nic
+   }
 };
 void __fastcall TTranscripts::Add(char *txt,float len,bool backgorund)
 {//dodanie tekstów, d³ugoœæ dŸwiêku, czy istotne
@@ -695,7 +703,8 @@ void __fastcall TTranscripts::Update()
   {
    if (aLines[i].fHide>0.0) //jeœli nie ukryte
     if (aLines[i].fShow<Global::fTimeAngleDeg) //to dodanie linijki do wyœwietlania
-     Global::asTranscript[++j]=aLines[i].asText; //skopiowanie tekstu
+     if (j<5-1) //ograniczona liczba linijek
+      Global::asTranscript[++j]=aLines[i].asText; //skopiowanie tekstu
    i=aLines[i].iNext; //kolejna linijka
   } while (i>=0); //póki po tablicy
   for (++j;j<5;++j)
