@@ -218,7 +218,7 @@ void __fastcall TTextSound::Init(char *SoundName,double SoundAttenuation,double 
  txt.Delete(txt.Length()-3,4); //obciêcie rozszerzenia
  for (int i=txt.Length();i>0;--i)
   if (txt[i]=='/') txt[i]='\\'; //bo nie rozumi
- txt+="-pl.txt"; //na razie po polsku
+ txt+="-"+Global::asLang+".txt"; //ju¿ mo¿e byæ w ró¿nych jêzykach
  if (!FileExists(txt))
   txt="sounds\\"+txt; //œcie¿ka mo¿e nie byæ podana
  if (FileExists(txt))

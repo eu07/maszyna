@@ -878,7 +878,7 @@ AnsiString __fastcall Bezogonkow(AnsiString str, bool _=false)
    default:
     if (str[i]&128) str[i]='?';
     else if (str[i]<' ') str[i]=' ';
-  }
+  }                        
  return str;
 }
 
