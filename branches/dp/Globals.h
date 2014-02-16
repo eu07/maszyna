@@ -285,6 +285,7 @@ public:
  static bool bSmudge; //czy wyœwietlaæ smugê, a pojazd u¿ytkownika na koñcu
  static AnsiString asTranscript[5]; //napisy na ekranie (widoczne)
  static TTranscripts tranTexts; //obiekt obs³uguj¹cy stenogramy dŸwiêków na ekranie
+ static AnsiString asLang; //domyœlny jêzyk - http://tools.ietf.org/html/bcp47
  //metody
  static void __fastcall TrainDelete(TDynamicObject *d);
  static void __fastcall ConfigParse(Queryparsercomp::TQueryParserComp *qp,cParser *cp=NULL);

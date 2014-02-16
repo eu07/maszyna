@@ -110,6 +110,7 @@ double Global::fMoveLight=-1; //ruchome œwiat³o
 double Global::fLatitudeDeg=52.0; //szerokoœæ geograficzna
 float Global::fFriction=1.0; //mno¿nik tarcia - KURS90
 double Global::fBrakeStep=1.0; //krok zmiany hamulca dla klawiszy [Num3] i [Num9]
+AnsiString Global::asLang="pl"; //domyœlny jêzyk - http://tools.ietf.org/html/bcp47
 
 
 //parametry wydajnoœciowe (np. regulacja FPS, szybkoœæ wczytywania)
@@ -406,6 +407,8 @@ void __fastcall Global::ConfigParse(TQueryParserComp *qp,cParser *cp)
    bJoinEvents=(GetNextSymbol().LowerCase()==AnsiString("yes"));
   else if (str==AnsiString("pause")) //czy po wczytaniu ma byæ pauza?
    iPause|=(GetNextSymbol().LowerCase()==AnsiString("yes"))?1:0;
+  else if (str==AnsiString("lang"))
+   asLang=GetNextSymbol(); //domyœlny jêzyk - http://tools.ietf.org/html/bcp47
  }
  while (str!="endconfig"); //(!Parser->EndOfFile)
  //na koniec trochê zale¿noœci
