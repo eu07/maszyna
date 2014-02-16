@@ -103,8 +103,8 @@ void __fastcall TRealSound::Play(double Volume, int Looping, bool ListenerInside
    else
     Volume=Volume*dS/(dS+2*fDistance); //podwójne dla ListenerInside=false
   }
-  if (FreeFlyModeFlag) //gdy swobodne latanie
-   fPreviousDistance=fDistance; //to efektu Dopplera nie bêdzie
+  //if (FreeFlyModeFlag) //gdy swobodne latanie - nie sprawdza siê to
+  // fPreviousDistance=fDistance; //to efektu Dopplera nie bêdzie
   //McZapkie-010302 - babranie tylko z niezbyt odleglymi dŸwiêkami
   if ((dSoundAtt==-1)||(fDistance<20.0*dS))
   {
@@ -236,7 +236,23 @@ void __fastcall TTextSound::Play(double Volume,int Looping,bool ListenerInside,v
   DWORD stat;
   pSound->GetStatus(&stat);
   if (!(stat&DSBSTATUS_PLAYING)) //jeœli nie jest aktualnie odgrywany
-   Global::tranTexts.Add(asText.c_str(),fTime,true);
+  {
+   int i;
+   AnsiString t=asText;
+   do
+   {//na razie zrobione jakkolwiek, docelowo przenieœæ teksty do tablicy nazw
+    i=t.Pos("\r"); //znak nowej linii
+    if (!i)
+     Global::tranTexts.Add(t.c_str(),fTime,true);
+    else
+    {
+     Global::tranTexts.Add(t.SubString(1,i-1).c_str(),fTime,true);
+     t.Delete(1,i);
+     while (t.IsEmpty()?false:(unsigned char)(t[1])<33)
+      t.Delete(1,1);
+    }
+   } while (i>0);
+  }
  }
  TRealSound::Play(Volume,Looping,ListenerInside,NewPosition);
 };
