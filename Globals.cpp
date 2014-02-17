@@ -619,7 +619,7 @@ void __fastcall TTranscripts::AddLine(char *txt,float show,float hide,bool it)
  show=Global::fTimeAngleDeg+show/240.0; //jeœli doba to 360, to 1s bêdzie równe 1/240
  hide=Global::fTimeAngleDeg+hide/240.0;
  int i=iStart,j,k; //od czegoœ trzeba zacz¹æ
- while ((aLines[i].iNext>=0)?(aLines[aLines[i].iNext].fShow<show):false) //póki nie koniec i wczeœniej puszczane
+ while ((aLines[i].iNext>=0)?(aLines[aLines[i].iNext].fShow<=show):false) //póki nie koniec i wczeœniej puszczane
   i=aLines[i].iNext; //przejœcie do kolejnej linijki
  //(i) wskazuje na liniê, po której nale¿y wstawiæ dany tekst, chyba ¿e
  while (txt?*txt:false)
