@@ -3,7 +3,7 @@ unit Oerlikon_ESt;          {fizyka hamulcow Oerlikon ESt dla symulatora}
 (*
     MaSzyna EU07 - SPKS
     Brakes. Oerlikon ESt.
-    Copyright (C) 2007-2013 Maciej Cierniak
+    Copyright (C) 2007-2014 Maciej Cierniak
 *)
 
 
