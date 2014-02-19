@@ -3,14 +3,14 @@ unit hamulce;          {fizyka hamulcow dla symulatora}
 (*
     MaSzyna EU07 - SPKS
     Brakes.
-    Copyright (C) 2007-2013 Maciej Cierniak
+    Copyright (C) 2007-2014 Maciej Cierniak
 *)                                                                                        
 
 
 (*
 (C) youBy
 Co brakuje:
-Knorr EP i moze jeszcze jakis SW
+moze jeszcze jakis SW
 *)
 (*
 Zrobione:
@@ -95,11 +95,15 @@ CONST
    sf_rel  = 16; //odluzniacz
    sf_ep   = 32; //zawory ep
 
-   bh_FS = 1;  //fala
-   bh_RP = 2;  //jazda
-   bh_NP = 3;  //odciecie
-   bh_MB = 4;  //pelne
-   bh_EB = 5;  //nagle
+   bh_MIN= 0;  //minimalna pozycja
+   bh_MAX= 1;  //maksymalna pozycja
+   bh_FS = 2;  //napelnianie uderzeniowe
+   bh_RP = 3;  //jazda
+   bh_NP = 4;  //odciecie - podwojna trakcja
+   bh_1B = 5;  //1 stopnien / hamowanie ep
+   bh_MB = 6;  //odciecie - utrzymanie stopnia hamowania
+   bh_FB = 7;  //pelne / uzupelniajace
+   bh_EB = 8;  //nagle
 
    SpgD=0.7917;
    SpO=0.5067;  //przekroj przewodu 1" w l/m
@@ -348,7 +352,6 @@ TYPE
   //klasa obejmujaca krany
     THandle= class
       private
-
 //        BCP: integer;
       public
         function GetPF(i_bcp:real; pp, hp, dt, ep: real): real; virtual;
@@ -356,6 +359,7 @@ TYPE
         function GetCP(): real; virtual;
         procedure SetReductor(nAdj: real); virtual;
         function GetSound(i: byte): real; virtual;
+        function GetPos(i: byte): real; virtual;
       end;
 
     TFV4a= class(THandle)
@@ -378,6 +382,7 @@ TYPE
         procedure Init(press: real); override;
         procedure SetReductor(nAdj: real); override;
         function GetSound(i: byte): real; override;
+        function GetPos(i: byte): real; override;
       end;
 
     TM394= class(THandle)
@@ -389,6 +394,7 @@ TYPE
         procedure Init(press: real); override;
         procedure SetReductor(nAdj: real); override;
         function GetCP: real; override;
+        function GetPos(i: byte): real; override;
       end;
 
     TH14K1= class(THandle)
@@ -400,6 +406,7 @@ TYPE
         procedure Init(press: real); override;
         procedure SetReductor(nAdj: real); override;
         function GetCP: real; override;
+        function GetPos(i: byte): real; override;
       end;
 
     TSt113= class(TH14K1)
@@ -408,6 +415,7 @@ TYPE
       public
         function GetPF(i_bcp:real; pp, hp, dt, ep: real): real; override;
         function GetCP: real; override;
+        function GetPos(i: byte): real; override;
       end;
 
     Ttest= class(THandle)
@@ -447,6 +455,7 @@ TYPE
       public
         function GetPF(i_bcp:real; pp, hp, dt, ep: real): real; override;
         function GetCP(): real; override;
+        function GetPos(i: byte): real; override;                
       end;
 
 function PF(P1,P2,S:real):real;
@@ -1160,7 +1169,7 @@ begin
   BVP:=BrakeRes.P;
   VVP:=ValveRes.P;
   BCP:=ImplsRes.P;
-  CVP:=CntrlRes.P-0.0;
+  CVP:=CntrlRes.P-0.05;
 
   dV:=0; dV1:=0;
 
@@ -1181,7 +1190,7 @@ begin
     begin
      if (BrakeStatus and 1)=0 then
       begin
-       ValveRes.CreatePress(0.2*VVP);
+       ValveRes.CreatePress(0.5*VVP);
        SoundFlag:=SoundFlag or sf_Acc;
        ValveRes.Act;
       end;
@@ -1198,7 +1207,7 @@ begin
       temp:=0.1
     else
       temp:=0.5;
-      
+
   dV:=PF(CVP,VVP,0.0015*temp/1.8)*dt;
   CntrlRes.Flow(+dV);
   ValveRes.Flow(-0.04*dV);
@@ -1206,7 +1215,7 @@ begin
 
 //hamulec EP
   temp:=BVP*Byte(EPS>0);
-  dV:=PF(temp,LBP,0.00023+0.00090*Byte(EPS<0))*dt*EPS*EPS*Byte(LBP*EPS<MaxBP*LoadC);
+  dV:=PF(temp,LBP,0.00053+0.00060*Byte(EPS<0))*dt*EPS*EPS*Byte(LBP*EPS<MaxBP*LoadC);
   LBP:=LBP-dV;
 
 //luzowanie KI
@@ -1215,13 +1224,13 @@ begin
   else dV:=0;
   ImplsRes.Flow(-dV);
 //przeplyw ZP <-> KI
-  if ((BrakeStatus and b_on)=b_on) and (BCP<MaxBP) then
+  if ((BrakeStatus and b_on)=b_on) and (BCP<MaxBP*LoadC) then
    dV:=PF(BVP,BCP,0.0006)*dt
   else dV:=0;
   BrakeRes.Flow(dV);
   ImplsRes.Flow(-dV);
 //przeplyw PG <-> rozdzielacz
-  dV:=PF(PP,VVP,0.001*sizeBR)*dt;
+  dV:=PF(PP,VVP,0.01*sizeBR)*dt;
   ValveRes.Flow(-dV);
 
   GetPF:=dV-dV1;
@@ -1232,13 +1241,13 @@ begin
     LBP:=0;
 
 //luzowanie CH
-  if(BrakeCyl.P>temp+0.005)or(Max0R(ImplsRes.P,8*LBP)<0.25) then
-   dV:=PF(0,BrakeCyl.P,0.025*sizeBC)*dt
+  if(BrakeCyl.P>temp+0.005)or(Max0R(ImplsRes.P,8*LBP)<0.05) then
+   dV:=PF(0,BrakeCyl.P,0.25*sizeBC*(0.01+(BrakeCyl.P-temp)))*dt
   else dV:=0;
   BrakeCyl.Flow(-dV);
 //przeplyw ZP <-> CH
-  if(BrakeCyl.P<temp-0.005)and(Max0R(ImplsRes.P,8*LBP)>0.3)and(Max0R(BCP,LBP)<MaxBP*LoadC)then
-   dV:=PF(BVP,BrakeCyl.P,0.035*sizeBC)*dt
+  if(BrakeCyl.P<temp-0.005)and(Max0R(ImplsRes.P,8*LBP)>0.10)and(Max0R(BCP,LBP)<MaxBP*LoadC)then
+   dV:=PF(BVP,BrakeCyl.P,0.35*sizeBC*(0.01-(BrakeCyl.P-temp)))*dt
   else dV:=0;
   BrakeRes.Flow(dV);
   BrakeCyl.Flow(-dV);
@@ -1258,7 +1267,7 @@ end;
 procedure TEStEP2.SetEPS(nEPS: real);
 begin
   EPS:=nEPS;
-  if (EPS>0) and (LBP<BrakeCyl.P) then
+  if (EPS>0) and (LBP+0.01<BrakeCyl.P) then
     LBP:=BrakeCyl.P
 end;
 
@@ -2149,6 +2158,11 @@ begin
   GetSound:=0;
 end;
 
+function THandle.GetPos(i: byte): real;
+begin
+  GetPos:=0;
+end;
+
 //---FV4a---
 
 function TFV4a.GetPF(i_bcp:real; pp, hp, dt, ep: real): real;
@@ -2242,7 +2256,7 @@ begin
 end;
 const
   LBDelay = 100;
-  xpM = 0.33; //mnoznik membrany komory pod
+  xpM = 0.3; //mnoznik membrany komory pod
 var
   LimPP, dpPipe, dpMainValve, ActFlowSpeed, dp: real;
   pom: real;
@@ -2275,7 +2289,7 @@ begin
            begin
             dp:=2.5;
             Sounds[s_fv4a_x]:=dp*xp;
-            xp:=xp-dt*dp; //od cisnienia 5 do 0 w 10 sekund ((5-0)*dt/10)
+            xp:=xp-dt*dp*2; //od cisnienia 5 do 0 w 10 sekund ((5-0)*dt/10)
            end
           else       //.75
             xp:=0;         //jak pusty, to pusty
@@ -2285,11 +2299,11 @@ begin
 
           if(EQ(i_bcp,-1))then pom:=Min0R(HP,5.4+RedAdj) else pom:=Min0R(cp,HP);
 
-          if(pom>rp+0.3)then Fala:=true;
+          if(pom>rp+0.25)then Fala:=true;
           if(Fala)then
-            if(pom>rp+0.05)then
+            if(pom>rp+0.2)then
 //              if(ep>rp+0.11)then
-                xp:=xp-16*PR(ep,xp)*dt
+                xp:=xp-20*PR(pom,xp)*dt
 //              else
 //                xp:=xp-16*(ep-(ep+0.01))/(0.1)*PR(ep,xp)*dt
             else Fala:=false;
@@ -2325,13 +2339,10 @@ begin
 
 
           ep:=dpPipe;
-          if(rp>ep)then //zaworek zwrotny do opozniajacego
-            rp:=rp+PF(rp,ep,0.001)*dt //szybki upust
+          if(EQ(i_bcp,0)or(rp>ep))then
+            rp:=rp+PF(rp,ep,0.0007)*dt //powolne wzrastanie, ale szybsze na jezdzie
           else
-            if(EQ(i_bcp,0))then
-              rp:=rp+PF(rp,ep,0.0005)*dt //powolne wzrastanie, ale szybsze na jezdzie
-            else
-              rp:=rp+PF(rp,ep,0.000093/2*2)*dt; //powolne wzrastanie i to bardzo  //jednak trzeba wydluzyc, bo obecnie zle dziala
+            rp:=rp+PF(rp,ep,0.000093/2*2)*dt; //powolne wzrastanie i to bardzo  //jednak trzeba wydluzyc, bo obecnie zle dziala
           if (rp<ep) and (rp<BPT[Round(i_bcpNo)][1])then //jesli jestesmy ponizej cisnienia w sterujacym (2.9 bar)
             rp:=rp+PF(rp,cp,0.005)*dt; //przypisz cisnienie w PG - wydluzanie napelniania o czas potrzebny do napelnienia PG
 
@@ -2376,6 +2387,12 @@ begin
     GetSound:=Sounds[i];  
 end;
 
+function TFV4aM.GetPos(i: byte): real;
+const
+  table: array[0..8] of real = (-2,5.5,-1,0,-2,1,4,5,5.5);
+begin
+  GetPos:=table[i];
+end;
 
 //---M394--- Matrosow
 
@@ -2441,6 +2458,13 @@ begin
   GetCP:= CP;
 end;
 
+function TM394.GetPos(i: byte): real;
+const
+  table: array[0..8] of real = (-1,5,-1,0,1,3,2,4,5);
+begin
+  GetPos:=table[i];
+end;
+
 //---H14K1-- Knorr
 
 function TH14K1.GetPF(i_bcp:real; pp, hp, dt, ep: real): real;
@@ -2495,6 +2519,13 @@ begin
   GetCP:= CP;
 end;
 
+function TH14K1.GetPos(i: byte): real;
+const
+  table: array[0..8] of real = (-1,4,-1,0,1,3,2,3,4);
+begin
+  GetPos:=table[i];
+end;
+
 //---St113-- Knorr EP
 
 function TSt113.GetPF(i_bcp:real; pp, hp, dt, ep: real): real;
@@ -2542,6 +2573,13 @@ end;
 function TSt113.GetCP: real;
 begin
   GetCP:=EPS;
+end;
+
+function TSt113.GetPos(i: byte): real;
+const
+  table: array[0..8] of real = (-1,5,-1,0,2,1,3,4,5);
+begin
+  GetPos:=table[i];
 end;
 
 //--- test ---
@@ -2649,13 +2687,20 @@ const
 var
   LimPP, dpPipe, dpMainValve, ActFlowSpeed: real;
 begin
-  Limpp:=Min0R(5*Byte(i_bcp<3),hp);
-  ActFlowSpeed:=2*Byte((i_bcp<3) or (i_bcp=4));
+  Limpp:=Min0R(5*Byte(i_bcp<3.5),hp);
+  if (i_bcp>=3.5) and ((i_bcp<4.3)or(i_bcp>5.5)) then
+    ActFlowSpeed:=0
+  else if (i_bcp>4.3) and (i_bcp<4.8) then
+    ActFlowSpeed:=8*(i_bcp-4.3)
+  else if (i_bcp<4) then
+    ActFlowSpeed:=2
+  else
+    ActFlowSpeed:=4;
   dpMainValve:=PF(Limpp,pp,ActFlowSpeed/(LBDelay))*dt;
   GetPF:=dpMainValve;
   if(i_bcp<-0.5)then
     EPS:=-1
-  else if(i_bcp>0.5)and(i_bcp<1.5)then
+  else if(i_bcp>0.5)and(i_bcp<4.7)then
     EPS:=1
   else
     EPS:=0;
@@ -2665,6 +2710,13 @@ end;
 function TFVel6.GetCP: real;
 begin
   GetCP:=EPS;
+end;
+
+function TFVel6.GetPos(i: byte): real;
+const
+  table: array[0..8] of real = (-1,6,-1,0,6,1,4,4.7,5);
+begin
+  GetPos:=table[i];
 end;
 
 end.

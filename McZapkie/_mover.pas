@@ -2388,8 +2388,8 @@ end;
          end;
         end;
 
-      if (BrakeHandle = FVel6) and (ActiveCab*ActiveCab>0) then
-         begin
+      if (BrakeHandle = FVel6) and (ActiveCab<>0) and (ActiveDir<>0) and (Battery) then
+       begin
         temp:=(Handle as TFVel6).GetCP;
         Hamulec.SetEPS(temp);
         SendCtrlToNext('Brake',temp,CabNo);
