@@ -2439,7 +2439,10 @@ end;
 
       if (BrakeHandle = FVel6) and (ActiveCab<>0) then
       begin
-        temp:=(Handle as TFVel6).GetCP;
+        if (Battery) and (ActiveDir<>0) then //tu powinien byc jeszcze bezpiecznik EP i baterie -
+          temp:=(Handle as TFVel6).GetCP
+        else
+          temp:=0;  
         Hamulec.SetEPS(temp);
         SendCtrlToNext('Brake',temp,CabNo);
        end;
