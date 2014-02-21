@@ -704,7 +704,12 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
    {//pozycje z prêdkoœci¹ -1 mo¿na spokojnie pomijaæ
     d=sSpeedTable[i].fDist;
     if ((sSpeedTable[i].iFlags&0x20)?false:d>0.0) //sygna³ lub ograniczenie z przodu (+32=przejechane)
-     a=(v*v-mvOccupied->Vel*mvOccupied->Vel)/(25.92*d); //przyspieszenie: ujemne, gdy trzeba hamowaæ
+    {//jeœli stoi, a ma do przejechania coœ, to niech jedzie
+     if ((mvOccupied->Vel==0.0)?(d>fMaxProximityDist):false) //(iDrivigFlags&moveStopCloser)&& - z tym nie rusza z ostatniej stacji
+      a=fAcc; //ma podjechaæ bli¿ej - czy na pewno w tym miejscu taki warunek?
+     else
+      a=(v*v-mvOccupied->Vel*mvOccupied->Vel)/(25.92*d); //przyspieszenie: ujemne, gdy trzeba hamowaæ
+    }
     else
      if (sSpeedTable[i].iFlags&2) //jeœli tor
      {//tor ogranicza prêdkoœæ, dopóki ca³y sk³ad nie przejedzie,
