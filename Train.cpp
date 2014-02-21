@@ -1269,7 +1269,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
   // McZapkie-240302 - zmiana kierunku: 'd' do przodu, 'r' do tylu
       if (cKey==Global::Keys[k_DirectionForward])
       {
-        if (mvControlled->DirectionForward())
+        if (mvOccupied->DirectionForward())
           {
            //------------
            //hunter-121211: dzwiek kierunkowego
@@ -1301,7 +1301,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
           }
         }
         else
-        if (mvControlled->DirectionBackward())
+        if (mvOccupied->DirectionBackward())
           {
            //------------
            //hunter-121211: dzwiek kierunkowego

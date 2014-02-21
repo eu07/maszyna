@@ -3,7 +3,7 @@ unit Oerlikon_ESt;          {fizyka hamulcow Oerlikon ESt dla symulatora}
 (*
     MaSzyna EU07 - SPKS
     Brakes. Oerlikon ESt.
-    Copyright (C) 2007-2013 Maciej Cierniak
+    Copyright (C) 2007-2014 Maciej Cierniak
 *)
 
 
@@ -458,8 +458,9 @@ end;
 
 
 procedure TNESt3.CheckState(BCP: real; var dV1: real); //glowny przyrzad rozrzadczy
-var VVP, CVP, MPP: real;
+var VVP, BVP, CVP, MPP: real;
 begin
+  BVP:=BrakeRes.P;  //-> tu ma byc komora rozprezna
   VVP:=ValveRes.P;
   CVP:=CntrlRes.P;
   MPP:=Miedzypoj.P;

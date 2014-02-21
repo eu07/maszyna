@@ -485,6 +485,7 @@ public:
 	virtual double __fastcall GetCP(void);
 	virtual void __fastcall SetReductor(double nAdj);
 	virtual double __fastcall GetSound(Byte i);
+	virtual double __fastcall GetPos(Byte i);
 public:
 	#pragma option push -w-inl
 	/* TObject.Create */ inline __fastcall THandle(void) : System::TObject() { }
@@ -539,6 +540,7 @@ public:
 	virtual void __fastcall Init(double press);
 	virtual void __fastcall SetReductor(double nAdj);
 	virtual double __fastcall GetSound(Byte i);
+	virtual double __fastcall GetPos(Byte i);
 public:
 	#pragma option push -w-inl
 	/* TObject.Create */ inline __fastcall TFV4aM(void) : THandle() { }
@@ -564,6 +566,7 @@ public:
 	virtual void __fastcall Init(double press);
 	virtual void __fastcall SetReductor(double nAdj);
 	virtual double __fastcall GetCP(void);
+	virtual double __fastcall GetPos(Byte i);
 public:
 	#pragma option push -w-inl
 	/* TObject.Create */ inline __fastcall TM394(void) : THandle() { }
@@ -589,6 +592,7 @@ public:
 	virtual void __fastcall Init(double press);
 	virtual void __fastcall SetReductor(double nAdj);
 	virtual double __fastcall GetCP(void);
+	virtual double __fastcall GetPos(Byte i);
 public:
 	#pragma option push -w-inl
 	/* TObject.Create */ inline __fastcall TH14K1(void) : THandle() { }
@@ -611,6 +615,7 @@ private:
 public:
 	virtual double __fastcall GetPF(double i_bcp, double pp, double hp, double dt, double ep);
 	virtual double __fastcall GetCP(void);
+	virtual double __fastcall GetPos(Byte i);
 public:
 	#pragma option push -w-inl
 	/* TObject.Create */ inline __fastcall TSt113(void) : TH14K1() { }
@@ -703,6 +708,7 @@ private:
 public:
 	virtual double __fastcall GetPF(double i_bcp, double pp, double hp, double dt, double ep);
 	virtual double __fastcall GetCP(void);
+	virtual double __fastcall GetPos(Byte i);
 public:
 	#pragma option push -w-inl
 	/* TObject.Create */ inline __fastcall TFVel6(void) : THandle() { }
@@ -767,17 +773,22 @@ static const Shortint sf_CylB = 0x4;
 static const Shortint sf_CylU = 0x8;
 static const Shortint sf_rel = 0x10;
 static const Shortint sf_ep = 0x20;
-static const Shortint bh_FS = 0x1;
-static const Shortint bh_RP = 0x2;
-static const Shortint bh_NP = 0x3;
-static const Shortint bh_MB = 0x4;
-static const Shortint bh_EB = 0x5;
+static const Shortint bh_MIN = 0x0;
+static const Shortint bh_MAX = 0x1;
+static const Shortint bh_FS = 0x2;
+static const Shortint bh_RP = 0x3;
+static const Shortint bh_NP = 0x4;
+static const Shortint bh_1B = 0x5;
+static const Shortint bh_MB = 0x6;
+static const Shortint bh_FB = 0x7;
+static const Shortint bh_EB = 0x8;
 #define SpgD  (7.917000E-01)
 #define SpO  (5.067000E-01)
 extern PACKAGE double BPT[9][2];
 extern PACKAGE double BPT_394[7][2];
 static const Shortint i_bcpno = 0x6;
 extern PACKAGE double __fastcall PF(double P1, double P2, double S);
+extern PACKAGE double __fastcall PF1(double P1, double P2, double S);
 extern PACKAGE double __fastcall PFVa(double PH, double PL, double S, double LIM);
 extern PACKAGE double __fastcall PFVd(double PH, double PL, double S, double LIM);
 
