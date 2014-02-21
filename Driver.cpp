@@ -538,7 +538,7 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
       if (!eSignNext) eSignNext=sSpeedTable[i].evEvent;
       if (mvOccupied->Vel>0.0) //jeœli jedzie
        sSpeedTable[i].fVelNext=0; //to bêdzie zatrzymanie
-      else if ((iDrivigFlags&moveStopCloser)?sSpeedTable[i].fDist<=fMaxProximityDist:true)
+      else if ((iDrivigFlags&moveStopCloser)?sSpeedTable[i].fDist<=fMaxProximityDist*(AIControllFlag?1.0:5.0):true)
       // sSpeedTable[i].fVelNext=0; //to bêdzie zatrzymanie
       //else //if (pOccupied->Vel==0.0)
       {//jeœli siê zatrzyma³ przy W4, albo sta³ w momencie zobaczenia W4
@@ -704,8 +704,8 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
    {//pozycje z prêdkoœci¹ -1 mo¿na spokojnie pomijaæ
     d=sSpeedTable[i].fDist;
     if ((sSpeedTable[i].iFlags&0x20)?false:d>0.0) //sygna³ lub ograniczenie z przodu (+32=przejechane)
-    {//jeœli stoi, a ma do przejechania coœ, to niech jedzie
-     if ((mvOccupied->Vel==0.0)?(d>fMaxProximityDist):false) //(iDrivigFlags&moveStopCloser)&& - z tym nie rusza z ostatniej stacji
+    {//2014-02: jeœli stoi, a ma do przejechania kawa³ek, to niech jedzie
+     if ((mvOccupied->Vel==0.0)?(iDrivigFlags&moveStopCloser)&&(d>fMaxProximityDist):false) //ma nie ruszaæ z ostatniej stacji bez sygna³u
       a=fAcc; //ma podjechaæ bli¿ej - czy na pewno w tym miejscu taki warunek?
      else
       a=(v*v-mvOccupied->Vel*mvOccupied->Vel)/(25.92*d); //przyspieszenie: ujemne, gdy trzeba hamowaæ
@@ -797,7 +797,7 @@ __fastcall TController::TController
  bool primary //czy ma aktywnie prowadziæ?
 )
 {
- EngineActive=false;
+ iEngineActive=0;
  LastUpdatedTime=0.0;
  ElapsedTime=0.0;
  //inicjalizacja zmiennych
@@ -1493,12 +1493,12 @@ bool __fastcall TController::PrepareEngine()
  {
   if (eStopReason==stopSleep) //jeœli dotychczas spa³
    eStopReason==stopNone; //teraz nie ma powodu do stania
-  EngineActive=true;
+  iEngineActive=1;
   return true;
  }
  else
  {
-  EngineActive=false;
+  iEngineActive=0;
   return false;
  }
 };
@@ -1546,7 +1546,7 @@ bool __fastcall TController::ReleaseEngine()
  OK=OK&&(mvOccupied->Vel<0.01);
  if (OK)
  {//jeœli siê zatrzyma³
-  EngineActive=false;
+  iEngineActive=0;
   eStopReason=stopSleep; //stoimy z powodu wy³¹czenia
   eAction=actSleep; //œpi (wygaszony)
   if (AIControllFlag)
@@ -1992,7 +1992,7 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
    vCommandLocation=*NewLocation;
   if ((NewValue1!=0.0)&&(OrderList[OrderPos]!=Obey_train))
   {//o ile jazda
-   if (!EngineActive)
+   if (!iEngineActive)
     OrderNext(Prepare_engine); //trzeba odpaliæ silnik najpierw, œwiat³a ustawi JumpToNextOrder()
    //if (OrderList[OrderPos]!=Obey_train) //jeœli nie poci¹gowa
    OrderNext(Obey_train); //to uruchomiæ jazdê poci¹gow¹ (od razu albo po odpaleniu silnika
@@ -2017,7 +2017,7 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
   if (NewLocation)
    vCommandLocation=*NewLocation;
   //if (OrderList[OrderPos]=Obey_train) and (NewValue1<>0))
-  if (!EngineActive)
+  if (!iEngineActive)
    OrderNext(Prepare_engine); //trzeba odpaliæ silnik najpierw
   OrderNext(Shunt); //zamieniamy w aktualnej pozycji, albo dodajey za odpaleniem silnika
   if (NewValue1!=0.0)
@@ -2056,7 +2056,7 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
  else if (NewCommand=="Change_direction")
  {
   TOrders o=OrderList[OrderPos]; //co robi³ przed zmian¹ kierunku
-  if (!EngineActive)
+  if (!iEngineActive)
    OrderNext(Prepare_engine); //trzeba odpaliæ silnik najpierw
   if (NewValue1==0.0)
    iDirectionOrder=-iDirection; //zmiana na przeciwny ni¿ obecny
@@ -2079,7 +2079,7 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
  }
  else if (NewCommand=="Obey_train")
  {
-  if (!EngineActive)
+  if (!iEngineActive)
    OrderNext(Prepare_engine); //trzeba odpaliæ silnik najpierw
   OrderNext(Obey_train);
   //if (NewValue1>0) TrainNumber=floor(NewValue1); //i co potem ???
@@ -2097,7 +2097,7 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
   // 1,-y - pod³¹czyæ siê do sk³adu (sprzêgiem y>=1), a nastêpnie odczepiæ i zabraæ (x) wagonów
   // 1, 0 - odczepienie lokomotywy z jednym wagonem
   iDrivigFlags&=~moveStopHere; //podje¿anie do semaforów zezwolone
-  if (!EngineActive)
+  if (!iEngineActive)
    OrderNext(Prepare_engine); //trzeba odpaliæ silnik najpierw
   if (NewValue2!=0) //jeœli podany jest sprzêg
   {iCoupler=floor(fabs(NewValue2)); //jakim sprzêgiem
@@ -2323,7 +2323,7 @@ bool __fastcall TController::UpdateSituation(double dt)
   }
   if (iDrivigFlags&moveStartHornNow) //czy ma zatr¹biæ przed ruszeniem?
    if (Ready) //gotów do jazdy
-    if (EngineActive) //jeszcze siê odpaliæ musi
+    if (iEngineActive) //jeszcze siê odpaliæ musi
      if (fStopTime>=0) //i nie musi czekaæ
      {//uruchomienie tr¹bienia
       fWarningDuration=0.3; //czas tr¹bienia
@@ -2738,7 +2738,7 @@ bool __fastcall TController::UpdateSituation(double dt)
      } //Change_direction (tylko dla AI)
     //ustalanie zadanej predkosci
     if (AIControllFlag) //jeœli prowadzi AI
-     if (!EngineActive) //jeœli silnik nie odpalony, to próbowaæ naprawiæ
+     if (!iEngineActive) //jeœli silnik nie odpalony, to próbowaæ naprawiæ
       if (OrderList[OrderPos]&(Change_direction|Connect|Disconnect|Shunt|Obey_train)) //jeœli coœ ma robiæ
        PrepareEngine(); //to niech odpala do skutku
     if (iDirection) //jeœli ma kierunek, to skanuje w poszukiwaniu sygna³ów
@@ -2760,6 +2760,7 @@ bool __fastcall TController::UpdateSituation(double dt)
        TableCheck(scanmax); //ewentualne doskanowanie trasy za W4, który zezwoli³ na jazdê
        TableUpdate(VelDesired,ActualProximityDist,VelNext,AccDesired); //aktualizacja po skanowaniu
        if (VelNext==0.0) break; //ale jak coœ z przodu zamyka, to ma staæ
+       //VelActual=VelDesired; //niech jedzie, jak W4 puœci³o - nie, ma czekaæ na sygna³ z sygnalizatora!
       case cm_SetVelocity: //od wersji 357 semafor nie budzi wy³¹czonej lokomotywy
        if (!(OrderList[OrderPos]&~(Obey_train|Shunt))) //jedzie w dowolnym trybie albo Wait_for_orders
         if (fabs(VelActual)>=1.0) //0.1 nie wysy³a siê do samochodow, bo potem nie rusz¹

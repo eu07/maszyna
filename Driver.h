@@ -149,7 +149,7 @@ public:
 private: //parametry sterowania pojazdem (stan, hamowanie)
  double fShuntVelocity; //maksymalna prêdkoœæ manewrowania, zale¿y m.in. od sk³adu
  int iVehicles; //iloœæ pojazdów w sk³adzie
- bool EngineActive; //ABu: Czy silnik byl juz zalaczony
+ int iEngineActive; //ABu: Czy silnik byl juz zalaczony; Ra: postêp w za³¹czaniu
  //vector3 vMechLoc; //pozycja pojazdu do liczenia odleg³oœci od semafora (?)
  bool Psyche;
  int iDrivigFlags; //flagi bitowe ruchu

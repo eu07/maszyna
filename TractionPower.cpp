@@ -70,7 +70,7 @@ bool __fastcall TTractionPowerSource::Load(cParser *parser)
  *parser >> token;
  if ( token.compare( "end" ) != 0 )
   Error("tractionpowersource end statement missing");
- InternalRes*=50; //coœ ma³a ta rezystancja by³a...  
+ InternalRes*=10; //coœ ma³a ta rezystancja by³a...  
  return true;
 };
 
