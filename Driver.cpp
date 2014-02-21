@@ -1378,6 +1378,7 @@ bool __fastcall TController::PrepareEngine()
  voltrear=false;
  LastReactionTime=0.0;
  ReactionTime=PrepareTime;
+ iDrivigFlags|=moveActive; //mo¿e skanowaæ sygna³y i reagowaæ na komendy
  //with Controlling do
  if (((mvControlling->EnginePowerSource.SourceType==CurrentCollector)||(mvOccupied->TrainType==dt_EZT)))
  {
@@ -1552,10 +1553,10 @@ bool __fastcall TController::ReleaseEngine()
   if (AIControllFlag)
   {Lights(0,0); //gasimy œwiat³a
    mvOccupied->BatterySwitch(false);
-
   }
   OrderNext(Wait_for_orders); //¿eby nie próbowa³ coœ robiæ dalej
   TableClear(); //zapominamy ograniczenia
+  iDrivigFlags&=~moveActive; //ma nie skanowaæ sygna³ów i nie reagowaæ na komendy
  }
  return OK;
 }
@@ -2741,7 +2742,7 @@ bool __fastcall TController::UpdateSituation(double dt)
      if (!iEngineActive) //jeœli silnik nie odpalony, to próbowaæ naprawiæ
       if (OrderList[OrderPos]&(Change_direction|Connect|Disconnect|Shunt|Obey_train)) //jeœli coœ ma robiæ
        PrepareEngine(); //to niech odpala do skutku
-    if (iDirection) //jeœli ma kierunek, to skanuje w poszukiwaniu sygna³ów
+    if (iDrivigFlags&moveActive) //jeœli mo¿e skanowaæ sygna³y i reagowaæ na komendy
     {//jeœli jest wybrany kierunek jazdy, mo¿na ustaliæ prêdkoœæ jazdy
      //Ra: tu by jeszcze trzeba by³o wstawiæ uzale¿nienie (VelDesired) od odleg³oœci od przeszkody
      // no chyba ¿eby to uwzgldniæ ju¿ w (ActualProximityDist)
@@ -2758,9 +2759,11 @@ bool __fastcall TController::UpdateSituation(double dt)
      {//ustawienie VelActual - trochê proteza = do przemyœlenia
       case cm_Ready: //W4 zezwoli³ na jazdê
        TableCheck(scanmax); //ewentualne doskanowanie trasy za W4, który zezwoli³ na jazdê
-       TableUpdate(VelDesired,ActualProximityDist,VelNext,AccDesired); //aktualizacja po skanowaniu
+       comm=TableUpdate(VelDesired,ActualProximityDist,VelNext,AccDesired); //aktualizacja po skanowaniu
+       //if (comm!=cm_SetVelocity) //jeœli dalej jest kolejny W4, to ma zwróciæ cm_SetVelocity
        if (VelNext==0.0) break; //ale jak coœ z przodu zamyka, to ma staæ
-       //VelActual=VelDesired; //niech jedzie, jak W4 puœci³o - nie, ma czekaæ na sygna³ z sygnalizatora!
+       if (iDrivigFlags&moveStopCloser)
+        VelActual=VelDesired; //niech jedzie, jak W4 puœci³o - nie, ma czekaæ na sygna³ z sygnalizatora!
       case cm_SetVelocity: //od wersji 357 semafor nie budzi wy³¹czonej lokomotywy
        if (!(OrderList[OrderPos]&~(Obey_train|Shunt))) //jedzie w dowolnym trybie albo Wait_for_orders
         if (fabs(VelActual)>=1.0) //0.1 nie wysy³a siê do samochodow, bo potem nie rusz¹
@@ -3774,7 +3777,7 @@ void __fastcall TController::ControllingSet()
 AnsiString __fastcall TController::TableText(int i)
 {//pozycja tabelki prêdkoœci
  i=(iFirst+i)%iSpeedTableSize; //numer pozycji
- if (i!=iLast)
+ if (i!=iLast) //w (iLast) znajduje siê kolejny tor do przeskanowania, ale nie jest ona aktywn¹ 
   return sSpeedTable[i].TableText();
  return ""; //wskaŸnik koñca 
 };

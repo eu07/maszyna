@@ -1869,7 +1869,8 @@ bool __fastcall TWorld::Update()
       OutText2+=AnsiString("; V=")+FloatToStrF(mvControlled->RunningTraction.TractionVoltage,ffFixed,5,1);
       //OutText2+=AnsiString("; rvent=")+FloatToStrF(mvControlled->RventRot,ffFixed,6,2);
       OutText2+=AnsiString("; R=")+FloatToStrF(Controlled->MoverParameters->RunningShape.R,ffFixed,4,1);
-      OutText2+=AnsiString(" An=")+FloatToStrF(Controlled->MoverParameters->AccN,ffFixed,4,2);
+      OutText2+=AnsiString(" An=")+FloatToStrF(Controlled->MoverParameters->AccN,ffFixed,4,2); //przyspieszenie poprzeczne
+      OutText2+=AnsiString("; As=")+FloatToStrF(Controlled->MoverParameters->AccS,ffFixed,4,2); //przyspieszenie wzd³u¿ne
       //OutText2+=AnsiString("; P=")+FloatToStrF(mvControlled->EnginePower,ffFixed,6,1);
       OutText3+=AnsiString("cyl.ham. ")+FloatToStrF(Controlled->MoverParameters->BrakePress,ffFixed,5,2);
       OutText3+=AnsiString("; prz.gl. ")+FloatToStrF(Controlled->MoverParameters->PipePress,ffFixed,5,2);
@@ -1921,7 +1922,7 @@ bool __fastcall TWorld::Update()
        {OutText3+=AnsiString(" Vtrack ")+FloatToStrF(Controlled->MoverParameters->RunningTrack.Velmax,ffFixed,8,2);}
 //      WriteLog(Controlled->MoverParameters->TrainType.c_str());
       if ((mvControlled->EnginePowerSource.SourceType==CurrentCollector) || (mvControlled->TrainType==dt_EZT))
-       {OutText3+=AnsiString(" pant. ")+FloatToStrF(mvControlled->PantPress,ffFixed,8,2);
+       {OutText3+=AnsiString("; pant. ")+FloatToStrF(mvControlled->PantPress,ffFixed,8,2);
         OutText3+=(mvControlled->bPantKurek3?"=ZG":"|ZG");
        }
   //McZapkie: komenda i jej parametry

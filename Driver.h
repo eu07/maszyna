@@ -27,7 +27,7 @@ enum TMovementStatus
 {//flagi bitowe ruchu (iDrivigFlags)
  moveStopCloser=1, //podjechaæ blisko W4 (nie podje¿d¿aæ na pocz¹tku ani po zmianie czo³a)
  moveStopPoint=2, //stawaæ na W4 (wy³¹czone podczas zmiany czo³a)
- //moveAvaken=4, //po w³¹czeniu silnika pojazd nie przemieœci³ siê
+ moveActive=4, //pojazd jest za³¹czony i skanuje
  movePress=8, //dociskanie przy od³¹czeniu (zamiast zmiennej Prepare2press)
  moveConnect=0x10, //jest blisko innego pojazdu i mo¿na próbowaæ pod³¹czyæ
  movePrimary=0x20, //ma priorytet w sk³adzie (master)
