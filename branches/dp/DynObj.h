@@ -169,6 +169,7 @@ private:
  void UpdateBoogie(TAnim *pAnim); //animacja wózka
  void UpdateDoorTranslate(TAnim *pAnim); //animacja drzwi - przesuw
  void UpdateDoorRotate(TAnim *pAnim); //animacja drzwi - obrót
+ void UpdateDoorFold(TAnim *pAnim); //animacja drzwi - sk³adanie
  void UpdatePant(TAnim *pAnim); //animacja pantografu
 private: //Ra: ci¹g dalszy animacji, dopiero do ogarniêcia
  //ABuWozki 060504

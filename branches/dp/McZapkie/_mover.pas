@@ -515,7 +515,7 @@ TYPE
                 DoorClosureWarning: boolean;      {czy jest ostrzeganie przed zamknieciem}
                 DoorOpenSpeed, DoorCloseSpeed: real;      {predkosc otwierania i zamykania w j.u. }
                 DoorMaxShiftL,DoorMaxShiftR: real;{szerokosc otwarcia lub kat}
-                DoorOpenMethod: byte;             {sposob otwarcia - 1: przesuwne, 2: obrotowe}
+                DoorOpenMethod: byte;             {sposob otwarcia - 1: przesuwne, 2: obrotowe, 3: trójelementowe}
                 ScndS: boolean; {Czy jest bocznikowanie na szeregowej}
 
                         {--sekcja zmiennych}
@@ -6493,9 +6493,10 @@ begin
               s:=ExtractKeyWord(lines,'DoorMaxShiftR=');
               DoorMaxShiftR:=s2r(DUE(s));
               s:=DUE(ExtractKeyWord(lines,'DoorOpenMethod='));
-              if s='Shift' then DoorOpenMethod:=1
+              if s='Shift' then DoorOpenMethod:=1 //przesuw
+              else if s='Fold' then DoorOpenMethod:=3 //3 submodele siê obracaj¹
               else
-               DoorOpenMethod:=2;
+               DoorOpenMethod:=2; //obrót
               s:=DUE(ExtractKeyWord(lines,'DoorClosureWarning='));
               if s='Yes' then
                DoorClosureWarning:=true

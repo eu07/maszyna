@@ -357,6 +357,26 @@ void TDynamicObject::UpdateDoorRotate(TAnim *pAnim)
  }
 };
 
+void TDynamicObject::UpdateDoorFold(TAnim *pAnim)
+{//animacja drzwi - obrót
+ if (pAnim->smAnimated)
+ {//if (MoverParameters->DoorOpenMethod==2) //obrotowe albo dwój³omne (trzeba kombinowac submodelami i ShiftL=90,R=180)
+  if (pAnim->iNumber&1)
+   pAnim->smAnimated->SetRotate(float3(1,0,0),dDoorMoveR);
+  else
+  {pAnim->smAnimated->SetRotate(float3(0,0,1),dDoorMoveL);
+   //SubModel->SetRotate(float3(0,1,0),fValue*360.0);
+   TSubModel *sm=pAnim->smAnimated->ChildGet(); //skrzyd³o mniejsze
+   if (sm)
+   {sm->SetRotate(float3(0,0,1),-dDoorMoveL-dDoorMoveL); //skrzyd³o wiêksze
+    sm=sm->ChildGet();
+    if (sm)
+     sm->SetRotate(float3(0,1,0),dDoorMoveL); //podnó¿ek?
+   }
+  }
+ }
+};
+
 void TDynamicObject::UpdatePant(TAnim *pAnim)
 {//animacja pantografu - 4 obracane ramiona, œlizg pi¹ty
  float a,b,c;
@@ -3656,6 +3676,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
            {//od razu zapinamy potrzebny typ animacji
             case 1: pAnimations[i+j].yUpdate=UpdateDoorTranslate; break;
             case 2: pAnimations[i+j].yUpdate=UpdateDoorRotate; break;
+            case 3: pAnimations[i+j].yUpdate=UpdateDoorFold; break; //obrót 3 kolejnych submodeli
            }
            pAnimations[i+j].iNumber=i; //parzyste dzia³aj¹ inaczej ni¿ nieparzyste
            pAnimations[i+j].fMaxDist=300*300; //drzwi to z daleka widaæ
