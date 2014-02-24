@@ -53,6 +53,16 @@ public:
  bool __fastcall CurrentSwitch(int direction);
  void __fastcall UpdatePantVolume(double dt);
  void __fastcall UpdateBatteryVoltage(double dt);
+ double __fastcall ComputeMovement
+ (double dt,double dt1,
+  const TTrackShape &Shape,TTrackParam &Track,TTractionParam &ElectricTraction,
+  const TLocation &NewLoc,TRotation &NewRot
+ );
+ double __fastcall FastComputeMovement
+ (double dt,
+  const TTrackShape &Shape,TTrackParam &Track,
+  const	TLocation &NewLoc,TRotation &NewRot
+ );
 };
 
 #endif
