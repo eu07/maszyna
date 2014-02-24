@@ -2113,7 +2113,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
         dsbSwitch->Play(0,0,0);
         if (mvControlled->MainCtrlPosNo>0)
         {
-         mvControlled->StLinFlag=true;
+         mvControlled->StLinFlag=false; //yBARC - zmienione na przeciwne, bo true to zalaczone
          dsbRelay->SetVolume(DSBVOLUME_MAX);
          dsbRelay->Play(0,0,0);
         }
@@ -3099,10 +3099,10 @@ else
 //         if ((TestFlag(mvControlled->BrakeStatus,+b_Rused+b_Ractive)))//Lampka drugiego stopnia hamowania
         btLampkaHamPosp.Turn((TestFlag(mvOccupied->BrakeStatus,1))) ;//lampka drugiego stopnia hamowania  //TODO: youBy wyci¹gn¹æ flagê wysokiego stopnia
 
-        //hunter-111211: wylacznik cisnieniowy - Ra: tutaj? w kabinie?
-        if (mvControlled->TrainType!=dt_EZT)
-         if (((mvOccupied->BrakePress > 2) || ( mvOccupied->PipePress < 3.6 )) && ( mvControlled->MainCtrlPos != 0 ))
-          mvControlled->StLinFlag=true;
+        //hunter-111211: wylacznik cisnieniowy - Ra: tutaj? w kabinie? //yBARC - omujborzegrzesiuzniszczylesmicalydzien
+//        if (mvControlled->TrainType!=dt_EZT)
+//         if (((mvOccupied->BrakePress > 2) || ( mvOccupied->PipePress < 3.6 )) && ( mvControlled->MainCtrlPos != 0 ))
+//          mvControlled->StLinFlag=true;
         //-------
 
         //hunter-121211: lampka zanikowo-pradowego wentylatorow:
@@ -3201,16 +3201,16 @@ if ( mvControlled->Signalling==true )
            btLampkaStycznB.TurnOn();      //mozna prowadzic rozruch
 
         //-----------------
-        //hunter-271211: brak jazdy w drugim czlonie, gdy w pierwszym tez nie ma (i odwrotnie) - Ra: tutaj? w kabinie?
-        if (tmp->MoverParameters->TrainType!=dt_EZT)
-         if (((tmp->MoverParameters->BrakePress > 2) || ( tmp->MoverParameters->PipePress < 3.6 )) && ( tmp->MoverParameters->MainCtrlPos != 0 ))
-          {
-           tmp->MoverParameters->MainCtrlActualPos=0; //inaczej StLinFlag nie zmienia sie na false w drugim pojezdzie
-           //tmp->MoverParameters->StLinFlag=true;
-           mvControlled->StLinFlag=true;
-          }
-        if (mvControlled->StLinFlag==true)
-         tmp->MoverParameters->MainCtrlActualPos=0; //tmp->MoverParameters->StLinFlag=true;
+//        //hunter-271211: brak jazdy w drugim czlonie, gdy w pierwszym tez nie ma (i odwrotnie) - Ra: tutaj? w kabinie?
+//        if (tmp->MoverParameters->TrainType!=dt_EZT)
+//         if (((tmp->MoverParameters->BrakePress > 2) || ( tmp->MoverParameters->PipePress < 3.6 )) && ( tmp->MoverParameters->MainCtrlPos != 0 ))
+//          {
+//           tmp->MoverParameters->MainCtrlActualPos=0; //inaczej StLinFlag nie zmienia sie na false w drugim pojezdzie
+//           //tmp->MoverParameters->StLinFlag=true;
+//           mvControlled->StLinFlag=true;
+//          }
+//        if (mvControlled->StLinFlag==true)
+//         tmp->MoverParameters->MainCtrlActualPos=0; //tmp->MoverParameters->StLinFlag=true;
 
         //-----------------
         //hunter-271211: sygnalizacja poslizgu w pierwszym pojezdzie, gdy wystapi w drugim
@@ -3724,8 +3724,8 @@ if ( mvControlled->Signalling==true )
       if (fMainRelayTimer>mvControlled->InitialCtrlDelay) //wlaczanie WSa z opoznieniem
        if (mvControlled->MainSwitch(true))
        {
-        if (mvControlled->MainCtrlPos!=0) //zabezpieczenie, by po wrzuceniu pozycji przed wlaczonym
-         mvControlled->StLinFlag=true; //WSem nie wrzucilo na ta pozycje po jego zalaczeniu
+//        if (mvControlled->MainCtrlPos!=0) //zabezpieczenie, by po wrzuceniu pozycji przed wlaczonym
+//         mvControlled->StLinFlag=true; //WSem nie wrzucilo na ta pozycje po jego zalaczeniu //yBARC - co to tutaj robi?!
         if (mvControlled->EngineType==DieselEngine)
          dsbDieselIgnition->Play(0,0,0);
        }
