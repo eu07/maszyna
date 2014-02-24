@@ -1401,10 +1401,10 @@ begin
              if (CtrlSpeed=1) {and (ScndCtrlPos=0)} then
               begin
                 dec(MainCtrlPos);
-                if (MainCtrlPos=0) and (ScndCtrlPos=0) and (TrainType<>dt_ET40)and(TrainType<>dt_EP05) then
-                 StLinFlag:=false;
-                if (MainCtrlPos=0) and (TrainType<>dt_ET40) and (TrainType<>dt_EP05) then
-                 MainCtrlActualPos:=0;
+//                if (MainCtrlPos=0) and (ScndCtrlPos=0) and (TrainType<>dt_ET40)and(TrainType<>dt_EP05) then
+//                 StLinFlag:=false;
+//                if (MainCtrlPos=0) and (TrainType<>dt_ET40) and (TrainType<>dt_EP05) then
+//                 MainCtrlActualPos:=0; //yBARC: co to tutaj robi? ;)
                 OK:=true;
               end
              else
@@ -2688,7 +2688,8 @@ begin
         ShowCurrent:=Trunc(Abs(Im));
       end
      else
-       ShowCurrent:=Trunc(Abs(Itot));
+        ShowCurrent:=ScndCtrlActualPos+MainCtrlActualPos*10+200*Integer(StLinFlag);
+//       ShowCurrent:=Trunc(Abs(Itot));
     end
   else               {pobor pradu jezeli niema mocy}
    for b:=0 to 1 do
@@ -2769,17 +2770,17 @@ begin
     else if ((Hamulec as TLSt).GetEDBCP<0.2) then
       DynamicBrakeFlag:=false;
    end;
-//wylacznik cisnieniowy
-  if BrakePress>2 then
-   begin
+//wylacznik cisnieniowy yBARC - to jest chyba niepotrzebne tutaj
+//  if BrakePress>2 then
+//   begin
 //    StLinFlag:=true;
-    DelayCtrlFlag:=(TrainType<>dt_EZT); //EN57 nie ma czekania na 1. pozycji
-    DynamicBrakeFlag:=false;
-   end;
+//    DelayCtrlFlag:=(TrainType<>dt_EZT); //EN57 nie ma czekania na 1. pozycji
+//    DynamicBrakeFlag:=false;
+//   end;
   if BrakeSubSystem=ss_LSt then
    (Hamulec as TLSt).SetED((DynamicBrakeFlag)and(Vel>20));
 
-  ResistorsFlag:=(RList[MainCtrlActualPos].R>0.01) and (not DelayCtrlFlag);
+  ResistorsFlag:=(RList[MainCtrlActualPos].R>0.01){ and (not DelayCtrlFlag)};
   ResistorsFlag:=ResistorsFlag or ((DynamicBrakeFlag=true) and (DynamicBrakeType=dbrake_automatic));
   R:=RList[MainCtrlActualPos].R+CircuitRes;
   Mn:=RList[MainCtrlActualPos].Mn;
@@ -2805,7 +2806,7 @@ begin
           MotorCurrent:=0;
      end
   else
-  if (RList[MainCtrlActualPos].Bn=0) or FuseFlag or StLinFlag or DelayCtrlFlag then
+  if (RList[MainCtrlActualPos].Bn=0) {or FuseFlag} or (not StLinFlag) {or DelayCtrlFlag} then
   //if (RList[MainCtrlActualPos].Bn=0) or FuseFlag or StLinFlag or DelayCtrlFlag or ((TrainType=dt_ET42)and(not(ConverterFlag)and not(DynamicBrakeFlag)))  then //z Megapacka
     MotorCurrent:=0                    {wylaczone}
   else                                 {wlaczone}
@@ -2863,7 +2864,7 @@ begin
    else Im:=0;
 }
 
-  if (DynamicBrakeType=dbrake_switch) and ((BrakePress>0.2) or (PipePress<0.36)) then
+  if (DynamicBrakeType=dbrake_switch) and ((BrakePress>2.0) or (PipePress<3.6)) then
   begin
     Im:=0;
   MotorCurrent:=0;
@@ -3386,96 +3387,27 @@ function T_MoverParameters.AutoRelaySwitch(State:boolean):boolean;
 
 function T_MoverParameters.AutoRelayCheck: boolean;
 var OK:boolean; //b:byte;
+ ARFASI, ARFASI2 :boolean; //sprawdzenie wszystkich warunkow (AutoRelayFlag, AutoSwitch, Im<Imin)
 begin
-//  if ((TrainType=dt_EZT{) or (TrainType=dt_ET22)}) and (Imin=IminLo)) or ((ActiveDir<0) and (TrainType<>dt_PseudoDiesel')) then
-//     if Rlist[MainCtrlActualPos].Bn>1 then
-//      begin
-//        dec(MainCtrlActualPos);
-//        AutoRelayCheck:=false;
-//        Exit;
-//      end;
-//yB: wychodzenie przy odcietym pradzie
-  if (ScndCtrlActualPos=255)then
+//rozlaczanie stycznikow liniowych
+  if (not Mains) or (FuseFlag) or (MainCtrlPos=0) or (BrakePress>2.1) then   //hunter-111211: wylacznik cisnieniowy
    begin
-    AutoRelayCheck:=false;
-    MainCtrlActualPos:=0;
-   end
-  else
-  if (not Mains) or (FuseFlag) or (StLinFlag) or (MainCtrlPos=0) then   //hunter-111211: wylacznik cisnieniowy
-   begin
+     StLinFlag:=false; //yBARC - rozlaczenie stycznikow liniowych
      AutoRelayCheck:=false;
-     MainCtrlActualPos:=0;
-     ScndCtrlActualPos:=0;
-   end
-  else
+   end;
+
+   ARFASI2:=(not AutoRelayFlag) or (not MotorParam[ScndCtrlActualPos].AutoSwitch) or (Abs(Im)<Imin); //wszystkie warunki w jednym
+   ARFASI :=(not AutoRelayFlag) or (not RList[MainCtrlActualPos].AutoSwitch) or (Abs(Im)<Imin); //wszystkie warunki w jednym
+
    begin
-    OK:=false;
-    if DelayCtrlFlag and (MainCtrlPos=1) and (MainCtrlActualPos=1) and (LastRelayTime>=InitialCtrlDelay) then
+    if (StLinFlag) then
      begin
-       DelayCtrlFlag:=false;
-       SetFlag(SoundFlag,sound_relay); SetFlag(SoundFlag,sound_loud);
-     end;
-
-(*
-=========== Opis przesla³ youBy ===========
-
-1) Styczniki liniowe
-
-Zamykaj¹ siê na pierwszej pozycji po czasie InicDelay.
-Roz³¹czaj¹ siê, gdy trac¹ zasilanie.
-
-Lampka zasilana przez zestyk pomocniczy bierny styczników liniowych i wy³¹cznika ciœnieniowego
-
-
-2) Wy³¹cznik ciœnieniowy CH i PG (jeden albo dwa).
-
-CH (1 flaga):
-Umo¿liwia zasilanie styczników liniowych od zejœcia poni¿ej BPOn.
-Uniemo¿liwia zasilanie styczników liniowych od wejœcia ponad BPOff.1
-
-PG (2 flaga):
-Umo¿liwia zasilanie styczników liniowych od zejœcia poni¿ej PPOn.
-Uniemo¿liwia zasilanie styczników liniowych od wejœcia ponad PPOff.
-
-
-3) Rozrz¹d indywidualny (siódemeczka i te sprawy):
-
-Klep sobie stycznikami w obie strony z odpowiednim opóŸnieniem przejœcia. Przy 0NG roz³¹cz liniowe i ustaw uk³ad styczników na 0, przy szeregowej wejdŸ na szereg (jeœli FSCircuit).
-
-4) Wa³ ku³akowy dwukierunkowy (czechy i inne takie):
-
-Klep sobie wa³em w obie strony z odpowiednim opóŸnieniem przejœcia. Przy 0NG roz³¹cz liniowe. (Mog¹ byæ konstrukcje z przejœciem na skróty do ni¿szych pozycji - g³ównie 0).
-
-5) Wa³ ku³akowy jednokierunkowy (EZT pokroju EN57):
-Klep sobie wa³em w górê z odpowiednim opóŸnieniem przejœcia. Przy przestawieniu na ni¿sz¹, stój. Przy 0NG roz³¹cz liniowe, dojdŸ do koñca i siê przewróæ na 0.
-
-Dodatek
-6) Boczniki na szeregu
-Blokujemy 4 styczniki w odpowiedniej pozycji i zawsze mamy 1 ga³¹Ÿ, w której jest Bn*Mn silników.
-
-7) Wa³ grupowy w byku
-Przy zmianie iloœci ga³êzi musisz:
-- roz³¹czyæ liniowe
-- wejœæ wy¿ej
-- za³¹czyæ liniowe
-*)
-
-    //if (TrainType<>dt_EZT) then //Ra: w EZT mo¿na daæ od razu na S albo R, wa³ ku³akowy sobie dokrêci
-    //hunter-101012: rozbicie CtrlDelay na CtrlDelay i CtrlDownDelay
-    //if (LastRelayTime>CtrlDelay) or (LastRelayTime>CtrlDownDelay) and not DelayCtrlFlag then //po co, skoro sa powtorzone warunki na to
-    if (not DelayCtrlFlag) then
-     begin
-       if (MainCtrlPos=0) then
-        DelayCtrlFlag:=(TrainType<>dt_EZT); //Ra: w EZT mo¿na daæ od razu na S albo R, wa³ ku³akowy sobie dokrêci
-       if (((RList[MainCtrlActualPos].R=0) and ((not CoupledCtrl) or (Imin=IminLo))) or (MainCtrlActualPos=RListSize))
-      //if (((RList[MainCtrlActualPos].R=0) and ((not CoupledCtrl) or ((Imin=IminLo) and (ScndS=true)))) or (MainCtrlActualPos=RListSize))
-          and ((ScndCtrlActualPos>0) or (ScndCtrlPos>0)) then
+       if (RList[MainCtrlActualPos].R=0) and ((ScndCtrlActualPos>0) or (ScndCtrlPos>0)) then
         begin //zmieniaj scndctrlactualpos
-          if (not AutoRelayFlag) or (not MotorParam[ScndCtrlActualPos].AutoSwitch) then
            begin                                                {scnd bez samoczynnego rozruchu}
              if (ScndCtrlActualPos<ScndCtrlPos) then
               begin
-               if (LastRelayTime>CtrlDelay) then
+               if (LastRelayTime>CtrlDelay)and(ARFASI2) then
                 begin
                  inc(ScndCtrlActualPos);
                  OK:=true;
@@ -3491,41 +3423,18 @@ Przy zmianie iloœci ga³êzi musisz:
                  end
                end
              else OK:=false;
-           end
-          else
-           begin //scnd z samoczynnym rozruchem
-             if ScndCtrlPos<ScndCtrlActualPos then
-              begin
-                if (LastRelayTime>CtrlDownDelay) then
-                 begin
-                  dec(ScndCtrlActualPos);
-                  OK:=true;
-                 end
-              end
-             else
-              if (ScndCtrlPos>ScndCtrlActualPos) then
-               if Abs(Im)<Imin then
-                if MotorParam[ScndCtrlActualPos].AutoSwitch then
-                 begin
-                  if (LastRelayTime>CtrlDelay) then
-                   begin
-                    inc(ScndCtrlActualPos);
-                    OK:=true
-                   end
-                 end;
            end;
         end
        else
         begin //zmieniaj mainctrlactualpos
-          if ((TrainType=dt_EZT) and (Imin=IminLo)) or ((ActiveDir<0) and (TrainType<>dt_PseudoDiesel)) then
+          if ((ActiveDir<0) and (TrainType<>dt_PseudoDiesel)) then
            if Rlist[MainCtrlActualPos+1].Bn>1 then
             begin //to jest za³¹czanie boczników na po³¹czeniu szeregowym dla N1
               AutoRelayCheck:=false;
               Exit; //Ra: to powoduje, ¿e EN57 nie wy³¹cza siê przy IminLo
-           end;
-          if (not AutoRelayFlag) or (not RList[MainCtrlActualPos].AutoSwitch) then
+            end;
            begin //main bez samoczynnego rozruchu
-             if Rlist[MainCtrlActualPos].Relay<MainCtrlPos then
+             if (Rlist[MainCtrlActualPos].Relay<MainCtrlPos)or(Rlist[MainCtrlActualPos+1].Relay=MainCtrlPos) then
               begin
                if (Rlist[MainCtrlPos].R=0) and (MainCtrlPos>0) and (not (MainCtrlPos=MainCtrlPosNo)) and (FastSerialCircuit=1) then
                 begin
@@ -3533,7 +3442,7 @@ Przy zmianie iloœci ga³êzi musisz:
                  OK:=true;
                  SetFlag(SoundFlag,sound_manyrelay); SetFlag(SoundFlag,sound_loud);
                 end
-               else if (LastRelayTime>CtrlDelay) then
+               else if (LastRelayTime>CtrlDelay)and(ARFASI) then
                 begin
                  inc(MainCtrlActualPos);
                  OK:=true;
@@ -3564,14 +3473,8 @@ Przy zmianie iloœci ga³êzi musisz:
                   begin
                    dec(MainCtrlActualPos);
                    OK:=true;
-                  end
-                 else
-                  if (MainCtrlPos=0) then
-                   begin
-                    MainCtrlActualPos:=0; //tylko cofniêcie na 0 ustawia wa³ na 0
-                    OK:=true;
-                   end;
-                  if MainCtrlActualPos>0 then  //hunter-111211: poprawki
+                  end;
+                 if MainCtrlActualPos>0 then  //hunter-111211: poprawki
                   if Rlist[MainCtrlActualPos].R=0 then  {dzwieki schodzenia z bezoporowej}
                    begin
                     SetFlag(SoundFlag,sound_manyrelay);
@@ -3589,56 +3492,66 @@ Przy zmianie iloœci ga³êzi musisz:
                end
               else
                OK:=false;
-           end
-          else  //main z samoczynnym rozruchem - np. EN57
-           begin
-             OK:=false;
-             if MainCtrlPos<Rlist[MainCtrlActualPos].Relay then
-              begin //pozycja zadana mniejsza ni¿ ustawiona na wale
-               if (LastRelayTime>CtrlDownDelay) then
-                begin
-                 if (TrainType<>dt_EZT) then //tutaj powinien byæ tryb sterowania wa³em
-                  dec(MainCtrlActualPos) //tu jest wa³ dwukierunkowy
-                 else
-                  if (MainCtrlPos=0) then
-                   MainCtrlActualPos:=0; //tylko cofniêcie na 0 ustawia wa³ na 0
-                 OK:=true;
-                end
-              end
-             else
-              if (MainCtrlPos>Rlist[MainCtrlActualPos].Relay)
-                  or ((MainCtrlActualPos<RListSize) and (MainCtrlPos=Rlist[MainCtrlActualPos+1].Relay)) then
-               if Abs(Im)<Imin then
-                 begin
-                  if (LastRelayTime>CtrlDelay) then
-                   begin
-                    inc(MainCtrlActualPos); //posuwanie wa³u ku³akowego do przodu
-                    OK:=true
-                   end
-                 end;
            end;
         end;
      end
-    else  {DelayCtrlFlag}
-     if ((MainCtrlPos>1) and (MainCtrlActualPos>0) and DelayCtrlFlag) then
-      begin
-       //if (TrainType<>dt_EZT) then //Ra: w EZT mo¿na daæ od razu na S albo R, wa³ ku³akowy sobie dokrêci
-       MainCtrlActualPos:=0; //Ra: tu jest chyba wy³¹czanie przy zbyt szybkim wejœciu na drug¹ pozycjê
-       OK:=true;
-      end
-     else
-      if ((MainCtrlPos=1)or(TrainType=dt_EZT)) and (MainCtrlActualPos=0) then
-       MainCtrlActualPos:=1
+    else  {not StLinFlag}
+     begin
+      OK:=false;
+      //ybARC - tutaj sa wszystkie warunki, jakie musza byc spelnione, zeby mozna byla zalaczyc styczniki liniowe
+      if ((MainCtrlPos=1)or((TrainType=dt_EZT)and(MainCtrlPos>0)))and(not FuseFlag)and(Mains)and(BrakePress<1.0)and(MainCtrlActualPos=0)then
+       begin
+         DelayCtrlFlag:=true;
+         if (LastRelayTime>=InitialCtrlDelay) then
+          begin
+           StLinFlag:=true; //ybARC - zalaczenie stycznikow liniowych
+           MainCtrlActualPos:=1;
+           DelayCtrlFlag:=false;
+           SetFlag(SoundFlag,sound_relay); SetFlag(SoundFlag,sound_loud);
+           OK:=true;
+          end;
+       end
       else
-       if (MainCtrlPos=0) and (MainCtrlActualPos>0) then
+       DelayCtrlFlag:=false;
+
+      if(MainCtrlPos=0)and((MainCtrlActualPos>0)or(ScndCtrlActualPos>0))then
+       if(TrainType=dt_EZT)and(CoupledCtrl)then //EN57 wal jednokierunkowy calosciowy
         begin
-         dec(MainCtrlActualPos);
+         if(LastRelayTime>CtrlDownDelay)then
+          begin
+           if(MainCtrlActualPos<RlistSize)then
+            inc(MainCtrlActualPos) //dojdz do konca
+           else if(ScndCtrlActualPos<ScndCtrlPosNo)then
+            inc(ScndCtrlActualPos) //potem boki
+           else
+            begin                  //i sie przewroc na koniec
+             MainCtrlActualPos:=0;
+             ScndCtrlActualPos:=0;
+            end;
+           OK:=true;
+          end 
+        end
+       else if(CoupledCtrl)then //wal kulakowy dwukierunkowy
+        begin
+         if (LastRelayTime>CtrlDownDelay) then
+          begin
+           if (ScndCtrlActualPos>0) then
+            dec(ScndCtrlActualPos)
+           else dec(MainCtrlActualPos);
+           OK:=true;
+          end
+        end
+       else
+        begin
+         MainCtrlActualPos:=0;
+         ScndCtrlActualPos:=0;
          OK:=true;
         end;
 
+     end;
     if OK then LastRelayTime:=0;
     AutoRelayCheck:=OK;
-  end;
+   end;
 end;
 
 function T_MoverParameters.ResistorsFlagCheck:boolean;  {sprawdzanie wskaznika oporow}
