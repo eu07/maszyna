@@ -2262,8 +2262,8 @@ end;
 
 function T_MoverParameters.IncBrakePress(var brake:real;PressLimit,dp:real):boolean;
 begin
-//  if (DynamicBrakeType<>dbrake_switch) and (DynamicBrakeType<>dbrake_none) and ((BrakePress>0.2) or (PipePress<0.37{(LowPipePress+0.05)})) then
-    if (DynamicBrakeType<>dbrake_switch) and (DynamicBrakeType<>dbrake_none) and (BrakePress>0.2) and (TrainType<>dt_EZT) then //yB radzi nie sprawdzaæ ciœnienia w przewodzie
+//  if (DynamicBrakeType<>dbrake_switch) and (DynamicBrakeType<>dbrake_none) and ((BrakePress>2.0) or (PipePress<3.7{(LowPipePress+0.5)})) then
+    if (DynamicBrakeType<>dbrake_switch) and (DynamicBrakeType<>dbrake_none) and (BrakePress>2.0) and (TrainType<>dt_EZT) then //yB radzi nie sprawdzaæ ciœnienia w przewodzie
     //hunter-301211: dla EN57 silnikow nie odlaczamy
      begin
        DynamicBrakeFlag:=true;                 {uruchamianie hamulca ED albo odlaczanie silnikow}
@@ -2863,15 +2863,15 @@ begin
    else Im:=0;
 }
 
-  if (DynamicBrakeType=dbrake_switch) and ((BrakePress>0.2) or (PipePress<0.36)) then
-  begin
+  if (DynamicBrakeType=dbrake_switch) and ((BrakePress>2.0) or (PipePress<3.6)) then
+   begin
     Im:=0;
-  MotorCurrent:=0;
-  //Im:=0;
-  Itot:=0;
-  end
-    else
-  Im:=MotorCurrent;
+    MotorCurrent:=0;
+    //Im:=0;
+    Itot:=0;
+   end
+  else
+   Im:=MotorCurrent;
   Current:=Im; {prad brany do liczenia sily trakcyjnej}
 {  EnginePower:=Im*Im*RList[MainCtrlActualPos].Bn*RList[MainCtrlActualPos].Mn*WindingRes;}
   EnginePower:=Abs(Itot)*(1+RList[MainCtrlActualPos].Mn)*Abs(U);

@@ -383,3 +383,31 @@ void __fastcall TMoverParameters::UpdateBatteryVoltage(double dt)
 35 //otwieranie drzwi lewych
 ZN //masa
 */
+
+double __fastcall TMoverParameters::ComputeMovement
+(double dt,double dt1,
+ const TTrackShape &Shape,TTrackParam &Track,TTractionParam &ElectricTraction,
+ const TLocation &NewLoc,TRotation &NewRot
+)
+{//trzeba po ma³u przenosiæ tu tê funkcjê
+ double d=T_MoverParameters::ComputeMovement(dt,dt1,Shape,Track,ElectricTraction,NewLoc,NewRot);
+ UpdateBatteryVoltage(dt); //jest ju¿ w Mover.cpp
+ if (EnginePowerSource.SourceType==CurrentCollector) //tylko jeœli pantografuj¹cy
+  if (Power>1.0) //w rozrz¹dczym nie (jest b³¹d w FIZ!)
+   UpdatePantVolume(dt); //Ra: pneumatyka pantografów przeniesiona do Mover.cpp!
+ return d;
+};
+
+double __fastcall TMoverParameters::FastComputeMovement
+(double dt,
+ const TTrackShape &Shape,TTrackParam &Track,
+ const TLocation &NewLoc,TRotation &NewRot
+)
+{//trzeba po ma³u przenosiæ tu tê funkcjê
+ double d=T_MoverParameters::FastComputeMovement(dt,Shape,Track,NewLoc,NewRot);
+ UpdateBatteryVoltage(dt); //jest ju¿ w Mover.cpp
+ if (EnginePowerSource.SourceType==CurrentCollector) //tylko jeœli pantografuj¹cy
+  if (Power>1.0) //w rozrz¹dczym nie (jest b³¹d w FIZ!)
+   UpdatePantVolume(dt); //Ra: pneumatyka pantografów przeniesiona do Mover.cpp!
+ return d;
+};
