@@ -1,7 +1,7 @@
 unit _mover;          {fizyka ruchu dla symulatora lokomotywy}
 
 (*
-    MaSzyna EU07 locomotive simulator
+    MaSzyna EU07 locomotive simulator        
     Copyright (C) 2001-2004  Maciej Czapkiewicz and others
 
 *)
@@ -2688,8 +2688,8 @@ begin
         ShowCurrent:=Trunc(Abs(Im));
       end
      else
-        ShowCurrent:=ScndCtrlActualPos+MainCtrlActualPos*10+200*Integer(StLinFlag);
-//       ShowCurrent:=Trunc(Abs(Itot));
+//        ShowCurrent:=ScndCtrlActualPos+MainCtrlActualPos*10+200*Integer(StLinFlag);
+       ShowCurrent:=Trunc(Abs(Itot));
     end
   else               {pobor pradu jezeli niema mocy}
    for b:=0 to 1 do
@@ -2783,7 +2783,10 @@ begin
   ResistorsFlag:=(RList[MainCtrlActualPos].R>0.01){ and (not DelayCtrlFlag)};
   ResistorsFlag:=ResistorsFlag or ((DynamicBrakeFlag=true) and (DynamicBrakeType=dbrake_automatic));
   R:=RList[MainCtrlActualPos].R+CircuitRes;
-  Mn:=RList[MainCtrlActualPos].Mn;
+  if(TrainType<>dt_EZT)or(Imin<>IminLo)or(not ScndS)then //yBARC - boczniki na szeregu poprawnie
+    Mn:=RList[MainCtrlActualPos].Mn
+  else
+    Mn:=RList[MainCtrlActualPos].Mn*RList[MainCtrlActualPos].Bn;
 //z Megapacka
 //  if DynamicBrakeFlag and (TrainType=dt_ET42) then { KURS90 azeby mozna bylo hamowac przy opuszczonych pantografach }
 //  SP:=ScndCtrlActualPos;
@@ -3402,7 +3405,7 @@ begin
    begin
     if (StLinFlag) then
      begin
-       if (RList[MainCtrlActualPos].R=0) and ((ScndCtrlActualPos>0) or (ScndCtrlPos>0)) then
+       if (RList[MainCtrlActualPos].R=0)and ((ScndCtrlActualPos>0) or (ScndCtrlPos>0)) and (not(CoupledCtrl)or(RList[MainCtrlActualPos].Relay=MainCtrlPos))then
         begin //zmieniaj scndctrlactualpos
            begin                                                {scnd bez samoczynnego rozruchu}
              if (ScndCtrlActualPos<ScndCtrlPos) then
@@ -3429,7 +3432,7 @@ begin
         begin //zmieniaj mainctrlactualpos
           if ((ActiveDir<0) and (TrainType<>dt_PseudoDiesel)) then
            if Rlist[MainCtrlActualPos+1].Bn>1 then
-            begin //to jest za³¹czanie boczników na po³¹czeniu szeregowym dla N1
+            begin 
               AutoRelayCheck:=false;
               Exit; //Ra: to powoduje, ¿e EN57 nie wy³¹cza siê przy IminLo
             end;
@@ -3911,6 +3914,8 @@ begin
 
         if (((DynamicBrakeType=dbrake_automatic)or(DynamicBrakeType=dbrake_switch)) and (DynamicBrakeFlag)) then
          Itot:=Im*2   {2x2 silniki w EP09}
+        else if(TrainType=dt_EZT)and(Imin=IminLo)and(ScndS)then //yBARC - boczniki na szeregu poprawnie
+         Itot:=Im
         else
          Itot:=Im*RList[MainCtrlActualPos].Bn;   {prad silnika * ilosc galezi}
         Mw:=Mm*Transmision.Ratio;
