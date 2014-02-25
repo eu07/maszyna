@@ -851,34 +851,22 @@ void __fastcall TWorld::OnMouseMove(double x, double y)
  Camera.OnCursorMove(x*Global::fMouseXScale,-y*Global::fMouseYScale);
 }
 
+//Ra: tymczasowe rozwi¹zanie kwestii zagranicznych (czeskich) napisów
+char bezogonkowo[128]=
+ "E?,?\"_++?%S<STZZ?`'\"\".--??s>stzz"
+ " ^^L$A|S^CS<--RZo±,l'uP.,as>L\"lz"
+ "RAAAALCCCEEEEIIDDNNOOOOxRUUUUYTB"
+ "raaaalccceeeeiiddnnoooo-ruuuuyt?";
+
 AnsiString __fastcall Bezogonkow(AnsiString str, bool _=false)
 {//wyciêcie liter z ogonkami, bo OpenGL nie umie wyœwietliæ
  for (int i=1;i<=str.Length();++i)
-  switch (str[i])
-  {//bo komunikaty po polsku s¹...
-   case '¹': str[i]='a'; break;
-   case 'æ': str[i]='c'; break;
-   case 'ê': str[i]='e'; break;
-   case '³': str[i]='l'; break;
-   case 'ñ': str[i]='n'; break;
-   case 'ó': str[i]='o'; break;
-   case 'œ': str[i]='s'; break;
-   case '¿': str[i]='z'; break;
-   case 'Ÿ': str[i]='z'; break;
-   case '¥': str[i]='A'; break;
-   case 'Æ': str[i]='C'; break;
-   case 'Ê': str[i]='E'; break;
-   case '£': str[i]='L'; break;
-   case 'Ñ': str[i]='N'; break;
-   case 'Ó': str[i]='O'; break;
-   case 'Œ': str[i]='S'; break;
-   case '¯': str[i]='Z'; break;
-   case '': str[i]='Z'; break;
-   case '_': if (_) str[i]=' '; break; //a to ju¿ na plus - w nazwach stacji nie mog¹ byæ u¿ywane spacje
-   default:
-    if (str[i]&128) str[i]='?';
-    else if (str[i]<' ') str[i]=' ';
-  }                        
+  if (str[i]&0x80)
+   str[i]=bezogonkowo[str[i]&0x7F];
+  else if (str[i]<' ') //znaki steruj¹ce nie s¹ obs³ugiwane
+   str[i]=' ';
+  else if (_) if (str[i]=='_') //nazwy stacji nie mog¹ zawieraæ spacji
+   str[i]=' '; //wiêc trzeba wyœwietlaæ inaczej
  return str;
 }
 
@@ -1917,7 +1905,7 @@ bool __fastcall TWorld::Update()
       //OutText3+=AnsiString("; dpMain ")+FloatToStrF(Controlled->MoverParameters->dpMainValve,ffFixed,10,8);
       //McZapkie: predkosc szlakowa
       if (Controlled->MoverParameters->RunningTrack.Velmax==-1)
-       {OutText3+=AnsiString(" Vtrack=Vmax ");}
+       {OutText3+=AnsiString(" Vtrack=Vmax");}
       else
        {OutText3+=AnsiString(" Vtrack ")+FloatToStrF(Controlled->MoverParameters->RunningTrack.Velmax,ffFixed,8,2);}
 //      WriteLog(Controlled->MoverParameters->TrainType.c_str());

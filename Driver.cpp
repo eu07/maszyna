@@ -705,7 +705,7 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
     d=sSpeedTable[i].fDist;
     if ((sSpeedTable[i].iFlags&0x20)?false:d>0.0) //sygna³ lub ograniczenie z przodu (+32=przejechane)
     {//2014-02: jeœli stoi, a ma do przejechania kawa³ek, to niech jedzie
-     if ((mvOccupied->Vel==0.0)?(iDrivigFlags&moveStopCloser)&&(d>fMaxProximityDist):false) //ma nie ruszaæ z ostatniej stacji bez sygna³u
+     if ((mvOccupied->Vel==0.0)?((sSpeedTable[i].iFlags&0x501)==0x501)&&(d>fMaxProximityDist):false)
       a=fAcc; //ma podjechaæ bli¿ej - czy na pewno w tym miejscu taki warunek?
      else
       a=(v*v-mvOccupied->Vel*mvOccupied->Vel)/(25.92*d); //przyspieszenie: ujemne, gdy trzeba hamowaæ
@@ -2773,7 +2773,7 @@ bool __fastcall TController::UpdateSituation(double dt)
      {//ustawienie VelActual - trochê proteza = do przemyœlenia
       case cm_Ready: //W4 zezwoli³ na jazdê
        TableCheck(scanmax); //ewentualne doskanowanie trasy za W4, który zezwoli³ na jazdê
-       comm=TableUpdate(VelDesired,ActualProximityDist,VelNext,AccDesired); //aktualizacja po skanowaniu
+       TableUpdate(VelDesired,ActualProximityDist,VelNext,AccDesired); //aktualizacja po skanowaniu
        //if (comm!=cm_SetVelocity) //jeœli dalej jest kolejny W4, to ma zwróciæ cm_SetVelocity
        if (VelNext==0.0) break; //ale jak coœ z przodu zamyka, to ma staæ
        if (iDrivigFlags&moveStopCloser)
