@@ -391,10 +391,66 @@ double __fastcall TMoverParameters::ComputeMovement
 )
 {//trzeba po ma³u przenosiæ tu tê funkcjê
  double d=T_MoverParameters::ComputeMovement(dt,dt1,Shape,Track,ElectricTraction,NewLoc,NewRot);
- UpdateBatteryVoltage(dt); //jest ju¿ w Mover.cpp
  if (EnginePowerSource.SourceType==CurrentCollector) //tylko jeœli pantografuj¹cy
   if (Power>1.0) //w rozrz¹dczym nie (jest b³¹d w FIZ!)
    UpdatePantVolume(dt); //Ra: pneumatyka pantografów przeniesiona do Mover.cpp!
+ //sprawdzanie i ewentualnie wykonywanie->kasowanie poleceñ
+ if (LoadStatus>0) //czas doliczamy tylko jeœli trwa (roz)³adowanie
+  LastLoadChangeTime=LastLoadChangeTime+dt; //czas (roz)³adunku
+ RunInternalCommand();
+ //automatyczny rozruch
+ if (EngineType==ElectricSeriesMotor)
+  if (AutoRelayCheck())
+   SetFlag(SoundFlag,sound_relay);
+/*
+ else                  {McZapkie-041003: aby slychac bylo przelaczniki w sterowniczym}
+  if (EngineType=None) and (MainCtrlPosNo>0) then
+   for b:=0 to 1 do
+    with Couplers[b] do
+     if TestFlag(CouplingFlag,ctrain_controll) then
+      if Connected^.Power>0.01 then
+       SoundFlag:=SoundFlag or Connected^.SoundFlag;
+*/
+ if (EngineType==DieselEngine)
+  if (dizel_Update(dt))
+    SetFlag(SoundFlag,sound_relay);
+ //uklady hamulcowe:
+  if (VeselVolume>0)
+   Compressor=CompressedVolume/VeselVolume;
+  else
+  {
+   Compressor=0;
+   CompressorFlag=false;
+  };
+ ConverterCheck();
+ if (CompressorSpeed>0.0) //sprê¿arka musi mieæ jak¹œ niezerow¹ wydajnoœæ
+  CompressorCheck(dt); //¿eby rozwa¿aæ jej za³¹czenie i pracê
+ UpdateBrakePressure(dt);
+ UpdatePipePressure(dt);
+ UpdateBatteryVoltage(dt);
+ UpdateScndPipePressure(dt); // druga rurka, youBy
+ //hamulec antypoœlizgowy - wy³¹czanie
+ if ((BrakeSlippingTimer>0.8)&&(ASBType!=128)) //ASBSpeed=0.8
+  Hamulec->ASB(0);
+ //SetFlag(BrakeStatus,-b_antislip);
+ BrakeSlippingTimer=BrakeSlippingTimer+dt;
+ //sypanie piasku - wy³¹czone i piasek siê nie koñczy - b³êdy AI
+ //if AIControllFlag then
+ // if SandDose then
+ //  if Sand>0 then
+ //   begin
+ //     Sand:=Sand-NPoweredAxles*SandSpeed*dt;
+ //     if Random<dt then SandDose:=false;
+ //   end
+ //  else
+ //   begin
+ //     SandDose:=false;
+ //     Sand:=0;
+ //   end;
+ //czuwak/SHP
+ //if (Vel>10) and (not DebugmodeFlag) then
+ if (!DebugModeFlag)
+  SecuritySystemCheck(dt1);
  return d;
 };
 
@@ -405,9 +461,34 @@ double __fastcall TMoverParameters::FastComputeMovement
 )
 {//trzeba po ma³u przenosiæ tu tê funkcjê
  double d=T_MoverParameters::FastComputeMovement(dt,Shape,Track,NewLoc,NewRot);
- UpdateBatteryVoltage(dt); //jest ju¿ w Mover.cpp
  if (EnginePowerSource.SourceType==CurrentCollector) //tylko jeœli pantografuj¹cy
   if (Power>1.0) //w rozrz¹dczym nie (jest b³¹d w FIZ!)
    UpdatePantVolume(dt); //Ra: pneumatyka pantografów przeniesiona do Mover.cpp!
+ //sprawdzanie i ewentualnie wykonywanie->kasowanie poleceñ
+ if (LoadStatus>0) //czas doliczamy tylko jeœli trwa (roz)³adowanie
+  LastLoadChangeTime=LastLoadChangeTime+dt; //czas (roz)³adunku
+ RunInternalCommand();
+ if (EngineType==DieselEngine)
+  if (dizel_Update(dt))
+   SetFlag(SoundFlag,sound_relay);
+ //uklady hamulcowe:
+ if (VeselVolume>0)
+  Compressor=CompressedVolume/VeselVolume;
+ else
+ {
+  Compressor=0;
+  CompressorFlag=false;
+ };
+ ConverterCheck();
+ if (CompressorSpeed>0.0) //sprê¿arka musi mieæ jak¹œ niezerow¹ wydajnoœæ
+  CompressorCheck(dt); //¿eby rozwa¿aæ jej za³¹czenie i pracê
+ UpdateBrakePressure(dt);
+ UpdatePipePressure(dt);
+ UpdateScndPipePressure(dt); // druga rurka, youBy
+ UpdateBatteryVoltage(dt);
+ //hamulec antyposlizgowy - wy³¹czanie
+ if ((BrakeSlippingTimer>0.8)&&(ASBType!=128)) //ASBSpeed=0.8
+  Hamulec->ASB(0);
+ BrakeSlippingTimer=BrakeSlippingTimer+dt;
  return d;
 };
