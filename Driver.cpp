@@ -1675,8 +1675,8 @@ bool __fastcall TController::IncSpeed()
     iDrivigFlags|=moveIncSpeed; //ustawienie flagi jazdy
    return false;
   case ElectricSeriesMotor:
-   if (!mvControlling->FuseFlag&&!mvControlling->StLinFlag)
-    if ((mvControlling->MainCtrlPos==0)||(!mvControlling->DelayCtrlFlag)) //youBy poleci³ dodaæ 2012-09-08 v367
+   if (!mvControlling->FuseFlag) //&&mvControlling->StLinFlag) //yBARC
+    if ((mvControlling->MainCtrlPos==0)||(mvControlling->StLinFlag)) //youBy poleci³ dodaæ 2012-09-08 v367
      //na pozycji 0 przejdzie, a na pozosta³ych bêdzie czekaæ, a¿ siê za³¹cz¹ liniowe (zgaœnie DelayCtrlFlag)
      if (Ready||(iDrivigFlags&movePress))
       if (fabs(mvControlling->Im)<(fReady<0.4?mvControlling->Imin:mvControlling->IminLo))
@@ -1684,7 +1684,13 @@ bool __fastcall TController::IncSpeed()
        if ((mvOccupied->Vel<=30)||(mvControlling->Imax>mvControlling->ImaxLo))
        {//bocznik na szeregowej przy ciezkich bruttach albo przy wysokim rozruchu pod górê
         if (mvControlling->MainCtrlPos?mvControlling->RList[mvControlling->MainCtrlPos].R>0.0:true) //oporowa
+        {
          OK=mvControlling->IncMainCtrl(1); //krêcimy nastawnik jazdy
+         if ((OK)&&(mvControlling->MainCtrlPos==1)) //czekaj na 1 pozycji, zanim siê nie w³¹cz¹ liniowe
+          iDrivigFlags|=moveIncSpeed;
+         else
+          iDrivigFlags&=~moveIncSpeed; //usuniêcie flagi czekania
+        }
         else //jeœli bezoporowa (z wyj¹tekiem 0)
          OK=false; //to daæ bocznik
        }
@@ -1730,6 +1736,7 @@ bool __fastcall TController::IncSpeed()
    }
    break;
  }
+ mvControlling->AutoRelayCheck(); //sprawdzenie logiki sterowania
  return OK;
 }
 
@@ -1772,6 +1779,7 @@ bool __fastcall TController::DecSpeed(bool force)
     OK=mvControlling->DecMainCtrl(1+(mvControlling->MainCtrlPos>2?1:0));
   break;
  }
+ mvControlling->AutoRelayCheck(); //sprawdzenie logiki sterowania
  return OK;
 };
 
@@ -1796,35 +1804,41 @@ void __fastcall TController::SpeedSet()
        if (fReady<0.4) //0.05*Controlling->MaxBrakePress)
        {//jak jest odhamowany
         if (mvOccupied->ActiveDir>0) mvOccupied->DirectionForward(); //¿eby EN57 jecha³y na drugiej nastawie
-        switch (mvControlling->MainCtrlPos)
-        {//ruch nastawnika uzale¿niony jest od aktualnie ustawionej pozycji
-         case 0:
-          mvControlling->IncMainCtrl(1); //przetok; bez "break", bo nie ma czekania na 1. pozycji
-         case 1:
-          if (VelDesired>20) mvControlling->IncMainCtrl(1); //szeregowa
-         case 2:
-          if (VelDesired>50) mvControlling->IncMainCtrl(1); //równoleg³a
-         case 3:
-          if (VelDesired>80) mvControlling->IncMainCtrl(1); //bocznik 1
-         case 4:
-          if (VelDesired>90) mvControlling->IncMainCtrl(1); //bocznik 2
-         case 5:
-          if (VelDesired>100) mvControlling->IncMainCtrl(1); //bocznik 3
+        if (mvControlling->MainCtrlActualPos<=mvControlling->MainCtrlPos) //jak wiêksze, to czekaæ na przekrêcenie wa³u
+        {
+         switch (mvControlling->MainCtrlPos)
+         {//ruch nastawnika uzale¿niony jest od aktualnie ustawionej pozycji
+          case 0:
+           mvControlling->IncMainCtrl(1); //przetok; bez "break", bo nie ma czekania na 1. pozycji
+          case 1:
+           if (VelDesired>20) mvControlling->IncMainCtrl(1); //szeregowa
+          case 2:
+           if (VelDesired>50) mvControlling->IncMainCtrl(1); //równoleg³a
+          case 3:
+           if (VelDesired>80) mvControlling->IncMainCtrl(1); //bocznik 1
+          case 4:
+           if (VelDesired>90) mvControlling->IncMainCtrl(1); //bocznik 2
+          case 5:
+           if (VelDesired>100) mvControlling->IncMainCtrl(1); //bocznik 3
+         }
+         fActionTime=-5.0; //niech trochê potrzyma
         }
-        fActionTime=-5.0; //niech trochê potrzyma
        }
       }
       else
       {while (mvControlling->MainCtrlPos)
         mvControlling->DecMainCtrl(1); //na zero
        fActionTime=-5.0; //niech trochê potrzyma
+       mvControlling->AutoRelayCheck(); //sprawdzenie logiki sterowania
       }
     }
    }
   break;
   case ElectricSeriesMotor:
-   if (mvControlling->StLinFlag) //styczniki liniowe nie za³¹czone
-    while (DecSpeed()); //zerowanie napêdu
+   if ((!mvControlling->StLinFlag)&&(!mvControlling->DelayCtrlFlag)&&(!iDrivigFlags&moveIncSpeed)) //styczniki liniowe roz³¹czone    yBARC
+//    if (iDrivigFlags&moveIncSpeed) {} //jeœli czeka na za³¹czenie liniowych
+//    else
+     while (DecSpeed()); //zerowanie napêdu
    else
     if (Ready||(iDrivigFlags&movePress)) //o ile mo¿e jechaæ
      if (fAccGravity<-0.10) //i jedzie pod górê wiêksz¹ ni¿ 10 promil

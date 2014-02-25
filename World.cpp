@@ -1862,7 +1862,7 @@ bool __fastcall TWorld::Update()
 
       OutText2+=AnsiString("; bocznik:")+mvControlled->ScndCtrlPos;
       if (mvControlled->TrainType==dt_EZT)
-       OutText2+=AnsiString("; I=")+FloatToStrF(mvControlled->ShowCurrent(1),ffFixed,6,2);
+       OutText2+=AnsiString("; I=")+FloatToStrF(mvControlled->ShowCurrent(0),ffFixed,6,2);
       else
        OutText2+=AnsiString("; I=")+FloatToStrF(mvControlled->Im,ffFixed,6,2);
       //OutText2+=AnsiString("; I2=")+FloatToStrF(Controlled->NextConnected->MoverParameters->Im,ffFixed,6,2);
