@@ -4550,7 +4550,7 @@ function T_MoverParameters.ComputeMovement(dt:real; dt1:real; Shape:TTrackShape;
 var b:byte;
     Vprev,AccSprev:real;
 //    Iheat:real; prad ogrzewania
-const Vepsilon=1e-5; Aepsilon=1e-3; ASBSpeed=0.8;
+const Vepsilon=1e-5; Aepsilon=1e-3; //ASBSpeed=0.8;
 begin
 {
     for b:=0 to 1 do //przekazywanie napiec
@@ -4705,69 +4705,7 @@ begin
  dL:=0;
 
    {koniec procedury, tu nastepuja dodatkowe procedury pomocnicze}
-
-{sprawdzanie i ewentualnie wykonywanie->kasowanie polecen}
- if (LoadStatus>0) then //czas doliczamy tylko jeœli trwa (roz)³adowanie
-  LastLoadChangeTime:=LastLoadChangeTime+dt; //czas (roz)³adunku
- RunInternalCommand;
-
-{automatyczny rozruch}
- if EngineType=ElectricSeriesMotor then
-  begin
-   if AutoRelayCheck then
-    SetFlag(SoundFlag,sound_relay);
-  end;
-(*
- else                  {McZapkie-041003: aby slychac bylo przelaczniki w sterowniczym}
-  if (EngineType=None) and (MainCtrlPosNo>0) then
-   for b:=0 to 1 do
-    with Couplers[b] do
-     if TestFlag(CouplingFlag,ctrain_controll) then
-      if Connected^.Power>0.01 then
-       SoundFlag:=SoundFlag or Connected^.SoundFlag;
-*)
- if EngineType=DieselEngine then
-  if dizel_Update(dt) then
-    SetFlag(SoundFlag,sound_relay);
-
-{uklady hamulcowe:}
-  if VeselVolume>0 then
-   Compressor:=CompressedVolume/(VeselVolume)
-  else
-   begin
-     Compressor:=0;
-     CompressorFlag:=false;
-   end;
- ConverterCheck();
- if (CompressorSpeed>0.0) then //sprê¿arka musi mieæ jak¹œ niezerow¹ wydajnoœæ
-  CompressorCheck(dt); //¿eby rozwa¿aæ jej za³¹czenie i pracê
- UpdateBrakePressure(dt);
- UpdatePipePressure(dt);
- //UpdateBatteryVoltage(dt);
- UpdateScndPipePressure(dt); // druga rurka, youBy
-
-{hamulec antyposlizgowy - wylaczanie}
- if (BrakeSlippingTimer>ASBSpeed) and (ASBType<>128) then
-   Hamulec.ASB(0);
-//  SetFlag(BrakeStatus,-b_antislip);
- BrakeSlippingTimer:=BrakeSlippingTimer+dt;
-{sypanie piasku - wylaczone i piasek sie nie konczy - bledy AI}
-//if AIControllFlag then
-// if SandDose then
-//  if Sand>0 then
-//   begin
-//     Sand:=Sand-NPoweredAxles*SandSpeed*dt;
-//     if Random<dt then SandDose:=false;
-//   end
-//  else
-//   begin
-//     SandDose:=false;
-//     Sand:=0;
-//   end;
-{czuwak/SHP}
- //if (Vel>10) and (not DebugmodeFlag) then
- if not (DebugmodeFlag) then
-  SecuritySystemCheck(dt1);
+   {Ra: przeniesione do Mover.cpp}
 end; {ComputeMovement}
 
 {blablabla}
@@ -4775,7 +4713,7 @@ end; {ComputeMovement}
 function T_MoverParameters.FastComputeMovement(dt:real; Shape:TTrackShape; var Track:TTrackParam;NewLoc:TLocation; var NewRot:TRotation):real; //;var ElectricTraction:TTractionParam; NewLoc:TLocation; var NewRot:TRotation):real;
 var b:byte;
     Vprev,AccSprev:real;
-const Vepsilon=1e-5; Aepsilon=1e-3; ASBSpeed=0.8;
+const Vepsilon=1e-5; Aepsilon=1e-3; //ASBSpeed=0.8;
 begin
   ClearPendingExceptions;
   Loc:=NewLoc;
@@ -4861,35 +4799,7 @@ begin
  dL:=0;
 
    {koniec procedury, tu nastepuja dodatkowe procedury pomocnicze}
-
-{sprawdzanie i ewentualnie wykonywanie->kasowanie polecen}
- if (LoadStatus>0) then //czas doliczamy tylko jeœli trwa (roz)³adowanie
-  LastLoadChangeTime:=LastLoadChangeTime+dt; //czas (roz)³adunku
- RunInternalCommand;
-
- if EngineType=DieselEngine then
-  if dizel_Update(dt) then
-    SetFlag(SoundFlag,sound_relay);
-
-{uklady hamulcowe:}
-  if VeselVolume>0 then
-   Compressor:=CompressedVolume/(VeselVolume)
-  else
-   begin
-     Compressor:=0;
-     CompressorFlag:=false;
-   end;
- ConverterCheck();
- if (CompressorSpeed>0.0) then //sprê¿arka musi mieæ jak¹œ niezerow¹ wydajnoœæ
-  CompressorCheck(dt); //¿eby rozwa¿aæ jej za³¹czenie i pracê
- UpdateBrakePressure(dt);
- UpdatePipePressure(dt);
- UpdateScndPipePressure(dt); // druga rurka, youBy
- //UpdateBatteryVoltage(dt);
-{hamulec antyposlizgowy - wylaczanie}
- if (BrakeSlippingTimer>ASBSpeed)and(ASBType<>128) then
-   Hamulec.ASB(0);
- BrakeSlippingTimer:=BrakeSlippingTimer+dt;
+   {Ra: przeniesione do Mover.cpp}
 end; {FastComputeMovement}
 
 
