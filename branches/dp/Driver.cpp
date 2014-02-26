@@ -1804,24 +1804,31 @@ void __fastcall TController::SpeedSet()
        if (fReady<0.4) //0.05*Controlling->MaxBrakePress)
        {//jak jest odhamowany
         if (mvOccupied->ActiveDir>0) mvOccupied->DirectionForward(); //¿eby EN57 jecha³y na drugiej nastawie
-        if (mvControlling->MainCtrlActualPos<=mvControlling->MainCtrlPos) //jak wiêksze, to czekaæ na przekrêcenie wa³u
         {
-         switch (mvControlling->MainCtrlPos)
-         {//ruch nastawnika uzale¿niony jest od aktualnie ustawionej pozycji
-          case 0:
-           mvControlling->IncMainCtrl(1); //przetok; bez "break", bo nie ma czekania na 1. pozycji
-          case 1:
-           if (VelDesired>20) mvControlling->IncMainCtrl(1); //szeregowa
-          case 2:
-           if (VelDesired>50) mvControlling->IncMainCtrl(1); //równoleg³a
-          case 3:
-           if (VelDesired>80) mvControlling->IncMainCtrl(1); //bocznik 1
-          case 4:
-           if (VelDesired>90) mvControlling->IncMainCtrl(1); //bocznik 2
-          case 5:
-           if (VelDesired>100) mvControlling->IncMainCtrl(1); //bocznik 3
+         if (mvControlling->MainCtrlPos&&!mvControlling->StLinFlag)
+          mvControlling->DecMainCtrl(2); //na zero
+         else
+          switch (mvControlling->MainCtrlPos)
+          {//ruch nastawnika uzale¿niony jest od aktualnie ustawionej pozycji
+           case 0:
+            if (mvControlling->MainCtrlActualPos) //jeœli ku³akowy nie jest wyzerowany
+             break; //to czekaæ na wyzerowanie
+            mvControlling->IncMainCtrl(1); //przetok; bez "break", bo nie ma czekania na 1. pozycji
+           case 1:
+            if (VelDesired>=20) mvControlling->IncMainCtrl(1); //szeregowa
+           case 2:
+            if (VelDesired>=50) mvControlling->IncMainCtrl(1); //równoleg³a
+           case 3:
+            if (VelDesired>=80) mvControlling->IncMainCtrl(1); //bocznik 1
+           case 4:
+            if (VelDesired>=90) mvControlling->IncMainCtrl(1); //bocznik 2
+           case 5:
+            if (VelDesired>=100) mvControlling->IncMainCtrl(1); //bocznik 3
+          }
+         if (mvControlling->MainCtrlPos) //jak za³¹czy³ pozycjê
+         {fActionTime=-5.0; //niech trochê potrzyma
+          mvControlling->AutoRelayCheck(); //sprawdzenie logiki sterowania
          }
-         fActionTime=-5.0; //niech trochê potrzyma
         }
        }
       }

@@ -82,6 +82,9 @@ musi wskazywaæ ka¿de przês³o z aktywnym zasilaniem.
    segment naprê¿ania z izolatorem: =---@---#*#---@---=
    segment naprê¿ania bez izolatora: =--------@------=
 
+Jeœli obwody s¹ liniowe, mo¿na je obliczaæ metod¹ superpozycji. To znaczy,
+obliczaæ pr¹d dla ka¿dego Ÿród³a napiêciowego oddzielnie, pozosta³e zastêpuj¹c
+zwarciem.
 */
 
 
