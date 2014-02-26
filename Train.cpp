@@ -2910,38 +2910,38 @@ else
 
     if (CylHamGauge.SubModel)
      {
-      CylHamGauge.UpdateValue(mvOccupied->BrakePress*0.1f);
+      CylHamGauge.UpdateValue(mvOccupied->BrakePress);
       CylHamGauge.Update();
      }
     if (CylHamGaugeB.SubModel)
      {
-      CylHamGaugeB.UpdateValue(mvOccupied->BrakePress*0.1f);
+      CylHamGaugeB.UpdateValue(mvOccupied->BrakePress);
       CylHamGaugeB.Update();
      }
     if (PrzGlGauge.SubModel)
      {
-      PrzGlGauge.UpdateValue(mvOccupied->PipePress*0.1f);
+      PrzGlGauge.UpdateValue(mvOccupied->PipePress);
       PrzGlGauge.Update();
      }
     if (PrzGlGaugeB.SubModel)
      {
-      PrzGlGaugeB.UpdateValue(mvOccupied->PipePress*0.1f);
+      PrzGlGaugeB.UpdateValue(mvOccupied->PipePress);
       PrzGlGaugeB.Update();
      }
     if (ZbSGauge.SubModel)
      {
-      ZbSGauge.UpdateValue(mvOccupied->Handle->GetCP()*0.1f);
+      ZbSGauge.UpdateValue(mvOccupied->Handle->GetCP());
       ZbSGauge.Update();
      }
 // McZapkie! - zamiast pojemnosci cisnienie
     if (ZbGlGauge.SubModel)
      {
-      ZbGlGauge.UpdateValue(mvOccupied->Compressor*0.1f);
+      ZbGlGauge.UpdateValue(mvOccupied->Compressor);
       ZbGlGauge.Update();
      }
     if (ZbGlGaugeB.SubModel)
      {
-      ZbGlGaugeB.UpdateValue(mvOccupied->Compressor*0.1f);
+      ZbGlGaugeB.UpdateValue(mvOccupied->Compressor);
       ZbGlGaugeB.Update();
      }
 
@@ -5149,13 +5149,13 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
    else if (str==AnsiString("hvcurrent:"))                     //amperomierz calkowitego pradu
     ItotalGauge.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("brakepress:"))                    //manometr cylindrow hamulcowych
-    CylHamGauge.Load(Parser,DynamicObject->mdKabina);
+    CylHamGauge.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
    else if (str==AnsiString("pipepress:"))                    //manometr przewodu hamulcowego
-    PrzGlGauge.Load(Parser,DynamicObject->mdKabina);
+    PrzGlGauge.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
    else if (str==AnsiString("limpipepress:"))                  //manometr zbiornika sterujacego zaworu maszynisty
-    ZbSGauge.Load(Parser,DynamicObject->mdKabina);
+    ZbSGauge.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
    else if (str==AnsiString("compressor:"))                    //manometr sprezarki/zbiornika glownego
-    ZbGlGauge.Load(Parser,DynamicObject->mdKabina);
+    ZbGlGauge.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
    //*************************************************************
    //Sekcja zdublowanych wskaznikow dla dwustronnych kabin
    else if (str==AnsiString("tachometerb:"))                    //predkosciomierz
@@ -5169,11 +5169,11 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
    else if (str==AnsiString("hvcurrentb:"))                     //amperomierz calkowitego pradu
     ItotalGaugeB.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("brakepressb:"))                    //manometr cylindrow hamulcowych
-    CylHamGaugeB.Load(Parser,DynamicObject->mdKabina);
+    CylHamGaugeB.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
    else if (str==AnsiString("pipepressb:"))                    //manometr przewodu hamulcowego
-    PrzGlGaugeB.Load(Parser,DynamicObject->mdKabina);
+    PrzGlGaugeB.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
    else if (str==AnsiString("compressorb:"))                    //manometr sprezarki/zbiornika glownego
-    ZbGlGaugeB.Load(Parser,DynamicObject->mdKabina);
+    ZbGlGaugeB.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
    //*************************************************************
    //yB - dla drugiej sekcji
    else if (str==AnsiString("hvbcurrent1:"))                    //1szy amperomierz
