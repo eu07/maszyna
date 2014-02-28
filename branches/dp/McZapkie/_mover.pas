@@ -5250,7 +5250,7 @@ begin
   dMoveLen:=0;
   CategoryFlag:=1;
   EngineType:=None;
-  for b:=1 to ResArraySize do
+  for b:=0 to ResArraySize do
    begin
      RList[b].Relay:=0;
      RList[b].R:=0;
