@@ -3223,7 +3223,7 @@ if ( mvControlled->Signalling==true )
          { btLampkaHamowanie2zes.TurnOn(); }
         if(( tmp->MoverParameters->BrakePress<0.075f*10 )|| (mvControlled->Battery==false)||(mvControlled->Signalling==false))
          { btLampkaHamowanie2zes.TurnOff(); }
-        btLampkaNadmPrzetwB.Turn(!tmp->MoverParameters->ConverterFlag);
+        btLampkaNadmPrzetwB.Turn(!tmp->MoverParameters->ConverterFlag); //nadmiarowy czy za³¹czenie?
       }
     else  //wylaczone
       {
@@ -4954,8 +4954,8 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     IgnitionKeyGauge.Clear();
     btLampkaPoslizg.Clear(6);
     btLampkaStyczn.Clear(5);
-    btLampkaNadmPrzetw.Clear(7);
-    btLampkaPrzetw.Clear();    
+    btLampkaNadmPrzetw.Clear((mvControlled->TrainType&(dt_EZT))?-1:7); //EN57 nie ma tej lampki
+    btLampkaPrzetw.Clear((mvControlled->TrainType&(dt_EZT))?7:-1); //za to ma tê    
     btLampkaPrzekRozn.Clear();
     btLampkaPrzekRoznPom.Clear();
     btLampkaNadmSil.Clear(4);

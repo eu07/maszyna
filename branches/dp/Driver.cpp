@@ -1805,8 +1805,8 @@ void __fastcall TController::SpeedSet()
        {//jak jest odhamowany
         if (mvOccupied->ActiveDir>0) mvOccupied->DirectionForward(); //¿eby EN57 jecha³y na drugiej nastawie
         {
-         if (mvControlling->MainCtrlPos&&!mvControlling->StLinFlag)
-          mvControlling->DecMainCtrl(2); //na zero
+         if (mvControlling->MainCtrlPos&&!mvControlling->StLinFlag) //jak niby jedzie, ale ma roz³¹czone liniowe
+          mvControlling->DecMainCtrl(2); //to na zero i czekaæ na przewalenie ku³akowego
          else
           switch (mvControlling->MainCtrlPos)
           {//ruch nastawnika uzale¿niony jest od aktualnie ustawionej pozycji
