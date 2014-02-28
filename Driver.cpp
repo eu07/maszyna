@@ -75,11 +75,11 @@ Tutaj ³¹czymy teoriê z praktyk¹ - tu nic nie dzia³a i nikt nie wie dlaczego…
 //7. samouczacy sie algorytm hamowania
 
 //sta³e
-const double EasyReactionTime=0.3;
+const double EasyReactionTime=0.5; //[s] przeb³yski œwiadomoœci dla zwyk³ej jazdy
 const double HardReactionTime=0.2;
-const double EasyAcceleration=0.5;
+const double EasyAcceleration=0.5; //[m/ss]
 const double HardAcceleration=0.9;
-const double PrepareTime     =2.0;
+const double PrepareTime     =2.0; //[s] przeb³yski œwiadomoœci przy odpalaniu
 bool WriteLogFlag=false;
 
 AnsiString StopReasonTable[]=
@@ -1850,11 +1850,15 @@ void __fastcall TController::SpeedSet()
     if (Ready||(iDrivigFlags&movePress)) //o ile mo¿e jechaæ
      if (fAccGravity<-0.10) //i jedzie pod górê wiêksz¹ ni¿ 10 promil
      {//procedura wje¿d¿ania na ekstremalne wzniesienia
-      if (fabs(mvControlling->Im)>mvControlling->Imin) //a pr¹d jest znaczny
-       if (mvControlling->Imin*mvControlling->Voltage/(fMass*fAccGravity)<-2.8) //a na niskim siê za szybko nie pojedzie
-       {//w³¹czenie wysokiego rozruchu
+      if (fabs(mvControlling->Im)>0.85*mvControlling->Imax) //a pr¹d jest wiêkszy ni¿ 85% nadmiarowego
+       //if (mvControlling->Imin*mvControlling->Voltage/(fMass*fAccGravity)<-2.8) //a na niskim siê za szybko nie pojedzie
+       if (mvControlling->Imax*mvControlling->Voltage/(fMass*fAccGravity)<-2.8) //a na niskim siê za szybko nie pojedzie
+       {//w³¹czenie wysokiego rozruchu; (I*U)[A*V=W=kg*m*m/sss]/(m[kg]*a[m/ss])=v[m/s]; 2.8m/ss=10km/h
         if (mvControlling->RList[mvControlling->MainCtrlPos].Bn>1)
-        {do //jeœli jedzie na równoleg³ym, to zbijamy do szeregowego, aby w³¹czyæ wysoki rozruch
+        {//jeœli jedzie na równoleg³ym, to zbijamy do szeregowego, aby w³¹czyæ wysoki rozruch
+         if (mvControlling->ScndCtrlPos>0) //je¿eli jest bocznik
+          mvControlling->DecScndCtrl(2); //wy³¹czyæ bocznik, bo mo¿e blokowaæ skrêcenie NJ
+         do //skrêcanie do bezoporowej na szeregowym
           mvControlling->DecMainCtrl(1); //krêcimy nastawnik jazdy o 1 wstecz
          while (mvControlling->MainCtrlPos?mvControlling->RList[mvControlling->MainCtrlPos].Bn>1:false); //oporowa zapêtla
         }
