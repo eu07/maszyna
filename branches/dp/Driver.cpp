@@ -1875,10 +1875,15 @@ void __fastcall TController::SpeedSet()
        else
         mvControlling->DecMainCtrl(1); //krêcimy nastawnik jazdy o 1 wstecz
      }
-     else
-     {//dokrêcanie do bezoporowej, bo IncSpeed() mo¿e nie byæ wywo³ywane
+     else //gdy nie jedzie ambitnie pod górê
+     {//sprawdzenie, czy rozruch wysoki jest potrzebny
+      if (mvControlling->Imax>mvControlling->ImaxLo)
+       if (mvOccupied->Vel>=30.0) //jak siê rozpêdzi³
+        if (fAccGravity>-0.02) //a i pochylenie mnijsze ni¿ 2‰
+         mvControlling->CurrentSwitch(false); //rozruch wysoki wy³¹cz
+      //dokrêcanie do bezoporowej, bo IncSpeed() mo¿e nie byæ wywo³ywane
       //if (mvOccupied->Vel<VelDesired)
-      // if (AccDesired>0)
+      // if (AccDesired>-0.1) //nie ma hamowaæ
       //  if (Controlling->RList[MainCtrlPos].R>0.0)
       //   if (Im<1.3*Imin) //lekkie przekroczenie miimalnego pr¹du jest dopuszczalne
       //    IncMainCtrl(1); //zwieksz nastawnik skoro mo¿esz - tak aby siê ustawic na bezoporowej
@@ -2338,13 +2343,6 @@ bool __fastcall TController::UpdateSituation(double dt)
       else
        mvControlling->PantRear(false); //opuszcza od sprzêgu 1
     }
-    else //ewentualnie jak siê rozpêdza, to ustaw rozruch
-     //if (fMass>800.0) //Ra: taki sobie warunek na wysoki rozruch
-     // if (fAccGravity<-0.1) //jak pochylenie wiêksze ni¿ 10‰
-     //  Controlling->CurrentSwitch(true); //rozruch wysoki (za to mo¿e siê œlizgaæ)
-     // else
-       if (fAccGravity>-0.02) //jak pochylenie mnijsze ni¿ 2‰
-        mvControlling->CurrentSwitch(false); //rozruch wysoki wy³¹cz
    }
   }
   if (iDrivigFlags&moveStartHornNow) //czy ma zatr¹biæ przed ruszeniem?
