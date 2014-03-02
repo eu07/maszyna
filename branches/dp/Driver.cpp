@@ -2384,6 +2384,8 @@ bool __fastcall TController::UpdateSituation(double dt)
   //Ra: trzeba by tak:
   // 1. Ustaliæ istotn¹ odleg³oœæ zainteresowania (np. 3×droga hamowania z V.max).
   fBrakeDist=fDriverBraking*mvOccupied->Vel*(40.0+mvOccupied->Vel); //przybli¿ona droga hamowania
+  //fBrakeDist powinno byæ wyznaczane dla danego sk³adu za pomoc¹ sieci neuronowych, w zale¿noœci od prêdkoœci i si³y (ciœnienia) hamowania
+  //nastêpnie w drug¹ stronê, z drogi hamowania i chwilowej prêdkoœci powinno byæ wyznaczane zalecane ciœnienie
   if (fMass>1000.0) fBrakeDist*=1.5; //korekta dla ciê¿kich, bo prze¿ynaj¹ - da to coœ?
   if (mvOccupied->BrakeDelayFlag==bdelay_G) fBrakeDist=fBrakeDist+2*mvOccupied->Vel; //dla nastawienia G koniecznie nale¿y wyd³u¿yæ drogê na czas reakcji
   //double scanmax=(mvOccupied->Vel>0.0)?3*fDriverDist+fBrakeDist:10.0*fDriverDist;
@@ -2919,32 +2921,36 @@ bool __fastcall TController::UpdateSituation(double dt)
           if (SquareMagnitude(pVehicle->GetPosition()-Global::pCameraPosition)<2000*2000) //w odleg³oœci mniejszej ni¿ 2km
            tsGuardSignal->Play(1.0,0,true,pVehicle->GetPosition()); //dŸwiêk niby przez radio
        }
-     AbsAccS=mvOccupied->AccS; //wypadkowa si³ stycznych do toru
-     if (mvOccupied->V<0.0) AbsAccS=-AbsAccS;
-     //else if (mvOccupied->V==0.0) AbsAccS=0; //fabs(fAccGravity); //Ra: jesli sk³ad stoi, to dzia³a na niego sk³adowa styczna grawitacji
-     if (vel<0) //je¿eli siê stacza w ty³
-      AbsAccS=-AbsAccS; //to przyspieszenie te¿ dzia³a wtedy w nieodpowiedni¹ stronê
+     if (mvOccupied->V==0.0) AbsAccS=fAccGravity; //Ra 2014-03: jesli sk³ad stoi, to dzia³a na niego sk³adowa styczna grawitacji
+     else AbsAccS=iDirection*mvOccupied->AccS; //przyspieszenie chwilowe, liczone jako ró¿nica skierowanej prêdkoœci w czasie
+     //if (mvOccupied->V<0.0) AbsAccS=-AbsAccS; //Ra 2014-03: to trzeba przemyœleæ
+     //if (vel<0) //je¿eli siê stacza w ty³; 2014-03: to jest bez sensu, bo vel>=0
+     // AbsAccS=-AbsAccS; //to przyspieszenie te¿ dzia³a wtedy w nieodpowiedni¹ stronê
      //AbsAccS+=fAccGravity; //wypadkowe przyspieszenie (czy to ma sens?)
 #if LOGVELOCITY
      //WriteLog("VelDesired="+AnsiString(VelDesired)+", VelActual="+AnsiString(VelActual));
      WriteLog("Vel="+AnsiString(vel)+", AbsAccS="+AnsiString(AbsAccS)+", AccGrav="+AnsiString(fAccGravity));
 #endif
      //ustalanie zadanego przyspieszenia
-     //AccPreferred wynika z psychyki oraz uwzglênia mo¿liwe zderzenie z pojazdem z przodu
-     //AccDesired uwzglêdnia sygna³y na drodze ruchu
+     //(ActualProximityDist) - odleg³oœæ do miejsca zmniejszenia prêdkoœci
+     //(AccPreferred) - wynika z psychyki oraz uwzglênia ju¿ ewentualne zderzenie z pojazdem z przodu, ujemne gdy nale¿y hamowaæ
+     //(AccDesired) - uwzglêdnia sygna³y na drodze ruchu, ujemne gdy nale¿y hamowaæ
+     //(fAccGravity) - chwilowe przspieszenie grawitacyjne, ujemne dzia³a przeciwnie do zadanego kierunku jazdy
+     //(AbsAccS) - chwilowe przyspieszenie pojazu (uwzglêdnia grawitacjê), ujemne dzia³a przeciwnie do zadanego kierunku jazdy
+     //(AccDesired) porównujemy z (fAccGravity) albo (AbsAccS)
      //if ((VelNext>=0.0)&&(ActualProximityDist>=0)&&(mvOccupied->Vel>=VelNext)) //gdy zbliza sie i jest za szybko do NOWEGO
      if ((VelNext>=0.0)&&(ActualProximityDist<=scanmax)&&(vel>=VelNext))
      {//gdy zbli¿a siê i jest za szybki do nowej prêdkoœci, albo stoi na zatrzymaniu
       if (vel>0.0)
       {//jeœli jedzie
-       if ((vel<VelNext)&&(ActualProximityDist>fMaxProximityDist*(1+0.1*vel))) //dojedz do semafora/przeszkody
+       if ((vel<VelNext)?(ActualProximityDist>fMaxProximityDist*(1+0.1*vel)):false) //dojedz do semafora/przeszkody
        {//jeœli jedzie wolniej ni¿ mo¿na i jest wystarczaj¹co daleko, to mo¿na przyspieszyæ
         if (AccPreferred>0.0) //jeœli nie ma zawalidrogi
-         AccDesired=0.5*AccPreferred;
+         AccDesired=AccPreferred;
          //VelDesired:=Min0R(VelDesired,VelReduced+VelNext);
        }
        else if (ActualProximityDist>fMinProximityDist)
-       {//jedzie szybciej, ni¿ trzeba na koñcu ActualProximityDist
+       {//jedzie szybciej, ni¿ trzeba na koñcu ActualProximityDist, ale jeszcze jest daleko
         if (vel<VelNext+40.0) //dwustopniowe hamowanie - niski przy ma³ej ró¿nicy
         {//jeœli jedzie wolniej ni¿ VelNext+35km/h //Ra: 40, ¿eby nie kombinowa³ na zwrotnicach
          if (VelNext==0.0)
@@ -2956,26 +2962,26 @@ bool __fastcall TController::UpdateSituation(double dt)
           }
           else if (ActualProximityDist>fBrakeDist)
           {//jeœli ma stan¹æ, a mieœci siê w drodze hamowania
-           if (vel<10.0)  //jeœli prêdkoœæ jest ³atwa do zatrzymania
+           if (vel<10.0) //jeœli prêdkoœæ jest ³atwa do zatrzymania
            {//tu jest trochê problem, bo do punktu zatrzymania dobija na raty
             //AccDesired=AccDesired<0.0?0.0:0.1*AccPreferred;
-            AccDesired=0.5*AccPreferred; //proteza trochê; jak tu wychodzi 0.05, to loki maj¹ problem utrzymaæ takie przyspieszenie
+            AccDesired=AccPreferred; //proteza trochê; jak tu wychodzi 0.05, to loki maj¹ problem utrzymaæ takie przyspieszenie
            }
-           else if (vel<30.0)  //trzymaj 30 km/h
+           else if (vel<=40.0) //trzymaj 30 km/h
             AccDesired=Min0R(0.5*AccDesired,AccPreferred); //jak jest tu 0.5, to samochody siê dobijaj¹ do siebie
            else
             AccDesired=0.0;
           }
           else //25.92 (=3.6*3.6*2) - przelicznik z km/h na m/s
-           if (vel<fVelPlus) //jeœli niewielkie przekroczenie
+           if (vel<VelNext+fVelPlus) //jeœli niewielkie przekroczenie
             //AccDesired=0.0;
-            AccDesired=0.1*AccPreferred; //proteza trochê: to niech nie hamuje
+            AccDesired=Min0R(0.0,AccPreferred); //proteza trochê: to niech nie hamuje, chyba ¿e coœ z przodu
            else
             AccDesired=-(vel*vel)/(25.92*(ActualProximityDist+0.1));//-fMinProximityDist));//-0.1; //mniejsze opóŸnienie przy ma³ej ró¿nicy
           ReactionTime=0.1; //i orientuj siê szybciej, jak masz stan¹æ
          }
          else if (vel<VelNext+fVelPlus) //jeœli niewielkie przekroczenie, ale ma jechaæ
-          AccDesired=0.0; //to olej (zacznij luzowaæ)
+          AccDesired=Min0R(0.0,AccPreferred); //to olej (zacznij luzowaæ)
          else
          {//jeœli wiêksze przekroczenie ni¿ fVelPlus [km/h], ale ma jechaæ
           AccDesired=((VelNext+fVelPlus)*(VelNext+fVelPlus)-vel*vel)/(25.92*ActualProximityDist+0.1); //mniejsze opóŸnienie przy ma³ej ró¿nicy
@@ -2994,11 +3000,11 @@ bool __fastcall TController::UpdateSituation(double dt)
        {//jest bli¿ej ni¿ fMinProximityDist
         VelDesired=Min0R(VelDesired,VelNext); //utrzymuj predkosc bo juz blisko
         if (vel<VelNext+fVelPlus) //jeœli niewielkie przekroczenie, ale ma jechaæ
-         AccDesired=0.0; //to olej (zacznij luzowaæ)
+         AccDesired=Min0R(0.0,AccPreferred); //to olej (zacznij luzowaæ)
         ReactionTime=0.1; //i orientuj siê szybciej
        }
       }
-      else  //zatrzymany (vel<=0.0)
+      else  //zatrzymany (vel==0.0)
        //if (iDrivigFlags&moveStopHere) //to nie dotyczy podczepiania
        //if ((VelNext>0.0)||(ActualProximityDist>fMaxProximityDist*1.2))
        if (VelNext>0.0)
@@ -3007,7 +3013,7 @@ bool __fastcall TController::UpdateSituation(double dt)
         if (ActualProximityDist>fMaxProximityDist) //ale ma kawa³ek do sygnalizatora
         {//if ((iDrivigFlags&moveStopHere)?false:AccPreferred>0)
          if (AccPreferred>0)
-          AccDesired=0.5*AccPreferred; //dociagnij do semafora;
+          AccDesired=AccPreferred; //dociagnij do semafora;
          else
           VelDesired=0.0;//,AccDesired=-fabs(fAccGravity); //stoj (hamuj z si³¹ równ¹ sk³adowej stycznej grawitacji)
         }
@@ -3105,12 +3111,12 @@ bool __fastcall TController::UpdateSituation(double dt)
          }
       //Ra: zmieni³em 0.95 na 1.0 - trzeba ustaliæ, sk¹d sie takie wartoœci bior¹
       //margines dla prêdkoœci jest doliczany tylko jeœli oczekiwana prêdkoœæ jest wiêksza od 5km/h
-      if ((fAccGravity<-0.01?AccDesired<-0.1:AbsAccS+fAccGravity>AccDesired)||(vel>VelDesired))
+      if ((fAccGravity<-0.01?AccDesired<-0.1:AbsAccS>AccDesired)||(vel>VelDesired))
        if (!(iDrivigFlags&movePress))
         while (DecSpeed()); //jeœli hamujemy, to nie przyspieszamy
       //yB: usuniête ró¿ne dziwne warunki, oddzielamy czêœæ zadaj¹c¹ od wykonawczej
       //zwiekszanie predkosci
-      if (AbsAccS+fAccGravity<AccDesired) //jeœli przyspieszenie pojazdu jest mniejsze ni¿ ¿¹dane oraz
+      if (AbsAccS<AccDesired) //jeœli przyspieszenie pojazdu jest mniejsze ni¿ ¿¹dane oraz
        if (vel<VelDesired-fVelMinus) //jeœli prêdkoœæ w kierunku czo³a jest mniejsza od dozwolonej o margines
         if ((ActualProximityDist>fMaxProximityDist)?true:(vel<VelNext))
          IncSpeed(); //to mo¿na przyspieszyæ
@@ -3127,7 +3133,7 @@ bool __fastcall TController::UpdateSituation(double dt)
 
       //yB: usuniête ró¿ne dziwne warunki, oddzielamy czêœæ zadaj¹c¹ od wykonawczej
       //zmniejszanie predkosci
-      if (((fAccGravity<-0.05)&&(vel<0))||((AccDesired<fAccGravity-0.1)&&(AccDesired<AbsAccS+fAccGravity-0.05))) //u góry ustawia siê hamowanie na -0.2
+      if (((fAccGravity<-0.05)&&(vel<0))||((AccDesired<fAccGravity-0.1)&&(AccDesired<AbsAccS-0.05))) //u góry ustawia siê hamowanie na -0.4
       //if not MinVelFlag)
        if (fBrakeTime<0?true:(AccDesired<fAccGravity-0.3)||(mvOccupied->BrakeCtrlPos<=0))
         if (!IncBrake()) //jeœli up³yn¹³ czas reakcji hamulca, chyba ¿e nag³e albo luzowa³
@@ -3138,7 +3144,7 @@ bool __fastcall TController::UpdateSituation(double dt)
          //Ra: ten czas nale¿y zmniejszyæ, jeœli czas dojazdu do zatrzymania jest mniejszy
          fBrakeTime*=0.5; //Ra: tymczasowo, bo prze¿yna S1
         }
-      if ((AccDesired<fAccGravity-0.05)&&(AbsAccS+fAccGravity<AccDesired-0.2))
+      if ((AccDesired<fAccGravity-0.05)&&(AbsAccS<AccDesired-0.4))
       //if ((AccDesired<0.0)&&(AbsAccS<AccDesired-0.1)) //ST44 nie hamuje na czas, 2-4km/h po miniêciu tarczy
       {//jak hamuje, to nie tykaj kranu za czêsto
        //yB: luzuje hamulec dopiero przy ró¿nicy opóŸnieñ rzêdu 0.2

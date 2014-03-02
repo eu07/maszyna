@@ -164,7 +164,10 @@ void __fastcall TMoverParameters::BrakeLevelSet(double b)
  while ((x<BrakeCtrlPos)&&(BrakeCtrlPos>=-1)) //jeœli zmniejszy³o siê o 1
   if (!T_MoverParameters::DecBrakeLevelOld()) break;
  BrakePressureActual=BrakePressureTable[BrakeCtrlPos+2]; //skopiowanie pozycji
-// if (BrakeSystem==Pneumatic?BrakeSubsystem==Oerlikon:false) //tylko Oerlikon akceptuje u³amki     //youBy: obawiam sie, ze tutaj to nie dziala :P
+/*
+//youBy: obawiam sie, ze tutaj to nie dziala :P
+//Ra 2014-03: by³o tak zrobione, ¿e dzia³a³o - po ka¿dej zmianie pozycji by³a wywo³ywana ta funkcja
+// if (BrakeSystem==Pneumatic?BrakeSubsystem==Oerlikon:false) //tylko Oerlikon akceptuje u³amki
  if(false)
   if (fBrakeCtrlPos>0.0)
   {//wartoœci poœrednie wyliczamy tylko dla hamowania
@@ -176,6 +179,7 @@ void __fastcall TMoverParameters::BrakeLevelSet(double b)
     BrakePressureActual.FlowSpeedVal+=-u*BrakePressureActual.FlowSpeedVal+u*BrakePressureTable[BrakeCtrlPos+1+2].FlowSpeedVal;
    }
   }
+*/
 };
 
 bool __fastcall TMoverParameters::BrakeLevelAdd(double b)
@@ -390,10 +394,21 @@ double __fastcall TMoverParameters::ComputeMovement
  const TLocation &NewLoc,TRotation &NewRot
 )
 {//trzeba po ma³u przenosiæ tu tê funkcjê
- double d=T_MoverParameters::ComputeMovement(dt,dt1,Shape,Track,ElectricTraction,NewLoc,NewRot);
+ double d;
+ T_MoverParameters::ComputeMovement(dt,dt1,Shape,Track,ElectricTraction,NewLoc,NewRot);
  if (EnginePowerSource.SourceType==CurrentCollector) //tylko jeœli pantografuj¹cy
   if (Power>1.0) //w rozrz¹dczym nie (jest b³¹d w FIZ!)
    UpdatePantVolume(dt); //Ra: pneumatyka pantografów przeniesiona do Mover.cpp!
+
+ if (EngineType==WheelsDriven)
+  d=CabNo*dL; //na chwile dla testu
+ else
+  d=dL;
+ DistCounter=DistCounter+fabs(dL)/1000.0;
+ dL=0;
+
+ //koniec procedury, tu nastepuja dodatkowe procedury pomocnicze
+
  //sprawdzanie i ewentualnie wykonywanie->kasowanie poleceñ
  if (LoadStatus>0) //czas doliczamy tylko jeœli trwa (roz)³adowanie
   LastLoadChangeTime=LastLoadChangeTime+dt; //czas (roz)³adunku
@@ -460,10 +475,20 @@ double __fastcall TMoverParameters::FastComputeMovement
  const TLocation &NewLoc,TRotation &NewRot
 )
 {//trzeba po ma³u przenosiæ tu tê funkcjê
- double d=T_MoverParameters::FastComputeMovement(dt,Shape,Track,NewLoc,NewRot);
+ double d;
+ T_MoverParameters::FastComputeMovement(dt,Shape,Track,NewLoc,NewRot);
  if (EnginePowerSource.SourceType==CurrentCollector) //tylko jeœli pantografuj¹cy
   if (Power>1.0) //w rozrz¹dczym nie (jest b³¹d w FIZ!)
    UpdatePantVolume(dt); //Ra: pneumatyka pantografów przeniesiona do Mover.cpp!
+ if (EngineType==WheelsDriven) 
+  d=CabNo*dL; //na chwile dla testu
+ else
+  d=dL;
+ DistCounter=DistCounter+fabs(dL)/1000.0;
+ dL=0;
+
+ //koniec procedury, tu nastepuja dodatkowe procedury pomocnicze
+
  //sprawdzanie i ewentualnie wykonywanie->kasowanie poleceñ
  if (LoadStatus>0) //czas doliczamy tylko jeœli trwa (roz)³adowanie
   LastLoadChangeTime=LastLoadChangeTime+dt; //czas (roz)³adunku

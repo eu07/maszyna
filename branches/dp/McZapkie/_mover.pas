@@ -4280,16 +4280,17 @@ var CCF,Vprev,VprevC:real; VirtualCoupling:boolean;
 begin
      CCF:=0;
      with Couplers[CouplerN] do
-      if (Connected<>nil) then //Ra: siê wysypywa³o
+      if (Connected<>nil) then
       begin
         VirtualCoupling:=(CouplingFlag=ctrain_virtual);
         Vprev:=V;
-        VprevC:=Connected.V; //Ra: siê wysypywa³o tutaj
+        VprevC:=Connected.V;
         case CouplerN of
          0 : CCF:=ComputeCollision(V,Connected.V,TotalMass,Connected.TotalMass,(beta+Connected.Couplers[ConnectedNr].beta)/2.0,VirtualCoupling)/(dt{+0.01}); //yB: ej ej ej, a po
          1 : CCF:=ComputeCollision(Connected.V,V,Connected.TotalMass,TotalMass,(beta+Connected.Couplers[ConnectedNr].beta)/2.0,VirtualCoupling)/(dt{+0.01}); //czemu tu jest +0.01??
         end;
-        AccS:=AccS+(V-Vprev)/dt;
+        //Ra 2014-03: przeliczanie przyspieszenia tutaj nie uwzglêdnia sk³adowej grawitacji
+        AccS:=AccS+(V-Vprev)/dt; //Ra 2014-03: dlaczego tu jest liczone inaczej?
         Connected.AccS:=Connected.AccS+(Connected.V-VprevC)/dt;
         if (Dist>0) and (not VirtualCoupling) then
          if FuzzyLogic(Abs(CCF),5*(FmaxC+1),p_coupldmg) then
@@ -4464,12 +4465,12 @@ begin
   {to powinno byc zerowane na zewnatrz}
 
     //juz zoptymalizowane:
-    FStand:=FrictionForce(RunningShape.R,RunningTrack.DamageFlag);
-    Vel:=Abs(V)*3.6;
+    FStand:=FrictionForce(RunningShape.R,RunningTrack.DamageFlag); //si³a oporów ruchu
+    Vel:=Abs(V)*3.6; //prêdkoœæ w km/h
     nrot:=V2n(); //przeliczenie prêdkoœci liniowej na obrotow¹
 
     if TestFlag(BrakeMethod,bp_MHS) and (PipePress<3.0) and (Vel>45) then //ustawione na sztywno na 3 bar
-      FStand:=Fstand+(RunningTrack.friction)*TrackBrakeForce;
+      FStand:=Fstand+(RunningTrack.friction)*TrackBrakeForce; //doliczenie hamowania hamulcem szynowym
 
 //    if(FullVer=true) then
 //    begin //ABu: to dla optymalizacji, bo chyba te rzeczy wystarczy sprawdzac 1 raz na klatke?
@@ -4477,8 +4478,8 @@ begin
        if EngineType=ElectricSeriesMotor then
           LastRelayTime:=LastRelayTime+dt1;
 //    end;
-       if Mains and (Abs(CabNo)<2) and (EngineType=ElectricSeriesMotor) then                              {potem ulepszyc! pantogtrafy!}
-       begin
+       if Mains and {(Abs(CabNo)<2) and} (EngineType=ElectricSeriesMotor) then //potem ulepszyc! pantogtrafy!
+       begin //Ra 2014-03: uwzglêdnienie kierunku jazdy w napiêciu na silnikach, a powinien byæ zdefiniowany nawrotnik
           if CabNo=0 then
              Voltage:=RunningTraction.TractionVoltage*ActiveDir
           else
@@ -4506,14 +4507,14 @@ begin
   {  FStand:=0; }
     for b:=0 to 1 do
      if (Couplers[b].Connected<>nil) {and (Couplers[b].CouplerType<>Bare) and (Couplers[b].CouplerType<>Articulated)} then
-      begin
+      begin //doliczenie si³ z innych pojazdów
         Couplers[b].CForce:=CouplerForce(b,dt);
         FTrain:=FTrain+Couplers[b].CForce
       end
      else Couplers[b].CForce:=0;
     //FStand:=Fb+FrictionForce(RunningShape.R,RunningTrack.DamageFlag);
-    FStand:=Fb+Fstand;
-    FTrain:=FTrain+TotalMassxg*RunningShape.dHtrack; // /RunningShape.Len;
+    FStand:=Fb+FStand;
+    FTrain:=FTrain+TotalMassxg*RunningShape.dHtrack; //doliczenie sk³adowej stycznej grawitacji
     {!niejawne przypisanie zmiennej!}
     FTotal:=FTrain-Sign(V)*FStand;
    end;
@@ -4608,7 +4609,7 @@ begin
      AccSprev:=AccS;
      {dt:=ActualTime-LastUpdatedTime;}                               {przyrost czasu}
      {przyspieszenie styczne}
-     AccS:=(FTotal/TotalMass+AccSprev)/2.0;                            {prawo Newtona ale z wygladzaniem}
+     AccS:=(FTotal/TotalMass+AccSprev)/2.0; //prawo Newtona ale z wygladzaniem (œrednia z poprzednim)
 
      if TestFlag(DamageFlag,dtrain_out) then
       AccS:=-Sign(V)*g*Random;
@@ -4671,7 +4672,7 @@ begin
      if (V*Vprev<=0) and (Abs(FStand)>Abs(FTrain)) then            {tlumienie predkosci przy hamowaniu}
        begin     {zahamowany}
          V:=0;
-         AccS:=0;
+         AccS:=0; //Ra 2014-03: ale si³a grawitacji dzia³a, wiêc nie mo¿e byæ zerowe
        end;
    (*
      else
@@ -4696,16 +4697,7 @@ begin
 *)
    end; {liczone dL, predkosc i przyspieszenie}
 
-
- if (EngineType=WheelsDriven) then
-  ComputeMovement:=CabNo*dL {na chwile dla testu}
- else
-  ComputeMovement:=dL;
- DistCounter:=DistCounter+abs(dL)/1000.0;
- dL:=0;
-
-   {koniec procedury, tu nastepuja dodatkowe procedury pomocnicze}
-   {Ra: przeniesione do Mover.cpp}
+   {Ra: reszta przeniesiona do Mover.cpp}
 end; {ComputeMovement}
 
 {blablabla}
@@ -4725,7 +4717,7 @@ begin
      AccSprev:=AccS;
      {dt:=ActualTime-LastUpdatedTime;}                               {przyrost czasu}
      {przyspieszenie styczne}
-     AccS:=(FTotal/TotalMass+AccSprev)/2.0;                            {prawo Newtona ale z wygladzaniem}
+     AccS:=(FTotal/TotalMass+AccSprev)/2.0; //prawo Newtona ale z wygladzaniem (œrednia z poprzednim)
 
      if TestFlag(DamageFlag,dtrain_out) then
       AccS:=-Sign(V)*g*Random;
@@ -4776,7 +4768,7 @@ begin
       if Vel<1 then
        begin
          V:=0;
-         AccS:=0;
+         AccS:=0; //Ra 2014-03: ale si³a grawitacji dzia³a, wiêc nie mo¿e byæ zerowe
        end;
 
      if (V*Vprev<=0) and (Abs(FStand)>Abs(FTrain)) then            {tlumienie predkosci przy hamowaniu}
@@ -4791,15 +4783,7 @@ begin
       CollisionDetect(b,dt);  {zmienia niejawnie AccS, V !!!}
    end; {liczone dL, predkosc i przyspieszenie}
 
- if (EngineType=WheelsDriven) then
-  FastComputeMovement:=CabNo*dL {na chwile dla testu}
- else
-  FastComputeMovement:=dL;
- DistCounter:=DistCounter+abs(dL)/1000.0;
- dL:=0;
-
-   {koniec procedury, tu nastepuja dodatkowe procedury pomocnicze}
-   {Ra: przeniesione do Mover.cpp}
+   {Ra: reszta przeniesiona do Mover.cpp}
 end; {FastComputeMovement}
 
 
