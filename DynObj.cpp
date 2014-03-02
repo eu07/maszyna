@@ -1970,7 +1970,7 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
     ts.R=MyTrack->fRadius;
     if (bogieRot[0].z!=bogieRot[1].z) //wyliczenie promienia z obrotów osi - modyfikacjê zg³osi³ youBy
       ts.R=0.5*MoverParameters->BDist/sin(DegToRad(bogieRot[0].z-bogieRot[1].z)*0.5);
-    if (ts.R>10000.0) ts.R=0.0; //szkoda czasu na zbyt du¿e promienie
+    if (ts.R>5000.0) ts.R=0.0; //szkoda czasu na zbyt du¿e promienie, 4km to promieñ nie wymagaj¹cy przechy³ki 
     //ts.R=ComputeRadius(Axle1.pPosition,Axle2.pPosition,Axle3.pPosition,Axle0.pPosition);
     //Ra: sk³adow¹ pochylenia wzd³u¿nego mamy policzon¹ w jednostkowym wektorze vFront
     ts.Len=1.0; //Max0R(MoverParameters->BDist,MoverParameters->ADist);

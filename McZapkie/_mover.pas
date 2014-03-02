@@ -4289,8 +4289,7 @@ begin
          0 : CCF:=ComputeCollision(V,Connected.V,TotalMass,Connected.TotalMass,(beta+Connected.Couplers[ConnectedNr].beta)/2.0,VirtualCoupling)/(dt{+0.01}); //yB: ej ej ej, a po
          1 : CCF:=ComputeCollision(Connected.V,V,Connected.TotalMass,TotalMass,(beta+Connected.Couplers[ConnectedNr].beta)/2.0,VirtualCoupling)/(dt{+0.01}); //czemu tu jest +0.01??
         end;
-        //Ra 2014-03: przeliczanie przyspieszenia tutaj nie uwzglêdnia sk³adowej grawitacji
-        AccS:=AccS+(V-Vprev)/dt; //Ra 2014-03: dlaczego tu jest liczone inaczej?
+        AccS:=AccS+(V-Vprev)/dt; //korekta przyspieszenia o si³y wynikaj¹ce ze zderzeñ?
         Connected.AccS:=Connected.AccS+(Connected.V-VprevC)/dt;
         if (Dist>0) and (not VirtualCoupling) then
          if FuzzyLogic(Abs(CCF),5*(FmaxC+1),p_coupldmg) then
@@ -4672,7 +4671,7 @@ begin
      if (V*Vprev<=0) and (Abs(FStand)>Abs(FTrain)) then            {tlumienie predkosci przy hamowaniu}
        begin     {zahamowany}
          V:=0;
-         AccS:=0; //Ra 2014-03: ale si³a grawitacji dzia³a, wiêc nie mo¿e byæ zerowe
+         //AccS:=0; //Ra 2014-03: ale si³a grawitacji dzia³a, wiêc nie mo¿e byæ zerowe
        end;
    (*
      else

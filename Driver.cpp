@@ -2957,7 +2957,7 @@ bool __fastcall TController::UpdateSituation(double dt)
          {//jeœli ma siê zatrzymaæ, musi byæ to robione precyzyjnie i skutecznie
           if (ActualProximityDist<fMaxProximityDist) //jak min¹³ ju¿ maksymalny dystans
           {//po prostu hamuj (niski stopieñ) //ma stan¹æ, a jest w drodze hamowania albo ma jechaæ
-           AccDesired=-0.2; //mo¿na by precyzyjniej zatrzymywaæ
+           AccDesired=-0.2; //hamowanie tak, aby stan¹æ
            VelDesired=0.0; //Min0R(VelDesired,VelNext);
           }
           else if (ActualProximityDist>fBrakeDist)
@@ -3034,6 +3034,7 @@ bool __fastcall TController::UpdateSituation(double dt)
        else
         AccDesired=-0.2; //hamuj tak œrednio - to siê nie za³apywa³o na warunek <-0.2
      //koniec predkosci aktualnej
+/* Ra 2014-03: to nie uwzglêdnia odleg³oœci i zaczyna hamowaæ, jak tylko zobaczy W4
      if ((AccDesired>0.0)&&(VelNext>=0.0)) //wybieg b¹dŸ lekkie hamowanie, warunki byly zamienione
       if (vel>VelNext+100.0) //lepiej zaczac hamowac
        AccDesired=-0.2;
@@ -3041,6 +3042,7 @@ bool __fastcall TController::UpdateSituation(double dt)
        if (vel>VelNext+70.0)
         AccDesired=0.0; //nie spiesz siê, bo bêdzie hamowanie
      //koniec wybiegu i hamowania
+*/
      if (AIControllFlag)
      {//czêœæ wykonawcza tylko dla AI, dla cz³owieka jedynie napisy
       if (mvControlling->ConvOvldFlag||!mvControlling->Mains) //WS mo¿e wywaliæ z powodu b³êdu w drutach
@@ -3133,9 +3135,10 @@ bool __fastcall TController::UpdateSituation(double dt)
 
       //yB: usuniête ró¿ne dziwne warunki, oddzielamy czêœæ zadaj¹c¹ od wykonawczej
       //zmniejszanie predkosci
+      //Ra 2014-03: ten pierwszy warunek nie ma sensu, bo vel>=0
       if (((fAccGravity<-0.05)&&(vel<0))||((AccDesired<fAccGravity-0.1)&&(AccDesired<AbsAccS-0.05))) //u góry ustawia siê hamowanie na -0.4
       //if not MinVelFlag)
-       if (fBrakeTime<0?true:(AccDesired<fAccGravity-0.3)||(mvOccupied->BrakeCtrlPos<=0))
+       if (fBrakeTime<0?true:(AccDesired<fAccGravity-0.3)||(mvOccupied->BrakeCtrlPos<=0)) //BrakeCtrlPos<0 to luzowanie
         if (!IncBrake()) //jeœli up³yn¹³ czas reakcji hamulca, chyba ¿e nag³e albo luzowa³
          MinVelFlag=true;
         else
