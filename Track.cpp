@@ -39,6 +39,8 @@ __fastcall TSwitchExtension::TSwitchExtension(TTrack *owner,int what)
  pPrevs[0]=NULL;
  pPrevs[1]=NULL;
  fOffset1=fOffset2=fDesiredOffset1=fDesiredOffset2=0.0; //po³o¿enie zasadnicze
+ fOffsetSpeed=0.1; //prêdkoœæ liniowa iglic
+ fOffsetDelay=0.5; //opó¿nienie ruchu drugiej iglicy wzglêdem pierwszej
  pOwner=NULL;
  pNextAnim=NULL;
  bMovement=false; //nie potrzeba przeliczaæ fOffset1
@@ -1140,10 +1142,10 @@ void __fastcall TTrack::Compile(GLuint tex)
       if (InMovement())
       {//Ra: trochê bez sensu, ¿e tu jest animacja
        double v=SwitchExtension->fDesiredOffset1-SwitchExtension->fOffset1;
-       SwitchExtension->fOffset1+=sign(v)*Timer::GetDeltaTime()*0.1;
+       SwitchExtension->fOffset1+=sign(v)*Timer::GetDeltaTime()*SwitchExtension->fOffsetSpeed;
        //Ra: trzeba daæ to do klasy...
        if (SwitchExtension->fOffset1<=0.00)
-       {SwitchExtension->fOffset1; //1cm?
+       {SwitchExtension->fOffset1=0.0; //1cm?
         SwitchExtension->bMovement=false; //koniec animacji
        }
        if (SwitchExtension->fOffset1>=fMaxOffset)
@@ -1997,11 +1999,15 @@ bool __fastcall TTrack::SetConnections(int i)
  return false;
 }
 
-bool __fastcall TTrack::Switch(int i)
+bool __fastcall TTrack::Switch(int i,double t,double d)
 {//prze³¹czenie torów z uruchomieniem animacji
  if (SwitchExtension) //tory prze³¹czalne maj¹ doklejkê
   if (eType==tt_Switch)
   {//przek³adanie zwrotnicy jak zwykle
+   if (t>0.0) //prêdkoœæ liniowa ruchu iglic
+    SwitchExtension->fOffsetSpeed=fMaxOffset/t;
+   if (d>=0.0) //opóŸnienie ruchu drugiej iglicy wzglêdem pierwszej
+    SwitchExtension->fOffsetDelay=d;
    i&=1; //ograniczenie b³êdów !!!!
    SwitchExtension->fDesiredOffset1=fMaxOffset*double(NextMask[i]); //od punktu 1
    //SwitchExtension->fDesiredOffset2=fMaxOffset*double(PrevMask[i]); //od punktu 2

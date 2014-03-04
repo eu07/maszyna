@@ -3370,7 +3370,7 @@ bool __fastcall TGround::CheckQuery()
     break;
     case tp_Switch:
      if (tmpEvent->Params[9].asTrack)
-      tmpEvent->Params[9].asTrack->Switch(tmpEvent->Params[0].asInt);
+      tmpEvent->Params[9].asTrack->Switch(tmpEvent->Params[0].asInt,tmpEvent->Params[1].asdouble,tmpEvent->Params[2].asdouble);
      if (Global::iMultiplayer) //dajemy znaæ do serwera o prze³o¿eniu
       WyslijEvent(tmpEvent->asName,""); //wys³anie nazwy eventu prze³¹czajacego
      //Ra: bardziej by siê przyda³a nazwa toru, ale nie ma do niej st¹d dostêpu
