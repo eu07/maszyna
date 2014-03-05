@@ -3,7 +3,7 @@
 #ifndef MoverH
 #define MoverH
 //---------------------------------------------------------------------------
-#include "mover.hpp"
+#include "Mover.hpp"
 // Ra: Niestety "_mover.hpp" siê nieprawid³owo generuje - przek³ada sobie TCoupling na sam koniec.
 // Przy wszelkich poprawkach w "_mover.pas" trzeba skopiowaæ rêcznie "_mover.hpp" do "mover.hpp" i
 // poprawiæ b³êdy! Tak a¿ do wydzielnia TCoupling z Pascala do C++...
