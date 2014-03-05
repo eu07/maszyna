@@ -33,11 +33,12 @@ public:
  bool iNextDirection[2];
  bool iPrevDirection[2];
  int CurrentIndex; //dla zwrotnicy
- double fOffset1, fDesiredOffset1; //ruch od strony punktu 1
+ double fOffset,fDesiredOffset; //aktualne i docelowe po³o¿enie napêdu iglic 
  double fOffsetSpeed; //prêdkoœæ liniowa ruchu iglic
  double fOffsetDelay; //opóŸnienie ruchu drugiej iglicy wzglêdem pierwszej
  union
- {double fOffset2, fDesiredOffset2; //ruch od strony punktu 2 nie obs³ugiwany
+ {
+  struct {double fOffset1,fOffset2;}; //przesuniêcia iglic
   TGroundNode *pMyNode; //dla obrotnicy do wtórnego pod³¹czania torów
  };
  union
