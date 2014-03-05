@@ -289,10 +289,10 @@ void __fastcall TMoverParameters::UpdateBatteryVoltage(double dt)
   if ((NominalBatteryVoltage/BatteryVoltage<1.22)&&Battery)
   {//110V
    if (!ConverterFlag)
-    sn1=(dt*10); //szybki spadek do ok 90V
+    sn1=(dt*2.0); //szybki spadek do ok 90V
    else sn1=0;
    if (ConverterFlag)
-    sn2=-(dt*10); //szybki wzrost do 110V
+    sn2=-(dt*2.0); //szybki wzrost do 110V
    else sn2=0;
    if (Mains)
     sn3=(dt*0.05);

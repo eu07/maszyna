@@ -439,13 +439,14 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
    parser->getTokens(); *parser >> Params[0].asInt;
    parser->getTokens(); *parser >> token;
    str=AnsiString(token.c_str());
-   if (str!=AnsiString("endevent"))
+   if (str!="endevent")
    {Params[1].asdouble=str.ToDouble(); //czas trwania animacji iglicy
     parser->getTokens(); *parser >> token;
+    str=AnsiString(token.c_str());
    }
    else
     Params[1].asdouble=-1.0; //u¿yæ domyœlnej
-   if (str!=AnsiString("endevent"))
+   if (str!="endevent")
    {Params[2].asdouble=str.ToDouble(); //opóŸnienie ruchu drugiej iglicy
     parser->getTokens(); *parser >> token;
    }

@@ -64,13 +64,16 @@ bool __fastcall TTractionPowerSource::Load(cParser *parser)
  *parser >> SlowFuseTimeOut;
  parser->getTokens();
  *parser >> token;
- if ( token.compare( "recuperation" ) == 0 )
-  Recuperation= true;
+ if (token.compare("recuperation")==0)
+  Recuperation=true;
+ else if (token.compare("section")==0) //od³¹cznik sekcyjny
+  NominalVoltage=0; //nie jest Ÿród³em zasilania, a jedynie informuje o pr¹dzie od³¹czenia sekcji z obwodu
  parser->getTokens();
  *parser >> token;
- if ( token.compare( "end" ) != 0 )
+ if (token.compare("end")!=0)
   Error("tractionpowersource end statement missing");
- InternalRes*=10; //coœ ma³a ta rezystancja by³a...  
+ if (InternalRes<0.1) //coœ ma³a ta rezystancja by³a...
+  InternalRes=0.2; //tak oko³o 0.2, wg http://www.ikolej.pl/fileadmin/user_upload/Seminaria_IK/13_05_07_Prezentacja_Kruczek.pdf
  return true;
 };
 
