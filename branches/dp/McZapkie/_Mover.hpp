@@ -159,6 +159,24 @@ enum TPowerSource { NotDefined, InternalSource, Transducer, Generator, Accumulat
 	PowerCable, Heater };
 #pragma option pop
 
+struct _mover__1
+{
+	double MaxCapacity;
+	TPowerSource RechargeSource;
+} ;
+
+struct _mover__2
+{
+	TPowerType PowerTrans;
+	double SteamPressure;
+} ;
+
+struct _mover__3
+{
+	TGrateType Grate;
+	TBoilerType Boiler;
+} ;
+
 struct TPowerParameters
 {
 	double MaxVoltage;
@@ -169,14 +187,12 @@ struct TPowerParameters
 	{
 		struct 
 		{
-			TGrateType Grate;
-			TBoilerType Boiler;
+			_mover__3 RHeater;
 			
 		};
 		struct 
 		{
-			TPowerType PowerTrans;
-			double SteamPressure;
+			_mover__2 RPowerCable;
 			
 		};
 		struct 
@@ -186,8 +202,7 @@ struct TPowerParameters
 		};
 		struct 
 		{
-			double MaxCapacity;
-			TPowerSource RechargeSource;
+			_mover__1 RAccumulator;
 			
 		};
 		struct 

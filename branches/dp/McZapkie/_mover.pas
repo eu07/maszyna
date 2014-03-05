@@ -259,10 +259,10 @@ TYPE
                           NotDefined,InternalSource : (PowerType: TPowerType);
                           Transducer : (InputVoltage: real);
                           Generator  : (GeneratorEngine: TEngineTypes);
-                          Accumulator: (MaxCapacity: real; RechargeSource:TPowerSource);
+                          Accumulator: (RAccumulator:record MaxCapacity:real; RechargeSource:TPowerSource end);
                           CurrentCollector: (CollectorParameters: TCurrentCollector);
-                          PowerCable : (PowerTrans:TPowerType; SteamPressure: real);
-                          Heater : (Grate: TGrateType; Boiler: TBoilerType);
+                          PowerCable : (RPowerCable:record PowerTrans:TPowerType; SteamPressure:real end);
+                          Heater : (RHeater:record Grate:TGrateType; Boiler:TBoilerType end);
                        end;
 
     {dla lokomotyw elektrycznych:}
@@ -5276,22 +5276,22 @@ begin
   with HeatingPowerSource do
    begin
      MaxVoltage:=0; MaxCurrent:=0; IntR:=0.001;
-     SourceType:=NotDefined; PowerType:=NoPower; PowerTrans:=NoPower;
+     SourceType:=NotDefined; PowerType:=NoPower; RPowerCable.PowerTrans:=NoPower;
    end;
   with AlterHeatPowerSource do
    begin
      MaxVoltage:=0; MaxCurrent:=0; IntR:=0.001;
-     SourceType:=NotDefined; PowerType:=NoPower; PowerTrans:=NoPower;
+     SourceType:=NotDefined; PowerType:=NoPower; RPowerCable.PowerTrans:=NoPower;
    end;
   with LightPowerSource do
    begin
      MaxVoltage:=0; MaxCurrent:=0; IntR:=0.001;
-     SourceType:=NotDefined; PowerType:=NoPower; PowerTrans:=NoPower;
+     SourceType:=NotDefined; PowerType:=NoPower; RPowerCable.PowerTrans:=NoPower;
    end;
   with AlterLightPowerSource do
    begin
      MaxVoltage:=0; MaxCurrent:=0; IntR:=0.001;
-     SourceType:=NotDefined; PowerType:=NoPower; PowerTrans:=NoPower;
+     SourceType:=NotDefined; PowerType:=NoPower; RPowerCable.PowerTrans:=NoPower;
    end;
   TypeName:=TypeNameInit;
   HighPipePress:=0;
@@ -5984,9 +5984,9 @@ function PowerDecode(s:string): TPowerType;
         Transducer : InputVoltage:=s2rE(DUE(ExtractKeyWord(lines,prefix+'TransducerInputV=')));
         Generator  : GeneratorEngine:=EngineDecode(DUE(ExtractKeyWord(lines,prefix+'GeneratorEngine=')));
         Accumulator: begin
-                       MaxCapacity:=s2r(DUE(ExtractKeyWord(lines,prefix+'Cap=')));
+                       RAccumulator.MaxCapacity:=s2r(DUE(ExtractKeyWord(lines,prefix+'Cap=')));
                        s:=DUE(ExtractKeyWord(lines,prefix+'RS='));
-                       RechargeSource:=PowerSourceDecode(s);
+                       RAccumulator.RechargeSource:=PowerSourceDecode(s);
                      end;
         CurrentCollector: begin
                             with CollectorParameters do
@@ -6009,16 +6009,16 @@ function PowerDecode(s:string): TPowerType;
                              end;
                           end;
         PowerCable : begin
-                       PowerTrans:=PowerDecode(DUE(ExtractKeyWord(lines,prefix+'PowerTrans=')));
-                       if PowerTrans=SteamPower then
-                        SteamPressure:=s2r(DUE(ExtractKeyWord(lines,prefix+'SteamPress=')));
+                       RPowerCable.PowerTrans:=PowerDecode(DUE(ExtractKeyWord(lines,prefix+'PowerTrans=')));
+                       if RPowerCable.PowerTrans=SteamPower then
+                        RPowerCable.SteamPressure:=s2r(DUE(ExtractKeyWord(lines,prefix+'SteamPress=')));
                      end;
         Heater : begin
                    {jeszcze nie skonczone!}
                  end;
        end;
        if (SourceType<>Heater) and (SourceType<>InternalSource) then
-        if not ((SourceType=PowerCable) and (PowerTrans=SteamPower)) then
+        if not ((SourceType=PowerCable) and (RPowerCable.PowerTrans=SteamPower)) then
         begin
 {          PowerTrans:=ElectricPower; }
           MaxVoltage:=s2rE(DUE(ExtractKeyWord(lines,prefix+'MaxVoltage=')));
