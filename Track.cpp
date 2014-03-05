@@ -1155,28 +1155,28 @@ void __fastcall TTrack::Compile(GLuint tex)
       }
       //McZapkie-130302 - poprawione rysowanie szyn
       if (SwitchExtension->RightSwitch)
-      {//nowa wersja z SPKS, ale odwrotnie lewa/prawa
+      {//zwrotnica prawa
        glBindTexture(GL_TEXTURE_2D,TextureID1);
-       SwitchExtension->Segments[0]->RenderLoft(rpts1,nnumPts,fTexLength,2);
-       SwitchExtension->Segments[0]->RenderSwitchRail(rpts1,rpts3,nnumPts,fTexLength,2,SwitchExtension->fOffset1);
-       SwitchExtension->Segments[0]->RenderLoft(rpts2,nnumPts,fTexLength);
+       SwitchExtension->Segments[0]->RenderLoft(rpts1,nnumPts,fTexLength,2); //prawa szyna za iglic¹
+       SwitchExtension->Segments[0]->RenderSwitchRail(rpts1,rpts3,nnumPts,fTexLength,2,SwitchExtension->fOffset1); //prawa iglica
+       SwitchExtension->Segments[0]->RenderLoft(rpts2,nnumPts,fTexLength); //lewa szyna normalnie ca³a
        if (TextureID2!=TextureID1) //nie wiadomo, czy OpenGL to optymalizuje
         glBindTexture(GL_TEXTURE_2D,TextureID2);
-       SwitchExtension->Segments[1]->RenderLoft(rpts1,nnumPts,fTexLength);
-       SwitchExtension->Segments[1]->RenderLoft(rpts2,nnumPts,fTexLength,2);
-       SwitchExtension->Segments[1]->RenderSwitchRail(rpts2,rpts4,nnumPts,fTexLength,2,-fMaxOffset+SwitchExtension->fOffset1);
+       SwitchExtension->Segments[1]->RenderLoft(rpts1,nnumPts,fTexLength); //prawa szyna normalna ca³a
+       SwitchExtension->Segments[1]->RenderLoft(rpts2,nnumPts,fTexLength,2); //lewa szyna za iglic¹
+       SwitchExtension->Segments[1]->RenderSwitchRail(rpts2,rpts4,nnumPts,fTexLength,2,-fMaxOffset+SwitchExtension->fOffset1); //lewa iglica
       }
       else
-      {//lewa dzia³a lepiej ni¿ prawa
+      {//lewa kiedyœ dzia³a³a lepiej ni¿ prawa
        glBindTexture(GL_TEXTURE_2D,TextureID1);
-       SwitchExtension->Segments[0]->RenderLoft(rpts1,nnumPts,fTexLength); //lewa szyna normalna ca³a
-       SwitchExtension->Segments[0]->RenderLoft(rpts2,nnumPts,fTexLength,2); //prawa szyna za iglic¹
-       SwitchExtension->Segments[0]->RenderSwitchRail(rpts2,rpts4,nnumPts,fTexLength,2,-SwitchExtension->fOffset1); //prawa iglica
+       SwitchExtension->Segments[0]->RenderLoft(rpts1,nnumPts,fTexLength); //prawa szyna normalna ca³a
+       SwitchExtension->Segments[0]->RenderLoft(rpts2,nnumPts,fTexLength,2); //lewa szyna za iglic¹
+       SwitchExtension->Segments[0]->RenderSwitchRail(rpts2,rpts4,nnumPts,fTexLength,2,-SwitchExtension->fOffset1); //lewa iglica
        if (TextureID2!=TextureID1) //nie wiadomo, czy OpenGL to optymalizuje
         glBindTexture(GL_TEXTURE_2D,TextureID2);
-       SwitchExtension->Segments[1]->RenderLoft(rpts1,nnumPts,fTexLength,2); //lewa szyna za iglic¹
-       SwitchExtension->Segments[1]->RenderSwitchRail(rpts1,rpts3,nnumPts,fTexLength,2,fMaxOffset-SwitchExtension->fOffset1); //lewa iglica
-       SwitchExtension->Segments[1]->RenderLoft(rpts2,nnumPts,fTexLength); //prawa szyna normalnie ca³a
+       SwitchExtension->Segments[1]->RenderLoft(rpts1,nnumPts,fTexLength,2); //prawa szyna za iglic¹
+       SwitchExtension->Segments[1]->RenderSwitchRail(rpts1,rpts3,nnumPts,fTexLength,2,fMaxOffset-SwitchExtension->fOffset1); //prawa iglica
+       SwitchExtension->Segments[1]->RenderLoft(rpts2,nnumPts,fTexLength); //lewa szyna normalnie ca³a
       }
      }
      break;
@@ -2121,7 +2121,7 @@ TTrack* __fastcall TTrack::RaAnimate()
  bool m=true; //animacja trwa
  if (eType==tt_Switch) //dla zwrotnicy tylko szyny
  {double v=SwitchExtension->fDesiredOffset1-SwitchExtension->fOffset1; //prêdkoœæ
-  SwitchExtension->fOffset1+=sign(v)*Timer::GetDeltaTime()*0.1;
+  SwitchExtension->fOffset1+=sign(v)*Timer::GetDeltaTime()*SwitchExtension->fOffsetSpeed;
   //Ra: trzeba daæ to do klasy...
   if (SwitchExtension->fOffset1<=0.00)
   {SwitchExtension->fOffset1; //1cm?
