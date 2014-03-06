@@ -2021,7 +2021,10 @@ bool __fastcall TTrack::Switch(int i,double t,double d)
    iPrevDirection=SwitchExtension->iPrevDirection[PrevMask[i]];
    fRadius=fRadiusTable[i]; //McZapkie: wybor promienia toru
    if (SwitchExtension->pOwner?SwitchExtension->pOwner->RaTrackAnimAdd(this):true) //jeœli nie dodane do animacji
-    SwitchExtension->fOffset=SwitchExtension->fDesiredOffset; //nie ma siê co bawiæ
+   {//nie ma siê co bawiæ
+    SwitchExtension->fOffset=SwitchExtension->fDesiredOffset;
+    RaAnimate(); //przeliczenie po³o¿enia iglic; czy zadzia³a na niewyœwietlanym sektorze w VBO?
+   }
    return true;
   }
   else if (eType==tt_Table)

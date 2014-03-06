@@ -3393,10 +3393,13 @@ var OK:boolean; //b:byte;
  ARFASI, ARFASI2 :boolean; //sprawdzenie wszystkich warunkow (AutoRelayFlag, AutoSwitch, Im<Imin)
 begin
 //rozlaczanie stycznikow liniowych
-  if (not Mains) or (FuseFlag) or (MainCtrlPos=0) or (BrakePress>2.1) then   //hunter-111211: wylacznik cisnieniowy
+  if (not Mains) or (FuseFlag) or (MainCtrlPos=0) or (BrakePress>2.1) or (ActiveDir=0) then   //hunter-111211: wylacznik cisnieniowy
    begin
      StLinFlag:=false; //yBARC - rozlaczenie stycznikow liniowych
      AutoRelayCheck:=false;
+     Im:=0;
+     Itot:=0;
+     ResistorsFlag:=false;
    end;
 
    ARFASI2:=(not AutoRelayFlag) or (not MotorParam[ScndCtrlActualPos].AutoSwitch) or (Abs(Im)<Imin); //wszystkie warunki w jednym
@@ -3432,7 +3435,7 @@ begin
         begin //zmieniaj mainctrlactualpos
           if ((ActiveDir<0) and (TrainType<>dt_PseudoDiesel)) then
            if Rlist[MainCtrlActualPos+1].Bn>1 then
-            begin 
+            begin
               AutoRelayCheck:=false;
               Exit; //Ra: to powoduje, ¿e EN57 nie wy³¹cza siê przy IminLo
             end;
@@ -3502,7 +3505,7 @@ begin
      begin
       OK:=false;
       //ybARC - tutaj sa wszystkie warunki, jakie musza byc spelnione, zeby mozna byla zalaczyc styczniki liniowe
-      if ((MainCtrlPos=1)or((TrainType=dt_EZT)and(MainCtrlPos>0)))and(not FuseFlag)and(Mains)and(BrakePress<1.0)and(MainCtrlActualPos=0)then
+      if ((MainCtrlPos=1)or((TrainType=dt_EZT)and(MainCtrlPos>0)))and(not FuseFlag)and(Mains)and(BrakePress<1.0)and(MainCtrlActualPos=0)and(ActiveDir<>0) then
        begin
          DelayCtrlFlag:=true;
          if (LastRelayTime>=InitialCtrlDelay) then
@@ -3517,8 +3520,8 @@ begin
       else
        DelayCtrlFlag:=false;
 
-      if(MainCtrlPos=0)and((MainCtrlActualPos>0)or(ScndCtrlActualPos>0))then
-       if(TrainType=dt_EZT)and(CoupledCtrl)then //EN57 wal jednokierunkowy calosciowy
+      if {(MainCtrlPos=0)and}((MainCtrlActualPos>0)or(ScndCtrlActualPos>0)) then
+       if (TrainType=dt_EZT)and(CoupledCtrl)then //EN57 wal jednokierunkowy calosciowy
         begin
          if(LastRelayTime>CtrlDownDelay)then
           begin

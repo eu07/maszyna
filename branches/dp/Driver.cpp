@@ -2854,7 +2854,7 @@ bool __fastcall TController::UpdateSituation(double dt)
           else //jeœli oba jad¹, to przyhamuj lekko i ogranicz prêdkoœæ
           {if (k<vel) //jak tamten jedzie wolniej
             if (d<fBrakeDist) //a jest w drodze hamowania
-            {if (AccPreferred>-0.2) AccPreferred=-0.2; //to przyhamuj troszkê
+            {if (AccPreferred>-0.6) AccPreferred=-0.6; //to przyhamuj troszkê
              VelNext=VelDesired=int(k); //to chyba ju¿ sobie dohamuje wed³ug uznania
             }
           }
@@ -2957,7 +2957,7 @@ bool __fastcall TController::UpdateSituation(double dt)
          {//jeœli ma siê zatrzymaæ, musi byæ to robione precyzyjnie i skutecznie
           if (ActualProximityDist<fMaxProximityDist) //jak min¹³ ju¿ maksymalny dystans
           {//po prostu hamuj (niski stopieñ) //ma stan¹æ, a jest w drodze hamowania albo ma jechaæ
-           AccDesired=-0.2; //hamowanie tak, aby stan¹æ
+           AccDesired=-0.6; //hamowanie tak, aby stan¹æ
            VelDesired=0.0; //Min0R(VelDesired,VelNext);
           }
           else if (ActualProximityDist>fBrakeDist)
@@ -3032,12 +3032,12 @@ bool __fastcall TController::UpdateSituation(double dt)
          AccDesired=0.0;
        }
        else
-        AccDesired=-0.2; //hamuj tak œrednio - to siê nie za³apywa³o na warunek <-0.2
+        AccDesired=-0.6; //hamuj tak œrednio - to siê nie za³apywa³o na warunek <-0.6
      //koniec predkosci aktualnej
 /* Ra 2014-03: to nie uwzglêdnia odleg³oœci i zaczyna hamowaæ, jak tylko zobaczy W4
      if ((AccDesired>0.0)&&(VelNext>=0.0)) //wybieg b¹dŸ lekkie hamowanie, warunki byly zamienione
       if (vel>VelNext+100.0) //lepiej zaczac hamowac
-       AccDesired=-0.2;
+       AccDesired=-0.6;
       else
        if (vel>VelNext+70.0)
         AccDesired=0.0; //nie spiesz siê, bo bêdzie hamowanie
@@ -3135,26 +3135,43 @@ bool __fastcall TController::UpdateSituation(double dt)
 
       //yB: usuniête ró¿ne dziwne warunki, oddzielamy czêœæ zadaj¹c¹ od wykonawczej
       //zmniejszanie predkosci
-      //Ra 2014-03: ten pierwszy warunek nie ma sensu, bo vel>=0
-      if (((fAccGravity<-0.05)&&(vel<0))||((AccDesired<fAccGravity-0.1)&&(AccDesired<AbsAccS-0.05))) //u góry ustawia siê hamowanie na -0.4
-      //if not MinVelFlag)
-       if (fBrakeTime<0?true:(AccDesired<fAccGravity-0.3)||(mvOccupied->BrakeCtrlPos<=0)) //BrakeCtrlPos<0 to luzowanie
-        if (!IncBrake()) //jeœli up³yn¹³ czas reakcji hamulca, chyba ¿e nag³e albo luzowa³
-         MinVelFlag=true;
-        else
-        {MinVelFlag=false;
-         fBrakeTime=3+0.5*(mvOccupied->BrakeDelay[2+2*mvOccupied->BrakeDelayFlag]-3);
-         //Ra: ten czas nale¿y zmniejszyæ, jeœli czas dojazdu do zatrzymania jest mniejszy
-         fBrakeTime*=0.5; //Ra: tymczasowo, bo prze¿yna S1
-        }
-      if ((AccDesired<fAccGravity-0.05)&&(AbsAccS<AccDesired-0.4))
-      //if ((AccDesired<0.0)&&(AbsAccS<AccDesired-0.1)) //ST44 nie hamuje na czas, 2-4km/h po miniêciu tarczy
-      {//jak hamuje, to nie tykaj kranu za czêsto
-       //yB: luzuje hamulec dopiero przy ró¿nicy opóŸnieñ rzêdu 0.2
-       if (OrderList[OrderPos]!=Disconnect) //przy od³¹czaniu nie zwalniamy tu hamulca
-        DecBrake(); //tutaj zmniejsza³o o 1 przy odczepianiu
-       fBrakeTime=(mvOccupied->BrakeDelay[1+2*mvOccupied->BrakeDelayFlag])/3.0;
-       fBrakeTime*=0.5; //Ra: tymczasowo, bo prze¿yna S1
+      if (mvOccupied->TrainType&dt_EZT) //w³aœciwie, to warunek powinien byæ na dzia³aj¹cy EP
+      {//Ra: to dobrze hamuje EP w EZT
+       if ((AccDesired<=-0.6)? //jeœli hamowaæ - u góry ustawia siê hamowanie na -0.6
+        ((AbsAccS>AccDesired)||(mvOccupied->BrakeCtrlPos<0)):false) //hamowaæ bardziej, gdy aktualne opóŸnienie hamowania mniejsze ni¿ (AccDesired)
+         IncBrake();
+       else
+        if (OrderList[OrderPos]!=Disconnect) //przy od³¹czaniu nie zwalniamy tu hamulca
+         if (AbsAccS<AccDesired-0.05) //jeœli opóŸnienie wiêksze od wymaganego (z histerez¹)
+         {//luzowanie, gdy za du¿o
+          if (mvOccupied->BrakeCtrlPos>=0)
+           DecBrake(); //tutaj zmniejsza³o o 1 przy odczepianiu
+         }
+         else if (mvOccupied->BrakeCtrlPos<0) IncBrake(); //ustawienie jazdy (pozycja 0)
+         else if (mvOccupied->BrakeCtrlPos>0) DecBrake();
+      }
+      else
+      {//a stara wersja w miarê dobrze dzia³a na sk³ady wagonowe
+       if (((fAccGravity<-0.05)&&(vel<0))||((AccDesired<fAccGravity-0.1)&&(AccDesired<AbsAccS+fAccGravity-0.05))) //u góry ustawia siê hamowanie na -0.2
+       //if not MinVelFlag)
+        if (fBrakeTime<0?true:(AccDesired<fAccGravity-0.3)||(mvOccupied->BrakeCtrlPos<=0))
+         if (!IncBrake()) //jeœli up³yn¹³ czas reakcji hamulca, chyba ¿e nag³e albo luzowa³
+          MinVelFlag=true;
+         else
+         {MinVelFlag=false;
+          fBrakeTime=3+0.5*(mvOccupied->BrakeDelay[2+2*mvOccupied->BrakeDelayFlag]-3);
+          //Ra: ten czas nale¿y zmniejszyæ, jeœli czas dojazdu do zatrzymania jest mniejszy
+          fBrakeTime*=0.5; //Ra: tymczasowo, bo prze¿yna S1
+         }
+       if ((AccDesired<fAccGravity-0.05)&&(AbsAccS+fAccGravity<AccDesired-0.2))
+       //if ((AccDesired<0.0)&&(AbsAccS<AccDesired-0.1)) //ST44 nie hamuje na czas, 2-4km/h po miniêciu tarczy
+       {//jak hamuje, to nie tykaj kranu za czêsto
+        //yB: luzuje hamulec dopiero przy ró¿nicy opóŸnieñ rzêdu 0.2
+        if (OrderList[OrderPos]!=Disconnect) //przy od³¹czaniu nie zwalniamy tu hamulca
+         DecBrake(); //tutaj zmniejsza³o o 1 przy odczepianiu
+        fBrakeTime=(mvOccupied->BrakeDelay[1+2*mvOccupied->BrakeDelayFlag])/3.0;
+        fBrakeTime*=0.5; //Ra: tymczasowo, bo prze¿yna S1
+       }
       }
       //Mietek-end1
       SpeedSet(); //ci¹gla regulacja prêdkoœci
