@@ -40,6 +40,9 @@ __fastcall TTractionPowerSource::TTractionPowerSource()
  FuseTimer=0;
  FuseCounter=0;
  //asName="";
+ psNode[0]=NULL; //sekcje zostan¹ pod³¹czone do zasilaczy
+ psNode[1]=NULL;
+ bSection=false; //sekcja nie jest Ÿród³em zasilania, tylko grupuje przês³a
 };
 
 __fastcall TTractionPowerSource::~TTractionPowerSource()
@@ -67,13 +70,14 @@ bool __fastcall TTractionPowerSource::Load(cParser *parser)
  if (token.compare("recuperation")==0)
   Recuperation=true;
  else if (token.compare("section")==0) //od³¹cznik sekcyjny
-  NominalVoltage=0; //nie jest Ÿród³em zasilania, a jedynie informuje o pr¹dzie od³¹czenia sekcji z obwodu
+  bSection=true; //nie jest Ÿród³em zasilania, a jedynie informuje o pr¹dzie od³¹czenia sekcji z obwodu
  parser->getTokens();
  *parser >> token;
  if (token.compare("end")!=0)
   Error("tractionpowersource end statement missing");
- if (InternalRes<0.1) //coœ ma³a ta rezystancja by³a...
-  InternalRes=0.2; //tak oko³o 0.2, wg http://www.ikolej.pl/fileadmin/user_upload/Seminaria_IK/13_05_07_Prezentacja_Kruczek.pdf
+ //if (!bSection) //od³¹cznik sekcji zasadniczo nie ma impedancji (0.01 jest OK)
+  if (InternalRes<0.1) //coœ ma³a ta rezystancja by³a...
+   InternalRes=0.2; //tak oko³o 0.2, wg http://www.ikolej.pl/fileadmin/user_upload/Seminaria_IK/13_05_07_Prezentacja_Kruczek.pdf
  return true;
 };
 
@@ -127,6 +131,14 @@ double __fastcall TTractionPowerSource::GetVoltage(double Current)
  return OutputVoltage;
 };
 
+void __fastcall TTractionPowerSource::PowerSet(TTractionPowerSource *ps)
+{//wskazanie zasilacza w obiekcie sekcji
+ if (!psNode[0])
+  psNode[0]=ps;
+ else if (!psNode[1])
+  psNode[1]=ps;
+ //else ErrorLog("nie mo¿e byæ wiêcej punktów zasilania ni¿ dwa"); 
+};
 
 //---------------------------------------------------------------------------
 

@@ -1264,7 +1264,8 @@ bool __fastcall TWorld::Update()
  }
  Ground.CheckQuery();
  //przy 0.25 smuga gaœnie o 6:37 w Quarku, a mog³aby ju¿ 5:40
- Global::bSmudge=FreeFlyModeFlag?false:((Train->Dynamic()->fShade<=0.0)?(Global::fLuminance<=0.15):(Train->Dynamic()->fShade*Global::fLuminance<=0.15));
+ if (Train) //jeœli nie usuniêty
+  Global::bSmudge=FreeFlyModeFlag?false:((Train->Dynamic()->fShade<=0.0)?(Global::fLuminance<=0.15):(Train->Dynamic()->fShade*Global::fLuminance<=0.15));
 
  if (!Render()) return false;
 
@@ -1852,11 +1853,11 @@ bool __fastcall TWorld::Update()
       OutText2+=AnsiString("); NasB=")+AnsiString(mvControlled->ScndCtrlPos);
       OutText2+=AnsiString("(")+AnsiString(mvControlled->ScndCtrlActualPos);
       if (mvControlled->TrainType==dt_EZT)
-       OutText2+=AnsiString("); I=")+FloatToStrF(mvControlled->ShowCurrent(0),ffFixed,6,2);
+       OutText2+=AnsiString("); I=")+AnsiString(int(mvControlled->ShowCurrent(0)));
       else
-       OutText2+=AnsiString("); I=")+FloatToStrF(mvControlled->Im,ffFixed,6,2);
+       OutText2+=AnsiString("); I=")+AnsiString(int(mvControlled->Im));
       //OutText2+=AnsiString("; I2=")+FloatToStrF(Controlled->NextConnected->MoverParameters->Im,ffFixed,6,2);
-      OutText2+=AnsiString("; V=")+FloatToStrF(mvControlled->RunningTraction.TractionVoltage,ffFixed,5,1);
+      OutText2+=AnsiString("; V=")+AnsiString(int(mvControlled->RunningTraction.TractionVoltage));
       //OutText2+=AnsiString("; rvent=")+FloatToStrF(mvControlled->RventRot,ffFixed,6,2);
       OutText2+=AnsiString("; R=")+FloatToStrF(Controlled->MoverParameters->RunningShape.R,ffFixed,4,1);
       OutText2+=AnsiString(" An=")+FloatToStrF(Controlled->MoverParameters->AccN,ffFixed,4,2); //przyspieszenie poprzeczne
