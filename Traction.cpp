@@ -108,6 +108,8 @@ TTraction::TTraction()
  iLast=1; //¿e niby ostatni drut
  psPower=NULL; //na pocz¹tku nie pod³¹czone
  hvParallel=NULL; //normalnie brak bie¿ni wspólnej
+ fResistance[0]=-1.0; //trzeba dopiero policzyæ
+ fResistance[0]=-1.0;
 }
 
 TTraction::~TTraction()

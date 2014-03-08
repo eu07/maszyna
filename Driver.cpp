@@ -3152,25 +3152,26 @@ bool __fastcall TController::UpdateSituation(double dt)
       }
       else
       {//a stara wersja w miarê dobrze dzia³a na sk³ady wagonowe
-       if (((fAccGravity<-0.05)&&(vel<0))||((AccDesired<fAccGravity-0.1)&&(AccDesired<AbsAccS+fAccGravity-0.05))) //u góry ustawia siê hamowanie na -0.2
+       if (((fAccGravity<-0.05)&&(vel<0))||((AccDesired<fAccGravity-0.05)&&(AbsAccS>AccDesired+0.2))) //u góry ustawia siê hamowanie na -0.6
        //if not MinVelFlag)
-        if (fBrakeTime<0?true:(AccDesired<fAccGravity-0.3)||(mvOccupied->BrakeCtrlPos<=0))
+        if (fBrakeTime<0?true:(AccDesired<fAccGravity-0.8)||(mvOccupied->BrakeCtrlPos<=0))
          if (!IncBrake()) //jeœli up³yn¹³ czas reakcji hamulca, chyba ¿e nag³e albo luzowa³
           MinVelFlag=true;
          else
          {MinVelFlag=false;
           fBrakeTime=3+0.5*(mvOccupied->BrakeDelay[2+2*mvOccupied->BrakeDelayFlag]-3);
           //Ra: ten czas nale¿y zmniejszyæ, jeœli czas dojazdu do zatrzymania jest mniejszy
-          fBrakeTime*=0.5; //Ra: tymczasowo, bo prze¿yna S1
+          //fBrakeTime*=0.5; //Ra: tymczasowo, bo prze¿yna S1
          }
-       if ((AccDesired<fAccGravity-0.05)&&(AbsAccS+fAccGravity<AccDesired-0.2))
+       if ((AccDesired<fAccGravity-0.05)&&(AbsAccS<AccDesired+0.1))
        //if ((AccDesired<0.0)&&(AbsAccS<AccDesired-0.1)) //ST44 nie hamuje na czas, 2-4km/h po miniêciu tarczy
+       if (fBrakeTime<0)
        {//jak hamuje, to nie tykaj kranu za czêsto
         //yB: luzuje hamulec dopiero przy ró¿nicy opóŸnieñ rzêdu 0.2
         if (OrderList[OrderPos]!=Disconnect) //przy od³¹czaniu nie zwalniamy tu hamulca
          DecBrake(); //tutaj zmniejsza³o o 1 przy odczepianiu
         fBrakeTime=(mvOccupied->BrakeDelay[1+2*mvOccupied->BrakeDelayFlag])/3.0;
-        fBrakeTime*=0.5; //Ra: tymczasowo, bo prze¿yna S1
+        //fBrakeTime*=0.5; //Ra: tymczasowo, bo prze¿yna S1
        }
       }
       //Mietek-end1
