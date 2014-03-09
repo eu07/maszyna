@@ -1445,7 +1445,10 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    *parser >> token;
    tmp->hvTraction->asPowerSupplyName=AnsiString(token.c_str()); //nazwa zasilacza
    parser->getTokens(3);
-   *parser >> tmp->hvTraction->NominalVoltage >> tmp->hvTraction->MaxCurrent >> tmp->hvTraction->Resistivity;
+   *parser >> tmp->hvTraction->NominalVoltage >> tmp->hvTraction->MaxCurrent >> tmp->hvTraction->fResistivity;
+   if (tmp->hvTraction->fResistivity==0.01) //tyle jest w sceneriach [om/km]
+    tmp->hvTraction->fResistivity=0.075; //taka sensowniejsza wartoœæ za http://www.ikolej.pl/fileadmin/user_upload/Seminaria_IK/13_05_07_Prezentacja_Kruczek.pdf
+   tmp->hvTraction->fResistivity*=0.001; //teraz [om/m]
    parser->getTokens();
    *parser >> token;
    //Ra 2014-02: a tutaj damy symbol sieci i jej budowê, np.:
@@ -2909,7 +2912,7 @@ void __fastcall TGround::InitTraction()
   Traction=nCurrent->hvTraction;
   nPower=FindGroundNode(Traction->asPowerSupplyName,TP_TRACTIONPOWERSOURCE);
   if (nPower) //jak zasilacz znaleziony
-   Traction->psPower=nPower->psTractionPowerSource; //to pod³¹czyæ do przês³a
+   Traction->PowerSet(nPower->psTractionPowerSource); //to pod³¹czyæ do przês³a
   else
    if (Traction->asPowerSupplyName!="*") //gwiazdka dla przês³a z izolatorem
     if (Traction->asPowerSupplyName!="none") //dopuszczamy na razie brak pod³¹czenia?
@@ -2937,20 +2940,16 @@ void __fastcall TGround::InitTraction()
     break;
    }
    if (Traction->hvNext[0]) //jeœli zosta³ pod³¹czony
-    if (Traction->psPower&&tmp->psPower) //tylko przês³o z izolatorem mo¿e nie mieæ zasilania, bo ma 2, trzeba sprawdzaæ s¹siednie
-     if (Traction->psPower!=tmp->psPower) //po³¹czone odcinki maj¹ ró¿ne zasilacze
+    if (Traction->psSection&&tmp->psSection) //tylko przês³o z izolatorem mo¿e nie mieæ zasilania, bo ma 2, trzeba sprawdzaæ s¹siednie
+     if (Traction->psSection!=tmp->psSection) //po³¹czone odcinki maj¹ ró¿ne zasilacze
      {//to mo¿e byæ albo pod³¹czenie podstacji lub kabiny sekcyjnej do sekcji, albo b³¹d
-      if (Traction->psPower->bSection&&!tmp->psPower->bSection)
-      {//(tmp->psPower) jest podstacj¹, a (Traction->psPower) nazw¹ sekcji
-       tmp->fResistance[0]=tmp->fResistance[0]=0.0; //w tym miejscu sekcja ma pod³¹czone zasilanie
-       Traction->psPower->PowerSet(tmp->psPower); //ustawienie zasilacza dla sekcji
-       tmp->psPower=Traction->psPower; //zast¹pienie wskazaniem sekcji
+      if (Traction->psSection->bSection&&!tmp->psSection->bSection)
+      {//(tmp->psSection) jest podstacj¹, a (Traction->psSection) nazw¹ sekcji
+       tmp->PowerSet(Traction->psSection); //zast¹pienie wskazaniem sekcji
       }
-      else if (!Traction->psPower->bSection&&tmp->psPower->bSection)
-      {//(Traction->psPower) jest podstacj¹, a (tmp->psPower) nazw¹ sekcji
-       Traction->fResistance[0]=Traction->fResistance[0]=0.0; //w tym miejscu sekcja ma pod³¹czone zasilanie
-       tmp->psPower->PowerSet(Traction->psPower); //ustawienie zasilacza dla sekcji
-       Traction->psPower=tmp->psPower; //zast¹pienie wskazaniem sekcji
+      else if (!Traction->psSection->bSection&&tmp->psSection->bSection)
+      {//(Traction->psSection) jest podstacj¹, a (tmp->psSection) nazw¹ sekcji
+       Traction->PowerSet(tmp->psSection); //zast¹pienie wskazaniem sekcji
       }
       else //jeœli obie to sekcje albo obie podstacje, to bêdzie b³¹d
        ErrorLog("Bad power: at "+FloatToStrF(Traction->pPoint1.x,ffFixed,6,2)+" "+FloatToStrF(Traction->pPoint1.y,ffFixed,6,2)+" "+FloatToStrF(Traction->pPoint1.z,ffFixed,6,2));
@@ -2969,20 +2968,16 @@ void __fastcall TGround::InitTraction()
     break;
    }
    if (Traction->hvNext[1]) //jeœli zosta³ pod³¹czony
-    if (Traction->psPower&&tmp->psPower) //tylko przês³o z izolatorem mo¿e nie mieæ zasilania, bo ma 2, trzeba sprawdzaæ s¹siednie
-     if (Traction->psPower!=tmp->psPower)
+    if (Traction->psSection&&tmp->psSection) //tylko przês³o z izolatorem mo¿e nie mieæ zasilania, bo ma 2, trzeba sprawdzaæ s¹siednie
+     if (Traction->psSection!=tmp->psSection)
      {//to mo¿e byæ albo pod³¹czenie podstacji lub kabiny sekcyjnej do sekcji, albo b³¹d
-      if (Traction->psPower->bSection&&!tmp->psPower->bSection)
-      {//(tmp->psPower) jest podstacj¹, a (Traction->psPower) nazw¹ sekcji
-       tmp->fResistance[0]=tmp->fResistance[0]=0.0; //w tym miejscu sekcja ma pod³¹czone zasilanie
-       Traction->psPower->PowerSet(tmp->psPower); //ustawienie zasilacza dla sekcji
-       tmp->psPower=Traction->psPower; //zast¹pienie wskazaniem sekcji
+      if (Traction->psSection->bSection&&!tmp->psSection->bSection)
+      {//(tmp->psSection) jest podstacj¹, a (Traction->psSection) nazw¹ sekcji
+       tmp->PowerSet(Traction->psSection); //zast¹pienie wskazaniem sekcji
       }
-      else if (!Traction->psPower->bSection&&tmp->psPower->bSection)
-      {//(Traction->psPower) jest podstacj¹, a (tmp->psPower) nazw¹ sekcji
-       Traction->fResistance[0]=Traction->fResistance[0]=0.0; //w tym miejscu sekcja ma pod³¹czone zasilanie
-       tmp->psPower->PowerSet(Traction->psPower); //ustawienie zasilacza dla sekcji
-       Traction->psPower=tmp->psPower; //zast¹pienie wskazaniem sekcji
+      else if (!Traction->psSection->bSection&&tmp->psSection->bSection)
+      {//(Traction->psSection) jest podstacj¹, a (tmp->psSection) nazw¹ sekcji
+       Traction->PowerSet(tmp->psSection); //zast¹pienie wskazaniem sekcji
       }
       else //jeœli obie to sekcje albo obie podstacje, to bêdzie b³¹d
        ErrorLog("Bad power: at "+FloatToStrF(Traction->pPoint2.x,ffFixed,6,2)+" "+FloatToStrF(Traction->pPoint2.y,ffFixed,6,2)+" "+FloatToStrF(Traction->pPoint2.z,ffFixed,6,2));
@@ -2990,7 +2985,12 @@ void __fastcall TGround::InitTraction()
   }
  }
  for (nCurrent=nRootOfType[TP_TRACTION];nCurrent;nCurrent=nCurrent->nNext)
- {nCurrent->hvTraction->WhereIs(); //oznakowanie przedostatnich przêse³
+ {//operacje maj¹ce na celu wykrywanie bie¿ni wspólnych i ³¹czenie przêse³ napr¹¿ania 
+  if (nCurrent->hvTraction->fResistance[0]==0.0)
+   nCurrent->hvTraction->ResistanceCalc(); //obliczanie przêse³ w segmencie z bezpoœrednim zasilaniem
+  if (nCurrent->hvTraction->WhereIs()) //oznakowanie przedostatnich przêse³
+  {//poszukiwanie bie¿ni wspólnej dla przedostatnich przêse³, równie¿ w celu po³¹czenia zasilania
+  }
   //if (!Traction->hvParallel) //jeszcze utworzyæ pêtle z bie¿ni wspólnych
  }
  bool powtarzaj=true;
@@ -2998,7 +2998,9 @@ void __fastcall TGround::InitTraction()
  {//ustalenie zastêpczej rezystancji dla ka¿dego przês³a
   powtarzaj=false; //zak³adamy, ¿e powtórzenie nie bêdzie potrzebne
   for (nCurrent=nRootOfType[TP_TRACTION];nCurrent;nCurrent=nCurrent->nNext)
-  {//po jeœli dane przês³o ma znan¹ rezystancjê, to obliczyæ w s¹siednich 
+  {//ka¿dy przebieg to obliczenie rezystancji przêse³ w kolejnym segmencie naprê¿ania
+   //if (nCurrent->hvTraction->fResistance[0]==0.0)
+   // nCurrent->hvTraction->ResistanceCalc();
    //powtarzaj|=
   }
  }
