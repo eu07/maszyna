@@ -13,6 +13,7 @@
 #include "mctools.hpp"
 #include "Globals.h"
 #include "Usefull.h"
+#include "TractionPower.h"
 
 //---------------------------------------------------------------------------
 
@@ -82,18 +83,18 @@ musi wskazywaæ ka¿de przês³o z aktywnym zasilaniem.
    segment naprê¿ania z izolatorem: =---@---#*#---@---=
    segment naprê¿ania bez izolatora: =--------@------=
 
-Jeœli obwody s¹ liniowe, mo¿na je obliczaæ metod¹ superpozycji. To znaczy,
-obliczaæ pr¹d dla ka¿dego Ÿród³a napiêciowego oddzielnie, pozosta³e zastêpuj¹c
-zwarciem.
+Obecnie brak nazwy sekcji nie jest akceptowany i ka¿de przês³o musi mieæ wpisan¹
+jawnie nazwê sekcji, ewentualnie nazwê zasilacza (zostanie zast¹piona wskazaniem
+sekcji z s¹siedniego przês³a).
 */
 
 
 TTraction::TTraction()
 {
     pPoint1=pPoint2=pPoint3=pPoint4=vector3(0,0,0);
-    vFront=vector3(0,0,1);
-    vUp=vector3(0,1,0);
-    vLeft=vector3(1,0,0);
+    //vFront=vector3(0,0,1);
+    //vUp=vector3(0,1,0);
+    //vLeft=vector3(1,0,0);
     fHeightDifference=0;
     iNumSections=0;
     iLines=0;
@@ -106,10 +107,10 @@ TTraction::TTraction()
 //    ReplacableSkinID= 0;
  hvNext[0]=hvNext[1]=NULL;
  iLast=1; //¿e niby ostatni drut
- psPower=NULL; //na pocz¹tku nie pod³¹czone
+ psPower[0]=psPower[1]=NULL; //na pocz¹tku zasilanie nie pod³¹czone
+ psSection=NULL; //na pocz¹tku nie pod³¹czone
  hvParallel=NULL; //normalnie brak bie¿ni wspólnej
- fResistance[0]=-1.0; //trzeba dopiero policzyæ
- fResistance[0]=-1.0;
+ fResistance[0]=fResistance[1]=-1.0; //trzeba dopiero policzyæ
 }
 
 TTraction::~TTraction()
@@ -180,7 +181,7 @@ void __fastcall TTraction::Optimize()
 
       f= step; 
   
-      if (Wires == 4) 
+      if (Wires == 4)
       { 
       glBegin(GL_LINE_STRIP); 
           glVertex3f(pPoint3.x,pPoint3.y-0.65f*fHeightDifference,pPoint3.z); 
@@ -222,7 +223,7 @@ void __fastcall TTraction::Optimize()
                } 
                if((Wires==4)&&((i==1)||(i==iNumSections-3))) 
                { 
-               glVertex3f(pt3.x,pt3.y-sqrt(t)*fHeightDifference-0.05,pt3.z); 
+               glVertex3f(pt3.x,pt3.y-sqrt(t)*fHeightDifference-0.05,pt3.z);
                glVertex3f(pt3.x,pt3.y-sqrt(t)*fHeightDifference,pt3.z); 
                }
                //endif;
@@ -493,18 +494,57 @@ void __fastcall TTraction::Connect(int my,TTraction *with,int to)
    with->iLast=0; //to nie jest ostatnim
 };
 
-void __fastcall TTraction::WhereIs()
+bool __fastcall TTraction::WhereIs()
 {//ustalenie przedostatnich przêse³
- if (iLast) return; //ma ju¿ ustalon¹ informacjê o po³o¿eniu
+ if (iLast) return false; //ma ju¿ ustalon¹ informacjê o po³o¿eniu
  if (hvNext[0]?hvNext[0]->iLast==1:false) //jeœli poprzedni jest ostatnim
   iLast=2; //jest przedostatnim
  else
   if (hvNext[1]?hvNext[1]->iLast==1:false) //jeœli nastêpny jest ostatnim
    iLast=2; //jest przedostatnim
+ return (iLast==2);
 };
 
 void __fastcall TTraction::Init()
 {//przeliczenie parametrów
  vParametric=pPoint2-pPoint1; //wektor mno¿ników parametru dla równania parametrycznego
+};
+
+void __fastcall TTraction::ResistanceCalc(int d,double r)
+{//(this) jest przês³em zasilanym, o rezystancji (r), policzyæ rezystancjê zastêpcz¹ s¹siednich
+ if (d>=0)
+ {//pod¹¿anie we wskazanym kierunku
+  TTraction *t=hvNext[d],*p;
+  TTractionPowerSource *ps=psPower[d^1]; //zasilacz od przeciwnej strony ni¿ analiza
+  d=iNext[d]; //kierunek
+  //double r; //sumaryczna rezystancja
+  while (t?!t->psPower[d]:false) //jeœli jest jakiœ kolejny i nie ma ustalonego zasilacza
+  {//ustawienie zasilacza i policzenie rezystancji zastêpczej
+   t->psPower[d]=ps; //skopiowanie wskaŸnika zasilacza od danej strony
+   t->fResistance[d]=r; //wpisanie rezystancji w kierunku tego zasilacza
+   r+=t->fResistivity*Length3(t->pPoint2-t->pPoint1); //doliczenie oporu kolejnego odcinka
+   p=t; //zapamiêtanie dotychczasowego
+   t=p->hvNext[d^1]; //pod¹¿anie w tê sam¹ stronê
+   d=p->iNext[d^1];
+   //w przypadku zapêtlenia sieci mo¿e siê zawiesiæ?
+  }
+ }
+ else
+ {//pod¹¿anie w obu kierunkach, mo¿na by rekurencj¹, ale szkoda zasobów
+  r=0.5*fResistivity*Length3(pPoint2-pPoint1); //powiedzmy, ¿e w zasilanym przêœle jest po³owa
+  if (fResistance[0]==0.0) ResistanceCalc(0,r); //do ty³u (w stronê Point1)
+  if (fResistance[1]==0.0) ResistanceCalc(1,r); //do przodu (w stronê Point2)
+ }
+};
+
+void __fastcall TTraction::PowerSet(TTractionPowerSource *ps)
+{//pod³¹czenie przês³a do zasilacza
+ if (ps->bSection)
+  psSection=ps; //ustalenie sekcji zasilania
+ else
+ {//ustalenie punktu zasilania (nie ma jeszcze po³¹czeñ miêdzy przês³ami)
+  psPower[0]=psPower[1]=ps;
+  fResistance[0]=fResistance[1]=0.0; //a liczy siê tylko rezystancja zasilacza
+ }
 };
 
