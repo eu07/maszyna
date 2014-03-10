@@ -639,6 +639,7 @@ void __fastcall TTranscripts::AddLine(char *txt,float show,float hide,bool it)
     {//jak jest podzia³ linijki na wiersze
      aLines[j].asText=aLines[j].asText.SubString(1,k-1);
      txt+=k;
+     i=j; //kolejna linijka dopisywana bêdzie na koniec w³aœnie dodanej
     }
     else
      txt=NULL; //koniec dodawania
