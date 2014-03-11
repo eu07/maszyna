@@ -263,11 +263,11 @@ void __fastcall TTraction::RenderDL(float mgn)   //McZapkie: mgn to odleglosc od
    case 1:
     if (TestFlag(DamageFlag,1))
     {
-     r=0.00000; g=0.32549; b=0.2882353;  //zielona miedz
+     r=0.00000; g=0.32549; b=0.2882353;  //zielona miedŸ
     }
     else
     {
-     r=0.35098; g=0.22549; b=0.1;  //czerwona miedz
+     r=0.35098; g=0.22549; b=0.1;  //czerwona miedŸ
     }
    break;
    case 2:
@@ -280,8 +280,13 @@ void __fastcall TTraction::RenderDL(float mgn)   //McZapkie: mgn to odleglosc od
      r=0.25; g=0.25; b=0.25;  //srebrne Al
     }
    break;
+   //tymczasowo pokazanie zasilanych odcinków
+   case 4: r=0.5; g=0.5; b=1.0; break; //niebieskie z pod³¹czonym zasilaniem
+   case 5: r=1.0; g=0.0; b=0.0; break; //czerwone z pod³¹czonym zasilaniem 1
+   case 6: r=0.0; g=1.0; b=0.0; break; //zielone z pod³¹czonym zasilaniem 2
+   case 7: r=1.0; g=1.0; b=0.0; break; //¿ó³te z pod³¹czonym zasilaniem z obu stron
   }
-  r=r*Global::ambientDayLight[0];  //w zaleznosci od koloru swiatla
+  r=r*Global::ambientDayLight[0];  //w zaleŸnoœci od koloru swiat³a
   g=g*Global::ambientDayLight[1];
   b=b*Global::ambientDayLight[2];
   if (linealpha>1.0) linealpha=1.0; //trzeba ograniczyæ do <=1
@@ -518,8 +523,14 @@ void __fastcall TTraction::ResistanceCalc(int d,double r)
   TTractionPowerSource *ps=psPower[d^1]; //zasilacz od przeciwnej strony ni¿ analiza
   d=iNext[d]; //kierunek
   //double r; //sumaryczna rezystancja
+  if (DebugModeFlag) //tylko podczas testów
+   Material=4; //pokazanie, ¿e to przês³o ma pod³¹czone zasilanie
   while (t?!t->psPower[d]:false) //jeœli jest jakiœ kolejny i nie ma ustalonego zasilacza
   {//ustawienie zasilacza i policzenie rezystancji zastêpczej
+   if (DebugModeFlag) //tylko podczas testów
+   {if (t->Material<4) t->Material=4; //tymczasowo, aby zmieni³a kolor
+    t->Material|=d?2:1; //kolor zale¿ny od strony, z której jest zasilanie
+   }
    t->psPower[d]=ps; //skopiowanie wskaŸnika zasilacza od danej strony
    t->fResistance[d]=r; //wpisanie rezystancji w kierunku tego zasilacza
    r+=t->fResistivity*Length3(t->pPoint2-t->pPoint1); //doliczenie oporu kolejnego odcinka

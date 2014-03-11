@@ -282,7 +282,8 @@ public:
  bool __fastcall InitLaunchers();
  TTrack* __fastcall FindTrack(vector3 Point,int &iConnection,TGroundNode *Exclude);
  TTraction* __fastcall FindTraction(vector3 *Point,int &iConnection,TGroundNode *Exclude);
- TGroundNode* __fastcall CreateGroundNode();
+ TTraction* __fastcall TractionNearestFind(TGroundNode *n);
+ //TGroundNode* __fastcall CreateGroundNode();
  TGroundNode* __fastcall AddGroundNode(cParser* parser);
  bool __fastcall AddGroundNode(double x,double z,TGroundNode *Node)
  {
@@ -296,7 +297,7 @@ public:
    return false;
  };
 //    bool __fastcall Include(TQueryParserComp *Parser);
- TGroundNode* __fastcall GetVisible(AnsiString asName);
+ //TGroundNode* __fastcall GetVisible(AnsiString asName);
  TGroundNode* __fastcall GetNode(AnsiString asName);
  bool __fastcall AddDynamic(TGroundNode *Node);
  void __fastcall MoveGroundNode(vector3 pPosition);

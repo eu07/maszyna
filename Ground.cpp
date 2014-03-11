@@ -2985,11 +2985,14 @@ void __fastcall TGround::InitTraction()
   }
  }
  for (nCurrent=nRootOfType[TP_TRACTION];nCurrent;nCurrent=nCurrent->nNext)
- {//operacje maj¹ce na celu wykrywanie bie¿ni wspólnych i ³¹czenie przêse³ napr¹¿ania 
+ {//operacje maj¹ce na celu wykrywanie bie¿ni wspólnych i ³¹czenie przêse³ napr¹¿ania
   if (nCurrent->hvTraction->fResistance[0]==0.0)
-   nCurrent->hvTraction->ResistanceCalc(); //obliczanie przêse³ w segmencie z bezpoœrednim zasilaniem
+  {nCurrent->hvTraction->ResistanceCalc(); //obliczanie przêse³ w segmencie z bezpoœrednim zasilaniem
+   //ErrorLog("Section "+nCurrent->hvTraction->asPowerSupplyName+" connected"); //jako niby b³¹d bêdzie bardziej widoczne
+  }
   if (nCurrent->hvTraction->WhereIs()) //oznakowanie przedostatnich przêse³
   {//poszukiwanie bie¿ni wspólnej dla przedostatnich przêse³, równie¿ w celu po³¹czenia zasilania
+
   }
   //if (!Traction->hvParallel) //jeszcze utworzyæ pêtle z bie¿ni wspólnych
  }
@@ -3137,30 +3140,13 @@ TTraction* __fastcall TGround::FindTraction(vector3 *Point,int &iConnection,TGro
     return tmp;
  }
  return NULL;
-}
+};
 
-/*
-TGroundNode* __fastcall TGround::CreateGroundNode()
-{
-    TGroundNode *tmp= new TGroundNode();
-//    RootNode->Prev= tmp;
-    tmp->Next= RootNode;
-    RootNode= tmp;
-    return tmp;
-}
+TTraction* __fastcall TGround::TractionNearestFind(TGroundNode *n)
+{//wyszukanie najbli¿szego przês³a o tej samej nazwie sekcji
+ //return NULL;
+};
 
-TGroundNode* __fastcall TGround::GetVisible( AnsiString asName )
-{
-    MessageBox(NULL,"Error","TGround::GetVisible( AnsiString asName ) is obsolete",MB_OK);
-    return RootNode->Find(asName);
-//    return FirstVisible->FindVisible(asName);
-}
-
-TGroundNode* __fastcall TGround::GetNode( AnsiString asName )
-{
-    return RootNode->Find(asName);
-}
-*/
 bool __fastcall TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
 {
  if (Event->bEnabled) //jeœli mo¿e byæ dodany do kolejki (nie u¿ywany w skanowaniu)
@@ -3190,6 +3176,8 @@ bool __fastcall TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
    {//standardowe dodanie do kolejki
     WriteLog("EVENT ADDED TO QUEUE: "+Event->asName+(Node?AnsiString(" by "+Node->asName):AnsiString("")));
     Event->fStartTime=fabs(Event->fDelay)+Timer::GetTime(); //czas od uruchomienia scenerii
+    if (Event->fRandomDelay>0.0)
+     Event->fStartTime+=Event->fRandomDelay*random(10000)*0.0001; //doliczenie losowego czasu opóŸnienia
     ++Event->iQueued; //zabezpieczenie przed podwójnym dodaniem do kolejki
     if (QueryRootEvent?Event->fStartTime>=QueryRootEvent->fStartTime:false)
      QueryRootEvent->AddToQuery(Event); //dodanie gdzieœ w œrodku

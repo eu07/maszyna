@@ -71,6 +71,7 @@ public:
  unsigned int iFlags; //zamiast Params[8] z flagami warunku
  AnsiString asNodeName; //McZapkie-100302 - dodalem zeby zapamietac nazwe toru
  TEvent *evJoined; //kolejny event z t¹ sam¹ nazw¹ - od wersji 378
+ double fRandomDelay; //zakres dodatkowego opóŸnienia
 public: //metody
  __fastcall TEvent(AnsiString m="");
  __fastcall ~TEvent();
