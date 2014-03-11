@@ -111,6 +111,7 @@ TTraction::TTraction()
  psSection=NULL; //na pocz¹tku nie pod³¹czone
  hvParallel=NULL; //normalnie brak bie¿ni wspólnej
  fResistance[0]=fResistance[1]=-1.0; //trzeba dopiero policzyæ
+ iTries=5; //ile razy próbowaæ pod³¹czyæ
 }
 
 TTraction::~TTraction()
@@ -515,12 +516,15 @@ void __fastcall TTraction::Init()
  vParametric=pPoint2-pPoint1; //wektor mno¿ników parametru dla równania parametrycznego
 };
 
-void __fastcall TTraction::ResistanceCalc(int d,double r)
+void __fastcall TTraction::ResistanceCalc(int d,double r,TTractionPowerSource *ps)
 {//(this) jest przês³em zasilanym, o rezystancji (r), policzyæ rezystancjê zastêpcz¹ s¹siednich
  if (d>=0)
  {//pod¹¿anie we wskazanym kierunku
   TTraction *t=hvNext[d],*p;
-  TTractionPowerSource *ps=psPower[d^1]; //zasilacz od przeciwnej strony ni¿ analiza
+  if (ps)
+   psPower[d^1]=ps; //pod³¹czenie podanego
+  else
+   ps=psPower[d^1]; //zasilacz od przeciwnej strony ni¿ idzie analiza
   d=iNext[d]; //kierunek
   //double r; //sumaryczna rezystancja
   if (DebugModeFlag) //tylko podczas testów
@@ -528,12 +532,13 @@ void __fastcall TTraction::ResistanceCalc(int d,double r)
   while (t?!t->psPower[d]:false) //jeœli jest jakiœ kolejny i nie ma ustalonego zasilacza
   {//ustawienie zasilacza i policzenie rezystancji zastêpczej
    if (DebugModeFlag) //tylko podczas testów
-   {if (t->Material<4) t->Material=4; //tymczasowo, aby zmieni³a kolor
-    t->Material|=d?2:1; //kolor zale¿ny od strony, z której jest zasilanie
-   }
+    if (t->Material!=4) //przês³a zasilaj¹cego nie modyfikowaæ
+    {if (t->Material<4) t->Material=4; //tymczasowo, aby zmieni³a kolor
+     t->Material|=d?2:1; //kolor zale¿ny od strony, z której jest zasilanie
+    }
    t->psPower[d]=ps; //skopiowanie wskaŸnika zasilacza od danej strony
    t->fResistance[d]=r; //wpisanie rezystancji w kierunku tego zasilacza
-   r+=t->fResistivity*Length3(t->pPoint2-t->pPoint1); //doliczenie oporu kolejnego odcinka
+   r+=t->fResistivity*Length3(t->vParametric); //doliczenie oporu kolejnego odcinka
    p=t; //zapamiêtanie dotychczasowego
    t=p->hvNext[d^1]; //pod¹¿anie w tê sam¹ stronê
    d=p->iNext[d^1];
@@ -542,7 +547,7 @@ void __fastcall TTraction::ResistanceCalc(int d,double r)
  }
  else
  {//pod¹¿anie w obu kierunkach, mo¿na by rekurencj¹, ale szkoda zasobów
-  r=0.5*fResistivity*Length3(pPoint2-pPoint1); //powiedzmy, ¿e w zasilanym przêœle jest po³owa
+  r=0.5*fResistivity*Length3(vParametric); //powiedzmy, ¿e w zasilanym przêœle jest po³owa
   if (fResistance[0]==0.0) ResistanceCalc(0,r); //do ty³u (w stronê Point1)
   if (fResistance[1]==0.0) ResistanceCalc(1,r); //do przodu (w stronê Point2)
  }

@@ -20,8 +20,8 @@ private:
  // - x: odleg³oœæ w bok (czy odbierak siê nie zsun¹³)
  // - y: przyjmuje wartoœæ <0,1>, jeœli pod drutem (wzd³u¿)
  // - z: wysokoœæ bezwzglêdna drutu w danym miejsu
- TTractionPowerSource *psPower[2]; //najbli¿sze zasilacze z obu kierunków
 public: //na razie
+ TTractionPowerSource *psPower[2]; //najbli¿sze zasilacze z obu kierunków
  TTraction *hvNext[2]; //³¹czenie drutów w sieæ
  int iNext[2]; //do którego koñca siê ³¹czy
  int iLast; //ustawiony bit 0, jeœli jest ostatnim drutem w sekcji; bit1 - przedostatni
@@ -47,6 +47,7 @@ public:
  AnsiString asParallel; //nazwa przês³a, z którym mo¿e byæ bie¿nia wspólna
  TTraction *hvParallel; //jednokierunkowa i zapêtlona lista przêse³ ewentualnej bie¿ni wspólnej
  float fResistance[2]; //rezystancja zastêpcza do punktu zasilania (0: przês³o zasilane, <0: do policzenia)
+ int iTries;
  //bool bVisible;
  //DWORD dwFlags;
 
@@ -67,7 +68,7 @@ public:
  void __fastcall Connect(int my,TTraction *with,int to);
  void __fastcall Init();
  bool __fastcall WhereIs();
- void __fastcall ResistanceCalc(int d=-1,double r=0);
+ void __fastcall ResistanceCalc(int d=-1,double r=0,TTractionPowerSource *ps=NULL);
  void __fastcall PowerSet(TTractionPowerSource *ps);
 };
 //---------------------------------------------------------------------------
