@@ -2657,7 +2657,12 @@ bool __fastcall TGround::InitEvents()
    case tp_Switch: //peze³o¿enie zwrotnicy albo zmiana stanu obrotnicy
     tmp=FindGroundNode(Current->asNodeName,TP_TRACK);
     if (tmp)
+    {//dowi¹zanie toru
      Current->Params[9].asTrack=tmp->pTrack;
+     if (!Current->Params[0].asInt) //jeœli prze³¹cza do stanu 0
+      if (Current->Params[2].asdouble>=0.0) //jeœli jest zdefiniowany dodatkowy ruch iglic
+       Current->Params[9].asTrack->Switch(0,Current->Params[1].asdouble,Current->Params[2].asdouble); //przes³anie parametrów
+    }
     else
      ErrorLog("Bad switch: event \""+Current->asName+"\" cannot find track \""+Current->asNodeName+"\"");
     Current->asNodeName="";
