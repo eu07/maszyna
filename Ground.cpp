@@ -2906,7 +2906,7 @@ void __fastcall TGround::InitTraction()
  TGroundNode *nCurrent,*nPower;
  TTraction *tmp; //znalezione przês³o
  TTraction *Traction;
- int iConnection,state;
+ int iConnection;
  AnsiString name;
  for (nCurrent=nRootOfType[TP_TRACTION];nCurrent;nCurrent=nCurrent->nNext)
  {//pod³¹czenie do zasilacza, ¿eby mo¿na by³o sumowaæ pr¹d kilku pojazdów
@@ -2989,6 +2989,7 @@ void __fastcall TGround::InitTraction()
      }
   }
  }
+ iConnection=0; //teraz bêdzie licznikiem koñców
  for (nCurrent=nRootOfType[TP_TRACTION];nCurrent;nCurrent=nCurrent->nNext)
  {//operacje maj¹ce na celu wykrywanie bie¿ni wspólnych i ³¹czenie przêse³ napr¹¿ania
   if (nCurrent->hvTraction->fResistance[0]==0.0)
@@ -2997,11 +2998,18 @@ void __fastcall TGround::InitTraction()
   }
   if (nCurrent->hvTraction->WhereIs()) //oznakowanie przedostatnich przêse³
   {//poszukiwanie bie¿ni wspólnej dla przedostatnich przêse³, równie¿ w celu po³¹czenia zasilania
-
+   nCurrent->hvTraction->hvParallel=TractionNearestFind(nCurrent); //szukanie najbli¿szego przês³a
+   //trzeba by zliczaæ koñce, a potem wpisaæ je do tablicy, aby sukcesywnie pod³¹czaæ do zasilaczy
+   ++iConnection;
   }
   //if (!Traction->hvParallel) //jeszcze utworzyæ pêtle z bie¿ni wspólnych
  }
  bool powtarzaj=true;
+ int zg=0; //zgodnoœæ kierunku przêse³, tymczasowo iterator do tabeli koñców
+ TGroundNode **nEnds=new TGroundNode*[iConnection]; //koñców jest ok. 10 razy mniej ni¿ wszystkich przêse³ (Quark: 216)
+ for (nCurrent=nRootOfType[TP_TRACTION];nCurrent;nCurrent=nCurrent->nNext)
+  if (nCurrent->hvTraction->iLast==1)
+   nEnds[zg++]=nCurrent; //wype³nianie tabeli koñców w celu szukania im po³¹czeñ
  while (powtarzaj)
  {//ustalenie zastêpczej rezystancji dla ka¿dego przês³a
   powtarzaj=false; //zak³adamy, ¿e powtórzenie nie bêdzie potrzebne
@@ -3009,9 +3017,31 @@ void __fastcall TGround::InitTraction()
   {//ka¿dy przebieg to obliczenie rezystancji przêse³ w kolejnym segmencie naprê¿ania
    //if (nCurrent->hvTraction->fResistance[0]==0.0)
    // nCurrent->hvTraction->ResistanceCalc();
-   //powtarzaj|=
+   if (nCurrent->hvTraction->hvParallel) //jeœli jest jakiœ okoliczny do sprawdzenia
+   {//ten okoliczny mo¿e mieæ pod³¹czenie do zasilacza
+    //trzeba ustaliæ, czy ma on zasilacz z potrzebnej nam strony
+    if (!nCurrent->hvTraction->psPower[0])
+    {//brak pod³¹czonia od strony 0 - ustaliæ zgodnoœæ kierunku przêse³
+     zg=DotProduct(nCurrent->hvTraction->vParametric,nCurrent->hvTraction->hvParallel->vParametric)>=0.0?0:1;
+     if (nCurrent->hvTraction->hvParallel->psPower[zg]) //jeœli ma zasilacz od potrzebnej strony
+      nCurrent->hvTraction->ResistanceCalc(1,nCurrent->hvTraction->hvParallel->fResistance[zg],nCurrent->hvTraction->hvParallel->psPower[zg]); //to jest na razie zbyt zgrubne
+    }
+    if (!nCurrent->hvTraction->psPower[1])
+    {//brak pod³¹czonia od strony 1 - ustaliæ zgodnoœæ kierunku przêse³
+     zg=DotProduct(nCurrent->hvTraction->vParametric,nCurrent->hvTraction->hvParallel->vParametric)>=0.0?1:0;
+     if (nCurrent->hvTraction->hvParallel->psPower[zg]) //jeœli ma zasilacz od potrzebnej strony
+      nCurrent->hvTraction->ResistanceCalc(0,nCurrent->hvTraction->hvParallel->fResistance[zg],nCurrent->hvTraction->hvParallel->psPower[zg]); //to jest na razie zbyt zgrubne
+    }
+    if (!nCurrent->hvTraction->psPower[0]||!nCurrent->hvTraction->psPower[1]) //jeœli nie ma jeszcze któregoœ
+     if (nCurrent->hvTraction->iTries) //a nie wyczerpany limit sprawdzañ
+     {//w skrajnym przypadku to siê mo¿e zapêtliæ
+      --nCurrent->hvTraction->iTries; //licznik prób, tymczasowy, bo to i tak bez sensu 
+      powtarzaj=true;
+     }
+   }
   }
  }
+ delete[] nEnds; //nie potrzebne ju¿
 };
 
 void __fastcall TGround::TrackJoin(TGroundNode *Current)
@@ -3148,8 +3178,32 @@ TTraction* __fastcall TGround::FindTraction(vector3 *Point,int &iConnection,TGro
 };
 
 TTraction* __fastcall TGround::TractionNearestFind(TGroundNode *n)
-{//wyszukanie najbli¿szego przês³a o tej samej nazwie sekcji
- //return NULL;
+{//wyszukanie najbli¿szego przês³a o tej samej nazwie sekcji (ale innego ni¿ pod³¹czone)
+ TGroundNode *nCurrent,*nBest=NULL;
+ int i,j;
+ double d,dist=200.0*200.0; //[m] odleg³oœæ graniczna
+ //najpierw szukamy w okolicznych segmentach
+ int c=GetColFromX(n->pCenter.x);
+ int r=GetRowFromZ(n->pCenter.z);
+ TSubRect *sr;
+ for (i=-1;i<=1;++i) //przegl¹damy 9 najbli¿szych sektorów
+  for (j=-1;j<=1;++j) //
+   if ((sr=FastGetSubRect(c+i,r+j))!=NULL) //o ile w ogóle sektor jest
+    for (nCurrent=sr->nRenderWires;nCurrent;nCurrent=nCurrent->nNext3)
+     if (nCurrent->iType==TP_TRACTION)
+      if (nCurrent!=n) //nie jest tym samym
+       if (nCurrent->hvTraction->psSection==n->hvTraction->psSection) //ale ta sama sekcja
+        if (nCurrent->hvTraction!=n->hvTraction->hvNext[0]) //ale nie jest bezpoœrednio pod³¹czonym
+         if (nCurrent->hvTraction!=n->hvTraction->hvNext[1])
+         {//znaleziony kandydat do po³¹czenia
+          d=SquareMagnitude(n->pCenter-nCurrent->pCenter); //kwadrat odleg³oœci œrodków
+          if (dist>d)
+          {//zapamiêtanie nowego najbli¿szego
+           dist=d; //nowy rekord odleg³oœci
+           nBest=nCurrent;
+          }
+         }
+ return (nBest?nBest->hvTraction:NULL);
 };
 
 bool __fastcall TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
