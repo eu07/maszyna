@@ -282,7 +282,7 @@ public:
  bool __fastcall InitLaunchers();
  TTrack* __fastcall FindTrack(vector3 Point,int &iConnection,TGroundNode *Exclude);
  TTraction* __fastcall FindTraction(vector3 *Point,int &iConnection,TGroundNode *Exclude);
- TTraction* __fastcall TractionNearestFind(TGroundNode *n);
+ TTraction* __fastcall TractionNearestFind(vector3 &p,int dir,TGroundNode *n);
  //TGroundNode* __fastcall CreateGroundNode();
  TGroundNode* __fastcall AddGroundNode(cParser* parser);
  bool __fastcall AddGroundNode(double x,double z,TGroundNode *Node)

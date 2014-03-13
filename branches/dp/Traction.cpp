@@ -292,6 +292,8 @@ void __fastcall TTraction::RenderDL(float mgn)   //McZapkie: mgn to odleglosc od
   b=b*Global::ambientDayLight[2];
   if (linealpha>1.0) linealpha=1.0; //trzeba ograniczyæ do <=1
   glColor4f(r,g,b,linealpha);
+  if (!uiDisplayList)
+   Optimize(); //generowanie DL w miarê potrzeby
   glCallList(uiDisplayList);
   glLineWidth(1.0);
   glEnable(GL_LINE_SMOOTH);
