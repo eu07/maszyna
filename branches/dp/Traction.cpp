@@ -107,11 +107,11 @@ TTraction::TTraction()
 //    ReplacableSkinID= 0;
  hvNext[0]=hvNext[1]=NULL;
  iLast=1; //¿e niby ostatni drut
- psPower[0]=psPower[1]=NULL; //na pocz¹tku zasilanie nie pod³¹czone
+ psPowered=psPower[0]=psPower[1]=NULL; //na pocz¹tku zasilanie nie pod³¹czone
  psSection=NULL; //na pocz¹tku nie pod³¹czone
  hvParallel=NULL; //normalnie brak bie¿ni wspólnej
  fResistance[0]=fResistance[1]=-1.0; //trzeba dopiero policzyæ
- iTries=5; //ile razy próbowaæ pod³¹czyæ
+ iTries=0; //ile razy próbowaæ pod³¹czyæ, ustawiane póŸniej
 }
 
 TTraction::~TTraction()
@@ -504,13 +504,13 @@ void __fastcall TTraction::Connect(int my,TTraction *with,int to)
 
 bool __fastcall TTraction::WhereIs()
 {//ustalenie przedostatnich przêse³
- if (iLast) return false; //ma ju¿ ustalon¹ informacjê o po³o¿eniu
+ if (iLast) return (iLast==1); //ma ju¿ ustalon¹ informacjê o po³o¿eniu
  if (hvNext[0]?hvNext[0]->iLast==1:false) //jeœli poprzedni jest ostatnim
   iLast=2; //jest przedostatnim
  else
   if (hvNext[1]?hvNext[1]->iLast==1:false) //jeœli nastêpny jest ostatnim
    iLast=2; //jest przedostatnim
- return (iLast==2);
+ return (iLast==1); //ostatnie bêd¹ dostawaæ zasilanie
 };
 
 void __fastcall TTraction::Init()
@@ -561,7 +561,8 @@ void __fastcall TTraction::PowerSet(TTractionPowerSource *ps)
   psSection=ps; //ustalenie sekcji zasilania
  else
  {//ustalenie punktu zasilania (nie ma jeszcze po³¹czeñ miêdzy przês³ami)
-  psPower[0]=psPower[1]=ps;
+  psPowered=ps; //ustawienie bezpoœredniego zasilania dla przês³a
+  psPower[0]=psPower[1]=ps; //a to chyba nie jest dobry pomys³, bo nawet zasilane przês³o powinno mieæ wskazania na inne
   fResistance[0]=fResistance[1]=0.0; //a liczy siê tylko rezystancja zasilacza
  }
 };

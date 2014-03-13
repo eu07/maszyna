@@ -2992,48 +2992,50 @@ void __fastcall TGround::InitTraction()
  iConnection=0; //teraz bêdzie licznikiem koñców
  for (nCurrent=nRootOfType[TP_TRACTION];nCurrent;nCurrent=nCurrent->nNext)
  {//operacje maj¹ce na celu wykrywanie bie¿ni wspólnych i ³¹czenie przêse³ napr¹¿ania
-  if (nCurrent->hvTraction->fResistance[0]==0.0)
-  {nCurrent->hvTraction->ResistanceCalc(); //obliczanie przêse³ w segmencie z bezpoœrednim zasilaniem
-   //ErrorLog("Section "+nCurrent->hvTraction->asPowerSupplyName+" connected"); //jako niby b³¹d bêdzie bardziej widoczne
-  }
   if (nCurrent->hvTraction->WhereIs()) //oznakowanie przedostatnich przêse³
   {//poszukiwanie bie¿ni wspólnej dla przedostatnich przêse³, równie¿ w celu po³¹czenia zasilania
    //to siê nie sprawdza, bo po³¹czyæ siê mog¹ dwa niezasilane odcinki jako najbli¿sze sobie
    //nCurrent->hvTraction->hvParallel=TractionNearestFind(nCurrent->pCenter,0,nCurrent); //szukanie najbli¿szego przês³a
    //trzeba by zliczaæ koñce, a potem wpisaæ je do tablicy, aby sukcesywnie pod³¹czaæ do zasilaczy
+   nCurrent->hvTraction->iTries=5; //oznaczanie koñcowych
    ++iConnection;
+  }
+  if (nCurrent->hvTraction->fResistance[0]==0.0)
+  {nCurrent->hvTraction->ResistanceCalc(); //obliczanie przêse³ w segmencie z bezpoœrednim zasilaniem
+   //ErrorLog("Section "+nCurrent->hvTraction->asPowerSupplyName+" connected"); //jako niby b³¹d bêdzie bardziej widoczne
+   nCurrent->hvTraction->iTries=0; //nie potrzeba mu szukaæ zasilania
   }
   //if (!Traction->hvParallel) //jeszcze utworzyæ pêtle z bie¿ni wspólnych
  }
  int zg=0; //zgodnoœæ kierunku przêse³, tymczasowo iterator do tabeli koñców
  TGroundNode **nEnds=new TGroundNode*[iConnection]; //koñców jest ok. 10 razy mniej ni¿ wszystkich przêse³ (Quark: 216)
  for (nCurrent=nRootOfType[TP_TRACTION];nCurrent;nCurrent=nCurrent->nNext)
-  if (nCurrent->hvTraction->iLast==1)
-   if (!nCurrent->hvTraction->psPower[0]&&!nCurrent->hvTraction->psPower[1])
+  if (nCurrent->hvTraction->iTries>0) //jeœli zaznaczony do pod³¹czenia
+   //if (!nCurrent->hvTraction->psPower[0]||!nCurrent->hvTraction->psPower[1])
     if (zg<iConnection) //zabezpieczenie
      nEnds[zg++]=nCurrent; //wype³nianie tabeli koñców w celu szukania im po³¹czeñ
  while (zg<iConnection)
   nEnds[zg++]=NULL; //zape³nienie do koñca tablicy, jeœli by jakieœ koñce wypad³y
- int powtarzaj=20;
- while (--powtarzaj)
+ zg=1; //nieefektywny przebieg koñczy ³¹czenie
+ while (zg)
  {//ustalenie zastêpczej rezystancji dla ka¿dego przês³a
-  //powtarzaj=false; //zak³adamy, ¿e powtórzenie nie bêdzie potrzebne
+  zg=0; //flaga pod³¹czonych przêse³ koñcowych: -1=puste wskaŸniki, 0=coœ zosta³o, 1=wykonano ³¹czenie
   for (int i=0;i<iConnection;++i)
    if (nEnds[i]) //za³atwione bêdziemy zerowaæ
    {//ka¿dy przebieg to próba pod³¹czenia koñca segmentu naprê¿ania do innego zasilanego przês³a
     if (nEnds[i]->hvTraction->hvNext[0])
-    {//jeœli koniec ma ci¹g dalszy od strony 0 (Point1), szukamy odcinka najbli¿szego do Point2
+    {//jeœli koñcowy ma ci¹g dalszy od strony 0 (Point1), szukamy odcinka najbli¿szego do Point2
      if (TractionNearestFind(nEnds[i]->hvTraction->pPoint2,0,nEnds[i])) //poszukiwanie przês³a
-      nEnds[i]=NULL;
-     //else
-     // powtarzaj|=(--nEnds[i]->hvTraction->iTries>0);
+     {nEnds[i]=NULL;
+      zg=1; //jak coœ zosta³o pod³¹czone, to mo¿e zasilanie gdzieœ dodatkowo dotrze
+     }
     }
     else if (nEnds[i]->hvTraction->hvNext[1])
-    {//jeœli koniec ma ci¹g dalszy od strony 1 (Point2), szukamy odcinka najbli¿szego do Point1
+    {//jeœli koñcowy ma ci¹g dalszy od strony 1 (Point2), szukamy odcinka najbli¿szego do Point1
      if (TractionNearestFind(nEnds[i]->hvTraction->pPoint1,1,nEnds[i])) //poszukiwanie przês³a
-      nEnds[i]=NULL;
-     //else
-     // powtarzaj|=(--nEnds[i]->hvTraction->iTries>0);
+     {nEnds[i]=NULL;
+      zg=1; //jak coœ zosta³o pod³¹czone, to mo¿e zasilanie gdzieœ dodatkowo dotrze
+     }
     }
     else
     {//gdy koniec jest samotny, to na razie nie zostanie pod³¹czony (nie powinno takich byæ)
@@ -3207,11 +3209,11 @@ TTraction* __fastcall TGround::TractionNearestFind(vector3 &p,int dir,TGroundNod
           }
  if (nBest) //jak znalezione przês³o z zasilaniem, to pod³¹czenie "równoleg³e"
  {n->hvTraction->ResistanceCalc(dir,nBest->hvTraction->fResistance[zg],nBest->hvTraction->psPower[zg]);
-  //testowo skrzywienie drutu tak, aby pokazywa³ sk¹d ma zasilanie
-  if (dir) //1 gdy ci¹g dalszy jest od strony Point2
-   n->hvTraction->pPoint3=0.25*(nBest->pCenter+3*(zg?nBest->hvTraction->pPoint4:nBest->hvTraction->pPoint3));
-  else
-   n->hvTraction->pPoint4=0.25*(nBest->pCenter+3*(zg?nBest->hvTraction->pPoint4:nBest->hvTraction->pPoint3));
+  //testowo skrzywienie przês³a tak, aby pokazaæ sk¹d ma zasilanie
+  //if (dir) //1 gdy ci¹g dalszy jest od strony Point2
+  // n->hvTraction->pPoint3=0.25*(nBest->pCenter+3*(zg?nBest->hvTraction->pPoint4:nBest->hvTraction->pPoint3));
+  //else
+  // n->hvTraction->pPoint4=0.25*(nBest->pCenter+3*(zg?nBest->hvTraction->pPoint4:nBest->hvTraction->pPoint3));
  }
  return (nBest?nBest->hvTraction:NULL);
 };
