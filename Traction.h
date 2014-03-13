@@ -22,6 +22,7 @@ private:
  // - z: wysokoœæ bezwzglêdna drutu w danym miejsu
 public: //na razie
  TTractionPowerSource *psPower[2]; //najbli¿sze zasilacze z obu kierunków
+ TTractionPowerSource *psPowered; //ustawione tylko dla bezpoœrednio zasilanego przês³a
  TTraction *hvNext[2]; //³¹czenie drutów w sieæ
  int iNext[2]; //do którego koñca siê ³¹czy
  int iLast; //ustawiony bit 0, jeœli jest ostatnim drutem w sekcji; bit1 - przedostatni
