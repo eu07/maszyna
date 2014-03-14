@@ -569,6 +569,7 @@ void __fastcall TTraction::PowerSet(TTractionPowerSource *ps)
 
 double __fastcall TTraction::VoltageGet(double u,double i)
 {//pobranie napiêcia na przêœle po pod³¹czeniu do niego rezystancji (res) - na razie jest to pr¹d
+ if (!psSection) return NominalVoltage; //jak nie ma zasilacza, to napiêcie podane w przêœle
  //na pocz¹tek mo¿na za³o¿yæ, ¿e wszystkie podstacje maj¹ to samo napiêcie i nie p³ynie pr¹d pomiêdzy nimi
  //dla danego przês³a mamy 3 Ÿród³a zasilania
  //1. zasilacz psPower[0] z rezystancj¹ fResistance[0] oraz jego wewnêtrzn¹

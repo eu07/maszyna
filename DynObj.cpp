@@ -2242,6 +2242,7 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
   double PantDiff;
   TAnimPant *p; //wskaŸnik do obiektu danych pantografu
   double fCurrent=fabs(MoverParameters->Itot); //pr¹d pobierany przez pojazd
+  //fCurrent+=fabs(MoverParameters->Voltage)*1e-6; //pr¹d p³yn¹cy przez woltomierz, roz³adowuje kondensator orgromowy 4µF
   double fPantCurrent=fCurrent*(pants[0].fParamPants->hvPowerWire&&pants[1].fParamPants->hvPowerWire?0.5:1.0);
   for (int i=0;i<iAnimType[ANIM_PANTS];++i)
   {//pêtla po wszystkich pantografach
@@ -2270,7 +2271,7 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
        if ((MoverParameters->PantFrontVolt==0.0)&&(MoverParameters->PantRearVolt==0.0))
         sPantUp.Play(vol,0,MechInside,vPosition);
        if (p->hvPowerWire) //TODO: wyliczyæ trzeba pr¹d przypadaj¹cy na pantograf i wstawiæ do GetVoltage()
-       {MoverParameters->PantFrontVolt=p->hvPowerWire->psSection?p->hvPowerWire->VoltageGet(MoverParameters->Voltage,fPantCurrent):p->hvPowerWire->NominalVoltage;
+       {MoverParameters->PantFrontVolt=p->hvPowerWire->VoltageGet(MoverParameters->Voltage,fPantCurrent);
         fCurrent-=fPantCurrent; //taki pr¹d p³ynie przez powy¿szy pantograf
        }
        else
@@ -2288,7 +2289,7 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
        if ((MoverParameters->PantRearVolt==0.0)&&(MoverParameters->PantFrontVolt==0.0))
         sPantUp.Play(vol,0,MechInside,vPosition);
        if (p->hvPowerWire) //TODO: wyliczyæ trzeba pr¹d przypadaj¹cy na pantograf i wstawiæ do GetVoltage()
-       {MoverParameters->PantRearVolt=p->hvPowerWire->psSection?p->hvPowerWire->VoltageGet(MoverParameters->Voltage,fPantCurrent):p->hvPowerWire->NominalVoltage;
+       {MoverParameters->PantRearVolt=p->hvPowerWire->VoltageGet(MoverParameters->Voltage,fPantCurrent);
         fCurrent-=fPantCurrent; //taki pr¹d p³ynie przez powy¿szy pantograf
        }
        else

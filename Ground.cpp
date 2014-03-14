@@ -2912,8 +2912,8 @@ void __fastcall TGround::InitTraction()
  {//pod³¹czenie do zasilacza, ¿eby mo¿na by³o sumowaæ pr¹d kilku pojazdów
   //a jednoczeœnie z jednego miejsca zmieniaæ napiêcie eventem
   //wykonywane najpierw, ¿eby mo¿na by³o logowaæ pod³¹czenie 2 zasilaczy do jednego drutu
-  //TODO: przemyœleæ dzia³anie izolatora zawieszonego na przêœle (2 ró¿ne zasilania przês³a)
-  //- mo¿e niech przês³o z izolatorem ma nazwê "*"? "none" nie bêdzie odpowiednie
+  //izolator zawieszony na przêœle jest ma byæ osobnym odcinkiem drutu o d³ugoœci ok. 1m,
+  //pod³¹czonym do zasilacza o nazwie "*" (gwiazka); "none" nie bêdzie odpowiednie
   Traction=nCurrent->hvTraction;
   nPower=FindGroundNode(Traction->asPowerSupplyName,TP_TRACTIONPOWERSOURCE);
   if (nPower) //jak zasilacz znaleziony
