@@ -3198,15 +3198,16 @@ TTraction* __fastcall TGround::TractionNearestFind(vector3 &p,int dir,TGroundNod
         if (nCurrent->hvTraction!=n->hvTraction->hvNext[0]) //ale nie jest bezpoœrednio pod³¹czonym
          if (nCurrent->hvTraction!=n->hvTraction->hvNext[1])
           if (nCurrent->hvTraction->psPower[k=(DotProduct(n->hvTraction->vParametric,nCurrent->hvTraction->vParametric)>=0?dir^1:dir)]) //ma zasilanie z odpowiedniej strony
-          {//znaleziony kandydat do po³¹czenia
-           d=SquareMagnitude(p-nCurrent->pCenter); //kwadrat odleg³oœci œrodków
-           if (dist>d)
-           {//zapamiêtanie nowego najbli¿szego
-            dist=d; //nowy rekord odleg³oœci
-            nBest=nCurrent;
-            zg=k; //z którego koñca braæ wskaŸnik zasilacza
+           if (nCurrent->hvTraction->fResistance[k]>=0.0) //¿eby siê nie propagowa³y jakieœ ujemne
+           {//znaleziony kandydat do po³¹czenia
+            d=SquareMagnitude(p-nCurrent->pCenter); //kwadrat odleg³oœci œrodków
+            if (dist>d)
+            {//zapamiêtanie nowego najbli¿szego
+             dist=d; //nowy rekord odleg³oœci
+             nBest=nCurrent;
+             zg=k; //z którego koñca braæ wskaŸnik zasilacza
+            }
            }
-          }
  if (nBest) //jak znalezione przês³o z zasilaniem, to pod³¹czenie "równoleg³e"
  {n->hvTraction->ResistanceCalc(dir,nBest->hvTraction->fResistance[zg],nBest->hvTraction->psPower[zg]);
   //testowo skrzywienie przês³a tak, aby pokazaæ sk¹d ma zasilanie

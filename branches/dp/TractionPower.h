@@ -18,7 +18,8 @@ private:
  bool Recuperation;
 
  double TotalCurrent;
- double TotalPreviousCurrent;
+ double TotalAdmitance;
+ double TotalPreviousAdmitance;
  double OutputVoltage;
  bool FastFuse;
  bool SlowFuse;
@@ -37,7 +38,7 @@ public:
  bool __fastcall Load(cParser *parser);
  bool __fastcall Render();
  bool __fastcall Update(double dt);
- double __fastcall GetVoltage(double Current);
+ double __fastcall CurrentGet(double res);
  void __fastcall VoltageSet(double v) {NominalVoltage=v;};
  void __fastcall PowerSet(TTractionPowerSource *ps);
 };

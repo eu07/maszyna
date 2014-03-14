@@ -567,3 +567,41 @@ void __fastcall TTraction::PowerSet(TTractionPowerSource *ps)
  }
 };
 
+double __fastcall TTraction::VoltageGet(double u,double i)
+{//pobranie napiêcia na przêœle po pod³¹czeniu do niego rezystancji (res) - na razie jest to pr¹d
+ //na pocz¹tek mo¿na za³o¿yæ, ¿e wszystkie podstacje maj¹ to samo napiêcie i nie p³ynie pr¹d pomiêdzy nimi
+ //dla danego przês³a mamy 3 Ÿród³a zasilania
+ //1. zasilacz psPower[0] z rezystancj¹ fResistance[0] oraz jego wewnêtrzn¹
+ //2. zasilacz psPower[1] z rezystancj¹ fResistance[1] oraz jego wewnêtrzn¹
+ //3. zasilacz psPowered z jego wewnêtrzn¹ rezystancj¹ dla przêse³ zasilanych bezpoœrednio
+ double res=(i!=0.0)?fabs(u/i):10000.0;
+ double r0t,r1t,r0g,r1g;
+ double u0,u1,i0,i1;
+ r0t=fResistance[0]; //œredni pomys³, ale lepsze ni¿ nic
+ r1t=fResistance[1]; //bo nie uwzglêdnia spadków z innych pojazdów
+ if (psPower[0]&&psPower[1])
+ {//gdy przês³o jest zasilane z obu stron - mamy trójk¹t: res, r0t, r1t
+  if ((r0t>0.0)&&(r1t>0.0))
+  {//rezystancje w mianowniku nie mog¹ byæ zerowe
+   r0g=res+r0t+(res*r0t)/r1t; //przeliczenie z trójk¹ta na gwiazdê
+   r1g=res+r1t+(res*r1t)/r0t;
+   //pobierane s¹ pr¹dy dla ka¿dej rezystancji, a suma jest mno¿ona przez rezystancjê pojazdu w celu uzyskania napiêcia
+   i0=psPower[0]->CurrentGet(r0g); //oddzielnie dla sprawdzenia
+   i1=psPower[1]->CurrentGet(r1g);
+   return (i0+i1)*res;
+  }
+  else if (r0t>=0.0)
+   return psPower[0]->CurrentGet(res+r0t)*res;
+  else if (r1t>=0.0)
+   return psPower[1]->CurrentGet(res+r1t)*res;
+  else
+   return 0.0; //co z tym zrobiæ?
+ }
+ else if (psPower[0]&&(r0t>=0.0))
+ {//jeœli odcinek pod³¹czony jest tylko z jednej strony
+  return psPower[0]->CurrentGet(res+r0t)*res;
+ }
+ else if (psPower[1]&&(r1t>=0.0))
+  return psPower[1]->CurrentGet(res+r1t)*res;
+ return 0.0; //gdy nie pod³¹czony wcale?
+};

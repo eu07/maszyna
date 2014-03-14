@@ -71,6 +71,7 @@ public:
  bool __fastcall WhereIs();
  void __fastcall ResistanceCalc(int d=-1,double r=0,TTractionPowerSource *ps=NULL);
  void __fastcall PowerSet(TTractionPowerSource *ps);
+ double __fastcall VoltageGet(double u,double i);
 };
 //---------------------------------------------------------------------------
 #endif
