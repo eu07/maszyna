@@ -1970,7 +1970,7 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
     ts.R=MyTrack->fRadius;
     if (bogieRot[0].z!=bogieRot[1].z) //wyliczenie promienia z obrotów osi - modyfikacjê zg³osi³ youBy
       ts.R=0.5*MoverParameters->BDist/sin(DegToRad(bogieRot[0].z-bogieRot[1].z)*0.5);
-    if (ts.R>10000.0) ts.R=0.0; //szkoda czasu na zbyt du¿e promienie
+    if (ts.R>5000.0) ts.R=0.0; //szkoda czasu na zbyt du¿e promienie, 4km to promieñ nie wymagaj¹cy przechy³ki 
     //ts.R=ComputeRadius(Axle1.pPosition,Axle2.pPosition,Axle3.pPosition,Axle0.pPosition);
     //Ra: sk³adow¹ pochylenia wzd³u¿nego mamy policzon¹ w jednostkowym wektorze vFront
     ts.Len=1.0; //Max0R(MoverParameters->BDist,MoverParameters->ADist);
@@ -2095,11 +2095,12 @@ TGround::GetTraction;
 
 //McZapkie-260202 - dMoveLen przyda sie przy stukocie kol
     dDOMoveLen=GetdMoveLen()+MoverParameters->ComputeMovement(dt,dt1,ts,tp,tmpTraction,l,r);
-    MoverParameters->UpdateBatteryVoltage(dt); //jest ju¿ w Mover.cpp
-    if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector) //tylko jeœli pantografuj¹cy
-     if (MoverParameters->Power>1.0) //w rozrz¹dczym nie (jest b³¹d w FIZ!)
-      MoverParameters->UpdatePantVolume(dt); //Ra: pneumatyka pantografów przeniesiona do Mover.cpp!
-//yB: zeby zawsze wrzucalo w jedna strone zakretu
+    //Ra: poni¿sze przeniesione do ComputeMovement() w Mover.cpp
+    //MoverParameters->UpdateBatteryVoltage(dt); //jest ju¿ w Mover.cpp
+    //if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector) //tylko jeœli pantografuj¹cy
+    // if (MoverParameters->Power>1.0) //w rozrz¹dczym nie (jest b³¹d w FIZ!)
+    //  MoverParameters->UpdatePantVolume(dt); //Ra: pneumatyka pantografów przeniesiona do Mover.cpp!
+    //yB: zeby zawsze wrzucalo w jedna strone zakretu
     MoverParameters->AccN*=-ABuGetDirection();
     //if (dDOMoveLen!=0.0) //Ra: nie mo¿e byæ, bo blokuje Event0
      Move(dDOMoveLen);
@@ -2269,7 +2270,7 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
        if ((MoverParameters->PantFrontVolt==0.0)&&(MoverParameters->PantRearVolt==0.0))
         sPantUp.Play(vol,0,MechInside,vPosition);
        if (p->hvPowerWire) //TODO: wyliczyæ trzeba pr¹d przypadaj¹cy na pantograf i wstawiæ do GetVoltage()
-       {MoverParameters->PantFrontVolt=p->hvPowerWire->psPower?p->hvPowerWire->psPower->GetVoltage(fPantCurrent):p->hvPowerWire->NominalVoltage;
+       {MoverParameters->PantFrontVolt=p->hvPowerWire->psSection?p->hvPowerWire->VoltageGet(MoverParameters->Voltage,fPantCurrent):p->hvPowerWire->NominalVoltage;
         fCurrent-=fPantCurrent; //taki pr¹d p³ynie przez powy¿szy pantograf
        }
        else
@@ -2287,7 +2288,7 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
        if ((MoverParameters->PantRearVolt==0.0)&&(MoverParameters->PantFrontVolt==0.0))
         sPantUp.Play(vol,0,MechInside,vPosition);
        if (p->hvPowerWire) //TODO: wyliczyæ trzeba pr¹d przypadaj¹cy na pantograf i wstawiæ do GetVoltage()
-       {MoverParameters->PantRearVolt=p->hvPowerWire->psPower?p->hvPowerWire->psPower->GetVoltage(fPantCurrent):p->hvPowerWire->NominalVoltage;
+       {MoverParameters->PantRearVolt=p->hvPowerWire->psSection?p->hvPowerWire->VoltageGet(MoverParameters->Voltage,fPantCurrent):p->hvPowerWire->NominalVoltage;
         fCurrent-=fPantCurrent; //taki pr¹d p³ynie przez powy¿szy pantograf
        }
        else
@@ -2532,10 +2533,11 @@ bool __fastcall TDynamicObject::FastUpdate(double dt)
     //tp.DamageFlag=MyTrack->iDamageFlag;
     //tp.QualityFlag=MyTrack->iQualityFlag;
     dDOMoveLen=MoverParameters->FastComputeMovement(dt,ts,tp,l,r); // ,ts,tp,tmpTraction);
-    MoverParameters->UpdateBatteryVoltage(dt); //jest ju¿ w Mover.cpp
-    if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector) //tylko jeœli pantografuj¹cy
-     if (MoverParameters->Power>1.0) //w rozrz¹dczym nie (jest b³¹d w FIZ!)
-      MoverParameters->UpdatePantVolume(dt); //Ra: pneumatyka pantografów przeniesiona do Mover.cpp!
+    //Ra: poni¿sze przeniesione do FastComputeMovement() w Mover.cpp
+    //MoverParameters->UpdateBatteryVoltage(dt); //jest ju¿ w Mover.cpp
+    //if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector) //tylko jeœli pantografuj¹cy
+    // if (MoverParameters->Power>1.0) //w rozrz¹dczym nie (jest b³¹d w FIZ!)
+    //  MoverParameters->UpdatePantVolume(dt); //Ra: pneumatyka pantografów przeniesiona do Mover.cpp!
     //Move(dDOMoveLen);
     //ResetdMoveLen();
     FastMove(dDOMoveLen);

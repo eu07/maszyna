@@ -38,6 +38,7 @@ __fastcall TEvent::TEvent(AnsiString m)
  //event niejawny jest tworzony przed faz¹ InitEvents, która podmienia nazwê komórki pamiêci na wskaŸnik
  //Current->Params[8].asGroundNode=m; //to siê ustawi w InitEvents
  //Current->Params[9].asMemCell=m->MemCell;
+ fRandomDelay=0.0; //standardowo nie bêdzie dodatkowego losowego opóŸnienia
 };
 
 __fastcall TEvent::~TEvent()
@@ -438,6 +439,20 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
   case tp_Switch:
    parser->getTokens(); *parser >> Params[0].asInt;
    parser->getTokens(); *parser >> token;
+   str=AnsiString(token.c_str());
+   if (str!="endevent")
+   {Params[1].asdouble=str.ToDouble(); //czas trwania animacji iglicy
+    parser->getTokens(); *parser >> token;
+    str=AnsiString(token.c_str());
+   }
+   else
+    Params[1].asdouble=-1.0; //u¿yæ domyœlnej
+   if (str!="endevent")
+   {Params[2].asdouble=str.ToDouble(); //opóŸnienie ruchu drugiej iglicy
+    parser->getTokens(); *parser >> token;
+   }
+   else
+    Params[2].asdouble=-1.0; //u¿yæ domyœlnej
   break;
   case tp_DynVel:
    parser->getTokens();
@@ -455,7 +470,7 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
    parser->getTokens();
    *parser >> token;
    str=AnsiString(token.c_str());
-   while (str!=AnsiString("endevent") && str!=AnsiString("condition"))
+   while (str!=AnsiString("endevent") && str!=AnsiString("condition") && str!=AnsiString("randomdelay"))
    {
     if ((str.SubString(1,5)!="none_")?(i<8):false)
     {//eventy rozpoczynaj¹ce siê od "none_" s¹ ignorowane
@@ -490,6 +505,11 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
    } while (str!="endevent");
    WriteLog("Event \""+asName+(Type==tp_Unknown?"\" has unknown type.":"\" is ignored."));
    break;
+ }
+ if (str=="randomdelay")
+ {//losowe opóŸnienie
+  parser->getTokens();
+  *parser >> fRandomDelay; //Ra 2014-03-11
  }
 };
 

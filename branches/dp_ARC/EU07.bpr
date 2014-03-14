@@ -3,7 +3,7 @@
 <PROJECT>
   <MACROS>
     <VERSION value="BCB.05.03"/>
-    <PROJECT value="C:\EU07\EU07.exe"/>
+    <PROJECT value="E:\MaSzyna_08_13\EU07.exe"/>
     <OBJFILES value="QueryParserComp.obj McZapkie\mtable.obj McZapkie\_mover.obj 
       McZapkie\hamulce.obj EU07.obj dumb3d.obj Camera.obj Texture.obj World.obj 
       Model3d.obj MdlMngr.obj Train.obj wavread.obj Timer.obj Event.obj 
@@ -38,8 +38,8 @@
     <WARNINGS value="-w-par"/>
   </MACROS>
   <OPTIONS>
-    <IDLCFLAGS value="-IConsole -Iopengl -IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl 
-      -src_suffix cpp -DGLEW_STATIC -D_DEBUG -boa"/>
+    <IDLCFLAGS value="-src_suffix cpp -DGLEW_STATIC -D_DEBUG -IConsole -Iopengl -IMcZapkie 
+      -I$(BCB)\include -I$(BCB)\include\vcl -boa"/>
     <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a1 -6 -b- -k -y -v -vi- 
       -c -tW -tWM"/>
     <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
@@ -57,9 +57,9 @@
 IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=14
-MinorVer=2
-Release=951
-Build=429
+MinorVer=3
+Release=981
+Build=431
 Debug=1
 PreRelease=0
 Special=0
@@ -71,7 +71,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=14.2.951.429
+FileVersion=14.3.981.431
 InternalName=9th by Ra + SPKS + MP
 LegalCopyright=
 LegalTrademarks=
@@ -104,15 +104,16 @@ Item6=GLEW_STATIC;_DEBUG;USE_VERTEX_ARRAYS
 Item7=_DEBUG
 
 [HistoryLists\hlFinalOutputDir]
-Count=2
-Item0=C:\EU07\
-Item1=C:\EU07DDS\
+Count=3
+Item0=E:\MaSzyna_08_13
+Item1=C:\EU07\
+Item2=C:\EU07DDS\
 
 [Debugging]
 DebugSourceDirs=
 
 [Parameters]
-RunParams=
+RunParams=-s $.scn -v eu07-515
 HostApplication=
 RemoteHost=
 RemotePath=

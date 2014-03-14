@@ -33,7 +33,7 @@ public:
  __fastcall ~TGauge();
  void __fastcall Clear();
  void __fastcall Init(TSubModel *NewSubModel,TGaugeType eNewTyp,double fNewScale=1,double fNewOffset=0,double fNewFriction=0,double fNewValue=0);
- void __fastcall Load(TQueryParserComp *Parser,TModel3d *md1,TModel3d *md2=NULL);
+ void __fastcall Load(TQueryParserComp *Parser,TModel3d *md1,TModel3d *md2=NULL,double mul=1.0);
  void __fastcall PermIncValue(double fNewDesired);
  void __fastcall IncValue(double fNewDesired);
  void __fastcall DecValue(double fNewDesired);

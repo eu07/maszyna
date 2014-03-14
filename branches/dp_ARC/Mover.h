@@ -3,7 +3,7 @@
 #ifndef MoverH
 #define MoverH
 //---------------------------------------------------------------------------
-#include "mover.hpp"
+#include "Mover.hpp"
 // Ra: Niestety "_mover.hpp" siê nieprawid³owo generuje - przek³ada sobie TCoupling na sam koniec.
 // Przy wszelkich poprawkach w "_mover.pas" trzeba skopiowaæ rêcznie "_mover.hpp" do "mover.hpp" i
 // poprawiæ b³êdy! Tak a¿ do wydzielnia TCoupling z Pascala do C++...
@@ -53,6 +53,16 @@ public:
  bool __fastcall CurrentSwitch(int direction);
  void __fastcall UpdatePantVolume(double dt);
  void __fastcall UpdateBatteryVoltage(double dt);
+ double __fastcall ComputeMovement
+ (double dt,double dt1,
+  const TTrackShape &Shape,TTrackParam &Track,TTractionParam &ElectricTraction,
+  const TLocation &NewLoc,TRotation &NewRot
+ );
+ double __fastcall FastComputeMovement
+ (double dt,
+  const TTrackShape &Shape,TTrackParam &Track,
+  const	TLocation &NewLoc,TRotation &NewRot
+ );
 };
 
 #endif

@@ -2910,38 +2910,38 @@ else
 
     if (CylHamGauge.SubModel)
      {
-      CylHamGauge.UpdateValue(mvOccupied->BrakePress*0.1f);
+      CylHamGauge.UpdateValue(mvOccupied->BrakePress);
       CylHamGauge.Update();
      }
     if (CylHamGaugeB.SubModel)
      {
-      CylHamGaugeB.UpdateValue(mvOccupied->BrakePress*0.1f);
+      CylHamGaugeB.UpdateValue(mvOccupied->BrakePress);
       CylHamGaugeB.Update();
      }
     if (PrzGlGauge.SubModel)
      {
-      PrzGlGauge.UpdateValue(mvOccupied->PipePress*0.1f);
+      PrzGlGauge.UpdateValue(mvOccupied->PipePress);
       PrzGlGauge.Update();
      }
     if (PrzGlGaugeB.SubModel)
      {
-      PrzGlGaugeB.UpdateValue(mvOccupied->PipePress*0.1f);
+      PrzGlGaugeB.UpdateValue(mvOccupied->PipePress);
       PrzGlGaugeB.Update();
      }
     if (ZbSGauge.SubModel)
      {
-      ZbSGauge.UpdateValue(mvOccupied->Handle->GetCP()*0.1f);
+      ZbSGauge.UpdateValue(mvOccupied->Handle->GetCP());
       ZbSGauge.Update();
      }
 // McZapkie! - zamiast pojemnosci cisnienie
     if (ZbGlGauge.SubModel)
      {
-      ZbGlGauge.UpdateValue(mvOccupied->Compressor*0.1f);
+      ZbGlGauge.UpdateValue(mvOccupied->Compressor);
       ZbGlGauge.Update();
      }
     if (ZbGlGaugeB.SubModel)
      {
-      ZbGlGaugeB.UpdateValue(mvOccupied->Compressor*0.1f);
+      ZbGlGaugeB.UpdateValue(mvOccupied->Compressor);
       ZbGlGaugeB.Update();
      }
 
@@ -3223,7 +3223,7 @@ if ( mvControlled->Signalling==true )
          { btLampkaHamowanie2zes.TurnOn(); }
         if(( tmp->MoverParameters->BrakePress<0.075f*10 )|| (mvControlled->Battery==false)||(mvControlled->Signalling==false))
          { btLampkaHamowanie2zes.TurnOff(); }
-        btLampkaNadmPrzetwB.Turn(!tmp->MoverParameters->ConverterFlag);
+        btLampkaNadmPrzetwB.Turn(!tmp->MoverParameters->ConverterFlag); //nadmiarowy czy za³¹czenie?
       }
     else  //wylaczone
       {
@@ -3308,7 +3308,7 @@ if ( mvControlled->Signalling==true )
     {if (DynamicObject->Mechanik?(DynamicObject->Mechanik->AIControllFlag?false:Global::iFeedbackMode==4):false) //nie blokujemy AI
      {//Ra: nie najlepsze miejsce, ale na pocz¹tek gdzieœ to daæ trzeba
       double b=Console::AnalogGet(0); //odczyt z pulpitu i modyfikacja pozycji kranu
-      if ((b>=0.0)&&(mvOccupied->BrakeHandle==FV4a))
+      if ((b>=0.0)&&((mvOccupied->BrakeHandle==FV4a)||(mvOccupied->BrakeHandle==FVel6)))  //mo¿e mo¿na usun¹æ ograniczenie do FV4a i FVel6?
       {b=(((Global::fCalibrateIn[0][3]*b)+Global::fCalibrateIn[0][2])*b+Global::fCalibrateIn[0][1])*b+Global::fCalibrateIn[0][0];
        if (b<-2.0) b=-2.0; else if (b>mvOccupied->BrakeCtrlPosNo) b=mvOccupied->BrakeCtrlPosNo;
        BrakeCtrlGauge.UpdateValue(b); //przesów bez zaokr¹glenia
@@ -4141,7 +4141,7 @@ if ( mvControlled->Signalling==true )
            }
      }
      // Odskakiwanie hamulce EP
-     if ((!Console::Pressed(Global::Keys[k_DecBrakeLevel]))&&(!Console::Pressed(Global::Keys[k_WaveBrake]) )&&(mvOccupied->BrakeCtrlPos==-1)&&(mvOccupied->BrakeHandle==FVel6)&&(DynamicObject->Controller!=AIdriver))
+     if ((!Console::Pressed(Global::Keys[k_DecBrakeLevel]))&&(!Console::Pressed(Global::Keys[k_WaveBrake]))&&(mvOccupied->BrakeCtrlPos==-1)&&(mvOccupied->BrakeHandle==FVel6)&&(DynamicObject->Controller!=AIdriver)&&(Global::iFeedbackMode!=4))
      {
      //mvOccupied->BrakeCtrlPos=(mvOccupied->BrakeCtrlPos)+1;
      //mvOccupied->IncBrakeLevel();
@@ -4954,8 +4954,8 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     IgnitionKeyGauge.Clear();
     btLampkaPoslizg.Clear(6);
     btLampkaStyczn.Clear(5);
-    btLampkaNadmPrzetw.Clear(7);
-    btLampkaPrzetw.Clear();    
+    btLampkaNadmPrzetw.Clear((mvControlled->TrainType&(dt_EZT))?-1:7); //EN57 nie ma tej lampki
+    btLampkaPrzetw.Clear((mvControlled->TrainType&(dt_EZT))?7:-1); //za to ma tê    
     btLampkaPrzekRozn.Clear();
     btLampkaPrzekRoznPom.Clear();
     btLampkaNadmSil.Clear(4);
@@ -5149,13 +5149,13 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
    else if (str==AnsiString("hvcurrent:"))                     //amperomierz calkowitego pradu
     ItotalGauge.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("brakepress:"))                    //manometr cylindrow hamulcowych
-    CylHamGauge.Load(Parser,DynamicObject->mdKabina);
+    CylHamGauge.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
    else if (str==AnsiString("pipepress:"))                    //manometr przewodu hamulcowego
-    PrzGlGauge.Load(Parser,DynamicObject->mdKabina);
+    PrzGlGauge.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
    else if (str==AnsiString("limpipepress:"))                  //manometr zbiornika sterujacego zaworu maszynisty
-    ZbSGauge.Load(Parser,DynamicObject->mdKabina);
+    ZbSGauge.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
    else if (str==AnsiString("compressor:"))                    //manometr sprezarki/zbiornika glownego
-    ZbGlGauge.Load(Parser,DynamicObject->mdKabina);
+    ZbGlGauge.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
    //*************************************************************
    //Sekcja zdublowanych wskaznikow dla dwustronnych kabin
    else if (str==AnsiString("tachometerb:"))                    //predkosciomierz
@@ -5169,11 +5169,11 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
    else if (str==AnsiString("hvcurrentb:"))                     //amperomierz calkowitego pradu
     ItotalGaugeB.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("brakepressb:"))                    //manometr cylindrow hamulcowych
-    CylHamGaugeB.Load(Parser,DynamicObject->mdKabina);
+    CylHamGaugeB.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
    else if (str==AnsiString("pipepressb:"))                    //manometr przewodu hamulcowego
-    PrzGlGaugeB.Load(Parser,DynamicObject->mdKabina);
+    PrzGlGaugeB.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
    else if (str==AnsiString("compressorb:"))                    //manometr sprezarki/zbiornika glownego
-    ZbGlGaugeB.Load(Parser,DynamicObject->mdKabina);
+    ZbGlGaugeB.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
    //*************************************************************
    //yB - dla drugiej sekcji
    else if (str==AnsiString("hvbcurrent1:"))                    //1szy amperomierz

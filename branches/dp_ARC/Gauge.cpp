@@ -55,11 +55,11 @@ void __fastcall TGauge::Init(TSubModel *NewSubModel,TGaugeType eNewType,double f
  }
 };
 
-void __fastcall TGauge::Load(TQueryParserComp *Parser,TModel3d *md1,TModel3d *md2)
+void __fastcall TGauge::Load(TQueryParserComp *Parser,TModel3d *md1,TModel3d *md2,double mul)
 {
  AnsiString str1=Parser->GetNextSymbol();
  AnsiString str2=Parser->GetNextSymbol().LowerCase();
- double val3=Parser->GetNextSymbol().ToDouble();
+ double val3=Parser->GetNextSymbol().ToDouble()*mul;
  double val4=Parser->GetNextSymbol().ToDouble();
  double val5=Parser->GetNextSymbol().ToDouble();
  TSubModel *sm=md1->GetFromName(str1.c_str());
@@ -86,14 +86,14 @@ void __fastcall TGauge::PermIncValue(double fNewDesired)
 };
 
 void __fastcall TGauge::IncValue(double fNewDesired)
-{
+{//u¿ywane tylko dla uniwersali
  fDesiredValue=fDesiredValue+fNewDesired*fScale+fOffset;
  if (fDesiredValue>fScale+fOffset)
   fDesiredValue=fScale+fOffset;
 };
 
 void __fastcall TGauge::DecValue(double fNewDesired)
-{
+{//u¿ywane tylko dla uniwersali
  fDesiredValue=fDesiredValue-fNewDesired*fScale+fOffset;
  if (fDesiredValue<0) fDesiredValue=0;
 };
@@ -109,6 +109,8 @@ void __fastcall TGauge::PutValue(double fNewDesired)
 {//McZapkie-281102: natychmiastowe wpisanie wartosci
  fDesiredValue=fNewDesired*fScale+fOffset;
  fValue=fDesiredValue;
+ //if (iChannel>=0) //chyba nie u¿ywane dla mierników
+ // Console::ValueSet(iChannel,fNewDesired);
 };
 
 void __fastcall TGauge::Update()
