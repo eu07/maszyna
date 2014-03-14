@@ -26,7 +26,7 @@
 //101206 Ra: trapezoidalne drogi i tory
 //110720 Ra: rozprucie zwrotnicy i odcinki izolowane
 
-static const double fMaxOffset=0.1f;
+static const double fMaxOffset=0.1; //double(0.1f)==0.100000001490116
 const int NextMask[4]={0,1,0,1}; //tor nastêpny dla stanów 0, 1, 2, 3
 const int PrevMask[4]={0,0,1,1}; //tor poprzedni dla stanów 0, 1, 2, 3
 TIsolated *TIsolated::pRoot=NULL;
@@ -38,7 +38,10 @@ __fastcall TSwitchExtension::TSwitchExtension(TTrack *owner,int what)
  pNexts[1]=NULL;
  pPrevs[0]=NULL;
  pPrevs[1]=NULL;
- fOffset1=fOffset2=fDesiredOffset1=fDesiredOffset2=0.0; //po³o¿enie zasadnicze
+ fOffsetSpeed=0.1; //prêdkoœæ liniowa iglic
+ fOffsetDelay=0.05; //dodatkowy ruch drugiej iglicy po zablokowaniu pierwszej na opornicy
+ fOffset1=fOffset=fDesiredOffset=-fOffsetDelay; //po³o¿enie zasadnicze
+ fOffset2=0.0; //w zasadniczym wewnêtrzna iglica dolega
  pOwner=NULL;
  pNextAnim=NULL;
  bMovement=false; //nie potrzeba przeliczaæ fOffset1
@@ -1139,42 +1142,44 @@ void __fastcall TTrack::Compile(GLuint tex)
        }
       if (InMovement())
       {//Ra: trochê bez sensu, ¿e tu jest animacja
-       double v=SwitchExtension->fDesiredOffset1-SwitchExtension->fOffset1;
-       SwitchExtension->fOffset1+=sign(v)*Timer::GetDeltaTime()*0.1;
+      /*
+       double v=SwitchExtension->fDesiredOffset-SwitchExtension->fOffset;
+       SwitchExtension->fOffset+=sign(v)*Timer::GetDeltaTime()*SwitchExtension->fOffsetSpeed;
        //Ra: trzeba daæ to do klasy...
-       if (SwitchExtension->fOffset1<=0.00)
-       {SwitchExtension->fOffset1; //1cm?
+       if (SwitchExtension->fOffset<=0.00)
+       {SwitchExtension->fOffset=0.0; //1cm?
         SwitchExtension->bMovement=false; //koniec animacji
        }
-       if (SwitchExtension->fOffset1>=fMaxOffset)
-       {SwitchExtension->fOffset1=fMaxOffset; //maksimum-1cm?
+       if (SwitchExtension->fOffset>=fMaxOffset)
+       {SwitchExtension->fOffset=fMaxOffset; //maksimum-1cm?
         SwitchExtension->bMovement=false; //koniec animacji
        }
+      */
       }
       //McZapkie-130302 - poprawione rysowanie szyn
       if (SwitchExtension->RightSwitch)
-      {//nowa wersja z SPKS, ale odwrotnie lewa/prawa
+      {//zwrotnica prawa
        glBindTexture(GL_TEXTURE_2D,TextureID1);
-       SwitchExtension->Segments[0]->RenderLoft(rpts1,nnumPts,fTexLength,2);
-       SwitchExtension->Segments[0]->RenderSwitchRail(rpts1,rpts3,nnumPts,fTexLength,2,SwitchExtension->fOffset1);
-       SwitchExtension->Segments[0]->RenderLoft(rpts2,nnumPts,fTexLength);
+       SwitchExtension->Segments[0]->RenderLoft(rpts1,nnumPts,fTexLength,2); //prawa szyna za iglic¹
+       SwitchExtension->Segments[0]->RenderSwitchRail(rpts1,rpts3,nnumPts,fTexLength,2,SwitchExtension->fOffset2); //prawa iglica
+       SwitchExtension->Segments[0]->RenderLoft(rpts2,nnumPts,fTexLength); //lewa szyna normalnie ca³a
        if (TextureID2!=TextureID1) //nie wiadomo, czy OpenGL to optymalizuje
         glBindTexture(GL_TEXTURE_2D,TextureID2);
-       SwitchExtension->Segments[1]->RenderLoft(rpts1,nnumPts,fTexLength);
-       SwitchExtension->Segments[1]->RenderLoft(rpts2,nnumPts,fTexLength,2);
-       SwitchExtension->Segments[1]->RenderSwitchRail(rpts2,rpts4,nnumPts,fTexLength,2,-fMaxOffset+SwitchExtension->fOffset1);
+       SwitchExtension->Segments[1]->RenderLoft(rpts1,nnumPts,fTexLength); //prawa szyna normalna ca³a
+       SwitchExtension->Segments[1]->RenderLoft(rpts2,nnumPts,fTexLength,2); //lewa szyna za iglic¹
+       SwitchExtension->Segments[1]->RenderSwitchRail(rpts2,rpts4,nnumPts,fTexLength,2,-fMaxOffset+SwitchExtension->fOffset1); //lewa iglica
       }
       else
-      {//lewa dzia³a lepiej ni¿ prawa
+      {//lewa kiedyœ dzia³a³a lepiej ni¿ prawa
        glBindTexture(GL_TEXTURE_2D,TextureID1);
-       SwitchExtension->Segments[0]->RenderLoft(rpts1,nnumPts,fTexLength); //lewa szyna normalna ca³a
-       SwitchExtension->Segments[0]->RenderLoft(rpts2,nnumPts,fTexLength,2); //prawa szyna za iglic¹
-       SwitchExtension->Segments[0]->RenderSwitchRail(rpts2,rpts4,nnumPts,fTexLength,2,-SwitchExtension->fOffset1); //prawa iglica
+       SwitchExtension->Segments[0]->RenderLoft(rpts1,nnumPts,fTexLength); //prawa szyna normalna ca³a
+       SwitchExtension->Segments[0]->RenderLoft(rpts2,nnumPts,fTexLength,2); //lewa szyna za iglic¹
+       SwitchExtension->Segments[0]->RenderSwitchRail(rpts2,rpts4,nnumPts,fTexLength,2,-SwitchExtension->fOffset2); //lewa iglica
        if (TextureID2!=TextureID1) //nie wiadomo, czy OpenGL to optymalizuje
         glBindTexture(GL_TEXTURE_2D,TextureID2);
-       SwitchExtension->Segments[1]->RenderLoft(rpts1,nnumPts,fTexLength,2); //lewa szyna za iglic¹
-       SwitchExtension->Segments[1]->RenderSwitchRail(rpts1,rpts3,nnumPts,fTexLength,2,fMaxOffset-SwitchExtension->fOffset1); //lewa iglica
-       SwitchExtension->Segments[1]->RenderLoft(rpts2,nnumPts,fTexLength); //prawa szyna normalnie ca³a
+       SwitchExtension->Segments[1]->RenderLoft(rpts1,nnumPts,fTexLength,2); //prawa szyna za iglic¹
+       SwitchExtension->Segments[1]->RenderSwitchRail(rpts1,rpts3,nnumPts,fTexLength,2,fMaxOffset-SwitchExtension->fOffset1); //prawa iglica
+       SwitchExtension->Segments[1]->RenderLoft(rpts2,nnumPts,fTexLength); //lewa szyna normalnie ca³a
       }
      }
      break;
@@ -1451,7 +1456,7 @@ bool __fastcall TTrack::InMovement()
    {if (!SwitchExtension->CurrentIndex) return false; //0=zablokowana siê nie animuje
     //trzeba ka¿dorazowo porównywaæ z k¹tem modelu
     TAnimContainer *ac=SwitchExtension->pModel?SwitchExtension->pModel->GetContainer(NULL):NULL;
-    return ac?(ac->AngleGet()!=SwitchExtension->fOffset1)||!(ac->TransGet()==SwitchExtension->vTrans):false;
+    return ac?(ac->AngleGet()!=SwitchExtension->fOffset)||!(ac->TransGet()==SwitchExtension->vTrans):false;
     //return true; //jeœli jest taki obiekt
    }
  }
@@ -1621,7 +1626,7 @@ void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Star
       if (SwitchExtension->RightSwitch)
       {//nowa wersja z SPKS, ale odwrotnie lewa/prawa
        SwitchExtension->iLeftVBO=Vert-Start; //indeks lewej iglicy
-       SwitchExtension->Segments[0]->RaRenderLoft(Vert,rpts3,-nnumPts,fTexLength,0,2,SwitchExtension->fOffset1);
+       SwitchExtension->Segments[0]->RaRenderLoft(Vert,rpts3,-nnumPts,fTexLength,0,2,SwitchExtension->fOffset2);
        SwitchExtension->Segments[0]->RaRenderLoft(Vert,rpts1,nnumPts,fTexLength,2);
        SwitchExtension->Segments[0]->RaRenderLoft(Vert,rpts2,nnumPts,fTexLength);
        SwitchExtension->Segments[1]->RaRenderLoft(Vert,rpts1,nnumPts,fTexLength);
@@ -1633,7 +1638,7 @@ void  __fastcall TTrack::RaArrayFill(CVertNormTex *Vert,const CVertNormTex *Star
       {//lewa dzia³a lepiej ni¿ prawa
        SwitchExtension->Segments[0]->RaRenderLoft(Vert,rpts1,nnumPts,fTexLength); //lewa szyna normalna ca³a
        SwitchExtension->iLeftVBO=Vert-Start; //indeks lewej iglicy
-       SwitchExtension->Segments[0]->RaRenderLoft(Vert,rpts4,-nnumPts,fTexLength,0,2,-SwitchExtension->fOffset1); //prawa iglica
+       SwitchExtension->Segments[0]->RaRenderLoft(Vert,rpts4,-nnumPts,fTexLength,0,2,-SwitchExtension->fOffset2); //prawa iglica
        SwitchExtension->Segments[0]->RaRenderLoft(Vert,rpts2,nnumPts,fTexLength,2); //prawa szyna za iglic¹
        SwitchExtension->iRightVBO=Vert-Start; //indeks prawej iglicy
        SwitchExtension->Segments[1]->RaRenderLoft(Vert,rpts3,-nnumPts,fTexLength,0,2,fMaxOffset-SwitchExtension->fOffset1); //lewa iglica
@@ -1997,14 +2002,17 @@ bool __fastcall TTrack::SetConnections(int i)
  return false;
 }
 
-bool __fastcall TTrack::Switch(int i)
+bool __fastcall TTrack::Switch(int i,double t,double d)
 {//prze³¹czenie torów z uruchomieniem animacji
  if (SwitchExtension) //tory prze³¹czalne maj¹ doklejkê
   if (eType==tt_Switch)
   {//przek³adanie zwrotnicy jak zwykle
+   if (t>0.0) //prêdkoœæ liniowa ruchu iglic
+    SwitchExtension->fOffsetSpeed=t; //prêdkoœæ ³atwiej zgraæ z animacj¹ modelu
+   if (d>=0.0) //opóŸnienie ruchu drugiej iglicy wzglêdem pierwszej
+    SwitchExtension->fOffsetDelay=d;
    i&=1; //ograniczenie b³êdów !!!!
-   SwitchExtension->fDesiredOffset1=fMaxOffset*double(NextMask[i]); //od punktu 1
-   //SwitchExtension->fDesiredOffset2=fMaxOffset*double(PrevMask[i]); //od punktu 2
+   SwitchExtension->fDesiredOffset=NextMask[i]?fMaxOffset+SwitchExtension->fOffsetDelay:-SwitchExtension->fOffsetDelay;
    SwitchExtension->CurrentIndex=i;
    Segment=SwitchExtension->Segments[i]; //wybranie aktywnej drogi - potrzebne to?
    trNext=SwitchExtension->pNexts[NextMask[i]]; //prze³¹czenie koñców
@@ -2013,7 +2021,10 @@ bool __fastcall TTrack::Switch(int i)
    iPrevDirection=SwitchExtension->iPrevDirection[PrevMask[i]];
    fRadius=fRadiusTable[i]; //McZapkie: wybor promienia toru
    if (SwitchExtension->pOwner?SwitchExtension->pOwner->RaTrackAnimAdd(this):true) //jeœli nie dodane do animacji
-    SwitchExtension->fOffset1=SwitchExtension->fDesiredOffset1; //nie ma siê co bawiæ
+   {//nie ma siê co bawiæ
+    SwitchExtension->fOffset=SwitchExtension->fDesiredOffset;
+    RaAnimate(); //przeliczenie po³o¿enia iglic; czy zadzia³a na niewyœwietlanym sektorze w VBO?
+   }
    return true;
   }
   else if (eType==tt_Table)
@@ -2114,16 +2125,28 @@ TTrack* __fastcall TTrack::RaAnimate()
   SwitchExtension->pNextAnim=SwitchExtension->pNextAnim->RaAnimate();
  bool m=true; //animacja trwa
  if (eType==tt_Switch) //dla zwrotnicy tylko szyny
- {double v=SwitchExtension->fDesiredOffset1-SwitchExtension->fOffset1; //prêdkoœæ
-  SwitchExtension->fOffset1+=sign(v)*Timer::GetDeltaTime()*0.1;
+ {double v=SwitchExtension->fDesiredOffset-SwitchExtension->fOffset; //kierunek
+  SwitchExtension->fOffset+=sign(v)*Timer::GetDeltaTime()*SwitchExtension->fOffsetSpeed;
   //Ra: trzeba daæ to do klasy...
-  if (SwitchExtension->fOffset1<=0.00)
-  {SwitchExtension->fOffset1; //1cm?
-   m=false; //koniec animacji
-  }
+  SwitchExtension->fOffset1=SwitchExtension->fOffset;
+  SwitchExtension->fOffset2=SwitchExtension->fOffset;
   if (SwitchExtension->fOffset1>=fMaxOffset)
-  {SwitchExtension->fOffset1=fMaxOffset; //maksimum-1cm?
-   m=false; //koniec animacji
+   SwitchExtension->fOffset1=fMaxOffset; //ograniczenie animacji zewnêtrznej iglicy
+  if (SwitchExtension->fOffset2<=0.00)
+   SwitchExtension->fOffset2=0.0; //ograniczenie animacji wewnêtrznej iglicy
+  if (v<0)
+  {//jak na pierwszy z torów
+   if (SwitchExtension->fOffset<=SwitchExtension->fDesiredOffset)
+   {SwitchExtension->fOffset=SwitchExtension->fDesiredOffset;
+    m=false; //koniec animacji
+   }
+  }
+  else
+  {//jak na drugi z torów
+   if (SwitchExtension->fOffset>=SwitchExtension->fDesiredOffset)
+   {SwitchExtension->fOffset=SwitchExtension->fDesiredOffset;
+    m=false; //koniec animacji
+   }
   }
   if (Global::bUseVBO)
   {//dla OpenGL 1.4 odœwie¿y siê ca³y sektor, w póŸniejszych poprawiamy fragment
@@ -2145,7 +2168,7 @@ TTrack* __fastcall TTrack::RaAnimate()
      glGetBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iLeftVBO*sizeof(CVertNormTex),2*2*12*sizeof(CVertNormTex),&Vert);//pobranie fragmentu bufora VBO
      if (SwitchExtension->RightSwitch)
      {//nowa wersja z SPKS, ale odwrotnie lewa/prawa
-      SwitchExtension->Segments[0]->RaAnimate(v,rpts3,-nnumPts,fTexLength,0,2,SwitchExtension->fOffset1);
+      SwitchExtension->Segments[0]->RaAnimate(v,rpts3,-nnumPts,fTexLength,0,2,SwitchExtension->fOffset2);
       glBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iLeftVBO*sizeof(CVertNormTex),2*2*12*sizeof(CVertNormTex),&Vert); //wys³anie fragmentu bufora VBO
       v=Vert;
       glGetBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iRightVBO*sizeof(CVertNormTex),2*2*12*sizeof(CVertNormTex),&Vert);//pobranie fragmentu bufora VBO
@@ -2153,7 +2176,7 @@ TTrack* __fastcall TTrack::RaAnimate()
      }
      else
      {//oryginalnie lewa dzia³a³a lepiej ni¿ prawa
-      SwitchExtension->Segments[0]->RaAnimate(v,rpts4,-nnumPts,fTexLength,0,2,-SwitchExtension->fOffset1); //prawa iglica
+      SwitchExtension->Segments[0]->RaAnimate(v,rpts4,-nnumPts,fTexLength,0,2,-SwitchExtension->fOffset2); //prawa iglica
       glBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iLeftVBO*sizeof(CVertNormTex),2*2*12*sizeof(CVertNormTex),&Vert);//wys³anie fragmentu bufora VBO
       v=Vert;
       glGetBufferSubData(GL_ARRAY_BUFFER,SwitchExtension->iRightVBO*sizeof(CVertNormTex),2*2*12*sizeof(CVertNormTex),&Vert); //pobranie fragmentu bufora VBO
@@ -2173,10 +2196,10 @@ TTrack* __fastcall TTrack::RaAnimate()
    TAnimContainer *ac=SwitchExtension->pModel?SwitchExtension->pModel->GetContainer(NULL):NULL; //pobranie g³ównego submodelu
    //if (ac) ac->EventAssign(SwitchExtension->evMinus); //event zakoñczenia animacji, trochê bez sensu tutaj
    if (ac)
-    if ((ac->AngleGet()!=SwitchExtension->fOffset1)||!(ac->TransGet()==SwitchExtension->vTrans)) //czy przemieœci³o siê od ostatniego sprawdzania
+    if ((ac->AngleGet()!=SwitchExtension->fOffset)||!(ac->TransGet()==SwitchExtension->vTrans)) //czy przemieœci³o siê od ostatniego sprawdzania
     {double hlen=0.5*SwitchExtension->Segments[0]->GetLength(); //po³owa d³ugoœci
-     SwitchExtension->fOffset1=ac->AngleGet(); //pobranie k¹ta z submodelu
-     double sina=-hlen*sin(DegToRad(SwitchExtension->fOffset1)),cosa=-hlen*cos(DegToRad(SwitchExtension->fOffset1));
+     SwitchExtension->fOffset=ac->AngleGet(); //pobranie k¹ta z submodelu
+     double sina=-hlen*sin(DegToRad(SwitchExtension->fOffset)),cosa=-hlen*cos(DegToRad(SwitchExtension->fOffset));
      SwitchExtension->vTrans=ac->TransGet();
      vector3 middle=SwitchExtension->pMyNode->pCenter+SwitchExtension->vTrans; //SwitchExtension->Segments[0]->FastGetPoint(0.5);
      Segment->Init(middle+vector3(sina,0.0,cosa),middle-vector3(sina,0.0,cosa),5.0); //nowy odcinek

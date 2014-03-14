@@ -1445,7 +1445,10 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    *parser >> token;
    tmp->hvTraction->asPowerSupplyName=AnsiString(token.c_str()); //nazwa zasilacza
    parser->getTokens(3);
-   *parser >> tmp->hvTraction->NominalVoltage >> tmp->hvTraction->MaxCurrent >> tmp->hvTraction->Resistivity;
+   *parser >> tmp->hvTraction->NominalVoltage >> tmp->hvTraction->MaxCurrent >> tmp->hvTraction->fResistivity;
+   if (tmp->hvTraction->fResistivity==0.01) //tyle jest w sceneriach [om/km]
+    tmp->hvTraction->fResistivity=0.075; //taka sensowniejsza wartoœæ za http://www.ikolej.pl/fileadmin/user_upload/Seminaria_IK/13_05_07_Prezentacja_Kruczek.pdf
+   tmp->hvTraction->fResistivity*=0.001; //teraz [om/m]
    parser->getTokens();
    *parser >> token;
    //Ra 2014-02: a tutaj damy symbol sieci i jej budowê, np.:
@@ -1504,8 +1507,8 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    if (token.compare("endtraction")!=0)
     Error("ENDTRACTION delimiter missing! "+str2+" found instead.");
    tmp->hvTraction->Init(); //przeliczenie parametrów
-   if (Global::bLoadTraction)
-    tmp->hvTraction->Optimize();
+   //if (Global::bLoadTraction)
+   // tmp->hvTraction->Optimize(); //generowanie DL dla wszystkiego przy wczytywaniu?
    tmp->pCenter=(tmp->hvTraction->pPoint2+tmp->hvTraction->pPoint1)*0.5f;
    //if (!Global::bLoadTraction) SafeDelete(tmp); //Ra: tak byæ nie mo¿e, bo NULL to b³¹d
    break;
@@ -2654,7 +2657,12 @@ bool __fastcall TGround::InitEvents()
    case tp_Switch: //peze³o¿enie zwrotnicy albo zmiana stanu obrotnicy
     tmp=FindGroundNode(Current->asNodeName,TP_TRACK);
     if (tmp)
+    {//dowi¹zanie toru
      Current->Params[9].asTrack=tmp->pTrack;
+     if (!Current->Params[0].asInt) //jeœli prze³¹cza do stanu 0
+      if (Current->Params[2].asdouble>=0.0) //jeœli jest zdefiniowany dodatkowy ruch iglic
+       Current->Params[9].asTrack->Switch(0,Current->Params[1].asdouble,Current->Params[2].asdouble); //przes³anie parametrów
+    }
     else
      ErrorLog("Bad switch: event \""+Current->asName+"\" cannot find track \""+Current->asNodeName+"\"");
     Current->asNodeName="";
@@ -2898,7 +2906,7 @@ void __fastcall TGround::InitTraction()
  TGroundNode *nCurrent,*nPower;
  TTraction *tmp; //znalezione przês³o
  TTraction *Traction;
- int iConnection,state;
+ int iConnection;
  AnsiString name;
  for (nCurrent=nRootOfType[TP_TRACTION];nCurrent;nCurrent=nCurrent->nNext)
  {//pod³¹czenie do zasilacza, ¿eby mo¿na by³o sumowaæ pr¹d kilku pojazdów
@@ -2909,7 +2917,7 @@ void __fastcall TGround::InitTraction()
   Traction=nCurrent->hvTraction;
   nPower=FindGroundNode(Traction->asPowerSupplyName,TP_TRACTIONPOWERSOURCE);
   if (nPower) //jak zasilacz znaleziony
-   Traction->psPower=nPower->psTractionPowerSource; //to pod³¹czyæ do przês³a
+   Traction->PowerSet(nPower->psTractionPowerSource); //to pod³¹czyæ do przês³a
   else
    if (Traction->asPowerSupplyName!="*") //gwiazdka dla przês³a z izolatorem
     if (Traction->asPowerSupplyName!="none") //dopuszczamy na razie brak pod³¹czenia?
@@ -2936,11 +2944,21 @@ void __fastcall TGround::InitTraction()
      Traction->Connect(0,tmp,1);
     break;
    }
-   //Ra: to mo¿e dodatkowo steresowaæ twórców scenerii
-   //if (Traction->hvNext[0]) //jeœli zosta³ pod³¹czony
-   // if (Traction->psPower) //tylko przês³o z izolatorem mo¿e nie mieæ zasilania, bo ma 2, trzeba sprawdzaæ s¹siednie
-   //  if (Traction->psPower!=tmp->psPower)
-   //   ErrorLog("Bad power: at "+FloatToStrF(Traction->pPoint1.x,ffFixed,6,2)+" "+FloatToStrF(Traction->pPoint1.y,ffFixed,6,2)+" "+FloatToStrF(Traction->pPoint1.z,ffFixed,6,2)); //dodaæ wspó³rzêdne
+   if (Traction->hvNext[0]) //jeœli zosta³ pod³¹czony
+    if (Traction->psSection&&tmp->psSection) //tylko przês³o z izolatorem mo¿e nie mieæ zasilania, bo ma 2, trzeba sprawdzaæ s¹siednie
+     if (Traction->psSection!=tmp->psSection) //po³¹czone odcinki maj¹ ró¿ne zasilacze
+     {//to mo¿e byæ albo pod³¹czenie podstacji lub kabiny sekcyjnej do sekcji, albo b³¹d
+      if (Traction->psSection->bSection&&!tmp->psSection->bSection)
+      {//(tmp->psSection) jest podstacj¹, a (Traction->psSection) nazw¹ sekcji
+       tmp->PowerSet(Traction->psSection); //zast¹pienie wskazaniem sekcji
+      }
+      else if (!Traction->psSection->bSection&&tmp->psSection->bSection)
+      {//(Traction->psSection) jest podstacj¹, a (tmp->psSection) nazw¹ sekcji
+       Traction->PowerSet(tmp->psSection); //zast¹pienie wskazaniem sekcji
+      }
+      else //jeœli obie to sekcje albo obie podstacje, to bêdzie b³¹d
+       ErrorLog("Bad power: at "+FloatToStrF(Traction->pPoint1.x,ffFixed,6,2)+" "+FloatToStrF(Traction->pPoint1.y,ffFixed,6,2)+" "+FloatToStrF(Traction->pPoint1.z,ffFixed,6,2));
+     }
   }
   if (!Traction->hvNext[1]) //tylko jeœli jeszcze nie pod³¹czony
   {
@@ -2954,17 +2972,78 @@ void __fastcall TGround::InitTraction()
      Traction->Connect(1,tmp,1);
     break;
    }
-   //Ra: to mo¿e dodatkowo steresowaæ twórców scenerii
-   //if (Traction->hvNext[1]) //jeœli zosta³ pod³¹czony
-   // if (Traction->psPower) //tylko przês³o z izolatorem mo¿e nie mieæ zasilania, bo ma 2, trzeba sprawdzaæ s¹siednie
-   //  if (Traction->psPower!=tmp->psPower)
-   //   ErrorLog("Bad power: at "+FloatToStrF(Traction->pPoint2.x,ffFixed,6,2)+" "+FloatToStrF(Traction->pPoint2.y,ffFixed,6,2)+" "+FloatToStrF(Traction->pPoint2.z,ffFixed,6,2)); //dodaæ wspó³rzêdne
+   if (Traction->hvNext[1]) //jeœli zosta³ pod³¹czony
+    if (Traction->psSection&&tmp->psSection) //tylko przês³o z izolatorem mo¿e nie mieæ zasilania, bo ma 2, trzeba sprawdzaæ s¹siednie
+     if (Traction->psSection!=tmp->psSection)
+     {//to mo¿e byæ albo pod³¹czenie podstacji lub kabiny sekcyjnej do sekcji, albo b³¹d
+      if (Traction->psSection->bSection&&!tmp->psSection->bSection)
+      {//(tmp->psSection) jest podstacj¹, a (Traction->psSection) nazw¹ sekcji
+       tmp->PowerSet(Traction->psSection); //zast¹pienie wskazaniem sekcji
+      }
+      else if (!Traction->psSection->bSection&&tmp->psSection->bSection)
+      {//(Traction->psSection) jest podstacj¹, a (tmp->psSection) nazw¹ sekcji
+       Traction->PowerSet(tmp->psSection); //zast¹pienie wskazaniem sekcji
+      }
+      else //jeœli obie to sekcje albo obie podstacje, to bêdzie b³¹d
+       ErrorLog("Bad power: at "+FloatToStrF(Traction->pPoint2.x,ffFixed,6,2)+" "+FloatToStrF(Traction->pPoint2.y,ffFixed,6,2)+" "+FloatToStrF(Traction->pPoint2.z,ffFixed,6,2));
+     }
   }
  }
+ iConnection=0; //teraz bêdzie licznikiem koñców
  for (nCurrent=nRootOfType[TP_TRACTION];nCurrent;nCurrent=nCurrent->nNext)
- {nCurrent->hvTraction->WhereIs(); //oznakowanie przedostatnich przêse³
+ {//operacje maj¹ce na celu wykrywanie bie¿ni wspólnych i ³¹czenie przêse³ napr¹¿ania
+  if (nCurrent->hvTraction->WhereIs()) //oznakowanie przedostatnich przêse³
+  {//poszukiwanie bie¿ni wspólnej dla przedostatnich przêse³, równie¿ w celu po³¹czenia zasilania
+   //to siê nie sprawdza, bo po³¹czyæ siê mog¹ dwa niezasilane odcinki jako najbli¿sze sobie
+   //nCurrent->hvTraction->hvParallel=TractionNearestFind(nCurrent->pCenter,0,nCurrent); //szukanie najbli¿szego przês³a
+   //trzeba by zliczaæ koñce, a potem wpisaæ je do tablicy, aby sukcesywnie pod³¹czaæ do zasilaczy
+   nCurrent->hvTraction->iTries=5; //oznaczanie koñcowych
+   ++iConnection;
+  }
+  if (nCurrent->hvTraction->fResistance[0]==0.0)
+  {nCurrent->hvTraction->ResistanceCalc(); //obliczanie przêse³ w segmencie z bezpoœrednim zasilaniem
+   //ErrorLog("Section "+nCurrent->hvTraction->asPowerSupplyName+" connected"); //jako niby b³¹d bêdzie bardziej widoczne
+   nCurrent->hvTraction->iTries=0; //nie potrzeba mu szukaæ zasilania
+  }
   //if (!Traction->hvParallel) //jeszcze utworzyæ pêtle z bie¿ni wspólnych
  }
+ int zg=0; //zgodnoœæ kierunku przêse³, tymczasowo iterator do tabeli koñców
+ TGroundNode **nEnds=new TGroundNode*[iConnection]; //koñców jest ok. 10 razy mniej ni¿ wszystkich przêse³ (Quark: 216)
+ for (nCurrent=nRootOfType[TP_TRACTION];nCurrent;nCurrent=nCurrent->nNext)
+  if (nCurrent->hvTraction->iTries>0) //jeœli zaznaczony do pod³¹czenia
+   //if (!nCurrent->hvTraction->psPower[0]||!nCurrent->hvTraction->psPower[1])
+    if (zg<iConnection) //zabezpieczenie
+     nEnds[zg++]=nCurrent; //wype³nianie tabeli koñców w celu szukania im po³¹czeñ
+ while (zg<iConnection)
+  nEnds[zg++]=NULL; //zape³nienie do koñca tablicy, jeœli by jakieœ koñce wypad³y
+ zg=1; //nieefektywny przebieg koñczy ³¹czenie
+ while (zg)
+ {//ustalenie zastêpczej rezystancji dla ka¿dego przês³a
+  zg=0; //flaga pod³¹czonych przêse³ koñcowych: -1=puste wskaŸniki, 0=coœ zosta³o, 1=wykonano ³¹czenie
+  for (int i=0;i<iConnection;++i)
+   if (nEnds[i]) //za³atwione bêdziemy zerowaæ
+   {//ka¿dy przebieg to próba pod³¹czenia koñca segmentu naprê¿ania do innego zasilanego przês³a
+    if (nEnds[i]->hvTraction->hvNext[0])
+    {//jeœli koñcowy ma ci¹g dalszy od strony 0 (Point1), szukamy odcinka najbli¿szego do Point2
+     if (TractionNearestFind(nEnds[i]->hvTraction->pPoint2,0,nEnds[i])) //poszukiwanie przês³a
+     {nEnds[i]=NULL;
+      zg=1; //jak coœ zosta³o pod³¹czone, to mo¿e zasilanie gdzieœ dodatkowo dotrze
+     }
+    }
+    else if (nEnds[i]->hvTraction->hvNext[1])
+    {//jeœli koñcowy ma ci¹g dalszy od strony 1 (Point2), szukamy odcinka najbli¿szego do Point1
+     if (TractionNearestFind(nEnds[i]->hvTraction->pPoint1,1,nEnds[i])) //poszukiwanie przês³a
+     {nEnds[i]=NULL;
+      zg=1; //jak coœ zosta³o pod³¹czone, to mo¿e zasilanie gdzieœ dodatkowo dotrze
+     }
+    }
+    else
+    {//gdy koniec jest samotny, to na razie nie zostanie pod³¹czony (nie powinno takich byæ)
+     nEnds[i]=NULL;
+    }
+   }
+ }
+ delete[] nEnds; //nie potrzebne ju¿
 };
 
 void __fastcall TGround::TrackJoin(TGroundNode *Current)
@@ -3098,30 +3177,48 @@ TTraction* __fastcall TGround::FindTraction(vector3 *Point,int &iConnection,TGro
     return tmp;
  }
  return NULL;
-}
+};
 
-/*
-TGroundNode* __fastcall TGround::CreateGroundNode()
-{
-    TGroundNode *tmp= new TGroundNode();
-//    RootNode->Prev= tmp;
-    tmp->Next= RootNode;
-    RootNode= tmp;
-    return tmp;
-}
+TTraction* __fastcall TGround::TractionNearestFind(vector3 &p,int dir,TGroundNode *n)
+{//wyszukanie najbli¿szego do (p) przês³a o tej samej nazwie sekcji (ale innego ni¿ pod³¹czone) oraz zasilanego z kierunku (dir)
+ TGroundNode *nCurrent,*nBest=NULL;
+ int i,j,k,zg;
+ double d,dist=200.0*200.0; //[m] odleg³oœæ graniczna
+ //najpierw szukamy w okolicznych segmentach
+ int c=GetColFromX(n->pCenter.x);
+ int r=GetRowFromZ(n->pCenter.z);
+ TSubRect *sr;
+ for (i=-1;i<=1;++i) //przegl¹damy 9 najbli¿szych sektorów
+  for (j=-1;j<=1;++j) //
+   if ((sr=FastGetSubRect(c+i,r+j))!=NULL) //o ile w ogóle sektor jest
+    for (nCurrent=sr->nRenderWires;nCurrent;nCurrent=nCurrent->nNext3)
+     if (nCurrent->iType==TP_TRACTION)
+      if (nCurrent->hvTraction->psSection==n->hvTraction->psSection) //jeœli ta sama sekcja
+       if (nCurrent!=n) //ale nie jest tym samym
+        if (nCurrent->hvTraction!=n->hvTraction->hvNext[0]) //ale nie jest bezpoœrednio pod³¹czonym
+         if (nCurrent->hvTraction!=n->hvTraction->hvNext[1])
+          if (nCurrent->hvTraction->psPower[k=(DotProduct(n->hvTraction->vParametric,nCurrent->hvTraction->vParametric)>=0?dir^1:dir)]) //ma zasilanie z odpowiedniej strony
+           if (nCurrent->hvTraction->fResistance[k]>=0.0) //¿eby siê nie propagowa³y jakieœ ujemne
+           {//znaleziony kandydat do po³¹czenia
+            d=SquareMagnitude(p-nCurrent->pCenter); //kwadrat odleg³oœci œrodków
+            if (dist>d)
+            {//zapamiêtanie nowego najbli¿szego
+             dist=d; //nowy rekord odleg³oœci
+             nBest=nCurrent;
+             zg=k; //z którego koñca braæ wskaŸnik zasilacza
+            }
+           }
+ if (nBest) //jak znalezione przês³o z zasilaniem, to pod³¹czenie "równoleg³e"
+ {n->hvTraction->ResistanceCalc(dir,nBest->hvTraction->fResistance[zg],nBest->hvTraction->psPower[zg]);
+  //testowo skrzywienie przês³a tak, aby pokazaæ sk¹d ma zasilanie
+  //if (dir) //1 gdy ci¹g dalszy jest od strony Point2
+  // n->hvTraction->pPoint3=0.25*(nBest->pCenter+3*(zg?nBest->hvTraction->pPoint4:nBest->hvTraction->pPoint3));
+  //else
+  // n->hvTraction->pPoint4=0.25*(nBest->pCenter+3*(zg?nBest->hvTraction->pPoint4:nBest->hvTraction->pPoint3));
+ }
+ return (nBest?nBest->hvTraction:NULL);
+};
 
-TGroundNode* __fastcall TGround::GetVisible( AnsiString asName )
-{
-    MessageBox(NULL,"Error","TGround::GetVisible( AnsiString asName ) is obsolete",MB_OK);
-    return RootNode->Find(asName);
-//    return FirstVisible->FindVisible(asName);
-}
-
-TGroundNode* __fastcall TGround::GetNode( AnsiString asName )
-{
-    return RootNode->Find(asName);
-}
-*/
 bool __fastcall TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
 {
  if (Event->bEnabled) //jeœli mo¿e byæ dodany do kolejki (nie u¿ywany w skanowaniu)
@@ -3151,6 +3248,8 @@ bool __fastcall TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
    {//standardowe dodanie do kolejki
     WriteLog("EVENT ADDED TO QUEUE: "+Event->asName+(Node?AnsiString(" by "+Node->asName):AnsiString("")));
     Event->fStartTime=fabs(Event->fDelay)+Timer::GetTime(); //czas od uruchomienia scenerii
+    if (Event->fRandomDelay>0.0)
+     Event->fStartTime+=Event->fRandomDelay*random(10000)*0.0001; //doliczenie losowego czasu opóŸnienia
     ++Event->iQueued; //zabezpieczenie przed podwójnym dodaniem do kolejki
     if (QueryRootEvent?Event->fStartTime>=QueryRootEvent->fStartTime:false)
      QueryRootEvent->AddToQuery(Event); //dodanie gdzieœ w œrodku
@@ -3370,7 +3469,7 @@ bool __fastcall TGround::CheckQuery()
     break;
     case tp_Switch:
      if (tmpEvent->Params[9].asTrack)
-      tmpEvent->Params[9].asTrack->Switch(tmpEvent->Params[0].asInt);
+      tmpEvent->Params[9].asTrack->Switch(tmpEvent->Params[0].asInt,tmpEvent->Params[1].asdouble,tmpEvent->Params[2].asdouble);
      if (Global::iMultiplayer) //dajemy znaæ do serwera o prze³o¿eniu
       WyslijEvent(tmpEvent->asName,""); //wys³anie nazwy eventu prze³¹czajacego
      //Ra: bardziej by siê przyda³a nazwa toru, ale nie ma do niej st¹d dostêpu

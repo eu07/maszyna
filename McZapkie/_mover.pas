@@ -259,10 +259,10 @@ TYPE
                           NotDefined,InternalSource : (PowerType: TPowerType);
                           Transducer : (InputVoltage: real);
                           Generator  : (GeneratorEngine: TEngineTypes);
-                          Accumulator: (MaxCapacity: real; RechargeSource:TPowerSource);
+                          Accumulator: (RAccumulator:record MaxCapacity:real; RechargeSource:TPowerSource end);
                           CurrentCollector: (CollectorParameters: TCurrentCollector);
-                          PowerCable : (PowerTrans:TPowerType; SteamPressure: real);
-                          Heater : (Grate: TGrateType; Boiler: TBoilerType);
+                          PowerCable : (RPowerCable:record PowerTrans:TPowerType; SteamPressure:real end);
+                          Heater : (RHeater:record Grate:TGrateType; Boiler:TBoilerType end);
                        end;
 
     {dla lokomotyw elektrycznych:}
@@ -1456,7 +1456,7 @@ begin
    else if (LastRelayTime>CtrlDownDelay) then
     LastRelayTime:=0;
   end;
-  DecMainCtrl:=OK;
+ DecMainCtrl:=OK;
 end;
 
 function T_MoverParameters.IncScndCtrl(CtrlSpeed:integer): boolean;
@@ -2262,8 +2262,8 @@ end;
 
 function T_MoverParameters.IncBrakePress(var brake:real;PressLimit,dp:real):boolean;
 begin
-//  if (DynamicBrakeType<>dbrake_switch) and (DynamicBrakeType<>dbrake_none) and ((BrakePress>0.2) or (PipePress<0.37{(LowPipePress+0.05)})) then
-    if (DynamicBrakeType<>dbrake_switch) and (DynamicBrakeType<>dbrake_none) and (BrakePress>0.2) and (TrainType<>dt_EZT) then //yB radzi nie sprawdzaæ ciœnienia w przewodzie
+//  if (DynamicBrakeType<>dbrake_switch) and (DynamicBrakeType<>dbrake_none) and ((BrakePress>2.0) or (PipePress<3.7{(LowPipePress+0.5)})) then
+    if (DynamicBrakeType<>dbrake_switch) and (DynamicBrakeType<>dbrake_none) and (BrakePress>2.0) and (TrainType<>dt_EZT) then //yB radzi nie sprawdzaæ ciœnienia w przewodzie
     //hunter-301211: dla EN57 silnikow nie odlaczamy
      begin
        DynamicBrakeFlag:=true;                 {uruchamianie hamulca ED albo odlaczanie silnikow}
@@ -2677,17 +2677,18 @@ var b,Bn:byte;
 begin
   ClearPendingExceptions;
   ShowCurrent:=0;
-  Bn:=RList[MainCtrlActualPos].Bn;
+  Bn:=RList[MainCtrlActualPos].Bn; //ile równoleg³ych ga³êzi silników
   if (DynamicBrakeType=dbrake_automatic) and (DynamicBrakeFlag) then
    Bn:=2;
   if Power>0.01 then
    begin
-     if AmpN>0 then
+     if AmpN>0 then //podaæ pr¹d w ga³êzi
       begin
        if Bn>=AmpN then
         ShowCurrent:=Trunc(Abs(Im));
       end
-     else
+     else //podaæ ca³kowity
+//        ShowCurrent:=ScndCtrlActualPos+MainCtrlActualPos*10+200*Integer(StLinFlag);
 //        ShowCurrent:=ScndCtrlActualPos+MainCtrlActualPos*10+200*Integer(StLinFlag);
        ShowCurrent:=Trunc(Abs(Itot));
     end
@@ -2783,10 +2784,10 @@ begin
   ResistorsFlag:=(RList[MainCtrlActualPos].R>0.01){ and (not DelayCtrlFlag)};
   ResistorsFlag:=ResistorsFlag or ((DynamicBrakeFlag=true) and (DynamicBrakeType=dbrake_automatic));
   R:=RList[MainCtrlActualPos].R+CircuitRes;
-  if(TrainType<>dt_EZT)or(Imin<>IminLo)or(not ScndS)then //yBARC - boczniki na szeregu poprawnie
-    Mn:=RList[MainCtrlActualPos].Mn
+  if (TrainType<>dt_EZT)or(Imin<>IminLo)or(not ScndS) then //yBARC - boczniki na szeregu poprawnie
+   Mn:=RList[MainCtrlActualPos].Mn
   else
-    Mn:=RList[MainCtrlActualPos].Mn*RList[MainCtrlActualPos].Bn;
+   Mn:=RList[MainCtrlActualPos].Mn*RList[MainCtrlActualPos].Bn;
 //z Megapacka
 //  if DynamicBrakeFlag and (TrainType=dt_ET42) then { KURS90 azeby mozna bylo hamowac przy opuszczonych pantografach }
 //  SP:=ScndCtrlActualPos;
@@ -2868,14 +2869,14 @@ begin
 }
 
   if (DynamicBrakeType=dbrake_switch) and ((BrakePress>2.0) or (PipePress<3.6)) then
-  begin
+   begin
     Im:=0;
-  MotorCurrent:=0;
-  //Im:=0;
-  Itot:=0;
-  end
-    else
-  Im:=MotorCurrent;
+    MotorCurrent:=0;
+    //Im:=0;
+    Itot:=0;
+   end
+  else
+   Im:=MotorCurrent;
   Current:=Im; {prad brany do liczenia sily trakcyjnej}
 {  EnginePower:=Im*Im*RList[MainCtrlActualPos].Bn*RList[MainCtrlActualPos].Mn*WindingRes;}
   EnginePower:=Abs(Itot)*(1+RList[MainCtrlActualPos].Mn)*Abs(U);
@@ -3440,10 +3441,6 @@ begin
               Exit; //Ra: to powoduje, ¿e EN57 nie wy³¹cza siê przy IminLo
             end;
            begin //main bez samoczynnego rozruchu
-//             if (Rlist[MainCtrlActualPos].Relay<MainCtrlPos)or(Rlist[MainCtrlActualPos+1].Relay=MainCtrlPos) then //ET22
-//              begin
-//
-//              end else
              if (Rlist[MainCtrlActualPos].Relay<MainCtrlPos)or(Rlist[MainCtrlActualPos+1].Relay=MainCtrlPos) then
               begin
                if (Rlist[MainCtrlPos].R=0) and (MainCtrlPos>0) and (not (MainCtrlPos=MainCtrlPosNo)) and (FastSerialCircuit=1) then
@@ -3509,7 +3506,7 @@ begin
      begin
       OK:=false;
       //ybARC - tutaj sa wszystkie warunki, jakie musza byc spelnione, zeby mozna byla zalaczyc styczniki liniowe
-      if ((MainCtrlPos=1)or((TrainType=dt_EZT)and(MainCtrlPos>0)))and(not FuseFlag)and(Mains)and(BrakePress<1.0)and(MainCtrlActualPos=0)and(ActiveDir<>0)then
+      if ((MainCtrlPos=1)or((TrainType=dt_EZT)and(MainCtrlPos>0)))and(not FuseFlag)and(Mains)and(BrakePress<1.0)and(MainCtrlActualPos=0)and(ActiveDir<>0) then
        begin
          DelayCtrlFlag:=true;
          if (LastRelayTime>=InitialCtrlDelay) then
@@ -3524,8 +3521,8 @@ begin
       else
        DelayCtrlFlag:=false;
 
-      if{(MainCtrlPos=0)and}((MainCtrlActualPos>0)or(ScndCtrlActualPos>0))then
-       if(TrainType=dt_EZT)and(CoupledCtrl)then //EN57 wal jednokierunkowy calosciowy
+      if {(MainCtrlPos=0)and}((MainCtrlActualPos>0)or(ScndCtrlActualPos>0)) then
+       if (TrainType=dt_EZT)and(CoupledCtrl)then //EN57 wal jednokierunkowy calosciowy
         begin
          if(LastRelayTime>CtrlDownDelay)then
           begin
@@ -3539,7 +3536,7 @@ begin
              ScndCtrlActualPos:=0;
             end;
            OK:=true;
-          end 
+          end
         end
        else if(CoupledCtrl)then //wal kulakowy dwukierunkowy
         begin
@@ -3553,8 +3550,8 @@ begin
         end
        else
         begin
+         MainCtrlActualPos:=0;
          ScndCtrlActualPos:=0;
-         MainCtrlActualPos:=0;         
          OK:=true;
         end;
 
@@ -3913,6 +3910,10 @@ begin
              FuseOff;
          end;
         if (Abs(Im)>Imax) then
+         Vhyp:=Vhyp+dt //zwieksz czas oddzialywania na PN
+        else
+         Vhyp:=0;
+        if (Vhyp>CtrlDelay) then  //jesli czas oddzialywania przekroczony
          FuseOff;                     {wywalanie bezpiecznika z powodu przetezenia silnikow}
         if (Mains) then //nie wchodziæ w funkcjê bez potrzeby
          if (Abs(Voltage)<EnginePowerSource.CollectorParameters.MinV) or (Abs(Voltage)>EnginePowerSource.CollectorParameters.MaxV) then
@@ -3921,7 +3922,7 @@ begin
 
         if (((DynamicBrakeType=dbrake_automatic)or(DynamicBrakeType=dbrake_switch)) and (DynamicBrakeFlag)) then
          Itot:=Im*2   {2x2 silniki w EP09}
-        else if(TrainType=dt_EZT)and(Imin=IminLo)and(ScndS)then //yBARC - boczniki na szeregu poprawnie
+        else if (TrainType=dt_EZT)and(Imin=IminLo)and(ScndS) then //yBARC - boczniki na szeregu poprawnie
          Itot:=Im
         else
          Itot:=Im*RList[MainCtrlActualPos].Bn;   {prad silnika * ilosc galezi}
@@ -4287,16 +4288,16 @@ var CCF,Vprev,VprevC:real; VirtualCoupling:boolean;
 begin
      CCF:=0;
      with Couplers[CouplerN] do
-      if (Connected<>nil) then //Ra: siê wysypywa³o
+      if (Connected<>nil) then
       begin
         VirtualCoupling:=(CouplingFlag=ctrain_virtual);
         Vprev:=V;
-        VprevC:=Connected.V; //Ra: siê wysypywa³o tutaj
+        VprevC:=Connected.V;
         case CouplerN of
          0 : CCF:=ComputeCollision(V,Connected.V,TotalMass,Connected.TotalMass,(beta+Connected.Couplers[ConnectedNr].beta)/2.0,VirtualCoupling)/(dt{+0.01}); //yB: ej ej ej, a po
          1 : CCF:=ComputeCollision(Connected.V,V,Connected.TotalMass,TotalMass,(beta+Connected.Couplers[ConnectedNr].beta)/2.0,VirtualCoupling)/(dt{+0.01}); //czemu tu jest +0.01??
         end;
-        AccS:=AccS+(V-Vprev)/dt;
+        AccS:=AccS+(V-Vprev)/dt; //korekta przyspieszenia o si³y wynikaj¹ce ze zderzeñ?
         Connected.AccS:=Connected.AccS+(Connected.V-VprevC)/dt;
         if (Dist>0) and (not VirtualCoupling) then
          if FuzzyLogic(Abs(CCF),5*(FmaxC+1),p_coupldmg) then
@@ -4471,12 +4472,12 @@ begin
   {to powinno byc zerowane na zewnatrz}
 
     //juz zoptymalizowane:
-    FStand:=FrictionForce(RunningShape.R,RunningTrack.DamageFlag);
-    Vel:=Abs(V)*3.6;
+    FStand:=FrictionForce(RunningShape.R,RunningTrack.DamageFlag); //si³a oporów ruchu
+    Vel:=Abs(V)*3.6; //prêdkoœæ w km/h
     nrot:=V2n(); //przeliczenie prêdkoœci liniowej na obrotow¹
 
     if TestFlag(BrakeMethod,bp_MHS) and (PipePress<3.0) and (Vel>45) then //ustawione na sztywno na 3 bar
-      FStand:=Fstand+(RunningTrack.friction)*TrackBrakeForce;
+      FStand:=Fstand+(RunningTrack.friction)*TrackBrakeForce; //doliczenie hamowania hamulcem szynowym
 
 //    if(FullVer=true) then
 //    begin //ABu: to dla optymalizacji, bo chyba te rzeczy wystarczy sprawdzac 1 raz na klatke?
@@ -4484,8 +4485,8 @@ begin
        if EngineType=ElectricSeriesMotor then
           LastRelayTime:=LastRelayTime+dt1;
 //    end;
-       if Mains and (Abs(CabNo)<2) and (EngineType=ElectricSeriesMotor) then                              {potem ulepszyc! pantogtrafy!}
-       begin
+       if Mains and {(Abs(CabNo)<2) and} (EngineType=ElectricSeriesMotor) then //potem ulepszyc! pantogtrafy!
+       begin //Ra 2014-03: uwzglêdnienie kierunku jazdy w napiêciu na silnikach, a powinien byæ zdefiniowany nawrotnik
           if CabNo=0 then
              Voltage:=RunningTraction.TractionVoltage*ActiveDir
           else
@@ -4513,14 +4514,14 @@ begin
   {  FStand:=0; }
     for b:=0 to 1 do
      if (Couplers[b].Connected<>nil) {and (Couplers[b].CouplerType<>Bare) and (Couplers[b].CouplerType<>Articulated)} then
-      begin
+      begin //doliczenie si³ z innych pojazdów
         Couplers[b].CForce:=CouplerForce(b,dt);
         FTrain:=FTrain+Couplers[b].CForce
       end
      else Couplers[b].CForce:=0;
     //FStand:=Fb+FrictionForce(RunningShape.R,RunningTrack.DamageFlag);
-    FStand:=Fb+Fstand;
-    FTrain:=FTrain+TotalMassxg*RunningShape.dHtrack; // /RunningShape.Len;
+    FStand:=Fb+FStand;
+    FTrain:=FTrain+TotalMassxg*RunningShape.dHtrack; //doliczenie sk³adowej stycznej grawitacji
     {!niejawne przypisanie zmiennej!}
     FTotal:=FTrain-Sign(V)*FStand;
    end;
@@ -4557,7 +4558,7 @@ function T_MoverParameters.ComputeMovement(dt:real; dt1:real; Shape:TTrackShape;
 var b:byte;
     Vprev,AccSprev:real;
 //    Iheat:real; prad ogrzewania
-const Vepsilon=1e-5; Aepsilon=1e-3; ASBSpeed=0.8;
+const Vepsilon=1e-5; Aepsilon=1e-3; //ASBSpeed=0.8;
 begin
 {
     for b:=0 to 1 do //przekazywanie napiec
@@ -4615,7 +4616,7 @@ begin
      AccSprev:=AccS;
      {dt:=ActualTime-LastUpdatedTime;}                               {przyrost czasu}
      {przyspieszenie styczne}
-     AccS:=(FTotal/TotalMass+AccSprev)/2.0;                            {prawo Newtona ale z wygladzaniem}
+     AccS:=(FTotal/TotalMass+AccSprev)/2.0; //prawo Newtona ale z wygladzaniem (œrednia z poprzednim)
 
      if TestFlag(DamageFlag,dtrain_out) then
       AccS:=-Sign(V)*g*Random;
@@ -4678,7 +4679,7 @@ begin
      if (V*Vprev<=0) and (Abs(FStand)>Abs(FTrain)) then            {tlumienie predkosci przy hamowaniu}
        begin     {zahamowany}
          V:=0;
-         AccS:=0;
+         //AccS:=0; //Ra 2014-03: ale si³a grawitacji dzia³a, wiêc nie mo¿e byæ zerowe
        end;
    (*
      else
@@ -4703,78 +4704,7 @@ begin
 *)
    end; {liczone dL, predkosc i przyspieszenie}
 
-
- if (EngineType=WheelsDriven) then
-  ComputeMovement:=CabNo*dL {na chwile dla testu}
- else
-  ComputeMovement:=dL;
- DistCounter:=DistCounter+abs(dL)/1000.0;
- dL:=0;
-
-   {koniec procedury, tu nastepuja dodatkowe procedury pomocnicze}
-
-{sprawdzanie i ewentualnie wykonywanie->kasowanie polecen}
- if (LoadStatus>0) then //czas doliczamy tylko jeœli trwa (roz)³adowanie
-  LastLoadChangeTime:=LastLoadChangeTime+dt; //czas (roz)³adunku
- RunInternalCommand;
-
-{automatyczny rozruch}
- if EngineType=ElectricSeriesMotor then
-  begin
-   if AutoRelayCheck then
-    SetFlag(SoundFlag,sound_relay);
-  end;
-(*
- else                  {McZapkie-041003: aby slychac bylo przelaczniki w sterowniczym}
-  if (EngineType=None) and (MainCtrlPosNo>0) then
-   for b:=0 to 1 do
-    with Couplers[b] do
-     if TestFlag(CouplingFlag,ctrain_controll) then
-      if Connected^.Power>0.01 then
-       SoundFlag:=SoundFlag or Connected^.SoundFlag;
-*)
- if EngineType=DieselEngine then
-  if dizel_Update(dt) then
-    SetFlag(SoundFlag,sound_relay);
-
-{uklady hamulcowe:}
-  if VeselVolume>0 then
-   Compressor:=CompressedVolume/(VeselVolume)
-  else
-   begin
-     Compressor:=0;
-     CompressorFlag:=false;
-   end;
- ConverterCheck();
- if (CompressorSpeed>0.0) then //sprê¿arka musi mieæ jak¹œ niezerow¹ wydajnoœæ
-  CompressorCheck(dt); //¿eby rozwa¿aæ jej za³¹czenie i pracê
- UpdateBrakePressure(dt);
- UpdatePipePressure(dt);
- //UpdateBatteryVoltage(dt);
- UpdateScndPipePressure(dt); // druga rurka, youBy
-
-{hamulec antyposlizgowy - wylaczanie}
- if (BrakeSlippingTimer>ASBSpeed) and (ASBType<>128) then
-   Hamulec.ASB(0);
-//  SetFlag(BrakeStatus,-b_antislip);
- BrakeSlippingTimer:=BrakeSlippingTimer+dt;
-{sypanie piasku - wylaczone i piasek sie nie konczy - bledy AI}
-//if AIControllFlag then
-// if SandDose then
-//  if Sand>0 then
-//   begin
-//     Sand:=Sand-NPoweredAxles*SandSpeed*dt;
-//     if Random<dt then SandDose:=false;
-//   end
-//  else
-//   begin
-//     SandDose:=false;
-//     Sand:=0;
-//   end;
-{czuwak/SHP}
- //if (Vel>10) and (not DebugmodeFlag) then
- if not (DebugmodeFlag) then
-  SecuritySystemCheck(dt1);
+   {Ra: reszta przeniesiona do Mover.cpp}
 end; {ComputeMovement}
 
 {blablabla}
@@ -4782,7 +4712,7 @@ end; {ComputeMovement}
 function T_MoverParameters.FastComputeMovement(dt:real; Shape:TTrackShape; var Track:TTrackParam;NewLoc:TLocation; var NewRot:TRotation):real; //;var ElectricTraction:TTractionParam; NewLoc:TLocation; var NewRot:TRotation):real;
 var b:byte;
     Vprev,AccSprev:real;
-const Vepsilon=1e-5; Aepsilon=1e-3; ASBSpeed=0.8;
+const Vepsilon=1e-5; Aepsilon=1e-3; //ASBSpeed=0.8;
 begin
   ClearPendingExceptions;
   Loc:=NewLoc;
@@ -4794,7 +4724,7 @@ begin
      AccSprev:=AccS;
      {dt:=ActualTime-LastUpdatedTime;}                               {przyrost czasu}
      {przyspieszenie styczne}
-     AccS:=(FTotal/TotalMass+AccSprev)/2.0;                            {prawo Newtona ale z wygladzaniem}
+     AccS:=(FTotal/TotalMass+AccSprev)/2.0; //prawo Newtona ale z wygladzaniem (œrednia z poprzednim)
 
      if TestFlag(DamageFlag,dtrain_out) then
       AccS:=-Sign(V)*g*Random;
@@ -4845,7 +4775,7 @@ begin
       if Vel<1 then
        begin
          V:=0;
-         AccS:=0;
+         AccS:=0; //Ra 2014-03: ale si³a grawitacji dzia³a, wiêc nie mo¿e byæ zerowe
        end;
 
      if (V*Vprev<=0) and (Abs(FStand)>Abs(FTrain)) then            {tlumienie predkosci przy hamowaniu}
@@ -4860,43 +4790,7 @@ begin
       CollisionDetect(b,dt);  {zmienia niejawnie AccS, V !!!}
    end; {liczone dL, predkosc i przyspieszenie}
 
- if (EngineType=WheelsDriven) then
-  FastComputeMovement:=CabNo*dL {na chwile dla testu}
- else
-  FastComputeMovement:=dL;
- DistCounter:=DistCounter+abs(dL)/1000.0;
- dL:=0;
-
-   {koniec procedury, tu nastepuja dodatkowe procedury pomocnicze}
-
-{sprawdzanie i ewentualnie wykonywanie->kasowanie polecen}
- if (LoadStatus>0) then //czas doliczamy tylko jeœli trwa (roz)³adowanie
-  LastLoadChangeTime:=LastLoadChangeTime+dt; //czas (roz)³adunku
- RunInternalCommand;
-
- if EngineType=DieselEngine then
-  if dizel_Update(dt) then
-    SetFlag(SoundFlag,sound_relay);
-
-{uklady hamulcowe:}
-  if VeselVolume>0 then
-   Compressor:=CompressedVolume/(VeselVolume)
-  else
-   begin
-     Compressor:=0;
-     CompressorFlag:=false;
-   end;
- ConverterCheck();
- if (CompressorSpeed>0.0) then //sprê¿arka musi mieæ jak¹œ niezerow¹ wydajnoœæ
-  CompressorCheck(dt); //¿eby rozwa¿aæ jej za³¹czenie i pracê
- UpdateBrakePressure(dt);
- UpdatePipePressure(dt);
- UpdateScndPipePressure(dt); // druga rurka, youBy
- //UpdateBatteryVoltage(dt);
-{hamulec antyposlizgowy - wylaczanie}
- if (BrakeSlippingTimer>ASBSpeed)and(ASBType<>128) then
-   Hamulec.ASB(0);
- BrakeSlippingTimer:=BrakeSlippingTimer+dt;
+   {Ra: reszta przeniesiona do Mover.cpp}
 end; {FastComputeMovement}
 
 
@@ -5347,7 +5241,7 @@ begin
   dMoveLen:=0;
   CategoryFlag:=1;
   EngineType:=None;
-  for b:=1 to ResArraySize do
+  for b:=0 to ResArraySize do
    begin
      RList[b].Relay:=0;
      RList[b].R:=0;
@@ -5390,22 +5284,22 @@ begin
   with HeatingPowerSource do
    begin
      MaxVoltage:=0; MaxCurrent:=0; IntR:=0.001;
-     SourceType:=NotDefined; PowerType:=NoPower; PowerTrans:=NoPower;
+     SourceType:=NotDefined; PowerType:=NoPower; RPowerCable.PowerTrans:=NoPower;
    end;
   with AlterHeatPowerSource do
    begin
      MaxVoltage:=0; MaxCurrent:=0; IntR:=0.001;
-     SourceType:=NotDefined; PowerType:=NoPower; PowerTrans:=NoPower;
+     SourceType:=NotDefined; PowerType:=NoPower; RPowerCable.PowerTrans:=NoPower;
    end;
   with LightPowerSource do
    begin
      MaxVoltage:=0; MaxCurrent:=0; IntR:=0.001;
-     SourceType:=NotDefined; PowerType:=NoPower; PowerTrans:=NoPower;
+     SourceType:=NotDefined; PowerType:=NoPower; RPowerCable.PowerTrans:=NoPower;
    end;
   with AlterLightPowerSource do
    begin
      MaxVoltage:=0; MaxCurrent:=0; IntR:=0.001;
-     SourceType:=NotDefined; PowerType:=NoPower; PowerTrans:=NoPower;
+     SourceType:=NotDefined; PowerType:=NoPower; RPowerCable.PowerTrans:=NoPower;
    end;
   TypeName:=TypeNameInit;
   HighPipePress:=0;
@@ -6098,9 +5992,9 @@ function PowerDecode(s:string): TPowerType;
         Transducer : InputVoltage:=s2rE(DUE(ExtractKeyWord(lines,prefix+'TransducerInputV=')));
         Generator  : GeneratorEngine:=EngineDecode(DUE(ExtractKeyWord(lines,prefix+'GeneratorEngine=')));
         Accumulator: begin
-                       MaxCapacity:=s2r(DUE(ExtractKeyWord(lines,prefix+'Cap=')));
+                       RAccumulator.MaxCapacity:=s2r(DUE(ExtractKeyWord(lines,prefix+'Cap=')));
                        s:=DUE(ExtractKeyWord(lines,prefix+'RS='));
-                       RechargeSource:=PowerSourceDecode(s);
+                       RAccumulator.RechargeSource:=PowerSourceDecode(s);
                      end;
         CurrentCollector: begin
                             with CollectorParameters do
@@ -6123,16 +6017,16 @@ function PowerDecode(s:string): TPowerType;
                              end;
                           end;
         PowerCable : begin
-                       PowerTrans:=PowerDecode(DUE(ExtractKeyWord(lines,prefix+'PowerTrans=')));
-                       if PowerTrans=SteamPower then
-                        SteamPressure:=s2r(DUE(ExtractKeyWord(lines,prefix+'SteamPress=')));
+                       RPowerCable.PowerTrans:=PowerDecode(DUE(ExtractKeyWord(lines,prefix+'PowerTrans=')));
+                       if RPowerCable.PowerTrans=SteamPower then
+                        RPowerCable.SteamPressure:=s2r(DUE(ExtractKeyWord(lines,prefix+'SteamPress=')));
                      end;
         Heater : begin
                    {jeszcze nie skonczone!}
                  end;
        end;
        if (SourceType<>Heater) and (SourceType<>InternalSource) then
-        if not ((SourceType=PowerCable) and (PowerTrans=SteamPower)) then
+        if not ((SourceType=PowerCable) and (RPowerCable.PowerTrans=SteamPower)) then
         begin
 {          PowerTrans:=ElectricPower; }
           MaxVoltage:=s2rE(DUE(ExtractKeyWord(lines,prefix+'MaxVoltage=')));

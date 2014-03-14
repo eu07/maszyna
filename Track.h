@@ -33,9 +33,12 @@ public:
  bool iNextDirection[2];
  bool iPrevDirection[2];
  int CurrentIndex; //dla zwrotnicy
- double fOffset1, fDesiredOffset1; //ruch od strony punktu 1
+ double fOffset,fDesiredOffset; //aktualne i docelowe po³o¿enie napêdu iglic 
+ double fOffsetSpeed; //prêdkoœæ liniowa ruchu iglic
+ double fOffsetDelay; //opóŸnienie ruchu drugiej iglicy wzglêdem pierwszej
  union
- {double fOffset2, fDesiredOffset2; //ruch od strony punktu 2 nie obs³ugiwany
+ {
+  struct {double fOffset1,fOffset2;}; //przesuniêcia iglic
   TGroundNode *pMyNode; //dla obrotnicy do wtórnego pod³¹czania torów
  };
  union
@@ -72,7 +75,7 @@ public:
  void __fastcall Modify(int i,TDynamicObject *o); //dodanie lub odjêcie osi
  bool __fastcall Busy() { return (iAxles>0); };
  static TIsolated* __fastcall Root() { return (pRoot); };
- TIsolated* __fastcall Next() { return (pNext); }; 
+ TIsolated* __fastcall Next() { return (pNext); };
 };
 
 class TTrack : public Resource
@@ -150,7 +153,7 @@ public:
  inline TTrack* __fastcall CurrentNext() {return (trNext);};
  inline TTrack* __fastcall CurrentPrev() {return (trPrev);};
  bool __fastcall SetConnections(int i);
- bool __fastcall Switch(int i);
+ bool __fastcall Switch(int i,double t=-1.0,double d=-1.0);
  bool __fastcall SwitchForced(int i,TDynamicObject *o);
  inline int __fastcall GetSwitchState() { return (SwitchExtension?SwitchExtension->CurrentIndex:-1); };
  void __fastcall Load(cParser *parser, vector3 pOrigin,AnsiString name);

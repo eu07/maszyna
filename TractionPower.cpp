@@ -32,14 +32,17 @@ __fastcall TTractionPowerSource::TTractionPowerSource()
  SlowFuseTimeOut=60;
  Recuperation=false;
 
- TotalCurrent=0;
- TotalPreviousCurrent=0;
+ TotalAdmitance=1e-10; //10Mom - jakaœ tam up³ywnoœæ
+ TotalPreviousAdmitance=1e-10; //zero jest szkodliwe
  OutputVoltage=0;
  FastFuse=false;
  SlowFuse=false;
  FuseTimer=0;
  FuseCounter=0;
  //asName="";
+ psNode[0]=NULL; //sekcje zostan¹ pod³¹czone do zasilaczy
+ psNode[1]=NULL;
+ bSection=false; //sekcja nie jest Ÿród³em zasilania, tylko grupuje przês³a
 };
 
 __fastcall TTractionPowerSource::~TTractionPowerSource()
@@ -64,13 +67,17 @@ bool __fastcall TTractionPowerSource::Load(cParser *parser)
  *parser >> SlowFuseTimeOut;
  parser->getTokens();
  *parser >> token;
- if ( token.compare( "recuperation" ) == 0 )
-  Recuperation= true;
+ if (token.compare("recuperation")==0)
+  Recuperation=true;
+ else if (token.compare("section")==0) //od³¹cznik sekcyjny
+  bSection=true; //nie jest Ÿród³em zasilania, a jedynie informuje o pr¹dzie od³¹czenia sekcji z obwodu
  parser->getTokens();
  *parser >> token;
- if ( token.compare( "end" ) != 0 )
+ if (token.compare("end")!=0)
   Error("tractionpowersource end statement missing");
- InternalRes*=10; //coœ ma³a ta rezystancja by³a...  
+ //if (!bSection) //od³¹cznik sekcji zasadniczo nie ma impedancji (0.01 jest OK)
+  if (InternalRes<0.1) //coœ ma³a ta rezystancja by³a...
+   InternalRes=0.2; //tak oko³o 0.2, wg http://www.ikolej.pl/fileadmin/user_upload/Seminaria_IK/13_05_07_Prezentacja_Kruczek.pdf
  return true;
 };
 
@@ -82,7 +89,7 @@ bool __fastcall TTractionPowerSource::Render()
 
 bool __fastcall TTractionPowerSource::Update(double dt)
 {//powinno byæ wykonane raz na krok fizyki
- if (TotalPreviousCurrent>MaxOutputCurrent)
+ if (NominalVoltage*TotalPreviousAdmitance>MaxOutputCurrent) //iloczyn napiêcia i admitancji daje pr¹d
  {
   FastFuse=true;
   FuseCounter+=1;
@@ -92,7 +99,7 @@ bool __fastcall TTractionPowerSource::Update(double dt)
  }
  if (FastFuse||SlowFuse)
  {//jeœli któryœ z bezpieczników zadzia³a³
-  TotalCurrent=0;
+  TotalAdmitance=0;
   FuseTimer+=dt;
   if (!SlowFuse)
   {//gdy szybki, odczekaæ krótko i za³¹czyæ
@@ -105,25 +112,37 @@ bool __fastcall TTractionPowerSource::Update(double dt)
     FuseCounter=0; //dajemy znów szanse
    }
  }
- TotalPreviousCurrent=TotalCurrent;
- TotalCurrent=0;
+ TotalPreviousAdmitance=TotalAdmitance; //u¿ywamy admitancji z poprzedniego kroku
+ if (TotalPreviousAdmitance==0.0)
+  TotalPreviousAdmitance=1e-10; //przynajmniej minimalna up³ywnoœæ
+ TotalAdmitance=1e-10; //a w aktualnym kroku sumujemy admitancjê
  return true;
 };
 
-double __fastcall TTractionPowerSource::GetVoltage(double Current)
-{
+double __fastcall TTractionPowerSource::CurrentGet(double res)
+{//pobranie wartoœci pr¹du przypadaj¹cego na rezystancjê (res)
+ //niech pamiêta poprzedni¹ admitancjê i wg niej przydziela pr¹d
  if (SlowFuse || FastFuse)
  {
-  if (Current>0.1)
+  if (res>0.1)
    FuseTimer=0;
   return 0;
  }
- if ((Current>0) || ((Current<0) && (Recuperation)))
-   TotalCurrent+=Current;
- OutputVoltage=NominalVoltage-InternalRes*TotalPreviousCurrent;
- return OutputVoltage;
+ if ((res>0) || ((res<0) && (Recuperation)))
+   TotalAdmitance+=1.0/res; //po³¹czenie równoleg³e rezystancji jest równowa¿ne sumie admitancji
+ TotalCurrent=(TotalPreviousAdmitance!=0.0)?NominalVoltage/(InternalRes+1.0/TotalPreviousAdmitance):0.0; //napiêcie dzielone przez sumê rezystancji wewnêtrznej i obci¹¿enia
+ OutputVoltage=NominalVoltage-InternalRes*TotalCurrent; //napiêcie na obci¹¿eniu
+ return TotalCurrent/(res*TotalPreviousAdmitance); //pr¹d proporcjonalny do udzia³u (1/res) w ca³kowitej admitancji 
 };
 
+void __fastcall TTractionPowerSource::PowerSet(TTractionPowerSource *ps)
+{//wskazanie zasilacza w obiekcie sekcji
+ if (!psNode[0])
+  psNode[0]=ps;
+ else if (!psNode[1])
+  psNode[1]=ps;
+ //else ErrorLog("nie mo¿e byæ wiêcej punktów zasilania ni¿ dwa"); 
+};
 
 //---------------------------------------------------------------------------
 
