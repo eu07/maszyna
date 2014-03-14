@@ -3909,6 +3909,10 @@ begin
              FuseOff;
          end;
         if (Abs(Im)>Imax) then
+         Vhyp:=Vhyp+dt //zwieksz czas oddzialywania na PN
+        else
+         Vhyp:=0;
+        if (Vhyp>CtrlDelay) then  //jesli czas oddzialywania przekroczony
          FuseOff;                     {wywalanie bezpiecznika z powodu przetezenia silnikow}
         if (Mains) then //nie wchodziæ w funkcjê bez potrzeby
          if (Abs(Voltage)<EnginePowerSource.CollectorParameters.MinV) or (Abs(Voltage)>EnginePowerSource.CollectorParameters.MaxV) then
