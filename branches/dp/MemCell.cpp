@@ -84,7 +84,7 @@ TCommandType __fastcall TMemCell::CommandCheck()
  {eCommand=cm_OutsideStation;
   bCommand=false; //tego nie powinno byæ w komórce
  }
- else if (strcmp(szText,"PassengerStopPoint:")==0) //TODO: porównaæ pocz¹tki !!!
+ else if (strncmp(szText,"PassengerStopPoint:",19)==0) //porównanie pocz¹tków
  {eCommand=cm_PassengerStopPoint;
   bCommand=false; //tego nie powinno byæ w komórce
  }

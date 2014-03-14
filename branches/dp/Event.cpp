@@ -125,6 +125,14 @@ void __fastcall TEvent::Conditions(cParser* parser,AnsiString s)
    }
   }
   parser->getTokens(); *parser >> token;
+  s=AnsiString(token.c_str()); //ewentualnie dalej losowe opóŸnienie
+ }
+ if (s=="randomdelay")
+ {//losowe opóŸnienie
+  std::string token;
+  parser->getTokens();
+  *parser >> fRandomDelay; //Ra 2014-03-11
+  parser->getTokens(); *parser >> token; //endevent
  }
 };
 
@@ -505,11 +513,6 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
    } while (str!="endevent");
    WriteLog("Event \""+asName+(Type==tp_Unknown?"\" has unknown type.":"\" is ignored."));
    break;
- }
- if (str=="randomdelay")
- {//losowe opóŸnienie
-  parser->getTokens();
-  *parser >> fRandomDelay; //Ra 2014-03-11
  }
 };
 
