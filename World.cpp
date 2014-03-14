@@ -1857,7 +1857,7 @@ bool __fastcall TWorld::Update()
       else
        OutText2+=AnsiString("); I=")+AnsiString(int(mvControlled->Im));
       //OutText2+=AnsiString("; I2=")+FloatToStrF(Controlled->NextConnected->MoverParameters->Im,ffFixed,6,2);
-      OutText2+=AnsiString("; V=")+AnsiString(int(mvControlled->RunningTraction.TractionVoltage));
+      OutText2+=AnsiString("; V=")+AnsiString(int(mvControlled->RunningTraction.TractionVoltage+0.5));
       //OutText2+=AnsiString("; rvent=")+FloatToStrF(mvControlled->RventRot,ffFixed,6,2);
       OutText2+=AnsiString("; R=")+FloatToStrF(Controlled->MoverParameters->RunningShape.R,ffFixed,4,1);
       OutText2+=AnsiString(" An=")+FloatToStrF(Controlled->MoverParameters->AccN,ffFixed,4,2); //przyspieszenie poprzeczne
