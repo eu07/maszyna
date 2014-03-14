@@ -3083,10 +3083,10 @@ else
     if (mvControlled->Mains)
      {
         btLampkaWylSzybki.TurnOn();
-        btLampkaOpory.Turn(mvControlled->ResistorsFlagCheck());
+        btLampkaOpory.Turn(mvControlled->StLinFlag?mvControlled->ResistorsFlagCheck():false);
         btLampkaBezoporowa.Turn(mvControlled->ResistorsFlagCheck()||(mvControlled->MainCtrlActualPos==0)); //do EU04
         if ( (mvControlled->Itot!=0) || (mvOccupied->BrakePress > 2) || ( mvOccupied->PipePress < 3.6 ))
-          btLampkaStyczn.TurnOff();     //
+          btLampkaStyczn.TurnOff();     //Ra: czy to jest udawanie dzia³ania styczników liniowych?
         else
         if (mvOccupied->BrakePress < 1)
            btLampkaStyczn.TurnOn();      //mozna prowadzic rozruch
