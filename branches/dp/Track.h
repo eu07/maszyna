@@ -38,13 +38,17 @@ public:
  double fOffsetDelay; //opóŸnienie ruchu drugiej iglicy wzglêdem pierwszej
  union
  {
-  struct {double fOffset1,fOffset2;}; //przesuniêcia iglic
-  TGroundNode *pMyNode; //dla obrotnicy do wtórnego pod³¹czania torów
- };
- union
- {bool RightSwitch; //czy zwrotnica w prawo
-  //TAnimContainer *pAnim; //animator modelu dla obrotnicy
-  TAnimModel *pModel; //na razie model
+  struct
+  {//zmienne potrzebne tylko dla zwrotnicy
+   double fOffset1,fOffset2; //przesuniêcia iglic - 0=na wprost
+   bool RightSwitch; //czy zwrotnica w prawo
+  };
+  struct
+  {//zmienne potrzebne tylko dla obrotnicy/przesuwnicy
+   TGroundNode *pMyNode; //dla obrotnicy do wtórnego pod³¹czania torów
+   //TAnimContainer *pAnim; //animator modelu dla obrotnicy
+   TAnimModel *pModel; //na razie model
+  };
  };
  bool bMovement; //czy w trakcie animacji
  int iLeftVBO,iRightVBO; //indeksy iglic w VBO
@@ -52,7 +56,7 @@ public:
  TTrack *pNextAnim; //nastêpny tor do animowania
  TEvent *evPlus,*evMinus; //zdarzenia sygnalizacji rozprucia
  float fVelocity; //maksymalne ograniczenie prêdkoœci (ustawianej eventem)
- vector3 vTrans;
+ vector3 vTrans; //docelowa translacja przesuwnicy
 private:
 };
 

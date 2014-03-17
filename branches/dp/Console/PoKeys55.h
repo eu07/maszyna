@@ -12,6 +12,7 @@ class TPoKeys55
  int iLastCommand;
  int iFaza;
  int iRepeats; //liczba powtórzeñ
+ bool bNoError; //zerowany po przepe³nieniu licznika powtórzeñ, ustawiany po udanej operacji
 public:
  float fAnalog[7]; //wejœcia analogowe, stan <0.0,1.0>
  int iInputs[8];
@@ -24,7 +25,7 @@ public:
  bool __fastcall ReadLoop(int i);
  AnsiString __fastcall Version();
  bool __fastcall PWM(int x,float y);
- bool __fastcall Update();
+ bool __fastcall Update(bool pause);
 };
 //---------------------------------------------------------------------------
 #endif
