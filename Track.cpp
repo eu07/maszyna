@@ -672,8 +672,8 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
    parser->getTokens();
    *parser >> fVelocity; //*0.28; McZapkie-010602
    if (SwitchExtension) //jeœli tor ruchomy
-    if (fVelocity>=1.0) //¿eby zero nie ogranicza³o do¿ywotnio
-     SwitchExtension->fVelocity=fVelocity; //zapamiêtanie g³ównego ograniczenia
+    if (fabs(fVelocity)>=1.0) //¿eby zero nie ogranicza³o do¿ywotnio
+     SwitchExtension->fVelocity=fVelocity; //zapamiêtanie g³ównego ograniczenia; a np. -40 ogranicza tylko na bok
   }
   else if (str=="isolated")
   {//obwód izolowany, do którego tor nale¿y
@@ -2020,6 +2020,8 @@ bool __fastcall TTrack::Switch(int i,double t,double d)
    iNextDirection=SwitchExtension->iNextDirection[NextMask[i]];
    iPrevDirection=SwitchExtension->iPrevDirection[PrevMask[i]];
    fRadius=fRadiusTable[i]; //McZapkie: wybor promienia toru
+   if (SwitchExtension->fVelocity<=-2) //-1 oznacza maksymaln¹ prêdkoœæ, a dalsze ujemne to ograniczenie na bok
+    fVelocity=i?-SwitchExtension->fVelocity:-1;
    if (SwitchExtension->pOwner?SwitchExtension->pOwner->RaTrackAnimAdd(this):true) //jeœli nie dodane do animacji
    {//nie ma siê co bawiæ
     SwitchExtension->fOffset=SwitchExtension->fDesiredOffset;

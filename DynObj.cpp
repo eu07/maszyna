@@ -2493,8 +2493,8 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
  }
  if (MoverParameters->DerailReason>0)
  {switch (MoverParameters->DerailReason)
-  {case 1: WriteLog(asName+" derailed due to end of track"); break;
-   case 2: WriteLog(asName+" derailed due to too high speed"); break;
+  {case 1: ErrorLog("Bad driving: "+asName+" derailed due to end of track"); break;
+   case 2: ErrorLog("Bad driving: "+asName+" derailed due to too high speed"); break;
    case 3: ErrorLog("Bad dynamic: "+asName+" derailed due to track width"); break; //b³¹d w scenerii
    case 4: ErrorLog("Bad dynamic: "+asName+" derailed due to wrong track type"); break; //b³¹d w scenerii
   }

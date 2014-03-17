@@ -57,6 +57,7 @@ __fastcall TWorld::TWorld()
  pDynamicNearest=NULL;
  fTimeBuffer=0.0; //bufor czasu aktualizacji dla sta³ego kroku fizyki 
  fMaxDt=0.01; //[s] pocz¹tkowy krok czasowy fizyki
+ fTime50Hz=0.0; //bufor czasu dla komunikacji z PoKeys
 }
 
 __fastcall TWorld::~TWorld()
@@ -708,7 +709,7 @@ void __fastcall TWorld::OnKeyDown(int cKey)
    case VK_F9: //wersja, typ wyœwietlania, b³êdy OpenGL
    case VK_F10:
     if (Global::iTextMode==cKey)
-     Global::iTextMode=0; //wy³¹czenie napisów
+     Global::iTextMode=(Global::iPause&&(cKey!=VK_F1)?VK_F1:0); //wy³¹czenie napisów, chyba ¿e pauza
     else
      Global::iTextMode=cKey;
    break;
@@ -1140,7 +1141,11 @@ bool __fastcall TWorld::Update()
   Camera.Update(); //uwzglêdnienie ruchu wywo³anego klawiszami
  } //koniec bloku pomijanego przy nieaktywnym oknie
  //poprzednie jakoœ tam dzia³a³o
- double dt=GetDeltaTime();
+ double dt=GetDeltaRenderTime(); //nie uwzglêdnia pauzowania ani mno¿enia czasu
+ fTime50Hz+=dt; //w pauzie te¿ trzeba zliczaæ czas, bo przy du¿ym FPS bêdzie problem z odczytem ramek
+ if (fTime50Hz>=0.2)
+  Console::Update(); //to i tak trzeba wywo³ywaæ
+ dt=GetDeltaTime(); //0.0 gdy pauza
  fTimeBuffer+=dt; //[s] dodanie czasu od poprzedniej ramki
  if (fTimeBuffer>=fMaxDt) //jest co najmniej jeden krok; normalnie 0.01s
  {//Ra: czas dla fizyki jest skwantowany - fizykê lepiej przeliczaæ sta³ym krokiem
@@ -1962,7 +1967,7 @@ bool __fastcall TWorld::Update()
       glPrint(Bezogonkow(OutText1,true).c_str());
       glRasterPos2f(-0.25f,0.19f);
       //glPrint("|============================|=======|=======|=====|");
-      //glPrint("| Posterunek                 | Przyj.| Odj.  | Vmax|");
+      //glPrint("| Posterunek                 | Przyj.| Odjazd| Vmax|");
       //glPrint("|============================|=======|=======|=====|");
       glPrint("|----------------------------|-------|-------|-----|");
       TMTableLine *t;

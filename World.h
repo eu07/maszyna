@@ -51,6 +51,7 @@ private:
  TEvent *KeyEvents[10]; //eventy wyzwalane z klawiaury
  TMoverParameters *mvControlled; //wskaŸnik na cz³on silnikowy, do wyœwietlania jego parametrów
  int iCheckFPS; //kiedy znów sprawdziæ FPS, ¿eby wy³¹czaæ optymalizacji od razu do zera
+ double fTime50Hz; //bufor czasu dla komunikacji z PoKeys
  double fTimeBuffer; //bufor czasu aktualizacji dla sta³ego kroku fizyki
  double fMaxDt; //[s] krok czasowy fizyki (0.01 dla normalnych warunków)
 public:

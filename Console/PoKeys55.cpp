@@ -27,6 +27,7 @@ __fastcall TPoKeys55::TPoKeys55()
  iPWM[7]=4096;
  iInputs[0]=0; //czy normalnie s¹ w stanie wysokim?
  iRepeats=0;
+ bNoError=true;
 };
 //---------------------------------------------------------------------------
 __fastcall TPoKeys55::~TPoKeys55()
@@ -240,9 +241,13 @@ bool __fastcall TPoKeys55::PWM(int x,float y)
  return true;
 }
 
-bool __fastcall TPoKeys55::Update()
+bool __fastcall TPoKeys55::Update(bool pause)
 {//funkcja powinna byæ wywo³ywana regularnie, np. raz w ka¿dej ramce ekranowej
- //131101 Ra: do poprawienia, bo jak siê PoKeys zawiesi, to w nieskoñczonoœæ czeka na potwierdzenie
+ if (pause)
+ {//specjalna procedura, jeœli utracone po³¹czenie spowodowa³o pauzê
+  iLastCommand=0; //po³¹czenie zosta³o na nowo otwarte
+  //iFaza=0; //jeden b³¹d i podtrzymanie pauzy jest kontynuowane
+ }
  switch (iFaza)
  {case 0: //uaktualnienie PWM raz na jakiœ czas
    OutputBuffer[9]=0x3F; //maska u¿ytych PWM
@@ -253,7 +258,8 @@ bool __fastcall TPoKeys55::Update()
    *((int*)(OutputBuffer+26))=iPWM[4]; //PWM5 (pin 18)
    *((int*)(OutputBuffer+30))=iPWM[5]; //PWM6 (pin 17)
    *((int*)(OutputBuffer+34))=iPWM[7]; //PWM period
-   Write(0xCB,1); //wys³anie ustawieñ (1-ustaw, 0-odczyt)
+   if (Write(0xCB,1)) //wys³anie ustawieñ (1-ustaw, 0-odczyt)
+    iRepeats=0; //informacja, ¿e posz³o dobrze
    ++iFaza; //ta faza zosta³a zakoñczona
    //iRepeats=0;
   break;
@@ -286,17 +292,24 @@ bool __fastcall TPoKeys55::Update()
    else ++iRepeats; //licznik nieudanych prób
   break;
   case 3: //ustawienie wyjœæ analogowych, 0..4095 mapowaæ na 0..65520 (<<4)
-   Write(0x41,43-1,(iPWM[6]>>4),(iPWM[6]<<4)); //wys³anie ustawieñ
+   if (Write(0x41,43-1,(iPWM[6]>>4),(iPWM[6]<<4))) //wys³anie ustawieñ
+    iRepeats=0; //informacja, ¿e posz³o dobrze
    iFaza=0; //++iFaza; //ta faza zosta³a zakoñczona
    //powinno jeszcze przyjœæ potwierdzenie o kodzie 0x41
-   //iRepeats=0;
   break;
   default:
    iFaza=0; //na wypadek, gdyby zb³¹dzi³o po jakichœ zmianach w kodzie
    //iRepeats=0;
  }
- if (iRepeats>=5) ++iFaza; //przekroczenie liczby prób wymusza kolejn¹ fazê
- return (iRepeats<5); //true oznacza prawid³owe dzia³anie
+ if (!iRepeats)
+  bNoError=true; //jest OK
+ else if (iRepeats>=5)
+ {//przekroczenie liczby prób wymusza kolejn¹ fazê
+  ++iFaza;
+  iRepeats=1; //w nowej fazie nowe szanse, ale nie od 0!
+  bNoError=false; //zg³osiæ b³¹d
+ }
+ return (bNoError); //true oznacza prawid³owe dzia³anie
  //czy w przypadku b³êdu komunikacji z PoKeys w³¹czaæ pauzê?
  //dopiero poprawne pod³¹czenie zeruje licznik prób
 };

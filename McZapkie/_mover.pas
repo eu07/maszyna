@@ -1862,7 +1862,7 @@ begin
     if (SystemType>0) and (Status>0) then
       begin
         SecuritySystemReset:=true;
-        if not (ActiveDir=0) then
+        if ((TrainType=dt_EZT)or(ActiveDir<>0)) then //Ra 2014-03: w EZT nie trzeba ustawiaæ kierunku
          if not TestFlag(Status,s_CAebrake) or not TestFlag(Status,s_SHPebrake) then
           Reset;
         //else

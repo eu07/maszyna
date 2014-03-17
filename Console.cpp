@@ -275,14 +275,15 @@ void __fastcall Console::Update()
 {//funkcja powinna byæ wywo³ywana regularnie, np. raz w ka¿dej ramce ekranowej
  if (iMode==4)
   if (PoKeys55[0])
-   if (PoKeys55[0]->Update())
+   if (PoKeys55[0]->Update((Global::iPause&8)>0))
    {//wykrycie przestawionych prze³¹czników?
     Global::iPause&=~8;
    }
    else
    {//b³¹d komunikacji - zapauzowaæ symulacjê?
+    if (!(Global::iPause&8)) //jeœli jeszcze nie oflagowana
+     Global::iTextMode=VK_F1; //pokazanie czasu/pauzy
     Global::iPause|=8; //tak???
-    Global::iTextMode=VK_F1; //pokazanie czasu/pauzy
     PoKeys55[0]->Connect(); //próba ponownego pod³¹czenia
    }
 };

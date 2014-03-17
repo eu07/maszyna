@@ -502,6 +502,10 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
        Global::iPause&=~1; //odpauzowanie, gdy po wczytaniu mia³o nie startowaæ
       else if (!Global::iMultiplayer) //w multiplayerze pauza nie ma sensu
        if (!Console::Pressed(VK_CONTROL)) //z [Ctrl] to radiostop jest
+        //Ra: poni¿sze nie ma sensu, bo brak komunikacji natychmiast zapauzuje ponownie
+        //if (Global::iPause&8) //jeœli pauza zwi¹zana z brakiem komunikacji z PoKeys
+        // Global::iPause&=~10; //odpauzowanie pauzy PoKeys (chyba nic nie da) i ewentualnie klawiszowej równie¿
+        //else
         Global::iPause^=2; //zmiana stanu zapauzowania
       if (Global::iPause) //jak pauza
        Global::iTextMode=VK_F1; //to wyœwietliæ zegar i informacjê
