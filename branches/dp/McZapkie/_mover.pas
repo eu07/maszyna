@@ -2674,10 +2674,13 @@ end;
 
 function T_MoverParameters.ShowCurrent(AmpN:byte): integer;
 var b,Bn:byte;
+    Grupowy: boolean;
 begin
   ClearPendingExceptions;
   ShowCurrent:=0;
+  Grupowy:=(DelayCtrlFlag) and (TrainType=dt_et22); //przerzucanie walu grupowego w ET22;
   Bn:=RList[MainCtrlActualPos].Bn; //ile równoleg³ych ga³êzi silników
+
   if (DynamicBrakeType=dbrake_automatic) and (DynamicBrakeFlag) then
    Bn:=2;
   if Power>0.01 then
@@ -2685,10 +2688,19 @@ begin
      if AmpN>0 then //podaæ pr¹d w ga³êzi
       begin
        if Bn>=AmpN then
-        ShowCurrent:=Trunc(Abs(Im));
+        if Grupowy then //jeœli przerzucanie wa³u grupowego w ET22
+         begin
+         if (AmpN=Bn-1)then
+          ShowCurrent:=0
+         else if (AmpN=Bn)and(Bn=2) then
+          ShowCurrent:=Trunc(1.5*Abs(Im))
+         else
+          ShowCurrent:=Trunc(Abs(Im));
+         end
+        else //normalne podawanie pradu
+         ShowCurrent:=Trunc(Abs(Im));
       end
      else //podaæ ca³kowity
-//        ShowCurrent:=ScndCtrlActualPos+MainCtrlActualPos*10+200*Integer(StLinFlag);
        ShowCurrent:=Trunc(Abs(Itot));
     end
   else               {pobor pradu jezeli niema mocy}
@@ -3440,7 +3452,7 @@ begin
               Exit; //Ra: to powoduje, ¿e EN57 nie wy³¹cza siê przy IminLo
             end;
            begin //main bez samoczynnego rozruchu
-             if (Rlist[MainCtrlActualPos].Relay<MainCtrlPos)or(Rlist[MainCtrlActualPos+1].Relay=MainCtrlPos) then
+             if (Rlist[MainCtrlActualPos].Relay<MainCtrlPos)or(Rlist[MainCtrlActualPos+1].Relay=MainCtrlPos)or((TrainType=dt_ET22)and(DelayCtrlFlag)) then
               begin
                if (Rlist[MainCtrlPos].R=0) and (MainCtrlPos>0) and (not (MainCtrlPos=MainCtrlPosNo)) and (FastSerialCircuit=1) then
                 begin
@@ -3450,8 +3462,24 @@ begin
                 end
                else if (LastRelayTime>CtrlDelay)and(ARFASI) then
                 begin
-                 inc(MainCtrlActualPos);
-                 OK:=true;
+                 if (TrainType=dt_ET22)and(MainCtrlPos>1)and(Rlist[MainCtrlActualPos].Bn<Rlist[MainCtrlActualPos+1].Bn)or(DelayCtrlFlag)then //et22 z walem grupowym
+                  if (not DelayCtrlFlag) then //najpierw przejscie
+                   begin
+                    inc(MainCtrlActualPos);
+                    DelayCtrlFlag:=true; //tryb przejscia
+                    OK:=true;
+                   end
+                  else if(LastRelayTime>4*CtrlDelay) then //przejscie
+                   begin
+                    DelayCtrlFlag:=false;
+                    OK:=true;                    
+                   end
+                  else 
+                 else //nie ET22 z wa³em grupowym
+                  begin
+                   inc(MainCtrlActualPos);
+                   OK:=true;
+                  end;
                  //---------
                  //hunter-111211: poprawki
                  if MainCtrlActualPos>0 then
