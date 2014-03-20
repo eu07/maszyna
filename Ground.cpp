@@ -3805,6 +3805,8 @@ bool __fastcall TGround::GetTraction(TDynamicObject *model)
 
 bool __fastcall TGround::RenderDL(vector3 pPosition)
 {//renderowanie scenerii z Display List - faza nieprzezroczystych
+ glDisable(GL_BLEND);
+ glAlphaFunc(GL_GREATER,0.45);     // im mniejsza wartoœæ, tym wiêksza ramka, domyœlnie 0.1f
  ++TGroundRect::iFrameNumber; //zwiêszenie licznika ramek (do usuwniania nadanimacji)
  CameraDirection.x=sin(Global::pCameraRotation); //wektor kierunkowy
  CameraDirection.z=cos(Global::pCameraRotation);
@@ -3859,6 +3861,8 @@ bool __fastcall TGround::RenderDL(vector3 pPosition)
 
 bool __fastcall TGround::RenderAlphaDL(vector3 pPosition)
 {//renderowanie scenerii z Display List - faza przezroczystych
+ glEnable(GL_BLEND);
+ glAlphaFunc(GL_GREATER,0.04);     // im mniejsza wartoœæ, tym wiêksza ramka, domyœlnie 0.1f
  TGroundNode *node;
  glColor4f(1.0f,1.0f,1.0f,1.0f);
  TSubRect *tmp;
@@ -3886,6 +3890,8 @@ bool __fastcall TGround::RenderAlphaDL(vector3 pPosition)
 
 bool __fastcall TGround::RenderVBO(vector3 pPosition)
 {//renderowanie scenerii z VBO - faza nieprzezroczystych
+ glDisable(GL_BLEND);
+ glAlphaFunc(GL_GREATER,0.45);     // im mniejsza wartoœæ, tym wiêksza ramka, domyœlnie 0.1f 
  ++TGroundRect::iFrameNumber; //zwiêszenie licznika ramek
  CameraDirection.x=sin(Global::pCameraRotation); //wektor kierunkowy
  CameraDirection.z=cos(Global::pCameraRotation);
@@ -3946,6 +3952,8 @@ bool __fastcall TGround::RenderVBO(vector3 pPosition)
 
 bool __fastcall TGround::RenderAlphaVBO(vector3 pPosition)
 {//renderowanie scenerii z VBO - faza przezroczystych
+ glEnable(GL_BLEND);
+ glAlphaFunc(GL_GREATER,0.04);     // im mniejsza wartoœæ, tym wiêksza ramka, domyœlnie 0.1f 
  TGroundNode *node;
  glColor4f(1.0f,1.0f,1.0f,1.0f);
  TSubRect *tmp;
