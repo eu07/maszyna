@@ -2695,7 +2695,7 @@ begin
          else if (AmpN=Bn)and(Bn=2) then
           ShowCurrent:=Trunc(1.5*Abs(Im))
          else
-          ShowCurrent:=Trunc(Abs(Im));
+          ShowCurrent:=Trunc(1.15*Abs(Im));
          end
         else //normalne podawanie pradu
          ShowCurrent:=Trunc(Abs(Im));
@@ -3551,6 +3551,12 @@ begin
       if {(MainCtrlPos=0)and}((MainCtrlActualPos>0)or(ScndCtrlActualPos>0)) then
        if (TrainType=dt_EZT)and(CoupledCtrl)then //EN57 wal jednokierunkowy calosciowy
         begin
+         if(MainCtrlPos=0)and(MainCtrlActualPos=1)then
+          begin
+           MainCtrlActualPos:=0;
+           OK:=true;
+          end
+         else  
          if(LastRelayTime>CtrlDownDelay)then
           begin
            if(MainCtrlActualPos<RlistSize)then
@@ -3936,11 +3942,14 @@ begin
            if(DynamicBrakeFlag)and(Abs(Im)>300)then
              FuseOff;
          end;
+        if(TrainType=dt_ET22)and(DelayCtrlFlag)then //szarpanie przy zmianie uk³adu w byku
+          Mm:=Mm*RList[MainCtrlActualPos].Bn/(RList[MainCtrlActualPos].Bn+1); //zrobione w momencie, ¿eby nie dawac elektryki w przeliczaniu si³
+
         if (Abs(Im)>Imax) then
-         Vhyp:=Vhyp+dt //zwieksz czas oddzialywania na PN
+         Vhyp:=Vhyp+dt*(Abs(Im)/Imax-0.9)*10 //zwieksz czas oddzialywania na PN
         else
          Vhyp:=0;
-        if (Vhyp>CtrlDelay) then  //jesli czas oddzialywania przekroczony
+        if (Vhyp>CtrlDelay/2) then  //jesli czas oddzialywania przekroczony
          FuseOff;                     {wywalanie bezpiecznika z powodu przetezenia silnikow}
         if (Mains) then //nie wchodziæ w funkcjê bez potrzeby
          if (Abs(Voltage)<EnginePowerSource.CollectorParameters.MinV) or (Abs(Voltage)>EnginePowerSource.CollectorParameters.MaxV) then
