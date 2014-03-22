@@ -207,12 +207,13 @@ bool __fastcall TMoverParameters::ChangeCab(int direction)
    ActiveCab=ActiveCab+direction;
    if ((BrakeSystem==Pneumatic)&&(BrakeCtrlPosNo>0))
    {
-    if (BrakeHandle==FV4a)   //!!!POBIERAÆ WARTOŒÆ Z KLASY ZAWORU!!!
-     BrakeLevelSet(-2); //BrakeCtrlPos=-2;
-    else if ((BrakeHandle==FVel6)||(BrakeHandle==St113))
-     BrakeLevelSet(2);
-    else
-     BrakeLevelSet(1);
+//    if (BrakeHandle==FV4a)   //!!!POBIERAÆ WARTOŒÆ Z KLASY ZAWORU!!!
+//     BrakeLevelSet(-2); //BrakeCtrlPos=-2;
+//    else if ((BrakeHandle==FVel6)||(BrakeHandle==St113))
+//     BrakeLevelSet(2);
+//    else
+//     BrakeLevelSet(1);
+    BrakeLevelSet(Handle->GetPos(bh_NP));
     LimPipePress=PipePress;
     ActFlowSpeed=0;
    }
@@ -220,7 +221,8 @@ bool __fastcall TMoverParameters::ChangeCab(int direction)
     //if (TrainType=dt_EZT) and (BrakeCtrlPosNo>0) then
     //  BrakeCtrlPos:=5; //z Megapacka
     //else
-    BrakeLevelSet(0); //BrakeCtrlPos=0;
+//    BrakeLevelSet(0); //BrakeCtrlPos=0;
+    BrakeLevelSet(Handle->GetPos(bh_NP));
 //   if not TestFlag(BrakeStatus,b_dmg) then
 //    BrakeStatus:=b_off; //z Megapacka
    MainCtrlPos=0;
