@@ -1843,7 +1843,7 @@ function T_MoverParameters.SecuritySystemReset : boolean;
      SetFlag(SecuritySystem.Status,-s_aware);
      SetFlag(SecuritySystem.Status,-s_CAalarm);
      SetFlag(SecuritySystem.Status,-s_CAebrake);
-     EmergencyBrakeFlag:=false;
+//     EmergencyBrakeFlag:=false; //YB-HN
      SecuritySystem.VelocityAllowed:=-1;
     end
    else if TestFlag(SecuritySystem.Status,s_active) then
@@ -1853,7 +1853,7 @@ function T_MoverParameters.SecuritySystemReset : boolean;
      SetFlag(SecuritySystem.Status,-s_active);
      SetFlag(SecuritySystem.Status,-s_SHPalarm);
      SetFlag(SecuritySystem.Status,-s_SHPebrake);
-     EmergencyBrakeFlag:=false;
+//     EmergencyBrakeFlag:=false; //YB-HN
      SecuritySystem.VelocityAllowed:=-1;
     end;
   end;
@@ -1924,8 +1924,8 @@ begin
                    s_CAtestebrake:=true;
 
        //wdrazanie hamowania naglego
-        if TestFlag(Status,s_SHPebrake) or TestFlag(Status,s_CAebrake) or (s_CAtestebrake=true) then
-         EmergencyBrakeFlag:=true;
+//        if TestFlag(Status,s_SHPebrake) or TestFlag(Status,s_CAebrake) or (s_CAtestebrake=true) then
+//         EmergencyBrakeFlag:=true;  //YB-HN
       end
      else if not (Battery) then
       begin //wy³¹czenie baterii deaktywuje sprzêt
@@ -2380,7 +2380,7 @@ with BrakePressureTable[BrakeCtrlPos] do
 end;
 
 //      if(EmergencyBrakeFlag)and(BrakeCtrlPosNo=0)then         {ulepszony hamulec bezp.}
-      if(EmergencyBrakeFlag)then         {ulepszony hamulec bezp.}
+      if(EmergencyBrakeFlag)or TestFlag(SecuritySystem.Status,s_SHPebrake) or TestFlag(SecuritySystem.Status,s_CAebrake) or (s_CAtestebrake=true)then         {ulepszony hamulec bezp.}
         dpMainValve:=dpMainValve/1+PF(0,PipePress,0.15)*dt;
                                                 //0.2*Spg
       Pipe.Flow(-dpMainValve);
