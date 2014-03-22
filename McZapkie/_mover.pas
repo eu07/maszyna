@@ -3414,9 +3414,11 @@ begin
      ResistorsFlag:=false;
    end;
 
-   ARFASI2:=(not AutoRelayFlag) or (not MotorParam[ScndCtrlActualPos].AutoSwitch) or (Abs(Im)<Imin); //wszystkie warunki w jednym
-   ARFASI :=(not AutoRelayFlag) or (not RList[MainCtrlActualPos].AutoSwitch) or (Abs(Im)<Imin); //wszystkie warunki w jednym
-
+   ARFASI2:=(not AutoRelayFlag) or ((MotorParam[ScndCtrlActualPos].AutoSwitch) and (Abs(Im)<Imin)); //wszystkie warunki w jednym
+   ARFASI :=(not AutoRelayFlag) or ((RList[MainCtrlActualPos].AutoSwitch) and (Abs(Im)<Imin)) or ((not RList[MainCtrlActualPos].AutoSwitch) and (Rlist[MainCtrlActualPos].Relay<MainCtrlPos)); //wszystkie warunki w jednym
+           //brak PSR                   na tej pozycji dzia³a PSR i pr¹d poni¿ej progu                         na tej pozycji nie dzia³a PSR i pozycja walu ponizej
+          //                         chodzi w tym wszystkim o to, ¿eby mo¿na by³o zatrzymaæ rozruch na jakiejœ pozycji wpisuj¹c Autoswitch=0 i wymuszaæ
+          //                         przejœcie dalej przez danie nastawnika na dalsz¹ pozycjê - tak to do tej pory dzia³a³o i na tym siê opiera fizyka ET22-2k
    begin
     if (StLinFlag) then
      begin
@@ -3462,7 +3464,7 @@ begin
                 end
                else if (LastRelayTime>CtrlDelay)and(ARFASI) then
                 begin
-                 if (TrainType=dt_ET22)and(MainCtrlPos>1)and(Rlist[MainCtrlActualPos].Bn<Rlist[MainCtrlActualPos+1].Bn)or(DelayCtrlFlag)then //et22 z walem grupowym
+                 if (TrainType=dt_ET22)and(MainCtrlPos>1)and((Rlist[MainCtrlActualPos].Bn<Rlist[MainCtrlActualPos+1].Bn)or(DelayCtrlFlag))then //et22 z walem grupowym
                   if (not DelayCtrlFlag) then //najpierw przejscie
                    begin
                     inc(MainCtrlActualPos);
@@ -3548,10 +3550,10 @@ begin
       else
        DelayCtrlFlag:=false;
 
-      if {(MainCtrlPos=0)and}((MainCtrlActualPos>0)or(ScndCtrlActualPos>0)) then
+      if (not StLinFlag)and((MainCtrlActualPos>0)or(ScndCtrlActualPos>0)) then
        if (TrainType=dt_EZT)and(CoupledCtrl)then //EN57 wal jednokierunkowy calosciowy
         begin
-         if(MainCtrlPos=0)and(MainCtrlActualPos=1)then
+         if(MainCtrlActualPos=1)then
           begin
            MainCtrlActualPos:=0;
            OK:=true;
@@ -5694,9 +5696,12 @@ end;
      PipePress:=CntrlPipePress;
      BrakePress:=0;
      LocalBrakePos:=0;
-     if (BrakeSystem=Pneumatic) and (BrakeCtrlPosNo>0) then
+//     if (BrakeSystem=Pneumatic) and (BrakeCtrlPosNo>0) then
       if CabNo=0 then
-       BrakeCtrlPos:=-2; //odciêcie na zespolonym; Ra: hamulec jest poprawiany w DynObj.cpp
+//       BrakeCtrlPos:=-2; //odciêcie na zespolonym; Ra: hamulec jest poprawiany w DynObj.cpp
+       BrakeCtrlPos:=Trunc(Handle.GetPos(bh_NP))
+     else
+       BrakeCtrlPos:=Trunc(Handle.GetPos(bh_RP));
      MainSwitch(false);
      PantFront(true);
      PantRear(true);
@@ -5714,8 +5719,9 @@ end;
      PipeBrakePress:=MaxBrakePress[3];
      BrakePress:=MaxBrakePress[3];
      LocalBrakePos:=0;
-     if (BrakeSystem=Pneumatic) and (BrakeCtrlPosNo>0) then
-      BrakeCtrlPos:=-2; //Ra: hamulec jest poprawiany w DynObj.cpp
+//     if (BrakeSystem=Pneumatic) and (BrakeCtrlPosNo>0) then
+//      BrakeCtrlPos:=-2; //Ra: hamulec jest poprawiany w DynObj.cpp
+     BrakeCtrlPos:=Trunc(Handle.GetPos(bh_NP));
      LimPipePress:=LowPipePress;
    end;
   ActFlowSpeed:=0;
