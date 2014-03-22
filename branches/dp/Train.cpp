@@ -1143,7 +1143,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
       {
        //while (mvOccupied->IncBrakeLevel());
        mvOccupied->BrakeLevelSet(mvOccupied->BrakeCtrlPosNo);
-       if(mvOccupied->BrakeCtrlPosNo<=0.1)
+       if(mvOccupied->BrakeCtrlPosNo<=0.1)  //hamulec bezpieczeñstwa dla wagonów
         mvOccupied->EmergencyBrakeFlag=true;
       }
       else
@@ -3803,9 +3803,9 @@ if ( mvControlled->Signalling==true )
         SetFlag(mvControlled->SecuritySystem.Status,-s_CAtest);
         mvControlled->s_CAtestebrake=false;
         mvControlled->SecuritySystem.SystemBrakeCATestTimer=0;
-        if ((!TestFlag(mvControlled->SecuritySystem.Status,s_SHPebrake))
-         ||(!TestFlag(mvControlled->SecuritySystem.Status,s_CAebrake)))
-        mvOccupied->EmergencyBrakeFlag=false;
+//        if ((!TestFlag(mvControlled->SecuritySystem.Status,s_SHPebrake))
+//         ||(!TestFlag(mvControlled->SecuritySystem.Status,s_CAebrake)))
+//        mvControlled->EmergencyBrakeFlag=false; //YB-HN
        }
       CAflag=false;
      }
