@@ -543,6 +543,7 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
       //else //if (pOccupied->Vel==0.0)
       {//jeœli siê zatrzyma³ przy W4, albo sta³ w momencie zobaczenia W4
        if (AIControllFlag) //AI tylko sobie otwiera drzwi
+       {//
         if (mvOccupied->TrainType==dt_EZT) //otwieranie drzwi w EN57
          if (!mvOccupied->DoorLeftOpened&&!mvOccupied->DoorRightOpened)
          {//otwieranie drzwi
@@ -559,6 +560,9 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
           if (p2&3) //¿eby jeszcze poczeka³ chwilê, zanim zamknie
            WaitingSet(10); //10 sekund (wzi¹æ z rozk³adu????)
          }
+        }
+        else
+         iDrivigFlags&=~moveStopCloser; //w razie prze³¹czenia na AI ma nie podci¹gaæ do W4, gdy u¿ytkownik zatrzyma³ za daleko
        if (TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,asNextStop.SubString(20,asNextStop.Length())))
        {//to siê wykona tylko raz po zatrzymaniu na W4
         if (TrainParams->CheckTrainLatency()<0.0)
@@ -591,6 +595,8 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
        {//jeœli s¹ dalsze stacje, czekamy do godziny odjazdu
         if (TrainParams->IsTimeToGo(GlobalTime->hh,GlobalTime->mm))
         {//z dalsz¹ akcj¹ czekamy do godziny odjazdu
+         //if (TrainParams->CheckTrainLatency()<0.0) //jak siê ma odjazd do czasu odjazdu?
+         // iDrivigFlags|=moveLate1; //oflagowaæ, gdy odjazd ze spóŸnieniem, bêdzie jecha³ forsowniej
          TrainParams->StationIndexInc(); //przejœcie do nastêpnej
          asNextStop=TrainParams->NextStop(); //pobranie kolejnego miejsca zatrzymania
          //TableClear(); //aby od nowa sprawdzi³o W4 z inn¹ nazw¹ ju¿ - to nie jest dobry pomys³
@@ -706,7 +712,7 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
     if ((sSpeedTable[i].iFlags&0x20)?false:d>0.0) //sygna³ lub ograniczenie z przodu (+32=przejechane)
     {//2014-02: jeœli stoi, a ma do przejechania kawa³ek, to niech jedzie
      if ((mvOccupied->Vel==0.0)?((sSpeedTable[i].iFlags&0x501)==0x501)&&(d>fMaxProximityDist):false)
-      a=fAcc; //ma podjechaæ bli¿ej - czy na pewno w tym miejscu taki warunek?
+      a=(iDrivigFlags&moveStopCloser)?fAcc:0.0; //ma podjechaæ bli¿ej - czy na pewno w tym miejscu taki warunek?
      else
       a=(v*v-mvOccupied->Vel*mvOccupied->Vel)/(25.92*d); //przyspieszenie: ujemne, gdy trzeba hamowaæ
     }
