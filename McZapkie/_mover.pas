@@ -3439,7 +3439,7 @@ begin
              else
               if ScndCtrlActualPos>ScndCtrlPos then
                begin
-                if (LastRelayTime>CtrlDownDelay) then
+                if (LastRelayTime>CtrlDownDelay)and(TrainType<>dt_EZT) then
                  begin
                   dec(ScndCtrlActualPos);
                   OK:=true;
