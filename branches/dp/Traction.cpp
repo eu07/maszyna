@@ -431,11 +431,11 @@ void  __fastcall TTraction::RenderVBO(float mgn,int iPtr)
    case 1:
     if (TestFlag(DamageFlag,1))
     {
-     r=0.00000; g=0.32549; b=0.2882353;  //zielona miedz
+     r=0.00000; g=0.32549; b=0.2882353;  //zielona miedŸ
     }
     else
     {
-     r=0.35098; g=0.22549; b=0.1;  //czerwona miedz
+     r=0.35098; g=0.22549; b=0.1;  //czerwona miedŸ
     }
    break;
    case 2:
@@ -448,6 +448,11 @@ void  __fastcall TTraction::RenderVBO(float mgn,int iPtr)
      r=0.25; g=0.25; b=0.25;  //srebrne Al
     }
    break;
+   //tymczasowo pokazanie zasilanych odcinków
+   case 4: r=0.5; g=0.5; b=1.0; break; //niebieskie z pod³¹czonym zasilaniem
+   case 5: r=1.0; g=0.0; b=0.0; break; //czerwone z pod³¹czonym zasilaniem 1
+   case 6: r=0.0; g=1.0; b=0.0; break; //zielone z pod³¹czonym zasilaniem 2
+   case 7: r=1.0; g=1.0; b=0.0; break; //¿ó³te z pod³¹czonym zasilaniem z obu stron
   }
   r=r*Global::ambientDayLight[0];  //w zaleznosci od koloru swiatla
   g=g*Global::ambientDayLight[1];
