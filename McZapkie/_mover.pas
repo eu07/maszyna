@@ -295,8 +295,8 @@ TYPE
     TMPTRelayTable = array[0..7] of TMPTRelay;
 
     TMotorParameters = record
-                        mfi,mIsat:real; // aproksymacja M(I) silnika} {dla dizla mIsat=przekladnia biegu
-                        fi,Isat: real;  // aproksymacja E(n)=fi*n}    {dla dizla fi, mfi: predkosci przelozenia biegu <->
+                        mfi,mIsat,mfi0:real; // aproksymacja M(I) silnika} {dla dizla mIsat=przekladnia biegu
+                        fi,Isat,fi0: real;  // aproksymacja E(n)=fi*n}    {dla dizla fi, mfi: predkosci przelozenia biegu <->
                         AutoSwitch: boolean;
                        end;
 
@@ -2772,6 +2772,7 @@ var //Rw,
     Rz,Delta,Isf:real;
     Mn: integer;
     SP: byte;
+    U1: real; //napiecie z korekta
 begin
   MotorCurrent:=0;
 //i dzialanie hamulca ED w EP09
@@ -2858,14 +2859,15 @@ begin
          end
         else
          begin
-          Isf:=Sign(U)*Isat;
-          Delta:=SQR(Isf*Rz+Mn*fi*n-U)+4*U*Isf*Rz;
+          U1:=U+Mn*n*fi0*fi;
+          Isf:=Sign(U1)*Isat;
+          Delta:=SQR(Isf*Rz+Mn*fi*n-U1)+4*U1*Isf*Rz;
           if Mains then
            begin
             if U>0 then
-             MotorCurrent:=(U-Isf*Rz-Mn*fi*n+SQRT(Delta))/(2.0*Rz)
+             MotorCurrent:=(U1-Isf*Rz-Mn*fi*n+SQRT(Delta))/(2.0*Rz)
             else
-             MotorCurrent:=(U-Isf*Rz-Mn*fi*n-SQRT(Delta))/(2.0*Rz)
+             MotorCurrent:=(U1-Isf*Rz-Mn*fi*n-SQRT(Delta))/(2.0*Rz)
            end
           else
            MotorCurrent:=0;
@@ -2920,7 +2922,8 @@ begin
     if not (Rlist[MainCtrlActualPos].ScndAct=255) then
      SP:=Rlist[MainCtrlActualPos].ScndAct;
     with MotorParam[SP] do
-     Momentum:=mfi*I*(1-1.0/(Abs(I)/mIsat+1));
+//     Momentum:=mfi*I*(1-1.0/(Abs(I)/mIsat+1));
+     Momentum:=mfi*I*(Abs(I)/(Abs(I)+mIsat)-mfi0);
 end;
 
 function T_MoverParameters.dizel_Momentum(dizel_fill,n,dt:real): real;
@@ -6922,6 +6925,24 @@ begin
              end
             else ConversionError:=-3;
            end
+          //dwa dodatkowe parametry korekcyjne
+          else if Pos('MotorParamTable0:',lines)>0 then
+             begin
+               for k:=0 to ScndCtrlPosNo do
+                begin
+                  with MotorParam[k] do
+                  read(fin, bl, mfi,mIsat,mfi0, fi,Isat,fi0);
+                  if AutoRelayType=0 then
+                   MotorParam[k].AutoSwitch:=False
+                  else begin
+                         readln(fin,i);
+                         MotorParam[k].AutoSwitch:=Boolean(i);
+                       end;
+                  if bl<>k then
+                   ConversionError:=-2
+                end;
+             end
+
           else if Pos('Circuit:',lines)>0 then
            begin
              s:=ExtractKeyWord(lines,'CircuitRes=');

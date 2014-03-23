@@ -268,8 +268,10 @@ struct TMotorParameters
 {
 	double mfi;
 	double mIsat;
+	double mfi0;
 	double fi;
 	double Isat;
+	double fi0;
 	bool AutoSwitch;
 } ;
 
