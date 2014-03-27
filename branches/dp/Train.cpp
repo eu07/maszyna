@@ -5365,7 +5365,7 @@ void __fastcall TTrain::DynamicSet(TDynamicObject *d)
 {//taka proteza: chcê pod³¹czyæ kabinê EN57 bezpoœrednio z silnikowym, aby nie robiæ tego przez ukrotnienie
  //drugi silnikowy i tak musi byæ ukrotniony, podobnie jak kolejna jednostka
  //problem siê robi ze œwiat³ami, które bêd¹ zapalane w silnikowym, ale musz¹ œwieciæ siê w rozrz¹dczych
- //dla EZT œwiat³¹ czo³owe bêd¹ "zapalane w silnikowym", ale widziane z rozrz¹dczych
+ //dla EZT œwiat³a czo³owe bêd¹ "zapalane w silnikowym", ale widziane z rozrz¹dczych
  //równie¿ wczytywanie MMD powinno dotyczyæ aktualnego cz³onu
  //problematyczna mo¿e byæ kwestia wybranej kabiny (w silnikowym...)
  //jeœli silnikowy bêdzie zapiêty odwrotnie (tzn. -1), to i tak powinno jeŸdziæ dobrze

@@ -2592,14 +2592,17 @@ bool __fastcall TController::UpdateSituation(double dt)
     if (mvOccupied->CategoryFlag&1) //jeœli poci¹g
     {
      fMinProximityDist=10.0; fMaxProximityDist=20.0; //[m]
-     fVelPlus=5.0; //dopuszczalne przekroczenie prêdkoœci na ograniczeniu bez hamowania
      if (iDrivigFlags&moveLate)
-      fVelMinus=1.0; //jeœli spóŸniony, to gna
+     {fVelMinus=1.0; //jeœli spóŸniony, to gna
+      fVelPlus=5.0; //dopuszczalne przekroczenie prêdkoœci na ograniczeniu bez hamowania
+     }
      else
      {//gdy nie musi siê sprê¿aæ
       fVelMinus=int(0.1*VelDesired); //margines prêdkoœci powoduj¹cy za³¹czenie napêdu
       if (fVelMinus>5.0) fVelMinus=5.0;
       else if (fVelMinus<1.0) fVelMinus=1.0; //¿eby nie rusza³ przy 0.1
+      fVelPlus=int(0.5+0.05*VelDesired); //normalnie dopuszczalne przekroczenie to 5% prêdkoœci
+      if (fVelPlus>5.0) fVelPlus=5.0; //ale nie wiêcej ni¿ 5km/h
      }
     }
     else //samochod (sokista te¿)
@@ -2778,6 +2781,9 @@ bool __fastcall TController::UpdateSituation(double dt)
      //Ra: tu by jeszcze trzeba by³o wstawiæ uzale¿nienie (VelDesired) od odleg³oœci od przeszkody
      // no chyba ¿eby to uwzgldniæ ju¿ w (ActualProximityDist)
      VelDesired=fVelMax; //wstêpnie prêdkoœæ maksymalna dla pojazdu(-ów), bêdzie nastêpnie ograniczana
+     if (TrainParams) //jeœli ma rozk³ad
+      if (TrainParams->TTVmax>0.0) //i ograniczenie w rozk³adzie
+       VelDesired=Min0R(VelDesired,TrainParams->TTVmax); //to nie przekraczaæ rozkladowej
      SetDriverPsyche(); //ustawia AccPreferred (potrzebne tu?)
      //Ra: odczyt (ActualProximityDist), (VelNext) i (AccPreferred) z tabelki prêdkosci
      AccDesired=AccPreferred; //AccPreferred wynika z osobowoœci mechanika
