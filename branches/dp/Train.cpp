@@ -4224,7 +4224,7 @@ if ( mvControlled->Signalling==true )
      if (Console::Pressed(Global::Keys[k_AntiSlipping])) //kEP
       {
        AntiSlipButtonGauge.UpdateValue(1);
-       if (mvControlled->SwitchEPBrake(1))
+       if (mvOccupied->SwitchEPBrake(1))
         {
          dsbPneumaticSwitch->SetVolume(-10);
          dsbPneumaticSwitch->Play(0,0,0);
@@ -4232,7 +4232,7 @@ if ( mvControlled->Signalling==true )
       }
      else
       {
-       if (mvControlled->SwitchEPBrake(0))
+       if (mvOccupied->SwitchEPBrake(0))
         {
          dsbPneumaticSwitch->SetVolume(-10);
          dsbPneumaticSwitch->Play(0,0,0);

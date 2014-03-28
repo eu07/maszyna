@@ -1001,7 +1001,8 @@ void __fastcall TController::Activation()
   if (TestFlag(d->MoverParameters->Couplers[iDirectionOrder<0?1:0].CouplingFlag,ctrain_controll))
   {mvControlling->MainSwitch(false); //dezaktywacja czuwaka, jeœli przejœcie do innego cz³onu
    mvOccupied->DecLocalBrakeLevel(10); //zwolnienie hamulca w opuszczanym pojeŸdzie
-   mvOccupied->BrakeLevelSet((mvOccupied->BrakeHandle==FVel6)?4:-2); //odciêcie na zaworze maszynisty, FVel6 po drugiej stronie nie luzuje
+//   mvOccupied->BrakeLevelSet((mvOccupied->BrakeHandle==FVel6)?4:-2); //odciêcie na zaworze maszynisty, FVel6 po drugiej stronie nie luzuje
+   mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_NP)); //odciêcie na zaworze maszynisty
   }
   mvOccupied->ActiveCab=mvOccupied->CabNo; //u¿ytkownik moze zmieniæ ActiveCab wychodz¹c
   mvOccupied->CabDeactivisation(); //tak jest w Train.cpp
@@ -1610,11 +1611,19 @@ bool __fastcall TController::IncBrake()
    if (mvOccupied->BrakeCtrlPos>0) mvOccupied->BrakeReleaser(0);
    break;
   case ElectroPneumatic:
-   if (mvOccupied->BrakeCtrlPos<mvOccupied->BrakeCtrlPosNo)
-    if (mvOccupied->BrakePressureTable[mvOccupied->BrakeCtrlPos+1+2].BrakeType==ElectroPneumatic) //+2 to indeks Pascala 
-     OK=mvOccupied->IncBrakeLevel();
-    else
-     OK=false;
+     if(mvOccupied->fBrakeCtrlPos!=mvOccupied->Handle->GetPos(bh_EPB))
+     {
+      mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_EPB));
+      if (mvOccupied->Handle->GetPos(bh_EPR)-mvOccupied->Handle->GetPos(bh_EPN)<0.1)
+       mvOccupied->SwitchEPBrake(1); //to nie chce dzia³aæ
+      OK=true;
+     }
+     else OK=false;
+//   if (mvOccupied->BrakeCtrlPos<mvOccupied->BrakeCtrlPosNo)
+//    if (mvOccupied->BrakePressureTable[mvOccupied->BrakeCtrlPos+1+2].BrakeType==ElectroPneumatic) //+2 to indeks Pascala
+//     OK=mvOccupied->IncBrakeLevel();
+//    else
+//     OK=false;
   }
  return OK;
 }
@@ -1636,19 +1645,16 @@ bool __fastcall TController::DecBrake()
     Need_BrakeRelease=true;
    break;
   case ElectroPneumatic:
-   //if (mvOccupied->BrakeCtrlPos>(mvOccupied->BrakeSubsystem==Oerlikon?-1:0))
-   if (mvOccupied->BrakeCtrlPos>((iDrivigFlags&moveOerlikons)?-1:0))
-    if (mvOccupied->BrakePressureTable[mvOccupied->BrakeCtrlPos-1+2].BrakeType==ElectroPneumatic) //+2 to indeks Pascala
-     OK=mvOccupied->DecBrakeLevel();
-    else
-    {if ((mvOccupied->BrakeSubsystem==ss_W))
-     {//jeœli Knorr
-      mvOccupied->SwitchEPBrake((mvOccupied->BrakePress>0.0)?1:0);
+     if(mvOccupied->fBrakeCtrlPos!=mvOccupied->Handle->GetPos(bh_EPR))
+     {
+      mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_EPR));
+      if (mvOccupied->Handle->GetPos(bh_EPR)-mvOccupied->Handle->GetPos(bh_EPN)<0.1)
+       mvOccupied->SwitchEPBrake(1);
+      OK=true;
      }
-     OK=false;
-    }
-    if (!OK)
-     OK=mvOccupied->DecLocalBrakeLevel(2);
+     else OK=false;
+     if (!OK)
+      OK=mvOccupied->DecLocalBrakeLevel(2);
    break;
  }
  return OK;
@@ -3159,11 +3165,20 @@ bool __fastcall TController::UpdateSituation(double dt)
           if (mvOccupied->BrakeCtrlPos>=0)
            DecBrake(); //tutaj zmniejsza³o o 1 przy odczepianiu
          }
-         else if (mvOccupied->BrakeCtrlPos<0) IncBrake(); //ustawienie jazdy (pozycja 0)
-         else if (mvOccupied->BrakeCtrlPos>0) DecBrake();
+         else if (mvOccupied->Handle->TimeEP)
+         {
+          if (mvOccupied->Handle->GetPos(bh_EPR)-mvOccupied->Handle->GetPos(bh_EPN)<0.1)
+           mvOccupied->SwitchEPBrake(0);
+          else
+           mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_EPN));
+         }
+//         else if (mvOccupied->BrakeCtrlPos<0) IncBrake(); //ustawienie jazdy (pozycja 0)
+//         else if (mvOccupied->BrakeCtrlPos>0) DecBrake();
       }
       else
       {//a stara wersja w miarê dobrze dzia³a na sk³ady wagonowe
+//       if (mvOccupied->Handle->Time)
+//         mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_MB)); //najwyzej sobie przestawi
        if (((fAccGravity<-0.05)&&(vel<0))||((AccDesired<fAccGravity-0.05)&&(AbsAccS>AccDesired+0.2))) //u góry ustawia siê hamowanie na -0.6
        //if not MinVelFlag)
         if (fBrakeTime<0?true:(AccDesired<fAccGravity-0.8)||(mvOccupied->BrakeCtrlPos<=0))

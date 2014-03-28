@@ -480,6 +480,8 @@ class PASCALIMPLEMENTATION THandle : public System::TObject
 	typedef System::TObject inherited;
 	
 public:
+	bool Time;
+	bool TimeEP;
 	virtual double __fastcall GetPF(double i_bcp, double pp, double hp, double dt, double ep);
 	virtual void __fastcall Init(double press);
 	virtual double __fastcall GetCP(void);
@@ -616,6 +618,7 @@ public:
 	virtual double __fastcall GetPF(double i_bcp, double pp, double hp, double dt, double ep);
 	virtual double __fastcall GetCP(void);
 	virtual double __fastcall GetPos(Byte i);
+	virtual void __fastcall Init(double press);
 public:
 	#pragma option push -w-inl
 	/* TObject.Create */ inline __fastcall TSt113(void) : TH14K1() { }
@@ -709,6 +712,7 @@ public:
 	virtual double __fastcall GetPF(double i_bcp, double pp, double hp, double dt, double ep);
 	virtual double __fastcall GetCP(void);
 	virtual double __fastcall GetPos(Byte i);
+	virtual void __fastcall Init(double press);
 public:
 	#pragma option push -w-inl
 	/* TObject.Create */ inline __fastcall TFVel6(void) : THandle() { }
@@ -778,10 +782,12 @@ static const Shortint bh_MAX = 0x1;
 static const Shortint bh_FS = 0x2;
 static const Shortint bh_RP = 0x3;
 static const Shortint bh_NP = 0x4;
-static const Shortint bh_1B = 0x5;
-static const Shortint bh_MB = 0x6;
-static const Shortint bh_FB = 0x7;
-static const Shortint bh_EB = 0x8;
+static const Shortint bh_MB = 0x5;
+static const Shortint bh_FB = 0x6;
+static const Shortint bh_EB = 0x7;
+static const Shortint bh_EPR = 0x8;
+static const Shortint bh_EPN = 0x9;
+static const Shortint bh_EPB = 0xa;
 #define SpgD  (7.917000E-01)
 #define SpO  (5.067000E-01)
 extern PACKAGE double BPT[9][2];
