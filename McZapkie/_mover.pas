@@ -2687,16 +2687,8 @@ begin
    begin
      if AmpN>0 then //podaæ pr¹d w ga³êzi
       begin
-       if Bn>=AmpN then
-        if Grupowy then //jeœli przerzucanie wa³u grupowego w ET22
-         begin
-         if (AmpN=Bn-1)then
-          ShowCurrent:=0
-         else if (AmpN=Bn)and(Bn=2) then
-          ShowCurrent:=Trunc(1.5*Abs(Im))
-         else
-          ShowCurrent:=Trunc(1.15*Abs(Im));
-         end
+       if (Bn<AmpN)or((Grupowy) and (AmpN=Bn-1)) then
+         ShowCurrent:=0
         else //normalne podawanie pradu
          ShowCurrent:=Trunc(Abs(Im));
       end
@@ -2771,6 +2763,7 @@ var //Rw,
     R,MotorCurrent:real;
     Rz,Delta,Isf:real;
     Mn: integer;
+    Bn: real;
     SP: byte;
     U1: real; //napiecie z korekta
 begin
@@ -2795,7 +2788,13 @@ begin
 
   ResistorsFlag:=(RList[MainCtrlActualPos].R>0.01){ and (not DelayCtrlFlag)};
   ResistorsFlag:=ResistorsFlag or ((DynamicBrakeFlag=true) and (DynamicBrakeType=dbrake_automatic));
-  R:=RList[MainCtrlActualPos].R+CircuitRes;
+
+  if(TrainType=dt_ET22)and(DelayCtrlFlag)and(MainCtrlActualPos>1)then
+    Bn:=1-1/RList[MainCtrlActualPos].Bn
+  else
+    Bn:=1;
+  R:=RList[MainCtrlActualPos].R*Bn+CircuitRes;
+
   if (TrainType<>dt_EZT)or(Imin<>IminLo)or(not ScndS) then //yBARC - boczniki na szeregu poprawnie
    Mn:=RList[MainCtrlActualPos].Mn
   else
