@@ -97,13 +97,16 @@ CONST
 
    bh_MIN= 0;  //minimalna pozycja
    bh_MAX= 1;  //maksymalna pozycja
-   bh_FS = 2;  //napelnianie uderzeniowe
+   bh_FS = 2;  //napelnianie uderzeniowe //jesli nie ma, to jazda
    bh_RP = 3;  //jazda
    bh_NP = 4;  //odciecie - podwojna trakcja
-   bh_1B = 5;  //1 stopnien / hamowanie ep
-   bh_MB = 6;  //odciecie - utrzymanie stopnia hamowania
-   bh_FB = 7;  //pelne / uzupelniajace
-   bh_EB = 8;  //nagle
+   bh_MB = 5;  //odciecie - utrzymanie stopnia hamowania/pierwszy 1 stopien hamowania
+   bh_FB = 6;  //pelne
+   bh_EB = 7;  //nagle
+   bh_EPR= 8;  //ep - luzowanie  //pelny luz dla ep k¹towego
+   bh_EPN= 9;  //ep - utrzymanie //jesli rowne luzowaniu, wtedy sterowanie przyciskiem
+   bh_EPB=10;  //ep - hamowanie  //pelne hamowanie dla ep k¹towego
+
 
    SpgD=0.7917;
    SpO=0.5067;  //przekroj przewodu 1" w l/m
@@ -354,6 +357,8 @@ TYPE
       private
 //        BCP: integer;
       public
+        Time: boolean;
+        TimeEP: boolean;      
         function GetPF(i_bcp:real; pp, hp, dt, ep: real): real; virtual;
         procedure Init(press: real); virtual;
         function GetCP(): real; virtual;
@@ -416,6 +421,7 @@ TYPE
         function GetPF(i_bcp:real; pp, hp, dt, ep: real): real; override;
         function GetCP: real; override;
         function GetPos(i: byte): real; override;
+        procedure Init(press: real); override;
       end;
 
     Ttest= class(THandle)
@@ -455,7 +461,8 @@ TYPE
       public
         function GetPF(i_bcp:real; pp, hp, dt, ep: real): real; override;
         function GetCP(): real; override;
-        function GetPos(i: byte): real; override;                
+        function GetPos(i: byte): real; override;
+        procedure Init(press: real); override;        
       end;
 
 function PF(P1,P2,S:real):real;
@@ -1563,7 +1570,7 @@ begin
   dV:=PF(CVP,VVP,0.0015*temp/1.8/2)*dt;
   CntrlRes.Flow(+dV);
   ValveRes.Flow(-0.04*dV);
-  dV1:=dV1+0.96*dV;
+  dV1:=dV1-0.96*dV;
 
 
 //luzowanie KI  {G}
@@ -2141,6 +2148,8 @@ end;
 
 procedure THandle.Init(press: real);
 begin
+  Time:=false;
+  TimeEP:=false;
 end;
 
 procedure THandle.SetReductor(nAdj: real);
@@ -2238,6 +2247,8 @@ begin
   CP:= press;
   TP:= 0;
   RP:= press;
+  Time:= false;
+  TimeEP:=false;
 end;
 
 
@@ -2372,6 +2383,8 @@ begin
   TP:= 0;
   RP:= press;
   XP:= 0;
+  Time:=false;
+  TimeEP:=false;
 end;
 
 procedure TFV4aM.SetReductor(nAdj: real);
@@ -2389,7 +2402,7 @@ end;
 
 function TFV4aM.GetPos(i: byte): real;
 const
-  table: array[0..8] of real = (-2,5.5,-1,0,-2,1,4,5,5.5);
+  table: array[0..10] of real = (-2,5.5,-1,0,-2,1,4,5.5,0,0,0);
 begin
   GetPos:=table[i];
 end;
@@ -2446,6 +2459,8 @@ procedure TM394.Init(press: real);
 begin
   CP:= press;
   RedAdj:= 0;
+  Time:=true;
+  TimeEP:=false;
 end;
 
 procedure TM394.SetReductor(nAdj: real);
@@ -2460,7 +2475,7 @@ end;
 
 function TM394.GetPos(i: byte): real;
 const
-  table: array[0..8] of real = (-1,5,-1,0,1,3,2,4,5);
+  table: array[0..10] of real = (-1,5,-1,0,1,2,4,5,0,0,0);
 begin
   GetPos:=table[i];
 end;
@@ -2507,6 +2522,8 @@ procedure TH14K1.Init(press: real);
 begin
   CP:= press;
   RedAdj:= 0;
+  Time:=true;
+  TimeEP:=true;
 end;
 
 procedure TH14K1.SetReductor(nAdj: real);
@@ -2521,7 +2538,7 @@ end;
 
 function TH14K1.GetPos(i: byte): real;
 const
-  table: array[0..8] of real = (-1,4,-1,0,1,3,2,3,4);
+  table: array[0..10] of real = (-1,4,-1,0,1,2,3,4,0,0,0);
 begin
   GetPos:=table[i];
 end;
@@ -2577,9 +2594,15 @@ end;
 
 function TSt113.GetPos(i: byte): real;
 const
-  table: array[0..8] of real = (-1,5,-1,0,2,1,3,4,5);
+  table: array[0..10] of real = (-1,5,-1,0,2,3,4,5,0,0,1);
 begin
   GetPos:=table[i];
+end;
+
+procedure TSt113.Init(press: real);
+begin
+  Time:=true;
+  TimeEP:=true;
 end;
 
 //--- test ---
@@ -2636,6 +2659,8 @@ procedure TFD1.Init(press: real);
 begin
   BP:=0;
   MaxBP:=press;
+  Time:=false;
+  TimeEP:=false;
 end;
 
 function TFD1.GetCP: real;
@@ -2671,6 +2696,8 @@ procedure TH1405.Init(press: real);
 begin
   BP:=0;
   MaxBP:=press;
+  Time:=true;
+  TimeEP:=false;
 end;
 
 function TH1405.GetCP: real;
@@ -2714,9 +2741,15 @@ end;
 
 function TFVel6.GetPos(i: byte): real;
 const
-  table: array[0..8] of real = (-1,6,-1,0,6,1,4,4.7,5);
+  table: array[0..10] of real = (-1,6,-1,0,6,4,4.7,5,-1,0,1);
 begin
   GetPos:=table[i];
+end;
+
+procedure TFVel6.Init(press: real);
+begin
+  Time:=true;
+  TimeEP:=true;
 end;
 
 end.
