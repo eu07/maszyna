@@ -40,7 +40,8 @@ enum TMovementStatus
  moveIncSpeed=0x1000, //za³¹czenie jazdy (np. dla EZT)
  moveTrackEnd=0x2000, //dalsza jazda do przodu trwale ograniczona (W5, koniec toru)
  moveSwitchFound=0x4000, //na drodze skanowania do przodu jest rozjazd
- moveGuardSignal=0x8000 //sygna³ od kierownika (min¹³ czas postoju)
+ moveGuardSignal=0x8000, //sygna³ od kierownika (min¹³ czas postoju)
+ moveVisibility=0x10000 //jazda na widocznoœæ po przejechaniu S1 na SBL
 };
 
 enum TStopReason

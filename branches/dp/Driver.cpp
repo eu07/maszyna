@@ -665,7 +665,11 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
     {//jeœli S1 na SBL
      if (mvOccupied->Vel<2.0) //stan¹æ nie musi, ale zwolniæ przynajmniej
       if (sSpeedTable[i].fDist<fMaxProximityDist) //jest w maksymalnym zasiêgu
-       eSignSkip=sSpeedTable[i].evEvent; //to mo¿na go pomin¹æ (wzi¹æ drug¹ prêdkosæ)
+      {eSignSkip=sSpeedTable[i].evEvent; //to mo¿na go pomin¹æ (wzi¹æ drug¹ prêdkosæ)
+       iDrivigFlags|=moveVisibility; //jazda na widocznoœæ - skanowaæ mo¿liwoœæ kolizji i nie podje¿d¿aæ zbyt blisko
+       //usun¹æ flagê po podjechaniu blisko semafora zezwalaj¹cego na jazdê
+       //ostro¿nie interpretowaæ sygna³y - semafor mo¿e zezwalaæ na jazdê poci¹gu z przodu!
+      }
      if (eSignSkip!=sSpeedTable[i].evEvent) //jeœli ten SBL nie jest do pominiêcia
       v=sSpeedTable[i].evEvent->ValueGet(1); //to ma 0 odczytywaæ
     }
@@ -697,7 +701,11 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
        {go=cm_SetVelocity; //mo¿e odjechaæ
         VelActual=v; //nie do koñca tak, to jest druga prêdkoœæ; -1 nie wpisywaæ...
         if (sSpeedTable[i].fDist<0.0) //jeœli przejechany
+        {if (sSpeedTable[i].iFlags&0x100) //jeœli semafor
+          if ((sSpeedTable[i].evEvent!=eSignSkip)?true:(sSpeedTable[i].fVelNext!=0.0)) //ale inny ni¿ ten, na którym miniêto S1, chyba ¿e siê ju¿ zmieni³o
+           iDrivigFlags&=~moveVisibility; //sygna³ zezwalaj¹cy na jazdê wy³¹cza jazdê na widocznoœæ (S1 na SBL)
          sSpeedTable[i].iFlags=0; //to mo¿na usun¹æ (nie mog¹ byæ usuwane w skanowaniu)
+        }
        }
        else if (sSpeedTable[i].evEvent->StopCommand())
        {//jeœli prêdkoœæ jest zerowa, a komórka zawiera komendê
@@ -1806,7 +1814,7 @@ void __fastcall TController::SpeedSet()
    if (mvControlling->MainCtrlPosNo>0)
    {//jeœli ma czym krêciæ
     //TODO: sprawdzanie innego czlonu //if (!FuseFlagCheck())
-    if ((AccDesired<fAccGravity-0.05)||(mvOccupied->Vel>=VelDesired+fVelPlus)) //jeœli nie ma przyspieszaæ
+    if ((AccDesired<fAccGravity-0.05)||(mvOccupied->Vel>VelDesired)) //jeœli nie ma przyspieszaæ
      mvControlling->DecMainCtrl(2); //na zero
     else
      if (fActionTime>=0.0)

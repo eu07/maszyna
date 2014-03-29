@@ -1652,7 +1652,7 @@ bool __fastcall TWorld::Update()
         OutText2+="+Mg";
        OutText2+=AnsiString(", BTP:")+FloatToStrF(tmp->MoverParameters->LoadFlag,ffFixed,5,0);
        if ((tmp->MoverParameters->EnginePowerSource.SourceType==CurrentCollector) || (tmp->MoverParameters->TrainType==dt_EZT))
-       {OutText2+=AnsiString(", pant. ")+FloatToStrF(tmp->MoverParameters->PantPress,ffFixed,8,2);
+       {OutText2+=AnsiString("; pant. ")+FloatToStrF(tmp->MoverParameters->PantPress,ffFixed,8,2);
         OutText2+=(tmp->MoverParameters->bPantKurek3?"=ZG":"|ZG");
        }
 
@@ -1716,10 +1716,10 @@ bool __fastcall TWorld::Update()
         //OutText4=tmp->Mechanik->StopReasonText();
         //if (!OutText4.IsEmpty()) OutText4+="; "; //aby ³adniejszy odstêp by³
         //if (Controlled->Mechanik && (Controlled->Mechanik->AIControllFlag==AIdriver))
-        AnsiString flags="bwaccmlshhhoibs; "; //flagi AI
-        for (int i=0,j=1;i<=14;++i,j<<=1)
+        AnsiString flags="bwaccmlshhhoibsgv; "; //flagi AI (definicja w Driver.h)
+        for (int i=0,j=1;i<17;++i,j<<=1)
          if (tmp->Mechanik->DrivigFlags()&j) //jak bit ustawiony
-          flags[i+1]^=0x20; //to zmiana na wielkie
+          flags[i+1]^=0x20; //to zmiana na wielk¹ literê
         OutText4=flags;
         OutText4+=AnsiString("Driver: Vd=")+FloatToStrF(tmp->Mechanik->VelDesired,ffFixed,4,0)
         +AnsiString(" ad=")+FloatToStrF(tmp->Mechanik->AccDesired,ffFixed,5,2)
