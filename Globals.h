@@ -159,6 +159,7 @@ public:
  static vector3 pFreeCameraInitAngle[10];
  static int iWindowWidth;
  static int iWindowHeight;
+ static float fDistanceFactor;
  static int iBpp;
  static bool bFullScreen;
  static bool bFreeFly;
