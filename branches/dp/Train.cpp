@@ -293,16 +293,18 @@ void __fastcall TTrain::OnKeyDown(int cKey)
       else */
       if (cKey==Global::Keys[k_Battery])
       {
-         if(((mvControlled->TrainType==dt_EZT) || (mvControlled->EngineType==ElectricSeriesMotor)|| (mvControlled->EngineType==DieselElectric))&&(mvControlled->Battery==false))
+       if (((mvControlled->TrainType==dt_EZT)||(mvControlled->EngineType==ElectricSeriesMotor)||(mvControlled->EngineType==DieselElectric))&&(!mvControlled->Battery))
+       {
+        if (mvOccupied->BatterySwitch(true))
+        {
+         dsbSwitch->Play(0,0,0);
+         if (TestFlag(mvControlled->SecuritySystem.SystemType,2)) //Ra: znowu w kabinie jest coœ, co byæ nie powinno!
          {
-         if ((mvOccupied->BatterySwitch(true)))
-           {
-               dsbSwitch->Play(0,0,0);
-               SetFlag(mvControlled->SecuritySystem.Status,s_active);
-               SetFlag(mvControlled->SecuritySystem.Status,s_SHPalarm);
-
-           }
-           }
+          SetFlag(mvControlled->SecuritySystem.Status,s_active);
+          SetFlag(mvControlled->SecuritySystem.Status,s_SHPalarm);
+         }
+        }
+       }
       }
       else
       if (cKey==Global::Keys[k_StLinOff])

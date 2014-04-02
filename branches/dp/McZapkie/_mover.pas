@@ -5181,7 +5181,7 @@ Begin
    end
   else if command='CabSignal' then {SHP,Indusi}
    begin //Ra: to powinno dzia³aæ tylko w cz³onie obsadzonym
-     if ((TrainType=dt_EZT)or(ActiveCab<>0)) and (Battery) and (SecuritySystem.SystemType>1) then //jeœli kabina jest obsadzona (silnikowy w EZT?)
+     if ((TrainType=dt_EZT)or(ActiveCab<>0)) and (Battery) and TestFlag(SecuritySystem.SystemType,2) then //jeœli kabina jest obsadzona (silnikowy w EZT?)
       with SecuritySystem do
        begin
         VelocityAllowed:=Trunc(CValue1);
