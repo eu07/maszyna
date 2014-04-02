@@ -1945,8 +1945,9 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
  if (NewCommand=="CabSignal")
  {//SHP wyzwalane jest przez cz³on z obsad¹, ale obs³ugiwane przez silnikowy
   //nie jest to najlepiej zrobione, ale bez symulacji obwodów lepiej nie bêdzie
-  mvControlling->PutCommand(NewCommand,NewValue1,NewValue2,mvOccupied->Loc);
-  mvControlling->RunInternalCommand(); //rozpoznaj komende bo lokomotywa jej nie rozpoznaje
+  //Ra 2014-04: jednak przenios³em do rozrz¹dczego
+  mvOccupied->PutCommand(NewCommand,NewValue1,NewValue2,mvOccupied->Loc);
+  mvOccupied->RunInternalCommand(); //rozpoznaj komende bo lokomotywa jej nie rozpoznaje
   return true; //za³atwione
  }
  else if (NewCommand=="Emergency_brake") //wymuszenie zatrzymania, niezale¿nie kto prowadzi
@@ -2427,10 +2428,10 @@ bool __fastcall TController::UpdateSituation(double dt)
    if (mvOccupied->CommandIn.Command!="")
     if (!mvOccupied->RunInternalCommand()) //rozpoznaj komende bo lokomotywa jej nie rozpoznaje
      RecognizeCommand(); //samo czyta komendê wstawion¹ do pojazdu?
-   if (mvControlling->SecuritySystem.Status>1) //jak zadzia³a³o CA/SHP
-    if (!mvControlling->SecuritySystemReset()) //to skasuj
-     //if ((TestFlag(Controlling->SecuritySystem.Status,s_ebrake))&&(Controlling->BrakeCtrlPos==0)&&(AccDesired>0.0))
-     if ((TestFlag(mvControlling->SecuritySystem.Status,s_SHPebrake)||TestFlag(mvControlling->SecuritySystem.Status,s_CAebrake))&&(mvOccupied->BrakeCtrlPos==0)&&(AccDesired>0.0))
+   if (mvOccupied->SecuritySystem.Status>1) //jak zadzia³a³o CA/SHP
+    if (!mvOccupied->SecuritySystemReset()) //to skasuj
+     //if ((TestFlag(mvOccupied->SecuritySystem.Status,s_ebrake))&&(mvOccupied->BrakeCtrlPos==0)&&(AccDesired>0.0))
+     if ((TestFlag(mvOccupied->SecuritySystem.Status,s_SHPebrake)||TestFlag(mvOccupied->SecuritySystem.Status,s_CAebrake))&&(mvOccupied->BrakeCtrlPos==0)&&(AccDesired>0.0))
       mvOccupied->BrakeLevelSet(0); //!!! hm, mo¿e po prostu normalnie sterowaæ hamulcem?
   }
   switch (OrderList[OrderPos])

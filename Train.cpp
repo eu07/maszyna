@@ -298,10 +298,10 @@ void __fastcall TTrain::OnKeyDown(int cKey)
         if (mvOccupied->BatterySwitch(true))
         {
          dsbSwitch->Play(0,0,0);
-         if (TestFlag(mvControlled->SecuritySystem.SystemType,2)) //Ra: znowu w kabinie jest coœ, co byæ nie powinno!
+         if (TestFlag(mvOccupied->SecuritySystem.SystemType,2)) //Ra: znowu w kabinie jest coœ, co byæ nie powinno!
          {
-          SetFlag(mvControlled->SecuritySystem.Status,s_active);
-          SetFlag(mvControlled->SecuritySystem.Status,s_SHPalarm);
+          SetFlag(mvOccupied->SecuritySystem.Status,s_active);
+          SetFlag(mvOccupied->SecuritySystem.Status,s_SHPalarm);
          }
         }
        }
@@ -1224,7 +1224,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
       if (cKey==Global::Keys[k_Czuwak])
       {//Ra: tu zosta³ tylko dŸwiêk
        //dsbBuzzer->Stop();
-       //if (mvControlled->SecuritySystemReset())
+       //if (mvOccupied->SecuritySystemReset())
        if (fabs(SecurityResetButtonGauge.GetValue())<0.001)
        {
         dsbSwitch->SetVolume(DSBVOLUME_MAX);
@@ -1341,7 +1341,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
         if (mvOccupied->BatterySwitch(false))
            {
               dsbSwitch->Play(0,0,0);
-              //mvControlled->SecuritySystem.Status=0;
+              //mvOccupied->SecuritySystem.Status=0;
               mvControlled->PantFront(false);
               mvControlled->PantRear(false);
            }
@@ -3643,7 +3643,7 @@ if ( mvControlled->Signalling==true )
 
 
 //McZapkie-141102: SHP i czuwak, TODO: sygnalizacja kabinowa
-    if (mvControlled->SecuritySystem.Status>0)
+    if (mvOccupied->SecuritySystem.Status>0)
      {
        if (fBlinkTimer>fCzuwakBlink)
            fBlinkTimer=-fCzuwakBlink;
@@ -3651,16 +3651,16 @@ if ( mvControlled->Signalling==true )
            fBlinkTimer+=dt;
 
        //hunter-091012: dodanie testu czuwaka
-       if ((TestFlag(mvControlled->SecuritySystem.Status,s_aware))||(TestFlag(mvControlled->SecuritySystem.Status,s_CAtest)))
+       if ((TestFlag(mvOccupied->SecuritySystem.Status,s_aware))||(TestFlag(mvOccupied->SecuritySystem.Status,s_CAtest)))
         {
          btLampkaCzuwaka.Turn(fBlinkTimer>0);
         }
         else btLampkaCzuwaka.TurnOff();
-       btLampkaSHP.Turn(TestFlag(mvControlled->SecuritySystem.Status,s_active));
+       btLampkaSHP.Turn(TestFlag(mvOccupied->SecuritySystem.Status,s_active));
 
        //hunter-091012: rozdzielenie alarmow
-       //if (TestFlag(mvControlled->SecuritySystem.Status,s_alarm))
-       if (TestFlag(mvControlled->SecuritySystem.Status,s_CAalarm)||TestFlag(mvControlled->SecuritySystem.Status,s_SHPalarm))
+       //if (TestFlag(mvOccupied->SecuritySystem.Status,s_alarm))
+       if (TestFlag(mvOccupied->SecuritySystem.Status,s_CAalarm)||TestFlag(mvOccupied->SecuritySystem.Status,s_SHPalarm))
         {
           dsbBuzzer->GetStatus(&stat);
           if (!(stat&DSBSTATUS_PLAYING))
@@ -3785,28 +3785,28 @@ if ( mvControlled->Signalling==true )
      //hunter-131211: czuwak przeniesiony z OnKeyPress
      //hunter-091012: zrobiony test czuwaka
      if ( Console::Pressed(Global::Keys[k_Czuwak]) )
-     {//czuwak testuje kierunek, wiêc musi byæ w silnikowym, bo w rozrz¹dczym nie ma kierunku 
+     {//czuwak testuje kierunek, ale podobno w EZT nie, wiêc mo¿e byæ w rozrz¹dczym 
       fCzuwakTestTimer+=dt;
       SecurityResetButtonGauge.PutValue(1);
         if (CAflag==false)
          {
           CAflag=true;
-          mvControlled->SecuritySystemReset();
+          mvOccupied->SecuritySystemReset();
          }
         else if (fCzuwakTestTimer>1.0)
-         SetFlag(mvControlled->SecuritySystem.Status,s_CAtest);
+         SetFlag(mvOccupied->SecuritySystem.Status,s_CAtest);
      }
      else
      {
       fCzuwakTestTimer=0;
       SecurityResetButtonGauge.UpdateValue(0);
-      if (TestFlag(mvControlled->SecuritySystem.Status,s_CAtest))//&&(!TestFlag(mvControlled->SecuritySystem.Status,s_CAebrake)))
+      if (TestFlag(mvOccupied->SecuritySystem.Status,s_CAtest))//&&(!TestFlag(mvControlled->SecuritySystem.Status,s_CAebrake)))
        {
-        SetFlag(mvControlled->SecuritySystem.Status,-s_CAtest);
-        mvControlled->s_CAtestebrake=false;
-        mvControlled->SecuritySystem.SystemBrakeCATestTimer=0;
-//        if ((!TestFlag(mvControlled->SecuritySystem.Status,s_SHPebrake))
-//         ||(!TestFlag(mvControlled->SecuritySystem.Status,s_CAebrake)))
+        SetFlag(mvOccupied->SecuritySystem.Status,-s_CAtest);
+        mvOccupied->s_CAtestebrake=false;
+        mvOccupied->SecuritySystem.SystemBrakeCATestTimer=0;
+//        if ((!TestFlag(mvOccupied->SecuritySystem.Status,s_SHPebrake))
+//         ||(!TestFlag(mvOccupied->SecuritySystem.Status,s_CAebrake)))
 //        mvControlled->EmergencyBrakeFlag=false; //YB-HN
        }
       CAflag=false;
@@ -3815,16 +3815,16 @@ if ( mvControlled->Signalling==true )
      if ( Console::Pressed(Global::Keys[k_Czuwak]) )
      {
       SecurityResetButtonGauge.PutValue(1);
-      if ((mvControlled->SecuritySystem.Status&s_aware)&&
-          (mvControlled->SecuritySystem.Status&s_active))
+      if ((mvOccupied->SecuritySystem.Status&s_aware)&&
+          (mvOccupied->SecuritySystem.Status&s_active))
        {
-        mvControlled->SecuritySystem.SystemTimer=0;
-        mvControlled->SecuritySystem.Status-=s_aware;
-        mvControlled->SecuritySystem.VelocityAllowed=-1;
+        mvOccupied->SecuritySystem.SystemTimer=0;
+        mvOccupied->SecuritySystem.Status-=s_aware;
+        mvOccupied->SecuritySystem.VelocityAllowed=-1;
         CAflag=1;
        }
       else if (CAflag!=1)
-        mvControlled->SecuritySystemReset();
+        mvOccupied->SecuritySystemReset();
      }
      else
      {

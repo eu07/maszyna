@@ -1611,7 +1611,7 @@ begin
  if (Battery=true) then SendCtrlToNext('BatterySwitch',1,CabNo)
   else SendCtrlToNext('BatterySwitch',0,CabNo);
  BatterySwitch:=true;
- if (Battery) and ((ActiveCab<>0) or (TrainType=dt_EZT)) then
+ if (Battery) and (ActiveCab<>0) {or (TrainType=dt_EZT)} then
   SecuritySystem.Status:=SecuritySystem.Status or s_waiting //aktywacja czuwaka
  else
   SecuritySystem.Status:=0; //wy³¹czenie czuwaka
@@ -1880,7 +1880,7 @@ begin
 //poza tym jest zdefiniowany we wszystkich 3 cz³onach EN57
   with SecuritySystem do
    begin
-     if (SystemType>0) and (Status>0) and (Battery) then //Ra: EZT ma teraz czuwak w silnikowym
+     if (SystemType>0) and (Status>0) and (Battery) then //Ra: EZT ma teraz czuwak w rozrz¹dczym
       begin
        //CA
        if (Vel>=AwareMinSpeed) then  //domyœlnie predkoœæ wiêksza od 10% Vmax, albo podanej jawnie w FIZ
@@ -5000,7 +5000,7 @@ Begin
    begin
      if (CValue1=1) then Battery:=true
      else if (CValue1=0) then Battery:=false;
-     if (Battery) and ((ActiveCab<>0) or (TrainType=dt_EZT)) then
+     if (Battery) and (ActiveCab<>0) {or (TrainType=dt_EZT)} then
       SecuritySystem.Status:=SecuritySystem.Status or s_waiting //aktywacja czuwaka
      else
       SecuritySystem.Status:=0; //wy³¹czenie czuwaka
@@ -5181,7 +5181,7 @@ Begin
    end
   else if command='CabSignal' then {SHP,Indusi}
    begin //Ra: to powinno dzia³aæ tylko w cz³onie obsadzonym
-     if ((TrainType=dt_EZT)or(ActiveCab<>0)) and (Battery) and TestFlag(SecuritySystem.SystemType,2) then //jeœli kabina jest obsadzona (silnikowy w EZT?)
+     if {(TrainType=dt_EZT)or} (ActiveCab<>0) and (Battery) and TestFlag(SecuritySystem.SystemType,2) then //jeœli kabina jest obsadzona (silnikowy w EZT?)
       with SecuritySystem do
        begin
         VelocityAllowed:=Trunc(CValue1);
@@ -6682,7 +6682,7 @@ begin
             end
           else if Pos('Security:',lines)>0 then
            begin
-            if (TrainType<>dt_EZT)or(Power>1) then //dla EZT tylko w silnikowym
+            //if (TrainType<>dt_EZT)or(Power>1) then //dla EZT tylko w silnikowym
              with SecuritySystem do
               begin
                s:=DUE(ExtractKeyWord(lines,'AwareSystem='));

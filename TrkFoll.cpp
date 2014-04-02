@@ -78,7 +78,7 @@ bool __fastcall TTrackFollower::Move(double fDistance,bool bPrimary)
  {//pêtla przesuwaj¹ca wózek przez kolejne tory, a¿ do trafienia w jakiœ
   if (!pCurrentTrack) return false; //nie ma toru, to nie ma przesuwania
   if (pCurrentTrack->iEvents) //sumaryczna informacja o eventach
-  {//omijamy ca³y ten blok, gdy tor nie ma on ¿adnych eventów (wiêkszoœc nie ma)
+  {//omijamy ca³y ten blok, gdy tor nie ma on ¿adnych eventów (wiêkszoœæ nie ma)
    if (fDistance<0)
    {
     if (iSetFlag(iEventFlag,-1)) //zawsze zeruje flagê sprawdzenia, jak mechanik dosi¹dzie, to siê nie wykona
@@ -235,7 +235,7 @@ bool __fastcall TTrackFollower::ComputatePosition()
   if (fDirection<0) //k¹ty zale¿¹ jeszcze od zwrotu na torze
   {vAngles.x=-vAngles.x; //przechy³ka jest w przecinw¹ stronê
    vAngles.y=-vAngles.y; //pochylenie jest w przecinw¹ stronê
-   vAngles.z+=M_PI; //ale kierunek w planie jest obrócony o 180° 
+   vAngles.z+=M_PI; //ale kierunek w planie jest obrócony o 180°
   }
   if (fOffsetH!=0.0)
   {//jeœli przesuniêcie wzglêdem osi toru, to je doliczyæ
