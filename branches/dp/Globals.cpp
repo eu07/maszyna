@@ -44,8 +44,8 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asRelease="14.3.1010.433";
-AnsiString Global::asVersion="Compilation 2014-03-31, release "+Global::asRelease+"."; //tutaj, bo wysy³any
+AnsiString Global::asRelease="14.4.1012.434";
+AnsiString Global::asVersion="Compilation 2014-04-02, release "+Global::asRelease+"."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 int Global::iScreenMode[12]={0,0,0,0,0,0,0,0,0,0,0,0}; //numer ekranu wyœwietlacza tekstowego
@@ -129,7 +129,7 @@ bool Global::bSmoothTraction=false; //wyg³adzanie drutów starym sposobem
 char** Global::szDefaultExt=Global::szTexturesDDS; //domyœlnie od DDS
 int Global::iMultisampling=2; //tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
 bool Global::bGlutFont=false; //czy tekst generowany przez GLUT32.DLL
-int Global::iConvertModels=6; //tworzenie plików binarnych, 2-optymalizacja transformów
+int Global::iConvertModels=7; //tworzenie plików binarnych, 2-optymalizacja transformów
 int Global::iSlowMotionMask=-1; //maska wy³¹czanych w³aœciwoœci dla zwiêkszenia FPS
 int Global::iModifyTGA=7; //czy korygowaæ pliki TGA dla szybszego wczytywania
 //bool Global::bTerrainCompact=true; //czy zapisaæ teren w pliku
@@ -275,7 +275,7 @@ void __fastcall Global::ConfigParse(TQueryParserComp *qp,cParser *cp)
    fMouseYScale=str.ToDouble();
   }
   else if (str==AnsiString("enabletraction"))
-  {//Winger 040204 - 'zywe' patyki dostosowujace sie do trakcji
+  {//Winger 040204 - 'zywe' patyki dostosowujace sie do trakcji; Ra 2014-03: teraz ³amanie
    bEnableTraction=(GetNextSymbol().LowerCase()==AnsiString("yes"));
   }
   else if (str==AnsiString("loadtraction"))
@@ -285,7 +285,7 @@ void __fastcall Global::ConfigParse(TQueryParserComp *qp,cParser *cp)
   else if (str==AnsiString("friction")) //mno¿nik tarcia - KURS90
    fFriction=GetNextSymbol().ToDouble();
   else if (str==AnsiString("livetraction"))
-  {//Winger 160404 - zaleznosc napiecia loka od trakcji
+  {//Winger 160404 - zaleznosc napiecia loka od trakcji; Ra 2014-03: teraz pr¹d przy braku sieci
    bLiveTraction=(GetNextSymbol().LowerCase()==AnsiString("yes"));
   }
   else if (str==AnsiString("skyenabled"))
@@ -369,7 +369,7 @@ void __fastcall Global::ConfigParse(TQueryParserComp *qp,cParser *cp)
   else if (str==AnsiString("latitude")) //szerokoœæ geograficzna
    fLatitudeDeg=GetNextSymbol().ToDouble();
   else if (str==AnsiString("convertmodels")) //tworzenie plików binarnych
-   iConvertModels=GetNextSymbol().ToIntDef(6); //domyœlnie 6
+   iConvertModels=GetNextSymbol().ToIntDef(7); //domyœlnie 7
   else if (str==AnsiString("inactivepause")) //automatyczna pauza, gdy okno nieaktywne
    bInactivePause=(GetNextSymbol().LowerCase()==AnsiString("yes"));
   else if (str==AnsiString("slowmotion")) //tworzenie plików binarnych

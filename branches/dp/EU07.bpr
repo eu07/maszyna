@@ -57,9 +57,9 @@
 IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=14
-MinorVer=3
-Release=995
-Build=432
+MinorVer=4
+Release=1012
+Build=434
 Debug=1
 PreRelease=0
 Special=0
@@ -71,13 +71,13 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=14.3.995.432
+FileVersion=14.4.1012.434
 InternalName=9th by Ra + SPKS + MP
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=eu07.exe
 ProductName=MaSzyna EU07-424
-ProductVersion=14.3
+ProductVersion=14.4
 Comments=
 
 [HistoryLists\hlIncludePath]
