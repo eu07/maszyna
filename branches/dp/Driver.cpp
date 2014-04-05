@@ -929,6 +929,8 @@ __fastcall TController::TController
  tsGuardSignal=NULL; //komunikat od kierownika
  iGuardRadio=0; //nie przez radio
  iStationStart=0; //nic?
+ //fAccThreshold mo¿e podlegaæ uczeniu siê - hamowanie powinno byæ rejestrowane, a potem analizowane
+ fAccThreshold=(mvOccupied->TrainType&dt_EZT)?-0.6:-0.2; //próg opóŸnienia dla zadzia³ania hamulca
 };
 
 void __fastcall TController::CloseLog()
@@ -2881,7 +2883,7 @@ bool __fastcall TController::UpdateSituation(double dt)
           else //jeœli oba jad¹, to przyhamuj lekko i ogranicz prêdkoœæ
           {if (k<vel) //jak tamten jedzie wolniej
             if (d<fBrakeDist) //a jest w drodze hamowania
-            {if (AccPreferred>-0.6) AccPreferred=-0.6; //to przyhamuj troszkê
+            {if (AccPreferred>fAccThreshold) AccPreferred=fAccThreshold; //to przyhamuj troszkê
              VelNext=VelDesired=int(k); //to chyba ju¿ sobie dohamuje wed³ug uznania
             }
           }
@@ -2984,7 +2986,7 @@ bool __fastcall TController::UpdateSituation(double dt)
          {//jeœli ma siê zatrzymaæ, musi byæ to robione precyzyjnie i skutecznie
           if (ActualProximityDist<fMaxProximityDist) //jak min¹³ ju¿ maksymalny dystans
           {//po prostu hamuj (niski stopieñ) //ma stan¹æ, a jest w drodze hamowania albo ma jechaæ
-           AccDesired=-0.6; //hamowanie tak, aby stan¹æ
+           AccDesired=fAccThreshold; //hamowanie tak, aby stan¹æ
            VelDesired=0.0; //Min0R(VelDesired,VelNext);
           }
           else if (ActualProximityDist>fBrakeDist)
@@ -3059,12 +3061,12 @@ bool __fastcall TController::UpdateSituation(double dt)
          AccDesired=0.0;
        }
        else
-        AccDesired=-0.6; //hamuj tak œrednio - to siê nie za³apywa³o na warunek <-0.6
+        AccDesired=fAccThreshold; //hamuj tak œrednio
      //koniec predkosci aktualnej
 /* Ra 2014-03: to nie uwzglêdnia odleg³oœci i zaczyna hamowaæ, jak tylko zobaczy W4
      if ((AccDesired>0.0)&&(VelNext>=0.0)) //wybieg b¹dŸ lekkie hamowanie, warunki byly zamienione
       if (vel>VelNext+100.0) //lepiej zaczac hamowac
-       AccDesired=-0.6;
+       AccDesired=fAccThreshold;
       else
        if (vel>VelNext+70.0)
         AccDesired=0.0; //nie spiesz siê, bo bêdzie hamowanie
@@ -3164,7 +3166,7 @@ bool __fastcall TController::UpdateSituation(double dt)
       //zmniejszanie predkosci
       if (mvOccupied->TrainType&dt_EZT) //w³aœciwie, to warunek powinien byæ na dzia³aj¹cy EP
       {//Ra: to dobrze hamuje EP w EZT
-       if ((AccDesired<=-0.6)? //jeœli hamowaæ - u góry ustawia siê hamowanie na -0.6
+       if ((AccDesired<=fAccThreshold)? //jeœli hamowaæ - u góry ustawia siê hamowanie na fAccThreshold
         ((AbsAccS>AccDesired)||(mvOccupied->BrakeCtrlPos<0)):false) //hamowaæ bardziej, gdy aktualne opóŸnienie hamowania mniejsze ni¿ (AccDesired)
          IncBrake();
        else
@@ -3188,7 +3190,7 @@ bool __fastcall TController::UpdateSituation(double dt)
       {//a stara wersja w miarê dobrze dzia³a na sk³ady wagonowe
 //       if (mvOccupied->Handle->Time)
 //         mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_MB)); //najwyzej sobie przestawi
-       if (((fAccGravity<-0.05)&&(vel<0))||((AccDesired<fAccGravity-0.05)&&(AbsAccS>AccDesired+0.2))) //u góry ustawia siê hamowanie na -0.6
+       if (((fAccGravity<-0.05)&&(vel<0))||((AccDesired<fAccGravity-0.05)&&(AbsAccS>AccDesired+0.15))) //u góry ustawia siê hamowanie na fAccThreshold
        //if not MinVelFlag)
         if (fBrakeTime<0?true:(AccDesired<fAccGravity-0.8)||(mvOccupied->BrakeCtrlPos<=0))
          if (!IncBrake()) //jeœli up³yn¹³ czas reakcji hamulca, chyba ¿e nag³e albo luzowa³
