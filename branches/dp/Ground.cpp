@@ -1243,6 +1243,15 @@ void __fastcall TGround::Free()
  delete sTracks;
 }
 
+TGroundNode* __fastcall TGround::FindDynamic(AnsiString asNameToFind)
+{//wyszukanie pojazdu o podanej nazwie, na razie tylko pojazdy z obsad¹ s¹ interesuj¹ce
+ for (TGroundNode *Current=nRootDynamic;Current;Current=Current->nNext)
+  if (Current->DynamicObject->Mechanik) //dostêp do pojazdów bez obsady nie jest na razie potrzebny
+   if ((Current->asName==asNameToFind))
+    return Current;
+ return NULL;
+};
+
 TGroundNode* __fastcall TGround::FindGroundNode(AnsiString asNameToFind,TGroundNodeType iNodeType)
 {//wyszukiwanie obiektu o podanej nazwie i konkretnym typie
  if ((iNodeType==TP_TRACK)||(iNodeType==TP_MEMCELL)||(iNodeType==TP_MODEL))

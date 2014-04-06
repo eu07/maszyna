@@ -326,14 +326,7 @@ public:
          return NULL;
  }
 */
- inline TGroundNode* __fastcall FindDynamic(AnsiString asNameToFind)
- {
-  for (TGroundNode *Current=nRootDynamic;Current;Current=Current->nNext)
-   if ((Current->asName==asNameToFind))
-    return Current;
-  return NULL;
- }
-
+ TGroundNode* __fastcall FindDynamic(AnsiString asNameToFind);
  TGroundNode* __fastcall FindGroundNode(AnsiString asNameToFind,TGroundNodeType iNodeType);
  TGroundRect* __fastcall GetRect(double x, double z) { return &Rects[GetColFromX(x)/iNumSubRects][GetRowFromZ(z)/iNumSubRects]; };
  TSubRect* __fastcall GetSubRect(double x, double z) { return GetSubRect(GetColFromX(x),GetRowFromZ(z)); };
