@@ -1395,6 +1395,15 @@ void __fastcall TSubModel::BinInit(TSubModel *s,float4x4 *m,float8 *v,TStringPac
  Vertices=v+iVboPtr;
  //if (!iNumVerts) eType=-1; //tymczasowo zmiana typu, ¿eby siê nie renderowa³o na si³ê
 };
+void __fastcall TSubModel::AdjustDist()
+{//aktualizacja odleg³oœci faz LoD, zale¿na od rozdzielczoœci pionowej oraz multisamplingu
+ if (fSquareMaxDist>0.0) fSquareMaxDist*=Global::fDistanceFactor;
+ if (fSquareMinDist>0.0) fSquareMinDist*=Global::fDistanceFactor;
+ //if (fNearAttenStart>0.0) fNearAttenStart*=Global::fDistanceFactor;
+ //if (fNearAttenEnd>0.0) fNearAttenEnd*=Global::fDistanceFactor;
+ if (Child) Child->AdjustDist();
+ if (Next) Next->AdjustDist();
+};
 
 void __fastcall TSubModel::ColorsSet(int *a,int *d,int*s)
 {//ustawienie kolorów dla modelu terenu
@@ -1685,6 +1694,8 @@ void __fastcall TModel3d::Init()
   }
   if (iNumVerts)
   {
+   if (Global::fDistanceFactor!=1.0) //trochê zaoszczêdzi czasu na modelach z wieloma submocelami
+    Root->AdjustDist(); //aktualizacja odleg³oœci faz LoD, zale¿nie od rozdzielczoœci pionowej oraz multisamplingu
    if (Global::bUseVBO)
    {if (!m_pVNT) //jeœli nie ma jeszcze tablicy (wczytano z pliku tekstowego)
     {//tworzenie tymczasowej tablicy z wierzcho³kami ca³ego modelu

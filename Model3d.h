@@ -278,6 +278,7 @@ public:
  {return *(fMatrix->TranslationGet())+Child->Translation1Get();}
  void __fastcall ParentMatrix(float4x4 *m);
  float __fastcall MaxY(const float4x4 &m);
+ void __fastcall AdjustDist();
 };
 
 class TSubModelInfo

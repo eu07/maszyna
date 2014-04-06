@@ -1995,8 +1995,8 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
    //napiecie sieci trakcyjnej
 
    TTractionParam tmpTraction;
-   if ((MoverParameters->EnginePowerSource.SourceType==CurrentCollector)/*||(MoverParameters->TrainType==dt_EZT)*/)
-   {
+   if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
+   {//dla EZT tylko silnikowy
     //if (Global::bLiveTraction)
     {//Ra 2013-12: to ni¿ej jest chyba trochê bez sensu
      double v=MoverParameters->PantRearVolt;
@@ -2241,7 +2241,7 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
   double k; //tymczasowy k¹t
   double PantDiff;
   TAnimPant *p; //wskaŸnik do obiektu danych pantografu
-  double fCurrent=fabs(MoverParameters->Itot); //pr¹d pobierany przez pojazd
+  double fCurrent=fabs(MoverParameters->Itot)+MoverParameters->TotalCurrent; //pr¹d pobierany przez pojazd - bez sensu z tym (TotalCurrent)
   //fCurrent+=fabs(MoverParameters->Voltage)*1e-6; //pr¹d p³yn¹cy przez woltomierz, roz³adowuje kondensator orgromowy 4µF
   double fPantCurrent=fCurrent*(pants[0].fParamPants->hvPowerWire&&pants[1].fParamPants->hvPowerWire?0.5:1.0);
   for (int i=0;i<iAnimType[ANIM_PANTS];++i)

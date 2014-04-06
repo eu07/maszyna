@@ -1027,6 +1027,9 @@ bool __fastcall TWorld::Update()
   {//testowo ruch œwiat³a
    //double a=Global::fTimeAngleDeg/180.0*M_PI-M_PI; //k¹t godzinny w radianach
    double a=fmod(Global::fTimeAngleDeg,360.0)/180.0*M_PI-M_PI; //k¹t godzinny w radianach
+   //(a) jest traktowane jako czas miejscowy, nie uwzglêdniaj¹cy stref czasowych ani czasu letniego
+   //aby wyznaczyæ strefê czasow¹, trzeba uwzglêdniæ po³udnik miejscowy
+   //aby uwzglêdniæ czas letni, trzeba sprawdziæ dzieñ roku
    double L=Global::fLatitudeDeg/180.0*M_PI; //szerokoœæ geograficzna
    double H=asin(cos(L)*cos(Global::fSunDeclination)*cos(a)+sin(L)*sin(Global::fSunDeclination)); //k¹t ponad horyzontem
    //double A=asin(cos(d)*sin(M_PI-a)/cos(H));

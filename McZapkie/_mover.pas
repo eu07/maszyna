@@ -2493,7 +2493,10 @@ begin
          if (EngineType=DieselElectric) and (CompressorPower>0) then
           CompressedVolume:=CompressedVolume+dt*CompressorSpeed*(2*MaxCompressor-Compressor)/MaxCompressor*(DEList[MainCtrlPos].rpm/DEList[MainCtrlPosNo].rpm)
          else
-          CompressedVolume:=CompressedVolume+dt*CompressorSpeed*(2*MaxCompressor-Compressor)/MaxCompressor
+          begin
+           CompressedVolume:=CompressedVolume+dt*CompressorSpeed*(2*MaxCompressor-Compressor)/MaxCompressor;
+           TotalCurrent:=0.0015*Voltage; //tymczasowo tylko obci¹¿enie sprê¿arki, tak z 5A na sprê¿arkê
+          end
         else
          begin
            CompressedVolume:=CompressedVolume*0.8;
@@ -2513,6 +2516,13 @@ begin
          else
           CompressorFlag:=false; //bez tamtego cz³onu nie zadzia³a
         end
+       else if (CompressorPower=4) then //jeœli zasilanie z poprzedniego cz³onu
+        begin //zasilanie sprê¿arki w cz³onie ra z cz³onu silnikowego (sprzêg 1)
+         if (Couplers[0].Connected<>NIL) then
+          CompressorFlag:=Couplers[0].Connected.CompressorAllow and Couplers[0].Connected.ConverterFlag and Couplers[0].Connected.Mains
+         else
+          CompressorFlag:=false; //bez tamtego cz³onu nie zadzia³a
+        end
        else
         CompressorFlag:=(CompressorAllow) and ((ConverterFlag) or (CompressorPower=0)) and (Mains);
       if (Compressor>MaxCompressor) then //wy³¹cznik ciœnieniowy jest niezale¿ny od sposobu zasilania
@@ -2521,10 +2531,17 @@ begin
      else //jeœli nie za³¹czona
       if (Compressor<MinCompressor) and (LastSwitchingTime>CtrlDelay) then //jeœli nie za³¹czona, a ciœnienie za ma³e
        begin //za³¹czenie przy ma³ym ciœnieniu
-        if (CompressorPower=5) then //jeœli zasilanie z s¹siedniego cz³onu
+        if (CompressorPower=5) then //jeœli zasilanie z nastêpnego cz³onu
          begin //zasilanie sprê¿arki w cz³onie ra z cz³onu silnikowego (sprzêg 1)
           if (Couplers[1].Connected<>NIL) then
            CompressorFlag:=Couplers[1].Connected.CompressorAllow and Couplers[1].Connected.ConverterFlag and Couplers[1].Connected.Mains
+          else
+           CompressorFlag:=false; //bez tamtego cz³onu nie zadzia³a
+         end
+        else if (CompressorPower=4) then //jeœli zasilanie z poprzedniego cz³onu
+         begin //zasilanie sprê¿arki w cz³onie ra z cz³onu silnikowego (sprzêg 1)
+          if (Couplers[0].Connected<>NIL) then
+           CompressorFlag:=Couplers[0].Connected.CompressorAllow and Couplers[0].Connected.ConverterFlag and Couplers[0].Connected.Mains
           else
            CompressorFlag:=false; //bez tamtego cz³onu nie zadzia³a
          end
@@ -2541,7 +2558,15 @@ begin
       if (EngineType=DieselElectric) and (CompressorPower>0) then
        CompressedVolume:=CompressedVolume+dt*CompressorSpeed*(2*MaxCompressor-Compressor)/MaxCompressor*(DEList[MainCtrlPos].rpm/DEList[MainCtrlPosNo].rpm)
       else
-       CompressedVolume:=CompressedVolume+dt*CompressorSpeed*(2*MaxCompressor-Compressor)/MaxCompressor;
+       begin
+        CompressedVolume:=CompressedVolume+dt*CompressorSpeed*(2*MaxCompressor-Compressor)/MaxCompressor;
+        if (CompressorPower=5)and(Couplers[1].Connected<>NIL) then
+         Couplers[1].Connected.TotalCurrent:=0.0015*Couplers[1].Connected.Voltage //tymczasowo tylko obci¹¿enie sprê¿arki, tak z 5A na sprê¿arkê
+        else if (CompressorPower=4)and(Couplers[0].Connected<>NIL) then
+         Couplers[0].Connected.TotalCurrent:=0.0015*Couplers[0].Connected.Voltage //tymczasowo tylko obci¹¿enie sprê¿arki, tak z 5A na sprê¿arkê
+        else
+         TotalCurrent:=0.0015*Voltage; //tymczasowo tylko obci¹¿enie sprê¿arki, tak z 5A na sprê¿arkê
+       end
     end;
   end;
 end;
@@ -4358,6 +4383,7 @@ end;
 procedure T_MoverParameters.ComputeConstans;
 var BearingF,RollF,HideModifier: real;
 begin
+ TotalCurrent:=0; //Ra 2014-04: tu zerowanie, aby EZT mog³o pobieraæ pr¹d innemu cz³onowi
   TotalMass:=ComputeMass;
   TotalMassxg:=TotalMass*g; {TotalMass*g}
   BearingF:=2*(DamageFlag and dtrain_bearing);
@@ -5523,6 +5549,7 @@ begin
 
   Name:=NameInit;
  DerailReason:=0; //Ra: powód wykolejenia
+ TotalCurrent:=0;
 end;
 
 function T_MoverParameters.EngineDescription(what:integer): string;  {opis stanu lokomotywy}
