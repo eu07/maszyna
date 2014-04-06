@@ -417,15 +417,27 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos,bool dyna
   if (iNumVerts)
   {Vertices=new float8[iNumVerts];
    iNumFaces=iNumVerts/3;
-   sg=new DWORD[iNumFaces]; //maski powierzchni
+   sg=new DWORD[iNumFaces]; //maski powierzchni: 0 oznacza brak u¿redniania wektorów normalnych
+   int *wsp=new int[iNumVerts]; //z którego wierzcho³ka kopiowaæ wektor normalny
+   int maska=0;
    for (int i=0;i<iNumVerts;i++)
    {//Ra: z konwersj¹ na uk³ad scenerii - bêdzie wydajniejsze wyœwietlanie
-    if (i%3==0)
-     parser.getToken(sg[i/3]); //maska powierzchni trójk¹ta
+    wsp[i]=-1; //wektory normalne nie s¹ policzone dla tego wierzcho³ka
+    if ((i%3)==0)
+    {//jeœli bêdzie maska -1, to dalej bêd¹ wierzcho³ki z wektorami normalnymi podanymi jawnie
+     parser.getToken(maska); //maska powierzchni trójk¹ta
+     sg[i/3]=(maska>0)?maska:0; //dla ujemnej maski bêdzie 0, czyli nie ma wspólnych wektorów normalnych
+    }
     parser.getToken(Vertices[i].Point.x);
     parser.getToken(Vertices[i].Point.y);
     parser.getToken(Vertices[i].Point.z);
-    //Vertices[i].Normal=vector3(0,0,0); //bêdzie liczony potem
+    if (maska<0)
+    {//jeœli wektory normalne podane jawnie
+     parser.getToken(Vertices[i].Normal.x);
+     parser.getToken(Vertices[i].Normal.y);
+     parser.getToken(Vertices[i].Normal.z);
+     wsp[i]=i; //wektory normalne "s¹ ju¿ policzone"
+    }
     parser.getToken(Vertices[i].tu);
     parser.getToken(Vertices[i].tv);
     if (i%3==2) //je¿eli wczytano 3 punkty
@@ -436,10 +448,9 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos,bool dyna
       --iNumFaces; //o jeden trójk¹t mniej
       iNumVerts-=3; //czyli o 3 wierzcho³ki
       i-=3; //wczytanie kolejnego w to miejsce
-      //WriteLog(AnsiString("Degenerated triangle ignored in: \"")+asName+"\"");
       WriteLog(AnsiString("Degenerated triangle ignored in: \"")+AnsiString(pName)+"\"");
      }
-     if (i>0) //pierwszy trójk¹t mo¿e byæ zdegenerowany i zostanie usuniêty
+     if (i>0) //jeœli pierwszy trójk¹t bêdzie zdegenerowany, to zostanie usuniêty i nie ma co sprawdzaæ
       if (((Vertices[i  ].Point-Vertices[i-1].Point).Length()>2000.0) ||
           ((Vertices[i-1].Point-Vertices[i-2].Point).Length()>2000.0) ||
           ((Vertices[i-2].Point-Vertices[i  ].Point).Length()>2000.0))
@@ -456,9 +467,6 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos,bool dyna
    for (i=0;i<iNumFaces;i++) //pêtla po trójk¹tach - bêdzie szybciej, jak wstêpnie przeliczymy normalne trójk¹tów
     n[i]=SafeNormalize(CrossProduct(Vertices[i*3].Point-Vertices[i*3+1].Point,Vertices[i*3].Point-Vertices[i*3+2].Point));
    int v; //indeks dla wierzcho³ków
-   int *wsp=new int[iNumVerts]; //z którego wierzcho³ka kopiowaæ wektor normalny
-   for (v=0;v<iNumVerts;v++)
-    wsp[v]=-1; //wektory normalne nie s¹ policzone
    int f; //numer trójk¹ta stycznego
    float3 norm; //roboczy wektor normalny
    for (v=0;v<iNumVerts;v++)
