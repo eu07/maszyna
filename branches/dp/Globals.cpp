@@ -44,8 +44,8 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asRelease="14.4.1012.434";
-AnsiString Global::asVersion="Compilation 2014-04-02, release "+Global::asRelease+"."; //tutaj, bo wysy³any
+AnsiString Global::asRelease="14.4.1014.434";
+AnsiString Global::asVersion="Compilation 2014-04-06, release "+Global::asRelease+"."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 int Global::iScreenMode[12]={0,0,0,0,0,0,0,0,0,0,0,0}; //numer ekranu wyœwietlacza tekstowego
@@ -428,14 +428,20 @@ void __fastcall Global::ConfigParse(TQueryParserComp *qp,cParser *cp)
  }
  if (iMultiplayer>0)
   bInactivePause=false; //pauza nieaktywna, jeœli w³¹czona komunikacja
- Console::ModeSet(iFeedbackMode,iFeedbackPort); //tryb pracy konsoli sterowniczej
  fFpsMin=fFpsAverage-fFpsDeviation; //dolna granica FPS, przy której promieñ scenerii bêdzie zmniejszany
  fFpsMax=fFpsAverage+fFpsDeviation; //górna granica FPS, przy której promieñ scenerii bêdzie zwiêkszany
- iFpsRadiusMax=0.000025*fFpsRadiusMax*fFpsRadiusMax; //maksymalny promieñ renderowania 3000.0 -> 225
- if (iFpsRadiusMax>400) iFpsRadiusMax=400;
  if (iPause) iTextMode=VK_F1; //jak pauza, to pokazaæ zegar
- fDistanceFactor/=iWindowHeight; //>1.0 dla rozdzielczoœci mniejszych ni¿ bazowa; doliczyæ wspó³czynnik multisamplingu
- fDistanceFactor*=fDistanceFactor; //do kwadratu, bo wiêkszoœæ odleg³oœci to ich kwadraty 
+ if (qp)
+ {//to poni¿ej wykonywane tylko raz, jedynie po wczytaniu eu07.ini
+  Console::ModeSet(iFeedbackMode,iFeedbackPort); //tryb pracy konsoli sterowniczej
+  iFpsRadiusMax=0.000025*fFpsRadiusMax*fFpsRadiusMax; //maksymalny promieñ renderowania 3000.0 -> 225
+  if (iFpsRadiusMax>400) iFpsRadiusMax=400;
+  if (fDistanceFactor>1.0)
+  {//dla 1.0 specjalny tryb bez przeliczania
+   fDistanceFactor=iWindowHeight/fDistanceFactor; //fDistanceFactor>1.0 dla rozdzielczoœci wiêkszych ni¿ bazowa
+   fDistanceFactor*=(iMultisampling+1.0)*fDistanceFactor; //do kwadratu, bo wiêkszoœæ odleg³oœci to ich kwadraty
+  }
+ }
 }
 
 void __fastcall Global::InitKeys(AnsiString asFileName)
