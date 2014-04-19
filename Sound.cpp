@@ -40,11 +40,13 @@ __fastcall TSoundContainer::TSoundContainer( LPDIRECTSOUND pDS, char *Directory,
     pWaveSoundRead = new CWaveSoundRead();
 
     // Load the wave file
-    if( FAILED( pWaveSoundRead->Open( Name ) ) )
-    {
+    if (FAILED(pWaveSoundRead->Open(Name)))
+     if(FAILED(pWaveSoundRead->Open(strFileName)))
+     {
 //        SetFileUI( hDlg, TEXT("Bad wave file.") );
-        return;
-    }
+      return;
+      ErrorLog("Missed sound: "+AnsiString(strFileName));
+     }
 
     strcpy(Name,AnsiString(strFileName).LowerCase().c_str());
 
@@ -55,8 +57,12 @@ __fastcall TSoundContainer::TSoundContainer( LPDIRECTSOUND pDS, char *Directory,
     ZeroMemory( &dsbd, sizeof(DSBUFFERDESC) );
     dsbd.dwSize        = sizeof(DSBUFFERDESC);
     dsbd.dwFlags       = DSBCAPS_STATIC | DSBCAPS_CTRLPAN | DSBCAPS_CTRLVOLUME | DSBCAPS_CTRLFREQUENCY;
+    if (!Global::bInactivePause) //jeœli prze³¹czony w t³o ma nadal dzia³aæ
+     dsbd.dwFlags|=DSBCAPS_GLOBALFOCUS; //to dŸwiêki maj¹ byæ równie¿ s³yszalne
     dsbd.dwBufferBytes = pWaveSoundRead->m_ckIn.cksize;
     dsbd.lpwfxFormat   = pWaveSoundRead->m_pwfx;
+    fSamplingRate=pWaveSoundRead->m_pwfx->nSamplesPerSec;
+    iBitsPerSample=pWaveSoundRead->m_pwfx->wBitsPerSample;
 
 //    pDSBuffer= (LPDIRECTSOUNDBUFFER*) malloc(Concurrent*sizeof(LPDIRECTSOUNDBUFFER));
 //    for (int i=0; i<Concurrent; i++)
@@ -192,7 +198,7 @@ void __fastcall TSoundsManager::LoadSounds(char *Directory)
  FindClose(handle);
 };
 
-LPDIRECTSOUNDBUFFER __fastcall TSoundsManager::GetFromName(char *Name,bool Dynamic)
+LPDIRECTSOUNDBUFFER __fastcall TSoundsManager::GetFromName(char *Name,bool Dynamic,float *fSamplingRate)
 {//wyszukanie dŸwiêku w pamiêci albo wczytanie z pliku
  AnsiString file;
  if (Dynamic)
@@ -209,6 +215,8 @@ LPDIRECTSOUNDBUFFER __fastcall TSoundsManager::GetFromName(char *Name,bool Dynam
  {
   if (strcmp(Name,Next->Name)==0)
   {
+    if (fSamplingRate)
+    *fSamplingRate=Next->fSamplingRate; //czêstotliwoœæ
    return (Next->GetUnique(pDS));
 //      DSBuffers.
      /*
@@ -240,8 +248,13 @@ LPDIRECTSOUNDBUFFER __fastcall TSoundsManager::GetFromName(char *Name,bool Dynam
   Next=LoadFromFile("",Name,1);
  else
   Next=LoadFromFile(Directory,Name,1);
- if (Next) return Next->GetUnique(pDS);
- Error("Cannot find sound "+AnsiString(Name));
+ if (Next)
+ {//
+  if (fSamplingRate)
+   *fSamplingRate=Next->fSamplingRate; //czêstotliwoœæ
+  return Next->GetUnique(pDS);
+ }
+ ErrorLog("Missed sound: "+AnsiString(Name));
  return (NULL);
 };
 
@@ -272,7 +285,7 @@ void __fastcall TSoundsManager::RestoreAll()
                 if( hr == DSERR_BUFFERLOST )
                     Sleep( 10 );
             }
-            while ( hr = Next->DSBuffer->Restore() );
+            while ((hr=Next->DSBuffer->Restore())!=NULL);
 
 //          char *Name= Next->Name;
 //          int cc= Next->Concurrent;
@@ -334,6 +347,8 @@ if (hr==DSERR_OUTOFMEMORY)
     ZeroMemory( &dsbd, sizeof(DSBUFFERDESC) );
     dsbd.dwSize        = sizeof(DSBUFFERDESC);
     dsbd.dwFlags       = DSBCAPS_PRIMARYBUFFER;
+    if (!Global::bInactivePause) //jeœli prze³¹czony w t³o ma nadal dzia³aæ
+     dsbd.dwFlags|=DSBCAPS_GLOBALFOCUS; //to dŸwiêki maj¹ byæ równie¿ s³yszalne
     dsbd.dwBufferBytes = 0;
     dsbd.lpwfxFormat   = NULL;
 

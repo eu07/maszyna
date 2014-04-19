@@ -26,6 +26,8 @@ public:
  int Oldest;
  char Name[80];
  LPDIRECTSOUNDBUFFER DSBuffer;
+ float fSamplingRate; //czêstotliwoœæ odczytana z pliku
+ int iBitsPerSample; //ile bitów na próbkê
  TSoundContainer *Next;
  std::stack< LPDIRECTSOUNDBUFFER > DSBuffers;
  LPDIRECTSOUNDBUFFER __fastcall GetUnique(LPDIRECTSOUND pDS);
@@ -51,7 +53,7 @@ public:
  static void __fastcall Free();
  static void __fastcall Init(char *Name, int Concurrent);
  static void __fastcall LoadSounds(char *Directory);
- static LPDIRECTSOUNDBUFFER __fastcall GetFromName(char *Name,bool Dynamic);
+ static LPDIRECTSOUNDBUFFER __fastcall GetFromName(char *Name,bool Dynamic,float *fSamplingRate=NULL);
  static void __fastcall RestoreAll();
 };
 

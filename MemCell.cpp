@@ -4,19 +4,6 @@
     MaSzyna EU07 locomotive simulator
     Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 
@@ -24,7 +11,6 @@
 #include "classes.hpp"
 #pragma hdrstop
 
-//#include "Mover.hpp"
 #include "Driver.h"
 #include "mctools.hpp"
 #include "MemCell.h"
@@ -32,18 +18,24 @@
 #include "parser.h"
 
 #include "Usefull.h"
+#include "Globals.h"
 
 //---------------------------------------------------------------------------
+#pragma package(smart_init)
+//---------------------------------------------------------------------------
 
-__fastcall TMemCell::TMemCell()
+__fastcall TMemCell::TMemCell(vector3 *p)
 {
-    fValue1=fValue2= 0;
-    szText= NULL;
+ fValue1=fValue2=0;
+ szText=NULL;
+ vPosition=p?*p:vector3(0,0,0); //ustawienie wspó³rzêdnych, bo do TGroundNode nie ma dostêpu
+ bCommand=false; //komenda wys³ana
+ OnSent=NULL;
 }
 
 __fastcall TMemCell::~TMemCell()
 {
-    SafeDeleteArray(szText);
+ SafeDeleteArray(szText);
 }
 
 void __fastcall TMemCell::Init()
@@ -52,44 +44,82 @@ void __fastcall TMemCell::Init()
 
 void __fastcall TMemCell::UpdateValues(char *szNewText, double fNewValue1, double fNewValue2, int CheckMask)
 {
- if (CheckMask&conditional_memadd)
+ if (CheckMask&update_memadd)
  {//dodawanie wartoœci
-  if (TestFlag(CheckMask,conditional_memstring))
+  if (TestFlag(CheckMask,update_memstring))
    strcat(szText,szNewText);
-  if (TestFlag(CheckMask,conditional_memval1))
+  if (TestFlag(CheckMask,update_memval1))
    fValue1+=fNewValue1;
-  if (TestFlag(CheckMask,conditional_memval2))
+  if (TestFlag(CheckMask,update_memval2))
    fValue2+=fNewValue2;
  }
  else
  {
-  if (TestFlag(CheckMask,conditional_memstring))
+  if (TestFlag(CheckMask,update_memstring))
    strcpy(szText,szNewText);
-  if (TestFlag(CheckMask,conditional_memval1))
-   fValue1= fNewValue1;
-  if (TestFlag(CheckMask,conditional_memval2))
-   fValue2= fNewValue2;
+  if (TestFlag(CheckMask,update_memval1))
+   fValue1=fNewValue1;
+  if (TestFlag(CheckMask,update_memval2))
+   fValue2=fNewValue2;
  }
+ if (TestFlag(CheckMask,update_memstring))
+  CommandCheck();//jeœli zmieniony tekst, próbujemy rozpoznaæ komendê
+}
+
+TCommandType __fastcall TMemCell::CommandCheck()
+{//rozpoznanie komendy
+ if (strcmp(szText,"SetVelocity")==0) //najpopularniejsze
+ {eCommand=cm_SetVelocity;
+  bCommand=false; //ta komenda nie jest wysy³ana
+ }
+ else if (strcmp(szText,"ShuntVelocity")==0) //w tarczach manewrowych
+ {eCommand=cm_ShuntVelocity;
+  bCommand=false; //ta komenda nie jest wysy³ana
+ }
+ else if (strcmp(szText,"Change_direction")==0) //zdarza siê
+ {eCommand=cm_ChangeDirection;
+  bCommand=true; //do wys³ania
+ }
+ else if (strcmp(szText,"OutsideStation")==0) //zdarza siê
+ {eCommand=cm_OutsideStation;
+  bCommand=false; //tego nie powinno byæ w komórce
+ }
+ else if (strncmp(szText,"PassengerStopPoint:",19)==0) //porównanie pocz¹tków
+ {eCommand=cm_PassengerStopPoint;
+  bCommand=false; //tego nie powinno byæ w komórce
+ }
+ else if (strcmp(szText,"SetProximityVelocity")==0) //nie powinno tego byæ
+ {eCommand=cm_SetProximityVelocity;
+  bCommand=false; //ta komenda nie jest wysy³ana
+ }
+ else
+ {eCommand=cm_Unknown; //ci¹g nierozpoznany (nie jest komend¹)
+  bCommand=true; //do wys³ania
+ }
+ return eCommand;
 }
 
 bool __fastcall TMemCell::Load(cParser *parser)
 {
-    std::string token;
-    parser->getTokens(1,false);  //case sensitive
-    *parser >> token;
-    SafeDeleteArray(szText);
-    szText= new char[256];
-    strcpy(szText,token.c_str());
-    parser->getTokens(2);
-    *parser >> fValue1 >> fValue2;
-    parser->getTokens();
-    *parser >> token;
-    asTrackName= AnsiString(token.c_str());
-    parser->getTokens();
-    *parser >> token;
-    if (token.compare( "endmemcell" ) != 0)
-     Error("endmemcell statement missing");
-    return true;
+ std::string token;
+ parser->getTokens(1,false);  //case sensitive
+ *parser >> token;
+ SafeDeleteArray(szText);
+ szText=new char[256]; //musi byæ bufor do ³¹czenia tekstów
+ strcpy(szText,token.c_str());
+ parser->getTokens();
+ *parser >> fValue1;
+ parser->getTokens();
+ *parser >> fValue2;
+ parser->getTokens();
+ *parser >> token;
+ asTrackName= AnsiString(token.c_str());
+ parser->getTokens();
+ *parser >> token;
+ if (token.compare("endmemcell")!=0)
+  Error("endmemcell statement missing");
+ CommandCheck();
+ return true;
 }
 
 void __fastcall TMemCell::PutCommand(TController *Mech, vector3 *Loc)
@@ -121,9 +151,25 @@ bool __fastcall TMemCell::Compare(char *szTestText,double fTestValue1,double fTe
 
 bool __fastcall TMemCell::Render()
 {
-    return true;
+ return true;
 }
 
-//---------------------------------------------------------------------------
+bool __fastcall TMemCell::IsVelocity()
+{//sprawdzenie, czy event odczytu tej komórki ma byæ do skanowania, czy do kolejkowania
+ if (eCommand==cm_SetVelocity) return true;
+ if (eCommand==cm_ShuntVelocity) return true;
+ return (eCommand==cm_SetProximityVelocity);
+};
 
-#pragma package(smart_init)
+void __fastcall TMemCell::StopCommandSent()
+{//
+ if (!bCommand) return;
+ bCommand=false;
+ if (OnSent) //jeœli jest event
+  Global::AddToQuery(OnSent,NULL);
+};
+
+void __fastcall TMemCell::AssignEvents(TEvent *e)
+{//powi¹zanie eventu
+ OnSent=e;
+};

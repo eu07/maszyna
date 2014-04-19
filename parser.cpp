@@ -3,26 +3,11 @@
 
 #include "parser.h"
 #include "logs.h"
-//#include "Globals.h"
-
 
 /*
     MaSzyna EU07 locomotive simulator parser
     Copyright (C) 2003  TOLARIS
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 
@@ -36,7 +21,7 @@ cParser::cParser(std::string Stream,buffertype Type,std::string Path,bool tr)
  // build comments map
  mComments.insert(commentmap::value_type("/*","*/"));
  mComments.insert(commentmap::value_type("//","\n"));
- mComments.insert(commentmap::value_type("--","\n"));
+ //mComments.insert(commentmap::value_type("--","\n")); //Ra: to chyba nie u¿ywane
  // store to calculate sub-sequent includes from relative path
  mPath=Path;
  // reset pointers and attach proper type of buffer
@@ -165,6 +150,8 @@ std::string cParser::readToken(bool ToLower,const char* Break)
    }
    //if (trtest2.find("tr/")!=0)
    mIncludeParser=new cParser(includefile,buffer_FILE,mPath,LoadTraction);
+   if (mIncludeParser->mSize<=0)
+    ErrorLog("Missed include: "+AnsiString(includefile.c_str()));
   }
   else
    while (token.compare("end")!=0)

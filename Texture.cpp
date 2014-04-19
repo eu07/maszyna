@@ -4,19 +4,6 @@
     MaSzyna EU07 locomotive simulator
     Copyright (C) 2001-2004  Marcin Wozniak and others
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include <iostream>
@@ -48,18 +35,19 @@ TTexturesManager::Names::iterator TTexturesManager::LoadFromFile(std::string fil
 {
 
     std::string message("Loading - texture: ");
-    message += fileName;
 
     std::string realFileName(fileName);
     std::ifstream file(fileName.c_str());
-    if(!file.is_open())
-        realFileName.insert(0, szDefaultTexturePath);
+    //Ra: niby bez tego jest lepiej, ale dzia³a gorzej, wiêc przywrócone jest oryginalne
+    if (!file.is_open())
+        realFileName.insert(0,szTexturePath);
     else
         file.close();
 
-    char* cFileName = const_cast<char*>(fileName.c_str());
+    //char* cFileName = const_cast<char*>(fileName.c_str());
 
-    WriteLog(cFileName);
+    message += realFileName;
+    WriteLog(message.c_str()); //Ra: chybaa mia³o byæ z komunikatem z przodu, a nie tylko nazwa
 
     size_t pos = fileName.rfind('.');
     std::string ext(fileName, pos + 1, std::string::npos);
@@ -78,16 +66,17 @@ TTexturesManager::Names::iterator TTexturesManager::LoadFromFile(std::string fil
     _alphas.insert(texinfo); //zapamiêtanie stanu przezroczystoœci tekstury - mo¿na by tylko przezroczyste
     std::pair<Names::iterator, bool> ret = _names.insert(std::make_pair(fileName, texinfo.first));
 
-    if(!texinfo.first)
+    if (!texinfo.first)
     {
-        WriteLog("Failed");
-        return _names.end();
+     WriteLog("Failed");
+     ErrorLog("Missed texture: "+AnsiString(realFileName.c_str()));
+     return _names.end();
     };
 
     _alphas.insert(texinfo);
     ret=_names.insert(std::make_pair(fileName,texinfo.first)); //dodanie tekstury do magazynu (spisu nazw)
 
-    WriteLog("OK");
+    //WriteLog("OK"); //Ra: "OK" nie potrzeba, samo "Failed" wystarczy
     return ret.first;
 
 };
@@ -100,15 +89,104 @@ struct ReplaceSlash
     }
 };
 
-GLuint TTexturesManager::GetTextureID(std::string fileName,int filter)
+GLuint TTexturesManager::GetTextureID(char* dir,char* where,std::string fileName,int filter)
 {//ustalenie numeru tekstury, wczytanie jeœli nie jeszcze takiej nie by³o
+/*
+// Ra: niby tak jest lepiej, ale dzia³a gorzej, wiêc przywrócone jest oryginalne
+ //najpierw szukamy w katalogu, z którego wywo³ywana jest tekstura, potem z wy¿szego
+ //Ra: przerobiæ na wyszukiwanie w drzewie nazw, do którego zapisywaæ np. rozmiary, przezroczystoœæ
+ //Ra: ustalaæ, które tekstury mo¿na wczytaæ ju¿ w trakcie symulacji
+ size_t pos=fileName.find(':'); //szukamy dwukropka
+ if (pos!=std::string::npos) //po dwukropku mog¹ byæ podane dodatkowe informacje
+  fileName=fileName.substr(0,pos); //niebêd¹ce nazw¹ tekstury
+ std::transform(fileName.begin(),fileName.end(),fileName.begin(),ReplaceSlash()); //zamiana "/" na "\"
+ //jeœli bie¿aca œcie¿ka do tekstur nie zosta³a dodana to dodajemy domyœln¹
+ //if (fileName.find('\\')==std::string::npos) //bz sensu
+ // fileName.insert(0,szDefaultTexturePath);
+ //najpierw szukamy w podanym katalogu, potem w domyœlnym
+ Names::iterator iter;
+ std::ifstream file;
+ if ((fileName.find('.')==fileName.npos)?true:(fileName.rfind('.')<fileName.rfind('\\'))) //pierwsza kropka od prawej jest wczeœniej ni¿ "\"
+ {//Ra: jeœli nie ma kropki w nazwie pliku, wypróbowanie rozszerzeñ po kolei, zaczynaj¹c od domyœlnego
+  fileName.append("."); //kropkê trzeba dodaæ na pewno, resztê trzeba próbowaæ
+  std::string test; //zmienna robocza
+  for (int i=0;i<4;++i)
+  {//najpierw szukamy w magazynie
+   test=fileName;
+   if (where) test.insert(0,where); //œcie¿ka obiektu wywo³uj¹cego
+   test.append(Global::szDefaultExt[i]); //dodanie jednego z kilku rozszerzeñ
+   iter=_names.find(test); //czy mamy ju¿ w magazynie?
+   if (iter!=_names.end())
+    return iter->second; //znalezione!
+   if (dir)
+   {//mo¿e we wskazanym katalogu?
+    test=fileName;
+    test.insert(0,dir); //jeszcze próba z dodatkow¹ œcie¿k¹
+    test.append(Global::szDefaultExt[i]); //dodanie jednego z kilku rozszerzeñ
+    iter=_names.find(test); //czy mamy ju¿ w magazynie?
+    if (iter!=_names.end())
+     return iter->second; //znalezione!
+   }
+  //}
+  //for (int i=0;i<4;++i)
+  //{//w magazynie nie ma, to sprawdzamy na dysku
+   test=fileName;
+   if (where) test.insert(0,where); //œcie¿ka obiektu wywo³uj¹cego
+   test.append(Global::szDefaultExt[i]); //dodanie jednego z kilku rozszerzeñ
+   file.open(test.c_str());
+   if (!file.is_open())
+   {test=fileName;
+    if (dir) test.insert(0,dir); //próba z dodatkow¹ œcie¿k¹
+    test.append(Global::szDefaultExt[i]); //dodanie jednego z kilku rozszerzeñ
+    file.open(test.c_str());
+   }
+   if (file.is_open())
+   {//jak znaleziony, to plik zostaje otwarty
+    fileName=test; //zapamiêtanie znalezionego rozszerzenia
+    break; //wyjœcie z pêtli na etapie danego rozszerzenia
+   }
+  }
+ }
+ else
+ {//gdy jest kropka, to rozszerzenie jest jawne
+  std::string test; //zmienna robocza
+  //najpierw szukamy w magazynie
+  test=fileName;
+  if (where) test.insert(0,where); //œcie¿ka obiektu wywo³uj¹cego
+  iter=_names.find(test); //czy mamy ju¿ w magazynie?
+  if (iter!=_names.end())
+   return iter->second; //znalezione!
+  test=fileName;
+  if (dir) test.insert(0,dir); //jeszcze próba z dodatkow¹ œcie¿k¹
+  iter=_names.find(test); //czy mamy ju¿ w magazynie?
+  if (iter!=_names.end())
+   return iter->second; //znalezione!
+  //w magazynie nie ma, to sprawdzamy na dysku
+  test=fileName;
+  if (where) test.insert(0,where); //œcie¿ka obiektu wywo³uj¹cego
+  file.open(test.c_str());
+  if (!file.is_open())
+  {//jak znaleziony, to plik zostaje otwarty
+   test=fileName;
+   if (dir) test.insert(0,dir); //próba z dodatkow¹ œcie¿k¹
+   file.open(test.c_str());
+   if (file.is_open())
+    fileName=test; //ustalenie nowej nazwy
+  }
+ }
+ if (file.is_open())
+ {//plik pozostaje otwarty, gdy znaleziono na dysku
+  file.close(); //mo¿na ju¿ zamkn¹æ
+  iter=LoadFromFile(fileName,filter); //doda siê do magazynu i zwróci swoj¹ pozycjê
+ }
+*/
  size_t pos=fileName.find(':'); //szukamy dwukropka
  if (pos!=std::string::npos) //po dwukropku mog¹ byæ podane dodatkowe informacje
   fileName=fileName.substr(0,pos); //niebêd¹ce nazw¹ tekstury
  std::transform(fileName.begin(),fileName.end(),fileName.begin(),ReplaceSlash());
  //jeœli bie¿aca œcie¿ka do tekstur nie zosta³a dodana to dodajemy domyœln¹
  if (fileName.find('\\')==std::string::npos)
-  fileName.insert(0,szDefaultTexturePath);
+  fileName.insert(0,szTexturePath);
  Names::iterator iter;
  if (fileName.find('.')==std::string::npos)
  {//Ra: wypróbowanie rozszerzeñ po kolei, zaczynaj¹c od domyœlnego
@@ -121,7 +199,7 @@ GLuint TTexturesManager::GetTextureID(std::string fileName,int filter)
    iter=_names.find(fileName); //czy mamy ju¿ w magazynie?
    if (iter!=_names.end())
     return iter->second; //znalezione!
-   test.insert(0,szDefaultTexturePath); //jeszcze próba z dodatkow¹ œcie¿k¹
+   test.insert(0,szTexturePath); //jeszcze próba z dodatkow¹ œcie¿k¹
    iter=_names.find(fileName); //czy mamy ju¿ w magazynie?
    if (iter!=_names.end())
     return iter->second; //znalezione!
@@ -132,7 +210,7 @@ GLuint TTexturesManager::GetTextureID(std::string fileName,int filter)
    test.append(Global::szDefaultExt[i]);
    std::ifstream file(test.c_str());
    if (!file.is_open())
-   {test.insert(0,szDefaultTexturePath);
+   {test.insert(0,szTexturePath);
     file.open(test.c_str());
    }
    if (file.is_open())
@@ -147,7 +225,7 @@ GLuint TTexturesManager::GetTextureID(std::string fileName,int filter)
  if (iter==_names.end())
   iter=LoadFromFile(fileName,filter);
  return (iter!=_names.end()?iter->second:0);
-}
+};
 
 bool TTexturesManager::GetAlpha(GLuint id)
 {//atrybut przezroczystoœci dla tekstury o podanym numerze (id)
@@ -252,9 +330,17 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName,int 
  // check if width, height and bpp is correct
  if ( !width || !height || (header[4]!=24 && header[4]!=32))
  {
+  WriteLog("Bad texture: "+AnsiString(fileName.c_str())+" has wrong header or bits per pixel");
   file.close();
   return fail;
  };
+ {//sprawdzenie prawid³owoœci rozmiarów
+  int i,j;
+  for (i=width,j=0;i;i>>=1) if (i&1) ++j;
+  if (j==1)
+   for (i=height,j=0;i;i>>=1) if (i&1) ++j;
+  if (j!=1) WriteLog("Bad texture: "+AnsiString(fileName.c_str())+" is "+AnsiString(width)+"×"+AnsiString(height));
+ }
  GLuint bpp=header[4];	//grab the TGA's bits per pixel (24 or 32)
  GLuint bytesPerPixel=bpp/8; // divide by 8 to get the bytes per pixel
  GLuint imageSize=width*height*bytesPerPixel; //calculate the memory required for the TGA data
@@ -336,7 +422,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName,int 
     if (copyto>copyfrom)
     {//jeœli piksele maj¹ byæ kopiowane, to mo¿liwe jest przesuniêcie ich o 1 bajt, na miejsce licznika
      filesize=(imageData+imageSize-copyto)/bytesPerPixel; //ile pikseli pozosta³o do koñca
-     WriteLog("Decompression buffer overflow at pixel "+AnsiString((copyto-imageData)/bytesPerPixel)+"+"+AnsiString(filesize));
+     //WriteLog("Decompression buffer overflow at pixel "+AnsiString((copyto-imageData)/bytesPerPixel)+"+"+AnsiString(filesize));
      //pozycjê w pliku trzeba by zapamietaæ i po wczytaniu reszty pikseli star¹ metod¹
      //zapisaæ od niej dane od (copyto), poprzedzone bajtem o wartoœci (filesize-1)
      writeback=imageData+imageSize+extraend-copyfrom; //ile bajtów skompresowanych zosta³o do koñca
@@ -383,7 +469,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName,int 
    if (Global::iModifyTGA&1)
     writeback=0; //no zapisaæ ten krótszy zaczynajac od pocz¹tku...
   }
-  if (copyto<copyend) WriteLog("Slow loader...");
+  //if (copyto<copyend) WriteLog("Slow loader...");
   while (copyto<copyend)
   {//Ra: stare wczytywanie skompresowanych, z nadu¿ywaniem file.read()
    //równie¿ wykonywane, jeœli dekompresja w buforze przekroczy jego rozmiar
@@ -587,6 +673,13 @@ TTexturesManager::AlphaValue TTexturesManager::LoadDDS(std::string fileName,int 
     data.width      = ddsd.dwWidth;
     data.height     = ddsd.dwHeight;
     data.numMipMaps = ddsd.dwMipMapCount;
+ {//sprawdzenie prawid³owoœci rozmiarów
+  int i,j;
+  for (i=data.width,j=0;i;i>>=1) if (i&1) ++j;
+  if (j==1)
+   for (i=data.height,j=0;i;i>>=1) if (i&1) ++j;
+  if (j!=1) WriteLog("Bad texture: "+AnsiString(fileName.c_str())+" is "+AnsiString(data.width)+"×"+AnsiString(data.height));
+ }
 
     if (ddsd.ddpfPixelFormat.dwFourCC == FOURCC_DXT1)
         data.components = 3;
@@ -607,57 +700,38 @@ TTexturesManager::AlphaValue TTexturesManager::LoadDDS(std::string fileName,int 
     GLuint offset = 0;
     int firstMipMap = 0;
     
-    while(data.width > Global::iMaxTextureSize || data.height > Global::iMaxTextureSize)
-    {
-        offset += ((data.width + 3) / 4) * ((data.height+3)/4) * data.blockSize;
-        data.width /= 2;
-        data.height /= 2;
-        firstMipMap++;
-    };
+ while ((data.width>Global::iMaxTextureSize)||(data.height>Global::iMaxTextureSize))
+ {//pomijanie zbyt du¿ych mipmap, jeœli wymagane jest ograniczenie rozmiaru
+  offset+=((data.width+3)/4)*((data.height+3)/4)*data.blockSize;
+  data.width/=2;
+  data.height/=2;
+  firstMipMap++;
+ };
 
-    // Load the mip-map levels
-    for (int i=0; i < data.numMipMaps - firstMipMap; i++)
-    {
-        if (!data.width) data.width = 1;
-        if (!data.height) data.height = 1;
-
-        GLuint size = ((data.width + 3) / 4) * ((data.height+3)/4) * data.blockSize;
-
-        if ((Global::bDecompressDDS)&&(i==1))  //should be i==0 but then problem with "glBindTexture()"
-        {
-            GLuint decomp_size = data.width * data.height * 4;
-            GLubyte* output = new GLubyte[decomp_size];
-            DecompressDXT(data, data.pixels + offset, output);
-
-            glTexImage2D(GL_TEXTURE_2D, i, GL_RGBA, data.width, data.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, output);
-
-            delete[] output;
-        }
-        else
-        {
-            glCompressedTexImage2D(
-                GL_TEXTURE_2D,
-                i,
-                data.format,
-                data.width,
-                data.height,
-                0,
-                size,
-                data.pixels + offset
-            );
-
-        }
-
-        offset += size;
-
-        // Half the image size for the next mip-map level...
-        data.width /= 2;
-        data.height /= 2;
-    };
-
-    delete[] data.pixels;
-    return std::make_pair(id, data.components == 4);
-
+ for (int i=0;i<data.numMipMaps-firstMipMap;i++)
+ {//wczytanie kolejnych poziomów mipmap
+  if (!data.width) data.width=1;
+  if (!data.height) data.height=1;
+  GLuint size=((data.width+3)/4)*((data.height+3)/4)*data.blockSize;
+  if (Global::bDecompressDDS)
+  {//programowa dekompresja DDS
+   //if (i==1) //should be i==0 but then problem with "glBindTexture()"
+   {GLuint decomp_size=data.width*data.height*4;
+    GLubyte* output=new GLubyte[decomp_size];
+    DecompressDXT(data,data.pixels+offset,output);
+    glTexImage2D(GL_TEXTURE_2D,i,GL_RGBA,data.width,data.height,0,GL_RGBA,GL_UNSIGNED_BYTE,output);
+    delete[] output;
+   }
+  }
+  else //przetwarzanie DDS przez OpenGL (istnieje odpowiednie rozszerzenie)
+   glCompressedTexImage2D(GL_TEXTURE_2D,i,data.format,data.width,data.height,0,size,data.pixels+offset);
+  offset+=size;
+  // Half the image size for the next mip-map level...
+  data.width/=2;
+  data.height/=2;
+ };
+ delete[] data.pixels;
+ return std::make_pair(id, data.components == 4);
 };
 
 void TTexturesManager::SetFiltering(int filter)
@@ -730,10 +804,10 @@ GLuint TTexturesManager::CreateTexture(char* buff,GLint bpp,int width,int height
   SetFiltering(filter); //cyfra po % w nazwie
  else
   SetFiltering(bHasAlpha&&bDollar,bHash); //znaki #, $ i kana³ alfa w nazwie
- glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
- glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
- glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
- glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
+ glPixelStorei(GL_UNPACK_ALIGNMENT,1);
+ glPixelStorei(GL_UNPACK_ROW_LENGTH,0);
+ glPixelStorei(GL_UNPACK_SKIP_ROWS,0);
+ glPixelStorei(GL_UNPACK_SKIP_PIXELS,0);
  if (bHasAlpha || bHash || (filter==0))
   glTexImage2D(GL_TEXTURE_2D,0,(bHasAlpha?GL_RGBA:GL_RGB),width,height,0,bpp,GL_UNSIGNED_BYTE,buff);
  else
@@ -742,7 +816,7 @@ GLuint TTexturesManager::CreateTexture(char* buff,GLint bpp,int width,int height
 }
 
 void TTexturesManager::Free()
-{
+{//usuniêcie wszyskich tekstur (bez usuwania struktury)
  for (Names::iterator iter=_names.begin();iter!=_names.end();iter++)
   glDeleteTextures(1,&(iter->second));
 }

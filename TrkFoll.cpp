@@ -4,19 +4,6 @@
     MaSzyna EU07 locomotive simulator
     Copyright (C) 2001-2004  Marcin Wozniak and others
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "system.hpp"
@@ -40,6 +27,7 @@ __fastcall TTrackFollower::TTrackFollower()
  fCurrentDistance=0;
  pPosition=vAngles=vector3(0,0,0);
  fDirection=1; //jest przodem do Point2
+ fOffsetH=0.0; //na starcie stoi na œrodku
 }
 
 __fastcall TTrackFollower::~TTrackFollower()
@@ -51,8 +39,8 @@ bool __fastcall TTrackFollower::Init(TTrack *pTrack,TDynamicObject *NewOwner,dou
  fDirection=fDir;
  Owner=NewOwner;
  SetCurrentTrack(pTrack,0);
- iEventFlag=0;
- iEventallFlag=0;
+ iEventFlag=3; //na torze startowym równie¿ wykonaæ eventy 1/2
+ iEventallFlag=3;
  if ((pCurrentSegment))// && (pCurrentSegment->GetLength()<fFirstDistance))
   return false;
  return true;
@@ -67,7 +55,7 @@ void __fastcall TTrackFollower::SetCurrentTrack(TTrack *pTrack,int end)
  }
  if (!pTrack)
  {//gdy nie ma toru w kierunku jazdy
-  if (pCurrentTrack->iCategoryFlag&1) //jeœli tor kolejowy
+  //if (pCurrentTrack->iCategoryFlag&1) //jeœli tor kolejowy
    pTrack=pCurrentTrack->NullCreate(end); //tworzenie toru wykolej¹cego na przed³u¿eniu pCurrentTrack
  }
  else
@@ -90,46 +78,46 @@ bool __fastcall TTrackFollower::Move(double fDistance,bool bPrimary)
  {//pêtla przesuwaj¹ca wózek przez kolejne tory, a¿ do trafienia w jakiœ
   if (!pCurrentTrack) return false; //nie ma toru, to nie ma przesuwania
   if (pCurrentTrack->iEvents) //sumaryczna informacja o eventach
-  {//omijamy ca³y ten blok, gdy tor nie ma on ¿adnych eventów (wiêkszoœc nie ma)
+  {//omijamy ca³y ten blok, gdy tor nie ma on ¿adnych eventów (wiêkszoœæ nie ma)
    if (fDistance<0)
    {
-    if (Owner->Mechanik) //tylko dla jednego cz³onu
-     if (TestFlag(iEventFlag,1)) //McZapkie-280503: wyzwalanie event tylko dla pojazdow z obsada
-      if (iSetFlag(iEventFlag,-1))
-       if (bPrimary && pCurrentTrack->Event1 && (pCurrentTrack->Event1->fStartTime<=0))
-        //Global::pGround->AddToQuery(pCurrentTrack->Event1,Owner); //dodanie do kolejki
-        Owner->RaAxleEvent(pCurrentTrack->Event1); //Ra: dynamic zdecyduje, czy dodaæ do kolejki
-    if (TestFlag(iEventallFlag,1)) //McZapkie-280503: wyzwalanie eventall dla wszystkich pojazdow
-     if (iSetFlag(iEventallFlag,-1))
-      if (bPrimary && pCurrentTrack->Eventall1 && (pCurrentTrack->Eventall1->fStartTime<=0))
-       //Global::pGround->AddToQuery(pCurrentTrack->Eventall1,Owner); //dodanie do kolejki
-       Owner->RaAxleEvent(pCurrentTrack->Eventall1); //Ra: dynamic zdecyduje, czy dodaæ do kolejki
+    if (iSetFlag(iEventFlag,-1)) //zawsze zeruje flagê sprawdzenia, jak mechanik dosi¹dzie, to siê nie wykona
+     if (Owner->Mechanik) //tylko dla jednego cz³onu
+      //if (TestFlag(iEventFlag,1)) //McZapkie-280503: wyzwalanie event tylko dla pojazdow z obsada
+      if (bPrimary && pCurrentTrack->evEvent1 && (!pCurrentTrack->evEvent1->iQueued))
+       Global::AddToQuery(pCurrentTrack->evEvent1,Owner); //dodanie do kolejki
+       //Owner->RaAxleEvent(pCurrentTrack->Event1); //Ra: dynamic zdecyduje, czy dodaæ do kolejki
+    //if (TestFlag(iEventallFlag,1))
+    if (iSetFlag(iEventallFlag,-1)) //McZapkie-280503: wyzwalanie eventall dla wszystkich pojazdow
+     if (bPrimary && pCurrentTrack->evEventall1 && (!pCurrentTrack->evEventall1->iQueued))
+      Global::AddToQuery(pCurrentTrack->evEventall1,Owner); //dodanie do kolejki
+      //Owner->RaAxleEvent(pCurrentTrack->Eventall1); //Ra: dynamic zdecyduje, czy dodaæ do kolejki
    }
    else if (fDistance>0)
    {
-    if (Owner->Mechanik) //tylko dla jednego cz³onu
-     if (TestFlag(iEventFlag,2))
-      if (iSetFlag(iEventFlag,-2))
-       if (bPrimary && pCurrentTrack->Event2 && (pCurrentTrack->Event2->fStartTime<=0))
-        //Global::pGround->AddToQuery(pCurrentTrack->Event2,Owner);
-        Owner->RaAxleEvent(pCurrentTrack->Event2); //Ra: dynamic zdecyduje, czy dodaæ do kolejki
-    if (TestFlag(iEventallFlag,2))
-     if (iSetFlag(iEventallFlag,-2))
-      if (bPrimary && pCurrentTrack->Eventall2 && (pCurrentTrack->Eventall2->fStartTime<=0))
-       //Global::pGround->AddToQuery(pCurrentTrack->Eventall2,Owner);
-       Owner->RaAxleEvent(pCurrentTrack->Eventall2); //Ra: dynamic zdecyduje, czy dodaæ do kolejki
+    if (iSetFlag(iEventFlag,-2)) //zawsze ustawia flagê sprawdzenia, jak mechanik dosi¹dzie, to siê nie wykona
+     if (Owner->Mechanik) //tylko dla jednego cz³onu
+      //if (TestFlag(iEventFlag,2)) //sprawdzanie jest od razu w pierwszym warunku
+      if (bPrimary && pCurrentTrack->evEvent2 && (!pCurrentTrack->evEvent2->iQueued))
+       Global::AddToQuery(pCurrentTrack->evEvent2,Owner);
+       //Owner->RaAxleEvent(pCurrentTrack->Event2); //Ra: dynamic zdecyduje, czy dodaæ do kolejki
+    //if (TestFlag(iEventallFlag,2))
+    if (iSetFlag(iEventallFlag,-2)) //sprawdza i zeruje na przysz³oœæ, true jeœli zmieni z 2 na 0
+     if (bPrimary && pCurrentTrack->evEventall2 && (!pCurrentTrack->evEventall2->iQueued))
+      Global::AddToQuery(pCurrentTrack->evEventall2,Owner);
+      //Owner->RaAxleEvent(pCurrentTrack->Eventall2); //Ra: dynamic zdecyduje, czy dodaæ do kolejki
    }
    else //if (fDistance==0) //McZapkie-140602: wyzwalanie zdarzenia gdy pojazd stoi
    {
     if (Owner->Mechanik) //tylko dla jednego cz³onu
-     if (pCurrentTrack->Event0)
-      if ((pCurrentTrack->Event0->fStartTime<=0)&&(pCurrentTrack->Event0->fDelay!=0))
-       //Global::pGround->AddToQuery(pCurrentTrack->Event0,Owner);
-       Owner->RaAxleEvent(pCurrentTrack->Event0); //Ra: dynamic zdecyduje, czy dodaæ do kolejki
-    if (pCurrentTrack->Eventall0)
-     if ((pCurrentTrack->Eventall0->fStartTime<=0)&&(pCurrentTrack->Eventall0->fDelay!=0))
-      //Global::pGround->AddToQuery(pCurrentTrack->Eventall0,Owner);
-      Owner->RaAxleEvent(pCurrentTrack->Eventall0); //Ra: dynamic zdecyduje, czy dodaæ do kolejki
+     if (pCurrentTrack->evEvent0)
+      if (!pCurrentTrack->evEvent0->iQueued)
+       Global::AddToQuery(pCurrentTrack->evEvent0,Owner);
+       //Owner->RaAxleEvent(pCurrentTrack->Event0); //Ra: dynamic zdecyduje, czy dodaæ do kolejki
+    if (pCurrentTrack->evEventall0)
+     if (!pCurrentTrack->evEventall0->iQueued)
+      Global::AddToQuery(pCurrentTrack->evEventall0,Owner);
+      //Owner->RaAxleEvent(pCurrentTrack->Eventall0); //Ra: dynamic zdecyduje, czy dodaæ do kolejki
    }
   }
   if (!pCurrentSegment) //je¿eli nie ma powi¹zanego segmentu toru?
@@ -218,17 +206,18 @@ bool __fastcall TTrackFollower::Move(double fDistance,bool bPrimary)
   {//gdy zostaje na tym samym torze (przesuwanie ju¿ nie zmienia toru)
    if (bPrimary)
    {//tylko gdy pocz¹tkowe ustawienie, dodajemy eventy stania do kolejki
-    if (Owner->MoverParameters->CabNo!=0)
+    if (Owner->MoverParameters->ActiveCab!=0)
+    //if (Owner->MoverParameters->CabNo!=0)
     {
-     if (pCurrentTrack->Event1 && pCurrentTrack->Event1->fDelay<=-1.0f)
-      Global::pGround->AddToQuery(pCurrentTrack->Event1,Owner);
-     if (pCurrentTrack->Event2 && pCurrentTrack->Event2->fDelay<=-1.0f)
-      Global::pGround->AddToQuery(pCurrentTrack->Event2,Owner);
+     if (pCurrentTrack->evEvent1 && pCurrentTrack->evEvent1->fDelay<=-1.0f)
+      Global::AddToQuery(pCurrentTrack->evEvent1,Owner);
+     if (pCurrentTrack->evEvent2 && pCurrentTrack->evEvent2->fDelay<=-1.0f)
+      Global::AddToQuery(pCurrentTrack->evEvent2,Owner);
     }
-    if (pCurrentTrack->Eventall1 && pCurrentTrack->Eventall1->fDelay<=-1.0f)
-     Global::pGround->AddToQuery(pCurrentTrack->Eventall1,Owner);
-    if (pCurrentTrack->Eventall2 && pCurrentTrack->Eventall2->fDelay<=-1.0f)
-     Global::pGround->AddToQuery(pCurrentTrack->Eventall2,Owner);
+    if (pCurrentTrack->evEventall1 && pCurrentTrack->evEventall1->fDelay<=-1.0f)
+     Global::AddToQuery(pCurrentTrack->evEventall1,Owner);
+    if (pCurrentTrack->evEventall2 && pCurrentTrack->evEventall2->fDelay<=-1.0f)
+     Global::AddToQuery(pCurrentTrack->evEventall2,Owner);
    }
    fCurrentDistance=s;
    //fDistance=0;
@@ -246,7 +235,11 @@ bool __fastcall TTrackFollower::ComputatePosition()
   if (fDirection<0) //k¹ty zale¿¹ jeszcze od zwrotu na torze
   {vAngles.x=-vAngles.x; //przechy³ka jest w przecinw¹ stronê
    vAngles.y=-vAngles.y; //pochylenie jest w przecinw¹ stronê
-   vAngles.z+=M_PI; //ale kierunek w planie jest obrócony o 180° 
+   vAngles.z+=M_PI; //ale kierunek w planie jest obrócony o 180°
+  }
+  if (fOffsetH!=0.0)
+  {//jeœli przesuniêcie wzglêdem osi toru, to je doliczyæ
+
   }
   return true;
  }

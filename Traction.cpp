@@ -3,19 +3,6 @@
     MaSzyna EU07 locomotive simulator
     Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include    "system.hpp"
@@ -26,17 +13,88 @@
 #include "mctools.hpp"
 #include "Globals.h"
 #include "Usefull.h"
+#include "TractionPower.h"
 
 //---------------------------------------------------------------------------
 
 #pragma package(smart_init)
+/*
+
+=== Koncepcja dwustronnego zasilania sekcji sieci trakcyjnej, Ra 2014-02 ===
+0. Ka¿de przês³o sieci mo¿e mieæ wpisan¹ nazwê zasilacza, a tak¿e napiêcie
+nominalne i maksymalny pr¹d, które stanowi¹ redundancjê do danych zasilacza.
+Rezystancja mo¿e siê zmieniaæ, materia³ i gruboœæ drutu powinny byæ wspólny
+dla segmentu. Podanie punktów umo¿liwia ³¹czenie przêse³ w listy dwukierunkowe,
+co usprawnia wyszukiwania kolejnych przese³ podczas jazdy. Dla bie¿ni wspólnej
+powinna byæ podana nazwa innego przês³a w parametrze "parallel". WskaŸniki
+na przês³a bie¿ni wspólnej maj¹ byæ uk³adane w jednokierunkowy pierœcieñ.
+1. Problemem jest ustalenie topologii sekcji dla linii dwutorowych. Nad ka¿dym
+torem powinna znajdowaæ siê oddzielna sekcja sieci, aby mog³a zostaæ od³¹czona
+w przypadku zwarcia. Sekcje nad równoleg³ymi torami s¹ równie¿ ³¹czone
+równolegle przez kabiny sekcyjne, co zmniejsza p³yn¹ce pr¹dy i spadki napiêæ.
+2. Drugim zagadnieniem jest zasilanie sekcji jednoczeœnie z dwóch stron, czyli
+sekcja musi mieæ swoj¹ nazwê oraz wskazanie dwóch zasilaczy ze wskazaniem
+geograficznym ich po³o¿enia. Dodatkow¹ trudnoœci¹ jest brak po³¹czenia
+pomiêdzy segmentami naprê¿ania. Podsumowuj¹c, ka¿dy segment naprê¿ania powinien
+mieæ przypisanie do sekcji zasilania, a dodatkowo skrajne segmenty powinny
+wskazywaæ dwa ró¿ne zasilacze.
+3. Zasilaczem sieci mo¿e byæ podstacja, która w wersji 3kV powinna generowaæ
+pod obci¹¿eniem napiêcie maksymalne rzêdu 3600V, a spadek napiêcia nastêpuje
+na jej rezystancji wewnêtrznej oraz na przewodach trakcyjnych. Zasilaczem mo¿e
+byæ równie¿ kabina sekcyjna, która jest zasilana z podstacji poprzez przewody
+trakcyjne.
+4. Dla uproszczenia mo¿na przyj¹æ, ¿e zasilanie pojazdu odbywaæ siê bêdzie z
+dwóch s¹siednich podstacji, pomiêdzy którymi mo¿e byæ dowolna liczba kabin
+sekcyjnych. W przypadku wy³¹czenia jednej z tych podstacji, zasilanie mo¿e
+byæ pobierane z kolejnej. £¹cznie nale¿y rozwa¿aæ 4 najbli¿sze podstacje,
+przy czym do obliczeñ mo¿na przyjmowaæ 2 z nich.
+5. Przês³a sieci s¹ ³¹czone w listê dwukierunkow¹, wiêc wystarczy nazwê
+sekcji wpisaæ w jednym z nich, wpisanie w ka¿dym nie przeszkadza.
+Alternatywnym sposobem ³¹czenia segmentów naprê¿ania mo¿e byæ wpisywanie
+nazw przêse³ jako "parallel", co mo¿e byæ uci¹¿liwe dla autorów scenerii.
+W skrajnych przês³ach nale¿a³oby dodatkowo wpisaæ nazwê zasilacza, bêdzie
+to jednoczeœnie wskazanie przês³a, do którego pod³¹czone s¹ przewody
+zasilaj¹ce. Konieczne jest odró¿nienie nazwy sekcji od nazwy zasilacza, co
+mo¿na uzyskaæ ró¿nicuj¹c ich nazwy albo np. specyficznie ustawiaj¹c wartoœæ
+pr¹du albo napiêcia przês³a.
+6. Jeœli dany segment naprê¿ania jest wspólny dla dwóch sekcji zasilania,
+to jedno z przêse³ musi mieæ nazwê "*" (gwiazdka), co bêdzie oznacza³o, ¿e
+ma zamontowany izolator. Dla uzyskania efektów typu ³uk elektryczny, nale¿a³o
+by wskazaæ po³o¿enie izolatora i jego d³ugoœæ (ew. typ).
+7. Równie¿ w parametrach zasilacza nale¿a³o by okreœliæ, czy jest podstacj¹,
+czy jedynie kabin¹ sekcyjn¹. Ró¿niæ siê one bêd¹ fizyk¹ dzia³ania.
+8. Dla zbudowanej topologii sekcji i zasilaczy nale¿a³o by zbudowaæ dynamiczny
+schemat zastêpczy. Dynamika polega na wy³¹czaniu sekcji ze zwarciem oraz
+przeci¹¿onych podstacji. Musi byæ te¿ mo¿liwoœæ wy³¹czenia sekcji albo
+podstacji za pomoc¹ eventu.
+9. Dla ka¿dej sekcji musi byæ tworzony obiekt, wskazuj¹cy na podstacje
+zasilaj¹ce na koñcach, stan w³¹czenia, zwarcia, przepiêcia. Do tego obiektu
+musi wskazywaæ ka¿de przês³o z aktywnym zasilaniem.
+
+          z.1                  z.2             z.3
+   -=-a---1*1---c-=---c---=-c--2*2--e---=---e-3-*-3--g-=-
+   -=-b---1*1---d-=---d---=-d--2*2--f---=---e-3-*-3--h-=-
+
+   nazwy sekcji (@): a,b,c,d,e,f,g,h
+   nazwy zasilaczy (#): 1,2,3
+   przês³o z izolatorem: *
+   przês³a bez wskazania nazwy sekcji/zasilacza: -
+   segment naprêzania: =-x-=
+   segment naprê¿ania z izolatorem: =---@---#*#---@---=
+   segment naprê¿ania bez izolatora: =--------@------=
+
+Obecnie brak nazwy sekcji nie jest akceptowany i ka¿de przês³o musi mieæ wpisan¹
+jawnie nazwê sekcji, ewentualnie nazwê zasilacza (zostanie zast¹piona wskazaniem
+sekcji z s¹siedniego przês³a).
+*/
+
 
 TTraction::TTraction()
 {
-    pPoint1=pPoint2=pPoint3=pPoint4= vector3(0,0,0);
-    vFront=vector3(0,0,1);
-    vUp=vector3(0,1,0);
-    vLeft=vector3(1,0,0);
+    pPoint1=pPoint2=pPoint3=pPoint4=vector3(0,0,0);
+    //vFront=vector3(0,0,1);
+    //vUp=vector3(0,1,0);
+    //vLeft=vector3(1,0,0);
     fHeightDifference=0;
     iNumSections=0;
     iLines=0;
@@ -47,6 +105,13 @@ TTraction::TTraction()
     asPowerSupplyName="";
 //    mdPole= NULL;
 //    ReplacableSkinID= 0;
+ hvNext[0]=hvNext[1]=NULL;
+ iLast=1; //¿e niby ostatni drut
+ psPowered=psPower[0]=psPower[1]=NULL; //na pocz¹tku zasilanie nie pod³¹czone
+ psSection=NULL; //na pocz¹tku nie pod³¹czone
+ hvParallel=NULL; //normalnie brak bie¿ni wspólnej
+ fResistance[0]=fResistance[1]=-1.0; //trzeba dopiero policzyæ
+ iTries=0; //ile razy próbowaæ pod³¹czyæ, ustawiane póŸniej
 }
 
 TTraction::~TTraction()
@@ -98,6 +163,7 @@ void __fastcall TTraction::Optimize()
            {
                pt3= pPoint3+v1*f;
                t= (1-fabs(f-mid)*2);
+              if ((Wires<4)||((i!=0)&&(i!=iNumSections-2))) 
                glVertex3f(pt3.x,pt3.y-sqrt(t)*fHeightDifference,pt3.z);
                f+= step;
            }
@@ -106,13 +172,31 @@ void __fastcall TTraction::Optimize()
        }
 
       //Drugi przewod jezdny 'Winger
-      if (Wires == 3)
+      if (Wires > 2)
       {
       glBegin(GL_LINE_STRIP);
           glVertex3f(pPoint1.x+(pPoint2.z/ddp-pPoint1.z/ddp)*WireOffset,pPoint1.y,pPoint1.z+(-pPoint2.x/ddp+pPoint1.x/ddp)*WireOffset);
           glVertex3f(pPoint2.x+(pPoint2.z/ddp-pPoint1.z/ddp)*WireOffset,pPoint2.y,pPoint2.z+(-pPoint2.x/ddp+pPoint1.x/ddp)*WireOffset);
       glEnd();
       }
+
+      f= step; 
+  
+      if (Wires == 4)
+      { 
+      glBegin(GL_LINE_STRIP); 
+          glVertex3f(pPoint3.x,pPoint3.y-0.65f*fHeightDifference,pPoint3.z); 
+          for (int i=0; i<iNumSections-1; i++) 
+          { 
+              pt3= pPoint3+v1*f; 
+              t= (1-fabs(f-mid)*2); 
+              glVertex3f(pt3.x,pt3.y-sqrt(t)*fHeightDifference-((i==0)||(i==iNumSections-2)?0.25f*fHeightDifference:+0.05),pt3.z); 
+              f+= step; 
+          } 
+          glVertex3f(pPoint4.x,pPoint4.y-0.65f*fHeightDifference,pPoint4.z); 
+      glEnd(); 
+      } 
+  
 
       f= step;
 
@@ -122,18 +206,26 @@ void __fastcall TTraction::Optimize()
        glBegin(GL_LINES);
            for (int i=0; i<iNumSections-1; i++)
            {
+              float flo,flo1; 
+              flo=(Wires==4?0.25f*fHeightDifference:0); 
+              flo1=(Wires==4?+0.05:0); 
                pt3= pPoint3+v1*f;
                pt4= pPoint1+v2*f;
                t= (1-fabs(f-mid)*2);
                if ((i%2) == 0)
                {
-               glVertex3f(pt3.x,pt3.y-sqrt(t)*fHeightDifference,pt3.z);
+               glVertex3f(pt3.x,pt3.y-sqrt(t)*fHeightDifference-((i==0)||(i==iNumSections-2)?flo:flo1),pt3.z);
                glVertex3f(pt4.x-(pPoint2.z/ddp-pPoint1.z/ddp)*WireOffset,pt4.y,pt4.z-(-pPoint2.x/ddp+pPoint1.x/ddp)*WireOffset);
                }
                else
                {
-               glVertex3f(pt3.x,pt3.y-sqrt(t)*fHeightDifference,pt3.z);
+               glVertex3f(pt3.x,pt3.y-sqrt(t)*fHeightDifference-((i==0)||(i==iNumSections-2)?flo:flo1),pt3.z);
                glVertex3f(pt4.x+(pPoint2.z/ddp-pPoint1.z/ddp)*WireOffset,pt4.y,pt4.z+(-pPoint2.x/ddp+pPoint1.x/ddp)*WireOffset);
+               } 
+               if((Wires==4)&&((i==1)||(i==iNumSections-3))) 
+               { 
+               glVertex3f(pt3.x,pt3.y-sqrt(t)*fHeightDifference-0.05,pt3.z);
+               glVertex3f(pt3.x,pt3.y-sqrt(t)*fHeightDifference,pt3.z); 
                }
                //endif;
                f+= step;
@@ -151,7 +243,7 @@ void __fastcall TTraction::InitCenter(vector3 Angles, vector3 pOrigin)
     fSquaredRadius= SquareMagnitude((pPoint2-pPoint1)*0.5f);
 } */
 
-void __fastcall TTraction::Render(float mgn)   //McZapkie: mgn to odleglosc od obserwatora
+void __fastcall TTraction::RenderDL(float mgn)   //McZapkie: mgn to odleglosc od obserwatora
 {
   //McZapkie: ustalanie przezroczystosci i koloru linii:
  if (Wires!=0 && !TestFlag(DamageFlag,128))  //rysuj jesli sa druty i nie zerwana
@@ -168,14 +260,15 @@ void __fastcall TTraction::Render(float mgn)   //McZapkie: mgn to odleglosc od o
   float r,g,b;
   switch (Material)
   {//Ra: kolory podzieli³em przez 2, bo po zmianie ambient za jasne by³y
+   //trzeba uwzglêdniæ kierunek œwiecenia S³oñca - tylko ze S³oñcem widaæ kolor
    case 1:
     if (TestFlag(DamageFlag,1))
     {
-     r=0.00000; g=0.32549; b=0.2882353;  //zielona miedz
+     r=0.00000; g=0.32549; b=0.2882353;  //zielona miedŸ
     }
     else
     {
-     r=0.35098; g=0.22549; b=0.1;  //czerwona miedz
+     r=0.35098; g=0.22549; b=0.1;  //czerwona miedŸ
     }
    break;
    case 2:
@@ -188,12 +281,19 @@ void __fastcall TTraction::Render(float mgn)   //McZapkie: mgn to odleglosc od o
      r=0.25; g=0.25; b=0.25;  //srebrne Al
     }
    break;
+   //tymczasowo pokazanie zasilanych odcinków
+   case 4: r=0.5; g=0.5; b=1.0; break; //niebieskie z pod³¹czonym zasilaniem
+   case 5: r=1.0; g=0.0; b=0.0; break; //czerwone z pod³¹czonym zasilaniem 1
+   case 6: r=0.0; g=1.0; b=0.0; break; //zielone z pod³¹czonym zasilaniem 2
+   case 7: r=1.0; g=1.0; b=0.0; break; //¿ó³te z pod³¹czonym zasilaniem z obu stron
   }
-  r=r*Global::ambientDayLight[0];  //w zaleznosci od koloru swiatla
+  r=r*Global::ambientDayLight[0];  //w zaleŸnoœci od koloru swiat³a
   g=g*Global::ambientDayLight[1];
   b=b*Global::ambientDayLight[2];
   if (linealpha>1.0) linealpha=1.0; //trzeba ograniczyæ do <=1
   glColor4f(r,g,b,linealpha);
+  if (!uiDisplayList)
+   Optimize(); //generowanie DL w miarê potrzeby
   glCallList(uiDisplayList);
   glLineWidth(1.0);
   glEnable(GL_LINE_SMOOTH);
@@ -311,7 +411,7 @@ void  __fastcall TTraction::RaArrayFill(CVertNormTex *Vert)
   WriteLog("!!! Wygenerowano punktów "+AnsiString(Vert-old)+", powinno byæ "+AnsiString(iLines));
 };
 
-void  __fastcall TTraction::RaRenderVBO(float mgn,int iPtr)
+void  __fastcall TTraction::RenderVBO(float mgn,int iPtr)
 {//renderowanie z u¿yciem VBO
  if (Wires!=0 && !TestFlag(DamageFlag,128))  //rysuj jesli sa druty i nie zerwana
  {
@@ -327,14 +427,15 @@ void  __fastcall TTraction::RaRenderVBO(float mgn,int iPtr)
   float r,g,b;
   switch (Material)
   {//Ra: kolory podzieli³em przez 2, bo po zmianie ambient za jasne by³y
+   //trzeba uwzglêdniæ kierunek œwiecenia S³oñca - tylko ze S³oñcem widaæ kolor
    case 1:
     if (TestFlag(DamageFlag,1))
     {
-     r=0.00000; g=0.32549; b=0.2882353;  //zielona miedz
+     r=0.00000; g=0.32549; b=0.2882353;  //zielona miedŸ
     }
     else
     {
-     r=0.35098; g=0.22549; b=0.1;  //czerwona miedz
+     r=0.35098; g=0.22549; b=0.1;  //czerwona miedŸ
     }
    break;
    case 2:
@@ -347,6 +448,11 @@ void  __fastcall TTraction::RaRenderVBO(float mgn,int iPtr)
      r=0.25; g=0.25; b=0.25;  //srebrne Al
     }
    break;
+   //tymczasowo pokazanie zasilanych odcinków
+   case 4: r=0.5; g=0.5; b=1.0; break; //niebieskie z pod³¹czonym zasilaniem
+   case 5: r=1.0; g=0.0; b=0.0; break; //czerwone z pod³¹czonym zasilaniem 1
+   case 6: r=0.0; g=1.0; b=0.0; break; //zielone z pod³¹czonym zasilaniem 2
+   case 7: r=1.0; g=1.0; b=0.0; break; //¿ó³te z pod³¹czonym zasilaniem z obu stron
   }
   r=r*Global::ambientDayLight[0];  //w zaleznosci od koloru swiatla
   g=g*Global::ambientDayLight[1];
@@ -360,3 +466,148 @@ void  __fastcall TTraction::RaRenderVBO(float mgn,int iPtr)
  }
 };
 
+int __fastcall TTraction::TestPoint(vector3 *Point)
+{//sprawdzanie, czy przês³a mo¿na po³¹czyæ
+ if (!hvNext[0])
+  if (pPoint1.Equal(Point))
+   return 0;
+ if (!hvNext[1])
+  if (pPoint2.Equal(Point))
+   return 1;
+ return -1;
+};
+
+void __fastcall TTraction::Connect(int my,TTraction *with,int to)
+{//³¹czenie segmentu (with) od strony (my) do jego (to)
+ if (my)
+ {//do mojego Point2
+  hvNext[1]=with;
+  iNext[1]=to;
+ }
+ else
+ {//do mojego Point1
+  hvNext[0]=with;
+  iNext[0]=to;
+ }
+ if (to)
+ {//do jego Point2
+  with->hvNext[1]=this;
+  with->iNext[1]=my;
+ }
+ else
+ {//do jego Point1
+  with->hvNext[0]=this;
+  with->iNext[0]=my;
+ }
+ if (hvNext[0]) //jeœli z obu stron pod³¹czony
+  if (hvNext[1])
+   iLast=0; //to nie jest ostatnim
+ if (with->hvNext[0]) //temu te¿, bo drugi raz ³¹czenie siê nie nie wykona
+  if (with->hvNext[1])
+   with->iLast=0; //to nie jest ostatnim
+};
+
+bool __fastcall TTraction::WhereIs()
+{//ustalenie przedostatnich przêse³
+ if (iLast) return (iLast==1); //ma ju¿ ustalon¹ informacjê o po³o¿eniu
+ if (hvNext[0]?hvNext[0]->iLast==1:false) //jeœli poprzedni jest ostatnim
+  iLast=2; //jest przedostatnim
+ else
+  if (hvNext[1]?hvNext[1]->iLast==1:false) //jeœli nastêpny jest ostatnim
+   iLast=2; //jest przedostatnim
+ return (iLast==1); //ostatnie bêd¹ dostawaæ zasilanie
+};
+
+void __fastcall TTraction::Init()
+{//przeliczenie parametrów
+ vParametric=pPoint2-pPoint1; //wektor mno¿ników parametru dla równania parametrycznego
+};
+
+void __fastcall TTraction::ResistanceCalc(int d,double r,TTractionPowerSource *ps)
+{//(this) jest przês³em zasilanym, o rezystancji (r), policzyæ rezystancjê zastêpcz¹ s¹siednich
+ if (d>=0)
+ {//pod¹¿anie we wskazanym kierunku
+  TTraction *t=hvNext[d],*p;
+  if (ps)
+   psPower[d^1]=ps; //pod³¹czenie podanego
+  else
+   ps=psPower[d^1]; //zasilacz od przeciwnej strony ni¿ idzie analiza
+  d=iNext[d]; //kierunek
+  //double r; //sumaryczna rezystancja
+  if (DebugModeFlag) //tylko podczas testów
+   Material=4; //pokazanie, ¿e to przês³o ma pod³¹czone zasilanie
+  while (t?!t->psPower[d]:false) //jeœli jest jakiœ kolejny i nie ma ustalonego zasilacza
+  {//ustawienie zasilacza i policzenie rezystancji zastêpczej
+   if (DebugModeFlag) //tylko podczas testów
+    if (t->Material!=4) //przês³a zasilaj¹cego nie modyfikowaæ
+    {if (t->Material<4) t->Material=4; //tymczasowo, aby zmieni³a kolor
+     t->Material|=d?2:1; //kolor zale¿ny od strony, z której jest zasilanie
+    }
+   t->psPower[d]=ps; //skopiowanie wskaŸnika zasilacza od danej strony
+   t->fResistance[d]=r; //wpisanie rezystancji w kierunku tego zasilacza
+   r+=t->fResistivity*Length3(t->vParametric); //doliczenie oporu kolejnego odcinka
+   p=t; //zapamiêtanie dotychczasowego
+   t=p->hvNext[d^1]; //pod¹¿anie w tê sam¹ stronê
+   d=p->iNext[d^1];
+   //w przypadku zapêtlenia sieci mo¿e siê zawiesiæ?
+  }
+ }
+ else
+ {//pod¹¿anie w obu kierunkach, mo¿na by rekurencj¹, ale szkoda zasobów
+  r=0.5*fResistivity*Length3(vParametric); //powiedzmy, ¿e w zasilanym przêœle jest po³owa
+  if (fResistance[0]==0.0) ResistanceCalc(0,r); //do ty³u (w stronê Point1)
+  if (fResistance[1]==0.0) ResistanceCalc(1,r); //do przodu (w stronê Point2)
+ }
+};
+
+void __fastcall TTraction::PowerSet(TTractionPowerSource *ps)
+{//pod³¹czenie przês³a do zasilacza
+ if (ps->bSection)
+  psSection=ps; //ustalenie sekcji zasilania
+ else
+ {//ustalenie punktu zasilania (nie ma jeszcze po³¹czeñ miêdzy przês³ami)
+  psPowered=ps; //ustawienie bezpoœredniego zasilania dla przês³a
+  psPower[0]=psPower[1]=ps; //a to chyba nie jest dobry pomys³, bo nawet zasilane przês³o powinno mieæ wskazania na inne
+  fResistance[0]=fResistance[1]=0.0; //a liczy siê tylko rezystancja zasilacza
+ }
+};
+
+double __fastcall TTraction::VoltageGet(double u,double i)
+{//pobranie napiêcia na przêœle po pod³¹czeniu do niego rezystancji (res) - na razie jest to pr¹d
+ if (!psSection) return NominalVoltage; //jak nie ma zasilacza, to napiêcie podane w przêœle
+ //na pocz¹tek mo¿na za³o¿yæ, ¿e wszystkie podstacje maj¹ to samo napiêcie i nie p³ynie pr¹d pomiêdzy nimi
+ //dla danego przês³a mamy 3 Ÿród³a zasilania
+ //1. zasilacz psPower[0] z rezystancj¹ fResistance[0] oraz jego wewnêtrzn¹
+ //2. zasilacz psPower[1] z rezystancj¹ fResistance[1] oraz jego wewnêtrzn¹
+ //3. zasilacz psPowered z jego wewnêtrzn¹ rezystancj¹ dla przêse³ zasilanych bezpoœrednio
+ double res=(i!=0.0)?fabs(u/i):10000.0;
+ double r0t,r1t,r0g,r1g;
+ double u0,u1,i0,i1;
+ r0t=fResistance[0]; //œredni pomys³, ale lepsze ni¿ nic
+ r1t=fResistance[1]; //bo nie uwzglêdnia spadków z innych pojazdów
+ if (psPower[0]&&psPower[1])
+ {//gdy przês³o jest zasilane z obu stron - mamy trójk¹t: res, r0t, r1t
+  if ((r0t>0.0)&&(r1t>0.0))
+  {//rezystancje w mianowniku nie mog¹ byæ zerowe
+   r0g=res+r0t+(res*r0t)/r1t; //przeliczenie z trójk¹ta na gwiazdê
+   r1g=res+r1t+(res*r1t)/r0t;
+   //pobierane s¹ pr¹dy dla ka¿dej rezystancji, a suma jest mno¿ona przez rezystancjê pojazdu w celu uzyskania napiêcia
+   i0=psPower[0]->CurrentGet(r0g); //oddzielnie dla sprawdzenia
+   i1=psPower[1]->CurrentGet(r1g);
+   return (i0+i1)*res;
+  }
+  else if (r0t>=0.0)
+   return psPower[0]->CurrentGet(res+r0t)*res;
+  else if (r1t>=0.0)
+   return psPower[1]->CurrentGet(res+r1t)*res;
+  else
+   return 0.0; //co z tym zrobiæ?
+ }
+ else if (psPower[0]&&(r0t>=0.0))
+ {//jeœli odcinek pod³¹czony jest tylko z jednej strony
+  return psPower[0]->CurrentGet(res+r0t)*res;
+ }
+ else if (psPower[1]&&(r1t>=0.0))
+  return psPower[1]->CurrentGet(res+r1t)*res;
+ return 0.0; //gdy nie pod³¹czony wcale?
+};

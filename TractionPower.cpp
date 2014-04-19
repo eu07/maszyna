@@ -4,19 +4,6 @@
     MaSzyna EU07 locomotive simulator component
     Copyright (C) 2004  Maciej Czapkiewicz and others
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 
@@ -24,7 +11,7 @@
 #include    "classes.hpp"
 #pragma hdrstop
 
-#include "Mover.hpp"
+#include "Mover.h"
 #include "mctools.hpp"
 #include "Timer.h"
 #include "Globals.h"
@@ -36,105 +23,126 @@
 
 __fastcall TTractionPowerSource::TTractionPowerSource()
 {
-    NominalVoltage=0;
-    VoltageFrequency=0;
-    InternalRes=1;
-    MaxOutputCurrent=0;
-    FastFuseTimeOut=1;
-    FastFuseRepetition=3;
-    SlowFuseTimeOut=60;
-    Recuperation=false;
+ NominalVoltage=0;
+ VoltageFrequency=0;
+ InternalRes=1;
+ MaxOutputCurrent=0;
+ FastFuseTimeOut=1;
+ FastFuseRepetition=3;
+ SlowFuseTimeOut=60;
+ Recuperation=false;
 
-    TotalCurrent=0;
-    TotalPreviousCurrent=0;
-    OutputVoltage=0;
-    FastFuse=false;
-    SlowFuse=false;
-    FuseTimer= 0;
-    FuseCounter=0;
-//    asName="";
-}
+ TotalAdmitance=1e-10; //10Mom - jakaœ tam up³ywnoœæ
+ TotalPreviousAdmitance=1e-10; //zero jest szkodliwe
+ OutputVoltage=0;
+ FastFuse=false;
+ SlowFuse=false;
+ FuseTimer=0;
+ FuseCounter=0;
+ //asName="";
+ psNode[0]=NULL; //sekcje zostan¹ pod³¹czone do zasilaczy
+ psNode[1]=NULL;
+ bSection=false; //sekcja nie jest Ÿród³em zasilania, tylko grupuje przês³a
+};
 
 __fastcall TTractionPowerSource::~TTractionPowerSource()
 {
-}
+};
 
 void __fastcall TTractionPowerSource::Init()
 {
-}
-
+};
 
 bool __fastcall TTractionPowerSource::Load(cParser *parser)
 {
-    std::string token;
-//    AnsiString str;
-//    str= Parser->GetNextSymbol()LowerCase();
-//    asName= str;
-    parser->getTokens(5);
-    *parser >> NominalVoltage >> VoltageFrequency >> InternalRes >> MaxOutputCurrent >> FastFuseTimeOut;
-    parser->getTokens();
-    *parser >> FastFuseRepetition;
-    parser->getTokens();
-    *parser >> SlowFuseTimeOut;
-    parser->getTokens();
-    *parser >> token;
-    if ( token.compare( "recuperation" ) == 0 )
-     Recuperation= true;
-    parser->getTokens();
-    *parser >> token;
-    if ( token.compare( "end" ) != 0 )
-     Error("tractionpowersource end statement missing");    
-    return true;
-}
+ std::string token;
+ //AnsiString str;
+ //str= Parser->GetNextSymbol()LowerCase();
+ //asName= str;
+ parser->getTokens(5);
+ *parser >> NominalVoltage >> VoltageFrequency >> InternalRes >> MaxOutputCurrent >> FastFuseTimeOut;
+ parser->getTokens();
+ *parser >> FastFuseRepetition;
+ parser->getTokens();
+ *parser >> SlowFuseTimeOut;
+ parser->getTokens();
+ *parser >> token;
+ if (token.compare("recuperation")==0)
+  Recuperation=true;
+ else if (token.compare("section")==0) //od³¹cznik sekcyjny
+  bSection=true; //nie jest Ÿród³em zasilania, a jedynie informuje o pr¹dzie od³¹czenia sekcji z obwodu
+ parser->getTokens();
+ *parser >> token;
+ if (token.compare("end")!=0)
+  Error("tractionpowersource end statement missing");
+ //if (!bSection) //od³¹cznik sekcji zasadniczo nie ma impedancji (0.01 jest OK)
+  if (InternalRes<0.1) //coœ ma³a ta rezystancja by³a...
+   InternalRes=0.2; //tak oko³o 0.2, wg http://www.ikolej.pl/fileadmin/user_upload/Seminaria_IK/13_05_07_Prezentacja_Kruczek.pdf
+ return true;
+};
 
 
 bool __fastcall TTractionPowerSource::Render()
 {
-    return true;
-}
+ return true;
+};
 
 bool __fastcall TTractionPowerSource::Update(double dt)
-{
-    if (TotalPreviousCurrent>MaxOutputCurrent)
-     {
-       FastFuse=true;
-       FuseCounter+=1;
-       if (FuseCounter>FastFuseRepetition)
-        SlowFuse=true;
-       FuseTimer=0;
-     }
-    if (FastFuse || SlowFuse)
-     {
-       TotalCurrent=0;
-       FuseTimer+=dt;
-       if (~SlowFuse)
-        {
-         if (FuseTimer>FastFuseTimeOut)
-           FastFuse=false;
-        }
-       else
-         if (FuseTimer>SlowFuseTimeOut)
-           SlowFuse=false;
-     }
-    TotalPreviousCurrent=TotalCurrent;
-    TotalCurrent=0;
-    return true;
-}
-
-double __fastcall TTractionPowerSource::GetVoltage(double Current)
-{
-  if (SlowFuse || FastFuse)
-   {
-     if (Current>0.1)
-      FuseTimer=0;
-     return 0;
+{//powinno byæ wykonane raz na krok fizyki
+ if (NominalVoltage*TotalPreviousAdmitance>MaxOutputCurrent) //iloczyn napiêcia i admitancji daje pr¹d
+ {
+  FastFuse=true;
+  FuseCounter+=1;
+  if (FuseCounter>FastFuseRepetition)
+   SlowFuse=true;
+  FuseTimer=0;
+ }
+ if (FastFuse||SlowFuse)
+ {//jeœli któryœ z bezpieczników zadzia³a³
+  TotalAdmitance=0;
+  FuseTimer+=dt;
+  if (!SlowFuse)
+  {//gdy szybki, odczekaæ krótko i za³¹czyæ
+   if (FuseTimer>FastFuseTimeOut)
+    FastFuse=false;
+  }
+  else
+   if (FuseTimer>SlowFuseTimeOut)
+   {SlowFuse=false;
+    FuseCounter=0; //dajemy znów szanse
    }
-  if ((Current>0) || ((Current<0) && (Recuperation)))
-    TotalCurrent+=Current;
-  OutputVoltage=NominalVoltage-InternalRes*TotalPreviousCurrent;
-  return OutputVoltage;
-}
+ }
+ TotalPreviousAdmitance=TotalAdmitance; //u¿ywamy admitancji z poprzedniego kroku
+ if (TotalPreviousAdmitance==0.0)
+  TotalPreviousAdmitance=1e-10; //przynajmniej minimalna up³ywnoœæ
+ TotalAdmitance=1e-10; //a w aktualnym kroku sumujemy admitancjê
+ return true;
+};
 
+double __fastcall TTractionPowerSource::CurrentGet(double res)
+{//pobranie wartoœci pr¹du przypadaj¹cego na rezystancjê (res)
+ //niech pamiêta poprzedni¹ admitancjê i wg niej przydziela pr¹d
+ if (SlowFuse || FastFuse)
+ {
+  if (res>0.1)
+   FuseTimer=0;
+  return 0;
+ }
+ if ((res>0) || ((res<0) && (Recuperation)))
+   TotalAdmitance+=1.0/res; //po³¹czenie równoleg³e rezystancji jest równowa¿ne sumie admitancji
+ TotalCurrent=(TotalPreviousAdmitance!=0.0)?NominalVoltage/(InternalRes+1.0/TotalPreviousAdmitance):0.0; //napiêcie dzielone przez sumê rezystancji wewnêtrznej i obci¹¿enia
+ OutputVoltage=NominalVoltage-InternalRes*TotalCurrent; //napiêcie na obci¹¿eniu
+ return TotalCurrent/(res*TotalPreviousAdmitance); //pr¹d proporcjonalny do udzia³u (1/res) w ca³kowitej admitancji 
+};
+
+void __fastcall TTractionPowerSource::PowerSet(TTractionPowerSource *ps)
+{//wskazanie zasilacza w obiekcie sekcji
+ if (!psNode[0])
+  psNode[0]=ps;
+ else if (!psNode[1])
+  psNode[1]=ps;
+ //else ErrorLog("nie mo¿e byæ wiêcej punktów zasilania ni¿ dwa"); 
+};
 
 //---------------------------------------------------------------------------
 

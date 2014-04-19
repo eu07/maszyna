@@ -19,7 +19,7 @@ public:
 class CMesh
 {//wsparcie dla VBO
 public:
- int m_nVertexCount; // iloœæ wierzcho³ków
+ int m_nVertexCount; //liczba wierzcho³ków
  CVertNormTex *m_pVNT;
  unsigned int m_nVBOVertices; //numer VBO z wierzcho³kami
  __fastcall CMesh();

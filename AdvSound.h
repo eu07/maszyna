@@ -2,8 +2,8 @@
 #ifndef AdvSoundH
 #define AdvSoundH
 
-#include "sound.h"
-#include "realsound.h"
+#include "Sound.h"
+#include "RealSound.h"
 #include "QueryParserComp.hpp"
 
 typedef enum {ss_Off, ss_Starting, ss_Commencing, ss_ShuttingDown} TSoundState;
@@ -30,6 +30,7 @@ public:
     void __fastcall Free();
     void __fastcall Update(bool ListenerInside, vector3 NewPosition);
     void __fastcall UpdateAF(double A, double F, bool ListenerInside, vector3 NewPosition);
+ void __fastcall CopyIfEmpty(TAdvancedSound &s);
 };
 
 //---------------------------------------------------------------------------

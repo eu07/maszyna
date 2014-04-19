@@ -2,14 +2,17 @@
 // Copyright (c) 1995, 1999 by Borland International
 // All rights reserved
 
-// (DO NOT EDIT: machine generated header) 'mover.pas' rev: 5.00
+// (DO NOT EDIT: machine generated header) '_mover.pas' rev: 5.00
+//Ra: eee... tam, sam siê generuje b³êdnie i trzeba rêcznie poprawiaæ!
 
-#ifndef moverHPP
-#define moverHPP
+#ifndef _moverHPP
+#define _moverHPP
 
 #pragma delphiheader begin
 #pragma option push -w-
 #pragma option push -Vx
+#include <Oerlikon_ESt.hpp>	// Pascal unit
+#include <hamulce.hpp>	// Pascal unit
 #include <SysUtils.hpp>	// Pascal unit
 #include <mctools.hpp>	// Pascal unit
 #include <SysInit.hpp>	// Pascal unit
@@ -17,12 +20,9 @@
 
 //-- user supplied -----------------------------------------------------------
 
-namespace Mover
+namespace _mover
 {
 //-- type declarations -------------------------------------------------------
-class DELPHICLASS TMoverParameters;
-typedef TMoverParameters* *PMoverParameters;
-
 struct TLocation
 {
 	double X;
@@ -79,38 +79,21 @@ struct TTractionParam
 } ;
 
 #pragma option push -b-
-enum TCouplerType { NoCoupler, Articulated, Bare, Chain, Screw, Automatic };
-#pragma option pop
-
-struct TCoupling
-{
-	double SpringKB;
-	double SpringKC;
-	double beta;
-	double DmaxB;
-	double FmaxB;
-	double DmaxC;
-	double FmaxC;
-	TCouplerType CouplerType;
-	Byte CouplingFlag;
-	Byte AllowedFlag;
-	bool Render;
-	double CoupleDist;
-	TMoverParameters* *Connected;
-	Byte ConnectedNr;
-	double CForce;
-	double Dist;
-	bool CheckCollision;
-} ;
-
-typedef TCoupling TCouplers[2];
-
-#pragma option push -b-
 enum TBrakeSystem { Individual, Pneumatic, ElectroPneumatic };
 #pragma option pop
 
 #pragma option push -b-
-enum TBrakeSubsystem { Standard, WeLu, Knorr, KE, Hik, Kk, Oerlikon };
+enum TBrakeSubSystem { ss_None, ss_W, ss_K, ss_KK, ss_Hik, ss_ESt, ss_KE, ss_LSt, ss_MT, ss_Dako };
+#pragma option pop
+
+#pragma option push -b-
+enum TBrakeValve { NoValve, W, W_Lu_VI, W_Lu_L, W_Lu_XR, K, Kg, Kp, Kss, Kkg, Kkp, Kks, Hikg1, Hikss, 
+	Hikp1, KE, SW, NESt3, ESt3, LSt, ESt4, ESt3AL2, EP1, EP2, M483, CV1_L_TR, CV1, CV1_R, Other };
+#pragma option pop
+
+#pragma option push -b-
+enum TBrakeHandle { NoHandle, West, FV4a, M394, M254, FVel1, FVel6, D2, Knorr, FD1, BS2, testH, St113 
+	};
 #pragma option pop
 
 #pragma option push -b-
@@ -163,15 +146,37 @@ struct TBoilerType
 
 struct TCurrentCollector
 {
+	int CollectorsNo;
 	double MinH;
 	double MaxH;
 	double CSW;
+	double MinV;
+	double MaxV;
+	double MinPress;
 } ;
 
 #pragma option push -b-
 enum TPowerSource { NotDefined, InternalSource, Transducer, Generator, Accumulator, CurrentCollector, 
 	PowerCable, Heater };
 #pragma option pop
+
+struct _mover__1
+{
+	double MaxCapacity;
+	TPowerSource RechargeSource;
+} ;
+
+struct _mover__2
+{
+	TPowerType PowerTrans;
+	double SteamPressure;
+} ;
+
+struct _mover__3
+{
+	TGrateType Grate;
+	TBoilerType Boiler;
+} ;
 
 struct TPowerParameters
 {
@@ -183,26 +188,22 @@ struct TPowerParameters
 	{
 		struct 
 		{
-			TGrateType Grate;
-			TBoilerType Boiler;
+			_mover__3 RHeater;
 			
 		};
 		struct 
 		{
-			TPowerType PowerTrans;
-			double SteamPressure;
+			_mover__2 RPowerCable;
 			
 		};
 		struct 
 		{
-			Byte CollectorsNo;
 			TCurrentCollector CollectorParameters;
 			
 		};
 		struct 
 		{
-			double MaxCapacity;
-			TPowerSource RechargeSource;
+			_mover__1 RAccumulator;
 			
 		};
 		struct 
@@ -268,8 +269,10 @@ struct TMotorParameters
 {
 	double mfi;
 	double mIsat;
+	double mfi0;
 	double fi;
 	double Isat;
+	double fi0;
 	bool AutoSwitch;
 } ;
 
@@ -277,25 +280,55 @@ struct TSecuritySystem
 {
 	Byte SystemType;
 	double AwareDelay;
+	double AwareMinSpeed;
 	double SoundSignalDelay;
 	double EmergencyBrakeDelay;
 	Byte Status;
 	double SystemTimer;
-	double SystemSoundTimer;
-	double SystemBrakeTimer;
+	double SystemSoundCATimer;
+	double SystemSoundSHPTimer;
+	double SystemBrakeCATimer;
+	double SystemBrakeSHPTimer;
+	double SystemBrakeCATestTimer;
 	int VelocityAllowed;
 	int NextVelocityAllowed;
 	bool RadioStop;
 } ;
 
-struct mover__2
+struct TTransmision
 {
 	Byte NToothM;
 	Byte NToothW;
 	double Ratio;
 } ;
 
-class PASCALIMPLEMENTATION TMoverParameters : public System::TObject 
+#pragma option push -b-
+enum TCouplerType { NoCoupler, Articulated, Bare, Chain, Screw, Automatic };
+#pragma option pop
+
+class DELPHICLASS T_MoverParameters;
+struct TCoupling
+{
+	double SpringKB;            
+	double SpringKC;
+	double beta;
+	double DmaxB;
+	double FmaxB;
+	double DmaxC;
+	double FmaxC;
+	TCouplerType CouplerType;
+	Byte CouplingFlag;
+	int AllowedFlag;
+	bool Render;
+	double CoupleDist;
+	T_MoverParameters* Connected;
+	Byte ConnectedNr;
+	double CForce;
+	double Dist;
+	bool CheckCollision;
+} ;
+
+class PASCALIMPLEMENTATION T_MoverParameters : public System::TObject 
 {
 	typedef System::TObject inherited;
 	
@@ -319,7 +352,13 @@ public:
 	double TotalMass;
 	double HeatingPower;
 	double LightPower;
-	int BatteryVoltage;
+	double BatteryVoltage;
+	bool Battery;
+	bool EpFuse;
+	bool Signalling;
+	bool DoorSignalling;
+	bool Radio;
+	double NominalBatteryVoltage;
 	TDimension Dim;
 	double Cx;
 	double WheelDiameter;
@@ -336,14 +375,23 @@ public:
 	Byte NBpA;
 	int SandCapacity;
 	TBrakeSystem BrakeSystem;
-	TBrakeSubsystem BrakeSubsystem;
+	TBrakeSubSystem BrakeSubsystem;
+	TBrakeValve BrakeValve;
+	TBrakeHandle BrakeHandle;
+	TBrakeHandle BrakeLocHandle;
 	double MBPM;
+	Hamulce::TBrake* Hamulec;
+	Hamulce::THandle* Handle;
+	Hamulce::THandle* LocHandle;
+	Hamulce::TReservoir* Pipe;
+	Hamulce::TReservoir* Pipe2;
 	TLocalBrake LocalBrake;
 	TBrakePressure BrakePressureTable[13];
+	TBrakePressure BrakePressureActual;
 	Byte ASBType;
 	Byte TurboTest;
 	double MaxBrakeForce;
-	double MaxBrakePress;
+	double MaxBrakePress[5];
 	double P2FTrans;
 	double TrackBrakeForce;
 	Byte BrakeMethod;
@@ -357,8 +405,15 @@ public:
 	int BrakeCylNo;
 	double BrakeCylRadius;
 	double BrakeCylDist;
-	double BrakeCylMult[4];
-	Byte BCMFlag;
+	double BrakeCylMult[3];
+	Byte LoadFlag;
+	double BrakeCylSpring;
+	double BrakeSlckAdj;
+	double BrakeRigEff;
+	double RapidMult;
+  int BrakeValveSize;
+  AnsiString BrakeValveParams;
+  double Spg;  
 	double MinCompressor;
 	double MaxCompressor;
 	double CompressorSpeed;
@@ -367,13 +422,15 @@ public:
 	Byte MainCtrlPosNo;
 	Byte ScndCtrlPosNo;
 	bool ScndInMain;
+	bool MBrake;
 	TSecuritySystem SecuritySystem;
 	TScheme RList[65];
 	int RlistSize;
 	TMotorParameters MotorParam[9];
-	mover__2 Transmision;
+	TTransmision Transmision;
 	double NominalVoltage;
 	double WindingRes;
+	double u;
 	double CircuitRes;
 	int IminLo;
 	int IminHi;
@@ -382,6 +439,8 @@ public:
 	double nmax;
 	double InitialCtrlDelay;
 	double CtrlDelay;
+	double CtrlDownDelay;
+	Byte FastSerialCircuit;
 	Byte AutoRelayType;
 	bool CoupledCtrl;
 	bool IsCoupled;
@@ -433,10 +492,12 @@ public:
 	double DoorMaxShiftL;
 	double DoorMaxShiftR;
 	Byte DoorOpenMethod;
+	bool ScndS;
 	TLocation Loc;
 	TRotation Rot;
 	AnsiString Name;
 	TCoupling Couplers[2];
+	double HVCouplers[2][2];
 	int ScanCounter;
 	bool EventFlag;
 	Byte SoundFlag;
@@ -455,6 +516,7 @@ public:
 	double FStand;
 	double FTotal;
 	double UnitBrakeForce;
+  double Ntotal;
 	bool SlippingWheels;
 	bool SandDose;
 	double Sand;
@@ -468,7 +530,7 @@ public:
 	double LocBrakePress;
 	double PipeBrakePress;
 	double PipePress;
-	double PPP;
+	double EqvtPipePress;
 	double Volume;
 	double CompressedVolume;
 	double PantVolume;
@@ -479,7 +541,11 @@ public:
 	bool ConverterFlag;
 	bool ConverterAllow;
 	int BrakeCtrlPos;
+	double BrakeCtrlPosR;
+	double BrakeCtrlPos2;
 	Byte LocalBrakePos;
+	Byte ManualBrakePos;
+	double LocalBrakePosA;
 	Byte BrakeStatus;
 	bool EmergencyBrakeFlag;
 	Byte BrakeDelayFlag;
@@ -504,15 +570,16 @@ public:
 	int CabNo;
 	int DirAbsolute;
 	int ActiveCab;
-	int LastCab;
 	double LastSwitchingTime;
-	Byte WarningSignal;
 	bool DepartureSignal;
 	bool InsideConsist;
 	TTractionParam RunningTraction;
 	double enrot;
 	double Im;
 	double Itot;
+	double IHeating;
+	double ITraction;
+	double TotalCurrent;
 	double Mm;
 	double Mw;
 	double Fw;
@@ -531,6 +598,8 @@ public:
 	bool ResistorsFlag;
 	double RventRot;
 	bool UnBrake;
+	double PantPress;
+	bool s_CAtestebrake;
 	double dizel_fill;
 	double dizel_engagestate;
 	double dizel_engage;
@@ -545,6 +614,7 @@ public:
 	AnsiString LoadType;
 	Byte LoadStatus;
 	double LastLoadChangeTime;
+	bool DoorBlocked;
 	bool DoorLeftOpened;
 	bool DoorRightOpened;
 	bool PantFrontUp;
@@ -553,8 +623,8 @@ public:
 	bool PantRearSP;
 	int PantFrontStart;
 	int PantRearStart;
-	bool PantFrontVolt;
-	bool PantRearVolt;
+	double PantFrontVolt;
+	double PantRearVolt;
 	AnsiString PantSwitchType;
 	AnsiString ConvSwitchType;
 	bool Heating;
@@ -564,10 +634,10 @@ public:
 	double FrictConst2s;
 	double FrictConst2d;
 	double TotalMassxg;
-	bool __fastcall GetTrainsetVoltage(void);
+	double __fastcall GetTrainsetVoltage(void);
 	bool __fastcall Physic_ReActivation(void);
-	void __fastcall PantCheck(void);
 	double __fastcall LocalBrakeRatio(void);
+	double __fastcall ManualBrakeRatio(void);
 	double __fastcall PipeRatio(void);
 	double __fastcall RealPipeRatio(void);
 	double __fastcall BrakeVP(void);
@@ -584,15 +654,19 @@ public:
 	bool __fastcall SandDoseOn(void);
 	bool __fastcall SecuritySystemReset(void);
 	void __fastcall SecuritySystemCheck(double dt);
-	bool __fastcall IncBrakeLevel(void);
-	bool __fastcall DecBrakeLevel(void);
+	bool __fastcall BatterySwitch(bool State);
+	bool __fastcall EpFuseSwitch(bool State);
+	bool __fastcall IncBrakeLevelOld(void);
+	bool __fastcall DecBrakeLevelOld(void);
 	bool __fastcall IncLocalBrakeLevel(Byte CtrlSpeed);
 	bool __fastcall DecLocalBrakeLevel(Byte CtrlSpeed);
 	bool __fastcall IncLocalBrakeLevelFAST(void);
 	bool __fastcall DecLocalBrakeLevelFAST(void);
+	bool __fastcall IncManualBrakeLevel(Byte CtrlSpeed);
+	bool __fastcall DecManualBrakeLevel(Byte CtrlSpeed);
 	bool __fastcall EmergencyBrakeSwitch(bool Switch);
 	bool __fastcall AntiSlippingBrake(void);
-	bool __fastcall BrakeReleaser(void);
+	bool __fastcall BrakeReleaser(Byte state);
 	bool __fastcall SwitchEPBrake(Byte state);
 	bool __fastcall AntiSlippingButton(void);
 	bool __fastcall IncBrakePress(double &brake, double PressLimit, double dp);
@@ -603,14 +677,11 @@ public:
 	void __fastcall UpdateBrakePressure(double dt);
 	void __fastcall UpdatePipePressure(double dt);
 	void __fastcall CompressorCheck(double dt);
-	void __fastcall UpdatePantVolume(double dt);
+	//void __fastcall UpdatePantVolume(double dt);
 	void __fastcall UpdateScndPipePressure(double dt);
-	bool __fastcall Attach(Byte ConnectNo, Byte ConnectToNr, PMoverParameters ConnectTo, Byte CouplingType
-		);
-	bool __fastcall DettachDistance(Byte ConnectNo);
-	bool __fastcall Dettach(Byte ConnectNo);
+	void __fastcall UpdateBatteryVoltage(double dt);
+	double __fastcall GetDVc(double dt);
 	void __fastcall ComputeConstans(void);
-	void __fastcall SetCoupleDist(void);
 	double __fastcall ComputeMass(void);
 	double __fastcall Adhesive(double staticfriction);
 	double __fastcall TractionForce(double dt);
@@ -625,10 +696,8 @@ public:
 	bool __fastcall RunInternalCommand(void);
 	void __fastcall PutCommand(AnsiString NewCommand, double NewValue1, double NewValue2, const TLocation 
 		&NewLocation);
-	bool __fastcall DirectionForward(void);
 	bool __fastcall DirectionBackward(void);
 	bool __fastcall MainSwitch(bool State);
-	bool __fastcall ChangeCab(int direction);
 	bool __fastcall ConverterSwitch(bool State);
 	bool __fastcall CompressorSwitch(bool State);
 	void __fastcall ConverterCheck(void);
@@ -659,22 +728,22 @@ public:
 	double __fastcall FastComputeMovement(double dt, const TTrackShape &Shape, TTrackParam &Track, const 
 		TLocation &NewLoc, TRotation &NewRot);
 	bool __fastcall ChangeOffsetH(double DeltaOffset);
-	__fastcall TMoverParameters(const TLocation &LocInitial, const TRotation &RotInitial, double VelInitial
-		, AnsiString TypeNameInit, AnsiString NameInit, int LoadInitial, AnsiString LoadTypeInitial, int Cab
-		);
+	__fastcall T_MoverParameters(double VelInitial, AnsiString TypeNameInit, AnsiString NameInit, int LoadInitial
+		, AnsiString LoadTypeInitial, int Cab);
 	bool __fastcall LoadChkFile(AnsiString chkpath);
 	bool __fastcall CheckLocomotiveParameters(bool ReadyFlag, int Dir);
 	AnsiString __fastcall EngineDescription(int what);
 	bool __fastcall DoorLeft(bool State);
 	bool __fastcall DoorRight(bool State);
+	bool __fastcall DoorBlockedFlag(void);
 	bool __fastcall PantFront(bool State);
 	bool __fastcall PantRear(bool State);
 public:
 	#pragma option push -w-inl
-	/* TObject.Create */ inline __fastcall TMoverParameters(void) : System::TObject() { }
+	/* TObject.Create */ inline __fastcall T_MoverParameters(void) : System::TObject() { }
 	#pragma option pop
 	#pragma option push -w-inl
-	/* TObject.Destroy */ inline __fastcall virtual ~TMoverParameters(void) { }
+	/* TObject.Destroy */ inline __fastcall virtual ~T_MoverParameters(void) { }
 	#pragma option pop
 	
 };
@@ -688,6 +757,7 @@ static const Shortint MotorParametersArraySize = 0x8;
 static const Shortint maxcc = 0x4;
 static const Shortint LocalBrakePosNo = 0xa;
 static const Shortint MainBrakeMaxPos = 0xa;
+static const Shortint ManualBrakePosNo = 0x14;
 static const Shortint dtrack_railwear = 0x2;
 static const Shortint dtrack_freerail = 0x4;
 static const Shortint dtrack_thinrail = 0x8;
@@ -720,31 +790,20 @@ static const Shortint ctrain_power = 0x8;
 static const Shortint ctrain_passenger = 0x10;
 static const Shortint ctrain_scndpneumatic = 0x20;
 static const Shortint ctrain_heating = 0x40;
+static const Byte ctrain_depot = 0x80;
 static const Shortint dbrake_none = 0x0;
 static const Shortint dbrake_passive = 0x1;
 static const Shortint dbrake_switch = 0x2;
 static const Shortint dbrake_reversal = 0x4;
 static const Shortint dbrake_automatic = 0x8;
-static const Shortint bdelay_P = 0x0;
-static const Shortint bdelay_G = 0x1;
-static const Shortint bdelay_R = 0x2;
-static const Shortint bdelay_E = 0x4;
-static const Shortint b_off = 0x0;
-static const Shortint b_on = 0x1;
-static const Shortint b_dmg = 0x2;
-static const Shortint b_release = 0x4;
-static const Shortint b_antislip = 0x8;
-static const Shortint b_epused = 0x10;
-static const Shortint b_Rused = 0x20;
-static const Shortint b_Ractive = 0x40;
-static const Shortint bp_classic = 0x0;
-static const Shortint bp_diameter = 0x1;
-static const Shortint bp_magnetic = 0x2;
 static const Shortint s_waiting = 0x1;
 static const Shortint s_aware = 0x2;
 static const Shortint s_active = 0x4;
-static const Shortint s_alarm = 0x8;
-static const Shortint s_ebrake = 0x10;
+static const Shortint s_CAalarm = 0x8;
+static const Shortint s_SHPalarm = 0x10;
+static const Shortint s_CAebrake = 0x20;
+static const Shortint s_SHPebrake = 0x40;
+static const Byte s_CAtest = 0x80;
 static const Shortint sound_none = 0x0;
 static const Shortint sound_loud = 0x1;
 static const Shortint sound_couplerstretch = 0x2;
@@ -753,7 +812,6 @@ static const Shortint sound_bufferbump = 0x8;
 static const Shortint sound_relay = 0x10;
 static const Shortint sound_manyrelay = 0x20;
 static const Shortint sound_brakeacc = 0x40;
-#define Spg  (5.067000E-01)
 extern PACKAGE bool PhysicActivationFlag;
 static const Shortint dt_Default = 0x0;
 static const Shortint dt_EZT = 0x1;
@@ -762,17 +820,19 @@ static const Shortint dt_ET42 = 0x4;
 static const Shortint dt_PseudoDiesel = 0x8;
 static const Shortint dt_ET22 = 0x10;
 static const Shortint dt_SN61 = 0x20;
-static const Shortint dt_181 = 0x40;
+static const Shortint dt_EP05 = 0x40;
+static const Byte dt_ET40 = 0x80;
+static const Word dt_181 = 0x100;
 extern PACKAGE double __fastcall Distance(const TLocation &Loc1, const TLocation &Loc2, const TDimension 
 	&Dim1, const TDimension &Dim2);
 
-}	/* namespace Mover */
+}	/* namespace _mover */
 #if !defined(NO_IMPLICIT_NAMESPACE_USE)
-using namespace Mover;
+using namespace _mover;
 #endif
 #pragma option pop	// -w-
 #pragma option pop	// -Vx
 
 #pragma delphiheader end.
 //-- end unit ----------------------------------------------------------------
-#endif	// mover
+#endif	// _mover
