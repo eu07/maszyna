@@ -3,19 +3,6 @@
     MaSzyna EU07 locomotive simulator
     Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "opengl/glew.h"
@@ -25,11 +12,13 @@
 #include "system.hpp"
 #include "classes.hpp"
 #include "Globals.h"
-#include "Feedback.h"
+#include "Console.h"
 #include "QueryParserComp.hpp"
-#include <Mover.hpp>
-#include "Train.h" //to tu bez sensu jest
+#include "Mover.h"
+#include "Logs.h"
 #pragma hdrstop
+
+#include <dsound.h> //_clear87() itp.
 
 USERES("EU07.res");
 USEUNIT("dumb3d.cpp");
@@ -38,7 +27,6 @@ USEUNIT("Texture.cpp");
 USEUNIT("World.cpp");
 USELIB("opengl\glut32.lib");
 USEUNIT("Model3d.cpp");
-USEUNIT("geometry.cpp");
 USEUNIT("MdlMngr.cpp");
 USEUNIT("Train.cpp");
 USEUNIT("wavread.cpp");
@@ -55,7 +43,6 @@ USEUNIT("AnimModel.cpp");
 USEUNIT("Ground.cpp");
 USEUNIT("TrkFoll.cpp");
 USEUNIT("Segment.cpp");
-USEUNIT("McZapkie\mover.pas");
 USEUNIT("Sound.cpp");
 USEUNIT("AdvSound.cpp");
 USEUNIT("Track.cpp");
@@ -69,10 +56,9 @@ USEUNIT("TractionPower.cpp");
 USEUNIT("parser.cpp");
 USEUNIT("sky.cpp");
 USEUNIT("AirCoupler.cpp");
-USEUNIT("glew.c");
+USEUNIT("opengl\glew.c");
 USEUNIT("ResourceManager.cpp");
 USEUNIT("VBO.cpp");
-USEUNIT("Feedback.cpp");
 USEUNIT("McZapkie\mtable.pas");
 USEUNIT("TextureDDS.cpp");
 USEUNIT("opengl\ARB_Multisample.cpp");
@@ -80,6 +66,13 @@ USEUNIT("Float3d.cpp");
 USEUNIT("Classes.cpp");
 USEUNIT("Driver.cpp");
 USEUNIT("Names.cpp");
+USEUNIT("Console.cpp");
+USEUNIT("Mover.cpp");
+USEUNIT("McZapkie\_mover.pas");
+USEUNIT("McZapkie\hamulce.pas");
+USEUNIT("Console\PoKeys55.cpp");
+USEUNIT("Forth.cpp");
+USEUNIT("Console\LPT.cpp");
 //---------------------------------------------------------------------------
 #include "World.h"
 
@@ -103,22 +96,18 @@ LRESULT	CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);	// Declaration For WndProc
 
 int InitGL(GLvoid)										// All Setup For OpenGL Goes Here
 {
+ _clear87();
+ _control87(MCW_EM,MCW_EM);
+ glewInit();
+ //hunter-271211: przeniesione
+ //AllocConsole();
+ //SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),FOREGROUND_GREEN);
 
-    _clear87();
-    _control87(MCW_EM, MCW_EM);
-
-    glewInit();
-
-    //hunter-271211: przeniesione
-    //AllocConsole();
-    //SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),FOREGROUND_GREEN);
-
-    // ShaXbee-121209: Wlaczenie obslugi tablic wierzcholkow
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glEnableClientState(GL_NORMAL_ARRAY);
-    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-
- Global::pWorld=&World;
+ // ShaXbee-121209: Wlaczenie obslugi tablic wierzcholkow
+ glEnableClientState(GL_VERTEX_ARRAY);
+ glEnableClientState(GL_NORMAL_ARRAY);
+ glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+ Global::pWorld=&World; //Ra: wskaŸnik potrzebny do usuwania pojazdów
  return World.Init(hWnd,hDC); //true jeœli wszystko pójdzie dobrze
 }
 //---------------------------------------------------------------------------
@@ -133,7 +122,7 @@ GLvoid ReSizeGLScene(GLsizei width,GLsizei height) // resize and initialize the 
  glMatrixMode(GL_PROJECTION);			   // select the Projection Matrix
  glLoadIdentity();				   // reset the Projection Matrix
  //calculate the aspect ratio of the window
- gluPerspective(45.0f,(GLdouble)width/(GLdouble)height,0.2f,2000.0f);
+ gluPerspective(45.0f,(GLdouble)width/(GLdouble)height,0.2f,2500.0f);
  glMatrixMode(GL_MODELVIEW);			   // select the Modelview Matrix
  glLoadIdentity();				   // reset the Modelview Matrix
 }
@@ -145,11 +134,13 @@ GLvoid KillGLWindow(GLvoid) // properly kill the window
  {
   if (!wglMakeCurrent(NULL,NULL)) // are we able to release the DC and RC contexts?
   {
+   ErrorLog("Fail: window releasing");
    MessageBox(NULL,"Release of DC and RC failed.","SHUTDOWN ERROR",MB_OK | MB_ICONINFORMATION);
   }
 
   if (!wglDeleteContext(hRC)) // are we able to delete the RC?
   {
+   ErrorLog("Fail: rendering context releasing");
    MessageBox(NULL,"Release rendering context failed.","SHUTDOWN ERROR",MB_OK | MB_ICONINFORMATION);
   }
   hRC=NULL; // set RC to NULL
@@ -157,12 +148,14 @@ GLvoid KillGLWindow(GLvoid) // properly kill the window
 
  if (hDC && !ReleaseDC(hWnd,hDC)) // are we able to release the DC?
  {
+  ErrorLog("Fail: device context releasing");
   MessageBox(NULL,"Release device context failed.","SHUTDOWN ERROR",MB_OK | MB_ICONINFORMATION);
   hDC=NULL; // set DC to NULL
  }
 
  if (hWnd && !DestroyWindow(hWnd)) // are we able to destroy the window?
  {
+  ErrorLog("Fail: window destroying");
   MessageBox(NULL,"Could not release hWnd.","SHUTDOWN ERROR",MB_OK | MB_ICONINFORMATION);
   hWnd=NULL; // set hWnd to NULL
  }
@@ -212,7 +205,8 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
  if (!arbMultisampleSupported) //tylko dla pierwszego okna
   if (!RegisterClass(&wc))									// Attempt To Register The Window Class
   {
-   MessageBox(NULL,"Failed To Register The Window Class.","ERROR",MB_OK|MB_ICONEXCLAMATION);
+   ErrorLog("Fail: window class registeration");
+   MessageBox(NULL,"Failed to register the window class.","ERROR",MB_OK|MB_ICONEXCLAMATION);
    return FALSE;											// Return FALSE
   }
 
@@ -255,6 +249,7 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
   if (ChangeDisplaySettings(&dmScreenSettings,CDS_FULLSCREEN)!=DISP_CHANGE_SUCCESSFUL)
   {
    // If the mode fails, offer two options.  Quit or use windowed mode.
+   ErrorLog("Fail: full screen");
    if (MessageBox(NULL,"The requested fullscreen mode is not supported by\nyour video card. Use windowed mode instead?","EU07",MB_YESNO|MB_ICONEXCLAMATION)==IDYES)
    {
     fullscreen=FALSE;		// Windowed Mode Selected.  Fullscreen = FALSE
@@ -298,6 +293,7 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
  				NULL)))				  // Dont Pass Anything To WM_CREATE
  {
   KillGLWindow();						  // Reset The Display
+  ErrorLog("Fail: window creation");
   MessageBox(NULL,"Window creation error.","ERROR",MB_OK|MB_ICONEXCLAMATION);
   return FALSE;							  // Return FALSE
  }
@@ -327,7 +323,8 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
  if (NULL==(hDC=GetDC(hWnd))) // Did We Get A Device Context?
  {
   KillGLWindow();	      // Reset The Display
-  MessageBox(NULL,"Can't Create A GL Device Context.","ERROR",MB_OK|MB_ICONEXCLAMATION);
+  ErrorLog("Fail: device context");
+  MessageBox(NULL,"Can't create a GL device context.","ERROR",MB_OK|MB_ICONEXCLAMATION);
   return FALSE;		      // Return FALSE
  }
 
@@ -342,6 +339,7 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
   if (NULL==(PixelFormat=ChoosePixelFormat(hDC,&pfd)))	// Did Windows Find A Matching Pixel Format?
   {
    KillGLWindow();	      // Reset The Display
+   ErrorLog("Fail: pixelformat");
    MessageBox(NULL,"Can't find a suitable pixelformat.","ERROR",MB_OK|MB_ICONEXCLAMATION);
    return FALSE;		      // Return FALSE
   }
@@ -352,6 +350,7 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
  if (!SetPixelFormat(hDC,PixelFormat,&pfd))		// Are We Able To Set The Pixel Format?
  {
   KillGLWindow();	      // Reset The Display
+  ErrorLog("Fail: pixelformat");
   MessageBox(NULL,"Can't set the pixelformat.","ERROR",MB_OK|MB_ICONEXCLAMATION);
   return FALSE;		      // Return FALSE
  }
@@ -359,6 +358,7 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
  if (NULL==(hRC=wglCreateContext(hDC)))				// Are We Able To Get A Rendering Context?
  {
   KillGLWindow();	      // Reset The Display
+  ErrorLog("Fail: OpenGL rendering context creation");
   MessageBox(NULL,"Can't create a GL rendering context.","ERROR",MB_OK|MB_ICONEXCLAMATION);
   return FALSE;		      // Return FALSE
  }
@@ -366,6 +366,7 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
  if (!wglMakeCurrent(hDC,hRC))					// Try To Activate The Rendering Context
  {
   KillGLWindow();	      // Reset The Display
+  ErrorLog("Fail: OpenGL rendering context activation");
   MessageBox(NULL,"Can't activate the GL rendering context.","ERROR",MB_OK|MB_ICONEXCLAMATION);
   return FALSE;		      // Return FALSE
  }
@@ -393,6 +394,7 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
  if (!InitGL())		       // initialize our newly created GL Window
  {
   KillGLWindow();	       // reset the display
+  ErrorLog("Fail: OpenGL initialization");
   MessageBox(NULL,"Initialization Failed.","ERROR",MB_OK|MB_ICONEXCLAMATION);
   return FALSE;	       // return FALSE
  }
@@ -419,17 +421,22 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
  TRect rect;
  switch (uMsg) //check for windows messages
  {
+  case WM_PASTE: //[Ctrl]+[V] potrzebujemy do innych celów
+   return 0;
   case WM_COPYDATA: //obs³uga danych przes³anych przez program steruj¹cy
    pDane=(PCOPYDATASTRUCT)lParam;
    if (pDane->dwData=='EU07') //sygnatura danych
     World.OnCommandGet((DaneRozkaz*)(pDane->lpData));
    break;
   case WM_ACTIVATE: //watch for window activate message
+  //case WM_ACTIVATEAPP:
   {//Ra: uzale¿nienie aktywnoœci od bycia na wierzchu
    Global::bActive=(LOWORD(wParam)!=WA_INACTIVE);
-   if (Global::bInactivePause)
-    //if (!Global::bActive)
-     Global::bPause=!Global::bActive; //w³¹czenie pauzy, gdy nieaktywy
+   if (Global::bInactivePause) //jeœli ma byæ pauzowanie okna w tle
+    if (Global::bActive)
+     Global::iPause&=~4; //odpauzowanie, gdy jest na pierwszym planie
+    else
+     Global::iPause|=4; //w³¹czenie pauzy, gdy nieaktywy
    if (Global::bActive)
     SetCursorPos(mx,my);
    ShowCursor(!Global::bActive);
@@ -446,7 +453,7 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
    switch (wParam) //check system calls
    {
     case 61696: //F10
-     World.OnKeyPress(VK_F10);
+     World.OnKeyDown(VK_F10);
      return 0;
     case SC_SCREENSAVE:	//screensaver trying to start?
     case SC_MONITORPOWER: //monitor trying to enter powersave?
@@ -475,20 +482,33 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
    return 0; // jump back
   }
   case WM_KEYUP :
-  {
-   return 0;
-  }
+   if (Global::bActive)
+   {
+    World.OnKeyUp(wParam);
+    return 0;
+   }
   case WM_KEYDOWN :
    if (Global::bActive)
    {
     if (wParam!=17) //bo naciœniêcia [Ctrl] nie ma po co przekazywaæ
-     World.OnKeyPress(wParam);
+     if (wParam!=145) //[Scroll Lock] te¿ nie
+      World.OnKeyDown(wParam);
     switch (wParam)
     {
+     case VK_ESCAPE: //[Esc] pauzuje tylko bez Debugmode
+      if (DebugModeFlag) break;
      case 19: //[Pause]
-      if (!Global::iMultiplayer) //w multiplayerze pauza nie ma sensu
-       if (!Pressed(VK_CONTROL))
-        Global::bPause=!Global::bPause; //zmiana stanu zapauzowania
+      if (Global::iPause&1) //jeœli pauza startowa
+       Global::iPause&=~1; //odpauzowanie, gdy po wczytaniu mia³o nie startowaæ
+      else if (!Global::iMultiplayer) //w multiplayerze pauza nie ma sensu
+       if (!Console::Pressed(VK_CONTROL)) //z [Ctrl] to radiostop jest
+        //Ra: poni¿sze nie ma sensu, bo brak komunikacji natychmiast zapauzuje ponownie
+        //if (Global::iPause&8) //jeœli pauza zwi¹zana z brakiem komunikacji z PoKeys
+        // Global::iPause&=~10; //odpauzowanie pauzy PoKeys (chyba nic nie da) i ewentualnie klawiszowej równie¿
+        //else
+        Global::iPause^=2; //zmiana stanu zapauzowania
+      if (Global::iPause) //jak pauza
+       Global::iTextMode=VK_F1; //to wyœwietliæ zegar i informacjê
       break;
      case VK_F7:
       if (DebugModeFlag)
@@ -532,7 +552,29 @@ LRESULT CALLBACK WndProc(HWND hWnd,	//handle for this window
    mx=WindowWidth/2+LOWORD(lParam);    // horizontal position
    my=WindowHeight/2+HIWORD(lParam);    // vertical position
    //SetCursorPos(mx,my);
+   break;
   }
+  case WM_PAINT:
+  {//odrysowanie okna
+   break;
+  }
+  //case WM_ERASEBKGND: //Process this message to keep Windows from erasing background.
+  case MM_JOY1BUTTONDOWN:
+  {
+   //WriteLog("Joystick button "+AnsiString(wParam));
+   break;
+  }
+  case WM_CREATE:
+   /* Capture the joystick. If this fails, beep and display
+    * error, then quit.
+    */
+   if (joySetCapture(hWnd,JOYSTICKID1,0,FALSE))
+   {
+    //MessageBeep(MB_ICONEXCLAMATION);
+    //MessageBox(hWnd,"Couldn't capture the joystick",NULL,MB_OK|MB_ICONEXCLAMATION);
+    //return -1;
+   }
+   break;
  }
  // pass all unhandled messages to DefWindowProc
  return DefWindowProc(hWnd,uMsg,wParam,lParam);
@@ -558,52 +600,56 @@ int WINAPI WinMain( HINSTANCE hInstance,     //instance
  try {Global::fOpenGL=glver.ToDouble();} catch (...) {Global::fOpenGL=0.0;}
  Global::bOpenGL_1_5=(Global::fOpenGL>=1.5);
 */
-
+ DeleteFile("errors.txt"); //usuniêcie starego
  Global::LoadIniFile("eu07.ini"); //teraz dopiero mo¿na przejrzeæ plik z ustawieniami
  Global::InitKeys("keys.ini"); //wczytanie mapowania klawiszy - jest na sta³e
 
  //hunter-271211: ukrywanie konsoli
- if (Global::bHideConsole==false)
+ if (Global::iWriteLogEnabled&2)
+ {
+  AllocConsole();
+  SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),FOREGROUND_GREEN);
+ }
+ AnsiString str=lpCmdLine; //parametry uruchomienia
+ if (!str.IsEmpty())
+ {//analizowanie parametrów
+  TQueryParserComp *Parser;
+  Parser=new TQueryParserComp(NULL);
+  Parser->TextToParse=lpCmdLine;
+  Parser->First();
+  while (!Parser->EndOfFile)
   {
-    AllocConsole();
-    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),FOREGROUND_GREEN);
+   str=Parser->GetNextSymbol().LowerCase();
+   if (str==AnsiString("-s"))
+   {//nazwa scenerii
+    str=Parser->GetNextSymbol().LowerCase();
+    strcpy(Global::szSceneryFile,str.c_str());
+   }
+   else if (str==AnsiString("-v"))
+   {//nazwa wybranego pojazdu
+    str=Parser->GetNextSymbol().LowerCase();
+    Global::asHumanCtrlVehicle=str;
+   }
+   else if (str==AnsiString("-modifytga"))
+   {//wykonanie modyfikacji wszystkich plików TGA
+    Global::iModifyTGA=-1; //specjalny tryb wykonania totalnej modyfikacji
+   }
+   else if (str==AnsiString("-e3d"))
+   {//wygenerowanie wszystkich plików E3D
+    if (Global::iConvertModels>0)
+     Global::iConvertModels=-Global::iConvertModels; //specjalny tryb
+    else
+     Global::iConvertModels=-7; //z optymalizacj¹, bananami i prawid³owym Opacity
+   }
+   else
+    Error("Program usage: EU07 [-s sceneryfilepath] [-v vehiclename] [-modifytga] [-e3d]",!Global::iWriteLogEnabled);
   }
-
-
-//    if (FileExists(lpCmdLine))
-    AnsiString str;
-    str=lpCmdLine;
-    if (str!=AnsiString(""))
-     {
-      TQueryParserComp *Parser;
-      Parser= new TQueryParserComp(NULL);
-      Parser->TextToParse= lpCmdLine;
-      Parser->First();
-      while (!Parser->EndOfFile)
-          {
-              str= Parser->GetNextSymbol().LowerCase();
-              if (str==AnsiString("-s"))
-               {
-                 str=Parser->GetNextSymbol().LowerCase();
-                 strcpy(Global::szSceneryFile,str.c_str());
-               }
-              else
-              if (str==AnsiString("-v"))
-               {
-                 str= Parser->GetNextSymbol().LowerCase();
-                 Global::asHumanCtrlVehicle= str;
-               }
-              else
-               Error("Program usage: EU07 [-s sceneryfilepath] [-v vehiclename]",!Global::bWriteLogEnabled);
-          }
-          //ABu 050205: tego wczesniej nie bylo:
-          delete Parser;
-     }
-
+  delete Parser; //ABu 050205: tego wczesniej nie bylo
+ }
 /* MC: usunalem tymczasowo bo sie gryzlo z nowym parserem - 8.6.2003
     AnsiString csp=AnsiString(Global::szSceneryFile);
     csp=csp.Delete(csp.Pos(AnsiString(strrchr(Global::szSceneryFile,'/')))+1,csp.Length());
-    Global::asCurrentSceneryPath= csp;
+    Global::asCurrentSceneryPath=csp;
 */
 
  fullscreen=Global::bFullScreen;
@@ -616,44 +662,61 @@ int WINAPI WinMain( HINSTANCE hInstance,     //instance
   return 0; //quit if window was not created
  SetForegroundWindow(hWnd);
  //McZapkie: proba przeplukania klawiatury
- while (Pressed(VK_F10))
-  Error("Keyboard buffer problem - press F10");
+ Console *pConsole=new Console(); //Ra: nie wiem, czy ma to sens, ale jakoœ zainicjowac trzeba
+ while (Console::Pressed(VK_F10))
+  Error("Keyboard buffer problem - press F10"); //na Windows 98 lubi siê to pojawiaæ
  int iOldSpeed, iOldDelay;
  SystemParametersInfo(SPI_GETKEYBOARDSPEED,0,&iOldSpeed,0);
  SystemParametersInfo(SPI_GETKEYBOARDDELAY,0,&iOldDelay,0);
  SystemParametersInfo(SPI_SETKEYBOARDSPEED,20,NULL,0);
  //SystemParametersInfo(SPI_SETKEYBOARDDELAY,10,NULL,0);
- while (!done) //loop that runs while done=FALSE
- {
- if (PeekMessage(&msg,NULL,0,0,PM_REMOVE)) //is there a message waiting?
-  {
-   if (msg.message==WM_QUIT) //have we received a quit message?
-   {
-    done=TRUE;	//if so
-   }
-   else //if not, deal with window messages
-   {
-    //if (msg.message==WM_CHAR)
-    //World.OnKeyPress(msg.wParam);
-    TranslateMessage(&msg); //translate the message
-    DispatchMessage(&msg); //dispatch the message
-   }
-  }
-  else //if there are no messages
-  {
-   //draw the scene, watch for quit messages
-   //DrawGLScene()
-   //if (!pause)
-   //if (Global::bInactivePause?Global::bActive:true) //tak nie, bo spada z góry
-   if (World.Update()) // Was There A Quit Received?
-    SwapBuffers(hDC);	// Swap Buffers (Double Buffering)
-   else
-    done=TRUE; //[F10] or DrawGLScene signalled a quit
-  }
+ if (!joyGetNumDevs())
+  WriteLog("No joystick");
+ if (Global::iModifyTGA<0)
+ {//tylko modyfikacja TGA, bez uruchamiania symulacji
+  Global::iMaxTextureSize=64; //¿eby nie zamulaæ pamiêci
+  World.ModifyTGA(); //rekurencyjne przegl¹danie katalogów
  }
- Feedback::BitsClear(-1); //wy³¹czenie komunikacji zwrotnej
+ else
+ {if (Global::iConvertModels<0)
+  {Global::iConvertModels=-Global::iConvertModels;
+   World.CreateE3D("models\\"); //rekurencyjne przegl¹danie katalogów
+   World.CreateE3D("dynamic\\",true);
+  } //po zrobieniu E3D odpalamy normalnie sceneriê, by j¹ zobaczyæ
+ //else
+ //{//g³ówna pêtla programu
+  Console::On(); //w³¹czenie konsoli
+  while (!done) //loop that runs while done=FALSE
+  {
+   if (PeekMessage(&msg,NULL,0,0,PM_REMOVE)) //is there a message waiting?
+   {
+    if (msg.message==WM_QUIT) //have we received a quit message?
+     done=TRUE;	//if so
+    else //if not, deal with window messages
+    {
+     //if (msg.message==WM_CHAR)
+     //World.OnKeyDown(msg.wParam);
+     TranslateMessage(&msg); //translate the message
+     DispatchMessage(&msg); //dispatch the message
+    }
+   }
+   else //if there are no messages
+   {
+    //draw the scene, watch for quit messages
+    //DrawGLScene()
+    //if (!pause)
+    //if (Global::bInactivePause?Global::bActive:true) //tak nie, bo spada z góry
+    if (World.Update()) // Was There A Quit Received?
+     SwapBuffers(hDC);	// Swap Buffers (Double Buffering)
+    else
+     done=true; //[F10] or DrawGLScene signalled a quit
+   }
+  }
+  Console::Off(); //wy³¹czenie konsoli (komunikacji zwrotnej)
+ }
  SystemParametersInfo(SPI_SETKEYBOARDSPEED,iOldSpeed,NULL,0);
  SystemParametersInfo(SPI_SETKEYBOARDDELAY,iOldDelay,NULL,0);
+ delete pConsole; //deaktywania sterownika
  //shutdown
  KillGLWindow(); //kill the window
  return (msg.wParam); //exit the program

@@ -60,8 +60,8 @@ bool __fastcall CMesh::StartVBO()
  if (m_nVBOVertices)
  {
   glBindBufferARB(GL_ARRAY_BUFFER_ARB,m_nVBOVertices);
-  glVertexPointer(3,GL_FLOAT,sizeof(CVertNormTex),((char*)NULL));               //pozycje
-  glNormalPointer(GL_FLOAT,sizeof(CVertNormTex),((char*)NULL)+12);     //normalne
+  glVertexPointer(3,GL_FLOAT,sizeof(CVertNormTex),((char*)NULL)); //pozycje
+  glNormalPointer(GL_FLOAT,sizeof(CVertNormTex),((char*)NULL)+12); //normalne
   glTexCoordPointer(2,GL_FLOAT,sizeof(CVertNormTex),((char*)NULL)+24); //wierzcho³ki
  }
  return true; //mo¿na rysowaæ z VBO
@@ -75,8 +75,9 @@ bool __fastcall CMesh::StartColorVBO()
  if (m_nVBOVertices)
  {
   glBindBufferARB(GL_ARRAY_BUFFER_ARB,m_nVBOVertices);
-  glVertexPointer(3,GL_FLOAT,sizeof(CVertNormTex),((char*)NULL));               //pozycje
-  glColorPointer(3,GL_UNSIGNED_BYTE,sizeof(CVertNormTex),((char*)NULL)+12);     //kolory
+  glVertexPointer(3,GL_FLOAT,sizeof(CVertNormTex),((char*)NULL)); //pozycje
+  //glColorPointer(3,GL_UNSIGNED_BYTE,sizeof(CVertNormTex),((char*)NULL)+12); //kolory
+  glColorPointer(3,GL_FLOAT,sizeof(CVertNormTex),((char*)NULL)+12); //kolory
  }
  return true; //mo¿na rysowaæ z VBO
 };
@@ -89,6 +90,6 @@ void __fastcall CMesh::EndVBO()
  glDisableClientState(GL_COLOR_ARRAY);
  //glBindBuffer(GL_ARRAY_BUFFER,0); //takie coœ psuje, mimo i¿ polecali u¿yæ
  glBindBufferARB(GL_ARRAY_BUFFER_ARB,0);
- glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB,0);
+ glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB,0); //Ra: to na przysz³oœæ
 };
 

@@ -28,8 +28,8 @@ public:
     static void Init();
     static void Free();
 
-    static GLuint GetTextureID(std::string name,int filter=-1);
-    static bool GetAlpha( GLuint ID ); //McZapkie-141203: czy tekstura ma polprzeroczystosc
+    static GLuint GetTextureID(char* dir,char* where,std::string name,int filter=-1);
+    static bool GetAlpha(GLuint ID); //McZapkie-141203: czy tekstura ma polprzeroczystosc
     static std::string GetName(GLuint id);
 
 private:

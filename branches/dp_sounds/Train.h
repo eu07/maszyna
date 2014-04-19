@@ -51,7 +51,7 @@ private:
 };
 
 
-class TTrain//:public TDynamicObject
+class TTrain
 {
 public:
     bool CabChange(int iDirection);
@@ -62,22 +62,29 @@ public:
     __fastcall ~TTrain();
 //    bool __fastcall Init(TTrack *Track);
 //McZapkie-010302
-    bool __fastcall Init(TDynamicObject *NewDynamicObject);
-    void __fastcall OnKeyPress(int cKey);
+    bool __fastcall Init(TDynamicObject *NewDynamicObject,bool e3d=false);
+    void __fastcall OnKeyDown(int cKey);
+    void __fastcall OnKeyUp(int cKey);
 
 //    bool __fastcall SHP() { fShpTimer= 0; };
 
-    inline vector3 __fastcall GetDirection() { return DynamicObject->GetDirection(); };
-    inline vector3 __fastcall GetUp() { return DynamicObject->vUp; };
+    inline vector3 __fastcall GetDirection() { return DynamicObject->VectorFront(); };
+    inline vector3 __fastcall GetUp() { return DynamicObject->VectorUp(); };
     void __fastcall UpdateMechPosition(double dt);
     bool __fastcall Update();
+    void __fastcall MechStop();
 //    virtual bool __fastcall RenderAlpha();
 //McZapkie-310302: ladowanie parametrow z pliku
     bool __fastcall LoadMMediaFile(AnsiString asFileName);
 
-    TDynamicObject *DynamicObject;
+private: //¿eby go nic z zewn¹trz nie przestawia³o
+ TDynamicObject *DynamicObject; //przestawia zmiana pojazdu [F5]
+private: //¿eby go nic z zewn¹trz nie przestawia³o
+ TMoverParameters *mvControlled; //cz³on, w którym sterujemy silnikiem
+ TMoverParameters *mvOccupied; //cz³on, w którym sterujemy hamulcem
+public: //reszta mo¿e byæ publiczna
 
-    AnsiString asMessage;
+    //AnsiString asMessage;
 
 //McZapkie: definicje wskaznikow
     TGauge VelocityGauge;
@@ -88,6 +95,7 @@ public:
     TGauge CylHamGauge;
     TGauge PrzGlGauge;
     TGauge ZbGlGauge;
+    TGauge ZbSGauge;    
     //ABu: zdublowane dla dwukierunkowych kabin
        TGauge VelocityGaugeB;
        TGauge I1GaugeB;
@@ -123,8 +131,11 @@ public:
     TGauge DirKeyGauge;
     TGauge BrakeCtrlGauge;
     TGauge LocalBrakeGauge;
+    TGauge ManualBrakeGauge;
+    TGauge BrakeProfileCtrlGauge; //nastawiacz GPR - przelacznik obrotowy
+    TGauge BrakeProfileG;         //nastawiacz GP - hebelek towarowy
+    TGauge BrakeProfileR;         //nastawiacz PR - hamowanie dwustopniowe
 
-    TGauge BrakeProfileCtrlGauge;
     TGauge MaxCurrentCtrlGauge;
 
     TGauge MainOffButtonGauge;
@@ -142,6 +153,14 @@ public:
     TGauge RightLightButtonGauge;
     TGauge LeftEndLightButtonGauge;
     TGauge RightEndLightButtonGauge;
+
+    //hunter-230112: przelacznik swiatel tylnich
+    TGauge RearUpperLightButtonGauge;
+    TGauge RearLeftLightButtonGauge;
+    TGauge RearRightLightButtonGauge;
+    TGauge RearLeftEndLightButtonGauge;
+    TGauge RearRightEndLightButtonGauge;
+
     TGauge IgnitionKeyGauge;
 
     TGauge CompressorButtonGauge;
@@ -156,6 +175,10 @@ public:
     TGauge Universal2ButtonGauge;
     TGauge Universal3ButtonGauge;
     TGauge Universal4ButtonGauge;
+
+    TGauge CabLightButtonGauge; //hunter-091012: przelacznik oswietlania kabiny
+    TGauge CabLightDimButtonGauge; //hunter-091012: przelacznik przyciemnienia oswietlenia kabiny
+
 //NBMX wrzesien 2003 - obsluga drzwi
     TGauge DoorLeftButtonGauge;
     TGauge DoorRightButtonGauge;
@@ -168,13 +191,14 @@ public:
     TGauge PantAllDownButtonGauge;
 //Winger 020304 - wlacznik ogrzewania
     TGauge TrainHeatingButtonGauge;
-
-
+    TGauge SignallingButtonGauge;
+    TGauge DoorSignallingButtonGauge;
 //    TModel3d *mdKabina; McZapkie-030303: to do dynobj
 
     TButton btLampkaPoslizg;
     TButton btLampkaStyczn;
     TButton btLampkaNadmPrzetw;
+    TButton btLampkaPrzetw;
     TButton btLampkaPrzekRozn;
     TButton btLampkaPrzekRoznPom;
     TButton btLampkaNadmSil;
@@ -186,7 +210,14 @@ public:
       TButton btLampkaStycznB;
       TButton btLampkaWylSzybkiB;
       TButton btLampkaNadmPrzetwB;
-
+ //KURS90 lampki jazdy bezoporowej dla EU04
+      TButton btLampkaBezoporowaB;
+      TButton btLampkaBezoporowa;
+      TButton btLampkaUkrotnienie;
+      TButton btLampkaHamPosp;
+      TButton btLampkaRadio;
+      TButton btLampkaHamowanie1zes;
+      TButton btLampkaHamowanie2zes;
 //    TButton btLampkaUnknown;
     TButton btLampkaOpory;
     TButton btLampkaWysRozr;
@@ -201,23 +232,35 @@ public:
 //youBy - jakies dodatkowe lampki
     TButton btLampkaNapNastHam;
     TButton btLampkaSprezarka;
-    TButton btLampkaSprezarkaB;    
-    TButton btLampkaBocznikI;
-    TButton btLampkaBocznikII;
+    TButton btLampkaSprezarkaB;
+    TButton btLampkaBocznik1;
+    TButton btLampkaBocznik2;
+    TButton btLampkaBocznik3;
+    TButton btLampkaBocznik4;
     TButton btLampkaRadiotelefon;
     TButton btLampkaHamienie;
-    TButton btLampkaJazda;                   
+    TButton btLampkaJazda; //Ra: nie u¿ywane
+//KURS90
+      TButton btLampkaBoczniki;
+      TButton btLampkaMaxSila;
+      TButton btLampkaPrzekrMaxSila;
 //    TButton bt;
 //
     TButton btLampkaDoorLeft;
     TButton btLampkaDoorRight;
     TButton btLampkaDepartureSignal;
-
+    TButton btLampkaBlokadaDrzwi;
+    TButton btLampkaHamulecReczny;
     TButton btLampkaForward; //Ra: lampki w przód i w ty³ dla komputerowych kabin
     TButton btLampkaBackward;
 
+    TButton btCabLight; //hunter-171012: lampa oswietlajaca kabine
+    //Ra 2013-12: wirtualne "lampki" do odbijania na haslerze w PoKeys
+    TButton btHaslerBrakes; //ciœnienie w cylindrach
+    TButton btHaslerCurrent; //pr¹d na silnikach
+
     vector3 pPosition;
-    vector3 pMechOffset;
+    vector3 pMechOffset; //driverNpos
     vector3 vMechMovement;
     vector3 pMechPosition;
     vector3 pMechShake;
@@ -240,16 +283,16 @@ public:
     PSound dsbRelay;
     PSound dsbPneumaticRelay;
     PSound dsbSwitch;
-    PSound dsbPneumaticSwitch;    
+    PSound dsbPneumaticSwitch;
     PSound dsbReverserKey; //hunter-121211
 
-    PSound dsbCouplerAttach;
-    PSound dsbCouplerDetach;
+    PSound dsbCouplerAttach; //Ra: w kabinie????
+    PSound dsbCouplerDetach; //Ra: w kabinie???
 
-    PSound dsbDieselIgnition;
+    PSound dsbDieselIgnition; //Ra: w kabinie???
 
-    PSound dsbDoorClose;
-    PSound dsbDoorOpen;
+    PSound dsbDoorClose; //Ra: w kabinie???
+    PSound dsbDoorOpen; //Ra: w kabinie???
 
 //Winger 010304
     PSound dsbPantUp;
@@ -265,35 +308,32 @@ public:
 //McZapkie-280302
     TRealSound rsBrake;
     TRealSound rsSlippery;
-    TRealSound rsHiss;
+    TRealSound rsHiss;  //upuszczanie
+    TRealSound rsHissU; //napelnianie
+    TRealSound rsHissE; //nagle
+    TRealSound rsHissX; //fala
+    TRealSound rsHissT; //czasowy
     TRealSound rsSBHiss;
     TRealSound rsRunningNoise[10];
     TRealSound rsEngageSlippery;
     TRealSound rsFadeSound;
-    
-//    char dzwiek[10];
- //   dzwiek[0]=1;
- //   dzwiek[1]=2;
- //   dzwiek[2]=3;
-//    dzwiek[3]=4;
- //   dzwiek[4]=5;
-//    dzwiek[5]=6;
-//    dzwiek[6]=7;
-//    dzwiek[7]=8;
-//    dzwiek[8]=9;
-//    dzwiek[9]=10;
 
     PSound dsbHasler;
     PSound dsbBuzzer;
     PSound dsbSlipAlarm; //Bombardier 011010: alarm przy poslizgu dla 181/182
-    TFadeSound sConverter;  //przetwornica
-    TFadeSound sSmallCompressor;  //przetwornica
+    //TFadeSound sConverter;  //przetwornica
+    //TFadeSound sSmallCompressor;  //przetwornica
 
     int iCabLightFlag; //McZapkie:120503: oswietlenie kabiny (0: wyl, 1: przyciemnione, 2: pelne)
+    bool bCabLight; //hunter-091012: czy swiatlo jest zapalone?
+    bool bCabLightDim; //hunter-091012: czy przyciemnienie kabiny jest zapalone?
+
     vector3 pMechSittingPosition; //ABu 180404
+ vector3 __fastcall MirrorPosition(bool lewe);
 private:
     //PSound dsbBuzzer;
         PSound dsbCouplerStretch;
+        PSound dsbEN57_CouplerStretch;
         PSound dsbBufferClamp;
 //    TSubModel *smCzuwakShpOn;
 //    TSubModel *smCzuwakOn;
@@ -304,8 +344,11 @@ private:
  float fHaslerTimer;
     float fConverterTimer;  //hunter-261211: dla przekaznika
     float fMainRelayTimer;  //hunter-141211: zalaczanie WSa z opoznieniem
+    float fCzuwakTestTimer;     //hunter-091012: do testu czuwaka
+
     int CAflag; //hunter-131211: dla osobnego zbijania CA i SHP
 
+    double fPoslizgTimer;
 //    double fShpTimer;
 //    double fDblClickTimer;
     //ABu: Przeniesione do public. - Wiem, ze to nieladnie...
@@ -320,6 +363,13 @@ private:
     float fPPress,fNPress;
     float fSPPress,fSNPress;
  int iSekunda; //Ra: sekunda aktualizacji prêdkoœci
+ int iRadioChannel; //numer aktualnego kana³u radiowego
+public:
+ int __fastcall RadioChannel() {return iRadioChannel;};
+ inline TDynamicObject* __fastcall Dynamic() {return DynamicObject;};
+ inline TMoverParameters* __fastcall Controlled() {return mvControlled;};
+ void __fastcall DynamicSet(TDynamicObject *d);
+ void __fastcall Silence();
 };
 //---------------------------------------------------------------------------
 #endif

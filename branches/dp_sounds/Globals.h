@@ -4,20 +4,12 @@
 #define GlobalsH
 
 #include <string>
+#include "system.hpp"
 #include "opengl/glew.h"
 #include "dumb3d.h"
+//#include "Classes.h"
 
 using namespace Math3D;
-
-//Ra: taki zapis funkcjonuje lepiej, ale mo¿e nie jest optymalny
-#define vWorldFront vector3(0,0,1)
-#define vWorldUp vector3(0,1,0)
-#define vWorldLeft CrossProduct(vWorldUp,vWorldFront)
-
-//Ra: bo te poni¿ej to siê powiela³y w ka¿dym module odobno
-//vector3 vWorldFront=vector3(0,0,1);
-//vector3 vWorldUp=vector3(0,1,0);
-//vector3 vWorldLeft=CrossProduct(vWorldUp,vWorldFront);
 
 //definicje klawiszy
 const int k_IncMainCtrl= 0; //[Num+]
@@ -75,7 +67,7 @@ const int k_Couple= 44;
 const int k_DeCouple= 45;
 
 const int k_ProgramQuit= 46;
-const int k_ProgramPause= 47;
+//const int k_ProgramPause= 47;
 const int k_ProgramHelp= 48;
                         //NBMX
 const int k_OpenLeft= 49;
@@ -91,7 +83,7 @@ const int k_PantRearDown= 57;
 
 const int k_Heating= 58;
 
-const int k_FreeFlyMode= 59;
+//const int k_FreeFlyMode= 59;
 
 const int k_LeftSign = 60;
 const int k_UpperSign= 61;
@@ -111,13 +103,47 @@ const int k_EndSign=70;
 
 const int k_Active=71;
                         //Winger 020304
-const int k_WalkMode= 72;
-const int MaxKeys= 73;
+const int k_Battery=72;
+const int k_WalkMode=73;
+const int MaxKeys= 74;
 
 //klasy dla wskaŸników globalnych
 class TGround;
 class TWorld;
+class TCamera;
 class TDynamicObject;
+class TAnimModel; //obiekt terenu
+namespace Queryparsercomp
+{
+class TQueryParserComp; //stary(?) parser
+}
+class cParser; //nowy (powolny!) parser
+class TEvent;
+
+class TTranscript
+{//klasa obs³uguj¹ca linijkê napisu do dŸwiêku
+public:
+ float fShow; //czas pokazania
+ float fHide; //czas ukrycia/usuniêcia
+ AnsiString asText; //tekst gotowy do wyœwietlenia (usuniête znaczniki czasu)
+ bool bItalic; //czy kursywa (dŸwiêk nieistotny dla prowadz¹cego)
+ int iNext; //nastêpna u¿ywana linijka, ¿eby nie przestawiaæ fizycznie tabeli
+};
+
+#define MAX_TRANSCRIPTS 30
+class TTranscripts
+{//klasa obs³uguj¹ca napisy do dŸwiêków
+ TTranscript aLines[MAX_TRANSCRIPTS]; //pozycje na napisy do wyœwietlenia
+ int iCount; //liczba zajêtych pozycji
+ int iStart; //pierwsza istotna pozycja w tabeli, ¿eby sortowaæ przestawiaj¹c numerki
+ float fRefreshTime;
+public:
+ __fastcall TTranscripts();
+ __fastcall ~TTranscripts();
+ void __fastcall AddLine(char *txt,float show,float hide,bool it);
+ void __fastcall Add(char *txt,float len,bool backgorund=false); //dodanie tekstów, d³ugoœæ dŸwiêku, czy istotne
+ void __fastcall Update(); //usuwanie niepotrzebnych (ok. 10 razy na sekundê)
+};
 
 class Global
 {
@@ -127,12 +153,13 @@ public:
  //double Global::tSinceStart;
  static int Keys[MaxKeys];
  static vector3 pCameraPosition; //pozycja kamery w œwiecie
- static double pCameraRotation;  //kierunek bezwzglêdny kamery w œwiecie
+ static double pCameraRotation;  //kierunek bezwzglêdny kamery w œwiecie: 0=pó³noc, 90°=zachód (-azymut)
  static double pCameraRotationDeg;  //w stopniach, dla animacji billboard
  static vector3 pFreeCameraInit[10]; //pozycje kamery
  static vector3 pFreeCameraInitAngle[10];
  static int iWindowWidth;
  static int iWindowHeight;
+ static float fDistanceFactor;
  static int iBpp;
  static bool bFullScreen;
  static bool bFreeFly;
@@ -140,10 +167,11 @@ public:
  static bool bWireFrame;
  static bool bSoundEnabled;
  //McZapkie-131202
- static bool bRenderAlpha;
+ //static bool bRenderAlpha;
  static bool bAdjustScreenFreq;
  static bool bEnableTraction;
  static bool bLoadTraction;
+ static float fFriction;
  static bool bLiveTraction;
  static bool bManageNodes;
  static bool bDecompressDDS;
@@ -165,18 +193,17 @@ public:
  static AnsiString asCurrentDynamicPath;
  //McZapkie-170602: zewnetrzna definicja pojazdu uzytkownika
  static AnsiString asHumanCtrlVehicle;
- static AnsiString asHumanVehicle; //pojazd, ktory prowadzi uzytkownik - potrzebne w dzwiekach outernoise
  static void __fastcall LoadIniFile(AnsiString asFileName);
  static void __fastcall InitKeys(AnsiString asFileName);
  inline static vector3 __fastcall GetCameraPosition()
  {return pCameraPosition;};
  static void __fastcall SetCameraPosition(vector3 pNewCameraPosition);
  static void __fastcall SetCameraRotation(double Yaw);
- static bool bWriteLogEnabled;
+ static int iWriteLogEnabled; //maska bitowa: 1-zapis do pliku, 2-okienko
  //McZapkie-221002: definicja swiatla dziennego
  static GLfloat AtmoColor[];
  static GLfloat FogColor[];
- static bool bTimeChange;
+ //static bool bTimeChange;
  static GLfloat ambientDayLight[];
  static GLfloat diffuseDayLight[];
  static GLfloat specularDayLight[];
@@ -188,7 +215,7 @@ public:
  static GLfloat darkLight[];
  static GLfloat lightPos[4];
  static int iSlowMotion;
- static bool changeDynObj;
+ static TDynamicObject *changeDynObj;
  static double ABuDebug;
  static bool detonatoryOK;
  static AnsiString asSky;
@@ -201,21 +228,24 @@ public:
  static int iReCompile; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
  static bool bUseVBO; //czy jest VBO w karcie graficznej
  static int iFeedbackMode; //tryb pracy informacji zwrotnej
+ static int iFeedbackPort; //dodatkowy adres dla informacji zwrotnych
  static double fOpenGL; //wersja OpenGL - przyda siê
  static bool bOpenGL_1_5; //czy s¹ dostêpne funkcje OpenGL 1.5
  static double fLuminance; //jasnoœæ œwiat³a do automatycznego zapalania
  static int iMultiplayer; //blokada dzia³ania niektórych eventów na rzecz kominikacji
  static HWND hWnd; //uchwyt okna
  static int iCameraLast;
- static AnsiString asVersion;
+ static AnsiString asRelease; //numer
+ static AnsiString asVersion; //z opisem
  static int iViewMode; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty, 4-obwody
  static GLint iMaxTextureSize; //maksymalny rozmiar tekstury
  static int iTextMode; //tryb pracy wyœwietlacza tekstowego
+ static int iScreenMode[12]; //numer ekranu wyœwietlacza tekstowego
  static bool bDoubleAmbient; //podwójna jasnoœæ ambient
  static double fMoveLight; //numer dnia w roku albo -1
  static bool bSmoothTraction; //wyg³adzanie drutów
  static double fSunDeclination; //deklinacja S³oñca
- static double fSunSpeed; //prêdkoœæ ruchu S³oñca, zmienna do testów
+ static double fTimeSpeed; //przyspieszenie czasu, zmienna do testów
  static double fTimeAngleDeg; //godzina w postaci k¹ta
  static double fLatitudeDeg; //szerokoœæ geograficzna
  static char* szTexturesTGA[4]; //lista tekstur od TGA
@@ -223,7 +253,7 @@ public:
  static int iMultisampling; //tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
  static bool bGlutFont; //tekst generowany przez GLUT
  static int iKeyLast; //ostatnio naciœniêty klawisz w celu logowania
- static bool bPause; //globalna pauza ruchu
+ static int iPause; //globalna pauza ruchu: b0=start,b1=klawisz,b2=t³o,b3=lagi
  static bool bActive; //czy jest aktywnym oknem
  static void __fastcall BindTexture(GLuint t);
  static int iConvertModels; //tworzenie plików binarnych
@@ -234,9 +264,35 @@ public:
  static int iModifyTGA; //czy korygowaæ pliki TGA dla szybszego wczytywania
  static bool bHideConsole; //hunter-271211: ukrywanie konsoli
  static TWorld *pWorld; //wskaŸnik na œwiat do usuwania pojazdów
- static bool bTerrainCompact; //czy zapisaæ teren w pliku
+ static TAnimModel *pTerrainCompact; //obiekt terenu do ewentualnego zapisania w pliku
+ static AnsiString asTerrainModel; //nazwa obiektu terenu do zapisania w pliku
+ static bool bRollFix; //czy wykonaæ przeliczanie przechy³ki
+ static Queryparsercomp::TQueryParserComp *qParser;
+ static cParser *pParser;
+ static int iSegmentsRendered; //iloœæ segmentów do regulacji wydajnoœci
+ static double fFpsAverage; //oczekiwana wartosæ FPS
+ static double fFpsDeviation; //odchylenie standardowe FPS
+ static double fFpsMin; //dolna granica FPS, przy której promieñ scenerii bêdzie zmniejszany
+ static double fFpsMax; //górna granica FPS, przy której promieñ scenerii bêdzie zwiêkszany
+ static double fFpsRadiusMax; //maksymalny promieñ renderowania
+ static int iFpsRadiusMax; //maksymalny promieñ renderowania w rozmiarze tabeli sektorów
+ static double fRadiusFactor; //wspó³czynnik zmiany promienia
+ static TCamera *pCamera; //parametry kamery
+ static TDynamicObject *pUserDynamic; //pojazd u¿ytkownika, renderowany bez trzêsienia
+ static double fCalibrateIn[6][4]; //parametry kalibracyjne wejœæ z pulpitu
+ static double fCalibrateOut[7][4]; //parametry kalibracyjne wyjœæ dla pulpitu
+ static double fBrakeStep; //krok zmiany hamulca dla klawiszy [Num3] i [Num9]
+ static bool bJoinEvents; //czy grupowaæ eventy o tych samych nazwach
+ static bool bSmudge; //czy wyœwietlaæ smugê, a pojazd u¿ytkownika na koñcu
+ static AnsiString asTranscript[5]; //napisy na ekranie (widoczne)
+ static TTranscripts tranTexts; //obiekt obs³uguj¹cy stenogramy dŸwiêków na ekranie
+ static AnsiString asLang; //domyœlny jêzyk - http://tools.ietf.org/html/bcp47
  //metody
  static void __fastcall TrainDelete(TDynamicObject *d);
+ static void __fastcall ConfigParse(Queryparsercomp::TQueryParserComp *qp,cParser *cp=NULL);
+ static AnsiString __fastcall GetNextSymbol();
+ static TDynamicObject* __fastcall DynamicNearest();
+ static bool __fastcall AddToQuery(TEvent *event,TDynamicObject *who);
 };
 
 //---------------------------------------------------------------------------

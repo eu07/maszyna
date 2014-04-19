@@ -4,26 +4,11 @@
     MaSzyna EU07 locomotive simulator
     Copyright (C) 2001-2004  Marcin Wozniak and others
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include    "system.hpp"
 #pragma hdrstop
 
-#include "Mover.hpp"
-#include "mctools.hpp"
 #include "mtable.hpp"
 #include "Timer.h"
 #include "Globals.h"
@@ -33,37 +18,39 @@
 #include "Usefull.h"
 #include "MemCell.h"
 #include "parser.h"
+#include "Console.h"
 
 
 
 //---------------------------------------------------------------------------
 
 __fastcall TEventLauncher::TEventLauncher()
-{
+{//ustawienie pocz¹tkowych wartoœci dla wszystkich zmiennych 
+ iKey=0;
  DeltaTime=-1;
  UpdatedTime=0;
  fVal1=fVal2=0;
  szText=NULL;
- iCheckMask=0;
- MemCell=NULL;
  iHour=iMinute=-1; //takiego czasu nigdy nie bêdzie
+ dRadius=0;
+ Event1=Event2=NULL;
+ MemCell=NULL;
+ iCheckMask=0;
 }
 
 __fastcall TEventLauncher::~TEventLauncher()
 {
-    SafeDeleteArray(szText);
+ SafeDeleteArray(szText);
 }
 
 void __fastcall TEventLauncher::Init()
 {
 }
 
-
 bool __fastcall TEventLauncher::Load(cParser *parser)
 {//wczytanie wyzwalacza zdarzeñ
  AnsiString str;
  std::string token;
- char *szKey;
  parser->getTokens();
  *parser >> dRadius; //promieñ dzia³ania
  if (dRadius>0.0)
@@ -73,12 +60,11 @@ bool __fastcall TEventLauncher::Load(cParser *parser)
  str=AnsiString(token.c_str());
  if (str!="none")
  {
-  szKey=new char[1];
-  strcpy(szKey,str.c_str()); //Ra: to jest nieco niezwyk³e
-  iKey=VkKeyScan(szKey[0]);
+  if (str.Length()==1)
+   iKey=VkKeyScan(str[1]); //jeden znak jest konwertowany na kod klawisza
+  else
+   iKey=str.ToIntDef(0); //a jak wiêcej, to jakby numer klawisza jest
  }
- else
-  iKey=0;
  parser->getTokens();
  *parser >> DeltaTime;
  if (DeltaTime<0)
@@ -96,10 +82,17 @@ bool __fastcall TEventLauncher::Load(cParser *parser)
  parser->getTokens();
  *parser >> token;
  asEvent2Name=AnsiString(token.c_str()); //drugi event
-
- parser->getTokens();
- *parser >> token;
- str=AnsiString(token.c_str());
+ if ((asEvent2Name=="end")||(asEvent2Name=="condition"))
+ {//drugiego eventu mo¿e nie byæ, bo s¹ z tym problemy, ale ciii...
+  str=asEvent2Name; //rozpoznane s³owo idzie do dalszego przetwarzania
+  asEvent2Name="none"; //a drugiego eventu nie ma
+ }
+ else
+ {//gdy s¹ dwa eventy
+  parser->getTokens();
+  *parser >> token;
+  str=AnsiString(token.c_str());
+ }
  if (str==AnsiString("condition"))
  {//obs³uga wyzwalania warunkowego
   parser->getTokens();
@@ -110,20 +103,20 @@ bool __fastcall TEventLauncher::Load(cParser *parser)
   SafeDeleteArray(szText);
   szText=new char[256];
   strcpy(szText,token.c_str());
-  if (token.compare("*")!=0)       //*=nie brac command pod uwage
-    iCheckMask|=conditional_memstring;
+  if (token.compare("*")!=0) //*=nie braæ command pod uwagê
+   iCheckMask|=conditional_memstring;
   parser->getTokens();
   *parser >> token;
-  if (token.compare("*")!=0)       //*=nie brac command pod uwage
+  if (token.compare("*")!=0) //*=nie braæ wartoœci 1. pod uwagê
   {
    iCheckMask|=conditional_memval1;
-   str= AnsiString(token.c_str());
-   fVal1= str.ToDouble();
+   str=AnsiString(token.c_str());
+   fVal1=str.ToDouble();
   }
-  else fVal1= 0;
+  else fVal1=0;
   parser->getTokens();
   *parser >> token;
-  if (token.compare("*")!=0)       //*=nie brac command pod uwage
+  if (token.compare("*")!=0) //*=nie braæ wartoœci 2. pod uwagê
   {
    iCheckMask|=conditional_memval2;
    str=AnsiString(token.c_str());
@@ -142,7 +135,7 @@ bool __fastcall TEventLauncher::Render()
  if (iKey!=0)
  {
   if (Global::bActive) //tylko jeœli okno jest aktywne
-   bCond=(Pressed(iKey)); //czy klawisz wciœniêty
+   bCond=(Console::Pressed(iKey)); //czy klawisz wciœniêty
  }
  if (DeltaTime>0)
  {

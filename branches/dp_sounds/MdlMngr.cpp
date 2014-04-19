@@ -4,19 +4,6 @@
     MaSzyna EU07 locomotive simulator
     Copyright (C) 2001-2004  Marcin Wozniak and others
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include    "system.hpp"
@@ -27,12 +14,10 @@
 #include "MdlMngr.h"
 #include "Globals.h"
 
-//#define SeekFiles AnsiString("*.o3d")
 #define SeekFiles AnsiString("*.t3d")
-//#define SeekTextFiles AnsiString("*.t3d")
 
 TModel3d* __fastcall TMdlContainer::LoadModel(char *newName,bool dynamic)
-{
+{//wczytanie modelu do kontenerka
  SafeDeleteArray(Name);
  SafeDelete(Model);
  Name=new char[strlen(newName)+1];
@@ -45,12 +30,12 @@ TModel3d* __fastcall TMdlContainer::LoadModel(char *newName,bool dynamic)
 
 TMdlContainer *TModelsManager::Models;
 int TModelsManager::Count;
-const MAX_MODELS= 600;
+const MAX_MODELS=1000;
 
 void __fastcall TModelsManager::Init()
 {
-    Models= new TMdlContainer[MAX_MODELS];
-    Count= 0;
+ Models=new TMdlContainer[MAX_MODELS];
+ Count=0;
 }
 /*
 __fastcall TModelsManager::TModelsManager()
@@ -67,76 +52,82 @@ __fastcall TModelsManager::~TModelsManager()
   */
 void __fastcall TModelsManager::Free()
 {
-    SafeDeleteArray(Models);
+ SafeDeleteArray(Models);
 }
 
 
-int __fastcall TModelsManager::LoadModels(char *asModelsPath)
-{
-    Error("LoadModels is obsolete");
-    return -1;
-/*
-    WIN32_FIND_DATA FindFileData;
-    HANDLE handle= FindFirstFile(AnsiString(asModelsPath+SeekFiles).c_str(), &FindFileData);
-    if (handle==INVALID_HANDLE_VALUE) return(0);
-
-    for (Count= 1; FindNextFile(handle, &FindFileData); Count++);
-
-    FindClose(handle);
-
-    Models= new TMdlContainer[Count];
-
-    handle= FindFirstFile(AnsiString(asModelsPath+SeekFiles).c_str(), &FindFileData);
-    for (int i=0; i<Count; i++)
-    {
-
-        Models[i].Model= new TModel3d();
-        Models[i].Model->LoadFromTextFile(AnsiString(asModelsPath+AnsiString(FindFileData.cFileName)).c_str());
-        strcpy(Models[i].Name,AnsiString(FindFileData.cFileName).LowerCase().c_str());
-//        *strchr(Models[i].Name,'.')= 0;
-//        AnsiString(Models[i].Name).LowerCase();
-        FindNextFile(handle, &FindFileData);
-    };
-    FindClose(handle);
-    return(Count);*/
-};
-
-double Radius;
-
-
 TModel3d*  __fastcall TModelsManager::LoadModel(char *Name,bool dynamic)
-{
+{//wczytanie modelu do tablicy
  TModel3d *mdl=NULL;
-/* //nie wymagamy ju¿ obecnoœci T3D
- WIN32_FIND_DATA FindFileData;
- HANDLE handle=FindFirstFile(Name,&FindFileData);
- if (handle==INVALID_HANDLE_VALUE)
- {
-  //WriteLog("Missed model "+AnsiString(Name));
-  return NULL; //zg³oszenie b³êdu wy¿ej
- }
- else
- {
-*/
- if (Count==MAX_MODELS)
+ if (Count>=MAX_MODELS)
   Error("FIXME: Too many models, program will now crash :)");
  else
  {
   mdl=Models[Count].LoadModel(Name,dynamic);
   if (mdl) Count++; //jeœli b³¹d wczytania modelu, to go nie wliczamy
  }
-/*
- }
- FindClose(handle);
-*/
  return mdl;
 }
 
-TModel3d* __fastcall TModelsManager::GetModel(char *Name,bool dynamic)
-{
+TModel3d* __fastcall TModelsManager::GetModel(const char *Name,bool dynamic)
+{//model mo¿e byæ we wpisie "node...model" albo "node...dynamic", a tak¿e byæ dodatkowym w dynamic (kabina, wnêtrze, ³adunek)
+ //dla "node...dynamic" mamy podan¹ œcie¿kê w "\dynamic\" i musi byæ co najmniej 1 poziom, zwkle s¹ 2
+ //dla "node...model" mo¿e byæ typowy model statyczny ze œcie¿k¹, domyœlnie w "\scenery\" albo "\models"
+ //albo mo¿e byæ model z "\dynamic\", jeœli potrzebujemy wstawiæ auto czy wagon nieruchomo
+ // - ze œcie¿ki z której jest wywo³any, np. dir="scenery\bud\" albo dir="dynamic\pkp\st44_v1\" plus name="model.t3d"
+ // - z domyœlnej œcie¿ki dla modeli, np. "scenery\" albo "models\" plus name="bud\dombale.t3d" (dir="")
+ // - konkretnie podanej œcie¿ki np. name="\scenery\bud\dombale.t3d" (dir="")
+ //wywo³ania:
+ // - konwersja wszystkiego do E3D, podawana dok³adna œcie¿ka, tekstury tam, gdzie plik
+ // - wczytanie kabiny, dok³adna œcie¿ka, tekstury z katalogu modelu
+ // - wczytanie ³adunku, œcie¿ka dok³adna, tekstury z katalogu modelu
+ // - wczytanie modelu, œcie¿ka dok³adna, tekstury z katalogu modelu
+ // - wczytanie przedsionków, œcie¿ka dok³adna, tekstury z katalogu modelu
+ // - wczytanie uproszczonego wnêtrza, œcie¿ka dok³adna, tekstury z katalogu modelu
+ // - niebo animowane, œcie¿ka brana ze wpisu, tekstury nieokreœlone
+ // - wczytanie modelu animowanego - Init() - sprawdziæ
  char buf[255];
- AnsiString buftp=Global::asCurrentTexturePath;
- TModel3d* tmpModel; //tymczasowe zmienne
+ AnsiString buftp=Global::asCurrentTexturePath; //zapamiêtanie aktualnej œcie¿ki do tekstur, bo bêdzie tyczmasowo zmieniana
+/*
+// Ra: niby tak jest lepiej, ale dzia³a gorzej, wiêc przywrócone jest oryginalne
+ //nawet jeœli model bêdzie pobrany z tablicy, to trzeba ustaliæ œcie¿kê dla tekstur 
+ if (dynamic) //na razie tak, bo nie wiadomo, jaki mo¿e mieæ wp³yw na pozosta³e modele
+ {//dla pojazdów podana jest zawsze pe³na œcie¿ka do modelu
+  strcpy(buf,Name);
+  if (strchr(Name,'/')!=NULL)
+  {//pobieranie tekstur z katalogu, w którym jest model
+   Global::asCurrentTexturePath=Global::asCurrentTexturePath+AnsiString(Name);
+   Global::asCurrentTexturePath.Delete(Global::asCurrentTexturePath.Pos("/")+1,Global::asCurrentTexturePath.Length());
+  }
+ }
+ else
+ {//dla modeli scenerii trzeba ustaliæ œcie¿kê
+  if (strchr(Name,'\\')==NULL)
+  {//jeœli nie ma lewego ukoœnika w œcie¿ce, a jest prawy, to zmieniæ œcie¿kê dla tekstur na tê z modelem
+   strcpy(buf,"models\\"); //Ra: by³o by lepiej katalog dodaæ w parserze
+   //strcpy(buf,"scenery\\"); //Ra: by³o by lepiej katalog dodaæ w parserze
+   strcat(buf,Name);
+   if (strchr(Name,'/')!=NULL)
+   {//jeszcze musi byæ prawy ukoœnik
+    Global::asCurrentTexturePath=Global::asCurrentTexturePath+AnsiString(Name);
+    Global::asCurrentTexturePath.Delete(Global::asCurrentTexturePath.Pos("/")+1,Global::asCurrentTexturePath.Length());
+   }
+  }
+  else
+  {//jeœli jest lewy ukoœnik, to œcie¿kê do tekstur zmieniæ tylko dla pojazdów
+   strcpy(buf,Name);
+  }
+ }
+ StrLower(buf);
+ for (int i=0;i<Count;i++)
+ {//bezsensowne przeszukanie tabeli na okolicznoœæ wyst¹pienia modelu
+  if (strcmp(buf,Models[i].Name)==0)
+  {
+   Global::asCurrentTexturePath=buftp; //odtworzenie œcie¿ki do tekstur
+   return (Models[i].Model); //model znaleziony
+  }
+ };
+*/
  if (strchr(Name,'\\')==NULL)
  {
   strcpy(buf,"models\\"); //Ra: by³o by lepiej katalog dodaæ w parserze
@@ -165,8 +156,8 @@ TModel3d* __fastcall TModelsManager::GetModel(char *Name,bool dynamic)
    return (Models[i].Model);
   }
  };
- tmpModel=LoadModel(buf,dynamic);
- Global::asCurrentTexturePath=buftp;
+ TModel3d* tmpModel=LoadModel(buf,dynamic); //model nie znaleziony, to wczytaæ
+ Global::asCurrentTexturePath=buftp; //odtworzenie œcie¿ki do tekstur
  return (tmpModel); //NULL jeœli b³¹d
 };
 

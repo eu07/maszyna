@@ -36,6 +36,7 @@ void __fastcall TAirCoupler::Clear()
 
 void __fastcall TAirCoupler::Init(AnsiString asName, TModel3d *pModel)
 {//wyszukanie submodeli
+ if (!pModel) return; //nie ma w czym szukaæ
  pModelOn=pModel->GetFromName(AnsiString(asName+"_on").c_str()); //po³¹czony na wprost
  pModelOff=pModel->GetFromName(AnsiString(asName+"_off").c_str()); //odwieszony
  pModelxOn=pModel->GetFromName(AnsiString(asName+"_xon").c_str()); //po³¹czony na skos
@@ -59,11 +60,11 @@ void __fastcall TAirCoupler::Update()
 //  if ((pModelOn!=NULL) && (pModelOn!=NULL))
    {
     if (pModelOn)
-        pModelOn->Visible= bOn;
+        pModelOn->iVisible=bOn;
     if (pModelOff)
-        pModelOff->Visible= !(bOn||bxOn);
+        pModelOff->iVisible=!(bOn||bxOn);
     if (pModelxOn)
-        pModelxOn->Visible= bxOn;
+        pModelxOn->iVisible=bxOn;
    }
 }
 

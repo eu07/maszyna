@@ -5,6 +5,7 @@
 #pragma hdrstop
 
 #include "Timer.h"
+#include "Globals.h"
 
 namespace Timer {
 
@@ -54,7 +55,7 @@ void __fastcall SetSimulationTime(double t)
 }
 
 bool __fastcall GetSoundTimer()
-{
+{//Ra: byæ mo¿e, by dŸwiêki nie modyfikowa³y siê zbyt czêsto, po 0.1s zeruje siê ten licznik
  return (fSoundTimer==0.0f);
 }
 
@@ -81,7 +82,7 @@ void __fastcall UpdateTimers(bool pause)
  QueryPerformanceCounter((LARGE_INTEGER*)&count);
  DeltaRenderTime=double(count-oldCount)/double(fr);
  if (!pause)
- {DeltaTime=DeltaRenderTime;
+ {DeltaTime=Global::fTimeSpeed*DeltaRenderTime;
   fSoundTimer+=DeltaTime;
   if (fSoundTimer>0.1) fSoundTimer=0;
 /*

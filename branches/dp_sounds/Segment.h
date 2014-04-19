@@ -44,6 +44,7 @@ private:
  double __fastcall RombergIntegral(double fA, double fB);
  double __fastcall GetTFromS(double s);
  vector3 __fastcall RaInterpolate(double t);
+ vector3 __fastcall RaInterpolate0(double t);
 public:
  bool bCurve;
  //int iShape; //Ra: flagi kszta³tu dadz¹ wiêcej mo¿liwoœci optymalizacji
@@ -51,10 +52,10 @@ public:
  __fastcall ~TSegment();
  bool __fastcall Init(vector3 NewPoint1,vector3 NewPoint2,double fNewStep,
                       double fNewRoll1=0,double fNewRoll2=0);
- bool __fastcall Init(vector3 NewPoint1,vector3 NewCPointOut,
-                      vector3 NewCPointIn,vector3 NewPoint2,double fNewStep,
+ bool __fastcall Init(vector3 &NewPoint1,vector3 NewCPointOut,
+                      vector3 NewCPointIn,vector3 &NewPoint2,double fNewStep,
                       double fNewRoll1=0,double fNewRoll2=0,bool bIsCurve=true);
- inline double __fastcall ComputeLength(vector3 p1,vector3 cp1,vector3 cp2,vector3 p2);  //McZapkie-150503
+ inline double __fastcall ComputeLength();  //McZapkie-150503
  inline vector3 __fastcall GetDirection1() {return bCurve?CPointOut-Point1:CPointOut;};
  inline vector3 __fastcall GetDirection2() {return bCurve?CPointIn-Point2:CPointIn;};
  vector3 __fastcall GetDirection(double fDistance);
@@ -94,6 +95,7 @@ public:
  void __fastcall RaAnimate(CVertNormTex* &Vert,const vector6 *ShapePoints,int iNumShapePoints,
   double fTextureLength,int iSkip=0,int iEnd=0,double fOffsetX=0.0);
  void __fastcall AngleSet(int i,double a) {fAngle[i]=a;};
+ void __fastcall Rollment(double w1,double w2); //poprawianie przechy³ki
 };
 
 //---------------------------------------------------------------------------
