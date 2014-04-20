@@ -20,7 +20,7 @@
 #include "AirCoupler.h"
 
 #include "TractionPower.h"
-#include "Ground.h" //bo AddToQuery jest
+#include "Ground.h" //bo Global::pGround->bDynamicRemove
 #include "Event.h"
 #include "Driver.h"
 #include "Camera.h" //bo likwidujemy trzêsienie
@@ -41,13 +41,39 @@
 const float maxrot=(M_PI/3.0); //60°
 
 //---------------------------------------------------------------------------
+void __fastcall TAnimPant::AKP_4E()
+{//ustawienie wymiarów dla pantografu AKP-4E
+ vPos=vector3(0,0,0); //przypisanie domyœnych wspó³czynników do pantografów
+ fLenL1=1.22; //1.176289 w modelach
+ fLenU1=1.755; //1.724482197 w modelach
+ fHoriz=0.535; //0.54555075 przesuniêcie œlizgu w d³ugoœci pojazdu wzglêdem osi obrotu dolnego ramienia
+ fHeight=0.07; //wysokoœæ œlizgu ponad oœ obrotu
+ fWidth=0.635; //po³owa szerokoœci œlizgu, 0.635 dla AKP-1 i AKP-4E
+ fAngleL0=DegToRad(2.8547285515689267247882521833308);
+ fAngleL=fAngleL0; //pocz¹tkowy k¹t dolnego ramienia
+ //pantu=acos((1.22*cos(fAngleL)+0.535)/1.755); //górne ramiê
+ fAngleU0=acos((fLenL1*cos(fAngleL)+fHoriz)/fLenU1); //górne ramiê
+ fAngleU=fAngleU0; //pocz¹tkowy k¹t
+ //PantWys=1.22*sin(fAngleL)+1.755*sin(fAngleU); //wysokoœæ pocz¹tkowa
+ PantWys=fLenL1*sin(fAngleL)+fLenU1*sin(fAngleU)+fHeight; //wysokoœæ pocz¹tkowa
+ PantTraction=PantWys;
+ hvPowerWire=NULL;
+ fWidthExtra=0.381; //(2.032m-1.027)/2
+ //poza obszarem roboczym jest aproksymacja ³aman¹ o 5 odcinkach
+ fHeightExtra[0]= 0.0; //+0.0762
+ fHeightExtra[1]=-0.01; //+0.1524
+ fHeightExtra[2]=-0.03; //+0.2286
+ fHeightExtra[3]=-0.07; //+0.3048
+ fHeightExtra[4]=-0.15; //+0.3810
+};
+//---------------------------------------------------------------------------
 int __fastcall TAnim::TypeSet(int i)
 {//ustawienie typu animacji i zale¿nej od niego iloœci animowanych submodeli
  fMaxDist=-1.0; //normalnie nie pokazywaæ
  switch (i)
- {//maska 0x00F: ile u¿ywa wskaŸników na submodele (0 gdy jeden, wtedy bez tablicy)
-  //maska 0x0F0: 0-osie,1-drzwi,2-obracane,3-zderzaki,4-wózki,5-pantografy,6-t³oki
-  //maska 0xF00: ile u¿ywa liczb float dla wspó³czynników i stanu
+ {//maska 0x000F: ile u¿ywa wskaŸników na submodele (0 gdy jeden, wtedy bez tablicy)
+  //maska 0x00F0: 0-osie,1-drzwi,2-obracane,3-zderzaki,4-wózki,5-pantografy,6-t³oki
+  //maska 0xFF00: ile u¿ywa liczb float dla wspó³czynników i stanu
   case 0: iFlags=0x000; break; //0-oœ
   case 1: iFlags=0x010; break; //1-drzwi
   case 2: iFlags=0x020; break; //2-wahacz, dŸwignia itp.
@@ -56,29 +82,7 @@ int __fastcall TAnim::TypeSet(int i)
   case 5: //5-pantograf - 5 submodeli
    iFlags=0x055;
    fParamPants=new TAnimPant();
-   fParamPants->vPos=vector3(0,0,0); //przypisanie domyœnych wspó³czynników do pantografów
-   fParamPants->fLenL1=1.176289; //1.22;
-   fParamPants->fLenU1=1.724482197; //1.755;
-   fParamPants->fHoriz=0.54555075; //przesuniêcie œlizgu w d³ugoœci pojazdu wzglêdem osi obrotu dolnego ramienia
-   fParamPants->fHeight=0.07; //wysokoœæ œlizgu ponad oœ obrotu
-   fParamPants->fWidth=0.635; //po³owa szerokoœci œlizgu, 0.635 dla AKP-1 i AKP-4E
-   fParamPants->fAngleL0=DegToRad(2.8547285515689267247882521833308);
-   fParamPants->fAngleL=fParamPants->fAngleL0; //pocz¹tkowy k¹t dolnego ramienia
-   //fParamPants->pantu=acos((1.22*cos(fParamPants->fAngleL)+0.535)/1.755); //górne ramiê
-   fParamPants->fAngleU0=acos((fParamPants->fLenL1*cos(fParamPants->fAngleL)+fParamPants->fHoriz)/fParamPants->fLenU1); //górne ramiê
-   fParamPants->fAngleU=fParamPants->fAngleU0; //pocz¹tkowy k¹t
-   //fParamPants->PantWys=1.22*sin(fParamPants->fAngleL)+1.755*sin(fParamPants->fAngleU); //wysokoœæ pocz¹tkowa
-   //fParamPants->PantWys=1.176289*sin(fParamPants->fAngleL)+1.724482197*sin(fParamPants->fAngleU); //wysokoœæ pocz¹tkowa
-   fParamPants->PantWys=fParamPants->fLenL1*sin(fParamPants->fAngleL)+fParamPants->fLenU1*sin(fParamPants->fAngleU)+fParamPants->fHeight; //wysokoœæ pocz¹tkowa
-   fParamPants->PantTraction=fParamPants->PantWys;
-   fParamPants->hvPowerWire=NULL;
-   fParamPants->fWidthExtra=0.381; //(2.032m-1.027)/2, trzeba by to odczytaæ z modelu
-   //poza obszarem roboczym jest aproksymacja ³aman¹ o 5 odcinkach
-   fParamPants->fHeightExtra[0]= 0.0; //+0.0762
-   fParamPants->fHeightExtra[1]=-0.01; //+0.1524
-   fParamPants->fHeightExtra[2]=-0.03; //+0.2286
-   fParamPants->fHeightExtra[3]=-0.07; //+0.3048
-   fParamPants->fHeightExtra[4]=-0.15; //+0.3810
+   fParamPants->AKP_4E();
   break;
   case 6: iFlags=0x068; break; //6-t³ok i rozrz¹d - 8 submodeli
   default: iFlags=0;
