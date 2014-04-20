@@ -2520,8 +2520,8 @@ bool __fastcall TTrain::Update()
         {
           if (!TestFlag(DynamicObject->MoverParameters->DamageFlag,dtrain_wheelwear)) //McZpakie-221103: halas zalezny od kola
            {
-             dfreq=rsRunningNoise[i].FM*DynamicObject->MoverParameters->Vel+rsRunningNoise[i].FA;
-             vol=rsRunningNoise[i].AM*DynamicObject->MoverParameters->Vel+rsRunningNoise[i].AA;
+             dfreq=rsRunningNoise[i].FM*mvOccupied->Vel+rsRunningNoise[i].FA;
+             vol=rsRunningNoise[i].AM*mvOccupied->Vel+rsRunningNoise[i].AA;
               switch (tor->eEnvironment)
               {
                   case e_tunnel:
@@ -2547,8 +2547,8 @@ bool __fastcall TTrain::Update()
           else                                                   //uszkodzone kolo (podkucie)
            if (fabs(DynamicObject->MoverParameters->nrot)>0.01)
            {
-             dfreq=rsRunningNoise[i].FM*DynamicObject->MoverParameters->Vel+rsRunningNoise[i].FA;
-             vol=rsRunningNoise[i].AM*DynamicObject->MoverParameters->Vel+rsRunningNoise[i].AA;
+             dfreq=rsRunningNoise[i].FM*mvOccupied->Vel+rsRunningNoise[i].FA;
+             vol=rsRunningNoise[i].AM*mvOccupied->Vel+rsRunningNoise[i].AA;
               switch (tor->eEnvironment)
               {
                   case e_tunnel:
@@ -2568,8 +2568,8 @@ bool __fastcall TTrain::Update()
                   break;
               }
            }
-          if (fabs(DynamicObject->MoverParameters->nrot)>0.01)
-           vol*=1+DynamicObject->MoverParameters->UnitBrakeForce/(1+DynamicObject->MoverParameters->MaxBrakeForce); //hamulce wzmagaja halas
+          if (fabs(mvOccupied->nrot)>0.01)
+           vol*=1+mvOccupied->UnitBrakeForce/(1+mvOccupied->MaxBrakeForce); //hamulce wzmagaja halas
           vol=vol*(20.0+tor->iDamageFlag)/21;
           rsRunningNoise[i].AdjFreq(dfreq,0);
           rsRunningNoise[i].Play(vol, DSBPLAY_LOOPING, true, DynamicObject->GetPosition());
@@ -2592,8 +2592,8 @@ bool __fastcall TTrain::Update()
         {
           if (!TestFlag(DynamicObject->MoverParameters->DamageFlag,dtrain_wheelwear)) //McZpakie-221103: halas zalezny od kola
            {
-             dfreq=rsRunningNoise[i].FM*DynamicObject->MoverParameters->Vel+rsRunningNoise[i].FA;
-             vol=rsRunningNoise[i].AM*DynamicObject->MoverParameters->Vel+rsRunningNoise[i].AA;
+             dfreq=rsRunningNoise[i].FM*mvOccupied->Vel+rsRunningNoise[i].FA;
+             vol=rsRunningNoise[i].AM*mvOccupied->Vel+rsRunningNoise[i].AA;
               switch (tor->eEnvironment)
               {
                   case e_tunnel:
@@ -2619,8 +2619,8 @@ bool __fastcall TTrain::Update()
           else                                                   //uszkodzone kolo (podkucie)
            if (fabs(DynamicObject->MoverParameters->nrot)>0.01)
            {
-             dfreq=rsRunningNoise[i].FM*DynamicObject->MoverParameters->Vel+rsRunningNoise[i].FA;
-             vol=rsRunningNoise[i].AM*DynamicObject->MoverParameters->Vel+rsRunningNoise[i].AA;
+             dfreq=rsRunningNoise[i].FM*mvOccupied->Vel+rsRunningNoise[i].FA;
+             vol=rsRunningNoise[i].AM*mvOccupied->Vel+rsRunningNoise[i].AA;
               switch (tor->eEnvironment)
               {
                   case e_tunnel:
@@ -2640,8 +2640,8 @@ bool __fastcall TTrain::Update()
                   break;
               }
            }
-          if (fabs(DynamicObject->MoverParameters->nrot)>0.01)
-           vol*=1+DynamicObject->MoverParameters->UnitBrakeForce/(1+DynamicObject->MoverParameters->MaxBrakeForce); //hamulce wzmagaja halas
+	if (fabs(mvOccupied->nrot)>0.01)
+           vol*=1+mvOccupied->UnitBrakeForce/(1+mvOccupied->MaxBrakeForce); //hamulce wzmagaja halas
           vol=vol*(20.0+tor->iDamageFlag)/21;
           rsRunningNoise[i].AdjFreq(dfreq,0);
           rsRunningNoise[i].Play(vol, DSBPLAY_LOOPING, true, DynamicObject->GetPosition());
