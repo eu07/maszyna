@@ -244,13 +244,13 @@ TYPE
     TCurrentCollector = record
                           CollectorsNo: longint; //musi byæ tu, bo inaczej siê kopie
                           MinH,MaxH: real; //zakres ruchu pantografu, nigdzie nie u¿ywany
-                          CSW: real;       //szerokoœæ œlizgacza
+                          CSW: real;       //szerokoœæ czêœci roboczej (styku) œlizgacza
                           MinV,MaxV: real; //minimalne i maksymalne akceptowane napiêcie
                           MinPress: real;  //minimalne ciœnienie do za³¹czenia WS
                         end;
-    {typy zrodel mocy}
+    {typy Ÿróde³ mocy}
     TPowerSource = (NotDefined, InternalSource, Transducer, Generator, Accumulator, CurrentCollector, PowerCable, Heater);
-    {parametry zrodel mocy}
+    {parametry Ÿróde³ mocy}
     TPowerParameters = record
                          MaxVoltage: real;
                          MaxCurrent: real;
@@ -6073,7 +6073,7 @@ function PowerDecode(s:string): TPowerType;
                                CollectorsNo:=s2lE(DUE(ExtractKeyWord(lines,'CollectorsNo=')));
                                MinH:=s2rE(DUE(ExtractKeyWord(lines,'MinH=')));
                                MaxH:=s2rE(DUE(ExtractKeyWord(lines,'MaxH=')));
-                               CSW:=s2rE(DUE(ExtractKeyWord(lines,'CSW=')));
+                               CSW:=s2rE(DUE(ExtractKeyWord(lines,'CSW='))); //szerokoœæ czêœci roboczej
                                MaxV:=s2rE(DUE(ExtractKeyWord(lines,'MaxVoltage=')));
                                s:=ExtractKeyWord(lines,'MinV='); //napiêcie roz³¹czaj¹ce WS
                                if s='' then

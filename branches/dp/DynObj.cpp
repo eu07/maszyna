@@ -72,6 +72,13 @@ int __fastcall TAnim::TypeSet(int i)
    fParamPants->PantWys=fParamPants->fLenL1*sin(fParamPants->fAngleL)+fParamPants->fLenU1*sin(fParamPants->fAngleU)+fParamPants->fHeight; //wysokoœæ pocz¹tkowa
    fParamPants->PantTraction=fParamPants->PantWys;
    fParamPants->hvPowerWire=NULL;
+   fParamPants->fWidthExtra=0.381; //(2.032m-1.027)/2, trzeba by to odczytaæ z modelu
+   //poza obszarem roboczym jest aproksymacja ³aman¹ o 5 odcinkach
+   fParamPants->fHeightExtra[0]= 0.0; //+0.0762
+   fParamPants->fHeightExtra[1]=-0.01; //+0.1524
+   fParamPants->fHeightExtra[2]=-0.03; //+0.2286
+   fParamPants->fHeightExtra[3]=-0.07; //+0.3048
+   fParamPants->fHeightExtra[4]=-0.15; //+0.3810
   break;
   case 6: iFlags=0x068; break; //6-t³ok i rozrz¹d - 8 submodeli
   default: iFlags=0;
