@@ -88,6 +88,7 @@ public:
  TTraction *hvPowerWire; //aktualnie podczepione druty, na razie tu
  float fWidthExtra; //dodatkowy rozmiar poziomy poza czêœæ robocz¹ (fWidth)
  float fHeightExtra[5]; //³amana symuluj¹ca kszta³t nabie¿nika
+ void __fastcall AKP_4E();
 };
 
 class TAnim
