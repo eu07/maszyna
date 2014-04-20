@@ -2167,6 +2167,7 @@ while (i<10)
      }
      else rsOuterNoise[i].Stop();
 
+
 //McZapkie-260202 - dMoveLen przyda sie przy stukocie kol
     dDOMoveLen=GetdMoveLen()+MoverParameters->ComputeMovement(dt,dt1,ts,tp,tmpTraction,l,r);
     //Ra: poni¿sze przeniesione do ComputeMovement() w Mover.cpp
