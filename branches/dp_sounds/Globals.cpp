@@ -106,6 +106,7 @@ float Global::fMouseXScale=1.5;
 float Global::fMouseYScale=0.2;
 char Global::szSceneryFile[256]="td.scn";
 AnsiString Global::asHumanCtrlVehicle="EU07-424";
+AnsiString Global::asHumanVehicle; //potrzebne do dzwieku outernoise
 int Global::iMultiplayer=0; //blokada dzia³ania niektórych funkcji na rzecz komunikacji
 double Global::fMoveLight=-1; //ruchome œwiat³o
 double Global::fLatitudeDeg=52.0; //szerokoœæ geograficzna

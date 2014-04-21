@@ -40,8 +40,7 @@
   <OPTIONS>
     <IDLCFLAGS value="-IConsole -Iopengl -IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl 
       -src_suffix cpp -DGLEW_STATIC -D_DEBUG -boa"/>
-    <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a1 -6 -b- -k -y -v -vi- 
-      -c -tW -tWM"/>
+    <CFLAG1 value="-O2 -Vx -Ve -X- -r- -a1 -6 -b- -k -y -v -vi- -c -tW -tWM"/>
     <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
     <RFLAGS value=""/>
     <AFLAGS value="/mx /w2 /zi"/>
@@ -104,10 +103,11 @@ Item6=GLEW_STATIC;_DEBUG;USE_VERTEX_ARRAYS
 Item7=_DEBUG
 
 [HistoryLists\hlFinalOutputDir]
-Count=3
-Item0=C:\Users\Davido\Downloads\MaSzyna_08_13\MaSzyna_pulpit
-Item1=C:\EU07\
-Item2=C:\EU07DDS\
+Count=4
+Item0=C:\Users\Davido\Downloads\MaSzyna_08_13\MaSzyna_pulpit\
+Item1=C:\Users\Davido\Downloads\MaSzyna_08_13\MaSzyna_pulpit
+Item2=C:\EU07\
+Item3=C:\EU07DDS\
 
 [Debugging]
 DebugSourceDirs=

@@ -2097,7 +2097,7 @@ TGround::GetTraction;
 double volO[10];
 double dfreq[10]={0,0,0,0,0,0,0,0,0};
 int i=0;
-if (FreeFlyModeFlag==true||Global::asHumanCtrlVehicle!=MoverParameters->Name)
+if (FreeFlyModeFlag==true||Global::asHumanVehicle!=MoverParameters->Name)
 while (i<10)
 {
         if (rsOuterNoise[i].AM!=0)
