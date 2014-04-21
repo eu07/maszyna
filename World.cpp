@@ -1562,6 +1562,7 @@ bool __fastcall TWorld::Update()
      Controlled=temp;
      mvControlled=Controlled->ControlledFind()->MoverParameters;
      Global::asHumanCtrlVehicle=Train->Dynamic()->GetName();
+     Global::asHumanVehicle = Controlled->MoverParameters->Name;
      if (Train->Dynamic()->Mechanik) //AI mo¿e sobie samo pójœæ
       if (!Train->Dynamic()->Mechanik->AIControllFlag) //tylko jeœli rêcznie prowadzony
       {Train->Dynamic()->MoverParameters->LimPipePress=Controlled->MoverParameters->PipePress;

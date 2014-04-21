@@ -193,6 +193,7 @@ public:
  static AnsiString asCurrentDynamicPath;
  //McZapkie-170602: zewnetrzna definicja pojazdu uzytkownika
  static AnsiString asHumanCtrlVehicle;
+ static AnsiString asHumanVehicle; //pojazd, ktory prowadzi uzytkownik - potrzebne w dzwiekach outernoise
  static void __fastcall LoadIniFile(AnsiString asFileName);
  static void __fastcall InitKeys(AnsiString asFileName);
  inline static vector3 __fastcall GetCameraPosition()
