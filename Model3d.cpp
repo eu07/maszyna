@@ -424,14 +424,14 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos,bool dyna
    {//Ra: z konwersj¹ na uk³ad scenerii - bêdzie wydajniejsze wyœwietlanie
     wsp[i]=-1; //wektory normalne nie s¹ policzone dla tego wierzcho³ka
     if ((i%3)==0)
-    {//jeœli bêdzie maska -1, to dalej bêd¹ wierzcho³ki z wektorami normalnymi podanymi jawnie
+    {//jeœli bêdzie maska -1, to dalej bêd¹ wierzcho³ki z wektorami normalnymi, podanymi jawnie
      parser.getToken(maska); //maska powierzchni trójk¹ta
-     sg[i/3]=(maska>0)?maska:0; //dla ujemnej maski bêdzie 0, czyli nie ma wspólnych wektorów normalnych
+     sg[i/3]=(maska==-1)?0:maska; //dla maski -1 bêdzie 0, czyli nie ma wspólnych wektorów normalnych
     }
     parser.getToken(Vertices[i].Point.x);
     parser.getToken(Vertices[i].Point.y);
     parser.getToken(Vertices[i].Point.z);
-    if (maska<0)
+    if (maska==-1)
     {//jeœli wektory normalne podane jawnie
      parser.getToken(Vertices[i].Normal.x);
      parser.getToken(Vertices[i].Normal.y);

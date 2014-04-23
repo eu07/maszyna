@@ -373,7 +373,15 @@ void TDynamicObject::UpdateDoorFold(TAnim *pAnim)
  if (pAnim->smAnimated)
  {//if (MoverParameters->DoorOpenMethod==2) //obrotowe albo dwój³omne (trzeba kombinowac submodelami i ShiftL=90,R=180)
   if (pAnim->iNumber&1)
-   pAnim->smAnimated->SetRotate(float3(1,0,0),dDoorMoveR);
+  {pAnim->smAnimated->SetRotate(float3(0,0,1),dDoorMoveR);
+   TSubModel *sm=pAnim->smAnimated->ChildGet(); //skrzyd³o mniejsze
+   if (sm)
+   {sm->SetRotate(float3(0,0,1),-dDoorMoveR-dDoorMoveR); //skrzyd³o wiêksze
+    sm=sm->ChildGet();
+    if (sm)
+     sm->SetRotate(float3(0,1,0),dDoorMoveR); //podnó¿ek?
+   }
+  }
   else
   {pAnim->smAnimated->SetRotate(float3(0,0,1),dDoorMoveL);
    //SubModel->SetRotate(float3(0,1,0),fValue*360.0);
