@@ -2518,7 +2518,7 @@ bool __fastcall TTrain::Update()
      {
        if (DynamicObject->GetVelocity()!=0 && FreeFlyModeFlag==false)
         {
-          if (!TestFlag(DynamicObject->MoverParameters->DamageFlag,dtrain_wheelwear)) //McZpakie-221103: halas zalezny od kola
+          if (!TestFlag(mvOccupied->DamageFlag,dtrain_wheelwear)) //McZpakie-221103: halas zalezny od kola
            {
              dfreq=rsRunningNoise[i].FM*mvOccupied->Vel+rsRunningNoise[i].FA;
              vol=rsRunningNoise[i].AM*mvOccupied->Vel+rsRunningNoise[i].AA;
@@ -2545,7 +2545,7 @@ bool __fastcall TTrain::Update()
 
            }
           else                                                   //uszkodzone kolo (podkucie)
-           if (fabs(DynamicObject->MoverParameters->nrot)>0.01)
+           if (fabs(mvOccupied->nrot)>0.01)
            {
              dfreq=rsRunningNoise[i].FM*mvOccupied->Vel+rsRunningNoise[i].FA;
              vol=rsRunningNoise[i].AM*mvOccupied->Vel+rsRunningNoise[i].AA;
@@ -2590,7 +2590,7 @@ bool __fastcall TTrain::Update()
      {
        if (DynamicObject->GetVelocity()!=0 && DynamicObject->GetVelocity()>=rsRunningNoise[i].Vmin && DynamicObject->GetVelocity()<=rsRunningNoise[i].Vmax && FreeFlyModeFlag==false)
         {
-          if (!TestFlag(DynamicObject->MoverParameters->DamageFlag,dtrain_wheelwear)) //McZpakie-221103: halas zalezny od kola
+          if (!TestFlag(mvOccupied->DamageFlag,dtrain_wheelwear)) //McZpakie-221103: halas zalezny od kola
            {
              dfreq=rsRunningNoise[i].FM*mvOccupied->Vel+rsRunningNoise[i].FA;
              vol=rsRunningNoise[i].AM*mvOccupied->Vel+rsRunningNoise[i].AA;
@@ -2617,7 +2617,7 @@ bool __fastcall TTrain::Update()
 
            }
           else                                                   //uszkodzone kolo (podkucie)
-           if (fabs(DynamicObject->MoverParameters->nrot)>0.01)
+           if (fabs(mvOccupied->nrot)>0.01)
            {
              dfreq=rsRunningNoise[i].FM*mvOccupied->Vel+rsRunningNoise[i].FA;
              vol=rsRunningNoise[i].AM*mvOccupied->Vel+rsRunningNoise[i].AA;
@@ -4796,20 +4796,20 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
         {
           str=Parser->GetNextSymbol();
           rsRunningNoise[0].Init(str.c_str(),-1,0,0,0,true);
-          rsRunningNoise[0].AM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
+          rsRunningNoise[0].AM=Parser->GetNextSymbol().ToDouble()/(1+mvOccupied->Vmax);
           rsRunningNoise[0].AA=Parser->GetNextSymbol().ToDouble();
-          rsRunningNoise[0].FM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
-          rsRunningNoise[0].FA=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[0].FM=Parser->GetNextSymbol().ToDouble()/2/(1+mvOccupied->Vmax);
+          rsRunningNoise[0].FA=Parser->GetNextSymbol().ToDouble()/2;
          }
         else
           if (str==AnsiString("runningnoise2:"))                    //szum podczas jazdy:
          {
           str=Parser->GetNextSymbol();
           rsRunningNoise[1].Init(str.c_str(),-1,0,0,0,true);
-          rsRunningNoise[1].AM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
+          rsRunningNoise[1].AM=Parser->GetNextSymbol().ToDouble()/(1+mvOccupied->Vmax);
           rsRunningNoise[1].AA=Parser->GetNextSymbol().ToDouble();
-          rsRunningNoise[1].FM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
-          rsRunningNoise[1].FA=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[1].FM=Parser->GetNextSymbol().ToDouble()/2/(1+mvOccupied->Vmax);
+          rsRunningNoise[1].FA=Parser->GetNextSymbol().ToDouble()/2;
           rsRunningNoise[1].Vmin=Parser->GetNextSymbol().ToDouble();
           rsRunningNoise[1].Vmax=Parser->GetNextSymbol().ToDouble();
          }
@@ -4818,10 +4818,10 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
          {
           str=Parser->GetNextSymbol();
           rsRunningNoise[2].Init(str.c_str(),-1,0,0,0,true);
-          rsRunningNoise[2].AM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
+          rsRunningNoise[2].AM=Parser->GetNextSymbol().ToDouble()/(1+mvOccupied->Vmax);
           rsRunningNoise[2].AA=Parser->GetNextSymbol().ToDouble();
-          rsRunningNoise[2].FM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
-          rsRunningNoise[2].FA=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[2].FM=Parser->GetNextSymbol().ToDouble()/2/(1+mvOccupied->Vmax);
+          rsRunningNoise[2].FA=Parser->GetNextSymbol().ToDouble()/2;
           rsRunningNoise[2].Vmin=Parser->GetNextSymbol().ToDouble();
           rsRunningNoise[2].Vmax=Parser->GetNextSymbol().ToDouble();
          }
@@ -4830,10 +4830,10 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
          {
           str=Parser->GetNextSymbol();
           rsRunningNoise[3].Init(str.c_str(),-1,0,0,0,true);
-          rsRunningNoise[3].AM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
+          rsRunningNoise[3].AM=Parser->GetNextSymbol().ToDouble()/(1+mvOccupied->Vmax);
           rsRunningNoise[3].AA=Parser->GetNextSymbol().ToDouble();
-          rsRunningNoise[3].FM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
-          rsRunningNoise[3].FA=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[3].FM=Parser->GetNextSymbol().ToDouble()/2/(1+mvOccupied->Vmax);
+          rsRunningNoise[3].FA=Parser->GetNextSymbol().ToDouble()/2;
           rsRunningNoise[3].Vmin=Parser->GetNextSymbol().ToDouble();
           rsRunningNoise[3].Vmax=Parser->GetNextSymbol().ToDouble();
          }
@@ -4842,10 +4842,10 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
          {
           str=Parser->GetNextSymbol();
           rsRunningNoise[4].Init(str.c_str(),-1,0,0,0,true);
-          rsRunningNoise[4].AM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
+          rsRunningNoise[4].AM=Parser->GetNextSymbol().ToDouble()/(1+mvOccupied->Vmax);
           rsRunningNoise[4].AA=Parser->GetNextSymbol().ToDouble();
-          rsRunningNoise[4].FM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
-          rsRunningNoise[4].FA=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[4].FM=Parser->GetNextSymbol().ToDouble()/2/(1+mvOccupied->Vmax);
+          rsRunningNoise[4].FA=Parser->GetNextSymbol().ToDouble()/2;
           rsRunningNoise[4].Vmin=Parser->GetNextSymbol().ToDouble();
           rsRunningNoise[4].Vmax=Parser->GetNextSymbol().ToDouble();
          }
@@ -4855,10 +4855,10 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
          {
           str=Parser->GetNextSymbol();
           rsRunningNoise[5].Init(str.c_str(),-1,0,0,0,true);
-          rsRunningNoise[5].AM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
+          rsRunningNoise[5].AM=Parser->GetNextSymbol().ToDouble()/(1+mvOccupied->Vmax);
           rsRunningNoise[5].AA=Parser->GetNextSymbol().ToDouble();
-          rsRunningNoise[5].FM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
-          rsRunningNoise[5].FA=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[5].FM=Parser->GetNextSymbol().ToDouble()/2/(1+mvOccupied->Vmax);
+          rsRunningNoise[5].FA=Parser->GetNextSymbol().ToDouble()/2;
           rsRunningNoise[5].Vmin=Parser->GetNextSymbol().ToDouble();
           rsRunningNoise[5].Vmax=Parser->GetNextSymbol().ToDouble();
          }
@@ -4867,10 +4867,10 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
          {
           str=Parser->GetNextSymbol();
           rsRunningNoise[6].Init(str.c_str(),-1,0,0,0,true);
-          rsRunningNoise[6].AM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
+          rsRunningNoise[6].AM=Parser->GetNextSymbol().ToDouble()/(1+mvOccupied->Vmax);
           rsRunningNoise[6].AA=Parser->GetNextSymbol().ToDouble();
-          rsRunningNoise[6].FM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
-          rsRunningNoise[6].FA=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[6].FM=Parser->GetNextSymbol().ToDouble()/2/(1+mvOccupied->Vmax);
+          rsRunningNoise[6].FA=Parser->GetNextSymbol().ToDouble()/2;
           rsRunningNoise[6].Vmin=Parser->GetNextSymbol().ToDouble();
           rsRunningNoise[6].Vmax=Parser->GetNextSymbol().ToDouble();
          }
@@ -4879,10 +4879,10 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
          {
           str=Parser->GetNextSymbol();
           rsRunningNoise[7].Init(str.c_str(),-1,0,0,0,true);
-          rsRunningNoise[7].AM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
+          rsRunningNoise[7].AM=Parser->GetNextSymbol().ToDouble()/(1+mvOccupied->Vmax);
           rsRunningNoise[7].AA=Parser->GetNextSymbol().ToDouble();
-          rsRunningNoise[7].FM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
-          rsRunningNoise[7].FA=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[7].FM=Parser->GetNextSymbol().ToDouble()/2/(1+mvOccupied->Vmax);
+          rsRunningNoise[7].FA=Parser->GetNextSymbol().ToDouble()/2;
           rsRunningNoise[7].Vmin=Parser->GetNextSymbol().ToDouble();
           rsRunningNoise[7].Vmax=Parser->GetNextSymbol().ToDouble();
          }
@@ -4891,10 +4891,10 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
          {
           str=Parser->GetNextSymbol();
           rsRunningNoise[8].Init(str.c_str(),-1,0,0,0,true);
-          rsRunningNoise[8].AM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
+          rsRunningNoise[8].AM=Parser->GetNextSymbol().ToDouble()/(1+mvOccupied->Vmax);
           rsRunningNoise[8].AA=Parser->GetNextSymbol().ToDouble();
-          rsRunningNoise[8].FM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
-          rsRunningNoise[8].FA=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[8].FM=Parser->GetNextSymbol().ToDouble()/2/(1+mvOccupied->Vmax);
+          rsRunningNoise[8].FA=Parser->GetNextSymbol().ToDouble()/2;
           rsRunningNoise[8].Vmin=Parser->GetNextSymbol().ToDouble();
           rsRunningNoise[8].Vmax=Parser->GetNextSymbol().ToDouble();
          }
@@ -4903,10 +4903,10 @@ bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
          {
           str=Parser->GetNextSymbol();
           rsRunningNoise[9].Init(str.c_str(),-1,0,0,0,true);
-          rsRunningNoise[9].AM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
+          rsRunningNoise[9].AM=Parser->GetNextSymbol().ToDouble()/(1+mvOccupied->Vmax);
           rsRunningNoise[9].AA=Parser->GetNextSymbol().ToDouble();
-          rsRunningNoise[9].FM=Parser->GetNextSymbol().ToDouble()/(1+DynamicObject->MoverParameters->Vmax);
-          rsRunningNoise[9].FA=Parser->GetNextSymbol().ToDouble();
+          rsRunningNoise[9].FM=Parser->GetNextSymbol().ToDouble()/2/(1+mvOccupied->Vmax);
+          rsRunningNoise[9].FA=Parser->GetNextSymbol().ToDouble()/2;
           rsRunningNoise[9].Vmin=Parser->GetNextSymbol().ToDouble();
           rsRunningNoise[9].Vmax=Parser->GetNextSymbol().ToDouble();
          }
