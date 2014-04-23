@@ -623,6 +623,7 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
      KeyEvents[9]=Ground.FindEvent("keyctrl09");
     }
  //glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);  //{Texture blends with object background}
+ Global::asHumanVehicle = Controlled->MoverParameters->Name;
  light=TTexturesManager::GetTextureID(szTexturePath,szSceneryPath,"smuga.tga");
 
  //Camera.Reset();
