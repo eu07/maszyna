@@ -3063,15 +3063,16 @@ bool __fastcall TController::UpdateSituation(double dt)
        else
         AccDesired=fAccThreshold; //hamuj tak œrednio
      //koniec predkosci aktualnej
-/* Ra 2014-03: to nie uwzglêdnia odleg³oœci i zaczyna hamowaæ, jak tylko zobaczy W4
-     if ((AccDesired>0.0)&&(VelNext>=0.0)) //wybieg b¹dŸ lekkie hamowanie, warunki byly zamienione
-      if (vel>VelNext+100.0) //lepiej zaczac hamowac
-       AccDesired=fAccThreshold;
-      else
-       if (vel>VelNext+70.0)
-        AccDesired=0.0; //nie spiesz siê, bo bêdzie hamowanie
-     //koniec wybiegu i hamowania
-*/
+     if (fAccThreshold>-0.3) //bez sensu, ale dla towarowych korzystnie
+     {//Ra 2014-03: to nie uwzglêdnia odleg³oœci i zaczyna hamowaæ, jak tylko zobaczy W4
+      if ((AccDesired>0.0)&&(VelNext>=0.0)) //wybieg b¹dŸ lekkie hamowanie, warunki byly zamienione
+       if (vel>VelNext+100.0) //lepiej zaczac hamowac
+        AccDesired=fAccThreshold;
+       else
+        if (vel>VelNext+70.0)
+         AccDesired=0.0; //nie spiesz siê, bo bêdzie hamowanie
+      //koniec wybiegu i hamowania
+     }
      if (AIControllFlag)
      {//czêœæ wykonawcza tylko dla AI, dla cz³owieka jedynie napisy
       if (mvControlling->ConvOvldFlag||!mvControlling->Mains) //WS mo¿e wywaliæ z powodu b³êdu w drutach
@@ -3199,7 +3200,7 @@ bool __fastcall TController::UpdateSituation(double dt)
          {MinVelFlag=false;
           fBrakeTime=3+0.5*(mvOccupied->BrakeDelay[2+2*mvOccupied->BrakeDelayFlag]-3);
           //Ra: ten czas nale¿y zmniejszyæ, jeœli czas dojazdu do zatrzymania jest mniejszy
-          //fBrakeTime*=0.5; //Ra: tymczasowo, bo prze¿yna S1
+          fBrakeTime*=0.5; //Ra: tymczasowo, bo prze¿yna S1
          }
        if ((AccDesired<fAccGravity-0.05)&&(AbsAccS<AccDesired+0.1))
        //if ((AccDesired<0.0)&&(AbsAccS<AccDesired-0.1)) //ST44 nie hamuje na czas, 2-4km/h po miniêciu tarczy
@@ -3209,7 +3210,7 @@ bool __fastcall TController::UpdateSituation(double dt)
         if (OrderList[OrderPos]!=Disconnect) //przy od³¹czaniu nie zwalniamy tu hamulca
          DecBrake(); //tutaj zmniejsza³o o 1 przy odczepianiu
         fBrakeTime=(mvOccupied->BrakeDelay[1+2*mvOccupied->BrakeDelayFlag])/3.0;
-        //fBrakeTime*=0.5; //Ra: tymczasowo, bo prze¿yna S1
+        fBrakeTime*=0.5; //Ra: tymczasowo, bo prze¿yna S1
        }
       }
       //Mietek-end1
