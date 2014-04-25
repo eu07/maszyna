@@ -574,19 +574,25 @@ void __fastcall TTraction::PowerSet(TTractionPowerSource *ps)
 
 double __fastcall TTraction::VoltageGet(double u,double i)
 {//pobranie napiêcia na przêœle po pod³¹czeniu do niego rezystancji (res) - na razie jest to pr¹d
- if (!psSection) return NominalVoltage; //jak nie ma zasilacza, to napiêcie podane w przêœle
+ if (!psSection)
+  if (!psPowered)
+   return NominalVoltage; //jak nie ma zasilacza, to napiêcie podane w przêœle
  //na pocz¹tek mo¿na za³o¿yæ, ¿e wszystkie podstacje maj¹ to samo napiêcie i nie p³ynie pr¹d pomiêdzy nimi
  //dla danego przês³a mamy 3 Ÿród³a zasilania
  //1. zasilacz psPower[0] z rezystancj¹ fResistance[0] oraz jego wewnêtrzn¹
  //2. zasilacz psPower[1] z rezystancj¹ fResistance[1] oraz jego wewnêtrzn¹
  //3. zasilacz psPowered z jego wewnêtrzn¹ rezystancj¹ dla przêse³ zasilanych bezpoœrednio
  double res=(i!=0.0)?fabs(u/i):10000.0;
+ if (psPowered) return psPowered->CurrentGet(res)*res; //yB: dla zasilanego nie baw siê w gwiazdy, tylko bierz bezpoœrednio
  double r0t,r1t,r0g,r1g;
  double u0,u1,i0,i1;
  r0t=fResistance[0]; //œredni pomys³, ale lepsze ni¿ nic
  r1t=fResistance[1]; //bo nie uwzglêdnia spadków z innych pojazdów
  if (psPower[0]&&psPower[1])
  {//gdy przês³o jest zasilane z obu stron - mamy trójk¹t: res, r0t, r1t
+  //yB: Gdy wywali podstacja, to zaczyna siê robiæ nieciekawie - napiêcie w sekcji na jednym koñcu jest równe zasilaniu,
+  //yB: a na drugim koñcu jest równe 0. Kolejna sprawa to rozró¿nienie uszynienia sieci na podstacji/od³¹czniku (czyli
+  //yB: potencja³ masy na sieci) od braku zasilania (czyli od³¹czenie Ÿród³a od sieci i brak jego wp³ywu na napiêcie).
   if ((r0t>0.0)&&(r1t>0.0))
   {//rezystancje w mianowniku nie mog¹ byæ zerowe
    r0g=res+r0t+(res*r0t)/r1t; //przeliczenie z trójk¹ta na gwiazdê

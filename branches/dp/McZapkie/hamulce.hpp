@@ -482,6 +482,7 @@ class PASCALIMPLEMENTATION THandle : public System::TObject
 public:
 	bool Time;
 	bool TimeEP;
+	double Sounds[5];
 	virtual double __fastcall GetPF(double i_bcp, double pp, double hp, double dt, double ep);
 	virtual void __fastcall Init(double press);
 	virtual double __fastcall GetCP(void);
@@ -534,7 +535,6 @@ private:
 	double RP;
 	double XP;
 	double RedAdj;
-	double Sounds[5];
 	bool Fala;
 	
 public:
@@ -712,6 +712,7 @@ public:
 	virtual double __fastcall GetPF(double i_bcp, double pp, double hp, double dt, double ep);
 	virtual double __fastcall GetCP(void);
 	virtual double __fastcall GetPos(Byte i);
+	virtual double __fastcall GetSound(Byte i);
 	virtual void __fastcall Init(double press);
 public:
 	#pragma option push -w-inl

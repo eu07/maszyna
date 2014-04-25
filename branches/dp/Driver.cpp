@@ -1707,7 +1707,7 @@ bool __fastcall TController::IncSpeed()
        {//bocznik na szeregowej przy ciezkich bruttach albo przy wysokim rozruchu pod górê
         if (mvControlling->MainCtrlPos?mvControlling->RList[mvControlling->MainCtrlPos].R>0.0:true) //oporowa
         {
-         OK=mvControlling->IncMainCtrl(1); //krêcimy nastawnik jazdy
+         OK=(mvControlling->DelayCtrlFlag?true:mvControlling->IncMainCtrl(1)); //krêcimy nastawnik jazdy
          if ((OK)&&(mvControlling->MainCtrlPos==1)) //czekaj na 1 pozycji, zanim siê nie w³¹cz¹ liniowe
           iDrivigFlags|=moveIncSpeed;
          else

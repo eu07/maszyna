@@ -358,7 +358,8 @@ TYPE
 //        BCP: integer;
       public
         Time: boolean;
-        TimeEP: boolean;      
+        TimeEP: boolean;
+        Sounds: array[0..4] of real;       //wielkosci przeplywow dla dzwiekow              
         function GetPF(i_bcp:real; pp, hp, dt, ep: real): real; virtual;
         procedure Init(press: real); virtual;
         function GetCP(): real; virtual;
@@ -380,7 +381,7 @@ TYPE
         CP, TP, RP: real;      //zbiornik steruj¹cy, czasowy, redukcyjny
         XP: real;              //komora powietrzna w reduktorze — jest potrzebna do odwzorowania fali
         RedAdj: real;          //dostosowanie reduktora cisnienia (krecenie kapturkiem)
-        Sounds: array[0..4] of real;       //wielkosci przeplywow dla dzwiekow
+//        Sounds: array[0..4] of real;       //wielkosci przeplywow dla dzwiekow
         Fala: boolean;
       public
         function GetPF(i_bcp:real; pp, hp, dt, ep: real): real; override;
@@ -462,7 +463,8 @@ TYPE
         function GetPF(i_bcp:real; pp, hp, dt, ep: real): real; override;
         function GetCP(): real; override;
         function GetPos(i: byte): real; override;
-        procedure Init(press: real); override;        
+        function GetSound(i: byte): real; override;        
+        procedure Init(press: real); override;
       end;
 
 function PF(P1,P2,S:real):real;
@@ -2361,7 +2363,7 @@ begin
            begin
             dp:=PF(0,pp,(ActFlowSpeed)/(LBDelay));
             dpMainValve:=dp;
-            Sounds[s_fv4a_e]:=-dp;
+            Sounds[s_fv4a_e]:=dp;
             Sounds[s_fv4a_u]:=0;
             Sounds[s_fv4a_b]:=0;
             Sounds[s_fv4a_x]:=0;
@@ -2724,6 +2726,15 @@ begin
   else
     ActFlowSpeed:=4;
   dpMainValve:=PF(Limpp,pp,ActFlowSpeed/(LBDelay))*dt;
+
+
+  Sounds[s_fv4a_e]:=0;
+  Sounds[s_fv4a_u]:=0;
+  Sounds[s_fv4a_b]:=0;
+  if(i_bcp<3.5)then Sounds[s_fv4a_u]:=-dpMainValve else
+  if(i_bcp<4.8)then Sounds[s_fv4a_b]:=dpMainValve else
+  if(i_bcp<5.5)then Sounds[s_fv4a_e]:=dpMainValve;
+
   GetPF:=dpMainValve;
   if(i_bcp<-0.5)then
     EPS:=-1
@@ -2744,6 +2755,14 @@ const
   table: array[0..10] of real = (-1,6,-1,0,6,4,4.7,5,-1,0,1);
 begin
   GetPos:=table[i];
+end;
+
+function TFVel6.GetSound(i: byte): real;
+begin
+  if i>2 then
+    GetSound:=0
+  else
+    GetSound:=Sounds[i];
 end;
 
 procedure TFVel6.Init(press: real);
