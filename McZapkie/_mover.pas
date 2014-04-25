@@ -1358,10 +1358,10 @@ begin
 
  if OK then
   begin
-   if DelayCtrlFlag then
+   if (DelayCtrlFlag) then
     begin
-     if (LastRelayTime>=InitialCtrlDelay) then
-      LastRelayTime:=0;
+     if (LastRelayTime>=InitialCtrlDelay)and(MainCtrlPos=1) then
+      LastRelayTime:=0
     end
    else if (LastRelayTime>CtrlDelay) then
     LastRelayTime:=0;
@@ -1944,7 +1944,7 @@ begin
      if BrakeCtrlPos<BrakeCtrlPosNo then
       begin
         inc(BrakeCtrlPos);
-        BrakeCtrlPosR:=BrakeCtrlPos;
+//        BrakeCtrlPosR:=BrakeCtrlPos;
 
 //youBy: wywalilem to, jak jest EP, to sa przenoszone sygnaly nt. co ma robic, a nie poszczegolne pozycje;
 //       wystarczy spojrzec na Knorra i Oerlikona EP w EN57; mogly ze soba wspolapracowac
@@ -2001,7 +2001,7 @@ begin
      if (BrakeCtrlPos>-1-Byte(BrakeHandle=FV4a)) then
       begin
         dec(BrakeCtrlPos);
-        BrakeCtrlPosR:=BrakeCtrlPos;
+//        BrakeCtrlPosR:=BrakeCtrlPos;
         if EmergencyBrakeFlag then
           begin
              EmergencyBrakeFlag:=false; {!!!}
@@ -2796,10 +2796,11 @@ begin
 //i dzialanie hamulca ED w EP09
   if (DynamicBrakeType=dbrake_automatic) then
    begin
-    if (ConverterFlag) and (BrakePress>0.2) and ((Hamulec as TLSt).GetEDBCP>0.2) then
-      DynamicBrakeFlag:=true
-    else if ((Hamulec as TLSt).GetEDBCP<0.2) then
-      DynamicBrakeFlag:=false;
+    if ((Hamulec as TLSt).GetEDBCP<0.2)or(BrakePress>2.1) then
+      DynamicBrakeFlag:=false
+    else if (BrakePress>0.25) and ((Hamulec as TLSt).GetEDBCP>0.25) then
+      DynamicBrakeFlag:=true;
+    DynamicBrakeFlag:=DynamicBrakeFlag and ConverterFlag;   
    end;
 //wylacznik cisnieniowy yBARC - to jest chyba niepotrzebne tutaj
 //  if BrakePress>2 then
@@ -3436,9 +3437,12 @@ begin
    begin
      StLinFlag:=false; //yBARC - rozlaczenie stycznikow liniowych
      AutoRelayCheck:=false;
-     Im:=0;
-     Itot:=0;
-     ResistorsFlag:=false;
+     if not DynamicBrakeFlag then
+      begin
+       Im:=0;
+       Itot:=0;
+       ResistorsFlag:=false;
+      end; 
    end;
 
    ARFASI2:=(not AutoRelayFlag) or ((MotorParam[ScndCtrlActualPos].AutoSwitch) and (Abs(Im)<Imin)); //wszystkie warunki w jednym

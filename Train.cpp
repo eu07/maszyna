@@ -2380,7 +2380,7 @@ bool __fastcall TTrain::Update()
    double dfreq;
 
 //McZapkie-280302 - syczenie
-      if (mvOccupied->BrakeHandle==FV4a)
+      if ((mvOccupied->BrakeHandle==FV4a)||(mvOccupied->BrakeHandle==FVel6))
        {
         if (rsHiss.AM!=0)            //upuszczanie z PG
          {
@@ -2416,7 +2416,7 @@ bool __fastcall TTrain::Update()
          }
         if (rsHissE.AM!=0)            //upuszczanie przy naglym
          {
-            vol=-mvOccupied->Handle->GetSound(s_fv4a_e)*rsHissE.AM;
+            vol=mvOccupied->Handle->GetSound(s_fv4a_e)*rsHissE.AM;
             if (vol>0.001)
              {
               rsHissE.Play(vol,DSBPLAY_LOOPING,true,DynamicObject->GetPosition());
