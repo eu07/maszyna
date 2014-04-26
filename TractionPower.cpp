@@ -96,7 +96,7 @@ bool __fastcall TTractionPowerSource::Update(double dt)
   if (FuseCounter>FastFuseRepetition)
    SlowFuse=true;
   FuseTimer=0;
-  ErrorLog("Fuse off! Counter: " + IntToStr(FuseCounter));
+  //ErrorLog("Fuse off! Counter: " + IntToStr(FuseCounter));
  }
  if (FastFuse||SlowFuse)
  {//jeœli któryœ z bezpieczników zadzia³a³
@@ -124,9 +124,9 @@ double __fastcall TTractionPowerSource::CurrentGet(double res)
 {//pobranie wartoœci pr¹du przypadaj¹cego na rezystancjê (res)
  //niech pamiêta poprzedni¹ admitancjê i wg niej przydziela pr¹d
  if (SlowFuse || FastFuse)
- {
-//  if (res>0.1)  //co to mia³o robiæ poza blokowaniem wstawania podstacji?
-//   FuseTimer=0;
+ {//czekanie na zanik obci¹¿enia sekcji
+  if (res<100.0)  //liczenie czasu dopiero, gdy obci¹¿enie zniknie
+   FuseTimer=0;
   return 0;
  }
  if ((res>0) || ((res<0) && (Recuperation)))

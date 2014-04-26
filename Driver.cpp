@@ -75,7 +75,7 @@ Tutaj ³¹czymy teoriê z praktyk¹ - tu nic nie dzia³a i nikt nie wie dlaczego…
 //7. samouczacy sie algorytm hamowania
 
 //sta³e
-const double EasyReactionTime=0.5; //[s] przeb³yski œwiadomoœci dla zwyk³ej jazdy
+const double EasyReactionTime=0.3; //[s] przeb³yski œwiadomoœci dla zwyk³ej jazdy
 const double HardReactionTime=0.2;
 const double EasyAcceleration=0.5; //[m/ss]
 const double HardAcceleration=0.9;
@@ -3191,9 +3191,9 @@ bool __fastcall TController::UpdateSituation(double dt)
       {//a stara wersja w miarê dobrze dzia³a na sk³ady wagonowe
 //       if (mvOccupied->Handle->Time)
 //         mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_MB)); //najwyzej sobie przestawi
-       if (((fAccGravity<-0.05)&&(vel<0))||((AccDesired<fAccGravity-0.05)&&(AbsAccS>AccDesired+0.15))) //u góry ustawia siê hamowanie na fAccThreshold
+       if (((fAccGravity<-0.05)&&(vel<0))||((AccDesired<fAccGravity-0.1)&&(AbsAccS>AccDesired+0.05))) //u góry ustawia siê hamowanie na fAccThreshold
        //if not MinVelFlag)
-        if (fBrakeTime<0?true:(AccDesired<fAccGravity-0.8)||(mvOccupied->BrakeCtrlPos<=0))
+        if (fBrakeTime<0?true:(AccDesired<fAccGravity-0.3)||(mvOccupied->BrakeCtrlPos<=0))
          if (!IncBrake()) //jeœli up³yn¹³ czas reakcji hamulca, chyba ¿e nag³e albo luzowa³
           MinVelFlag=true;
          else
@@ -3202,9 +3202,9 @@ bool __fastcall TController::UpdateSituation(double dt)
           //Ra: ten czas nale¿y zmniejszyæ, jeœli czas dojazdu do zatrzymania jest mniejszy
           fBrakeTime*=0.5; //Ra: tymczasowo, bo prze¿yna S1
          }
-       if ((AccDesired<fAccGravity-0.05)&&(AbsAccS<AccDesired+0.1))
+       if ((AccDesired<fAccGravity-0.05)&&(AbsAccS<AccDesired-0.2))
        //if ((AccDesired<0.0)&&(AbsAccS<AccDesired-0.1)) //ST44 nie hamuje na czas, 2-4km/h po miniêciu tarczy
-       if (fBrakeTime<0)
+       //if (fBrakeTime<0)
        {//jak hamuje, to nie tykaj kranu za czêsto
         //yB: luzuje hamulec dopiero przy ró¿nicy opóŸnieñ rzêdu 0.2
         if (OrderList[OrderPos]!=Disconnect) //przy od³¹czaniu nie zwalniamy tu hamulca
