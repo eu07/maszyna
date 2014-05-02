@@ -509,7 +509,7 @@ begin
   fm:=PH*197*S*sign(P2-P1); //najwyzszy mozliwy przeplyw, wraz z kierunkiem
   if (SG>0.5) then //jesli ponizej stosunku krytycznego
     if (PH-PL)<DPL then //niewielka roznica cisnien
-      PF:=(1-sg)/DPL*fm*2*SQRT((DPL)*(1-DPL))
+      PF:=(1-sg)/DPL*fm*2*SQRT((DPL)*(PH-DPL))
 //      PF:=1/DPL*(PH-PL)*fm*2*SQRT((sg)*(1-sg))
     else
       PF:=fm*2*SQRT((sg)*(1-sg))
