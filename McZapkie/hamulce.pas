@@ -478,7 +478,7 @@ implementation
 uses _mover;
 //---FUNKCJE OGOLNE---
 
-const DPL=0.1;
+const DPL=0.25;
 
 function PR(p1,p2:real):real;
 var ph,pl: real;
