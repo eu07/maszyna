@@ -1144,7 +1144,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
       if (cKey==Global::Keys[k_EmergencyBrake])
       {
        //while (mvOccupied->IncBrakeLevel());
-       mvOccupied->BrakeLevelSet(mvOccupied->BrakeCtrlPosNo);
+       mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_EB));
        if(mvOccupied->BrakeCtrlPosNo<=0.1)  //hamulec bezpieczeñstwa dla wagonów
         mvOccupied->EmergencyBrakeFlag=true;
       }
