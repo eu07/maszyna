@@ -2014,6 +2014,7 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
    //napiecie sieci trakcyjnej
 
    TTractionParam tmpTraction;
+   tmpTraction.TractionVoltage=0;
    if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
    {//dla EZT tylko silnikowy
     //if (Global::bLiveTraction)
@@ -2048,7 +2049,7 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
         }
 */
       NoVoltTime=NoVoltTime+dt;
-      if (MoverParameters->Vel>0.1f) //jeœli jedzie
+      if (MoverParameters->Vel>0.5) //jeœli jedzie
        //if (NoVoltTime>0.02) //tu mo¿na ograniczyæ czas roz³¹czenia
         //if (DebugModeFlag) //logowanie nie zawsze
          ErrorLog("Voltage loss: by "+MoverParameters->Name+" at "+FloatToStrF(vPosition.x,ffFixed,7,2)+" "+FloatToStrF(vPosition.y,ffFixed,7,2)+" "+FloatToStrF(vPosition.z,ffFixed,7,2)+", time "+FloatToStrF(NoVoltTime,ffFixed,7,2));

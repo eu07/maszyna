@@ -6767,6 +6767,8 @@ begin
                  PowerParamDecode(lines,'',EnginePowerSource);
                  if (EnginePowerSource.SourceType=Generator) and (EnginePowerSource.GeneratorEngine=WheelsDriven) then
                   ConversionError:=-666;  {perpetuum mobile?}
+                 if (Power=0) then //jeœli nie ma mocy, np. rozrz¹dcze EZT
+                  EnginePowerSource.SourceType:=NotDefined; //to silnik nie ma zasilania
                end
               else EnginePowerSource.SourceType:=NotDefined;
               //if EnginePowerSource.SourceType=NotDefined then
