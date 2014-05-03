@@ -512,6 +512,7 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
    p2=LoadPoint(parser)+pOrigin; //pobranie wspó³rzêdnych P2
    parser->getTokens(2);
    *parser >> r2 >> fRadius; //pobranie przechy³ki w P1 i promienia
+   fRadius=fabs(fRadius); //we wpisie mo¿e byæ ujemny
    if (iCategoryFlag&1)
    {//zero na g³ówce szyny
     p1.y+=0.18;
@@ -565,6 +566,7 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
    p2=LoadPoint(parser)+pOrigin; //pobranie wspó³rzêdnych P2
    parser->getTokens(2);
    *parser >> r2 >> fRadiusTable[0];
+   fRadiusTable[0]=fabs(fRadiusTable[0]); //we wpisie mo¿e byæ ujemny
    if (iCategoryFlag&1)
    {//zero na g³ówce szyny
     p1.y+=0.18;
@@ -593,6 +595,7 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
    p2=LoadPoint(parser)+pOrigin; //pobranie wspó³rzêdnych P4
    parser->getTokens(2);
    *parser >> r2 >> fRadiusTable[1];
+   fRadiusTable[1]=fabs(fRadiusTable[1]); //we wpisie mo¿e byæ ujemny
    if (iCategoryFlag&1)
    {//zero na g³ówce szyny
     p1.y+=0.18;
