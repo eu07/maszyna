@@ -2032,6 +2032,7 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
      }
      else
      {NoVoltTime=NoVoltTime+dt;
+      if ((NoVoltTime>-0.02)&&(MoverParameters->Vel>0.1f)&&(MoverParameters->Power>1)&&(DebugModeFlag)) ErrorLog("Loss of voltage: by "+MoverParameters->Name+" at "+FloatToStrF(vPosition.x,ffFixed,7,2)+" "+FloatToStrF(vPosition.y,ffFixed,7,2)+" "+FloatToStrF(vPosition.z,ffFixed,7,2)+" with time "+FloatToStrF(NoVoltTime,ffFixed,7,2));
       if (NoVoltTime>0.3) //jeœli brak zasilania d³u¿ej ni¿ przez 1 sekundê
        tmpTraction.TractionVoltage=0; //Ra 2013-12: po co tak?
        //pControlled->MainSwitch(false); //mo¿e tak?
