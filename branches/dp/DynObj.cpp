@@ -1986,10 +1986,10 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
     //TTrackShape ts;
     //ts.R=MyTrack->fRadius;
     //if (ABuGetDirection()<0) ts.R=-ts.R;
-    ts.R=MyTrack->fRadius;
+    ts.R=MyTrack->fRadius; //ujemne promienie s¹ ju¿ zamienione przy wczytywaniu
     if (bogieRot[0].z!=bogieRot[1].z) //wyliczenie promienia z obrotów osi - modyfikacjê zg³osi³ youBy
-      ts.R=0.5*MoverParameters->BDist/sin(DegToRad(bogieRot[0].z-bogieRot[1].z)*0.5);
-    if (ts.R>5000.0) ts.R=0.0; //szkoda czasu na zbyt du¿e promienie, 4km to promieñ nie wymagaj¹cy przechy³ki 
+      ts.R=fabs(0.5*MoverParameters->BDist/sin(DegToRad(bogieRot[0].z-bogieRot[1].z)*0.5));
+    if (ts.R>5000.0) ts.R=0.0; //szkoda czasu na zbyt du¿e promienie, 4km to promieñ nie wymagaj¹cy przechy³ki
     //ts.R=ComputeRadius(Axle1.pPosition,Axle2.pPosition,Axle3.pPosition,Axle0.pPosition);
     //Ra: sk³adow¹ pochylenia wzd³u¿nego mamy policzon¹ w jednostkowym wektorze vFront
     ts.Len=1.0; //Max0R(MoverParameters->BDist,MoverParameters->ADist);
@@ -2031,8 +2031,27 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
       tmpTraction.TractionVoltage=v;
      }
      else
-     {NoVoltTime=NoVoltTime+dt;
-      if ((NoVoltTime>-0.02)&&(MoverParameters->Vel>0.1f)&&(MoverParameters->Power>1)&&(DebugModeFlag)) ErrorLog("Loss of voltage: by "+MoverParameters->Name+" at "+FloatToStrF(vPosition.x,ffFixed,7,2)+" "+FloatToStrF(vPosition.y,ffFixed,7,2)+" "+FloatToStrF(vPosition.z,ffFixed,7,2)+" with time "+FloatToStrF(NoVoltTime,ffFixed,7,2));
+     {
+/*
+      if (MoverParameters->Vel>0.1f) //jeœli jedzie
+       if (NoVoltTime==0.0) //tylko przy pierwszym zaniku napiêcia
+        if (MoverParameters->PantFrontUp||MoverParameters->PantRearUp)
+        //if ((pants[0].fParamPants->PantTraction>1.0)||(pants[1].fParamPants->PantTraction>1.0))
+        {//wspomagacz usuwania problemów z sieci¹
+         if (!Global::iPause)
+         {//Ra: tymczasowa teleportacja do miejsca, gdzie brakuje pr¹du
+          Global::SetCameraPosition(vPosition+vector3(0,0,5)); //nowa pozycja dla generowania obiektów
+          Global::pCamera->Init(vPosition+vector3(0,0,5),Global::pFreeCameraInitAngle[0]); //przestawienie
+         }
+         Global:l::pGround->Silence(Global::pCamera->Pos); //wyciszenie wszystkiego z poprzedniej pozycji
+          Globa:iPause|=1; //tymczasowe zapauzowanie, gdy problem z sieci¹
+        }
+*/
+      NoVoltTime=NoVoltTime+dt;
+      if (MoverParameters->Vel>0.1f) //jeœli jedzie
+       //if (NoVoltTime>0.02) //tu mo¿na ograniczyæ czas roz³¹czenia
+        //if (DebugModeFlag) //logowanie nie zawsze
+         ErrorLog("Voltage loss: by "+MoverParameters->Name+" at "+FloatToStrF(vPosition.x,ffFixed,7,2)+" "+FloatToStrF(vPosition.y,ffFixed,7,2)+" "+FloatToStrF(vPosition.z,ffFixed,7,2)+", time "+FloatToStrF(NoVoltTime,ffFixed,7,2));
       if (NoVoltTime>0.3) //jeœli brak zasilania d³u¿ej ni¿ przez 1 sekundê
        tmpTraction.TractionVoltage=0; //Ra 2013-12: po co tak?
        //pControlled->MainSwitch(false); //mo¿e tak?

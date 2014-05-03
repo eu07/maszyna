@@ -3772,7 +3772,7 @@ bool __fastcall TGround::GetTraction(TDynamicObject *model)
          fRaParam=-DotProduct(pant0,vFront);
          fRaParam=-(DotProduct(node->hvTraction->pPoint1,vFront)+fRaParam)/DotProduct(vParam,vFront);
          if ((fRaParam>=-0.001)?(fRaParam<=1.001):false)
-         {//jeœli t jest w przedziale, wyznaczyæ odleg³oœæ wzd³u¿ wektorów vUp i vLeft
+         {//jeœli tylko jest w przedziale, wyznaczyæ odleg³oœæ wzd³u¿ wektorów vUp i vLeft
           vStyk=node->hvTraction->pPoint1+fRaParam*vParam; //punkt styku p³aszczyzny z drutem (dla generatora ³uku el.)
           vGdzie=vStyk-pant0; //wektor
           fVertical=DotProduct(vGdzie,vUp); //musi siê mieœciæ w przedziale ruchu pantografu
