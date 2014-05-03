@@ -16,7 +16,7 @@ __fastcall TMoverParameters::TMoverParameters(double VelInitial,AnsiString TypeN
  DimHalf.x=0.5*Dim.W; //po³owa szerokoœci, OX jest w bok?
  DimHalf.y=0.5*Dim.L; //po³owa d³ugoœci, OY jest do przodu?
  DimHalf.z=0.5*Dim.H; //po³owa wysokoœci, OZ jest w górê?
- BrakeLevelSet(-2); //Pascal ustawia na 0, przestawimy na odciêcie (CHK jest jeszcze nie wczytane!)
+ //BrakeLevelSet(-2); //Pascal ustawia na 0, przestawimy na odciêcie (CHK jest jeszcze nie wczytane!)
  bPantKurek3=true; //domyœlnie zbiornik pantografu po³¹czony jest ze zbiornikiem g³ównym
  iProblem=0; //pojazd w pe³ni gotowy do ruchu
  iLights[0]=iLights[1]=0; //œwiat³a zgaszone
