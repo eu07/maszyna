@@ -157,12 +157,12 @@ void __fastcall TAnimContainer::AnimSetVMD(double fNewSpeed)
   }
  }
  //if (!strcmp(pSubModel->pName,"?Z?“?^?[")) //jak g³ówna koœæ
- //if (!strcmp(pSubModel->pName,"¶‚Â‚Üæ‚h‚j")) //IK lewej stopy
+ //if (!strcmp(pSubModel->pName,"¶‚Â‚Ü?æ‚h‚j")) //IK lewej stopy
  // WriteLog(AnsiString(pMovementData->iFrame)+": "+AnsiString(pMovementData->f3Vector.x)+" "+AnsiString(pMovementData->f3Vector.y)+" "+AnsiString(pMovementData->f3Vector.z));
 }
 
 void __fastcall TAnimContainer::UpdateModel()
-{
+{//przeliczanie animacji wykonaæ tylko raz na model
  if (pSubModel) //pozbyæ siê tego - sprawdzaæ wczeœniej
  {
   if (fTranslateSpeed!=0.0)
@@ -200,7 +200,8 @@ void __fastcall TAnimContainer::UpdateModel()
 
    while (fAngle>360) fAngle-= 360;
    while (fAngle<-360) fAngle+= 360;
-   pSubModel->SetRotate(vRotateAxis,fAngle);*/
+   pSubModel->SetRotate(vRotateAxis,fAngle);
+*/
 
    bool anim=false;
    vector3 dif=vDesiredAngles-vRotateAngles;
@@ -232,13 +233,21 @@ void __fastcall TAnimContainer::UpdateModel()
       iAnim&=~1; //k¹ty s¹ zerowe
    if (!anim)
    {//nie potrzeba przeliczaæ ju¿
-    fRotateSpeed=0.0; 
+    fRotateSpeed=0.0;
     if (evDone) Global::AddToQuery(evDone,NULL); //wykonanie eventu informuj¹cego o zakoñczeniu
    }
   }
   if (fAngleSpeed!=0.0)
   {//obrót kwaternionu (interpolacja)
   }
+ }
+};
+
+void __fastcall TAnimContainer::PrepareModel()
+{
+ if (pSubModel) //pozbyæ siê tego - sprawdzaæ wczeœniej
+ {
+  //nanoszenie animacji na wzorzec
   if (iAnim&1) //zmieniona pozycja wzglêdem pocz¹tkowej
    pSubModel->SetRotateXYZ(vRotateAngles); //ustawia typ animacji
   if (iAnim&2) //zmieniona pozycja wzglêdem pocz¹tkowej
@@ -461,6 +470,16 @@ TAnimContainer* __fastcall TAnimModel::GetContainer(char *pName)
  return AddContainer(pName);
 }
 
+void __fastcall TAnimModel::RaAnimate()
+{//przeliczenie animacji - jednorazowo na klatkê
+ TAnimContainer *pCurrent;
+ for (pCurrent=pRoot;pCurrent!=NULL;pCurrent=pCurrent->pNext)
+  pCurrent->UpdateModel(); //przeliczenie animacji ka¿dego submodelu
+ //if () //tylko dla modeli z IK !!!!
+  for (pCurrent=pRoot;pCurrent!=NULL;pCurrent=pCurrent->pNext) //albo osobny ³añcuch
+   pCurrent->UpdateModelIK(); //przeliczenie odwrotnej kinematyki
+};
+
 void __fastcall TAnimModel::RaPrepare()
 {//ustawia œwiat³a i animacje w modelu przed renderowaniem
  fBlinkTimer-=Timer::GetDeltaTime();
@@ -484,14 +503,15 @@ void __fastcall TAnimModel::RaPrepare()
   Advanced(); //wykonaæ co tam trzeba
  TAnimContainer *pCurrent;
  for (pCurrent=pRoot;pCurrent!=NULL;pCurrent=pCurrent->pNext)
-  pCurrent->UpdateModel(); //przeliczenie animacji ka¿dego submodelu
+  pCurrent->PrepareModel(); //ustawienie animacji egzemplarza dla ka¿dego submodelu
  //if () //tylko dla modeli z IK !!!!
-  for (pCurrent=pRoot;pCurrent!=NULL;pCurrent=pCurrent->pNext) //albo osobny ³añcuch
-   pCurrent->UpdateModelIK(); //przeliczenie odwrotnej kinematyki
+ // for (pCurrent=pRoot;pCurrent!=NULL;pCurrent=pCurrent->pNext) //albo osobny ³añcuch
+ //  pCurrent->UpdateModelIK(); //przeliczenie odwrotnej kinematyki
 }
 
 void __fastcall TAnimModel::RenderVBO(vector3 pPosition,double fAngle)
 {//sprawdza œwiat³a i rekurencyjnie renderuje TModel3d
+ RaAnimate(); //jednorazowe przeliczenie animacji
  RaPrepare();
  if (pModel) //renderowanie rekurencyjne submodeli
   pModel->RaRender(pPosition,fAngle,ReplacableSkinId,iTexAlpha);
@@ -506,6 +526,7 @@ void __fastcall TAnimModel::RenderAlphaVBO(vector3 pPosition,double fAngle)
 
 void __fastcall TAnimModel::RenderDL(vector3 pPosition,double fAngle)
 {
+ RaAnimate(); //jednorazowe przeliczenie animacji
  RaPrepare();
  if (pModel) //renderowanie rekurencyjne submodeli
   pModel->Render(pPosition,fAngle,ReplacableSkinId,iTexAlpha);
@@ -538,6 +559,7 @@ int __fastcall TAnimModel::Flags()
 
 void __fastcall TAnimModel::RenderDL(vector3* vPosition)
 {
+ RaAnimate(); //jednorazowe przeliczenie animacji
  RaPrepare();
  if (pModel) //renderowanie rekurencyjne submodeli
   pModel->Render(vPosition,&vAngle,ReplacableSkinId,iTexAlpha);
@@ -550,6 +572,7 @@ void __fastcall TAnimModel::RenderAlphaDL(vector3* vPosition)
 };
 void __fastcall TAnimModel::RenderVBO(vector3* vPosition)
 {
+ RaAnimate(); //jednorazowe przeliczenie animacji
  RaPrepare();
  if (pModel) //renderowanie rekurencyjne submodeli
   pModel->RaRender(vPosition,&vAngle,ReplacableSkinId,iTexAlpha);
