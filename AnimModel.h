@@ -66,6 +66,7 @@ public:
  void __fastcall SetRotateAnim(vector3 vNewRotateAngles, double fNewRotateSpeed);
  void __fastcall SetTranslateAnim(vector3 vNewTranslate, double fNewSpeed);
  void __fastcall AnimSetVMD(double fNewSpeed);
+ void __fastcall PrepareModel();
  void __fastcall UpdateModel();
  void __fastcall UpdateModelIK();
  bool __fastcall InMovement(); //czy w trakcie animacji?
@@ -107,6 +108,9 @@ private:
  TLightState lsLights[iMaxNumLights];
  float fDark; //poziom zapalanie œwiat³a (powinno byæ chyba powi¹zane z danym œwiat³em?)
  float fOnTime,fOffTime; //by³y sta³ymi, teraz mog¹ byæ zmienne dla ka¿dego egzemplarza
+private:
+ void __fastcall RaAnimate(); //przeliczenie animacji egzemplarza
+ void __fastcall RaPrepare(); //ustawienie animacji egzemplarza na wzorcu
 public:
  GLuint ReplacableSkinId[5]; //McZapkie-020802: zmienialne skory
  __fastcall TAnimModel();
@@ -124,7 +128,6 @@ public:
  void __fastcall RenderAlphaDL(vector3* vPosition);
  void __fastcall RenderVBO(vector3* vPosition);
  void __fastcall RenderAlphaVBO(vector3* vPosition);
- void __fastcall RaPrepare();
  int __fastcall Flags();
  void __fastcall RaAnglesSet(double a,double b,double c)
  {vAngle.x=a; vAngle.y=b; vAngle.z=c;};
