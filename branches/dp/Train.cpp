@@ -488,26 +488,32 @@ void __fastcall TTrain::OnKeyDown(int cKey)
       else
       if (cKey==Global::Keys[k_OpenLeft])   //NBMX 17-09-2003: otwieranie drzwi
       {
-         if (mvOccupied->DoorOpenCtrl==1)
-           if (mvOccupied->CabNo<0?mvOccupied->DoorRight(true):mvOccupied->DoorLeft(true))
-             {
-                 dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                 dsbSwitch->Play(0,0,0);
-                 dsbDoorOpen->SetCurrentPosition(0);
-                 dsbDoorOpen->Play(0,0,0);
-             }
+       if (mvOccupied->DoorOpenCtrl==1)
+        if (mvOccupied->CabNo<0?mvOccupied->DoorRight(true):mvOccupied->DoorLeft(true))
+        {
+         dsbSwitch->SetVolume(DSBVOLUME_MAX);
+         dsbSwitch->Play(0,0,0);
+         if (dsbDoorOpen)
+         {
+          dsbDoorOpen->SetCurrentPosition(0);
+          dsbDoorOpen->Play(0,0,0);
+         }
+        }
       }
       else
       if (cKey==Global::Keys[k_OpenRight])   //NBMX 17-09-2003: otwieranie drzwi
       {
-         if (mvOccupied->DoorCloseCtrl==1)
-           if (mvOccupied->CabNo<0?mvOccupied->DoorLeft(true):mvOccupied->DoorRight(true))
-           {
-               dsbSwitch->SetVolume(DSBVOLUME_MAX);
-               dsbSwitch->Play(0,0,0);
-               dsbDoorOpen->SetCurrentPosition(0);
-               dsbDoorOpen->Play(0,0,0);
-           }
+       if (mvOccupied->DoorCloseCtrl==1)
+        if (mvOccupied->CabNo<0?mvOccupied->DoorLeft(true):mvOccupied->DoorRight(true))
+        {
+         dsbSwitch->SetVolume(DSBVOLUME_MAX);
+         dsbSwitch->Play(0,0,0);
+         if (dsbDoorOpen)
+         {
+           dsbDoorOpen->SetCurrentPosition(0);
+           dsbDoorOpen->Play(0,0,0);
+         }
+        }
       }
       else
       //-----------
@@ -1682,23 +1688,29 @@ void __fastcall TTrain::OnKeyDown(int cKey)
       else
       if (cKey==Global::Keys[k_CloseLeft])   //NBMX 17-09-2003: zamykanie drzwi
       {
-           if (mvOccupied->CabNo<0?mvOccupied->DoorRight(false):mvOccupied->DoorLeft(false))
-           {
-               dsbSwitch->SetVolume(DSBVOLUME_MAX);
-               dsbSwitch->Play(0,0,0);
-               dsbDoorClose->SetCurrentPosition(0);
-               dsbDoorClose->Play(0,0,0);
-           }
+       if (mvOccupied->CabNo<0?mvOccupied->DoorRight(false):mvOccupied->DoorLeft(false))
+       {
+        dsbSwitch->SetVolume(DSBVOLUME_MAX);
+        dsbSwitch->Play(0,0,0);
+        if (dsbDoorClose)
+        {
+         dsbDoorClose->SetCurrentPosition(0);
+         dsbDoorClose->Play(0,0,0);
+        }
+       }
       }
       else if (cKey==Global::Keys[k_CloseRight])   //NBMX 17-09-2003: zamykanie drzwi
       {
-           if (mvOccupied->CabNo<0?mvOccupied->DoorLeft(false):mvOccupied->DoorRight(false))
-           {
-               dsbSwitch->SetVolume(DSBVOLUME_MAX);
-               dsbSwitch->Play(0,0,0);
-               dsbDoorClose->SetCurrentPosition(0);
-               dsbDoorClose->Play(0,0,0);
-           }
+       if (mvOccupied->CabNo<0?mvOccupied->DoorLeft(false):mvOccupied->DoorRight(false))
+       {
+        dsbSwitch->SetVolume(DSBVOLUME_MAX);
+        dsbSwitch->Play(0,0,0);
+        if (dsbDoorClose)
+        {
+         dsbDoorClose->SetCurrentPosition(0);
+         dsbDoorClose->Play(0,0,0);
+        }
+       }
       }
       else
       //-----------
