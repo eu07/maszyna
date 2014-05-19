@@ -409,6 +409,7 @@ public:
  TDynamicObject* __fastcall Neightbour(int &dir);
  void __fastcall CoupleDist();
  TDynamicObject* __fastcall ControlledFind();
+ void __fastcall ParamSet(int what,int into);
 };
 
 
