@@ -1331,24 +1331,20 @@ double __fastcall TDynamicObject::Init(
  asName=Name;
  AnsiString asAnimName=""; //zmienna robocza do wyszukiwania osi i wózków
  //Ra: zmieniamy znaczenie obsady na jednoliterowe, ¿eby dosadziæ kierownika
- if (DriverType=="headdriver") DriverType="h"; //steruj¹cy kabin¹ +1
- else if (DriverType=="reardriver") DriverType="r"; //steruj¹cy kabin¹ -1
+ if (DriverType=="headdriver") DriverType="1"; //steruj¹cy kabin¹ +1
+ else if (DriverType=="reardriver") DriverType="2"; //steruj¹cy kabin¹ -1
  //else if (DriverType=="connected") DriverType="c"; //tego trzeba siê pozbyæ na rzecz ukrotnienia
  else if (DriverType=="passenger") DriverType="p"; //to do przemyœlenia
  else if (DriverType=="nobody") DriverType=""; //nikt nie siedzi
- int Cab; //numer kabiny z obsad¹ (nie mo¿na zaj¹æ obu)
- if (DriverType.Pos("h")||DriverType.Pos("1")) //od przodu sk³adu
+ int Cab=0; //numer kabiny z obsad¹ (nie mo¿na zaj¹æ obu)
+ if (DriverType.Pos("1")) //od przodu sk³adu
   Cab=1;//iDirection?1:-1; //iDirection=1 gdy normalnie, =0 odwrotnie
- else if (DriverType.Pos("r")||DriverType.Pos("2")) //od ty³u sk³adu
+ else if (DriverType.Pos("2")) //od ty³u sk³adu
   Cab=-1;//iDirection?-1:1;
- //else if (DriverType=="c") //uaktywnianie wirtualnej kabiny
- // Cab=0; //iDirection?1:-1; //to przestawi steruj¹cy
  else if (DriverType=="p")
  {
   if (random(6)<3) Cab=1; else Cab=-1; //losowy przydzia³ kabiny
  }
- else if (DriverType=="")
-  Cab=0;
 /* to nie ma uzasadnienia
  else
  {//obsada nie rozpoznana
@@ -1507,7 +1503,7 @@ double __fastcall TDynamicObject::Init(
     bDisplayCab=true;
   }
   //McZapkie-151102: rozk³ad jazdy czytany z pliku *.txt z katalogu w którym jest sceneria
-  if (DriverType.Pos("h")||DriverType.Pos("r"))
+  if (DriverType.Pos("1")||DriverType.Pos("2"))
   {//McZapkie-110303: mechanik i rozklad tylko gdy jest obsada
    //MoverParameters->ActiveCab=MoverParameters->CabNo; //ustalenie aktywnej kabiny (rozrz¹d)
    Mechanik=new TController(Controller,this,Aggressive);
@@ -4083,5 +4079,45 @@ TDynamicObject* __fastcall TDynamicObject::ControlledFind()
     d=d->PrevConnected; //bêdziemy sterowaæ tym z moc¹
   }
  return d;
+};
+//---------------------------------------------------------------------------
+
+void __fastcall TDynamicObject::ParamSet(int what,int into)
+{//ustawienie lokalnego parametru (what) na stan (into)
+ switch (what&0xFF00)
+ {
+  case 0x0100: //to np. s¹ drzwi, bity 0..7 okreœlaj¹ numer 1..254 albo maskê dla 8 ró¿nych
+   if (what&1) //na razie mamy lewe oraz prawe, czyli u¿ywamy maskê 1=lewe, 2=prawe, 3=wszystkie
+    if (MoverParameters->DoorLeftOpened)
+    {//s¹ otwarte
+     if (!into) //jeœli zamykanie
+     {
+      //dŸwiêk zamykania
+     }
+    }
+    else
+    {//s¹ zamkniête
+     if (into) //jeœli otwieranie
+     {
+      //dŸwiêk otwierania
+     }
+    }
+   if (what&2) //prawe dzia³aj¹ niezale¿nie od lewych
+    if (MoverParameters->DoorRightOpened)
+    {//s¹ otwarte
+     if (!into) //jeœli zamykanie
+     {
+      //dŸwiêk zamykania
+     }
+    }
+    else
+    {//s¹ zamkniête
+     if (into) //jeœli otwieranie
+     {
+      //dŸwiêk otwierania
+     }
+    }
+  break;
+ }
 };
 
