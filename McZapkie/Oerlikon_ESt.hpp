@@ -183,6 +183,30 @@ public:
 };
 
 
+class DELPHICLASS TPrzekED;
+class PASCALIMPLEMENTATION TPrzekED : public TRura 
+{
+	typedef TRura inherited;
+	
+private:
+	double MaxP;
+	
+public:
+	void __fastcall SetP(double P);
+	virtual void __fastcall Update(double dt);
+public:
+	#pragma option push -w-inl
+	/* TReservoir.Create */ inline __fastcall TPrzekED(void) : TRura() { }
+	#pragma option pop
+	
+public:
+	#pragma option push -w-inl
+	/* TObject.Destroy */ inline __fastcall virtual ~TPrzekED(void) { }
+	#pragma option pop
+	
+};
+
+
 class DELPHICLASS TNESt3;
 class PASCALIMPLEMENTATION TNESt3 : public Hamulce::TBrake 
 {
@@ -254,6 +278,7 @@ static const Shortint p_rapid = 0x1;
 static const Shortint p_pp = 0x2;
 static const Shortint p_al2 = 0x3;
 static const Shortint p_ppz = 0x4;
+static const Shortint P_ed = 0x5;
 extern PACKAGE double __fastcall d2A(double d);
 
 }	/* namespace Oerlikon_est */

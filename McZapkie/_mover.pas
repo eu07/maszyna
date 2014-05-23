@@ -202,7 +202,7 @@ TYPE
     TBrakeSystem = (Individual, Pneumatic, ElectroPneumatic);
     {podtypy hamulcow zespolonych}
     TBrakeSubSystem = (ss_None, ss_W, ss_K, ss_KK, ss_Hik, ss_ESt, ss_KE, ss_LSt, ss_MT, ss_Dako);
-    TBrakeValve = (NoValve, W, W_Lu_VI, W_Lu_L, W_Lu_XR, K, Kg, Kp, Kss, Kkg, Kkp, Kks, Hikg1, Hikss, Hikp1, KE, SW, NESt3, ESt3, LSt, ESt4, ESt3AL2, EP1, EP2, M483, CV1_L_TR, CV1, CV1_R, Other);
+    TBrakeValve = (NoValve, W, W_Lu_VI, W_Lu_L, W_Lu_XR, K, Kg, Kp, Kss, Kkg, Kkp, Kks, Hikg1, Hikss, Hikp1, KE, SW, EStED, NESt3, ESt3, LSt, ESt4, ESt3AL2, EP1, EP2, M483, CV1_L_TR, CV1, CV1_R, Other);
     TBrakeHandle = (NoHandle, West, FV4a, M394, M254, FVel1, FVel6, D2, Knorr, FD1, BS2, testH, St113);
     {typy hamulcow indywidualnych}
     TLocalBrake = (NoBrake, ManualBrake, PneumaticBrake, HydraulicBrake);
@@ -813,6 +813,7 @@ TYPE
                 function v2n:real;
                 function current(n,U:real): real;
                 function Momentum(I:real): real;
+                function MomentumF(I, Iw :real; SCP:byte ): real;                
                {! odlaczanie uszkodzonych silnikow}
                 function CutOffEngine: boolean;
                {! przelacznik pradu wysokiego rozruchu}
@@ -2362,7 +2363,7 @@ if (BrakeCtrlPosNo>1) and (ActiveCab<>0)then
 with BrakePressureTable[BrakeCtrlPos] do
    begin
           dpLocalValve:=LocHandle.GetPF(LocalBrakePos/LocalBrakePosNo, Hamulec.GetBCP, ScndPipePress, dt, 0);
-          if(BrakeHandle=FV4a)and((PipePress<2.75)and((Hamulec.GetStatus and b_rls)=0))and(BrakeValve=LSt)then
+          if(BrakeHandle=FV4a)and((PipePress<2.75)and((Hamulec.GetStatus and b_rls)=0))and(BrakeSubsystem=ss_LSt)then
             temp:=PipePress+0.00001
             else
             temp:=ScndPipePress;
@@ -2406,7 +2407,7 @@ end;
           else
            (Hamulec as TWest).PLC(TotalMass);
          end;
-      LSt:
+      LSt,EStED:
          begin
         LocBrakePress:=LocHandle.GetCP;
         (Hamulec as TLSt).SetLBP(LocBrakePress);
@@ -2796,7 +2797,7 @@ begin
 //i dzialanie hamulca ED w EP09
   if (DynamicBrakeType=dbrake_automatic) then
    begin
-    if ((Hamulec as TLSt).GetEDBCP<0.2)or(BrakePress>2.1) then
+    if (((Hamulec as TLSt).GetEDBCP<0.25)and(Vadd<1))or(BrakePress>2.1) then
       DynamicBrakeFlag:=false
     else if (BrakePress>0.25) and ((Hamulec as TLSt).GetEDBCP>0.25) then
       DynamicBrakeFlag:=true;
@@ -2809,8 +2810,11 @@ begin
 //    DelayCtrlFlag:=(TrainType<>dt_EZT); //EN57 nie ma czekania na 1. pozycji
 //    DynamicBrakeFlag:=false;
 //   end;
-  if BrakeSubSystem=ss_LSt then
-   (Hamulec as TLSt).SetED((DynamicBrakeFlag)and(Vel>20));
+  if(BrakeSubSystem=ss_LSt)then
+    if(DynamicBrakeFlag)then
+     (Hamulec as TLSt).SetED(Abs(Im/350)) //hamulec ED na EP09 dziala az do zatrzymania lokomotywy
+    else
+     (Hamulec as TLSt).SetED(0);
 
   ResistorsFlag:=(RList[MainCtrlActualPos].R>0.01){ and (not DelayCtrlFlag)};
   ResistorsFlag:=ResistorsFlag or ((DynamicBrakeFlag=true) and (DynamicBrakeType=dbrake_automatic));
@@ -2837,14 +2841,11 @@ begin
 //  MotorCurrent:=-fi*n/Rz;
 //  end;
   if DynamicBrakeFlag and (not FuseFlag) and (DynamicBrakeType=dbrake_automatic) and ConverterFlag and Mains then     {hamowanie EP09}
-   with MotorParam[ScndCtrlPosNo] do
+   with MotorParam[0] do //TUHEX
      begin
-       MotorCurrent:=-fi*n/ep09resED; {TODO: zrobic bardziej uniwersalne nie tylko dla EP09}
-       if abs(MotorCurrent)>500 then
-        MotorCurrent:=sign(MotorCurrent)*500 {TODO: zrobic bardziej finezyjnie}
-        else
-         if abs(MotorCurrent)<40 then
-          MotorCurrent:=0;
+       MotorCurrent:=-Max0R(fi*(Vadd/(Vadd+Isat)-fi0),0)*n*2/ep09resED; {TODO: zrobic bardziej uniwersalne nie tylko dla EP09}
+//       if abs(MotorCurrent)>500 then
+//        MotorCurrent:=sign(MotorCurrent)*500 {TODO: zrobic bardziej finezyjnie}
      end
   else
   if (RList[MainCtrlActualPos].Bn=0) {or FuseFlag} or (not StLinFlag) {or DelayCtrlFlag} then
@@ -2949,6 +2950,13 @@ begin
     with MotorParam[SP] do
 //     Momentum:=mfi*I*(1-1.0/(Abs(I)/mIsat+1));
      Momentum:=mfi*I*(Abs(I)/(Abs(I)+mIsat)-mfi0);
+end;
+
+function T_MoverParameters.MomentumF(I, Iw :real; SCP: byte): real;
+begin
+//umozliwia dokladne sterowanie wzbudzeniem
+  with MotorParam[SCP] do
+   MomentumF:=mfi*I*Max0R(Abs(Iw)/(Abs(Iw)+mIsat)-mfi0,0);
 end;
 
 function T_MoverParameters.dizel_Momentum(dizel_fill,n,dt:real): real;
@@ -3908,7 +3916,7 @@ begin
      dmoment:=dizel_Momentum(dizel_fill,ActiveDir*1*dtrans*nrot,dt); {oblicza tez enrot}
    end;
   eAngle:=eAngle+enrot*dt;
-  if eAngle>Pirazy2 then
+  if eAngle>Pirazy2 then                                                       
    //eAngle:=Pirazy2-eAngle; <- ABu: a nie czasem tak, jak nizej?
    eAngle:=eAngle-Pirazy2;
 
@@ -3922,6 +3930,9 @@ begin
             RventRot:=RventRot*(1-RVentSpeed*dt);
         2: if (Abs(Itot)>RVentMinI) and (RList[MainCtrlActualPos].R>RVentCutOff) then
             RventRot:=RventRot+(RVentnmax*Abs(Itot)/(ImaxLo*RList[MainCtrlActualPos].Bn)-RventRot)*RVentSpeed*dt
+           else
+           if (DynamicBrakeType=dbrake_automatic) and (DynamicBrakeFlag) then
+            RventRot:=RventRot+(RVentnmax*Im/ImaxLo-RventRot)*RVentSpeed*dt           
            else
             begin
               RventRot:=RventRot*(1-RVentSpeed*dt);
@@ -3975,6 +3986,22 @@ begin
            if(DynamicBrakeFlag)and(Abs(Im)>300)then
              FuseOff;
          end;
+        if (DynamicBrakeType=dbrake_automatic)and(DynamicBrakeFlag) then
+         begin
+          if ((Vadd+Abs(Im))>760)or((Hamulec as TLSt).GetEDBCP<0.25) then
+           begin
+            Vadd:=Vadd-500*dt;
+            if(Vadd<1)then
+             Vadd:=0;
+           end
+          else if (DynamicBrakeFlag)and((Vadd+Abs(Im))<740) then
+           begin
+            Vadd:=Vadd+70*dt;
+            Vadd:=Min0R(Max0R(Vadd,60),400);
+           end;
+          if(Vadd>0)then Mm:=MomentumF(Im,Vadd,0);
+         end; 
+
         if(TrainType=dt_ET22)and(DelayCtrlFlag)then //szarpanie przy zmianie uk³adu w byku
           Mm:=Mm*RList[MainCtrlActualPos].Bn/(RList[MainCtrlActualPos].Bn+1); //zrobione w momencie, ¿eby nie dawac elektryki w przeliczaniu si³
 
@@ -4667,7 +4694,7 @@ begin
       if not DynamicBrakeFlag then
        RunningTraction.TractionVoltage:=TractionVoltage-Abs(TractionResistivity*(Itot+HVCouplers[0][0]+HVCouplers[1][0]))
       else
-       RunningTraction.TractionVoltage:=TractionVoltage-Abs(TractionResistivity*Itot);
+       RunningTraction.TractionVoltage:=TractionVoltage-Abs(TractionResistivity*Itot*0); //zasadniczo ED oporowe nie zmienia napiêcia w sieci
    end;
   if CategoryFlag=4 then
    OffsetTrackV:=TotalMass/(Dim.L*Dim.W*1000.0)
@@ -5669,6 +5696,10 @@ case BrakeValve of
           Hamulec :=  TLSt.Create(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
           (Hamulec as TLSt).SetRM(RapidMult);
          end;
+  EStED :begin
+          Hamulec :=  TEStED.Create(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
+          (Hamulec as TEStED).SetRM(RapidMult);
+         end;
   EP2:begin
          Hamulec :=TEStEP2.Create(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
          (Hamulec as TEStEP2).SetLP(Mass, MBPM, MaxBrakePress[1]);
@@ -5990,6 +6021,8 @@ begin
      BrakeValve:=Hikg1
    else if s='KE' then
      BrakeValve:=KE
+   else if s='EStED' then
+     BrakeValve:=EStED
    else if Pos('ESt',s)>0 then
      BrakeValve:=ESt3
    else if s='LSt' then
@@ -6009,10 +6042,10 @@ procedure BrakeSubsystemDecode;
 begin
   case BrakeValve of
     W,W_Lu_L,W_Lu_VI,W_Lu_XR: BrakeSubsystem:=ss_W;
-    ESt3,ESt3AL2,ESt4,EP2,EP1: BrakeSubsystem:=ss_ESt;
+    ESt3,ESt3AL2,ESt4,EP2,EP1: BrakeSubsystem:=ss_ESt;                                                
     KE: BrakeSubsystem:=ss_KE;
     CV1, CV1_L_TR: BrakeSubsystem:=ss_Dako;
-    LSt: BrakeSubsystem:=ss_LSt;
+    LSt, EStED: BrakeSubsystem:=ss_LSt;
   else
     BrakeSubsystem:=ss_None;
   end;
