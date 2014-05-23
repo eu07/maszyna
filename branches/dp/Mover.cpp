@@ -154,10 +154,10 @@ void __fastcall TMoverParameters::BrakeLevelSet(double b)
  fBrakeCtrlPos=b;
  BrakeCtrlPosR=b;
  if (fBrakeCtrlPos<Handle->GetPos(bh_MIN))
-  fBrakeCtrlPos=-2.0; //odciêcie
+  fBrakeCtrlPos=Handle->GetPos(bh_MIN); //odciêcie
  else
   if (fBrakeCtrlPos>Handle->GetPos(bh_MAX))
-   fBrakeCtrlPos=BrakeCtrlPosNo;
+   fBrakeCtrlPos=Handle->GetPos(bh_MAX);
  int x=floor(fBrakeCtrlPos); //jeœli odwo³ujemy siê do BrakeCtrlPos w poœrednich, to musi byæ obciête a nie zaokr¹gone
  while ((x>BrakeCtrlPos)&&(BrakeCtrlPos<BrakeCtrlPosNo)) //jeœli zwiêkszy³o siê o 1
   if (!T_MoverParameters::IncBrakeLevelOld()) break; //wyjœcie awaryjne

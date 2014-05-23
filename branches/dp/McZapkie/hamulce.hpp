@@ -287,7 +287,7 @@ private:
 	double CylFlowSpeed[2][2];
 	double LBP;
 	double RM;
-	bool EDFlag;
+	double EDFlag;
 	
 public:
 	void __fastcall SetLBP(double P);
@@ -295,8 +295,8 @@ public:
 	virtual double __fastcall GetPF(double PP, double dt, double Vel);
 	virtual double __fastcall GetHPFlow(double HP, double dt);
 	virtual void __fastcall Init(double PP, double HPP, double LPP, double BP, Byte BDF);
-	double __fastcall GetEDBCP(void);
-	void __fastcall SetED(bool EDstate);
+	virtual double __fastcall GetEDBCP(void);
+	void __fastcall SetED(double EDstate);
 public:
 	#pragma option push -w-inl
 	/* TBrake.Create */ inline __fastcall TLSt(double i_mbp, double i_bcr, double i_bcd, double i_brc, 
@@ -307,6 +307,36 @@ public:
 public:
 	#pragma option push -w-inl
 	/* TObject.Destroy */ inline __fastcall virtual ~TLSt(void) { }
+	#pragma option pop
+	
+};
+
+
+class DELPHICLASS TEStED;
+class PASCALIMPLEMENTATION TEStED : public TLSt 
+{
+	typedef TLSt inherited;
+	
+private:
+	double Nozzles[11];
+	bool Zamykajacy;
+	bool Przys_blok;
+	TReservoir* Miedzypoj;
+	
+public:
+	virtual void __fastcall Init(double PP, double HPP, double LPP, double BP, Byte BDF);
+	virtual double __fastcall GetPF(double PP, double dt, double Vel);
+	virtual double __fastcall GetEDBCP(void);
+public:
+	#pragma option push -w-inl
+	/* TBrake.Create */ inline __fastcall TEStED(double i_mbp, double i_bcr, double i_bcd, double i_brc
+		, Byte i_bcn, Byte i_BD, Byte i_mat, Byte i_ba, Byte i_nbpa) : TLSt(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
+		, i_BD, i_mat, i_ba, i_nbpa) { }
+	#pragma option pop
+	
+public:
+	#pragma option push -w-inl
+	/* TObject.Destroy */ inline __fastcall virtual ~TEStED(void) { }
 	#pragma option pop
 	
 };

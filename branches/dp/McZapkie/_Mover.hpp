@@ -87,7 +87,8 @@ enum TBrakeSubSystem { ss_None, ss_W, ss_K, ss_KK, ss_Hik, ss_ESt, ss_KE, ss_LSt
 
 #pragma option push -b-
 enum TBrakeValve { NoValve, W, W_Lu_VI, W_Lu_L, W_Lu_XR, K, Kg, Kp, Kss, Kkg, Kkp, Kks, Hikg1, Hikss, 
-	Hikp1, KE, SW, NESt3, ESt3, LSt, ESt4, ESt3AL2, EP1, EP2, M483, CV1_L_TR, CV1, CV1_R, Other };
+	Hikp1, KE, SW, EStED, NESt3, ESt3, LSt, ESt4, ESt3AL2, EP1, EP2, M483, CV1_L_TR, CV1, CV1_R, Other 
+	};
 #pragma option pop
 
 #pragma option push -b-
@@ -686,6 +687,7 @@ public:
 	double __fastcall v2n(void);
 	double __fastcall current(double n, double U);
 	double __fastcall Momentum(double I);
+	double __fastcall MomentumF(double I, double Iw, Byte SCP);
 	bool __fastcall CutOffEngine(void);
 	bool __fastcall MaxCurrentSwitch(bool State);
 	bool __fastcall ResistorsFlagCheck(void);

@@ -55,6 +55,7 @@ CONST
   p_pp    = 2;
   p_al2   = 3;
   p_ppz   = 4;
+  P_ed    = 5;
 
 
 
@@ -110,12 +111,18 @@ TYPE
         procedure Update(dt:real); override;
       end;
 
-
     TPrzekZalamany= class(TPrzekladnik) //Knicksventil
       private
       public
       end;
 
+    TPrzekED= class(TRura) //przy napelnianiu - rura, przy hamowaniu - upust
+      private
+        MaxP: real;
+      public
+        procedure SetP(P: real);
+        procedure Update(dt:real); override;
+      end;
 
     TNESt3= class(TBrake)
       private
@@ -188,7 +195,7 @@ begin
   if (Poslizg) then
    begin
     BrakeRes.Flow(dVol);
-    Next.Flow(PF(Next.P,0,d2A(10))*dt); 
+    Next.Flow(PF(Next.P,0,d2A(10))*dt);
    end
   else
     Next.Flow(dVol);
@@ -323,6 +330,26 @@ begin
 
 end;
 
+// ------ PRZECIWPOSLIG ------
+
+procedure TPrzekED.SetP(P: real);
+begin
+  MaxP:=P;
+end;
+
+procedure TPrzekED.Update(dt: real);
+begin
+  if Next.P>MaxP then
+   begin
+    BrakeRes.Flow(dVol);
+    Next.Flow(PFVd(Next.P,0,d2A(10)*dt,MaxP));
+   end
+  else
+    Next.Flow(dVol);
+  dVol:=0;
+end;
+
+
 // ------ OERLIKON EST NA BOGATO ------
 
 function TNESt3.GetPF(PP, dt, Vel: real): real;     //przeplyw miedzy komora wstepna i PG
@@ -362,12 +389,17 @@ begin
     Przekladniki[i].Update(dt);
     if (Przekladniki[i] is TRapid) then
      begin
-      RapidStatus:=(((BrakeDelayFlag and bdelay_R)=bdelay_R) and ((Vel>70) or ((RapidStatus) and (Vel>50)) or (RapidStaly)));
+      RapidStatus:=(((BrakeDelayFlag and bdelay_R)=bdelay_R) and ((Abs(Vel)>70) or ((RapidStatus) and (Abs(Vel)>50)) or (RapidStaly)));
       (Przekladniki[i] as TRapid).SetRapidStatus(RapidStatus);
      end
     else
     if (Przekladniki[i] is TPrzeciwposlizg) then
       (Przekladniki[i] as TPrzeciwposlizg).SetPoslizg((BrakeStatus and b_asb)=b_asb)
+    else
+    if (Przekladniki[i] is TPrzekED) then
+      if (Vel<-15) then
+       (Przekladniki[i] as TPrzekED).SetP(0)
+      else (Przekladniki[i] as TPrzekED).SetP(MaxBP*3)
     else
     if (Przekladniki[i] is TPrzekCiagly) then
       (Przekladniki[i] as TPrzekCiagly).SetMult(LoadC)
@@ -613,6 +645,12 @@ begin
     else
       (Przekladniki[1] as TRapid).SetRapidParams(2,0);
     Przekladniki[3]:=TPrzeciwposlizg.Create;
+    if Pos('-ED',params)>0 then
+     begin
+      Przekladniki[3].Free();
+      (Przekladniki[1] as TRapid).SetRapidParams(2,18);
+      Przekladniki[3]:=TPrzekED.Create;
+     end;
    end;
 
   if Pos('AL2',params)>0 then

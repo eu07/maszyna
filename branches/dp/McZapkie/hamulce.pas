@@ -263,16 +263,28 @@ TYPE
         CylFlowSpeed: array[0..1] of array [0..1] of real;
         LBP: real;       //cisnienie hamulca pomocniczego
         RM: real;        //przelozenie rapida
-        EDFlag: boolean; //luzowanie hamulca z powodu zalaczonego ED
+        EDFlag: real; //luzowanie hamulca z powodu zalaczonego ED
       public
         procedure SetLBP(P: real);   //cisnienie z hamulca pomocniczego
         procedure SetRM(RMR: real);   //ustalenie przelozenia rapida
         function GetPF(PP, dt, Vel: real): real; override;     //przeplyw miedzy komora wstepna i PG
         function GetHPFlow(HP, dt: real): real; override; //przeplyw - 8 bar
         procedure Init(PP, HPP, LPP, BP: real; BDF: byte); override;
-        function GetEDBCP: real;    //cisnienie tylko z hamulca zasadniczego, uzywane do hamulca ED w EP09
-        procedure SetED(EDstate: boolean); //stan hamulca ED do luzowania
+        function GetEDBCP: real; virtual;   //cisnienie tylko z hamulca zasadniczego, uzywane do hamulca ED w EP09
+        procedure SetED(EDstate: real); //stan hamulca ED do luzowania
       end;
+
+    TEStED= class(TLSt)  //zawor z EP09 - Est4 z oddzielnym przekladnikiem, kontrola rapidu i takie tam
+      private
+        Nozzles: array[0..10] of real; //dysze
+        Zamykajacy: boolean;       //pamiec zaworka zamykajacego
+        Przys_blok: boolean;       //blokada przyspieszacza
+        Miedzypoj: TReservoir;     //pojemnosc posrednia (urojona) do napelniania ZP i ZS
+      public
+        procedure Init(PP, HPP, LPP, BP: real; BDF: byte); override;
+        function GetPF(PP, dt, Vel: real): real; override;     //przeplyw miedzy komora wstepna i PG
+        function GetEDBCP: real; override;   //cisnienie tylko z hamulca zasadniczego, uzywane do hamulca ED w EP09
+      end;  
 
     TEStEP2= class(TLSt)
       private
@@ -1601,7 +1613,7 @@ begin
 //cisnienie PP
   RapidTemp:=RapidTemp+(RM*Byte((Vel>55)and(BrakeDelayFlag=bdelay_R))-RapidTemp)*dt/2;
   temp:=1-RapidTemp;
-  if EDFlag then temp:=10000;
+  if EDFlag>0.2 then temp:=10000;
 
 //powtarzacz — podwojny zawor zwrotny
   temp:=Max0R(((CVP-BCP)*BVM+ASBP*Byte((BrakeStatus and b_asb)=b_asb))/temp,LBP);
@@ -1638,7 +1650,7 @@ begin
   BrakeRes.CreatePress(8);
   ValveRes.CreatePress(PP);
 
-  EDFlag:=False;
+  EDFlag:=0;
 
   BrakeDelayFlag:=BDF;
 end;
@@ -1656,9 +1668,9 @@ begin
   GetEDBCP:=(CVP-BCP)*BVM;
 end;
 
-procedure TLSt.SetED(EDstate: boolean);
+procedure TLSt.SetED(EDstate: real);
 begin
-  EDFlag:=EDstate
+  EDFlag:=EDstate;
 end;
 
 procedure TLSt.SetRM(RMR: real);
@@ -1673,6 +1685,200 @@ begin
   BrakeRes.Flow(-dV);
   GetHPFlow:=dV;
 end;
+
+//---EStED---
+
+function TEStED.GetPF(PP, dt, Vel: real): real;
+var dv, dv1, temp:real;
+    VVP, BVP, BCP, CVP, MPP, nastG: real;
+    i: byte;
+begin
+  BVP:=BrakeRes.P;
+  VVP:=ValveRes.P;
+  BCP:=ImplsRes.P;
+  CVP:=CntrlRes.P-0.0;
+  MPP:=Miedzypoj.P;
+  dV1:=0;
+
+  nastG:=(BrakeDelayFlag and bdelay_G);
+
+//sprawdzanie stanu
+  if(BCP<0.25)and(VVP+0.08>CVP)then Przys_blok:=false;
+
+//sprawdzanie stanu
+   if(VVP+0.002+BCP/BVM<CVP-0.05)and(Przys_blok)then
+     BrakeStatus:=(BrakeStatus or 3) //hamowanie stopniowe
+   else if(VVP-0.002+(BCP-0.1)/BVM>CVP-0.05) then
+     BrakeStatus:=(BrakeStatus and 252) //luzowanie
+   else if(VVP+BCP/BVM>CVP-0.05) then
+     BrakeStatus:=(BrakeStatus and 253) //zatrzymanie napelaniania
+   else if(VVP+(BCP-0.1)/BVM<CVP-0.05)and(BCP>0.25)then //zatrzymanie luzowania
+     BrakeStatus:=(BrakeStatus or 1);
+
+ if(VVP+0.10<CVP)and(BCP<0.25)then    //poczatek hamowania
+   if (not Przys_blok) then
+    begin
+     ValveRes.CreatePress(0.75*VVP);
+     SoundFlag:=SoundFlag or sf_Acc;
+     ValveRes.Act;
+     Przys_blok:=true;
+    end;
+
+
+ if(BCP>0.5)then
+   Zamykajacy:=true
+ else if(VVP-0.6<MPP) then
+   Zamykajacy:=false;
+
+ if(BrakeStatus and b_rls=b_rls)then
+  begin
+   dV:=PF(CVP,BCP,0.024)*dt;
+   CntrlRes.Flow(+dV);
+  end; 
+
+//luzowanie
+  if(BrakeStatus and b_hld)=b_off then
+   dV:=PF(0,BCP,Nozzles[3]*nastG+(1-nastG)*Nozzles[1])*dt
+  else dV:=0;
+  ImplsRes.Flow(-dV);
+  if((BrakeStatus and b_on)=b_on)and(BCP<MaxBP)then
+   dV:=PF(BVP,BCP,Nozzles[2]*(nastG+2*Byte(BCP<0.8))+Nozzles[0]*(1-nastG))*dt
+  else dV:=0;
+  ImplsRes.Flow(-dV);
+  BrakeRes.Flow(dV);
+
+//przeplyw testowy miedzypojemnosci
+  if(MPP<CVP-0.3)then
+    temp:=Nozzles[4]
+  else
+    if(BCP<0.5) then
+      if(Zamykajacy)then
+        temp:=Nozzles[8]  //1.25
+      else
+        temp:=Nozzles[7]
+    else
+      temp:=0;
+  dV:=PF(MPP,VVP,temp);
+
+  if(MPP<CVP-0.17)then
+    temp:=0
+  else
+  if(MPP>CVP-0.08)then
+    temp:=Nozzles[5]
+  else
+    temp:=Nozzles[6];
+  dV:=dV+PF(MPP,CVP,temp);
+
+  if(MPP-0.05>BVP)then
+    dV:=dV+PF(MPP-0.05,BVP,Nozzles[10]*nastG+(1-nastG)*Nozzles[9]);
+  if MPP>VVP then dV:=dV+PF(MPP,VVP,0.02);
+  Miedzypoj.Flow(dV*dt*0.15);
+
+
+  RapidTemp:=RapidTemp+(RM*Byte((Vel>55)and(BrakeDelayFlag=bdelay_R))-RapidTemp)*dt/2;
+  temp:=1-RapidTemp;
+//  if EDFlag then temp:=1000;
+//  temp:=temp/(1-);
+
+//powtarzacz — podwojny zawor zwrotny
+  temp:=Max0R(BCP/temp*Min0R(Max0R(1-EDFlag,0),1),LBP);
+
+  if(BrakeCyl.P>temp)then
+   dV:=-PFVd(BrakeCyl.P,0,0.02,temp)*dt
+  else
+  if(BrakeCyl.P<temp)then
+   dV:=PFVa(BVP,BrakeCyl.P,0.02,temp)*dt
+  else dV:=0;
+
+  BrakeCyl.Flow(dV);
+  if dV>0 then
+  BrakeRes.Flow(-dV);
+
+
+//przeplyw ZS <-> PG
+  if(MPP<CVP-0.17)then
+    temp:=0
+  else
+  if(MPP>CVP-0.08)then
+    temp:=Nozzles[5]
+  else
+    temp:=Nozzles[6];
+  dV:=PF(CVP,MPP,temp)*dt;
+  CntrlRes.Flow(+dV);
+  ValveRes.Flow(-0.02*dV);
+  dV1:=dV1+0.98*dV;
+
+//przeplyw ZP <-> MPJ
+  if(MPP-0.05>BVP)then
+   dV:=PF(BVP,MPP-0.05,Nozzles[10]*nastG+(1-nastG)*Nozzles[9])*dt
+  else dV:=0;
+  BrakeRes.Flow(dV);
+  dV1:=dV1+dV*0.98;
+  ValveRes.Flow(-0.02*dV);
+//przeplyw PG <-> rozdzielacz
+  dV:=PF(PP,VVP,0.005)*dt;    //0.01
+  ValveRes.Flow(-dV);
+
+
+  ValveRes.Act;
+  BrakeCyl.Act;
+  BrakeRes.Act;
+  CntrlRes.Act;
+  Miedzypoj.Act;
+  ImplsRes.Act;
+  GetPF:=dV-dV1;
+end;
+
+procedure TEStED.Init(PP, HPP, LPP, BP: real; BDF: byte);
+var i:integer;
+begin
+  inherited;
+
+  ValveRes.CreatePress(1*PP);
+  BrakeCyl.CreatePress(1*BP);
+
+//  CntrlRes:=TReservoir.Create;
+//  CntrlRes.CreateCap(15);
+//  CntrlRes.CreatePress(1*HPP);
+
+  BrakeStatus:=Byte(BP>1)*1;
+  Miedzypoj:=TReservoir.Create;
+  Miedzypoj.CreateCap(5);
+  Miedzypoj.CreatePress(PP);
+
+  ImplsRes.CreateCap(1);
+  ImplsRes.CreatePress(BP);
+
+  BVM:=1/(HPP-0.05-LPP)*MaxBP;
+
+  BrakeDelayFlag:=BDF;
+  Zamykajacy:=false;
+  EDFlag:=0;
+
+  Nozzles[0]:=1.250/1.7;
+  Nozzles[1]:=0.907;
+  Nozzles[2]:=0.510/1.7;
+  Nozzles[3]:=0.524/1.17;
+  Nozzles[4]:=7.4;
+  Nozzles[7]:=5.3;
+  Nozzles[8]:=2.5;
+  Nozzles[9]:=7.28;
+  Nozzles[10]:=2.96;
+  Nozzles[5]:=1.1;
+  Nozzles[6]:=0.9;
+
+  for i:=0 to 10 do
+   begin
+    Nozzles[i]:=Nozzles[i]*Nozzles[i]*3.14159/4000;
+   end;
+
+end;
+
+function TEStED.GetEDBCP: real;
+begin
+  GetEDBCP:=ImplsRes.P;
+end;
+
 
 
 //---DAKO CV1---
@@ -2404,7 +2610,7 @@ end;
 
 function TFV4aM.GetPos(i: byte): real;
 const
-  table: array[0..10] of real = (-2,5.5,-1,0,-2,1,4,5.5,0,0,0);
+  table: array[0..10] of real = (-2,6,-1,0,-2,1,4,6,0,0,0);
 begin
   GetPos:=table[i];
 end;
