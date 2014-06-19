@@ -1178,7 +1178,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
        //while (mvOccupied->BrakeCtrlPos<mvOccupied->BrakeCtrlPosNo/2 && mvOccupied->IncBrakeLevel());
        mvOccupied->BrakeLevelSet(mvOccupied->BrakeCtrlPosNo/2+(mvOccupied->BrakeHandle==FV4a?1:0));
        if (GetAsyncKeyState(VK_CONTROL)<0)
-         mvOccupied->BrakeLevelSet(BH_NP);
+         mvOccupied->BrakeLevelSet(bh_NP);
       }
       else
       if (cKey==Global::Keys[k_Brake1])
