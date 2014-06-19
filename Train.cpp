@@ -1178,8 +1178,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
        //while (mvOccupied->BrakeCtrlPos<mvOccupied->BrakeCtrlPosNo/2 && mvOccupied->IncBrakeLevel());
        mvOccupied->BrakeLevelSet(mvOccupied->BrakeCtrlPosNo/2+(mvOccupied->BrakeHandle==FV4a?1:0));
        if (GetAsyncKeyState(VK_CONTROL)<0)
-        if (mvOccupied->BrakeHandle==FV4a)
-         mvOccupied->BrakeLevelSet(-2);
+         mvOccupied->BrakeLevelSet(BH_NP);
       }
       else
       if (cKey==Global::Keys[k_Brake1])
@@ -2952,6 +2951,11 @@ else
      {
       ZbGlGauge.UpdateValue(mvOccupied->Compressor);
       ZbGlGauge.Update();
+     }
+    if (ZbRGauge.SubModel)
+     {
+      ZbRGauge.UpdateValue(Min0R(mvOccupied->Compressor,5));
+      ZbRGauge.Update();
      }
     if (ZbGlGaugeB.SubModel)
      {
@@ -4937,6 +4941,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     ZbGlGauge.Clear();
     ZbGlGauge.Output(0); //Ra: sterowanie miernikiem: zbiornik g³ówny
     ZbSGauge.Clear();
+    ZbRGauge.Clear();    
 
     VelocityGaugeB.Clear();
     I1GaugeB.Clear();
@@ -5168,6 +5173,8 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     PrzGlGauge.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
    else if (str==AnsiString("limpipepress:"))                  //manometr zbiornika sterujacego zaworu maszynisty
     ZbSGauge.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
+   else if (str==AnsiString("cntrlpress:"))                  //manometr zbiornika sterujacego zaworu maszynisty
+    ZbRGauge.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
    else if (str==AnsiString("compressor:"))                    //manometr sprezarki/zbiornika glownego
     ZbGlGauge.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
    //*************************************************************
