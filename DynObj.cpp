@@ -38,6 +38,7 @@
 //vector3 vWorldUp=vector3(0,1,0);
 //vector3 vWorldLeft=CrossProduct(vWorldUp,vWorldFront);
 
+#define M_2PI 6.283185307179586476925286766559;
 const float maxrot=(M_PI/3.0); //60°
 
 //---------------------------------------------------------------------------
@@ -51,7 +52,7 @@ void __fastcall TAnimPant::AKP_4E()
  fWidth=0.635; //po³owa szerokoœci œlizgu, 0.635 dla AKP-1 i AKP-4E
  fAngleL0=DegToRad(2.8547285515689267247882521833308);
  fAngleL=fAngleL0; //pocz¹tkowy k¹t dolnego ramienia
- //pantu=acos((1.22*cos(fAngleL)+0.535)/1.755); //górne ramiê
+ //fAngleU0=acos((1.22*cos(fAngleL)+0.535)/1.755); //górne ramiê
  fAngleU0=acos((fLenL1*cos(fAngleL)+fHoriz)/fLenU1); //górne ramiê
  fAngleU=fAngleU0; //pocz¹tkowy k¹t
  //PantWys=1.22*sin(fAngleL)+1.755*sin(fAngleU); //wysokoœæ pocz¹tkowa
@@ -731,8 +732,8 @@ TDynamicObject* __fastcall TDynamicObject::ABuFindNearestObject(TTrack *Track,TD
 
  if ((Track->iNumDynamics)>0)
  {//o ile w ogóle jest co przegl¹daæ na tym torze
-  vector3 poz; //pozycja pojazdu XYZ w scenerii
-  vector3 kon; //wektor czo³a wzglêdem œrodka pojazdu wzglêem pocz¹tku toru
+  //vector3 poz; //pozycja pojazdu XYZ w scenerii
+  //vector3 kon; //wektor czo³a wzglêdem œrodka pojazdu wzglêem pocz¹tku toru
   vector3 tmp; //wektor pomiêdzy kamer¹ i sprzêgiem
   double dist; //odleg³oœæ
   for (int i=0;i<Track->iNumDynamics;i++)
@@ -747,22 +748,22 @@ TDynamicObject* __fastcall TDynamicObject::ABuFindNearestObject(TTrack *Track,TD
    else //jeœli (CouplNr) inne niz -2, szukamy sprzêgu
    {//wektor [kamera-sprzeg0], potem [kamera-sprzeg1]
     //Powinno byc wyliczone, ale nie zaszkodzi drugi raz:
-    //(bo co, jesli nie wykonuje sie obrotow wozkow?)
-    Track->Dynamics[i]->modelRot.z=ABuAcos(Track->Dynamics[i]->Axle0.pPosition-Track->Dynamics[i]->Axle1.pPosition);
-    poz=Track->Dynamics[i]->vPosition; //pozycja œrodka pojazdu
-    kon=vector3( //po³o¿enie przodu wzglêdem œrodka
-     -((0.5*Track->Dynamics[i]->MoverParameters->Dim.L)*sin(Track->Dynamics[i]->modelRot.z)),
-     0, //yyy... jeœli du¿e pochylenie i d³ugi pojazd, to mo¿e byæ problem
-     +((0.5*Track->Dynamics[i]->MoverParameters->Dim.L)*cos(Track->Dynamics[i]->modelRot.z))
-    );
-    tmp=Global::GetCameraPosition()-poz-kon;
+    //(bo co, jesli nie wykonuje sie obrotow wozkow?) - Ra: ale zawsze s¹ liczone wspó³rzêdne sprzêgów
+    //Track->Dynamics[i]->modelRot.z=ABuAcos(Track->Dynamics[i]->Axle0.pPosition-Track->Dynamics[i]->Axle1.pPosition);
+    //poz=Track->Dynamics[i]->vPosition; //pozycja œrodka pojazdu
+    //kon=vector3( //po³o¿enie przodu wzglêdem œrodka
+    // -((0.5*Track->Dynamics[i]->MoverParameters->Dim.L)*sin(Track->Dynamics[i]->modelRot.z)),
+    // 0, //yyy... jeœli du¿e pochylenie i d³ugi pojazd, to mo¿e byæ problem
+    // +((0.5*Track->Dynamics[i]->MoverParameters->Dim.L)*cos(Track->Dynamics[i]->modelRot.z))
+    //);
+    tmp=Global::GetCameraPosition()-vCoulpler[0]; //Ra: pozycje sprzêgów te¿ s¹ zawsze liczone
     dist=tmp.x*tmp.x+tmp.y*tmp.y+tmp.z*tmp.z; //odleg³oœæ do kwadratu
     if (dist<25.0) //5 metrów
     {
      CouplNr=0;
      return Track->Dynamics[i];
     }
-    tmp=Global::GetCameraPosition()-poz+kon;
+    tmp=Global::GetCameraPosition()-vCoulpler[1];
     dist=tmp.x*tmp.x+tmp.y*tmp.y+tmp.z*tmp.z; //odleg³oœæ do kwadratu
     if (dist<25.0) //5 metrów
     {
@@ -840,7 +841,7 @@ void __fastcall TDynamicObject::ABuBogies()
  //bez zadnych gorek i innych przeszkod.
  if ((smBogie[0]!=NULL)&&(smBogie[1]!=NULL))
  {
-  modelRot.z=ABuAcos(Axle0.pPosition-Axle1.pPosition); //k¹t obrotu pojazdu
+  //modelRot.z=ABuAcos(Axle0.pPosition-Axle1.pPosition); //k¹t obrotu pojazdu [rad]
   //bogieRot[0].z=ABuAcos(Axle0.pPosition-Axle3.pPosition);
   bogieRot[0].z=Axle0.vAngles.z;
   bogieRot[0]=RadToDeg(modelRot-bogieRot[0]); //mno¿enie wektora przez sta³¹
@@ -1685,6 +1686,7 @@ void __fastcall TDynamicObject::Move(double fDistance)
   vFront=Normalize(Axle0.pPosition-Axle1.pPosition); //kierunek ustawienia pojazdu (wektor jednostkowy)
   vLeft=Normalize(CrossProduct(vWorldUp,vFront)); //wektor poziomy w lewo, normalizacja potrzebna z powodu pochylenia (vFront)
   vUp=CrossProduct(vFront,vLeft); //wektor w górê, bêdzie jednostkowy
+  modelRot.z=atan2(-vFront.x,vFront.z); //k¹t obrotu pojazdu [rad]; z ABuBogies()
   double a=((Axle1.GetRoll()+Axle0.GetRoll())); //suma przechy³ek
   if (a!=0.0)
   {//wyznaczanie przechylenia tylko jeœli jest przechy³ka
@@ -1983,8 +1985,12 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
     //ts.R=MyTrack->fRadius;
     //if (ABuGetDirection()<0) ts.R=-ts.R;
     ts.R=MyTrack->fRadius; //ujemne promienie s¹ ju¿ zamienione przy wczytywaniu
-    if (bogieRot[0].z!=bogieRot[1].z) //wyliczenie promienia z obrotów osi - modyfikacjê zg³osi³ youBy
-      ts.R=fabs(0.5*MoverParameters->BDist/sin(DegToRad(bogieRot[0].z-bogieRot[1].z)*0.5));
+    if (Axle0.vAngles.z!=Axle1.vAngles.z)
+    {//wyliczenie promienia z obrotów osi - modyfikacjê zg³osi³ youBy
+     ts.R=Axle0.vAngles.z-Axle1.vAngles.z; //ró¿nica mo¿e dawaæ sta³¹ ±M_2PI
+     if (ts.R>M_PI) ts.R-=M_2PI else if (ts.R<-M_PI) ts.R+=M_2PI; //normalizacja
+     ts.R=fabs(0.5*MoverParameters->BDist/sin(ts.R*0.5));
+    }
     if (ts.R>5000.0) ts.R=0.0; //szkoda czasu na zbyt du¿e promienie, 4km to promieñ nie wymagaj¹cy przechy³ki
     //ts.R=ComputeRadius(Axle1.pPosition,Axle2.pPosition,Axle3.pPosition,Axle0.pPosition);
     //Ra: sk³adow¹ pochylenia wzd³u¿nego mamy policzon¹ w jednostkowym wektorze vFront
@@ -2076,7 +2082,7 @@ TGround::GetTraction;
 
     if (Mechanik)
     {
-     MoverParameters->EqvtPipePress= GetEPP(); //srednie cisnienie w PG
+     MoverParameters->EqvtPipePress=GetEPP(); //srednie cisnienie w PG
 
 //yB: cos (AI) tu jest nie kompatybilne z czyms (hamulce)
 //   if (Controller!=Humandriver)
@@ -2086,9 +2092,7 @@ TGround::GetTraction;
 //      Mechanik->LastReactionTime=0;
 //     }
 
-      //Mechanik->PhysicsLog(); //tymczasowo logowanie
       Mechanik->UpdateSituation(dt1); //przeb³yski œwiadomoœci AI
-      //Mechanik->PhysicsLog(); //tymczasowo logowanie
     }
 //    else
 //    { MoverParameters->SecuritySystemReset(); }
@@ -2131,11 +2135,6 @@ TGround::GetTraction;
 
 //McZapkie-260202 - dMoveLen przyda sie przy stukocie kol
     dDOMoveLen=GetdMoveLen()+MoverParameters->ComputeMovement(dt,dt1,ts,tp,tmpTraction,l,r);
-    //Ra: poni¿sze przeniesione do ComputeMovement() w Mover.cpp
-    //MoverParameters->UpdateBatteryVoltage(dt); //jest ju¿ w Mover.cpp
-    //if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector) //tylko jeœli pantografuj¹cy
-    // if (MoverParameters->Power>1.0) //w rozrz¹dczym nie (jest b³¹d w FIZ!)
-    //  MoverParameters->UpdatePantVolume(dt); //Ra: pneumatyka pantografów przeniesiona do Mover.cpp!
     //yB: zeby zawsze wrzucalo w jedna strone zakretu
     MoverParameters->AccN*=-ABuGetDirection();
     //if (dDOMoveLen!=0.0) //Ra: nie mo¿e byæ, bo blokuje Event0
@@ -2654,7 +2653,7 @@ void __fastcall TDynamicObject::Render()
  double ObjSqrDist=SquareMagnitude(Global::pCameraPosition-vPosition);
  //koniec przeklejki
  if (ObjSqrDist<500) //jak jest blisko - do 70m
-  modelrotate=0.01f; //ma³y k¹t, ¿eby nie znika³o
+  modelrotate=0.01; //ma³y k¹t, ¿eby nie znika³o
  else
  {//Global::pCameraRotation to k¹t bewzglêdny w œwiecie (zero - na pó³noc)
   tempangle=(vPosition-Global::pCameraPosition); //wektor od kamery
