@@ -230,12 +230,12 @@ bool __fastcall TTrackFollower::ComputatePosition()
 {//ustalenie wspó³rzêdnych XYZ
  if (pCurrentSegment) //o ile jest tor
  {
-  //pPosition=pCurrentSegment->GetPoint(fCurrentDistance); //wyliczenie z dystansu od Point1
   pCurrentSegment->RaPositionGet(fCurrentDistance,pPosition,vAngles);
   if (fDirection<0) //k¹ty zale¿¹ jeszcze od zwrotu na torze
-  {vAngles.x=-vAngles.x; //przechy³ka jest w przecinw¹ stronê
+  {//k¹ty s¹ w przedziale <-M_PI;M_PI>
+   vAngles.x=-vAngles.x; //przechy³ka jest w przecinw¹ stronê
    vAngles.y=-vAngles.y; //pochylenie jest w przecinw¹ stronê
-   vAngles.z+=M_PI; //ale kierunek w planie jest obrócony o 180°
+   vAngles.z+=(vAngles.z>=M_PI)?-M_PI:M_PI; //ale kierunek w planie jest obrócony o 180°
   }
   if (fOffsetH!=0.0)
   {//jeœli przesuniêcie wzglêdem osi toru, to je doliczyæ

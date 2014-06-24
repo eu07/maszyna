@@ -3,7 +3,7 @@
 <PROJECT>
   <MACROS>
     <VERSION value="BCB.05.03"/>
-    <PROJECT value="D:\EU07\EU07.exe"/>
+    <PROJECT value="E:\EU07\EU07.exe"/>
     <OBJFILES value="QueryParserComp.obj McZapkie\mtable.obj McZapkie\_mover.obj 
       McZapkie\hamulce.obj EU07.obj dumb3d.obj Camera.obj Texture.obj World.obj 
       Model3d.obj MdlMngr.obj Train.obj wavread.obj Timer.obj Event.obj 
@@ -38,8 +38,8 @@
     <WARNINGS value="-w-par"/>
   </MACROS>
   <OPTIONS>
-    <IDLCFLAGS value="-src_suffix cpp -DGLEW_STATIC -D_DEBUG -IConsole -Iopengl -IMcZapkie 
-      -I$(BCB)\include -I$(BCB)\include\vcl -boa"/>
+    <IDLCFLAGS value="-IConsole -Iopengl -IMcZapkie -I$(BCB)\include -I$(BCB)\include\vcl 
+      -src_suffix cpp -DGLEW_STATIC -D_DEBUG -boa"/>
     <CFLAG1 value="-O2 -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a1 -6 -b- -k -y -v -vi- 
       -c -tW -tWM"/>
     <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
@@ -58,8 +58,8 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=14
 MinorVer=6
-Release=1039
-Build=438
+Release=1041
+Build=439
 Debug=1
 PreRelease=0
 Special=0
@@ -71,7 +71,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=14.6.1039.438
+FileVersion=14.6.1041.439
 InternalName=9th by Ra + SPKS + MP
 LegalCopyright=
 LegalTrademarks=
@@ -89,8 +89,9 @@ Count=1
 Item0=Console;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
 
 [HistoryLists\hlDebugSourcePath]
-Count=1
-Item0=$(BCB)\source\vcl
+Count=2
+Item0=E:\Ra\dp\McZapkie\
+Item1=$(BCB)\source\vcl
 
 [HistoryLists\hlConditionals]
 Count=8
@@ -104,14 +105,15 @@ Item6=GLEW_STATIC;_DEBUG;USE_VERTEX_ARRAYS
 Item7=_DEBUG
 
 [HistoryLists\hlFinalOutputDir]
-Count=1
-Item0=D:\EU07\
+Count=2
+Item0=E:\EU07\
+Item1=D:\EU07\
 
 [Debugging]
-DebugSourceDirs=
+DebugSourceDirs=E:\Ra\dp\McZapkie\
 
 [Parameters]
-RunParams=
+RunParams=-s quarkmce2007_.scn -v EN57-2040ra
 HostApplication=
 RemoteHost=
 RemotePath=
@@ -120,10 +122,16 @@ RemoteDebug=0
 [Compiler]
 ShowInfoMsgs=0
 LinkDebugVcl=0
+LinkCGLIB=0
 
 [CORBA]
 AddServerUnit=1
 AddClientUnit=1
 PrecompiledHeaders=1
+
+[Language]
+ActiveLang=
+ProjectLang=
+RootDir=
   </IDEOPTIONS>
 </PROJECT>
