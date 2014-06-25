@@ -133,6 +133,7 @@ public:
  int iDamageFlag;
  TEnvironmentType eEnvironment; //dŸwiêk i oœwietlenie
  bool bVisible; //czy rysowany
+ int iAction; //czy modyfikowany eventami (specjalna obs³uga przy skanowaniu)
 private:
  double fVelocity; //prêdkoœæ dla AI (powy¿ej roœnie prawdopowobieñstwo wykolejenia)
 public:
@@ -200,7 +201,7 @@ public:
  void __fastcall MovedUp1(double dh);
  AnsiString __fastcall NameGet();
  void __fastcall VelocitySet(float v);
- inline float __fastcall VelocityGet() {return fVelocity;};
+ float __fastcall VelocityGet();
 private:
  void __fastcall EnvironmentSet();
  void __fastcall EnvironmentReset();

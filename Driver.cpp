@@ -365,8 +365,7 @@ void __fastcall TController::TableTraceRoute(double fDistance,TDynamicObject *pV
       }
     } //event dodajemy najpierw, ¿eby móc sprawdziæ, czy tor zosta³ dodany po odczytaniu prêdkoœci nastêpnego
     if ((pTrack->VelocityGet()==0.0) //zatrzymanie
-     || (pTrack->iDamageFlag&128) //pojazd siê uszkodzi
-     || (pTrack->eType!=tt_Normal) //jakiœ ruchomy
+     || (pTrack->iAction) //jeœli tor ma w³asnoœci istotne dla skanowania
      || (pTrack->VelocityGet()!=fLastVel)) //nastêpuje zmiana prêdkoœci
     {//odcinek dodajemy do tabelki, gdy jest istotny dla ruchu
      if (TableAddNew())

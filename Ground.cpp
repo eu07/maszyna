@@ -2663,10 +2663,12 @@ bool __fastcall TGround::InitEvents()
      ErrorLog("Bad visibility: event \""+Current->asName+"\" cannot find model \""+Current->asNodeName+"\"");
     Current->asNodeName="";
    break;
-   case tp_Switch: //peze³o¿enie zwrotnicy albo zmiana stanu obrotnicy
+   case tp_Switch: //prze³o¿enie zwrotnicy albo zmiana stanu obrotnicy
     tmp=FindGroundNode(Current->asNodeName,TP_TRACK);
     if (tmp)
     {//dowi¹zanie toru
+     if (!tmp->pTrack->iAction) //jeœli nie jest zwrotnic¹ ani obrotnic¹
+      tmp->pTrack->iAction|=0x100; //to bêdzie siê zmienia³ stan uszkodzenia
      Current->Params[9].asTrack=tmp->pTrack;
      if (!Current->Params[0].asInt) //jeœli prze³¹cza do stanu 0
       if (Current->Params[2].asdouble>=0.0) //jeœli jest zdefiniowany dodatkowy ruch iglic
@@ -2689,7 +2691,9 @@ bool __fastcall TGround::InitEvents()
     {
      tmp=FindGroundNode(Current->asNodeName,TP_TRACK);
      if (tmp)
+     {tmp->pTrack->iAction|=0x200; //flaga zmiany prêdkoœci toru jest istotna dla skanowania
       Current->Params[9].asTrack=tmp->pTrack;
+     }
      else
       ErrorLog("Bad velocity: event \""+Current->asName+"\" cannot find track \""+Current->asNodeName+"\"");
     }
@@ -4062,6 +4066,28 @@ void __fastcall TGround::WyslijNamiary(TGroundNode* t)
  COPYDATASTRUCT cData;
  cData.dwData='EU07'; //sygnatura
  cData.cbData=10+i+j; //8+licznik i zero koñcz¹ce
+ cData.lpData=&r;
+ Navigate("TEU07SRK",WM_COPYDATA,(WPARAM)Global::hWnd,(LPARAM)&cData);
+};
+//--------------------------------
+void __fastcall TGround::WyslijParam(int nr,int fl)
+{//wys³anie parametrów symulacji w ramce (nr) z flagami (fl)
+ DaneRozkaz r;
+ r.iSygn='EU07';
+ r.iComm=nr; //zwykle 5
+ r.iPar[0]=fl; //flagi istotnoœci kolejnych parametrów
+ int i=0; //domyœlnie brak danych
+ switch (nr)
+ {//mo¿na tym przesy³aæ ró¿ne zestawy parametrów
+  case 5: //czas i pauza
+   r.fPar[1]=Global::fTimeAngleDeg/360.0; //aktualny czas (1.0=doba)
+   r.iPar[2]=Global::iPause; //stan zapauzowania
+   i=8; //dwa parametry po 4 bajty ka¿dy
+   break;
+ }
+ COPYDATASTRUCT cData;
+ cData.dwData='EU07'; //sygnatura
+ cData.cbData=12+i; //12+rozmiar danych
  cData.lpData=&r;
  Navigate("TEU07SRK",WM_COPYDATA,(WPARAM)Global::hWnd,(LPARAM)&cData);
 };

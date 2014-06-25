@@ -44,7 +44,7 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asRelease="14.6.1042.439";
+AnsiString Global::asRelease="14.6.1043.439";
 AnsiString Global::asVersion="Compilation 2014-06-25, release "+Global::asRelease+"."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
@@ -427,7 +427,9 @@ void __fastcall Global::ConfigParse(TQueryParserComp *qp,cParser *cp)
   bSmoothTraction=false;
  }
  if (iMultiplayer>0)
-  bInactivePause=false; //pauza nieaktywna, jeœli w³¹czona komunikacja
+ {bInactivePause=false; //okno "w tle" nie mo¿e pauzowaæ, jeœli w³¹czona komunikacja
+  //pauzowanie jest zablokowane dla (iMultiplayer&1)>0, wiêc iMultiplayer=2 da siê zapauzowaæ 
+ }
  fFpsMin=fFpsAverage-fFpsDeviation; //dolna granica FPS, przy której promieñ scenerii bêdzie zmniejszany
  fFpsMax=fFpsAverage+fFpsDeviation; //górna granica FPS, przy której promieñ scenerii bêdzie zwiêkszany
  if (iPause) iTextMode=VK_F1; //jak pauza, to pokazaæ zegar

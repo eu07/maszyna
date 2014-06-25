@@ -171,6 +171,7 @@ __fastcall TTrack::TTrack(TGroundNode *g)
  iNextDirection=0;
  pIsolated=NULL;
  pMyNode=g; //Ra: proteza, ¿eby tor zna³ swoj¹ nazwê TODO: odziedziczyæ TTrack z TGroundNode
+ iAction=0; //normalnie mo¿e byæ pomijany podczas skanowania
 }
 
 __fastcall TTrack::~TTrack()
@@ -452,6 +453,8 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
  *parser >> iQualityFlag >> iDamageFlag;
 //    iQualityFlag=Parser->GetNextSymbol().ToInt();   //McZapkie: qualityflag
 //    iDamageFlag=Parser->GetNextSymbol().ToInt();   //damage
+ if (iDamageFlag&128)
+  iAction|=0x80; //flaga wykolejania z powodu uszkodzenia
  parser->getTokens();
  *parser >> token;
  str=AnsiString(token.c_str());  //environment
@@ -503,6 +506,7 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
  switch (eType)
  {//Ra: ³uki segmentowane co 5m albo 314-k¹tem foremnym
   case tt_Table: //obrotnica jest prawie jak zwyk³y tor
+   iAction|=2; //flaga zmiany po³o¿enia typu obrotnica
   case tt_Normal:
    p1=LoadPoint(parser)+pOrigin; //pobranie wspó³rzêdnych P1
    parser->getTokens();
@@ -549,8 +553,9 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
     }
   break;
 
-  case tt_Cross: //skrzy¿owanie dróg - 4 punkty z wektorami kontrolnymi
   case tt_Switch: //zwrotnica
+   iAction|=1; //flaga zmiany po³o¿enia typu zwrotnica
+  case tt_Cross: //skrzy¿owanie dróg - 4 punkty z wektorami kontrolnymi
   case tt_Tributary: //dop³yw
    //problemy z animacj¹ iglic powstaje, gdzy odcinek prosty ma zmienn¹ przechy³kê
    //wtedy dzieli siê na dodatkowe odcinki (po 0.2m, bo R=0) i animacjê diabli bior¹
@@ -2013,7 +2018,7 @@ bool __fastcall TTrack::Switch(int i,double t,double d)
   {//przek³adanie zwrotnicy jak zwykle
    if (t>0.0) //prêdkoœæ liniowa ruchu iglic
     SwitchExtension->fOffsetSpeed=t; //prêdkoœæ ³atwiej zgraæ z animacj¹ modelu
-   if (d>=0.0) //opóŸnienie ruchu drugiej iglicy wzglêdem pierwszej
+   if (d>=0.0) //dodatkowy ruch drugiej iglicy (zamkniêcie nastawnicze)
     SwitchExtension->fOffsetDelay=d;
    i&=1; //ograniczenie b³êdów !!!!
    SwitchExtension->fDesiredOffset=NextMask[i]?fMaxOffset+SwitchExtension->fOffsetDelay:-SwitchExtension->fOffsetDelay;
@@ -2353,4 +2358,9 @@ void __fastcall TTrack::VelocitySet(float v)
    return void(fVelocity=SwitchExtension->fVelocity); //maksymalnie tyle, ile by³o we wpisie
  }
  fVelocity=v; //nie ma ograniczenia
+};
+
+float __fastcall TTrack::VelocityGet()
+{//pobranie dozwolonej prêdkoœci podczas skanowania
+ return ((iDamageFlag&128)?0.0f:fVelocity); //tor uszkodzony = prêdkoœæ zerowa
 };
