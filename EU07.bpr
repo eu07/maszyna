@@ -58,7 +58,7 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=14
 MinorVer=6
-Release=1041
+Release=1042
 Build=439
 Debug=1
 PreRelease=0
@@ -71,7 +71,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=14.6.1041.439
+FileVersion=14.6.1042.439
 InternalName=9th by Ra + SPKS + MP
 LegalCopyright=
 LegalTrademarks=
@@ -113,7 +113,7 @@ Item1=D:\EU07\
 DebugSourceDirs=E:\Ra\dp\McZapkie\
 
 [Parameters]
-RunParams=-s quarkmce2007_.scn -v EN57-2040ra
+RunParams=-s tarn_nowe.scn -v EN57-2040ra
 HostApplication=
 RemoteHost=
 RemotePath=

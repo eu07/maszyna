@@ -2793,12 +2793,14 @@ void __fastcall TGround::InitTracks()
   {
    case tt_Table: //obrotnicê te¿ ³¹czymy na starcie z innymi torami
     Model=FindGroundNode(Current->asName,TP_MODEL); //szukamy modelu o tej samej nazwie
-    if (tmp) //mamy model, trzeba zapamiêtaæ wskaŸnik do jego animacji
+    //if (tmp) //mamy model, trzeba zapamiêtaæ wskaŸnik do jego animacji
     {//jak coœ pójdzie Ÿle, to robimy z tego normalny tor
      //Track->ModelAssign(tmp->Model->GetContainer(NULL)); //wi¹zanie toru z modelem obrotnicy
-     Track->RaAssign(Current,Model->Model,FindEvent(Current->asName+":done"),FindEvent(Current->asName+":joined")); //wi¹zanie toru z modelem obrotnicy
+     Track->RaAssign(Current,Model?Model->Model:NULL,FindEvent(Current->asName+":done"),FindEvent(Current->asName+":joined")); //wi¹zanie toru z modelem obrotnicy
      //break; //jednak po³¹czê z s¹siednim, jak ma siê wysypywaæ null track
     }
+    if (!Model) //jak nie ma modelu
+     break; //to pewnie jest wykolejnica, a ta jest domyœlnie zamkniêta i wykoleja
    case tt_Normal: //tylko proste s¹ pod³¹czane do rozjazdów, st¹d dwa rozjazdy siê nie po³¹cz¹ ze sob¹
     if (Track->CurrentPrev()==NULL) //tylko jeœli jeszcze nie pod³¹czony
     {
