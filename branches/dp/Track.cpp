@@ -1476,8 +1476,9 @@ void __fastcall TTrack::RaAssign(TGroundNode *gn,TAnimModel *am,TEvent *done,TEv
   SwitchExtension->pMyNode=gn;
   SwitchExtension->evMinus=done; //event zakoñczenia animacji (zadanie nowej przed³u¿a)
   SwitchExtension->evPlus=joined; //event potwierdzenia po³¹czenia (gdy nie znajdzie, to siê nie po³¹czy)
-  if (am->GetContainer(NULL)) //mo¿e nie byæ?
-   am->GetContainer(NULL)->EventAssign(done); //zdarzenie zakoñczenia animacji
+  if (am)
+   if (am->GetContainer(NULL)) //mo¿e nie byæ?
+    am->GetContainer(NULL)->EventAssign(done); //zdarzenie zakoñczenia animacji
  }
 };
 
@@ -2082,7 +2083,10 @@ bool __fastcall TTrack::Switch(int i,double t,double d)
    iPrevDirection=SwitchExtension->iPrevDirection[PrevMask[3*i]];
    return true;
   }
- Error("Cannot switch normal track");
+ if (iCategoryFlag==1)
+  iDamageFlag=(iDamageFlag&127)+128*(i&1); //prze³¹czanie wykolejenia
+ else
+  Error("Cannot switch normal track");
  return false;
 };
 
