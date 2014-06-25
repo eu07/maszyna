@@ -1172,6 +1172,13 @@ bool __fastcall TWorld::Update()
     }
 #endif
  }
+ //awaria PoKeys mog³a w³¹czyæ pauzê - przekazaæ informacjê
+ if (Global::iMultiplayer) //dajemy znaæ do serwera o wykonaniu
+  if (iPause!=Global::iPause)
+  {//przes³anie informacji o pauzie do programu nadzoruj¹cego
+   Ground.WyslijParam(5,3); //ramka 5 z czasem i stanem zapauzowania
+   iPause!=Global::iPause;
+  }
  double iter;
  int n=1;
  if (dt>fMaxDt) //normalnie 0.01s
@@ -2299,7 +2306,7 @@ void __fastcall TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
     break;
    case 5: //ustawienie parametrów
     {
-     if (*pRozkaz->iPar&0) //ustawienie czasu
+     if (*pRozkaz->iPar&1) //ustawienie czasu
      {double t=pRozkaz->fPar[1];
       GlobalTime->dd=floor(t); //niby nie powinno byæ dnia, ale...
       if (Global::fMoveLight>=0)
@@ -2307,6 +2314,10 @@ void __fastcall TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
       GlobalTime->hh=floor(24*t)-24.0*GlobalTime->dd;
       GlobalTime->mm=floor(60*24*t)-60.0*(24.0*GlobalTime->dd+GlobalTime->hh);
       GlobalTime->mr=floor(60*60*24*t)-60.0*(60.0*(24.0*GlobalTime->dd+GlobalTime->hh)+GlobalTime->mm);
+     }
+     if (*pRozkaz->iPar&2)
+     {//ustawienie flag zapauzowania
+      Global::iPause=pRozkaz->fPar[2]; //zak³adamy, ¿e wysy³aj¹cy wie, co robi
      }
     }
     break;
