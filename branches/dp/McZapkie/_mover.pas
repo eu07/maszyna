@@ -247,6 +247,7 @@ TYPE
                           CSW: real;       //szerokoœæ czêœci roboczej (styku) œlizgacza
                           MinV,MaxV: real; //minimalne i maksymalne akceptowane napiêcie
                           MinPress: real;  //minimalne ciœnienie do za³¹czenia WS
+                          MaxPress: real;  //maksymalne ciœnienie za reduktorem
                         end;
     {typy Ÿróde³ mocy}
     TPowerSource = (NotDefined, InternalSource, Transducer, Generator, Accumulator, CurrentCollector, PowerCable, Heater);
@@ -6122,6 +6123,11 @@ function PowerDecode(s:string): TPowerType;
                                 MinPress:=2.0 //domyœlnie 2 bary do za³¹czenia WS
                                else
                                 MinPress:=s2rE(DUE(s));
+                               s:=ExtractKeyWord(lines,'MaxPress='); //maksymalne ciœnienie za reduktorem
+                               if s='' then
+                                MaxPress:=5.0+0.001*(random(50)-random(50))
+                               else
+                                MaxPress:=s2rE(DUE(s));
                              end;
                           end;
         PowerCable : begin

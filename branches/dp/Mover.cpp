@@ -256,15 +256,16 @@ void __fastcall TMoverParameters::UpdatePantVolume(double dt)
  if ((TrainType==dt_EZT)?(PantPress<ScndPipePress):bPantKurek3) //kurek zamyka po³¹czenie z ZG
  {//zbiornik pantografu po³¹czony ze zbiornikiem g³ównym - ma³¹ sprê¿ark¹ siê tego nie napompuje
   //Ra 2013-12: Niebugoc³aw mówi, ¿e w EZT nie ma potrzeby odcinaæ kurkiem
-  PantPress=ScndPipePress;
-  PantVolume=(ScndPipePress+1)*0.1; //objêtoœæ, na wypadek odciêcia kurkiem
+  PantPress=EnginePowerSource.CollectorParameters.MaxPress;
+  if (PantPress>ScndPipePress) PantPress=ScndPipePress; //ograniczenie ciœnienia do MaxPress
+  PantVolume=(PantPress+1)*0.1; //objêtoœæ, na wypadek odciêcia kurkiem
  }
  else
  {//zbiornik g³ówny odciêty, mo¿na pompowaæ pantografy
   if (PantCompFlag&&Battery) //w³¹czona bateria i ma³a sprê¿arka
    PantVolume+=dt*(TrainType==dt_EZT?0.003:0.005)*(2*0.45-((0.1/PantVolume/10)-0.1))/0.45; //nape³nianie zbiornika pantografów
   //Ra 2013-12: Niebugoc³aw mówi, ¿e w EZT nabija 1.5 raz wolniej ni¿ jak by³o 0.005
-  PantPress=(10*PantVolume)-1; //tu by siê przyda³a objêtoœæ zbiornika
+  PantPress=(10.0*PantVolume)-1.0; //tu by siê przyda³a objêtoœæ zbiornika
  }
  if (!PantCompFlag&&(PantVolume>0.1))
   PantVolume-=dt*0.0003; //nieszczelnoœci: 0.0003=0.3l/s
@@ -275,7 +276,7 @@ void __fastcall TMoverParameters::UpdatePantVolume(double dt)
      if (MainSwitch(false))
       EventFlag=true; //wywalenie szybkiego z powodu niskiego ciœnienia
  if (TrainType!=dt_EZT) //w EN57 pompuje siê tylko w silnikowym
- //pierwotnie w CHK pantografy mia³y równie¿ rozrz¹dcze EZT 
+ //pierwotnie w CHK pantografy mia³y równie¿ rozrz¹dcze EZT
  for (int b=0;b<=1;++b)
   if (TestFlag(Couplers[b].CouplingFlag,ctrain_controll))
    if (Couplers[b].Connected->PantVolume<PantVolume) //bo inaczej trzeba w obydwu cz³onach przestawiaæ
