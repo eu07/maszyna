@@ -191,10 +191,11 @@ public:
  Mtable::TTrainParameters* __fastcall Timetable() {return TrainParams;};
  double AccPreferred; //preferowane przyspieszenie (wg psychiki kieruj¹cego, zmniejszana przy wykryciu kolizji)
  double AccDesired; //przyspieszenie, jakie ma utrzymywaæ (<0:nie przyspieszaj,<-0.1:hamuj)
- double VelDesired; //predkoœæ, z jak¹ ma jechaæ, <=VelActual
+ double VelDesired; //predkoœæ, z jak¹ ma jechaæ, wynikaj¹ca z analizy tableki; <=VelSignal
 private:
  double VelforDriver; //prêdkoœæ, u¿ywana przy zmianie kierunku (ograniczenie przy nieznajmoœci szlaku?)
- double VelActual; //predkoœæ zadawana przez funkcjê SetVelocity() (semaforem, ograniczeniem albo komend¹)
+ double VelSignal; //predkoœæ zadawana przez semafor (funkcj¹ SetVelocity())
+ double VelLimit; //predkoœæ zadawana przez event jednokierunkowego ograniczenia prêdkoœci (PutValues albo komend¹)
 public:
  double VelNext; //prêdkoœæ, jaka ma byæ po przejechaniu d³ugoœci ProximityDist
 private:
