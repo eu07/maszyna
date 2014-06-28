@@ -2546,7 +2546,7 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
 
 bool __fastcall TGround::InitEvents()
 {//³¹czenie eventów z pozosta³ymi obiektami
- TGroundNode* tmp;
+ TGroundNode *tmp,*trk;
  char buff[255];
  int i;
  for (TEvent *Current=RootEvent;Current;Current=Current->evNext2)
@@ -2560,8 +2560,8 @@ bool __fastcall TGround::InitEvents()
     {//McZapkie-100302
      if (Current->iFlags&(conditional_trackoccupied|conditional_trackfree))
      {//jeœli chodzi o zajetosc toru (tor mo¿e byæ inny, ni¿ wpisany w komórce)
-      tmp=FindGroundNode(Current->asNodeName,TP_TRACK); //nazwa toru ta sama, co nazwa komórki
-      if (tmp) Current->Params[9].asTrack=tmp->pTrack;
+      trk=FindGroundNode(Current->asNodeName,TP_TRACK); //nazwa toru ta sama, co nazwa komórki
+      if (trk) Current->Params[9].asTrack=trk->pTrack;
       if (!Current->Params[9].asTrack)
        ErrorLog("Bad event: track \""+AnsiString(Current->asNodeName)+"\" does not exists in \""+Current->asName+"\"");
      }
@@ -2571,11 +2571,11 @@ bool __fastcall TGround::InitEvents()
       Current->Params[9].asMemCell=tmp->MemCell; //komórka do badania warunku
      if (tmp->MemCell->asTrackName!="none") //tor powi¹zany z komórk¹ powi¹zan¹ z eventem
      {//tu potrzebujemy wskaŸnik do komórki w (tmp)
-      TGroundNode* trk=FindGroundNode(tmp->MemCell->asTrackName,TP_TRACK);
+      trk=FindGroundNode(tmp->MemCell->asTrackName,TP_TRACK);
       if (trk)
        Current->Params[6].asTrack=trk->pTrack;
       else
-       ErrorLog("Bad memcell: track \""+tmp->MemCell->asTrackName+"\" not exists in \""+tmp->asName+"\"");
+       ErrorLog("Bad memcell: track \""+tmp->MemCell->asTrackName+"\" not exists in memcell \""+tmp->asName+"\"");
      }
      else
       Current->Params[6].asTrack=NULL;
@@ -2938,11 +2938,13 @@ void __fastcall TGround::InitTraction()
     if (Traction->asPowerSupplyName!="none") //dopuszczamy na razie brak pod³¹czenia?
      ErrorLog("Missed TractionPowerSource: "+Traction->asPowerSupplyName);
   if (!Traction->asParallel.IsEmpty()) //bêdzie wskaŸnik na inne przês³o
-  {nPower=FindGroundNode(Traction->asPowerSupplyName,TP_TRACTION);
-   if (nPower) Traction->hvParallel=nPower->hvTraction; //o ile znalezione
-   if (!Traction->hvParallel)
-    ErrorLog("Missed overhead: "+Traction->asParallel); //logowanie braku
-  }
+   if ((Traction->asParallel=="none")||(Traction->asParallel=="*")) //jeœli cokolwiek
+    Traction->iLast=1; //niech po prostu szuka
+   else
+   {Traction->hvParallel=FindGroundNode(Traction->asParallel,TP_TRACTION);
+    if (!Traction->hvParallel)
+     ErrorLog("Missed overhead: "+Traction->asParallel); //logowanie braku
+   }
  }
  for (nCurrent=nRootOfType[TP_TRACTION];nCurrent;nCurrent=nCurrent->nNext)
  {
