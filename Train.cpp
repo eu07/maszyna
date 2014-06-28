@@ -4088,24 +4088,17 @@ if ( mvControlled->Signalling==true )
      } */
 
      //ABu030405 obsluga lampki uniwersalnej:
-     if ((LampkaUniversal3_st)&&(btLampkaUniversal3.Active()))
-     {
-        if (LampkaUniversal3_typ==0)
-           btLampkaUniversal3.TurnOn();
-        else
-        if ((LampkaUniversal3_typ==1)&&(mvControlled->Mains==true))
-           btLampkaUniversal3.TurnOn();
-        else
-        if ((LampkaUniversal3_typ==2)&&(mvControlled->ConverterFlag==true))
-           btLampkaUniversal3.TurnOn();
-        else
-           btLampkaUniversal3.TurnOff();
-     }
-     else
-     {
-        if (btLampkaUniversal3.Active())
-           btLampkaUniversal3.TurnOff();
-     }
+     if (btLampkaUniversal3.Active()) //w ogóle jest
+      if (LampkaUniversal3_st) //za³¹czona
+       switch (LampkaUniversal3_typ)
+       {case 0: btLampkaUniversal3.Turn(mvControlled->Battery); break;
+        case 1: btLampkaUniversal3.Turn(mvControlled->Mains); break;
+        case 2: btLampkaUniversal3.Turn(mvControlled->ConverterFlag); break;
+        default:
+         btLampkaUniversal3.TurnOff();
+       }
+      else
+       btLampkaUniversal3.TurnOff();
 
      /*
      if (Console::Pressed(Global::Keys[k_Univ4]))
