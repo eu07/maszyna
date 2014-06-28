@@ -1109,7 +1109,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
           {
            keybrakecount=0;
            if ((isEztOer) && (mvOccupied->BrakeCtrlPos<3))
-            {
+            {//Ra: uzale¿niæ dŸwiêk od zmiany stanu EP, nie od klawisza
              dsbPneumaticSwitch->SetVolume(-10);
              dsbPneumaticSwitch->Play(0,0,0);
             }
@@ -1123,7 +1123,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
           {
 
             if ((isEztOer) && (mvControlled->Mains) && (mvOccupied->BrakeCtrlPos!=-1))
-            {
+            {//Ra: uzale¿niæ dŸwiêk od zmiany stanu EP, nie od klawisza
              dsbPneumaticSwitch->SetVolume(-10);
              dsbPneumaticSwitch->Play(0,0,0);
             }

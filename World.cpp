@@ -715,7 +715,7 @@ void __fastcall TWorld::OnKeyDown(int cKey)
    break;
    case VK_F2: //parametry pojazdu
     if (Global::iTextMode==cKey) //jeœli kolejne naciœniêcie
-     ++Global::iScreenMode[cKey-VK_F1]; //koeljny ekran
+     ++Global::iScreenMode[cKey-VK_F1]; //kolejny ekran
     else
     {//pierwsze naciœniêcie daje pierwszy (tzn. zerowy) ekran
      Global::iTextMode=cKey;
@@ -1761,14 +1761,36 @@ bool __fastcall TWorld::Update()
         glTranslatef(0.0f,0.0f,-0.50f);
         glRasterPos2f(-0.25f,0.20f);
         //OutText1="Scan distance: "+AnsiString(tmp->Mechanik->scanmax)+", back: "+AnsiString(tmp->Mechanik->scanback);
-        OutText1="Scan table:";
+     OutText1="Time: "+AnsiString((int)GlobalTime->hh)+":";
+     int i=GlobalTime->mm; //bo inaczej potrafi zrobiæ "hh:010"
+     if (i<10) OutText1+="0";
+     OutText1+=AnsiString(i); //minuty
+     OutText1+=":";
+     i=floor(GlobalTime->mr); //bo inaczej potrafi zrobiæ "hh:mm:010"
+     if (i<10) OutText1+="0";
+     OutText1+=AnsiString(i);
+        OutText1+=AnsiString(". Vel: ")+FloatToStrF(tmp->GetVelocity(),ffFixed,6,1);
+        OutText1+=". Scan table:";
         glPrint(Bezogonkow(OutText1).c_str());
-        int i=-1;
+        i=-1;
         while ((OutText1=tmp->Mechanik->TableText(++i))!="")
         {//wyœwietlenie pozycji z tabelki
          glRasterPos2f(-0.25f,0.19f-0.01f*i);
          glPrint(Bezogonkow(OutText1).c_str());
         }
+        //podsumowanie sensu tabelki
+        OutText4=AnsiString("Driver: Vd=")+FloatToStrF(tmp->Mechanik->VelDesired,ffFixed,4,0)
+        +AnsiString(" ad=")+FloatToStrF(tmp->Mechanik->AccDesired,ffFixed,5,2)
+        +AnsiString(" Pd=")+FloatToStrF(tmp->Mechanik->ActualProximityDist,ffFixed,4,0)
+        +AnsiString(" Vn=")+FloatToStrF(tmp->Mechanik->VelNext,ffFixed,4,0);
+        if (tmp->Mechanik->VelNext==0.0)
+         if (tmp->Mechanik->eSignNext)
+         {//jeœli ma zapamiêtany event semafora
+          //if (!OutText4.IsEmpty()) OutText4+=", "; //aby ³adniejszy odstêp by³
+          OutText4+=" ("+Bezogonkow(tmp->Mechanik->eSignNext->asName)+")"; //nazwa eventu semafora
+         }
+         glRasterPos2f(-0.25f,0.19f-0.01f*i);
+         glPrint(Bezogonkow(OutText4).c_str());
        }
       } //koniec ekanu skanowania
      } //koniec obs³ugi, gdy mamy wskaŸnik do pojazdu
@@ -2029,7 +2051,7 @@ bool __fastcall TWorld::Update()
     }
    }
   }
-  if ((Global::iTextMode!=VK_F3)&&((Global::iTextMode!=VK_F2)?true:!Global::iScreenMode))
+  if ((Global::iTextMode!=VK_F3))
   {//stenogramy dŸwiêków (ukryæ, gdy tabelka skanowania lub rozk³ad)
    glColor3f(1.0f,1.0f,0.0f); //¿ó³te
    for (int i=0;i<5;++i)
