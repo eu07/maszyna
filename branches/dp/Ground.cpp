@@ -2918,7 +2918,7 @@ void __fastcall TGround::InitTracks()
 
 void __fastcall TGround::InitTraction()
 {//³¹czenie drutów ze sob¹ oraz z torami i eventami
- TGroundNode *nCurrent,*nPower;
+ TGroundNode *nCurrent,*nTemp;
  TTraction *tmp; //znalezione przês³o
  TTraction *Traction;
  int iConnection;
@@ -2930,21 +2930,13 @@ void __fastcall TGround::InitTraction()
   //izolator zawieszony na przêœle jest ma byæ osobnym odcinkiem drutu o d³ugoœci ok. 1m,
   //pod³¹czonym do zasilacza o nazwie "*" (gwiazka); "none" nie bêdzie odpowiednie
   Traction=nCurrent->hvTraction;
-  nPower=FindGroundNode(Traction->asPowerSupplyName,TP_TRACTIONPOWERSOURCE);
-  if (nPower) //jak zasilacz znaleziony
-   Traction->PowerSet(nPower->psTractionPowerSource); //to pod³¹czyæ do przês³a
+  nTemp=FindGroundNode(Traction->asPowerSupplyName,TP_TRACTIONPOWERSOURCE);
+  if (nTemp) //jak zasilacz znaleziony
+   Traction->PowerSet(nTemp->psTractionPowerSource); //to pod³¹czyæ do przês³a
   else
    if (Traction->asPowerSupplyName!="*") //gwiazdka dla przês³a z izolatorem
     if (Traction->asPowerSupplyName!="none") //dopuszczamy na razie brak pod³¹czenia?
      ErrorLog("Missed TractionPowerSource: "+Traction->asPowerSupplyName);
-  if (!Traction->asParallel.IsEmpty()) //bêdzie wskaŸnik na inne przês³o
-   if ((Traction->asParallel=="none")||(Traction->asParallel=="*")) //jeœli cokolwiek
-    Traction->iLast=1; //niech po prostu szuka
-   else
-   {Traction->hvParallel=FindGroundNode(Traction->asParallel,TP_TRACTION);
-    if (!Traction->hvParallel)
-     ErrorLog("Missed overhead: "+Traction->asParallel); //logowanie braku
-   }
  }
  for (nCurrent=nRootOfType[TP_TRACTION];nCurrent;nCurrent=nCurrent->nNext)
  {
@@ -3027,10 +3019,21 @@ void __fastcall TGround::InitTraction()
  int zg=0; //zgodnoœæ kierunku przêse³, tymczasowo iterator do tabeli koñców
  TGroundNode **nEnds=new TGroundNode*[iConnection]; //koñców jest ok. 10 razy mniej ni¿ wszystkich przêse³ (Quark: 216)
  for (nCurrent=nRootOfType[TP_TRACTION];nCurrent;nCurrent=nCurrent->nNext)
+ {//³¹czenie bie¿ni wspólnych, w tym oznaczanie niepodanych jawnie
+  if (!Traction->asParallel.IsEmpty()) //bêdzie wskaŸnik na inne przês³o
+   if ((Traction->asParallel=="none")||(Traction->asParallel=="*")) //jeœli nieokreœlone
+    Traction->iLast=2; //jakby przedostatni - niech po prostu szuka (iLast ju¿ przeliczone)
+   else
+   {nTemp=FindGroundNode(Traction->asParallel,TP_TRACTION);
+    if (nTemp) Traction->hvParallel=nTemp->hvTraction; //o ile znalezione
+    if (!Traction->hvParallel)
+     ErrorLog("Missed overhead: "+Traction->asParallel); //logowanie braku
+   }
   if (nCurrent->hvTraction->iTries>0) //jeœli zaznaczony do pod³¹czenia
    //if (!nCurrent->hvTraction->psPower[0]||!nCurrent->hvTraction->psPower[1])
     if (zg<iConnection) //zabezpieczenie
      nEnds[zg++]=nCurrent; //wype³nianie tabeli koñców w celu szukania im po³¹czeñ
+ }
  while (zg<iConnection)
   nEnds[zg++]=NULL; //zape³nienie do koñca tablicy, jeœli by jakieœ koñce wypad³y
  zg=1; //nieefektywny przebieg koñczy ³¹czenie
