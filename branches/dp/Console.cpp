@@ -140,7 +140,7 @@ int __fastcall Console::On()
    if (LPT?LPT->Connect(iConfig):false)
    {//wys³aæ 0?
     BitsUpdate(-1); //aktualizacjia stanów, bo przy wczytywaniu mog³o byæ nieaktywne
-    WriteLog("InpOut32.dll OK");
+    WriteLog("Feedback Mode 3: InpOut32.dll OK");
    }
    else
    {//po³¹czenie nie wysz³o, ma byæ NULL

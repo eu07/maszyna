@@ -293,9 +293,10 @@ void __fastcall TTrain::OnKeyDown(int cKey)
       else */
       if (cKey==Global::Keys[k_Battery])
       {
-       if (((mvControlled->TrainType==dt_EZT)||(mvControlled->EngineType==ElectricSeriesMotor)||(mvControlled->EngineType==DieselElectric))&&(!mvControlled->Battery))
-       {
-        if (mvOccupied->BatterySwitch(true))
+       //if (((mvControlled->TrainType==dt_EZT)||(mvControlled->EngineType==ElectricSeriesMotor)||(mvControlled->EngineType==DieselElectric))&&(!mvControlled->Battery))
+       if (!mvControlled->Battery)
+       {//wy³¹cznik jest te¿ w SN61, ewentualnie za³¹czaæ pr¹d na sta³e z poziomu FIZ
+        if (mvOccupied->BatterySwitch(true)) //bateria potrzebna np. do zapalenia œwiate³
         {
          dsbSwitch->Play(0,0,0);
          if (TestFlag(mvOccupied->SecuritySystem.SystemType,2)) //Ra: znowu w kabinie jest coœ, co byæ nie powinno!
@@ -1344,14 +1345,14 @@ void __fastcall TTrain::OnKeyDown(int cKey)
 
       if (cKey==Global::Keys[k_Battery])
       {
-       if ((mvControlled->TrainType==dt_EZT) || (mvControlled->EngineType==ElectricSeriesMotor)|| (mvControlled->EngineType==DieselElectric))
-        if (mvOccupied->BatterySwitch(false))
-           {
-              dsbSwitch->Play(0,0,0);
-              //mvOccupied->SecuritySystem.Status=0;
-              mvControlled->PantFront(false);
-              mvControlled->PantRear(false);
-           }
+       //if ((mvControlled->TrainType==dt_EZT) || (mvControlled->EngineType==ElectricSeriesMotor)|| (mvControlled->EngineType==DieselElectric))
+       if (mvOccupied->BatterySwitch(false))
+       {//ewentualnie zablokowaæ z FIZ, np. w samochodach siê nie od³¹cza akumulatora
+        dsbSwitch->Play(0,0,0);
+        //mvOccupied->SecuritySystem.Status=0;
+        mvControlled->PantFront(false);
+        mvControlled->PantRear(false);
+       }
       }
 
       //-----------

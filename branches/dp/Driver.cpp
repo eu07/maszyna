@@ -1443,9 +1443,9 @@ bool __fastcall TController::PrepareEngine()
    voltfront=true;
  if (AIControllFlag) //jeœli prowadzi komputer
  {//czêœæ wykonawcza dla sterowania przez komputer
+  mvOccupied->BatterySwitch(true);
   if (mvControlling->EnginePowerSource.SourceType==CurrentCollector)
   {
-   mvOccupied->BatterySwitch(true);
    if (mvControlling->PantPress>4.3)
    {//je¿eli jest wystarczaj¹ce ciœnienie w pantografach
     if ((!mvControlling->bPantKurek3)||(mvControlling->PantPress<=mvControlling->ScndPipePress)) //kurek prze³¹czony albo g³ówna ju¿ pompuje
@@ -1461,12 +1461,11 @@ bool __fastcall TController::PrepareEngine()
   }
   if (mvOccupied->TrainType==dt_EZT)
   {
-   mvOccupied->BatterySwitch(true);
    mvControlling->PantFront(true);
    mvControlling->PantRear(true);
   }
-  if (mvControlling->EngineType==DieselElectric)
-   mvControlling->Battery=true;
+  //if (mvControlling->EngineType==DieselElectric)
+  // mvControlling->Battery=true; //Ra: to musi byæ tak?
  }
  if (mvControlling->PantFrontVolt||mvControlling->PantRearVolt||voltfront||voltrear)
  {//najpierw ustalamy kierunek, jeœli nie zosta³ ustalony
