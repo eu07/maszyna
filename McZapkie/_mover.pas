@@ -617,7 +617,7 @@ TYPE
                 //w wielu miejscach jest u¿ywane abs(Im)
                 Imin,Imax: integer;      {prad przelaczania automatycznego rozruchu, prad bezpiecznika}
                 Voltage: real;           {aktualne napiecie sieci zasilajacej}
-                MainCtrlActualPos: byte; {wskaznik Rlist}
+                MainCtrlActualPos: byte; {wskaznik RList}
                 ScndCtrlActualPos: byte; {wskaznik MotorParam}
                 DelayCtrlFlag: boolean;  //czy czekanie na 1. pozycji na za³¹czenie?
                 LastRelayTime: real;     {czas ostatniego przelaczania stycznikow}
@@ -2834,8 +2834,8 @@ begin
 //  if DynamicBrakeFlag and (TrainType=dt_ET42) then { KURS90 azeby mozna bylo hamowac przy opuszczonych pantografach }
 //  SP:=ScndCtrlActualPos;
 //   if(ScndInMain)then
-//    if not (Rlist[MainCtrlActualPos].ScndAct=255) then
-//     SP:=Rlist[MainCtrlActualPos].ScndAct;
+//    if not (RList[MainCtrlActualPos].ScndAct=255) then
+//     SP:=RList[MainCtrlActualPos].ScndAct;
 //    with MotorParam[SP] do
 //  begin
 //  Rz:=WindingRes+R;
@@ -2858,8 +2858,8 @@ begin
    if(ScndCtrlActualPos<255)then  {tak smiesznie bede wylaczal }
     begin
      if(ScndInMain)then
-      if not (Rlist[MainCtrlActualPos].ScndAct=255) then
-       SP:=Rlist[MainCtrlActualPos].ScndAct;
+      if not (RList[MainCtrlActualPos].ScndAct=255) then
+       SP:=RList[MainCtrlActualPos].ScndAct;
       with MotorParam[SP] do
        begin
         Rz:=Mn*WindingRes+R;
@@ -2946,8 +2946,8 @@ var SP: byte;
 begin
    SP:=ScndCtrlActualPos;
    if (ScndInMain) then
-    if not (Rlist[MainCtrlActualPos].ScndAct=255) then
-     SP:=Rlist[MainCtrlActualPos].ScndAct;
+    if not (RList[MainCtrlActualPos].ScndAct=255) then
+     SP:=RList[MainCtrlActualPos].ScndAct;
     with MotorParam[SP] do
 //     Momentum:=mfi*I*(1-1.0/(Abs(I)/mIsat+1));
      Momentum:=mfi*I*(Abs(I)/(Abs(I)+mIsat)-mfi0);
@@ -3091,7 +3091,7 @@ function T_MoverParameters.AutoRelayCheck: boolean;
 var OK:boolean; b:byte;
 begin
 //  if ((TrainType=dt_EZT{) or (TrainType=dt_ET22)}) and (Imin=IminLo)) or ((ActiveDir<0) and (TrainType<>dt_PseudoDiesel')) then
-//     if Rlist[MainCtrlActualPos].Bn>1 then
+//     if RList[MainCtrlActualPos].Bn>1 then
 //      begin
 //        dec(MainCtrlActualPos);
 //        AutoRelayCheck:=false;
@@ -3171,7 +3171,7 @@ begin
        else
         begin          {zmieniaj mainctrlactualpos}
           if ((TrainType=dt_EZT) and (Scnds=true) and (Imin=IminLo)) then
-           if Rlist[MainCtrlActualPos+1].Bn>1 then
+           if RList[MainCtrlActualPos+1].Bn>1 then
             begin
               AutoRelayCheck:=false;
               Exit;
@@ -3179,40 +3179,40 @@ begin
           if (not AutoRelayFlag) or (not RList[MainCtrlActualPos].AutoSwitch) then
            begin                                                {main bez samoczynnego rozruchu}
              OK:=true;
-             if Rlist[MainCtrlActualPos].Relay<MainCtrlPos then
-                if ((Rlist[MainCtrlActualPos].Mn>Rlist[MainCtrlPos].Mn)and (RList[MainCtrlActualPos+1].Mn<Rlist[MainCtrlActualPos].Mn) and (TrainType=dt_ET22) and (LastRelayTime<InitialCtrlDelay))then
+             if RList[MainCtrlActualPos].Relay<MainCtrlPos then
+                if ((RList[MainCtrlActualPos].Mn>RList[MainCtrlPos].Mn)and (RList[MainCtrlActualPos+1].Mn<RList[MainCtrlActualPos].Mn) and (TrainType=dt_ET22) and (LastRelayTime<InitialCtrlDelay))then
                  begin
                  Itot:=0;
                  Im:=0;
                  OK:=false;             {odciecie pradu, przy przelaczaniu silnikow w ET22}
                  end
                  else
-                 //if (Rlist[MainCtrlActualPos].R=0) and (Rlist[MainCtrlPos].R>0) and (TrainType=dt_ET22) and (LastRelayTime<InitialCtrlDelay) then
+                 //if (RList[MainCtrlActualPos].R=0) and (RList[MainCtrlPos].R>0) and (TrainType=dt_ET22) and (LastRelayTime<InitialCtrlDelay) then
 
               begin
                 inc(MainCtrlActualPos);
                 //---------
                 //hunter-111211: poprawki
                 if MainCtrlActualPos>0 then
-                 //if (Rlist[MainCtrlActualPos].R=0) and ((Rlist[MainCtrlActualPos].ScndAct=0) or (Rlist[MainCtrlActualPos].ScndAct=255)) then  {dzwieki przechodzenia na bezoporowa}
-                 if (Rlist[MainCtrlActualPos].R=0) and (not (MainCtrlActualPos=MainCtrlPosNo)) then  //wejscie na bezoporowa
+                 //if (RList[MainCtrlActualPos].R=0) and ((RList[MainCtrlActualPos].ScndAct=0) or (RList[MainCtrlActualPos].ScndAct=255)) then  {dzwieki przechodzenia na bezoporowa}
+                 if (RList[MainCtrlActualPos].R=0) and (not (MainCtrlActualPos=MainCtrlPosNo)) then  //wejscie na bezoporowa
                   begin
                    SetFlag(SoundFlag,sound_manyrelay); SetFlag(SoundFlag,sound_loud);
                   end
-                 else if (Rlist[MainCtrlActualPos].R>0) and (Rlist[MainCtrlActualPos-1].R=0) then //wejscie na drugi uklad
+                 else if (RList[MainCtrlActualPos].R>0) and (RList[MainCtrlActualPos-1].R=0) then //wejscie na drugi uklad
                   begin
                    SetFlag(SoundFlag,sound_manyrelay);
                   end;
 
               end
-             else if (Rlist[MainCtrlActualPos].Relay>MainCtrlPos) and (TrainType<>dt_EZT) then
+             else if (RList[MainCtrlActualPos].Relay>MainCtrlPos) and (TrainType<>dt_EZT) then
               begin
-              if not ((Rlist[MainCtrlActualPos].Mn<Rlist[MainCtrlPos].Mn) and (Rlist[MainCtrlActualPos-1].Mn>Rlist[MainCtrlActualPos].Mn)and (TrainType=dt_ET22) and (LastRelayTime<InitialCtrlDelay))then
+              if not ((RList[MainCtrlActualPos].Mn<RList[MainCtrlPos].Mn) and (RList[MainCtrlActualPos-1].Mn>RList[MainCtrlActualPos].Mn)and (TrainType=dt_ET22) and (LastRelayTime<InitialCtrlDelay))then
               begin
                 dec(MainCtrlActualPos);
                 if MainCtrlActualPos>0 then  //hunter-111211: poprawki
-                 //if (Rlist[MainCtrlActualPos+1].R=0) and ((Rlist[MainCtrlActualPos+1].ScndAct=0) or (Rlist[MainCtrlActualPos+1].ScndAct=255)) then  {dzwieki schodzenia z bezoporowej}
-                 if Rlist[MainCtrlActualPos].R=0 then  {dzwieki schodzenia z bezoporowej}
+                 //if (RList[MainCtrlActualPos+1].R=0) and ((RList[MainCtrlActualPos+1].ScndAct=0) or (RList[MainCtrlActualPos+1].ScndAct=255)) then  {dzwieki schodzenia z bezoporowej}
+                 if RList[MainCtrlActualPos].R=0 then  {dzwieki schodzenia z bezoporowej}
                   begin
                    SetFlag(SoundFlag,sound_manyrelay);
                   end;
@@ -3224,14 +3224,14 @@ begin
                  OK:=false;           {odciecie pradu, przy przelaczaniu silnikow w ET22}
                  end;
               end
-              else if (Rlist[MainCtrlActualPos].Relay>MainCtrlPos) and (TrainType=dt_EZT) and (MainCtrlPos>0) then     //K90
+              else if (RList[MainCtrlActualPos].Relay>MainCtrlPos) and (TrainType=dt_EZT) and (MainCtrlPos>0) then     //K90
               begin
               Exit;      {utkniecie walu kulakowego}
               end
              else if  (TrainType=dt_EZT) and (MainCtrlPos=0) then
               MainCtrlActualPos:=0
               else
-              if (Rlist[MainCtrlActualPos].R>0) and (ScndCtrlActualPos>0) and (TrainType<>dt_EZT) then
+              if (RList[MainCtrlActualPos].R>0) and (ScndCtrlActualPos>0) and (TrainType<>dt_EZT) then
                Dec(ScndCtrlActualPos) {boczniki nie dzialaja na poz. oporowych}
               else
               if (ScndCtrlPos<ScndCtrlActualPos) and (TrainType=dt_EZT) then
@@ -3242,14 +3242,14 @@ begin
           else                                                  {main z samoczynnym rozruchem}
            begin
              OK:=false;
-             if (MainCtrlPos<Rlist[MainCtrlActualPos].Relay) and (TrainType<>dt_EZT) then
+             if (MainCtrlPos<RList[MainCtrlActualPos].Relay) and (TrainType<>dt_EZT) then
              begin
-             if not ((Rlist[MainCtrlActualPos].Mn<Rlist[MainCtrlPos].Mn)and (Rlist[MainCtrlActualPos-1].Mn>Rlist[MainCtrlActualPos].Mn) and (TrainType=dt_ET22) and (LastRelayTime<InitialCtrlDelay))then
+             if not ((RList[MainCtrlActualPos].Mn<RList[MainCtrlPos].Mn)and (RList[MainCtrlActualPos-1].Mn>RList[MainCtrlActualPos].Mn) and (TrainType=dt_ET22) and (LastRelayTime<InitialCtrlDelay))then
               begin
                 dec(MainCtrlActualPos);
                 OK:=true;
                 if MainCtrlActualPos>0 then
-                   if (Rlist[MainCtrlActualPos+1].R=0) and ((Rlist[MainCtrlActualPos+1].ScndAct=0) or (Rlist[MainCtrlActualPos+1].ScndAct=255)) then  {dzwieki schodzenia z bezoporowej}
+                   if (RList[MainCtrlActualPos+1].R=0) and ((RList[MainCtrlActualPos+1].ScndAct=0) or (RList[MainCtrlActualPos+1].ScndAct=255)) then  {dzwieki schodzenia z bezoporowej}
                     begin
                     SetFlag(SoundFlag,sound_manyrelay);
                     end;
@@ -3262,7 +3262,7 @@ begin
                end;
      end
              else
-             if (MainCtrlPos<Rlist[MainCtrlActualPos].Relay) and (MainCtrlPos>0) and (TrainType=dt_EZT)  then
+             if (MainCtrlPos<RList[MainCtrlActualPos].Relay) and (MainCtrlPos>0) and (TrainType=dt_EZT)  then
               begin
                 AutoRelayCheck:=false;
                 Exit;    {utkniecie walu}
@@ -3279,9 +3279,9 @@ begin
                 Exit;  {utkniecie walu}
               end
              else
-              if (MainCtrlPos>Rlist[MainCtrlActualPos].Relay)  or ((MainCtrlActualPos<RListSize) and (MainCtrlPos=Rlist[MainCtrlActualPos+1].Relay)) then
+              if (MainCtrlPos>RList[MainCtrlActualPos].Relay)  or ((MainCtrlActualPos<RListSize) and (MainCtrlPos=RList[MainCtrlActualPos+1].Relay)) then
               begin
-              if ((Rlist[MainCtrlActualPos].Mn>Rlist[MainCtrlPos].Mn) and(RList[MainCtrlActualPos+1].Mn<Rlist[MainCtrlActualPos].Mn) and (TrainType=dt_ET22) and (LastRelayTime<InitialCtrlDelay))then
+              if ((RList[MainCtrlActualPos].Mn>RList[MainCtrlPos].Mn) and(RList[MainCtrlActualPos+1].Mn<RList[MainCtrlActualPos].Mn) and (TrainType=dt_ET22) and (LastRelayTime<InitialCtrlDelay))then
                begin
                Itot:=0;
                Im:=0;
@@ -3294,7 +3294,7 @@ begin
 
                    OK:=true;
                    if MainCtrlActualPos>0 then
-                    if (Rlist[MainCtrlActualPos].R=0) and ((Rlist[MainCtrlActualPos].ScndAct=0) or (Rlist[MainCtrlActualPos].ScndAct=255)) then  {dzwieki przechodzenia na bezoporowa}
+                    if (RList[MainCtrlActualPos].R=0) and ((RList[MainCtrlActualPos].ScndAct=0) or (RList[MainCtrlActualPos].ScndAct=255)) then  {dzwieki przechodzenia na bezoporowa}
                      begin
                       SetFlag(SoundFlag,sound_manyrelay); SetFlag(SoundFlag,sound_loud);
                      end;
@@ -3441,7 +3441,8 @@ function T_MoverParameters.AutoRelayCheck: boolean;
 var OK:boolean; //b:byte;
  ARFASI, ARFASI2 :boolean; //sprawdzenie wszystkich warunkow (AutoRelayFlag, AutoSwitch, Im<Imin)
 begin
-//rozlaczanie stycznikow liniowych
+ //Ra 2014-06: dla SN61 nie dzia³a prawid³owo
+ //rozlaczanie stycznikow liniowych
   if (not Mains) or (FuseFlag) or (MainCtrlPos=0) or (BrakePress>2.1) or (ActiveDir=0) then   //hunter-111211: wylacznik cisnieniowy
    begin
      StLinFlag:=false; //yBARC - rozlaczenie stycznikow liniowych
@@ -3455,7 +3456,7 @@ begin
    end;
 
    ARFASI2:=(not AutoRelayFlag) or ((MotorParam[ScndCtrlActualPos].AutoSwitch) and (Abs(Im)<Imin)); //wszystkie warunki w jednym
-   ARFASI :=(not AutoRelayFlag) or ((RList[MainCtrlActualPos].AutoSwitch) and (Abs(Im)<Imin)) or ((not RList[MainCtrlActualPos].AutoSwitch) and (Rlist[MainCtrlActualPos].Relay<MainCtrlPos)); //wszystkie warunki w jednym
+   ARFASI :=(not AutoRelayFlag) or ((RList[MainCtrlActualPos].AutoSwitch) and (Abs(Im)<Imin)) or ((not RList[MainCtrlActualPos].AutoSwitch) and (RList[MainCtrlActualPos].Relay<MainCtrlPos)); //wszystkie warunki w jednym
            //brak PSR                   na tej pozycji dzia³a PSR i pr¹d poni¿ej progu                         na tej pozycji nie dzia³a PSR i pozycja walu ponizej
           //                         chodzi w tym wszystkim o to, ¿eby mo¿na by³o zatrzymaæ rozruch na jakiejœ pozycji wpisuj¹c Autoswitch=0 i wymuszaæ
           //                         przejœcie dalej przez danie nastawnika na dalsz¹ pozycjê - tak to do tej pory dzia³a³o i na tym siê opiera fizyka ET22-2k
@@ -3488,15 +3489,15 @@ begin
        else
         begin //zmieniaj mainctrlactualpos
           if ((ActiveDir<0) and (TrainType<>dt_PseudoDiesel)) then
-           if Rlist[MainCtrlActualPos+1].Bn>1 then
+           if RList[MainCtrlActualPos+1].Bn>1 then
             begin
               AutoRelayCheck:=false;
               Exit; //Ra: to powoduje, ¿e EN57 nie wy³¹cza siê przy IminLo
             end;
            begin //main bez samoczynnego rozruchu
-             if (Rlist[MainCtrlActualPos].Relay<MainCtrlPos)or(Rlist[MainCtrlActualPos+1].Relay=MainCtrlPos)or((TrainType=dt_ET22)and(DelayCtrlFlag)) then
+             if (RList[MainCtrlActualPos].Relay<MainCtrlPos)or(RList[MainCtrlActualPos+1].Relay=MainCtrlPos)or((TrainType=dt_ET22)and(DelayCtrlFlag)) then
               begin
-               if (Rlist[MainCtrlPos].R=0) and (MainCtrlPos>0) and (not (MainCtrlPos=MainCtrlPosNo)) and (FastSerialCircuit=1) then
+               if (RList[MainCtrlPos].R=0) and (MainCtrlPos>0) and (not (MainCtrlPos=MainCtrlPosNo)) and (FastSerialCircuit=1) then
                 begin
                  MainCtrlActualPos:=MainCtrlPos; //hunter-111012: szybkie wchodzenie na bezoporowa (303E)
                  OK:=true;
@@ -3504,7 +3505,7 @@ begin
                 end
                else if (LastRelayTime>CtrlDelay)and(ARFASI) then
                 begin
-                 if (TrainType=dt_ET22)and(MainCtrlPos>1)and((Rlist[MainCtrlActualPos].Bn<Rlist[MainCtrlActualPos+1].Bn)or(DelayCtrlFlag))then //et22 z walem grupowym
+                 if (TrainType=dt_ET22)and(MainCtrlPos>1)and((RList[MainCtrlActualPos].Bn<RList[MainCtrlActualPos+1].Bn)or(DelayCtrlFlag))then //et22 z walem grupowym
                   if (not DelayCtrlFlag) then //najpierw przejscie
                    begin
                     inc(MainCtrlActualPos);
@@ -3525,19 +3526,19 @@ begin
                  //---------
                  //hunter-111211: poprawki
                  if MainCtrlActualPos>0 then
-                  if (Rlist[MainCtrlActualPos].R=0) and (not (MainCtrlActualPos=MainCtrlPosNo)) then  //wejscie na bezoporowa
+                  if (RList[MainCtrlActualPos].R=0) and (not (MainCtrlActualPos=MainCtrlPosNo)) then  //wejscie na bezoporowa
                    begin
                     SetFlag(SoundFlag,sound_manyrelay); SetFlag(SoundFlag,sound_loud);
                    end
-                  else if (Rlist[MainCtrlActualPos].R>0) and (Rlist[MainCtrlActualPos-1].R=0) then //wejscie na drugi uklad
+                  else if (RList[MainCtrlActualPos].R>0) and (RList[MainCtrlActualPos-1].R=0) then //wejscie na drugi uklad
                    begin
                     SetFlag(SoundFlag,sound_manyrelay);
                    end;
                 end
               end
-             else if Rlist[MainCtrlActualPos].Relay>MainCtrlPos then
+             else if RList[MainCtrlActualPos].Relay>MainCtrlPos then
               begin
-               if (Rlist[MainCtrlPos].R=0) and (MainCtrlPos>0) and (not (MainCtrlPos=MainCtrlPosNo)) and (FastSerialCircuit=1) then
+               if (RList[MainCtrlPos].R=0) and (MainCtrlPos>0) and (not (MainCtrlPos=MainCtrlPosNo)) and (FastSerialCircuit=1) then
                 begin
                  MainCtrlActualPos:=MainCtrlPos; //hunter-111012: szybkie wchodzenie na bezoporowa (303E)
                  OK:=true;
@@ -3551,14 +3552,14 @@ begin
                    OK:=true;
                   end;
                  if MainCtrlActualPos>0 then  //hunter-111211: poprawki
-                  if Rlist[MainCtrlActualPos].R=0 then  {dzwieki schodzenia z bezoporowej}
+                  if RList[MainCtrlActualPos].R=0 then  {dzwieki schodzenia z bezoporowej}
                    begin
                     SetFlag(SoundFlag,sound_manyrelay);
                    end;
                 end
               end
              else
-              if (Rlist[MainCtrlActualPos].R>0) and (ScndCtrlActualPos>0) then
+              if (RList[MainCtrlActualPos].R>0) and (ScndCtrlActualPos>0) then
                begin
                 if (LastRelayTime>CtrlDownDelay) then
                  begin
@@ -3601,7 +3602,7 @@ begin
          else  
          if(LastRelayTime>CtrlDownDelay)then
           begin
-           if(MainCtrlActualPos<RlistSize)then
+           if(MainCtrlActualPos<RListSize)then
             inc(MainCtrlActualPos) //dojdz do konca
            else if(ScndCtrlActualPos<ScndCtrlPosNo)then
             inc(ScndCtrlActualPos) //potem boki
@@ -3764,7 +3765,7 @@ begin
   OK:=false;
   if MotorParam[ScndCtrlActualPos].AutoSwitch and Mains then
    begin
-     if (Rlist[MainCtrlPos].Mn=0) then
+     if (RList[MainCtrlPos].Mn=0) then
       begin
         if (dizel_engagestate>0) then
          dizel_EngageSwitch(0);
@@ -3802,7 +3803,7 @@ begin
   if Mains then
    begin
         if (dizel_automaticgearstatus=0) then  {ustaw cisnienie w silowniku sprzegla}
-        case Rlist[MainCtrlPos].Mn of
+        case RList[MainCtrlPos].Mn of
           1: dizel_EngageSwitch(0.5);
           2: dizel_EngageSwitch(1.0);
          else dizel_EngageSwitch(0.0)
@@ -5641,7 +5642,7 @@ begin
   AutoRelayFlag:=(AutoRelayType=1);
   Sand:=SandCapacity;
   if (Pos('o',AxleArangement)>0) and (EngineType=ElectricSeriesMotor) then
-   OK:=(Rlist[1].Bn*Rlist[1].Mn=NPoweredAxles); {test poprawnosci ilosci osi indywidualnie napedzanych}
+   OK:=(RList[1].Bn*RList[1].Mn=NPoweredAxles); {test poprawnosci ilosci osi indywidualnie napedzanych}
   if (Pos(LoadType,LoadAccepted)=0) and (LoadType<>'') then
    begin
      Load:=0;
@@ -7044,22 +7045,22 @@ begin
                 s:=ExtractKeyWord(lines,'RVentCutOff=');
                 RVentCutOff:=s2r(DUE(s));
               end;
-             RlistSize:=s2b(DUE(ExtractKeyWord(lines,'Size=')));
-             if RlistSize>ResArraySize then
+             RListSize:=s2b(DUE(ExtractKeyWord(lines,'Size=')));
+             if RListSize>ResArraySize then
               ConversionError:=-4
              else
-              for k:=0 to RlistSize do
+              for k:=0 to RListSize do
                begin
-                 read(fin, Rlist[k].Relay, Rlist[k].R, Rlist[k].Bn, Rlist[k].Mn);
+                 read(fin, RList[k].Relay, RList[k].R, RList[k].Bn, RList[k].Mn);
 {                 if AutoRelayType=0 then
-                  Rlist[k].AutoSwitch:=false
+                  RList[k].AutoSwitch:=false
                  else begin  }  {to sie przyda do pozycji przejsciowych}
                  read(fin,i);
-                 Rlist[k].AutoSwitch:=Boolean(i);
+                 RList[k].AutoSwitch:=Boolean(i);
                  if(ScndInMain)then
                   begin
                    readln(fin,i);
-                   Rlist[k].ScndAct:=i;
+                   RList[k].ScndAct:=i;
                   end
                  else readln(fin);
                end;
@@ -7078,20 +7079,20 @@ begin
              dizel_nominalfill:=s2rE(DUE(s));
              s:=ExtractKeyWord(lines,'Mstand=');
              dizel_Mstand:=s2rE(DUE(s));
-             RlistSize:=s2b(DUE(ExtractKeyWord(lines,'Size=')));
-             if RlistSize>ResArraySize then
+             RListSize:=s2b(DUE(ExtractKeyWord(lines,'Size=')));
+             if RListSize>ResArraySize then
               ConversionError:=-4
              else
-              for k:=0 to RlistSize do
+              for k:=0 to RListSize do
                begin
-                 readln(fin, Rlist[k].Relay, Rlist[k].R, Rlist[k].Mn);
+                 readln(fin, RList[k].Relay, RList[k].R, RList[k].Mn);
                end;
            end
 //youBy
           else if (Pos('WWList:',lines)>0) then  {dla spal-ele}
           begin
-            RlistSize:=s2b(DUE(ExtractKeyWord(lines,'Size=')));
-            for k:=0 to RlistSize do
+            RListSize:=s2b(DUE(ExtractKeyWord(lines,'Size=')));
+            for k:=0 to RListSize do
             begin
               if not (ShuntModeAllow) then
                 readln(fin, DEList[k].rpm, DEList[k].genpower, DEList[k].Umax, DEList[k].Imax)

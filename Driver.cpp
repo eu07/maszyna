@@ -1440,7 +1440,7 @@ bool __fastcall TController::PrepareEngine()
  else
   //if EnginePowerSource.SourceType<>CurrentCollector)
   if (mvOccupied->TrainType!=dt_EZT)
-   voltfront=true;
+   voltfront=true; //Ra 2014-06: to jest wirtualny pr¹d dla spalinowych???
  if (AIControllFlag) //jeœli prowadzi komputer
  {//czêœæ wykonawcza dla sterowania przez komputer
   mvOccupied->BatterySwitch(true);
@@ -1503,6 +1503,12 @@ bool __fastcall TController::PrepareEngine()
     //   end;
     while (DecSpeed(true)); //zerowanie napêdu
     OK=mvControlling->MainSwitch(true);
+    if (mvControlling->EngineType==DieselEngine)
+    {//Ra 2014-06: dla SN61 trzeba wrzuciæ pierwsz¹ pozycjê - nie wiem, czy tutaj... kiedyœ dzia³a³o...
+     if (!mvControlling->MainCtrlPos)
+      if (mvControlling->RList[0].R==0.0)
+       mvControlling->IncMainCtrl(1);
+    }
    }
    else
    {//Ra: iDirection okreœla, w któr¹ stronê jedzie sk³ad wzglêdem sprzêgów pojazdu z AI
@@ -1756,7 +1762,7 @@ bool __fastcall TController::IncSpeed()
    else
     mvControlling->DecMainCtrl(1+floor(0.5+fabs(AccDesired)));
    break;
-  case DieselEngine :
+  case DieselEngine:
    if ((mvControlling->Vel>mvControlling->dizel_minVelfullengage)&&(mvControlling->RList[mvControlling->MainCtrlPos].Mn>0))
     OK=mvControlling->IncMainCtrl(1);
    if (mvControlling->RList[mvControlling->MainCtrlPos].Mn==0)
@@ -1769,7 +1775,8 @@ bool __fastcall TController::IncSpeed()
    }
    break;
  }
- mvControlling->AutoRelayCheck(); //sprawdzenie logiki sterowania
+ if (mvOccupied->EngineType!=DieselEngine) //Ra 2014-06: dla SN61 nie dzia³a prawid³owo
+  mvControlling->AutoRelayCheck(); //sprawdzenie logiki sterowania
  return OK;
 }
 
@@ -2626,7 +2633,7 @@ bool __fastcall TController::UpdateSituation(double dt)
      }
      else
      {//gdy nie musi siê sprê¿aæ
-      fVelMinus=int(0.1*VelDesired); //margines prêdkoœci powoduj¹cy za³¹czenie napêdu
+      fVelMinus=int(0.05*VelDesired); //margines prêdkoœci powoduj¹cy za³¹czenie napêdu
       if (fVelMinus>5.0) fVelMinus=5.0;
       else if (fVelMinus<1.0) fVelMinus=1.0; //¿eby nie rusza³ przy 0.1
       fVelPlus=int(0.5+0.05*VelDesired); //normalnie dopuszczalne przekroczenie to 5% prêdkoœci
@@ -3152,11 +3159,14 @@ bool __fastcall TController::UpdateSituation(double dt)
           if (mvOccupied->BrakePress>0.4)
            mvOccupied->BrakeReleaser(1); //wyluzuj lokomotywê, to szybciej ruszymy
          }
-      //Ra: zmieni³em 0.95 na 1.0 - trzeba ustaliæ, sk¹d sie takie wartoœci bior¹
       //margines dla prêdkoœci jest doliczany tylko jeœli oczekiwana prêdkoœæ jest wiêksza od 5km/h
-      if ((fAccGravity<-0.01?AccDesired<-0.1:AbsAccS>AccDesired)||(vel>VelDesired))
-       if (!(iDrivigFlags&movePress))
+      if (!(iDrivigFlags&movePress))
+      {//jeœli nie dociskanie
+       if (AccDesired<-0.1)
         while (DecSpeed()); //jeœli hamujemy, to nie przyspieszamy
+       else if (((fAccGravity<-0.01)?AccDesired<0.0:AbsAccS>AccDesired)||(vel>VelDesired)) //jak za bardzo przyspiesza albo prêdkoœæ przekroczona
+        DecSpeed(); //pojedyncze cofniêcie pozycji, bo na zero to przesada
+      }
       //yB: usuniête ró¿ne dziwne warunki, oddzielamy czêœæ zadaj¹c¹ od wykonawczej
       //zwiekszanie predkosci
       if (AbsAccS<AccDesired) //jeœli przyspieszenie pojazdu jest mniejsze ni¿ ¿¹dane oraz
