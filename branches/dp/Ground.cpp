@@ -4266,18 +4266,22 @@ void __fastcall TGround::IsolatedBusyList()
   if (Current->Busy()) //sprawdŸ zajêtoœæ
    WyslijString(Current->asName,11); //zajêty
   else
-   WyslijString(Current->asName,12); //wolny
+   WyslijString(Current->asName,10); //wolny
+ WyslijString("none",10); //informacja o koñcu listy
 };
 //---------------------------------------------------------------------------
 
 void __fastcall TGround::IsolatedBusy(const AnsiString t)
-{//wys³anie informacji o wszystkich zajêtych odcinkach izolowanych
+{//wys³anie informacji o odcinku izolowanym (t)
+ //Ra 2014-06: do wyszukania u¿yæ drzewka nazw
  TIsolated *Current;
  for (Current=TIsolated::Root();Current;Current=Current->Next())
-  if (Current->asName==t)
+  if (Current->asName==t) //wyszukiwanie odcinka o nazwie (t)
    if (Current->Busy()) //sprawdŸ zajetoœæ
-    WyslijString(Current->asName,11); //zajêty
- WyslijString("none",12); //wolny none - koniec przesy³ania
+   {WyslijString(Current->asName,11); //zajêty
+    return; //nie sprawdzaj dalszych
+   }
+ WyslijString(t,10); //wolny
 };
 //---------------------------------------------------------------------------
 

@@ -107,7 +107,7 @@ void __fastcall TIsolated::Modify(int i,TDynamicObject *o)
    if (evFree)
     Global::AddToQuery(evFree,o); //dodanie zwolnienia do kolejki
    if (Global::iMultiplayer) //jeœli multiplayer
-    Global::pGround->WyslijString(asName,12); //wys³anie pakietu o zwolnieniu
+    Global::pGround->WyslijString(asName,10); //wys³anie pakietu o zwolnieniu
    if (pMemCell) //w powi¹zanej komórce
     pMemCell->UpdateValues(NULL,0,int(pMemCell->Value2())&~0xFF,update_memval2); //"zerujemy" ostatni¹ wartoœæ
   }

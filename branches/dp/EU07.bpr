@@ -3,7 +3,7 @@
 <PROJECT>
   <MACROS>
     <VERSION value="BCB.05.03"/>
-    <PROJECT value="E:\EU07\EU07.exe"/>
+    <PROJECT value="D:\EU07\EU07.exe"/>
     <OBJFILES value="QueryParserComp.obj McZapkie\mtable.obj McZapkie\_mover.obj 
       McZapkie\hamulce.obj EU07.obj dumb3d.obj Camera.obj Texture.obj World.obj 
       Model3d.obj MdlMngr.obj Train.obj wavread.obj Timer.obj Event.obj 
@@ -58,8 +58,8 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=14
 MinorVer=6
-Release=1044
-Build=439
+Release=1050
+Build=440
 Debug=1
 PreRelease=0
 Special=0
@@ -71,7 +71,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=14.6.1044.439
+FileVersion=14.6.1050.440
 InternalName=9th by Ra + SPKS + MP
 LegalCopyright=
 LegalTrademarks=

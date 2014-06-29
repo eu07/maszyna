@@ -756,14 +756,14 @@ TDynamicObject* __fastcall TDynamicObject::ABuFindNearestObject(TTrack *Track,TD
     // 0, //yyy... jeœli du¿e pochylenie i d³ugi pojazd, to mo¿e byæ problem
     // +((0.5*Track->Dynamics[i]->MoverParameters->Dim.L)*cos(Track->Dynamics[i]->modelRot.z))
     //);
-    tmp=Global::GetCameraPosition()-vCoulpler[0]; //Ra: pozycje sprzêgów te¿ s¹ zawsze liczone
+    tmp=Global::GetCameraPosition()-Track->Dynamics[i]->vCoulpler[0]; //Ra: pozycje sprzêgów te¿ s¹ zawsze liczone
     dist=tmp.x*tmp.x+tmp.y*tmp.y+tmp.z*tmp.z; //odleg³oœæ do kwadratu
     if (dist<25.0) //5 metrów
     {
      CouplNr=0;
      return Track->Dynamics[i];
     }
-    tmp=Global::GetCameraPosition()-vCoulpler[1];
+    tmp=Global::GetCameraPosition()-Track->Dynamics[i]->vCoulpler[1];
     dist=tmp.x*tmp.x+tmp.y*tmp.y+tmp.z*tmp.z; //odleg³oœæ do kwadratu
     if (dist<25.0) //5 metrów
     {
