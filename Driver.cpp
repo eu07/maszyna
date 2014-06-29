@@ -1506,8 +1506,12 @@ bool __fastcall TController::PrepareEngine()
     if (mvControlling->EngineType==DieselEngine)
     {//Ra 2014-06: dla SN61 trzeba wrzuciæ pierwsz¹ pozycjê - nie wiem, czy tutaj... kiedyœ dzia³a³o...
      if (!mvControlling->MainCtrlPos)
-      if (mvControlling->RList[0].R==0.0)
+     {if (mvControlling->RList[0].R==0.0) //gdy z pozycji 0 siê nie ruszy
        mvControlling->IncMainCtrl(1);
+      if (!mvControlling->MotorParam[0].AutoSwitch) //gdy biegi rêczne
+       if (mvControlling->MotorParam[0].mIsat==0.0) //bl,mIsat,fi,mfi
+        mvControlling->IncScndCtrl(1); //pierwszy bieg
+     }
     }
    }
    else
@@ -1937,6 +1941,25 @@ void __fastcall TController::SpeedSet()
    //  OK:=False;
    // end;
   case DieselEngine:
+   //Ra 2014-06: "automatyczna" skrzynia biegów...
+   if (!mvControlling->MotorParam[mvControlling->ScndCtrlPos].AutoSwitch) //gdy biegi rêczne
+    if (mvControlling->Vel>0.6*mvControlling->MotorParam[mvControlling->ScndCtrlPos].mfi)
+    {//jak prêdkoœæ wiêksza ni¿ 0.6 maksymalnej na danym biegu, wrzuciæ wy¿szy
+     mvControlling->DecMainCtrl(2);
+     mvControlling->IncScndCtrl(1);
+     if (mvControlling->MotorParam[mvControlling->ScndCtrlPos].mIsat==0.0) //jeœli bieg ja³owy
+      mvControlling->IncScndCtrl(1); //to kolejny
+    }
+    else if (mvControlling->Vel<mvControlling->MotorParam[mvControlling->ScndCtrlPos].fi)
+    {//jak prêdkoœæ mniejsza ni¿ minimalna na danym biegu, wrzuciæ ni¿szy
+     mvControlling->DecMainCtrl(2);
+     mvControlling->DecScndCtrl(1);
+     if (mvControlling->MotorParam[mvControlling->ScndCtrlPos].mIsat==0.0) //jeœli bieg ja³owy
+      if (mvControlling->ScndCtrlPos) //a jeszcze zera nie osi¹gniêto
+       mvControlling->DecScndCtrl(1); //to kolejny wczeœniejszy
+      else
+       mvControlling->IncScndCtrl(1); //a jak zesz³o na zero, to powrót
+    }
   break;
  }
 };
