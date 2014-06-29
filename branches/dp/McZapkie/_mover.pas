@@ -809,7 +809,7 @@ TYPE
                 {!o pokazuje bezwgl. wartosc pradu na wybranym amperomierzu}
                 function ShowCurrent(AmpN:byte): integer;
                 {!o pokazuje bezwgl. wartosc obrotow na obrotomierzu jednego z 3 pojazdow}
-                function ShowEngineRotation(VehN:byte): integer;
+                {function ShowEngineRotation(VehN:byte): integer; //Ra 2014-06: przeniesione do C++}
                 {funkcje uzalezniajace sile pociagowa od predkosci: v2n, n2r, current, momentum}
                 function v2n:real;
                 function current(n,U:real): real;
@@ -2730,6 +2730,7 @@ begin
        ShowCurrent:=Connected.ShowCurrent(AmpN);
 end;
 
+{Ra 2014-06: przeniesione do C++
 function T_MoverParameters.ShowEngineRotation(VehN:byte): integer;
 var b:Byte; //,Bn:byte;
 begin
@@ -2750,7 +2751,7 @@ begin
            ShowEngineRotation:=Trunc(Abs(Couplers[1].Connected.Couplers[1].Connected.enrot));
   end;
 end;
-
+}
 
 {funkcje uzalezniajace sile pociagowa od predkosci: V2n, n2R, Current, Momentum}
 {----------------}

@@ -707,7 +707,6 @@ public:
 	bool __fastcall FuseFlagCheck(void);
 	void __fastcall FuseOff(void);
 	int __fastcall ShowCurrent(Byte AmpN);
-	int __fastcall ShowEngineRotation(Byte VehN);
 	double __fastcall v2n(void);
 	double __fastcall current(double n, double U);
 	double __fastcall Momentum(double I);
