@@ -483,7 +483,7 @@ double __fastcall TMoverParameters::FastComputeMovement
  if (EnginePowerSource.SourceType==CurrentCollector) //tylko jeœli pantografuj¹cy
   if (Power>1.0) //w rozrz¹dczym nie (jest b³¹d w FIZ!)
    UpdatePantVolume(dt); //Ra: pneumatyka pantografów przeniesiona do Mover.cpp!
- if (EngineType==WheelsDriven) 
+ if (EngineType==WheelsDriven)
   d=CabNo*dL; //na chwile dla testu
  else
   d=dL;
@@ -520,3 +520,30 @@ double __fastcall TMoverParameters::FastComputeMovement
  BrakeSlippingTimer=BrakeSlippingTimer+dt;
  return d;
 };
+
+double __fastcall TMoverParameters::ShowEngineRotation(int VehN)
+{//pokazywanie obrotów silnika, równie¿ dwóch dalszych pojazdów (3×SN61)
+ int b;
+ switch (VehN)
+ {//numer obrotomierza
+  case 1:
+   return fabs(enrot);
+  case 2:
+   for (b=0;b<=1;++b)
+    if (TestFlag(Couplers[b].CouplingFlag,ctrain_controll))
+     if (Couplers[b].Connected->Power>0.01)
+      return fabs(Couplers[b].Connected->enrot);
+   break;   
+  case 3: //to nie uwzglêdnia ewentualnego odwrócenia pojazdu w œrodku
+   for (b=0;b<=1;++b)
+    if (TestFlag(Couplers[b].CouplingFlag,ctrain_controll))
+     if (Couplers[b].Connected->Power>0.01)
+      if (TestFlag(Couplers[b].Connected->Couplers[b].CouplingFlag,ctrain_controll))
+       if (Couplers[b].Connected->Couplers[b].Connected->Power>0.01)
+        return fabs(Couplers[b].Connected->Couplers[b].Connected->enrot);
+   break;
+ };
+ return 0.0;
+};
+
+

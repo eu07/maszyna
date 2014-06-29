@@ -63,6 +63,7 @@ public:
   const TTrackShape &Shape,TTrackParam &Track,
   const	TLocation &NewLoc,TRotation &NewRot
  );
+ double __fastcall ShowEngineRotation(int VehN);
 };
 
 #endif
