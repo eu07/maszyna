@@ -1761,10 +1761,12 @@ bool __fastcall TController::IncSpeed()
     }
    break;
   case WheelsDriven:
+   if (!mvControlling->CabNo)
+    mvControlling->CabActivisation();
    if (sin(mvControlling->eAngle)>0)
-    mvControlling->IncMainCtrl(1+floor(0.5+fabs(AccDesired)));
+    mvControlling->IncMainCtrl(3+3*floor(0.5+fabs(AccDesired)));
    else
-    mvControlling->DecMainCtrl(1+floor(0.5+fabs(AccDesired)));
+    mvControlling->DecMainCtrl(3+3*floor(0.5+fabs(AccDesired)));
    break;
   case DieselEngine:
    if ((mvControlling->Vel>mvControlling->dizel_minVelfullengage)&&(mvControlling->RList[mvControlling->MainCtrlPos].Mn>0))
@@ -1806,10 +1808,14 @@ bool __fastcall TController::DecSpeed(bool force)
    if (!OK)
     OK=mvControlling->DecMainCtrl(2+(mvControlling->MainCtrlPos/2));
   break;
-  //WheelsDriven :
-   // begin
-   //  OK:=False;
-   // end;
+  case WheelsDriven:
+   if (!mvControlling->CabNo)
+    mvControlling->CabActivisation();
+   if (sin(mvControlling->eAngle)<0)
+    mvControlling->IncMainCtrl(3+3*floor(0.5+fabs(AccDesired)));
+   else
+    mvControlling->DecMainCtrl(3+3*floor(0.5+fabs(AccDesired)));
+   break;
   case DieselEngine:
    if ((mvControlling->Vel>mvControlling->dizel_minVelfullengage))
    {
@@ -1946,9 +1952,9 @@ void __fastcall TController::SpeedSet()
     if (mvControlling->Vel>0.6*mvControlling->MotorParam[mvControlling->ScndCtrlPos].mfi)
     {//jak prêdkoœæ wiêksza ni¿ 0.6 maksymalnej na danym biegu, wrzuciæ wy¿szy
      mvControlling->DecMainCtrl(2);
-     mvControlling->IncScndCtrl(1);
-     if (mvControlling->MotorParam[mvControlling->ScndCtrlPos].mIsat==0.0) //jeœli bieg ja³owy
-      mvControlling->IncScndCtrl(1); //to kolejny
+     if (mvControlling->IncScndCtrl(1))
+      if (mvControlling->MotorParam[mvControlling->ScndCtrlPos].mIsat==0.0) //jeœli bieg ja³owy
+       mvControlling->IncScndCtrl(1); //to kolejny
     }
     else if (mvControlling->Vel<mvControlling->MotorParam[mvControlling->ScndCtrlPos].fi)
     {//jak prêdkoœæ mniejsza ni¿ minimalna na danym biegu, wrzuciæ ni¿szy
@@ -2963,8 +2969,7 @@ bool __fastcall TController::UpdateSituation(double dt)
      //else if (VelSignal<0)
       //VelDesired=fVelMax; //ile fabryka dala (Ra: uwzglêdione wagony)
      else
-     // VelDesired=Min0R(fVelMax,VelSignal); //VelSignal>0 jest ograniczeniem prêdkoœci (z ró¿nyc Ÿróde³)
-      if (VelSignal>=0)
+      if (VelSignal>=0) //VelSignal>0 jest ograniczeniem prêdkoœci (z semafora)
        VelDesired=Min0R(VelDesired,VelSignal);
      if (mvOccupied->RunningTrack.Velmax>=0) //ograniczenie prêdkoœci z trajektorii ruchu
       VelDesired=Min0R(VelDesired,mvOccupied->RunningTrack.Velmax); //uwaga na ograniczenia szlakowej!
