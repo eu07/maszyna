@@ -334,10 +334,11 @@ void __fastcall TTrain::OnKeyDown(int cKey)
       if (cKey==Global::Keys[k_Main])
       {
        if (fabs(MainOnButtonGauge.GetValue())<0.001)
-       {
-        dsbSwitch->SetVolume(DSBVOLUME_MAX);
-        dsbSwitch->Play(0,0,0);
-       }
+        if (dsbSwitch)
+        {
+         dsbSwitch->SetVolume(DSBVOLUME_MAX);
+         dsbSwitch->Play(0,0,0);
+        }
       }
       else
       //-----------
@@ -1060,62 +1061,31 @@ void __fastcall TTrain::OnKeyDown(int cKey)
           }
       else
       if (cKey==Global::Keys[k_DecLocalBrakeLevel])
-          {//ABu: male poprawki, zeby bylo mozna odhamowac dowolny wagon
-              //int CouplNr=-2;
-              if (!FreeFlyModeFlag)
-              {
-               if (GetAsyncKeyState(VK_CONTROL)<0)
-                if ((mvOccupied->LocalBrake==ManualBrake)||(mvOccupied->MBrake==true))
-                 mvOccupied->DecManualBrakeLevel(1);
-                else;
-               else
-                if (mvOccupied->LocalBrake!=ManualBrake)
-                 mvOccupied->DecLocalBrakeLevel(1);
-              }
-/* Ra: przeniesione do World.cpp
-              else
-              {
-                 TDynamicObject *temp;
-                 temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 1500, CouplNr));
-                 if (temp==NULL)
-                 {
-                    CouplNr=-2;
-                    temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1, 1500, CouplNr));
-                 }
-                 if (temp)
-                 {
-                  if (GetAsyncKeyState(VK_CONTROL)<0)
-                    if ((temp->MoverParameters->LocalBrake==ManualBrake)||(temp->MoverParameters->MBrake==true))
-                 {temp->MoverParameters->DecManualBrakeLevel(1);}
-                    else;
-                else
-
-
-                 if (temp->MoverParameters->LocalBrake!=ManualBrake)
-                 {
-                    if (temp->MoverParameters->DecLocalBrakeLevelFAST())
-                    {
-                       dsbPneumaticRelay->SetVolume(-80);
-                       dsbPneumaticRelay->Play(0,0,0);
-                    }
-                 }
-                 }
-              }
-*/
-          }
+      {//Ra 2014-06: wersja dla swobodnego latania przeniesiona do World.cpp
+       if (!FreeFlyModeFlag)
+       {
+        if (GetAsyncKeyState(VK_CONTROL)<0)
+         if ((mvOccupied->LocalBrake==ManualBrake)||(mvOccupied->MBrake==true))
+          mvOccupied->DecManualBrakeLevel(1);
+         else;
+        else //Ra 1014-06: AI potrafi zahamowaæ pomocniczym mimo jego braku - odhamowaæ jakoœ trzeba
+         if ((mvOccupied->LocalBrake!=ManualBrake)||mvOccupied->LocalBrakePos)
+          mvOccupied->DecLocalBrakeLevel(1);
+       }
+      }
       else
       if ((cKey==Global::Keys[k_IncBrakeLevel])&&(mvOccupied->BrakeHandle!=FV4a))
        //if (mvOccupied->IncBrakeLevel())
        if (mvOccupied->BrakeLevelAdd(Global::fBrakeStep)) //nieodpowiedni warunek; true, jeœli mo¿na dalej krêciæ
-          {
-           keybrakecount=0;
-           if ((isEztOer) && (mvOccupied->BrakeCtrlPos<3))
-            {//Ra: uzale¿niæ dŸwiêk od zmiany stanu EP, nie od klawisza
-             dsbPneumaticSwitch->SetVolume(-10);
-             dsbPneumaticSwitch->Play(0,0,0);
-            }
-           }
-          else;
+       {
+        keybrakecount=0;
+        if ((isEztOer) && (mvOccupied->BrakeCtrlPos<3))
+         {//Ra: uzale¿niæ dŸwiêk od zmiany stanu EP, nie od klawisza
+          dsbPneumaticSwitch->SetVolume(-10);
+          dsbPneumaticSwitch->Play(0,0,0);
+         }
+        }
+       else;
       else
       if ((cKey==Global::Keys[k_DecBrakeLevel])&&(mvOccupied->BrakeHandle!=FV4a))
        {
@@ -1290,6 +1260,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
               dsbReverserKey->Play(0,0,0);
              }
             else if (!dsbReverserKey)
+             if (dsbSwitch)
              {
               dsbSwitch->SetVolume(DSBVOLUME_MAX);
               dsbSwitch->Play(0,0,0);
@@ -1322,6 +1293,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
               dsbReverserKey->Play(0,0,0);
              }
             else if (!dsbReverserKey)
+             if (dsbSwitch)
              {
               dsbSwitch->SetVolume(DSBVOLUME_MAX);
               dsbSwitch->Play(0,0,0);
@@ -1335,11 +1307,12 @@ void __fastcall TTrain::OnKeyDown(int cKey)
       //hunter-141211: wyl. szybki wylaczony przeniesiony do TTrain::Update()
       if (cKey==Global::Keys[k_Main])
       {
-           if (fabs(MainOffButtonGauge.GetValue())<0.001)
-           {
-               dsbSwitch->SetVolume(DSBVOLUME_MAX);
-               dsbSwitch->Play(0,0,0);
-           }
+       if (fabs(MainOffButtonGauge.GetValue())<0.001)
+        if (dsbSwitch)
+        {
+         dsbSwitch->SetVolume(DSBVOLUME_MAX);
+         dsbSwitch->Play(0,0,0);
+        }
       }
       else
 
