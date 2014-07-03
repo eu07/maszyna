@@ -248,6 +248,10 @@ bool __fastcall TMoverParameters::CurrentSwitch(int direction)
  {if (TrainType!=dt_EZT)
    return (MinCurrentSwitch(direction));
  }
+ if (EngineType==DieselEngine) //dla 2Ls150
+  if (ShuntModeAllow)
+   if (ActiveDir==0) //przed ustawieniem kierunku
+    ShuntMode=direction;
  return false;
 };
 
