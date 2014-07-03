@@ -3913,9 +3913,12 @@ begin
   else
   if EngineType<>DieselEngine then
    enrot:=Transmision.Ratio*nrot
-  else
+  else //dla DieselEngine
    begin
-     dtrans:=Transmision.Ratio*MotorParam[ScndCtrlActualPos].mIsat;
+     if (ShuntMode) then //dodatkowa przek³adnia np. dla 2Ls150
+      dtrans:=AnPos*Transmision.Ratio*MotorParam[ScndCtrlActualPos].mIsat
+     else
+      dtrans:=Transmision.Ratio*MotorParam[ScndCtrlActualPos].mIsat;
      dmoment:=dizel_Momentum(dizel_fill,ActiveDir*1*dtrans*nrot,dt); {oblicza tez enrot}
    end;
   eAngle:=eAngle+enrot*dt;
@@ -5584,6 +5587,8 @@ begin
   Name:=NameInit;
  DerailReason:=0; //Ra: powód wykolejenia
  TotalCurrent:=0;
+ ShuntModeAllow:=false;
+ ShuntMode:=false;
 end;
 
 function T_MoverParameters.EngineDescription(what:integer): string;  {opis stanu lokomotywy}
@@ -6882,6 +6887,15 @@ begin
                  dizel_nmax_cutoff:=s2r(DUE(s))/60.0;
                  s:=ExtractKeyWord(lines,'AIM=');
                  dizel_AIM:=s2r(DUE(s));
+                 s:=ExtractKeyWord(lines,'ShuntMode=');
+                 if s<>'' then
+                  begin //dodatkowa przek³adnia dla SM03 (2Ls150)
+                   ShuntModeAllow:=true;
+                   ShuntMode:=false;
+                   AnPos:=s2rE(DUE(s)); //dodatkowe prze³o¿enie
+                   if (AnPos<1.0) then //"rozruch wysoki" ma dawaæ wiêksz¹ si³ê
+                    AnPos:=1.0/AnPos; //im wiêksza liczba, tym wolniej jedzie
+                  end;
                end;
              DieselElectric: //youBy
                begin

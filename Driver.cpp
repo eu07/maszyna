@@ -1949,14 +1949,15 @@ void __fastcall TController::SpeedSet()
   case DieselEngine:
    //Ra 2014-06: "automatyczna" skrzynia biegów...
    if (!mvControlling->MotorParam[mvControlling->ScndCtrlPos].AutoSwitch) //gdy biegi rêczne
-    if (mvControlling->Vel>0.6*mvControlling->MotorParam[mvControlling->ScndCtrlPos].mfi)
+    if ((mvControlling->ShuntMode?mvControlling->AnPos:1.0)*mvControlling->Vel>0.6*mvControlling->MotorParam[mvControlling->ScndCtrlPos].mfi)
+    //if (mvControlling->enrot>0.95*mvControlling->dizel_nMmax) //youBy: jeœli obroty > 0,95 nmax, wrzuæ wy¿szy bieg - Ra: to nie dzia³a
     {//jak prêdkoœæ wiêksza ni¿ 0.6 maksymalnej na danym biegu, wrzuciæ wy¿szy
      mvControlling->DecMainCtrl(2);
      if (mvControlling->IncScndCtrl(1))
       if (mvControlling->MotorParam[mvControlling->ScndCtrlPos].mIsat==0.0) //jeœli bieg ja³owy
        mvControlling->IncScndCtrl(1); //to kolejny
     }
-    else if (mvControlling->Vel<mvControlling->MotorParam[mvControlling->ScndCtrlPos].fi)
+    else if ((mvControlling->ShuntMode?mvControlling->AnPos:1.0)*mvControlling->Vel<mvControlling->MotorParam[mvControlling->ScndCtrlPos].fi)
     {//jak prêdkoœæ mniejsza ni¿ minimalna na danym biegu, wrzuciæ ni¿szy
      mvControlling->DecMainCtrl(2);
      mvControlling->DecScndCtrl(1);
