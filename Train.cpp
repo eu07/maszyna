@@ -1151,7 +1151,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
        //while (mvOccupied->BrakeCtrlPos<mvOccupied->BrakeCtrlPosNo/2 && mvOccupied->IncBrakeLevel());
        mvOccupied->BrakeLevelSet(mvOccupied->BrakeCtrlPosNo/2+(mvOccupied->BrakeHandle==FV4a?1:0));
        if (GetAsyncKeyState(VK_CONTROL)<0)
-         mvOccupied->BrakeLevelSet(bh_NP);
+         mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_NP)); //yB: czy ten stos funkcji nie powinien byæ jako oddzielna funkcja movera?
       }
       else
       if (cKey==Global::Keys[k_Brake1])

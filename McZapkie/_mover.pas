@@ -2353,6 +2353,7 @@ procedure T_MoverParameters.UpdatePipePressure(dt:real);
 const LBDelay=100;kL=0.5;
 var {b: byte;} dV{,PWSpeed}{,PPP}:real; c: T_MoverParameters;
      temp: real;
+     b: byte;
 begin
 
   PipePress:=Pipe.P;
@@ -2411,6 +2412,10 @@ end;
       LSt,EStED:
          begin
         LocBrakePress:=LocHandle.GetCP;
+        for b:=0 to 1 do
+         if(TrainType=dt_ET41)and(Couplers[b].Connected<>nil)then
+          if(Couplers[b].Connected.TrainType=dt_ET41)and((Couplers[b].CouplingFlag and 36) = 36)then
+           LocBrakePress:=Max0R(Couplers[b].Connected.LocHandle.GetCP,LocBrakePress);
         (Hamulec as TLSt).SetLBP(LocBrakePress);
        end;
       CV1_L_TR:
