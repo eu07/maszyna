@@ -475,11 +475,11 @@ TYPE
         function GetPF(i_bcp:real; pp, hp, dt, ep: real): real; override;
         function GetCP(): real; override;
         function GetPos(i: byte): real; override;
-        function GetSound(i: byte): real; override;        
+        function GetSound(i: byte): real; override;
         procedure Init(press: real); override;
       end;
 
-function PF(P1,P2,S:real):real;
+function PF(P1,P2,S:real;DP:real = 0.25):real;
 function PF1(P1,P2,S:real):real;
 
 function PFVa(PH,PL,S,LIM:real):real; //zawor napelniajacy z PH do PL, PL do LIM
@@ -512,7 +512,7 @@ begin
     PF_old:=(PH+1)*222*S*(P2-P1)/(1.13*ph-pl);
 end;
 
-function PF(P1,P2,S:real):real;
+function PF(P1,P2,S:real;DP:real = 0.25):real;
 var ph,pl,sg,fm: real;
 begin
   PH:=Max0R(P1,P2)+1; //wyzsze cisnienie absolutne
@@ -520,8 +520,8 @@ begin
   sg:=PL/PH; //bezwymiarowy stosunek cisnien
   fm:=PH*197*S*sign(P2-P1); //najwyzszy mozliwy przeplyw, wraz z kierunkiem
   if (SG>0.5) then //jesli ponizej stosunku krytycznego
-    if (PH-PL)<DPL then //niewielka roznica cisnien
-      PF:=(1-sg)/DPL*fm*2*SQRT((DPL)*(PH-DPL))
+    if (PH-PL)<DP then //niewielka roznica cisnien
+      PF:=(1-sg)/DPL*fm*2*SQRT((DP)*(PH-DP))
 //      PF:=1/DPL*(PH-PL)*fm*2*SQRT((sg)*(1-sg))
     else
       PF:=fm*2*SQRT((sg)*(1-sg))
@@ -1565,7 +1565,7 @@ begin
      BrakeStatus:=BrakeStatus and 247
    else
     begin           //008
-     dV:=PF(CVP,BCP,0.024)*dt;
+     dV:=PF1(CVP,BCP,0.024)*dt;
      CntrlRes.Flow(+dV);
 //     dV1:=+dV; //minus potem jest
 //     ImplsRes.Flow(-dV1);
@@ -1581,7 +1581,7 @@ begin
     else
         temp:=0.5;
 
-  dV:=PF(CVP,VVP,0.0015*temp/1.8/2)*dt;
+  dV:=PF1(CVP,VVP,0.0015*temp/1.8/2)*dt;
   CntrlRes.Flow(+dV);
   ValveRes.Flow(-0.04*dV);
   dV1:=dV1-0.96*dV;
@@ -1595,15 +1595,15 @@ begin
 //  else dV:=0;      0.00025 P
                 {P}
    if VVP>BCP then
-    dV:=PF(VVP,BCP,0.00043*(1.5-Byte(((CVP-BCP)*BVM>1)and(BrakeDelayFlag=bdelay_G))))*dt
+    dV:=PF(VVP,BCP,0.00043*(1.5-Byte(((CVP-BCP)*BVM>1)and(BrakeDelayFlag=bdelay_G))),0.1)*dt
    else if (CVP-BCP)<1.5 then
-    dV:=PF(VVP,BCP,0.001472*(1.36-Byte(((CVP-BCP)*BVM>1)and(BrakeDelayFlag=bdelay_G))))*dt
+    dV:=PF(VVP,BCP,0.001472*(1.36-Byte(((CVP-BCP)*BVM>1)and(BrakeDelayFlag=bdelay_G))),0.1)*dt
   else dV:=0;
 
   ImplsRes.Flow(-dV);
   ValveRes.Flow(+dV);
 //przeplyw PG <-> rozdzielacz
-  dV:=PF(PP,VVP,0.01)*dt;
+  dV:=PF(PP,VVP,0.01,0.1)*dt;
   ValveRes.Flow(-dV);
 
   GetPF:=dV-dV1;
@@ -2629,16 +2629,17 @@ begin
 
   Limpp:=Min0R(BPT_394[bcp][1],HP);
   ActFlowSpeed:=BPT_394[bcp][0];
-  if (bcp=1) then
+  if (bcp=1)or(bcp=i_bcpNo) then
     Limpp:=pp;
   if (bcp=0) then
     Limpp:=Limpp+RedAdj;
   if (bcp<>2) then
     if cp<Limpp then
-      cp:=cp+6*(2+Byte(bcp<0))*Min0R(abs(Limpp-cp),0.05)*PR(cp,Limpp)*dt //zbiornik sterujacy
+      cp:=cp+4*Min0R(abs(Limpp-cp),0.05)*PR(cp,Limpp)*dt //zbiornik sterujacy
+//      cp:=cp+6*(2+Byte(bcp<0))*Min0R(abs(Limpp-cp),0.05)*PR(cp,Limpp)*dt //zbiornik sterujacy
     else
       if bcp=0 then
-        cp:=cp-0.4*dt/60
+        cp:=cp-0.2*dt/100
       else
         cp:=cp+4*(1+Byte(bcp<>3)+Byte(bcp>4))*Min0R(abs(Limpp-cp),0.05)*PR(cp,Limpp)*dt; //zbiornik sterujacy
 
