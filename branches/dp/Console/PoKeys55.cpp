@@ -210,7 +210,7 @@ AnsiString __fastcall TPoKeys55::Version()
 {//zwraca numer wersji, funkcja nieoptymalna czasowo (czeka na odpowiedŸ)
  if (!WriteHandle) return "";
  Write(0x00,0); //0x00 - Read serial number, version
- if (ReadLoop(5))
+ if (ReadLoop(10))
  {//3: serial MSB; 4: serial LSB; 5: software version (v(1+[4-7]).([0-3])); 6: revision number
   AnsiString s="PoKeys55 #"+AnsiString((InputBuffer[3]<<8)+InputBuffer[4]);
   s+=" v"+AnsiString(1+(InputBuffer[5]>>4))+"."+AnsiString(InputBuffer[5]&15)+"."+AnsiString(InputBuffer[6]);
@@ -303,7 +303,7 @@ bool __fastcall TPoKeys55::Update(bool pause)
  }
  if (!iRepeats)
   bNoError=true; //jest OK
- else if (iRepeats>=5)
+ else if (iRepeats>=10) //youBy 2014-07: przy 5 powtórzeniach sieje mi pauz¹ po 2 razy na sekundê, a przy 10 jest ok
  {//przekroczenie liczby prób wymusza kolejn¹ fazê
   ++iFaza;
   iRepeats=1; //w nowej fazie nowe szanse, ale nie od 0!

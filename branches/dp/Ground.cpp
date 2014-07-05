@@ -2717,6 +2717,7 @@ bool __fastcall TGround::InitEvents()
     {//przepisanie nazwy do bufora
      strcpy(buff,Current->Params[9].asText);
      SafeDeleteArray(Current->Params[9].asText);
+     Current->Params[9].asPointer=NULL; //zerowanie wskaŸnika, aby wykryæ brak obeiktu
     }
     else buff[0]='\0';
     if (Current->iFlags&(conditional_trackoccupied|conditional_trackfree))
@@ -3301,7 +3302,7 @@ bool __fastcall TGround::EventConditon(TEvent *e)
   if (tmpEvent->Params[9].asMemCell->Compare(e->Params[10].asText,e->Params[11].asdouble,e->Params[12].asdouble,e->iFlags))
    return true;
   else if (Global::iWriteLogEnabled && DebugModeFlag)
-  {//nie zgadza siê wiêc sprawdzmy, co
+  {//nie zgadza siê, wiêc sprawdzmy, co
    LogComment=e->Params[9].asMemCell->Text()+AnsiString(" ")+FloatToStrF(e->Params[9].asMemCell->Value1(),ffFixed,8,2)+" "+FloatToStrF(tmpEvent->Params[9].asMemCell->Value2(),ffFixed,8,2)+" != ";
    if (TestFlag(e->iFlags,conditional_memstring))
     LogComment+=AnsiString(tmpEvent->Params[10].asText);

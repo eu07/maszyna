@@ -725,6 +725,15 @@ void __fastcall TWorld::OnKeyDown(int cKey)
    case VK_F12: //coœ tam jeszcze
     if (Console::Pressed(VK_CONTROL)&&Console::Pressed(VK_SHIFT))
      DebugModeFlag=!DebugModeFlag; //taka opcjonalna funkcja, mo¿e siê czasem przydaæ
+    else if (Console::Pressed(VK_SHIFT))
+    {//odpalenie logu w razie "W"
+     if ((Global::iWriteLogEnabled&2)==0) //nie by³o okienka
+     {//otwarcie okna
+      AllocConsole();
+      SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),FOREGROUND_GREEN);
+     }
+     Global::iWriteLogEnabled|=3;
+    }
     else
      Global::iTextMode=cKey;
    break;

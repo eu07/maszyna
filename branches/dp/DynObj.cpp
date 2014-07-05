@@ -1320,7 +1320,7 @@ double __fastcall TDynamicObject::Init(
  double fDist, //dystans wzglêdem punktu 1
  AnsiString DriverType, //typ obsady
  double fVel, //prêdkoœæ pocz¹tkowa
- AnsiString TrainName, //nazwa sk³adu, np. "PE2307"
+ AnsiString TrainName, //nazwa sk³adu, np. "PE2307" albo Vmax, jeœli pliku nie ma a s¹ cyfry
  float Load, //iloœæ ³adunku
  AnsiString LoadType, //nazwa ³adunku
  bool Reversed, //true, jeœli ma staæ odwrotnie w sk³adzie
