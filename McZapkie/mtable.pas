@@ -256,7 +256,11 @@ begin
   {$I+}
    if IOresult<>0 then
     begin
-     ConversionError:=-8; {Ra: ten b³¹d jest niepotrzebny}
+     vMax:=s2r(TrainName); //nie ma pliku ale jest liczba
+     if (vMax>10)and(vMax<200) then
+      TTVmax:=vMax //Ra 2014-07: zamiast rozk³adu mo¿na podaæ Vmax
+     else
+      ConversionError:=-8; {Ra: ten b³¹d jest niepotrzebny}
     end
    else
     begin {analiza rozk³adu jazdy}
