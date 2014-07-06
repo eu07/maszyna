@@ -415,8 +415,7 @@ TYPE
                {max. cisnienie w cyl. ham., stala proporcjonalnosci p-K}
                HighPipePress,LowPipePress,DeltaPipePress: real;
                {max. i min. robocze cisnienie w przewodzie glownym oraz roznica miedzy nimi}
-               CntrlPipePress: real;
-               {cisnienie z zbiorniku sterujacym}
+               CntrlPipePress: real; //ciœnienie z zbiorniku steruj¹cym
                BrakeVolume, BrakeVVolume, VeselVolume: real;
                {pojemnosc powietrza w ukladzie hamulcowym, w ukladzie glownej sprezarki [m^3] }
                BrakeCylNo: integer; {ilosc cylindrow ham.}
@@ -2394,7 +2393,7 @@ end;
 //        Pipe.Flow(PF(PipePress,0,d2A(12))*dt);
       dpMainValve:=dpMainValve/(Dim.L*Spg*20);
 
-      CntrlPipePress:=Hamulec.GetVRP;
+      CntrlPipePress:=Hamulec.GetVRP; //ciœnienie komory wstêpnej rozdzielacza
 
       case BrakeValve of
       W:
@@ -6384,7 +6383,7 @@ begin
                P2FTrans:=0;
               s:=ExtractKeyWord(lines,'HiPP=');
               if s<>'' then CntrlPipePress:=s2r(DUE(s))
-               else CntrlPipePress:=5;
+               else CntrlPipePress:=5+0.001*(random(10)-random(10)); //Ra 2014-07: trochê niedok³adnoœci
               HighPipePress:=CntrlPipePress;
               s:=ExtractKeyWord(lines,'LoPP=');
               if s<>'' then LowPipePress:=s2r(DUE(s))

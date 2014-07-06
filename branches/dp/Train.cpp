@@ -2929,10 +2929,10 @@ else
       ZbGlGauge.Update();
      }
     if (ZbRGauge.SubModel)
-     {
-      ZbRGauge.UpdateValue(Min0R(mvOccupied->Compressor,5));
-      ZbRGauge.Update();
-     }
+    {//Ra 2014-07: PantPress jest niby tylko w elektrycznych...
+     ZbRGauge.UpdateValue(mvControlled->PantPress);
+     ZbRGauge.Update();
+    }
     if (ZbGlGaugeB.SubModel)
      {
       ZbGlGaugeB.UpdateValue(mvOccupied->Compressor);
@@ -5142,7 +5142,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     PrzGlGauge.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
    else if (str==AnsiString("limpipepress:"))                  //manometr zbiornika sterujacego zaworu maszynisty
     ZbSGauge.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
-   else if (str==AnsiString("cntrlpress:"))                  //manometr zbiornika sterujacego zaworu maszynisty
+   else if (str==AnsiString("cntrlpress:"))                  //manometr zbiornika kontrolnego/rorz¹du
     ZbRGauge.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
    else if (str==AnsiString("compressor:"))                    //manometr sprezarki/zbiornika glownego
     ZbGlGauge.Load(Parser,DynamicObject->mdKabina,NULL,0.1);

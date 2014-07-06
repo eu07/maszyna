@@ -256,36 +256,46 @@ bool __fastcall TMoverParameters::CurrentSwitch(int direction)
 };
 
 void __fastcall TMoverParameters::UpdatePantVolume(double dt)
-{//KURS90 - sprê¿arka pantografów
- if ((TrainType==dt_EZT)?(PantPress<ScndPipePress):bPantKurek3) //kurek zamyka po³¹czenie z ZG
- {//zbiornik pantografu po³¹czony ze zbiornikiem g³ównym - ma³¹ sprê¿ark¹ siê tego nie napompuje
-  //Ra 2013-12: Niebugoc³aw mówi, ¿e w EZT nie ma potrzeby odcinaæ kurkiem
-  PantPress=EnginePowerSource.CollectorParameters.MaxPress;
-  if (PantPress>ScndPipePress) PantPress=ScndPipePress; //ograniczenie ciœnienia do MaxPress
-  PantVolume=(PantPress+1)*0.1; //objêtoœæ, na wypadek odciêcia kurkiem
+{//KURS90 - sprê¿arka pantografów; Ra 2014-07: teraz jest to zbiornik rozrz¹du, chocia¿ to jeszcze nie tak
+ if (EnginePowerSource.SourceType==CurrentCollector) //tylko jeœli pantografuj¹cy
+ {
+  //Ra 2014-07: zasadniczo, to istnieje zbiornik rozrz¹du i zbiornik pantografów - na razie mamy razem
+  //Ra 2014-07: pytanie, gdzie jest kurek trójdrogowy?
+  if ((TrainType==dt_EZT)?(PantPress<ScndPipePress):bPantKurek3) //kurek zamyka po³¹czenie z ZG
+  {//zbiornik pantografu po³¹czony ze zbiornikiem g³ównym - ma³¹ sprê¿ark¹ siê tego nie napompuje
+   //Ra 2013-12: Niebugoc³aw mówi, ¿e w EZT nie ma potrzeby odcinaæ kurkiem
+   PantPress=EnginePowerSource.CollectorParameters.MaxPress; //ograniczenie ciœnienia do MaxPress (tylko w pantografach!)
+   if (PantPress>ScndPipePress) PantPress=ScndPipePress; //oraz do ScndPipePress
+   PantVolume=(PantPress+1)*0.1; //objêtoœæ, na wypadek odciêcia kurkiem
+  }
+  else
+  {//zbiornik g³ówny odciêty, mo¿na pompowaæ pantografy
+   if (PantCompFlag&&Battery) //w³¹czona bateria i ma³a sprê¿arka
+    PantVolume+=dt*(TrainType==dt_EZT?0.003:0.005)*(2*0.45-((0.1/PantVolume/10)-0.1))/0.45; //nape³nianie zbiornika pantografów
+   //Ra 2013-12: Niebugoc³aw mówi, ¿e w EZT nabija 1.5 raz wolniej ni¿ jak by³o 0.005
+   PantPress=(10.0*PantVolume)-1.0; //tu by siê przyda³a objêtoœæ zbiornika
+  }
+  if (!PantCompFlag&&(PantVolume>0.1))
+   PantVolume-=dt*0.0003; //nieszczelnoœci: 0.0003=0.3l/s
+  if (Mains) //nie wchodziæ w funkcjê bez potrzeby
+   if (EngineType==ElectricSeriesMotor) //nie dotyczy... czego w³aœciwie?
+    if (PantPress<EnginePowerSource.CollectorParameters.MinPress)
+     if ((TrainType&(dt_EZT|dt_ET40|dt_ET41|dt_ET42))?(GetTrainsetVoltage()<EnginePowerSource.CollectorParameters.MinV):true) //to jest trochê proteza; zasilanie cz³onu mo¿e byæ przez sprzêg WN
+      if (MainSwitch(false))
+       EventFlag=true; //wywalenie szybkiego z powodu niskiego ciœnienia
+  if (TrainType!=dt_EZT) //w EN57 pompuje siê tylko w silnikowym
+  //pierwotnie w CHK pantografy mia³y równie¿ rozrz¹dcze EZT
+  for (int b=0;b<=1;++b)
+   if (TestFlag(Couplers[b].CouplingFlag,ctrain_controll))
+    if (Couplers[b].Connected->PantVolume<PantVolume) //bo inaczej trzeba w obydwu cz³onach przestawiaæ
+     Couplers[b].Connected->PantVolume=PantVolume; //przekazanie ciœnienia do s¹siedniego cz³onu
+  //czy np. w ET40, ET41, ET42 pantografy cz³onów maj¹ po³¹czenie pneumatyczne?
+  //Ra 2014-07: raczej nie - najpierw siê za³¹cza jeden cz³on, a potem mo¿na podnieœæ w drugim
  }
  else
- {//zbiornik g³ówny odciêty, mo¿na pompowaæ pantografy
-  if (PantCompFlag&&Battery) //w³¹czona bateria i ma³a sprê¿arka
-   PantVolume+=dt*(TrainType==dt_EZT?0.003:0.005)*(2*0.45-((0.1/PantVolume/10)-0.1))/0.45; //nape³nianie zbiornika pantografów
-  //Ra 2013-12: Niebugoc³aw mówi, ¿e w EZT nabija 1.5 raz wolniej ni¿ jak by³o 0.005
-  PantPress=(10.0*PantVolume)-1.0; //tu by siê przyda³a objêtoœæ zbiornika
+ {//a tu coœ dla SM42 i SM31, aby pokazywaæ na manometrze
+  PantPress=CntrlPipePress;
  }
- if (!PantCompFlag&&(PantVolume>0.1))
-  PantVolume-=dt*0.0003; //nieszczelnoœci: 0.0003=0.3l/s
- if (Mains) //nie wchodziæ w funkcjê bez potrzeby
-  if (EngineType==ElectricSeriesMotor) //nie dotyczy... czego w³aœciwie?
-   if (PantPress<EnginePowerSource.CollectorParameters.MinPress)
-    if ((TrainType&(dt_EZT|dt_ET40|dt_ET41|dt_ET42))?(GetTrainsetVoltage()<EnginePowerSource.CollectorParameters.MinV):true) //to jest trochê proteza; zasilanie cz³onu mo¿e byæ przez sprzêg WN
-     if (MainSwitch(false))
-      EventFlag=true; //wywalenie szybkiego z powodu niskiego ciœnienia
- if (TrainType!=dt_EZT) //w EN57 pompuje siê tylko w silnikowym
- //pierwotnie w CHK pantografy mia³y równie¿ rozrz¹dcze EZT
- for (int b=0;b<=1;++b)
-  if (TestFlag(Couplers[b].CouplingFlag,ctrain_controll))
-   if (Couplers[b].Connected->PantVolume<PantVolume) //bo inaczej trzeba w obydwu cz³onach przestawiaæ
-    Couplers[b].Connected->PantVolume=PantVolume; //przekazanie ciœnienia do s¹siedniego cz³onu
- //czy np. w ET40, ET41, ET42 pantografy cz³onów maj¹ po³¹czenie pneumatyczne?
 };
 
 void __fastcall TMoverParameters::UpdateBatteryVoltage(double dt)
@@ -403,9 +413,8 @@ double __fastcall TMoverParameters::ComputeMovement
 {//trzeba po ma³u przenosiæ tu tê funkcjê
  double d;
  T_MoverParameters::ComputeMovement(dt,dt1,Shape,Track,ElectricTraction,NewLoc,NewRot);
- if (EnginePowerSource.SourceType==CurrentCollector) //tylko jeœli pantografuj¹cy
-  if (Power>1.0) //w rozrz¹dczym nie (jest b³¹d w FIZ!)
-   UpdatePantVolume(dt); //Ra: pneumatyka pantografów przeniesiona do Mover.cpp!
+ if (Power>1.0) //w rozrz¹dczym nie (jest b³¹d w FIZ!) - Ra 2014-07: teraz we wszystkich
+  UpdatePantVolume(dt); //Ra 2014-07: obs³uga zbiornika rozrz¹du oraz pantografów
 
  if (EngineType==WheelsDriven)
   d=CabNo*dL; //na chwile dla testu
@@ -484,9 +493,8 @@ double __fastcall TMoverParameters::FastComputeMovement
 {//trzeba po ma³u przenosiæ tu tê funkcjê
  double d;
  T_MoverParameters::FastComputeMovement(dt,Shape,Track,NewLoc,NewRot);
- if (EnginePowerSource.SourceType==CurrentCollector) //tylko jeœli pantografuj¹cy
-  if (Power>1.0) //w rozrz¹dczym nie (jest b³¹d w FIZ!)
-   UpdatePantVolume(dt); //Ra: pneumatyka pantografów przeniesiona do Mover.cpp!
+ if (Power>1.0) //w rozrz¹dczym nie (jest b³¹d w FIZ!)
+  UpdatePantVolume(dt); //Ra 2014-07: obs³uga zbiornika rozrz¹du oraz pantografów
  if (EngineType==WheelsDriven)
   d=CabNo*dL; //na chwile dla testu
  else
