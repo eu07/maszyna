@@ -1572,6 +1572,8 @@ void __fastcall TTrain::OnKeyDown(int cKey)
                dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
                dsbCouplerAttach->Play(0,0,0);
               }
+              else
+               WriteLog("Mechanical coupling failed.");
             }
             else
             if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag,ctrain_pneumatic))    //pneumatyka
