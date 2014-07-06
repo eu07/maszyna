@@ -739,7 +739,7 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
      if (sSpeedTable[i].iFlags&2) //jeœli tor
      {//tor ogranicza prêdkoœæ, dopóki ca³y sk³ad nie przejedzie,
       //d=fLength+d; //zamiana na d³ugoœæ liczon¹ do przodu
-      if (v>1.0) //EU06 siê zawiesza³o po dojechaniu na koniec toru postojowego
+      if (v>=1.0) //EU06 siê zawiesza³o po dojechaniu na koniec toru postojowego
        if (d<-fLength)
         continue; //zapêtlenie, jeœli ju¿ wyjecha³ za ten odcinek
       if (v<fVelDes) fVelDes=v; //ograniczenie aktualnej prêdkoœci a¿ do wyjechania za ograniczenie
@@ -1300,7 +1300,7 @@ void __fastcall TController::SetVelocity(double NewVel,double NewVelNext,TStopRe
     if (iDrivigFlags&moveStartHorn) //jezeli tr¹bienie w³¹czone
      if (!(iDrivigFlags&(moveStartHornDone|moveConnect))) //jeœli nie zatr¹bione i nie jest to moment pod³¹czania sk³adu
       if (mvOccupied->CategoryFlag&1) //tylko poci¹gi tr¹bi¹ (unimogi tylko na torach, wiêc trzeba raczej sprawdzaæ tor)
-       if ((NewVel>1.0)||(NewVel<0.0)) //o ile prêdkoœæ jest znacz¹ca
+       if ((NewVel>=1.0)||(NewVel<0.0)) //o ile prêdkoœæ jest znacz¹ca
        {//fWarningDuration=0.3; //czas tr¹bienia
         //if (AIControllFlag) //jak siedzi krasnoludek, to w³¹czy tr¹bienie
         // mvOccupied->WarningSignal=pVehicle->iHornWarning; //wysokoœæ tonu (2=wysoki)
@@ -2175,7 +2175,7 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
    OrderNext(o); //to samo robiæ po zmianie
   else if (!o) //jeœli wczeœniej by³o czekanie
    OrderNext(Shunt); //to dalej jazda manewrowa
-  if (mvOccupied->Vel>1.0) //jeœli jedzie
+  if (mvOccupied->Vel>=1.0) //jeœli jedzie
    iDrivigFlags&=~moveStartHorn; //to bez tr¹bienia po ruszeniu z zatrzymania
   //Change_direction wykona siê samo i nastêpnie przejdzie do kolejnej komendy
  }
@@ -2460,7 +2460,7 @@ bool __fastcall TController::UpdateSituation(double dt)
   if (fMass>1000.0) fBrakeDist*=1.5; //korekta dla ciê¿kich, bo prze¿ynaj¹ - da to coœ?
   if (mvOccupied->BrakeDelayFlag==bdelay_G) fBrakeDist=fBrakeDist+2*mvOccupied->Vel; //dla nastawienia G koniecznie nale¿y wyd³u¿yæ drogê na czas reakcji
   //double scanmax=(mvOccupied->Vel>0.0)?3*fDriverDist+fBrakeDist:10.0*fDriverDist;
-  double scanmax=(mvOccupied->Vel>1.0)?150+fBrakeDist:20.0*fDriverDist; //1000m dla stoj¹cych poci¹gów
+  double scanmax=(mvOccupied->Vel>5.0)?150+fBrakeDist:20.0*fDriverDist; //1000m dla stoj¹cych poci¹gów
   // 2. Sprawdziæ, czy tabelka pokrywa za³o¿ony odcinek (nie musi, jeœli jest STOP).
   // 3. Sprawdziæ, czy trajektoria ruchu przechodzi przez zwrotnice - jeœli tak, to sprawdziæ, czy stan siê nie zmieni³.
   // 4. Ewentualnie uzupe³niæ tabelkê informacjami o sygna³ach i ograniczeniach, jeœli siê "zu¿y³a".
@@ -2491,7 +2491,7 @@ bool __fastcall TController::UpdateSituation(double dt)
     {//jeœli stan¹³ ju¿ blisko, unikaj¹c zderzenia i mo¿na próbowaæ pod³¹czyæ
      fMinProximityDist=-0.01; fMaxProximityDist=0.0; //[m] dojechaæ maksymalnie
      fVelPlus=0.5; //dopuszczalne przekroczenie prêdkoœci na ograniczeniu bez hamowania
-     fVelMinus=1.0; //margines prêdkoœci powoduj¹cy za³¹czenie napêdu
+     fVelMinus=0.5; //margines prêdkoœci powoduj¹cy za³¹czenie napêdu
      if (AIControllFlag)
      {//to robi tylko AI, wersjê dla cz³owieka trzeba dopiero zrobiæ
       //sprzêgi sprawdzamy w pierwszej kolejnoœci, bo jak po³¹czony, to koniec
@@ -2558,7 +2558,7 @@ bool __fastcall TController::UpdateSituation(double dt)
    case Disconnect: //20.07.03 - manewrowanie wagonami
     fMinProximityDist=1.0; fMaxProximityDist=10.0; //[m]
     fVelPlus=1.0; //dopuszczalne przekroczenie prêdkoœci na ograniczeniu bez hamowania
-    fVelMinus=1.0; //margines prêdkoœci powoduj¹cy za³¹czenie napêdu
+    fVelMinus=0.5; //margines prêdkoœci powoduj¹cy za³¹czenie napêdu
     if (AIControllFlag)
     {if (iVehicleCount>=0) //jeœli by³a podana iloœæ wagonów
      {
@@ -3825,7 +3825,7 @@ void __fastcall TController::TakeControl(bool yes)
      OrderNext(Obey_train); //jazda poci¹gowa
     else
      OrderNext(Shunt); //jazda manewrowa
-    if (mvOccupied->Vel>1.0) //jeœli jedzie (dla 0.1 ma staæ) 
+    if (mvOccupied->Vel>=1.0) //jeœli jedzie (dla 0.1 ma staæ) 
      iDrivigFlags&=~moveStopHere; //to ma nie czekaæ na sygna³, tylko jechaæ
     else
      iDrivigFlags|=moveStopHere; //a jak stoi, to niech czeka
