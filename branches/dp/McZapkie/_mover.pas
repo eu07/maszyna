@@ -3760,6 +3760,8 @@ begin
    end;
   if realfill<0 then
    realfill:=0;
+  if realfill>1 then
+   realfill:=1;
   dizel_fillcheck:=realfill;
 end;
 
