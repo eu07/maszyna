@@ -260,7 +260,8 @@ void __fastcall TMoverParameters::UpdatePantVolume(double dt)
  if (EnginePowerSource.SourceType==CurrentCollector) //tylko jeœli pantografuj¹cy
  {
   //Ra 2014-07: zasadniczo, to istnieje zbiornik rozrz¹du i zbiornik pantografów - na razie mamy razem
-  //Ra 2014-07: pytanie, gdzie jest kurek trójdrogowy?
+  //Ra 2014-07: kurek trójdrogowy ³¹czy spr.pom. z pantografami i wy³¹cznikiem ciœnieniowym WS
+  //Ra 2014-07: zbiornika rozrz¹du nie pompuje siê tu, tylko pantografy; potem mo¿na zamkn¹æ WS i odpaliæ resztê
   if ((TrainType==dt_EZT)?(PantPress<ScndPipePress):bPantKurek3) //kurek zamyka po³¹czenie z ZG
   {//zbiornik pantografu po³¹czony ze zbiornikiem g³ównym - ma³¹ sprê¿ark¹ siê tego nie napompuje
    //Ra 2013-12: Niebugoc³aw mówi, ¿e w EZT nie ma potrzeby odcinaæ kurkiem
