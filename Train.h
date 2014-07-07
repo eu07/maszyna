@@ -82,6 +82,8 @@ private: //¿eby go nic z zewn¹trz nie przestawia³o
 private: //¿eby go nic z zewn¹trz nie przestawia³o
  TMoverParameters *mvControlled; //cz³on, w którym sterujemy silnikiem
  TMoverParameters *mvOccupied; //cz³on, w którym sterujemy hamulcem
+ TMoverParameters *mvSecond; //drugi cz³on (ET40, ET41, ET42, ukrotnienia)
+ TMoverParameters *mvThird; //trzeci cz³on (SN61)
 public: //reszta mo¿e byæ publiczna
 
     //AnsiString asMessage;

@@ -89,7 +89,7 @@ __fastcall TTrain::TTrain()
  fBlinkTimer=0;
  fHaslerTimer=0;
     keybrakecount=0;
-    DynamicSet(NULL);
+    DynamicSet(NULL); //ustawia wszystkie mv*
     iCabLightFlag=0;
     //hunter-091012
      bCabLight=false;
@@ -2731,6 +2731,7 @@ if (!ShowNextCurrent)
 }
 else
 {
+/* Ra 2014-07: ju¿ nie szukamy, bo mamy wskaŸnik od zmiany pojazdu
    //ABu 100205: prad w nastepnej lokomotywie, przycisk w ET41
    TDynamicObject *tmp; //Ra: bez sensu to ustalaæ w ka¿dej klatce...
    tmp=NULL;
@@ -2742,46 +2743,47 @@ else
       if ((DynamicObject->PrevConnected->MoverParameters->TrainType==dt_ET41)
          && TestFlag(mvControlled->Couplers[0].CouplingFlag,ctrain_controll))
          tmp=DynamicObject->PrevConnected;
-   if (tmp)
+*/
+   if (mvSecond)
    {
       if (I1Gauge.SubModel)
       {
-         I1Gauge.UpdateValue(tmp->MoverParameters->ShowCurrent(1)*1.05);
+         I1Gauge.UpdateValue(mvSecond->ShowCurrent(1)*1.05);
          I1Gauge.Update();
       }
       if (I2Gauge.SubModel)
       {
-         I2Gauge.UpdateValue(tmp->MoverParameters->ShowCurrent(2)*1.05);
+         I2Gauge.UpdateValue(mvSecond->ShowCurrent(2)*1.05);
          I2Gauge.Update();
       }
       if (I3Gauge.SubModel)
       {
-         I3Gauge.UpdateValue(tmp->MoverParameters->ShowCurrent(3)*1.05);
+         I3Gauge.UpdateValue(mvSecond->ShowCurrent(3)*1.05);
          I3Gauge.Update();
       }
       if (ItotalGauge.SubModel)
       {
-         ItotalGauge.UpdateValue(tmp->MoverParameters->ShowCurrent(0)*1.05);
+         ItotalGauge.UpdateValue(mvSecond->ShowCurrent(0)*1.05);
          ItotalGauge.Update();
       }
       if (I1GaugeB.SubModel)
       {
-         I1GaugeB.UpdateValue(tmp->MoverParameters->ShowCurrent(1)*1.05);
+         I1GaugeB.UpdateValue(mvSecond->ShowCurrent(1)*1.05);
          I1GaugeB.Update();
       }
       if (I2GaugeB.SubModel)
       {
-         I2GaugeB.UpdateValue(tmp->MoverParameters->ShowCurrent(2)*1.05);
+         I2GaugeB.UpdateValue(mvSecond->ShowCurrent(2)*1.05);
          I2GaugeB.Update();
       }
       if (I3GaugeB.SubModel)
       {
-         I3GaugeB.UpdateValue(tmp->MoverParameters->ShowCurrent(3)*1.05);
+         I3GaugeB.UpdateValue(mvSecond->ShowCurrent(3)*1.05);
          I3GaugeB.Update();
       }
       if (ItotalGaugeB.SubModel)
       {
-         ItotalGaugeB.UpdateValue(tmp->MoverParameters->ShowCurrent(0)*1.05);
+         ItotalGaugeB.UpdateValue(mvSecond->ShowCurrent(0)*1.05);
          ItotalGaugeB.Update();
       }
    }
@@ -3242,7 +3244,15 @@ if ( mvControlled->Signalling==true )
 } //**************************************************** */
  if (mvControlled->Battery)
  {
-  btLampkaHamienie.Turn((mvControlled->TrainType&dt_EZT)?((mvControlled->BrakePress>=0.2)&&mvControlled->Signalling):((mvOccupied->BrakePress>=0.1)||(mvControlled->DynamicBrakeFlag)));
+  switch (mvControlled->TrainType)
+  {//zale¿nie od typu lokomotywy
+   case dt_EZT:
+    btLampkaHamienie.Turn((mvControlled->BrakePress>=0.2)&&mvControlled->Signalling); break;
+   case dt_ET41: //odhamowanie drugiego cz³onu
+    btLampkaHamienie.Turn(mvSecond->BrakePress<0.4); break;
+   default:
+    btLampkaHamienie.Turn((mvOccupied->BrakePress>=0.1)||(mvControlled->DynamicBrakeFlag));
+  }
   //KURS90
   btLampkaMaxSila.Turn(abs(mvControlled->Im)>=350);
   btLampkaPrzekrMaxSila.Turn(abs(mvControlled->Im)>=450);
@@ -5375,6 +5385,18 @@ void __fastcall TTrain::DynamicSet(TDynamicObject *d)
   {//gdy jest cz³on od sprzêgu 0, a sprzêg ³¹czony warsztatowo (powiedzmy)
    if ((mvControlled->Power<1.0)&&(mvControlled->Couplers[0].Connected->Power>1.0)) //my nie mamy mocy, ale ten drugi ma
     mvControlled=DynamicObject->PrevConnected->MoverParameters; //bêdziemy sterowaæ tym z moc¹
+  }
+ mvSecond=NULL; //gdyby siê nic nie znalaz³o 
+ if (mvOccupied->Power>1.0) //dwucz³onowe lub ukrotnienia, ¿eby nie szukaæ ka¿dorazowo
+  if (DynamicObject->NextConnected?mvOccupied->Couplers[1].AllowedFlag&ctrain_controll:false)
+  {//gdy jest cz³on od sprzêgu 1, a sprzêg ³¹czony warsztatowo (powiedzmy)
+   if (mvOccupied->Couplers[1].Connected->Power>1.0) //ten drugi ma moc
+    mvSecond=DynamicObject->NextConnected->MoverParameters; //wskaŸnik na drugiego
+  }
+  else if (DynamicObject->PrevConnected?mvOccupied->Couplers[0].AllowedFlag&ctrain_controll:false)
+  {//gdy jest cz³on od sprzêgu 0, a sprzêg ³¹czony warsztatowo (powiedzmy)
+   if (mvOccupied->Couplers[0].Connected->Power>1.0) //ale ten drugi ma moc
+    mvSecond=DynamicObject->PrevConnected->MoverParameters; //wskaŸnik na drugiego
   }
 };
 
