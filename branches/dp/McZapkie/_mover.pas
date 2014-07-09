@@ -798,7 +798,7 @@ TYPE
                 {! wl/wyl sprezarki}
                 function CompressorSwitch(State:boolean):boolean;
 {                function SmallCompressorSwitch(State:boolean):boolean;}
-                procedure ConverterCheck;
+                {procedure ConverterCheck; ->C++}
 
                 {-funkcje typowe dla lokomotywy elektrycznej}
                 {! wlaczanie bezpiecznika nadmiarowego}
@@ -2576,7 +2576,7 @@ begin
     end;
   end;
 end;
-
+{Ra 2014-07: do C++
 procedure T_MoverParameters.ConverterCheck;
 begin //sprawdzanie przetwornicy
 if (ConverterAllow=true)and(Mains=true) then
@@ -2584,7 +2584,7 @@ if (ConverterAllow=true)and(Mains=true) then
  else
  ConverterFlag:=false;
 end;
-
+}
 //youBy - przewod zasilajacy
 procedure T_MoverParameters.UpdateScndPipePressure(dt: real);
 const Spz=0.5067;

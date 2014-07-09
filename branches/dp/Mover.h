@@ -64,6 +64,7 @@ public:
   const	TLocation &NewLoc,TRotation &NewRot
  );
  double __fastcall ShowEngineRotation(int VehN);
+ void __fastcall ConverterCheck();
 };
 
 #endif
