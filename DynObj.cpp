@@ -1356,13 +1356,13 @@ double __fastcall TDynamicObject::Init(
 */
  //utworzenie parametrów fizyki
  MoverParameters=new TMoverParameters(iDirection?fVel:-fVel,Type_Name,asName,Load,LoadType,Cab);
- iLights=MoverParameters->iLights; //wska¿nik na stan w³asnych œwiate³ (zmienimy dla rozrz¹dczych EZT)
+ iLights=MoverParameters->iLights; //wskaŸnik na stan w³asnych œwiate³ (zmienimy dla rozrz¹dczych EZT)
  //McZapkie: TypeName musi byc nazw¹ CHK/MMD pojazdu
  if (!MoverParameters->LoadChkFile(asBaseDir))
  {//jak wczytanie CHK siê nie uda, to b³¹d
   if (ConversionError==-8)
-   ErrorLog("Missed file: "+BaseDir+"\\"+Type_Name);
-  Error("Cannot load dynamic object "+asName+" from:\r\n"+BaseDir+"\\"+Type_Name+"\r\nError "+ConversionError+" in line "+LineCount);
+   ErrorLog("Missed file: "+BaseDir+"\\"+Type_Name+".fiz");
+  Error("Cannot load dynamic object "+asName+" from:\r\n"+BaseDir+"\\"+Type_Name+".fiz\r\nError "+ConversionError+" in line "+LineCount);
   return 0.0; //zerowa d³ugoœæ to brak pojazdu
  }
  bool driveractive=(fVel!=0.0); //jeœli prêdkoœæ niezerowa, to aktywujemy ruch

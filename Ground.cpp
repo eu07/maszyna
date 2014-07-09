@@ -2199,6 +2199,15 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
          if (nTrainSetNode) //je¿eli istnieje wczeœniejszy TP_DYNAMIC
           nTrainSetNode->DynamicObject->AttachPrev(LastNode->DynamicObject,TempConnectionType[iTrainSetWehicleNumber-2]);
          nTrainSetNode=LastNode; //ostatnio wczytany
+         if (TempConnectionType[iTrainSetWehicleNumber-1]==0) //jeœli sprzêg jest zerowy, to wys³aæ rozk³ad do sk³adu
+         {//powinien te¿ tu wchodziæ, gdy pojazd bez trainset
+          if (nTrainSetDriver) //pojazd, któremu zostanie wys³any rozk³ad
+          {//wys³anie komendy "Timetable" ustawia odpowiedni tryb jazdy
+           nTrainSetDriver->DynamicObject->Mechanik->DirectionInitial();
+           nTrainSetDriver->DynamicObject->Mechanik->PutCommand("Timetable:"+asTrainName,fTrainSetVel,0,NULL);
+           nTrainSetDriver=NULL; //a przy "endtrainset" ju¿ wtedy nie potrzeba
+          }
+         }
         }
       }
       else
@@ -2229,19 +2238,9 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
       if (nTrainSetNode) //trainset bez dynamic siê sypa³
       {//powinien te¿ tu wchodziæ, gdy pojazd bez trainset
        if (nTrainSetDriver) //pojazd, któremu zostanie wys³any rozk³ad
-       {
+       {//wys³anie komendy "Timetable" ustawia odpowiedni tryb jazdy
         nTrainSetDriver->DynamicObject->Mechanik->DirectionInitial();
         nTrainSetDriver->DynamicObject->Mechanik->PutCommand("Timetable:"+asTrainName,fTrainSetVel,0,NULL);
-       }
-       if (asTrainName!="none")
-       {//gdy podana nazwa, w³¹czenie jazdy poci¹gowej
-/*
-        if((TrainSetNode->DynamicObject->EndSignalsLight1Active())
-         ||(TrainSetNode->DynamicObject->EndSignalsLight1oldActive()))
-         TrainSetNode->DynamicObject->MoverParameters->HeadSignal=2+32;
-        else
-         TrainSetNode->DynamicObject->MoverParameters->EndSignalsFlag=64;
-*/
        }
       }
       if (LastNode) //ostatni wczytany obiekt
@@ -2251,7 +2250,7 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
       bTrainSet=false;
       fTrainSetVel=0;
       //iTrainSetConnection=0;
-      nTrainSetNode=NULL;
+      nTrainSetNode=nTrainSetDriver=NULL;
       iTrainSetWehicleNumber=0;
      }
      else if (str==AnsiString("event"))
