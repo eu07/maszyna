@@ -1659,6 +1659,7 @@ bool __fastcall TWorld::Update()
        }
        if (!tmp->MoverParameters->CommandLast.IsEmpty())
         OutText1+=AnsiString(", put: ")+tmp->MoverParameters->CommandLast;
+       //OutText1+="; Cab="+AnsiString(tmp->MoverParameters->CabNo);
        OutText2="Damage status: "+tmp->MoverParameters->EngineDescription(0);//+" Engine status: ";
        OutText2+="; Brake delay: ";
        if((tmp->MoverParameters->BrakeDelayFlag&bdelay_G)==bdelay_G)
