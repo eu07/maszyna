@@ -702,7 +702,6 @@ public:
 	bool __fastcall MainSwitch(bool State);
 	bool __fastcall ConverterSwitch(bool State);
 	bool __fastcall CompressorSwitch(bool State);
-	void __fastcall ConverterCheck(void);
 	bool __fastcall FuseOn(void);
 	bool __fastcall FuseFlagCheck(void);
 	void __fastcall FuseOff(void);

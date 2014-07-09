@@ -559,4 +559,11 @@ double __fastcall TMoverParameters::ShowEngineRotation(int VehN)
  return 0.0;
 };
 
+void __fastcall TMoverParameters::ConverterCheck()
+{//sprawdzanie przetwornicy
+ if (ConverterAllow&&Mains)
+  ConverterFlag=true;
+ else
+  ConverterFlag=false;
+};
 
