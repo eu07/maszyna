@@ -3,6 +3,12 @@
 #include "LPT.h"
 #include <windows.h>
 
+//LPT na USB:
+//USB\VID_067B&PID_2305&REV_0200
+//{9d7debbc-c85d-11d1-9eb4-006008c3a19a}
+//USB\VID_067B&PID_2305\5&1E41AFF0&0&2
+//IEEE-1284 Controller
+
 HINSTANCE hDLL;
 typedef USHORT (__stdcall *InPortType)(USHORT BasePort);
 typedef void (__stdcall *OutPortType)(USHORT BasePort, USHORT value);
