@@ -1186,7 +1186,7 @@ bool __fastcall TWorld::Update()
   if (iPause!=Global::iPause)
   {//przes³anie informacji o pauzie do programu nadzoruj¹cego
    Ground.WyslijParam(5,3); //ramka 5 z czasem i stanem zapauzowania
-   iPause!=Global::iPause;
+   iPause=Global::iPause;
   }
  double iter;
  int n=1;
