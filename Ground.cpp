@@ -2580,7 +2580,10 @@ bool __fastcall TGround::InitEvents()
       Current->Params[6].asTrack=NULL;
     }
     else
+    {//nie ma komórki, to nie bêdzie dzia³a³ poprawnie
+     Current->Type=tp_Ignored; //deaktywacja
      ErrorLog("Bad event: \""+Current->asName+"\" cannot find memcell \""+Current->asNodeName+"\"");
+    }
    break;
    case tp_LogValues: //skojarzenie z memcell
     if (Current->asNodeName.IsEmpty())
@@ -2600,7 +2603,10 @@ bool __fastcall TGround::InitEvents()
        Current->bEnabled=false; //to event nie bêdzie dodawany do kolejki
     }
     else
+    {//nie ma komórki, to nie bêdzie dzia³a³ poprawnie
+     Current->Type=tp_Ignored; //deaktywacja
      ErrorLog("Bad event: \""+Current->asName+"\" cannot find memcell \""+Current->asNodeName+"\"");
+    }
    break;
    case tp_CopyValues: //skopiowanie komórki do innej
     tmp=FindGroundNode(Current->asNodeName,TP_MEMCELL); //komórka docelowa
