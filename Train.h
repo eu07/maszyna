@@ -197,6 +197,8 @@ public: //reszta mo¿e byæ publiczna
     TGauge SignallingButtonGauge;
     TGauge DoorSignallingButtonGauge;
 //    TModel3d *mdKabina; McZapkie-030303: to do dynobj
+    TGauge ggDistCounter; //Ra 2014-07: licznik kilometrów
+    TGauge ggVelocityDgt; //i od razu prêdkoœciomierz
 
     TButton btLampkaPoslizg;
     TButton btLampkaStyczn;

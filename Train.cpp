@@ -2881,6 +2881,11 @@ else
       VelocityGauge.UpdateValue(fTachoVelocity);
       VelocityGauge.Update();
      }
+     if (ggVelocityDgt.SubModel)
+     {//Ra 2014-07: prêdkoœciomierz cyfrowy
+      ggVelocityDgt.UpdateValue(fTachoVelocity);
+      ggVelocityDgt.Update();
+     }
      if (VelocityGaugeB.SubModel)
      {//ZiomalCl: wskazanie Haslera w kabinie B ze zwloka czasowa oraz odpowiednia tolerancja
       //Nalezy sie zastanowic na przyszlosc nad rozroznieniem predkosciomierzy (dokladnosc wskazan, zwloka czasowa wskazania, inne funkcje)
@@ -3631,7 +3636,11 @@ if ( mvControlled->Signalling==true )
      DoorSignallingButtonGauge.PutValue(mvControlled->DoorSignalling?1:0);
      DoorSignallingButtonGauge.Update();
     }
-
+    if (ggDistCounter.SubModel)
+    {//Ra 2014-07: licznik kilometrów
+     ggDistCounter.PutValue(mvControlled->DistCounter);
+     ggDistCounter.Update();
+    }
     if ((((mvControlled->EngineType==ElectricSeriesMotor)&&(mvControlled->Mains==true)&&(mvControlled->ConvOvldFlag==false))||(mvControlled->ConverterFlag))&&(mvControlled->Heating==true))
      btLampkaOgrzewanieSkladu.TurnOn();
     else
@@ -5138,8 +5147,10 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
    else if (str==AnsiString("universal4:"))
     Universal4ButtonGauge.Load(Parser,DynamicObject->mdKabina,DynamicObject->mdModel);
    //SEKCJA WSKAZNIKOW
-   else if (str==AnsiString("tachometer:"))                    //predkosciomierz
+   else if (str==AnsiString("tachometer:")) //predkosciomierz wskazówkowy
     VelocityGauge.Load(Parser,DynamicObject->mdKabina);
+   else if (str==AnsiString("tachometerd:")) //predkosciomierz cyfrowy
+    ggVelocityDgt.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("hvcurrent1:"))                    //1szy amperomierz
     I1Gauge.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("hvcurrent2:"))                    //2gi amperomierz
@@ -5215,6 +5226,8 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     maingearstatusGauge.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("ignitionkey:"))   //np. cisnienie sterownika skrzyni biegow
     IgnitionKeyGauge.Load(Parser,DynamicObject->mdKabina);
+   else if (str==AnsiString("distcounter:")) //Ra 2014-07: licznik kilometrów
+    ggDistCounter.Load(Parser,DynamicObject->mdKabina);
    //SEKCJA LAMPEK
    else if (str==AnsiString("i-maxft:"))
     btLampkaMaxSila.Load(Parser,DynamicObject->mdKabina);

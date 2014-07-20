@@ -14,10 +14,11 @@ typedef enum
  gt_Unknown, //na razie nie znany
  gt_Rotate,  //obrót
  gt_Move,    //przesuniêcie równoleg³e
- gt_Wiper    //obrót trzech kolejnych submodeli o ten sam k¹t (np. wycieraczka, drzwi harmonijkowe)
+ gt_Wiper,   //obrót trzech kolejnych submodeli o ten sam k¹t (np. wycieraczka, drzwi harmonijkowe)
+ gt_Digital  //licznik cyfrowy, np. kilometrów
 } TGaugeType;
 
-class TGauge
+class TGauge //zmienne "gg"
 {//animowany wskaŸnik, mog¹cy przyjmowaæ wiele stanów poœrednich
 private:
  TGaugeType eType; //typ ruchu
