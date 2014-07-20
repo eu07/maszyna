@@ -42,10 +42,6 @@ public:
     {
         r=g=b=V;
     };
- // __fastcall TMaterialColor(char R, char G, char B)
- // {
- //  r=R; g=G; b=B;
- // };
  // __fastcall TMaterialColor(double R, double G, double B)
     __fastcall TMaterialColor(char R, char G, char B)
     {

@@ -51,7 +51,22 @@ void __fastcall TGauge::Init(TSubModel *NewSubModel,TGaugeType eNewType,double f
   fScale=fNewScale;
   SubModel=NewSubModel;
   eType=eNewType;
-  NewSubModel->WillBeAnimated(); //wy³¹czenie ignowania jedynkowego transformu
+  if (eType==gt_Digital)
+  {
+   TSubModel *sm=SubModel->ChildGet();
+   do
+   {//pêtla po submodelach potomnych i obracanie ich o k¹t zale¿y od cyfry w (fValue)
+    if (sm->pName)
+    {//musi mieæ niepust¹ nazwê
+     if ((*sm->pName)>='0')
+      if ((*sm->pName)<='9')
+       sm->WillBeAnimated(); //wy³¹czenie optymalizacji
+    }
+    sm=sm->NextGet();
+   } while (sm);
+  }
+  else //a banan mo¿e byæ z optymalizacj¹?
+   NewSubModel->WillBeAnimated(); //wy³¹czenie ignowania jedynkowego transformu
  }
 };
 
@@ -70,6 +85,8 @@ void __fastcall TGauge::Load(TQueryParserComp *Parser,TModel3d *md1,TModel3d *md
   Init(sm,gt_Move,val3,val4,val5);
  else if (str2=="wip")
   Init(sm,gt_Wiper,val3,val4,val5);
+ else if (str2=="dgt")
+  Init(sm,gt_Digital,val3,val4,val5);
  else
   Init(sm,gt_Rotate,val3,val4,val5);
 };
@@ -122,6 +139,7 @@ void __fastcall TGauge::Update()
   fValue=fDesiredValue;
  if (SubModel)
  {//warunek na wszelki wypadek, gdyby siê submodel nie pod³¹czy³
+  TSubModel *sm;
   switch (eType)
   {
    case gt_Rotate:
@@ -132,13 +150,27 @@ void __fastcall TGauge::Update()
    break;
    case gt_Wiper:
     SubModel->SetRotate(float3(0,1,0),fValue*360.0);
-    TSubModel *sm=SubModel->ChildGet();
+    sm=SubModel->ChildGet();
     if (sm)
     {sm->SetRotate(float3(0,1,0),fValue*360.0);
      sm=sm->ChildGet();
      if (sm)
       sm->SetRotate(float3(0,1,0),fValue*360.0);
     }
+   break;
+   case gt_Digital: //Ra 2014-07: licznik cyfrowy
+    sm=SubModel->ChildGet();
+    AnsiString n=FormatFloat("0000000000",floor(fValue)); //na razie tak trochê bez sensu
+    do
+    {//pêtla po submodelach potomnych i obracanie ich o k¹t zale¿y od cyfry w (fValue)
+     if (sm->pName)
+     {//musi mieæ niepust¹ nazwê
+      if ((*sm->pName)>='0')
+       if ((*sm->pName)<='9')
+        sm->SetRotate(float3(0,1,0),-36.0*(n['0'+10-(*sm->pName)]-'0'));
+     }
+     sm=sm->NextGet();
+    } while (sm);
    break;
   }
  }
