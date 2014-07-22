@@ -126,6 +126,8 @@ enum TAnimType //rodzaj animacji
  at_IK11=0x101, //odwrotna kinematyka - submodel nadrzêdny do sterowango (np. stopa)
  at_IK21=0x102, //odwrotna kinematyka - submodel nadrzêdny do sterowango (np. podudzie)
  at_IK22=0x103, //odwrotna kinematyka - submodel nadrzêdny do nadrzêdnego sterowango (np. udo)
+ at_Digital=0x200, //dziesiêciocyfrowy licznik mechaniczny (z cylindrami)
+ at_DigiClk=0x201, //zegar cyfrowy jako licznik na dziesiêcioœcianach
  at_Undefined=0x800000FF //animacja chwilowo nieokreœlona
 };
 

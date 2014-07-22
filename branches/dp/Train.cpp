@@ -3184,7 +3184,8 @@ if ( mvControlled->Signalling==true )
 
 
 { //yB - wskazniki drugiego czlonu
-   TDynamicObject *tmp;
+   TDynamicObject *tmp; //=mvControlled->mvSecond; //Ra 2014-07: trzeba to jeszcze wyj¹æ z kabiny...
+// Ra 2014-07: no nie ma potrzeby szukaæ tego w ka¿dej klatce
    tmp=NULL;
    if ((TestFlag(mvControlled->Couplers[1].CouplingFlag,ctrain_controll)) && (mvOccupied->ActiveCab>0))
       tmp=DynamicObject->NextConnected;
@@ -3254,9 +3255,11 @@ if ( mvControlled->Signalling==true )
    case dt_EZT:
     btLampkaHamienie.Turn((mvControlled->BrakePress>=0.2)&&mvControlled->Signalling); break;
    case dt_ET41: //odhamowanie drugiego cz³onu
-    btLampkaHamienie.Turn(mvSecond->BrakePress<0.4); break;
+    if (mvSecond) //bo mo¿e komuœ przyjœæ do g³owy je¿d¿enie jednym cz³onem
+     btLampkaHamienie.Turn(mvSecond->BrakePress<0.4);
+   break;
    default:
-    btLampkaHamienie.Turn((mvOccupied->BrakePress>=0.1)||(mvControlled->DynamicBrakeFlag));
+    btLampkaHamienie.Turn((mvOccupied->BrakePress>=0.1)||mvControlled->DynamicBrakeFlag);
   }
   //KURS90
   btLampkaMaxSila.Turn(abs(mvControlled->Im)>=350);

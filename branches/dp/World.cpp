@@ -1032,6 +1032,12 @@ bool __fastcall TWorld::Update()
   GlobalTime->UpdateMTableTime(GetDeltaTime()); //McZapkie-300302: czas rozkladowy
   //Ra: przeliczenie k¹ta czasu (do animacji zale¿nych od czasu)
   Global::fTimeAngleDeg=GlobalTime->hh*15.0+GlobalTime->mm*0.25+GlobalTime->mr/240.0;
+  Global::fClockAngleDeg[0]=36.0*(int(GlobalTime->mr)%10); //jednostki sekund
+  Global::fClockAngleDeg[1]=36.0*(int(GlobalTime->mr)/10); //dziesi¹tki sekund
+  Global::fClockAngleDeg[2]=36.0*(GlobalTime->mm%10); //jednostki minut
+  Global::fClockAngleDeg[3]=36.0*(GlobalTime->mm/10); //dziesi¹tki minut
+  Global::fClockAngleDeg[4]=36.0*(GlobalTime->hh%10); //jednostki godzin
+  Global::fClockAngleDeg[5]=36.0*(GlobalTime->hh/10); //dziesi¹tki godzin
   if (Global::fMoveLight>=0.0)
   {//testowo ruch œwiat³a
    //double a=Global::fTimeAngleDeg/180.0*M_PI-M_PI; //k¹t godzinny w radianach

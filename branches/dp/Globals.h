@@ -247,6 +247,7 @@ public:
  static double fSunDeclination; //deklinacja S³oñca
  static double fTimeSpeed; //przyspieszenie czasu, zmienna do testów
  static double fTimeAngleDeg; //godzina w postaci k¹ta
+ static float fClockAngleDeg[6]; //k¹ty obrotu cylindrów dla zegara cyfrowego
  static double fLatitudeDeg; //szerokoœæ geograficzna
  static char* szTexturesTGA[4]; //lista tekstur od TGA
  static char* szTexturesDDS[4]; //lista tekstur od DDS
