@@ -44,13 +44,14 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asRelease="14.7.1056.441";
-AnsiString Global::asVersion="Compilation 2014-07-05, release "+Global::asRelease+"."; //tutaj, bo wysy³any
+AnsiString Global::asRelease="14.7.1067.442";
+AnsiString Global::asVersion="Compilation 2014-07-22, release "+Global::asRelease+"."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 int Global::iScreenMode[12]={0,0,0,0,0,0,0,0,0,0,0,0}; //numer ekranu wyœwietlacza tekstowego
 double Global::fSunDeclination=0.0; //deklinacja S³oñca
 double Global::fTimeAngleDeg=0.0; //godzina w postaci k¹ta
+float Global::fClockAngleDeg[6]; //k¹ty obrotu cylindrów dla zegara cyfrowego
 char* Global::szTexturesTGA[4]={"tga","dds","tex","bmp"}; //lista tekstur od TGA
 char* Global::szTexturesDDS[4]={"dds","tga","tex","bmp"}; //lista tekstur od DDS
 int Global::iKeyLast=0; //ostatnio naciœniêty klawisz w celu logowania
@@ -129,7 +130,7 @@ bool Global::bSmoothTraction=false; //wyg³adzanie drutów starym sposobem
 char** Global::szDefaultExt=Global::szTexturesDDS; //domyœlnie od DDS
 int Global::iMultisampling=2; //tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
 bool Global::bGlutFont=false; //czy tekst generowany przez GLUT32.DLL
-int Global::iConvertModels=7; //tworzenie plików binarnych, 2-optymalizacja transformów
+int Global::iConvertModels=7; //tworzenie plików binarnych, +2-optymalizacja transformów
 int Global::iSlowMotionMask=-1; //maska wy³¹czanych w³aœciwoœci dla zwiêkszenia FPS
 int Global::iModifyTGA=7; //czy korygowaæ pliki TGA dla szybszego wczytywania
 //bool Global::bTerrainCompact=true; //czy zapisaæ teren w pliku

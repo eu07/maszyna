@@ -284,6 +284,8 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos,bool dyna
    else if (type=="ik11")          b_Anim=b_aAnim=at_IK11; //IK: kierunkowany
    else if (type=="ik21")          b_Anim=b_aAnim=at_IK21; //IK: kierunkowany
    else if (type=="ik22")          b_Anim=b_aAnim=at_IK22; //IK: kierunkowany
+   else if (type=="digital")       b_Anim=b_aAnim=at_Digital; //licznik mechaniczny
+   else if (type=="digiclk")       b_Anim=b_aAnim=at_DigiClk; //zegar cyfrowy
    else b_Anim=b_aAnim=at_Undefined; //nieznana forma animacji
   }
  }
@@ -920,6 +922,21 @@ void __fastcall TSubModel::RaAnimation(TAnimType a)
    glRotatef(v_Angles.z,0.0,1.0,0.0); //obrót wzglêdem osi pionowej (azymut)
    glRotatef(v_Angles.x,1.0,0.0,0.0); //obrót wzglêdem poziomu (deklinacja)
    break;
+  case at_DigiClk: //animacja zegara cyfrowego
+  {//ustawienie animacji w submodelach potomnych
+   TSubModel *sm=ChildGet();
+   do
+   {//pêtla po submodelach potomnych i obracanie ich o k¹t zale¿y od czasu
+    if (sm->pName)
+    {//musi mieæ niepust¹ nazwê
+     if ((*sm->pName)>='0')
+      if ((*sm->pName)<='5') //zegarek ma 6 cyfr maksymalnie
+       sm->SetRotate(float3(0,1,0),-Global::fClockAngleDeg[(*sm->pName)-'0']);
+    }
+    sm=sm->NextGet();
+   } while (sm);
+  }
+  break;
  }
  if (mAnimMatrix) //mo¿na by to daæ np. do at_Translate
  {glMultMatrixf(mAnimMatrix->readArray());

@@ -416,8 +416,7 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
     parser->getTokens(4);
     *parser >> Params[1].asdouble >> Params[2].asdouble >> Params[3].asdouble >> Params[4].asdouble;
    }
-   else
-   if (token.compare("translate")==0)
+   else if (token.compare("translate")==0)
    {//przesuw o wektor
     parser->getTokens();
     *parser >> token;
@@ -425,6 +424,16 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
     strcpy(Params[9].asText,token.c_str());
     Params[0].asInt=2;
     parser->getTokens(4);
+    *parser >> Params[1].asdouble >> Params[2].asdouble >> Params[3].asdouble >> Params[4].asdouble;
+   }
+   else if (token.compare("digital")==0)
+   {//licznik cyfrowy
+    parser->getTokens();
+    *parser >> token;
+    Params[9].asText=new char[255]; //nazwa submodelu
+    strcpy(Params[9].asText,token.c_str());
+    Params[0].asInt=8;
+    parser->getTokens(4); //jaki ma byæ sens tych parametrów?
     *parser >> Params[1].asdouble >> Params[2].asdouble >> Params[3].asdouble >> Params[4].asdouble;
    }
    else if (token.substr(token.length()-4,4)==".vmd") //na razie tu, mo¿e bêdzie inaczej
