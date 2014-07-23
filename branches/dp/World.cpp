@@ -801,6 +801,31 @@ void __fastcall TWorld::OnKeyDown(int cKey)
      }
    }
   }
+  else if (cKey==Global::Keys[k_EndSign])
+  {//Ra 2014-07: zabrane z kabiny
+   TDynamicObject *tmp=Global::DynamicNearest();
+   if (tmp)
+   {
+    int CouplNr=(LengthSquared3(tmp->HeadPosition()-Camera.Pos)>LengthSquared3(tmp->RearPosition()-Camera.Pos)?-1:1)*tmp->DirectionGet();
+    if (CouplNr<0) CouplNr=1;
+    int mask,set=0; //Ra: [Shift]+[Ctrl]+[T] odpala mi jak¹œ idiotyczn¹ zmianê tapety pulpitu :/
+    if (GetAsyncKeyState(VK_SHIFT)<0) //z [Shift] zapalanie
+     set=mask=64; //bez [Ctrl] za³o¿yæ tabliczki
+    else if (GetAsyncKeyState(VK_CONTROL)<0)
+     set=mask=2+32; //z [Ctrl] zapaliæ œwiat³a czerwone
+    else
+     mask=2+32+64; //wy³¹czanie œci¹ga wszystko
+    if (((tmp->iLights[CouplNr])&mask)!=set)
+    {
+     tmp->iLights[CouplNr]=(tmp->iLights[CouplNr]&~mask)|set;
+     if (Train)
+     {//Ra: ten dŸwiêk z kabiny to przegiêcie, ale na razie zostawiam
+      Train->dsbSwitch->SetVolume(DSBVOLUME_MAX);
+      Train->dsbSwitch->Play(0,0,0);
+     }
+    }
+   }
+  }
   else if (cKey==Global::Keys[k_IncLocalBrakeLevel])
   {//zahamowanie dowolnego pojazdu
    TDynamicObject *temp=Global::DynamicNearest();
@@ -1030,7 +1055,7 @@ bool __fastcall TWorld::Update()
  if (!Global::iPause)
  {//jak pauza, to nie ma po co tego przeliczaæ
   GlobalTime->UpdateMTableTime(GetDeltaTime()); //McZapkie-300302: czas rozkladowy
-  //Ra: przeliczenie k¹ta czasu (do animacji zale¿nych od czasu)
+  //Ra 2014-07: przeliczenie k¹ta czasu (do animacji zale¿nych od czasu)
   Global::fTimeAngleDeg=GlobalTime->hh*15.0+GlobalTime->mm*0.25+GlobalTime->mr/240.0;
   Global::fClockAngleDeg[0]=36.0*(int(GlobalTime->mr)%10); //jednostki sekund
   Global::fClockAngleDeg[1]=36.0*(int(GlobalTime->mr)/10); //dziesi¹tki sekund

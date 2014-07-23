@@ -2052,9 +2052,10 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
 */
       NoVoltTime=NoVoltTime+dt;
       if (MoverParameters->Vel>0.5) //jeœli jedzie
-       //if (NoVoltTime>0.02) //tu mo¿na ograniczyæ czas roz³¹czenia
-        //if (DebugModeFlag) //logowanie nie zawsze
-         ErrorLog("Voltage loss: by "+MoverParameters->Name+" at "+FloatToStrF(vPosition.x,ffFixed,7,2)+" "+FloatToStrF(vPosition.y,ffFixed,7,2)+" "+FloatToStrF(vPosition.z,ffFixed,7,2)+", time "+FloatToStrF(NoVoltTime,ffFixed,7,2));
+       if (MoverParameters->PantFrontUp||MoverParameters->PantRearUp) //Ra 2014-07: doraŸna blokada logowania zimnych lokomotyw - zrobiæ to trzeba inaczej
+        //if (NoVoltTime>0.02) //tu mo¿na ograniczyæ czas roz³¹czenia
+         //if (DebugModeFlag) //logowanie nie zawsze
+          ErrorLog("Voltage loss: by "+MoverParameters->Name+" at "+FloatToStrF(vPosition.x,ffFixed,7,2)+" "+FloatToStrF(vPosition.y,ffFixed,7,2)+" "+FloatToStrF(vPosition.z,ffFixed,7,2)+", time "+FloatToStrF(NoVoltTime,ffFixed,7,2));
       if (NoVoltTime>0.3) //jeœli brak zasilania d³u¿ej ni¿ przez 1 sekundê
        tmpTraction.TractionVoltage=0; //Ra 2013-12: po co tak?
        //pControlled->MainSwitch(false); //mo¿e tak?
