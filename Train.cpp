@@ -912,37 +912,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
         }
        }
       }
-      }
-      if (cKey==Global::Keys[k_EndSign])
-      {//Ra: umieszczenie tego w obs³udze kabiny jest nieco bez sensu
-       int CouplNr=-1;
-       TDynamicObject *tmp;
-       tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), 1, 1500, CouplNr);
-       if (tmp==NULL)
-        tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 1500, CouplNr);
-       if (tmp&&(CouplNr!=-1))
-       {
-        int mask=(GetAsyncKeyState(VK_CONTROL)<0)?2+32:64;
-        if (CouplNr==0)
-        {
-         if (((tmp->iLights[0])&mask)!=mask)
-         {
-          tmp->iLights[0]|=mask;
-          dsbSwitch->SetVolume(DSBVOLUME_MAX); //Ra: ten dŸwiêk tu to przegiêcie
-          dsbSwitch->Play(0,0,0);
-         }
-        }
-        else
-        {
-         if (((tmp->iLights[1])&mask)!=mask)
-         {
-          tmp->iLights[1]|=mask;
-          dsbSwitch->SetVolume(DSBVOLUME_MAX); //Ra: ten dŸwiêk tu to przegiêcie
-          dsbSwitch->Play(0,0,0);
-         }
-        }
-       }
-      }
+     }
    }
   else //McZapkie-240302 - klawisze bez shifta
    {
@@ -1961,36 +1931,6 @@ void __fastcall TTrain::OnKeyDown(int cKey)
         }
        }
       }
-      }
-      else
-      if (cKey==Global::Keys[k_EndSign])   //ABu 060205: koncowki - sciagniecie
-      {
-       int CouplNr=-1;
-       TDynamicObject *tmp;
-       tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), 1, 500, CouplNr);
-       if (tmp==NULL)
-        tmp=DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 500, CouplNr);
-       if (tmp&&(CouplNr!=-1))
-       {
-        if (CouplNr==0)
-        {
-         if ((tmp->iLights[0])&(2+32+64))
-         {
-          tmp->iLights[0]&=~(2+32+64);
-          dsbSwitch->SetVolume(DSBVOLUME_MAX); //Ra: ten dŸwiêk tu to przegiêcie
-          dsbSwitch->Play(0,0,0);
-         }
-        }
-        else
-        {
-         if ((tmp->iLights[1])&(2+32+64))
-         {
-          tmp->iLights[1]&=~(2+32+64);
-          dsbSwitch->SetVolume(DSBVOLUME_MAX);
-          dsbSwitch->Play(0,0,0);
-         }
-        }
-       }
       }
       if (cKey==Global::Keys[k_RightSign])   //Winger 070304: swiatla tylne (koncowki) - wlaczenie
       {

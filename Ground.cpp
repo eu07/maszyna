@@ -1579,7 +1579,8 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    parser->getTokens();
    *parser >> token;
    str=AnsiString(token.c_str());
-   tmp->tsStaticSound->Init(str.c_str(),sqrt(tmp->fSquareRadius),tmp->pCenter.x,tmp->pCenter.y,tmp->pCenter.z,false);
+   tmp->tsStaticSound->Init(str.c_str(),sqrt(tmp->fSquareRadius),tmp->pCenter.x,tmp->pCenter.y,tmp->pCenter.z,false,rmin);
+   if (rmin<0.0) rmin=0.0; //przywrócenie poprawnej wartoœci, jeœli s³u¿y³a do wy³¹czenia efektu Dopplera
 
 //            tmp->pDirectSoundBuffer=TSoundsManager::GetFromName(str.c_str());
 //            tmp->iState=(Parser->GetNextSymbol().LowerCase()=="loop"?DSBPLAY_LOOPING:0);

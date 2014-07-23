@@ -29,6 +29,7 @@ __fastcall TRealSound::TRealSound()
  vSoundPosition.z=0;
  fDistance=fPreviousDistance=0.0;
  fFrequency=22050.0; //czêstotliwoœæ samplowania pliku
+ iDoppler=0; //normlanie jest za³¹czony; !=0 - modyfikacje 
 }
 
 __fastcall TRealSound::~TRealSound()
@@ -40,7 +41,7 @@ void __fastcall TRealSound::Free()
 {
 }
 
-void __fastcall TRealSound::Init(char *SoundName, double DistanceAttenuation, double X, double Y, double Z,bool Dynamic,bool freqmod)
+void __fastcall TRealSound::Init(char *SoundName, double DistanceAttenuation, double X, double Y, double Z,bool Dynamic,bool freqmod,double rmin)
 {
  //Nazwa=SoundName; //to tak raczej nie zadzia³a, (SoundName) jest tymczasowe
  pSound=TSoundsManager::GetFromName(SoundName,Dynamic,&fFrequency);
@@ -66,6 +67,7 @@ void __fastcall TRealSound::Init(char *SoundName, double DistanceAttenuation, do
   vSoundPosition.x=X;
   vSoundPosition.y=Y;
   vSoundPosition.z=Z;
+  if (rmin<0) iDoppler=1; //wy³¹czenie efektu Dopplera, np. dla dŸwiêku ptaków
  }
  else
   dSoundAtt=-1;
@@ -103,8 +105,11 @@ void __fastcall TRealSound::Play(double Volume, int Looping, bool ListenerInside
    else
     Volume=Volume*dS/(dS+2*fDistance); //podwójne dla ListenerInside=false
   }
-  //if (FreeFlyModeFlag) //gdy swobodne latanie - nie sprawdza siê to
-  // fPreviousDistance=fDistance; //to efektu Dopplera nie bêdzie
+  if (iDoppler) //
+  {//Ra 2014-07: efekt Dopplera nie zawsze jest wskazany
+   //if (FreeFlyModeFlag) //gdy swobodne latanie - nie sprawdza siê to
+   fPreviousDistance=fDistance; //to efektu Dopplera nie bêdzie
+  }
   //McZapkie-010302 - babranie tylko z niezbyt odleglymi dŸwiêkami
   if ((dSoundAtt==-1)||(fDistance<20.0*dS))
   {
@@ -210,9 +215,9 @@ void __fastcall TRealSound::ResetPosition()
   pSound->SetCurrentPosition(0);
 }
 
-void __fastcall TTextSound::Init(char *SoundName,double SoundAttenuation,double X,double Y,double Z,bool Dynamic,bool freqmod)
+void __fastcall TTextSound::Init(char *SoundName,double SoundAttenuation,double X,double Y,double Z,bool Dynamic,bool freqmod,double rmin)
 {//dodatkowo doczytuje plik tekstowy
- TRealSound::Init(SoundName,SoundAttenuation,X,Y,Z,Dynamic,freqmod);
+ TRealSound::Init(SoundName,SoundAttenuation,X,Y,Z,Dynamic,freqmod,rmin);
  fTime=GetWaveTime();
  AnsiString txt=AnsiString(SoundName);
  txt.Delete(txt.Length()-3,4); //obciêcie rozszerzenia
