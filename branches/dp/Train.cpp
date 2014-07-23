@@ -2878,7 +2878,7 @@ else
       //Nalezy sie zastanowic na przyszlosc nad rozroznieniem predkosciomierzy (dokladnosc wskazan, zwloka czasowa wskazania, inne funkcje)
       //ZiomalCl: W ezt typu stare EN57 wskazania haslera sa mniej dokladne (linka)
       //VelocityGauge.UpdateValue(fTachoVelocity>2?fTachoVelocity+0.5-random(mvControlled->TrainType==dt_EZT?5:2)/2:0);
-      VelocityGauge.UpdateValue(fTachoVelocity);
+      VelocityGauge.UpdateValue(Min0R(fTachoVelocity,mvControlled->Vmax*1.05)); //ograniczenie maksymalnego wskazania na analogowym
       VelocityGauge.Update();
      }
      if (ggVelocityDgt.SubModel)
