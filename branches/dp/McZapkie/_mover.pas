@@ -72,7 +72,7 @@ CONST
    Go=true;
    Hold=false;                 {dla CheckLocomotiveParameters}
    ResArraySize=64;            {dla silnikow elektrycznych}
-   MotorParametersArraySize=8;
+   MotorParametersArraySize=10;
    maxcc=4;                    {max. ilosc odbierakow pradu}
    LocalBrakePosNo=10;         {ilosc nastaw hamulca pomocniczego}
    MainBrakeMaxPos=10;          {max. ilosc nastaw hamulca zasadniczego}

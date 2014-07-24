@@ -407,7 +407,7 @@ public:
 	TSecuritySystem SecuritySystem;
 	TScheme RList[65];
 	int RlistSize;
-	TMotorParameters MotorParam[9];
+	TMotorParameters MotorParam[11];
 	TTransmision Transmision;
 	double NominalVoltage;
 	double WindingRes;
@@ -752,7 +752,7 @@ struct TCoupling
 static const bool Go = true;
 static const bool Hold = false;
 static const Shortint ResArraySize = 0x40;
-static const Shortint MotorParametersArraySize = 0x8;
+static const Shortint MotorParametersArraySize = 0xa;
 static const Shortint maxcc = 0x4;
 static const Shortint LocalBrakePosNo = 0xa;
 static const Shortint MainBrakeMaxPos = 0xa;
