@@ -219,7 +219,7 @@ TYPE
     TBrakePressureTable= array[-2..MainBrakeMaxPos] of TBrakePressure;
 
     {typy napedow}                                                       {EZT tymczasowe ¿eby kibel dzialal}
-    TEngineTypes = (None, Dumb, WheelsDriven, ElectricSeriesMotor, DieselEngine, SteamEngine, DieselElectric); { EZT); }
+    TEngineTypes = (None, Dumb, WheelsDriven, ElectricSeriesMotor, ElectricInductionMotor, DieselEngine, SteamEngine, DieselElectric); { EZT); }
     {postac dostarczanej energii}
     TPowerType = (NoPower, BioPower, MechPower, ElectricPower, SteamPower);
     {rodzaj paliwa}
@@ -1245,7 +1245,7 @@ begin
     begin
      if (TrainType<>dt_ET22) or ((TrainType=dt_ET22) and (ScndCtrlPos=0)) then //w ET22 nie da siê krêciæ nastawnikiem przy w³¹czonym boczniku
      case EngineType of
-      None, Dumb, DieselElectric:      { EZT:}
+      None, Dumb, DieselElectric, ElectricInductionMotor:      { EZT:}
        if ((CtrlSpeed=1) and (TrainType<>dt_EZT)) or ((CtrlSpeed=1) and (TrainType=dt_EZT)and (activedir<>0)) then
         begin //w EZT nie da siê za³¹czyæ pozycji bez ustawienia kierunku
          inc(MainCtrlPos);
@@ -1389,7 +1389,7 @@ begin
           end
          else
           case EngineType of
-            None, Dumb, DieselElectric:   { EZT:}
+            None, Dumb, DieselElectric, ElectricInductionMotor:   { EZT:}
              if ((CtrlSpeed=1) and {(ScndCtrlPos=0) and} (EngineType<>DieselElectric)) or ((CtrlSpeed=1)and(EngineType=DieselElectric))then
               begin
                 dec(MainCtrlPos);
@@ -4213,6 +4213,87 @@ begin
              end;
         end;
      end;
+   ElectricInductionMotor:
+     begin
+       if (Voltage>1) and (MainS) then
+        begin
+
+         if ((Hamulec as TLSt).GetEDBCP<0.25) then
+           DynamicBrakeFlag:=false
+         else if (BrakePress>0.25) and ((Hamulec as TLSt).GetEDBCP>0.25) then
+           DynamicBrakeFlag:=true;
+
+         if(DynamicBrakeFlag)then
+          begin
+           if(Vel<5)then PosRatio:=0 else
+           if(Vel<10)then PosRatio:=(Vel-5)/5 else PosRatio:=1;
+           (Hamulec as TLSt).SetED(PosRatio);
+           PosRatio:=sign(V)*(-0.2)*(2+Byte(BrakeDelayFlag and bdelay_R)/bdelay_R)*PosRatio*(Hamulec as TLSt).GetEDBCP/MaxBrakePress[0];
+           tmp:=5;
+          end
+         else
+          begin
+           PosRatio:=(MainCtrlPos/MainCtrlPosNo)*DirAbsolute;
+           (Hamulec as TLSt).SetED(0);
+           if (PosRatio*DirAbsolute>dizel_fill*DirAbsolute) then tmp:=1 else tmp:=4; //szybkie malenie, powolne wzrastanie
+          end;
+         if SlippingWheels then begin PosRatio:=0; tmp:=10; SandDoseOn; end;//przeciwposlizg
+
+         dizel_fill:=dizel_fill+Max0R(Min0R(PosRatio-Dizel_fill,0.1),-0.1)*2*(tmp{2{+4*byte(PosRatio<dizel_fill)})*dt;
+
+         //zmienne: enrot - fs, tmp - df, tmpV - fp, dmoment - pole, dtrans - Us
+         //MPT0:    mfi - Uzmax, misat - DU, mfi0 - I0, fi - fmax, isat - fnomf, fi0 - cfu
+         //         WindingRes - Inom, Vhyp - snom, Vadd - Mnom, nmax - fnom
+
+         MotorParam[0].Isat:=Min0R(MotorParam[0].mfi,Voltage-MotorParam[0].misat)/MotorParam[0].fi0; //fnomf
+         //df:= fnom*snom*dizel_fill
+         tmp:=nmax*Vhyp*dizel_fill;
+         //if fs+df<= fnom   kv=1,
+         //           else   kv=fs/(fnom-df);
+         if (abs(enrot+tmp)<=MotorParam[0].Isat) then PosRatio:=1
+                                                 else PosRatio:=abs(enrot)/(MotorParam[0].Isat-tmp); //wspolczynnik powiekszenie
+         //fp:=Min0R(Max0R(fs+(Min0R(Max0R(kv*df,-fnom*snom),fnom*snom),-fmax),fmax);
+         tmpV:=Min0R(Max0R(enrot+Min0R(Max0R(PosRatio*tmp,-nmax*Vhyp),nmax*Vhyp),-MotorParam[0].fi),MotorParam[0].fi); //predkosc pola
+         //U:=Min0R(fp,fnomf)*cfu;
+         PosRatio:=Min0R(abs(tmpV),MotorParam[0].Isat)*MotorParam[0].fi0; //napiecie
+         if(tmpV*tmpV<1) then
+           dmoment:=1
+         else
+           dmoment:=PosRatio/(abs(tmpV)*MotorParam[0].fi0); //pole
+         // I:=Inom*(fp-fs)/(snom*fnom)
+         Im:=WindingRes*(tmpV-enrot)/(nmax*Vhyp);
+         // M:=pole*Mmax*I/Imax
+         Mm:=dmoment*Vadd*Im/WindingRes;
+
+         Itot:=(NPoweredAxles*Im*sign(V)+MotorParam[0].mfi0)*(MotorParam[0].mIsat+PosRatio)/(Voltage);
+         EnginePower:=Abs(Itot*Voltage)/1000;
+
+         if (abs(dizel_fill)>0.01) or (tmpV>0.01) then
+          begin
+           if abs(tmpV)<10 then RventRot:=0.3 else
+           if abs(tmpV)<30 then RventRot:=0.6 else
+                           RventRot:=0.6+(abs(tmpV)-30)/120;
+          end
+         else              RVentRot:=0;
+
+         Mw:=Mm*Transmision.Ratio;
+         Fw:=Mw*2.0/WheelDiameter;
+         Ft:=Fw*NPoweredAxles;
+//       RventRot;
+        end
+       else
+        begin
+         Im:=0;
+         Mm:=0;
+         Mw:=0;
+         Fw:=0;
+         Ft:=0;
+         Itot:=0;
+         dizel_fill:=0;
+         EnginePower:=0;
+         (Hamulec as TLSt).SetED(0);
+        end;
+     end;
    None: begin end;
    {EZT: begin end;}
    end; {case EngineType}
@@ -4245,8 +4326,10 @@ begin
                  //0.03
 
   u:=((BrakePress*P2FTrans)-BrakeCylSpring)*BrakeCylMult[0]-BrakeSlckAdj;
-  if (u*BrakeRigEff>Ntotal) or (u<Ntotal) then //histereza na nacisku klockow
-    Ntotal:=u;
+  if (u*BrakeRigEff>Ntotal)then //histereza na nacisku klockow
+    Ntotal:=u*BrakeRigEff;
+  if (u*(2-1*BrakeRigEff)<Ntotal)then //histereza na nacisku klockow
+    Ntotal:=u*(2-1*BrakeRigEff);
 
   if (NBrakeAxles*NBpA>0) then
     begin
@@ -4431,7 +4514,7 @@ begin
   TotalMassxg:=TotalMass*g; {TotalMass*g}
   BearingF:=2*(DamageFlag and dtrain_bearing);
 
-  HideModifier:=Byte(Couplers[0].CouplingFlag>0)+Byte(Couplers[1].CouplingFlag>0);
+  HideModifier:=0;//Byte(Couplers[0].CouplingFlag>0)+Byte(Couplers[1].CouplingFlag>0);
   with Dim do
    begin
     if BearingType=0 then
@@ -4603,6 +4686,8 @@ begin
           end {bo nie dzialalo}
        else
           Voltage:=0;
+       if Mains and {(Abs(CabNo)<2) and} (EngineType=ElectricInductionMotor) then //potem ulepszyc! pantogtrafy!
+          Voltage:=RunningTraction.TractionVoltage;
     //end;
 
     if Power>0 then
@@ -6080,6 +6165,8 @@ function EngineDecode(s:string):TEngineTypes;
     EngineDecode:=DieselElectric    //youBy: spal-ele
    else if s='DumbDE' then
     EngineDecode:=DieselElectric    //youBy: spal-ele
+   else if s='ElectricInductionMotor' then
+    EngineDecode:=ElectricInductionMotor
 {   else if s='EZT' then {dla kibla}
  {   EngineDecode:=EZT      }
    else EngineDecode:=None;
@@ -6935,10 +7022,33 @@ begin
                    ImaxHi:=2;
                    ImaxLo:=1;
                  end;
-               end;               
+               end;
              { EZT:  {NBMX ¿eby kibel dzialal}
               { begin
                end;}
+             ElectricInductionMotor:
+               begin
+                 rventnmax:=1;
+                 s:=ExtractKeyWord(lines,'Volt=');
+                 NominalVoltage:=s2r(DUE(s));
+                 s:=DUE(ExtractKeyWord(lines,'Trans='));
+                 Transmision.NToothW:=s2b(copy(s,Pos(':',s)+1,Length(s)));
+                 Transmision.NToothM:=s2b(copy(s,1,Pos(':',s)-1));
+                 if s<>'' then
+                    with Transmision do
+                     if NToothM>0 then
+                      Ratio:=NToothW/NToothM
+                     else Ratio:=1;
+                 s:=ExtractKeyWord(lines,'Inom=');
+                 WindingRes:=s2r(DUE(s));
+                 s:=ExtractKeyWord(lines,'snom=');
+                 Vhyp:=s2rE(DUE(s));
+                 s:=ExtractKeyWord(lines,'Mnom=');
+                 Vadd:=s2rE(DUE(s));
+                 s:=ExtractKeyWord(lines,'fnom=');
+                 nmax:=s2rE(DUE(s));
+               end;
+
            else ConversionError:=-13; {not implemented yet!}
            end;
           end
