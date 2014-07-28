@@ -114,8 +114,8 @@ struct TBrakePressure
 typedef TBrakePressure TBrakePressureTable[13];
 
 #pragma option push -b-
-enum TEngineTypes { None, Dumb, WheelsDriven, ElectricSeriesMotor, DieselEngine, SteamEngine, DieselElectric 
-	};
+enum TEngineTypes { None, Dumb, WheelsDriven, ElectricSeriesMotor, ElectricInductionMotor, DieselEngine, 
+	SteamEngine, DieselElectric };
 #pragma option pop
 
 #pragma option push -b-
