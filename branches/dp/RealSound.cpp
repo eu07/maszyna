@@ -59,7 +59,7 @@ void __fastcall TRealSound::Init(char *SoundName, double DistanceAttenuation, do
  else
  {//nie ma dŸwiêku, to jest wysyp
   AM=0;
-  ErrorLog("Missed file: "+AnsiString(SoundName));
+  ErrorLog("Missed sound: "+AnsiString(SoundName));
  }
  if (DistanceAttenuation>0.0)
  {

@@ -2021,7 +2021,7 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
   {if (!TrainParams->LoadTTfile(Global::asCurrentSceneryPath,floor(NewValue2+0.5),NewValue1)) //pierwszy parametr to przesuniêcie rozk³adu w czasie
    {
     if (ConversionError==-8)
-     ErrorLog("Missed file: "+NewCommand);
+     ErrorLog("Missed timetable: "+NewCommand);
     WriteLog("Cannot load timetable file "+NewCommand+"\r\nError "+ConversionError+" in position "+TrainParams->StationCount);
    }
    else
