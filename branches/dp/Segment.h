@@ -76,7 +76,7 @@ public:
   r1=fRoll1; r2=fRoll2;
  }
  void __fastcall RenderLoft(const vector6 *ShapePoints,int iNumShapePoints,
-  double fTextureLength,int iSkip=0,int iQualityFactor=1);
+  double fTextureLength,int iSkip=0,int iQualityFactor=1,vector3 **p=NULL);
  void __fastcall RenderSwitchRail(const vector6 *ShapePoints1,const vector6 *ShapePoints2,
   int iNumShapePoints,double fTextureLength,int iSkip=0,double fOffsetX=0.0f);
  void __fastcall Render();

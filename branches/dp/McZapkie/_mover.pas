@@ -218,8 +218,8 @@ TYPE
                     end;
     TBrakePressureTable= array[-2..MainBrakeMaxPos] of TBrakePressure;
 
-    {typy napedow}                                                       {EZT tymczasowe ¿eby kibel dzialal}
-    TEngineTypes = (None, Dumb, WheelsDriven, ElectricSeriesMotor, ElectricInductionMotor, DieselEngine, SteamEngine, DieselElectric); { EZT); }
+    {typy napedow}
+    TEngineTypes = (None, Dumb, WheelsDriven, ElectricSeriesMotor, ElectricInductionMotor, DieselEngine, SteamEngine, DieselElectric);
     {postac dostarczanej energii}
     TPowerType = (NoPower, BioPower, MechPower, ElectricPower, SteamPower);
     {rodzaj paliwa}
@@ -1245,7 +1245,7 @@ begin
     begin
      if (TrainType<>dt_ET22) or ((TrainType=dt_ET22) and (ScndCtrlPos=0)) then //w ET22 nie da siê krêciæ nastawnikiem przy w³¹czonym boczniku
      case EngineType of
-      None, Dumb, DieselElectric, ElectricInductionMotor:      { EZT:}
+      None, Dumb, DieselElectric, ElectricInductionMotor:
        if ((CtrlSpeed=1) and (TrainType<>dt_EZT)) or ((CtrlSpeed=1) and (TrainType=dt_EZT)and (activedir<>0)) then
         begin //w EZT nie da siê za³¹czyæ pozycji bez ustawienia kierunku
          inc(MainCtrlPos);
@@ -1389,7 +1389,7 @@ begin
           end
          else
           case EngineType of
-            None, Dumb, DieselElectric, ElectricInductionMotor:   { EZT:}
+            None, Dumb, DieselElectric, ElectricInductionMotor:
              if ((CtrlSpeed=1) and {(ScndCtrlPos=0) and} (EngineType<>DieselElectric)) or ((CtrlSpeed=1)and(EngineType=DieselElectric))then
               begin
                 dec(MainCtrlPos);
@@ -4295,7 +4295,6 @@ begin
         end;
      end;
    None: begin end;
-   {EZT: begin end;}
    end; {case EngineType}
   TractionForce:=Ft
 end;
@@ -4327,8 +4326,8 @@ begin
 
   u:=((BrakePress*P2FTrans)-BrakeCylSpring)*BrakeCylMult[0]-BrakeSlckAdj;
   if (u*BrakeRigEff>Ntotal)then //histereza na nacisku klockow
-    Ntotal:=u*BrakeRigEff;
-  if (u*(2-1*BrakeRigEff)<Ntotal)then //histereza na nacisku klockow
+    Ntotal:=u*BrakeRigEff
+  else if (u*(2-1*BrakeRigEff)<Ntotal)then //histereza na nacisku klockow
     Ntotal:=u*(2-1*BrakeRigEff);
 
   if (NBrakeAxles*NBpA>0) then
@@ -7023,9 +7022,6 @@ begin
                    ImaxLo:=1;
                  end;
                end;
-             { EZT:  {NBMX ¿eby kibel dzialal}
-              { begin
-               end;}
              ElectricInductionMotor:
                begin
                  rventnmax:=1;

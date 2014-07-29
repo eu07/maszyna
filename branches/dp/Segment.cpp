@@ -327,7 +327,7 @@ vector3 __fastcall TSegment::FastGetPoint(double t)
 }
 
 void __fastcall TSegment::RenderLoft(const vector6 *ShapePoints, int iNumShapePoints,
-        double fTextureLength, int iSkip, int iQualityFactor)
+        double fTextureLength, int iSkip, int iQualityFactor,vector3 **p)
 {//generowanie trójk¹tów dla odcinka trajektorii ruchu
  //standardowo tworzy triangle_strip dla prostego albo ich zestaw dla ³uku
  //po modyfikacji - dla ujemnego (iNumShapePoints) w dodatkowych polach tabeli
@@ -389,6 +389,9 @@ void __fastcall TSegment::RenderLoft(const vector6 *ShapePoints, int iNumShapePo
      glNormal3f(norm.x,norm.y,norm.z);
      glTexCoord2f(jmm1*ShapePoints[j].z+m1*ShapePoints[j+iNumShapePoints].z,tv1);
      glVertex3f(pt.x,pt.y,pt.z); //pt nie mamy gdzie zapamiêtaæ?
+     if (p) //jeœli jest wskaŸnik do tablicy
+      if (!j) //to dla pierwszego punktu
+      {*(*p)=pt; (*p)++;} //zapamiêtanie brzegu jezdni
      //dla trapezu drugi koniec ma inne wspó³rzêdne
      norm=(jmm1*ShapePoints[j].n.x+m1*ShapePoints[j+iNumShapePoints].n.x)*parallel2;
      norm.y+=jmm1*ShapePoints[j].n.y+m1*ShapePoints[j+iNumShapePoints].n.y;
@@ -397,6 +400,10 @@ void __fastcall TSegment::RenderLoft(const vector6 *ShapePoints, int iNumShapePo
      glNormal3f(norm.x,norm.y,norm.z);
      glTexCoord2f(jmm2*ShapePoints[j].z+m2*ShapePoints[j+iNumShapePoints].z,tv2);
      glVertex3f(pt.x,pt.y,pt.z);
+     if (p) //jeœli jest wskaŸnik do tablicy
+      if (!j) //to dla pierwszego punktu
+       if (i==iSegCount)
+       {*(*p)=pt; (*p)++;} //zapamiêtanie brzegu jezdni
     }
    else
     for (j=0;j<iNumShapePoints;j++)
