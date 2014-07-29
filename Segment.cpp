@@ -390,8 +390,9 @@ void __fastcall TSegment::RenderLoft(const vector6 *ShapePoints, int iNumShapePo
      glTexCoord2f(jmm1*ShapePoints[j].z+m1*ShapePoints[j+iNumShapePoints].z,tv1);
      glVertex3f(pt.x,pt.y,pt.z); //pt nie mamy gdzie zapamiêtaæ?
      if (p) //jeœli jest wskaŸnik do tablicy
-      if (!j) //to dla pierwszego punktu
-      {*(*p)=pt; (*p)++;} //zapamiêtanie brzegu jezdni
+      if (*p)
+       if (!j) //to dla pierwszego punktu
+       {*(*p)=pt; (*p)++;} //zapamiêtanie brzegu jezdni
      //dla trapezu drugi koniec ma inne wspó³rzêdne
      norm=(jmm1*ShapePoints[j].n.x+m1*ShapePoints[j+iNumShapePoints].n.x)*parallel2;
      norm.y+=jmm1*ShapePoints[j].n.y+m1*ShapePoints[j+iNumShapePoints].n.y;
@@ -401,9 +402,10 @@ void __fastcall TSegment::RenderLoft(const vector6 *ShapePoints, int iNumShapePo
      glTexCoord2f(jmm2*ShapePoints[j].z+m2*ShapePoints[j+iNumShapePoints].z,tv2);
      glVertex3f(pt.x,pt.y,pt.z);
      if (p) //jeœli jest wskaŸnik do tablicy
-      if (!j) //to dla pierwszego punktu
-       if (i==iSegCount)
-       {*(*p)=pt; (*p)++;} //zapamiêtanie brzegu jezdni
+      if (*p)
+       if (!j) //to dla pierwszego punktu
+        if (i==iSegCount)
+        {*(*p)=pt; (*p)++;} //zapamiêtanie brzegu jezdni
     }
    else
     for (j=0;j<iNumShapePoints;j++)

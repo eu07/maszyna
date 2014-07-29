@@ -53,6 +53,7 @@ public:
   {//zmienne dla skrzy¿owania
    vector3 *vPoints; //tablica wierzcho³ków nawierzchni, generowana przez pobocze
    int iPoints; //liczba faktycznie u¿ytych wierzcho³ków nawierzchni
+   bool bPoints; //czy utworzone?
   };
  };
  bool bMovement; //czy w trakcie animacji

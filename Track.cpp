@@ -201,8 +201,9 @@ void __fastcall TTrack::Init()
   break;
   case tt_Cross: //tylko dla skrzy¿owania dróg
    SwitchExtension=new TSwitchExtension(this,6); //6 po³¹czeñ
-   SwitchExtension->vPoints=NULL;
+   SwitchExtension->vPoints=NULL; //brak tablicy punktów
    SwitchExtension->iPoints=0;
+   SwitchExtension->bPoints=false; //tablica punktów nie wype³niona
   break;
   case tt_Normal:
    Segment=new TSegment(this);
@@ -1342,13 +1343,12 @@ void __fastcall TTrack::Compile(GLuint tex)
      if (!SwitchExtension->vPoints)
      {//jeœli punkty jeszcze nie wyznaczone
       if (drogi==3) //mog¹ byæ tylko 3 drogi
-       SwitchExtension->iPoints=2+SwitchExtension->Segments[0]->RaSegCount()+SwitchExtension->Segments[1]->RaSegCount()+SwitchExtension->Segments[2]->RaSegCount();
+       SwitchExtension->iPoints=5+SwitchExtension->Segments[0]->RaSegCount()+SwitchExtension->Segments[1]->RaSegCount()+SwitchExtension->Segments[2]->RaSegCount();
       else
-       SwitchExtension->iPoints=2+SwitchExtension->Segments[2]->RaSegCount()+SwitchExtension->Segments[3]->RaSegCount()+SwitchExtension->Segments[4]->RaSegCount()+SwitchExtension->Segments[5]->RaSegCount(); //mog¹ byæ tylko 3 drogi
+       SwitchExtension->iPoints=5+SwitchExtension->Segments[2]->RaSegCount()+SwitchExtension->Segments[3]->RaSegCount()+SwitchExtension->Segments[4]->RaSegCount()+SwitchExtension->Segments[5]->RaSegCount(); //mog¹ byæ tylko 3 drogi
       SwitchExtension->vPoints=new vector3[SwitchExtension->iPoints];
      }
-     vector3 *b=SwitchExtension->vPoints; //zmienna robocza
-     //float3 *q=new float3[points],*b=q; //tabela i indeks do niej
+     vector3 *b=SwitchExtension->bPoints?NULL:SwitchExtension->vPoints; //zmienna robocza
      vector6 bpts1[4]; //punkty g³ównej p³aszczyzny przydaj¹ siê do robienia boków
      if (TextureID1||TextureID2) //punkty siê przydadz¹, nawet jeœli nawierzchni nie ma
      {//double max=2.0*(fHTW>fHTW2?fHTW:fHTW2); //z szerszej strony jest 100%
@@ -1454,11 +1454,20 @@ void __fastcall TTrack::Compile(GLuint tex)
      }
      */
      double u,v;
-     if (b>SwitchExtension->vPoints)
-     {//jeœli zosta³o to w³aœnie utworzone
-      SwitchExtension->iPoints=b-SwitchExtension->vPoints; //domkniêcie
-      SwitchExtension->vPoints[SwitchExtension->iPoints++]=SwitchExtension->vPoints[0];
-     }
+     if (!SwitchExtension->bPoints)
+      if (b)
+      {//coœ siê gubi w obliczeniach na wskaŸnikach
+       int i=(int((void*)(b))-int((void*)(SwitchExtension->vPoints)))/sizeof(vector3);
+       if (i>0)
+       {//jeœli zosta³o to w³aœnie utworzone
+        if (SwitchExtension->iPoints>i)
+         SwitchExtension->iPoints=i; //domkniêcie wachlarza
+        else
+         --SwitchExtension->iPoints; //jak tutaj wejdzie, to b³¹d jest
+        SwitchExtension->vPoints[SwitchExtension->iPoints++]=SwitchExtension->vPoints[0];
+        SwitchExtension->bPoints=true; //ju¿ zrobione
+       }
+      }
      if (TextureID1) //jeœli podana tekstura nawierzchni
       if (tex?TextureID1==tex:true) //jeœli pasuje do grupy (tex)
       {if (!tex) glBindTexture(GL_TEXTURE_2D,TextureID1);
