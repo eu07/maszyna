@@ -633,7 +633,12 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
     } //u³omny prosty
 
    if (!(cp3==vector3(0,0,0)) && !(cp4==vector3(0,0,0)))
-    SwitchExtension->Segments[1]->Init(p3,cp3+p3,cp4+p4,p4,segsize,r3,r4);
+   {//dla skrzy¿owania dróg daæ odwrotnie koñce, ¿eby brzegi generowaæ lewym
+    if (eType!=tt_Cross)
+     SwitchExtension->Segments[1]->Init(p3,cp3+p3,cp4+p4,p4,segsize,r3,r4);
+    else
+     SwitchExtension->Segments[1]->Init(p4,p4-cp4,p3-cp3,p3,segsize,r4,r3);
+   }
    else
     SwitchExtension->Segments[1]->Init(p3,p4,segsize,r3,r4);
    if (eType==tt_Cross)
@@ -1428,14 +1433,24 @@ void __fastcall TTrack::Compile(GLuint tex)
          SwitchExtension->Segments[4]->RenderLoft(rpts2,-3,fTexLength,0,1,&b); //tylko jeœli jest z lewej
         if ((fTexHeight1>=0.0)?true:(side!=0.0))
          SwitchExtension->Segments[5]->RenderLoft(rpts2,-3,fTexLength,0,1,&b); //tylko jeœli jest z lewej
-       } /*
+       }
        else //to bêdzie ewentualnie dla prostego na skrzy¿owaniu trzech dróg
-       {//pobocza zwyk³e, brak przechy³ki
+       {//punkt 3 pokrywa siê z punktem 1, jak w zwrotnicy; po³¹czenie 1->2 nie musi byæ prostoliniowe
+        if ((fTexHeight1>=0.0)?true:(side!=0.0)) //OK
+         SwitchExtension->Segments[0]->RenderLoft(rpts2,-3,fTexLength,0,1,&b); //tylko jeœli jest z lewej
+        //if ((fTexHeight1>=0.0)?true:(slop!=0.0)) //OK
+        // SwitchExtension->Segments[1]->RenderLoft(rpts1,-3,fTexLength,0,1,&b); //tylko jeœli jest z prawej
+        if ((fTexHeight1>=0.0)?true:(side!=0.0)) //OK
+         SwitchExtension->Segments[2]->RenderLoft(rpts2,-3,fTexLength,0,1,&b); //tylko jeœli jest z lewej
+        if ((fTexHeight1>=0.0)?true:(side!=0.0)) //OK
+         SwitchExtension->Segments[2]->RenderLoft(rpts2,-3,fTexLength,0,1,&b); //tylko jeœli jest z lewej
+        /*
         if ((fTexHeight1>=0.0)?true:(slop!=0.0))
          Segment->RenderLoft(rpts1,3,fTexLength);
         if ((fTexHeight1>=0.0)?true:(side!=0.0))
          Segment->RenderLoft(rpts2,3,fTexLength);
-       } */
+        */
+       }
       }
      //renderowanie nawierzchni na koñcu
      double sina0=sin(a[0]),cosa0=cos(a[0]);
@@ -1445,12 +1460,6 @@ void __fastcall TTrack::Compile(GLuint tex)
      {q[++i]=p[j]+vector3(+fHTW*cos(a[j]),0,+fHTW*sin(a[j])); //Point1
       q[++i]=p[j]+vector3(-fHTW*cos(a[j]),0,-fHTW*sin(a[j]));
       ++i; //punkt w œrodku obliczymy potem
-     }
-     q[++i]=q[1]; //domkniêcie obszaru
-     i=0; //zaczynamy od zera, aby wype³niæ œrodki, mo¿e byc ró¿na iloœæ punktów
-     for (j=0;j<drogi;++j)
-     {i+=3;
-      q[i]=0.5*(0.5*(q[i-1]+q[i+1])+q[0]); //tak na pocz¹tek
      }
      */
      double u,v;
