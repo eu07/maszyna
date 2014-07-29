@@ -49,6 +49,11 @@ public:
    //TAnimContainer *pAnim; //animator modelu dla obrotnicy
    TAnimModel *pModel; //na razie model
   };
+  struct
+  {//zmienne dla skrzy¿owania
+   vector3 *vPoints; //tablica wierzcho³ków nawierzchni, generowana przez pobocze
+   int iPoints; //liczba faktycznie u¿ytych wierzcho³ków nawierzchni
+  };
  };
  bool bMovement; //czy w trakcie animacji
  int iLeftVBO,iRightVBO; //indeksy iglic w VBO
