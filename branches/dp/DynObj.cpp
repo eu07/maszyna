@@ -1984,14 +1984,15 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
     //TTrackShape ts;
     //ts.R=MyTrack->fRadius;
     //if (ABuGetDirection()<0) ts.R=-ts.R;
-    ts.R=MyTrack->fRadius; //ujemne promienie s¹ ju¿ zamienione przy wczytywaniu
+//    ts.R=MyTrack->fRadius; //ujemne promienie s¹ ju¿ zamienione przy wczytywaniu
     if (Axle0.vAngles.z!=Axle1.vAngles.z)
     {//wyliczenie promienia z obrotów osi - modyfikacjê zg³osi³ youBy
      ts.R=Axle0.vAngles.z-Axle1.vAngles.z; //ró¿nica mo¿e dawaæ sta³¹ ±M_2PI
      if (ts.R>M_PI) ts.R-=M_2PI else if (ts.R<-M_PI) ts.R+=M_2PI; //normalizacja
-     ts.R=fabs(0.5*MoverParameters->BDist/sin(ts.R*0.5));
+//     ts.R=fabs(0.5*MoverParameters->BDist/sin(ts.R*0.5));
+     ts.R=-0.5*MoverParameters->BDist/sin(ts.R*0.5);
     }
-    if (ts.R>5000.0) ts.R=0.0; //szkoda czasu na zbyt du¿e promienie, 4km to promieñ nie wymagaj¹cy przechy³ki
+    if ((ts.R>15000.0)||(ts.R<-15000.0)) ts.R=0.0; //szkoda czasu na zbyt du¿e promienie, 4km to promieñ nie wymagaj¹cy przechy³ki
     //ts.R=ComputeRadius(Axle1.pPosition,Axle2.pPosition,Axle3.pPosition,Axle0.pPosition);
     //Ra: sk³adow¹ pochylenia wzd³u¿nego mamy policzon¹ w jednostkowym wektorze vFront
     ts.Len=1.0; //Max0R(MoverParameters->BDist,MoverParameters->ADist);
@@ -2894,13 +2895,16 @@ void __fastcall TDynamicObject::RenderSounds()
        enginevolume=(enginevolume+vol)/2;
        if (enginevolume<0.01)
          rsSilnik.Stop();
-       if (MoverParameters->EngineType==ElectricSeriesMotor && rsWentylator.AM!=0)
+       if ((MoverParameters->EngineType==ElectricSeriesMotor)||(MoverParameters->EngineType==ElectricInductionMotor) && rsWentylator.AM!=0)
         {
           if (MoverParameters->RventRot>0.1)
            {
             freq=rsWentylator.FM*MoverParameters->RventRot+rsWentylator.FA;
             rsWentylator.AdjFreq(freq,dt);
-            vol=rsWentylator.AM*MoverParameters->RventRot+rsWentylator.AA;
+            if (MoverParameters->EngineType==ElectricInductionMotor)
+              vol=rsWentylator.AM*sqrt(MoverParameters->EnginePower/MoverParameters->Power)+rsWentylator.AA;
+            else
+              vol=rsWentylator.AM*MoverParameters->RventRot+rsWentylator.AA;
             rsWentylator.Play(vol,DSBPLAY_LOOPING,MechInside,GetPosition());
            }
           else
@@ -3764,7 +3768,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
          rsSilnik.FA=Parser->GetNextSymbol().ToDouble();
         }
        else
-       if ((str==AnsiString("ventilator:")) && (MoverParameters->EngineType==ElectricSeriesMotor))    //plik z dzwiekiem wentylatora, mnozniki i ofsety amp. i czest.
+       if (((str==AnsiString("ventilator:")) && ((MoverParameters->EngineType==ElectricSeriesMotor)||(MoverParameters->EngineType==ElectricInductionMotor))))    //plik z dzwiekiem wentylatora, mnozniki i ofsety amp. i czest.
         {
          str= Parser->GetNextSymbol();
          rsWentylator.Init(str.c_str(),Parser->GetNextSymbol().ToDouble(),GetPosition().x,GetPosition().y,GetPosition().z,true,true);
