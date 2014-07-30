@@ -306,6 +306,7 @@ public:
  void __fastcall SetdMoveLen(double dMoveLen) {MoverParameters->dMoveLen=dMoveLen;}
  void __fastcall ResetdMoveLen() {MoverParameters->dMoveLen=0;}
  double __fastcall GetdMoveLen() {return MoverParameters->dMoveLen;}
+ double __fastcall GetiDir() {return (2*iDirection-1);} 
 
  int __fastcall GetPneumatic(bool front, bool red);
  void __fastcall SetPneumatic(bool front, bool red);

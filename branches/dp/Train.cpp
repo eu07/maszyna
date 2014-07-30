@@ -1382,7 +1382,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
       {
        if (!FreeFlyModeFlag)
        {
-        if ((mvControlled->EngineType==ElectricSeriesMotor)||(mvControlled->EngineType==DieselElectric))
+        if ((mvControlled->EngineType==ElectricSeriesMotor)||(mvControlled->EngineType==DieselElectric)||(mvControlled->EngineType==ElectricInductionMotor))
          if (mvControlled->TrainType!=dt_EZT)
           if (mvOccupied->BrakeCtrlPosNo>0)
           {
@@ -2096,24 +2096,24 @@ void __fastcall TTrain::OnKeyDown(int cKey)
        TDynamicObject *d=DynamicObject;
        if (cKey==VkKeyScan('['))
        {while (d)
-        {d->Move(100.0);
+        {d->Move(100.0*d->GetiDir());
          d=d->Next(); //pozosta³e te¿
         }
         d=DynamicObject->Prev();
         while (d)
-        {d->Move(100.0);
+        {d->Move(100.0*d->GetiDir());
          d=d->Prev(); //w drug¹ stronê te¿
         }
        }
        else
        if (cKey==VkKeyScan(']'))
        {while (d)
-        {d->Move(-100.0);
+        {d->Move(-100.0*d->GetiDir());
          d=d->Next(); //pozosta³e te¿
         }
         d=DynamicObject->Prev();
         while (d)
-        {d->Move(-100.0);
+        {d->Move(-100.0*d->GetiDir());
          d=d->Prev(); //w drug¹ stronê te¿
         }
        }
@@ -2234,15 +2234,25 @@ bool __fastcall TTrain::Update()
   tor=DynamicObject->GetTrack(); //McZapkie-180203
   //McZapkie: predkosc wyswietlana na tachometrze brana jest z obrotow kol
   float maxtacho=3;
-  fTachoVelocity=abs(11.31*mvControlled->WheelDiameter*mvControlled->nrot);
+  float temp=abs(11.31*mvControlled->WheelDiameter*mvControlled->nrot);
+
+  float ff=floor(GlobalTime->mr); //skacze co sekunde - pol sekundy pomiar, pol sekundy ustawienie
+  if (ff!=fTachoTimer)            //jesli w tej sekundzie nie zmienial
+   {
+    if (temp>1)                  //jedzie
+      fTachoVelocity=temp+(2-random(3)+random(3))*0.5;
+    else fTachoVelocity=0;       //stoi
+    fTachoTimer=ff;              //juz zmienil
+   }
+
   if (fTachoVelocity>1) //McZapkie-270503: podkrecanie tachometru
   {
    if (fTachoCount<maxtacho)
-    fTachoCount+=dt;
+    fTachoCount+=dt*3; //szybciej zacznij stukac
   }
   else
    if (fTachoCount>0)
-    fTachoCount-=dt;
+    fTachoCount-=dt*0.66; //schodz powoli - niektore haslery to ze 4 sekundy potrafia stukac  
 
 /* Ra: to by trzeba by³o przemyœleæ, zmienione na szybko problemy robi
   //McZapkie: predkosc wyswietlana na tachometrze brana jest z obrotow kol
@@ -2630,12 +2640,12 @@ bool __fastcall TTrain::Update()
 if (!ShowNextCurrent)
 {   if (I1Gauge.SubModel)
      {
-      I1Gauge.UpdateValue(mvControlled->ShowCurrent(1));
+      I1Gauge.UpdateValue(mvControlled->EngineType==ElectricInductionMotor?mvControlled->WindingRes*mvControlled->Mm/mvControlled->Vadd:mvControlled->ShowCurrent(1));
       I1Gauge.Update();
      }
     if (I2Gauge.SubModel)
      {
-      I2Gauge.UpdateValue(mvControlled->ShowCurrent(2));
+      I2Gauge.UpdateValue(mvControlled->EngineType==ElectricInductionMotor?mvControlled->dizel_fill*mvControlled->WindingRes:mvControlled->ShowCurrent(2));
       I2Gauge.Update();
      }
     if (I3Gauge.SubModel)

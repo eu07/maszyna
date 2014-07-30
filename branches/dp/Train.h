@@ -363,6 +363,7 @@ private:
     int keybrakecount;
 //McZapkie-240302 - przyda sie do tachometru
     float fTachoVelocity;
+    float fTachoTimer;
     float fTachoCount;
 //McZapkie: do syczenia
     float fPPress,fNPress;
