@@ -2096,24 +2096,24 @@ void __fastcall TTrain::OnKeyDown(int cKey)
        TDynamicObject *d=DynamicObject;
        if (cKey==VkKeyScan('['))
        {while (d)
-        {d->Move(100.0*d->GetiDir());
+        {d->Move(100.0*d->DirectionGet());
          d=d->Next(); //pozosta³e te¿
         }
         d=DynamicObject->Prev();
         while (d)
-        {d->Move(100.0*d->GetiDir());
+        {d->Move(100.0*d->DirectionGet());
          d=d->Prev(); //w drug¹ stronê te¿
         }
        }
        else
        if (cKey==VkKeyScan(']'))
        {while (d)
-        {d->Move(-100.0*d->GetiDir());
+        {d->Move(-100.0*d->DirectionGet());
          d=d->Next(); //pozosta³e te¿
         }
         d=DynamicObject->Prev();
         while (d)
-        {d->Move(-100.0*d->GetiDir());
+        {d->Move(-100.0*d->DirectionGet());
          d=d->Prev(); //w drug¹ stronê te¿
         }
        }
@@ -2640,12 +2640,12 @@ bool __fastcall TTrain::Update()
 if (!ShowNextCurrent)
 {   if (I1Gauge.SubModel)
      {
-      I1Gauge.UpdateValue(mvControlled->EngineType==ElectricInductionMotor?mvControlled->WindingRes*mvControlled->Mm/mvControlled->Vadd:mvControlled->ShowCurrent(1));
+      I1Gauge.UpdateValue(mvControlled->ShowCurrent(1));
       I1Gauge.Update();
      }
     if (I2Gauge.SubModel)
      {
-      I2Gauge.UpdateValue(mvControlled->EngineType==ElectricInductionMotor?mvControlled->dizel_fill*mvControlled->WindingRes:mvControlled->ShowCurrent(2));
+      I2Gauge.UpdateValue(mvControlled->ShowCurrent(2));
       I2Gauge.Update();
      }
     if (I3Gauge.SubModel)

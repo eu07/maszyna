@@ -1991,8 +1991,9 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
      if (ts.R>M_PI) ts.R-=M_2PI else if (ts.R<-M_PI) ts.R+=M_2PI; //normalizacja
 //     ts.R=fabs(0.5*MoverParameters->BDist/sin(ts.R*0.5));
      ts.R=-0.5*MoverParameters->BDist/sin(ts.R*0.5);
+     if ((ts.R>15000.0)||(ts.R<-15000.0)) ts.R=0.0; //szkoda czasu na zbyt du¿e promienie, 4km to promieñ nie wymagaj¹cy przechy³ki
     }
-    if ((ts.R>15000.0)||(ts.R<-15000.0)) ts.R=0.0; //szkoda czasu na zbyt du¿e promienie, 4km to promieñ nie wymagaj¹cy przechy³ki
+    else ts.R=0.0;
     //ts.R=ComputeRadius(Axle1.pPosition,Axle2.pPosition,Axle3.pPosition,Axle0.pPosition);
     //Ra: sk³adow¹ pochylenia wzd³u¿nego mamy policzon¹ w jednostkowym wektorze vFront
     ts.Len=1.0; //Max0R(MoverParameters->BDist,MoverParameters->ADist);

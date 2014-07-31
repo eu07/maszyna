@@ -17,7 +17,7 @@
 class TWorld
 {
  void __fastcall InOutKey();
- void __fastcall FollowView();
+ void __fastcall FollowView(bool wycisz=true);
  void __fastcall DistantView();
 public:
  bool __fastcall Init(HWND NhWnd, HDC hDC);

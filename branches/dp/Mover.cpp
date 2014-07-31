@@ -567,3 +567,15 @@ void __fastcall TMoverParameters::ConverterCheck()
   ConverterFlag=false;
 };
 
+int __fastcall TMoverParameters::ShowCurrent(Byte AmpN)
+{//odczyt ampera¿u
+ if (EngineType==ElectricInductionMotor)
+  switch (AmpN)
+  {//do asynchronicznych
+   case 1: return WindingRes*Mm/Vadd;
+   case 2: return dizel_fill*WindingRes;
+   default: return T_MoverParameters::ShowCurrent(AmpN);
+  }
+ else
+  return T_MoverParameters::ShowCurrent(AmpN);
+};
