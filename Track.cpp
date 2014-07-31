@@ -1423,8 +1423,6 @@ void __fastcall TTrack::Compile(GLuint tex)
        //if (iTrapezoid) //trapez albo przechy³ki
        if (drogi==4)
        {//pobocza do trapezowatej nawierzchni - dodatkowe punkty z drugiej strony odcinka
-        //if ((fTexHeight1>=0.0)?true:(slop!=0.0))
-        // SwitchExtension->Segments[2]->RenderLoft(rpts1,-3,fTexLength); //tylko jeœli jest z prawej
         if ((fTexHeight1>=0.0)?true:(side!=0.0))
          SwitchExtension->Segments[2]->RenderLoft(rpts2,-3,fTexLength,0,1,&b); //tylko jeœli jest z lewej
         if ((fTexHeight1>=0.0)?true:(side!=0.0))
@@ -1438,10 +1436,8 @@ void __fastcall TTrack::Compile(GLuint tex)
        {//punkt 3 pokrywa siê z punktem 1, jak w zwrotnicy; po³¹czenie 1->2 nie musi byæ prostoliniowe
         if ((fTexHeight1>=0.0)?true:(side!=0.0)) //OK
          SwitchExtension->Segments[0]->RenderLoft(rpts2,-3,fTexLength,0,1,&b); //tylko jeœli jest z lewej
-        //if ((fTexHeight1>=0.0)?true:(slop!=0.0)) //OK
-        // SwitchExtension->Segments[1]->RenderLoft(rpts1,-3,fTexLength,0,1,&b); //tylko jeœli jest z prawej
         if ((fTexHeight1>=0.0)?true:(side!=0.0)) //OK
-         SwitchExtension->Segments[2]->RenderLoft(rpts2,-3,fTexLength,0,1,&b); //tylko jeœli jest z lewej
+         SwitchExtension->Segments[1]->RenderLoft(rpts2,-3,fTexLength,0,1,&b); //tylko jeœli jest z lewej
         if ((fTexHeight1>=0.0)?true:(side!=0.0)) //OK
          SwitchExtension->Segments[2]->RenderLoft(rpts2,-3,fTexLength,0,1,&b); //tylko jeœli jest z lewej
         /*

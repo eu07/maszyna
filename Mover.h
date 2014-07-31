@@ -133,7 +133,7 @@ public:
  //bool __fastcall FuseOn(void);
  //bool __fastcall FuseFlagCheck(void);
  //void __fastcall FuseOff(void);
- //int __fastcall ShowCurrent(Byte AmpN);
+ int __fastcall ShowCurrent(Byte AmpN);
  //double __fastcall v2n(void);
  //double __fastcall current(double n, double U);
  //double __fastcall Momentum(double I);

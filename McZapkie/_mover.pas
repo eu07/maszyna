@@ -4507,6 +4507,7 @@ end;
 
 procedure T_MoverParameters.ComputeConstans;
 var BearingF,RollF,HideModifier: real;
+ Curvature: real; //Ra 2014-07: odwrotnoœæ promienia
 begin
  TotalCurrent:=0; //Ra 2014-04: tu zerowanie, aby EZT mog³o pobieraæ pr¹d innemu cz³onowi
   TotalMass:=ComputeMass;
@@ -4533,8 +4534,11 @@ begin
     Ff:=TotalMassxg*(BearingF+RollF*V*V/10.0)/1000.0;
     {dorobic liczenie temperatury lozyska!}
     FrictConst1:=((TotalMassxg*RollF)/10000.0)+(Cx*W*H);
-    FrictConst2s:= (TotalMassxg*(2.5 - HideModifier + 2*BearingF/dtrain_bearing))/1000.0;
-    FrictConst2d:= (TotalMassxg*(2.0 - HideModifier + BearingF/dtrain_bearing))/1000.0;
+    Curvature:=abs(RunningShape.R); //zero oznacza nieskoñczony promieñ
+    if (Curvature>0.0) then Curvature:=1.0/Curvature;
+    //opór sk³adu na ³uku (youBy): +(500*TrackW/R)*TotalMassxg*0.001 do FrictConst2s/d
+    FrictConst2s:= (TotalMassxg*((500.0*TrackW*Curvature)+ 2.5 - HideModifier + 2*BearingF/dtrain_bearing))*0.001;
+    FrictConst2d:= (TotalMassxg*((500.0*TrackW*Curvature)+ 2.0 - HideModifier + BearingF/dtrain_bearing))*0.001;
    end;
 end;
 

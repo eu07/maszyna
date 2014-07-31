@@ -306,7 +306,6 @@ public:
  void __fastcall SetdMoveLen(double dMoveLen) {MoverParameters->dMoveLen=dMoveLen;}
  void __fastcall ResetdMoveLen() {MoverParameters->dMoveLen=0;}
  double __fastcall GetdMoveLen() {return MoverParameters->dMoveLen;}
- double __fastcall GetiDir() {return (2*iDirection-1);} 
 
  int __fastcall GetPneumatic(bool front, bool red);
  void __fastcall SetPneumatic(bool front, bool red);
@@ -404,7 +403,7 @@ public:
  TDynamicObject* __fastcall FirstFind(int &coupler_nr);
  float __fastcall GetEPP(); //wyliczanie sredniego cisnienia w PG
  int __fastcall DirectionSet(int d); //ustawienie kierunku w sk³adzie
- int __fastcall DirectionGet() {return iDirection?1:-1;}; //odczyt kierunku w sk³adzie
+ int __fastcall DirectionGet() {return iDirection+iDirection-1;}; //odczyt kierunku w sk³adzie
  int DettachStatus(int dir);
  int Dettach(int dir);
  TDynamicObject* __fastcall Neightbour(int &dir);

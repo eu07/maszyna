@@ -949,7 +949,7 @@ void __fastcall TWorld::DistantView()
  }
 };
 
-void __fastcall TWorld::FollowView()
+void __fastcall TWorld::FollowView(bool wycisz)
 {//ustawienie œledzenia pojazdu
  //ABu 180404 powrot mechanika na siedzenie albo w okolicê pojazdu
  //if (Console::Pressed(VK_F4)) Global::iViewMode=VK_F4;
@@ -984,7 +984,8 @@ void __fastcall TWorld::FollowView()
    Train->pMechOffset.y=Train->pMechSittingPosition.y;
    Train->pMechOffset.z=Train->pMechSittingPosition.z;
    Global::SetCameraPosition(Train->Dynamic()->GetPosition()); //tu ustawiæ now¹, bo od niej licz¹ siê odleg³oœci
-   Ground.Silence(camStara); //wyciszenie dŸwiêków z poprzedniej pozycji
+   if (wycisz) //trzymanie prawego w kabinie daje marny efekt
+    Ground.Silence(camStara); //wyciszenie dŸwiêków z poprzedniej pozycji
   }
  }
  else DistantView();
@@ -1175,7 +1176,7 @@ bool __fastcall TWorld::Update()
     Camera.RaLook(); //jednorazowe przestawienie kamery
   }
   else if (Console::Pressed(VK_RBUTTON))//||Console::Pressed(VK_F4))
-   FollowView();
+   FollowView(false); //bez wyciszania dŸwiêków
   else if (Global::iTextMode==-1)
   {//tu mozna dodac dopisywanie do logu przebiegu lokomotywy
    WriteLog("Number of textures used: "+AnsiString(Global::iTextures));
