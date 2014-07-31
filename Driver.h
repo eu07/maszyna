@@ -160,6 +160,7 @@ private: //parametry sterowania pojazdem (stan, hamowanie)
  double fBrakeDist; //przybli¿ona droga hamowania
  double fAccThreshold; //próg opóŸnienia dla zadzia³ania hamulca
 public:
+ double fLastStopExpDist; //odleg³oœæ wygasania ostateniego przystanku
  double ReactionTime; //czas reakcji Ra: czego? œwiadomoœci AI
  double fBrakeTime;  //wpisana wartoœæ jest zmniejszana do 0, gdy ujemna nale¿y zmieniæ nastawê hamulca
 private:

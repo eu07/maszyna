@@ -597,6 +597,8 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
         {//z dalsz¹ akcj¹ czekamy do godziny odjazdu
          //if (TrainParams->CheckTrainLatency()<0.0) //jak siê ma odjazd do czasu odjazdu?
          // iDrivigFlags|=moveLate1; //oflagowaæ, gdy odjazd ze spóŸnieniem, bêdzie jecha³ forsowniej
+         fLastStopExpDist=mvOccupied->DistCounter+0.050f+0.001f*fLength; //przy jakim dystansie (stanie licznika) ma przesun¹æ na nastêpny postój
+         //         Controlled->    //zapisaæ odleg³oœæ do przejechania
          TrainParams->StationIndexInc(); //przejœcie do nastêpnej
          asNextStop=TrainParams->NextStop(); //pobranie kolejnego miejsca zatrzymania
          //TableClear(); //aby od nowa sprawdzi³o W4 z inn¹ nazw¹ ju¿ - to nie jest dobry pomys³
@@ -627,6 +629,7 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
         iDrivigFlags&=~(moveStopCloser|moveStopPoint); //ma nie podje¿d¿aæ pod W4 i ma je pomijaæ
         sSpeedTable[i].iFlags=0; //W4 nie liczy siê ju¿ (nie wyœle SetVelocity)
         sSpeedTable[i].fVelNext=-1; //mo¿na jechaæ za W4
+        fLastStopExpDist=-1.0f; //nie ma rozk³adu, nie ma usuwania stacji
         WaitingSet(60); //tak ze 2 minuty, a¿ wszyscy wysi¹d¹
         JumpToNextOrder(); //wykonanie kolejnego rozkazu (Change_direction albo Shunt)
         continue; //nie analizowaæ prêdkoœci
@@ -653,7 +656,7 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
       v=-1.0; //ignorowaæ?
       if (sSpeedTable[i].fDist<0.0) //jeœli wskaŸnik zosta³ miniêty
       {VelSignal=v; //!!! ustawienie, gdy przejechany jest lepsze ni¿ wcale, ale to jeszcze nie to
-       iStationStart=TrainParams->StationIndex; //zaktualizowaæ wyœwietlanie rozk³adu
+//       iStationStart=TrainParams->StationIndex; //zaktualizowaæ wyœwietlanie rozk³adu
       }
       else if (!(iDrivigFlags&moveSwitchFound)) //jeœli rozjazdy ju¿ miniête
        VelSignal=v; //!!! to te¿ koniec ograniczenia
@@ -943,6 +946,7 @@ __fastcall TController::TController
  iStationStart=0; //nic?
  //fAccThreshold mo¿e podlegaæ uczeniu siê - hamowanie powinno byæ rejestrowane, a potem analizowane
  fAccThreshold=(mvOccupied->TrainType&dt_EZT)?-0.6:-0.2; //próg opóŸnienia dla zadzia³ania hamulca
+ fLastStopExpDist=-1.0f;
 };
 
 void __fastcall TController::CloseLog()
@@ -3323,6 +3327,13 @@ bool __fastcall TController::UpdateSituation(double dt)
  } //if ((LastReactionTime>Min0R(ReactionTime,2.0)))
  else
   LastReactionTime+=dt;
+
+ if((fLastStopExpDist>0.0)&&(mvOccupied->DistCounter>fLastStopExpDist))
+ {
+  iStationStart=TrainParams->StationIndex; //zaktualizowaæ wyœwietlanie rozk³adu
+  fLastStopExpDist=-1.0f; //usun¹æ licznik
+ }
+
  if (AIControllFlag)
  {
   if (fWarningDuration>0.0) //jeœli pozosta³o coœ do wytr¹bienia
