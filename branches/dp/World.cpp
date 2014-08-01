@@ -2059,6 +2059,7 @@ bool __fastcall TWorld::Update()
        if ((tmp->Mechanik->iStationStart<tt->StationIndex)?(i<tt->StationIndex):false)
        {//czas min¹³ i odjazd by³, to nazwa stacji bêdzie na zielono
         glColor3f(0.0f,1.0f,0.0f); //zielone
+        glRasterPos2f(-0.25f,0.18f-0.02f*(i-tmp->Mechanik->iStationStart)); //dopiero ustawienie pozycji ustala kolor, dziwne...
         glPrint(Bezogonkow(OutText1,true).c_str());
         glColor3f(1.0f,1.0f,1.0f); //a reszta bia³ym
        }

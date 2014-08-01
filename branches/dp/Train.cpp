@@ -120,6 +120,7 @@ __fastcall TTrain::TTrain()
  dsbEN57_CouplerStretch=NULL;
  dsbBufferClamp=NULL;
  iRadioChannel=0;
+ fTachoTimer=0.0; //w³¹czenie skoków wskazañ prêdkoœciomierza
 }
 
 __fastcall TTrain::~TTrain()
@@ -2235,15 +2236,18 @@ bool __fastcall TTrain::Update()
   //McZapkie: predkosc wyswietlana na tachometrze brana jest z obrotow kol
   float maxtacho=3;
   float temp=abs(11.31*mvControlled->WheelDiameter*mvControlled->nrot);
-
-  float ff=floor(GlobalTime->mr); //skacze co sekunde - pol sekundy pomiar, pol sekundy ustawienie
-  if (ff!=fTachoTimer)            //jesli w tej sekundzie nie zmienial
+  if (fTachoTimer>=0.0)
+  {//dla ujemnej wartoœci nie skacze
+   float ff=floor(GlobalTime->mr); //skacze co sekunde - pol sekundy pomiar, pol sekundy ustawienie
+   if (ff!=fTachoTimer)            //jesli w tej sekundzie nie zmienial
    {
     if (temp>1)                  //jedzie
-      fTachoVelocity=temp+(2-random(3)+random(3))*0.5;
+     fTachoVelocity=temp+(2-random(3)+random(3))*0.5;
     else fTachoVelocity=0;       //stoi
-    fTachoTimer=ff;              //juz zmienil
+     fTachoTimer=ff;              //juz zmienil
    }
+  }
+  else fTachoVelocity=temp;
 
   if (fTachoVelocity>1) //McZapkie-270503: podkrecanie tachometru
   {
@@ -5100,8 +5104,13 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
    else if (str==AnsiString("universal4:"))
     Universal4ButtonGauge.Load(Parser,DynamicObject->mdKabina,DynamicObject->mdModel);
    //SEKCJA WSKAZNIKOW
-   else if (str==AnsiString("tachometer:")) //predkosciomierz wskazówkowy
+   else if (str==AnsiString("tachometer:")) //predkosciomierz wskazówkowy z szarpaniem
     VelocityGauge.Load(Parser,DynamicObject->mdKabina);
+   else if (str==AnsiString("tachometerb:")) //predkosciomierz wskazówkowy bez szarpania
+   {//u¿ywa tej samej ga³ki, ale omija mechanizm losowania niedok³adnoœci
+    VelocityGauge.Load(Parser,DynamicObject->mdKabina);
+    fTachoTimer=-1.0; //wy³¹czenie mechanizmu szarpania
+   }
    else if (str==AnsiString("tachometerd:")) //predkosciomierz cyfrowy
     ggVelocityDgt.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("hvcurrent1:"))                    //1szy amperomierz
@@ -5114,11 +5123,11 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     ItotalGauge.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("brakepress:"))                    //manometr cylindrow hamulcowych
     CylHamGauge.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
-   else if (str==AnsiString("pipepress:"))                    //manometr przewodu hamulcowego
+   else if (str==AnsiString("pipepress:"))                     //manometr przewodu hamulcowego
     PrzGlGauge.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
    else if (str==AnsiString("limpipepress:"))                  //manometr zbiornika sterujacego zaworu maszynisty
     ZbSGauge.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
-   else if (str==AnsiString("cntrlpress:"))                  //manometr zbiornika kontrolnego/rorz¹du
+   else if (str==AnsiString("cntrlpress:"))                    //manometr zbiornika kontrolnego/rorz¹du
     ZbRGauge.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
    else if (str==AnsiString("compressor:"))                    //manometr sprezarki/zbiornika glownego
     ZbGlGauge.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
@@ -5136,7 +5145,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     ItotalGaugeB.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("brakepressb:"))                    //manometr cylindrow hamulcowych
     CylHamGaugeB.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
-   else if (str==AnsiString("pipepressb:"))                    //manometr przewodu hamulcowego
+   else if (str==AnsiString("pipepressb:"))                     //manometr przewodu hamulcowego
     PrzGlGaugeB.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
    else if (str==AnsiString("compressorb:"))                    //manometr sprezarki/zbiornika glownego
     ZbGlGaugeB.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
@@ -5151,7 +5160,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
    else if (str==AnsiString("hvbcurrent:"))                     //amperomierz calkowitego pradu
     ItotalBGauge.Load(Parser,DynamicObject->mdKabina);
    //*************************************************************
-   else if (str==AnsiString("clock:"))                    //manometr sprezarki/zbiornika glownego
+   else if (str==AnsiString("clock:")) //zegar analogowy
    {
     if (Parser->GetNextSymbol()==AnsiString("analog"))
      {
@@ -5173,11 +5182,11 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     enrot2mGauge.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("enrot3m:"))
     enrot3mGauge.Load(Parser,DynamicObject->mdKabina);
-   else if (str==AnsiString("engageratio:"))   //np. cisnienie sterownika przegla
+   else if (str==AnsiString("engageratio:")) //np. cisnienie sterownika przegla
     engageratioGauge.Load(Parser,DynamicObject->mdKabina);
-   else if (str==AnsiString("maingearstatus:"))   //np. cisnienie sterownika skrzyni biegow
+   else if (str==AnsiString("maingearstatus:")) //np. cisnienie sterownika skrzyni biegow
     maingearstatusGauge.Load(Parser,DynamicObject->mdKabina);
-   else if (str==AnsiString("ignitionkey:"))   //np. cisnienie sterownika skrzyni biegow
+   else if (str==AnsiString("ignitionkey:")) //np. cisnienie sterownika skrzyni biegow
     IgnitionKeyGauge.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("distcounter:")) //Ra 2014-07: licznik kilometrów
     ggDistCounter.Load(Parser,DynamicObject->mdKabina);
@@ -5314,7 +5323,6 @@ void __fastcall TTrain::MechStop()
  pMechShake=vector3(0,0,0);
  vMechMovement=vector3(0,0,0);
  vMechVelocity=vector3(0,0,0); //tu zostawa³y jakieœ u³amki, powoduj¹ce uciekanie kamery
- //pMechShake=vMechVelocity=vector3(0,0,0);
 };
 
 vector3 __fastcall TTrain::MirrorPosition(bool lewe)
