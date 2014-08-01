@@ -894,7 +894,6 @@ __fastcall TController::TController
   }
 */
 
- //ScanMe=False;
  //VelMargin=2; //Controlling->Vmax*0.015;
  fWarningDuration=0.0; //nic do wytr¹bienia
  WaitingExpireTime=31.0; //tyle ma czekaæ, zanim siê ruszy
@@ -3320,9 +3319,6 @@ bool __fastcall TController::UpdateSituation(double dt)
   } //switch (OrderList[OrderPos])
   //kasowanie licznika czasu
   LastReactionTime=0.0;
-  //ewentualne skanowanie toru
-  //if (!ScanMe)
-  // ScanMe=true;
   UpdateOK=true;
  } //if ((LastReactionTime>Min0R(ReactionTime,2.0)))
  else

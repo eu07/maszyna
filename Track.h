@@ -28,8 +28,8 @@ public:
  __fastcall TSwitchExtension(TTrack *owner,int what);
  __fastcall ~TSwitchExtension();
  TSegment *Segments[6]; //dwa tory od punktu 1, pozosta³e dwa od 2? Ra 140101: 6 po³¹czeñ dla skrzy¿owañ
- TTrack *pNexts[2];
- TTrack *pPrevs[2];
+ TTrack *pNexts[2]; //tory do³¹czone do punktów 2 i 4
+ TTrack *pPrevs[2]; //tory do³¹czone do punktów 1 i 3
  bool iNextDirection[2];
  bool iPrevDirection[2];
  int CurrentIndex; //dla zwrotnicy
@@ -167,6 +167,7 @@ public:
  bool __fastcall SetConnections(int i);
  bool __fastcall Switch(int i,double t=-1.0,double d=-1.0);
  bool __fastcall SwitchForced(int i,TDynamicObject *o);
+ bool __fastcall CrossSegment(int from,int into);
  inline int __fastcall GetSwitchState() { return (SwitchExtension?SwitchExtension->CurrentIndex:-1); };
  void __fastcall Load(cParser *parser, vector3 pOrigin,AnsiString name);
  bool __fastcall AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2);

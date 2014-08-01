@@ -45,9 +45,11 @@ private:
  double __fastcall GetTFromS(double s);
  vector3 __fastcall RaInterpolate(double t);
  vector3 __fastcall RaInterpolate0(double t);
+ //TSegment *segNeightbour[2]; //s¹siednie odcinki - musi byæ przeniesione z Track
+ //int iNeightbour[2]; //do którego koñca doczepiony
 public:
  bool bCurve;
- //int iShape; //Ra: flagi kszta³tu dadz¹ wiêcej mo¿liwoœci optymalizacji
+ //int iShape; //Ra: flagi kszta³tu dadz¹ wiêcej mo¿liwoœci optymalizacji (0-Bezier,1-prosty,2/3-³uk w lewo/prawo,6/7-przejœciowa w lewo/prawo)
  __fastcall TSegment(TTrack *owner);
  __fastcall ~TSegment();
  bool __fastcall Init(vector3 NewPoint1,vector3 NewPoint2,double fNewStep,
