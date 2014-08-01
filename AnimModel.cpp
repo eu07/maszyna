@@ -102,6 +102,10 @@ void __fastcall TAnimContainer::SetRotateAnim(vector3 vNewRotateAngles, double f
  vDesiredAngles=vNewRotateAngles;
  fRotateSpeed=fNewRotateSpeed;
  iAnim|=1;
+/* //Ra 2014-07: jeœli model nie jest renderowany, to obliczyæ czas animacji i dodaæ event wewnêtrzny
+ //mo¿na by te¿ ustawiæ czas pocz¹tku animacji zamiast pobieraæ czas ramki i liczyæ ró¿nicê
+ if (
+*/
 }
 
 void __fastcall TAnimContainer::SetTranslateAnim(vector3 vNewTranslate, double fNewSpeed)
@@ -110,6 +114,10 @@ void __fastcall TAnimContainer::SetTranslateAnim(vector3 vNewTranslate, double f
  vTranslateTo=vNewTranslate;
  fTranslateSpeed=fNewSpeed;
  iAnim|=2;
+/* //Ra 2014-07: jeœli model nie jest renderowany, to obliczyæ czas animacji i dodaæ event wewnêtrzny
+ //mo¿na by te¿ ustawiæ czas pocz¹tku animacji zamiast pobieraæ czas ramki i liczyæ ró¿nicê
+ if (
+*/
 }
 
 void __fastcall TAnimContainer::AnimSetVMD(double fNewSpeed)
@@ -636,7 +644,7 @@ void __fastcall TAnimModel::AnimationVND(void* pData, double a, double b, double
  //tabela w pliku musi byæ posortowana wg klatek dla kolejnych koœci!
  //skrócone nagranie ma 3:42 = 222 sekundy, animacja koñczy siê na klatce 6518
  //daje to 29.36 (~=30) klatek na sekundê
- //w opisach jest podawane 24 albo 36 jako standard - powiedzmy, parametr (d) to FPS animacji
+ //w opisach jest podawane 24 albo 36 jako standard => powiedzmy, parametr (d) to FPS animacji
  delete pAdvanced; //usuniêcie ewentualnego poprzedniego
  pAdvanced=NULL; //gdyby siê nie uda³o rozpoznaæ pliku
  if (AnsiString((char*)pData)=="Vocaloid Motion Data 0002")
@@ -650,10 +658,13 @@ void __fastcall TAnimModel::AnimationVND(void* pData, double a, double b, double
   pAdvanced->fCurrent=0.0; //aktualna ramka
   pAdvanced->fLast=0.0; //ostatnia ramka
 /*
-  pAdvanced->SortByBone();
+  if (0) //jeœli w³¹czone sortowanie plików VMD (trochê siê przeci¹ga)
+   if (pAdvanced->SortByBone()) //próba posortowania
+   {//zapisaæ posortowany plik, jeœli dokonano zmian
     TFileStream *fs=new TFileStream("models\\1.vmd",fmCreate);
     fs->Write(pData,2198342); //2948728);
     delete fs;
+   }
 */
 
   int i,j,k,idx;

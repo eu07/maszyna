@@ -54,6 +54,7 @@ public:
    vector3 *vPoints; //tablica wierzcho³ków nawierzchni, generowana przez pobocze
    int iPoints; //liczba faktycznie u¿ytych wierzcho³ków nawierzchni
    bool bPoints; //czy utworzone?
+   int iRoads; //ile dróg siê spotyka?
   };
  };
  bool bMovement; //czy w trakcie animacji

@@ -204,6 +204,7 @@ void __fastcall TTrack::Init()
    SwitchExtension->vPoints=NULL; //brak tablicy punktów
    SwitchExtension->iPoints=0;
    SwitchExtension->bPoints=false; //tablica punktów nie wype³niona
+   SwitchExtension->iRoads=4; //domyœlnie 4
   break;
   case tt_Normal:
    Segment=new TSegment(this);
@@ -602,7 +603,7 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
      segsize=5.0;
     } //u³omny prosty
    if (!(cp1==vector3(0,0,0)) && !(cp2==vector3(0,0,0)))
-    SwitchExtension->Segments[0]->Init(p1,cp1+p1,cp2+p2,p2,segsize,r1,r2);
+    SwitchExtension->Segments[0]->Init(p1,p1+cp1,p2+cp2,p2,segsize,r1,r2);
    else
     SwitchExtension->Segments[0]->Init(p1,p2,segsize,r1,r2);
 
@@ -628,25 +629,29 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
     if (eType!=tt_Cross) //dla skrzy¿owañ musz¹ byæ podane kontrolne
     {//jak promieñ zerowy, to przeliczamy punkty kontrolne
      cp3=(p3+p3+p4)/3.0-p3; //jak jest prosty, to siê zoptymalizuje
-     cp2=(p3+p4+p4)/3.0-p4;
+     cp4=(p3+p4+p4)/3.0-p4;
      segsize=5.0;
     } //u³omny prosty
 
    if (!(cp3==vector3(0,0,0)) && !(cp4==vector3(0,0,0)))
    {//dla skrzy¿owania dróg daæ odwrotnie koñce, ¿eby brzegi generowaæ lewym
     if (eType!=tt_Cross)
-     SwitchExtension->Segments[1]->Init(p3,cp3+p3,cp4+p4,p4,segsize,r3,r4);
+     SwitchExtension->Segments[1]->Init(p3,p3+cp3,p4+cp4,p4,segsize,r3,r4);
     else
-     SwitchExtension->Segments[1]->Init(p4,p4-cp4,p3-cp3,p3,segsize,r4,r3);
+     SwitchExtension->Segments[1]->Init(p4,p4+cp4,p3+cp3,p3,segsize,r4,r3); //odwrócony
    }
    else
     SwitchExtension->Segments[1]->Init(p3,p4,segsize,r3,r4);
    if (eType==tt_Cross)
-   {//Ra 2014-07: dla skrzy¿owañ bêd¹ dodatkowe 4 segmenty
+   {//Ra 2014-07: dla skrzy¿owañ bêd¹ dodatkowe segmenty
     SwitchExtension->Segments[2]->Init(p2,cp2+p2,cp4+p4,p4,segsize,r2,r4); //z punktu 2 do 4
-    SwitchExtension->Segments[3]->Init(p4,cp4+p4,cp1+p1,p1,segsize,r4,r1); //z punktu 4 do 1
-    SwitchExtension->Segments[4]->Init(p1,cp1+p1,cp3+p3,p3,segsize,r1,r3); //z punktu 1 do 3
-    SwitchExtension->Segments[5]->Init(p3,cp3+p3,cp2+p2,p2,segsize,r3,r2); //z punktu 3 do 2
+    if (LengthSquared3(p3-p1)<0.01) //gdy mniej ni¿ 10cm, to mamy skrzy¿owanie trzech dróg
+     SwitchExtension->iRoads=3;
+    else //dla 4 dróg bêd¹ dodatkowe 3 segmenty
+    {SwitchExtension->Segments[3]->Init(p4,p4+cp4,p1+cp1,p1,segsize,r4,r1); //z punktu 4 do 1
+     SwitchExtension->Segments[4]->Init(p1,p1+cp1,p3+cp3,p3,segsize,r1,r3); //z punktu 1 do 3
+     SwitchExtension->Segments[5]->Init(p3,p3+cp3,p2+cp2,p2,segsize,r3,r2); //z punktu 3 do 2
+    }
    }
 
    Switch(0); //na sta³e w po³o¿eniu 0 - nie ma pocz¹tkowego stanu zwrotnicy we wpisie
@@ -1341,13 +1346,11 @@ void __fastcall TTrack::Compile(GLuint tex)
      p[2]=SwitchExtension->Segments[0]->FastGetPoint_1(); //Point2
      p[3]=SwitchExtension->Segments[1]->FastGetPoint_0(); //Point3 - przy trzech drogach pokrywa siê z Point1
      //2014-07: na pocz¹tek rysowaæ brzegi jak dla ³uków
-     int drogi=(p[3]==p[0])?3:4; //jeœli punkty siê nak³adaj¹, to mamy trzy drogi
-     //punkty brzegu nawierzchni uzyskujemy podczas renderowania boków
+     //punkty brzegu nawierzchni uzyskujemy podczas renderowania boków (bez sensu, ale najszybciej by³o zrobiæ)
      int i=0,j; //ile punktów (mo¿e byc ró¿na iloœæ punktów miêdzy drogami)
-     //int points=2+3*drogi
      if (!SwitchExtension->vPoints)
      {//jeœli punkty jeszcze nie wyznaczone
-      if (drogi==3) //mog¹ byæ tylko 3 drogi
+      if (SwitchExtension->iRoads==3) //mog¹ byæ tylko 3 drogi
        SwitchExtension->iPoints=5+SwitchExtension->Segments[0]->RaSegCount()+SwitchExtension->Segments[1]->RaSegCount()+SwitchExtension->Segments[2]->RaSegCount();
       else
        SwitchExtension->iPoints=5+SwitchExtension->Segments[2]->RaSegCount()+SwitchExtension->Segments[3]->RaSegCount()+SwitchExtension->Segments[4]->RaSegCount()+SwitchExtension->Segments[5]->RaSegCount(); //mog¹ byæ tylko 3 drogi
@@ -1375,6 +1378,7 @@ void __fastcall TTrack::Compile(GLuint tex)
       {//pobocze drogi - poziome przy przechy³ce (a mo¿e krawê¿nik i chodnik zrobiæ jak w Midtown Madness 2?)
        if (!tex) glBindTexture(GL_TEXTURE_2D,TextureID2);
        vector6 rpts1[6],rpts2[6]; //wspó³rzêdne przekroju i mapowania dla prawej i lewej strony
+       //Ra 2014-07: trzeba to przerobiæ na pêtlê i pobieraæ profile (przynajmniej 2..4) z s¹siednich dróg
        if (fTexHeight1>=0.0)
        {//standardowo: od zewn¹trz pochylenie, a od wewn¹trz poziomo
         rpts1[0]=vector6(rozp,-fTexHeight1,0.0); //lewy brzeg podstawy
@@ -1421,7 +1425,7 @@ void __fastcall TTrack::Compile(GLuint tex)
         }
        }
        //if (iTrapezoid) //trapez albo przechy³ki
-       if (drogi==4)
+       if (SwitchExtension->iRoads==4)
        {//pobocza do trapezowatej nawierzchni - dodatkowe punkty z drugiej strony odcinka
         if ((fTexHeight1>=0.0)?true:(side!=0.0))
          SwitchExtension->Segments[2]->RenderLoft(rpts2,-3,fTexLength,0,1,&b); //tylko jeœli jest z lewej
@@ -1435,11 +1439,11 @@ void __fastcall TTrack::Compile(GLuint tex)
        else //to bêdzie ewentualnie dla prostego na skrzy¿owaniu trzech dróg
        {//punkt 3 pokrywa siê z punktem 1, jak w zwrotnicy; po³¹czenie 1->2 nie musi byæ prostoliniowe
         if ((fTexHeight1>=0.0)?true:(side!=0.0)) //OK
-         SwitchExtension->Segments[0]->RenderLoft(rpts2,-3,fTexLength,0,1,&b); //tylko jeœli jest z lewej
+         SwitchExtension->Segments[2]->RenderLoft(rpts2,-3,fTexLength,0,1,&b); //z P2 do P4
         if ((fTexHeight1>=0.0)?true:(side!=0.0)) //OK
-         SwitchExtension->Segments[1]->RenderLoft(rpts2,-3,fTexLength,0,1,&b); //tylko jeœli jest z lewej
+         SwitchExtension->Segments[1]->RenderLoft(rpts2,-3,fTexLength,0,1,&b); //z P4 do P3=P1 (odwrócony)
         if ((fTexHeight1>=0.0)?true:(side!=0.0)) //OK
-         SwitchExtension->Segments[2]->RenderLoft(rpts2,-3,fTexLength,0,1,&b); //tylko jeœli jest z lewej
+         SwitchExtension->Segments[0]->RenderLoft(rpts2,-3,fTexLength,0,1,&b); //z P1 do P2
         /*
         if ((fTexHeight1>=0.0)?true:(slop!=0.0))
          Segment->RenderLoft(rpts1,3,fTexLength);
@@ -1650,7 +1654,7 @@ int __fastcall TTrack::RaArrayPrepare()
     else //dla toru podsypka plus szyny
      return (Segment->RaSegCount())*((TextureID1?48:0)+(TextureID2?8:0));
    case 2: //droga
-    if (eType==tt_Cross)
+    if (eType==tt_Cross) //tylko dla skrzy¿owania dróg
     {//specjalny sposób obliczania liczby wierzcho³ków w skrzy¿owaniu
      int n=0; //wierzcho³ki wewnêtrzne do generowania nawierzchni
      int b=0; //wierzcho³ki do generowania boków

@@ -2295,7 +2295,7 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
      p->fAngleU+=0.5*dt1; //górne siê musi ruszaæ szybciej.
     if (p->fAngleU>M_PI)
      p->fAngleU=M_PI;
-    continue;
+    continue; //reszta wtedy nie jest wykonywana
    }
    PantDiff=p->PantTraction-p->PantWys; //docelowy-aktualny
    switch (i) //numer pantografu
@@ -2513,21 +2513,6 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
   ++CouplCounter; //jazda sprzyja poszukiwaniu po³¹czenia
  else
  {CouplCounter=25; //a bezruch nie, ale trzeba zaktualizowaæ odleg³oœæ, bo zawalidroga mo¿e sobie pojechaæ
-/*
-  //if (Mechanik) //mo¿e byæ z drugiej strony sk³adu
-  {//to poni¿ej jest istotne tylko dla AI, czekaj¹cego na zwolninie drogi
-   if (MoverParameters->Couplers[1-iDirection].CouplingFlag==ctrain_virtual)
-   {if ((MoverParameters->CategoryFlag&1)?MoverParameters->Couplers[1-iDirection].Connected!=NULL:false)
-    {//jeœli jest pojazd kolejowy na sprzêgu wirtualnym - CoupleDist nieadekwatne dla samochodów!
-     fTrackBlock=MoverParameters->Couplers[1-iDirection].CoupleDist; //aktualizacja odleg³oœci od niego
-    }
-    else //dla samochodów pozostaje jedynie skanowanie uruchomiæ
-     if (fTrackBlock<1000.0) //je¿eli pojazdu nie ma, a odleg³o¿æ jakoœ ma³a
-      ABuScanObjects(iDirection?1:-1,300); //skanowanie sprawdzaj¹ce
-    //WriteLog(asName+" - block x: "+AnsiString(fTrackBlock));
-   }
-  }
-*/
  }
  if (MoverParameters->DerailReason>0)
  {switch (MoverParameters->DerailReason)
@@ -2572,11 +2557,6 @@ bool __fastcall TDynamicObject::FastUpdate(double dt)
     //tp.DamageFlag=MyTrack->iDamageFlag;
     //tp.QualityFlag=MyTrack->iQualityFlag;
     dDOMoveLen=MoverParameters->FastComputeMovement(dt,ts,tp,l,r); // ,ts,tp,tmpTraction);
-    //Ra: poni¿sze przeniesione do FastComputeMovement() w Mover.cpp
-    //MoverParameters->UpdateBatteryVoltage(dt); //jest ju¿ w Mover.cpp
-    //if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector) //tylko jeœli pantografuj¹cy
-    // if (MoverParameters->Power>1.0) //w rozrz¹dczym nie (jest b³¹d w FIZ!)
-    //  MoverParameters->UpdatePantVolume(dt); //Ra: pneumatyka pantografów przeniesiona do Mover.cpp!
     //Move(dDOMoveLen);
     //ResetdMoveLen();
     FastMove(dDOMoveLen);
