@@ -4106,3 +4106,8 @@ void __fastcall TDynamicObject::ParamSet(int what,int into)
  }
 };
 
+int __fastcall TDynamicObject::RouteWish()
+{//zapytanie do AI, gdzie chce jechaæ
+ return Mechanik?Mechanik->iRouteWanted:3; //wg AI albo prosto
+};
+

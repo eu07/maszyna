@@ -2072,16 +2072,28 @@ void __fastcall TTrain::OnKeyDown(int cKey)
          if (!Console::Pressed(VK_CONTROL)) //gdy [Ctrl] zwolniony (dodatkowe widoki)
          {
           if (cKey==Global::Keys[k_MechLeft])
-              vMechMovement.x+=fMechCroach;
+          {vMechMovement.x+=fMechCroach;
+           if (DynamicObject->Mechanik)
+            DynamicObject->Mechanik->iRouteWanted=1; //na skrzy¿owaniu skrêci w lewo
+          }
           else
           if (cKey==Global::Keys[k_MechRight])
-              vMechMovement.x-=fMechCroach;
+          {vMechMovement.x-=fMechCroach;
+           if (DynamicObject->Mechanik)
+            DynamicObject->Mechanik->iRouteWanted=2; //na skrzy¿owaniu skrêci w prawo
+          }
           else
           if (cKey==Global::Keys[k_MechBackward])
-              vMechMovement.z-=fMechCroach;
+          {vMechMovement.z-=fMechCroach;
+           if (DynamicObject->Mechanik)
+            DynamicObject->Mechanik->iRouteWanted=0;  //na skrzy¿owaniu stanie i poczeka
+          }
           else
           if (cKey==Global::Keys[k_MechForward])
-              vMechMovement.z+=fMechCroach;
+          {vMechMovement.z+=fMechCroach;
+           if (DynamicObject->Mechanik)
+            DynamicObject->Mechanik->iRouteWanted=3; //na skrzy¿owaniu pojedzie prosto
+          }
           else
           if (cKey==Global::Keys[k_MechUp])
               pMechOffset.y+=0.2; //McZapkie-120302 - wstawanie
