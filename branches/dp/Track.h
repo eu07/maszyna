@@ -28,9 +28,11 @@ public:
  __fastcall TSwitchExtension(TTrack *owner,int what);
  __fastcall ~TSwitchExtension();
  TSegment *Segments[6]; //dwa tory od punktu 1, pozosta³e dwa od 2? Ra 140101: 6 po³¹czeñ dla skrzy¿owañ
+ //TTrack *trNear[4]; //tory do³¹czone do punktów 1, 2, 3 i 4
+ //dotychczasowe [2]+[2] wskaŸniki zamieniæ na nowe [4]
  TTrack *pNexts[2]; //tory do³¹czone do punktów 2 i 4
  TTrack *pPrevs[2]; //tory do³¹czone do punktów 1 i 3
- bool iNextDirection[2];
+ bool iNextDirection[2]; //to te¿ z [2]+[2] przerobiæ na [4]
  bool iPrevDirection[2];
  int CurrentIndex; //dla zwrotnicy
  double fOffset,fDesiredOffset; //aktualne i docelowe po³o¿enie napêdu iglic 
@@ -164,6 +166,7 @@ public:
  inline TSegment* __fastcall CurrentSegment() { return Segment; };
  inline TTrack* __fastcall CurrentNext() {return (trNext);};
  inline TTrack* __fastcall CurrentPrev() {return (trPrev);};
+ TTrack* __fastcall Neightbour(int d,int s);
  bool __fastcall SetConnections(int i);
  bool __fastcall Switch(int i,double t=-1.0,double d=-1.0);
  bool __fastcall SwitchForced(int i,TDynamicObject *o);
@@ -210,6 +213,7 @@ public:
  AnsiString __fastcall NameGet();
  void __fastcall VelocitySet(float v);
  float __fastcall VelocityGet();
+ void __fastcall ConnectionsLog();
 private:
  void __fastcall EnvironmentSet();
  void __fastcall EnvironmentReset();

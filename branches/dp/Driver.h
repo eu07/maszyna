@@ -302,6 +302,7 @@ public:
  void __fastcall MoveTo(TDynamicObject *to);
  void __fastcall DirectionInitial();
  AnsiString __fastcall TableText(int i);
+ int __fastcall CrossRoute(TTrack *tr);
 };
 
 #endif

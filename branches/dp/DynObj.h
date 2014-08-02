@@ -410,7 +410,7 @@ public:
  void __fastcall CoupleDist();
  TDynamicObject* __fastcall ControlledFind();
  void __fastcall ParamSet(int what,int into);
- int __fastcall RouteWish(); //zapytanie do AI, gdzie chce jechaæ
+ int __fastcall RouteWish(TTrack *tr); //zapytanie do AI, po którym segmencie skrzy¿owania jechaæ
 };
 
 
