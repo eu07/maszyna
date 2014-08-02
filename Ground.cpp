@@ -2838,7 +2838,7 @@ void __fastcall TGround::InitTracks()
       break;
       case 4:
        tmp->Switch(1);
-       Track->ConnectPrevPrev(tmp,0); //do Point1 drugiego
+       Track->ConnectPrevPrev(tmp,2); //do Point1 drugiego
        tmp->SetConnections(1); //robi te¿ Switch(0)
        tmp->Switch(0);
       break;
@@ -2875,7 +2875,7 @@ void __fastcall TGround::InitTracks()
       break;
       case 4:
        tmp->Switch(1);
-       Track->ConnectNextPrev(tmp,0);
+       Track->ConnectNextPrev(tmp,2);
        tmp->SetConnections(1); //robi te¿ Switch(0)
        //tmp->Switch(0);
       break;
@@ -2921,6 +2921,9 @@ void __fastcall TGround::InitTracks()
   }
   p=p->Next();
  }
+ for (Current=nRootOfType[TP_TRACK];Current;Current=Current->nNext)
+  if (Current->pTrack->eType==tt_Cross)
+   Current->pTrack->ConnectionsLog(); //zalogowanie informacji o po³¹czeniach
 }
 
 void __fastcall TGround::InitTraction()
