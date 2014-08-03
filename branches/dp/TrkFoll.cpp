@@ -46,17 +46,31 @@ bool __fastcall TTrackFollower::Init(TTrack *pTrack,TDynamicObject *NewOwner,dou
  return true;
 }
 
-void __fastcall TTrackFollower::SetCurrentTrack(TTrack *pTrack,int end)
+TTrack* __fastcall TTrackFollower::SetCurrentTrack(TTrack *pTrack,int end)
 {//przejechanie na inny odcinkek toru, z ewentualnym rozpruciem
- if (pTrack?pTrack->eType==tt_Switch:false) //jeœli zwrotnica, to przek³adamy j¹, aby uzyskaæ dobry segment
- {int i=(end?pCurrentTrack->iNextDirection:pCurrentTrack->iPrevDirection);
-  if (i>0) //je¿eli wjazd z ostrza
-   pTrack->SwitchForced(i>>1,Owner); //to prze³o¿enie zwrotnicy - rozprucie!
- }
+ if (pTrack)
+  switch (pTrack->eType)
+  {case tt_Switch: //jeœli zwrotnica, to przek³adamy j¹, aby uzyskaæ dobry segment
+   {int i=(end?pCurrentTrack->iNextDirection:pCurrentTrack->iPrevDirection);
+    if (i>0) //je¿eli wjazd z ostrza
+     pTrack->SwitchForced(i>>1,Owner); //to prze³o¿enie zwrotnicy - rozprucie!
+   }
+   break;
+   case tt_Cross: //skrzy¿owanie trzeba tymczasowo prze³¹czyæ, aby wjechaæ na w³aœciwy tor
+   {iSegment=Owner->RouteWish(pTrack); //nr segmentu zosta³ ustalony podczas skanowania
+    //Ra 2014-08: aby ustaliæ dalsz¹ trasê, nale¿y zapytaæ AI - trasa jest ustalana podczas skanowania
+    //pTrack->CrossSegment(end?pCurrentTrack->iNextDirection:pCurrentTrack->iPrevDirection,i); //ustawienie w³aœciwego wskaŸnika
+    //powinno zwracaæ kierunek do zapamiêtania, bo segmenty mog¹ mieæ ró¿ny kierunek
+    //pTrack->SwitchForced(abs(iSegment)-1,NULL); //wybór wskazanego segmentu
+    //if fDirection=(iSegment>0)?1.0:-1.0; //kierunek na tym segmencie jest ustalany bezpoœrednio
+    if ((end?iSegment:-iSegment)<0)
+     fDirection=-fDirection; //wtórna zmiana
+   }
+   break;
+  }
  if (!pTrack)
  {//gdy nie ma toru w kierunku jazdy
-  //if (pCurrentTrack->iCategoryFlag&1) //jeœli tor kolejowy
-   pTrack=pCurrentTrack->NullCreate(end); //tworzenie toru wykolej¹cego na przed³u¿eniu pCurrentTrack
+  pTrack=pCurrentTrack->NullCreate(end); //tworzenie toru wykolej¹cego na przed³u¿eniu pCurrentTrack
  }
  else
  {//najpierw +1, póŸniej -1, aby odcinek izolowany wspólny dla tych torów nie wykry³ zera
@@ -65,6 +79,9 @@ void __fastcall TTrackFollower::SetCurrentTrack(TTrack *pTrack,int end)
  }
  pCurrentTrack=pTrack;
  pCurrentSegment=(pCurrentTrack?pCurrentTrack->CurrentSegment():NULL);
+ if (!pCurrentTrack)
+  Error(Owner->MoverParameters->Name+" at NULL track");
+ return pCurrentTrack;
 };
 
 bool __fastcall TTrackFollower::Move(double fDistance,bool bPrimary)
@@ -72,7 +89,8 @@ bool __fastcall TTrackFollower::Move(double fDistance,bool bPrimary)
  //bPrimary=true - jest pierwsz¹ osi¹ w pojeŸdzie, czyli generuje eventy i przepisuje pojazd
  //Ra: zwraca false, jeœli pojazd ma byæ usuniêty
  fDistance*=fDirection; //dystans mno¿nony przez kierunek
- double s;
+ double s; //roboczy dystans
+ double dir; //zapamiêtany kierunek do sprawdzenia, czy siê zmieni³
  bool bCanSkip; //czy przemieœciæ pojazd na inny tor
  while (true)  //pêtla wychodzi, gdy przesuniêcie wyjdzie zerowe
  {//pêtla przesuwaj¹ca wózek przez kolejne tory, a¿ do trafienia w jakiœ
@@ -124,37 +142,41 @@ bool __fastcall TTrackFollower::Move(double fDistance,bool bPrimary)
    return false;
   //if (fDistance==0.0) return true; //Ra: jak stoi, to chyba dalej nie ma co kombinowaæ?
   s=fCurrentDistance+fDistance; //doliczenie przesuniêcia
-  //Ra: W Point1 toru mo¿e znajdowaæ siê "dziura", która zamieni energiê kinetyczn¹
+  //Ra: W Point2 toru mo¿e znajdowaæ siê "dziura", która zamieni energiê kinetyczn¹
   // ruchu wzd³u¿nego na energiê potencjaln¹, zamieniaj¹c¹ siê potem na energiê
   // sprê¿ystoœci na amortyzatorach. Nale¿a³oby we wpisie toru umieœciæ wspó³czynnik
   // podzia³u energii kinetycznej.
+  // Wspó³czynnik normalnie 1, z dziur¹ np. 0.99, a -1 bêdzie oznacza³o 100% odbicia (kozio³).
+  // Albo w postaci k¹ta: normalnie 0°, a 180° oznacza 100% odbicia (cosinus powy¿szego).
+/*
+  if (pCurrentTrack->eType==tt_Cross)
+  {//zjazdu ze skrzy¿owania nie da siê okreœliæ przez (iPrevDirection) i (iNextDirection)
+   //int segment=Owner->RouteWish(pCurrentTrack); //numer segmentu dla skrzy¿owañ
+   //pCurrentTrack->SwitchForced(abs(segment)-1,NULL); //tymczasowo ustawienie tego segmentu
+   //pCurrentSegment=pCurrentTrack->CurrentSegment(); //odœwie¿yæ sobie wskaŸnik segmentu (?)
+  }
+*/
   if (s<0)
   {//jeœli przekroczenie toru od strony Point1
    bCanSkip=bPrimary?pCurrentTrack->CheckDynamicObject(Owner):false;
    if (bCanSkip) //tylko g³ówna oœ przenosi pojazd do innego toru
     Owner->MyTrack->RemoveDynamicObject(Owner); //zdejmujemy pojazd z dotychczasowego toru
-   if (pCurrentTrack->iPrevDirection)
-   {//gdy kierunek bez zmiany (Point1->Point2)
-    SetCurrentTrack(pCurrentTrack->CurrentPrev(),0);
-    if (pCurrentTrack==NULL)
-    {
-     Error(Owner->MoverParameters->Name+" at NULL track");
+   dir=fDirection;
+   if (pCurrentTrack->eType==tt_Cross)
+   {if (!SetCurrentTrack(pCurrentTrack->Neightbour(iSegment,fDirection),0))
      return false; //wyjœcie z b³êdem
-    }
+   }
+   else if (!SetCurrentTrack(pCurrentTrack->Neightbour(-1,fDirection),0)) //ustawia fDirection
+    return false; //wyjœcie z b³êdem
+   if (dir==fDirection) //(pCurrentTrack->iPrevDirection)
+   {//gdy kierunek bez zmiany (Point1->Point2)
     fCurrentDistance=pCurrentSegment->GetLength();
     fDistance=s;
    }
    else
    {//gdy zmiana kierunku toru (Point1->Point1)
-    SetCurrentTrack(pCurrentTrack->CurrentPrev(),0); //ustawienie (pCurrentTrack)
     fCurrentDistance=0;
     fDistance=-s;
-    fDirection=-fDirection;
-    if (pCurrentTrack==NULL)
-    {
-     Error(Owner->MoverParameters->Name+" at NULL track");
-     return false; //wyjœcie z b³êdem
-    }
    }
    if (bCanSkip)
    {//jak g³ówna oœ, to dodanie pojazdu do nowego toru
@@ -170,29 +192,21 @@ bool __fastcall TTrackFollower::Move(double fDistance,bool bPrimary)
    bCanSkip=bPrimary?pCurrentTrack->CheckDynamicObject(Owner):false;
    if (bCanSkip) //tylko g³ówna oœ przenosi pojazd do innego toru
     Owner->MyTrack->RemoveDynamicObject(Owner); //zdejmujemy pojazd z dotychczasowego toru
-   if (pCurrentTrack->iNextDirection)
+   fDistance=s-pCurrentSegment->GetLength();
+   dir=fDirection;
+   if (pCurrentTrack->eType==tt_Cross)
+   {if (!SetCurrentTrack(pCurrentTrack->Neightbour(iSegment,fDirection),1))
+     return false; //wyjœcie z b³êdem
+   }
+   else if (!SetCurrentTrack(pCurrentTrack->Neightbour(1,fDirection),1)) //ustawia fDirection
+    return false; //wyjœcie z b³êdem
+   if (dir!=fDirection) //(pCurrentTrack->iNextDirection)
    {//gdy zmiana kierunku toru (Point2->Point2)
-    fDistance=-(s-pCurrentSegment->GetLength());
-    SetCurrentTrack(pCurrentTrack->CurrentNext(),1);
-    if (pCurrentTrack==NULL)
-    {
-     Error(Owner->MoverParameters->Name+" at NULL track");
-     return false; //wyjœcie z b³êdem
-    }
+    fDistance=-fDistance; //(s-pCurrentSegment->GetLength());
     fCurrentDistance=pCurrentSegment->GetLength();
-    fDirection=-fDirection;
    }
-   else
-   {//gdy kierunek bez zmiany (Point2->Point1)
-    fDistance=s-pCurrentSegment->GetLength();
-    SetCurrentTrack(pCurrentTrack->CurrentNext(),1);
+   else //gdy kierunek bez zmiany (Point2->Point1)
     fCurrentDistance=0;
-    if (pCurrentTrack==NULL)
-    {
-     Error(Owner->MoverParameters->Name+" at NULL track");
-     return false; //wyjœcie z b³êdem
-    }
-   }
    if (bCanSkip)
    {//jak g³ówna oœ, to dodanie pojazdu do nowego toru
     pCurrentTrack->AddDynamicObject(Owner);
