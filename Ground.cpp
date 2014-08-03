@@ -3506,7 +3506,7 @@ bool __fastcall TGround::CheckQuery()
     break;
     case tp_TrackVel:
      if (tmpEvent->Params[9].asTrack)
-     {//prêdkoœæ na zwrotnicy mo¿e byæ ograniczona z góry we wpisie, wiêkszej siê ustawi eventem
+     {//prêdkoœæ na zwrotnicy mo¿e byæ ograniczona z góry we wpisie, wiêkszej siê nie ustawi eventem
       WriteLog("type: TrackVel");
       //WriteLog("Vel: ",tmpEvent->Params[0].asdouble);
       tmpEvent->Params[9].asTrack->VelocitySet(tmpEvent->Params[0].asdouble);

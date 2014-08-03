@@ -212,14 +212,14 @@ bool __fastcall TSpeedPos::Update(vector3 *p,vector3 *dir,double &len)
    }
   }
 #if LOGVELOCITY
-  WriteLog("-> Flags=#"+IntToHex(iFlags,5)+", Vel="+AnsiString(fVelNext)+", Dist="+FloatToStrF(fDist,ffFixed,7,1)+", Track="+trTrack->NameGet());
+  WriteLog("-> Flags=#"+IntToHex(iFlags,8)+", Vel="+AnsiString(fVelNext)+", Dist="+FloatToStrF(fDist,ffFixed,7,1)+", Track="+trTrack->NameGet());
 #endif
  }
  else if (iFlags&0x100) //jeœli event
  {//odczyt komórki pamiêci najlepiej by by³o zrobiæ jako notyfikacjê, czyli zmiana komórki wywo³a jak¹œ podan¹ funkcjê
   CommandCheck(); //sprawdzenie typu komendy w evencie i okreœlenie prêdkoœci
 #if LOGVELOCITY
-  WriteLog("-> Flags=#"+IntToHex(iFlags,5)+", Vel="+AnsiString(fVelNext)+", Dist="+FloatToStrF(fDist,ffFixed,7,1)+", Event="+evEvent->asName);
+  WriteLog("-> Flags=#"+IntToHex(iFlags,8)+", Vel="+AnsiString(fVelNext)+", Dist="+FloatToStrF(fDist,ffFixed,7,1)+", Event="+evEvent->asName);
 #endif
  }
  return false;
@@ -230,9 +230,9 @@ AnsiString __fastcall TSpeedPos::TableText()
  if (iFlags&0x1)
  {//o ile pozycja istotna
   if (iFlags&0x2) //jeœli tor
-   return "Flags=#"+IntToHex(iFlags,5)+", Vel="+AnsiString(fVelNext)+", Dist="+FloatToStrF(fDist,ffFixed,7,1)+", Track="+trTrack->NameGet();
+   return "Flags=#"+IntToHex(iFlags,8)+", Vel="+AnsiString(fVelNext)+", Dist="+FloatToStrF(fDist,ffFixed,7,1)+", Track="+trTrack->NameGet();
   else if (iFlags&0x100) //jeœli event
-   return "Flags=#"+IntToHex(iFlags,5)+", Vel="+AnsiString(fVelNext)+", Dist="+FloatToStrF(fDist,ffFixed,7,1)+", Event="+evEvent->asName;
+   return "Flags=#"+IntToHex(iFlags,8)+", Vel="+AnsiString(fVelNext)+", Dist="+FloatToStrF(fDist,ffFixed,7,1)+", Event="+evEvent->asName;
  }
  return "Empty";
 }
@@ -317,7 +317,7 @@ void __fastcall TController::TableTraceRoute(double fDistance,TDynamicObject *pV
  double fTrackLength; //d³ugoœæ aktualnego toru (krótsza dla pierwszego)
  double fCurrentDistance; //aktualna przeskanowana d³ugoœæ
  TEvent *pEvent;
- float fLastDir; //kierunek na ostatnim torze
+ double fLastDir; //kierunek na ostatnim torze
  if (iTableDirection!=iDirection)
  {//jeœli zmiana kierunku, zaczynamy od toru ze wskazanym pojazdem
   pTrack=pVehicle->RaTrackGet(); //odcinek, na którym stoi
@@ -369,7 +369,16 @@ void __fastcall TController::TableTraceRoute(double fDistance,TDynamicObject *pV
      || (pTrack->VelocityGet()!=fLastVel)) //nastêpuje zmiana prêdkoœci
     {//odcinek dodajemy do tabelki, gdy jest istotny dla ruchu
      if (TableAddNew())
-      sSpeedTable[iLast].Set(pTrack,fCurrentDistance,fLastDir<0?5:1); //dodanie odcinka do tabelki
+     {//teraz dodatkowo zapamiêtanie wybranego segmentu dla skrzy¿owania
+      sSpeedTable[iLast].Set(pTrack,fCurrentDistance,fLastDir<0?5:1); //dodanie odcinka do tabelki z flag¹ kierunku wejœcia
+      if (pTrack->eType==tt_Cross) //na skrzy¿owaniach trzeba wybraæ segment, po którym pojedzie pojazd
+      {//dopiero tutaj jest ustalany kierunek segmentu na skrzy¿owaniu
+       sSpeedTable[iLast].iFlags|=(pTrack->CrossSegment((fLastDir<0)?tLast->iPrevDirection:tLast->iNextDirection,iRouteWanted)&15)<<28; //ostatnie 4 bity pola flag
+       sSpeedTable[iLast].iFlags&=~4; //usuniêcie flagi kierunku, bo mo¿e byæ b³êdna
+       if (sSpeedTable[iLast].iFlags<0) sSpeedTable[iLast].iFlags|=4; //ustawienie flagi kierunku na podstawie wybranego segmentu
+       if (int(fLastDir)*sSpeedTable[iLast].iFlags<0) fLastDir=-fLastDir;
+      }
+     }
     }
     else if ((pTrack->fRadius!=0.0) //odleg³oœæ na ³uku lepiej aproksymowaæ ciêciwami
      || (tLast?tLast->fRadius!=0.0:false)) //koniec ³uku te¿ jest istotny
@@ -382,6 +391,8 @@ void __fastcall TController::TableTraceRoute(double fDistance,TDynamicObject *pV
    tLast=pTrack; //odhaczenie, ¿e sprawdzony
    //Track->ScannedFlag=true; //do pokazywania przeskanowanych torów
    fLastVel=pTrack->VelocityGet(); //prêdkoœæ na poprzednio sprawdzonym odcinku
+   pTrack=pTrack->Neightbour((pTrack->eType==tt_Cross)?(sSpeedTable[iLast].iFlags>>28):int(fLastDir),fLastDir); //mo¿e byæ NULL
+/*
    if (fLastDir>0)
    {//jeœli szukanie od Point1 w kierunku Point2
     pTrack=pTrack->CurrentNext(); //mo¿e byæ NULL
@@ -396,6 +407,7 @@ void __fastcall TController::TableTraceRoute(double fDistance,TDynamicObject *pV
      if (!tLast->iPrevDirection)
       fLastDir=-fLastDir;
    }
+*/
    if (pTrack)
    {//jeœli kolejny istnieje
     if (tLast)
@@ -946,6 +958,7 @@ __fastcall TController::TController
  //fAccThreshold mo¿e podlegaæ uczeniu siê - hamowanie powinno byæ rejestrowane, a potem analizowane
  fAccThreshold=(mvOccupied->TrainType&dt_EZT)?-0.6:-0.2; //próg opóŸnienia dla zadzia³ania hamulca
  fLastStopExpDist=-1.0f;
+ iRouteWanted=3; //powiedzmy, ¿e ma jechaæ prosto (1=w lewo)
 };
 
 void __fastcall TController::CloseLog()
@@ -3923,7 +3936,22 @@ void __fastcall TController::ControllingSet()
 AnsiString __fastcall TController::TableText(int i)
 {//pozycja tabelki prêdkoœci
  i=(iFirst+i)%iSpeedTableSize; //numer pozycji
- if (i!=iLast) //w (iLast) znajduje siê kolejny tor do przeskanowania, ale nie jest ona aktywn¹ 
+ if (i!=iLast) //w (iLast) znajduje siê kolejny tor do przeskanowania, ale nie jest ona aktywn¹
   return sSpeedTable[i].TableText();
- return ""; //wskaŸnik koñca 
+ return ""; //wskaŸnik koñca
 };
+
+int __fastcall TController::CrossRoute(TTrack *tr)
+{//zwraca numer segmentu dla skrzy¿owania (tr)
+ //po¿¹dany numer segmentu jest okreœlany podczas skanowania drogi
+ //droga powinna byæ okreœlona sposobem przejazdu przez skrzy¿owania albo wspó³rzêdnymi miejsca docelowego
+ for (int i=iFirst;i!=iLast;i=(i+1)%iSpeedTableSize)
+ {//trzeba przejrzeæ tabelê skanowania w poszukiwaniu (tr)
+  //i jak siê znajdzie, to zwróciæ zapamiêtany numer segmentu i kierunek przejazdu (-6..-1,1..6)
+  if ((sSpeedTable[i].iFlags&3)==3) //jeœli pozycja istotna (1) oraz odcinek (2)
+   if (sSpeedTable[i].trTrack==tr) //jeœli pozycja odpowiadaj¹ca skrzy¿owaniu (tr)
+    return (sSpeedTable[i].iFlags>>28); //najstarsze 4 bity jako liczba -8..7
+ }
+ return 0; //nic nie znaleziono?
+};
+

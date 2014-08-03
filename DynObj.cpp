@@ -4106,8 +4106,8 @@ void __fastcall TDynamicObject::ParamSet(int what,int into)
  }
 };
 
-int __fastcall TDynamicObject::RouteWish()
-{//zapytanie do AI, gdzie chce jechaæ
- return Mechanik?Mechanik->iRouteWanted:3; //wg AI albo prosto
+int __fastcall TDynamicObject::RouteWish(TTrack *tr)
+{//zapytanie do AI, po którym segmencie (-6..6) jechaæ na skrzy¿owaniu (tr)
+ return Mechanik?Mechanik->CrossRoute(tr):0; //wg AI albo prosto
 };
 

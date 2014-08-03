@@ -2074,25 +2074,29 @@ void __fastcall TTrain::OnKeyDown(int cKey)
           if (cKey==Global::Keys[k_MechLeft])
           {vMechMovement.x+=fMechCroach;
            if (DynamicObject->Mechanik)
-            DynamicObject->Mechanik->iRouteWanted=1; //na skrzy¿owaniu skrêci w lewo
+            if (!FreeFlyModeFlag) //¿eby nie mieszaæ obserwuj¹c z zewn¹trz
+             DynamicObject->Mechanik->iRouteWanted=1; //na skrzy¿owaniu skrêci w lewo
           }
           else
           if (cKey==Global::Keys[k_MechRight])
           {vMechMovement.x-=fMechCroach;
            if (DynamicObject->Mechanik)
-            DynamicObject->Mechanik->iRouteWanted=2; //na skrzy¿owaniu skrêci w prawo
+            if (!FreeFlyModeFlag) //¿eby nie mieszaæ obserwuj¹c z zewn¹trz
+             DynamicObject->Mechanik->iRouteWanted=2; //na skrzy¿owaniu skrêci w prawo
           }
           else
           if (cKey==Global::Keys[k_MechBackward])
           {vMechMovement.z-=fMechCroach;
-           if (DynamicObject->Mechanik)
-            DynamicObject->Mechanik->iRouteWanted=0;  //na skrzy¿owaniu stanie i poczeka
+           //if (DynamicObject->Mechanik)
+           // if (!FreeFlyModeFlag) //¿eby nie mieszaæ obserwuj¹c z zewn¹trz
+           //  DynamicObject->Mechanik->iRouteWanted=0;  //na skrzy¿owaniu stanie i poczeka
           }
           else
           if (cKey==Global::Keys[k_MechForward])
           {vMechMovement.z+=fMechCroach;
            if (DynamicObject->Mechanik)
-            DynamicObject->Mechanik->iRouteWanted=3; //na skrzy¿owaniu pojedzie prosto
+            if (!FreeFlyModeFlag) //¿eby nie mieszaæ obserwuj¹c z zewn¹trz
+             DynamicObject->Mechanik->iRouteWanted=3; //na skrzy¿owaniu pojedzie prosto
           }
           else
           if (cKey==Global::Keys[k_MechUp])

@@ -32,8 +32,8 @@ public:
  //dotychczasowe [2]+[2] wskaŸniki zamieniæ na nowe [4]
  TTrack *pNexts[2]; //tory do³¹czone do punktów 2 i 4
  TTrack *pPrevs[2]; //tory do³¹czone do punktów 1 i 3
- bool iNextDirection[2]; //to te¿ z [2]+[2] przerobiæ na [4]
- bool iPrevDirection[2];
+ int iNextDirection[2]; //to te¿ z [2]+[2] przerobiæ na [4]
+ int iPrevDirection[2];
  int CurrentIndex; //dla zwrotnicy
  double fOffset,fDesiredOffset; //aktualne i docelowe po³o¿enie napêdu iglic 
  double fOffsetSpeed; //prêdkoœæ liniowa ruchu iglic
@@ -166,11 +166,11 @@ public:
  inline TSegment* __fastcall CurrentSegment() { return Segment; };
  inline TTrack* __fastcall CurrentNext() {return (trNext);};
  inline TTrack* __fastcall CurrentPrev() {return (trPrev);};
- TTrack* __fastcall Neightbour(int d,int s);
+ TTrack* __fastcall Neightbour(int s,double &d);
  bool __fastcall SetConnections(int i);
  bool __fastcall Switch(int i,double t=-1.0,double d=-1.0);
  bool __fastcall SwitchForced(int i,TDynamicObject *o);
- bool __fastcall CrossSegment(int from,int into);
+ int __fastcall CrossSegment(int from,int into);
  inline int __fastcall GetSwitchState() { return (SwitchExtension?SwitchExtension->CurrentIndex:-1); };
  void __fastcall Load(cParser *parser, vector3 pOrigin,AnsiString name);
  bool __fastcall AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2);

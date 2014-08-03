@@ -25,7 +25,7 @@ public:
  vector3 vAngles; //x:przechy³ka, y:pochylenie, z:kierunek w planie (w radianach)
  __fastcall TTrackFollower();
  __fastcall ~TTrackFollower();
- void __fastcall SetCurrentTrack(TTrack *pTrack,int end);
+ TTrack* __fastcall SetCurrentTrack(TTrack *pTrack,int end);
  bool __fastcall Move(double fDistance,bool bPrimary);
  inline TTrack* __fastcall GetTrack() {return pCurrentTrack;};
  inline double __fastcall GetRoll() {return vAngles.x;}; //przechy³ka policzona przy ustalaniu pozycji

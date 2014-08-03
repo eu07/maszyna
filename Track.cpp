@@ -29,13 +29,14 @@
 static const double fMaxOffset=0.1; //double(0.1f)==0.100000001490116
 //const int NextMask[4]={0,1,0,1}; //tor nastêpny dla stanów 0, 1, 2, 3
 //const int PrevMask[4]={0,0,1,1}; //tor poprzedni dla stanów 0, 1, 2, 3
-const int iLewo4[4]={-4,-6,-5,-3}; //segmenty do skrêcania w lewo
-const int iPrawo4[4]={5,3,6,4}; //segmenty do skrêcania w prawo
-const int iProsto4[4]={1,-1,-2,2}; //segmenty do jazdy prosto
+const int iLewo4[4]={5,3,4,6}; //segmenty do skrêcania w lewo
+const int iPrawo4[4]={-4,-6,-3,-5}; //segmenty do skrêcania w prawo
+const int iProsto4[4]={1,-1,2,-2}; //segmenty do jazdy prosto
+const int iEnds4[13]={3,0,2,1,2,0,-1,1,3,2,0,3,1}; //numer s¹siedniego toru na koñcu segmentu "-1"
 const int iLewo3[4]={1,3,2,1}; //segmenty do skrêcania w lewo
 const int iPrawo3[4]={-2,-1,-3,-2}; //segmenty do skrêcania w prawo
 const int iProsto3[4]={1,-1,2,1}; //segmenty do jazdy prosto
-const int iEnds[13]={2,0,3,1,3,0,-1,1,2,3,0,2,1}; //numer s¹siedniego toru na koñcu segmentu "-1"
+const int iEnds3[13]={3,0,2,1,2,0,-1,1,0,2,0,3,1}; //numer s¹siedniego toru na koñcu segmentu "-1"
 TIsolated *TIsolated::pRoot=NULL;
 
 __fastcall TSwitchExtension::TSwitchExtension(TTrack *owner,int what)
@@ -56,7 +57,7 @@ __fastcall TSwitchExtension::TSwitchExtension(TTrack *owner,int what)
  Segments[1]=new TSegment(owner); //z punktu 3 do 4 (1=3 dla zwrotnic; odwrócony dla skrzy¿owañ, ewentualnie 1=4)
  Segments[2]=(what>=3)?new TSegment(owner):NULL; //z punktu 2 do 4       skrzy¿owanie od góry:      wersja "-1":
  Segments[3]=(what>=4)?new TSegment(owner):NULL; //z punktu 4 do 1              1       1=4          0       0=3
- Segments[4]=(what>=5)?new TSegment(owner):NULL; //z punktu 1 do 3            3 x 4   3            2 x 3   2
+ Segments[4]=(what>=5)?new TSegment(owner):NULL; //z punktu 1 do 3            4 x 3   3            3 x 2   2
  Segments[5]=(what>=6)?new TSegment(owner):NULL; //z punktu 3 do 2              2       2            1       1
  evPlus=evMinus=NULL;
  fVelocity=-1.0; //maksymalne ograniczenie prêdkoœci (ustawianej eventem)
@@ -2180,6 +2181,11 @@ bool __fastcall TTrack::SetConnections(int i)
    SwitchExtension->pPrevs[i^1]=trPrev;
    SwitchExtension->iPrevDirection[i^1]=iPrevDirection;
   }
+  else
+   if (eType==tt_Cross)
+    if (SwitchExtension->iRoads==3)
+    {
+    }
   if (i) Switch(0); //po przypisaniu w punkcie 4 w³¹czyæ stan zasadniczy
   return true;
  }
@@ -2297,31 +2303,32 @@ bool __fastcall TTrack::SwitchForced(int i,TDynamicObject *o)
  return true;
 };
 
-bool __fastcall TTrack::CrossSegment(int from,int into)
-{//ustawienie wskaŸnika na segement w po¿¹danym kierunku
+int __fastcall TTrack::CrossSegment(int from,int into)
+{//ustawienie wskaŸnika na segement w po¿¹danym kierunku (into) od strony (from)
+ //zwraca kod segmentu, z kierunkiem jazdy jako znakiem ±
  int i=0;
  switch (into)
  {case 0: //stop
-   WriteLog("Crossing from P"+AnsiString(from+1)+" into stop");
+   WriteLog("Crossing from P"+AnsiString(from+1)+" into stop on "+pMyNode->asName);
   break;
   case 1: //left
-   WriteLog("Crossing from P"+AnsiString(from+1)+" to left");
+   WriteLog("Crossing from P"+AnsiString(from+1)+" to left on "+pMyNode->asName);
    i=(SwitchExtension->iRoads==4)?iLewo4[from]:iLewo3[from];
   break;
   case 2: //right
-   WriteLog("Crossing from P"+AnsiString(from+1)+" to right");
+   WriteLog("Crossing from P"+AnsiString(from+1)+" to right on "+pMyNode->asName);
    i=(SwitchExtension->iRoads==4)?iPrawo4[from]:iPrawo3[from];
   break;
   case 3: //stright
-   WriteLog("Crossing from P"+AnsiString(from+1)+" to straight");
+   WriteLog("Crossing from P"+AnsiString(from+1)+" to straight on "+pMyNode->asName);
    i=(SwitchExtension->iRoads==4)?iProsto4[from]:iProsto3[from];
   break;
  }
  if (i)
  {Segment=SwitchExtension->Segments[abs(i)-1];
-  WriteLog("Selected segment "+AnsiString(abs(i)-1));
+  WriteLog("Selected segment: "+AnsiString(abs(i)-1));
  }
- return true;
+ return i;
 };
 
 void __fastcall TTrack::RaAnimListAdd(TTrack *t)
@@ -2589,16 +2596,32 @@ void __fastcall TTrack::ConnectionsLog()
   }
 };
 
-TTrack* __fastcall TTrack::Neightbour(int d,int s)
-{//skrzy¿owania musz¹ byæ teraz obs³ugiwane w specjalny sposób
- if (eType!=tt_Cross) //jeœli nie skrzy¿owanie, u¿ywamy parametru (d)
-  return ((d>0)?trNext:trPrev); //zwrotnica ma odpowiednio ustawione (trNext)
- switch (iEnds[s+6])
- {//niepotrzebnie s¹ dwie tabele
-  case 0: return SwitchExtension->pPrevs[0];
-  case 1: return SwitchExtension->pNexts[0];
-  case 2: return SwitchExtension->pPrevs[1];
-  case 3: return SwitchExtension->pNexts[1];
+TTrack* __fastcall TTrack::Neightbour(int s,double &d)
+{//zwraca wskaŸnik na s¹siedni tor, w kierunku okreœlonym znakiem (s), odwraca (d) w razie niezgodnoœci kierunku torów
+ TTrack *t; //nie zmieniamy kierunku (d), jeœli nie ma toru dalej
+ if (eType!=tt_Cross)
+ {//jeszcze trzeba sprawdziæ zgodnoœæ
+  t=(s>0)?trNext:trPrev;
+  if (t) //o ile jest na co przejœæ, zmieniamy znak kierunku na nowym torze
+   if (t->eType==tt_Cross)
+   {//jeœli wjazd na skrzy¿owanie, trzeba ustaliæ segment, bo od tego zale¿y zmiana kierunku (d)
+    //if (r) //gdy nie podano (r), to nie zmieniaæ (d)
+    // if (s*t->CrossSegment(((s>0)?iNextDirection:iPrevDirection),r)<0)
+    //  d=-d;
+   }
+   else
+   {if ((s>0)?iNextDirection:!iPrevDirection)
+     d=-d; //nastêpuje zmiana kierunku wózka albo kierunku skanowania
+    //s=((s>0)?iNextDirection:iPrevDirection)?-1:1; //kierunek toru po zmianie
+   }
+  return (t); //zwrotnica ma odpowiednio ustawione (trNext)
+ }
+ switch ((SwitchExtension->iRoads==4)?iEnds4[s+6]:iEnds3[s+6]) //numer koñca 0..3, -1 to b³¹d
+ {//zjazd ze skrzy¿owania
+  case 0: if (SwitchExtension->pPrevs[0]) if ((s>0)==SwitchExtension->iPrevDirection[0]) d=-d; return SwitchExtension->pPrevs[0];
+  case 1: if (SwitchExtension->pNexts[0]) if ((s>0)==SwitchExtension->iNextDirection[0]) d=-d; return SwitchExtension->pNexts[0];
+  case 2: if (SwitchExtension->pPrevs[1]) if ((s>0)==SwitchExtension->iPrevDirection[1]) d=-d; return SwitchExtension->pPrevs[1];
+  case 3: if (SwitchExtension->pNexts[1]) if ((s>0)==SwitchExtension->iNextDirection[1]) d=-d; return SwitchExtension->pNexts[1];
  }
  return NULL;
 };
