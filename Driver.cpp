@@ -377,6 +377,8 @@ void __fastcall TController::TableTraceRoute(double fDistance,TDynamicObject *pV
        sSpeedTable[iLast].iFlags&=~4; //usuniêcie flagi kierunku, bo mo¿e byæ b³êdna
        if (sSpeedTable[iLast].iFlags<0) sSpeedTable[iLast].iFlags|=4; //ustawienie flagi kierunku na podstawie wybranego segmentu
        if (int(fLastDir)*sSpeedTable[iLast].iFlags<0) fLastDir=-fLastDir;
+       if (AIControllFlag) //dla AI na razie losujemy kierunek na kolejnym skrzy¿owaniu
+        iRouteWanted=1+random(3);
       }
      }
     }
