@@ -3862,23 +3862,41 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
          sPantDown.FM=1.0;
          sPantDown.FA=0.0;
         }
-       if (str==AnsiString("compressor:"))                      //pliki ze sprezarka
+       else if (str==AnsiString("compressor:"))                      //pliki ze sprezarka
         {
          sCompressor.Load(Parser,GetPosition());
         }
-       if (str==AnsiString("converter:"))                      //pliki z przetwornica
+       else if (str==AnsiString("converter:"))                      //pliki z przetwornica
         {
          //if (MoverParameters->EngineType==DieselElectric) //bêdzie modulowany?
          sConverter.Load(Parser,GetPosition());
         }
-       if (str==AnsiString("turbo:"))                      //pliki z turbogeneratorem
+       else if (str==AnsiString("turbo:"))                      //pliki z turbogeneratorem
         {
          sTurbo.Load(Parser,GetPosition());
         }
-       if (str==AnsiString("small-compressor:"))                      //pliki z przetwornica
+       else if (str==AnsiString("small-compressor:"))                      //pliki z przetwornica
         {
          sSmallCompressor.Load(Parser,GetPosition());
         }
+       else if (str==AnsiString("dooropen:"))
+       {
+        str=Parser->GetNextSymbol();
+        rsDoorOpen.Init(str.c_str(),50,GetPosition().x,GetPosition().y,GetPosition().z,true);
+        rsDoorOpen.AM=50000;
+        rsDoorOpen.AA=-1*(105-random(10))/100;
+        rsDoorOpen.FM=1.0;
+        rsDoorOpen.FA=0.0;
+       }
+       else if (str==AnsiString("doorclose:"))
+       {
+        str=Parser->GetNextSymbol();
+        rsDoorClose.Init(str.c_str(),50,GetPosition().x,GetPosition().y,GetPosition().z,true);
+        rsDoorClose.AM=50000;
+        rsDoorClose.AA=-1*(105-random(10))/100;
+        rsDoorClose.FM=1.0;
+        rsDoorClose.FA=0.0;
+       }
       }
      else
      if (str==AnsiString("internaldata:"))                            //dalej nie czytaj
