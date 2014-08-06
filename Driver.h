@@ -41,7 +41,8 @@ enum TMovementStatus
  moveTrackEnd=0x2000, //dalsza jazda do przodu trwale ograniczona (W5, koniec toru)
  moveSwitchFound=0x4000, //na drodze skanowania do przodu jest rozjazd
  moveGuardSignal=0x8000, //sygna³ od kierownika (min¹³ czas postoju)
- moveVisibility=0x10000 //jazda na widocznoœæ po przejechaniu S1 na SBL
+ moveVisibility=0x10000, //jazda na widocznoœæ po przejechaniu S1 na SBL
+ moveDoorOpened=0x20000 //drzwi zosta³y otwarte - doliczyæ czas na zamkniêcie
 };
 
 enum TStopReason
@@ -303,6 +304,7 @@ public:
  void __fastcall DirectionInitial();
  AnsiString __fastcall TableText(int i);
  int __fastcall CrossRoute(TTrack *tr);
+ void __fastcall RouteSwitch(int d);
 };
 
 #endif

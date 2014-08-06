@@ -556,27 +556,43 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
       // sSpeedTable[i].fVelNext=0; //to bêdzie zatrzymanie
       //else //if (pOccupied->Vel==0.0)
       {//jeœli siê zatrzyma³ przy W4, albo sta³ w momencie zobaczenia W4
-       if (AIControllFlag) //AI tylko sobie otwiera drzwi
-       {//
-        if (mvOccupied->TrainType==dt_EZT) //otwieranie drzwi w EN57
-         if (!mvOccupied->DoorLeftOpened&&!mvOccupied->DoorRightOpened)
-         {//otwieranie drzwi
-          int p2=floor(sSpeedTable[i].evEvent->ValueGet(2)); //p7=platform side (1:left, 2:right, 3:both)
-          if (iDirection>=0)
-          {if (p2&1) mvOccupied->DoorLeft(true);
-           if (p2&2) mvOccupied->DoorRight(true);
+       if (!AIControllFlag) //AI tylko sobie otwiera drzwi
+        iDrivigFlags&=~moveStopCloser; //w razie prze³¹czenia na AI ma nie podci¹gaæ do W4, gdy u¿ytkownik zatrzyma³ za daleko
+       if ((iDrivigFlags&moveDoorOpened)==0)
+       {//drzwi otwieraæ jednorazowo
+        iDrivigFlags|=moveDoorOpened; //nie wykonywaæ drugi raz
+        if (mvOccupied->DoorOpenCtrl==1) //(mvOccupied->TrainType==dt_EZT)
+        {//otwieranie drzwi w EN57
+         if (AIControllFlag) //tylko AI otwiera drzwi EZT, u¿ytkownik musi samodzielnie
+          if (!mvOccupied->DoorLeftOpened&&!mvOccupied->DoorRightOpened)
+          {//otwieranie drzwi
+           int p2=floor(sSpeedTable[i].evEvent->ValueGet(2)); //p7=platform side (1:left, 2:right, 3:both)
+           int lewe=(iDirection>0)?1:2; //jeœli jedzie do ty³u, to drzwi otwiera odwrotnie
+           int prawe=(iDirection>0)?2:1;
+           if (p2&lewe) mvOccupied->DoorLeft(true);
+           if (p2&prawe) mvOccupied->DoorRight(true);
+           if (p2&3) //¿eby jeszcze poczeka³ chwilê, zanim zamknie
+            WaitingSet(10); //10 sekund (wzi¹æ z rozk³adu????)
           }
-          else
-          {//jeœli jedzie do ty³u, to drzwi otwiera odwrotnie
-           if (p2&1) mvOccupied->DoorRight(true);
-           if (p2&2) mvOccupied->DoorLeft(true);
-          }
-          if (p2&3) //¿eby jeszcze poczeka³ chwilê, zanim zamknie
-           WaitingSet(10); //10 sekund (wzi¹æ z rozk³adu????)
-         }
         }
         else
-         iDrivigFlags&=~moveStopCloser; //w razie prze³¹czenia na AI ma nie podci¹gaæ do W4, gdy u¿ytkownik zatrzyma³ za daleko
+        {//otwieranie drzwi w sk³adach wagonowych - docelowo wysy³aæ komendê zezwolenia na otwarcie drzwi
+         int p7,lewe,prawe; //p7=platform side (1:left, 2:right, 3:both)
+         p7=floor(sSpeedTable[i].evEvent->ValueGet(2));
+         TDynamicObject *p=pVehicles[0]; //pojazd na czole sk³adu
+         while (p)
+         {//otwieranie drzwi w pojazdach - flaga zezwolenia by³a by lepsza
+          lewe=(p->DirectionGet()*iDirection>0)?1:2; //jeœli jedzie do ty³u, to drzwi otwiera odwrotnie
+          prawe=3-lewe;
+          p->MoverParameters->BatterySwitch(true); //wagony musz¹ mieæ bateriê za³¹czon¹ do otwarcia drzwi...
+          if (p7&lewe) p->MoverParameters->DoorLeft(true);
+          if (p7&prawe) p->MoverParameters->DoorRight(true);
+          p=p->Next(); //pojazd pod³¹czony z ty³u (patrz¹c od czo³a)
+         }
+         if (p7&3) //¿eby jeszcze poczeka³ chwilê, zanim zamknie
+          WaitingSet(10); //10 sekund (wzi¹æ z rozk³adu????)
+        }
+       } 
        if (TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,asNextStop.SubString(20,asNextStop.Length())))
        {//to siê wykona tylko raz po zatrzymaniu na W4
         if (TrainParams->CheckTrainLatency()<0.0)
@@ -1715,18 +1731,35 @@ bool __fastcall TController::IncSpeed()
   if (tsGuardSignal->GetStatus()&DSBSTATUS_PLAYING) //jeœli gada, to nie jedziemy
    return false;
  bool OK=true;
- if ((mvOccupied->DoorOpenCtrl==1)&&(mvOccupied->Vel==0.0)) //jeœli ma drzwi i stoi
- {if (mvOccupied->DoorLeftOpened||mvOccupied->DoorRightOpened)
-  {//AI zamyka drzwi przed odjazdem
-   if (mvOccupied->DoorClosureWarning)
-    mvOccupied->DepartureSignal=true; //za³¹cenie bzyczka
-   mvOccupied->DoorLeft(false); //zamykanie drzwi
-   mvOccupied->DoorRight(false);
-   //Ra: trzeba by ustawiæ jakiœ czas oczekiwania na zamkniêcie siê drzwi
-   fActionTime=-1.5-0.1*random(10); //czekanie sekundê, mo¿e trochê d³u¿ej
+ if (iDrivigFlags&moveDoorOpened)
+  if ((mvOccupied->Vel==0.0)) //jeœli ma drzwi i stoi
+  {
+   if (mvOccupied->DoorOpenCtrl==1)
+   {//jeœli drzwi sterowane z kabiny
+    if (mvOccupied->DoorLeftOpened||mvOccupied->DoorRightOpened)
+    {//AI zamyka drzwi przed odjazdem
+     if (mvOccupied->DoorClosureWarning)
+      mvOccupied->DepartureSignal=true; //za³¹cenie bzyczka
+     mvOccupied->DoorLeft(false); //zamykanie drzwi
+     mvOccupied->DoorRight(false);
+     //Ra: trzeba by ustawiæ jakiœ czas oczekiwania na zamkniêcie siê drzwi
+     fActionTime=-1.5-0.1*random(10); //czekanie sekundê, mo¿e trochê d³u¿ej
+    }
+   }
+   else
+   {//jeœli nie, to zamykanie w sk³adzie wagonowym
+    TDynamicObject *p=pVehicles[0]; //pojazd na czole sk³adu
+    while (p)
+    {//zamykanie drzwi w pojazdach - flaga zezwolenia by³a by lepsza
+     p->MoverParameters->DoorLeft(false);
+     p->MoverParameters->DoorRight(false);
+     p=p->Next(); //pojazd pod³¹czony z ty³u (patrz¹c od czo³a)
+    }
+    //WaitingSet(5); //10 sekund tu to za d³ugo, opóŸnia odjazd o pó³ minuty
+    fActionTime=-1.5-0.1*random(10); //czekanie sekundê, mo¿e trochê d³u¿ej
+   }
+   iDrivigFlags&=~moveDoorOpened; //nie wykonywaæ drugi raz
   }
- }
- //mvOccupied->DepartureSignal=false;
  if (mvControlling->SlippingWheels)
   return false; //jak poœlizg, to nie przyspieszamy
  switch (mvOccupied->EngineType)
@@ -2370,11 +2403,11 @@ bool __fastcall TController::UpdateSituation(double dt)
  }
  //ABu-160305 testowanie gotowoœci do jazdy
  //Ra: przeniesione z DynObj, sk³ad u¿ytkownika te¿ jest testowany, ¿eby mu przekazaæ, ¿e ma odhamowaæ
- TDynamicObject *p=pVehicles[0]; //pojazd na czole sk³adu
  Ready=true; //wstêpnie gotowy
  fReady=0.0; //za³o¿enie, ¿e odhamowany
  fAccGravity=0.0; //przyspieszenie wynikaj¹ce z pochylenia
  double dy; //sk³adowa styczna grawitacji, w przedziale <0,1>
+ TDynamicObject *p=pVehicles[0]; //pojazd na czole sk³adu
  while (p)
  {//sprawdzenie odhamowania wszystkich po³¹czonych pojazdów
   if (Ready) //bo jak coœ nie odhamowane, to dalej nie ma co sprawdzaæ
@@ -3955,5 +3988,26 @@ int __fastcall TController::CrossRoute(TTrack *tr)
     return (sSpeedTable[i].iFlags>>28); //najstarsze 4 bity jako liczba -8..7
  }
  return 0; //nic nie znaleziono?
+};
+
+void __fastcall TController::RouteSwitch(int d)
+{//ustawienie kierunku jazdy z kabiny
+ d&=3;
+ if (d)
+ {//nowy kierunek
+  iRouteWanted=d; //zapamiêtanie
+  if (mvOccupied->CategoryFlag&2) //jeœli samochód
+   for (int i=iFirst;i!=iLast;i=(i+1)%iSpeedTableSize)
+   {//szukanie pierwszego skrzy¿owania i resetowanie kierunku na nim
+    if ((sSpeedTable[i].iFlags&3)==3) //jeœli pozycja istotna (1) oraz odcinek (2)
+     if ((sSpeedTable[i].iFlags&32)==0) //odcinek nie mo¿e byæ miniêtym
+      if (sSpeedTable[i].trTrack->eType==tt_Cross) //jeœli skrzy¿owanie
+      {//obciêcie tabelki skanowania przed skrzy¿owaniem, aby ponownie wybraæ drogê
+       iLast=i-1; //ponowne skanowanie skrzy¿owania
+       if (iLast<0) iLast+=iSpeedTableSize; //bo tabelka jest zapêtlona
+       return;
+      }
+   }
+ }
 };
 
