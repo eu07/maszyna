@@ -263,6 +263,8 @@ private:
 //    TRealSound rsPanTup; //PSound sPantUp;
     TRealSound sPantUp;
     TRealSound sPantDown;
+    TRealSound rsDoorOpen; //Ra: przeniesione z kabiny
+    TRealSound rsDoorClose;
 
     double eng_vol_act;
     double eng_frq_act;
