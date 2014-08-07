@@ -5378,15 +5378,15 @@ void __fastcall TTrain::DynamicSet(TDynamicObject *d)
   }
  mvSecond=NULL; //gdyby siê nic nie znalaz³o 
  if (mvOccupied->Power>1.0) //dwucz³onowe lub ukrotnienia, ¿eby nie szukaæ ka¿dorazowo
-  if (DynamicObject->NextConnected?mvOccupied->Couplers[1].AllowedFlag&ctrain_controll:false)
+  if (mvOccupied->Couplers[1].Connected?mvOccupied->Couplers[1].AllowedFlag&ctrain_controll:false)
   {//gdy jest cz³on od sprzêgu 1, a sprzêg ³¹czony warsztatowo (powiedzmy)
    if (mvOccupied->Couplers[1].Connected->Power>1.0) //ten drugi ma moc
-    mvSecond=DynamicObject->NextConnected->MoverParameters; //wskaŸnik na drugiego
+    mvSecond=(TMoverParameters*)mvOccupied->Couplers[1].Connected; //wskaŸnik na drugiego
   }
-  else if (DynamicObject->PrevConnected?mvOccupied->Couplers[0].AllowedFlag&ctrain_controll:false)
+  else if (mvOccupied->Couplers[0].Connected?mvOccupied->Couplers[0].AllowedFlag&ctrain_controll:false)
   {//gdy jest cz³on od sprzêgu 0, a sprzêg ³¹czony warsztatowo (powiedzmy)
    if (mvOccupied->Couplers[0].Connected->Power>1.0) //ale ten drugi ma moc
-    mvSecond=DynamicObject->PrevConnected->MoverParameters; //wskaŸnik na drugiego
+    mvSecond=(TMoverParameters*)mvOccupied->Couplers[0].Connected; //wskaŸnik na drugiego
   }
 };
 
