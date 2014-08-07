@@ -3994,20 +3994,21 @@ void __fastcall TController::RouteSwitch(int d)
 {//ustawienie kierunku jazdy z kabiny
  d&=3;
  if (d)
- {//nowy kierunek
-  iRouteWanted=d; //zapamiêtanie
-  if (mvOccupied->CategoryFlag&2) //jeœli samochód
-   for (int i=iFirst;i!=iLast;i=(i+1)%iSpeedTableSize)
-   {//szukanie pierwszego skrzy¿owania i resetowanie kierunku na nim
-    if ((sSpeedTable[i].iFlags&3)==3) //jeœli pozycja istotna (1) oraz odcinek (2)
-     if ((sSpeedTable[i].iFlags&32)==0) //odcinek nie mo¿e byæ miniêtym
-      if (sSpeedTable[i].trTrack->eType==tt_Cross) //jeœli skrzy¿owanie
-      {//obciêcie tabelki skanowania przed skrzy¿owaniem, aby ponownie wybraæ drogê
-       iLast=i-1; //ponowne skanowanie skrzy¿owania
-       if (iLast<0) iLast+=iSpeedTableSize; //bo tabelka jest zapêtlona
-       return;
-      }
-   }
- }
+  if (iRouteWanted!=d)
+  {//nowy kierunek
+   iRouteWanted=d; //zapamiêtanie
+   if (mvOccupied->CategoryFlag&2) //jeœli samochód
+    for (int i=iFirst;i!=iLast;i=(i+1)%iSpeedTableSize)
+    {//szukanie pierwszego skrzy¿owania i resetowanie kierunku na nim
+     if ((sSpeedTable[i].iFlags&3)==3) //jeœli pozycja istotna (1) oraz odcinek (2)
+      if ((sSpeedTable[i].iFlags&32)==0) //odcinek nie mo¿e byæ miniêtym
+       if (sSpeedTable[i].trTrack->eType==tt_Cross) //jeœli skrzy¿owanie
+       {//obciêcie tabelki skanowania przed skrzy¿owaniem, aby ponownie wybraæ drogê
+        iLast=i-1; //ponowne skanowanie skrzy¿owania
+        if (iLast<0) iLast+=iSpeedTableSize; //bo tabelka jest zapêtlona
+        return;
+       }
+    }
+  }
 };
 
