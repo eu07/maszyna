@@ -3356,6 +3356,17 @@ bool __fastcall TController::UpdateSituation(double dt)
      {//tu mozna daæ komunikaty tekstowe albo s³owne: przyspiesz, hamuj (lekko, œrednio, mocno)
      }
     } //kierunek ró¿ny od zera
+    else
+    {//tutaj, gdy pojazd jest wy³¹czony
+     if (!AIControllFlag) //jeœli sterowanie jest w gestii u¿ytkownika
+      if (mvOccupied->Battery) //czy u¿ytkownik za³¹czy³ bateriê?
+       if (mvOccupied->ActiveDir) //czy ustawi³ kierunek
+       {//jeœli tak, to uruchomienie skanowania
+        CheckVehicles(); //sprawdziæ sk³ad
+        TableClear(); //resetowanie tabelki skanowania
+        PrepareEngine(); //uruchomienie
+       }
+    }
     if (AIControllFlag)
     {//odhamowywanie sk³adu po zatrzymaniu i zabezpieczanie lokomotywy
      if ((OrderList[OrderPos]&(Disconnect|Connect))==0) //przy (p)od³¹czaniu nie zwalniamy tu hamulca
