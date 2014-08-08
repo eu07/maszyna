@@ -9,7 +9,7 @@
 typedef enum {ss_Off, ss_Starting, ss_Commencing, ss_ShuttingDown} TSoundState;
 
 class TAdvancedSound
-{
+{//klasa dŸwiêków maj¹cych pocz¹tek, dowolnie d³ugi œrodek oraz zakoñczenie (np. Rp1)
     TRealSound SoundStart;
     TRealSound SoundCommencing;
     TRealSound SoundShut;
