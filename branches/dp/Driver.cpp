@@ -1542,9 +1542,10 @@ bool __fastcall TController::PrepareEngine()
      if (!mvControlling->MainCtrlPos)
      {if (mvControlling->RList[0].R==0.0) //gdy z pozycji 0 siê nie ruszy
        mvControlling->IncMainCtrl(1);
-      if (!mvControlling->MotorParam[0].AutoSwitch) //gdy biegi rêczne
-       if (mvControlling->MotorParam[0].mIsat==0.0) //bl,mIsat,fi,mfi
-        mvControlling->IncScndCtrl(1); //pierwszy bieg
+      if (!mvControlling->ScndCtrlPos) //jeœli bieg nie zosta³ ustawiony
+       if (!mvControlling->MotorParam[0].AutoSwitch) //gdy biegi rêczne
+        if (mvControlling->MotorParam[0].mIsat==0.0) //bl,mIsat,fi,mfi
+         mvControlling->IncScndCtrl(1); //pierwszy bieg
      }
     }
    }
@@ -1800,6 +1801,7 @@ bool __fastcall TController::IncSpeed()
        else if (!OK) //nie da siê wrzuciæ kolejnej pozycji
         OK=mvControlling->IncScndCtrl(1); //to daæ bocznik
       }
+   mvControlling->AutoRelayCheck(); //sprawdzenie logiki sterowania
   break;
   case Dumb:
   case DieselElectric:
@@ -1832,8 +1834,6 @@ bool __fastcall TController::IncSpeed()
    }
    break;
  }
- if (mvOccupied->EngineType!=DieselEngine) //Ra 2014-06: dla SN61 nie dzia³a prawid³owo
-  mvControlling->AutoRelayCheck(); //sprawdzenie logiki sterowania
  return OK;
 }
 
@@ -1847,11 +1847,13 @@ bool __fastcall TController::DecSpeed(bool force)
    if (force) //przy aktywacji kabiny jest potrzeba natychmiastowego wyzerowania
     if (mvControlling->MainCtrlPosNo>0) //McZapkie-041003: wagon sterowniczy, np. EZT
      mvControlling->DecMainCtrl(1+(mvControlling->MainCtrlPos>2?1:0));
+   mvControlling->AutoRelayCheck(); //sprawdzenie logiki sterowania
    return false;
   case ElectricSeriesMotor:
    OK=mvControlling->DecScndCtrl(2); //najpierw bocznik na zero
    if (!OK)
     OK=mvControlling->DecMainCtrl(1+(mvControlling->MainCtrlPos>2?1:0));
+   mvControlling->AutoRelayCheck(); //sprawdzenie logiki sterowania
   break;
   case Dumb:
   case DieselElectric:
@@ -1880,7 +1882,6 @@ bool __fastcall TController::DecSpeed(bool force)
     OK=mvControlling->DecMainCtrl(1+(mvControlling->MainCtrlPos>2?1:0));
   break;
  }
- mvControlling->AutoRelayCheck(); //sprawdzenie logiki sterowania
  return OK;
 };
 
