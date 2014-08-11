@@ -1540,8 +1540,8 @@ bool __fastcall TController::PrepareEngine()
     if (mvControlling->EngineType==DieselEngine)
     {//Ra 2014-06: dla SN61 trzeba wrzuciæ pierwsz¹ pozycjê - nie wiem, czy tutaj... kiedyœ dzia³a³o...
      if (!mvControlling->MainCtrlPos)
-     {if (mvControlling->RList[0].R==0.0) //gdy z pozycji 0 siê nie ruszy
-       mvControlling->IncMainCtrl(1);
+     {if (mvControlling->RList[0].R==0.0) //gdy na pozycji 0 dawka paliwa jest zerowa, to zgaœnie
+       mvControlling->IncMainCtrl(1); //dlatego trzeba zwiêkszyæ pozycjê
       if (!mvControlling->ScndCtrlPos) //jeœli bieg nie zosta³ ustawiony
        if (!mvControlling->MotorParam[0].AutoSwitch) //gdy biegi rêczne
         if (mvControlling->MotorParam[0].mIsat==0.0) //bl,mIsat,fi,mfi
@@ -2329,6 +2329,7 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
   }
 */
  }
+/* //ta komenda jest teraz skanowana, wiêc wysy³anie jej eventem nie ma sensu
  else if (NewCommand=="OutsideStation") //wskaznik W5
  {
   if (OrderList[OrderPos]==Obey_train)
@@ -2341,6 +2342,7 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
    iDrivigFlags&=~moveStartHorn; //bez tr¹bienia po zatrzymaniu
   }
  }
+*/
  else if (NewCommand=="Warning_signal")
  {
   if (AIControllFlag) //poni¿sza komenda nie jest wykonywana przez u¿ytkownika
@@ -2708,7 +2710,8 @@ bool __fastcall TController::UpdateSituation(double dt)
     //na jaka odleglosc i z jaka predkoscia ma podjechac do przeszkody
     if (mvOccupied->CategoryFlag&1) //jeœli poci¹g
     {
-     fMinProximityDist=10.0; fMaxProximityDist=20.0; //[m]
+     fMinProximityDist=10.0;
+     fMaxProximityDist=(mvOccupied->Vel>0.0)?20.0:50.0; //[m] jak stanie za daleko, to niech nie doci¹ga paru metrów
      if (iDrivigFlags&moveLate)
      {fVelMinus=1.0; //jeœli spóŸniony, to gna
       fVelPlus=5.0; //dopuszczalne przekroczenie prêdkoœci na ograniczeniu bez hamowania
