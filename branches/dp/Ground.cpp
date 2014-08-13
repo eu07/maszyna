@@ -2921,9 +2921,9 @@ void __fastcall TGround::InitTracks()
   }
   p=p->Next();
  }
- for (Current=nRootOfType[TP_TRACK];Current;Current=Current->nNext)
-  if (Current->pTrack->eType==tt_Cross)
-   Current->pTrack->ConnectionsLog(); //zalogowanie informacji o po³¹czeniach
+ //for (Current=nRootOfType[TP_TRACK];Current;Current=Current->nNext)
+ // if (Current->pTrack->eType==tt_Cross)
+ //  Current->pTrack->ConnectionsLog(); //zalogowanie informacji o po³¹czeniach
 }
 
 void __fastcall TGround::InitTraction()

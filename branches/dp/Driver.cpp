@@ -566,7 +566,7 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
          if (AIControllFlag) //tylko AI otwiera drzwi EZT, u¿ytkownik musi samodzielnie
           if (!mvOccupied->DoorLeftOpened&&!mvOccupied->DoorRightOpened)
           {//otwieranie drzwi
-           int p2=floor(sSpeedTable[i].evEvent->ValueGet(2)); //p7=platform side (1:left, 2:right, 3:both)
+           int p2=int(floor(sSpeedTable[i].evEvent->ValueGet(2)))%10; //p7=platform side (1:left, 2:right, 3:both)
            int lewe=(iDirection>0)?1:2; //jeœli jedzie do ty³u, to drzwi otwiera odwrotnie
            int prawe=(iDirection>0)?2:1;
            if (p2&lewe) mvOccupied->DoorLeft(true);
@@ -578,7 +578,7 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
         else
         {//otwieranie drzwi w sk³adach wagonowych - docelowo wysy³aæ komendê zezwolenia na otwarcie drzwi
          int p7,lewe,prawe; //p7=platform side (1:left, 2:right, 3:both)
-         p7=floor(sSpeedTable[i].evEvent->ValueGet(2));
+         p7=int(floor(sSpeedTable[i].evEvent->ValueGet(2)))%10; //tu bêdzie jeszcze d³ugoœæ peronu zaokr¹glona do 10m (20m bezpieczniej, bo nie modyfikuje bitu 1)
          TDynamicObject *p=pVehicles[0]; //pojazd na czole sk³adu
          while (p)
          {//otwieranie drzwi w pojazdach - flaga zezwolenia by³a by lepsza
@@ -1173,7 +1173,7 @@ void __fastcall TController::AutoRewident()
  }
 };
 
-bool __fastcall TController::CheckVehicles(bool n)
+bool __fastcall TController::CheckVehicles(TOrders user)
 {//sprawdzenie stanu posiadanych pojazdów w sk³adzie i zapalenie œwiate³
  TDynamicObject* p; //roboczy wskaŸnik na pojazd
  iVehicles=0; //iloœæ pojazdów w sk³adzie
@@ -1249,14 +1249,33 @@ bool __fastcall TController::CheckVehicles(bool n)
      Lights(0,16); //œwiat³a manewrowe (Tb1) tylko z przodu, aby nie pozostawiæ odczepionego ze œwiat³em
   }
   else //Ra 2014-02: lepiej tu ni¿ w pêtli obs³uguj¹cej komendy, bo tam siê zmieni informacja o sk³adzie
-   if (n) //gdy cz³owiek i gdy nast¹pi³o po³¹cznie
-    if (OrderCurrentGet()&(Connect))
-    {
-     iDrivigFlags&=~moveConnect; //zdjêcie flagi doczepiania
-     JumpToNextOrder(); //wykonanie nastêpnej komendy
-     if (OrderCurrentGet()&(Change_direction))
+   switch (user) //gdy cz³owiek i gdy nast¹pi³o po³¹cznie albo roz³¹czenie
+   {
+    case Change_direction:
+     while (OrderCurrentGet()&(Change_direction))
       JumpToNextOrder(); //zmianê kierunku te¿ mo¿na olaæ, ale zmieniæ kierunek skanowania!
-    }
+    break;
+    case Connect:
+     while (OrderCurrentGet()&(Change_direction))
+      JumpToNextOrder(); //zmianê kierunku te¿ mo¿na olaæ, ale zmieniæ kierunek skanowania!
+     if (OrderCurrentGet()&(Connect))
+     {
+      iDrivigFlags&=~moveConnect; //zdjêcie flagi doczepiania
+      JumpToNextOrder(); //wykonanie nastêpnej komendy
+      if (OrderCurrentGet()&(Change_direction))
+       JumpToNextOrder(); //zmianê kierunku te¿ mo¿na olaæ, ale zmieniæ kierunek skanowania!
+     }
+    break;
+    case Disconnect:
+     while (OrderCurrentGet()&(Change_direction))
+      JumpToNextOrder(); //zmianê kierunku te¿ mo¿na olaæ, ale zmieniæ kierunek skanowania!
+     if (OrderCurrentGet()&(Disconnect))
+     {//wypada³o by sprawdziæ, czy odczepiono wagony w odpowiednim miejscu (iVehicleCount)
+      JumpToNextOrder(); //wykonanie nastêpnej komendy
+      if (OrderCurrentGet()&(Change_direction))
+       JumpToNextOrder(); //zmianê kierunku te¿ mo¿na olaæ, ale zmieniæ kierunek skanowania!
+     }
+   }
  } //blok wykonywany, gdy aktywnie prowadzi
  return true;
 }
@@ -4019,7 +4038,7 @@ void __fastcall TController::RouteSwitch(int d)
       if ((sSpeedTable[i].iFlags&32)==0) //odcinek nie mo¿e byæ miniêtym
        if (sSpeedTable[i].trTrack->eType==tt_Cross) //jeœli skrzy¿owanie
        {//obciêcie tabelki skanowania przed skrzy¿owaniem, aby ponownie wybraæ drogê
-        iLast=i-1; //ponowne skanowanie skrzy¿owania
+        iLast=i-1; //ponowne skanowanie skrzy¿owania (w zwrotnicach jest iLast=i, ale tam jest proœciej)
         if (iLast<0) iLast+=iSpeedTableSize; //bo tabelka jest zapêtlona
         return;
        }
