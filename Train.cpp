@@ -1220,57 +1220,62 @@ void __fastcall TTrain::OnKeyDown(int cKey)
   // McZapkie-240302 - zmiana kierunku: 'd' do przodu, 'r' do tylu
       if (cKey==Global::Keys[k_DirectionForward])
       {
-        if (mvOccupied->DirectionForward())
+       if (mvOccupied->DirectionForward())
+       {
+        //------------
+        //hunter-121211: dzwiek kierunkowego
+         if (dsbReverserKey)
           {
-           //------------
-           //hunter-121211: dzwiek kierunkowego
-            if (dsbReverserKey)
-             {
-              dsbReverserKey->SetCurrentPosition(0);
-              dsbReverserKey->SetVolume(DSBVOLUME_MAX);
-              dsbReverserKey->Play(0,0,0);
-             }
-            else if (!dsbReverserKey)
-             if (dsbSwitch)
-             {
-              dsbSwitch->SetVolume(DSBVOLUME_MAX);
-              dsbSwitch->Play(0,0,0);
-             }
-           //------------
-
+           dsbReverserKey->SetCurrentPosition(0);
+           dsbReverserKey->SetVolume(DSBVOLUME_MAX);
+           dsbReverserKey->Play(0,0,0);
           }
+         else if (!dsbReverserKey)
+          if (dsbSwitch)
+          {
+           dsbSwitch->SetVolume(DSBVOLUME_MAX);
+           dsbSwitch->Play(0,0,0);
+          }
+        //------------
+        if (mvOccupied->ActiveDir) //jeœli kierunek niezerowy
+         if (DynamicObject->Mechanik) //na wszelki wypadek
+          DynamicObject->Mechanik->CheckVehicles(Change_direction); //aktualizacja skrajnych pojazdów w sk³adzie
+       }
       }
       else
       if (cKey==Global::Keys[k_DirectionBackward])  //r
       {
-        if (GetAsyncKeyState(VK_CONTROL)<0)
-        {//wciœniêty [Ctrl]
-          if (mvControlled->Radio==true)
-          {
-            dsbSwitch->SetVolume(DSBVOLUME_MAX);
-            dsbSwitch->Play(0,0,0);
-            mvControlled->Radio=false;
-          }
-        }
-        else
-        if (mvOccupied->DirectionBackward())
-          {
-           //------------
-           //hunter-121211: dzwiek kierunkowego
-            if (dsbReverserKey)
-             {
-              dsbReverserKey->SetCurrentPosition(0);
-              dsbReverserKey->SetVolume(DSBVOLUME_MAX);
-              dsbReverserKey->Play(0,0,0);
-             }
-            else if (!dsbReverserKey)
-             if (dsbSwitch)
-             {
-              dsbSwitch->SetVolume(DSBVOLUME_MAX);
-              dsbSwitch->Play(0,0,0);
-             }
-           //------------
-          }
+       if (GetAsyncKeyState(VK_CONTROL)<0)
+       {//wciœniêty [Ctrl]
+         if (mvControlled->Radio==true)
+         {
+           dsbSwitch->SetVolume(DSBVOLUME_MAX);
+           dsbSwitch->Play(0,0,0);
+           mvControlled->Radio=false;
+         }
+       }
+       else
+       if (mvOccupied->DirectionBackward())
+       {
+        //------------
+        //hunter-121211: dzwiek kierunkowego
+        if (dsbReverserKey)
+         {
+          dsbReverserKey->SetCurrentPosition(0);
+          dsbReverserKey->SetVolume(DSBVOLUME_MAX);
+          dsbReverserKey->Play(0,0,0);
+         }
+        else if (!dsbReverserKey)
+         if (dsbSwitch)
+         {
+          dsbSwitch->SetVolume(DSBVOLUME_MAX);
+          dsbSwitch->Play(0,0,0);
+         }
+        //------------
+        if (mvOccupied->ActiveDir) //jeœli kierunek niezerowy
+         if (DynamicObject->Mechanik) //na wszelki wypadek
+          DynamicObject->Mechanik->CheckVehicles(Change_direction); //aktualizacja skrajnych pojazdów w sk³adzie
+       }
       }
       else
   // McZapkie-240302 - wylaczanie glownego obwodu
@@ -1539,7 +1544,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
               {
                //tmp->MoverParameters->Couplers[CouplNr].Render=true; //pod³¹czony sprzêg bêdzie widoczny
                if (DynamicObject->Mechanik) //na wszelki wypadek
-                DynamicObject->Mechanik->CheckVehicles(true); //aktualizacja flag kierunku w sk³adzie
+                DynamicObject->Mechanik->CheckVehicles(Connect); //aktualizacja flag kierunku w sk³adzie
                dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
                dsbCouplerAttach->Play(0,0,0);
               }
@@ -1630,7 +1635,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
            }
           }
           if (DynamicObject->Mechanik) //na wszelki wypadek
-           DynamicObject->Mechanik->CheckVehicles(); //aktualizacja skrajnych pojazdów w sk³adzie
+           DynamicObject->Mechanik->CheckVehicles(Disconnect); //aktualizacja skrajnych pojazdów w sk³adzie
         }
       }
       else

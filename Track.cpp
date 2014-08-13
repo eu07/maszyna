@@ -2309,24 +2309,24 @@ int __fastcall TTrack::CrossSegment(int from,int into)
  int i=0;
  switch (into)
  {case 0: //stop
-   WriteLog("Crossing from P"+AnsiString(from+1)+" into stop on "+pMyNode->asName);
+   //WriteLog("Crossing from P"+AnsiString(from+1)+" into stop on "+pMyNode->asName);
   break;
   case 1: //left
-   WriteLog("Crossing from P"+AnsiString(from+1)+" to left on "+pMyNode->asName);
+   //WriteLog("Crossing from P"+AnsiString(from+1)+" to left on "+pMyNode->asName);
    i=(SwitchExtension->iRoads==4)?iLewo4[from]:iLewo3[from];
   break;
   case 2: //right
-   WriteLog("Crossing from P"+AnsiString(from+1)+" to right on "+pMyNode->asName);
+   //WriteLog("Crossing from P"+AnsiString(from+1)+" to right on "+pMyNode->asName);
    i=(SwitchExtension->iRoads==4)?iPrawo4[from]:iPrawo3[from];
   break;
   case 3: //stright
-   WriteLog("Crossing from P"+AnsiString(from+1)+" to straight on "+pMyNode->asName);
+   //WriteLog("Crossing from P"+AnsiString(from+1)+" to straight on "+pMyNode->asName);
    i=(SwitchExtension->iRoads==4)?iProsto4[from]:iProsto3[from];
   break;
  }
  if (i)
  {Segment=SwitchExtension->Segments[abs(i)-1];
-  WriteLog("Selected segment: "+AnsiString(abs(i)-1));
+  //WriteLog("Selected segment: "+AnsiString(abs(i)-1));
  }
  return i;
 };

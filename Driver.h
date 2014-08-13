@@ -249,7 +249,7 @@ public:
  void __fastcall OrderNext(TOrders NewOrder);
  TOrders __fastcall OrderCurrentGet();
  TOrders __fastcall OrderNextGet();
- bool __fastcall CheckVehicles(bool n=false);
+ bool __fastcall CheckVehicles(TOrders user=Wait_for_orders);
 private:
  void __fastcall CloseLog();
  void __fastcall OrderCheck();
