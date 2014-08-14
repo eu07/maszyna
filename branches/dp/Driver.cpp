@@ -1049,6 +1049,7 @@ void __fastcall TController::Activation()
  if (iDirection)
  {//jeœli jest ustalony kierunek
   TDynamicObject *old=pVehicle,*d=pVehicle; //w tym siedzi AI
+  TController *drugi; //jakby by³y dwa, to zamieniæ miejscami, a nie robiæ wycieku pamiêci poprzez nadpisanie
   int brake=mvOccupied->LocalBrakePos;
   while (mvControlling->MainCtrlPos) //samo zapêtlenie DecSpeed() nie wystarcza :/
    DecSpeed(true); //wymuszenie zerowania nastawnika jazdy
@@ -1066,17 +1067,18 @@ void __fastcall TController::Activation()
   while (TestFlag(d->MoverParameters->Couplers[iDirection<0?1:0].CouplingFlag,ctrain_controll))
   {//jeœli pojazd z przodu jest ukrotniony, to przechodzimy do niego
    d=iDirection*d->DirectionGet()<0?d->Next():d->Prev(); //przechodzimy do nastêpnego cz³onu
-   if (d?!d->Mechanik:false)
-   {d->Mechanik=this; //na razie bilokacja
+   if (d)
+   {drugi=d->Mechanik; //zapamiêtanie tego, co ewentualnie tam siedzi, ¿eby w razie dwóch zamieniæ miejscami
+    d->Mechanik=this; //na razie bilokacja
     d->MoverParameters->SetInternalCommand("",0,0); //usuniêcie ewentualnie zalegaj¹cej komendy (Change_direction?)
     if (d->DirectionGet()!=pVehicle->DirectionGet()) //jeœli s¹ przeciwne do siebie
      iDirection=-iDirection; //to bêdziemy jechaæ w drug¹ stronê wzglêdem zasiedzianego pojazdu
-    pVehicle->Mechanik=NULL; //tam ju¿ nikogo nie ma
+    pVehicle->Mechanik=drugi; //wsadzamy tego, co ewentualnie by³ (podwójna trakcja)
     pVehicle->MoverParameters->CabNo=0; //wy³¹czanie kabin po drodze
     pVehicle->MoverParameters->ActiveCab=0; //i zaznaczenie, ¿e nie ma tam nikogo
     pVehicle=d; //a mechu ma nowy pojazd (no, cz³on)
    }
-   else break; //jak zajête, albo koniec sk³adu, to mechanik dalej nie idzie (wywaliæ drugiego?)
+   else break; //jak koniec sk³adu, to mechanik dalej nie idzie
   }
   if (pVehicle!=old)
   {//jeœli zmieniony zosta³ pojazd prowadzony
