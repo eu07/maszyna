@@ -934,7 +934,7 @@ __fastcall TController::TController
  //Prepare2press=false; //bez dociskania
  eStopReason=stopSleep; //na pocz¹tku œpi
  fLength=0.0;
- fMass=0.0;
+ fMass=0.0; //[kg]
  eSignNext=NULL; //sygna³ zmieniaj¹cy prêdkoœæ, do pokazania na [F2]
  fShuntVelocity=40; //domyœlna prêdkoœæ manewrowa
  fStopTime=0.0; //czas postoju przed dalsz¹ jazd¹ (np. na przystanku)
@@ -1134,9 +1134,9 @@ void __fastcall TController::AutoRewident()
   }
   else
   {//inaczej towarowy - nastawianie towarowego
-   if ((fLength<300.0)&&(fMass<600.0))
+   if ((fLength<300.0)&&(fMass<600000.0)) //[kg]
     ustaw|=bdelay_P; //je¿eli d³ugoœæ<300 oraz masa<600 to P (0)
-   else if ((fLength<500.0)&&(fMass<1300.0))
+   else if ((fLength<500.0)&&(fMass<1300000.0))
     ustaw|=bdelay_R; //je¿eli d³ugoœæ<500 oraz masa<1300 to GP (2)
    else
     ustaw|=bdelay_G; //inaczej G (1)
@@ -1295,8 +1295,8 @@ void __fastcall TController::DirectionInitial()
  {//jeœli na starcie jedzie
   iDirection=iDirectionOrder=(mvOccupied->V>0?1:-1); //pocz¹tkowa prêdkoœæ wymusza kierunek jazdy
   DirectionForward(mvOccupied->V*mvOccupied->CabNo>=0.0); //a dalej ustawienie nawrotnika
-  CheckVehicles(); //sprawdzenie œwiate³ oraz skrajnych pojazdów do skanowania
  }
+ CheckVehicles(); //sprawdzenie œwiate³ oraz skrajnych pojazdów do skanowania
 };
 
 int __fastcall TController::OrderDirectionChange(int newdir,TMoverParameters *Vehicle)
@@ -2455,7 +2455,8 @@ bool __fastcall TController::UpdateSituation(double dt)
    fAccGravity-=p->DirectionGet()*p->MoverParameters->TotalMassxg*dy; //ciê¿ar razy sk³adowa styczna grawitacji
   p=p->Next(); //pojazd pod³¹czony z ty³u (patrz¹c od czo³a)
  }
- fAccGravity/=iDirection*fMass; //si³ê generuj¹ pojazdy na pochyleniu ale dzia³a ona ca³oœæ sk³adu, wiêc a=F/m
+ if (iDirection)
+  fAccGravity/=iDirection*fMass; //si³ê generuj¹ pojazdy na pochyleniu ale dzia³a ona ca³oœæ sk³adu, wiêc a=F/m
  if (!Ready) //v367: jeœli wg powy¿szych warunków sk³ad nie jest odhamowany
   if (fAccGravity<-0.05) //jeœli ma pod górê na tyle, by siê stoczyæ
    //if (mvOccupied->BrakePress<0.08) //to wystarczy, ¿e zadzia³aj¹ liniowe (nie ma ich jeszcze!!!)
@@ -2532,7 +2533,7 @@ bool __fastcall TController::UpdateSituation(double dt)
   fBrakeDist=fDriverBraking*mvOccupied->Vel*(40.0+mvOccupied->Vel); //przybli¿ona droga hamowania
   //fBrakeDist powinno byæ wyznaczane dla danego sk³adu za pomoc¹ sieci neuronowych, w zale¿noœci od prêdkoœci i si³y (ciœnienia) hamowania
   //nastêpnie w drug¹ stronê, z drogi hamowania i chwilowej prêdkoœci powinno byæ wyznaczane zalecane ciœnienie
-  if (fMass>1000.0) fBrakeDist*=1.5; //korekta dla ciê¿kich, bo prze¿ynaj¹ - da to coœ?
+  if (fMass>1000000.0) fBrakeDist*=1.5; //korekta dla ciê¿kich, bo prze¿ynaj¹ - da to coœ?
   if (mvOccupied->BrakeDelayFlag==bdelay_G) fBrakeDist=fBrakeDist+2*mvOccupied->Vel; //dla nastawienia G koniecznie nale¿y wyd³u¿yæ drogê na czas reakcji
   //double scanmax=(mvOccupied->Vel>0.0)?3*fDriverDist+fBrakeDist:10.0*fDriverDist;
   double scanmax=(mvOccupied->Vel>5.0)?150+fBrakeDist:20.0*fDriverDist; //1000m dla stoj¹cych poci¹gów

@@ -1462,14 +1462,6 @@ void __fastcall TTrack::Compile(GLuint tex)
       }
      //renderowanie nawierzchni na koñcu
      double sina0=sin(a[0]),cosa0=cos(a[0]);
-     /*
-     q[0]=0.5*(p[0]+p[2]); //œrodek skrzy¿owania
-     for (j=0;j<drogi;++j)
-     {q[++i]=p[j]+vector3(+fHTW*cos(a[j]),0,+fHTW*sin(a[j])); //Point1
-      q[++i]=p[j]+vector3(-fHTW*cos(a[j]),0,-fHTW*sin(a[j]));
-      ++i; //punkt w œrodku obliczymy potem
-     }
-     */
      double u,v;
      if (!SwitchExtension->bPoints)
       if (b)
