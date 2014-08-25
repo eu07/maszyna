@@ -34,20 +34,27 @@ const float fHaslerTime=1.2;
 
 class TCab
 {
- public:
-  __fastcall TCab();
-  __fastcall ~TCab();
-  void __fastcall Init(double Initx1,double Inity1,double Initz1,double Initx2,double Inity2,double Initz2,bool InitEnabled,bool InitOccupied);
-  void __fastcall Load(TQueryParserComp *Parser);
-  vector3 CabPos1;
-  vector3 CabPos2;
-  bool bEnabled;
-  bool bOccupied;
-  double dimm_r, dimm_g, dimm_b;                 //McZapkie-120503: tlumienie swiatla
-  double intlit_r, intlit_g, intlit_b;           //McZapkie-120503: oswietlenie kabiny
-  double intlitlow_r, intlitlow_g, intlitlow_b;  //McZapkie-120503: przyciemnione oswietlenie kabiny
+public:
+ __fastcall TCab();
+ __fastcall ~TCab();
+ void __fastcall Init(double Initx1,double Inity1,double Initz1,double Initx2,double Inity2,double Initz2,bool InitEnabled,bool InitOccupied);
+ void __fastcall Load(TQueryParserComp *Parser);
+ vector3 CabPos1;
+ vector3 CabPos2;
+ bool bEnabled;
+ bool bOccupied;
+ double dimm_r, dimm_g, dimm_b;                 //McZapkie-120503: tlumienie swiatla
+ double intlit_r, intlit_g, intlit_b;           //McZapkie-120503: oswietlenie kabiny
+ double intlitlow_r, intlitlow_g, intlitlow_b;  //McZapkie-120503: przyciemnione oswietlenie kabiny
 private:
-  bool bChangePossible;
+ //bool bChangePossible;
+ TGauge *ggList; //Ra 2014-08: lista animacji macierzowych (ga³ek) w kabinie
+ int iGaugesMax,iGauges; //ile miejsca w tablicy i ile jest w u¿yciu
+ TButton *btList; //Ra 2014-08: lista animacji dwustanowych (lampek) w kabinie
+ int iButtonsMax,iButtons; //ile miejsca w tablicy i ile jest w u¿yciu
+public:
+ TGauge* __fastcall Gauge(int n=-1); //pobranie adresu obiektu
+ TButton* __fastcall Button(int n=-1); //pobranie adresu obiektu
 };
 
 

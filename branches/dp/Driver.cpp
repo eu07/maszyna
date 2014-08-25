@@ -2623,8 +2623,8 @@ bool __fastcall TController::UpdateSituation(double dt)
     else
     {//jak daleko, to jazda jak dla Shunt na kolizjê
      fMinProximityDist=0.0; fMaxProximityDist=5.0; //[m] w takim przedziale odleg³oœci powinien stan¹æ
-     fVelPlus=1.0; //dopuszczalne przekroczenie prêdkoœci na ograniczeniu bez hamowania
-     fVelMinus=2.0; //margines prêdkoœci powoduj¹cy za³¹czenie napêdu
+     fVelPlus=2.0; //dopuszczalne przekroczenie prêdkoœci na ograniczeniu bez hamowania
+     fVelMinus=1.0; //margines prêdkoœci powoduj¹cy za³¹czenie napêdu
      //VelReduced=5; //[km/h]
      //if (mvOccupied->Vel<0.5) //jeœli ju¿ prawie stan¹³
       if (pVehicles[0]->fTrackBlock<=20.0) //przy zderzeniu fTrackBlock nie jest miarodajne
