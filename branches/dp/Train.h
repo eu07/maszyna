@@ -96,113 +96,113 @@ public: //reszta mo¿e byæ publiczna
     //AnsiString asMessage;
 
 //McZapkie: definicje wskaznikow
-    TGauge VelocityGauge;
-    TGauge I1Gauge;
-    TGauge I2Gauge;
-    TGauge I3Gauge;
-    TGauge ItotalGauge;
-    TGauge CylHamGauge;
-    TGauge PrzGlGauge;
-    TGauge ZbGlGauge;
-    TGauge ZbSGauge;
-    TGauge ZbRGauge;        
+    TGauge ggVelocity;
+    TGauge ggI1;
+    TGauge ggI2;
+    TGauge ggI3;
+    TGauge ggItotal;
+    TGauge ggCylHam;
+    TGauge ggPrzGl;
+    TGauge ggZbGl;
+    TGauge ggZbS;
+    TGauge ggZbR;
     //ABu: zdublowane dla dwukierunkowych kabin
-       TGauge VelocityGaugeB;
-       TGauge I1GaugeB;
-       TGauge I2GaugeB;
-       TGauge I3GaugeB;
-       TGauge ItotalGaugeB;
-       TGauge CylHamGaugeB;
-       TGauge PrzGlGaugeB;
-       TGauge ZbGlGaugeB;
+       TGauge ggVelocity_B;
+       TGauge ggI1_B;
+       TGauge ggI2_B;
+       TGauge ggI3_B;
+       TGauge ggItotal_B;
+       TGauge ggCylHam_B;
+       TGauge ggPrzGl_B;
+       TGauge ggZbGl_B;
     //******************************************
-    TGauge ClockSInd;
-    TGauge ClockMInd;
-    TGauge ClockHInd;
-    TGauge HVoltageGauge;
-    TGauge LVoltageGauge;
-    TGauge enrot1mGauge;
-    TGauge enrot2mGauge;
-    TGauge enrot3mGauge;
-    TGauge engageratioGauge;
-    TGauge maingearstatusGauge;
+    TGauge ggClockSInd;
+    TGauge ggClockMInd;
+    TGauge ggClockHInd;
+    TGauge ggHVoltage;
+    TGauge ggLVoltage;
+    TGauge ggEnrot1m;
+    TGauge ggEnrot2m;
+    TGauge ggEnrot3m;
+    TGauge ggEngageRatio;
+    TGauge ggMainGearStatus;
 
-    TGauge EngineVoltage;
-    TGauge I1BGauge;
-    TGauge I2BGauge;
-    TGauge I3BGauge;
-    TGauge ItotalBGauge;
+    TGauge ggEngineVoltage;
+    TGauge ggI1B;
+    TGauge ggI2B;
+    TGauge ggI3B;
+    TGauge ggItotalB;
 
 //McZapkie: definicje regulatorow
-    TGauge MainCtrlGauge;
-    TGauge MainCtrlActGauge;    
-    TGauge ScndCtrlGauge;
-    TGauge ScndCtrlButtonGauge;
-    TGauge DirKeyGauge;
-    TGauge BrakeCtrlGauge;
-    TGauge LocalBrakeGauge;
-    TGauge ManualBrakeGauge;
-    TGauge BrakeProfileCtrlGauge; //nastawiacz GPR - przelacznik obrotowy
-    TGauge BrakeProfileG;         //nastawiacz GP - hebelek towarowy
-    TGauge BrakeProfileR;         //nastawiacz PR - hamowanie dwustopniowe
+    TGauge ggMainCtrl;
+    TGauge ggMainCtrlAct;
+    TGauge ggScndCtrl;
+    TGauge ggScndCtrlButton;
+    TGauge ggDirKey;
+    TGauge ggBrakeCtrl;
+    TGauge ggLocalBrake;
+    TGauge ggManualBrake;
+    TGauge ggBrakeProfileCtrl; //nastawiacz GPR - przelacznik obrotowy
+    TGauge ggBrakeProfileG;    //nastawiacz GP - hebelek towarowy
+    TGauge ggBrakeProfileR;    //nastawiacz PR - hamowanie dwustopniowe
 
-    TGauge MaxCurrentCtrlGauge;
+    TGauge ggMaxCurrentCtrl;
 
-    TGauge MainOffButtonGauge;
-    TGauge MainOnButtonGauge;
-    TGauge MainButtonGauge; //EZT
-    TGauge SecurityResetButtonGauge;
-    TGauge ReleaserButtonGauge;
-    TGauge AntiSlipButtonGauge;
-    TGauge FuseButtonGauge;
-    TGauge ConverterFuseButtonGauge; //hunter-261211: przycisk odblokowania nadmiarowego przetwornic i ogrzewania
-    TGauge StLinOffButtonGauge;
-    TGauge RadioButtonGauge;
-    TGauge UpperLightButtonGauge;
-    TGauge LeftLightButtonGauge;
-    TGauge RightLightButtonGauge;
-    TGauge LeftEndLightButtonGauge;
-    TGauge RightEndLightButtonGauge;
+    TGauge ggMainOffButton;
+    TGauge ggMainOnButton;
+    TGauge ggMainButton; //EZT
+    TGauge ggSecurityResetButton;
+    TGauge ggReleaserButton;
+    TGauge ggAntiSlipButton;
+    TGauge ggFuseButton;
+    TGauge ggConverterFuseButton; //hunter-261211: przycisk odblokowania nadmiarowego przetwornic i ogrzewania
+    TGauge ggStLinOffButton;
+    TGauge ggRadioButton;
+    TGauge ggUpperLightButton;
+    TGauge ggLeftLightButton;
+    TGauge ggRightLightButton;
+    TGauge ggLeftEndLightButton;
+    TGauge ggRightEndLightButton;
 
     //hunter-230112: przelacznik swiatel tylnich
-    TGauge RearUpperLightButtonGauge;
-    TGauge RearLeftLightButtonGauge;
-    TGauge RearRightLightButtonGauge;
-    TGauge RearLeftEndLightButtonGauge;
-    TGauge RearRightEndLightButtonGauge;
+    TGauge ggRearUpperLightButton;
+    TGauge ggRearLeftLightButton;
+    TGauge ggRearRightLightButton;
+    TGauge ggRearLeftEndLightButton;
+    TGauge ggRearRightEndLightButton;
 
-    TGauge IgnitionKeyGauge;
+    TGauge ggIgnitionKey;
 
-    TGauge CompressorButtonGauge;
-    TGauge ConverterButtonGauge;
-    TGauge ConverterOffButtonGauge;
+    TGauge ggCompressorButton;
+    TGauge ggConverterButton;
+    TGauge ggConverterOffButton;
 
 //ABu 090305 - syrena i prad nastepnego czlonu
-    TGauge HornButtonGauge;
-    TGauge NextCurrentButtonGauge;
+    TGauge ggHornButton;
+    TGauge ggNextCurrentButton;
 //ABu 090305 - uniwersalne przyciski
-    TGauge Universal1ButtonGauge;
-    TGauge Universal2ButtonGauge;
-    TGauge Universal3ButtonGauge;
-    TGauge Universal4ButtonGauge;
+    TGauge ggUniversal1Button;
+    TGauge ggUniversal2Button;
+    TGauge ggUniversal3Button;
+    TGauge ggUniversal4Button;
 
-    TGauge CabLightButtonGauge; //hunter-091012: przelacznik oswietlania kabiny
-    TGauge CabLightDimButtonGauge; //hunter-091012: przelacznik przyciemnienia oswietlenia kabiny
+    TGauge ggCabLightButton; //hunter-091012: przelacznik oswietlania kabiny
+    TGauge ggCabLightDimButton; //hunter-091012: przelacznik przyciemnienia oswietlenia kabiny
 
 //NBMX wrzesien 2003 - obsluga drzwi
-    TGauge DoorLeftButtonGauge;
-    TGauge DoorRightButtonGauge;
-    TGauge DepartureSignalButtonGauge;
+    TGauge ggDoorLeftButton;
+    TGauge ggDoorRightButton;
+    TGauge ggDepartureSignalButton;
 
 //Winger 160204 - obsluga pantografow - ZROBIC
-    TGauge PantFrontButtonGauge;
-    TGauge PantRearButtonGauge;
-    TGauge PantFrontButtonOffGauge; //EZT
-    TGauge PantAllDownButtonGauge;
+    TGauge ggPantFrontButton;
+    TGauge ggPantRearButton;
+    TGauge ggPantFrontButtonOff; //EZT
+    TGauge ggPantAllDownButton;
 //Winger 020304 - wlacznik ogrzewania
-    TGauge TrainHeatingButtonGauge;
-    TGauge SignallingButtonGauge;
-    TGauge DoorSignallingButtonGauge;
+    TGauge ggTrainHeatingButton;
+    TGauge ggSignallingButton;
+    TGauge ggDoorSignallingButton;
 //    TModel3d *mdKabina; McZapkie-030303: to do dynobj
     TGauge ggDistCounter; //Ra 2014-07: licznik kilometrów
     TGauge ggVelocityDgt; //i od razu prêdkoœciomierz
