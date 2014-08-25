@@ -23,13 +23,19 @@ using namespace Timer;
 
 __fastcall TCab::TCab()
 {
-  CabPos1.x=-1.0; CabPos1.y=1.0; CabPos1.z=1.0;
-  CabPos2.x=1.0; CabPos2.y=1.0; CabPos2.z=-1.0;
-  bEnabled=false;
-  bOccupied=true;
-  dimm_r=dimm_g=dimm_b=1;
-  intlit_r=intlit_g=intlit_b=0;
-  intlitlow_r=intlitlow_g=intlitlow_b=0;
+ CabPos1.x=-1.0; CabPos1.y=1.0; CabPos1.z=1.0;
+ CabPos2.x=1.0; CabPos2.y=1.0; CabPos2.z=-1.0;
+ bEnabled=false;
+ bOccupied=true;
+ dimm_r=dimm_g=dimm_b=1;
+ intlit_r=intlit_g=intlit_b=0;
+ intlitlow_r=intlitlow_g=intlitlow_b=0;
+ iGaugesMax=100; //95 - trzeba pobieraæ to z pliku konfiguracyjnego
+ ggList=new TGauge[iGaugesMax];
+ iGauges=0; //na razie nie s¹ dodane
+ iButtonsMax=60; //55 - trzeba pobieraæ to z pliku konfiguracyjnego
+ btList=new TButton[iButtonsMax];
+ iButtons=0;
 }
 
 void __fastcall TCab::Init(double Initx1,double Inity1,double Initz1,double Initx2,double Inity2,double Initz2,bool InitEnabled,bool InitOccupied)
@@ -69,8 +75,30 @@ void __fastcall TCab::Load(TQueryParserComp *Parser)
 
 __fastcall TCab::~TCab()
 {
-}
+ delete[] ggList;
+ delete[] btList;
+};
 
+TGauge* __fastcall TCab::Gauge(int n)
+{//pobranie adresu obiektu aniomowanego ruchem
+ if (n<0)
+ {//rezerwacja wolnego
+  return ggList+iGauges++;
+ }
+ else if (n<iGauges)
+  return ggList+n;
+ return NULL;
+};
+TButton* __fastcall TCab::Button(int n)
+{//pobranie adresu obiektu animowanego wyborem 1 z 2
+ if (n<0)
+ {//rezerwacja wolnego
+  return btList+iButtons++;
+ }
+ else if (n<iButtons)
+  return btList+n;
+ return NULL;
+};
 
 __fastcall TTrain::TTrain()
 {
@@ -5127,7 +5155,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
    //SEKCJA WSKAZNIKOW
    else if (str==AnsiString("tachometer:")) //predkosciomierz wskazówkowy z szarpaniem
     VelocityGauge.Load(Parser,DynamicObject->mdKabina);
-   else if (str==AnsiString("tachometerb:")) //predkosciomierz wskazówkowy bez szarpania
+   else if (str==AnsiString("tachometern:")) //predkosciomierz wskazówkowy bez szarpania
    {//u¿ywa tej samej ga³ki, ale omija mechanizm losowania niedok³adnoœci
     VelocityGauge.Load(Parser,DynamicObject->mdKabina);
     fTachoTimer=-1.0; //wy³¹czenie mechanizmu szarpania

@@ -803,7 +803,7 @@ void __fastcall TWorld::OnKeyDown(int cKey)
   }
   else if (cKey==Global::Keys[k_EndSign])
   {//Ra 2014-07: zabrane z kabiny
-   TDynamicObject *tmp=Global::DynamicNearest();
+   TDynamicObject *tmp=Global::DynamicNearest(); //domyœlnie wyszukuje do 20m
    if (tmp)
    {
     int CouplNr=(LengthSquared3(tmp->HeadPosition()-Camera.Pos)>LengthSquared3(tmp->RearPosition()-Camera.Pos)?-1:1)*tmp->DirectionGet();
