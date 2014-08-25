@@ -440,13 +440,6 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
    //ABu: koniec rzucania
    //ABu011104: liczenie obrotow wozkow
    ABuBogies();
-   //McZapkie-050402: obracanie kolami
-/*
-   for (int i=0; i<iAnimatedAxles; i++)
-    if (smAnimatedWheel[i])
-     smAnimatedWheel[i]->SetRotate(float3(1,0,0),*pWheelAngle[i]);
-     //smAnimatedWheel[i]->SetRotate(float3(1,0,0),dWheelAngle[1]);
-*/
    //Mczapkie-100402: rysowanie lub nie - sprzegow
    //ABu-240105: Dodatkowy warunek: if (...).Render, zeby rysowal tylko jeden
    //z polaczonych sprzegow
@@ -1230,14 +1223,6 @@ __fastcall TDynamicObject::TDynamicObject()
  // DoorSpeedFactor[i]=random(150);
  // DoorSpeedFactor[i]=(DoorSpeedFactor[i]+100)/100;
  //}
- //iAnimatedAxles=0; //iloœæ obracanych osi
- //iAnimatedDoors=0;
-/* stare
- for (int i=0;i<MaxAnimatedAxles;i++)
-  smAnimatedWheel[i]=NULL;
-*/
- //for (int i=0;i<MaxAnimatedDoors;i++)
- // smAnimatedDoor[i]=NULL;
  mdModel=NULL;
  mdKabina=NULL;
  ReplacableSkinID[0]=0;
@@ -3396,7 +3381,8 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
           {//++iAnimatedAxles;
            pAnimations[i].smAnimated->WillBeAnimated(); //wy³¹czenie optymalizacji transformu
            pAnimations[i].yUpdate=UpdateAxle; //animacja osi
-           pAnimations[i].fMaxDist=50*50; //nie krêciæ w wiêkszej odleg³oœci
+           pAnimations[i].fMaxDist=50*MoverParameters->WheelDiameter; //nie krêciæ w wiêkszej odleg³oœci
+           pAnimations[i].fMaxDist*=pAnimations[i].fMaxDist; //do kwadratu
           }
          }
          //Ra: ustawianie indeksów osi
