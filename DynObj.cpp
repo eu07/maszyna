@@ -3382,7 +3382,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
            pAnimations[i].smAnimated->WillBeAnimated(); //wy³¹czenie optymalizacji transformu
            pAnimations[i].yUpdate=UpdateAxle; //animacja osi
            pAnimations[i].fMaxDist=50*MoverParameters->WheelDiameter; //nie krêciæ w wiêkszej odleg³oœci
-           pAnimations[i].fMaxDist*=pAnimations[i].fMaxDist; //do kwadratu
+           pAnimations[i].fMaxDist*=pAnimations[i].fMaxDist*MoverParameters->WheelDiameter; //50m do kwadratu, a œrednica do trzeciej
           }
          }
          //Ra: ustawianie indeksów osi
