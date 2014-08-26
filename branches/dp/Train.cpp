@@ -2300,19 +2300,17 @@ bool __fastcall TTrain::Update()
   tor=DynamicObject->GetTrack(); //McZapkie-180203
   //McZapkie: predkosc wyswietlana na tachometrze brana jest z obrotow kol
   float maxtacho=3;
-  float temp=abs(11.31*mvControlled->WheelDiameter*mvControlled->nrot);
-  if (fTachoTimer>=0.0)
-  {//dla ujemnej wartoœci nie skacze
+  fTachoVelocity=Min0R(fabs(11.31*mvControlled->WheelDiameter*mvControlled->nrot),mvControlled->Vmax*1.05);
+  {//skacze osobna zmienna
    float ff=floor(GlobalTime->mr); //skacze co sekunde - pol sekundy pomiar, pol sekundy ustawienie
    if (ff!=fTachoTimer)            //jesli w tej sekundzie nie zmienial
    {
-    if (temp>1)                  //jedzie
-     fTachoVelocity=temp+(2-random(3)+random(3))*0.5;
-    else fTachoVelocity=0;       //stoi
+    if (fTachoVelocity>1)                  //jedzie
+     fTachoVelocityJump=fTachoVelocity+(2-random(3)+random(3))*0.5;
+    else fTachoVelocityJump=0;       //stoi
      fTachoTimer=ff;              //juz zmienil
    }
   }
-  else fTachoVelocity=temp;
 
   if (fTachoVelocity>1) //McZapkie-270503: podkrecanie tachometru
   {
@@ -2886,7 +2884,7 @@ else
       }
      }
 }
-
+/*
 //McZapkie-240302    ggVelocity.UpdateValue(DynamicObject->GetVelocity());
     //fHaslerTimer+=dt;
     //if (fHaslerTimer>fHaslerTime)
@@ -2914,6 +2912,7 @@ else
      }
      //fHaslerTimer-=fHaslerTime; //1.2s (???)
     }
+*/
 //McZapkie-300302: zegarek
     if (ggClockMInd.SubModel)
      {
@@ -3664,11 +3663,11 @@ if ( mvControlled->Signalling==true )
      ggDoorSignallingButton.PutValue(mvControlled->DoorSignalling?1:0);
      ggDoorSignallingButton.Update();
     }
-    if (ggDistCounter.SubModel)
-    {//Ra 2014-07: licznik kilometrów
-     ggDistCounter.PutValue(mvControlled->DistCounter);
-     ggDistCounter.Update();
-    }
+    //if (ggDistCounter.SubModel)
+    //{//Ra 2014-07: licznik kilometrów
+    // ggDistCounter.PutValue(mvControlled->DistCounter);
+    // ggDistCounter.Update();
+    //}
     if ((((mvControlled->EngineType==ElectricSeriesMotor)&&(mvControlled->Mains==true)&&(mvControlled->ConvOvldFlag==false))||(mvControlled->ConverterFlag))&&(mvControlled->Heating==true))
      btLampkaOgrzewanieSkladu.TurnOn();
     else
@@ -4837,6 +4836,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
  Parser->First();
  str="";
  int cabindex=0;
+ TGauge *gg; //roboczy wsaŸnik na obiekt animuj¹cy ga³kê
  switch (NewCabNo)
  {//ustalenie numeru kabiny do wczytania
   case -1: cabindex=2; break;
@@ -4944,8 +4944,8 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     ggPantRearButton.Clear();
     ggPantFrontButtonOff.Clear();
     ggPantAllDownButton.Clear();
-    ggVelocity.Clear();
-    ggVelocity.Output(6); //Ra: prêdkoœæ na pin 43 - wyjœcie analogowe (to nie jest PWM)
+    //ggVelocity.Clear();
+    //ggVelocity.Output(6); //Ra: prêdkoœæ na pin 43 - wyjœcie analogowe (to nie jest PWM)
     ggI1.Clear();
     ggI1.Output((mvControlled->TrainType&(dt_EZT))?-1:5); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
     ggI2.Clear();
@@ -4964,7 +4964,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     ggZbS.Clear();
     //ggZbR.Clear();
 
-    ggVelocity_B.Clear();
+    //ggVelocity_B.Clear();
     ggI1_B.Clear();
     ggI2_B.Clear();
     ggI3_B.Clear();
@@ -5178,15 +5178,30 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
    else if (str==AnsiString("universal4:"))
     ggUniversal4Button.Load(Parser,DynamicObject->mdKabina,DynamicObject->mdModel);
    //SEKCJA WSKAZNIKOW
-   else if (str==AnsiString("tachometer:")) //predkosciomierz wskazówkowy z szarpaniem
-    ggVelocity.Load(Parser,DynamicObject->mdKabina);
-   else if (str==AnsiString("tachometern:")) //predkosciomierz wskazówkowy bez szarpania
-   {//u¿ywa tej samej ga³ki, ale omija mechanizm losowania niedok³adnoœci
-    ggVelocity.Load(Parser,DynamicObject->mdKabina);
-    fTachoTimer=-1.0; //wy³¹czenie mechanizmu szarpania
+   else if ((str==AnsiString("tachometer:"))||(str==AnsiString("tachometerb:")))
+   {//predkosciomierz wskazówkowy z szarpaniem
+    //ggVelocity.Load(Parser,DynamicObject->mdKabina);
+    gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
+    gg->Load(Parser,DynamicObject->mdKabina);
+    gg->AssignFloat(&fTachoVelocityJump);
+    //gg->Output(6); //Ra: prêdkoœæ na pin 43 - wyjœcie analogowe (to nie jest PWM)
    }
-   else if (str==AnsiString("tachometerd:")) //predkosciomierz cyfrowy
-    ggVelocityDgt.Load(Parser,DynamicObject->mdKabina);
+   else if (str==AnsiString("tachometern:"))
+   {//predkosciomierz wskazówkowy bez szarpania
+    //ggVelocity.Load(Parser,DynamicObject->mdKabina);
+    gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
+    gg->Load(Parser,DynamicObject->mdKabina);
+    gg->AssignFloat(&fTachoVelocity);
+    //gg->Output(6); //Ra: prêdkoœæ na pin 43 - wyjœcie analogowe (to nie jest PWM)
+   }
+   else if (str==AnsiString("tachometerd:"))
+   {//predkosciomierz cyfrowy
+    //ggVelocityDgt.Load(Parser,DynamicObject->mdKabina);
+    gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
+    gg->Load(Parser,DynamicObject->mdKabina);
+    gg->AssignFloat(&fTachoVelocity);
+    //gg->Output(6); //Ra: prêdkoœæ na pin 43 - wyjœcie analogowe (to nie jest PWM)
+   }
    else if (str==AnsiString("hvcurrent1:"))                    //1szy amperomierz
     ggI1.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("hvcurrent2:"))                    //2gi amperomierz
@@ -5198,7 +5213,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
    else if ((str==AnsiString("brakepress:"))||(str==AnsiString("brakepressb:")))
    {//manometr cylindrow hamulcowych //Ra 2014-08: przeniesione do TCab
     //ggCylHam.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
-    TGauge *gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
+    gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
     gg->Load(Parser,DynamicObject->mdKabina,NULL,0.1);
     gg->AssignDouble(&mvOccupied->BrakePress);
     //gg->Output(2); //Ra: sterowanie miernikiem: cylinder hamulcowy
@@ -5216,22 +5231,22 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
    else if (str==AnsiString("cntrlpress:"))
    {//manometr zbiornika kontrolnego/rorz¹du
     //ggZbR.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
-    TGauge *gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
+    gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
     gg->Load(Parser,DynamicObject->mdKabina,NULL,0.1);
     gg->AssignDouble(&mvControlled->PantPress);
    }
    else if ((str==AnsiString("compressor:"))||(str==AnsiString("compressorb:")))
    {//manometr sprezarki/zbiornika glownego
     //ggZbGl.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
-    TGauge *gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
+    gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
     gg->Load(Parser,DynamicObject->mdKabina,NULL,0.1);
     gg->AssignDouble(&mvOccupied->Compressor);
     //gg->Output(0); //Ra: sterowanie miernikiem: zbiornik g³ówny
    }
    //*************************************************************
    //Sekcja zdublowanych wskaznikow dla dwustronnych kabin
-   else if (str==AnsiString("tachometerb:"))                    //predkosciomierz
-    ggVelocity_B.Load(Parser,DynamicObject->mdKabina);
+   //else if (str==AnsiString("tachometerb:"))                    //predkosciomierz
+   // ggVelocity_B.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("hvcurrent1b:"))                    //1szy amperomierz
     ggI1_B.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("hvcurrent2b:"))                    //2gi amperomierz
@@ -5279,14 +5294,19 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     ggEnrot2m.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("enrot3m:"))
     ggEnrot3m.Load(Parser,DynamicObject->mdKabina);
-   else if (str==AnsiString("engageratio:")) //np. cisnienie sterownika przegla
+   else if (str==AnsiString("engageratio:")) //np. ciœnienie sterownika sprzêg³a
     ggEngageRatio.Load(Parser,DynamicObject->mdKabina);
-   else if (str==AnsiString("maingearstatus:")) //np. cisnienie sterownika skrzyni biegow
+   else if (str==AnsiString("maingearstatus:")) //np. ciœnienie sterownika skrzyni biegów
     ggMainGearStatus.Load(Parser,DynamicObject->mdKabina);
-   else if (str==AnsiString("ignitionkey:")) //np. cisnienie sterownika skrzyni biegow
+   else if (str==AnsiString("ignitionkey:")) //
     ggIgnitionKey.Load(Parser,DynamicObject->mdKabina);
-   else if (str==AnsiString("distcounter:")) //Ra 2014-07: licznik kilometrów
-    ggDistCounter.Load(Parser,DynamicObject->mdKabina);
+   else if (str==AnsiString("distcounter:"))
+   {//Ra 2014-07: licznik kilometrów
+    //ggDistCounter.Load(Parser,DynamicObject->mdKabina);
+    gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
+    gg->Load(Parser,DynamicObject->mdKabina,NULL,0.1);
+    gg->AssignDouble(&mvControlled->DistCounter);
+   }
    //SEKCJA LAMPEK
    else if (str==AnsiString("i-maxft:"))
     btLampkaMaxSila.Load(Parser,DynamicObject->mdKabina);
