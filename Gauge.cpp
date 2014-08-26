@@ -180,6 +180,45 @@ void __fastcall TGauge::Render()
 {
 };
 
+void __fastcall TGauge::AssignFloat(float* fValue)
+{
+ cDataType='f';
+ fData=fValue;
+};
+void __fastcall TGauge::AssignDouble(double* dValue)
+{
+ cDataType='d';
+ dData=dValue;
+};
+void __fastcall TGauge::AssignInt(int* iValue)
+{
+ cDataType='i';
+ iData=iValue;
+};
+void __fastcall TGauge::UpdateValue()
+{//ustawienie wartoœci docelowej z parametru
+ switch (cDataType)
+ {//to nie jest zbyt optymalne, mo¿na by zrobiæ osobne funkcje
+  case 'f':
+   fDesiredValue=(*fData)*fScale+fOffset;
+   if (iChannel>=0)
+    Console::ValueSet(iChannel,(*fData));
+  break;
+  case 'd':
+   fDesiredValue=(*dData)*fScale+fOffset;
+   if (iChannel>=0)
+    Console::ValueSet(iChannel,(*dData));
+  break;
+  case 'i':
+   fDesiredValue=(*iData)*fScale+fOffset;
+   if (iChannel>=0)
+    Console::ValueSet(iChannel,(*iData));
+  break;
+ }
+};
+
+
+
 //---------------------------------------------------------------------------
 
 #pragma package(smart_init)

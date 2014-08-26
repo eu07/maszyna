@@ -55,6 +55,7 @@ private:
 public:
  TGauge* __fastcall Gauge(int n=-1); //pobranie adresu obiektu
  TButton* __fastcall Button(int n=-1); //pobranie adresu obiektu
+ void __fastcall Update();
 };
 
 
@@ -95,26 +96,27 @@ public: //reszta mo¿e byæ publiczna
 
     //AnsiString asMessage;
 
-//McZapkie: definicje wskaznikow
+//McZapkie: definicje wskaŸników
+//Ra 2014-08: czêsciowo przeniesione do tablicy w TCab
     TGauge ggVelocity;
     TGauge ggI1;
     TGauge ggI2;
     TGauge ggI3;
     TGauge ggItotal;
-    TGauge ggCylHam;
-    TGauge ggPrzGl;
-    TGauge ggZbGl;
+    //TGauge ggCylHam;
+    //TGauge ggPrzGl;
+    //TGauge ggZbGl;
     TGauge ggZbS;
-    TGauge ggZbR;
+    //TGauge ggZbR;
     //ABu: zdublowane dla dwukierunkowych kabin
        TGauge ggVelocity_B;
        TGauge ggI1_B;
        TGauge ggI2_B;
        TGauge ggI3_B;
        TGauge ggItotal_B;
-       TGauge ggCylHam_B;
-       TGauge ggPrzGl_B;
-       TGauge ggZbGl_B;
+       //TGauge ggCylHam_B;
+       //TGauge ggPrzGl_B;
+       //TGauge ggZbGl_B;
     //******************************************
     TGauge ggClockSInd;
     TGauge ggClockMInd;
