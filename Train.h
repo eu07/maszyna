@@ -98,7 +98,7 @@ public: //reszta mo¿e byæ publiczna
 
 //McZapkie: definicje wskaŸników
 //Ra 2014-08: czêsciowo przeniesione do tablicy w TCab
-    TGauge ggVelocity;
+    //TGauge ggVelocity;
     TGauge ggI1;
     TGauge ggI2;
     TGauge ggI3;
@@ -109,7 +109,7 @@ public: //reszta mo¿e byæ publiczna
     TGauge ggZbS;
     //TGauge ggZbR;
     //ABu: zdublowane dla dwukierunkowych kabin
-       TGauge ggVelocity_B;
+       //TGauge ggVelocity_B;
        TGauge ggI1_B;
        TGauge ggI2_B;
        TGauge ggI3_B;
@@ -206,8 +206,8 @@ public: //reszta mo¿e byæ publiczna
     TGauge ggSignallingButton;
     TGauge ggDoorSignallingButton;
 //    TModel3d *mdKabina; McZapkie-030303: to do dynobj
-    TGauge ggDistCounter; //Ra 2014-07: licznik kilometrów
-    TGauge ggVelocityDgt; //i od razu prêdkoœciomierz
+    //TGauge ggDistCounter; //Ra 2014-07: licznik kilometrów
+    //TGauge ggVelocityDgt; //i od razu prêdkoœciomierz
 
     TButton btLampkaPoslizg;
     TButton btLampkaStyczn;
@@ -372,6 +372,7 @@ private:
     int keybrakecount;
 //McZapkie-240302 - przyda sie do tachometru
     float fTachoVelocity;
+    float fTachoVelocityJump; //ze skakaniem
     float fTachoTimer;
     float fTachoCount;
 //McZapkie: do syczenia
