@@ -29,6 +29,13 @@ private:
  double fScale; //wartoœæ koñcowa ("1")
  double fStepSize; //nie u¿ywane
  int iChannel; //kana³ analogowej komunikacji zwrotnej
+ char cDataType; //typ zmiennej parametru: f-float, d-double, i-int
+ union
+ {//wskaŸnik na parametr pokazywany przez animacjê
+  float* fData;
+  double* dData;
+  int* iData;
+ };
 public:
  __fastcall TGauge();
  __fastcall ~TGauge();
@@ -44,6 +51,10 @@ public:
  void __fastcall Update();
  void __fastcall Render();
  void __fastcall Output(int i=-1) {iChannel=i;}; //ustawienie kana³u analogowego komunikacji zwrotnej
+ void __fastcall AssignFloat(float* fValue);
+ void __fastcall AssignDouble(double* dValue);
+ void __fastcall AssignInt(int* iValue);
+ void __fastcall UpdateValue();
  TSubModel *SubModel; //McZapkie-310302: zeby mozna bylo sprawdzac czy zainicjowany poprawnie
 };
 

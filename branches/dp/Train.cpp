@@ -83,6 +83,7 @@ TGauge* __fastcall TCab::Gauge(int n)
 {//pobranie adresu obiektu aniomowanego ruchem
  if (n<0)
  {//rezerwacja wolnego
+  ggList[iGauges].Clear();
   return ggList+iGauges++;
  }
  else if (n<iGauges)
@@ -99,6 +100,21 @@ TButton* __fastcall TCab::Button(int n)
   return btList+n;
  return NULL;
 };
+
+void __fastcall TCab::Update()
+{//odczyt parametrów i ustawienie animacji submodelom
+ int i;
+ for (i=0;i<iGauges;++i)
+ {//animacje izometryczne
+  ggList[i].UpdateValue(); //odczyt parametru i przeliczenie na k¹t
+  ggList[i].Update(); //ustawienie animacji
+ }
+ for (i=0;i<iButtons;++i)
+ {//animacje dwustanowe
+  //btList[i].Update(); //odczyt parametru i wybór submodelu
+ }
+};
+
 
 __fastcall TTrain::TTrain()
 {
@@ -2909,6 +2925,9 @@ else
       ggClockHInd.Update();
      }
 
+    Cabine[iCabn].Update(); //nowy sposób ustawienia animacji
+/*
+//Ra 2014-08: to ma teraz dzia³aæ w obiekcie TCab
     if (ggCylHam.SubModel)
      {
       ggCylHam.UpdateValue(mvOccupied->BrakePress);
@@ -2929,11 +2948,13 @@ else
       ggPrzGl_B.UpdateValue(mvOccupied->PipePress);
       ggPrzGl_B.Update();
      }
+*/
     if (ggZbS.SubModel)
      {
       ggZbS.UpdateValue(mvOccupied->Handle->GetCP());
       ggZbS.Update();
      }
+/*
 // McZapkie! - zamiast pojemnosci cisnienie
     if (ggZbGl.SubModel)
      {
@@ -2950,6 +2971,7 @@ else
       ggZbGl_B.UpdateValue(mvOccupied->Compressor);
       ggZbGl_B.Update();
      }
+*/
 
     if (ggHVoltage.SubModel)
      {
@@ -4863,6 +4885,8 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
    else
     parse=true;
    //inicjacja kabiny
+   //Ra 2014-08: zmieniamy zasady - zamiast przypisywaæ submodel do istniej¹cych obiektów animuj¹cych
+   //bêdziemy teraz uaktywniaæ obiekty animuj¹ce z tablicy i podawaæ im submodel oraz wskaŸnik na parametr
    if (AnsiCompareStr(AnsiString("cab")+cabindex+AnsiString("model:"),str)==0)     //model kabiny
    {
     str=Parser->GetNextSymbol().LowerCase();
@@ -4930,23 +4954,24 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     //ggI3.Output(3); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
     ggItotal.Clear();
     ggItotal.Output((mvControlled->TrainType&(dt_EZT))?5:-1); //Ra: kana³u komunikacji zwrotnej
-    ggCylHam.Clear();
-    ggCylHam.Output(2); //Ra: sterowanie miernikiem: cylinder hamulcowy
-    ggPrzGl.Clear();
-    ggPrzGl.Output(1); //Ra: sterowanie miernikiem: przewód g³ówny
-    ggZbGl.Clear();
-    ggZbGl.Output(0); //Ra: sterowanie miernikiem: zbiornik g³ówny
+    //Ra 2014-08: przeniesione do TCab
+    //ggCylHam.Clear();
+    //ggCylHam.Output(2); //Ra: sterowanie miernikiem: cylinder hamulcowy
+    //ggPrzGl.Clear();
+    //ggPrzGl.Output(1); //Ra: sterowanie miernikiem: przewód g³ówny
+    //ggZbGl.Clear();
+    //ggZbGl.Output(0); //Ra: sterowanie miernikiem: zbiornik g³ówny
     ggZbS.Clear();
-    ggZbR.Clear();    
+    //ggZbR.Clear();
 
     ggVelocity_B.Clear();
     ggI1_B.Clear();
     ggI2_B.Clear();
     ggI3_B.Clear();
     ggItotal_B.Clear();
-    ggCylHam_B.Clear();
-    ggPrzGl_B.Clear();
-    ggZbGl_B.Clear();
+    //ggCylHam_B.Clear();
+    //ggPrzGl_B.Clear();
+    //ggZbGl_B.Clear();
 
     ggI1B.Clear();
     ggI2B.Clear();
@@ -5170,16 +5195,39 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     ggI3.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("hvcurrent:"))                     //amperomierz calkowitego pradu
     ggItotal.Load(Parser,DynamicObject->mdKabina);
-   else if (str==AnsiString("brakepress:"))                    //manometr cylindrow hamulcowych
-    ggCylHam.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
-   else if (str==AnsiString("pipepress:"))                     //manometr przewodu hamulcowego
-    ggPrzGl.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
+   else if ((str==AnsiString("brakepress:"))||(str==AnsiString("brakepressb:")))
+   {//manometr cylindrow hamulcowych //Ra 2014-08: przeniesione do TCab
+    //ggCylHam.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
+    TGauge *gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
+    gg->Load(Parser,DynamicObject->mdKabina,NULL,0.1);
+    gg->AssignDouble(&mvOccupied->BrakePress);
+    //gg->Output(2); //Ra: sterowanie miernikiem: cylinder hamulcowy
+   }
+   else if ((str==AnsiString("pipepress:"))||(str==AnsiString("pipepressb:")))
+   {//manometr przewodu hamulcowego
+    //ggPrzGl.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
+    TGauge *gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
+    gg->Load(Parser,DynamicObject->mdKabina,NULL,0.1);
+    gg->AssignDouble(&mvOccupied->PipePress);
+    //gg->Output(1); //Ra: sterowanie miernikiem: przewód g³ówny
+   }
    else if (str==AnsiString("limpipepress:"))                  //manometr zbiornika sterujacego zaworu maszynisty
     ggZbS.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
-   else if (str==AnsiString("cntrlpress:"))                    //manometr zbiornika kontrolnego/rorz¹du
-    ggZbR.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
-   else if (str==AnsiString("compressor:"))                    //manometr sprezarki/zbiornika glownego
-    ggZbGl.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
+   else if (str==AnsiString("cntrlpress:"))
+   {//manometr zbiornika kontrolnego/rorz¹du
+    //ggZbR.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
+    TGauge *gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
+    gg->Load(Parser,DynamicObject->mdKabina,NULL,0.1);
+    gg->AssignDouble(&mvControlled->PantPress);
+   }
+   else if ((str==AnsiString("compressor:"))||(str==AnsiString("compressorb:")))
+   {//manometr sprezarki/zbiornika glownego
+    //ggZbGl.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
+    TGauge *gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
+    gg->Load(Parser,DynamicObject->mdKabina,NULL,0.1);
+    gg->AssignDouble(&mvOccupied->Compressor);
+    //gg->Output(0); //Ra: sterowanie miernikiem: zbiornik g³ówny
+   }
    //*************************************************************
    //Sekcja zdublowanych wskaznikow dla dwustronnych kabin
    else if (str==AnsiString("tachometerb:"))                    //predkosciomierz
@@ -5192,12 +5240,12 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     ggI3_B.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("hvcurrentb:"))                     //amperomierz calkowitego pradu
     ggItotal_B.Load(Parser,DynamicObject->mdKabina);
-   else if (str==AnsiString("brakepressb:"))                    //manometr cylindrow hamulcowych
-    ggCylHam_B.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
-   else if (str==AnsiString("pipepressb:"))                     //manometr przewodu hamulcowego
-    ggPrzGl_B.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
-   else if (str==AnsiString("compressorb:"))                    //manometr sprezarki/zbiornika glownego
-    ggZbGl_B.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
+   //else if (str==AnsiString("brakepressb:"))                    //manometr cylindrow hamulcowych
+   // ggCylHam_B.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
+   //else if (str==AnsiString("pipepressb:"))                     //manometr przewodu hamulcowego
+   // ggPrzGl_B.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
+   //else if (str==AnsiString("compressorb:"))                    //manometr sprezarki/zbiornika glownego
+   // ggZbGl_B.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
    //*************************************************************
    //yB - dla drugiej sekcji
    else if (str==AnsiString("hvbcurrent1:"))                    //1szy amperomierz
