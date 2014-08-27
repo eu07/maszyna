@@ -3057,9 +3057,10 @@ bool __fastcall TController::UpdateSituation(double dt)
       if (TrainParams->CheckTrainLatency()<5.0)
        if (TrainParams->TTVmax>0.0)
         VelDesired=Min0R(VelDesired,TrainParams->TTVmax); //jesli nie spozniony to nie przekraczaæ rozkladowej
-     if (iDrivigFlags&moveGuardSignal)
-      if (VelDesired>0.0)
-       if (VelNext>0.0)
+     if (VelDesired>0.0)
+      if (VelNext>0.0)
+      {//jeœli mo¿na jechaæ, to odpaliæ dŸwiêk kierownika oraz zamkn¹æ drzwi w sk³adzie
+       if (iDrivigFlags&moveGuardSignal)
        {//komunikat od kierownika tu, bo musi byæ wolna droga i odczekany czas stania
         iDrivigFlags&=~moveGuardSignal; //tylko raz nadaæ
         tsGuardSignal->Stop();
@@ -3070,10 +3071,24 @@ bool __fastcall TController::UpdateSituation(double dt)
          tsGuardSignal->Play(1.0,0,!FreeFlyModeFlag,pVehicle->GetPosition()); //dla true jest g³oœniej
         else
          //if (iGuardRadio==iRadioChannel) //zgodnoœæ kana³u
-         if (!FreeFlyModeFlag) //obserwator musi byæ w œrodku pojazdu
+         //if (!FreeFlyModeFlag) //obserwator musi byæ w œrodku pojazdu (albo mo¿e mieæ radio przenoœne) - kierownik móg³by powtarzaæ przy braku reakcji
           if (SquareMagnitude(pVehicle->GetPosition()-Global::pCameraPosition)<2000*2000) //w odleg³oœci mniejszej ni¿ 2km
            tsGuardSignal->Play(1.0,0,true,pVehicle->GetPosition()); //dŸwiêk niby przez radio
        }
+       if (iDrivigFlags&moveDoorOpened) //jeœli drzwi otwarte
+        if (!mvOccupied->DoorOpenCtrl) //jeœli drzwi niesterowane przez maszynistê
+        {//zamykanie drzwi w sk³adzie wagonowym
+         TDynamicObject *p=pVehicles[0]; //pojazd na czole sk³adu
+         while (p)
+         {//zamykanie drzwi w pojazdach - flaga zezwolenia by³a by lepsza
+          p->MoverParameters->DoorLeft(false); //w lokomotywie mo¿na by nie zamykaæ...
+          p->MoverParameters->DoorRight(false);
+          p=p->Next(); //pojazd pod³¹czony z ty³u (patrz¹c od czo³a)
+         }
+         fActionTime=-1.5-0.1*random(10); //czekanie sekundê, mo¿e trochê d³u¿ej
+         iDrivigFlags&=~moveDoorOpened; //zosta³y zamkniête - nie wykonywaæ drugi raz
+        }
+      }
      if (mvOccupied->V==0.0) AbsAccS=fAccGravity; //Ra 2014-03: jesli sk³ad stoi, to dzia³a na niego sk³adowa styczna grawitacji
      else AbsAccS=iDirection*mvOccupied->AccS; //przyspieszenie chwilowe, liczone jako ró¿nica skierowanej prêdkoœci w czasie
      //if (mvOccupied->V<0.0) AbsAccS=-AbsAccS; //Ra 2014-03: to trzeba przemyœleæ
