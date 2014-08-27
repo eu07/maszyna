@@ -190,6 +190,7 @@ private: //Ra: ci¹g dalszy animacji, dopiero do ogarniêcia
  TSubModel *smBuforLewy[2];
  TSubModel *smBuforPrawy[2];
  TAnimValveGear *pValveGear;
+ vector3 vFloor; //pod³oga dla ³adunku
 public:
  TAnim *pants; //indeks obiektu animuj¹cego dla pantografu 0
  double NoVoltTime; //czas od utraty zasilania
