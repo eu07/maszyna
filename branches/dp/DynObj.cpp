@@ -418,6 +418,10 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
  //NBMX wrzesien, MC listopad: zuniwersalnione
  btnOn=false; //czy przywróciæ stan domyœlny po renderowaniu
 
+ if (mdLoad) //tymczasowo ³adunek na poziom pod³ogi
+  if (vFloor.z>0.0)
+   mdLoad->GetSMRoot()->SetTranslate(modelShake+vFloor);
+
  if (ObjSqrDist<160000) //gdy bli¿ej ni¿ 400m
  {
   for (int i=0;i<iAnimations;++i) //wykonanie kolejnych animacji
@@ -432,7 +436,7 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
    if (mdKabina)
     mdKabina->GetSMRoot()->SetTranslate(modelShake);
    if (mdLoad)
-    mdLoad->GetSMRoot()->SetTranslate(modelShake);
+    mdLoad->GetSMRoot()->SetTranslate(modelShake+vFloor);
    if (mdLowPolyInt)
     mdLowPolyInt->GetSMRoot()->SetTranslate(modelShake);
    if (mdPrzedsionek)
@@ -1644,6 +1648,7 @@ double __fastcall TDynamicObject::Init(
    if (Track->Event0) //a jest w tym torze event od stania
     RaAxleEvent(Track->Event0); //dodanie eventu stania do kolejki
  */
+ vFloor=vector3(0,0,MoverParameters->Dim.H>2.0?0.0:MoverParameters->Dim.H); //wektor pod³ogi dla niskich wagonów, przesuwa ³adunek
  return MoverParameters->Dim.L; //d³ugoœæ wiêksza od zera oznacza OK; 2mm docisku?
 }
 
