@@ -44,8 +44,8 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asRelease="14.8.1095.450";
-AnsiString Global::asVersion="Compilation 2014-08-18, release "+Global::asRelease+"."; //tutaj, bo wysy³any
+AnsiString Global::asRelease="14.9.1103.451";
+AnsiString Global::asVersion="Compilation 2014-09-03, release "+Global::asRelease+"."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 int Global::iScreenMode[12]={0,0,0,0,0,0,0,0,0,0,0,0}; //numer ekranu wyœwietlacza tekstowego
@@ -413,6 +413,8 @@ void __fastcall Global::ConfigParse(TQueryParserComp *qp,cParser *cp)
    iPause|=(GetNextSymbol().LowerCase()==AnsiString("yes"))?1:0;
   else if (str==AnsiString("lang"))
    asLang=GetNextSymbol(); //domyœlny jêzyk - http://tools.ietf.org/html/bcp47
+  else if (str==AnsiString("opengl")) //krok zmiany hamulca dla klawiszy [Num3] i [Num9]
+   fOpenGL=GetNextSymbol().ToDouble(); //wymuszenie wersji OpenGL
  }
  while (str!="endconfig"); //(!Parser->EndOfFile)
  //na koniec trochê zale¿noœci

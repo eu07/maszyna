@@ -42,7 +42,8 @@ enum TMovementStatus
  moveSwitchFound=0x4000, //na drodze skanowania do przodu jest rozjazd
  moveGuardSignal=0x8000, //sygna³ od kierownika (min¹³ czas postoju)
  moveVisibility=0x10000, //jazda na widocznoœæ po przejechaniu S1 na SBL
- moveDoorOpened=0x20000 //drzwi zosta³y otwarte - doliczyæ czas na zamkniêcie
+ moveDoorOpened=0x20000, //drzwi zosta³y otwarte - doliczyæ czas na zamkniêcie
+ movePushPull=0x40000 //zmiana czo³a przez zmianê kabiny - nie odczepiaæ przy zmianie kierunku
 };
 
 enum TStopReason

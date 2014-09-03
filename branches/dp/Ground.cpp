@@ -1854,10 +1854,12 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    {i=0;
     do
     {
-     parser->getTokens(3);
-     *parser >> TempVerts[i].Point.x >> TempVerts[i].Point.y >> TempVerts[i].Point.z;
-     parser->getTokens(3);
-     *parser >> TempVerts[i].Normal.x >> TempVerts[i].Normal.y >> TempVerts[i].Normal.z;
+     if (i<9999) //3333 trójk¹ty
+     {//liczba wierzcho³ków nie jest nieograniczona
+      parser->getTokens(3);
+      *parser >> TempVerts[i].Point.x >> TempVerts[i].Point.y >> TempVerts[i].Point.z;
+      parser->getTokens(3);
+      *parser >> TempVerts[i].Normal.x >> TempVerts[i].Normal.y >> TempVerts[i].Normal.z;
 /*
      str=Parser->GetNextSymbol().LowerCase();
      if (str==AnsiString("x"))
@@ -1883,22 +1885,25 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
      else
          TempVerts[i].tv=str.ToDouble();;
 */
-     parser->getTokens(2);
-     *parser >> TempVerts[i].tu >> TempVerts[i].tv;
+      parser->getTokens(2);
+      *parser >> TempVerts[i].tu >> TempVerts[i].tv;
 
 //    tf=Parser->GetNextSymbol().ToDouble();
    //          TempVerts[i].tu=tf;
      //        tf=Parser->GetNextSymbol().ToDouble();
        //      TempVerts[i].tv=tf;
 
-     TempVerts[i].Point.RotateZ(aRotate.z/180*M_PI);
-     TempVerts[i].Point.RotateX(aRotate.x/180*M_PI);
-     TempVerts[i].Point.RotateY(aRotate.y/180*M_PI);
-     TempVerts[i].Normal.RotateZ(aRotate.z/180*M_PI);
-     TempVerts[i].Normal.RotateX(aRotate.x/180*M_PI);
-     TempVerts[i].Normal.RotateY(aRotate.y/180*M_PI);
-     TempVerts[i].Point+=pOrigin;
-     tmp->pCenter+=TempVerts[i].Point;
+      TempVerts[i].Point.RotateZ(aRotate.z/180*M_PI);
+      TempVerts[i].Point.RotateX(aRotate.x/180*M_PI);
+      TempVerts[i].Point.RotateY(aRotate.y/180*M_PI);
+      TempVerts[i].Normal.RotateZ(aRotate.z/180*M_PI);
+      TempVerts[i].Normal.RotateX(aRotate.x/180*M_PI);
+      TempVerts[i].Normal.RotateY(aRotate.y/180*M_PI);
+      TempVerts[i].Point+=pOrigin;
+      tmp->pCenter+=TempVerts[i].Point;
+     }
+     else if (i==9999)
+      ErrorLog("Bad triangles: too many verices");
      i++;
      parser->getTokens();
      *parser >> token;
