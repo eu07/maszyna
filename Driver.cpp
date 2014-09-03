@@ -601,7 +601,7 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
          iDrivigFlags&=~moveLate; //przyjazd o czasie
         if (TrainParams->DirectionChange()) //jeœli "@" w rozk³adzie, to wykonanie dalszych komend
         {//wykonanie kolejnej komendy, nie dotyczy ostatniej stacji
-         if (mvOccupied->TrainType==dt_EZT)
+         if (iDrivigFlags&movePushPull) //SN61 ma siê te¿ nie ruszaæ, chyba ¿e ma wagony
          {iDrivigFlags|=moveStopHere; //EZT ma staæ przy peronie
           if (OrderNextGet()!=Change_direction)
           {OrderPush(Change_direction); //zmiana kierunku
@@ -1192,6 +1192,7 @@ bool __fastcall TController::CheckVehicles(TOrders user)
  fVelMax=-1; //ustalenie prêdkoœci dla sk³adu
  bool main=true; //czy jest g³ównym steruj¹cym
  iDrivigFlags|=moveOerlikons; //zak³adamy, ¿e s¹ same Oerlikony
+ //Ra 2014-09: ustawiæ moveMultiControl, jeœli wszystkie s¹ w ukrotnieniu (i skrajne maj¹ kabinê?)
  while (p)
  {//sprawdzanie, czy jest g³ównym steruj¹cym, ¿eby nie by³o konfliktu
   if (p->Mechanik) //jeœli ma obsadê
@@ -1278,6 +1279,11 @@ bool __fastcall TController::CheckVehicles(TOrders user)
        JumpToNextOrder(); //zmianê kierunku te¿ mo¿na olaæ, ale zmieniæ kierunek skanowania!
      }
    }
+  //Ra 2014-09: tymczasowo prymitywne ustawienie warunku pod k¹tem SN61
+  if ((mvOccupied->TrainType==dt_EZT)||(iVehicles==1))
+   iDrivigFlags|=movePushPull; //zmiana czo³a przez zmianê kabiny
+  else
+   iDrivigFlags&=~movePushPull; //zmiana czo³a przez manewry
  } //blok wykonywany, gdy aktywnie prowadzi
  return true;
 }
@@ -1464,7 +1470,7 @@ bool __fastcall TController::PrepareEngine()
  ReactionTime=PrepareTime;
  iDrivigFlags|=moveActive; //mo¿e skanowaæ sygna³y i reagowaæ na komendy
  //with Controlling do
- if (((mvControlling->EnginePowerSource.SourceType==CurrentCollector)||(mvOccupied->TrainType==dt_EZT)))
+ if (((mvControlling->EnginePowerSource.SourceType==CurrentCollector)/*||(mvOccupied->TrainType==dt_EZT)*/))
  {
   if (mvControlling->GetTrainsetVoltage()) //sprawdzanie, czy zasilanie jest mo¿e w innym cz³onie
   {
@@ -2484,10 +2490,12 @@ bool __fastcall TController::UpdateSituation(double dt)
      mvControlling->PantFront(true);
     if (mvOccupied->Vel>10) //opuszczenie przedniego po rozpêdzeniu siê
     {
-     if (mvControlling->EnginePowerSource.CollectorParameters.CollectorsNo>1) //o ile wiêcej ni¿ jeden
+     if (mvControlling->EnginePowerSource.CollectorParameters.CollectorsNo>1) //o ile jest wiêcej ni¿ jeden
       if (iDirection>=0) //jak jedzie w kierunku sprzêgu 0
+       //poczeaæ na podniesienie tylnego
        mvControlling->PantFront(false); //opuszcza od sprzêgu 0
       else
+       //poczeaæ na podniesienie przedniego
        mvControlling->PantRear(false); //opuszcza od sprzêgu 1
     }
    }
@@ -2894,7 +2902,7 @@ bool __fastcall TController::UpdateSituation(double dt)
        Activation(); //ustawienie zadanego wczeœniej kierunku i ewentualne przemieszczenie AI
        PrepareEngine();
        JumpToNextOrder(); //nastêpnie robimy, co jest do zrobienia (Shunt albo Obey_train)
-       if (OrderList[OrderPos]==Shunt) //jeœli dalej mamy manewry
+       if (OrderList[OrderPos]&(Shunt|Connect)) //jeœli dalej mamy manewry
         if ((iDrivigFlags&moveStopHere)==0) //o ile nie staæ w miejscu
         {//jechaæ od razu w przeciwn¹ stronê i nie tr¹biæ z tego tytu³u
          iDrivigFlags&=~moveStartHorn; //bez tr¹bienia przed ruszeniem
@@ -2951,7 +2959,7 @@ bool __fastcall TController::UpdateSituation(double dt)
       case cm_ShuntVelocity: //od wersji 357 Tm nie budzi wy³¹czonej lokomotywy
        if (!(OrderList[OrderPos]&~(Obey_train|Shunt))) //jedzie w dowolnym trybie albo Wait_for_orders
         PutCommand("ShuntVelocity",VelSignal,VelNext,NULL);
-       else if (OrderList[OrderPos]&Connect) //jeœli jest w trakcie ³¹czenia
+       else if (OrderList[OrderPos]&Connect) //jeœli jedzie w celu po³¹czenia
         SetVelocity(VelSignal,VelNext);
       break;
       case cm_Command: //komenda z komórki
@@ -2971,7 +2979,7 @@ bool __fastcall TController::UpdateSituation(double dt)
         //i dopiero wtedy zmieniæ kierunek jazdy, oczekuj¹c podania prêdkoœci >0.5
         iDirectionOrder=-iDirection; //zmiana kierunku jazdy
         OrderNext(Change_direction);
-        OrderPush(Shunt);
+        OrderPush(OrderList[OrderPos]); //od³o¿enie kontynuacji czynnoœci (Shunt albo Connect)
        }
       }
      double vel=mvOccupied->Vel; //prêdkoœæ w kierunku jazdy
@@ -3479,16 +3487,16 @@ void __fastcall TController::JumpToFirstOrder()
 
 void __fastcall TController::OrderCheck()
 {//reakcja na zmianê rozkazu
- if (OrderList[OrderPos]==Shunt)
-  CheckVehicles();
+ if (OrderList[OrderPos]&(Shunt|Connect|Obey_train))
+  CheckVehicles(); //sprawdziæ œwiat³a
  if (OrderList[OrderPos]==Obey_train)
- {CheckVehicles();
   iDrivigFlags|=moveStopPoint; //W4 s¹ widziane
- }
  else if (OrderList[OrderPos]==Change_direction)
   iDirectionOrder=-iDirection; //trzeba zmieniæ jawnie, bo siê nie domyœli
  else if (OrderList[OrderPos]==Disconnect)
   iVehicleCount=iVehicleCount<0?0:iVehicleCount; //odczepianie lokomotywy
+ else if (OrderList[OrderPos]==Connect)
+  iDrivigFlags&=~moveStopPoint; //podczas jazdy na po³¹czenie nie zwracaæ uwagi na W4
  else if (OrderList[OrderPos]==Wait_for_orders)
   OrdersClear(); //czyszczenie rozkazów i przeskok do zerowej pozycji
 }
@@ -3569,7 +3577,7 @@ void __fastcall TController::OrdersInit(double fVel)
    OrderPush(Shunt); //dla prêdkoœci 0.01 w³¹czamy jazdê manewrow¹
   else if (TrainParams?
    (TrainParams->TimeTable[1].StationWare.Pos("@")? //jeœli obrót na pierwszym przystanku
-   (mvOccupied->TrainType&(dt_EZT)? //SZT równie¿! SN61 zale¿nie od wagonów...
+   ((iDrivigFlags&movePushPull)? //SZT równie¿! SN61 zale¿nie od wagonów...
    (TrainParams->TimeTable[1].StationName==TrainParams->Relation1):false):false):true)
    OrderPush(Shunt); //a teraz start bêdzie w manewrowym, a tryb poci¹gowy w³¹czy W4
   else
@@ -3584,7 +3592,7 @@ void __fastcall TController::OrdersInit(double fVel)
     WriteLog(AnsiString(t->StationName)+" "+AnsiString((int)t->Ah)+":"+AnsiString((int)t->Am)+", "+AnsiString((int)t->Dh)+":"+AnsiString((int)t->Dm)+" "+AnsiString(t->StationWare));
    if (AnsiString(t->StationWare).Pos("@"))
    {//zmiana kierunku i dalsza jazda wg rozk³adu
-    if (mvOccupied->TrainType&(dt_EZT)) //SZT równie¿! SN61 zale¿nie od wagonów...
+    if (iDrivigFlags&movePushPull) //SZT równie¿! SN61 zale¿nie od wagonów...
     {//jeœli sk³ad zespolony, wystarczy zmieniæ kierunek jazdy
      OrderPush(Change_direction); //zmiana kierunku
     }
@@ -3811,7 +3819,7 @@ bool __fastcall TController::BackwardScan()
      if (scandist<0) scandist=0; //ujemnych nie ma po co wysy³aæ
      bool move=false; //czy AI w trybie manewerowym ma doci¹gn¹æ pod S1
      if (e->Command()==cm_SetVelocity)
-      if ((vmechmax==0.0)?(OrderCurrentGet()==Shunt):false)
+      if ((vmechmax==0.0)?(OrderCurrentGet()&(Shunt|Connect)):false)
        move=true; //AI w trybie manewerowym ma doci¹gn¹æ pod S1
       else
       {//
@@ -3837,7 +3845,7 @@ bool __fastcall TController::BackwardScan()
          return (vmechmax>0);
         }
       }
-     if (OrderCurrentGet()?OrderCurrentGet()==Shunt:true) //w Wait_for_orders te¿ widzi tarcze
+     if (OrderCurrentGet()?OrderCurrentGet()&(Shunt|Connect):true) //w Wait_for_orders te¿ widzi tarcze
      {//reakcja AI w trybie manewrowym dodatkowo na sygna³y manewrowe
       if (move?true:e->Command()==cm_ShuntVelocity)
       {//jeœli powy¿ej by³o SetVelocity 0 0, to doci¹gamy pod S1
@@ -3967,13 +3975,18 @@ void __fastcall TController::TakeControl(bool yes)
 
 void __fastcall TController::DirectionForward(bool forward)
 {//ustawienie jazdy do przodu dla true i do ty³u dla false (zale¿y od kabiny)
- while (DecSpeed()); //wy³¹czenie jazdy, inaczej siê mo¿e zawiesiæ
+ while (mvControlling->MainCtrlPos) //samo zapêtlenie DecSpeed() nie wystarcza
+  DecSpeed(true); //wymuszenie zerowania nastawnika jazdy, inaczej siê mo¿e zawiesiæ
  if (forward)
   while (mvOccupied->ActiveDir<=0)
    mvOccupied->DirectionForward(); //do przodu w obecnej kabinie
  else
   while (mvOccupied->ActiveDir>=0)
    mvOccupied->DirectionBackward(); //do ty³u w obecnej kabinie
+ if (mvOccupied->EngineType==DieselEngine) //specjalnie dla SN61
+  if (iDrivigFlags&moveActive) //jeœli by³ ju¿ odpalony
+   if (mvControlling->RList[mvControlling->MainCtrlPos].Mn==0)
+    mvControlling->IncMainCtrl(1); //¿eby nie zgas³
 };
 
 AnsiString __fastcall TController::Relation()

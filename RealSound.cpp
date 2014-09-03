@@ -111,7 +111,7 @@ void __fastcall TRealSound::Play(double Volume, int Looping, bool ListenerInside
    fPreviousDistance=fDistance; //to efektu Dopplera nie bêdzie
   }
   //McZapkie-010302 - babranie tylko z niezbyt odleglymi dŸwiêkami
-  if ((dSoundAtt==-1)||(fDistance<20.0*dS))
+  //if ((dSoundAtt==-1)||(fDistance<20.0*dS))
   {
 //   vol=2*Volume+1;
 //   if (vol<1) vol=1;
@@ -129,21 +129,21 @@ void __fastcall TRealSound::Play(double Volume, int Looping, bool ListenerInside
    if (!(stat&DSBSTATUS_PLAYING))
     pSound->Play(0,0,Looping);
   }
+/*
   else //wylacz dzwiek bo daleko
-  {
-/* Ra: stara wersja, ale podobno lepsza */
+  {//Ra 2014-09: oddalanie siê nie mo¿e byæ powodem do wy³¹czenie dŸwiêku
+// Ra: stara wersja, ale podobno lepsza
    pSound->GetStatus(&stat);
    if (stat&DSBSTATUS_PLAYING)
     pSound->Stop();
-//*/
-/* Ra: wy³¹czy³em, bo podobno jest gorzej ni¿ wczeœniej
+// Ra: wy³¹czy³em, bo podobno jest gorzej ni¿ wczeœniej
    //ZiomalCl: dŸwiêk po wy³¹czeniu sam siê nie w³¹czy, gdy wrócimy w rejon odtwarzania
    pSound->SetVolume(DSBVOLUME_MIN); //dlatego lepiej go wyciszyæ na czas oddalenia siê
    pSound->GetStatus(&stat);
    if (!(stat&DSBSTATUS_PLAYING))
     pSound->Play(0,0,Looping); //ZiomalCl: w³¹czenie odtwarzania rownie¿ i tu, gdy¿ jesli uruchamiamy dŸwiêk poza promieniem, nie uruchomi siê on w ogóle
-*/
   }
+*/
  }
 };
 

@@ -20,7 +20,7 @@ private:
  int iEventallFlag;
  int iSegment; //który segment toru jest u¿ywany (¿eby nie przeskakiwa³o po przestawieniu zwrotnicy pod taborem)
 public:
- double fOffsetH; //Ra: odleg³oœæ œrodka osi od osi toru (dla samochodów)
+ double fOffsetH; //Ra: odleg³oœæ œrodka osi od osi toru (dla samochodów) - u¿yæ do wê¿ykowania
  vector3 pPosition; //wspó³rzêdne XYZ w uk³adzie scenerii
  vector3 vAngles; //x:przechy³ka, y:pochylenie, z:kierunek w planie (w radianach)
  __fastcall TTrackFollower();

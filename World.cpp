@@ -193,8 +193,16 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
  //Ra: umieszczone w EU07.cpp jakoœ nie chce dzia³aæ
  while (glver.LastDelimiter(".")>glver.Pos("."))
   glver=glver.SubString(1,glver.LastDelimiter(".")-1); //obciêcie od drugiej kropki
- try {Global::fOpenGL=glver.ToDouble();} catch (...) {Global::fOpenGL=0.0;}
- Global::bOpenGL_1_5=(Global::fOpenGL>=1.5);
+ double ogl;
+ try {ogl=glver.ToDouble();} catch (...) {ogl=0.0;}
+ if (Global::fOpenGL>0.0) //jeœli by³a wpisane maksymalna wersja w EU07.INI
+ {if (ogl>0.0) //zak³adaj¹c, ¿e siê odczyta³o dobrze
+   if (ogl<Global::fOpenGL) //a karta oferuje ni¿sz¹ wersjê ni¿ wpisana
+    Global::fOpenGL=ogl; //to przyj¹c to z karty
+ }
+ else if (ogl<1.3) //sprzêtowa deompresja DDS zwykle wymaga 1.3
+  Error("Missed OpenGL 1.3+ drivers!"); //b³¹d np. gdy wersja 1.1, a nie ma wpisu w EU07.INI
+ Global::bOpenGL_1_5=(Global::fOpenGL>=1.5); //s¹ fragmentaryczne animacje VBO
 
  WriteLog("Supported extensions:");
  WriteLog((char*)glGetString(GL_EXTENSIONS));
@@ -1768,8 +1776,8 @@ bool __fastcall TWorld::Update()
         //OutText4=tmp->Mechanik->StopReasonText();
         //if (!OutText4.IsEmpty()) OutText4+="; "; //aby ³adniejszy odstêp by³
         //if (Controlled->Mechanik && (Controlled->Mechanik->AIControllFlag==AIdriver))
-        AnsiString flags="bwaccmlshhhoibsgv; "; //flagi AI (definicja w Driver.h)
-        for (int i=0,j=1;i<17;++i,j<<=1)
+        AnsiString flags="bwaccmlshhhoibsgvdp; "; //flagi AI (definicja w Driver.h)
+        for (int i=0,j=1;i<19;++i,j<<=1)
          if (tmp->Mechanik->DrivigFlags()&j) //jak bit ustawiony
           flags[i+1]^=0x20; //to zmiana na wielk¹ literê
         OutText4=flags;
@@ -2037,7 +2045,7 @@ bool __fastcall TWorld::Update()
       glColor3f(1.0f,1.0f,1.0f); //a, damy bia³ym
       glTranslatef(0.0f,0.0f,-0.50f);
       glRasterPos2f(-0.25f,0.20f);
-      OutText1=tmp->Mechanik->Relation();
+      OutText1=tmp->Mechanik->Relation()+" ("+tmp->Mechanik->Timetable()->TrainName+")";
       glPrint(Bezogonkow(OutText1,true).c_str());
       glRasterPos2f(-0.25f,0.19f);
       //glPrint("|============================|=======|=======|=====|");
