@@ -209,8 +209,10 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
  if (glewGetExtension("GL_ARB_vertex_buffer_object")) //czy jest VBO w karcie graficznej
  {
   if (AnsiString((char*)glGetString(GL_VENDOR)).Pos("Intel")) //wymuszenie tylko dla kart Intel
-  {Global::bUseVBO=true; //VBO w³¹czane tylko, jeœli jest obs³uga
+  {//karty Intel nie nadaj¹ siê do grafiki 3D, ale robimy wyj¹tek, bo to w koñcu symulator
    Global::iMultisampling=0; //to robi problemy na "Intel(R) HD Graphics Family" - czarny ekran
+   if (Global::fOpenGL>=1.4) //1.4 mia³o obs³ugê VBO, ale bez opcji modyfikacji fragmentu bufora
+    Global::bUseVBO=true; //VBO w³¹czane tylko, jeœli jest obs³uga oraz nie ustawiono ni¿szego numeru
   }
   if (Global::bUseVBO)
    WriteLog("Ra: The VBO is found and will be used.");
@@ -218,17 +220,17 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
    WriteLog("Ra: The VBO is found, but Display Lists are selected.");
  }
  else
- {WriteLog("Ra: No VBO found - Display Lists used. Upgrade drivers or buy a newer graphics card!");
+ {WriteLog("Ra: No VBO found - Display Lists used. Graphics card too old?");
   Global::bUseVBO=false; //mo¿e byæ w³¹czone parametrem w INI
  }
  if (Global::bDecompressDDS) //jeœli sprzêtowa (domyœlnie jest false)
-  WriteLog("DDS support at OpenGL level is disabled in INI file.");
+  WriteLog("DDS textures support at OpenGL level is disabled in INI file.");
  else
  {Global::bDecompressDDS=!glewGetExtension("GL_EXT_texture_compression_s3tc"); //czy obs³ugiwane?
   if (Global::bDecompressDDS) //czy jest obs³uga DDS w karcie graficznej
-   WriteLog("DDS format is not supported.");
+   WriteLog("DDS textures are not supported.");
   else //brak obs³ugi DDS - trzeba w³¹czyæ programow¹ dekompresjê
-   WriteLog("DDS texture format is supported.");
+   WriteLog("DDS textures are supported.");
  }
  if (Global::iMultisampling)
   WriteLog("Used multisampling of "+AnsiString(Global::iMultisampling)+" samples.");
