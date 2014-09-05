@@ -538,6 +538,7 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
 #if LOGSTOPS
        WriteLog(pVehicle->asName+" as "+TrainParams->TrainName+": at "+AnsiString(GlobalTime->hh)+":"+AnsiString(GlobalTime->mm)+" skipped "+asNextStop); //informacja
 #endif
+       fLastStopExpDist=mvOccupied->DistCounter+0.050f+0.001f*fLength; //przy jakim dystansie (stanie licznika) ma przesun¹æ na nastêpny postój
        TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,asNextStop.SubString(20,asNextStop.Length()));
        TrainParams->StationIndexInc(); //przejœcie do nastêpnej
        asNextStop=TrainParams->NextStop(); //pobranie kolejnego miejsca zatrzymania
@@ -592,7 +593,7 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
          if (p7&3) //¿eby jeszcze poczeka³ chwilê, zanim zamknie
           WaitingSet(10); //10 sekund (wzi¹æ z rozk³adu????)
         }
-       } 
+       }
        if (TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,asNextStop.SubString(20,asNextStop.Length())))
        {//to siê wykona tylko raz po zatrzymaniu na W4
         if (TrainParams->CheckTrainLatency()<0.0)
@@ -2050,6 +2051,10 @@ void __fastcall TController::SpeedSet()
     }
   break;
  }
+};
+
+void __fastcall TController::Doors(bool what)
+{//otwieranie/zamykanie drzwi w sk³adzie albo (tylko AI) EZT
 };
 
 void __fastcall TController::RecognizeCommand()
