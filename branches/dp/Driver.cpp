@@ -1312,8 +1312,10 @@ int __fastcall TController::OrderDirectionChange(int newdir,TMoverParameters *Ve
  {//jeœli prawie stoi, mo¿na zmieniæ kierunek, musi byæ wykonane dwukrotnie, bo za pierwszym razem daje na zero
   switch (newdir*Vehicle->CabNo)
   {//DirectionBackward() i DirectionForward() to zmiany wzglêdem kabiny
-   case -1: if (!Vehicle->DirectionBackward()) testd=0; break;
-   case  1: if (!Vehicle->DirectionForward()) testd=0; break;
+   case -1: //if (!Vehicle->DirectionBackward()) testd=0; break;
+    DirectionForward(false); break;
+   case  1: //if (!Vehicle->DirectionForward()) testd=0; break;
+    DirectionForward(true); break;
   }
   if (testd==0)
    VelforDriver=-1; //kierunek zosta³ zmieniony na ¿¹dany, mo¿na jechaæ
@@ -2978,8 +2980,9 @@ bool __fastcall TController::UpdateSituation(double dt)
         //aby w przypadku prêdkoœci 0.1 wyci¹gn¹æ najpierw sk³ad za sygnalizator
         //i dopiero wtedy zmieniæ kierunek jazdy, oczekuj¹c podania prêdkoœci >0.5
         iDirectionOrder=-iDirection; //zmiana kierunku jazdy
+        TOrders o=OrderList[OrderPos]; //co robi
         OrderNext(Change_direction);
-        OrderPush(OrderList[OrderPos]); //od³o¿enie kontynuacji czynnoœci (Shunt albo Connect)
+        OrderPush(o); //niech robi dalej (Shunt albo Connect)
        }
       }
      double vel=mvOccupied->Vel; //prêdkoœæ w kierunku jazdy
@@ -3532,6 +3535,8 @@ void __fastcall TController::OrderPush(TOrders NewOrder)
  if (OrderList[OrderTop]!=NewOrder) //jeœli jest to samo, to nie dodajemy
   OrderList[OrderTop++]=NewOrder; //dodanie rozkazu na stos
  //if (OrderTop<OrderPos) OrderTop=OrderPos;
+ if (OrderTop>=maxorders)
+  ErrorLog("Commands overflow: The program will now crash");
 #if LOGORDERS
  WriteLog("--> OrderPush");
  OrdersDump(); //normalnie nie ma po co tego wypisywaæ

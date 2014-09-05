@@ -31,7 +31,7 @@ Type
                         TTVmax:real;
                         Relation1,Relation2: string; //nazwy stacji danego odcinka
                         BrakeRatio: real;
-                        LocSeries: string;
+                        LocSeries: string; //seria (typ) pojazdu
                         LocLoad: real;
                         TimeTable: TMTable;
                         StationCount: integer; //iloœæ przystanków (0-techniczny)
@@ -249,6 +249,7 @@ begin
    ConversionError:=666;
    vActual:=-1;
    s:=scnpath+TrainName+'.txt';
+   //Ra 2014-09: ustaliæ zasady wyznaczenia pierwotnego pliku przy przesuniêtych rozk³adach (kolejny poci¹g dostaje numer +2) 
    assignfile(fin,s);
    s:='';
   {$I-}
@@ -276,7 +277,7 @@ begin
           s:=ReadWord(fin); {nazwa poci¹gu}
           //if LowerCase(s)<>ExtractFileName(TrainName) then {musi byæ taka sama, jak nazwa pliku}
            //ConversionError:=-7 {b³¹d niezgodnoœci}
-           //TrainName=s; //nadanie nazwy z pliku
+          TrainName:=s; //nadanie nazwy z pliku TXT (bez œcie¿ki do pliku)
           //else
            begin  {czytaj naglowek}
             repeat
