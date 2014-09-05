@@ -1763,34 +1763,7 @@ bool __fastcall TController::IncSpeed()
    return false;
  bool OK=true;
  if (iDrivigFlags&moveDoorOpened)
-  if ((mvOccupied->Vel==0.0)) //jeœli ma drzwi i stoi
-  {
-   if (mvOccupied->DoorOpenCtrl==1)
-   {//jeœli drzwi sterowane z kabiny
-    if (mvOccupied->DoorLeftOpened||mvOccupied->DoorRightOpened)
-    {//AI zamyka drzwi przed odjazdem
-     if (mvOccupied->DoorClosureWarning)
-      mvOccupied->DepartureSignal=true; //za³¹cenie bzyczka
-     mvOccupied->DoorLeft(false); //zamykanie drzwi
-     mvOccupied->DoorRight(false);
-     //Ra: trzeba by ustawiæ jakiœ czas oczekiwania na zamkniêcie siê drzwi
-     fActionTime=-1.5-0.1*random(10); //czekanie sekundê, mo¿e trochê d³u¿ej
-    }
-   }
-   else
-   {//jeœli nie, to zamykanie w sk³adzie wagonowym
-    TDynamicObject *p=pVehicles[0]; //pojazd na czole sk³adu
-    while (p)
-    {//zamykanie drzwi w pojazdach - flaga zezwolenia by³a by lepsza
-     p->MoverParameters->DoorLeft(false);
-     p->MoverParameters->DoorRight(false);
-     p=p->Next(); //pojazd pod³¹czony z ty³u (patrz¹c od czo³a)
-    }
-    //WaitingSet(5); //10 sekund tu to za d³ugo, opóŸnia odjazd o pó³ minuty
-    fActionTime=-1.5-0.1*random(10); //czekanie sekundê, mo¿e trochê d³u¿ej
-   }
-   iDrivigFlags&=~moveDoorOpened; //nie wykonywaæ drugi raz
-  }
+  Doors(false); //zamykanie drzwi - tutaj wykonuje tylko AI
  if (mvControlling->SlippingWheels)
   return false; //jak poœlizg, to nie przyspieszamy
  switch (mvOccupied->EngineType)
@@ -2055,6 +2028,39 @@ void __fastcall TController::SpeedSet()
 
 void __fastcall TController::Doors(bool what)
 {//otwieranie/zamykanie drzwi w sk³adzie albo (tylko AI) EZT
+ if (what)
+ {//otwarcie
+ }
+ else
+ {//zamykanie
+  if (mvOccupied->DoorOpenCtrl==1)
+  {//jeœli drzwi sterowane z kabiny
+   if (AIControllFlag)
+    if (mvOccupied->DoorLeftOpened||mvOccupied->DoorRightOpened)
+    {//AI zamyka drzwi przed odjazdem
+     if (mvOccupied->DoorClosureWarning)
+      mvOccupied->DepartureSignal=true; //za³¹cenie bzyczka
+     mvOccupied->DoorLeft(false); //zamykanie drzwi
+     mvOccupied->DoorRight(false);
+     //Ra: trzeba by ustawiæ jakiœ czas oczekiwania na zamkniêcie siê drzwi
+     fActionTime=-1.5-0.1*random(10); //czekanie sekundê, mo¿e trochê d³u¿ej
+     iDrivigFlags&=~moveDoorOpened; //nie wykonywaæ drugi raz
+    }
+  }
+  else
+  {//jeœli nie, to zamykanie w sk³adzie wagonowym
+   TDynamicObject *p=pVehicles[0]; //pojazd na czole sk³adu
+   while (p)
+   {//zamykanie drzwi w pojazdach - flaga zezwolenia by³a by lepsza
+    p->MoverParameters->DoorLeft(false); //w lokomotywie mo¿na by nie zamykaæ...
+    p->MoverParameters->DoorRight(false);
+    p=p->Next(); //pojazd pod³¹czony z ty³u (patrz¹c od czo³a)
+   }
+   //WaitingSet(5); //10 sekund tu to za d³ugo, opóŸnia odjazd o pó³ minuty
+   fActionTime=-1.5-0.1*random(10); //czekanie sekundê, mo¿e trochê d³u¿ej
+   iDrivigFlags&=~moveDoorOpened; //zosta³y zamkniête - nie wykonywaæ drugi raz
+  }
+ }
 };
 
 void __fastcall TController::RecognizeCommand()
@@ -2484,6 +2490,8 @@ bool __fastcall TController::UpdateSituation(double dt)
     mvControlling->bPantKurek3=true; //to mo¿na przestawiæ kurek na zasilanie pantografów z g³ównej pneumatyki
   if (mvOccupied->Vel>0.0)
   {//je¿eli jedzie
+   if (iDrivigFlags&moveDoorOpened) //jeœli drzwi otwarte
+    Doors(false);
    //przy prowadzeniu samochodu trzeba ka¿d¹ oœ odsuwaæ oddzielnie, inaczej kicha wychodzi
    if (mvOccupied->CategoryFlag&2) //jeœli samochód
     //if (fabs(mvOccupied->OffsetTrackH)<mvOccupied->Dim.W) //Ra: szerokoœæ drogi tu powinna byæ?
@@ -2499,11 +2507,15 @@ bool __fastcall TController::UpdateSituation(double dt)
     {
      if (mvControlling->EnginePowerSource.CollectorParameters.CollectorsNo>1) //o ile jest wiêcej ni¿ jeden
       if (iDirection>=0) //jak jedzie w kierunku sprzêgu 0
-       //poczeaæ na podniesienie tylnego
-       mvControlling->PantFront(false); //opuszcza od sprzêgu 0
+      {//poczekaæ na podniesienie tylnego
+       if (mvControlling->PantRearVolt!=0.0) //czy jest napiêcie zasilaj¹ce na tylnym?
+        mvControlling->PantFront(false); //opuszcza od sprzêgu 0
+      }
       else
-       //poczeaæ na podniesienie przedniego
-       mvControlling->PantRear(false); //opuszcza od sprzêgu 1
+      {//poczekaæ na podniesienie przedniego
+       if (mvControlling->PantFrontVolt!=0.0) //czy jest napiêcie zasilaj¹ce na przednim?
+        mvControlling->PantRear(false); //opuszcza od sprzêgu 1
+      }
     }
    }
   }
@@ -3093,17 +3105,7 @@ bool __fastcall TController::UpdateSituation(double dt)
        }
        if (iDrivigFlags&moveDoorOpened) //jeœli drzwi otwarte
         if (!mvOccupied->DoorOpenCtrl) //jeœli drzwi niesterowane przez maszynistê
-        {//zamykanie drzwi w sk³adzie wagonowym
-         TDynamicObject *p=pVehicles[0]; //pojazd na czole sk³adu
-         while (p)
-         {//zamykanie drzwi w pojazdach - flaga zezwolenia by³a by lepsza
-          p->MoverParameters->DoorLeft(false); //w lokomotywie mo¿na by nie zamykaæ...
-          p->MoverParameters->DoorRight(false);
-          p=p->Next(); //pojazd pod³¹czony z ty³u (patrz¹c od czo³a)
-         }
-         fActionTime=-1.5-0.1*random(10); //czekanie sekundê, mo¿e trochê d³u¿ej
-         iDrivigFlags&=~moveDoorOpened; //zosta³y zamkniête - nie wykonywaæ drugi raz
-        }
+         Doors(false); //a EZT zamknie dopiero po odegraniu komunikatu kierownika
       }
      if (mvOccupied->V==0.0) AbsAccS=fAccGravity; //Ra 2014-03: jesli sk³ad stoi, to dzia³a na niego sk³adowa styczna grawitacji
      else AbsAccS=iDirection*mvOccupied->AccS; //przyspieszenie chwilowe, liczone jako ró¿nica skierowanej prêdkoœci w czasie
