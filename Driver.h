@@ -231,6 +231,7 @@ private: //---//---//---//---// koniec zmiennych, poni¿ej metody //---//---//---
  bool __fastcall IncSpeed();
  bool __fastcall DecSpeed(bool force=false);
  void __fastcall SpeedSet();
+ void __fastcall Doors(bool what);
  void __fastcall RecognizeCommand(); //odczytuje komende przekazana lokomotywie
  void __fastcall Activation(); //umieszczenie obsady w odpowiednim cz³onie
  void __fastcall ControllingSet(); //znajduje cz³on do sterowania
