@@ -150,6 +150,7 @@ public: //parametry po³o¿enia pojazdu dostêpne publicznie
  TDynamicObject *PrevConnected; //pojazd pod³¹czony od strony sprzêgu 0 (kabina 1)
  int NextConnectedNo; //numer sprzêgu pod³¹czonego z ty³u
  int PrevConnectedNo; //numer sprzêgu pod³¹czonego z przodu
+ double fScanDist; //odleg³oœæ skanowania torów na obecnoœæ innych pojazdów 
 
 public: //modele sk³adowe pojazdu
  TModel3d *mdModel; //model pud³a
