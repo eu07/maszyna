@@ -583,7 +583,7 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
          TDynamicObject *p=pVehicles[0]; //pojazd na czole sk³adu
          while (p)
          {//otwieranie drzwi w pojazdach - flaga zezwolenia by³a by lepsza
-          lewe=(p->DirectionGet()*iDirection>0)?1:2; //jeœli jedzie do ty³u, to drzwi otwiera odwrotnie
+          lewe=(p->DirectionGet()>0)?1:2; //jeœli jedzie do ty³u, to drzwi otwiera odwrotnie
           prawe=3-lewe;
           p->MoverParameters->BatterySwitch(true); //wagony musz¹ mieæ bateriê za³¹czon¹ do otwarcia drzwi...
           if (p7&lewe) p->MoverParameters->DoorLeft(true);
