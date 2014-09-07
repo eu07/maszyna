@@ -1276,6 +1276,7 @@ __fastcall TDynamicObject::TDynamicObject()
  smBrakeSet=NULL; //nastawa hamulca (wajcha)
  smLoadSet=NULL; //nastawa ³adunku (wajcha)
  smWiper=NULL; //wycieraczka (poniek¹d te¿ wajcha)
+ fScanDist=300.0; //odleg³oœæ skanowania, zwiêkszana w trybie ³¹czenia
 }
 
 __fastcall TDynamicObject::~TDynamicObject()
@@ -2488,13 +2489,13 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
   //jeœli nie ma zwrotnicy po drodze, to tylko przeliczyæ odleg³oœæ?
   if (MoverParameters->V>0.03) //[m/s] jeœli jedzie do przodu (w kierunku Coupler 0)
   {if (MoverParameters->Couplers[0].CouplingFlag==ctrain_virtual) //brak pojazdu podpiêtego?
-   {ABuScanObjects(1,300); //szukanie czegoœ do pod³¹czenia
+   {ABuScanObjects(1,fScanDist); //szukanie czegoœ do pod³¹czenia
     //WriteLog(asName+" - block 0: "+AnsiString(fTrackBlock));
    }
   }
   else if (MoverParameters->V<-0.03) //[m/s] jeœli jedzie do ty³u (w kierunku Coupler 1)
    if (MoverParameters->Couplers[1].CouplingFlag==ctrain_virtual) //brak pojazdu podpiêtego?
-   {ABuScanObjects(-1,300);
+   {ABuScanObjects(-1,fScanDist);
     //WriteLog(asName+" - block 1: "+AnsiString(fTrackBlock));
    }
   CouplCounter=random(20); //ponowne sprawdzenie po losowym czasie
@@ -3388,6 +3389,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
            pAnimations[i].yUpdate=UpdateAxle; //animacja osi
            pAnimations[i].fMaxDist=50*MoverParameters->WheelDiameter; //nie krêciæ w wiêkszej odleg³oœci
            pAnimations[i].fMaxDist*=pAnimations[i].fMaxDist*MoverParameters->WheelDiameter; //50m do kwadratu, a œrednica do trzeciej
+           pAnimations[i].fMaxDist*=Global::fDistanceFactor; //wspó³czynnik przeliczeniowy jakoœci ekranu
           }
          }
          //Ra: ustawianie indeksów osi

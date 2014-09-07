@@ -205,7 +205,7 @@ private:
  int iDirection; //kierunek jazdy wzglêdem sprzêgów pojazdu, w którym siedzi AI (1=przód,-1=ty³)
  int iDirectionOrder; //¿adany kierunek jazdy (s³u¿y do zmiany kierunku)
  int iVehicleCount; //iloœæ pojazdów do od³¹czenia albo zabrania ze sk³adu (-1=wszystkie)
- int iCoupler; //maska sprzêgu, jak¹ nale¿y u¿yæ przy ³¹czeniu
+ int iCoupler; //maska sprzêgu, jak¹ nale¿y u¿yæ przy ³¹czeniu (po osi¹gniêciu trybu Connect), 0 gdy jazda bez ³¹czenia
  int iDriverFailCount; //licznik b³êdów AI
  bool Need_TryAgain; //true, jeœli druga pozycja w elektryku nie za³apa³a
  bool Need_BrakeRelease;
@@ -288,7 +288,7 @@ private: //Ra: stare funkcje skanuj¹ce, u¿ywane do szukania sygnalizatora z ty³u
  TEvent* __fastcall CheckTrackEventBackward(double fDirection,TTrack *Track);
  TTrack* __fastcall BackwardTraceRoute(double &fDistance,double &fDirection,TTrack *Track,TEvent*&Event);
  void __fastcall SetProximityVelocity(double dist,double vel,const vector3 *pos);
- bool __fastcall BackwardScan();
+ TCommandType __fastcall BackwardScan();
 public:
  void __fastcall PhysicsLog();
  AnsiString __fastcall StopReasonText();
