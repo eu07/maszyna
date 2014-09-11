@@ -25,7 +25,7 @@ __fastcall TGauge::TGauge()
  fOffset=0.0;
  fScale=1.0;
  fStepSize=5;
- iChannel=-1; //kana³ analogowej komunikacji zwrotnej
+ //iChannel=-1; //kana³ analogowej komunikacji zwrotnej
  SubModel=NULL;
 };
 
@@ -118,8 +118,8 @@ void __fastcall TGauge::DecValue(double fNewDesired)
 void __fastcall TGauge::UpdateValue(double fNewDesired)
 {//ustawienie wartoœci docelowej
  fDesiredValue=fNewDesired*fScale+fOffset;
- if (iChannel>=0)
-  Console::ValueSet(iChannel,fNewDesired);
+ //if (iChannel>=0)
+ // Console::ValueSet(iChannel,fNewDesired);
 };
 
 void __fastcall TGauge::PutValue(double fNewDesired)
@@ -201,18 +201,18 @@ void __fastcall TGauge::UpdateValue()
  {//to nie jest zbyt optymalne, mo¿na by zrobiæ osobne funkcje
   case 'f':
    fDesiredValue=(*fData)*fScale+fOffset;
-   if (iChannel>=0)
-    Console::ValueSet(iChannel,(*fData));
+   //if (iChannel>=0)
+   // Console::ValueSet(iChannel,(*fData));
   break;
   case 'd':
    fDesiredValue=(*dData)*fScale+fOffset;
-   if (iChannel>=0)
-    Console::ValueSet(iChannel,(*dData));
+   //if (iChannel>=0)
+   // Console::ValueSet(iChannel,(*dData));
   break;
   case 'i':
    fDesiredValue=(*iData)*fScale+fOffset;
-   if (iChannel>=0)
-    Console::ValueSet(iChannel,(*iData));
+   //if (iChannel>=0)
+   // Console::ValueSet(iChannel,(*iData));
   break;
  }
 };
