@@ -28,7 +28,7 @@ private:
  double fOffset; //wartoœæ pocz¹tkowa ("0")
  double fScale; //wartoœæ koñcowa ("1")
  double fStepSize; //nie u¿ywane
- int iChannel; //kana³ analogowej komunikacji zwrotnej
+ //int iChannel; //kana³ analogowej komunikacji zwrotnej; Ra 2014-09: nie ma to ju¿ sensu tutaj, lepiej bezpoœrednio z kabiny
  char cDataType; //typ zmiennej parametru: f-float, d-double, i-int
  union
  {//wskaŸnik na parametr pokazywany przez animacjê
@@ -50,7 +50,7 @@ public:
  float GetValue() {return fValue;};
  void __fastcall Update();
  void __fastcall Render();
- void __fastcall Output(int i=-1) {iChannel=i;}; //ustawienie kana³u analogowego komunikacji zwrotnej
+ //void __fastcall Output(int i=-1) {iChannel=i;}; //ustawienie kana³u analogowego komunikacji zwrotnej
  void __fastcall AssignFloat(float* fValue);
  void __fastcall AssignDouble(double* dValue);
  void __fastcall AssignInt(int* iValue);

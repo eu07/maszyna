@@ -1342,17 +1342,17 @@ void __fastcall TTrack::Compile(GLuint tex)
      vector3 p[4]; //punkty siê przydadz¹ do obliczeñ
      double a[4]; //k¹ty osi ulic wchodz¹cych
      p[0]=SwitchExtension->Segments[0]->GetDirection1(); //Point1 - pobranie wektorów kontrolnych
-     p[1]=SwitchExtension->Segments[1]->GetDirection2(); //Point4
+     p[1]=SwitchExtension->Segments[1]->GetDirection2(); //Point3 (bo zamienione)
      p[2]=SwitchExtension->Segments[0]->GetDirection2(); //Point2
-     p[3]=SwitchExtension->Segments[1]->GetDirection1(); //Point3
+     p[3]=SwitchExtension->Segments[1]->GetDirection1(); //Point4 (bo zamienione)
      a[0]=atan2(-p[0].x,p[0].z); // k¹ty stycznych osi dróg
      a[1]=atan2(-p[1].x,p[1].z);
      a[2]=atan2(-p[2].x,p[2].z);
      a[3]=atan2(-p[3].x,p[3].z);
      p[0]=SwitchExtension->Segments[0]->FastGetPoint_0(); //Point1 - pobranie wspó³rzêdnych koñców
-     p[1]=SwitchExtension->Segments[1]->FastGetPoint_1(); //Point4
+     p[1]=SwitchExtension->Segments[1]->FastGetPoint_1(); //Point3
      p[2]=SwitchExtension->Segments[0]->FastGetPoint_1(); //Point2
-     p[3]=SwitchExtension->Segments[1]->FastGetPoint_0(); //Point3 - przy trzech drogach pokrywa siê z Point1
+     p[3]=SwitchExtension->Segments[1]->FastGetPoint_0(); //Point4 - przy trzech drogach pokrywa siê z Point1
      //2014-07: na pocz¹tek rysowaæ brzegi jak dla ³uków
      //punkty brzegu nawierzchni uzyskujemy podczas renderowania boków (bez sensu, ale najszybciej by³o zrobiæ)
      int i=0,j; //ile punktów (mo¿e byc ró¿na iloœæ punktów miêdzy drogami)

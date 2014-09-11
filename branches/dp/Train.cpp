@@ -2293,14 +2293,15 @@ bool __fastcall TTrain::Update()
 {
  DWORD stat;
  double dt=Timer::GetDeltaTime();
-// mvOccupied->Hamulec->Releaser(0); //odluŸniacz rêczny
-// mvOccupied->BrakeReleaser(0);
+ //mvOccupied->Hamulec->Releaser(0); //odluŸniacz rêczny
+ //mvOccupied->BrakeReleaser(0);
  if (DynamicObject->mdKabina)
- {//Ra: TODO: odczyty klawiatury/pulpitu nie powinny byæ uzale¿nione od istnienia modelu kabiny 
+ {//Ra: TODO: odczyty klawiatury/pulpitu nie powinny byæ uzale¿nione od istnienia modelu kabiny
   tor=DynamicObject->GetTrack(); //McZapkie-180203
   //McZapkie: predkosc wyswietlana na tachometrze brana jest z obrotow kol
   float maxtacho=3;
   fTachoVelocity=Min0R(fabs(11.31*mvControlled->WheelDiameter*mvControlled->nrot),mvControlled->Vmax*1.05);
+  Console::ValueSet(6,fTachoVelocity); //wyprowadzenie na pulpit
   {//skacze osobna zmienna
    float ff=floor(GlobalTime->mr); //skacze co sekunde - pol sekundy pomiar, pol sekundy ustawienie
    if (ff!=fTachoTimer)            //jesli w tej sekundzie nie zmienial
@@ -2311,7 +2312,6 @@ bool __fastcall TTrain::Update()
      fTachoTimer=ff;              //juz zmienil
    }
   }
-
   if (fTachoVelocity>1) //McZapkie-270503: podkrecanie tachometru
   {
    if (fTachoCount<maxtacho)
@@ -2319,7 +2319,7 @@ bool __fastcall TTrain::Update()
   }
   else
    if (fTachoCount>0)
-    fTachoCount-=dt*0.66; //schodz powoli - niektore haslery to ze 4 sekundy potrafia stukac  
+    fTachoCount-=dt*0.66; //schodz powoli - niektore haslery to ze 4 sekundy potrafia stukac
 
 /* Ra: to by trzeba by³o przemyœleæ, zmienione na szybko problemy robi
   //McZapkie: predkosc wyswietlana na tachometrze brana jest z obrotow kol
@@ -2343,6 +2343,20 @@ bool __fastcall TTrain::Update()
    iSekunda=floor(GlobalTime->mr);
   }
 */
+
+  Console::ValueSet(0,mvOccupied->Compressor); //Ra: sterowanie miernikiem: zbiornik g³ówny
+  Console::ValueSet(1,mvOccupied->PipePress); //Ra: sterowanie miernikiem: przewód g³ówny
+  Console::ValueSet(2,mvOccupied->BrakePress); //Ra: sterowanie miernikiem: cylinder hamulcowy
+  //Ra 2014-09: problemem jest brak wartoœci abs() w fizyce, które by mo¿na by³o daæ na mierniki
+  //ggHVoltage.Output(3); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
+  //Console::ValueSet(3,); //woltomierz wysokiego napiêcia
+  //ggI2.Output(4);
+  //Console::ValueSet(4,); //Ra: sterowanie miernikiem: pierwszy amperomierz
+  //ggI1.Output((mvControlled->TrainType&(dt_EZT))?-1:5); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
+  //ggItotal.Output((mvControlled->TrainType&(dt_EZT))?5:-1); //Ra: kana³u komunikacji zwrotnej
+  //Console::ValueSet(5,(mvControlled->TrainType&dt_EZT)?:); //drugi amperomierz; dla EZT pr¹d ca³kowity
+  //ggVelocity.Output(6); //Ra: prêdkoœæ na pin 43 - wyjœcie analogowe (to nie jest PWM)
+  Console::ValueSet(6,fTachoVelocity); ////Ra: prêdkoœæ na pin 43 - wyjœcie analogowe (to nie jest PWM); skakanie zapewnia mechanika napêdu
 
   //hunter-080812: wyrzucanie szybkiego na elektrykach gdy nie ma napiecia przy dowolnym ustawieniu kierunkowego
   //Ra: to ju¿ jest w T_MoverParameters::TractionForce(), ale zale¿y od kierunku
@@ -4947,13 +4961,13 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     //ggVelocity.Clear();
     //ggVelocity.Output(6); //Ra: prêdkoœæ na pin 43 - wyjœcie analogowe (to nie jest PWM)
     ggI1.Clear();
-    ggI1.Output((mvControlled->TrainType&(dt_EZT))?-1:5); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
+    //ggI1.Output((mvControlled->TrainType&(dt_EZT))?-1:5); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
     ggI2.Clear();
-    ggI2.Output(4); //Ra: sterowanie miernikiem: drugi amperomierz
+    //ggI2.Output(4); //Ra: sterowanie miernikiem: drugi amperomierz
     ggI3.Clear();
     //ggI3.Output(3); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
     ggItotal.Clear();
-    ggItotal.Output((mvControlled->TrainType&(dt_EZT))?5:-1); //Ra: kana³u komunikacji zwrotnej
+    //ggItotal.Output((mvControlled->TrainType&(dt_EZT))?5:-1); //Ra: kana³u komunikacji zwrotnej
     //Ra 2014-08: przeniesione do TCab
     //ggCylHam.Clear();
     //ggCylHam.Output(2); //Ra: sterowanie miernikiem: cylinder hamulcowy
@@ -4983,7 +4997,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     ggClockHInd.Clear();
     ggEngineVoltage.Clear();
     ggHVoltage.Clear();
-    ggHVoltage.Output(3); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
+    //ggHVoltage.Output(3); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
     ggLVoltage.Clear();
     //ggLVoltage.Output(0); //Ra: sterowanie miernikiem: niskie napiêcie
     ggEnrot1m.Clear();
