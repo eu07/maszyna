@@ -2343,20 +2343,22 @@ bool __fastcall TTrain::Update()
    iSekunda=floor(GlobalTime->mr);
   }
 */
-
-  Console::ValueSet(0,mvOccupied->Compressor); //Ra: sterowanie miernikiem: zbiornik g³ówny
-  Console::ValueSet(1,mvOccupied->PipePress); //Ra: sterowanie miernikiem: przewód g³ówny
-  Console::ValueSet(2,mvOccupied->BrakePress); //Ra: sterowanie miernikiem: cylinder hamulcowy
-  //Ra 2014-09: problemem jest brak wartoœci abs() w fizyce, które by mo¿na by³o daæ na mierniki
-  //ggHVoltage.Output(3); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
-  //Console::ValueSet(3,); //woltomierz wysokiego napiêcia
-  //ggI2.Output(4);
-  //Console::ValueSet(4,); //Ra: sterowanie miernikiem: pierwszy amperomierz
-  //ggI1.Output((mvControlled->TrainType&(dt_EZT))?-1:5); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
-  //ggItotal.Output((mvControlled->TrainType&(dt_EZT))?5:-1); //Ra: kana³u komunikacji zwrotnej
-  //Console::ValueSet(5,(mvControlled->TrainType&dt_EZT)?:); //drugi amperomierz; dla EZT pr¹d ca³kowity
-  //ggVelocity.Output(6); //Ra: prêdkoœæ na pin 43 - wyjœcie analogowe (to nie jest PWM)
-  Console::ValueSet(6,fTachoVelocity); ////Ra: prêdkoœæ na pin 43 - wyjœcie analogowe (to nie jest PWM); skakanie zapewnia mechanika napêdu
+  if (Global::iFeedbackMode==4)
+  {//wykonywaæ tylko gdy wyprowadzone na pulpit
+   Console::ValueSet(0,mvOccupied->Compressor); //Ra: sterowanie miernikiem: zbiornik g³ówny
+   Console::ValueSet(1,mvOccupied->PipePress); //Ra: sterowanie miernikiem: przewód g³ówny
+   Console::ValueSet(2,mvOccupied->BrakePress); //Ra: sterowanie miernikiem: cylinder hamulcowy
+   //Ra 2014-09: problemem jest brak wartoœci abs() w fizyce, które by mo¿na by³o daæ na mierniki
+   //ggHVoltage.Output(3); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
+   //Console::ValueSet(3,); //woltomierz wysokiego napiêcia
+   //ggI2.Output(4);
+   //Console::ValueSet(4,); //Ra: sterowanie miernikiem: pierwszy amperomierz
+   //ggI1.Output((mvControlled->TrainType&(dt_EZT))?-1:5); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
+   //ggItotal.Output((mvControlled->TrainType&(dt_EZT))?5:-1); //Ra: kana³u komunikacji zwrotnej
+   //Console::ValueSet(5,(mvControlled->TrainType&dt_EZT)?:); //drugi amperomierz; dla EZT pr¹d ca³kowity
+   //ggVelocity.Output(6); //Ra: prêdkoœæ na pin 43 - wyjœcie analogowe (to nie jest PWM)
+   Console::ValueSet(6,fTachoVelocity); ////Ra: prêdkoœæ na pin 43 - wyjœcie analogowe (to nie jest PWM); skakanie zapewnia mechanika napêdu
+  }
 
   //hunter-080812: wyrzucanie szybkiego na elektrykach gdy nie ma napiecia przy dowolnym ustawieniu kierunkowego
   //Ra: to ju¿ jest w T_MoverParameters::TractionForce(), ale zale¿y od kierunku
