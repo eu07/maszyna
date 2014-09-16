@@ -29,9 +29,9 @@
 static const double fMaxOffset=0.1; //double(0.1f)==0.100000001490116
 //const int NextMask[4]={0,1,0,1}; //tor nastêpny dla stanów 0, 1, 2, 3
 //const int PrevMask[4]={0,0,1,1}; //tor poprzedni dla stanów 0, 1, 2, 3
-const int iLewo4[4]={5,3,4,6}; //segmenty do skrêcania w lewo
-const int iPrawo4[4]={-4,-6,-3,-5}; //segmenty do skrêcania w prawo
-const int iProsto4[4]={1,-1,2,-2}; //segmenty do jazdy prosto
+const int iLewo4[4]={5,3,4,6}; //segmenty (1..6) do skrêcania w lewo
+const int iPrawo4[4]={-4,-6,-3,-5}; //segmenty (1..6) do skrêcania w prawo
+const int iProsto4[4]={1,-1,2,-2}; //segmenty (1..6) do jazdy prosto
 const int iEnds4[13]={3,0,2,1,2,0,-1,1,3,2,0,3,1}; //numer s¹siedniego toru na koñcu segmentu "-1"
 const int iLewo3[4]={1,3,2,1}; //segmenty do skrêcania w lewo
 const int iPrawo3[4]={-2,-1,-3,-2}; //segmenty do skrêcania w prawo
