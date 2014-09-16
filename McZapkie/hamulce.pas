@@ -403,6 +403,36 @@ TYPE
         function GetPos(i: byte): real; override;
       end;
 
+{    FBS2= class(THandle)
+      private
+        CP, TP, RP: real;      //zbiornik steruj¹cy, czasowy, redukcyjny
+        XP: real;              //komora powietrzna w reduktorze — jest potrzebna do odwzorowania fali
+        RedAdj: real;          //dostosowanie reduktora cisnienia (krecenie kapturkiem)
+//        Sounds: array[0..4] of real;       //wielkosci przeplywow dla dzwiekow
+        Fala: boolean;
+      public
+        function GetPF(i_bcp:real; pp, hp, dt, ep: real): real; override;
+        procedure Init(press: real); override;
+        procedure SetReductor(nAdj: real); override;
+        function GetSound(i: byte): real; override;
+        function GetPos(i: byte): real; override;
+      end;                    }
+
+{    TD2= class(THandle)
+      private
+        CP, TP, RP: real;      //zbiornik steruj¹cy, czasowy, redukcyjny
+        XP: real;              //komora powietrzna w reduktorze — jest potrzebna do odwzorowania fali
+        RedAdj: real;          //dostosowanie reduktora cisnienia (krecenie kapturkiem)
+//        Sounds: array[0..4] of real;       //wielkosci przeplywow dla dzwiekow
+        Fala: boolean;
+      public
+        function GetPF(i_bcp:real; pp, hp, dt, ep: real): real; override;
+        procedure Init(press: real); override;
+        procedure SetReductor(nAdj: real); override;
+        function GetSound(i: byte): real; override;
+        function GetPos(i: byte): real; override;
+      end;}
+
     TM394= class(THandle)
       private
         CP: real;      //zbiornik steruj¹cy, czasowy, redukcyjny
