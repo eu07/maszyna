@@ -4674,7 +4674,7 @@ begin
     Vel:=Abs(V)*3.6; //prêdkoœæ w km/h
     nrot:=V2n(); //przeliczenie prêdkoœci liniowej na obrotow¹
 
-    if TestFlag(BrakeMethod,bp_MHS) and (PipePress<3.0) and (Vel>45) and (BrakeDelayFlag and bdelay_M) then //ustawione na sztywno na 3 bar
+    if TestFlag(BrakeMethod,bp_MHS) and (PipePress<3.0) and (Vel>45) and TestFlag(BrakeDelayFlag,bdelay_M) then //ustawione na sztywno na 3 bar
       FStand:=Fstand+{(RunningTrack.friction)*}TrackBrakeForce; //doliczenie hamowania hamulcem szynowym
                    //w charakterystykach jest wartoœæ si³y hamowania zamiast nacisku
 //    if(FullVer=true) then
