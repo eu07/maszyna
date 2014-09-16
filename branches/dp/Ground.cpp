@@ -1246,7 +1246,7 @@ void __fastcall TGround::Free()
 TGroundNode* __fastcall TGround::FindDynamic(AnsiString asNameToFind)
 {//wyszukanie pojazdu o podanej nazwie, na razie tylko pojazdy z obsad¹ s¹ interesuj¹ce
  for (TGroundNode *Current=nRootDynamic;Current;Current=Current->nNext)
-  if (Current->DynamicObject->Mechanik) //dostêp do pojazdów bez obsady nie jest na razie potrzebny
+//  if (Current->DynamicObject->Mechanik) //dostêp do pojazdów bez obsady nie jest na razie potrzebny
    if ((Current->asName==asNameToFind))
     return Current;
  return NULL;
@@ -4023,6 +4023,7 @@ bool __fastcall TGround::RenderAlphaVBO(vector3 pPosition)
 void __fastcall TGround::Navigate(String ClassName,UINT Msg,WPARAM wParam,LPARAM lParam)
 {//wys³anie komunikatu do steruj¹cego
  HWND h=FindWindow(ClassName.c_str(),0); //mo¿na by to zapamiêtaæ
+ if (h==0) h=FindWindow(0,ClassName.c_str()); //mo¿na by to zapamiêtaæ 
  SendMessage(h,Msg,wParam,lParam);
 };
 //--------------------------------
@@ -4068,18 +4069,34 @@ void __fastcall TGround::WyslijNamiary(TGroundNode* t)
  DaneRozkaz r;
  r.iSygn='EU07';
  r.iComm=7; //7 - dane pojazdu
- int i=9,j=t->asName.Length();
+ int i=23,j=t->asName.Length();
  r.iPar[ 0]=i; //iloœæ danych liczbowych
  r.fPar[ 1]=Global::fTimeAngleDeg/360.0; //aktualny czas (1.0=doba)
  r.fPar[ 2]=t->DynamicObject->MoverParameters->Loc.X; //pozycja X
  r.fPar[ 3]=t->DynamicObject->MoverParameters->Loc.Y; //pozycja Y
  r.fPar[ 4]=t->DynamicObject->MoverParameters->Loc.Z; //pozycja Z
  r.fPar[ 5]=t->DynamicObject->MoverParameters->V; //prêdkoœæ ruchu X
- r.fPar[ 6]=0; //prêdkoœæ ruchu Y
+ r.fPar[ 6]=t->DynamicObject->MoverParameters->nrot*M_PI*t->DynamicObject->MoverParameters->WheelDiameter; //prêdkoœæ obrotowa kó£
  r.fPar[ 7]=0; //prêdkoœæ ruchu Z
- r.fPar[ 8]=t->DynamicObject->MoverParameters->AccV; //przyspieszenie X
- //r.fPar[ 9]=0; //przyspieszenie Y //na razie nie
- //r.fPar[10]=0; //przyspieszenie Z
+ r.fPar[ 8]=t->DynamicObject->MoverParameters->AccS; //przyspieszenie X
+ r.fPar[ 9]=t->DynamicObject->MoverParameters->AccN; //przyspieszenie Y //na razie nie
+ r.fPar[10]=t->DynamicObject->MoverParameters->AccV; //przyspieszenie Z
+ r.fPar[11]=t->DynamicObject->MoverParameters->DistCounter; //przejechana odleg³oœæ w km
+ r.fPar[12]=t->DynamicObject->MoverParameters->PipePress; //ciœnienie w PG
+ r.fPar[13]=t->DynamicObject->MoverParameters->ScndPipePress; //ciœnienie w PZ
+ r.fPar[14]=t->DynamicObject->MoverParameters->BrakePress; //ciœnienie w CH
+ r.fPar[15]=t->DynamicObject->MoverParameters->Compressor; //ciœnienie w ZG
+ r.fPar[16]=t->DynamicObject->MoverParameters->Itot; //Pr¹d ca³kowity
+ r.iPar[17]=t->DynamicObject->MoverParameters->MainCtrlPos; //Pozycja NJ
+ r.iPar[18]=t->DynamicObject->MoverParameters->ScndCtrlPos; //Pozycja NB
+ r.iPar[19]=t->DynamicObject->MoverParameters->MainCtrlActualPos; //Pozycja jezdna
+ r.iPar[20]=t->DynamicObject->MoverParameters->ScndCtrlActualPos; //Pozycja bocznikowania
+ r.iPar[21]=t->DynamicObject->MoverParameters->ScndCtrlActualPos; //Pozycja bocznikowania
+ r.iPar[22]=t->DynamicObject->MoverParameters->ResistorsFlag*1+t->DynamicObject->MoverParameters->ConverterFlag*2+
+           +t->DynamicObject->MoverParameters->CompressorFlag*4+t->DynamicObject->MoverParameters->Mains*8+
+           +t->DynamicObject->MoverParameters->DoorLeftOpened*16+t->DynamicObject->MoverParameters->DoorRightOpened*32+
+           +t->DynamicObject->MoverParameters->FuseFlag*64+t->DynamicObject->MoverParameters->DepartureSignal*128;
+
  i<<=2; //iloœæ bajtów
  r.cString[i]=char(j); //na koñcu nazwa, ¿eby jakoœ zidentyfikowaæ
  strcpy(r.cString+i+1,t->asName.c_str()); //zakoñczony zerem
