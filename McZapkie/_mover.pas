@@ -2412,8 +2412,8 @@ end;
          begin
         LocBrakePress:=LocHandle.GetCP;
         for b:=0 to 1 do
-         if(TrainType=dt_ET41)and(Couplers[b].Connected<>nil)then
-          if(Couplers[b].Connected.TrainType=dt_ET41)and((Couplers[b].CouplingFlag and 36) = 36)then
+         if((TrainType and (dt_ET41 or dt_ET42))>0)and(Couplers[b].Connected<>nil)then //nie podoba mi siê to rozwi¹zanie, chyba trzeba dodaæ jakiœ wpis do fizyki na to
+          if((Couplers[b].Connected.TrainType and (dt_ET41 or dt_ET42))>0)and((Couplers[b].CouplingFlag and 36) = 36)then
            LocBrakePress:=Max0R(Couplers[b].Connected.LocHandle.GetCP,LocBrakePress);
         (Hamulec as TLSt).SetLBP(LocBrakePress);
        end;
@@ -2880,7 +2880,7 @@ begin
                  Delta:=SQR(Isf*Rz+Mn*fi*n-U)+4*U*Isf*Rz;
                  MotorCurrent:=(U-Isf*Rz-Mn*fi*n+SQRT(Delta))/(2*Rz)
                end*)
-            if (DynamicBrakeType=dbrake_switch) and (TrainType<>dt_ET42) then
+            if (DynamicBrakeType=dbrake_switch) and (TrainType=dt_ET42) then
              begin //z Megapacka
              Rz:=WindingRes+R;
              MotorCurrent:=-fi*n/Rz;  //{hamowanie silnikiem na oporach rozruchowych}
@@ -3747,7 +3747,10 @@ begin
       begin
        case RList[MainCtrlPos].Mn of
         0,1: nreg:=dizel_nmin;
-        2:   nreg:=dizel_nmax;
+        2:   if(dizel_automaticgearstatus=0)then
+              nreg:=dizel_nmax
+             else
+              nreg:=dizel_nmin;
         else realfill:=0; {sluczaj}
        end;
        if enrot>nreg then
@@ -4671,9 +4674,9 @@ begin
     Vel:=Abs(V)*3.6; //prêdkoœæ w km/h
     nrot:=V2n(); //przeliczenie prêdkoœci liniowej na obrotow¹
 
-    if TestFlag(BrakeMethod,bp_MHS) and (PipePress<3.0) and (Vel>45) then //ustawione na sztywno na 3 bar
-      FStand:=Fstand+(RunningTrack.friction)*TrackBrakeForce; //doliczenie hamowania hamulcem szynowym
-
+    if TestFlag(BrakeMethod,bp_MHS) and (PipePress<3.0) and (Vel>45) and (BrakeDelayFlag and bdelay_M) then //ustawione na sztywno na 3 bar
+      FStand:=Fstand+{(RunningTrack.friction)*}TrackBrakeForce; //doliczenie hamowania hamulcem szynowym
+                   //w charakterystykach jest wartoœæ si³y hamowania zamiast nacisku
 //    if(FullVer=true) then
 //    begin //ABu: to dla optymalizacji, bo chyba te rzeczy wystarczy sprawdzac 1 raz na klatke?
        LastSwitchingTime:=LastSwitchingTime+dt1;
