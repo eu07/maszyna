@@ -193,26 +193,16 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
  //Ra: umieszczone w EU07.cpp jakoœ nie chce dzia³aæ
  while (glver.LastDelimiter(".")>glver.Pos("."))
   glver=glver.SubString(1,glver.LastDelimiter(".")-1); //obciêcie od drugiej kropki
- double ogl;
- try {ogl=glver.ToDouble();} catch (...) {ogl=0.0;}
- if (Global::fOpenGL>0.0) //jeœli by³a wpisane maksymalna wersja w EU07.INI
- {if (ogl>0.0) //zak³adaj¹c, ¿e siê odczyta³o dobrze
-   if (ogl<Global::fOpenGL) //a karta oferuje ni¿sz¹ wersjê ni¿ wpisana
-    Global::fOpenGL=ogl; //to przyj¹c to z karty
- }
- else if (ogl<1.3) //sprzêtowa deompresja DDS zwykle wymaga 1.3
-  Error("Missed OpenGL 1.3+ drivers!"); //b³¹d np. gdy wersja 1.1, a nie ma wpisu w EU07.INI
- Global::bOpenGL_1_5=(Global::fOpenGL>=1.5); //s¹ fragmentaryczne animacje VBO
+ try {Global::fOpenGL=glver.ToDouble();} catch (...) {Global::fOpenGL=0.0;}
+ Global::bOpenGL_1_5=(Global::fOpenGL>=1.5);
 
  WriteLog("Supported extensions:");
  WriteLog((char*)glGetString(GL_EXTENSIONS));
  if (glewGetExtension("GL_ARB_vertex_buffer_object")) //czy jest VBO w karcie graficznej
  {
   if (AnsiString((char*)glGetString(GL_VENDOR)).Pos("Intel")) //wymuszenie tylko dla kart Intel
-  {//karty Intel nie nadaj¹ siê do grafiki 3D, ale robimy wyj¹tek, bo to w koñcu symulator
+  {Global::bUseVBO=true; //VBO w³¹czane tylko, jeœli jest obs³uga
    Global::iMultisampling=0; //to robi problemy na "Intel(R) HD Graphics Family" - czarny ekran
-   if (Global::fOpenGL>=1.4) //1.4 mia³o obs³ugê VBO, ale bez opcji modyfikacji fragmentu bufora
-    Global::bUseVBO=true; //VBO w³¹czane tylko, jeœli jest obs³uga oraz nie ustawiono ni¿szego numeru
   }
   if (Global::bUseVBO)
    WriteLog("Ra: The VBO is found and will be used.");
@@ -220,17 +210,17 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
    WriteLog("Ra: The VBO is found, but Display Lists are selected.");
  }
  else
- {WriteLog("Ra: No VBO found - Display Lists used. Graphics card too old?");
+ {WriteLog("Ra: No VBO found - Display Lists used. Upgrade drivers or buy a newer graphics card!");
   Global::bUseVBO=false; //mo¿e byæ w³¹czone parametrem w INI
  }
  if (Global::bDecompressDDS) //jeœli sprzêtowa (domyœlnie jest false)
-  WriteLog("DDS textures support at OpenGL level is disabled in INI file.");
+  WriteLog("DDS support at OpenGL level is disabled in INI file.");
  else
  {Global::bDecompressDDS=!glewGetExtension("GL_EXT_texture_compression_s3tc"); //czy obs³ugiwane?
   if (Global::bDecompressDDS) //czy jest obs³uga DDS w karcie graficznej
-   WriteLog("DDS textures are not supported.");
+   WriteLog("DDS format is not supported.");
   else //brak obs³ugi DDS - trzeba w³¹czyæ programow¹ dekompresjê
-   WriteLog("DDS textures are supported.");
+   WriteLog("DDS texture format is supported.");
  }
  if (Global::iMultisampling)
   WriteLog("Used multisampling of "+AnsiString(Global::iMultisampling)+" samples.");
@@ -813,7 +803,7 @@ void __fastcall TWorld::OnKeyDown(int cKey)
   }
   else if (cKey==Global::Keys[k_EndSign])
   {//Ra 2014-07: zabrane z kabiny
-   TDynamicObject *tmp=Global::DynamicNearest(); //domyœlnie wyszukuje do 20m
+   TDynamicObject *tmp=Global::DynamicNearest();
    if (tmp)
    {
     int CouplNr=(LengthSquared3(tmp->HeadPosition()-Camera.Pos)>LengthSquared3(tmp->RearPosition()-Camera.Pos)?-1:1)*tmp->DirectionGet();
@@ -1719,7 +1709,7 @@ bool __fastcall TWorld::Update()
        }
 
 //          OutText2+=AnsiString(", u:")+FloatToStrF(tmp->MoverParameters->u,ffFixed,3,3);
-//          OutText2+=AnsiString(", N:")+FloatToStrF((tmp->MoverParameters->BrakePress*tmp->MoverParameters->P2FTrans-tmp->MoverParameters->BrakeCylSpring)*tmp->MoverParameters->BrakeCylNo*tmp->MoverParameters->BrakeCylMult[0]-tmp->MoverParameters->BrakeSlckAdj,ffFixed,4,0);
+          OutText2+=AnsiString(", N:")+FloatToStrF(tmp->MoverParameters->Ntotal,ffFixed,4,0);
 //          OutText3= AnsiString("BP: ")+FloatToStrF(tmp->MoverParameters->BrakePress,ffFixed,5,2)+AnsiString(", ");
 //          OutText3+= AnsiString("PP: ")+FloatToStrF(tmp->MoverParameters->PipePress,ffFixed,5,2)+AnsiString(", ");
 //          OutText3+= AnsiString("BVP: ")+FloatToStrF(tmp->MoverParameters->Volume,ffFixed,5,3)+AnsiString(", ");
@@ -1778,8 +1768,8 @@ bool __fastcall TWorld::Update()
         //OutText4=tmp->Mechanik->StopReasonText();
         //if (!OutText4.IsEmpty()) OutText4+="; "; //aby ³adniejszy odstêp by³
         //if (Controlled->Mechanik && (Controlled->Mechanik->AIControllFlag==AIdriver))
-        AnsiString flags="bwaccmlshhhoibsgvdp; "; //flagi AI (definicja w Driver.h)
-        for (int i=0,j=1;i<19;++i,j<<=1)
+        AnsiString flags="bwaccmlshhhoibsgv; "; //flagi AI (definicja w Driver.h)
+        for (int i=0,j=1;i<17;++i,j<<=1)
          if (tmp->Mechanik->DrivigFlags()&j) //jak bit ustawiony
           flags[i+1]^=0x20; //to zmiana na wielk¹ literê
         OutText4=flags;
@@ -2047,7 +2037,7 @@ bool __fastcall TWorld::Update()
       glColor3f(1.0f,1.0f,1.0f); //a, damy bia³ym
       glTranslatef(0.0f,0.0f,-0.50f);
       glRasterPos2f(-0.25f,0.20f);
-      OutText1=tmp->Mechanik->Relation()+" ("+tmp->Mechanik->Timetable()->TrainName+")";
+      OutText1=tmp->Mechanik->Relation();
       glPrint(Bezogonkow(OutText1,true).c_str());
       glRasterPos2f(-0.25f,0.19f);
       //glPrint("|============================|=======|=======|=====|");
@@ -2066,7 +2056,7 @@ bool __fastcall TWorld::Update()
        //if (AnsiString(t->StationWare).Pos("@"))
        OutText1="| "+OutText1+" | "+OutText2+" | "+OutText3+" | "+OutText4+" | "+AnsiString(t->StationWare);
        glRasterPos2f(-0.25f,0.18f-0.02f*(i-tmp->Mechanik->iStationStart));
-       if ((tmp->Mechanik->iStationStart<tt->StationIndex)?(i<tt->StationIndex):false)
+       if ((tmp->Mechanik->iStationStart<tt->StationIndex)?(i<tt->StationIndex?floor(GlobalTime->mr)==floor(GlobalTime->mr+0.5):false):false)
        {//czas min¹³ i odjazd by³, to nazwa stacji bêdzie na zielono
         glColor3f(0.0f,1.0f,0.0f); //zielone
         glRasterPos2f(-0.25f,0.18f-0.02f*(i-tmp->Mechanik->iStationStart)); //dopiero ustawienie pozycji ustala kolor, dziwne...
@@ -2104,8 +2094,8 @@ bool __fastcall TWorld::Update()
     }
    }
   }
-  //if ((Global::iTextMode!=VK_F3))
-  {//stenogramy dŸwiêków (ukryæ, gdy tabelka skanowania lub rozk³ad?)
+  if ((Global::iTextMode!=VK_F3))
+  {//stenogramy dŸwiêków (ukryæ, gdy tabelka skanowania lub rozk³ad)
    glColor3f(1.0f,1.0f,0.0f); //¿ó³te
    for (int i=0;i<5;++i)
    {//kilka linijek
@@ -2411,6 +2401,9 @@ void __fastcall TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
     break;
    case 10: //badanie zajêtoœci jednego odcinka izolowanego
     Ground.IsolatedBusy(AnsiString(pRozkaz->cString+1,(unsigned)(pRozkaz->cString[0])));
+    break;
+   case 11: //ustawienie paerametrów ruchu pojazdu
+//    Ground.IsolatedBusy(AnsiString(pRozkaz->cString+1,(unsigned)(pRozkaz->cString[0])));
     break;
 
   }
