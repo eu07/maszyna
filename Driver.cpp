@@ -1248,7 +1248,7 @@ bool __fastcall TController::CheckVehicles(TOrders user)
 #endif
    }
    else if (OrderCurrentGet()&(Shunt|Connect))
-   {Lights(16,(pVehicles[1]->MoverParameters->ActiveCab)?1:0); //œwiat³a manewrowe (Tb1) na pojeŸdzie z napêdem
+   {Lights(16,(pVehicles[1]->MoverParameters->CabNo)?1:0); //œwiat³a manewrowe (Tb1) na pojeŸdzie z napêdem
     if (OrderCurrentGet()&Connect) //jeœli ³¹czenie, skanowaæ dalej
      pVehicles[0]->fScanDist=5000.0; //odleg³oœæ skanowania w poszukiwaniu innych pojazdów
    }
