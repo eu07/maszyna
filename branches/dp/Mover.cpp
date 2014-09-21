@@ -569,13 +569,19 @@ void __fastcall TMoverParameters::ConverterCheck()
 
 int __fastcall TMoverParameters::ShowCurrent(Byte AmpN)
 {//odczyt ampera¿u
- if (EngineType==ElectricInductionMotor)
-  switch (AmpN)
-  {//do asynchronicznych
-   case 1: return WindingRes*Mm/Vadd;
-   case 2: return dizel_fill*WindingRes;
-   default: return T_MoverParameters::ShowCurrent(AmpN);
-  }
- else
-  return T_MoverParameters::ShowCurrent(AmpN);
+ switch (EngineType)
+ {case ElectricInductionMotor:
+   switch (AmpN)
+   {//do asynchronicznych
+    case 1: return WindingRes*Mm/Vadd;
+    case 2: return dizel_fill*WindingRes;
+    default: return T_MoverParameters::ShowCurrent(AmpN);
+   }
+  break;
+  case DieselElectric:
+   return fabs(Im);
+  break;
+  default:
+   return T_MoverParameters::ShowCurrent(AmpN);
+ }
 };

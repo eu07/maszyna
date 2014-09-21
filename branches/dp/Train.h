@@ -99,10 +99,10 @@ public: //reszta mo¿e byæ publiczna
 //McZapkie: definicje wskaŸników
 //Ra 2014-08: czêsciowo przeniesione do tablicy w TCab
     //TGauge ggVelocity;
-    TGauge ggI1;
-    TGauge ggI2;
-    TGauge ggI3;
-    TGauge ggItotal;
+    //TGauge ggI1;
+    //TGauge ggI2;
+    //TGauge ggI3;
+    //TGauge ggItotal;
     //TGauge ggCylHam;
     //TGauge ggPrzGl;
     //TGauge ggZbGl;
@@ -110,10 +110,10 @@ public: //reszta mo¿e byæ publiczna
     //TGauge ggZbR;
     //ABu: zdublowane dla dwukierunkowych kabin
        //TGauge ggVelocity_B;
-       TGauge ggI1_B;
-       TGauge ggI2_B;
-       TGauge ggI3_B;
-       TGauge ggItotal_B;
+       //TGauge ggI1_B;
+       //TGauge ggI2_B;
+       //TGauge ggI3_B;
+       //TGauge ggItotal_B;
        //TGauge ggCylHam_B;
        //TGauge ggPrzGl_B;
        //TGauge ggZbGl_B;
@@ -121,7 +121,7 @@ public: //reszta mo¿e byæ publiczna
     TGauge ggClockSInd;
     TGauge ggClockMInd;
     TGauge ggClockHInd;
-    TGauge ggHVoltage;
+    //TGauge ggHVoltage;
     TGauge ggLVoltage;
     TGauge ggEnrot1m;
     TGauge ggEnrot2m;
@@ -130,7 +130,7 @@ public: //reszta mo¿e byæ publiczna
     TGauge ggMainGearStatus;
 
     TGauge ggEngineVoltage;
-    TGauge ggI1B;
+    TGauge ggI1B; //drugi cz³on w postaci jawnej
     TGauge ggI2B;
     TGauge ggI3B;
     TGauge ggItotalB;
@@ -375,6 +375,8 @@ private:
     float fTachoVelocityJump; //ze skakaniem
     float fTachoTimer;
     float fTachoCount;
+    float fHVoltage; //napiêcie dla dynamicznych ga³ek
+    float fHCurrent[4]; //pr¹dy: suma i amperomierze 1,2,3
 //McZapkie: do syczenia
     float fPPress,fNPress;
     float fSPPress,fSNPress;

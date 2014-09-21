@@ -2301,7 +2301,7 @@ bool __fastcall TTrain::Update()
   //McZapkie: predkosc wyswietlana na tachometrze brana jest z obrotow kol
   float maxtacho=3;
   fTachoVelocity=Min0R(fabs(11.31*mvControlled->WheelDiameter*mvControlled->nrot),mvControlled->Vmax*1.05);
-  Console::ValueSet(6,fTachoVelocity); //wyprowadzenie na pulpit
+  //Console::ValueSet(6,fTachoVelocity); //wyprowadzenie na pulpit
   {//skacze osobna zmienna
    float ff=floor(GlobalTime->mr); //skacze co sekunde - pol sekundy pomiar, pol sekundy ustawienie
    if (ff!=fTachoTimer)            //jesli w tej sekundzie nie zmienial
@@ -2343,19 +2343,42 @@ bool __fastcall TTrain::Update()
    iSekunda=floor(GlobalTime->mr);
   }
 */
+  //Ra 2014-09: napiêcia i pr¹dy musz¹ byæ ustalone najpierw, bo wysy³ane s¹ ewentualnie na PoKeys
+  if (mvControlled->EngineType!=DieselElectric) //Ra 2014-09: czy taki rozdzia³ ma sens?
+   fHVoltage=mvControlled->RunningTraction.TractionVoltage; //Winger czy to nie jest zle? *mvControlled->Mains);
+  else
+   fHVoltage=mvControlled->Voltage;
+  if (ShowNextCurrent)
+  {//jeœli pokazywaæ drugi cz³on
+   if (mvSecond)
+   {//o ile jest ten drugi
+    fHCurrent[0]=mvSecond->ShowCurrent(0)*1.05;
+    fHCurrent[1]=mvSecond->ShowCurrent(1)*1.05;
+    fHCurrent[2]=mvSecond->ShowCurrent(2)*1.05;
+    fHCurrent[3]=mvSecond->ShowCurrent(3)*1.05;
+   }
+   else
+    fHCurrent[0]=fHCurrent[1]=fHCurrent[2]=fHCurrent[3]=0.0; //gdy nie ma cz³ona
+  }
+  else
+  {//normalne pokazywanie
+   fHCurrent[0]=mvControlled->ShowCurrent(0);
+   fHCurrent[1]=mvControlled->ShowCurrent(1);
+   fHCurrent[2]=mvControlled->ShowCurrent(2);
+   fHCurrent[3]=mvControlled->ShowCurrent(3);
+  }
   if (Global::iFeedbackMode==4)
   {//wykonywaæ tylko gdy wyprowadzone na pulpit
    Console::ValueSet(0,mvOccupied->Compressor); //Ra: sterowanie miernikiem: zbiornik g³ówny
    Console::ValueSet(1,mvOccupied->PipePress); //Ra: sterowanie miernikiem: przewód g³ówny
    Console::ValueSet(2,mvOccupied->BrakePress); //Ra: sterowanie miernikiem: cylinder hamulcowy
-   //Ra 2014-09: problemem jest brak wartoœci abs() w fizyce, które by mo¿na by³o daæ na mierniki
    //ggHVoltage.Output(3); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
-   //Console::ValueSet(3,); //woltomierz wysokiego napiêcia
+   Console::ValueSet(3,fHVoltage); //woltomierz wysokiego napiêcia
    //ggI2.Output(4);
-   //Console::ValueSet(4,); //Ra: sterowanie miernikiem: pierwszy amperomierz
+   Console::ValueSet(4,fHCurrent[1]); //Ra: sterowanie miernikiem: pierwszy amperomierz
    //ggI1.Output((mvControlled->TrainType&(dt_EZT))?-1:5); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
    //ggItotal.Output((mvControlled->TrainType&(dt_EZT))?5:-1); //Ra: kana³u komunikacji zwrotnej
-   //Console::ValueSet(5,(mvControlled->TrainType&dt_EZT)?:); //drugi amperomierz; dla EZT pr¹d ca³kowity
+   Console::ValueSet(5,fHCurrent[(mvControlled->TrainType&dt_EZT)?2:0]); //drugi amperomierz; dla EZT pr¹d ca³kowity
    //ggVelocity.Output(6); //Ra: prêdkoœæ na pin 43 - wyjœcie analogowe (to nie jest PWM)
    Console::ValueSet(6,fTachoVelocity); ////Ra: prêdkoœæ na pin 43 - wyjœcie analogowe (to nie jest PWM); skakanie zapewnia mechanika napêdu
   }
@@ -2721,46 +2744,46 @@ bool __fastcall TTrain::Update()
 
 //McZapkie-030402: poprawione i uzupelnione amperomierze
 if (!ShowNextCurrent)
-{   if (ggI1.SubModel)
-     {
-      ggI1.UpdateValue(mvControlled->ShowCurrent(1));
-      ggI1.Update();
-     }
-    if (ggI2.SubModel)
-     {
-      ggI2.UpdateValue(mvControlled->ShowCurrent(2));
-      ggI2.Update();
-     }
-    if (ggI3.SubModel)
-     {
-      ggI3.UpdateValue(mvControlled->ShowCurrent(3));
-      ggI3.Update();
-     }
-    if (ggItotal.SubModel)
-     {
-      ggItotal.UpdateValue(mvControlled->ShowCurrent(0));
-      ggItotal.Update();
-     }
-     if (ggI1_B.SubModel)
-     {
-      ggI1_B.UpdateValue(mvControlled->ShowCurrent(1));
-      ggI1_B.Update();
-     }
-    if (ggI2_B.SubModel)
-     {
-      ggI2_B.UpdateValue(mvControlled->ShowCurrent(2));
-      ggI2_B.Update();
-     }
-    if (ggI3_B.SubModel)
-     {
-      ggI3_B.UpdateValue(mvControlled->ShowCurrent(3));
-      ggI3_B.Update();
-     }
-    if (ggItotal_B.SubModel)
-     {
-      ggItotal_B.UpdateValue(mvControlled->ShowCurrent(0));
-      ggItotal_B.Update();
-     }
+{   //if (ggI1.SubModel)
+    // {
+    //  ggI1.UpdateValue(mvControlled->ShowCurrent(1));
+    //  ggI1.Update();
+    // }
+    //if (ggI2.SubModel)
+    // {
+    //  ggI2.UpdateValue(mvControlled->ShowCurrent(2));
+    //  ggI2.Update();
+    // }
+    //if (ggI3.SubModel)
+    // {
+    //  ggI3.UpdateValue(mvControlled->ShowCurrent(3));
+    //  ggI3.Update();
+    // }
+    //if (ggItotal.SubModel)
+    // {
+    //  ggItotal.UpdateValue(mvControlled->ShowCurrent(0));
+    //  ggItotal.Update();
+    // }
+    // if (ggI1_B.SubModel)
+    // {
+    //  ggI1_B.UpdateValue(mvControlled->ShowCurrent(1));
+    //  ggI1_B.Update();
+    // }
+    //if (ggI2_B.SubModel)
+    // {
+    //  ggI2_B.UpdateValue(mvControlled->ShowCurrent(2));
+    //  ggI2_B.Update();
+    // }
+    //if (ggI3_B.SubModel)
+    // {
+    //  ggI3_B.UpdateValue(mvControlled->ShowCurrent(3));
+    //  ggI3_B.Update();
+    // }
+    //if (ggItotal_B.SubModel)
+    // {
+    //  ggItotal_B.UpdateValue(mvControlled->ShowCurrent(0));
+    //  ggItotal_B.Update();
+    // }
 }
 else
 {
@@ -2779,89 +2802,89 @@ else
 */
    if (mvSecond)
    {
-      if (ggI1.SubModel)
-      {
-         ggI1.UpdateValue(mvSecond->ShowCurrent(1)*1.05);
-         ggI1.Update();
-      }
-      if (ggI2.SubModel)
-      {
-         ggI2.UpdateValue(mvSecond->ShowCurrent(2)*1.05);
-         ggI2.Update();
-      }
-      if (ggI3.SubModel)
-      {
-         ggI3.UpdateValue(mvSecond->ShowCurrent(3)*1.05);
-         ggI3.Update();
-      }
-      if (ggItotal.SubModel)
-      {
-         ggItotal.UpdateValue(mvSecond->ShowCurrent(0)*1.05);
-         ggItotal.Update();
-      }
-      if (ggI1_B.SubModel)
-      {
-         ggI1_B.UpdateValue(mvSecond->ShowCurrent(1)*1.05);
-         ggI1_B.Update();
-      }
-      if (ggI2_B.SubModel)
-      {
-         ggI2_B.UpdateValue(mvSecond->ShowCurrent(2)*1.05);
-         ggI2_B.Update();
-      }
-      if (ggI3_B.SubModel)
-      {
-         ggI3_B.UpdateValue(mvSecond->ShowCurrent(3)*1.05);
-         ggI3_B.Update();
-      }
-      if (ggItotal_B.SubModel)
-      {
-         ggItotal_B.UpdateValue(mvSecond->ShowCurrent(0)*1.05);
-         ggItotal_B.Update();
-      }
+      //if (ggI1.SubModel)
+      //{
+      //   ggI1.UpdateValue(mvSecond->ShowCurrent(1)*1.05);
+      //   ggI1.Update();
+      //}
+      //if (ggI2.SubModel)
+      //{
+      //   ggI2.UpdateValue(mvSecond->ShowCurrent(2)*1.05);
+      //   ggI2.Update();
+      //}
+      //if (ggI3.SubModel)
+      //{
+      //   ggI3.UpdateValue(mvSecond->ShowCurrent(3)*1.05);
+      //   ggI3.Update();
+      //}
+      //if (ggItotal.SubModel)
+      //{
+      //   ggItotal.UpdateValue(mvSecond->ShowCurrent(0)*1.05);
+      //   ggItotal.Update();
+      //}
+      //if (ggI1_B.SubModel)
+      //{
+      //   ggI1_B.UpdateValue(mvSecond->ShowCurrent(1)*1.05);
+      //   ggI1_B.Update();
+      //}
+      //if (ggI2_B.SubModel)
+      //{
+      //   ggI2_B.UpdateValue(mvSecond->ShowCurrent(2)*1.05);
+      //   ggI2_B.Update();
+      //}
+      //if (ggI3_B.SubModel)
+      //{
+      //   ggI3_B.UpdateValue(mvSecond->ShowCurrent(3)*1.05);
+      //   ggI3_B.Update();
+      //}
+      //if (ggItotal_B.SubModel)
+      //{
+      //   ggItotal_B.UpdateValue(mvSecond->ShowCurrent(0)*1.05);
+      //   ggItotal_B.Update();
+      //}
    }
    else
    {
-      if (ggI1.SubModel)
-      {
-         ggI1.UpdateValue(0);
-         ggI1.Update();
-      }
-      if (ggI2.SubModel)
-      {
-         ggI2.UpdateValue(0);
-         ggI2.Update();
-      }
-      if (ggI3.SubModel)
-      {
-         ggI3.UpdateValue(0);
-         ggI3.Update();
-      }
-      if (ggItotal.SubModel)
-      {
-         ggItotal.UpdateValue(0);
-         ggItotal.Update();
-      }
-      if (ggI1_B.SubModel)
-      {
-         ggI1_B.UpdateValue(0);
-         ggI1_B.Update();
-      }
-      if (ggI2_B.SubModel)
-      {
-         ggI2_B.UpdateValue(0);
-         ggI2_B.Update();
-      }
-      if (ggI3_B.SubModel)
-      {
-         ggI3_B.UpdateValue(0);
-         ggI3_B.Update();
-      }
-      if (ggItotal_B.SubModel)
-      {
-         ggItotal_B.UpdateValue(0);
-         ggItotal_B.Update();
-      }
+      //if (ggI1.SubModel)
+      //{
+      //   ggI1.UpdateValue(0);
+      //   ggI1.Update();
+      //}
+      //if (ggI2.SubModel)
+      //{
+      //   ggI2.UpdateValue(0);
+      //   ggI2.Update();
+      //}
+      //if (ggI3.SubModel)
+      //{
+      //   ggI3.UpdateValue(0);
+      //   ggI3.Update();
+      //}
+      //if (ggItotal.SubModel)
+      //{
+      //   ggItotal.UpdateValue(0);
+      //   ggItotal.Update();
+      //}
+      //if (ggI1_B.SubModel)
+      //{
+      //   ggI1_B.UpdateValue(0);
+      //   ggI1_B.Update();
+      //}
+      //if (ggI2_B.SubModel)
+      //{
+      //   ggI2_B.UpdateValue(0);
+      //   ggI2_B.Update();
+      //}
+      //if (ggI3_B.SubModel)
+      //{
+      //   ggI3_B.UpdateValue(0);
+      //   ggI3_B.Update();
+      //}
+      //if (ggItotal_B.SubModel)
+      //{
+      //   ggItotal_B.UpdateValue(0);
+      //   ggItotal_B.Update();
+      //}
    }
 }
 
@@ -2988,14 +3011,14 @@ else
      }
 */
 
-    if (ggHVoltage.SubModel)
-     {
-      if (mvControlled->EngineType!=DieselElectric)
-        ggHVoltage.UpdateValue(mvControlled->RunningTraction.TractionVoltage); //Winger czy to nie jest zle? *mvControlled->Mains);
-      else
-        ggHVoltage.UpdateValue(mvControlled->Voltage);
-      ggHVoltage.Update();
-     }
+    //if (ggHVoltage.SubModel)
+    // {
+    //  if (mvControlled->EngineType!=DieselElectric)
+    //    ggHVoltage.UpdateValue(mvControlled->RunningTraction.TractionVoltage); //Winger czy to nie jest zle? *mvControlled->Mains);
+    //  else
+    //    ggHVoltage.UpdateValue(mvControlled->Voltage);
+    //  ggHVoltage.Update();
+    // }
 
 //youBy - napiecie na silnikach
     if (ggEngineVoltage.SubModel)
@@ -3036,21 +3059,21 @@ else
         ggEnrot2m.UpdateValue(mvControlled->ShowEngineRotation(2));
         ggEnrot2m.Update();
        }
-      if (ggI1.SubModel)
-       {
-        ggI1.UpdateValue(abs(mvControlled->Im));
-        ggI1.Update();
-       }
-      if (ggI2.SubModel)
-       {
-        ggI2.UpdateValue(abs(mvControlled->Im));
-        ggI2.Update();
-       }
-      if (ggHVoltage.SubModel)
-       {
-        ggHVoltage.UpdateValue(mvControlled->Voltage);
-        ggHVoltage.Update();
-       }
+      //if (ggI1.SubModel)
+      // {
+      //  ggI1.UpdateValue(abs(mvControlled->Im));
+      //  ggI1.Update();
+      // }
+      //if (ggI2.SubModel)
+      // {
+      //  ggI2.UpdateValue(abs(mvControlled->Im));
+      //  ggI2.Update();
+      // }
+      //if (ggHVoltage.SubModel)
+      // {
+      //  ggHVoltage.UpdateValue(mvControlled->Voltage);
+      //  ggHVoltage.Update();
+      // }
 
      }
 
@@ -4962,13 +4985,13 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     ggPantAllDownButton.Clear();
     //ggVelocity.Clear();
     //ggVelocity.Output(6); //Ra: prêdkoœæ na pin 43 - wyjœcie analogowe (to nie jest PWM)
-    ggI1.Clear();
+    //ggI1.Clear();
     //ggI1.Output((mvControlled->TrainType&(dt_EZT))?-1:5); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
-    ggI2.Clear();
+    //ggI2.Clear();
     //ggI2.Output(4); //Ra: sterowanie miernikiem: drugi amperomierz
-    ggI3.Clear();
+    //ggI3.Clear();
     //ggI3.Output(3); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
-    ggItotal.Clear();
+    //ggItotal.Clear();
     //ggItotal.Output((mvControlled->TrainType&(dt_EZT))?5:-1); //Ra: kana³u komunikacji zwrotnej
     //Ra 2014-08: przeniesione do TCab
     //ggCylHam.Clear();
@@ -4981,10 +5004,10 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     //ggZbR.Clear();
 
     //ggVelocity_B.Clear();
-    ggI1_B.Clear();
-    ggI2_B.Clear();
-    ggI3_B.Clear();
-    ggItotal_B.Clear();
+    //ggI1_B.Clear();
+    //ggI2_B.Clear();
+    //ggI3_B.Clear();
+    //ggItotal_B.Clear();
     //ggCylHam_B.Clear();
     //ggPrzGl_B.Clear();
     //ggZbGl_B.Clear();
@@ -4998,7 +5021,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     ggClockMInd.Clear();
     ggClockHInd.Clear();
     ggEngineVoltage.Clear();
-    ggHVoltage.Clear();
+    //ggHVoltage.Clear();
     //ggHVoltage.Output(3); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
     ggLVoltage.Clear();
     //ggLVoltage.Output(0); //Ra: sterowanie miernikiem: niskie napiêcie
@@ -5218,14 +5241,34 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     gg->AssignFloat(&fTachoVelocity);
     //gg->Output(6); //Ra: prêdkoœæ na pin 43 - wyjœcie analogowe (to nie jest PWM)
    }
-   else if (str==AnsiString("hvcurrent1:"))                    //1szy amperomierz
-    ggI1.Load(Parser,DynamicObject->mdKabina);
-   else if (str==AnsiString("hvcurrent2:"))                    //2gi amperomierz
-    ggI2.Load(Parser,DynamicObject->mdKabina);
-   else if (str==AnsiString("hvcurrent3:"))                    //3ci amperomierz
-    ggI3.Load(Parser,DynamicObject->mdKabina);
-   else if (str==AnsiString("hvcurrent:"))                     //amperomierz calkowitego pradu
-    ggItotal.Load(Parser,DynamicObject->mdKabina);
+   else if ((str==AnsiString("hvcurrent1:"))||(str==AnsiString("hvcurrent1b:")))
+   {//1szy amperomierz
+    //ggI1.Load(Parser,DynamicObject->mdKabina);
+    gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
+    gg->Load(Parser,DynamicObject->mdKabina);
+    gg->AssignFloat(fHCurrent+1);
+   }
+   else if ((str==AnsiString("hvcurrent2:"))||(str==AnsiString("hvcurrent2b:")))
+   {//2gi amperomierz
+    //ggI2.Load(Parser,DynamicObject->mdKabina);
+    gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
+    gg->Load(Parser,DynamicObject->mdKabina);
+    gg->AssignFloat(fHCurrent+2);
+   }
+   else if ((str==AnsiString("hvcurrent3:"))||(str==AnsiString("hvcurrent3b:")))
+   {//3ci amperomierz
+    //ggI3.Load(Parser,DynamicObject->mdKabina);
+    gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
+    gg->Load(Parser,DynamicObject->mdKabina);
+    gg->AssignFloat(fHCurrent+3);
+   }
+   else if ((str==AnsiString("hvcurrent:"))||(str==AnsiString("hvcurrentb:")))
+   {//amperomierz calkowitego pradu
+    //ggItotal.Load(Parser,DynamicObject->mdKabina);
+    gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
+    gg->Load(Parser,DynamicObject->mdKabina);
+    gg->AssignFloat(fHCurrent);
+   }
    else if ((str==AnsiString("brakepress:"))||(str==AnsiString("brakepressb:")))
    {//manometr cylindrow hamulcowych //Ra 2014-08: przeniesione do TCab
     //ggCylHam.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
@@ -5263,14 +5306,14 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
    //Sekcja zdublowanych wskaznikow dla dwustronnych kabin
    //else if (str==AnsiString("tachometerb:"))                    //predkosciomierz
    // ggVelocity_B.Load(Parser,DynamicObject->mdKabina);
-   else if (str==AnsiString("hvcurrent1b:"))                    //1szy amperomierz
-    ggI1_B.Load(Parser,DynamicObject->mdKabina);
-   else if (str==AnsiString("hvcurrent2b:"))                    //2gi amperomierz
-    ggI2_B.Load(Parser,DynamicObject->mdKabina);
-   else if (str==AnsiString("hvcurrent3b:"))                    //3ci amperomierz
-    ggI3_B.Load(Parser,DynamicObject->mdKabina);
-   else if (str==AnsiString("hvcurrentb:"))                     //amperomierz calkowitego pradu
-    ggItotal_B.Load(Parser,DynamicObject->mdKabina);
+   //else if (str==AnsiString("hvcurrent1b:"))                    //1szy amperomierz
+   // ggI1_B.Load(Parser,DynamicObject->mdKabina);
+   //else if (str==AnsiString("hvcurrent2b:"))                    //2gi amperomierz
+   // ggI2_B.Load(Parser,DynamicObject->mdKabina);
+   //else if (str==AnsiString("hvcurrent3b:"))                    //3ci amperomierz
+   // ggI3_B.Load(Parser,DynamicObject->mdKabina);
+   //else if (str==AnsiString("hvcurrentb:"))                     //amperomierz calkowitego pradu
+   // ggItotal_B.Load(Parser,DynamicObject->mdKabina);
    //else if (str==AnsiString("brakepressb:"))                    //manometr cylindrow hamulcowych
    // ggCylHam_B.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
    //else if (str==AnsiString("pipepressb:"))                     //manometr przewodu hamulcowego
@@ -5300,8 +5343,13 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
    }
    else if (str==AnsiString("evoltage:"))                    //woltomierz napiecia silnikow
     ggEngineVoltage.Load(Parser,DynamicObject->mdKabina);
-   else if (str==AnsiString("hvoltage:"))                    //woltomierz wysokiego napiecia
-    ggHVoltage.Load(Parser,DynamicObject->mdKabina);
+   else if (str==AnsiString("hvoltage:"))
+   {//woltomierz wysokiego napiecia
+    //ggHVoltage.Load(Parser,DynamicObject->mdKabina);
+    gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
+    gg->Load(Parser,DynamicObject->mdKabina);
+    gg->AssignFloat(&fHVoltage);
+   }
    else if (str==AnsiString("lvoltage:"))                    //woltomierz niskiego napiecia
     ggLVoltage.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("enrot1m:"))                    //obrotomierz
