@@ -2301,7 +2301,6 @@ bool __fastcall TTrain::Update()
   //McZapkie: predkosc wyswietlana na tachometrze brana jest z obrotow kol
   float maxtacho=3;
   fTachoVelocity=Min0R(fabs(11.31*mvControlled->WheelDiameter*mvControlled->nrot),mvControlled->Vmax*1.05);
-  //Console::ValueSet(6,fTachoVelocity); //wyprowadzenie na pulpit
   {//skacze osobna zmienna
    float ff=floor(GlobalTime->mr); //skacze co sekunde - pol sekundy pomiar, pol sekundy ustawienie
    if (ff!=fTachoTimer)            //jesli w tej sekundzie nie zmienial
@@ -2378,7 +2377,7 @@ bool __fastcall TTrain::Update()
    Console::ValueSet(4,fHCurrent[1]); //Ra: sterowanie miernikiem: pierwszy amperomierz
    //ggI1.Output((mvControlled->TrainType&(dt_EZT))?-1:5); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
    //ggItotal.Output((mvControlled->TrainType&(dt_EZT))?5:-1); //Ra: kana³u komunikacji zwrotnej
-   Console::ValueSet(5,fHCurrent[(mvControlled->TrainType&dt_EZT)?2:0]); //drugi amperomierz; dla EZT pr¹d ca³kowity
+   Console::ValueSet(5,fHCurrent[(mvControlled->TrainType&dt_EZT)?0:2]); //drugi amperomierz; dla EZT pr¹d ca³kowity
    //ggVelocity.Output(6); //Ra: prêdkoœæ na pin 43 - wyjœcie analogowe (to nie jest PWM)
    Console::ValueSet(6,fTachoVelocity); ////Ra: prêdkoœæ na pin 43 - wyjœcie analogowe (to nie jest PWM); skakanie zapewnia mechanika napêdu
   }
@@ -2742,152 +2741,6 @@ bool __fastcall TTrain::Update()
 
     // McZapkie! - koniec obslugi dzwiekow z mover.pas
 
-//McZapkie-030402: poprawione i uzupelnione amperomierze
-if (!ShowNextCurrent)
-{   //if (ggI1.SubModel)
-    // {
-    //  ggI1.UpdateValue(mvControlled->ShowCurrent(1));
-    //  ggI1.Update();
-    // }
-    //if (ggI2.SubModel)
-    // {
-    //  ggI2.UpdateValue(mvControlled->ShowCurrent(2));
-    //  ggI2.Update();
-    // }
-    //if (ggI3.SubModel)
-    // {
-    //  ggI3.UpdateValue(mvControlled->ShowCurrent(3));
-    //  ggI3.Update();
-    // }
-    //if (ggItotal.SubModel)
-    // {
-    //  ggItotal.UpdateValue(mvControlled->ShowCurrent(0));
-    //  ggItotal.Update();
-    // }
-    // if (ggI1_B.SubModel)
-    // {
-    //  ggI1_B.UpdateValue(mvControlled->ShowCurrent(1));
-    //  ggI1_B.Update();
-    // }
-    //if (ggI2_B.SubModel)
-    // {
-    //  ggI2_B.UpdateValue(mvControlled->ShowCurrent(2));
-    //  ggI2_B.Update();
-    // }
-    //if (ggI3_B.SubModel)
-    // {
-    //  ggI3_B.UpdateValue(mvControlled->ShowCurrent(3));
-    //  ggI3_B.Update();
-    // }
-    //if (ggItotal_B.SubModel)
-    // {
-    //  ggItotal_B.UpdateValue(mvControlled->ShowCurrent(0));
-    //  ggItotal_B.Update();
-    // }
-}
-else
-{
-/* Ra 2014-07: ju¿ nie szukamy, bo mamy wskaŸnik od zmiany pojazdu
-   //ABu 100205: prad w nastepnej lokomotywie, przycisk w ET41
-   TDynamicObject *tmp; //Ra: bez sensu to ustalaæ w ka¿dej klatce...
-   tmp=NULL;
-   if (DynamicObject->NextConnected) //pojazd od strony sprzêgu 1
-      if ((DynamicObject->NextConnected->MoverParameters->TrainType==dt_ET41)
-         && TestFlag(mvControlled->Couplers[1].CouplingFlag,ctrain_controll))
-         tmp=DynamicObject->NextConnected;
-   if (DynamicObject->PrevConnected) //pojazd od strony sprzêgu 0
-      if ((DynamicObject->PrevConnected->MoverParameters->TrainType==dt_ET41)
-         && TestFlag(mvControlled->Couplers[0].CouplingFlag,ctrain_controll))
-         tmp=DynamicObject->PrevConnected;
-*/
-   if (mvSecond)
-   {
-      //if (ggI1.SubModel)
-      //{
-      //   ggI1.UpdateValue(mvSecond->ShowCurrent(1)*1.05);
-      //   ggI1.Update();
-      //}
-      //if (ggI2.SubModel)
-      //{
-      //   ggI2.UpdateValue(mvSecond->ShowCurrent(2)*1.05);
-      //   ggI2.Update();
-      //}
-      //if (ggI3.SubModel)
-      //{
-      //   ggI3.UpdateValue(mvSecond->ShowCurrent(3)*1.05);
-      //   ggI3.Update();
-      //}
-      //if (ggItotal.SubModel)
-      //{
-      //   ggItotal.UpdateValue(mvSecond->ShowCurrent(0)*1.05);
-      //   ggItotal.Update();
-      //}
-      //if (ggI1_B.SubModel)
-      //{
-      //   ggI1_B.UpdateValue(mvSecond->ShowCurrent(1)*1.05);
-      //   ggI1_B.Update();
-      //}
-      //if (ggI2_B.SubModel)
-      //{
-      //   ggI2_B.UpdateValue(mvSecond->ShowCurrent(2)*1.05);
-      //   ggI2_B.Update();
-      //}
-      //if (ggI3_B.SubModel)
-      //{
-      //   ggI3_B.UpdateValue(mvSecond->ShowCurrent(3)*1.05);
-      //   ggI3_B.Update();
-      //}
-      //if (ggItotal_B.SubModel)
-      //{
-      //   ggItotal_B.UpdateValue(mvSecond->ShowCurrent(0)*1.05);
-      //   ggItotal_B.Update();
-      //}
-   }
-   else
-   {
-      //if (ggI1.SubModel)
-      //{
-      //   ggI1.UpdateValue(0);
-      //   ggI1.Update();
-      //}
-      //if (ggI2.SubModel)
-      //{
-      //   ggI2.UpdateValue(0);
-      //   ggI2.Update();
-      //}
-      //if (ggI3.SubModel)
-      //{
-      //   ggI3.UpdateValue(0);
-      //   ggI3.Update();
-      //}
-      //if (ggItotal.SubModel)
-      //{
-      //   ggItotal.UpdateValue(0);
-      //   ggItotal.Update();
-      //}
-      //if (ggI1_B.SubModel)
-      //{
-      //   ggI1_B.UpdateValue(0);
-      //   ggI1_B.Update();
-      //}
-      //if (ggI2_B.SubModel)
-      //{
-      //   ggI2_B.UpdateValue(0);
-      //   ggI2_B.Update();
-      //}
-      //if (ggI3_B.SubModel)
-      //{
-      //   ggI3_B.UpdateValue(0);
-      //   ggI3_B.Update();
-      //}
-      //if (ggItotal_B.SubModel)
-      //{
-      //   ggItotal_B.UpdateValue(0);
-      //   ggItotal_B.Update();
-      //}
-   }
-}
-
 //youBy - prad w drugim czlonie: galaz lub calosc
 {
    TDynamicObject *tmp;
@@ -2964,52 +2817,11 @@ else
      }
 
     Cabine[iCabn].Update(); //nowy sposób ustawienia animacji
-/*
-//Ra 2014-08: to ma teraz dzia³aæ w obiekcie TCab
-    if (ggCylHam.SubModel)
-     {
-      ggCylHam.UpdateValue(mvOccupied->BrakePress);
-      ggCylHam.Update();
-     }
-    if (ggCylHam_B.SubModel)
-     {
-      ggCylHam_B.UpdateValue(mvOccupied->BrakePress);
-      ggCylHam_B.Update();
-     }
-    if (ggPrzGl.SubModel)
-     {
-      ggPrzGl.UpdateValue(mvOccupied->PipePress);
-      ggPrzGl.Update();
-     }
-    if (ggPrzGl_B.SubModel)
-     {
-      ggPrzGl_B.UpdateValue(mvOccupied->PipePress);
-      ggPrzGl_B.Update();
-     }
-*/
     if (ggZbS.SubModel)
      {
       ggZbS.UpdateValue(mvOccupied->Handle->GetCP());
       ggZbS.Update();
      }
-/*
-// McZapkie! - zamiast pojemnosci cisnienie
-    if (ggZbGl.SubModel)
-     {
-      ggZbGl.UpdateValue(mvOccupied->Compressor);
-      ggZbGl.Update();
-     }
-    if (ggZbR.SubModel)
-    {//Ra 2014-07: PantPress jest niby tylko w elektrycznych...
-     ggZbR.UpdateValue(mvControlled->PantPress);
-     ggZbR.Update();
-    }
-    if (ggZbGl_B.SubModel)
-     {
-      ggZbGl_B.UpdateValue(mvOccupied->Compressor);
-      ggZbGl_B.Update();
-     }
-*/
 
     //if (ggHVoltage.SubModel)
     // {
@@ -3059,22 +2871,6 @@ else
         ggEnrot2m.UpdateValue(mvControlled->ShowEngineRotation(2));
         ggEnrot2m.Update();
        }
-      //if (ggI1.SubModel)
-      // {
-      //  ggI1.UpdateValue(abs(mvControlled->Im));
-      //  ggI1.Update();
-      // }
-      //if (ggI2.SubModel)
-      // {
-      //  ggI2.UpdateValue(abs(mvControlled->Im));
-      //  ggI2.Update();
-      // }
-      //if (ggHVoltage.SubModel)
-      // {
-      //  ggHVoltage.UpdateValue(mvControlled->Voltage);
-      //  ggHVoltage.Update();
-      // }
-
      }
 
 
@@ -4983,35 +4779,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     ggPantRearButton.Clear();
     ggPantFrontButtonOff.Clear();
     ggPantAllDownButton.Clear();
-    //ggVelocity.Clear();
-    //ggVelocity.Output(6); //Ra: prêdkoœæ na pin 43 - wyjœcie analogowe (to nie jest PWM)
-    //ggI1.Clear();
-    //ggI1.Output((mvControlled->TrainType&(dt_EZT))?-1:5); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
-    //ggI2.Clear();
-    //ggI2.Output(4); //Ra: sterowanie miernikiem: drugi amperomierz
-    //ggI3.Clear();
-    //ggI3.Output(3); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
-    //ggItotal.Clear();
-    //ggItotal.Output((mvControlled->TrainType&(dt_EZT))?5:-1); //Ra: kana³u komunikacji zwrotnej
-    //Ra 2014-08: przeniesione do TCab
-    //ggCylHam.Clear();
-    //ggCylHam.Output(2); //Ra: sterowanie miernikiem: cylinder hamulcowy
-    //ggPrzGl.Clear();
-    //ggPrzGl.Output(1); //Ra: sterowanie miernikiem: przewód g³ówny
-    //ggZbGl.Clear();
-    //ggZbGl.Output(0); //Ra: sterowanie miernikiem: zbiornik g³ówny
     ggZbS.Clear();
-    //ggZbR.Clear();
-
-    //ggVelocity_B.Clear();
-    //ggI1_B.Clear();
-    //ggI2_B.Clear();
-    //ggI3_B.Clear();
-    //ggItotal_B.Clear();
-    //ggCylHam_B.Clear();
-    //ggPrzGl_B.Clear();
-    //ggZbGl_B.Clear();
-
     ggI1B.Clear();
     ggI2B.Clear();
     ggI3B.Clear();
@@ -5021,8 +4789,6 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     ggClockMInd.Clear();
     ggClockHInd.Clear();
     ggEngineVoltage.Clear();
-    //ggHVoltage.Clear();
-    //ggHVoltage.Output(3); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
     ggLVoltage.Clear();
     //ggLVoltage.Output(0); //Ra: sterowanie miernikiem: niskie napiêcie
     ggEnrot1m.Clear();
@@ -5302,25 +5068,6 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     gg->AssignDouble(&mvOccupied->Compressor);
     //gg->Output(0); //Ra: sterowanie miernikiem: zbiornik g³ówny
    }
-   //*************************************************************
-   //Sekcja zdublowanych wskaznikow dla dwustronnych kabin
-   //else if (str==AnsiString("tachometerb:"))                    //predkosciomierz
-   // ggVelocity_B.Load(Parser,DynamicObject->mdKabina);
-   //else if (str==AnsiString("hvcurrent1b:"))                    //1szy amperomierz
-   // ggI1_B.Load(Parser,DynamicObject->mdKabina);
-   //else if (str==AnsiString("hvcurrent2b:"))                    //2gi amperomierz
-   // ggI2_B.Load(Parser,DynamicObject->mdKabina);
-   //else if (str==AnsiString("hvcurrent3b:"))                    //3ci amperomierz
-   // ggI3_B.Load(Parser,DynamicObject->mdKabina);
-   //else if (str==AnsiString("hvcurrentb:"))                     //amperomierz calkowitego pradu
-   // ggItotal_B.Load(Parser,DynamicObject->mdKabina);
-   //else if (str==AnsiString("brakepressb:"))                    //manometr cylindrow hamulcowych
-   // ggCylHam_B.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
-   //else if (str==AnsiString("pipepressb:"))                     //manometr przewodu hamulcowego
-   // ggPrzGl_B.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
-   //else if (str==AnsiString("compressorb:"))                    //manometr sprezarki/zbiornika glownego
-   // ggZbGl_B.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
-   //*************************************************************
    //yB - dla drugiej sekcji
    else if (str==AnsiString("hvbcurrent1:"))                    //1szy amperomierz
     ggI1B.Load(Parser,DynamicObject->mdKabina);
