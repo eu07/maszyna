@@ -7,6 +7,13 @@ class TConsoleDevice; //urz¹dzenie pod³¹czalne za pomoc¹ DLL
 class TPoKeys55;
 class TLPT;
 
+//klasy konwersji znaków wprowadzanych z klawiatury
+class TKeyTrans
+{//przekodowanie kodu naciœniêcia i zwolnienia klawisza
+public:
+ short int iDown,iUp;
+};
+
 class Console
 {//Ra: klasa statyczna gromadz¹ca sygna³y steruj¹ce oraz informacje zwrotne
  //Ra: stan wejœcia zmieniany klawiatur¹ albo dedykowanym urz¹dzeniem
@@ -24,6 +31,7 @@ private:
  //przy zmianie kabiny z PoKeys, do kabiny s¹ wysy³ane stany tych przycisków
  static int iSwitch[8]; //bistabilne w kabinie, za³¹czane z [Shift], wy³¹czane bez
  static int iButton[8]; //monostabilne w kabinie, za³¹czane podczas trzymania klawisza
+ static TKeyTrans ktTable[4*256]; //tabela wczesnej konwersji klawiatury
 public:
  __fastcall Console();
  __fastcall ~Console();
@@ -39,6 +47,8 @@ public:
  static unsigned char __fastcall DigitalGet(int x);
  static void __fastcall OnKeyDown(int k);
  static void __fastcall OnKeyUp(int k);
+ static int __fastcall KeyDownConvert(int k);
+ static int __fastcall KeyUpConvert(int k);
 };
 
 #endif

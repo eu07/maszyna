@@ -335,6 +335,7 @@ public:
 
 //McZapkie-010302
     TController *Mechanik;
+    TController *ctOwner; //wska¿nik na obiekt zarz¹dzaj¹cy sk³adem
     bool MechInside;
 //McZapkie-270202
     bool Controller;

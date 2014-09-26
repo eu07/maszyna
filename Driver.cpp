@@ -1237,6 +1237,7 @@ bool __fastcall TController::CheckVehicles(TOrders user)
     p->RaLightsSet(0,0); //gasimy œwiat³a
    d=p->DirectionSet(d?1:-1); //zwraca po³o¿enie nastêpnego (1=zgodny,0=odwrócony - wzglêdem czo³a sk³adu)
    p->fScanDist=300.0; //odleg³oœæ skanowania w poszukiwaniu innych pojazdów
+   p->ctOwner=this; //dominator oznacza swoje terytorium
    p=p->Next(); //pojazd pod³¹czony od ty³u (licz¹c od czo³a)
   }
   if (AIControllFlag)
@@ -2700,9 +2701,9 @@ bool __fastcall TController::UpdateSituation(double dt)
         if (p?p->MoverParameters->Couplers[d].CouplingFlag==0:true)
          iVehicleCount=-2; //odczepiono, co by³o do odczepienia
         else
-         if (!p->Dettach(d)) //zwraca maskê bitow¹ po³¹czenia
+         if (!p->Dettach(d)) //zwraca maskê bitow¹ po³¹czenia; usuwa w³asnoœæ pojazdów
          {//tylko jeœli odepnie
-          //WriteLog("Odczepiony od strony 0");
+          //WriteLog("Odczepiony od strony ");
           iVehicleCount=-2;
          } //a jak nie, to dociskaæ dalej
        }
@@ -3692,6 +3693,17 @@ double __fastcall TController::Distance(vector3 &p1,vector3 &n,vector3 &p2)
 };
 */
 
+bool __fastcall TController::BackwardTrackBusy(TTrack *Track)
+{//najpierw sprawdzamy, czy na danym torze s¹ pojazdy z innego sk³adu
+ if (Track->iNumDynamics)
+ {//jeœli tylko z w³asnego sk³adu, to tor jest wolny
+  for (int i=0;i<Track->iNumDynamics;++i)
+   if (Track->Dynamics[i]->ctOwner!=this) //jeœli jest jakiœ cudzy
+    return true; //to tor jest zajêty i skanowanie nie obowi¹zuje
+ }
+ return false; //wolny
+};
+
 TEvent* __fastcall TController::CheckTrackEventBackward(double fDirection,TTrack *Track)
 {//sprawdzanie eventu w torze, czy jest sygna³owym - skanowanie do ty³u
  TEvent* e=(fDirection>0)?Track->evEvent2:Track->evEvent1;
@@ -3700,7 +3712,7 @@ TEvent* __fastcall TController::CheckTrackEventBackward(double fDirection,TTrack
    if (e->Type==tp_GetValues) //PutValues nie mo¿e siê zmieniæ
     return e;
  return NULL;
-}
+};
 
 TTrack* __fastcall TController::BackwardTraceRoute(double &fDistance,double &fDirection,TTrack *Track,TEvent*&Event)
 {//szukanie sygnalizatora w kierunku przeciwnym jazdy (eventu odczytu komórki pamiêci)
@@ -3711,6 +3723,11 @@ TTrack* __fastcall TController::BackwardTraceRoute(double &fDistance,double &fDi
  double s=0;
  if (fDirection>0) //jeœli w kierunku Point2 toru
   fCurrentDistance=Track->Length()-fCurrentDistance;
+ if (BackwardTrackBusy(Track))
+ {//jak tor zajêty innym sk³adem, to nie ma po co skanowaæ
+  fDistance=0; //to na tym torze stoimy
+  return NULL; //stop, skanowanie nie da³o sensownych rezultatów
+ }
  if ((Event=CheckTrackEventBackward(fDirection,Track))!=NULL)
  {//jeœli jest semafor na tym torze
   fDistance=0; //to na tym torze stoimy
@@ -3739,7 +3756,7 @@ TTrack* __fastcall TController::BackwardTraceRoute(double &fDistance,double &fDi
    Track=Track->CurrentPrev(); //mo¿e byæ NULL
   }
   if (Track==pTrackFrom) Track=NULL; //koniec, tak jak dla torów
-  if (Track?(Track->VelocityGet()==0.0)||(Track->iDamageFlag&128):true)
+  if (Track?(Track->VelocityGet()==0.0)||(Track->iDamageFlag&128)||BackwardTrackBusy(Track):true)
   {//gdy dalej toru nie ma albo zerowa prêdkoœæ, albo uszkadza pojazd
    fDistance=s;
    return NULL; //zwraca NULL, ¿e skanowanie nie da³o sensownych rezultatów
@@ -4104,5 +4121,9 @@ void __fastcall TController::RouteSwitch(int d)
        }
     }
   }
+};
+AnsiString __fastcall TController::OwnerName()
+{
+ return pVehicle?pVehicle->MoverParameters->Name:AnsiString("none");
 };
 
