@@ -285,6 +285,7 @@ private: //Ra: metody obs³uguj¹ce skanowanie toru
  TCommandType __fastcall TableUpdate(double &fVelDes,double &fDist,double &fNext,double &fAcc);
  void __fastcall TablePurger();
 private: //Ra: stare funkcje skanuj¹ce, u¿ywane do szukania sygnalizatora z ty³u
+ bool __fastcall BackwardTrackBusy(TTrack *Track);
  TEvent* __fastcall CheckTrackEventBackward(double fDirection,TTrack *Track);
  TTrack* __fastcall BackwardTraceRoute(double &fDistance,double &fDirection,TTrack *Track,TEvent*&Event);
  void __fastcall SetProximityVelocity(double dist,double vel,const vector3 *pos);
@@ -307,6 +308,7 @@ public:
  AnsiString __fastcall TableText(int i);
  int __fastcall CrossRoute(TTrack *tr);
  void __fastcall RouteSwitch(int d);
+ AnsiString __fastcall OwnerName();
 };
 
 #endif

@@ -646,6 +646,9 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
 
 void __fastcall TWorld::OnKeyDown(int cKey)
 {//(cKey) to kod klawisza, cyfrowe i literowe siê zgadzaj¹
+ //Ra 2014-09: tu by mo¿na dodaæ tabelê konwersji: 256 wirtualnych kodów w kontekœcie dwóch prze³¹czników [Shift] i [Ctrl]
+ //na ka¿dy kod wirtualny niech przypadaj¹ 4 bajty: 2 dla naciœniêcia i 2 dla zwolnienia
+ //powtórzone 256 razy da 1kB na ka¿dy stan prze³¹czników, ³¹cznie bêdzie 4kB pierwszej tabeli przekodowania
  if (!Global::iPause)
  {//podczas pauzy klawisze nie dzia³aj¹
   AnsiString info="Key pressed: [";
@@ -1691,7 +1694,7 @@ bool __fastcall TWorld::Update()
       if (Global::iScreenMode[Global::iTextMode-VK_F1]==0)
       {//jeœli domyœlny ekran po pierwszym naciœniêciu
        OutText3="";
-       OutText1="Vehicle name:  "+AnsiString(tmp->MoverParameters->Name);
+       OutText1="Vehicle name: "+AnsiString(tmp->MoverParameters->Name);
 //yB       OutText1+="; d:  "+FloatToStrF(tmp->ABuGetDirection(),ffFixed,2,0);
        //OutText1=FloatToStrF(tmp->MoverParameters->Couplers[0].CouplingFlag,ffFixed,3,2)+", ";
        //OutText1+=FloatToStrF(tmp->MoverParameters->Couplers[1].CouplingFlag,ffFixed,3,2);
@@ -1699,6 +1702,8 @@ bool __fastcall TWorld::Update()
        {//ostatnia komenda dla AI
         OutText1+=", command: "+tmp->Mechanik->OrderCurrent();
        }
+       else if (tmp->ctOwner)
+        OutText1+=", owned by "+AnsiString(tmp->ctOwner->OwnerName());
        if (!tmp->MoverParameters->CommandLast.IsEmpty())
         OutText1+=AnsiString(", put: ")+tmp->MoverParameters->CommandLast;
        //OutText1+="; Cab="+AnsiString(tmp->MoverParameters->CabNo);

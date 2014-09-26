@@ -334,4 +334,12 @@ void __fastcall Console::OnKeyUp(int k)
   else
    iButton[char(k)>>5]&=~(1<<(k&31)); //wy³¹cz monostabilny podstawowy
 };
+int __fastcall Console::KeyDownConvert(int k)
+{
+ return int(ktTable[k&0x3FF].iDown);
+};
+int __fastcall Console::KeyUpConvert(int k)
+{
+ return int(ktTable[k&0x3FF].iUp);
+};
 

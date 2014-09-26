@@ -667,37 +667,16 @@ void __fastcall TTrain::OnKeyDown(int cKey)
       }
       else
       if (cKey==Global::Keys[k_Heating])   //Winger 020304: ogrzewanie skladu - wlaczenie
-      {
-              if (!FreeFlyModeFlag)
-              {
-                   if ((mvControlled->Heating==false)&&((mvControlled->EngineType==ElectricSeriesMotor)&&(mvControlled->Mains==true)||(mvControlled->ConverterFlag)))
-                   {
-                   mvControlled->Heating=true;
-                   dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                   dsbSwitch->Play(0,0,0);
-                   }
-              }
-/*
-              else
-              {Ra: przeniesione do World.cpp
-                 int CouplNr=-2;
-                 TDynamicObject *temp;
-                 temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 1500, CouplNr));
-                 if (temp==NULL)
-                 {
-                    CouplNr=-2;
-                    temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1, 1500, CouplNr));
-                 }
-                 if (temp)
-                 {
-                    if (temp->MoverParameters->IncBrakeMult())
-                     {
-                       dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                       dsbSwitch->Play(0,0,0);
-                     }
-                 }
-              }
-*/
+      {//Ra 2014-09: w trybie latania obs³uga jest w World.cpp
+       if (!FreeFlyModeFlag)
+       {
+        if ((mvControlled->Heating==false)&&((mvControlled->EngineType==ElectricSeriesMotor)&&(mvControlled->Mains==true)||(mvControlled->ConverterFlag)))
+        {
+         mvControlled->Heating=true;
+         dsbSwitch->SetVolume(DSBVOLUME_MAX);
+         dsbSwitch->Play(0,0,0);
+        }
+       }
       }
       else
       //ABu 060205: dzielo Wingera po malutkim liftingu:
@@ -1029,51 +1008,19 @@ void __fastcall TTrain::OnKeyDown(int cKey)
          else;
       else
       if (cKey==Global::Keys[k_IncLocalBrakeLevel])
-          {//ABu: male poprawki, zeby bylo mozna przyhamowac dowolny wagon
-              //int CouplNr=-2;
-              if (!FreeFlyModeFlag)
-              {
-               if (GetAsyncKeyState(VK_CONTROL)<0)
-                if ((mvOccupied->LocalBrake==ManualBrake)||(mvOccupied->MBrake==true))
-                {
-                mvOccupied->IncManualBrakeLevel(1);
-                }
-                else;
-               else if (mvOccupied->LocalBrake!=ManualBrake)
-                mvOccupied->IncLocalBrakeLevel(1);
-              }
-/* Ra: przeniesione do World.cpp
-              else
-              {
-                 TDynamicObject *temp;
-                 CouplNr=-2;
-                 temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 1500, CouplNr));
-                 if (temp==NULL)
-                 {
-                    CouplNr=-2;
-                    temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1, 1500, CouplNr));
-                 }
-                 if (temp)
-                 {
-                 if (GetAsyncKeyState(VK_CONTROL)<0)
-                   if ((temp->MoverParameters->LocalBrake==ManualBrake)||(temp->MoverParameters->MBrake==true))
-                   {
-                   temp->MoverParameters->IncManualBrakeLevel(1);
-                   }
-                   else;
-                  else
-                  if (temp->MoverParameters->LocalBrake!=ManualBrake)
-                   {
-                    if (temp->MoverParameters->IncLocalBrakeLevelFAST())
-                    {
-                       dsbPneumaticRelay->SetVolume(-80);
-                       dsbPneumaticRelay->Play(0,0,0);
-                    }
-                   }
-                 }
-              }
-*/
-          }
+      {//Ra 2014-09: w trybie latania obs³uga jest w World.cpp
+       if (!FreeFlyModeFlag)
+       {
+        if (GetAsyncKeyState(VK_CONTROL)<0)
+         if ((mvOccupied->LocalBrake==ManualBrake)||(mvOccupied->MBrake==true))
+         {
+         mvOccupied->IncManualBrakeLevel(1);
+         }
+         else;
+        else if (mvOccupied->LocalBrake!=ManualBrake)
+         mvOccupied->IncLocalBrakeLevel(1);
+       }
+      }
       else
       if (cKey==Global::Keys[k_DecLocalBrakeLevel])
       {//Ra 2014-06: wersja dla swobodnego latania przeniesiona do World.cpp
@@ -1796,7 +1743,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
        }
       }
       else if (cKey==Global::Keys[k_Heating])   //Winger 020304: ogrzewanie - wylaczenie
-      {
+      {//Ra 2014-09: w trybie latania obs³uga jest w World.cpp
        if (!FreeFlyModeFlag)
        {
         if (mvControlled->Heating==true)
@@ -1806,27 +1753,6 @@ void __fastcall TTrain::OnKeyDown(int cKey)
          mvControlled->Heating=false;
         }
        }
-/*
-       else
-       {//Ra: przeniesione do World.cpp
-        int CouplNr=-2;
-        TDynamicObject *temp;
-        temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),-1, 1500, CouplNr));
-        if (temp==NULL)
-        {
-         CouplNr=-2;
-         temp=(DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(),1, 1500, CouplNr));
-        }
-        if (temp)
-        {
-         if (temp->MoverParameters->DecBrakeMult())
-         {
-          dsbSwitch->SetVolume(DSBVOLUME_MAX);
-          dsbSwitch->Play(0,0,0);
-         }
-        }
-       }
-*/
       }
       else
       if (cKey==Global::Keys[k_LeftSign])   //ABu 060205: lewe swiatlo - wylaczenie
@@ -4985,88 +4911,71 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
    //SEKCJA WSKAZNIKOW
    else if ((str==AnsiString("tachometer:"))||(str==AnsiString("tachometerb:")))
    {//predkosciomierz wskazówkowy z szarpaniem
-    //ggVelocity.Load(Parser,DynamicObject->mdKabina);
     gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
     gg->Load(Parser,DynamicObject->mdKabina);
     gg->AssignFloat(&fTachoVelocityJump);
-    //gg->Output(6); //Ra: prêdkoœæ na pin 43 - wyjœcie analogowe (to nie jest PWM)
    }
    else if (str==AnsiString("tachometern:"))
    {//predkosciomierz wskazówkowy bez szarpania
-    //ggVelocity.Load(Parser,DynamicObject->mdKabina);
     gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
     gg->Load(Parser,DynamicObject->mdKabina);
     gg->AssignFloat(&fTachoVelocity);
-    //gg->Output(6); //Ra: prêdkoœæ na pin 43 - wyjœcie analogowe (to nie jest PWM)
    }
    else if (str==AnsiString("tachometerd:"))
    {//predkosciomierz cyfrowy
-    //ggVelocityDgt.Load(Parser,DynamicObject->mdKabina);
     gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
     gg->Load(Parser,DynamicObject->mdKabina);
     gg->AssignFloat(&fTachoVelocity);
-    //gg->Output(6); //Ra: prêdkoœæ na pin 43 - wyjœcie analogowe (to nie jest PWM)
    }
    else if ((str==AnsiString("hvcurrent1:"))||(str==AnsiString("hvcurrent1b:")))
    {//1szy amperomierz
-    //ggI1.Load(Parser,DynamicObject->mdKabina);
     gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
     gg->Load(Parser,DynamicObject->mdKabina);
     gg->AssignFloat(fHCurrent+1);
    }
    else if ((str==AnsiString("hvcurrent2:"))||(str==AnsiString("hvcurrent2b:")))
    {//2gi amperomierz
-    //ggI2.Load(Parser,DynamicObject->mdKabina);
     gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
     gg->Load(Parser,DynamicObject->mdKabina);
     gg->AssignFloat(fHCurrent+2);
    }
    else if ((str==AnsiString("hvcurrent3:"))||(str==AnsiString("hvcurrent3b:")))
    {//3ci amperomierz
-    //ggI3.Load(Parser,DynamicObject->mdKabina);
     gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
     gg->Load(Parser,DynamicObject->mdKabina);
     gg->AssignFloat(fHCurrent+3);
    }
    else if ((str==AnsiString("hvcurrent:"))||(str==AnsiString("hvcurrentb:")))
    {//amperomierz calkowitego pradu
-    //ggItotal.Load(Parser,DynamicObject->mdKabina);
     gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
     gg->Load(Parser,DynamicObject->mdKabina);
     gg->AssignFloat(fHCurrent);
    }
    else if ((str==AnsiString("brakepress:"))||(str==AnsiString("brakepressb:")))
    {//manometr cylindrow hamulcowych //Ra 2014-08: przeniesione do TCab
-    //ggCylHam.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
     gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
     gg->Load(Parser,DynamicObject->mdKabina,NULL,0.1);
     gg->AssignDouble(&mvOccupied->BrakePress);
-    //gg->Output(2); //Ra: sterowanie miernikiem: cylinder hamulcowy
    }
    else if ((str==AnsiString("pipepress:"))||(str==AnsiString("pipepressb:")))
    {//manometr przewodu hamulcowego
-    //ggPrzGl.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
     TGauge *gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
     gg->Load(Parser,DynamicObject->mdKabina,NULL,0.1);
     gg->AssignDouble(&mvOccupied->PipePress);
-    //gg->Output(1); //Ra: sterowanie miernikiem: przewód g³ówny
    }
    else if (str==AnsiString("limpipepress:"))                  //manometr zbiornika sterujacego zaworu maszynisty
     ggZbS.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
    else if (str==AnsiString("cntrlpress:"))
    {//manometr zbiornika kontrolnego/rorz¹du
-    //ggZbR.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
     gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
     gg->Load(Parser,DynamicObject->mdKabina,NULL,0.1);
     gg->AssignDouble(&mvControlled->PantPress);
    }
    else if ((str==AnsiString("compressor:"))||(str==AnsiString("compressorb:")))
    {//manometr sprezarki/zbiornika glownego
-    //ggZbGl.Load(Parser,DynamicObject->mdKabina,NULL,0.1);
     gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
     gg->Load(Parser,DynamicObject->mdKabina,NULL,0.1);
     gg->AssignDouble(&mvOccupied->Compressor);
-    //gg->Output(0); //Ra: sterowanie miernikiem: zbiornik g³ówny
    }
    //yB - dla drugiej sekcji
    else if (str==AnsiString("hvbcurrent1:"))                    //1szy amperomierz
@@ -5092,7 +5001,6 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     ggEngineVoltage.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("hvoltage:"))
    {//woltomierz wysokiego napiecia
-    //ggHVoltage.Load(Parser,DynamicObject->mdKabina);
     gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
     gg->Load(Parser,DynamicObject->mdKabina);
     gg->AssignFloat(&fHVoltage);
@@ -5113,7 +5021,6 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     ggIgnitionKey.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("distcounter:"))
    {//Ra 2014-07: licznik kilometrów
-    //ggDistCounter.Load(Parser,DynamicObject->mdKabina);
     gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
     gg->Load(Parser,DynamicObject->mdKabina,NULL,0.1);
     gg->AssignDouble(&mvControlled->DistCounter);

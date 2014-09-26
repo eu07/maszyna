@@ -982,6 +982,21 @@ int TDynamicObject::DettachStatus(int dir)
 int TDynamicObject::Dettach(int dir)
 {//roz³¹czenie sprzêgów rzeczywistych od strony (dir): 0=przód,1=ty³
  //zwraca maskê bitow¹ aktualnych sprzegów (0 jeœli roz³¹czony)
+ if (ctOwner)
+ {//jeœli pojazd ma przypisany obiekt nadzoruj¹cy sk³ad, to póki s¹ wskaŸniki
+  TDynamicObject *d=this;
+  while (d)
+  {
+   d->ctOwner=NULL; //usuwanie w³aœciciela
+   d=d->Prev();
+  }
+  d=Next();
+  while (d)
+  {
+   d->ctOwner=NULL; //usuwanie w³aœciciela
+   d=d->Next(); //i w drug¹ stronê
+  }
+ }
  if (MoverParameters->Couplers[dir].CouplingFlag) //odczepianie, o ile coœ pod³¹czone
   MoverParameters->Dettach(dir);
  return MoverParameters->Couplers[dir].CouplingFlag; //sprzêg po roz³¹czaniu (czego siê nie da odpi¹æ
@@ -1277,6 +1292,7 @@ __fastcall TDynamicObject::TDynamicObject()
  smLoadSet=NULL; //nastawa ³adunku (wajcha)
  smWiper=NULL; //wycieraczka (poniek¹d te¿ wajcha)
  fScanDist=300.0; //odleg³oœæ skanowania, zwiêkszana w trybie ³¹czenia
+ ctOwner=NULL; //na pocz¹tek niczyj
 }
 
 __fastcall TDynamicObject::~TDynamicObject()
