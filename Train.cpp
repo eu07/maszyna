@@ -3013,6 +3013,7 @@ if ( mvControlled->Signalling==true )
         if(( tmp->MoverParameters->BrakePress<0.075f*10 )|| (mvControlled->Battery==false)||(mvControlled->Signalling==false))
          { btLampkaHamowanie2zes.TurnOff(); }
         btLampkaNadmPrzetwB.Turn(!tmp->MoverParameters->ConverterFlag); //nadmiarowy czy za³¹czenie?
+        btLampkaPrzetwB.Turn(tmp->MoverParameters->ConverterFlag); //zalaczenie przetwornicy
       }
     else  //wylaczone
       {
@@ -3023,6 +3024,7 @@ if ( mvControlled->Signalling==true )
         btLampkaBezoporowaB.TurnOff();
         btLampkaHamowanie2zes.TurnOff();
         btLampkaNadmPrzetwB.TurnOn();
+        btLampkaPrzetwB.TurnOff();
       }
 
    //hunter-261211: jakis stary kod (i niezgodny z prawda), zahaszowalem
@@ -4768,6 +4770,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     btLampkaHamowanie1zes.Clear();
     btLampkaHamowanie2zes.Clear();
     btLampkaNadmPrzetwB.Clear();
+    btLampkaPrzetwB.Clear();    
     btLampkaWylSzybkiB.Clear();
     btLampkaForward.Clear();
     btLampkaBackward.Clear();
@@ -5129,6 +5132,8 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     btLampkaStycznB.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("i-conv_ovldb:"))
     btLampkaNadmPrzetwB.Load(Parser,DynamicObject->mdKabina);
+   else if (str==AnsiString("i-converterb:"))
+    btLampkaPrzetwB.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("i-forward:"))
     btLampkaForward.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("i-backward:"))
