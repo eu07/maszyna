@@ -205,6 +205,7 @@ public: //reszta mo¿e byæ publiczna
       TButton btLampkaStycznB;
       TButton btLampkaWylSzybkiB;
       TButton btLampkaNadmPrzetwB;
+      TButton btLampkaPrzetwB;      
  //KURS90 lampki jazdy bezoporowej dla EU04
       TButton btLampkaBezoporowaB;
       TButton btLampkaBezoporowa;
