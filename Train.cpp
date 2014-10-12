@@ -2300,10 +2300,10 @@ bool __fastcall TTrain::Update()
    //ggHVoltage.Output(3); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
    Console::ValueSet(3,fHVoltage); //woltomierz wysokiego napiêcia
    //ggI2.Output(4);
-   Console::ValueSet(4,fHCurrent[1]); //Ra: sterowanie miernikiem: pierwszy amperomierz
+   Console::ValueSet(4,fHCurrent[2]); //Ra: sterowanie miernikiem: drugi amperomierz
    //ggI1.Output((mvControlled->TrainType&(dt_EZT))?-1:5); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
    //ggItotal.Output((mvControlled->TrainType&(dt_EZT))?5:-1); //Ra: kana³u komunikacji zwrotnej
-   Console::ValueSet(5,fHCurrent[(mvControlled->TrainType&dt_EZT)?0:2]); //drugi amperomierz; dla EZT pr¹d ca³kowity
+   Console::ValueSet(5,fHCurrent[(mvControlled->TrainType&dt_EZT)?0:1]); //pierwszy amperomierz; dla EZT pr¹d ca³kowity
    //ggVelocity.Output(6); //Ra: prêdkoœæ na pin 43 - wyjœcie analogowe (to nie jest PWM)
    Console::ValueSet(6,fTachoVelocity); ////Ra: prêdkoœæ na pin 43 - wyjœcie analogowe (to nie jest PWM); skakanie zapewnia mechanika napêdu
   }
@@ -2748,15 +2748,6 @@ bool __fastcall TTrain::Update()
       ggZbS.UpdateValue(mvOccupied->Handle->GetCP());
       ggZbS.Update();
      }
-
-    //if (ggHVoltage.SubModel)
-    // {
-    //  if (mvControlled->EngineType!=DieselElectric)
-    //    ggHVoltage.UpdateValue(mvControlled->RunningTraction.TractionVoltage); //Winger czy to nie jest zle? *mvControlled->Mains);
-    //  else
-    //    ggHVoltage.UpdateValue(mvControlled->Voltage);
-    //  ggHVoltage.Update();
-    // }
 
 //youBy - napiecie na silnikach
     if (ggEngineVoltage.SubModel)
