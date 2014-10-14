@@ -44,8 +44,8 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asRelease="14.9.1121.456";
-AnsiString Global::asVersion="Compilation 2014-09-27, release "+Global::asRelease+"."; //tutaj, bo wysy³any
+AnsiString Global::asRelease="14.10.1124.457";
+AnsiString Global::asVersion="Compilation 2014-10-14, release "+Global::asRelease+"."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 int Global::iScreenMode[12]={0,0,0,0,0,0,0,0,0,0,0,0}; //numer ekranu wyœwietlacza tekstowego
@@ -352,7 +352,9 @@ void __fastcall Global::ConfigParse(TQueryParserComp *qp,cParser *cp)
     fMoveLight=(double)date-(double)TDate(y,1,1)+1; //numer bie¿¹cego dnia w roku
    }
    if (fMoveLight>0.0) //tu jest nadal zwiêkszone o 1
-   {//obliczenie deklinacji wg http://en.wikipedia.org/wiki/Declination (XX wiek)
+   {//obliczenie deklinacji wg:
+    //http://naturalfrequency.com/Tregenza_Sharples/Daylight_Algorithms/algorithm_1_11.htm
+    //Spencer J W Fourier series representation of the position of the sun Search 2 (5) 172 (1971)
     fMoveLight=M_PI/182.5*(Global::fMoveLight-1.0); //numer dnia w postaci k¹ta
     fSunDeclination=0.006918-0.3999120*cos(  fMoveLight)+0.0702570*sin(  fMoveLight)
                             -0.0067580*cos(2*fMoveLight)+0.0009070*sin(2*fMoveLight)
