@@ -2686,8 +2686,8 @@ void __fastcall TDynamicObject::Render()
   if (this==Global::pUserDynamic)
   {//specjalne ustawienie, aby nie trzês³o
    if (Global::bSmudge)
-   {//jak smuga, to rysowaæ po smudze
-    glPopMatrix(); //to trzeba zebraæ przed wyœciem
+   {//jak jest widoczna smuga, to pojazd renderowaæ po wyrenderowaniu smugi
+    glPopMatrix(); //a to trzeba zebraæ przed wyjœciem
     return;
    }
    //if (Global::pWorld->) //tu trzeba by ustawiæ animacje na modelu zewnêtrznym
