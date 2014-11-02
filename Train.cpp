@@ -3003,8 +3003,8 @@ if ( mvControlled->Signalling==true )
          { btLampkaHamowanie2zes.TurnOn(); }
         if(( tmp->MoverParameters->BrakePress<0.075f*10 )|| (mvControlled->Battery==false)||(mvControlled->Signalling==false))
          { btLampkaHamowanie2zes.TurnOff(); }
-        btLampkaNadmPrzetwB.Turn(!tmp->MoverParameters->ConverterFlag); //nadmiarowy czy za³¹czenie?
-        btLampkaPrzetwB.Turn(tmp->MoverParameters->ConverterFlag); //zalaczenie przetwornicy
+        btLampkaNadmPrzetwB.Turn(tmp->MoverParameters->ConvOvldFlag); //nadmiarowy przetwornicy?
+        btLampkaPrzetwB.Turn(!tmp->MoverParameters->ConverterFlag); //zalaczenie przetwornicy
       }
     else  //wylaczone
       {
